@@ -1,1 +1,6 @@
 This is my personal fork of UnNethack. 
+
+Change log of things I find annoying.
+
+* I didn't like getting to mine town and there being only 2 bad shops, so now there are lots of shops
+* Shops having their doors locked for "Closed for inventory", turned that off game wide
