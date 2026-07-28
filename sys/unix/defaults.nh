@@ -59,12 +59,15 @@ MENUCOLOR=" cursed "=red
 MENUCOLOR=" unholy "=red
 MENUCOLOR=" cursed .* (being worn)"=orange&underline
 
-MENUCOLOR="loadstone\|wand \(of\|called\) cancellation"=underline
-MENUCOLOR="Amulet of Yendor named"=magenta                           # color only the real Amulet
+MENUCOLOR="loadstone\|wand \(of\|called\) cancellation"=white&underline
+# color only the real Amulet
+MENUCOLOR="Amulet of Yendor named"=magenta
 MENUCOLOR="gold piece"=yellow
 
-MENUCOLOR=". -.* \[(Unskilled|Basic|Skilled|Expert|Master)"=white # skill slots
-MENUCOLOR="[a-zA-Z] - [a-zA-Z ]+[ ]+[0-9]+\*[ ]+[a-z]+[ ]+[0-9]+%"=magenta  # forgotten spell
+# skill slots
+MENUCOLOR=". -.* \[(Unskilled|Basic|Skilled|Expert|Master)"=white
+# forgotten spell
+MENUCOLOR="[a-zA-Z] - [a-zA-Z ]+[ ]+[0-9]+\*[ ]+[a-z]+[ ]+[0-9]+%"=magenta
 
 
 # Colorize the status line values
