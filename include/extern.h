@@ -1064,6 +1064,7 @@ extern void delobj_core(struct obj *, boolean) NONNULLARG1;
 extern struct obj *sobj_at(int, coordxy, coordxy);
 extern struct obj *nxtobj(struct obj *, int, boolean);
 extern struct obj *carrying(int);
+extern boolean has_lit_magic_lamp(void);
 extern boolean have_lizard(void);
 extern struct obj *o_on(unsigned int, struct obj *);
 extern boolean obj_here(struct obj *, coordxy, coordxy);
