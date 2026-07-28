@@ -789,6 +789,21 @@ carrying(int type)
     return (struct obj *) 0;
 }
 
+/* a lit magic lamp grants the same sight as the Eyes of the Overworld:
+   see Blind in youprop.h and the xray checks in vision.c */
+boolean
+has_lit_magic_lamp(void)
+{
+    struct obj *otmp;
+
+    for (otmp = invent; otmp; otmp = otmp->nobj) {
+        if (otmp->otyp == MAGIC_LAMP && otmp->lamplit) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 /** Fictional and not-so-fictional currencies.
  * http://concord.wikia.com/wiki/List_of_Fictional_Currencies */
 static const char * const currencies[] = {

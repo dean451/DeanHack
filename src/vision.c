@@ -533,6 +533,7 @@ vision_recalc(int control)
     static unsigned char colbump[COLNO+1];   /* cols to bump sv */
     seenV *sv;                               /* ptr to seen angle bits */
     int oldseenv;                            /* previous seenv value */
+    int eff_xray_range; /* u.xray_range, plus a lit magic lamp's bonus */
 
     vision_full_recalc = 0; /* reset flag */
     if (in_mklev || !iflags.vision_inited) {
@@ -645,11 +646,15 @@ vision_recalc(int control)
         /*
          * Set the IN_SIGHT bit for xray and night vision.
          */
-        if (u.xray_range >= 0) {
-            if (u.xray_range) {
-                ranges = circle_ptr(u.xray_range);
+        eff_xray_range = u.xray_range;
+        if (has_lit_magic_lamp() && eff_xray_range < 3) {
+            eff_xray_range = 3;
+        }
+        if (eff_xray_range >= 0) {
+            if (eff_xray_range) {
+                ranges = circle_ptr(eff_xray_range);
 
-                for (row = u.uy-u.xray_range; row <= u.uy+u.xray_range; row++) {
+                for (row = u.uy-eff_xray_range; row <= u.uy+eff_xray_range; row++) {
                     if (row < 0) {
                         continue;
                     }
@@ -684,7 +689,7 @@ vision_recalc(int control)
             }
         }
 
-        if (has_night_vision && u.xray_range < u.nv_range) {
+        if (has_night_vision && eff_xray_range < u.nv_range) {
             if (!u.nv_range) { /* range is 0 */
                 next_array[u.uy][u.ux] |= IN_SIGHT;
                 levl[u.ux][u.uy].seenv = SVALL;
@@ -2967,7 +2972,9 @@ unsigned
 how_mon_is_seen(struct monst *mon)
 {
     boolean useemon = (boolean) canseemon(mon);
-    int xraydist = (u.xray_range < 0) ? -1 : (u.xray_range * u.xray_range);
+    int eff_xray_range = (has_lit_magic_lamp() && u.xray_range < 3)
+                              ? 3 : u.xray_range;
+    int xraydist = (eff_xray_range < 0) ? -1 : (eff_xray_range * eff_xray_range);
     unsigned how_seen = 0; /* result */
 
     /* normal vision;
