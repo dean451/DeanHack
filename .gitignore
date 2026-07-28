@@ -77,16 +77,19 @@ tests/wishing/test_wishing
 # /util/
 /util/*.o
 /util/Makefile
+/util/dgn.tab.h
 /util/dgn_comp
 /util/dgn_lex.c
 /util/dgn_yacc.c
 /util/dlb
+/util/lev.tab.h
 /util/lev_comp
 /util/lev_lex.c
 /util/lev_yacc.c
 /util/makedefs
 /util/recover
 /util/tilemap
+/util/tilemap.dSYM/
 /util/tile2x11
 
 # /win/
