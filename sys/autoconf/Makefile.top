@@ -40,7 +40,11 @@ GAMEGRP  = @GROUP@
 
 # Permissions - some places use setgid instead of setuid, for instance
 # See also the option "SECURE" in include/config.h
-GAMEPERM = 04755
+# setuid is only needed for shared multi-user installs (so all players can
+# safely write one common scoreboard file); on modern macOS a setuid,
+# unsigned binary gets silently SIGKILLed by the kernel, so default to a
+# plain non-setuid install instead.
+GAMEPERM = 0755
 FILEPERM = 0644
 EXEPERM  = 0755
 DIRPERM  = 0755
