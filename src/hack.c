@@ -1457,11 +1457,13 @@ autotravel_weighting(coordxy x, coordxy y, unsigned int distance)
     /* favor rooms, but not closed doors */
     int roomno = levl[x][y].roomno;
     if (roomno && !(cmap == S_hcdoor || cmap == S_vcdoor)) {
-        return distance * 2;
+        return distance;
     }
 
-    /* by default return distance multiplied by a large constant factor */
-    return distance*10;
+    /* by default apply only a mild penalty for corridors/open frontier,
+       just enough to gently prefer finishing the current room before
+       wandering off, without overriding tiles that are actually closer */
+    return distance*2;
 }
 
 
@@ -2071,6 +2073,12 @@ domove(void)
             if (Strangled) {
                 pline("You stop exploring, because the pressure on your "
                       "%s is a more pressing matter.", body_part(NECK));
+                flags.move = 0;
+                nomul(0, 0);
+                return;
+            }
+            if (u.uhs >= WEAK) {
+                pline("You are too weak to explore.");
                 flags.move = 0;
                 nomul(0, 0);
                 return;
