@@ -5960,6 +5960,17 @@ retry:
         goto retry;
     }
 
+    if (otmp != &zeroobj) {
+        char qbuf[BUFSZ];
+
+        Sprintf(qbuf, "Wish for %s?", doname(otmp));
+        if (yn(qbuf) == 'n') {
+            obfree(otmp, (struct obj *) 0);
+            otmp = &zeroobj;
+            goto retry;
+        }
+    }
+
     if (magical_object) {
         u.uconduct.wishmagic++;
     }
