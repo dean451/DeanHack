@@ -195,27 +195,27 @@ ROOM: "ordinary" , lit, (3,3), (center,center), (31,15)
 FOUNTAIN: (13, 7)
 FOUNTAIN: (20, 7)
 
-SUBROOM: "shop" [90%] , lit, (2,2), (3,4)
+SUBROOM: "shop", lit, (2,2), (3,4)
 {
 ROOMDOOR: false, closed, south, random
 }
 
-SUBROOM: "tool shop" [90%], lit, (2,9), (3,4)
+SUBROOM: "tool shop", lit, (2,9), (3,4)
 {
 ROOMDOOR: false, closed, north, random
 }
 
-SUBROOM: "ordinary", unlit, (6,2), (3,4)
+SUBROOM: "armor shop", unlit, (6,2), (3,4)
 {
 ROOMDOOR: false, closed, south, random
 }
 
-SUBROOM: "ordinary", lit, (6,9), (3,4)
+SUBROOM: "weapon shop", lit, (6,9), (3,4)
 {
 ROOMDOOR: false, closed, north, random
 }
 
-SUBROOM: "food shop" [90%], lit, (10,2), (2,3)
+SUBROOM: "food shop", lit, (10,2), (2,3)
 {
 ROOMDOOR: false, closed, south, random
 }
@@ -225,15 +225,15 @@ SUBROOM: "candle shop", lit, (22,2), (3,3)
 ROOMDOOR: false, closed, south, random
 }
 
-SUBROOM: "ordinary", unlit, (10,10), (2,3)
+SUBROOM: "ring shop", unlit, (10,10), (2,3)
 {
-ROOMDOOR: false, locked, east, random
+ROOMDOOR: false, closed, east, random
 MONSTER:('G',"gnome"),random
 }
 
-SUBROOM: "ordinary", lit, (19,2),  (2,3)
+SUBROOM: "scroll shop", lit, (19,2),  (2,3)
 {
-ROOMDOOR: false, locked, west, random
+ROOMDOOR: false, closed, west, random
 MONSTER:('G',"gnome"),random
 }
 
@@ -245,18 +245,18 @@ MONSTER:('G',"gnomish wizard"),random
 MONSTER:('G',"gnomish wizard"),random
 }
 
-SUBROOM: "ordinary", lit, (22,10), (2,3)
+SUBROOM: "wand shop", lit, (22,10), (2,3)
 {
-ROOMDOOR: false, locked, west, random
+ROOMDOOR: false, closed, west, random
 }
 
-SUBROOM: "ordinary", lit, (26,2), (3,3)
+SUBROOM: "book shop", lit, (26,2), (3,3)
 {
 ROOMDOOR: false, closed, south, random
 MONSTER:('G',"gnome lord"), random
 }
 
-SUBROOM: "ordinary", unlit, (25,10), (4,3)
+SUBROOM: "potion shop", unlit, (25,10), (4,3)
 {
 ROOMDOOR: false, closed, north, random
 }
@@ -305,69 +305,69 @@ FLAGS: noflip
 ROOM: "ordinary" , lit, (3,3), (center,center), (31,15)
 {
 
-SUBROOM: "ordinary", random, (2,0), (2,2)
+SUBROOM: "armor shop", random, (2,0), (2,2)
 {
 ROOMDOOR: false, closed, west|south, random
 }
 
-SUBROOM: "ordinary", unlit, (5,0), (2,2)
+SUBROOM: "weapon shop", unlit, (5,0), (2,2)
 {
 ROOMDOOR: false, closed, west|south|east, random
 }
 
-SUBROOM: "ordinary", random, (8,0), (2,2)
+SUBROOM: "scroll shop", random, (8,0), (2,2)
 {
 ROOMDOOR: false, closed, east|south, random
 }
 
-SUBROOM: "ordinary", lit, (16,0), (2,2)
+SUBROOM: "potion shop", lit, (16,0), (2,2)
 {
 ROOMDOOR: false, closed, west|south, random
 }
 
-SUBROOM: "ordinary", unlit, (19,0), (2,2)
+SUBROOM: "ring shop", unlit, (19,0), (2,2)
 {
 ROOMDOOR: false, closed, west|south, random
 }
 
-SUBROOM: "ordinary", random, (22,0), (2,2)
+SUBROOM: "wand shop", random, (22,0), (2,2)
 {
-ROOMDOOR: false, locked, west|south, random
+ROOMDOOR: false, closed, west|south, random
 MONSTER:('G',"gnome"),random
 }
 
-SUBROOM: "ordinary", unlit, (25,0), (2,2)
+SUBROOM: "book shop", unlit, (25,0), (2,2)
 {
 ROOMDOOR: false, closed, east|south|west, random
 }
 
-SUBROOM: "ordinary", lit, (2,5), (2,2)
+SUBROOM: "tin shop", lit, (2,5), (2,2)
 {
 ROOMDOOR: false, closed, north|south|west, random
 }
 
-SUBROOM: "ordinary", random, (8,5), (2,2)
+SUBROOM: "music shop", random, (8,5), (2,2)
 {
-ROOMDOOR: false, locked, north|south|east, random
+ROOMDOOR: false, closed, north|south|east, random
 MONSTER:('G',"gnome"),random
 }
 
-SUBROOM: "ordinary", lit, (5,5), (2,2)
+SUBROOM: "pet shop", lit, (5,5), (2,2)
 {
 ROOMDOOR: false, closed, north|south|east|west, random
 }
 
-SUBROOM: "shop" [90%], lit, (2,10), (4,3)
+SUBROOM: "shop", lit, (2,10), (4,3)
 {
 ROOMDOOR: false, closed, north|south|west, random
 }
 
-SUBROOM: "tool shop" [90%], lit, (23,10), (4,3)
+SUBROOM: "tool shop", lit, (23,10), (4,3)
 {
 ROOMDOOR: false, closed, south|east, random
 }
 
-SUBROOM: "food shop" [90%], lit, (24,5), (3,4)
+SUBROOM: "food shop", lit, (24,5), (3,4)
 {
 ROOMDOOR: false, closed, north|east, random
 }
@@ -377,9 +377,9 @@ SUBROOM: "candle shop", lit, (11,10), (4,3)
 ROOMDOOR: false, closed, north|south|east, random
 }
 
-SUBROOM: "ordinary", unlit, (7,10), (3,3)
+SUBROOM: "armor shop", unlit, (7,10), (3,3)
 {
-ROOMDOOR: false, locked, north|south, random
+ROOMDOOR: false, closed, north|south, random
 MONSTER:('G',"gnome"),random
 }
 
@@ -391,9 +391,9 @@ MONSTER:('G',"gnomish wizard"),random
 MONSTER:('G',"gnomish wizard"),random
 }
 
-SUBROOM: "ordinary", lit, (18,10), (4,3)
+SUBROOM: "weapon shop", lit, (18,10), (4,3)
 {
-ROOMDOOR: false, locked, south|west, random
+ROOMDOOR: false, closed, south|west, random
 MONSTER:('G',"gnome lord"), random
 }
 
@@ -443,23 +443,23 @@ FLAGS: noflip
 ROOM: "ordinary",lit,(3,3),(center,center),(31,15)
 {
 
-SUBROOM:"ordinary",random,(2,2),(2,2)
+SUBROOM:"scroll shop",random,(2,2),(2,2)
 {
 ROOMDOOR: false,closed,south,random
 }
 
-SUBROOM:"tool shop" [30%],lit,(5,3),(2,3)
+SUBROOM:"tool shop",lit,(5,3),(2,3)
 {
 ROOMDOOR: false,closed,south,random
 }
 
-SUBROOM:"ordinary",random,(2,10),(2,3)
+SUBROOM:"potion shop",random,(2,10),(2,3)
 {
-ROOMDOOR: false, locked, north, random
+ROOMDOOR: false, closed, north, random
 MONSTER: 'G',random
 }
 
-SUBROOM:"ordinary",random,(5,9),(2,2)
+SUBROOM:"ring shop",random,(5,9),(2,2)
 {
 ROOMDOOR: false,closed,north,random
 }
@@ -472,7 +472,7 @@ MONSTER: ('G', "gnomish wizard"), random
 MONSTER: ('G', "gnomish wizard"), random
 }
 
-SUBROOM:"ordinary",random,(11,7),(2,2)
+SUBROOM:"book shop",random,(11,7),(2,2)
 {
 ROOMDOOR: false,closed,west,random
 }
@@ -482,44 +482,44 @@ SUBROOM:"shop",lit,(10,10),(3,3)
 ROOMDOOR:false,closed,west,random
 }
 
-SUBROOM:"ordinary",random,(14,8),(2,2)
+SUBROOM:"tin shop",random,(14,8),(2,2)
 {
-ROOMDOOR:false,locked,north,random
+ROOMDOOR:false,closed,north,random
 MONSTER: 'G',random
 }
 
-SUBROOM:"ordinary",random,(14,11),(2,2)
+SUBROOM:"music shop",random,(14,11),(2,2)
 {
 ROOMDOOR:false,closed,south,random
 }
 
-SUBROOM:"tool shop" [40%],lit,(17,10),(3,3)
+SUBROOM:"armor shop",lit,(17,10),(3,3)
 {
 ROOMDOOR:false,closed,north,random
 }
 
-SUBROOM:"ordinary",random,(21,11),(2,2)
+SUBROOM:"pet shop",random,(21,11),(2,2)
 {
-ROOMDOOR:false,locked,east,random
+ROOMDOOR:false,closed,east,random
 MONSTER:'G',random
 }
 
-SUBROOM:"food shop" [90%],lit,(26,8),(3,2)
+SUBROOM:"food shop",lit,(26,8),(3,2)
 {
 ROOMDOOR:false,closed,west,random
 }
 
-SUBROOM:"ordinary",random,(16,2),(2,2)
+SUBROOM:"weapon shop",random,(16,2),(2,2)
 {
 ROOMDOOR:false,closed,west,random
 }
 
-SUBROOM:"ordinary",random,(19,2),(2,2)
+SUBROOM:"scroll shop",random,(19,2),(2,2)
 {
 ROOMDOOR:false,closed,north,random
 }
 
-SUBROOM:"wand shop" [30%],lit,(19,5),(3,2)
+SUBROOM:"wand shop",lit,(19,5),(3,2)
 {
 ROOMDOOR:false,closed,west,random
 }
@@ -578,7 +578,7 @@ SUBROOM:"book shop",lit,(4,2),(3,3)
 ROOMDOOR: false,closed,south,random
 }
 
-SUBROOM:"ordinary",random,(8,2),(2,2)
+SUBROOM:"armor shop",random,(8,2),(2,2)
 {
 ROOMDOOR: false,closed,south,random
 }
@@ -591,7 +591,7 @@ MONSTER:('G',"gnomish wizard"),random
 MONSTER:('G',"gnomish wizard"),random
 }
 
-SUBROOM:"ordinary",random,(19,2),(2,2)
+SUBROOM:"weapon shop",random,(19,2),(2,2)
 {
 ROOMDOOR: false,closed,south,random
 MONSTER: 'G', random
@@ -602,13 +602,13 @@ SUBROOM:"candle shop",lit,(22,2),(3,3)
 ROOMDOOR:false,closed,south,random
 }
 
-SUBROOM:"ordinary",random,(26,2),(2,2)
+SUBROOM:"ring shop",random,(26,2),(2,2)
 {
-ROOMDOOR:false,locked,east,random
+ROOMDOOR:false,closed,east,random
 MONSTER: 'G',random
 }
 
-SUBROOM:"tool shop" [90%],lit,(4,10),(3,3)
+SUBROOM:"tool shop",lit,(4,10),(3,3)
 {
 ROOMDOOR:false,closed,north,random
 }
@@ -622,23 +622,23 @@ MONSTER:('f',"kitten"),random
 MONSTER:'f',random
 }
 
-SUBROOM:"food shop" [90%],lit,(11,11),(3,2)
+SUBROOM:"food shop",lit,(11,11),(3,2)
 {
 ROOMDOOR:false,closed,east,random
 }
 
-SUBROOM:"ordinary",random,(17,11),(2,2)
+SUBROOM:"wand shop",random,(17,11),(2,2)
 {
 ROOMDOOR:false,closed,west,random
 }
 
-SUBROOM:"ordinary",random,(20,10),(2,2)
+SUBROOM:"pet shop",random,(20,10),(2,2)
 {
-ROOMDOOR:false,locked,north,random
+ROOMDOOR:false,closed,north,random
 MONSTER:'G',random
 }
 
-SUBROOM:"shop" [90%],lit,(23,10),(3,3)
+SUBROOM:"shop",lit,(23,10),(3,3)
 {
 ROOMDOOR:false,closed,north,random
 }
@@ -812,7 +812,7 @@ STAIR:levregion(01,03,20,19),(0,0,39,15),up
 STAIR:levregion(61,03,75,19),(0,0,39,15),down
 FOUNTAIN:(22,07)
 FOUNTAIN:(09,13)
-REGION:(13,5,14,6),unlit,"ordinary"
+REGION:(13,5,14,6),unlit,"armor shop"
 REGION:(9,7,11,9),lit,"candle shop"
 REGION:(16,4,18,6),lit,"tool shop"
 REGION:(23,1,25,3),lit,"shop"
@@ -826,7 +826,7 @@ DOOR:closed,(5,2)
 DOOR:locked,(4,8)
 DOOR:closed,(10,2)
 DOOR:closed,(10,10)
-DOOR:locked,(13,7)
+DOOR:closed,(13,7)
 DOOR:locked,(14,9)
 DOOR:closed,(19,5)
 DOOR:closed,(19,10)
@@ -868,17 +868,17 @@ FLAGS: noflip
 ROOM: "ordinary" , lit, (3,3), (center,center), (30,15)
 {
 
-SUBROOM: "ordinary", random, (2,2), (4,2)
+SUBROOM: "music shop", random, (2,2), (4,2)
 {
 ROOMDOOR: false, closed, south, random
 }
 
-SUBROOM: "ordinary", random, (7,2), (2,2)
+SUBROOM: "tin shop", random, (7,2), (2,2)
 {
 ROOMDOOR: false, closed, north, random
 }
 
-SUBROOM: "ordinary", random, (7,5), (2,2)
+SUBROOM: "potion shop", random, (7,5), (2,2)
 {
 ROOMDOOR: false, closed, south, random
 }
@@ -898,7 +898,7 @@ ROOMDOOR: false, closed, south, 0
 MONSTER: 'n', random
 }
 
-SUBROOM: "ordinary", random, (16,5), (2,2)
+SUBROOM: "armor shop", random, (16,5), (2,2)
 {
 ROOMDOOR: false, closed, south, random
 }
@@ -909,17 +909,17 @@ ROOMDOOR: false, locked, east, random
 MONSTER:('G',"gnome king"),random
 }
 
-SUBROOM: "food shop" [50%], lit, (19,5), (2,3)
+SUBROOM: "food shop", lit, (19,5), (2,3)
 {
 ROOMDOOR: false, closed, south, random
 }
 
-SUBROOM: "ordinary", random, (2,7), (2,2)
+SUBROOM: "ring shop", random, (2,7), (2,2)
 {
 ROOMDOOR: false, closed, east, random
 }
 
-SUBROOM: "tool shop" [50%], lit, (2,10), (2,3)
+SUBROOM: "tool shop", lit, (2,10), (2,3)
 {
 ROOMDOOR: false, closed, south, random
 }
@@ -929,18 +929,18 @@ SUBROOM: "candle shop", lit, (5,10),(3,3)
 ROOMDOOR: false, closed, north, random
 }
 
-SUBROOM: "ordinary", random, (11,10), (2,2)
+SUBROOM: "scroll shop", random, (11,10), (2,2)
 {
-ROOMDOOR: false, locked, west, random
+ROOMDOOR: false, closed, west, random
 MONSTER: 'G',random
 }
 
-SUBROOM: "shop" [60%], lit, (14,10), (2,3)
+SUBROOM: "shop", lit, (14,10), (2,3)
 {
 ROOMDOOR: false, closed, north, random
 }
 
-SUBROOM: "ordinary", random, (17,11), (4,2)
+SUBROOM: "book shop", random, (17,11), (4,2)
 {
 ROOMDOOR: false, closed, north, random
 }
@@ -951,12 +951,12 @@ ROOMDOOR: false, closed, south, random
 SINK: (00,00)
 }
 
-SUBROOM: "food shop" [50%], lit, (25,11), (3,2)
+SUBROOM: "pet shop", lit, (25,11), (3,2)
 {
 ROOMDOOR: false, closed, east, random
 }
 
-SUBROOM: "tool shop" [30%], lit, (25,2), (3,3)
+SUBROOM: "wand shop", lit, (25,2), (3,3)
 {
 ROOMDOOR: false, closed, west, random
 }

@@ -555,7 +555,11 @@ dosdoor(coordxy x, coordxy y, struct mkroom *aroom, int type)
     levl[x][y].typ = type;
     if (type == DOOR) {
         if (!rn2(3)) {      /* is it a locked door, closed, or a doorway? */
-            if (!rn2(5)) {
+            if (shdoor) {
+                /* shop doors are never locked -- no "Closed for
+                   inventory" nuisance */
+                levl[x][y].doormask = !rn2(5) ? D_ISOPEN : D_CLOSED;
+            } else if (!rn2(5)) {
                 levl[x][y].doormask = D_ISOPEN;
             } else if (!rn2(6)) {
                 levl[x][y].doormask = D_LOCKED;
@@ -586,7 +590,7 @@ dosdoor(coordxy x, coordxy y, struct mkroom *aroom, int type)
         }
         /* newsym(x,y); */
     } else { /* SDOOR */
-        if (shdoor || !rn2(5)) {
+        if (!shdoor && !rn2(5)) {
             levl[x][y].doormask = D_LOCKED;
         } else {
             levl[x][y].doormask = D_CLOSED;
