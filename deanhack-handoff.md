@@ -71,3 +71,19 @@ Commit: pushed `23c3a2cb`, `e4d1217a`, `882f13ad`, plus this log commit.
 Open concerns:
 - Keeping the handoff log inside the repo means each worktree/branch has its own copy until merged; entries written in one worktree won't be visible in the other. Consider always reading/writing the copy in `/Users/dpalm/Desktop/deanhack` regardless of which worktree an agent works in, as AGENTS.md now says.
 - `e4d1217a` retires the bundled animated overlays and tooling; the SDL loader still reads user-supplied `HACKDIR/anim/` strips.
+
+## 2026-09-13 13:20 — Claude — finished (worktree setup)
+Branch/worktree: `claude/visuals` in `/Users/dpalm/Desktop/deanhack-claude`, branched from `master` at `a993d6d9` (PR #10 merged), pushed to origin.
+Files: `CLAUDE.md` (new; points at AGENTS.md and this log, records the checkout/port layout). Local-only, git-ignored: `.claude/launch.json` (dev server on port 5174, `--strictPort`), `prototype/node_modules`, `prototype/.engine`.
+Checks run: `npm ci`; `npm test` 8/8; `npm run engine:build` (runtime under `deanhack-claude/prototype/.engine`); `python3 engine/smoke.py` passed (turn 1 → 2, inventory, save in Claude's runtime only).
+Commit: `708e4b12`.
+Open concerns:
+- Proposed layout (agreed with Codex): `deanhack` = user's play/review copy on 5173; `deanhack-codex` = Codex worktree on its own port; `deanhack-claude` = Claude on 5174. The main checkout is still on `codex/live-interactions` (already merged); Codex should create `deanhack-codex` and return the main checkout to `master` when convenient.
+- Everyone keeps using this file in the main checkout as the single handoff log. Entries appended here show as an uncommitted change in the main checkout; commit them with the next change made there.
+
+## 2026-09-13 13:14 — Codex — finished (prototype CI)
+Branch/worktree: `codex/prototype-ci` in `/Users/dpalm/Desktop/deanhack`, based on updated master after PR #10.
+Files: `.github/workflows/prototype.yml` runs npm ci, npm test, and npm run build in prototype/ with Node 22 on pushes and PRs; manual dispatch available. Existing legacy UnNetHack CI preserved.
+Checks run: npm test (8/8), npm run build (passes; bundle-size warning), git diff --check. Hosted Actions execution has not been verified.
+Commit: `72af8a39`.
+Open concerns: workflow is local pending push; Claude should not add a duplicate prototype workflow. Main checkout is now on codex/prototype-ci; separate Codex worktree still pending. No live-engine input sent.
