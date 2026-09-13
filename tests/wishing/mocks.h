@@ -60,6 +60,7 @@ int doredraw() { return 0; }
 boolean on_level(d_level *a, d_level *b) { return FALSE; }
 
 void vision_recalc(int a) {}
+boolean has_lit_magic_lamp(void) { return FALSE; }
 void choose_windows(const char *str) {}
 void reassign() {}
 
