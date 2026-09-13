@@ -58,16 +58,14 @@ port today means:
    `-L/opt/homebrew/lib`).
 
 3. Rebuild (`cd src && make`), then `make install` from the repo root
-   to stage the binary -- this does NOT yet copy tilesets/unchozo32b.png
-   into the install target, so see "Tileset placement" below.
+   to stage the binary and legacy tilesheet.
 
 Tileset placement
 ------------------
 sdl_init_nhwindows() looks for the tileset relative to the current
 directory, which is HACKDIR by the time it runs (the game chdir()s
 there at startup) -- see sdl_tile_candidates in win/sdl/sdlmain.c.
-`make install` copies tilesets/unchozo32b.png and tilesets/anim/*.png
-into HACKDIR automatically. If the sheet is missing, the port still
+`make install` copies tilesets/unchozo32b.png into HACKDIR automatically. If the sheet is missing, the port still
 runs -- it just draws colored characters instead of tiles.
 
 Known gaps (intentionally deferred, not bugs)
@@ -88,32 +86,9 @@ Known gaps (intentionally deferred, not bugs)
 session losing its terminal, and '#' extended commands work via a
 typed prompt with prefix matching -- both were gaps earlier.)
 
-Animated tile overlays
-----------------------
-Drop PNG strips into HACKDIR/anim/ named by tile number, e.g.
-anim/1021.png for tile 1021 (the fountain). Each file is a horizontal
-strip of square frames -- frame size is the image height, so any
-resolution works (128x128 frames in a 512x128 strip = 4 HD frames) and
-gets smoothly scaled into the tile cell. Tiles without an overlay keep
-their static sheet art, so animated art can be added one piece at a
-time. All copies of a tile animate in sync at 200ms/frame off the wall
-clock, independent of game turns.
-
-The art pipeline (e.g. Meshy or any tool that exports PNG frames):
-
-1. Find the tile number: grep tilesets/TILE-INDEX.txt (generated from
-   the game's own glyph2tile[] table -- never derive indices by
-   counting the win/share/*.txt files, that gives wrong answers).
-       grep -i kitten tilesets/TILE-INDEX.txt
-2. Export animation frames as PNGs with transparent backgrounds
-   (any size; they get alpha-trimmed, squared, and bottom-aligned).
-3. Stitch them into a strip (accepts a name or a tile number):
-       tools/.venv/bin/python tools/mkanim.py kitten frames_dir/
-   One-time setup for the venv:
-       python3 -m venv tools/.venv
-       tools/.venv/bin/pip install pillow
-4. Deploy and play:
-       make install && graphichack
-
-Demo overlays live in tilesets/anim/ (fountain 1021, dog family
-18-20, cat family 37/38/42).
+Optional legacy overlays
+------------------------
+The SDL port can still load user-supplied PNG strips from HACKDIR/anim/.
+The experimental overlay assets and conversion tools have been retired.
+The current 3D client in prototype/ uses procedural geometry and does not
+load these tilesheets or overlays.

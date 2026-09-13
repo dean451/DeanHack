@@ -16,3 +16,7 @@ unchozo32b.png
  modified by Kelly Bailey and Patric Mueller
 
  OPTIONS=tile_file:unchozo32b.png, tile_width:32, tile_height:32
+
+These upstream sheets are retained for legacy window ports. The current
+3D client in prototype/ uses procedural geometry, not tilesheet assets.
+The experimental animated overlays and their conversion tools were removed.
