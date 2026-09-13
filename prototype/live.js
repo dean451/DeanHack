@@ -171,7 +171,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
           box(wallGeo,wall,tile,0,.28,0);
           if(hasTorch(cell.x,cell.z)){box(new THREE.CylinderGeometry(.045,.055,.3,8),wood,tile,0,.77,0);box(new THREE.CylinderGeometry(.09,.055,.1,8),iron,tile,0,.92,0);const fire=createFire(cell.x+cell.z);fire.position.y=.96;tile.add(fire);const halo=new THREE.Sprite(torchHaloMaterial);halo.position.y=1.12;halo.scale.setScalar(.9);tile.add(halo);tile.userData.torch={phase:(cell.x*3.7+cell.z*5.3)%(Math.PI*2)};}
          }
-         if(cell.terrain==='door'){box(doorGeo,doorFace,tile,0,.52,0);for(const x of [-.23,.23]){const brace=box(new RoundedBoxGeometry(.055,.92,.035,3,.012),iron,tile,x,.52,.1);brace.rotation.z=x<0?-.38:.38;}const latch=new THREE.Mesh(new THREE.SphereGeometry(.06,10,8),iron);latch.position.set(.18,.55,.14);latch.castShadow=true;tile.add(latch);}
+         if(cell.terrain==='door'){const doorGroup=new THREE.Group();tile.add(doorGroup);tile.userData.door=doorGroup;box(doorGeo,doorFace,doorGroup,0,.52,0);for(const x of [-.23,.23]){const brace=box(new RoundedBoxGeometry(.055,.92,.035,3,.012),iron,doorGroup,x,.52,.1);brace.rotation.z=x<0?-.38:.38;}const latch=new THREE.Mesh(new THREE.SphereGeometry(.06,10,8),iron);latch.position.set(.18,.55,.14);latch.castShadow=true;doorGroup.add(latch);}
          if(cell.terrain==='up'||cell.terrain==='down'){const direction=cell.terrain==='up'?1:-1;for(let i=0;i<5;i++){const z=(i-2)*.16*direction,y=.045+i*.085;box(stepGeo,i%2?stone:wall,tile,0,y,z);for(const x of [-.3,.3]){const base=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,.035,8),iron);base.position.set(x,y+.1,z);base.castShadow=true;tile.add(base);const spike=new THREE.Mesh(new THREE.ConeGeometry(.052,.25,6),iron);spike.position.set(x,y+.24,z);spike.castShadow=true;tile.add(spike);}}tile.add(label(cell.terrain==='up'?'↑ stone stairs':'↓ stone stairs'));}
          if(['water','lava'].includes(cell.terrain)){const m=new THREE.MeshStandardMaterial({color:cell.terrain==='water'?0x247c89:0xd85820,emissive:cell.terrain==='water'?0x103640:0x852400,roughness:.25});const s=box(floorGeo,m,tile,0,.01,0);s.userData.dispose=()=>m.dispose();tile.userData.liquid=s;tile.userData.liquidPhase=(x*7+z*13)%6;}
          group.add(tile);tiles.set(id,tile);
@@ -180,6 +180,11 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
         const connected=(dx,dz)=>frame.cells.some(c=>c.x===cell.x+dx&&c.z===cell.z+dz&&['wall','bars','door'].includes(c.terrain));
         const horizontal=Number(connected(-1,0))+Number(connected(1,0)),vertical=Number(connected(0,-1))+Number(connected(0,1));
         if(horizontal!==vertical)tile.userData.grate.rotation.y=vertical>horizontal?Math.PI/2:0;
+       }
+       if(tile.userData.door){
+        const connected=(dx,dz)=>frame.cells.some(c=>c.x===cell.x+dx&&c.z===cell.z+dz&&['wall','bars','door'].includes(c.terrain));
+        const horizontal=Number(connected(-1,0))+Number(connected(1,0)),vertical=Number(connected(0,-1))+Number(connected(0,1));
+        if(horizontal!==vertical)tile.userData.door.rotation.y=vertical>horizontal?Math.PI/2:0;
        }
      }
      if(cell.terrain==='fountain'){seenWells.add(id);if(!wells.has(id)){const w=wellTemplate.clone(true);w.position.set(x,0,z);group.add(w);wells.set(id,w);}}
