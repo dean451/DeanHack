@@ -318,6 +318,22 @@ moveloop_core(void)
     int was_on_elbereth = 0;
     int is_on_elbereth = 0;
 
+#ifdef BRIDGE_GRAPHICS
+    /* The isolated 3D client is currently used for visual playtesting.
+       Apply this to restored and newly entered levels as well as new games.
+       Preserve closed/secret doors and traps; only remove their locks. */
+    {
+        int x, y;
+        for (x = 1; x < COLNO; ++x)
+            for (y = 0; y < ROWNO; ++y)
+                if ((IS_DOOR(levl[x][y].typ) || levl[x][y].typ == SDOOR)
+                    && (levl[x][y].doormask & D_LOCKED))
+                    levl[x][y].doormask =
+                        (levl[x][y].doormask & ~D_LOCKED) | D_CLOSED;
+        newuhs(FALSE);
+    }
+#endif
+
     get_nh_event();
 #ifdef POSITIONBAR
     do_positionbar();

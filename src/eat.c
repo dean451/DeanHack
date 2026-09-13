@@ -3241,6 +3241,14 @@ newuhs(boolean incr)
     static boolean saved_hs = FALSE;
     int h = u.uhunger;
 
+#ifdef BRIDGE_GRAPHICS
+    /* Keep visual playtesting fed, including after spell/vomit costs and
+       restoring a hungry save. Use the normal status transition below so
+       hunger-induced weakness is repaired. Eating/satiety still work. */
+    if (h < 900)
+        h = u.uhunger = 900;
+#endif
+
     newhs = (h > 1000) ? SATIATED :
             (h > 150) ? NOT_HUNGRY :
             (h > 50) ? HUNGRY :
