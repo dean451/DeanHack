@@ -222,3 +222,26 @@ Files: prototype/live.js, prototype/oracle-visuals.js, prototype/oracle-visuals.
 Checks: npm test 10/10, production build (bundle-size warning only), git diff --check; isolated browser preview on 5176 visually checked. Temporary preview removed; no live-game input.
 Commit: 01483871 (local).
 Open concerns: older running bridge must Save & exit/resume to send statue species; current rebuilt bridge already supports that field. Renderer refresh loads visuals. No push/PR performed.
+
+## 2026-09-13 18:26 CDT — Codex — claimed
+Plan: Dedicated quarterstaff model with full-length wooden shaft and bound grip.
+Files: prototype/equipment.js in deanhack-codex on codex/staff-model, based on origin/master 39bbc744.
+
+## 2026-09-13 18:28 CDT — Codex — finished
+Did: Added full wooden quarterstaff shaft, bound central grip and metal end caps. PR #14 https://github.com/dean451/DeanHack/pull/14; user merges.
+Files: prototype/equipment.js only.
+Checks: npm test 8/8, production build and git diff --check passed. Browser visual validation pending; no live-game input.
+Commit: b8f570f4 on origin/codex/staff-model.
+Next for Claude: none; Oracle work in review checkout noted and preserved.
+Codex candidates remaining: crossbow model; visual scale review of weapon families; statue species data cleanup.
+
+## 2026-09-13 — Codex — shared-file intent (fountain parity)
+Claim: prototype/main.js fountain construction and animation only. Extract demo fountain into shared factory used by demo and Live, preserving demo stone textures, geometry, water and spray. Live uses one-tile scale and independent state. No lighting constants changed.
+
+Fountain parity claim expanded: prototype/live.js only passes demo material palette into the shared factory. Each live instance clones materials and retains borrowed textures; no visibility or animation state is cloned.
+
+## 2026-09-13 — Codex — finished (fountain parity)
+Files: prototype/fountain.js, prototype/main.js, prototype/live.js, prototype/oracle-visuals.js, prototype/oracle-visuals.test.js. Demo and Live share the original detailed fountain geometry, textured stone palette, brass bowl, 100 droplets and four animated ripples. Live scale .46, independent materials/animation and explicit visibility. Shared-file claims released.
+Checks: npm test 11/11; production build passes with bundle-size warning; git diff --check. No live-game input or lighting changes.
+Commit: 552ae320 (local).
+Open concerns: browser visual comparison not performed this turn; renderer refresh needed. Preserved prior handoff entries.
