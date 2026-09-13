@@ -17,6 +17,23 @@ export function createHeldWeapon(item){
   // Diamond cross-section: bright bevels and a continuous pointed tip.
   const vertices=[-width,.13,0,0,.13,.024,width,.13,0,0,.13,-.024,-width*.65,length,0,0,length,.017,width*.65,length,0,0,length,-.017,0,length+.16,0];
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setIndex([0,4,5,0,5,1,1,5,6,1,6,2,2,6,7,2,7,3,3,7,4,3,4,0,4,8,5,5,8,6,6,8,7,7,8,4,0,1,2,0,2,3]);geo.computeVertexNormals();part(geo,steel,0,0);
+ }else if(/\bbow\b/.test(name)){
+  const wood=new THREE.MeshStandardMaterial({color:0x805735,roughness:.82});
+  g.userData.extraMaterial=wood;
+  // The grip sits at the hand origin, with symmetrical curved limbs.
+  for(const side of [-1,1]){
+   const curve=new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0,0,0),new THREE.Vector3(.025,side*.16,0),
+    new THREE.Vector3(.11,side*.34,0),new THREE.Vector3(.13,side*.48,0),
+    new THREE.Vector3(.095,side*.58,0)
+   ]);
+   part(new THREE.TubeGeometry(curve,20,.021,8,false),wood,0,0);
+   part(new THREE.SphereGeometry(.026,8,6),brass,.095,side*.58);
+  }
+  part(new THREE.CylinderGeometry(.03,.03,.17,12),leather,0,0);
+  for(let i=0;i<5;i++)part(new THREE.CylinderGeometry(.032,.032,.008,12),brass,0,-.066+i*.033);
+  // A physical cord survives the same held and ground transforms as the limbs.
+  part(new THREE.CylinderGeometry(.004,.004,1.16,6),leather,.095,0);
  }else if(/\b(spear|javelin|pike)\b/.test(name)){
   const shaftLength=/javelin/.test(name)?.88:/pike/.test(name)?1.55:1.2;
   const wood=new THREE.MeshStandardMaterial({color:0x805735,roughness:.86});
