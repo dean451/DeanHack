@@ -17,6 +17,25 @@ export function createHeldWeapon(item){
   // Diamond cross-section: bright bevels and a continuous pointed tip.
   const vertices=[-width,.13,0,0,.13,.024,width,.13,0,0,.13,-.024,-width*.65,length,0,0,length,.017,width*.65,length,0,0,length,-.017,0,length+.16,0];
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setIndex([0,4,5,0,5,1,1,5,6,1,6,2,2,6,7,2,7,3,3,7,4,3,4,0,4,8,5,5,8,6,6,8,7,7,8,4,0,1,2,0,2,3]);geo.computeVertexNormals();part(geo,steel,0,0);
+ }else if(/\b(spear|javelin|pike)\b/.test(name)){
+  const shaftLength=/javelin/.test(name)?.88:/pike/.test(name)?1.55:1.2;
+  const wood=new THREE.MeshStandardMaterial({color:0x805735,roughness:.86});
+  g.userData.extraMaterial=wood;
+  const shoulder=shaftLength-.3;
+  part(new THREE.CylinderGeometry(.018,.025,shaftLength,12),wood,0,shaftLength/2-.3);
+  part(new THREE.CylinderGeometry(.028,.028,.18,12),leather,0,0);
+  for(const y of [-.09,.09])part(new THREE.CylinderGeometry(.03,.03,.015,12),brass,0,y);
+  part(new THREE.CylinderGeometry(.025,.018,.09,12),steel,0,-.3);
+  part(new THREE.CylinderGeometry(.027,.034,.12,12),steel,0,shoulder);
+  // Raised central ridge and thin edges keep the socketed leaf blade readable.
+  const geo=new THREE.BufferGeometry();
+  const y=shoulder+.045;
+  geo.setAttribute('position',new THREE.Float32BufferAttribute([
+   0,y,0, -.067,y+.12,0, 0,y+.36,0, .067,y+.12,0,
+   0,y+.12,.022, 0,y+.12,-.022
+  ],3));
+  geo.setIndex([0,4,1,1,4,2,2,4,3,3,4,0,0,1,5,1,2,5,2,3,5,3,0,5]);
+  geo.computeVertexNormals();part(geo,steel,0,0);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
