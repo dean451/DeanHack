@@ -10,7 +10,7 @@ Codex and Claude work in separate worktrees. Do not edit the other agent's workt
 | Claude | `prototype/creatures.js`, `prototype/floor.js`, `prototype/cavern.js`, `prototype/readability.js`, `prototype/fire.js`, `prototype/altar.js` |
 | Shared | `prototype/live.js`, `prototype/main.js`, `prototype/style.css` |
 
-Before editing a shared file, read and append an entry to `/Users/dpalm/Desktop/deanhack-handoff.md` describing the planned change. Check the log for the other agent's recent entries first.
+Before editing a shared file, read and append an entry to `/Users/dpalm/Desktop/deanhack/deanhack-handoff.md` describing the planned change. Check the log for the other agent's recent entries first.
 
 When finishing work, run relevant tests/builds, commit on the agent's branch, and append files changed, checks run, commit hash, and open concerns to the handoff log.
 
