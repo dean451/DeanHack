@@ -17,6 +17,16 @@ export function createHeldWeapon(item){
   // Diamond cross-section: bright bevels and a continuous pointed tip.
   const vertices=[-width,.13,0,0,.13,.024,width,.13,0,0,.13,-.024,-width*.65,length,0,0,length,.017,width*.65,length,0,0,length,-.017,0,length+.16,0];
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setIndex([0,4,5,0,5,1,1,5,6,1,6,2,2,6,7,2,7,3,3,7,4,3,4,0,4,8,5,5,8,6,6,8,7,7,8,4,0,1,2,0,2,3]);geo.computeVertexNormals();part(geo,steel,0,0);
+ }else if(/\bquarterstaff\b/.test(name)){
+  const wood=new THREE.MeshStandardMaterial({color:0x735035,roughness:.9});
+  g.userData.extraMaterial=wood;
+  part(new THREE.CylinderGeometry(.024,.029,1.48,12),wood,0,.15);
+  part(new THREE.CylinderGeometry(.033,.033,.23,12),leather,0,0);
+  for(let i=0;i<7;i++)part(new THREE.CylinderGeometry(.035,.035,.008,12),leather,0,-.105+i*.035);
+  for(const y of [-.57,.87]){
+   part(new THREE.CylinderGeometry(.031,.031,.07,12),steel,0,y);
+   part(new THREE.CylinderGeometry(.033,.033,.015,12),brass,0,y+(y<0?.045:-.045));
+  }
  }else if(/\bbow\b/.test(name)){
   const wood=new THREE.MeshStandardMaterial({color:0x805735,roughness:.82});
   g.userData.extraMaterial=wood;
