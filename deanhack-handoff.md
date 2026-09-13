@@ -254,3 +254,12 @@ Files: prototype/main.js. Restored glow material used by cat eyes/charm after fo
 Checks: real browser demo startup and screenshot verified on isolated port 5176; npm test 11/11; build passes; git diff --check. No live engine input.
 Commit: 72a33a95 (local).
 Open concerns: refresh renderer to recover. Shared main.js claim released.
+
+## 2026-09-13 — Codex — shared-file intent (grid bug)
+Claim: prototype/live.js actor routing only; add separate grid-bug.js to avoid Claude-owned creatures.js. Segmented chitin, six jointed legs, attached eyes and antenna arcs.
+
+## 2026-09-13 — Codex — finished (grid bug)
+Files: prototype/grid-bug.js, prototype/live.js. Live grid bugs now have overlapping dark shell plates, narrow cyan seams, six jointed legs, attached eyes, mandibles and antennae with intermittent arcs. Existing gait reused. Claude creatures.js untouched.
+Checks: npm test 11/11; production build passes with bundle-size warning; git diff --check; isolated browser visual check with stageCreature outlines and hostile ring. No live-game input.
+Commit: f5331f65 (local).
+Open concerns: demo gallery still uses Claude factory; live renderer uses new model. Shared live.js claim released. Refresh to load.
