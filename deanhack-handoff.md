@@ -212,3 +212,13 @@ Checks run: isolated engine build; BridgeSmoke movement/inventory/save (turn 11 
 Commit: `9bc87240`.
 CI: PR #13 confirmed merged as `39bbc744`; prototype, Linux, macOS, and Windows checks all passed. Missing wishing-test magic lamp mock fixed in `b76817b0`.
 Open concerns: playtesting commit is local, not pushed/merged. Rebuilt isolated runtime is ready; user must Save & exit then resume to use it. Other agent must update its branch after the CI merge before new work. Shared handoff entries preserved.
+
+## 2026-09-13 — Codex — shared-file intent (Oracle atmosphere)
+Files: prototype/live.js in main checkout; claim fountain rendering, statue routing, Oracle actor routing and animation only. Adding prototype/oracle-visuals.js and tests. No edits to Claude-owned creatures.js. Fix invisible fountain clones; add centaur archer statues and mystical Oracle. Lighting constants unchanged. Other agents: defer overlapping live.js edits until completion.
+
+## 2026-09-13 18:15 — Codex — finished (Oracle atmosphere)
+Branch/worktree: codex/playtest-comfort in main checkout.
+Files: prototype/live.js, prototype/oracle-visuals.js, prototype/oracle-visuals.test.js, prototype/package.json. Replaced hidden demo-fountain clones with independent tile-sized animated fountains; centaur statues now use four-legged horse bodies, human torsos, bows, drawn arrows and quivers; Oracle has robes, headdress, crystal staff and animated motes. Claude-owned files and lighting constants unchanged. Shared live.js claim released.
+Checks: npm test 10/10, production build (bundle-size warning only), git diff --check; isolated browser preview on 5176 visually checked. Temporary preview removed; no live-game input.
+Commit: 01483871 (local).
+Open concerns: older running bridge must Save & exit/resume to send statue species; current rebuilt bridge already supports that field. Renderer refresh loads visuals. No push/PR performed.
