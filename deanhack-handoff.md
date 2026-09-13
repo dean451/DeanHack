@@ -62,3 +62,12 @@ Files: moved the handoff log into the project as `deanhack-handoff.md`; updated 
 Checks run: verified old path absent, new log present, and git diff --check. Documentation-only change.
 Commit: recorded in Git history for this entry.
 Open concerns: other worktrees should use `/Users/dpalm/Desktop/deanhack/deanhack-handoff.md` as the shared log; no other worktree edited.
+
+## 2026-09-13 13:05 — Claude — PR opened for `codex/live-interactions`
+Branch/worktree: `codex/live-interactions` in `/Users/dpalm/Desktop/deanhack` (user chose "Create PR"; no merge performed).
+Files: this log entry only.
+Checks run: none new; relies on Codex's recorded checks (npm test 8/8, build, engine build, smoke test for `23c3a2cb`; npm test/build for `e4d1217a`).
+Commit: pushed `23c3a2cb`, `e4d1217a`, `882f13ad`, plus this log commit.
+Open concerns:
+- Keeping the handoff log inside the repo means each worktree/branch has its own copy until merged; entries written in one worktree won't be visible in the other. Consider always reading/writing the copy in `/Users/dpalm/Desktop/deanhack` regardless of which worktree an agent works in, as AGENTS.md now says.
+- `e4d1217a` retires the bundled animated overlays and tooling; the SDL loader still reads user-supplied `HACKDIR/anim/` strips.
