@@ -11,7 +11,7 @@ import {createCavern} from './cavern.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 // Only window-port observations enter this view. No prediction of game rules.
-export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,demoObjects,onDemo,onMode}) {
+export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
  const group=new THREE.Group();scene.add(group);group.visible=false;
  const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map();let active=false,pending=null,latest=null,token='',menu=null,lines=[],origin=null,lastLevel='',source;
  const $=s=>document.querySelector(s);
@@ -189,7 +189,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
         if(horizontal!==vertical)tile.userData.door.rotation.y=vertical>horizontal?Math.PI/2:0;
        }
      }
-     if(cell.terrain==='fountain'){seenWells.add(id);if(!wells.has(id)){const w=createLiveFountain();w.position.set(x,0,z);group.add(w);wells.set(id,w);}wells.get(id).visible=cell.visible||cell.remembered;}
+     if(cell.terrain==='fountain'){seenWells.add(id);if(!wells.has(id)){const w=createLiveFountain(wellTemplate);w.position.set(x,0,z);group.add(w);wells.set(id,w);}wells.get(id).visible=cell.visible||cell.remembered;}
      if(cell.x===frame.player.x&&cell.z===frame.player.z)continue;
        if(cell.kind==='object'){
        const key=`${id}:${cell.glyph}:${cell.object?.creature||''}`,seenObject=cell.visible||cell.remembered;seenActors.add(key);

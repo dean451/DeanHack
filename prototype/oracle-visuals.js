@@ -1,3 +1,4 @@
+import {createFountain} from './fountain.js';
 import * as THREE from 'three';
 
 // Self-contained procedural models; no shared demo visibility or animation state.
@@ -76,18 +77,6 @@ export function createOracle() {
   return {g,body,legs:[],quirk:'oracle'};
 }
 
-export function createLiveFountain() {
-  const {g,mat,mesh,orb}=kit('Fountain');
-  const stone=mat(0x7e9993),rim=mat(0xb0b9a0),water=mat(0x287f91,{metalness:.35,roughness:.2,emissive:0x145660,emissiveIntensity:.55});
-  const glow=mat(0x85e7e5,{emissive:0x3aa9c1,emissiveIntensity:1.2});
-  mesh(new THREE.CylinderGeometry(.42,.46,.12,16),stone,0,.07,0);
-  const ring=mesh(new THREE.TorusGeometry(.36,.065,8,32),rim,0,.23,0);ring.rotation.x=Math.PI/2;
-  mesh(new THREE.CylinderGeometry(.355,.355,.035,32),water,0,.19,0);
-  mesh(new THREE.CylinderGeometry(.07,.12,.35,10),stone,0,.34,0);
-  mesh(new THREE.CylinderGeometry(.19,.09,.09,16),rim,0,.53,0);
-  mesh(new THREE.CylinderGeometry(.17,.17,.018,24),water,0,.58,0);
-  const drops=[];for(let i=0;i<24;i++)drops.push(orb(.014,glow,0,0,0));
-  g.userData.updateFountain=t=>{for(let i=0;i<drops.length;i++){const p=(t*.65+i/24)%1,a=i*2.39996,r=.09+p*.23;drops[i].position.set(Math.cos(a)*r,.59+Math.sin(p*Math.PI)*.21-p*.39,Math.sin(a)*r);}};
-  g.userData.updateFountain(0);
-  return g;
+export function createLiveFountain(template) {
+  return createFountain({materials:template?.userData.fountainMaterials,scale:.46});
 }
