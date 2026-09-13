@@ -245,3 +245,12 @@ Files: prototype/fountain.js, prototype/main.js, prototype/live.js, prototype/or
 Checks: npm test 11/11; production build passes with bundle-size warning; git diff --check. No live-game input or lighting changes.
 Commit: 552ae320 (local).
 Open concerns: browser visual comparison not performed this turn; renderer refresh needed. Preserved prior handoff entries.
+
+## 2026-09-13 — Codex — shared-file intent (startup fix)
+Claim: prototype/main.js material declaration only. Fountain extraction removed glow still used by cat eyes/charm, causing ReferenceError at scene startup. Restore dedicated cat material and verify actual browser startup.
+
+## 2026-09-13 — Codex — finished (startup fix)
+Files: prototype/main.js. Restored glow material used by cat eyes/charm after fountain extraction removed its declaration.
+Checks: real browser demo startup and screenshot verified on isolated port 5176; npm test 11/11; build passes; git diff --check. No live engine input.
+Commit: 72a33a95 (local).
+Open concerns: refresh renderer to recover. Shared main.js claim released.
