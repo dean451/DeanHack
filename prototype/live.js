@@ -203,6 +203,9 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
        if(!a){for(const [previous,candidate] of actors){if(!seenActors.has(previous)&&candidate.glyph===cell.glyph&&Math.hypot(candidate.g.position.x-x,candidate.g.position.z-z)<2.1){a=candidate;actors.delete(previous);actors.set(key,a);break;}}}
        if(!a){const disposition=cell.kind==='pet'?'pet':cell.peaceful?'peaceful':'hostile';if(cell.kind==='pet'&&/cat|kitten/.test(cell.name)){a=catFactory();stageCreature(a.g,{disposition});a.g.add(label(cell.name,'#b8ead3'));}else{const made=creatureFactory?creatureFactory(cell):monsterFactory();a=made.g?made:{g:made};stageCreature(a.g,{disposition});a.g.add(label(cell.name||'creature',cell.kind==='pet'?'#b8ead3':cell.peaceful?'#e8dfb0':'#e9c8ad'));}a.g.position.set(x,0,z);group.add(a.g);actors.set(key,a);}
        a.glyph=cell.glyph;a.species=(cell.name||'').toLowerCase();a.target=new THREE.Vector3(x,0,z);
+       // Invisible-and-sensed monsters (telepathy, warning) still send a cell, but the model,
+       // its label and its disposition ring — all children of a.g — should stay hidden.
+       a.g.visible=!cell.invisible;
      }
    }
    for(const [id,t] of tiles)if(!seen.has(id)){release(t);tiles.delete(id);}
