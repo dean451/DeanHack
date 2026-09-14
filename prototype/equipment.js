@@ -87,6 +87,27 @@ export function createHeldWeapon(item){
   ],3));
   geo.setIndex([0,4,1,1,4,2,2,4,3,3,4,0,0,1,5,1,2,5,2,3,5,3,0,5]);
   geo.computeVertexNormals();part(geo,steel,0,0);
+ }else if(/\bflail\b/.test(name)){
+  const wood=new THREE.MeshStandardMaterial({color:0x735035,roughness:.9});
+  g.userData.extraMaterial=wood;
+  part(new THREE.CylinderGeometry(.025,.032,.53,10),wood,0,.13);
+  part(new THREE.CylinderGeometry(.037,.037,.19,10),leather,0,-.015);
+  for(let i=0;i<5;i++)part(new THREE.CylinderGeometry(.039,.039,.009,10),brass,0,-.09+i*.036);
+  part(new THREE.SphereGeometry(.044,10,8),brass,0,-.15);
+  part(new THREE.CylinderGeometry(.036,.036,.045,10),steel,0,.385);
+  // Alternating link planes make the chain readable without animation state.
+  for(let i=0;i<6;i++){
+   const link=part(new THREE.TorusGeometry(.032,.009,6,12),steel,i*.026,.42+i*.038);
+   link.scale.y=1.28;link.rotation.z=-.6;link.rotation.y=i%2?Math.PI/2:0;
+  }
+  const center=new THREE.Vector3(.18,.68,0);
+  part(new THREE.IcosahedronGeometry(.115,1),steel,center.x,center.y);
+  // Short radial studs distinguish the striking head from a smooth mace.
+  for(const direction of [new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,-1,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1)]){
+   const pos=center.clone().addScaledVector(direction,.125);
+   const stud=part(new THREE.ConeGeometry(.033,.095,4),steel,pos.x,pos.y,pos.z);
+   stud.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
+  }
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
