@@ -17,6 +17,40 @@ export function createHeldWeapon(item){
   // Diamond cross-section: bright bevels and a continuous pointed tip.
   const vertices=[-width,.13,0,0,.13,.024,width,.13,0,0,.13,-.024,-width*.65,length,0,0,length,.017,width*.65,length,0,0,length,-.017,0,length+.16,0];
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setIndex([0,4,5,0,5,1,1,5,6,1,6,2,2,6,7,2,7,3,3,7,4,3,4,0,4,8,5,5,8,6,6,8,7,7,8,4,0,1,2,0,2,3]);geo.computeVertexNormals();part(geo,steel,0,0);
+ }else if(/\bquarterstaff\b/.test(name)){
+  const wood=new THREE.MeshStandardMaterial({color:0x735035,roughness:.9});
+  g.userData.extraMaterial=wood;
+  part(new THREE.CylinderGeometry(.024,.029,1.48,12),wood,0,.15);
+  part(new THREE.CylinderGeometry(.033,.033,.23,12),leather,0,0);
+  for(let i=0;i<7;i++)part(new THREE.CylinderGeometry(.035,.035,.008,12),leather,0,-.105+i*.035);
+  for(const y of [-.57,.87]){
+   part(new THREE.CylinderGeometry(.031,.031,.07,12),steel,0,y);
+   part(new THREE.CylinderGeometry(.033,.033,.015,12),brass,0,y+(y<0?.045:-.045));
+  }
+ }else if(/\bcrossbow\b/.test(name)){
+  const wood=new THREE.MeshStandardMaterial({color:0x805735,roughness:.86});
+  g.userData.extraMaterial=wood;
+  // Stock follows the weapon axis; the hand holds the bound rear section.
+  part(new THREE.BoxGeometry(.085,.72,.095),wood,0,.2);
+  part(new THREE.BoxGeometry(.11,.18,.11),leather,0,-.035);
+  part(new THREE.BoxGeometry(.115,.035,.115),brass,0,-.145);
+  for(const x of [-.027,.027])part(new THREE.BoxGeometry(.012,.48,.015),steel,x,.29,.055);
+  part(new THREE.BoxGeometry(.12,.08,.12),brass,0,.44);
+  for(const side of [-1,1]){
+   const curve=new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0,.45,0),new THREE.Vector3(side*.15,.44,0),
+    new THREE.Vector3(side*.29,.38,0),new THREE.Vector3(side*.38,.3,0)
+   ]);
+   part(new THREE.TubeGeometry(curve,16,.018,6,false),steel,0,0);
+   const cord=new THREE.LineCurve3(new THREE.Vector3(side*.38,.3,.025),new THREE.Vector3(0,.055,.06));
+   part(new THREE.TubeGeometry(cord,1,.004,5,false),leather,0,0);
+  }
+  // A seated bolt and fletching make the firing direction readable.
+  part(new THREE.CylinderGeometry(.008,.008,.43,6),wood,0,.31,.072);
+  part(new THREE.ConeGeometry(.022,.07,4),steel,0,.56,.072);
+  part(new THREE.BoxGeometry(.065,.065,.007),leather,0,.12,.072);
+  const trigger=new THREE.TorusGeometry(.043,.007,5,12,Math.PI);
+  trigger.rotateZ(Math.PI/2);part(trigger,brass,0,.015,-.065);
  }else if(/\bbow\b/.test(name)){
   const wood=new THREE.MeshStandardMaterial({color:0x805735,roughness:.82});
   g.userData.extraMaterial=wood;
@@ -53,6 +87,27 @@ export function createHeldWeapon(item){
   ],3));
   geo.setIndex([0,4,1,1,4,2,2,4,3,3,4,0,0,1,5,1,2,5,2,3,5,3,0,5]);
   geo.computeVertexNormals();part(geo,steel,0,0);
+ }else if(/\bflail\b/.test(name)){
+  const wood=new THREE.MeshStandardMaterial({color:0x735035,roughness:.9});
+  g.userData.extraMaterial=wood;
+  part(new THREE.CylinderGeometry(.025,.032,.53,10),wood,0,.13);
+  part(new THREE.CylinderGeometry(.037,.037,.19,10),leather,0,-.015);
+  for(let i=0;i<5;i++)part(new THREE.CylinderGeometry(.039,.039,.009,10),brass,0,-.09+i*.036);
+  part(new THREE.SphereGeometry(.044,10,8),brass,0,-.15);
+  part(new THREE.CylinderGeometry(.036,.036,.045,10),steel,0,.385);
+  // Alternating link planes make the chain readable without animation state.
+  for(let i=0;i<6;i++){
+   const link=part(new THREE.TorusGeometry(.032,.009,6,12),steel,i*.026,.42+i*.038);
+   link.scale.y=1.28;link.rotation.z=-.6;link.rotation.y=i%2?Math.PI/2:0;
+  }
+  const center=new THREE.Vector3(.18,.68,0);
+  part(new THREE.IcosahedronGeometry(.115,1),steel,center.x,center.y);
+  // Short radial studs distinguish the striking head from a smooth mace.
+  for(const direction of [new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,-1,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1)]){
+   const pos=center.clone().addScaledVector(direction,.125);
+   const stud=part(new THREE.ConeGeometry(.033,.095,4),steel,pos.x,pos.y,pos.z);
+   stud.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
+  }
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);

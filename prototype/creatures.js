@@ -50,8 +50,50 @@ function gridBug(){
  return actor(g,body,legs,null,[],'gridbug');
 }
 function unicorn(){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[];sphere(body,.3,M.whiteFur,0,.43,0,.8,.72,1.25);cylinder(body,.12,.19,.42,M.whiteFur,0,.75,.12,10);const head=sphere(body,.19,M.whiteFur,0,1.02,.25,.9,1,1);const horn=cone(head,.055,.3,M.gold,0,.22,.06,5);horn.rotation.z=-.1;for(const x of [-.1,.1]){const ear=cone(head,.06,.15,M.whiteFur,x,.18,.02,5);ear.rotation.z=x>0?-.25:.25;}eyes(head,M.eye,.02,.18,.06);for(const x of [-.13,.13])for(const z of [-.17,.17]){const leg=new THREE.Group();leg.position.set(x,.27,z);body.add(leg);rounded(leg,.09,.34,.1,M.whiteFur,0,-.15,0,.025);rounded(leg,.1,.08,.11,M.gold,0,-.32,0,.02);legs.push(leg);}
- const tail=new THREE.Group();tail.position.set(0,.48,-.3);body.add(tail);const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,0),new THREE.Vector3(0,.16,-.12),new THREE.Vector3(-.1,.28,-.18)]);part(tail,new THREE.TubeGeometry(curve,12,.045,8,false),M.whiteFur);return actor(g,body,legs,tail,[],'unicorn');
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[];const mane=new THREE.MeshStandardMaterial({color:0xe2e2ee,roughness:.75});
+ sphere(body,.3,M.whiteFur,0,.43,0,.8,.72,1.25);const neck=cylinder(body,.12,.19,.42,M.whiteFur,0,.75,.12,10);neck.rotation.x=-.12;
+ const head=new THREE.Group();head.position.set(0,1.0,.24);body.add(head);
+ sphere(head,.17,M.whiteFur,0,0,0,.85,.85,1.05);const muzzle=cylinder(head,.055,.095,.22,M.whiteFur,0,-.05,.16,10);muzzle.rotation.x=Math.PI/2;sphere(head,.032,M.leather,0,-.06,.27);
+ const horn=cone(head,.05,.32,M.gold,0,.2,.07,5);horn.rotation.z=-.08;for(const x of [-.1,.1]){const ear=cone(head,.055,.15,M.whiteFur,x,.17,0,5);ear.rotation.z=x>0?-.25:.25;}
+ eyes(head,M.eye,-.01,.13,.075);
+ for(let i=0;i<5;i++){const t=i/4,tuft=cone(body,.03,.12-t*.05,mane,0,.98-t*.18,.16-t*.22,4);tuft.rotation.x=-.3-t*.5;tuft.rotation.z=(i%2?1:-1)*.15;}
+ for(const x of [-.13,.13])for(const z of [-.17,.17]){const leg=new THREE.Group();leg.position.set(x,.27,z);body.add(leg);rounded(leg,.09,.34,.1,M.whiteFur,0,-.15,0,.025);rounded(leg,.1,.08,.11,M.gold,0,-.32,0,.02);legs.push(leg);}
+ const tail=new THREE.Group();tail.position.set(0,.48,-.3);body.add(tail);
+ const tailCurve=new THREE.CatmullRomCurve3([[0,0,0],[0,-.04,-.14],[0,-.16,-.24],[0,-.32,-.3],[0,-.46,-.32]].map(p=>new THREE.Vector3(...p)));
+ for(let i=0;i<12;i++){const t=i/11,p=tailCurve.getPoint(t),r=.025+Math.sin(Math.min(1,t*1.1)*Math.PI*.9)*.055;const seg=sphere(tail,Math.max(.012,r),mane,p.x,p.y,p.z);const tan=tailCurve.getTangent(t);seg.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),tan);seg.scale.set(1,1.5,1);}
+ return actor(g,body,legs,tail,[],'unicorn');
+}
+// Golems: an inanimate material animated into a blocky humanoid. Seams mark where
+// slabs of the material join; a lit core in the chest and eyes sell "constructed", not "born".
+const GOLEM_MATERIALS={
+ straw:{color:'#c2a24a',roughness:.98},paper:{color:'#e8ddc0',roughness:.85},wax:{color:'#e0b56a',roughness:.4},
+ rope:{color:'#8a6a3a',roughness:.95},gold:{color:'#d9b23a',metalness:.85,roughness:.25},leather:{color:'#5a3c26',roughness:.85},
+ wood:{color:'#7a5530',roughness:.88},flesh:{color:'#9a8070',roughness:.8},clay:{color:'#8a5a3e',roughness:.92},
+ stone:{color:'#767468',roughness:.92},glass:{color:'#bfe3e0',roughness:.12,metalness:.05,transparent:!0,opacity:.55},
+ iron:{color:'#3c4448',metalness:.75,roughness:.35},ice:{color:'#bfe6f2',roughness:.15,transparent:!0,opacity:.72},
+ 'crystal ice':{color:'#d8f3ff',roughness:.08,transparent:!0,opacity:.68,emissive:'#8fd9ff',emissiveIntensity:.15},
+};
+function golem(params=GOLEM_MATERIALS.stone){
+ const g=new THREE.Group(),torso=new THREE.Group();g.add(torso);const legs=[];
+ const body=mat(params.color,params),seam=mat(shade(params.color,.55),{roughness:.95});
+ rounded(torso,.5,.58,.34,body,0,.66,0,.05);
+ for(let i=0;i<2;i++)rounded(torso,.52,.03,.36,seam,0,.5+i*.32,0,.01);
+ rounded(torso,.34,.3,.32,body,0,1.06,0,.04);rounded(torso,.36,.03,.34,seam,0,.92,0,.01);
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.34,.88,0);torso.add(arm);rounded(arm,.15,.5,.16,body,0,-.24,0,.03);rounded(arm,.17,.05,.18,seam,0,-.46,0,.01);}
+ for(const x of [-.16,.16]){const leg=new THREE.Group();leg.position.set(x,.4,0);torso.add(leg);rounded(leg,.19,.46,.2,body,0,-.2,0,.04);rounded(leg,.21,.06,.22,seam,0,-.4,.02,.01);legs.push(leg);}
+ const core=sphere(torso,.07,M.fire,0,.7,.18);g.userData.core=core;eyes(torso,M.fire,1.06,.16,.07);
+ return Object.assign(actor(g,torso,legs,null,[],'golem'),{core});
+}
+// Giant turtle: a low domed shell over a snapping head and splayed stubby legs.
+function turtle(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const shell=mat(o.shell,{roughness:.7}),shellDark=mat(shade(o.shell,.55)),skin=mat(o.skin||shade(o.shell,1.5));
+ const dome=part(body,new THREE.SphereGeometry(.26,16,10,0,Math.PI*2,0,Math.PI/2),shell,0,.22,-.02);dome.scale.set(1.15,.72,1.3);
+ for(let i=0;i<7;i++){const a=i*.9;sphere(body,.045,i%2?shellDark:shell,Math.cos(a)*.14,.34,Math.sin(a)*.12-.02,1,.55,1);}
+ const head=new THREE.Group();head.position.set(0,.18,.28);body.add(head);sphere(head,.09,skin,0,0,0,.9,.75,1.15);for(const side of [-1,1])sphere(head,.018,darkEye,side*.045,.03,.07);
+ for(const side of [-1,1])for(const z of [-.17,.17]){const leg=new THREE.Group();leg.position.set(side*.19,.1,z);body.add(leg);const upper=rounded(leg,.11,.08,.14,skin,side*.05,-.02,0,.02);upper.rotation.z=side*-.3;legs.push(leg);}
+ const tail=cone(body,.035,.14,skin,0,.09,-.28,6);tail.rotation.x=Math.PI/2+.3;
+ return actor(g,body,legs,null,[],'turtle');
 }
 function dragon(){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[];const scale=1.12;g.scale.setScalar(scale);sphere(body,.34,M.greenSkin,0,.5,0,1.2,.8,1.45);const head=sphere(body,.24,M.greenSkin,0,.84,.28,1.05,.9,1);sphere(body,.13,M.fire,0,.8,.47,.9,.65,.65);for(const x of [-.12,.12]){const horn=cone(head,.07,.25,M.darkSteel,x,.2,.03,5);horn.rotation.z=x>0?.35:-.35;}eyes(head,M.fire,.02,.21,.08);for(const x of [-.22,.22])for(const z of [-.17,.17]){const leg=new THREE.Group();leg.position.set(x,.3,z);body.add(leg);rounded(leg,.13,.3,.14,M.greenSkin,0,-.12,0,.035);cone(leg,.1,.1,M.darkSteel,0,-.28,.02,5).rotation.x=Math.PI;legs.push(leg);}
@@ -307,6 +349,8 @@ export function createCreature(cell={}){
  if(/guard|soldier|watchman|watch captain/.test(name))return humanoid('guard');
  if(/unicorn/.test(name))return unicorn();
  if(/dragon/.test(name))return dragon();
+ {const golemMatch=name.match(/^(.*) golem$/);if(golemMatch)return golem(GOLEM_MATERIALS[golemMatch[1]]||GOLEM_MATERIALS.stone);}
+ if(name==='giant turtle')return turtle({shell:color||'#4a6a34'});
  if(SKIN[name])return humanoid(letter==='k'||/kobold/.test(name)?'kobold':'imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
  if(name==='hobbit')return humanoid('hobbit',{cloth:mat('#4f7a3a')});
  if(/orc|uruk|snaga/.test(name))return humanoid('orc',color?{cloth:mat(shade(color,.75))}:{});
@@ -339,6 +383,7 @@ export function createCreature(cell={}){
   case '@':return humanoid('human',{cloth:mat(shade(c,.8))});
   case 'r':return rat(false);
   case 'x':return gridBug();
+  case "'":return golem(GOLEM_MATERIALS.stone);
  }
  return guardian({color});
 }

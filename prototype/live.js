@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createGroundModel} from './ground-models.js';
 import {groundNotice,groundTile} from './ground-notice.js';
 import {meleeDirection,confirmsPlayerMelee,poseMelee} from './combat-visuals.js';
 import {createHeldWeapon} from './equipment.js';
@@ -81,7 +82,9 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    const warm=new THREE.MeshStandardMaterial({color:kind==='corpse'?0x72534a:cls===POTION_CLASS?0x5bd0c7:cls===WEAPON_CLASS?0xd9b15e:0xc9a86b,emissive:kind==='corpse'?0x241314:0x362718,roughness:.42,metalness:cls===WEAPON_CLASS?.65:.18});
    const edge=new THREE.MeshStandardMaterial({color:kind==='corpse'?0xb9a189:0xe8d8aa,roughness:.55,metalness:cls===WEAPON_CLASS?.7:.25});
    const add=(geometry,material=warm,x=0,y=.34,z=0)=>{const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=true;icon.add(m);return m;};
-   if((kind==='statue'||itemName==='statue')&&statueCreature&&creatureFactory){
+   const dedicated=kind==='corpse'||kind==='statue'?null:createGroundModel({...cell.object,name:itemName});
+   if(dedicated){icon.add(dedicated);icon.userData.restingWeapon=true;icon.userData.dispose=()=>dedicated.userData.dispose();
+   }else if((kind==='statue'||itemName==='statue')&&statueCreature&&creatureFactory){
      const sculpture=creatureFactory({name:statueCreature}).g;
      const stoneMaterials=[new THREE.MeshStandardMaterial({color:0x898b86,roughness:.98}),new THREE.MeshStandardMaterial({color:0x777b78,roughness:1})];
      sculpture.traverse(o=>{if(o.isMesh){o.material=stoneMaterials[o.geometry?.uuid?.charCodeAt?.(0)%2||0];o.castShadow=o.receiveShadow=true;}});
@@ -143,6 +146,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
  const hero=playerFactory();hero.setWeapon?.(null);group.add(hero.g);
  function apply(frame){latest=frame;if(!active)return;
+   $('.location small').textContent=`THE DUNGEONS OF DOOM · DEPTH ${String(frame.depth).padStart(2,'0')}`;
    if(groundPanelTile!==groundTile(frame)){groundPanel.hidden=true;groundPanelTile=null;}
    if(Array.isArray(frame.ground))showGround(frame.ground);
    hero.setWeapon?.(frame.player.weapon??null);
@@ -233,8 +237,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  }
  dialog.addEventListener('cancel',e=>{e.preventDefault();if(pending)reply(pending.kind==='menu'?'!':pending.kind==='line'?'\u001b':27);});
  function connect(){meleeIntent=null;source?.close();source=new EventSource('/engine/events');source.onmessage=e=>{const v=JSON.parse(e.data);if(v.type==='frame')apply(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};source.onerror=()=>{if(active)setPrompt('Connection interrupted; reconnecting…');};}
- const saved={heading:$('.location h1').textContent,footer:$('footer>small').textContent,keys:$('.keys').innerHTML,companion:$('.companion').innerHTML};
- function setMode(value){active=value;cavern.setActive(active);for(const {light,base} of ambientLights)light.intensity=active?base*LIVE_AMBIENT:base;document.body.classList.toggle('live-engine',active);group.visible=active;for(const o of demoObjects)o.visible=!active;panel.hidden=!active;actions.hidden=!active;$('#reset').hidden=active;$('.legend').hidden=active;$('.character h2').hidden=active;button.textContent=active?'Demo room':'Live UnNetHack';if(!active)$('.companion').innerHTML=saved.companion;$('footer>small').textContent=active?'Real UnNetHack rules · isolated character and saves · drag to orbit, scroll to zoom':saved.footer;$('.keys').innerHTML=active?'<span><kbd>h j k l / arrows</kbd> Move</span><span><kbd>y u b n</kbd> Diagonals</span><span><kbd>s</kbd> Search</span><span><kbd>SPACE</kbd> Wait</span><span><kbd>i</kbd> Inventory</span><span><kbd>&lt; &gt;</kbd> Stairs</span>':saved.keys;if(active){if(latest)apply(latest);prompt();}else{dialog.close();onDemo();$('.location h1').textContent=saved.heading;controls.target.set(0,.1,0);camera.position.set(11,13,16);}onMode?.(active);}
+ const saved={banner:$('.location small').textContent,heading:$('.location h1').textContent,footer:$('footer>small').textContent,keys:$('.keys').innerHTML,companion:$('.companion').innerHTML};
+ function setMode(value){active=value;if(!active)$('.location small').textContent=saved.banner;cavern.setActive(active);for(const {light,base} of ambientLights)light.intensity=active?base*LIVE_AMBIENT:base;document.body.classList.toggle('live-engine',active);group.visible=active;for(const o of demoObjects)o.visible=!active;panel.hidden=!active;actions.hidden=!active;$('#reset').hidden=active;$('.legend').hidden=active;$('.character h2').hidden=active;button.textContent=active?'Demo room':'Live UnNetHack';if(!active)$('.companion').innerHTML=saved.companion;$('footer>small').textContent=active?'Real UnNetHack rules · isolated character and saves · drag to orbit, scroll to zoom':saved.footer;$('.keys').innerHTML=active?'<span><kbd>h j k l / arrows</kbd> Move</span><span><kbd>y u b n</kbd> Diagonals</span><span><kbd>s</kbd> Search</span><span><kbd>SPACE</kbd> Wait</span><span><kbd>i</kbd> Inventory</span><span><kbd>&lt; &gt;</kbd> Stairs</span>':saved.keys;if(active){if(latest)apply(latest);prompt();}else{dialog.close();onDemo();$('.location h1').textContent=saved.heading;controls.target.set(0,.1,0);camera.position.set(11,13,16);}onMode?.(active);}
  button.onclick=async()=>{if(active){setMode(false);return;}setMode(true);setPrompt('Starting isolated UnNetHack…');try{await post('/engine/start');connect();}catch(e){message(`Could not start engine: ${e.message}. Run npm run engine:build first.`);}};
  actions.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{if(pending?.kind==='command')reply(Number(b.dataset.key));});
  addEventListener('keydown',e=>{if(!active||e.metaKey||e.altKey)return;if(e.target instanceof HTMLInputElement)return;
