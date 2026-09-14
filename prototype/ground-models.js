@@ -9,7 +9,19 @@ export function createGroundModel(item={}){
  const add=(geo,m,x=0,y=0,z=0)=>{const p=new THREE.Mesh(geo,m);p.position.set(x,y,z);p.castShadow=p.receiveShadow=true;g.add(p);return p;};
  const box=(w,h,d,m,x,y,z=0)=>add(new THREE.BoxGeometry(w,h,d),m,x,y,z);
  const ball=(r,m,x,y,z,s=[1,1,1])=>{const p=add(new THREE.SphereGeometry(r,16,10),m,x,y,z);p.scale.set(...s);return p;};
- if(cls===11){
+ if(/wolfsbane/.test(name)){
+  const stem=mat(0x4c6334),leaf=mat(0x65884a),flower=mat(0x7965a6);
+  const stalk=add(new THREE.CylinderGeometry(.009,.014,.55,8),stem,0,.026,0);stalk.rotation.x=Math.PI/2;
+  for(let i=0;i<5;i++){
+   const side=i%2?1:-1,z=-.19+i*.082;
+   const blade=ball(.09,leaf,side*.065,.036,z,[.85,.15,.42]);blade.rotation.y=side*.55;
+  }
+  for(let i=0;i<3;i++){
+   const x=(i-1)*.05,z=-.23+i*.035;
+   ball(.043,flower,x,.07,z,[.8,1,.75]);
+   ball(.027,flower,x,.04,z+.022,[1,.45,1]);
+  }
+ }else if(cls===11){
   const rod=add(new THREE.CylinderGeometry(.025,.035,.6,12),leather,0,.045,0);rod.rotation.z=Math.PI/2;
   for(const x of [-.27,.2,.27]){const band=add(new THREE.CylinderGeometry(.04,.04,.025,12),gold,x,.045,0);band.rotation.z=Math.PI/2;}
  }else if(/boots|shoes/.test(name)){
