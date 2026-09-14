@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
 export function createGroundModel(item={}){
@@ -30,9 +31,11 @@ export function createGroundModel(item={}){
   box(.42,.045,.48,cloth,0,.025);if(!/towel/.test(name))for(const x of [-.25,.25])box(.15,.04,.18,cloth,x,.025,-.13);
   for(const x of [-.11,0,.11])box(.008,.003,.4,leather,x,.05);
  }else if(/mail|mithril|coat/.test(name)&&cls===3){
-  ball(.24,metal,0,.115,0,[1,.45,1.2]);
-  for(const x of [-.24,.24])ball(.1,metal,x,.09,-.13,[1,.7,1.2]);
-  for(let row=0;row<5;row++)for(let col=0;col<5;col++){const ring=add(new THREE.TorusGeometry(.027,.007,5,10),gold,(col-2)*.07,.22,-.17+row*.075);ring.rotation.x=-Math.PI/2;}
+  add(new RoundedBoxGeometry(.38,.09,.48,3,.025),metal,0,.05);
+  for(const x of [-.235,.235])add(new RoundedBoxGeometry(.16,.075,.18,3,.02),metal,x,.045,-.14);
+  // Links sit against the garment, rather than hovering over a spherical shell.
+  for(let row=0;row<7;row++)for(let col=0;col<6;col++){const ring=add(new THREE.TorusGeometry(.025,.006,5,10),metal,(col-2.5)*.055,.097,-.17+row*.055);ring.rotation.x=-Math.PI/2;}
+  add(new THREE.TorusGeometry(.059,.013,6,18),leather,0,.096,-.195).rotation.x=-Math.PI/2;
  }else if(/bag|sack/.test(name)){
   ball(.22,leather,0,.19,0,[1,.85,.8]);add(new THREE.CylinderGeometry(.06,.13,.08,12),cloth,0,.36,0);add(new THREE.TorusGeometry(.085,.015,6,16),gold,0,.37,0).rotation.x=Math.PI/2;
  }else if(/ration/.test(name)){
