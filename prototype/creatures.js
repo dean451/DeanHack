@@ -184,6 +184,17 @@ function blob(o){
  return actor(g,body,[],null,[],'blob');
 }
 
+// Gelatinous cube: unlike the other oozes, this one keeps crisp right angles — a
+// near-transparent block with half-digested debris suspended inside.
+function cube(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const skin=new THREE.MeshStandardMaterial({color:o.color,emissive:o.color,emissiveIntensity:.14,roughness:.06,transparent:true,opacity:.4,side:THREE.DoubleSide});
+ rounded(body,.5,.5,.5,skin,0,.25,0,.045);
+ const debris=['#8a6a3a','#b8402e','#d9b23a','#7a7a78','#3f5fa0'];
+ for(let i=0;i<7;i++){const a=(i*97%360)*Math.PI/180,r=.09+((i*53)%10)/70;sphere(body,.03+((i*29)%4)/130,mat(debris[i%debris.length],{roughness:.6}),Math.cos(a)*r,.1+((i*7)%5)*.06,Math.sin(a)*r);}
+ return actor(g,body,[],null,[],'cube');
+}
+
 // Floating eyes: a big eyeball hovering at head height. Easily the most recognisable shape.
 function floatingEye(o){
  const g=new THREE.Group(),body=new THREE.Group(),lift=new THREE.Group();g.add(body);body.add(lift);lift.position.y=.58;
@@ -283,6 +294,7 @@ export function createCreature(cell={}){
  if(/mold$/.test(name))return fungus({form:'mound',color:color||{yellow:'#d6b43c',green:'#5fa044',brown:'#8a6440',red:'#b8402e'}[name.split(' ')[0]]||'#8a8a60'});
  if(name==='shrieker'||name==='violet fungus')return fungus({form:'mushroom',color:name==='shrieker'?'#8f5aa8':'#b05ac0',tendrils:name==='violet fungus'});
  if(name==='cave spider'||name==='giant spider')return spider({color:name==='cave spider'?'#7a7a74':'#4a2a5a',scale:name==='cave spider'?.65:1.5});
+ if(name==='gelatinous cube')return cube({color:color||'#8ad0c0'});
  if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name)});
  if(name==='centipede')return centipede({color:'#c9a03a'});
  if(/^(bat|giant bat|vampire bat)$/.test(name))return bat({color:name==='bat'?'#5a4636':name==='giant bat'?'#7a3a32':'#28242a',scale:name==='giant bat'?1.25:1});
