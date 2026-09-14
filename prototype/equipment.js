@@ -27,6 +27,30 @@ export function createHeldWeapon(item){
    part(new THREE.CylinderGeometry(.031,.031,.07,12),steel,0,y);
    part(new THREE.CylinderGeometry(.033,.033,.015,12),brass,0,y+(y<0?.045:-.045));
   }
+ }else if(/\bcrossbow\b/.test(name)){
+  const wood=new THREE.MeshStandardMaterial({color:0x805735,roughness:.86});
+  g.userData.extraMaterial=wood;
+  // Stock follows the weapon axis; the hand holds the bound rear section.
+  part(new THREE.BoxGeometry(.085,.72,.095),wood,0,.2);
+  part(new THREE.BoxGeometry(.11,.18,.11),leather,0,-.035);
+  part(new THREE.BoxGeometry(.115,.035,.115),brass,0,-.145);
+  for(const x of [-.027,.027])part(new THREE.BoxGeometry(.012,.48,.015),steel,x,.29,.055);
+  part(new THREE.BoxGeometry(.12,.08,.12),brass,0,.44);
+  for(const side of [-1,1]){
+   const curve=new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0,.45,0),new THREE.Vector3(side*.15,.44,0),
+    new THREE.Vector3(side*.29,.38,0),new THREE.Vector3(side*.38,.3,0)
+   ]);
+   part(new THREE.TubeGeometry(curve,16,.018,6,false),steel,0,0);
+   const cord=new THREE.LineCurve3(new THREE.Vector3(side*.38,.3,.025),new THREE.Vector3(0,.055,.06));
+   part(new THREE.TubeGeometry(cord,1,.004,5,false),leather,0,0);
+  }
+  // A seated bolt and fletching make the firing direction readable.
+  part(new THREE.CylinderGeometry(.008,.008,.43,6),wood,0,.31,.072);
+  part(new THREE.ConeGeometry(.022,.07,4),steel,0,.56,.072);
+  part(new THREE.BoxGeometry(.065,.065,.007),leather,0,.12,.072);
+  const trigger=new THREE.TorusGeometry(.043,.007,5,12,Math.PI);
+  trigger.rotateZ(Math.PI/2);part(trigger,brass,0,.015,-.065);
  }else if(/\bbow\b/.test(name)){
   const wood=new THREE.MeshStandardMaterial({color:0x805735,roughness:.82});
   g.userData.extraMaterial=wood;
