@@ -195,6 +195,20 @@ function floatingEye(o){
  return actor(g,body,[],null,[],'hover');
 }
 
+// Shocking spheres: a metallic orb crackling with jagged spikes of electricity,
+// deliberately unlike the floating eye's soft iris-and-tendrils look.
+function shockingSphere(){
+ const g=new THREE.Group(),body=new THREE.Group(),lift=new THREE.Group();g.add(body);body.add(lift);lift.position.y=.58;
+ const shell=new THREE.MeshStandardMaterial({color:'#3f4d54',metalness:.6,roughness:.3,emissive:'#2a5a68',emissiveIntensity:.6}),arc=new THREE.MeshStandardMaterial({color:'#bdf3ff',emissive:'#4fd2ff',emissiveIntensity:2.2,roughness:.25});
+ const core=sphere(lift,.19,shell);
+ for(let i=0;i<8;i++){
+  const a=i*1.6,el=Math.sin(i*2.3)*.7,dir=new THREE.Vector3(Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el));
+  const spike=cone(lift,.032,.22+((i*17)%3)*.03,arc,dir.x*.24,dir.y*.24,dir.z*.24,4);spike.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
+ }
+ sphere(lift,.22,new THREE.MeshStandardMaterial({color:'#4fd2ff',emissive:'#4fd2ff',emissiveIntensity:.5,transparent:true,opacity:.14,depthWrite:false}));
+ g.userData.core=core;return Object.assign(actor(g,body,[],null,[],'hover'),{core});
+}
+
 // Yellow/black lights: a glowing mote. Explodes when it touches you, so it should glow.
 function wisp(o){
  const g=new THREE.Group(),body=new THREE.Group(),lift=new THREE.Group();g.add(body);body.add(lift);lift.position.y=.55;
@@ -278,6 +292,7 @@ export function createCreature(cell={}){
  if(INSECTS[name])return insect(INSECTS[name]);
  if(SNAKES[name])return snake(SNAKES[name]);
  if(name==='floating eye')return floatingEye({});
+ if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
  if(name==='lichen')return fungus({form:'lichen',color:'#8fbf5a'});
  if(/mold$/.test(name))return fungus({form:'mound',color:color||{yellow:'#d6b43c',green:'#5fa044',brown:'#8a6440',red:'#b8402e'}[name.split(' ')[0]]||'#8a8a60'});
