@@ -10,6 +10,30 @@ import {stageCreature,addOutlines} from './readability.js';
 import {createCavern} from './cavern.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
+// Potions get a random appearance each game (a color word, or a descriptive word like
+// "milky"/"smoky"/"clear"), and the item name carries whichever one is current. Longer
+// keys are checked first so "dark green" wins over a bare "green" substring match.
+const POTION_LOOKS={
+ ruby:['#e06a80','#c81e3a'],pink:['#e6a8c4','#c9668f'],red:['#d96060','#b31f1f'],
+ orange:['#e0955a','#c65a1a'],yellow:['#e0d05a','#c4ac1e'],
+ emerald:['#5ac48a','#1f8a4a'],'dark green':['#3a6b4a','#123d24'],green:['#6ac47a','#2a8a3a'],
+ cyan:['#5bd0c7','#1f9d9d'],'sky blue':['#8fc0ea','#3f7fc2'],'brilliant blue':['#6a85ea','#2043c2'],blue:['#7a9dea','#2a5fc2'],
+ magenta:['#d060c0','#a02090'],purple:['#9a60c0','#5a2090'],violet:['#a67fea','#6a3fc7'],
+ puce:['#a67a72','#7a4a4a'],lavender:['#bcaeea','#8a7ac0'],
+ white:['#f2f2ea','#dcdcd0'],silver:['#dadee0','#a6acb0'],golden:['#e0bf5a','#b8892a'],brown:['#8a6238','#5a3a1e'],
+ black:['#2a2a2a','#0a0a0a'],
+ milky:['#efeee6','#d8d6c6',{opacity:.88,transmission:.05}],clear:['#e8f5f0','#bcd8d2',{opacity:.3,transmission:.6}],
+ smoky:['#8a8a86','#5a5a56',{opacity:.62,transmission:.12}],cloudy:['#c5c5c0','#a6a6a0',{opacity:.72,transmission:.08}],
+ swirly:['#a06fe0','#7a3fc0'],bubbly:['#5bd0c7','#1f9d9d'],effervescent:['#c7e05b','#8aae2a'],
+ fizzy:['#e0e06f','#b0b02a'],gooey:['#8a7a2a','#5a4a1a'],murky:['#4a4a3a','#2a2a1e'],
+ sparkling:['#e8e8ff','#c0c0f0',{emissiveIntensity:.7}],glowing:['#eaff8a','#c7e05b',{emissiveIntensity:.9}],luminescent:['#eaff8a','#c7e05b',{emissiveIntensity:.9}],
+};
+const DEFAULT_POTION_LOOK=['#8fd0c8','#3aa8a6',{}];
+export function potionLook(name){
+ for(const key of Object.keys(POTION_LOOKS).sort((a,b)=>b.length-a.length))if(name.includes(key)){const [glass,liquid,extra]=POTION_LOOKS[key];return {glass,liquid,opacity:.58,transmission:.2,emissiveIntensity:.35,...extra};}
+ const [glass,liquid,extra]=DEFAULT_POTION_LOOK;return {glass,liquid,opacity:.58,transmission:.2,emissiveIntensity:.35,...extra};
+}
+
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
  const group=new THREE.Group();scene.add(group);group.visible=false;
@@ -123,7 +147,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      icon.userData.coinPile=coinPile;
      icon.userData.dispose=()=>{coinMats.forEach(material=>material.dispose());coinStampMats.forEach(material=>material.dispose());shadow.dispose();};
    } else if(cls===POTION_CLASS){
-     const glass=new THREE.MeshPhysicalMaterial({color:0x9dd9d1,roughness:.16,metalness:.02,transmission:.2,transparent:true,opacity:.58}),liquid=new THREE.MeshStandardMaterial({color:0x43b9b7,emissive:0x0b5555,emissiveIntensity:.35,roughness:.3});
+     const look=potionLook(itemName);
+     const glass=new THREE.MeshPhysicalMaterial({color:look.glass,roughness:.16,metalness:.02,transmission:look.transmission,transparent:true,opacity:look.opacity}),liquid=new THREE.MeshStandardMaterial({color:look.liquid,emissive:look.liquid,emissiveIntensity:look.emissiveIntensity,roughness:.3});
      const bottle=add(new THREE.SphereGeometry(.18,16,10),glass,0,.3,0);bottle.scale.y=1.18;const fill=add(new THREE.SphereGeometry(.145,14,9),liquid,0,.28,0);fill.scale.y=1.18;add(new THREE.CylinderGeometry(.065,.065,.14,10),glass,0,.57,0);add(new THREE.CylinderGeometry(.075,.085,.045,12),edge,0,.66,0);
      icon.userData.dispose=()=>{glass.dispose();liquid.dispose();};
    } else if(cls===ARMOR_CLASS){
