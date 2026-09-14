@@ -303,6 +303,23 @@ function snake(o){
 }
 const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75},snake:{color:'#7a5a34'},'water moccasin':{color:'#5a3228'},'pit viper':{color:'#3a5a8a'},python:{color:'#7a5a7a',scale:1.4},cobra:{color:'#3a4a7a',hood:true}};
 
+// Nymphs: a slender, glamorous humanoid built for a clear silhouette — a flared dress
+// and flowing hair read at a glance, unlike the blocky torso of the generic humanoid.
+function nymph(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[];
+ const skin=mat(o.skin),dress=mat(o.dress,{roughness:.5}),hair=mat(o.hair,{roughness:.85});
+ for(const x of [-.08,.08]){const leg=new THREE.Group();leg.position.set(x,.38,0);body.add(leg);rounded(leg,.08,.36,.08,skin,0,-.18,0,.03);legs.push(leg);}
+ cone(body,.3,.5,dress,0,.46,0,12);
+ rounded(body,.3,.34,.22,dress,0,.86,0,.07);
+ for(const side of [-1,1]){sphere(body,.09,skin,side*.19,.98,0,.55,.7,.55);const arm=new THREE.Group();arm.position.set(side*.19,.98,0);body.add(arm);rounded(arm,.06,.3,.06,skin,0,-.16,0,.025);arm.rotation.z=side*.1;}
+ sphere(body,.15,skin,0,1.12,.015,.85,.95,.8);
+ const mane=sphere(body,.17,hair,0,1.14,-.06,.9,1,.9);mane.rotation.x=.08;
+ for(let i=0;i<3;i++){const strand=cone(body,.03-i*.006,.3+i*.08,hair,(i-1)*.06,.96-i*.02,-.14-i*.02,4);strand.rotation.x=2.7+i*.05;}
+ eyes(body,M.eye,1.12,.135,.05);
+ return actor(g,body,legs,null,[],'nymph');
+}
+const NYMPHS={'wood nymph':{skin:'#e0b98a',dress:'#3a6a34',hair:'#4a2a18'},'water nymph':{skin:'#dcc7b0',dress:'#2f5a8a',hair:'#8a6a3a'},'mountain nymph':{skin:'#e6cdae',dress:'#7a5a8a',hair:'#2a2018'}};
+
 // Generic guardian, kept as the last resort but tinted by the monster's glyph colour.
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
 
@@ -319,6 +336,7 @@ export function createCreature(cell={}){
  if(LIZARDS[name])return lizard(LIZARDS[name]);
  if(INSECTS[name])return insect(INSECTS[name]);
  if(SNAKES[name])return snake(SNAKES[name]);
+ if(NYMPHS[name])return nymph(NYMPHS[name]);
  if(name==='floating eye')return floatingEye({});
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
  if(name==='lichen')return fungus({form:'lichen',color:'#8fbf5a'});
@@ -368,6 +386,7 @@ export function createCreature(cell={}){
   case '@':return humanoid('human',{cloth:mat(shade(c,.8))});
   case 'r':return rat(false);
   case 'x':return gridBug();
+  case 'n':return nymph({skin:c,dress:shade(c,.6),hair:'#2a2018'});
   case "'":return golem(GOLEM_MATERIALS.stone);
  }
  return guardian({color});
