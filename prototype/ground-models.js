@@ -22,6 +22,26 @@ export function createGroundModel(item={}){
    ball(.043,flower,x,.07,z,[.8,1,.75]);
    ball(.027,flower,x,.04,z+.022,[1,.45,1]);
   }
+ }else if(cls===6&&/\b(?:oil lamp|magic lamp|lamp)\b/.test(name)){
+  // Oil and magic lamps deliberately share their unidentified appearance.
+  const soot=mat(0x302b23);
+  add(new THREE.CylinderGeometry(.13,.15,.035,24),gold,0,.0175);
+  ball(.19,gold,0,.105,0,[1,.48,.78]);
+  add(new THREE.CylinderGeometry(.084,.10,.025,24),gold,0,.194);
+  ball(.027,gold,0,.222,0,[1,.65,1]);
+  const spout=new THREE.CatmullRomCurve3([
+   new THREE.Vector3(.12,.105,0),new THREE.Vector3(.22,.12,0),
+   new THREE.Vector3(.30,.16,0),new THREE.Vector3(.36,.205,0)
+  ]);
+  add(new THREE.TubeGeometry(spout,20,.032,10,false),gold);
+  const mouth=add(new THREE.TorusGeometry(.032,.008,8,16),gold,.36,.205);
+  const direction=spout.getTangent(1).normalize();
+  mouth.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),direction);
+  const opening=add(new THREE.CircleGeometry(.024,16),soot,.36,.205);
+  opening.quaternion.copy(mouth.quaternion);
+  opening.position.addScaledVector(direction,.002);
+  const handle=add(new THREE.TorusGeometry(.091,.018,8,24),gold,-.21,.14);
+  handle.scale.y=.85;
  }else if(cls===11){
   const rod=add(new THREE.CylinderGeometry(.025,.035,.6,12),leather,0,.045,0);rod.rotation.z=Math.PI/2;
   for(const x of [-.27,.2,.27]){const band=add(new THREE.CylinderGeometry(.04,.04,.025,12),gold,x,.045,0);band.rotation.z=Math.PI/2;}
