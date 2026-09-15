@@ -28,8 +28,43 @@ export function createGroundModel(item={}){
  }else if(/boots|shoes/.test(name)){
   for(const x of [-.13,.13]){ball(.13,leather,x,.10,.035,[.75,.7,1.45]);add(new THREE.CylinderGeometry(.07,.085,.22,12),leather,x,.19,-.075);add(new THREE.TorusGeometry(.074,.012,6,16),gold,x,.3,-.075).rotation.x=Math.PI/2;}
  }else if(/t-shirt|shirt|towel|cloak/.test(name)){
-  box(.42,.045,.48,cloth,0,.025);if(!/towel/.test(name))for(const x of [-.25,.25])box(.15,.04,.18,cloth,x,.025,-.13);
-  for(const x of [-.11,0,.11])box(.008,.003,.4,leather,x,.05);
+  const towel=/towel/.test(name),cloak=/cloak/.test(name);
+  const fabric=cloak?mat(0x53625b):cloth;
+  // Sample the silhouette into strips so folds bend the whole cloth surface,
+  // rather than adding dark rods on top of a rigid rectangular block.
+  const rows=32,cols=24,positions=[],indices=[];
+  const width=t=>towel?.21:cloak?.10+.20*t:
+   t<.12?.17+t*.75:t<.36?.26:t<.46?.26-(t-.36)*.9:.17;
+  const height=(x,z)=>.019+.009*Math.sin(x*47+z*5)+.006*Math.cos(z*23-x*8);
+  for(let row=0;row<=rows;row++){
+   const t=row/rows,w=width(t);
+   for(let col=0;col<=cols;col++){
+    const u=col/cols,x=(u*2-1)*w;
+    // The neckline recedes into the shoulders, leaving an actual open notch.
+    const neckline=towel?0:.065*Math.exp(-Math.pow(x/.068,4))*(1-t)**8;
+    const z=-.26+t*.52+neckline;
+    positions.push(x,height(x,z),z);
+   }
+  }
+  for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
+   const a=row*(cols+1)+col,b=a+cols+1;
+   indices.push(a,b,a+1,a+1,b,b+1);
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geo.setIndex(indices);geo.computeVertexNormals();fabric.side=THREE.DoubleSide;
+  add(geo,fabric);
+  const hem=mat(cloak?0x778379:0xd3c4a4);
+  const edge=(points)=>add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),48,.0035,5,false),hem);
+  for(const row of [0,rows])edge(Array.from({length:cols+1},(_,col)=>new THREE.Vector3(...positions.slice((row*(cols+1)+col)*3,(row*(cols+1)+col)*3+3))));
+  for(const col of [0,cols])edge(Array.from({length:rows+1},(_,row)=>new THREE.Vector3(...positions.slice((row*(cols+1)+col)*3,(row*(cols+1)+col)*3+3))));
+  if(towel){
+   // Short uneven fringe stays on the floor at both ends.
+   for(const side of [-1,1])for(let i=0;i<13;i++){
+    const x=(i-6)*.03,z=side*.26;
+    edge([new THREE.Vector3(x,height(x,z),z),new THREE.Vector3(x+.004,.012,z+side*(.018+(i%3)*.004))]);
+   }
+  }
  }else if(/mail|mithril|coat/.test(name)&&cls===3){
   add(new RoundedBoxGeometry(.38,.09,.48,3,.025),metal,0,.05);
   for(const x of [-.235,.235])add(new RoundedBoxGeometry(.16,.075,.18,3,.02),metal,x,.045,-.14);
