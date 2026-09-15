@@ -42,6 +42,17 @@ export function createGroundModel(item={}){
   opening.position.addScaledVector(direction,.002);
   const handle=add(new THREE.TorusGeometry(.091,.018,8,24),gold,-.21,.14);
   handle.scale.y=.85;
+ }else if(cls===6&&/\bcan of grease\b/.test(name)){
+  const tin=mat(0x7b8588,.65),label=mat(0x8c7750),stamp=mat(0x443c2c);
+  add(new THREE.CylinderGeometry(.145,.145,.19,32),tin,0,.105);
+  // A paper band and concentric stamped lid distinguish this from a potion.
+  add(new THREE.CylinderGeometry(.147,.147,.09,32,1,true),label,0,.105);
+  add(new THREE.CylinderGeometry(.133,.133,.009,32),tin,0,.198);
+  for(const y of [.016,.2])add(new THREE.TorusGeometry(.141,.009,8,32),metal,0,y).rotation.x=Math.PI/2;
+  add(new THREE.TorusGeometry(.105,.003,6,32),stamp,0,.204).rotation.x=Math.PI/2;
+  // Pressed oval maker's mark: no invented readable lettering at game zoom.
+  const mark=add(new THREE.CircleGeometry(.038,20),stamp,0,.205);
+  mark.rotation.x=-Math.PI/2;mark.scale.x=1.5;
  }else if(cls===11){
   const rod=add(new THREE.CylinderGeometry(.025,.035,.6,12),leather,0,.045,0);rod.rotation.z=Math.PI/2;
   for(const x of [-.27,.2,.27]){const band=add(new THREE.CylinderGeometry(.04,.04,.025,12),gold,x,.045,0);band.rotation.z=Math.PI/2;}
