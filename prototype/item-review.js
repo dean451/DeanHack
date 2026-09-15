@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {createGroundModel} from './ground-models.js';
 
 const items=[['wand of fire',11],['speed boots',3],['T-shirt',3],['towel',6],['dwarvish mithril-coat',3],['bag of holding',6],['food ration',7],['tripe ration',7],['unicorn horn',6],['Candelabrum of Invocation',6],['magic marker',6],['sprig of wolfsbane',7]];
+items.unshift(['can of grease',6],['oil lamp',6],['magic lamp',6]);
 // Render each fixture once, releasing GPU resources between cards.
 for(const [name,cls] of items){
  const figure=document.createElement('figure'),canvas=document.createElement('canvas'),caption=document.createElement('figcaption');
