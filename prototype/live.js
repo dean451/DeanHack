@@ -1,3 +1,4 @@
+import {createShopkeeper,createWatchman,createLightItem,createShopItem} from './shop-visuals.js';
 import {createGridBug} from './grid-bug.js';
 import * as THREE from 'three';
 import {groundNotice,groundTile} from './ground-notice.js';
@@ -81,6 +82,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    // usable while they are being replaced; the current bridge supplies creature directly.
    const statueCreature=cell.object?.creature||({6746:'gecko'}[cell.glyph]);
    if((kind==='statue'||itemName==='statue')&&/centaur/i.test(statueCreature||'')){const statue=createCentaurStatue(statueCreature);const caption=label(statueCreature,'#d7c8a7');caption.position.y=1.55;statue.add(caption);return statue;}
+   const lightItem=createLightItem(itemName);if(lightItem){const caption=label(cell.name||itemName,'#d7c8a7');caption.position.y=.9;lightItem.add(caption);return lightItem;}
+   const shopItem=createShopItem(itemName);if(shopItem){const caption=label(cell.name||itemName,'#d7c8a7');caption.position.y=.82;shopItem.add(caption);return shopItem;}
    const warm=new THREE.MeshStandardMaterial({color:kind==='corpse'?0x72534a:cls===POTION_CLASS?0x5bd0c7:cls===WEAPON_CLASS?0xd9b15e:0xc9a86b,emissive:kind==='corpse'?0x241314:0x362718,roughness:.42,metalness:cls===WEAPON_CLASS?.65:.18});
    const edge=new THREE.MeshStandardMaterial({color:kind==='corpse'?0xb9a189:0xe8d8aa,roughness:.55,metalness:cls===WEAPON_CLASS?.7:.25});
    const add=(geometry,material=warm,x=0,y=.34,z=0)=>{const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=true;icon.add(m);return m;};
@@ -200,7 +203,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
        if(cell.kind==='monster'||cell.kind==='pet'){
        const key=`${id}:${cell.glyph}`;seenActors.add(key);let a=actors.get(key);
        if(!a){for(const [previous,candidate] of actors){if(!seenActors.has(previous)&&candidate.glyph===cell.glyph&&Math.hypot(candidate.g.position.x-x,candidate.g.position.z-z)<2.1){a=candidate;actors.delete(previous);actors.set(key,a);break;}}}
-       if(!a){const disposition=cell.kind==='pet'?'pet':cell.peaceful?'peaceful':'hostile';if(cell.kind==='pet'&&/cat|kitten/.test(cell.name)){a=catFactory();stageCreature(a.g,{disposition});a.g.add(label(cell.name,'#b8ead3'));}else{const made=/^grid bug$/i.test(cell.name||'')?createGridBug():/^oracle$/i.test(cell.name||'')?createOracle():creatureFactory?creatureFactory(cell):monsterFactory();a=made.g?made:{g:made};stageCreature(a.g,{disposition});a.g.add(label(cell.name||'creature',cell.kind==='pet'?'#b8ead3':cell.peaceful?'#e8dfb0':'#e9c8ad'));}a.g.position.set(x,0,z);group.add(a.g);actors.set(key,a);}
+       if(!a){const disposition=cell.kind==='pet'?'pet':cell.peaceful?'peaceful':'hostile';if(cell.kind==='pet'&&/cat|kitten/.test(cell.name)){a=catFactory();stageCreature(a.g,{disposition});a.g.add(label(cell.name,'#b8ead3'));}else{const made=/^shopkeeper$/i.test(cell.name||'')?createShopkeeper():/^watchman$/i.test(cell.name||'')?createWatchman():/^grid bug$/i.test(cell.name||'')?createGridBug():/^oracle$/i.test(cell.name||'')?createOracle():creatureFactory?creatureFactory(cell):monsterFactory();a=made.g?made:{g:made};stageCreature(a.g,{disposition});a.g.add(label(cell.name||'creature',cell.kind==='pet'?'#b8ead3':cell.peaceful?'#e8dfb0':'#e9c8ad'));}a.g.position.set(x,0,z);group.add(a.g);actors.set(key,a);}
        a.glyph=cell.glyph;a.species=(cell.name||'').toLowerCase();a.target=new THREE.Vector3(x,0,z);
      }
    }

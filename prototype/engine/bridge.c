@@ -84,6 +84,15 @@ static void frame(void) {
     for(y=0;y<ROWNO;y++) for(x=1;x<COLNO;x++) {
         g=glyphs[x][y]; if(g<0)continue;b=backgrounds[x][y];
         if(!first)putchar(',');first=FALSE;
+        /* Some generated levels carry stale wall mode bits that the legacy
+           tile renderer reports as an "original author" panic. The bridge
+           is glyph based, so a neutral wall mode is the correct fallback. */
+        if ((levl[x][y].typ == HWALL || levl[x][y].typ == VWALL ||
+             levl[x][y].typ == SDOOR || levl[x][y].typ == TLCORNER ||
+             levl[x][y].typ == TRCORNER || levl[x][y].typ == BLCORNER ||
+             levl[x][y].typ == BRCORNER) &&
+            (levl[x][y].wall_info & WM_MASK) > 2)
+            levl[x][y].wall_info &= ~WM_MASK;
         mapglyph(g,&ch,&col,&special,x,y,0);
         terrain_glyph = glyph_is_cmap(g) ? g : b;
         printf("{\"x\":%d,\"z\":%d,\"glyph\":%d,\"symbol\":%d,\"color\":%d,\"visible\":%s,\"remembered\":%s,\"terrain\":",x,y,g,ch,col,cansee(x,y)?"true":"false",levl[x][y].seenv?"true":"false");quoted(terrain(terrain_glyph));

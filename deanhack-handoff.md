@@ -263,3 +263,289 @@ Files: prototype/grid-bug.js, prototype/live.js. Live grid bugs now have overlap
 Checks: npm test 11/11; production build passes with bundle-size warning; git diff --check; isolated browser visual check with stageCreature outlines and hostile ring. No live-game input.
 Commit: f5331f65 (local).
 Open concerns: demo gallery still uses Claude factory; live renderer uses new model. Shared live.js claim released. Refresh to load.
+
+## 2026-09-13 — Codex — shared-file intent (shop visuals)
+Claim: prototype/live.js shopkeeper routing and light-item pickup models. New shop-visuals.js; no changes to Claude creatures.js. Portly apron/mustache shopkeeper; candle, lamp and lantern geometry.
+
+## 2026-09-13 — Codex — finished (shop visuals)
+Files: prototype/shop-visuals.js, prototype/live.js. Watchmen now use armored soldier silhouettes with helmets, plume, shield and spear. Shop items now render pick-axes, lock picks, skeleton keys, blindfolds and grease tins instead of diamonds; prior light models remain.
+Checks: npm test 11/11, production build passes with bundle-size warning, git diff --check. No live-game input.
+Commit: blocked by local Git commit approval/usage limit; changes remain in worktree.
+Open concerns: visual browser spot-check not run this turn; refresh Live mode to load.
+
+## 2026-09-14 CDT — Claude — claimed (creature identity batch)
+Plan: Work through the requested creature-identity batch as separate small PRs off claude/visuals, each rebased on current master, tested and visually checked before commit:
+  1. Unicorn model improvement (proper muzzle/mane/flowing tail) + new golem model (all golem materials: straw/paper/wax/rope/gold/leather/wood/flesh/clay/stone/glass/iron/ice/crystal ice) + new giant-turtle model (domed shell). Currently golems and turtles fall through to the generic guardian/lizard fallback.
+  2. Gelatinous cube: currently renders as a translucent blob (spherical), not cube-shaped. New dedicated boxy model with suspended debris.
+  3. Shocking sphere: currently reuses the floating-eye model. New distinct metallic-sphere-with-electric-spikes model.
+  4. Nymph (wood/water/mountain): currently falls through to the generic guardian. New slender humanoid with flared dress and flowing hair.
+  5. Invisible creatures: client-side hide-on-flag support so an invisible actor's model, label and disposition ring (all children of the same group) disappear together. This needs a new `invisible` boolean per monster cell — bridge.c already computes MG_INVIS via mapglyph() but never puts it in the JSON, so I can't verify this end-to-end myself; will implement the client side and log a "Next for Codex" request for the field rather than edit bridge.c.
+Files: prototype/creatures.js and prototype/readability.js (mine); prototype/main.js gallery roster additions and prototype/live.js actor-visibility check (shared — claiming just the gallery-roster-array lines in main.js and the per-frame actor visibility line in live.js, nothing else in either file).
+No changes to LIVE_AMBIENT/TORCH_INTENSITY/lantern. No engine/bridge.c edits.
+
+## 2026-09-13 20:14 CDT — Codex — claimed
+Plan: Add dedicated crossbow geometry with wooden stock, transverse steel limbs, string and bolt rail; update existing PR #14.
+Files: prototype/equipment.js in deanhack-codex on codex/staff-model.
+
+## 2026-09-14 CDT — Claude — shared-file intent (gallery roster, batch 1/5)
+Claim: prototype/main.js — only the galleryNames array (append new creature names for visual testing). No other main.js changes.
+
+## 2026-09-13 20:17 CDT — Codex — finished
+Did: Added dedicated crossbow stock, curved steel limbs, drawn string, bolt rail, seated bolt and trigger detail. Pushed to existing PR #14 and updated its title/body for quarterstaff plus crossbow models. Shared-file claims untouched.
+Files: prototype/equipment.js in deanhack-codex only.
+Checks: npm test 8/8; npm run build passed (existing bundle-size warning); git diff --check passed. Crossbow visually inspected in isolated browser scene on port 5175 without an engine; temporary page removed and server stopped. No user-game input.
+Commit: dc361a9d on origin/codex/staff-model. PR https://github.com/dean451/DeanHack/pull/14 awaits user merge. codex/codex-automation labels are not available in repository.
+Next for Claude: Crossbow complete; your creature and visibility claims preserved.
+Codex candidates remaining: bridge invisible boolean requested by Claude (coordinate semantics first); weapon-family scale review; statue species data cleanup; dedicated flail model.
+
+## 2026-09-13 20:20 CDT — Codex — finished (approved play-copy crash fix)
+Did: User explicitly approved an exception to the play-checkout edit restriction. Added missing box binding in createTool and mesh binding in createWatchman; preserved other edits.
+Files: prototype/shop-visuals.js in play checkout, two helper bindings only.
+Checks: All 10 shop-model factory cases passed on prepared copy; skeleton key and watchman passed again on edited source. No game input, restart, or browser refresh performed.
+Commit: None; existing uncommitted work preserved.
+Next for Claude: Preserve these helper bindings when incorporating shop visuals.
+Codex candidates remaining: weapon scale review; statue species cleanup; flail model.
+
+## 2026-09-13 20:25 CDT — Codex — claimed
+Plan: Add dedicated flail geometry with bound wooden handle, interlocking chain and studded iron head; maintain existing PR #14.
+Files: prototype/equipment.js in deanhack-codex on codex/staff-model only.
+
+## 2026-09-13 — Codex — approved playtest requests
+User explicitly requested these changes in the playtest-watch task; approval is recorded, no duplicate approval needed for these exact requests.
+Next for Claude:
+- Doors: cross-shaped metalwork with visible rivets; remove door knobs. Apply to open and closed door geometry as appropriate.
+- Gas trap: render as a flat green cloud lying on the ground.
+Next for Codex:
+- Ground potion in the live view is described as ochre but renders teal. Match its appearance description, including after identification (do not map paralysis to a fixed color; potion appearances vary by game). Confirmed current deanhack-codex prototype/live.js pickupIcon POTION_CLASS branch hardcodes teal glass 0x9dd9d1 and liquid 0x43b9b7. Bridge currently sends object true name plus cell.color, but no object appearance description; use appearance data with existing color fallback as appropriate. Coordinate a narrow shared live.js claim before implementation; Claude already claims actor visibility lines, and Codex currently claims equipment.js for flail work.
+Checks: read-only source inspection and game screenshot; no implementation or live input performed. Baseline turn 3652, HP 68/73, level 8. Requests queued for the existing owner workflows; no new fix task created. Play/review copy source and Claude worktree untouched.
+
+## 2026-09-14 CDT — Claude — finished (creature batch 1/5: unicorn, golem, turtle)
+Did: Gave unicorns a proper muzzle/mane/flowing tail; added a new blocky golem model covering all 14 materials (straw/paper/wax/rope/gold/leather/wood/flesh/clay/stone/glass/iron/ice/crystal ice), which previously fell through to the generic guardian shape; added a new domed-shell giant turtle model, which previously used the generic sprawling lizard shape.
+Files: prototype/creatures.js (unicorn/golem/turtle), prototype/main.js (gallery roster: added unicorn, iron/clay/glass golem, giant turtle).
+Checks: npm test 8/8, npm run build passed. Visually checked via the Creature gallery on an isolated dev server (port 5174) — all five new/changed creatures read as distinct silhouettes; no console errors.
+Commit: df941550, pushed to origin/claude/visuals. PR #15: https://github.com/dean451/DeanHack/pull/15 (user merges; independent of any other open PR).
+Next: continuing the batch (gelatinous cube, shocking sphere, nymph, invisibility) as separate branches/PRs off master so each can be reviewed independently of this one.
+
+## 2026-09-13 20:27 CDT — Codex — blocked
+Did: Added dedicated flail with bound wooden handle, alternating chain links and studded iron head. Local commit complete; remote publication blocked.
+Files: prototype/equipment.js in deanhack-codex only.
+Checks: npm test 8/8; npm run build passed (existing bundle-size warning); git diff --check passed. Visually inspected held and ground poses on isolated port 5175 without engine. Temporary page removed and server stopped; no game input.
+Commit: bb2ecf4e on codex/staff-model, one commit ahead of origin. PR #14 remains open; flail not pushed and PR description not yet updated.
+Blocker: Automatic approval review rejected push to github.com/dean451/DeanHack as an unverified destination with insufficient trusted export authorization. User approval required to publish this commit. No remote retry attempted.
+Remaining actions: approve/push bb2ecf4e to origin/codex/staff-model; update PR #14 title/body to cover all three weapon models.
+Next for Claude: Existing creature/visibility claims preserved.
+Codex candidates remaining: weapon-family scale review; statue species cleanup; invisible bridge field after semantic coordination; dedicated whip model.
+
+## 2026-09-13 — Codex — approved playtest depth banner fix
+Next for Codex: User approved fixing the top DEPTH 01 banner to match the current dungeon depth. Confirmed prototype/index.html hardcodes DEPTH 01; live.js updates .location h1 from frame.depth but not .location small. Update the banner during live frame rendering and preserve appropriate demo behavior. Coordinate shared live.js claim. Observed mismatch at dungeon 3 and dungeon 5. This is approved and queued for the existing Codex workflow; no duplicate approval needed. No source edited or game input sent.
+
+## 2026-09-13 20:36 CDT — Codex — approved playtest food/herb queue
+Did: Received resumed dispatch from playtest-watch task after usage reset. Added three explicitly approved item models to the existing Codex queue; implementation has not started.
+Next for Codex:
+- Food ration: replace generic yellow diamond with a wrapped food bundle.
+- Tripe ration: replace generic yellow diamond with a distinct piece of meat.
+- Sprig of wolfsbane: replace generic yellow diamond with a leafy flowering sprig.
+Existing approved requests retained without duplicate entries: dynamic depth banner; randomized potion appearance (ochre must not render fixed teal, including after identification).
+Coordination: Claim shared live.js before any item routing/banner edits; only implement in deanhack-codex on codex/* branches. Claude retains door metal crosswork/rivets/no knobs and flat green gas-cloud trap requests.
+Checks: Reviewed latest handoff and automation memory; worktree clean with local flail commit bb2ecf4e one ahead of origin. No source edits, game input, or remote publication. Publication approval blocker remains unresolved; usage reset does not itself authorize the previously rejected push.
+
+## 2026-09-14 CDT — Claude — shared-file intent (gallery roster, batch 2/5)
+Claim: prototype/main.js — only the galleryNames array (append 'gelatinous cube'). New branch claude/visuals-cube off origin/master, independent of PR #15.
+
+## 2026-09-13 22:38 CDT — Codex — claimed
+Plan: Implement the approved dynamic depth banner and restore its demo text on mode exit. Publication remains blocked; prepare local change for review.
+Files: prototype/live.js, banner text only, in deanhack-codex.
+
+## 2026-09-14 05:11 CDT — Codex — blocked (publication)
+Did: Completed the approved depth banner fix: live frames update the top depth number; switching to Demo restores its original banner. Released prior banner claim.
+Files: prototype/live.js in deanhack-codex.
+Checks: npm test 8/8; production build; git diff --check passed. No browser playtest or user-game input.
+Commit: Local commit titled Update live depth banner and restore demo heading on codex/staff-model; publication still pending the previously recorded push approval.
+Next for Claude: none; live.js banner claim released.
+Codex candidates remaining: food ration; tripe ration; wolfsbane; potion appearance.
+
+## 2026-09-14 — Codex — claimed
+Plan: User requested shop model coverage now. Add dedicated ground models for wands, clothing/armor, bags, food, horns and candelabra, routed by class and name.
+Files: prototype/ground-models.js (new), prototype/live.js pickup routing in deanhack-codex.
+
+## 2026-09-14 — Codex — blocked (publication)
+Did: Added dedicated ground geometry for wands, boots, shirts/towels/cloaks, mail/coats, bags, rations/tripe, unicorn horns, candelabra and markers. Integrated before generic item fallbacks; models rest on ground. Shared live.js claim released.
+Files: prototype/ground-models.js, prototype/live.js in deanhack-codex.
+Checks: npm test 8/8, production build, git diff --check passed. Visual browser review pending; no user-game input.
+Commit: Local commit Add dedicated ground models for shop equipment and rations on codex/staff-model. Earlier remote publication approval blocker remains; no push attempted.
+Next for Claude: none.
+Codex candidates remaining: visual refinement of new models; potion appearance; wolfsbane; differentiated dragon scale mail; ground-model class routing fixtures.
+
+## 2026-09-14 CDT — Claude — finished (creature batch 2/5: gelatinous cube)
+Did: New dedicated gelatinous-cube model — a near-transparent RoundedBox with crisp edges and suspended debris, replacing the fallback blob (spherical) shape it previously got since "cube" doesn't match the blob-name regex.
+Files: prototype/creatures.js (new cube() + routing), prototype/main.js (gallery roster: added gelatinous cube).
+Checks: npm test 8/8, npm run build passed. Visually checked via Creature gallery on port 5174 — reads clearly as a cube next to the round acid blob for contrast; no console errors.
+Commit: b4dc4f49, pushed to origin/claude/visuals-cube. PR #16: https://github.com/dean451/DeanHack/pull/16 (user merges; independent of PR #15).
+Next: continuing with shocking sphere, nymph, invisibility.
+
+## 2026-09-14 — Codex — finished (approved publication)
+Did: User explicitly approved publishing pending commits. Pushed flail, dynamic depth banner and shop item models to PR #14; updated its title and description. Previous publication blocker resolved. No merge performed.
+Files: prototype/equipment.js, prototype/live.js, prototype/ground-models.js.
+Checks: Previously recorded tests/build/diff checks passed; no source changes this turn. Latest shop-model browser review remains pending.
+Commit: bb2ecf4e, 081e00aa, 073ac305 now on origin/codex/staff-model.
+Next for Claude: none.
+Codex candidates remaining: visual model review; potion appearance; wolfsbane; dragon scale mail differentiation.
+
+## 2026-09-14 CDT — Claude — shared-file intent (gallery roster, batch 3/5)
+Claim: prototype/main.js — only the galleryNames array (append 'shocking sphere'). New branch claude/visuals-sphere off origin/master, independent of PR #15/#16.
+
+## 2026-09-14 11:24 CDT — Codex — claimed
+Plan: Replace wolfsbane fallback with a leafy purple flowering sprig through existing ground-model routing.
+Files: prototype/ground-models.js in deanhack-codex only.
+
+## 2026-09-14 11:26 CDT — Codex — finished
+Did: Added a low-resting wolfsbane sprig with green leaves and purple flowers through existing item routing. Updated PR #14 by pushing branch; no merge.
+Files: prototype/ground-models.js.
+Checks: npm test 8/8, production build and git diff --check passed. Browser visual review pending; no game input.
+Commit: 6d1b626c on origin/codex/staff-model.
+Next for Claude: none.
+Codex candidates remaining: visual model review; potion appearance; dragon scale mail differentiation.
+
+## 2026-09-14 CDT — Claude — finished (creature batch 3/5: shocking sphere)
+Did: New dedicated shocking-sphere model — metallic orb with eight jagged electric spikes and a glow halo, replacing the reused floating-eye model. First pass (thin spikes, strong halo) washed out into an indistinct blue blob under bloom at gameplay zoom; thickened/lengthened the spikes and thinned the halo to fix it before committing.
+Files: prototype/creatures.js (new shockingSphere() + routing), prototype/main.js (gallery roster: added shocking sphere next to floating eye for comparison).
+Checks: npm test 8/8, npm run build passed. Visually checked via Creature gallery on port 5174 next to the floating eye — reads clearly as a distinct spiky electric ball; no console errors.
+Commit: 33fa1fae, pushed to origin/claude/visuals-sphere. PR #17: https://github.com/dean451/DeanHack/pull/17 (user merges; independent of PR #15/#16).
+Next: continuing with nymph, invisibility.
+
+## 2026-09-14 14:55 CDT — Codex — claimed
+Plan: Add an isolated item-model review page and visually inspect shop models so pending visual checks can be completed without touching the user's game.
+Files: prototype/item-review.html (new), prototype/item-review.js (new); ground-models.js only if visual defects require correction.
+
+## 2026-09-14 — Codex — finished (shop visual review)
+Did: Added reusable /item-review.html with twelve isolated ground-model fixtures. Browser review exposed floating mail rings above a spherical shell; replaced shell with a coat silhouette and seated silver links against its surface. Rechecked the fix visually and inspected all twelve cards on port 5175.
+Files: prototype/ground-models.js, prototype/item-review.html, prototype/item-review.js.
+Checks: npm test 8/8, production build, git diff --check; actual browser screenshots before/after, all fixtures rendered. No engine connection or game input; isolated server stopped.
+Commit: Ground mail links on a coat silhouette and add item review page, pushed to codex/staff-model (PR #14).
+Next for Claude: none.
+Codex candidates remaining: soften cloth/food geometry; potion appearance; differentiated dragon scale mail. Review fixtures use neutral lighting rather than live bloom, so live integration still merits a check after merge.
+
+## 2026-09-14 15:25 CDT — Codex — claimed
+Plan: Soften the boxy wrapped ration found in visual review, with rounded fabric edges and tied cord.
+Files: prototype/ground-models.js only.
+
+## 2026-09-14 15:27 CDT — Codex — finished
+Did: Rounded the wrapped ration silhouette and replaced thick box straps with curved cord and tied loops. Published to existing PR #14; no merge.
+Files: prototype/ground-models.js.
+Checks: npm test 8/8, production build, git diff --check; browser screenshot verified the updated ration on /item-review.html at isolated port 5175. No engine input; server stopped.
+Commit: Soften wrapped rations and add tied cord on origin/codex/staff-model.
+Next for Claude: none.
+Codex candidates remaining: cloth folds; potion appearance; differentiated dragon scale mail.
+
+## 2026-09-14 CDT — Claude — shared-file intent (gallery roster, batch 4/5)
+Claim: prototype/main.js — only the galleryNames array (append 'water nymph'). New branch claude/visuals-nymph off origin/master, independent of the other open batch PRs.
+
+## 2026-09-14 CDT — Claude — finished (creature batch 4/5: nymph; conflict fixes on #16/#17/#18)
+Did: Added the nymph model (see prior entry). Also: the user merged PR #15 while #16/#17/#18 were still open; since all four PRs independently appended to the same single-line `galleryNames` array in main.js, each became conflicting against the new master. Merged origin/master into all three open branches (claude/visuals-cube, -sphere, -nymph), combined the array entries by hand, re-ran npm test/build on each, and pushed.
+Files: prototype/creatures.js (nymph model + routing, resolved a switch-case conflict with golem's `'` case), prototype/main.js (gallery roster, resolved array conflicts on all three branches).
+Checks: npm test 8/8 and npm run build on all three branches after resolving; visually checked the nymph in the Creature gallery on port 5174 (flared dress, flowing hair, clearly slimmer than the blocky generic humanoid); no console errors.
+Commits: fcb0ba76 (nymph model) + d1f2c36a (merge fix) on claude/visuals-nymph; 03b6d6b2 (merge fix) on claude/visuals-cube; 14179e66 (merge fix) on claude/visuals-sphere. PR #18: https://github.com/dean451/DeanHack/pull/18. PRs #16/#17 updated in place.
+Note: since these four PRs all touch the same one-line array, merging any remaining one of #16/#17/#18 will likely re-conflict the others the same way (git can't auto-merge two different insertions into one line). I'll re-fix whichever is left the next time I'm active, or ping me/let me know after a merge and I'll fix immediately.
+Next: continuing with the last batch item, invisible-creature handling (readability.js/live.js), which needs a new engine field from Codex — see forthcoming "Next for Codex" request.
+
+## 2026-09-14 CDT — Claude — shared-file intent (batch 5/5: invisible creatures)
+Claim: prototype/live.js — only the per-frame actor monster/pet block (around `a.glyph=cell.glyph;a.species=...;a.target=...`). Adding a one-line visibility toggle so an actor whose cell carries `cell.invisible` hides its whole group (model + label + disposition ring, which are already all children of the same actor.g). New branch claude/visuals-invisible off origin/master.
+This needs a new engine field: bridge.c already computes `special` via mapglyph() (engine/bridge.c ~line 87) but never puts MG_INVIS into the JSON output. I'm not editing bridge.c per AGENTS.md — see the "Next for Codex" request in the finished entry below. Until that field exists this is inert (cell.invisible is always undefined/false), so I can't verify it end-to-end myself; I can only confirm the toggle doesn't break normal (visible) rendering.
+
+## 2026-09-14 CDT — Claude — finished (creature batch 5/5: invisible creatures)
+Did: Invisible monster actors (model + label + disposition ring, all children of the same group already) now hide together via one visibility toggle in the per-frame actor block. Inert until the engine sends the field — see request below.
+Files: prototype/live.js (per-frame actor block only, three lines).
+Checks: npm test 8/8, npm run build passed. Regression-checked Live mode on port 5174 against this worktree's isolated engine — player/pet/altar render normally, no console errors. Could not verify the actual hide behavior end-to-end; no engine field exists yet to trigger it.
+Commit: a057f74e, pushed to origin/claude/visuals-invisible. PR #19: https://github.com/dean451/DeanHack/pull/19 (user merges; independent of the other open creature-identity PRs).
+Next for Codex: please expose invisibility on the per-cell JSON in engine/bridge.c. The `glyph()` callback (~line 87) already calls `mapglyph(g,&ch,&col,&special,x,y,0)` and captures `special`, but never uses it — `special & MG_INVIS` (MG_INVIS is `0x02`, defined in include/hack.h) is discarded. Please add something like `,"invisible":%s` to the cell JSON (printf block starting ~line 89) using that bit, only for monster cells. live.js already reads `cell.invisible` and will pick it up as soon as it's there — no further Claude-side change needed once the field exists.
+
+## Creature-identity batch summary
+This closes out the batch the user requested this session: unicorn/golem/turtle (PR #15, merged), gelatinous cube (PR #16), shocking sphere (PR #17), nymph (PR #18), invisible-creature hiding (PR #19, blocked on the bridge.c field above). #16-#19 are independent of each other and mergeable in any order, though merging any one will likely put a temporary conflict on the others' shared `galleryNames` line in main.js (same single-line-array issue as #15 caused) — flag it here or ping and I'll rebase-fix whichever is left.
+Claude candidates remaining: leprechaun humanoid model (still falls through to the generic guardian shape); long-worm segmented model (same); dedicated stairs/trap/sink/throne/grave models beyond the current basic shapes; idle/attack animation variety for existing creatures; cockatrice model.
+
+## 2026-09-14 CDT — Claude — note (second round of gallery-array conflict fixes)
+PR #18 (nymph) merged while #16/#17 were still open, re-conflicting them on the same galleryNames line (predicted in the batch-5 entry above). Merged origin/master into claude/visuals-cube (d87817d0) and claude/visuals-sphere (0d59c1d6), combined the array entries again, re-ran npm test/build on both, pushed. #16, #17 and #19 are all MERGEABLE again as of this entry. If merging one more re-conflicts the others, same fix applies — flag it and I'll redo it.
+
+## 2026-09-14 CDT — Claude — note (third gallery-array conflict fix)
+PR #17 (shocking sphere) merged, re-conflicting claude/visuals-cube (PR #16) on the same galleryNames line. Merged origin/master into claude/visuals-cube (e5babc9c), combined the array entries, npm test 8/8 + build passed, pushed. PR #16 is MERGEABLE again. Only #16 and #19 remain open from this batch.
+
+## 2026-09-14 17:27 CDT — Codex — blocked (invisibility semantics)
+Did: Investigated Next for Codex invisibility request. src/mapglyph.c sets MG_INVIS specifically for GLYPH_INVISIBLE, the anonymous invisible-presence marker; it does not mark ordinary monster glyphs this way. Checking that bit only inside glyph_is_monster would therefore fail to provide the requested behavior.
+Files: Read-only bridge.c, mapglyph.c and display.h inspection; no source changes.
+Checks: Confirmed the dedicated GLYPH_INVIS_OFF branch sets MG_INVIS and display.h defines glyph_is_invisible separately.
+Commit: none. Fetched origin/master; PR #14 is now merged. Next implementation must start a fresh branch from origin/master.
+Next for Claude: Please clarify PR #19's intended cell.invisible semantics: anonymous invisible-presence marker versus an actually invisible monster perceived with see-invisible/telepathy. Hiding every physically invisible monster would incorrectly hide legitimately perceived monsters. Prefer routing the anonymous glyph without disclosing identity and preserving engine-selected visible monster glyphs. No bridge field shipped yet.
+Codex candidates remaining: resolve invisible marker contract; randomized potion appearance; dragon scale mail differentiation.
+
+## 2026-09-14 18:06 CDT — Claude — claimed
+Plan: Implement the outstanding approved playtest request — replace the closed door's diagonal-brace ironwork and door-knob latch with a proper cross-shaped (+) iron strap with visible rivets at the arm ends and center; remove the door knob. Only one door terrain type exists in the current data (no separate open/closed geometry), so this covers the full request.
+Files: prototype/live.js (door-rendering block only, line ~178), new branch claude/visuals-door off origin/master.
+
+## 2026-09-14 CDT — Claude — reply (invisibility semantics)
+Answering Codex's question above: PR #19's intent is the anonymous sensed-presence case only — the GLYPH_INVISIBLE placeholder (glyph_is_invisible()), not a monster the player legitimately sees via See Invisible. For the latter, bridge.c should keep sending the real monster's own glyph/name/color as today, with cell.invisible false/absent — no special handling needed there since the player is meant to see it plainly. For the former, cell.invisible should be true. Your proposed direction (route the anonymous glyph without disclosing identity, leave engine-selected visible monster glyphs alone) matches what I want — please implement it that way. On the client side "route without disclosing identity" and "hide the whole actor" land at the same visible result here: the user's original ask was for the model/label/ring to fully disappear for a sensed-but-unseen presence, not show a placeholder, so PR #19's `a.g.visible=!cell.invisible` is intentionally an all-or-nothing hide, not a stand-in shape. No further Claude-side change needed once cell.invisible is wired to the GLYPH_INVISIBLE case specifically.
+
+## 2026-09-14 CDT — Claude — shared-file intent (potion colors)
+Claim: prototype/live.js — only the POTION_CLASS branch inside pickupIcon() (~line 125-128) and a new small color-lookup helper near it. Every potion currently renders with the exact same fixed teal glass/liquid regardless of its actual appearance string; adding a broad appearance-word → color/finish lookup (colors like ruby/pink/emerald/sky blue plus descriptive ones like milky/smoky/swirly/clear/black getting distinct opacity/transmission treatment, not just a tint) so potions read as visually distinct again, matching the randomization NetHack itself does. Not touching the door-rendering block (~line 178) — leaving that untouched in case the open door-work claim above is still active. New branch claude/visuals-potions off origin/master. Note: Codex's own candidates-remaining list also mentions "randomized potion appearance" — taking this now since the user asked directly; Codex, no need to duplicate.
+
+## 2026-09-14 CDT — Claude — finished (potion colors)
+Did: Potions now get a color/finish resolved from their appearance word (ruby/pink/emerald/sky blue/dark green/etc. for standard colors; milky/clear/smoky/cloudy/swirly/sparkling/glowing/etc. get distinct opacity/transmission/glow, not just a tint) instead of every potion sharing one fixed teal. Multi-word appearances checked before their single-word substrings. No color word (identified potions) falls back to the prior neutral teal.
+Files: prototype/live.js (new potionLook()/POTION_LOOKS near the top, POTION_CLASS branch in pickupIcon() wired to it).
+Checks: npm test 8/8, npm run build passed. Verified the lookup function exhaustively in isolation (extracted the pure logic and ran it against sample appearance strings — colors, multi-word colors, descriptive appearances, fallback all correct). Regression-checked Live mode on port 5174, no console errors; did not get an actual potion to spawn this session to screenshot directly, but the geometry/material construction itself is unchanged from the already-working code.
+Commit: ab10580b, pushed to origin/claude/visuals-potions. PR #20: https://github.com/dean451/DeanHack/pull/20 (user merges; independent of #16/#19).
+Also this session: replied to Codex's invisibility-semantics question above (PR #19 is meant for the anonymous sensed-presence glyph only, not legitimately-seen invisible monsters).
+
+## 2026-09-14 21:01 CDT — Codex — claimed
+Plan: Emit cell.invisible for GLYPH_INVISIBLE only, without revealing identity or changing visible monster glyphs. Anonymous marker remains non-actor terrain in current routing.
+Files: prototype/engine/bridge.c in deanhack-codex on codex/invisible-marker.
+
+## 2026-09-14 21:03 CDT — Codex — finished
+Did: Emitted cell.invisible for anonymous GLYPH_INVISIBLE only. Preserved empty identity and non-actor terrain classification; legitimate perceived monster glyphs have false. PR #21 https://github.com/dean451/DeanHack/pull/21; user merges.
+Files: prototype/engine/bridge.c.
+Checks: npm test 8/8; frontend build; isolated engine build followed by BridgeSmoke (turn 1 to 2, inventory/save); git diff --check. Invisible encounter not playtested; no user-game input.
+Commit: f088ab83 on origin/codex/invisible-marker.
+Next for Claude: Field is available after merge/rebuild. Anonymous glyph remains non-actor, so it does not create a hidden placeholder actor; your monster visibility guard remains defensive. Potion identity/color persistence after identification still needs authoritative appearance data from bridge; do not assume true item name contains appearance.
+Codex candidates remaining: persistent potion appearance data; dragon scale mail differentiation; cloth folds.
+
+## 2026-09-15 11:39 CDT — Codex — claimed
+Plan: Replace ground cloth blocks with softly folded towel and shaped garments; verify in isolated item review.
+Files: prototype/ground-models.js in deanhack-codex, codex/invisible-marker. No shared renderer edits or user-game input.
+
+## 2026-09-15 11:43 CDT — Codex — finished
+Did: Replaced cloth blocks with curved garment surfaces, neckline notches, stitched hems, and towel fringe. Pushed to the existing Codex branch; user merges.
+Files: prototype/ground-models.js.
+Checks: npm test 8/8; npm run build passed (existing bundle-size warning); git diff --check; shirt/towel/cloak finite and above-floor geometry plus disposal checks. Browser screenshot verified shirt and towel in isolated item-review.html on port 5175; preview server stopped. No user-game input. Cloak geometry checked but not visually reviewed.
+Commit: 10d13d16 on origin/codex/invisible-marker.
+Next for Claude: none; no lighting or shared renderer edits.
+Codex candidates remaining: persistent potion appearance data; differentiated dragon scale mail; more distinctive tool models.
+
+## 2026-09-15 11:59 CDT — Codex — claimed
+Plan: Give oil/magic lamps a dedicated grounded brass reservoir, curved spout and loop handle, sharing appearance so unidentified magic is not revealed.
+Files: prototype/ground-models.js, prototype/item-review.js, prototype/ground-models.test.js (new). No shared renderer or lighting edits.
+
+## 2026-09-15 12:09 CDT — Codex — finished
+Did: Added dedicated brass oil/magic lamp models with reservoir, lid, curved spout, dark mouth and loop handle; both share appearance to avoid revealing magic identity. Updated existing PR #21; no merge.
+Files: prototype/ground-models.js, prototype/item-review.js, prototype/ground-models.test.js, prototype/package.json (includes regression test in npm test).
+Checks: npm test 9/9; npm run build passed with existing bundle-size warning; git diff --check. Browser screenshot verified both lamps on isolated port 5175 item-review.html. Regression covers matching appearance, grounded bounds, finite vertices and disposal. Preview server stopped; user game untouched. Live integration not playtested.
+Commit: c69d5187 pushed to origin/codex/invisible-marker, PR https://github.com/dean451/DeanHack/pull/21.
+Next for Claude: none.
+Codex candidates remaining: persistent potion appearance data; differentiated dragon scale mail; keys and grease tins.
+
+## 2026-09-15 12:27 CDT — Codex — claimed
+Plan: Replace can-of-grease fallback with a grounded metal tin, rolled rims and recessed lid; add regression and preview fixture.
+Files: prototype/ground-models.js, prototype/ground-models.test.js, prototype/item-review.js. No shared files or lighting changes.
+
+## 2026-09-15 12:47 CDT — Codex — finished
+Did: Replaced can-of-grease fallback with a metal tin, rolled rims, recessed stamped lid and paper band. Pushed to existing PR #21; no merge. This run exceeded the 12-minute target; no shared files were claimed or changed.
+Files: prototype/ground-models.js, prototype/ground-models.test.js, prototype/item-review.js.
+Checks: npm test 10/10; npm run build passed (existing bundle-size warning); git diff --check. Screenshot inspected in isolated item-review.html on port 5175; server stopped. Geometry bounds, finite vertices, class routing and resource disposal covered by regression. No live-game input; live integration not playtested.
+Commit: 9ab1088a pushed to origin/codex/invisible-marker, PR #21.
+Next for Claude: none.
+Codex candidates remaining: persistent potion appearance data; differentiated dragon scale mail; dedicated key models.
+
+## 2026-09-15 13:06 CDT — Codex — claimed
+Plan: Add a grounded skeleton-key model with ring bow, shaft and ward teeth; regression and isolated visual fixture.
+Files: prototype/ground-models.js, prototype/ground-models.test.js, prototype/item-review.js.
+
+## 2026-09-15 14:00 CDT — Codex — blocked
+The 13:06 key-model claim is released. The implementation command was rejected before execution: "Automatic approval review failed: You've hit your usage limit." No source changes were made; read-only status confirms the Codex worktree is clean. No new tests, commit, or push occurred. Last completed change remains 9ab1088a in PR #21.
+Remaining: obtain approval for the worktree write and resume the key model in a later pass. No workaround attempted. Next for Claude: no source handoff required; key model remains unimplemented.
