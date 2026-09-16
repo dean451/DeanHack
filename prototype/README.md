@@ -45,6 +45,13 @@ saves, level files, bones, logs, and its separate HOME. The helper copies source
 and builds there. It never invokes `make install` or copies existing live saves.
 Do not delete `.engine` if you want to retain these experimental characters.
 
+During visual playtesting, this isolated `BRIDGE_GRAPHICS` engine keeps the hero's
+nutrition at least 900 and turns locked doors into closed, unlocked doors at each
+gameplay iteration. This also applies to restored characters and revisited levels.
+Secret doors, door traps, and locked containers retain their other behavior; eating
+and satiation still work. Regular non-bridge builds retain normal hunger and locks.
+After rebuilding, use **Save & exit** and resume to load these changes.
+
 The bridge is enabled by `BRIDGE_GRAPHICS` only in this isolated build. The normal
 TTY/SDL build keeps its existing window ports. Unix startup now skips terminal
 probing when stdin/stdout are pipes.
