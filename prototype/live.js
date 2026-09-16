@@ -40,7 +40,7 @@ export function potionLook(name){
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
  const group=new THREE.Group();scene.add(group);group.visible=false;
- const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map();let active=false,pending=null,latest=null,token='',menu=null,lines=[],origin=null,lastLevel='',source;
+ const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map();let active=false,pending=null,latest=null,token='',menu=null,lines=[],origin=null,lastLevel='',source,pollNow=null;
  const $=s=>document.querySelector(s);
  const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
  const button=document.createElement('button');button.textContent='Live UnNetHack';button.id='live-mode';$('.buttons').prepend(button);
@@ -250,7 +250,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  let meleeIntent=null,attackStarted=-Infinity,queuedCommand=null;
  function message(text){if(meleeIntent&&confirmsPlayerMelee(text)){hero.g.rotation.y=Math.atan2(...meleeIntent);attackStarted=performance.now()/1000;meleeIntent=null;}const line=$('#engine-line'),log=$('#engine-messages');if(line.textContent){const p=document.createElement('div');p.textContent=line.textContent;log.prepend(p);while(log.children.length>3)log.lastChild.remove();}line.textContent=text;$('#message').textContent=text;}
  async function post(path,body={}){if(!token)token=(await fetch('/engine/token').then(r=>r.json())).token;const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Engine-Token':token},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw new Error(data.error);return data;}
- async function reply(value){if(!pending)return;const req=pending;meleeIntent=req.kind==='command'?meleeDirection(value):null;pending=null;lines=[];menu=null;dialog.close();setPrompt('Engine is resolving your action…');try{await post('/engine/input',{id:req.id,value});}catch(e){meleeIntent=null;message(e.message);setPrompt('Input was not accepted. Reconnect Live mode to refresh the prompt.');}}
+ async function reply(value){if(!pending)return;const req=pending;meleeIntent=req.kind==='command'?meleeDirection(value):null;pending=null;lines=[];menu=null;dialog.close();setPrompt('Engine is resolving your action…');try{await post('/engine/input',{id:req.id,value});pollNow?.();}catch(e){meleeIntent=null;message(e.message);setPrompt('Input was not accepted. Reconnect Live mode to refresh the prompt.');}}
  function showGround(items){
   groundPanel.replaceChildren();groundPanelTile=groundTile(latest);groundPanel.hidden=!items.length;
   const heading=document.createElement('strong');heading.textContent='On the ground';groundPanel.append(heading);
@@ -270,7 +270,25 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    const cancel=document.createElement('button');cancel.textContent='Cancel / Escape';cancel.onclick=()=>reply(pending.kind==='menu'?'!':pending.kind==='line'?'\u001b':27);dialog.append(cancel);dialog.showModal();
  }
  dialog.addEventListener('cancel',e=>{e.preventDefault();if(pending)reply(pending.kind==='menu'?'!':pending.kind==='line'?'\u001b':27);});
- function connect(){meleeIntent=null;source?.close();source=new EventSource('/engine/events');source.onmessage=e=>{const v=JSON.parse(e.data);if(v.type==='frame')apply(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};source.onerror=()=>{if(active)setPrompt('Connection interrupted; reconnecting…');};}
+ // Prefer push (SSE); some hosting paths (a tunnel or proxy that buffers streaming
+ // responses) never deliver a single byte over it, so fall back to polling /engine/poll
+ // if nothing arrives within a few seconds.
+ function connect(){
+   meleeIntent=null;source?.close?.();
+   let usingPolling=false,pollTimer=null,stopped=false,since=0;
+   const handle=v=>{if(v.type==='frame')apply(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
+   async function pollLoop(){
+     if(stopped)return;
+     try{const r=await fetch(`/engine/poll?since=${since}`);const {events,seq}=await r.json();since=seq;for(const event of events)handle(event);}
+     catch{if(active)setPrompt('Connection interrupted; reconnecting…');}
+     if(!stopped)pollTimer=setTimeout(pollLoop,150);
+   }
+   const es=new EventSource('/engine/events');
+   const fallback=setTimeout(()=>{if(usingPolling)return;usingPolling=true;es.close();pollNow=()=>{clearTimeout(pollTimer);pollLoop();};pollLoop();},2500);
+   es.onmessage=e=>{if(usingPolling)return;clearTimeout(fallback);handle(JSON.parse(e.data));};
+   es.onerror=()=>{if(usingPolling)return;if(active)setPrompt('Connection interrupted; reconnecting…');};
+   source={close:()=>{stopped=true;pollNow=null;clearTimeout(fallback);clearTimeout(pollTimer);es.close();}};
+ }
  const saved={banner:$('.location small').textContent,heading:$('.location h1').textContent,footer:$('footer>small').textContent,keys:$('.keys').innerHTML,companion:$('.companion').innerHTML};
  function setMode(value){active=value;if(!active)$('.location small').textContent=saved.banner;cavern.setActive(active);for(const {light,base} of ambientLights)light.intensity=active?base*LIVE_AMBIENT:base;document.body.classList.toggle('live-engine',active);group.visible=active;for(const o of demoObjects)o.visible=!active;panel.hidden=!active;actions.hidden=!active;$('#reset').hidden=active;$('.legend').hidden=active;$('.character h2').hidden=active;button.textContent=active?'Demo room':'Live UnNetHack';if(!active)$('.companion').innerHTML=saved.companion;$('footer>small').textContent=active?'Real UnNetHack rules · isolated character and saves · drag to orbit, scroll to zoom':saved.footer;$('.keys').innerHTML=active?'<span><kbd>h j k l / arrows</kbd> Move</span><span><kbd>y u b n</kbd> Diagonals</span><span><kbd>s</kbd> Search</span><span><kbd>SPACE</kbd> Wait</span><span><kbd>i</kbd> Inventory</span><span><kbd>&lt; &gt;</kbd> Stairs</span>':saved.keys;if(active){if(latest)apply(latest);prompt();}else{dialog.close();onDemo();$('.location h1').textContent=saved.heading;controls.target.set(0,.1,0);camera.position.set(11,13,16);}onMode?.(active);}
  button.onclick=async()=>{if(active){setMode(false);return;}setMode(true);setPrompt('Starting isolated UnNetHack…');try{await post('/engine/start');connect();}catch(e){message(`Could not start engine: ${e.message}. Run npm run engine:build first.`);}};
