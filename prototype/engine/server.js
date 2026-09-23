@@ -20,14 +20,17 @@ export function encodeReply(request, body) {
 export default function enginePlugin(){
  const root=fileURLToPath(new URL('../.engine/',import.meta.url));
  const token=randomBytes(24).toString('hex');
- let child=null,pending=null,frame=null,menu=null,text=null,ended=null,buffer='';const clients=new Set();const history=[];
- function send(event){if(event.type==='frame')frame=event;else if(event.type==='request')pending=event;else if(event.type==='menu')menu=event;else if(event.type==='text')text=event;else if(event.type==='ended')ended=event;else if(event.type==='message'||event.type==='status'){history.push(event);if(history.length>40)history.shift();}for(const res of clients)res.write(`data: ${JSON.stringify(event)}\n\n`);}
+ let child=null,pending=null,frame=null,menu=null,text=null,ended=null,buffer='',seq=0;const clients=new Set();const history=[];const log=[];
+ // A monotonic, capped event log backs GET /engine/poll: some hosting paths (a proxy or
+ // tunnel that buffers/holds back streaming responses) never deliver anything over the
+ // SSE endpoint below, so the client can fall back to polling this instead.
+ function send(event){if(event.type==='frame')frame=event;else if(event.type==='request')pending=event;else if(event.type==='menu')menu=event;else if(event.type==='text')text=event;else if(event.type==='ended')ended=event;else if(event.type==='message'||event.type==='status'){history.push(event);if(history.length>40)history.shift();}log.push({seq:++seq,event});if(log.length>500)log.shift();for(const res of clients)res.write(`data: ${JSON.stringify(event)}\n\n`);}
  function start(){
    if(child)return;
    const manifest=JSON.parse(readFileSync(resolve(root,'manifest.json'),'utf8'));
    for(const p of [manifest.binary,manifest.cwd,manifest.home,manifest.prefix])if(!realpathSync(p).startsWith(realpathSync(root)+sep))throw new Error('Engine path is outside isolated runtime');
    pending=frame=menu=text=ended=null;history.length=0;buffer='';
-   child=spawn(manifest.binary,['-d',manifest.cwd,'-u','Wanderer','-p','Valkyrie','-r','human'],{cwd:manifest.cwd,env:{PATH:process.env.PATH,HOME:manifest.home,USER:process.env.USER,LOGNAME:process.env.LOGNAME,TERM:'dumb',NETHACKOPTIONS:'windowtype:bridge,name:Wanderer,role:Valkyrie,race:human,gender:female,align:lawful,pettype:cat,!news,!autopickup'},stdio:['pipe','pipe','pipe']});
+   child=spawn(manifest.binary,['-d',manifest.cwd,'-u','Wanderer','-p','Valkyrie','-r','human'],{cwd:manifest.cwd,env:{PATH:process.env.PATH,HOME:manifest.home,USER:process.env.USER,LOGNAME:process.env.LOGNAME,TERM:'dumb',NETHACKOPTIONS:'windowtype:bridge,name:Wanderer,role:Valkyrie,race:human,gender:female,align:lawful,pettype:cat,!news'},stdio:['pipe','pipe','pipe']});
    child.stdout.setEncoding('utf8');child.stdout.on('data',chunk=>{buffer+=chunk;if(buffer.length>2000000){send({type:'message',text:'Engine output exceeded protocol limit.'});child.stdin.end();buffer='';return;}let i;while((i=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,i);buffer=buffer.slice(i+1);if(!line.trim())continue;try{const data=JSON.parse(line);if(['frame','request','menu','text','message','status','ended'].includes(data.type))send(data);}catch{send({type:'message',text:line.slice(0,500)});}}});
    child.stderr.on('data',b=>send({type:'message',text:String(b).slice(0,1000)}));
    child.on('error',e=>send({type:'message',text:e.message}));
@@ -38,15 +41,30 @@ export default function enginePlugin(){
    server.middlewares.use(async(req,res,next)=>{
      const path=req.url?.split('?')[0];if(!path?.startsWith('/engine/'))return next();
      const host=req.headers.host;
-     // Vite may be opened as either localhost or 127.0.0.1. Both resolve to the
-     // local machine; rejecting localhost makes the live controls look frozen.
-     if(!host||! /^(?:127\.0\.0\.1|localhost):\d+$/.test(host)||(req.headers.origin&&req.headers.origin!==`http://${host}`)){res.writeHead(403);res.end('Local same-origin requests only');return;}
+     // Vite may be opened as either localhost or 127.0.0.1 (both the local machine),
+     // or through a Cloudflare quick tunnel (random *.trycloudflare.com host, HTTPS,
+     // no port) for sharing a running instance with someone off-machine. Reject
+     // anything else; same-origin still required either way.
+     const allowedHost=/^(?:127\.0\.0\.1|localhost):\d+$/.test(host||'')||/^[a-z0-9-]+\.trycloudflare\.com$/i.test(host||'');
+     const originHost=req.headers.origin?req.headers.origin.replace(/^https?:\/\//,''):null;
+     if(!host||!allowedHost||(originHost&&originHost!==host)){res.writeHead(403);res.end('Local or tunnel same-origin requests only');return;}
      const json=(code,data)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
      if(req.method==='GET'&&path==='/engine/token')return json(200,{token});
      if(req.method==='GET'&&path==='/engine/events'){
-       res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});clients.add(res);res.write(': connected\n\n');
+       // Disable Nagle's algorithm: SSE is many small writes, and a proxy hop (e.g. a
+       // Cloudflare tunnel) can otherwise coalesce/delay them long enough to look hung.
+       req.socket?.setNoDelay(true);
+       res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});clients.add(res);
+       // A proxy hop (Cloudflare's edge, for a tunnel) can hold back the first chunk of a
+       // streaming response until enough bytes accumulate. Padding past that threshold
+       // forces an immediate flush instead of leaving the client waiting on nothing.
+       res.write(': connected\n\n');
        for(const event of [...history,frame,menu,text,ended,pending].filter(Boolean))res.write(`data: ${JSON.stringify(event)}\n\n`);
        const timer=setInterval(()=>res.write(': alive\n\n'),15000);req.on('close',()=>{clearInterval(timer);clients.delete(res);});return;
+     }
+     if(req.method==='GET'&&path==='/engine/poll'){
+       const since=Number(new URL(req.url,'http://engine').searchParams.get('since'))||0;
+       return json(200,{events:log.filter(e=>e.seq>since).map(e=>e.event),seq});
      }
      if(req.method!=='POST'||req.headers['x-engine-token']!==token)return json(403,{error:'Invalid local session token'});
      try{
