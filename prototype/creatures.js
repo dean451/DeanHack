@@ -16,9 +16,9 @@ function actor(g,body,legs=[],tail=null,wings=[],quirk='idle'){return {g,body,le
 function eyes(head,material=M.eye,y=0,z=.18,spread=.075){for(const x of [-spread,spread])sphere(head,.026,material,x,y,z);}
 function humanoid(kind,o={}){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[],wings=[];
- const short=['gnome','kobold','hobbit','imp'].includes(kind),stocky=kind==='orc'||kind==='dwarf',guard=kind==='guard',shopkeeper=kind==='shopkeeper',undead=kind==='zombie'||kind==='mummy';
+ const short=['gnome','kobold','hobbit','imp','leprechaun'].includes(kind),stocky=kind==='orc'||kind==='dwarf',guard=kind==='guard',shopkeeper=kind==='shopkeeper',undead=kind==='zombie'||kind==='mummy';
  const skin=o.skin||(kind==='orc'?M.greenSkin:kind==='dwarf'?M.graySkin:M.skin);
- const torso=o.cloth||(kind==='orc'||shopkeeper?M.brownCloth:guard?M.steel:M.cloth);
+ const torso=o.cloth||(kind==='orc'||shopkeeper?M.brownCloth:guard?M.steel:kind==='leprechaun'?mat('#2c6b3a'):M.cloth);
  const headY=short?.87:1.0,shoulderY=short?.7:.8,torsoW=stocky?.46:.42;
  for(const x of [-.13,.13]){const leg=new THREE.Group();leg.position.set(x,.4,0);body.add(leg);rounded(leg,.16,short?.27:stocky?.34:.42,.16,kind==='mummy'?torso:M.darkSteel,0,-.12,0,.035);rounded(leg,.21,.13,.28,kind==='imp'||kind==='kobold'?skin:M.leather,0,-.36,.06,.03);legs.push(leg);}
  rounded(body,torsoW,short?.3:stocky?.4:.48,.3,torso,0,.62,0,.06);sphere(body,short?.18:.22,skin,0,headY,.02,1,1.05,1);
@@ -28,6 +28,7 @@ function humanoid(kind,o={}){
  if(kind==='gnome'){const cap=cone(body,.25,.36,o.cap||M.redCloth,0,1.2,.01,8);cap.rotation.z=-.16;sphere(body,.19,M.beard,0,.86,.18,.8,.9,.65);sphere(body,.05,skin,0,.98,.19,1,1,.8);}
  if(kind==='kobold'){const snout=cone(body,.1,.2,skin,0,.83,.24,6);snout.rotation.x=Math.PI/2;sphere(body,.025,M.leather,0,.83,.34);for(const side of [-1,1]){const ear=cone(body,.07,.26,skin,side*.2,.95,-.01,4);ear.rotation.z=-side*1.15;}const spear=rounded(body,.035,.9,.035,M.leather,.34,.62,.2,.01);spear.rotation.x=.15;cone(body,.05,.14,M.darkSteel,.34,1.08,.27,4);}
  if(kind==='hobbit'){sphere(body,.2,M.beard,0,.95,-.02,1,.7,1);for(const side of [-1,1])rounded(body,.14,.06,.26,skin,side*.13,.03,.08,.03);}
+ if(kind==='leprechaun'){const hatMat=o.cap||mat('#215c30');const brim=cylinder(body,.24,.24,.03,hatMat,0,1.0,.01,10);const crown=cone(body,.14,.28,hatMat,0,1.16,.0,7);crown.rotation.y=.4;const buckle=rounded(body,.05,.06,.015,M.gold,0,1.0,.235,.01);for(const side of [-1,1]){const ear=cone(body,.045,.14,skin,side*.2,.93,-.01,4);ear.rotation.z=-side*1.0;}const belt=rounded(body,torsoW+.02,.05,.31,M.gold,0,.5,0,.02);}
  if(kind==='imp'){for(const side of [-1,1]){const horn=cone(body,.04,.16,M.leather,side*.1,1.04,.02,5);horn.rotation.z=-side*.35;const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.34,.2);shape.lineTo(side*.3,-.02);shape.lineTo(side*.18,.04);shape.lineTo(0,-.12);const wing=part(body,new THREE.ShapeGeometry(shape),M.wing,side*.12,.72,-.17);wings.push(wing);}const tail=cone(body,.03,.42,skin,0,.42,-.3,5);tail.rotation.x=-2.1;}
  if(kind==='mummy')for(let i=0;i<6;i++){const wrap=rounded(body,torsoW+.03,.03,.33,M.leather,0,.44+i*.075,0,.012);wrap.rotation.z=(i%2?1:-1)*.12;}
  if(kind==='orc'){for(const x of [-.09,.09]){const tusk=cone(body,.045,.15,M.whiteFur,x,.91,.19,5);tusk.rotation.x=x<0?.35:-.35;}for(const x of [-.31,.31])sphere(body,.16,M.darkSteel,x,.84,0,1,.75,1);}
@@ -383,6 +384,7 @@ export function createCreature(cell={}){
  if(name==='giant turtle')return turtle({shell:color||'#4a6a34'});
  if(SKIN[name])return humanoid(letter==='k'||/kobold/.test(name)?'kobold':'imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
  if(name==='hobbit')return humanoid('hobbit',{cloth:mat('#4f7a3a')});
+ if(name==='leprechaun')return humanoid('leprechaun');
  if(/orc|uruk|snaga/.test(name))return humanoid('orc',color?{cloth:mat(shade(color,.75))}:{});
  if(/dwarf/.test(name))return humanoid('dwarf');
  if(/gnome/.test(name))return humanoid('gnome',color?{cap:mat(color)}:{});
@@ -406,6 +408,7 @@ export function createCreature(cell={}){
   case 'M':return humanoid('mummy',{skin:mat('#6a5f4a'),cloth:mat('#c9bb98')});
   case 'G':return humanoid('gnome',{cap:mat(c)});
   case 'h':return humanoid('dwarf');
+  case 'l':return humanoid('leprechaun');
   case 'o':return humanoid('orc',{cloth:mat(shade(c,.75))});
   case 'q':return canine({...CANINES.rothe,coat:c});
   case 'u':return unicorn();
