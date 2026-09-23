@@ -31,9 +31,33 @@ const POTION_LOOKS={
  fizzy:['#e0e06f','#b0b02a'],gooey:['#8a7a2a','#5a4a1a'],murky:['#4a4a3a','#2a2a1e'],
  sparkling:['#e8e8ff','#c0c0f0',{emissiveIntensity:.7}],glowing:['#eaff8a','#c7e05b',{emissiveIntensity:.9}],luminescent:['#eaff8a','#c7e05b',{emissiveIntensity:.9}],
 };
+// Once a potion type is identified (by any means), doname() switches from the random
+// appearance word to the true type name for every potion of that type for the rest of
+// the game — so the appearance lookup above stops matching and everything falls back to
+// one flat default color. This covers the true type names too, so identified potions
+// stay visually distinct instead of going uniformly teal. Persistent appearance data
+// from the bridge (surfacing the roll even post-ID) would be the more complete fix;
+// this is a client-only stopgap using the name the engine already sends.
+const IDENTIFIED_POTION_LOOKS={
+ 'full healing':['#ffd0e0','#ff6fa0',{emissiveIntensity:.5}],'extra healing':['#ffb8cf','#e94f86'],healing:['#ffc9dd','#e66f9e'],
+ sickness:['#8a9a5a','#4c5c26'],confusion:['#c77fe0','#8a3fc0'],blindness:['#1c1c1c','#050505'],
+ hallucination:['#ff6fd0','#3fe0c7',{emissiveIntensity:.6}],
+ 'see invisible':['#cfd8ea','#98a8d0',{opacity:.4,transmission:.45}],invisibility:['#eef6ff','#cfe0f5',{opacity:.22,transmission:.7}],
+ 'monster detection':['#e0a84f','#b8792a'],'object detection':['#d9c257','#a88f26'],
+ 'gain energy':['#6fd0ff','#1f9dff',{emissiveIntensity:.7}],'gain level':['#ffe27a','#f0c020',{emissiveIntensity:.6}],
+ 'gain ability':['#b98fea','#7a3fc7'],'restore ability':['#7ae0c0','#2a9d7a'],
+ levitation:['#dff3ff','#8fd0ff',{opacity:.42,transmission:.4,emissiveIntensity:.4}],
+ speed:['#d9ff6a','#a0d820',{emissiveIntensity:.5}],polymorph:['#5ac4c0','#8a5ac4',{emissiveIntensity:.4}],
+ paralysis:['#7a7a7a','#3a3a3a'],sleeping:['#3a2f6a','#160f3a'],
+ oil:['#26200f','#0f0c05',{opacity:.7,transmission:.1}],acid:['#9fe020','#5a8a00',{emissiveIntensity:.4}],
+ booze:['#a86a2a','#6a3f10'],'fruit juice':['#ffb347','#e6871a'],
+ enlightenment:['#ffffff','#f0e6c0',{emissiveIntensity:.9}],
+ 'holy water':['#fff6d0','#ffe07a',{emissiveIntensity:.8}],'unholy water':['#3a1a3a','#160816',{emissiveIntensity:.5}],water:['#cfe9f5','#8fd0ea',{opacity:.32,transmission:.55}],
+};
 const DEFAULT_POTION_LOOK=['#8fd0c8','#3aa8a6',{}];
+const ALL_POTION_LOOKS={...POTION_LOOKS,...IDENTIFIED_POTION_LOOKS};
 export function potionLook(name){
- for(const key of Object.keys(POTION_LOOKS).sort((a,b)=>b.length-a.length))if(name.includes(key)){const [glass,liquid,extra]=POTION_LOOKS[key];return {glass,liquid,opacity:.58,transmission:.2,emissiveIntensity:.35,...extra};}
+ for(const key of Object.keys(ALL_POTION_LOOKS).sort((a,b)=>b.length-a.length))if(name.includes(key)){const [glass,liquid,extra]=ALL_POTION_LOOKS[key];return {glass,liquid,opacity:.58,transmission:.2,emissiveIntensity:.35,...extra};}
  const [glass,liquid,extra]=DEFAULT_POTION_LOOK;return {glass,liquid,opacity:.58,transmission:.2,emissiveIntensity:.35,...extra};
 }
 
