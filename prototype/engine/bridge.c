@@ -96,6 +96,9 @@ static void frame(void) {
         mapglyph(g,&ch,&col,&special,x,y,0);
         terrain_glyph = glyph_is_cmap(g) ? g : b;
         printf("{\"x\":%d,\"z\":%d,\"glyph\":%d,\"symbol\":%d,\"color\":%d,\"visible\":%s,\"remembered\":%s,\"terrain\":",x,y,g,ch,col,cansee(x,y)?"true":"false",levl[x][y].seenv?"true":"false");quoted(terrain(terrain_glyph));
+        /* Anonymous remembered presence, not physical invisibility of a
+           monster legitimately perceived through see-invisible/telepathy. */
+        printf(",\"invisible\":%s",glyph_is_invisible(g)?"true":"false");
         printf(",\"kind\":");quoted(glyph_is_pet(g)?"pet":glyph_is_monster(g)?"monster":glyph_is_object(g)?"object":"terrain");
         if (glyph_is_monster(g) && !glyph_is_pet(g)) {
             struct monst *mtmp = m_at(x,y);
