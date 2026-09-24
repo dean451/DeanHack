@@ -1088,6 +1088,41 @@ function jabberwock(o){
 }
 const JABBERWOCKS={jabberwock:{hide:'#c85a2a',belly:'#d8b070',eye:'#ffb030',wing:'#6a2e24',scale:.95},'vorpal jabberwock':{hide:'#7a3fa0',belly:'#c8a0d8',eye:'#80f0ff',wing:'#3a1f50',scale:1.02}};
 
+// trappers (t): a broad, ragged mantle flattened against the floor like a dropped cloak, mottled to match the stone,
+// with warty ridges, a fringed dark hem, and a wide toothed maw with stalked eyes along the front edge;
+// the front lip and back hem are the leg pivots, so they lift and ripple as it creeps
+function trapper(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const hide=mat(o.hide,{roughness:.95}),mottle=mat(shade(o.hide,.68),{roughness:.95}),hem=mat(shade(o.hide,.42),{roughness:1,side:THREE.DoubleSide}),
+  wart=mat(shade(o.hide,1.18),{roughness:.9}),mouth=mat('#2a0c10',{roughness:1}),gum=mat('#6a2230',{roughness:.7}),tooth=mat('#d8ceb0',{roughness:.45}),
+  eye=mat(o.eye,{emissive:o.eye,emissiveIntensity:1.6,roughness:.3}),stalk=mat(shade(o.hide,.8),{roughness:.9});
+ // ragged outline: radius wobbles around the circle, and the mantle is a little longer than it is wide
+ const ragged=(geo,amp)=>{const pos=geo.attributes.position,v=new THREE.Vector3();for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i);const a=Math.atan2(v.x,v.z),k=1+amp*(Math.sin(a*5+.7)+.5*Math.sin(a*11+2.1)+.3*Math.sin(a*17));pos.setXYZ(i,v.x*k,v.y,v.z*k*1.06);}geo.computeVertexNormals();return geo;};
+ const mantle=(parent,profile,amp,material,phiStart,phiLength,z=0)=>{const m=part(parent,ragged(new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),40,phiStart,phiLength),amp),material,0,0,z);return m;};
+ // the domed middle and its fringed hem, which lies just under the rim and pokes out in tatters
+ mantle(body,[[0,.13],[.12,.125],[.22,.1],[.3,.065],[.36,.03],[.38,.012]],.05,hide);
+ mantle(body,[[.3,.018],[.36,.012],[.42,.004]],.07,hem);
+ // mottled blotches and warty ridges across the back
+ for(let i=0;i<9;i++){const a=i*2.39,r=.06+(i%4)*.065;sphere(body,.05+(i%3)*.012,mottle,Math.sin(a)*r,.105-r*.14,Math.cos(a)*r*1.1,1.2,.18,1);}
+ for(let i=0;i<14;i++){const a=i*1.7+.3,r=.1+(i%5)*.045;sphere(body,.016+(i%2)*.006,wart,Math.sin(a)*r,.125-r*.2,Math.cos(a)*r*1.1,1,.7,1);}
+ for(const side of [-1,1])tube(body,[[side*.05,.13,-.2],[side*.1,.125,-.05],[side*.1,.12,.1],[side*.06,.11,.22]],.012,wart,10);
+ // front lip: a separate flap carrying the maw and eyes, so it can rear up
+ const lip=new THREE.Group();lip.position.set(0,.02,.2);body.add(lip);
+ mantle(lip,[[0,.08],[.1,.07],[.16,.045],[.2,.012]],.04,hide,-Math.PI/2,Math.PI,.02);
+ mantle(lip,[[.16,.012],[.22,.004]],.07,hem,-Math.PI/2,Math.PI,.02);
+ const maw=part(lip,new THREE.TorusGeometry(.13,.02,6,18,Math.PI),gum,0,.035,.1);maw.rotation.x=Math.PI/2;maw.scale.set(1,.55,1);
+ const throat=part(lip,new THREE.CircleGeometry(.12,18,Math.PI,Math.PI),mouth,0,.036,.1);throat.rotation.x=-Math.PI/2;throat.scale.set(1,.5,1);
+ for(let k=0;k<11;k++){const a=Math.PI*(k+.5)/11,t=cone(lip,.009,.03,tooth,Math.cos(a)*.12,.045,.1+Math.sin(a)*.06,4);t.rotation.x=Math.PI;}
+ for(const [x,h] of [[-.1,.07],[-.035,.1],[.035,.1],[.1,.07]]){tube(lip,[[x*.8,.06,.02],[x*.95,.06+h*.6,.03],[x,.06+h,.05]],.007,stalk,6);sphere(lip,.018,eye,x,.06+h,.055);sphere(lip,.008,mouth,x,.06+h,.07);}
+ legs.push(lip);
+ // back hem: the trailing edge of the mantle, rippling behind
+ const back=new THREE.Group();back.position.set(0,.01,-.26);body.add(back);
+ mantle(back,[[0,.05],[.12,.04],[.18,.018],[.22,.004]],.08,hide,Math.PI/2,Math.PI,-.02);
+ legs.push(back);
+ return actor(g,body,legs,null,[],'idle');
+}
+const TRAPPERS={'lurker above':{hide:'#4a4452',eye:'#c8e040',scale:.9},trapper:{hide:'#6a6f5e',eye:'#ff8a3a',scale:1}};
+
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
 
 const SKIN={kobold:'#8a5a3a','large kobold':'#9a3f2f','kobold lord':'#7a3f70','kobold shaman':'#5070a8',homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
@@ -1127,6 +1162,7 @@ export function createCreature(cell={}){
  if(ELEMENTALS[name])return elemental(ELEMENTALS[name]);
  if(ANGELS[name])return angel(ANGELS[name]);
  if(JABBERWOCKS[name])return jabberwock(JABBERWOCKS[name]);
+ if(TRAPPERS[name])return trapper(TRAPPERS[name]);
  if(name==='couatl')return snake({color:'#3f9a6a',belly:'#e0c040',scale:1.2});
  if(name==='ki-rin')return unicorn();
  if(name==='floating eye')return floatingEye({});
@@ -1204,6 +1240,7 @@ export function createCreature(cell={}){
   case 'E':return elemental({kind:/fire/.test(name)?'fire':/earth/.test(name)?'earth':/water/.test(name)?'water':'air',color:c,eye:'#ffffff'});
   case 'J':return jabberwock({hide:c,belly:shade(c,1.4),eye:'#ffb030'});
   case 'A':return angel({robe:shade(c,1.2),trim:'#d8b04a',sword:true});
+  case 't':return trapper({hide:shade(c,.8),eye:'#e0c040'});
   case 'n':return nymph({skin:'#eec7a8',cloth:shade(c,.35),trim:c,hair:'#2a2018'});
   case "'":return golem(GOLEM_MATERIALS.stone);
  }
