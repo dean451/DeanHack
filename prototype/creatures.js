@@ -596,6 +596,33 @@ function ogre(o){
 const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#8a6a48',hide:'#4a3a2a',metal:'#a0703a',scale:1.05},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.1}};
 
 // Generic guardian, kept as the last resort but tinted by the monster's glyph colour.
+// Liches: a gaunt, robed skeleton with a bare skull, burning eye sockets and a staff topped by a glowing orb.
+// Demiliches are more tattered, master liches add a bone crown, arch-liches a taller spiked crown and a shoulder mantle.
+function lich(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);
+ const bone=mat(o.bone||'#d8d0b8',{roughness:.7}),robe=mat(o.robe,{roughness:.9}),trim=mat(shade(o.robe,.5),{roughness:.85}),glow=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.6,roughness:.3}),socket=mat('#141012',{roughness:.6});
+ cylinder(body,.17,.32,.7,robe,0,.35,0,12);
+ // ragged hem: alternating dark tatters hang below the robe
+ for(let i=0;i<(o.tattered?10:7);i++){const a=i/(o.tattered?10:7)*Math.PI*2,t=cone(body,.05,.14+(i%2)*.06,trim,Math.sin(a)*.31,.1,Math.cos(a)*.31,4);t.rotation.x=Math.PI;}
+ rounded(body,.34,.32,.24,robe,0,.82,0,.06);
+ const hood=sphere(body,.24,trim,0,1.1,-.06,1,1.05,1);hood.scale.z=1.05;
+ // skull: cranium, cheekbones, dark sockets with a glow deep inside, a toothed jaw
+ sphere(body,.16,bone,0,1.1,.04,.95,1,1);rounded(body,.16,.07,.1,bone,0,.99,.1,.03);
+ for(const x of [-.06,.06]){sphere(body,.042,socket,x,1.11,.165,1,1,.5);sphere(body,.02,glow,x,1.11,.18);}
+ cone(body,.02,.04,socket,0,1.05,.19,3).rotation.x=Math.PI;
+ for(let i=0;i<5;i++)rounded(body,.018,.025,.015,bone,(i-2)*.024,.975,.155,.004);
+ // skeletal arms: thin bone forearms and claw fingers poking out of wide sleeves
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.93,0);body.add(arm);cylinder(arm,.06,.1,.3,robe,0,-.14,0,8);cylinder(arm,.018,.018,.16,bone,0,-.34,.02,6);for(const f of [-.025,0,.025])cone(arm,.01,.09,bone,f,-.45,.03,4).rotation.x=Math.PI;arm.rotation.z=side*.16;arm.rotation.x=side<0?-.55:-.2;}
+ // staff held out on the right, orb glowing in the lich's colour
+ const staff=rounded(body,.035,1.15,.035,M.leather,.34,.66,.16,.01);staff.rotation.z=-.06;
+ for(const side of [-1,1]){const prong=cone(body,.018,.14,bone,.37+side*.035,1.27,.16,4);prong.rotation.z=-side*.35;}
+ sphere(body,.055,glow,.37,1.3,.16);
+ if(o.crown){const n=o.crown==='tall'?7:5,h=o.crown==='tall'?.14:.09;cylinder(body,.155,.165,.05,o.crown==='tall'?M.gold:bone,0,1.21,.02,12);for(let i=0;i<n;i++){const a=(i/n-.5)*Math.PI*1.3;cone(body,.02,h,o.crown==='tall'?M.gold:bone,Math.sin(a)*.155,1.26+h/2-.02,.02+Math.cos(a)*.155,4);}sphere(body,.026,glow,0,1.22,.18);}
+ if(o.mantle){for(const side of [-1,1]){const spike=cone(body,.05,.22,bone,side*.24,1.02,-.04,5);spike.rotation.z=-side*.9;}rounded(body,.46,.08,.3,trim,0,.97,-.02,.03);}
+ return actor(g,body,[],null,[],'idle');
+}
+const LICHES={lich:{robe:'#5a4430',glow:'#8ad060'},demilich:{robe:'#6a2a24',glow:'#ff5a3a',bone:'#c8bc98',tattered:true},'master lich':{robe:'#4a1f52',glow:'#c070ff',crown:'bone',scale:1.05},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',crown:'tall',mantle:true,scale:1.1}};
+
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
 
 const SKIN={kobold:'#8a5a3a','large kobold':'#9a3f2f','kobold lord':'#7a3f70','kobold shaman':'#5070a8',homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
@@ -624,6 +651,7 @@ export function createCreature(cell={}){
  if(MIND_FLAYERS[name])return mindFlayer(MIND_FLAYERS[name]);
  if(TROLLS[name])return troll(TROLLS[name]);
  if(OGRES[name])return ogre(OGRES[name]);
+ if(LICHES[name])return lich(LICHES[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
@@ -668,6 +696,7 @@ export function createCreature(cell={}){
   case 'm':return mimic({color:c});
   case 'C':return centaur({coat:c,hair:shade(c,.4)});
   case 'O':return ogre({skin:shade(c,1.1),hide:shade(c,.5)});
+  case 'L':return lich({robe:shade(c,.6),glow:c});
   case 'T':return troll({skin:c,hair:shade(c,.4)});
   case 'H':return giant({skin:shade(c,1.1),cloth:shade(c,.55),weapon:'club',scale:1.1});
   case 'B':return bat({color:c});
