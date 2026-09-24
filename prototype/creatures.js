@@ -802,6 +802,46 @@ function naga(o){
 const NAGAS={'red naga':{color:'#b0321e',belly:'#e0a040',eye:'#ffcc40',crest:'flame'},'black naga':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',crest:'spines'},'golden naga':{color:'#c8a032',belly:'#f0dc8a',eye:'#ff5a3a',crest:'circlet',scale:1.05},'guardian naga':{color:'#3a8a3a',belly:'#c0d880',eye:'#ffe040',crest:'hood',scale:1.1},
  'red naga hatchling':{color:'#b0321e',belly:'#e0a040',baby:true,scale:.8},'black naga hatchling':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',baby:true,scale:.8},'golden naga hatchling':{color:'#c8a032',belly:'#f0dc8a',baby:true,scale:.8},'guardian naga hatchling':{color:'#3a8a3a',belly:'#c0d880',baby:true,scale:.8}};
 
+// Umber hulks (U): a hunched, beetle-backed burrower with a domed carapace of overlapping chitin plates,
+// thick legs, long arms ending in three huge digging claws, and a broad head with two big confusing
+// compound eyes, two small eyes between them and a pair of curved mandibles. The head is the 'tail' group, so it tilts.
+function umberHulk(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
+ const shell=mat(o.color,{roughness:.45,metalness:.15}),dark=mat(shade(o.color,.55),{roughness:.7}),hide=mat(o.hide||shade(o.color,1.25),{roughness:.9}),claw=mat('#1c1612',{roughness:.35,metalness:.2}),
+  compound=mat(o.eye,{emissive:o.eye,emissiveIntensity:.9,roughness:.15,metalness:.3,flatShading:true}),small=mat('#0e0a08',{roughness:.2}),mouth=mat('#2a0e0c',{roughness:1});
+ // legs: thick thighs and shins with chitin knee caps and three-toed clawed feet
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.17,.415,-.02);body.add(leg);
+  segment(leg,[0,0,0],[side*.04,-.2,.06],.1,.085,hide);segment(leg,[side*.04,-.2,.06],[side*.05,-.37,.01],.08,.07,hide);
+  sphere(leg,.075,shell,side*.04,-.2,.1,1,.8,.8);rounded(leg,.18,.06,.2,dark,side*.05,-.38,.05,.025);
+  for(let k=-1;k<=1;k++)cone(leg,.02,.07,claw,side*.05+k*.055,-.39,.17,4).rotation.x=Math.PI/2;legs.push(leg);}
+ // torso: a lighter hide belly with ridged plates under a domed, segmented back carapace
+ const torso=sphere(body,.27,hide,0,.7,.02,1.15,1.1,.9);torso.rotation.x=.35;
+ for(let i=0;i<4;i++)rounded(body,.3-i*.03,.05,.04,dark,0,.5+i*.1,.2-i*.012,.018).rotation.x=.3;
+ for(let i=0;i<4;i++){const plate=sphere(body,.3-i*.025,shell,0,.62+i*.12,-.07-i*.02,1.18,.42,.95);plate.rotation.x=-.55-i*.1;}
+ for(let i=0;i<3;i++){const ridge=cone(body,.035,.11,dark,0,.78+i*.13,-.3+i*.02,5);ridge.rotation.x=-1.2;}
+ // shoulders: heavy pauldron plates
+ for(const side of [-1,1]){const pad=sphere(body,.14,shell,side*.29,.98,.02,1.1,.7,1.15);pad.rotation.z=side*.45;}
+ // arms: long and heavy, hanging forward, each ending in three great hooked claws for tunnelling through rock
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.3,.95,.04);body.add(arm);
+  segment(arm,[0,0,0],[side*.05,-.3,.05],.09,.08,hide);sphere(arm,.07,shell,side*.05,-.3,.05,1,.8,1);
+  segment(arm,[side*.05,-.3,.05],[side*.04,-.58,.14],.085,.075,shell);rounded(arm,.15,.1,.14,dark,side*.04,-.62,.15,.035);
+  for(let k=-1;k<=1;k++){const c=cone(arm,.026,.16,claw,side*.04+k*.05,-.72,.2,5);c.rotation.x=Math.PI-.5;c.rotation.z=k*.15;}
+  arm.rotation.x=-.2;arm.rotation.z=side*.08;}
+ // head: set low and forward between the shoulders
+ const head=new THREE.Group();head.position.set(0,1.02,.2);body.add(head);
+ sphere(head,.16,shell,0,.02,0,1.2,.85,1);rounded(head,.3,.05,.1,dark,0,.1,.06,.02).rotation.x=-.3;
+ sphere(head,.1,hide,0,-.08,.1,1.2,.7,.9);cylinder(head,.07,.07,.02,mouth,0,-.1,.17,10).rotation.x=Math.PI/2;
+ for(const side of [-1,1]){
+  const eye=part(head,new THREE.IcosahedronGeometry(.055,1),compound,side*.1,.03,.12);eye.scale.set(1,1.15,.8);
+  sphere(head,.018,small,side*.03,.05,.16);
+  // mandibles: curved, tapering hooks that close toward the mouth
+  tube(head,[[side*.07,-.08,.12],[side*.11,-.13,.2],[side*.07,-.18,.27],[side*.015,-.19,.28]],.018,claw,10);
+  cone(head,.02,.05,claw,side*.015,-.19,.29,4).rotation.z=side*Math.PI/2;
+  const antenna=cone(head,.012,.12,dark,side*.07,.12,.02,4);antenna.rotation.set(-.6,0,-side*.5);}
+ return actor(g,body,legs,head,[],'orc');
+}
+const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.05}};
+
 // Rust monsters and disenchanters: a low, armadillo-like bug with overlapping carapace plates, four stubby legs,
 // two long feathery antennae (the rust-touch feelers) and a tail ending in a flat, two-bladed propeller vane.
 // The tail is the 'tail' group, so its roll in live.js twists the vane. Disenchanters are blue with a violet glow.
@@ -869,6 +909,7 @@ export function createCreature(cell={}){
  if(XORNS[name])return xorn(XORNS[name]);
  if(NAGAS[name])return naga(NAGAS[name]);
  if(RUST_MONSTERS[name])return rustMonster(RUST_MONSTERS[name]);
+ if(UMBER_HULKS[name])return umberHulk(UMBER_HULKS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
@@ -939,6 +980,7 @@ export function createCreature(cell={}){
   case 'r':return rat(false);
   case 'x':return gridBug();
   case 'R':return rustMonster({color:c});
+  case 'U':return umberHulk({color:shade(c,.7),eye:'#d8a040'});
   case 'n':return nymph({skin:c,dress:shade(c,.6),hair:'#2a2018'});
   case "'":return golem(GOLEM_MATERIALS.stone);
  }
