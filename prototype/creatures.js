@@ -985,6 +985,54 @@ function elemental(o){
 }
 const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff'},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0'},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.1},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff'},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff'}};
 
+// Angels: a robed figure hovering on feathered wings, with a halo and a sword. The wings
+// are pivots at the shoulder blades, so the default wing beat in live.js flexes them.
+const FEATHER=new THREE.SphereGeometry(1,8,6);
+function angel(o){
+ const g=new THREE.Group(),body=new THREE.Group(),wings=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const robe=mat(o.robe,{roughness:.75}),fold=mat(shade(o.robe,.82),{roughness:.8}),trim=mat(o.trim||'#d8b04a',{metalness:.7,roughness:.3}),skin=mat(o.skin||'#f0d4b8',{roughness:.7}),
+  hair=mat(o.hair||'#e0c070',{roughness:.6}),plume=mat(o.wing||'#f4f0e6',{roughness:.7,side:THREE.DoubleSide}),plumeTip=mat(shade(o.wing||'#f4f0e6',.8),{roughness:.75,side:THREE.DoubleSide}),
+  light=mat(o.glow||'#ffe89a',{emissive:o.glow||'#ffe89a',emissiveIntensity:2.2,roughness:.3});
+ const feather=(p,x,y,z,len,w,a,m)=>{const f=part(p,FEATHER,m,x+Math.sin(-a)*len/2,y+Math.cos(a)*len/2,z);f.scale.set(w,len/2,.008);f.rotation.z=a;f.castShadow=false;return f;};
+ // robe: a long gown that flares to a rippling hem above the floor, with a gold hem band and folds
+ const gown=part(body,tatter(new THREE.LatheGeometry([[.2,.1],[.2,.12],[.17,.22],[.14,.38],[.13,.5],[.14,.6],[.12,.7],[.08,.76]].map(([r,h])=>new THREE.Vector2(r,h)),28),.16,.035,5),robe);gown.scale.z=.85;
+ cylinder(body,.203,.2,.02,trim,0,.12,0,28).scale.z=.85;
+ for(let i=0;i<6;i++){const a=(i+.5)/6*Math.PI*2;segment(body,[Math.sin(a)*.19,.13,Math.cos(a)*.16],[Math.sin(a)*.13,.5,Math.cos(a)*.11],.014,.006,fold);}
+ part(body,new THREE.TorusGeometry(.135,.014,6,24),trim,0,.5,0).rotation.x=Math.PI/2;
+ // chest: a gold breastplate for archons, a crossed stole otherwise
+ if(o.armor){lathe(body,[[.13,.5],[.145,.58],[.135,.68],[.09,.75]],trim,0,0,.01).scale.z=.85;for(let i=0;i<2;i++)cylinder(body,.01,.01,.2,light,(i?1:-1)*.04,.62,.12,6);}
+ else for(const side of [-1,1]){const s=rounded(body,.035,.3,.012,trim,side*.05,.62,.115,.006);s.rotation.set(-.2,0,side*.35);}
+ // arms in wide sleeves: the right raises a sword, the left hand is open in blessing
+ for(const side of [-1,1]){const sh=[side*.13,.71,0],el=side>0?[.21,.6,.08]:[-.2,.56,.06],wr=side>0?[.2,.7,.17]:[-.25,.5,.16];
+  sphere(body,.05,robe,...sh);segment(body,sh,el,.045,.05,robe);segment(body,el,wr,.05,.065,robe);
+  const cuff=segment(body,el,wr,.066,.068,trim);cuff.scale.y=.12;cuff.position.set(...wr.map((v,i)=>v-(wr[i]-el[i])*.06));
+  hand(body,wr,side>0?[0,.3,1]:[-.2,-.3,1],side,skin);}
+ if(o.sword){const s=new THREE.Group();s.position.set(.2,.72,.2);s.rotation.set(.5,0,-.25);body.add(s);
+  cylinder(s,.014,.014,.08,mat('#4a3020'),0,-.02,0,8);rounded(s,.14,.02,.03,trim,0,.03,0,.008);sphere(s,.018,trim,0,-.065,0);
+  const blade=rounded(s,.035,.44,.008,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.6,roughness:.2}):M.steel,0,.26,0,.004);
+  if(o.flame){blade.castShadow=false;for(let i=0;i<6;i++){const f=cone(s,.02,.09,light,(i%2?1:-1)*.02,.1+i*.065,0,5);f.rotation.z=(i%2?-1:1)*.35;f.castShadow=false;}}}
+ // head: a calm face with softly glowing eyes and long golden locks
+ const headY=.86;cylinder(body,.035,.04,.08,skin,0,.78,0,10);sphere(body,.085,skin,0,headY,.01,1,1.08,1);
+ for(const side of [-1,1])sphere(body,.013,light,side*.032,headY+.01,.08,1,.7,.6).castShadow=false;
+ sphere(body,.093,hair,0,headY+.025,-.01,1.02,1,1).scale.set(1.03,1,1);
+ for(let i=0;i<7;i++){const a=(i-3)*.42;tube(body,[[Math.sin(a)*.085,headY+.02,Math.cos(a)*.06-.02],[Math.sin(a)*.1,headY-.06,Math.cos(a)*.05-.04],[Math.sin(a)*.09,headY-.14,Math.cos(a)*.04-.06]],.022,hair,6).scale.z=.9;}
+ // halo: a glowing ring over the head; archons wear a crown of light rays on it
+ const halo=part(body,new THREE.TorusGeometry(.1,.011,8,32),light,0,headY+.14,-.03);halo.rotation.x=Math.PI/2-.25;halo.castShadow=false;
+ if(o.rays)for(let i=0;i<9;i++){const a=i/9*Math.PI*2,r=cone(halo,.012,.07,light,Math.cos(a)*.1,Math.sin(a)*.1,0,4);r.rotation.z=a-Math.PI/2;r.castShadow=false;}
+ // wings: a pivot at each shoulder blade holding a leading-edge bone, long primaries fanning
+ // down from it and a shorter covert row over their roots
+ for(const side of [-1,1]){const pivot=new THREE.Group();pivot.position.set(side*.07,.7,-.1);body.add(pivot);
+  const wing=new THREE.Group();wing.rotation.y=side*.45;pivot.add(wing);const span=o.span||.75;
+  const edge=[];for(let i=0;i<=6;i++){const t=i/6;edge.push([side*(.02+.44*t)*span,(.02+.28*Math.sin(t*2.4))*span,-.01]);}
+  tube(wing,edge,.018,plume,16);
+  for(let i=0;i<11;i++){const t=i/10,x=side*(.03+.43*t)*span,y=(.02+.28*Math.sin(t*2.4))*span,len=(.2+.2*t+.06*Math.sin(t*3))*span;
+   feather(wing,x,y,-.015,len,.04,Math.PI+side*(.1+1.2*t),i>7?plumeTip:plume);
+   if(i<9)feather(wing,x,y+.01,-.004,len*.55,.045,Math.PI+side*(.15+1.1*t),plume);}
+  pivot.userData.side=side;wings.push(pivot);}
+ return actor(g,body,[],null,wings,'hover');
+}
+const ANGELS={angel:{robe:'#eeeae0',sword:true,flame:'#ff9a3a'},aleax:{robe:'#b8b0a0',trim:'#9aa4aa',hair:'#6a4a2a',wing:'#dcd6ca',glow:'#fff4d0',sword:true,span:.65},archon:{robe:'#f6f2ea',trim:'#e0b83a',armor:true,rays:true,sword:true,flame:'#bfe4ff',glow:'#fff2b0',scale:1.15,span:.85}};
+
 const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,scale:1.05},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',scale:1.05},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,scale:1.1}};
 
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
@@ -1024,6 +1072,9 @@ export function createCreature(cell={}){
  if(UMBER_HULKS[name])return umberHulk(UMBER_HULKS[name]);
  if(LEPRECHAUNS[name])return leprechaun(LEPRECHAUNS[name]);
  if(ELEMENTALS[name])return elemental(ELEMENTALS[name]);
+ if(ANGELS[name])return angel(ANGELS[name]);
+ if(name==='couatl')return snake({color:'#3f9a6a',belly:'#e0c040',scale:1.2});
+ if(name==='ki-rin')return unicorn();
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
@@ -1097,6 +1148,7 @@ export function createCreature(cell={}){
   case 'U':return umberHulk({color:shade(c,.7),eye:'#d8a040'});
   case 'l':return leprechaun({coat:c});
   case 'E':return elemental({kind:/fire/.test(name)?'fire':/earth/.test(name)?'earth':/water/.test(name)?'water':'air',color:c,eye:'#ffffff'});
+  case 'A':return angel({robe:shade(c,1.2),trim:'#d8b04a',sword:true});
   case 'n':return nymph({skin:'#eec7a8',cloth:shade(c,.35),trim:c,hair:'#2a2018'});
   case "'":return golem(GOLEM_MATERIALS.stone);
  }
