@@ -9,7 +9,12 @@ const POTION_LOOKS={
  magenta:['#d060c0','#a02090'],purple:['#9a60c0','#5a2090'],violet:['#a67fea','#6a3fc7'],
  puce:['#a67a72','#7a4a4a'],lavender:['#bcaeea','#8a7ac0'],
  white:['#f2f2ea','#dcdcd0'],silver:['#dadee0','#a6acb0'],golden:['#e0bf5a','#b8892a'],brown:['#8a6238','#5a3a1e'],
- black:['#2a2a2a','#0a0a0a'],
+ black:['#2a2a2a','#0a0a0a'],dark:['#3a3440','#141018',{opacity:.8}],'blood-red':['#a01a1a','#5a0808',{opacity:.8}],
+ amber:['#e8b04a','#b8741a'],indigo:['#6a5ad0','#34208a'],ochre:['#c89a4a','#8a5e1e'],
+ viscous:['#a6a08a','#6e6850',{opacity:.8,transmission:.06}],
+ muddy:['#7a6040','#4a3620',{opacity:.85,transmission:.04}],icy:['#d8f0ff','#9ccfe8',{opacity:.4,transmission:.5,emissiveIntensity:.5}],
+ squishy:['#c06a9a','#8a3a6a'],greasy:['#b8a45a','#7e6a28',{opacity:.7}],slimy:['#7ab04a','#4a7a20',{opacity:.78}],
+ soapy:['#e6eef2','#c6d6e0',{opacity:.5,transmission:.35}],steamy:['#d6dcdc','#aab4b4',{opacity:.45,transmission:.3}],
  milky:['#efeee6','#d8d6c6',{opacity:.88,transmission:.05}],clear:['#e8f5f0','#bcd8d2',{opacity:.3,transmission:.6}],
  smoky:['#8a8a86','#5a5a56',{opacity:.62,transmission:.12}],cloudy:['#c5c5c0','#a6a6a0',{opacity:.72,transmission:.08}],
  swirly:['#a06fe0','#7a3fc0'],bubbly:['#5bd0c7','#1f9d9d'],effervescent:['#c7e05b','#8aae2a'],
@@ -27,14 +32,15 @@ export function potionLook(name,color){
  const byColor=POTION_GLYPH_LOOKS[color];if(byColor)return look(POTION_LOOKS[byColor]);
  return look(DEFAULT_POTION_LOOK);
 }
-// The bridge's object name is the true type, which would reveal unidentified items in
-// the floating caption. Until the bridge sends the player's view of the name, captions
-// for classes with randomized appearances show only what the item looks like.
+// The bridge's object name is the true type, which would reveal unidentified items. Its
+// label is the hero's view of the name; for older bridges without one, captions for
+// classes with randomized appearances show only what the item looks like.
 const GLYPH_COLOR_WORDS=['black','red','green','brown','blue','magenta','cyan','gray','','orange','bright green','yellow','bright blue','pink','bright cyan','white'];
 const RANDOM_TOOLS=[[/\blamp\b/,'lamp'],[/\b(?:bag|sack)\b/,'bag'],[/\bhorn\b/,'horn'],[/\bflute\b/,'flute'],[/\bharp\b/,'harp'],[/\bdrum\b/,'drum']];
 const RANDOM_ARMOR=[[/^cloak of (?:protection|invisibility|magic resistance|displacement)$/,'cloak'],[/^(?:speed|water walking|jumping|elven|kicking|fumble|levitation) boots$/,'boots'],[/^(?:gauntlets of|leather gloves)/,'gloves'],[/^(?:helmet|helm of)/,'helmet']];
 export function groundItemCaption(cell){
  const object=cell.object||{},name=(object.name||cell.name||'item').toLowerCase(),cls=object.class;
+ if(object.label)return object.label;
  const tint=GLYPH_COLOR_WORDS[cell.color]||'';
  const plain={4:'ring',5:'amulet',9:'scroll',10:'spellbook',11:'wand'}[cls];
  if(plain)return plain;

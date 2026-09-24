@@ -25,3 +25,16 @@ test('captions hide the true type of randomized-appearance items',()=>{
  assert.equal(cap('long sword',2),'long sword');
  assert.equal(cap('pick-axe',6),'pick-axe');
 });
+
+test('the bridge label wins when present',()=>{
+ assert.equal(groundItemCaption({name:'healing',color:1,object:{name:'healing',class:8,label:'ruby potion',appearance:'ruby'}}),'ruby potion');
+ assert.equal(groundItemCaption({name:'healing',color:1,object:{name:'healing',class:8,label:'potion of healing'}}),'potion of healing');
+});
+
+test('every UnNetHack potion appearance has its own look',()=>{
+ const appearances=['ruby','pink','orange','yellow','emerald','dark green','sky blue','indigo','magenta','amber','puce','brown','white','ochre','silver','black','golden','viscous','swirly','effervescent','milky','fizzy','dark','bubbly','murky','muddy','sparkling','luminescent','icy','squishy','greasy','slimy','soapy','smoky','steamy','gooey','cloudy','clear','blood-red'];
+ const fallback=potionLook('').liquid;
+ for(const word of appearances)assert.notEqual(potionLook(word).liquid,fallback,word);
+ assert.notEqual(potionLook('dark').liquid,potionLook('dark green').liquid);
+ assert.notEqual(potionLook('blood-red').liquid,potionLook('red').liquid);
+});

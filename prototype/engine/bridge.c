@@ -57,6 +57,22 @@ static const char *object_name(int glyph) {
     o = glyph_to_obj(glyph);
     return (o >= 0 && o < NUM_OBJECTS) ? OBJ_NAME(objects[o]) : "item";
 }
+/* The name as the hero knows it ("ruby potion" until identified), so the client can
+   caption items without revealing their true type. */
+static const char *seen_name(int glyph,int x,int y) {
+    static char buf[BUFSZ];
+    struct obj *top;
+    char *paren;
+    int o=glyph_to_obj(glyph);
+    if (glyph_is_body(glyph) || o<0 || o>=NUM_OBJECTS) return object_name(glyph);
+    top=vobj_at(x,y);
+    if (cansee(x,y) && !Hallucination && top && top->otyp==o) return distant_name(top,xname);
+    /* Remembered objects: obj_typename() appends "(appearance)" once identified. */
+    if (o==GOLD_PIECE) return "gold pieces";
+    Strcpy(buf,obj_typename(o));
+    if ((paren=strstr(buf," (")) != 0 && buf[strlen(buf)-1]==')') *paren='\0';
+    return buf;
+}
 static void frame(void) {
     int x,y,g,b,m,col,terrain_glyph,object_type;glyph_t ch;unsigned special;
     printf("{\"type\":\"frame\",\"turn\":%ld,\"depth\":%d,\"branch\":%d,\"player\":{\"x\":%d,\"z\":%d,\"hp\":%d,\"maxhp\":%d,\"ac\":%d,\"level\":%d,\"weapon\":",moves,depth(&u.uz),u.uz.dnum,u.ux,u.uy,Upolyd?u.mh:u.uhp,Upolyd?u.mhmax:u.uhpmax,u.uac,u.ulevel);
@@ -112,6 +128,10 @@ static void frame(void) {
                    object_type == CORPSE ? FOOD_CLASS : objects[object_type].oc_class,
                    object_type == CORPSE ? FLESH : objects[object_type].oc_material);
             quoted(object_name(g));
+            printf(",\"label\":");quoted(seen_name(g,x,y));
+            if (object_type != CORPSE && OBJ_DESCR(objects[object_type])) {
+                printf(",\"appearance\":");quoted(OBJ_DESCR(objects[object_type]));
+            }
             if (glyph_is_statue(g)) {
                 m = glyph_to_mon(g);
                 printf(",\"creature\":");quoted(mons[m].mname);

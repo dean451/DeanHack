@@ -132,7 +132,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      icon.userData.coinPile=coinPile;
      icon.userData.dispose=()=>{coinMats.forEach(material=>material.dispose());coinStampMats.forEach(material=>material.dispose());shadow.dispose();};
    } else if(cls===POTION_CLASS){
-     const look=potionLook(itemName,cell.color);
+     const look=potionLook((cell.object?.appearance||itemName).toLowerCase(),cell.color);
      const glass=new THREE.MeshPhysicalMaterial({color:look.glass,roughness:.16,metalness:.02,transmission:look.transmission,transparent:true,opacity:look.opacity}),liquid=new THREE.MeshStandardMaterial({color:look.liquid,emissive:look.liquid,emissiveIntensity:look.emissiveIntensity,roughness:.3});
      const bottle=add(new THREE.SphereGeometry(.18,16,10),glass,0,.3,0);bottle.scale.y=1.18;const fill=add(new THREE.SphereGeometry(.145,14,9),liquid,0,.28,0);fill.scale.y=1.18;add(new THREE.CylinderGeometry(.065,.065,.14,10),glass,0,.57,0);add(new THREE.CylinderGeometry(.075,.085,.045,12),edge,0,.66,0);
      icon.userData.dispose=()=>{glass.dispose();liquid.dispose();};
