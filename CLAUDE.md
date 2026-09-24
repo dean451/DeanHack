@@ -24,5 +24,6 @@ Read `AGENTS.md` first. It is the shared rulebook for Claude and Codex (file own
 
 1. Run `npm test` and `npm run build` in `prototype/`. Check the change in the browser on port 5174.
 2. Commit on a `claude/...` branch and push. Open a PR only when the user asks.
+   After opening a PR, run `gh pr merge <number> --auto --squash`, then confirm with `gh pr view <number> --json autoMergeRequest` (the user asked for this on 2026-09-23; the master ruleset holds the merge until the linux, macos and "Prototype tests and build" checks pass).
 3. Append a "finished" entry to the handoff log with files changed, checks run, commit hash and open concerns.
 4. After any merge into `master`, run `git fetch origin && git rebase origin/master` (or merge) before starting the next task.
