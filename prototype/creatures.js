@@ -647,6 +647,34 @@ function wraith(o){
 }
 const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff'},'barrow wight':{robe:'#4a4a3a',glow:'#e0c040',bone:'#a89878',solid:true,circlet:true,sword:true},nazgul:{robe:'#141218',glow:'#ff3a2a',crown:true,sword:true,scale:1.1}};
 
+// Vampires: a tall, pale aristocrat in a high-collared cape with a red lining, slicked hair with a widow's peak,
+// fangs and red eyes. Lords wear a gold medallion, mages a violet cape and a glowing hand orb,
+// and Vlad a jewelled red cap, a moustache and a long impaling spear.
+function vampire(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
+ const skin=mat(o.skin||'#d8d0cc',{roughness:.6}),suit=mat(o.suit||'#1c1a22',{roughness:.8}),cape=mat(o.cape||'#141218',{roughness:.85,side:THREE.DoubleSide}),lining=mat(o.lining||'#8a1420',{roughness:.7,side:THREE.DoubleSide}),hair=mat(o.hair||'#141214',{roughness:.5}),boot=mat('#101012',{roughness:.5}),fang=mat('#f4f0e6',{roughness:.3}),glow=mat(o.eye||'#ff2a2a',{emissive:o.eye||'#ff2a2a',emissiveIntensity:2.4,roughness:.3});
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.1,.44,0);body.add(leg);rounded(leg,.12,.42,.13,suit,0,-.18,0,.035);rounded(leg,.13,.1,.24,boot,0,-.39,.04,.03);legs.push(leg);}
+ rounded(body,.34,.44,.22,suit,0,.68,0,.05);rounded(body,.08,.3,.02,mat('#e8e4dc',{roughness:.6}),0,.74,.11,.01);
+ // cape: a back panel flaring toward the hem, red-lined, with a tall two-piece collar framing the head
+ const back=rounded(body,.46,.86,.03,cape,0,.52,-.14,.015);back.rotation.x=-.08;rounded(body,.43,.82,.012,lining,0,.53,-.12,.006).rotation.x=-.08;
+ for(const side of [-1,1]){const flap=rounded(body,.05,.74,.2,cape,side*.24,.52,-.03,.015);flap.rotation.z=side*.1;
+  const collar=rounded(body,.16,o.collar||.24,.015,lining,side*.12,1.02,-.06,.006);collar.rotation.set(-.25,side*.55,side*-.25);
+  const outer=rounded(body,.17,(o.collar||.24)+.02,.012,cape,side*.125,1.02,-.075,.006);outer.rotation.copy(collar.rotation);}
+ // head: gaunt face, pointed ears, widow's peak, fangs and red eyes
+ const head=new THREE.Group();head.position.set(0,1.06,.02);body.add(head);
+ sphere(head,.13,skin,0,0,0,.9,1.08,1);rounded(head,.08,.05,.06,skin,0,-.1,.06,.02);
+ const cap=sphere(head,.135,hair,0,.04,-.015,.93,.95,1.02);cap.scale.y=.85;cone(head,.035,.07,hair,0,.075,.105,4).rotation.x=Math.PI+.35;
+ for(const side of [-1,1]){const ear=cone(head,.025,.09,skin,side*.115,.01,-.01,4);ear.rotation.z=-side*1.1;cone(head,.008,.035,fang,side*.022,-.09,.108,4).rotation.x=Math.PI;}
+ eyes(head,glow,.01,.11,.045);
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.86,0);body.add(arm);rounded(arm,.1,.4,.11,suit,0,-.18,0,.03);sphere(arm,.05,skin,0,-.4,.01,.9,1.2,.9);for(const f of [-.02,0,.02])cone(arm,.008,.05,skin,f,-.46,.02,4).rotation.x=Math.PI;arm.rotation.z=side*.1;arm.rotation.x=side>0?-.35:-.1;}
+ if(o.medallion){cylinder(body,.045,.045,.012,M.gold,0,.8,.12,12).rotation.x=Math.PI/2;sphere(body,.018,glow,0,.8,.13);}
+ if(o.orb){const orb=sphere(body,.06,mat(o.orb,{emissive:o.orb,emissiveIntensity:3,roughness:.2,transparent:true,opacity:.9}),.26,.5,.2);g.userData.core=orb;}
+ if(o.vlad){const red=mat('#9a1a24',{roughness:.7});cylinder(head,.125,.135,.1,red,0,.11,-.01,12);sphere(head,.02,mat('#e8e0c8',{roughness:.3}),0,.12,.125);for(const side of [-1,1]){const m=rounded(head,.07,.018,.02,hair,side*.035,-.065,.12,.008);m.rotation.z=side*-.35;}
+  const spear=rounded(body,.03,1.4,.03,mat('#4a3420',{roughness:.9}),-.3,.71,.12,.01);spear.rotation.z=.04;cone(body,.035,.18,M.steel,-.33,1.49,.12,4);}
+ return actor(g,body,legs,null,[],'idle');
+}
+const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,scale:1.05},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',scale:1.05},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,scale:1.1}};
+
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
 
 const SKIN={kobold:'#8a5a3a','large kobold':'#9a3f2f','kobold lord':'#7a3f70','kobold shaman':'#5070a8',homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
@@ -677,6 +705,7 @@ export function createCreature(cell={}){
  if(OGRES[name])return ogre(OGRES[name]);
  if(LICHES[name])return lich(LICHES[name]);
  if(WRAITHS[name])return wraith(WRAITHS[name]);
+ if(VAMPIRES[name])return vampire(VAMPIRES[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
@@ -721,6 +750,7 @@ export function createCreature(cell={}){
   case 'm':return mimic({color:c});
   case 'C':return centaur({coat:c,hair:shade(c,.4)});
   case 'O':return ogre({skin:shade(c,1.1),hide:shade(c,.5)});
+  case 'V':return vampire({lining:c,eye:c});
   case 'W':return wraith({robe:shade(c,.6),glow:c});
   case 'L':return lich({robe:shade(c,.6),glow:c});
   case 'T':return troll({skin:c,hair:shade(c,.4)});
