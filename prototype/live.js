@@ -8,6 +8,7 @@ import {createHeldWeapon} from './equipment.js';
 import {createCentaurStatue,createOracle,createLiveFountain} from './oracle-visuals.js';
 import {createAltar} from './altar.js';
 import {createThrone} from './throne.js';
+import {createSink} from './sink.js';
 import {createTree} from './tree.js';
 import {createStairs} from './stairs.js';
 import {createFire} from './fire.js';
@@ -44,7 +45,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      if(!cell.visible||(cell.x===frame.player.x&&cell.z===frame.player.z&&cell.kind!=='object'))continue;
      if(cell.kind==='pet')pets.push(cell.name);
      else if(cell.kind==='monster'&&!names.has(cell.name)){names.add(cell.name);seenItems.push({name:cell.name,tone:cell.peaceful?'gold':'orange'});}
-     else if(['fountain','altar','throne','up','down'].includes(cell.terrain)&&!names.has(cell.terrain)){names.add(cell.terrain);seenItems.push({name:{fountain:'Fountain',altar:'Altar',throne:'Throne',up:'Stairs up',down:'Stairs down'}[cell.terrain],tone:'cyan'});}
+     else if(['fountain','altar','throne','sink','up','down'].includes(cell.terrain)&&!names.has(cell.terrain)){names.add(cell.terrain);seenItems.push({name:{fountain:'Fountain',altar:'Altar',throne:'Throne',sink:'Sink',up:'Stairs up',down:'Stairs down'}[cell.terrain],tone:'cyan'});}
    }
    $('#engine-seen').innerHTML=seenItems.length?seenItems.slice(0,5).map(({name,tone})=>`<div><i class="${tone}"></i> ${esc(name)}</div>`).join(''):'<div class="quiet">Nothing stirs in view</div>';
    $('.companion').innerHTML=pets.length?`<span class="dot"></span> ${esc(pets[0])}${pets.length>1?` +${pets.length-1}`:''}<small>YOUR COMPANION · UNNETHACK</small>`:'<span class="dot faded"></span> Alone<small>NO COMPANION IN SIGHT</small>';
@@ -171,6 +172,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
          if(cell.terrain==='feature'){const s=label(String.fromCharCode(cell.symbol));s.position.y=.35;tile.add(s);}
          if(cell.terrain==='altar')tile.add(createAltar());
          if(cell.terrain==='throne')tile.add(createThrone());
+         if(cell.terrain==='sink')tile.add(createSink());
          if(cell.terrain==='tree')tile.add(createTree(cell.x*97+cell.z));
          if(cell.terrain==='bars'){
           const grate=new THREE.Group();grate.name='Iron bars';tile.add(grate);tile.userData.grate=grate;
