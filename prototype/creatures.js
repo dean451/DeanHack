@@ -673,6 +673,29 @@ function vampire(o){
   const spear=rounded(body,.03,1.4,.03,mat('#4a3420',{roughness:.9}),-.3,.71,.12,.01);spear.rotation.z=.04;cone(body,.035,.18,M.steel,-.33,1.49,.12,4);}
  return actor(g,body,legs,null,[],'idle');
 }
+// Xorns: a faceted stone barrel on three stubby legs, with three arms and three eyes spaced around its sides
+// and a wide, fanged mouth on top.
+function xorn(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
+ const stone=mat(o.stone||'#8a7f6a',{roughness:.95,flatShading:true}),dark=mat(shade(o.stone||'#8a7f6a',.6),{roughness:1,flatShading:true}),claw=mat('#3a3630',{roughness:.6}),tooth=mat('#e4dcc4',{roughness:.4}),maw=mat('#1a100e',{roughness:1}),glow=mat(o.eye||'#f0c040',{emissive:o.eye||'#f0c040',emissiveIntensity:2.2,roughness:.3});
+ const third=Math.PI*2/3;
+ for(let i=0;i<3;i++){const a=i*third+Math.PI/3,leg=new THREE.Group();leg.position.set(Math.sin(a)*.15,.22,Math.cos(a)*.15);body.add(leg);rounded(leg,.11,.18,.11,stone,Math.sin(a)*.02,-.08,Math.cos(a)*.02,.04);sphere(leg,.075,dark,Math.sin(a)*.04,-.17,Math.cos(a)*.04,1.1,.6,1.1);legs.push(leg);}
+ // barrel: faceted body with rough strata bands and scattered rock nodules
+ cylinder(body,.2,.25,.5,stone,0,.45,0,9);
+ for(const [y,r] of [[.3,.255],[.5,.235],[.66,.215]])cylinder(body,r,r+.01,.035,dark,0,y,0,9);
+ for(let i=0;i<7;i++){const a=i*2.4+.5,y=.3+(i%4)*.1,r=.245-(y-.2)*.1,n=part(body,new THREE.DodecahedronGeometry(.035,0),dark,Math.sin(a)*r,y,Math.cos(a)*r);n.rotation.set(i,i*.7,0);}
+ // mouth on top: dark maw, lip ring, teeth leaning inward
+ cylinder(body,.15,.15,.02,maw,0,.705,0,12);part(body,new THREE.TorusGeometry(.155,.025,6,12),dark,0,.71,0).rotation.x=Math.PI/2;
+ for(let i=0;i<10;i++){const b=i/10*Math.PI*2,t=cone(body,.016,.06,tooth,Math.sin(b)*.135,.74,Math.cos(b)*.135,4);t.rotation.set(-Math.cos(b)*.5,0,Math.sin(b)*.5);}
+ // three eyes (one facing forward) and three arms between them, each ending in three claws
+ for(let i=0;i<3;i++){const a=i*third,x=Math.sin(a),z=Math.cos(a);sphere(body,.045,maw,x*.215,.58,z*.215);sphere(body,.03,glow,x*.24,.58,z*.24);
+  const arm=new THREE.Group();arm.position.set(Math.sin(a+Math.PI/3)*.2,.52,Math.cos(a+Math.PI/3)*.2);arm.rotation.set(-.35,a+Math.PI/3,0,'YXZ');body.add(arm);
+  rounded(arm,.075,.075,.14,stone,0,0,.06,.03);const fore=rounded(arm,.065,.065,.12,stone,0,.04,.16,.025);fore.rotation.x=-.5;
+  for(const f of [-.025,0,.025])cone(arm,.012,.06,claw,f,.08,.24,4).rotation.x=Math.PI/2-.4;}
+ return actor(g,body,legs,null,[],'idle');
+}
+const XORNS={xorn:{}};
+
 const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,scale:1.05},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',scale:1.05},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,scale:1.1}};
 
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
@@ -706,6 +729,7 @@ export function createCreature(cell={}){
  if(LICHES[name])return lich(LICHES[name]);
  if(WRAITHS[name])return wraith(WRAITHS[name]);
  if(VAMPIRES[name])return vampire(VAMPIRES[name]);
+ if(XORNS[name])return xorn(XORNS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
@@ -750,6 +774,7 @@ export function createCreature(cell={}){
   case 'm':return mimic({color:c});
   case 'C':return centaur({coat:c,hair:shade(c,.4)});
   case 'O':return ogre({skin:shade(c,1.1),hide:shade(c,.5)});
+  case 'X':return xorn({stone:shade(c,.9),eye:c});
   case 'V':return vampire({lining:c,eye:c});
   case 'W':return wraith({robe:shade(c,.6),glow:c});
   case 'L':return lich({robe:shade(c,.6),glow:c});
