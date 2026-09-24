@@ -386,6 +386,19 @@ function wormTail(o){
  for(const z of [-.3,.3])for(const [dx,dz,s] of [[-.07,-.04,1],[.07,.03,.8],[0,.06,.6]])sphere(body,.07*s,mound,dx,.01,z+dz,1.4,.35,1.2);
  return actor(g,body,[],null,[],'worm');
 }
+// piercers (p): a ridged stalactite that has dropped point-up onto the floor, with a lurking face and a lipless mouth slit near its base and loose rubble around it
+function piercer(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);const s=o.scale||1;
+ const hide=o.glass?new THREE.MeshStandardMaterial({color:o.color,transparent:true,opacity:.55,roughness:.08,metalness:.1}):mat(o.color,o.metal?{roughness:.35,metalness:.7}:{roughness:.95});
+ const pts=[];for(let i=0;i<=10;i++){const t=i/10;pts.push(new THREE.Vector2((.25*(1-t)**1.25+.012)*(1+(i%2)*.06)*s,t*.82*s));}
+ const spire=part(body,new THREE.LatheGeometry(pts,9),hide);spire.rotation.z=.05;
+ for(const [y,r] of [[.2,.2],[.4,.14],[.58,.08]])part(body,new THREE.TorusGeometry(r*s,.016*s,5,12),mat(shade(o.color,.7),o.metal?{metalness:.6,roughness:.4}:{}),0,y*s,0).rotation.x=Math.PI/2;
+ part(body,new THREE.TorusGeometry(.1*s,.018*s,6,12,Math.PI),mat('#1a1210'),0,.13*s,.21*s).rotation.z=Math.PI;
+ eyes(body,M.eye,.27*s,.17*s,.06*s);
+ const rubble=mat(shade(o.color,.55));for(let i=0;i<6;i++){const a=i*1.1+.4,r=(.28+(i%3)*.04)*s;sphere(g,(.035+(i%2)*.015)*s,rubble,Math.cos(a)*r,.02,Math.sin(a)*r,1.2,.6,1);}
+ return actor(g,body,[],null,[],'idle');
+}
+const PIERCERS={piercer:{color:'#8a8478'},'iron piercer':{color:'#5f7c86',metal:true,scale:1.15},'glass piercer':{color:'#d8eef4',glass:true,scale:1.25}};
 // vortices (v): a tapering funnel of tilted, offset swirl rings over a scuffed ground patch, with debris caught in the spiral; fog clouds are a low puffy bank instead
 function vortex(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const s=o.scale||1;
@@ -438,6 +451,7 @@ export function createCreature(cell={}){
  if(WORMS[name])return worm(WORMS[name]);
  if(name==='long worm tail')return wormTail({color:color||WORMS['long worm'].color});
  if(VORTICES[name])return vortex(VORTICES[name]);
+ if(PIERCERS[name])return piercer(PIERCERS[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
@@ -475,6 +489,7 @@ export function createCreature(cell={}){
   case 'S':return snake({color:c});
   case 'w':return worm({color:c,baby:/baby/.test(name)});
   case 'v':return vortex({color:c});
+  case 'p':return piercer({color:c});
   case 'B':return bat({color:c});
   case 'F':return fungus({form:'mound',color:c});
   case 'b':case 'j':case 'P':return blob({color:c,flat:letter==='j'});
