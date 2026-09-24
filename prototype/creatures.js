@@ -374,6 +374,18 @@ function worm(o){
  for(let i=0;i<teeth;i++){const a=i/teeth*Math.PI*2;cone(head,r*.08,r*.3,toothMat,Math.cos(a)*r*.52,Math.sin(a)*r*.52,r*.76,4).rotation.z=a+Math.PI/2;}
  return actor(g,body,[],neck,[],'worm');
 }
+// Long worm tail segments arrive as their own monster cells ("long worm tail", glyph ~).
+// Each one is a ringed hump arching in and out of the floor, so a trail of them reads as
+// one body weaving through the ground behind the head.
+function wormTail(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const skin=mat(o.color,{roughness:.62}),ring=mat(shade(o.color,.62),{roughness:.7}),mound=mat('#3a3128',{roughness:1}),r=.09;
+ const arch=[];for(let i=0;i<=8;i++){const a=i/8*Math.PI;arch.push([0,Math.sin(a)*.2-.03,-Math.cos(a)*.3]);}
+ tube(body,arch,r,skin,24);
+ for(let i=1;i<8;i+=1.5){const a=i/8*Math.PI;const band=part(body,new THREE.TorusGeometry(r*1.02,r*.13,6,16),ring,0,Math.sin(a)*.2-.03,-Math.cos(a)*.3);band.rotation.x=a-Math.PI/2;}
+ for(const z of [-.3,.3])for(const [dx,dz,s] of [[-.07,-.04,1],[.07,.03,.8],[0,.06,.6]])sphere(body,.07*s,mound,dx,.01,z+dz,1.4,.35,1.2);
+ return actor(g,body,[],null,[],'worm');
+}
 const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.7}};
 
 // Nymphs: a slender, glamorous humanoid built for a clear silhouette — a flared dress
@@ -411,6 +423,7 @@ export function createCreature(cell={}){
  if(INSECTS[name])return insect(INSECTS[name]);
  if(SNAKES[name])return snake(SNAKES[name]);
  if(WORMS[name])return worm(WORMS[name]);
+ if(name==='long worm tail')return wormTail({color:color||WORMS['long worm'].color});
  if(NYMPHS[name])return nymph(NYMPHS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
