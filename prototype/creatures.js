@@ -435,6 +435,28 @@ function mimic(o){
  return actor(g,body,[],tail,[],'idle');
 }
 const MIMICS={'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true},'giant mimic':{color:'#6a3a22',glare:true,scale:1.25}};
+// centaurs (C): a horse's barrel on four hooved legs with a human torso rising from the withers, arms at the sides and a flowing tail;
+// plains centaurs carry a spear, forest centaurs a longbow and quiver, mountain centaurs a fur mantle and a club
+function centaur(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
+ const coat=mat(o.coat,{roughness:.85}),dark=mat(shade(o.coat,.55),{roughness:.9}),skin=mat(o.skin||'#d2a47c',{roughness:.75}),hair=mat(o.hair,{roughness:.9}),hoof=mat('#2a2420',{roughness:.6}),wood=mat('#6a4a2a',{roughness:.8});
+ sphere(body,.24,coat,0,.44,-.06,.8,.72,1.25);
+ for(const x of [-.12,.12])for(const z of [-.24,.14]){const leg=new THREE.Group();leg.position.set(x,.3,z);body.add(leg);rounded(leg,.08,.26,.09,coat,0,-.12,0,.025);rounded(leg,.085,.06,.1,hoof,0,-.27,.01,.02);legs.push(leg);}
+ sphere(body,.13,skin,0,.66,.18,1,1.1,.8);
+ rounded(body,.26,.3,.17,o.tunic?mat(o.tunic,{roughness:.8}):skin,0,.8,.2,.06);
+ if(o.mantle)sphere(body,.17,mat(o.mantle,{roughness:1}),0,.93,.19,1.25,.55,.95);
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.16,.92,.2);body.add(arm);rounded(arm,.075,.3,.08,skin,0,-.14,0,.03);sphere(arm,.045,skin,0,-.3,.01);arm.rotation.z=side*.14;arm.rotation.x=-.2;}
+ const head=new THREE.Group();head.position.set(0,1.07,.22);body.add(head);sphere(head,.12,skin,0,0,0,.9,1.05,.95);
+ const locks=sphere(head,.13,hair,0,.04,-.04,.95,.9,.95);locks.rotation.x=.2;cone(head,.07,.22,hair,0,-.1,-.08,6).rotation.x=Math.PI+.25;
+ if(o.beard)sphere(head,.08,hair,0,-.1,.08,.9,1.1,.6);
+ eyes(head,M.eye,.01,.105,.045);
+ if(o.weapon==='spear'){const shaft=rounded(body,.03,1.0,.03,wood,.24,.78,.28,.01);shaft.rotation.x=.12;cone(body,.045,.13,M.steel,.24,1.3,.34,4);}
+ if(o.weapon==='bow'){const bow=part(body,new THREE.TorusGeometry(.22,.014,5,16,Math.PI*.8),wood,-.22,.82,.16);bow.rotation.z=Math.PI/2+Math.PI*.1;bow.rotation.y=Math.PI/2;cylinder(body,.045,.045,.3,mat('#5a3a22',{roughness:.8}),.1,.9,.06,8).rotation.z=-.4;for(const dx of [-.02,.02])cone(body,.02,.05,mat('#d8d0b8'),.16+dx,1.06,.06,3);}
+ if(o.weapon==='club'){const club=cylinder(body,.06,.025,.4,wood,.24,.74,.26,7);club.rotation.x=.25;}
+ const tail=new THREE.Group();tail.position.set(0,.5,-.3);body.add(tail);tube(tail,[[0,0,0],[0,-.05,-.08],[0,-.16,-.12],[0,-.28,-.1]],.035,hair,12);
+ return actor(g,body,legs,tail,[],'unicorn');
+}
+const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#6a8aa0',weapon:'spear'},'forest centaur':{coat:'#5a3c24',hair:'#2a1a10',tunic:'#3f6a34',weapon:'bow',scale:1.05},'mountain centaur':{coat:'#7a7670',hair:'#3a3632',mantle:'#8a7058',beard:true,weapon:'club',scale:1.08}};
 // vortices (v): a tapering funnel of tilted, offset swirl rings over a scuffed ground patch, with debris caught in the spiral; fog clouds are a low puffy bank instead
 function vortex(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const s=o.scale||1;
@@ -490,6 +512,7 @@ export function createCreature(cell={}){
  if(PIERCERS[name])return piercer(PIERCERS[name]);
  if(APES[name])return ape(APES[name]);
  if(MIMICS[name])return mimic(MIMICS[name]);
+ if(CENTAURS[name])return centaur(CENTAURS[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
@@ -530,6 +553,7 @@ export function createCreature(cell={}){
   case 'p':return piercer({color:c});
   case 'Y':return ape({fur:c});
   case 'm':return mimic({color:c});
+  case 'C':return centaur({coat:c,hair:shade(c,.4)});
   case 'B':return bat({color:c});
   case 'F':return fungus({form:'mound',color:c});
   case 'b':case 'j':case 'P':return blob({color:c,flat:letter==='j'});
