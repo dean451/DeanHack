@@ -891,6 +891,56 @@ function rustMonster(o){
 }
 const RUST_MONSTERS={'rust monster':{color:'#8a5a34',belly:'#c08a5a',fleck:'#c0602a',feeler:'#d0a070'},disenchanter:{color:'#3d5fb0',belly:'#8aa0d8',fleck:'#6a3aa0',feeler:'#b0c0f0',eye:'#c080ff',scale:1.05}};
 
+// Leprechaun: a small, portly trickster in a green frock coat and buckled top hat,
+// leaning on a knobbly shillelagh with a swinging sack of stolen gold in his other hand.
+function leprechaun(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
+ const box=(p,w,h,d,m,x,y,z)=>part(p,new THREE.BoxGeometry(w,h,d),m,x,y,z);
+ const coat=mat(o.coat,{roughness:.85}),coatDark=mat(shade(o.coat,.6),{roughness:.9}),vest=mat(o.vest||'#d8c89a',{roughness:.85}),skin=mat('#e8b896',{roughness:.8}),rosy=mat('#d8806e',{roughness:.8}),
+  beard=mat(o.beard||'#c8561e',{roughness:.95}),stocking=mat('#ece6d8',{roughness:.9}),black=mat('#161414',{roughness:.45}),hatMat=mat(shade(o.coat,.8),{roughness:.8}),
+  wood=mat('#4a3020',{roughness:.95}),sack=mat('#8a6a40',{roughness:1}),coin=mat('#e0b83a',{metalness:.85,roughness:.25}),glint=mat('#8ae05a',{emissive:'#4ac02a',emissiveIntensity:1.4,roughness:.2});
+ // legs: knee breeches, white stockings and buckled shoes with turned-up toes
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.07,.25,0);body.add(leg);
+  sphere(leg,.06,coat,0,-.01,0,1,1.1,1);segment(leg,[0,-.04,0],[0,-.2,0],.036,.03,stocking);
+  rounded(leg,.075,.05,.14,black,0,-.22,.025,.02);cone(leg,.022,.05,black,0,-.21,.105,6).rotation.x=Math.PI/2-.6;
+  box(leg,.05,.03,.012,coin,0,-.2,.07);legs.push(leg);}
+ // body: a round belly under a cream waistcoat, a broad belt with a big gold buckle and a green frock coat with tails
+ sphere(body,.12,coat,0,.3,0,1.05,.6,.9);
+ sphere(body,.14,coat,0,.43,-.01,1,1.08,.92);sphere(body,.11,vest,0,.43,.035,.9,1,.9);
+ for(let i=0;i<3;i++)sphere(body,.012,coin,0,.38+i*.045,.135-i*.006);
+ cylinder(body,.142,.142,.035,black,0,.35,0,20).scale.z=.92;box(body,.06,.045,.015,coin,0,.35,.13);box(body,.032,.022,.016,black,0,.35,.132);
+ for(const side of [-1,1]){const lapel=box(body,.04,.13,.02,coatDark,side*.07,.47,.1);lapel.rotation.set(-.2,0,-side*.3);
+  const tail=box(body,.08,.2,.025,coat,side*.05,.26,-.12);tail.rotation.set(.18,0,side*.12);}
+ // arms: left hand grips a shillelagh planted on the floor; the right hand holds the sack
+ for(const side of [-1,1]){const shoulder=[side*.14,.5,0],hand=[side*.2,.33,.06];
+  segment(body,shoulder,hand,.042,.036,coat);sphere(body,.045,coat,...shoulder);
+  cylinder(body,.04,.04,.03,stocking,hand[0]*.97,hand[1]+.035,hand[2]);sphere(body,.034,skin,...hand);}
+ tube(body,[[-.23,.005,.1],[-.215,.2,.08],[-.2,.36,.06],[-.2,.46,.06]],.014,wood,12);sphere(body,.03,wood,-.2,.47,.06,1,.9,1);
+ for(const [y,z] of [[.12,.095],[.25,.075]])sphere(body,.017,wood,-.225,y,z);
+ // head: rosy cheeks, a bulbous nose, pointed ears, a green glint in the eye and a ginger chin-curtain beard
+ const headY=.64;sphere(body,.11,skin,0,headY,.01,1,1.02,1);
+ sphere(body,.032,rosy,0,headY-.01,.11,1,.9,1);for(const side of [-1,1]){sphere(body,.028,rosy,side*.058,headY-.025,.085,1,.8,.6);
+  sphere(body,.022,vest,side*.04,headY+.02,.092,1,.8,.5);sphere(body,.012,glint,side*.04,headY+.02,.103);
+  const brow=box(body,.05,.016,.02,beard,side*.042,headY+.052,.095);brow.rotation.z=-side*.25;
+  const ear=cone(body,.025,.075,skin,side*.11,headY+.02,0,5);ear.rotation.z=-side*1.25;
+  sphere(body,.045,beard,side*.085,headY-.04,.04,.8,1.2,.9);}
+ lathe(body,[[.0,-.09],[.07,-.08],[.11,-.03],[.115,.0]],beard,0,headY-.055,.015,-Math.PI*.55,Math.PI*1.1).scale.set(1,1,.95);
+ part(body,new THREE.TorusGeometry(.03,.006,6,12,Math.PI),black,0,headY-.045,.098).rotation.z=Math.PI;
+ // pipe: a clay pipe clamped in the grin with a glowing ember
+ segment(body,[.02,headY-.05,.1],[.08,headY-.08,.15],.006,.005,vest);cylinder(body,.014,.011,.03,vest,.085,headY-.065,.155,8);cylinder(body,.011,.011,.004,M.fire,.085,headY-.05,.155,8);
+ // hat: a tall green hat, jauntily tilted, with a black band, gold buckle and shamrock
+ const hat=new THREE.Group();hat.position.set(0,headY+.085,0);hat.rotation.set(-.06,0,-.14);body.add(hat);
+ cylinder(hat,.155,.155,.014,hatMat,0,0,0,24);cylinder(hat,.095,.085,.19,hatMat,0,.1,0,20);cylinder(hat,.097,.097,.012,hatMat,0,.195,0,20);
+ cylinder(hat,.089,.087,.04,black,0,.03,0,20);box(hat,.055,.045,.012,coin,0,.03,.088);box(hat,.03,.022,.014,black,0,.03,.09);
+ for(let i=0;i<3;i++){const a=i/3*Math.PI*2+.5;sphere(hat,.014,glint,.06+Math.cos(a)*.012,.045+Math.sin(a)*.012,.07,1,1,.5);}
+ // sack: hangs from the right hand and swings as the tail; gold coins spill from its mouth
+ const loot=new THREE.Group();loot.position.set(.2,.32,.06);body.add(loot);
+ sphere(loot,.07,sack,0,-.1,0,1,1.15,.95);cylinder(loot,.022,.03,.04,sack,0,-.02,0,8);part(loot,new THREE.TorusGeometry(.024,.006,6,12),wood,0,-.03,0).rotation.x=Math.PI/2;
+ for(const [x,y,z,r] of [[.03,-.02,.03,.3],[-.02,-.01,.035,-.4],[.01,.005,.02,.1]]){const c=cylinder(loot,.018,.018,.005,coin,x,y,z,14);c.rotation.set(Math.PI/2-.4,0,r);}
+ return actor(g,body,legs,loot,[],'idle');
+}
+const LEPRECHAUNS={leprechaun:{coat:'#2f8a3a'}};
+
 const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,scale:1.05},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',scale:1.05},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,scale:1.1}};
 
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
@@ -928,6 +978,7 @@ export function createCreature(cell={}){
  if(NAGAS[name])return naga(NAGAS[name]);
  if(RUST_MONSTERS[name])return rustMonster(RUST_MONSTERS[name]);
  if(UMBER_HULKS[name])return umberHulk(UMBER_HULKS[name]);
+ if(LEPRECHAUNS[name])return leprechaun(LEPRECHAUNS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
@@ -999,6 +1050,7 @@ export function createCreature(cell={}){
   case 'x':return gridBug();
   case 'R':return rustMonster({color:c});
   case 'U':return umberHulk({color:shade(c,.7),eye:'#d8a040'});
+  case 'l':return leprechaun({coat:c});
   case 'n':return nymph({skin:'#eec7a8',cloth:shade(c,.35),trim:c,hair:'#2a2018'});
   case "'":return golem(GOLEM_MATERIALS.stone);
  }
