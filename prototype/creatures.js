@@ -623,6 +623,30 @@ function lich(o){
 }
 const LICHES={lich:{robe:'#5a4430',glow:'#8ad060'},demilich:{robe:'#6a2a24',glow:'#ff5a3a',bone:'#c8bc98',tattered:true},'master lich':{robe:'#4a1f52',glow:'#c070ff',crown:'bone',scale:1.05},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',crown:'tall',mantle:true,scale:1.1}};
 
+// Wraiths: a floating, translucent shroud that trails off into wisps, a hood with only a void and two burning eyes inside,
+// and long sleeves reaching forward with bony claws. Barrow wights are solid, with a rusty circlet and a sword;
+// Nazgul are black-robed with a silver crown floating over the empty hood.
+function wraith(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);
+ const robe=new THREE.MeshStandardMaterial({color:o.robe,roughness:.9,transparent:!o.solid,opacity:o.solid?1:.82,emissive:o.robe,emissiveIntensity:o.solid?0:.12}),
+  trim=mat(shade(o.robe,.55),{roughness:.9}),void_=mat('#060508',{roughness:1}),glow=mat(o.glow,{emissive:o.glow,emissiveIntensity:3,roughness:.3}),claw=mat(o.bone||'#bdb6a4',{roughness:.7});
+ // tapering shroud, widest at the shoulders; wisps trail down from its hem
+ cylinder(body,.2,.07,.62,robe,0,.62,0,12);
+ for(let i=0;i<8;i++){const a=i/8*Math.PI*2,t=cone(body,.045,.16+(i%3)*.05,robe,Math.sin(a)*.1,.26-(i%3)*.02,Math.cos(a)*.1,4);t.rotation.x=Math.PI;t.rotation.z=Math.sin(a)*.35;}
+ rounded(body,.4,.16,.26,robe,0,.9,0,.06);
+ // hood: an outer cowl, a darker rim and a void where the face should be
+ sphere(body,.2,robe,0,1.1,-.02,1,1.12,1);cylinder(body,.14,.15,.05,trim,0,1.07,.12).rotation.x=Math.PI/2;
+ sphere(body,.13,void_,0,1.07,.07,1,1.1,.9);
+ for(const x of [-.05,.05])sphere(body,.024,glow,x,1.09,.17,1.2,.7,.6);
+ // sleeves reach forward, ending in thin clawed fingers
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.2,.92,.02);body.add(arm);cylinder(arm,.05,.09,.34,robe,0,-.15,0,8);for(const f of [-.03,0,.03])cone(arm,.011,.11,claw,f,-.37,.02,4).rotation.x=Math.PI;arm.rotation.x=-1.05;arm.rotation.z=side*.12;}
+ if(o.circlet){cylinder(body,.17,.18,.04,mat('#7a5a34',{roughness:.6,metalness:.5}),0,1.2,-.01,12);sphere(body,.022,glow,0,1.2,.17);}
+ if(o.crown){const silver=mat('#c8ccd4',{roughness:.25,metalness:.9});cylinder(body,.16,.17,.05,silver,0,1.26,-.01,12);for(let i=0;i<7;i++){const a=(i/7-.5)*Math.PI*1.4;cone(body,.018,.1,silver,Math.sin(a)*.16,1.32,-.01+Math.cos(a)*.16,4);}}
+ if(o.sword){const blade=rounded(body,.04,.5,.012,o.crown?mat('#9aa0ac',{roughness:.3,metalness:.85}):mat('#8a7a64',{roughness:.6,metalness:.5}),.3,.74,.2,.008);blade.rotation.x=.9;rounded(body,.13,.025,.035,trim,.3,.62,.08,.008).rotation.x=.9;}
+ return actor(g,body,[],null,[],'hover');
+}
+const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff'},'barrow wight':{robe:'#4a4a3a',glow:'#e0c040',bone:'#a89878',solid:true,circlet:true,sword:true},nazgul:{robe:'#141218',glow:'#ff3a2a',crown:true,sword:true,scale:1.1}};
+
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
 
 const SKIN={kobold:'#8a5a3a','large kobold':'#9a3f2f','kobold lord':'#7a3f70','kobold shaman':'#5070a8',homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
@@ -652,6 +676,7 @@ export function createCreature(cell={}){
  if(TROLLS[name])return troll(TROLLS[name]);
  if(OGRES[name])return ogre(OGRES[name]);
  if(LICHES[name])return lich(LICHES[name]);
+ if(WRAITHS[name])return wraith(WRAITHS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
@@ -696,6 +721,7 @@ export function createCreature(cell={}){
   case 'm':return mimic({color:c});
   case 'C':return centaur({coat:c,hair:shade(c,.4)});
   case 'O':return ogre({skin:shade(c,1.1),hide:shade(c,.5)});
+  case 'W':return wraith({robe:shade(c,.6),glow:c});
   case 'L':return lich({robe:shade(c,.6),glow:c});
   case 'T':return troll({skin:c,hair:shade(c,.4)});
   case 'H':return giant({skin:shade(c,1.1),cloth:shade(c,.55),weapon:'club',scale:1.1});
