@@ -196,6 +196,27 @@ function lizard(o){
 }
 const LIZARDS={newt:{skin:'#d69a38',belly:'#e9763a',spot:'#5a3a1a',scale:.8},gecko:{skin:'#6f9a45',scale:.8},iguana:{skin:'#7a6a42',scale:1},'baby crocodile':{skin:'#5f6a3a',scale:1},lizard:{skin:'#4f8a3a',scale:1},chameleon:{skin:'#6aa08a',scale:1},crocodile:{skin:'#4f5a32',scale:1.6},salamander:{skin:'#d9582a',belly:'#ffb040',scale:1.4}};
 
+// Cockatrices: a rooster head (comb, wattle, beak) on the same low scaled body and
+// tapering tail as lizard() — reads as "petrifying bird-lizard", not another lizard.
+function cockatrice(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const skin=mat(o.skin),belly=mat(o.belly||shade(o.skin,1.3)),comb=mat(o.comb),foot=mat(o.beak);
+ sphere(body,.12,skin,0,.15,0,.95,.55,1.75);sphere(body,.08,belly,0,.11,.02,.9,.4,1.6);
+ const head=new THREE.Group();head.position.set(0,.2,.26);body.add(head);
+ sphere(head,.09,skin,0,0,0,1,.95,1.05);
+ const beak=cone(head,.045,.12,foot,0,-.02,.11,5);beak.rotation.x=Math.PI/2;
+ for(let i=0;i<3;i++){const wave=cone(head,.02,.1-i*.018,comb,(i-1)*.035,.1,-.02+i*.012,4);wave.rotation.z=(i-1)*.3;}
+ sphere(head,.022,comb,0,-.09,.09,1,1.3,.8);
+ for(const side of [-1,1])sphere(head,.018,darkEye,side*.06,.02,.06);
+ for(const side of [-1,1])for(const z of [-.12,.13]){const leg=new THREE.Group();leg.position.set(side*.1,.15,z);body.add(leg);const upper=rounded(leg,.13,.035,.04,skin,side*.07,-.03,0,.012);upper.rotation.z=side*-.5;rounded(leg,.05,.02,.08,foot,side*.13,-.11,.02,.008);legs.push(leg);}
+ for(const side of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.17,.06);shape.lineTo(side*.15,-.05);shape.lineTo(0,-.02);const wing=part(body,new THREE.ShapeGeometry(shape),skin,side*.1,.2,-.02);wing.rotation.y=side*.35;}
+ const tail=new THREE.Group();tail.position.set(0,.15,-.2);body.add(tail);
+ let px=0,pz=0;for(let i=0;i<6;i++){const r=.05*(1-i/7),len=.09;const seg=cylinder(tail,r*.8,r,len,skin,px,-.012*i,pz-len/2,8);seg.rotation.x=Math.PI/2;px+=Math.sin(i*.6)*.012;pz-=len*.95;}
+ for(let i=0;i<3;i++){const plume=cone(tail,.025,.1,comb,0,-.06-i*.02,pz-.03-i*.05,4);plume.rotation.x=1.7;}
+ return actor(g,body,legs,tail,[],'cockatrice');
+}
+const COCKATRICES={chickatrice:{skin:'#8a6a3a',comb:'#a8382a',beak:'#d99a3a',scale:.65},cockatrice:{skin:'#c9a83a',comb:'#c8262a',beak:'#e0b23a',scale:.9},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9}};
+
 // Lichens and molds: stationary crusts and mounds. Mushrooms for shriekers and violet fungi.
 function fungus(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
@@ -359,6 +380,7 @@ export function createCreature(cell={}){
  if(/^(little dog|dog|large dog)$/.test(name))return dog();
  if(FELINES[name])return feline(FELINES[name]);
  if(LIZARDS[name])return lizard(LIZARDS[name]);
+ if(COCKATRICES[name])return cockatrice(COCKATRICES[name]);
  if(INSECTS[name])return insect(INSECTS[name]);
  if(SNAKES[name])return snake(SNAKES[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
@@ -392,6 +414,7 @@ export function createCreature(cell={}){
   case 'd':return canine({coat:c,ears:.15,snout:.2});
   case 'f':return feline({coat:c});
   case ':':return lizard({skin:c});
+  case 'c':return cockatrice({skin:c,comb:'#c8262a',beak:shade(c,1.3)});
   case 'a':return insect({color:c});
   case 's':return spider({color:c});
   case 'S':return snake({color:c});
