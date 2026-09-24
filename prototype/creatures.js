@@ -1035,6 +1035,59 @@ const ANGELS={angel:{robe:'#eeeae0',sword:true,flame:'#ff9a3a'},aleax:{robe:'#b8
 
 const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,scale:1.05},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',scale:1.05},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,scale:1.1}};
 
+// Jabberwocks, after Tenniel: a hunched, upright beast on two big clawed legs, with a scaly belly, a long
+// serpentine neck, a buck-toothed fish-like head with barbels and eyes of flame, spindly clawed forearms,
+// ragged bat wings on finger bones and a long tail. The wings beat with the default wing sway and the tail swings.
+function jabberwock(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const hide=mat(o.hide,{roughness:.8}),dark=mat(shade(o.hide,.6),{roughness:.85}),belly=mat(o.belly,{roughness:.7}),claw=mat('#1a1410',{roughness:.35,metalness:.2}),
+  tooth=mat('#e8e0c4',{roughness:.4}),flame=mat(o.eye,{emissive:o.eye,emissiveIntensity:3,roughness:.3}),mouth=mat('#3a0e10',{roughness:1}),
+  web=mat(o.wing||shade(o.hide,.7),{roughness:.85,side:THREE.DoubleSide,transparent:true,opacity:.92});
+ // legs: thick thighs bent forward, thin shins and three long hooked toes plus a spur
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.14,.44,-.04);body.add(leg);
+  segment(leg,[0,0,0],[side*.03,-.2,.1],.085,.06,hide);segment(leg,[side*.03,-.2,.1],[side*.03,-.4,-.02],.05,.035,dark);
+  sphere(leg,.05,hide,side*.03,-.2,.1);
+  for(let k=-1;k<=1;k++){segment(leg,[side*.03,-.41,-.01],[side*.03+k*.05,-.42,.1],.02,.012,dark);const c=cone(leg,.014,.06,claw,side*.03+k*.052,-.43,.13,4);c.rotation.x=Math.PI/2+.4;}
+  cone(leg,.012,.05,claw,side*.03,-.41,-.06,4).rotation.x=-Math.PI/2;legs.push(leg);}
+ // torso: a hunched, pot-bellied trunk with plated belly scales and a spined back
+ const torso=sphere(body,.2,hide,0,.66,0,1,1.25,.95);torso.rotation.x=.3;
+ for(let i=0;i<5;i++){const s=sphere(body,.13-i*.008,belly,0,.5+i*.075,.1+i*.012,1.2,.35,.7);s.rotation.x=-.3;}
+ for(let i=0;i<5;i++){const sp=cone(body,.022,.08,dark,0,.6+i*.08,-.17+i*.03,4);sp.rotation.x=-1.1+i*.12;}
+ // forearms: long and thin, held up and forward, each with four raking claws
+ for(const side of [-1,1]){
+  segment(body,[side*.15,.82,.06],[side*.21,.66,.16],.035,.028,hide);segment(body,[side*.21,.66,.16],[side*.19,.72,.3],.026,.02,hide);
+  for(let k=0;k<4;k++){const c=cone(body,.01,.08,claw,side*(.16+k*.018),.72,.35,4);c.rotation.x=Math.PI/2+.5;c.rotation.z=side*(k-1.5)*.15;}}
+ // neck: a long S-curve with a row of spines, rising up and bending forward to the head
+ const neck=[[0,.82,.04],[0,1.02,-.02],[0,1.18,.06],[0,1.24,.2]];tube(body,neck,.055,hide,18);
+ for(let i=0;i<4;i++){const p=neck[i];cone(body,.018,.07,dark,0,p[1]+.04,p[2]-.05,4).rotation.x=-.9+i*.3;}
+ // head: long snout, flat cranium, rows of buck teeth, barbels, antennae and eyes of flame
+ const head=new THREE.Group();head.position.set(0,1.25,.24);body.add(head);
+ sphere(head,.1,hide,0,0,.02,1,.8,1.1);sphere(head,.065,hide,0,-.02,.12,1,.7,1.2);
+ const jaw=sphere(head,.055,belly,0,-.07,.1,1,.45,1.3);jaw.rotation.x=.25;cylinder(head,.04,.04,.01,mouth,0,-.05,.17,10).rotation.x=Math.PI/2;
+ for(const x of [-.018,.018])rounded(head,.03,.045,.012,tooth,x,-.06,.2,.004);
+ for(let k=-2;k<=2;k++)if(k)cone(head,.008,.03,tooth,k*.02,-.075,.17-Math.abs(k)*.015,4).rotation.x=Math.PI;
+ for(const side of [-1,1]){
+  sphere(head,.028,flame,side*.055,.045,.08);sphere(head,.016,dark,side*.055,.07,.075,1.4,.4,1);
+  tube(head,[[side*.03,-.05,.17],[side*.07,-.1,.2],[side*.1,-.17,.18],[side*.12,-.22,.2]],.006,dark,8);
+  tube(head,[[side*.03,.07,.04],[side*.06,.16,.03],[side*.1,.22,.08],[side*.13,.24,.14]],.007,dark,8);
+  const ear=cone(head,.035,.08,dark,side*.09,.02,-.04,4);ear.rotation.set(-.6,0,-side*1.2);}
+ // wings: bat wings on three finger bones, the membrane a ragged, scalloped fan
+ for(const side of [-1,1]){const wing=new THREE.Group();wing.position.set(side*.1,.88,-.1);body.add(wing);
+  const tips=[[side*.26,.46],[side*.46,.3],[side*.52,.06],[side*.36,-.14]],shape=new THREE.Shape();shape.moveTo(0,0);
+  tips.forEach(([x,y],i)=>{shape.lineTo(x,y);if(i<tips.length-1){const [nx,ny]=tips[i+1];shape.quadraticCurveTo((x+nx)*.38,(y+ny)*.38,nx,ny);}});shape.lineTo(side*.04,-.1);shape.lineTo(0,0);
+  const m=part(wing,new THREE.ShapeGeometry(shape,6),web);m.castShadow=true;
+  segment(wing,[0,0,0],[side*.12,.24,.005],.022,.016,hide);for(const [x,y] of tips.slice(0,3))segment(wing,[side*.12,.24,.005],[x,y,.005],.012,.005,dark);
+  cone(wing,.012,.05,claw,side*.12,.27,.005,4);wing.rotation.y=side*-.35;wings.push(wing);}
+ // tail: long and tapering, swept back and curling up, ending in a barbed tip
+ const tail=new THREE.Group();tail.position.set(0,.55,-.16);body.add(tail);
+ const tailPts=[[0,0,0],[0,-.12,-.16],[.06,-.2,-.34],[.14,-.18,-.48],[.12,-.08,-.58]];
+ part(tail,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(tailPts.map(p=>new THREE.Vector3(...p))),20,.045,8,false),hide);
+ for(let i=1;i<4;i++){const p=tailPts[i];cone(tail,.015,.05,dark,p[0],p[1]+.045,p[2],4).rotation.x=-.5;}
+ const barb=cone(tail,.03,.08,claw,.12,-.06,-.62,4);barb.rotation.x=-1.3;
+ return actor(g,body,legs,tail,wings,'dragon');
+}
+const JABBERWOCKS={jabberwock:{hide:'#c85a2a',belly:'#d8b070',eye:'#ffb030',wing:'#6a2e24',scale:.95},'vorpal jabberwock':{hide:'#7a3fa0',belly:'#c8a0d8',eye:'#80f0ff',wing:'#3a1f50',scale:1.02}};
+
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
 
 const SKIN={kobold:'#8a5a3a','large kobold':'#9a3f2f','kobold lord':'#7a3f70','kobold shaman':'#5070a8',homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
@@ -1073,6 +1126,7 @@ export function createCreature(cell={}){
  if(LEPRECHAUNS[name])return leprechaun(LEPRECHAUNS[name]);
  if(ELEMENTALS[name])return elemental(ELEMENTALS[name]);
  if(ANGELS[name])return angel(ANGELS[name]);
+ if(JABBERWOCKS[name])return jabberwock(JABBERWOCKS[name]);
  if(name==='couatl')return snake({color:'#3f9a6a',belly:'#e0c040',scale:1.2});
  if(name==='ki-rin')return unicorn();
  if(name==='floating eye')return floatingEye({});
@@ -1148,6 +1202,7 @@ export function createCreature(cell={}){
   case 'U':return umberHulk({color:shade(c,.7),eye:'#d8a040'});
   case 'l':return leprechaun({coat:c});
   case 'E':return elemental({kind:/fire/.test(name)?'fire':/earth/.test(name)?'earth':/water/.test(name)?'water':'air',color:c,eye:'#ffffff'});
+  case 'J':return jabberwock({hide:c,belly:shade(c,1.4),eye:'#ffb030'});
   case 'A':return angel({robe:shade(c,1.2),trim:'#d8b04a',sword:true});
   case 'n':return nymph({skin:'#eec7a8',cloth:shade(c,.35),trim:c,hair:'#2a2018'});
   case "'":return golem(GOLEM_MATERIALS.stone);
