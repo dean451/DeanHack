@@ -13,6 +13,7 @@ import {createGrave} from './grave.js';
 import {createTree} from './tree.js';
 import {createStairs} from './stairs.js';
 import {createFire} from './fire.js';
+import {createLiquid} from './liquid.js';
 import {createFloorKit,cellHash} from './floor.js';
 import {stageCreature,addOutlines} from './readability.js';
 import {createCavern} from './cavern.js';
@@ -169,7 +170,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    for(const cell of frame.cells){const id=`${cell.x},${cell.z}`,x=cell.x-origin.x,z=cell.z-origin.z;
      if(cell.terrain!=='unknown'){
        seen.add(id);let tile=tiles.get(id);if(tile&&tile.userData.type!==cell.terrain){release(tile);tiles.delete(id);tile=null;}
-       if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=cell.terrain;floorKit.dress(box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0),tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
+       if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=cell.terrain;const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);floorKit.dress(slab,tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
          if(cell.terrain==='feature'){const s=label(String.fromCharCode(cell.symbol));s.position.y=.35;tile.add(s);}
          if(cell.terrain==='altar')tile.add(createAltar());
          if(cell.terrain==='throne')tile.add(createThrone());
@@ -194,7 +195,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
          }
          if(cell.terrain==='door'){const doorGroup=new THREE.Group();tile.add(doorGroup);tile.userData.door=doorGroup;box(doorGeo,doorFace,doorGroup,0,.52,0);for(const x of [-.23,.23]){const brace=box(new RoundedBoxGeometry(.055,.92,.035,3,.012),iron,doorGroup,x,.52,.1);brace.rotation.z=x<0?-.38:.38;}const latch=new THREE.Mesh(new THREE.SphereGeometry(.06,10,8),iron);latch.position.set(.18,.55,.14);latch.castShadow=true;doorGroup.add(latch);}
          if(cell.terrain==='up'||cell.terrain==='down'){tile.add(createStairs(cell.terrain,cell.x*131+cell.z));tile.add(label(cell.terrain==='up'?'↑ stone stairs':'↓ stone stairs'));}
-         if(['water','lava'].includes(cell.terrain)){const m=new THREE.MeshStandardMaterial({color:cell.terrain==='water'?0x247c89:0xd85820,emissive:cell.terrain==='water'?0x103640:0x852400,roughness:.25});const s=box(floorGeo,m,tile,0,.01,0);s.userData.dispose=()=>m.dispose();tile.userData.liquid=s;tile.userData.liquidPhase=(x*7+z*13)%6;}
+         if(['water','lava'].includes(cell.terrain)){slab.visible=false;const liquid=createLiquid(cell.terrain,cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
          group.add(tile);tiles.set(id,tile);
        }tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
        if(tile.userData.grate){
@@ -292,7 +293,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    updateTorchLights(t,dt);cavern.update(t,dt,hero.g.position);
    for(const a of actors.values()){a.g.userData.updateOracle?.(t);a.g.userData.updateGridBug?.(t);let walking=false;if(a.target){const d=a.target.clone().sub(a.g.position);walking=d.length()>.025;if(walking)a.g.rotation.y=Math.atan2(d.x,d.z);a.g.position.lerp(a.target,1-Math.exp(-dt*10));if(a.legs)a.legs.forEach((l,i)=>l.rotation.x=walking?Math.sin(t*22+i*2)*.4:0);}if(a.tail){const tailRate=a.quirk==='dog'?7:a.quirk==='unicorn'?2.6:a.quirk==='nymph'?1.4:3;const tailSwing=a.quirk==='dog'?.34:a.quirk==='unicorn'?.16:a.quirk==='nymph'?.07:.24;a.tail.rotation.z=Math.sin(t*tailRate)*tailSwing;}if(a.charm)a.charm.position.y=.3+Math.sin(t*4)*.025;if(a.body){const idle=a.quirk==='orc'?.025:a.quirk==='dragon'?.035:a.quirk==='unicorn'?.022:.015;a.body.position.y=Math.sin(t*(walking?22:2.5))*idle;}if(a.wings?.length)a.wings.forEach((wing,i)=>{if(a.quirk==='bat'){wing.rotation.z=(wing.userData.side||(i?1:-1))*Math.sin(t*14)*.65;}else if(a.quirk==='bee'){wing.rotation.y=(i?1:-1)*Math.sin(t*60)*.35;}else wing.rotation.y=(i?1:-1)*(-.18+Math.sin(t*5)*.12);});if((a.quirk==='hover'||a.quirk==='bat'||a.quirk==='bee')&&a.body)a.body.position.y=Math.sin(t*2.2+a.g.position.x)*.06;if(a.quirk==='dragon')a.g.rotation.z=Math.sin(t*1.7)*.025;if(a.quirk==='nymph'&&a.body)a.body.rotation.z=Math.sin(t*1.3+a.g.position.x)*.035;if(a.quirk==='gridbug')a.g.rotation.z=Math.sin(t*9)*.035;if(a.quirk==='guard')a.g.rotation.z=Math.sin(t*1.3)*.012;const core=a.core||a.g.userData.core;if(core)core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;}
    for(const item of groundItems.values()){if(!item.userData.coinPile)continue;item.userData.coinAge=(item.userData.coinAge||0)+dt;for(const coin of item.userData.coinPile){if(coin.settled||item.userData.coinAge<coin.delay)continue;coin.velocity-=9.8*dt;coin.disk.position.y+=coin.velocity*dt;coin.stamp.position.y+=coin.velocity*dt;if(coin.disk.position.y<=coin.target){coin.disk.position.y=coin.target;coin.stamp.position.y=coin.target+.019;coin.velocity*=-.16;if(Math.abs(coin.velocity)<.35)coin.settled=true;}}}
-   for(const tile of tiles.values()){const liquid=tile.userData.liquid;if(!liquid)continue;const phase=tile.userData.liquidPhase||0;liquid.position.y=.01+Math.sin(t*2.2+phase)*.008;liquid.rotation.z=Math.sin(t*.8+phase)*.012;liquid.material.emissiveIntensity=.22+Math.sin(t*2.6+phase)*.06;}
+   for(const tile of tiles.values())if(tile.visible)tile.userData.liquid?.userData.updateLiquid(t);
    for(const w of wells.values())w.userData.updateFountain?.(t);
  }};
 }
