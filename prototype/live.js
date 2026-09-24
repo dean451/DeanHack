@@ -7,6 +7,7 @@ import {meleeDirection,confirmsPlayerMelee,poseMelee} from './combat-visuals.js'
 import {createHeldWeapon} from './equipment.js';
 import {createCentaurStatue,createOracle,createLiveFountain} from './oracle-visuals.js';
 import {createAltar} from './altar.js';
+import {createTree} from './tree.js';
 import {createFire} from './fire.js';
 import {createFloorKit,cellHash} from './floor.js';
 import {stageCreature,addOutlines} from './readability.js';
@@ -190,6 +191,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
        if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=cell.terrain;floorKit.dress(box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0),tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
          if(cell.terrain==='feature'){const s=label(String.fromCharCode(cell.symbol));s.position.y=.35;tile.add(s);}
          if(cell.terrain==='altar')tile.add(createAltar());
+         if(cell.terrain==='tree')tile.add(createTree(cell.x*97+cell.z));
          if(cell.terrain==='bars'){
           const grate=new THREE.Group();grate.name='Iron bars';tile.add(grate);tile.userData.grate=grate;
           const owned=[];
