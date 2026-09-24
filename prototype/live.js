@@ -13,31 +13,8 @@ import {createFire} from './fire.js';
 import {createFloorKit,cellHash} from './floor.js';
 import {stageCreature,addOutlines} from './readability.js';
 import {createCavern} from './cavern.js';
+import {potionLook,groundItemCaption} from './item-looks.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-
-// Potions get a random appearance each game (a color word, or a descriptive word like
-// "milky"/"smoky"/"clear"), and the item name carries whichever one is current. Longer
-// keys are checked first so "dark green" wins over a bare "green" substring match.
-const POTION_LOOKS={
- ruby:['#e06a80','#c81e3a'],pink:['#e6a8c4','#c9668f'],red:['#d96060','#b31f1f'],
- orange:['#e0955a','#c65a1a'],yellow:['#e0d05a','#c4ac1e'],
- emerald:['#5ac48a','#1f8a4a'],'dark green':['#3a6b4a','#123d24'],green:['#6ac47a','#2a8a3a'],
- cyan:['#5bd0c7','#1f9d9d'],'sky blue':['#8fc0ea','#3f7fc2'],'brilliant blue':['#6a85ea','#2043c2'],blue:['#7a9dea','#2a5fc2'],
- magenta:['#d060c0','#a02090'],purple:['#9a60c0','#5a2090'],violet:['#a67fea','#6a3fc7'],
- puce:['#a67a72','#7a4a4a'],lavender:['#bcaeea','#8a7ac0'],
- white:['#f2f2ea','#dcdcd0'],silver:['#dadee0','#a6acb0'],golden:['#e0bf5a','#b8892a'],brown:['#8a6238','#5a3a1e'],
- black:['#2a2a2a','#0a0a0a'],
- milky:['#efeee6','#d8d6c6',{opacity:.88,transmission:.05}],clear:['#e8f5f0','#bcd8d2',{opacity:.3,transmission:.6}],
- smoky:['#8a8a86','#5a5a56',{opacity:.62,transmission:.12}],cloudy:['#c5c5c0','#a6a6a0',{opacity:.72,transmission:.08}],
- swirly:['#a06fe0','#7a3fc0'],bubbly:['#5bd0c7','#1f9d9d'],effervescent:['#c7e05b','#8aae2a'],
- fizzy:['#e0e06f','#b0b02a'],gooey:['#8a7a2a','#5a4a1a'],murky:['#4a4a3a','#2a2a1e'],
- sparkling:['#e8e8ff','#c0c0f0',{emissiveIntensity:.7}],glowing:['#eaff8a','#c7e05b',{emissiveIntensity:.9}],luminescent:['#eaff8a','#c7e05b',{emissiveIntensity:.9}],
-};
-const DEFAULT_POTION_LOOK=['#8fd0c8','#3aa8a6',{}];
-export function potionLook(name){
- for(const key of Object.keys(POTION_LOOKS).sort((a,b)=>b.length-a.length))if(name.includes(key)){const [glass,liquid,extra]=POTION_LOOKS[key];return {glass,liquid,opacity:.58,transmission:.2,emissiveIntensity:.35,...extra};}
- const [glass,liquid,extra]=DEFAULT_POTION_LOOK;return {glass,liquid,opacity:.58,transmission:.2,emissiveIntensity:.35,...extra};
-}
 
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
@@ -109,8 +86,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    // usable while they are being replaced; the current bridge supplies creature directly.
    const statueCreature=cell.object?.creature||({6746:'gecko'}[cell.glyph]);
    if((kind==='statue'||itemName==='statue')&&/centaur/i.test(statueCreature||'')){const statue=createCentaurStatue(statueCreature);const caption=label(statueCreature,'#d7c8a7');caption.position.y=1.55;statue.add(caption);return statue;}
-   const lightItem=createLightItem(itemName);if(lightItem){const caption=label(cell.name||itemName,'#d7c8a7');caption.position.y=.9;lightItem.add(caption);return lightItem;}
-   const shopItem=createShopItem(itemName);if(shopItem){const caption=label(cell.name||itemName,'#d7c8a7');caption.position.y=.82;shopItem.add(caption);return shopItem;}
+   const lightItem=createLightItem(itemName);if(lightItem){const caption=label(groundItemCaption(cell),'#d7c8a7');caption.position.y=.9;lightItem.add(caption);return lightItem;}
+   const shopItem=createShopItem(itemName);if(shopItem){const caption=label(groundItemCaption(cell),'#d7c8a7');caption.position.y=.82;shopItem.add(caption);return shopItem;}
    const warm=new THREE.MeshStandardMaterial({color:kind==='corpse'?0x72534a:cls===POTION_CLASS?0x5bd0c7:cls===WEAPON_CLASS?0xd9b15e:0xc9a86b,emissive:kind==='corpse'?0x241314:0x362718,roughness:.42,metalness:cls===WEAPON_CLASS?.65:.18});
    const edge=new THREE.MeshStandardMaterial({color:kind==='corpse'?0xb9a189:0xe8d8aa,roughness:.55,metalness:cls===WEAPON_CLASS?.7:.25});
    const add=(geometry,material=warm,x=0,y=.34,z=0)=>{const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=true;icon.add(m);return m;};
@@ -155,7 +132,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      icon.userData.coinPile=coinPile;
      icon.userData.dispose=()=>{coinMats.forEach(material=>material.dispose());coinStampMats.forEach(material=>material.dispose());shadow.dispose();};
    } else if(cls===POTION_CLASS){
-     const look=potionLook(itemName);
+     const look=potionLook(itemName,cell.color);
      const glass=new THREE.MeshPhysicalMaterial({color:look.glass,roughness:.16,metalness:.02,transmission:look.transmission,transparent:true,opacity:look.opacity}),liquid=new THREE.MeshStandardMaterial({color:look.liquid,emissive:look.liquid,emissiveIntensity:look.emissiveIntensity,roughness:.3});
      const bottle=add(new THREE.SphereGeometry(.18,16,10),glass,0,.3,0);bottle.scale.y=1.18;const fill=add(new THREE.SphereGeometry(.145,14,9),liquid,0,.28,0);fill.scale.y=1.18;add(new THREE.CylinderGeometry(.065,.065,.14,10),glass,0,.57,0);add(new THREE.CylinderGeometry(.075,.085,.045,12),edge,0,.66,0);
      icon.userData.dispose=()=>{glass.dispose();liquid.dispose();};
@@ -174,7 +151,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    } else {
      add(new THREE.OctahedronGeometry(.2),warm,0,.38,0);
    }
-   const caption=label(kind==='corpse'?`corpse of ${cell.name||'creature'}`:(cell.name||'item'),'#d7c8a7');caption.scale.set(1.2,.22,1);caption.position.y=1.05;icon.add(caption);const extraDispose=icon.userData.dispose;icon.userData.dispose=()=>{warm.dispose();edge.dispose();extraDispose?.();};return icon;
+   const caption=label(kind==='corpse'?`corpse of ${cell.name||'creature'}`:groundItemCaption(cell),'#d7c8a7');caption.scale.set(1.2,.22,1);caption.position.y=1.05;icon.add(caption);const extraDispose=icon.userData.dispose;icon.userData.dispose=()=>{warm.dispose();edge.dispose();extraDispose?.();};return icon;
  }
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
  const hero=playerFactory();hero.setWeapon?.(null);group.add(hero.g);
