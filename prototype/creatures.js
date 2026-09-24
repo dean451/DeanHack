@@ -727,6 +727,37 @@ function naga(o){
 const NAGAS={'red naga':{color:'#b0321e',belly:'#e0a040',eye:'#ffcc40',crest:'flame'},'black naga':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',crest:'spines'},'golden naga':{color:'#c8a032',belly:'#f0dc8a',eye:'#ff5a3a',crest:'circlet',scale:1.05},'guardian naga':{color:'#3a8a3a',belly:'#c0d880',eye:'#ffe040',crest:'hood',scale:1.1},
  'red naga hatchling':{color:'#b0321e',belly:'#e0a040',baby:true,scale:.8},'black naga hatchling':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',baby:true,scale:.8},'golden naga hatchling':{color:'#c8a032',belly:'#f0dc8a',baby:true,scale:.8},'guardian naga hatchling':{color:'#3a8a3a',belly:'#c0d880',baby:true,scale:.8}};
 
+// Rust monsters and disenchanters: a low, armadillo-like bug with overlapping carapace plates, four stubby legs,
+// two long feathery antennae (the rust-touch feelers) and a tail ending in a flat, two-bladed propeller vane.
+// The tail is the 'tail' group, so its roll in live.js twists the vane. Disenchanters are blue with a violet glow.
+function rustMonster(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const shell=mat(o.color,{roughness:.55,metalness:.35}),hide=mat(shade(o.color,.6),{roughness:.9}),belly=mat(o.belly||shade(o.color,1.35),{roughness:.8}),
+  feeler=mat(o.feeler||shade(o.color,1.5),{roughness:.6}),glow=mat(o.eye||'#ffb040',{emissive:o.eye||'#ffb040',emissiveIntensity:1.8,roughness:.3}),y=.26;
+ sphere(body,.2,hide,0,y,0,.85,.6,1.35);sphere(body,.14,belly,0,y-.07,.03,.85,.45,1.2);
+ // carapace: five overlapping arched plates from shoulders to rump, rust-flecked edges
+ for(let i=0;i<5;i++){const z=.18-i*.09,w=.22-Math.abs(i-1.5)*.02;const plate=sphere(body,w,shell,0,y+.05-Math.abs(i-1.5)*.012,z,1,.55,.4);plate.rotation.x=-.25;
+  for(const side of [-1,1])sphere(body,.018,mat(o.fleck||'#b0582a',{roughness:1}),side*w*.7,y+.02,z+.02,1,.6,1);}
+ // head: blunt, low, with a small mandible pair and glowing beady eyes
+ const head=new THREE.Group();head.position.set(0,y-.02,.28);body.add(head);
+ sphere(head,.1,shell,0,0,0,1,.8,1.05);sphere(head,.07,belly,0,-.04,.05,.9,.55,1);
+ for(const side of [-1,1]){sphere(head,.022,glow,side*.055,.035,.075);const jaw=cone(head,.018,.06,hide,side*.03,-.05,.1,4);jaw.rotation.x=Math.PI/2+.4;jaw.rotation.z=side*.3;}
+ // antennae: long arcs up and forward, each fringed with short bristles and a knob at the tip
+ for(const side of [-1,1]){const pts=[[side*.035,.06,.05],[side*.09,.2,.1],[side*.16,.3,.18],[side*.21,.31,.27]];tube(head,pts,.011,feeler,14);
+  const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
+  for(let i=2;i<10;i++){const p=curve.getPoint(i/10),b=cone(head,.006,.05,feeler,p.x+side*.02,p.y,p.z,3);b.rotation.z=-side*1.2;}
+  const tip=curve.getPoint(1);sphere(head,.022,glow,tip.x,tip.y,tip.z);}
+ // legs: four short armoured stumps splayed outward
+ for(const side of [-1,1])for(const z of [-.12,.13]){const leg=new THREE.Group();leg.position.set(side*.13,y-.08,z);body.add(leg);const upper=rounded(leg,.06,.16,.06,hide,side*.03,-.06,0,.02);upper.rotation.z=side*.3;sphere(leg,.035,shell,side*.05,-.15,.015,1.1,.6,1.3);legs.push(leg);}
+ // tail: a tapering segmented stalk out the back ending in a crossed propeller vane
+ const tail=new THREE.Group();tail.position.set(0,y,-.27);body.add(tail);
+ for(let i=0;i<4;i++){const r=.045-i*.008,seg=cylinder(tail,r*.85,r,.06,i%2?shell:hide,0,0,-.03-i*.055,8);seg.rotation.x=Math.PI/2;}
+ const vane=new THREE.Group();vane.position.set(0,0,-.25);tail.add(vane);sphere(vane,.03,shell);
+ for(const a of [0,Math.PI]){const blade=rounded(vane,.16,.018,.06,shell,Math.cos(a)*.09,Math.sin(a)*.09,0,.008);blade.rotation.set(.35,0,a);}
+ return actor(g,body,legs,tail,[],'lizard');
+}
+const RUST_MONSTERS={'rust monster':{color:'#8a5a34',belly:'#c08a5a',fleck:'#c0602a',feeler:'#d0a070'},disenchanter:{color:'#3d5fb0',belly:'#8aa0d8',fleck:'#6a3aa0',feeler:'#b0c0f0',eye:'#c080ff',scale:1.05}};
+
 const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,scale:1.05},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',scale:1.05},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,scale:1.1}};
 
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
@@ -762,6 +793,7 @@ export function createCreature(cell={}){
  if(VAMPIRES[name])return vampire(VAMPIRES[name]);
  if(XORNS[name])return xorn(XORNS[name]);
  if(NAGAS[name])return naga(NAGAS[name]);
+ if(RUST_MONSTERS[name])return rustMonster(RUST_MONSTERS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
@@ -831,6 +863,7 @@ export function createCreature(cell={}){
   case '@':return humanoid('human',{cloth:mat(shade(c,.8))});
   case 'r':return rat(false);
   case 'x':return gridBug();
+  case 'R':return rustMonster({color:c});
   case 'n':return nymph({skin:c,dress:shade(c,.6),hair:'#2a2018'});
   case "'":return golem(GOLEM_MATERIALS.stone);
  }
