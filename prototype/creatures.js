@@ -349,6 +349,33 @@ function snake(o){
 }
 const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75},snake:{color:'#7a5a34'},'water moccasin':{color:'#5a3228'},'pit viper':{color:'#3a5a8a'},python:{color:'#7a5a7a',scale:1.4},cobra:{color:'#3a4a7a',hood:true}};
 
+// Long worms and purple worms: a ringed body that surfaces from the floor in an arch,
+// with the forward half as a swaying 'tail' group (live.js already sways actor.tail)
+// so the head weaves without any renderer changes. The mouth is a round lamprey maw.
+function worm(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);
+ const skin=mat(o.color,{roughness:.62}),ring=mat(shade(o.color,.62),{roughness:.7}),belly=mat(shade(o.color,1.35),{roughness:.7});
+ const r=o.baby?.07:.1,mound=mat('#3a3128',{roughness:1});
+ // loose soil where the rear of the worm dives under the floor
+ for(const [x,z,s] of [[-.08,-.34,1],[.07,-.38,.8],[0,-.3,.7]])sphere(body,.08*s,mound,x,.01,z,1.4,.35,1.2);
+ // rear arch: segments rising out of the ground toward the neck
+ const rear=[[0,-.02,-.34],[0,.12,-.28],[0,.2,-.16],[0,.2,-.04]];
+ for(const [i,[x,y,z]] of rear.entries()){const k=1-i*.04;sphere(body,r*k,skin,x,y,z,1,.95,.9);const band=part(body,new THREE.TorusGeometry(r*k*.97,r*.13,6,16),ring,x,y,z);band.rotation.x=Math.PI/2-(i<2?.9:.3);}
+ // forward half pivots at the neck; this is the group that sways
+ const neck=new THREE.Group();neck.position.set(0,.2,.02);body.add(neck);
+ const fore=[[0,.01,.07],[0,.05,.15],[0,.11,.21]];
+ for(const [i,[x,y,z]] of fore.entries()){const k=.98-i*.03;sphere(neck,r*k,skin,x,y,z,1,.95,.9);sphere(neck,r*k*.7,belly,x,y-r*.35,z+.01,1,.5,.9);const band=part(neck,new THREE.TorusGeometry(r*k*.97,r*.13,6,16),ring,x,y,z);band.rotation.x=Math.PI/2+.5+i*.2;}
+ // head: blunt cap turned forward with a dark round maw ringed by teeth
+ const head=new THREE.Group();head.position.set(0,.19,.27);head.rotation.x=-.55;neck.add(head);
+ sphere(head,r*1.05,skin,0,0,0,1,1,.8);
+ cylinder(head,r*.62,r*.62,.02,mat('#1a0c0c',{roughness:1}),0,0,r*.72,16).rotation.x=Math.PI/2;
+ part(head,new THREE.TorusGeometry(r*.66,r*.12,6,18),mat(o.lip||'#8a3a3a',{roughness:.5}),0,0,r*.74);
+ const toothMat=mat('#e8e0c8',{roughness:.35});const teeth=o.baby?6:10;
+ for(let i=0;i<teeth;i++){const a=i/teeth*Math.PI*2;cone(head,r*.08,r*.3,toothMat,Math.cos(a)*r*.52,Math.sin(a)*r*.52,r*.76,4).rotation.z=a+Math.PI/2;}
+ return actor(g,body,[],neck,[],'worm');
+}
+const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.7}};
+
 // Nymphs: a slender, glamorous humanoid built for a clear silhouette — a flared dress
 // and flowing hair read at a glance, unlike the blocky torso of the generic humanoid.
 function nymph(o){
@@ -383,6 +410,7 @@ export function createCreature(cell={}){
  if(COCKATRICES[name])return cockatrice(COCKATRICES[name]);
  if(INSECTS[name])return insect(INSECTS[name]);
  if(SNAKES[name])return snake(SNAKES[name]);
+ if(WORMS[name])return worm(WORMS[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
@@ -418,6 +446,7 @@ export function createCreature(cell={}){
   case 'a':return insect({color:c});
   case 's':return spider({color:c});
   case 'S':return snake({color:c});
+  case 'w':return worm({color:c,baby:/baby/.test(name)});
   case 'B':return bat({color:c});
   case 'F':return fungus({form:'mound',color:c});
   case 'b':case 'j':case 'P':return blob({color:c,flat:letter==='j'});
