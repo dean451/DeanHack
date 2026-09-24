@@ -35,6 +35,7 @@ static const char *terrain(int glyph) {
     if(c==S_altar) return "altar";
     if(c==S_throne) return "throne";
     if(c==S_sink) return "sink";
+    if(c==S_grave) return "grave";
     if(c==S_upstair || c==S_upladder) return "up";
     if(c==S_dnstair || c==S_dnladder) return "down";
     if(c==S_pool || c==S_water) return "water";
