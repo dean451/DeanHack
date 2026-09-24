@@ -616,3 +616,135 @@ Files: CLAUDE.md (+1 line).
 Checks: `git diff --check`. It only changes docs, so I skipped npm test/build and the browser check.
 Commit: `e11a0d0b`, pushed. PR https://github.com/dean451/DeanHack/pull/28 is open, and squash auto-merge is on and confirmed (`mergeMethod: SQUASH`).
 Open concerns: while this task was running, another session switched `/Users/dpalm/Desktop/deanhack-claude` to `claude/handoff-log-sep23` and committed `0e1c6b5b` there. That's why CLAUDE.md on disk in that checkout no longer shows this change. My branch is unaffected. Two sessions shouldn't share that checkout at the same time.
+
+## 2026-09-23 CDT — Claude — finished (scheduled graphics pass: vortex model)
+Branch/worktree: `claude/visuals-vortex` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master` (`f5d8b816`). There were no open Claude PRs at the start. The branch was first pushed as `claude/visuals-ants` by mistake; I renamed it and deleted that remote branch.
+Did: vortex-class monsters (`v`) had no case and fell back to `guardian()`. Added `vortex()` plus a `VORTICES` table. A vortex is a funnel of seven tilted torus rings over a faint ground patch. Dust gets grit, ice gets shards, energy and fire get emissive sparks plus a pulsing core (the existing `userData.core` hook), steam is thin and pale, and fog cloud is a low puffy bank. They use the `hover` quirk, so no renderer edits were needed. The letter-`v` fallback uses the glyph color.
+Files: `prototype/creatures.js` only (+15). No shared files.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) checked all 7 variants: every one routes to `vortex()` with no non-finite vertices, bounds within x/z ±0.44, and y from 0.01 to 1.29. **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `e85429cd`. PR https://github.com/dean451/DeanHack/pull/31 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. The rings are transparent with depthWrite off, so check sorting against walls. Separately, the leprechaun model (`claude/leprechaun-model`, `b494f5ca`) never got a PR and isn't on master: `l` still falls back to the guardian. It needs a rebase and a PR if still wanted.
+Claude candidates remaining: leprechaun PR; `Y` apes/monkeys, `m` mimics, `p` piercers, `h` dwarf-vs-homunculus split, `C`/`H` giants and centaurs all still fall back to the guardian; sink/throne/grave terrain models.
+
+## 2026-09-24 CDT — Claude — finished (scheduled graphics pass: piercer model)
+Branch/worktree: `claude/visuals-piercer` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master` (`ecc17c59`). No Claude PRs were open at the start (#31 vortex has merged).
+Did: piercer-class monsters (`p`) had no case and fell back to `guardian()`. Added `piercer()` plus a `PIERCERS` table. The model is a ridged lathe spire standing point-up, with three ridge rings, glowing eyes and a mouth slit near the base, and rubble around it. Plain piercer is stone gray. Iron piercer is metallic (scale 1.15). Glass piercer is translucent (scale 1.25). The letter-`p` fallback uses the glyph color, and the actor uses the default idle quirk, so no renderer edits.
+Files: `prototype/creatures.js` only (+15). No shared files, so no claim entry was needed.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) ran all 3 names plus the letter fallback: all have finite vertices, with bounds inside x/z ±0.49 and y from -0.02 to 1.02. **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `669e559b`. PR https://github.com/dean451/DeanHack/pull/32 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. The glass piercer's rubble reaches the tile edge (±0.49). The translucent glass material has depthWrite on, so check how it sorts against the floor. The leprechaun branch (`claude/leprechaun-model`) still has no PR.
+Claude candidates remaining: leprechaun PR; `Y` apes, `m` mimics, `h` homunculus split, `C`/`H` giants and centaurs; sink/throne/grave terrain.
+
+## 2026-09-24 CDT — Claude — finished (scheduled graphics pass: ape model)
+Branch/worktree: `claude/visuals-apes` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master` (`d7faa1f0`). No Claude PRs were open at the start (#32 piercer has merged).
+Did: `Y`-class monsters had no case and fell back to `guardian()`. Added `ape()` plus an `APES` table. The model has a hunched, barrel-chested body on short bowed legs, long arms knuckling the floor in front, and a heavy brow over a pale muzzle.
+- Monkey: small (0.7), with a curled tail that uses the existing tail sway.
+- Owlbear: hooked beak, ear tufts and claws.
+- Yeti (white) and sasquatch: shaggy shoulders.
+- Carnivorous ape: fangs.
+- Yeti and carnivorous ape: glowing eyes.
+The letter-`Y` fallback uses the glyph colour. The legs are in `legs[]`, so the walk swing works.
+Files: `prototype/creatures.js` only (+20). No shared files, so no claim entry was needed.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) checked all 6 names plus the letter fallback: every vertex is finite, bounds are within x/z ±0.49 (I lowered sasquatch from 1.45 to 1.35 scale to stay in the tile), and y runs from 0.02 to 1.29. **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `6634ef79`. PR https://github.com/dean451/DeanHack/pull/33 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. The arms are static apart from the body bob. The leprechaun branch (`claude/leprechaun-model`) still has no PR.
+Claude candidates remaining: leprechaun PR; `m` mimics, `h` homunculus/dwarf split, `C`/`H` giants and centaurs; sink/throne/grave terrain.
+
+## 2026-09-24 CDT — Claude — finished (scheduled graphics pass: mimic model)
+Branch/worktree: `claude/visuals-mimic` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master` (`b1ae21fd`). No Claude PRs were open at the start (#33 apes has merged).
+Did: `m`-class monsters had no case and fell back to `guardian()`. Added `mimic()` plus a `MIMICS` table. The model is a banded wooden chest with a gold lock. Its lid is cracked open on rows of fangs, with one eye on the lid, a lolling tongue (hooked up as `tail`, so it uses the existing tail sway) and stubby pseudopod feet. Small mimic is 0.8 scale. Large and giant mimics get a glowing eye, and giant is 1.25 scale. The letter-`m` fallback uses the glyph colour.
+Files: `prototype/creatures.js` only (+20). No shared files, so no claim entry was needed.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) checked all 3 names plus the letter fallback: 29 meshes each, every vertex finite, bounds x ±0.31, z -0.24..0.44, y 0.01..0.73. **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `ae0f00f8`. PR https://github.com/dean451/DeanHack/pull/34 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. The tongue sways side to side about z, which may look more like wagging than lolling. Mimics disguised as objects or furniture still render through their disguise glyph, so this model only shows once a mimic is revealed. The leprechaun branch (`claude/leprechaun-model`) still has no PR.
+Claude candidates remaining: leprechaun PR; `h` homunculus/dwarf split, `C`/`H` giants and centaurs; sink/throne/grave terrain.
+
+## 2026-09-24 CDT — Claude — finished (scheduled graphics pass: centaur model)
+Branch/worktree: `claude/visuals-centaur` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master` (`5b8811f6`). No Claude PRs were open at the start (#34 mimic has merged).
+Did: `C`-class monsters had no case and fell back to `guardian()`. Added `centaur()` plus a `CENTAURS` table. The model is a horse barrel on four hooved legs (in `legs[]`, so the walk swing works) with a human torso, arms, head and hair rising from the withers. The tail uses the `unicorn` quirk's slow sway. Plains centaur: tan coat, blue tunic, spear. Forest centaur: dark coat, green tunic, longbow and quiver. Mountain centaur: gray coat, fur mantle, beard, club (1.08 scale). The letter-`C` fallback uses the glyph colour.
+Files: `prototype/creatures.js` only (+24). No shared files, so no claim entry was needed.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) checked all 3 names plus the letter fallback: every vertex finite, bounds x -0.27..0.32, z -0.49..0.41, y 0..1.36 (I shrank the bow and tilted the club back to keep them inside the tile). **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `fd22885a`. PR https://github.com/dean451/DeanHack/pull/35 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. The bow orientation (torus arc rotated to stand vertically at the left side) is the part most likely to look off. The arms are static. The leprechaun branch (`claude/leprechaun-model`) still has no PR.
+Claude candidates remaining: leprechaun PR; `H` giants, `h` homunculus/dwarf split; sink/throne/grave terrain.
+
+## 2026-09-24 CDT — Claude — finished (scheduled graphics pass: giant model)
+Branch/worktree: `claude/visuals-giant` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master` (`981c6279`). No Claude PRs were open at the start (#35 centaur has merged).
+Did: `H`-class monsters had no case and fell back to `guardian()`. Added `giant()` plus a `GIANTS` table. The base model is a broad-shouldered giant in a hide kilt and belt, with booted legs (in `legs[]`, so the walk swing works) and the `orc` quirk for a heavier bob.
+- Giant and hill giant: club.
+- Stone giant: boulder on the shoulder, left arm raised over it.
+- Fire giant: glowing ember beard (pulsing `core`), dark armour, heated sword.
+- Frost giant: icy blue skin, white beard, fur mantle, ice shards, ice axe.
+- Ettin: two heads.
+- Storm giant: electric eyes, spear with a pulsing lightning tip.
+- Titan: gilded armour, circlet, glowing spear.
+- Minotaur: bull head with horns, hooves, axe.
+The letter-`H` fallback uses the glyph colour.
+Files: `prototype/creatures.js` only (+33). No shared files, so no claim entry was needed.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) ran all 9 names plus the letter fallback: every vertex finite, bounds within x/z ±0.49, y 0..1.59. I pulled the axes and spears in, and dropped stone giant to 1.05 scale, to stay inside the tile. **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `fde2fb27`. PR https://github.com/dean451/DeanHack/pull/36 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. Giants are the tallest models so far (about 1.4–1.6 against walls about 0.63), which is deliberate but worth a look. Most likely to look off: the stone giant's raised arm/boulder pose and the minotaur's tube horns. The leprechaun branch (`claude/leprechaun-model`) still has no PR.
+Claude candidates remaining: leprechaun PR; `h` homunculus/dwarf split (e.g. dwarf lord/king, mind flayer); sink/throne/grave terrain.
+
+## 2026-09-24 CDT — Claude — finished (scheduled graphics pass: mind flayer model)
+Branch/worktree: `claude/visuals-mind-flayer` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master` (`6a68d925`). No Claude PRs were open at the start (#36 giant has merged).
+Did: mind flayers and master mind flayers fell back to the dwarf through the `h` letter. Added `mindFlayer()` plus a `MIND_FLAYERS` table. The model has a long robe, a high flared collar, clawed hands and a bulbous purple cranium. Four face tentacles are hooked up as `tail`, so they use the existing tail sway. Mind flayer: pale green eyes. Master mind flayer: glowing eyes, a gold circlet with a jewel, and 1.1 scale.
+Files: `prototype/creatures.js` only (+17). No shared files, so no claim entry was needed.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) checked both names: every vertex finite, bounds x ±0.37, z -0.40..0.33, y 0..1.59. **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `865ddadd`. PR https://github.com/dean451/DeanHack/pull/37 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. The mind flayer (1.45) stands taller than the human model, so it may need scaling down. The tentacles swing as one group about the mouth, not one by one. Bugbears, dwarf lords and dwarf kings still use the plain dwarf. The leprechaun branch (`claude/leprechaun-model`) still has no PR.
+Claude candidates remaining: leprechaun PR; bugbear and dwarf lord/king variants; sink/throne/grave terrain.
+
+## 2026-09-24 CDT — Claude — finished (scheduled graphics pass: dwarf lord/king and bugbear)
+Branch/worktree: `claude/visuals-dwarf-ranks` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master`. No Claude PRs were open at the start (#37 mind flayer has merged).
+Did: dwarf lords, dwarf kings and bugbears all used the plain dwarf. Added variants in `humanoid()`:
+- Dwarf lord (`rank:'lord'`): gold band and crest on the helm, blue tunic.
+- Dwarf king (`rank:'king'`): a jewelled gold crown replaces the helm; red cape with a fur collar; white beard (new `o.beard` option); gold scepter replaces the pick.
+- Bugbear: new stocky `bugbear` kind with brown fur skin, snout, round ears, fangs, glowing eyes, leather pauldrons and a spiked morning star.
+I skipped sink/throne/grave: the bridge reports all three as a generic `feature`, so they'd need a bridge.c change (Codex-owned) plus live.js wiring.
+Files: `prototype/creatures.js` only (+13/-4). No shared files, so no claim entry was needed.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) checked dwarf, lord, king, bugbear and dwarf zombie: every vertex finite, new models within x -0.41..0.46, y 0..1.33. **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `7827d7ca`. PR https://github.com/dean451/DeanHack/pull/38 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. The king's cape is a flat slab behind the torso and doesn't follow the walk. The existing dwarf pick already reaches x -0.54, slightly outside the tile (left as is). The leprechaun branch (`claude/leprechaun-model`) still has no PR.
+Request for Codex: if sink/throne/grave models are wanted, bridge.c `terrain()` would need to return `sink`, `throne` and `grave` instead of `feature`.
+Claude candidates remaining: leprechaun PR; homunculus/other `h` variants; sink/throne/grave once the bridge reports them.
+
+## 2026-09-24 CDT — Claude — finished (scheduled graphics pass: troll model)
+Branch/worktree: `claude/visuals-troll` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master` (`cf2648e4`). No Claude PRs were open at the start (#38 dwarf ranks has merged).
+Did: `T`-class monsters had no case and fell back to `guardian()`. Added `troll()` plus a `TROLLS` table. The base model is a hunched brute. Its long arms end in clawed hands down near the knees. It has short bowed legs (in `legs[]`, so the walk swing works), a drooping nose, tusks, pointed ears, warts and a spiky back mane. It uses the `orc` quirk.
+- Ice troll: pale blue skin, ice shards.
+- Rock troll: stone shoulder plates, club.
+- Water troll: blue-green skin, head fin.
+- Olog-hai: near-black skin, pauldrons, studded club, glowing eyes, 1.15 scale.
+The letter-`T` fallback uses the glyph colour.
+Files: `prototype/creatures.js` only. No shared files, so no claim entry was needed.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) checked all 5 names plus the letter fallback: every vertex finite, bounds x ±0.46, z -0.35..0.47, y 0..1.21. **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `a3e6df04`. PR https://github.com/dean451/DeanHack/pull/39 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. The arms are static, so the hands don't swing with the walk. The water troll fin (a half-disc) and the downward-angled nose cone are the parts most likely to look off. The leprechaun branch (`claude/leprechaun-model`) still has no PR.
+Claude candidates remaining: leprechaun PR; `O` ogres, `N` nagas, `L` liches, `V` vampires, `W` wraiths, `X` xorn, `R` rust monsters, `U` umber hulks; sink/throne/grave once the bridge reports them.
+
+## 2026-09-24 CDT — Claude — finished (scheduled graphics pass: ogre model)
+Branch/worktree: `claude/visuals-ogre` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master` (`b6d313f0`). No Claude PRs were open at the start (#39 troll has merged).
+Did: `O`-class monsters had no case and fell back to `guardian()`. Added `ogre()` plus an `OGRES` table. The base model is a squat, pot-bellied brute with an underbite, tusks, a greasy topknot, a hide loincloth and a nail-studded club. Its legs are in `legs[]`, so the walk swing works, and it uses the `orc` quirk.
+- Ogre lord: bronze helm and pauldrons.
+- Ogre king: spiked gold crown with a jewel, fur mantle, cape, glowing eyes and a bigger club.
+The letter-`O` fallback uses the glyph colour.
+Files: `prototype/creatures.js` only (+28). No shared files, so no claim entry was needed.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) checked all 3 names plus the letter fallback: every vertex finite, bounds x ±0.48, z -0.32..0.46, y 0..1.34. I lowered the scales to 1.0/1.05/1.1 to keep them inside the tile. **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `be91b05c`. PR https://github.com/dean451/DeanHack/pull/40 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. The arms are static. The parts most likely to look off are the crown spikes and the nail placement on the club. The leprechaun branch (`claude/leprechaun-model`) still has no PR.
+Claude candidates remaining: leprechaun PR; `N` nagas, `L` liches, `V` vampires, `W` wraiths, `X` xorn, `R` rust monsters, `U` umber hulks; sink/throne/grave once the bridge reports them.
+
+## 2026-09-24 CDT — Claude — finished (scheduled graphics pass: lich model)
+Branch/worktree: `claude/visuals-lich` in `/Users/dpalm/Desktop/deanhack-claude`, fresh from `origin/master` (`4a48930a`). No Claude PRs were open at the start (#40 ogre has merged).
+Did: `L`-class monsters had no case and fell back to `guardian()`. Added `lich()` plus a `LICHES` table. The base model is a floating robed skeleton (no legs) with a hood, a bare skull, dark eye sockets with a glow inside, a toothed jaw, bony claw hands, a ragged hem and a pronged staff holding a glowing orb.
+- Lich: brown robe, green glow.
+- Demilich: red robe, orange-red glow, more tatters.
+- Master lich: purple robe with a bone crown, 1.05 scale.
+- Arch-lich: tall gold crown, bone-spiked mantle, icy blue glow, 1.1 scale.
+The letter-`L` fallback uses the glyph colour.
+Files: `prototype/creatures.js` only (+29). No shared files, so no claim entry was needed.
+Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size warning); `git diff --check`. A headless script (not committed) checked all 4 names, the letter fallback and lichen (still a lichen): every vertex finite, bounds x -0.40..0.47, z ±0.40, y 0..1.52. I raised the hem tatters so they don't dip below the floor. **Not checked in the browser**: this was an unattended scheduled run.
+Commit: `88940f3a`. PR https://github.com/dean451/DeanHack/pull/41 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
+Open concerns: not checked visually. There are no legs, so the walk swing does nothing and the lich just glides. The parts most likely to look off are the socket glow depth and the crown spikes on the arch-lich. The leprechaun branch (`claude/leprechaun-model`) still has no PR.
+Claude candidates remaining: leprechaun PR; `N` nagas, `V` vampires, `W` wraiths, `X` xorn, `R` rust monsters, `U` umber hulks; sink/throne/grave once the bridge reports them.
