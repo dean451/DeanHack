@@ -696,6 +696,37 @@ function xorn(o){
 }
 const XORNS={xorn:{}};
 
+// Nagas: a thick serpent coil on the floor whose front rises into an upright neck with a human face,
+// scaled belly plates and slit-pupil eyes. The raised half is the swaying 'tail' group so it weaves.
+// Red nagas have a flame crest, black nagas a spine ridge, golden nagas a jewelled circlet,
+// guardian nagas a cobra hood. Hatchlings are small and plain.
+function naga(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);
+ const scales=mat(o.color,{roughness:.5,metalness:.1}),belly=mat(o.belly||shade(o.color,1.45),{roughness:.6}),face=mat(o.face||shade(o.color,1.25),{roughness:.65}),
+  glow=mat(o.eye||'#f0d040',{emissive:o.eye||'#f0d040',emissiveIntensity:2,roughness:.3}),pupil=mat('#0c0a08',{roughness:.4}),r=o.baby?.05:.075;
+ // lower body: a flat spiral coil ending under the raised neck
+ const coil=[];for(let i=0;i<=30;i++){const t=i/30,a=Math.PI*.5+t*Math.PI*3.2,rad=.3-t*.18;coil.push([Math.cos(a)*rad,r+t*.04,-Math.sin(a)*rad*.9-.02]);}
+ coil.push([0,r+.08,.1]);tube(body,coil,r,scales,72);
+ // tail tip trailing off the outside of the coil
+ cone(body,r*.9,.16,scales,-.06,r,.29,8).rotation.z=Math.PI/2;
+ // raised half: pivots above the coil centre
+ const neck=new THREE.Group();neck.position.set(0,r+.08,.1);body.add(neck);
+ const rise=[[0,0,0],[0,.14,.03],[0,.3,.02],[0,.44,-.01]];tube(neck,rise,r*.95,scales,20);
+ for(let i=0;i<5;i++){const y=.04+i*.085;rounded(neck,r*1.3,.05,.03,belly,0,y,.02+r*.85-(i>3?.02:0),.012);}
+ const head=new THREE.Group();head.position.set(0,.5,.01);neck.add(head);
+ // head: a humanlike face set into a scaled skull, with a pointed chin and slit-pupil eyes
+ sphere(head,r*1.35,scales,0,.01,-.015,1,1.05,1);sphere(head,r*1.15,face,0,-.005,.03,.95,1.05,.85);cone(head,r*.5,r*.7,face,0,-r*1.2,.045,6).rotation.x=Math.PI+.25;
+ rounded(head,r*.25,r*.45,r*.35,face,0,0,r*1.05,.008);rounded(head,r*.6,r*.1,r*.1,mat('#5a2a2a',{roughness:.6}),0,-r*.55,r*.95,.01);
+ for(const side of [-1,1]){sphere(head,r*.24,glow,side*r*.42,r*.3,r*.95,1.2,.8,.5);rounded(head,r*.06,r*.3,r*.05,pupil,side*r*.42,r*.3,r*1.05,.004);}
+ if(o.crest==='flame'){const fire=mat('#ff7a2a',{emissive:'#ff4a10',emissiveIntensity:1.6,roughness:.4});for(let i=0;i<5;i++){const a=(i-2)*.32;const c=cone(head,r*.22,r*(1.3-Math.abs(i-2)*.25),fire,Math.sin(a)*r*.9,r*1.25,-.02-Math.cos(a)*r*.25,4);c.rotation.z=-a*.8;c.rotation.x=-.35;}}
+ if(o.crest==='spines'){const spine=mat(shade(o.color,.55),{roughness:.4});for(let i=0;i<4;i++)cone(neck,r*.2,r*.7,spine,0,.1+i*.11,-r*.9,4).rotation.x=-1.2;for(let i=0;i<3;i++)cone(head,r*.2,r*.7,spine,0,r*1.25-i*r*.35,-r*.8-i*r*.3,4).rotation.x=-.6-i*.35;}
+ if(o.crest==='circlet'){cylinder(head,r*1.3,r*1.36,r*.3,M.gold,0,r*.75,-.01,14);sphere(head,r*.22,mat('#3aa0ff',{emissive:'#1a60c0',emissiveIntensity:1.2,roughness:.2}),0,r*.8,r*1.3);for(const side of [-1,1])cone(head,r*.15,r*.5,M.gold,side*r*.7,r*1.12,r*.95,4);}
+ if(o.crest==='hood'){const hood=sphere(neck,r*3.2,scales,0,.43,-.035,1,1.25,.18);hood.rotation.x=.12;sphere(neck,r*2.6,belly,0,.42,-.022,1,1.2,.12).rotation.x=.12;for(const side of [-1,1])sphere(neck,r*.45,mat(shade(o.color,.45)),side*r*1.7,.47,-.04,1,1.4,.3);}
+ return actor(g,body,[],neck,[],'snake');
+}
+const NAGAS={'red naga':{color:'#b0321e',belly:'#e0a040',eye:'#ffcc40',crest:'flame'},'black naga':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',crest:'spines'},'golden naga':{color:'#c8a032',belly:'#f0dc8a',eye:'#ff5a3a',crest:'circlet',scale:1.05},'guardian naga':{color:'#3a8a3a',belly:'#c0d880',eye:'#ffe040',crest:'hood',scale:1.1},
+ 'red naga hatchling':{color:'#b0321e',belly:'#e0a040',baby:true,scale:.8},'black naga hatchling':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',baby:true,scale:.8},'golden naga hatchling':{color:'#c8a032',belly:'#f0dc8a',baby:true,scale:.8},'guardian naga hatchling':{color:'#3a8a3a',belly:'#c0d880',baby:true,scale:.8}};
+
 const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,scale:1.05},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',scale:1.05},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,scale:1.1}};
 
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
@@ -730,6 +761,7 @@ export function createCreature(cell={}){
  if(WRAITHS[name])return wraith(WRAITHS[name]);
  if(VAMPIRES[name])return vampire(VAMPIRES[name]);
  if(XORNS[name])return xorn(XORNS[name]);
+ if(NAGAS[name])return naga(NAGAS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
@@ -775,6 +807,7 @@ export function createCreature(cell={}){
   case 'C':return centaur({coat:c,hair:shade(c,.4)});
   case 'O':return ogre({skin:shade(c,1.1),hide:shade(c,.5)});
   case 'X':return xorn({stone:shade(c,.9),eye:c});
+  case 'N':return naga({color:c,crest:/hatchling/.test(name)?null:'spines',baby:/hatchling/.test(name)});
   case 'V':return vampire({lining:c,eye:c});
   case 'W':return wraith({robe:shade(c,.6),glow:c});
   case 'L':return lich({robe:shade(c,.6),glow:c});
