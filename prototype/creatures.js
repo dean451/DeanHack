@@ -511,31 +511,46 @@ const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{
 
 // Nymphs: beguiling fae thieves. A lathed body gives a real waist-to-hip curve; a shell
 // or leaf bandeau, bare midriff with a belly chain, a low hip wrap slit to the hip and a
-// sheer floor-length veil show her off. She stands in contrapposto on one bent knee, lifts
-// her hair with one hand and dangles the gold amulet she just lifted off you from the
-// other, head tilted with a sly smile. The hair is actor.tail so it sways, and the
+// sheer train show her off. She stands in contrapposto on one bent knee with both hands
+// on her hips, the gold amulet she just lifted off you dangling from her fingers. Limbs
+// are tapered segments between joint points so they read as one smooth body, not a
+// jointed mannequin. Her hair is one flowing sheet (actor.tail, so it sways), and the
 // 'nymph' quirk rolls her hips.
 function lathe(parent,profile,material,x=0,y=0,z=0,phiStart=0,phiLength=Math.PI*2){return part(parent,new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),24,phiStart,phiLength),material,x,y,z);}
+function segment(parent,a,b,r1,r2,material){const A=new THREE.Vector3(...a),d=new THREE.Vector3(...b).sub(A),m=part(parent,new THREE.CylinderGeometry(r2,r1,d.length(),12),material,A.x+d.x/2,A.y+d.y/2,A.z+d.z/2);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return m;}
+function nymphHair(parent,material){
+ // a single sheet hanging from the crown: open at the front for the face, wider than
+ // deep so it drapes over the shoulders, rippling more the further it falls, with a
+ // ragged hem down her back
+ const geo=new THREE.LatheGeometry([[.02,.115],[.07,.1],[.094,.05],[.1,0],[.104,-.06],[.13,-.14],[.15,-.22],[.15,-.32],[.14,-.42],[.12,-.5]].map(([r,h])=>new THREE.Vector2(r,h)),28,.95,Math.PI*2-1.9);
+ const p=geo.attributes.position,v=new THREE.Vector3();
+ for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const phi=Math.atan2(v.x,v.z),fall=Math.min(1,Math.max(0,-v.y*2.2)),wave=1+.07*fall*Math.sin(phi*7+v.y*11);v.x*=wave;v.z*=wave;if(v.y<-.4)v.y+=Math.sin(phi*11)*.035*(-(v.y+.4)/.1);p.setXYZ(i,v.x,v.y,v.z);}
+ geo.computeVertexNormals();
+ const sheet=part(parent,geo,material);sheet.scale.set(1.12,1,.85);return sheet;
+}
 function nymph(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[];
- const skin=mat(o.skin,{roughness:o.wet?.3:.48,metalness:o.wet?.08:0}),dress=mat(o.dress,{roughness:.38,side:THREE.DoubleSide}),trim=mat(o.trim||shade(o.dress,1.7),{roughness:.3,metalness:.25,side:THREE.DoubleSide});
- const veil=mat(o.veil||o.dress,{roughness:.2,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false}),hair=mat(o.hair,{roughness:o.wet?.28:.55});
- const eye=o.eye||'#7ad0a0',iris=mat(eye,{emissive:eye,emissiveIntensity:.7,roughness:.2}),liner=mat('#1a1012',{roughness:.6}),lips=mat(o.lips||'#b04a5a',{roughness:.28});
+ const skin=mat(o.skin,{roughness:o.wet?.32:.45}),dress=mat(o.dress,{roughness:.38,side:THREE.DoubleSide}),trim=mat(o.trim||shade(o.dress,1.7),{roughness:.3,metalness:.2,side:THREE.DoubleSide});
+ const veil=mat(o.veil||o.dress,{roughness:.2,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false}),hair=mat(o.hair,{roughness:o.wet?.3:.5,side:THREE.DoubleSide});
+ const eye=o.eye||'#6a8a5a',white=mat('#f3eee8',{roughness:.3}),iris=mat(eye,{emissive:eye,emissiveIntensity:.25,roughness:.2}),lash=mat(shade(o.hair,.45)),brow=mat(shade(o.hair,.7)),lips=mat(o.lips||'#c47878',{roughness:.3});
  const sparkle=mat(o.trim||eye,{emissive:o.trim||eye,emissiveIntensity:2.2});
- // long bare legs; her right knee bends forward and she rests on its toes
+ // long bare legs: her right knee bends forward and she rests on its toes
  for(const side of [-1,1]){
   const bent=side<0,leg=new THREE.Group();leg.position.set(side*.058,.62,0);body.add(leg);legs.push(leg);
   const thigh=new THREE.Group();thigh.rotation.set(bent?-.34:0,0,side*.03);leg.add(thigh);
-  cylinder(thigh,.056,.036,.3,skin,0,-.15,0,12);sphere(thigh,.037,skin,0,-.3,0);
-  const knee=new THREE.Group();knee.position.y=-.3;knee.rotation.x=bent?.6:0;thigh.add(knee);
-  cylinder(knee,.035,.019,.27,skin,0,-.135,0,12);sphere(knee,.034,skin,0,-.09,-.008,.95,2,1);
-  const foot=sphere(knee,.024,skin,0,-.28,.034,.75,.5,2.1);foot.rotation.x=bent?.55:0;
-  if(bent)part(knee,new THREE.TorusGeometry(.023,.004,6,16),M.gold,0,-.245,0).rotation.x=Math.PI/2;
+  segment(thigh,[0,.02,0],[0,-.3,0],.064,.04,skin);sphere(thigh,.04,skin,0,-.3,0);
+  const knee=new THREE.Group();knee.position.y=-.3;knee.rotation.x=bent?.7:0;thigh.add(knee);
+  segment(knee,[0,0,0],[0,-.27,0],.039,.021,skin);sphere(knee,.037,skin,0,-.085,-.009,.95,2,1);
+  // a bare foot: heel, arch and five toes, big toe on the inside
+  const foot=new THREE.Group();foot.position.y=-.27;foot.rotation.x=bent?.45:0;knee.add(foot);
+  sphere(foot,.021,skin);sphere(foot,.021,skin,0,-.024,-.012,.95,.75,1.1);sphere(foot,.024,skin,0,-.03,.03,.85,.5,1.55);
+  for(let t=0;t<5;t++){const x=(t-2)*.0085*-side,r=t===0?.0085:.0065-t*.0004;sphere(foot,r,skin,x,-.036,.068-Math.abs(t-1)*.004,1,.8,1.2);}
+  if(bent)part(foot,new THREE.TorusGeometry(.022,.0035,6,16),M.gold,0,.012,0).rotation.x=Math.PI/2;
  }
  // curvy torso: hips, a narrow waist, ribs and shoulders, flattened front to back
  lathe(body,[[0,.56],[.088,.58],[.118,.63],[.124,.68],[.113,.74],[.09,.81],[.083,.85],[.09,.9],[.1,.95],[.103,1],[.1,1.04],[.098,1.07],[.07,1.115],[.034,1.14],[0,1.15]],skin).scale.z=.78;
- for(const side of [-1,1]){sphere(body,.042,skin,side*.1,1.07,0,1.25,.85,.9);sphere(body,.05,skin,side*.043,.985,.048,1,.92,.85);}
- // bandeau: a cup over each breast joined by a band
+ for(const side of [-1,1]){sphere(body,.044,skin,side*.1,1.07,0,1.25,.85,.9);sphere(body,.05,skin,side*.043,.985,.048,1,.92,.85);}
+ // bandeau: a shell or leaf cup over each breast joined by a band
  for(const side of [-1,1]){const cup=part(body,new THREE.SphereGeometry(.056,14,8,0,Math.PI*2,0,Math.PI/2),trim,side*.043,.985,.05);cup.scale.set(1,.92,.85);cup.rotation.x=Math.PI/2;}
  lathe(body,[[.104,.955],[.107,.975],[.104,.995]],trim).scale.z=.82;
  // belly chain slung across the hips with a hanging jewel
@@ -544,43 +559,46 @@ function nymph(o){
  const slit=-.5,gap=.3;
  lathe(body,[[.13,.745],[.134,.68],[.142,.6],[.152,.52],[.16,.465]],dress,0,0,0,slit+gap,Math.PI*2-gap*2).scale.z=.82;
  for(let i=0;i<11;i++){const a=slit+gap+.18+i*(Math.PI*2-gap*2-.36)/10,petal=sphere(body,.042,i%2?trim:dress,Math.sin(a)*.158,.445-(i%3)*.012,Math.cos(a)*.158*.82,.55,1.35,.14);petal.rotation.y=a;}
- // a sheer veil from the hips to the floor, open at the front
- lathe(body,[[.132,.75],[.15,.6],[.19,.4],[.235,.2],[.27,.02]],veil,0,0,0,.75,Math.PI*2-1.5).scale.z=.86;
- // neck and a small, narrow face with winged eyes, pointed ears and a lopsided smile
- cylinder(body,.03,.036,.1,skin,0,1.19,0,10);
- const head=new THREE.Group();head.position.set(0,1.28,.005);head.rotation.set(.06,.3,.13);body.add(head);
+ // a sheer train falling from the back of the wrap to the floor
+ lathe(body,[[.132,.75],[.15,.6],[.19,.4],[.235,.2],[.27,.02]],veil,0,0,0,1.35,Math.PI*2-2.7).scale.z=.86;
+ // neck and a plain, pretty face: soft eyes, light brows, rose lips, small pointed ears
+ segment(body,[0,1.13,0],[0,1.235,.005],.037,.03,skin);
+ const head=new THREE.Group();head.position.set(0,1.28,.005);head.rotation.set(.04,.12,.07);body.add(head);
  sphere(head,.08,skin,0,.025,-.004,.9,1.02,.98);sphere(head,.058,skin,0,-.03,.026,.82,.92,.88);
- const nose=cone(head,.011,.03,skin,0,-.006,.082,6);nose.rotation.x=Math.PI/2-.3;
- sphere(head,.017,lips,0,-.052,.072,1.5,.55,.7).rotation.z=.1;
+ const nose=cone(head,.01,.026,skin,0,-.008,.082,6);nose.rotation.x=Math.PI/2-.3;
+ sphere(head,.012,lips,0,-.047,.073,1.5,.45,.6);sphere(head,.013,lips,0,-.055,.071,1.4,.55,.7);
  for(const side of [-1,1]){
-  sphere(head,.017,iris,side*.03,.008,.07,1.35,.75,.5);
-  rounded(head,.04,.007,.012,liner,side*.034,.019,.073,.003).rotation.z=side*.28;
-  rounded(head,.034,.006,.01,hair,side*.032,.045,.071,.003).rotation.z=side*.14;
-  cone(head,.013,.075,skin,side*.078,.012,-.01,5).rotation.set(-.35,0,-side*1.25);
+  sphere(head,.013,white,side*.03,.008,.068,1.5,.8,.5);sphere(head,.0075,iris,side*.03,.008,.074,1,1,.5);
+  rounded(head,.03,.004,.008,lash,side*.03,.017,.073,.002).rotation.z=side*.08;
+  rounded(head,.03,.004,.008,brow,side*.031,.042,.071,.002).rotation.z=side*.1;
+  cone(head,.011,.055,skin,side*.078,.012,-.012,5).rotation.set(-.35,0,-side*1.2);
  }
- // hair: a cap, side-swept bangs and long locks down her back (the swaying tail)
+ // hair: a cap and side-swept bangs, then the flowing sheet that sways
  sphere(head,.086,hair,0,.04,-.024);sphere(head,.05,hair,-.025,.076,.045,1.2,.4,.7).rotation.z=-.35;
- const locks=new THREE.Group();locks.position.set(0,.03,-.04);head.add(locks);
- for(let i=0;i<7;i++){const a=-1.35+i*.45,sx=Math.sin(a),cz=Math.cos(a),wave=Math.sin(i*1.7)*.025;tube(locks,[[sx*.07,.02,cz*-.01],[sx*.1,-.08,-.03-cz*.04],[sx*.12+wave,-.25,-.06-cz*.03],[sx*.1-wave,-.44-(i%3)*.04,-.06]],.021,hair);}
- tube(locks,[[.07,-.02,.05],[.1,-.1,.08],[.105,-.24,.1],[.095,-.34,.11]],.018,hair);
+ const locks=new THREE.Group();locks.position.set(0,.02,-.02);head.add(locks);nymphHair(locks,hair);
  ({flowers(){for(let i=0;i<7;i++){const a=-1.6+i*.53;sphere(head,.017,i%2?mat('#f2e6ee'):mat('#e27aa6'),Math.sin(a)*.084,.082,-.02+Math.cos(a)*-.05);}},
    pearls(){for(let i=0;i<7;i++){const a=-1.5+i*.5;sphere(head,.01,mat('#f4efe6',{roughness:.2,metalness:.3}),Math.sin(a)*.086,.078,-.02-Math.cos(a)*.05);}const shell=part(head,new THREE.SphereGeometry(.03,10,6,0,Math.PI*2,0,Math.PI/2),trim,.07,.06,.02);shell.rotation.set(0,0,-1.2);},
    crystal(){for(let i=0;i<5;i++){const a=-.9+i*.45;cone(head,.012,.05+(i===2?.03:0),sparkle,Math.sin(a)*.08,.1,-.01+Math.cos(a)*.02,4).rotation.z=-Math.sin(a)*.5;}}}[o.crown]||(()=>{}))();
- // arms: her right lifts her hair behind her head; her left dangles your amulet
- const arm=(side,shoulder,elbow)=>{const upper=new THREE.Group();upper.position.set(side*.118,1.07,0);upper.rotation.set(...shoulder);body.add(upper);cylinder(upper,.03,.024,.24,skin,0,-.12,0,10);sphere(upper,.025,skin,0,-.24,0);const fore=new THREE.Group();fore.position.y=-.24;fore.rotation.set(...elbow);upper.add(fore);cylinder(fore,.024,.017,.21,skin,0,-.105,0,10);return sphere(fore,.022,skin,0,-.225,0,.7,1.2,.45);};
- arm(-1,[-.3,0,-2.35],[0,0,-1.9]);
- const hand=arm(1,[-.28,0,.2],[-1.05,0,-.1]);
- g.updateMatrixWorld(true);const grip=hand.getWorldPosition(new THREE.Vector3());
- tube(body,[[grip.x,grip.y-.01,grip.z],[grip.x+.004,grip.y-.06,grip.z],[grip.x,grip.y-.11,grip.z]],.003,M.gold,6);
- const amulet=cylinder(body,.028,.028,.008,M.gold,grip.x,grip.y-.14,grip.z,16);amulet.rotation.x=Math.PI/2;sphere(body,.012,mat('#d9344a',{emissive:'#d9344a',emissiveIntensity:1.4}),grip.x,grip.y-.14,grip.z+.006);
+ // arms akimbo: elbows out and back, hands gripping her hips with fingers forward
+ for(const side of [-1,1]){
+  const S=[side*.118,1.07,0],E=[side*.265,.9,-.07],W=[side*.152,.77,.005];
+  segment(body,S,E,.031,.025,skin);sphere(body,.025,skin,...E);segment(body,E,W,.024,.017,skin);
+  const palm=rounded(body,.016,.052,.042,skin,side*.147,.738,.018,.008);palm.rotation.set(-.35,0,side*.25);
+  for(let f=0;f<4;f++)segment(body,[side*.143,.72,.028+f*.009],[side*.132,.695-f*.003,.058+f*.008],.0055,.0045,skin);
+  segment(body,[side*.152,.75,.0],[side*.143,.735,-.03],.006,.005,skin);
+ }
+ // the stolen amulet swings from her left fingertips
+ const tip=[.13,.69,.08];
+ tube(body,[tip,[tip[0]+.004,tip[1]-.05,tip[2]],[tip[0],tip[1]-.1,tip[2]]],.003,M.gold,6);
+ const amulet=cylinder(body,.028,.028,.008,M.gold,tip[0],tip[1]-.13,tip[2],16);amulet.rotation.x=Math.PI/2;sphere(body,.012,mat('#d9344a',{emissive:'#d9344a',emissiveIntensity:1.4}),tip[0],tip[1]-.13,tip[2]+.006);
  // fae glimmer drifting around her
- for(const [x,y,z] of [[.26,1.02,.08],[-.24,.72,.14],[.14,1.44,-.1]])sphere(body,.013,sparkle,x,y,z);
+ for(const [x,y,z] of [[.3,1.02,.08],[-.3,.72,.14],[.14,1.46,-.1]])sphere(body,.013,sparkle,x,y,z);
  return actor(g,body,legs,locks,[],'nymph');
 }
 const NYMPHS={
- 'wood nymph':{skin:'#e9c19c',dress:'#4d7f36',trim:'#8fcf55',veil:'#9fdc8a',hair:'#8a3a1e',eye:'#6fe08a',lips:'#b8485a',crown:'flowers'},
- 'water nymph':{skin:'#e8d6c8',wet:true,dress:'#2f7f9a',trim:'#eadacb',veil:'#7fd6e6',hair:'#e0bc6a',eye:'#5ac0ff',lips:'#c25a6a',crown:'pearls'},
- 'mountain nymph':{skin:'#f0d8c0',dress:'#6a3a8a',trim:'#cdb4ff',veil:'#b89ae0',hair:'#1c1412',eye:'#b07aff',lips:'#9a3a5a',crown:'crystal'},
+ 'wood nymph':{skin:'#e8bb94',dress:'#4d7f36',trim:'#7fbf45',veil:'#9fdc8a',hair:'#8a3a1e',eye:'#4f8a3a',lips:'#c46e6e',crown:'flowers'},
+ 'water nymph':{skin:'#f0cdb6',wet:true,dress:'#2f7f9a',trim:'#4fb8b8',veil:'#7fd6e6',hair:'#e0bc6a',eye:'#3a7ab8',lips:'#d07c80',crown:'pearls'},
+ 'mountain nymph':{skin:'#f3d6bf',dress:'#6a3a8a',trim:'#b89ae8',veil:'#b89ae0',hair:'#1c1412',eye:'#6a4a9a',lips:'#b0606e',crown:'crystal'},
 };
 
 // Mind flayers: a robed, high-collared caster with a bulbous cranium and a fringe of face tentacles.
