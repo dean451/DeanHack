@@ -520,6 +520,23 @@ function nymph(o){
 }
 const NYMPHS={'wood nymph':{skin:'#e0b98a',dress:'#3a6a34',hair:'#4a2a18'},'water nymph':{skin:'#dcc7b0',dress:'#2f5a8a',hair:'#8a6a3a'},'mountain nymph':{skin:'#e6cdae',dress:'#7a5a8a',hair:'#2a2018'}};
 
+// Mind flayers: a robed, high-collared caster with a bulbous cranium and a fringe of face tentacles.
+function mindFlayer(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
+ const skin=mat(o.skin,{roughness:.55}),robe=mat(o.robe,{roughness:.85}),trim=mat(shade(o.robe,.55),{roughness:.8});
+ for(const x of [-.1,.1]){const leg=new THREE.Group();leg.position.set(x,.36,0);body.add(leg);rounded(leg,.12,.3,.12,trim,0,-.14,0,.03);rounded(leg,.15,.08,.22,M.leather,0,-.32,.04,.03);legs.push(leg);}
+ cylinder(body,.2,.3,.56,robe,0,.4,0,12);rounded(body,.38,.36,.26,robe,0,.8,0,.07);
+ const collar=cylinder(body,.27,.19,.24,trim,0,1.03,-.07,10);collar.rotation.x=-.25;
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.24,.93,0);body.add(arm);rounded(arm,.1,.36,.11,robe,0,-.17,0,.03);for(const f of [-.02,.02])cone(arm,.014,.12,skin,f,-.39,.02,4).rotation.x=Math.PI;arm.rotation.z=side*.14;arm.rotation.x=-.2;}
+ sphere(body,.17,skin,0,1.1,.02,.9,1,.9);sphere(body,.21,skin,0,1.25,-.05,1,.95,1.1);
+ eyes(body,o.eye,1.13,.14,.075);
+ const mouth=new THREE.Group();mouth.position.set(0,1.04,.14);body.add(mouth);
+ for(let i=0;i<4;i++){const x=(i-1.5)*.04,sway=(i-1.5)*.03;tube(mouth,[[x,0,0],[x+sway,-.08,.04],[x-sway,-.17,.03],[x+sway*.5,-.24,.06]],.016,skin,10);}
+ if(o.circlet){const band=part(body,new THREE.TorusGeometry(.185,.018,6,20),M.gold,0,1.27,-.04);band.rotation.x=Math.PI/2-.1;sphere(body,.03,o.eye,0,1.29,.15);}
+ return actor(g,body,legs,mouth);
+}
+const MIND_FLAYERS={'mind flayer':{skin:'#a07aa8',robe:'#3a2a52',eye:M.deadEye},'master mind flayer':{skin:'#b088c0',robe:'#4a1f4a',eye:M.eye,circlet:true,scale:1.1}};
+
 // Generic guardian, kept as the last resort but tinted by the monster's glyph colour.
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
 
@@ -546,6 +563,7 @@ export function createCreature(cell={}){
  if(CENTAURS[name])return centaur(CENTAURS[name]);
  if(GIANTS[name])return giant(GIANTS[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
+ if(MIND_FLAYERS[name])return mindFlayer(MIND_FLAYERS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
