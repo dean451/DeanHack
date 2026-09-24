@@ -7,6 +7,7 @@ import {meleeDirection,confirmsPlayerMelee,poseMelee} from './combat-visuals.js'
 import {createHeldWeapon} from './equipment.js';
 import {createCentaurStatue,createOracle,createLiveFountain} from './oracle-visuals.js';
 import {createAltar} from './altar.js';
+import {createThrone} from './throne.js';
 import {createTree} from './tree.js';
 import {createStairs} from './stairs.js';
 import {createFire} from './fire.js';
@@ -43,7 +44,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      if(!cell.visible||(cell.x===frame.player.x&&cell.z===frame.player.z&&cell.kind!=='object'))continue;
      if(cell.kind==='pet')pets.push(cell.name);
      else if(cell.kind==='monster'&&!names.has(cell.name)){names.add(cell.name);seenItems.push({name:cell.name,tone:cell.peaceful?'gold':'orange'});}
-     else if(['fountain','altar','up','down'].includes(cell.terrain)&&!names.has(cell.terrain)){names.add(cell.terrain);seenItems.push({name:{fountain:'Fountain',altar:'Altar',up:'Stairs up',down:'Stairs down'}[cell.terrain],tone:'cyan'});}
+     else if(['fountain','altar','throne','up','down'].includes(cell.terrain)&&!names.has(cell.terrain)){names.add(cell.terrain);seenItems.push({name:{fountain:'Fountain',altar:'Altar',throne:'Throne',up:'Stairs up',down:'Stairs down'}[cell.terrain],tone:'cyan'});}
    }
    $('#engine-seen').innerHTML=seenItems.length?seenItems.slice(0,5).map(({name,tone})=>`<div><i class="${tone}"></i> ${esc(name)}</div>`).join(''):'<div class="quiet">Nothing stirs in view</div>';
    $('.companion').innerHTML=pets.length?`<span class="dot"></span> ${esc(pets[0])}${pets.length>1?` +${pets.length-1}`:''}<small>YOUR COMPANION · UNNETHACK</small>`:'<span class="dot faded"></span> Alone<small>NO COMPANION IN SIGHT</small>';
@@ -169,6 +170,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
        if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=cell.terrain;floorKit.dress(box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0),tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
          if(cell.terrain==='feature'){const s=label(String.fromCharCode(cell.symbol));s.position.y=.35;tile.add(s);}
          if(cell.terrain==='altar')tile.add(createAltar());
+         if(cell.terrain==='throne')tile.add(createThrone());
          if(cell.terrain==='tree')tile.add(createTree(cell.x*97+cell.z));
          if(cell.terrain==='bars'){
           const grate=new THREE.Group();grate.name='Iron bars';tile.add(grate);tile.userData.grate=grate;
