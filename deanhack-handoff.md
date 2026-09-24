@@ -608,3 +608,11 @@ Open concerns: live.js still puts a floating "long worm tail" label over every s
 ## 2026-09-23 CDT — Claude — claimed (CLAUDE.md auto-merge rule)
 Plan: add to CLAUDE.md "Before finishing a task" step 2 that after opening a PR Claude runs `gh pr merge <n> --auto --squash` and confirms with `gh pr view <n> --json autoMergeRequest`. Docs only; branch `claude/auto-merge-rule` in `/Users/dpalm/Desktop/deanhack-claude` from `origin/master` (`11363de9`).
 Files: CLAUDE.md only.
+
+## 2026-09-23 CDT — Claude — finished (CLAUDE.md auto-merge rule)
+Branch/worktree: `claude/auto-merge-rule` in `/Users/dpalm/Desktop/deanhack-claude`, from `origin/master` (`11363de9`).
+Did: CLAUDE.md "Before finishing a task" step 2 now says to run `gh pr merge <number> --auto --squash` after opening a PR and confirm with `gh pr view <number> --json autoMergeRequest`. The master ruleset waits for the linux, macos and "Prototype tests and build" checks.
+Files: CLAUDE.md (+1 line).
+Checks: `git diff --check`. It only changes docs, so I skipped npm test/build and the browser check.
+Commit: `e11a0d0b`, pushed. PR https://github.com/dean451/DeanHack/pull/28 is open, and squash auto-merge is on and confirmed (`mergeMethod: SQUASH`).
+Open concerns: while this task was running, another session switched `/Users/dpalm/Desktop/deanhack-claude` to `claude/handoff-log-sep23` and committed `0e1c6b5b` there. That's why CLAUDE.md on disk in that checkout no longer shows this change. My branch is unaffected. Two sessions shouldn't share that checkout at the same time.
