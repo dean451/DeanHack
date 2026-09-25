@@ -1123,6 +1123,84 @@ function trapper(o){
 }
 const TRAPPERS={'lurker above':{hide:'#4a4452',eye:'#c8e040',scale:.9},trapper:{hide:'#6a6f5e',eye:'#ff8a3a',scale:1}};
 
+// Sea monsters (;): wet, glossy swimmers. Fish and eels hang their back half on the actor tail. That group is tipped
+// over (rotation.x=-PI/2) so that live.js's tail swing (rotation.z) becomes a side-to-side sweep. Inside it, local +y points
+// backwards and local +z points up. Jellyfish trail their tentacles from the swaying tail. Krakens spread their arms as leg pivots.
+function finShape(parent,pts,material,x=0,y=0,z=0){const s=new THREE.Shape();s.moveTo(...pts[0]);for(const p of pts.slice(1))s.lineTo(...p);return part(parent,new THREE.ShapeGeometry(s),material,x,y,z);}
+function seaMonster(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const skin=mat(o.color,{roughness:.35,metalness:.05}),belly=mat(o.belly||shade(o.color,1.6),{roughness:.4}),dark=mat(shade(o.color,.55),{roughness:.4}),
+  fin=mat(o.fin||shade(o.color,.8),{roughness:.45,side:THREE.DoubleSide}),eye=mat(o.eye||'#e8d860',{emissive:o.eye||'#e8d860',emissiveIntensity:.9,roughness:.2}),
+  pupil=mat('#0a0a0c',{roughness:.2}),tooth=mat('#ece6d2',{roughness:.35}),mouth=mat('#2a0c10',{roughness:1});
+ const swingTail=(z,y)=>{const t=new THREE.Group();t.position.set(0,y,z);t.rotation.x=-Math.PI/2;body.add(t);return t;};
+ if(o.form==='jelly'){
+  const glass=mat(o.color,{roughness:.15,transparent:true,opacity:.62,emissive:o.color,emissiveIntensity:.35,side:THREE.DoubleSide}),
+   rim=mat(shade(o.color,1.3),{emissive:o.color,emissiveIntensity:.8,roughness:.2});
+  lathe(body,[[0,.72],[.1,.71],[.18,.67],[.23,.6],[.25,.53],[.24,.5]],glass);
+  sphere(body,.1,rim,0,.6,0,1,.55,1);
+  for(let i=0;i<16;i++){const a=i/16*Math.PI*2;sphere(body,.022,rim,Math.sin(a)*.24,.5,Math.cos(a)*.24,1,.6,1);}
+  const tail=new THREE.Group();tail.position.y=.52;body.add(tail);
+  for(let i=0;i<10;i++){const a=i/10*Math.PI*2+.2,r=.2,pts=[];for(let k=0;k<=5;k++){const t=k/5;pts.push([Math.sin(a)*r*(1-t*.3)+Math.sin(t*6+i)*.03,-t*.46,Math.cos(a)*r*(1-t*.3)+Math.cos(t*6+i)*.03]);}tube(tail,pts,.006,glass,12);}
+  for(let i=0;i<4;i++){const a=i/4*Math.PI*2+.8,pts=[];for(let k=0;k<=6;k++){const t=k/6;pts.push([Math.sin(a)*.05+Math.sin(t*9+i)*.035,-t*.36,Math.cos(a)*.05+Math.cos(t*9+i)*.035]);}tube(tail,pts,.022-.004*(i%2),rim,18);}
+  return actor(g,body,[],tail,[],'hover');
+ }
+ if(o.form==='kraken'){
+  // a tall, backward-tilted squid mantle with a lateral fin, great round eyes, a ring of curling arms and two long clubbed tentacles
+  const mantle=lathe(body,[[0,0],[.14,.03],[.2,.14],[.19,.3],[.14,.44],[.06,.54],[0,.57]],skin,0,.22,-.08);mantle.rotation.x=-.45;
+  for(const side of [-1,1]){const f=finShape(body,[[0,0],[.16,.1],[.02,.2]],fin,side*.12,.62,-.28);f.rotation.y=side>0?0:Math.PI;f.rotation.x=-.45;}
+  for(let i=0;i<7;i++){const a=i*2.3,r=.1+(i%3)*.04;sphere(body,.028,dark,Math.sin(a)*r*.9,.36+i*.035,.02-i*.035+Math.cos(a)*.05,1,.4,1);}
+  for(const side of [-1,1]){sphere(body,.07,eye,side*.14,.3,.1);sphere(body,.036,pupil,side*.175,.3,.14,.6,1.2,.6);}
+  sphere(body,.06,dark,0,.2,.14,1.2,.8,1);
+  const n=o.arms||8;
+  for(let i=0;i<n;i++){const a=i/n*Math.PI*2,arm=new THREE.Group();arm.position.set(Math.sin(a)*.08,.18,Math.cos(a)*.08+.04);arm.rotation.y=a;body.add(arm);
+   const pts=[];for(let k=0;k<=8;k++){const t=k/8,r=.02+t*.4,curl=t*t*2.2*(i%2?1:-1);pts.push([Math.sin(curl)*r*.4,.02-t*.17+Math.max(0,t-.75)*.5,r*Math.cos(curl*.4)]);}
+   tube(arm,pts,.028,skin,20);for(let k=2;k<8;k+=2){const p=pts[k];sphere(arm,.012,belly,p[0],p[1]-.02,p[2],1,.5,1);}
+   legs.push(arm);}
+  for(const side of [-1,1]){const pts=[[side*.04,.2,.12],[side*.12,.3,.3],[side*.2,.42,.38],[side*.24,.5,.34]];tube(body,pts,.016,skin,16);sphere(body,.045,belly,side*.25,.52,.33,1,1.6,1);}
+  return actor(g,body,legs,null,[],'idle');
+ }
+ if(o.form==='eel'){
+  // a sinuous eel reared out of the water: the rear coils lie low (on the tail, so they sweep), the front rises in an S to a gaping head
+  const front=[[0,.06,-.05],[0,.12,.02],[.04,.26,.06],[0,.38,.08],[-.02,.44,.14]];
+  tube(body,front,.05,skin,24);
+  const tail=swingTail(-.05,.06),rear=[[0,0,0],[.12,.06,-.01],[.2,.2,-.02],[.08,.34,-.03],[-.12,.36,-.04],[-.2,.24,-.045],[-.16,.12,-.05]];
+  const taper=(pts,r0)=>{for(let i=0;i<pts.length-1;i++)segment(tail,pts[i],pts[i+1],r0*(1-i/pts.length*.8),r0*(1-(i+1)/pts.length*.8),skin);for(let i=1;i<pts.length-1;i++)sphere(tail,r0*(1-i/pts.length*.8),skin,...pts[i]);};
+  taper(rear,.05);
+  for(let i=1;i<rear.length;i++){const p=rear[i],f=cone(tail,.012,.06,fin,p[0],p[1],p[2]+.05,4);f.rotation.x=Math.PI/2;}
+  for(let i=0;i<front.length-1;i++){const p=front[i];const f=cone(body,.01,.05,fin,p[0],p[1]+.04,p[2]-.03,4);f.rotation.x=-.4;}
+  const head=new THREE.Group();head.position.set(-.02,.46,.17);head.rotation.x=.25;body.add(head);
+  sphere(head,.06,skin,0,.01,.04,1,.8,1.7);sphere(head,.045,belly,0,-.03,.05,1,.45,1.6);
+  const jaw=sphere(head,.04,skin,0,-.045,.07,1,.4,1.6);jaw.rotation.x=.3;
+  part(head,new THREE.CircleGeometry(.035,12),mouth,0,-.02,.135).scale.set(1,.6,1);
+  for(let k=0;k<6;k++){const x=(k-2.5)*.012;cone(head,.005,.018,tooth,x,-.005,.125,4).rotation.x=Math.PI;cone(head,.005,.016,tooth,x,-.04,.12,4);}
+  for(const side of [-1,1]){sphere(head,.015,eye,side*.045,.03,.09);sphere(head,.007,pupil,side*.055,.035,.1);}
+  if(o.spark){const glow=mat(o.spark,{emissive:o.spark,emissiveIntensity:2.4,roughness:.3});for(const p of rear.slice(1))sphere(tail,.014,glow,p[0]+.03,p[1],p[2]+.03);for(const p of front.slice(1,4))sphere(body,.014,glow,p[0]+.035,p[1],p[2]+.02);}
+  return actor(g,body,[],tail,[],'snake');
+ }
+ // fish: a tapered torpedo (shark) or a deep, blunt body with an underbite (piranha), side eyes, dorsal and pectoral fins,
+ // and the back third plus the caudal fin on the swinging tail
+ const L=o.length||.42,H=o.depth||.13,y=o.swim||.32;
+ sphere(body,H,skin,0,y,.02,.8,1,L/H*.62);
+ const under=sphere(body,H*.92,belly,0,y-H*.28,.04,.74,.62,L/H*.58);
+ const tail=swingTail(-L*.5,y);
+ cone(tail,H*.62,L*.6,skin,0,L*.3,0,14).scale.set(.8,1,1);
+ finShape(tail,[[0,L*.5],[H*1.5,L*.8],[H*.4,L*.66],[-H*1.2,L*.8]],fin).rotation.y=-Math.PI/2;
+ const dorsal=finShape(body,[[-L*.12,0],[L*.02,H*(o.dorsal||1.4)],[L*.16,0]],fin,0,y+H*.85,-L*.08);dorsal.rotation.y=-Math.PI/2;
+ for(const side of [-1,1]){const p=finShape(body,[[0,0],[H*1.2,-H*.4],[H*.5,.02]],fin,side*H*.7,y-H*.35,L*.12);p.rotation.set(-Math.PI/2+.2,0,side>0?-.25:Math.PI+.25);}
+ for(const side of [-1,1]){sphere(body,H*.18,eye,side*H*.72,y+H*.25,L*.62);sphere(body,H*.09,pupil,side*H*.82,y+H*.27,L*.66);}
+ if(o.gills)for(const side of [-1,1])for(let k=0;k<5;k++){const s=part(body,new THREE.BoxGeometry(.004,H*.7,.01),dark,side*H*.79,y,L*.36-k*.035);s.rotation.z=side*.1;}
+ // mouth: a dark slit under the snout lined with teeth; a piranha's jaw juts forward
+ const jawZ=L*(o.underbite?.8:.66),jawY=y-H*(o.underbite?.35:.5);
+ const slit=part(body,new THREE.TorusGeometry(H*.42,H*.1,6,14,Math.PI),mouth,0,jawY,jawZ-H*.25);slit.rotation.x=Math.PI/2;slit.rotation.z=Math.PI;
+ for(let k=0;k<9;k++){const a=Math.PI*(k+.5)/9,t=cone(body,H*.06,H*.2,tooth,Math.cos(a)*H*.42,jawY+H*.05,jawZ-H*.25+Math.sin(a)*H*.42,4);t.rotation.x=Math.PI;}
+ if(o.underbite)for(let k=0;k<7;k++){const a=Math.PI*(k+.5)/7;cone(body,H*.06,H*.22,tooth,Math.cos(a)*H*.38,jawY+H*.02,jawZ-H*.12+Math.sin(a)*H*.3,4);}
+ return actor(g,body,[],tail,[],'hover');
+}
+const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{form:'fish',color:'#8a8a94',belly:'#c83a2a',fin:'#6a5a5a',length:.26,depth:.13,underbite:true,dorsal:1,scale:.8},
+ shark:{form:'fish',color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c'},'giant eel':{form:'eel',color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040'},
+ 'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff'},kraken:{form:'kraken',color:'#8a3a3a',belly:'#e0a8a0',eye:'#f0c040',scale:1.1},
+ 'watcher in the water':{form:'kraken',color:'#4a5a52',belly:'#9aa89a',eye:'#b8ff90',arms:12,scale:1.2}};
+
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
 
 const SKIN={kobold:'#8a5a3a','large kobold':'#9a3f2f','kobold lord':'#7a3f70','kobold shaman':'#5070a8',homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
@@ -1163,6 +1241,7 @@ export function createCreature(cell={}){
  if(ANGELS[name])return angel(ANGELS[name]);
  if(JABBERWOCKS[name])return jabberwock(JABBERWOCKS[name]);
  if(TRAPPERS[name])return trapper(TRAPPERS[name]);
+ if(SEA_MONSTERS[name])return seaMonster(SEA_MONSTERS[name]);
  if(name==='couatl')return snake({color:'#3f9a6a',belly:'#e0c040',scale:1.2});
  if(name==='ki-rin')return unicorn();
  if(name==='floating eye')return floatingEye({});
@@ -1240,6 +1319,7 @@ export function createCreature(cell={}){
   case 'E':return elemental({kind:/fire/.test(name)?'fire':/earth/.test(name)?'earth':/water/.test(name)?'water':'air',color:c,eye:'#ffffff'});
   case 'J':return jabberwock({hide:c,belly:shade(c,1.4),eye:'#ffb030'});
   case 'A':return angel({robe:shade(c,1.2),trim:'#d8b04a',sword:true});
+  case ';':return seaMonster({form:'eel',color:c,eye:'#e0d040'});
   case 't':return trapper({hide:shade(c,.8),eye:'#e0c040'});
   case 'n':return nymph({skin:'#eec7a8',cloth:shade(c,.35),trim:c,hair:'#2a2018'});
   case "'":return golem(GOLEM_MATERIALS.stone);
