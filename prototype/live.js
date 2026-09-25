@@ -97,7 +97,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    const warm=new THREE.MeshStandardMaterial({color:kind==='corpse'?0x72534a:cls===POTION_CLASS?0x5bd0c7:cls===WEAPON_CLASS?0xd9b15e:0xc9a86b,emissive:kind==='corpse'?0x241314:0x362718,roughness:.42,metalness:cls===WEAPON_CLASS?.65:.18});
    const edge=new THREE.MeshStandardMaterial({color:kind==='corpse'?0xb9a189:0xe8d8aa,roughness:.55,metalness:cls===WEAPON_CLASS?.7:.25});
    const add=(geometry,material=warm,x=0,y=.34,z=0)=>{const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=true;icon.add(m);return m;};
-   const dedicated=kind==='corpse'||kind==='statue'?null:createGroundModel({...cell.object,name:itemName});
+   const dedicated=kind==='corpse'||kind==='statue'?null:createGroundModel({color:cell.color,...cell.object,name:itemName});
    if(dedicated){icon.add(dedicated);icon.userData.restingWeapon=true;icon.userData.dispose=()=>dedicated.userData.dispose();
    }else if((kind==='statue'||itemName==='statue')&&statueCreature&&creatureFactory){
      const sculpture=creatureFactory({name:statueCreature}).g;

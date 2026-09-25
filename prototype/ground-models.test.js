@@ -41,3 +41,23 @@ test('oil and magic lamps share a grounded, disposable model',()=>{
  }
  assert.equal(createGroundModel({name:'lamp',class:7}),null);
 });
+
+test('spellbooks are grounded, tinted by glyph colour only, and release resources',()=>{
+ const book=(name,color)=>createGroundModel({name,class:10,color});
+ const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray(),part.material.color.getHex()]);
+ const red=book('spellbook of force bolt',1);
+ assert(red);
+ assert.deepEqual(signature(book('spellbook of wishing',1)),signature(red),'the true spell name must not show');
+ assert.notDeepEqual(signature(book('spellbook of force bolt',4)),signature(red));
+ assert(book('spellbook of sleep'),'an uncoloured book still gets a cover');
+ const bounds=new THREE.Box3().setFromObject(red);
+ assert(bounds.min.y>=-1e-7);assert(bounds.max.y<.15);
+ assert(bounds.max.x-bounds.min.x<.6&&bounds.max.z-bounds.min.z<.7);
+ let disposed=0;
+ red.traverse(part=>{if(part.geometry){
+  for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+  part.geometry.addEventListener('dispose',()=>disposed++);
+ }});
+ red.userData.dispose();
+ assert.equal(disposed,red.children.length);
+});
