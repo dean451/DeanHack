@@ -61,3 +61,26 @@ test('spellbooks are grounded, tinted by glyph colour only, and release resource
  red.userData.dispose();
  assert.equal(disposed,red.children.length);
 });
+
+test('gems, gray stones and rocks are grounded, hide their identity, and release resources',()=>{
+ const stone=(name,appearance,color)=>createGroundModel({name,class:13,appearance,color});
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.type,...part.position.toArray(),part.material.color.getHex()]);});return out;};
+ const ruby=stone('ruby','red',1);
+ assert.deepEqual(signature(stone('worthless piece of red glass','red',1)),signature(ruby),'glass must match the real gem');
+ assert.notDeepEqual(signature(stone('sapphire','blue',4)),signature(ruby));
+ assert.deepEqual(signature(stone('luckstone','gray',7)),signature(stone('flint','gray',7)));
+ for(const model of [ruby,stone('diamond','white',15),stone('loadstone','gray',7),stone('rock',undefined,7),stone('small piece of unrefined mithril','silvery metal',6)]){
+  assert(model);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(bounds.min.y>=-1e-6,`grounded: ${bounds.min.y}`);assert(bounds.max.y<.25);
+  assert(bounds.max.x-bounds.min.x<.4&&bounds.max.z-bounds.min.z<.4);
+  let geometries=0,disposed=0;
+  model.traverse(part=>{if(part.geometry){
+   geometries++;
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+   part.geometry.addEventListener('dispose',()=>disposed++);
+  }});
+  model.userData.dispose();
+  assert.equal(disposed,geometries);
+ }
+});

@@ -5,6 +5,10 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
  0xa85a22,0x4f9a3e,0xb09a32,0x3a62c0,0xc0708a,0x4ab0b8,0xd8d2c0];
 
+// Gem tints by glyph colour; the appearance is shared by the real stone and its glass.
+const GEM_COLORS=[0x1d1a26,0xc4202f,0x2f9e55,0xb47a2a,0x2d58d4,0x8c40c4,0x2aa4ac,0x9a9c9e,undefined,
+ 0xe46c1c,0x55cf5a,0xecc62e,0x5a86f0,0xd46ad0,0x6ad8e0,0xe6eef2];
+
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
@@ -59,6 +63,43 @@ export function createGroundModel(item={}){
   const ribbon=box(.02,.002,d.length(),mat(0x8c1f24),(from.x+to.x)/2,(from.y+to.y)/2,(from.z+to.z)/2);
   ribbon.rotation.set(Math.atan2(-d.y,Math.hypot(d.x,d.z)),Math.atan2(d.x,d.z),0,'YXZ');
   g.rotation.y=.3;
+ }else if(cls===13){
+  // Gems, glass, gray stones and rocks. The name is the true identity, so the look comes
+  // only from the shuffled appearance and the glyph colour: a ruby and red glass match.
+  const look=(item.appearance||'').toLowerCase();
+  const chip=(r,m,x,y,z,s,ry)=>{const p=add(new THREE.DodecahedronGeometry(r,0),m,x,y,z);p.scale.set(...s);p.rotation.set(.4,ry,.25);
+   p.updateMatrixWorld();p.position.y-=new THREE.Box3().setFromObject(p).min.y;return p;};
+  if(!look){
+   // Rocks: a small spill of angular rubble.
+   const stone=mat(0x6c6862),light=mat(0x8a8378);
+   chip(.075,stone,-.05,.045,.02,[1,.6,.85],.3);chip(.055,light,.07,.034,-.04,[1,.62,.9],1.1);
+   chip(.045,stone,.03,.028,.09,[1,.62,.8],2);chip(.032,light,-.1,.02,-.08,[1,.62,1],.7);
+  }else if(/gray/.test(look)){
+   // Gray stones share one smooth river pebble with a pale vein, so luck and load stay hidden.
+   const pebble=mat(0x77797a),vein=mat(0xb6b3aa);
+   ball(.1,pebble,0,.042,0,[1.25,.42,.9]).rotation.y=.5;
+   const band=add(new THREE.TorusGeometry(.09,.006,6,28),vein,0,.042,0);band.rotation.set(Math.PI/2,0,.5);band.scale.set(1.24,.9,1);
+  }else if(/metal/.test(look)){
+   // Unrefined mithril: a lumpy silvery nugget.
+   const ore=mat(0xc8d0d6,.85);
+   chip(.07,ore,0,.045,0,[1.2,.65,.9],.4);chip(.04,ore,.07,.03,.03,[1,.7,1],1.3);chip(.035,ore,-.065,.028,-.03,[1,.7,1],2.2);
+  }else{
+   // A cut gem lying tipped on its pavilion, with a glint on the table.
+   const tint=new THREE.Color(GEM_COLORS[item.color]??0xd8e4ea);
+   const facet=new THREE.MeshStandardMaterial({color:tint,metalness:.15,roughness:.08,flatShading:true,transparent:true,opacity:.86,emissive:tint,emissiveIntensity:.18});
+   const glint=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.75,depthWrite:false});
+   materials.push(facet,glint);
+   const gem=new THREE.Group();gem.position.set(0,.052,0);gem.rotation.set(.74,.35,0);g.add(gem);
+   const part=(geo,m,y)=>{const p=new THREE.Mesh(geo,m);p.position.y=y;p.castShadow=p.receiveShadow=true;gem.add(p);return p;};
+   part(new THREE.CylinderGeometry(.052,.082,.036,8),facet,.018);
+   part(new THREE.CylinderGeometry(.082,.082,.008,8),facet,-.004);
+   part(new THREE.ConeGeometry(.082,.075,8),facet,-.0455).rotation.x=Math.PI;
+   const sparkle=part(new THREE.OctahedronGeometry(.018,0),glint,.04);sparkle.scale.set(1,.2,1);
+   // A soft coloured spill of light on the floor beside it.
+   const pool=add(new THREE.CircleGeometry(.12,20),new THREE.MeshBasicMaterial({color:tint,transparent:true,opacity:.18,depthWrite:false}),.035,.002,.03);
+   pool.rotation.x=-Math.PI/2;materials.push(pool.material);
+   gem.updateMatrixWorld(true);gem.position.y-=new THREE.Box3().setFromObject(gem).min.y;
+  }
  }else if(cls===6&&/\b(?:oil lamp|magic lamp|lamp)\b/.test(name)){
   // Oil and magic lamps deliberately share their unidentified appearance.
   const soot=mat(0x302b23);
