@@ -10,6 +10,7 @@ import {createAltar} from './altar.js';
 import {createThrone} from './throne.js';
 import {createSink} from './sink.js';
 import {createGrave} from './grave.js';
+import {createTrap,trapKind} from './trap.js';
 import {createTree} from './tree.js';
 import {createStairs} from './stairs.js';
 import {createFire} from './fire.js';
@@ -157,6 +158,16 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    }
    const caption=label(kind==='corpse'?`corpse of ${cell.name||'creature'}`:groundItemCaption(cell),'#d7c8a7');caption.scale.set(1.2,.22,1);caption.position.y=1.05;icon.add(caption);const extraDispose=icon.userData.dispose;icon.userData.dispose=()=>{warm.dispose();edge.dispose();extraDispose?.();};return icon;
  }
+ // Traps get a model once their own symbol is showing (a monster or item on top hides it);
+ // other features keep the symbol label.
+ function dressFeature(tile,cell){
+  const kind=trapKind(cell.symbol,cell.color),key=kind||(tile.userData.featureKey?null:'label');
+  if(!key||key===tile.userData.featureKey)return;
+  if(tile.userData.feature){tile.userData.feature.traverse(o=>o.userData.dispose?.());tile.remove(tile.userData.feature);}
+  const model=kind?createTrap(kind,cell.x*53+cell.z*29):label(String.fromCharCode(cell.symbol));
+  if(!kind)model.position.y=.35;
+  tile.add(model);tile.userData.feature=model;tile.userData.featureKey=key;
+ }
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
  const hero=playerFactory();hero.setWeapon?.(null);group.add(hero.g);
  function apply(frame){latest=frame;if(!active)return;
@@ -171,7 +182,6 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      if(cell.terrain!=='unknown'){
        seen.add(id);let tile=tiles.get(id);if(tile&&tile.userData.type!==cell.terrain){release(tile);tiles.delete(id);tile=null;}
        if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=cell.terrain;const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);floorKit.dress(slab,tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
-         if(cell.terrain==='feature'){const s=label(String.fromCharCode(cell.symbol));s.position.y=.35;tile.add(s);}
          if(cell.terrain==='altar')tile.add(createAltar());
          if(cell.terrain==='throne')tile.add(createThrone());
          if(cell.terrain==='sink')tile.add(createSink());
@@ -197,7 +207,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
          if(cell.terrain==='up'||cell.terrain==='down'){tile.add(createStairs(cell.terrain,cell.x*131+cell.z));tile.add(label(cell.terrain==='up'?'↑ stone stairs':'↓ stone stairs'));}
          if(['water','lava'].includes(cell.terrain)){slab.visible=false;const liquid=createLiquid(cell.terrain,cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
          group.add(tile);tiles.set(id,tile);
-       }tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
+       }if(cell.terrain==='feature')dressFeature(tile,cell);tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
        if(tile.userData.grate){
         const connected=(dx,dz)=>frame.cells.some(c=>c.x===cell.x+dx&&c.z===cell.z+dz&&['wall','bars','door'].includes(c.terrain));
         const horizontal=Number(connected(-1,0))+Number(connected(1,0)),vertical=Number(connected(0,-1))+Number(connected(0,1));
