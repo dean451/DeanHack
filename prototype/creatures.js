@@ -1078,6 +1078,54 @@ function kop(o){
  tube(hat,[[-.11,.0,.02],[-.06,-.12,.07],[.06,-.12,.07],[.11,.0,.02]],.005,boot,12);
  return actor(g,body,legs,club,[],'guard');
 }
+// Quantum mechanic: a stooped scientist in a long white lab coat over a coloured shirt and tie, with a shock of
+// white hair, round wire spectacles, Schrödinger's box tucked under one arm and a glowing atom held aloft in the
+// other hand, its electrons on three tilted orbits. The atom is the 'tail' group, so live.js wobbles it.
+function quantumMechanic(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1.1);const legs=[];
+ const box=(p,w,h,d,m,x,y,z)=>part(p,new THREE.BoxGeometry(w,h,d),m,x,y,z);
+ const coat=mat('#e8e6de',{roughness:.75}),coatShade=mat('#c4c2ba',{roughness:.8}),shirt=mat(o.shirt,{roughness:.8}),tie=mat(shade(o.shirt,.45),{roughness:.7}),
+  trousers=mat('#2e2c32',{roughness:.9}),shoe=mat('#1a1614',{roughness:.45}),skin=mat('#e2b898',{roughness:.8}),hair=mat('#eeeeea',{roughness:1}),
+  wire=mat('#b8b8b0',{metalness:.85,roughness:.25}),lens=mat(o.glow,{emissive:o.glow,emissiveIntensity:.5,transparent:true,opacity:.55,roughness:.1}),
+  wood=mat('#7a5634',{roughness:.85}),glow=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.2,roughness:.3}),orbit=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.2,transparent:true,opacity:.7,roughness:.3}),
+  pen=mat('#2a4a9a',{roughness:.5});
+ // legs: thin dark trousers and plain lace-up shoes
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.065,.32,0);body.add(leg);
+  segment(leg,[0,0,0],[0,-.27,0],.04,.036,trousers);rounded(leg,.07,.045,.15,shoe,0,-.29,.03,.02);legs.push(leg);}
+ // lab coat: long, open at the front and flaring below the knee, over a shirt, a tie and a pocket full of pens
+ lathe(body,[[.0,.2],[.15,.2],[.145,.3],[.14,.42],[.135,.52],[.12,.6],[.0,.63]],coat,0,0,0,Math.PI*.12,Math.PI*1.76);
+ lathe(body,[[.12,.24],[.12,.6]],coatShade,0,0,-.004,-Math.PI*.12,Math.PI*.24);
+ box(body,.13,.3,.05,shirt,0,.47,.1);box(body,.035,.2,.012,tie,0,.5,.128);cone(body,.022,.05,tie,0,.385,.128,4).rotation.x=Math.PI;
+ for(const side of [-1,1]){const lapel=box(body,.035,.13,.015,coatShade,side*.055,.55,.125);lapel.rotation.set(-.15,0,side*.3);}
+ box(body,.06,.06,.012,coatShade,-.08,.5,.13);for(const [x,m] of [[-.095,pen],[-.08,M.redCloth],[-.065,wire]])cylinder(body,.005,.005,.05,m,x,.54,.133,6);
+ // arms: the left clutches the box against the hip; the right is raised to hold the atom up for inspection
+ const lShoulder=[-.14,.57,0],lElbow=[-.2,.44,.02],lHand=[-.16,.36,.1];
+ sphere(body,.048,coat,...lShoulder);segment(body,lShoulder,lElbow,.042,.038,coat);segment(body,lElbow,lHand,.038,.034,coat);sphere(body,.03,skin,...lHand);
+ const rShoulder=[.14,.57,0],rElbow=[.24,.6,.06],rHand=[.22,.76,.12];
+ sphere(body,.048,coat,...rShoulder);segment(body,rShoulder,rElbow,.042,.038,coat);segment(body,rElbow,rHand,.038,.034,coat);sphere(body,.03,skin,...rHand);
+ // Schrödinger's box: a wooden crate with a latched lid and a faint glow leaking from the seam
+ const crate=new THREE.Group();crate.position.set(-.2,.36,.07);crate.rotation.y=.35;body.add(crate);
+ rounded(crate,.14,.11,.12,wood,0,0,0,.01);box(crate,.145,.012,.125,glow,0,.04,0);rounded(crate,.15,.02,.13,wood,0,.056,0,.006);
+ box(crate,.02,.03,.008,wire,0,.035,.064);for(const x of [-.05,.05])box(crate,.012,.1,.004,mat('#5a3e24',{roughness:.9}),x,0,.061);
+ // atom: a glowing nucleus inside three tilted electron orbits, each carrying a bright electron
+ const atom=new THREE.Group();atom.position.set(rHand[0],rHand[1]+.1,rHand[2]);body.add(atom);
+ sphere(atom,.03,glow);for(const [x,y,z] of [[.018,.01,0],[-.012,.016,.012],[0,-.016,-.014]])sphere(atom,.017,mat(shade(o.glow,.7),{roughness:.4}),x,y,z);
+ for(let i=0;i<3;i++){const ring=new THREE.Group();ring.rotation.set(Math.PI/2+(i-1)*1.05,i*.6,0);atom.add(ring);
+  part(ring,new THREE.TorusGeometry(.085,.0035,6,32),orbit);const a=i*2.1;sphere(ring,.012,glow,Math.cos(a)*.085,Math.sin(a)*.085,0);}
+ // head: long, thin face, big nose, round wire spectacles with faintly glowing lenses and a wild white mop of hair
+ const headY=.73;sphere(body,.095,skin,0,headY,.01,.95,1.1,1);sphere(body,.022,skin,0,headY-.01,.1,.9,1.1,1.1);
+ for(const side of [-1,1]){part(body,new THREE.TorusGeometry(.027,.004,6,16),wire,side*.038,headY+.018,.09);
+  part(body,new THREE.CircleGeometry(.025,16),lens,side*.038,headY+.018,.091);sphere(body,.009,shoe,side*.038,headY+.018,.086);
+  segment(body,[side*.065,headY+.02,.085],[side*.092,headY+.02,-.01],.003,.003,wire);sphere(body,.024,skin,side*.094,headY,.0,.5,1,.8);
+  const brow=box(body,.035,.01,.012,hair,side*.04,headY+.055,.09);brow.rotation.z=-side*.25;}
+ segment(body,[-.011,headY+.018,.095],[.011,headY+.018,.095],.003,.003,wire);
+ const mouth=box(body,.04,.008,.01,mat('#8a4a40',{roughness:.9}),0,headY-.055,.092);mouth.rotation.z=.12;
+ sphere(body,.1,hair,0,headY+.045,-.025,1.05,.75,1.05);
+ for(let i=0;i<11;i++){const a=i/11*Math.PI*2,tilt=i%2?.85:1.25;const tuft=cone(body,.035,.11,hair,Math.sin(a)*.09,headY+.06+(i%3)*.012,Math.cos(a)*.08-.035,5);
+  tuft.rotation.set(Math.cos(a)*tilt,0,-Math.sin(a)*tilt);}
+ return actor(g,body,legs,atom,[],'idle');
+}
+const QUANTUM_MECHANICS={'quantum mechanic':{shirt:'#3a9aa8',glow:'#5ae0ff'},'genetic engineer':{shirt:'#3f8a3a',glow:'#7aff6a'}};
 const KOPS={'keystone kop':{coat:'#2f3f8a'},'kop sergeant':{coat:'#2a3a82',rank:1,scale:1.15},'kop lieutenant':{coat:'#2a5f86',rank:2,scale:1.18,tache:'#5a3a22'},'kop kaptain':{coat:'#5a2a72',rank:3,scale:1.22,tache:'#8a8478'}};
 
 // Elementals: one torso-and-arms spirit built from its element. Air, fire and water
@@ -1471,6 +1519,7 @@ export function createCreature(cell={}){
  if(ZRUTIES[name])return zruty(ZRUTIES[name]);
  if(LEPRECHAUNS[name])return leprechaun(LEPRECHAUNS[name]);
  if(KOPS[name])return kop(KOPS[name]);
+ if(QUANTUM_MECHANICS[name])return quantumMechanic(QUANTUM_MECHANICS[name]);
  if(ELEMENTALS[name])return elemental(ELEMENTALS[name]);
  if(ANGELS[name])return angel(ANGELS[name]);
  if(JABBERWOCKS[name])return jabberwock(JABBERWOCKS[name]);
@@ -1554,6 +1603,7 @@ export function createCreature(cell={}){
   case 'U':return umberHulk({color:shade(c,.7),eye:'#d8a040'});
   case 'l':return leprechaun({coat:c});
   case 'K':return kop({coat:shade(c,.7)});
+  case 'Q':return quantumMechanic({shirt:shade(c,.8),glow:c});
   case 'z':return zruty({fur:shade(c,.8),eye:'#e8a030'});
   case 'E':return elemental({kind:/fire/.test(name)?'fire':/earth/.test(name)?'earth':/water/.test(name)?'water':'air',color:c,eye:'#ffffff'});
   case 'J':return jabberwock({hide:c,belly:shade(c,1.4),eye:'#ffb030'});
