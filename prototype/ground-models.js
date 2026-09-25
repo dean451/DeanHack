@@ -9,6 +9,9 @@ const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x
 const GEM_COLORS=[0x1d1a26,0xc4202f,0x2f9e55,0xb47a2a,0x2d58d4,0x8c40c4,0x2aa4ac,0x9a9c9e,undefined,
  0xe46c1c,0x55cf5a,0xecc62e,0x5a86f0,0xd46ad0,0x6ad8e0,0xe6eef2];
 
+// Food kinds with their own model; rations (including cram) keep the bundle below.
+const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune cookie|meatball|meat stick|chunk|meat ring|garlic|royal jelly|cream pie|candy bar|pancake|kelp frond|slime mold)(?:e?s)?\b/;
+
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
@@ -192,6 +195,85 @@ export function createGroundModel(item={}){
    for(const side of [-1,1]){const loop=add(new THREE.TorusGeometry(.025,.006,6,16),leather,side*.024,.153,0);loop.rotation.x=Math.PI/2;loop.scale.z=.6;}
    ball(.014,leather,0,.155,0);
   }
+ }else if(cls===7&&FOOD_KIND.test(name)){
+  // Everyday food: small, grounded, and shaped by kind. Food names are never shuffled.
+  const kind=name.match(FOOD_KIND)[1];
+  const lie=(r0,r1,len,m,x,y,z,ry=0,seg=12)=>{const p=add(new THREE.CylinderGeometry(r0,r1,len,seg),m,x,y,z);p.rotation.set(0,ry,Math.PI/2);return p;};
+  const stalk=mat(0x4a3322),leaf=mat(0x4f8a3a);
+  if(kind==='apple'||kind==='orange'||kind==='pear'){
+   const skin=mat(kind==='apple'?0xb3261e:kind==='orange'?0xe07a18:0xb7b848);
+   if(kind==='pear'){ball(.075,skin,0,.075,0,[1,.95,1]);ball(.05,skin,0,.15,0);}
+   else ball(.085,skin,0,.08,0,[1,.9,1]);
+   const top=kind==='pear'?.2:kind==='apple'?.155:.16;
+   if(kind==='orange')ball(.014,leaf,0,top,0,[1,.4,1]);
+   else{const s=add(new THREE.CylinderGeometry(.005,.007,.05,6),stalk,.004,top+.015,0);s.rotation.z=-.25;
+    const l=ball(.03,leaf,.03,top+.02,0,[1,.12,.45]);l.rotation.z=.4;}
+  }else if(kind==='melon'){
+   const rind=mat(0x3f7a33),stripe=mat(0x2a5424);
+   ball(.14,rind,0,.105,0,[1.25,.78,1]);
+   // Thin meridian slivers in the melon's own squashed frame read as stripes.
+   const shell=new THREE.Group();shell.position.y=.105;shell.scale.set(1.25,.78,1);g.add(shell);
+   for(let i=0;i<6;i++){const band=new THREE.Mesh(new THREE.SphereGeometry(.1425,20,12),stripe);band.scale.set(.05,1,1);band.rotation.y=i*Math.PI/6;band.castShadow=true;shell.add(band);}
+  }else if(kind==='banana'){
+   const peel=mat(0xe3c63a),tip=mat(0x4a3322);
+   const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(-.16,.06,0),new THREE.Vector3(0,.02,.09),new THREE.Vector3(.16,.06,0));
+   add(new THREE.TubeGeometry(curve,20,.03,8,false),peel);
+   ball(.018,tip,.162,.061,0);lie(.008,.016,.04,tip,-.18,.066,0);
+  }else if(kind==='carrot'){
+   const root=mat(0xe06a1c);
+   lie(.035,.004,.3,root,.02,.036,0,0,10).rotation.z=-Math.PI/2;
+   for(let i=0;i<3;i++){const f=ball(.06,leaf,-.17,.03+i*.008,(i-1)*.03,[1,.1,.3]);f.rotation.y=(i-1)*.45;}
+  }else if(kind==='egg'){
+   ball(.045,mat(0xeee6d4),0,.045,0,[.95,1,1.3]).rotation.x=Math.PI/2;
+  }else if(kind==='tin'){
+   const can=mat(0xa3adb0,.7);
+   add(new THREE.CylinderGeometry(.075,.075,.1,24),can,0,.05);
+   for(const y of [.006,.094])add(new THREE.TorusGeometry(.074,.006,6,24),can,0,y).rotation.x=Math.PI/2;
+   for(const y of [.035,.065])add(new THREE.TorusGeometry(.076,.003,5,24),can,0,y).rotation.x=Math.PI/2;
+  }else if(kind==='lembas'){
+   const wafer=mat(0xe7dcb4),wrap=mat(0x5e8b43);
+   add(new RoundedBoxGeometry(.2,.025,.14,2,.01),wafer,0,.0125);
+   const l=ball(.13,wrap,-.03,.02,0,[1,.12,.62]);l.rotation.y=.25;
+   box(.012,.004,.16,mat(0x8a6b3a),.03,.034);
+  }else if(kind==='fortune cookie'){
+   const c=add(new THREE.TorusGeometry(.045,.025,8,16,Math.PI*1.4),mat(0xd09a4c),0,.035,0);c.rotation.x=-Math.PI/2;c.scale.set(1,.8,1);
+   box(.05,.001,.012,mat(0xf2eee2),.05,.03,.02).rotation.y=.4;
+  }else if(kind==='meatball'){
+   ball(.055,mat(0x6e3a26),0,.05,0,[1,.9,1]);
+  }else if(kind==='meat stick'){
+   lie(.02,.02,.26,mat(0x7a3420),0,.02,0,.4,10);
+  }else if(kind==='chunk'||kind==='meat ring'){
+   const raw=mat(0x9c3c30),fat=mat(0xe2c8b0);
+   if(kind==='meat ring'){add(new THREE.TorusGeometry(.07,.03,8,20),raw,0,.03,0).rotation.x=Math.PI/2;}
+   else{ball(.13,raw,.03,.08,0,[1.2,.6,1]);ball(.08,fat,.1,.09,.04,[1,.5,.8]);
+    lie(.016,.016,.12,fat,-.15,.06,0);ball(.026,fat,-.21,.06,.012);ball(.026,fat,-.21,.06,-.012);}
+  }else if(kind==='garlic'){
+   const bulb=mat(0xe8e1cf);ball(.04,bulb,0,.035,0,[1,.85,1]);add(new THREE.ConeGeometry(.02,.05,8),bulb,0,.085,0);
+  }else if(kind==='royal jelly'){
+   const jelly=new THREE.MeshStandardMaterial({color:0xe6b02e,roughness:.15,transparent:true,opacity:.8,emissive:0x6a4a08,emissiveIntensity:.3});materials.push(jelly);
+   ball(.07,jelly,0,.03,0,[1.2,.42,1]);ball(.035,jelly,.05,.04,.03,[1,.6,1]);
+  }else if(kind==='cream pie'){
+   const crust=mat(0xc58a48),cream=mat(0xf4eee4);
+   add(new THREE.CylinderGeometry(.14,.11,.04,24),crust,0,.02);add(new THREE.TorusGeometry(.13,.014,6,24),crust,0,.04).rotation.x=Math.PI/2;
+   ball(.12,cream,0,.04,0,[1,.35,1]);ball(.03,cream,0,.08,0);
+  }else if(kind==='candy bar'){
+   const wrapper=mat(0xa3222a),foil=mat(0xc8cdd0,.75);
+   box(.22,.03,.08,wrapper,0,.015);box(.07,.032,.082,foil,0,.016);
+   for(const s of [-1,1])add(new THREE.ConeGeometry(.03,.04,4),foil,s*.125,.015,0).rotation.z=-s*Math.PI/2;
+  }else if(kind==='pancake'){
+   const cake=mat(0xd49a52),butter=mat(0xf0da78);
+   for(let i=0;i<3;i++)add(new THREE.CylinderGeometry(.12-i*.004,.12,.018,24),cake,i*.006,.009+i*.019);
+   box(.04,.012,.04,butter,.01,.063);
+  }else if(kind==='kelp frond'){
+   const kelp=mat(0x3d6a3a);
+   for(let i=0;i<3;i++){const f=ball(.16,kelp,(i-1)*.04,.006+i*.004,(i-1)*.03,[1,.04,.22]);f.rotation.y=(i-1)*.5;}
+  }else{
+   // Slime mold: a lumpy, faintly glowing blob.
+   const slime=new THREE.MeshStandardMaterial({color:0x7ab83a,roughness:.3,emissive:0x2a4a10,emissiveIntensity:.35});materials.push(slime);
+   ball(.08,slime,0,.035,0,[1.2,.5,1]);ball(.045,slime,.06,.03,.04,[1,.6,1]);ball(.04,slime,-.05,.025,-.05,[1,.6,1]);
+  }
+  // Drop the whole model onto the floor.
+  g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(/unicorn horn/.test(name)){
   const horn=add(new THREE.ConeGeometry(.085,.48,16),cloth,0,.085,0);horn.rotation.z=-Math.PI/2;
   for(let i=0;i<5;i++){const ring=add(new THREE.TorusGeometry(.075-i*.012,.007,5,12),gold,-.19+i*.07,.085,0);ring.rotation.y=Math.PI/2;}

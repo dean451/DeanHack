@@ -84,3 +84,29 @@ test('gems, gray stones and rocks are grounded, hide their identity, and release
   assert.equal(disposed,geometries);
  }
 });
+
+test('common food gets grounded, finite models and unknown food falls back',()=>{
+ const foods=['apple','3 oranges','pear','melon','banana','carrot','2 eggs','tin','lembas wafer','fortune cookie','meatball','meat stick','huge chunk of meat','meat ring','2 cloves of garlic','lump of royal jelly','cream pie','candy bar','pancake','kelp frond','slime mold'];
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push(part.geometry.type);});return out.join();};
+ const seen=new Set();
+ for(const name of foods){
+  const model=createGroundModel({name,class:7});
+  assert(model,name);
+  seen.add(signature(model));
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} grounded: ${bounds.min.y}`);
+  assert(bounds.max.y<.3,`${name} height ${bounds.max.y}`);
+  assert(bounds.max.x-bounds.min.x<.5&&bounds.max.z-bounds.min.z<.5,`${name} footprint`);
+  let geometries=0,disposed=0;
+  model.traverse(part=>{if(part.geometry){
+   geometries++;
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+   part.geometry.addEventListener('dispose',()=>disposed++);
+  }});
+  model.userData.dispose();
+  assert.equal(disposed,geometries);
+ }
+ assert(seen.size>=15,'kinds should look different');
+ assert.equal(createGroundModel({name:'eucalyptus leaf',class:7}),null);
+ assert.equal(createGroundModel({name:'tinning kit',class:6}),null);
+});
