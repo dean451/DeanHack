@@ -159,7 +159,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    }
    const caption=label(kind==='corpse'?`corpse of ${cell.name||'creature'}`:groundItemCaption(cell),'#d7c8a7');caption.scale.set(1.2,.22,1);caption.position.y=1.05;icon.add(caption);const extraDispose=icon.userData.dispose;icon.userData.dispose=()=>{warm.dispose();edge.dispose();extraDispose?.();};return icon;
  }
- // Traps and the other known features (ice, bog, drawbridges, ice walls, clouds) get a
+ // Traps and the other known features (ice, bog, drawbridges, ice walls, clouds, air) get a
  // model once their own symbol is showing (a monster or item on top hides it);
  // anything else keeps the symbol label.
  function dressFeature(tile,cell){
@@ -169,6 +169,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
   if(tile.userData.feature){tile.userData.feature.traverse(o=>o.userData.dispose?.());tile.remove(tile.userData.feature);}
   const model=trap?createTrap(trap,cell.x*53+cell.z*29):other?createTerrainFeature(other,cell.x*41+cell.z*23):label(String.fromCharCode(cell.symbol));
   if(!kind)model.position.y=.35;
+  tile.userData.slab.visible=!model.userData.hidesFloor;
   tile.add(model);tile.userData.feature=model;tile.userData.featureKey=key;tile.userData.axisFeature=AXIS_FEATURES.has(key)?model:null;
  }
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
@@ -184,7 +185,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    for(const cell of frame.cells){const id=`${cell.x},${cell.z}`,x=cell.x-origin.x,z=cell.z-origin.z;
      if(cell.terrain!=='unknown'){
        seen.add(id);let tile=tiles.get(id);if(tile&&tile.userData.type!==cell.terrain){release(tile);tiles.delete(id);tile=null;}
-       if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=cell.terrain;const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);floorKit.dress(slab,tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
+       if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=cell.terrain;const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);tile.userData.slab=slab;floorKit.dress(slab,tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
          if(cell.terrain==='altar')tile.add(createAltar());
          if(cell.terrain==='throne')tile.add(createThrone());
          if(cell.terrain==='sink')tile.add(createSink());
