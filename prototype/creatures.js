@@ -106,7 +106,7 @@ function dragon(){
  const wings=[];for(const x of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(x*.55,.15);shape.lineTo(x*.42,.62);shape.lineTo(x*.15,.4);shape.lineTo(0,.12);const wing=part(body,new THREE.ShapeGeometry(shape),M.wing,x*.3,.72,-.02);wing.rotation.y=x>0?.18:-.18;wings.push(wing);}
  const tail=new THREE.Group();tail.position.set(0,.48,-.38);body.add(tail);const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,0),new THREE.Vector3(0,.08,-.22),new THREE.Vector3(.18,.16,-.46)]);part(tail,new THREE.TubeGeometry(curve,12,.07,8,false),M.greenSkin);const core=sphere(body,.1,M.fire,0,.55,.31);g.userData.core=core;return Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core});
 }
-function rat(giant=false){
+function rat(giant=false,rabid=false){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(giant?1.25:.85);
  sphere(body,.22,M.graySkin,0,.24,-.04,1,.85,1.45);
  sphere(body,.16,M.leather,0,.28,.2,.85,.8,1.2);
@@ -115,7 +115,7 @@ function rat(giant=false){
  for(const side of [-1,1]){
   sphere(body,.095,M.graySkin,side*.115,.405,.17,1,1,.38);
   sphere(body,.065,M.skin,side*.115,.41,.201,1,1,.18);
-  sphere(body,.023,M.leather,side*.101,.31,.3);
+  sphere(body,.023,rabid?M.fire:M.leather,side*.101,.31,.3);
   sphere(body,.009,M.whiteFur,side*.106,.319,.316);
   rounded(body,.024,.05,.022,M.whiteFur,side*.018,.192,.416,.006);
   for(const offset of [-1,0,1]){
@@ -127,6 +127,59 @@ function rat(giant=false){
  const tail=new THREE.Group();tail.position.set(0,.22,-.31);body.add(tail);
  const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(),new THREE.Vector3(.08,-.12,-.16),new THREE.Vector3(.25,-.17,-.28),new THREE.Vector3(.33,-.16,-.46)]);
  for(let i=0;i<14;i++){const start=curve.getPoint(i/14),end=curve.getPoint((i+1)/14),direction=end.clone().sub(start),radius=.027*(1-i/15);const segment=part(tail,new THREE.CylinderGeometry(radius*.86,radius,direction.length(),8),i%2?M.skin:M.beard);segment.position.copy(start.add(end).multiplyScalar(.5));segment.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());}
+ // rabid rats: flecks of froth at the jaw and hackles of mangy fur raised along the spine
+ if(rabid){const froth=mat('#f2f0e6',{roughness:.35});for(const [x,y,z,r] of [[0,.19,.43,.022],[-.03,.18,.41,.017],[.035,.185,.415,.015],[.012,.16,.42,.012]])sphere(body,r,froth,x,y,z);
+  const mange=mat('#5e564c',{roughness:1});for(let i=0;i<7;i++){const spike=cone(body,.024,.09,mange,(i%2?.025:-.025),.43-Math.abs(i-2)*.018,.14-i*.07,4);spike.rotation.x=-.5;}}
+ return actor(g,body,legs,tail,[],'rat');
+}
+// Rock moles: a squat velvet-grey digger with no ear flaps, pin-prick eyes, a bare pink
+// snout and oversized spade forepaws tipped with pale claws. Chewed pebbles cling to its coat.
+function rockMole(){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(.9);
+ const coat=mat('#5b5a60',{roughness:1}),pink=mat('#d99a94',{roughness:.6}),claw=mat('#e6dcc4',{roughness:.45}),pebble=mat('#8a8274',{roughness:.95});
+ sphere(body,.24,coat,0,.22,-.02,1.05,.78,1.3);
+ const head=new THREE.Group();head.position.set(0,.22,.27);body.add(head);
+ sphere(head,.13,coat,0,0,0,.95,.82,1.05);
+ const snout=cylinder(head,.028,.06,.14,pink,0,-.015,.15,10);snout.rotation.x=Math.PI/2;
+ sphere(head,.034,pink,0,-.015,.225,1,.8,.6);
+ for(const side of [-1,1]){sphere(head,.012,darkEye,side*.07,.045,.085);sphere(head,.005,nose,side*.013,-.012,.24);}
+ for(let i=0;i<5;i++){const a=(i/5)*Math.PI*2;const whisker=part(head,new THREE.CylinderGeometry(.002,.002,.12,3),M.whiteFur,Math.cos(a)*.05,-.015+Math.sin(a)*.02,.2);whisker.rotation.z=Math.PI/2+Math.sin(a)*.5;whisker.rotation.y=Math.cos(a)*.3;}
+ for(const side of [-1,1]){
+  // front legs: a short upper limb ending in a broad, outward-turned spade with five claws
+  const fore=new THREE.Group();fore.position.set(side*.17,.17,.16);body.add(fore);
+  sphere(fore,.06,coat,0,-.03,0,.8,1,.9);
+  const palm=sphere(fore,.075,pink,side*.04,-.11,.05,1.1,.35,1);palm.rotation.z=side*.5;
+  for(let i=0;i<5;i++){const c=cone(fore,.012,.07,claw,side*.04+(i-2)*.028,-.13,.12,4);c.rotation.x=Math.PI/2+.25;}
+  legs.push(fore);
+  const hind=new THREE.Group();hind.position.set(side*.14,.14,-.19);body.add(hind);
+  sphere(hind,.065,coat,0,-.03,0,.8,1,.9);rounded(hind,.07,.03,.11,pink,0,-.11,.03,.012);legs.push(hind);
+ }
+ for(const [x,y,z,r] of [[.12,.36,-.08,.028],[-.09,.39,.02,.022],[.02,.37,-.2,.03],[-.16,.3,-.12,.02]])sphere(body,r,pebble,x,y,z,1,.7,1);
+ const tail=new THREE.Group();tail.position.set(0,.2,-.3);body.add(tail);
+ const stub=cone(tail,.028,.1,pink,0,-.01,-.04,6);stub.rotation.x=-Math.PI/2-.3;
+ return actor(g,body,legs,tail,[],'rat');
+}
+// Woodchucks: a chubby brown groundhog on its haunches, with a grizzled back, cream muzzle,
+// small round ears, big orange incisors and a short bushy tail.
+function woodchuck(){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);
+ const coat=mat('#7a5836',{roughness:.96}),grizzle=mat('#a88a64',{roughness:1}),cream=mat('#d8c4a0',{roughness:.95}),dark=mat('#3e2c1e',{roughness:.95}),tooth=mat('#e3a24a',{roughness:.4});
+ const torso=sphere(body,.25,coat,0,.3,-.04,1,1.05,1.15);torso.rotation.x=-.35;
+ sphere(body,.17,cream,0,.3,.12,.9,1.05,.6);
+ for(const [x,y,z] of [[0,.46,-.1],[.09,.4,-.2],[-.09,.4,-.2],[0,.34,-.26]])sphere(body,.08,grizzle,x,y,z,1.1,.5,1.1);
+ const head=new THREE.Group();head.position.set(0,.55,.12);body.add(head);
+ sphere(head,.14,coat,0,0,0,1.05,.9,1);
+ sphere(head,.08,cream,0,-.04,.1,1.1,.8,.8);
+ sphere(head,.025,nose,0,-.01,.175,1.2,.8,.8);
+ for(const side of [-1,1]){rounded(head,.022,.045,.012,tooth,side*.012,-.1,.145,.004);sphere(head,.02,darkEye,side*.075,.035,.105);sphere(head,.042,dark,side*.1,.11,-.02,1,1,.45);sphere(head,.022,cream,side*.1,.11,-.004,1,1,.2);}
+ for(const side of [-1,1]){
+  const arm=new THREE.Group();arm.position.set(side*.12,.4,.17);body.add(arm);
+  rounded(arm,.06,.14,.06,coat,0,-.06,.02,.025);sphere(arm,.035,dark,0,-.14,.04,1,.7,1.1);legs.push(arm);
+  const leg=new THREE.Group();leg.position.set(side*.16,.14,-.02);body.add(leg);
+  sphere(leg,.1,coat,0,0,0,.8,1,1.1);rounded(leg,.08,.04,.14,dark,0,-.11,.07,.015);legs.push(leg);
+ }
+ const tail=new THREE.Group();tail.position.set(0,.14,-.3);body.add(tail);
+ const brush=sphere(tail,.06,dark,0,-.02,-.08,.8,.7,1.6);brush.rotation.x=.4;
  return actor(g,body,legs,tail,[],'rat');
 }
 // ---- Class-based bestiary: every common monster letter gets its own silhouette ----
@@ -1487,7 +1540,9 @@ const ZOMBIE_SKIN={'kobold zombie':'#7a6a48','gnome zombie':'#7d6b55','orc zombi
 
 export function createCreature(cell={}){
  const name=(cell.name||'').toLowerCase(),letter=Number.isInteger(cell.symbol)?String.fromCharCode(cell.symbol):'',color=nhColor(cell);
- if(/^(sewer rat|giant rat|rabid rat|rat)$/.test(name))return rat(name==='giant rat');
+ if(/^(sewer rat|giant rat|rabid rat|rat)$/.test(name))return rat(name==='giant rat',name==='rabid rat');
+ if(name==='rock mole')return rockMole();
+ if(name==='woodchuck')return woodchuck();
  if(/grid ?bug/.test(name))return gridBug();
  if(CANINES[name])return canine(CANINES[name]);
  if(/^(little dog|dog|large dog)$/.test(name))return dog();
