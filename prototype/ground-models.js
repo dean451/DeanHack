@@ -12,6 +12,10 @@ const GEM_COLORS=[0x1d1a26,0xc4202f,0x2f9e55,0xb47a2a,0x2d58d4,0x8c40c4,0x2aa4ac
 // Food kinds with their own model; rations (including cram) keep the bundle below.
 const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune cookie|meatball|meat stick|chunk|meat ring|garlic|royal jelly|cream pie|candy bar|pancake|kelp frond|slime mold)(?:e?s)?\b/;
 
+// Tool kinds with their own model. Each word is the shared appearance, so a tin and a
+// magic whistle, or a tooled and a frost horn, look alike on the floor.
+const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box)\b/;
+
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
@@ -282,6 +286,137 @@ export function createGroundModel(item={}){
   for(let i=0;i<7;i++){const x=(i-3)*.075;box(.018,.04,.02,gold,x,.3);box(.47,.018,.035,gold,0,.3);add(new THREE.CylinderGeometry(.019,.019,.16,8),cloth,x,.4);box(.004,.015,.004,leather,x,.487);}
  }else if(/marker/.test(name)){
   const pen=add(new THREE.CylinderGeometry(.035,.035,.32,12),leather,0,.04);pen.rotation.z=Math.PI/2;const cap=add(new THREE.CylinderGeometry(.04,.04,.08,12),gold,.15,.04);cap.rotation.z=Math.PI/2;
+ }else if(cls===6&&TOOL_KIND.test(name)){
+  // Common tools, keyed by the word they share with their unidentified twin.
+  const kind=name.match(TOOL_KIND)[1];
+  const lie=(r0,r1,len,m,x,y,z,ry=0,seg=12)=>{const p=add(new THREE.CylinderGeometry(r0,r1,len,seg),m,x,y,z);p.rotation.set(0,ry,Math.PI/2);return p;};
+  const flat=(geo,m,x,y,z)=>{const p=add(geo,m,x,y,z);p.rotation.x=Math.PI/2;return p;};
+  // A tube that widens along a curve, built from short tapered segments.
+  const taper=(curve,r0,r1,m,n=10)=>{for(let i=0;i<n;i++){
+   const a=curve.getPoint(i/n),b=curve.getPoint((i+1)/n),d=b.clone().sub(a),r=t=>r0+(r1-r0)*t;
+   const p=add(new THREE.CylinderGeometry(r((i+1)/n),r(i/n),d.length()*1.04,14),m,(a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);
+   p.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
+  }};
+  const v=(x,y,z)=>new THREE.Vector3(x,y,z);
+  const wood=mat(0x7a5232),dark=mat(0x221d18),brass=mat(0xc9a24a,.7);
+  if(kind==='whistle'){
+   const tin=mat(0xa8b2b4,.7);
+   lie(.022,.022,.15,tin,0,.022,0);box(.05,.03,.034,tin,.09,.022);
+   box(.022,.012,.036,dark,.035,.042);ball(.012,dark,.118,.022,0,[.4,1,1]);
+   flat(new THREE.TorusGeometry(.018,.004,6,14),tin,-.09,.006,0);
+  }else if(kind==='mirror'){
+   // A hand mirror lying face up: a silvered disc in a brass frame, with a turned handle.
+   const glass=new THREE.MeshStandardMaterial({color:0xd8e6ee,metalness:1,roughness:.04});materials.push(glass);
+   add(new THREE.CylinderGeometry(.11,.115,.018,32),brass,0,.009);
+   add(new THREE.CylinderGeometry(.092,.092,.004,32),glass,0,.02);
+   flat(new THREE.TorusGeometry(.1,.008,6,32),brass,0,.019,0);
+   lie(.016,.02,.16,wood,.185,.018,0);ball(.022,brass,.27,.02,0);box(.03,.02,.03,brass,.105,.014);
+  }else if(kind==='crystal ball'){
+   const orb=new THREE.MeshStandardMaterial({color:0xbfd8ff,roughness:.05,metalness:.1,transparent:true,opacity:.55,emissive:0x3a5a9a,emissiveIntensity:.35});
+   const mist=new THREE.MeshBasicMaterial({color:0xcfe6ff,transparent:true,opacity:.5,depthWrite:false});materials.push(orb,mist);
+   add(new THREE.CylinderGeometry(.08,.1,.035,20),wood,0,.0175);
+   for(let i=0;i<3;i++){const a=i*Math.PI*2/3,claw=add(new THREE.ConeGeometry(.018,.07,6),brass,Math.cos(a)*.075,.06,Math.sin(a)*.075);claw.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);}
+   ball(.105,orb,0,.14,0);ball(.04,mist,.01,.15,-.01,[1.3,.6,1]).rotation.z=.6;
+  }else if(kind==='horn'){
+   // A curved animal horn with a brass rim at the mouth and a mouthpiece at the tip.
+   const bone=mat(0xd6c49a),tip=mat(0x4a3a2a);
+   const curve=new THREE.QuadraticBezierCurve3(v(-.2,.03,.06),v(0,.02,-.12),v(.19,.07,.02));
+   taper(curve,.012,.058,bone);
+   const mouth=add(new THREE.TorusGeometry(.058,.009,8,24),brass,.19,.07,.02);
+   mouth.quaternion.setFromUnitVectors(v(0,0,1),curve.getTangent(1).normalize());
+   const hole=add(new THREE.CircleGeometry(.052,20),dark,.191,.07,.02);hole.quaternion.copy(mouth.quaternion);
+   ball(.016,tip,-.205,.03,.063);
+   for(const t of [.3,.55]){const p=curve.getPoint(t),band=add(new THREE.TorusGeometry(.012+.046*t+.003,.004,6,18),brass,p.x,p.y,p.z);band.quaternion.setFromUnitVectors(v(0,0,1),curve.getTangent(t).normalize());}
+  }else if(kind==='bugle'){
+   // One flat brass loop ending in a flared bell.
+   flat(new THREE.TorusGeometry(.08,.011,8,32,Math.PI*1.6),brass,-.03,.012,0);
+   const bell=add(new THREE.CylinderGeometry(.06,.014,.14,20,1,true),brass,.11,.066,-.02);bell.rotation.z=-Math.PI/2;bell.material.side=THREE.DoubleSide;
+   flat(new THREE.TorusGeometry(.06,.006,6,24),brass,.18,.066,-.02).rotation.set(0,Math.PI/2,0);
+   lie(.009,.016,.05,brass,.03,.012,.08);
+  }else if(kind==='flute'){
+   lie(.017,.017,.42,wood,0,.017,0,.3);
+   for(let i=0;i<6;i++){const s=-.1+i*.04;add(new THREE.CylinderGeometry(.006,.006,.004,8),dark,s*Math.cos(.3),.034,-s*Math.sin(.3));}
+   for(const s of [-.2,.2,.13])add(new THREE.CylinderGeometry(.019,.019,.016,12),brass,s*Math.cos(.3),.017,-s*Math.sin(.3)).rotation.set(0,.3,Math.PI/2);
+   add(new THREE.CylinderGeometry(.006,.006,.004,8),dark,-.16*Math.cos(.3),.034,.16*Math.sin(.3)).scale.x=1.8;
+  }else if(kind==='harp'){
+   // A small upright frame harp: slanted soundbox, curved neck, pillar and strings.
+   const lean=.3,along=v(Math.sin(lean),Math.cos(lean),0),face=v(Math.cos(lean),-Math.sin(lean),0);
+   add(new THREE.BoxGeometry(.06,.36,.05),wood,-.08,.18,0).rotation.z=-lean;
+   add(new THREE.CylinderGeometry(.016,.02,.38,10),wood,.14,.21,0);
+   const neck=new THREE.QuadraticBezierCurve3(v(-.027,.36,0),v(.06,.3,0),v(.14,.4,0));
+   add(new THREE.TubeGeometry(neck,16,.018,8,false),wood);
+   add(new THREE.BoxGeometry(.3,.03,.08),dark,0,.015,0);
+   const string=mat(0xe8dcb0);
+   for(let i=0;i<5;i++){
+    // Lower feet on the soundbox run to the far end of the neck, so strings lengthen toward the pillar.
+    const foot=v(-.08,.18,0).addScaledVector(along,-.12+i*.05).addScaledVector(face,.03),top=neck.getPoint(.85-i*.15),d=top.clone().sub(foot);
+    const s=add(new THREE.CylinderGeometry(.002,.002,d.length(),4),string,(foot.x+top.x)/2,(foot.y+top.y)/2,0);s.quaternion.setFromUnitVectors(v(0,1,0),d.normalize());
+   }
+   ball(.02,brass,.14,.41,0);
+  }else if(kind==='drum'){
+   const shell=mat(0x8a3a28),skin=mat(0xe2d3b0),cord=mat(0xd8c8a0);
+   add(new THREE.CylinderGeometry(.13,.13,.15,28),shell,0,.075);
+   add(new THREE.CylinderGeometry(.125,.125,.004,28),skin,0,.152);
+   for(const y of [.008,.148])flat(new THREE.TorusGeometry(.132,.009,6,28),skin,0,y,0);
+   // Zigzag tension cords between the rims.
+   for(let i=0;i<10;i++){const a0=i*Math.PI/5,a1=a0+Math.PI/10,f=v(Math.cos(a0)*.135,.02,Math.sin(a0)*.135),t=v(Math.cos(a1)*.135,.135,Math.sin(a1)*.135),d=t.clone().sub(f);
+    const c=add(new THREE.CylinderGeometry(.003,.003,d.length(),4),cord,(f.x+t.x)/2,(f.y+t.y)/2,(f.z+t.z)/2);c.quaternion.setFromUnitVectors(v(0,1,0),d.normalize());}
+   lie(.007,.009,.22,wood,.12,.009,.16,.5);ball(.014,skin,.025,.009,.212);
+  }else if(kind==='bell'){
+   // A hand bell mouth-down: a lathed bronze shell, a turned wooden handle, and the clapper peeking out.
+   const bronze=mat(0xb8893a,.7);
+   const shape=[[.001,.16],[.035,.16],[.05,.14],[.058,.1],[.07,.05],[.092,.012],[.1,0],[.094,0]].map(([x,y])=>new THREE.Vector2(x,y));
+   const shell=add(new THREE.LatheGeometry(shape,28),bronze);shell.material.side=THREE.DoubleSide;
+   add(new THREE.CylinderGeometry(.016,.022,.1,10),wood,0,.21);ball(.026,wood,0,.265,0);
+   flat(new THREE.TorusGeometry(.096,.006,6,28),bronze,0,.006,0);
+   ball(.022,dark,.02,.02,.02);
+  }else if(kind==='stethoscope'){
+   // Tubing coiled on the floor between the chest piece and the earpieces.
+   const tube=mat(0x2e2e30),steel=metal;
+   add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([v(.14,.012,.1),v(.02,.012,.14),v(-.1,.012,.06),v(-.06,.012,-.06),v(.04,.012,-.04),v(0,.012,.03)]),48,.009,6,false),tube);
+   add(new THREE.CylinderGeometry(.035,.035,.018,20),steel,.155,.009,.105);add(new THREE.CylinderGeometry(.03,.03,.004,20),dark,.155,.02,.105);
+   for(const s of [-1,1]){add(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(v(0,.012,.03),v(s*.05,.012,.02),v(s*.08,.012,-.1)),12,.005,6,false),steel);ball(.012,dark,s*.08,.012,-.11);}
+  }else if(kind==='tin opener'){
+   const steel=metal;
+   box(.14,.012,.028,wood,-.03,.006);
+   box(.06,.006,.02,steel,.06,.006);
+   const hook=add(new THREE.TorusGeometry(.018,.005,6,12,Math.PI*1.3),steel,.1,.018,0);hook.rotation.y=Math.PI/2;
+  }else if(kind==='leash'){
+   // A coiled lead with a brass snap hook and a hand loop.
+   const rope=mat(0x7a4a2a);
+   for(let i=0;i<3;i++)flat(new THREE.TorusGeometry(.09-i*.012,.009,6,28),rope,i*.01,.009+i*.012,i*.006);
+   flat(new THREE.TorusGeometry(.03,.008,6,16),rope,-.14,.008,.02);
+   add(new THREE.CylinderGeometry(.009,.009,.05,8),rope,-.105,.008,.012).rotation.set(0,.3,Math.PI/2);
+   flat(new THREE.TorusGeometry(.014,.004,6,14),brass,.11,.006,-.04);box(.03,.012,.012,brass,.09,.006,-.03);
+  }else if(kind==='saddle'){
+   const tack=mat(0x5a3522),pad=mat(0x3a5a7a);
+   box(.34,.012,.42,pad,0,.006);
+   ball(.18,tack,0,.07,0,[.8,.38,1.1]);
+   ball(.045,tack,0,.12,-.15,[1,1.1,.7]);
+   add(new THREE.TorusGeometry(.05,.015,8,20,Math.PI),tack,0,.1,.15).rotation.y=Math.PI/2;
+   for(const s of [-1,1]){box(.012,.06,.03,tack,s*.16,.04,.0);const iron=add(new THREE.TorusGeometry(.028,.006,6,14),metal,s*.2,.03,0);iron.rotation.set(0,Math.PI/2,s*.4);}
+  }else{
+   // Chests, large boxes and ice boxes.
+   const chest=kind==='chest',ice=kind==='ice box';
+   const side=ice?mat(0xd8dfe2):mat(chest?0x6e4528:0x8a6a44),band=ice?metal:mat(0x3a3632,.6),W=.46,D=.32,H=ice?.3:.2;
+   add(new RoundedBoxGeometry(W,H,D,2,.012),side,0,H/2);
+   if(chest){
+    const lid=add(new THREE.CylinderGeometry(D/2,D/2,W,20,1,false,0,Math.PI),side,0,H,0);lid.rotation.z=Math.PI/2;lid.scale.x=.45;
+    for(const x of [-.17,.17]){box(.03,H,D+.012,band,x,H/2);const strap=add(new THREE.CylinderGeometry(D/2+.006,D/2+.006,.03,20,1,true,0,Math.PI),band,x,H,0);strap.rotation.z=Math.PI/2;strap.scale.x=.45;}
+    box(.06,.07,.012,mat(0xc9a24a,.7),0,H-.01,D/2+.006);box(.014,.02,.006,dark,0,H-.02,D/2+.014);
+   }else if(ice){
+    box(W+.01,.03,D+.01,side,0,H+.015);box(.12,.018,.02,band,0,H-.03,D/2+.012);
+    for(const x of [-.23,.23])box(.012,.02,.1,band,x,H*.6,0);
+    const frost=new THREE.MeshBasicMaterial({color:0xeaf6ff,transparent:true,opacity:.35,depthWrite:false});materials.push(frost);
+    box(W-.04,.004,D-.04,frost,0,H+.032);
+   }else{
+    // A plank crate: slats across the lid and sides, with corner battens.
+    box(W+.01,.02,D+.01,side,0,H+.01);
+    for(const z of [-.08,0,.08])box(W+.012,.004,.004,dark,0,H+.021,z);
+    for(const x of [-1,1])for(const z of [-1,1])box(.03,H+.02,.03,band,x*(W/2-.01),(H+.02)/2,z*(D/2-.01));
+   }
+  }
+  g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else{materials.forEach(m=>m.dispose());return null;}
  g.userData.dispose=()=>{g.traverse(o=>o.geometry?.dispose());materials.forEach(m=>m.dispose());};return g;
 }
