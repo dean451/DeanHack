@@ -1088,6 +1088,98 @@ function jabberwock(o){
 }
 const JABBERWOCKS={jabberwock:{hide:'#c85a2a',belly:'#d8b070',eye:'#ffb030',wing:'#6a2e24',scale:.95},'vorpal jabberwock':{hide:'#7a3fa0',belly:'#c8a0d8',eye:'#80f0ff',wing:'#3a1f50',scale:1.02}};
 
+// Demons and devils: a hunched fiend on goat-jointed legs ending in cloven hooves, with a heavy chest,
+// clawed hands, a snarling fanged face and glowing eyes. Options pick horns (ram, long, short), a head
+// (fiend, vulture beak, toad, bone skull), bat wings, a spade-tipped tail, extra arm pairs, back spikes,
+// a flame mantle and a weapon (whip, trident, sword). Slim demons (succubus, incubus, erinys) get long hair
+// and a lighter build; djinn and sandestins trail a smoky wisp instead of legs and hover.
+function demon(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const skin=mat(o.skin,{roughness:.7}),dark=mat(shade(o.skin,.55),{roughness:.8}),horn=mat(o.horn||'#2a2018',{roughness:.45}),claw=mat('#15100c',{roughness:.35,metalness:.2}),
+  tooth=mat('#e8e0c4',{roughness:.4}),glow=mat(o.eye||'#ffcc30',{emissive:o.eye||'#ffcc30',emissiveIntensity:3,roughness:.3}),mouth=mat('#2a0808',{roughness:1}),
+  web=mat(o.wing||shade(o.skin,.45),{roughness:.85,side:THREE.DoubleSide,transparent:true,opacity:.92});
+ const slim=!!o.slim,bulk=o.bulk||1,hipY=o.smoke?.5:.44,chestY=slim?.72:.7,shoulderX=(slim?.12:.17)*bulk,headY=slim?.97:.99+.03*(bulk-1);
+ // lower body: digitigrade goat legs with a backward shin and a cloven hoof, or a twisting smoke wisp
+ if(o.smoke){const wisp=mat(o.skin,{roughness:.9,transparent:true,opacity:.7,emissive:o.skin,emissiveIntensity:.25});
+  const tail=lathe(body,[[.01,.08],[.04,.12],[.08,.22],[.12,.36],[.14,.48],[.12,.54]],wisp);tail.castShadow=false;
+  for(let i=0;i<3;i++){const a=i*2.1,pts=[];for(let k=0;k<=6;k++){const t=k/6;pts.push([Math.sin(a+t*4)*(.13-.1*t),.5-.42*t,Math.cos(a+t*4)*(.13-.1*t)]);}tube(body,pts,.02,wisp,16).castShadow=false;}}
+ else for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.1*bulk,hipY,0);body.add(leg);
+  const k=[side*.02,-.16,.09],a=[side*.02,-.32,-.05],f=[side*.02,-.43,.0];
+  segment(leg,[0,0,0],k,.075*bulk,.055,skin);sphere(leg,.05,skin,...k);segment(leg,k,a,.045,.03,dark);segment(leg,a,f,.03,.025,dark);
+  for(const x of [-.018,.018])rounded(leg,.032,.03,.06,horn,side*.02+x,-.43,.02,.01);legs.push(leg);}
+ // torso: a broad chest over a narrow waist, pectorals and a column of belly plates
+ sphere(body,(slim?.12:.15)*bulk,skin,0,.56,0,1.1,1,.85);
+ sphere(body,(slim?.14:.19)*bulk,skin,0,chestY,.0,1.15,1.05,.85);
+ if(!slim)for(const side of [-1,1])sphere(body,.09*bulk,skin,side*.07*bulk,chestY+.04,.1*bulk,1,.8,.6);
+ for(let i=0;i<3;i++)rounded(body,.1*bulk,.04,.03,dark,0,.5+i*.06,.12*bulk-i*.005,.012);
+ if(o.spikes)for(let i=0;i<5;i++){const s=cone(body,.022,.1,o.spikes==='bone'?tooth:horn,0,.52+i*.09,-.14*bulk+i*.005,4);s.rotation.x=-1.2;}
+ // arms: shoulder, elbow, wrist and three hooked claws; extra pairs sit lower on the flanks
+ const pairs=o.arms||1;
+ for(let p=0;p<pairs;p++)for(const side of [-1,1]){const dy=p*-.11,sc=1-p*.15,sh=[side*shoulderX,chestY+.12+dy,0],el=[side*(shoulderX+.1*sc),chestY-.04+dy,.04+p*.02],wr=[side*(shoulderX+.08*sc),chestY-.18+dy,.14];
+  sphere(body,.06*sc*bulk,skin,...sh);segment(body,sh,el,.05*sc*bulk,.04*sc,skin);segment(body,el,wr,.04*sc,.03*sc,skin);
+  if(o.spikes)cone(body,.015,.06,horn,el[0]+side*.03,el[1],el[2]-.02,4).rotation.z=-side*1.3;
+  for(let k=-1;k<=1;k++){const c=cone(body,.01,.06,claw,wr[0]+k*.015,wr[1]-.04,wr[2]+.01,4);c.rotation.x=Math.PI+.3;c.rotation.z=k*.2;}}
+ // weapon in the right hand
+ const grip=[shoulderX+.08,chestY-.2,.16];
+ if(o.weapon==='whip'){const pts=[grip,[grip[0]+.1,grip[1]-.12,.3],[grip[0]+.05,.1,.42],[grip[0]-.12,.02,.38],[grip[0]-.24,.01,.22]];tube(body,pts,.012,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.4}):M.leather,20).castShadow=false;}
+ else if(o.weapon==='trident'){const t=new THREE.Group();t.position.set(...grip);t.rotation.x=.15;body.add(t);cylinder(t,.012,.012,.9,mat('#3a2a1a'),0,.15,0,8);
+  for(const x of [-.05,0,.05]){cylinder(t,.008,.008,.12,M.darkSteel,x,.64,0,6);cone(t,.016,.05,M.darkSteel,x,.72,0,4);}rounded(t,.12,.02,.02,M.darkSteel,0,.58,0,.006);}
+ else if(o.weapon==='sword'){const s=new THREE.Group();s.position.set(...grip);s.rotation.set(.9,0,-.2);body.add(s);cylinder(s,.013,.013,.08,M.leather,0,-.02,0,8);rounded(s,.12,.02,.03,M.darkSteel,0,.03,0,.006);rounded(s,.035,.42,.008,M.steel,0,.25,0,.004);}
+ // head: neck, then one of the four faces
+ cylinder(body,.05*bulk,.06*bulk,.08,skin,0,headY-.1,0,10);
+ const head=new THREE.Group();head.position.set(0,headY,.02);body.add(head);const form=o.head||'fiend';
+ if(form==='beak'){sphere(head,.09,skin,0,0,0,1,1,1.1);const b=cone(head,.04,.18,horn,0,-.03,.14,6);b.rotation.x=Math.PI/2+.4;
+  for(let i=0;i<10;i++){const a=i/10*Math.PI*2,f=cone(body,.03,.12,dark,Math.sin(a)*.09,headY-.12,Math.cos(a)*.08,4);f.rotation.set(Math.cos(a)*.9,0,-Math.sin(a)*.9);}
+  for(const s of [-1,1])sphere(head,.02,glow,s*.05,.02,.07).castShadow=false;}
+ else if(form==='toad'){sphere(head,.12,skin,0,-.01,.02,1.4,.65,1.1);cylinder(head,.1,.1,.012,mouth,0,-.04,.1,16).scale.set(1,1,.35);
+  for(const s of [-1,1]){sphere(head,.04,skin,s*.08,.06,.04);sphere(head,.025,glow,s*.08,.08,.07).castShadow=false;}}
+ else if(form==='skull'){const bone=mat('#d8cfb4',{roughness:.6});sphere(head,.09,bone,0,.01,0,1,1.05,1.05);rounded(head,.1,.06,.08,bone,0,-.06,.05,.02);
+  for(const s of [-1,1]){sphere(head,.026,mouth,s*.035,.01,.075);sphere(head,.012,glow,s*.035,.01,.09).castShadow=false;}
+  for(let k=-2;k<=2;k++)rounded(head,.012,.02,.008,tooth,k*.016,-.09,.09,.003);}
+ else{sphere(head,.1,skin,0,0,0,1,1.05,1.05);rounded(head,.15,.03,.05,dark,0,.035,.07,.012);
+  const jaw=sphere(head,.07,skin,0,-.06,.05,1.1,.6,1);jaw.rotation.x=.2;cylinder(head,.045,.045,.01,mouth,0,-.05,.105,10).rotation.x=Math.PI/2+.3;
+  for(const s of [-1,1]){cone(head,.009,.035,tooth,s*.025,-.07,.1,4).rotation.x=Math.PI;cone(head,.008,.03,tooth,s*.03,-.035,.1,4);
+   sphere(head,.02,glow,s*.04,.015,.085,1.2,.6,.6).castShadow=false;const ear=cone(head,.025,.08,skin,s*.1,.02,-.01,4);ear.rotation.z=-s*1.3;}}
+ if(o.hair){const locks=mat(o.hair,{roughness:.6});sphere(head,.105,locks,0,.02,-.015,1.02,1,1);
+  for(let i=0;i<7;i++){const a=(i-3)*.42;tube(head,[[Math.sin(a)*.09,.02,Math.cos(a)*.06-.03],[Math.sin(a)*.11,-.08,Math.cos(a)*.05-.05],[Math.sin(a)*.1,-.2,Math.cos(a)*.04-.07]],.022,locks,6);}}
+ // horns
+ for(const s of [-1,1]){
+  if(o.horns==='ram')tube(head,[[s*.07,.06,0],[s*.13,.1,-.04],[s*.17,.04,-.06],[s*.16,-.04,-.02],[s*.12,-.05,.04]],.024,horn,14);
+  else if(o.horns==='long'){tube(head,[[s*.06,.07,0],[s*.1,.16,-.04],[s*.16,.26,-.12],[s*.2,.3,-.22]],.022,horn,12);cone(head,.012,.05,horn,s*.205,.31,-.25,4).rotation.x=-1.2;}
+  else if(o.horns==='short'){const h=cone(head,.022,.09,horn,s*.06,.1,0,6);h.rotation.z=-s*.35;}}
+ // flame mantle over the shoulders and crown
+ if(o.flame){const fire=mat(o.flame,{emissive:o.flame,emissiveIntensity:3.2,roughness:.3,transparent:true,opacity:.85});
+  for(let i=0;i<9;i++){const a=(i/8-.5)*2.6,f=cone(body,.035,.16+.06*Math.cos(a),fire,Math.sin(a)*.2*bulk,chestY+.16+Math.cos(a)*.04,-.08-Math.cos(a)*.04,5);f.rotation.z=-a*.3;f.castShadow=false;}
+  for(let i=0;i<3;i++){const f=cone(head,.025,.1,fire,(i-1)*.04,.14,-.04,5);f.castShadow=false;}}
+ // bat wings on finger bones
+ if(o.wings)for(const side of [-1,1]){const wing=new THREE.Group();wing.position.set(side*.08,chestY+.12,-.12*bulk);body.add(wing);const sp=o.wings;
+  const tips=[[side*.26*sp,.4*sp],[side*.46*sp,.26*sp],[side*.5*sp,.02],[side*.32*sp,-.16*sp]],shape=new THREE.Shape();shape.moveTo(0,0);
+  tips.forEach(([x,y],i)=>{shape.lineTo(x,y);if(i<tips.length-1){const [nx,ny]=tips[i+1];shape.quadraticCurveTo((x+nx)*.38,(y+ny)*.38,nx,ny);}});shape.lineTo(side*.04,-.1*sp);shape.lineTo(0,0);
+  part(wing,new THREE.ShapeGeometry(shape,6),web);
+  segment(wing,[0,0,0],[side*.12*sp,.22*sp,.005],.02,.014,dark);for(const [x,y] of tips.slice(0,3))segment(wing,[side*.12*sp,.22*sp,.005],[x,y,.005],.01,.005,dark);
+  cone(wing,.012,.05,claw,side*.12*sp,.25*sp,.005,4);wing.rotation.y=side*-.4;wings.push(wing);}
+ // tail: a thin whip curling behind, ending in a spade
+ let tail=null;
+ if(o.tail&&!o.smoke){tail=new THREE.Group();tail.position.set(0,.5,-.1*bulk);tail.scale.setScalar(.75);body.add(tail);
+  const pts=[[0,0,0],[0,-.14,-.12],[.06,-.3,-.24],[.14,-.36,-.36],[.2,-.3,-.44]];tube(tail,pts,.018,skin,18);
+  const spade=cone(tail,.045,.09,dark,.22,-.27,-.47,4);spade.rotation.set(-1,0,-.5);spade.scale.z=.3;}
+ return actor(g,body,legs,tail,wings,o.smoke?'hover':'orc');
+}
+const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,scale:1.15},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,scale:1.1},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,scale:1.1}};
+const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',horns:'short',head:'toad',tail:true},'lava demon':{skin:'#5a2418',eye:'#ffdd40',horns:'short',flame:'#ff6a20',tail:true},
+ 'horned devil':{skin:'#8a3a24',horns:'long',tail:true,weapon:'trident'},succubus:{skin:'#d8a090',eye:'#ff60a0',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true},
+ incubus:{skin:'#b07a60',eye:'#ff60a0',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true},erinys:{skin:'#a86a58',eye:'#ff4030',slim:true,hair:'#3a2418',wings:.8,weapon:'sword'},
+ 'barbed devil':{skin:'#9a2e20',horns:'short',spikes:true,tail:true},marilith:{skin:'#7a3a5a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true},
+ vrock:{skin:'#6a5a48',head:'beak',horn:'#3a3028',wings:.9},hezrou:{skin:'#6a7a3a',eye:'#ffe060',head:'toad',bulk:1.25},'bone devil':{skin:'#9a9078',head:'skull',spikes:'bone',tail:true},
+ 'ice devil':{skin:'#b8d0e0',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true},nalfeshnee:{skin:'#5a4a3a',head:'toad',horns:'short',wings:.5,bulk:1.3},
+ 'pit fiend':{skin:'#7a1a18',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.1},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',weapon:'whip',bulk:1.2,scale:1.2},
+ "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.25},
+ yeenoghu:{skin:'#8a7040',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
+ geryon:{skin:'#6a4a2a',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',horns:'long',tail:true,weapon:'trident',scale:1.15},
+ baalzebub:{skin:'#3a4a2a',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
+ demogorgon:{skin:'#5a6a4a',eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
+ 'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',horns:'short',wings:.6,tail:true,scale:.85},djinni:{skin:'#d8a040',eye:'#fff080',hair:'#1a1410',smoke:true},sandestin:{skin:'#8a8aa0',eye:'#c0f0ff',horns:'short',smoke:true}};
+
 // trappers (t): a broad, ragged mantle flattened against the floor like a dropped cloak, mottled to match the stone,
 // with warty ridges, a fringed dark hem, and a wide toothed maw with stalked eyes along the front edge;
 // the front lip and back hem are the leg pivots, so they lift and ripple as it creeps
@@ -1242,6 +1334,9 @@ export function createCreature(cell={}){
  if(JABBERWOCKS[name])return jabberwock(JABBERWOCKS[name]);
  if(TRAPPERS[name])return trapper(TRAPPERS[name]);
  if(SEA_MONSTERS[name])return seaMonster(SEA_MONSTERS[name]);
+ if(DEMONS[name])return demon(DEMONS[name]);
+ if(RIDERS[name])return wraith(RIDERS[name]);
+ if(name==='juiblex')return blob({color:'#4f8a2a'});
  if(name==='couatl')return snake({color:'#3f9a6a',belly:'#e0c040',scale:1.2});
  if(name==='ki-rin')return unicorn();
  if(name==='floating eye')return floatingEye({});
@@ -1320,6 +1415,7 @@ export function createCreature(cell={}){
   case 'J':return jabberwock({hide:c,belly:shade(c,1.4),eye:'#ffb030'});
   case 'A':return angel({robe:shade(c,1.2),trim:'#d8b04a',sword:true});
   case ';':return seaMonster({form:'eel',color:c,eye:'#e0d040'});
+  case '&':return demon({skin:shade(c,.8),horns:'short',tail:true});
   case 't':return trapper({hide:shade(c,.8),eye:'#e0c040'});
   case 'n':return nymph({skin:'#eec7a8',cloth:shade(c,.35),trim:c,hair:'#2a2018'});
   case "'":return golem(GOLEM_MATERIALS.stone);
