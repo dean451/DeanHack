@@ -11,6 +11,7 @@ import {createThrone} from './throne.js';
 import {createSink} from './sink.js';
 import {createGrave} from './grave.js';
 import {createTrap,trapKind} from './trap.js';
+import {createTerrainFeature,featureKind,AXIS_FEATURES} from './terrain-feature.js';
 import {createTree} from './tree.js';
 import {createStairs} from './stairs.js';
 import {createFire} from './fire.js';
@@ -158,15 +159,17 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    }
    const caption=label(kind==='corpse'?`corpse of ${cell.name||'creature'}`:groundItemCaption(cell),'#d7c8a7');caption.scale.set(1.2,.22,1);caption.position.y=1.05;icon.add(caption);const extraDispose=icon.userData.dispose;icon.userData.dispose=()=>{warm.dispose();edge.dispose();extraDispose?.();};return icon;
  }
- // Traps get a model once their own symbol is showing (a monster or item on top hides it);
- // other features keep the symbol label.
+ // Traps and the other known features (ice, bog, drawbridges, ice walls, clouds) get a
+ // model once their own symbol is showing (a monster or item on top hides it);
+ // anything else keeps the symbol label.
  function dressFeature(tile,cell){
-  const kind=trapKind(cell.symbol,cell.color),key=kind||(tile.userData.featureKey?null:'label');
+  const trap=trapKind(cell.symbol,cell.color),other=trap?null:featureKind(cell.symbol,cell.color);
+  const kind=trap||other,key=kind||(tile.userData.featureKey?null:'label');
   if(!key||key===tile.userData.featureKey)return;
   if(tile.userData.feature){tile.userData.feature.traverse(o=>o.userData.dispose?.());tile.remove(tile.userData.feature);}
-  const model=kind?createTrap(kind,cell.x*53+cell.z*29):label(String.fromCharCode(cell.symbol));
+  const model=trap?createTrap(trap,cell.x*53+cell.z*29):other?createTerrainFeature(other,cell.x*41+cell.z*23):label(String.fromCharCode(cell.symbol));
   if(!kind)model.position.y=.35;
-  tile.add(model);tile.userData.feature=model;tile.userData.featureKey=key;
+  tile.add(model);tile.userData.feature=model;tile.userData.featureKey=key;tile.userData.axisFeature=AXIS_FEATURES.has(key)?model:null;
  }
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
  const hero=playerFactory();hero.setWeapon?.(null);group.add(hero.g);
@@ -208,6 +211,12 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
          if(['water','lava'].includes(cell.terrain)){slab.visible=false;const liquid=createLiquid(cell.terrain,cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
          group.add(tile);tiles.set(id,tile);
        }if(cell.terrain==='feature')dressFeature(tile,cell);tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
+       if(tile.userData.axisFeature){
+        // Drawbridge models assume the moat runs along x; turn them when the water runs along z.
+        const wet=(dx,dz)=>Number(frame.cells.some(c=>c.x===cell.x+dx&&c.z===cell.z+dz&&['water','lava'].includes(c.terrain)));
+        const alongX=wet(-1,0)+wet(1,0),alongZ=wet(0,-1)+wet(0,1);
+        if(alongX!==alongZ)tile.userData.axisFeature.rotation.y=alongZ>alongX?Math.PI/2:0;
+       }
        if(tile.userData.grate){
         const connected=(dx,dz)=>frame.cells.some(c=>c.x===cell.x+dx&&c.z===cell.z+dz&&['wall','bars','door'].includes(c.terrain));
         const horizontal=Number(connected(-1,0))+Number(connected(1,0)),vertical=Number(connected(0,-1))+Number(connected(0,1));
