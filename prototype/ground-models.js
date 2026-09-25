@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 
+// Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
+const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
+ 0xa85a22,0x4f9a3e,0xb09a32,0x3a62c0,0xc0708a,0x4ab0b8,0xd8d2c0];
+
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
@@ -22,6 +26,39 @@ export function createGroundModel(item={}){
    ball(.043,flower,x,.07,z,[.8,1,.75]);
    ball(.027,flower,x,.04,z+.022,[1,.45,1]);
   }
+ }else if(cls===10){
+  // A closed, clasped tome lying flat. The name is the true spell, so the look comes
+  // only from the glyph colour (the shuffled cover appearance).
+  const cover=mat(SPELLBOOK_COVERS[item.color]??0x6b4527),trim=mat(0x3a2a1c),pages=mat(0xe2d6b4),edge=mat(0xa8987a);
+  const sigil=new THREE.MeshStandardMaterial({color:0xd9b25a,metalness:.7,roughness:.35,emissive:0x6a4a12,emissiveIntensity:.5});materials.push(sigil);
+  const W=.34,D=.44,T=.018,P=.07,H=P+2*T;
+  add(new RoundedBoxGeometry(W,T,D,2,.006),cover,0,T/2);
+  box(W-.03,P,D-.03,pages,.012,T+P/2);
+  add(new RoundedBoxGeometry(W,T,D,2,.006),cover,0,T+P+T/2);
+  // Rounded spine with raised bands along the left edge.
+  const spine=add(new THREE.CylinderGeometry(H/2,H/2,D,16,1,false,Math.PI,Math.PI),cover,-W/2,H/2);spine.rotation.x=Math.PI/2;
+  for(const z of [-.15,-.05,.05,.15]){const band=add(new THREE.CylinderGeometry(H/2+.005,H/2+.005,.016,16,1,false,Math.PI,Math.PI),trim,-W/2,H/2,z);band.rotation.x=Math.PI/2;band.scale.z=H/(H+.01);}
+  // Faint page-edge lines on the fore-edge, head and tail.
+  for(const y of [.3,.5,.7]){
+   box(.002,.0025,D-.05,edge,W/2-.002,T+P*y);
+   for(const s of [-1,1])box(W-.06,.0025,.002,edge,.012,T+P*y,s*(D/2-.014));
+  }
+  // Brass corner guards on the fore-edge corners, top and bottom.
+  for(const y of [T/2+.003,T+P+T/2])for(const z of [-1,1])add(new RoundedBoxGeometry(.05,T+.006,.05,2,.004),metal,W/2-.022,y,z*(D/2-.022));
+  // A glinting sigil: a ring around a flattened gem, with four short rays.
+  const top=H+.003;
+  add(new THREE.TorusGeometry(.075,.007,6,32),sigil,-.015,top).rotation.x=Math.PI/2;
+  ball(.032,sigil,-.015,top,0,[1,.18,1]);
+  for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4,ray=box(.05,.004,.01,sigil,-.015+Math.cos(a)*.105,top,Math.sin(a)*.105);ray.rotation.y=-a;}
+  // Clasp strap wrapping from the top cover over the fore-edge, with a buckle.
+  box(.07,.005,.05,trim,W/2-.03,H+.002);
+  box(.005,H,.05,trim,W/2+.003,H/2);
+  add(new RoundedBoxGeometry(.03,.012,.064,2,.004),metal,W/2-.05,H+.006);
+  // Ribbon bookmark trailing from the tail onto the floor.
+  const from=new THREE.Vector3(.07,T+P*.55,D/2-.01),to=new THREE.Vector3(.1,.006,D/2+.09),d=to.clone().sub(from);
+  const ribbon=box(.02,.002,d.length(),mat(0x8c1f24),(from.x+to.x)/2,(from.y+to.y)/2,(from.z+to.z)/2);
+  ribbon.rotation.set(Math.atan2(-d.y,Math.hypot(d.x,d.z)),Math.atan2(d.x,d.z),0,'YXZ');
+  g.rotation.y=.3;
  }else if(cls===6&&/\b(?:oil lamp|magic lamp|lamp)\b/.test(name)){
   // Oil and magic lamps deliberately share their unidentified appearance.
   const soot=mat(0x302b23);
