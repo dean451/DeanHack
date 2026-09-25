@@ -110,3 +110,27 @@ test('common food gets grounded, finite models and unknown food falls back',()=>
  assert.equal(createGroundModel({name:'eucalyptus leaf',class:7}),null);
  assert.equal(createGroundModel({name:'tinning kit',class:6}),null);
 });
+
+test('common tools get grounded, finite models that share their unidentified look',()=>{
+ const tools=['tin whistle','mirror','crystal ball','tooled horn','bugle','wooden flute','wooden harp','leather drum','bell','stethoscope','tin opener','leash','saddle','chest','large box','ice box'];
+ const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);
+ for(const name of tools){
+  const model=createGroundModel({name,class:6});
+  assert(model,name);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(bounds.min.y>-1e-6&&bounds.min.y<1e-6,`${name} rests on the floor`);
+  assert(bounds.max.y<.5,`${name} is not too tall`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} fits its tile`);
+  let geometries=0;
+  model.traverse(part=>{if(part.geometry){
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+   part.geometry.addEventListener('dispose',()=>geometries++);
+  }});
+  model.userData.dispose();
+  assert.equal(geometries,model.children.length);
+ }
+ for(const [a,b] of [['tin whistle','magic whistle'],['tooled horn','frost horn'],['wooden harp','magic harp'],['leather drum','drum of earthquake']])
+  assert.deepEqual(signature(createGroundModel({name:a,class:6})),signature(createGroundModel({name:b,class:6})),`${a} and ${b} look alike`);
+ assert.notDeepEqual(signature(createGroundModel({name:'unicorn horn',class:6})),signature(createGroundModel({name:'tooled horn',class:6})));
+ assert.equal(createGroundModel({name:'chest',class:3}),null);
+});
