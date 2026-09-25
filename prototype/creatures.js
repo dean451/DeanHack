@@ -312,6 +312,45 @@ function insect(o){
 }
 const INSECTS={'giant ant':{color:'#6a3f22'},'killer bee':{color:'#d8a92a',bee:true,fly:true,scale:.75},'soldier ant':{color:'#34457a',scale:1.15},'fire ant':{color:'#b03a22'},'giant beetle':{color:'#222028',scale:1.5},'queen bee':{color:'#b98a2a',bee:true,fly:true,scale:1.1}};
 
+// Xan-class flyers (grid bugs keep their own model): a xan is a gangly red stinging fly whose
+// hooked tail stinger curls forward under it to lame legs; a chillbug is a squat frost beetle
+// with raised wing cases and ice spikes. Each side's wings share one group so the bee flutter pairs up.
+const XANS={xan:{color:'#a8322a',eye:'#ffcf40',stinger:true,scale:.95},chillbug:{color:'#4f7fc8',eye:'#c8f0ff',frost:true,scale:1.05}};
+function xan(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const shell=mat(o.color,{roughness:.4,metalness:.15}),dark=mat(shade(o.color,.35),{roughness:.45}),glow=mat(o.eye,{emissive:o.eye,emissiveIntensity:1.6,roughness:.25}),y=.52;
+ const membrane=mat(o.frost?'#d8f0ff':'#f0d8c8',{transparent:true,opacity:.42,side:THREE.DoubleSide,depthWrite:false,roughness:.3});
+ const head=sphere(body,.07,dark,0,y+.02,.19,1,.9,.95);
+ for(const side of [-1,1])sphere(head,.042,glow,side*.05,.015,.025,.8,1.05,.9);
+ if(o.stinger)tube(body,[[0,y-.02,.24],[0,y-.08,.3],[0,y-.15,.31]],.007,dark,6);
+ else for(const side of [-1,1]){const mandible=cone(body,.018,.08,mat('#e8f4ff',{roughness:.2}),side*.03,y-.03,.26,5);mandible.rotation.set(Math.PI/2+.3,0,side*.5);}
+ for(const side of [-1,1])tube(body,[[side*.025,y+.07,.23],[side*.08,y+.17,.26],[side*.13,y+.2,.34]],.007,dark,8);
+ sphere(body,.1,shell,0,y+.02,.06,1,.95,1.1);
+ if(o.frost){
+  // squat beetle: wide abdomen under raised elytra, frost crystals along the spine
+  sphere(body,.16,shell,0,y-.01,-.14,1.05,.75,1.25);
+  for(const side of [-1,1]){const elytron=part(body,new THREE.SphereGeometry(.15,14,8,0,Math.PI,0,Math.PI/2),shell,side*.035,y+.03,-.12);elytron.scale.set(.62,.55,1.3);elytron.rotation.set(-.35,side*Math.PI/2,side*.5);}
+  const ice=mat('#e2f6ff',{roughness:.08,metalness:.1,emissive:'#6fc8ff',emissiveIntensity:.35,transparent:true,opacity:.85});
+  for(let i=0;i<5;i++){const spike=cone(body,.022,.09-Math.abs(i-2)*.012,ice,Math.sin(i*2.1)*.02,y+.11-i*.01,.06-i*.075,5);spike.rotation.x=-.35-i*.12;}
+  for(const side of [-1,1])for(const z of [-.08,-.2]){const shard=cone(body,.016,.07,ice,side*.14,y-.02,z,4);shard.rotation.z=-side*1.2;}
+ }else{
+  // long segmented abdomen that curls down and forward into a hooked stinger
+  const pts=[[0,y,-.06],[0,y-.02,-.2],[0,y-.1,-.3],[0,y-.22,-.28],[0,y-.3,-.16],[0,y-.3,-.04]].map(p=>new THREE.Vector3(...p)),curve=new THREE.CatmullRomCurve3(pts);
+  for(let i=0;i<9;i++){const t=i/8,p=curve.getPoint(t),r=.075-t*.045;const seg=sphere(body,r,i%2?shell:dark,p.x,p.y,p.z);seg.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),curve.getTangent(t));seg.scale.set(1,.8,1);}
+  const barb=cone(body,.022,.12,mat('#e8dcc0',{roughness:.3}),0,y-.28,.03,6);barb.rotation.x=Math.PI/2+.5;
+ }
+ for(const side of [-1,1]){
+  const pair=new THREE.Group();pair.position.set(side*.03,y+.1,.05);body.add(pair);pair.rotation.x=-Math.PI/2+.25;
+  for(const [len,width,tilt] of [[.34,.11,.15],[.26,.08,-.35]]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.quadraticCurveTo(side*len*.5,width*1.6,side*len,width*.3);shape.quadraticCurveTo(side*len*.6,-width*.6,0,0);const wing=part(pair,new THREE.ShapeGeometry(shape),membrane);wing.rotation.z=tilt*side;wing.castShadow=false;
+   const vein=new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,.001),new THREE.Vector3(side*len*.5,width*.9,.001),new THREE.Vector3(side*len*.95,width*.35,.001)]);const veinMesh=part(wing,new THREE.TubeGeometry(vein,8,.0035,4,false),dark);veinMesh.castShadow=false;}
+  wings.push(pair);
+ }
+ // xans trail long dangling barbed legs; chillbugs tuck short ones
+ const reach=o.stinger?1:.6;
+ for(const side of [-1,1])for(const z of [-.01,.06,.13]){const leg=new THREE.Group();leg.position.set(side*.06,y-.03,z);body.add(leg);const knee=[side*.14*reach,.06,(z-.06)*.8],foot=[side*.2*reach,-.26*reach,(z-.06)*1.6-.05];tube(leg,[[0,0,0],knee,foot],.009,dark,8);if(o.stinger)cone(leg,.012,.04,dark,(knee[0]+foot[0])/2,(knee[1]+foot[1])/2,(knee[2]+foot[2])/2,4).rotation.z=side*1.3;legs.push(leg);}
+ return actor(g,body,legs,null,wings,'bee');
+}
+
 function spider(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
  const shell=mat(o.color,{roughness:.6}),dark=mat(shade(o.color,.45)),y=.24;
@@ -1308,6 +1347,7 @@ export function createCreature(cell={}){
  if(LIZARDS[name])return lizard(LIZARDS[name]);
  if(COCKATRICES[name])return cockatrice(COCKATRICES[name]);
  if(INSECTS[name])return insect(INSECTS[name]);
+ if(XANS[name])return xan(XANS[name]);
  if(SNAKES[name])return snake(SNAKES[name]);
  if(WORMS[name])return worm(WORMS[name]);
  if(name==='long worm tail')return wormTail({color:color||WORMS['long worm'].color});
@@ -1407,7 +1447,7 @@ export function createCreature(cell={}){
   case 'D':return dragon();
   case '@':return humanoid('human',{cloth:mat(shade(c,.8))});
   case 'r':return rat(false);
-  case 'x':return gridBug();
+  case 'x':return !name||/bug$/.test(name)?gridBug():xan({color:c,eye:'#ffcf40',stinger:true});
   case 'R':return rustMonster({color:c});
   case 'U':return umberHulk({color:shade(c,.7),eye:'#d8a040'});
   case 'l':return leprechaun({coat:c});
