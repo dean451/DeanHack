@@ -14,7 +14,7 @@ const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune
 
 // Tool kinds with their own model. Each word is the shared appearance, so a tin and a
 // magic whistle, or a tooled and a frost horn, look alike on the floor.
-const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box|tinning kit|expensive camera)\b/;
+const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box|tinning kit|expensive camera|lenses|credit card|beartrap|land mine|hook)\b/;
 
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
 export function createGroundModel(item={}){
@@ -424,6 +424,56 @@ export function createGroundModel(item={}){
    const bulb=new THREE.MeshBasicMaterial({color:0xfff4d8});materials.push(bulb);ball(.013,bulb,-.07,.195,.008);
    for(const x of [-.125,.125])box(.01,.02,.02,trim,x,.1);
    add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([v(-.13,.1,0),v(-.17,.02,.06),v(-.05,.005,.16),v(.1,.005,.16),v(.17,.02,.06),v(.13,.1,0)]),32,.006,5,false),body);
+  }else if(kind==='lenses'){
+   // Folded spectacles: two glass rounds in thin wire rims, a bridge, and temples tucked behind.
+   const glass=new THREE.MeshStandardMaterial({color:0xcfe4ee,metalness:.2,roughness:.04,transparent:true,opacity:.55});materials.push(glass);
+   for(const s of [-1,1]){
+    flat(new THREE.TorusGeometry(.05,.006,6,28),metal,s*.062,.05,0).rotation.x=Math.PI/2-.35;
+    const lens=add(new THREE.CylinderGeometry(.047,.047,.004,28),glass,s*.062,.05,0);lens.rotation.x=-.35;
+    const arm=add(new THREE.CylinderGeometry(.004,.004,.17,6),metal,s*.075,.012,-.085);arm.rotation.set(Math.PI/2,0,s*.1);
+    ball(.007,metal,s*.112,.03,-.012);
+   }
+   const bridge=add(new THREE.TorusGeometry(.016,.004,6,12,Math.PI),metal,0,.062,.006);bridge.rotation.x=-.35;
+  }else if(kind==='credit card'){
+   // A thin plastic card with a magnetic stripe on its back and a gold chip on its face.
+   const plastic=mat(0x2f5aa8);
+   add(new RoundedBoxGeometry(.2,.006,.13,2,.003),plastic,0,.003).rotation.y=.3;
+   const c=Math.cos(.3),s=Math.sin(.3);
+   const part=(w,d,m,x,z)=>{box(w,.0015,d,m,x*c+z*s,.0065,z*c-x*s).rotation.y=.3;};
+   part(.036,.028,brass,-.055,-.01);part(.15,.012,mat(0xd8dde0),.01,.035);part(.13,.008,mat(0xa9c0e6),0,-.042);
+  }else if(kind==='beartrap'){
+   // A sprung-open trap: a round base, two toothed half-jaws lying flat, a pan and a chained stake.
+   const iron=mat(0x55504a,.7);
+   flat(new THREE.TorusGeometry(.12,.012,8,32),iron,0,.012,0);
+   add(new THREE.CylinderGeometry(.04,.045,.016,16),iron,0,.008);
+   for(const s of [-1,1]){
+    const jaw=flat(new THREE.TorusGeometry(.15,.01,6,24,Math.PI),metal,0,.012,0);jaw.rotation.z=s>0?0:Math.PI;
+    for(let i=1;i<9;i++){const a=i/9*Math.PI;add(new THREE.ConeGeometry(.012,.04,4),metal,Math.cos(a)*.15,.03,s*Math.sin(a)*.15);}
+   }
+   for(const s of [-1,1]){lie(.012,.012,.05,iron,s*.17,.012,0);add(new THREE.TorusGeometry(.028,.008,6,16),iron,s*.2,.03,0).rotation.y=Math.PI/2;}
+   for(let i=0;i<4;i++){const link=add(new THREE.TorusGeometry(.014,.004,5,10),iron,.16+i*.02,.006,.13+i*.022);link.rotation.set(Math.PI/2,0,i%2?Math.PI/2:0);}
+   add(new THREE.ConeGeometry(.012,.07,6),iron,.24,.012,.24).rotation.x=Math.PI/2;
+  }else if(kind==='land mine'){
+   // A squat olive-drab disc with a ribbed rim, a pressure plate and a small arming plug.
+   const drab=mat(0x4d5634),plate=mat(0x2c2f24,.4);
+   add(new THREE.CylinderGeometry(.13,.14,.05,28),drab,0,.025);
+   for(let i=0;i<16;i++){const a=i/16*Math.PI*2;box(.012,.04,.012,drab,Math.cos(a)*.138,.022,Math.sin(a)*.138).rotation.y=-a;}
+   add(new THREE.CylinderGeometry(.075,.08,.018,24),plate,0,.059);
+   flat(new THREE.TorusGeometry(.08,.006,6,24),metal,0,.052,0);
+   add(new THREE.CylinderGeometry(.014,.014,.02,10),brass,.1,.06,.02);
+   box(.05,.004,.018,mat(0xc9b04a),-.04,.069,-.02);
+  }else if(kind==='hook'){
+   // A grappling hook lying on its side: an iron shank with three curved flukes and a coil of rope.
+   const iron=mat(0x5a5754,.75),rope=mat(0xa88b5c);
+   lie(.012,.012,.28,iron,0,.035,0);
+   flat(new THREE.TorusGeometry(.022,.006,6,14),iron,-.155,.035,0).rotation.x=0;
+   for(let i=0;i<3;i++){
+    const a=i/3*Math.PI*2+.4,fluke=add(new THREE.TorusGeometry(.06,.009,6,16,Math.PI*.8),iron,.14,.035+Math.sin(a)*.03,Math.cos(a)*.03);
+    fluke.rotation.set(a,0,Math.PI*.6);
+    const tip=add(new THREE.ConeGeometry(.014,.035,5),iron,.14+Math.cos(Math.PI*1.4)*.06,.035+Math.sin(a)*.09,Math.cos(a)*.09);tip.rotation.x=a-Math.PI/2;
+   }
+   for(let i=0;i<3;i++)flat(new THREE.TorusGeometry(.065-i*.004,.009,6,24),rope,-.2,.009+i*.017,.02);
+   lie(.008,.008,.03,rope,-.17,.03,.01,.3);
   }else{
    // Chests, large boxes and ice boxes.
    const chest=kind==='chest',ice=kind==='ice box';

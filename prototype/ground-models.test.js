@@ -112,7 +112,7 @@ test('common food gets grounded, finite models and unknown food falls back',()=>
 });
 
 test('common tools get grounded, finite models that share their unidentified look',()=>{
- const tools=['tin whistle','mirror','crystal ball','tooled horn','bugle','wooden flute','wooden harp','leather drum','bell','stethoscope','tin opener','leash','saddle','chest','large box','ice box','tinning kit','expensive camera'];
+ const tools=['tin whistle','mirror','crystal ball','tooled horn','bugle','wooden flute','wooden harp','leather drum','bell','stethoscope','tin opener','leash','saddle','chest','large box','ice box','tinning kit','expensive camera','lenses','credit card','beartrap','land mine','grappling hook'];
  const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);
  for(const name of tools){
   const model=createGroundModel({name,class:6});
@@ -129,7 +129,7 @@ test('common tools get grounded, finite models that share their unidentified loo
   model.userData.dispose();
   assert.equal(geometries,model.children.length);
  }
- for(const [a,b] of [['tin whistle','magic whistle'],['tooled horn','frost horn'],['wooden harp','magic harp'],['leather drum','drum of earthquake']])
+ for(const [a,b] of [['tin whistle','magic whistle'],['tooled horn','frost horn'],['wooden harp','magic harp'],['leather drum','drum of earthquake'],['iron hook','grappling hook']])
   assert.deepEqual(signature(createGroundModel({name:a,class:6})),signature(createGroundModel({name:b,class:6})),`${a} and ${b} look alike`);
  assert.notDeepEqual(signature(createGroundModel({name:'unicorn horn',class:6})),signature(createGroundModel({name:'tooled horn',class:6})));
  assert.equal(createGroundModel({name:'chest',class:3}),null);
