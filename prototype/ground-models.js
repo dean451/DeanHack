@@ -14,7 +14,7 @@ const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune
 
 // Tool kinds with their own model. Each word is the shared appearance, so a tin and a
 // magic whistle, or a tooled and a frost horn, look alike on the floor.
-const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box)\b/;
+const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box|tinning kit|expensive camera)\b/;
 
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
 export function createGroundModel(item={}){
@@ -395,6 +395,35 @@ export function createGroundModel(item={}){
    ball(.045,tack,0,.12,-.15,[1,1.1,.7]);
    add(new THREE.TorusGeometry(.05,.015,8,20,Math.PI),tack,0,.1,.15).rotation.y=Math.PI/2;
    for(const s of [-1,1]){box(.012,.06,.03,tack,s*.16,.04,.0);const iron=add(new THREE.TorusGeometry(.028,.006,6,14),metal,s*.2,.03,0);iron.rotation.set(0,Math.PI/2,s*.4);}
+  }else if(kind==='tinning kit'){
+   // A tin-plate case with a carrying handle and a side crank, and two fresh tins beside it.
+   const plate=mat(0xaab4b6,.75),label=mat(0x9a2c22);
+   add(new RoundedBoxGeometry(.24,.13,.16,2,.012),plate,-.04,.065);
+   box(.245,.006,.165,dark,-.04,.1);
+   add(new THREE.TorusGeometry(.04,.007,6,16,Math.PI),plate,-.04,.13,0);
+   for(const x of [-.08,0])box(.014,.012,.012,plate,x,.134);
+   box(.02,.03,.012,brass,-.04,.095,.085);
+   lie(.006,.006,.05,metal,.105,.08,0,Math.PI/2);
+   box(.012,.06,.012,metal,.105,.08,.025);lie(.009,.009,.03,wood,.12,.05,.025);
+   for(const [x,z] of [[.16,-.05],[.19,.06]]){
+    add(new THREE.CylinderGeometry(.032,.032,.055,16),plate,x,.0275,z);
+    add(new THREE.CylinderGeometry(.0325,.0325,.03,16,1,true),label,x,.0275,z).material.side=THREE.DoubleSide;
+    flat(new THREE.TorusGeometry(.03,.003,5,16),plate,x,.055,z);
+   }
+  }else if(kind==='expensive camera'){
+   // A boxy leather-clad camera with a brass lens barrel and a flash reflector on top.
+   const body=mat(0x2a2624),trim=mat(0xb8bcbe,.8),lens=new THREE.MeshStandardMaterial({color:0x223a4a,metalness:.3,roughness:.05,emissive:0x0e2a3a,emissiveIntensity:.4});materials.push(lens);
+   add(new RoundedBoxGeometry(.24,.14,.1,2,.014),body,0,.07);
+   box(.245,.025,.105,trim,0,.128);
+   const barrel=add(new THREE.CylinderGeometry(.045,.05,.07,20),brass,0,.065,.085);barrel.rotation.x=Math.PI/2;
+   add(new THREE.TorusGeometry(.045,.006,6,20),dark,0,.065,.12);add(new THREE.CircleGeometry(.038,20),lens,0,.065,.121);
+   box(.035,.025,.012,trim,.08,.1,.052);box(.02,.015,.004,lens,.08,.1,.059);
+   add(new THREE.CylinderGeometry(.009,.009,.012,10),mat(0xb03020,.3),.085,.146,0);
+   add(new THREE.CylinderGeometry(.006,.006,.05,8),trim,-.07,.165,0);
+   const dish=add(new THREE.CylinderGeometry(.055,.012,.035,20,1,true),trim,-.07,.2,.01);dish.rotation.x=-.5;dish.material.side=THREE.DoubleSide;
+   const bulb=new THREE.MeshBasicMaterial({color:0xfff4d8});materials.push(bulb);ball(.013,bulb,-.07,.195,.008);
+   for(const x of [-.125,.125])box(.01,.02,.02,trim,x,.1);
+   add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([v(-.13,.1,0),v(-.17,.02,.06),v(-.05,.005,.16),v(.1,.005,.16),v(.17,.02,.06),v(.13,.1,0)]),32,.006,5,false),body);
   }else{
    // Chests, large boxes and ice boxes.
    const chest=kind==='chest',ice=kind==='ice box';

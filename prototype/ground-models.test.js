@@ -108,11 +108,11 @@ test('common food gets grounded, finite models and unknown food falls back',()=>
  }
  assert(seen.size>=15,'kinds should look different');
  assert.equal(createGroundModel({name:'eucalyptus leaf',class:7}),null);
- assert.equal(createGroundModel({name:'tinning kit',class:6}),null);
+ assert.equal(createGroundModel({name:'figurine of a newt',class:6}),null);
 });
 
 test('common tools get grounded, finite models that share their unidentified look',()=>{
- const tools=['tin whistle','mirror','crystal ball','tooled horn','bugle','wooden flute','wooden harp','leather drum','bell','stethoscope','tin opener','leash','saddle','chest','large box','ice box'];
+ const tools=['tin whistle','mirror','crystal ball','tooled horn','bugle','wooden flute','wooden harp','leather drum','bell','stethoscope','tin opener','leash','saddle','chest','large box','ice box','tinning kit','expensive camera'];
  const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);
  for(const name of tools){
   const model=createGroundModel({name,class:6});
