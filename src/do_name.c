@@ -753,6 +753,7 @@ getpos(coord *ccp, boolean force, const char *goal)
     coord *garr[NUM_GLOCS] = DUMMY;
     int gcount[NUM_GLOCS] = DUMMY;
     int gidx[NUM_GLOCS] = DUMMY;
+    boolean was_in_getpos = in_getpos;
 
     for (i = 0; i < SIZE(pick_chars_def); i++) {
         pick_chars[i] = Cmd.spkeys[pick_chars_def[i].nhkf];
@@ -781,6 +782,7 @@ getpos(coord *ccp, boolean force, const char *goal)
 #ifdef MAC
     lock_mouse_cursor(TRUE);
 #endif
+    in_getpos = TRUE;
     for (;;) {
         if (show_goal_msg) {
             pline("Move cursor to %s:", goal);
@@ -1089,6 +1091,7 @@ getpos(coord *ccp, boolean force, const char *goal)
     }
     getpos_hilitefunc = (void (*)(int)) 0;
     getpos_getvalid = (boolean (*)(coordxy, coordxy)) 0;
+    in_getpos = was_in_getpos;
 
     return result;
 }

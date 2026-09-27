@@ -135,6 +135,9 @@ NEARDATA struct obj *thrownobj = 0;    /* object in flight due to throwing */
 NEARDATA struct obj *kickedobj = 0;    /* object in flight due to kicking */
 
 NEARDATA boolean in_steed_dismounting = FALSE;
+/* set while getpos() waits for a cursor key, so a window port can tell
+   a position prompt apart from a normal command */
+boolean in_getpos = FALSE;
 
 NEARDATA coord bhitpos = DUMMY;
 NEARDATA coord doors[DOORMAX] = {DUMMY};

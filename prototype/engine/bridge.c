@@ -328,7 +328,11 @@ static int bridge_select(winid w,int how,menu_item **out){char buf[BUFSZ];*out=N
  if(n){*out=(menu_item*)alloc(n*sizeof(menu_item));memcpy(*out,picked,n*sizeof(menu_item));}return n;}
 static void glyph(winid w UNUSED,coordxy x,coordxy y,int g,int b){if(x>0&&x<COLNO&&y>=0&&y<ROWNO){glyphs[x][y]=g;if(cansee(x,y))backgrounds[x][y]=(b==NO_GLYPH?cmap_to_glyph(S_room):b);}}
 static int getkey(void){return key("key","Command or direction");}
-static int poskey(coordxy *x UNUSED,coordxy *y UNUSED,int *m UNUSED){return key("command","Your move");}
+/* getpos() (travel, stair travel, farlook, targeting) reads keys through nh_poskey too;
+   report those as a position prompt so the UI stops treating them as a normal turn. */
+static int poskey(coordxy *x UNUSED,coordxy *y UNUSED,int *m UNUSED){
+ if(in_getpos)return key("position",iflags.getloc_travelmode?"Pick a spot: < > stairs, . or , to travel, Esc to cancel":"Pick a spot: move with h/j/k/l, < > stairs, . or , to choose, Esc to cancel");
+ return key("command","Your move");}
 static char bridge_yn(const char *q,const char *choices,char def){char prompt[BUFSZ];snprintf(prompt,sizeof prompt,"%s [%s] (default: %c)",q,choices?choices:"any key",def?def:' ');for(;;){int k=key("key",prompt);if((k==13||k==10||k==' ')&&def)return def;if(k==27)return choices&&strchr(choices,'q')?'q':choices&&strchr(choices,'n')?'n':def?def:27;if(!choices||strchr(choices,k))return k;}}
 static void line(const char *q,char *buf){read_request("line",q,buf,BUFSZ);}
 static int ext(void){char buf[BUFSZ];line("Extended command",buf);for(int i=0;extcmdlist[i].ef_txt;i++)if(!strcmp(buf,extcmdlist[i].ef_txt)&&(!(extcmdlist[i].flags & WIZMODECMD)||wizard))return i;return -1;}

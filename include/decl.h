@@ -267,6 +267,7 @@ E NEARDATA struct obj *current_wand, *thrownobj, *kickedobj;
 E NEARDATA boolean defer_see_monsters;
 
 E NEARDATA boolean in_steed_dismounting;
+E boolean in_getpos;
 
 E const int shield_static[];
 

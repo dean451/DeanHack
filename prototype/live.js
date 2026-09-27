@@ -287,7 +287,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
   const list=document.createElement('ul');for(const name of items){const item=document.createElement('li');item.textContent=name;list.append(item);}groundPanel.append(list);
   const hint=document.createElement('small');hint.textContent='Press , to pick up';groundPanel.append(hint);
  }
- function prompt(){if(!active||!pending)return;setPrompt(pending.prompt);if(pending.kind==='command')return;
+ function prompt(){if(!active||!pending)return;setPrompt(pending.prompt);if(pending.kind==='command'||pending.kind==='position')return;
    const groundItems=groundNotice(pending,lines);
    if(groundItems&&latest){
     showGround(groundItems);
@@ -326,7 +326,9 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  addEventListener('keydown',e=>{if(!active||e.metaKey||e.altKey)return;if(e.target instanceof HTMLInputElement)return;
    if(e.ctrlKey){if(e.key.toLowerCase()==='d'&&pending?.kind==='command'){e.preventDefault();e.stopImmediatePropagation();void reply(4);}return;}
    if(pending?.kind==='menu')return;let code;const directions={ArrowUp:107,ArrowDown:106,ArrowLeft:104,ArrowRight:108};
-   if(pending?.kind==='command'){code=directions[e.key]??(e.key===' '?46:e.key.length===1?e.key.charCodeAt(0):undefined);}else code=directions[e.key]??(e.key==='Enter'?13:e.key==='Escape'?27:e.key.length===1?e.key.charCodeAt(0):undefined);
+   if(pending?.kind==='command'){code=directions[e.key]??(e.key===' '?46:e.key.length===1?e.key.charCodeAt(0):undefined);}
+   // getpos cursor prompt (travel, stair travel, farlook): raw keys and Escape, Enter picks the spot
+   else if(pending?.kind==='position'){code=directions[e.key]??(e.key==='Escape'?27:e.key==='Enter'?46:e.key.length===1?e.key.charCodeAt(0):undefined);}else code=directions[e.key]??(e.key==='Enter'?13:e.key==='Escape'?27:e.key.length===1?e.key.charCodeAt(0):undefined);
    if(code){e.preventDefault();e.stopImmediatePropagation();if(pending)reply(code);else if(pending===null)queuedCommand=code;}
  },true);
  return {get active(){return active;},update(t,dt){if(!active||!hero.target)return;poseEngulfed(hero,null);poseHeld(hero,null);clearActionPose(hero,hero.actions);zapFlash.unpose(hero);const delta=hero.target.clone().sub(hero.g.position),moving=delta.length()>.025;if(moving)hero.g.rotation.y=Math.atan2(delta.x,delta.z);hero.g.position.lerp(hero.target,1-Math.exp(-dt*14));hero.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);hero.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);hero.cape.rotation.x=-.17+Math.sin(t*3)*.06;if(hero.plume)hero.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
