@@ -275,3 +275,16 @@ test('the looking glass lies flat with a painted reflection, a beaded frame and 
  assert(model.children.filter(part=>part.geometry.type==='SphereGeometry').length>=30,'beaded rim');
  model.userData.dispose();
 });
+
+test('the blindfold is a padded silk band tied in a loop with frayed trailing ties',()=>{
+ const model=createGroundModel({name:'an uncursed blindfold',class:6});
+ assert(model,'blindfolds have a ground model');
+ const bounds=new THREE.Box3().setFromObject(model);
+ assert(bounds.min.y>=-1e-6);assert(bounds.max.y<.04,'it lies flat');
+ assert(bounds.max.x-bounds.min.x>.35,'the ties trail out from the loop');
+ let vertices=0;
+ model.traverse(part=>{if(part.geometry){const a=part.geometry.attributes.position.array;vertices+=a.length/3;for(const value of a)assert(Number.isFinite(value));}});
+ assert(vertices<20000,`vertices: ${vertices}`);
+ assert(model.children.filter(part=>part.geometry.type==='TubeGeometry').length>=10,'hems and frayed threads');
+ model.userData.dispose();
+});
