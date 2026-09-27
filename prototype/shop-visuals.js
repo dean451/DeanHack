@@ -64,7 +64,9 @@ export function createWatchman(){
 
 export function createShopItem(name){
  const n=name.toLowerCase();
- if(/pick-axe|pickaxe/.test(n))return createTool(name,'pickaxe');
+ if(/pick-axe|pickaxe/.test(n))return createPick(name,false);
+ // A dwarvish mattock shows as "broad pick" until identified; both names draw the same model.
+ if(/dwarvish mattock|broad pick/.test(n))return createPick(name,true);
  if(/lock pick/.test(n))return createTool(name,'lockpick');
  if(/skeleton key/.test(n))return createTool(name,'key');
  if(/can of grease/.test(n))return createTool(name,'grease');
@@ -73,11 +75,94 @@ export function createShopItem(name){
 function createTool(name,kind){
  const {g,mat,mesh,ball,box,cyl,ring}=kit(name);g.userData.restingWeapon=true;
  const iron=mat(0x9aacaf,{metalness:.8,roughness:.28}),wood=mat(0x69462e),gold=mat(0xd0aa4f,{metalness:.72,roughness:.3}),cloth=mat(0x252d35),tin=mat(0x6c7775,{metalness:.55,roughness:.36}),grease=mat(0xc9a44b,{roughness:.45});
- if(kind==='pickaxe'){cyl(wood,0,.3,0,.035,.045,.55,8).rotation.z=-.7;const head=mesh(new THREE.CylinderGeometry(.045,.055,.43,8),iron,.2,.51,0);head.rotation.z=Math.PI/2;mesh(new THREE.ConeGeometry(.06,.3,6),iron,.43,.51,0).rotation.z=Math.PI/2;}
- else if(kind==='lockpick'){for(const x of [-.12,-.04,.04,.12]){cyl(iron,x,.28,0,.012,.012,.43,6).rotation.z=(x*2.2);mesh(new THREE.ConeGeometry(.025,.11,5),iron,x+.035,.51,0).rotation.z=Math.PI/2;}}
+ if(kind==='lockpick'){for(const x of [-.12,-.04,.04,.12]){cyl(iron,x,.28,0,.012,.012,.43,6).rotation.z=(x*2.2);mesh(new THREE.ConeGeometry(.025,.11,5),iron,x+.035,.51,0).rotation.z=Math.PI/2;}}
  else if(kind==='key'){cyl(gold,0,.3,0,.018,.018,.5,8);ring(gold,0,.57,0,.08,.018).rotation.x=Math.PI/2;for(const x of [-.04,.04])box(gold,x,.06,0,.035,.14,.025);}
  else {cyl(tin,0,.13,0,.18,.18,.18);cyl(grease,0,.245,0,.13,.15,.08);ring(gold,0,.3,0,.13,.012).rotation.x=Math.PI/2;}
  const label=()=>{};return g;
+}
+// Sweeps a tapering cross-section along a curve in the x-z plane. y is the thickness axis, so the
+// tool lies flat. halfWidth(t) is in the curve's plane, halfHeight(t) along y; both ends are capped.
+function sweepGeometry(points,halfWidth,halfHeight,shade,rows=28,sides=10){
+ const curve=new THREE.CatmullRomCurve3(points),up=new THREE.Vector3(0,1,0),side=new THREE.Vector3();
+ const pos=[],col=[],idx=[],c=new THREE.Color();
+ for(let i=0;i<=rows;i++){
+  const t=i/rows,p=curve.getPointAt(t),w=halfWidth(t),h=halfHeight(t);
+  side.crossVectors(curve.getTangentAt(t),up).normalize();
+  for(let j=0;j<sides;j++){
+   // A squared-off octagon: flat faces with bevelled corners, like forged bar.
+   const a=j/sides*Math.PI*2,cx=Math.sign(Math.cos(a))*Math.abs(Math.cos(a))**.55,cy=Math.sign(Math.sin(a))*Math.abs(Math.sin(a))**.55;
+   pos.push(p.x+side.x*cx*w,p.y+cy*h,p.z+side.z*cx*w);
+   shade(t,cx,cy,c);col.push(c.r,c.g,c.b);
+  }
+ }
+ for(let i=0;i<rows;i++)for(let j=0;j<sides;j++){const a=i*sides+j,b=i*sides+(j+1)%sides,d=a+sides,e=b+sides;idx.push(a,d,b,b,d,e);}
+ for(const [row,t,flip] of [[0,0,true],[rows,1,false]]){
+  const p=curve.getPointAt(t),centre=pos.length/3;pos.push(p.x,p.y,p.z);shade(t,0,0,c);col.push(c.r,c.g,c.b);
+  for(let j=0;j<sides;j++){const a=row*sides+j,b=row*sides+(j+1)%sides;flip?idx.push(centre,a,b):idx.push(centre,b,a);}
+ }
+ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));geo.setIndex(idx);geo.computeVertexNormals();
+ return geo;
+}
+// A pick-axe (or, broad, a dwarvish mattock) dropped flat on the floor: a lathed hickory haft with a
+// swelled butt and a spiralled leather grip, iron langets riveted up to a forged head, the haft end
+// showing through the eye with its wedge, and vertex-coloured wear (polished points, scale, scratches).
+function createPick(name,broad){
+ const {g,mat,mesh}=kit(name);g.userData.restingWeapon=true;
+ const tool=new THREE.Group();g.add(tool);
+ const steel=mat(0xffffff,{vertexColors:true,metalness:.72,roughness:.42}),wood=mat(0xffffff,{vertexColors:true,roughness:.82}),iron=mat(broad?0x4b4f52:0x5a6265,{metalness:.7,roughness:.5}),leather=mat(0x4a2c1e,{roughness:.9}),endGrain=mat(0xa47a51,{roughness:.9}),bright=mat(0xc8d0d2,{metalness:.85,roughness:.25});
+ const length=broad?.86:.76,r=broad?.034:.03,headY=broad?.07:.034;
+ const noise=(a,b)=>Math.sin(a*12.9898+b*78.233)*43758.5453%1;
+ // Head: one curved bar from tip to tip through the eye at the origin; the points curve back toward the haft.
+ const span=broad?.25:.29,bend=broad?.05:.085;
+ const headPoints=[];for(let i=0;i<=8;i++){const z=-span+i/8*span*2;headPoints.push(new THREE.Vector3(-bend*(z/span)**2,headY,z));}
+ const swell=t=>Math.max(0,1-Math.abs(2*t-1))**.75;
+ const halfWidth=broad?t=>t<.5?.004+.03*swell(t):.005+.03*(1-t)**.8*1.4:t=>.003+.028*swell(t);
+ const halfHeight=broad?t=>t<.5?.003+.033*swell(t):Math.min(headY,.034+(t-.5)*.08):t=>.003+.031*swell(t);
+ const steelTone=new THREE.Color(broad?0x5c6164:0x6a7376),polish=new THREE.Color(0xd9e1e3),scale=new THREE.Color(0x2e2c2a);
+ const head=mesh(sweepGeometry(headPoints,halfWidth,halfHeight,(t,cx,cy,c)=>{
+  // Worked points are polished bright; the middle keeps dark forge scale and a little rust.
+  const edge=broad&&t>.5?(t-.5)*2:Math.abs(2*t-1);
+  c.copy(steelTone).lerp(polish,Math.max(0,edge-.45)*1.8);
+  const n=noise(t*31+cx,cy*7);if(edge<.5&&n>.55)c.lerp(scale,.5);
+  if(n<.06)c.lerp(new THREE.Color(0x6b3d24),.55);
+ }),steel,0,0,0,tool);
+ // Eye boss round the haft, with a raised band either side.
+ const boss=halfHeight(.5)*2;
+ mesh(new RoundedBoxGeometry(.085,boss+.014,.09,3,.012),iron,0,headY,0,tool);
+ for(const z of [-.05,.05])mesh(new RoundedBoxGeometry(.07,boss+.022,.012,2,.004),iron,0,headY,z,tool);
+ // Haft: lathed along +y, then laid along -x. Swelled butt, slim neck, thickening into the eye.
+ const profile=[[0,0],[r*.7,0],[r*1.22,.012],[r*1.3,.04],[r*1.02,.08],[r*.94,.2],[r*.98,length*.6],[r*1.08,length-.02],[r*1.1,length+.05],[r*.9,length+.058],[0,length+.058]].map(([a,b])=>new THREE.Vector2(a,b));
+ const haftGeo=new THREE.LatheGeometry(profile,16);haftGeo.rotateZ(-Math.PI/2);haftGeo.translate(-length,headY,0);
+ {const p=haftGeo.attributes.position,cols=[],c=new THREE.Color();
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),a=Math.atan2(p.getZ(i),p.getY(i)-headY),along=(x+length)/length;
+   // Grain runs along the haft; hands have darkened the butt, and the eye end is grimy.
+   c.set(0x7c5534).lerp(new THREE.Color(0x5a3a22),.5+.5*Math.sin(a*3+x*23+Math.sin(x*61)*1.5));
+   if(along<.28)c.multiplyScalar(.72+along);if(along>.9)c.multiplyScalar(.8);
+   cols.push(c.r,c.g,c.b);}
+  haftGeo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));}
+ mesh(haftGeo,wood,0,0,0,tool);
+ // End grain through the eye, split by an iron wedge.
+ const cap=mesh(new THREE.CylinderGeometry(r*.92,r*.92,.006,14),endGrain,.061,headY,0,tool);cap.rotation.z=Math.PI/2;
+ mesh(new THREE.BoxGeometry(.008,r*1.5,.009),iron,.065,headY,0,tool);
+ // Langets riveted along the top and bottom of the haft below the head.
+ for(const y of [1,-1]){
+  mesh(new THREE.BoxGeometry(.15,.006,.024),iron,-.105,headY+y*r*1.02,0,tool);
+  for(const x of [-.06,-.14]){const rivet=mesh(new THREE.SphereGeometry(.009,8,6),bright,x,headY+y*(r*1.02+.003),0,tool);rivet.scale.y=.6;}
+ }
+ // Spiralled leather grip near the butt, bound at both ends.
+ const gripStart=-length+.1,gripEnd=-length+.33,turns=8,helix=[];
+ for(let i=0;i<=turns*12;i++){const t=i/(turns*12),a=t*turns*Math.PI*2;helix.push(new THREE.Vector3(gripStart+(gripEnd-gripStart)*t,headY+Math.cos(a)*(r*.97+.005),Math.sin(a)*(r*.97+.005)));}
+ mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix),turns*24,.0075,6),leather,0,0,0,tool);
+ for(const x of [gripStart,gripEnd]){const band=mesh(new THREE.TorusGeometry(r*.97+.006,.006,6,20),leather,x,headY,0,tool);band.rotation.y=Math.PI/2;}
+ // Scratches across the top face of the head.
+ for(let i=0;i<5;i++){const z=(i-2)*.042+(broad?.03:0),s=mesh(new THREE.BoxGeometry(.028,.0015,.0022),bright,-.002-bend*(z/span)**2,headY+halfHeight(.5+z/span/2)+.0004,z,tool);s.rotation.y=.5+noise(i,3)*.6;}
+ // Lay the butt down on the floor, then drop the lowest point to y=0 and centre it on the tile.
+ tool.rotation.z=Math.asin(Math.max(0,headY-r*1.3)/length);
+ tool.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(tool,true),centre=bounds.getCenter(new THREE.Vector3());
+ const holder=new THREE.Group();holder.rotation.y=-.6;g.add(holder);holder.add(tool);
+ tool.position.set(-centre.x,-bounds.min.y,-centre.z);
+ return g;
 }
 export function lightItemKind(name=''){
  const n=name.toLowerCase();
