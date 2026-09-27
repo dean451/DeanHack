@@ -101,3 +101,21 @@ test('stone giants hoist a fractured granite boulder on the palm of the raised a
  assert(box.min.y>1.3&&box.max.y<2.1,`boulder spans ${box.min.y.toFixed(2)}..${box.max.y.toFixed(2)}`);
  assert(hand.distanceTo(rock.getWorldPosition(new THREE.Vector3()))<.24,'the hand touches the boulder');
 });
+
+test('mumakil and mastodons are tusked, trunked beasts baked into a few meshes, not rothe clones',()=>{
+ const counts={};
+ for(const name of ['mumak','mastodon']){
+  const beast=createCreature({name,symbol:113,color:7});
+  assert.equal(beast.g.name,name);assert.equal(beast.legs.length,4);assert(beast.head&&beast.trunk&&beast.tail&&beast.body,name);
+  beast.g.updateMatrixWorld(true);let meshes=0;
+  beast.g.traverse(part=>{if(!part.isMesh)return;meshes++;for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);});
+  assert(meshes<=24,`${name} has ${meshes} meshes`);counts[name]=meshes;
+  const bounds=new THREE.Box3().setFromObject(beast.g);
+  assert(Math.abs(bounds.min.y)<.005,name);assert(bounds.max.y>1.1&&bounds.max.y<1.45,name);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.95,name);
+  // the trunk hangs clear of the floor
+  assert(new THREE.Box3().setFromObject(beast.trunk).min.y>.08,name);
+ }
+ assert(counts.mastodon>counts.mumak,'the mastodon adds shaggy hair');
+ assert.notEqual(createCreature({name:'rothe',symbol:113}).g.name,'mumak');
+});

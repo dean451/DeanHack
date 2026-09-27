@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {heldBoulderGeometry} from './boulder.js';
 
 const M={
@@ -845,6 +846,86 @@ const HORSES={
  warhorse:{scale:1.15,coat:.62,hair:'#141210',points:'#1a1614',legH:.43,stock:1.1,mane:'braided',feathered:true,barded:true,cloth:'#7a1f24',tail:.44},
 };
 function horseFor(name,color){const o=HORSES[name]||HORSES.horse;return horse({...o,coat:shade(color||'#8a6440',o.coat)});}
+// Bakes static pieces into one mesh per (parent, material), so a big beast costs a
+// handful of draw calls instead of dozens. Pieces are posed with a matrix before merging.
+function baker(){
+ const bins=new Map(),m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();
+ const put=(parent,material,geo,pos=[0,0,0],rot=[0,0,0],scl=[1,1,1])=>{
+  geo.applyMatrix4(m.compose(new THREE.Vector3(...pos),rot.isQuaternion?rot:q.setFromEuler(e.set(...rot)),new THREE.Vector3(...scl)));
+  const key=parent.uuid+material.uuid;if(!bins.has(key))bins.set(key,{parent,material,geos:[]});bins.get(key).geos.push(geo);};
+ const bake=()=>{for(const {parent,material,geos} of bins.values()){part(parent,mergeGeometries(geos),material);for(const geo of geos)geo.dispose();}};
+ return {put,bake};
+}
+// A tube whose radius runs from r0 to r1 along a curve, with optional ring wrinkles.
+function taperedTube(points,r0,r1,tubular=20,radial=8,wrinkle=0){
+ const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),geo=new THREE.TubeGeometry(curve,tubular,1,radial,false);
+ const pos=geo.attributes.position,c=new THREE.Vector3(),v=new THREE.Vector3();
+ for(let i=0;i<=tubular;i++){curve.getPointAt(i/tubular,c);const r=(r0+(r1-r0)*i/tubular)*(1+wrinkle*Math.sin(i*2.2));
+  for(let j=0;j<=radial;j++){const k=i*(radial+1)+j;v.fromBufferAttribute(pos,k).sub(c).multiplyScalar(r).add(c);pos.setXYZ(k,v.x,v.y,v.z);}}
+ return geo;
+}
+// Mumakil and mastodons (q), set back so the tusks and body sit centred on the tile: pillar legs with toenails, a domed head, a hanging trunk that
+// curls at the tip, and long tusks. The mumak is a grey oliphaunt with fan ears and a second,
+// shorter pair of tusks; the mastodon is shaggy brown with small ears, a high crown, and
+// tusks that sweep out and spiral in. Static parts are baked per material (~12 draw calls).
+function proboscidean(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);body.position.z=-.12;g.scale.setScalar(o.scale);g.name=o.name;
+ const B=baker(),skin=mat(o.skin,{roughness:.95}),dark=mat(o.dark,{roughness:.97}),ivory=mat('#e6dcc2',{roughness:.45}),nail=mat('#cfc3a6',{roughness:.6});
+ const hair=o.hair?mat(o.hair,{roughness:1}):null,S=(r,w=14,h=10)=>new THREE.SphereGeometry(r,w,h);
+ const legH=.44,y=legH+.2;
+ // barrel, shoulder hump, rump and a darker belly
+ B.put(body,skin,S(.3,20,14),[0,y,0],[0,0,0],[1,.95,1.45]);
+ B.put(body,skin,S(.26,16,12),[0,y+.1,.2],[0,0,0],[1.05,1,.9]);
+ B.put(body,skin,S(.25,16,12),[0,y+.03,-.24],[0,0,0],[1,1,.9]);
+ B.put(body,dark,S(.24,16,10),[0,y-.12,0],[0,0,0],[.95,.5,1.35]);
+ if(hair){
+  // a ragged fringe down the flanks, a mane over the hump and shag on the brow
+  const skirt=tatter(new THREE.LatheGeometry([[.28,.12],[.315,0],[.32,-.12],[.3,-.2]].map(([r,h])=>new THREE.Vector2(r,h)),28),-.04,.1,6);
+  B.put(body,hair,skirt,[0,y,-.01],[0,0,0],[1.06,1,1.48]);
+  B.put(body,hair,S(.24,16,10),[0,y+.2,.17],[0,0,0],[1.05,.7,1]);
+  for(let i=0;i<9;i++){const a=(i/8-.5)*2.2;B.put(body,hair,new THREE.ConeGeometry(.05,.16,5),[Math.sin(a)*.2,y+.28-Math.abs(a)*.04,.12+Math.cos(i*1.7)*.06],[.9,0,a*.6]);}
+ }
+ // head: skull, crown dome, cheeks and small eyes; the mastodon's crown rises higher
+ const head=new THREE.Group();head.position.set(0,y+.17,.36);head.rotation.x=.12;body.add(head);
+ B.put(head,skin,S(.19,16,12),[0,0,0],[0,0,0],[.95,1.05,.95]);
+ B.put(head,skin,S(.15,14,10),[0,.1+o.crown,-.03],[0,0,0],[1,1,.9]);
+ if(hair)B.put(head,hair,S(.13,12,8),[0,.19+o.crown,-.05],[0,0,0],[1.1,.55,1]);
+ for(const side of [-1,1]){
+  B.put(head,dark,S(.028,8,6),[side*.145,.01,.1]);
+  B.put(head,skin,S(.07,10,8),[side*.1,-.09,.1],[0,0,0],[1,1.1,1.1]);
+  // ears: broad fans on the mumak, small tufted flaps on the mastodon
+  const ear=S(o.ear,14,10);B.put(head,skin,ear,[side*(.17+o.ear*.2),-.02,-.08],[0,side*.55,0],[.12,1.05,.85]);
+  B.put(head,dark,S(o.ear*.8,12,8),[side*(.172+o.ear*.2),-.03,-.06],[0,side*.55,0],[.1,1,.8]);
+  // tusks sweep forward and up from the lip; the mastodon's flare out and curl back in
+  const tip=o.spiral?[[0,0,0],[side*.05,-.12,.08],[side*.14,-.2,.22],[side*.14,-.14,.36],[side*.04,-.02,.42]]:[[0,0,0],[side*.02,-.12,.1],[side*.05,-.18,.24],[side*.07,-.12,.36],[side*.06,.0,.42]];
+  B.put(head,ivory,taperedTube(tip,.032,.005,18,8),[side*.085,-.12,.12]);
+  if(o.minorTusks)B.put(head,ivory,taperedTube([[0,0,0],[side*.03,-.08,.06],[side*.07,-.1,.14],[side*.09,-.05,.2]],.02,.004,10,6),[side*.12,-.1,.08]);
+ }
+ // trunk: its own group so it can be animated, wrinkled, curling forward at the tip
+ const trunk=new THREE.Group();trunk.position.set(0,-.06,.16);head.add(trunk);
+ const path=[[0,0,0],[0,-.12,.06],[0,-.3,.07],[0,-.46,.05],[0,-.56,.1],[0,-.57,.17]];
+ B.put(trunk,skin,taperedTube(path,.075,.03,24,10,.05));
+ B.put(trunk,dark,S(.032,10,8),path[5]);
+ // pillar legs with a wide round foot and three toenails; the mastodon's are shaggy to the knee
+ for(const side of [-1,1])for(const z of [.24,-.25]){
+  const leg=new THREE.Group();leg.position.set(side*.17,legH,z);body.add(leg);legs.push(leg);
+  B.put(leg,skin,S(.1,12,8),[0,.02,0],[0,0,0],[1,1.3,1]);
+  B.put(leg,skin,new THREE.CylinderGeometry(.088,.085,legH-.04,12),[0,-legH/2+.02,0]);
+  B.put(leg,skin,new THREE.CylinderGeometry(.095,.105,.07,14),[0,-legH+.035,0]);
+  for(const a of [-.5,0,.5])B.put(leg,nail,S(.024,8,6),[Math.sin(a)*.09,-legH+.025,Math.cos(a)*.09],[0,0,0],[1,.8,.7]);
+  if(hair)B.put(leg,hair,tatter(new THREE.CylinderGeometry(.11,.125,.26,14,3,true),-.04,.07,5),[0,-.08,0]);
+ }
+ // a thin rope tail with a dark tuft
+ const tail=new THREE.Group();tail.position.set(0,y+.12,-.52);body.add(tail);
+ B.put(tail,skin,taperedTube([[0,0,0],[0,-.1,-.05],[0,-.28,-.06]],.022,.014,8,6));
+ B.put(tail,hair||dark,new THREE.ConeGeometry(.03,.09,6),[0,-.31,-.06],[Math.PI,0,0]);
+ B.bake();
+ return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,trunk});
+}
+const PROBOSCIDEANS={
+ mumak:{name:'mumak',scale:1.1,skin:'#7c7872',dark:'#56524d',ear:.2,crown:0,minorTusks:true},
+ mastodon:{name:'mastodon',scale:1.15,skin:'#4a3b30',dark:'#2f251e',hair:'#6b4526',ear:.09,crown:.07,spiral:true},
+};
 // giants (H): a towering, broad-shouldered brute in a hide kilt and belt, with thick legs in wrapped boots and heavy fists;
 // hill giants swing clubs, stone giants shoulder a boulder, fire giants have a smouldering beard and a sword, frost giants
 // an icy mantle and an axe, storm giants a lightning-tipped spear, titans gilded armour; ettins have two heads, minotaurs a bull's
@@ -1936,6 +2017,7 @@ export function createCreature(cell={}){
  if(MIMICS[name])return mimic(MIMICS[name]);
  if(CENTAURS[name])return centaur(CENTAURS[name]);
  if(HORSES[name])return horseFor(name,color);
+ if(PROBOSCIDEANS[name])return proboscidean(PROBOSCIDEANS[name]);
  if(GIANTS[name])return giant(GIANTS[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
  if(MIND_FLAYERS[name])return mindFlayer(MIND_FLAYERS[name]);
