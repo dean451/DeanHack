@@ -16,37 +16,6 @@ function cylinder(parent,r1,r2,h,material,x=0,y=0,z=0,segments=12){return part(p
 function cone(parent,r,h,material,x=0,y=0,z=0,segments=6){return part(parent,new THREE.ConeGeometry(r,h,segments),material,x,y,z);}
 function actor(g,body,legs=[],tail=null,wings=[],quirk='idle'){return {g,body,legs,tail,wings,quirk};}
 function eyes(head,material=M.eye,y=0,z=.18,spread=.075){for(const x of [-spread,spread])sphere(head,.026,material,x,y,z);}
-function humanoid(kind,o={}){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[],wings=[];
- const short=['gnome','kobold','hobbit','imp'].includes(kind),stocky=kind==='orc'||kind==='dwarf'||kind==='bugbear',guard=kind==='guard',shopkeeper=kind==='shopkeeper',undead=kind==='zombie'||kind==='mummy';
- const skin=o.skin||(kind==='orc'?M.greenSkin:kind==='dwarf'?M.graySkin:M.skin);
- const torso=o.cloth||(kind==='orc'||shopkeeper?M.brownCloth:guard?M.steel:M.cloth);
- const headY=short?.87:1.0,shoulderY=short?.7:.8,torsoW=stocky?.46:.42;
- for(const x of [-.13,.13]){const leg=new THREE.Group();leg.position.set(x,.4,0);body.add(leg);rounded(leg,.16,short?.27:stocky?.34:.42,.16,kind==='mummy'?torso:M.darkSteel,0,-.12,0,.035);rounded(leg,.21,.13,.28,kind==='imp'||kind==='kobold'?skin:M.leather,0,-.36,.06,.03);legs.push(leg);}
- rounded(body,torsoW,short?.3:stocky?.4:.48,.3,torso,0,.62,0,.06);sphere(body,short?.18:.22,skin,0,headY,.02,1,1.05,1);
- // arms give every humanoid a readable silhouette; the undead reach forward
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*(torsoW/2+.07),shoulderY,0);body.add(arm);rounded(arm,.11,short?.3:.38,.12,undead?skin:torso,0,short?-.13:-.17,0,.03);sphere(arm,.065,skin,0,short?-.3:-.38,0);if(undead){arm.rotation.x=-1.35;arm.rotation.z=side*.08;}else arm.rotation.z=side*.12;}
- if(undead)body.rotation.x=.14;
- if(kind==='gnome'){const cap=cone(body,.25,.36,o.cap||M.redCloth,0,1.2,.01,8);cap.rotation.z=-.16;sphere(body,.19,M.beard,0,.86,.18,.8,.9,.65);sphere(body,.05,skin,0,.98,.19,1,1,.8);}
- if(kind==='kobold'){const snout=cone(body,.1,.2,skin,0,.83,.24,6);snout.rotation.x=Math.PI/2;sphere(body,.025,M.leather,0,.83,.34);for(const side of [-1,1]){const ear=cone(body,.07,.26,skin,side*.2,.95,-.01,4);ear.rotation.z=-side*1.15;}const spear=rounded(body,.035,.9,.035,M.leather,.34,.62,.2,.01);spear.rotation.x=.15;cone(body,.05,.14,M.darkSteel,.34,1.08,.27,4);}
- if(kind==='hobbit'){sphere(body,.2,M.beard,0,.95,-.02,1,.7,1);for(const side of [-1,1])rounded(body,.14,.06,.26,skin,side*.13,.03,.08,.03);}
- if(kind==='imp'){for(const side of [-1,1]){const horn=cone(body,.04,.16,M.leather,side*.1,1.04,.02,5);horn.rotation.z=-side*.35;const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.34,.2);shape.lineTo(side*.3,-.02);shape.lineTo(side*.18,.04);shape.lineTo(0,-.12);const wing=part(body,new THREE.ShapeGeometry(shape),M.wing,side*.12,.72,-.17);wings.push(wing);}const tail=cone(body,.03,.42,skin,0,.42,-.3,5);tail.rotation.x=-2.1;}
- if(kind==='mummy')for(let i=0;i<6;i++){const wrap=rounded(body,torsoW+.03,.03,.33,M.leather,0,.44+i*.075,0,.012);wrap.rotation.z=(i%2?1:-1)*.12;}
- if(kind==='orc'){for(const x of [-.09,.09]){const tusk=cone(body,.045,.15,M.whiteFur,x,.91,.19,5);tusk.rotation.x=x<0?.35:-.35;}for(const x of [-.31,.31])sphere(body,.16,M.darkSteel,x,.84,0,1,.75,1);}
- // dwarf lords wear a gold-banded helm; dwarf kings trade it for a crown and a cape
- if(kind==='dwarf'&&o.rank==='king'){cylinder(body,.2,.21,.09,M.gold,0,1.16,0,12);for(let i=0;i<6;i++){const a=i/6*Math.PI*2;cone(body,.035,.11,M.gold,Math.sin(a)*.19,1.25,Math.cos(a)*.19,4);}sphere(body,.03,M.fire,0,1.16,.205);const cape=rounded(body,.46,.62,.04,M.redCloth,0,.6,-.19,.02);cape.rotation.x=.08;rounded(body,.5,.06,.1,M.whiteFur,0,.86,-.15,.03);}
- else if(kind==='dwarf'){cylinder(body,.22,.25,.15,M.darkSteel,0,1.17,0,10);if(o.rank==='lord'){cylinder(body,.255,.255,.04,M.gold,0,1.12,0,12);const crest=rounded(body,.04,.1,.3,M.gold,0,1.27,0,.015);crest.rotation.x=.1;}}
- if(kind==='dwarf'){const beard=sphere(body,.2,o.beard||M.beard,0,1.0,.18,.95,1.1,.6);beard.scale.y=1.25;}
- if(kind==='bugbear'){sphere(body,.13,skin,0,.97,.2,.9,.75,.8);sphere(body,.035,M.leather,0,.99,.3);for(const side of [-1,1]){sphere(body,.07,skin,side*.17,1.17,0,1,1,.5);cone(body,.025,.07,M.whiteFur,side*.05,.91,.27,4).rotation.x=Math.PI;}for(const x of [-.25,.25])sphere(body,.14,M.leather,x,.84,0,1,.7,1);}
- if(guard){cylinder(body,.23,.23,.13,M.darkSteel,0,1.19,0,10);const plume=cone(body,.06,.25,M.redCloth,0,1.38,-.01,6);plume.rotation.z=-.12;rounded(body,.48,.07,.32,M.gold,0,.78,0,.02);}
- if(shopkeeper){rounded(body,.19,.26,.07,M.leather,.28,.67,.16,.025);const hat=cylinder(body,.25,.2,.13,M.brownCloth,0,1.2,0,12);hat.rotation.x=.04;}
- eyes(body,kind==='orc'||kind==='imp'||kind==='bugbear'?M.fire:undead?M.deadEye:M.eye,short?.91:1.04,.205,.075);
- if(guard){const spear=rounded(body,.045,.7,.045,M.steel,.36,.7,.24,.01);spear.rotation.z=-.12;cone(body,.07,.14,M.steel,.36,1.1,.24,5).rotation.x=Math.PI;}
- if(kind==='bugbear'){const haft=rounded(body,.045,.5,.045,M.leather,.32,.62,.2,.01);haft.rotation.x=.25;const ball=sphere(body,.08,M.darkSteel,.32,.86,.27);for(const [x,y,z,rx,rz] of [[1,0,0,0,-1],[-1,0,0,0,1],[0,1,0,0,0],[0,0,1,1,0],[0,0,-1,-1,0]]){const spike=cone(ball,.025,.08,M.steel,x*.1,y*.1,z*.1,4);spike.rotation.set(rx*Math.PI/2,0,rz*Math.PI/2);}}
- if(kind==='dwarf'&&o.rank==='king'){const scepter=rounded(body,.04,.62,.04,M.gold,.36,.68,.18,.01);scepter.rotation.z=-.1;sphere(body,.06,M.gold,.39,1.0,.18);}
- else if(kind==='dwarf')dwarfPick(body);
- return actor(g,body,legs,null,wings,kind);
-}
 // The dwarves' pick-axe, held low in the left hand and leaning out: an arched forged head with a
 // drawn point and a chisel end (polished at the tips, forge-dark in the middle, flecked with rust),
 // an eye boss with bands, riveted langets, a wedge through the top, a turned haft with a swelled
@@ -86,7 +55,7 @@ function forgedPickHead(rows=26,sides=10){
  geometry.setIndex(idx);geometry.computeVertexNormals();return geometry;
 }
 function dwarfPick(body){
- const pick=new THREE.Group();pick.name='dwarf-pick';pick.position.set(-.36,.44,.1);pick.rotation.set(.12,0,.42);body.add(pick);
+ const pick=new THREE.Group();pick.name='dwarf-pick';pick.position.set(-.31,.4,.1);pick.rotation.set(.12,0,.42);body.add(pick);
  // haft from the butt (y -.13) to just above the head (y .6), gripped at y 0
  cylinder(pick,.016,.02,.72,PICK.wood,0,.235,0,10);sphere(pick,.026,PICK.wood,0,-.12,0,1,.75,1);
  const grain=new THREE.MeshStandardMaterial({color:0x5b3c25,roughness:.85});
@@ -388,6 +357,361 @@ function mat(color,options={}){const key=color+JSON.stringify(options);if(!cache
 const NH_COLORS=['#34343c','#a83b2e','#4f8a3a','#8a6440','#3d5fb0','#8a3f8f','#3f9a9a','#8f8f88',null,'#d9782e','#7fbf4f','#d6ac3a','#5f8fe0','#b85cbf','#6fd0d0','#e2ded2'];
 function nhColor(cell){return Number.isInteger(cell.color)?NH_COLORS[cell.color]??null:null;}
 function shade(hex,k){return '#'+new THREE.Color(hex).multiplyScalar(k).getHexString();}
+// Humanoids share one jointed body: legs from the hip (thigh, knee, shin and a boot or a clawed bare
+// foot), a pelvis and belt, a lathed torso that narrows at the waist, shoulders, arms bent at the elbow
+// with a hand (the held weapon sits in the right hand, so it follows the arm), a neck and a head group.
+// Each kind then dresses it with its own face, headgear, armour and gear. Static parts are baked per
+// group and material, so a figure costs about twenty draw calls however much detail it carries.
+const HUMANOID_BUILDS={
+ human:{hip:.44,torso:.42,chest:.19,waist:.15,depth:.7,limb:.05,arm:.4,head:.14,neck:.05},
+ orc:{hip:.4,torso:.42,chest:.21,waist:.17,depth:.75,limb:.058,arm:.42,head:.15,neck:.062},
+ goblin:{hip:.29,torso:.3,chest:.15,waist:.13,depth:.75,limb:.044,arm:.32,head:.15,neck:.045},
+ uruk:{hip:.47,torso:.46,chest:.23,waist:.17,depth:.74,limb:.062,arm:.45,head:.15,neck:.066},
+ dwarf:{hip:.3,torso:.4,chest:.23,waist:.21,depth:.8,limb:.062,arm:.34,head:.15,neck:.06},
+ gnome:{hip:.24,torso:.3,chest:.16,waist:.17,depth:.85,limb:.045,arm:.27,head:.15,neck:.05},
+ hobbit:{hip:.26,torso:.3,chest:.15,waist:.15,depth:.82,limb:.044,arm:.27,head:.14,neck:.045},
+ kobold:{hip:.28,torso:.3,chest:.15,waist:.12,depth:.75,limb:.042,arm:.29,head:.13,neck:.045},
+ bugbear:{hip:.46,torso:.48,chest:.25,waist:.2,depth:.8,limb:.07,arm:.52,head:.17,neck:.08,headZ:.05},
+ imp:{hip:.26,torso:.26,chest:.13,waist:.1,depth:.75,limb:.036,arm:.26,head:.13,neck:.04},
+};
+const HM={
+ mail:mat('#50585a',{metalness:.55,roughness:.5}),bone:mat('#ddd2b4',{roughness:.6}),wood:mat('#5a3e24',{roughness:.85}),
+ claw:mat('#d8ccb0',{roughness:.5}),pupil:mat('#15110e',{roughness:.25}),pants:mat('#3e3428',{roughness:.95}),rag:mat('#5a4a36',{roughness:1}),
+};
+// profiles may run top-down; they are flipped to bottom-up so the faces point outward
+const latheGeo=(pts,n=18,a=0,l=Math.PI*2)=>new THREE.LatheGeometry((pts[0][1]>pts[pts.length-1][1]?[...pts].reverse():pts).map(([r,h])=>new THREE.Vector2(r,h)),n,a,l);
+const dome=(r,cover=.5)=>new THREE.SphereGeometry(r,16,8,0,Math.PI*2,0,Math.PI*cover);
+function biped(b,m){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);const B=baker(),legs=[],arms=[],hands=[];
+ const S=(r,w=12,h=8)=>new THREE.SphereGeometry(r,w,h),C=(top,bottom,h,n=10)=>new THREE.CylinderGeometry(top,bottom,h,n);
+ const {hip,torso,chest,waist,depth,limb,arm}=b,base=hip+.02,shoulderY=base+torso*.86,shoulderX=chest+limb*.4,neckY=base+torso;
+ for(const side of [-1,1]){
+  const leg=new THREE.Group();leg.position.set(side*waist*.55,hip,0);body.add(leg);legs.push(leg);
+  const knee=hip*.5,ankle=hip-.075;
+  B.put(leg,m.pants,C(limb*1.4,limb*1.05,knee),[0,-knee/2,0]);
+  B.put(leg,m.pants,S(limb*1.06),[0,-knee,.006]);
+  B.put(leg,m.shin||m.pants,C(limb*1.04,limb*.84,ankle-knee),[0,-(knee+ankle)/2,0]);
+  if(m.boot){
+   B.put(leg,m.boot,C(limb*1.12,limb*1.06,.11),[0,-hip+.085,0]);
+   B.put(leg,m.boot,S(limb*1.15),[0,-hip+.042,.03],[0,0,0],[1,.62,1.75]);
+  }else{
+   // a bare foot with three claws
+   B.put(leg,m.skin,S(limb*1.05),[0,-hip+.036,.03],[0,0,0],[1,.55,1.7]);
+   for(const t of [-1,0,1])B.put(leg,HM.claw,new THREE.ConeGeometry(limb*.22,limb*.9,5),[t*limb*.55,-hip+.018,.03+limb*1.65],[Math.PI/2,0,0]);
+  }
+ }
+ // pelvis, a torso that swells from the waist to the chest, shoulders and a belt with a buckle
+ B.put(body,m.pants,S(waist*1.08),[0,base,0],[0,0,0],[1,.75,depth*1.05]);
+ B.put(body,m.top,latheGeo([[waist*1.04,0],[waist,torso*.2],[chest*.96,torso*.56],[chest,torso*.76],[chest*.86,torso*.93],[b.neck*1.5,torso],[0,torso+.01]]),[0,base,0],[0,0,0],[1,1,depth]);
+ for(const side of [-1,1])B.put(body,m.shoulder||m.top,S(limb*1.45),[side*(shoulderX-limb*.25),shoulderY,0],[0,0,0],[1,.9,1.1]);
+ const beltY=base+torso*.16;
+ if(m.belt){B.put(body,m.belt,new THREE.TorusGeometry(waist*1.02,.016,6,22),[0,beltY,0],[Math.PI/2,0,0],[1,depth,1]);
+  B.put(body,m.buckle||M.gold,new THREE.BoxGeometry(.045,.036,.012),[0,beltY,waist*depth+.014]);}
+ // arms hang a little out from the body, bent forward at the elbow
+ for(const side of [-1,1]){
+  const a=new THREE.Group();a.position.set(side*shoulderX,shoulderY,0);a.rotation.z=side*.1;body.add(a);arms.push(a);
+  const up=arm*.48;
+  B.put(a,m.sleeve,C(limb*1.12,limb*.94,up),[0,-up/2,0]);
+  const fore=new THREE.Group();fore.position.y=-up;fore.rotation.x=-.3;a.add(fore);
+  B.put(fore,m.sleeve,S(limb*.97));
+  B.put(fore,m.forearm||m.sleeve,C(limb*.94,limb*.76,arm*.44),[0,-arm*.22,0]);
+  B.put(fore,m.skin,S(limb*1.1),[0,-arm*.5,0],[0,0,0],[.8,1.1,.95]);
+  B.put(fore,m.skin,S(limb*.42,8,6),[-side*limb*.55,-arm*.47,limb*.55]);
+  const hand=new THREE.Group();hand.position.y=-arm*.5;fore.add(hand);hands.push(hand);
+ }
+ B.put(body,m.skin,C(b.neck,b.neck*1.15,.09),[0,neckY+.02,0]);
+ const head=new THREE.Group();head.position.set(0,neckY+.04+b.head*.85,b.headZ||.01);body.add(head);
+ return {g,body,B,legs,arms,hands,head,S,C,shoulderY,shoulderX,base,beltY,neckY,b,wings:[]};
+}
+// a skirt, hem or robe hanging from the belt, optionally ragged
+function hem(f,material,length,flare=1.25,rag=0){
+ const {waist,depth}=f.b,geo=latheGeo([[waist*1.06,0],[waist*(1+(flare-1)*.5),-length*.5],[waist*flare,-length]],20);
+ f.B.put(f.body,material,rag?tatter(geo,-length*.5,rag,5):geo,[0,f.beltY+.01,0],[0,0,0],[1,1,depth*1.08]);
+}
+// a cloak hung from the shoulders down the back
+function cape(f,material,length){
+ const {chest,depth}=f.b;
+ f.B.put(f.body,material,latheGeo([[chest*.75,0],[chest*1.08,-.08],[chest*1.2,-length*.5],[chest*1.32,-length]],14,Math.PI/2+.25,Math.PI-.5),[0,f.shoulderY+.05,-.01],[0,0,0],[1,1,depth+.15]);
+}
+// a pauldron capping one or both shoulders
+function pauldrons(f,material,count){
+ for(const side of count===2?[-1,1]:[1])f.B.put(f.body,material,dome(f.b.limb*2),[side*f.shoulderX,f.shoulderY+.01,0],[0,0,-side*.4],[1,.75,1.15]);
+}
+// a small round shield held out front in the left hand, with a boss, a rim and a painted device
+function roundShield(f,device){
+ const s=new THREE.Group();s.name='held-shield';s.position.set(-.02,0,.06);s.rotation.x=.3;f.hands[0].add(s);
+ const r=f.b.limb*3;
+ f.B.put(s,HM.wood,new THREE.CylinderGeometry(r,r,.022,18),[0,0,0],[Math.PI/2,0,0]);
+ f.B.put(s,M.darkSteel,new THREE.TorusGeometry(r,.012,6,24));
+ f.B.put(s,M.darkSteel,dome(r*.28),[0,0,.011],[Math.PI/2,0,0]);
+ if(device==='eye'){f.B.put(s,mat('#9a1a14',{roughness:.6}),new THREE.SphereGeometry(r*.55,14,8),[0,0,.006],[0,0,0],[1,.45,.08]);}
+ if(device==='hand'){f.B.put(s,M.whiteFur,new THREE.SphereGeometry(r*.3,10,8),[0,-r*.2,.012],[0,0,0],[1,1,.1]);
+  for(let i=0;i<5;i++){const a=-.9+i*.45;f.B.put(s,M.whiteFur,new THREE.CylinderGeometry(r*.07,r*.08,r*.4,6),[Math.sin(a)*r*.42,-r*.2+Math.cos(a)*r*.42,.012],[0,0,-a],[1,1,.4]);}}
+ return s;
+}
+// the weapon in the right hand; its grip sits in the fist and it points up and forward
+function heldWeapon(f,kind){
+ const w=new THREE.Group();w.name='held-'+kind;f.hands[1].add(w);const B=f.B;
+ w.rotation.x={staff:.25,spear:.3,scepter:.35}[kind]??.95;w.scale.setScalar(Math.min(1.1,Math.max(.6,(f.b.hip+f.b.torso)/.86)));
+ const grip=len=>B.put(w,M.leather,new THREE.CylinderGeometry(.013,.015,len,8));
+ const leaf=(r,h,y,material=M.steel)=>B.put(w,material,new THREE.ConeGeometry(r,h,4),[0,y,0],[0,0,0],[1,1,.3]);
+ switch(kind){
+  case 'knife':grip(.09);B.put(w,M.darkSteel,new THREE.BoxGeometry(.06,.014,.022),[0,.05,0]);leaf(.022,.2,.155);break;
+  case 'scimitar':grip(.11);B.put(w,M.darkSteel,new THREE.BoxGeometry(.08,.016,.03),[0,.06,0]);
+   B.put(w,M.steel,taperedTube([[0,.06,0],[0,.2,.012],[0,.34,.05],[0,.45,.12]],.026,.006,14,6),[0,0,0],[0,0,0],[.25,1,1]);break;
+  case 'club':B.put(w,HM.wood,taperedTube([[0,-.06,0],[0,.18,.01],[0,.4,.025]],.018,.05,10,8));
+   for(let i=0;i<7;i++){const a=i*2.4,y=.28+(i%3)*.05;B.put(w,M.darkSteel,new THREE.ConeGeometry(.012,.05,4),[Math.sin(a)*.045,y,.02+Math.cos(a)*.045],[Math.cos(a)*Math.PI/2,0,-Math.sin(a)*Math.PI/2]);}break;
+  case 'axe':B.put(w,HM.wood,new THREE.CylinderGeometry(.016,.018,.62,8),[0,.2,0]);
+   B.put(w,M.steel,new THREE.CylinderGeometry(.1,.1,.012,14,1,false,-Math.PI/2,Math.PI),[0,.42,.02],[0,0,Math.PI/2]);
+   B.put(w,M.darkSteel,new THREE.BoxGeometry(.03,.07,.05),[0,.42,0]);
+   B.put(w,M.darkSteel,new THREE.ConeGeometry(.016,.07,4),[0,.42,-.05],[-Math.PI/2,0,0]);break;
+  case 'staff':B.put(w,HM.wood,taperedTube([[0,-.36,0],[.01,0,0],[-.01,.4,0],[0,.62,.02]],.016,.02,12,6));
+   B.put(w,HM.bone,new THREE.SphereGeometry(.05,12,8),[0,.67,.02],[0,0,0],[.9,1,1.1]);
+   for(const side of [-1,1])B.put(w,HM.bone,new THREE.ConeGeometry(.012,.07,5),[side*.04,.72,.0],[0,0,-side*.6]);
+   B.put(w,M.fire,new THREE.SphereGeometry(.012,6,4),[0,.68,.068]);break;
+  case 'spear':B.put(w,HM.wood,new THREE.CylinderGeometry(.013,.015,.92,8),[0,.15,0]);
+   leaf(.034,.14,.68);B.put(w,M.leather,new THREE.TorusGeometry(.016,.006,5,10),[0,.6,0],[Math.PI/2,0,0]);break;
+  case 'morningstar':grip(.14);B.put(w,HM.wood,new THREE.CylinderGeometry(.018,.02,.36,8),[0,.24,0]);
+   B.put(w,M.darkSteel,new THREE.SphereGeometry(.065,12,8),[0,.46,0]);
+   for(const [x,y,z] of [[1,0,0],[-1,0,0],[0,1,0],[0,0,1],[0,0,-1],[.7,.7,0],[-.7,.7,0],[0,.7,.7],[0,.7,-.7]]){const d=new THREE.Vector3(x,y,z).normalize();
+    B.put(w,M.steel,new THREE.ConeGeometry(.018,.07,4),[d.x*.08,.46+d.y*.08,d.z*.08],new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d));}break;
+  case 'scepter':B.put(w,M.gold,new THREE.CylinderGeometry(.013,.016,.56,8),[0,.12,0]);
+   B.put(w,M.gold,new THREE.SphereGeometry(.045,12,8),[0,.42,0]);B.put(w,M.fire,new THREE.SphereGeometry(.018,8,6),[0,.45,.035]);
+   for(const y of [-.1,.34])B.put(w,M.gold,new THREE.TorusGeometry(.02,.006,5,10),[0,y,0],[Math.PI/2,0,0]);break;
+ }
+ return w;
+}
+function glowEyes(f,material,r,spread,y,z){for(const side of [-1,1])f.B.put(f.head,material,f.S(r,8,6),[side*spread,y,z]);}
+// a plain face for dwarves, gnomes, hobbits and men: skull, nose, ears, dark eyes with a glint, and hair
+function plainFace(f,skin,o={}){
+ const R=f.b.head,{B,S,head}=f;
+ B.put(head,skin,S(R,16,12),[0,0,0],[0,0,0],[.92,1,.98]);
+ B.put(head,o.noseSkin||skin,S(R*(o.nose||.2),10,8),[0,-R*.12,R*.95],[0,0,0],[.9,1,1.05]);
+ for(const side of [-1,1]){
+  B.put(head,skin,S(R*.2,8,6),[side*R*.9,0,-R*.05],[0,0,0],[.5,1,.8]);
+  B.put(head,HM.pupil,S(R*.085,8,6),[side*R*.32,R*.1,R*.86]);
+ }
+ if(o.hair)B.put(head,o.hair,dome(R*1.05,.55),[0,R*.04,-R*.08],[-.35,0,0],[1,1,1.02]);
+}
+// orcs and goblins: a heavy brow, glowing eyes, an underbite with tusks, swept-back pointed ears
+function orcFace(f,skin,look){
+ const R=f.b.head,{B,S,head}=f,dark=mat(shade(look.skin,.7),{roughness:.95});
+ B.put(head,skin,S(R,16,12),[0,0,0],[0,0,0],[1,.95,1.02]);
+ B.put(head,dark,S(R*.8),[0,R*.3,R*.56],[0,0,0],[1.18,.3,.55]);
+ glowEyes(f,M.fire,R*.12,R*.36,R*.1,R*.84);
+ if(look.nose==='hook')B.put(head,skin,new THREE.ConeGeometry(R*.17,R*.7,7),[0,-R*.05,R*1.12],[Math.PI/2+.45,0,0]);
+ else{B.put(head,skin,S(R*.3),[0,-R*.08,R*.92],[0,0,0],[1.25,.85,.75]);for(const side of [-1,1])B.put(head,dark,S(R*.07,6,4),[side*R*.1,-R*.12,R*1.13]);}
+ B.put(head,skin,S(R*.62),[0,-R*.5,R*.42],[0,0,0],[1.2,.6,.95]);
+ B.put(head,dark,new THREE.BoxGeometry(R*.9,R*.05,R*.1),[0,-R*.36,R*.94]);
+ for(const side of [-1,1]){
+  B.put(head,HM.bone,new THREE.ConeGeometry(R*.09,R*(look.tusk||.38),5),[side*R*.34,-R*.26,R*.9],[.15,0,-side*.25]);
+  const L=R*(look.ear||.6),dir=new THREE.Vector3(side*.83,.3,-.46),root=new THREE.Vector3(side*R*.88,R*.1,-R*.05).addScaledVector(dir,L/2);
+  B.put(head,skin,new THREE.ConeGeometry(R*.2,L,5),root.toArray(),[0,side*.5,-side*(Math.PI/2-.3)],[1,1,.35]);
+ }
+ const hair=mat('#1c1a16',{roughness:1});
+ if(look.hair==='topknot'){B.put(head,hair,S(R*.3),[0,R*.85,-R*.3]);B.put(head,hair,taperedTube([[0,R*.95,-R*.4],[0,R*1.1,-R*.75],[0,R*.65,-R*1.1]],R*.15,R*.05,10,6));}
+ if(look.hair==='mohawk')for(let i=0;i<6;i++){const a=-.3+i*.32;B.put(head,hair,new THREE.ConeGeometry(R*.1,R*.45,5),[0,Math.cos(a)*R*1.02,Math.sin(-a)*R*1.02],[-a,0,0]);}
+ const iron=M.darkSteel;
+ if(look.helm){
+  const tall=look.helm==='uruk'?1.25:1;
+  B.put(head,iron,dome(R*1.08),[0,R*.14,-R*.02],[0,0,0],[1,tall,1.04]);
+  B.put(head,iron,new THREE.TorusGeometry(R*1.07,R*.06,6,22),[0,R*.14,-R*.02],[Math.PI/2,0,0],[1,1.04,1]);
+  if(look.helm==='spike')B.put(head,iron,new THREE.ConeGeometry(R*.16,R*.62,6),[0,R*1.45,-R*.02]);
+  if(look.helm==='horned')for(const side of [-1,1])B.put(head,HM.bone,taperedTube([[0,0,0],[side*R*.35,R*.2,0],[side*R*.6,R*.6,R*.1],[side*R*.5,R*.95,R*.25]],R*.14,R*.02,12,6),[side*R*.8,R*.45,0]);
+  if(look.helm==='uruk'){B.put(head,iron,new THREE.BoxGeometry(R*.12,R*.6,R*.06),[0,R*.05,R*1.08]);
+   for(const side of [-1,1])B.put(head,iron,new THREE.BoxGeometry(R*.1,R*.6,R*.55),[side*R*.97,-R*.2,R*.25],[0,-side*.25,0]);}
+ }
+}
+// goblins to orc-captains: size, skin, face, armour, headgear and weapon per name
+const ORC_LOOKS={
+ goblin:{build:'goblin',skin:'#737d55',ear:1.15,nose:'hook',tusk:.2,armor:'rags',weapon:'knife'},
+ hobgoblin:{build:'orc',skin:'#8f5a3a',ear:.7,hair:'topknot',armor:'studded',pauldron:1,weapon:'club'},
+ orc:{build:'orc',skin:'#63764b',armor:'studded',helm:'cap',weapon:'scimitar'},
+ 'hill orc':{build:'orc',skin:'#8a8a3e',armor:'studded',fur:true,helm:'cap',weapon:'axe'},
+ 'mordor orc':{build:'orc',skin:'#56604a',armor:'mail',helm:'spike',weapon:'scimitar',shield:'eye'},
+ 'uruk-hai':{build:'uruk',skin:'#3e3b36',ear:.35,armor:'mail',helm:'uruk',pauldron:2,weapon:'scimitar',shield:'hand'},
+ 'orc shaman':{build:'orc',skin:'#6f7e4a',hair:'mohawk',armor:'robe',weapon:'staff'},
+ 'orc-captain':{build:'uruk',skin:'#5f6e40',armor:'plate',helm:'horned',pauldron:2,cape:true,weapon:'axe'},
+ snaga:{build:'goblin',skin:'#5f6a45',ear:.8,armor:'rags',weapon:'scimitar'},
+};
+function humanoid(kind,o={}){
+ const name=o.name||'',wraps=kind==='mummy',undead=kind==='zombie'||wraps;
+ if(kind==='orc'){
+  const look=ORC_LOOKS[name]||ORC_LOOKS[kind],skin=o.skin||mat(look.skin,{roughness:.9}),cloth=o.cloth||HM.rag;
+  const top=look.armor==='studded'?M.leather:look.armor==='mail'?HM.mail:look.armor==='plate'?M.steel:cloth;
+  const sleeve=look.armor==='mail'||look.armor==='plate'?HM.mail:look.armor==='robe'?cloth:skin;
+  const f=biped(HUMANOID_BUILDS[look.build],{skin,top,sleeve,forearm:look.armor==='robe'?cloth:skin,pants:HM.pants,boot:look.armor==='rags'?null:M.leather,belt:M.leather,buckle:M.darkSteel});
+  orcFace(f,skin,look);
+  const {chest,torso,waist,depth}=f.b;
+  if(look.armor==='rags')hem(f,cloth,f.b.hip*.45,1.3,.05);
+  if(look.armor==='studded'){hem(f,cloth,f.b.hip*.4,1.3,.035);
+   for(const y of [.4,.58,.76])for(const a of [-.75,-.25,.25,.75]){const r=chest*(y<.5?.9:.99);f.B.put(f.body,M.darkSteel,f.S(.011,6,4),[Math.sin(a)*r,f.base+torso*y,Math.cos(a)*r*depth]);}}
+  if(look.armor==='mail'){hem(f,HM.mail,f.b.hip*.4,1.25);
+   f.B.put(f.body,cloth,latheGeo([[waist*1.3,-f.b.hip*.42],[waist*1.12,-.02],[waist*1.06,torso*.2],[chest*1.0,torso*.56],[chest*1.04,torso*.76],[chest*.9,torso*.93]],10,-.55,1.1),[0,f.base,0],[0,0,0],[1,1,depth]);}
+  if(look.armor==='plate'){hem(f,M.steel,f.b.hip*.35,1.3);f.B.put(f.body,M.gold,new THREE.TorusGeometry(chest*.92,.012,5,20),[0,f.base+torso*.5,0],[Math.PI/2,0,0],[1,depth,1]);}
+  if(look.armor==='robe'){hem(f,cloth,f.b.hip-.04,1.6);
+   for(let i=0;i<9;i++){const a=(i/8-.5)*2.4;f.B.put(f.body,HM.bone,f.S(.016,6,4),[Math.sin(a)*chest*.8,f.shoulderY-.05-Math.cos(a)*.04,Math.cos(a)*chest*depth*.95]);}}
+  if(look.fur)f.B.put(f.body,mat('#6a5436',{roughness:1}),tatter(latheGeo([[f.b.neck*1.4,.06],[chest*.95,0],[chest*1.2,-.08],[chest*1.25,-.15]],20),-.05,.05,7),[0,f.shoulderY+.04,0],[0,0,0],[1.05,1,depth+.12]);
+  if(look.pauldron)pauldrons(f,M.darkSteel,look.pauldron);
+  if(look.cape)cape(f,mat(o.cloth?.color?.getStyle?.()||'#6a1f3a',{roughness:.9,side:THREE.DoubleSide}),f.shoulderY-.12);
+  if(look.shield)roundShield(f,look.shield);
+  heldWeapon(f,look.weapon);
+  return finishHumanoid(f,kind);
+ }
+ if(kind==='bugbear'){
+  const fur=o.skin||mat('#8a5a32',{roughness:.95}),dark=mat('#4a2e1a',{roughness:1}),muzzle=mat('#b08658',{roughness:.95});
+  const f=biped(HUMANOID_BUILDS.bugbear,{skin:fur,top:M.leather,sleeve:fur,pants:fur,boot:null,belt:dark,buckle:M.darkSteel});
+  const R=f.b.head,{B,S,head}=f;
+  // a shaggy mantle, a hump of fur behind the neck and a hide kilt
+  B.put(f.body,dark,tatter(latheGeo([[f.b.neck*1.5,.07],[f.b.chest*.95,0],[f.b.chest*1.2,-.1],[f.b.chest*1.25,-.19]],22),-.06,.06,8),[0,f.shoulderY+.05,0],[0,0,0],[1.05,1,f.b.depth+.12]);
+  B.put(f.body,fur,S(f.b.chest*.7),[0,f.shoulderY+.02,-f.b.chest*.45],[0,0,0],[1.2,.8,.8]);
+  hem(f,M.leather,f.b.hip*.42,1.35,.05);
+  // bear-goblin head: round skull, a short muzzle with a black nose, round ears, fangs and glowing eyes
+  B.put(head,fur,S(R,16,12),[0,0,0],[0,0,0],[1,.95,1]);
+  B.put(head,muzzle,S(R*.5),[0,-R*.3,R*.78],[0,0,0],[1.05,.8,1]);
+  B.put(head,M.leather,S(R*.15,8,6),[0,-R*.2,R*1.25],[0,0,0],[1.3,.9,1]);
+  B.put(head,dark,S(R*.8),[0,R*.28,R*.55],[0,0,0],[1.15,.3,.55]);
+  glowEyes(f,M.fire,R*.11,R*.34,R*.1,R*.86);
+  for(const side of [-1,1]){
+   B.put(head,fur,S(R*.3),[side*R*.68,R*.72,-R*.05],[0,0,0],[1,1,.45]);
+   B.put(head,dark,S(R*.18),[side*R*.68,R*.72,-R*.0],[0,0,0],[1,1,.35]);
+   B.put(head,M.whiteFur,new THREE.ConeGeometry(R*.07,R*.25,5),[side*R*.18,-R*.62,R*1.05],[Math.PI,0,0]);
+   for(let i=0;i<3;i++)B.put(head,dark,new THREE.ConeGeometry(R*.12,R*.4,5),[side*R*.88,-R*.2-i*R*.22,R*.1-i*R*.1],[0,0,-side*(1.9+i*.2)]);
+  }
+  heldWeapon(f,'morningstar');
+  return finishHumanoid(f,kind);
+ }
+ if(kind==='kobold'||kind==='imp'){
+  const skin=o.skin||M.skin,cloth=o.cloth||HM.rag,imp=kind==='imp',belly=mat(shade(skin.color.getStyle(),1.3),{roughness:.9});
+  const shaman=/shaman/.test(name),lord=/lord/.test(name),large=/large/.test(name);
+  const f=biped(HUMANOID_BUILDS[imp?'imp':'kobold'],{skin,top:skin,sleeve:skin,pants:skin,boot:null,belt:imp?null:M.leather,buckle:M.darkSteel});
+  if(large)f.g.scale.setScalar(1.15);
+  const R=f.b.head,{B,S,head}=f;
+  B.put(f.body,belly,S(f.b.chest*.8),[0,f.base+f.b.torso*.45,f.b.chest*.35],[0,0,0],[.9,1.3,.6]);
+  if(!imp){
+   hem(f,cloth,shaman?f.b.hip-.04:f.b.hip*.45,shaman?1.6:1.25,shaman?0:.04);
+   // a leather strap across the chest
+   B.put(f.body,M.leather,new THREE.TorusGeometry(f.b.chest*.95,.012,5,20),[0,f.base+f.b.torso*.55,0],[Math.PI/2,.5,0],[1,f.b.depth,1]);
+  }
+  // reptilian head: a long snout with nostrils and a lower jaw, small back-swept horns, glowing eyes
+  B.put(head,skin,S(R,14,10),[0,0,0],[0,0,0],[.95,.88,1]);
+  if(!imp){
+   B.put(head,skin,taperedTube([[0,-R*.05,R*.5],[0,-R*.15,R*1.1],[0,-R*.2,R*1.55]],R*.55,R*.32,8,10));
+   B.put(head,skin,S(R*.33),[0,-R*.2,R*1.55],[0,0,0],[1,.95,.8]);
+   B.put(head,belly,taperedTube([[0,-R*.45,R*.35],[0,-R*.55,R*1.0],[0,-R*.5,R*1.35]],R*.36,R*.2,6,8));
+   for(const side of [-1,1])B.put(head,HM.pupil,S(R*.06,6,4),[side*R*.12,-R*.08,R*1.8]);
+  }else B.put(head,skin,S(R*.35),[0,-R*.3,R*.75],[0,0,0],[1,.8,.9]);
+  glowEyes(f,M.fire,R*.14,R*.45,R*.18,R*.72);
+  for(const side of [-1,1])B.put(head,imp?M.leather:HM.bone,taperedTube([[0,0,0],[side*R*.1,R*.25,-R*.15],[side*R*.15,R*.35,-R*.45]],R*.12,R*.02,8,5),[side*R*.45,R*.55,-R*.05]);
+  if(lord){for(const [i,color] of [[-1,'#c8262a'],[0,'#d8b04a'],[1,'#c8262a']])B.put(head,mat(color,{roughness:.8}),new THREE.ConeGeometry(R*.1,R*.8,5),[i*R*.3,R*1.1,-R*.35],[-.35,0,-i*.3],[1,1,.3]);
+   B.put(head,M.gold,new THREE.TorusGeometry(R*.9,R*.06,5,18),[0,R*.35,0],[Math.PI/2+.15,0,0]);
+   cape(f,mat(cloth.color.getStyle(),{roughness:.9,side:THREE.DoubleSide}),f.shoulderY-.08);}
+  // a tail from the base of the spine, curling out behind
+  const tail=new THREE.Group();tail.position.set(0,f.base,-f.b.waist*f.b.depth*.9);f.body.add(tail);
+  B.put(tail,skin,taperedTube(imp?[[0,0,0],[0,-.08,-.12],[0,-.05,-.28],[0,.04,-.36]]:[[0,0,0],[0,-.1,-.12],[0,-.2,-.26],[0,-.24,-.4]],imp?.018:.04,.008,14,6));
+  if(imp){B.put(tail,skin,new THREE.ConeGeometry(.03,.07,4),[0,.07,-.37],[.4,0,0],[1,1,.3]);
+   // bat wings from the shoulder blades; they stay separate meshes so they can flap
+   for(const side of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.34,.2);shape.lineTo(side*.3,-.02);shape.lineTo(side*.18,.04);shape.lineTo(0,-.12);const wing=part(f.body,new THREE.ShapeGeometry(shape),M.wing,side*.08,f.shoulderY,-.1);f.wings.push(wing);}}
+  else heldWeapon(f,shaman?'staff':large?'club':'spear');
+  f.tail=tail;
+  return finishHumanoid(f,kind);
+ }
+ if(kind==='gnome'||kind==='dwarf'||kind==='hobbit'){
+  const skin=o.skin||(kind==='dwarf'?mat('#c29a7c',{roughness:.9}):M.skin),rank=o.rank||(/king/.test(name)?'king':/lord/.test(name)?'lord':null);
+  const cloth=o.cloth||(kind==='dwarf'?mat('#7a4a2a',{roughness:.92}):kind==='hobbit'?mat('#4f7a3a'):mat('#6a5436',{roughness:.92}));
+  const beard=o.beard||(kind==='gnome'?M.whiteFur:kind==='dwarf'?M.beard:mat('#6a4428',{roughness:1}));
+  const f=biped(HUMANOID_BUILDS[kind],{skin,top:kind==='dwarf'?HM.mail:cloth,sleeve:kind==='hobbit'?mat('#d8d0bc',{roughness:.9}):cloth,pants:kind==='hobbit'?mat('#6a4a2a'):HM.pants,
+   boot:kind==='hobbit'?null:M.leather,belt:M.leather,buckle:M.gold});
+  const R=f.b.head,{B,S,head}=f;
+  plainFace(f,skin,{nose:kind==='gnome'?.34:kind==='dwarf'?.28:.2,noseSkin:kind==='gnome'?mat('#c98a70',{roughness:.8}):null,hair:kind==='hobbit'?beard:null});
+  if(kind==='gnome')B.put(f.body,cloth,S(f.b.chest*.95),[0,f.base+f.b.torso*.32,f.b.chest*.3],[0,0,0],[1.05,.95,.85]);
+  if(kind==='dwarf')hem(f,cloth,f.b.hip*.4,1.3);
+  if(kind==='hobbit'){for(let i=0;i<5;i++)B.put(head,beard,S(R*.3,8,6),[Math.cos(i*1.3)*R*.7,R*.65+Math.sin(i*2.1)*R*.15,-R*.2+Math.sin(i)*R*.35]);
+   for(const leg of f.legs)B.put(leg,beard,S(f.b.limb*.8,8,6),[0,-f.b.hip+.055,.03],[0,0,0],[1.1,.6,1.4]);
+   heldWeapon(f,'knife');}
+  else{
+   // beard: full cheeks, a moustache and a long tapering fall, braided and ringed for dwarven nobles
+   const len=kind==='dwarf'?2.3:1.5;
+   B.put(head,beard,S(R*.9),[0,-R*.38,R*.42],[0,0,0],[1.05,.8,.7]);
+   B.put(head,beard,new THREE.ConeGeometry(R*.85,R*len,12),[0,-R*(.45+len/2),R*1.3],[Math.PI-.25,0,0],[1,1,.55]);
+   for(const side of [-1,1]){
+    B.put(head,beard,taperedTube([[0,0,0],[side*R*.25,-R*.08,0],[side*R*.45,-R*.35,-R*.05]],R*.12,R*.04,8,6),[side*R*.08,-R*.28,R*.98]);
+    B.put(head,beard,S(R*.17,8,6),[side*R*.32,R*.3,R*.84],[0,0,0],[1.3,.6,.7]);
+    if(kind==='dwarf'&&rank){B.put(head,beard,taperedTube([[0,0,0],[0,-R*.5,R*.1],[0,-R*1.1,R*.05]],R*.1,R*.06,8,6),[side*R*.35,-R*.9,R*.7]);
+     B.put(head,M.gold,new THREE.TorusGeometry(R*.1,R*.035,5,10),[side*R*.35,-R*1.9,R*.76],[Math.PI/2,0,0]);}
+   }
+  }
+  if(kind==='gnome'){
+   // a tall floppy cap; lords get a gold band, kings a crown over it
+   const cap=o.cap||M.redCloth;
+   B.put(head,cap,taperedTube([[0,0,0],[0,R*.8,-R*.1],[0,R*1.35,-R*.4],[0,R*1.45,-R*.85]],R*1.02,R*.08,14,12),[0,R*.3,-R*.02]);
+   B.put(head,cap,S(R*.1,8,6),[0,R*1.75,-R*.87]);
+   if(rank)B.put(head,M.gold,new THREE.TorusGeometry(R*1.0,R*.07,6,20),[0,R*.38,-R*.02],[Math.PI/2,0,0]);
+   if(rank==='king')for(let i=0;i<5;i++){const a=i/5*Math.PI*2;B.put(head,M.gold,new THREE.ConeGeometry(R*.1,R*.3,4),[Math.sin(a)*R*.95,R*.58,Math.cos(a)*R*.95-R*.02]);}
+   heldWeapon(f,rank==='king'?'scepter':rank?'knife':'club');
+  }
+  if(kind==='dwarf'){
+   if(rank==='king'){
+    // a spiked gold crown with a gem, a fur-collared cape and a sceptre
+    B.put(head,beard,dome(R*1.02,.55),[0,R*.02,-R*.05],[-.2,0,0]);
+    B.put(head,M.gold,new THREE.CylinderGeometry(R*1.02,R*1.0,R*.4,14,1,true),[0,R*.62,0]);
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2;B.put(head,M.gold,new THREE.ConeGeometry(R*.14,R*.45,4),[Math.sin(a)*R*.98,R*1.02,Math.cos(a)*R*.98]);}
+    B.put(head,M.fire,S(R*.12,8,6),[0,R*.62,R*1.03]);
+    cape(f,mat('#8a2a30',{roughness:.9,side:THREE.DoubleSide}),f.shoulderY-.06);
+    B.put(f.body,M.whiteFur,new THREE.TorusGeometry(f.b.chest*.8,.045,8,20),[0,f.shoulderY+.03,-.02],[Math.PI/2,0,0],[1,f.b.depth+.1,1]);
+    heldWeapon(f,'scepter');
+   }else{
+    // an iron nasal helm; lords add a gold band and crest
+    B.put(head,M.darkSteel,dome(R*1.08,.52),[0,R*.08,-R*.02]);
+    B.put(head,M.darkSteel,new THREE.TorusGeometry(R*1.07,R*.06,6,22),[0,R*.1,-R*.02],[Math.PI/2,0,0]);
+    B.put(head,M.darkSteel,new THREE.BoxGeometry(R*.14,R*.55,R*.06),[0,-R*.05,R*1.08]);
+    if(rank==='lord'){B.put(head,M.gold,new THREE.TorusGeometry(R*1.08,R*.05,6,22),[0,R*.3,-R*.02],[Math.PI/2+.02,0,0]);B.put(head,M.gold,new THREE.BoxGeometry(R*.1,R*.35,R*1.4),[0,R*1.15,-R*.05]);}
+    dwarfPick(f.body);
+   }
+  }
+  return finishHumanoid(f,kind);
+ }
+ // men and the dead: guards, shopkeepers, zombies, mummies and anything else human-shaped
+ const guard=kind==='guard',shopkeeper=kind==='shopkeeper',skin=o.skin||M.skin;
+ const cloth=o.cloth||(shopkeeper?M.brownCloth:guard?M.blueCloth:M.cloth);
+ const f=biped(HUMANOID_BUILDS.human,{skin,top:guard?M.steel:cloth,sleeve:wraps?cloth:undead?skin:cloth,forearm:wraps?cloth:skin,pants:wraps?cloth:guard?M.darkSteel:HM.pants,
+  boot:wraps?null:M.leather,belt:wraps?null:M.leather,buckle:M.gold});
+ const R=f.b.head,{B,S,head}=f;
+ if(undead){
+  B.put(head,skin,S(R,16,12),[0,0,0],[0,0,0],[.9,1,.98]);
+  B.put(head,HM.pupil,S(R*.2,8,6),[R*.32,R*.08,R*.72]);B.put(head,HM.pupil,S(R*.2,8,6),[-R*.32,R*.08,R*.72]);
+  glowEyes(f,M.deadEye,R*.08,R*.32,R*.08,R*.86);
+  if(wraps){for(let i=0;i<6;i++)B.put(f.body,M.leather,new THREE.TorusGeometry(f.b.chest*.95,.012,4,20),[0,f.base+.04+i*f.b.torso*.15,0],[Math.PI/2+(i%2?.12:-.12),0,0],[1,f.b.depth,1]);
+   for(let i=0;i<3;i++)B.put(head,cloth,new THREE.TorusGeometry(R*.98,R*.08,5,18),[0,R*(.45-i*.4),0],[Math.PI/2+(i%2?.2:-.2),0,0]);}
+  else{B.put(head,skin,S(R*.45),[0,-R*.72,R*.35],[.3,0,0],[1,.55,1]);hem(f,cloth,f.b.hip*.4,1.3,.06);}
+  // arms reach forward and the body leans in
+  for(const a of f.arms){a.rotation.x=-1.35;a.rotation.z*=.6;}
+  f.body.rotation.x=.14;
+ }else{
+  plainFace(f,skin,{hair:mat(shopkeeper?'#2a2420':'#4a3322',{roughness:1})});
+  hem(f,cloth,f.b.hip*.35,1.25);
+ }
+ if(guard){
+  B.put(head,M.darkSteel,dome(R*1.1,.5),[0,R*.1,0]);
+  B.put(head,M.darkSteel,new THREE.CylinderGeometry(R*1.4,R*1.4,R*.06,18),[0,R*.1,0]);
+  B.put(head,M.redCloth,new THREE.ConeGeometry(R*.3,R*1.1,6),[0,R*1.4,-R*.2],[-.3,0,0],[1,1,.5]);
+  B.put(f.body,M.gold,new THREE.TorusGeometry(f.b.chest*.92,.02,5,20),[0,f.shoulderY-.08,0],[Math.PI/2,.35,0],[1,f.b.depth,1]);
+  heldWeapon(f,'spear');
+ }
+ if(shopkeeper){
+  B.put(head,M.brownCloth,new THREE.CylinderGeometry(R*.85,R*.9,R*.7,14),[0,R*.75,-R*.02]);
+  B.put(head,M.brownCloth,new THREE.CylinderGeometry(R*1.35,R*1.35,R*.06,18),[0,R*.45,-R*.02]);
+  B.put(head,mat('#2a2420',{roughness:1}),taperedTube([[-R*.4,-R*.35,0],[0,-R*.25,R*.05],[R*.4,-R*.35,0]],R*.07,R*.07,8,5),[0,0,R*.95]);
+  // a leather apron and a fat purse at the hip
+  B.put(f.body,M.leather,latheGeo([[f.b.waist*1.12,-f.b.hip*.55],[f.b.waist*1.06,0],[f.b.chest*1.0,f.b.torso*.6]],8,-.5,1.0),[0,f.base,0],[0,0,0],[1,1,f.b.depth]);
+  B.put(f.body,M.gold,S(.05,10,8),[f.b.waist+.03,f.beltY-.05,.04],[0,0,0],[.8,1,.8]);
+ }
+ return finishHumanoid(f,kind);
+}
+function finishHumanoid(f,kind){
+ f.B.bake();
+ return Object.assign(actor(f.g,f.body,f.legs,f.tail||null,f.wings,kind),{head:f.head,arm:f.arms[1],arms:f.arms,weaponSocket:f.hands[1]});
+}
 const nose=mat('#1b1716',{roughness:.5}),darkEye=mat('#0e0c0b',{roughness:.2,metalness:.2});
 
 function tube(parent,points,radius,material,segments=16){return part(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),segments,radius,8,false),material);}
@@ -2127,14 +2451,14 @@ export function createCreature(cell={}){
  if(letter==='D'||/dragon/.test(name))return dragon(dragonLook(name,cell.color));
  {const golemMatch=name.match(/^(.*) golem$/);if(golemMatch)return golem(GOLEM_MATERIALS[golemMatch[1]]||GOLEM_MATERIALS.stone);}
  if(name==='giant turtle')return turtle({shell:color||'#4a6a34'});
- if(SKIN[name])return humanoid(letter==='k'||/kobold/.test(name)?'kobold':'imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
+ if(SKIN[name])return humanoid(letter==='k'||/kobold/.test(name)?'kobold':'imp',{name,skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
  if(name==='hobbit')return humanoid('hobbit',{cloth:mat('#4f7a3a')});
- if(/orc|uruk|snaga/.test(name))return humanoid('orc',color?{cloth:mat(shade(color,.75))}:{});
- if(name==='dwarf lord')return humanoid('dwarf',{rank:'lord',cloth:mat('#3d5a9a')});
- if(name==='dwarf king')return humanoid('dwarf',{rank:'king',cloth:mat('#6a3a8a'),beard:mat('#c9c3b4')});
- if(name==='bugbear')return humanoid('bugbear',{skin:mat('#8a5a32',{roughness:.95}),cloth:M.leather});
+ if(/orc|uruk|snaga/.test(name))return humanoid('orc',color?{name,cloth:mat(shade(color,.75))}:{name});
+ if(name==='dwarf lord')return humanoid('dwarf',{name,rank:'lord',cloth:mat('#3d5a9a')});
+ if(name==='dwarf king')return humanoid('dwarf',{name,rank:'king',cloth:mat('#6a3a8a'),beard:mat('#c9c3b4')});
+ if(name==='bugbear')return humanoid('bugbear',{name,skin:mat('#8a5a32',{roughness:.95})});
  if(/dwarf/.test(name))return humanoid('dwarf');
- if(/gnome/.test(name))return humanoid('gnome',color?{cap:mat(color)}:{});
+ if(/gnome/.test(name))return humanoid('gnome',color?{name,cap:mat(color)}:{name});
  // unlisted species: fall back on the monster class letter, then the glyph colour
  const c=color||'#8a8a80';
  switch(letter){
@@ -2164,13 +2488,13 @@ export function createCreature(cell={}){
   case 'b':case 'j':case 'P':return blob({color:c,flat:letter==='j'});
   case 'e':return floatingEye({iris:c});
   case 'y':return wisp({color:c});
-  case 'k':return humanoid('kobold',{skin:mat(c),cloth:mat(shade(c,.55))});
+  case 'k':return humanoid('kobold',{name,skin:mat(c),cloth:mat(shade(c,.55))});
   case 'i':return humanoid('imp',{skin:mat(c),cloth:mat(shade(c,.55))});
   case 'Z':return humanoid('zombie',{skin:mat(c),cloth:mat('#3f3a34')});
   case 'M':return humanoid('mummy',{skin:mat('#6a5f4a'),cloth:mat('#c9bb98')});
-  case 'G':return humanoid('gnome',{cap:mat(c)});
+  case 'G':return humanoid('gnome',{name,cap:mat(c)});
   case 'h':return humanoid('dwarf');
-  case 'o':return humanoid('orc',{cloth:mat(shade(c,.75))});
+  case 'o':return humanoid('orc',{name,cloth:mat(shade(c,.75))});
   case 'q':return canine({...CANINES.rothe,coat:c});
   case 'u':return horseFor(name,color);
   case '@':return humanoid('human',{cloth:mat(shade(c,.8))});

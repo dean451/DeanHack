@@ -137,3 +137,23 @@ test('titanotheres and baluchitheria are giant rhinos baked into a few meshes, n
  assert(heights.baluchitherium>1.25&&heights.baluchitherium<1.45,'the baluchitherium towers');
  assert.notEqual(createCreature({name:'leocrotta',symbol:113}).g.name,'titanothere');
 });
+
+test('humanoids share a jointed body with head and arm handles, and each kind has its own face and gear',()=>{
+ const heights={},weapons={};
+ for(const [name,glyph] of [['goblin','o'],['hobgoblin','o'],['hill orc','o'],['mordor orc','o'],['uruk-hai','o'],['orc shaman','o'],['orc-captain','o'],['bugbear','h'],['kobold','k'],['large kobold','k'],['kobold lord','k'],['kobold shaman','k'],['imp','i'],['gnome','G'],['gnome lord','G'],['gnome king','G'],['dwarf king','h'],['hobbit','h'],['watchman','@'],['shopkeeper','@'],['human zombie','Z'],['gnome mummy','M']]){
+  const actor=createCreature({name,symbol:glyph.charCodeAt(0),color:3});
+  assert(actor.head&&actor.arm&&actor.body,name);assert.equal(actor.legs.length,2,name);
+  actor.g.updateMatrixWorld(true);let meshes=0;
+  actor.g.traverse(part=>{if(!part.isMesh)return;meshes++;for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);});
+  assert(meshes<=30,`${name} has ${meshes} meshes`);
+  const bounds=new THREE.Box3().setFromObject(actor.g);
+  assert(bounds.min.y>-.02,`${name} floor ${bounds.min.y}`);assert(bounds.max.y<1.4,name);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.7,name);
+  heights[name]=bounds.max.y;
+  let held=null;actor.arm.traverse(o=>{if(o.name.startsWith('held-'))held=o.name;});weapons[name]=held;
+ }
+ assert(heights.goblin<heights.hobgoblin-.15,'goblins are small');
+ assert(heights['uruk-hai']>heights['hill orc'],'uruk-hai tower over hill orcs');
+ assert.equal(weapons.goblin,'held-knife');assert.equal(weapons.bugbear,'held-morningstar');assert.equal(weapons['kobold shaman'],'held-staff');assert.equal(weapons['gnome king'],'held-scepter');
+ assert(createCreature({name:'kobold',symbol:107,color:1}).tail,'kobolds have tails');
+});
