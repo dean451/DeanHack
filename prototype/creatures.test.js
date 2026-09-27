@@ -137,3 +137,15 @@ test('titanotheres and baluchitheria are giant rhinos baked into a few meshes, n
  assert(heights.baluchitherium>1.25&&heights.baluchitherium<1.45,'the baluchitherium towers');
  assert.notEqual(createCreature({name:'leocrotta',symbol:113}).g.name,'titanothere');
 });
+
+test('leocrottas are maned, badger-headed stags with bone-lined jaws, not rothe clones',()=>{
+ const beast=createCreature({name:'leocrotta',symbol:113,color:7});
+ assert.equal(beast.g.name,'leocrotta');assert.equal(beast.legs.length,4);assert(beast.head&&beast.jaw&&beast.tail&&beast.body);
+ beast.g.updateMatrixWorld(true);let meshes=0;
+ beast.g.traverse(part=>{if(!part.isMesh)return;meshes++;for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));});
+ assert(meshes<=22,`leocrotta has ${meshes} meshes`);
+ const bounds=new THREE.Box3().setFromObject(beast.g);
+ assert(Math.abs(bounds.min.y)<.005,`floor ${bounds.min.y}`);
+ assert(bounds.max.y>.9&&bounds.max.y<1.25,`height ${bounds.max.y}`);
+ assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.9);
+});
