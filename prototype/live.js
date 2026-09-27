@@ -13,6 +13,7 @@ import {createGrave} from './grave.js';
 import {createTrap,trapKind} from './trap.js';
 import {createTerrainFeature,featureKind,AXIS_FEATURES} from './terrain-feature.js';
 import {createTree} from './tree.js';
+import {createBoulder} from './boulder.js';
 import {createStairs} from './stairs.js';
 import {createFire} from './fire.js';
 import {createLiquid} from './liquid.js';
@@ -119,11 +120,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      for(let i=0;i<6;i++)add(new THREE.BoxGeometry(.014,.026,.02),bone,(i-2.5)*.017,.07,.09);
      icon.userData.dispose=()=>{bone.dispose();boneShade.dispose();socket.dispose();};
    } else if(/boulder|large rock/.test(itemName)){
-     const rock=new THREE.MeshStandardMaterial({color:0x5b5752,roughness:.97}),rockLight=new THREE.MeshStandardMaterial({color:0x81786c,roughness:.92}),rockDark=new THREE.MeshStandardMaterial({color:0x292b2a,roughness:1}),rockShadow=new THREE.MeshBasicMaterial({color:0x111517,transparent:true,opacity:.58,depthWrite:false});
-     const ground=add(new THREE.CircleGeometry(.34,24),rockShadow,0,.002,0);ground.rotation.x=-Math.PI/2;
-     const mass=add(new THREE.DodecahedronGeometry(.3,2),rock,0,.22,0);mass.scale.set(.98,.76,1.12);mass.rotation.set(.08,-.32,.12);
-     const shoulder=add(new THREE.DodecahedronGeometry(.16,1),rockLight,-.18,.13,.11);shoulder.scale.set(1,.62,.78);shoulder.rotation.set(.2,.5,-.15);const chip=add(new THREE.DodecahedronGeometry(.11,1),rockDark,.2,.1,-.12);chip.scale.set(1,.55,.8);chip.rotation.set(.3,-.2,.4);
-     icon.userData.dispose=()=>{rock.dispose();rockLight.dispose();rockDark.dispose();rockShadow.dispose();};
+     const boulder=createBoulder(cellHash(cell.x|0,cell.z|0,7));icon.add(boulder);icon.userData.dispose=()=>boulder.userData.dispose();
    } else if(cls===WEAPON_CLASS){
      const weapon=createHeldWeapon({name:itemName});
      const pose=new THREE.Group();pose.rotation.y=-.65;icon.add(pose);
