@@ -206,3 +206,30 @@ test('amulets lie on the floor and show only their shuffled appearance',()=>{
  assert.deepEqual(signature(amulet('Amulet of Yendor','Amulet of Yendor')),signature(amulet('cheap plastic imitation of the Amulet of Yendor','Amulet of Yendor')));
  assert.notDeepEqual(signature(amulet('amulet of ESP','hexagonal')),signature(amulet('amulet of ESP','lunate')));
 });
+
+test('shields lie face-up and show their appearance, not their true name',()=>{
+ const shield=(name,appearance)=>createGroundModel({name,class:3,appearance});
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);});return out;};
+ const kinds=[['small shield'],['elven shield','blue and green shield'],['Uruk-hai shield','white-handed shield'],['orcish shield','red-eyed shield'],['large shield'],['dwarvish roundshield','large round shield'],['shield of reflection','polished silver shield']];
+ const seen=new Set();
+ for(const [name,look] of kinds){
+  const model=shield(name,look);
+  assert(model,name);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} rests on the floor`);
+  assert(bounds.max.y<.08,`${name} lies flat`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.36,`${name} fits its tile`);
+  let meshes=0,geometries=0;
+  model.traverse(part=>{if(part.geometry){
+   meshes++;
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+   part.geometry.addEventListener('dispose',()=>geometries++);
+  }});
+  seen.add(JSON.stringify(signature(model)));
+  model.userData.dispose();
+  assert.equal(geometries,meshes);
+ }
+ assert.equal(seen.size,kinds.length,'each shield kind looks different');
+ assert.deepEqual(signature(shield('shield of reflection','polished silver shield')),signature(shield('small shield','polished silver shield')),'the true shield name must not show');
+ assert.equal(createGroundModel({name:'small shield',class:6}),null);
+});
