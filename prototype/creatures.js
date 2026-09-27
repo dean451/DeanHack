@@ -101,10 +101,156 @@ function turtle(o){
  const tail=cone(body,.035,.14,skin,0,.09,-.28,6);tail.rotation.x=Math.PI/2+.3;
  return actor(g,body,legs,null,[],'turtle');
 }
-function dragon(){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[];const scale=1.12;g.scale.setScalar(scale);sphere(body,.34,M.greenSkin,0,.5,0,1.2,.8,1.45);const head=sphere(body,.24,M.greenSkin,0,.84,.28,1.05,.9,1);sphere(body,.13,M.fire,0,.8,.47,.9,.65,.65);for(const x of [-.12,.12]){const horn=cone(head,.07,.25,M.darkSteel,x,.2,.03,5);horn.rotation.z=x>0?.35:-.35;}eyes(head,M.fire,.02,.21,.08);for(const x of [-.22,.22])for(const z of [-.17,.17]){const leg=new THREE.Group();leg.position.set(x,.3,z);body.add(leg);rounded(leg,.13,.3,.14,M.greenSkin,0,-.12,0,.035);cone(leg,.1,.1,M.darkSteel,0,-.28,.02,5).rotation.x=Math.PI;legs.push(leg);}
- const wings=[];for(const x of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(x*.55,.15);shape.lineTo(x*.42,.62);shape.lineTo(x*.15,.4);shape.lineTo(0,.12);const wing=part(body,new THREE.ShapeGeometry(shape),M.wing,x*.3,.72,-.02);wing.rotation.y=x>0?.18:-.18;wings.push(wing);}
- const tail=new THREE.Group();tail.position.set(0,.48,-.38);body.add(tail);const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,0),new THREE.Vector3(0,.08,-.22),new THREE.Vector3(.18,.16,-.46)]);part(tail,new THREE.TubeGeometry(curve,12,.07,8,false),M.greenSkin);const core=sphere(body,.1,M.fire,0,.55,.31);g.userData.core=core;return Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core});
+// Dragons. UnNetHack shuffles the dragon names (tatzelworm, wyvern, sirrush...) against the breath
+// types and draws every dragon brown until its scales are identified. So the name picks a body plan
+// from the legend it comes from, and the glyph colour picks the hide and the breath glow. An
+// unidentified dragon is brown with an ember glow, which gives nothing away.
+const DRAGON_FORMS={
+ draken:{legs:4,wings:.9},wyvern:{legs:2,wings:1.05},sarkany:{legs:4,wings:.9,heads:3},
+ amphitere:{serpent:'coil',wings:.85,feathered:true},lindworm:{serpent:'coil',legs:2},
+ tatzelworm:{serpent:'short',legs:2,cat:true},guivre:{serpent:'coil',beard:true,horns:1.5},
+ leviathan:{serpent:'humps',fins:true},sirrush:{legs:4,sirrush:true},
+ tiamat:{legs:4,wings:.95,heads:5,scale:1.1},ixoth:{legs:4,wings:.95,scale:1.08},
+};
+const DRAGON_BREATH=['#9a4aff','#ff5a1a','#8aee3a','#ff8a3a','#5ab8ff','#e060ff','#6fe0e0','#d8d0ff',null,'#ffb050','#a0ff50','#ecff40','#70a0ff','#ff4a20','#c8f8ff','#c0e8ff'];
+const DRAGON_WORD_COLOR={black:0,red:1,green:2,blue:4,gray:7,orange:9,yellow:11,silver:14,white:15};
+// Tiamat's five heads: white, black, red, blue and green, each with its own breath
+const TIAMAT_HEADS=[15,0,1,4,2];
+function dragonLook(name,index){
+ const baby=/^baby /.test(name),species=name.replace(/^baby /,'');
+ const form=DRAGON_FORMS[species]||DRAGON_FORMS.draken;
+ const i=Number.isInteger(index)&&NH_COLORS[index]?index:DRAGON_WORD_COLOR[species.split(' ')[0]]??3;
+ return {form,baby,color:i,heads:species==='tiamat'?TIAMAT_HEADS:null};
+}
+function dragonMats(i){
+ const silver=i===14,hex=silver?'#b9c4c8':NH_COLORS[i]||'#8a6440',breath=DRAGON_BREATH[i]||'#ff8a3a';
+ const belly='#'+new THREE.Color(hex).lerp(new THREE.Color('#e8d6a4'),.45).getHexString();
+ return {hide:mat(hex,{roughness:silver?.3:.62,metalness:silver?.7:.08}),dark:mat(shade(hex,.5),{roughness:.7,metalness:silver?.6:0}),belly:mat(belly,{roughness:.78}),
+  membrane:mat(shade(hex,.72),{side:THREE.DoubleSide,roughness:.82}),feather:mat(belly,{side:THREE.DoubleSide,roughness:.9}),ivory:mat('#e6dcc0',{roughness:.45}),
+  glow:new THREE.MeshStandardMaterial({color:breath,emissive:breath,emissiveIntensity:4.5,roughness:.3})};
+}
+// a chain of scale-covered segments along a curve, each stretched along the curve, with a paler belly.
+// The segments overlap heavily, so a low-poly sphere is enough and keeps a dragon near 15k vertices.
+const DRAGON_SEGMENT=new THREE.SphereGeometry(1,10,8);
+function dragonSegment(parent,r,material,p,q,sx,sy,sz){const mesh=part(parent,DRAGON_SEGMENT,material,p.x,p.y,p.z);mesh.quaternion.copy(q);mesh.scale.set(r*sx,r*sy,r*sz);return mesh;}
+// small rounded boxes with a single bevel step; the default three-step bevel costs 1.7k vertices each
+function dragonBox(parent,w,h,d,material,x=0,y=0,z=0,r=.02){return part(parent,new RoundedBoxGeometry(w,h,d,1,Math.min(r,w/2,h/2,d/2)*.9),material,x,y,z);}
+function dragonChain(parent,curve,n,r0,r1,m){
+ const Z=new THREE.Vector3(0,0,1);
+ for(let i=0;i<=n;i++){const t=i/n,p=curve.getPoint(t),r=r0+(r1-r0)*t,q=new THREE.Quaternion().setFromUnitVectors(Z,curve.getTangent(t).negate());
+  dragonSegment(parent,r,m.hide,p,q,1,.9,1.3);dragonSegment(parent,r*.8,m.belly,p.clone().setY(p.y-r*.32),q,1.08,.7,1.3);}
+}
+// dorsal spikes riding the top of a chain, shrinking toward its end
+function dragonRidge(parent,curve,n,r0,r1,size,material,t0=0,t1=1){
+ for(let i=0;i<n;i++){const t=t0+(t1-t0)*(i+.5)/n,p=curve.getPoint(t),r=r0+(r1-r0)*t,s=size*(1-.55*t);const spike=cone(parent,s*.42,s,material,p.x,p.y+r*.8,p.z,4);spike.rotation.x=-.55;}
+}
+function dragonHead(head,m,f,baby){
+ if(f.cat){
+  // tatzelworm: a round cat face with a short muzzle, tufted ears and whiskers
+  sphere(head,.12,m.hide,0,0,0,1.05,.9,.95);sphere(head,.065,m.belly,0,-.035,.09,1.15,.75,.75);sphere(head,.018,nose,0,-.01,.14);
+  for(const s of [-1,1]){const ear=cone(head,.045,.11,m.hide,s*.075,.1,-.01,4);ear.rotation.z=-s*.3;cone(head,.012,.05,m.dark,s*.09,.17,-.01,3).rotation.z=-s*.3;
+   for(const k of [-1,0,1])tube(head,[[s*.03,-.035,.13],[s*.12,-.035+k*.012,.14],[s*.2,-.04+k*.028,.12]],.002,m.ivory,4);}
+  const mouth=sphere(head,.03,m.glow,0,-.065,.1,1.3,.45,.8);eyes(head,m.glow,.03,.1,.055);return mouth;
+ }
+ sphere(head,.12,m.hide,0,0,0,.95,.82,1.05);
+ dragonBox(head,.13,.07,.2,m.hide,0,.005,.14,.03);
+ const jaw=dragonBox(head,.11,.035,.18,m.belly,0,-.065,.12,.015);jaw.rotation.x=.24;
+ // the breath gathers in the open mouth and glows from the nostrils
+ const throat=sphere(head,.04,m.glow,0,-.035,.14,1,.55,1.6);
+ for(const s of [-1,1]){
+  sphere(head,.012,m.glow,s*.03,.04,.24);
+  const brow=dragonBox(head,.05,.02,.07,m.dark,s*.055,.075,.07,.008);brow.rotation.z=s*.3;
+  for(let i=0;i<3;i++)cone(head,.008,.03,m.ivory,s*.045,-.03,.12+i*.045,4).rotation.x=Math.PI;
+  const frill=cone(head,.035,.1,m.dark,s*.11,-.01,-.05,3);frill.rotation.z=-s*1.3;frill.rotation.y=s*.4;
+  if(f.sirrush){const horn=cone(head,.018,.22,m.ivory,s*.03,.1,.02,6);horn.rotation.x=-.35;horn.rotation.z=-s*.12;}
+  else{const horn=cone(head,.026,(baby?.08:.17)*(f.horns||1),m.ivory,s*.06,.09,-.07,6);horn.rotation.x=-1.1;horn.rotation.z=-s*.25;}
+ }
+ if(f.sirrush)tube(head,[[0,-.05,.2],[0,-.07,.28],[.015,-.075,.33]],.005,mat('#b03040'),5);
+ if(f.beard)for(let i=0;i<5;i++)cone(head,.014,.09,m.dark,(i-2)*.018,-.1,.1-Math.abs(i-2)*.02,4).rotation.x=Math.PI+.3;
+ eyes(head,m.glow,.045,.085,.066);
+ return throat;
+}
+function dragonWing(parent,side,span,m,feathered){
+ const pivot=new THREE.Group();parent.add(pivot);pivot.userData.side=side;
+ const inner=new THREE.Group();inner.rotation.set(-.25,side*.55,-side*.15);pivot.add(inner);
+ const s=side*span,elbow=[s*.22,.3*span],tip=[s*.6,.46*span],fingers=[[s*.56,.16*span],[s*.42,.02*span],[s*.24,-.06*span],[0,-.02*span]];
+ // leading edge out to the tip, then a scalloped trailing edge between the finger bones
+ const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(...elbow);shape.lineTo(...tip);
+ let prev=tip;for(const q of fingers){const mx=(prev[0]+q[0])/2,my=(prev[1]+q[1])/2;shape.quadraticCurveTo(mx+(elbow[0]-mx)*.28,my+(elbow[1]-my)*.28,...q);prev=q;}
+ part(inner,new THREE.ShapeGeometry(shape,6),feathered?m.feather:m.membrane);
+ tube(inner,[[0,0,0],[...elbow,0],[...tip,0]],.014*span,m.dark,8);
+ for(const q of fingers.slice(0,3))tube(inner,[[...elbow,0],[(elbow[0]+q[0])/2,(elbow[1]+q[1])/2+.02*span,0],[...q,0]],.007*span,m.dark,6);
+ const claw=cone(inner,.014*span,.05*span,m.ivory,elbow[0],elbow[1]+.03*span,0,4);claw.rotation.z=-side*.3;
+ // amphiteres have feathered wings: a fringe of long primaries along the trailing edge
+ if(feathered)for(let i=0;i<7;i++){const t=i/6,x=tip[0]*(1-t),y=tip[1]*(1-t)-.05*span*Math.sin(t*Math.PI),feather=sphere(inner,.035*span,m.hide,x,y-.03*span,.004,.45,1.6,.25);feather.rotation.z=side*(.2+t*.6);}
+ return pivot;
+}
+function dragonLegs(body,legs,m,o){
+ for(const [x,y,z,hind] of o.spots){
+  const leg=new THREE.Group();leg.position.set(x,y,z);body.add(leg);const k=o.thick||1;
+  sphere(leg,.08*k,m.hide,0,-.02,0,.9,1.3,1.1);dragonBox(leg,.075*k,y-.14,.085*k,m.hide,0,-(y-.1)/2-.04,.02,.03);
+  if(o.sirrush&&!hind){sphere(leg,.055,m.hide,0,-y+.04,.05,1,.7,1.2);for(const cx of [-.025,0,.025])cone(leg,.008,.025,m.ivory,cx,-y+.03,.1,4).rotation.x=Math.PI/2;}
+  else{dragonBox(leg,.1*k,.04,.12,m.dark,0,-y+.02,.05,.015);for(const cx of [-.035,0,.035])cone(leg,.012,(o.sirrush?.07:.045)*k,m.ivory,cx*k,-y+.02,.12+(o.sirrush?.02:0),4).rotation.x=Math.PI/2;
+   if(o.sirrush){const spur=cone(leg,.01,.05,m.ivory,0,-y+.02,-.02,4);spur.rotation.x=-Math.PI/2;}}
+  legs.push(leg);
+ }
+}
+function dragon(o={}){
+ const f=o.form||DRAGON_FORMS.draken,baby=!!o.baby;
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar((baby?.62:1.05)*(f.scale||1));
+ const m=dragonMats(o.color??3),headScale=(baby?1.3:1)*(f.heads>1?.8:1);
+ let core=null,tail;
+ const addHead=(parent,points,mats,a=0)=>{
+  const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));dragonChain(parent,neck,6,.085,.065,mats);dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9);
+  const end=points[points.length-1],head=new THREE.Group();head.position.set(end[0],end[1]+.04,end[2]+.06);head.rotation.y=a*.5;head.rotation.x=.12;head.scale.setScalar(headScale);parent.add(head);
+  const throat=dragonHead(head,mats,f,baby);core=core||throat;
+ };
+ if(f.serpent){
+  // serpents: the body lies in a coil (or rolls up in humps, for leviathans) and rears up at the front
+  const pts=f.serpent==='humps'?[[0,.42,.26],[0,.24,.14],[0,.12,.02],[0,.24,-.12],[0,.12,-.26],[0,.14,-.36]]
+   :f.serpent==='short'?[[0,.34,.22],[0,.2,.1],[.06,.14,-.04],[.02,.13,-.16]]
+   :[[0,.42,.24],[0,.24,.12],[.14,.13,-.02],[.06,.11,-.2],[-.14,.1,-.3]];
+  for(const p of pts)p[1]+=.03;
+  const spine=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
+  dragonChain(body,spine,f.serpent==='short'?8:12,f.serpent==='short'?.14:.12,.09,m);dragonRidge(body,spine,f.serpent==='short'?5:9,.12,.09,baby?.04:.08,m.dark,.05,.95);
+  const top=pts[0];addHead(body,[[top[0],top[1]-.04,top[2]-.04],[top[0],top[1]+.08,top[2]+.04],[top[0],top[1]+.14,top[2]+.1]],m);
+  if(f.legs)dragonLegs(body,legs,m,{spots:[[-.13,.2,.14],[.13,.2,.14]],thick:.9});
+  if(f.wings)for(const side of [-1,1]){const w=dragonWing(body,side,f.wings*(baby?.6:1),m,f.feathered);w.position.set(side*.08,.4,.2);wings.push(w);}
+  if(f.fins){
+   // leviathan: a finned sail along the humps and broad paddle fins at the front
+   const sail=new THREE.Shape(),n=9;sail.moveTo(-pts[1][2],pts[1][1]);
+   for(let i=0;i<=n;i++){const t=.18+.62*i/n,p=spine.getPoint(t);sail.lineTo(-p.z-.015,p.y+.1+(i%2?.02:.07));sail.lineTo(-p.z+.015,p.y+.08);}
+   for(let i=n;i>=0;i--){const p=spine.getPoint(.18+.62*i/n);sail.lineTo(-p.z,p.y);}
+   const fin=part(body,new THREE.ShapeGeometry(sail),m.membrane);fin.rotation.y=Math.PI/2;
+   for(const side of [-1,1]){const paddle=new THREE.Shape();paddle.moveTo(0,0);paddle.quadraticCurveTo(side*.12,.06,side*.22,-.02);paddle.quadraticCurveTo(side*.12,-.05,0,-.04);const p=part(body,new THREE.ShapeGeometry(paddle,6),m.membrane,side*.1,.2,.12);p.rotation.x=-Math.PI/2+.3;p.rotation.y=-side*.4;}
+  }
+  const last=pts[pts.length-1];tail=new THREE.Group();tail.position.set(...last);body.add(tail);
+  const curve=new THREE.CatmullRomCurve3([[0,0,0],[last[0]>0?-.1:.1,-.02,-.12],[last[0]>0?-.2:.22,-.04,-.14],[last[0]>0?-.28:.3,-.05,-.06]].map(p=>new THREE.Vector3(...p)));
+  dragonChain(tail,curve,8,.085,.025,m);
+  if(f.fins){const fluke=cone(tail,.06,.1,m.membrane,curve.getPoint(1).x,-.05,-.04,3);fluke.scale.set(1.6,1,.3);fluke.rotation.z=Math.PI/2;}
+ }else{
+  // four-legged dragons stand square; wyverns rear up on two legs and wings; sirrush are lean and long-necked
+  const lean=f.sirrush?.82:1;
+  const torso=sphere(body,.26,m.hide,0,.46,0,1.1*lean,.85,1.45);const under=sphere(body,.22,m.belly,0,.38,.03,1.02*lean,.6,1.35);
+  if(f.legs===2){torso.rotation.x=under.rotation.x=-.3;}
+  const spine=new THREE.CatmullRomCurve3([[0,.63,.28],[0,.68,0],[0,.6,-.3]].map(p=>new THREE.Vector3(...p)));
+  dragonRidge(body,spine,6,.02,.02,baby?.05:.1,m.dark);
+  const heads=o.heads||Array(f.heads||1).fill(null);
+  heads.forEach((hi,k)=>{const a=(k-(heads.length-1)/2)*.5,x=Math.sin(a)*.3,lift=f.sirrush?.12:f.legs===2?.08:0,mats=hi===null?m:dragonMats(hi);
+   addHead(body,[[x*.2,.55,.26],[x*.6,.72+lift*.5,.36],[x,.86+lift,.44-Math.abs(x)*.25]],mats,a);});
+  const hindY=f.legs===2?.38:.34;
+  dragonLegs(body,legs,m,{spots:f.legs===2?[[-.17,hindY,-.1,1],[.17,hindY,-.1,1]]:[[-.2,.34,.2,0],[.2,.34,.2,0],[-.21,.34,-.2,1],[.21,.34,-.2,1]],thick:f.legs===2?1.25:1,sirrush:f.sirrush});
+  if(f.wings)for(const side of [-1,1]){const w=dragonWing(body,side,f.wings*(baby?.6:1),m,false);w.position.set(side*.14,.64,.08);wings.push(w);}
+  tail=new THREE.Group();tail.position.set(0,.44,-.34);body.add(tail);
+  const tip=f.sirrush?[[0,0,0],[0,-.1,-.15],[.06,-.19,-.28],[.1,-.1,-.39],[.1,.05,-.39]]:[[0,0,0],[0,-.1,-.16],[.1,-.19,-.3],[.19,-.25,-.4]];
+  const curve=new THREE.CatmullRomCurve3(tip.map(p=>new THREE.Vector3(...p)));
+  dragonChain(tail,curve,10,.1,.03,m);dragonRidge(tail,curve,6,.1,.03,baby?.04:.07,m.dark,.05,.9);
+  const end=curve.getPoint(1),dir=curve.getTangent(1);
+  // an arrowhead spade on the tail tip; a sirrush curls a scorpion's sting over its back instead
+  const barb=cone(tail,f.sirrush?.025:.06,f.sirrush?.09:.12,f.sirrush?m.ivory:m.dark,end.x+dir.x*.04,end.y+dir.y*.04,end.z+dir.z*.04,f.sirrush?5:4);barb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);if(!f.sirrush)barb.scale.set(1,1,.3);
+ }
+ g.userData.core=core;
+ return Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core});
 }
 function rat(giant=false,rabid=false){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(giant?1.25:.85);
@@ -1687,7 +1833,7 @@ export function createCreature(cell={}){
  if(/shopkeeper|merchant/.test(name))return humanoid('shopkeeper');
  if(/guard|soldier|watchman|watch captain/.test(name))return humanoid('guard');
  if(/unicorn/.test(name))return unicorn();
- if(/dragon/.test(name))return dragon();
+ if(letter==='D'||/dragon/.test(name))return dragon(dragonLook(name,cell.color));
  {const golemMatch=name.match(/^(.*) golem$/);if(golemMatch)return golem(GOLEM_MATERIALS[golemMatch[1]]||GOLEM_MATERIALS.stone);}
  if(name==='giant turtle')return turtle({shell:color||'#4a6a34'});
  if(SKIN[name])return humanoid(letter==='k'||/kobold/.test(name)?'kobold':'imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
@@ -1736,7 +1882,6 @@ export function createCreature(cell={}){
   case 'o':return humanoid('orc',{cloth:mat(shade(c,.75))});
   case 'q':return canine({...CANINES.rothe,coat:c});
   case 'u':return unicorn();
-  case 'D':return dragon();
   case '@':return humanoid('human',{cloth:mat(shade(c,.8))});
   case 'r':return rat(false);
   case 'x':return !name||/bug$/.test(name)?gridBug():xan({color:c,eye:'#ffcf40',stinger:true});
