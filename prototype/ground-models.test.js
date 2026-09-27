@@ -307,3 +307,27 @@ test('every bag shares one cinched drawstring sack, so the kind never shows',()=
   model.userData.dispose();
  }
 });
+
+test('each gem colour gets its own faceted cut, shared with its glass, grounded and finite',()=>{
+ const looks=[['white',15],['red',1],['orange',9],['yellow',11],['yellowish brown',3],['green',2],['blue',4],['violet',5],['black',0]];
+ const shapes=new Set();
+ for(const [look,color] of looks){
+  const model=createGroundModel({name:'gem',class:13,appearance:look,color});
+  const glass=createGroundModel({name:`worthless piece of ${look} glass`,class:13,appearance:look,color});
+  const verts=m=>{const out=[];m.traverse(p=>{if(p.geometry)out.push(...p.geometry.attributes.position.array);});return out;};
+  assert.deepEqual(verts(glass),verts(model),`${look} glass must match its gem`);
+  let facets=0;
+  model.traverse(p=>{if(p.geometry?.attributes.color){
+   facets=p.geometry.attributes.position.count/3;
+   for(const v of p.geometry.attributes.position.array)assert(Number.isFinite(v));
+   for(const v of p.geometry.attributes.normal.array)assert(Number.isFinite(v));
+  }});
+  assert(facets>=40,`${look}: ${facets} facets`);
+  const b=new THREE.Box3().setFromObject(model);
+  assert(b.min.y>=-1e-6&&b.max.y<.25,`${look} y ${b.min.y}..${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.3,`${look} footprint`);
+  shapes.add(verts(model).slice(0,60).map(v=>v.toFixed(4)).join());
+  model.userData.dispose();glass.userData.dispose();
+ }
+ assert.equal(shapes.size,looks.length,'every colour has a distinct cut');
+});
