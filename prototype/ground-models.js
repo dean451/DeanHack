@@ -886,6 +886,90 @@ function buildHelmet(look,{g,materials}){
  }
 }
 
+// Figurines. The bridge names every one just "figurine" (no monster, no appearance), so
+// all of them share one carving: a seated guardian beast in worn green soapstone on an
+// octagonal plinth, facing +z. Every part is coloured per vertex and merged into one mesh.
+function buildFigurine({g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const STONE={base:C(0x8d9c84),light:C(0xc6cfb6),dark:C(0x465044)},PLINTH={base:C(0x6e6a5e),light:C(0x9c9684),dark:C(0x353229)},INK=C(0x1c1f1a);
+ const stone=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.58});
+ materials.push(stone);
+ const parts=[],P=.03;
+ // Colour a part from its own normals: noise mottling, dark undersides where parts meet
+ // (a cheap stand-in for occlusion) and polish on the upward faces that get handled.
+ const put=(geo,{look=STONE,warp,flat,groove,mottle=.55}={})=>{
+  geo.deleteAttribute('uv');
+  if(warp){
+   const w=mergeVertices(geo.deleteAttribute('normal'));geo.dispose();geo=w;
+   const p=geo.attributes.position,t=v(0,0,0);
+   for(let i=0;i<p.count;i++){warp(t.fromBufferAttribute(p,i));p.setXYZ(i,t.x,t.y,t.z);}
+   geo.computeVertexNormals();
+  }
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),ny=n.getY(i),c=look.base.clone();
+   if(flat)c.copy(flat);
+   else{
+    const s=stoneNoise(x*2.3,y*2.3,z*2.3,55);c.lerp(s>0?look.light:look.dark,Math.abs(s)*mottle);
+    if(ny<0)c.lerp(look.dark,-ny*.55);else if(ny>.6)c.lerp(look.light,(ny-.6)*.5);
+    if(groove?.(x,y,z))c.lerp(INK,.6);
+   }
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));parts.push(out);
+ };
+ const sphere=(r,x,y,z,s=[1,1,1],o={},seg=[16,12])=>{const geo=new THREE.SphereGeometry(r,...seg);geo.scale(...s);geo.translate(x,y,z);put(geo,o);};
+ // A tapered limb between two points.
+ const limb=(a,b,r0,r1,o)=>{
+  const d=b.clone().sub(a),geo=new THREE.CylinderGeometry(r1,r0,d.length(),10);
+  geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(v(0,1,0),d.clone().normalize()));
+  geo.translate((a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);put(geo,o);
+ };
+ // The plinth: an eight-sided block with a chamfered cap and a band of carved glyphs.
+ const block=new THREE.CylinderGeometry(.078,.086,.022,8);block.rotateY(Math.PI/8);block.translate(0,.011,0);
+ put(block,{look:PLINTH,groove:(x,y,z)=>y>.007&&y<.016&&Math.sin(Math.atan2(z,x)*40)>.55&&Math.sin(y*900)>-.2});
+ const cap=new THREE.CylinderGeometry(.07,.078,.008,8);cap.rotateY(Math.PI/8);cap.translate(0,.026,0);put(cap,{look:PLINTH});
+ // Haunches and hind paws tucked under.
+ sphere(.04,0,P+.034,-.022,[1.05,.9,1.1]);
+ for(const s of [-1,1]){
+  sphere(.028,s*.031,P+.03,-.016,[.72,1,1.25]);
+  sphere(.014,s*.036,P+.008,.018,[1,.6,1.5],{groove:(x,y,z)=>z>.03&&Math.abs(Math.sin((x-s*.036)*260))<.18});
+ }
+ // Chest, straight front legs and paws.
+ sphere(.035,0,P+.082,.01,[.95,1.25,.9]);
+ for(const s of [-1,1]){
+  limb(v(s*.021,P+.006,.042),v(s*.02,P+.078,.02),.012,.011);
+  sphere(.015,s*.021,P+.008,.05,[1,.62,1.35],{groove:(x,y,z)=>z>.058&&Math.abs(Math.sin((x-s*.021)*260))<.18});
+ }
+ // A curled mane around the neck: bumps pushed out along the surface.
+ const maneCentre=v(0,P+.122,.016);
+ sphere(.041,maneCentre.x,maneCentre.y,maneCentre.z,[1.12,1,.86],{warp:q=>{
+  const d=q.clone().sub(maneCentre),r=d.length()||1;
+  q.addScaledVector(d,(Math.max(0,stoneNoise(q.x*3,q.y*3,q.z*3,70))*.009)/r);
+ },mottle:.7},[20,14]);
+ // The head: brow, muzzle, nose, carved eyes, ears and a snarling mouth.
+ sphere(.029,0,P+.138,.036,[1,.95,1]);
+ sphere(.018,0,P+.126,.062,[1.2,.82,1]);
+ sphere(.0065,0,P+.134,.079,[1.3,.8,1],{flat:STONE.dark});
+ sphere(.009,0,P+.113,.07,[1.4,.45,.8],{flat:INK});
+ for(const s of [-1,1]){
+  sphere(.011,s*.012,P+.152,.052,[1.2,.5,.8]);
+  sphere(.0052,s*.013,P+.145,.061,[1,1,.6],{flat:INK},[10,8]);
+  const ear=new THREE.ConeGeometry(.009,.02,8);ear.rotateZ(-s*.45);ear.translate(s*.024,P+.163,.028);put(ear);
+  // Tusks at the corners of the mouth.
+  const tusk=new THREE.ConeGeometry(.0028,.011,6);tusk.rotateX(Math.PI);tusk.translate(s*.008,P+.107,.072);put(tusk,{flat:STONE.light});
+ }
+ // A tail curling up over the back, ending in a flame-like tuft.
+ const tail=new THREE.CatmullRomCurve3([v(.01,P+.02,-.055),v(.03,P+.03,-.08),v(.035,P+.07,-.078),v(.018,P+.1,-.058),v(.004,P+.098,-.04)]);
+ put(new THREE.TubeGeometry(tail,24,.0075,8,false));
+ const tip=tail.getPoint(1);
+ sphere(.014,tip.x,tip.y+.004,tip.z,[1,1.2,1],{warp:q=>{q.y+=Math.max(0,stoneNoise(q.x*4,q.z*4,q.y,90))*.006;},mottle:.7});
+ const geo=mergeGeometries(parts);parts.forEach(p=>p.dispose());
+ const mesh=new THREE.Mesh(geo,stone);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part='figurine';g.add(mesh);
+ g.rotation.y=.45;
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -1625,6 +1709,8 @@ export function createGroundModel(item={}){
    }
   }
   g.rotation.y=.3;
+ }else if(cls===6&&/\bfigurine\b/.test(name)){
+  buildFigurine({g,materials});
  }else if(cls===6&&TOOL_KIND.test(name)){
   // Common tools, keyed by the word they share with their unidentified twin.
   const kind=name.match(TOOL_KIND)[1];

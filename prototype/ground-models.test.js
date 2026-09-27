@@ -108,7 +108,6 @@ test('common food gets grounded, finite models and unknown food falls back',()=>
  }
  assert(seen.size>=15,'kinds should look different');
  assert.equal(createGroundModel({name:'eucalyptus leaf',class:7}),null);
- assert.equal(createGroundModel({name:'figurine of a newt',class:6}),null);
 });
 
 test('scrolls lie on the floor and show only their shuffled label',()=>{
@@ -508,4 +507,21 @@ test('cloaks lie draped on the floor keyed by appearance, one cloth mesh plus at
  assert.equal(seen.size,kinds.length,'each cloak kind looks different');
  assert.deepEqual(signature(cloak('cloak of invisibility','tattered cape')),signature(cloak('cloak of protection','tattered cape')),'the true cloak name must not show');
  assert.deepEqual(signature(cloak('cloak of displacement')),signature(cloak('cloak of protection')),'without an appearance the true name must not show either');
+});
+
+test('figurines are one merged soapstone carving on a plinth',()=>{
+ for(const name of ['figurine','figurine of a newt']){
+  const model=createGroundModel({name,class:6});
+  assert(model,name);
+  const meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.equal(meshes.length,1);
+  assert.equal(meshes[0].userData.part,'figurine');
+  for(const key of ['position','normal','color'])for(const value of meshes[0].geometry.attributes[key].array)assert(Number.isFinite(value));
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(bounds.min.y>=-1e-6&&bounds.min.y<.001,'rests on the floor');
+  assert(bounds.max.y>.15&&bounds.max.y<.25,'hand-sized');
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.12);
+  let disposed=0;meshes[0].geometry.addEventListener('dispose',()=>disposed++);
+  model.userData.dispose();assert.equal(disposed,1);
+ }
 });
