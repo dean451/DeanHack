@@ -4,6 +4,7 @@
 #include "func_tab.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #define BW 32
 #define BM 512
@@ -76,6 +77,75 @@ static const char *seen_name(int glyph,int x,int y) {
     if ((paren=strstr(buf," (")) != 0 && buf[strlen(buf)-1]==')') *paren='\0';
     return buf;
 }
+/* FX stream: tmp_at() sequences (beams, thrown objects, explosions) are buffered as
+   steps and sent as one {"type":"fx"} event when the outermost sequence ends, so the
+   client can replay what the map frames only show the end of. "tick" steps are
+   delay_output() pauses. Only glyphs tmp_at() actually draws (seen by the hero) are
+   recorded. */
+#define FX_BUF 65536
+static char fxbuf[FX_BUF];
+static int fxlen,fxdepth,fxsteps,fxfull;
+static void fx_printf(const char *fmt,...) {
+    va_list ap;int n;
+    if(fxfull)return;
+    va_start(ap,fmt);n=vsnprintf(fxbuf+fxlen,FX_BUF-fxlen,fmt,ap);va_end(ap);
+    if(n<0||n>=FX_BUF-fxlen-64){fxbuf[fxlen]=0;fxfull=1;}else fxlen+=n;
+}
+static void fx_quoted(const char *s) {
+    const unsigned char *p=(const unsigned char *)(s?s:"");
+    fx_printf("\"");
+    for(;*p;p++){if(*p=='"'||*p=='\\')fx_printf("\\%c",*p);else if(*p<32||*p>=127)fx_printf("\\u%04x",*p);else fx_printf("%c",*p);}
+    fx_printf("\"");
+}
+/* A step is written in pieces; if the buffer fills part way, fx_close() drops it whole. */
+static int fxmark;
+static void fx_step(const char *op) {fxmark=fxlen;fx_printf("%s{\"op\":\"%s\"",fxsteps?",":"",op);}
+static void fx_close(void) {
+    fx_printf("}");
+    if(fxfull){fxlen=fxmark;fxbuf[fxlen]=0;}else fxsteps++;
+}
+static void fx_glyph(int g) {
+    static const char *zaps[NUM_ZAP]={"magic missile","fire","cold","sleep","death","lightning","poison gas","lava","acid"};
+    static const char *dirs[4]={"vertical","horizontal","lslant","rslant"};
+    static const char *expls[EXPL_MAX]={"dark","noxious","muddy","wet","magical","fiery","frosty"};
+    fx_printf(",\"glyph\":%d,\"effect\":{\"kind\":",g);
+    if(g>=GLYPH_ZAP_OFF&&g<GLYPH_ZAP_OFF+(NUM_ZAP<<2)){
+        fx_printf("\"zap\",\"zap\":");fx_quoted(zaps[(g-GLYPH_ZAP_OFF)>>2]);
+        fx_printf(",\"dir\":\"%s\"",dirs[(g-GLYPH_ZAP_OFF)&3]);
+    } else if(g>=GLYPH_EXPLODE_OFF&&g<GLYPH_ZAP_OFF){
+        fx_printf("\"explosion\",\"explosion\":\"%s\",\"part\":%d",expls[(g-GLYPH_EXPLODE_OFF)/MAXEXPCHARS],(g-GLYPH_EXPLODE_OFF)%MAXEXPCHARS);
+    } else if(glyph_is_object(g)&&!glyph_is_body(g)&&!glyph_is_statue(g)){
+        int o=glyph_to_obj(g);
+        fx_printf("\"object\",\"otyp\":%d,\"class\":%d,\"material\":%d",o,objects[o].oc_class,objects[o].oc_material);
+        if(OBJ_DESCR(objects[o])){fx_printf(",\"appearance\":");fx_quoted(OBJ_DESCR(objects[o]));}
+    } else if(glyph_is_monster(g)&&glyph_to_mon(g)>=0&&glyph_to_mon(g)<NUMMONS){
+        fx_printf("\"monster\",\"name\":");fx_quoted(mons[glyph_to_mon(g)].mname);
+    } else if(glyph_is_cmap(g)){
+        int c=glyph_to_cmap(g);
+        const char *k=c==S_digbeam?"dig":c==S_flashbeam?"flash":(c==S_boomleft||c==S_boomright)?"boomerang":(c>=S_ss1&&c<=S_ss4)?"sparkle":c==S_poisoncloud?"poison cloud":"cmap";
+        fx_printf("\"%s\",\"cmap\":%d",k,c);
+        if(c>=S_ss1&&c<=S_ss4)fx_printf(",\"part\":%d",c-S_ss1);
+    } else fx_printf("\"other\"");
+    fx_printf("}");
+}
+static void fx_flush(void) {
+    if(!fxsteps){fxlen=fxfull=0;return;}
+    printf("{\"type\":\"fx\",\"open\":%d,\"truncated\":%s,\"steps\":[%s]}\n",fxdepth,fxfull?"true":"false",fxbuf);fflush(stdout);
+    fxlen=fxsteps=fxfull=0;fxbuf[0]=0;
+}
+static void fx_hook(int op,coordxy x,coordxy y,int g) {
+    static const char *modes[]={"","beam","all","tether","flash","always"};
+    if(op<=DISP_BEAM&&op>=DISP_ALWAYS){
+        fxdepth++;fx_step("start");fx_printf(",\"mode\":\"%s\"",modes[-op]);fx_glyph(g);fx_close();
+    } else if(op==DISP_CHANGE){fx_step("change");fx_glyph(g);fx_close();}
+    else if(op==DISP_END){
+        fx_step("end");fx_close();
+        if(fxdepth>0&&--fxdepth==0)fx_flush();
+    } else if(op==TMP_AT_DRAW||op==TMP_AT_RETRACT){
+        fx_step(op==TMP_AT_DRAW?"draw":"retract");fx_printf(",\"x\":%d,\"z\":%d",x,y);fx_close();
+    }
+}
+static void fx_delay(void){if(fxdepth>0){fx_step("tick");fx_close();}}
 static void frame(void) {
     int x,y,g,b,m,col,terrain_glyph,object_type;glyph_t ch;unsigned special;
     printf("{\"type\":\"frame\",\"turn\":%ld,\"depth\":%d,\"branch\":%d,\"player\":{\"x\":%d,\"z\":%d,\"hp\":%d,\"maxhp\":%d,\"ac\":%d,\"level\":%d,\"weapon\":",moves,depth(&u.uz),u.uz.dnum,u.ux,u.uy,Upolyd?u.mh:u.uhp,Upolyd?u.mhmax:u.uhpmax,u.uac,u.ulevel);
@@ -152,7 +222,7 @@ static void frame(void) {
 }
 /* Input is one decimal keycode or a UTF-8 line, only after a request. */
 static void read_request(const char *kind,const char *prompt,char *buf,int size) {
-    frame();printf("{\"type\":\"request\",\"id\":%ld,\"kind\":",++request_id);quoted(kind);printf(",\"prompt\":");quoted(prompt);puts("}");fflush(stdout);
+    fx_flush();frame();printf("{\"type\":\"request\",\"id\":%ld,\"kind\":",++request_id);quoted(kind);printf(",\"prompt\":");quoted(prompt);puts("}");fflush(stdout);
     if(!fgets(buf,size,stdin)) { hangup(0);exit(0); }
     buf[strcspn(buf,"\r\n")]=0;
 }
@@ -160,9 +230,9 @@ static int key(const char *kind,const char *prompt) {char buf[BUFSZ];read_reques
 static void noop(void) {}
 static void strnoop(const char *s UNUSED) {}
 static void intnoop(int i UNUSED) {}
-static void init(int *a UNUSED,char **v UNUSED) {setvbuf(stdout,NULL,_IOLBF,0);for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;iflags.window_inited=TRUE;iflags.use_background_glyph=TRUE;}
+static void init(int *a UNUSED,char **v UNUSED) {setvbuf(stdout,NULL,_IOLBF,0);for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;iflags.window_inited=TRUE;iflags.use_background_glyph=TRUE;tmp_at_hook=fx_hook;}
 static void name(void){Strcpy(plname,"Wanderer");}
-static void finish(const char *s){event("ended",s);iflags.window_inited=FALSE;}
+static void finish(const char *s){tmp_at_hook=0;fxdepth=0;fx_flush();event("ended",s);iflags.window_inited=FALSE;}
 static winid create(int type){for(int i=1;i<BW;i++)if(!wins[i].type){wins[i].type=type;return i;}panic("bridge windows exhausted");return WIN_ERR;}
 static void clear(winid w){if(w<1||w>=BW)return;for(int i=0;i<wins[w].n;i++)free(wins[w].items[i].text);wins[w].n=0;wins[w].prompt[0]=0;if(wins[w].type==NHW_MAP)for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;}
 static void destroy(winid w){clear(w);if(w>0&&w<BW)wins[w].type=0;}
@@ -203,5 +273,5 @@ struct window_procs bridge_procs={
 #ifdef CLIPPING
  .win_cliparound=clip,
 #endif
- .win_print_glyph=glyph,.win_raw_print=raw,.win_raw_print_bold=raw,.win_nhgetch=getkey,.win_nh_poskey=poskey,.win_nhbell=noop,.win_doprev_message=prev,.win_yn_function=bridge_yn,.win_getlin=line,.win_get_ext_cmd=ext,.win_number_pad=intnoop,.win_delay_output=noop,.win_start_screen=noop,.win_end_screen=noop,.win_outrip=rip,.win_preference_update=strnoop
+ .win_print_glyph=glyph,.win_raw_print=raw,.win_raw_print_bold=raw,.win_nhgetch=getkey,.win_nh_poskey=poskey,.win_nhbell=noop,.win_doprev_message=prev,.win_yn_function=bridge_yn,.win_getlin=line,.win_get_ext_cmd=ext,.win_number_pad=intnoop,.win_delay_output=fx_delay,.win_start_screen=noop,.win_end_screen=noop,.win_outrip=rip,.win_preference_update=strnoop
 };

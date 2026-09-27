@@ -373,6 +373,9 @@ extern void newsym(coordxy, coordxy);
 extern void newsym_force(coordxy, coordxy);
 extern void shieldeff(coordxy, coordxy);
 extern void tmp_at(coordxy, coordxy);
+#ifdef BRIDGE_GRAPHICS
+extern void (*tmp_at_hook)(int, coordxy, coordxy, int);
+#endif
 extern void flash_glyph_at(coordxy, coordxy, int, int);
 extern void swallowed(int);
 extern void under_ground(int);

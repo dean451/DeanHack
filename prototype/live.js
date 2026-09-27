@@ -24,6 +24,7 @@ import {attachModelAsset} from './model-assets.js';
 import {MODEL_URLS} from './asset-urls.js';
 import {potionLook,groundItemCaption} from './item-looks.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {fxTimeline} from './fx.js';
 
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
@@ -282,7 +283,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function connect(){
    meleeIntent=null;source?.close?.();
    let usingPolling=false,pollTimer=null,stopped=false,since=0;
-   const handle=v=>{if(v.type==='frame')apply(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
+   const handle=v=>{if(v.type==='frame')apply(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];fx.push(fxTimeline(v));if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
    async function pollLoop(){
      if(stopped)return;
      try{const r=await fetch(`/engine/poll?since=${since}`);const {events,seq}=await r.json();since=seq;for(const event of events)handle(event);}
