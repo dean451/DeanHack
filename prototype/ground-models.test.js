@@ -261,3 +261,17 @@ test('spellbook covers follow the shuffled appearance and stay grounded',()=>{
  }
  assert(seen.size>=30,`covers should vary: ${seen.size}`);
 });
+
+test('the looking glass lies flat with a painted reflection, a beaded frame and a turned handle',()=>{
+ const model=createGroundModel({name:'mirror',class:6});
+ const bounds=new THREE.Box3().setFromObject(model);
+ assert(Math.abs(bounds.min.y)<1e-6);assert(bounds.max.y<.05,'it lies face up');
+ assert(Math.abs(bounds.min.x+bounds.max.x)<1e-6,'centred on the tile');
+ const glass=model.children.find(part=>part.material.vertexColors);
+ assert(glass,'the glass carries a painted reflection');
+ const colors=glass.geometry.attributes.color.array;
+ assert(Math.max(...colors)-Math.min(...colors)>.4,'the reflection has bright streaks');
+ assert(model.children.filter(part=>part.geometry.type==='LatheGeometry').length>=2,'moulded frame and turned handle');
+ assert(model.children.filter(part=>part.geometry.type==='SphereGeometry').length>=30,'beaded rim');
+ model.userData.dispose();
+});

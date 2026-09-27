@@ -665,12 +665,43 @@ export function createGroundModel(item={}){
    box(.022,.012,.036,dark,.035,.042);ball(.012,dark,.118,.022,0,[.4,1,1]);
    flat(new THREE.TorusGeometry(.018,.004,6,14),tin,-.09,.006,0);
   }else if(kind==='mirror'){
-   // A hand mirror lying face up: a silvered disc in a brass frame, with a turned handle.
-   const glass=new THREE.MeshStandardMaterial({color:0xd8e6ee,metalness:1,roughness:.04});materials.push(glass);
-   add(new THREE.CylinderGeometry(.11,.115,.018,32),brass,0,.009);
-   add(new THREE.CylinderGeometry(.092,.092,.004,32),glass,0,.02);
-   flat(new THREE.TorusGeometry(.1,.008,6,32),brass,0,.019,0);
-   lie(.016,.02,.16,wood,.185,.018,0);ball(.022,brass,.27,.02,0);box(.03,.02,.03,brass,.105,.014);
+   // A looking glass lying face up: an oval silvered glass in a moulded, beaded silver frame
+   // with a crest, and a turned wooden handle between brass ferrules.
+   const frame=new THREE.MeshStandardMaterial({color:0xc8ccd0,metalness:.85,roughness:.3});
+   const tarnish=new THREE.MeshStandardMaterial({color:0x7c7870,metalness:.7,roughness:.55});
+   // No environment map, so the reflection is painted: a cool sky wash with two bright streaks.
+   const glass=new THREE.MeshStandardMaterial({vertexColors:true,metalness:.15,roughness:.06,emissive:0x6f8494,emissiveIntensity:.25});
+   const ebony=mat(0x3a2418);materials.push(frame,tarnish,glass);
+   const R=.09,oval=1.18,cx=-.075;
+   const lathe=(pts,m,x,y,seg=40)=>{const p=add(new THREE.LatheGeometry(pts.map(([a,b])=>new THREE.Vector2(a,b)),seg),m,x,y);p.scale.x=oval;return p;};
+   // Frame profile (radius, height): a flat back, a rounded outer lip, a cove and an inner bezel.
+   lathe([[0,0],[R+.024,0],[R+.032,.006],[R+.034,.014],[R+.029,.022],[R+.02,.024],[R+.012,.019],[R+.006,.021],[R+.002,.026],[R,.024],[R,.02],[0,.02]],frame,cx,0,48);
+   const face=new THREE.RingGeometry(0,R,48,8);face.rotateX(-Math.PI/2);
+   const pos=face.attributes.position,colors=[],c=new THREE.Color(),sky=new THREE.Color(0x9fb4c4),deep=new THREE.Color(0x4f6272),hi=new THREE.Color(0xf4f8fb);
+   for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i)/R,z=pos.getZ(i)/R,u=x*.6+z*.8;
+    c.copy(deep).lerp(sky,Math.min(1,Math.max(0,.55-u*.45)));
+    const streak=Math.max(Math.exp(-(((u+.18)/.13)**2)),.7*Math.exp(-(((u-.3)/.06)**2)));
+    c.lerp(hi,streak*.85);colors.push(c.r,c.g,c.b);
+   }
+   face.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+   add(face,glass,cx,.0215).scale.x=oval;
+   // A ring of beads on the lip and a small shell crest opposite the handle.
+   for(let i=0;i<30;i++){const a=i/30*Math.PI*2;ball(.0045,frame,cx+Math.cos(a)*(R+.017)*oval,.0235,Math.sin(a)*(R+.017));}
+   const crest=cx-(R+.03)*oval;
+   ball(.02,frame,crest,.012,0,[.7,.55,1]);
+   for(const s of [-1,1]){ball(.011,frame,crest+.004,.01,s*.022,[1,.6,1]);ball(.006,frame,crest-.012,.011,s*.012);}
+   ball(.008,tarnish,crest-.016,.016,0);
+   // Neck: a flared collar where the handle joins the frame.
+   const joint=cx+(R+.026)*oval;
+   lie(.02,.016,.034,frame,joint+.012,.02,0,0,20);box(.02,.02,.05,frame,joint-.002,.012);
+   // Turned handle, profile along +x: ferrule, baluster, rings, grip, ferrule and a finial knob.
+   const turned=[[0,0],[.019,0],[.019,.012],[.014,.016],[.013,.03],[.018,.038],[.018,.044],[.013,.05],[.015,.065],[.017,.1],[.015,.13],[.013,.14],[.018,.146],[.018,.156],[.012,.162],[.009,.17],[0,.172]];
+   const handle=add(new THREE.LatheGeometry(turned.map(([a,b])=>new THREE.Vector2(a,b)),20),ebony,joint+.028,.02);handle.rotation.z=-Math.PI/2;
+   for(const [x,r] of [[.004,.02],[.041,.019],[.147,.019]])lie(r,r,.009,brass,joint+.028+x,.02,0,0,20);
+   ball(.013,brass,joint+.028+.176,.02,0);
+   // Drop onto the floor and centre on the tile.
+   g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(g),mid=(b.min.x+b.max.x)/2;g.children.forEach(p=>{p.position.y-=b.min.y;p.position.x-=mid;});
   }else if(kind==='crystal ball'){
    const orb=new THREE.MeshStandardMaterial({color:0xbfd8ff,roughness:.05,metalness:.1,transparent:true,opacity:.55,emissive:0x3a5a9a,emissiveIntensity:.35});
    const mist=new THREE.MeshBasicMaterial({color:0xcfe6ff,transparent:true,opacity:.5,depthWrite:false});materials.push(orb,mist);
