@@ -987,6 +987,62 @@ const MEGA_RHINOS={
  titanothere:{name:'titanothere',scale:1.05,skin:'#6e6254',dark:'#4a4036',legH:.34,girth:.3,length:1.45,hump:.16,neck:0,headTilt:.32,headSize:1.35,horn:'fork',stance:.17,legR:.085,setBack:-.15},
  baluchitherium:{name:'baluchitherium',scale:1,skin:'#9a8c78',dark:'#6a5e50',legH:.58,girth:.26,length:1.45,hump:.08,neck:.34,headTilt:.55,headSize:1.1,lip:true,stance:.15,legR:.068,setBack:-.2},
 };
+// Leocrottas (q): used to borrow the rothe. A tawny stag's body on long slender legs with cloven
+// hooves, a lion's thick maned neck, and a badger's striped head whose mouth splits back to the
+// ears, lined with ridges of bare bone instead of teeth. Static parts are baked per material.
+function leocrotta(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);body.position.z=-.08;g.scale.setScalar(o.scale);g.name='leocrotta';
+ const B=baker(),coat=mat(o.coat,{roughness:.92}),dark=mat(o.dark,{roughness:.95}),mane=mat(o.mane,{roughness:1}),belly=mat(o.belly,{roughness:.92});
+ const white=mat('#e4ddcc',{roughness:.9}),black=mat('#1c1916',{roughness:.9}),bone=mat('#e8dcc0',{roughness:.45}),gum=mat('#5a2226',{roughness:.7});
+ const S=(r,w=14,h=10)=>new THREE.SphereGeometry(r,w,h),legH=.5,y=legH+.14;
+ // a deep-chested, tucked-up stag's barrel, withers higher than the rump, a pale belly
+ B.put(body,coat,S(.17,18,12),[0,y,0],[0,0,0],[1,1,1.9]);
+ B.put(body,coat,S(.16,16,12),[0,y+.04,.18],[0,0,0],[1.05,1.1,1]);
+ B.put(body,coat,S(.14,16,12),[0,y-.01,-.22],[0,0,0],[1,1,1]);
+ B.put(body,belly,S(.13,14,10),[0,y-.08,.02],[0,0,0],[.9,.55,1.7]);
+ // lion's neck: a thick rising column wrapped in a dark shaggy mane down to the withers
+ const neckEnd=[0,y+.3,.4];
+ B.put(body,coat,taperedTube([[0,y+.02,.22],[0,y+.17,.32],neckEnd],.12,.085,14,10));
+ B.put(body,mane,tatter(new THREE.LatheGeometry([[.1,.14],[.15,.05],[.16,-.06],[.13,-.16]].map(([r,h])=>new THREE.Vector2(r,h)),20),-.04,.06,7),[0,y+.17,.33],[-.75,0,0],[1.05,1,1.15]);
+ for(let i=0;i<7;i++){const t=i/6;B.put(body,mane,new THREE.ConeGeometry(.035,.13,5),[0,y+.3-t*.18,.36-t*.3],[-.6-t*.5,0,0]);}
+ // badger head: a wedge skull with a white blaze and black stripes through the eyes, small round ears
+ const head=new THREE.Group();head.position.set(...neckEnd);head.rotation.x=.35;body.add(head);
+ B.put(head,white,S(.09,16,12),[0,.01,.03],[0,0,0],[1,.85,1.25]);
+ B.put(head,white,new THREE.ConeGeometry(.07,.17,12),[0,-.005,.17],[Math.PI/2,0,0],[1,1,.75]);
+ B.put(head,black,S(.02,8,6),[0,.005,.26]);
+ for(const side of [-1,1]){
+  B.put(head,black,S(.05,10,8),[side*.048,.03,.07],[0,0,-side*.1],[.35,.55,1.9]);
+  B.put(head,gum,S(.011,8,6),[side*.062,.035,.09]);
+  B.put(head,black,S(.03,10,8),[side*.07,.075,-.035],[0,0,0],[1,1,.45]);
+  B.put(head,white,S(.03,10,8),[side*.07,.075,-.03],[0,0,0],[.75,.7,.3]);
+ }
+ // the gaping jaw: the mouth splits back to the ears; bone ridges run the length of both jaws
+ const jaw=new THREE.Group();jaw.position.set(0,-.035,-.02);jaw.rotation.x=.22;head.add(jaw);
+ B.put(jaw,coat,new THREE.ConeGeometry(.06,.24,10),[0,-.02,.13],[Math.PI/2,0,0],[1,.55,1]);
+ B.put(jaw,gum,new THREE.BoxGeometry(.075,.012,.2),[0,.005,.13]);
+ B.put(head,gum,new THREE.BoxGeometry(.08,.012,.21),[0,-.03,.13]);
+ for(const side of [-1,1]){
+  B.put(head,bone,taperedTube([[0,0,-.08],[side*.004,0,.06],[side*.02,0,.22]],.012,.007,10,6),[side*.03,-.045,.02],[0,0,0],[1,1.6,1]);
+  B.put(jaw,bone,taperedTube([[0,0,-.06],[side*.004,0,.08],[side*.018,0,.22]],.011,.007,10,6),[side*.028,.018,.01],[0,0,0],[1,1.6,1]);
+ }
+ // long slender stag's legs: a muscled upper leg, knobby joints, a thin dark cannon and a cloven hoof
+ for(const side of [-1,1])for(const front of [true,false]){
+  const leg=new THREE.Group();leg.position.set(side*.09,legH,front?.2:-.22);body.add(leg);legs.push(leg);
+  const bend=front?.02:-.05;
+  B.put(leg,coat,S(front?.06:.075,12,8),[0,.01,0],[0,0,0],[.85,1.6,1.1]);
+  B.put(leg,coat,taperedTube([[0,-.02,0],[0,-legH*.25,bend*.5],[0,-legH*.45,bend]],.045,.028,8,8));
+  B.put(leg,coat,S(.03,8,6),[0,-legH*.45,bend]);
+  B.put(leg,dark,taperedTube([[0,-legH*.45,bend],[0,-legH*.7,bend*.4],[0,-legH*.9,.01]],.024,.019,8,6));
+  B.put(leg,dark,S(.024,8,6),[0,-legH*.9,.012]);
+  for(const toe of [-1,1])B.put(leg,dark,new THREE.ConeGeometry(.018,.06,6),[toe*.014,-legH+.034,.022],[.35,0,0]);
+ }
+ // a lion's tail with a dark tuft
+ const tail=new THREE.Group();tail.position.set(0,y+.06,-.34);body.add(tail);
+ B.put(tail,coat,taperedTube([[0,0,0],[0,-.08,-.08],[0,-.26,-.12],[0,-.4,-.08]],.024,.014,14,6));
+ B.put(tail,mane,S(.035,10,8),[0,-.43,-.07],[0,0,0],[1,1.6,1]);
+ B.bake();
+ return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw});
+}
 // giants (H): a towering, broad-shouldered brute in a hide kilt and belt, with thick legs in wrapped boots and heavy fists;
 // hill giants swing clubs, stone giants shoulder a boulder, fire giants have a smouldering beard and a sword, frost giants
 // an icy mantle and an axe, storm giants a lightning-tipped spear, titans gilded armour; ettins have two heads, minotaurs a bull's
@@ -2080,6 +2136,7 @@ export function createCreature(cell={}){
  if(HORSES[name])return horseFor(name,color);
  if(PROBOSCIDEANS[name])return proboscidean(PROBOSCIDEANS[name]);
  if(MEGA_RHINOS[name])return megaRhino(MEGA_RHINOS[name]);
+ if(name==='leocrotta')return leocrotta({scale:1.05,coat:'#a8865a',dark:'#6e5436',mane:'#4a3420',belly:'#cdb48c'});
  if(GIANTS[name])return giant(GIANTS[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
  if(MIND_FLAYERS[name])return mindFlayer(MIND_FLAYERS[name]);
