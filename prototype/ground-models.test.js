@@ -443,3 +443,36 @@ test('boots stand as a pair keyed by appearance, one merged mesh per boot plus i
  assert.deepEqual(signature(boots('speed boots','combat boots')),signature(boots('fumble boots','combat boots')),'the true boot name must not show');
  assert.deepEqual(signature(boots('speed boots')),signature(boots('levitation boots')),'without an appearance the true name must not show either');
 });
+
+test('helmets and hats sit on the floor keyed by appearance, one merged shell plus at most a plume',()=>{
+ const helm=(name,appearance)=>createGroundModel({name,class:3,appearance});
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.attributes.position.count,...part.getWorldPosition(new THREE.Vector3()).toArray().map(n=>n.toFixed(5))]);});return out;};
+ const kinds=[['elven leather helm','leather hat'],['orcish helm','iron skull cap'],['dwarvish iron helm','hard hat'],['fedora'],['cornuthaum','conical hat'],
+  ['tinfoil hat'],['dented pot'],['helmet','plumed helmet'],['helm of brilliance','etched helmet'],['helm of opposite alignment','crested helmet'],['helm of telepathy','visored helmet']];
+ const seen=new Set();
+ for(const [name,look] of kinds){
+  const model=helm(name,look);
+  assert(model,name);
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} rests on the floor`);
+  assert(bounds.max.y>.07&&bounds.max.y<.34,`${name} stands a sensible height (${bounds.max.y})`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} fits its tile`);
+  let meshes=0,geometries=0;
+  model.traverse(part=>{if(part.geometry){
+   meshes++;
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+   for(const value of part.geometry.attributes.normal.array)assert(Number.isFinite(value));
+   part.geometry.addEventListener('dispose',()=>geometries++);
+  }});
+  assert.equal(model.children.filter(c=>c.userData.part==='helmet').length,1,name);
+  assert(meshes<=2,`${name} stays at a draw call or two (${meshes})`);
+  seen.add(JSON.stringify(signature(model)));
+  model.userData.dispose();
+  assert.equal(geometries,meshes);
+ }
+ assert.equal(seen.size,kinds.length,'each helmet kind looks different');
+ assert.deepEqual(signature(helm('helm of brilliance','crested helmet')),signature(helm('helmet','crested helmet')),'the true helmet name must not show');
+ assert.deepEqual(signature(helm('helm of telepathy')),signature(helm('helmet')),'without an appearance the true name must not show either');
+ assert.deepEqual(signature(helm('dunce cap','conical hat')),signature(helm('cornuthaum','conical hat')),'the cornuthaum and dunce cap look alike');
+});

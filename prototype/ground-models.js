@@ -475,6 +475,184 @@ function buildBoots(look,{g,materials}){
  }
 }
 
+// Helmets and hats are keyed only by their appearance: the fixed leather hat, iron skull cap, hard hat and
+// conical hat (the cornuthaum and dunce cap share it), and the four shuffled helmets (objects.c). The fedora,
+// dented pot and tinfoil hat have no appearance, so they show as themselves. Anything else is a plain helmet.
+// mat: [metalness, roughness] of the shell's vertex-coloured material.
+const HELM_LOOKS={
+ leather:{base:0x7a5230,light:0xa07852,dark:0x462c18,mat:[0,.72]},
+ skull:{base:0x4a4744,light:0x6e6a66,dark:0x262422,mat:[.65,.55]},
+ 'hard hat':{base:0x7a7470,light:0xa29c96,dark:0x46423e,mat:[.6,.48]},
+ fedora:{base:0x5c4b3c,light:0x77634f,dark:0x362b21,mat:[0,.92]},
+ conical:{base:0x2d3160,light:0x464c88,dark:0x191b3a,mat:[0,.86]},
+ tinfoil:{base:0xc4c9ce,light:0xeef1f4,dark:0x7e838a,mat:[.95,.26]},
+ pot:{base:0x4e4a46,light:0x6c6660,dark:0x24211e,mat:[.5,.68]},
+ plumed:{steel:true},etched:{steel:true},crested:{steel:true},visored:{steel:true},plain:{steel:true},
+};
+const STEEL={base:0xa4acb2,light:0xd2d8dc,dark:0x5a6268,mat:[.82,.3]};
+function buildHelmet(look,{g,materials}){
+ const kind=Object.keys(HELM_LOOKS).find(k=>look.includes(k))??'plain';
+ const L=HELM_LOOKS[kind].steel?STEEL:HELM_LOOKS[kind],C=hex=>new THREE.Color(hex);
+ const base=C(L.base),light=C(L.light),dark=C(L.dark),inside=C(0x141210),V=(r,y)=>new THREE.Vector2(r,y);
+ const shellMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:L.mat[0],roughness:L.mat[1]});
+ const trimMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.85});
+ materials.push(shellMat,trimMat);
+ const shell=[],trim=[];
+ // Colour every vertex, weld the seam, bend it into shape, then relight it smooth.
+ const finish=(geo,colorAt,warp)=>{
+  geo.deleteAttribute('uv');geo.deleteAttribute('normal');
+  const pos=geo.attributes.position,cols=new Float32Array(pos.count*3);
+  for(let i=0;i<pos.count;i++){const c=colorAt(pos.getX(i),pos.getY(i),pos.getZ(i),i);cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;}
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  const welded=mergeVertices(geo);geo.dispose();
+  if(warp){const p=welded.attributes.position,v=new THREE.Vector3();for(let i=0;i<p.count;i++){warp(v.fromBufferAttribute(p,i));p.setXYZ(i,v.x,v.y,v.z);}}
+  welded.computeVertexNormals();
+  const out=welded.toNonIndexed();welded.dispose();return out;
+ };
+ // A small hard-edged piece in one flat colour, keeping its own normals.
+ const piece=(geo,hex,into=shell)=>{
+  geo.deleteAttribute('uv');const flat=geo.index?geo.toNonIndexed():geo;if(flat!==geo)geo.dispose();
+  const c=C(hex),cols=new Float32Array(flat.attributes.position.count*3);
+  for(let i=0;i<cols.length;i+=3){cols[i]=c.r;cols[i+1]=c.g;cols[i+2]=c.b;}
+  flat.setAttribute('color',new THREE.BufferAttribute(cols,3));into.push(flat);
+ };
+ // A turned shell from an outside profile up to the crown and an inside profile back down;
+ // points from `split` on are the inside and are shaded dark.
+ const lathe=(points,split,paint,warp,segments=48)=>{
+  const geo=new THREE.LatheGeometry(points,segments),n=points.length;
+  shell.push(finish(geo,(x,y,z,i)=>i%n>=split?inside:paint(x,y,z),warp));
+ };
+ const dome=(R,H,{point=0,flare=0,th=.007,steps=16}={})=>{
+  const out=[],inn=[];
+  for(let i=0;i<=steps;i++){
+   const t=i/steps,a=t*Math.PI/2,top=i===steps;
+   out.push(V(top?0:R*Math.cos(a)*(1+flare*(1-t)**3),H*Math.sin(a)+point*H*t**6));
+   inn.unshift(V(top?0:(R-th)*Math.cos(a),(H-th)*Math.sin(a)+point*(H-th)*t**6));
+  }
+  return [[...out,...inn],out.length];
+ };
+ const mottle=(x,y,z,amount,f=40)=>{const n=stoneNoise(x*3,y*3,z*3,f),c=base.clone();return c.lerp(n>0?light:dark,Math.abs(n)*amount);};
+ const radial=(v,d)=>{const r=Math.hypot(v.x,v.z)||1;v.x+=v.x/r*d;v.z+=v.z/r*d;};
+ const ring=(r,tube,y,hex,into,sides=8,seg=48)=>{const t=new THREE.TorusGeometry(r,tube,sides,seg);t.rotateX(Math.PI/2);t.translate(0,y,0);piece(t,hex,into);};
+ const studs=(count,r,y,size,hex,start=0)=>{for(let i=0;i<count;i++){const a=start+i/count*Math.PI*2,s=new THREE.SphereGeometry(size,6,4);s.translate(Math.cos(a)*r,y,Math.sin(a)*r);piece(s,hex);}};
+ let tilt=0,shift=0;
+ if(kind==='leather'){
+  // Elven leather hat: a soft, slightly peaked cap in panels, a tooled band and a rolled brim.
+  const [p,s]=dome(.108,.095,{point:.28,flare:.04});
+  lathe(p,s,(x,y,z)=>{
+   const c=mottle(x,y,z,.45),az=Math.atan2(z,x);
+   if(y>.012&&Math.abs(Math.sin(2*az))<.04)c.lerp(dark,.65);
+   if(y>.02&&y<.034){c.lerp(dark,.35);if(Math.sin(az*36)>.6)c.lerp(light,.5);}
+   return c;
+  });
+  ring(.112,.0085,.007,0x8e6844,shell,6);
+  tilt=.05;
+ }else if(kind==='skull'){
+  // Orcish iron skull cap: crudely hammered, a raised strap cross over the crown, a riveted rim.
+  const [p,s]=dome(.112,.082,{th:.008});
+  const strap=(x,z)=>Math.abs(x)<.011||Math.abs(z)<.011;
+  lathe(p,s,(x,y,z)=>{const c=mottle(x,y,z,.7,70);if(strap(x,z)&&y>.012)c.lerp(dark,.4);return c;},v=>{
+   if(v.y<.004)return;
+   radial(v,stoneNoise(v.x,v.y,v.z,60)*.004);v.y+=stoneNoise(v.z,v.x,v.y,60)*.003;
+   if(strap(v.x,v.z)){radial(v,.003);v.y+=.004;}
+  });
+  ring(.113,.0085,.009,0x33302d,shell,6);
+  studs(10,.121,.01,.0065,0x5a5652,.3);
+  tilt=.08;
+ }else if(kind==='hard hat'){
+  // Dwarvish iron helm: a rounded iron dome with a raised comb, a riveted base and a broad brim.
+  const [p,s]=dome(.098,.112,{th:.007});
+  lathe(p,s,(x,y,z)=>{const c=mottle(x,y,z,.45);if(Math.abs(x)<.01&&y>.03)c.lerp(light,.35);return c;},v=>{if(Math.abs(v.x)<.01&&v.y>.03)v.y+=.006*(1-Math.abs(v.x)/.01);});
+  lathe([V(.09,.014),V(.13,.006),V(.156,0),V(.16,.006),V(.134,.013),V(.094,.024)],99,(x,y,z)=>mottle(x,y,z,.4));
+  studs(12,.1,.028,.0055,0x5c5752);
+ }else if(kind==='fedora'){
+  // A felt fedora: pinched crown with a centre dent, a dark ribbon and a brim that curls up at the sides.
+  const p=[V(.084,0),V(.12,.002),V(.15,.004),V(.157,.009),V(.15,.013),V(.12,.012),V(.092,.016),V(.088,.06),V(.085,.098),V(.072,.111),
+   V(.046,.113),V(.022,.101),V(0,.095),V(0,.089),V(.03,.095),V(.06,.105),V(.076,.094),V(.08,.05),V(.078,.004),V(.084,0)];
+  lathe(p,13,(x,y,z)=>{const c=mottle(x,y,z,.3,25);if(y>.016&&y<.04&&Math.hypot(x,z)<.095)c.copy(C(0x1c1612));return c;},v=>{
+   const r=Math.hypot(v.x,v.z);
+   if(r>.093){const k=((r-.093)/.064)**2;v.y+=.028*k*(v.x/r)**2-.006*k*(v.z/r)**2;}
+   if(v.y>.055&&v.z>0)v.x*=1-.22*((v.y-.055)/.06)*(v.z/.09);
+  },56);
+ }else if(kind==='conical'){
+  // Conical hat: a tall felt cone on a brim, its tip slumped over. The cornuthaum and dunce cap share it.
+  const p=[V(.092,0),V(.158,.002),V(.164,.008),V(.158,.012),V(.1,.014)];
+  for(let i=0;i<=18;i++){const t=i/18;p.push(V(i===18?0:.098*(1-t)**1.15,.014+.3*t));}
+  const s=p.length;
+  for(let i=18;i>=0;i--){const t=i/18;p.push(V(i===18?0:.09*(1-t)**1.15,.008+.29*t));}
+  lathe(p,s,(x,y,z)=>{const c=mottle(x,y,z,.35,25);if(y>.014&&y<.036)c.lerp(dark,.4);return c;},v=>{if(v.y>.14){const k=((v.y-.14)/.18)**2;v.x+=.1*k;v.y-=.05*k;}});
+ }else if(kind==='tinfoil'){
+  // Tinfoil hat: a crumpled, peaked foil dome, bright on the ridges and grey in the creases.
+  const [p,s]=dome(.1,.1,{point:.5,th:.004,steps:22});
+  lathe(p,s,(x,y,z)=>{const n=stoneNoise(x*4,y*4,z*4,45);return base.clone().lerp(n>0?light:dark,Math.min(1,Math.abs(n)*1.3));},v=>{
+   if(v.y<.003)return;
+   const n=stoneNoise(v.x*4,v.y*4,v.z*4,45)*.009+stoneNoise(v.z*9,v.x*9,v.y*9,40)*.004;radial(v,n);v.y+=n*.6;
+  },64);
+  tilt=.12;
+ }else if(kind==='pot'){
+  // Dented pot, worn upside down: a lipped iron pot with two dents, soot and rust, its handle on the floor.
+  const p=[V(.118,0),V(.121,.006),V(.113,.012),V(.11,.1),V(.1,.112),V(0,.114),V(0,.106),V(.1,.104),V(.103,.012),V(.108,.004),V(.118,0)];
+  const dents=[[.07,.09,.05],[-.1,.05,-.04]].map(a=>new THREE.Vector3(...a));
+  lathe(p,6,(x,y,z)=>{const c=mottle(x,y,z,.5,30);const n=stoneNoise(x*7,y*7,z*7,30);if(n>.45)c.lerp(C(0x7a4a2a),.6);if(y>.105)c.lerp(dark,.35);return c;},v=>{
+   for(const d of dents){const k=1-v.distanceTo(d)/.05;if(k>0){radial(v,-.016*k*k);if(v.y>.1)v.y-=.012*k*k;}}
+  },40);
+  const handle=new THREE.CylinderGeometry(.011,.013,.16,10);handle.rotateZ(Math.PI/2);handle.translate(.19,.012,0);piece(handle,0x3a3632);
+  const loop=new THREE.TorusGeometry(.014,.004,6,12);loop.rotateX(Math.PI/2);loop.translate(.272,.012,0);piece(loop,0x3a3632);
+  shift=-.055;
+ }else{
+  // Steel helmets: a flared dome with a raised brow band; the four shuffled ones add a plume,
+  // etched gilding, a brass comb or a visor.
+  const [p,s]=dome(.104,kind==='visored'?.14:.125,{flare:.06,th:.006});
+  const brow=y=>y>.012&&y<.03,gold=C(0xc9a24e);
+  lathe(p,s,(x,y,z)=>{
+   const c=mottle(x,y,z,.25,20),az=Math.atan2(z,x);
+   if(brow(y))c.lerp(dark,.25);
+   if(kind==='etched'){
+    if(y>.036&&y<.115&&Math.abs(Math.sin(az*7+3*Math.sin(y*55)))<.13)c.lerp(gold,.85);
+    if(brow(y)&&Math.abs(Math.sin(az*40))<.25)c.lerp(gold,.8);
+   }
+   return c;
+  },v=>{if(brow(v.y))radial(v,.003);});
+  if(kind==='plumed'){
+   const sock=new THREE.CylinderGeometry(.011,.014,.022,10);sock.translate(0,.13,0);piece(sock,0xb08a42);
+   // A sweep of red feathers from the socket back over the crown.
+   for(let i=0;i<10;i++){
+    const t=i/9,f=new THREE.SphereGeometry(.026-.008*t,8,6);f.scale(.45,.55,1.7);
+    f.rotateX(-.3-1.1*t);f.translate(0,.15+.03*Math.sin(Math.PI*t*.8)-.05*t*t,.02-.17*t);
+    piece(f,i%2?0x8c1c1a:0xb42c26,trim);
+   }
+  }else if(kind==='crested'){
+   // A brass comb over the crown, front to back, following the dome.
+   const H=.125,R=.104,top=z=>H*Math.sqrt(Math.max(0,1-(z/R)**2)),shape=new THREE.Shape();
+   shape.moveTo(-.092,top(-.092)-.008);
+   for(let i=0;i<=20;i++){const z=-.095+.19*i/20;shape.lineTo(z,top(z)+.052*Math.sin(Math.PI*i/20)**.6);}
+   for(let i=20;i>=0;i--){const z=-.092+.184*i/20;shape.lineTo(z,top(z)-.008);}
+   const comb=new THREE.ExtrudeGeometry(shape,{depth:.01,bevelEnabled:false,curveSegments:2});comb.translate(0,0,-.005);comb.rotateY(Math.PI/2);
+   piece(comb,0xb08a42);
+  }else if(kind==='visored'){
+   // A face plate over the front with an eye slit and breathing holes, pinned at the temples.
+   const plate=new THREE.CylinderGeometry(.111,.109,.075,32,6,true,-.95,1.9);plate.translate(0,.055,0);
+   shell.push(finish(plate,(x,y,z)=>{
+    const c=mottle(x,y,z,.25,20),az=Math.atan2(x,z);
+    if(Math.abs(y-.075)<.0045&&Math.abs(az)<.8)c.copy(inside);
+    if(y>.03&&y<.052&&Math.abs(az)<.5&&Math.sin(az*38)>.55&&Math.sin(y*420)>.3)c.copy(inside);
+    return c;
+   }));
+   for(const x of [-.114,.114]){const pin=new THREE.SphereGeometry(.008,8,6);pin.translate(x,.075,0);piece(pin,0x5a6268);}
+  }
+ }
+ const tilted=new THREE.Matrix4().makeTranslation(shift,0,0).multiply(new THREE.Matrix4().makeRotationX(tilt));
+ const meshes=[[shell,shellMat],[trim,trimMat]].filter(([parts])=>parts.length).map(([parts,material])=>{
+  const geo=mergeGeometries(parts);parts.forEach(p=>p.dispose());geo.applyMatrix4(tilted);return [geo,material];
+ });
+ const box=new THREE.Box3();meshes.forEach(([geo])=>{geo.computeBoundingBox();box.union(geo.boundingBox);});
+ const helm=new THREE.Group();helm.userData.part='helmet';helm.rotation.y=(hashLook(kind)%628)/100;g.add(helm);
+ for(const [geo,material] of meshes){
+  geo.translate(0,-box.min.y,0);
+  const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;helm.add(m);
+ }
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -812,6 +990,10 @@ export function createGroundModel(item={}){
   }
  }else if(cls===3&&/\bgloves\b|\bgauntlets\b/.test(name)){
   buildGloves((item.appearance||'').toLowerCase(),{g,materials});
+ }else if(cls===3&&/\bhelm\b|helmet|\bhat\b|\bcap\b|fedora|cornuthaum|dented pot/.test(name)){
+  // No appearance means an item without one (fedora, dented pot, tinfoil hat), which shows as itself.
+  const own=name.match(/fedora|dented pot|tinfoil hat/)?.[0]??'';
+  buildHelmet((item.appearance||own).toLowerCase(),{g,materials});
  }else if(cls===3&&/shield/.test(name)){
   // Shields lie face-up. Each kind is keyed by its appearance where it has one, so an
   // unidentified shield of reflection shows only as a polished silver shield.
