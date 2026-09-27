@@ -475,6 +475,239 @@ function buildBoots(look,{g,materials}){
  }
 }
 
+// Cloaks are keyed only by their appearance (objects.c): the shuffled faded pall, coarse mantelet, hooded cloak,
+// slippery cloak, tattered cape, opera cloak, ornamental cope and piece of cloth. The robe, mummy wrapping and
+// leather cloak have no appearance, so they show as themselves. Any other cloak without one is a plain cloak.
+// span: half-angle of the dropped fan; R: its radius; folds/amp: radial fold count and height; hw: clasp
+// [colour, metalness, roughness]; clasp: the fastening at the neck corners.
+const CLOAK_LOOKS={
+ 'faded pall':{base:0x6f7d6c,light:0xa3ae9c,dark:0x3c473b,trim:0x8a9686,hw:[0xc9ced2,.9,.3],span:.85,R:.38,folds:7,amp:.017,rough:.92,fade:true,vine:true,clasp:'leaf'},
+ 'coarse mantelet':{base:0x7a6446,light:0x9a8462,dark:0x45372a,trim:0x5a4a34,hw:[0xd9ceb2,0,.7],span:.95,R:.27,folds:5,amp:.013,rough:.98,weave:true,clasp:'toggle'},
+ 'hooded cloak':{base:0x5a4430,light:0x7a6048,dark:0x2c2016,trim:0x3e2e20,hw:[0x5c6064,.8,.5],span:.8,R:.39,folds:6,amp:.02,rough:.9,hood:true,clasp:'ring'},
+ 'slippery cloak':{base:0x3c4a2a,light:0x7a8c52,dark:0x1c2414,trim:0x2a3420,hw:[0xb38b46,.85,.32],span:.8,R:.39,folds:5,amp:.016,rough:.2,sheen:true,clasp:'toggles'},
+ 'tattered cape':{base:0x7a2e24,light:0xa0503e,dark:0x3a140e,trim:0x5a2018,hw:[0x7c6a42,.7,.6],span:.85,R:.36,folds:6,amp:.016,rough:.95,tattered:true,clasp:'disc'},
+ 'opera cloak':{base:0x17151b,light:0x3a3542,dark:0x060508,trim:0x17151b,lining:0xa0182a,hw:[0xd4a84a,.9,.25],span:.82,R:.39,folds:8,amp:.015,rough:.5,collar:true,clasp:'chain'},
+ 'ornamental cope':{base:0x5a1c52,light:0x803878,dark:0x2c0c28,trim:0xc9a24a,hw:[0xd4a84a,.9,.25],span:1.02,R:.33,folds:6,amp:.013,rough:.7,orphrey:true,clasp:'morse'},
+ 'leather cloak':{base:0x6a4428,light:0x94683f,dark:0x38220f,trim:0x4a2e18,hw:[0x5c6064,.8,.45],span:.8,R:.38,folds:4,amp:.024,rough:.6,stitch:true,clasp:'buckle'},
+ robe:{base:0x8c2a22,light:0xb04a3a,dark:0x4a120c,trim:0x5a1a12,rope:0xc8a868,span:.5,R:.42,folds:5,amp:.016,rough:.92},
+ 'piece of cloth':{base:0x8a8474,light:0xaaa494,dark:0x57524a,trim:0x6e6a5e,rough:.95},
+ 'mummy wrapping':{base:0xcfc2a0,light:0xe6dcc0,dark:0x7e6e4e,rough:.98},
+ plain:{base:0x53625b,light:0x74857c,dark:0x2e3833,trim:0x778379,hw:[0x9baeb5,.75,.38],span:.82,R:.38,folds:6,amp:.017,rough:.9,clasp:'ring'},
+};
+function buildCloak(look,{g,materials}){
+ const kind=Object.keys(CLOAK_LOOKS).find(k=>look.includes(k))??'plain';
+ const L=CLOAK_LOOKS[kind],C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const base=C(L.base),light=C(L.light),dark=C(L.dark),trim=C(L.trim??L.dark);
+ const clothMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:L.rough,side:THREE.DoubleSide});
+ const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:L.hw?.[1]??0,roughness:L.hw?.[2]??.5});
+ materials.push(clothMat,metalMat);
+ const cloth=[],metal=[];
+ const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+ const noise=(x,z)=>.7*stoneNoise(x,0,z,25)+.3*stoneNoise(z,0,x,70);
+ // Every piece is baked non-indexed with a vertex colour, so the cloth and the hardware each merge into one mesh.
+ const bake=(geo,paint,list=cloth)=>{
+  const flat=geo.index?geo.toNonIndexed():geo;if(flat!==geo)geo.dispose();
+  flat.deleteAttribute('uv');
+  if(paint){
+   const pos=flat.attributes.position,col=[];
+   for(let i=0;i<pos.count;i++){const c=typeof paint==='function'?paint(pos.getX(i),pos.getY(i),pos.getZ(i)):paint.clone().multiplyScalar(.92+.08*noise(pos.getX(i)*3,pos.getZ(i)*3));col.push(c.r,c.g,c.b);}
+   flat.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  }
+  list.push(flat);return flat;
+ };
+ // A grid mapped through at(u,v); paint(x,y,z,u,v) colours it and keep(u,v) can cut cells out (holes, a folded lapel).
+ const sheet=(rows,cols,at,paint,keep)=>{
+  const pos=[],col=[],idx=[];
+  for(let i=0;i<=rows;i++)for(let j=0;j<=cols;j++){const u=j/cols,v=i/rows,p=at(u,v);pos.push(...p);col.push(...paint(...p,u,v).toArray());}
+  for(let i=0;i<rows;i++)for(let j=0;j<cols;j++){
+   if(keep&&!keep((j+.5)/cols,(i+.5)/rows))continue;
+   const a=i*(cols+1)+j,b=a+cols+1;idx.push(a,b,a+1,a+1,b,b+1);
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  geo.setIndex(idx);geo.computeVertexNormals();bake(geo);
+ };
+ const tube=(points,r,color,list=cloth)=>bake(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),Math.max(6,Math.round(points.length*1.3)),r,5,false),color,list);
+ const piece=(geo,color,x,y,z,list=metal,ry=0)=>{geo.rotateY(ry);geo.translate(x,y,z);return bake(geo,color,list);};
+ const hw=L.hw?C(L.hw[0]):null;
+
+ if(kind==='mummy wrapping'){
+  // A loose coil of yellowed linen bandage with two stray strands, each a flat ribbon with frayed dark edges and old stains.
+  const ribbon=(points,w,lift=0)=>{
+   const curve=new THREE.CatmullRomCurve3(points),n=Math.round(curve.getLength()/.006),pos=[],col=[],idx=[];
+   for(let i=0;i<=n;i++){
+    const t=i/n,p=curve.getPointAt(t),d=curve.getTangentAt(t),side=V(d.z,0,-d.x).normalize();
+    for(const s of [-1,1]){
+     const q=p.clone().addScaledVector(side,s*w/2);q.y+=lift+.0025*Math.sin(t*n*.35+s)+.0015*s*Math.sin(t*n*.13);
+     pos.push(q.x,q.y,q.z);
+     const c=base.clone(),nz=noise(q.x*2,q.z*2);
+     c.lerp(nz>0?light:dark,Math.abs(nz)*.35);
+     if(Math.sin(t*n*1.7)>.8)c.lerp(dark,.12);
+     if(Math.abs(Math.sin(t*n*.21+s*.3))<.08)c.lerp(dark,.45);
+     const stain=noise(q.x*4+3,q.z*4-1);if(stain>.45)c.lerp(C(0x6a5234),Math.min(1,(stain-.45)*3));
+     col.push(c.r,c.g,c.b);
+    }
+    if(i<n){const a=i*2;idx.push(a,a+2,a+1,a+1,a+2,a+3);}
+   }
+   const geo=new THREE.BufferGeometry();
+   geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+   geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+   geo.setIndex(idx);geo.computeVertexNormals();bake(geo);
+  };
+  const coil=[];
+  for(let i=0;i<=80;i++){const t=i/80,a=t*2.6*Math.PI*2,r=.03+.17*t;coil.push(V(.04+r*Math.cos(a)*1.05,.003+.003*Math.sin(a*3),-.03+r*Math.sin(a)*.95));}
+  ribbon(coil,.04);
+  ribbon([V(-.26,.004,.2),V(-.14,.006,.25),V(-.03,.013,.17),V(.08,.014,.2),V(.2,.006,.26)],.036);
+  ribbon([V(.27,.004,-.22),V(.2,.012,-.13),V(.25,.007,-.03)],.034,.002);
+ }else if(kind==='piece of cloth'){
+  // A plain rumpled square with one corner folded back over itself, showing its duller underside.
+  const W=.22,D=.19,cut=.2;
+  const at=(u,v)=>{
+   let x=(u*2-1)*W,z=(v*2-1)*D,y=.004+.007*(.5+.5*Math.sin(x*28+z*17))+.003*Math.sin(z*41-x*23);
+   const d=(x+z-cut)/Math.SQRT2;
+   if(d>0){x-=d*Math.SQRT2;z-=d*Math.SQRT2;y+=.006*smooth(0,.012,d)+.05*d*d/(d+.02)+.004;}
+   return [x,y,z];
+  };
+  sheet(36,40,at,(x,y,z,u,v)=>{
+   const c=base.clone(),n=noise(x,z);c.lerp(n>0?light:dark,Math.abs(n)*.3);
+   if(((u*2-1)*W+(v*2-1)*D-cut)>0)c.lerp(dark,.18);
+   if(Math.sin(x*380)*Math.sin(z*380)>.5)c.lerp(dark,.08);
+   return c;
+  });
+  const edge=f=>Array.from({length:25},(_,i)=>V(...at(...f(i/24))).setY(at(...f(i/24))[1]+.001));
+  for(const f of [t=>[t,0],t=>[t,1],t=>[0,t],t=>[1,t]])tube(edge(f),.0028,trim);
+ }else{
+  // Everything else is a cape dropped from the shoulders: a fan from the neck (-z) toward the hem (+z), with
+  // radial folds that grow toward the hem. Troughs are shaded and crests catch the light.
+  const robe=kind==='robe',Z0=robe?-.2:-.16,R0=robe?.06:.07;
+  const jag=th=>L.tattered?.13*Math.abs(Math.sin(th*11+1.3)*Math.sin(th*4.7))+.05*(.5+.5*Math.sin(th*37)):0;
+  const fold=(u,v)=>.5-.5*Math.cos((u*2-1)*Math.PI*L.folds+v*1.3);
+  const capeAt=(u,v)=>{
+   const s=u*2-1,th=s*L.span+.035*Math.sin(s*L.span*L.folds*2)*v;
+   const r=R0+v*(L.R*(1-jag(s*L.span))-R0);
+   const y=.003+L.amp*fold(u,v)*Math.pow(v,.7)+.003*(noise(s*2,v*2)+1)*v;
+   return [r*Math.sin(th),y,Z0+r*Math.cos(th)];
+  };
+  // The opera cloak's right front edge is turned back as a lapel, showing its red lining.
+  const lapel=L.lining?v=>.12*smooth(.25,1,v):()=>0;
+  const holes=(u,v)=>L.tattered&&v>.3&&v<.88&&Math.sin(u*37+2)*Math.sin(v*23)+.4*Math.sin(u*91-v*57)>.95;
+  const paint=(x,y,z,u,v,under=false)=>{
+   const c=base.clone(),n=noise(x,z),f=fold(u,v)*smooth(0,.5,v);
+   c.lerp(n>0?light:dark,Math.abs(n)*.28);
+   c.lerp(dark,(1-f)*.35*v);
+   if(L.fade)c.lerp(light,f*.4*v+.15*smooth(.2,.6,noise(x*.5+4,z*.5)));
+   if(L.sheen)c.lerp(light,Math.pow(f,5)*.7*v);
+   if(L.weave&&Math.sin(x*420)*Math.sin(z*420)>.3)c.lerp(dark,.3);
+   if(L.stitch&&Math.abs(v-.92)<.008&&Math.sin(u*260)>0)c.lerp(C(0xc8a878),.8);
+   if(L.vine&&v>.84&&v<.92&&Math.sin(u*120+Math.sin(v*90)*2)>.4)c.lerp(light,.55);
+   if(L.tattered){
+    // A patched square, darker round the holes and scorched along the ragged hem.
+    if(Math.abs(u-.3)<.07&&Math.abs(v-.55)<.1)c.lerp(C(0x5c4a36),Math.abs(u-.3)>.06||Math.abs(v-.55)>.09?.95:.8);
+    if(Math.sin(u*37+2)*Math.sin(v*23)+.4*Math.sin(u*91-v*57)>.8&&v>.28&&v<.9)c.lerp(dark,.5);
+    c.lerp(C(0x241008),smooth(.85,1,v)*.5);
+   }
+   if(L.orphrey){
+    // Gold orphrey bands along the hem and fronts, and a shield-shaped panel at the back.
+    const band=v>.86||u<.07||u>.93,shield=Math.abs(u-.5)<.11*(1-smooth(.3,.62,v)*.6)&&v>.12&&v<.62;
+    if(band||shield){
+     c.copy(band?trim:C(0x8a1c2a));
+     if(band&&Math.abs(Math.sin(x*150)+Math.sin(z*150))<.35)c.lerp(C(0x8a1c2a),.6);
+     if(shield&&(Math.abs(u-.5)>.095*(1-smooth(.3,.62,v)*.6)||v<.14||v>.6))c.copy(trim);
+    }
+   }
+   if(robe&&v>.94)c.lerp(trim,.8);
+   if(under)c.copy(C(L.lining)).lerp(C(0x3a0610),(1-f)*.35);
+   return c;
+  };
+  sheet(32,44,capeAt,(x,y,z,u,v)=>paint(x,y,z,u,v),(u,v)=>!holes(u,v)&&u<1-lapel(v));
+  if(L.lining){
+   const flapAt=(a,v)=>{const p=capeAt(1-lapel(v)*(1+a),v);p[1]+=.002+.006*a+.01*lapel(v);return p;};
+   sheet(24,6,(a,v)=>flapAt(a,.25+v*.75),(x,y,z,a,v)=>paint(x,y,z,1-a*.1,.25+v*.75,true));
+  }
+  // Rolled hems along the neck, the fronts and (unless it is ragged) the bottom edge.
+  const row=(v,n=48,up=.0015)=>Array.from({length:n+1},(_,j)=>{const p=capeAt(j/n,v);return V(p[0],p[1]+up,p[2]);});
+  const col=(u,v0=0,n=30)=>Array.from({length:n+1},(_,i)=>{const v=v0+(1-v0)*i/n,p=capeAt(u-(u>.5?lapel(v)*2:0),v);return V(p[0],p[1]+.0015,p[2]);});
+  if(!L.tattered)tube(row(1),L.orphrey?.004:.0035,trim);
+  tube(row(0,20),.006,trim);
+  tube(col(0),.003,trim);tube(col(1),.003,L.lining?C(L.lining):trim);
+  if(L.tattered){
+   // Loose threads hanging off the ragged hem.
+   for(let j=0;j<14;j++){const u=(j+.5)/14,p=capeAt(u,1),a=u*6.1;tube([V(p[0],p[1],p[2]),V(p[0]+.012*Math.sin(a),.003,p[2]+.02+.008*Math.cos(a*3))],.0012,dark);}
+  }
+  if(L.collar){
+   // A standing collar, sagging back onto the shoulders.
+   const collarAt=(u,h)=>{const s=u*2-1,th=s*L.span*.95,r=R0-.004-h*.024;return [r*Math.sin(th),.004+h*.03,Z0+r*Math.cos(th)];};
+   sheet(4,24,collarAt,(x,y,z,u,h)=>base.clone().lerp(light,h*.3));
+  }
+  if(L.hood){
+   // The hood lies flat behind the neck: a squashed dome with a crease and a rolled rim.
+   const hood=new THREE.SphereGeometry(1,28,12,0,Math.PI*2,0,Math.PI/2);hood.scale(.1,.045,.1);hood.translate(0,.002,Z0+R0-.1);
+   bake(hood,(x,y,z)=>{const c=base.clone().lerp(dark,.15),n=noise(x,z);c.lerp(n>0?light:dark,Math.abs(n)*.3);if(Math.abs(x)<.006)c.lerp(dark,.5);return c;});
+   const rim=new THREE.TorusGeometry(.1,.005,5,40);rim.rotateX(Math.PI/2);rim.translate(0,.003,Z0+R0-.1);bake(rim,trim);
+  }
+  if(robe){
+   // Sleeves spread out from the shoulders, a rope belt knotted at the waist with tasselled ends.
+   for(const s of [-1,1]){
+    const path=[V(s*.05,0,-.13),V(s*.14,0,-.09),V(s*.21,0,-.02),V(s*.24,0,.07)];
+    const sleeve=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(path),24,1,10,false);
+    const pos=sleeve.attributes.position,curve=new THREE.CatmullRomCurve3(path);
+    // Taper toward the shoulder and flatten the sleeve onto the floor.
+    for(let i=0;i<pos.count;i++){
+     const t=Math.floor(i/11)/24,c=curve.getPointAt(t),rad=.022+.018*t;
+     const d=V(pos.getX(i),pos.getY(i),pos.getZ(i)).sub(c);pos.setXYZ(i,c.x+d.x*rad,.004+(d.y*rad+rad)*.4,c.z+d.z*rad);
+    }
+    sleeve.computeVertexNormals();
+    bake(sleeve,(x,y,z)=>{const c=base.clone(),n=noise(x,z);c.lerp(n>0?light:dark,Math.abs(n)*.3);if(y<.008)c.lerp(dark,.3);return c;});
+    const cuff=new THREE.TorusGeometry(.04,.005,5,20);cuff.scale(1,.4,1);cuff.rotateY(Math.atan2(s*.02,.09));cuff.translate(s*.24,.02,.07);bake(cuff,trim);
+   }
+   const rope=C(L.rope),belt=row(.36,24,.004);
+   tube(belt,.005,rope);
+   const knot=capeAt(.5,.36);
+   const k=new THREE.SphereGeometry(.011,10,6);k.translate(knot[0],knot[1]+.008,knot[2]);bake(k,rope);
+   for(const s of [-1,1]){
+    const end=V(knot[0]+s*.03,.003,knot[2]+.14);
+    tube([V(knot[0],knot[1]+.006,knot[2]),V(knot[0]+s*.02,.006,knot[2]+.07),end],.0035,rope);
+    const tassel=new THREE.ConeGeometry(.012,.03,8);tassel.rotateX(Math.PI/2);tassel.scale(1,.5,1);tassel.translate(end.x,.006,end.z+.012);bake(tassel,rope);
+   }
+  }
+  // Fastenings at the two neck corners.
+  const [ax,ay,az]=capeAt(0,0),[bx,by,bz]=capeAt(1,0),top=Math.max(ay,by)+.006;
+  const clasp={
+   leaf(){for(const [x,z,s] of [[ax,az,-1],[bx,bz,1]])for(const a of [.5,-.4]){const leaf=new THREE.SphereGeometry(1,10,6);leaf.scale(.011,.004,.024);leaf.rotateY(s*a);leaf.translate(x+s*.01*Math.sin(a),top,z+.012*Math.cos(a));bake(leaf,hw,metal);}},
+   toggle(){const t=new THREE.CylinderGeometry(.006,.006,.042,8);t.rotateZ(Math.PI/2);piece(t,hw,ax,top,az,metal,-.4);tube([V(bx,top-.002,bz),V(bx-.02,top,bz+.012),V(bx-.035,top-.002,bz)],.002,C(0x3a2c1c));},
+   ring(){for(const [x,z] of [[ax,az],[bx,bz]]){const r=new THREE.TorusGeometry(.017,.004,6,20);r.rotateX(Math.PI/2);piece(r,hw,x,top-.002,z);}const pin=new THREE.CylinderGeometry(.002,.002,.05,6);pin.rotateZ(Math.PI/2);piece(pin,hw,ax,top,az,metal,.5);},
+   toggles(){for(const v of [.06,.2,.34])for(const u of [0,1]){const [x,y,z]=capeAt(u,v),t=new THREE.CylinderGeometry(.005,.005,.026,8);t.rotateZ(Math.PI/2);piece(t,hw,x,y+.005,z,metal,u?-.3:.3);}},
+   disc(){for(const [x,z] of [[ax,az],[bx,bz]]){const d=new THREE.CylinderGeometry(.018,.018,.005,16);piece(d,hw,x,top-.003,z);}},
+   chain(){
+    for(const [x,z] of [[ax,az],[bx,bz]]){const d=new THREE.CylinderGeometry(.013,.013,.005,12);piece(d,hw,x,top-.002,z);}
+    const curve=new THREE.CatmullRomCurve3([V(ax,top,az),V((ax+bx)/2,.004,(az+bz)/2+.06),V(bx,top,bz)]);
+    for(let i=1;i<12;i++){const p=curve.getPointAt(i/12),l=new THREE.TorusGeometry(.005,.0014,4,8);l.rotateY(i%2?Math.PI/2:0);if(i%2)l.rotateX(Math.PI/2);piece(l,hw,p.x,p.y+.002,p.z);}
+   },
+   morse(){
+    const d=new THREE.CylinderGeometry(.03,.032,.008,24);piece(d,hw,ax,top-.001,az);
+    const ring=new THREE.TorusGeometry(.024,.003,6,24);ring.rotateX(Math.PI/2);piece(ring,hw,ax,top+.004,az);
+    const gem=new THREE.SphereGeometry(.009,12,6);gem.scale(1,.6,1);piece(gem,C(0x8a1422),ax,top+.005,az);
+    const d2=new THREE.CylinderGeometry(.03,.032,.008,24);piece(d2,hw,bx,top-.001,bz);
+   },
+   buckle(){
+    const b=new THREE.TorusGeometry(.017,.003,4,4);b.rotateZ(Math.PI/4);b.rotateX(Math.PI/2);b.scale(1,1,1.3);piece(b,hw,ax,top,az);
+    const strap=new THREE.BoxGeometry(.05,.004,.018);piece(strap,trim,(ax+bx)/2-.01,top-.002,(az+bz)/2+.01,cloth,.2);
+   },
+  }[L.clasp];
+  clasp?.();
+ }
+ const part=new THREE.Group();part.userData.part='cloak';g.add(part);
+ const merge=list=>{if(!list.length)return null;const m=mergeGeometries(list);list.forEach(p=>p.dispose());return m;};
+ const body=merge(cloth),hardware=merge(metal);
+ body.computeBoundingBox();hardware?.computeBoundingBox();
+ const low=Math.min(body.boundingBox.min.y,hardware?.boundingBox.min.y??Infinity);
+ for(const [geo,m] of [[body,clothMat],[hardware,metalMat]]){
+  if(!geo)continue;geo.translate(0,-low,0);
+  const mesh=new THREE.Mesh(geo,m);mesh.castShadow=mesh.receiveShadow=true;part.add(mesh);
+ }
+}
+
 // Helmets and hats are keyed only by their appearance: the fixed leather hat, iron skull cap, hard hat and
 // conical hat (the cornuthaum and dunce cap share it), and the four shuffled helmets (objects.c). The fedora,
 // dented pot and tinfoil hat have no appearance, so they show as themselves. Anything else is a plain helmet.
@@ -950,13 +1183,16 @@ export function createGroundModel(item={}){
   for(const x of [-.27,.2,.27]){const band=add(new THREE.CylinderGeometry(.04,.04,.025,12),gold,x,.045,0);band.rotation.z=Math.PI/2;}
  }else if(/boots|shoes/.test(name)){
   buildBoots((item.appearance||'').toLowerCase(),{g,materials});
- }else if(/t-shirt|shirt|towel|cloak/.test(name)){
-  const towel=/towel/.test(name),cloak=/cloak/.test(name);
-  const fabric=cloak?mat(0x53625b):cloth;
+ }else if(cls===3&&/cloak|\brobe\b|mummy wrapping/.test(name)){
+  // No appearance means a robe, mummy wrapping or leather cloak, which shows as itself.
+  const own=name.match(/\brobe\b|mummy wrapping|leather cloak/)?.[0]??'';
+  buildCloak((item.appearance||own).toLowerCase(),{g,materials});
+ }else if(/t-shirt|shirt|towel/.test(name)){
+  const towel=/towel/.test(name),fabric=cloth;
   // Sample the silhouette into strips so folds bend the whole cloth surface,
   // rather than adding dark rods on top of a rigid rectangular block.
   const rows=32,cols=24,positions=[],indices=[];
-  const width=t=>towel?.21:cloak?.10+.20*t:
+  const width=t=>towel?.21:
    t<.12?.17+t*.75:t<.36?.26:t<.46?.26-(t-.36)*.9:.17;
   const height=(x,z)=>.019+.009*Math.sin(x*47+z*5)+.006*Math.cos(z*23-x*8);
   for(let row=0;row<=rows;row++){
@@ -977,7 +1213,7 @@ export function createGroundModel(item={}){
   geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
   geo.setIndex(indices);geo.computeVertexNormals();fabric.side=THREE.DoubleSide;
   add(geo,fabric);
-  const hem=mat(cloak?0x778379:0xd3c4a4);
+  const hem=mat(0xd3c4a4);
   const edge=(points)=>add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),48,.0035,5,false),hem);
   for(const row of [0,rows])edge(Array.from({length:cols+1},(_,col)=>new THREE.Vector3(...positions.slice((row*(cols+1)+col)*3,(row*(cols+1)+col)*3+3))));
   for(const col of [0,cols])edge(Array.from({length:rows+1},(_,row)=>new THREE.Vector3(...positions.slice((row*(cols+1)+col)*3,(row*(cols+1)+col)*3+3))));

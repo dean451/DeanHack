@@ -476,3 +476,36 @@ test('helmets and hats sit on the floor keyed by appearance, one merged shell pl
  assert.deepEqual(signature(helm('helm of telepathy')),signature(helm('helmet')),'without an appearance the true name must not show either');
  assert.deepEqual(signature(helm('dunce cap','conical hat')),signature(helm('cornuthaum','conical hat')),'the cornuthaum and dunce cap look alike');
 });
+
+test('cloaks lie draped on the floor keyed by appearance, one cloth mesh plus at most one of hardware',()=>{
+ const cloak=(name,appearance)=>createGroundModel({name,class:3,appearance});
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.attributes.position.count,...part.getWorldPosition(new THREE.Vector3()).toArray().map(n=>n.toFixed(5))]);});return out;};
+ const kinds=[['elven cloak','faded pall'],['orcish cloak','coarse mantelet'],['dwarvish cloak','hooded cloak'],['oilskin cloak','slippery cloak'],
+  ['cloak of protection','tattered cape'],['cloak of invisibility','opera cloak'],['cloak of magic resistance','ornamental cope'],
+  ['cloak of displacement','piece of cloth'],['leather cloak'],['robe'],['mummy wrapping']];
+ const seen=new Set();
+ for(const [name,look] of kinds){
+  const model=cloak(name,look);
+  assert(model,name);
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} rests on the floor`);
+  assert(bounds.max.y>.01&&bounds.max.y<.08,`${name} lies low (${bounds.max.y})`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.31,`${name} fits its tile`);
+  let meshes=0,geometries=0;
+  model.traverse(part=>{if(part.geometry){
+   meshes++;
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+   for(const value of part.geometry.attributes.normal.array)assert(Number.isFinite(value));
+   part.geometry.addEventListener('dispose',()=>geometries++);
+  }});
+  assert.equal(model.children.filter(c=>c.userData.part==='cloak').length,1,name);
+  assert(meshes<=2,`${name} stays at a draw call or two (${meshes})`);
+  seen.add(JSON.stringify(signature(model)));
+  model.userData.dispose();
+  assert.equal(geometries,meshes);
+ }
+ assert.equal(seen.size,kinds.length,'each cloak kind looks different');
+ assert.deepEqual(signature(cloak('cloak of invisibility','tattered cape')),signature(cloak('cloak of protection','tattered cape')),'the true cloak name must not show');
+ assert.deepEqual(signature(cloak('cloak of displacement')),signature(cloak('cloak of protection')),'without an appearance the true name must not show either');
+});
