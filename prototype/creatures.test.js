@@ -31,3 +31,17 @@ test('the dragon breath glow follows the glyph colour, and an unidentified brown
  const babies=new THREE.Box3().setFromObject(createCreature({name:'baby draken',symbol:D,color:3}).g),adults=new THREE.Box3().setFromObject(createCreature({name:'draken',symbol:D,color:3}).g);
  assert(babies.max.y<adults.max.y*.75);
 });
+
+test('little dog, dog and large dog are grounded canines that grow with the breed',()=>{
+ let last=0;
+ for(const name of ['little dog','dog','large dog']){
+  const actor=createCreature({name,symbol:100,color:15});
+  assert.equal(actor.quirk,'dog',name);assert.equal(actor.legs.length,4,name);assert(actor.tail,name);
+  actor.g.updateMatrixWorld(true);
+  actor.g.traverse(part=>{if(part.geometry)for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);});
+  const bounds=new THREE.Box3().setFromObject(actor.g),size=bounds.getSize(new THREE.Vector3());
+  assert(Math.abs(bounds.min.y)<.01,name);assert(bounds.max.y<1.2,name);
+  // longer than wide, and longer than a cat of the same size
+  assert(size.z>size.x*1.5,name);assert(size.y>last,name);last=size.y;
+ }
+});
