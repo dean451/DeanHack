@@ -926,6 +926,67 @@ const PROBOSCIDEANS={
  mumak:{name:'mumak',scale:1.1,skin:'#7c7872',dark:'#56524d',ear:.2,crown:0,minorTusks:true},
  mastodon:{name:'mastodon',scale:1.15,skin:'#4a3b30',dark:'#2f251e',hair:'#6b4526',ear:.09,crown:.07,spiral:true},
 };
+// Titanotheres and baluchitheria (q): giant rhinos that used to borrow the rothe.
+// Both stand on columnar legs with three-toed feet, have folds of thick hide at the neck and
+// shoulders, and a short tufted tail. The titanothere is low and massive, with a shoulder hump and a
+// blunt Y-shaped horn on its nose; the baluchitherium is a towering, long-legged browser with a
+// long neck, a small head and a drooping upper lip. Static parts are baked per material.
+function megaRhino(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);body.position.z=o.setBack;g.scale.setScalar(o.scale);g.name=o.name;
+ const B=baker(),skin=mat(o.skin,{roughness:.96}),dark=mat(o.dark,{roughness:.98}),hoof=mat('#3a332c',{roughness:.7}),horn=mat('#8a7a62',{roughness:.6});
+ const S=(r,w=14,h=10)=>new THREE.SphereGeometry(r,w,h),fold=(r,t=.022)=>new THREE.TorusGeometry(r,t,6,20);
+ const legH=o.legH,y=legH+.2,tall=o.neck>0;
+ // barrel, shoulders, rump, a darker belly and hide folds behind the shoulder and before the thigh
+ B.put(body,skin,S(o.girth,20,14),[0,y,0],[0,0,0],[1,.98,o.length]);
+ B.put(body,skin,S(o.girth*.88,16,12),[0,y+o.hump,.2],[0,0,0],[1.05,1.1,.95]);
+ B.put(body,skin,S(o.girth*.85,16,12),[0,y+.02,-.24],[0,0,0],[1,1,.95]);
+ B.put(body,dark,S(o.girth*.8,16,10),[0,y-.12,0],[0,0,0],[.95,.5,o.length*.92]);
+ for(const z of [.08,-.12])B.put(body,dark,fold(o.girth*1.0),[0,y,z],[0,0,0],[1,.98,1]);
+ // neck: a thick collar on the titanothere, a long rising column on the baluchitherium
+ const neckEnd=[0,y+.06+o.neck*.75,.36+o.neck*.55];
+ B.put(body,skin,taperedTube([[0,y+.05,.26],[0,y+.08+o.neck*.35,.34+o.neck*.3],neckEnd],o.girth*.62,o.girth*.42,16,12));
+ for(let i=0;i<3;i++){const t=.25+i*.2;B.put(body,dark,fold(o.girth*(.62-t*.2),.018),[0,y+.06+o.neck*.75*t,.28+(.08+o.neck*.55)*t],[-Math.atan2(o.neck*.75,.08+o.neck*.55),0,0]);}
+ // head: a long skull tipped down, cheeks, small eyes, pointed ears and nostrils
+ const head=new THREE.Group();head.position.set(...neckEnd);head.rotation.x=o.headTilt;body.add(head);
+ const hs=o.headSize;
+ B.put(head,skin,S(.12*hs,16,12),[0,0,.05*hs],[0,0,0],[.9,.95,1.7]);
+ B.put(head,skin,S(.095*hs,14,10),[0,-.03*hs,.24*hs],[0,0,0],[.95,.85,1.1]);
+ B.put(head,dark,new THREE.BoxGeometry(.13*hs,.012,.14*hs),[0,-.08*hs,.22*hs]);
+ for(const side of [-1,1]){
+  B.put(head,dark,S(.018*hs,8,6),[side*.1*hs,.035*hs,.04*hs]);
+  B.put(head,dark,S(.016*hs,8,6),[side*.045*hs,-.02*hs,.33*hs],[0,0,0],[1,.6,.6]);
+  B.put(head,skin,new THREE.ConeGeometry(.04*hs,.11*hs,6),[side*.07*hs,.12*hs,-.1*hs],[-.3,0,-side*.45],[1,1,.55]);
+ }
+ if(o.horn==='fork'){
+  // the blunt forked nasal horn: a broad boss that splits into two flattened, rounded prongs
+  B.put(head,horn,S(.06*hs,12,8),[0,.07*hs,.2*hs],[0,0,0],[1.4,.9,1.3]);
+  for(const side of [-1,1]){
+   B.put(head,horn,taperedTube([[0,0,0],[side*.02,.08,.03],[side*.06,.15,.05]].map(p=>p.map(v=>v*hs)),.035*hs,.022*hs,10,8),[side*.02*hs,.08*hs,.22*hs],[0,0,0],[1,1,.7]);
+   B.put(head,horn,S(.024*hs,8,6),[side*.08*hs,.23*hs,.27*hs]);
+  }
+ }
+ if(o.lip)B.put(head,skin,S(.06*hs,12,8),[0,-.06*hs,.34*hs],[0,0,0],[1,.7,1.1]);
+ // columnar legs with a knee bump, a hide fold, and a wide foot of three hooved toes
+ for(const side of [-1,1])for(const z of [.24,-.25]){
+  const leg=new THREE.Group();leg.position.set(side*o.stance,legH,z);body.add(leg);legs.push(leg);
+  B.put(leg,skin,S(o.legR*1.2,12,8),[0,.03,0],[0,0,0],[1,1.4,1.1]);
+  B.put(leg,skin,new THREE.CylinderGeometry(o.legR,o.legR*.9,legH-.04,12),[0,-legH/2+.02,0]);
+  B.put(leg,skin,S(o.legR*.95,10,8),[0,-legH*.5,z>0?.012:-.012],[0,0,0],[1,.8,1]);
+  B.put(leg,dark,fold(o.legR*1.02,.012),[0,-legH*.5+.03,0],[Math.PI/2,0,0]);
+  B.put(leg,skin,new THREE.CylinderGeometry(o.legR*1.02,o.legR*1.1,.05,12),[0,-legH+.045,0]);
+  for(const a of [-.6,0,.6])B.put(leg,hoof,S(o.legR*.42,8,6),[Math.sin(a)*o.legR*.9,-legH+o.legR*.38,Math.cos(a)*o.legR*.95],[0,0,0],[1,.9,1.1]);
+ }
+ // a short tail with a dark tuft
+ const tail=new THREE.Group();tail.position.set(0,y+.1,-.24-o.girth*.85);body.add(tail);
+ B.put(tail,skin,taperedTube([[0,0,0],[0,-.08,-.04],[0,-.2,-.05]],.025,.014,8,6));
+ B.put(tail,dark,new THREE.ConeGeometry(.028,.08,6),[0,-.23,-.05],[Math.PI,0,0]);
+ B.bake();
+ return Object.assign(actor(g,body,legs,tail,[],'idle'),{head});
+}
+const MEGA_RHINOS={
+ titanothere:{name:'titanothere',scale:1.05,skin:'#6e6254',dark:'#4a4036',legH:.34,girth:.3,length:1.45,hump:.16,neck:0,headTilt:.32,headSize:1.35,horn:'fork',stance:.17,legR:.085,setBack:-.15},
+ baluchitherium:{name:'baluchitherium',scale:1,skin:'#9a8c78',dark:'#6a5e50',legH:.58,girth:.26,length:1.45,hump:.08,neck:.34,headTilt:.55,headSize:1.1,lip:true,stance:.15,legR:.068,setBack:-.2},
+};
 // giants (H): a towering, broad-shouldered brute in a hide kilt and belt, with thick legs in wrapped boots and heavy fists;
 // hill giants swing clubs, stone giants shoulder a boulder, fire giants have a smouldering beard and a sword, frost giants
 // an icy mantle and an axe, storm giants a lightning-tipped spear, titans gilded armour; ettins have two heads, minotaurs a bull's
@@ -2018,6 +2079,7 @@ export function createCreature(cell={}){
  if(CENTAURS[name])return centaur(CENTAURS[name]);
  if(HORSES[name])return horseFor(name,color);
  if(PROBOSCIDEANS[name])return proboscidean(PROBOSCIDEANS[name]);
+ if(MEGA_RHINOS[name])return megaRhino(MEGA_RHINOS[name]);
  if(GIANTS[name])return giant(GIANTS[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
  if(MIND_FLAYERS[name])return mindFlayer(MIND_FLAYERS[name]);

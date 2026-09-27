@@ -119,3 +119,21 @@ test('mumakil and mastodons are tusked, trunked beasts baked into a few meshes, 
  assert(counts.mastodon>counts.mumak,'the mastodon adds shaggy hair');
  assert.notEqual(createCreature({name:'rothe',symbol:113}).g.name,'mumak');
 });
+
+test('titanotheres and baluchitheria are giant rhinos baked into a few meshes, not rothe clones',()=>{
+ const heights={};
+ for(const name of ['titanothere','baluchitherium']){
+  const beast=createCreature({name,symbol:113,color:7});
+  assert.equal(beast.g.name,name);assert.equal(beast.legs.length,4);assert(beast.head&&beast.tail&&beast.body,name);
+  beast.g.updateMatrixWorld(true);let meshes=0;
+  beast.g.traverse(part=>{if(!part.isMesh)return;meshes++;for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);});
+  assert(meshes<=22,`${name} has ${meshes} meshes`);
+  const bounds=new THREE.Box3().setFromObject(beast.g);
+  assert(Math.abs(bounds.min.y)<.005,`${name} floor ${bounds.min.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.9,name);
+  heights[name]=bounds.max.y;
+ }
+ assert(heights.titanothere>.9&&heights.titanothere<1.15,'the titanothere is low and massive');
+ assert(heights.baluchitherium>1.25&&heights.baluchitherium<1.45,'the baluchitherium towers');
+ assert.notEqual(createCreature({name:'leocrotta',symbol:113}).g.name,'titanothere');
+});
