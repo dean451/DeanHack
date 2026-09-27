@@ -8,7 +8,7 @@ export function trapKind(symbol,color){
  if(symbol===34)return 'web';            // '"'
  if(symbol!==94)return null;             // '^'
  return {0:'pit',1:'mine',3:'hatch',4:'rust',6:'jaws',7:'rubble',9:'fire',
-  5:'teleport',13:'teleport',12:'magic',10:'polymorph',15:'ice'}[color]||'plate';
+  5:'teleport',13:'portal',12:'magic',10:'polymorph',15:'ice'}[color]||'plate';
 }
 
 const RUNES={teleport:[0xb070ff,0x7a2cff],magic:[0x6fb4ff,0x2c6cff],polymorph:[0x7dff8a,0x22c94a],ice:[0xd8f4ff,0x7fc8ff]};
@@ -102,6 +102,36 @@ export function createTrap(kind,seed=0){
    for(let i=0;i<7;i++){const a=rand(i+160)*Math.PI*2,r=.08+rand(i+180)*.18,h=.06+rand(i+200)*.08;
     const spike=add(new THREE.ConeGeometry(.02,h,5),frost,Math.cos(a)*r,h/2,Math.sin(a)*r);spike.rotation.set((rand(i+220)-.5)*.6,0,(rand(i+240)-.5)*.6);}
   }
+ }else if(kind==='portal'){
+  // Magic portal: a standing-stone arch around a swirling violet rift, over a
+  // scorched rune circle. Only the portal uses bright magenta, so it gets its own model.
+  const rune=mat({color:0xff66ff,emissive:0xd22cff,emissiveIntensity:1.4,roughness:.5,transparent:true,opacity:.9});
+  flat(new THREE.CircleGeometry(.44,32),mat({color:0x241a24,roughness:1}),.003);
+  for(const r of [.42,.35]){const ring=flat(new THREE.RingGeometry(r-.012,r,40),rune,.006);ring.material.side=THREE.DoubleSide;}
+  for(let i=0;i<12;i++){const a=i/12*Math.PI*2;const glyph=add(new THREE.BoxGeometry(.035,.004,.012),rune,Math.cos(a)*.385,.007,Math.sin(a)*.385);glyph.rotation.y=-a+(i%2?.6:0);glyph.castShadow=false;}
+  // Arch: two leaning rough-hewn stones and a capstone.
+  const arch=mat({color:0x5d5a63,roughness:.92}),moss=mat({color:0x3f4a33,roughness:1});
+  for(const side of [-1,1]){
+   const post=block(.11,.9,.15,arch,side*.37,.45,0,.03);post.rotation.z=side*.035;
+   block(.14,.08,.18,arch,side*.37,.04,0,.02);
+   add(new THREE.SphereGeometry(.035,8,6),moss,side*.33,.12+rand(side+3)*.2,.07).scale.set(1,.5,.4);
+  }
+  block(.9,.1,.17,arch,0,.95,0,.03);
+  for(const x of [-.2,0,.2])add(new THREE.BoxGeometry(.04,.004,.01),rune,x,.95,.087).castShadow=false;
+  // Rift: a dark core ringed by overlapping emissive arcs that read as a spiral.
+  const rift=new THREE.Group();rift.position.y=.48;rift.scale.y=1.3;g.add(rift);
+  const core=add(new THREE.CircleGeometry(.29,32),mat({color:0x12031c,emissive:0x2a0640,roughness:1,side:THREE.DoubleSide}),0,0,0,rift);core.castShadow=false;
+  const swirl=[0xff7aff,0xc04dff,0x8a3cff,0xe6a3ff];
+  for(let i=0;i<7;i++){
+   const r=.28-i*.036,c=swirl[i%4];
+   const arc=add(new THREE.TorusGeometry(r,.009+.004*(i%2),5,32,Math.PI*(1.1+rand(i+300)*.5)),mat({color:c,emissive:c,emissiveIntensity:1.2+i*.12,roughness:.4,transparent:true,opacity:.85,depthWrite:false}),0,0,.004+i*.002,rift);
+   arc.rotation.z=i*1.7+rand(i+310);arc.castShadow=false;
+  }
+  add(new THREE.SphereGeometry(.03,10,8),mat({color:0xffffff,emissive:0xffd6ff,emissiveIntensity:2}),0,0,.02,rift).castShadow=false;
+  // Motes drifting out of the rift on both faces.
+  const mote=mat({color:0xffc6ff,emissive:0xff8aff,emissiveIntensity:1.8});
+  for(let i=0;i<8;i++){const a=rand(i+320)*Math.PI*2,r=.1+rand(i+330)*.22;
+   add(new THREE.OctahedronGeometry(.012,0),mote,Math.cos(a)*r*.9,.48+Math.sin(a)*r*1.2,(i%2?1:-1)*(.04+rand(i+340)*.1)).castShadow=false;}
  }else if(kind==='web'){
   // Spider web strung upright across the tile between two rough posts.
   const silk=new THREE.LineBasicMaterial({color:0xe8e8e0,transparent:true,opacity:.7});materials.push(silk);
