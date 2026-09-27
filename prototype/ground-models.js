@@ -116,6 +116,68 @@ export function createGroundModel(item={}){
   }
   // The ribbon lifts the roll a little; settle whatever is lowest onto the floor.
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
+ }else if(cls===4){
+  // Rings. The name is the true identity, so the look comes only from the shuffled
+  // appearance: metal and solid bands, set stones, and a few
+  // special shapes. The band is built upright in its own group, then laid down.
+  const look=(item.appearance||'').toLowerCase(),r=new THREE.Group();g.add(r);
+  const METALS={iron:0x6e7478,steel:0xaab4ba,bronze:0x9a6a36,brass:0xc4a049,copper:0xb8683e,silver:0xd4d8dc,gold:0xd9ac3c,
+   platinum:0xe2e4e6,mithril:0xc8dce6,shiny:0xcfe8ee,twisted:0x8a9296,wire:0x9aa2a6,ridged:0x7a8084,engagement:0xd9ac3c,wedding:0xd9ac3c};
+  const SOLIDS={wooden:0x8a5a32,granite:0x8d8a86,clay:0xa8492e,coral:0xe0775a,ivory:0xe8dfc6,porcelain:0xf2f0ea,ceramic:0xc9b79a,
+   plastic:0xe0dcd2,plain:0x9c9890,glass:0xbfe0e6,quartz:0xe6eef0};
+  const STONES={opal:0xd8e4ea,obsidian:0x17131c,'black onyx':0x1b1b20,moonstone:0xc8d4e8,'tiger eye':0xa8702a,jade:0x3f9a60,agate:0xb04a3a,
+   topaz:0x4ab8c0,sapphire:0x2d58d4,ruby:0xc4202f,diamond:0xf2f8fc,pearl:0xf0ece2,emerald:0x2fb35a,jacinth:0xd8621c,citrine:0xe8c02e,
+   amber:0xd0861c,jet:0x101012,chrysoberyl:0xd6cf40};
+  const FACETED=/diamond|ruby|sapphire|emerald|topaz|jacinth|citrine|chrysoberyl|engagement/;
+  const shine=(color,metalness,roughness,emissive=0)=>{const m=new THREE.MeshStandardMaterial({color,metalness,roughness,emissive:emissive?color:0,emissiveIntensity:emissive});materials.push(m);return m;};
+  const part=(geo,m,x=0,y=0,z=0)=>{const p=new THREE.Mesh(geo,m);p.position.set(x,y,z);p.castShadow=p.receiveShadow=true;r.add(p);return p;};
+  const R=.09,T=.017;
+  const band=look in SOLIDS?shine(SOLIDS[look],0,/glass|quartz|porcelain/.test(look)?.12:.6):shine(METALS[look]??0xd9ac3c,.9,look==='shiny'?.12:.3,look==='shiny'?.12:0);
+  const tube=(fn,radius,m)=>part(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(Array.from({length:240},(_,i)=>fn(i/240*Math.PI*2)),true),240,radius,6,true),m);
+  if(look==='twisted'){
+   // Two strands wound around each other.
+   for(const s of [0,Math.PI])tube(a=>{const f=a*7+s;return new THREE.Vector3((R+.008*Math.cos(f))*Math.cos(a),(R+.008*Math.cos(f))*Math.sin(a),.008*Math.sin(f));},.009,band);
+  }else if(look==='wire'){
+   // A thin core wrapped in a tight coil of wire.
+   part(new THREE.TorusGeometry(R,.007,6,48),band);
+   tube(a=>{const f=a*22;return new THREE.Vector3((R+.009*Math.cos(f))*Math.cos(a),(R+.009*Math.cos(f))*Math.sin(a),.009*Math.sin(f));},.0035,band);
+  }else{
+   const main=part(new THREE.TorusGeometry(R,T,10,48),band);
+   if(look==='wedding')main.scale.z=1.5;
+   if(look==='ridged')for(let i=0;i<20;i++){
+    const a=i/20*Math.PI*2,rib=part(new THREE.TorusGeometry(T+.001,.004,5,14),band,R*Math.cos(a),R*Math.sin(a));
+    rib.lookAt(-Math.sin(a)+rib.position.x,Math.cos(a)+rib.position.y,0);
+   }
+  }
+  const stone=STONES[look]??(/engagement|wedding/.test(look)?0xf2f8fc:undefined);
+  const set=stone!==undefined;
+  if(set){
+   const top=R+T,clear=/diamond|engagement|wedding/.test(look);
+   const gem=shine(stone,.1,FACETED.test(look)?.08:.25,clear?.05:.18);
+   if(look==='wedding'){
+    // A small stone set flush into the wide band.
+    part(new THREE.SphereGeometry(.011,12,8),gem,0,top-.002).scale.y=.5;
+   }else{
+    const s=look==='engagement'?.024:.03;
+    part(new THREE.CylinderGeometry(s*1.05,s*.9,.016,20),band,0,top+.004);
+    if(FACETED.test(look)){
+     // A brilliant cut: a flat table over a shallow crown, held by four prongs.
+     const lift=look==='engagement'?.02:0;
+     part(new THREE.CylinderGeometry(s*.55,s,.016,8),gem,0,top+.02+lift).rotation.y=Math.PI/8;
+     part(new THREE.ConeGeometry(s,.02,8),gem,0,top+.002+lift).rotation.set(Math.PI,Math.PI/8,0);
+     for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;part(new THREE.CylinderGeometry(.003,.004,.03+lift,6),band,Math.cos(a)*s*.95,top+.015+lift/2,Math.sin(a)*s*.95);}
+    }else if(look==='pearl'){
+     part(new THREE.SphereGeometry(s*.95,16,12),gem,0,top+.03);
+    }else{
+     // A domed cabochon in its bezel.
+     part(new THREE.SphereGeometry(s*.95,20,10,0,Math.PI*2,0,Math.PI/2),gem,0,top+.012).scale.y=.65;
+    }
+   }
+  }
+  // Lay the ring down; a set stone keeps one side propped up a little.
+  r.rotation.x=-Math.PI/2+(set&&look!=='wedding'?.3:0);
+  g.rotation.y=.5;
+  g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===13){
   // Gems, glass, gray stones and rocks. The name is the true identity, so the look comes
   // only from the shuffled appearance and the glyph colour: a ruby and red glass match.
