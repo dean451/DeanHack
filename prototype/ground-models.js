@@ -70,6 +70,52 @@ export function createGroundModel(item={}){
   const ribbon=box(.02,.002,d.length(),mat(0x8c1f24),(from.x+to.x)/2,(from.y+to.y)/2,(from.z+to.z)/2);
   ribbon.rotation.set(Math.atan2(-d.y,Math.hypot(d.x,d.z)),Math.atan2(d.x,d.z),0,'YXZ');
   g.rotation.y=.3;
+ }else if(cls===9){
+  // Scrolls. The name is the true identity, so the look comes only from the shuffled
+  // label: a labelled roll with a ribbon and a wax seal tinted by that label, a bare
+  // roll for unlabeled paper, and a sealed envelope for stamped mail.
+  const look=(item.appearance||'').toLowerCase();
+  const seal=mat([0x8c1f24,0x2f4f8a,0x2f6b3a,0x6a2f7a,0xa8741e,0x1f2a2a][[...look].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0,7)%6]);
+  if(/stamped/.test(look)){
+   const paper=mat(0xe6dcc4),fold=mat(0xb9ad92),stamp=mat(0x3b6fa8);
+   add(new RoundedBoxGeometry(.3,.018,.2,2,.004),paper,0,.009);
+   // The back flap: two creases meeting at the seal.
+   for(const s of [-1,1]){const crease=box(.17,.003,.004,fold,s*.07,.0195,-.03);crease.rotation.y=s*.62;}
+   ball(.026,seal,0,.02,.02,[1,.3,1]);
+   box(.05,.004,.04,stamp,.11,.0195,-.065);box(.036,.005,.026,paper,.11,.02,-.065);
+   g.rotation.y=-.25;
+  }else{
+   const blank=/unlabeled/.test(look),paper=mat(blank?0xefe8d6:0xd9c79a),edge=mat(blank?0xc9c0aa:0xa8925f);
+   const R=.045,L=.32;
+   // The roll lies along x, with rolled-up spirals showing at both ends.
+   const roll=add(new THREE.CylinderGeometry(R,R,L,20),paper,0,R);roll.rotation.z=Math.PI/2;
+   for(const s of [-1,1]){
+    const cap=add(new THREE.CircleGeometry(R-.001,20),edge,s*(L/2+.0005),R);cap.rotation.y=s*Math.PI/2;
+    for(const r of [.03,.017]){const turn=add(new THREE.TorusGeometry(r,.0025,4,20),paper,s*(L/2+.001),R);turn.rotation.y=Math.PI/2;}
+   }
+   // The unrolled tongue leaves the bottom of the roll and curls up at its tip.
+   const rows=12,cols=8,positions=[],indices=[],W=L-.02,T=.17;
+   for(let row=0;row<=rows;row++){
+    const t=row/rows,y=.002+.02*Math.max(0,(t-.75)/.25)**2;
+    for(let col=0;col<=cols;col++)positions.push((col/cols-.5)*W,y,t*T);
+   }
+   for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){const a=row*(cols+1)+col,b=a+cols+1;indices.push(a,b,a+1,a+1,b,b+1);}
+   const sheet=new THREE.BufferGeometry();
+   sheet.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+   sheet.setIndex(indices);sheet.computeVertexNormals();paper.side=THREE.DoubleSide;
+   add(sheet,paper);
+   if(!blank){
+    // Faint lines of script on the tongue; no readable lettering at game zoom.
+    const ink=mat(0x3a2c22);
+    for(let i=0;i<4;i++)box(W*(.72-(i%3)*.12),.0012,.007,ink,-W*(i%2?.04:.08),.0032,.04+i*.028);
+    // A ribbon around the middle of the roll, fastened with a wax seal.
+    const ribbon=add(new THREE.TorusGeometry(R+.002,.006,6,24),seal,.04,R);ribbon.rotation.y=Math.PI/2;
+    ball(.022,seal,.04,R,R+.004,[1,1,.35]);
+   }
+   g.rotation.y=.35;
+  }
+  // The ribbon lifts the roll a little; settle whatever is lowest onto the floor.
+  g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===13){
   // Gems, glass, gray stones and rocks. The name is the true identity, so the look comes
   // only from the shuffled appearance and the glyph colour: a ruby and red glass match.

@@ -111,6 +111,30 @@ test('common food gets grounded, finite models and unknown food falls back',()=>
  assert.equal(createGroundModel({name:'figurine of a newt',class:6}),null);
 });
 
+test('scrolls lie on the floor and show only their shuffled label',()=>{
+ const scroll=(name,appearance)=>createGroundModel({name,class:9,appearance});
+ const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);
+ const models={labelled:scroll('scroll of identify','ZELGO MER'),blank:scroll('scroll of blank paper','unlabeled'),mail:scroll('scroll of mail','stamped'),bare:scroll('scroll',undefined)};
+ for(const [kind,model] of Object.entries(models)){
+  assert(model,kind);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(bounds.min.y>-1e-6&&bounds.min.y<1e-6,`${kind} rests on the floor`);
+  assert(bounds.max.y<.12,`${kind} lies flat`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${kind} fits its tile`);
+  let geometries=0;
+  model.traverse(part=>{if(part.geometry){
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+   part.geometry.addEventListener('dispose',()=>geometries++);
+  }});
+  model.userData.dispose();
+  assert.equal(geometries,model.children.length);
+ }
+ assert.deepEqual(signature(scroll('scroll of genocide','ZELGO MER')),signature(scroll('scroll of identify','ZELGO MER')),'the true scroll name must not show');
+ assert.notDeepEqual(signature(scroll('scroll of identify','ELBIB YLOH')),signature(scroll('scroll of identify','ZELGO MER')));
+ assert(models.blank.children.length<models.labelled.children.length,'unlabeled paper has no ribbon, seal or script');
+ assert.equal(createGroundModel({name:'scroll of identify',class:6}),null);
+});
+
 test('common tools get grounded, finite models that share their unidentified look',()=>{
  const tools=['tin whistle','mirror','crystal ball','tooled horn','bugle','wooden flute','wooden harp','leather drum','bell','stethoscope','tin opener','leash','saddle','chest','large box','ice box','tinning kit','expensive camera','lenses','credit card','beartrap','land mine','grappling hook'];
  const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);
