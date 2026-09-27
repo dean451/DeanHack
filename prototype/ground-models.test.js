@@ -331,3 +331,32 @@ test('each gem colour gets its own faceted cut, shared with its glass, grounded 
  }
  assert.equal(shapes.size,looks.length,'every colour has a distinct cut');
 });
+
+test('rocks are fractured rubble and gray stones one veined pebble, grounded and finite',()=>{
+ const rock=createGroundModel({name:'rock',class:13,color:7});
+ const stones=[];rock.traverse(p=>{if(p.geometry?.attributes.color)stones.push(p);});
+ assert(stones.length>=10,`rubble pieces and grit: ${stones.length}`);
+ assert(stones.every(p=>p.material.flatShading&&p.material.vertexColors));
+ // The biggest piece is shaped by fracture planes, so many vertices sit well inside its hull.
+ const big=stones[0].geometry.attributes.position,lens=[];
+ for(let i=0;i<big.count;i++)lens.push(Math.hypot(big.getX(i)/1.1,big.getY(i)/.66,big.getZ(i)/.9));
+ const max=Math.max(...lens);
+ assert(lens.filter(l=>l<max*.8).length>big.count*.2,'rubble should have flat broken faces');
+ const verts=m=>{const out=[];m.traverse(p=>{if(p.geometry)out.push(...p.geometry.attributes.position.array);});return out;};
+ const luck=createGroundModel({name:'luckstone',class:13,appearance:'gray',color:7});
+ for(const name of ['loadstone','touchstone','flint']){
+  const other=createGroundModel({name,class:13,appearance:'gray',color:7});
+  assert.deepEqual(verts(other),verts(luck),`${name} must match the luckstone`);
+  other.userData.dispose();
+ }
+ let pale=0;luck.traverse(p=>{const c=p.geometry?.attributes.color;if(c)for(let i=0;i<c.count;i++)if(c.getX(i)>.4)pale++;});
+ assert(pale>20,`quartz vein vertices: ${pale}`);
+ for(const model of [rock,luck]){
+  const b=new THREE.Box3().setFromObject(model);
+  assert(b.min.y>=-1e-6&&b.max.y<.2,`y ${b.min.y}..${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.2,'footprint');
+  model.traverse(p=>{if(p.geometry){for(const v of p.geometry.attributes.position.array)assert(Number.isFinite(v));
+   for(const v of p.geometry.attributes.normal?.array??[])assert(Number.isFinite(v));}});
+  model.userData.dispose();
+ }
+});
