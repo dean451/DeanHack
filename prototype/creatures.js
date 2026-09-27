@@ -1080,6 +1080,90 @@ function leprechaun(o){
  return actor(g,body,legs,loot,[],'idle');
 }
 const LEPRECHAUNS={leprechaun:{coat:'#2f8a3a'}};
+// Gargoyles: crouching carved-stone brutes on digitigrade haunches with knuckles on the floor, a horned
+// brow-ridged head with fangs and ember eyes, chipped cracks and moss. The winged kind spreads great stone
+// bat wings; the plain kind keeps stubby folded ones. Gremlins are skinny green imps with huge ribbed ears,
+// saucer eyes, a spined back and long clawed fingers, grinning wide. The tail swings on both.
+function gargoyle(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const stone=mat(o.stone,{roughness:.95}),dark=mat(shade(o.stone,.62),{roughness:1}),crack=mat(shade(o.stone,.3),{roughness:1}),
+  moss=mat('#56713a',{roughness:1}),fang=mat('#d8d0bc',{roughness:.6}),glow=mat(o.eye,{emissive:o.eye,emissiveIntensity:2.6,roughness:.3}),
+  web=mat(shade(o.stone,.78),{roughness:.95,side:THREE.DoubleSide});
+ // haunches: thick thighs folded forward, backward shins and three-toed clawed feet
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.325,-.04);body.add(leg);
+  const k=[side*.03,-.08,.13],a=[side*.03,-.24,-.02],f=[side*.03,-.29,.04];
+  sphere(leg,.1,stone,0,0,0,.9,1,1.1);segment(leg,[0,0,0],k,.08,.06,stone);sphere(leg,.06,stone,...k);
+  segment(leg,k,a,.05,.035,dark);segment(leg,a,f,.035,.03,dark);
+  for(let t=-1;t<=1;t++){const c=cone(leg,.014,.06,crack,f[0]+t*.028,-.29,f[2]+.05,4);c.rotation.x=Math.PI/2+.4;c.rotation.z=t*.15;}
+  legs.push(leg);}
+ // torso: a hunched barrel leaning forward, ribbed belly, a spined back and chips and cracks in the stone
+ const chest=sphere(body,.2,stone,0,.5,.05,1.1,1.05,.9);chest.rotation.x=.35;
+ sphere(body,.15,stone,0,.34,-.02,1.1,.9,1);
+ for(let i=0;i<3;i++)rounded(body,.16-i*.02,.035,.04,dark,0,.34+i*.07,.14+i*.02,.012);
+ for(let i=0;i<4;i++){const s=cone(body,.024,.08,dark,0,.38+i*.08,-.12-i*.01,4);s.rotation.x=-1.1;}
+ for(const [x,y,z,rz] of [[.1,.56,.16,.6],[-.13,.44,.13,-.3],[.05,.36,.15,1.2]]){const c=rounded(body,.07,.008,.01,crack,x,y,z,.003);c.rotation.z=rz;}
+ for(const [x,y,z,s] of [[-.12,.64,-.06,1],[.15,.3,-.08,.8],[.08,.62,-.1,.7]])sphere(body,.045*s,moss,x,y,z,1.2,.5,1);
+ // arms: heavy shoulders, long forearms reaching down so the knuckles rest on the floor
+ for(const side of [-1,1]){const sh=[side*.22,.6,.08],el=[side*.28,.36,.16],wr=[side*.22,.08,.24];
+  sphere(body,.08,stone,...sh);segment(body,sh,el,.065,.05,stone);sphere(body,.05,stone,...el);segment(body,el,wr,.05,.04,dark);
+  sphere(body,.05,dark,wr[0],.05,wr[2],1.1,.8,1.2);
+  for(let t=-1;t<=1;t++){const c=cone(body,.012,.05,crack,wr[0]+t*.025,.02,wr[2]+.05,4);c.rotation.x=Math.PI/2+.3;}}
+ // head: jutting forward on the shoulders, heavy brow, curled horns, pointed ears, snout, fangs and glowing eyes
+ const head=new THREE.Group();head.position.set(0,.72,.2);head.rotation.x=.15;body.add(head);
+ sphere(head,.12,stone,0,0,0,1,.95,1.05);rounded(head,.19,.04,.06,dark,0,.045,.08,.015);
+ sphere(head,.07,stone,0,-.05,.1,1.1,.75,1);sphere(head,.02,crack,-.025,-.03,.165);sphere(head,.02,crack,.025,-.03,.165);
+ for(const side of [-1,1]){sphere(head,.022,glow,side*.05,.015,.11).castShadow=false;
+  const f=cone(head,.013,.05,fang,side*.035,-.1,.13,4);f.rotation.x=Math.PI;
+  const ear=cone(head,.03,.1,stone,side*.11,.04,-.02,4);ear.rotation.z=-side*1.1;
+  tube(head,[[side*.07,.08,0],[side*.14,.15,-.04],[side*.17,.13,-.12],[side*.14,.06,-.14]],.022,dark,12);}
+ // wings: small folded stubs, or great spread stone bat wings for the winged kind
+ const span=o.winged?1:.42;
+ for(const side of [-1,1]){const pivot=new THREE.Group();pivot.position.set(side*.12,.66,-.12);pivot.rotation.x=-.25;body.add(pivot);
+  const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.2*span,.28*span);shape.lineTo(side*.58*span,.36*span);
+  shape.quadraticCurveTo(side*.5*span,.12*span,side*.5*span,-.02*span);shape.quadraticCurveTo(side*.38*span,.06*span,side*.3*span,-.1*span);
+  shape.quadraticCurveTo(side*.18*span,-.02*span,0,-.12);part(pivot,new THREE.ShapeGeometry(shape),web);
+  segment(pivot,[0,0,0],[side*.2*span,.28*span,0],.022,.018,dark);segment(pivot,[side*.2*span,.28*span,0],[side*.58*span,.36*span,0],.018,.01,dark);
+  for(const [x,y] of [[.5,-.02],[.3,-.1]])segment(pivot,[side*.2*span,.28*span,0],[side*x*span,y*span,0],.01,.006,dark);
+  cone(pivot,.016,.06,crack,side*.2*span,.31*span,0,4);pivot.userData.side=side;wings.push(pivot);}
+ // tail: a thick stone tail curling along the floor, ending in a spade
+ const tail=new THREE.Group();tail.position.set(0,.2,-.14);body.add(tail);
+ tube(tail,[[0,0,0],[.05,-.12,-.12],[.18,-.14,-.2],[.3,-.14,-.12]],.035,stone,16);
+ const spade=cone(tail,.05,.1,dark,.34,-.14,-.1,4);spade.rotation.z=-Math.PI/2;spade.scale.set(1,1,.35);
+ return actor(g,body,legs,tail,wings,'idle');
+}
+function gremlin(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const skin=mat(o.skin,{roughness:.75}),dark=mat(shade(o.skin,.55),{roughness:.85}),ear=mat(shade(o.skin,1.15),{roughness:.7,side:THREE.DoubleSide}),
+  pink=mat('#c87a78',{roughness:.7,side:THREE.DoubleSide}),claw=mat('#1c1812',{roughness:.4}),tooth=mat('#f0ead0',{roughness:.4}),
+  mouth=mat('#3a0c10',{roughness:1}),glow=mat(o.eye,{emissive:o.eye,emissiveIntensity:2.2,roughness:.2}),pupil=mat('#100808',{roughness:.2});
+ // legs: skinny bowed legs with knobbly knees and long splayed clawed feet
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.07,.22,0);body.add(leg);
+  const k=[side*.04,-.1,.05];segment(leg,[0,0,0],k,.035,.028,skin);sphere(leg,.032,skin,...k);segment(leg,k,[side*.03,-.2,-.01],.026,.02,skin);
+  sphere(leg,.03,skin,side*.03,-.205,.04,1,.5,1.8);
+  for(let t=-1;t<=1;t++){const c=cone(leg,.008,.035,claw,side*.03+t*.016,-.21,.1,4);c.rotation.x=Math.PI/2;}legs.push(leg);}
+ // body: a pot belly on a hunched, bony frame with a row of back spines
+ sphere(body,.1,skin,0,.3,.01,1,1.1,.9);sphere(body,.08,dark,0,.29,.05,.85,.9,.6);sphere(body,.1,skin,0,.42,-.01,1.05,.9,.9);
+ for(let i=0;i<5;i++){const s=cone(body,.014,.06,dark,0,.26+i*.05,-.09+i*.005,4);s.rotation.x=-1.2;}
+ // arms: long and thin, elbows out, hands raised with hooked fingers
+ for(const side of [-1,1]){const sh=[side*.1,.46,0],el=[side*.2,.36,.06],wr=[side*.18,.46,.16];
+  sphere(body,.035,skin,...sh);segment(body,sh,el,.028,.022,skin);sphere(body,.022,skin,...el);segment(body,el,wr,.022,.016,skin);sphere(body,.025,skin,...wr);
+  for(let t=-1;t<=1;t++){const c=cone(body,.006,.05,claw,wr[0]+t*.014,wr[1]+.04,wr[2]+.01,4);c.rotation.x=.3;c.rotation.z=t*.25;}}
+ // head: big and round, saucer eyes, a wide toothy grin and enormous ribbed bat ears
+ const headY=.6;sphere(body,.12,skin,0,headY,.02,1.1,.95,1);sphere(body,.05,skin,0,headY-.03,.12,1,.7,.8);
+ for(const side of [-1,1]){sphere(body,.042,glow,side*.052,headY+.02,.1,1,1,.6).castShadow=false;sphere(body,.02,pupil,side*.052,headY+.02,.125,.6,1,.4);
+  const brow=rounded(body,.06,.014,.02,dark,side*.05,headY+.065,.1,.005);brow.rotation.z=side*.35;
+  const shape=new THREE.Shape();shape.moveTo(0,0);shape.quadraticCurveTo(side*.12,.12,side*.26,.1);shape.quadraticCurveTo(side*.18,.02,side*.22,-.06);shape.quadraticCurveTo(side*.1,-.04,0,-.05);
+  const e=part(body,new THREE.ShapeGeometry(shape),ear,side*.1,headY+.02,-.01);e.rotation.y=-side*.35;
+  const inner=part(body,new THREE.ShapeGeometry(shape),pink,side*.1,headY+.02,-.005);inner.rotation.y=-side*.35;inner.scale.setScalar(.7);}
+ cylinder(body,.075,.075,.01,mouth,0,headY-.06,.105,16).rotation.x=Math.PI/2+.4;
+ for(let k=-3;k<=3;k++){const t=cone(body,.008,.022,tooth,k*.018,headY-.05,.13-Math.abs(k)*.008,4);t.rotation.x=Math.PI;}
+ // tail: a thin whip ending in a tuft
+ const tail=new THREE.Group();tail.position.set(0,.26,-.08);body.add(tail);
+ tube(tail,[[0,0,0],[.04,-.08,-.1],[.12,-.1,-.18],[.2,-.04,-.22]],.012,skin,12);cone(tail,.022,.05,dark,.21,-.03,-.22,4).rotation.z=-1.2;
+ return actor(g,body,legs,tail,[],'idle');
+}
+const GARGOYLES={gargoyle:{stone:'#8a8478',eye:'#ff7a2a'},'winged gargoyle':{stone:'#6f6a74',eye:'#ffb030',winged:true,scale:1.12}};
+const GREMLINS={gremlin:{skin:'#4f8a3a',eye:'#ffd23a'}};
 // Keystone Kops: silent-film bobbies in tall custodian helmets and long double-breasted tunics, with a walrus
 // moustache and splayed flat boots, waving a truncheon overhead. Rank shows as sleeve chevrons (sergeant),
 // gold epaulettes (lieutenant) and a gold-braided helmet with a sash (kaptain). The truncheon swings as the tail.
@@ -1573,6 +1657,8 @@ export function createCreature(cell={}){
  if(UMBER_HULKS[name])return umberHulk(UMBER_HULKS[name]);
  if(ZRUTIES[name])return zruty(ZRUTIES[name]);
  if(LEPRECHAUNS[name])return leprechaun(LEPRECHAUNS[name]);
+ if(GARGOYLES[name])return gargoyle(GARGOYLES[name]);
+ if(GREMLINS[name])return gremlin(GREMLINS[name]);
  if(KOPS[name])return kop(KOPS[name]);
  if(QUANTUM_MECHANICS[name])return quantumMechanic(QUANTUM_MECHANICS[name]);
  if(ELEMENTALS[name])return elemental(ELEMENTALS[name]);
@@ -1668,6 +1754,7 @@ export function createCreature(cell={}){
   case 't':return trapper({hide:shade(c,.8),eye:'#e0c040'});
   case 'n':return nymph({skin:'#eec7a8',cloth:shade(c,.35),trim:c,hair:'#2a2018'});
   case "'":return golem(GOLEM_MATERIALS.stone);
+  case 'g':return /gargoyle/.test(name)?gargoyle({stone:shade(c,.9),eye:'#ff9a30',winged:/winged/.test(name)}):gremlin({skin:c,eye:'#ffd23a'});
  }
  return guardian({color});
 }
