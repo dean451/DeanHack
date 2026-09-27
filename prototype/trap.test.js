@@ -40,3 +40,15 @@ test('the portal is an upright arch around a glowing rift',()=>{
  assert(glowing>=8);
  console.log(`portal: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
 });
+
+test('the web is solid silk geometry with a spider, not 1px lines',()=>{
+ const model=createTrap('web',5);
+ let lines=0,meshes=0,vertices=0;
+ model.traverse(part=>{if(part.isLineSegments)lines++;if(part.isMesh){meshes++;vertices+=part.geometry.attributes.position.count;}});
+ assert.equal(lines,0);
+ assert(meshes>40);
+ const bounds=new THREE.Box3().setFromObject(model);
+ assert(bounds.max.y>.9&&bounds.min.y>=-.001);
+ assert(vertices<12000,`web is ${vertices} vertices`);
+ console.log(`web: ${meshes} meshes, ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
+});

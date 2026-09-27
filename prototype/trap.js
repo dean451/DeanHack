@@ -133,16 +133,58 @@ export function createTrap(kind,seed=0){
   for(let i=0;i<8;i++){const a=rand(i+320)*Math.PI*2,r=.1+rand(i+330)*.22;
    add(new THREE.OctahedronGeometry(.012,0),mote,Math.cos(a)*r*.9,.48+Math.sin(a)*r*1.2,(i%2?1:-1)*(.04+rand(i+340)*.1)).castShadow=false;}
  }else if(kind==='web'){
-  // Spider web strung upright across the tile between two rough posts.
-  const silk=new THREE.LineBasicMaterial({color:0xe8e8e0,transparent:true,opacity:.7});materials.push(silk);
-  const cx=0,cy=.48,spokes=10,pts=[];
-  const at=(i,r)=>{const a=i/spokes*Math.PI*2;return [cx+Math.cos(a)*r*.44,cy+Math.sin(a)*r*.46,0];};
-  for(let i=0;i<spokes;i++)pts.push(cx,cy,0,...at(i,1));
-  for(let ring=1;ring<=6;ring++){const r=ring/6.3;for(let i=0;i<spokes;i++){const sag=1-.06*((i+ring)%2);pts.push(...at(i,r*sag),...at(i+1,r));}}
-  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));geometries.push(geo);
-  g.add(new THREE.LineSegments(geo,silk));
-  for(const x of [-.46,.46])add(new THREE.CylinderGeometry(.02,.03,.96,6),mat({color:0x4a4038,roughness:1}),x,.48,0);
-  add(new THREE.SphereGeometry(.03,8,6),dark,.12,.62,.01).scale.set(1,1,.6);
+  // Spider web strung upright between two gnarled posts. Silk is real (thin)
+  // geometry rather than 1px lines, so it still reads from the play camera.
+  const silk=mat({color:0xeeeee4,emissive:0x2a2a26,roughness:.45,transparent:true,opacity:.82});
+  const post=mat({color:0x4a4038,roughness:1});
+  const cy=.5,rx=.4,ry=.42,spokes=12;
+  const at=(a,r,z=0)=>new THREE.Vector3(Math.cos(a)*r*rx,cy+Math.sin(a)*r*ry,z);
+  const strand=(a,b,r=.0035)=>{const d=new THREE.Vector3().subVectors(b,a),len=d.length();
+   const o=add(new THREE.CylinderGeometry(r,r,len,3,1,true),silk,(a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);
+   o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());o.castShadow=false;return o;};
+  // Posts, leaning slightly outward, with knots where the anchor lines tie on.
+  for(const side of [-1,1]){
+   const p=add(new THREE.CylinderGeometry(.022,.032,1,7),post,side*.44,.5,0);p.rotation.z=-side*.03;
+   for(const y of [.2,.52,.84])add(new THREE.SphereGeometry(.03,7,5),post,side*.44+side*.012*(y-.5),y,0).scale.set(1,.6,1);
+  }
+  // Spokes run from the hub to the outer frame; anchor lines tie the frame to the posts and floor.
+  const angle=(i)=>i/spokes*Math.PI*2+(rand(i+400)-.5)*.12;
+  const rim=[];
+  for(let i=0;i<spokes;i++){const a=angle(i),r=.92+rand(i+420)*.08;rim.push(at(a,r));strand(at(a,.05),at(a,r));}
+  for(let i=0;i<spokes;i++)strand(rim[i],rim[(i+1)%spokes],.004);
+  for(const [i,x,y] of [[0,.425,.52],[1,.425,.84],[spokes/2,-.425,.5],[spokes/2-1,-.425,.84],[spokes/2+1,-.425,.2],[spokes-1,.425,.2],[spokes*3/4,.06,.002]])
+   strand(rim[i],new THREE.Vector3(x,y,0),.004);
+  // Capture spiral: one continuous tube that sags a little between spokes.
+  const pts=[],turns=7,per=spokes*2;
+  for(let k=0;k<=turns*per;k++){
+   const t=k/(turns*per),a=k/per*Math.PI*2,r=.14+t*.76,mid=k%2?.965:1;
+   pts.push(at(a,r*mid,.002*Math.sin(k)));
+  }
+  const spiral=add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),turns*per*2,.0028,3,false),silk);spiral.castShadow=false;
+  // Hub pad and dew beads that catch the light.
+  const hub=add(new THREE.CircleGeometry(.06,12),mat({color:0xf4f4ea,roughness:.6,transparent:true,opacity:.55,side:THREE.DoubleSide}),0,cy,0);hub.scale.y=ry/rx;hub.castShadow=false;
+  const dew=mat({color:0xdff2ff,emissive:0x5a7080,roughness:.05,metalness:.1,transparent:true,opacity:.9});
+  for(let i=0;i<14;i++){const j=Math.floor(rand(i+440)*pts.length*.9)+4,p=pts[Math.min(j,pts.length-1)];
+   add(new THREE.SphereGeometry(.007+rand(i+460)*.005,6,4),dew,p.x,p.y-.006,p.z).castShadow=false;}
+  // A silk-wrapped victim dangling low on one side.
+  const wrap=rim[Math.round(spokes*.62)];
+  strand(wrap,new THREE.Vector3(wrap.x,.2,0),.003);
+  const cocoon=add(new THREE.SphereGeometry(.04,10,8),mat({color:0xd8d6c8,roughness:.8}),wrap.x,.15,0);cocoon.scale.set(.8,1.5,.8);
+  for(let i=0;i<3;i++){const band=add(new THREE.TorusGeometry(.033,.004,4,12),silk,wrap.x,.12+i*.03,0);band.rotation.x=Math.PI/2+(i-1)*.3;}
+  // The spider waits just off the hub: cephalothorax, abdomen with a red mark, eight bent legs.
+  const spider=new THREE.Group();spider.position.set(.09,cy+.12,.018);spider.rotation.z=-.5;g.add(spider);
+  const chitin=mat({color:0x1a1614,roughness:.55,metalness:.15});
+  add(new THREE.SphereGeometry(.026,10,8),chitin,0,.024,0,spider).scale.set(.9,1,.7);
+  add(new THREE.SphereGeometry(.042,12,10),chitin,0,-.03,0,spider).scale.set(.9,1.15,.8);
+  add(new THREE.SphereGeometry(.012,8,6),mat({color:0xb0201a,emissive:0x400806,roughness:.5}),0,-.03,.03,spider).scale.set(.7,1.3,.4);
+  for(const side of [-1,1])for(let i=0;i<4;i++){
+   const a=(i-1.5)*.5,hip=new THREE.Vector3(side*.02,.022-i*.008,0);
+   const knee=new THREE.Vector3(side*.07,.03+Math.sin(-a)*.05+.03,.02);
+   const foot=new THREE.Vector3(side*.1,Math.sin(-a)*.1+.02,-.01);
+   for(const [p,q] of [[hip,knee],[knee,foot]]){const d=new THREE.Vector3().subVectors(q,p),len=d.length();
+    const leg=add(new THREE.CylinderGeometry(.004,.003,len,4),chitin,(p.x+q.x)/2,(p.y+q.y)/2,(p.z+q.z)/2,spider);
+    leg.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());}
+  }
  }else{
   // Unknown trap: a raised pressure plate with a shadow gap.
   block(.5,.012,.5,dark,0,.006,0);
