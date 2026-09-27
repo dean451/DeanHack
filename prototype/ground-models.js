@@ -334,6 +334,147 @@ function buildGloves(look,{g,materials}){
  }
 }
 
+// Boots are keyed only by their appearance: the fixed walking shoes, hard shoes and jackboots,
+// and the seven shuffled ones (objects.c). Without one they fall back to walking shoes.
+// shaft: height above the ankle (a shoe keeps a low heel counter); heel: height of the heel and tread blocks.
+const BOOT_LOOKS={
+ walking:{base:0x7a5534,light:0xa07a52,dark:0x472f1c,sole:0x2e2620,shaft:.012,heel:.008,lace:0xc8b48a,laces:3},
+ hard:{base:0x6c7278,light:0x9aa2a8,dark:0x3a3e42,sole:0x34383c,shaft:.05,heel:.01,iron:true},
+ jack:{base:0x1c1a1a,light:0x4a4644,dark:0x0c0b0b,sole:0x121010,shaft:.2,heel:.016,flare:1.2,gloss:true},
+ combat:{base:0x262422,light:0x4a4540,dark:0x121110,sole:0x151413,shaft:.1,heel:.014,lace:0x1a1a18,laces:7,tread:true},
+ jungle:{base:0x3a2a1e,light:0x5c4632,dark:0x1f150e,sole:0x1c1a18,shaft:.11,heel:.014,lace:0x2a2a20,laces:7,canvas:0x5c6438,tread:true},
+ hiking:{base:0x8a6440,light:0xb48c62,dark:0x4c3420,sole:0x3a2c22,shaft:.06,heel:.014,lace:0xa83228,laces:5,collar:true,tread:true},
+ mud:{base:0x5a4a34,light:0x7c6a50,dark:0x2e2418,sole:0x2a2218,shaft:.13,heel:.012,mud:0x4a3822,flare:1.1},
+ buckled:{base:0x5e3a24,light:0x86603e,dark:0x301c10,sole:0x221812,shaft:.12,heel:.014,buckles:3},
+ riding:{base:0x6a3c1e,light:0x9a6a40,dark:0x3a1e0c,sole:0x1c120c,shaft:.22,heel:.02,gloss:true,spur:true},
+ snow:{base:0x4a5c6c,light:0x6c8090,dark:0x283440,sole:0x222428,shaft:.09,heel:.016,fur:0xe4ddd0,flare:1.12,tread:true},
+};
+function buildBoots(look,{g,materials}){
+ const kind=/walking/.test(look)?'walking':/hard/.test(look)?'hard':/jack/.test(look)?'jack':/combat/.test(look)?'combat':
+  /jungle/.test(look)?'jungle':/hiking/.test(look)?'hiking':/mud/.test(look)?'mud':/buckled/.test(look)?'buckled':
+  /riding/.test(look)?'riding':/snow/.test(look)?'snow':'walking';
+ const L=BOOT_LOOKS[kind],C=hex=>new THREE.Color(hex);
+ const base=C(L.base),light=C(L.light),dark=C(L.dark),sole=C(L.sole),inside=C(0x120c08);
+ const skin=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,
+  metalness:L.iron?.7:0,roughness:L.iron?.45:L.gloss?.38:kind==='snow'||kind==='hiking'?.9:.75});
+ const brass=new THREE.MeshStandardMaterial({color:L.iron?0x8a9096:kind==='combat'||kind==='jungle'?0x5a5c5e:0xb38b46,metalness:.85,roughness:.32});
+ materials.push(skin,brass);
+ // The foot runs toe -z to heel +z. Half-width along the length t (0 heel, 1 toe).
+ const len=.25,heelZ=.105,width=t=>t<.72?.034+.024*Math.sin(t/.72*Math.PI/2):.058*Math.sqrt(Math.max(0,1-((t-.72)/.28)**2)*.85+.15);
+ const hh=L.heel,upH=kind==='walking'?.055:.064,upZ=-.018,shaftZ=.058,shaftR=.041;
+ const soleTop=hh+.012,ankleY=soleTop+upH*.7,topY=ankleY+L.shaft;
+ const footprint=(from,to)=>{
+  const s=new THREE.Shape(),n=12,pts=[];
+  for(let i=0;i<=n;i++){const t=from+(to-from)*i/n;pts.push([width(t),heelZ-t*len]);}
+  pts.forEach(([x,z],i)=>s[i?'lineTo':'moveTo'](x,z));
+  for(let i=n;i>=0;i--)s.lineTo(-pts[i][0],pts[i][1]);
+  return s;
+ };
+ const slab=(from,to,h,y)=>{
+  const geo=new THREE.ExtrudeGeometry(footprint(from,to),{depth:h,bevelEnabled:false});
+  geo.rotateX(Math.PI/2);geo.translate(0,y+h,0);return geo;
+ };
+ const boot=(side)=>{
+  const parts=[],metal=[];
+  const paint=(x,y,z,ny,part)=>{
+   if(part==='sole')return sole.clone().lerp(dark,L.tread&&Math.sin(z*260)>.6?.6:0);
+   if(part==='lace')return C(L.lace);
+   if(part==='fur')return C(L.fur).lerp(C(0xa89e90),Math.abs(stoneNoise(x*9,y*9,z*9,30))*.5);
+   const n=stoneNoise(x*4,y*4,z*4,36);
+   let c=base.clone().lerp(n>0?light:dark,Math.abs(n)*(L.gloss?.18:L.iron?.4:.35));
+   if(L.canvas&&part==='shaft'&&y>ankleY-.01)c=C(L.canvas).lerp(dark,Math.max(0,-n)*.4);
+   if(L.gloss&&ny>.55&&Math.abs(x)<.02)c.lerp(C(0xffffff),.18);
+   if(L.iron&&part==='upper'&&Math.abs(z-(-.04))<.004)c.lerp(dark,.7);
+   if(L.mud){const m=y-soleTop-.03-.02*stoneNoise(x*6,0,z*6,40);if(m<0)c.lerp(C(L.mud),Math.min(1,-m*45+.35));}
+   if(kind==='walking'&&part==='upper'&&z<-.07&&Math.abs(Math.sin(x*420))<.12&&Math.abs(z+.085)<.004)c.lerp(dark,.6);
+   return c;
+  };
+  const push=(geo,part,{interior=Infinity}={})=>{
+   const g2=geo.index?geo.toNonIndexed():geo;g2.deleteAttribute('uv');
+   const pos=g2.attributes.position,nor=g2.attributes.normal,colors=[];
+   for(let i=0;i<pos.count;i++){
+    const c=pos.getY(i)>interior&&nor.getY(i)>.9?inside:paint(pos.getX(i),pos.getY(i),pos.getZ(i),nor.getY(i),part);
+    colors.push(c.r,c.g,c.b);
+   }
+   g2.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));parts.push(g2);
+  };
+  const addMetal=geo=>{const g2=geo.index?geo.toNonIndexed():geo;g2.deleteAttribute('uv');metal.push(g2);};
+  const seg=(a,b,r,part)=>{
+   const d=new THREE.Vector3().subVectors(b,a),geo=new THREE.CylinderGeometry(r,r,d.length(),5,1,true);
+   geo.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize())));
+   const m=a.clone().add(b).multiplyScalar(.5);geo.translate(m.x,m.y,m.z);push(geo,part);
+  };
+  // Heel block and forefoot tread under a full-length sole, leaving an arch between them.
+  push(slab(0,.26,hh,0),'sole');push(slab(.5,1,hh,0),'sole');push(slab(0,1,.012,hh),'sole');
+  // Vamp: a half ovoid over the whole foot, toe to heel.
+  const vamp=new THREE.SphereGeometry(1,22,9,0,Math.PI*2,0,Math.PI/2);
+  vamp.scale(.056,upH,.13);vamp.translate(0,soleTop,upZ);push(vamp,'upper');
+  // Instep point on the vamp surface, for laces.
+  const onVamp=(x,z,lift=.002)=>new THREE.Vector3(x,soleTop+upH*Math.sqrt(Math.max(0,1-(x/.056)**2-((z-upZ)/.13)**2))+lift,z);
+  {
+   const flare=L.flare||1;
+   const shaft=new THREE.CylinderGeometry(shaftR*flare,shaftR,L.shaft+upH*.5,20,3,true);
+   shaft.translate(0,ankleY-upH*.25+(L.shaft+upH*.5)/2,shaftZ);push(shaft,'shaft');
+   const hem=new THREE.TorusGeometry(shaftR*flare,.0035,5,24);hem.rotateX(Math.PI/2);hem.translate(0,topY,shaftZ);push(hem,'shaft');
+   const hole=new THREE.CircleGeometry(shaftR*flare-.002,24);hole.rotateX(-Math.PI/2);hole.translate(0,topY-Math.min(.012,L.shaft*.25),shaftZ);push(hole,'shaft',{interior:0});
+   if(L.fur){
+    const fur=new THREE.TorusGeometry(shaftR*flare+.004,.014,8,24);fur.rotateX(Math.PI/2);
+    const p=fur.attributes.position;for(let i=0;i<p.count;i++){const a=Math.atan2(p.getZ(i),p.getX(i));p.setY(i,p.getY(i)*(1+.35*Math.sin(a*11)));}
+    fur.computeVertexNormals();fur.translate(0,topY-.004,shaftZ);push(fur,'fur');
+   }
+   if(L.buckles)for(let i=0;i<L.buckles;i++){
+    const y=ankleY+.01+i*(L.shaft-.02)/Math.max(1,L.buckles-1)*.85;
+    const strap=new THREE.TorusGeometry(shaftR+.003+i*.0015,.004,4,24);strap.rotateX(Math.PI/2);strap.scale(1,1.8,1);strap.translate(0,y,shaftZ);push(strap,'lace');
+    const buckle=new THREE.TorusGeometry(.009,.0022,5,4);buckle.rotateZ(Math.PI/4);buckle.translate(side*(shaftR+.006)*.7,y,shaftZ-(shaftR+.006)*.7);addMetal(buckle);
+   }
+   if(L.laces){
+    // Criss-cross laces up the instep and the front of the shaft, eyelets in metal.
+    const eyes=[];
+    for(let i=0;i<L.laces;i++){
+     const t=i/(L.laces-1);
+     if(L.shaft<.04){const z=-.06+i*.022;eyes.push([onVamp(-.016,z),onVamp(.016,z)]);}
+     else if(t<.45){const z=-.055+t/.45*(.07);eyes.push([onVamp(-.016,z),onVamp(.016,z)]);}
+     else{const y=ankleY+(t-.45)/.55*(L.shaft-.012),front=shaftZ-Math.sqrt(shaftR**2-.017**2)-.0015;eyes.push([new THREE.Vector3(-.017,y,front),new THREE.Vector3(.017,y,front)]);}
+    }
+    eyes.forEach(([a,b],i)=>{
+     seg(a,b,.0022,'lace');
+     if(i)seg(eyes[i-1][0],b,.0018,'lace'),seg(eyes[i-1][1],a,.0018,'lace');
+     for(const p of [a,b]){const e=new THREE.TorusGeometry(.0035,.0012,3,6);e.translate(p.x,p.y,p.z);addMetal(e);}
+    });
+   }
+   if(L.canvas)for(const sx of [-1,1])for(const dy of [0,.014]){
+    // Drainage vents in the canvas on the instep side, as on real jungle boots.
+    const v=new THREE.TorusGeometry(.004,.0014,3,8);v.rotateY(Math.PI/2);v.translate(sx*(shaftR+.001),ankleY+.004+dy,shaftZ-.006);addMetal(v);
+   }
+   if(L.collar){const collar=new THREE.TorusGeometry(shaftR+.002,.008,8,24);collar.rotateX(Math.PI/2);collar.translate(0,topY-.002,shaftZ);push(collar,'upper');}
+   if(L.spur){
+    const arm=new THREE.TorusGeometry(shaftR+.004,.0022,4,16,Math.PI);arm.rotateX(Math.PI/2);arm.translate(0,soleTop+.012,shaftZ);addMetal(arm);
+    const neck=new THREE.CylinderGeometry(.002,.002,.024,5);neck.rotateX(Math.PI/2);neck.translate(0,soleTop+.012,shaftZ+shaftR+.014);addMetal(neck);
+    const rowel=new THREE.CylinderGeometry(.009,.009,.002,8);rowel.rotateZ(Math.PI/2);rowel.translate(0,soleTop+.012,shaftZ+shaftR+.026);addMetal(rowel);
+   }
+   if(L.iron)for(let i=0;i<7;i++){const a=Math.PI*(.15+.7*i/6),r=new THREE.SphereGeometry(.003,5,4);r.translate(Math.cos(a)*(shaftR+.001),ankleY,shaftZ-Math.sin(a)*(shaftR+.001));addMetal(r);}
+  }
+  const merged=mergeGeometries(parts);parts.forEach(p=>p.dispose());
+  merged.computeBoundingBox();const lift=-merged.boundingBox.min.y;merged.translate(0,lift,0);
+  const hardware=metal.length?mergeGeometries(metal):null;metal.forEach(m=>m.dispose());hardware?.translate(0,lift,0);
+  return {merged,hardware};
+ };
+ // A pair: one stands, toes angled out. A tall boot's partner has slumped onto its side.
+ const tall=L.shaft>=.12;
+ for(const [side,x,z,yaw,fallen] of [[1,-.075,.03,.3,false],[-1,.085,-.02,tall?-1.1:-.32,tall]]){
+  const {merged,hardware}=boot(side);
+  const foot=new THREE.Group();foot.userData.part='boot';
+  const inner=new THREE.Group();foot.add(inner);
+  const mesh=new THREE.Mesh(merged,skin);mesh.castShadow=mesh.receiveShadow=true;inner.add(mesh);
+  if(hardware){const m=new THREE.Mesh(hardware,brass);m.castShadow=true;inner.add(m);}
+  if(fallen){
+   inner.rotation.z=side*Math.PI/2*.92;inner.updateMatrixWorld(true);
+   const box=new THREE.Box3().setFromObject(inner);inner.position.y=-box.min.y;inner.position.x=-(box.min.x+box.max.x)/2;
+  }
+  foot.position.set(x,0,z);foot.rotation.y=yaw;g.add(foot);
+ }
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -630,7 +771,7 @@ export function createGroundModel(item={}){
   const rod=add(new THREE.CylinderGeometry(.025,.035,.6,12),leather,0,.045,0);rod.rotation.z=Math.PI/2;
   for(const x of [-.27,.2,.27]){const band=add(new THREE.CylinderGeometry(.04,.04,.025,12),gold,x,.045,0);band.rotation.z=Math.PI/2;}
  }else if(/boots|shoes/.test(name)){
-  for(const x of [-.13,.13]){ball(.13,leather,x,.10,.035,[.75,.7,1.45]);add(new THREE.CylinderGeometry(.07,.085,.22,12),leather,x,.19,-.075);add(new THREE.TorusGeometry(.074,.012,6,16),gold,x,.3,-.075).rotation.x=Math.PI/2;}
+  buildBoots((item.appearance||'').toLowerCase(),{g,materials});
  }else if(/t-shirt|shirt|towel|cloak/.test(name)){
   const towel=/towel/.test(name),cloak=/cloak/.test(name);
   const fabric=cloak?mat(0x53625b):cloth;
