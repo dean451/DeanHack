@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {heldBoulderGeometry} from './boulder.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -867,7 +868,9 @@ function giant(o){
   eyes(head,o.glare||M.eye,.01,.11,.045);}
  let core=null;
  if(o.weapon==='club'){const club=cylinder(body,.075,.03,.46,wood,.28,.46,.2,7);club.rotation.x=.55;for(let i=0;i<3;i++)cone(body,.02,.05,M.darkSteel,.28+(i-1)*.05,.6,.3,4).rotation.x=.55;}
- if(o.weapon==='boulder'){part(body,new THREE.DodecahedronGeometry(.14,0),mat('#6f6a62',{roughness:1}),-.24,1.24,-.22).rotation.set(.4,.3,.2);arms[0].rotation.set(2.5,0,.1);}
+ // stone giants hoist a fractured granite boulder overhead on the left palm, ready to throw; it rides the arm so it follows any swing
+ if(o.weapon==='boulder'){arms[0].rotation.set(2.85,0,.14);const rock=part(arms[0],heldBoulderGeometry(7,.155),mat('#ffffff',{vertexColors:true,roughness:.94,flatShading:true}),.01,-.74,.06);rock.rotation.set(.3,.8,.2);rock.userData.part='boulder';
+  for(const k of [-1,0,1]){const finger=rounded(arms[0],.03,.07,.03,skin,k*.04,-.61,.07-Math.abs(k)*.02,.012);finger.rotation.x=-.35;}}
  if(o.weapon==='sword'){const blade=rounded(body,.05,.5,.015,mat('#d8a070',{emissive:'#c0501a',emissiveIntensity:.9,roughness:.3,metalness:.7}),.3,.56,.28,.01);blade.rotation.x=.55;rounded(body,.14,.03,.04,M.gold,.3,.37,.18,.01);}
  if(o.weapon==='axe'||o.weapon==='axe2'){const shaft=cylinder(body,.02,.02,.6,wood,.29,.5,.16,6);shaft.rotation.x=.3;const bit=part(body,new THREE.CylinderGeometry(.1,.1,.018,10,1,false,0,Math.PI),o.weapon==='axe'?mat('#b8dcea',{roughness:.2,metalness:.4}):M.steel,.29,.74,.23);bit.rotation.set(.3,0,Math.PI/2);}
  if(o.weapon==='spear'){const shaft=cylinder(body,.018,.018,.95,wood,.29,.6,.18,6);shaft.rotation.x=.2;core=cone(body,.04,.12,new THREE.MeshStandardMaterial({color:'#bfe6ff',emissive:'#3aa0ff',emissiveIntensity:4.5,roughness:.2}),.29,1.1,.28,4);core.rotation.x=.2;g.userData.core=core;}

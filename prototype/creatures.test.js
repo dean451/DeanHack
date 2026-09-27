@@ -88,3 +88,16 @@ test('plain dwarves carry a finite forged pick-axe in hand; lords keep it and ki
   assert(ends[0]>0&&ends[1]>0,name);
  }
 });
+
+test('stone giants hoist a fractured granite boulder on the palm of the raised arm',()=>{
+ const giant=createCreature({name:'stone giant',glyph:'H',color:'#888'});
+ giant.g.updateMatrixWorld(true);
+ let rock=null;giant.g.traverse(o=>{if(o.userData.part==='boulder')rock=o;});
+ assert(rock,'the stone giant carries a boulder');
+ assert(rock.geometry.attributes.color,'the boulder has baked granite colours');
+ assert(!(rock.geometry instanceof THREE.DodecahedronGeometry),'no plain dodecahedron any more');
+ for(const x of rock.geometry.attributes.position.array)assert(Number.isFinite(x));
+ const box=new THREE.Box3().setFromObject(rock,true),hand=rock.parent.localToWorld(new THREE.Vector3(0,-.56,.03));
+ assert(box.min.y>1.3&&box.max.y<2.1,`boulder spans ${box.min.y.toFixed(2)}..${box.max.y.toFixed(2)}`);
+ assert(hand.distanceTo(rock.getWorldPosition(new THREE.Vector3()))<.24,'the hand touches the boulder');
+});

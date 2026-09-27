@@ -47,6 +47,16 @@ export function createBoulder(seed=1){
  return g;
 }
 
+// A carried boulder (the stone giant's): the same weathered granite, fractured on all
+// sides with no bedded base or moss, centred on its own middle so a hand can hold it.
+// The caller owns the geometry.
+export function heldBoulderGeometry(seed=1,radius=.17){
+ const geo=rockGeometry(rng(seed),{radius,detail:3,planes:4,sx:1.08,sy:.92,sz:1,base:.02,seam:true});
+ geo.computeBoundingBox();const c=geo.boundingBox.getCenter(new THREE.Vector3());
+ geo.translate(-c.x,-c.y,-c.z);geo.computeBoundingBox();geo.computeBoundingSphere();
+ return geo;
+}
+
 function rng(seed){let s=seed>>>0||1;return()=>{s^=s<<13;s>>>=0;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
 
 // Smooth value noise from a few random sine waves; cheap and deterministic.
