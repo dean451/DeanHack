@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // The bridge reports traps as generic `feature` cells, so the trap family comes
 // from the map symbol and its colour (drawing.c defsyms). Several traps share a
@@ -41,18 +42,69 @@ export function createTrap(kind,seed=0){
   for(const z of [-.2,.2])add(new THREE.CylinderGeometry(.022,.022,.07,8),steel,-.3,.05,z).rotation.x=Math.PI/2;
   const ring=add(new THREE.TorusGeometry(.04,.009,6,16),steel,.2,.05,0);ring.rotation.x=Math.PI/2;
  }else if(kind==='jaws'){
-  // Bear trap (also stands in for arrow and dart traps): sprung-open toothed jaws.
-  const base=add(new THREE.CylinderGeometry(.09,.1,.025,16),steel,0,.0125,0);base.receiveShadow=true;
-  flat(new THREE.CircleGeometry(.06,16),rustMat,.026);
+  // Bear trap (also stands in for arrow and dart traps), set and open: two
+  // hinged jaw bands lying flat in a ring with serrated teeth standing up, the
+  // trigger pan in the middle, a leaf spring on each side with its collar over
+  // the jaw ends, and a chain to a stake. It is all one vertex-coloured mesh,
+  // pitted with rust, instead of ~30 separate meshes.
+  const parts=[],grey=new THREE.Color(0x8d9ba0),dull=new THREE.Color(0x5d6568),rusty=new THREE.Color(0x7a4a2c),rustDark=new THREE.Color(0x4a2c1a);
+  const put=(geo,{x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1,base=grey,rust=.25}={})=>{
+   const o=new THREE.Object3D();o.position.set(x,y,z);o.rotation.set(rx,ry,rz,'YXZ');o.scale.set(sx,sy,sz);o.updateMatrix();
+   const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();
+   n.applyMatrix4(o.matrix);n.deleteAttribute('uv');
+   const pos=n.attributes.position,col=new Float32Array(pos.count*3),c=new THREE.Color();
+   for(let i=0;i<pos.count;i++){
+    const px=pos.getX(i),py=pos.getY(i),pz=pos.getZ(i);
+    const h=Math.sin(px*91.7+pz*47.3+seed)*Math.cos(pz*83.1-px*29.9+py*120)*.5+.5;
+    c.copy(base).lerp(h>.5?rusty:rustDark,Math.min(1,rust*(.4+h*1.6)));
+    col.set([c.r,c.g,c.b],i*3);
+   }
+   n.setAttribute('color',new THREE.BufferAttribute(col,3));parts.push(n);
+  };
+  const ext=(shape,depth)=>new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:false,curveSegments:10});
+  const R=.2,W=.028;
+  // Base: a flat bar along x under everything, a cross bar under the pan.
+  put(new THREE.BoxGeometry(.56,.012,.045),{y:.006,base:dull,rust:.5});
+  put(new THREE.BoxGeometry(.04,.012,.26),{y:.006,base:dull,rust:.5});
+  // Pan and the dog that holds one jaw down.
+  put(new THREE.CylinderGeometry(.075,.078,.01,20),{y:.017,base:dull,rust:.7});
+  put(new THREE.CylinderGeometry(.05,.05,.004,16),{y:.023,base:rusty,rust:.3});
+  put(new THREE.BoxGeometry(.13,.007,.018),{x:.02,y:.026,z:.07,ry:-.5,rust:.35});
+  // Jaws: flat half-rings hinged on the x axis, teeth along the inner edge.
   for(const side of [-1,1]){
-   const jaw=add(new THREE.TorusGeometry(.26,.014,6,24,Math.PI),steel,0,.02,0);jaw.rotation.set(-Math.PI/2,0,side<0?0:Math.PI);
-   for(let i=1;i<10;i++){const a=i/10*Math.PI,x=Math.cos(a)*.25,z=side*Math.sin(a)*.25;
-    add(new THREE.ConeGeometry(.016,.06,5),steel,x*.93,.045,z*.93);}
+   const band=new THREE.Shape();
+   band.absarc(0,0,R+W/2,0,Math.PI,false);band.absarc(0,0,R-W/2,Math.PI,0,true);
+   put(ext(band,.01),{y:.012,rx:-Math.PI/2,ry:side<0?Math.PI:0,rust:.3});
+   for(let i=1;i<10;i++){
+    const a=i/10*Math.PI*(side<0?-1:1),s=.95+rand(i*3+side)*.15;
+    const tooth=new THREE.Shape();tooth.moveTo(-.014,0);tooth.lineTo(.014,0);tooth.lineTo(.003,.042*s);tooth.lineTo(-.003,.042*s);tooth.closePath();
+    const t=ext(tooth,.006);t.translate(0,0,-.003);
+    put(t,{x:Math.cos(a)*(R-W*.3),y:.02,z:Math.sin(a)*(R-W*.3),ry:Math.PI/2-a,rx:-.3,rust:.2});
+   }
   }
-  for(const x of [-.26,.26]){const spring=add(new THREE.TorusGeometry(.035,.01,6,12),steel,x,.03,0);spring.rotation.y=Math.PI/2;}
-  // Chain to a stake at the tile edge.
-  for(let i=0;i<5;i++){const link=add(new THREE.TorusGeometry(.022,.006,5,10),steel,.3+i*.03,.01,.1+i*.04);link.rotation.set(Math.PI/2,0,i%2?Math.PI/2:0);}
-  add(new THREE.CylinderGeometry(.018,.01,.08,8),steel,.44,.04,.3);
+  // Hinge posts where the jaw ends meet.
+  for(const x of [-R,R]){
+   put(new THREE.CylinderGeometry(.02,.024,.05,10),{x,y:.025,base:dull,rust:.45});
+   put(new THREE.CylinderGeometry(.008,.008,.07,6),{x,y:.035,rx:Math.PI/2});
+  }
+  // Leaf springs: a flat bottom leaf and a rising top leaf joined by a loop,
+  // with a collar ring standing over the jaw ends.
+  for(const side of [-1,1]){
+   put(new THREE.BoxGeometry(.2,.008,.036),{x:side*.32,y:.016,rust:.3});
+   put(new THREE.BoxGeometry(.21,.008,.036),{x:side*.315,y:.04,rz:side*.12,rust:.3});
+   const loop=new THREE.TorusGeometry(.018,.005,6,12,Math.PI);
+   put(loop,{x:side*.42,y:.028,rz:side<0?Math.PI/2:-Math.PI/2,sx:1,sy:1,sz:6,rust:.4});
+   put(new THREE.TorusGeometry(.034,.007,6,16),{x:side*.235,y:.036,ry:Math.PI/2,sy:.8,rust:.35});
+  }
+  // Chain from the base bar to a stake near the tile edge.
+  const from=new THREE.Vector3(.1,.008,.13),to=new THREE.Vector3(.2,.01,.4);
+  for(let i=0;i<7;i++){const t=(i+.5)/7,p=from.clone().lerp(to,t);
+   put(new THREE.TorusGeometry(.019,.005,5,10),{x:p.x+Math.sin(i*1.7)*.012,y:i%2?.02:.007,z:p.z,ry:Math.atan2(to.x-from.x,to.z-from.z)+Math.PI/2,rx:i%2?0:Math.PI/2,sx:1.3,rust:.55});}
+  put(new THREE.CylinderGeometry(.02,.008,.1,8),{x:.21,y:.05,z:.42,rz:.15,base:dull,rust:.6});
+  put(new THREE.TorusGeometry(.022,.006,6,12),{x:.2,y:.1,z:.42,rx:Math.PI/2,rust:.4});
+  put(new THREE.CylinderGeometry(.03,.03,.012,10),{x:.215,y:.094,z:.42,base:dull,rust:.5});
+  const trap=add(mergeGeometries(parts),mat({color:0xffffff,vertexColors:true,metalness:.65,roughness:.48}));
+  trap.name='bear-trap';for(const p of parts)p.dispose();
  }else if(kind==='mine'){
   // Land mine: a half-buried domed casing with red trigger prongs.
   const soil=add(new THREE.CylinderGeometry(.2,.23,.03,20),earth,0,.015,0);soil.castShadow=false;
@@ -189,6 +241,28 @@ export function createTrap(kind,seed=0){
   // Unknown trap: a raised pressure plate with a shadow gap.
   block(.5,.012,.5,dark,0,.006,0);
   block(.44,.03,.44,stone,0,.022,0,.008);
+ }
+ // The parts are static, so direct children that share a material (and shadow
+ // setting) are merged into one mesh each: one draw call per material instead
+ // of one per strand, rock or rune line. Subgroups (the portal's rift, the
+ // web's spider) stay separate so they can still be moved as a whole.
+ const bins=new Map();
+ for(const o of [...g.children]){
+  if(!o.isMesh)continue;
+  const key=`${o.material.uuid}:${o.castShadow}`;
+  if(!bins.has(key))bins.set(key,[]);
+  bins.get(key).push(o);
+ }
+ for(const meshes of bins.values()){
+  if(meshes.length<2)continue;
+  const indexed=meshes.every(o=>o.geometry.index);
+  const geos=meshes.map(o=>{o.updateMatrix();const n=indexed||!o.geometry.index?o.geometry.clone():o.geometry.toNonIndexed();
+   n.applyMatrix4(o.matrix);for(const k of Object.keys(n.attributes))if(k!=='position'&&k!=='normal'&&k!=='color')n.deleteAttribute(k);return n;});
+  const merged=mergeGeometries(geos);for(const n of geos)n.dispose();
+  if(!merged)continue;
+  const m=new THREE.Mesh(merged,meshes[0].material);m.castShadow=meshes[0].castShadow;m.receiveShadow=true;
+  for(const o of meshes){g.remove(o);o.geometry.dispose();geometries.splice(geometries.indexOf(o.geometry),1);}
+  geometries.push(merged);g.add(m);
  }
  g.userData.dispose=()=>{for(const geo of geometries)geo.dispose();for(const m of materials)m.dispose();};
  return g;
