@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
+import {mergeVertices,mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
@@ -250,6 +250,90 @@ const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune
 const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box|tinning kit|expensive camera|lenses|credit card|beartrap|land mine|hook)\b/;
 
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
+// Gloves are keyed only by their appearance (old, padded, riding, fencing), which the bridge
+// always sends, so the true name never changes the look. Without one they fall back to old.
+const GLOVE_LOOKS={
+ old:{base:0x6e4a2e,light:0x9c7b58,dark:0x3f2918,finger:.0125,fy:.78,palm:[1,.33,1.1],cuff:[.046,.05,.045],points:true},
+ padded:{base:0xb89c6c,light:0xd2ba8c,dark:0x7a6242,finger:.016,fy:.85,palm:[1.08,.42,1.12],cuff:[.05,.054,.04],quilt:true,roll:true},
+ riding:{base:0x4a2e1c,light:0x7a5436,dark:0x24160c,finger:.0122,fy:.75,palm:[1,.32,1.08],cuff:[.047,.078,.1],points:true,strap:true},
+ fencing:{base:0xd9cfb6,light:0xece4d0,dark:0x9c9078,finger:.0112,fy:.72,palm:[.96,.3,1.12],cuff:[.045,.056,.095],pad:true,snap:true},
+};
+function buildGloves(look,{g,materials}){
+ const kind=/padded/.test(look)?'padded':/riding/.test(look)?'riding':/fencing/.test(look)?'fencing':'old';
+ const L=GLOVE_LOOKS[kind];
+ const base=new THREE.Color(L.base),light=new THREE.Color(L.light),dark=new THREE.Color(L.dark),inside=new THREE.Color(0x140d08);
+ const leather=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:kind==='riding'?.55:kind==='fencing'?.85:.8});
+ const brass=new THREE.MeshStandardMaterial({color:0xb38b46,metalness:.85,roughness:.32});
+ materials.push(leather,brass);
+ const noise=(x,z)=>stoneNoise(x*3,0,z*3,40);
+ // Leather colour at a point: scuffs, stitched "points" on the back of the hand, quilting or a
+ // padded back, all painted into one vertex-coloured mesh per glove.
+ const paint=(x,y,z,ny,part)=>{
+  const c=base.clone(),n=noise(x,z);
+  c.lerp(n>0?light:dark,Math.abs(n)*(kind==='old'?.55:.25));
+  const top=ny>.45;
+  if(part==='finger'&&kind==='old'&&Math.sin(z*150)>.9)c.lerp(dark,.5);
+  if(part==='palm'&&top){
+   if(L.points&&z>-.055&&z<.005&&[-.02,0,.02].some(px=>Math.abs(x-px)<.0022))c.lerp(kind==='riding'?light:dark,.7);
+   if(L.pad&&Math.abs(x)<.036&&z>-.05&&z<.03)c.lerp(dark,.35);
+  }
+  if(L.quilt&&top&&part!=='cuff'&&(Math.abs(Math.sin((x+z)*95))<.12||Math.abs(Math.sin((x-z)*95))<.12))c.lerp(dark,.6);
+  if(kind==='old'&&part==='finger'&&z<-.1&&top)c.lerp(light,.45);
+  return c;
+ };
+ const glove=(side,spread)=>{
+  const parts=[],metal=[];
+  const push=(geo,part,{interior=Infinity}={})=>{
+   const pos=geo.attributes.position,nor=geo.attributes.normal,colors=[];
+   for(let i=0;i<pos.count;i++){
+    const c=nor.getZ(i)>.9&&pos.getZ(i)>interior?inside:paint(pos.getX(i),pos.getY(i),pos.getZ(i),nor.getY(i),part);
+    colors.push(c.r,c.g,c.b);
+   }
+   geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+   geo.deleteAttribute('uv');parts.push(geo);
+  };
+  // Palm: a flattened ovoid, fingers toward -z and the wrist toward +z.
+  const palm=new THREE.SphereGeometry(.05,20,12);palm.scale(...L.palm);palm.translate(0,.05*L.palm[1],-.005);push(palm,'palm');
+  const up=new THREE.Vector3(0,1,0);
+  const digit=(x,z,angle,length,r)=>{
+   const geo=new THREE.CapsuleGeometry(r,length,4,10);
+   const dir=new THREE.Vector3(Math.sin(angle),0,-Math.cos(angle));
+   geo.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(up,dir)));
+   geo.scale(1,L.fy,1);
+   const mid=new THREE.Vector3(x,r*L.fy,z).addScaledVector(dir,length/2+r*.4);
+   geo.translate(mid.x,mid.y,mid.z);push(geo,'finger');
+  };
+  const r=L.finger,lengths=[.05,.062,.058,.044];
+  lengths.forEach((len,i)=>{const t=i/3-.5;digit(side*t*.068,-.05,side*t*spread,len,r*(i===3?.9:1));});
+  digit(side*.044,-.004,side*(.85+spread*.3),.036,r*1.08);
+  // Cuff: a flattened cone, its open end shaded dark inside.
+  const [rw,re,cl]=L.cuff;
+  const cuff=new THREE.CylinderGeometry(re,rw,cl,28,1);
+  cuff.rotateX(Math.PI/2);cuff.scale(1,.3,1);cuff.translate(0,re*.3,.04+cl/2);push(cuff,'cuff',{interior:.04+cl/2});
+  const hem=new THREE.TorusGeometry(re,kind==='padded'?.006:.0035,6,32);hem.scale(1,.3,1);hem.translate(0,re*.3,.04+cl);push(hem,'hem');
+  if(L.roll){const roll=new THREE.TorusGeometry(rw+.004,.011,8,28);roll.scale(1,.45,1);roll.translate(0,rw*.36,.05);push(roll,'hem');}
+  if(L.strap){
+   const strap=new THREE.TorusGeometry(rw+.006,.0045,4,28);strap.scale(1,.34,2.4);strap.translate(0,rw*.3,.052);push(strap,'hem');
+   const buckle=new THREE.TorusGeometry(.011,.0026,6,4);buckle.rotateX(Math.PI/2);buckle.rotateY(Math.PI/4);buckle.translate(side*.024,rw*.62+.003,.052);metal.push(buckle);
+   const prong=new THREE.BoxGeometry(.016,.002,.0025);prong.translate(side*.024,rw*.62+.005,.052);metal.push(prong);
+  }
+  if(L.snap){const snap=new THREE.CylinderGeometry(.0065,.0065,.004,12);snap.translate(side*.022,rw*.58+.002,.062);metal.push(snap);}
+  const merged=mergeGeometries(parts);parts.forEach(p=>p.dispose());
+  merged.computeBoundingBox();
+  const lift=-merged.boundingBox.min.y;merged.translate(0,lift,0);
+  const hardware=metal.length?mergeGeometries(metal.map(m=>{const n=m.index?m.toNonIndexed():m;n.deleteAttribute('uv');return n;})):null;
+  metal.forEach(m=>m.dispose());hardware?.translate(0,lift,0);
+  return {merged,hardware};
+ };
+ // A pair tossed down side by side, splayed apart, the left one's fingers spread wider.
+ for(const [side,x,z,yaw,spread] of [[1,-.075,.02,.38,.22],[-1,.08,-.025,-.52,.12]]){
+  const {merged,hardware}=glove(side,spread);
+  const hand=new THREE.Group();hand.position.set(x,0,z);hand.rotation.y=yaw;hand.userData.part='glove';g.add(hand);
+  const skin=new THREE.Mesh(merged,leather);skin.castShadow=skin.receiveShadow=true;hand.add(skin);
+  if(hardware){const m=new THREE.Mesh(hardware,brass);m.castShadow=true;hand.add(m);}
+ }
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -585,6 +669,8 @@ export function createGroundModel(item={}){
     edge([new THREE.Vector3(x,height(x,z),z),new THREE.Vector3(x+.004,.012,z+side*(.018+(i%3)*.004))]);
    }
   }
+ }else if(cls===3&&/\bgloves\b|\bgauntlets\b/.test(name)){
+  buildGloves((item.appearance||'').toLowerCase(),{g,materials});
  }else if(cls===3&&/shield/.test(name)){
   // Shields lie face-up. Each kind is keyed by its appearance where it has one, so an
   // unidentified shield of reflection shows only as a polished silver shield.
