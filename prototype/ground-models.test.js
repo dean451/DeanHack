@@ -233,3 +233,31 @@ test('shields lie face-up and show their appearance, not their true name',()=>{
  assert.deepEqual(signature(shield('shield of reflection','polished silver shield')),signature(shield('small shield','polished silver shield')),'the true shield name must not show');
  assert.equal(createGroundModel({name:'small shield',class:6}),null);
 });
+
+test('spellbook covers follow the shuffled appearance and stay grounded',()=>{
+ const looks=['parchment','vellum','ragged','dog eared','mottled','stained','cloth','leather','white','pink','red','orange','yellow','velvet',
+  'light green','dark green','turquoise','cyan','light blue','dark blue','indigo','magenta','purple','violet','tan','plaid','light brown',
+  'dark brown','gray','wrinkled','dusty','bronze','copper','silver','gold','glittering','shining','dull','thin','thick','colorful','dark',
+  'spotted','faded','long','rainbow','ochre','tattered','wide','big','fuzzy','black','left-handed','psychedelic','spiral-bound','stapled',
+  'stylish','tartan','chartreuse','decrepit','paperback','crimson','charcoal','plain','papyrus'];
+ const book=(name,appearance,color=15)=>createGroundModel({name,class:10,appearance,color});
+ const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);
+ const seen=new Set();
+ for(const look of looks){
+  const model=book('spellbook of force bolt',look);
+  assert.deepEqual(signature(book('spellbook of wishing',look)),signature(model),`${look}: the true spell must not show`);
+  seen.add(JSON.stringify(signature(model)));
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(bounds.min.y>=-1e-6,`${look} rests on the floor: ${bounds.min.y}`);
+  assert(bounds.max.y<.17,`${look} lies low: ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.42,`${look} fits its tile`);
+  let disposed=0;
+  model.traverse(part=>{if(part.geometry){
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),look);
+   part.geometry.addEventListener('dispose',()=>disposed++);
+  }});
+  model.userData.dispose();
+  assert.equal(disposed,model.children.length);
+ }
+ assert(seen.size>=30,`covers should vary: ${seen.size}`);
+});

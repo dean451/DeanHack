@@ -5,6 +5,146 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
  0xa85a22,0x4f9a3e,0xb09a32,0x3a62c0,0xc0708a,0x4ab0b8,0xd8d2c0];
 
+// Spellbook covers keyed by the shuffled appearance (objects.c), never the true spell.
+// Anything not listed keeps the glyph-colour tint and a plain leather binding.
+const BOOK_METALS={bronze:0x9a6a34,copper:0xb66a3e,silver:0xc9d0d4,gold:0xd6a83e};
+const BOOK_PAPERS={parchment:0xd6bf8a,vellum:0xe8ddc2,papyrus:0xc5a96c,plain:0xdad4c4,paperback:0xd9cfb4,stapled:0xd8d0bc,'spiral-bound':0xcfc6b0};
+const BOOK_TINTS={leather:0x6b4527,canvas:0xa89a78,cloth:0x7d7a6a,plaid:0x2f5e34,tartan:0x8a2320,velvet:0x6a1f5e,fuzzy:0x7a5a3a,
+ dark:0x221e24,black:0x141214,charcoal:0x2f2d2c,crimson:0x8c1424,ochre:0xa4782a,chartreuse:0x7fa82a,dull:0x6d6a60,tan:0xa48458,
+ 'light brown':0x8f6a44,'dark brown':0x4a2e1c};
+const hashLook=look=>{let h=2166136261;for(const c of look)h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return h;};
+
+function buildSpellbook(item,{g,add,box,ball,mat,materials,metal}){
+ const look=(item.appearance||'').toLowerCase();
+ const has=re=>re.test(look);
+ let seed=hashLook(look)||1;const rnd=()=>(seed=(Math.imul(seed,1664525)+1013904223)>>>0)/2**32;
+ const shine=(color,o={})=>{const m=new(o.sheen?THREE.MeshPhysicalMaterial:THREE.MeshStandardMaterial)({color,roughness:.85,...o});materials.push(m);return m;};
+ const metalKind=Object.keys(BOOK_METALS).find(k=>look===k);
+ const paper=look in BOOK_PAPERS,soft=has(/^(paperback|stapled|spiral-bound)$/),scroll=has(/^(parchment|vellum|papyrus)$/);
+ const plush=has(/^(velvet|fuzzy)$/);
+ let tint=BOOK_METALS[metalKind]??BOOK_PAPERS[look]??BOOK_TINTS[look]??SPELLBOOK_COVERS[item.color]??0x6b4527;
+ if(has(/^(dusty|faded|decrepit)$/))tint=new THREE.Color(tint).lerp(new THREE.Color(has(/dusty/)?0x9c978a:0xcfc8b6),.45).getHex();
+ const cover=metalKind?shine(tint,{metalness:.85,roughness:.3}):plush?shine(tint,{roughness:1,sheen:1,sheenRoughness:.4,sheenColor:new THREE.Color(tint).lerp(new THREE.Color(0xffffff),.5)}):
+  has(/^shining$/)?shine(tint,{metalness:.3,roughness:.25,emissive:tint,emissiveIntensity:.35}):shine(tint,{roughness:paper?.95:.8});
+ const trim=mat(metalKind?0x3a3530:0x3a2a1c),pages=mat(has(/decrepit|dusty|ragged|tattered/)?0xc9b98e:0xe2d6b4),edge=mat(0xa8987a);
+ const ink=has(/^(dark|black|charcoal)$/)?0xc9d0d8:0xd9b25a;
+ const sigil=scroll?shine(0x3a2418,{roughness:.9}):shine(ink,{metalness:.7,roughness:.35,emissive:ink===0xd9b25a?0x6a4a12:0x3a4452,emissiveIntensity:.5});
+ // Proportions: thin and thick change the page block; big, wide and long the footprint.
+ const T=soft?.006:.018,P=has(/^thin$/)?.034:has(/^(thick|big)$/)?.11:.07,H=P+2*T;
+ const W=has(/^(wide|big)$/)?.42:.34,D=has(/^(long|big)$/)?.52:.44,top=H+.002;
+ add(new RoundedBoxGeometry(W,T,D,2,Math.min(.006,T/2-.0005)),cover,0,T/2);
+ box(W-.03,P,D-.03,pages,.012,T+P/2);
+ const lid=add(new RoundedBoxGeometry(W,T,D,2,Math.min(.006,T/2-.0005)),cover,0,T+P+T/2);
+ if(has(/^wrinkled$/)){lid.scale.y=1.25;lid.position.y+=T*.12;}
+ // Spine: a rounded, banded spine on bound books, a paper fold or a wire coil on soft ones.
+ if(has(/^spiral-bound$/)){
+  for(let z=-D/2+.03;z<D/2-.02;z+=.03)add(new THREE.TorusGeometry(H/2+.004,.0028,5,14),metal,-W/2+.012,H/2+.0068,z);
+ }else if(soft){
+  box(.006,H,D,cover,-W/2+.003,H/2);
+  if(has(/^stapled$/))for(const z of [-D/4,D/4])box(.004,.003,.035,metal,-W/2+.014,H+.0015,z);
+ }else{
+  const spine=add(new THREE.CylinderGeometry(H/2,H/2,D,16,1,false,Math.PI,Math.PI),cover,-W/2,H/2);spine.rotation.x=Math.PI/2;
+  if(!scroll)for(const z of [-.15,-.05,.05,.15].map(z=>z*D/.44)){const band=add(new THREE.CylinderGeometry(H/2+.005,H/2+.005,.016,16,1,false,Math.PI,Math.PI),trim,-W/2,H/2,z);band.rotation.x=Math.PI/2;band.scale.z=H/(H+.01);}
+ }
+ // Faint page-edge lines on the fore-edge, head and tail.
+ for(const y of [.3,.5,.7]){
+  box(.002,.0025,D-.05,edge,W/2-.002,T+P*y);
+  for(const s of [-1,1])box(W-.06,.0025,.002,edge,.012,T+P*y,s*(D/2-.014));
+ }
+ // Cover surfaces: patterns lie just above the lid.
+ const patch=(w,d,m,x,z,a=0,y=top)=>{const p=box(w,.0025,d,m,x,y,z);p.rotation.y=a;return p;};
+ const disc=(r,m,x,z,sx=1,sz=1)=>{const p=add(new THREE.CylinderGeometry(r,r,.0025,14),m,x,top,z);p.scale.set(sx,1,sz);return p;};
+ const cx=.012,cw=W-.05,cd=D-.04;
+ const inset=(x,z)=>[cx+(x-.5)*cw,(z-.5)*cd];
+ if(has(/^(plaid|tartan)$/)){
+  const a=mat(has(/tartan/)?0x1f2f5a:0x8a2a22),b=mat(has(/tartan/)?0x2f6a3a:0xd8c46a);
+  for(let i=1;i<6;i++){const [x]=inset(i/6,0);patch(.02,cd,i%2?a:b,x,0);}
+  for(let i=1;i<7;i++){const [,z]=inset(0,i/7);patch(cw,.02,i%2?a:b,cx,z,0,top+.001);}
+ }else if(has(/^(rainbow|psychedelic|colorful)$/)){
+  const hues=[0xd8323a,0xe8862a,0xe6cf3a,0x46b04e,0x3a6ad8,0x7a3ac4];
+  if(has(/psychedelic/))hues.forEach((c,i)=>add(new THREE.TorusGeometry(.03+i*.022,.009,4,36),mat(c),cx,top,0).rotation.x=Math.PI/2);
+  else if(has(/rainbow/))hues.forEach((c,i)=>patch(.03,cd,mat(c),cx-cw/2+.04+i*(cw-.08)/5,0));
+  else for(let i=0;i<10;i++){const [x,z]=inset(.1+rnd()*.8,.1+rnd()*.8);patch(.03+rnd()*.04,.03+rnd()*.05,mat(hues[i%6]),x,z,rnd()*3);}
+ }else if(has(/^(stained|mottled|spotted)$/)){
+  const dark=mat(new THREE.Color(tint).multiplyScalar(.55).getHex()),light=mat(new THREE.Color(tint).lerp(new THREE.Color(0xe8dcc0),.35).getHex());
+  if(has(/stained/)){
+   // A spill and two drink rings.
+   disc(.06,dark,...inset(.35,.62),1.3,.8);
+   for(const [u,v,r] of [[.7,.3,.045],[.6,.4,.04]]){const [x,z]=inset(u,v);add(new THREE.TorusGeometry(r,.004,4,28),dark,x,top,z).rotation.x=Math.PI/2;}
+  }else{
+   const n=has(/spotted/)?22:12;
+   for(let i=0;i<n;i++){const [x,z]=inset(.08+rnd()*.84,.08+rnd()*.84);disc(has(/spotted/)?.008+rnd()*.01:.02+rnd()*.035,i%3?dark:light,x,z,1+rnd()*.6,1);}
+  }
+ }else if(has(/^(canvas|cloth)$/)){
+  const weave=mat(new THREE.Color(tint).multiplyScalar(.8).getHex());
+  for(let i=1;i<14;i++){const [x]=inset(i/14,0);patch(.002,cd,weave,x,0);}
+ }else if(has(/^stylish$/)){
+  patch(.035,Math.hypot(cw,cd)*.9,shine(0xd6a83e,{metalness:.8,roughness:.3}),cx,0,Math.atan2(cw,cd));
+ }else if(has(/^glittering$/)){
+  const spark=shine(0xfff4d0,{metalness:1,roughness:.1,emissive:0xfff0c0,emissiveIntensity:.8});
+  for(let i=0;i<26;i++){const [x,z]=inset(.05+rnd()*.9,.05+rnd()*.9);const s=add(new THREE.OctahedronGeometry(.006+rnd()*.004),spark,x,top+.002,z);s.rotation.set(rnd()*3,rnd()*3,0);}
+ }else if(has(/^wrinkled$/)){
+  const crease=mat(new THREE.Color(tint).multiplyScalar(.78).getHex());
+  for(let i=0;i<7;i++){const [x,z]=inset(.1+rnd()*.8,.1+rnd()*.8);patch(.003,.06+rnd()*.12,crease,x,z,rnd()*3,top+T*.25);}
+ }else if(has(/^dusty$/)){
+  const dust=mat(0xb8b2a4);
+  for(let i=0;i<30;i++){const [x,z]=inset(rnd(),rnd());disc(.004+rnd()*.012,dust,x,z,1+rnd(),1);}
+ }
+ if(metalKind){
+  // Raised embossed border on metal covers.
+  for(const s of [-1,1]){box(cw,.004,.012,cover,cx,top+.001,s*(cd/2-.012));box(.012,.004,cd,cover,cx+s*(cw/2-.012),top+.001);}
+ }
+ const worn=has(/^(ragged|tattered|decrepit|dog eared)$/);
+ if(worn){
+  // Folded-back corners showing the paper lining, and a loose page for the ragged ones.
+  const fold=mat(0xe0d4b0);
+  const corners=has(/dog eared/)?[[1,1],[1,-1]]:[[1,-1]];
+  for(const [sx,sz] of corners){
+   const tri=new THREE.Shape([new THREE.Vector2(0,0),new THREE.Vector2(-.05,0),new THREE.Vector2(0,.05)]);
+   const geo=new THREE.ExtrudeGeometry(tri,{depth:.002,bevelEnabled:false});geo.rotateX(-Math.PI/2);
+   const p=add(geo,fold,W/2-.002,top+.002,sz*(D/2-.002));p.scale.z=sz;
+  }
+  if(!has(/dog eared/)){
+   const leaf=box(W*.8,.002,D*.7,pages,W*.2,T+P*.62,.04);leaf.rotation.y=-.18;leaf.rotation.z=-.03;
+   const torn=mat(new THREE.Color(tint).multiplyScalar(.6).getHex());
+   for(let i=0;i<6;i++)box(.004,.003,.02+rnd()*.03,torn,W/2-.03-rnd()*.08,top,-D/2+.06+i*.06).rotation.y=rnd()-.5;
+  }
+ }
+ const clean=!has(/^(plaid|tartan|rainbow|psychedelic|colorful|stylish|glittering)$/);
+ if(soft){
+  // A printed title label instead of a gilt sigil.
+  patch(cw*.62,.07,mat(0xf1ead8),cx,-cd*.22);
+  for(let i=0;i<3;i++)patch(cw*(.5-i*.1),.006,mat(0x2a2622),cx,-cd*.22-.02+i*.02,0,top+.001);
+ }else if(clean){
+  // A glinting sigil: a ring around a flattened gem, with four short rays.
+  add(new THREE.TorusGeometry(.075,.007,6,32),sigil,-.015,top).rotation.x=Math.PI/2;
+  ball(.032,sigil,-.015,top,0,[1,.18,1]);
+  for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4,ray=box(.05,.004,.01,sigil,-.015+Math.cos(a)*.105,top,Math.sin(a)*.105);ray.rotation.y=-a;}
+ }
+ if(scroll){
+  // Unbound leaves tied with a cord knotted on the fore-edge.
+  const cord=mat(0x6a4a2a);
+  box(W+.01,.005,.008,cord,-.005,top+.001);
+  box(.008,H+.004,.008,cord,W/2+.004,(H+.004)/2);
+  ball(.014,cord,W/2+.012,H*.6,0,[1,.8,1]);
+  for(const s of [-1,1]){const tail=box(.005,.004,.07,cord,W/2+.03,.004,s*.03);tail.rotation.y=s*.5;}
+ }else if(!soft){
+  // Brass corner guards on the fore-edge corners, top and bottom.
+  if(!has(/decrepit/))for(const y of [T/2+.003,T+P+T/2])for(const z of [-1,1])add(new RoundedBoxGeometry(.05,T+.006,.05,2,.004),metal,W/2-.022,y,z*(D/2-.022));
+  // Clasp strap wrapping from the top cover over the fore-edge, with a buckle.
+  box(.07,.005,.05,trim,W/2-.03,H+.002);
+  box(.005,H,.05,trim,W/2+.003,H/2);
+  add(new RoundedBoxGeometry(.03,.012,.064,2,.004),metal,W/2-.05,H+.006);
+ }
+ // Ribbon bookmark trailing from the tail onto the floor.
+ const from=new THREE.Vector3(.07,T+P*.55,D/2-.01),to=new THREE.Vector3(.1,.006,D/2+.09),d=to.clone().sub(from);
+ const ribbon=box(.02,.002,d.length(),mat(0x8c1f24),(from.x+to.x)/2,(from.y+to.y)/2,(from.z+to.z)/2);
+ ribbon.rotation.set(Math.atan2(-d.y,Math.hypot(d.x,d.z)),Math.atan2(d.x,d.z),0,'YXZ');
+ // A left-handed book binds on the right.
+ if(has(/^left-handed$/))for(const p of g.children){p.position.x*=-1;p.rotation.y*=-1;p.rotation.z*=-1;p.scale.x*=-1;}
+ g.rotation.y=.3+(rnd()-.5)*.3;
+}
+
 // Gem tints by glyph colour; the appearance is shared by the real stone and its glass.
 const GEM_COLORS=[0x1d1a26,0xc4202f,0x2f9e55,0xb47a2a,0x2d58d4,0x8c40c4,0x2aa4ac,0x9a9c9e,undefined,
  0xe46c1c,0x55cf5a,0xecc62e,0x5a86f0,0xd46ad0,0x6ad8e0,0xe6eef2];
@@ -38,38 +178,7 @@ export function createGroundModel(item={}){
    ball(.027,flower,x,.04,z+.022,[1,.45,1]);
   }
  }else if(cls===10){
-  // A closed, clasped tome lying flat. The name is the true spell, so the look comes
-  // only from the glyph colour (the shuffled cover appearance).
-  const cover=mat(SPELLBOOK_COVERS[item.color]??0x6b4527),trim=mat(0x3a2a1c),pages=mat(0xe2d6b4),edge=mat(0xa8987a);
-  const sigil=new THREE.MeshStandardMaterial({color:0xd9b25a,metalness:.7,roughness:.35,emissive:0x6a4a12,emissiveIntensity:.5});materials.push(sigil);
-  const W=.34,D=.44,T=.018,P=.07,H=P+2*T;
-  add(new RoundedBoxGeometry(W,T,D,2,.006),cover,0,T/2);
-  box(W-.03,P,D-.03,pages,.012,T+P/2);
-  add(new RoundedBoxGeometry(W,T,D,2,.006),cover,0,T+P+T/2);
-  // Rounded spine with raised bands along the left edge.
-  const spine=add(new THREE.CylinderGeometry(H/2,H/2,D,16,1,false,Math.PI,Math.PI),cover,-W/2,H/2);spine.rotation.x=Math.PI/2;
-  for(const z of [-.15,-.05,.05,.15]){const band=add(new THREE.CylinderGeometry(H/2+.005,H/2+.005,.016,16,1,false,Math.PI,Math.PI),trim,-W/2,H/2,z);band.rotation.x=Math.PI/2;band.scale.z=H/(H+.01);}
-  // Faint page-edge lines on the fore-edge, head and tail.
-  for(const y of [.3,.5,.7]){
-   box(.002,.0025,D-.05,edge,W/2-.002,T+P*y);
-   for(const s of [-1,1])box(W-.06,.0025,.002,edge,.012,T+P*y,s*(D/2-.014));
-  }
-  // Brass corner guards on the fore-edge corners, top and bottom.
-  for(const y of [T/2+.003,T+P+T/2])for(const z of [-1,1])add(new RoundedBoxGeometry(.05,T+.006,.05,2,.004),metal,W/2-.022,y,z*(D/2-.022));
-  // A glinting sigil: a ring around a flattened gem, with four short rays.
-  const top=H+.003;
-  add(new THREE.TorusGeometry(.075,.007,6,32),sigil,-.015,top).rotation.x=Math.PI/2;
-  ball(.032,sigil,-.015,top,0,[1,.18,1]);
-  for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4,ray=box(.05,.004,.01,sigil,-.015+Math.cos(a)*.105,top,Math.sin(a)*.105);ray.rotation.y=-a;}
-  // Clasp strap wrapping from the top cover over the fore-edge, with a buckle.
-  box(.07,.005,.05,trim,W/2-.03,H+.002);
-  box(.005,H,.05,trim,W/2+.003,H/2);
-  add(new RoundedBoxGeometry(.03,.012,.064,2,.004),metal,W/2-.05,H+.006);
-  // Ribbon bookmark trailing from the tail onto the floor.
-  const from=new THREE.Vector3(.07,T+P*.55,D/2-.01),to=new THREE.Vector3(.1,.006,D/2+.09),d=to.clone().sub(from);
-  const ribbon=box(.02,.002,d.length(),mat(0x8c1f24),(from.x+to.x)/2,(from.y+to.y)/2,(from.z+to.z)/2);
-  ribbon.rotation.set(Math.atan2(-d.y,Math.hypot(d.x,d.z)),Math.atan2(d.x,d.z),0,'YXZ');
-  g.rotation.y=.3;
+  buildSpellbook(item,{g,add,box,ball,mat,materials,metal});
  }else if(cls===9){
   // Scrolls. The name is the true identity, so the look comes only from the shuffled
   // label: a labelled roll with a ribbon and a wax seal tinted by that label, a bare
