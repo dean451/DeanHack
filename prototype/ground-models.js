@@ -149,6 +149,59 @@ function buildSpellbook(item,{g,add,box,ball,mat,materials,metal}){
 const GEM_COLORS=[0x1d1a26,0xc4202f,0x2f9e55,0xb47a2a,0x2d58d4,0x8c40c4,0x2aa4ac,0x9a9c9e,undefined,
  0xe46c1c,0x55cf5a,0xecc62e,0x5a86f0,0xd46ad0,0x6ad8e0,0xe6eef2];
 
+// Gem cuts keyed by the shared colour word (objects.c): girdle outline, crown and pavilion
+// rings as [scale, height, twist] (twist .5 staggers facets into kites and stars; 0 makes
+// step-cut terraces), and the table's size. Black stones are domed, polished cabochons.
+const ringOutline=n=>t=>[Math.cos(t),Math.sin(t)];
+const GEM_CUTS={
+ white:{r:.075,n:16,outline:ringOutline(),crown:.03,table:.56,crownRings:[[.8,.6,.5]],pavilion:.068,pavRings:[[.5,.55,.5]]},
+ red:{r:.066,sx:1.3,n:16,outline:ringOutline(),crown:.028,table:.55,crownRings:[[.8,.6,.5]],pavilion:.06,pavRings:[[.5,.55,.5]]},
+ orange:{r:.05,sx:1.9,n:18,outline:t=>{const s=Math.sin(t);return [Math.cos(t),s*Math.abs(s)**.8];},crown:.024,table:.5,crownRings:[[.78,.6,.5]],pavilion:.05,pavRings:[[.5,.55,.5]]},
+ yellow:{r:.068,n:16,outline:t=>{const c=Math.cos(t),s=Math.sin(t),q=(Math.abs(c)**4+Math.abs(s)**4)**-.25;return [c*q,s*q];},crown:.028,table:.6,crownRings:[[.82,.55,.5]],pavilion:.062,pavRings:[[.55,.5,.5]]},
+ 'yellowish brown':{r:.06,n:18,outline:t=>{const c=Math.cos(t),s=Math.sin(t),k=1+.6*Math.max(0,c)**3;return [c*k*.95,s*(1-.25*Math.max(0,c))];},crown:.027,table:.52,crownRings:[[.8,.6,.5]],pavilion:.058,pavRings:[[.5,.55,.5]]},
+ green:{r:.058,sx:1.4,n:8,outline:t=>{const c=Math.cos(t),s=Math.sin(t),m=Math.max(Math.abs(c),Math.abs(s),(Math.abs(c)+Math.abs(s))/1.3);return [c/m,s/m];},offset:Math.PI/8,crown:.026,table:.62,crownRings:[[.9,.4,0],[.76,.75,0]],pavilion:.05,pavRings:[[.72,.35,0],[.42,.72,0]],keel:.35},
+ blue:{r:.07,n:16,outline:t=>{const c=Math.cos(t),s=Math.sin(t),q=(Math.abs(c)**3+Math.abs(s)**3)**(-1/3);return [c*q,s*q];},offset:Math.PI/16,crown:.029,table:.55,crownRings:[[.8,.6,.5]],pavilion:.064,pavRings:[[.5,.55,.5]]},
+ violet:{r:.072,n:15,outline:t=>{const a=((t%(2*Math.PI/3))+2*Math.PI/3)%(2*Math.PI/3)-Math.PI/3,k=.5/Math.cos(a)*1.22,q=Math.min(1.05,k);return [Math.cos(t)*q,Math.sin(t)*q];},crown:.024,table:.5,crownRings:[[.78,.55,.5]],pavilion:.055,pavRings:[[.5,.55,.5]]},
+ black:{r:.07,sx:1.25,n:28,outline:ringOutline(),cab:true,crown:.045,table:0,crownRings:[[.97,.25,0],[.9,.5,0],[.77,.72,0],[.56,.88,0],[.3,.97,0]],pavilion:.008,pavRings:[[.85,.8,0]]},
+};
+
+// A small four-pointed star, shared shape for gem glints.
+const GLINT_GEOMETRY=()=>{const s=new THREE.Shape();for(let i=0;i<8;i++){const a=i*Math.PI/4,r=i%2?.18:1;s[i?'lineTo':'moveTo'](Math.cos(a)*r,Math.sin(a)*r);}return new THREE.ShapeGeometry(s);};
+
+// Builds a flat-shaded faceted stone from a cut: girdle band, crown rings up to a flat table,
+// pavilion rings down to a culet. Each facet gets its own brightness so it flashes like a cut stone.
+function facetedGem(cut,seed){
+ const {r,n,outline,crown,table,crownRings,pavilion,pavRings}=cut,sx=cut.sx??1,off=cut.offset??0,girdle=cut.cab?.006:.005;
+ let h=seed||1;const rnd=()=>(h=(Math.imul(h,1664525)+1013904223)>>>0)/2**32;
+ const ring=(scale,y,twist)=>{const pts=[];for(let i=0;i<n;i++){const t=off+(i+twist)*2*Math.PI/n,[x,z]=outline(t);pts.push(new THREE.Vector3(x*r*sx*scale,y,z*r*scale));}return pts;};
+ const pos=[],col=[];const centre=new THREE.Vector3(0,(crown-pavilion)/3,0);
+ const tri=(a,b,c,shade)=>{
+  const nrm=b.clone().sub(a).cross(c.clone().sub(a)),mid=a.clone().add(b).add(c).divideScalar(3);
+  if(nrm.dot(mid.sub(centre))<0)[b,c]=[c,b];
+  const flash=shade*(cut.cab?.92+rnd()*.12:.72+rnd()*.5);
+  for(const v of [a,b,c]){pos.push(v.x,v.y,v.z);const depth=THREE.MathUtils.clamp((v.y+pavilion)/(crown+pavilion),0,1);const k=flash*(.7+.45*depth);col.push(k,k,k);}
+ };
+ const band=(A,B,shade)=>{const stagger=A.twist!==B.twist;for(let i=0;i<n;i++){const j=(i+1)%n;
+  if(stagger){tri(A.p[i],A.p[j],B.p[i],shade);tri(B.p[i],A.p[j],B.p[j],shade);}
+  else{tri(A.p[i],A.p[j],B.p[j],shade);tri(A.p[i],B.p[j],B.p[i],shade);}}};
+ const fan=(R,tip,shade)=>{for(let i=0;i<n;i++)tri(R.p[i],R.p[(i+1)%n],tip,shade);};
+ const top={p:ring(1,girdle/2,0),twist:0},bottom={p:ring(1,-girdle/2,0),twist:0};
+ band(top,bottom,.8);
+ let prev=top;
+ for(const [s,f,tw] of crownRings){const next={p:ring(s,girdle/2+f*crown,tw),twist:tw};band(prev,next,1);prev=next;}
+ if(cut.cab)fan(prev,new THREE.Vector3(0,girdle/2+crown,0),1.05);
+ else{const t={p:ring(table,girdle/2+crown,prev.twist?0:.5),twist:prev.twist?0:.5};band(prev,t,1.05);fan(t,new THREE.Vector3(0,girdle/2+crown,0),1.15);}
+ prev=bottom;
+ for(const [s,f,tw] of pavRings){const next={p:ring(s,-girdle/2-f*pavilion,tw),twist:tw};band(prev,next,.85);prev=next;}
+ // A culet point, or a short keel line on step cuts.
+ if(cut.keel){const k=cut.keel*r*sx,y=-girdle/2-pavilion,a=new THREE.Vector3(-k,y,0),b=new THREE.Vector3(k,y,0);
+  for(let i=0;i<n;i++){const p=prev.p[i],q=prev.p[(i+1)%n],tip=(p.x+q.x)>0?b:a;tri(p,q,tip,.8);if((p.x>0)!==(q.x>0))tri(p.x>0?p:q,a,b,.8);}}
+ else fan(prev,new THREE.Vector3(0,-girdle/2-pavilion,0),.8);
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+ geo.computeVertexNormals();return geo;
+}
+
 // Food kinds with their own model; rations (including cram) keep the bundle below.
 const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune cookie|meatball|meat stick|chunk|meat ring|garlic|royal jelly|cream pie|candy bar|pancake|kelp frond|slime mold)(?:e?s)?\b/;
 
@@ -377,19 +430,31 @@ export function createGroundModel(item={}){
    const ore=mat(0xc8d0d6,.85);
    chip(.07,ore,0,.045,0,[1.2,.65,.9],.4);chip(.04,ore,.07,.03,.03,[1,.7,1],1.3);chip(.035,ore,-.065,.028,-.03,[1,.7,1],2.2);
   }else{
-   // A cut gem lying tipped on its pavilion, with a glint on the table.
+   // A cut stone lying tipped on its pavilion. The cut comes from the shuffled colour word,
+   // which real stones share with their glass, so the look never tells them apart.
    const tint=new THREE.Color(GEM_COLORS[item.color]??0xd8e4ea);
-   const facet=new THREE.MeshStandardMaterial({color:tint,metalness:.15,roughness:.08,flatShading:true,transparent:true,opacity:.86,emissive:tint,emissiveIntensity:.18});
-   const glint=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.75,depthWrite:false});
-   materials.push(facet,glint);
-   const gem=new THREE.Group();gem.position.set(0,.052,0);gem.rotation.set(.74,.35,0);g.add(gem);
-   const part=(geo,m,y)=>{const p=new THREE.Mesh(geo,m);p.position.y=y;p.castShadow=p.receiveShadow=true;gem.add(p);return p;};
-   part(new THREE.CylinderGeometry(.052,.082,.036,8),facet,.018);
-   part(new THREE.CylinderGeometry(.082,.082,.008,8),facet,-.004);
-   part(new THREE.ConeGeometry(.082,.075,8),facet,-.0455).rotation.x=Math.PI;
-   const sparkle=part(new THREE.OctahedronGeometry(.018,0),glint,.04);sparkle.scale.set(1,.2,1);
+   const cut=GEM_CUTS[look]??GEM_CUTS.white;
+   const geo=facetedGem(cut,hashLook(look));
+   const facet=new THREE.MeshPhysicalMaterial({color:tint,vertexColors:true,metalness:0,roughness:.05,flatShading:true,
+    clearcoat:1,clearcoatRoughness:.03,specularIntensity:1,ior:1.9,transparent:true,opacity:cut.cab?.97:.8,
+    emissive:tint,emissiveIntensity:cut.cab?.08:.16,iridescence:look==='white'?.7:0,iridescenceIOR:1.6});
+   // A brighter heart inside the stone, seen through the facets as the light it gathers.
+   const heart=new THREE.MeshStandardMaterial({color:tint.clone().lerp(new THREE.Color(0xffffff),.25),roughness:.3,
+    emissive:tint,emissiveIntensity:cut.cab?.12:.55,transparent:true,opacity:.7,depthWrite:false});
+   const glint=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false});
+   materials.push(facet,heart,glint);
+   const gem=new THREE.Group();gem.position.set(0,.06,0);gem.rotation.set(cut.cab?0:.62,.35,cut.cab?0:.12);g.add(gem);
+   const part=(geo,m)=>{const p=new THREE.Mesh(geo,m);p.castShadow=p.receiveShadow=m!==glint;gem.add(p);return p;};
+   part(geo,facet);
+   if(!cut.cab){const core=part(geo.clone(),heart);core.scale.setScalar(.55);core.renderOrder=-1;}
+   // Four-pointed star glints on the table edge and girdle, lying on the facets.
+   const top=cut.crown;
+   for(const [x,y,z,s] of cut.cab?[[-.3,.75,-.2,.9],[.35,.45,.3,.5]]:[[cut.table*.7,1,-cut.table*.35,1],[-.95,.08,.35,.7],[.2,.55,.7,.55]]){
+    const star=part(GLINT_GEOMETRY(),glint);star.position.set(x*cut.r*(cut.sx??1),y*top,z*cut.r);
+    star.rotation.set(-Math.PI/2+(1-y)*.9*Math.sign(z||1),0,.4+x);star.scale.setScalar(s*cut.r*.55);
+   }
    // A soft coloured spill of light on the floor beside it.
-   const pool=add(new THREE.CircleGeometry(.12,20),new THREE.MeshBasicMaterial({color:tint,transparent:true,opacity:.18,depthWrite:false}),.035,.002,.03);
+   const pool=add(new THREE.CircleGeometry(.13,24),new THREE.MeshBasicMaterial({color:tint,transparent:true,opacity:cut.cab?.08:.2,depthWrite:false,blending:THREE.AdditiveBlending}),.04,.002,.035);
    pool.rotation.x=-Math.PI/2;materials.push(pool.material);
    gem.updateMatrixWorld(true);gem.position.y-=new THREE.Box3().setFromObject(gem).min.y;
   }
