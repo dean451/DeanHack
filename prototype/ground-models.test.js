@@ -288,3 +288,22 @@ test('the blindfold is a padded silk band tied in a loop with frayed trailing ti
  assert(model.children.filter(part=>part.geometry.type==='TubeGeometry').length>=10,'hems and frayed threads');
  model.userData.dispose();
 });
+
+test('every bag shares one cinched drawstring sack, so the kind never shows',()=>{
+ const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(v=>v.toFixed(5)),part.material.color.getHex()]);
+ const models=['bag','sack','oilskin sack','bag of holding','bag of tricks','an uncursed bag'].map(name=>createGroundModel({name,class:6}));
+ for(const model of models){
+  assert(model,'bags have a ground model');
+  assert.deepEqual(signature(model),signature(models[0]),'the true bag must not show');
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(bounds.min.y>=-1e-6);assert(bounds.max.y>.35&&bounds.max.y<.45,`height ${bounds.max.y}`);
+  assert(bounds.max.x<.4&&bounds.min.x>-.4&&bounds.max.z<.45&&bounds.min.z>-.4,'fits the tile');
+  const body=model.children.find(part=>part.geometry.type==='LatheGeometry');
+  assert(body?.material.vertexColors,'a shaded canvas body');
+  assert(model.children.filter(part=>part.geometry.type==='TubeGeometry').length>=3,'drawstring and two trailing ends');
+  let vertices=0;
+  model.traverse(part=>{if(part.geometry){const a=part.geometry.attributes.position.array;vertices+=a.length/3;for(const value of a)assert(Number.isFinite(value));}});
+  assert(vertices<20000,`vertices: ${vertices}`);
+  model.userData.dispose();
+ }
+});
