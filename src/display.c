@@ -1024,6 +1024,16 @@ static struct tmp_glyph {
     struct tmp_glyph *prev;
 } tgfirst;
 
+#ifdef BRIDGE_GRAPHICS
+/* The 3D client's window port replays temporary glyphs (beams, thrown
+   objects, explosions) through this; other window ports leave it unset. */
+void (*tmp_at_hook)(int, coordxy, coordxy, int) = 0;
+#define TMP_AT_HOOK(op, x, y, g) \
+    do { if (tmp_at_hook) (*tmp_at_hook)(op, x, y, g); } while (0)
+#else
+#define TMP_AT_HOOK(op, x, y, g)
+#endif
+
 void
 tmp_at(coordxy x, coordxy y)
 {
@@ -1046,6 +1056,7 @@ tmp_at(coordxy x, coordxy y)
         tglyph->style = x;
         tglyph->glyph = y;
         flush_screen(0);    /* flush buffered glyphs */
+        TMP_AT_HOOK(x, 0, 0, y);
         return;
 
     case DISP_FREEMEM:  /* in case game ends with tmp_at() in progress */
@@ -1069,6 +1080,7 @@ tmp_at(coordxy x, coordxy y)
     switch (x) {
     case DISP_CHANGE:
         tglyph->glyph = y;
+        TMP_AT_HOOK(DISP_CHANGE, 0, 0, y);
         break;
 
     case DISP_END:
@@ -1086,6 +1098,8 @@ tmp_at(coordxy x, coordxy y)
                 /* backtrack */
                 for (i = tglyph->sidx - 1; i > 0; i--) {
                     newsym(tglyph->saved[i].x, tglyph->saved[i].y);
+                    TMP_AT_HOOK(TMP_AT_RETRACT, tglyph->saved[i-1].x,
+                                tglyph->saved[i-1].y, tglyph->glyph);
                     show_glyph(tglyph->saved[i-1].x,
                                tglyph->saved[i-1].y,
                                tglyph->glyph);
@@ -1102,6 +1116,7 @@ tmp_at(coordxy x, coordxy y)
                 newsym(tglyph->saved[0].x, tglyph->saved[0].y);
             }
         }
+        TMP_AT_HOOK(DISP_END, 0, 0, 0);
         /* tglyph->sidx = 0; -- about to be freed, so not necessary */
         tmp = tglyph->prev;
         if (tglyph != &tgfirst) {
@@ -1153,6 +1168,7 @@ tmp_at(coordxy x, coordxy y)
             tglyph->sidx = 1;
         }
 
+        TMP_AT_HOOK(TMP_AT_DRAW, x, y, tglyph->glyph);
         show_glyph(x, y, tglyph->glyph);    /* show it */
         flush_screen(0);            /* make sure it shows up */
         break;

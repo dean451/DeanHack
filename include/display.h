@@ -184,6 +184,10 @@
 /* Total number of cmap indices in the sheild_static[] array. */
 #define SHIELD_COUNT 21
 #define BACKTRACK (-1)    /* flag for DISP_END to display each prior location */
+#ifdef BRIDGE_GRAPHICS
+#define TMP_AT_DRAW    0 /* tmp_at_hook: a glyph drawn at (x, y) */
+#define TMP_AT_RETRACT 1 /* tmp_at_hook: a tethered object pulled back */
+#endif
 
 /*
  * display_self()
