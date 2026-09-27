@@ -178,6 +178,75 @@ export function createGroundModel(item={}){
   r.rotation.x=-Math.PI/2+(set&&look!=='wedding'?.3:0);
   g.rotation.y=.5;
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
+ }else if(cls===5){
+  // Amulets. The name is the true identity, so the look comes only from the shuffled
+  // appearance: a pendant shaped like that word, on a chain coiled loosely beside it.
+  // The real Amulet of Yendor and its plastic imitation share one look.
+  const look=(item.appearance||'').toLowerCase(),yendor=/yendor/.test(look);
+  const shine=(color,metalness,roughness,emissive=0)=>{const m=new THREE.MeshStandardMaterial({color,metalness,roughness,emissive:emissive?color:0,emissiveIntensity:emissive});materials.push(m);return m;};
+  const setting=shine(yendor?0xe0b44a:0xc49a45,.88,.3),chain=shine(0xa8894a,.85,.36);
+  const gem=shine(yendor?0xb0183c:[0x2d58d4,0xc4202f,0x2f9e55,0x8c40c4,0x2aa4ac,0xe8c02e][[...look].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0,7)%6],.1,.15,yendor?.45:.15);
+  const P=new THREE.Group();P.position.z=.09;g.add(P);
+  const put=(geo,m,x=0,y=0,z=0)=>{const p=new THREE.Mesh(geo,m);p.position.set(x,y,z);p.castShadow=p.receiveShadow=true;P.add(p);return p;};
+  // Flat pendants are extruded upward from a floor-plan outline.
+  const plate=(shape,depth=.012)=>{const geo=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:.003,bevelSize:.003,bevelSegments:1,curveSegments:24});geo.rotateX(-Math.PI/2);return geo;};
+  const polygon=(n,r,turn=0)=>{const s=new THREE.Shape();for(let i=0;i<n;i++){const a=turn+i/n*Math.PI*2;s[i?'lineTo':'moveTo'](r*Math.sin(a),r*Math.cos(a));}s.closePath();return s;};
+  const ellipse=(rx,rz)=>{const s=new THREE.Shape();s.absellipse(0,0,rx,rz,0,Math.PI*2);return s;};
+  const lathe=pts=>new THREE.LatheGeometry(pts.map(([x,y])=>new THREE.Vector2(x,y)),32);
+  const cabochon=(r,y)=>put(new THREE.SphereGeometry(r,16,8,0,Math.PI*2,0,Math.PI/2),gem,0,y).scale.y=.6;
+  const top=.018;
+  const PLATES={circular:()=>ellipse(.055,.055),oval:()=>ellipse(.042,.06),elliptic:()=>ellipse(.066,.04),triangular:()=>polygon(3,.066,Math.PI),
+   square:()=>polygon(4,.064,Math.PI/4),rectangular:()=>{const s=new THREE.Shape();s.moveTo(-.036,-.058);s.lineTo(.036,-.058);s.lineTo(.036,.058);s.lineTo(-.036,.058);s.closePath();return s;},
+   hexagonal:()=>polygon(6,.06),octagonal:()=>polygon(8,.06,Math.PI/8)};
+  if(yendor){
+   // A domed gold medallion ringed with studs around a large glowing stone.
+   put(lathe([[0,0],[.066,0],[.068,.008],[.055,.02],[.03,.026],[0,.027]]),setting);
+   for(let i=0;i<10;i++){const a=i/10*Math.PI*2;put(new THREE.SphereGeometry(.007,8,6),setting,Math.cos(a)*.052,.018,Math.sin(a)*.052);}
+   put(new THREE.SphereGeometry(.028,20,12),gem,0,.026).scale.y=.7;
+  }else if(look==='spherical'){
+   // An orb held in a banded cage.
+   put(new THREE.SphereGeometry(.034,20,14),gem,0,.034);
+   for(const r of [0,Math.PI/2])put(new THREE.TorusGeometry(.035,.004,6,32),setting,0,.034).rotation.y=r;
+  }else if(look==='pyramidal'){
+   put(new THREE.ConeGeometry(.058,.06,4),setting,0,.03).rotation.y=Math.PI/4;
+  }else if(look==='spiked'){
+   // A studded boss with spikes all around and one upright.
+   put(new THREE.SphereGeometry(.026,16,10),setting,0,.026);
+   for(let i=0;i<8;i++){const a=i/8*Math.PI*2,spike=put(new THREE.ConeGeometry(.009,.036,8),setting,Math.cos(a)*.04,.026,Math.sin(a)*.04);spike.rotation.set(0,-a,-Math.PI/2);}
+   put(new THREE.ConeGeometry(.009,.03,8),setting,0,.062);
+  }else if(look==='concave'){
+   // A shallow dish with the stone sunk into its hollow.
+   const dish=put(lathe([[0,.004],[.03,.007],[.05,.014],[.058,.017],[.062,.012],[.06,0],[0,0]]),setting);dish.material.side=THREE.DoubleSide;
+   cabochon(.016,.004);
+  }else if(look==='convex'){
+   put(lathe([[0,0],[.06,0],[.062,.006],[.046,.018],[.022,.024],[0,.025]]),setting);
+   cabochon(.013,.024);
+  }else if(look==='lunate'){
+   // A crescent: the outer rim, then back along a smaller offset circle.
+   const s=new THREE.Shape();s.absarc(0,0,.062,.983,Math.PI*2-.983,false);s.absarc(.031,0,.052,-1.505,1.505,true);s.closePath();
+   put(plate(s),setting).rotation.y=Math.PI/2;
+  }else if(look==='warped'){
+   // A disc bent like a saddle.
+   const geo=plate(ellipse(.056,.056)),pos=geo.attributes.position;
+   for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i);pos.setY(i,pos.getY(i)+.14*(x*x-z*z)/.056);}
+   geo.computeVertexNormals();put(geo,setting).rotation.y=.4;
+  }else{
+   put(plate((PLATES[look]??PLATES.circular)()),setting);
+   cabochon(.016,top);
+  }
+  // A bail at the pendant's head, where the chain joins.
+  put(new THREE.TorusGeometry(.011,.003,6,16),setting,0,.014,-.066).rotation.y=Math.PI/2;
+  // The chain: alternating flat and upright links along a loose loop ending at the bail.
+  const loop=new THREE.CatmullRomCurve3(Array.from({length:24},(_,i)=>{const a=i/24*Math.PI*2;
+   return new THREE.Vector3(.12*Math.sin(a)*(1+.08*Math.sin(3*a)),0,-.07-.1*Math.cos(a));}),true);
+  const N=34;
+  for(let i=0;i<N;i++){
+   const t=i/N,p=loop.getPointAt(t),d=loop.getTangentAt(t),upright=i%2===1;
+   const link=add(new THREE.TorusGeometry(.0085,.0024,4,10),chain,p.x,upright?.011:.0024,p.z);
+   link.scale.x=1.45;link.rotation.set(upright?0:Math.PI/2,Math.atan2(-d.z,d.x),0,'YXZ');
+  }
+  g.rotation.y=-.4;
+  g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===13){
   // Gems, glass, gray stones and rocks. The name is the true identity, so the look comes
   // only from the shuffled appearance and the glyph colour: a ruby and red glass match.
