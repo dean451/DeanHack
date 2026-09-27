@@ -742,6 +742,54 @@ function centaur(o){
  return actor(g,body,legs,tail,[],'unicorn');
 }
 const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#6a8aa0',weapon:'spear'},'forest centaur':{coat:'#5a3c24',hair:'#2a1a10',tunic:'#3f6a34',weapon:'bow',scale:1.05},'mountain centaur':{coat:'#7a7670',hair:'#3a3632',mantle:'#8a7058',beard:true,weapon:'club',scale:1.08}};
+// Ponies, horses and warhorses (u): a barrel with a sloped croup, an arched neck with a mane, a long
+// wedge head with a blaze, legs with knees, hocks, fetlocks and hooves, and a flowing tail. No horn.
+// All three are brown on the map, so the glyph colour is the base coat and the breed sets the
+// shade, build and points: a shaggy flaxen pony, a sleek bay horse, a dark barded warhorse.
+function horse(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale);g.name='horse';
+ const coat=mat(o.coat,{roughness:.8}),belly=mat(shade(o.coat,1.15),{roughness:.85}),hair=mat(o.hair,{roughness:.95}),lower=mat(o.points||o.coat,{roughness:.85}),sock=mat('#ece6da',{roughness:.85}),hoof=mat('#2a2420',{roughness:.55}),snoot=mat(shade(o.coat,.55),{roughness:.7});
+ const legH=o.legH,y=legH+.16,s=o.stock;
+ sphere(body,.2,coat,0,y,0,.82*s,.85,1.55);sphere(body,.17,coat,0,y+.02,.2,.9*s,1,.9);sphere(body,.18,coat,0,y+.04,-.22,.95*s,.95,.9);
+ sphere(body,.14,belly,0,y-.08,0,.78*s,.6,1.45);sphere(body,.08,coat,0,y+.15,.15,.9,.8,1.4);
+ // neck, with the mane on its upper edge
+ const n0=new THREE.Vector3(0,y+.1,.24),n1=new THREE.Vector3(0,y+.38,.44),dir=n1.clone().sub(n0).normalize(),up=new THREE.Vector3(0,dir.z,-dir.y);
+ segment(body,n0.toArray(),n1.toArray(),.11*s,.07,coat);
+ for(let i=0;i<9;i++){const t=i/8,r=.11*s+(.07-.11*s)*t,p=n0.clone().lerp(n1,t).addScaledVector(up,r*.85);
+  if(o.mane==='braided')sphere(body,.028,hair,p.x,p.y+.01,p.z);
+  else{sphere(body,.04,hair,p.x,p.y,p.z,.55,1.3,1);if(o.mane==='shaggy'){const lock=sphere(body,.05,hair,.045,p.y-.05,p.z,.35,1.4,.9);lock.rotation.z=-.25;}else sphere(body,.035,hair,.03,p.y-.03,p.z,.35,1.3,.9);}}
+ const head=new THREE.Group();head.position.set(0,y+.4,.46);head.rotation.x=.85;body.add(head);
+ sphere(head,.085,coat,0,0,0,.85,.95,1.1);
+ segment(head,[0,0,.02],[0,-.02,.24],.07,.05,coat).scale.x=.8;
+ sphere(head,.058,snoot,0,-.025,.25,.9,.85,1.05);sphere(head,.04,snoot,0,-.065,.19,.8,.7,1.2);
+ for(const side of [-1,1]){sphere(head,.014,darkEye,side*.026,-.01,.3);sphere(head,.02,darkEye,side*.066,.02,.05);sphere(head,.024,coat,side*.06,.042,.045,1,.5,1.2);
+  const ear=cone(head,.028,.1,coat,side*.045,.1,-.035,5);ear.rotation.set(-.6,0,-side*.2);}
+ if(o.blaze)rounded(head,.03,.01,.2,sock,0,.052,.13,.004).rotation.x=.18;
+ else sphere(head,.022,sock,0,.068,.07,1,.3,1.2);
+ sphere(head,o.mane==='shaggy'?.06:.042,hair,0,.075,.03,1,.5,1.5);
+ if(o.barded){rounded(head,.075,.014,.17,M.steel,0,.06,.11,.006).rotation.x=.18;const noseband=part(head,new THREE.TorusGeometry(.055,.008,5,16),M.leather,0,-.02,.2);noseband.scale.set(.85,1,1);
+  // saddle blanket with gilt trim draped over the barrel
+  rounded(body,.34*s,.025,.34,mat(o.cloth,{roughness:.9}),0,y+.19,-.02,.01);for(const side of [-1,1]){const drape=rounded(body,.02,.2,.34,mat(o.cloth,{roughness:.9}),side*.165*s,y+.1,-.02,.008);drape.rotation.z=side*.12;rounded(body,.022,.02,.35,M.gold,side*.178*s,y+.005,-.02,.006);}}
+ const H=(hy,front)=>{const leg=new THREE.Group();body.add(leg);
+  if(front){sphere(leg,.075,coat,0,-.02,0,.8,1.3,1);segment(leg,[0,.02,0],[0,-hy*.5,.01],.06,.04,coat);sphere(leg,.036,lower,0,-hy*.5,.012);segment(leg,[0,-hy*.5,.012],[0,-hy*.86,0],.03,.028,lower);}
+  else{sphere(leg,.09,coat,0,-.06,0,.8,1.4,1.1);segment(leg,[0,-.05,.02],[0,-hy*.55,-.07],.06,.038,coat);sphere(leg,.036,lower,0,-hy*.55,-.07);segment(leg,[0,-hy*.55,-.07],[0,-hy*.86,-.03],.032,.028,lower);}
+  const fz=front?0:-.03;sphere(leg,.034,lower,0,-hy*.87,fz-.005);segment(leg,[0,-hy*.87,fz-.005],[0,-hy+.04,fz+.03],.026,.028,lower);
+  if(o.feathered)cylinder(leg,.036,.062,.09,sock,0,-hy+.08,fz+.02,10);
+  cylinder(leg,.035,.045,.05,hoof,0,-hy+.025,fz+.035,10);return leg;};
+ for(const side of [-1,1]){const front=H(y-.02,true);front.position.set(side*.1*s,y-.02,.2);legs.push(front);
+  const hind=H(y,false);hind.position.set(side*.1*s,y,-.24);legs.push(hind);
+  if(o.hindSocks)segment(hind,[0,-y*.72,-.045],[0,-y*.87,-.035],.034,.033,sock);}
+ const tail=new THREE.Group();tail.position.set(0,y+.1,-.37);body.add(tail);
+ segment(tail,[0,.02,.03],[0,-.04,-.07],.04,.03,coat);
+ for(const k of [-1,0,1])tube(tail,[[0,-.03,-.06],[k*.02,-.12,-.13],[k*.03,-.3,-.16],[k*.035,-o.tail,-.13+Math.abs(k)*.02]],o.mane==='shaggy'?.036:.028,hair,12);
+ return actor(g,body,legs,tail,[],'unicorn');
+}
+const HORSES={
+ pony:{scale:.8,coat:1.15,hair:'#e0cc9a',legH:.34,stock:1.12,mane:'shaggy',hindSocks:true,tail:.4},
+ horse:{scale:1,coat:1,hair:'#1e1a18',points:'#231e1b',legH:.42,stock:1,blaze:true,tail:.44},
+ warhorse:{scale:1.15,coat:.62,hair:'#141210',points:'#1a1614',legH:.43,stock:1.1,mane:'braided',feathered:true,barded:true,cloth:'#7a1f24',tail:.44},
+};
+function horseFor(name,color){const o=HORSES[name]||HORSES.horse;return horse({...o,coat:shade(color||'#8a6440',o.coat)});}
 // giants (H): a towering, broad-shouldered brute in a hide kilt and belt, with thick legs in wrapped boots and heavy fists;
 // hill giants swing clubs, stone giants shoulder a boulder, fire giants have a smouldering beard and a sword, frost giants
 // an icy mantle and an axe, storm giants a lightning-tipped spear, titans gilded armour; ettins have two heads, minotaurs a bull's
@@ -1830,6 +1878,7 @@ export function createCreature(cell={}){
  if(APES[name])return ape(APES[name]);
  if(MIMICS[name])return mimic(MIMICS[name]);
  if(CENTAURS[name])return centaur(CENTAURS[name]);
+ if(HORSES[name])return horseFor(name,color);
  if(GIANTS[name])return giant(GIANTS[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
  if(MIND_FLAYERS[name])return mindFlayer(MIND_FLAYERS[name]);
@@ -1922,7 +1971,7 @@ export function createCreature(cell={}){
   case 'h':return humanoid('dwarf');
   case 'o':return humanoid('orc',{cloth:mat(shade(c,.75))});
   case 'q':return canine({...CANINES.rothe,coat:c});
-  case 'u':return unicorn();
+  case 'u':return horseFor(name,color);
   case '@':return humanoid('human',{cloth:mat(shade(c,.8))});
   case 'r':return rat(false);
   case 'x':return !name||/bug$/.test(name)?gridBug():xan({color:c,eye:'#ffcf40',stinger:true});

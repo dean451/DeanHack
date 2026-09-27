@@ -45,3 +45,20 @@ test('little dog, dog and large dog are grounded canines that grow with the bree
   assert(size.z>size.x*1.5,name);assert(size.y>last,name);last=size.y;
  }
 });
+
+test('pony, horse and warhorse are grounded, hornless horses that grow with the breed and take the glyph colour',()=>{
+ let last=0;
+ for(const name of ['pony','horse','warhorse']){
+  const actor=createCreature({name,symbol:117,color:3});
+  assert.equal(actor.g.name,'horse',name);assert.equal(actor.legs.length,4,name);assert(actor.tail,name);
+  actor.g.updateMatrixWorld(true);
+  actor.g.traverse(part=>{if(part.geometry)for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);});
+  const bounds=new THREE.Box3().setFromObject(actor.g),size=bounds.getSize(new THREE.Vector3());
+  assert(Math.abs(bounds.min.y)<.01,name);assert(bounds.max.y<1.4,name);
+  assert(size.z>size.x*1.8,name);assert(Math.max(-bounds.min.z,bounds.max.z,-bounds.min.x,bounds.max.x)<.85,name);
+  assert(size.y>last,name);last=size.y;
+ }
+ // an unnamed u is a horse too, not a unicorn
+ assert.equal(createCreature({symbol:117,color:3}).g.name,'horse');
+ assert.notEqual(createCreature({name:'white unicorn',symbol:117,color:15}).g.name,'horse');
+});
