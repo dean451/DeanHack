@@ -67,7 +67,6 @@ export function createShopItem(name){
  if(/pick-axe|pickaxe/.test(n))return createTool(name,'pickaxe');
  if(/lock pick/.test(n))return createTool(name,'lockpick');
  if(/skeleton key/.test(n))return createTool(name,'key');
- if(/blindfold/.test(n))return createTool(name,'blindfold');
  if(/can of grease/.test(n))return createTool(name,'grease');
  return null;
 }
@@ -77,7 +76,6 @@ function createTool(name,kind){
  if(kind==='pickaxe'){cyl(wood,0,.3,0,.035,.045,.55,8).rotation.z=-.7;const head=mesh(new THREE.CylinderGeometry(.045,.055,.43,8),iron,.2,.51,0);head.rotation.z=Math.PI/2;mesh(new THREE.ConeGeometry(.06,.3,6),iron,.43,.51,0).rotation.z=Math.PI/2;}
  else if(kind==='lockpick'){for(const x of [-.12,-.04,.04,.12]){cyl(iron,x,.28,0,.012,.012,.43,6).rotation.z=(x*2.2);mesh(new THREE.ConeGeometry(.025,.11,5),iron,x+.035,.51,0).rotation.z=Math.PI/2;}}
  else if(kind==='key'){cyl(gold,0,.3,0,.018,.018,.5,8);ring(gold,0,.57,0,.08,.018).rotation.x=Math.PI/2;for(const x of [-.04,.04])box(gold,x,.06,0,.035,.14,.025);}
- else if(kind==='blindfold'){const band=mesh(new THREE.TorusGeometry(.16,.045,8,24,Math.PI*1.35),cloth,0,.32,0);band.rotation.x=Math.PI/2;for(const x of [-.2,.2])ball(cloth,x,.32,0,.08,.035,.04);}
  else {cyl(tin,0,.13,0,.18,.18,.18);cyl(grease,0,.245,0,.13,.15,.08);ring(gold,0,.3,0,.13,.012).rotation.x=Math.PI/2;}
  const label=()=>{};return g;
 }

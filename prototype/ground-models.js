@@ -646,6 +646,60 @@ export function createGroundModel(item={}){
   for(let i=0;i<7;i++){const x=(i-3)*.075;box(.018,.04,.02,gold,x,.3);box(.47,.018,.035,gold,0,.3);add(new THREE.CylinderGeometry(.019,.019,.16,8),cloth,x,.4);box(.004,.015,.004,leather,x,.487);}
  }else if(/marker/.test(name)){
   const pen=add(new THREE.CylinderGeometry(.035,.035,.32,12),leather,0,.04);pen.rotation.z=Math.PI/2;const cap=add(new THREE.CylinderGeometry(.04,.04,.08,12),gold,.15,.04);cap.rotation.z=Math.PI/2;
+ }else if(cls===6&&/blindfold/.test(name)){
+  // A dark silk blindfold dropped with its knot still tied: a padded, pleated eye band
+  // looping round to a knot, with two ties trailing out and fraying at the tips.
+  const silk=mat(0x1d2027),hem=mat(0x3b404b),thread=mat(0x8d929c);
+  silk.roughness=.5;silk.side=THREE.DoubleSide;
+  const v=(x,y,z)=>new THREE.Vector3(x,y,z);
+  const path=new THREE.CatmullRomCurve3([v(.25,0,.12),v(.17,0,.06),v(.1,0,0),v(.03,0,-.07),v(-.09,0,-.115),v(-.2,0,-.01),
+   v(-.11,0,.1),v(.02,0,.075),v(.1,0,0),v(.18,0,-.045),v(.255,0,-.125)]);
+  const N=120,M=8,positions=[],indices=[],left=[],right=[];
+  const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+  // The pad runs over the far side of the loop; the ties are narrow.
+  const pad=t=>smooth(.26,.36,t)*(1-smooth(.64,.74,t));
+  for(let i=0;i<=N;i++){
+   const t=i/N,p=path.getPoint(t),d=path.getTangent(t),nx=-d.z,nz=d.x,k=pad(t),w=.012+.028*k;
+   // The second pass lies over the first where the band crosses at the knot.
+   const lift=.004+.009*Math.exp(-(((t-.8)/.06)**2))+.004*Math.exp(-(((t-.2)/.06)**2));
+   for(let j=0;j<=M;j++){
+    const u=j/M*2-1;
+    // Padding bulges the middle, and two pleats run along the eye band.
+    const y=lift+k*(.007*(1-u*u)+.0025*Math.cos(u*Math.PI*2))+.0012*Math.sin(t*70);
+    positions.push(p.x+nx*u*w,y,p.z+nz*u*w);
+   }
+   left.push(v(p.x-nx*w,lift+.0015,p.z-nz*w));right.push(v(p.x+nx*w,lift+.0015,p.z+nz*w));
+  }
+  for(let i=0;i<N;i++)for(let j=0;j<M;j++){const a=i*(M+1)+j,b=a+M+1;indices.push(a,b,a+1,a+1,b,b+1);}
+  const band=new THREE.BufferGeometry();
+  band.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  band.setIndex(indices);band.computeVertexNormals();add(band,silk);
+  // Rolled hems down both edges give the thin band some body.
+  for(const edge of [left,right])add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge),160,.0028,5,false),hem);
+  // Seams where the ties are sewn to the pad, and a line of stitching round the pad.
+  for(const t of [.3,.7]){
+   const p=path.getPoint(t),d=path.getTangent(t),w=.012+.028*pad(t),a=Math.atan2(d.x,d.z);
+   const seam=box(2*w,.003,.004,thread,p.x,.014,p.z);seam.rotation.y=a+Math.PI/2;
+  }
+  for(let i=0;i<22;i++){
+   const t=.34+i/21*.32,p=path.getPoint(t),d=path.getTangent(t),w=.03,k=pad(t);
+   for(const s of [-1,1]){
+    const stitch=box(.002,.002,.007,thread,p.x-d.z*s*w,.004+.0105*k,p.z+d.x*s*w);stitch.rotation.y=Math.atan2(d.x,d.z);
+   }
+  }
+  // The knot where the ties cross, with a small loop tucked through it.
+  ball(.019,silk,.1,.017,0,[1.25,.7,1]);
+  const loop=add(new THREE.TorusGeometry(.013,.0055,6,14),hem,.093,.02,.012);loop.rotation.set(Math.PI/2-.4,0,.5);
+  // Frayed threads at both tie tips.
+  for(const [t,s] of [[0,-1],[1,1]]){
+   const p=path.getPoint(t),d=path.getTangent(t).multiplyScalar(s);
+   for(let i=0;i<5;i++){
+    const off=(i-2)*.0045,x=p.x-d.z*off,z=p.z+d.x*off,len=.012+.006*((i*7)%3);
+    const f=add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([v(x,.004,z),v(x+d.x*len*.6+.002*(i-2),.003,z+d.z*len*.6),v(x+d.x*len-.003*(i%2),.0015,z+d.z*len)]),6,.0011,3,false),hem);
+    f.castShadow=false;
+   }
+  }
+  g.rotation.y=.3;
  }else if(cls===6&&TOOL_KIND.test(name)){
   // Common tools, keyed by the word they share with their unidentified twin.
   const kind=name.match(TOOL_KIND)[1];
