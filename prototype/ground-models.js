@@ -547,8 +547,62 @@ export function createGroundModel(item={}){
   // Links sit against the garment, rather than hovering over a spherical shell.
   for(let row=0;row<7;row++)for(let col=0;col<6;col++){const ring=add(new THREE.TorusGeometry(.025,.006,5,10),metal,(col-2.5)*.055,.097,-.17+row*.055);ring.rotation.x=-Math.PI/2;}
   add(new THREE.TorusGeometry(.059,.013,6,18),leather,0,.096,-.195).rotation.x=-Math.PI/2;
- }else if(/bag|sack/.test(name)){
-  ball(.22,leather,0,.19,0,[1,.85,.8]);add(new THREE.CylinderGeometry(.06,.13,.08,12),cloth,0,.36,0);add(new THREE.TorusGeometry(.085,.015,6,16),gold,0,.37,0).rotation.x=Math.PI/2;
+ }else if(/\bbag\b|sack/.test(name)){
+  // Sacks, oilskin sacks and bags of holding and tricks all look like "bag" until identified, so they share one model.
+  const smooth=(e0,e1,v)=>{const t=Math.min(1,Math.max(0,(v-e0)/(e1-e0)));return t*t*(3-2*t);};
+  const wrap=d=>Math.atan2(Math.sin(d),Math.cos(d));
+  // Profile: a flat base, a bulging belly, a neck cinched at y≈.305, then a gathered frill.
+  const profile=new THREE.SplineCurve([[0,0],[.1,0],[.165,.012],[.2,.05],[.214,.11],[.205,.175],[.172,.235],[.115,.282],[.058,.303],[.05,.315],[.066,.332],[.09,.356],[.102,.376],[.097,.388]].map(([r,y])=>new THREE.Vector2(r,y))).getPoints(44).map(p=>p.setY(Math.max(0,p.y)));
+  const rAt=y=>{let r=0;for(let i=1;i<profile.length;i++){const p=profile[i-1],q=profile[i];if((y-p.y)*(y-q.y)<=0&&q.y!==p.y)r=Math.max(r,p.x+(q.x-p.x)*(y-p.y)/(q.y-p.y));}return r;};
+  // Contents press out as lumps; the neck gathers into pleats; the full belly slumps oval and the neck flops sideways.
+  const LUMPS=[[1.1,.19,.028],[-.95,.13,.03],[2.75,.17,.024],[-2.5,.09,.022],[.4,.07,.014]];
+  const lumps=(a,y)=>LUMPS.reduce((s,[a0,y0,c])=>s+c*Math.exp(-((wrap(a-a0)/.5)**2)-((y-y0)/.06)**2),0);
+  const pleatAmp=y=>.011*smooth(.12,.3,y)*(1-smooth(.3,.315,y))+.007*smooth(.315,.36,y);
+  const wave=a=>Math.sin(a*14+1.3*Math.sin(a*3));
+  const oval=(a,y)=>1+.06*Math.cos(2*a)*(1-smooth(.2,.3,y));
+  const lean=y=>.03*smooth(.2,.39,y);
+  const surf=(a,y,off=0,w=1)=>{const r=rAt(y)*oval(a,y)+pleatAmp(y)*w+lumps(a,y)+off;return new THREE.Vector3(Math.sin(a)*r+lean(y),y,Math.cos(a)*r);};
+  const body=new THREE.LatheGeometry(profile,48);
+  const pos=body.attributes.position,colors=new Float32Array(pos.count*3),base=new THREE.Color(0x9a8158),grime=new THREE.Color(0x4e3f2c),c=new THREE.Color();
+  for(let i=0;i<pos.count;i++){
+   const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),r=Math.hypot(x,z),a=Math.atan2(x,z),w=wave(a),amp=pleatAmp(y);
+   if(r>1e-6){const nr=r*oval(a,y)+amp*w+lumps(a,y);pos.setXYZ(i,Math.sin(a)*nr+lean(y),y>.37?y+.006*w:y,Math.cos(a)*nr);}
+   c.copy(base).multiplyScalar(1+.3*w*Math.min(1,amp/.011)+2.5*lumps(a,y)).lerp(grime,.55*(1-smooth(0,.06,y)));
+   colors.set([c.r,c.g,c.b],i*3);
+  }
+  body.setAttribute('color',new THREE.BufferAttribute(colors,3));body.computeVertexNormals();
+  const canvas=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.95,side:THREE.DoubleSide});materials.push(canvas);
+  add(body,canvas);
+  // Darkness inside the mouth, so the neck doesn't read as hollow to the floor.
+  add(new THREE.CircleGeometry(.056,20),mat(0x1a120c),lean(.31),.31,0).rotation.x=-Math.PI/2;
+  // Drawstring: a cord riding the pleat crests round the neck, tied in a bow at the front with two ends trailing to the floor.
+  const cord=mat(0x4a3120),tube=(pts,closed=false,r=.0065)=>{
+   const geo=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,closed,closed?'catmullrom':'centripetal'),closed?64:40,r,6,closed);
+   // Where a trailing end lies on the floor its underside flattens against it.
+   const p=geo.attributes.position;for(let i=0;i<p.count;i++)if(p.getY(i)<0)p.setY(i,0);
+   return add(geo,cord);
+  };
+  tube(Array.from({length:32},(_,i)=>surf(i/32*Math.PI*2,.304+.003*Math.sin(i*1.7),.006)),true);
+  const knot=surf(0,.3,.016);
+  ball(.016,cord,knot.x,knot.y,knot.z,[1.2,.9,.9]);
+  for(const s of [-1,1]){
+   const loop=add(new THREE.TorusGeometry(.021,.0055,6,18),cord,knot.x+s*.024,knot.y+.006,knot.z+.004);loop.rotation.set(-.3,0,s*.5);loop.scale.set(1,.7,1);
+   const pts=[knot.clone()];
+   for(const [i,y] of [.27,.21,.15,.095].entries())pts.push(surf(s*(.1+i*.08),y,.013));
+   const a=s*.42,far=rAt(.03)*oval(a,.03)+.035;
+   pts.push(new THREE.Vector3(Math.sin(a)*(far-.012),.03,Math.cos(a)*(far-.012)),new THREE.Vector3(Math.sin(a)*(far+.015),.0068,Math.cos(a)*(far+.015)),new THREE.Vector3(Math.sin(a)*far+s*.05,.0065,Math.cos(a)*far+.07));
+   tube(pts);
+   // A whipped knot at each tip.
+   const tip=pts.at(-1);ball(.0095,cord,tip.x,.0095,tip.z,[1,1,1.3]);
+  }
+  // A sewn-on leather patch with stitches round it, and a stitched side seam.
+  const patchAt=(a,y,w,h,m)=>{const p=surf(a,y,.002,0);const q=box(w,h,.004,m,p.x,p.y,p.z);q.rotation.set(-.35*smooth(.12,.22,y)+.25*(1-smooth(.04,.12,y)),a,0,'YXZ');return q;};
+  const patchMat=mat(0x6a452a),thread=mat(0xd8cba8);
+  patchAt(2.15,.12,.075,.065,patchMat);
+  for(const [dx,dy] of [[-.04,0],[.04,0],[0,-.037],[0,.037],[-.02,-.037],[.02,.037],[-.02,.037],[.02,-.037]]){
+   const st=patchAt(2.15+dx/.21,.12+dy,dy?.01:.003,dy?.003:.01,thread);st.position.addScaledVector(new THREE.Vector3(Math.sin(2.15),0,Math.cos(2.15)),.002);
+  }
+  for(let y=.035;y<.28;y+=.024)patchAt(-1.75,y,.003,.012,thread);
  }else if(/ration/.test(name)){
   if(/tripe/.test(name)){const meat=mat(0xa26457);for(let i=0;i<4;i++)ball(.1,meat,(i-1.5)*.075,.065,Math.sin(i)*.035,[.7,.5,1.3]);}
   else {
