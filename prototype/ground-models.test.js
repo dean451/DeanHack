@@ -158,3 +158,27 @@ test('common tools get grounded, finite models that share their unidentified loo
  assert.notDeepEqual(signature(createGroundModel({name:'unicorn horn',class:6})),signature(createGroundModel({name:'tooled horn',class:6})));
  assert.equal(createGroundModel({name:'chest',class:3}),null);
 });
+
+test('rings lie on the floor and show only their shuffled appearance',()=>{
+ const ring=(name,appearance)=>createGroundModel({name,class:4,appearance});
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);});return out;};
+ for(const look of ['gold','wooden','ruby','pearl','jade','twisted','wire','ridged','engagement','wedding','shiny',undefined]){
+  const model=ring('ring of conflict',look);
+  assert(model,look);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${look} rests on the floor`);
+  assert(bounds.max.y<.14,`${look} lies low`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.16,`${look} fits its tile`);
+  let meshes=0,geometries=0;
+  model.traverse(part=>{if(part.geometry){
+   meshes++;
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+   part.geometry.addEventListener('dispose',()=>geometries++);
+  }});
+  model.userData.dispose();
+  assert.equal(geometries,meshes);
+ }
+ assert.deepEqual(signature(ring('ring of conflict','ruby')),signature(ring('ring of hunger','ruby')),'the true ring name must not show');
+ assert.notDeepEqual(signature(ring('ring of conflict','ruby')),signature(ring('ring of conflict','iron')));
+ assert.equal(createGroundModel({name:'ring of conflict',class:6}),null);
+});
