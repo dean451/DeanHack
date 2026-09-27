@@ -381,3 +381,34 @@ test('the apron lies flat with a bib, neck strap, waist ties, a pocket and stain
   for(const v of p.geometry.attributes.normal?.array??[])assert(Number.isFinite(v));}});
  apron.userData.dispose();
 });
+
+test('gloves lie as a pair keyed by appearance, one merged leather mesh per glove',()=>{
+ const gloves=(name,appearance)=>createGroundModel({name,class:3,appearance});
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.attributes.position.count,...part.getWorldPosition(new THREE.Vector3()).toArray().map(n=>n.toFixed(5))]);});return out;};
+ const kinds=[['leather gloves','old gloves'],['gauntlets of fumbling','padded gloves'],['gauntlets of power','riding gloves'],['gauntlets of dexterity','fencing gloves']];
+ const seen=new Set();
+ for(const [name,look] of kinds){
+  const model=gloves(name,look);
+  assert(model,name);
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} rests on the floor`);
+  assert(bounds.max.y<.06,`${name} lies flat`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} fits its tile`);
+  let meshes=0,geometries=0;
+  model.traverse(part=>{if(part.geometry){
+   meshes++;
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+   for(const value of part.geometry.attributes.normal.array)assert(Number.isFinite(value));
+   part.geometry.addEventListener('dispose',()=>geometries++);
+  }});
+  assert.equal(model.children.filter(c=>c.userData.part==='glove').length,2,`${name} is a pair`);
+  assert(meshes<=4,`${name} stays at a few draw calls (${meshes})`);
+  seen.add(JSON.stringify(signature(model)));
+  model.userData.dispose();
+  assert.equal(geometries,meshes);
+ }
+ assert.equal(seen.size,kinds.length,'each glove kind looks different');
+ assert.deepEqual(signature(gloves('gauntlets of power','riding gloves')),signature(gloves('leather gloves','riding gloves')),'the true glove name must not show');
+ assert.deepEqual(signature(gloves('gauntlets of power')),signature(gloves('leather gloves')),'without an appearance the true name must not show either');
+});
