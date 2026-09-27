@@ -62,3 +62,29 @@ test('pony, horse and warhorse are grounded, hornless horses that grow with the 
  assert.equal(createCreature({symbol:117,color:3}).g.name,'horse');
  assert.notEqual(createCreature({name:'white unicorn',symbol:117,color:15}).g.name,'horse');
 });
+
+test('plain dwarves carry a finite forged pick-axe in hand; lords keep it and kings carry a sceptre instead',()=>{
+ for(const [name,hasPick] of [['dwarf',true],['dwarf lord',true],['dwarf king',false]]){
+  const actor=createCreature({name,symbol:104,color:1});
+  const pick=actor.g.getObjectByName('dwarf-pick');
+  assert.equal(Boolean(pick),hasPick,name);
+  actor.g.updateMatrixWorld(true);
+  actor.g.traverse(part=>{if(part.geometry)for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);});
+  const bounds=new THREE.Box3().setFromObject(actor.g);
+  assert(bounds.min.y>-.05,name);assert(bounds.max.y<1.4,name);
+  if(!pick)continue;
+  const box=new THREE.Box3().setFromObject(pick);
+  // held at the dwarf's left side: the butt clears the floor and the head stays near head height
+  assert(box.min.y>0&&box.max.y<1.15&&box.min.x>-.85&&box.max.x<0,name);
+  // the head's end caps face outward along the head, so neither end is hollow
+  const head=pick.children.find(child=>child.geometry?.attributes.color);
+  const positions=head.geometry.attributes.position,index=head.geometry.index.array,ends=[0,0];
+  for(let i=index.length-20*3;i<index.length;i+=3){
+   const [a,b,c]=[index[i],index[i+1],index[i+2]].map(n=>new THREE.Vector3().fromBufferAttribute(positions,n));
+   const normal=new THREE.Vector3().subVectors(b,a).cross(new THREE.Vector3().subVectors(c,a));
+   const centroid=a.clone().add(b).add(c).divideScalar(3);
+   if(normal.lengthSq()>0)ends[centroid.x<0?0:1]+=Math.sign(normal.x*centroid.x);
+  }
+  assert(ends[0]>0&&ends[1]>0,name);
+ }
+});

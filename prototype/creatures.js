@@ -42,8 +42,62 @@ function humanoid(kind,o={}){
  if(guard){const spear=rounded(body,.045,.7,.045,M.steel,.36,.7,.24,.01);spear.rotation.z=-.12;cone(body,.07,.14,M.steel,.36,1.1,.24,5).rotation.x=Math.PI;}
  if(kind==='bugbear'){const haft=rounded(body,.045,.5,.045,M.leather,.32,.62,.2,.01);haft.rotation.x=.25;const ball=sphere(body,.08,M.darkSteel,.32,.86,.27);for(const [x,y,z,rx,rz] of [[1,0,0,0,-1],[-1,0,0,0,1],[0,1,0,0,0],[0,0,1,1,0],[0,0,-1,-1,0]]){const spike=cone(ball,.025,.08,M.steel,x*.1,y*.1,z*.1,4);spike.rotation.set(rx*Math.PI/2,0,rz*Math.PI/2);}}
  if(kind==='dwarf'&&o.rank==='king'){const scepter=rounded(body,.04,.62,.04,M.gold,.36,.68,.18,.01);scepter.rotation.z=-.1;sphere(body,.06,M.gold,.39,1.0,.18);}
- else if(kind==='dwarf'){const pick=rounded(body,.045,.55,.045,M.steel,-.38,.67,.18,.01);pick.rotation.z=.55;const head=rounded(body,.26,.05,.05,M.steel,-.38,.94,.18,.01);head.rotation.z=-.2;}
+ else if(kind==='dwarf')dwarfPick(body);
  return actor(g,body,legs,null,wings,kind);
+}
+// The dwarves' pick-axe, held low in the left hand and leaning out: an arched forged head with a
+// drawn point and a chisel end (polished at the tips, forge-dark in the middle, flecked with rust),
+// an eye boss with bands, riveted langets, a wedge through the top, a turned haft with a swelled
+// butt and a spiralled leather grip.
+const PICK={
+ forged:new THREE.MeshStandardMaterial({vertexColors:true,metalness:.72,roughness:.36}),
+ wood:new THREE.MeshStandardMaterial({color:0x7a5436,roughness:.82}),
+ grip:new THREE.MeshStandardMaterial({color:0x3a2519,roughness:.95}),
+};
+function forgedPickHead(rows=26,sides=10){
+ const pos=[],col=[],idx=[],hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
+ for(let i=0;i<=rows;i++){
+  const u=i/rows*2-1,a=Math.abs(u),x=u*.19,y=.034*(1-u*u)-.01;
+  let tx=.19,ty=-.068*u;const tl=Math.hypot(tx,ty);tx/=tl;ty/=tl;const nx=-ty,ny=tx;
+  const taper=1-Math.pow(a,1.5)*.9,hh=.028*taper+.003;
+  // u<0 is the chisel end: thin in height but keeping its width; u>0 draws out to a point
+  const hw=u<0?.017*(1-a*.15):.017*taper+.0012;
+  const bright=Math.pow(a,2.5),rust=hash(i*7.1+3)>.82?.35:0;
+  for(let j=0;j<sides;j++){
+   const th=j/sides*Math.PI*2,c=Math.cos(th),s=Math.sin(th);
+   const px=Math.sign(c)*Math.pow(Math.abs(c),.55),py=Math.sign(s)*Math.pow(Math.abs(s),.55);
+   pos.push(x+nx*py*hh,y+ny*py*hh,px*hw);
+   const f=hash(i*31+j*17)*.06,r=rust*(hash(i*5+j*13)>.5?1:.4);
+   col.push(.24+bright*.46+f+r*.3,.26+bright*.46+f+r*.02,.27+bright*.44+f-r*.12);
+  }
+ }
+ for(let i=0;i<rows;i++)for(let j=0;j<sides;j++){const a=i*sides+j,b=i*sides+(j+1)%sides,c=a+sides,d=b+sides;idx.push(a,c,b,b,c,d);}
+ // close both ends with a small fan
+ for(const [ring,flip] of [[0,true],[rows,false]]){
+  const base=ring*sides,center=pos.length/3;let cx=0,cy=0,cz=0;
+  for(let j=0;j<sides;j++){cx+=pos[(base+j)*3];cy+=pos[(base+j)*3+1];cz+=pos[(base+j)*3+2];}
+  pos.push(cx/sides,cy/sides,cz/sides);col.push(col[base*3],col[base*3+1],col[base*3+2]);
+  for(let j=0;j<sides;j++){const a=base+j,b=base+(j+1)%sides;flip?idx.push(center,a,b):idx.push(center,b,a);}
+ }
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+ geometry.setIndex(idx);geometry.computeVertexNormals();return geometry;
+}
+function dwarfPick(body){
+ const pick=new THREE.Group();pick.name='dwarf-pick';pick.position.set(-.36,.44,.1);pick.rotation.set(.12,0,.42);body.add(pick);
+ // haft from the butt (y -.13) to just above the head (y .6), gripped at y 0
+ cylinder(pick,.016,.02,.72,PICK.wood,0,.235,0,10);sphere(pick,.026,PICK.wood,0,-.12,0,1,.75,1);
+ const grain=new THREE.MeshStandardMaterial({color:0x5b3c25,roughness:.85});
+ for(const [x,z] of [[.0165,.004],[-.012,.012],[.004,-.017]])part(pick,new THREE.BoxGeometry(.003,.5,.003),grain,x,.28,z);
+ const helix=[];for(let i=0;i<=60;i++){const t=i/60,a=t*Math.PI*2*5.5;helix.push(new THREE.Vector3(Math.cos(a)*.022,-.09+t*.2,Math.sin(a)*.022));}
+ part(pick,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix),120,.0055,5),PICK.grip);
+ for(const y of [-.095,.115]){const band=part(pick,new THREE.TorusGeometry(.023,.005,6,14),PICK.grip,0,y,0);band.rotation.x=Math.PI/2;}
+ part(pick,forgedPickHead(),PICK.forged,0,.56,0);
+ cylinder(pick,.03,.03,.075,M.darkSteel,0,.56,0,10);
+ for(const y of [.527,.593]){const band=part(pick,new THREE.TorusGeometry(.031,.0045,6,14),M.steel,0,y,0);band.rotation.x=Math.PI/2;}
+ for(const z of [-.02,.02]){part(pick,new THREE.BoxGeometry(.014,.13,.005),M.darkSteel,0,.46,z);for(const y of [.42,.49])part(pick,new THREE.SphereGeometry(.005,6,4),M.steel,0,y,z*1.25);}
+ part(pick,new THREE.BoxGeometry(.028,.018,.008),M.darkSteel,0,.605,0);
+ return pick;
 }
 function gridBug(){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[];sphere(body,.17,M.electric,0,.25,0,.8,.6,1.25);sphere(body,.11,M.darkSteel,0,.27,.16,.9,.72,1);eyes(body,M.electric,.01,.15,.055);
