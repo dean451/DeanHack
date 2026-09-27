@@ -659,6 +659,114 @@ export function createGroundModel(item={}){
    boss(.055,iron);
   }
   g.rotation.y=-.35;
+ }else if(cls===3&&/\bapron\b/.test(item.appearance||name)||/alchemy smock/.test(name)){
+  // "apron" is the alchemy smock's own appearance: a linen apron dropped flat, bib away
+  // from the viewer, with a neck strap, waist ties, a patch pocket and potion stains.
+  const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+  const L=.42,zAt=v=>L/2-v*L,WAIST=.58;
+  // Half-width up the apron: a broad skirt, a curved underarm cut, then a narrow bib.
+  const half=v=>v<WAIST?.195-.025*v/WAIST:v<.72?.086+.084*(1-(v-WAIST)/.14)**2:.086-.006*(v-.72)/.28;
+  // Soft lengthwise folds that deepen toward the hem, a light crumple, and a raised waistband.
+  const lift=(x,z)=>{
+   const v=(L/2-z)/L,skirt=1-smooth(.1,WAIST,v);
+   return .004+.013*skirt*(.5+.5*Math.cos(x*48+Math.sin(z*17)*.9))+.0025*Math.sin(x*61+z*37)*Math.sin(z*29-x*13)
+    +.0022*Math.exp(-(((v-WAIST)/.018)**2))+.006*smooth(.16,.2,Math.abs(x))*skirt;
+  };
+  const linen=new THREE.Color(0xd8caa6),hemTone=new THREE.Color(0xa99972),c=new THREE.Color();
+  // Stains: [x, z, radius, colour, strength]. A green splash, a violet drip, a scorch and old grime.
+  const STAINS=[[-.08,.1,.035,0x6f8f3c,.75],[-.055,.135,.015,0x6f8f3c,.6],[.1,-.02,.028,0x7b4d8f,.65],[.115,.03,.012,0x7b4d8f,.5],
+   [-.12,-.06,.026,0x3b2a1c,.8],[.05,.17,.05,0x8a7a55,.35]].map(([x,z,r,col,s])=>[x,z,r,new THREE.Color(col),s]);
+  const shade=(x,z,v,u)=>{
+   c.copy(linen).multiplyScalar(.93+.07*Math.sin(x*420)*Math.sin(z*390)+.04*Math.sin(x*48+Math.sin(z*17)*.9));
+   c.lerp(hemTone,.55*smooth(.8,1,Math.abs(u))+.5*smooth(.97,1,v)+.4*Math.exp(-(((v-WAIST)/.02)**2)));
+   for(const [sx,sz,r,col,s] of STAINS){
+    const a=Math.atan2(z-sz,x-sx),rr=r*(1+.28*Math.sin(a*5+sx*40)),d=Math.hypot(x-sx,z-sz)/rr;
+    // Dried stains are darker at the rim, where the liquid pooled as it dried.
+    if(d<1.2)c.lerp(col,s*(1-smooth(.75,1.2,d))*(.8+.2*smooth(.5,.95,d)));
+   }
+   return c;
+  };
+  // The cloth: a grid mapped onto the outline, displaced by the folds, double-sided.
+  const N=48,M=24,positions=[],colors=[],indices=[],edge=[];
+  for(let i=0;i<=N;i++){
+   const v=i/N,z=zAt(v),w=half(v);
+   for(let j=0;j<=M;j++){
+    const u=j/M*2-1,x=u*w;
+    positions.push(x,lift(x,z),z);colors.push(...shade(x,z,v,u).toArray());
+   }
+  }
+  for(let i=0;i<N;i++)for(let j=0;j<M;j++){const a=i*(M+1)+j,b=a+M+1;indices.push(a,b,a+1,a+1,b,b+1);}
+  const sheet=new THREE.BufferGeometry();
+  sheet.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  sheet.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  sheet.setIndex(indices);sheet.computeVertexNormals();
+  const linenMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.96,side:THREE.DoubleSide});materials.push(linenMat);
+  add(sheet,linenMat);
+  // A rolled hem round the whole outline, following the folds.
+  const P=(x,z,up=.0015)=>new THREE.Vector3(x,lift(x,z)+up,z);
+  for(let i=0;i<=N;i++)edge.push(P(-half(i/N),zAt(i/N)));
+  for(let j=1;j<M;j++){const u=j/M*2-1;edge.push(P(u*half(1),zAt(1)));}
+  for(let i=N;i>=0;i--)edge.push(P(half(i/N),zAt(i/N)));
+  for(let j=M-1;j>0;j--){const u=j/M*2-1;edge.push(P(u*half(0),zAt(0)));}
+  const hem=mat(0xb7a67f);
+  add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge,true),260,.0028,5,true),hem);
+  // Straps are flat tape ribbons lying on the floor, with a small twist and frayed tips.
+  const tape=mat(0xc3b28a);tape.side=THREE.DoubleSide;
+  const strap=(pts,wide=.013,fray=true)=>{
+   const path=new THREE.CatmullRomCurve3(pts),S=Math.max(24,pts.length*10),pos=[],idx=[];
+   for(let i=0;i<=S;i++){
+    const t=i/S,p=path.getPoint(t),d=path.getTangent(t),tw=.35*Math.sin(t*9),nx=-d.z,nz=d.x;
+    for(const s of [-1,1])pos.push(p.x+nx*s*wide*Math.cos(tw),p.y+s*wide*Math.sin(tw)*.5+wide*.5*Math.abs(Math.sin(tw)),p.z+nz*s*wide*Math.cos(tw));
+    if(i<S)idx.push(i*2,i*2+2,i*2+1,i*2+1,i*2+2,i*2+3);
+   }
+   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();
+   add(geo,tape);
+   if(!fray)return;
+   const p=path.getPoint(1),d=path.getTangent(1);
+   for(let k=0;k<5;k++){
+    const off=(k-2)*wide*.4,x=p.x-d.z*off,z=p.z+d.x*off,len=.01+.005*((k*7)%3);
+    const f=add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(x,p.y,z),new THREE.Vector3(x+d.x*len+.002*(k-2),.002,z+d.z*len)]),4,.001,3,false),hem);
+    f.castShadow=false;
+   }
+  };
+  const V=(x,z,y=.0055)=>new THREE.Vector3(x,y,z);
+  // Neck strap: a loop from the bib's top corners, lying flat past the bib, with a brass slider.
+  const top=zAt(1),bw=half(1)-.012;
+  strap([V(-bw,top+.004,lift(-bw,top)+.004),V(-bw-.012,top-.035),V(-.085,top-.075),V(-.03,top-.098),V(.03,top-.1),V(.08,top-.08),V(bw+.014,top-.04),V(bw,top+.004,lift(bw,top)+.004)],.011,false);
+  const brass=mat(0xb28a45,.7),slider=add(new THREE.TorusGeometry(.012,.0028,6,4),brass,-bw-.01,.009,top-.04);
+  slider.rotation.set(-Math.PI/2,0,Math.PI/4);slider.scale.set(1.6,.8,1);
+  // Waist ties: sewn on at the waist, one trailing out in a lazy S, the other doubled back.
+  const wz=zAt(WAIST),ww=half(WAIST)-.006;
+  strap([V(-ww,wz,lift(-ww,wz)+.004),V(-ww-.04,wz+.004),V(-ww-.08,wz+.03),V(-ww-.095,wz+.085),V(-ww-.07,wz+.14),V(-ww-.085,wz+.19)]);
+  strap([V(ww,wz,lift(ww,wz)+.004),V(ww+.05,wz-.006),V(ww+.1,wz+.012),V(ww+.12,wz+.05),V(ww+.08,wz+.075),V(ww+.03,wz+.1,.0095),V(ww+.02,wz+.14,.0095)]);
+  // Box stitches where the ties and neck strap are sewn on.
+  const thread=mat(0x8a7a58);
+  for(const [x,z] of [[-ww,wz],[ww,wz],[-bw,top+.004],[bw,top+.004]]){const y=lift(x,z)+.007;box(.018,.0015,.0015,thread,x,y,z-.006);box(.018,.0015,.0015,thread,x,y,z+.006);}
+  // A patch pocket on the skirt: its own small sheet over the folds, open along the top,
+  // stitched on three sides, with a corked vial leaning out.
+  const PX=.035,PW=.07,PZ0=zAt(.4),PZ1=zAt(.18),pk=[],pc=[],pi=[],PN=12;
+  for(let i=0;i<=PN;i++)for(let j=0;j<=PN;j++){
+   const x=PX-PW+2*PW*j/PN,z=PZ0+(PZ1-PZ0)*i/PN,open=1-i/PN;
+   pk.push(x,lift(x,z)+.0035+.005*open*(1-((j/PN)*2-1)**2),z);pc.push(...shade(x,z,(L/2-z)/L,0).multiplyScalar(.92).toArray());
+  }
+  for(let i=0;i<PN;i++)for(let j=0;j<PN;j++){const a=i*(PN+1)+j,b=a+PN+1;pi.push(a,a+1,b,a+1,b+1,b);}
+  const pocket=new THREE.BufferGeometry();
+  pocket.setAttribute('position',new THREE.Float32BufferAttribute(pk,3));pocket.setAttribute('color',new THREE.Float32BufferAttribute(pc,3));
+  pocket.setIndex(pi);pocket.computeVertexNormals();add(pocket,linenMat);
+  // The pocket mouth is hemmed; stitches run down the sides and along the bottom.
+  const mouth=[];for(let j=0;j<=PN;j++){const x=PX-PW+2*PW*j/PN;mouth.push(P(x,PZ0,.0035+.005*(1-((j/PN)*2-1)**2)+.0015));}
+  add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(mouth),24,.0026,5,false),hem);
+  for(let k=0;k<9;k++){
+   const z=PZ0+.008+(PZ1-PZ0-.012)*k/8;
+   for(const x of [PX-PW+.004,PX+PW-.004]){box(.0015,.0015,.007,thread,x,lift(x,z)+.005,z);}
+  }
+  for(let k=0;k<11;k++){const x=PX-PW+.008+(2*PW-.016)*k/10;box(.007,.0015,.0015,thread,x,lift(x,PZ1-.004)+.005,PZ1-.004);}
+  const glass=new THREE.MeshStandardMaterial({color:0x7fd0a0,roughness:.12,metalness:.1,transparent:true,opacity:.6,emissive:0x1f5a3a,emissiveIntensity:.35});materials.push(glass);
+  const vial=add(new THREE.CylinderGeometry(.011,.011,.07,12),glass,PX+.02,lift(PX+.02,PZ0)+.021,PZ0+.004);
+  vial.rotation.set(-1.25,0,-.25);
+  const neck=new THREE.Vector3(0,.035,0).applyEuler(vial.rotation).add(vial.position);
+  const cork=add(new THREE.CylinderGeometry(.0075,.0065,.014,10),mat(0x8a6038),neck.x,neck.y,neck.z);cork.rotation.copy(vial.rotation);
+  g.rotation.y=.22;
  }else if(/mail|mithril|coat/.test(name)&&cls===3){
   add(new RoundedBoxGeometry(.38,.09,.48,3,.025),metal,0,.05);
   for(const x of [-.235,.235])add(new RoundedBoxGeometry(.16,.075,.18,3,.02),metal,x,.045,-.14);
