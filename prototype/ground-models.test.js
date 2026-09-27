@@ -360,3 +360,24 @@ test('rocks are fractured rubble and gray stones one veined pebble, grounded and
   model.userData.dispose();
  }
 });
+
+test('the apron lies flat with a bib, neck strap, waist ties, a pocket and stains, keyed by appearance',()=>{
+ const apron=createGroundModel({name:'apron',class:3,appearance:'apron'});
+ assert(apron);
+ const verts=m=>{const out=[];m.traverse(p=>{if(p.geometry)out.push(...p.geometry.attributes.position.array);});return out;};
+ // Identifying the smock must not change how it looks.
+ const smock=createGroundModel({name:'alchemy smock',class:3,appearance:'apron'});
+ assert.deepEqual(verts(smock),verts(apron));smock.userData.dispose();
+ const b=new THREE.Box3().setFromObject(apron);
+ assert(b.min.y>=0&&b.max.y<.06,`y ${b.min.y}..${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.43,'footprint');
+ const sheet=apron.children[0].geometry,col=sheet.attributes.color;
+ assert(sheet.attributes.position.count>1000,'the cloth is a fine grid');
+ // Stains pull some cloth well away from the linen tone.
+ let stained=0;for(let i=0;i<col.count;i++)if(col.getX(i)<.5)stained++;
+ assert(stained>10,`stained vertices: ${stained}`);
+ assert(apron.children.filter(p=>p.geometry.type==='TubeGeometry').length>=5,'hems and frayed ties');
+ apron.traverse(p=>{if(p.geometry){for(const v of p.geometry.attributes.position.array)assert(Number.isFinite(v));
+  for(const v of p.geometry.attributes.normal?.array??[])assert(Number.isFinite(v));}});
+ apron.userData.dispose();
+});
