@@ -358,6 +358,80 @@ export function createGroundModel(item={}){
     edge([new THREE.Vector3(x,height(x,z),z),new THREE.Vector3(x+.004,.012,z+side*(.018+(i%3)*.004))]);
    }
   }
+ }else if(cls===3&&/shield/.test(name)){
+  // Shields lie face-up. Each kind is keyed by its appearance where it has one, so an
+  // unidentified shield of reflection shows only as a polished silver shield.
+  const look=(item.appearance||name).toLowerCase();
+  const kind=/blue and green|elven/.test(look)?'elven':/white-handed|uruk/.test(look)?'uruk':/red-eyed|orcish/.test(look)?'orcish':
+   /large round|dwarvish/.test(look)?'dwarvish':/polished silver|reflection/.test(look)?'silver':/large/.test(look)?'tower':'small';
+  const shine=(color,metalness,roughness,emissive=0)=>{const m=new THREE.MeshStandardMaterial({color,metalness,roughness,emissive:emissive?color:0,emissiveIntensity:emissive});materials.push(m);return m;};
+  const iron=shine(0x6f777a,.8,.42),brass=shine(0xb08a42,.8,.34);
+  const face=shine({small:0x7a5634,elven:0x2c5d9a,uruk:0x1c1a1a,orcish:0x5a3a2a,dwarvish:0x6a4a2c,silver:0xdfe7ec,tower:0x6e4d2e}[kind],kind==='silver'?1:0,kind==='silver'?.08:.82);
+  const rimMat=kind==='elven'?shine(0x3f8a4a,.55,.4):kind==='silver'?shine(0xc9d3d8,1,.16):iron;
+  // Outlines are point lists in floor-plan space (x right, y toward -z), scaled for the rim inset.
+  const circle=r=>s=>Array.from({length:48},(_,i)=>{const a=i/48*Math.PI*2;return new THREE.Vector2(Math.cos(a)*r*s,Math.sin(a)*r*s);});
+  const kite=s=>{const pts=[];for(let i=0;i<=20;i++){const a=i/20*Math.PI;pts.push(new THREE.Vector2(Math.cos(a)*.16*s,(.1+Math.sin(a)*.12)*s));}for(let i=1;i<20;i++){const t=i/20;pts.push(new THREE.Vector2(-.16*s*(1-t)**1.3,(.1-t*.37)*s));}pts.push(new THREE.Vector2(0,-.27*s));for(let i=19;i>0;i--){const t=i/20;pts.push(new THREE.Vector2(.16*s*(1-t)**1.3,(.1-t*.37)*s));}return pts;};
+  const heater=s=>{const pts=[new THREE.Vector2(-.17*s,.2*s),new THREE.Vector2(.17*s,.2*s)];for(let i=1;i<=24;i++){const t=i/24;pts.push(new THREE.Vector2(.17*s*Math.cos(t*Math.PI/2)**.8,(.2-t*.45)*s));}for(let i=23;i>0;i--){const t=i/24;pts.push(new THREE.Vector2(-.17*s*Math.cos(t*Math.PI/2)**.8,(.2-t*.45)*s));}return pts;};
+  const tower=s=>{const pts=[],w=.19*s,h=.27*s,r=.05*s;for(const [cx,cy,a0] of [[w-r,h-r,0],[-w+r,h-r,Math.PI/2],[-w+r,-h+r,Math.PI],[w-r,-h+r,Math.PI*1.5]])for(let i=0;i<=6;i++){const a=a0+i/6*Math.PI/2;pts.push(new THREE.Vector2(cx+Math.cos(a)*r,cy+Math.sin(a)*r));}return pts;};
+  const outline={small:circle(.17),elven:kite,uruk:heater,orcish:circle(.18),dwarvish:circle(.25),silver:circle(.2),tower}[kind];
+  const T=.024,bevel=.004;
+  const slab=(shape,depth,m,y=0)=>{const geo=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:2,curveSegments:24});geo.rotateX(-Math.PI/2);geo.translate(0,bevel+y,0);return add(geo,m);};
+  const emblem=(pts,m,y=T+2*bevel)=>{const geo=new THREE.ExtrudeGeometry(new THREE.Shape(pts),{depth:.004,bevelEnabled:false});geo.rotateX(-Math.PI/2);geo.translate(0,y,0);return add(geo,m);};
+  slab(new THREE.Shape(outline(1)),T,face);
+  const rim=new THREE.Shape(outline(1));rim.holes.push(new THREE.Path(outline(kind==='dwarvish'?.9:.88).reverse()));
+  slab(rim,T+.006,rimMat);
+  const top=T+2*bevel,rimTop=top+.006;
+  const boss=(r,m)=>{const p=add(new THREE.SphereGeometry(r,20,10,0,Math.PI*2,0,Math.PI/2),m,0,top);p.scale.y=.55;return p;};
+  const rivets=(n,r,m,rad=.009)=>{for(let i=0;i<n;i++){const a=i/n*Math.PI*2;add(new THREE.SphereGeometry(rad,8,4,0,Math.PI*2,0,Math.PI/2),m,Math.cos(a)*r,rimTop,-Math.sin(a)*r);}};
+  if(kind==='small'){
+   // Planked wood under an iron rim, with a riveted boss.
+   const seam=shine(0x3e2a18,0,.95);
+   for(const x of [-.09,-.03,.03,.09])box(.005,.002,2*Math.sqrt(.15**2-x*x),seam,x,top+.001);
+   boss(.05,iron);rivets(10,.16,iron,.007);
+  }else if(kind==='elven'){
+   // A blue kite shield with a green leaf and fine gold veins.
+   const leaf=shine(0x4f9a4a,.1,.55);
+   const L=[];for(let i=0;i<=16;i++){const t=i/16;L.push(new THREE.Vector2(Math.sin(t*Math.PI)*.055,.13-t*.3));}for(let i=15;i>0;i--){const t=i/16;L.push(new THREE.Vector2(-Math.sin(t*Math.PI)*.055,.13-t*.3));}
+   emblem(L,leaf);
+   box(.004,.003,.28,brass,0,top+.005,.02);
+   for(const s of [-1,1])for(const z of [-.05,0,.05]){const v=box(.003,.003,.06,brass,s*.02,top+.005,z+.015);v.rotation.y=s*.7;}
+  }else if(kind==='uruk'){
+   // Black heater shield bearing the White Hand.
+   const white=shine(0xe8e4da,0,.7);
+   const palm=[];for(let i=0;i<24;i++){const a=i/24*Math.PI*2;palm.push(new THREE.Vector2(Math.cos(a)*.048,-.02+Math.sin(a)*.055));}
+   emblem(palm,white);
+   for(const [x,len,a] of [[-.036,.06,.12],[-.012,.072,.03],[.012,.074,-.03],[.036,.062,-.12]]){const f=box(.019,.004,len,white,x+Math.sin(a)*.03,top+.002,-(.03+len/2));f.rotation.y=a;}
+   const thumb=box(.018,.004,.055,white,-.07,top+.002,-.01);thumb.rotation.y=-.9;
+   for(const x of [-.14,0,.14])add(new THREE.SphereGeometry(.008,8,4,0,Math.PI*2,0,Math.PI/2),iron,x,rimTop,-.185);
+  }else if(kind==='orcish'){
+   // Crude hide-covered round shield with a staring red eye.
+   const eyeWhite=shine(0xd8c27a,0,.6),iris=shine(0xc0181c,0,.4,.6),pupil=shine(0x0c0a0a,0,.5);
+   const almond=[];for(let i=0;i<=16;i++){const t=i/16*Math.PI;almond.push(new THREE.Vector2(Math.cos(t)*-.1,Math.sin(t)*.045));}for(let i=15;i>0;i--){const t=i/16*Math.PI;almond.push(new THREE.Vector2(Math.cos(t)*.1,-Math.sin(t)*.045));}
+   emblem(almond,eyeWhite);
+   add(new THREE.CylinderGeometry(.036,.036,.004,20),iris,0,top+.006);
+   const slit=add(new THREE.CylinderGeometry(.01,.01,.004,12),pupil,0,top+.009);slit.scale.z=2.8;
+   // Jagged claw marks and uneven iron studs.
+   const scratch=shine(0x2a1a12,0,1);for(const [x,z,a] of [[.1,.07,.5],[.115,.09,.5],[.13,.11,.5]]){const c=box(.004,.002,.07,scratch,x,top+.001,z);c.rotation.y=a;}
+   rivets(7,.165,iron,.011);
+  }else if(kind==='dwarvish'){
+   // Large round shield with a cross of iron bands, rivets and a heavy boss.
+   for(const a of [0,Math.PI/2]){const b=box(.46,.006,.038,iron,0,top+.003);b.rotation.y=a;}
+   for(const a of [Math.PI/4,3*Math.PI/4,5*Math.PI/4,7*Math.PI/4])add(new THREE.SphereGeometry(.009,8,4,0,Math.PI*2,0,Math.PI/2),brass,Math.cos(a)*.13,top,-Math.sin(a)*.13);
+   add(new THREE.TorusGeometry(.075,.009,6,32),brass,0,top+.004).rotation.x=Math.PI/2;
+   boss(.065,iron);rivets(16,.237,brass,.008);
+  }else if(kind==='silver'){
+   // Mirror-bright round shield with an engraved ring and a small domed boss.
+   const engraving=shine(0x8a969c,1,.3);
+   for(const r of [.12,.15])add(new THREE.TorusGeometry(r,.003,4,48),engraving,0,top).rotation.x=Math.PI/2;
+   boss(.04,rimMat);
+  }else{
+   // Large rectangular shield: planks with iron bands and a central boss.
+   const seam=shine(0x3e2a18,0,.95);
+   for(const x of [-.1,-.035,.035,.1])box(.005,.002,.5,seam,x,top+.001);
+   for(const z of [-.17,.17]){box(.34,.006,.034,iron,0,top+.003,z);for(const x of [-.13,-.045,.045,.13])add(new THREE.SphereGeometry(.008,8,4,0,Math.PI*2,0,Math.PI/2),iron,x,top+.006,z);}
+   boss(.055,iron);
+  }
+  g.rotation.y=-.35;
  }else if(/mail|mithril|coat/.test(name)&&cls===3){
   add(new RoundedBoxGeometry(.38,.09,.48,3,.025),metal,0,.05);
   for(const x of [-.235,.235])add(new RoundedBoxGeometry(.16,.075,.18,3,.02),metal,x,.045,-.14);
