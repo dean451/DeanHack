@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
@@ -200,6 +201,45 @@ function facetedGem(cut,seed){
  const geo=new THREE.BufferGeometry();
  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
  geo.computeVertexNormals();return geo;
+}
+
+// A cheap smooth 3D noise (sums of skewed sines), for mottling and bumps on stones.
+const stoneNoise=(x,y,z,f)=>(Math.sin(x*f+Math.sin(z*f*1.7))+Math.sin(y*f*1.3+Math.sin(x*f*.9))+Math.sin(z*f*1.1+Math.sin(y*f*1.5)))/3;
+
+// Builds one stone from an icosphere. Rubble is the intersection of random fracture planes
+// (flat, broken faces with sharp edges); a pebble is a smooth, slightly lumpy ellipsoid.
+// Vertex colours carry mottling, grime in the hollows and dust or lichen on top.
+function shapedStone(seed,{size,scale=[1,1,1],cuts=0,bump=.04,base,alt,detail=6,vein,lichen}){
+ let h=seed||1;const rnd=()=>(h=(Math.imul(h,1664525)+1013904223)>>>0)/2**32;
+ const src=new THREE.IcosahedronGeometry(1,detail);src.deleteAttribute('normal');src.deleteAttribute('uv');
+ const geo=mergeVertices(src);src.dispose();
+ const planes=Array.from({length:cuts},()=>{const n=new THREE.Vector3(rnd()*2-1,rnd()*2-1,rnd()*2-1).normalize();return [n,.62+rnd()*.3];});
+ const ph=[rnd()*9,rnd()*9,rnd()*9];
+ const pos=geo.attributes.position,d=new THREE.Vector3();
+ for(let i=0;i<pos.count;i++){
+  d.fromBufferAttribute(pos,i).normalize();
+  let r=1;
+  for(const [n,o] of planes){const k=d.dot(n);if(k>1e-3)r=Math.min(r,o/k);}
+  r*=1+bump*stoneNoise(d.x+ph[0],d.y+ph[1],d.z+ph[2],4.3)+bump*.4*stoneNoise(d.x-ph[1],d.y+ph[2],d.z-ph[0],11);
+  pos.setXYZ(i,d.x*r*size*scale[0],d.y*r*size*scale[1],d.z*r*size*scale[2]);
+ }
+ geo.computeVertexNormals();
+ const nrm=geo.attributes.normal,col=[],A=new THREE.Color(base),B=new THREE.Color(alt),c=new THREE.Color();
+ const moss=new THREE.Color(0x6f7b45),pale=new THREE.Color(vein?.color??0xd8d4c8),dust=new THREE.Color(0xa49a88);
+ const vn=vein&&new THREE.Vector3(...vein.dir).normalize();
+ for(let i=0;i<pos.count;i++){
+  const x=pos.getX(i)/size,y=pos.getY(i)/size,z=pos.getZ(i)/size,ny=nrm.getY(i);
+  const m=stoneNoise(x+ph[2],y+ph[0],z+ph[1],3.1)*.5+.5,fleck=stoneNoise(x*3+ph[1],y*3,z*3-ph[0],9);
+  c.copy(A).lerp(B,THREE.MathUtils.clamp(m*1.3-.15,0,1));
+  if(fleck>.55)c.multiplyScalar(.78);else if(fleck<-.6)c.lerp(pale,.35);
+  if(vn){const w=Math.abs(x*vn.x+y*vn.y+z*vn.z-vein.at);if(w<vein.width)c.lerp(pale,.85*(1-w/vein.width)**.5);}
+  if(ny>.35)c.lerp(dust,.18*(ny-.35));
+  if(lichen&&ny>.3&&stoneNoise(x-ph[0],y,z+ph[2],5.5)>.35)c.lerp(moss,.7);
+  c.multiplyScalar(.55+.45*THREE.MathUtils.clamp((y+1)/1.4,0,1));
+  col.push(c.r,c.g,c.b);
+ }
+ geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+ return geo;
 }
 
 // Food kinds with their own model; rations (including cram) keep the bundle below.
@@ -415,16 +455,29 @@ export function createGroundModel(item={}){
   const look=(item.appearance||'').toLowerCase();
   const chip=(r,m,x,y,z,s,ry)=>{const p=add(new THREE.DodecahedronGeometry(r,0),m,x,y,z);p.scale.set(...s);p.rotation.set(.4,ry,.25);
    p.updateMatrixWorld();p.position.y-=new THREE.Box3().setFromObject(p).min.y;return p;};
+  // Lays a stone on the floor at (x,z), turned by ry and tipped slightly, resting on its lowest point.
+  const lay=(geo,m,x,z,ry,tilt=0)=>{const p=add(geo,m,x,0,z);p.rotation.set(tilt,ry,tilt*.6);
+   p.updateMatrixWorld();p.position.y-=new THREE.Box3().setFromObject(p).min.y;return p;};
+  const shadow=(r,x,z,sx,sz,o)=>{const m=new THREE.MeshBasicMaterial({color:0x0e1012,transparent:true,opacity:o,depthWrite:false});materials.push(m);
+   const p=add(new THREE.CircleGeometry(r,24),m,x,.0015,z);p.rotation.x=-Math.PI/2;p.scale.set(sx,sz,1);p.castShadow=p.receiveShadow=false;return p;};
   if(!look){
-   // Rocks: a small spill of angular rubble.
-   const stone=mat(0x6c6862),light=mat(0x8a8378);
-   chip(.075,stone,-.05,.045,.02,[1,.6,.85],.3);chip(.055,light,.07,.034,-.04,[1,.62,.9],1.1);
-   chip(.045,stone,.03,.028,.09,[1,.62,.8],2);chip(.032,light,-.1,.02,-.08,[1,.62,1],.7);
+   // Rocks: a small spill of broken rubble with fractured faces, grit and a patch of lichen.
+   const rubble=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.96,flatShading:true});materials.push(rubble);
+   shadow(.15,0,0,1.12,1,.32);
+   const pieces=[[.072,-.045,.02,[1.1,.66,.9],.3,.08,8,true],[.052,.075,-.045,[1,.72,.86],1.1,.14,7],
+    [.043,.03,.095,[1.05,.62,.8],2,-.1,7],[.03,-.105,-.085,[1,.7,1],.7,.2,6],[.022,.115,.07,[1,.75,.9],2.6,.3,6]];
+   pieces.forEach(([r,x,z,s,ry,tilt,cuts,lichen],i)=>
+    lay(shapedStone(9173+i*131,{size:r,scale:s,cuts,bump:.05,base:0x6a655d,alt:i%2?0x857c6f:0x5a5b58,lichen}),rubble,x,z,ry,tilt));
+   // Grit knocked off the rubble.
+   for(let i=0;i<9;i++){const a=i*2.4+.5,d=.075+(i*37%11)/110;
+    lay(shapedStone(31+i*17,{size:.006+(i%3)*.003,cuts:4,bump:0,base:0x6f6a62,alt:0x8d8476,detail:1}),rubble,Math.cos(a)*d,Math.sin(a)*d*.9,a,.4);}
   }else if(/gray/.test(look)){
-   // Gray stones share one smooth river pebble with a pale vein, so luck and load stay hidden.
-   const pebble=mat(0x77797a),vein=mat(0xb6b3aa);
-   ball(.1,pebble,0,.042,0,[1.25,.42,.9]).rotation.y=.5;
-   const band=add(new THREE.TorusGeometry(.09,.006,6,28),vein,0,.042,0);band.rotation.set(Math.PI/2,0,.5);band.scale.set(1.24,.9,1);
+   // Gray stones share one smooth, water-worn pebble with a quartz vein and speckles,
+   // so luck, load, touch and flint stay hidden.
+   const pebble=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.02});materials.push(pebble);
+   shadow(.13,.004,.003,1.3,.95,.36);
+   lay(shapedStone(4099,{size:.1,scale:[1.25,.44,.92],bump:.035,base:0x6f7274,alt:0x8a8b88,detail:12,
+    vein:{dir:[.9,.15,.45],at:.08,width:.09,color:0xdcd8cc}}),pebble,0,0,.5);
   }else if(/metal/.test(look)){
    // Unrefined mithril: a lumpy silvery nugget.
    const ore=mat(0xc8d0d6,.85);
