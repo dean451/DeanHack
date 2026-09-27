@@ -412,3 +412,34 @@ test('gloves lie as a pair keyed by appearance, one merged leather mesh per glov
  assert.deepEqual(signature(gloves('gauntlets of power','riding gloves')),signature(gloves('leather gloves','riding gloves')),'the true glove name must not show');
  assert.deepEqual(signature(gloves('gauntlets of power')),signature(gloves('leather gloves')),'without an appearance the true name must not show either');
 });
+
+test('boots stand as a pair keyed by appearance, one merged mesh per boot plus its hardware',()=>{
+ const boots=(name,appearance)=>createGroundModel({name,class:3,appearance});
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.attributes.position.count,...part.getWorldPosition(new THREE.Vector3()).toArray().map(n=>n.toFixed(5))]);});return out;};
+ const kinds=[['low boots','walking shoes'],['iron shoes','hard shoes'],['high boots','jackboots'],['speed boots','combat boots'],['water walking boots','jungle boots'],
+  ['jumping boots','hiking boots'],['elven boots','mud boots'],['kicking boots','buckled boots'],['fumble boots','riding boots'],['levitation boots','snow boots']];
+ const seen=new Set();
+ for(const [name,look] of kinds){
+  const model=boots(name,look);
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${look} rest on the floor`);
+  assert(bounds.max.y>.06&&bounds.max.y<.34,`${look} stand a sensible height (${bounds.max.y})`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.32,`${look} fit their tile`);
+  let meshes=0,geometries=0;
+  model.traverse(part=>{if(part.geometry){
+   meshes++;
+   for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
+   for(const value of part.geometry.attributes.normal.array)assert(Number.isFinite(value));
+   part.geometry.addEventListener('dispose',()=>geometries++);
+  }});
+  assert.equal(model.children.filter(c=>c.userData.part==='boot').length,2,`${look} are a pair`);
+  assert(meshes<=4,`${look} stay at a few draw calls (${meshes})`);
+  seen.add(JSON.stringify(signature(model)));
+  model.userData.dispose();
+  assert.equal(geometries,meshes);
+ }
+ assert.equal(seen.size,kinds.length,'each boot kind looks different');
+ assert.deepEqual(signature(boots('speed boots','combat boots')),signature(boots('fumble boots','combat boots')),'the true boot name must not show');
+ assert.deepEqual(signature(boots('speed boots')),signature(boots('levitation boots')),'without an appearance the true name must not show either');
+});
