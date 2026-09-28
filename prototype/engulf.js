@@ -130,6 +130,63 @@ export function engulfFrame(e, t) {
     camera: {inside: k, fovAdd: k * (FOV_ADD + FOV_BREATHE * breathe)}};
 }
 
+// The hero's own motion at time t (ms), or null when there's none. Swallowed, the hero is
+// yanked up off the floor; inside, a gullet squeezes them in time with its wave, an ooze holds
+// them bobbing in the slime and wind tumbles them round; expelled, they're thrown up and back and
+// land with a squash. Returns {dy, pitch, roll, sx, sy}: a lift (tiles), tilts (radians) and a
+// squash (sx across, sy up), all at rest (0, 0, 0, 1, 1) once the chamber has opened.
+export function engulfHeroPose(e, t) {
+  const f = engulfFrame(e, t);
+  if (!f) return null;
+  const sec = t / 1000, look = e.look, k = f.k;
+  let dy = 0, pitch = 0, roll = 0, sx = 1, sy = 1;
+  if (look.style === 'wind') {
+    roll = .2 * Math.sin(sec * look.spin * .9);
+    pitch = .14 * Math.sin(sec * look.spin * .6 + 1);
+    dy = .16 + .04 * Math.sin(sec * 3);
+  } else if (look.style === 'ooze') {
+    roll = .07 * Math.sin(sec * 1.3);
+    pitch = .06 * Math.sin(sec * .9 + 2);
+    dy = .1 + .03 * f.breathe;
+    sx = 1 + .04 * f.breathe; sy = 1 - .05 * f.breathe;
+  } else {
+    // The same squeeze wave that runs up the gullet's ribs, taken at the hero's middle.
+    const sq = Math.pow(.5 + .5 * Math.sin(-sec * look.pulse * Math.PI * 2), 4);
+    sx = 1 - .08 * sq; sy = 1 + .06 * sq;
+    pitch = .05 * Math.sin(sec * look.pulse * Math.PI * 2);
+  }
+  dy *= k; pitch *= k; roll *= k; sx = 1 + (sx - 1) * k; sy = 1 + (sy - 1) * k;
+  const out = Number.isFinite(e.outAt) && t >= e.outAt;
+  if (!out && t - e.at < ENTER_MS) {
+    const hop = Math.sin(Math.PI * (t - e.at) / ENTER_MS);
+    dy += .22 * hop; sy *= 1 + .12 * hop; sx *= 1 - .06 * hop;
+  }
+  if (out) {
+    const x = (t - e.outAt) / EXIT_MS;
+    if (x < .8) {
+      const arc = Math.sin(Math.PI * x / .8);
+      dy += .35 * arc; pitch -= .6 * arc;
+    } else {
+      const s = Math.sin(Math.PI * (x - .8) / .2);
+      sy *= 1 - .18 * s; sx *= 1 + .09 * s;
+    }
+  }
+  return {dy, pitch, roll, sx, sy};
+}
+
+// Swaps the engulf pose on an actor's model: takes off the one applied last time (kept on
+// actor.engulfPose) and adds the new one, so it stacks with the action layer and the polymorph
+// squash. Pass null to take it off.
+export function poseEngulfed(actor, pose) {
+  const g = actor?.g;
+  if (!g) return;
+  const o = actor.engulfPose;
+  if (o) { g.position.y -= o.dy; g.rotation.x -= o.pitch; g.rotation.z -= o.roll; g.scale.x /= o.sx; g.scale.z /= o.sx; g.scale.y /= o.sy; }
+  const ok = pose && ['dy', 'pitch', 'roll', 'sx', 'sy'].every(key => Number.isFinite(pose[key])) && pose.sx > 0 && pose.sy > 0;
+  if (ok) { g.position.y += pose.dy; g.rotation.x += pose.pitch; g.rotation.z += pose.roll; g.scale.x *= pose.sx; g.scale.z *= pose.sx; g.scale.y *= pose.sy; }
+  actor.engulfPose = ok ? {dy: pose.dy, pitch: pose.pitch, roll: pose.roll, sx: pose.sx, sy: pose.sy} : null;
+}
+
 // Moves the camera in (or back out) for view {inside, fovAdd}. The change from the last call is
 // taken off first, so the orbit and follow code keep working on the undistorted view; controls'
 // minDistance is lowered while inside so OrbitControls doesn't clamp the camera back out.
@@ -170,7 +227,8 @@ export function dropEngulfCamera(camera, controls) {
 }
 
 // Draws the chamber. frame(frame) starts it when player.engulfer appears and opens it when it
-// goes; update(dt, origin) returns {engulfed, inside, fovAdd, motes} for engulfCamera().
+// goes; update(dt, origin) returns {engulfed, inside, fovAdd, motes} for engulfCamera(), plus
+// hero: the hero's pose for poseEngulfed() (null when not engulfed).
 export function createEngulf(THREE, parent) {
   const geo = new THREE.SphereGeometry(1, 48, 32);
   const pos = geo.attributes.position;
@@ -216,7 +274,7 @@ export function createEngulf(THREE, parent) {
     if (e && !f && Number.isFinite(e.outAt) && now >= e.outAt) e = null;
     if (!f) {
       chamber.visible = false; moteGeo.setDrawRange(0, 0);
-      return {engulfed: false, inside: 0, fovAdd: 0, motes: 0};
+      return {engulfed: false, inside: 0, fovAdd: 0, motes: 0, hero: null};
     }
     const sec = now / 1000, look = e.look;
     const ox = e.hero.x - (origin?.x ?? 0), oz = e.hero.z - (origin?.z ?? 0);
@@ -243,7 +301,7 @@ export function createEngulf(THREE, parent) {
     }
     moteGeo.setDrawRange(0, n);
     moteGeo.attributes.position.needsUpdate = true; moteGeo.attributes.color.needsUpdate = true;
-    return {engulfed: true, inside: f.camera.inside, fovAdd: f.camera.fovAdd, motes: n};
+    return {engulfed: true, inside: f.camera.inside, fovAdd: f.camera.fovAdd, motes: n, hero: engulfHeroPose(e, now)};
   }
 
   const clear = () => { e = null; update(0); };

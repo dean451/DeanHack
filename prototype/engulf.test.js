@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {engulfLook, chamberPoint, moteAt, engulfFrame, engulfCamera, dropEngulfCamera, createEngulf,
+import {engulfLook, chamberPoint, moteAt, engulfFrame, engulfCamera, dropEngulfCamera, createEngulf, engulfHeroPose, poseEngulfed,
   ENTER_MS, EXIT_MS, CHAMBER_R, CHAMBER_Y, INSIDE_DIST, MAX_MOTES} from './engulf.js';
 
 const ENGULFERS = ['purple worm', 'trapper', 'lurker above', 'ochre jelly', 'Juiblex', 'air elemental', 'fog cloud',
@@ -149,4 +149,62 @@ test('createEngulf follows the frame flag and clears up', () => {
   assert.equal(eg.state, null);
   eg.dispose();
   assert.equal(group.children.length, 0);
+});
+
+test('the hero is yanked in, moves with the chamber, is thrown out and lands back at rest', () => {
+  for (const n of ENGULFERS) {
+    const e = {look: engulfLook(n), at: 1000, outAt: 1000 + ENTER_MS + 3000};
+    assert.equal(engulfHeroPose(e, 999), null);
+    let maxLift = 0, landed = false;
+    for (let t = 1000; t <= e.outAt + EXIT_MS + 50; t += 7) {
+      const p = engulfHeroPose(e, t);
+      if (t >= e.outAt + EXIT_MS) { assert.equal(p, null, `${n} at ${t}`); continue; }
+      for (const v of Object.values(p)) assert.ok(Number.isFinite(v), n);
+      assert.ok(p.dy >= 0 && p.dy < .5, `${n} lift ${p.dy}`);
+      assert.ok(Math.abs(p.pitch) < .8 && Math.abs(p.roll) < .3, `${n} tilt`);
+      assert.ok(p.sx > .8 && p.sx < 1.2 && p.sy > .8 && p.sy < 1.2, `${n} squash ${p.sx} ${p.sy}`);
+      if (t > e.outAt) maxLift = Math.max(maxLift, p.dy);
+      if (t > e.outAt + EXIT_MS * .85 && p.sy < .9) landed = true;
+    }
+    assert.ok(maxLift > .3, `${n} is thrown out`);
+    assert.ok(landed, `${n} lands with a squash`);
+    // The swallow starts on the floor and pulls the hero up.
+    const start = engulfHeroPose(e, 1000);
+    assert.ok(Math.abs(start.dy) < 1e-9 && Math.abs(start.sy - 1) < 1e-9 && Math.abs(start.sx - 1) < 1e-9, n);
+    assert.ok(engulfHeroPose(e, 1000 + ENTER_MS / 2).dy > .2, n);
+  }
+  // The throw starts where the chamber motion was: no jump on the frame of the escape.
+  const e = {look: engulfLook('fire vortex'), at: 0, outAt: 2000};
+  const a = engulfHeroPose(e, 1999.9), b = engulfHeroPose(e, 2000);
+  for (const key of Object.keys(a)) assert.ok(Math.abs(a[key] - b[key]) < .01, key);
+  // Wind tumbles and floats the hero more than a gullet does.
+  const spread = name => { const w = {look: engulfLook(name), at: 0}; let r = 0; for (let t = ENTER_MS; t < 4000; t += 10) r = Math.max(r, Math.abs(engulfHeroPose(w, t).roll)); return r; };
+  assert.ok(spread('air elemental') > spread('purple worm') + .1);
+});
+
+test('the engulf pose stacks on the model and comes off exactly', () => {
+  const g = new THREE.Group();
+  g.position.set(2, .1, -3); g.rotation.set(.05, 1.2, -.02); g.scale.set(1.1, .9, 1.1);
+  const actor = {g}, before = [...g.position.toArray(), g.rotation.x, g.rotation.y, g.rotation.z, ...g.scale.toArray()];
+  const e = {look: engulfLook('ochre jelly'), at: 0, outAt: 1500};
+  for (let t = 0; t < 1500 + EXIT_MS + 30; t += 16) poseEngulfed(actor, engulfHeroPose(e, t));
+  poseEngulfed(actor, {dy: .2, pitch: .3, roll: .1, sx: 1.1, sy: .9});
+  poseEngulfed(actor, {dy: NaN, pitch: 0, roll: 0, sx: 1, sy: 1});
+  assert.equal(actor.engulfPose, null);
+  const after = [...g.position.toArray(), g.rotation.x, g.rotation.y, g.rotation.z, ...g.scale.toArray()];
+  after.forEach((v, i) => assert.ok(Math.abs(v - before[i]) < 1e-9, `component ${i}`));
+  poseEngulfed(null, {dy: 1, pitch: 0, roll: 0, sx: 1, sy: 1});
+});
+
+test('createEngulf hands the hero pose out only while the chamber is there', () => {
+  const group = new THREE.Group(), en = createEngulf(THREE, group);
+  assert.equal(en.update(.016, {x: 0, z: 0}).hero, null);
+  en.frame(frame(4, 5, {name: 'purple worm'}));
+  let r;
+  for (let i = 0; i < 60; i++) r = en.update(.016, {x: 0, z: 0});
+  assert.ok(r.hero && Number.isFinite(r.hero.sy));
+  en.frame(frame(4, 5));
+  for (let i = 0; i < 60; i++) r = en.update(.016, {x: 0, z: 0});
+  assert.equal(r.hero, null);
+  en.dispose();
 });
