@@ -41,6 +41,15 @@ export function fxTimeline(event, tickMs = FX_TICK_MS) {
   return {duration: Math.max(duration, ...sprites.map(s => s.until), 0), sprites};
 }
 
+// The same timeline started `ms` later: every sprite and the duration shift by ms. The
+// hero's zap uses it so the arm can wind up before the beam leaves the hand.
+export function delayTimeline(timeline, ms) {
+  const d = Number.isFinite(ms) && ms > 0 ? ms : 0;
+  if (!timeline || !d) return timeline;
+  return {...timeline, duration: (timeline.duration ?? 0) + d,
+    sprites: (timeline.sprites ?? []).map(s => ({...s, from: s.from + d, until: s.until + d}))};
+}
+
 // Sprites visible at time t (ms) into the replay.
 export function fxSpritesAt(timeline, t) {
   return timeline.sprites.filter(s => t >= s.from && t < s.until);

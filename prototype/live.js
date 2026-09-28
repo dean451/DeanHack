@@ -29,7 +29,7 @@ import {potionLook,groundItemCaption} from './item-looks.js';
 import {syncWandAura,syncHeldWandAura,updateHeldWandAura} from './wand-auras.js';
 import {syncArtifactGleam,syncHeldGleam,updateHeldGleam} from './artifact-gleam.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {fxTimeline,fxHoldMs} from './fx.js';
+import {fxTimeline,fxHoldMs,delayTimeline} from './fx.js';
 import {createExplosions} from './explosions.js';
 import {createFlood} from './flood.js';
 import {createSplash} from './splash.js';
@@ -42,7 +42,7 @@ import {createEngulf,engulfCamera,dropEngulfCamera,poseEngulfed} from './engulf.
 import {createSwingFx} from './swing-fx.js';
 import {createHitFx} from './hit-fx.js';
 import {createRays,reflectorAt,solidAt} from './rays.js';
-import {createZapFlash} from './zap-flash.js';
+import {createZapFlash,ZAP_WINDUP_MS} from './zap-flash.js';
 import {createRayMarks} from './ray-marks.js';
 import {createDeathBurst,deathLook,applyFade,restoreFade} from './deaths.js';
 import {combatAction,deathAction} from './combat-events.js';
@@ -306,7 +306,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function connect(){
    meleeIntent=null;source?.close?.();
    let usingPolling=false,pollTimer=null,stopped=false,since=0;
-   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];const tl=fxTimeline(v);fx.push(tl);if(active){rays.play(tl,{reflectorAt:(x,z)=>reflectorAt(latest,x,z),solidAt:(x,z)=>solidAt(latest,x,z)});const heroBreath=zapFlash.play(tl,latest?.player,hero,latest)==='breath';rayMarks.add(tl);explosions.add(tl);splash.fromFx(tl,latest);breath.fromFx(tl,latest,{always:heroBreath});fxHoldUntil=Math.max(fxHoldUntil,performance.now()+fxHoldMs(tl));}if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
+   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];const tl=fxTimeline(v);fx.push(tl);if(active){const heroZap=zapFlash.play(tl,latest?.player,hero,latest,{windup:ZAP_WINDUP_MS});const shown=heroZap?delayTimeline(tl,ZAP_WINDUP_MS):tl;rays.play(shown,{reflectorAt:(x,z)=>reflectorAt(latest,x,z),solidAt:(x,z)=>solidAt(latest,x,z)});rayMarks.add(shown);explosions.add(shown);splash.fromFx(shown,latest);breath.fromFx(shown,latest,{always:heroZap==='breath'});fxHoldUntil=Math.max(fxHoldUntil,performance.now()+fxHoldMs(shown));}if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
    async function pollLoop(){
      if(stopped)return;
      try{const r=await fetch(`/engine/poll?since=${since}`);const {events,seq}=await r.json();since=seq;for(const event of events)handle(event);}

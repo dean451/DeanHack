@@ -8,12 +8,24 @@
 // it can't zap a wand; a ray from such a hero is its breath. Then the hero leans in and
 // thrusts their head out instead of the arm, and the flash bursts from the mouth.
 //
+// The beam doesn't leave at once: over a short windup the hero turns, the arm (or head)
+// comes most of the way up and a charge gathers in the hand; then the arm snaps the rest
+// of the way and the flash bursts as the beam leaves. live.js delays the hero's own
+// timeline by ZAP_WINDUP_MS (delayTimeline in fx.js) so the ray, its marks and any blast
+// wait for the release.
+//
 // zapSource() and zapPose() are pure, so they can be tested without a renderer;
 // createZapFlash() poses the hero and draws the flash.
 import {rayLook} from './rays.js';
 
 // The arm snaps up over this long (ms), then holds while the beam flies.
 export const ZAP_RAISE_MS = 90;
+// The windup before the beam leaves (ms), how far up the arm is by the release (0..1),
+// and the charge glow's peak size and alpha.
+export const ZAP_WINDUP_MS = 120;
+export const ZAP_WINDUP_UP = .7;
+export const ZAP_CHARGE_SIZE = .09;
+export const ZAP_CHARGE_ALPHA = .4;
 // The hand flash lasts this long (ms) from the first cell.
 export const ZAP_FLASH_MS = 320;
 // Once the beam ends, the arm lowers over this long (ms).
@@ -80,16 +92,30 @@ export function zapSource(timeline, player, frame = null) {
 // beam flies.
 export function zapPose(src, t, face = 0) {
   if (!src) return null;
+  // src.windup (ms, optional): the pose starts that long before src.from, the release.
+  const lead = Number.isFinite(src.windup) && src.windup > 0 ? src.windup : 0;
   const age = t - src.from, hold = Math.max(ZAP_RAISE_MS, src.until - src.from);
-  if (age < 0 || age >= hold + ZAP_LOWER_MS) return null;
-  const up = age < hold ? smooth(age / ZAP_RAISE_MS) : 1 - smooth((age - hold) / ZAP_LOWER_MS);
-  // The kick peaks just after the arm arrives and settles by ~200 ms.
-  const kick = age > 40 ? Math.sin(Math.PI * clamp01((age - 40) / 160)) : 0;
+  if (age < -lead || age >= hold + ZAP_LOWER_MS) return null;
   const L = src.look;
   const color = L.dark ? L.spark : L.glow;
+  if (age < 0) {
+    // The windup: turn to the beam, bring the arm most of the way up, gather a charge.
+    const w = smooth((age + lead) / lead), up = ZAP_WINDUP_UP * w;
+    const charge = w * w, flicker = .85 + .15 * Math.sin(age / 17);
+    const flash = {size: .02 + ZAP_CHARGE_SIZE * charge, alpha: ZAP_CHARGE_ALPHA * charge * flicker, ring: 0, ringAlpha: 0, color};
+    if (src.breath) return {arm: 0, head: BREATH_HEAD * up, body: BREATH_LEAN * up, yaw: face * w, flash: {...flash, size: flash.size * 1.25}};
+    return {arm: ZAP_ARM * up, head: 0, body: 0, yaw: face * w, flash};
+  }
+  const pre = lead ? ZAP_WINDUP_UP : 0;
+  const up = age < hold ? pre + (1 - pre) * smooth(age / ZAP_RAISE_MS) : 1 - smooth((age - hold) / ZAP_LOWER_MS);
+  // After a windup the hero already faces the beam.
+  const turn = lead && age < hold ? 1 : up;
+  // The kick peaks just after the arm arrives and settles by ~200 ms.
+  const kick = age > 40 ? Math.sin(Math.PI * clamp01((age - 40) / 160)) : 0;
   let flash = null;
   if (age < ZAP_FLASH_MS) {
-    const u = age / ZAP_FLASH_MS, open = clamp01(age / 35);
+    // After a windup the charge is already lit, so the flash bursts at full size.
+    const u = age / ZAP_FLASH_MS, open = lead ? 1 : clamp01(age / 35);
     flash = {size: .06 + .16 * open * (1 - .35 * u), alpha: open * (1 - u) * (1 - u),
       ring: .08 + .42 * Math.sqrt(u), ringAlpha: (1 - u) * .75, color};
   }
@@ -101,9 +127,9 @@ export function zapPose(src, t, face = 0) {
   }
   if (src.breath) {
     if (flash) { flash.size *= 1.25; flash.ring *= 1.2; }
-    return {arm: 0, head: BREATH_HEAD * up + BREATH_KICK * kick * up, body: BREATH_LEAN * up, yaw: face * up, flash};
+    return {arm: 0, head: BREATH_HEAD * up + BREATH_KICK * kick * up, body: BREATH_LEAN * up, yaw: face * turn, flash};
   }
-  return {arm: ZAP_ARM * up + ZAP_KICK * kick * up, head: 0, body: 0, yaw: face * up, flash};
+  return {arm: ZAP_ARM * up + ZAP_KICK * kick * up, head: 0, body: 0, yaw: face * turn, flash};
 }
 
 // Poses the hero and draws the hand flash. In the frame loop, call unpose(hero) right after
@@ -122,10 +148,12 @@ export function createZapFlash(THREE, parent) {
   const MOUTH = [0, -.09, .19];
   let zap = null, applied = null;
 
-  // Returns false, 'zap' or 'breath'.
-  function play(timeline, player, hero, frame = null) {
+  // Returns false, 'zap' or 'breath'. With a windup (ms) the pose starts now and the
+  // release comes that much later, so the caller should delay the timeline by the same.
+  function play(timeline, player, hero, frame = null, {windup = 0} = {}) {
     const src = zapSource(timeline, player, frame);
     if (!src) return false;
+    if (windup > 0) { src.from += windup; src.until += windup; src.windup = windup; }
     const heading = hero?.g?.rotation.y ?? 0;
     zap = {src, t: 0, face: wrap(Math.atan2(src.dir[0], src.dir[1]) - heading)};
     return src.breath ? 'breath' : 'zap';
