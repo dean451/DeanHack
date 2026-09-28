@@ -1629,6 +1629,152 @@ function buildTinOpener({g,materials}){
  g.rotation.y=.45;
 }
 
+// The saddle: a stock saddle set down on a striped wool blanket. One shaped leather sheet
+// makes the seat, the raised cantle and fork and the skirts that fall to the blanket; a
+// laced horn sits on the fork. Stirrup leathers run off both skirts to irons lying on the
+// floor, a mohair cinch curls forward to its buckle, and conchos pin the saddle strings.
+// Everything is coloured per vertex (worn seat, quilting, tooled skirts, stitching, fleece
+// underneath) and merged into one leather mesh and one metal mesh.
+function buildSaddle({g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const leatherMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.68});
+ const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.85,roughness:.32});
+ materials.push(leatherMat,metalMat);
+ const lists={leather:[],metal:[]},c=new THREE.Color();
+ const put=(geo,paint,which='leather')=>{
+  geo.deleteAttribute('uv');
+  if(paint){
+   const p=geo.attributes.position,n=geo.attributes.normal,cols=new Float32Array(p.count*3);
+   for(let i=0;i<p.count;i++){
+    paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i));
+    cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+   }
+   geo.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  }
+  lists[which].push(geo);
+ };
+ const sm=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
+ // The blanket: a thick wool pad, rumpled towards its edges, striped red, cream and black at both ends.
+ const BX=.21,BZ=.185,BT=.012;
+ const blanket=new THREE.BoxGeometry(2*BX,BT,2*BZ,20,1,16);
+ {const p=blanket.attributes.position;
+  for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),edge=sm(.6,1,Math.max(Math.abs(x)/BX,Math.abs(z)/BZ));
+   p.setY(i,p.getY(i)+BT/2+.003*edge*(Math.sin(x*37+z*11)*.5+.5));}
+  blanket.computeVertexNormals();}
+ const red=C(0x8c2a1c),cream=C(0xd8c8a4),black=C(0x221a16),indigo=C(0x2e3a5c);
+ put(blanket,(col,x,y,z,nx,ny)=>{
+  const t=Math.abs(x)/BX;
+  col.copy(t>.9?red:t>.84?cream:t>.8?black:t>.72?indigo:t>.68?cream:red);
+  // A stepped cream diamond in the field.
+  if(t<.6&&Math.abs(x)/.12+Math.abs(z)/.14<1&&Math.abs(x)/.12+Math.abs(z)/.14>.7)col.copy(cream);
+  col.multiplyScalar(.88+.12*Math.sin(x*190+Math.sin(z*90)*2));
+  if(ny<-.5)col.multiplyScalar(.6);
+ });
+ // The leather sheet: a box mapped onto the saddle's surface, u along its length (+x is the
+ // fork), s across it. Its top is the seat and skirts; its underside is fleece.
+ const L=.165,thick=.011;
+ const seatY=u=>.098+.012*u*u;
+ const ridge=u=>.058*sm(-.45,-1,u)+.03*sm(.45,.95,u);
+ const halfW=u=>.16-.05*Math.max(0,u)**2-.015*Math.max(0,-u)**3;
+ const surf=(u,s)=>{const a=Math.abs(s);return v(u*L*(1-.14*s**4),seatY(u)+ridge(u)*(1-sm(.28,.6,a))-sm(.38,1,a)*(seatY(u)-.03),s*halfW(u));};
+ const surfNormal=(u,s)=>{const du=surf(u+.01,s).sub(surf(u-.01,s)),ds=surf(u,s+.01).sub(surf(u,s-.01));const n=ds.cross(du).normalize();return n.y<0?n.negate():n;};
+ const tan=C(0x8a5230),grain=C(0x6a3a1e),worn=C(0xb68050),tool=C(0x4a2812),stitch=C(0xdcc8a0),edgeC=C(0x3a1e0e),fleece=C(0xd6c7a4),fleeceLo=C(0xa08c66);
+ const sheet=new THREE.BoxGeometry(1,1,1,28,1,22);
+ {const p=sheet.attributes.position,n=sheet.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   const u=p.getX(i)*2,s=p.getZ(i)*2,top=p.getY(i)>0,a=Math.abs(s),P=surf(u,s);
+   if(Math.abs(n.getY(i))<.5)c.copy(edgeC);
+   else if(!top)c.copy(fleece).lerp(fleeceLo,Math.abs(Math.sin(u*47+s*29)*Math.sin(u*23-s*61))*.6);
+   else{
+    c.copy(tan).lerp(grain,Math.abs(Math.sin(u*23+s*31)*Math.sin(u*57-s*19))*.35);
+    if(a<.36&&Math.abs(u)<.62){
+     // A palm-polished seat, quilted in diamonds.
+     c.lerp(worn,(1-a/.36)*(1-Math.abs(u)/.62)*.6);
+     const q=x=>Math.abs(x-Math.round(x));
+     if(Math.min(q(u*3.2+s*4.5),q(u*3.2-s*4.5))<.07)c.lerp(tool,.55);
+    }
+    if(Math.abs(a-.4)<.03&&Math.abs(u)<.8&&Math.sin(u*120)>0)c.lerp(stitch,.75);
+    if(a>.46){
+     // Tooled scrollwork on the skirts, and a stitched border near their edge.
+     const k=Math.sin(u*38+Math.sin(s*20)*1.5)*Math.sin(s*26+Math.sin(u*30));
+     if(k>.72)c.lerp(tool,.6);
+     if((a>.9&&a<.95||Math.abs(u)>.92&&Math.abs(u)<.96)&&Math.sin((u+s)*140)>0)c.lerp(stitch,.7);
+    }
+    // Rubbed pale along the cantle and fork crests.
+    if(a<.3&&Math.abs(u)>.85)c.lerp(worn,.45*(1-a/.3));
+   }
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+   p.setXYZ(i,P.x,P.y+(p.getY(i)-.5)*thick,P.z);
+  }
+  sheet.setAttribute('color',new THREE.BufferAttribute(cols,3));sheet.computeVertexNormals();}
+ put(sheet);
+ const leather=(base,lo=edgeC,hi=worn)=>(col,x,y,z,nx,ny)=>col.copy(base).lerp(lo,Math.max(0,-ny)*.6).lerp(hi,Math.max(0,ny-.6)*.9);
+ // Rolled bindings along the cantle and fork edges.
+ for(const u of [-1,1]){
+  const pts=[];for(let i=0;i<=10;i++)pts.push(surf(u,-.55+i*.11).add(v(0,.001-thick*.3,0)));
+  put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),16,.0055,6,false),leather(C(0x5a3018)));
+ }
+ // The horn on the fork: a rawhide-wrapped neck and a flat cap, leaning forward.
+ const hornProfile=[[.001,0],[.016,0],[.013,.01],[.011,.026],[.013,.032],[.027,.036],[.028,.042],[.024,.046],[.001,.047]];
+ const horn=new THREE.LatheGeometry(hornProfile.map(([r,h])=>new THREE.Vector2(r,h)),20);
+ horn.rotateZ(-.25);{const P=surf(.84,0);horn.translate(P.x,P.y-.006,P.z);}
+ put(horn,(col,x,y,z,nx,ny)=>{col.copy(C(0x6a3a1e));if(ny>.6)col.lerp(worn,.7);else if(Math.sin(y*900)>.3)col.lerp(C(0xc9b48a),.55);});
+ // A ribbon of strap along a path; its width lies across the path, level where it can.
+ const ribbon=(pts,w,h,steps=24)=>{
+  const curve=new THREE.CatmullRomCurve3(pts),pos=[],idx=[];
+  for(let i=0;i<=steps;i++){
+   const t=curve.getTangent(i/steps),p=curve.getPoint(i/steps);
+   const side=v(-t.z,0,t.x).normalize(),n=side.clone().cross(t).normalize();
+   const k=[side.clone().multiplyScalar(w/2).addScaledVector(n,h/2),side.clone().multiplyScalar(-w/2).addScaledVector(n,h/2),
+    side.clone().multiplyScalar(-w/2).addScaledVector(n,-h/2),side.clone().multiplyScalar(w/2).addScaledVector(n,-h/2)];
+   for(let f=0;f<4;f++)for(const q of [k[f],k[(f+1)%4]])pos.push(p.x+q.x,p.y+q.y,p.z+q.z);
+  }
+  for(let i=0;i<steps;i++)for(let f=0;f<4;f++){const a=i*8+f*2,b=a+1,a2=a+8,b2=b+8;idx.push(a,a2,b,b,a2,b2);}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();
+  geo.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2),2));
+  return geo;
+ };
+ const iron=C(0x5c6268),ironHi=C(0xb4bcc2),silver=C(0xc4c8cc),silverLo=C(0x6a6e72);
+ const ironPaint=(col,x,y,z,nx,ny)=>col.copy(iron).lerp(ironHi,Math.max(0,ny)*.6);
+ for(const side of [-1,1]){
+  // A stirrup leather over the skirt and down to an iron lying on the floor.
+  const x0=-.012,zIron=side*.235;
+  const along=[.72,.86].map(s=>surf(-.08,side*s).add(surfNormal(-.08,side*s).multiplyScalar(.003)));
+  const edge=surf(-.08,side).add(v(0,.002,side*.004));
+  put(ribbon([...along,edge,v(x0,.016,side*.19),v(x0,.0035,side*.2),v(x0,.0025,side*.209)],.024,.003),leather(C(0x7a4526)));
+  const loop=[[-.03,.025],[-.032,0],[-.02,-.022],[0,-.028],[.02,-.022],[.032,0],[.03,.025],[0,.027]].map(([x,z])=>v(x0+x,.0035,zIron-side*z));
+  put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(loop,true),40,.0035,6,true),ironPaint,'metal');
+  const tread=new THREE.BoxGeometry(.056,.003,.012);tread.translate(x0,.002,zIron+side*.02);put(tread,ironPaint,'metal');
+  // Rigging dees and a pair of conchos with saddle strings on each skirt.
+  const dee=new THREE.TorusGeometry(.013,.0025,6,16);
+  {const P=surf(.38,side*.7),n=surfNormal(.38,side*.7);dee.rotateX(Math.PI/2);dee.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(v(0,1,0),n));dee.translate(...P.addScaledVector(n,.003).toArray());}
+  put(dee,ironPaint,'metal');
+  for(const u of [-.72,.62]){
+   const P=surf(u,side*.78),n=surfNormal(u,side*.78),q=new THREE.Quaternion().setFromUnitVectors(v(0,1,0),n);
+   const disc=new THREE.CylinderGeometry(.011,.012,.003,14);disc.applyQuaternion(q);disc.translate(...P.clone().addScaledVector(n,.002).toArray());
+   put(disc,(col,x,y,z,nx,ny)=>col.copy(silver).lerp(silverLo,Math.abs(Math.sin(Math.hypot(x-P.x,z-P.z)*1400))*.4),'metal');
+   const end=surf(u,side);
+   for(const dx of [-.006,.006])put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([P.clone().addScaledVector(n,.004),
+    end.clone().add(v(dx,.004,side*.006)),v(end.x+dx*2.4,BT+.0045,end.z+side*.018)]),10,.0016,4,false),leather(C(0x9a6a40)));
+  }
+ }
+ // The cinch: a woven mohair band from the near dee, curling forward along the blanket to its buckle.
+ {const dee=surf(.38,-.7).add(surfNormal(.38,-.7).multiplyScalar(.006)),e=surf(.38,-1);
+  const band=ribbon([dee,e.clone().add(v(0,.002,-.004)),v(.08,BT+.004,-.172),v(.14,BT+.004,-.15),v(.17,BT+.004,-.1),v(.17,BT+.004,-.06)],.028,.0035,32);
+  put(band,(col,x,y,z)=>col.copy(C(0xcfc0a0)).lerp(C(0x7a6a4c),Math.abs(Math.sin((x+z)*420))*.4));
+  const buckle=[[-.017,-.011],[.017,-.011],[.017,.011],[-.017,.011]].map(([a,b])=>v(.17+a,BT+.0045,-.048+b));
+  put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(buckle,true,'catmullrom',.1),24,.0022,5,true),ironPaint,'metal');
+  const tongue=new THREE.CylinderGeometry(.0014,.0014,.02,5);tongue.rotateX(Math.PI/2);tongue.translate(.17,BT+.005,-.052);put(tongue,ironPaint,'metal');}
+ for(const [which,material] of [['leather',leatherMat],['metal',metalMat]]){
+  const list=lists[which];
+  const geo=mergeGeometries(list);list.forEach(p=>p.dispose());
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=`saddle-${which}`;g.add(mesh);
+ }
+ const box=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();box.union(p.geometry.boundingBox);});
+ const mid=box.getCenter(v(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-box.min.y,-mid.z));
+ g.rotation.y=.2;
+}
+
 // The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
 // door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
 // keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
@@ -2632,12 +2778,7 @@ export function createGroundModel(item={}){
    add(new THREE.CylinderGeometry(.009,.009,.05,8),rope,-.105,.008,.012).rotation.set(0,.3,Math.PI/2);
    flat(new THREE.TorusGeometry(.014,.004,6,14),brass,.11,.006,-.04);box(.03,.012,.012,brass,.09,.006,-.03);
   }else if(kind==='saddle'){
-   const tack=mat(0x5a3522),pad=mat(0x3a5a7a);
-   box(.34,.012,.42,pad,0,.006);
-   ball(.18,tack,0,.07,0,[.8,.38,1.1]);
-   ball(.045,tack,0,.12,-.15,[1,1.1,.7]);
-   add(new THREE.TorusGeometry(.05,.015,8,20,Math.PI),tack,0,.1,.15).rotation.y=Math.PI/2;
-   for(const s of [-1,1]){box(.012,.06,.03,tack,s*.16,.04,.0);const iron=add(new THREE.TorusGeometry(.028,.006,6,14),metal,s*.2,.03,0);iron.rotation.set(0,Math.PI/2,s*.4);}
+   buildSaddle({g,materials});
   }else if(kind==='tinning kit'){
    // A tin-plate case with a carrying handle and a side crank, and two fresh tins beside it.
    const plate=mat(0xaab4b6,.75),label=mat(0x9a2c22);
