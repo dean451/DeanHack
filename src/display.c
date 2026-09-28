@@ -1028,6 +1028,10 @@ static struct tmp_glyph {
 /* The 3D client's window port replays temporary glyphs (beams, thrown
    objects, explosions) through this; other window ports leave it unset. */
 void (*tmp_at_hook)(int, coordxy, coordxy, int) = 0;
+/* Melee attacks (attacker, defender, AT_xxx, COMBAT_xxx) and monster deaths
+   (monster, form it died as), reported the same way. */
+void (*combat_hook)(struct monst *, struct monst *, int, int) = 0;
+void (*death_hook)(struct monst *, struct permonst *) = 0;
 #define TMP_AT_HOOK(op, x, y, g) \
     do { if (tmp_at_hook) (*tmp_at_hook)(op, x, y, g); } while (0)
 #else

@@ -146,6 +146,48 @@ static void fx_hook(int op,coordxy x,coordxy y,int g) {
     }
 }
 static void fx_delay(void){if(fxdepth>0){fx_step("tick");fx_close();}}
+/* Combat stream: one {"type":"combat"} line per melee attack as it happens (before its
+   messages), and {"type":"death"} when a monster dies, so the client can animate swings,
+   bites and deaths instead of matching message text. Only what the hero can perceive is
+   sent: a monster the hero can't spot has no name, and a fight between two unseen
+   monsters, or an unseen death, sends nothing. Names are withheld while hallucinating. */
+static const char *attack_name(int at) {
+    switch(at){
+    case AT_CLAW:return "claw";case AT_BITE:return "bite";case AT_KICK:return "kick";case AT_BUTT:return "butt";
+    case AT_TUCH:return "touch";case AT_STNG:return "sting";case AT_HUGS:return "hug";case AT_SPIT:return "spit";
+    case AT_ENGL:return "engulf";case AT_BREA:return "breath";case AT_EXPL:return "explode";case AT_BOOM:return "boom";
+    case AT_GAZE:return "gaze";case AT_TENT:return "tentacle";case AT_SCRE:return "scream";case AT_WEAP:return "weapon";
+    case AT_MAGC:return "magic";default:return "other";
+    }
+}
+static void combat_actor(const char *key,struct monst *m) {
+    printf(",\"%s\":",key);
+    if(m==&youmonst){printf("{\"you\":true,\"x\":%d,\"z\":%d}",u.ux,u.uy);return;}
+    if(!canspotmon(m)){printf("{\"seen\":false}");return;}
+    printf("{\"seen\":true,\"x\":%d,\"z\":%d,\"name\":",m->mx,m->my);
+    if(Hallucination)printf("null");else quoted(m->data->mname);
+    printf(",\"pet\":%s}",m->mtame?"true":"false");
+}
+static void combat_hook_bridge(struct monst *agr,struct monst *def,int at,int res) {
+    struct obj *w=0;
+    boolean agr_seen=agr==&youmonst||canspotmon(agr),def_seen=def==&youmonst||canspotmon(def);
+    if(!agr_seen&&!def_seen)return;
+    if(res==COMBAT_WILDMISS&&!agr_seen)return; /* nothing says where it came from */
+    printf("{\"type\":\"combat\",\"attack\":\"%s\",\"result\":\"%s\"",attack_name(at),res==COMBAT_HIT?"hit":res==COMBAT_WILDMISS?"wild":"miss");
+    combat_actor("attacker",agr);combat_actor("defender",def);
+    if(at==AT_WEAP&&agr_seen)w=agr==&youmonst?uwep:MON_WEP(agr);
+    if(w){
+        int d=objects[w->otyp].oc_dir;boolean wep=w->oclass==WEAPON_CLASS||is_weptool(w);
+        printf(",\"weapon\":{\"otyp\":%d,\"class\":%d,\"material\":%d,\"blow\":\"%s\"}",w->otyp,w->oclass,objects[w->otyp].oc_material,!wep?"blunt":(d&SLASH)?"slash":(d&PIERCE)?"pierce":"blunt");
+    }
+    puts("}");fflush(stdout);
+}
+static void death_hook_bridge(struct monst *m,struct permonst *ptr) {
+    if(m->mx<=0||!canspotmon(m))return;
+    printf("{\"type\":\"death\",\"x\":%d,\"z\":%d,\"name\":",m->mx,m->my);
+    if(Hallucination||!ptr)printf("null");else quoted(ptr->mname);
+    printf(",\"pet\":%s}\n",m->mtame?"true":"false");fflush(stdout);
+}
 static void frame(void) {
     int x,y,g,b,m,col,terrain_glyph,object_type;glyph_t ch;unsigned special;
     printf("{\"type\":\"frame\",\"turn\":%ld,\"depth\":%d,\"branch\":%d,\"player\":{\"x\":%d,\"z\":%d,\"hp\":%d,\"maxhp\":%d,\"ac\":%d,\"level\":%d,\"weapon\":",moves,depth(&u.uz),u.uz.dnum,u.ux,u.uy,Upolyd?u.mh:u.uhp,Upolyd?u.mhmax:u.uhpmax,u.uac,u.ulevel);
@@ -230,9 +272,9 @@ static int key(const char *kind,const char *prompt) {char buf[BUFSZ];read_reques
 static void noop(void) {}
 static void strnoop(const char *s UNUSED) {}
 static void intnoop(int i UNUSED) {}
-static void init(int *a UNUSED,char **v UNUSED) {setvbuf(stdout,NULL,_IOLBF,0);for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;iflags.window_inited=TRUE;iflags.use_background_glyph=TRUE;tmp_at_hook=fx_hook;}
+static void init(int *a UNUSED,char **v UNUSED) {setvbuf(stdout,NULL,_IOLBF,0);for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;iflags.window_inited=TRUE;iflags.use_background_glyph=TRUE;tmp_at_hook=fx_hook;combat_hook=combat_hook_bridge;death_hook=death_hook_bridge;}
 static void name(void){Strcpy(plname,"Wanderer");}
-static void finish(const char *s){tmp_at_hook=0;fxdepth=0;fx_flush();event("ended",s);iflags.window_inited=FALSE;}
+static void finish(const char *s){tmp_at_hook=0;combat_hook=0;death_hook=0;fxdepth=0;fx_flush();event("ended",s);iflags.window_inited=FALSE;}
 static winid create(int type){for(int i=1;i<BW;i++)if(!wins[i].type){wins[i].type=type;return i;}panic("bridge windows exhausted");return WIN_ERR;}
 static void clear(winid w){if(w<1||w>=BW)return;for(int i=0;i<wins[w].n;i++)free(wins[w].items[i].text);wins[w].n=0;wins[w].prompt[0]=0;if(wins[w].type==NHW_MAP)for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;}
 static void destroy(winid w){clear(w);if(w>0&&w<BW)wins[w].type=0;}

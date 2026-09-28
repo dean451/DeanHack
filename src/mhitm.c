@@ -53,6 +53,7 @@ missmm(struct monst *magr, struct monst *mdef, struct attack *mattk)
     char buf[BUFSZ];
     boolean showit = FALSE;
 
+    COMBAT_HOOK(magr, mdef, mattk->aatyp, COMBAT_MISS);
     /* unhiding or unmimicking happens even if hero can't see it
        because the formerly concealed monster is now in action */
     if (M_AP_TYPE(mdef)) {
@@ -611,6 +612,7 @@ hitmm(struct monst *magr, struct monst *mdef, struct attack *mattk)
     boolean silverhit = (weaponhit && otmp && objects[otmp->otyp].oc_material == SILVER);
     boolean showit = FALSE;
 
+    COMBAT_HOOK(magr, mdef, mattk->aatyp, COMBAT_HIT);
     /* unhiding or unmimicking happens even if hero can't see it
        because the formerly concealed monster is now in action */
     if (M_AP_TYPE(mdef)) {
@@ -838,6 +840,7 @@ gulpmm(struct monst *magr, struct monst *mdef, struct attack *mattk)
     if (!engulf_target(magr, mdef)) {
         return MM_MISS;
     }
+    COMBAT_HOOK(magr, mdef, mattk->aatyp, COMBAT_HIT);
 
     if (vis) {
         /* [this two-part formatting dates back to when only one x_monnam
