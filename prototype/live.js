@@ -15,6 +15,7 @@ import {createTerrainFeature,featureKind,AXIS_FEATURES} from './terrain-feature.
 import {createTree} from './tree.js';
 import {createBoulder} from './boulder.js';
 import {createStairs} from './stairs.js';
+import {createBars} from './bars.js';
 import {createFire} from './fire.js';
 import {createLiquid} from './liquid.js';
 import {createFloorKit,cellHash} from './floor.js';
@@ -191,18 +192,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
          if(cell.terrain==='sink')tile.add(createSink());
          if(cell.terrain==='grave')tile.add(createGrave(cell.x*31+cell.z*17));
          if(cell.terrain==='tree')tile.add(createTree(cell.x*97+cell.z));
-         if(cell.terrain==='bars'){
-          const grate=new THREE.Group();grate.name='Iron bars';tile.add(grate);tile.userData.grate=grate;
-          const owned=[];
-          const bar=(w,h,d,x,y,z)=>{const geo=new RoundedBoxGeometry(w,h,d,2,.009);owned.push(geo);return box(geo,iron,grate,x,y,z);};
-          for(const x of [-.44,.44])bar(.085,.95,.14,x,.475,0);
-          for(const y of [.08,.48,.88])bar(.94,.055,.09,0,y,0);
-          for(let i=0;i<7;i++){
-           const x=(i-3)*.12;bar(.038,.84,.04,x,.46,0);
-           for(const y of [.08,.48,.88])bar(.058,.075,.065,x,y,0);
-          }
-          grate.userData.dispose=()=>owned.forEach(geo=>geo.dispose());
-         }
+         if(cell.terrain==='bars'){const grate=createBars(cell.x*53+cell.z*29);tile.add(grate);tile.userData.grate=grate;}
          if(cell.terrain==='wall'){
           box(wallGeo,wall,tile,0,.28,0);
           if(hasTorch(cell.x,cell.z)){box(new THREE.CylinderGeometry(.045,.055,.3,8),wood,tile,0,.77,0);box(new THREE.CylinderGeometry(.09,.055,.1,8),iron,tile,0,.92,0);const fire=createFire(cell.x+cell.z);fire.position.y=.96;tile.add(fire);const halo=new THREE.Sprite(torchHaloMaterial);halo.position.y=1.12;halo.scale.setScalar(.9);tile.add(halo);tile.userData.torch={phase:(cell.x*3.7+cell.z*5.3)%(Math.PI*2)};}
