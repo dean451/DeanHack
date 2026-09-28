@@ -139,7 +139,7 @@ const HAT_PIVOT = new THREE.Vector3(0, -.18, 0), BEARD_PIVOT = new THREE.Vector3
 // hold their wings out and glide before beating again.
 export const FLIGHT = {
   bat: {rate: 14, amp: .65},
-  raven: {rate: 6.5, amp: .5, skew: .5, cycle: 6, glide: 2.2, ease: .45, drift: .03},
+  raven: {rate: 6.5, amp: .5, skew: .5, cycle: 6, glide: 2.2, ease: .45, drift: .03, hover: .03, lift: .012, sink: .05, climb: .6},
 };
 
 export function flapStyle(name) {
@@ -163,4 +163,23 @@ export function wingFlap(style, t) {
   const stroke = Math.sin(th + F.skew * Math.sin(th)) * F.amp;
   const w = beatWeight(u, F);
   return stroke * w + Math.sin(u * 1.8) * F.drift * (1 - w);
+}
+
+// Height of a flier's body (live.js writes body.position.y). Bats and other hoverers keep their bob.
+// A raven bobs gently, lifts a little on each downstroke, sinks slowly through its glide and
+// climbs back over the first beats, so the loop joins up each cycle.
+export function glideSink(u, F = FLIGHT.raven) {
+  const beat = F.cycle - F.glide;
+  u = ((u % F.cycle) + F.cycle) % F.cycle;
+  if (u < beat) return -F.sink * (1 - smooth(u / (beat * F.climb)));
+  return -F.sink * smooth((u - beat) / F.glide);
+}
+
+export function flightBob(style, t, seed = 0) {
+  if (style?.kind !== 'raven') return Math.sin(t * 2.2 + seed) * .06;
+  const F = FLIGHT.raven, u = t + (style.phase || 0), th = u * F.rate;
+  const w = beatWeight(u, F);
+  // the body rides up while the wings sweep down (a quarter stroke ahead of the wings)
+  const lift = -Math.cos(th + F.skew * Math.sin(th)) * F.lift * w;
+  return Math.sin(u * 1.1) * F.hover + lift + glideSink(u, F);
 }
