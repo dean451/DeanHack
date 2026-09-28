@@ -77,6 +77,18 @@ static const char *seen_name(int glyph,int x,int y) {
     if ((paren=strstr(buf," (")) != 0 && buf[strlen(buf)-1]==')') *paren='\0';
     return buf;
 }
+/* True when the hero is looking at the top object here and knows exactly what it is.
+   The Amulet of Yendor and its fakes read the same until each one is identified on its
+   own (obj->known), so only this tells the real, known Amulet apart for the client. */
+static boolean seen_identified(int glyph,int x,int y) {
+    struct obj *top;
+    int o=glyph_to_obj(glyph);
+    if (glyph_is_body(glyph) || o<0 || o>=NUM_OBJECTS || !cansee(x,y) || Hallucination) return FALSE;
+    top=vobj_at(x,y);
+    if (!top || top->otyp!=o || !top->dknown) return FALSE;
+    if (o==AMULET_OF_YENDOR || o==FAKE_AMULET_OF_YENDOR) return top->known;
+    return objects[o].oc_name_known;
+}
 /* FX stream: tmp_at() sequences (beams, thrown objects, explosions) are buffered as
    steps and sent as one {"type":"fx"} event when the outermost sequence ends, so the
    client can replay what the map frames only show the end of. "tick" steps are
@@ -244,6 +256,7 @@ static void frame(void) {
                    object_type == CORPSE ? FLESH : objects[object_type].oc_material);
             quoted(object_name(g));
             printf(",\"label\":");quoted(seen_name(g,x,y));
+            if (seen_identified(g,x,y)) printf(",\"identified\":true");
             if (object_type != CORPSE && OBJ_DESCR(objects[object_type])) {
                 printf(",\"appearance\":");quoted(OBJ_DESCR(objects[object_type]));
             }
