@@ -954,6 +954,32 @@ test('the horn is a curled cow horn with brass fittings and a baldric looped on 
  model.userData.dispose();assert.equal(disposed,3);
 });
 
+test('the crystal ball is a glass orb held in brass talons on a turned stand, centred where its aura swirls',()=>{
+ const model=createGroundModel({name:'crystal ball',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['crystal-ball-stand','crystal-ball-brass','crystal-ball-depth','crystal-ball-mist','crystal-ball-glass']);
+ let verts=0;const box=new THREE.Box3(),bounds={};
+ for(const part of model.children){
+  assert.deepEqual(part.position.toArray(),[0,0,0]);
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color].filter(Boolean))for(const x of a.array)assert(Number.isFinite(x));
+  if(color)for(const x of color.array)assert(x>=0&&x<=1);
+  part.geometry.computeBoundingBox();box.union(part.geometry.boundingBox);bounds[part.userData.part]=part.geometry.boundingBox;
+ }
+ assert(verts<10000,`${verts} vertices`);
+ // wand-auras.js swirls the mist round (0,.14,0) inside a radius of .105.
+ const glass=bounds['crystal-ball-glass'];
+ for(const [lo,hi,mid] of [[glass.min.x,glass.max.x,0],[glass.min.y,glass.max.y,.14],[glass.min.z,glass.max.z,0]])
+  assert(Math.abs((lo+hi)/2-mid)<1e-3&&Math.abs((hi-lo)/2-.105)<1e-3,`glass ${glass.min.toArray()} ${glass.max.toArray()}`);
+ assert(Math.abs(box.min.y)<1e-6&&box.max.y<.25&&box.max.x-box.min.x<.24&&box.max.z-box.min.z<.24,`bounds ${box.min.toArray()} ${box.max.toArray()}`);
+ assert(bounds['crystal-ball-stand'].min.y<1e-6&&bounds['crystal-ball-stand'].max.y<.05);
+ // The talons climb past the equator without sinking into the glass.
+ const brass=model.children[1].geometry.attributes.position,v=new THREE.Vector3();let top=0;
+ for(let i=0;i<brass.count;i++){v.fromBufferAttribute(brass,i);if(v.y>.08){v.y-=.14;assert(v.length()>.104,`brass inside the glass at ${v.toArray()}`);}top=Math.max(top,brass.getY(i));}
+ assert(top>.15,`talons reach ${top}`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,5);
+});
+
 test('the credit card is a bowed plastic card with a gold chip, a hologram and embossed figures',()=>{
  const model=createGroundModel({name:'credit card',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['credit-card-plastic','credit-card-foil']);

@@ -2396,6 +2396,103 @@ function buildBell(silver,{g,materials}){
  g.rotation.y=-.5;
 }
 
+// The crystal ball: a clear glass orb held in three brass dragon talons on a turned ebony stand.
+// The orb stays centred at y .14 with radius .105, because wand-auras.js swirls its mist there.
+// The stand is one vertex-coloured mesh: a stepped foot with a bead and scored rings, and a shallow
+// dish for the orb. The brass (a collar, a seat ring and the three talons, each with knuckles and
+// a hooked claw curling over the glass) is a second. The glass is three meshes drawn back to front:
+// a dark inner shell that gives the orb its depth, a faint static wisp of mist, and the outer
+// surface, tinted warm low down where it picks up the brass and with a baked window glint.
+function buildCrystalBall({g,materials}){
+ const C=hex=>new THREE.Color(hex),c=new THREE.Color();
+ const woodMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.35});
+ const brassMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.85,roughness:.28});
+ const depthMat=new THREE.MeshBasicMaterial({color:0x14224a,transparent:true,opacity:.4,side:THREE.BackSide,depthWrite:false});
+ const mistMat=new THREE.MeshBasicMaterial({color:0xd4e4ff,transparent:true,opacity:.18,depthWrite:false});
+ const glassMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.03,metalness:.1,transparent:true,opacity:.42,emissive:0x2a4a88,emissiveIntensity:.3,depthWrite:false});
+ materials.push(woodMat,brassMat,depthMat,mistMat,glassMat);
+ const CY=.14,R=.105;
+ const paint=(geo,list,tone)=>{
+  geo.deleteAttribute('uv');const p=geo.attributes.position,cs=[];
+  for(let i=0;i<p.count;i++){tone(p.getX(i),p.getY(i),p.getZ(i));cs.push(c.r,c.g,c.b);}
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));list.push(geo);return geo;
+ };
+ const merged=(list,material,part)=>{
+  const geo=mergeGeometries(list.map(q=>{q.deleteAttribute('uv');if(!q.index)q.setIndex([...Array(q.attributes.position.count).keys()]);return q;}));list.forEach(q=>q.dispose());
+  const mesh=new THREE.Mesh(geo,material);mesh.userData.part=part;g.add(mesh);return mesh;
+ };
+ // The stand, profile from the centre of the underside out, up the foot and back in over the dish.
+ const WOOD=C(0x2c1c16),WOOD_LT=C(0x6a4632),WOOD_DK=C(0x120a07);
+ const prof=[[0,0],[.094,0],[.1,.004],[.1,.012],[.095,.016],[.089,.018],[.091,.022],[.086,.026],[.072,.03],[.066,.036],[.068,.04],[.063,.046],[.058,.047],[.045,.041],[.025,.034],[0,.031]];
+ const wood=[],brass=[];
+ paint(new THREE.LatheGeometry(prof.map(([r,y])=>new THREE.Vector2(r,y)),48),wood,(x,y,z)=>{
+  const n=stoneNoise(x*70,y*9,z*70,5);c.copy(WOOD).lerp(n>0?WOOD_LT:WOOD_DK,Math.abs(n)*.45);
+  // Scored rings on the foot, and polish on the rim and the bead.
+  for(const at of [.008,.0335])if(Math.abs(y-at)<.0012)c.lerp(WOOD_DK,.75);
+  const r=Math.hypot(x,z);if((r>.097&&y>.002&&y<.014)||Math.abs(y-.02)<.0025||Math.abs(y-.04)<.002)c.lerp(WOOD_LT,.35);
+  if(r<.058&&y>.03)c.lerp(WOOD_DK,.5);
+ });
+ const BRASS=C(0xb8893a),BRIGHT=C(0xf0cf7a),GRIME=C(0x4a3414);
+ const brassTone=(x,y,z,shine)=>{const n=stoneNoise(x*90,y*90,z*90,4);c.copy(BRASS).lerp(n>0?BRIGHT:GRIME,Math.abs(n)*.35+shine);};
+ // A collar round the waist of the stand, and the seat ring the orb rests in.
+ paint(new THREE.TorusGeometry(.07,.0035,8,48).rotateX(Math.PI/2).translate(0,.031,0),brass,(x,y,z)=>brassTone(x,y,z,y>.033?.3:0));
+ paint(new THREE.TorusGeometry(.059,.0045,8,48).rotateX(Math.PI/2).translate(0,.05,0),brass,(x,y,z)=>brassTone(x,y,z,y>.052?.35:0));
+ // Three talons climb from the collar up the glass, hugging it just outside its surface.
+ const onOrb=(theta,phi,r)=>new THREE.Vector3(Math.sin(theta)*Math.cos(phi)*r,CY-Math.cos(theta)*r,Math.sin(theta)*Math.sin(phi)*r);
+ const deg=Math.PI/180;
+ for(let k=0;k<3;k++){
+  const phi=k*Math.PI*2/3+.5,out=new THREE.Vector3(Math.cos(phi),0,Math.sin(phi));
+  const pts=[out.clone().multiplyScalar(.074).setY(.031),out.clone().multiplyScalar(.079).setY(.045)];
+  for(const th of [42,56,70,84,96])pts.push(onOrb(th*deg,phi,R+.0065-(th-42)*.00005));
+  const curve=new THREE.CatmullRomCurve3(pts),SEG=40,RAD=8;
+  const tube=new THREE.TubeGeometry(curve,SEG,1,RAD,false),p=tube.attributes.position,P=new THREE.Vector3(),q=new THREE.Vector3();
+  // Taper from a thick wrist at the collar to a slim last joint.
+  for(let i=0;i<p.count;i++){
+   const s=Math.floor(i/(RAD+1))/SEG;curve.getPointAt(s,P);q.fromBufferAttribute(p,i).sub(P);
+   q.multiplyScalar(.0068-.0032*s).add(P);p.setXYZ(i,q.x,q.y,q.z);
+  }
+  paint(tube,brass,(x,y,z)=>{
+   // Bright on the outer ridge of each finger, grimy where it meets the glass.
+   q.set(x,y-CY,z);const d=q.length();brassTone(x,y,z,Math.max(0,Math.min(.45,(d-R-.004)*80)));
+  });
+  // Knuckles, and a hooked claw at the tip curling in over the glass.
+  for(const th of [58,80]){const at=onOrb(th*deg,phi,R+.0065-(th-42)*.00005);paint(new THREE.SphereGeometry(.0068-.0012*(th-58)/22,12,8).translate(at.x,at.y,at.z),brass,(x,y,z)=>brassTone(x,y,z,.2));}
+  const tip=curve.getPointAt(1),tan=curve.getTangentAt(1),inward=new THREE.Vector3(0,CY,0).sub(tip).normalize();
+  const dir=tan.clone().add(inward.multiplyScalar(.15)).normalize();
+  const claw=new THREE.ConeGeometry(.0036,.019,8).translate(0,.0095,0);
+  claw.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),dir));claw.translate(tip.x,tip.y,tip.z);
+  paint(claw,brass,(x,y,z)=>c.copy(BRIGHT).lerp(GRIME,.25));
+  // Scales across the back of the wrist, as three flattened plates.
+  for(let i=0;i<3;i++){
+   const at=curve.getPointAt(.1+i*.09),n=at.clone().sub(new THREE.Vector3(0,CY,0)).normalize();
+   const plate=new THREE.SphereGeometry(.0072-i*.0008,10,6).scale(1,.45,1.3);
+   plate.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),n));
+   plate.translate(at.x+n.x*.0035,at.y+n.y*.0035,at.z+n.z*.0035);
+   paint(plate,brass,(x,y,z)=>brassTone(x,y,z,.15));
+  }
+ }
+ const stand=merged(wood,woodMat,'crystal-ball-stand'),fittings=merged(brass,brassMat,'crystal-ball-brass');
+ stand.castShadow=stand.receiveShadow=fittings.castShadow=fittings.receiveShadow=true;
+ // The glass, back to front. Same position for all three, so they draw in the order added.
+ merged([new THREE.SphereGeometry(R-.004,32,20).translate(0,CY,0)],depthMat,'crystal-ball-depth');
+ // A wisp of mist: flattened puffs on a loose spiral round the same tilted axis the aura spins.
+ const mist=[];
+ for(let i=0;i<7;i++){
+  const a=i*.95,r=.018+i*.0065,y=(i%2?.006:-.006)-i*.001;
+  const puff=new THREE.SphereGeometry(.018+i*.002,12,8).scale(1.6,.5,1).rotateY(-a).translate(Math.cos(a)*r,y,Math.sin(a)*r).rotateZ(-.31).translate(0,CY,0);
+  puff.deleteAttribute('uv');mist.push(puff);
+ }
+ merged(mist,mistMat,'crystal-ball-mist');
+ const WARM=C(0xe0c89a),COOL=C(0xb8d4ff),PALE=C(0xeef6ff),glint=new THREE.Vector3(-.45,.7,.55).normalize(),v=new THREE.Vector3();
+ const glass=paint(new THREE.SphereGeometry(R,56,36).translate(0,CY,0),[],(x,y,z)=>{
+  v.set(x,y-CY,z).divideScalar(R);
+  c.copy(COOL).lerp(WARM,Math.max(0,-v.y-.35)*.9).lerp(PALE,Math.max(0,v.y)*.3);
+  // A window's reflection high on one side: a bright square spot with a softer halo.
+  const d=v.dot(glint);if(d>.9)c.lerp(C(0xffffff),Math.min(1,(d-.9)*12));
+ });
+ const outer=new THREE.Mesh(glass,glassMat);outer.userData.part='crystal-ball-glass';g.add(outer);
+}
+
 // The horn: a cow-horn hunting horn lying on its side, curled in a crescent that lifts off the
 // floor in the middle. Tooled, frost and fire horns and the horn of plenty share the look. The
 // horn is one swept, vertex-coloured mesh: black at the tip fading through streaked amber to a
@@ -3575,11 +3672,7 @@ export function createGroundModel(item={}){
    // Drop onto the floor and centre on the tile.
    g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(g),mid=(b.min.x+b.max.x)/2;g.children.forEach(p=>{p.position.y-=b.min.y;p.position.x-=mid;});
   }else if(kind==='crystal ball'){
-   const orb=new THREE.MeshStandardMaterial({color:0xbfd8ff,roughness:.05,metalness:.1,transparent:true,opacity:.55,emissive:0x3a5a9a,emissiveIntensity:.35});
-   const mist=new THREE.MeshBasicMaterial({color:0xcfe6ff,transparent:true,opacity:.5,depthWrite:false});materials.push(orb,mist);
-   add(new THREE.CylinderGeometry(.08,.1,.035,20),wood,0,.0175);
-   for(let i=0;i<3;i++){const a=i*Math.PI*2/3,claw=add(new THREE.ConeGeometry(.018,.07,6),brass,Math.cos(a)*.075,.06,Math.sin(a)*.075);claw.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);}
-   ball(.105,orb,0,.14,0);ball(.04,mist,.01,.15,-.01,[1.3,.6,1]).rotation.z=.6;
+   buildCrystalBall({g,materials});
   }else if(kind==='horn'){
    buildHorn({g,materials});
   }else if(kind==='bugle'){
