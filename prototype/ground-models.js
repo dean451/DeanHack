@@ -249,7 +249,7 @@ function shapedStone(seed,{size,scale=[1,1,1],cuts=0,bump=.04,base,alt,detail=6,
 }
 
 // Food kinds with their own model; rations (including cram) keep the bundle below.
-const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune cookie|meatball|meat stick|chunk|meat ring|garlic|royal jelly|cream pie|candy bar|pancake|kelp frond|slime mold)(?:e?s)?\b/;
+const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune cookie|meatball|meat stick|chunk|meat ring|garlic|royal jelly|cream pie|candy bar|pancake|kelp frond|slime mold|eucalyptus leaf|eucalyptus leaves)(?:e?s)?\b/;
 
 // Tool kinds with their own model. Each word is the shared appearance, so a tin and a
 // magic whistle, or a tooled and a frost horn, look alike on the floor.
@@ -1327,6 +1327,48 @@ function buildSafe({g,materials}){
  g.rotation.y=-.3;
 }
 
+// Eucalyptus leaves: long sickle-shaped blades that cup along a raised midrib, curl up
+// at the tip and hang from a short reddish stalk. A stack shows a second leaf crossing
+// the first. Returns merged blade and stalk geometry, so each draws once.
+export function eucalyptusLeafGeometry(count=1){
+ const blades=[],stalks=[];
+ const leaves=[[0,0,0,1]];
+ if(count>1)leaves.push([.03,-.02,.9,.9]);
+ for(const [ox,oz,ry,sc] of leaves){
+  const L=.28*sc,W=.034*sc,rows=18,cols=6;
+  // Centreline: bows sideways like a sickle and lifts towards the tip.
+  const spine=u=>new THREE.Vector3((u-.5)*L,.004+.02*u*u,.05*sc*(4*(u-.5)**2-1)+.012*sc);
+  const width=u=>W*1.55*Math.pow(u,.45)*Math.pow(1-u,1.15);
+  const positions=[],indices=[];
+  for(let r=0;r<=rows;r++){
+   const u=r/rows,c=spine(u),w=width(u);
+   const t=spine(Math.min(1,u+.01)).sub(spine(Math.max(0,u-.01))).normalize();
+   const side=new THREE.Vector3(-t.z,0,t.x).normalize();
+   for(let k=0;k<=cols;k++){
+    const v=k/cols*2-1;
+    // Halves cup upward from a midrib that sits a touch higher than the blade beside it.
+    const y=c.y+.012*sc*v*v*(w/W)+.0015*(1-Math.abs(v))**4;
+    positions.push(c.x+side.x*v*w,y,c.z+side.z*v*w);
+   }
+  }
+  for(let r=0;r<rows;r++)for(let k=0;k<cols;k++){
+   const a=r*(cols+1)+k,b=a+cols+1;indices.push(a,b,a+1,a+1,b,b+1);
+  }
+  const blade=new THREE.BufferGeometry();
+  blade.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));blade.setIndex(indices);
+  const rib=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([.02,.3,.6,.93].map(u=>spine(u).add(new THREE.Vector3(0,.0022,0)))),16,.0022*sc,4,false);
+  const b0=spine(0);
+  const petiole=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([b0.clone().add(new THREE.Vector3(.002,.001,0)),new THREE.Vector3(b0.x-.02*sc,.0035,b0.z+.004),new THREE.Vector3(b0.x-.042*sc,.0035,b0.z+.013*sc)]),6,.0032*sc,5,false);
+  const place=new THREE.Matrix4().makeRotationY(ry).setPosition(ox,0,oz);
+  for(const geo of [blade,rib,petiole])geo.applyMatrix4(place);
+  blade.computeVertexNormals();
+  blades.push(blade);stalks.push(rib,petiole);
+ }
+ const blade=mergeGeometries(blades),stalk=mergeGeometries(stalks);
+ blades.forEach(b=>b.dispose());stalks.forEach(s=>s.dispose());
+ return {blade,stalk};
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -1990,6 +2032,12 @@ export function createGroundModel(item={}){
    const cake=mat(0xd49a52),butter=mat(0xf0da78);
    for(let i=0;i<3;i++)add(new THREE.CylinderGeometry(.12-i*.004,.12,.018,24),cake,i*.006,.009+i*.019);
    box(.04,.012,.04,butter,.01,.063);
+  }else if(kind.startsWith('eucalyptus')){
+   // Leathery, waxy blue-green leaves (DoubleSide: the cupped blade is a single sheet).
+   const {blade,stalk}=eucalyptusLeafGeometry((parseInt(name)||1)>1?2:1);
+   const waxy=new THREE.MeshStandardMaterial({color:0x6f9483,roughness:.55,side:THREE.DoubleSide});materials.push(waxy);
+   add(blade,waxy);add(stalk,mat(0x9a5a44));
+   g.rotation.y=.35;
   }else if(kind==='kelp frond'){
    const kelp=mat(0x3d6a3a);
    for(let i=0;i<3;i++){const f=ball(.16,kelp,(i-1)*.04,.006+i*.004,(i-1)*.03,[1,.04,.22]);f.rotation.y=(i-1)*.5;}
