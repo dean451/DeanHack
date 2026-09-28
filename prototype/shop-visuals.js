@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 function kit(name){
  const g=new THREE.Group();g.name=name;const geometries=new Set(),materials=new Set();
  const mat=(color,extra={})=>{const m=new THREE.MeshStandardMaterial({color,roughness:.7,...extra});materials.add(m);return m;};
@@ -70,17 +71,58 @@ export function createShopItem(name){
  // UnNetHack's crystal pick: a pick-axe whose head is cut from glass.
  if(/crystal pick/.test(n))return createPick(name,false,true);
  if(/lock pick/.test(n))return createTool(name,'lockpick');
- if(/skeleton key/.test(n))return createTool(name,'key');
+ if(/skeleton key/.test(n))return createSkeletonKey(name);
  if(/can of grease/.test(n))return createTool(name,'grease');
  return null;
 }
 function createTool(name,kind){
  const {g,mat,mesh,ball,box,cyl,ring}=kit(name);g.userData.restingWeapon=true;
- const iron=mat(0x9aacaf,{metalness:.8,roughness:.28}),wood=mat(0x69462e),gold=mat(0xd0aa4f,{metalness:.72,roughness:.3}),cloth=mat(0x252d35),tin=mat(0x6c7775,{metalness:.55,roughness:.36}),grease=mat(0xc9a44b,{roughness:.45});
+ const iron=mat(0x9aacaf,{metalness:.8,roughness:.28}),wood=mat(0x69462e),gold=mat(0xd0aa4f,{metalness:.72,roughness:.3}),tin=mat(0x6c7775,{metalness:.55,roughness:.36}),grease=mat(0xc9a44b,{roughness:.45});
  if(kind==='lockpick'){for(const x of [-.12,-.04,.04,.12]){cyl(iron,x,.28,0,.012,.012,.43,6).rotation.z=(x*2.2);mesh(new THREE.ConeGeometry(.025,.11,5),iron,x+.035,.51,0).rotation.z=Math.PI/2;}}
- else if(kind==='key'){cyl(gold,0,.3,0,.018,.018,.5,8);ring(gold,0,.57,0,.08,.018).rotation.x=Math.PI/2;for(const x of [-.04,.04])box(gold,x,.06,0,.035,.14,.025);}
  else {cyl(tin,0,.13,0,.18,.18,.18);cyl(grease,0,.245,0,.13,.15,.08);ring(gold,0,.3,0,.13,.012).rotation.x=Math.PI/2;}
  const label=()=>{};return g;
+}
+// An old brass skeleton key dropped flat on the floor: a trefoil bow of three linked rings round a
+// boss, a turned collar, a hollow barrel shaft and a stepped, warded bit. One merged mesh; vertex
+// colours give tarnish in the recesses, fingers' polish on the bow and a dark bore in the barrel.
+function createSkeletonKey(name){
+ const {g,mat,mesh}=kit(name);g.userData.restingWeapon=true;
+ const parts=[],c=new THREE.Color(),brass=new THREE.Color(0xb08d45),polish=new THREE.Color(0xe8cf86),tarnish=new THREE.Color(0x5b4a2a),bore=new THREE.Color(0x15110b);
+ const noise=(a,b)=>{const v=Math.sin(a*12.9898+b*78.233)*43758.5453;return v-Math.floor(v);};
+ // tone(x,y,z) picks each vertex's colour from its place on the key.
+ const put=(geo,tone)=>{const p=geo.attributes.position,cols=[];
+  for(let i=0;i<p.count;i++){tone(p.getX(i),p.getY(i),p.getZ(i),c);cols.push(c.r,c.g,c.b);}
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));parts.push(geo);return geo;};
+ const worn=(x,y,z,col)=>{col.copy(brass).lerp(tarnish,noise(x*40,z*40)*.35);if(y>.017)col.lerp(polish,.45);};
+ const T=.012,Y=T;// flat parts are T thick, centred at y=Y
+ // Bow: three rings on a trefoil round (bx,0), opening away from the shaft, with a boss where they meet.
+ const bx=-.2;
+ for(const a of [Math.PI,Math.PI*.4,-Math.PI*.4]){
+  const r=new THREE.TorusGeometry(.03,.0085,8,24);r.rotateX(Math.PI/2);r.translate(bx+Math.cos(a)*.033,Y,Math.sin(a)*.033);
+  put(r,(x,y,z,col)=>{worn(x,y,z,col);col.lerp(polish,.2);});
+ }
+ const boss=new THREE.CylinderGeometry(.017,.017,T*1.3,14);boss.translate(bx,Y,0);put(boss,(x,y,z,col)=>{worn(x,y,z,col);if(y>Y)col.lerp(polish,.3);});
+ const neck=new THREE.BoxGeometry(.05,T,.02);neck.translate(bx+.04,Y,0);put(neck,worn);
+ // Collar: a turned bead between two rings where the bow meets the shaft.
+ const lathe=(x0,len,profile)=>{const geo=new THREE.LatheGeometry(profile.map(([rr,t])=>new THREE.Vector2(rr,t*len)),12);geo.rotateZ(-Math.PI/2);geo.translate(x0,Y,0);return geo;};
+ put(lathe(-.145,.055,[[0,0],[.013,0],[.016,.08],[.013,.2],[.012,.28],[.019,.5],[.012,.72],[.013,.8],[.016,.92],[.013,1],[0,1]]),(x,y,z,col)=>{
+  worn(x,y,z,col);if(Math.hypot(y-Y,z)<.0135)col.lerp(tarnish,.5);});
+ // Shaft: a slim bar that swells into a hollow barrel at the tip, the bore showing dark.
+ const shaftEnd=.2;
+ put(lathe(-.09,shaftEnd+.09,[[0,0],[.009,0],[.008,.3],[.0085,.62],[.011,.66],[.011,.97],[.0105,1],[0,1]]),(x,y,z,col)=>{
+  worn(x,y,z,col);if(x>shaftEnd-.002&&Math.hypot(y-Y,z)<.0065)col.copy(bore);});
+ const hole=new THREE.CylinderGeometry(.0055,.0055,.002,10);hole.rotateZ(Math.PI/2);hole.translate(shaftEnd+.0005,Y,0);put(hole,(x,y,z,col)=>col.copy(bore));
+ // Bit: a flag off one side of the barrel, stepped and slotted by its wards.
+ const bit=(x0,x1,z1,tone=worn)=>{const b=new THREE.BoxGeometry(x1-x0,T*.8,z1-.006);b.translate((x0+x1)/2,Y,.006+(z1-.006)/2);put(b,tone);};
+ bit(.13,.145,.068);bit(.15,.165,.052);bit(.17,.2,.068);
+ bit(.13,.2,.024,(x,y,z,col)=>{worn(x,y,z,col);col.lerp(tarnish,.25);});
+ // Bright filed edges along the bit's outer end, where it has turned in the lock.
+ for(const [x0,x1,z] of [[.13,.145,.068],[.15,.165,.052],[.17,.2,.068]]){const e=new THREE.BoxGeometry(x1-x0,T*.82,.004);e.translate((x0+x1)/2,Y,z-.002);put(e,(x,y,z,col)=>col.copy(polish));}
+ const geo=mergeGeometries(parts);parts.forEach(p=>p.dispose());
+ geo.computeBoundingBox();const box=geo.boundingBox,cx=(box.min.x+box.max.x)/2,cz=(box.min.z+box.max.z)/2;
+ geo.translate(-cx,-box.min.y,-cz);
+ const key=mesh(geo,mat(0xffffff,{vertexColors:true,metalness:.72,roughness:.36}));key.rotation.y=.5;key.userData.part='skeleton key';
+ return g;
 }
 // Sweeps a tapering cross-section along a curve in the x-z plane. y is the thickness axis, so the
 // tool lies flat. halfWidth(t) is in the curve's plane, halfHeight(t) along y; both ends are capped.
