@@ -13,6 +13,7 @@ import {createMushroom} from './mushroom.js';
 import {createLichen} from './lichen.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
+import {createNurse} from './nurse.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2341,6 +2342,7 @@ export function createCreature(cell={}){
  if(SKIN[name])return humanoid(letter==='k'||/kobold/.test(name)?'kobold':'imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
  if(ELVES[name])return createElf(name);
  if(PRIESTS[name])return createPriest(name);
+ if(name==='nurse')return createNurse();
  if(name==='hobbit')return humanoid('hobbit',{cloth:mat('#4f7a3a')});
  if(/orc|uruk|snaga/.test(name))return humanoid('orc',color?{cloth:mat(shade(color,.75))}:{});
  if(name==='dwarf lord')return humanoid('dwarf',{rank:'lord',cloth:mat('#3d5a9a')});

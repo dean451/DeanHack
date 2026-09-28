@@ -321,7 +321,7 @@ test('elves get their own slender, cloaked, sword-bearing model instead of the t
  // kinds share the material but not the (differently coloured) geometry
  const [wood,king]=['Woodland-elf','Elvenking'].map(n=>meshes(createCreature({name:n,symbol:AT})));
  assert.equal(wood[0].material,king[0].material);assert.notEqual(wood[0].geometry,king[0].geometry);
- assert.equal(createCreature({name:'nurse',symbol:AT,color:7}).quirk,'human');
+ assert.equal(createCreature({name:'watchman',symbol:AT,color:2}).quirk,'guard');
 });
 
 test('priests get a robed, mace-bearing model with a hood, mitre or tonsure per kind',()=>{
@@ -350,6 +350,31 @@ test('priests get a robed, mace-bearing model with a hood, mitre or tonsure per 
  const [temple,high]=['aligned priest','high priest'].map(n=>meshes(createCreature({name:n,symbol:AT})));
  assert.equal(temple[0].material,high[0].material);assert.notEqual(temple[0].geometry,high[0].geometry);
  assert.equal(temple[6].geometry,high[6].geometry,'one mace geometry for every priest');
+});
+
+test('the nurse gets a dress, apron, cap and syringe instead of the plain humanoid',()=>{
+ const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const t0=performance.now(),n=createCreature({name:'nurse',symbol:AT,color:15}),ms=performance.now()-t0;
+ assert.equal(n.quirk,'nurse');
+ for(const key of ['body','head','arm','weaponSocket'])assert(n[key]?.isObject3D,key);
+ assert.equal(n.legs.length,2);assert.equal(n.arms.length,2);
+ assert(n.arm.children.includes(n.weaponSocket),'the syringe rides the arm');
+ const parts=meshes(n);assert.equal(parts.length,7);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ n.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(n.g);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.05&&b.max.y<1.35,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.48,`fits the tile: ${JSON.stringify(b)}`);
+ assert(ms<300,`took ${ms} ms`);
+ const again=meshes(createCreature({name:'nurse',symbol:AT,color:15}));
+ assert.equal(again[0].geometry,parts[0].geometry,'geometry is shared');
 });
 
 test('each mold is its own lobed colony with a kind-specific accent instead of the shared fungus mound',()=>{
