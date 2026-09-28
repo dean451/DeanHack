@@ -302,13 +302,14 @@ function createPick(name,broad,crystal=false){
 }
 export function lightItemKind(name=''){
  const n=name.toLowerCase();
- if(/\blantern\b/.test(n))return 'lantern';
- if(/\blamp\b/.test(n))return 'lamp';
+ if(/\blanterns?\b/.test(n))return 'lantern';
+ if(/\blamps?\b/.test(n))return 'lamp';
  if(/\bcandles?\b/.test(n))return 'candle';
  return null;
 }
 export function createLightItem(name){
  const kind=lightItemKind(name);if(!kind)return null;
+ if(kind==='lantern')return createBrassLantern(name);
  const {g,mat,mesh,ball,cyl,ring}=kit(name);g.userData.restingWeapon=true;
  const brass=mat(0xb79b53,{metalness:.75,roughness:.3}),dark=mat(0x34312c),wax=mat(/tallow/i.test(name)?0xbead82:0xeee0b4);
  if(kind==='candle'){
@@ -322,13 +323,79 @@ export function createLightItem(name){
   const spout=mesh(new THREE.ConeGeometry(.075,.32,12),brass,.25,.20,0);spout.rotation.z=-Math.PI/2-.25;
   cyl(dark,.395,.25,0,.013,.013,.042,6);
   const handle=ring(brass,-.23,.20,0,.115,.021);handle.scale.set(.85,1,1);
- }else{
-  const glass=mat(0xc1dcd9,{transparent:true,opacity:.22,roughness:.18,metalness:.1,depthWrite:false});
-  cyl(brass,0,.05,0,.18,.20,.10);cyl(brass,0,.49,0,.10,.18,.12);
-  cyl(glass,0,.28,0,.125,.14,.36,20);
-  for(const x of [-.14,.14])for(const z of [-.08,.08])cyl(brass,x,.285,z,.012,.012,.38,6);
-  cyl(dark,0,.13,0,.065,.08,.07);cyl(wax,0,.215,0,.03,.04,.12);cyl(dark,0,.29,0,.008,.008,.035,6);
-  const handle=ring(dark,0,.62,0,.13,.015);handle.scale.y=1.15;
  }
+ return g;
+}
+// A brass hurricane lantern standing on the floor: a stepped fount with a wick-raising knob, a
+// bulging glass globe caged by four bowed guard wires and two hoops, a vented, domed cap with a
+// hanging ring, and a wire bail tipped over to one side. The brass is one merged, vertex-coloured
+// mesh (tarnish low down and in the vents, polish on the rims); the globe is a second draw, and a
+// lit lantern ("(lit)" in the name) adds a flame and a warm glow in the glass as a third.
+function createBrassLantern(name){
+ const {g,mat,mesh}=kit(name);g.userData.restingWeapon=true;
+ const lit=/\blit\b/i.test(name);
+ const parts=[],c=new THREE.Color(),brass=new THREE.Color(0xb3924a),polish=new THREE.Color(0xf0d58c),tarnish=new THREE.Color(0x4f4127),
+  soot=new THREE.Color(0x191511),wick=new THREE.Color(0x2a2520),char=new THREE.Color(0x0d0b09);
+ const noise=(a,b)=>{const v=Math.sin(a*12.9898+b*78.233)*43758.5453;return v-Math.floor(v);};
+ const put=(geo,tone)=>{geo.deleteAttribute('uv');const p=geo.attributes.position,cols=[];
+  for(let i=0;i<p.count;i++){tone(p.getX(i),p.getY(i),p.getZ(i),c);cols.push(c.r,c.g,c.b);}
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));parts.push(geo);return geo;};
+ // Tarnish gathers low down and in blotches; y is height above the floor.
+ const worn=(x,y,z,col)=>{col.copy(brass).lerp(tarnish,.18+noise(x*31+y*7,z*29)*.3+Math.max(0,.06-y)*4);};
+ const lathe=(profile,n=28)=>new THREE.LatheGeometry(profile.map(([r,y])=>new THREE.Vector2(r,y)),n);
+ // The fount: a flared foot, a rounded oil tank and a shoulder rising to the burner seat.
+ put(lathe([[0,0],[.142,0],[.152,.006],[.152,.02],[.143,.028],[.156,.052],[.158,.07],[.148,.092],[.12,.106],[.09,.112],[.086,.122],[.062,.126],[0,.126]]),
+  (x,y,z,col)=>{worn(x,y,z,col);const r=Math.hypot(x,z);if(r>.15&&y>.004&&y<.022||r>.155&&y>.05&&y<.075)col.lerp(polish,.55);});
+ // Burner collar, the wick and its charred tip inside the globe.
+ put(lathe([[0,.126],[.058,.126],[.06,.13],[.056,.15],[.04,.158],[.018,.16],[0,.16]],20),(x,y,z,col)=>{worn(x,y,z,col);col.lerp(tarnish,.3);if(y>.152)col.lerp(soot,.5);});
+ const w=new THREE.BoxGeometry(.03,.026,.006);w.translate(0,.17,0);put(w,(x,y,z,col)=>col.copy(wick).lerp(char,y>.176?.9:.1));
+ // Wick-raising knob: a stem out through the fount's shoulder to a milled thumbwheel.
+ const stem=new THREE.CylinderGeometry(.006,.006,.08,8);stem.rotateZ(Math.PI/2);stem.translate(.1,.12,0);put(stem,worn);
+ const wheel=new THREE.CylinderGeometry(.024,.024,.01,16);wheel.rotateZ(Math.PI/2);wheel.translate(.145,.12,0);
+ put(wheel,(x,y,z,col)=>{worn(x,y,z,col);if(Math.hypot(y-.12,z)>.02)col.lerp(Math.floor(Math.atan2(z,y-.12)/Math.PI*8)%2?polish:tarnish,.5);});
+ // The globe's outline, shared by the glass and the guard wires bowed round it.
+ const globe=y=>.072+.05*Math.sin(Math.PI*Math.min(1,Math.max(0,(y-.13)/.24)));
+ // Four guard wires from the fount's shoulder to the cap, each standing just off the glass.
+ for(let i=0;i<4;i++){
+  const a=Math.PI/4+i*Math.PI/2,pts=[];
+  for(let k=0;k<=12;k++){const y=.108+k/12*.27,r=globe(y)+.013;pts.push(new THREE.Vector3(Math.cos(a)*r,y,Math.sin(a)*r));}
+  put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.0055,6),(x,y,z,col)=>{worn(x,y,z,col);if(Math.hypot(x,z)>globe(y)+.016)col.lerp(polish,.4);});
+ }
+ // Two hoops binding the guards: one round the globe's belly, one near its foot.
+ for(const y of [.25,.165]){const hoop=new THREE.TorusGeometry(globe(y)+.013,.005,6,36);hoop.rotateX(Math.PI/2);hoop.translate(0,y,0);put(hoop,(x,yy,z,col)=>{worn(x,yy,z,col);if(yy>y)col.lerp(polish,.45);});}
+ // The cap: a seating ring over the globe, a vented drum dark between its louvres, a dome and a finial.
+ put(lathe([[.064,.37],[.1,.372],[.104,.382],[.096,.39],[.084,.392],[.084,.425],[.09,.43],[.086,.436],[.06,.458],[.034,.47],[.026,.478],[.03,.486],[.016,.492],[0,.494]]),
+  (x,y,z,col)=>{worn(x,y,z,col);
+   if(y>.395&&y<.423){const a=Math.atan2(z,x);if(Math.sin(a*12)>.2)col.copy(soot).lerp(tarnish,.2);}
+   if(y>.376&&y<.386||y>.427&&y<.434||y>.48)col.lerp(polish,.5);
+   if(y<.372)col.lerp(soot,.7);});
+ // The hanging ring on the finial.
+ const loop=new THREE.TorusGeometry(.018,.0045,6,16);loop.translate(0,.51,0);put(loop,(x,y,z,col)=>{worn(x,y,z,col);col.lerp(polish,.3);});
+ // The wire bail pivots in two ears on the seating ring and has tipped over towards +z.
+ const pivot=.385,tip=.9;
+ for(const s of [-1,1]){const ear=new THREE.BoxGeometry(.028,.02,.008);ear.translate(s*.113,pivot,0);put(ear,worn);}
+ const bail=new THREE.TorusGeometry(.12,.0055,6,32,Math.PI);bail.rotateX(tip);bail.translate(0,pivot,0);
+ put(bail,(x,y,z,col)=>{worn(x,y,z,col);if(y>pivot+.08)col.lerp(polish,.5);});
+ const grip=new THREE.CylinderGeometry(.011,.011,.07,10);grip.rotateZ(Math.PI/2);grip.translate(0,.12*Math.cos(tip),.12*Math.sin(tip));grip.translate(0,pivot,0);
+ put(grip,(x,y,z,col)=>col.set(0x2f231a).lerp(tarnish,.2));
+ const geo=mergeGeometries(parts);parts.forEach(q=>q.dispose());
+ const body=mesh(geo,mat(0xffffff,{vertexColors:true,metalness:.78,roughness:.34}));body.userData.part='brass';
+ // The globe: thin glass open top and bottom, sooted just under the cap.
+ const glassGeo=lathe(Array.from({length:17},(_,i)=>{const y=.13+i/16*.24;return [globe(y),y];}),32);
+ const gp=glassGeo.attributes.position,gc=[];
+ for(let i=0;i<gp.count;i++){const y=gp.getY(i);c.set(lit?0xffe2b0:0xd8ece8).lerp(soot,Math.max(0,(y-.33)/.04)*.75);gc.push(c.r,c.g,c.b);}
+ glassGeo.setAttribute('color',new THREE.Float32BufferAttribute(gc,3));
+ const glass=mesh(glassGeo,mat(0xffffff,{vertexColors:true,transparent:true,opacity:lit?.34:.24,roughness:.08,metalness:.1,depthWrite:false,side:THREE.DoubleSide,
+  emissive:lit?0xff9a3c:0x000000,emissiveIntensity:lit?.35:0}));
+ glass.castShadow=false;glass.userData.part='globe';
+ if(lit){
+  // A still, teardrop flame on the wick with a white-hot heart.
+  const flameGeo=lathe([[0,.176],[.014,.182],[.02,.196],[.017,.215],[.009,.235],[0,.252]],16),fp=flameGeo.attributes.position,fc=[];
+  for(let i=0;i<fp.count;i++){c.set(0xfff4d0).lerp(new THREE.Color(0xff8a2a),Math.min(1,(fp.getY(i)-.176)/.07+Math.hypot(fp.getX(i),fp.getZ(i))*18));fc.push(c.r,c.g,c.b);}
+  flameGeo.setAttribute('color',new THREE.Float32BufferAttribute(fc,3));
+  const flame=mesh(flameGeo,new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}));flame.castShadow=flame.receiveShadow=false;flame.userData.part='flame';
+  const dispose=g.userData.dispose;g.userData.dispose=()=>{dispose();flame.material.dispose();};
+ }
+ g.rotation.y=.4;
  return g;
 }
