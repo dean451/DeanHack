@@ -34,7 +34,7 @@ import {createExplosions} from './explosions.js';
 import {createFlood} from './flood.js';
 import {createSplash} from './splash.js';
 import {createGrab} from './grab.js';
-import {createHold} from './hold.js';
+import {createHold,poseHeld} from './hold.js';
 import {createPolymorph,poseActor} from './polymorph.js';
 import {createBarsMelt} from './bars-melt.js';
 import {createBreath} from './breath.js';
@@ -207,7 +207,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    if(Array.isArray(frame.ground))showGround(frame.ground);
    hero.setWeapon?.(frame.player.weapon??null);syncHeldWandAura(hero,frame.player.weapon??null);syncHeldGleam(hero,frame.player.weapon??null);
    hero.setHelmet?.(frame.player.helmet??null);addOutlines(hero.g);
-   const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();rays.clear();zapFlash.clear(hero);rayMarks.clear();explosions.clear();flood.clear();flooding=false;splash.clear();grab.clear();hold.clear();poly.clear();barsMelt.clear();breath.clear();engulf.clear();dropEngulfCamera(camera,controls);poseEngulfed(hero,null);poseActor(hero,null);origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
+   const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();rays.clear();zapFlash.clear(hero);rayMarks.clear();explosions.clear();flood.clear();flooding=false;splash.clear();grab.clear();hold.clear();poseHeld(hero,null);poly.clear();barsMelt.clear();breath.clear();engulf.clear();dropEngulfCamera(camera,controls);poseEngulfed(hero,null);poseActor(hero,null);origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
    if(!newLevel&&flood.add(prevFrame,frame))flooding=true;splash.flushMessages(frame);grab.frame(frame);hold.frame(frame);poly.frame(frame);barsMelt.frame(frame);engulf.frame(frame);
    const seen=new Set(),seenActors=new Set(),seenWells=new Set();
    for(const cell of frame.cells){const id=`${cell.x},${cell.z}`,x=cell.x-origin.x,z=cell.z-origin.z;
@@ -329,7 +329,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    if(pending?.kind==='command'){code=directions[e.key]??(e.key===' '?46:e.key.length===1?e.key.charCodeAt(0):undefined);}else code=directions[e.key]??(e.key==='Enter'?13:e.key==='Escape'?27:e.key.length===1?e.key.charCodeAt(0):undefined);
    if(code){e.preventDefault();e.stopImmediatePropagation();if(pending)reply(code);else if(pending===null)queuedCommand=code;}
  },true);
- return {get active(){return active;},update(t,dt){if(!active||!hero.target)return;poseEngulfed(hero,null);clearActionPose(hero,hero.actions);zapFlash.unpose(hero);const delta=hero.target.clone().sub(hero.g.position),moving=delta.length()>.025;if(moving)hero.g.rotation.y=Math.atan2(delta.x,delta.z);hero.g.position.lerp(hero.target,1-Math.exp(-dt*14));hero.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);hero.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);hero.cape.rotation.x=-.17+Math.sin(t*3)*.06;if(hero.plume)hero.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
+ return {get active(){return active;},update(t,dt){if(!active||!hero.target)return;poseEngulfed(hero,null);poseHeld(hero,null);clearActionPose(hero,hero.actions);zapFlash.unpose(hero);const delta=hero.target.clone().sub(hero.g.position),moving=delta.length()>.025;if(moving)hero.g.rotation.y=Math.atan2(delta.x,delta.z);hero.g.position.lerp(hero.target,1-Math.exp(-dt*14));hero.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);hero.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);hero.cape.rotation.x=-.17+Math.sin(t*3)*.06;if(hero.plume)hero.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
    const offset=hero.g.position.clone().sub(controls.target);offset.y=0;offset.multiplyScalar(1-Math.exp(-dt*3));controls.target.add(offset);camera.position.add(offset);lantern.position.copy(hero.g.position).add(new THREE.Vector3(0,3,0));
    for(const tile of tiles.values())if(tile.visible)tile.traverse(o=>o.userData.updateFire?.(t));
    updateActions(hero,hero.actions,dt);zapFlash.update(dt,hero);swingFx.update(hero,dt,swingTarget);
@@ -338,7 +338,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    for(const item of groundItems.values())if(item.visible){item.userData.wandAura?.userData.update(t);item.userData.artifactGleam?.userData.update(t);}
    updateHeldWandAura(hero,t);updateHeldGleam(hero,t);
    for(const item of groundItems.values()){if(!item.userData.coinPile)continue;item.userData.coinAge=(item.userData.coinAge||0)+dt;for(const coin of item.userData.coinPile){if(coin.settled||item.userData.coinAge<coin.delay)continue;coin.velocity-=9.8*dt;coin.disk.position.y+=coin.velocity*dt;coin.stamp.position.y+=coin.velocity*dt;if(coin.disk.position.y<=coin.target){coin.disk.position.y=coin.target;coin.stamp.position.y=coin.target+.019;coin.velocity*=-.16;if(Math.abs(coin.velocity)<.35)coin.settled=true;}}}
-   if(flooding)flooding=flood.update(dt,origin).count>0;splash.update(dt,origin);const grabbed=grab.update(dt,origin);hold.update(dt,origin,{skip:grabbed.held});hero.g.position.y=grabbed.sink+(hero.actions.applied?.dy??0);
+   if(flooding)flooding=flood.update(dt,origin).count>0;splash.update(dt,origin);const grabbed=grab.update(dt,origin);const holding=hold.update(dt,origin,{skip:grabbed.held});poseHeld(hero,holding.squeeze);hero.g.position.y=grabbed.sink+(hero.actions.applied?.dy??0);
    const {poses:polyPoses}=poly.update(dt,origin);poseActor(hero,latest?.player&&polyPoses.get(`${latest.player.x},${latest.player.z}`));for(const a of actors.values())poseActor(a,polyPoses.get(a.cell));barsMelt.update(dt,origin);const br=breath.update(dt,origin);if(br.glow*BREATH_LIGHT_INTENSITY>blastLight.intensity){blastLight.intensity=br.glow*BREATH_LIGHT_INTENSITY;blastLight.color.setHex(br.color);blastLight.position.set(br.x-origin.x,1.2,br.z-origin.z);}const eng=engulf.update(dt,origin);engulfCamera(camera,controls,eng);poseEngulfed(hero,eng.hero);
    for(const tile of tiles.values()){const liquid=tile.userData.liquid;if(!liquid)continue;liquid.visible=!(flooding&&flood.pending(tile.position.x+origin.x,tile.position.z+origin.z));if(tile.visible&&liquid.visible)liquid.userData.updateLiquid(t);}
    for(const w of wells.values())w.userData.updateFountain?.(t);

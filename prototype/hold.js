@@ -11,6 +11,10 @@
 // falls to the floor, staggered so they don't drip in step; no new drops form once the hold
 // breaks, but one already falling lands.
 //
+// While a non-wrapping holder has the hero (not while the hero holds), the hero is squeezed:
+// pressed thinner and a little taller in time with the tug, and rocking side to side as if
+// struggling. It eases in with the grip and back out as the hold breaks (holdSqueeze, poseHeld).
+//
 // holdShape() is pure, so it can be tested without a renderer; createHold() tracks the frame
 // and draws it with one instanced bead mesh.
 
@@ -123,6 +127,32 @@ function dripAt(h, age, t, s) {
   return {r: DRIP_R * (1 - .25 * fall), fall};
 }
 
+// The squeeze on a held hero (see poseHeld): {sx, sy, roll}, sx the sideways scale, sy the
+// height scale, roll radians about the hero's forward axis. Null when the hero holds, or when
+// there's no hold at t.
+export const SQUEEZE = .08, SQUEEZE_ROLL = .07, STRUGGLE_MS = 560;
+export function holdSqueeze(h, t) {
+  if (!h || h.holding) return null;
+  const sh = holdShape(h, t);
+  if (!sh) return null;
+  // Hardest when the strands pull taut (tug 1), never fully slack while gripped.
+  const q = sh.grip * (.4 + .6 * sh.tug);
+  const roll = SQUEEZE_ROLL * sh.grip * Math.sin((t - h.startAt) / STRUGGLE_MS * Math.PI * 2);
+  return {sx: 1 - SQUEEZE * q, sy: 1 + SQUEEZE * .45 * q, roll};
+}
+
+// Applies a holdSqueeze pose to actor.g, taking the last one off first, so it stacks with the
+// other additive poses (engulf, polymorph). poseHeld(actor, null) takes it off.
+export function poseHeld(actor, pose) {
+  const g = actor?.g;
+  if (!g) return;
+  const o = actor.holdPose;
+  if (o) { g.rotation.z -= o.roll; g.scale.x /= o.sx; g.scale.z /= o.sx; g.scale.y /= o.sy; }
+  const ok = pose && Number.isFinite(pose.roll) && pose.sx > 0 && pose.sy > 0 && Number.isFinite(pose.sx) && Number.isFinite(pose.sy);
+  if (ok) { g.rotation.z += pose.roll; g.scale.x *= pose.sx; g.scale.z *= pose.sx; g.scale.y *= pose.sy; }
+  actor.holdPose = ok ? {sx: pose.sx, sy: pose.sy, roll: pose.roll} : null;
+}
+
 // The hold from a frame's player: {dx, dz, holding} or null.
 export function holdOf(player) {
   const st = player?.stuck;
@@ -132,7 +162,7 @@ export function holdOf(player) {
 }
 
 // Tracks player.stuck across frames. update(dt, origin, {skip}) draws the strands and returns
-// {held, beads, drips}; skip hides them while grab.js's coil is showing the same hold. The
+// {held, beads, drips, squeeze} (squeeze: holdSqueeze's pose or null); skip hides them while grab.js's coil is showing the same hold. The
 // material eases toward the sticky end's tint (see holdTint).
 export function createHold(THREE, parent) {
   const geo = new THREE.SphereGeometry(1, 8, 6);
@@ -200,7 +230,8 @@ export function createHold(THREE, parent) {
     }
     mesh.count = n;
     mesh.instanceMatrix.needsUpdate = true;
-    return {held: !!sh, beads: n - drips, drips};
+    const squeeze = sh && !skip && hero ? holdSqueeze(h, now) : null;
+    return {held: !!sh, beads: n - drips, drips, squeeze};
   }
 
   const clear = () => { h = null; hero = null; tint = HOLD_TINT; mat.color.setHex(HOLD_TINT); update(0); };
