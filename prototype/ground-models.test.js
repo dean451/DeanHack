@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createGroundModel} from './ground-models.js';
+import {candelabrumState} from './candelabrum.js';
 
 test('grease can has a grounded finite tin model and releases resources',()=>{
  const model=createGroundModel({name:'an uncursed can of grease (0:12)',class:6});
@@ -570,4 +571,29 @@ test('unicorn horn is one merged spiral ivory mesh resting on the floor',()=>{
  assert(hi>.9&&lo<.5);
  let geometries=0,materials=0;geo.addEventListener('dispose',()=>geometries++);horn.material.addEventListener('dispose',()=>materials++);
  model.userData.dispose();assert.equal(geometries,1);assert.equal(materials,1);
+});
+
+test('the candelabrum is merged gold, wax and flame meshes showing its candles',()=>{
+ assert.deepEqual(candelabrumState('Candelabrum of Invocation (no candles attached)'),{candles:0,lit:false});
+ assert.deepEqual(candelabrumState('Candelabrum of Invocation (1 candle attached)'),{candles:1,lit:false});
+ assert.deepEqual(candelabrumState('Candelabrum of Invocation (7 candles, lit)'),{candles:7,lit:true});
+ assert.deepEqual(candelabrumState('candelabrum'),{candles:7,lit:false});
+ const parts=name=>{const m=createGroundModel({name,class:6});const p=m.children.map(c=>c.userData.part);return [m,p];};
+ const [lit,litParts]=parts('Candelabrum of Invocation (7 candles, lit)');
+ assert.deepEqual(litParts,['gold','wax','flame']);
+ const [bare,bareParts]=parts('Candelabrum of Invocation (no candles attached)');
+ assert.deepEqual(bareParts,['gold']);
+ const [few]=parts('Candelabrum of Invocation (3 candles attached)');
+ assert.deepEqual(few.children.map(c=>c.userData.part),['gold','wax']);
+ assert(few.children[1].geometry.attributes.position.count<lit.children[1].geometry.attributes.position.count);
+ for(const mesh of lit.children)for(const k of ['position','normal','color'])for(const v of mesh.geometry.attributes[k].array)assert(Number.isFinite(v),k);
+ const bounds=new THREE.Box3().setFromObject(lit);
+ assert(Math.abs(bounds.min.y)<1e-6);assert(bounds.max.y>.4&&bounds.max.y<.6);
+ assert(bounds.max.x<.49&&bounds.min.x>-.49&&bounds.max.z<.49&&bounds.min.z>-.49);
+ assert(bounds.max.x-bounds.min.x>.35,'arms spread across the tile');
+ assert.equal(new THREE.Box3().setFromObject(bare).min.y,0);
+ let geometries=0,materials=0;
+ for(const mesh of lit.children){mesh.geometry.addEventListener('dispose',()=>geometries++);mesh.material.addEventListener('dispose',()=>materials++);}
+ lit.userData.dispose();assert.equal(geometries,3);assert.equal(materials,3);
+ bare.userData.dispose();few.userData.dispose();
 });

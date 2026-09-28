@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeVertices,mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {createUnicornHorn} from './unicorn-horn.js';
+import {createCandelabrum,candelabrumState} from './candelabrum.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
@@ -1916,8 +1917,8 @@ export function createGroundModel(item={}){
   // One merged mesh, lifted out of its own group so it sits among g's children like any other part.
   const [horn]=createUnicornHorn().children;g.add(horn);materials.push(horn.material);
  }else if(/candelabrum/.test(name)){
-  add(new THREE.CylinderGeometry(.17,.19,.04,16),gold,0,.02);add(new THREE.CylinderGeometry(.025,.035,.3,12),gold,0,.18);
-  for(let i=0;i<7;i++){const x=(i-3)*.075;box(.018,.04,.02,gold,x,.3);box(.47,.018,.035,gold,0,.3);add(new THREE.CylinderGeometry(.019,.019,.16,8),cloth,x,.4);box(.004,.015,.004,leather,x,.487);}
+  // Merged gold, wax and (when lit) flame meshes, moved into g like the unicorn horn.
+  for(const part of [...createCandelabrum(candelabrumState(item.name)).children]){g.add(part);materials.push(part.material);}
  }else if(/marker/.test(name)){
   const pen=add(new THREE.CylinderGeometry(.035,.035,.32,12),leather,0,.04);pen.rotation.z=Math.PI/2;const cap=add(new THREE.CylinderGeometry(.04,.04,.08,12),gold,.15,.04);cap.rotation.z=Math.PI/2;
  }else if(cls===6&&/blindfold/.test(name)){
