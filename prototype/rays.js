@@ -3,11 +3,15 @@
 // NetHack actually drew, and throws sparks where it bounces off a wall or ricochets back
 // off something that reflects it. The trail fades out after the beam ends instead of
 // vanishing. When the beam turns straight back on a creature's cell (the hero or a monster
-// with reflection), a mirror flash faces the beam there. World marks (scorches, ice) and
-// the digging beam come later.
+// with reflection), a mirror flash faces the beam there. World marks (scorches, ice) are
+// in ray-marks.js.
 //
-// rayFrame() and raySparks() are pure, so they can be tested without a renderer;
-// createRays() draws them with two instanced meshes and one point cloud.
+// The digging beam (the bridge's kind 'dig') is drawn too: a short, dusty, earthy bolt
+// that sheds grit at every cell it passes, and where it goes through rock, a wall or a
+// door, a puff of dust billows out and stone chips tumble to the floor.
+//
+// rayFrame(), raySparks(), digGrit() and rubble() are pure, so they can be tested
+// without a renderer; createRays() draws them with instanced meshes and one point cloud.
 
 // Ray cells are 1 tile long; they sit at chest height.
 export const RAY_Y = .5;
@@ -33,6 +37,19 @@ export const RAY_LOOKS = {
   acid: {core: 0xf4ffb0, glow: 0x9ad61a, width: .05, glowWidth: .22, flicker: .15, spark: 0xd6ff5a},
 };
 
+// The digging beam: a tan core in a dusty brown haze that sputters. It has no ray type,
+// so it isn't in RAY_LOOKS (breath and ray marks only look there).
+export const DIG_LOOK = {core: 0xf0d8a8, glow: 0x8a5a2a, width: .06, glowWidth: .3, flicker: .35, spark: 0xc8a070, dig: true};
+// Grit shed by each dug cell, and how long it lives (ms).
+export const GRIT_PER_CELL = 6;
+export const GRIT_MS = 480;
+// A rubble puff where a solid cell is dug out: dust balls and chips, and how long (ms).
+export const PUFF_MS = 900;
+export const PUFFS_PER_CELL = 4;
+export const CHIPS_PER_CELL = 7;
+const DUST = [0x8d7a62, 0x7a6a58, 0x9a8870];
+const STONE = [0x6f6a64, 0x857d72, 0x5c5650, 0x94897a];
+
 // NetHack's zap glyph direction → yaw of a cell's segment in the x/z plane. The map's y
 // is the world's z, so "vertical" runs along z; "\" (lslant) has x and z rising together.
 const DIR_YAW = {horizontal: 0, vertical: Math.PI / 2, lslant: Math.PI / 4, rslant: -Math.PI / 4};
@@ -45,7 +62,16 @@ const hash = (a, b = 0, c = 0) => {
 };
 
 export function rayLook(effect) {
+  if (effect?.kind === 'dig') return DIG_LOOK;
   return effect?.kind === 'zap' ? RAY_LOOKS[effect.zap] ?? null : null;
+}
+
+// The digging beam carries no direction, so a cell's yaw comes from its neighbours in
+// the run (the step into it, or out of it for the first cell).
+function stepYaw(run, i) {
+  const a = run[i - 1] ?? run[i], b = run[i - 1] ? run[i] : run[i + 1] ?? run[i];
+  const dx = Math.sign(b.x - a.x), dz = Math.sign(b.z - a.z);
+  return dx || dz ? Math.atan2(dz, dx) : 0;
 }
 
 // The zap cells of a timeline, grouped by sequence in the order they were drawn.
@@ -145,7 +171,8 @@ export function rayFrame(timeline, t) {
       const tick = Math.floor(t / 40);
       const shimmer = 1 - look.flicker * hash(s.x, s.z, tick);
       const offset = look.jag ? (hash(s.x + 3, s.z, tick) * 2 - 1) * look.jag : 0;
-      segs.push({x: s.x, z: s.z, yaw: DIR_YAW[s.effect.dir] ?? 0, look, head: i === head && t < s.until,
+      const yaw = look.dig ? stepYaw(run, i) : DIR_YAW[s.effect.dir] ?? 0;
+      segs.push({x: s.x, z: s.z, yaw, look, head: i === head && t < s.until,
         intensity: clamp01(fade * settle * shimmer), offset});
     }
   }
@@ -175,10 +202,99 @@ export function raySparks(bounces, t) {
   return out;
 }
 
-const MAX_SEGS = 96, MAX_SPARKS = 96, MAX_MIRRORS = 8;
+// The cells a digging beam passed through: [{x, z, t, dir: [dx, dz]}], t being when the
+// beam reached the cell. solidAt(x, z), if given, is asked about each cell before the dig
+// shows on the map; the cells it calls solid get `dug: true` (they're where rubble flies).
+export function digCells(timeline, solidAt) {
+  const out = [];
+  for (const run of rayRuns(timeline)) {
+    if (!rayLook(run[0].effect)?.dig) continue;
+    for (let i = 0; i < run.length; i++) {
+      const s = run[i], yaw = stepYaw(run, i);
+      const cell = {x: s.x, z: s.z, t: s.from, dir: [Math.round(Math.cos(yaw)), Math.round(Math.sin(yaw))]};
+      if (typeof solidAt === 'function' && solidAt(s.x, s.z)) cell.dug = true;
+      out.push(cell);
+    }
+  }
+  return out;
+}
 
-// Draws queued ray timelines. play(timeline, {reflectorAt}) starts one now (reflectorAt,
-// if given, is markMirrors()'s lookup, in map cells); update(dt, origin) advances
+// Is map cell x/z solid in a bridge frame (rock, a wall or a closed door)? Unseen or
+// missing cells count as rock, which is what a digging beam bores through. This is
+// digCells()'s lookup for live play, asked before the frame that shows the tunnel.
+export function solidAt(frame, x, z) {
+  if (!frame) return false;
+  const c = (frame.cells ?? []).find(c => c.x === x && c.z === z);
+  return !c || c.terrain === 'wall' || c.terrain === 'unknown' || c.terrain === 'door' || c.terrain === 'tree';
+}
+
+// Grit alive at time t: {x, y, z, color, alpha}. Each cell sheds a little sand as the
+// beam reaches it; it drifts forward with the beam, spreads and falls.
+export function digGrit(cells, t) {
+  const out = [];
+  for (let c = 0; c < cells.length; c++) {
+    const cell = cells[c], age = t - cell.t;
+    if (age < 0 || age >= GRIT_MS) continue;
+    const u = age / GRIT_MS, s = age / 1000, [dx, dz] = cell.dir;
+    for (let i = 0; i < GRIT_PER_CELL; i++) {
+      const ang = Math.atan2(dz, dx) + (hash(cell.x, cell.z, i) * 2 - 1) * 2.2;
+      const speed = .35 + hash(cell.x, i, 5) * .8;
+      const y = RAY_Y + (hash(cell.z, i, 6) - .3) * .12 + (.3 + hash(i, cell.x, 7) * .6) * s - 4.9 * s * s;
+      out.push({x: cell.x + Math.cos(ang) * speed * s + dx * .6 * s, y: Math.max(.02, y),
+        z: cell.z + Math.sin(ang) * speed * s + dz * .6 * s, color: DIG_LOOK.spark, alpha: (1 - u) * .9});
+    }
+  }
+  return out;
+}
+
+// The rubble thrown out of the dug cells at time t: {puffs, chips}. A puff is
+// {x, y, z, r, alpha, color}: a dust ball that swells, rises a little and thins out. A
+// chip is {x, y, z, size, rx, ry, color}: a stone flake that flies out, bounces once,
+// settles on the floor and shrinks away at the end.
+export function rubble(cells, t) {
+  const puffs = [], chips = [];
+  for (const cell of cells) {
+    if (!cell.dug) continue;
+    const age = t - cell.t;
+    if (age < 0 || age >= PUFF_MS) continue;
+    const u = age / PUFF_MS, s = age / 1000, [dx, dz] = cell.dir;
+    const base = Math.atan2(dz, dx);
+    for (let i = 0; i < PUFFS_PER_CELL; i++) {
+      // Dust billows out of the cell's faces, most of it back towards the digger.
+      const ang = base + Math.PI + (hash(cell.x, cell.z, 20 + i) * 2 - 1) * 1.9;
+      const reach = (.25 + .3 * hash(cell.z, i, 21)) * (1 - Math.exp(-age / 180));
+      const open = clamp01(age / 70);
+      puffs.push({x: cell.x + Math.cos(ang) * reach, y: .22 + .25 * hash(i, cell.x, 22) + .22 * u,
+        z: cell.z + Math.sin(ang) * reach, r: (.16 + .1 * hash(cell.x, i, 23)) * (.4 + .9 * Math.sqrt(u)),
+        alpha: open * (1 - u) * (1 - u) * .7, color: DUST[i % DUST.length]});
+    }
+    for (let i = 0; i < CHIPS_PER_CELL; i++) {
+      const ang = base + Math.PI + (hash(cell.x, cell.z, 40 + i) * 2 - 1) * 1.6;
+      const speed = .8 + 1.1 * hash(cell.z, i, 41), up = .5 + .8 * hash(i, cell.x, 42);
+      const size = .035 + .035 * hash(cell.x, i, 43);
+      // Out of the wall at knee height, down to the floor (y 0), one small bounce, rest.
+      const y0 = .4, land = (up + Math.sqrt(up * up + 19.6 * y0)) / 9.8;
+      const up2 = .25 * (9.8 * land - up), land2 = 2 * up2 / 9.8;
+      let y, d;
+      if (s < land) { y = y0 + up * s - 4.9 * s * s; d = speed * s; }
+      else {
+        const b = Math.min(s - land, land2);
+        y = up2 * b - 4.9 * b * b; d = speed * land + speed * .3 * b;
+      }
+      const shrink = u < .7 ? 1 : 1 - (u - .7) / .3;
+      y = Math.max(0, y) + size * shrink / 2;
+      const spin = Math.min(s, land + .15) * (6 + 8 * hash(i, cell.z, 44));
+      chips.push({x: cell.x + Math.cos(ang) * d, y, z: cell.z + Math.sin(ang) * d, size: size * shrink,
+        rx: spin, ry: hash(cell.x, cell.z, 45 + i) * 6.28 + spin * .5, color: STONE[i % STONE.length]});
+    }
+  }
+  return {puffs, chips};
+}
+
+const MAX_SEGS = 96, MAX_SPARKS = 192, MAX_MIRRORS = 8, MAX_PUFFS = 48, MAX_CHIPS = 64;
+
+// Draws queued ray timelines. play(timeline, {reflectorAt, solidAt}) starts one now
+// (reflectorAt, if given, is markMirrors()'s lookup and solidAt digCells()'s, in map cells); update(dt, origin) advances
 // them and positions everything relative to the level origin, as live.js places tiles.
 export function createRays(THREE, parent) {
   const box = new THREE.BoxGeometry(1, 1, 1);
@@ -199,26 +315,35 @@ export function createRays(THREE, parent) {
     blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false});
   const flash = new THREE.InstancedMesh(disc, flashMat, MAX_MIRRORS);
   const ring = new THREE.InstancedMesh(ringGeo, flashMat, MAX_MIRRORS);
-  for (const m of [core, glow, sparks, flash, ring]) { m.frustumCulled = false; m.renderOrder = 5; m.userData.part = 'rays'; parent.add(m); }
-  core.count = glow.count = flash.count = ring.count = 0; sparkGeo.setDrawRange(0, 0);
+  // Dig rubble: additive dust balls (tinted and faded per instance) and lit stone chips.
+  const puffGeo = new THREE.IcosahedronGeometry(1, 1);
+  const puffMat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: .5, depthWrite: false,
+    blending: THREE.AdditiveBlending, toneMapped: false});
+  const puff = new THREE.InstancedMesh(puffGeo, puffMat, MAX_PUFFS);
+  const chipGeo = new THREE.BoxGeometry(1, .45, .8);
+  const chipMat = new THREE.MeshLambertMaterial({color: 0xffffff});
+  const chip = new THREE.InstancedMesh(chipGeo, chipMat, MAX_CHIPS);
+  for (const m of [core, glow, sparks, flash, ring, puff, chip]) { m.frustumCulled = false; m.renderOrder = 5; m.userData.part = 'rays'; parent.add(m); }
+  core.count = glow.count = flash.count = ring.count = puff.count = chip.count = 0; sparkGeo.setDrawRange(0, 0);
   const matrix = new THREE.Matrix4(), q = new THREE.Quaternion(), pos = new THREE.Vector3(), scale = new THREE.Vector3();
-  const up = new THREE.Vector3(0, 1, 0), color = new THREE.Color();
+  const up = new THREE.Vector3(0, 1, 0), color = new THREE.Color(), euler = new THREE.Euler();
   const playing = [];
 
   const white = new THREE.Color(0xffffff);
-  function play(timeline, {reflectorAt} = {}) {
+  function play(timeline, {reflectorAt, solidAt} = {}) {
     if (!rayRuns(timeline).length) return false;
-    playing.push({timeline, bounces: markMirrors(rayBounces(timeline), reflectorAt), t: 0});
+    playing.push({timeline, bounces: markMirrors(rayBounces(timeline), reflectorAt), dig: digCells(timeline, solidAt), t: 0});
     return true;
   }
 
   function update(dt, origin) {
-    let n = 0, p = 0, f = 0;
+    let n = 0, p = 0, f = 0, d = 0, c = 0;
     const ox = origin?.x ?? 0, oz = origin?.z ?? 0;
     for (let i = playing.length - 1; i >= 0; i--) {
       const r = playing[i];
       r.t += dt * 1000;
-      if (r.t > r.timeline.duration + Math.max(RAY_FADE_MS, SPARK_MS)) { playing.splice(i, 1); continue; }
+      const tail = r.dig.length ? Math.max(RAY_FADE_MS, GRIT_MS, PUFF_MS) : Math.max(RAY_FADE_MS, SPARK_MS);
+      if (r.t > r.timeline.duration + tail) { playing.splice(i, 1); continue; }
       for (const s of rayFrame(r.timeline, r.t)) {
         if (n >= MAX_SEGS) break;
         const L = s.look, k = s.intensity * (s.head ? 1.25 : 1);
@@ -235,12 +360,30 @@ export function createRays(THREE, parent) {
         glow.setColorAt(n, color.setHex(L.glow).multiplyScalar(k));
         n++;
       }
-      for (const s of raySparks(r.bounces, r.t)) {
+      for (const s of [...raySparks(r.bounces, r.t), ...digGrit(r.dig, r.t)]) {
         if (p >= MAX_SPARKS) break;
         sparkPos.set([s.x - ox, s.y, s.z - oz], p * 3);
         color.setHex(s.color).multiplyScalar(s.alpha);
         sparkCol.set([color.r, color.g, color.b], p * 3);
         p++;
+      }
+      const {puffs, chips} = rubble(r.dig, r.t);
+      for (const b of puffs) {
+        if (d >= MAX_PUFFS) break;
+        pos.set(b.x - ox, b.y, b.z - oz);
+        matrix.compose(pos, q.identity(), scale.set(b.r, b.r * .8, b.r));
+        puff.setMatrixAt(d, matrix);
+        puff.setColorAt(d, color.setHex(b.color).multiplyScalar(b.alpha));
+        d++;
+      }
+      for (const k of chips) {
+        if (c >= MAX_CHIPS) break;
+        pos.set(k.x - ox, k.y, k.z - oz);
+        q.setFromEuler(euler.set(k.rx, k.ry, 0));
+        matrix.compose(pos, q, scale.set(k.size, k.size, k.size));
+        chip.setMatrixAt(c, matrix);
+        chip.setColorAt(c, color.setHex(k.color));
+        c++;
       }
       for (const b of r.bounces) {
         const m = f < MAX_MIRRORS && mirrorFlash(b, r.t);
@@ -259,20 +402,22 @@ export function createRays(THREE, parent) {
     }
     core.count = glow.count = n;
     flash.count = ring.count = f;
-    for (const m of [core, glow, flash, ring]) {
+    puff.count = d; chip.count = c;
+    for (const m of [core, glow, flash, ring, puff, chip]) {
       m.instanceMatrix.needsUpdate = true;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
     }
     sparkGeo.setDrawRange(0, p);
     sparkGeo.attributes.position.needsUpdate = sparkGeo.attributes.color.needsUpdate = true;
-    return n + p + f;
+    return n + p + f + d + c;
   }
 
   const clear = () => { playing.length = 0; update(0); };
   const dispose = () => {
-    for (const m of [core, glow, sparks, flash, ring]) parent.remove(m);
+    for (const m of [core, glow, sparks, flash, ring, puff, chip]) parent.remove(m);
     box.dispose(); sparkGeo.dispose(); coreMat.dispose(); glowMat.dispose(); sparks.material.dispose();
     disc.dispose(); ringGeo.dispose(); flashMat.dispose();
+    puffGeo.dispose(); puffMat.dispose(); chipGeo.dispose(); chipMat.dispose();
   };
-  return {play, update, clear, dispose, core, glow, sparks, flash, ring, get active() { return playing.length; }};
+  return {play, update, clear, dispose, core, glow, sparks, flash, ring, puff, chip, get active() { return playing.length; }};
 }

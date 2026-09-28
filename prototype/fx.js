@@ -48,7 +48,8 @@ export function fxSpritesAt(timeline, t) {
 
 // How long (ms) to hold back the next map frame so a ray or explosion plays before the
 // frame shows its result (a corpse, a scorched door). Only sequences the client draws
-// (zaps and explosions) count; a blast gets extra time for its fireball to swell.
+// (zaps, the digging beam and explosions) count; a blast gets extra time for its fireball
+// to swell. Holding a dig keeps the wall standing until the beam has gone through it.
 // Capped so the map never lags far behind the game.
 export const FX_HOLD_MAX_MS = 1000;
 export const FX_BLAST_HOLD_MS = 250;
@@ -56,7 +57,7 @@ export function fxHoldMs(timeline, cap = FX_HOLD_MAX_MS) {
   let ms = 0;
   for (const s of timeline?.sprites ?? []) {
     const kind = s.effect?.kind;
-    if (kind === 'zap') ms = Math.max(ms, s.until);
+    if (kind === 'zap' || kind === 'dig') ms = Math.max(ms, s.until);
     else if (kind === 'explosion') ms = Math.max(ms, s.from + FX_BLAST_HOLD_MS, s.until);
   }
   return Math.min(cap, Math.max(0, Math.ceil(ms || 0)));
