@@ -53,3 +53,23 @@ test('skeleton key lies flat as one merged, vertex-coloured mesh',()=>{
   model.userData.dispose();assert.equal(disposed,2);
  }
 });
+
+test('lock pick lies flat as one merged, vertex-coloured set',()=>{
+ for(const name of ['lock pick','an uncursed lock pick']){
+  const model=createShopItem(name);
+  assert(model,name);assert(model.userData.restingWeapon);
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model,true);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} rests on the floor`);
+  assert(bounds.max.y<.02,`${name} lies flat`);
+  assert(Math.max(bounds.max.x-bounds.min.x,bounds.max.z-bounds.min.z)>.3,`${name} keeps long picks`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} stays on its tile`);
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.equal(meshes.length,1,'one draw');
+  const geo=meshes[0].geometry;
+  for(const key of ['position','normal'])for(const value of geo.attributes[key].array)assert(Number.isFinite(value));
+  for(const value of geo.attributes.color.array)assert(value>=0&&value<=1);
+  let disposed=0;geo.addEventListener('dispose',()=>disposed++);meshes[0].material.addEventListener('dispose',()=>disposed++);
+  model.userData.dispose();assert.equal(disposed,2);
+ }
+});

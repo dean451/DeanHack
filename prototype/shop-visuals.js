@@ -70,16 +70,15 @@ export function createShopItem(name){
  if(/dwarvish mattock|broad pick/.test(n))return createPick(name,true);
  // UnNetHack's crystal pick: a pick-axe whose head is cut from glass.
  if(/crystal pick/.test(n))return createPick(name,false,true);
- if(/lock pick/.test(n))return createTool(name,'lockpick');
+ if(/lock pick/.test(n))return createLockPick(name);
  if(/skeleton key/.test(n))return createSkeletonKey(name);
  if(/can of grease/.test(n))return createTool(name,'grease');
  return null;
 }
 function createTool(name,kind){
- const {g,mat,mesh,ball,box,cyl,ring}=kit(name);g.userData.restingWeapon=true;
- const iron=mat(0x9aacaf,{metalness:.8,roughness:.28}),wood=mat(0x69462e),gold=mat(0xd0aa4f,{metalness:.72,roughness:.3}),tin=mat(0x6c7775,{metalness:.55,roughness:.36}),grease=mat(0xc9a44b,{roughness:.45});
- if(kind==='lockpick'){for(const x of [-.12,-.04,.04,.12]){cyl(iron,x,.28,0,.012,.012,.43,6).rotation.z=(x*2.2);mesh(new THREE.ConeGeometry(.025,.11,5),iron,x+.035,.51,0).rotation.z=Math.PI/2;}}
- else {cyl(tin,0,.13,0,.18,.18,.18);cyl(grease,0,.245,0,.13,.15,.08);ring(gold,0,.3,0,.13,.012).rotation.x=Math.PI/2;}
+ const {g,mat,cyl,ring}=kit(name);g.userData.restingWeapon=true;
+ const gold=mat(0xd0aa4f,{metalness:.72,roughness:.3}),tin=mat(0x6c7775,{metalness:.55,roughness:.36}),grease=mat(0xc9a44b,{roughness:.45});
+ cyl(tin,0,.13,0,.18,.18,.18);cyl(grease,0,.245,0,.13,.15,.08);ring(gold,0,.3,0,.13,.012).rotation.x=Math.PI/2;
  const label=()=>{};return g;
 }
 // An old brass skeleton key dropped flat on the floor: a trefoil bow of three linked rings round a
@@ -122,6 +121,40 @@ function createSkeletonKey(name){
  geo.computeBoundingBox();const box=geo.boundingBox,cx=(box.min.x+box.max.x)/2,cz=(box.min.z+box.max.z)/2;
  geo.translate(-cx,-box.min.y,-cz);
  const key=mesh(geo,mat(0xffffff,{vertexColors:true,metalness:.72,roughness:.36}));key.rotation.y=.5;key.userData.part='skeleton key';
+ return g;
+}
+// A thief's lock pick dropped flat on the floor: a hook pick and a wavy rake with flat, cord-wrapped
+// handles, and an L-bent tension wrench, all threaded on a small iron ring. One merged mesh; vertex
+// colours give blued-steel handles, dark cord bands and bright, filed working tips.
+function createLockPick(name){
+ const {g,mat,mesh}=kit(name);g.userData.restingWeapon=true;
+ const parts=[],steel=new THREE.Color(0x8d989c),blued=new THREE.Color(0x3b4a5a),bright=new THREE.Color(0xd9e1e3),cord=new THREE.Color(0x3a2618),iron=new THREE.Color(0x4f5457);
+ const V=(x,z,y=.004)=>new THREE.Vector3(x,y,z),smooth=(a,b,t)=>{const u=Math.min(1,Math.max(0,(t-a)/(b-a)));return u*u*(3-2*u);};
+ // Each tool: a flat handle for the first `grip` of its length, then a thin shank to a bright tip.
+ const tool=(points,grip,handleW,shankW,thick)=>{
+  const w=t=>handleW+(shankW-handleW)*smooth(grip-.04,grip+.03,t),h=t=>thick*(1-.25*smooth(grip,1,t));
+  parts.push(sweepGeometry(points,w,h,(t,cx,cy,col)=>{
+   if(t<grip){col.copy(blued).lerp(steel,.15+.1*cy);
+    // Cord wrapped in bands round the handle.
+    if(t>.05&&t<grip-.05&&Math.sin(t/grip*Math.PI*9)>.2)col.copy(cord).lerp(steel,.08*(1+cy));}
+   else col.copy(steel).lerp(bright,smooth(.75,1,t)*.8+.1*(1+cy));
+  },40,8));
+ };
+ // Hook pick: straight shank ending in a short upturned hook.
+ tool([V(-.19,.012),V(-.06,.012),V(.1,.012),V(.132,.014),V(.145,.022),V(.148,.032)],.34,.011,.0032,.0035);
+ // Rake: a shank that ripples into three humps near the tip.
+ tool([V(-.18,-.004,.0045),V(-.05,-.006,.0045),V(.06,-.01,.0045),V(.08,-.016,.0045),V(.095,-.008,.0045),V(.11,-.017,.0045),V(.125,-.009,.0045),V(.14,-.016,.0045)],.37,.01,.0034,.0035);
+ // Tension wrench: a flat bar bent through a right angle at the tip.
+ tool([V(-.17,-.03,.0036),V(-.02,-.034,.0036),V(.035,-.038,.0036),V(.048,-.041,.0036),V(.052,-.052,.0036),V(.053,-.066,.0036)],.45,.0075,.0045,.0028);
+ // The ring the set hangs on, through the handle ends.
+ const ringGeo=new THREE.TorusGeometry(.03,.0036,8,28);ringGeo.rotateX(Math.PI/2);ringGeo.translate(-.19,.0045,0);
+ const cols=[],p=ringGeo.attributes.position,c=new THREE.Color();
+ for(let i=0;i<p.count;i++){c.copy(iron).lerp(bright,p.getY(i)>.006?.35:0);cols.push(c.r,c.g,c.b);}
+ ringGeo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));ringGeo.deleteAttribute('uv');parts.push(ringGeo);
+ const geo=mergeGeometries(parts);parts.forEach(q=>q.dispose());
+ geo.computeBoundingBox();const box=geo.boundingBox;
+ geo.translate(-(box.min.x+box.max.x)/2,-box.min.y,-(box.min.z+box.max.z)/2);
+ const set=mesh(geo,mat(0xffffff,{vertexColors:true,metalness:.7,roughness:.38}));set.rotation.y=-.35;set.userData.part='lock pick';
  return g;
 }
 // Sweeps a tapering cross-section along a curve in the x-z plane. y is the thickness axis, so the
