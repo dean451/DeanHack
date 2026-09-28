@@ -2195,6 +2195,112 @@ function buildBugle({g,materials}){
  g.rotation.y=-.35;
 }
 
+// The harp: a small Celtic lap harp standing on its carved foot, three-quarter on. Wooden
+// and magic harps share the look. The wood is one merged, vertex-coloured mesh: a
+// round-backed soundbox with a pale spruce soundboard and a dark string rib, a swan neck
+// that rises to the pillar, and a bowed pillar with a carved interlace band. The strings,
+// eyelets, tuning pins and brass cheek bands are the second mesh; the strings are gut, with
+// every C red and every F blue, as on a real harp.
+function buildHarp({g,materials}){
+ const C=hex=>new THREE.Color(hex),V=(x,y,z=0)=>new THREE.Vector3(x,y,z),c=new THREE.Color();
+ const woodMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.55});
+ const trimMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.45,roughness:.35});
+ materials.push(woodMat,trimMat);
+ const WALNUT=C(0x7a4a26),DEEP=C(0x3e2412),HONEY=C(0xa8703a),SPRUCE=C(0xd6b47a),RIB=C(0x5a3418),INK=C(0x1e120a);
+ const wood=[],trim=[];
+ // Sweep rings round a curve in the harp's plane (xy; z is thickness). shape(t,a) gives the
+ // in-plane and thickness offsets for angle a; tone(t,a,p) paints each vertex. The ends are capped.
+ const sweep=(curve,rings,N,shape,tone,list=wood)=>{
+  const pos=[],col=[],idx=[];
+  for(let k=0;k<=rings;k++){
+   const t=k/rings,p=curve.getPoint(t),d=curve.getTangent(t),n=V(-d.y,d.x);
+   for(let j=0;j<N;j++){
+    const a=j/N*Math.PI*2,[u,w]=shape(t,a),q=p.clone().addScaledVector(n,u);q.z+=w;
+    pos.push(q.x,q.y,q.z);tone(t,a,q,c);col.push(c.r,c.g,c.b);
+    if(k)idx.push((k-1)*N+j,k*N+j,(k-1)*N+(j+1)%N,(k-1)*N+(j+1)%N,k*N+j,k*N+(j+1)%N);
+   }
+  }
+  for(const k of [0,rings]){
+   const p=curve.getPoint(k/rings),centre=pos.length/3;pos.push(p.x,p.y,p.z);tone(k/rings,0,p,c);c.lerp(DEEP,.4);col.push(c.r,c.g,c.b);
+   for(let j=0;j<N;j++){const a=k*N+j,b=k*N+(j+1)%N;k?idx.push(centre,a,b):idx.push(centre,b,a);}
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  geo.setIndex(idx);geo.computeVertexNormals();list.push(geo);return geo;
+ };
+ const grain=(q,s,base=WALNUT)=>{const n=stoneNoise(q.x*7,q.y*7,q.z*7,6);c.copy(base).lerp(n>0?HONEY:DEEP,Math.abs(n)*.35+.12*Math.sin(s));return c;};
+ // The soundbox leans back from the foot to the shoulder. Its soundboard faces the strings
+ // (toward the pillar) and is nearly flat; the back is a deep round.
+ const box=new THREE.LineCurve3(V(-.01,.035),V(-.155,.395));
+ const halfW=t=>.042-.022*t,depth=t=>.052-.03*t;
+ sweep(box,24,28,(t,a)=>{const s=Math.sin(a);return [s>0?depth(t)*s:.08*depth(t)*s,halfW(t)*Math.cos(a)];},(t,a,q,c)=>{
+  const s=Math.sin(a),z=halfW(t)*Math.cos(a);
+  if(s<0){c.copy(SPRUCE).lerp(HONEY,.25*Math.abs(stoneNoise(q.x*30,q.y*4,0,5)));if(Math.abs(z)<.0075)c.copy(RIB);if(Math.abs(z)>halfW(t)*.93)c.lerp(DEEP,.5);}
+  else grain(q,q.x*260+q.y*90);
+  // A dark band where the box meets the foot and the shoulder.
+  if(t<.05||t>.95)c.lerp(DEEP,.5);
+ });
+ // Three sound holes down the back, painted as dark ovals ringed with a pale edge.
+ // (The back faces away from the pillar, so they show from behind.)
+ const along=box.getTangent(0),back=V(-along.y,along.x);
+ for(const t of [.3,.55,.78]){
+  const p=box.getPoint(t).addScaledVector(back,depth(t)+.0005),r=.012-.005*t;
+  const hole=new THREE.CircleGeometry(r,16);hole.scale(1,1.5,1);
+  const q=new THREE.Quaternion().setFromUnitVectors(V(0,0,1),back);hole.applyQuaternion(q);hole.translate(p.x,p.y,p.z);
+  const cs=[],hp=hole.attributes.position;for(let i=0;i<hp.count;i++){c.copy(INK);cs.push(c.r,c.g,c.b);}
+  hole.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));hole.deleteAttribute('uv');wood.push(hole);
+ }
+ // The neck: from the shoulder it swells into a hump and sweeps up to the pillar's head.
+ const neck=new THREE.CatmullRomCurve3([V(-.19,.4),V(-.12,.44),V(-.04,.425),V(.03,.45),V(.085,.475)]);
+ const neckR=t=>.017+.008*Math.exp(-(((t-.1)/.12)**2))+.004*Math.exp(-(((t-.95)/.08)**2));
+ sweep(neck,40,18,(t,a)=>[neckR(t)*Math.sin(a),.017*Math.cos(a)],(t,a,q)=>{grain(q,t*50);if(Math.abs(Math.cos(a))>.96)c.lerp(DEEP,.35);});
+ // The pillar bows outward and carries a carved interlace band between two collars.
+ const pillar=new THREE.CatmullRomCurve3([V(.05,.03),V(.1,.18),V(.105,.3),V(.085,.465)]);
+ const pillarR=t=>.014+.005*Math.exp(-(((t-.5)/.14)**2))+.006*Math.exp(-(((t-.06)/.05)**2))+.004*Math.exp(-(((t-.95)/.05)**2));
+ sweep(pillar,40,16,(t,a)=>[pillarR(t)*1.25*Math.sin(a),pillarR(t)*Math.cos(a)],(t,a,q)=>{
+  grain(q,t*40);
+  if(t>.36&&t<.64){const s=(t-.36)*90;if(Math.sin(a*3+s)*Math.sin(a*3-s)>.45)c.lerp(INK,.7);else c.lerp(HONEY,.25);}
+  if(Math.abs(t-.34)<.012||Math.abs(t-.66)<.012)c.lerp(DEEP,.6);
+ });
+ // The foot: a low, rounded plinth under the soundbox and the pillar.
+ const foot=new RoundedBoxGeometry(.2,.035,.1,2,.012).translate(.005,.0175,0);foot.deleteAttribute('uv');
+ {const p=foot.attributes.position,cs=[];for(let i=0;i<p.count;i++){const q=V(p.getX(i),p.getY(i),p.getZ(i));grain(q,q.x*200,C(0x5e371b));if(q.y<.004)c.lerp(INK,.4);cs.push(c.r,c.g,c.b);}foot.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));}
+ wood.push(foot);
+ // Strings run straight up from the soundboard's rib to the underside of the neck.
+ const GUT=C(0xeadcb4),RED=C(0xb0282c),BLUE=C(0x2c4a9a),BRASS=C(0xcaa048),BRASS_DK=C(0x7a5a1c),PIN=C(0xd9dcdc);
+ const paint=(geo,col,hi=BRASS)=>{geo.deleteAttribute('uv');const n=geo.attributes.normal,cs=[];for(let i=0;i<n.count;i++){c.copy(col).lerp(hi,Math.max(0,n.getY(i)+n.getZ(i))*.25);cs.push(c.r,c.g,c.b);}geo.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));trim.push(geo);return geo;};
+ const board=V(along.y,-along.x);
+ const neckAt=x=>{let best=null;for(let i=0;i<=200;i++){const p=neck.getPoint(i/200);if(!best||Math.abs(p.x-x)<Math.abs(best.p.x-x))best={p,t:i/200};}return best;};
+ const STRINGS=14;
+ for(let i=0;i<STRINGS;i++){
+  const t=.08+i*.84/(STRINGS-1),foot=box.getPoint(t).addScaledVector(board,.08*depth(t));
+  const {p,t:nt}=neckAt(foot.x),top=V(foot.x,p.y-neckR(nt)*.9),len=top.y-foot.y;
+  // Bass strings (near the pillar) are thicker. Every seventh string from the top is a C, three below it an F.
+  const note=(STRINGS-1-i)%7,col=note===0?RED:note===3?BLUE:GUT;
+  paint(new THREE.CylinderGeometry(.0016+.0011*(1-i/STRINGS),.0016+.0011*(1-i/STRINGS),len,5,1,true).translate(foot.x,foot.y+len/2,0),col,C(0xffffff));
+  // A brass eyelet where the string leaves the soundboard and a tuning pin through the neck.
+  paint(new THREE.SphereGeometry(.0034,8,6).translate(foot.x,foot.y,0),BRASS);
+  paint(new THREE.CylinderGeometry(.0022,.0022,.05,6).rotateX(Math.PI/2).translate(top.x,p.y,.004),PIN,C(0xffffff));
+  paint(new THREE.BoxGeometry(.0065,.0065,.004).translate(top.x,p.y,.031),PIN,C(0xffffff));
+ }
+ // Brass cheek bands along both sides of the neck, and a brass cap on the pillar's head.
+ for(const s of [-1,1]){
+  const band=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(Array.from({length:12},(_,i)=>{const t=.08+i/11*.84,p=neck.getPoint(t);return V(p.x,p.y-neckR(t)*.15,s*.0175);})),40,.0045,6,false);
+  band.scale(1,1,.45);band.translate(0,0,s*.0175*.55);paint(band,BRASS);
+ }
+ paint(new THREE.SphereGeometry(.014,12,8).scale(1,.7,1.1).translate(.085,.487,0),BRASS);
+ paint(new THREE.TorusGeometry(.019,.003,6,18).rotateX(Math.PI/2).translate(.052,.052,0),BRASS_DK);
+ const S=.88;
+ for(const [list,material,part] of [[wood,woodMat,'harp-wood'],[trim,trimMat,'harp-strings']]){
+  const geo=mergeGeometries(list.map(q=>{if(!q.index)q.setIndex([...Array(q.attributes.position.count).keys()]);if(!q.attributes.normal)q.computeVertexNormals();return q;}));
+  list.forEach(q=>q.dispose());geo.scale(S,S,S);
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=part;g.add(mesh);
+ }
+ const b=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();b.union(p.geometry.boundingBox);});
+ const mid=b.getCenter(V(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-b.min.y,-mid.z));
+ g.rotation.y=.4;
+}
+
 // The credit card: a bank card lying face up with a slight bow. The plastic is one merged
 // mesh (a rounded-corner slab whose face is painted per vertex with a blue sweep, a pale
 // swoosh, fine guilloche waves and a gold rule; the back has the magnetic stripe and the
@@ -3271,20 +3377,7 @@ export function createGroundModel(item={}){
   }else if(kind==='flute'){
    buildFlute({g,materials});
   }else if(kind==='harp'){
-   // A small upright frame harp: slanted soundbox, curved neck, pillar and strings.
-   const lean=.3,along=v(Math.sin(lean),Math.cos(lean),0),face=v(Math.cos(lean),-Math.sin(lean),0);
-   add(new THREE.BoxGeometry(.06,.36,.05),wood,-.08,.18,0).rotation.z=-lean;
-   add(new THREE.CylinderGeometry(.016,.02,.38,10),wood,.14,.21,0);
-   const neck=new THREE.QuadraticBezierCurve3(v(-.027,.36,0),v(.06,.3,0),v(.14,.4,0));
-   add(new THREE.TubeGeometry(neck,16,.018,8,false),wood);
-   add(new THREE.BoxGeometry(.3,.03,.08),dark,0,.015,0);
-   const string=mat(0xe8dcb0);
-   for(let i=0;i<5;i++){
-    // Lower feet on the soundbox run to the far end of the neck, so strings lengthen toward the pillar.
-    const foot=v(-.08,.18,0).addScaledVector(along,-.12+i*.05).addScaledVector(face,.03),top=neck.getPoint(.85-i*.15),d=top.clone().sub(foot);
-    const s=add(new THREE.CylinderGeometry(.002,.002,d.length(),4),string,(foot.x+top.x)/2,(foot.y+top.y)/2,0);s.quaternion.setFromUnitVectors(v(0,1,0),d.normalize());
-   }
-   ball(.02,brass,.14,.41,0);
+   buildHarp({g,materials});
   }else if(kind==='drum'){
    buildDrum({g,materials});
   }else if(kind==='bell'){

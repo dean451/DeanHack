@@ -881,6 +881,28 @@ test('the bugle is one swept brass loop with a flared bell, resting tilted, and 
  model.userData.dispose();assert.equal(disposed,2);
 });
 
+test('the harp stands on its foot: a wooden frame and gut strings with red Cs and blue Fs',()=>{
+ const model=createGroundModel({name:'wooden harp',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['harp-wood','harp-strings']);
+ let verts=0;
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+ }
+ assert(verts<12000,`${verts} vertices`);
+ const [wood,strings]=model.children.map(p=>{p.geometry.computeBoundingBox();return p.geometry.boundingBox;});
+ assert(Math.abs(wood.min.y)<1e-6&&wood.max.y>.38&&wood.max.y<.48,`stands upright: ${wood.min.y}..${wood.max.y}`);
+ // The strings sit inside the frame, clear of the floor.
+ assert(strings.min.y>.02&&strings.max.y<=wood.max.y+.01&&strings.min.x>=wood.min.x&&strings.max.x<=wood.max.x);
+ // Some strings are red and some blue, most are pale gut.
+ const {color}=model.children[1].geometry.attributes;let red=0,blue=0;
+ for(let i=0;i<color.count;i++){const r=color.getX(i),g=color.getY(i),b=color.getZ(i);if(r>.55&&g<.3&&b<.3)red++;if(b>.45&&r<.3)blue++;}
+ assert(red>4&&blue>4,`red ${red}, blue ${blue}`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
 test('the credit card is a bowed plastic card with a gold chip, a hologram and embossed figures',()=>{
  const model=createGroundModel({name:'credit card',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['credit-card-plastic','credit-card-foil']);
