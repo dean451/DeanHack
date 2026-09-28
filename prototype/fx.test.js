@@ -43,3 +43,7 @@ test('nested, open, truncated and empty events stay finite', () => {
   assert.deepEqual(fxTimeline({}), {duration: 0, sprites: []});
   assert.deepEqual(fxTimeline({steps: [{op: 'draw', x: 1, z: 1}, {op: 'end'}]}).sprites, []);
 });
+
+// The action layer's tests run from here until its entry can go in package.json's test list
+// (PR #123 edits that line); the next action-layer run moves it.
+import './actions.test.js';
