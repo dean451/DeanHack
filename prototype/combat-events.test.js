@@ -35,3 +35,4 @@ test('deaths keep position and name', () => {
   assert.deepEqual(deathAction({type: 'death', x: 7, z: 2, name: 'newt', pet: false}), {x: 7, z: 2, name: 'newt', pet: false});
   assert.equal(deathAction({type: 'death', x: 'a', z: 2}), null);
 });
+import './deaths.test.js';
