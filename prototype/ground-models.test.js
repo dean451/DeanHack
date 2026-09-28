@@ -930,6 +930,30 @@ test('the bell lies tipped on its lip and knob, bronze or (the Bell of Opening) 
  assert(Math.abs(tone('silver bell'))<.08&&Math.abs(tone('Bell of Opening'))<.08);
 });
 
+test('the horn is a curled cow horn with brass fittings and a baldric looped on the floor',()=>{
+ const model=createGroundModel({name:'tooled horn',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['horn-body','horn-brass','horn-strap']);
+ let verts=0;const box=new THREE.Box3(),bounds={};
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+  part.geometry.computeBoundingBox();box.union(part.geometry.boundingBox);bounds[part.userData.part]=part.geometry.boundingBox;
+ }
+ assert(verts<14000,`${verts} vertices`);
+ // Lying on its side: long and low, resting on its brass while the horn arches clear of the floor.
+ assert(Math.abs(box.min.y)<1e-6&&box.max.y>.09&&box.max.y<.14&&box.max.x-box.min.x>.38,`bounds ${box.min.toArray()} ${box.max.toArray()}`);
+ assert(bounds['horn-brass'].min.y<1e-6&&bounds['horn-body'].min.y>0);
+ // The strap lies on the floor and reaches up to the rings on the bands.
+ assert(bounds['horn-strap'].min.y>=0&&bounds['horn-strap'].min.y<.001&&bounds['horn-strap'].max.y>.05);
+ // The tip is black, the base pale, and the bore dark.
+ const {position,color}=model.children[0].geometry.attributes;let pale=0,black=0;
+ for(let i=0;i<color.count;i++){const l=color.getX(i)+color.getY(i)+color.getZ(i);if(l>1.5)pale++;if(l<.05)black++;}
+ assert(pale>300&&black>300,`pale ${pale}, black ${black}`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,3);
+});
+
 test('the credit card is a bowed plastic card with a gold chip, a hologram and embossed figures',()=>{
  const model=createGroundModel({name:'credit card',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['credit-card-plastic','credit-card-foil']);
