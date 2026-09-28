@@ -67,6 +67,8 @@ export function createShopItem(name){
  if(/pick-axe|pickaxe/.test(n))return createPick(name,false);
  // A dwarvish mattock shows as "broad pick" until identified; both names draw the same model.
  if(/dwarvish mattock|broad pick/.test(n))return createPick(name,true);
+ // UnNetHack's crystal pick: a pick-axe whose head is cut from glass.
+ if(/crystal pick/.test(n))return createPick(name,false,true);
  if(/lock pick/.test(n))return createTool(name,'lockpick');
  if(/skeleton key/.test(n))return createTool(name,'key');
  if(/can of grease/.test(n))return createTool(name,'grease');
@@ -106,10 +108,12 @@ function sweepGeometry(points,halfWidth,halfHeight,shade,rows=28,sides=10){
 // A pick-axe (or, broad, a dwarvish mattock) dropped flat on the floor: a lathed hickory haft with a
 // swelled butt and a spiralled leather grip, iron langets riveted up to a forged head, the haft end
 // showing through the eye with its wedge, and vertex-coloured wear (polished points, scale, scratches).
-function createPick(name,broad){
+// A crystal pick keeps the haft but cuts the head from faceted, pale blue glass set in silvered fittings.
+function createPick(name,broad,crystal=false){
  const {g,mat,mesh}=kit(name);g.userData.restingWeapon=true;
  const tool=new THREE.Group();g.add(tool);
- const steel=mat(0xffffff,{vertexColors:true,metalness:.72,roughness:.42}),wood=mat(0xffffff,{vertexColors:true,roughness:.82}),iron=mat(broad?0x4b4f52:0x5a6265,{metalness:.7,roughness:.5}),leather=mat(0x4a2c1e,{roughness:.9}),endGrain=mat(0xa47a51,{roughness:.9}),bright=mat(0xc8d0d2,{metalness:.85,roughness:.25});
+ const steel=crystal?mat(0xffffff,{vertexColors:true,flatShading:true,metalness:.05,roughness:.08,transparent:true,opacity:.86,emissive:0x2a5a78,emissiveIntensity:.45})
+  :mat(0xffffff,{vertexColors:true,metalness:.72,roughness:.42}),wood=mat(0xffffff,{vertexColors:true,roughness:.82}),iron=mat(crystal?0xb4bcc2:broad?0x4b4f52:0x5a6265,{metalness:crystal?.85:.7,roughness:crystal?.3:.5}),leather=mat(0x4a2c1e,{roughness:.9}),endGrain=mat(0xa47a51,{roughness:.9}),bright=mat(0xc8d0d2,{metalness:.85,roughness:.25});
  const length=broad?.86:.76,r=broad?.034:.03,headY=broad?.07:.034;
  const noise=(a,b)=>Math.sin(a*12.9898+b*78.233)*43758.5453%1;
  // Head: one curved bar from tip to tip through the eye at the origin; the points curve back toward the haft.
@@ -119,7 +123,12 @@ function createPick(name,broad){
  const halfWidth=broad?t=>t<.5?.004+.03*swell(t):.005+.03*(1-t)**.8*1.4:t=>.003+.028*swell(t);
  const halfHeight=broad?t=>t<.5?.003+.033*swell(t):Math.min(headY,.034+(t-.5)*.08):t=>.003+.031*swell(t);
  const steelTone=new THREE.Color(broad?0x5c6164:0x6a7376),polish=new THREE.Color(0xd9e1e3),scale=new THREE.Color(0x2e2c2a);
- const head=mesh(sweepGeometry(headPoints,halfWidth,halfHeight,(t,cx,cy,c)=>{
+ const facetDark=new THREE.Color(0x6fa6c8),facetLight=new THREE.Color(0xeef8ff),core=new THREE.Color(0x9fd0ec);
+ const head=mesh(sweepGeometry(headPoints,halfWidth,halfHeight,crystal?(t,cx,cy,c)=>{
+  // Cut facets alternate light and shade; the points clear to near white, the thick middle stays blue.
+  const edge=Math.abs(2*t-1),f=noise(Math.floor(t*9)+cx*3,Math.round(cy*2));
+  c.copy(core).lerp(Math.abs(f)>.5?facetLight:facetDark,Math.abs(Math.abs(f)-.5)*1.2).lerp(facetLight,Math.max(0,edge-.6)*1.5);
+ }:(t,cx,cy,c)=>{
   // Worked points are polished bright; the middle keeps dark forge scale and a little rust.
   const edge=broad&&t>.5?(t-.5)*2:Math.abs(2*t-1);
   c.copy(steelTone).lerp(polish,Math.max(0,edge-.45)*1.8);
@@ -156,7 +165,7 @@ function createPick(name,broad){
  mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix),turns*24,.0075,6),leather,0,0,0,tool);
  for(const x of [gripStart,gripEnd]){const band=mesh(new THREE.TorusGeometry(r*.97+.006,.006,6,20),leather,x,headY,0,tool);band.rotation.y=Math.PI/2;}
  // Scratches across the top face of the head.
- for(let i=0;i<5;i++){const z=(i-2)*.042+(broad?.03:0),s=mesh(new THREE.BoxGeometry(.028,.0015,.0022),bright,-.002-bend*(z/span)**2,headY+halfHeight(.5+z/span/2)+.0004,z,tool);s.rotation.y=.5+noise(i,3)*.6;}
+ if(!crystal)for(let i=0;i<5;i++){const z=(i-2)*.042+(broad?.03:0),s=mesh(new THREE.BoxGeometry(.028,.0015,.0022),bright,-.002-bend*(z/span)**2,headY+halfHeight(.5+z/span/2)+.0004,z,tool);s.rotation.y=.5+noise(i,3)*.6;}
  // Lay the butt down on the floor, then drop the lowest point to y=0 and centre it on the tile.
  tool.rotation.z=Math.asin(Math.max(0,headY-r*1.3)/length);
  tool.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(tool,true),centre=bounds.getCenter(new THREE.Vector3());

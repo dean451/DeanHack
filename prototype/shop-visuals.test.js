@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {createShopItem} from './shop-visuals.js';
 
 test('pick-axe and broad pick lie flat on the floor with finite, disposable geometry',()=>{
- for(const name of ['pick-axe','a +0 pick-axe (weapon in hand)','broad pick','dwarvish mattock']){
+ for(const name of ['pick-axe','a +0 pick-axe (weapon in hand)','broad pick','dwarvish mattock','crystal pick']){
   const model=createShopItem(name);
   assert(model,name);assert(model.userData.restingWeapon);
   model.updateMatrixWorld(true);
@@ -26,5 +26,9 @@ test('pick-axe and broad pick lie flat on the floor with finite, disposable geom
  }
  const height=name=>new THREE.Box3().setFromObject(createShopItem(name),true).max.y;
  assert(height('broad pick')>height('pick-axe'),'the mattock stands on its adze blade');
+ const crystal=createShopItem('crystal pick');let glassy=false;
+ crystal.traverse(part=>{if(part.material?.transparent&&part.geometry.attributes.color){glassy=true;
+  for(const v of part.geometry.attributes.color.array)assert(v>=0&&v<=1,'crystal facet colours stay in range');}});
+ assert(glassy,'the crystal pick has a translucent, facet-coloured head');
  assert(createShopItem('lock pick'));assert.equal(createShopItem('pickle'),null);
 });
