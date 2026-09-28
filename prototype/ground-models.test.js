@@ -903,6 +903,33 @@ test('the harp stands on its foot: a wooden frame and gut strings with red Cs an
  model.userData.dispose();assert.equal(disposed,2);
 });
 
+test('the bell lies tipped on its lip and knob, bronze or (the Bell of Opening) silver',()=>{
+ const tone=name=>{
+  const model=createGroundModel({name,class:6});
+  assert.deepEqual(model.children.map(p=>p.userData.part),['bell-metal','bell-handle']);
+  let verts=0;const box=new THREE.Box3(),onFloor=new Set();
+  for(const part of model.children){
+   const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+   for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+   for(const x of color.array)assert(x>=0&&x<=1);
+   part.geometry.computeBoundingBox();box.union(part.geometry.boundingBox);
+   for(let i=0;i<position.count;i++)if(position.getY(i)<.002)onFloor.add(part.userData.part);
+  }
+  assert(verts<10000,`${verts} vertices`);
+  // Lying down: longer than it is tall, and both the metal lip and the wooden knob touch the floor.
+  assert(Math.abs(box.min.y)<1e-6&&box.max.y>.12&&box.max.y<.2&&box.max.x-box.min.x>.25,`bounds ${box.min.toArray()} ${box.max.toArray()}`);
+  assert(onFloor.has('bell-metal')&&onFloor.has('bell-handle'),[...onFloor].join());
+  const {color}=model.children[0].geometry.attributes;let r=0,b=0;
+  for(let i=0;i<color.count;i++){r+=color.getX(i);b+=color.getZ(i);}
+  let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+  model.userData.dispose();assert.equal(disposed,2);
+  return (r-b)/color.count;
+ };
+ // Bronze is warm; silver is nearly neutral.
+ assert(tone('bell')>.15);
+ assert(Math.abs(tone('silver bell'))<.08&&Math.abs(tone('Bell of Opening'))<.08);
+});
+
 test('the credit card is a bowed plastic card with a gold chip, a hologram and embossed figures',()=>{
  const model=createGroundModel({name:'credit card',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['credit-card-plastic','credit-card-foil']);
