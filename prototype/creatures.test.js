@@ -377,6 +377,40 @@ test('the nurse gets a dress, apron, cap and syringe instead of the plain humano
  assert.equal(again[0].geometry,parts[0].geometry,'geometry is shared');
 });
 
+test('the watch get tabards, helmets and a halberd and lantern or a sword instead of the guard block',()=>{
+ const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const expect={watchman:{draws:9,weapon:'halberd',lantern:true},'watch captain':{draws:7,weapon:'sword',lantern:false}},built={};
+ for(const [name,e] of Object.entries(expect)){
+  const t0=performance.now(),w=createCreature({name,symbol:AT,color:2}),ms=performance.now()-t0;
+  assert.equal(w.quirk,'guard');assert.equal(w.kind,name);
+  for(const key of ['body','head','arm','weaponSocket'])assert(w[key]?.isObject3D,`${name} ${key}`);
+  assert.equal(w.legs.length,2);assert.equal(w.arms.length,2);
+  assert(w.arm.children.includes(w.weaponSocket),'the weapon rides the arm');
+  assert.equal(!!w.lantern,e.lantern);if(w.lantern)assert(w.arms[0].children.includes(w.lantern),'the lantern hangs from the other hand');
+  const parts=meshes(w);assert.equal(parts.length,e.draws,name);
+  assert(parts.some(m=>m.userData.part===e.weapon),`${name} holds a ${e.weapon}`);
+  let verts=0;
+  for(const m of parts){
+   const a=m.geometry.attributes;verts+=a.position.count;
+   for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${name} ${m.userData.part} ${key}`);
+   if(a.color)for(const v of a.color.array)assert(v>=0&&v<=1,`${name} ${m.userData.part}`);
+  }
+  assert(verts<40000,`${name}: ${verts} vertices`);
+  w.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(w.g);
+  assert(b.min.y>-.03&&b.min.y<.03,`${name} feet at ${b.min.y}`);
+  assert(b.max.y>1.1&&b.max.y<1.5,`${name} top at ${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.48,`${name} fits the tile: ${JSON.stringify(b)}`);
+  assert(ms<300,`${name} took ${ms} ms`);
+  const again=meshes(createCreature({name,symbol:AT,color:2}));
+  assert.equal(again[0].geometry,parts[0].geometry,'geometry is shared');
+  built[name]=parts;
+ }
+ assert.equal(built.watchman[0].material,built['watch captain'][0].material);
+ assert.notEqual(built.watchman[0].geometry,built['watch captain'][0].geometry);
+ assert.equal(createCreature({name:'soldier',symbol:AT,color:8}).quirk,'guard');
+});
+
 test('each mold is its own lobed colony with a kind-specific accent instead of the shared fungus mound',()=>{
  const F=70,accents={yellow:'spores',green:'acid',brown:'rime',red:'embers'},colours={yellow:3,green:2,brown:3,red:1};
  const bounds={};
