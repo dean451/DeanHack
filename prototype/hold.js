@@ -9,7 +9,9 @@
 //
 // Once the strands have gripped, a drop of glue swells at the low point of each strand and
 // falls to the floor, staggered so they don't drip in step; no new drops form once the hold
-// breaks, but one already falling lands.
+// breaks, but one already falling lands. Each landed drop splats into a flat glossy puddle under
+// its strand, which spreads a little wider with every drop (up to PUDDLE_R) and shrinks away as
+// the strands let go.
 //
 // While a non-wrapping holder has the hero (not while the hero holds), the hero is squeezed:
 // pressed thinner and a little taller in time with the tug, and rocking side to side as if
@@ -28,6 +30,9 @@ export const STRANDS = 3, STRAND_BEADS = 12, HERO_Y = .34, OTHER_Y = .3, SAG = .
 export const HOLD_TINT = 0xb8bfa2;
 // A drip cycle per strand (ms): the drop swells for DRIP_SWELL of it, then falls. Drop radius.
 export const DRIP_MS = 1700, DRIP_SWELL = .82, DRIP_R = .013, DRIP_FLOOR = .012;
+// Puddles: the widest radius, how much of the remaining room each drop fills, the splat's
+// spread time (ms), and the puddle's thickness as a fraction of its radius.
+export const PUDDLE_R = .045, PUDDLE_FILL = .3, SPLAT_MS = 220, PUDDLE_FLAT = .14;
 // How far the strands lean toward the glyph colour, and how fast a new tint eases in (1/s).
 export const TINT_MIX = .5, TINT_RATE = 6;
 // The curses glyph colours (CLR_BLACK..CLR_WHITE); 8 is NO_COLOR.
@@ -56,7 +61,7 @@ export function holdTint(cells, x, z) {
 
 // The hold at time t (ms). h is {dx, dz, holding, startAt, endAt?}: the other tile relative to
 // the hero's tile. Returns null before startAt and once fully let go, else {beads:[{x,y,z,r}],
-// drips:[{x,y,z,r}], grip, tug}. Positions are tiles relative to the hero's tile, y up from
+// drips:[{x,y,z,r}], puddles:[{x,z,r}], grip, tug}. Positions are tiles relative to the hero's tile, y up from
 // the floor.
 export function holdShape(h, t) {
   if (!h || !Number.isFinite(h.startAt) || !(t >= h.startAt)) return null;
@@ -78,7 +83,9 @@ export function holdShape(h, t) {
   // Strands meet the other tile a little short of its centre (on the monster's body).
   const ex = h.dx - ux * .18, ez = h.dz - uz * .18;
   const sx = ux * .12, sz = uz * .12;
-  const beads = [], drips = [];
+  const beads = [], drips = [], puddles = [];
+  // Puddles shrink away over the let-go.
+  const fade = Number.isFinite(h.endAt) && t >= h.endAt ? 1 - smooth((t - h.endAt) / LET_GO_MS) : 1;
   const reach = smooth(age / GRIP_MS);
   const shown = Math.max(0, Math.ceil(STRAND_BEADS * reach));
   for (let s = 0; s < STRANDS; s++) {
@@ -106,15 +113,20 @@ export function holdShape(h, t) {
       const y = drip.fall > 0 ? hang - (hang - DRIP_FLOOR) * drip.fall * drip.fall : hang;
       drips.push({x, y, z, r: drip.r});
     }
+    const r = puddleAt(h, age, s) * fade;
+    if (r > 1e-4) puddles.push({x: sx + (ex - sx) * .5 + px, z: sz + (ez - sz) * .5 + pz, r});
   }
-  return {beads, drips, grip, tug};
+  return {beads, drips, puddles, grip, tug};
 }
+
+// Strand s's drop cycle clock at hold age `age` (ms since its first drop started to swell).
+const dripClock = (age, s) => age - GRIP_MS - s * DRIP_MS / STRANDS * 1.37;
 
 // Strand s's drop at hold age `age`: {r, fall} (fall 0 while swelling, then 0→1 as it drops),
 // or null. Drops start once the strands have gripped; a drop still swelling when the hold
 // breaks is gone, one already falling finishes its fall.
 function dripAt(h, age, t, s) {
-  const from = age - GRIP_MS - s * DRIP_MS / STRANDS * 1.37;
+  const from = dripClock(age, s);
   if (!(from > 0)) return null;
   const cycle = Math.floor(from / DRIP_MS), ph = (from - cycle * DRIP_MS) / DRIP_MS;
   if (Number.isFinite(h.endAt)) {
@@ -125,6 +137,24 @@ function dripAt(h, age, t, s) {
   if (ph < DRIP_SWELL) return {r: DRIP_R * smooth(ph / DRIP_SWELL), fall: 0};
   const fall = (ph - DRIP_SWELL) / (1 - DRIP_SWELL);
   return {r: DRIP_R * (1 - .25 * fall), fall};
+}
+
+// Strand s's puddle radius at hold age `age`: 0 until a drop lands, then each landed drop fills
+// PUDDLE_FILL of the room left below PUDDLE_R, spreading out over SPLAT_MS. Only drops that
+// started falling before the hold broke land (as in dripAt).
+function puddleAt(h, age, s) {
+  const from = dripClock(age, s);
+  if (!(from > 0)) return 0;
+  let n = Math.floor(from / DRIP_MS);
+  if (Number.isFinite(h.endAt)) {
+    const end = dripClock(h.endAt - h.startAt, s);
+    n = Math.min(n, Math.max(0, Math.floor((end - DRIP_SWELL * DRIP_MS) / DRIP_MS) + 1));
+  }
+  if (n <= 0) return 0;
+  const size = k => PUDDLE_R * Math.sqrt(1 - (1 - PUDDLE_FILL) ** k);
+  // The newest drop landed at n·DRIP_MS on this clock; ease out from the last size.
+  const k = clamp01((from - n * DRIP_MS) / SPLAT_MS), e = 1 - (1 - k) * (1 - k);
+  return size(n - 1) + (size(n) - size(n - 1)) * e;
 }
 
 // The squeeze on a held hero (see poseHeld): {sx, sy, roll}, sx the sideways scale, sy the
@@ -162,13 +192,13 @@ export function holdOf(player) {
 }
 
 // Tracks player.stuck across frames. update(dt, origin, {skip}) draws the strands and returns
-// {held, beads, drips, squeeze} (squeeze: holdSqueeze's pose or null); skip hides them while grab.js's coil is showing the same hold. The
+// {held, beads, drips, puddles, squeeze} (squeeze: holdSqueeze's pose or null); skip hides them while grab.js's coil is showing the same hold. The
 // material eases toward the sticky end's tint (see holdTint).
 export function createHold(THREE, parent) {
   const geo = new THREE.SphereGeometry(1, 8, 6);
   const mat = new THREE.MeshStandardMaterial({color: HOLD_TINT, roughness: .3, metalness: 0,
     transparent: true, opacity: .85});
-  const max = STRANDS * (STRAND_BEADS + 1);
+  const max = STRANDS * (STRAND_BEADS + 2);
   const mesh = new THREE.InstancedMesh(geo, mat, max);
   mesh.count = 0; mesh.frustumCulled = false; mesh.userData.part = 'hold-strands';
   parent.add(mesh);
@@ -206,7 +236,7 @@ export function createHold(THREE, parent) {
   }
 
   function update(dt, origin, {skip = false} = {}) {
-    let drips = 0;
+    let drips = 0, puddles = 0;
     now += (dt || 0) * 1000;
     const sh = h ? holdShape(h, now) : null;
     if (h && !sh && Number.isFinite(h.endAt) && now >= h.endAt) h = null;
@@ -227,11 +257,19 @@ export function createHold(THREE, parent) {
         mesh.setMatrixAt(n++, m4.compose(p, q, s));
       }
       drips = n - strandBeads;
+      for (const pd of sh.puddles) {
+        if (n >= max) break;
+        // A flat glossy disc resting on the floor.
+        const th = pd.r * PUDDLE_FLAT;
+        p.set(ox + pd.x, th * .5, oz + pd.z); s.set(pd.r, th, pd.r);
+        mesh.setMatrixAt(n++, m4.compose(p, q, s));
+        puddles++;
+      }
     }
     mesh.count = n;
     mesh.instanceMatrix.needsUpdate = true;
     const squeeze = sh && !skip && hero ? holdSqueeze(h, now) : null;
-    return {held: !!sh, beads: n - drips, drips, squeeze};
+    return {held: !!sh, beads: n - drips - puddles, drips, puddles, squeeze};
   }
 
   const clear = () => { h = null; hero = null; tint = HOLD_TINT; mat.color.setHex(HOLD_TINT); update(0); };

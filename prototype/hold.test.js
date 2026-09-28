@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {holdShape, holdOf, holdTint, createHold, GRIP_MS, LET_GO_MS, STRANDS, STRAND_BEADS, HOLD_TINT,
-  DRIP_MS, DRIP_SWELL, DRIP_R, DRIP_FLOOR, holdSqueeze, poseHeld, SQUEEZE, SQUEEZE_ROLL} from './hold.js';
+  DRIP_MS, DRIP_SWELL, DRIP_R, DRIP_FLOOR, PUDDLE_R, PUDDLE_FLAT, holdSqueeze, poseHeld, SQUEEZE, SQUEEZE_ROLL} from './hold.js';
 
 const finite = sh => sh.beads.every(b => Object.values(b).every(Number.isFinite));
 const frame = (x, z, stuck) => ({player: stuck ? {x, z, stuck} : {x, z}, cells: []});
@@ -166,6 +166,65 @@ test('glue drops swell under the strands, fall to the floor, and stop when the h
   assert.equal(r.beads, STRANDS * STRAND_BEADS);
   assert.ok(r.drips >= 1 && r.drips <= STRANDS);
   assert.equal(hold.update(.01, {x: 0, z: 0}, {skip: true}).drips, 0);
+  hold.dispose();
+});
+
+test('landed drops splat into puddles that spread, then shrink away as the hold breaks', () => {
+  const h = {dx: 1, dz: -1, holding: false, startAt: 0};
+  // No puddle before the first drop lands.
+  assert.equal(holdShape(h, GRIP_MS + DRIP_MS - 1).puddles.length, 0);
+  const sizes = [], dripsAt = [];
+  let prev = null, maxStep = 0;
+  for (let t = GRIP_MS; t < GRIP_MS + 8 * DRIP_MS; t += 4) {
+    const sh = holdShape(h, t);
+    assert.ok(sh.puddles.length <= STRANDS);
+    for (const pd of sh.puddles) {
+      assert.ok(Object.values(pd).every(Number.isFinite));
+      assert.ok(pd.r > 0 && pd.r <= PUDDLE_R + 1e-9, `r ${pd.r}`);
+      // Under the strands, between the two tiles.
+      assert.ok(pd.x > .1 && pd.x < .8 && pd.z < -.1 && pd.z > -.8, `at ${pd.x},${pd.z}`);
+    }
+    // Every puddle sits under a strand's drop (same x, z as the drop that made it).
+    for (const d of sh.drips) dripsAt.push([d.x, d.z]);
+    const first = sh.puddles[0]?.r ?? 0;
+    // Puddles only grow while the hold lasts, smoothly.
+    if (prev != null) { assert.ok(first >= prev - 1e-12); maxStep = Math.max(maxStep, first - prev); }
+    prev = first; sizes.push(first);
+  }
+  assert.equal(holdShape(h, GRIP_MS + 8 * DRIP_MS).puddles.length, STRANDS);
+  for (const pd of holdShape(h, GRIP_MS + 8 * DRIP_MS).puddles)
+    assert.ok(dripsAt.some(([x, z]) => Math.abs(x - pd.x) < 1e-9 && Math.abs(z - pd.z) < 1e-9));
+  assert.ok(maxStep < .01, `splat step ${maxStep}`);
+  // Each drop spreads it wider, and it nears the cap.
+  assert.ok(sizes.at(-1) > PUDDLE_R * .8 && sizes.at(-1) > sizes[Math.floor(sizes.length / 3)] + .005);
+  // Breaking the hold: puddles shrink to nothing by the end of the let-go.
+  const tBreak = GRIP_MS + 5 * DRIP_MS + 100;
+  const broke = {...h, endAt: tBreak};
+  // (A drop already falling at the break may still land and spread it a little on the way.)
+  let last = holdShape(broke, tBreak).puddles[0].r, start = last;
+  for (let t = tBreak; t < tBreak + LET_GO_MS; t += 4) {
+    const r = Math.max(0, ...holdShape(broke, t).puddles.map(pd => pd.r));
+    assert.ok(Math.abs(r - last) < .01 && r <= start + .01, `smooth fade ${r}`);
+    last = r;
+  }
+  assert.ok(last < .002);
+  assert.equal(holdShape(broke, tBreak + LET_GO_MS), null);
+  // A drop that fell before the break still adds to its puddle; no later drop does.
+  const endN = holdShape(broke, tBreak).puddles.map(pd => pd.r);
+  assert.ok(endN.every(r => r > 0));
+  // Drawn flat on the floor with the strands, and hidden with them under the coil.
+  const group = new THREE.Group();
+  const hold = createHold(THREE, group);
+  const mesh = group.children.find(c => c.userData.part === 'hold-strands');
+  hold.frame(frame(5, 5, {x: 6, z: 4, holding: false}));
+  const r = hold.update((GRIP_MS + DRIP_MS * 4) / 1000, {x: 0, z: 0});
+  assert.equal(r.puddles, STRANDS);
+  assert.equal(r.beads, STRANDS * STRAND_BEADS);
+  assert.equal(mesh.count, r.beads + r.drips + r.puddles);
+  const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  mesh.getMatrixAt(mesh.count - 1, m); m.decompose(p, q, sc);
+  assert.ok(Math.abs(p.y - sc.y * .5) < 1e-9 && sc.y < .01 && Math.abs(sc.y - sc.x * PUDDLE_FLAT) < 1e-9);
+  assert.equal(hold.update(.01, {x: 0, z: 0}, {skip: true}).puddles, 0);
   hold.dispose();
 });
 
