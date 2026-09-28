@@ -219,6 +219,12 @@ static void frame(void) {
         if (Blind || Hallucination) printf("null"); else quoted(u.ustuck->data->mname);
         putchar('}');
     }
+    /* Held but not swallowed (an eel's coils, an owlbear's hug, a lichen): where the holder
+       stands. holding is true when it's us doing the sticking (polymorphed into a lichen). */
+    else if (u.ustuck) {
+        printf(",\"stuck\":{\"x\":%d,\"z\":%d,\"holding\":%s}",u.ustuck->mx,u.ustuck->my,
+               sticks(youmonst.data)?"true":"false");
+    }
     printf("},\"ground\":[");
     {
         struct obj *ground;
