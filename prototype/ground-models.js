@@ -248,7 +248,7 @@ function shapedStone(seed,{size,scale=[1,1,1],cuts=0,bump=.04,base,alt,detail=6,
  return geo;
 }
 
-// Food kinds with their own model; rations (including cram) keep the bundle below.
+// Food kinds with their own model; rations are handled on their own below.
 const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune cookie|meatball|meat stick|chunk|meat ring|garlic|royal jelly|cream pie|candy bar|pancake|kelp frond|slime mold|eucalyptus leaf|eucalyptus leaves)(?:e?s)?\b/;
 
 // Tool kinds with their own model. Each word is the shared appearance, so a tin and a
@@ -1244,6 +1244,152 @@ function buildFigurine({g,materials}){
  g.rotation.y=.45;
 }
 
+// Cram, K- and C-rations. Food names are never shuffled, so each gets its own look instead of
+// the food-ration parcel: a twine-tied stack of cram biscuits on a linen wrap, a waxed K-ration
+// carton with printed panels and a red tear strip, and C-ration tins with a P-38 opener. Every
+// part is painted per vertex and merged into one matte and one metal mesh.
+function buildRation(kind,{g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const matte=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:kind==='k'?.62:.88});
+ const tin=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.5,roughness:.48});
+ materials.push(matte,tin);
+ const lists={matte:[],tin:[]},c=new THREE.Color(),e=new THREE.Euler(),m=new THREE.Matrix4();
+ // Paint a part in its own frame, then place it.
+ const put=(geo,paint,{which='matte',rot=[0,0,0],at=[0,0,0]}={})=>{
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  out.deleteAttribute('uv');
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i));
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  out.applyMatrix4(m.makeRotationFromEuler(e.set(...rot,'YXZ')).setPosition(...at));
+  lists[which].push(out);
+ };
+ const flat=hex=>{const f=C(hex);return col=>col.copy(f);};
+ // A closed cord around a box of half-size (hx,hz) from y0 to y1, in the x (or z) plane.
+ const cord=(h,y0,y1,alongX,r=.0045)=>{
+  const q=[[0,y1+r],[h-.012,y1+r*.6],[h+r,y1-.012],[h+r,y0+.006],[0,y0-r*.2],[-h-r,y0+.006],[-h-r,y1-.012],[-h+.012,y1+r*.6]]
+   .map(([a,y])=>alongX?v(a,y,0):v(0,y,a));
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(q,true),48,r,6,true);
+ };
+ if(kind==='cram'){
+  // A square of linen, its corners turned up a little, under three hard-baked biscuits.
+  const linen=C(0xcfc2a0),weave=C(0xa89b7a);
+  const wrap=new THREE.PlaneGeometry(.28,.24,24,20);wrap.rotateX(-Math.PI/2);
+  const wp=wrap.attributes.position;
+  for(let i=0;i<wp.count;i++){const x=wp.getX(i),z=wp.getZ(i),k=Math.max(Math.abs(x)/.14,Math.abs(z)/.12);wp.setY(i,.0015+.018*Math.max(0,k-.72)**2/.08+.002*stoneNoise(x*9,0,z*9,3));}
+  wrap.computeVertexNormals();
+  put(wrap,(col,x,y,z)=>col.copy(linen).lerp(weave,.35*(Math.abs(Math.sin(x*420))*Math.abs(Math.sin(z*420)))+.25*Math.max(0,stoneNoise(x*4,0,z*4,7))),{rot:[0,.35,0]});
+  const crust=C(0xc99a52),bake=C(0x8a5a26),pale=C(0xe2c58a),hole=C(0x5a3616);
+  const W=.17,D=.12,T=.034;
+  for(let i=0;i<3;i++){
+   const biscuit=new RoundedBoxGeometry(W,T,D,3,.012);
+   const bp=biscuit.attributes.position;
+   // Hand-cut: a slight wobble so no two biscuits stack flush.
+   for(let j=0;j<bp.count;j++){const x=bp.getX(j),z=bp.getZ(j);bp.setX(j,x*(1+.03*Math.sin(z*40+i)));bp.setY(j,bp.getY(j)+.003*stoneNoise(x*6,i,z*6,5));}
+   biscuit.computeVertexNormals();
+   put(biscuit,(col,x,y,z,nx,ny)=>{
+    col.copy(crust).lerp(pale,.3*Math.max(0,stoneNoise(x*5+i,0,z*5,9)));
+    // Browned edges, and docker holes in a grid on the top face.
+    const edge=Math.max(Math.abs(x)/(W/2),Math.abs(z)/(D/2));
+    col.lerp(bake,Math.min(1,Math.max(0,(edge-.8)*3)+(ny<.5?.35:0)));
+    if(ny>.9){const gx=Math.abs(((x+W/2)/.03)%1-.5),gz=Math.abs(((z+D/2)/.03)%1-.5);if(gx<.16&&gz<.16&&edge<.8)col.lerp(hole,.8);}
+   },{at:[(i-1)*.006,.004+T/2+i*(T+.002),(1-i)*.005],rot:[0,(i-1)*.07,0]});
+  }
+  const top=.004+3*(T+.002);
+  // Twine tied both ways round the stack, knotted on top with two loose ends.
+  const twine=C(0xb89a64),dark=C(0x7a6038);
+  const paintTwine=(col,x,y,z)=>col.copy(twine).lerp(dark,.5*Math.abs(Math.sin((x+y+z)*600)));
+  put(cord(W/2+.004,.009,top,true),paintTwine);
+  put(cord(D/2+.004,.009,top,false),paintTwine);
+  put(new THREE.SphereGeometry(.011,10,8),paintTwine,{at:[0,top+.004,0]});
+  for(const s of [-1,1])put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([v(0,top+.004,0),v(s*.03,top+.006,.02),v(s*.05,top+.002,.045)]),10,.0035,5,false),paintTwine);
+  // Crumbs on the cloth.
+  for(const [x,z] of [[.11,.05],[-.1,.08],[.08,-.09],[-.12,-.04],[.12,.09]])put(new THREE.IcosahedronGeometry(.006,0),flat(0xb8894a),{at:[x,.005,z],rot:[x*20,z*30,0]});
+  g.rotation.y=-.3;
+ }else if(kind==='k'){
+  // A waxed cardboard carton: buff with an olive border, a central panel of block lettering on
+  // the lid, olive bands round the sides and a red tear strip across one end.
+  const W=.27,H=.075,D=.155;
+  const buff=C(0xcdb27a),olive=C(0x4d5a2c),ink=C(0x2a2418),wax=C(0xe6d3a0),scuff=C(0x9a8456);
+  const carton=new THREE.BoxGeometry(W,H,D,40,6,24);
+  put(carton,(col,x,y,z,nx,ny,nz)=>{
+   col.copy(buff).lerp(wax,.25*Math.max(0,stoneNoise(x*6,y*6,z*6,8)));
+   const u=x/(W/2),w=z/(D/2),h=y/(H/2);
+   if(ny>.9){
+    if(Math.max(Math.abs(u),Math.abs(w))>.86)col.copy(olive);
+    // Three lines of "text": blocky glyphs from a hash of the cell.
+    for(const [row,len] of [[.42,.5],[.02,.72],[-.4,.36]]){
+     if(Math.abs(w-row)<.13&&Math.abs(u)<len){const cell=Math.floor((u+1)*14);if((cell*7919+Math.round(row*10))%5!==0)col.copy(ink);}
+    }
+   }else if(ny<-.9)col.lerp(scuff,.5);
+   else{
+    if(Math.abs(h)<.28)col.copy(olive);
+    // Side lettering in the olive band on the long faces.
+    if(Math.abs(nz)>.9&&Math.abs(h)<.14&&Math.abs(u)<.55&&Math.floor((u+1)*16)%3!==0)col.copy(wax);
+   }
+   // Worn corners.
+   if(Math.abs(u)>.96&&Math.abs(w)>.9||Math.abs(h)>.93&&(Math.abs(u)>.97||Math.abs(w)>.94))col.lerp(scuff,.6);
+  },{at:[0,H/2,0]});
+  // The tear strip and its pull tab, and the end flap's seam.
+  put(new THREE.BoxGeometry(.012,.0025,D+.003),flat(0xa8261e),{at:[W/2-.035,H+.0012,0]});
+  put(new THREE.BoxGeometry(.018,.002,.02),flat(0xc23a2e),{at:[W/2-.035,H+.002,D/2+.01],rot:[-.35,0,0]});
+  put(new THREE.BoxGeometry(.002,H*.6,D*.92),flat(0x8a7648),{at:[-W/2-.0008,H/2,0]});
+  g.rotation.y=.25;
+ }else{
+  // C-rations: a tall olive-drab tin standing, a flat one on its side, and a P-38 opener.
+  const drab=C(0x4f5530),darkDrab=C(0x353920),steel=C(0xb6bcbc),rust=C(0x7a4a24),ink=C(0x151510);
+  const can=(r,h,{stencil=true}={})=>{
+   const geo=new THREE.CylinderGeometry(r,r,h,40,12,false);
+   const p=geo.attributes.position;
+   // Two rolled beads pressed into the wall.
+   for(let i=0;i<p.count;i++){const y=p.getY(i),rr=Math.hypot(p.getX(i),p.getZ(i));if(rr>r*.99){const k=1-.045*(Math.exp(-(((y-h*.2)/(h*.05))**2))+Math.exp(-(((y+h*.2)/(h*.05))**2)));p.setX(i,p.getX(i)*k);p.setZ(i,p.getZ(i)*k);}}
+   geo.computeVertexNormals();
+   return [geo,(col,x,y,z,nx,ny)=>{
+    col.copy(drab).lerp(darkDrab,.4*Math.max(0,stoneNoise(x*9,y*9,z*9,6)));
+    const a=Math.atan2(x,z);
+    if(Math.abs(ny)>.9){
+     // Lid rings, and bright steel where the paint has worn off the rim.
+     const rr=Math.hypot(x,z)/r;
+     if(Math.sin(rr*38)>.75)col.lerp(darkDrab,.6);
+     if(rr>.9)col.lerp(steel,.55);
+    }else{
+     if(stencil&&Math.abs(y)<h*.12&&Math.abs(a)<.9&&Math.floor((a+.9)*9)%4!==3)col.copy(ink);
+     if(stencil&&Math.abs(y-h*.12)<h*.05&&Math.abs(a)<.5&&Math.floor((a+.5)*12)%3!==0)col.copy(ink);
+     if(Math.abs(Math.abs(y)-h/2)<h*.04)col.lerp(steel,.45);
+     if(y<-h*.38&&stoneNoise(x*14,y*14,z*14,5)>.45)col.lerp(rust,.7);
+    }
+   }];
+  };
+  const rim=(r)=>new THREE.TorusGeometry(r,.0035,6,40);
+  const R=.05,Hc=.1;
+  const [tall,paintTall]=can(R,Hc);
+  put(tall,paintTall,{which:'tin',at:[-.035,Hc/2,-.015]});
+  for(const y of [.0035,Hc-.0035])put(rim(R+.0005),(col,x,y2,z)=>col.copy(steel).lerp(darkDrab,.4),{which:'tin',rot:[Math.PI/2,0,0],at:[-.035,y,-.015]});
+  // The flat tin lies on its side against the tall one.
+  const r2=.045,h2=.04,[flatCan,paintFlat]=can(r2,h2,{stencil:false});
+  put(flatCan,paintFlat,{which:'tin',rot:[0,.5,Math.PI/2],at:[.085,r2+.0045,.035]});
+  for(const s of [-1,1]){
+   const off=v(s*h2/2,0,0).applyEuler(new THREE.Euler(0,.5,0,'YXZ'));
+   put(rim(r2+.0005),col=>col.copy(steel).lerp(darkDrab,.4),{which:'tin',rot:[0,.5+Math.PI/2,0],at:[.085+off.x,r2+.0045,.035+off.z]});
+  }
+  // The P-38: a stamped blade with a hole, its cutting tooth folded out on a hinge.
+  const opener=C(0x9aa0a0),worn=C(0x6c7070);
+  const paintOp=(col,x,y,z)=>col.copy(opener).lerp(worn,.4*Math.abs(stoneNoise(x*30,0,z*30,4)));
+  put(new THREE.BoxGeometry(.038,.0022,.012),paintOp,{which:'tin',rot:[0,-.7,0],at:[.03,.0011,.085]});
+  put(new THREE.TorusGeometry(.0038,.0012,4,12),paintOp,{which:'tin',rot:[Math.PI/2,-.7,0],at:[.047,.0022,.1]});
+  put(new THREE.BoxGeometry(.016,.002,.007),paintOp,{which:'tin',rot:[0,-.7+1.1,0],at:[.011,.0026,.073]});
+  g.rotation.y=-.2;
+ }
+ for(const [which,material] of [['matte',matte],['tin',tin]]){
+  const list=lists[which];if(!list.length)continue;
+  const geo=mergeGeometries(list);list.forEach(p=>p.dispose());
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=`ration-${which}`;g.add(mesh);
+ }
+}
+
 // The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
 // door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
 // keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
@@ -1955,6 +2101,7 @@ export function createGroundModel(item={}){
   for(let y=.035;y<.28;y+=.024)patchAt(-1.75,y,.003,.012,thread);
  }else if(/ration/.test(name)){
   if(/tripe/.test(name)){const meat=mat(0xa26457);for(let i=0;i<4;i++)ball(.1,meat,(i-1.5)*.075,.065,Math.sin(i)*.035,[.7,.5,1.3]);}
+  else if(/\b(cram|k-ration|c-ration)/.test(name))buildRation(/cram/.test(name)?'cram':/k-ration/.test(name)?'k':'c',{g,materials});
   else {
    add(new RoundedBoxGeometry(.42,.14,.28,4,.045),cloth,0,.075);
    const cord=(points)=>add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)),true),32,.007,6,true),leather);

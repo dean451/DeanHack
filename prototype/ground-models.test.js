@@ -702,3 +702,32 @@ test('eucalyptus leaves are a thin sickle blade on a reddish stalk, two when sta
  assert(bounds.max.y<.05);
  model.userData.dispose();
 });
+
+test('cram, K- and C-rations get their own merged models instead of the food-ration parcel',()=>{
+ const parcel=createGroundModel({name:'food ration',class:7});
+ const looks=new Set([JSON.stringify(parcel.children.map(p=>p.geometry.type))]);
+ for(const name of ['cram ration','3 uncursed cram rations','K-ration','a C-ration','2 C-rations']){
+  const model=createGroundModel({name,class:7});
+  assert(model,name);
+  assert(model.children.length<=2,`${name} draws ${model.children.length}`);
+  let verts=0;
+  for(const part of model.children){
+   assert(part.userData.part?.startsWith('ration-'),name);
+   const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+   for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x),name);
+   for(const x of color.array)assert(x>=0&&x<=1,name);
+  }
+  assert(verts<40000,`${name} has ${verts} vertices`);
+  model.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(model,true);
+  assert(b.min.y>-.003&&b.max.y<.2,`${name} y ${b.min.y}..${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.26,`${name} too wide`);
+  looks.add(JSON.stringify([model.children.map(p=>p.material.metalness),model.children.map(p=>p.geometry.attributes.position.count)]));
+  let disposed=0;model.children.forEach(p=>p.geometry.addEventListener('dispose',()=>disposed++));
+  model.userData.dispose();assert.equal(disposed,model.children.length);
+ }
+ // Parcel, cram, K and C: plurals and articles don't change the look, the kind does.
+ assert.equal(looks.size,4);
+ // Tripe keeps its own meat model.
+ assert(createGroundModel({name:'tripe ration',class:7}).children.every(p=>!p.userData.part));
+});
