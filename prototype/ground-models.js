@@ -1775,6 +1775,101 @@ function buildSaddle({g,materials}){
  g.rotation.y=.2;
 }
 
+// The leash: a round-braided leather lead lying in a loose flat coil. Its outer end runs off to
+// a hand loop closed by a stitched keeper; its inner end climbs over the coil to a riveted fold
+// around a brass swivel snap (eye, barrel, hook and a sprung gate). The braid is modelled as
+// two crossing strand spirals (raised ridges, dark grooves, rubbed-pale crowns) and everything
+// is coloured per vertex and merged into one leather mesh and one brass mesh.
+function buildLeash({g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const leatherMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.7});
+ const brassMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.85,roughness:.3});
+ materials.push(leatherMat,brassMat);
+ const lists={leather:[],brass:[]},c=new THREE.Color();
+ const put=(geo,paint,which='leather')=>{
+  const p=geo.attributes.position,n=geo.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i),i);
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));geo.deleteAttribute('uv');
+  lists[which].push(geo);
+ };
+ const hide=C(0x7a4526),strandB=C(0x5e331a),groove=C(0x24130a),crown=C(0xb0784a),stitch=C(0xd8c49a);
+ // A braided tube along a curve: two strand spirals cross, each raised to a ridge between grooves.
+ const braid=(curve,segs,R,pitch=.016)=>{
+  const radial=10,geo=new THREE.TubeGeometry(curve,segs,R,radial,false),len=curve.getLength();
+  const p=geo.attributes.position,uv=geo.attributes.uv,tone=new Float32Array(p.count*2),q=v(0,0,0);
+  for(let i=0;i<p.count;i++){
+   const s=uv.getX(i)*len/pitch,a=uv.getY(i)*2;
+   const k=Math.sin(2*Math.PI*(s+a)),m=Math.sin(2*Math.PI*(s-a)),top=Math.max(k,m);
+   tone[i*2]=top;tone[i*2+1]=k>m?1:0;
+   const centre=curve.getPointAt(Math.floor(i/(radial+1))/segs,q);
+   p.setXYZ(i,...v(p.getX(i),p.getY(i),p.getZ(i)).sub(centre).multiplyScalar(.9+.14*top).add(centre).toArray());
+  }
+  geo.computeVertexNormals();
+  put(geo,(col,x,y,z,nx,ny,nz,i)=>{
+   const top=tone[i*2];col.copy(tone[i*2+1]?hide:strandB).lerp(groove,Math.min(.85,Math.max(0,.3-top)*1.1));
+   col.lerp(crown,Math.max(0,top-.6)*Math.max(0,ny)*1.4);
+   if(ny<-.3)col.multiplyScalar(.7);
+  });
+ };
+ // A stitched leather keeper (a short sleeve) centred at P along dir.
+ const keeper=(P,dir,R,L)=>{
+  const geo=new THREE.CylinderGeometry(R,R*1.04,L,14,3);
+  geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(v(0,1,0),dir));geo.translate(P.x,P.y,P.z);
+  put(geo,(col,x,y,z,nx,ny)=>{
+   const t=v(x,y,z).sub(P).dot(dir)/L;
+   col.copy(C(0x4a2814)).lerp(crown,Math.max(0,ny)*.35);
+   if(Math.abs(Math.abs(t)-.32)<.07&&Math.sin((x+z)*900+y*900)>0)col.lerp(stitch,.8);
+  });
+ };
+ const R=.0065,y0=R+.0005;
+ // The coil: 2.25 flat turns, each a little inside the last, so the turns never touch.
+ const T=2.25,spiral=[];
+ for(let i=0;i<=64;i++){const t=i/64,a=t*T*Math.PI*2,r=.105-.045*t;spiral.push(v(Math.cos(a)*r,y0,Math.sin(a)*r));}
+ // The inner end climbs over the turns and runs outward to the snap.
+ const d=v(-.7,0,1).normalize(),inner=spiral.at(-1),hump=s=>{const u=Math.min(1,Math.max(0,s/.012)),w=Math.min(1,Math.max(0,(.1-s)/.022));return Math.min(u*u*(3-2*u),w*w*(3-2*w));};
+ const over=[];for(let s=.012;s<=.13;s+=.012)over.push(inner.clone().addScaledVector(d,s).setY(y0+2.4*R*hump(s)));
+ // The outer end runs off to the hand loop.
+ const J=v(.06,y0,-.18),out=[J,v(.085,y0,-.155),v(.104,y0,-.11),v(.108,y0,-.055)];
+ const lead=new THREE.CatmullRomCurve3([...out,...spiral.slice(1),...over],false,'centripetal');
+ braid(lead,420,R);
+ const end=over.at(-1),toward=v(.06,0,-.18).sub(v(.085,0,-.155)).normalize();
+ // Hand loop: a braided oval whose ends meet in the keeper at J.
+ const side=v(-toward.z,0,toward.x),loop=[];
+ for(let i=0;i<14;i++){const a=i/14*Math.PI*2,f=(1-Math.cos(a))/2;loop.push(J.clone().addScaledVector(toward,.058*f).addScaledVector(side,.032*Math.sin(a)*(0.6+.4*f)));}
+ braid(new THREE.CatmullRomCurve3(loop,true,'centripetal'),96,R*.85);
+ keeper(J.clone().addScaledVector(toward,.006).setY(R*1.35+.0005),toward,R*1.35,.022);
+ // The fold at the snap end: the lead doubles back around the swivel eye, held by a keeper and two rivets.
+ const F=end.clone().addScaledVector(d,.012).setY(R*1.35+.0005);keeper(F,d,R*1.35,.024);
+ const rivet=new THREE.SphereGeometry(.0026,10,6,0,Math.PI*2,0,Math.PI/2),brass=C(0xb88a3e),brassHi=C(0xf0d488),brassLo=C(0x5a4018);
+ const brassPaint=(col,x,y,z,nx,ny)=>col.copy(brass).lerp(brassHi,Math.max(0,ny)**2*.7).lerp(brassLo,Math.max(0,-ny)*.6);
+ for(const s of [-.005,.005]){const r=rivet.clone();r.translate(F.x+d.x*s,F.y+R*1.35-.0004,F.z+d.z*s);put(r,brassPaint,'brass');}
+ rivet.dispose();
+ // The snap, built lying flat along +x from the fold, then turned onto d.
+ const snap=[],ly=.0042,S=(geo)=>{snap.push(geo);return geo;};
+ const eye=S(new THREE.TorusGeometry(.009,.0026,8,20));eye.rotateX(Math.PI/2);eye.translate(.024,ly,0);
+ const barrel=S(new THREE.LatheGeometry([[0,0],[.0035,0],[.0052,.003],[.0058,.009],[.0052,.015],[.0035,.018],[0,.018]].map(([r,h])=>new THREE.Vector2(r,h)),14));
+ barrel.rotateZ(-Math.PI/2);barrel.translate(.034,ly,0);
+ const hook=[v(.052,ly,0),v(.075,ly,0),v(.09,ly,.004),v(.097,ly,.016),v(.09,ly,.028),v(.077,ly,.03),v(.068,ly,.022)];
+ S(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(hook,false,'centripetal'),36,.0038,8,false));
+ const tip=S(new THREE.SphereGeometry(.0038,8,6));tip.translate(.068,ly,.022);
+ const gateA=v(.058,ly,.002),gateB=v(.068,ly,.019),gd=gateB.clone().sub(gateA);
+ const gate=S(new THREE.CylinderGeometry(.0018,.0018,gd.length(),6));gate.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(v(0,1,0),gd.clone().normalize()));gate.translate(...gateA.clone().add(gateB).multiplyScalar(.5).toArray());
+ const thumb=S(new THREE.BoxGeometry(.008,.0035,.005));thumb.translate(.057,ly,-.005);
+ const turn=new THREE.Matrix4().makeRotationY(Math.atan2(-d.z,d.x)).setPosition(F.x,0,F.z);
+ for(const geo of snap){geo.applyMatrix4(turn);put(geo,brassPaint,'brass');}
+ for(const [which,material] of [['leather',leatherMat],['brass',brassMat]]){
+  // Every part is an indexed three.js primitive, so they merge as they are.
+  const list=lists[which],geo=mergeGeometries(list);list.forEach(p=>p.dispose());
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=`leash-${which}`;g.add(mesh);
+ }
+ const box=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();box.union(p.geometry.boundingBox);});
+ const mid=box.getCenter(v(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-box.min.y,-mid.z));
+ g.rotation.y=1.2;
+}
+
 // The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
 // door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
 // keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
@@ -2771,12 +2866,7 @@ export function createGroundModel(item={}){
   }else if(kind==='tin opener'){
    buildTinOpener({g,materials});
   }else if(kind==='leash'){
-   // A coiled lead with a brass snap hook and a hand loop.
-   const rope=mat(0x7a4a2a);
-   for(let i=0;i<3;i++)flat(new THREE.TorusGeometry(.09-i*.012,.009,6,28),rope,i*.01,.009+i*.012,i*.006);
-   flat(new THREE.TorusGeometry(.03,.008,6,16),rope,-.14,.008,.02);
-   add(new THREE.CylinderGeometry(.009,.009,.05,8),rope,-.105,.008,.012).rotation.set(0,.3,Math.PI/2);
-   flat(new THREE.TorusGeometry(.014,.004,6,14),brass,.11,.006,-.04);box(.03,.012,.012,brass,.09,.006,-.03);
+   buildLeash({g,materials});
   }else if(kind==='saddle'){
    buildSaddle({g,materials});
   }else if(kind==='tinning kit'){
