@@ -51,6 +51,10 @@ export const MAGIC_AURAS = {
   // A slow golden hum round the bowl, and dust motes curling up from the spout.
   'magic lamp': {color: 0xffc64a, blend: 'add', motion: 'halo', count: 14, size: .07, period: 5.5, alpha: .7,
     core: {color: 0xffe7a0, blend: 'add', motion: 'motes', count: 10, size: .045, period: 3.6, alpha: .85}},
+  // Mist swirling in two slow arms inside the orb, with a vision glinting at its heart now and
+  // then. Unidentified it's a "glass orb" and stays still.
+  'crystal ball': {color: 0x9fc4ff, blend: 'add', motion: 'swirl', count: 18, size: .04, period: 4.8, alpha: .75, rainbow: 'mist',
+    core: {color: 0xf2f6ff, blend: 'add', motion: 'vision', count: 4, size: .05, period: 3.3, alpha: .9}},
 };
 const AURAS = {...WAND_AURAS, ...MAGIC_AURAS};
 
@@ -65,8 +69,11 @@ export function wandAuraKind(object) {
 // The identified magic item kind (a MAGIC_AURAS key), or null. "lamp called magic" is a guess.
 export function magicAuraKind(object) {
   if (!object || object.class !== TOOL_CLASS || typeof object.label !== 'string') return null;
-  const seen = object.label.toLowerCase().trim().replace(/ named .*$/, '').replace(/ \(lit\)$/, '');
-  return /^(?:\d+ )?magic lamps?$/.test(seen) ? 'magic lamp' : null;
+  // Drop a trailing "(lit)" or "(0:5)" and the player's own name for it.
+  const seen = object.label.toLowerCase().trim().replace(/ named .*$/, '').replace(/(?: \([^)]*\))+$/, '');
+  if (/^(?:\d+ )?magic lamps?$/.test(seen)) return 'magic lamp';
+  if (/^(?:\d+ )?crystal balls?$/.test(seen)) return 'crystal ball';
+  return null;
 }
 
 // Any aura kind for a floor item: a wand's or another magic item's.
@@ -125,6 +132,15 @@ export function particleAt(motion, seed, p) {
       return {x: .35 - p * .12 + Math.cos(curl) * .04 * p, y: .21 + p * .36, z: (b - .5) * .04 + Math.sin(curl) * .05 * p,
         alpha: fade * (.7 + .3 * Math.sin(p * 20 + d * TAU) ** 2), size: 1 - p * .4};
     }
+    case 'swirl': { // mist in two arms spinning round a tilted axis inside a crystal ball (centre y .14, glass r .105)
+      const arm = a < .5 ? 0 : Math.PI, r = .015 + b * .065, ang = arm + r * 22 + p * TAU + d * .6;
+      const x = Math.cos(ang) * r, z = Math.sin(ang) * r, h = (c - .5) * .03 + Math.sin(p * TAU * 2 + d * TAU) * .008;
+      return {x: x * .95 + h * .31, y: .14 + h * .95 - x * .31, z,
+        alpha: fade * (.5 + .5 * Math.sin(p * TAU * 2 + c * TAU) ** 2), size: .6 + .4 * (1 - b)};
+    }
+    case 'vision': // a brief glint wells up at the heart of the ball and fades
+      return {x: (a - .5) * .05, y: .14 + (b - .5) * .04, z: (c - .5) * .05,
+        alpha: Math.max(0, Math.sin(Math.PI * Math.min(1, p / .4))) ** 2, size: .4 + .6 * Math.sin(Math.PI * Math.min(1, p / .4))};
     default: // sparkle: fixed points round the rod that twinkle on and off
       return {x: along, y: .06 + (b - .25) * .2 + p * .03, z: (c - .5) * .24, alpha: fade ** 3, size: .6 + .4 * fade};
   }
@@ -143,7 +159,13 @@ function makeLayer(style, random) {
   geometry.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
   geometry.setAttribute('aColor', new THREE.BufferAttribute(color, 3));
   const base = new THREE.Color(style.color), c = new THREE.Color();
-  for (let i = 0; i < n; i++) (style.rainbow ? c.setHSL(i / n, .8, .65) : c.copy(base)).toArray(color, i * 3);
+  for (let i = 0; i < n; i++) {
+    // rainbow: every hue (polymorph); 'mist': blue shading to violet (a crystal ball's swirl).
+    if (style.rainbow === 'mist') c.copy(base).offsetHSL(i / n * .12, 0, (i % 3 - 1) * .06);
+    else if (style.rainbow) c.setHSL(i / n, .8, .65);
+    else c.copy(base);
+    c.toArray(color, i * 3);
+  }
   const material = new THREE.ShaderMaterial({vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false,
     blending: style.blend === 'add' ? THREE.AdditiveBlending : THREE.NormalBlending, uniforms: {uScale: {value: 400}}});
   const points = new THREE.Points(geometry, material);
@@ -212,7 +234,7 @@ export function createWandAura(kind, seedText = '') {
 }
 
 // Keeps a ground item's aura in step with its seen name: adds one when the wand (or magic
-// lamp) becomes identified, swaps it if the name changes, removes it if the name stops saying. Returns the
+// lamp or crystal ball) becomes identified, swaps it if the name changes, removes it if the name stops saying. Returns the
 // aura (or null).
 export function syncWandAura(item, object, seedText = '') {
   const kind = itemAuraKind(object), current = item.userData.wandAura;
