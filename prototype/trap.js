@@ -120,12 +120,54 @@ export function createTrap(kind,seed=0){
   for(let i=0;i<3;i++){const c=block(.34,.004,.012,crack,0,.027,(i-1)*.1);c.rotation.y=(rand(i+100)-.5)*1.4;}
   rubble(10,.1,.28);
  }else if(kind==='rust'){
-  // Rust trap: a pipe nozzle dripping into a blue-green puddle over a grate.
-  const puddle=flat(new THREE.CircleGeometry(.24,24),mat({color:0x2e6f78,metalness:.2,roughness:.15,transparent:true,opacity:.85}),.006);puddle.scale.set(1.2,.9,1);
-  for(let i=0;i<5;i++)block(.4,.012,.03,rustMat,0,.004,(i-2)*.08,.004);
-  add(new THREE.CylinderGeometry(.04,.05,.14,10),rustMat,-.3,.07,-.3);
-  const spout=add(new THREE.CylinderGeometry(.025,.025,.16,10),rustMat,-.24,.14,-.24);spout.rotation.set(.6,0,-.6);
-  add(new THREE.SphereGeometry(.014,8,6),mat({color:0x5ab3c0,roughness:.1}),-.18,.06,-.18).scale.y=1.5;
+  // Rust trap: a corroded standpipe rises from the floor, bends over and drips into a
+  // blue-green puddle pooled over a drain grate, leaving orange rust stains and flakes.
+  const up=new THREE.Vector3(0,1,0);
+  const aim=(o,dir,from=up)=>{o.quaternion.setFromUnitVectors(from,dir.clone().normalize());return o;};
+  // A wobbly closed outline around (cx,cz) with an optional hole, laid flat on the floor.
+  const blob=(cx,cz,r,salt,hole=0,n=24)=>{
+   const pts=(rr,k)=>Array.from({length:n},(_,i)=>{const a=i/n*Math.PI*2,w=rr*(1+.16*Math.sin(a*3+salt)+.1*(rand(salt+i+k)-.5));return new THREE.Vector2(cx+Math.cos(a)*w,-(cz+Math.sin(a)*w));});
+   const s=new THREE.Shape(pts(r,0));
+   if(hole)s.holes.push(new THREE.Path(pts(hole,50).reverse()));
+   return new THREE.ShapeGeometry(s);
+  };
+  const iron=mat({color:0x3f342d,metalness:.55,roughness:.7});
+  const stain=mat({color:0x8a4a1e,roughness:1,transparent:true,opacity:.55,depthWrite:false});
+  const water=mat({color:0x2e6f78,metalness:.25,roughness:.08,transparent:true,opacity:.82});
+  const paint=mat({color:0x7a2c22,metalness:.3,roughness:.65});
+  // Floor stains: a rust tide-line ringing the puddle and a streak from the pipe's foot.
+  flat(blob(.04,.04,.34,200,.24),stain,.003).castShadow=false;
+  const streak=flat(new THREE.CircleGeometry(.12,16),stain,.0032);streak.castShadow=false;streak.position.set(-.2,.0032,-.2);streak.scale.set(1.6,.5,1);streak.rotation.z=-Math.PI/4;
+  // The drain under the water: a dark sump in an iron frame, crossed by rusted slats.
+  flat(new THREE.PlaneGeometry(.24,.24),dark,.002).castShadow=false;
+  const bar=(w,h,d,m,x,y,z)=>add(new THREE.BoxGeometry(w,h,d),m,x,y,z);
+  for(const s of [-1,1]){bar(.28,.016,.024,iron,0,.008,s*.128);bar(.024,.016,.28,iron,s*.128,.008,0);}
+  for(let i=-2;i<=2;i++)bar(.024,.012,.24,rustMat,i*.047,.009,0);
+  bar(.24,.01,.018,rustMat,0,.012,0);
+  flat(blob(.04,.04,.25,300),water,.006).castShadow=false;
+  // The standpipe: a bolted floor flange, a riser with a coupling collar and a valve,
+  // then a bend over the puddle ending in a flared nozzle.
+  const foot=new THREE.Vector3(-.3,0,-.3);
+  add(new THREE.CylinderGeometry(.07,.075,.016,16),iron,foot.x,.008,foot.z);
+  for(let i=0;i<6;i++){const a=i/6*Math.PI*2+.3;add(new THREE.CylinderGeometry(.009,.009,.012,6),iron,foot.x+Math.cos(a)*.055,.02,foot.z+Math.sin(a)*.055);}
+  const path=new THREE.CatmullRomCurve3([[-.3,.01,-.3],[-.3,.16,-.3],[-.3,.27,-.3],[-.27,.34,-.27],[-.2,.36,-.2],[-.12,.33,-.12],[-.08,.29,-.08]].map(p=>new THREE.Vector3(...p)));
+  add(new THREE.TubeGeometry(path,40,.032,10,false),rustMat);
+  for(const t of [.3,.62]){const p=path.getPointAt(t),c=add(new THREE.CylinderGeometry(.041,.041,.03,12),iron,p.x,p.y,p.z);aim(c,path.getTangentAt(t));}
+  const tip=path.getPointAt(1),dir=path.getTangentAt(1);
+  const nozzle=add(new THREE.CylinderGeometry(.045,.034,.05,12),iron,tip.x+dir.x*.02,tip.y+dir.y*.02,tip.z+dir.z*.02);aim(nozzle,dir);
+  // Hand wheel on a short stem off the riser.
+  const side=new THREE.Vector3(1,0,-1).normalize(),hub=new THREE.Vector3(-.3,.17,-.3).addScaledVector(side,.06);
+  aim(add(new THREE.CylinderGeometry(.01,.01,.06,6),iron,-.3+side.x*.03,.17,-.3+side.z*.03),side);
+  aim(add(new THREE.TorusGeometry(.042,.007,6,20),paint,hub.x,hub.y,hub.z),side,new THREE.Vector3(0,0,1));
+  for(const v of [up,new THREE.Vector3().crossVectors(up,side)])aim(add(new THREE.CylinderGeometry(.005,.005,.084,5),paint,hub.x,hub.y,hub.z),v);
+  // Drips falling from the nozzle, a splash ring where they land, and a bead on the lip.
+  const drip=mat({color:0x5ab3c0,roughness:.05,transparent:true,opacity:.9});
+  add(new THREE.SphereGeometry(.012,8,6),drip,tip.x+dir.x*.04,tip.y+dir.y*.04-.012,tip.z+dir.z*.04).scale.y=1.4;
+  for(const [y,s] of [[.2,.011],[.1,.009]])add(new THREE.SphereGeometry(s,8,6),drip,tip.x+dir.x*.03,y,tip.z+dir.z*.03).scale.y=1.8;
+  const splash=flat(new THREE.RingGeometry(.03,.042,20),drip,.008);splash.position.set(tip.x+dir.x*.03,.008,tip.z+dir.z*.03);splash.castShadow=false;
+  // Flakes of rust shed around the pipe's foot and the grate.
+  for(let i=0;i<9;i++){const a=rand(i+160)*Math.PI*2,near=i<5?foot:new THREE.Vector3(.04,0,.04),rr=i<5?.09+rand(i+170)*.06:.2+rand(i+180)*.1;
+   add(new THREE.DodecahedronGeometry(.008+rand(i+190)*.008,0),rustMat,near.x+Math.cos(a)*rr,.005,near.z+Math.sin(a)*rr).scale.y=.4;}
  }else if(kind==='fire'){
   // Fire trap: a scorched iron vent with glowing embers underneath.
   flat(new THREE.CircleGeometry(.36,24),mat({color:0x1b1512,roughness:1}),.004);

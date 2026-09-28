@@ -98,3 +98,16 @@ test('drawbridges are merged, finite models that stay in their tile and free the
   assert.equal(freed,geometries.size+materials.size,`${kind} leaks resources`);
  }
 });
+
+test('the rust trap is a standpipe dripping into a puddle over a drain grate',()=>{
+ const model=createTrap('rust',6);
+ const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+ assert(meshes.length<=8,`rust trap is ${meshes.length} meshes`);
+ const vertices=meshes.reduce((n,part)=>n+part.geometry.attributes.position.count,0);
+ assert(vertices<7000,`rust trap is ${vertices} vertices`);
+ assert(meshes.some(part=>part.material.transparent&&part.material.roughness<.1),'rust trap should have a glossy puddle');
+ const bounds=new THREE.Box3().setFromObject(model);
+ assert(bounds.max.y>.3&&bounds.max.y<.5,'the pipe should rise and bend over the puddle');
+ assert(bounds.min.y>=-.01);
+ console.log(`rust trap: ${meshes.length} meshes, ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
+});
