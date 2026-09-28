@@ -44,12 +44,34 @@ export const WAND_AURAS = {
   // A wand of nothing, once known, shows nothing.
 };
 
+// Other identified magic (item 10). Same rule: the look comes only from the hero's name for the
+// item. An unidentified magic lamp is "lamp", like an oil lamp, and stays dark.
+export const TOOL_CLASS = 6;
+export const MAGIC_AURAS = {
+  // A slow golden hum round the bowl, and dust motes curling up from the spout.
+  'magic lamp': {color: 0xffc64a, blend: 'add', motion: 'halo', count: 14, size: .07, period: 5.5, alpha: .7,
+    core: {color: 0xffe7a0, blend: 'add', motion: 'motes', count: 10, size: .045, period: 3.6, alpha: .85}},
+};
+const AURAS = {...WAND_AURAS, ...MAGIC_AURAS};
+
 // The identified kind from the hero's name for the item, or null. Only "wand(s) of X".
 export function wandAuraKind(object) {
   if (!object || object.class !== WAND_CLASS || typeof object.label !== 'string') return null;
   const seen = object.label.toLowerCase().trim().replace(/ named .*$/, '');
   const m = seen.match(/^(?:\d+ )?wands? of ([a-z ]+)$/);
   return m && WAND_AURAS[m[1]] ? m[1] : null;
+}
+
+// The identified magic item kind (a MAGIC_AURAS key), or null. "lamp called magic" is a guess.
+export function magicAuraKind(object) {
+  if (!object || object.class !== TOOL_CLASS || typeof object.label !== 'string') return null;
+  const seen = object.label.toLowerCase().trim().replace(/ named .*$/, '').replace(/ \(lit\)$/, '');
+  return /^(?:\d+ )?magic lamps?$/.test(seen) ? 'magic lamp' : null;
+}
+
+// Any aura kind for a floor item: a wand's or another magic item's.
+export function itemAuraKind(object) {
+  return wandAuraKind(object) ?? magicAuraKind(object);
 }
 
 // Small deterministic PRNG so a wand's particles keep their places.
@@ -92,6 +114,16 @@ export function particleAt(motion, seed, p) {
       const ang = d * TAU + p * TAU;
       return {x: along, y: .08 + Math.cos(ang) * (.07 + b * .06) * (Math.cos(ang) < 0 ? .55 : 1), z: Math.sin(ang) * (.07 + b * .06),
         alpha: Math.sqrt(fade), size: .7 + .3 * fade};
+    }
+    case 'halo': { // a slow ring round a lamp's bowl, breathing in and out with the hum
+      const ang = d * TAU + p * TAU * .5, r = .2 + b * .06 + Math.sin(p * TAU * 2 + c * TAU) * .015;
+      return {x: Math.cos(ang) * r, y: .08 + b * .08 + Math.sin(p * TAU + c * TAU) * .02, z: Math.sin(ang) * r * .85,
+        alpha: fade * (.55 + .45 * Math.sin(p * TAU * 3 + a * TAU) ** 2), size: .75 + .25 * fade};
+    }
+    case 'motes': { // dust motes curl up out of a lamp's spout (mouth at x .36, y .2)
+      const curl = c * TAU + p * 4;
+      return {x: .35 - p * .12 + Math.cos(curl) * .04 * p, y: .21 + p * .36, z: (b - .5) * .04 + Math.sin(curl) * .05 * p,
+        alpha: fade * (.7 + .3 * Math.sin(p * 20 + d * TAU) ** 2), size: 1 - p * .4};
     }
     default: // sparkle: fixed points round the rod that twinkle on and off
       return {x: along, y: .06 + (b - .25) * .2 + p * .03, z: (c - .5) * .24, alpha: fade ** 3, size: .6 + .4 * fade};
@@ -164,7 +196,7 @@ function makeCrackle(seed) {
 // A Group holding the aura for `kind` (a WAND_AURAS key). userData.update(t) animates it and
 // userData.dispose() frees it. `seedText` keeps each wand's particles its own.
 export function createWandAura(kind, seedText = '') {
-  const style = WAND_AURAS[kind];
+  const style = Object.hasOwn(AURAS, kind) ? AURAS[kind] : null;
   if (!style) return null;
   const seed = hashString(`${kind}|${seedText}`), random = rng(seed), g = new THREE.Group();
   g.name = `wand aura: ${kind}`;
@@ -179,11 +211,11 @@ export function createWandAura(kind, seedText = '') {
   return g;
 }
 
-// Keeps a ground item's aura in step with its seen name: adds one when the wand becomes
-// identified, swaps it if the name changes, removes it if the name stops saying. Returns the
+// Keeps a ground item's aura in step with its seen name: adds one when the wand (or magic
+// lamp) becomes identified, swaps it if the name changes, removes it if the name stops saying. Returns the
 // aura (or null).
 export function syncWandAura(item, object, seedText = '') {
-  const kind = wandAuraKind(object), current = item.userData.wandAura;
+  const kind = itemAuraKind(object), current = item.userData.wandAura;
   if ((current?.userData.kind ?? null) === kind) return current ?? null;
   if (current) { item.remove(current); current.userData.dispose(); }
   item.userData.wandAura = kind ? createWandAura(kind, seedText) : null;
@@ -194,7 +226,8 @@ export function syncWandAura(item, object, seedText = '') {
 // Held wands (item 9, part 2). The bridge sends a wielded weapon as {name: xname(uwep), class}.
 // xname is the hero's view ("oak wand" until identified), so it stands in for `label`.
 export function heldWandObject(weapon) {
-  return weapon && typeof weapon.name === 'string' ? {class: weapon.class, label: weapon.name} : null;
+  // Only wands: a wielded magic lamp's hum is laid out for a lamp on the floor, not a rod.
+  return weapon?.class === WAND_CLASS && typeof weapon.name === 'string' ? {class: weapon.class, label: weapon.name} : null;
 }
 
 // Where on the held weapon the aura sits (weapon space: the rod runs along +y from the grip),

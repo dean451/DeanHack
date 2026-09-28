@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {wandAuraKind, particleAt, crackleAt, createWandAura, syncWandAura, WAND_AURAS, WAND_CLASS} from './wand-auras.js';
+import {wandAuraKind, magicAuraKind, particleAt, crackleAt, createWandAura, syncWandAura, WAND_AURAS, MAGIC_AURAS, WAND_CLASS, TOOL_CLASS} from './wand-auras.js';
 
 const wand = (label, extra = {}) => ({class: WAND_CLASS, name: 'wand of death', appearance: 'oak', label, ...extra});
 
@@ -25,7 +25,7 @@ test('only the hero-known name picks an aura', () => {
 });
 
 test('every style keeps particles finite and near the wand', () => {
-  const styles = Object.values(WAND_AURAS).flatMap(s => s.core ? [s, s.core] : [s]);
+  const styles = Object.values({...WAND_AURAS, ...MAGIC_AURAS}).flatMap(s => s.core ? [s, s.core] : [s]);
   for (const style of styles) for (let k = 0; k < 20; k++) {
     const seed = [k / 20, (k * 7 % 20) / 20, (k * 13 % 20) / 20, (k * 3 % 20) / 20];
     for (let p = 0; p <= 1.0001; p += .05) {
@@ -56,7 +56,7 @@ test('lightning crackles in short flashes', () => {
 });
 
 test('auras build, animate and dispose cleanly', () => {
-  for (const kind of Object.keys(WAND_AURAS)) {
+  for (const kind of Object.keys({...WAND_AURAS, ...MAGIC_AURAS})) {
     const aura = createWandAura(kind, 'x');
     let meshes = 0;
     for (const t of [0, .37, 1.9, 12.5, 1000.1]) {
@@ -106,6 +106,7 @@ test('a wielded wand glows in the hand only once its name says so', async () => 
   assert.equal(syncHeldWandAura(hero, held('oak wand')), null);
   assert.equal(syncHeldWandAura(hero, held('wand called death')), null);
   assert.equal(syncHeldWandAura(hero, {name: 'long sword', otyp: 28, class: 2}), null);
+  assert.equal(syncHeldWandAura(hero, {name: 'magic lamp', otyp: 200, class: TOOL_CLASS}), null);
   assert.equal(g.userData.heldWand.visible, false);
   const aura = syncHeldWandAura(hero, held('wand of fire'));
   assert.equal(aura.userData.kind, 'fire');
@@ -133,4 +134,44 @@ test('a wielded wand glows in the hand only once its name says so', async () => 
   assert.ok(syncHeldWandAura(bare, held('wand of cold')));
   assert.equal(bare.g.userData.heldWand.visible, false);
   updateHeldWandAura(bare, 1);
+});
+
+test('a magic lamp hums only once the hero knows it for one', () => {
+  const lamp = (label, name = 'magic lamp') => ({class: TOOL_CLASS, name, appearance: 'lamp', label});
+  assert.equal(magicAuraKind(lamp('magic lamp')), 'magic lamp');
+  assert.equal(magicAuraKind(lamp('magic lamp (lit)')), 'magic lamp');
+  assert.equal(magicAuraKind(lamp('magic lamp named genie')), 'magic lamp');
+  // Unidentified it is just "lamp", the same as an oil lamp; the true name must not leak.
+  assert.equal(magicAuraKind(lamp('lamp')), null);
+  assert.equal(magicAuraKind(lamp(undefined)), null);
+  assert.equal(magicAuraKind(lamp('lamp called magic')), null);
+  assert.equal(magicAuraKind(lamp('lamp named magic lamp')), null);
+  assert.equal(magicAuraKind(lamp('oil lamp', 'oil lamp')), null);
+  assert.equal(magicAuraKind({class: WAND_CLASS, label: 'magic lamp'}), null);
+  // On the floor it goes through the same sync as wands.
+  const item = new THREE.Group();
+  assert.equal(syncWandAura(item, lamp('lamp'), 'k'), null);
+  const hum = syncWandAura(item, lamp('magic lamp'), 'k');
+  assert.equal(hum.userData.kind, 'magic lamp');
+  assert.equal(syncWandAura(item, lamp('magic lamp (lit)'), 'k'), hum, 'lighting it keeps the hum');
+  // Sampled over time: motes rise from the spout, the halo circles the bowl, and all stay near the lamp.
+  let maxY = 0, spoutSide = 0, samples = 0;
+  for (let t = 0; t < 12; t += .21) {
+    hum.userData.update(t);
+    const [halo, motes] = hum.children.map(o => o.geometry.attributes.position.array);
+    for (let i = 0; i < halo.length; i += 3) {
+      const r = Math.hypot(halo[i], halo[i + 2] / .85);
+      assert.ok(r > .17 && r < .3 && halo[i + 1] > .04 && halo[i + 1] < .2, `halo ${r} ${halo[i + 1]}`);
+    }
+    for (let i = 0; i < motes.length; i += 3, samples++) {
+      assert.ok([motes[i], motes[i + 1], motes[i + 2]].every(Number.isFinite));
+      maxY = Math.max(maxY, motes[i + 1]);
+      if (motes[i] > .2) spoutSide++;
+    }
+  }
+  assert.ok(maxY > .45 && maxY < .6, `motes top ${maxY}`);
+  assert.ok(spoutSide / samples > .95, 'motes stay over the spout');
+  // Forgetting (or a mistaken name) takes the hum away.
+  assert.equal(syncWandAura(item, lamp('lamp')), null);
+  assert.equal(item.children.length, 0);
 });
