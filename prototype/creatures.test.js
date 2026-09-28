@@ -411,6 +411,41 @@ test('the watch get tabards, helmets and a halberd and lantern or a sword instea
  assert.equal(createCreature({name:'soldier',symbol:AT,color:8}).quirk,'guard');
 });
 
+test('soldiers and guards get livery gambesons, cuirasses, rank helmets and a spear and shield or a sword',()=>{
+ const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const expect={soldier:{draws:8,weapon:'spear'},guard:{draws:8,weapon:'spear'},'prison guard':{draws:8,weapon:'spear'},sergeant:{draws:8,weapon:'sword'},lieutenant:{draws:7,weapon:'sword'},captain:{draws:7,weapon:'longsword'}},built={};
+ for(const [name,e] of Object.entries(expect)){
+  const t0=performance.now(),w=createCreature({name,symbol:AT,color:7}),ms=performance.now()-t0;
+  assert.equal(w.quirk,'guard');assert.equal(w.kind,name);
+  for(const key of ['body','head','arm','weaponSocket','shieldArm'])assert(w[key]?.isObject3D,`${name} ${key}`);
+  assert.equal(w.legs.length,2);assert.equal(w.arms.length,2);
+  assert(w.arm.children.includes(w.weaponSocket),'the weapon rides the arm');
+  assert.equal(w.shieldArm,w.arms[0]);assert.equal(w.shieldArm.rotation.z,0,'the shield arm rests straight');
+  assert.equal(!!w.shield,e.draws===8);if(w.shield)assert(w.arms[0].children.includes(w.shield),'the shield is on the off arm');
+  const parts=meshes(w);assert.equal(parts.length,e.draws,name);
+  assert(parts.some(m=>m.userData.part===e.weapon),`${name} holds a ${e.weapon}`);
+  let verts=0;
+  for(const m of parts){
+   const a=m.geometry.attributes;verts+=a.position.count;
+   for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${name} ${m.userData.part} ${key}`);
+   for(const v of a.color.array)assert(v>=0&&v<=1,`${name} ${m.userData.part}`);
+  }
+  assert(verts<40000,`${name}: ${verts} vertices`);
+  w.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(w.g);
+  assert(b.min.y>-.03&&b.min.y<.03,`${name} feet at ${b.min.y}`);
+  assert(b.max.y>1.1&&b.max.y<1.5,`${name} top at ${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.48,`${name} fits the tile: ${JSON.stringify(b)}`);
+  assert(ms<300,`${name} took ${ms} ms`);
+  const again=meshes(createCreature({name,symbol:AT,color:7}));
+  assert.equal(again[0].geometry,parts[0].geometry,'geometry is shared');
+  built[name]=parts;
+ }
+ assert.equal(built.soldier[0].material,built.captain[0].material,'one material for every rank');
+ assert.notEqual(built.soldier[1].geometry,built.lieutenant[1].geometry,'ranks wear different helmets');
+ assert.equal(createCreature({name:'soldier ant',symbol:97,color:4}).kind,undefined,'soldier ants stay insects');
+});
+
 test('each mold is its own lobed colony with a kind-specific accent instead of the shared fungus mound',()=>{
  const F=70,accents={yellow:'spores',green:'acid',brown:'rime',red:'embers'},colours={yellow:3,green:2,brown:3,red:1};
  const bounds={};
