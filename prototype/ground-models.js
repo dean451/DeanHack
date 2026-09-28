@@ -1390,6 +1390,81 @@ function buildRation(kind,{g,materials}){
  }
 }
 
+// Tin and magic whistles share the look "whistle": a nickel-plated pea whistle lying on its
+// side, so its round chamber and flat mouthpiece read from above like a "q". The window over
+// the pea is cut in the mouthpiece's outer wall, a ring on a tab holds a braided red lanyard
+// that loops out across the floor, and a stamped ring marks the chamber face. The plating is
+// rubbed through to brass on the rolled rims. Coloured per vertex and merged into two meshes.
+function buildWhistle({g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const plate=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.8,roughness:.3});
+ const matte=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.85});
+ materials.push(plate,matte);
+ const lists={plate:[],matte:[]},c=new THREE.Color(),e=new THREE.Euler(),m=new THREE.Matrix4();
+ const put=(geo,paint,{which='plate',rot=[0,0,0],at=[0,0,0]}={})=>{
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  out.deleteAttribute('uv');
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  out.applyMatrix4(m.makeRotationFromEuler(e.set(...rot,'YXZ')).setPosition(...at));
+  // Painted in world space, after placing, so wear and stripes run across parts.
+  for(let i=0;i<p.count;i++){
+   paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i));
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  lists[which].push(out);
+ };
+ const nickel=C(0xc6ccd0),shadow=C(0x7d858a),brass=C(0xb48a42),black=C(0x0e0d0c),edge=C(0xeef2f4);
+ // Plating: bright on top, darker on the flanks and underneath, worn to brass where noise peaks.
+ const plated=(rub=0)=>(col,x,y,z,nx,ny)=>{
+  col.copy(nickel).lerp(shadow,Math.max(0,-ny)*.6+(1-Math.abs(ny))*.18);
+  const wear=stoneNoise(x*60,y*60,z*60,3)*.5+.5;
+  col.lerp(brass,Math.max(0,wear-(1-rub))*2.2);
+ };
+ const R=.034,H=.03,cx=.02;
+ // The chamber, lying on a flat face, with rolled rims at both faces.
+ put(new THREE.CylinderGeometry(R,R,H,40,2),plated(.12),{at:[cx,H/2,0]});
+ for(const y of [.003,H-.003])put(new THREE.TorusGeometry(R-.0005,.0032,6,40),plated(.45),{rot:[Math.PI/2,0,0],at:[cx,y,0]});
+ // A stamped ring and a small boss on the upper face.
+ put(new THREE.TorusGeometry(R*.62,.0011,4,32),(col,x,y,z)=>col.copy(shadow).lerp(nickel,.35),{rot:[Math.PI/2,0,0],at:[cx,H+.0002,0]});
+ put(new THREE.CylinderGeometry(.006,.007,.0016,16),plated(.3),{at:[cx,H+.0008,0]});
+ // The mouthpiece runs off tangent to the chamber's -z side and thins toward the lips.
+ const L=.095,W=.017,mouth=new RoundedBoxGeometry(L,H*.92,W,2,.004),mp=mouth.attributes.position;
+ for(let i=0;i<mp.count;i++){const t=.5-mp.getX(i)/L;mp.setY(i,mp.getY(i)*(1-.28*t));mp.setZ(i,mp.getZ(i)*(1-.2*t));}
+ mouth.computeVertexNormals();
+ put(mouth,plated(.2),{at:[cx-L/2,H/2,-R+W/2]});
+ // The blowing slot at the tip, and the window: a dark cut with a bright bevelled lip.
+ put(new THREE.BoxGeometry(.002,H*.34,.0055),col=>col.copy(black),{at:[cx-L-.0003,H/2,-R+W/2]});
+ put(new THREE.BoxGeometry(.018,H*.56,.002),col=>col.copy(black),{at:[cx+.006,H/2,-R-.0004]});
+ put(new THREE.BoxGeometry(.0025,H*.56,.0024),col=>col.copy(edge),{at:[cx-.0035,H/2,-R-.0005]});
+ // The cork pea, glimpsed through the window.
+ put(new THREE.SphereGeometry(.0058,12,8),(col,x,y,z)=>col.copy(C(0xb58a5a)).lerp(C(0x6e4c2c),.4+.3*stoneNoise(x*300,y*300,z*300,2)),{which:'matte',at:[cx+.008,H/2,-R-.0006]});
+ // A tab on the far side of the chamber, and the split ring through it.
+ put(new THREE.BoxGeometry(.012,.008,.008),plated(.3),{at:[cx+R+.003,.009,0]});
+ const ringAt=[cx+R+.016,.0028,.002];
+ put(new THREE.TorusGeometry(.012,.0024,6,24),plated(.5),{rot:[Math.PI/2,0,0],at:ringAt});
+ // A braided lanyard looping out over the floor from the ring, with a knot where it closes.
+ const red=C(0x9a2622),darkRed=C(0x4e1312),pale=C(0xd6c09a);
+ const braid=(col,x,y,z,nx,ny,nz)=>{
+  const twist=Math.sin((x+z)*520+Math.atan2(ny,nx+nz)*2);
+  col.copy(red).lerp(darkRed,.5-.5*twist);
+  if(Math.sin((x-z)*260)>.93)col.lerp(pale,.6);
+ };
+ const r=.0038,loop=[[.078,.07],[.12,.06],[.16,.11],[.15,.17],[.09,.2],[.01,.19],[-.05,.15],[-.03,.09],[.03,.06]];
+ const lanyard=[v(ringAt[0]+.01,r,ringAt[2]+.004),v(.09,r,.03),...loop.map(([x,z],i)=>v(x,r+.0012*(i%2),z)),v(.075,r,.04),v(ringAt[0]+.011,r,ringAt[2]+.006)];
+ put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lanyard),96,r,6,false),braid,{which:'matte'});
+ put(new THREE.SphereGeometry(.0075,12,8),braid,{which:'matte',at:[.083,.0068,.052]});
+ for(const [which,material] of [['plate',plate],['matte',matte]]){
+  const list=lists[which];
+  const geo=mergeGeometries(list);list.forEach(p=>p.dispose());
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=`whistle-${which}`;g.add(mesh);
+ }
+ // Centre the whistle and its loop on the tile and set it on the floor.
+ const b=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();b.union(p.geometry.boundingBox);});
+ const mid=b.getCenter(v(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-b.min.y,-mid.z));
+ g.rotation.y=.45;
+}
+
 // The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
 // door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
 // keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
@@ -2283,10 +2358,7 @@ export function createGroundModel(item={}){
   const v=(x,y,z)=>new THREE.Vector3(x,y,z);
   const wood=mat(0x7a5232),dark=mat(0x221d18),brass=mat(0xc9a24a,.7);
   if(kind==='whistle'){
-   const tin=mat(0xa8b2b4,.7);
-   lie(.022,.022,.15,tin,0,.022,0);box(.05,.03,.034,tin,.09,.022);
-   box(.022,.012,.036,dark,.035,.042);ball(.012,dark,.118,.022,0,[.4,1,1]);
-   flat(new THREE.TorusGeometry(.018,.004,6,14),tin,-.09,.006,0);
+   buildWhistle({g,materials});
   }else if(kind==='mirror'){
    // A looking glass lying face up: an oval silvered glass in a moulded, beaded silver frame
    // with a crest, and a turned wooden handle between brass ferrules.
