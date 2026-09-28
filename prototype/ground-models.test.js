@@ -792,3 +792,25 @@ test('the tin opener is a merged wooden-handled knife with a hooked beak and a t
  let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
  model.userData.dispose();assert.equal(disposed,2);
 });
+
+test('the saddle is a merged leather saddle on a blanket with irons on the floor',()=>{
+ const model=createGroundModel({name:'a saddle',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['saddle-leather','saddle-metal']);
+ let verts=0;
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+ }
+ assert(verts<20000,`${verts} vertices`);
+ model.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(model,true);
+ assert(Math.abs(b.min.y)<1e-6&&b.max.y>.12&&b.max.y<.25,`sits low: ${b.min.y}..${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.3,'fits its tile');
+ // The stirrup irons lie on the floor, well outside the skirts.
+ const [,metal]=model.children,p=metal.geometry.attributes.position;
+ let low=1,wide=0;for(let i=0;i<p.count;i++){wide=Math.max(wide,Math.abs(p.getZ(i)));if(Math.abs(p.getZ(i))>.2)low=Math.min(low,p.getY(i));}
+ assert(wide>.24&&low<.001,`irons out wide (${wide}) and down (${low})`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
