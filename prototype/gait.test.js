@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
-import {GAITS, gaitKind, gaitPose, updateGait} from './gait.js';
+import {GAITS, gaitKind, gaitPose, updateGait, FLIGHT, flapStyle, beatWeight, wingFlap} from './gait.js';
 
 const snapshot = actor => {
   const parts = [actor.body, ...actor.legs, ...(actor.arms || []), actor.hat, actor.beard, actor.pick].filter(Boolean);
@@ -86,4 +86,38 @@ test('other creatures and GLB-swapped actors are left alone', () => {
   dwarf.asset = {};
   assert.equal(updateGait(dwarf, 1 / 60, true), null);
   assert.equal(dwarf.gait, undefined);
+});
+
+test('bats keep their flutter; ravens beat slower, unevenly, and glide', () => {
+  assert.equal(flapStyle('giant bat'), null);
+  assert.equal(flapStyle('vampire bat'), null);
+  const style = flapStyle('raven');
+  assert.equal(style.kind, 'raven');
+  for (let t = 0; t < 3; t += .01) assert.equal(wingFlap(null, t), Math.sin(t * 14) * .65);
+
+  const F = FLIGHT.raven, dt = 1 / 240;
+  let prev = wingFlap(style, 0), maxStep = 0, glideMax = 0, lo = 0, hi = 0, down = 0, up = 0;
+  for (let t = dt; t < 3 * F.cycle; t += dt) {
+    const v = wingFlap(style, t);
+    assert.ok(Number.isFinite(v) && Math.abs(v) <= F.amp + F.drift + 1e-9);
+    const step = v - prev;
+    maxStep = Math.max(maxStep, Math.abs(step));
+    lo = Math.min(lo, v); hi = Math.max(hi, v);
+    const u = ((t + style.phase) % F.cycle + F.cycle) % F.cycle;
+    if (u > F.cycle - F.glide + F.ease && u < F.cycle) glideMax = Math.max(glideMax, Math.abs(v));
+    if (beatWeight(t + style.phase) === 1) step < 0 ? down++ : up++;
+    prev = v;
+  }
+  // smooth: no jumps between frames at 240 Hz, even across the glide boundaries
+  assert.ok(maxStep < F.amp * F.rate * 2 * dt, `step ${maxStep}`);
+  assert.ok(hi > .45 && lo < -.45, 'full strokes');
+  // the glide holds the wings nearly still
+  assert.ok(glideMax <= F.drift + 1e-9, `glide ${glideMax}`);
+  // the stroke is uneven: one direction takes noticeably longer than the other
+  assert.ok(Math.max(down, up) / Math.min(down, up) > 1.4, `${down} / ${up}`);
+  // slower than the bat
+  assert.ok(F.rate < FLIGHT.bat.rate / 2);
+  // the beat weight is continuous and periodic
+  for (let u = 0; u < F.cycle; u += .001) assert.ok(Math.abs(beatWeight(u + .001) - beatWeight(u)) < .01);
+  assert.equal(beatWeight(0), beatWeight(F.cycle));
 });

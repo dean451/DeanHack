@@ -132,3 +132,35 @@ export function updateGait(actor, dt, walking) {
 // Unit pivots in the part's own frame: the cap cone (height .36) turns about its brim; the beard
 // sphere (radius ~.2) swings from the chin.
 const HAT_PIVOT = new THREE.Vector3(0, -.18, 0), BEARD_PIVOT = new THREE.Vector3(0, .19, 0);
+
+// Wingbeats for the 'bat' quirk (live.js writes wing.rotation.z = side * wingFlap(style, t)).
+// Bats keep their fast, even flutter. Ravens (their own model in raven.js, which reuses the quirk)
+// beat about once a second, with a quick downstroke and a slower recovery, and every few seconds
+// hold their wings out and glide before beating again.
+export const FLIGHT = {
+  bat: {rate: 14, amp: .65},
+  raven: {rate: 6.5, amp: .5, skew: .5, cycle: 6, glide: 2.2, ease: .45, drift: .03},
+};
+
+export function flapStyle(name) {
+  return /\braven\b/i.test(name || '') ? {kind: 'raven', phase: Math.random() * FLIGHT.raven.cycle} : null;
+}
+
+const smooth = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+
+// How much a raven is beating (1) versus gliding (0) at cycle time u: beat, ease out, glide, ease in.
+export function beatWeight(u, F = FLIGHT.raven) {
+  const beat = F.cycle - F.glide;
+  u = ((u % F.cycle) + F.cycle) % F.cycle;
+  if (u < beat) return smooth(u / F.ease);
+  return 1 - smooth((u - beat) / F.ease);
+}
+
+export function wingFlap(style, t) {
+  if (style?.kind !== 'raven') return Math.sin(t * FLIGHT.bat.rate) * FLIGHT.bat.amp;
+  const F = FLIGHT.raven, u = t + (style.phase || 0), th = u * F.rate;
+  // phase warp: one half of the stroke passes quicker than the other
+  const stroke = Math.sin(th + F.skew * Math.sin(th)) * F.amp;
+  const w = beatWeight(u, F);
+  return stroke * w + Math.sin(u * 1.8) * F.drift * (1 - w);
+}
