@@ -10,7 +10,7 @@ test('floor ice is a merged, flat, finite model that stays in its tile and frees
   const ms=performance.now()-t0;
   const bounds=new THREE.Box3().setFromObject(model);
   for(const v of [bounds.min.x,bounds.max.x,bounds.min.z,bounds.max.z])assert(Math.abs(v)<=.5,'floor ice leaves its tile');
-  assert(bounds.min.y>-1e-5&&bounds.max.y<.06,`floor ice has a bad height ${bounds.min.y}..${bounds.max.y}`);
+  assert(bounds.min.y>-.1701&&bounds.min.y<-.169&&bounds.max.y<.06,`floor ice has a bad height ${bounds.min.y}..${bounds.max.y}`);
   const meshes=[],geometries=new Set(),materials=new Set(),counts={};
   let lo=1,hi=0;
   model.traverse(part=>{if(part.geometry){
@@ -19,7 +19,11 @@ test('floor ice is a merged, flat, finite model that stays in its tile and frees
    for(const key of ['position','normal','color'])for(const value of part.geometry.attributes[key].array)assert(Number.isFinite(value),`floor ice has a bad ${key}`);
    for(const value of part.geometry.attributes.color.array){lo=Math.min(lo,value);hi=Math.max(hi,value);}
   }});
-  assert.deepEqual(meshes.map(m=>m.userData.part).sort(),['frost','ice']);
+  assert.deepEqual(meshes.map(m=>m.userData.part).sort(),['depth','frost','ice']);
+  assert.equal(model.userData.hidesFloor,true,'floor ice should replace the floor slab');
+  // The depth reads dark and blue under the sheet: its top is bluer than it is red.
+  const depth=meshes.find(m=>m.userData.part==='depth').geometry,dn=depth.attributes.normal,dc=depth.attributes.color;
+  for(let i=0;i<dn.count;i++)if(dn.getY(i)>.5)assert(dc.getZ(i)>dc.getX(i)+.1,'the depth under the ice should be blue');
   assert(lo>=0&&hi<=1,'colours out of range');
   // Frost and fractures must sit inside the tile too, not just the sheet.
   const frost=meshes.find(m=>m.userData.part==='frost').geometry;frost.computeBoundingBox();
