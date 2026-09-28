@@ -30,7 +30,7 @@ test('combat events split into attacker and defender actions', () => {
   const hit = actionsForCombat({attack: 'bite', result: 'hit', dir: [1, 0], attacker: {seen: true, x: 1, z: 1}, defender: {you: true, x: 2, z: 1}});
   assert.equal(hit.attacker.kind, 'attack');
   assert.equal(hit.attacker.attack, 'bite');
-  assert.deepEqual(hit.defender, {kind: 'hit', dir: [1, 0]});
+  assert.deepEqual(hit.defender, {kind: 'hit', dir: [1, 0], attack: 'bite', blow: null, style: 'bite', sprayed: false});
   const miss = actionsForCombat({attack: 'claw', result: 'miss', dir: [1, 1], attacker: {you: true}, defender: {seen: true, x: 3, z: 3}});
   assert.equal(miss.defender, null);
   assert.ok(Math.abs(Math.hypot(...miss.attacker.dir) - 1) < 1e-9);
@@ -253,4 +253,39 @@ test('deaths play their class style: length, squash, spin, fade and one particle
     assert.equal(snap(c), before, `${name} back at rest`);
     assert.ok(!c.fadeSaved);
   }
+});
+
+test('hits play the reaction for their blow: its length, a distinct pose, then rest', async () => {
+  const {HIT_TIME} = await import('./hit-fx.js');
+  const cases = [['claw', null, 'cut'], ['weapon', 'pierce', 'stab'], ['kick', null, 'crush'], ['bite', null, 'bite'],
+    ['hug', null, 'hug'], ['touch', null, 'jolt'], ['weapon', null, 'knock'], [undefined, null, 'knock']];
+  const peaks = new Set();
+  for (const [attack, blow, style] of cases) {
+    const c = {attack, blow, result: 'hit', dir: [1, 0], attacker: {seen: true, name: 'jackal'}, defender: {seen: true, name: 'jackal'}};
+    const {defender} = actionsForCombat(c);
+    assert.equal(defender.style, style, `${attack}/${blow}`);
+    assert.equal(defender.sprayed, false);
+    const a = createCreature({name: 'jackal'});
+    const rest = snap(a), q = createActionQueue();
+    enqueueAction(q, defender);
+    assert.ok(Math.abs(remainingTime(q) - HIT_TIME[style]) < 1e-9);
+    let peak = '', most = 0;
+    const states = run(a, q, HIT_TIME[style] + .1, 1 / 60, x => {
+      const s = snap(x);
+      for (const v of [x.g.position.x, x.g.position.y, x.g.rotation.x, x.g.rotation.z, x.g.scale.y]) assert.ok(Number.isFinite(v));
+      assert.ok(Math.abs(x.g.position.x) < .25 && Math.abs(x.g.position.y) < .1);
+      const m = Math.abs(x.g.position.x) + Math.abs(x.g.rotation.x) + Math.abs(x.g.rotation.y) + Math.abs(x.g.rotation.z) + Math.abs(x.g.scale.y - 1);
+      if (m > most) { most = m; peak = s; }
+    });
+    assert.ok(states.includes('hit') && states.at(-1) === 'idle');
+    assert.ok(most > .01, `${style} moves`);
+    if (style !== 'knock') peaks.add(peak);
+    clearActionPose(a, q);
+    assert.equal(snap(a), rest, `${style} back at rest`);
+  }
+  assert.equal(peaks.size, 6);
+  // The hero's weapon hits already spray from the swing; its kicks and a pet's bites don't.
+  const mine = attack => actionsForCombat({attack, blow: 'slash', result: 'hit', dir: [0, 1], attacker: {you: true}, defender: {seen: true}}).defender.sprayed;
+  assert.equal(mine('weapon'), true);
+  assert.equal(mine('kick'), false);
 });

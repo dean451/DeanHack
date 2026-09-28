@@ -13,6 +13,7 @@
 import {monsterAttackPose, foreLegs, wingSide} from './monster-attacks.js';
 import {deathStyle, deathPose, DEATH_TIME, DEATH_BURST_U} from './deaths.js';
 import {swingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
+import {hitStyle, hitReactionPose, HIT_TIME} from './hit-fx.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9};
 // Wait no longer than this for a death to play before the map (and its corpse) goes on.
@@ -34,7 +35,8 @@ function unitDir(dir) {
 
 // Actions for one normalised combat event (combatAction() from combat-events.js), split by
 // side: {attacker, defender}, each null when that side gets nothing. A hit makes the defender
-// flinch away from the blow; a miss or wild swing only moves the attacker.
+// flinch away from the blow in a way that fits it (hit-fx.js); a miss or wild swing only moves
+// the attacker. The hero's own weapon hits already spray from swing-fx.js, so they're `sprayed`.
 export function actionsForCombat(c) {
   if (!c) return {attacker: null, defender: null};
   const dir = unitDir(c.dir);
@@ -42,7 +44,8 @@ export function actionsForCombat(c) {
     ? {kind: 'attack', attack: c.attack || 'other', blow: c.blow ?? null, result: c.result, dir,
       target: c.defender?.seen ? c.defender.name ?? null : null} : null;
   const defender = c.result === 'hit' && (c.defender?.you || c.defender?.seen)
-    ? {kind: 'hit', dir} : null;
+    ? {kind: 'hit', dir, attack: c.attack || 'other', blow: c.blow ?? null,
+      style: hitStyle(c.attack, c.blow ?? null), sprayed: !!c.attacker?.you && c.attack === 'weapon'} : null;
   return {attacker, defender};
 }
 
@@ -63,7 +66,8 @@ export function enqueueAction(q, action) {
 const swings = (actor, a) => a.kind === 'attack' && a.attack === 'weapon' && !!actor?.elbow;
 // Seconds an action lasts (a swing is only known to be one once it starts; a death by its style).
 const actionLength = a => a.swing ? swingLength(a.result)
-  : a.kind === 'die' ? DEATH_TIME[a.style] ?? ACTION_TIME.die : ACTION_TIME[a.kind];
+  : a.kind === 'die' ? DEATH_TIME[a.style] ?? ACTION_TIME.die
+  : a.kind === 'hit' ? HIT_TIME[a.style ?? hitStyle(a.attack, a.blow)] ?? ACTION_TIME.hit : ACTION_TIME[a.kind];
 
 const pace = q => Math.min(3, 1 + .5 * Math.max(0, q.queue.length - 1));
 
@@ -103,13 +107,9 @@ export function actionPose(action, u, face) {
     p.yaw = (face ? face * smooth(u / .2) : 0) + m.twist;
     for (const k of ['dy', 'pitch', 'roll', 'body', 'head', 'arm', 'wrist', 'socket', 'leg', 'fore', 'tail', 'wing', 'scale', 'stretch']) p[k] = m[k];
   } else if (action.kind === 'hit') {
-    // Knocked back along the blow, snapping in fast and settling out.
-    const k = u < .15 ? smooth(u / .15) : 1 - smooth((u - .15) / .85);
-    if (d) { p.dx = d[0] * .1 * k; p.dz = d[1] * .1 * k; }
-    p.pitch = -.22 * k;
-    p.roll = (d ? d[0] : 1) * .08 * k;
-    p.head = -.3 * k;
-    p.dy = .02 * k;
+    // Flinch by blow (hit-fx.js): raked, doubled over, knocked back, worried, squeezed or shaken.
+    const m = hitReactionPose(action.style ?? hitStyle(action.attack, action.blow), u, d);
+    for (const k of ['dx', 'dy', 'dz', 'yaw', 'pitch', 'roll', 'body', 'head', 'arm', 'wrist', 'socket', 'leg', 'fore', 'tail', 'wing', 'scale', 'stretch']) p[k] = m[k];
   } else if (action.kind === 'die') {
     // Per class (deaths.js): topple, crumble, splat, dissipate or burst; held at the end.
     const m = deathPose(action.style, u, d);
