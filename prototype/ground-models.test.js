@@ -877,6 +877,29 @@ test('the bugle is one swept brass loop with a flared bell, resting tilted, and 
  model.userData.dispose();assert.equal(disposed,2);
 });
 
+test('the credit card is a bowed plastic card with a gold chip, a hologram and embossed figures',()=>{
+ const model=createGroundModel({name:'credit card',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['credit-card-plastic','credit-card-foil']);
+ let verts=0;
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ const [plastic,foil]=model.children.map(p=>{p.geometry.computeBoundingBox();return p.geometry.boundingBox;});
+ // Card sized, lying flat: the middle touches the floor and the ends lift a little.
+ assert(Math.abs(plastic.min.y)<1e-6&&plastic.max.y>.004&&plastic.max.y<.01,`lies flat: ${plastic.min.y}..${plastic.max.y}`);
+ assert(Math.abs(plastic.max.x-plastic.min.x-.2)<.002&&Math.abs(plastic.max.z-plastic.min.z-.126)<.002,'card proportions');
+ // The foil sits on the face, and the chip is gold (red well above blue) on the left.
+ assert(foil.min.y>=plastic.min.y+.0035,`foil on the face ${foil.min.y}`);
+ const {position,color}=model.children[1].geometry.attributes;let chip=0;
+ for(let i=0;i<position.count;i++)if(position.getX(i)<-.05&&color.getX(i)>color.getZ(i)+.3)chip++;
+ assert(chip>500,`gold chip ${chip}`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
 test('the saddle is a merged leather saddle on a blanket with irons on the floor',()=>{
  const model=createGroundModel({name:'a saddle',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['saddle-leather','saddle-metal']);

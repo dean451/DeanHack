@@ -2195,6 +2195,129 @@ function buildBugle({g,materials}){
  g.rotation.y=-.35;
 }
 
+// The credit card: a bank card lying face up with a slight bow. The plastic is one merged
+// mesh (a rounded-corner slab whose face is painted per vertex with a blue sweep, a pale
+// swoosh, fine guilloche waves and a gold rule; the back has the magnetic stripe and the
+// signature panel; the edge shows the white core) plus a printed contactless mark. The foil
+// mesh holds the gold chip with its eight contacts, a rainbow hologram and the embossed,
+// silver-tipped number and expiry date in seven-segment figures.
+function buildCreditCard({g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const plasticMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.32});
+ const foilMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.85,roughness:.26});
+ materials.push(plasticMat,foilMat);
+ const W=.2,D=.126,T=.0036,R=.009,lists={plastic:[],foil:[]},c=new THREE.Color();
+ const put=(geo,paint,which)=>{
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  out.deleteAttribute('uv');
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i));
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  lists[which].push(out);
+ };
+ // A flat grid over the card, its corner vertices pulled in onto the rounded corners.
+ const face=(nx,nz,y,up)=>{
+  const geo=new THREE.PlaneGeometry(W,D,nx,nz);geo.rotateX(up?-Math.PI/2:Math.PI/2);
+  const p=geo.attributes.position,cx=W/2-R,cz=D/2-R;
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),z=p.getZ(i),ax=Math.abs(x)-cx,az=Math.abs(z)-cz,d=Math.hypot(ax,az);
+   if(ax>0&&az>0&&d>R){p.setX(i,Math.sign(x)*(cx+ax*R/d));p.setZ(i,Math.sign(z)*(cz+az*R/d));}
+   p.setY(i,y);
+  }
+  return geo;
+ };
+ // The face (text reads along +x, the top edge is -z): a deep blue sweep, a pale swoosh
+ // across the middle, fine interlaced waves, a gold rule near the top and a darker foot.
+ const navy=C(0x14306e),blue=C(0x2e68b8),sky=C(0x8ab8e8),gold=C(0xc9a247),white=C(0xeef3f8);
+ const front=(col,x,y,z)=>{
+  col.copy(navy).lerp(blue,Math.min(1,Math.max(0,(x/W+.5)*.7+(z/D+.5)*.5)));
+  const swoosh=z-(.018*Math.sin(x*16+.6)-.004);
+  col.lerp(sky,Math.max(0,1-Math.abs(swoosh)/.011)*.45);
+  const wave=Math.sin(z*420+Math.sin(x*60)*6)*Math.sin(z*380-Math.sin(x*48+1)*7);
+  if(wave>.8)col.lerp(white,(wave-.8)*.35);
+  if(Math.abs(z+.049)<.0016&&x>-.085&&x<.085)col.lerp(gold,.85);
+  if(z>.05)col.lerp(navy,.35);
+  // The bank's wordmark: a pale block at the top right.
+  if(x>.045&&x<.088&&z>-.045&&z<-.034)col.lerp(white,.8);
+ };
+ // The back: a black magnetic stripe across the top and a hatched white signature panel.
+ const back=(col,x,y,z)=>{
+  col.copy(blue).lerp(navy,.4);
+  if(z>-.05&&z<-.032)col.set(0x0c0c0e);
+  else if(z>-.018&&z<-.004&&x>-.085&&x<.035)col.copy(white).lerp(sky,Math.sin((x+z)*900)>.3?.35:0);
+ };
+ put(face(72,46,T,true),front,'plastic');
+ put(face(24,16,0,false),back,'plastic');
+ // The edge: a rounded-rectangle slab just inside the faces, so only its sides show: a white
+ // core between thin blue laminates.
+ const shape=new THREE.Shape(),hw=W/2-.0002,hd=D/2-.0002,r=R-.0002;
+ shape.moveTo(-hw+r,-hd);shape.lineTo(hw-r,-hd);shape.absarc(hw-r,-hd+r,r,-Math.PI/2,0);
+ shape.lineTo(hw,hd-r);shape.absarc(hw-r,hd-r,r,0,Math.PI/2);shape.lineTo(-hw+r,hd);
+ shape.absarc(-hw+r,hd-r,r,Math.PI/2,Math.PI);shape.lineTo(-hw,-hd+r);shape.absarc(-hw+r,-hd+r,r,Math.PI,Math.PI*1.5);
+ const slab=new THREE.ExtrudeGeometry(shape,{depth:T-.0004,bevelEnabled:false,curveSegments:6});
+ slab.rotateX(Math.PI/2);slab.translate(0,T-.0002,0);
+ put(slab,(col,x,y)=>col.copy(Math.abs(y-T/2)<T*.3?white:blue),'plastic');
+ // The contactless mark: four nested arcs opening towards +x beside the chip.
+ for(let i=0;i<4;i++){
+  const arc=new THREE.TorusGeometry(.0028+i*.0024,.00055,3,12,Math.PI*.55);
+  arc.rotateZ(-Math.PI*.275);arc.rotateX(-Math.PI/2);arc.scale(1,.3,1);arc.translate(-.052,T+.0001,-.008);
+  put(arc,col=>col.copy(white),'plastic');
+ }
+ // The chip: a gold plate with eight contacts cut by dark lines, a centre pad and a slight dome.
+ const CX=-.066,CZ=-.008,CW=.025,CD=.019;
+ const plate=new RoundedBoxGeometry(CW,.0006,CD,2,.0002);plate.translate(CX,T,CZ);
+ const goldHi=C(0xf3d27a),goldLo=C(0x8e6a22),line=C(0x3a2c10);
+ put(plate,(col,x,y,z,nx,ny)=>col.copy(gold).lerp(goldLo,1-Math.max(0,ny)),'foil');
+ const pads=new THREE.PlaneGeometry(CW-.0006,CD-.0006,28,21);pads.rotateX(-Math.PI/2);pads.translate(CX,T+.00031,CZ);
+ put(pads,(col,x,y,z)=>{
+  const u=(x-CX)/CW,w=(z-CZ)/CD;
+  col.copy(gold).lerp(goldHi,Math.max(0,.4-Math.hypot(u+.15,w+.2))*1.5);
+  const inPad=Math.abs(u)<.16&&Math.abs(w)<.3;
+  let cut=Math.abs(Math.abs(u)-.2)<.03&&Math.abs(w)<.45;
+  if(Math.abs(u)>.2)for(const k of [-.25,0,.25])if(Math.abs(w-k)<.035)cut=true;
+  if(Math.abs(Math.abs(u)-.16)<.03&&Math.abs(w)<.3||Math.abs(Math.abs(w)-.3)<.035&&Math.abs(u)<.16)cut=true;
+  if(cut)col.copy(line);else if(inPad)col.lerp(goldHi,.25);
+ },'foil');
+ // The hologram: a small rainbow foil patch at the lower right with a bright bird-like crest.
+ const holo=new THREE.PlaneGeometry(.028,.017,16,10);holo.rotateX(-Math.PI/2);holo.translate(.07,T+.0001,.04);
+ put(holo,(col,x,y,z)=>{
+  const u=(x-.07)/.028,w=(z-.04)/.017;
+  col.setHSL(((u*1.3+w*.9+Math.sin(u*9)*.15)%1+1)%1,.55,.7);
+  if(Math.abs(w+.12*Math.cos(u*6))<.09&&Math.abs(u)<.35)col.lerp(white,.6);
+ },'foil');
+ // Embossed figures: raised seven-segment strokes, silver tipping on top.
+ const SEGS=['abcdef','bc','abdeg','abcdg','bcfg','acdfg','acdefg','abc','abcdefg','abcdfg'];
+ const silver=C(0xd8dde4),shade=C(0x7a8290);
+ const tip=(col,x,y,z,nx,ny)=>col.copy(silver).lerp(shade,1-Math.max(0,ny));
+ const stroke=(w,d,x,z,rot=0)=>{const b=new THREE.BoxGeometry(w,.0007,d);b.rotateY(rot);b.translate(x,T+.00035,z);put(b,tip,'foil');};
+ const digit=(ch,x,z,dw,dh)=>{
+  const s=.0012,segs=ch==='/'?'':SEGS[+ch];
+  if(ch==='/'){stroke(s,dh*1.05,x+dw/2,z,-.35);return;}
+  const H={a:-dh/2,g:0,d:dh/2},V={f:[0,-dh/4],b:[dw,-dh/4],e:[0,dh/4],c:[dw,dh/4]};
+  for(const k of segs){
+   if(H[k]!==undefined)stroke(dw,s,x+dw/2,z+H[k]);
+   else stroke(s,dh/2,x+V[k][0],z+V[k][1]);
+  }
+ };
+ const number='5316208477194402';
+ for(let i=0;i<16;i++)digit(number[i],-.078+i*.0086+Math.floor(i/4)*.0058,.018,.0056,.0105);
+ [...'09/31'].forEach((ch,i)=>digit(ch,.002+i*.0062,.037,.0038,.0068));
+ // The holder's name, embossed as a row of short blocks.
+ for(let i=0;i<9;i++)if(i!==3)stroke(.0036,.0052,-.076+i*.0053,.05);
+ // Merge, bow the card a little along its length and set it down.
+ const bow=x=>.0026*(2*x/W)**2;
+ for(const [which,material] of [['plastic',plasticMat],['foil',foilMat]]){
+  const list=lists[which],geo=mergeGeometries(list);list.forEach(p=>p.dispose());
+  const p=geo.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,p.getY(i)+bow(p.getX(i)));
+  geo.computeBoundingBox();
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=`credit-card-${which}`;g.add(mesh);
+ }
+ g.rotation.y=.3;
+}
+
 // The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
 // door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
 // keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
@@ -3220,12 +3343,7 @@ export function createGroundModel(item={}){
    }
    const bridge=add(new THREE.TorusGeometry(.016,.004,6,12,Math.PI),metal,0,.062,.006);bridge.rotation.x=-.35;
   }else if(kind==='credit card'){
-   // A thin plastic card with a magnetic stripe on its back and a gold chip on its face.
-   const plastic=mat(0x2f5aa8);
-   add(new RoundedBoxGeometry(.2,.006,.13,2,.003),plastic,0,.003).rotation.y=.3;
-   const c=Math.cos(.3),s=Math.sin(.3);
-   const part=(w,d,m,x,z)=>{box(w,.0015,d,m,x*c+z*s,.0065,z*c-x*s).rotation.y=.3;};
-   part(.036,.028,brass,-.055,-.01);part(.15,.012,mat(0xd8dde0),.01,.035);part(.13,.008,mat(0xa9c0e6),0,-.042);
+   buildCreditCard({g,materials});
   }else if(kind==='beartrap'){
    // A sprung-open trap: a round base, two toothed half-jaws lying flat, a pan and a chained stake.
    const iron=mat(0x55504a,.7);
