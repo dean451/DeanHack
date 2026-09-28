@@ -73,3 +73,23 @@ test('lock pick lies flat as one merged, vertex-coloured set',()=>{
   model.userData.dispose();assert.equal(disposed,2);
  }
 });
+
+test('can of grease stands open in two merged, vertex-coloured meshes with its lid beside it',()=>{
+ for(const name of ['can of grease','an uncursed can of grease (0:12)']){
+  const model=createShopItem(name);
+  assert(model,name);assert(model.userData.restingWeapon);
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model,true);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} rests on the floor`);
+  assert(bounds.max.y>.18&&bounds.max.y<.22,`${name} stands as a short can`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} stays on its tile`);
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.userData.part),['tin','grease'],'two draws');
+  let disposed=0;
+  for(const m of meshes){const geo=m.geometry;
+   for(const key of ['position','normal'])for(const value of geo.attributes[key].array)assert(Number.isFinite(value));
+   for(const value of geo.attributes.color.array)assert(value>=0&&value<=1);
+   geo.addEventListener('dispose',()=>disposed++);m.material.addEventListener('dispose',()=>disposed++);}
+  model.userData.dispose();assert.equal(disposed,4);
+ }
+});

@@ -72,14 +72,66 @@ export function createShopItem(name){
  if(/crystal pick/.test(n))return createPick(name,false,true);
  if(/lock pick/.test(n))return createLockPick(name);
  if(/skeleton key/.test(n))return createSkeletonKey(name);
- if(/can of grease/.test(n))return createTool(name,'grease');
+ if(/can of grease/.test(n))return createGreaseCan(name);
  return null;
 }
-function createTool(name,kind){
- const {g,mat,cyl,ring}=kit(name);g.userData.restingWeapon=true;
- const gold=mat(0xd0aa4f,{metalness:.72,roughness:.3}),tin=mat(0x6c7775,{metalness:.55,roughness:.36}),grease=mat(0xc9a44b,{roughness:.45});
- cyl(tin,0,.13,0,.18,.18,.18);cyl(grease,0,.245,0,.13,.15,.08);ring(gold,0,.3,0,.13,.012).rotation.x=Math.PI/2;
- const label=()=>{};return g;
+// An opened can of grease: a beaded tin with a rolled rim, a torn paper label and a soldered seam,
+// brimming with amber grease that has slumped over the rim and run down the side. Its prised-off lid
+// lies lip-up beside it, smeared inside. Two merged, vertex-coloured meshes: the tin and lid in one
+// metal material, the label and grease in one soft, glossy one.
+function createGreaseCan(name){
+ const {g,mat,mesh}=kit(name);g.userData.restingWeapon=true;
+ const metal=[],soft=[],c=new THREE.Color();
+ const tin=new THREE.Color(0x98a2a4),grime=new THREE.Color(0x3b3a33),shine=new THREE.Color(0xdde3e4),amber=new THREE.Color(0xb98a2e),dark=new THREE.Color(0x5e3f12),gloss=new THREE.Color(0xf0cf78);
+ const paper=new THREE.Color(0x8e3326),cream=new THREE.Color(0xe2d3a8),ink=new THREE.Color(0x221a14);
+ const noise=(a,b)=>{const v=Math.sin(a*12.9898+b*78.233)*43758.5453;return v-Math.floor(v);};
+ const put=(list,geo,tone)=>{geo.deleteAttribute('uv');const p=geo.attributes.position,cols=[];
+  for(let i=0;i<p.count;i++){tone(p.getX(i),p.getY(i),p.getZ(i),c);cols.push(c.r,c.g,c.b);}
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));list.push(geo);return geo;};
+ const lathe=(profile,segments=40)=>new THREE.LatheGeometry(profile.map(([r,y])=>new THREE.Vector2(r,y)),segments);
+ const R=.084,cx=.05,run=Math.PI*-.35,ux=Math.cos(run),uz=Math.sin(run);
+ // The can: a recessed base, a rolled foot, two stiffening beads and a rolled rim with the wall turned in.
+ const can=lathe([[0,.005],[.074,.005],[.08,.001],[.087,.003],[.089,.01],[.085,.018],[R,.022],[R,.056],[.0865,.06],[R,.064],
+  [R,.13],[.0865,.134],[R,.138],[R,.176],[.088,.181],[.0905,.187],[.088,.192],[.083,.19],[.079,.185],[.079,.165],[0,.165]],48);
+ can.translate(cx,0,0);
+ put(metal,can,(x,y,z,col)=>{
+  const a=Math.atan2(z,x-cx),r=Math.hypot(x-cx,z);
+  col.copy(tin).lerp(grime,.12+.4*Math.max(0,1-y/.05)+.18*noise(Math.round(a*9),Math.round(y*60)));
+  if(y>.18&&r>.083)col.lerp(shine,.45);// the rim catches the light
+  if(Math.abs(a-Math.PI*.8)<.05)col.lerp(grime,.55);// soldered side seam
+  // Grease smeared round the top and where the run has come down.
+  if(y>.15||Math.abs(a-run)<.28&&y>.06)col.lerp(amber,.35*noise(a*7,y*30)+.15);
+ });
+ // Paper label round the waist, torn away over the seam: red with a cream band and inked rules.
+ const gap=.7,label=new THREE.CylinderGeometry(R+.0012,R+.0012,.064,48,4,true,Math.PI/2-Math.PI*.8+gap/2,Math.PI*2-gap);
+ label.translate(cx,.097,0);
+ put(soft,label,(x,y,z,col)=>{
+  col.copy(paper);const band=Math.abs(y-.097);
+  if(band<.012)col.copy(cream);else if(band<.015)col.copy(ink);
+  if(y<.07||y>.124)col.lerp(ink,.35);
+  col.lerp(cream,.12*noise(x*90,y*90));
+ });
+ // Grease: a domed, brimming surface that slumps over the rim on one side and runs down the wall.
+ const dome=new THREE.SphereGeometry(1,32,10,0,Math.PI*2,0,Math.PI/2);dome.scale(.082,.022,.082);dome.translate(cx,.178,0);
+ const glossTone=(x,y,z,col)=>{col.copy(amber).lerp(dark,.35*noise(x*70,z*70));if(y>.19)col.lerp(gloss,Math.min(1,(y-.19)/.01)*.6);};
+ put(soft,dome,glossTone);
+ const lobe=new THREE.SphereGeometry(1,16,10);lobe.scale(.028,.016,.032);lobe.translate(cx+ux*.084,.186,uz*.084);put(soft,lobe,glossTone);
+ const runCurve=new THREE.CatmullRomCurve3([[.088,.19],[.093,.17],[.091,.13],[.0905,.1],[.0905,.075]].map(([r,y])=>new THREE.Vector3(cx+ux*r,y,uz*r)));
+ const drip=new THREE.TubeGeometry(runCurve,20,.0065,8);put(soft,drip,glossTone);
+ const bead=new THREE.SphereGeometry(1,14,10);bead.scale(.0095,.013,.0095);bead.translate(cx+ux*.0905,.07,uz*.0905);put(soft,bead,glossTone);
+ // A dollop that has fallen on the floor beside the can.
+ const puddle=new THREE.SphereGeometry(1,20,6,0,Math.PI*2,0,Math.PI/2);puddle.scale(.034,.007,.026);puddle.translate(cx+ux*.13,0,uz*.13);put(soft,puddle,glossTone);
+ // The prised-off lid, lip up, with grease smeared on its underside.
+ const lx=-.14,lz=.07;
+ const lid=lathe([[0,.002],[.078,.002],[.084,0],[.089,.004],[.09,.012],[.087,.014],[.084,.008],[.079,.006],[0,.006]]);
+ lid.translate(lx,0,lz);
+ put(metal,lid,(x,y,z,col)=>{const r=Math.hypot(x-lx,z-lz);col.copy(tin).lerp(grime,.2*noise(x*50,z*50));
+  if(y>.01)col.lerp(shine,.4);if(r<.08&&y>.005)col.lerp(amber,.3);});
+ const smear=new THREE.SphereGeometry(1,20,6,0,Math.PI*2,0,Math.PI/2);smear.scale(.055,.004,.045);smear.translate(lx+.01,.006,lz-.005);put(soft,smear,glossTone);
+ const merged=(list,m,part)=>{const geo=mergeGeometries(list);list.forEach(q=>q.dispose());const o=mesh(geo,m);o.userData.part=part;return o;};
+ merged(metal,mat(0xffffff,{vertexColors:true,metalness:.6,roughness:.35}),'tin');
+ merged(soft,mat(0xffffff,{vertexColors:true,roughness:.3}),'grease');
+ return g;
 }
 // An old brass skeleton key dropped flat on the floor: a trefoil bow of three linked rings round a
 // boss, a turned collar, a hollow barrel shaft and a stepped, warded bit. One merged mesh; vertex
