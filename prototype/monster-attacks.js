@@ -2,7 +2,8 @@
 // root group and whatever standard parts the creature has, so a model with only a body and
 // legs still shows what it did: a claw rears up and rakes with the forelegs, a bite crouches
 // and snaps, a butt backs off and charges, a sting curls the tail over, a spit or breath
-// rears back and throws the head forward, an engulf swells and surges over the target.
+// rears back and throws the head forward, an engulf swells and surges over the target and
+// gulps it down.
 //
 // monsterAttackPose(type, u, result) gives offsets at normalised time u (0..1). actions.js
 // turns `lunge` into movement along the blow and applies the rest; `twist` adds to the turn
@@ -104,13 +105,20 @@ export function monsterAttackPose(type, u, result = 'hit') {
       p.wing = type === 'breath' ? .6 * W : 0;
       break;
     }
-    case 'engulf':
-      // Swell, then surge over the target's tile, flattening as it spreads.
-      p.scale = 1 + .22 * W + .1 * S;
+    case 'engulf': {
+      // Swell with the maw rearing open, then surge over the target's tile, flattening as it
+      // spreads and snapping shut. A hit is swallowed in two beats: a tight squeeze (tall and
+      // thin) that pushes it down, then a heavy bulge that settles. A miss deflates and shudders.
+      const G1 = bump(clamp01((u - .5) / .22), .4), G2 = bump(clamp01((u - .64) / .26), .35);
+      const M = hit ? 0 : bump(clamp01((u - .52) / .4), .3);
+      p.scale = 1 + .22 * W + .1 * S - .07 * G1 + .06 * G2 - .1 * M;
       p.lunge = S * .34 * whiff;
-      p.stretch = 1 - .12 * S;
-      p.dy = .05 * W;
+      p.stretch = 1 - .12 * S + (hit ? .13 * G1 - .07 * G2 : -.04 * M);
+      p.dy = .05 * W - .03 * G2 - .02 * M;
+      p.head = -.3 * W + .3 * S;
+      p.twist = .06 * jitter(55) * M;
       break;
+    }
     case 'explode':
     case 'boom':
       // Swell and shudder.

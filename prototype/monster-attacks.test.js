@@ -46,6 +46,20 @@ test('each attack type moves differently', () => {
   assert.ok(monsterAttackPose('bite', .45, 'miss').lunge > monsterAttackPose('bite', .45, 'hit').lunge);
 });
 
+test('an engulf opens its maw, then gulps a hit down in a squeeze and a bulge; a miss deflates', () => {
+  const at = (u, r = 'hit') => monsterAttackPose('engulf', u, r);
+  assert.ok(at(.28).head < -.15 && at(.45).head > at(.28).head + .3, 'maw rears open then snaps shut');
+  const hit = [], miss = [];
+  for (let u = .5; u <= 1; u += .005) { hit.push(at(u)); miss.push(at(u, 'miss')); }
+  // Squeeze: taller than rest and smaller than the surge; then a bulge that sits lower.
+  const squeeze = hit.reduce((b, p) => p.stretch > b.stretch ? p : b);
+  assert.ok(squeeze.stretch > 1.02, `squeeze ${squeeze.stretch}`);
+  assert.ok(hit.some(p => p.stretch < .98 && p.dy < -.015), 'heavy bulge settles');
+  assert.ok(Math.min(...miss.map(p => p.scale)) < .97, 'a miss deflates');
+  assert.ok(miss.every(p => p.stretch <= 1 + 1e-9), 'a miss never gulps');
+  assert.ok(miss.some(p => Math.abs(p.twist) > .01), 'a miss shudders');
+});
+
 test('forelegs are the forward legs of four-or-more-legged creatures only', () => {
   const jackal = createCreature({name: 'jackal'});
   const fore = foreLegs(jackal);
