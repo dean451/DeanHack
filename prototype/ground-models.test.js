@@ -855,6 +855,28 @@ test('the flute is a merged boxwood flute lying down, holes up, with a brass key
  model.userData.dispose();assert.equal(disposed,2);
 });
 
+test('the bugle is one swept brass loop with a flared bell, resting tilted, and a braided cord',()=>{
+ const model=createGroundModel({name:'bugle',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['bugle-brass','bugle-cord']);
+ let verts=0;
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+ }
+ assert(verts<16000,`${verts} vertices`);
+ const [brass,cord]=model.children.map(p=>{p.geometry.computeBoundingBox();return p.geometry.boundingBox;});
+ // Both the brass and the cord touch the floor; the bell makes it stand about 10 cm high.
+ assert(Math.abs(brass.min.y)<1e-6&&Math.abs(cord.min.y)<1e-3,`on the floor: ${brass.min.y}, ${cord.min.y}`);
+ assert(brass.max.y>.08&&brass.max.y<.13,`bell height ${brass.max.y}`);
+ assert(brass.max.x-brass.min.x>.35,'full length');
+ // The inside of the bell and the mouthpiece cup are dark.
+ let dark=0;const {color}=model.children[0].geometry.attributes;for(let i=0;i<color.count;i++)if(color.getX(i)<.12)dark++;
+ assert(dark>200,`dark bore ${dark}`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
 test('the saddle is a merged leather saddle on a blanket with irons on the floor',()=>{
  const model=createGroundModel({name:'a saddle',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['saddle-leather','saddle-metal']);
