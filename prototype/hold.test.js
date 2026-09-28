@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {holdShape, holdOf, holdTint, createHold, GRIP_MS, LET_GO_MS, STRANDS, STRAND_BEADS, HOLD_TINT} from './hold.js';
+import {holdShape, holdOf, holdTint, createHold, GRIP_MS, LET_GO_MS, STRANDS, STRAND_BEADS, HOLD_TINT,
+  DRIP_MS, DRIP_SWELL, DRIP_R, DRIP_FLOOR} from './hold.js';
 
 const finite = sh => sh.beads.every(b => Object.values(b).every(Number.isFinite));
 const frame = (x, z, stuck) => ({player: stuck ? {x, z, stuck} : {x, z}, cells: []});
@@ -122,5 +123,48 @@ test('strands lean toward the sticky end glyph colour and ease between tints', (
   hold.clear();
   assert.equal(hold.tint, HOLD_TINT);
   assert.ok(near(hold.color, HOLD_TINT));
+  hold.dispose();
+});
+
+test('glue drops swell under the strands, fall to the floor, and stop when the hold breaks', () => {
+  const h = {dx: 1, dz: 0, holding: false, startAt: 0};
+  // Nothing drips while the strands are still shooting across.
+  assert.equal(holdShape(h, GRIP_MS - 1).drips.length, 0);
+  let fell = false, swelled = false, maxN = 0;
+  for (let t = GRIP_MS; t < GRIP_MS + 3 * DRIP_MS; t += 7) {
+    const sh = holdShape(h, t);
+    maxN = Math.max(maxN, sh.drips.length);
+    assert.ok(sh.drips.length <= STRANDS);
+    for (const d of sh.drips) {
+      assert.ok(Object.values(d).every(Number.isFinite));
+      assert.ok(d.r >= 0 && d.r <= DRIP_R + 1e-9);
+      assert.ok(d.y >= DRIP_FLOOR - 1e-9 && d.y < .4, `drop at y ${d.y}`);
+      // Under the strands, between the two tiles.
+      assert.ok(d.x > .1 && d.x < .8 && Math.abs(d.z) < .15);
+      if (d.y < .05) fell = true;
+      if (d.r > DRIP_R * .9) swelled = true;
+    }
+  }
+  assert.equal(maxN, STRANDS);
+  assert.ok(fell && swelled);
+  // Breaking the hold: swelling drops vanish, a falling one keeps falling.
+  const tBreak = GRIP_MS + DRIP_MS * (DRIP_SWELL + .1);
+  const before = holdShape(h, tBreak).drips;
+  const after = holdShape({...h, endAt: tBreak}, tBreak + 30).drips;
+  assert.ok(after.length >= 1 && after.length < before.length);
+  assert.ok(after.every(d => d.y < .3));
+  // The fall is shorter than the let-go, so that drop lands before the strands are gone.
+  assert.ok(DRIP_MS * (1 - DRIP_SWELL) < LET_GO_MS);
+  const late = holdShape({...h, endAt: tBreak}, tBreak + DRIP_MS * (1 - DRIP_SWELL) * .9);
+  assert.ok(late.drips.length <= 1 && late.drips.every(d => d.y < .06));
+  assert.equal(holdShape({...h, endAt: tBreak}, tBreak + LET_GO_MS), null);
+  // Drawn with the strands, and hidden with them under the coil.
+  const group = new THREE.Group();
+  const hold = createHold(THREE, group);
+  hold.frame(frame(5, 5, {x: 6, z: 5, holding: false}));
+  const r = hold.update((GRIP_MS + DRIP_MS * 2) / 1000, {x: 0, z: 0});
+  assert.equal(r.beads, STRANDS * STRAND_BEADS);
+  assert.ok(r.drips >= 1 && r.drips <= STRANDS);
+  assert.equal(hold.update(.01, {x: 0, z: 0}, {skip: true}).drips, 0);
   hold.dispose();
 });
