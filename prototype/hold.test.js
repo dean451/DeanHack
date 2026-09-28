@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {holdShape, holdOf, holdTint, createHold, GRIP_MS, LET_GO_MS, STRANDS, STRAND_BEADS, HOLD_TINT,
-  DRIP_MS, DRIP_SWELL, DRIP_R, DRIP_FLOOR} from './hold.js';
+  DRIP_MS, DRIP_SWELL, DRIP_R, DRIP_FLOOR, holdSqueeze, poseHeld, SQUEEZE, SQUEEZE_ROLL} from './hold.js';
 
 const finite = sh => sh.beads.every(b => Object.values(b).every(Number.isFinite));
 const frame = (x, z, stuck) => ({player: stuck ? {x, z, stuck} : {x, z}, cells: []});
@@ -166,5 +166,54 @@ test('glue drops swell under the strands, fall to the floor, and stop when the h
   assert.equal(r.beads, STRANDS * STRAND_BEADS);
   assert.ok(r.drips >= 1 && r.drips <= STRANDS);
   assert.equal(hold.update(.01, {x: 0, z: 0}, {skip: true}).drips, 0);
+  hold.dispose();
+});
+
+test('a held hero is squeezed and struggles, then returns to rest; a holding hero is not', () => {
+  assert.equal(holdSqueeze({dx: 1, dz: 0, holding: true, startAt: 0}, 1000), null);
+  const h = {dx: 1, dz: 0, holding: false, startAt: 1000, endAt: 5000};
+  assert.equal(holdSqueeze(h, 999), null);
+  let prev = null, maxStep = 0, minSx = 1, maxRoll = 0, minRoll = 0;
+  for (let t = 1000; t < 5000 + LET_GO_MS + 50; t += 4) {
+    const q = holdSqueeze(h, t);
+    if (t >= 5000 + LET_GO_MS) { assert.equal(q, null); continue; }
+    assert.ok([q.sx, q.sy, q.roll].every(Number.isFinite));
+    assert.ok(q.sx >= 1 - SQUEEZE - 1e-9 && q.sx <= 1 && q.sy >= 1 && q.sy <= 1 + SQUEEZE);
+    assert.ok(Math.abs(q.roll) <= SQUEEZE_ROLL + 1e-9);
+    if (prev) maxStep = Math.max(maxStep, Math.abs(q.sx - prev.sx), Math.abs(q.roll - prev.roll));
+    minSx = Math.min(minSx, q.sx); maxRoll = Math.max(maxRoll, q.roll); minRoll = Math.min(minRoll, q.roll);
+    prev = q;
+  }
+  assert.ok(minSx < 1 - SQUEEZE * .8, `squeezes (${minSx})`);
+  assert.ok(maxRoll > SQUEEZE_ROLL * .8 && minRoll < -SQUEEZE_ROLL * .8, 'rocks both ways');
+  assert.ok(maxStep < .01, `smooth (${maxStep})`);
+  // Nearly at rest just before the strands vanish.
+  const end = holdSqueeze(h, 5000 + LET_GO_MS - 4);
+  assert.ok(Math.abs(end.sx - 1) < .005 && Math.abs(end.roll) < .005);
+});
+
+test('poseHeld stacks with other scale and roll and comes off exactly', () => {
+  const actor = {g: new THREE.Group()};
+  actor.g.scale.set(1.2, .9, 1.2); actor.g.rotation.z = .1;
+  for (const pose of [{sx: .93, sy: 1.03, roll: .05}, {sx: .95, sy: 1.02, roll: -.04}, {sx: NaN, sy: 1, roll: 0}])
+    poseHeld(actor, pose);
+  assert.equal(actor.holdPose, null);
+  poseHeld(actor, {sx: .92, sy: 1.04, roll: .06});
+  assert.ok(Math.abs(actor.g.scale.x - 1.2 * .92) < 1e-9 && Math.abs(actor.g.rotation.z - .16) < 1e-9);
+  poseHeld(actor, null);
+  assert.ok(Math.abs(actor.g.scale.x - 1.2) < 1e-9 && Math.abs(actor.g.scale.y - .9) < 1e-9 && Math.abs(actor.g.rotation.z - .1) < 1e-9);
+  poseHeld({}, {sx: 1, sy: 1, roll: 0});
+});
+
+test('createHold reports a squeeze only while held and not skipped', () => {
+  const parent = new THREE.Group(), hold = createHold(THREE, parent);
+  hold.frame(frame(5, 5, {x: 6, z: 5, holding: false}));
+  let r = hold.update(.5, {x: 0, z: 0});
+  assert.ok(r.squeeze && r.squeeze.sx < 1);
+  assert.equal(hold.update(.01, {x: 0, z: 0}, {skip: true}).squeeze, null);
+  hold.frame(frame(5, 5, {x: 6, z: 5, holding: true}));
+  hold.update(.6, {x: 0, z: 0});
+  r = hold.update(.3, {x: 0, z: 0});
+  assert.equal(r.squeeze, null);
   hold.dispose();
 });
