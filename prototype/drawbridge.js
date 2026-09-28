@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {chainAlong,LINK_STEP} from './iron-ball.js';
 
 // Drawbridges over a moat that runs along x, so the planks run along z.
 // Lowered: five warped oak planks sag a little between the banks, held by three riveted
-// iron straps, with hinge knuckles at the near end and chain rings at the far corners.
+// iron straps, with hinge knuckles on an axle at the near end, an iron-shod leading edge,
+// and the two heavy lifting chains shackled to the far corners and lying slack along the
+// deck edges back toward the gatehouse.
 // Raised: the same planks stand as a wall with a Z-brace on the back, straps and rivets
-// on the front, hinges at the foot and two chains running up toward the gatehouse.
+// on the front, hinges at the foot and the lifting chains pulled taut from the top corners
+// back over the top toward the gatehouse.
 // Weathering is baked into vertex colours: grain streaks and knots along each plank, dark
 // end grain, a pale worn lane down the middle of the deck, damp grime and green slime
 // near the water, rust on the iron and rust stains bleeding into the wood under the straps.
@@ -63,11 +67,25 @@ export function createDrawbridge(raised=false,seed=0){
    put(roughen(place(new THREE.BoxGeometry(.94,.012,.058,12,1,1),0,y,z),.0008),iron);
    for(let i=0;i<5;i++)rivet((i-2)*.185,y+.006,z);
   }
-  // Hinge knuckles at the near bank; chain rings on staples at the far corners.
+  // Hinge knuckles on an axle across the near bank, capped at both ends.
   knuckles(.07,-.47,0,.006,.04);
-  for(const x of [-.46,.46]){
-   put(place(new THREE.BoxGeometry(.03,.012,.05),x,TOP-sag(.44)+.006,.44),iron);
-   put(place(new THREE.TorusGeometry(.035,.009,6,14),x,TOP+.03,.44,0,Math.PI/2,0),iron);
+  put(place(new THREE.CylinderGeometry(.013,.013,.9,10),0,.07,-.47,0,0,Math.PI/2),iron);
+  for(const x of [-.45,.45])put(place(new THREE.CylinderGeometry(.024,.024,.012,10),x,.07,-.47,0,0,Math.PI/2),iron);
+  // The leading edge is shod in iron: a strap over the plank ends and a lip down their faces.
+  put(roughen(place(new THREE.BoxGeometry(.94,.01,.05,12,1,1),0,TOP-sag(.455)+.005,.455),.0008),iron);
+  put(roughen(place(new THREE.BoxGeometry(.94,.056,.008,12,1,1),0,TOP-.028,.494),.0006),iron);
+  for(let i=0;i<5;i++)rivet((i-2)*.185,TOP-sag(.455)+.01,.455);
+  // The lifting chains: shackled to rings on staples at the far corners, then lying slack
+  // along the deck edges back to the hinge, where they rise off toward the gatehouse.
+  const deck=(x,z)=>Math.abs(x)<.48&&Math.abs(z)<.49?TOP-sag(z)+(BANDS.some(b=>Math.abs(z-b)<.035)?.012:0):0;
+  for(const side of [-1,1]){
+   const x=side*.44;
+   put(place(new THREE.BoxGeometry(.03,.012,.05),x,TOP-sag(.42)+.006,.42),iron);
+   put(place(new THREE.TorusGeometry(.03,.009,6,14),x,TOP+.03,.42,0,Math.PI/2,0),iron);
+   const curve=new THREE.CatmullRomCurve3([
+    [x,0,.39],[x-side*.012,0,.3],[x+side*.004,0,.14],[x-side*.018,0,-.04],[x-side*.006,0,-.22],[x+side*.008,0,-.36],[x,.075,-.48]
+   ].map(p=>new THREE.Vector3(...p)),false,'centripetal');
+   for(const geo of chainAlong(curve,Math.floor(curve.getLength()/(LINK_STEP*1.15)),{seed:seed+side*3,size:1.15,ground:deck,detail:[16,4]}))put(geo,iron);
   }
  }else{
   // Wall: planks standing on the hinge line with the straps on the moat-side (+z) face.
@@ -87,13 +105,16 @@ export function createDrawbridge(raised=false,seed=0){
    for(let i=0;i<5;i++)rivet((i-2)*.188,y,Z+.064,Math.PI/2);
   }
   knuckles(.03,Z+.072,Math.PI/2,.04,-.02);
-  // Chains hang from eye plates at the top corners toward the unseen gatehouse.
+  // The lifting chains, pulled taut from eye plates at the top corners over the top of the
+  // bridge and back toward the unseen gatehouse.
   for(const x of [-.4,.4]){
-   put(place(new THREE.BoxGeometry(.05,.06,.012),x,.98,Z+.057),iron);
-   for(let i=0;i<7;i++){
-    const t=i/6,y=.99-i*.046+t*t*.03,z=Z+.09+i*.034;
-    put(place(new THREE.TorusGeometry(.024,.0065,5,12),x,y,z,.6,i%2?Math.PI/2:0,0,1,1.35,1),iron);
-   }
+   put(place(new THREE.BoxGeometry(.06,.08,.014),x,.955,Z+.057),iron);
+   rivet(x-.018,.935,Z+.064,Math.PI/2);rivet(x+.018,.935,Z+.064,Math.PI/2);
+   put(place(new THREE.TorusGeometry(.022,.008,6,14),x,.985,Z+.075,0,Math.PI/2,0),iron);
+   const curve=new THREE.CatmullRomCurve3([
+    [x,1.0,Z+.08],[x,1.045,Z+.02],[x,1.055,Z-.1],[x,1.056,-.3],[x,1.058,-.48]
+   ].map(p=>new THREE.Vector3(...p)),false,'centripetal');
+   for(const geo of chainAlong(curve,Math.floor(curve.getLength()/(LINK_STEP*1.15)),{seed:seed+x*9,size:1.15,detail:[16,4]}))put(geo,iron);
   }
  }
 

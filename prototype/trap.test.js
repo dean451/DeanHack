@@ -92,6 +92,12 @@ test('drawbridges are merged, finite models that stay in their tile and free the
    for(const key of ['position','normal','color'])for(const value of part.geometry.attributes[key]?.array??[])assert(Number.isFinite(value),`${kind} has a bad ${key}`);
   }});
   assert.deepEqual(meshes.map(m=>m.userData.part).sort(),['iron','water','wood']);
+  // The lifting chains run the length of the tile toward the gatehouse (-z): on the deck
+  // edges when lowered, over the top of the wall when raised.
+  const iron=meshes.find(m=>m.userData.part==='iron').geometry.attributes.position;
+  let reach=0;for(let i=0;i<iron.count;i++)if(kind==='bridge-up'?iron.getY(i)>1.03:Math.abs(iron.getX(i))>.4&&iron.getY(i)>.08)reach=Math.min(reach,iron.getZ(i));
+  assert(reach<-.4,`${kind} chains run back to the gatehouse (${reach})`);
+  assert(iron.count<20000,`${kind} iron is ${iron.count} vertices`);
   let freed=0;
   for(const item of [...geometries,...materials])item.addEventListener('dispose',()=>freed++);
   model.userData.dispose();

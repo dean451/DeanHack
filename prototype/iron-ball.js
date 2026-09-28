@@ -5,9 +5,10 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // with rust bleeding down from its lower half, a forged boss and shackle ring on top, and a
 // stub of chain hanging from the ring and trailing across the floor. A loose iron chain is
 // a length of stadium links lying in a lazy S, each link turned a quarter from the last so
-// they interlock, alternately lying flat and standing on edge. Colour is baked into vertex
+// they interlock, alternately lying flat and standing on edge; it's torn from a drawbridge, so
+// one end is a sprung link and the other a ripped-out eye plate. Colour is baked into vertex
 // colours and each model is one merged mesh on one material, resting on y=0.
-const IRON=new THREE.Color(0x45484b),WORN=new THREE.Color(0x6f7274),RUST=new THREE.Color(0x7c4322),SCALE=new THREE.Color(0x4a2c1c);
+const IRON=new THREE.Color(0x45484b),WORN=new THREE.Color(0x6f7274),RUST=new THREE.Color(0x7c4322),SCALE=new THREE.Color(0x4a2c1c),BARE=new THREE.Color(0xc9cdd1);
 
 // Smooth deterministic noise from a position, so seams in a non-indexed mesh still match.
 const noise=(x,y,z)=>(Math.sin(x*23.1+y*7.3)*Math.cos(z*19.7-x*5.1)+Math.sin(y*31.7+z*11.9)*Math.cos(x*27.3+y*3.7)*.6+Math.sin(z*53.1+x*41.3-y*17.9)*.3)/1.9;
@@ -36,20 +37,23 @@ function ironAt(x,y,z,c,{rustBelow=.08,wear=0}={}){
 
 // One stadium link along local x, in the local xy plane.
 const LINK={half:.022,r:.022,tube:.0075};
-function linkTemplate(){
+function linkTemplate(segments=32,radial=5){
  const pts=[],{half,r}=LINK;
  for(let i=0;i<24;i++){
   const a=i/24*Math.PI*2,side=Math.cos(a)>=0?1:-1;
   pts.push(new THREE.Vector3(side*half+r*Math.cos(a),r*Math.sin(a),0));
  }
- return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,true,'centripetal'),32,LINK.tube,5,true);
+ return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,true,'centripetal'),segments,LINK.tube,radial,true);
 }
 
-// Lays links along a curve, alternating flat and on edge, each lifted clear of the floor.
+// Lays links along a curve, alternating flat and on edge, each lifted clear of the ground
+// (y=0, or ground(x, z) for a chain lying on something). `size` scales the links up for heavier
+// chain, and `detail` [tube segments, radial segments] coarsens links seen from afar.
 // Returns placed, painted, non-indexed link geometries.
-function chainAlong(curve,count,{seed=0,rustBelow=.06}={}){
- const template=linkTemplate(),out=[],up=new THREE.Vector3(0,1,0);
- const len=curve.getLength(),step=(LINK.half*2+LINK.r*2-LINK.tube*2)*.92;
+export const LINK_STEP=(LINK.half*2+LINK.r*2-LINK.tube*2)*.92;
+export function chainAlong(curve,count,{seed=0,rustBelow=.06,size=1,ground=()=>0,detail=[32,5]}={}){
+ const template=linkTemplate(...detail).scale(size,size,size),out=[],up=new THREE.Vector3(0,1,0);
+ const len=curve.getLength(),step=LINK_STEP*size;
  for(let i=0;i<count;i++){
   const u=Math.min(1,(i*step)/len),p=curve.getPointAt(u),x=curve.getTangentAt(u).normalize();
   let z=up.clone().sub(x.clone().multiplyScalar(x.dot(up)));
@@ -61,8 +65,8 @@ function chainAlong(curve,count,{seed=0,rustBelow=.06}={}){
   const twist=(noise(i*.37+seed,seed*.13,i*.21)*.25);
   const q=new THREE.Quaternion().setFromAxisAngle(x,twist);y.applyQuaternion(q);z.applyQuaternion(q);
   const m=new THREE.Matrix4().makeBasis(x,y,z);
-  const reach=(LINK.half+LINK.r)*Math.abs(x.y)+LINK.r*Math.abs(y.y)+LINK.tube;
-  m.setPosition(p.x,Math.max(p.y,reach+.001),p.z);
+  const reach=((LINK.half+LINK.r)*Math.abs(x.y)+LINK.r*Math.abs(y.y)+LINK.tube)*size;
+  m.setPosition(p.x,Math.max(p.y,ground(p.x,p.z)+reach+.001),p.z);
   const geo=clean(template.clone().applyMatrix4(m));
   const shade=.9+.2*noise(i*1.3,seed,i*.7);
   paint(geo,(px,py,pz,c)=>{ironAt(px,py,pz,c,{rustBelow,wear:.4+.4*noise(px*9,py*9,pz*9)});c.multiplyScalar(shade);});
@@ -129,10 +133,40 @@ export function createIronBall(){
  return g;
 }
 
+// A loose iron chain is what a destroyed drawbridge throws off (dbridge.c), so it lies like a
+// length torn out of one: a lazy S with one end doubled back, the last link at that end sprung
+// open where it gave way, and the other end still shackled to the eye plate it was ripped out
+// of, a bent iron plate with its bolts sheared off bright.
 export function createIronChain(){
- // A loose length of chain dropped in a lazy S, with one end doubled back.
  const curve=new THREE.CatmullRomCurve3([
-  [-.34,0,-.12],[-.2,0,-.2],[-.04,0,-.14],[.04,0,.02],[.12,0,.14],[.28,0,.16],[.36,0,.05],[.28,0,-.05]
+  [-.28,0,-.13],[-.2,0,-.2],[-.04,0,-.14],[.04,0,.02],[.12,0,.14],[.28,0,.16],[.36,0,.05],[.28,0,-.05]
  ].map(p=>new THREE.Vector3(...p)),false,'centripetal');
- return finish(chainAlong(curve,Math.floor(curve.getLength()/((LINK.half*2+LINK.r*2-LINK.tube*2)*.92))+1,{seed:7}),'Iron chain','iron chain');
+ const count=Math.floor(curve.getLength()/LINK_STEP)+1,parts=chainAlong(curve,count-1,{seed:7});
+ // The sprung link: an open C, bent out of line, lying flat past the last whole link.
+ const end=curve.getPointAt(Math.min(1,(count-1)*LINK_STEP/curve.getLength())),dir=curve.getTangentAt(1),a=Math.atan2(-dir.z,dir.x);
+ const pts=[],{half,r,tube}=LINK;
+ for(let i=0;i<=20;i++){const t=.6+i/20*(Math.PI*2-1.2),side=Math.cos(t)>=0?1:-1;
+  pts.push(new THREE.Vector3(side*half+r*Math.cos(t),0,r*Math.sin(t)+Math.sign(Math.sin(t))*.01*Math.max(0,Math.cos(t))));}
+ const sprung=clean(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,tube,5,false));
+ sprung.rotateY(a+.35);sprung.translate(end.x,tube+.001,end.z);
+ // The broken ends are bright where the iron tore.
+ const tips=[pts[0],pts[20]].map(q=>q.clone().applyAxisAngle(new THREE.Vector3(0,1,0),a+.35).add(new THREE.Vector3(end.x,0,end.z)));
+ paint(sprung,(x,y,z,c)=>{ironAt(x,y,z,c,{rustBelow:.06,wear:.5});const d=Math.min(...tips.map(q=>Math.hypot(x-q.x,z-q.z)));if(d<.011)c.lerp(BARE,.85);});
+ parts.push(sprung);
+ // The eye plate at the other end, bent where it was wrenched off, with a shackle through its eye.
+ const start=curve.getPointAt(0),back=curve.getTangentAt(0).negate(),b=Math.atan2(-back.z,back.x);
+ const bend=x=>Math.max(0,x-.08)**2*2.2;
+ const plate=new THREE.BoxGeometry(.12,.012,.07,8,1,4),pp=plate.attributes.position;
+ plate.translate(.1,.006,0);
+ for(let i=0;i<pp.count;i++)pp.setY(i,pp.getY(i)+bend(pp.getX(i))+(Math.abs(pp.getZ(i))>.03?.002:0));
+ const eye=new THREE.TorusGeometry(.02,.008,6,16);eye.rotateY(Math.PI/2);eye.translate(.04,.029,0);
+ const bolts=[.09,.14].flatMap(x=>[-.02,.02].map(z=>{const h=new THREE.CylinderGeometry(.009,.009,.016,8);h.translate(x,.012+bend(x),z);return h;}));
+ for(const geo of [plate,eye,...bolts]){
+  geo.rotateY(b);geo.translate(start.x,0,start.z);
+  const bolt=bolts.includes(geo),top=bolt?geo.boundingBox??(geo.computeBoundingBox(),geo.boundingBox):null;
+  const g2=clean(geo);
+  paint(g2,(x,y,z,c)=>{ironAt(x,y,z,c,{rustBelow:.05,wear:geo===eye?.6:.2});if(bolt&&y>top.max.y-.002)c.copy(BARE);});
+  parts.push(g2);
+ }
+ return finish(parts,'Iron chain','iron chain');
 }
