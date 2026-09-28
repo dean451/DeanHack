@@ -15,6 +15,7 @@ import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
 import {createWatch,WATCH} from './watch.js';
+import {createSoldier,SOLDIERS} from './soldier.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2331,6 +2332,7 @@ export function createCreature(cell={}){
  if(/mummy$/.test(name))return humanoid('mummy',{skin:mat('#6a5f4a'),cloth:mat('#c9bb98')});
  if(/shopkeeper|merchant/.test(name))return humanoid('shopkeeper');
  if(WATCH.includes(name))return createWatch(name);
+ if(SOLDIERS.includes(name))return createSoldier(name);
  if(/guard|soldier|watchman|watch captain/.test(name))return humanoid('guard');
  if(/unicorn/.test(name))return unicorn();
  if(letter==='D'||/dragon/.test(name))return dragon(dragonLook(name,cell.color));
