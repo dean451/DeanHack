@@ -154,7 +154,7 @@ test('common tools get grounded, finite models that share their unidentified loo
   model.userData.dispose();
   assert.equal(geometries,model.children.length);
  }
- for(const [a,b] of [['tin whistle','magic whistle'],['tooled horn','frost horn'],['wooden harp','magic harp'],['leather drum','drum of earthquake'],['iron hook','grappling hook']])
+ for(const [a,b] of [['tin whistle','magic whistle'],['tooled horn','frost horn'],['wooden harp','magic harp'],['leather drum','drum of earthquake'],['wooden flute','magic flute'],['iron hook','grappling hook']])
   assert.deepEqual(signature(createGroundModel({name:a,class:6})),signature(createGroundModel({name:b,class:6})),`${a} and ${b} look alike`);
  assert.notDeepEqual(signature(createGroundModel({name:'unicorn horn',class:6})),signature(createGroundModel({name:'tooled horn',class:6})));
  assert.equal(createGroundModel({name:'chest',class:3}),null);
@@ -828,6 +828,29 @@ test('the drum is a merged, rope-laced field drum on end with its sticks on the 
  // The head sits below the top of its counterhoop.
  const [wood,hide]=model.children.map(p=>{p.geometry.computeBoundingBox();return p.geometry.boundingBox;});
  assert(hide.max.y<wood.max.y,`head ${hide.max.y} under hoop ${wood.max.y}`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
+test('the flute is a merged boxwood flute lying down, holes up, with a brass key',()=>{
+ const model=createGroundModel({name:'wooden flute',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['flute-wood','flute-brass']);
+ let verts=0;
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+ }
+ assert(verts<25000,`${verts} vertices`);
+ const [wood,brass]=model.children.map(p=>{p.geometry.computeBoundingBox();return p.geometry.boundingBox;});
+ assert(Math.abs(wood.min.y)<1e-6&&wood.max.y<.04,`lies flat: ${wood.min.y}..${wood.max.y}`);
+ assert(wood.max.x-wood.min.x>.4,'full length');
+ // The key sits on the foot joint, above the floor.
+ assert(brass.min.y>.005&&brass.max.x<wood.min.x+.1,'key on the foot joint');
+ // The dark hole pits are on the upper half.
+ const {position,color}=model.children[0].geometry.attributes;let up=0,down=0;
+ for(let i=0;i<position.count;i++)if(color.getX(i)<.1&&Math.abs(position.getX(i))<.2)(position.getY(i)>wood.max.y/2?up++:down++);
+ assert(up>50&&down===0,`holes up ${up}, down ${down}`);
  let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
  model.userData.dispose();assert.equal(disposed,2);
 });

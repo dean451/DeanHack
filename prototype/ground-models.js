@@ -1973,6 +1973,96 @@ function buildDrum({g,materials}){
  g.rotation.y=.5;
 }
 
+// The flute (wooden and magic flutes look alike): a turned boxwood baroque flute in three
+// joints lying on the floor. Ivory ferrules with scored lines ring the joints and cap the
+// head; the embouchure and six finger holes are real sunken pits in the bore, and a brass
+// key on the foot joint covers a seventh hole. One wood mesh and one brass mesh.
+function buildFlute({g,materials}){
+ const C=hex=>new THREE.Color(hex);
+ const woodMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.42});
+ const brassMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.75,roughness:.3});
+ materials.push(woodMat,brassMat);
+ const L=.43;
+ // Outer profile (radius, height) from the open foot end to the capped head; the bore starts it.
+ const bore=[[.0062,.012],[.0062,.0006]];
+ const keys=[[.0104,0],[.0136,.001],[.014,.004],[.014,.009],[.0132,.012],[.0124,.014],[.0128,.024],[.0132,.03],
+  [.0127,.036],[.0122,.05],[.0124,.07],[.0138,.073],[.0146,.077],[.0146,.087],[.0136,.091],[.0118,.094],[.0121,.19],[.0126,.27],
+  [.0138,.276],[.0149,.281],[.0151,.288],[.0146,.294],[.0133,.298],[.013,.305],[.0128,.33],[.0128,.4],[.0134,.405],[.0143,.409],
+  [.0145,.418],[.0138,.423],[.0105,.428],[.005,.4305],[0,L]];
+ const radiusAt=y=>{for(let i=1;i<keys.length;i++){const [r0,y0]=keys[i-1],[r1,y1]=keys[i];if(y>=y0&&y<=y1&&y1>y0)return r0+(r1-r0)*(y-y0)/(y1-y0);}return 0;};
+ // Finger holes on top (angle 0 is +z), the embouchure a little larger and oval, the key hole to one side.
+ const holes=[...[.118,.143,.168,.205,.23,.255].map(y=>({y,a:0,w:.0033,h:.0033})),{y:.362,a:0,w:.0052,h:.0042},{y:.043,a:.55,w:.003,h:.003}];
+ // Sample the profile densely only across the holes.
+ const ys=new Set(keys.map(k=>k[1]));
+ for(let y=.016;y<.4;y+=.004)ys.add(+y.toFixed(4));
+ for(const h of holes)for(let y=h.y-h.h*1.6;y<=h.y+h.h*1.6;y+=.0007)ys.add(+y.toFixed(5));
+ const outer=[...bore,...[...ys].sort((a,b)=>a-b).map(y=>[keys.find(k=>k[1]===y)?.[0]??radiusAt(y),y])].map(([r,y])=>new THREE.Vector2(r,y));
+ // Start the seam at -z, underneath, away from every hole.
+ const lathe=new THREE.LatheGeometry(outer,64,Math.PI);
+ const p=lathe.attributes.position,info=new Float32Array(p.count);
+ for(let i=0;i<p.count;i++){
+  const x=p.getX(i),y=p.getY(i),z=p.getZ(i),r=Math.hypot(x,z);if(r<.0065||y>.425)continue;
+  const a=Math.atan2(x,z);
+  for(const h of holes){
+   const d=Math.hypot(((a-h.a+Math.PI*3)%(Math.PI*2)-Math.PI)*r/h.w,(y-h.y)/h.h);
+   if(d<1.35){
+    // A sunken pit with a softly rounded lip.
+    const dip=d<.8?.0034:d<1?.0034*(1-(d-.8)/.2)**.5:.00025*(1-(d-1)/.35);
+    const s=(r-dip)/r;p.setX(i,x*s);p.setZ(i,z*s);info[i]=Math.max(info[i],d<.85?2:1+(1.35-d)/.5);
+   }
+  }
+ }
+ lathe.computeVertexNormals();lathe.deleteAttribute('uv');
+ // Paint: pale boxwood with fine grain and a darker flame, ivory ferrules with scored lines.
+ const box=C(0xcf9f5c),boxDark=C(0x8e6230),flame=C(0x7a4e24),ivory=C(0xeadfc6),ivoryDark=C(0xb3a483),ink=C(0x120a05),lip=C(0x5a3a1c);
+ const ferrules=[[0,.0125,[.004,.009]],[.072,.092,[.077,.082,.087]],[.275,.299,[.281,.294]],[.404,L,[.409,.418]]];
+ const cols=new Float32Array(p.count*3),c=new THREE.Color();
+ for(let i=0;i<p.count;i++){
+  const x=p.getX(i),y=p.getY(i),z=p.getZ(i),r=Math.hypot(x,z),a=Math.atan2(x,z);
+  const f=ferrules.find(([y0,y1])=>y>=y0&&y<=y1);
+  if(r<.0066)c.copy(ink);
+  else if(f){
+   c.copy(ivory).lerp(ivoryDark,(Math.sin(a*3+y*160)*.5+.5)*.2);
+   for(const s of f[2])if(Math.abs(y-s)<.0006)c.lerp(ivoryDark,.75);
+  }else{
+   const grain=Math.sin(a*38+Math.sin(y*55+a*2)*2.2)*.5+.5,fl=Math.sin(y*70+Math.sin(a*2)*3)*.5+.5;
+   c.copy(box).lerp(boxDark,grain*.18).lerp(flame,Math.max(0,fl-.72)*1.1);
+  }
+  if(info[i]>=2)c.copy(ink);else if(info[i]>1)c.lerp(lip,(info[i]-1)*.8);
+  cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+ }
+ lathe.setAttribute('color',new THREE.BufferAttribute(cols,3));
+ // The brass key: a round pad over the side hole, a thin lever pivoting in a turned saddle,
+ // and a flat touch at the joint. Built lying on +z, then turned to the hole's angle.
+ const brassC=C(0xc9a04a),brassHi=C(0xf2d88c),brassDark=C(0x6e5220),parts=[];
+ const put=(geo,shade=1)=>{
+  if(geo.index===null)geo.setIndex([...Array(geo.attributes.position.count).keys()]);
+  geo.deleteAttribute('uv');const n=geo.attributes.normal,cs=new Float32Array(n.count*3);
+  for(let i=0;i<n.count;i++){c.copy(brassC).lerp(brassHi,Math.max(0,n.getZ(i))*.45).lerp(brassDark,Math.max(0,-n.getZ(i))*.4).multiplyScalar(shade);cs[i*3]=c.r;cs[i*3+1]=c.g;cs[i*3+2]=c.b;}
+  geo.setAttribute('color',new THREE.BufferAttribute(cs,3));parts.push(geo);return geo;
+ };
+ const at=y=>radiusAt(y);
+ const pad=put(new THREE.CylinderGeometry(.0048,.0048,.0014,20));pad.rotateX(Math.PI/2);pad.translate(0,.043,at(.043)+.0009);
+ put(new THREE.TorusGeometry(.0048,.0006,5,20)).translate(0,.043,at(.043)+.0012);
+ const lever=put(new RoundedBoxGeometry(.0032,.03,.0013,1,.0005));lever.rotateX(-.08);lever.translate(0,.0585,at(.058)+.0034);
+ put(new RoundedBoxGeometry(.0026,.006,.003,1,.0008)).translate(0,.045,at(.045)+.0023);
+ const touch=put(new THREE.CylinderGeometry(.0042,.0042,.0012,16));touch.rotateX(Math.PI/2);touch.scale(1,1.35,1);touch.translate(0,.0715,at(.0715)+.0045);
+ // The saddle: two turned blocks with an axle between them.
+ for(const s of [-1,1])put(new THREE.CylinderGeometry(.0017,.0021,.004,10),.85).rotateX(Math.PI/2).translate(s*.0035,.058,at(.058)+.002);
+ put(new THREE.CylinderGeometry(.0007,.0007,.0086,6),.9).rotateZ(Math.PI/2).translate(0,.058,at(.058)+.0033);
+ const brass=mergeGeometries(parts);parts.forEach(q=>q.dispose());brass.rotateY(holes[holes.length-1].a);
+ // Roll it a little about its own axis so the holes face up and slightly toward the viewer,
+ // then lay it along x with the holes (+z) turned up.
+ const lay=new THREE.Matrix4().makeBasis(new THREE.Vector3(0,0,1),new THREE.Vector3(1,0,0),new THREE.Vector3(0,1,0)).multiply(new THREE.Matrix4().makeRotationY(.25));
+ for(const geo of [lathe,brass])geo.applyMatrix4(lay);
+ for(const [geo,material,part] of [[lathe,woodMat,'flute-wood'],[brass,brassMat,'flute-brass']]){
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=part;g.add(mesh);
+ }
+ const b=new THREE.Box3();g.children.forEach(q=>{q.geometry.computeBoundingBox();b.union(q.geometry.boundingBox);});
+ const mid=b.getCenter(new THREE.Vector3());g.children.forEach(q=>q.geometry.translate(-mid.x,-b.min.y,-mid.z));
+ g.rotation.y=.3;
+}
+
 // The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
 // door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
 // keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
@@ -2928,10 +3018,7 @@ export function createGroundModel(item={}){
    flat(new THREE.TorusGeometry(.06,.006,6,24),brass,.18,.066,-.02).rotation.set(0,Math.PI/2,0);
    lie(.009,.016,.05,brass,.03,.012,.08);
   }else if(kind==='flute'){
-   lie(.017,.017,.42,wood,0,.017,0,.3);
-   for(let i=0;i<6;i++){const s=-.1+i*.04;add(new THREE.CylinderGeometry(.006,.006,.004,8),dark,s*Math.cos(.3),.034,-s*Math.sin(.3));}
-   for(const s of [-.2,.2,.13])add(new THREE.CylinderGeometry(.019,.019,.016,12),brass,s*Math.cos(.3),.017,-s*Math.sin(.3)).rotation.set(0,.3,Math.PI/2);
-   add(new THREE.CylinderGeometry(.006,.006,.004,8),dark,-.16*Math.cos(.3),.034,.16*Math.sin(.3)).scale.x=1.8;
+   buildFlute({g,materials});
   }else if(kind==='harp'){
    // A small upright frame harp: slanted soundbox, curved neck, pillar and strings.
    const lean=.3,along=v(Math.sin(lean),Math.cos(lean),0),face=v(Math.cos(lean),-Math.sin(lean),0);
