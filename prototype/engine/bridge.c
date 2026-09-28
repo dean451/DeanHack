@@ -212,6 +212,13 @@ static void frame(void) {
         printf("{\"name\":");quoted(xname(uarmh));
         printf(",\"otyp\":%d}",uarmh->otyp);
     } else printf("null");
+    /* Swallowed: the map is cleared down to the 3x3 swallow border, so say who holds us.
+       No name while blind ("It engulfs you!") or hallucinating. */
+    if (u.uswallow && u.ustuck) {
+        printf(",\"engulfer\":{\"name\":");
+        if (Blind || Hallucination) printf("null"); else quoted(u.ustuck->data->mname);
+        putchar('}');
+    }
     printf("},\"ground\":[");
     {
         struct obj *ground;
