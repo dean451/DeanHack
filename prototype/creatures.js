@@ -8,6 +8,7 @@ import {createHomunculus,pieces,rgb,mix} from './homunculus.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
+import {createMold} from './mold.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 
@@ -2325,7 +2326,7 @@ export function createCreature(cell={}){
  if(SPHERE_KINDS.includes(name)){const {g,body,core}=createSphereCreature(name);return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});}
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
  if(name==='lichen')return fungus({form:'lichen',color:'#8fbf5a'});
- if(/mold$/.test(name))return fungus({form:'mound',color:color||{yellow:'#d6b43c',green:'#5fa044',brown:'#8a6440',red:'#b8402e'}[name.split(' ')[0]]||'#8a8a60'});
+ if(/ mold$/.test(name))return createMold(name,color);
  if(name==='shrieker'||name==='violet fungus')return fungus({form:'mushroom',color:name==='shrieker'?'#8f5aa8':'#b05ac0',tendrils:name==='violet fungus'});
  if(name==='cave spider'||name==='giant spider')return spider({color:name==='cave spider'?'#7a7a74':'#4a2a5a',scale:name==='cave spider'?.65:1.5});
  if(name==='gelatinous cube')return cube({color:color||'#8ad0c0'});
