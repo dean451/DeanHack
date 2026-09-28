@@ -6,6 +6,11 @@
 //
 // Parts are the standard handles: g (root group), body, head, legs[], tail, arm, wrist,
 // weaponSocket. Anything missing is skipped. Durations are in seconds.
+//
+// A weapon attack by an actor with the hero's arm rig (an `elbow`) plays swing.js's arc for
+// its blow type instead of the generic arm wave, with its hitstop and longer length.
+
+import {swingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9};
 // Wait no longer than this for a death to play before the map (and its corpse) goes on.
@@ -51,6 +56,11 @@ export function enqueueAction(q, action) {
 }
 
 // Backlogged queues play faster so the actor catches up with the game instead of lagging.
+// Whether this actor plays the full swing for this action.
+const swings = (actor, a) => a.kind === 'attack' && a.attack === 'weapon' && !!actor?.elbow;
+// Seconds an action lasts (a swing is only known to be one once it starts).
+const actionLength = a => a.swing ? swingLength(a.result) : ACTION_TIME[a.kind];
+
 const pace = q => Math.min(3, 1 + .5 * Math.max(0, q.queue.length - 1));
 
 // Current state name: the playing action's kind, or 'idle'.
@@ -61,7 +71,7 @@ export function actionState(q) {
 // Seconds of queued and playing actions left, at the current pace.
 export function remainingTime(q) {
   if (!q) return 0;
-  let s = q.current ? Math.max(0, ACTION_TIME[q.current.kind] - q.age) : 0;
+  let s = q.current ? Math.max(0, actionLength(q.current) - q.age) : 0;
   for (const a of q.queue) s += ACTION_TIME[a.kind];
   return s / pace(q);
 }
@@ -136,6 +146,7 @@ export function clearActionPose(actor, q) {
   if (actor.weaponSocket) actor.weaponSocket.rotation.z -= o.socket;
   if (actor.legs?.[0]) actor.legs[0].rotation.x -= o.leg;
   if (actor.tail) actor.tail.rotation.x -= o.tail;
+  if (o.swing) clearSwing(actor, o.swing);
   q.applied = null;
 }
 
@@ -153,6 +164,7 @@ function applyPose(actor, q, p) {
   if (actor.weaponSocket) actor.weaponSocket.rotation.z += p.socket;
   if (actor.legs?.[0]) actor.legs[0].rotation.x += p.leg;
   if (actor.tail) actor.tail.rotation.x += p.tail;
+  if (p.swing) applySwing(actor, p.swing);
   q.applied = p;
 }
 
@@ -161,14 +173,31 @@ function applyPose(actor, q, p) {
 // the state name. A finished death stays in its last pose; q.finished is set then.
 export function updateActions(actor, q, dt) {
   if (!actor?.g || !q) return 'idle';
-  if (!q.current && q.queue.length) { q.current = q.queue.shift(); q.age = 0; q.face = null; }
+  if (!q.current && q.queue.length) {
+    q.current = q.queue.shift(); q.age = 0; q.face = null;
+    if (swings(actor, q.current)) q.current.swing = true;
+  }
   const a = q.current;
+  q.swing = null;
   if (!a) return 'idle';
+  const before = q.age;
   q.age += Math.max(0, dt) * pace(q);
-  const len = ACTION_TIME[a.kind], u = clamp01(q.age / len);
+  const len = actionLength(a);
+  // A swing runs on its own clock (with the hitstop); the body lunge follows the blade.
+  const u = a.swing ? swingPhase(Math.min(q.age, len), a.blow, a.result) : clamp01(q.age / len);
   // Heading toward the target is measured once, from the rest pose, when the action starts.
   if (q.face === null) q.face = a.kind === 'attack' && a.dir ? turn(actor.g.rotation.y, Math.atan2(a.dir[0], a.dir[1])) : 0;
-  applyPose(actor, q, actionPose(a, u, q.face));
+  const pose = actionPose(a, u, q.face);
+  if (a.swing) {
+    pose.arm = pose.wrist = pose.socket = 0;
+    pose.swing = swingPose(a.blow, u, a.result);
+    // What the renderer needs for the trail and the impact burst. `contact` is true on the one
+    // frame the blade reaches a target it hits.
+    const tc = CONTACT_U[blowOf(a.blow)] * SWING_TIME;
+    q.swing = {blow: blowOf(a.blow), u, trail: swingTrailOn(a.blow, u), dir: a.dir,
+      contact: a.result === 'hit' && before < tc && q.age >= tc};
+  }
+  applyPose(actor, q, pose);
   if (q.age >= len) {
     if (a.kind === 'die') { q.finished = true; return 'die'; }
     // Leave the attacker facing where it struck.
