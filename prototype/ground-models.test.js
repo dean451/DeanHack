@@ -622,3 +622,23 @@ test('the magic marker is one merged pen-and-cap mesh, dry at zero charges',()=>
  model.userData.dispose();assert.equal(geometries,1);assert.equal(materials,1);
  dry.userData.dispose();
 });
+
+test('the heavy iron ball and the iron chain are single merged iron meshes on the floor',()=>{
+ for(const [item,part,minTop,maxTop] of [[{name:'heavy iron ball',class:15},'iron ball',.33,.42],[{name:'cursed iron chain',class:16},'iron chain',.02,.07]]){
+  const model=createGroundModel(item);
+  assert(model,item.name);assert.equal(model.children.length,1);
+  const [mesh]=model.children,geo=mesh.geometry;
+  assert.equal(mesh.userData.part,part);assert(mesh.material.vertexColors);
+  for(const k of ['position','normal','color'])for(const v of geo.attributes[k].array)assert(Number.isFinite(v),`${item.name} ${k}`);
+  for(const v of geo.attributes.color.array)assert(v>=0&&v<=1);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<.002,`${item.name} rests on the floor (${bounds.min.y})`);
+  assert(bounds.max.y>minTop&&bounds.max.y<maxTop,`${item.name} height ${bounds.max.y}`);
+  assert(bounds.max.x<.49&&bounds.min.x>-.49&&bounds.max.z<.49&&bounds.min.z>-.49,`${item.name} inside its tile`);
+  assert(bounds.max.x-bounds.min.x>.4||bounds.max.z-bounds.min.z>.4,`${item.name} spreads across the tile`);
+  let geometries=0,materials=0;geo.addEventListener('dispose',()=>geometries++);mesh.material.addEventListener('dispose',()=>materials++);
+  model.userData.dispose();assert.equal(geometries,1);assert.equal(materials,1);
+ }
+ // Found by name alone too, as the Live feed may send it.
+ assert.equal(createGroundModel({name:'heavy iron ball'}).children[0].userData.part,'iron ball');
+});
