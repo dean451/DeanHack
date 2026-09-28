@@ -1545,6 +1545,90 @@ function buildStethoscope({g,materials}){
  g.rotation.y=-.3;
 }
 
+// The tin opener, dropped on its side: a turned beech handle with a brass ferrule and rivet,
+// a flat forged shank ending in a hooked piercing beak with filed bright edges and a spur that
+// levers on the can's rim, and a leather thong looped through an eye in the butt. The knife
+// tilts so the ferrule end and the beak both touch the floor; the thong lies flat. Painted
+// per vertex and merged into two meshes (wood and leather; steel and brass).
+function buildTinOpener({g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const woodMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.72});
+ const steelMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.8,roughness:.36});
+ materials.push(woodMat,steelMat);
+ const lists={wood:[],steel:[]},c=new THREE.Color();
+ const tilt=new THREE.Matrix4().makeRotationZ(-.127);
+ // Paint in the knife's own frame, then tilt it (the thong is placed already tilted).
+ const put=(geo,paint,which='steel',tilted=true)=>{
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  out.deleteAttribute('uv');
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i));
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  if(tilted)out.applyMatrix4(tilt);
+  lists[which].push(out);
+ };
+ const beech=C(0x9a6a3e),grain=C(0x5a3719),worn=C(0xc9a26e),grime=C(0x35220f);
+ // Beech: grain lines running along the handle, polished pale where the palm rests, grimy ends.
+ const wood=(col,x,y,z,nx,ny)=>{
+  const k=Math.sin(Math.atan2(z,y)*5+x*55+Math.sin(x*140)*.8);
+  col.copy(beech).lerp(grain,Math.max(0,k)*.45);
+  col.lerp(worn,Math.max(0,ny)*Math.exp(-(((x+.065)/.025)**2))*.45);
+  col.lerp(grime,Math.max(0,1-Math.min(x+.112,-.012-x)/.01)*.35);
+ };
+ const blued=C(0x3f474d),grey=C(0x6f7a80),bright=C(0xd6dce0),ground=C(0x9ba5ab),rust=C(0x7a4424),ink=C(0x1c2024);
+ // Blued forged steel: filed bright on every bevel, ground paler at the beak, a stamped
+ // maker's mark on the shank and a few rust freckles.
+ const steel=(col,x,y,z,nx,ny)=>{
+  col.copy(blued).lerp(grey,Math.max(0,ny)*.45);
+  if(x>.06)col.lerp(ground,Math.min(1,(x-.06)/.015)*.55);
+  if(Math.abs(ny)<.7)col.lerp(bright,.7);
+  else if(x>.004&&x<.024&&Math.abs(z)<.003)col.lerp(ink,Math.sin(x*1900)>0?.6:.25);
+  const r=Math.sin(x*431+z*977)*Math.sin(x*1213-z*611+y*300);
+  if(r>.72&&Math.abs(ny)>.7)col.lerp(rust,(r-.72)*2.5);
+ };
+ const brassBase=C(0xb88a3e),brassHi=C(0xe6c77a),brassLo=C(0x5a4018);
+ const brass=(col,x,y,z,nx,ny)=>col.copy(brassBase).lerp(brassHi,Math.max(0,ny)*.55).lerp(brassLo,Math.max(0,-ny)*.5);
+ const hide=C(0x6a3e22),hideDark=C(0x2e1a0e),hideHi=C(0x9a6440);
+ const leather=(col,x,y,z,nx,ny)=>col.copy(hide).lerp(hideDark,Math.max(0,-ny)*.6).lerp(hideHi,Math.max(0,ny-.6)*1.2);
+ // The handle, turned along -x from the ferrule: a swelling belly, a bead near the butt and a domed end.
+ const profile=[[0,0],[.0105,0],[.0118,.004],[.0135,.012],[.0152,.03],[.0156,.05],[.015,.066],[.0136,.08],[.0146,.086],[.0134,.092],[.0098,.098],[0,.1]];
+ const handle=new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),28);
+ handle.rotateZ(Math.PI/2);handle.translate(-.012,0,0);put(handle,wood,'wood');
+ // The ferrule (slimmer than the belly, so it rides clear of the floor) with rolled edges, a rivet head and a washer where the shank leaves.
+ const ferrule=new THREE.CylinderGeometry(.0138,.0138,.014,28);ferrule.rotateZ(Math.PI/2);ferrule.translate(-.019,0,0);put(ferrule,brass);
+ for(const x of [-.0258,-.0122]){const bead=new THREE.TorusGeometry(.0138,.0012,6,28);bead.rotateY(Math.PI/2);bead.translate(x,0,0);put(bead,brass);}
+ const head=new THREE.SphereGeometry(.0028,10,6,0,Math.PI*2,0,Math.PI/2);head.translate(-.019,.0136,0);put(head,brass);
+ const washer=new THREE.CylinderGeometry(.0105,.0085,.004,20);washer.rotateZ(Math.PI/2);washer.translate(-.0102,0,0);put(washer,steel);
+ // The shank and beak: one flat forging, its outline in (x, z), extruded through its thickness.
+ const outline=[[-.02,.0066],[0,.0062],[.03,.0056],[.06,.0052],[.074,.0045],[.082,.0015],[.0875,-.0045],[.0905,-.0125],[.0905,-.021],
+  [.0875,-.0295],[.082,-.037],[.0775,-.042],[.0772,-.036],[.0775,-.029],[.0765,-.022],[.073,-.0155],[.067,-.0105],[.06,-.0075],[.05,-.0058],
+  [.036,-.0056],[.032,-.013],[.027,-.0148],[.028,-.0095],[.025,-.0058],[0,-.0062],[-.02,-.0066]];
+ const T=.0032,blade=new THREE.ExtrudeGeometry(new THREE.Shape(outline.map(([x,z])=>new THREE.Vector2(x,z))),
+  {depth:T,bevelEnabled:true,bevelThickness:.0005,bevelSize:.0005,bevelSegments:1,curveSegments:4});
+ blade.rotateX(Math.PI/2);blade.translate(0,T/2,0);put(blade,steel);
+ // A screw eye in the butt for the thong.
+ const eye=new THREE.TorusGeometry(.0045,.0012,6,16);eye.translate(-.1165,0,0);put(eye,steel);
+ const screw=new THREE.CylinderGeometry(.0011,.0011,.008,6);screw.rotateZ(Math.PI/2);screw.translate(-.109,0,0);put(screw,steel);
+ // Where the tilted knife meets the floor, and where the eye ended up.
+ const low=Math.min(...Object.values(lists).flat().map(geo=>{geo.computeBoundingBox();return geo.boundingBox.min.y;}));
+ const P=v(-.1165,-.0045,0).applyMatrix4(tilt),f=low+.0022;
+ const thong=new THREE.CatmullRomCurve3([P,v(P.x-.012,f+.004,P.z+.01),v(P.x-.034,f,P.z+.022),v(P.x-.052,f,P.z+.004),
+  v(P.x-.04,f,P.z-.018),v(P.x-.016,f+.003,P.z-.012)],true);
+ put(new THREE.TubeGeometry(thong,64,.0022,6,true),leather,'wood',false);
+ const knot=new THREE.SphereGeometry(.0042,10,8);knot.scale(1.3,.8,1);knot.translate(P.x-.013,f+.0035,P.z-.001);put(knot,leather,'wood',false);
+ for(const [which,material] of [['wood',woodMat],['steel',steelMat]]){
+  const list=lists[which];
+  const geo=mergeGeometries(list);list.forEach(p=>p.dispose());
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=`tin-opener-${which}`;g.add(mesh);
+ }
+ const box=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();box.union(p.geometry.boundingBox);});
+ const mid=box.getCenter(v(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-box.min.y,-mid.z));
+ g.rotation.y=.45;
+}
+
 // The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
 // door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
 // keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
@@ -2539,10 +2623,7 @@ export function createGroundModel(item={}){
   }else if(kind==='stethoscope'){
    buildStethoscope({g,materials});
   }else if(kind==='tin opener'){
-   const steel=metal;
-   box(.14,.012,.028,wood,-.03,.006);
-   box(.06,.006,.02,steel,.06,.006);
-   const hook=add(new THREE.TorusGeometry(.018,.005,6,12,Math.PI*1.3),steel,.1,.018,0);hook.rotation.y=Math.PI/2;
+   buildTinOpener({g,materials});
   }else if(kind==='leash'){
    // A coiled lead with a brass snap hook and a hand loop.
    const rope=mat(0x7a4a2a);
