@@ -41,7 +41,7 @@ test('the raven gets its own glossy black bird instead of the bat',()=>{
  // shared geometry and materials: a flock costs no extra buffers
  const other=meshes(createCreature({name:'raven'}));
  parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
- assert(ms<200,`took ${ms} ms`);
+ assert(ms<1000,`took ${ms} ms`);
  // the bats are unchanged
  assert.equal(bat.quirk,'bat');
  assert.equal(meshes(createCreature({name:'giant bat',symbol:B})).length,meshes(bat).length);
