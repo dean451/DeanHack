@@ -10,6 +10,7 @@
 // A weapon attack by an actor with the hero's arm rig (an `elbow`) plays swing.js's arc for
 // its blow type instead of the generic arm wave, with its hitstop and longer length.
 
+import {monsterAttackPose, foreLegs, wingSide} from './monster-attacks.js';
 import {swingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9};
@@ -37,7 +38,8 @@ export function actionsForCombat(c) {
   if (!c) return {attacker: null, defender: null};
   const dir = unitDir(c.dir);
   const attacker = c.attacker?.you || c.attacker?.seen
-    ? {kind: 'attack', attack: c.attack || 'other', blow: c.blow ?? null, result: c.result, dir} : null;
+    ? {kind: 'attack', attack: c.attack || 'other', blow: c.blow ?? null, result: c.result, dir,
+      target: c.defender?.seen ? c.defender.name ?? null : null} : null;
   const defender = c.result === 'hit' && (c.defender?.you || c.defender?.seen)
     ? {kind: 'hit', dir} : null;
   return {attacker, defender};
@@ -90,26 +92,14 @@ export function holdBackMs(queues) {
 // are world units (one tile = 1). `yaw` is the heading to face the target, if there is one.
 export function actionPose(action, u, face) {
   const p = {dx: 0, dy: 0, dz: 0, yaw: 0, pitch: 0, roll: 0, body: 0, head: 0, arm: 0, wrist: 0,
-    socket: 0, leg: 0, tail: 0, scale: 1};
+    socket: 0, leg: 0, fore: 0, tail: 0, wing: 0, scale: 1, stretch: 1};
   const d = action.dir;
   if (action.kind === 'attack') {
-    const type = action.attack;
-    // Windup, strike, recover: lean back, then lunge through the target's side of the tile.
-    const back = bump(clamp01(u / .4), .7), strike = bump(clamp01((u - .18) / .66), .4);
-    const reach = type === 'butt' ? .3 : type === 'bite' ? .24 : type === 'touch' || type === 'engulf' ? .12 : .18;
-    const whiff = action.result === 'hit' ? 1 : 1.2;
-    const lunge = strike * reach * whiff - back * .06;
-    if (d) { p.dx = d[0] * lunge; p.dz = d[1] * lunge; }
-    p.yaw = face ? face * smooth(u / .2) : 0;
-    p.pitch = (strike * (type === 'butt' || type === 'bite' ? .28 : .14) - back * .1);
-    p.body = strike * .03;
-    p.head = type === 'bite' ? strike * .45 - back * .2 : type === 'butt' ? strike * .35 : 0;
-    p.arm = type === 'weapon' || type === 'claw' ? -1.9 * bump(u, .45) : type === 'touch' ? -1.1 * strike : 0;
-    p.wrist = type === 'weapon' ? .34 * bump(u, .45) : 0;
-    p.socket = type === 'weapon' ? -1.18 * bump(u, .45) : 0;
-    p.roll = type === 'claw' ? .16 * (strike - back) : 0;
-    p.leg = type === 'kick' ? -1.1 * strike : 0;
-    p.tail = type === 'sting' ? 1.3 * strike - .5 * back : 0;
+    // Per attack type (monster-attacks.js); the hero's own swing replaces its arm parts later.
+    const m = monsterAttackPose(action.attack, u, action.result);
+    if (d) { p.dx = d[0] * m.lunge; p.dz = d[1] * m.lunge; }
+    p.yaw = (face ? face * smooth(u / .2) : 0) + m.twist;
+    for (const k of ['dy', 'pitch', 'roll', 'body', 'head', 'arm', 'wrist', 'socket', 'leg', 'fore', 'tail', 'wing', 'scale', 'stretch']) p[k] = m[k];
   } else if (action.kind === 'hit') {
     // Knocked back along the blow, snapping in fast and settling out.
     const k = u < .15 ? smooth(u / .15) : 1 - smooth((u - .15) / .85);
@@ -139,6 +129,7 @@ export function clearActionPose(actor, q) {
   g.position.x -= o.dx; g.position.y -= o.dy; g.position.z -= o.dz;
   g.rotation.y -= o.yaw; g.rotation.x -= o.pitch; g.rotation.z -= o.roll;
   if (o.scale !== 1) g.scale.multiplyScalar(1 / o.scale);
+  if (o.stretch !== 1) { const w = Math.sqrt(o.stretch); g.scale.y /= o.stretch; g.scale.x *= w; g.scale.z *= w; }
   if (actor.body) actor.body.position.y -= o.body;
   if (actor.head) actor.head.rotation.x -= o.head;
   if (actor.arm) actor.arm.rotation.x -= o.arm;
@@ -146,6 +137,8 @@ export function clearActionPose(actor, q) {
   if (actor.weaponSocket) actor.weaponSocket.rotation.z -= o.socket;
   if (actor.legs?.[0]) actor.legs[0].rotation.x -= o.leg;
   if (actor.tail) actor.tail.rotation.x -= o.tail;
+  if (o.fore) for (const l of foreLegs(actor)) l.rotation.x -= o.fore;
+  if (o.wing) actor.wings?.forEach((w, i) => { w.rotation.z -= wingSide(w, i) * o.wing; });
   if (o.swing) clearSwing(actor, o.swing);
   q.applied = null;
 }
@@ -157,6 +150,7 @@ function applyPose(actor, q, p) {
   g.position.x += p.dx; g.position.y += p.dy; g.position.z += p.dz;
   g.rotation.y += p.yaw; g.rotation.x += p.pitch; g.rotation.z += p.roll;
   if (p.scale !== 1) g.scale.multiplyScalar(p.scale);
+  if (p.stretch !== 1) { const w = Math.sqrt(p.stretch); g.scale.y *= p.stretch; g.scale.x /= w; g.scale.z /= w; }
   if (actor.body) actor.body.position.y += p.body;
   if (actor.head) actor.head.rotation.x += p.head;
   if (actor.arm) actor.arm.rotation.x += p.arm;
@@ -164,6 +158,8 @@ function applyPose(actor, q, p) {
   if (actor.weaponSocket) actor.weaponSocket.rotation.z += p.socket;
   if (actor.legs?.[0]) actor.legs[0].rotation.x += p.leg;
   if (actor.tail) actor.tail.rotation.x += p.tail;
+  if (p.fore) for (const l of foreLegs(actor)) l.rotation.x += p.fore;
+  if (p.wing) actor.wings?.forEach((w, i) => { w.rotation.z += wingSide(w, i) * p.wing; });
   if (p.swing) applySwing(actor, p.swing);
   q.applied = p;
 }
@@ -194,7 +190,7 @@ export function updateActions(actor, q, dt) {
     // What the renderer needs for the trail and the impact burst. `contact` is true on the one
     // frame the blade reaches a target it hits.
     const tc = CONTACT_U[blowOf(a.blow)] * SWING_TIME;
-    q.swing = {blow: blowOf(a.blow), u, trail: swingTrailOn(a.blow, u), dir: a.dir,
+    q.swing = {blow: blowOf(a.blow), u, trail: swingTrailOn(a.blow, u), dir: a.dir, target: a.target ?? null,
       contact: a.result === 'hit' && before < tc && q.age >= tc};
   }
   applyPose(actor, q, pose);

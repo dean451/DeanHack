@@ -46,7 +46,8 @@ export function createSwingFx(THREE, parent) {
       // Without a direction, strike where the hero faces.
       const dx = len ? d[0] / len : Math.sin(hero.g.rotation.y), dz = len ? d[1] / len : Math.cos(hero.g.rotation.y);
       at.set(hero.g.position.x + dx * .62, .62, hero.g.position.z + dz * .62);
-      burst.burst(at, [dx, dz], impactKind(targetName), s.blow);
+      // The action's own defender, else the caller's last-known one (text-fallback swings).
+      burst.burst(at, [dx, dz], impactKind(s.target ?? targetName), s.blow);
     }
     trail.update(dt);
     burst.update(dt);
