@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {createDrawbridge} from './drawbridge.js';
 import {createBog} from './bog.js';
+import {createIceWall} from './ice-wall.js';
 
 // Non-trap `feature` cells (ice, bog, drawbridges, ice walls, clouds, open air). The bridge
 // sends them as generic features, so the kind comes from the map symbol and its
@@ -49,14 +50,10 @@ export function createTerrainFeature(kind,seed=0){
   g.userData.dispose=()=>bridge.userData.dispose();
   return g;
  }else if(kind==='ice-wall'||kind==='crystal-wall'){
-  // A faceted block of ice filling the tile, with a frosted core showing through.
-  const crystal=kind==='crystal-wall';
-  const shell=mat({color:crystal?0xf4fbff:0x9fdcf0,roughness:crystal?.03:.12,metalness:.05,clearcoat:1,transparent:true,opacity:crystal?.55:.72},THREE.MeshPhysicalMaterial);
-  const core=mat({color:crystal?0xffffff:0xd6f1fb,roughness:.8,transparent:true,opacity:.6});
-  add(new THREE.CylinderGeometry(.18,.24,.62,6),core,0,.34,0).castShadow=false;
-  const body=add(new THREE.IcosahedronGeometry(.5,1),shell,0,.44,0);body.scale.set(.94,.9,.94);
-  for(let i=0;i<5;i++){const a=rand(i)*Math.PI*2,h=.18+rand(i+10)*.22,r=.36+rand(i+20)*.06;
-   const shard=add(new THREE.ConeGeometry(.06,h,5),shell,Math.cos(a)*r,h/2,Math.sin(a)*r);shard.rotation.set((rand(i+30)-.5)*.5,0,(rand(i+40)-.5)*.5);}
+  // Ice and crystal walls are merged, weathered models of their own (ice-wall.js).
+  const wall=createIceWall(kind==='crystal-wall',seed);g.add(wall);
+  g.userData.dispose=()=>wall.userData.dispose();
+  return g;
  }else if(kind==='cloud'){
   // A drifting puff of grey vapour; it neither casts nor blocks shadows.
   const vapour=mat({color:0xb9bec4,roughness:1,transparent:true,opacity:.55,depthWrite:false});
