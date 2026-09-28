@@ -417,6 +417,28 @@ test('shriekers and violet fungi are their own merged mushrooms instead of the p
  vf[1].geometry.computeBoundingBox();const tb=vf[1].geometry.boundingBox;
  assert(Math.max(-tb.min.x,tb.max.x,-tb.min.z,tb.max.z)>.38,'tendrils reach out');
  assert(tb.min.y<.02,'tendrils touch the floor');
- // lichens keep the old crust
- assert.equal(createCreature({name:'lichen',symbol:F}).quirk,'fungus');
+});
+
+test('the lichen is a leafy rosette with cups and fruiting discs instead of the sphere crust',()=>{
+ const F=70,t0=performance.now(),m=createCreature({name:'lichen',symbol:F,color:10}),ms=performance.now()-t0;
+ assert.equal(m.quirk,'fungus');assert.equal(m.kind,'lichen');assert(m.body?.isObject3D);
+ const parts=[];m.g.traverse(o=>{if(o.isMesh)parts.push(o);});
+ assert.deepEqual(parts.map(p=>p.userData.part),['thallus','fruit'],'two draws');
+ let verts=0;
+ for(const p of parts){
+  const a=p.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${p.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,'colour');
+ }
+ assert(verts<40000,`${verts} vertices`);
+ m.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(m.g);
+ assert(b.min.y>-.005&&b.min.y<.01,`sits on the floor at ${b.min.y}`);
+ assert(b.max.y>.12&&b.max.y<.25,`low crust, top at ${b.max.y}`);
+ const reach=Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z);
+ assert(reach>.3&&reach<.5,`spreads across the tile but fits it: ${reach}`);
+ const again=[];createCreature({name:'lichen',symbol:F}).g.traverse(o=>{if(o.isMesh)again.push(o);});
+ parts.forEach((p,i)=>{assert.equal(p.geometry,again[i].geometry);assert.equal(p.material,again[i].material);});
+ assert(parts[1].material.roughness<parts[0].material.roughness,'the discs and beads are glossier than the thallus');
+ assert(ms<400,`took ${ms} ms`);
 });
