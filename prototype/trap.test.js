@@ -134,3 +134,26 @@ test('the land mine is a painted casing half-buried in dug soil, two vertex-colo
   if(seed===0)console.log(`land mine: ${vertices} vertices, soil y ${soil.min.y.toFixed(3)}..${soil.max.y.toFixed(3)} x ${soil.min.x.toFixed(3)}..${soil.max.x.toFixed(3)}, casing y ${mine.min.y.toFixed(3)}..${mine.max.y.toFixed(3)}`);
  }
 });
+
+test('the rubble trap is a fallen rock in a shattered scar, two vertex-coloured meshes',()=>{
+ for(const seed of [0,3,9,21]){
+  const model=createTrap('rubble',seed);
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.name).sort(),['fallen-rock','rubble-scar']);
+  for(const mesh of meshes){
+   assert(mesh.material.vertexColors,`${mesh.name} should be vertex coloured`);
+   for(const key of ['position','normal','color'])for(const value of mesh.geometry.attributes[key].array)assert(Number.isFinite(value),`${mesh.name} has a bad ${key}`);
+   for(const value of mesh.geometry.attributes.color.array)assert(value>=0&&value<=1);
+  }
+  const scar=new THREE.Box3().setFromObject(meshes.find(m=>m.name==='rubble-scar'));
+  const rock=new THREE.Box3().setFromObject(meshes.find(m=>m.name==='fallen-rock'));
+  assert(scar.min.y>=0&&scar.max.y<.03,'scar should lie flat on the slab');
+  assert(scar.max.x-scar.min.x>.6,'scar should spread round the rock');
+  assert(rock.min.y>-.03,'rock and shards may only sink a little');
+  assert(rock.max.y>.12&&rock.max.y<.22,'the rock should stand clear of the rubble');
+  for(const v of [scar.min.x,scar.max.x,scar.min.z,scar.max.z,rock.min.x,rock.max.x,rock.min.z,rock.max.z])assert(Math.abs(v)<.46);
+  const vertices=meshes.reduce((n,m)=>n+m.geometry.attributes.position.count,0);
+  assert(vertices<15000,`rubble trap is ${vertices} vertices`);
+  if(seed===0)console.log(`rubble trap: ${vertices} vertices, scar y ${scar.min.y.toFixed(3)}..${scar.max.y.toFixed(3)}, rock y ${rock.min.y.toFixed(3)}..${rock.max.y.toFixed(3)}`);
+ }
+});
