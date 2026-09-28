@@ -525,3 +525,32 @@ test('figurines are one merged soapstone carving on a plinth',()=>{
   model.userData.dispose();assert.equal(disposed,1);
  }
 });
+
+test('body armour lies face-up per kind, dragon hides show only their colour, in three draw calls at most',()=>{
+ const armor=(name,appearance)=>createGroundModel({name,class:3,appearance});
+ const colours=model=>{let sum=0;model.traverse(o=>{if(o.geometry)for(const v of o.geometry.attributes.color.array)sum+=v;});return sum.toFixed(3);};
+ const signature=model=>{const out=[];model.traverse(o=>{if(o.geometry)out.push(o.geometry.attributes.position.count,o.material.metalness);});return JSON.stringify([out,colours(model)]);};
+ const kinds=[['leather armor'],['studded leather armor'],['leather jacket'],['ring mail'],['orcish ring mail','crude ring mail'],['chain mail'],
+  ['orcish chain mail','crude chain mail'],['elven mithril-coat'],['dwarvish mithril-coat'],['scale mail'],['splint mail'],['banded mail'],
+  ['plate mail'],['bronze plate mail'],['crystal plate mail'],['fire dragon scale mail','draken scale mail'],['ice dragon scale mail','lindworm scale mail'],
+  ['chromatic dragon scale mail','chromatic dragon scale mail'],['fire dragon scales','draken scales']];
+ const seen=new Set();
+ for(const [name,look] of kinds){
+  const model=armor(name,look);
+  assert(model,name);
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} rests on the floor`);
+  assert(bounds.max.y>.02&&bounds.max.y<.1,`${name} lies low (${bounds.max.y})`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.31,`${name} fits its tile`);
+  assert.equal(model.children.filter(c=>c.userData.part==='armor').length,1,name);
+  let meshes=0;
+  model.traverse(o=>{if(o.geometry){meshes++;for(const key of ['position','normal','color'])for(const v of o.geometry.attributes[key].array)assert(Number.isFinite(v),name);}});
+  assert(meshes>=1&&meshes<=3,`${name} stays at three draw calls or fewer (${meshes})`);
+  seen.add(signature(model));
+  model.userData.dispose();
+ }
+ assert.equal(seen.size,kinds.length,'each armour kind looks different');
+ assert.equal(signature(armor('ice dragon scale mail','draken scale mail')),signature(armor('fire dragon scale mail','draken scale mail')),'the true dragon must not show');
+ assert.equal(signature(armor('orcish chain mail','crude chain mail')),signature(armor('chain mail','crude chain mail')),'a shared appearance looks the same');
+});
