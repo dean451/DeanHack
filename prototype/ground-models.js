@@ -2301,6 +2301,101 @@ function buildHarp({g,materials}){
  g.rotation.y=.4;
 }
 
+// The hand bell, tipped over on the floor: it rests on its lip and the knob of its handle, so
+// the mouth faces the viewer with the clapper fallen against the low side. The shell is one
+// lathe swept down the inside and back up the outside, with raised beads at the sound bow,
+// waist and shoulder and an engraved band between them. The metal mesh holds the shell, the
+// ferrule and the iron clapper; the wood mesh holds the turned handle. A silver bell (the Bell
+// of Opening) is silver with a band of runes and an ebony handle; any other bell is bronze.
+function buildBell(silver,{g,materials}){
+ const C=hex=>new THREE.Color(hex),c=new THREE.Color();
+ const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.8,roughness:.3});
+ const woodMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.5});
+ materials.push(metalMat,woodMat);
+ const BODY=C(silver?0xc4cace:0xb07f36),BRIGHT=C(silver?0xf0f4f6:0xe0b45c),DULL=C(silver?0x767e84:0x6a4a1e);
+ const PATINA=C(silver?0x5c5a60:0x4e8a72),INK=C(silver?0x2a2c34:0x3a2410),IRON=C(0x3c3a38);
+ const metal=[],wood=[];
+ const bump=(y,at,w,h)=>h*Math.exp(-(((y-at)/w)**2));
+ // Outer radius up the bell (mouth at y=0, crown at y=.13): a thick sound bow, a flare
+ // into the waist, a straight waist, a rounded shoulder and a domed crown.
+ const outer=y=>{
+  const t=Math.min(1,y/.115);
+  return .077-.034*Math.sin(Math.min(1,t*1.25)*Math.PI/2)+bump(y,.012,.004,.0028)+bump(y,.07,.0025,.0018)+bump(y,.1,.003,.0022);
+ };
+ const prof=[];
+ // The inside, from the crown down to the lip (so its faces point in), then round the lip and up the outside.
+ for(let y=.115;y>.004;y-=.005)prof.push([Math.max(.001,outer(y)-.006-.004*Math.max(0,(.03-y)/.03)),y]);
+ const insideCount=prof.length;
+ prof.push([.069,0],[.074,-.001],[.0785,.002]);
+ for(let y=.004;y<=.113;y+=.0025)prof.push([outer(y),y]);
+ for(let i=1;i<=8;i++){const a=i/8*Math.PI/2;prof.push([outer(.113)*Math.cos(a),.113+.018*Math.sin(a)]);}
+ prof[prof.length-1][0]=.0005;
+ const shell=new THREE.LatheGeometry(prof.map(([r,y])=>new THREE.Vector2(r,y)),48);
+ {
+  const p=shell.attributes.position,n=shell.attributes.normal,cs=[];
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),a=Math.atan2(z,x),inside=i%prof.length<insideCount;
+   const noise=stoneNoise(x*40,y*40,z*40,5);
+   if(inside){c.copy(DULL).lerp(INK,.45+.2*noise);}
+   else{
+    c.copy(BODY).lerp(noise>0?BRIGHT:DULL,Math.abs(noise)*.4);
+    // Worn bright on the sound bow and the beads, where hands and floors rub.
+    c.lerp(BRIGHT,.6*Math.max(bump(y,.004,.006,1),bump(y,.012,.004,1),bump(y,.07,.0025,1),bump(y,.1,.003,1)));
+    // The engraved band: a running scroll on bronze, a line of runes on silver.
+    if(y>.076&&y<.094){
+     const u=a*(silver?9:6),v=(y-.085)/.009;
+     const line=silver?(Math.abs(Math.sin(u*2))>.93&&Math.abs(v)<.8)||Math.abs(v+Math.sin(u*4)*.6)<.12&&Math.cos(u)>0:Math.abs(v-.8*Math.sin(u))<.18||Math.abs(v+.8*Math.sin(u))<.18;
+     if(line)c.lerp(INK,.75);
+    }
+    for(const at of [.075,.095])if(Math.abs(y-at)<.001)c.lerp(INK,.6);
+    // Verdigris (or tarnish) settles in the crevices beside the beads.
+    const crease=Math.max(bump(y,.018,.003,1),bump(y,.064,.003,1),bump(y,.106,.003,1));
+    c.lerp(PATINA,crease*(.45+.25*noise));
+   }
+   cs.push(c.r,c.g,c.b);
+  }
+  shell.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));shell.deleteAttribute('uv');metal.push(shell);
+ }
+ const paint=(geo,list,tone)=>{
+  geo.deleteAttribute('uv');const p=geo.attributes.position,cs=[];
+  for(let i=0;i<p.count;i++){tone(p.getX(i),p.getY(i),p.getZ(i));cs.push(c.r,c.g,c.b);}
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));list.push(geo);return geo;
+ };
+ // The ferrule on the crown: a cup with a rolled rim, gripping the handle.
+ const ferrule=new THREE.LatheGeometry([[.0005,.128],[.017,.128],[.019,.131],[.016,.134],[.0145,.146],[.017,.149],[.0165,.152],[.013,.153]].map(([r,y])=>new THREE.Vector2(r,y)),24);
+ paint(ferrule,metal,(x,y,z)=>c.copy(BODY).lerp(y>.147||y<.132?BRIGHT:DULL,.4));
+ // The turned handle: a neck, a swelling grip with two scored rings, a collar and a round knob.
+ const WOOD=C(silver?0x2a1a14:0x7a4a26),WOOD_LT=C(silver?0x5a3a2a:0xb07a42),WOOD_DK=C(silver?0x120a08:0x3e2412);
+ const hp=[[.0005,.15],[.012,.15],[.011,.162],[.0135,.175],[.0165,.2],[.016,.222],[.012,.232],[.015,.236],[.015,.241],[.011,.245],[.013,.25],[.019,.259],[.02,.268],[.016,.278],[.008,.283],[.0005,.284]];
+ const handle=new THREE.LatheGeometry(hp.map(([r,y])=>new THREE.Vector2(r,y)),20);
+ paint(handle,wood,(x,y,z)=>{
+  const n=stoneNoise(x*60,y*8,z*60,5);c.copy(WOOD).lerp(n>0?WOOD_LT:WOOD_DK,Math.abs(n)*.5);
+  if(Math.abs(y-.19)<.0012||Math.abs(y-.208)<.0012||Math.abs(y-.243)<.0015)c.lerp(WOOD_DK,.7);
+  // Polished pale on the swell of the grip and the top of the knob.
+  if(Math.abs(y-.2)<.012||y>.274)c.lerp(WOOD_LT,.3);
+ });
+ // Tip the bell over. Find the angle at which the lip and the knob both touch the floor.
+ const lip=[-.0785,.002],knob=[-.02,.264],dx=knob[0]-lip[0],dy=knob[1]-lip[1];
+ const phi=Math.atan2(dy,-dx); // sin φ·(lip.x−knob.x) = cos φ·(knob.y−lip.y), with sin φ>0 so the −x side is low
+ // Down, seen in the bell's own frame: the clapper falls that way and rests on the inner wall.
+ const down=new THREE.Vector2(-Math.sin(phi),-Math.cos(phi)).normalize();
+ const pivot=new THREE.Vector3(0,.108,0),rest=new THREE.Vector3(down.x*.037,.032,0);
+ const dir=rest.clone().sub(pivot),len=dir.length();
+ const rod=new THREE.CylinderGeometry(.0032,.0042,len,8).translate(0,-len/2,0);
+ rod.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,-1,0),dir.clone().normalize()));rod.translate(pivot.x,pivot.y,pivot.z);
+ paint(rod,metal,()=>c.copy(IRON));
+ paint(new THREE.SphereGeometry(.0135,14,10).scale(1,1.2,1).applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize())).translate(rest.x,rest.y,rest.z),metal,(x,y)=>c.copy(IRON).lerp(C(0x7a7672),Math.max(0,(x-rest.x)/.0135)*.4));
+ paint(new THREE.TorusGeometry(.006,.0022,6,12).translate(0,.11,0),metal,()=>c.copy(IRON).lerp(DULL,.3));
+ for(const [list,material,part] of [[metal,metalMat,'bell-metal'],[wood,woodMat,'bell-handle']]){
+  const geo=mergeGeometries(list.map(q=>{if(!q.index)q.setIndex([...Array(q.attributes.position.count).keys()]);return q;}));
+  list.forEach(q=>q.dispose());geo.rotateZ(phi);
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=part;g.add(mesh);
+ }
+ const b=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();b.union(p.geometry.boundingBox);});
+ const mid=b.getCenter(new THREE.Vector3());g.children.forEach(p=>p.geometry.translate(-mid.x,-b.min.y,-mid.z));
+ g.rotation.y=-.5;
+}
+
 // The credit card: a bank card lying face up with a slight bow. The plastic is one merged
 // mesh (a rounded-corner slab whose face is painted per vertex with a blue sweep, a pale
 // swoosh, fine guilloche waves and a gold rule; the back has the magnetic stripe and the
@@ -3381,13 +3476,7 @@ export function createGroundModel(item={}){
   }else if(kind==='drum'){
    buildDrum({g,materials});
   }else if(kind==='bell'){
-   // A hand bell mouth-down: a lathed bronze shell, a turned wooden handle, and the clapper peeking out.
-   const bronze=mat(0xb8893a,.7);
-   const shape=[[.001,.16],[.035,.16],[.05,.14],[.058,.1],[.07,.05],[.092,.012],[.1,0],[.094,0]].map(([x,y])=>new THREE.Vector2(x,y));
-   const shell=add(new THREE.LatheGeometry(shape,28),bronze);shell.material.side=THREE.DoubleSide;
-   add(new THREE.CylinderGeometry(.016,.022,.1,10),wood,0,.21);ball(.026,wood,0,.265,0);
-   flat(new THREE.TorusGeometry(.096,.006,6,28),bronze,0,.006,0);
-   ball(.022,dark,.02,.02,.02);
+   buildBell(/silver|opening/.test(name),{g,materials});
   }else if(kind==='stethoscope'){
    buildStethoscope({g,materials});
   }else if(kind==='tin opener'){
