@@ -1,7 +1,11 @@
 import * as THREE from 'three';
+import {createWand,wandAppearance} from './wand.js';
 
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
+ // A wielded wand is held by its grip like the floor wand's model; its look comes from the
+ // hero-view name ("oak wand"), since an identified "wand of fire" names no appearance.
+ if(item.class===11){const wand=createWand(wandAppearance(item.name));wand.name=item.name;return wand;}
  g.name=item.name;
  const steel=new THREE.MeshStandardMaterial({color:0xd0dce2,metalness:.8,roughness:.23});
  const leather=new THREE.MeshStandardMaterial({color:0x442c22,roughness:.92});
