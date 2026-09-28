@@ -753,3 +753,20 @@ test('whistles are a merged pea whistle with a lanyard, the same for tin and mag
  };
  assert.deepEqual(shape('tin whistle'),shape('magic whistle'));
 });
+
+test('stethoscopes are a merged steel and rubber model lying flat on the tile',()=>{
+ const model=createGroundModel({name:'stethoscope',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['stethoscope-steel','stethoscope-rubber']);
+ let verts=0;
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ model.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(model,true);
+ assert(Math.abs(b.min.y)<1e-6&&b.max.y<.03,`lies flat: ${b.min.y}..${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.25,'fits its tile');
+ model.userData.dispose();
+});
