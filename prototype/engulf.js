@@ -28,7 +28,10 @@ export const ENTER_MS = 520, EXIT_MS = 480;
 export const CHAMBER_R = 1.5, CHAMBER_Y = .55, OPEN_R = 3.4, BURST_R = 3.8;
 export const MAX_MOTES = 64;
 // Camera: distance from the hero inside the chamber, and the extra field of view (degrees).
-export const INSIDE_DIST = 1.15, FOV_ADD = 28, FOV_BREATHE = 4;
+export const INSIDE_DIST = 1.4, FOV_ADD = 16, FOV_BREATHE = 2;
+// How much of the full motion is used: the hero's tumble, lift and throw, the walls' heave and
+// spin, and the chamber's breathing. The user found the full amount too much on screen.
+export const CALM = .55;
 
 // wall/groove: chamber colours; mote: particle colour; spin: rad/s; pulse: Hz; opacity.
 const LOOKS = {
@@ -62,18 +65,18 @@ export function engulfLook(name) {
 export function chamberPoint(look, nx, ny, nz, t) {
   if (look.style === 'wind') {
     // Streaks twisting round the vertical axis, racing past; the far top and bottom stay calm.
-    const a = Math.atan2(nz, nx) + t * look.spin + ny * 2.4;
+    const a = Math.atan2(nz, nx) + t * look.spin * CALM + ny * 2.4;
     const streak = Math.pow(.5 + .5 * Math.sin(a * 7), 3);
     const gust = .5 + .5 * Math.sin(a * 3 - t * 1.7 + ny * 5);
     const k = clamp01(streak * (.55 + .45 * gust) * (1 - .5 * Math.abs(ny)));
-    return {scale: 1 + .035 * Math.sin(a * 3 + t * 2) - .03 * streak, rgb: mix(look.grooveRgb, look.wallRgb, .35 + .65 * k)};
+    return {scale: 1 + CALM * (.035 * Math.sin(a * 3 + t * 2) - .03 * streak), rgb: mix(look.grooveRgb, look.wallRgb, .35 + .65 * k)};
   }
   if (look.style === 'ooze') {
     const w = t * look.pulse * Math.PI * 2;
     const n = Math.sin(nx * 5 + w * .7) * Math.sin(nz * 4.3 - w * .5) * Math.sin(ny * 3.7 + w * .4);
     // Pale blisters where the slime bulges in, darker where it thins.
     const blister = Math.pow(clamp01(n * 1.6), 2);
-    return {scale: 1 - .08 * n, rgb: mix(mix(look.grooveRgb, look.wallRgb, .6 + .4 * n), [1, 1, .9], .25 * blister)};
+    return {scale: 1 - CALM * .08 * n, rgb: mix(mix(look.grooveRgb, look.wallRgb, .6 + .4 * n), [1, 1, .9], .25 * blister)};
   }
   // Gullet: rings across the vertical axis, with a squeeze wave running up them.
   const w = t * look.pulse * Math.PI * 2;
@@ -81,7 +84,7 @@ export function chamberPoint(look, nx, ny, nz, t) {
   const wave = Math.pow(.5 + .5 * Math.sin(ny * 3 - w), 4);
   const wet = Math.pow(clamp01(rib * 1.2 - .1), 6) * (.4 + .6 * wave);
   const c = mix(look.grooveRgb, look.wallRgb, .25 + .75 * rib);
-  return {scale: 1 - .06 * rib - .12 * wave, rgb: mix(c, [1, .9, .92], .3 * wet)};
+  return {scale: 1 - CALM * (.06 * rib + .12 * wave), rgb: mix(c, [1, .9, .92], .3 * wet)};
 }
 
 // Particle i of the look at t seconds, relative to the hero's tile (y up from the floor).
@@ -90,7 +93,7 @@ export function moteAt(look, i, t) {
   const h1 = hash(i, 1), h2 = hash(i, 2), h3 = hash(i, 3), h4 = hash(i, 4);
   if (look.style === 'wind') {
     const r = .4 + .65 * h1, y = .08 + 1 * h2;
-    const a = h3 * Math.PI * 2 + t * look.spin * (1.35 - r * .5);
+    const a = h3 * Math.PI * 2 + t * look.spin * CALM * (1.35 - r * .5);
     return {x: Math.cos(a) * r, y: y + .05 * Math.sin(t * 3 + i), z: Math.sin(a) * r, alpha: .45 + .55 * Math.abs(Math.sin(t * 2.3 + i * 1.7))};
   }
   if (look.style === 'ooze') {
@@ -125,7 +128,7 @@ export function engulfFrame(e, t) {
     radius = radius + (BURST_R - radius) * open;
   }
   const breathe = Math.sin(sec * e.look.pulse * Math.PI * 2);
-  radius *= 1 + .04 * breathe * k;
+  radius *= 1 + CALM * .04 * breathe * k;
   return {k, radius, opacity: e.look.opacity * k, breathe,
     camera: {inside: k, fovAdd: k * (FOV_ADD + FOV_BREATHE * breathe)}};
 }
@@ -141,8 +144,9 @@ export function engulfHeroPose(e, t) {
   const sec = t / 1000, look = e.look, k = f.k;
   let dy = 0, pitch = 0, roll = 0, sx = 1, sy = 1;
   if (look.style === 'wind') {
-    roll = .2 * Math.sin(sec * look.spin * .9);
-    pitch = .14 * Math.sin(sec * look.spin * .6 + 1);
+    const spin = look.spin * CALM;
+    roll = .2 * Math.sin(sec * spin * .9);
+    pitch = .14 * Math.sin(sec * spin * .6 + 1);
     dy = .16 + .04 * Math.sin(sec * 3);
   } else if (look.style === 'ooze') {
     roll = .07 * Math.sin(sec * 1.3);
@@ -155,20 +159,21 @@ export function engulfHeroPose(e, t) {
     sx = 1 - .08 * sq; sy = 1 + .06 * sq;
     pitch = .05 * Math.sin(sec * look.pulse * Math.PI * 2);
   }
-  dy *= k; pitch *= k; roll *= k; sx = 1 + (sx - 1) * k; sy = 1 + (sy - 1) * k;
+  const c = CALM * k;
+  dy *= c; pitch *= c; roll *= c; sx = 1 + (sx - 1) * c; sy = 1 + (sy - 1) * c;
   const out = Number.isFinite(e.outAt) && t >= e.outAt;
   if (!out && t - e.at < ENTER_MS) {
     const hop = Math.sin(Math.PI * (t - e.at) / ENTER_MS);
-    dy += .22 * hop; sy *= 1 + .12 * hop; sx *= 1 - .06 * hop;
+    dy += CALM * .22 * hop; sy *= 1 + CALM * .12 * hop; sx *= 1 - CALM * .06 * hop;
   }
   if (out) {
     const x = (t - e.outAt) / EXIT_MS;
     if (x < .8) {
       const arc = Math.sin(Math.PI * x / .8);
-      dy += .35 * arc; pitch -= .6 * arc;
+      dy += CALM * .35 * arc; pitch -= CALM * .6 * arc;
     } else {
       const s = Math.sin(Math.PI * (x - .8) / .2);
-      sy *= 1 - .18 * s; sx *= 1 + .09 * s;
+      sy *= 1 - CALM * .18 * s; sx *= 1 + CALM * .09 * s;
     }
   }
   return {dy, pitch, roll, sx, sy};

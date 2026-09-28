@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {engulfLook, chamberPoint, moteAt, engulfFrame, engulfCamera, dropEngulfCamera, createEngulf, engulfHeroPose, poseEngulfed,
-  ENTER_MS, EXIT_MS, CHAMBER_R, CHAMBER_Y, INSIDE_DIST, MAX_MOTES} from './engulf.js';
+  ENTER_MS, EXIT_MS, CHAMBER_R, CHAMBER_Y, INSIDE_DIST, MAX_MOTES, CALM} from './engulf.js';
 
 const ENGULFERS = ['purple worm', 'trapper', 'lurker above', 'ochre jelly', 'Juiblex', 'air elemental', 'fog cloud',
   'dust vortex', 'ice vortex', 'energy vortex', 'steam vortex', 'fire vortex', null, 'newt'];
@@ -49,7 +49,7 @@ test('chamber walls and motes stay finite, coloured and inside the chamber', () 
       }
       assert.ok(out > 10);
     }
-    assert.ok(lo > .8 && hi < 1.1, `${n} wall scale ${lo}..${hi}`);
+    assert.ok(lo > .89 && hi < 1.05, `${n} wall scale ${lo}..${hi}`);
   }
 });
 
@@ -72,8 +72,8 @@ test('the chamber closes in, breathes, and bursts open back to nothing', () => {
     assert.ok([f.radius, f.opacity, f.camera.fovAdd].every(Number.isFinite));
     minR = Math.min(minR, f.radius); maxR = Math.max(maxR, f.radius); maxFov = Math.max(maxFov, f.camera.fovAdd);
   }
-  assert.ok(minR > CHAMBER_R * .94 && maxR < CHAMBER_R * 1.06 && maxR - minR > .05);
-  assert.ok(maxFov > 25 && maxFov < 40);
+  assert.ok(minR > CHAMBER_R * .97 && maxR < CHAMBER_R * 1.03 && maxR - minR > .05);
+  assert.ok(maxFov > 14 && maxFov < 22);
   e.outAt = 6000;
   const mid = engulfFrame(e, 6000 + EXIT_MS / 2);
   assert.ok(mid.k > 0 && mid.k < 1 && mid.radius > CHAMBER_R * 1.3);
@@ -100,7 +100,7 @@ test('the camera goes inside and comes back out exactly', () => {
     assert.ok([camera.position.x, camera.position.y, camera.position.z, camera.fov].every(Number.isFinite));
     if (f?.k === 1) {
       assert.ok(Math.abs(camera.position.distanceTo(controls.target) - INSIDE_DIST) < 1e-6);
-      assert.ok(controls.minDistance < INSIDE_DIST && camera.fov > 36 + 20);
+      assert.ok(controls.minDistance < INSIDE_DIST && camera.fov > 36 + 12);
       deepest = Math.min(deepest, d);
     }
   }
@@ -160,18 +160,19 @@ test('the hero is yanked in, moves with the chamber, is thrown out and lands bac
       const p = engulfHeroPose(e, t);
       if (t >= e.outAt + EXIT_MS) { assert.equal(p, null, `${n} at ${t}`); continue; }
       for (const v of Object.values(p)) assert.ok(Number.isFinite(v), n);
-      assert.ok(p.dy >= 0 && p.dy < .5, `${n} lift ${p.dy}`);
-      assert.ok(Math.abs(p.pitch) < .8 && Math.abs(p.roll) < .3, `${n} tilt`);
-      assert.ok(p.sx > .8 && p.sx < 1.2 && p.sy > .8 && p.sy < 1.2, `${n} squash ${p.sx} ${p.sy}`);
+      // Toned down (CALM): a smaller lift, tilt and squash than the first version.
+      assert.ok(p.dy >= 0 && p.dy < .28, `${n} lift ${p.dy}`);
+      assert.ok(Math.abs(p.pitch) < .45 && Math.abs(p.roll) < .17, `${n} tilt`);
+      assert.ok(p.sx > .9 && p.sx < 1.1 && p.sy > .88 && p.sy < 1.1, `${n} squash ${p.sx} ${p.sy}`);
       if (t > e.outAt) maxLift = Math.max(maxLift, p.dy);
-      if (t > e.outAt + EXIT_MS * .85 && p.sy < .9) landed = true;
+      if (t > e.outAt + EXIT_MS * .85 && p.sy < .95) landed = true;
     }
-    assert.ok(maxLift > .3, `${n} is thrown out`);
+    assert.ok(maxLift > .15, `${n} is thrown out`);
     assert.ok(landed, `${n} lands with a squash`);
     // The swallow starts on the floor and pulls the hero up.
     const start = engulfHeroPose(e, 1000);
     assert.ok(Math.abs(start.dy) < 1e-9 && Math.abs(start.sy - 1) < 1e-9 && Math.abs(start.sx - 1) < 1e-9, n);
-    assert.ok(engulfHeroPose(e, 1000 + ENTER_MS / 2).dy > .2, n);
+    assert.ok(engulfHeroPose(e, 1000 + ENTER_MS / 2).dy > .1, n);
   }
   // The throw starts where the chamber motion was: no jump on the frame of the escape.
   const e = {look: engulfLook('fire vortex'), at: 0, outAt: 2000};
@@ -179,7 +180,7 @@ test('the hero is yanked in, moves with the chamber, is thrown out and lands bac
   for (const key of Object.keys(a)) assert.ok(Math.abs(a[key] - b[key]) < .01, key);
   // Wind tumbles and floats the hero more than a gullet does.
   const spread = name => { const w = {look: engulfLook(name), at: 0}; let r = 0; for (let t = ENTER_MS; t < 4000; t += 10) r = Math.max(r, Math.abs(engulfHeroPose(w, t).roll)); return r; };
-  assert.ok(spread('air elemental') > spread('purple worm') + .1);
+  assert.ok(spread('air elemental') > spread('purple worm') + .06);
 });
 
 test('the engulf pose stacks on the model and comes off exactly', () => {
@@ -207,4 +208,15 @@ test('createEngulf hands the hero pose out only while the chamber is there', () 
   for (let i = 0; i < 60; i++) r = en.update(.016, {x: 0, z: 0});
   assert.equal(r.hero, null);
   en.dispose();
+});
+
+test('the camera sits further back inside the toned-down chamber but still inside it', () => {
+  assert.ok(CALM > .4 && CALM < .7 && INSIDE_DIST > 1.15);
+  // The narrowest the walls get (a gullet's ribs and wave at their deepest, the breath drawn in).
+  const narrowest = CHAMBER_R * (1 - CALM * .04) * (1 - CALM * .18);
+  // Looking down at 30..70 degrees from the default orbit, the camera stays within the walls.
+  for (let deg = 30; deg <= 70; deg += 5) {
+    const a = deg * Math.PI / 180, h = Math.cos(a) * INSIDE_DIST, y = Math.sin(a) * INSIDE_DIST;
+    assert.ok(Math.hypot(h, y - CHAMBER_Y) < narrowest * .95, `${deg} degrees`);
+  }
 });
