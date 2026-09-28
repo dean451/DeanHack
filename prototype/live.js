@@ -3,7 +3,7 @@ import {createGridBug} from './grid-bug.js';
 import * as THREE from 'three';
 import {createGroundModel} from './ground-models.js';
 import {groundNotice,groundTile} from './ground-notice.js';
-import {meleeDirection,confirmsPlayerMelee,poseMelee} from './combat-visuals.js';
+import {meleeDirection,confirmsPlayerMelee} from './combat-visuals.js';
 import {createHeldWeapon} from './equipment.js';
 import {createCentaurStatue,createOracle,createLiveFountain} from './oracle-visuals.js';
 import {createAltar} from './altar.js';
@@ -27,6 +27,7 @@ import {potionLook,groundItemCaption} from './item-looks.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {fxTimeline} from './fx.js';
 import {combatAction,deathAction} from './combat-events.js';
+import {createActionQueue,enqueueAction,clearActionPose,updateActions,holdBackMs,findActor,queueCombat,queueDeath} from './actions.js';
 
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
@@ -175,14 +176,14 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
   tile.add(model);tile.userData.feature=model;tile.userData.featureKey=key;tile.userData.axisFeature=AXIS_FEATURES.has(key)?model:null;
  }
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
- const hero=playerFactory();hero.setWeapon?.(null);group.add(hero.g);
+ const hero=playerFactory();hero.setWeapon?.(null);hero.actions=createActionQueue();group.add(hero.g);
  function apply(frame){latest=frame;if(!active)return;
    $('.location small').textContent=`THE DUNGEONS OF DOOM · DEPTH ${String(frame.depth).padStart(2,'0')}`;
    if(groundPanelTile!==groundTile(frame)){groundPanel.hidden=true;groundPanelTile=null;}
    if(Array.isArray(frame.ground))showGround(frame.ground);
    hero.setWeapon?.(frame.player.weapon??null);
    hero.setHelmet?.(frame.player.helmet??null);addOutlines(hero.g);
-   const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();origin={x:frame.player.x,z:frame.player.z};lastLevel=level;hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
+   const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
    const seen=new Set(),seenActors=new Set(),seenWells=new Set();
    for(const cell of frame.cells){const id=`${cell.x},${cell.z}`,x=cell.x-origin.x,z=cell.z-origin.z;
      if(cell.terrain!=='unknown'){
@@ -229,8 +230,9 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      }
        if(cell.kind==='monster'||cell.kind==='pet'){
        const key=`${id}:${cell.glyph}`;seenActors.add(key);let a=actors.get(key);
-       if(!a){for(const [previous,candidate] of actors){if(!seenActors.has(previous)&&candidate.glyph===cell.glyph&&Math.hypot(candidate.g.position.x-x,candidate.g.position.z-z)<2.1){a=candidate;actors.delete(previous);actors.set(key,a);break;}}}
+       if(!a){for(const [previous,candidate] of actors){if(!seenActors.has(previous)&&!candidate.actions?.dead&&candidate.glyph===cell.glyph&&Math.hypot(candidate.g.position.x-x,candidate.g.position.z-z)<2.1){a=candidate;actors.delete(previous);actors.set(key,a);break;}}}
        if(!a){const disposition=cell.kind==='pet'?'pet':cell.peaceful?'peaceful':'hostile';if(cell.kind==='pet'&&/cat|kitten/.test(cell.name)){a=catFactory();stageCreature(a.g,{disposition});a.g.add(label(cell.name,'#b8ead3'));}else{const made=/^shopkeeper$/i.test(cell.name||'')?createShopkeeper():/^watchman$/i.test(cell.name||'')?createWatchman():/^grid bug$/i.test(cell.name||'')?createGridBug():/^oracle$/i.test(cell.name||'')?createOracle():creatureFactory?creatureFactory(cell):monsterFactory();a=made.g?made:{g:made};stageCreature(a.g,{disposition});a.g.add(label(cell.name||'creature',cell.kind==='pet'?'#b8ead3':cell.peaceful?'#e8dfb0':'#e9c8ad'));attachModelAsset(a,cell.name,MODEL_URLS);}a.g.position.set(x,0,z);group.add(a.g);actors.set(key,a);}
+       if(a.actions?.finished){clearActionPose(a,a.actions);a.actions=createActionQueue();}
        a.glyph=cell.glyph;a.species=(cell.name||'').toLowerCase();a.target=new THREE.Vector3(x,0,z);
        // Invisible-and-sensed monsters (telepathy, warning) still send a cell, but the model,
        // its label and its disposition ring — all children of a.g — should stay hidden.
@@ -245,10 +247,13 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    hero.target=new THREE.Vector3(frame.player.x-origin.x,0,frame.player.z-origin.z);renderSurroundings(frame);
    $('#hp').textContent=`${frame.player.hp} / ${frame.player.maxhp}`;$('#healthbar').style.width=`${100*frame.player.hp/Math.max(1,frame.player.maxhp)}%`;$('#turn').textContent=frame.turn;$('.stats').innerHTML=`<span>AC <b>${frame.player.ac}</b></span><span>LVL <b>${frame.player.level}</b></span><span>TURN <b id="turn">${frame.turn}</b></span>`;$('.location h1').textContent=`The Dungeons · ${frame.depth}`;
  }
- let meleeIntent=null,attackStarted=-Infinity,queuedCommand=null,combatStream=false;
- // A bridge that sends combat events starts the swing itself; text matching is the fallback for older engines.
- function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(v.type!=='combat')return;combatStream=true;if(c.heroAttacks&&c.dir){hero.g.rotation.y=Math.atan2(...c.dir);attackStarted=performance.now()/1000;meleeIntent=null;}}
- function message(text){if(!combatStream&&meleeIntent&&confirmsPlayerMelee(text)){hero.g.rotation.y=Math.atan2(...meleeIntent);attackStarted=performance.now()/1000;meleeIntent=null;}const line=$('#engine-line'),log=$('#engine-messages');if(line.textContent){const p=document.createElement('div');p.textContent=line.textContent;log.prepend(p);while(log.children.length>3)log.lastChild.remove();}line.textContent=text;$('#message').textContent=text;}
+ let meleeIntent=null,queuedCommand=null,combatStream=false,heldFrame=null,heldTimer=null;
+ // A bridge that sends combat events drives the action layer; text matching is the fallback for older engines.
+ const findSide=s=>findActor(actors,s.x,s.z,{name:s.name,origin});
+ function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(v.type!=='combat'){queueDeath(c,findSide);return;}combatStream=true;if(c.heroAttacks)meleeIntent=null;queueCombat(c,{hero,find:findSide});}
+ // Map frames wait for queued deaths to play, so the corpse appears after the fall; a newer frame replaces a held one.
+ function applySoon(frame){heldFrame=frame;if(heldTimer)return;const wait=active?holdBackMs([hero.actions,...[...actors.values()].map(a=>a.actions)]):0;const go=()=>{heldTimer=null;const f=heldFrame;heldFrame=null;if(f)apply(f);};if(wait>0)heldTimer=setTimeout(go,wait);else go();}
+ function message(text){if(!combatStream&&meleeIntent&&confirmsPlayerMelee(text)){enqueueAction(hero.actions,{kind:'attack',attack:'weapon',result:'hit',dir:meleeIntent});meleeIntent=null;}const line=$('#engine-line'),log=$('#engine-messages');if(line.textContent){const p=document.createElement('div');p.textContent=line.textContent;log.prepend(p);while(log.children.length>3)log.lastChild.remove();}line.textContent=text;$('#message').textContent=text;}
  async function post(path,body={}){if(!token)token=(await fetch('/engine/token').then(r=>r.json())).token;const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Engine-Token':token},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw new Error(data.error);return data;}
  async function reply(value){if(!pending)return;const req=pending;meleeIntent=req.kind==='command'?meleeDirection(value):null;pending=null;lines=[];menu=null;dialog.close();setPrompt('Engine is resolving your action…');try{await post('/engine/input',{id:req.id,value});pollNow?.();}catch(e){meleeIntent=null;message(e.message);setPrompt('Input was not accepted. Reconnect Live mode to refresh the prompt.');}}
  function showGround(items){
@@ -276,7 +281,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function connect(){
    meleeIntent=null;source?.close?.();
    let usingPolling=false,pollTimer=null,stopped=false,since=0;
-   const handle=v=>{if(v.type==='frame')apply(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];fx.push(fxTimeline(v));if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
+   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];fx.push(fxTimeline(v));if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
    async function pollLoop(){
      if(stopped)return;
      try{const r=await fetch(`/engine/poll?since=${since}`);const {events,seq}=await r.json();since=seq;for(const event of events)handle(event);}
@@ -299,12 +304,12 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    if(pending?.kind==='command'){code=directions[e.key]??(e.key===' '?46:e.key.length===1?e.key.charCodeAt(0):undefined);}else code=directions[e.key]??(e.key==='Enter'?13:e.key==='Escape'?27:e.key.length===1?e.key.charCodeAt(0):undefined);
    if(code){e.preventDefault();e.stopImmediatePropagation();if(pending)reply(code);else if(pending===null)queuedCommand=code;}
  },true);
- return {get active(){return active;},update(t,dt){if(!active||!hero.target)return;const delta=hero.target.clone().sub(hero.g.position),moving=delta.length()>.025;if(moving)hero.g.rotation.y=Math.atan2(delta.x,delta.z);hero.g.position.lerp(hero.target,1-Math.exp(-dt*14));hero.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);hero.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);hero.cape.rotation.x=-.17+Math.sin(t*3)*.06;if(hero.plume)hero.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
+ return {get active(){return active;},update(t,dt){if(!active||!hero.target)return;clearActionPose(hero,hero.actions);const delta=hero.target.clone().sub(hero.g.position),moving=delta.length()>.025;if(moving)hero.g.rotation.y=Math.atan2(delta.x,delta.z);hero.g.position.lerp(hero.target,1-Math.exp(-dt*14));hero.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);hero.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);hero.cape.rotation.x=-.17+Math.sin(t*3)*.06;if(hero.plume)hero.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
    const offset=hero.g.position.clone().sub(controls.target);offset.y=0;offset.multiplyScalar(1-Math.exp(-dt*3));controls.target.add(offset);camera.position.add(offset);lantern.position.copy(hero.g.position).add(new THREE.Vector3(0,3,0));
    for(const tile of tiles.values())if(tile.visible)tile.traverse(o=>o.userData.updateFire?.(t));
-   poseMelee(hero,performance.now()/1000-attackStarted);
+   updateActions(hero,hero.actions,dt);
    updateTorchLights(t,dt);cavern.update(t,dt,hero.g.position);
-   for(const a of actors.values()){a.g.userData.updateOracle?.(t);a.g.userData.updateGridBug?.(t);let walking=false;if(a.target){const d=a.target.clone().sub(a.g.position);walking=d.length()>.025;if(walking)a.g.rotation.y=Math.atan2(d.x,d.z);a.g.position.lerp(a.target,1-Math.exp(-dt*10));if(a.legs)a.legs.forEach((l,i)=>l.rotation.x=walking?Math.sin(t*22+i*2)*.4:0);}a.asset?.update(dt,walking);if(a.tail){const tailRate=a.quirk==='dog'?7:a.quirk==='unicorn'?2.6:a.quirk==='nymph'?1.4:3;const tailSwing=a.quirk==='dog'?.34:a.quirk==='unicorn'?.16:a.quirk==='nymph'?.07:.24;a.tail.rotation.z=Math.sin(t*tailRate)*tailSwing;}if(a.charm)a.charm.position.y=.3+Math.sin(t*4)*.025;if(a.body){const idle=a.quirk==='orc'?.025:a.quirk==='dragon'?.035:a.quirk==='unicorn'?.022:.015;a.body.position.y=Math.sin(t*(walking?22:2.5))*idle;}if(a.wings?.length)a.wings.forEach((wing,i)=>{if(a.quirk==='bat'){wing.rotation.z=(wing.userData.side||(i?1:-1))*Math.sin(t*14)*.65;}else if(a.quirk==='bee'){wing.rotation.y=(i?1:-1)*Math.sin(t*60)*.35;}else wing.rotation.y=(i?1:-1)*(-.18+Math.sin(t*5)*.12);});if((a.quirk==='hover'||a.quirk==='bat'||a.quirk==='bee')&&a.body)a.body.position.y=Math.sin(t*2.2+a.g.position.x)*.06;if(a.quirk==='dragon')a.g.rotation.z=Math.sin(t*1.7)*.025;if(a.quirk==='nymph'&&a.body)a.body.rotation.z=Math.sin(t*1.3+a.g.position.x)*.035;if(a.quirk==='gridbug')a.g.rotation.z=Math.sin(t*9)*.035;if(a.quirk==='guard')a.g.rotation.z=Math.sin(t*1.3)*.012;const core=a.core||a.g.userData.core;if(core)core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;}
+   for(const a of actors.values()){clearActionPose(a,a.actions);a.g.userData.updateOracle?.(t);a.g.userData.updateGridBug?.(t);let walking=false;if(a.target){const d=a.target.clone().sub(a.g.position);walking=d.length()>.025;if(walking)a.g.rotation.y=Math.atan2(d.x,d.z);a.g.position.lerp(a.target,1-Math.exp(-dt*10));if(a.legs)a.legs.forEach((l,i)=>l.rotation.x=walking?Math.sin(t*22+i*2)*.4:0);}a.asset?.update(dt,walking);if(a.tail){const tailRate=a.quirk==='dog'?7:a.quirk==='unicorn'?2.6:a.quirk==='nymph'?1.4:3;const tailSwing=a.quirk==='dog'?.34:a.quirk==='unicorn'?.16:a.quirk==='nymph'?.07:.24;a.tail.rotation.z=Math.sin(t*tailRate)*tailSwing;}if(a.charm)a.charm.position.y=.3+Math.sin(t*4)*.025;if(a.body){const idle=a.quirk==='orc'?.025:a.quirk==='dragon'?.035:a.quirk==='unicorn'?.022:.015;a.body.position.y=Math.sin(t*(walking?22:2.5))*idle;}if(a.wings?.length)a.wings.forEach((wing,i)=>{if(a.quirk==='bat'){wing.rotation.z=(wing.userData.side||(i?1:-1))*Math.sin(t*14)*.65;}else if(a.quirk==='bee'){wing.rotation.y=(i?1:-1)*Math.sin(t*60)*.35;}else wing.rotation.y=(i?1:-1)*(-.18+Math.sin(t*5)*.12);});if((a.quirk==='hover'||a.quirk==='bat'||a.quirk==='bee')&&a.body)a.body.position.y=Math.sin(t*2.2+a.g.position.x)*.06;if(a.quirk==='dragon')a.g.rotation.z=Math.sin(t*1.7)*.025;if(a.quirk==='nymph'&&a.body)a.body.rotation.z=Math.sin(t*1.3+a.g.position.x)*.035;if(a.quirk==='gridbug')a.g.rotation.z=Math.sin(t*9)*.035;if(a.quirk==='guard')a.g.rotation.z=Math.sin(t*1.3)*.012;const core=a.core||a.g.userData.core;if(core)core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;if(a.actions)updateActions(a,a.actions,dt);}
    for(const item of groundItems.values()){if(!item.userData.coinPile)continue;item.userData.coinAge=(item.userData.coinAge||0)+dt;for(const coin of item.userData.coinPile){if(coin.settled||item.userData.coinAge<coin.delay)continue;coin.velocity-=9.8*dt;coin.disk.position.y+=coin.velocity*dt;coin.stamp.position.y+=coin.velocity*dt;if(coin.disk.position.y<=coin.target){coin.disk.position.y=coin.target;coin.stamp.position.y=coin.target+.019;coin.velocity*=-.16;if(Math.abs(coin.velocity)<.35)coin.settled=true;}}}
    for(const tile of tiles.values())if(tile.visible)tile.userData.liquid?.userData.updateLiquid(t);
    for(const w of wells.values())w.userData.updateFountain?.(t);
