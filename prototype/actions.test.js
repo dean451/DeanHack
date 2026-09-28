@@ -153,3 +153,65 @@ test('live wiring: a fight plays on both sides, the death topples away from the 
   assert.ok(jackal.actions.finished && Math.abs(jackal.g.rotation.z) > 1.2);
   assert.equal(holdBackMs([you.actions, jackal.actions]), 0);
 });
+
+// The hero's arm chain as main.js builds it: with an elbow, weapon attacks play swing.js.
+function knight() {
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const arm = new THREE.Group(); arm.position.set(.34, .92, 0); body.add(arm);
+  const elbow = new THREE.Group(); elbow.position.set(0, -.25, 0); elbow.rotation.x = -.65; arm.add(elbow);
+  const wrist = new THREE.Group(); wrist.position.set(0, -.25, 0); elbow.add(wrist);
+  const weaponSocket = new THREE.Group(); weaponSocket.rotation.x = Math.PI / 4 + .65; wrist.add(weaponSocket);
+  const shieldArm = new THREE.Group(); shieldArm.position.set(-.34, .91, 0); body.add(shieldArm);
+  const legs = [new THREE.Group(), new THREE.Group()]; legs.forEach(l => g.add(l));
+  return {g, body, arm, elbow, wrist, weaponSocket, shieldArm, legs};
+}
+const rigSnap = r => JSON.stringify([r.g.position.toArray(), r.g.rotation.toArray().slice(0, 3),
+  ...['body', 'arm', 'elbow', 'wrist', 'weaponSocket', 'shieldArm'].flatMap(k => [r[k].rotation.toArray().slice(0, 3), r[k].position.toArray()])]
+  .flat().map(n => +n.toFixed(6)));
+
+test('hero weapon attacks play the swing arc with hitstop and a single contact, then rest', () => {
+  for (const blow of ['slash', 'pierce', 'blunt', null]) for (const result of ['hit', 'miss']) {
+    const r = knight(), q = createActionQueue();
+    r.g.position.set(2, 0, 3);
+    const rest = rigSnap(r);
+    assert.ok(enqueueAction(q, {kind: 'attack', attack: 'weapon', blow, result, dir: [0, 1]}));
+    let contacts = 0, trail = 0, maxArm = 0, held = 0, lastU = -1, t = 0;
+    while (t < 1) {
+      const dt = 1 / 120; t += dt;
+      clearActionPose(r, q);
+      // The frame loop's walk cycle sets absolute values underneath the offsets.
+      r.legs.forEach(l => l.rotation.x = 0);
+      const state = updateActions(r, q, dt);
+      for (const n of JSON.parse(rigSnap(r))) assert.ok(Number.isFinite(n));
+      if (q.swing) {
+        contacts += q.swing.contact; trail += q.swing.trail;
+        if (q.swing.u === lastU) held++;
+        lastU = q.swing.u;
+        maxArm = Math.max(maxArm, Math.abs(r.arm.rotation.x));
+      }
+      if (state === 'idle') break;
+    }
+    assert.equal(contacts, result === 'hit' ? 1 : 0, `${blow} ${result} contacts`);
+    assert.ok(trail > 3, `${blow} trail frames ${trail}`);
+    assert.ok(maxArm > 1, `${blow} arm ${maxArm}`);
+    // 70 ms at 120 Hz holds about eight frames on a hit; a miss never stalls.
+    assert.ok(result === 'hit' ? held >= 6 : held === 0, `${blow} ${result} held ${held}`);
+    assert.ok(Math.abs(t - (result === 'hit' ? .57 : .5)) < .02, `${blow} ${result} length ${t}`);
+    assert.equal(q.swing, null);
+    assert.equal(rigSnap(r), rest, `${blow} ${result} back at rest`);
+  }
+});
+
+test('a monster weapon attack keeps the generic arm wave, and swings count in hold-back time', () => {
+  const d = createCreature({name: 'dwarf'}), q = createActionQueue();
+  enqueueAction(q, {kind: 'attack', attack: 'weapon', blow: 'slash', result: 'hit', dir: [1, 0]});
+  clearActionPose(d, q); updateActions(d, q, .01);
+  assert.equal(q.current.swing, undefined);
+  assert.equal(q.swing, null);
+  const h = knight(), hq = createActionQueue();
+  enqueueAction(hq, {kind: 'attack', attack: 'weapon', result: 'hit', dir: [1, 0]});
+  enqueueAction(hq, {kind: 'die', dir: [1, 0]});
+  clearActionPose(h, hq); updateActions(h, hq, .01);
+  assert.ok(hq.current.swing);
+  assert.ok(Math.abs(remainingTime(hq) - (.57 - .01 + ACTION_TIME.die)) < 1e-9);
+});
