@@ -175,3 +175,41 @@ test('a magic lamp hums only once the hero knows it for one', () => {
   assert.equal(syncWandAura(item, lamp('lamp')), null);
   assert.equal(item.children.length, 0);
 });
+
+test('a crystal ball swirls only once the hero knows it for one, and stays inside the glass', () => {
+  const ball = label => ({class: TOOL_CLASS, name: 'crystal ball', appearance: 'glass orb', label});
+  assert.equal(magicAuraKind(ball('crystal ball')), 'crystal ball');
+  assert.equal(magicAuraKind(ball('crystal ball (0:5)')), 'crystal ball');
+  assert.equal(magicAuraKind(ball('2 crystal balls')), 'crystal ball');
+  assert.equal(magicAuraKind(ball('crystal ball named seer')), 'crystal ball');
+  assert.equal(magicAuraKind(ball('glass orb')), null);
+  assert.equal(magicAuraKind(ball('glass orb (0:5)')), null);
+  assert.equal(magicAuraKind(ball('glass orb called crystal ball')), null);
+  assert.equal(magicAuraKind(ball('glass orb named crystal ball')), null);
+  assert.equal(magicAuraKind({class: WAND_CLASS, label: 'crystal ball'}), null);
+  const item = new THREE.Group();
+  assert.equal(syncWandAura(item, ball('glass orb'), 'k'), null);
+  const swirl = syncWandAura(item, ball('crystal ball'), 'k');
+  assert.equal(swirl.userData.kind, 'crystal ball');
+  assert.equal(swirl.children.length, 2);
+  // Every particle stays well inside the orb (centre y .14, radius .105) and the colours are real.
+  const colors = swirl.children[0].geometry.attributes.aColor.array;
+  assert.ok(Array.from(colors).every(v => Number.isFinite(v) && v >= 0 && v <= 1));
+  let seenVision = 0, frames = 0;
+  for (let t = 0; t < 15; t += .13, frames++) {
+    swirl.userData.update(t);
+    const [mist, vision] = swirl.children.map(o => o.geometry.attributes);
+    for (const layer of [mist, vision]) for (let i = 0; i < layer.position.count; i++) {
+      const [x, y, z] = [layer.position.getX(i), layer.position.getY(i), layer.position.getZ(i)];
+      assert.ok(Math.hypot(x, y - .14, z) < .09, `outside the glass ${x},${y},${z}`);
+      assert.ok(Number.isFinite(layer.aAlpha.getX(i)) && layer.aAlpha.getX(i) >= 0 && layer.aSize.getX(i) > 0);
+    }
+    if (Array.from(vision.aAlpha.array).some(a => a > .3)) seenVision++;
+  }
+  assert.ok(seenVision > frames * .2 && seenVision < frames, `visions glint now and then (${seenVision}/${frames})`);
+  // The mist really turns: one particle's angle moves steadily over a short span.
+  const at = t => { swirl.userData.update(t); const p = swirl.children[0].geometry.attributes.position; return Math.atan2(p.getZ(3), p.getX(3)); };
+  assert.notEqual(at(1), at(1.2));
+  assert.equal(syncWandAura(item, ball('glass orb')), null, 'forgetting stops the swirl');
+  assert.equal(item.children.length, 0);
+});
