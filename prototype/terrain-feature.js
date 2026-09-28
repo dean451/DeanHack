@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {createDrawbridge} from './drawbridge.js';
+import {createBog} from './bog.js';
 
 // Non-trap `feature` cells (ice, bog, drawbridges, ice walls, clouds, open air). The bridge
 // sends them as generic features, so the kind comes from the map symbol and its
@@ -38,15 +39,10 @@ export function createTerrainFeature(kind,seed=0){
   const frost=mat({color:0xf2fbff,roughness:.9});
   for(let i=0;i<10;i++)flat(new THREE.CircleGeometry(.012+rand(i+60)*.03,8),frost,.0192,(rand(i+70)-.5)*.86,(rand(i+80)-.5)*.86);
  }else if(kind==='bog'){
-  // Muddy swamp: a lumpy mud bed with dark standing puddles, reeds and a bubble.
-  const mud=mat({color:0x3b3a22,roughness:.95}),slick=mat({color:0x1d2418,roughness:.12,metalness:.1});
-  const bed=add(new THREE.CylinderGeometry(.48,.49,.03,20),mud,0,.015,0);bed.scale.z=.97;bed.castShadow=false;
-  for(let i=0;i<3;i++){const p=flat(new THREE.CircleGeometry(.1+rand(i)*.1,16),slick,.032,(rand(i+5)-.5)*.5,(rand(i+9)-.5)*.5);p.scale.y=.6+rand(i+13)*.4;}
-  const reed=mat({color:0x566b2e,roughness:.8}),head=mat({color:0x4a2e1a,roughness:.9});
-  for(let i=0;i<7;i++){const a=rand(i+20)*Math.PI*2,r=.25+rand(i+30)*.18,h=.3+rand(i+40)*.25,x=Math.cos(a)*r,z=Math.sin(a)*r;
-   const stem=add(new THREE.CylinderGeometry(.006,.01,h,5),reed,x,h/2+.03,z);stem.rotation.set((rand(i+50)-.5)*.3,0,(rand(i+60)-.5)*.3);
-   if(i%2===0)add(new THREE.CapsuleGeometry(.02,.07,3,6),head,0,h/2-.02,0,stem);}
-  add(new THREE.SphereGeometry(.035,10,6,0,Math.PI*2,0,Math.PI/2),slick,(rand(90)-.5)*.3,.03,(rand(91)-.5)*.3);
+  // The bog is a merged, weathered model of its own (bog.js).
+  const bog=createBog(seed);g.add(bog);
+  g.userData.dispose=()=>bog.userData.dispose();
+  return g;
  }else if(kind==='bridge-down'||kind==='bridge-up'){
   // Drawbridges are merged, weathered models of their own (drawbridge.js).
   const bridge=createDrawbridge(kind==='bridge-up',seed);g.add(bridge);
