@@ -731,3 +731,25 @@ test('cram, K- and C-rations get their own merged models instead of the food-rat
  // Tripe keeps its own meat model.
  assert(createGroundModel({name:'tripe ration',class:7}).children.every(p=>!p.userData.part));
 });
+
+test('whistles are a merged pea whistle with a lanyard, the same for tin and magic',()=>{
+ const shape=name=>{
+  const model=createGroundModel({name,class:6});
+  assert.deepEqual(model.children.map(p=>p.userData.part),['whistle-plate','whistle-matte']);
+  let verts=0;
+  for(const part of model.children){
+   const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+   for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x),name);
+   for(const x of color.array)assert(x>=0&&x<=1,name);
+  }
+  assert(verts<20000,`${name} has ${verts} vertices`);
+  model.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(model,true);
+  assert(Math.abs(b.min.y)<1e-6&&b.max.y<.05,`${name} lies flat: ${b.min.y}..${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.2,`${name} fits its tile`);
+  const out=model.children.map(p=>Array.from(p.geometry.attributes.position.array));
+  model.userData.dispose();
+  return out;
+ };
+ assert.deepEqual(shape('tin whistle'),shape('magic whistle'));
+});
