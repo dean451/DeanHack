@@ -7,6 +7,10 @@
 // or the hero when holding), so they only ever show what the map already shows; while
 // hallucinating they drift with the displayed glyph.
 //
+// Once the strands have gripped, a drop of glue swells at the low point of each strand and
+// falls to the floor, staggered so they don't drip in step; no new drops form once the hold
+// breaks, but one already falling lands.
+//
 // holdShape() is pure, so it can be tested without a renderer; createHold() tracks the frame
 // and draws it with one instanced bead mesh.
 
@@ -18,6 +22,8 @@ export const GRIP_MS = 260, LET_GO_MS = 380, TUG_MS = 900;
 // Strands, beads per strand, attach heights at the hero and the other end (tiles), sag.
 export const STRANDS = 3, STRAND_BEADS = 12, HERO_Y = .34, OTHER_Y = .3, SAG = .13;
 export const HOLD_TINT = 0xb8bfa2;
+// A drip cycle per strand (ms): the drop swells for DRIP_SWELL of it, then falls. Drop radius.
+export const DRIP_MS = 1700, DRIP_SWELL = .82, DRIP_R = .013, DRIP_FLOOR = .012;
 // How far the strands lean toward the glyph colour, and how fast a new tint eases in (1/s).
 export const TINT_MIX = .5, TINT_RATE = 6;
 // The curses glyph colours (CLR_BLACK..CLR_WHITE); 8 is NO_COLOR.
@@ -46,7 +52,8 @@ export function holdTint(cells, x, z) {
 
 // The hold at time t (ms). h is {dx, dz, holding, startAt, endAt?}: the other tile relative to
 // the hero's tile. Returns null before startAt and once fully let go, else {beads:[{x,y,z,r}],
-// grip, tug}. Positions are tiles relative to the hero's tile, y up from the floor.
+// drips:[{x,y,z,r}], grip, tug}. Positions are tiles relative to the hero's tile, y up from
+// the floor.
 export function holdShape(h, t) {
   if (!h || !Number.isFinite(h.startAt) || !(t >= h.startAt)) return null;
   if (!Number.isFinite(h.dx) || !Number.isFinite(h.dz)) return null;
@@ -67,7 +74,7 @@ export function holdShape(h, t) {
   // Strands meet the other tile a little short of its centre (on the monster's body).
   const ex = h.dx - ux * .18, ez = h.dz - uz * .18;
   const sx = ux * .12, sz = uz * .12;
-  const beads = [];
+  const beads = [], drips = [];
   const reach = smooth(age / GRIP_MS);
   const shown = Math.max(0, Math.ceil(STRAND_BEADS * reach));
   for (let s = 0; s < STRANDS; s++) {
@@ -86,8 +93,34 @@ export function holdShape(h, t) {
       const end = Math.abs(2 * k - 1) ** 3;
       beads.push({x, y, z, r: (.011 + .012 * end) * (.35 + .65 * grip)});
     }
+    const drip = dripAt(h, age, t, s);
+    if (drip) {
+      // Hanging from the strand's low point (k = .5), then falling straight down from there.
+      const x = sx + (ex - sx) * .5 + px, z = sz + (ez - sz) * .5 + pz;
+      const low = HERO_Y + lift + (OTHER_Y - HERO_Y) * .5 - sag;
+      const hang = low - drip.r * .6;
+      const y = drip.fall > 0 ? hang - (hang - DRIP_FLOOR) * drip.fall * drip.fall : hang;
+      drips.push({x, y, z, r: drip.r});
+    }
   }
-  return {beads, grip, tug};
+  return {beads, drips, grip, tug};
+}
+
+// Strand s's drop at hold age `age`: {r, fall} (fall 0 while swelling, then 0→1 as it drops),
+// or null. Drops start once the strands have gripped; a drop still swelling when the hold
+// breaks is gone, one already falling finishes its fall.
+function dripAt(h, age, t, s) {
+  const from = age - GRIP_MS - s * DRIP_MS / STRANDS * 1.37;
+  if (!(from > 0)) return null;
+  const cycle = Math.floor(from / DRIP_MS), ph = (from - cycle * DRIP_MS) / DRIP_MS;
+  if (Number.isFinite(h.endAt)) {
+    // When did this cycle's fall start? Only drops that let go before the break keep going.
+    const fallAt = t - (ph - DRIP_SWELL) * DRIP_MS;
+    if (ph < DRIP_SWELL || fallAt > h.endAt) return null;
+  }
+  if (ph < DRIP_SWELL) return {r: DRIP_R * smooth(ph / DRIP_SWELL), fall: 0};
+  const fall = (ph - DRIP_SWELL) / (1 - DRIP_SWELL);
+  return {r: DRIP_R * (1 - .25 * fall), fall};
 }
 
 // The hold from a frame's player: {dx, dz, holding} or null.
@@ -99,13 +132,13 @@ export function holdOf(player) {
 }
 
 // Tracks player.stuck across frames. update(dt, origin, {skip}) draws the strands and returns
-// {held, beads}; skip hides them while grab.js's coil is showing the same hold. The material
-// eases toward the sticky end's tint (see holdTint).
+// {held, beads, drips}; skip hides them while grab.js's coil is showing the same hold. The
+// material eases toward the sticky end's tint (see holdTint).
 export function createHold(THREE, parent) {
   const geo = new THREE.SphereGeometry(1, 8, 6);
   const mat = new THREE.MeshStandardMaterial({color: HOLD_TINT, roughness: .3, metalness: 0,
     transparent: true, opacity: .85});
-  const max = STRANDS * STRAND_BEADS;
+  const max = STRANDS * (STRAND_BEADS + 1);
   const mesh = new THREE.InstancedMesh(geo, mat, max);
   mesh.count = 0; mesh.frustumCulled = false; mesh.userData.part = 'hold-strands';
   parent.add(mesh);
@@ -143,6 +176,7 @@ export function createHold(THREE, parent) {
   }
 
   function update(dt, origin, {skip = false} = {}) {
+    let drips = 0;
     now += (dt || 0) * 1000;
     const sh = h ? holdShape(h, now) : null;
     if (h && !sh && Number.isFinite(h.endAt) && now >= h.endAt) h = null;
@@ -156,10 +190,17 @@ export function createHold(THREE, parent) {
         p.set(ox + b.x, b.y, oz + b.z); s.setScalar(b.r);
         mesh.setMatrixAt(n++, m4.compose(p, q, s));
       }
+      const strandBeads = n;
+      for (const d of sh.drips) {
+        if (n >= max || !(d.r > 1e-4)) continue;
+        p.set(ox + d.x, d.y, oz + d.z); s.set(d.r * .9, d.r * 1.25, d.r * .9);
+        mesh.setMatrixAt(n++, m4.compose(p, q, s));
+      }
+      drips = n - strandBeads;
     }
     mesh.count = n;
     mesh.instanceMatrix.needsUpdate = true;
-    return {held: !!sh, beads: n};
+    return {held: !!sh, beads: n - drips, drips};
   }
 
   const clear = () => { h = null; hero = null; tint = HOLD_TINT; mat.color.setHex(HOLD_TINT); update(0); };
