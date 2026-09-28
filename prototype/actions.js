@@ -177,3 +177,43 @@ export function updateActions(actor, q, dt) {
   }
   return a.kind;
 }
+
+// The live actor standing at map cell (x, z). Actors are keyed "x,z:glyph" by the last map
+// frame; a monster that stepped and struck in the same turn is still under its old key, so
+// fall back to the nearest one within a step and a half (same species when the event names
+// one). `origin` turns map cells into the scene coordinates of `a.target`.
+export function findActor(actors, x, z, {name = null, origin = {x: 0, z: 0}} = {}) {
+  if (!actors || !Number.isFinite(x) || !Number.isFinite(z)) return null;
+  const prefix = `${x},${z}:`;
+  for (const [key, a] of actors) if (key.startsWith(prefix) && !a.actions?.dead) return a;
+  const species = typeof name === 'string' ? name.toLowerCase() : null;
+  let best = null, bestD = 1.5;
+  for (const a of actors.values()) {
+    const p = a.target ?? a.g?.position;
+    if (!p || a.actions?.dead || (species && a.species && a.species !== species)) continue;
+    const d = Math.hypot(p.x + origin.x - x, p.z + origin.z - z);
+    if (d < bestD) { bestD = d; best = a; }
+  }
+  return best;
+}
+
+const queueOf = actor => actor ? (actor.actions ??= createActionQueue()) : null;
+
+// Queues a normalised combat event on both sides. `find(side)` returns the actor for a seen
+// monster side; `hero` is used for the hero's side. Returns how many actions were queued.
+export function queueCombat(c, {hero, find}) {
+  const {attacker, defender} = actionsForCombat(c);
+  const who = s => s?.you ? hero : s?.seen ? find(s) : null;
+  let n = 0;
+  if (attacker && enqueueAction(queueOf(who(c.attacker)), attacker)) n++;
+  const q = defender && queueOf(who(c.defender));
+  if (q && enqueueAction(q, defender)) { q.lastBlow = defender.dir; n++; }
+  return n;
+}
+
+// Queues a death (deathAction() from combat-events.js). The actor topples away from the last
+// blow it took, if one was seen.
+export function queueDeath(d, find) {
+  const q = d && queueOf(find(d));
+  return !!q && enqueueAction(q, {kind: 'die', dir: q.lastBlow ?? null});
+}

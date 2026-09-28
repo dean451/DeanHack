@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {ACTION_TIME, actionsForCombat, createActionQueue, enqueueAction, updateActions,
-  clearActionPose, holdBackMs, actionState, remainingTime} from './actions.js';
+  clearActionPose, holdBackMs, actionState, remainingTime, findActor, queueCombat, queueDeath} from './actions.js';
 
 // Records every transform the action layer can touch.
 const snap = a => JSON.stringify([a.g.position.toArray(), a.g.rotation.toArray().slice(0, 3), a.g.scale.toArray(),
@@ -103,4 +103,53 @@ test('a backlog plays faster so the actor keeps up', () => {
   const states = run(a, q, alone);
   assert.equal(states.at(-1), 'idle');
   assert.equal(enqueueAction(q, {kind: 'dance'}), false);
+});
+
+test('events find the right live actor, even one keyed by last frame\'s cell', () => {
+  const jackal = {...hero(), species: 'jackal', target: new THREE.Vector3(2, 0, 0)};
+  const newt = {...hero(), species: 'newt', target: new THREE.Vector3(3, 0, 1)};
+  const actors = new Map([['12,10:5', jackal], ['13,11:9', newt]]), origin = {x: 10, z: 10};
+  assert.equal(findActor(actors, 12, 10, {origin}), jackal);
+  assert.equal(findActor(actors, 2, 10, {origin}), null, 'no prefix clash between 2,10 and 12,10');
+  // The jackal stepped to 13,10 and bit before the next frame: nearest jackal, not the newt.
+  assert.equal(findActor(actors, 13, 10, {name: 'jackal', origin}), jackal);
+  assert.equal(findActor(actors, 13, 10, {name: 'newt', origin}), newt);
+  assert.equal(findActor(actors, 20, 20, {origin}), null);
+  jackal.actions = createActionQueue(); enqueueAction(jackal.actions, {kind: 'die'});
+  assert.equal(findActor(actors, 12, 10, {name: 'jackal', origin}), null, 'a dying actor takes no new events');
+});
+
+test('live wiring: a fight plays on both sides, the death topples away from the blow and the map waits', () => {
+  const you = hero(); you.actions = createActionQueue();
+  const jackal = createCreature({name: 'jackal'});
+  jackal.g.position.set(1, 0, 0); jackal.target = jackal.g.position.clone(); jackal.species = 'jackal';
+  const actors = new Map([['11,10:3', jackal]]), origin = {x: 10, z: 10};
+  const find = s => findActor(actors, s.x, s.z, {name: s.name, origin});
+  const ev = (attacker, defender, result) => ({attack: 'weapon', result, blow: 'slash', attacker, defender,
+    dir: [Math.sign(defender.x - attacker.x), Math.sign(defender.z - attacker.z)]});
+  const h = {you: true, x: 10, z: 10}, j = {seen: true, x: 11, z: 10, name: 'jackal'};
+  assert.equal(queueCombat(ev(j, h, 'miss'), {hero: you, find}), 1);
+  assert.equal(queueCombat(ev(h, j, 'hit'), {hero: you, find}), 2);
+  assert.ok(queueDeath({x: 11, z: 10, name: 'jackal'}, find));
+  assert.deepEqual(jackal.actions.queue.map(a => a.kind), ['attack', 'hit', 'die']);
+  assert.deepEqual(jackal.actions.queue[2].dir, [1, 0], 'dies away from the hero');
+  const wait = holdBackMs([you.actions, jackal.actions]);
+  assert.ok(wait > 700 && wait <= 1000, `hold ${wait}`); // three queued play at 2×
+  // The live loop: clear, frame-loop rest pose, update. Sample until everything settles.
+  let maxX = 0;
+  for (let t = 0; t < 3; t += 1 / 60) {
+    for (const a of [you, jackal]) {
+      clearActionPose(a, a.actions);
+      a.g.position.lerp(a.target ?? new THREE.Vector3(), .2);
+      updateActions(a, a.actions, 1 / 60);
+      for (const v of [...a.g.position.toArray(), ...a.g.rotation.toArray().slice(0, 3)]) assert.ok(Number.isFinite(v));
+    }
+    maxX = Math.max(maxX, jackal.g.position.x);
+  }
+  assert.ok(maxX > 1.1 && maxX < 1.35, `knocked back ${maxX}`);
+  assert.equal(actionState(you.actions), 'idle');
+  assert.ok(Math.abs(you.g.position.x) < 1e-6 && Math.abs(you.g.position.z) < 1e-6, 'hero back at rest');
+  assert.ok(Math.abs(you.g.rotation.y - Math.PI / 2) < 1e-6, 'hero left facing the jackal');
+  assert.ok(jackal.actions.finished && Math.abs(jackal.g.rotation.z) > 1.2);
+  assert.equal(holdBackMs([you.actions, jackal.actions]), 0);
 });
