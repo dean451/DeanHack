@@ -1,3 +1,5 @@
+// gait.test.js runs from here until it can join the package.json list (#144 holds package.json)
+import './gait.test.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCreature} from './creatures.js';
