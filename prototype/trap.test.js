@@ -77,3 +77,24 @@ test('the bear trap is one rusted, vertex-coloured mesh with teeth, springs and 
  assert(bounds.max.z>.4,'chain should run to a stake near the tile edge');
  console.log(`bear trap: ${position.count} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
 });
+
+test('drawbridges are merged, finite models that stay in their tile and free their resources',async()=>{
+ const {createTerrainFeature}=await import('./terrain-feature.js');
+ for(const kind of ['bridge-down','bridge-up'])for(const seed of [0,7,123]){
+  const model=createTerrainFeature(kind,seed);
+  const bounds=new THREE.Box3().setFromObject(model);
+  for(const v of [bounds.min.x,bounds.max.x,bounds.min.z,bounds.max.z])assert(Math.abs(v)<=.5,`${kind} leaves its tile`);
+  assert(bounds.min.y>=0&&bounds.max.y<=1.1,`${kind} has a bad height`);
+  if(kind==='bridge-up')assert(bounds.max.y>.95);else assert(bounds.max.y<.15);
+  const meshes=[],geometries=new Set(),materials=new Set();
+  model.traverse(part=>{if(part.geometry){
+   meshes.push(part);geometries.add(part.geometry);materials.add(part.material);
+   for(const key of ['position','normal','color'])for(const value of part.geometry.attributes[key]?.array??[])assert(Number.isFinite(value),`${kind} has a bad ${key}`);
+  }});
+  assert.deepEqual(meshes.map(m=>m.userData.part).sort(),['iron','water','wood']);
+  let freed=0;
+  for(const item of [...geometries,...materials])item.addEventListener('dispose',()=>freed++);
+  model.userData.dispose();
+  assert.equal(freed,geometries.size+materials.size,`${kind} leaks resources`);
+ }
+});

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {createDrawbridge} from './drawbridge.js';
 
 // Non-trap `feature` cells (ice, bog, drawbridges, ice walls, clouds, open air). The bridge
 // sends them as generic features, so the kind comes from the map symbol and its
@@ -23,9 +23,7 @@ export function createTerrainFeature(kind,seed=0){
  const mat=(o,Type=THREE.MeshStandardMaterial)=>{const m=new Type(o);materials.push(m);return m;};
  const add=(geo,m,x=0,y=0,z=0,parent=g)=>{geometries.push(geo);const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;parent.add(o);return o;};
  const flat=(geo,m,y,x=0,z=0)=>{const o=add(geo,m,x,y,z);o.rotation.x=-Math.PI/2;o.castShadow=false;return o;};
- const block=(w,h,d,m,x,y,z,r=.01,parent=g)=>add(new RoundedBoxGeometry(w,h,d,2,Math.min(r,w/2,h/2,d/2)),m,x,y,z,parent);
  const rand=(i)=>{const s=Math.sin(seed*12.9898+i*78.233)*43758.5453;return s-Math.floor(s);};
- const iron=mat({color:0x3c3f42,metalness:.7,roughness:.45});
 
  if(kind==='ice'){
   // A glassy sheet over the floor with hairline cracks and frost specks.
@@ -49,22 +47,11 @@ export function createTerrainFeature(kind,seed=0){
    const stem=add(new THREE.CylinderGeometry(.006,.01,h,5),reed,x,h/2+.03,z);stem.rotation.set((rand(i+50)-.5)*.3,0,(rand(i+60)-.5)*.3);
    if(i%2===0)add(new THREE.CapsuleGeometry(.02,.07,3,6),head,0,h/2-.02,0,stem);}
   add(new THREE.SphereGeometry(.035,10,6,0,Math.PI*2,0,Math.PI/2),slick,(rand(90)-.5)*.3,.03,(rand(91)-.5)*.3);
- }else if(kind==='bridge-down'){
-  // Lowered drawbridge: heavy planks running across the moat with iron bands and rivets.
-  flat(new THREE.PlaneGeometry(.98,.98),mat({color:0x0c161c,roughness:.3}),.002);
-  const woods=[0x6b4a2e,0x5e4127,0x74522f];
-  for(let i=0;i<5;i++)block(.17,.06,1,mat({color:woods[i%3],roughness:.9}),(i-2)*.185,.04,0,.012);
-  for(const z of [-.36,0,.36]){block(.94,.012,.06,iron,0,.076,z,.004);for(let i=0;i<5;i++)add(new THREE.SphereGeometry(.013,6,4),iron,(i-2)*.185,.083,z);}
-  for(const x of [-.47,.47])for(const z of [-.44,.44])add(new THREE.TorusGeometry(.035,.01,5,10),iron,x,.08,z).rotation.y=Math.PI/2;
- }else if(kind==='bridge-up'){
-  // Raised drawbridge: the bridge stands as a banded plank wall over dark moat water.
-  flat(new THREE.PlaneGeometry(.98,.98),mat({color:0x0c161c,roughness:.3}),.002);
-  const panel=new THREE.Group();panel.position.z=-.1;g.add(panel);
-  for(let i=0;i<5;i++)block(.185,1.02,.1,mat({color:[0x6b4a2e,0x5e4127,0x74522f][i%3],roughness:.9}),(i-2)*.188,.51,0,.012,panel);
-  for(const y of [.14,.52,.9])block(.96,.06,.02,iron,0,y,.06,.005,panel);
-  for(const y of [.14,.52,.9])for(let i=0;i<5;i++)add(new THREE.SphereGeometry(.014,6,4),iron,(i-2)*.188,y,.075,panel);
-  // Chains hang from the top corners toward the (unseen) gatehouse.
-  for(const x of [-.4,.4])for(let i=0;i<5;i++){const link=add(new THREE.TorusGeometry(.028,.008,5,10),iron,x,1.0-i*.05,.1+i*.035,panel);link.rotation.y=i%2?Math.PI/2:0;link.rotation.x=.6;}
+ }else if(kind==='bridge-down'||kind==='bridge-up'){
+  // Drawbridges are merged, weathered models of their own (drawbridge.js).
+  const bridge=createDrawbridge(kind==='bridge-up',seed);g.add(bridge);
+  g.userData.dispose=()=>bridge.userData.dispose();
+  return g;
  }else if(kind==='ice-wall'||kind==='crystal-wall'){
   // A faceted block of ice filling the tile, with a frosted core showing through.
   const crystal=kind==='crystal-wall';
