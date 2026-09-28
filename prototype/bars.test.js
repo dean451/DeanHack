@@ -54,3 +54,30 @@ test('doors are finite, stay in their tile, merge into wood, iron and stone and 
  }
  assert.deepEqual([...planks].sort(),[5,6]);
 });
+
+// The torch sconce shares this file because package.json is held by another open PR.
+test('torch sconces are finite, sit on the wall top, merge into wood and iron and put the flame on the torch',async()=>{
+ const {createTorchSconce,WALL_TOP,TORCH_FLAME_Y}=await import('./torch.js');
+ const prongs=new Set();
+ for(let seed=0;seed<40;seed++){
+  const sconce=createTorchSconce(seed*43+seed*seed*71);
+  sconce.updateMatrixWorld(true);
+  const meshes=sconce.children.filter(o=>o.isMesh);
+  assert.deepEqual(meshes.map(m=>m.userData.part).sort(),['iron','wood']);
+  const box=new THREE.Box3().setFromObject(sconce);
+  for(const mesh of meshes){
+   for(const name of ['position','normal','color']){
+    const a=mesh.geometry.attributes[name];assert.ok(a,`${name} present`);
+    for(const value of a.array)assert.ok(Number.isFinite(value),`${name} finite`);
+   }
+   for(const value of mesh.geometry.attributes.color.array)assert.ok(value>=0&&value<=1);
+  }
+  assert.ok(box.min.y>=WALL_TOP-.002&&box.max.y<1,`y ${box.min.y}..${box.max.y}`);
+  assert.ok(Math.max(-box.min.x,box.max.x,-box.min.z,box.max.z)<.13,'stays near the tile centre');
+  const flame=sconce.userData.flame;
+  assert.ok(Math.abs(flame.y-TORCH_FLAME_Y)<.01&&Math.hypot(flame.x,flame.z)<.02);
+  prongs.add(sconce.userData.prongs);
+  sconce.userData.dispose();
+ }
+ assert.ok(prongs.size>1,'the prong count varies by seed');
+});
