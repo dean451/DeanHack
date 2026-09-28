@@ -289,3 +289,76 @@ test('hits play the reaction for their blow: its length, a distinct pose, then r
   assert.equal(mine('weapon'), true);
   assert.equal(mine('kick'), false);
 });
+
+test('a flinch waits for its blow: the prey jerks when the pounce lands, the jackal at the blade', async () => {
+  const {contactTime, MAX_WAIT, STRIKE_U} = await import('./actions.js');
+  const {createHitFx} = await import('./hit-fx.js');
+  const {catLength} = await import('./cats.js');
+  const {CONTACT_U, SWING_TIME} = await import('./swing.js');
+  // One fight: attacker and defender stepped together the way live.js does, recording the time
+  // the defender first leaves rest and the time the impact spray goes off.
+  function fight(attacker, defender, c, you = null) {
+    const actors = [attacker, defender];
+    const find = s => s.name === attacker.species ? attacker : defender;
+    assert.equal(queueCombat(c, {hero: you, find}), 2);
+    const rest = snap(defender), fx = createHitFx(THREE, new THREE.Group());
+    let moved = null, sprayed = null, t = 0;
+    const spray = fx.burst.burst;
+    fx.burst.burst = (...args) => { sprayed ??= t; return spray(...args); };
+    for (; t < 2.5; t += 1 / 120) {
+      for (const a of actors) { clearActionPose(a, a.actions); updateActions(a, a.actions, 1 / 120); }
+      fx.update(actors, 1 / 120);
+      for (const v of [defender.g.position.x, defender.g.rotation.y, defender.g.scale.y]) assert.ok(Number.isFinite(v));
+      if (moved === null && snap(defender) !== rest) moved = t;
+    }
+    for (const a of actors) clearActionPose(a, a.actions);
+    assert.equal(snap(defender), rest, 'defender back at rest');
+    return {moved, sprayed, hit: defender.actions};
+  }
+  const pet = (name, x) => { const a = createCreature({name}); a.species = name; a.g.position.set(x, 0, 0); return a; };
+  const side = (m, x) => ({seen: true, name: m.species, x, z: 0});
+
+  // A kitten pounces on a rat: the rat holds still through the crouch and leap.
+  const kitten = pet('kitten', 0), rat = pet('sewer rat', 1);
+  const pounce = {attack: 'bite', result: 'hit', dir: [1, 0], attacker: side(kitten, 0), defender: side(rat, 1)};
+  const lands = catLength('pounce', .75) * .58;
+  const p = fight(kitten, rat, pounce);
+  assert.equal(kitten.actions.current, null);
+  assert.ok(Math.abs(p.moved - lands) < .03, `rat flinches at ${p.moved}, pounce lands at ${lands}`);
+  assert.ok(Math.abs(p.sprayed - lands) < .03, `spray at ${p.sprayed}`);
+
+  // A jackal bites a jackal: a short wait for the strike, not a pounce's.
+  const j1 = pet('jackal', 0), j2 = pet('jackal', 1);
+  j2.species = 'jackal2';
+  const bite = {attack: 'bite', result: 'hit', dir: [1, 0], attacker: side(j1, 0), defender: side(j2, 1)};
+  assert.ok(Math.abs(fight(j1, j2, bite).moved - ACTION_TIME.attack * STRIKE_U) < .03);
+
+  // The hero's slash: the jackal flinches when the blade makes contact.
+  const you = knight(), jackal = pet('jackal', 1);
+  you.species = 'hero';
+  const slash = {attack: 'weapon', blow: 'slash', result: 'hit', dir: [1, 0], attacker: {you: true}, defender: side(jackal, 1)};
+  const s = fight(you, jackal, slash, you);
+  assert.ok(Math.abs(s.moved - CONTACT_U.slash * SWING_TIME) < .03, `jackal flinches at ${s.moved}`);
+  assert.equal(contactTime(you, {kind: 'attack', attack: 'weapon', blow: 'slash'}), CONTACT_U.slash * SWING_TIME);
+  assert.equal(contactTime(null, {kind: 'hit'}), 0);
+
+  // A defender already busy longer than the wind-up doesn't wait on top of that; an attacker
+  // with a backlog pushes the flinch back, but never past MAX_WAIT.
+  const busy = pet('jackal', 1), k2 = pet('kitten', 0);
+  busy.species = 'newt';
+  busy.actions = createActionQueue();
+  enqueueAction(busy.actions, {kind: 'attack', attack: 'bite', result: 'miss', dir: [-1, 0]});
+  enqueueAction(busy.actions, {kind: 'attack', attack: 'bite', result: 'miss', dir: [-1, 0]});
+  queueCombat({...pounce, attacker: side(k2, 0), defender: side(busy, 1)}, {hero: null, find: x => x.name === 'kitten' ? k2 : busy});
+  assert.equal(busy.actions.queue.at(-1).wait, undefined, 'busy longer than the pounce takes to land');
+  const late = pet('kitten', 0), prey = pet('sewer rat', 1);
+  late.actions = createActionQueue();
+  for (let i = 0; i < 4; i++) enqueueAction(late.actions, {kind: 'attack', attack: 'claw', result: 'miss', dir: [1, 0]});
+  queueCombat({...pounce, attacker: side(late, 0), defender: side(prey, 1)}, {hero: null, find: x => x.name === 'kitten' ? late : prey});
+  const w = prey.actions.queue[0].wait;
+  assert.ok(w > .3 && w <= MAX_WAIT + 1e-9, `capped wait ${w}`);
+  // Unseen attackers and misses add nothing.
+  const lone = pet('sewer rat', 1);
+  queueCombat({attack: 'bite', result: 'hit', dir: [1, 0], attacker: {seen: false}, defender: side(lone, 1)}, {hero: null, find: () => lone});
+  assert.equal(lone.actions.queue[0].wait, undefined);
+});

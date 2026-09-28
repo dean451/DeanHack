@@ -19,6 +19,12 @@ import {catMove, catSize, catLength, catAttackPose} from './cats.js';
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9};
 // Wait no longer than this for a death to play before the map (and its corpse) goes on.
 export const MAX_HOLD_MS = 1000;
+// When a generic monster attack lands (monster-attacks.js strikes at u≈.44), and the most a
+// defender's flinch waits for the blow that causes it.
+export const STRIKE_U = .44;
+export const MAX_WAIT = .8;
+// Where in a cat's move the paws reach the target: the pounce lands, the swipe rakes across.
+const CAT_CONTACT_U = {pounce: .58, swipe: .47};
 
 const TAU = Math.PI * 2;
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
@@ -66,10 +72,20 @@ export function enqueueAction(q, action) {
 // Whether this actor plays the full swing for this action.
 const swings = (actor, a) => a.kind === 'attack' && a.attack === 'weapon' && !!actor?.elbow;
 // Seconds an action lasts (a swing is only known to be one once it starts; a death by its style).
+// A hit that waits for its blow to land (`wait`) holds still first.
 const actionLength = a => a.swing ? swingLength(a.result)
   : a.cat ? catLength(a.cat, a.size)
   : a.kind === 'die' ? DEATH_TIME[a.style] ?? ACTION_TIME.die
-  : a.kind === 'hit' ? HIT_TIME[a.style ?? hitStyle(a.attack, a.blow)] ?? ACTION_TIME.hit : ACTION_TIME[a.kind];
+  : a.kind === 'hit' ? (a.wait ?? 0) + (HIT_TIME[a.style ?? hitStyle(a.attack, a.blow)] ?? ACTION_TIME.hit) : ACTION_TIME[a.kind];
+
+// Seconds from the start of an attack action until it reaches its target: the blade's contact
+// for a swing, the landing for a pounce, the strike for anything else.
+export function contactTime(actor, a) {
+  if (!a || a.kind !== 'attack') return 0;
+  if (swings(actor, a)) return CONTACT_U[blowOf(a.blow)] * SWING_TIME;
+  if (a.cat) return catLength(a.cat, a.size) * (CAT_CONTACT_U[a.cat] ?? STRIKE_U);
+  return ACTION_TIME.attack * STRIKE_U;
+}
 
 const pace = q => Math.min(3, 1 + .5 * Math.max(0, q.queue.length - 1));
 
@@ -187,7 +203,8 @@ export function updateActions(actor, q, dt) {
   q.age += Math.max(0, dt) * pace(q);
   const len = actionLength(a);
   // A swing runs on its own clock (with the hitstop); the body lunge follows the blade.
-  const u = a.swing ? swingPhase(Math.min(q.age, len), a.blow, a.result) : clamp01(q.age / len);
+  const wait = a.wait ?? 0;
+  const u = a.swing ? swingPhase(Math.min(q.age, len), a.blow, a.result) : clamp01((q.age - wait) / (len - wait));
   // Heading toward the target is measured once, from the rest pose, when the action starts.
   if (q.face === null) q.face = a.kind === 'attack' && a.dir ? turn(actor.g.rotation.y, Math.atan2(a.dir[0], a.dir[1])) : 0;
   const pose = actionPose(a, u, q.face);
@@ -248,9 +265,20 @@ export function queueCombat(c, {hero, find}) {
   // Cats pounce on small prey and swipe at anything else.
   const cat = striker && !c.attacker.you && catMove(striker.species, attacker.attack, attacker.target);
   if (cat) { attacker.cat = cat; attacker.size = catSize(striker.species); }
-  if (attacker && enqueueAction(queueOf(striker), attacker)) n++;
+  const sq = attacker && queueOf(striker);
+  // When the blow lands, counted from now: after what the attacker is already playing.
+  const lands = sq && !sq.dead ? remainingTime(sq) + contactTime(striker, attacker) / pace(sq) : null;
+  if (sq && enqueueAction(sq, attacker)) n++;
   const q = defender && queueOf(who(c.defender));
-  if (q && enqueueAction(q, defender)) { q.lastBlow = defender.dir; n++; }
+  if (q) {
+    const late = q !== sq && lands !== null ? lands - remainingTime(q) : 0;
+    if (enqueueAction(q, defender)) {
+      q.lastBlow = defender.dir; n++;
+      // The flinch waits for the blow (a pounce lands ~.5 s in), less whatever the defender
+      // still has to play first. Stored in action seconds, which the defender's pace speeds up.
+      if (late > .01) q.queue.at(-1).wait = Math.min(MAX_WAIT, late) * pace(q);
+    }
+  }
   return n;
 }
 
