@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import './swing-fx.test.js';
 import {swingPose, swingPhase, swingLength, swingTrailOn, applySwing, clearSwing, impactKind,
   createImpactBurst, createSwingTrail, SWING_TIME, HITSTOP, CONTACT_U, IMPACTS} from './swing.js';
 

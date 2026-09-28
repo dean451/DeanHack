@@ -28,6 +28,7 @@ import {MODEL_URLS} from './asset-urls.js';
 import {potionLook,groundItemCaption} from './item-looks.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {fxTimeline} from './fx.js';
+import {createSwingFx} from './swing-fx.js';
 import {combatAction,deathAction} from './combat-events.js';
 import {createActionQueue,enqueueAction,clearActionPose,updateActions,holdBackMs,findActor,queueCombat,queueDeath} from './actions.js';
 
@@ -179,6 +180,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  }
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
  const hero=playerFactory();hero.setWeapon?.(null);hero.actions=createActionQueue();group.add(hero.g);
+ const swingFx=createSwingFx(THREE,group);let swingTarget=null;
  function apply(frame){latest=frame;if(!active)return;
    $('.location small').textContent=`THE DUNGEONS OF DOOM · DEPTH ${String(frame.depth).padStart(2,'0')}`;
    if(groundPanelTile!==groundTile(frame)){groundPanel.hidden=true;groundPanelTile=null;}
@@ -252,7 +254,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  let meleeIntent=null,queuedCommand=null,combatStream=false,heldFrame=null,heldTimer=null;
  // A bridge that sends combat events drives the action layer; text matching is the fallback for older engines.
  const findSide=s=>findActor(actors,s.x,s.z,{name:s.name,origin});
- function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(v.type!=='combat'){queueDeath(c,findSide);return;}combatStream=true;if(c.heroAttacks)meleeIntent=null;queueCombat(c,{hero,find:findSide});}
+ function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(v.type!=='combat'){queueDeath(c,findSide);return;}combatStream=true;if(c.heroAttacks){meleeIntent=null;swingTarget=c.defender?.name??null;}queueCombat(c,{hero,find:findSide});}
  // Map frames wait for queued deaths to play, so the corpse appears after the fall; a newer frame replaces a held one.
  function applySoon(frame){heldFrame=frame;if(heldTimer)return;const wait=active?holdBackMs([hero.actions,...[...actors.values()].map(a=>a.actions)]):0;const go=()=>{heldTimer=null;const f=heldFrame;heldFrame=null;if(f)apply(f);};if(wait>0)heldTimer=setTimeout(go,wait);else go();}
  function message(text){if(!combatStream&&meleeIntent&&confirmsPlayerMelee(text)){enqueueAction(hero.actions,{kind:'attack',attack:'weapon',result:'hit',dir:meleeIntent});meleeIntent=null;}const line=$('#engine-line'),log=$('#engine-messages');if(line.textContent){const p=document.createElement('div');p.textContent=line.textContent;log.prepend(p);while(log.children.length>3)log.lastChild.remove();}line.textContent=text;$('#message').textContent=text;}
@@ -309,7 +311,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  return {get active(){return active;},update(t,dt){if(!active||!hero.target)return;clearActionPose(hero,hero.actions);const delta=hero.target.clone().sub(hero.g.position),moving=delta.length()>.025;if(moving)hero.g.rotation.y=Math.atan2(delta.x,delta.z);hero.g.position.lerp(hero.target,1-Math.exp(-dt*14));hero.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);hero.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);hero.cape.rotation.x=-.17+Math.sin(t*3)*.06;if(hero.plume)hero.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
    const offset=hero.g.position.clone().sub(controls.target);offset.y=0;offset.multiplyScalar(1-Math.exp(-dt*3));controls.target.add(offset);camera.position.add(offset);lantern.position.copy(hero.g.position).add(new THREE.Vector3(0,3,0));
    for(const tile of tiles.values())if(tile.visible)tile.traverse(o=>o.userData.updateFire?.(t));
-   updateActions(hero,hero.actions,dt);
+   updateActions(hero,hero.actions,dt);swingFx.update(hero,dt,swingTarget);
    updateTorchLights(t,dt);cavern.update(t,dt,hero.g.position);
    for(const a of actors.values()){clearActionPose(a,a.actions);a.g.userData.updateOracle?.(t);a.g.userData.updateGridBug?.(t);let walking=false;if(a.target){const d=a.target.clone().sub(a.g.position);walking=d.length()>.025;if(walking)a.g.rotation.y=Math.atan2(d.x,d.z);a.g.position.lerp(a.target,1-Math.exp(-dt*10));if(a.legs)a.legs.forEach((l,i)=>l.rotation.x=walking?Math.sin(t*22+i*2)*.4:0);}a.asset?.update(dt,walking);if(a.tail){const tailRate=a.quirk==='dog'?7:a.quirk==='unicorn'?2.6:a.quirk==='nymph'?1.4:3;const tailSwing=a.quirk==='dog'?.34:a.quirk==='unicorn'?.16:a.quirk==='nymph'?.07:.24;a.tail.rotation.z=Math.sin(t*tailRate)*tailSwing;}if(a.charm)a.charm.position.y=.3+Math.sin(t*4)*.025;if(a.body){const idle=a.quirk==='orc'?.025:a.quirk==='dragon'?.035:a.quirk==='unicorn'?.022:.015;a.body.position.y=Math.sin(t*(walking?22:2.5))*idle;}if(a.wings?.length)a.wings.forEach((wing,i)=>{if(a.quirk==='bat'){wing.rotation.z=(wing.userData.side||(i?1:-1))*Math.sin(t*14)*.65;}else if(a.quirk==='bee'){wing.rotation.y=(i?1:-1)*Math.sin(t*60)*.35;}else wing.rotation.y=(i?1:-1)*(-.18+Math.sin(t*5)*.12);});if((a.quirk==='hover'||a.quirk==='bat'||a.quirk==='bee')&&a.body)a.body.position.y=Math.sin(t*2.2+a.g.position.x)*.06;if(a.quirk==='dragon')a.g.rotation.z=Math.sin(t*1.7)*.025;if(a.quirk==='nymph'&&a.body)a.body.rotation.z=Math.sin(t*1.3+a.g.position.x)*.035;if(a.quirk==='gridbug')a.g.rotation.z=Math.sin(t*9)*.035;if(a.quirk==='guard')a.g.rotation.z=Math.sin(t*1.3)*.012;const core=a.core||a.g.userData.core;if(core)core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;if(a.actions)updateActions(a,a.actions,dt);}
    for(const item of groundItems.values()){if(!item.userData.coinPile)continue;item.userData.coinAge=(item.userData.coinAge||0)+dt;for(const coin of item.userData.coinPile){if(coin.settled||item.userData.coinAge<coin.delay)continue;coin.velocity-=9.8*dt;coin.disk.position.y+=coin.velocity*dt;coin.stamp.position.y+=coin.velocity*dt;if(coin.disk.position.y<=coin.target){coin.disk.position.y=coin.target;coin.stamp.position.y=coin.target+.019;coin.velocity*=-.16;if(Math.abs(coin.velocity)<.35)coin.settled=true;}}}
