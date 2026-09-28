@@ -7,8 +7,9 @@
 // - "<Monster> drowns you..." drags the hero under with a big splash and a stream of bubbles;
 // - "You get released!", "You pull free…", the holder's death or the hero ending up away
 //   from the holder unwinds the coils.
-// The holder's tile comes from the combat event (attacker of a hug on the hero); without one
-// the tentacle rises out of the floor beside the hero.
+// The holder's tile comes from the frame's player.stuck when the engine sends it, else from the
+// combat event (attacker of a hug on the hero); without either the tentacle rises out of the
+// floor beside the hero.
 //
 // grabMessage() and grabShape() are pure, so they can be tested without a renderer;
 // createGrab() tracks the state and draws it with one instanced bead mesh and a point cloud.
@@ -130,6 +131,15 @@ export function grabShape(g, t) {
   return {beads, bubbles, sink, squeeze, wrap};
 }
 
+// The holder's tile from a frame's player.stuck, or null. Null too when the hero is the one
+// doing the sticking (holding), since then nothing coils around the hero. Older engines don't
+// send stuck, so everything here also works from messages and combat events alone.
+export function stuckHolder(player) {
+  const st = player?.stuck;
+  if (!st || st.holding || !Number.isFinite(st.x) || !Number.isFinite(st.z)) return null;
+  return {x: st.x, z: st.z};
+}
+
 const cheb = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.z - b.z));
 
 // Tracks and draws the grab. message(text, frame) feeds message lines (frame gives the hero's
@@ -191,7 +201,17 @@ export function createGrab(THREE, parent, {onSplash} = {}) {
   function frame(fr) {
     if (!fr?.player) return;
     hero = {x: fr.player.x, z: fr.player.z};
+    const st = stuckHolder(fr.player);
+    if (st) lastHolder = st;
     if (!g || Number.isFinite(g.releaseAt) || Number.isFinite(g.drownAt)) return;
+    if (st) {
+      // The bridge says who holds us: follow it, even if the hero's tile changed.
+      g.holder = st; g.hero = {...hero}; g.stuck = true;
+      return;
+    }
+    // Once the frame has carried the holder, its absence is the release (a missed message,
+    // a teleport, the holder vanishing).
+    if (g.stuck) { g.releaseAt = now; return; }
     if (hero.x !== g.hero.x || hero.z !== g.hero.z) {
       // Held heroes don't move, so a move means we missed the release (or a teleport).
       if (!g.holder || cheb(hero, g.holder) > 1) g.releaseAt = now;

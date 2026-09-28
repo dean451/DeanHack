@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {grabMessage, grabShape, grabTint, createGrab, REACH_MS, COIL_MS, RELEASE_MS, DROWN_MS, COIL_BEADS} from './grab.js';
+import {grabMessage, grabShape, grabTint, createGrab, stuckHolder, REACH_MS, COIL_MS, RELEASE_MS, DROWN_MS, COIL_BEADS} from './grab.js';
 
 const frame = (x, z) => ({player: {x, z}, cells: []});
 const finite = sh => [...sh.beads, ...sh.bubbles].every(b => Object.values(b).every(Number.isFinite));
@@ -88,4 +88,49 @@ test('createGrab follows messages, combat and frames and clears up', () => {
   assert.equal(r.held, false);
   grab.dispose();
   assert.equal(group.children.length, 0);
+});
+
+test('the frame\'s stuck holder places the arm and its absence releases', () => {
+  const stuck = (x, z, hx, hz, holding = false) => ({player: {x, z, stuck: {x: hx, z: hz, holding}}, cells: []});
+  assert.deepEqual(stuckHolder(stuck(1, 1, 2, 1).player), {x: 2, z: 1});
+  assert.equal(stuckHolder(stuck(1, 1, 2, 1, true).player), null);
+  assert.equal(stuckHolder({x: 1, z: 1, stuck: {x: NaN, z: 1}}), null);
+  assert.equal(stuckHolder(frame(1, 1).player), null);
+
+  const group = new THREE.Group();
+  const grab = createGrab(THREE, group);
+  // No combat event: the wrap starts with no holder, then the frame supplies it.
+  grab.message('The giant eel swings itself around you!', frame(5, 5));
+  assert.equal(grab.state.holder, null);
+  grab.frame(stuck(5, 5, 4, 6));
+  assert.deepEqual(grab.state.holder, {x: 4, z: 6});
+  let r;
+  for (let i = 0; i < 60; i++) r = grab.update(1 / 60, {x: 0, z: 0});
+  assert.equal(r.held, true);
+  // The first arm bead sits on the holder's tile.
+  const m = new THREE.Matrix4(), p = new THREE.Vector3();
+  const beads = group.children.find(c => c.userData.part === 'grab-coil');
+  beads.getMatrixAt(0, m); p.setFromMatrixPosition(m);
+  assert.ok(Math.abs(p.x - 4) < 1e-6 && Math.abs(p.z - 6) < 1e-6);
+  // Still held while the frame says so; the message was missed, but the stuck field going away releases.
+  grab.frame(stuck(5, 5, 4, 6));
+  assert.equal(Number.isFinite(grab.state.releaseAt), false);
+  grab.frame(frame(5, 5));
+  assert.ok(Number.isFinite(grab.state.releaseAt));
+  for (let i = 0; i < 40; i++) r = grab.update(1 / 60, {x: 0, z: 0});
+  assert.equal(r.held, false);
+  assert.equal(grab.state, null);
+
+  // A stuck frame before the wrap message gives the holder straight away; a stuck hero who
+  // is displaced with the holder still next to them stays held.
+  grab.frame(stuck(2, 2, 3, 3));
+  grab.message('The kraken swings itself around you!', frame(2, 2));
+  assert.deepEqual(grab.state.holder, {x: 3, z: 3});
+  grab.frame(stuck(3, 2, 3, 3));
+  assert.deepEqual(grab.state.hero, {x: 3, z: 2});
+  assert.equal(Number.isFinite(grab.state.releaseAt), false);
+  // When the hero does the sticking, nothing coils around them and the grab lets go.
+  grab.frame(stuck(3, 2, 3, 3, true));
+  assert.ok(Number.isFinite(grab.state.releaseAt));
+  grab.dispose();
 });
