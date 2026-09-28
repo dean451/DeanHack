@@ -770,3 +770,25 @@ test('stethoscopes are a merged steel and rubber model lying flat on the tile',(
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.25,'fits its tile');
  model.userData.dispose();
 });
+
+test('the tin opener is a merged wooden-handled knife with a hooked beak and a thong, resting on the floor',()=>{
+ const model=createGroundModel({name:'an uncursed tin opener',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['tin-opener-wood','tin-opener-steel']);
+ let verts=0;
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+ }
+ assert(verts<20000,`${verts} vertices`);
+ model.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(model,true);
+ assert(Math.abs(b.min.y)<1e-6&&b.max.y<.05,`lies on its side: ${b.min.y}..${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.2,'fits its tile');
+ // The beak reaches the floor as well as the handle, so it doesn't balance on one end.
+ const [,steel]=model.children,p=steel.geometry.attributes.position;
+ let beakLow=1;for(let i=0;i<p.count;i++)if(p.getX(i)>.07)beakLow=Math.min(beakLow,p.getY(i));
+ assert(beakLow<.003,`beak touches down: ${beakLow}`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
