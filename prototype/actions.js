@@ -14,6 +14,7 @@ import {monsterAttackPose, foreLegs, wingSide} from './monster-attacks.js';
 import {deathStyle, deathPose, DEATH_TIME, DEATH_BURST_U} from './deaths.js';
 import {swingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
 import {hitStyle, hitReactionPose, HIT_TIME} from './hit-fx.js';
+import {catMove, catSize, catLength, catAttackPose} from './cats.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9};
 // Wait no longer than this for a death to play before the map (and its corpse) goes on.
@@ -66,6 +67,7 @@ export function enqueueAction(q, action) {
 const swings = (actor, a) => a.kind === 'attack' && a.attack === 'weapon' && !!actor?.elbow;
 // Seconds an action lasts (a swing is only known to be one once it starts; a death by its style).
 const actionLength = a => a.swing ? swingLength(a.result)
+  : a.cat ? catLength(a.cat, a.size)
   : a.kind === 'die' ? DEATH_TIME[a.style] ?? ACTION_TIME.die
   : a.kind === 'hit' ? HIT_TIME[a.style ?? hitStyle(a.attack, a.blow)] ?? ACTION_TIME.hit : ACTION_TIME[a.kind];
 
@@ -98,14 +100,17 @@ export function holdBackMs(queues) {
 // are world units (one tile = 1). `yaw` is the heading to face the target, if there is one.
 export function actionPose(action, u, face) {
   const p = {dx: 0, dy: 0, dz: 0, yaw: 0, pitch: 0, roll: 0, body: 0, head: 0, arm: 0, wrist: 0,
-    socket: 0, leg: 0, fore: 0, tail: 0, wing: 0, scale: 1, stretch: 1, sx: 1, sy: 1, fade: 1};
+    socket: 0, leg: 0, fore: 0, paw: 0, pawSide: 0, tail: 0, wing: 0, scale: 1, stretch: 1, sx: 1, sy: 1, fade: 1};
   const d = action.dir;
   if (action.kind === 'attack') {
     // Per attack type (monster-attacks.js); the hero's own swing replaces its arm parts later.
-    const m = monsterAttackPose(action.attack, u, action.result);
+    // A cat pounces on prey or swipes a paw (cats.js).
+    const m = action.cat ? catAttackPose(action.cat, u, action.result, action.size)
+      : monsterAttackPose(action.attack, u, action.result);
     if (d) { p.dx = d[0] * m.lunge; p.dz = d[1] * m.lunge; }
     p.yaw = (face ? face * smooth(u / .2) : 0) + m.twist;
     for (const k of ['dy', 'pitch', 'roll', 'body', 'head', 'arm', 'wrist', 'socket', 'leg', 'fore', 'tail', 'wing', 'scale', 'stretch']) p[k] = m[k];
+    if (action.cat) { p.paw = m.paw; p.pawSide = m.pawSide; }
   } else if (action.kind === 'hit') {
     // Flinch by blow (hit-fx.js): raked, doubled over, knocked back, worried, squeezed or shaken.
     const m = hitReactionPose(action.style ?? hitStyle(action.attack, action.blow), u, d);
@@ -137,6 +142,7 @@ export function clearActionPose(actor, q) {
   if (actor.legs?.[0]) actor.legs[0].rotation.x -= o.leg;
   if (actor.tail) actor.tail.rotation.x -= o.tail;
   if (o.fore) for (const l of foreLegs(actor)) l.rotation.x -= o.fore;
+  if (o.paw || o.pawSide) { const l = foreLegs(actor)[0]; if (l) { l.rotation.x -= o.paw; l.rotation.z -= o.pawSide; } }
   if (o.wing) actor.wings?.forEach((w, i) => { w.rotation.z -= wingSide(w, i) * o.wing; });
   if (o.swing) clearSwing(actor, o.swing);
   q.applied = null;
@@ -159,6 +165,7 @@ function applyPose(actor, q, p) {
   if (actor.legs?.[0]) actor.legs[0].rotation.x += p.leg;
   if (actor.tail) actor.tail.rotation.x += p.tail;
   if (p.fore) for (const l of foreLegs(actor)) l.rotation.x += p.fore;
+  if (p.paw || p.pawSide) { const l = foreLegs(actor)[0]; if (l) { l.rotation.x += p.paw; l.rotation.z += p.pawSide; } }
   if (p.wing) actor.wings?.forEach((w, i) => { w.rotation.z += wingSide(w, i) * p.wing; });
   if (p.swing) applySwing(actor, p.swing);
   q.applied = p;
@@ -237,7 +244,11 @@ export function queueCombat(c, {hero, find}) {
   const {attacker, defender} = actionsForCombat(c);
   const who = s => s?.you ? hero : s?.seen ? find(s) : null;
   let n = 0;
-  if (attacker && enqueueAction(queueOf(who(c.attacker)), attacker)) n++;
+  const striker = attacker && who(c.attacker);
+  // Cats pounce on small prey and swipe at anything else.
+  const cat = striker && !c.attacker.you && catMove(striker.species, attacker.attack, attacker.target);
+  if (cat) { attacker.cat = cat; attacker.size = catSize(striker.species); }
+  if (attacker && enqueueAction(queueOf(striker), attacker)) n++;
   const q = defender && queueOf(who(c.defender));
   if (q && enqueueAction(q, defender)) { q.lastBlow = defender.dir; n++; }
   return n;
