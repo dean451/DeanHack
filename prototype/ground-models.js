@@ -2063,6 +2063,138 @@ function buildFlute({g,materials}){
  g.rotation.y=.3;
 }
 
+// The bugle: one brass tube folded into a flat oval loop. The mouthpiece and lead pipe run along
+// the bottom, bend round at the front, come back through the middle, bend again at the back and
+// flare into the bell along the top. The whole tube, mouthpiece cup, ferrules, bell garland and
+// rolled rim are one swept profile (the bell's inside is swept back into the throat), with two
+// stays between the runs. It rests tilted on its bell rim and loop like a real one on a floor,
+// and a red braided cord knotted to the bell pipe trails on the floor to two tassels.
+function buildBugle({g,materials}){
+ const C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const brassMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.8,roughness:.28});
+ const cordMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.85});
+ materials.push(brassMat,cordMat);
+ // The centre line, in the xz plane: straight runs joined by half-circle bends.
+ const R=.025,segs=[
+  {line:[-.21,-.05,.08,-.05]},{arc:[.08,-.025,-Math.PI/2,1]},{line:[.08,0,-.12,0]},{arc:[-.12,.025,-Math.PI/2,-1]},{line:[-.12,.05,.17,.05]}];
+ for(const s of segs)s.len=s.line?Math.hypot(s.line[2]-s.line[0],s.line[3]-s.line[1]):Math.PI*R;
+ const total=segs.reduce((a,s)=>a+s.len,0);
+ const centre=s=>{
+  for(const seg of segs){
+   if(s<=seg.len||seg===segs[segs.length-1]){
+    if(seg.line){const [x0,z0,x1,z1]=seg.line,t=s/seg.len,dx=(x1-x0)/seg.len,dz=(z1-z0)/seg.len;return {p:V(x0+(x1-x0)*t,0,z0+(z1-z0)*t),t:V(dx,0,dz)};}
+    // Bends: from the start angle, turning counter-clockwise (+1, front) or clockwise (-1, back) seen from above.
+    const [cx,cz,a0,dir]=seg.arc,ang=a0+dir*s/R;
+    return {p:V(cx+Math.cos(ang)*R,0,cz+Math.sin(ang)*R),t:V(-Math.sin(ang)*dir,0,Math.cos(ang)*dir)};
+   }
+   s-=seg.len;
+  }
+ };
+ // Outer radius along the tube: a slowly widening bore, ferrules at the joints, the bell flare and its garland.
+ const ferrules=[.07,.29,.3685,.5685,.6475,.72];
+ const bellAt=s=>.0078+.04*Math.exp((s-total)/.035);
+ const outerR=s=>{
+  let r=s<.07?0:s<total-.2?.0055+.0023*(s-.07)/(total-.27):bellAt(s);
+  for(const f of ferrules)if(Math.abs(s-f)<.009)r+=.0011*(Math.abs(s-f)<.0075?1:(.009-Math.abs(s-f))/.0015);
+  const gs=total-.075;if(s>gs-.012&&s<gs+.012)r+=.0009*(Math.abs(s-gs)>.01?(.012-Math.abs(s-gs))/.002:1);
+  return r;
+ };
+ // Profile (arc length, radius, kind): the mouthpiece cup from its throat, rim and shank, the
+ // receiver, the tube out to the bell, a rolled rim, then back down the inside of the bell.
+ const prof=[[.012,0,'in'],[.0112,.0024,'in'],[.008,.0055,'in'],[.004,.0074,'in'],[.001,.0081,'in'],[.0002,.0088,'rim'],[.0008,.0099,'rim'],[.003,.0103,'rim'],[.0065,.0098,'mp'],[.012,.0076,'mp'],[.02,.0056,'mp'],[.04,.0043,'mp'],[.05,.0043,'mp'],
+  [.0505,.0068,'fe'],[.0685,.0068,'fe'],[.069,.0055,'tube']];
+ const ks=new Set();
+ for(let s=.07;s<total-.0005;s+=s>total-.15?.0022:.005)ks.add(+s.toFixed(5));
+ for(const f of [...ferrules,total-.075])for(let d=-.0125;d<=.0125;d+=.0015)ks.add(+(f+d).toFixed(5));
+ for(const s of [...ks].sort((a,b)=>a-b))if(s>.069)prof.push([s,outerR(s),'tube']);
+ const mouth=bellAt(total);
+ for(let i=0;i<=8;i++){const a=i/8*Math.PI;prof.push([total+Math.sin(a)*.0024,mouth+.0024-Math.cos(a)*.0024,'lip']);}
+ for(let s=total-.001;s>total-.16;s-=.0025)prof.push([s,Math.max(.0045,bellAt(s)-.0012),'bore']);
+ // Sweep rings of N vertices round the centre line (up is +y); the index wraps, so there is no seam.
+ const N=24,pos=[],col=[],idx=[],c=new THREE.Color();
+ const BR=C(0xc99a3e),HI=C(0xf3d98a),DK=C(0x6b4c1a),TARN=C(0x5b5a36),INK=C(0x140d06),NICKEL=C(0xd9c784);
+ prof.forEach(([s,r,kind],k)=>{
+  const {p,t}=centre(Math.max(0,s)),side=V(0,1,0).cross(t).normalize();
+  for(let j=0;j<N;j++){
+   const a=j/N*Math.PI*2,u=Math.cos(a),w=Math.sin(a);
+   const q=p.clone().addScaledVector(V(0,1,0),u*r).addScaledVector(side,w*r);pos.push(q.x,q.y,q.z);
+   const n=stoneNoise(q.x*9,q.y*9,q.z*9,9);
+   c.copy(BR).lerp(n>0?HI:DK,Math.abs(n)*.25);
+   if(n>.45&&kind==='tube')c.lerp(TARN,(n-.45)*.8);
+   if(kind==='fe'||kind==='rim'||kind==='lip'||(kind==='tube'&&(ferrules.some(f=>Math.abs(s-f)<.0075)||Math.abs(s-(total-.075))<.01)))c.lerp(NICKEL,.55);
+   // The garland is engraved with a wavy band.
+   if(kind==='tube'&&Math.abs(s-(total-.075))<.009&&Math.sin(a*12+Math.sin(s*900)*2)>.55)c.lerp(DK,.55);
+   if(kind==='in')c.lerp(INK,.35+.5*(1-r/.0081));
+   if(kind==='bore')c.lerp(INK,Math.min(.95,(total-s)/.06));
+   col.push(c.r,c.g,c.b);
+  }
+  if(k>0)for(let j=0;j<N;j++){const a=(k-1)*N+j,b=(k-1)*N+(j+1)%N,d=k*N+j,e=k*N+(j+1)%N;idx.push(a,d,b,b,d,e);}
+ });
+ const tube=new THREE.BufferGeometry();
+ tube.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));tube.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+ tube.setIndex(idx);tube.computeVertexNormals();
+ // Stays between the runs: a rod with a saddle foot at each end, coloured like the ferrules.
+ const parts=[tube];
+ const paint=(geo,col)=>{geo.deleteAttribute('uv');const n=geo.attributes.normal,cs=new Float32Array(n.count*3);for(let i=0;i<n.count;i++){c.copy(col).lerp(HI,Math.max(0,n.getY(i))*.35);cs.set([c.r,c.g,c.b],i*3);}geo.setAttribute('color',new THREE.BufferAttribute(cs,3));if(!geo.index)geo.setIndex([...Array(n.count).keys()]);parts.push(geo);return geo;};
+ const stay=C(0xd8bc6a);
+ for(const [x,z0,z1] of [[-.02,-.05,0],[-.035,0,.05]]){
+  paint(new THREE.CylinderGeometry(.0017,.0017,z1-z0,8).rotateX(Math.PI/2).translate(x,0,(z0+z1)/2),stay);
+  for(const z of [z0,z1])paint(new THREE.CylinderGeometry(.0032,.0032,.0075,10).rotateZ(Math.PI/2).translate(x,0,z+(z===z0?1:-1)*.0055),stay);
+ }
+ const brass=mergeGeometries(parts);parts.forEach(q=>q.dispose());
+ // Rest it: try tilts about both floor axes and keep the one whose middle sits lowest.
+ const P=brass.attributes.position,pick=[];for(let i=0;i<P.count;i+=7)pick.push(V(P.getX(i),P.getY(i),P.getZ(i)));
+ let best=null;const e=new THREE.Euler(),m=new THREE.Matrix4(),q=V(0,0,0);
+ const tryTilt=(rx,rz)=>{
+  m.makeRotationFromEuler(e.set(rx,0,rz));let lo=Infinity,sum=0;
+  for(const p of pick){q.copy(p).applyMatrix4(m);lo=Math.min(lo,q.y);sum+=q.y;}
+  const h=sum/pick.length-lo;if(!best||h<best.h)best={h,rx,rz};
+ };
+ // Coarse, then fine round the best.
+ for(let rx=-.9;rx<=.9;rx+=.075)for(let rz=-.3;rz<=.3;rz+=.075)tryTilt(rx,rz);
+ const {rx:cx,rz:cz}=best;for(let dx=-.07;dx<=.07;dx+=.01)for(let dz=-.07;dz<=.07;dz+=.01)tryTilt(cx+dx,cz+dz);
+ const rest=new THREE.Matrix4().makeRotationFromEuler(e.set(best.rx,0,best.rz));
+ brass.applyMatrix4(rest);brass.computeBoundingBox();const floor=brass.boundingBox.min.y;brass.translate(0,-floor,0);
+ const world=(x,z)=>{const p=V(x,0,z).applyMatrix4(rest);p.y-=floor;return p;};
+ // The cord: two wraps round the bell pipe, a slack loop onto the floor between them, and two
+ // tails ending in tassels. Braided: a two-tone twill spirals round every strand.
+ const cords=[],RED=C(0xa0202a),RED2=C(0x5a0e14),GOLD=C(0xd6ad48),GOLD2=C(0x7d5a1c);
+ const braid=(geo,rad,twist,a0,b0)=>{
+  const p=geo.attributes.position,cs=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){const u=Math.floor(i/(rad+1)),v=i%(rad+1);c.copy(a0).lerp(b0,(Math.sin(u*twist+v/rad*Math.PI*4)>0?.55:0)+.1*Math.sin(u*.7));cs.set([c.r,c.g,c.b],i*3);}
+  geo.setAttribute('color',new THREE.BufferAttribute(cs,3));geo.deleteAttribute('uv');cords.push(geo);
+ };
+ const out=V(0,0,1).applyMatrix4(rest).setY(0).normalize(),along=V(1,0,0).applyMatrix4(rest).setY(0).normalize();
+ const knots=[-.09,.03].map(x=>world(x,.05)),axis=V(1,0,0).transformDirection(rest);
+ for(const k of knots)for(const d of [-.0028,.0028]){
+  const wrap=new THREE.TorusGeometry(.0092,.0021,6,20);
+  wrap.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V(0,0,1),axis));
+  wrap.translate(k.x+axis.x*d,k.y+axis.y*d,k.z+axis.z*d);braid(wrap,6,1.3,RED,RED2);
+ }
+ const onFloor=(p,o,a)=>p.clone().addScaledVector(out,o).addScaledVector(along,a).setY(.0035);
+ const [k0,k1]=knots;
+ const loop=new THREE.CatmullRomCurve3([k0,onFloor(k0,.04,-.005),onFloor(k0,.07,.05),onFloor(k1,.075,-.03),onFloor(k1,.045,.004),k1]);
+ braid(new THREE.TubeGeometry(loop,80,.0033,8,false),8,1.6,RED,RED2);
+ for(const [o,a] of [[.035,.085],[.06,.07]]){
+  const end=onFloor(k1,o,a),tail=new THREE.CatmullRomCurve3([k1,onFloor(k1,o*.5,.02),end]);
+  braid(new THREE.TubeGeometry(tail,24,.0028,8,false),8,1.6,RED,RED2);
+  // The tassel lies on the floor: a gold cap and a fan of threads, pointing on along the tail.
+  const dir=tail.getTangent(1).setY(0).normalize(),rot=new THREE.Quaternion().setFromUnitVectors(V(0,1,0),dir);
+  const cap=new THREE.SphereGeometry(.0058,10,8);cap.scale(1,1.3,1);cap.applyQuaternion(rot);cap.translate(end.x+dir.x*.004,.0058,end.z+dir.z*.004);braid(cap,10,.9,GOLD,GOLD2);
+  const fan=new THREE.CylinderGeometry(.0045,.0085,.03,14,4);fan.applyQuaternion(rot);fan.scale(1,.7,1);
+  fan.translate(end.x+dir.x*.022,.006,end.z+dir.z*.022);braid(fan,14,.2,GOLD,GOLD2);
+ }
+ const cord=mergeGeometries(cords.map(q=>{if(!q.index)q.setIndex([...Array(q.attributes.position.count).keys()]);return q;}));cords.forEach(q=>q.dispose());
+ // The spline can dip a hair below the floor where the cord lands; flatten it there instead.
+ const cp=cord.attributes.position;for(let i=0;i<cp.count;i++)if(cp.getY(i)<.0002)cp.setY(i,.0002);
+ for(const [geo,material,part] of [[brass,brassMat,'bugle-brass'],[cord,cordMat,'bugle-cord']]){
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=part;g.add(mesh);
+ }
+ const b=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();b.union(p.geometry.boundingBox);});
+ const mid=b.getCenter(V(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-b.min.y,-mid.z));
+ g.rotation.y=-.35;
+}
+
 // The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
 // door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
 // keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
@@ -3012,11 +3144,7 @@ export function createGroundModel(item={}){
    ball(.016,tip,-.205,.03,.063);
    for(const t of [.3,.55]){const p=curve.getPoint(t),band=add(new THREE.TorusGeometry(.012+.046*t+.003,.004,6,18),brass,p.x,p.y,p.z);band.quaternion.setFromUnitVectors(v(0,0,1),curve.getTangent(t).normalize());}
   }else if(kind==='bugle'){
-   // One flat brass loop ending in a flared bell.
-   flat(new THREE.TorusGeometry(.08,.011,8,32,Math.PI*1.6),brass,-.03,.012,0);
-   const bell=add(new THREE.CylinderGeometry(.06,.014,.14,20,1,true),brass,.11,.066,-.02);bell.rotation.z=-Math.PI/2;bell.material.side=THREE.DoubleSide;
-   flat(new THREE.TorusGeometry(.06,.006,6,24),brass,.18,.066,-.02).rotation.set(0,Math.PI/2,0);
-   lie(.009,.016,.05,brass,.03,.012,.08);
+   buildBugle({g,materials});
   }else if(kind==='flute'){
    buildFlute({g,materials});
   }else if(kind==='harp'){
