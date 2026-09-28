@@ -811,6 +811,27 @@ test('the leash is a merged braided coil with a hand loop and a brass snap, lyin
  model.userData.dispose();assert.equal(disposed,2);
 });
 
+test('the drum is a merged, rope-laced field drum on end with its sticks on the floor',()=>{
+ const model=createGroundModel({name:'leather drum',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['drum-wood','drum-hide']);
+ let verts=0;
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ model.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(model,true);
+ assert(Math.abs(b.min.y)<1e-6&&b.max.y>.16&&b.max.y<.2,`stands on end: ${b.min.y}..${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.3,'fits its tile');
+ // The head sits below the top of its counterhoop.
+ const [wood,hide]=model.children.map(p=>{p.geometry.computeBoundingBox();return p.geometry.boundingBox;});
+ assert(hide.max.y<wood.max.y,`head ${hide.max.y} under hoop ${wood.max.y}`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
 test('the saddle is a merged leather saddle on a blanket with irons on the floor',()=>{
  const model=createGroundModel({name:'a saddle',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['saddle-leather','saddle-metal']);

@@ -1870,6 +1870,109 @@ function buildLeash({g,materials}){
  g.rotation.y=1.2;
 }
 
+// The leather drum (a drum of earthquake looks the same): a lacquered field drum standing on
+// end. A barrel-bulged shell with a gilt zigzag band and a brass vent, vellum heads lapped
+// under turned counterhoops, a V-laced rope drawn tight by leather tugs, and a pair of sticks
+// on the floor beside it. Coloured per vertex and merged into a wood mesh and a hide mesh.
+function buildDrum({g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const woodMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.5});
+ const hideMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.86});
+ materials.push(woodMat,hideMat);
+ const lists={wood:[],hide:[]},c=new THREE.Color();
+ // Paint gets the part's own coordinates and uv, so a part can be painted, then placed.
+ const put=(geo,paint,which)=>{
+  const p=geo.attributes.position,n=geo.attributes.normal,uv=geo.attributes.uv,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i),uv?uv.getX(i):0,uv?uv.getY(i):0);
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));if(uv)geo.deleteAttribute('uv');
+  lists[which].push(geo);return geo;
+ };
+ const R=.115,Y0=.004,Y1=.164,bulge=y=>1+.035*Math.sin(Math.PI*Math.min(1,Math.max(0,(y-Y0)/(Y1-Y0))));
+ // Shell: red lacquer over faint vertical grain, a gilt zigzag between two gilt lines.
+ const lacquer=C(0x8a2419),lacquerDark=C(0x4e120c),lacquerHi=C(0xc0503a),gilt=C(0xd8aa4a);
+ const shell=new THREE.CylinderGeometry(R,R,Y1-Y0,96,64,true);shell.translate(0,(Y0+Y1)/2,0);
+ {const p=shell.attributes.position;for(let i=0;i<p.count;i++){const s=bulge(p.getY(i));p.setX(i,p.getX(i)*s);p.setZ(i,p.getZ(i)*s);}shell.computeVertexNormals();}
+ put(shell,(col,x,y,z,nx,ny,nz)=>{
+  const a=Math.atan2(z,x),grain=Math.sin(a*140+Math.sin(y*90+a*3)*1.4)*.5+.5;
+  col.copy(lacquer).lerp(lacquerDark,grain*.28);
+  // A soft highlight down the rounded belly, darker toward both hoops.
+  col.lerp(lacquerHi,Math.max(0,1-Math.abs(y-.09)/.05)*.18).lerp(lacquerDark,Math.max(0,1-Math.min(y-Y0,Y1-y)/.025)*.35);
+  const f=((a/(Math.PI*2))*9%1+1)%1,zig=.085+.011*(Math.abs(f*2-1)*2-1);
+  const line=Math.min(Math.abs(y-zig)/.0034,Math.abs(Math.abs(y-.085)-.021)/.0022);
+  if(line<1)col.lerp(gilt,(1-line)*.95);
+ },'wood');
+ // Counterhoops: turned walnut rings with a pale inlay line round the middle of the face.
+ const walnut=C(0x3a2414),walnutHi=C(0x7a5634),inlay=C(0xdcc48e);
+ const hoop=h0=>{
+  const prof=[[R+.004,h0+.003],[R+.009,h0],[R+.013,h0+.001],[R+.016,h0+.006],[R+.017,h0+.011],[R+.017,h0+.013],[R+.017,h0+.015],
+   [R+.016,h0+.02],[R+.013,h0+.025],[R+.009,h0+.026],[R+.004,h0+.023],[R+.003,h0+.013],[R+.004,h0+.003]];
+  put(new THREE.LatheGeometry(prof.map(([r,y])=>new THREE.Vector2(r,y)),72),(col,x,y,z,nx,ny)=>{
+   col.copy(walnut).lerp(walnutHi,Math.max(0,ny)*.45+(Math.sin(Math.atan2(z,x)*60+y*400)*.5+.5)*.12);
+   if(Math.abs(y-h0-.013)<.001&&Math.hypot(x,z)>R+.0165)col.lerp(inlay,.85);
+  },'wood');
+ };
+ hoop(0);hoop(.15);
+ // A brass vent in the shell, in the gap under one top lacing point.
+ const brassC=C(0xc49a45),brassHi=C(0xf0d48a),ink=C(0x140a06),ventA=0,ventY=.045,ventR=R*bulge(ventY)+.0006;
+ const place=(geo,a,r,y)=>{geo.applyMatrix4(new THREE.Matrix4().makeRotationY(Math.PI/2-a).setPosition(Math.cos(a)*r,y,Math.sin(a)*r));return geo;};
+ place(put(new THREE.TorusGeometry(.0068,.0022,6,18),(col,x,y,z,nx,ny,nz)=>col.copy(brassC).lerp(brassHi,Math.max(0,nz)*.5),'wood'),ventA,ventR,ventY);
+ place(put(new THREE.CircleGeometry(.0052,14),col=>col.copy(ink),'wood'),ventA,ventR-.0005,ventY);
+ // Heads: cream vellum with mottling, a worn playing spot and a shadow at the bearing edge.
+ const vellum=C(0xe2cfa6),vellumDark=C(0xa38b64),edgeC=C(0x9a8460);
+ const head=new THREE.RingGeometry(0,R+.003,72,10);head.rotateX(-Math.PI/2);head.translate(0,.168,0);
+ put(head,(col,x,y,z)=>{
+  const r=Math.hypot(x,z),m=stoneNoise(x,1,z,70)*.6+stoneNoise(z,2,x,23)*.4;
+  col.copy(vellum).lerp(vellumDark,Math.max(0,m)*.22+Math.exp(-(((x-.018)**2+(z+.012)**2)/.0011))*.4);
+  if(r>R-.012)col.lerp(edgeC,(r-R+.012)/.015*.6);
+ },'hide');
+ const collar=new THREE.CylinderGeometry(R+.002,R+.002,.022,72,1,true);collar.translate(0,.157,0);
+ put(collar,col=>col.copy(vellum).lerp(edgeC,.35),'hide');
+ // The lacing: rope Vs between holes in the two hoops, twisted in three strands.
+ const N=10,RR=R+.0155,rope=C(0xcdb88c),ropeDark=C(0x7c6642),ropeR=.0032;
+ const top=i=>{const a=i/N*Math.PI*2;return v(Math.cos(a)*RR,.163,Math.sin(a)*RR);};
+ const bot=i=>{const a=(i+.5)/N*Math.PI*2;return v(Math.cos(a)*RR,.013,Math.sin(a)*RR);};
+ const strand=(A,B)=>{
+  const d=B.clone().sub(A),len=d.length(),geo=new THREE.CylinderGeometry(ropeR,ropeR,len,8,Math.max(2,Math.round(len/.004)),true);
+  put(geo,(col,x,y,z,nx,ny,nz,u,w)=>{const s=Math.sin(Math.PI*2*(u*3+w*len/.009));col.copy(rope).lerp(ropeDark,Math.max(0,-s)*.65);},'hide');
+  geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(v(0,1,0),d.normalize()));geo.translate(...A.clone().add(B).multiplyScalar(.5).toArray());
+ };
+ const knot=P=>{const k=new THREE.SphereGeometry(ropeR*1.35,8,6);put(k,col=>col.copy(rope).lerp(ropeDark,.3),'hide');k.translate(P.x,P.y,P.z);};
+ const tan=C(0x5a3219),tanHi=C(0x9a6a3e),stitch=C(0xd8c49a);
+ for(let i=0;i<N;i++){
+  const T0=top(i),B=bot(i),T1=top(i+1);strand(T0,B);strand(B,T1);knot(T0);knot(B);
+  // A leather tug slid up the V, drawing its two ropes together.
+  const y=.058,at=T=>B.clone().lerp(T,(y-B.y)/(T.y-B.y)),P0=at(T0),P1=at(T1),mid=P0.clone().add(P1).multiplyScalar(.5);
+  // RoundedBoxGeometry comes unindexed; a plain running index lets it merge with the rest.
+  const geo=new RoundedBoxGeometry(P0.distanceTo(P1)+.013,.022,.0105,1,.0035);geo.setIndex([...Array(geo.attributes.position.count).keys()]);
+  put(geo,(col,x,y2,z,nx,ny,nz)=>{
+   col.copy(tan).lerp(tanHi,Math.max(0,nz)*.3+Math.max(0,ny)*.3);
+   if(nz>.5&&Math.abs(Math.abs(y2)-.0075)<.0012)col.lerp(stitch,.7);
+  },'hide');
+  const X=P1.clone().sub(P0).normalize(),Z=v(mid.x,0,mid.z).normalize(),Y=Z.clone().cross(X);
+  geo.applyMatrix4(new THREE.Matrix4().makeBasis(X,Y,Z).setPosition(mid));
+ }
+ // Two ash sticks on the floor, with a dark cord-wrapped grip and a turned bead at the tip.
+ const ash=C(0xc9a574),ashDark=C(0x8a6a42),grip=C(0x4a2c18);
+ const prof=[[0,0],[.0066,0],[.0072,.004],[.0072,.12],[.0058,.2],[.0042,.25],[.0036,.262],[.0055,.272],[.0062,.28],[.0052,.289],[0,.293]];
+ for(const [x,z,turn] of [[-.14,.162,.12],[.15,.2,Math.PI+.05]]){
+  const s=put(new THREE.LatheGeometry(prof.map(([r,y])=>new THREE.Vector2(r,y)),12),(col,x2,y)=>{
+   col.copy(ash).lerp(ashDark,(Math.sin(y*260+Math.sin(x2*900))*.5+.5)*.22);
+   if(y>.012&&y<.075)col.copy(grip).lerp(ashDark,(Math.sin(y*2200)*.5+.5)*.35);
+  },'wood');
+  s.rotateZ(-Math.PI/2);s.rotateY(turn);s.translate(x,.0072,z);
+ }
+ for(const [which,material] of [['wood',woodMat],['hide',hideMat]]){
+  const list=lists[which],geo=mergeGeometries(list);list.forEach(p=>p.dispose());
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=`drum-${which}`;g.add(mesh);
+ }
+ const box=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();box.union(p.geometry.boundingBox);});
+ const mid=box.getCenter(v(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-box.min.y,-mid.z));
+ g.rotation.y=.5;
+}
+
 // The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
 // door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
 // keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
@@ -2845,14 +2948,7 @@ export function createGroundModel(item={}){
    }
    ball(.02,brass,.14,.41,0);
   }else if(kind==='drum'){
-   const shell=mat(0x8a3a28),skin=mat(0xe2d3b0),cord=mat(0xd8c8a0);
-   add(new THREE.CylinderGeometry(.13,.13,.15,28),shell,0,.075);
-   add(new THREE.CylinderGeometry(.125,.125,.004,28),skin,0,.152);
-   for(const y of [.008,.148])flat(new THREE.TorusGeometry(.132,.009,6,28),skin,0,y,0);
-   // Zigzag tension cords between the rims.
-   for(let i=0;i<10;i++){const a0=i*Math.PI/5,a1=a0+Math.PI/10,f=v(Math.cos(a0)*.135,.02,Math.sin(a0)*.135),t=v(Math.cos(a1)*.135,.135,Math.sin(a1)*.135),d=t.clone().sub(f);
-    const c=add(new THREE.CylinderGeometry(.003,.003,d.length(),4),cord,(f.x+t.x)/2,(f.y+t.y)/2,(f.z+t.z)/2);c.quaternion.setFromUnitVectors(v(0,1,0),d.normalize());}
-   lie(.007,.009,.22,wood,.12,.009,.16,.5);ball(.014,skin,.025,.009,.212);
+   buildDrum({g,materials});
   }else if(kind==='bell'){
    // A hand bell mouth-down: a lathed bronze shell, a turned wooden handle, and the clapper peeking out.
    const bronze=mat(0xb8893a,.7);
