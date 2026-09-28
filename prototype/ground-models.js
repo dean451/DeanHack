@@ -1465,6 +1465,86 @@ function buildWhistle({g,materials}){
  g.rotation.y=.45;
 }
 
+// A stethoscope lying on the floor: a steel chest piece with a pale diaphragm in a black rim,
+// blue tubing that loops over the floor to a Y, and a steel headset whose two ear tubes are
+// held apart by a leaf spring and end in black ear tips. Painted per vertex and merged into
+// two meshes (steel and rubber).
+function buildStethoscope({g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const steelMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.85,roughness:.28});
+ const rubberMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.55});
+ materials.push(steelMat,rubberMat);
+ const lists={steel:[],rubber:[]},c=new THREE.Color(),e=new THREE.Euler(),m=new THREE.Matrix4();
+ const put=(geo,paint,{which='steel',rot=[0,0,0],at=[0,0,0]}={})=>{
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  out.deleteAttribute('uv');
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  out.applyMatrix4(m.makeRotationFromEuler(e.set(...rot,'YXZ')).setPosition(...at));
+  for(let i=0;i<p.count;i++){
+   paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i));
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  lists[which].push(out);
+ };
+ const bright=C(0xdfe4e8),dim=C(0x7a8288),black=C(0x151515),pale=C(0xd9dcd6);
+ // Polished steel: bright facing up, dim on the flanks, with faint brushing streaks.
+ const steel=(col,x,y,z,nx,ny)=>{
+  col.copy(bright).lerp(dim,Math.max(0,-ny)*.7+(1-Math.abs(ny))*.25);
+  col.multiplyScalar(.92+.08*Math.sin((x+z)*900));
+ };
+ const blue=C(0x1f4f86),deep=C(0x0f2744),shine=C(0x6f9ccc);
+ // Rubber tubing: a lit ridge along the top, darker underneath.
+ const tubing=(col,x,y,z,nx,ny)=>{col.copy(blue).lerp(deep,Math.max(0,-ny)*.8);if(ny>.85)col.lerp(shine,(ny-.85)*3);};
+ const rubber=(col,x,y,z,nx,ny)=>col.copy(black).lerp(C(0x3a3a3a),Math.max(0,ny)*.5);
+ // The chest piece, diaphragm up: a steel cup, a black rim ring and a pale diaphragm with a stamped ring.
+ const cp=[.12,.1],R=.03,H=.012;
+ put(new THREE.LatheGeometry([[0,0],[R*.8,0],[R,.003],[R,H*.8],[R*.9,H]].map(([a,b])=>new THREE.Vector2(a,b)),32),steel,{at:[cp[0],0,cp[1]]});
+ put(new THREE.TorusGeometry(R*.93,.0035,8,36),rubber,{which:'rubber',rot:[Math.PI/2,0,0],at:[cp[0],H,cp[1]]});
+ put(new THREE.CylinderGeometry(R*.9,R*.9,.0012,32),(col,x,y,z)=>{
+  const d=Math.hypot(x-cp[0],z-cp[1]);col.copy(pale);if(Math.abs(d-R*.55)<.0016)col.lerp(dim,.5);
+ },{which:'rubber',at:[cp[0],H+.0004,cp[1]]});
+ // The stem runs off the side toward the tubing, with a collar where the tube slides on.
+ const stemLen=.03;
+ put(new THREE.CylinderGeometry(.0045,.0055,stemLen,12),steel,{rot:[0,0,Math.PI/2],at:[cp[0]-R-stemLen/2+.004,.0072,cp[1]]});
+ put(new THREE.CylinderGeometry(.007,.007,.006,14),steel,{rot:[0,0,Math.PI/2],at:[cp[0]-R-stemLen+.006,.0072,cp[1]]});
+ // Main tubing loops out over the floor and ends at the Y.
+ const r=.0065,start=v(cp[0]-R-stemLen+.002,.0072,cp[1]),Y=v(-.005,r,-.015);
+ const main=[start,v(.05,r,.11),v(-.01,r,.14),v(-.09,r,.11),v(-.13,r,.04),v(-.11,r,-.03),v(-.05,r,-.03),Y];
+ put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(main),96,r,8,false),tubing,{which:'rubber'});
+ put(new THREE.SphereGeometry(.0078,12,8),tubing,{which:'rubber',at:[Y.x,.0078,Y.z]});
+ // Two branches, then the steel ear tubes with collars at the joins, curling in to the ear tips.
+ const rb=.005,rs=.0034,ears=[];
+ for(const [branch,metal] of [
+  [[Y,v(.03,rb,-.02),v(.065,rb,-.035)],[v(.065,rs,-.035),v(.11,rs,-.06),v(.15,rs,-.1),v(.16,rs,-.14),v(.14,rs,-.16)]],
+  [[Y,v(.005,rb,-.05),v(.02,rb,-.08)],[v(.02,rs,-.08),v(.045,rs,-.12),v(.075,rs,-.155),v(.11,rs,-.17),v(.125,rs,-.155)]]
+ ]){
+  put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(branch),24,rb,8,false),tubing,{which:'rubber'});
+  const curve=new THREE.CatmullRomCurve3(metal);ears.push(curve);
+  put(new THREE.TubeGeometry(curve,48,rs,8,false),steel);
+  const j=metal[0],t=curve.getTangent(0),col=new THREE.CylinderGeometry(.0062,.0062,.008,12);
+  col.applyMatrix4(m.makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(v(0,1,0),t)));
+  put(col,steel,{at:[j.x,.0062,j.z]});
+  // Soft black ear tip, pushed onto the end of the tube.
+  const end=curve.getPoint(1),dir=curve.getTangent(1),tip=new THREE.SphereGeometry(.0075,12,8);
+  tip.scale(1,1.3,1);tip.applyMatrix4(m.makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(v(0,1,0),dir)));
+  put(tip,rubber,{which:'rubber',at:[end.x+dir.x*.004,.0075,end.z+dir.z*.004]});
+ }
+ // The leaf spring bridging the two ear tubes near their base.
+ const a=ears[0].getPoint(.25),b=ears[1].getPoint(.3),d=b.clone().sub(a);
+ const spring=new THREE.BoxGeometry(.0035,.006,d.length());
+ spring.applyMatrix4(m.makeRotationY(Math.atan2(d.x,d.z)));
+ put(spring,steel,{at:[(a.x+b.x)/2,.0045,(a.z+b.z)/2]});
+ for(const [which,material] of [['steel',steelMat],['rubber',rubberMat]]){
+  const list=lists[which];
+  const geo=mergeGeometries(list);list.forEach(p=>p.dispose());
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=`stethoscope-${which}`;g.add(mesh);
+ }
+ const box=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();box.union(p.geometry.boundingBox);});
+ const mid=box.getCenter(v(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-box.min.y,-mid.z));
+ g.rotation.y=-.3;
+}
+
 // The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
 // door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
 // keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
@@ -2457,11 +2537,7 @@ export function createGroundModel(item={}){
    flat(new THREE.TorusGeometry(.096,.006,6,28),bronze,0,.006,0);
    ball(.022,dark,.02,.02,.02);
   }else if(kind==='stethoscope'){
-   // Tubing coiled on the floor between the chest piece and the earpieces.
-   const tube=mat(0x2e2e30),steel=metal;
-   add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([v(.14,.012,.1),v(.02,.012,.14),v(-.1,.012,.06),v(-.06,.012,-.06),v(.04,.012,-.04),v(0,.012,.03)]),48,.009,6,false),tube);
-   add(new THREE.CylinderGeometry(.035,.035,.018,20),steel,.155,.009,.105);add(new THREE.CylinderGeometry(.03,.03,.004,20),dark,.155,.02,.105);
-   for(const s of [-1,1]){add(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(v(0,.012,.03),v(s*.05,.012,.02),v(s*.08,.012,-.1)),12,.005,6,false),steel);ball(.012,dark,s*.08,.012,-.11);}
+   buildStethoscope({g,materials});
   }else if(kind==='tin opener'){
    const steel=metal;
    box(.14,.012,.028,wood,-.03,.006);
