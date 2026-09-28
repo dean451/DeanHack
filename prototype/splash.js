@@ -121,7 +121,8 @@ const MAX_DROPS = MAX_SPLASHES * SIZES.gush.drops * SIZES.gush.pulses;
 const MAX_RIPPLES = MAX_SPLASHES * 3;
 
 // Draws splashes. add(splash, delayMs) queues one (e.g. to wait for the object's flight
-// to finish), fromFx(timeline, frame) and fromMessage(text, frame) find and queue them,
+// to finish), fromFx(timeline, frame) and fromMessage(text, frame) find and queue them
+// (queueMessage(text) + flushMessages(frame) for a message whose frame is still to come),
 // update(dt, origin) advances them and returns {count, drops, ripples, columns}.
 export function createSplash(THREE, parent) {
   const dropPos = new Float32Array(MAX_DROPS * 3), dropCol = new Float32Array(MAX_DROPS * 3);
@@ -163,6 +164,21 @@ export function createSplash(THREE, parent) {
   }
   const fromFx = (timeline, frame) => splashesFromFx(timeline, frame).map(sp => add(sp, sp.at));
   const fromMessage = (text, frame) => add(splashFromMessage(text, frame));
+  // Messages arrive before the frame that moves the hero ("You fall into the water" comes
+  // while the hero still stands on the shore), so queueMessage() only keeps the size and
+  // flushMessages(frame) places the splashes on that frame's hero tile.
+  const heard = [];
+  const queueMessage = text => {
+    const sp = splashFromMessage(text, {player: {x: 0, z: 0}});
+    if (sp) heard.push(sp.size);
+    return !!sp;
+  };
+  const flushMessages = frame => {
+    const p = frame?.player;
+    const out = p ? heard.map(size => add({x: p.x, z: p.z, size, at: 0})) : [];
+    heard.length = 0;
+    return out;
+  };
 
   function update(dt, origin) {
     now += (dt || 0) * 1000;
@@ -204,11 +220,11 @@ export function createSplash(THREE, parent) {
     return {count, drops: d, ripples: r, columns: c};
   }
 
-  const clear = () => { splashes.length = 0; update(0); };
+  const clear = () => { splashes.length = 0; heard.length = 0; update(0); };
   const dispose = () => {
     for (const m of [drops, rings, cols]) parent.remove(m);
     dropGeo.dispose(); ringGeo.dispose(); colGeo.dispose();
     drops.material.dispose(); ringMat.dispose(); colMat.dispose();
   };
-  return {add, fromFx, fromMessage, update, clear, dispose};
+  return {add, fromFx, fromMessage, queueMessage, flushMessages, update, clear, dispose};
 }

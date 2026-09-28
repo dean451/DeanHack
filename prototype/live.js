@@ -32,6 +32,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import {fxTimeline,fxHoldMs} from './fx.js';
 import {createExplosions} from './explosions.js';
 import {createFlood} from './flood.js';
+import {createSplash} from './splash.js';
 import {createSwingFx} from './swing-fx.js';
 import {createHitFx} from './hit-fx.js';
 import {createRays,reflectorAt} from './rays.js';
@@ -191,7 +192,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  }
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
  const hero=playerFactory();hero.setWeapon?.(null);hero.actions=createActionQueue();group.add(hero.g);
- const swingFx=createSwingFx(THREE,group);const hitFx=createHitFx(THREE,group);const rays=createRays(THREE,group);const rayMarks=createRayMarks(THREE,group);const rayFlashLight=new THREE.PointLight(0xdce6ff,0,18,1.2);group.add(rayFlashLight);const explosions=createExplosions(THREE,group);const blastLight=new THREE.PointLight(0xffa050,0,9,1.4);group.add(blastLight);const flood=createFlood(THREE,group);let flooding=false;let swingTarget=null;
+ const swingFx=createSwingFx(THREE,group);const hitFx=createHitFx(THREE,group);const rays=createRays(THREE,group);const rayMarks=createRayMarks(THREE,group);const rayFlashLight=new THREE.PointLight(0xdce6ff,0,18,1.2);group.add(rayFlashLight);const explosions=createExplosions(THREE,group);const blastLight=new THREE.PointLight(0xffa050,0,9,1.4);group.add(blastLight);const flood=createFlood(THREE,group);let flooding=false;const splash=createSplash(THREE,group);let swingTarget=null;
  const deathFx=createDeathBurst(THREE);group.add(deathFx.points);
  function apply(frame){const prevFrame=latest;latest=frame;if(!active)return;
    $('.location small').textContent=`THE DUNGEONS OF DOOM · DEPTH ${String(frame.depth).padStart(2,'0')}`;
@@ -199,8 +200,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    if(Array.isArray(frame.ground))showGround(frame.ground);
    hero.setWeapon?.(frame.player.weapon??null);syncHeldWandAura(hero,frame.player.weapon??null);syncHeldGleam(hero,frame.player.weapon??null);
    hero.setHelmet?.(frame.player.helmet??null);addOutlines(hero.g);
-   const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();rays.clear();rayMarks.clear();explosions.clear();flood.clear();flooding=false;origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
-   if(!newLevel&&flood.add(prevFrame,frame))flooding=true;
+   const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();rays.clear();rayMarks.clear();explosions.clear();flood.clear();flooding=false;splash.clear();origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
+   if(!newLevel&&flood.add(prevFrame,frame))flooding=true;splash.flushMessages(frame);
    const seen=new Set(),seenActors=new Set(),seenWells=new Set();
    for(const cell of frame.cells){const id=`${cell.x},${cell.z}`,x=cell.x-origin.x,z=cell.z-origin.z;
      if(cell.terrain!=='unknown'){
@@ -270,7 +271,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(v.type!=='combat'){queueDeath(c,findSide);return;}combatStream=true;if(c.heroAttacks){meleeIntent=null;swingTarget=c.defender?.name??null;}queueCombat(c,{hero,find:findSide});}
  // Map frames wait for queued deaths to play, so the corpse appears after the fall; a newer frame replaces a held one.
  function applySoon(frame){heldFrame=frame;if(heldTimer)return;const wait=active?Math.max(holdBackMs([hero.actions,...[...actors.values()].map(a=>a.actions)]),Math.ceil(fxHoldUntil-performance.now())):0;const go=()=>{heldTimer=null;const f=heldFrame;heldFrame=null;if(f)apply(f);};if(wait>0)heldTimer=setTimeout(go,wait);else go();}
- function message(text){if(!combatStream&&meleeIntent&&confirmsPlayerMelee(text)){enqueueAction(hero.actions,{kind:'attack',attack:'weapon',result:'hit',dir:meleeIntent});meleeIntent=null;}const line=$('#engine-line'),log=$('#engine-messages');if(line.textContent){const p=document.createElement('div');p.textContent=line.textContent;log.prepend(p);while(log.children.length>3)log.lastChild.remove();}line.textContent=text;$('#message').textContent=text;}
+ function message(text){splash.queueMessage(text);if(!combatStream&&meleeIntent&&confirmsPlayerMelee(text)){enqueueAction(hero.actions,{kind:'attack',attack:'weapon',result:'hit',dir:meleeIntent});meleeIntent=null;}const line=$('#engine-line'),log=$('#engine-messages');if(line.textContent){const p=document.createElement('div');p.textContent=line.textContent;log.prepend(p);while(log.children.length>3)log.lastChild.remove();}line.textContent=text;$('#message').textContent=text;}
  async function post(path,body={}){if(!token)token=(await fetch('/engine/token').then(r=>r.json())).token;const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Engine-Token':token},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw new Error(data.error);return data;}
  async function reply(value){if(!pending)return;const req=pending;meleeIntent=req.kind==='command'?meleeDirection(value):null;pending=null;lines=[];menu=null;dialog.close();setPrompt('Engine is resolving your action…');try{await post('/engine/input',{id:req.id,value});pollNow?.();}catch(e){meleeIntent=null;message(e.message);setPrompt('Input was not accepted. Reconnect Live mode to refresh the prompt.');}}
  function showGround(items){
@@ -298,7 +299,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function connect(){
    meleeIntent=null;source?.close?.();
    let usingPolling=false,pollTimer=null,stopped=false,since=0;
-   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];const tl=fxTimeline(v);fx.push(tl);if(active){rays.play(tl,{reflectorAt:(x,z)=>reflectorAt(latest,x,z)});rayMarks.add(tl);explosions.add(tl);fxHoldUntil=Math.max(fxHoldUntil,performance.now()+fxHoldMs(tl));}if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
+   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];const tl=fxTimeline(v);fx.push(tl);if(active){rays.play(tl,{reflectorAt:(x,z)=>reflectorAt(latest,x,z)});rayMarks.add(tl);explosions.add(tl);splash.fromFx(tl,latest);fxHoldUntil=Math.max(fxHoldUntil,performance.now()+fxHoldMs(tl));}if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
    async function pollLoop(){
      if(stopped)return;
      try{const r=await fetch(`/engine/poll?since=${since}`);const {events,seq}=await r.json();since=seq;for(const event of events)handle(event);}
@@ -330,7 +331,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    for(const item of groundItems.values())if(item.visible){item.userData.wandAura?.userData.update(t);item.userData.artifactGleam?.userData.update(t);}
    updateHeldWandAura(hero,t);updateHeldGleam(hero,t);
    for(const item of groundItems.values()){if(!item.userData.coinPile)continue;item.userData.coinAge=(item.userData.coinAge||0)+dt;for(const coin of item.userData.coinPile){if(coin.settled||item.userData.coinAge<coin.delay)continue;coin.velocity-=9.8*dt;coin.disk.position.y+=coin.velocity*dt;coin.stamp.position.y+=coin.velocity*dt;if(coin.disk.position.y<=coin.target){coin.disk.position.y=coin.target;coin.stamp.position.y=coin.target+.019;coin.velocity*=-.16;if(Math.abs(coin.velocity)<.35)coin.settled=true;}}}
-   if(flooding)flooding=flood.update(dt,origin).count>0;
+   if(flooding)flooding=flood.update(dt,origin).count>0;splash.update(dt,origin);
    for(const tile of tiles.values()){const liquid=tile.userData.liquid;if(!liquid)continue;liquid.visible=!(flooding&&flood.pending(tile.position.x+origin.x,tile.position.z+origin.z));if(tile.visible&&liquid.visible)liquid.userData.updateLiquid(t);}
    for(const w of wells.values())w.userData.updateFountain?.(t);
  }};
