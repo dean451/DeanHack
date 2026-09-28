@@ -666,3 +666,23 @@ test('venom is a single merged glossy splash on the floor, told apart by kind',(
  assert(kinds.acid>kinds.plain&&kinds.ice>kinds.plain&&kinds.blinding===kinds.plain);
  console.log('venom vertex counts',kinds);
 });
+
+test('iron safe gets one merged, grounded, finite strongbox model',()=>{
+ const model=createGroundModel({name:'an iron safe',class:6});
+ assert(model);
+ assert.equal(model.children.length,1,'the safe is one draw');
+ const [mesh]=model.children;
+ assert.equal(mesh.userData.part,'iron safe');
+ for(const value of mesh.geometry.attributes.position.array)assert(Number.isFinite(value));
+ for(const value of mesh.geometry.attributes.color.array)assert(value>=0&&value<=1);
+ const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3());
+ assert(Math.abs(bounds.min.y)<1e-6,'feet on the floor');
+ assert(size.y>.34&&size.y<.4);assert(size.x<.5&&size.z<.5);
+ // A chest is still a chest, and the safe differs from it.
+ const chest=createGroundModel({name:'chest',class:6});
+ assert(chest.children.length>1);
+ let geometries=0,materials=0;
+ mesh.geometry.addEventListener('dispose',()=>geometries++);mesh.material.addEventListener('dispose',()=>materials++);
+ model.userData.dispose();chest.userData.dispose();
+ assert.equal(geometries,1);assert.equal(materials,1);
+});
