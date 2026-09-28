@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
-import {GAITS, gaitKind, gaitPose, updateGait, FLIGHT, flapStyle, beatWeight, wingFlap} from './gait.js';
+import {GAITS, gaitKind, gaitPose, updateGait, FLIGHT, flapStyle, beatWeight, wingFlap, glideSink, flightBob} from './gait.js';
 
 const snapshot = actor => {
   const parts = [actor.body, ...actor.legs, ...(actor.arms || []), actor.hat, actor.beard, actor.pick].filter(Boolean);
@@ -120,4 +120,33 @@ test('bats keep their flutter; ravens beat slower, unevenly, and glide', () => {
   // the beat weight is continuous and periodic
   for (let u = 0; u < F.cycle; u += .001) assert.ok(Math.abs(beatWeight(u + .001) - beatWeight(u)) < .01);
   assert.equal(beatWeight(0), beatWeight(F.cycle));
+});
+
+test('bats keep their hover bob; ravens sink through the glide and climb back', () => {
+  for (let t = 0; t < 3; t += .01) assert.equal(flightBob(null, t, .7), Math.sin(t * 2.2 + .7) * .06);
+  const F = FLIGHT.raven, style = {kind: 'raven', phase: 1.3}, dt = 1 / 240, beat = F.cycle - F.glide;
+  const bound = F.hover + F.lift + F.sink;
+  let prev = flightBob(style, 0), maxStep = 0, lo = Infinity, hi = -Infinity;
+  for (let t = dt; t < 3 * F.cycle; t += dt) {
+    const v = flightBob(style, t);
+    assert.ok(Number.isFinite(v) && Math.abs(v) <= bound + 1e-9, `${v}`);
+    maxStep = Math.max(maxStep, Math.abs(v - prev));
+    lo = Math.min(lo, v); hi = Math.max(hi, v);
+    prev = v;
+  }
+  // smooth at 240 Hz, including where the glide starts and ends
+  assert.ok(maxStep < .004, `step ${maxStep}`);
+  assert.ok(hi - lo > F.sink, `range ${hi - lo}`);
+  // the sink: level at the end of the climb, lowest as the glide ends, continuous and periodic
+  assert.ok(Math.abs(glideSink(beat)) < 1e-12);
+  assert.ok(Math.abs(glideSink(F.cycle - 1e-9) + F.sink) < 1e-6);
+  assert.ok(Math.abs(glideSink(0) - glideSink(F.cycle)) < 1e-12);
+  let prevSink = glideSink(beat);
+  for (let u = beat + .01; u < F.cycle; u += .01) { const s = glideSink(u); assert.ok(s <= prevSink + 1e-12, 'always sinking in the glide'); prevSink = s; }
+  for (let u = 0; u < F.cycle; u += .001) assert.ok(Math.abs(glideSink(u + .001) - glideSink(u)) < .001);
+  // while gliding the wingbeat lift is gone, so the body only drifts down (plus the slow hover)
+  for (let u = beat + F.ease; u < F.cycle; u += .05) {
+    const t = u - style.phase;
+    assert.ok(Math.abs(flightBob(style, t) - (Math.sin(u * 1.1) * F.hover + glideSink(u))) < 1e-9);
+  }
 });
