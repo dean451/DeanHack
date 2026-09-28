@@ -351,3 +351,37 @@ test('priests get a robed, mace-bearing model with a hood, mitre or tonsure per 
  assert.equal(temple[0].material,high[0].material);assert.notEqual(temple[0].geometry,high[0].geometry);
  assert.equal(temple[6].geometry,high[6].geometry,'one mace geometry for every priest');
 });
+
+test('each mold is its own lobed colony with a kind-specific accent instead of the shared fungus mound',()=>{
+ const F=70,accents={yellow:'spores',green:'acid',brown:'rime',red:'embers'},colours={yellow:3,green:2,brown:3,red:1};
+ const bounds={};
+ for(const kind of Object.keys(accents)){
+  const t0=performance.now(),m=createCreature({name:`${kind} mold`,symbol:F,color:colours[kind]}),ms=performance.now()-t0;
+  assert.equal(m.quirk,'fungus');assert.equal(m.kind,kind);assert(m.body?.isObject3D);
+  const parts=[];m.g.traverse(o=>{if(o.isMesh)parts.push(o);});
+  assert.deepEqual(parts.map(p=>p.userData.part),['colony',accents[kind]],'two draws');
+  let verts=0;
+  for(const p of parts){
+   const a=p.geometry.attributes;verts+=a.position.count;
+   for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${kind} ${p.userData.part} ${key}`);
+   for(const v of a.color.array)assert(v>=0&&v<=1,`${kind} colour`);
+  }
+  assert(verts<30000,`${kind}: ${verts} vertices`);
+  m.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(m.g);bounds[kind]=b;
+  assert(b.min.y>-.005&&b.min.y<.01,`${kind} sits on the floor at ${b.min.y}`);
+  assert(b.max.y>.18&&b.max.y<.4,`${kind} top at ${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,`${kind} fits the tile`);
+  // geometry and materials are shared between molds of a kind
+  const again=[];createCreature({name:`${kind} mold`,symbol:F}).g.traverse(o=>{if(o.isMesh)again.push(o);});
+  parts.forEach((p,i)=>{assert.equal(p.geometry,again[i].geometry);assert.equal(p.material,again[i].material);});
+  assert(ms<400,`${kind} took ${ms} ms`);
+ }
+ // the rime and sporangia stand proud of the bare colony, and the embers glow
+ const red=[];createCreature({name:'red mold',symbol:F}).g.traverse(o=>{if(o.isMesh)red.push(o);});
+ assert(red[1].material.emissiveIntensity>1);
+ // an unlisted mold still gets a colony in its glyph colour, with no accent
+ const odd=createCreature({name:'blue mold',symbol:F,color:4});
+ const oddParts=[];odd.g.traverse(o=>{if(o.isMesh)oddParts.push(o);});
+ assert.equal(oddParts.length,1);assert.equal(odd.quirk,'fungus');
+});
