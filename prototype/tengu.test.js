@@ -38,5 +38,5 @@ test('the tengu gets its own long-nosed, crow-winged model instead of the tinted
  assert(ms<200,`took ${ms} ms`);
  // the other minor demons are unchanged
  assert.equal(imp.quirk,'imp');
- assert.equal(createCreature({name:'quasit',symbol:I,color:4}).quirk,'imp');
+ assert.equal(createCreature({name:'quasit',symbol:I,color:4}).quirk,'quasit');
 });
