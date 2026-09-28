@@ -8,6 +8,7 @@ import {createHomunculus,pieces,rgb,mix} from './homunculus.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
+import {createRaven} from './raven.js';
 import {createMold} from './mold.js';
 import {createMushroom} from './mushroom.js';
 import {createLichen} from './lichen.js';
@@ -2327,6 +2328,7 @@ export function createCreature(cell={}){
  if(name==='gelatinous cube')return cube({color:color||'#8ad0c0'});
  if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name)});
  if(name==='centipede')return centipede({color:'#c9a03a'});
+ if(name==='raven')return createRaven();
  if(/^(bat|giant bat|vampire bat)$/.test(name))return bat({color:name==='bat'?'#5a4636':name==='giant bat'?'#7a3a32':'#28242a',scale:name==='giant bat'?1.25:1});
  if(ZOMBIE_SKIN[name])return humanoid('zombie',{skin:mat(ZOMBIE_SKIN[name]),cloth:mat('#3f3a34')});
  if(/mummy$/.test(name))return humanoid('mummy',{skin:mat('#6a5f4a'),cloth:mat('#c9bb98')});
