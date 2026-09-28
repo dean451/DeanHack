@@ -16,6 +16,7 @@ import {createTree} from './tree.js';
 import {createBoulder} from './boulder.js';
 import {createStairs} from './stairs.js';
 import {createBars} from './bars.js';
+import {createDoor} from './door.js';
 import {createFire} from './fire.js';
 import {createLiquid} from './liquid.js';
 import {createFloorKit,cellHash} from './floor.js';
@@ -63,7 +64,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  const dialog=document.createElement('dialog');dialog.id='engine-dialog';document.body.append(dialog);
  const groundPanel=document.createElement('aside');groundPanel.id='ground-notice';groundPanel.hidden=true;groundPanel.setAttribute('aria-live','polite');groundPanel.setAttribute('aria-label','Items on this tile');document.body.append(groundPanel);let groundPanelTile=null;
  const lantern=new THREE.PointLight(0xffd49c,22,11,2);group.add(lantern);
- const wall=new THREE.MeshStandardMaterial({color:'#52605f',roughness:.88}),wood=new THREE.MeshStandardMaterial({color:'#95774e',roughness:.8}),doorFace=new THREE.MeshStandardMaterial({color:'#4d382a',roughness:.9}),iron=new THREE.MeshStandardMaterial({color:'#293337',metalness:.72,roughness:.4}),floorGeo=new RoundedBoxGeometry(.97,.14,.97,3,.035),wallGeo=new RoundedBoxGeometry(.97,.7,.97,3,.045),doorGeo=new RoundedBoxGeometry(.86,1.1,.16,3,.025);
+ const wall=new THREE.MeshStandardMaterial({color:'#52605f',roughness:.88}),wood=new THREE.MeshStandardMaterial({color:'#95774e',roughness:.8}),iron=new THREE.MeshStandardMaterial({color:'#293337',metalness:.72,roughness:.4}),floorGeo=new RoundedBoxGeometry(.97,.14,.97,3,.035),wallGeo=new RoundedBoxGeometry(.97,.7,.97,3,.045);
  // Torches are real light sources: a fixed pool of point lights follows the torches
  // nearest the hero. The pool size never changes, so materials never recompile.
  const TORCH_LIGHTS=8,TORCH_INTENSITY=15,LIVE_AMBIENT=.68;
@@ -198,7 +199,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
           box(wallGeo,wall,tile,0,.28,0);
           if(hasTorch(cell.x,cell.z)){box(new THREE.CylinderGeometry(.045,.055,.3,8),wood,tile,0,.77,0);box(new THREE.CylinderGeometry(.09,.055,.1,8),iron,tile,0,.92,0);const fire=createFire(cell.x+cell.z);fire.position.y=.96;tile.add(fire);const halo=new THREE.Sprite(torchHaloMaterial);halo.position.y=1.12;halo.scale.setScalar(.9);tile.add(halo);tile.userData.torch={phase:(cell.x*3.7+cell.z*5.3)%(Math.PI*2)};}
          }
-         if(cell.terrain==='door'){const doorGroup=new THREE.Group();tile.add(doorGroup);tile.userData.door=doorGroup;box(doorGeo,doorFace,doorGroup,0,.52,0);for(const x of [-.23,.23]){const brace=box(new RoundedBoxGeometry(.055,.92,.035,3,.012),iron,doorGroup,x,.52,.1);brace.rotation.z=x<0?-.38:.38;}const latch=new THREE.Mesh(new THREE.SphereGeometry(.06,10,8),iron);latch.position.set(.18,.55,.14);latch.castShadow=true;doorGroup.add(latch);}
+         if(cell.terrain==='door'){const doorGroup=createDoor(cell.x*61+cell.z*37);tile.add(doorGroup);tile.userData.door=doorGroup;}
          if(cell.terrain==='up'||cell.terrain==='down'){tile.add(createStairs(cell.terrain,cell.x*131+cell.z));tile.add(label(cell.terrain==='up'?'↑ stone stairs':'↓ stone stairs'));}
          if(['water','lava'].includes(cell.terrain)){slab.visible=false;const liquid=createLiquid(cell.terrain,cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
          group.add(tile);tiles.set(id,tile);
