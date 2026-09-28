@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
-    "test": "node --test simulation.test.js engine/server.test.js ground-models.test.js trap.test.js oracle-visuals.test.js potion-look.test.js creatures.test.js shop-visuals.test.js boulder.test.js altar.test.js grave.test.js bars.test.js stairs.test.js sink.test.js model-assets.test.js fx.test.js combat-events.test.js actions.test.js swing.test.js bog.test.js ice-wall.test.js",
+    "test": "node --test simulation.test.js engine/server.test.js ground-models.test.js trap.test.js oracle-visuals.test.js potion-look.test.js creatures.test.js shop-visuals.test.js boulder.test.js altar.test.js grave.test.js bars.test.js stairs.test.js sink.test.js model-assets.test.js fx.test.js combat-events.test.js actions.test.js swing.test.js bog.test.js ice-wall.test.js ice-floor.test.js",
     "engine:build": "python3 engine/build.py"
   },
   "dependencies": {
