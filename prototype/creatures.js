@@ -3,6 +3,7 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {heldBoulderGeometry} from './boulder.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
+import {createTengu} from './tengu.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2187,6 +2188,7 @@ export function createCreature(cell={}){
  if(letter==='D'||/dragon/.test(name))return dragon(dragonLook(name,cell.color));
  {const golemMatch=name.match(/^(.*) golem$/);if(golemMatch)return golem(GOLEM_MATERIALS[golemMatch[1]]||GOLEM_MATERIALS.stone);}
  if(name==='giant turtle')return turtle({shell:color||'#4a6a34'});
+ if(name==='tengu')return createTengu();
  if(SKIN[name])return humanoid(letter==='k'||/kobold/.test(name)?'kobold':'imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
  if(name==='hobbit')return humanoid('hobbit',{cloth:mat('#4f7a3a')});
  if(/orc|uruk|snaga/.test(name))return humanoid('orc',color?{cloth:mat(shade(color,.75))}:{});
