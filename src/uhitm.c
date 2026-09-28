@@ -545,6 +545,7 @@ known_hitum(struct monst *mon, struct obj *weapon, int *mhit, int rollneeded, in
             u.uconduct.weaphit++;
         }
 
+        COMBAT_HOOK(&youmonst, mon, uattk ? uattk->aatyp : AT_WEAP, COMBAT_HIT);
         /* we hit the monster; be careful: it might die or
            be knocked into a different location */
         notonhead = (mon->mx != bhitpos.x || mon->my != bhitpos.y);
@@ -2824,6 +2825,7 @@ gulpum(struct monst *mdef, struct attack *mattk)
 void
 missum(struct monst *mdef, struct attack *mattk, boolean wouldhavehit)
 {
+    COMBAT_HOOK(&youmonst, mdef, mattk ? mattk->aatyp : AT_WEAP, COMBAT_MISS);
     if (wouldhavehit) {
         /* monk is missing due to penalty for wearing suit */
         Your("armor is rather cumbersome...");
@@ -2991,6 +2993,8 @@ use_weapon:
             dhit = (tmp > dieroll || u.uswallow);
             if (dhit) {
                 int compat, specialdmg;
+
+                COMBAT_HOOK(&youmonst, mon, mattk->aatyp, COMBAT_HIT);
                 long silverhit = 0L;
                 const char *verb = 0; /* verb or body part */
 

@@ -187,6 +187,17 @@
 #ifdef BRIDGE_GRAPHICS
 #define TMP_AT_DRAW    0 /* tmp_at_hook: a glyph drawn at (x, y) */
 #define TMP_AT_RETRACT 1 /* tmp_at_hook: a tethered object pulled back */
+#define COMBAT_MISS     0 /* combat_hook results */
+#define COMBAT_HIT      1
+#define COMBAT_WILDMISS 2 /* struck at the hero's displaced image */
+/* &youmonst stands for the hero in either role. */
+#define COMBAT_HOOK(agr, def, at, res) \
+    do { if (combat_hook) (*combat_hook)(agr, def, at, res); } while (0)
+#define DEATH_HOOK(mon, ptr) \
+    do { if (death_hook) (*death_hook)(mon, ptr); } while (0)
+#else
+#define COMBAT_HOOK(agr, def, at, res)
+#define DEATH_HOOK(mon, ptr)
 #endif
 
 /*

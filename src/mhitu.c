@@ -85,6 +85,7 @@ hitmsg(struct monst *mtmp, struct attack *mattk)
 static void
 missmu(struct monst *mtmp, boolean nearmiss, struct attack *mattk)
 {
+    COMBAT_HOOK(mtmp, &youmonst, mattk->aatyp, COMBAT_MISS);
     if (!canspotmon(mtmp)) {
         map_invisible(mtmp->mx, mtmp->my);
     }
@@ -149,6 +150,7 @@ wildmiss(struct monst *mtmp, struct attack *mattk)       /* monster attacked you
 {
     int compat;
 
+    COMBAT_HOOK(mtmp, &youmonst, mattk->aatyp, COMBAT_WILDMISS);
     /* no map_invisible() -- no way to tell where _this_ is coming from */
 
     if (!flags.verbose) {
@@ -1010,6 +1012,8 @@ hitmu(struct monst *mtmp, struct attack *mattk)
     int res;
     boolean vorpal_wield = ((uwep && uwep->oartifact == ART_VORPAL_BLADE) ||
                             (u.twoweap && uswapwep->oartifact == ART_VORPAL_BLADE));
+
+    COMBAT_HOOK(mtmp, &youmonst, mattk->aatyp, COMBAT_HIT);
 
     if (!canspotmon(mtmp)) {
         map_invisible(mtmp->mx, mtmp->my);
@@ -2165,6 +2169,8 @@ gulpmu(struct monst *mtmp, struct attack *mattk)
     struct obj *otmp2;
     int i;
     boolean physical_damage = FALSE;
+
+    COMBAT_HOOK(mtmp, &youmonst, mattk->aatyp, COMBAT_HIT);
 
     if (!u.uswallow) {  /* swallows you */
         int omx = mtmp->mx, omy = mtmp->my;

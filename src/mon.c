@@ -2053,6 +2053,7 @@ m_detach(struct monst *mtmp, struct permonst *mptr) /**< reflects mtmp->data _pr
 {
     boolean onmap = (mtmp->mx > 0);
 
+    DEATH_HOOK(mtmp, mptr);
     if (mtmp == polearm.hitmon) {
         polearm.hitmon = 0;
     }
