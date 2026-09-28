@@ -14,6 +14,17 @@ export function trapKind(symbol,color){
 
 const RUNES={teleport:[0xb070ff,0x7a2cff],magic:[0x6fb4ff,0x2c6cff],polymorph:[0x7dff8a,0x22c94a],ice:[0xd8f4ff,0x7fc8ff]};
 
+// Transforms a part and paints its vertices (paint gets the colour, position and
+// normal), dropping uvs so parts can be merged into one vertex-coloured mesh.
+function bake(geo,paint,{x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1}={}){
+ const o=new THREE.Object3D();o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.scale.set(sx,sy,sz);o.updateMatrix();
+ const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();
+ n.applyMatrix4(o.matrix);n.deleteAttribute('uv');
+ const pos=n.attributes.position,nor=n.attributes.normal,col=new Float32Array(pos.count*3),c=new THREE.Color();
+ for(let i=0;i<pos.count;i++){paint(c,pos.getX(i),pos.getY(i),pos.getZ(i),nor.getX(i),nor.getY(i),nor.getZ(i));col.set([c.r,c.g,c.b],i*3);}
+ n.setAttribute('color',new THREE.BufferAttribute(col,3));return n;
+}
+
 // Everything sits on the floor slab (y=0) and stays inside its tile.
 export function createTrap(kind,seed=0){
  const g=new THREE.Group();g.name=`Trap (${kind})`;
@@ -112,14 +123,6 @@ export function createTrap(kind,seed=0){
   // Two vertex-coloured meshes (soil and casing) instead of loose primitives.
   const noise=(x,z)=>Math.sin(x*61.3+seed*1.7)*Math.cos(z*57.9-seed*2.3)*.5+Math.sin((x+z)*23.1+seed)*.5;
   const C=(hex)=>new THREE.Color(hex);
-  const bake=(geo,paint,{x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1}={})=>{
-   const o=new THREE.Object3D();o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.scale.set(sx,sy,sz);o.updateMatrix();
-   const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();
-   n.applyMatrix4(o.matrix);n.deleteAttribute('uv');
-   const pos=n.attributes.position,col=new Float32Array(pos.count*3),c=new THREE.Color();
-   for(let i=0;i<pos.count;i++){paint(c,pos.getX(i),pos.getY(i),pos.getZ(i));col.set([c.r,c.g,c.b],i*3);}
-   n.setAttribute('color',new THREE.BufferAttribute(col,3));return n;
-  };
   const R=.122,SOIL=.02;
   // Soil: a ring of turned earth banked up against the casing and falling away
   // to the floor with a ragged outline. Damp and dark against the casing, dry
@@ -194,11 +197,109 @@ export function createTrap(kind,seed=0){
   const ground=add(soilGeo,mat({color:0xffffff,vertexColors:true,roughness:1}));ground.castShadow=false;ground.name='mine-soil';
   add(bodyGeo,mat({color:0xffffff,vertexColors:true,metalness:.45,roughness:.55})).name='land-mine';
  }else if(kind==='rubble'){
-  // Falling rock / rolling boulder / statue trap: cracked flagstone and loose rocks.
-  block(.5,.025,.5,stone,0,.0125,0);
-  const crack=mat({color:0x2a2a28,roughness:1});
-  for(let i=0;i<3;i++){const c=block(.34,.004,.012,crack,0,.027,(i-1)*.1);c.rotation.y=(rand(i+100)-.5)*1.4;}
-  rubble(10,.1,.28);
+  // Falling rock / rolling boulder / statue trap: a jagged rock lying in the
+  // scar where it struck. The flagstone is shattered into shards tipped up
+  // round a rim of crushed grit, cracks run out across the floor and gravel
+  // is thrown wide. Two vertex-coloured meshes: the flat scar (no shadow) and
+  // the rock with its shards and gravel.
+  const noise=(x,z)=>Math.sin(x*47.3+seed*1.3)*Math.cos(z*52.1-seed*2.1)*.5+Math.sin((x-z)*19.7+seed)*.5;
+  const C=(hex)=>new THREE.Color(hex);
+  const RIM=.17,EDGE=.34;
+  const lip=(r)=>.016*Math.exp(-(((r-RIM)/.045)**2));
+  // The scar: a ragged disc of pale crushed grit, lowest at the centre, piled
+  // on a rim where the flags broke, fading to dust at the edge.
+  const disc=new THREE.RingGeometry(.002,EDGE,64,12);disc.rotateX(-Math.PI/2);
+  {const p=disc.attributes.position;
+   for(let i=0;i<p.count;i++){
+    const x=p.getX(i),z=p.getZ(i),r=Math.hypot(x,z),a=Math.atan2(z,x),t=r/EDGE;
+    const wob=1+t*t*(.12*Math.sin(4*a+seed)+.07*Math.sin(7*a-seed*.6));
+    const y=.002+lip(r)*(1+.35*noise(x*2,z*2))+(1-t)*.0015*noise(x*5,z*5);
+    p.setXYZ(i,x*wob,Math.max(.001,y*(1-t*t*t)+.001),z*wob);
+   }
+   disc.computeVertexNormals();}
+  const grit=C(0x9a968c),gritDark=C(0x76726a),dust=C(0x5f5d58),crackC=C(0x1c1b19);
+  const scar=[bake(disc,(c,x,y,z)=>{
+   const r=Math.hypot(x,z),h=noise(x*3.3,z*3.1)*.5+.5;
+   c.copy(grit).lerp(gritDark,h*.45);
+   if(r>RIM)c.lerp(dust,Math.min(1,(r-RIM)/(EDGE-RIM)*1.2));
+   if(r<RIM*.8)c.multiplyScalar(.82+.18*r/RIM);
+  })];
+  // Cracks: tapering dark strips running out from the rim, some forked.
+  const strip=(pts,w0,w1)=>{
+   const v=[];
+   for(let i=0;i<pts.length-1;i++){
+    const [x0,z0]=pts[i],[x1,z1]=pts[i+1],dx=x1-x0,dz=z1-z0,l=Math.hypot(dx,dz)||1,nx=-dz/l,nz=dx/l;
+    const wa=(w0+(w1-w0)*i/(pts.length-1))/2,wb=(w0+(w1-w0)*(i+1)/(pts.length-1))/2;
+    const y0=Math.max(.0022,lip(Math.hypot(x0,z0))+.0035),y1=Math.max(.0022,lip(Math.hypot(x1,z1))+.0035);
+    const A=[x0+nx*wa,y0,z0+nz*wa],B=[x0-nx*wa,y0,z0-nz*wa],P=[x1+nx*wb,y1,z1+nz*wb],Q=[x1-nx*wb,y1,z1-nz*wb];
+    v.push(...A,...P,...B,...B,...P,...Q);
+   }
+   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));geo.computeVertexNormals();
+   return geo;
+  };
+  for(let k=0;k<7;k++){
+   const a0=k/7*Math.PI*2+rand(k+200)*.6,len=.16+rand(k+210)*.1,pts=[];
+   for(let j=0;j<=8;j++){const r=.13+len*j/8,a=a0+.12*Math.sin(j*1.9+k*2.3)*(j/8);pts.push([Math.cos(a)*r,Math.sin(a)*r]);}
+   scar.push(bake(strip(pts,.009,.0015),(c)=>c.copy(crackC)));
+   if(k%2===0){const [bx,bz]=pts[4],ba=a0+(rand(k+220)>.5?.5:-.5),fork=[[bx,bz]];
+    for(let j=1;j<=4;j++){const r=Math.hypot(bx,bz)+.022*j;fork.push([Math.cos(ba+Math.atan2(bz,bx)-a0)*r,Math.sin(ba+Math.atan2(bz,bx)-a0)*r]);}
+    scar.push(bake(strip(fork,.005,.001),(c)=>c.copy(crackC)));}
+  }
+  // Shattered flags: wedge-shaped shards round the impact, their inner edges
+  // pushed down and outer edges tipped up. Worn grey tops, fresh pale breaks.
+  const flag=C(0x6f716c),flagDark=C(0x4f514d),fresh=C(0xa6a298);
+  const rocks=[];
+  const n=9;
+  for(let i=0;i<n;i++){
+   const a0=i/n*Math.PI*2+rand(i+300)*.25,a1=a0+Math.PI*2/n*(.72+rand(i+310)*.18),r0=.06+rand(i+320)*.03,r1=.17+rand(i+330)*.05;
+   const outline=[[r0,a0],[r0,a1],[r1*(.92+rand(i+340)*.1),a1],[r1*(1.02+rand(i+350)*.06),(a0+a1)/2],[r1*(.9+rand(i+360)*.1),a0]];
+   const shape=new THREE.Shape(outline.map(([r,a])=>new THREE.Vector2(Math.cos(a)*r,-Math.sin(a)*r)));
+   const geo=new THREE.ExtrudeGeometry(shape,{depth:.013,bevelEnabled:false});geo.rotateX(-Math.PI/2);
+   const mid=(a0+a1)/2,cx=Math.cos(mid)*(r0+r1)/2,cz=Math.sin(mid)*(r0+r1)/2,axis=new THREE.Vector3(-Math.sin(mid),0,Math.cos(mid));
+   const tip=.14+rand(i+370)*.12;
+   geo.applyMatrix4(new THREE.Matrix4().makeTranslation(cx,.004,cz).multiply(new THREE.Matrix4().makeRotationAxis(axis,-tip)).multiply(new THREE.Matrix4().makeTranslation(-cx,0,-cz)));
+   rocks.push(bake(geo,(c,x,y,z,nx,ny)=>{
+    const h=noise(x*4.3+i,z*4.1)*.5+.5;
+    c.copy(flag).lerp(flagDark,h*.5);
+    if(Math.abs(ny)<.6)c.copy(fresh).lerp(gritDark,h*.3);
+    else if(ny<0)c.multiplyScalar(.5);
+   }));
+  }
+  // The rock: a lumpy, faceted boulder with one flat fresh fracture face and a
+  // flattened base, sunk a little into the grit at the centre.
+  const boulder=new THREE.IcosahedronGeometry(1,4);
+  const cut=new THREE.Vector3(rand(400)-.5,.3+rand(410)*.5,rand(420)-.5).normalize();
+  {const p=boulder.attributes.position,v=new THREE.Vector3();
+   for(let i=0;i<p.count;i++){
+    v.fromBufferAttribute(p,i);
+    const d=1+.16*Math.sin(v.x*3.1+seed)*Math.sin(v.y*2.7-seed*.5)+.09*Math.sin(v.z*6.3+v.x*4.1)+.05*Math.sin((v.x+v.y+v.z)*11.3);
+    v.multiplyScalar(d);
+    const k=v.dot(cut);if(k>.72)v.addScaledVector(cut,.72-k);
+    if(v.y<-.62)v.y=-.62;
+    p.setXYZ(i,v.x*.14,v.y*.1,v.z*.12);
+   }
+   boulder.computeVertexNormals();}
+  const weathered=C(0x6b6a64),lichen=C(0x55584a),crevice=C(0x2f2e2b),dusted=C(0x8d8a82);
+  const cutWorld=cut.clone().multiply(new THREE.Vector3(1/.14,1/.1,1/.12)).normalize();
+  rocks.push(bake(boulder,(c,x,y,z,nx,ny,nz)=>{
+   const h=noise(x*6,z*6+y*5)*.5+.5,shell=Math.hypot(x/.14,y/.1,z/.12);
+   c.copy(weathered).lerp(lichen,Math.max(0,h-.45)*1.4);
+   c.lerp(crevice,Math.min(1,Math.max(0,1-shell)*1.6));
+   if(nx*cutWorld.x+ny*cutWorld.y+nz*cutWorld.z>.97)c.copy(fresh).lerp(gritDark,h*.25);
+   else if(ny>.7)c.lerp(dusted,.3);
+   if(y<-.045)c.multiplyScalar(.7);
+  },{x:(rand(430)-.5)*.04,y:.058,z:(rand(440)-.5)*.04,ry:rand(450)*6.28,rz:(rand(460)-.5)*.2}));
+  // Gravel thrown out of the scar, with a few fist-sized chunks near the rim.
+  for(let i=0;i<18;i++){
+   const big=i<4,a=rand(i+500)*Math.PI*2,r=big?.19+rand(i+510)*.06:.13+rand(i+510)*.27,s=big?.024+rand(i+520)*.012:.007+rand(i+520)*.012;
+   const tint=(i%3?flag:grit).clone().multiplyScalar(.8+rand(i+530)*.3);
+   rocks.push(bake(new THREE.DodecahedronGeometry(s,0),(c,x,y,z,nx,ny)=>c.copy(tint).multiplyScalar(ny>.5?1.05:.72),
+    {x:Math.cos(a)*r,y:s*.45+(big?lip(r)*.6:0),z:Math.sin(a)*r,rx:rand(i+540)*3,ry:rand(i+550)*3,sy:big?.8:.65}));
+  }
+  const scarGeo=mergeGeometries(scar),rockGeo=mergeGeometries(rocks);
+  for(const p of [...scar,...rocks])p.dispose();
+  const ground=add(scarGeo,mat({color:0xffffff,vertexColors:true,roughness:1}));ground.castShadow=false;ground.name='rubble-scar';
+  add(rockGeo,mat({color:0xffffff,vertexColors:true,roughness:.93})).name='fallen-rock';
  }else if(kind==='rust'){
   // Rust trap: a corroded standpipe rises from the floor, bends over and drips into a
   // blue-green puddle pooled over a drain grate, leaving orange rust stains and flakes.
