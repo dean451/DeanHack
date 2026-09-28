@@ -5,6 +5,7 @@ import {createUnicornHorn} from './unicorn-horn.js';
 import {createCandelabrum,candelabrumState} from './candelabrum.js';
 import {createMagicMarker,markerCharges} from './marker.js';
 import {createIronBall,createIronChain} from './iron-ball.js';
+import {createVenom} from './venom.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
@@ -1930,6 +1931,9 @@ export function createGroundModel(item={}){
  }else if(cls===16||/\biron chain\b/.test(name)){
   // One merged mesh: a loose length of interlocking links in a lazy S.
   const [chain]=createIronChain().children;g.add(chain);materials.push(chain.material);
+ }else if(cls===17||/\bvenom\b|freezing ice|splash of ice/.test(name)){
+  // One merged mesh: a glossy splash with a streak and spray; acid scorches and fizzes, ice freezes into shards.
+  const [splash]=createVenom(name).children;g.add(splash);materials.push(splash.material);
  }else if(cls===6&&/blindfold/.test(name)){
   // A dark silk blindfold dropped with its knot still tied: a padded, pleated eye band
   // looping round to a knot, with two ties trailing out and fraying at the tips.

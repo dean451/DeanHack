@@ -642,3 +642,27 @@ test('the heavy iron ball and the iron chain are single merged iron meshes on th
  // Found by name alone too, as the Live feed may send it.
  assert.equal(createGroundModel({name:'heavy iron ball'}).children[0].userData.part,'iron ball');
 });
+
+test('venom is a single merged glossy splash on the floor, told apart by kind',()=>{
+ const kinds={};
+ for(const [item,kind] of [[{name:'splash of venom',class:17},'plain'],[{name:'blinding venom',class:17},'blinding'],
+  [{name:'acid venom',class:17},'acid'],[{name:'freezing ice',class:17},'ice'],[{name:'acid venom'},'acid']]){
+  const model=createGroundModel(item);
+  assert(model,item.name);assert.equal(model.children.length,1);
+  const [mesh]=model.children,geo=mesh.geometry;
+  assert.equal(mesh.userData.part,'venom');assert.equal(mesh.userData.kind,kind);assert(mesh.material.vertexColors);
+  for(const k of ['position','normal','color'])for(const v of geo.attributes[k].array)assert(Number.isFinite(v),`${item.name} ${k}`);
+  for(const v of geo.attributes.color.array)assert(v>=0&&v<=1,`${item.name} colour ${v}`);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<.002,`${item.name} rests on the floor (${bounds.min.y})`);
+  assert(bounds.max.y>.008&&bounds.max.y<(kind==='ice'?.1:.03),`${item.name} height ${bounds.max.y}`);
+  assert(bounds.max.x<.49&&bounds.min.x>-.49&&bounds.max.z<.49&&bounds.min.z>-.49,`${item.name} inside its tile`);
+  assert(bounds.max.x-bounds.min.x>.4,`${item.name} spreads across the tile`);
+  kinds[kind]=geo.attributes.position.count;
+  let geometries=0,materials=0;geo.addEventListener('dispose',()=>geometries++);mesh.material.addEventListener('dispose',()=>materials++);
+  model.userData.dispose();assert.equal(geometries,1);assert.equal(materials,1);
+ }
+ // Acid adds bubbles and a scorch ring, ice adds shards; the plain splash has neither.
+ assert(kinds.acid>kinds.plain&&kinds.ice>kinds.plain&&kinds.blinding===kinds.plain);
+ console.log('venom vertex counts',kinds);
+});
