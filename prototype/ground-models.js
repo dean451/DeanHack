@@ -3,6 +3,7 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {mergeVertices,mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {createUnicornHorn} from './unicorn-horn.js';
 import {createCandelabrum,candelabrumState} from './candelabrum.js';
+import {createMagicMarker,markerCharges} from './marker.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
@@ -1920,7 +1921,8 @@ export function createGroundModel(item={}){
   // Merged gold, wax and (when lit) flame meshes, moved into g like the unicorn horn.
   for(const part of [...createCandelabrum(candelabrumState(item.name)).children]){g.add(part);materials.push(part.material);}
  }else if(/marker/.test(name)){
-  const pen=add(new THREE.CylinderGeometry(.035,.035,.32,12),leather,0,.04);pen.rotation.z=Math.PI/2;const cap=add(new THREE.CylinderGeometry(.04,.04,.08,12),gold,.15,.04);cap.rotation.z=Math.PI/2;
+  // One merged mesh: the pen with its cap pulled off beside it; a dry nib at 0 charges.
+  const [pen]=createMagicMarker({dry:markerCharges(item.name)===0}).children;g.add(pen);materials.push(pen.material);
  }else if(cls===6&&/blindfold/.test(name)){
   // A dark silk blindfold dropped with its knot still tied: a padded, pleated eye band
   // looping round to a knot, with two ties trailing out and fraying at the tips.
