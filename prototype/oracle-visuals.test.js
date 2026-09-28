@@ -11,10 +11,12 @@ test('four adjacent fountains are visible, tile-sized, and animate independently
     const size=new THREE.Box3().setFromObject(w).getSize(new THREE.Vector3());
     assert.ok(size.x<1&&size.z<1,'must fit one tile beside the Oracle');
   }
-  const before=wells[1].children.map(c=>c.position.toArray());
+  const pose=w=>w.children.map(c=>[c.position.toArray(),c.rotation.y,c.instanceMatrix?Array.from(c.instanceMatrix.array):null]);
+  const before=pose(wells[1]);
   wells[0].visible=false;wells[0].userData.updateFountain(2);
   assert.equal(wells[1].visible,true);
-  assert.deepEqual(wells[1].children.map(c=>c.position.toArray()),before);
+  assert.deepEqual(pose(wells[1]),before);
+  assert.notDeepEqual(pose(wells[0]),before);
   wells.forEach(w=>w.userData.dispose());
 });
 
@@ -44,4 +46,21 @@ test('live fountain retains demo detail even when the demo is hidden',()=>{
   live.userData.updateFountain(2.4);
   assert.deepEqual(demo.children.map(o=>o.position.toArray()),before);
   live.userData.dispose();demo.userData.dispose();
+});
+
+test('the fountain is finite, merged per material, and its spray moves',()=>{
+  const f=createFountain();f.updateMatrixWorld(true);
+  assert.ok(f.children.length<=7,`${f.children.length} draws`);
+  const parts=f.children.map(o=>o.userData.part);
+  for(const part of ['stone','trim','gold','streams','pool','spray','ripples'])assert.ok(parts.includes(part),`missing ${part}`);
+  for(const o of f.children)for(const key of ['position','normal'])for(const x of o.geometry.attributes[key].array)assert.ok(Number.isFinite(x),`${o.userData.part} ${key}`);
+  for(const part of ['stone','trim'])assert.ok(f.children.find(o=>o.userData.part===part).geometry.attributes.color,`${part} has baked weathering`);
+  const bounds=new THREE.Box3();for(const o of f.children)if(!o.isInstancedMesh)bounds.expandByObject(o);
+  assert.ok(bounds.min.y>-.01&&bounds.max.y<1.05,`y ${bounds.min.y}..${bounds.max.y}`);
+  for(const k of ['x','z'])assert.ok(bounds.min[k]>=-1&&bounds.max[k]<=1,`${k} ${bounds.min[k]}..${bounds.max[k]}`);
+  const spray=f.children.find(o=>o.userData.part==='spray'),before=Array.from(spray.instanceMatrix.array);
+  f.userData.updateFountain(1.3);
+  assert.notDeepEqual(Array.from(spray.instanceMatrix.array),before);
+  for(const x of spray.instanceMatrix.array)assert.ok(Number.isFinite(x));
+  f.userData.dispose();
 });
