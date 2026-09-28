@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fxTimeline, fxSpritesAt, FX_TICK_MS} from './fx.js';
+import {fxTimeline, fxSpritesAt, fxHoldMs, delayTimeline, FX_TICK_MS} from './fx.js';
 
 const fire = {kind: 'zap', zap: 'fire', dir: 'horizontal'};
 const beam = {type: 'fx', open: 0, truncated: false, steps: [
@@ -60,4 +60,19 @@ test('fxHoldMs holds frames only for drawn zaps and explosions, capped', async (
   assert.equal(fxHoldMs(fxTimeline(seq(zap, 60))), FX_HOLD_MAX_MS);
   assert.equal(fxHoldMs(null), 0);
   assert.equal(fxHoldMs({sprites: []}), 0);
+});
+
+test('delayTimeline shifts every sprite and the duration, leaving the original alone', () => {
+  const tl = fxTimeline({steps: [{op: 'start', mode: 'beam', effect: {kind: 'zap', zap: 'fire'}},
+    {op: 'draw', x: 1, z: 0}, {op: 'tick'}, {op: 'draw', x: 2, z: 0}, {op: 'tick'}, {op: 'end'}]});
+  const d = delayTimeline(tl, 120);
+  assert.equal(d.duration, tl.duration + 120);
+  assert.deepEqual(d.sprites.map(s => [s.from, s.until]), tl.sprites.map(s => [s.from + 120, s.until + 120]));
+  assert.equal(tl.sprites[0].from, 0);
+  assert.equal(fxSpritesAt(d, 100).length, 0);
+  assert.equal(fxSpritesAt(d, 125).length, 1);
+  assert.equal(fxHoldMs(d), fxHoldMs(tl) + 120);
+  assert.equal(delayTimeline(tl, 0), tl);
+  assert.equal(delayTimeline(tl, NaN), tl);
+  assert.equal(delayTimeline(null, 50), null);
 });

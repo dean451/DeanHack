@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {fxTimeline} from './fx.js';
-import {zapSource, zapPose, createZapFlash, heroBreathes, BREATH_HEAD, BREATH_LEAN, ZAP_ARM, ZAP_RAISE_MS, ZAP_LOWER_MS, ZAP_HOLD_MAX_MS} from './zap-flash.js';
+import {fxTimeline, delayTimeline} from './fx.js';
+import {zapSource, zapPose, createZapFlash, heroBreathes, BREATH_HEAD, BREATH_LEAN, ZAP_ARM, ZAP_RAISE_MS, ZAP_LOWER_MS, ZAP_HOLD_MAX_MS, ZAP_WINDUP_MS, ZAP_WINDUP_UP} from './zap-flash.js';
 
 const zap = (zapType, cells, dir = 'horizontal') => fxTimeline({steps: [
   {op: 'start', mode: 'beam', glyph: 1, effect: {kind: 'zap', zap: zapType, dir}},
@@ -146,5 +146,62 @@ test('a dragon or hound hero breathes: head and lean instead of the arm, flash a
   assert.ok(sawGlow && !fx.active);
   fx.unpose(hero);
   assert.ok(Math.abs(head.rotation.x - .05) < 1e-9 && Math.abs(body.rotation.x + .02) < 1e-9);
+  fx.dispose();
+});
+
+test('with a windup the arm and a charge come up first, and the flash bursts at the release', () => {
+  const cells = Array.from({length: 6}, (_, i) => [6 + i, 5]);
+  for (const breath of [false, true]) {
+    const src = {...zapSource(zap('cold', cells), {x: 5, z: 5}), breath};
+    src.from += ZAP_WINDUP_MS; src.until += ZAP_WINDUP_MS; src.windup = ZAP_WINDUP_MS;
+    const face = -1.4, key = breath ? 'head' : 'arm';
+    assert.equal(zapPose(src, -.5, face), null);
+    const start = zapPose(src, 0, face);
+    assert.ok(Math.abs(start[key]) < 1e-9 && Math.abs(start.yaw) < 1e-9 && start.flash.alpha < 1e-9);
+    const end = src.from + Math.max(ZAP_RAISE_MS, src.until - src.from) + ZAP_LOWER_MS;
+    let last = start, maxStep = 0, maxYawStep = 0, chargeMax = 0;
+    for (let t = .5; t < end; t += .5) {
+      const p = zapPose(src, t, face);
+      for (const k of ['arm', 'head', 'body', 'yaw']) assert.ok(Number.isFinite(p[k]), `${k} at ${t}`);
+      for (const v of Object.values(p.flash ?? {})) assert.ok(Number.isFinite(v));
+      if (p.flash) assert.ok(p.flash.alpha >= 0 && p.flash.alpha <= 1 && p.flash.size > 0 && p.flash.size < .3);
+      if (t < src.from) {
+        chargeMax = Math.max(chargeMax, p.flash.alpha);
+        assert.equal(p.flash.ringAlpha, 0);
+      }
+      maxStep = Math.max(maxStep, Math.abs(p[key] - last[key]));
+      maxYawStep = Math.max(maxYawStep, Math.abs(p.yaw - last.yaw));
+      last = p;
+    }
+    // Facing and most of the raise are done by the release, then it bursts.
+    const before = zapPose(src, src.from - .5, face), at = zapPose(src, src.from, face);
+    assert.ok(Math.abs(before.yaw - face) < .01);
+    const full = breath ? BREATH_HEAD : ZAP_ARM;
+    assert.ok(Math.abs(before[key] - full * ZAP_WINDUP_UP) < .01);
+    assert.ok(chargeMax > .3 && chargeMax < .5 && at.flash.alpha > .95 && at.flash.ringAlpha > .7);
+    assert.ok(maxStep < .02, `${key} step ${maxStep} per .5 ms`);
+    assert.ok(maxYawStep < .02, `yaw step ${maxYawStep}`);
+    assert.ok(Math.abs(last[key]) < .01 && Math.abs(last.yaw) < .01 && Math.abs(last.body) < .01);
+    assert.equal(zapPose(src, end, face), null);
+  }
+});
+
+test('play with a windup lines the release up with the delayed timeline', () => {
+  const group = new THREE.Group(), g = new THREE.Group(), arm = new THREE.Group();
+  g.add(arm); group.add(g);
+  const hero = {g, arm};
+  const fx = createZapFlash(THREE, group);
+  const tl = zap('fire', [[6, 5], [7, 5]]);
+  assert.equal(fx.play(tl, {x: 5, z: 5}, hero, null, {windup: ZAP_WINDUP_MS}), 'zap');
+  const delayed = delayTimeline(tl, ZAP_WINDUP_MS);
+  assert.equal(zapSource(delayed, {x: 5, z: 5}).from, ZAP_WINDUP_MS);
+  // The arm is moving before the delayed beam's first cell appears.
+  fx.update(.06, hero);
+  assert.ok(arm.rotation.x < -.1 && arm.rotation.x > ZAP_ARM * ZAP_WINDUP_UP - 1e-9);
+  assert.ok(fx.glow.visible && !fx.ring.visible);
+  for (let i = 0; i < 120; i++) fx.update(1 / 60, hero);
+  assert.ok(!fx.active);
+  fx.unpose(hero);
+  assert.equal(arm.rotation.x, 0);
   fx.dispose();
 });
