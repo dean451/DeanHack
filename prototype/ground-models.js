@@ -2396,6 +2396,129 @@ function buildBell(silver,{g,materials}){
  g.rotation.y=-.5;
 }
 
+// The horn: a cow-horn hunting horn lying on its side, curled in a crescent that lifts off the
+// floor in the middle. Tooled, frost and fire horns and the horn of plenty share the look. The
+// horn is one swept, vertex-coloured mesh: black at the tip fading through streaked amber to a
+// pale, ridged base, open at the mouth with a dark bore. The brass is a second mesh: a mouthpiece
+// cup, a ferrule on the tip, a rolled and engraved rim on the mouth, and two bands with staples
+// and rings. A leather baldric (the third mesh) runs from ring to ring in a slack loop on the
+// floor, with stitched edges and a brass buckle.
+function buildHorn({g,materials}){
+ const C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z),c=new THREE.Color(),Y=V(0,1,0);
+ const hornMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.42,metalness:.05});
+ const brassMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.8,roughness:.3});
+ const leatherMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.8});
+ materials.push(hornMat,brassMat,leatherMat);
+ // The centre line in plan, measured by arc length s from the tip (s=0) to the mouth (s=L).
+ const plan=new THREE.CatmullRomCurve3([V(-.17,0,.075),V(-.105,0,-.02),V(0,0,-.065),V(.105,0,-.04),V(.17,0,.04)]),L=plan.getLength();
+ const R=s=>{const t=Math.min(1,Math.max(0,s/L));return .0095+.044*t**1.7;};
+ // The middle arches up off the floor, so it rests on the tip and the mouth.
+ const raw=s=>{const t=Math.min(1,Math.max(0,s/L)),p=plan.getPointAt(t);p.y=R(s)+.014*Math.sin(Math.PI*t)**1.5;return p;};
+ const tan=s=>{const a=Math.min(L-1e-4,Math.max(1e-4,s));return raw(a+1e-4).sub(raw(a-1e-4)).normalize();};
+ // Past either end the line runs straight on, so the mouthpiece continues the tip's direction.
+ const centre=s=>{const t=tan(s),p=s<0?raw(0).addScaledVector(t,s):s>L?raw(L).addScaledVector(t,s-L):raw(s);return {p,t};};
+ // Sweep rings of N vertices round the centre line; the index wraps, so there is no seam.
+ // Rows that run back towards the tip face inwards (the bore, the inside of a cup).
+ const sweep=(prof,N,tone,line=centre,w=1,h=1)=>{
+  const pos=[],col=[],idx=[];
+  prof.forEach(([s,r,kind],k)=>{
+   const {p,t}=line(s),side=Y.clone().cross(t);if(side.lengthSq()<1e-6)side.set(1,0,0);side.normalize();const up=t.clone().cross(side);
+   for(let j=0;j<N;j++){
+    const a=j/N*Math.PI*2,q=p.clone().addScaledVector(up,Math.cos(a)*r*h).addScaledVector(side,Math.sin(a)*r*w);
+    pos.push(q.x,q.y,q.z);tone(kind,s,a,q,j);col.push(c.r,c.g,c.b);
+   }
+   if(k>0)for(let j=0;j<N;j++){const a=(k-1)*N+j,b=(k-1)*N+(j+1)%N,d=k*N+j,e=k*N+(j+1)%N;idx.push(a,d,b,b,d,e);}
+  });
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  geo.setIndex(idx);geo.computeVertexNormals();return geo;
+ };
+ // Growth ridges ring the wide end, fading out towards the tip.
+ const ridge=s=>{const t=s/L;return t>.45?.0007*Math.sin(s*520)*Math.min(1,(t-.45)/.2):0;};
+ const bands=[.3,.64].map(t=>t*L),rim=L-.02;
+ const hprof=[];
+ for(let s=0;s<=L;s+=s>L*.4?.0022:.004)hprof.push([s,R(s)+ridge(s),'out']);
+ for(let i=0;i<=5;i++){const a=i/5*Math.PI;hprof.push([L+Math.sin(a)*.002,R(L)-.002+Math.cos(a)*.002,'lip']);}
+ for(let s=L-.001;s>L-.14;s-=.004)hprof.push([s,R(s)-.004,'bore']);
+ const IVORY=C(0xe8d9b4),AMBER=C(0xb88a4c),STREAK=C(0x7a5430),BLACK=C(0x1c1612),INK=C(0x0c0806),POLISH=C(0xfff4dc);
+ const horn=sweep(hprof,28,(kind,s,a,q)=>{
+  const t=s/L,n=stoneNoise(q.x*30,q.y*30,q.z*30,4);
+  // Pale at the base, amber through the middle, black at the tip, with long streaks between.
+  c.copy(IVORY).lerp(AMBER,THREE.MathUtils.smoothstep(.85-t,0,.55)*.8);
+  const streak=Math.sin(a*7+Math.sin(t*9)*1.5+n*1.2);if(streak>.55)c.lerp(STREAK,(streak-.55)*1.2*(1-t*.6));
+  c.lerp(BLACK,THREE.MathUtils.smoothstep(.36-t+n*.06,0,.22));
+  if(kind==='out'&&t>.45&&Math.sin(s*520)<-.6)c.lerp(STREAK,.35*Math.min(1,(t-.45)/.2));
+  // Polished on top, where it is handled.
+  if(kind!=='bore'&&Math.cos(a)>.75)c.lerp(POLISH,.22*(Math.cos(a)-.75)*4);
+  if(kind==='bore')c.lerp(INK,Math.min(.95,.35+(L-s)/.05));
+ });
+ // The brass: mouthpiece cup and shank running back off the tip, a ferrule, two bands and the rim.
+ const BRASS=C(0xc99a3e),BRIGHT=C(0xf3d98a),DULL=C(0x6b4c1a),TARN=C(0x55563a);
+ const brassTone=(kind,s,a,q)=>{
+  const n=stoneNoise(q.x*40,q.y*40,q.z*40,6);
+  c.copy(BRASS).lerp(n>0?BRIGHT:DULL,Math.abs(n)*.3);if(n<-.5)c.lerp(TARN,.4);
+  if(Math.cos(a)>.6)c.lerp(BRIGHT,.35);
+  if(kind==='cup')c.lerp(INK,.75);
+  if(kind==='eng'&&Math.abs(Math.sin(a*8+Math.sin(a*16)*.8))<.25)c.lerp(DULL,.8);
+  if(kind==='groove')c.lerp(DULL,.7);
+ };
+ const mp=[[-.043,.002,'cup'],[-.044,.0055,'cup'],[-.046,.0082,'cup'],[-.0485,.0092,'rim'],[-.0495,.0098,'rim'],[-.048,.0101,'rim'],[-.045,.0096,'m'],[-.04,.0075,'m'],[-.033,.0058,'m'],[-.012,.0055,'m'],[-.011,.0068,'groove'],[-.008,.0068,'m'],[-.007,.0075,'m'],[.012,R(.012)+.0022,'m'],[.014,R(.014)+.0015,'m'],[.015,R(.015)-.001,'m']];
+ const collar=(s0,s1,eng)=>{
+  const p=[[s0,R(s0)-.001,'m'],[s0,R(s0)+.0018,'m'],[s0+.0015,R(s0)+.0028,'m']];
+  for(let s=s0+.003;s<s1-.002;s+=.002)p.push([s,R(s)+.0028,eng&&s>s0+.004&&s<s1-.004?'eng':Math.abs(s-(s0+s1)/2)<.0012?'groove':'m']);
+  p.push([s1-.0015,R(s1)+.0028,'m'],[s1,R(s1)+.0018,'m'],[s1,R(s1)-.001,'m']);return p;
+ };
+ const brass=[sweep(mp,24,brassTone)];
+ for(const s of bands)brass.push(sweep(collar(s-.007,s+.007,false),28,brassTone));
+ // The mouth rim wraps over the lip and a little way down the bore.
+ const rp=collar(rim,L,true).slice(0,-2);
+ for(let i=0;i<=6;i++){const a=i/6*Math.PI;rp.push([L+.0015+Math.sin(a)*.0038,R(L)-.001+Math.cos(a)*.0038,'m']);}
+ rp.push([L-.008,R(L-.008)-.0052,'m'],[L-.009,R(L-.009)-.0038,'m']);
+ brass.push(sweep(rp,32,brassTone));
+ // Each band carries a staple on top and a ring standing in it, facing out of the crescent.
+ const rings=bands.map(s=>{
+  const {p,t}=centre(s),side=Y.clone().cross(t).normalize(),up=t.clone().cross(side),r=R(s)+.0028;
+  const staple=new THREE.CylinderGeometry(.0028,.0028,.009,8).applyQuaternion(new THREE.Quaternion().setFromUnitVectors(Y,side));
+  staple.translate(...p.clone().addScaledVector(up,r+.0012).toArray());
+  const ring=new THREE.TorusGeometry(.0085,.0017,6,16).applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V(0,0,1),side));
+  const at=p.clone().addScaledVector(up,r+.0085);ring.translate(at.x,at.y,at.z);
+  for(const geo of [staple,ring]){geo.deleteAttribute('uv');const P=geo.attributes.position,cs=[];for(let i=0;i<P.count;i++){brassTone('m',0,P.getY(i)>at.y?0:Math.PI,V(P.getX(i),P.getY(i),P.getZ(i)));cs.push(c.r,c.g,c.b);}geo.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));brass.push(geo);}
+  return {at,side};
+ });
+ const hornGeo=horn,brassGeo=mergeGeometries(brass);brass.forEach(q=>q.dispose());
+ const floor=Math.min(...[hornGeo,brassGeo].map(q=>{q.computeBoundingBox();return q.boundingBox.min.y;}));
+ // The baldric: a flat strap from ring to ring that falls away on the outside of the crescent
+ // and lies in a slack loop on the floor. The crescent bows towards -z, so that is outside.
+ const T=.0022,W=.0065,fy=floor+T*.5+.0004;
+ const [A,B]=rings.map(r=>r.at);
+ const pts=[A,V(A.x-.004,fy+.012,A.z-.03),V(A.x-.02,fy,A.z-.065),V(A.x+.01,fy,-.17),V((A.x+B.x)/2+.02,fy,-.195),V(B.x-.02,fy,-.17),V(B.x+.025,fy,B.z-.07),V(B.x+.006,fy+.012,B.z-.032),B];
+ const strapCurve=new THREE.CatmullRomCurve3(pts,false,'centripetal'),SL=strapCurve.getLength();
+ const strapLine=s=>{const u=Math.min(1,Math.max(0,s/SL));return {p:strapCurve.getPointAt(u),t:strapCurve.getTangentAt(u)};};
+ const sp=[];for(let s=0;s<=SL+1e-6;s+=SL/140)sp.push([s,1,'strap']);
+ const LEATHER=C(0x6a3e22),LEATHER_LT=C(0x9a643a),LEATHER_DK=C(0x2e1a0e),THREAD=C(0xd8c49a);
+ const strap=sweep(sp,10,(kind,s,a,q,j)=>{
+  const n=stoneNoise(q.x*50,0,q.z*50,4);c.copy(LEATHER).lerp(n>0?LEATHER_LT:LEATHER_DK,Math.abs(n)*.35);
+  // Stitching runs along both edges of the top face.
+  if((j===1||j===9)&&Math.sin(s*900)>0)c.lerp(THREAD,.7);
+  if(j>=2&&j<=3||j>=7&&j<=8)c.lerp(LEATHER_DK,.45);
+ },strapLine,W,T*.5);
+ // Keep the strap out of the floor where the spline dips.
+ {const P=strap.attributes.position;for(let i=0;i<P.count;i++)if(P.getY(i)<floor+.0002)P.setY(i,floor+.0002);strap.computeVertexNormals();}
+ // A brass buckle where the loop lies flat: a rounded frame and a tongue across the strap.
+ const bs=SL*.36,{p:bp,t:bt}=strapLine(bs),yaw=Math.atan2(bt.x,bt.z);
+ const buckle=new THREE.TorusGeometry(.0098,.0014,5,4,Math.PI*2).rotateZ(Math.PI/4).scale(1.1,.8,1).rotateX(Math.PI/2).rotateY(yaw);
+ buckle.translate(bp.x,fy+T*.5+.0012,bp.z);
+ const tongue=new THREE.BoxGeometry(.0016,.0012,.011).rotateY(yaw).translate(bp.x,fy+T*.5+.0016,bp.z);
+ const extra=[buckle,tongue].map(geo=>{geo.deleteAttribute('uv');const P=geo.attributes.position,cs=[];for(let i=0;i<P.count;i++){brassTone('m',0,0,V(P.getX(i),P.getY(i),P.getZ(i)));cs.push(c.r,c.g,c.b);}geo.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));if(!geo.index)geo.setIndex([...Array(P.count).keys()]);return geo;});
+ const brassAll=mergeGeometries([brassGeo,...extra]);brassGeo.dispose();extra.forEach(q=>q.dispose());
+ for(const [geo,material,part] of [[hornGeo,hornMat,'horn-body'],[brassAll,brassMat,'horn-brass'],[strap,leatherMat,'horn-strap']]){
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=part;g.add(mesh);
+ }
+ const b=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();b.union(p.geometry.boundingBox);});
+ const mid=b.getCenter(V(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-b.min.y,-mid.z));
+ g.rotation.y=.4;
+}
+
 // The credit card: a bank card lying face up with a slight bow. The plastic is one merged
 // mesh (a rounded-corner slab whose face is painted per vertex with a blue sweep, a pale
 // swoosh, fine guilloche waves and a gold rule; the back has the magnetic stripe and the
@@ -3458,15 +3581,7 @@ export function createGroundModel(item={}){
    for(let i=0;i<3;i++){const a=i*Math.PI*2/3,claw=add(new THREE.ConeGeometry(.018,.07,6),brass,Math.cos(a)*.075,.06,Math.sin(a)*.075);claw.rotation.set(Math.sin(a)*.5,0,-Math.cos(a)*.5);}
    ball(.105,orb,0,.14,0);ball(.04,mist,.01,.15,-.01,[1.3,.6,1]).rotation.z=.6;
   }else if(kind==='horn'){
-   // A curved animal horn with a brass rim at the mouth and a mouthpiece at the tip.
-   const bone=mat(0xd6c49a),tip=mat(0x4a3a2a);
-   const curve=new THREE.QuadraticBezierCurve3(v(-.2,.03,.06),v(0,.02,-.12),v(.19,.07,.02));
-   taper(curve,.012,.058,bone);
-   const mouth=add(new THREE.TorusGeometry(.058,.009,8,24),brass,.19,.07,.02);
-   mouth.quaternion.setFromUnitVectors(v(0,0,1),curve.getTangent(1).normalize());
-   const hole=add(new THREE.CircleGeometry(.052,20),dark,.191,.07,.02);hole.quaternion.copy(mouth.quaternion);
-   ball(.016,tip,-.205,.03,.063);
-   for(const t of [.3,.55]){const p=curve.getPoint(t),band=add(new THREE.TorusGeometry(.012+.046*t+.003,.004,6,18),brass,p.x,p.y,p.z);band.quaternion.setFromUnitVectors(v(0,0,1),curve.getTangent(t).normalize());}
+   buildHorn({g,materials});
   }else if(kind==='bugle'){
    buildBugle({g,materials});
   }else if(kind==='flute'){
