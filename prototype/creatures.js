@@ -4,7 +4,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {heldBoulderGeometry} from './boulder.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
-import {createHomunculus} from './homunculus.js';
+import {createHomunculus,pieces,rgb,mix} from './homunculus.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
@@ -1048,6 +1048,77 @@ function leocrotta(o){
  B.put(tail,coat,taperedTube([[0,0,0],[0,-.08,-.08],[0,-.26,-.12],[0,-.4,-.08]],.024,.014,14,6));
  B.put(tail,mane,S(.035,10,8),[0,-.43,-.07],[0,0,0],[1,1.6,1]);
  B.bake();
+ return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw});
+}
+// Wumpuses (q): used to borrow the rothe, tinted cyan. A squat, round, shaggy beast too heavy for
+// a bat to lift, on four short, thick legs that end in the sucker feet of the old Hunt the Wumpus
+// game: each a broad pink pad with a raised rim and a dark cupped hollow. A huge round head sits low
+// on the body, split almost ear to ear by a grinning maw of blunt teeth, with small sunken yellow
+// eyes under a heavy brow, two stubby horns curling outward and small round ears. Coarse tufts of
+// darker fur ruff the back and flanks, and a short tail ends in a tuft.
+// Each moving part (body, head, jaw, each leg, tail) is one merged, vertex-coloured mesh sharing
+// one material, plus one small glowing mesh for the eyes: 9 draws.
+function wumpus(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);body.position.z=-.03;g.scale.setScalar(o.scale);g.name='wumpus';
+ const bins=new Map(),m=new THREE.Matrix4(),e=new THREE.Euler();
+ const put=(parent,colour,geo,pos=[0,0,0],rot=[0,0,0],scl=[1,1,1])=>{
+  if(!bins.has(parent))bins.set(parent,pieces());
+  bins.get(parent).add(geo,m.clone().compose(new THREE.Vector3(...pos),rot.isQuaternion?rot:new THREE.Quaternion().setFromEuler(e.set(...rot)),new THREE.Vector3(...scl)),colour);};
+ const hide=rgb(o.hide),dark=rgb(o.fur),belly=rgb(o.belly),pad=rgb('#c98a90'),cup=rgb('#5a2a34'),mouth=rgb('#3a1418'),tooth=rgb('#ece2c4'),horn=rgb('#d6c9a4');
+ const S=(r,w=16,h=12)=>new THREE.SphereGeometry(r,w,h),legH=.17,y=legH+.2;
+ // hide darkens toward the underside
+ const shaded=(lo,hi)=>(x,py)=>mix(mix(hide,dark,.55),hide,(py-lo)/(hi-lo));
+ // a round, heavy barrel, a pale belly sagging underneath
+ put(body,shaded(y-.2,y+.1),S(.23,22,16),[0,y,-.02],[0,0,0],[1.02,.88,1.18]);
+ put(body,shaded(y-.15,y+.12),S(.19,18,14),[0,y+.03,.12],[0,0,0],[1.08,.95,.9]);
+ put(body,belly,S(.18,16,12),[0,y-.09,.03],[0,0,0],[.95,.55,1.2]);
+ // coarse tufts over the back and flanks, pointing out and swept back, darker at the root
+ for(let i=0;i<30;i++){
+  const u=(i*.618034)%1,a=(i/30)*Math.PI*1.9-Math.PI*.95,up=.25+u*.9;
+  const n=new THREE.Vector3(Math.sin(a)*Math.cos(up),Math.sin(up),Math.cos(a)*Math.cos(up)-.25).normalize();
+  const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),n.clone().add(new THREE.Vector3(0,-.2,-.55)).normalize());
+  put(body,mix(dark,hide,u*.4),new THREE.ConeGeometry(.034,.09+u*.04,5),[n.x*.225,y+n.y*.2,-.02+n.z*.26],q,[1,1,.6]);
+ }
+ // the head: a great round skull sitting low and forward, a heavy brow and a broad muzzle
+ const head=new THREE.Group();head.position.set(0,y+.05,.25);body.add(head);
+ put(head,shaded(-.12,.14),S(.16,20,14),[0,.02,0],[0,0,0],[1.12,.92,.95]);
+ put(head,hide,S(.1,14,10),[0,-.01,.1],[0,0,0],[1.35,.75,.8]);
+ put(head,dark,S(.05,12,8),[0,.1,.08],[0,0,0],[2.6,.55,.9]);
+ const eyes=[];
+ for(const side of [-1,1]){
+  // small sunken eyes, round ears, and stubby horns curling out and up, pale at the tip
+  put(head,mouth,S(.026,10,8),[side*.065,.075,.115]);
+  eyes.push(S(.018,10,8).applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(side*.066,.075,.126),new THREE.Quaternion(),new THREE.Vector3(1,.8,.7))));
+  put(head,hide,S(.04,10,8),[side*.15,.1,-.03],[0,0,side*.4],[1,1,.4]);
+  put(head,belly,S(.026,10,8),[side*.152,.1,-.018],[0,0,side*.4],[1,1,.3]);
+  put(head,(x,py)=>mix(mix(horn,dark,.5),horn,(py-.12)/.1),taperedTube([[0,0,0],[side*.05,.03,0],[side*.075,.08,-.01],[side*.065,.12,-.025]],.028,.008,12,8),[side*.1,.12,.01]);
+ }
+ part(head,mergeGeometries(eyes),mat('#ffd24a',{emissive:'#d08a10',emissiveIntensity:2.2,roughness:.3})).userData.part='eyes';
+ eyes.forEach(geo=>geo.dispose());
+ // the maw: a wide dark slit wrapping round the muzzle, blunt teeth along the upper lip
+ put(head,mouth,new THREE.TorusGeometry(.12,.022,6,24,Math.PI*.9),[0,-.035,.035],[Math.PI/2,0,Math.PI*.05],[1.05,1,.95]);
+ for(let k=0;k<11;k++){const a=Math.PI*(.12+.76*k/10);put(head,tooth,new THREE.ConeGeometry(.014,.034,5),[Math.cos(a)*.125,-.035,.035+Math.sin(a)*.115],[Math.PI,0,0]);}
+ // the lower jaw hangs a little open, its own row of teeth pointing up
+ const jaw=new THREE.Group();jaw.position.set(0,-.05,.02);jaw.rotation.x=.12;head.add(jaw);
+ put(jaw,hide,S(.11,16,10),[0,-.03,.04],[0,0,0],[1.2,.45,.95]);
+ put(jaw,mouth,S(.1,14,8),[0,-.005,.05],[0,0,0],[1.1,.18,.85]);
+ for(let k=0;k<9;k++){const a=Math.PI*(.15+.7*k/8);put(jaw,tooth,new THREE.ConeGeometry(.012,.03,5),[Math.cos(a)*.11,.01,.04+Math.sin(a)*.09]);}
+ // four short, thick legs with a shaggy cuff, each on a broad sucker pad: pink rim, dark cupped hollow
+ for(const side of [-1,1])for(const z of [.13,-.15]){
+  const leg=new THREE.Group();leg.position.set(side*.16,legH,z);body.add(leg);legs.push(leg);
+  put(leg,hide,S(.08,12,10),[0,.03,0],[0,0,0],[1,1.3,1.1]);
+  put(leg,shaded(-legH,0),new THREE.CylinderGeometry(.06,.055,legH-.02,12),[0,-legH/2+.01,0]);
+  put(leg,dark,new THREE.ConeGeometry(.068,.07,10,1,true),[0,-legH*.5,0]);
+  put(leg,pad,new THREE.CylinderGeometry(.075,.085,.028,18),[0,-legH+.014,.01]);
+  put(leg,pad,new THREE.TorusGeometry(.078,.012,6,20),[0,-legH+.03,.01],[Math.PI/2,0,0]);
+  put(leg,cup,new THREE.CylinderGeometry(.05,.05,.004,16),[0,-legH+.029,.01]);
+ }
+ // a short thick tail with a dark tuft
+ const tail=new THREE.Group();tail.position.set(0,y+.02,-.28);body.add(tail);
+ put(tail,hide,taperedTube([[0,0,0],[0,-.03,-.06],[0,-.09,-.1]],.035,.02,10,8));
+ put(tail,dark,S(.035,10,8),[0,-.11,-.11],[0,0,0],[1,1.4,1]);
+ const skin=mat('#ffffff',{vertexColors:true,roughness:.82});
+ for(const [parent,P] of bins)part(parent,P.merge(),skin);
  return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw});
 }
 // giants (H): a towering, broad-shouldered brute in a hide kilt and belt, with thick legs in wrapped boots and heavy fists;
@@ -2143,6 +2214,7 @@ export function createCreature(cell={}){
  if(HORSES[name])return horseFor(name,color);
  if(PROBOSCIDEANS[name])return proboscidean(PROBOSCIDEANS[name]);
  if(MEGA_RHINOS[name])return megaRhino(MEGA_RHINOS[name]);
+ if(name==='wumpus')return wumpus({scale:1,hide:'#3f8f94',fur:'#27595c',belly:'#8ec2b6'});
  if(name==='leocrotta')return leocrotta({scale:1.05,coat:'#a8865a',dark:'#6e5436',mane:'#4a3420',belly:'#cdb48c'});
  if(GIANTS[name])return giant(GIANTS[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
