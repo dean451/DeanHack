@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 
@@ -88,7 +88,7 @@ test('gems, gray stones and rocks are grounded, hide their identity, and release
 });
 
 test('common food gets grounded, finite models and unknown food falls back',()=>{
- const foods=['apple','3 oranges','pear','melon','banana','carrot','2 eggs','tin','lembas wafer','fortune cookie','meatball','meat stick','huge chunk of meat','meat ring','2 cloves of garlic','lump of royal jelly','cream pie','candy bar','pancake','kelp frond','slime mold'];
+ const foods=['apple','3 oranges','pear','melon','banana','carrot','2 eggs','tin','lembas wafer','fortune cookie','meatball','meat stick','huge chunk of meat','meat ring','2 cloves of garlic','lump of royal jelly','cream pie','candy bar','pancake','kelp frond','slime mold','eucalyptus leaf','3 eucalyptus leaves'];
  const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push(part.geometry.type);});return out.join();};
  const seen=new Set();
  for(const name of foods){
@@ -109,7 +109,7 @@ test('common food gets grounded, finite models and unknown food falls back',()=>
   assert.equal(disposed,geometries);
  }
  assert(seen.size>=15,'kinds should look different');
- assert.equal(createGroundModel({name:'eucalyptus leaf',class:7}),null);
+ assert.equal(createGroundModel({name:'glob of gray ooze',class:7}),null);
 });
 
 test('scrolls lie on the floor and show only their shuffled label',()=>{
@@ -685,4 +685,20 @@ test('iron safe gets one merged, grounded, finite strongbox model',()=>{
  mesh.geometry.addEventListener('dispose',()=>geometries++);mesh.material.addEventListener('dispose',()=>materials++);
  model.userData.dispose();chest.userData.dispose();
  assert.equal(geometries,1);assert.equal(materials,1);
+});
+
+test('eucalyptus leaves are a thin sickle blade on a reddish stalk, two when stacked',()=>{
+ const one=eucalyptusLeafGeometry(1),two=eucalyptusLeafGeometry(2);
+ for(const {blade,stalk} of [one,two])for(const geo of [blade,stalk])for(const v of geo.attributes.position.array)assert(Number.isFinite(v));
+ one.blade.computeBoundingBox();
+ const b=one.blade.boundingBox;
+ assert(b.max.x-b.min.x>.25&&b.max.x-b.min.x<.3,'long');
+ assert(b.max.y<.04,'lies flat');
+ assert(two.blade.attributes.position.count===2*one.blade.attributes.position.count);
+ const model=createGroundModel({name:'eucalyptus leaf',class:7});
+ let draws=0;model.traverse(p=>{if(p.isMesh)draws++;});
+ assert.equal(draws,2);
+ const bounds=new THREE.Box3().setFromObject(model);
+ assert(bounds.max.y<.05);
+ model.userData.dispose();
 });
