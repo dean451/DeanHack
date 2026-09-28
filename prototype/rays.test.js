@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline, FX_TICK_MS} from './fx.js';
-import {RAY_LOOKS, RAY_FADE_MS, SPARK_MS, MIRROR_MS, RAY_Y, rayLook, rayBounces, rayFrame, raySparks, markMirrors, mirrorFlash, reflectorAt, createRays} from './rays.js';
+import {RAY_LOOKS, DIG_LOOK, RAY_FADE_MS, SPARK_MS, MIRROR_MS, GRIT_MS, PUFF_MS, GRIT_PER_CELL, PUFFS_PER_CELL, CHIPS_PER_CELL, RAY_Y, rayLook, rayBounces, rayFrame, raySparks, markMirrors, mirrorFlash, reflectorAt, digCells, solidAt, digGrit, rubble, createRays} from './rays.js';
 
 const zap = (type, dir) => ({kind: 'zap', zap: type, dir});
 // A fire bolt going east from x=3, hitting a wall past x=6 and coming back to x=4.
@@ -169,6 +169,113 @@ test('createRays draws a replay and ends empty', () => {
   assert.equal(rays.flash.count, 0);
   rays.play(bolt()); rays.update(.1, null); rays.clear();
   assert.equal(rays.core.count, 0);
+  rays.dispose();
+  assert.equal(parent.children.length, 0);
+});
+
+// A digging beam going north-east (x and z rising) from next to the hero at 2,2, through
+// rock at 5,5 and 6,6.
+const dig = () => fxTimeline({steps: [
+  {op: 'start', mode: 'beam', glyph: 9, effect: {kind: 'dig', cmap: 36}},
+  ...[3, 4, 5, 6].flatMap(i => [{op: 'draw', x: i, z: i}, {op: 'tick'}]),
+  {op: 'end'},
+]});
+const rock = (x, z) => x >= 5 && z >= 5;
+
+test('the digging beam has its own look, runs along its cells and never bounces', () => {
+  assert.equal(rayLook({kind: 'dig', cmap: 36}), DIG_LOOK);
+  assert.ok(!Object.values(RAY_LOOKS).includes(DIG_LOOK));
+  const tl = dig();
+  assert.equal(rayBounces(tl).length, 0);
+  const segs = rayFrame(tl, tl.duration - 1);
+  assert.equal(segs.length, 4);
+  for (const s of segs) {
+    assert.equal(s.look, DIG_LOOK);
+    assert.ok(Math.abs(s.yaw - Math.PI / 4) < 1e-9);
+  }
+  // A single dug cell lies along the step from... nothing: it stays level at yaw 0.
+  const one = fxTimeline({steps: [{op: 'start', mode: 'beam', effect: {kind: 'dig'}}, {op: 'draw', x: 1, z: 1}, {op: 'tick'}, {op: 'end'}]});
+  assert.equal(rayFrame(one, 10)[0].yaw, 0);
+  // A northward (map z falling) dig turns the other way.
+  const north = fxTimeline({steps: [{op: 'start', mode: 'beam', effect: {kind: 'dig'}},
+    ...[4, 3].flatMap(z => [{op: 'draw', x: 1, z}, {op: 'tick'}]), {op: 'end'}]});
+  for (const s of rayFrame(north, north.duration - 1)) assert.ok(Math.abs(s.yaw + Math.PI / 2) < 1e-9);
+});
+
+test('digCells marks the solid cells and solidAt reads rock, walls and doors from a frame', () => {
+  const cells = digCells(dig(), rock);
+  assert.deepEqual(cells.map(c => [c.x, c.z, !!c.dug]), [[3, 3, false], [4, 4, false], [5, 5, true], [6, 6, true]]);
+  for (const c of cells) assert.deepEqual(c.dir, [1, 1]);
+  assert.ok(digCells(dig()).every(c => !c.dug));
+  assert.deepEqual(digCells(bolt(), rock), []);
+  const frame = {cells: [{x: 1, z: 1, terrain: 'floor'}, {x: 2, z: 1, terrain: 'wall'}, {x: 3, z: 1, terrain: 'unknown'},
+    {x: 4, z: 1, terrain: 'door'}, {x: 5, z: 1, terrain: 'water'}]};
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map(x => solidAt(frame, x, 1)), [false, true, true, true, false, true]);
+  assert.equal(solidAt(null, 1, 1), false);
+});
+
+test('grit falls from every dug cell and dies out', () => {
+  const cells = digCells(dig(), rock);
+  assert.equal(digGrit(cells, -1).length, 0);
+  assert.equal(digGrit(cells, cells[0].t + 10).length, GRIT_PER_CELL);
+  for (let t = 0; t < cells.at(-1).t + GRIT_MS + 50; t += 12) {
+    for (const g of digGrit(cells, t)) {
+      for (const k of ['x', 'y', 'z', 'alpha']) assert.ok(Number.isFinite(g[k]), k);
+      assert.ok(g.y >= .02 && g.y < RAY_Y + .2);
+      assert.ok(g.alpha > 0 && g.alpha <= 1);
+      assert.ok(g.x > 2 && g.x < 7.2 && g.z > 2 && g.z < 7.2);
+    }
+  }
+  assert.equal(digGrit(cells, cells.at(-1).t + GRIT_MS).length, 0);
+});
+
+test('rubble billows from dug cells only, the chips land and everything clears', () => {
+  const cells = digCells(dig(), rock);
+  const dug = cells.filter(c => c.dug);
+  assert.deepEqual(rubble(cells, dug[0].t - 1), {puffs: [], chips: []});
+  let peak = 0;
+  const rest = [];
+  for (let t = dug[0].t; t < dug[1].t + PUFF_MS; t += 8) {
+    const {puffs, chips} = rubble(cells, t);
+    assert.ok(puffs.length <= 2 * PUFFS_PER_CELL && chips.length <= 2 * CHIPS_PER_CELL);
+    for (const p of puffs) {
+      for (const k of ['x', 'y', 'z', 'r', 'alpha']) assert.ok(Number.isFinite(p[k]), k);
+      assert.ok(p.r > 0 && p.r < .35 && p.alpha >= 0 && p.alpha <= .7 && p.y > .1 && p.y < .75);
+      assert.ok(Math.hypot(p.x - 5.5, p.z - 5.5) < 1.6);
+      peak = Math.max(peak, p.alpha);
+    }
+    for (const c of chips) {
+      for (const k of ['x', 'y', 'z', 'size', 'rx', 'ry']) assert.ok(Number.isFinite(c[k]), k);
+      assert.ok(c.y >= c.size / 2 - 1e-9 && c.y < 1.1 && c.size >= 0 && c.size < .08);
+      assert.ok(Math.hypot(c.x - 5.5, c.z - 5.5) < 3);
+    }
+    if (t > dug[1].t + 650 && t < dug[1].t + 670) rest.push(chips);
+  }
+  assert.ok(peak > .4);
+  // By 650 ms every chip has come to rest on the floor.
+  for (const chips of rest) for (const c of chips) assert.ok(Math.abs(c.y - c.size / 2) < 1e-9);
+  assert.deepEqual(rubble(cells, dug[1].t + PUFF_MS), {puffs: [], chips: []});
+});
+
+test('createRays draws a dig with grit and rubble, then ends empty', () => {
+  const parent = new THREE.Group();
+  const rays = createRays(THREE, parent);
+  assert.equal(rays.play(dig(), {solidAt: rock}), true);
+  let puffs = 0, chips = 0, frames = 0;
+  for (; rays.active && frames < 200; frames++) {
+    rays.update(1 / 60, {x: 2, z: 2});
+    puffs = Math.max(puffs, rays.puff.count); chips = Math.max(chips, rays.chip.count);
+    const m = new THREE.Matrix4(), p = new THREE.Vector3();
+    for (let j = 0; j < rays.chip.count; j++) {
+      rays.chip.getMatrixAt(j, m); p.setFromMatrixPosition(m);
+      assert.ok([p.x, p.y, p.z].every(Number.isFinite) && p.y >= 0 && p.y < 1.1);
+    }
+  }
+  assert.equal(puffs, 2 * PUFFS_PER_CELL);
+  assert.equal(chips, 2 * CHIPS_PER_CELL);
+  assert.ok(frames < 120);
+  assert.equal(rays.puff.count + rays.chip.count + rays.core.count, 0);
+  assert.equal(rays.sparks.geometry.drawRange.count, 0);
   rays.dispose();
   assert.equal(parent.children.length, 0);
 });

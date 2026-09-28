@@ -52,6 +52,8 @@ test('fxHoldMs holds frames only for drawn zaps and explosions, capped', async (
   const ray = fxTimeline(seq(zap, 6));
   assert.equal(fxHoldMs(ray), ray.duration);
   assert.equal(fxHoldMs(fxTimeline(seq({kind: 'object', otyp: 17}, 6, 'flash'))), 0);
+  const dig = fxTimeline(seq({kind: 'dig', cmap: 36}, 5));
+  assert.equal(fxHoldMs(dig), dig.duration);
   const blast = fxTimeline({steps: [{op: 'start', mode: 'all', glyph: 2, effect: {kind: 'explosion', explosion: 'fiery', part: 4}},
     {op: 'draw', x: 3, z: 3}, {op: 'end'}]});
   assert.ok(fxHoldMs(blast) >= FX_BLAST_HOLD_MS);
