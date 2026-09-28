@@ -12,7 +12,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // The geometry is built once and shared by every homunculus.
 // Handles: legs, arms, arm, head, wings, tail, body, like the humanoid rig.
 
-function pieces(){
+export function pieces(){
  const list=[];
  return {
   add(geo,matrix,colour){
@@ -27,10 +27,10 @@ function pieces(){
   merge(){const geo=mergeGeometries(list);list.forEach(g=>g.dispose());return geo;},
  };
 }
-const rgb=(hex)=>{const c=new THREE.Color(hex);return [c.r,c.g,c.b];};
-const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*THREE.MathUtils.clamp(t,0,1));
+export const rgb=(hex)=>{const c=new THREE.Color(hex);return [c.r,c.g,c.b];};
+export const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*THREE.MathUtils.clamp(t,0,1));
 // position, Euler rotation [x,y,z], scale
-const at=(x,y,z,r=[0,0,0],s=[1,1,1])=>new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(...r)),new THREE.Vector3(...s));
+export const at=(x,y,z,r=[0,0,0],s=[1,1,1])=>new THREE.Matrix4().compose(new THREE.Vector3(x,y,z),new THREE.Quaternion().setFromEuler(new THREE.Euler(...r)),new THREE.Vector3(...s));
 
 const C={
  skin:rgb('#5f8a3f'),skinDark:rgb('#34521f'),belly:rgb('#a8b86a'),wart:rgb('#7a9a48'),

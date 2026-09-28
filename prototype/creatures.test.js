@@ -149,3 +149,34 @@ test('leocrottas are maned, badger-headed stags with bone-lined jaws, not rothe 
  assert(bounds.max.y>.9&&bounds.max.y<1.25,`height ${bounds.max.y}`);
  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.9);
 });
+
+test('manes get their own hunched, wingless, rib-caged model instead of the tinted imp',()=>{
+ const I=105,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const t0=performance.now(),manes=createCreature({name:'manes',symbol:I,color:1}),ms=performance.now()-t0;
+ assert.equal(manes.quirk,'manes');
+ for(const key of ['body','head','arm'])assert(manes[key]?.isObject3D,key);
+ assert.equal(manes.legs.length,2);assert.equal(manes.arms.length,2);assert.equal(manes.wings.length,0);assert.equal(manes.tail,null);
+ const parts=meshes(manes);
+ assert.equal(parts.length,7,'one mesh per moving part plus the eyes');
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ manes.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(manes.g);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>.6&&b.max.y<.85,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.45,'fits the tile');
+ // the talons hang low, well below the hips
+ const hand=new THREE.Box3().setFromObject(manes.arm);
+ assert(hand.min.y<.2&&hand.min.y>0,`talons at ${hand.min.y}`);
+ const other=meshes(createCreature({name:'manes'}));
+ parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
+ assert(ms<200,`took ${ms} ms`);
+ assert.equal(createCreature({name:'imp',symbol:I,color:1}).quirk,'imp');
+ assert.equal(createCreature({name:'quasit',symbol:I,color:4}).quirk,'imp');
+ assert.equal(createCreature({name:'homunculus',symbol:I,color:2}).quirk,'homunculus');
+});
