@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {polyMessage, resolveBursts, burstFrame, createPolymorph, BURST_MS} from './polymorph.js';
+import {polyMessage, resolveBursts, burstFrame, createPolymorph, poseActor, BURST_MS} from './polymorph.js';
+import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
 
 // A 10×5 room with the hero at (2, 2) and some creatures.
 const room = monsters => {
@@ -113,4 +114,47 @@ test('createPolymorph plays a heard change over the next frame and cleans up', (
   assert.equal(poly.frame(room([])).length, 0);
   poly.dispose();
   assert.equal(g.children.length, 0);
+});
+
+test('poseActor squashes a model through a burst and hands its base scale back', () => {
+  const room2 = room([{x: 5, z: 2, name: 'newt'}]);
+  const after = room([{x: 5, z: 2, name: 'dragon'}]);
+  const poly = createPolymorph(THREE, new THREE.Group());
+  poly.frame(room2);
+  poly.message('The newt turns into a dragon!');
+  poly.frame(after);
+  const actor = {g: new THREE.Group(), cell: '5,2', actions: createActionQueue()};
+  actor.g.scale.set(.8, .8, .8);
+  // A hit reaction runs alongside, with its own squash on the same scale.
+  enqueueAction(actor.actions, {kind: 'hit', dir: {x: 1, z: 0}});
+  let squeezed = false, grew = false;
+  for (let t = 0; t <= BURST_MS + 100; t += 16) {
+    clearActionPose(actor, actor.actions);
+    const {poses} = poly.update(.016);
+    poseActor(actor, poses.get(actor.cell));
+    updateActions(actor, actor.actions, .016);
+    for (const k of ['x', 'y', 'z']) {
+      assert.ok(Number.isFinite(actor.g.scale[k]));
+      assert.ok(actor.g.scale[k] > .2 && actor.g.scale[k] < 2, `scale.${k} ${actor.g.scale[k]} at ${t}`);
+    }
+    if (actor.polyPose?.sx < .9) squeezed = true;
+    if (actor.polyPose?.sy > 1.02 || actor.polyPose?.sx > 1.02) grew = true;
+  }
+  clearActionPose(actor, actor.actions);
+  assert.ok(squeezed && grew);
+  assert.equal(actor.polyPose, null);
+  for (const k of ['x', 'y', 'z']) assert.ok(Math.abs(actor.g.scale[k] - .8) < 1e-9, `scale.${k} ${actor.g.scale[k]}`);
+});
+
+test('poseActor ignores bad poses and missing models', () => {
+  poseActor(null, {sx: 2, sy: 2});
+  poseActor({}, {sx: 2, sy: 2});
+  const a = {g: new THREE.Group()};
+  poseActor(a, {sx: NaN, sy: 1});
+  poseActor(a, {sx: 0, sy: 1});
+  assert.deepEqual(a.g.scale.toArray(), [1, 1, 1]);
+  poseActor(a, {sx: .5, sy: 2});
+  assert.deepEqual(a.g.scale.toArray(), [.5, 2, .5]);
+  poseActor(a, undefined);
+  assert.deepEqual(a.g.scale.toArray(), [1, 1, 1]);
 });

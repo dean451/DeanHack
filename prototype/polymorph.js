@@ -245,3 +245,16 @@ export function createPolymorph(THREE, parent) {
   };
   return {add, message, frame, update, clear, dispose};
 }
+
+// Swaps the squash pose on an actor's model: undoes the one applied last frame (kept on
+// actor.polyPose) and multiplies in the new one, so it stacks with the action layer's own
+// scale changes and leaves the base scale exactly as it was once the pose is null.
+export function poseActor(actor, pose) {
+  const g = actor?.g;
+  if (!g) return;
+  const o = actor.polyPose;
+  if (o) { g.scale.x /= o.sx; g.scale.z /= o.sx; g.scale.y /= o.sy; }
+  const p = pose && Number.isFinite(pose.sx) && Number.isFinite(pose.sy) && pose.sx > 0 && pose.sy > 0 ? pose : null;
+  if (p) { g.scale.x *= p.sx; g.scale.z *= p.sx; g.scale.y *= p.sy; }
+  actor.polyPose = p ? {sx: p.sx, sy: p.sy} : null;
+}
