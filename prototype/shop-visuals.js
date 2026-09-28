@@ -310,14 +310,10 @@ export function lightItemKind(name=''){
 export function createLightItem(name){
  const kind=lightItemKind(name);if(!kind)return null;
  if(kind==='lantern')return createBrassLantern(name);
+ if(kind==='candle')return createCandle(name);
  const {g,mat,mesh,ball,cyl,ring}=kit(name);g.userData.restingWeapon=true;
- const brass=mat(0xb79b53,{metalness:.75,roughness:.3}),dark=mat(0x34312c),wax=mat(/tallow/i.test(name)?0xbead82:0xeee0b4);
- if(kind==='candle'){
-  cyl(brass,0,.035,0,.17,.20,.07);cyl(wax,0,.26,0,.073,.082,.40);
-  const lip=ring(wax,0,.465,0,.058,.014);lip.rotation.x=Math.PI/2;
-  cyl(dark,0,.487,0,.009,.009,.055,6);
-  for(const [a,h] of [[.4,.09],[2,.14],[4,.065]])ball(wax,Math.cos(a)*.073,.43-h*.3,Math.sin(a)*.073,.017,h*.5,.019);
- }else if(kind==='lamp'){
+ const brass=mat(0xb79b53,{metalness:.75,roughness:.3}),dark=mat(0x34312c);
+ if(kind==='lamp'){
   cyl(brass,0,.035,0,.18,.21,.07);
   ball(brass,0,.14,0,.22,.11,.16);cyl(brass,0,.25,0,.10,.14,.045);ball(brass,0,.285,0,.035,.03,.035);
   const spout=mesh(new THREE.ConeGeometry(.075,.32,12),brass,.25,.20,0);spout.rotation.z=-Math.PI/2-.25;
@@ -390,12 +386,90 @@ function createBrassLantern(name){
  glass.castShadow=false;glass.userData.part='globe';
  if(lit){
   // A still, teardrop flame on the wick with a white-hot heart.
-  const flameGeo=lathe([[0,.176],[.014,.182],[.02,.196],[.017,.215],[.009,.235],[0,.252]],16),fp=flameGeo.attributes.position,fc=[];
-  for(let i=0;i<fp.count;i++){c.set(0xfff4d0).lerp(new THREE.Color(0xff8a2a),Math.min(1,(fp.getY(i)-.176)/.07+Math.hypot(fp.getX(i),fp.getZ(i))*18));fc.push(c.r,c.g,c.b);}
-  flameGeo.setAttribute('color',new THREE.Float32BufferAttribute(fc,3));
-  const flame=mesh(flameGeo,new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}));flame.castShadow=flame.receiveShadow=false;flame.userData.part='flame';
-  const dispose=g.userData.dispose;g.userData.dispose=()=>{dispose();flame.material.dispose();};
+  addFlame(g,mesh,.176);
  }
+ g.rotation.y=.4;
+ return g;
+}
+// A still, teardrop flame standing on a wick at height `base`, white-hot at the heart and orange at
+// the edges. It's unlit (MeshBasicMaterial) and tagged part 'flame' so an animation can flicker it.
+function addFlame(g,mesh,base,s=1){
+ const c=new THREE.Color(),edge=new THREE.Color(0xff8a2a);
+ const geo=new THREE.LatheGeometry([[0,0],[.014,.006],[.02,.02],[.017,.039],[.009,.059],[0,.076]].map(([r,y])=>new THREE.Vector2(r*s,base+y*s)),16),p=geo.attributes.position,cols=[];
+ for(let i=0;i<p.count;i++){c.set(0xfff4d0).lerp(edge,Math.min(1,(p.getY(i)-base)/(.07*s)+Math.hypot(p.getX(i),p.getZ(i))*18/s));cols.push(c.r,c.g,c.b);}
+ geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+ const flame=mesh(geo,new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}));flame.castShadow=flame.receiveShadow=false;flame.userData.part='flame';
+ const dispose=g.userData.dispose;g.userData.dispose=()=>{dispose();flame.material.dispose();};
+ return flame;
+}
+// A candle in a brass chamberstick: a dished saucer with a rolled rim, a socket with a drip-pan
+// flange, and a finger loop with a thumb rest. The candle has a melted, uneven crater round a curled
+// wick, runs of wax down its side (ending in beads, one pooled in the flange) and a spill in the dish.
+// Tallow is yellower, grimier and drips more than wax. A stack ("3 wax candles") adds spare candles
+// lying beside the stick. Brass and wax are one merged, vertex-coloured mesh each; a lit candle
+// ("(lit)" in the name) adds a flame as a third draw and warms the wax round the crater.
+function createCandle(name){
+ const {g,mat,mesh}=kit(name);g.userData.restingWeapon=true;
+ const lit=/\blit\b/i.test(name),tallow=/tallow/i.test(name),count=Math.max(/candles\b/i.test(name)?2:1,Number(/^\s*(\d+)/.exec(name)?.[1]??1));
+ const c=new THREE.Color(),brass=new THREE.Color(0xb3924a),polish=new THREE.Color(0xf0d58c),tarnish=new THREE.Color(0x4f4127),soot=new THREE.Color(0x191511);
+ const waxTone=new THREE.Color(tallow?0xcfb27a:0xefe5c8),waxShade=new THREE.Color(tallow?0x8c7442:0xcfc09a),glow=new THREE.Color(0xffc987),
+  wick=new THREE.Color(0x2a2520),ember=new THREE.Color(0xff6a1c);
+ const noise=(a,b)=>{const v=Math.sin(a*12.9898+b*78.233)*43758.5453;return v-Math.floor(v);};
+ const colour=(geo,tone)=>{geo.deleteAttribute('uv');const p=geo.attributes.position,cols=[];
+  for(let i=0;i<p.count;i++){tone(p.getX(i),p.getY(i),p.getZ(i),c);cols.push(c.r,c.g,c.b);}
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));return geo;};
+ const lathe=(profile,n=28)=>new THREE.LatheGeometry(profile.map(([r,y])=>new THREE.Vector2(r,y)),n);
+ const metal=[],wax=[];
+ const worn=(x,y,z,col)=>{col.copy(brass).lerp(tarnish,.15+noise(x*31+y*7,z*29)*.3+Math.max(0,.02-y)*8);};
+ // The saucer: a flat foot, a shallow dish and a rolled rim, polished where a hand rubs it.
+ metal.push(colour(lathe([[0,0],[.128,0],[.142,.004],[.152,.016],[.16,.03],[.157,.037],[.149,.034],[.138,.021],[.12,.015],[.06,.013],[0,.013]]),
+  (x,y,z,col)=>{worn(x,y,z,col);if(Math.hypot(x,z)>.148&&y>.026)col.lerp(polish,.55);}));
+ // The socket rises from the dish to a flared drip pan; the candle stands in it.
+ metal.push(colour(lathe([[.038,.013],[.05,.013],[.052,.02],[.044,.03],[.041,.068],[.046,.076],[.066,.082],[.07,.088],[.064,.092],[.046,.089],[.043,.089]],24),
+  (x,y,z,col)=>{worn(x,y,z,col);if(y>.08&&Math.hypot(x,z)>.06)col.lerp(polish,.5);if(y>.087&&Math.hypot(x,z)<.05)col.lerp(soot,.3);}));
+ // Finger loop standing on the rim at +x, capped by a flat thumb rest.
+ const loop=new THREE.TorusGeometry(.036,.0085,8,24);loop.translate(.19,.05,0);
+ metal.push(colour(loop,(x,y,z,col)=>{worn(x,y,z,col);if(y>.06)col.lerp(polish,.45);}));
+ const rest=new THREE.CylinderGeometry(.026,.022,.007,16);rest.scale(1,1,.8);rest.translate(.19,.093,0);
+ metal.push(colour(rest,(x,y,z,col)=>{worn(x,y,z,col);if(y>.094)col.lerp(polish,.6);}));
+ const metalGeo=mergeGeometries(metal);metal.forEach(q=>q.dispose());
+ const stick=mesh(metalGeo,mat(0xffffff,{vertexColors:true,metalness:.78,roughness:.32}));stick.userData.part='brass';
+ // The candle's wax: shaded darker low down (and grimy for tallow), warmed round the crater when lit.
+ const r=.041,foot=.03,top=.36,dirty=tallow?.35:.12;
+ const waxAt=(x,y,z,col)=>{col.copy(waxTone).lerp(waxShade,Math.max(0,(.2-y)/.2)*dirty+noise(x*53,y*41+z*17)*.08);
+  if(lit)col.lerp(glow,Math.max(0,1-Math.abs(y-top)/.035)*.55);};
+ // Column with a lipped, uneven rim round a sunken crater.
+ const column=lathe([[0,foot],[r,foot],[r*.99,top-.08],[r,top-.004],[r*.93,top+.006],[r*.74,top+.004],[r*.5,top-.008],[.01,top-.012],[0,top-.012]],32);
+ const cp=column.attributes.position;
+ for(let i=0;i<cp.count;i++){const y=cp.getY(i);if(y>top-.02){const a=Math.atan2(cp.getZ(i),cp.getX(i));cp.setY(i,y+(Math.sin(a*3+1)*.006+Math.sin(a*5)*.003)*Math.min(1,(y-top+.02)/.02));}}
+ column.computeVertexNormals();wax.push(colour(column,waxAt));
+ // Runs of wax down the side, each ending in a bead; the longest reaches the drip pan and pools.
+ const runs=tallow?[[.5,.13],[1.7,.24],[2.6,.07],[3.9,.27],[5.1,.11]]:[[.6,.1],[2.3,.27],[4.2,.06]];
+ for(const [a,len] of runs){
+  const pts=[];for(let k=0;k<=8;k++){const t=k/8,y=top+.002-t*len,bulge=.004+.003*Math.sin(t*Math.PI);
+   pts.push(new THREE.Vector3(Math.cos(a+t*.12)*(r+bulge),Math.max(y,.094),Math.sin(a+t*.12)*(r+bulge)));}
+  wax.push(colour(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),16,.0065,6),waxAt));
+  const end=pts[8],bead=new THREE.SphereGeometry(1,10,8);
+  if(end.y<=.094){bead.scale(.026,.006,.022);bead.translate(Math.cos(a+.12)*.052,.092,Math.sin(a+.12)*.052);}
+  else{bead.scale(.009,.013,.009);bead.translate(end.x*1.04,end.y-.004,end.z*1.04);}
+  wax.push(colour(bead,waxAt));
+ }
+ // A spill of wax gone hard in the dish.
+ const spill=new THREE.SphereGeometry(1,14,8);spill.scale(.04,.004,.028);spill.rotateY(.5);spill.translate(-.09,.015,.045);wax.push(colour(spill,waxAt));
+ // The wick: a short curled thread out of the crater, charred at the tip (glowing when lit).
+ const wickTop=top+.028,curl=[new THREE.Vector3(0,top-.014,0),new THREE.Vector3(0,top+.008,0),new THREE.Vector3(.003,top+.02,.001),new THREE.Vector3(.008,wickTop,.003)];
+ wax.push(colour(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(curl),8,.0028,5),(x,y,z,col)=>col.copy(wick).lerp(lit?ember:soot,Math.min(1,Math.max(0,(y-top-.012)/.016)))));
+ // Spare candles from the stack lie on the floor beside the stick, wick ends rounded off.
+ for(let i=1;i<Math.min(count,3);i++){
+  const side=i===1?-1:1,len=.26,spare=lathe([[0,0],[.034,0],[.036,.004],[.036,len-.012],[.03,len-.002],[.012,len],[.003,len],[.003,len+.014],[0,len+.014]],20);
+  // Coloured along its length before it's laid down: wax, then the white, unburnt wick.
+  colour(spare,(x,y,z,col)=>{if(y>len+.001)col.set(0xd9d2c0);else col.copy(waxTone).lerp(waxShade,noise(x*53,y*41+z*7)*.1+Math.max(0,-x)*dirty*2);});
+  spare.rotateZ(-Math.PI/2);spare.rotateY(side*.12);spare.translate(-len/2+.02,.036,side*.215);wax.push(spare);
+ }
+ const waxGeo=mergeGeometries(wax);wax.forEach(q=>q.dispose());
+ const candle=mesh(waxGeo,mat(0xffffff,{vertexColors:true,roughness:.52,
+  emissive:lit?0xff9a4a:0x000000,emissiveIntensity:lit?.12:0}));candle.userData.part='wax';
+ if(lit)addFlame(g,mesh,wickTop-.004,.85);
  g.rotation.y=.4;
  return g;
 }
