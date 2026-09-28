@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline, FX_TICK_MS} from './fx.js';
-import {RAY_LOOKS, RAY_FADE_MS, SPARK_MS, RAY_Y, rayLook, rayBounces, rayFrame, raySparks, createRays} from './rays.js';
+import {RAY_LOOKS, RAY_FADE_MS, SPARK_MS, MIRROR_MS, RAY_Y, rayLook, rayBounces, rayFrame, raySparks, markMirrors, mirrorFlash, reflectorAt, createRays} from './rays.js';
 
 const zap = (type, dir) => ({kind: 'zap', zap: type, dir});
 // A fire bolt going east from x=3, hitting a wall past x=6 and coming back to x=4.
@@ -77,6 +77,61 @@ test('sparks fly from the bounce, fall, stay near it and die out', () => {
   }
 });
 
+// A sleep ray going east that reflects straight back off whoever stands at x=6.
+const reflected = (type = 'sleep') => fxTimeline({steps: [
+  {op: 'start', mode: 'beam', glyph: 1, effect: zap(type, 'horizontal')},
+  ...[3, 4, 5, 6, 5, 4, 3].flatMap(x => [{op: 'draw', x, z: 2}, {op: 'tick'}]),
+  {op: 'end'},
+]});
+
+test('reflectorAt finds the hero or a visible monster on a cell', () => {
+  const frame = {player: {x: 6, z: 2}, cells: [
+    {x: 8, z: 2, kind: 'monster', visible: true}, {x: 9, z: 2, kind: 'monster', visible: false},
+    {x: 10, z: 2, kind: 'pet', visible: true}, {x: 11, z: 2, kind: 'object', visible: true}]};
+  assert.equal(reflectorAt(frame, 6, 2), 'hero');
+  assert.equal(reflectorAt(frame, 8, 2), 'monster');
+  assert.equal(reflectorAt(frame, 9, 2), null);
+  assert.equal(reflectorAt(frame, 10, 2), 'monster');
+  assert.equal(reflectorAt(frame, 11, 2), null);
+  assert.equal(reflectorAt(null, 6, 2), null);
+});
+
+test('a reversal on a creature is a mirror; a wall bounce never is', () => {
+  const hero = (x, z) => x === 6 && z === 2 ? 'hero' : null;
+  const [m] = markMirrors(rayBounces(reflected()), hero);
+  assert.deepEqual(m.mirror, {x: 6, z: 2, dir: [1, 0], who: 'hero'});
+  // Sparks come off the creature's face towards the beam, not the far edge.
+  assert.ok(Math.abs(m.x - 5.7) < 1e-9);
+  // Nobody there: an ordinary bounce. A wall at 6.5 with a creature a cell short isn't one.
+  assert.equal(markMirrors(rayBounces(reflected()), () => null)[0].mirror, undefined);
+  assert.equal(markMirrors(rayBounces(bolt()), (x, z) => x === 5 && z === 2 ? 'monster' : null)[0].mirror, undefined);
+  // Without a lookup, bounces are left as they were.
+  assert.equal(markMirrors(rayBounces(reflected()))[0].mirror, undefined);
+});
+
+test('the mirror flash snaps open facing the beam and fades out', () => {
+  for (const type of Object.keys(RAY_LOOKS)) {
+    const [b] = markMirrors(rayBounces(reflected(type)), (x, z) => x === 6 && z === 2 ? 'monster' : null);
+    assert.equal(mirrorFlash(b, b.t - 1), null);
+    assert.equal(mirrorFlash(b, b.t + MIRROR_MS), null);
+    let peak = 0, lastRing = 0;
+    for (let t = b.t; t < b.t + MIRROR_MS; t += 8) {
+      const f = mirrorFlash(b, t);
+      for (const k of ['x', 'z', 'yaw', 'size', 'alpha', 'ring', 'ringAlpha']) assert.ok(Number.isFinite(f[k]), `${type}.${k}`);
+      assert.ok(f.size > 0 && f.size < .6 && f.ring > 0 && f.ring < 1);
+      assert.ok(f.alpha >= 0 && f.alpha <= 1 && f.ringAlpha >= 0 && f.ringAlpha <= 1);
+      assert.ok(f.ring >= lastRing); lastRing = f.ring;
+      // In front of the creature, facing back west along the beam.
+      assert.ok(Math.abs(f.x - 5.7) < 1e-9 && f.z === 2);
+      assert.ok(Math.abs(f.yaw - Math.PI / 2) < 1e-9);
+      peak = Math.max(peak, f.alpha);
+    }
+    assert.ok(peak > .7, type);
+    assert.ok(mirrorFlash(b, b.t + MIRROR_MS - 8).alpha < .05);
+  }
+  assert.equal(mirrorFlash(rayBounces(bolt())[0], 200), null);
+});
+
 test('createRays draws a replay and ends empty', () => {
   const parent = new THREE.Group();
   const rays = createRays(THREE, parent);
@@ -96,6 +151,22 @@ test('createRays draws a replay and ends empty', () => {
   assert.equal(rays.active, 0);
   assert.equal(rays.core.count, 0);
   assert.equal(rays.sparks.geometry.drawRange.count, 0);
+  // A reflection off the hero draws one flash and ring, then none.
+  assert.equal(rays.play(reflected(), {reflectorAt: (x, z) => x === 6 && z === 2 ? 'hero' : null}), true);
+  let flashes = 0;
+  for (let i = 0; i < 60; i++) {
+    rays.update(1 / 60, {x: 3, z: 2});
+    assert.ok(rays.flash.count <= 1 && rays.ring.count === rays.flash.count);
+    if (rays.flash.count) {
+      flashes++;
+      const m = new THREE.Matrix4(), p = new THREE.Vector3();
+      rays.flash.getMatrixAt(0, m); p.setFromMatrixPosition(m);
+      assert.ok(Math.abs(p.x - 2.7) < 1e-6 && Math.abs(p.z) < 1e-6 && p.y === RAY_Y);
+    }
+  }
+  assert.ok(flashes > 5);
+  assert.equal(rays.active, 0);
+  assert.equal(rays.flash.count, 0);
   rays.play(bolt()); rays.update(.1, null); rays.clear();
   assert.equal(rays.core.count, 0);
   rays.dispose();
