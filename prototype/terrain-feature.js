@@ -3,6 +3,7 @@ import {createDrawbridge} from './drawbridge.js';
 import {createBog} from './bog.js';
 import {createIceWall} from './ice-wall.js';
 import {createIceFloor} from './ice-floor.js';
+import {createCloud} from './cloud.js';
 
 // Non-trap `feature` cells (ice, bog, drawbridges, ice walls, clouds, open air). The bridge
 // sends them as generic features, so the kind comes from the map symbol and its
@@ -49,10 +50,11 @@ export function createTerrainFeature(kind,seed=0){
   g.userData.dispose=()=>wall.userData.dispose();
   return g;
  }else if(kind==='cloud'){
-  // A drifting puff of grey vapour; it neither casts nor blocks shadows.
-  const vapour=mat({color:0xb9bec4,roughness:1,transparent:true,opacity:.55,depthWrite:false});
-  for(let i=0;i<9;i++){const r=.14+rand(i)*.12;
-   const puff=add(new THREE.SphereGeometry(r,12,8),vapour,(rand(i+10)-.5)*.46,.45+rand(i+20)*.35,(rand(i+30)-.5)*.46);puff.castShadow=puff.receiveShadow=false;}
+  // Clouds are a merged cumulus bank of their own (cloud.js); it replaces the floor.
+  const cloud=createCloud(seed);g.add(cloud);
+  g.userData.hidesFloor=true;
+  g.userData.dispose=()=>cloud.userData.dispose();
+  return g;
  }else if(kind==='air'){
   // Open air (the Plane of Air): no floor, just sky far below with drifting wisps
   // and pale wind streaks. The sky is unlit and one flat colour so neighbouring
