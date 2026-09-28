@@ -1,4 +1,5 @@
 import test from 'node:test';
+import './hit-fx.test.js'; // not in the package.json list while #139 holds that file
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {swingPose, swingPhase, swingLength, swingTrailOn, applySwing, clearSwing, CONTACT_U, IMPACTS, impactKind} from './swing.js';
