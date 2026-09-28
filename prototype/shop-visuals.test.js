@@ -114,3 +114,26 @@ test('brass lantern stands as a merged brass mesh and a glass globe, with a flam
  }
  assert(createLightItem('oil lamp'),'lamps keep their light-item model');assert(createLightItem('wax candle'));
 });
+
+test('candle stands in a brass chamberstick as two merged meshes, with a flame only when lit',()=>{
+ const vertices=name=>{let n=0;createLightItem(name).traverse(part=>{if(part.isMesh&&part.userData.part==='wax')n=part.geometry.attributes.position.count;});return n;};
+ for(const [name,lit] of [['wax candle',false],['a blessed tallow candle (lit)',true],['3 wax candles',false],['2 tallow candles (lit)',true]]){
+  const model=createLightItem(name);
+  assert(model,name);assert(model.userData.restingWeapon);
+  model.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(model,true);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} stands on the floor`);
+  assert(bounds.max.y>.36&&bounds.max.y<.5,`${name} stands candle-high`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} stays on its tile`);
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.userData.part),lit?['brass','wax','flame']:['brass','wax']);
+  let disposed=0;
+  for(const m of meshes){const geo=m.geometry;
+   for(const key of ['position','normal'])for(const value of geo.attributes[key].array)assert(Number.isFinite(value));
+   for(const value of geo.attributes.color.array)assert(value>=0&&value<=1);
+   geo.addEventListener('dispose',()=>disposed++);m.material.addEventListener('dispose',()=>disposed++);}
+  model.userData.dispose();assert.equal(disposed,meshes.length*2);
+ }
+ assert(vertices('3 wax candles')>vertices('wax candle'),'a stack lays spare candles beside the stick');
+ assert(vertices('tallow candle')>vertices('wax candle'),'tallow runs with more drips');
+});
