@@ -410,7 +410,6 @@ function canine(o){
  const snoutL=o.snout||.2,snout=cylinder(head,.03,.065,snoutL,coat,0,-.035,.06+snoutL/2,10);snout.rotation.x=Math.PI/2;
  sphere(head,.05,belly,0,-.07,.1,.9,.5,1.5);sphere(head,.03,nose,0,-.03,.06+snoutL,1,.85,1);
  for(const side of [-1,1]){const ear=cone(head,.045,o.ears||.15,coat,side*.055,.11,-.02,4);ear.rotation.z=-side*.28;const inner=cone(head,.025,(o.ears||.15)*.7,belly,side*.055,.1,.0,4);inner.rotation.z=-side*.28;sphere(head,.018,darkEye,side*.05,.025,.08);}
- if(o.horns)for(const side of [-1,1]){const horn=cone(head,.03,.14,mat('#d8cfb8'),side*.08,.1,.02,5);horn.rotation.z=-side*.7;}
  for(const x of [-.085,.085])for(const z of [-.2,.17]){const leg=new THREE.Group();leg.position.set(x,y-.03,z);body.add(leg);rounded(leg,.06,legH,.065,coat,0,-legH/2,0,.02);sphere(leg,.035,o.socks?mat(o.socks):back,0,-legH+.02,.02,1,.7,1.3);legs.push(leg);}
  const tail=new THREE.Group();tail.position.set(0,y+.05,-.28);body.add(tail);
  // bushy tail: a lathe profile swept along a drooping curve, dark (or white) tip
@@ -428,7 +427,6 @@ const CANINES={
  wolf:{coat:'#8a8a86',back:'#4f4f4d',belly:'#d5d3cc',tip:'#2b2b2b',ears:.14,snout:.2,legH:.34,scale:1.2,bushy:.05},
  warg:{coat:'#5a524a',back:'#2c2825',belly:'#8a8176',tip:'#1f1c1a',ears:.13,snout:.2,legH:.36,scale:1.4,bushy:.05},
  'hell hound':{coat:'#7a2a20',back:'#2a100c',belly:'#c2562c',tip:'#ff7a2a',ears:.14,snout:.2,legH:.34,scale:1.3},
- rothe:{coat:'#6a4e36',back:'#3e2c1e',belly:'#8d7258',ears:.06,snout:.12,legH:.24,scale:1.1,horns:true,bushy:.01},
 };
 
 // Pet dogs: a deep chest and tucked waist, a boxy muzzle with a panting tongue, a collar
@@ -1118,6 +1116,81 @@ function wumpus(o){
  put(tail,hide,taperedTube([[0,0,0],[0,-.03,-.06],[0,-.09,-.1]],.035,.02,10,8));
  put(tail,dark,S(.035,10,8),[0,-.11,-.11],[0,0,0],[1,1.4,1]);
  const skin=mat('#ffffff',{vertexColors:true,roughness:.82});
+ for(const [parent,P] of bins)part(parent,P.merge(),skin);
+ return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw});
+}
+// Rothes (q): used to be the generic canine with little horns. A shaggy, musk-ox-like grazer from
+// the underdark: a heavy barrel body under a high shoulder hump, draped in a long skirt of coarse dark
+// hair that hangs to the knees, with a pale saddle across the back. The broad head is carried low; a
+// bony boss caps the brow and the horns sweep down past the cheeks before hooking forward and up. A
+// shaggy beard hangs from the throat, the lower jaw sits a little open over blunt grinding teeth, and
+// the short legs show pale stockings above split, cloven hooves.
+// Each moving part (body, head, jaw, each leg, tail) is one merged, vertex-coloured mesh sharing one
+// material, plus one glossy mesh for the eyes: 9 draws.
+const ROTHE={scale:1,coat:'#4a3322',fur:'#24170e',saddle:'#8c7556',stocking:'#c4b394',horn:'#d8cbb0'};
+function rothe(o){
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);body.position.z=-.05;g.scale.setScalar(o.scale);g.name='rothe';
+ const bins=new Map(),m=new THREE.Matrix4(),e=new THREE.Euler();
+ const put=(parent,colour,geo,pos=[0,0,0],rot=[0,0,0],scl=[1,1,1])=>{
+  if(!bins.has(parent))bins.set(parent,pieces());
+  bins.get(parent).add(geo,m.clone().compose(new THREE.Vector3(...pos),rot.isQuaternion?rot:new THREE.Quaternion().setFromEuler(e.set(...rot)),new THREE.Vector3(...scl)),colour);};
+ const coat=rgb(o.coat),fur=rgb(o.fur),saddle=rgb(o.saddle),stocking=rgb(o.stocking),horn=rgb(o.horn);
+ const hoof=rgb('#1e1813'),nose=rgb('#2a2220'),mouth=rgb('#3a1a18'),tooth=rgb('#ddd2b4');
+ const S=(r,w=16,h=12)=>new THREE.SphereGeometry(r,w,h),clamp=t=>Math.min(1,Math.max(0,t)),legH=.22,y=legH+.16;
+ // the coat darkens toward the underside and lightens into the saddle on top
+ const shaded=(lo,hi)=>(x,py)=>{const t=clamp((py-lo)/(hi-lo));return t>.8?mix(coat,saddle,(t-.8)/.2):mix(fur,coat,t/.8);};
+ // a heavy barrel, a high hump over the shoulders and a rounded rump
+ put(body,shaded(y-.2,y+.19),S(.21,22,16),[0,y,-.03],[0,0,0],[1,.86,1.32]);
+ put(body,shaded(y-.14,y+.25),S(.18,18,14),[0,y+.07,.12],[0,0,0],[1.05,.95,.95]);
+ put(body,shaded(y-.16,y+.17),S(.16,16,12),[0,y+.02,-.2],[0,0,0],[1.1,.9,.9]);
+ // the long skirt: coarse locks hanging from the flanks, chest and haunches down to the knees
+ for(let i=0;i<44;i++){
+  const a=i/44*Math.PI*2,u=(i*.618034)%1,sx=Math.sin(a),cz=Math.cos(a);
+  const len=.17+u*.06+(cz>.4?.03:0),top=y+.02+u*.03;
+  const px=sx*.2,pz=-.03+cz*.27,out=new THREE.Vector3(sx,0,cz*.8).normalize();
+  const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,-1,0),new THREE.Vector3(out.x*.18,-1,out.z*.18).normalize());
+  put(body,(x,py)=>mix(fur,coat,clamp((py-(top-len))/len*.8)),new THREE.ConeGeometry(.045,len,5,1),[px,top-len/2,pz],q,[1,1,.55]);
+ }
+ // rougher tufts over the hump and along the spine, swept back
+ for(let i=0;i<14;i++){const t=i/13,z=.2-t*.4,h=y+.2-Math.abs(t-.35)*.18;
+  put(body,mix(saddle,coat,(i%3)*.25),new THREE.ConeGeometry(.03,.07,5),[((i%2)-.5)*.05,h,z],[-1.2,0,0],[1,1,.6]);}
+ // the head, carried low and forward of the hump
+ const head=new THREE.Group();head.position.set(0,y-.01,.3);head.rotation.x=.25;body.add(head);
+ put(head,shaded(-.1,.12),S(.1,18,14),[0,0,0],[0,0,0],[.95,.95,1.1]);
+ put(head,coat,S(.075,14,10),[0,-.045,.1],[0,0,0],[.85,.8,1.1]);
+ put(head,nose,S(.045,12,8),[0,-.05,.17],[0,0,0],[1.15,.8,.6]);
+ for(const side of [-1,1])put(head,rgb('#0c0908'),S(.012,8,6),[side*.022,-.045,.195]);
+ // a shaggy beard hanging from the throat
+ for(let i=0;i<9;i++){const x=(i/8-.5)*.1,len=.11+((i*.618)%1)*.05;
+  put(head,(px,py)=>mix(fur,coat,clamp((py+.06+len)/len*.7)),new THREE.ConeGeometry(.024,len,5),[x,-.07-len/2,.02-Math.abs(x)*.3],[Math.PI+.25,0,0],[1,1,.7]);}
+ // the bony boss across the brow and the horns: down past the cheeks, then hooking forward and up
+ put(head,(x,py)=>mix(mix(horn,fur,.45),horn,clamp(Math.abs(x)/.1)),S(.06,16,8),[0,.085,-.01],[0,0,0],[2,.5,1]);
+ const eyes=[];
+ for(const side of [-1,1]){
+  put(head,(x,py,pz)=>mix(mix(horn,fur,.5),horn,clamp((pz-.02)/.14+.3)),taperedTube([[side*.05,.09,-.01],[side*.12,.07,-.02],[side*.16,.0,0],[side*.155,-.06,.06],[side*.18,-.035,.13]],.032,.007,16,8));
+  eyes.push(S(.016,10,8).applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(side*.075,.02,.07),new THREE.Quaternion(),new THREE.Vector3(.8,.9,1))));
+  // small ears half hidden under the horn sweep
+  put(head,coat,S(.03,10,8),[side*.1,.035,-.04],[0,0,side*.5],[1.4,.6,.8]);
+ }
+ part(head,mergeGeometries(eyes),darkEye).userData.part='eyes';
+ eyes.forEach(geo=>geo.dispose());
+ // the lower jaw hangs a little open over a row of blunt grinding teeth
+ const jaw=new THREE.Group();jaw.position.set(0,-.075,.06);jaw.rotation.x=.1;head.add(jaw);
+ put(jaw,coat,S(.06,14,8),[0,-.01,.06],[0,0,0],[.9,.45,1.3]);
+ put(jaw,mouth,S(.05,12,6),[0,.008,.07],[0,0,0],[.85,.2,1.2]);
+ for(let k=0;k<6;k++){const a=Math.PI*(.2+.6*k/5);put(jaw,tooth,new THREE.BoxGeometry(.014,.014,.012),[Math.cos(a)*.04,.015,.07+Math.sin(a)*.05]);}
+ // four short, sturdy legs: a shaggy cuff, pale stockings and split cloven hooves
+ for(const side of [-1,1])for(const z of [.15,-.19]){
+  const top=legH+.04,leg=new THREE.Group();leg.position.set(side*.12,top,z);body.add(leg);legs.push(leg);
+  put(leg,coat,S(.07,12,10),[0,0,0],[0,0,0],[1,1.4,1.1]);
+  put(leg,(x,py)=>mix(stocking,coat,clamp((py+top*.45)/(top*.4))),new THREE.CylinderGeometry(.045,.036,top-.03,10),[0,-top/2+.005,0]);
+  for(const k of [-1,1])put(leg,hoof,new RoundedBoxGeometry(.033,.04,.06,1,.01),[k*.019,-top+.02,.012],[0,k*.08,0]);
+ }
+ // a short tail, mostly lost in the hair
+ const tail=new THREE.Group();tail.position.set(0,y+.08,-.34);body.add(tail);
+ put(tail,coat,taperedTube([[0,0,0],[0,-.03,-.04],[0,-.1,-.05]],.028,.016,10,8));
+ put(tail,fur,new THREE.ConeGeometry(.03,.08,6),[0,-.13,-.05],[Math.PI,0,0]);
+ const skin=mat('#ffffff',{vertexColors:true,roughness:.9});
  for(const [parent,P] of bins)part(parent,P.merge(),skin);
  return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw});
 }
@@ -2214,6 +2287,7 @@ export function createCreature(cell={}){
  if(HORSES[name])return horseFor(name,color);
  if(PROBOSCIDEANS[name])return proboscidean(PROBOSCIDEANS[name]);
  if(MEGA_RHINOS[name])return megaRhino(MEGA_RHINOS[name]);
+ if(name==='rothe')return rothe(ROTHE);
  if(name==='wumpus')return wumpus({scale:1,hide:'#3f8f94',fur:'#27595c',belly:'#8ec2b6'});
  if(name==='leocrotta')return leocrotta({scale:1.05,coat:'#a8865a',dark:'#6e5436',mane:'#4a3420',belly:'#cdb48c'});
  if(GIANTS[name])return giant(GIANTS[name]);
@@ -2313,7 +2387,7 @@ export function createCreature(cell={}){
   case 'G':return humanoid('gnome',{cap:mat(c)});
   case 'h':return humanoid('dwarf');
   case 'o':return humanoid('orc',{cloth:mat(shade(c,.75))});
-  case 'q':return canine({...CANINES.rothe,coat:c});
+  case 'q':return rothe({...ROTHE,coat:c,saddle:shade(c,1.6)});
   case 'u':return horseFor(name,color);
   case '@':return humanoid('human',{cloth:mat(shade(c,.8))});
   case 'r':return rat(false);

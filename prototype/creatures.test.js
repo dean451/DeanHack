@@ -171,7 +171,33 @@ test('wumpuses are squat, shaggy, sucker-footed beasts with a wide maw, not cyan
  const other=[];createCreature({name:'wumpus'}).g.traverse(o=>{if(o.isMesh)other.push(o);});
  assert.equal(other.filter(m=>m.material.vertexColors).length,8);
  assert.equal(parts.find(m=>m.material.vertexColors).material,other.find(m=>m.material.vertexColors).material,'shares its material');
- assert.equal(createCreature({name:'rothe',symbol:113,color:3}).g.name,'');
+ assert.equal(createCreature({name:'rothe',symbol:113,color:3}).g.name,'rothe');
+});
+
+test('rothes are shaggy, horned musk-ox grazers on cloven hooves, not horned canines',()=>{
+ const beast=createCreature({name:'rothe',symbol:113,color:3});
+ assert.equal(beast.g.name,'rothe');assert.equal(beast.legs.length,4);assert(beast.head&&beast.jaw&&beast.tail&&beast.body);
+ beast.g.updateMatrixWorld(true);const parts=[];let verts=0;
+ beast.g.traverse(o=>{if(o.isMesh)parts.push(o);});
+ assert.equal(parts.length,9,'one mesh per moving part plus the eyes');
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),key);
+  if(a.color)for(const v of a.color.array)assert(v>=0&&v<=1);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ const bounds=new THREE.Box3().setFromObject(beast.g);
+ assert(Math.abs(bounds.min.y)<.005,`floor ${bounds.min.y}`);
+ assert(bounds.max.y>.5&&bounds.max.y<.75,`height ${bounds.max.y}`);
+ assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.5,'fits the tile');
+ // every hoof rests on the floor, and the hair skirt stops above it
+ for(const leg of beast.legs)assert(Math.abs(new THREE.Box3().setFromObject(leg).min.y)<.005);
+ const skirt=new THREE.Box3().setFromObject(parts.find(m=>m.parent===beast.body));
+ assert(skirt.min.y>.08,`skirt ${skirt.min.y}`);
+ // an unnamed q falls back on the same beast in the glyph colour, sharing the material
+ const other=createCreature({symbol:113,color:5}),meshes=[];other.g.traverse(o=>{if(o.isMesh&&o.material.vertexColors)meshes.push(o);});
+ assert.equal(other.g.name,'rothe');assert.equal(meshes.length,8);
+ assert.equal(meshes[0].material,parts.find(m=>m.material.vertexColors).material,'shares its material');
 });
 
 test('manes get their own hunched, wingless, rib-caged model instead of the tinted imp',()=>{
