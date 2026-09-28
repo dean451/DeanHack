@@ -253,7 +253,7 @@ const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune
 
 // Tool kinds with their own model. Each word is the shared appearance, so a tin and a
 // magic whistle, or a tooled and a frost horn, look alike on the floor.
-const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box|tinning kit|expensive camera|lenses|credit card|beartrap|land mine|hook)\b/;
+const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box|iron safe|tinning kit|expensive camera|lenses|credit card|beartrap|land mine|hook)\b/;
 
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
 // Gloves are keyed only by their appearance (old, padded, riding, fencing), which the bridge
@@ -1244,6 +1244,89 @@ function buildFigurine({g,materials}){
  g.rotation.y=.45;
 }
 
+// The iron safe (an UnNetHack container): a squat, riveted strongbox on four stub feet, its
+// door on +z with barrel hinges, a brass combination dial, a three-spoke wheel handle, a
+// keyhole escutcheon and a maker's plate. Every part is coloured per vertex (blackened iron
+// with rubbed edges and rust low down, brass fittings, dark recesses) and merged into one mesh.
+function buildSafe({g,materials}){
+ const C=hex=>new THREE.Color(hex);
+ const IRON={base:C(0x3e4448),light:C(0x7d878c),dark:C(0x1c2023)},BRASS={base:C(0xb89040),light:C(0xe8cc7a),dark:C(0x6a4c1c)};
+ const RUST=C(0x6e3a1e),INK=C(0x0c0d0e);
+ const metal=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.62,roughness:.48});
+ materials.push(metal);
+ const parts=[];
+ const put=(geo,{look=IRON,flat,rust=true}={})=>{
+  geo.deleteAttribute('uv');
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),c=look.base.clone();
+   if(flat)c.copy(flat);
+   else{
+    const s=stoneNoise(x*3,y*3,z*3,40);c.lerp(s>0?look.light:look.dark,Math.abs(s)*.35);
+    // Rubbed bright where hands and boots catch the corners; grime and rust near the floor.
+    const edge=Math.max(Math.abs(n.getX(i)),Math.abs(n.getY(i)),Math.abs(n.getZ(i)));
+    if(edge<.9)c.lerp(look.light,(.9-edge)*.9);
+    if(n.getY(i)<0)c.lerp(look.dark,-n.getY(i)*.5);
+    if(rust){
+     const r=stoneNoise(x*5+1.3,y*2,z*5,33)*.5+.5,low=Math.max(0,1-y/.16);
+     if(r>.55)c.lerp(RUST,Math.min(1,(r-.55)*2.2)*(.25+low*.6));
+    }
+   }
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));parts.push(out);
+ };
+ const W=.34,D=.3,H=.34,F=.022,front=D/2,top=F+H;
+ // Stub feet, the body and a plinth band round its foot.
+ for(const x of [-1,1])for(const z of [-1,1]){const foot=new THREE.CylinderGeometry(.02,.024,F,10);foot.translate(x*(W/2-.035),F/2,z*(D/2-.035));put(foot);}
+ const body=new RoundedBoxGeometry(W,H,D,3,.018);body.translate(0,F+H/2,0);put(body);
+ const plinth=new RoundedBoxGeometry(W+.012,.03,D+.012,2,.006);plinth.translate(0,F+.015,0);put(plinth);
+ const lip=new RoundedBoxGeometry(W+.008,.016,D+.008,2,.005);lip.translate(0,top-.008,0);put(lip,{rust:false});
+ // The door stands proud of the front, framed by a dark gap.
+ const dW=.27,dH=.25,dY=F+.04+dH/2+.005,dZ=front+.011;
+ const gap=new THREE.BoxGeometry(dW+.012,dH+.012,.004);gap.translate(0,dY,front+.001);put(gap,{flat:INK});
+ const door=new RoundedBoxGeometry(dW,dH,.02,2,.006);door.translate(0,dY,dZ);put(door);
+ const face=dZ+.01;
+ // Rivets round the door and along the body's front edges.
+ const rivet=(x,y,z,r=.0065)=>{const s=new THREE.SphereGeometry(r,8,5,0,Math.PI*2,0,Math.PI/2);s.rotateX(Math.PI/2);s.translate(x,y,z);put(s,{rust:false});};
+ for(let i=0;i<6;i++){const t=(i+.5)/6;rivet(-dW/2+.016+t*(dW-.032)-.01*(t-.5),dY+dH/2-.014,face);rivet(-dW/2+.016+t*(dW-.032),dY-dH/2+.014,face);}
+ for(let i=1;i<4;i++){const y=dY-dH/2+.014+i*(dH-.028)/4;rivet(dW/2-.014,y,face);}
+ for(let i=0;i<7;i++){const y=F+.05+i*(H-.08)/6;for(const x of [-1,1])rivet(x*(W/2-.012),y,front+.001,.0055);}
+ // Two barrel hinges on the left edge, each with a brass pin cap.
+ for(const y of [dY-dH/2+.045,dY+dH/2-.045]){
+  const barrel=new THREE.CylinderGeometry(.011,.011,.055,10);barrel.translate(-dW/2-.004,y,dZ+.004);put(barrel,{rust:false});
+  const cap=new THREE.CylinderGeometry(.007,.009,.008,10);cap.translate(-dW/2-.004,y+.031,dZ+.004);put(cap,{look:BRASS,rust:false});
+ }
+ // The combination dial: a brass bezel, a black face with twelve ticks and a centre knob.
+ const dialX=.045,dialY=dY+.055;
+ const bezel=new THREE.TorusGeometry(.045,.006,6,28);bezel.translate(dialX,dialY,face+.004);put(bezel,{look:BRASS,rust:false});
+ const dial=new THREE.CylinderGeometry(.042,.042,.01,28);dial.rotateX(Math.PI/2);dial.translate(dialX,dialY,face+.005);put(dial,{flat:C(0x16181a)});
+ for(let i=0;i<12;i++){
+  const a=i/12*Math.PI*2,tick=new THREE.BoxGeometry(.003,i%3?.008:.013,.002);tick.rotateZ(-a);
+  tick.translate(dialX+Math.sin(a)*.032,dialY+Math.cos(a)*.032,face+.011);put(tick,{flat:BRASS.light});
+ }
+ const knob=new THREE.CylinderGeometry(.016,.019,.02,16);knob.rotateX(Math.PI/2);knob.translate(dialX,dialY,face+.02);put(knob,{look:BRASS,rust:false});
+ const mark=new THREE.BoxGeometry(.004,.012,.004);mark.translate(dialX,dialY+.013,face+.031);put(mark,{flat:INK});
+ // The wheel handle: a hub on a stem with three spokes ending in round grips.
+ const wheelX=.045,wheelY=dY-.06;
+ const hub=new THREE.CylinderGeometry(.015,.017,.03,12);hub.rotateX(Math.PI/2);hub.translate(wheelX,wheelY,face+.015);put(hub,{look:BRASS,rust:false});
+ for(let i=0;i<3;i++){
+  const a=i/3*Math.PI*2+.3,spoke=new THREE.CylinderGeometry(.005,.006,.05,8);
+  spoke.translate(0,.025,0);spoke.rotateZ(-a);spoke.translate(wheelX,wheelY,face+.024);put(spoke,{look:BRASS,rust:false});
+  const grip=new THREE.SphereGeometry(.011,10,8);grip.translate(wheelX+Math.sin(a)*.052,wheelY+Math.cos(a)*.052,face+.024);put(grip,{look:BRASS,rust:false});
+ }
+ // A keyhole escutcheon to the left of the dial, and a maker's plate across the top.
+ const esc=new RoundedBoxGeometry(.032,.046,.004,1,.0015);esc.translate(-.07,dY,face+.002);put(esc,{look:BRASS,rust:false});
+ const hole=new THREE.CylinderGeometry(.0055,.0055,.003,10);hole.rotateX(Math.PI/2);hole.translate(-.07,dY+.007,face+.0045);put(hole,{flat:INK});
+ const slot=new THREE.BoxGeometry(.004,.014,.003);slot.translate(-.07,dY-.004,face+.0045);put(slot,{flat:INK});
+ const plate=new RoundedBoxGeometry(.11,.022,.004,1,.0015);plate.translate(-.02,dY+dH/2-.034,face+.002);put(plate,{look:BRASS,rust:false});
+ for(let i=0;i<5;i++){const line=new THREE.BoxGeometry(.012,.0025,.001);line.translate(-.05+i*.015,dY+dH/2-.034,face+.0045);put(line,{flat:BRASS.dark});}
+ const geo=mergeGeometries(parts);parts.forEach(p=>p.dispose());
+ const mesh=new THREE.Mesh(geo,metal);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part='iron safe';g.add(mesh);
+ g.rotation.y=-.3;
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -2210,6 +2293,8 @@ export function createGroundModel(item={}){
    }
    for(let i=0;i<3;i++)flat(new THREE.TorusGeometry(.065-i*.004,.009,6,24),rope,-.2,.009+i*.017,.02);
    lie(.008,.008,.03,rope,-.17,.03,.01,.3);
+  }else if(kind==='iron safe'){
+   buildSafe({g,materials});
   }else{
    // Chests, large boxes and ice boxes.
    const chest=kind==='chest',ice=kind==='ice box';
