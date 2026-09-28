@@ -55,6 +55,12 @@ export const MAGIC_AURAS = {
   // then. Unidentified it's a "glass orb" and stays still.
   'crystal ball': {color: 0x9fc4ff, blend: 'add', motion: 'swirl', count: 18, size: .04, period: 4.8, alpha: .75, rainbow: 'mist',
     core: {color: 0xf2f6ff, blend: 'add', motion: 'vision', count: 4, size: .05, period: 3.3, alpha: .9}},
+  // The Amulet of Yendor: gold motes drawn up round the medallion in a slow spiral, over a
+  // crimson heartbeat in the stone. Keyed on the bridge's `identified` flag as well as the
+  // name, because the real Amulet and the fakes all read "Amulet of Yendor" until each is
+  // identified on its own.
+  'amulet of yendor': {color: 0xffcf5a, blend: 'add', motion: 'ascend', count: 16, size: .045, period: 6.5, alpha: .75,
+    core: {color: 0xff2c4a, blend: 'add', motion: 'heartbeat', count: 5, size: .09, period: 1.6, alpha: .8, sync: true}},
 };
 const AURAS = {...WAND_AURAS, ...MAGIC_AURAS};
 
@@ -67,7 +73,12 @@ export function wandAuraKind(object) {
 }
 
 // The identified magic item kind (a MAGIC_AURAS key), or null. "lamp called magic" is a guess.
+export const AMULET_CLASS = 5;
 export function magicAuraKind(object) {
+  if (object?.class === AMULET_CLASS && typeof object.label === 'string') {
+    const seen = object.label.toLowerCase().trim().replace(/ named .*$/, '');
+    return object.identified === true && /^(?:the )?amulet of yendor$/.test(seen) ? 'amulet of yendor' : null;
+  }
   if (!object || object.class !== TOOL_CLASS || typeof object.label !== 'string') return null;
   // Drop a trailing "(lit)" or "(0:5)" and the player's own name for it.
   const seen = object.label.toLowerCase().trim().replace(/ named .*$/, '').replace(/(?: \([^)]*\))+$/, '');
@@ -141,6 +152,16 @@ export function particleAt(motion, seed, p) {
     case 'vision': // a brief glint wells up at the heart of the ball and fades
       return {x: (a - .5) * .05, y: .14 + (b - .5) * .04, z: (c - .5) * .05,
         alpha: Math.max(0, Math.sin(Math.PI * Math.min(1, p / .4))) ** 2, size: .4 + .6 * Math.sin(Math.PI * Math.min(1, p / .4))};
+    case 'ascend': { // gold motes drawn up round the Amulet's medallion (pendant centre x 0, z .09), the spiral tightening as they rise
+      const ang = d * TAU + p * TAU * 1.5, r = (.075 + b * .03) * (1 - p * .65);
+      return {x: Math.cos(ang) * r, y: .03 + p * (.3 + c * .12), z: .09 + Math.sin(ang) * r,
+        alpha: fade * (.6 + .4 * Math.sin(p * 18 + a * TAU) ** 2), size: 1 - p * .5};
+    }
+    case 'heartbeat': { // a double pulse in the Amulet's stone (y .026), all points in step (sync)
+      const beat = Math.exp(-(((p - .12) / .045) ** 2)) + .7 * Math.exp(-(((p - .3) / .055) ** 2));
+      return {x: (a - .5) * .02, y: .028 + (b - .5) * .01, z: .09 + (c - .5) * .02,
+        alpha: Math.min(1, beat) * Math.sin(Math.PI * p), size: .45 + .55 * Math.min(1, beat)};
+    }
     default: // sparkle: fixed points round the rod that twinkle on and off
       return {x: along, y: .06 + (b - .25) * .2 + p * .03, z: (c - .5) * .24, alpha: fade ** 3, size: .6 + .4 * fade};
   }
@@ -174,7 +195,8 @@ function makeLayer(style, random) {
   const drawSize = new THREE.Vector2();
   points.onBeforeRender = renderer => { material.uniforms.uScale.value = renderer.getDrawingBufferSize(drawSize).y / 2; };
   const seeds = Array.from({length: n}, () => [random(), random(), random(), random()]);
-  const offsets = seeds.map(() => random());
+  // sync: every point shares one phase (the Amulet's heartbeat).
+  const offsets = seeds.map(() => style.sync ? (random(), 0) : random());
   function update(t) {
     for (let i = 0; i < n; i++) {
       const p = ((t / style.period + offsets[i]) % 1 + 1) % 1, q = particleAt(style.motion, seeds[i], p);
@@ -234,7 +256,7 @@ export function createWandAura(kind, seedText = '') {
 }
 
 // Keeps a ground item's aura in step with its seen name: adds one when the wand (or magic
-// lamp or crystal ball) becomes identified, swaps it if the name changes, removes it if the name stops saying. Returns the
+// lamp, crystal ball or the real Amulet) becomes identified, swaps it if the name changes, removes it if the name stops saying. Returns the
 // aura (or null).
 export function syncWandAura(item, object, seedText = '') {
   const kind = itemAuraKind(object), current = item.userData.wandAura;

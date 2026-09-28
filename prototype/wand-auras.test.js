@@ -213,3 +213,53 @@ test('a crystal ball swirls only once the hero knows it for one, and stays insid
   assert.equal(syncWandAura(item, ball('glass orb')), null, 'forgetting stops the swirl');
   assert.equal(item.children.length, 0);
 });
+
+test('only the identified real Amulet of Yendor glows, never a fake that reads the same', async () => {
+  const {AMULET_CLASS} = await import('./wand-auras.js');
+  const amulet = (label, identified, name = 'Amulet of Yendor') =>
+    ({class: AMULET_CLASS, name, appearance: 'Amulet of Yendor', label, ...(identified === undefined ? {} : {identified})});
+  assert.equal(magicAuraKind(amulet('Amulet of Yendor', true)), 'amulet of yendor');
+  assert.equal(magicAuraKind(amulet('the Amulet of Yendor named mine', true)), 'amulet of yendor');
+  // Unidentified, real or fake, it reads "Amulet of Yendor" and stays dark.
+  assert.equal(magicAuraKind(amulet('Amulet of Yendor')), null);
+  assert.equal(magicAuraKind(amulet('Amulet of Yendor', false)), null);
+  assert.equal(magicAuraKind(amulet('Amulet of Yendor', false, 'cheap plastic imitation of the Amulet of Yendor')), null);
+  // An identified fake says so and stays dark; names and guesses don't count.
+  assert.equal(magicAuraKind(amulet('cheap plastic imitation of the Amulet of Yendor', true, 'cheap plastic imitation of the Amulet of Yendor')), null);
+  assert.equal(magicAuraKind(amulet('amulet called Amulet of Yendor', true)), null);
+  assert.equal(magicAuraKind(amulet('amulet', true)), null);
+  assert.equal(magicAuraKind({class: TOOL_CLASS, label: 'Amulet of Yendor', identified: true}), null);
+  assert.equal(magicAuraKind({class: 4, label: 'Amulet of Yendor', identified: true}), null);
+
+  // The heartbeat is in step across its points and beats twice a period.
+  const style = MAGIC_AURAS['amulet of yendor'];
+  const aura = createWandAura('amulet of yendor', 'k'), [spiral, heart] = aura.children;
+  assert.equal(aura.children.length, 2);
+  let peaks = 0, prev = 0, rising = false;
+  for (let i = 0; i <= 320; i++) {
+    const t = i / 200 * style.core.period;
+    aura.userData.update(t);
+    const alpha = [...heart.geometry.attributes.aAlpha.array];
+    assert.ok(alpha.every(a => Math.abs(a - alpha[0]) < 1e-9), 'beats in step');
+    if (alpha[0] < prev && rising) peaks++;
+    rising = alpha[0] > prev; prev = alpha[0];
+    // Everything stays round the pendant (z .09) and above the floor.
+    const pos = [...spiral.geometry.attributes.position.array, ...heart.geometry.attributes.position.array];
+    for (let k = 0; k < pos.length; k += 3) {
+      assert.ok(pos.slice(k, k + 3).every(Number.isFinite));
+      assert.ok(Math.hypot(pos[k], pos[k + 2] - .09) <= .11 && pos[k + 1] >= 0 && pos[k + 1] <= .45, `in bounds ${pos.slice(k, k + 3)}`);
+    }
+  }
+  assert.ok(peaks >= 3 && peaks <= 4, `two beats a period, ${peaks} in 1.6 periods`);
+  // Rests dark between beats.
+  aura.userData.update(style.core.period * .7);
+  assert.ok(heart.geometry.attributes.aAlpha.array.every(a => a < .02));
+
+  // Following the flag: identifying adds it, a new unidentified one on top takes it away.
+  const item = new THREE.Group();
+  assert.equal(syncWandAura(item, amulet('Amulet of Yendor', undefined)), null);
+  assert.equal(syncWandAura(item, amulet('Amulet of Yendor', true), 'k').userData.kind, 'amulet of yendor');
+  assert.equal(syncWandAura(item, amulet('Amulet of Yendor')), null);
+  assert.equal(item.children.length, 0);
+  aura.userData.dispose();
+});
