@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {combatAction, deathAction} from './combat-events.js';
+// swing.test.js runs from here until it gets its own entry in package.json (PR #127 owns that file).
+import './swing.test.js';
 
 test('hero weapon hits face the defender and keep the blow type', () => {
   const a = combatAction({type: 'combat', attack: 'weapon', result: 'hit',
