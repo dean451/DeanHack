@@ -291,3 +291,35 @@ test('lemures get their own slumped, melting, legless model instead of the tinte
  assert(ms<200,`took ${ms} ms`);
  assert.equal(createCreature({name:'manes',symbol:I,color:1}).quirk,'manes');
 });
+
+test('elves get their own slender, cloaked, sword-bearing model instead of the tinted human',()=>{
+ const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ for(const name of ['Woodland-elf','Green-elf','Grey-elf','elf-lord','Elvenking','High-elf']){
+  const t0=performance.now(),elf=createCreature({name,symbol:AT,color:2}),ms=performance.now()-t0;
+  assert.equal(elf.quirk,'elf',name);
+  for(const key of ['body','head','arm','weaponSocket'])assert(elf[key]?.isObject3D,`${name} ${key}`);
+  assert.equal(elf.legs.length,2);assert.equal(elf.arms.length,2);
+  assert(elf.arm.children.includes(elf.weaponSocket),'the sword rides the sword arm');
+  const parts=meshes(elf);
+  assert.equal(parts.length,8,'one mesh per moving part, the eyes and the sword');
+  let verts=0;
+  for(const m of parts){
+   const a=m.geometry.attributes;verts+=a.position.count;
+   for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),`${name} ${m.userData.part} ${key}`);
+   if(a.color)for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+  }
+  assert(verts<40000,`${name}: ${verts} vertices`);
+  elf.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(elf.g);
+  assert(b.min.y>-.03&&b.min.y<.03,`${name} feet at ${b.min.y}`);
+  assert(b.max.y>1.05&&b.max.y<1.3,`${name} top at ${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.48,`${name} fits the tile: ${JSON.stringify(b)}`);
+  const other=meshes(createCreature({name,symbol:AT}));
+  parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
+  assert(ms<300,`${name} took ${ms} ms`);
+ }
+ // kinds share the material but not the (differently coloured) geometry
+ const [wood,king]=['Woodland-elf','Elvenking'].map(n=>meshes(createCreature({name:n,symbol:AT})));
+ assert.equal(wood[0].material,king[0].material);assert.notEqual(wood[0].geometry,king[0].geometry);
+ assert.equal(createCreature({name:'nurse',symbol:AT,color:7}).quirk,'human');
+});
