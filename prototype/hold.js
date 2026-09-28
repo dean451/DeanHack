@@ -1,0 +1,129 @@
+// Non-wrapping holds. The frame's player.stuck says the hero is held (an owlbear's hug, a
+// lichen's touch, a mimic) or, with holding, that the hero holds a monster (polymorphed into
+// a lichen). Wrapping holders already get grab.js's coil; for every other hold this draws a
+// few sagging, sticky strands between the hero and the other tile, tugging in and out, which
+// stretch and fade when the hold breaks. Only the tile is used, never the monster's name, so
+// it stays the same while hallucinating.
+//
+// holdShape() is pure, so it can be tested without a renderer; createHold() tracks the frame
+// and draws it with one instanced bead mesh.
+
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const smooth = k => { k = clamp01(k); return k * k * (3 - 2 * k); };
+
+// Timings (ms).
+export const GRIP_MS = 260, LET_GO_MS = 380, TUG_MS = 900;
+// Strands, beads per strand, attach heights at the hero and the other end (tiles), sag.
+export const STRANDS = 3, STRAND_BEADS = 12, HERO_Y = .34, OTHER_Y = .3, SAG = .13;
+export const HOLD_TINT = 0xb8bfa2;
+
+// The hold at time t (ms). h is {dx, dz, holding, startAt, endAt?}: the other tile relative to
+// the hero's tile. Returns null before startAt and once fully let go, else {beads:[{x,y,z,r}],
+// grip, tug}. Positions are tiles relative to the hero's tile, y up from the floor.
+export function holdShape(h, t) {
+  if (!h || !Number.isFinite(h.startAt) || !(t >= h.startAt)) return null;
+  if (!Number.isFinite(h.dx) || !Number.isFinite(h.dz)) return null;
+  const len = Math.hypot(h.dx, h.dz);
+  if (!(len > 1e-6)) return null;
+  const age = t - h.startAt;
+  // grip runs 0→1 as the strands shoot across, and back down as they snap on release.
+  let grip = smooth(age / GRIP_MS), stretch = 0;
+  if (Number.isFinite(h.endAt) && t >= h.endAt) {
+    const k = (t - h.endAt) / LET_GO_MS;
+    if (k >= 1) return null;
+    stretch = Math.sin(Math.PI * Math.min(k * 2, 1)) * (1 - k);
+    grip = Math.min(grip, 1 - smooth(k));
+  }
+  // A slow tug: the strands pull taut (less sag) and relax again.
+  const tug = .5 + .5 * Math.sin(age / TUG_MS * Math.PI * 2);
+  const ux = h.dx / len, uz = h.dz / len;
+  // Strands meet the other tile a little short of its centre (on the monster's body).
+  const ex = h.dx - ux * .18, ez = h.dz - uz * .18;
+  const sx = ux * .12, sz = uz * .12;
+  const beads = [];
+  const reach = smooth(age / GRIP_MS);
+  const shown = Math.max(0, Math.ceil(STRAND_BEADS * reach));
+  for (let s = 0; s < STRANDS; s++) {
+    // Spread the strands sideways and a little in height.
+    const side = (s - (STRANDS - 1) / 2) * .07, lift = (s % 2) * .05;
+    const px = -uz * side, pz = ux * side;
+    const sag = SAG * (1 - .45 * tug) * (1 + .3 * s / STRANDS) + .1 * stretch;
+    for (let i = 0; i < shown; i++) {
+      const u = i / (STRAND_BEADS - 1);
+      // Held: strands grow from the holder to the hero. Holding: from the hero outwards.
+      const k = h.holding ? u : 1 - u;
+      const x = sx + (ex - sx) * k + px * Math.sin(Math.PI * k);
+      const z = sz + (ez - sz) * k + pz * Math.sin(Math.PI * k);
+      const y = HERO_Y + lift + (OTHER_Y - HERO_Y) * k - sag * Math.sin(Math.PI * k);
+      // Thicker globs at the ends, thin in the middle, all thinning as the hold breaks.
+      const end = Math.abs(2 * k - 1) ** 3;
+      beads.push({x, y, z, r: (.011 + .012 * end) * (.35 + .65 * grip)});
+    }
+  }
+  return {beads, grip, tug};
+}
+
+// The hold from a frame's player: {dx, dz, holding} or null.
+export function holdOf(player) {
+  const st = player?.stuck;
+  if (!st || !Number.isFinite(st.x) || !Number.isFinite(st.z)) return null;
+  if (!Number.isFinite(player.x) || !Number.isFinite(player.z)) return null;
+  return {dx: st.x - player.x, dz: st.z - player.z, holding: !!st.holding};
+}
+
+// Tracks player.stuck across frames. update(dt, origin, {skip}) draws the strands and returns
+// {held, beads}; skip hides them while grab.js's coil is showing the same hold.
+export function createHold(THREE, parent) {
+  const geo = new THREE.SphereGeometry(1, 8, 6);
+  const mat = new THREE.MeshStandardMaterial({color: HOLD_TINT, roughness: .3, metalness: 0,
+    transparent: true, opacity: .85});
+  const max = STRANDS * STRAND_BEADS;
+  const mesh = new THREE.InstancedMesh(geo, mat, max);
+  mesh.count = 0; mesh.frustumCulled = false; mesh.userData.part = 'hold-strands';
+  parent.add(mesh);
+
+  let h = null, hero = null, now = 0;
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
+
+  function frame(fr) {
+    if (!fr?.player) return;
+    const cur = holdOf(fr.player);
+    const live = h && !Number.isFinite(h.endAt);
+    if (cur && live && cur.holding === h.holding && Math.abs(cur.dx) <= 1.5 && Math.abs(cur.dz) <= 1.5) {
+      // Same hold; follow the tiles (a displaced hero stays held).
+      h.dx = cur.dx; h.dz = cur.dz;
+      hero = {x: fr.player.x, z: fr.player.z};
+      return;
+    }
+    if (cur) {
+      // A new hold (switching holds in one frame drops the old strands at once).
+      hero = {x: fr.player.x, z: fr.player.z};
+      h = {...cur, startAt: now};
+    } else if (live) {
+      // Let go where the strands were drawn.
+      h.endAt = now;
+    }
+  }
+
+  function update(dt, origin, {skip = false} = {}) {
+    now += (dt || 0) * 1000;
+    const sh = h ? holdShape(h, now) : null;
+    if (h && !sh && Number.isFinite(h.endAt) && now >= h.endAt) h = null;
+    let n = 0;
+    if (sh && !skip && hero) {
+      const ox = hero.x - (origin?.x ?? 0), oz = hero.z - (origin?.z ?? 0);
+      for (const b of sh.beads) {
+        if (n >= max) break;
+        p.set(ox + b.x, b.y, oz + b.z); s.setScalar(b.r);
+        mesh.setMatrixAt(n++, m4.compose(p, q, s));
+      }
+    }
+    mesh.count = n;
+    mesh.instanceMatrix.needsUpdate = true;
+    return {held: !!sh, beads: n};
+  }
+
+  const clear = () => { h = null; hero = null; update(0); };
+  const dispose = () => { parent.remove(mesh); geo.dispose(); mat.dispose(); };
+  return {frame, update, clear, dispose, get state() { return h; }};
+}
