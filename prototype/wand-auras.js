@@ -1,0 +1,192 @@
+// Wand auras once identified (motion queue item 9, part 1). A floor wand whose name, as the
+// hero knows it, reads "wand of death" gets smoky black wisps round a cold dark core; fire
+// sheds embers, cold frost motes, lightning crackles, sleep drifts violet motes, digging
+// puffs dust, and so on.
+//
+// Identity rule: the kind comes only from the bridge's `label` (the hero's view of the
+// name: "oak wand" until identified). The true `name` is never read. "wand called fire" is
+// the player's guess, not a type, so it gets nothing; so does "oak wand named wand of death".
+//
+// Each aura is one THREE.Points (death and lightning add a second layer) whose particles are
+// a pure function of time, so a frame can land at any moment without state to catch up.
+import * as THREE from 'three';
+
+const TAU = Math.PI * 2;
+export const WAND_CLASS = 11;
+
+// motion: how particles move over one life (p runs 0→1). blend: additive light or normal
+// smoke. size in world units at the particle's peak; period in seconds per life.
+export const WAND_AURAS = {
+  death: {color: 0x07060a, blend: 'normal', motion: 'smoke', count: 16, size: .2, period: 3.2, alpha: .75,
+    core: {color: 0x5a7fa8, blend: 'add', motion: 'sparkle', count: 6, size: .07, period: 2.4, alpha: .45}},
+  fire: {color: 0xff7a26, blend: 'add', motion: 'rise', count: 14, size: .07, period: 1.6, alpha: .95},
+  cold: {color: 0xbfe6ff, blend: 'add', motion: 'fall', count: 14, size: .06, period: 2.6, alpha: .85},
+  lightning: {color: 0xcfe2ff, blend: 'add', motion: 'sparkle', count: 8, size: .05, period: .9, alpha: .9, crackle: true},
+  sleep: {color: 0xa77bff, blend: 'add', motion: 'drift', count: 12, size: .08, period: 4.2, alpha: .7},
+  digging: {color: 0x8a6a45, blend: 'normal', motion: 'dust', count: 12, size: .1, period: 1.9, alpha: .55},
+  'magic missile': {color: 0x8fb4ff, blend: 'add', motion: 'orbit', count: 10, size: .06, period: 1.4, alpha: .9},
+  striking: {color: 0xe6dcc0, blend: 'add', motion: 'orbit', count: 6, size: .05, period: 1.1, alpha: .6},
+  light: {color: 0xfff1c4, blend: 'add', motion: 'sparkle', count: 12, size: .07, period: 2.2, alpha: .8},
+  wishing: {color: 0xffd35a, blend: 'add', motion: 'sparkle', count: 16, size: .06, period: 1.5, alpha: .95},
+  teleportation: {color: 0xc56bff, blend: 'add', motion: 'orbit', count: 12, size: .06, period: 2, alpha: .8},
+  polymorph: {color: 0x7cffb0, blend: 'add', motion: 'drift', count: 12, size: .07, period: 2.6, alpha: .75, rainbow: true},
+  cancellation: {color: 0x8c8aa0, blend: 'normal', motion: 'fall', count: 10, size: .08, period: 3, alpha: .5},
+  'speed monster': {color: 0x9dff7a, blend: 'add', motion: 'orbit', count: 8, size: .05, period: .7, alpha: .8},
+  'slow monster': {color: 0xd9a05a, blend: 'add', motion: 'drift', count: 8, size: .06, period: 6, alpha: .6},
+  'undead turning': {color: 0xfff6d8, blend: 'add', motion: 'rise', count: 10, size: .06, period: 2.4, alpha: .7},
+  'make invisible': {color: 0xd8f4ff, blend: 'add', motion: 'sparkle', count: 8, size: .05, period: 2.8, alpha: .35},
+  'create monster': {color: 0xff6a8a, blend: 'add', motion: 'drift', count: 10, size: .06, period: 3, alpha: .6},
+  opening: {color: 0xffe9a8, blend: 'add', motion: 'orbit', count: 6, size: .05, period: 2.2, alpha: .6},
+  locking: {color: 0xa8b4c8, blend: 'add', motion: 'orbit', count: 6, size: .05, period: 2.2, alpha: .6},
+  probing: {color: 0x7fe3e8, blend: 'add', motion: 'sparkle', count: 8, size: .05, period: 1.8, alpha: .6},
+  enlightenment: {color: 0xfff7e0, blend: 'add', motion: 'rise', count: 12, size: .06, period: 2.8, alpha: .75},
+  'secret door detection': {color: 0xd0c09a, blend: 'add', motion: 'sparkle', count: 8, size: .05, period: 2.4, alpha: .55},
+  // A wand of nothing, once known, shows nothing.
+};
+
+// The identified kind from the hero's name for the item, or null. Only "wand(s) of X".
+export function wandAuraKind(object) {
+  if (!object || object.class !== WAND_CLASS || typeof object.label !== 'string') return null;
+  const seen = object.label.toLowerCase().trim().replace(/ named .*$/, '');
+  const m = seen.match(/^(?:\d+ )?wands? of ([a-z ]+)$/);
+  return m && WAND_AURAS[m[1]] ? m[1] : null;
+}
+
+// Small deterministic PRNG so a wand's particles keep their places.
+function rng(seed) {
+  let s = (seed >>> 0) || 1;
+  return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; };
+}
+function hashString(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+// One particle at time t: {x, y, z, alpha (0–1 of the style's), size (0–1 of the style's)}.
+// `seed` is the particle's four random numbers. The wand lies along x (−.3….3) at y≈.05.
+export function particleAt(motion, seed, p) {
+  const [a, b, c, d] = seed, fade = Math.sin(Math.PI * p), along = (a - .5) * .56;
+  switch (motion) {
+    case 'rise': // embers: lift off the rod, wobble, burn out
+      return {x: along + Math.sin(p * 7 + d * TAU) * .04, y: .06 + p * .55, z: (b - .5) * .12 + Math.cos(p * 5 + c * TAU) * .03,
+        alpha: fade * (1 - p * .4), size: 1 - p * .6};
+    case 'smoke': { // wisps curl up and spread, growing as they thin
+      const spin = c * TAU + p * 1.6, r = .03 + p * .14;
+      return {x: along * .8 + Math.cos(spin) * r, y: .05 + p * .42, z: Math.sin(spin) * r, alpha: fade * (1 - p * .5), size: .45 + p * .55};
+    }
+    case 'fall': // frost motes settle gently onto the rod, twinkling
+      return {x: along + Math.sin(p * 3 + d * TAU) * .05, y: .5 - p * .44, z: (b - .5) * .2,
+        alpha: fade * (.6 + .4 * Math.sin(p * 30 + c * TAU) ** 2), size: .7 + .3 * fade};
+    case 'drift': { // lazy loops above the wand
+      const ang = d * TAU + p * TAU;
+      return {x: along + Math.cos(ang) * .08, y: .12 + b * .22 + Math.sin(p * TAU * 2 + c * TAU) * .04, z: Math.sin(ang) * .08,
+        alpha: fade, size: .8 + .2 * Math.sin(p * TAU)};
+    }
+    case 'dust': { // low puffs kick up and settle
+      const out = .04 + p * .16, ang = c * TAU;
+      return {x: along + Math.cos(ang) * out, y: .02 + Math.sin(Math.PI * p) * (.08 + b * .08), z: Math.sin(ang) * out,
+        alpha: fade * (1 - p * .3), size: .5 + p * .5};
+    }
+    case 'orbit': { // sparks circle the rod lengthwise
+      const ang = d * TAU + p * TAU;
+      return {x: along, y: .08 + Math.cos(ang) * (.07 + b * .06) * (Math.cos(ang) < 0 ? .55 : 1), z: Math.sin(ang) * (.07 + b * .06),
+        alpha: Math.sqrt(fade), size: .7 + .3 * fade};
+    }
+    default: // sparkle: fixed points round the rod that twinkle on and off
+      return {x: along, y: .06 + (b - .25) * .2 + p * .03, z: (c - .5) * .24, alpha: fade ** 3, size: .6 + .4 * fade};
+  }
+}
+
+const VERT = `attribute float aAlpha;attribute float aSize;attribute vec3 aColor;uniform float uScale;varying float vAlpha;varying vec3 vColor;
+void main(){vAlpha=aAlpha;vColor=aColor;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=aSize*uScale/max(.1,-mv.z);gl_Position=projectionMatrix*mv;}`;
+const FRAG = `varying float vAlpha;varying vec3 vColor;
+void main(){float r=length(gl_PointCoord-.5)*2.;float a=vAlpha*smoothstep(1.,.2,r);if(a<.01)discard;gl_FragColor=vec4(vColor,a);}`;
+
+function makeLayer(style, random) {
+  const n = style.count, geometry = new THREE.BufferGeometry();
+  const pos = new Float32Array(n * 3), alpha = new Float32Array(n), size = new Float32Array(n), color = new Float32Array(n * 3);
+  geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geometry.setAttribute('aAlpha', new THREE.BufferAttribute(alpha, 1));
+  geometry.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+  geometry.setAttribute('aColor', new THREE.BufferAttribute(color, 3));
+  const base = new THREE.Color(style.color), c = new THREE.Color();
+  for (let i = 0; i < n; i++) (style.rainbow ? c.setHSL(i / n, .8, .65) : c.copy(base)).toArray(color, i * 3);
+  const material = new THREE.ShaderMaterial({vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false,
+    blending: style.blend === 'add' ? THREE.AdditiveBlending : THREE.NormalBlending, uniforms: {uScale: {value: 400}}});
+  const points = new THREE.Points(geometry, material);
+  points.frustumCulled = false;
+  points.renderOrder = 2;
+  const drawSize = new THREE.Vector2();
+  points.onBeforeRender = renderer => { material.uniforms.uScale.value = renderer.getDrawingBufferSize(drawSize).y / 2; };
+  const seeds = Array.from({length: n}, () => [random(), random(), random(), random()]);
+  const offsets = seeds.map(() => random());
+  function update(t) {
+    for (let i = 0; i < n; i++) {
+      const p = ((t / style.period + offsets[i]) % 1 + 1) % 1, q = particleAt(style.motion, seeds[i], p);
+      pos[i * 3] = q.x; pos[i * 3 + 1] = q.y; pos[i * 3 + 2] = q.z;
+      alpha[i] = q.alpha * style.alpha; size[i] = q.size * style.size;
+    }
+    for (const name of ['position', 'aAlpha', 'aSize']) geometry.attributes[name].needsUpdate = true;
+  }
+  return {points, update, dispose() { geometry.dispose(); material.dispose(); }};
+}
+
+// Lightning: a jagged arc hops along the rod for a blink, then rests 0.3–1.2 s.
+const ARC_POINTS = 7;
+export function crackleAt(t, seed) {
+  // Quarter-second slots; about half flash once for ~75 ms.
+  const random = rng(seed + Math.floor(t * 4) * 7919), flashes = random() < .5, start = random() * .6, frac = (t * 4 % 1 + 1) % 1;
+  const on = flashes && frac >= start && frac < start + .3;
+  const x0 = (random() - .5) * .4, len = .12 + random() * .2, pts = [];
+  for (let i = 0; i < ARC_POINTS; i++) {
+    const u = i / (ARC_POINTS - 1), kink = i === 0 || i === ARC_POINTS - 1 ? 0 : 1;
+    pts.push(x0 + u * len, .05 + kink * (random() - .3) * .09, kink * (random() - .5) * .09);
+  }
+  return {on, pts};
+}
+function makeCrackle(seed) {
+  const pos = new Float32Array((ARC_POINTS - 1) * 6), geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const material = new THREE.LineBasicMaterial({color: 0xe8f0ff, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false});
+  const lines = new THREE.LineSegments(geometry, material);
+  lines.frustumCulled = false;
+  function update(t) {
+    const {on, pts} = crackleAt(t, seed);
+    lines.visible = on;
+    if (!on) return;
+    for (let i = 0; i < ARC_POINTS - 1; i++) for (let k = 0; k < 6; k++) pos[i * 6 + k] = pts[i * 3 + k];
+    geometry.attributes.position.needsUpdate = true;
+  }
+  return {points: lines, update, dispose() { geometry.dispose(); material.dispose(); }};
+}
+
+// A Group holding the aura for `kind` (a WAND_AURAS key). userData.update(t) animates it and
+// userData.dispose() frees it. `seedText` keeps each wand's particles its own.
+export function createWandAura(kind, seedText = '') {
+  const style = WAND_AURAS[kind];
+  if (!style) return null;
+  const seed = hashString(`${kind}|${seedText}`), random = rng(seed), g = new THREE.Group();
+  g.name = `wand aura: ${kind}`;
+  const layers = [makeLayer(style, random)];
+  if (style.core) layers.push(makeLayer(style.core, random));
+  if (style.crackle) layers.push(makeCrackle(seed));
+  for (const layer of layers) g.add(layer.points);
+  g.userData.kind = kind;
+  g.userData.update = t => { for (const layer of layers) layer.update(t); };
+  g.userData.dispose = () => { for (const layer of layers) layer.dispose(); };
+  g.userData.update(0);
+  return g;
+}
+
+// Keeps a ground item's aura in step with its seen name: adds one when the wand becomes
+// identified, swaps it if the name changes, removes it if the name stops saying. Returns the
+// aura (or null).
+export function syncWandAura(item, object, seedText = '') {
+  const kind = wandAuraKind(object), current = item.userData.wandAura;
+  if ((current?.userData.kind ?? null) === kind) return current ?? null;
+  if (current) { item.remove(current); current.userData.dispose(); }
+  item.userData.wandAura = kind ? createWandAura(kind, seedText) : null;
+  if (item.userData.wandAura) item.add(item.userData.wandAura);
+  return item.userData.wandAura;
+}
