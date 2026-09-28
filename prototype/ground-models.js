@@ -708,6 +708,274 @@ function buildCloak(look,{g,materials}){
  }
 }
 
+// Body armour lies face-up, neck toward -z, keyed by (appearance || name): crude orcish mail shows as crude,
+// and dragon scale mail shows only its hide colour, keyed by both its shuffled word and its true word.
+// A glyph colour (CLR_*) is the fallback for any hide not listed.
+const DRAGON_HIDES=[[/tatzelworm|\bmagic\b/,0x7c7f84],[/amphitere|reflecting/,0xc9d3db,true],[/shimmering/,0x5fb8c0],[/draken|\bfire\b/,0xa8261e],
+ [/lindworm|\bice\b/,0xdde5ea],[/sarkany|\bsleep\b/,0xd46a1c],[/sirrush|disintegration/,0x25222a],[/leviathan|electric/,0x2c4ca8],
+ [/wyvern|poison/,0x2f7a34],[/glowing|\bstone\b/,0xc89a32],[/guivre|\bacid\b/,0xc2b22c],[/chromatic/,null]];
+// mat: [metalness, roughness]; dome: chest height; hem: z of the hem; sleeves and drape for hanging mail.
+const ARMOR_LOOKS={
+ leather:{base:0x7a5232,light:0xa4774c,dark:0x3e2716,mat:[0,.62],dome:.045,hem:.16},
+ studded:{base:0x6c4a2e,light:0x97704a,dark:0x35220f,mat:[0,.66],dome:.045,hem:.16},
+ jacket:{base:0x2b2826,light:0x5c5752,dark:0x0f0e0d,mat:[.05,.36],dome:.03,hem:.19,sleeves:true},
+ ring:{base:0x5e3e26,light:0xb8bec2,dark:0x2a1a10,mat:[.3,.5],dome:.035,hem:.25,sleeves:true},
+ chain:{base:0x7f878c,light:0xc4ccd0,dark:0x33393e,mat:[.75,.42],dome:.02,hem:.25,sleeves:true,drape:true},
+ mithril:{base:0xb8c4cc,light:0xf0f6fa,dark:0x5e6a74,mat:[.9,.24],dome:.02,hem:.25,sleeves:true,drape:true},
+ scale:{base:0x7d7b72,light:0xc2bfb2,dark:0x2e2c28,mat:[.72,.4],dome:.035,hem:.25,sleeves:true},
+ dragon:{mat:[.35,.34],dome:.035,hem:.25,sleeves:true},scales:{mat:[.35,.34]},
+ splint:{base:0x80868a,light:0xc6ccd0,dark:0x2f2a24,mat:[.7,.4],dome:.045,hem:.16},
+ banded:{base:0x7c8388,light:0xc4cad0,dark:0x2c3034,mat:[.72,.38],dome:.05,hem:.16},
+ plate:{base:0x9aa3aa,light:0xe2e8ec,dark:0x444a50,mat:[.85,.26],dome:.07,hem:.16},
+ bronze:{base:0xa87538,light:0xe8b86c,dark:0x4c2e12,mat:[.85,.3],dome:.07,hem:.16},
+ crystal:{base:0xc8e4f0,light:0xffffff,dark:0x6c90a8,mat:[.1,.08],dome:.07,hem:.16},
+};
+const armorKind=key=>/\bscales$/.test(key)?'scales':/scale mail/.test(key)&&key!=='scale mail'?'dragon':
+ /crystal plate/.test(key)?'crystal':/bronze plate/.test(key)?'bronze':/plate mail/.test(key)?'plate':
+ /splint/.test(key)?'splint':/banded/.test(key)?'banded':/mithril/.test(key)?'mithril':/ring mail/.test(key)?'ring':
+ /scale mail/.test(key)?'scale':/studded/.test(key)?'studded':/jacket/.test(key)?'jacket':/leather/.test(key)?'leather':'chain';
+function buildBodyArmor(key,color,{g,materials}){
+ const kind=armorKind(key),crude=/crude|orcish/.test(key),elven=/elven/.test(key),C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z);
+ let L=ARMOR_LOOKS[kind],chromatic=false;
+ if(kind==='dragon'||kind==='scales'){
+  const found=DRAGON_HIDES.find(([re])=>re.test(key));
+  chromatic=found?.[1]===null;
+  const hide=C(chromatic?0x8a3a9a:found?.[1]??GEM_COLORS[color]??0x6d6a70);
+  L={...L,base:hide.getHex(),light:hide.clone().lerp(C(0xffffff),.4).getHex(),dark:hide.clone().multiplyScalar(.3).getHex()};
+  if(found?.[2])L.mat=[.85,.22];
+ }
+ if(kind==='mithril'&&!elven)L={...L,base:0xb4b2aa,light:0xe8e4da,dark:0x5a564e};
+ if(crude)L={...L,base:C(L.base).multiplyScalar(.72).getHex(),light:C(L.light).multiplyScalar(.75).getHex(),rust:true};
+ const base=C(L.base),light=C(L.light),dark=C(L.dark),hide=C(0x4a3322),hideDark=C(0x24170c),rust=C(0x7a4526);
+ const mainMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:L.mat[0],roughness:L.mat[1],side:THREE.DoubleSide,
+  ...(kind==='crystal'?{transparent:true,opacity:.84,emissive:0x2c5670,emissiveIntensity:.35}:{})});
+ const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.75,roughness:.38});
+ const strapMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.8});
+ materials.push(mainMat,metalMat,strapMat);
+ const main=[],metal=[],straps=[];
+ const noise=(x,z)=>.7*stoneNoise(x,0,z,25)+.3*stoneNoise(z,0,x,70);
+ const hash=(a,b)=>{const h=Math.sin(a*127.1+b*311.7)*43758.5453;return h-Math.floor(h);};
+ const frac=t=>t-Math.floor(t);
+ // Every piece stays indexed with position, normal and colour, so each list merges into one mesh.
+ const paint=(geo,col,list)=>{
+  geo.deleteAttribute('uv');
+  const pos=geo.attributes.position,out=new Float32Array(pos.count*3);
+  for(let i=0;i<pos.count;i++){const c=typeof col==='function'?col(pos.getX(i),pos.getY(i),pos.getZ(i)):col;out[i*3]=c.r;out[i*3+1]=c.g;out[i*3+2]=c.b;}
+  geo.setAttribute('color',new THREE.BufferAttribute(out,3));list.push(geo);return geo;
+ };
+ const piece=(geo,col,list,x,y,z)=>{geo.translate(x,y,z);return paint(geo,col,list);};
+ // A grid mapped through at(u,v) -> [x,y,z,colour].
+ const sheet=(rows,cols,at,list=main)=>{
+  const pos=[],col=[],idx=[];
+  for(let i=0;i<=rows;i++)for(let j=0;j<=cols;j++){const [x,y,z,c]=at(j/cols,i/rows);pos.push(x,y,z);col.push(c.r,c.g,c.b);}
+  for(let i=0;i<rows;i++)for(let j=0;j<cols;j++){const a=i*(cols+1)+j,b=a+cols+1;idx.push(a,b,a+1,a+1,b,b+1);}
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  geo.setIndex(idx);geo.computeVertexNormals();list.push(geo);return geo;
+ };
+ const roll=(pts,r,col,list)=>paint(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),Math.max(16,pts.length*3),r,6,false),col,list);
+ const finish=()=>{
+  const part=new THREE.Group();part.userData.part='armor';g.add(part);
+  const built=[[main,mainMat],[metal,metalMat],[straps,strapMat]].filter(([list])=>list.length).map(([list,m])=>{
+   const geo=mergeGeometries(list);list.forEach(p=>p.dispose());geo.computeBoundingBox();return [geo,m];});
+  const low=Math.min(...built.map(([geo])=>geo.boundingBox.min.y));
+  for(const [geo,m] of built){geo.translate(0,-low,0);const mesh=new THREE.Mesh(geo,m);mesh.castShadow=mesh.receiveShadow=true;part.add(mesh);}
+ };
+ // Overlapping scales pointing toward the hem: the row above lies on top, and t runs 0 at a scale's
+ // hidden top to 1 at its free rounded edge.
+ const scaleAt=(x,rz,sw,sh)=>{
+  const i=Math.floor(rz/sh);
+  for(const r of [i-1,i]){
+   const off=(r&1)*sw/2,j=Math.round((x-off)/sw),dx=(x-off-j*sw)/(sw/2),top=r*sh,bottom=top+sh*(1.55-.5*dx*dx);
+   if(rz>=top&&rz<bottom)return {t:(rz-top)/(bottom-top),dx,r,j};
+  }
+  return {t:0,dx:0,r:i,j:0};
+ };
+
+ if(kind==='scales'){
+  // Loose dragon scales: a small scattered heap of big keeled plates, each stacked a little above the last.
+  const spots=[[-.1,-.08,.3],[.06,-.12,-.5],[.13,.03,1.1],[-.02,.02,.1],[-.14,.1,-.9],[.05,.14,2.4],[-.05,-.17,2.9]];
+  spots.forEach(([px,pz,ry],i)=>{
+   const W=.045+.01*hash(i,1),Ln=.12+.025*hash(1,i),tone=chromatic?new THREE.Color().setHSL(i/spots.length,.6,.45):base.clone().lerp(hash(i,3)>.5?light:dark,.15);
+   const geo=sheet(22,14,(u,w)=>{
+    const a=2*u-1,x=a*W*Math.sin(Math.PI*(.12+.88*w))**.6,z=(w-.5)*Ln;
+    const y=.013*(1-a*a)*Math.sin(Math.PI*Math.min(1,w*1.15))**.5+.0012*Math.cos(a*Math.PI*2.5)*w+.003*w;
+    const c=tone.clone().lerp(dark,(1-w)*.55);
+    if(Math.abs(a)<.14&&w>.2)c.lerp(light,.3);
+    if(w>.82)c.lerp(light,(w-.82)/.18*.45);
+    const n=noise(x*4+i,z*4);c.lerp(n>0?light:dark,Math.abs(n)*.15);
+    return [x,y,z,c];
+   });
+   geo.rotateY(ry);geo.translate(px,.0035*i,pz);
+  });
+  return finish();
+ }
+
+ const Z0=-.2,ZH=L.hem,plated=kind==='plate'||kind==='bronze'||kind==='crystal',cuirass=!L.sleeves;
+ const WP=L.hem>.2?[[0,.165],[.2,.148],[.34,.14],[.62,.134],[1,.172]]:[[0,.165],[.2,.15],[.34,.142],[.7,.132],[1,.142]];
+ const hw=v=>{for(let k=1;k<WP.length;k++)if(v<=WP[k][0]){const [v0,w0]=WP[k-1],[v1,w1]=WP[k],t=(v-v0)/(v1-v0);return w0+(w1-w0)*t*t*(3-2*t);}return WP.at(-1)[1];};
+ const neck=kind==='jacket'?.075:.06;
+ const zTop=s=>Z0+neck*Math.max(0,1-(s/.42)**2)**.8+.012*s*s;
+ const bodyXZ=(s,v)=>{const zt=zTop(s);return [s*hw(v),zt+(ZH-zt)*v];};
+ const lift=(s,v,x,z)=>{
+  const chest=.8+.2*Math.sin(Math.PI*Math.min(1,v/.55))-.25*v;
+  let y=.004+L.dome*Math.max(0,1-s*s)**.55*chest;
+  if(L.drape)y+=.003+.004*Math.sin(s*7+v*3+noise(x,z)*1.5)*(.4+.6*v);
+  if(kind==='plate'||kind==='crystal')y+=.009*Math.max(0,1-Math.abs(x)/.024)*Math.max(0,1-v/.8);
+  if(kind==='bronze'){
+   y+=.012*Math.exp(-(((Math.abs(x)-.065)/.05)**2+((z+.08)/.045)**2));
+   if(z>-.02&&z<.1)y+=.0035*Math.max(0,Math.cos(x/.035*Math.PI))*Math.max(0,Math.sin((z+.02)/.04*Math.PI))**2*Math.max(0,1-Math.abs(x)/.09);
+  }
+  return y;
+ };
+ const surf=(x,z,eW,v)=>{
+  const n=noise(x*3,z*3),c=base.clone();let dy=0;
+  switch(kind){
+   case 'leather':case 'studded':case 'jacket':{
+    c.lerp(n>0?light:dark,Math.abs(n)*.25);
+    if(kind==='leather'){
+     for(const sx of [-.068,.068]){const d=Math.abs(x-sx);if(d<.0022){c.lerp(dark,.55);dy-=.0012;}else if(d<.0055&&frac(z/.009)<.55)c.lerp(light,.45);}
+     if(Math.abs(z-.03)<.002){c.lerp(dark,.5);dy-=.001;}
+    }
+    if(kind==='jacket'){
+     // An open front and two lapels folded back from the collar.
+     const d=Math.abs(x),lz=z-Z0;
+     if(d<.0025){c.copy(dark);dy-=.002;}
+     else if(lz<.14&&d<.012+(.14-lz)*.5){c.lerp(light,.16);dy+=.003*Math.min(1,(.14-lz)/.02);}
+    }
+    if(eW<.011){c.lerp(dark,.35);dy+=.0012*Math.sin(Math.PI*eW/.011);if(eW>.005&&eW<.0075&&frac((x+z)/.008)<.5)c.lerp(light,.7);}
+    break;
+   }
+   case 'ring':{
+    // Iron rings sewn flat on a leather coat, the leather in shadow inside each ring.
+    c.copy(hide).lerp(n>0?C(0x7a5434):hideDark,Math.abs(n)*.3);
+    const pz=.018,px=.02,rz=z-Z0,r=Math.round(rz/pz),off=(r&1)*px/2,j=Math.round((x-off)/px);
+    const dx=x-off-j*px,dz=rz-r*pz,d=Math.hypot(dx,dz*1.1);
+    if(Math.abs(d-.0066)<.0024){const k=1-Math.abs(d-.0066)/.0024;c.copy(light).lerp(dz<0?C(0xeef2f4):dark,.4*Math.abs(dz)/.0066);dy+=.0018*Math.sqrt(k);}
+    else if(d<.0042)c.lerp(hideDark,.5);
+    break;
+   }
+   case 'chain':case 'mithril':{
+    // Staggered rows of links: bright rims, dark gaps between them.
+    const pz=.0085,px=.0095,rz=z-Z0,r=Math.round(rz/pz),off=(r&1)*px/2,j=Math.round((x-off)/px);
+    const dx=(x-off-j*px)/(px*.55),dz=(rz-r*pz)/(pz*.75),k=Math.exp(-(((Math.hypot(dx,dz)-.62)/.28)**2));
+    c.copy(dark).lerp(base,.35+.65*k).lerp(light,Math.max(0,-dz)*k*.5).lerp(n>0?light:dark,Math.abs(n)*.2);
+    dy+=.0009*k;
+    if(kind==='mithril'&&eW<.012)c.copy(elven?C(0xd9c27a):C(0x8a8680)).lerp(dark,.3*(1-k));
+    break;
+   }
+   case 'scale':case 'dragon':{
+    const big=kind==='dragon',{t,dx,r,j}=scaleAt(x,z-Z0,big?.03:.022,big?.024:.018);
+    if(chromatic)c.setHSL(frac(r*.11+j*.23),.6,.42);else c.lerp(hash(r,j)>.5?light:dark,hash(j,r)*.18);
+    c.lerp(dark,Math.max(0,1-t/.22)*.8);
+    if(t>.8)c.lerp(light,(t-.8)/.2*.5);
+    if(big&&Math.abs(dx)<.1&&t>.3)c.lerp(light,.25);
+    dy+=(.0034*t**.7-.0008*dx*dx)*(big?1.25:1);
+    break;
+   }
+   case 'splint':{
+    // Three tiers of upright iron splints riveted to a leather backing.
+    const tier=Math.min(2,Math.floor(v*3)),tv=v*3-tier,col=Math.round(x/.021),ds=(x-col*.021)/.0085;
+    if(tv<.07||Math.abs(ds)>=1)c.copy(hide).lerp(hideDark,.4+.3*Math.abs(n));
+    else{c.lerp(ds<0?light:dark,Math.abs(ds)*.55).lerp(n>0?light:dark,Math.abs(n)*.15);dy+=.0038*Math.sqrt(1-ds*ds);}
+    break;
+   }
+   case 'banded':{
+    // Horizontal lames, each lapping over the one below it.
+    const t=frac((z-Z0)/.028);
+    c.lerp(n>0?light:dark,Math.abs(n)*.15).lerp(dark,Math.max(0,1-t/.18)*.75);
+    if(t>.86)c.lerp(light,(t-.86)/.14*.6);
+    dy+=.0042*t;
+    break;
+   }
+   default:{
+    // Plate: a polished highlight over the chest, an engraved border and three faulds at the hem.
+    const sheen=Math.max(0,1-((x/.12)**2+((z+.06)/.16)**2));
+    c.lerp(light,sheen*.55).lerp(n>0?light:dark,Math.abs(n)*.08);
+    if(kind==='bronze'&&n>.45)c.lerp(C(0x3f7a62),(n-.45)*1.2);
+    if(kind==='crystal'){const f=hash(Math.floor(x/.028+z/.05),Math.floor(z/.03-x/.045));c.lerp(f>.5?light:dark,Math.abs(f-.5)*.7);}
+    if(v>.78){const t=frac((v-.78)/.22*3);c.lerp(dark,Math.max(0,1-t/.2)*.7);dy+=.004*t;}
+    else if(kind!=='crystal'&&Math.abs(eW-.016)<.0016)c.lerp(kind==='bronze'?C(0x5a3a18):dark,.6);
+   }
+  }
+  if(L.rust){const m=noise(x*2+5,z*2-3);if(m>.35)c.lerp(rust,Math.min(.6,(m-.35)*2.5));}
+  return [dy,c];
+ };
+ const edgeOf=(s,v)=>{const span=ZH-zTop(s);return Math.min((1-Math.abs(s))*hw(v),v*span,(1-v)*span);};
+ const at=(s,v)=>{const [x,z]=bodyXZ(s,v);const [dy,c]=surf(x,z,edgeOf(s,v),v);return [x,lift(s,v,x,z)+dy,z,c];};
+ // (x,z) back to (s,v), for things that sit on the surface.
+ const onBody=(x,z,up=0)=>{
+  let s=x/.15,v=.5;
+  for(let k=0;k<6;k++){const zt=zTop(s);v=Math.min(1,Math.max(0,(z-zt)/(ZH-zt)));s=Math.max(-1,Math.min(1,x/hw(v)));}
+  return V(x,at(s,v)[1]+up,z);
+ };
+ sheet(150,110,(u,v)=>at(2*u-1,v));
+
+ const trim=plated?base.clone().lerp(light,.3):cuirass?dark:hideDark;
+ const trimList=plated||kind==='leather'||kind==='studded'||kind==='jacket'?main:kind==='mithril'&&elven?metal:straps;
+ const trimCol=kind==='mithril'&&elven?C(0xd9c27a):trim;
+ const rollR=plated?.0065:.004,line=(f,n=24)=>Array.from({length:n+1},(_,i)=>f(i/n));
+ const edge=(s,v,up)=>{const [x,z]=bodyXZ(s,v);return V(x,lift(s,v,x,z)+up,z);};
+ roll(line(t=>edge(2*t-1,0,rollR*.6)),kind==='jacket'?.009:rollR,trimCol,trimList);
+ roll(line(t=>edge(2*t-1,1,rollR*.6)),rollR,trimCol,trimList);
+ if(cuirass)for(const s of [-1,1])roll(line(t=>edge(s,t,rollR*.6),20),rollR,trimCol,trimList);
+
+ if(L.sleeves)for(const side of [-1,1]){
+  // A short sleeve laid out from the armhole, down and away from the body.
+  const va=.3,len=kind==='jacket'?.15:.12,a=kind==='jacket'?.75:.55,dir=[side*Math.cos(a),Math.sin(a)],[cx,cz]=bodyXZ(side,va/2);
+  const sleeveAt=(u,w)=>{
+   const [rx,rz]=bodyXZ(side,u*va);let x=rx+dir[0]*len*w,z=rz+dir[1]*len*w;
+   x+=(cx+dir[0]*len*w-x)*.3*w;z+=(cz+dir[1]*len*w-z)*.3*w;
+   let y=.004+.016*Math.sin(Math.PI*u)**.7*(1-.35*w);
+   if(L.drape)y+=.003*Math.sin(w*9+u*4+side)*w;
+   return [x,y,z];
+  };
+  sheet(26,20,(u,w)=>{
+   const [x,y,z]=sleeveAt(u,w),[dy,c]=surf(x,z,Math.min(Math.min(u,1-u)*.13*(1-.3*w),(1-w)*len),.5);
+   if(w<.06)c.lerp(dark,(1-w/.06)*.35);
+   return [x,y+dy,z,c];
+  });
+  roll(line(u=>{const [x,y,z]=sleeveAt(u,1);return V(x,y+rollR*.4,z);},12),rollR,trimCol,trimList);
+ }
+
+ if(plated)for(const side of [-1,1])for(let k=0;k<3;k++){
+  // Pauldrons: a domed cap and two smaller lames lapping outward over the shoulder.
+  const R=.07-k*.012,geo=new THREE.SphereGeometry(R,20,8,0,Math.PI*2,0,Math.PI/2);geo.scale(1,.42,.8);
+  piece(geo,(x,y)=>base.clone().lerp(light,Math.min(1,y/.028)*.6).lerp(dark,.15+k*.12),main,side*(.19+k*.028),0,-.165+k*.02);
+ }
+ const rivet=(x,z,r=.0028)=>{const p=onBody(x,z);piece(new THREE.SphereGeometry(r,6,4,0,Math.PI*2,0,Math.PI/2),(x,y)=>C(0x6e7478).lerp(C(0xe0e4e6),Math.min(1,(y-p.y)/r)),metal,p.x,p.y-.0005,p.z);};
+ if(kind==='studded'){
+  for(let r=0;r<11;r++)for(let j=-5;j<=5;j++){
+   const z=-.13+r*.028,x=j*.03+(r&1)*.015,v=(z-Z0)/(ZH-Z0);
+   if(Math.abs(x)<hw(Math.min(1,Math.max(0,v)))-.02&&z<ZH-.02&&z>zTop(x/.15)+.02)rivet(x,z,.0055);
+  }
+ }
+ if(kind==='splint')for(let tier=0;tier<3;tier++)for(let col=-7;col<=7;col++){
+  const v=(tier+.15)/3,x=col*.021,[,z]=bodyXZ(x/hw(v),v);
+  if(Math.abs(x)<hw(v)-.012&&z>zTop(x/hw(v))+.012)rivet(x,z);
+ }
+ if(kind==='banded')for(let k=0;k*.028+.015<ZH-Z0;k++){
+  const z=Z0+k*.028+.02,v=(z-Z0)/(ZH-Z0);if(v<.08||v>.96)continue;
+  for(const s of [-1,1])rivet(s*(hw(v)-.014),z);
+ }
+ if(plated)for(let i=-3;i<=3;i++){const s=i/4.2,[x,z]=bodyXZ(s,.035);rivet(x,z+.004,.0034);}
+ if(kind==='jacket'){
+  // A zip down the open front, and its pull at the collar.
+  const tooth=C(0x9a9690);
+  for(let z=zTop(0)+.012,i=0;z<ZH-.006;z+=.0055,i++){const p=onBody(0,z);piece(new THREE.BoxGeometry(.0055,.002,.0028),tooth,metal,(i&1?1:-1)*.0014,p.y+.0005,z);}
+  const p=onBody(0,zTop(0)+.01);piece(new THREE.BoxGeometry(.008,.0025,.02),C(0xc8c4bc),metal,.004,p.y+.002,p.z+.008);
+ }
+ if(cuirass)for(const v of [.35,.66])for(const s of [-1,1]){
+  // Side straps hanging loose past the edge, each with an open buckle.
+  const [ex,ez]=bodyXZ(s,v),y=lift(s,v,ex,ez)+.002;
+  piece(new THREE.BoxGeometry(.055,.003,.014),(x)=>C(0x5a3b22).lerp(hideDark,Math.abs(x-ex)/.06*.5),straps,ex+s*.018,y,ez);
+  const buckle=new THREE.TorusGeometry(.0085,.0022,4,12);buckle.rotateX(Math.PI/2);buckle.scale(.8,1,1.2);
+  piece(buckle,plated&&kind==='bronze'?C(0xb08a3c):C(0x9a9690),metal,ex+s*.048,y+.001,ez);
+ }
+ finish();
+}
+
 // Helmets and hats are keyed only by their appearance: the fixed leather hat, iron skull cap, hard hat and
 // conical hat (the cornuthaum and dunce cap share it), and the four shuffled helmets (objects.c). The fedora,
 // dented pot and tinfoil hat have no appearance, so they show as themselves. Anything else is a plain helmet.
@@ -1496,12 +1764,8 @@ export function createGroundModel(item={}){
   const neck=new THREE.Vector3(0,.035,0).applyEuler(vial.rotation).add(vial.position);
   const cork=add(new THREE.CylinderGeometry(.0075,.0065,.014,10),mat(0x8a6038),neck.x,neck.y,neck.z);cork.rotation.copy(vial.rotation);
   g.rotation.y=.22;
- }else if(/mail|mithril|coat/.test(name)&&cls===3){
-  add(new RoundedBoxGeometry(.38,.09,.48,3,.025),metal,0,.05);
-  for(const x of [-.235,.235])add(new RoundedBoxGeometry(.16,.075,.18,3,.02),metal,x,.045,-.14);
-  // Links sit against the garment, rather than hovering over a spherical shell.
-  for(let row=0;row<7;row++)for(let col=0;col<6;col++){const ring=add(new THREE.TorusGeometry(.025,.006,5,10),metal,(col-2.5)*.055,.097,-.17+row*.055);ring.rotation.x=-Math.PI/2;}
-  add(new THREE.TorusGeometry(.059,.013,6,18),leather,0,.096,-.195).rotation.x=-Math.PI/2;
+ }else if(cls===3&&/\bmail\b|mithril|\barmor\b|leather jacket|\bscales\b/.test(name)){
+  buildBodyArmor((item.appearance||name).toLowerCase(),item.color,{g,materials});
  }else if(/\bbag\b|sack/.test(name)){
   // Sacks, oilskin sacks and bags of holding and tricks all look like "bag" until identified, so they share one model.
   const smooth=(e0,e1,v)=>{const t=Math.min(1,Math.max(0,(v-e0)/(e1-e0)));return t*t*(3-2*t);};
