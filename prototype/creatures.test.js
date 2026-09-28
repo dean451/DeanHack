@@ -180,3 +180,34 @@ test('manes get their own hunched, wingless, rib-caged model instead of the tint
  assert.equal(createCreature({name:'quasit',symbol:I,color:4}).quirk,'imp');
  assert.equal(createCreature({name:'homunculus',symbol:I,color:2}).quirk,'homunculus');
 });
+
+test('lemures get their own slumped, melting, legless model instead of the tinted imp',()=>{
+ const I=105,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const t0=performance.now(),lemure=createCreature({name:'lemure',symbol:I,color:3}),ms=performance.now()-t0;
+ assert.equal(lemure.quirk,'lemure');
+ for(const key of ['body','head','arm'])assert(lemure[key]?.isObject3D,key);
+ assert.equal(lemure.legs.length,2);assert.equal(lemure.arms.length,2);assert.equal(lemure.wings.length,0);assert.equal(lemure.tail,null);
+ const parts=meshes(lemure);
+ assert.equal(parts.length,7,'one mesh per moving part plus the eyes');
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ lemure.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(lemure.g);
+ assert(b.min.y>-.03&&b.min.y<.03,`base at ${b.min.y}`);
+ assert(b.max.y>.5&&b.max.y<.75,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.45,'fits the tile');
+ // the lobes sit on the ground and the hands reach out low in front
+ for(const leg of lemure.legs){const l=new THREE.Box3().setFromObject(leg);assert(l.min.y>-.03&&l.min.y<.04,`lobe at ${l.min.y}`);}
+ const hand=new THREE.Box3().setFromObject(lemure.arm);
+ assert(hand.min.y>.03&&hand.min.y<.25,`hand at ${hand.min.y}`);assert(hand.max.z>.15,`hand reaches to z ${hand.max.z}`);
+ const other=meshes(createCreature({name:'lemure'}));
+ parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
+ assert(ms<200,`took ${ms} ms`);
+ assert.equal(createCreature({name:'manes',symbol:I,color:1}).quirk,'manes');
+ assert.equal(createCreature({name:'quasit',symbol:I,color:4}).quirk,'imp');
+});

@@ -40,6 +40,6 @@ test('the homunculus gets its own bat-winged, pot-bellied model instead of the t
  assert(ms<200,`took ${ms} ms`);
  // the other minor demons are unchanged
  assert.equal(imp.quirk,'imp');
- assert.equal(createCreature({name:'lemure',symbol:I,color:3}).quirk,'imp');
+ assert.equal(createCreature({name:'quasit',symbol:I,color:4}).quirk,'imp');
  assert.equal(createCreature({name:'tengu',symbol:I,color:6}).quirk,'tengu');
 });
