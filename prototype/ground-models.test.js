@@ -554,3 +554,20 @@ test('body armour lies face-up per kind, dragon hides show only their colour, in
  assert.equal(signature(armor('ice dragon scale mail','draken scale mail')),signature(armor('fire dragon scale mail','draken scale mail')),'the true dragon must not show');
  assert.equal(signature(armor('orcish chain mail','crude chain mail')),signature(armor('chain mail','crude chain mail')),'a shared appearance looks the same');
 });
+
+test('unicorn horn is one merged spiral ivory mesh resting on the floor',()=>{
+ const model=createGroundModel({name:'uncursed unicorn horn',class:6});
+ assert(model);assert.equal(model.children.length,1);
+ const [horn]=model.children,geo=horn.geometry;
+ assert.equal(horn.userData.part,'horn');assert(horn.material.vertexColors);
+ for(const k of ['position','normal','color'])for(const v of geo.attributes[k].array)assert(Number.isFinite(v),k);
+ const bounds=new THREE.Box3().setFromObject(model);
+ assert(Math.abs(bounds.min.y)<1e-6);assert(bounds.max.y<.2);
+ assert(bounds.max.x<.49&&bounds.min.x>-.49&&bounds.max.z<.49&&bounds.min.z>-.49);
+ assert(bounds.max.x-bounds.min.x>.35,'long across the tile');
+ // Pale at the tip, darker at the root and in the grooves.
+ const c=geo.attributes.color.array;let lo=1,hi=0;for(let i=0;i<c.length;i+=3){const l=(c[i]+c[i+1]+c[i+2])/3;lo=Math.min(lo,l);hi=Math.max(hi,l);}
+ assert(hi>.9&&lo<.5);
+ let geometries=0,materials=0;geo.addEventListener('dispose',()=>geometries++);horn.material.addEventListener('dispose',()=>materials++);
+ model.userData.dispose();assert.equal(geometries,1);assert.equal(materials,1);
+});
