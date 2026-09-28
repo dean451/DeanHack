@@ -2,8 +2,10 @@
 // lichen's touch, a mimic) or, with holding, that the hero holds a monster (polymorphed into
 // a lichen). Wrapping holders already get grab.js's coil; for every other hold this draws a
 // few sagging, sticky strands between the hero and the other tile, tugging in and out, which
-// stretch and fade when the hold breaks. Only the tile is used, never the monster's name, so
-// it stays the same while hallucinating.
+// stretch and fade when the hold breaks. Only the tile is used, never the monster's name.
+// The strands lean toward the colour of the glyph drawn on the sticky end's tile (the holder,
+// or the hero when holding), so they only ever show what the map already shows; while
+// hallucinating they drift with the displayed glyph.
 //
 // holdShape() is pure, so it can be tested without a renderer; createHold() tracks the frame
 // and draws it with one instanced bead mesh.
@@ -16,6 +18,31 @@ export const GRIP_MS = 260, LET_GO_MS = 380, TUG_MS = 900;
 // Strands, beads per strand, attach heights at the hero and the other end (tiles), sag.
 export const STRANDS = 3, STRAND_BEADS = 12, HERO_Y = .34, OTHER_Y = .3, SAG = .13;
 export const HOLD_TINT = 0xb8bfa2;
+// How far the strands lean toward the glyph colour, and how fast a new tint eases in (1/s).
+export const TINT_MIX = .5, TINT_RATE = 6;
+// The curses glyph colours (CLR_BLACK..CLR_WHITE); 8 is NO_COLOR.
+const GLYPH_RGB = [0x34343c, 0xa83b2e, 0x4f8a3a, 0x8a6440, 0x3d5fb0, 0x8a3f8f, 0x3f9a9a, 0x8f8f88,
+  null, 0xd9782e, 0x7fbf4f, 0xd6ac3a, 0x5f8fe0, 0xb85cbf, 0x6fd0d0, 0xe2ded2];
+
+const mixRgb = (a, b, k) => {
+  let out = 0;
+  for (const sh of [16, 8, 0]) {
+    const ca = (a >> sh) & 255, cb = (b >> sh) & 255;
+    out |= Math.round(ca + (cb - ca) * k) << sh;
+  }
+  return out;
+};
+
+// The strand colour for a hold: HOLD_TINT leaning toward the colour of the monster glyph shown
+// at (x, z) in the frame's cells. Anything else (no cell, not a monster, not in sight, no
+// colour) keeps the plain HOLD_TINT.
+export function holdTint(cells, x, z) {
+  if (!Array.isArray(cells)) return HOLD_TINT;
+  const cell = cells.find(c => c && c.x === x && c.z === z);
+  if (!cell || (cell.kind !== 'monster' && cell.kind !== 'pet') || cell.visible === false) return HOLD_TINT;
+  const rgb = Number.isInteger(cell.color) ? GLYPH_RGB[cell.color] : null;
+  return rgb == null ? HOLD_TINT : mixRgb(HOLD_TINT, rgb, TINT_MIX);
+}
 
 // The hold at time t (ms). h is {dx, dz, holding, startAt, endAt?}: the other tile relative to
 // the hero's tile. Returns null before startAt and once fully let go, else {beads:[{x,y,z,r}],
@@ -72,7 +99,8 @@ export function holdOf(player) {
 }
 
 // Tracks player.stuck across frames. update(dt, origin, {skip}) draws the strands and returns
-// {held, beads}; skip hides them while grab.js's coil is showing the same hold.
+// {held, beads}; skip hides them while grab.js's coil is showing the same hold. The material
+// eases toward the sticky end's tint (see holdTint).
 export function createHold(THREE, parent) {
   const geo = new THREE.SphereGeometry(1, 8, 6);
   const mat = new THREE.MeshStandardMaterial({color: HOLD_TINT, roughness: .3, metalness: 0,
@@ -82,12 +110,19 @@ export function createHold(THREE, parent) {
   mesh.count = 0; mesh.frustumCulled = false; mesh.userData.part = 'hold-strands';
   parent.add(mesh);
 
-  let h = null, hero = null, now = 0;
+  let h = null, hero = null, now = 0, tint = HOLD_TINT;
+  const target = new THREE.Color(HOLD_TINT);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
 
   function frame(fr) {
     if (!fr?.player) return;
     const cur = holdOf(fr.player);
+    if (cur) {
+      // The sticky end: the holder's tile, or the hero's own when the hero holds.
+      const sx = cur.holding ? fr.player.x : fr.player.x + cur.dx;
+      const sz = cur.holding ? fr.player.z : fr.player.z + cur.dz;
+      tint = holdTint(fr.cells, sx, sz);
+    }
     const live = h && !Number.isFinite(h.endAt);
     if (cur && live && cur.holding === h.holding && Math.abs(cur.dx) <= 1.5 && Math.abs(cur.dz) <= 1.5) {
       // Same hold; follow the tiles (a displaced hero stays held).
@@ -99,6 +134,8 @@ export function createHold(THREE, parent) {
       // A new hold (switching holds in one frame drops the old strands at once).
       hero = {x: fr.player.x, z: fr.player.z};
       h = {...cur, startAt: now};
+      // A fresh hold starts in its own colour rather than fading from the last one.
+      mat.color.setHex(tint);
     } else if (live) {
       // Let go where the strands were drawn.
       h.endAt = now;
@@ -109,6 +146,8 @@ export function createHold(THREE, parent) {
     now += (dt || 0) * 1000;
     const sh = h ? holdShape(h, now) : null;
     if (h && !sh && Number.isFinite(h.endAt) && now >= h.endAt) h = null;
+    target.setHex(tint);
+    mat.color.lerp(target, 1 - Math.exp(-TINT_RATE * Math.max(0, dt || 0)));
     let n = 0;
     if (sh && !skip && hero) {
       const ox = hero.x - (origin?.x ?? 0), oz = hero.z - (origin?.z ?? 0);
@@ -123,7 +162,8 @@ export function createHold(THREE, parent) {
     return {held: !!sh, beads: n};
   }
 
-  const clear = () => { h = null; hero = null; update(0); };
+  const clear = () => { h = null; hero = null; tint = HOLD_TINT; mat.color.setHex(HOLD_TINT); update(0); };
   const dispose = () => { parent.remove(mesh); geo.dispose(); mat.dispose(); };
-  return {frame, update, clear, dispose, get state() { return h; }};
+  return {frame, update, clear, dispose, get state() { return h; }, get tint() { return tint; },
+    get color() { return mat.color.getHex(); }};
 }

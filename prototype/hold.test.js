@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {holdShape, holdOf, createHold, GRIP_MS, LET_GO_MS, STRANDS, STRAND_BEADS} from './hold.js';
+import {holdShape, holdOf, holdTint, createHold, GRIP_MS, LET_GO_MS, STRANDS, STRAND_BEADS, HOLD_TINT} from './hold.js';
 
 const finite = sh => sh.beads.every(b => Object.values(b).every(Number.isFinite));
 const frame = (x, z, stuck) => ({player: stuck ? {x, z, stuck} : {x, z}, cells: []});
@@ -82,4 +82,45 @@ test('createHold follows the frame and lets go', () => {
   assert.equal(mesh.count, 0);
   hold.dispose();
   assert.equal(group.children.length, 0);
+});
+
+test('strands lean toward the sticky end glyph colour and ease between tints', () => {
+  const mon = (x, z, color, extra = {}) => ({x, z, kind: 'monster', color, visible: true, ...extra});
+  // Brown owlbear (CLR_BROWN) vs bright green lichen (CLR_BRIGHT_GREEN): different, both off the base.
+  const brown = holdTint([mon(6, 5, 3)], 6, 5), green = holdTint([mon(6, 5, 10)], 6, 5);
+  assert.notEqual(brown, green);
+  assert.notEqual(brown, HOLD_TINT);
+  for (const c of [brown, green]) assert.ok(Number.isInteger(c) && c >= 0 && c <= 0xffffff);
+  // Green channel dominates the lichen's strands.
+  assert.ok(((green >> 8) & 255) > ((green >> 16) & 255));
+  // Nothing to read keeps the plain tint.
+  assert.equal(holdTint(null, 6, 5), HOLD_TINT);
+  assert.equal(holdTint([mon(7, 5, 3)], 6, 5), HOLD_TINT);
+  assert.equal(holdTint([mon(6, 5, 8)], 6, 5), HOLD_TINT);
+  assert.equal(holdTint([mon(6, 5, 3, {visible: false})], 6, 5), HOLD_TINT);
+  assert.equal(holdTint([{x: 6, z: 5, kind: 'object', color: 3}], 6, 5), HOLD_TINT);
+  assert.equal(holdTint([{x: 6, z: 5, kind: 'pet', color: 3}], 6, 5), brown);
+
+  const group = new THREE.Group();
+  const hold = createHold(THREE, group);
+  // Held by the brown thing east of the hero: starts in its colour at once.
+  hold.frame({player: {x: 5, z: 5, stuck: {x: 6, z: 5}}, cells: [mon(6, 5, 3), mon(5, 5, 15)]});
+  assert.equal(hold.tint, brown);
+  const near = (a, b) => [16, 8, 0].every(sh => Math.abs(((a >> sh) & 255) - ((b >> sh) & 255)) <= 2);
+  assert.ok(near(hold.color, brown));
+  hold.update(.1, {x: 0, z: 0});
+  // The displayed glyph changes colour (hallucination): ease, don't snap.
+  hold.frame({player: {x: 5, z: 5, stuck: {x: 6, z: 5}}, cells: [mon(6, 5, 10)]});
+  assert.equal(hold.tint, green);
+  hold.update(1 / 60, {x: 0, z: 0});
+  assert.ok(!near(hold.color, green) && !near(hold.color, brown));
+  for (let i = 0; i < 120; i++) hold.update(1 / 60, {x: 0, z: 0});
+  assert.ok(near(hold.color, green));
+  // Holding: the hero's own glyph is the sticky end.
+  hold.frame({player: {x: 5, z: 5, stuck: {x: 5, z: 6, holding: true}}, cells: [mon(5, 5, 3), mon(5, 6, 10)]});
+  assert.equal(hold.tint, brown);
+  hold.clear();
+  assert.equal(hold.tint, HOLD_TINT);
+  assert.ok(near(hold.color, HOLD_TINT));
+  hold.dispose();
 });
