@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline} from './fx.js';
-import {zapSource, zapPose, createZapFlash, ZAP_ARM, ZAP_RAISE_MS, ZAP_LOWER_MS, ZAP_HOLD_MAX_MS} from './zap-flash.js';
+import {zapSource, zapPose, createZapFlash, heroBreathes, BREATH_HEAD, BREATH_LEAN, ZAP_ARM, ZAP_RAISE_MS, ZAP_LOWER_MS, ZAP_HOLD_MAX_MS} from './zap-flash.js';
 
 const zap = (zapType, cells, dir = 'horizontal') => fxTimeline({steps: [
   {op: 'start', mode: 'beam', glyph: 1, effect: {kind: 'zap', zap: zapType, dir}},
@@ -68,7 +68,7 @@ test('createZapFlash poses the hero\'s arm and heading, then takes it all back o
   g.rotation.y = .5; arm.rotation.x = .1;
   const hero = {g, arm, wrist};
   const fx = createZapFlash(THREE, group);
-  assert.equal(fx.play(zap('sleep', [[4, 5], [3, 5], [2, 5], [1, 5], [0, 5], [-1, 5]]), {x: 5, z: 5}, hero), true);
+  assert.equal(fx.play(zap('sleep', [[4, 5], [3, 5], [2, 5], [1, 5], [0, 5], [-1, 5]]), {x: 5, z: 5}, hero), 'zap');
   assert.equal(fx.play(zap('sleep', [[9, 5]]), {x: 5, z: 5}, hero), false);
   let sawGlow = false;
   for (let i = 0; i < 120; i++) {
@@ -90,4 +90,61 @@ test('createZapFlash poses the hero\'s arm and heading, then takes it all back o
   assert.equal(fx.glow.visible, false);
   fx.dispose();
   assert.equal(group.children.length, 1);
+});
+
+const heroFrame = (symbol, kind = 'monster') => ({player: {x: 5, z: 5},
+  cells: [{x: 5, z: 5, kind, symbol: symbol.charCodeAt(0), visible: true}]});
+
+test('a dragon or hound hero breathes: head and lean instead of the arm, flash at the mouth', () => {
+  assert.equal(heroBreathes(heroFrame('D')), true);
+  assert.equal(heroBreathes(heroFrame('d')), true);
+  assert.equal(heroBreathes(heroFrame('@')), false);
+  assert.equal(heroBreathes(heroFrame('D', 'object')), false);
+  assert.equal(heroBreathes({player: {x: 5, z: 5}, cells: []}), false);
+  assert.equal(heroBreathes(null), false);
+  const cells = Array.from({length: 12}, (_, i) => [6 + i, 5]);
+  assert.equal(zapSource(zap('fire', cells), {x: 5, z: 5}, heroFrame('@')).breath, false);
+  const src = zapSource(zap('fire', cells), {x: 5, z: 5}, heroFrame('D'));
+  assert.equal(src.breath, true);
+  const end = src.from + Math.max(ZAP_RAISE_MS, src.until - src.from) + ZAP_LOWER_MS;
+  let last = zapPose(src, 0, .8), maxStep = 0, minHead = 0, maxLean = 0;
+  for (let t = 2; t < end; t += 2) {
+    const p = zapPose(src, t, .8);
+    for (const k of ['arm', 'head', 'body', 'yaw']) assert.ok(Number.isFinite(p[k]), `${k} at ${t}`);
+    assert.equal(p.arm, 0);
+    assert.ok(p.head >= BREATH_HEAD - .01 && p.head <= .15 && p.body >= 0 && p.body <= BREATH_LEAN + 1e-9);
+    if (p.flash) assert.ok(p.flash.size > 0 && p.flash.size < .3 && p.flash.alpha <= 1);
+    maxStep = Math.max(maxStep, Math.abs(p.head - last.head), Math.abs(p.body - last.body));
+    minHead = Math.min(minHead, p.head); maxLean = Math.max(maxLean, p.body);
+    last = p;
+  }
+  assert.ok(minHead < BREATH_HEAD + .1 && maxLean > BREATH_LEAN - .01);
+  assert.ok(maxStep < .06, `step ${maxStep}`);
+  assert.ok(Math.abs(last.head) < .01 && Math.abs(last.body) < .01 && Math.abs(last.yaw) < .01);
+  assert.equal(zapPose(src, end, .8), null);
+
+  // On the model: the head and body come back exactly, the arm is never touched, and the
+  // flash sits in front of the face.
+  const group = new THREE.Group(), g = new THREE.Group(), body = new THREE.Group(), head = new THREE.Group(), arm = new THREE.Group();
+  head.position.set(0, 1.23, .02); body.add(head); body.add(arm); g.add(body); group.add(g);
+  head.rotation.x = .05; body.rotation.x = -.02; arm.rotation.x = .1;
+  const hero = {g, body, head, arm};
+  const fx = createZapFlash(THREE, group);
+  assert.equal(fx.play(zap('fire', cells), {x: 5, z: 5}, hero, heroFrame('D')), 'breath');
+  let sawGlow = false;
+  for (let i = 0; i < 150; i++) {
+    fx.unpose(hero);
+    assert.ok(Math.abs(head.rotation.x - .05) < 1e-9 && Math.abs(body.rotation.x + .02) < 1e-9 && arm.rotation.x === .1);
+    fx.update(1 / 60, hero);
+    assert.equal(arm.rotation.x, .1);
+    if (fx.glow.visible) {
+      sawGlow = true;
+      const p = fx.glow.position;
+      assert.ok(p.y > 1 && p.y < 1.4 && Math.hypot(p.x, p.z) > .15 && p.x >= -1e-9, `mouth ${p.toArray()}`);
+    }
+  }
+  assert.ok(sawGlow && !fx.active);
+  fx.unpose(hero);
+  assert.ok(Math.abs(head.rotation.x - .05) < 1e-9 && Math.abs(body.rotation.x + .02) < 1e-9);
+  fx.dispose();
 });
