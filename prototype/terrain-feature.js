@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {createDrawbridge} from './drawbridge.js';
 import {createBog} from './bog.js';
 import {createIceWall} from './ice-wall.js';
+import {createIceFloor} from './ice-floor.js';
 
 // Non-trap `feature` cells (ice, bog, drawbridges, ice walls, clouds, open air). The bridge
 // sends them as generic features, so the kind comes from the map symbol and its
@@ -28,17 +29,10 @@ export function createTerrainFeature(kind,seed=0){
  const rand=(i)=>{const s=Math.sin(seed*12.9898+i*78.233)*43758.5453;return s-Math.floor(s);};
 
  if(kind==='ice'){
-  // A glassy sheet over the floor with hairline cracks and frost specks.
-  add(new THREE.BoxGeometry(.98,.018,.98),mat({color:0xbfe6f5,roughness:.06,metalness:.05,clearcoat:1,transparent:true,opacity:.78},THREE.MeshPhysicalMaterial),0,.009,0).castShadow=false;
-  const crack=mat({color:0x5d8fa8,roughness:.4});
-  for(let i=0;i<4;i++){
-   let x=(rand(i)-.5)*.5,z=(rand(i+10)-.5)*.5,a=rand(i+20)*Math.PI*2;
-   for(let j=0;j<3;j++){const len=.08+rand(i*7+j+30)*.12;a+=(rand(i*7+j+40)-.5)*1.2;
-    const nx=THREE.MathUtils.clamp(x+Math.cos(a)*len,-.46,.46),nz=THREE.MathUtils.clamp(z+Math.sin(a)*len,-.46,.46);
-    const seg=add(new THREE.BoxGeometry(Math.hypot(nx-x,nz-z),.003,.008),crack,(x+nx)/2,.0195,(z+nz)/2);seg.rotation.y=-Math.atan2(nz-z,nx-x);seg.castShadow=false;x=nx;z=nz;}
-  }
-  const frost=mat({color:0xf2fbff,roughness:.9});
-  for(let i=0;i<10;i++)flat(new THREE.CircleGeometry(.012+rand(i+60)*.03,8),frost,.0192,(rand(i+70)-.5)*.86,(rand(i+80)-.5)*.86);
+  // Floor ice is a merged, weathered model of its own (ice-floor.js).
+  const sheet=createIceFloor(seed);g.add(sheet);
+  g.userData.dispose=()=>sheet.userData.dispose();
+  return g;
  }else if(kind==='bog'){
   // The bog is a merged, weathered model of its own (bog.js).
   const bog=createBog(seed);g.add(bog);
