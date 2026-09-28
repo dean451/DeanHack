@@ -9,6 +9,7 @@ import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
 import {createMold} from './mold.js';
+import {createMushroom} from './mushroom.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 
@@ -527,18 +528,13 @@ function cockatrice(o){
 }
 const COCKATRICES={chickatrice:{skin:'#8a6a3a',comb:'#a8382a',beak:'#d99a3a',scale:.65},cockatrice:{skin:'#c9a83a',comb:'#c8262a',beak:'#e0b23a',scale:.9},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9}};
 
-// Lichens and molds: stationary crusts and mounds. Mushrooms for shriekers and violet fungi.
+// Lichens and other F: stationary crusts and mounds. Molds are in mold.js, shriekers and violet fungi in mushroom.js.
 function fungus(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
  const main=mat(o.color,{roughness:.95}),dark=mat(shade(o.color,.55)),bright=mat(shade(o.color,1.35),{emissive:shade(o.color,.35),emissiveIntensity:.35});
  if(o.form==='lichen'){
   for(let i=0;i<9;i++){const a=i*2.4,r=i?.08+((i*53)%10)/60:0;sphere(body,.09+((i*29)%5)/60,i%3?main:dark,Math.cos(a)*r,.05,Math.sin(a)*r,1,.35,1);}
   for(let i=0;i<5;i++){const a=i*1.3+.4;const cup=cylinder(body,.045,.015,.12,bright,Math.cos(a)*.15,.1,Math.sin(a)*.15,8);cup.rotation.z=Math.cos(a)*.3;}
- } else if(o.form==='mushroom'){
-  cylinder(body,.07,.1,.42,mat('#d8cdb5'),0,.21,0,10);
-  part(body,new THREE.SphereGeometry(.26,18,10,0,Math.PI*2,0,Math.PI/2),main,0,.4,0).scale.y=.7;
-  for(let i=0;i<7;i++){const a=i*.9;sphere(body,.035,mat('#efe6d0'),Math.cos(a)*.15,.52,Math.sin(a)*.15,1,.5,1);}
-  if(o.tendrils)for(let i=0;i<4;i++){const a=i*Math.PI/2+.4;tube(body,[[Math.cos(a)*.2,.36,Math.sin(a)*.2],[Math.cos(a)*.34,.2,Math.sin(a)*.34],[Math.cos(a)*.3,.02,Math.sin(a)*.3]],.018,dark,10);}
  } else {
   sphere(body,.24,main,0,.12,0,1,.62,1);
   for(let i=0;i<11;i++){const a=i*2.1,r=.1+(i%3)*.05;sphere(body,.05+(i%4)*.018,i%2?bright:dark,Math.cos(a)*r,.18+((i*7)%3)*.03,Math.sin(a)*r);}
@@ -2327,7 +2323,7 @@ export function createCreature(cell={}){
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
  if(name==='lichen')return fungus({form:'lichen',color:'#8fbf5a'});
  if(/ mold$/.test(name))return createMold(name,color);
- if(name==='shrieker'||name==='violet fungus')return fungus({form:'mushroom',color:name==='shrieker'?'#8f5aa8':'#b05ac0',tendrils:name==='violet fungus'});
+ if(name==='shrieker'||name==='violet fungus')return createMushroom(name);
  if(name==='cave spider'||name==='giant spider')return spider({color:name==='cave spider'?'#7a7a74':'#4a2a5a',scale:name==='cave spider'?.65:1.5});
  if(name==='gelatinous cube')return cube({color:color||'#8ad0c0'});
  if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name)});

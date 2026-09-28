@@ -385,3 +385,38 @@ test('each mold is its own lobed colony with a kind-specific accent instead of t
  const oddParts=[];odd.g.traverse(o=>{if(o.isMesh)oddParts.push(o);});
  assert.equal(oddParts.length,1);assert.equal(odd.quirk,'fungus');
 });
+
+test('shriekers and violet fungi are their own merged mushrooms instead of the primitive cap and stalk',()=>{
+ const F=70,accents={shrieker:'throat','violet fungus':'tendrils'};
+ const tops={};
+ for(const name of Object.keys(accents)){
+  const t0=performance.now(),m=createCreature({name,symbol:F,color:5}),ms=performance.now()-t0;
+  assert.equal(m.quirk,'fungus');assert.equal(m.kind,name);assert(m.body?.isObject3D);
+  const parts=[];m.g.traverse(o=>{if(o.isMesh)parts.push(o);});
+  assert.deepEqual(parts.map(p=>p.userData.part),['fungus',accents[name]],'two draws');
+  let verts=0;
+  for(const p of parts){
+   const a=p.geometry.attributes;verts+=a.position.count;
+   for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${name} ${p.userData.part} ${key}`);
+   for(const v of a.color.array)assert(v>=0&&v<=1,`${name} colour`);
+  }
+  assert(verts<40000,`${name}: ${verts} vertices`);
+  m.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(m.g);tops[name]=b.max.y;
+  assert(b.min.y>-.01&&b.min.y<.01,`${name} sits on the floor at ${b.min.y}`);
+  assert(b.max.y>.4&&b.max.y<.65,`${name} top at ${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,`${name} fits the tile`);
+  const again=[];createCreature({name,symbol:F}).g.traverse(o=>{if(o.isMesh)again.push(o);});
+  parts.forEach((p,i)=>{assert.equal(p.geometry,again[i].geometry);assert.equal(p.material,again[i].material);});
+  assert(ms<400,`${name} took ${ms} ms`);
+ }
+ // the shrieker's throat glows; the violet fungus's tendrils reach well past its cap
+ const sh=[];createCreature({name:'shrieker',symbol:F}).g.traverse(o=>{if(o.isMesh)sh.push(o);});
+ assert(sh[1].material.emissiveIntensity>.5);
+ const vf=[];createCreature({name:'violet fungus',symbol:F}).g.traverse(o=>{if(o.isMesh)vf.push(o);});
+ vf[1].geometry.computeBoundingBox();const tb=vf[1].geometry.boundingBox;
+ assert(Math.max(-tb.min.x,tb.max.x,-tb.min.z,tb.max.z)>.38,'tendrils reach out');
+ assert(tb.min.y<.02,'tendrils touch the floor');
+ // lichens keep the old crust
+ assert.equal(createCreature({name:'lichen',symbol:F}).quirk,'fungus');
+});
