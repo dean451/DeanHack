@@ -122,3 +122,17 @@ test('createSplash delays until the object lands, draws, and ends empty', () => 
   sp.dispose();
   assert.equal(scene.children.length, 0);
 });
+
+test('queued message splashes land on the next frame\'s hero tile', () => {
+  const sp = createSplash(THREE, new THREE.Group());
+  assert.equal(sp.queueMessage('You fall into the water!'), true);
+  assert.equal(sp.queueMessage('You hear a splash.'), false);
+  const moved = {...room(), player: {x: 6, z: 3}};
+  const out = sp.flushMessages(moved);
+  assert.deepEqual(out.map(s => [s.x, s.z, s.size]), [[6, 3, 'large']]);
+  assert.equal(sp.flushMessages(moved).length, 0);
+  assert.equal(sp.update(.03, {x: 2, z: 2}).columns, 1);
+  sp.queueMessage('Plop!');
+  sp.clear();
+  assert.equal(sp.flushMessages(moved).length, 0);
+});
