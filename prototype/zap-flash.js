@@ -4,6 +4,10 @@
 // It only uses the ray's own look (which rays.js already shows), so it reveals nothing
 // about the wand.
 //
+// A hero polymorphed into a D or d (dragons, hell hounds, winter wolves) has no hands, so
+// it can't zap a wand; a ray from such a hero is its breath. Then the hero leans in and
+// thrusts their head out instead of the arm, and the flash bursts from the mouth.
+//
 // zapSource() and zapPose() are pure, so they can be tested without a renderer;
 // createZapFlash() poses the hero and draws the flash.
 import {rayLook} from './rays.js';
@@ -20,15 +24,32 @@ export const ZAP_HOLD_MAX_MS = 1000;
 // recoil kick on release.
 export const ZAP_ARM = -1.15;
 export const ZAP_KICK = .16;
+// Breath: the chin juts up and out while the body leans into it; the kick snaps the head
+// down a little as the breath leaves.
+export const BREATH_HEAD = -.3;
+export const BREATH_LEAN = .16;
+export const BREATH_KICK = .14;
+// The hero forms whose rays are breath: map symbols of handless breathers.
+export const BREATH_SYMBOLS = 'Dd';
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { const x = clamp01(v); return x * x * (3 - 2 * x); };
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
-// The hero's own ray in a timeline: {dir: [dx, dz], look, from, until} or null. A beam is
+// True when the hero's own map cell shows a breather's form (see BREATH_SYMBOLS). It uses
+// only the glyph the map already draws on the hero's tile.
+export function heroBreathes(frame) {
+  const px = frame?.player?.x, pz = frame?.player?.z;
+  if (!Number.isFinite(px) || !Number.isFinite(pz)) return false;
+  const c = (frame.cells ?? []).find(c => c.x === px && c.z === pz);
+  return !!c && c.kind === 'monster' && Number.isFinite(c.symbol) && BREATH_SYMBOLS.includes(String.fromCharCode(c.symbol));
+}
+
+// The hero's own ray in a timeline: {dir: [dx, dz], look, from, until, breath} or null. A beam is
 // the hero's when its first cell is next to the hero's tile and it carries on away from
 // them. A monster's beam coming at the hero moves towards the hero, so it doesn't count.
-export function zapSource(timeline, player) {
+// `frame` (optional) says whether the hero is a breather.
+export function zapSource(timeline, player, frame = null) {
   const px = player?.x, pz = player?.z;
   if (!Number.isFinite(px) || !Number.isFinite(pz)) return null;
   const runs = new Map();
@@ -46,12 +67,14 @@ export function zapSource(timeline, player) {
     if (next && (Math.sign(next.x - first.x) !== dx || Math.sign(next.z - first.z) !== dz)) continue;
     if (best && best.from <= first.from) continue;
     const until = Math.min(first.from + ZAP_HOLD_MAX_MS, Math.max(...run.map(s => s.until)));
-    best = {dir: [dx, dz], look: rayLook(first.effect), from: first.from, until};
+    best = {dir: [dx, dz], look: rayLook(first.effect), from: first.from, until, breath: false};
   }
+  if (best) best.breath = heroBreathes(frame);
   return best;
 }
 
-// The pose at t ms into the timeline: {arm, yaw, flash} or null once the arm is down.
+// The pose at t ms into the timeline: {arm, head, body, yaw, flash} or null once it's
+// over. A zap moves the arm; a breath moves the head and body instead.
 // `face` is the turn (radians) from the hero's heading to the beam. flash is
 // {size, alpha, ring, ringAlpha, color} or null; a faint ember stays in the hand while the
 // beam flies.
@@ -76,7 +99,11 @@ export function zapPose(src, t, face = 0) {
     if (!flash) flash = {size: .05, alpha: ember, ring: 0, ringAlpha: 0, color};
     else if (flash.alpha < ember) flash.alpha = ember;
   }
-  return {arm: ZAP_ARM * up + ZAP_KICK * kick * up, yaw: face * up, flash};
+  if (src.breath) {
+    if (flash) { flash.size *= 1.25; flash.ring *= 1.2; }
+    return {arm: 0, head: BREATH_HEAD * up + BREATH_KICK * kick * up, body: BREATH_LEAN * up, yaw: face * up, flash};
+  }
+  return {arm: ZAP_ARM * up + ZAP_KICK * kick * up, head: 0, body: 0, yaw: face * up, flash};
 }
 
 // Poses the hero and draws the hand flash. In the frame loop, call unpose(hero) right after
@@ -91,20 +118,25 @@ export function createZapFlash(THREE, parent) {
   const glow = new THREE.Mesh(sphere, glowMat), core = new THREE.Mesh(sphere, coreMat), ring = new THREE.Mesh(ringGeo, ringMat);
   for (const m of [glow, core, ring]) { m.visible = false; m.frustumCulled = false; m.renderOrder = 6; m.userData.part = 'zap-flash'; parent.add(m); }
   const white = new THREE.Color(0xffffff), color = new THREE.Color(), at = new THREE.Vector3();
+  // The mouth, in the head's frame (the knight's chin sits at about y -.115, z .11).
+  const MOUTH = [0, -.09, .19];
   let zap = null, applied = null;
 
-  function play(timeline, player, hero) {
-    const src = zapSource(timeline, player);
+  // Returns false, 'zap' or 'breath'.
+  function play(timeline, player, hero, frame = null) {
+    const src = zapSource(timeline, player, frame);
     if (!src) return false;
     const heading = hero?.g?.rotation.y ?? 0;
     zap = {src, t: 0, face: wrap(Math.atan2(src.dir[0], src.dir[1]) - heading)};
-    return true;
+    return src.breath ? 'breath' : 'zap';
   }
 
   function unpose(hero) {
     if (!applied || !hero?.g) return;
     hero.g.rotation.y -= applied.yaw;
     if (hero.arm) hero.arm.rotation.x -= applied.arm;
+    if (hero.head) hero.head.rotation.x -= applied.head;
+    if (hero.body) hero.body.rotation.x -= applied.body;
     applied = null;
   }
 
@@ -117,11 +149,14 @@ export function createZapFlash(THREE, parent) {
     if (!p) return false;
     hero.g.rotation.y += p.yaw;
     if (hero.arm) hero.arm.rotation.x += p.arm;
-    applied = {yaw: p.yaw, arm: hero.arm ? p.arm : 0};
+    if (hero.head) hero.head.rotation.x += p.head;
+    if (hero.body) hero.body.rotation.x += p.body;
+    applied = {yaw: p.yaw, arm: hero.arm ? p.arm : 0, head: hero.head ? p.head : 0, body: hero.body ? p.body : 0};
     if (!f) return true;
-    const hand = hero.wrist ?? hero.arm ?? hero.g;
+    const breath = zap.src.breath && hero.head;
+    const hand = breath ? hero.head : hero.wrist ?? hero.arm ?? hero.g;
     hand.updateWorldMatrix(true, false);
-    hand.localToWorld(at.set(0, 0, 0));
+    hand.localToWorld(breath ? at.set(...MOUTH) : at.set(0, 0, 0));
     parent.updateWorldMatrix(true, false);
     parent.worldToLocal(at);
     glow.position.copy(at); core.position.copy(at); ring.position.copy(at);
