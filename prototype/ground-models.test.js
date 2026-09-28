@@ -639,6 +639,10 @@ test('the heavy iron ball and the iron chain are single merged iron meshes on th
   let geometries=0,materials=0;geo.addEventListener('dispose',()=>geometries++);mesh.material.addEventListener('dispose',()=>materials++);
   model.userData.dispose();assert.equal(geometries,1);assert.equal(materials,1);
  }
+ // The chain is torn from a drawbridge: its sheared bolt heads and sprung link are bright metal.
+ const chain=createGroundModel({name:'iron chain',class:16}).children[0].geometry.attributes.color;
+ let bright=0;for(let i=0;i<chain.count;i++)if(chain.getX(i)>.4)bright++;
+ assert(bright>20,`the torn ends show bright iron (${bright})`);
  // Found by name alone too, as the Live feed may send it.
  assert.equal(createGroundModel({name:'heavy iron ball'}).children[0].userData.part,'iron ball');
 });
