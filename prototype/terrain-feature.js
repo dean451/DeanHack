@@ -26,8 +26,9 @@ export function createTerrainFeature(kind,seed=0){
  const g=new THREE.Group();g.name=`Feature (${kind})`;
 
  if(kind==='ice'){
-  // Floor ice is a merged, weathered model of its own (ice-floor.js).
+  // Floor ice is a merged, weathered model of its own (ice-floor.js); it replaces the floor.
   const sheet=createIceFloor(seed);g.add(sheet);
+  g.userData.hidesFloor=true;
   g.userData.dispose=()=>sheet.userData.dispose();
   return g;
  }else if(kind==='bog'){

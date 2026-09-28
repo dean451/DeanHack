@@ -8,14 +8,18 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // The sheet's colour is baked into vertex colours: dark clear "black ice" patches, the
 // usual pale blue, and milky white where air is trapped. The sheet stays flat at the tile
 // edge so neighbouring ice tiles meet without a step.
-// Static parts are merged into one mesh per material (`userData.part` is ice or frost).
+// The sheet sits on an opaque block of frozen depth (dark blue-green, with pale veils and
+// sunken fracture shadows) that replaces the floor slab, so the ice never reads as a
+// thin film over flagstones (`userData.hidesFloor`).
+// Static parts are merged into one mesh per material (`userData.part` is depth, ice or frost).
 export function createIceFloor(seed=0){
  const g=new THREE.Group();g.name='Floor ice';
  const materials=[],geometries=[];
- const ice=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.05,metalness:.05,clearcoat:1,clearcoatRoughness:.08,transparent:true,opacity:.8});
+ const depth=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.3,metalness:.05,emissive:0x0a2334,emissiveIntensity:.5});
+ const ice=new THREE.MeshPhysicalMaterial({vertexColors:true,roughness:.04,metalness:.05,clearcoat:1,clearcoatRoughness:.05,specularIntensity:1,transparent:true,opacity:.66,emissive:0x163a52,emissiveIntensity:.25});
  const frost=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85});
- materials.push(ice,frost);
- const parts={ice,frost};
+ materials.push(depth,ice,frost);
+ const parts={depth,ice,frost};
  const bins=new Map(Object.values(parts).map(m=>[m,[]]));
  const rand=(i)=>{const s=Math.sin(seed*12.9898+i*78.233)*43758.5453;return s-Math.floor(s);};
  const off=rand(99)*50;
@@ -34,6 +38,10 @@ export function createIceFloor(seed=0){
   for(let i=0;i<p.count;i++)p.setY(i,top(p.getX(i),p.getZ(i)));
   sheet.computeVertexNormals();
   put(sheet,ice,(x,y,z)=>iceColour(x,z,off));
+  // The frozen depth underneath, filling the floor slab's place (its top is y -.03,
+  // its bottom -.17) and reaching just under the sheet.
+  const block=new THREE.BoxGeometry(.98,.17,.98,12,1,12);block.translate(0,-.17/2,0);
+  put(block,depth,(x,y,z,n)=>depthColour(x,y,z,n,off));
   for(let i=0;i<4;i++){const ry=i*Math.PI/2;
    put(place(new THREE.PlaneGeometry(.98,TOP),Math.sin(ry)*.49,TOP/2,Math.cos(ry)*.49,0,ry,0),ice,(x,y,z)=>iceColour(x,z,off).map(c=>c*.8));}
  }
@@ -52,13 +60,15 @@ export function createIceFloor(seed=0){
   }
   return [x,z,a];
  };
- const crackCount=2+Math.floor(rand(1)*2);
+ const crackCount=3+Math.floor(rand(1)*2);
  for(let i=0;i<crackCount;i++){
   const x=(rand(i+2)-.5)*.6,z=(rand(i+6)-.5)*.6,a=rand(i+10)*Math.PI*2;
   const [bx,bz,ba]=crack(x,z,a,3+Math.floor(rand(i+14)*3),.0035,.014);
   // A finer branch off the end and one heading the other way from the start.
   crack(bx,bz,ba+(rand(i+18)>.5?1:-1)*(.6+rand(i+22)*.5),2,.0022,.008);
   crack(x,z,a+Math.PI+(rand(i+26)-.5)*.8,2,.0028,.011);
+  // Its shadow on the depth below, offset a little as if seen through the ice.
+  put(place(new THREE.PlaneGeometry(.012,.012),x,.0006,z,-Math.PI/2,0,a),depth,()=>[.03,.09,.14]);
  }
  if(rand(30)>.55){
   // An impact star: short cracks radiating from one point, with a milky crushed spot.
@@ -159,13 +169,25 @@ export function createIceFloor(seed=0){
  return g;
 }
 
+// The depth block: dark blue-green on top with paler drowned veils where the water froze
+// in layers, and the sides fading darker toward the bottom.
+function depthColour(x,y,z,n,off){
+ const veil=noise3(x*6+off,z*6,21),fine=noise3(x*30,z*30+off,22);
+ if(n.y>.5){
+  const k=Math.min(1,Math.max(0,(veil-.55)*3));
+  return [.05+.2*k+.03*fine,.18+.28*k+.04*fine,.28+.3*k+.05*fine];
+ }
+ const t=Math.min(1,Math.max(0,-y/.17));
+ return [.12-.08*t,.3-.18*t,.42-.2*t];
+}
+
 // The sheet: pale blue, with dark clear patches of black ice and milky white where air
 // is trapped, plus faint streaks where it froze in layers.
 function iceColour(x,z,off){
  const big=noise3(x*5+off,z*5,11),fine=noise3(x*40,z*40+off,12);
- let r=.5,g=.74,b=.88;
+ let r=.42,g=.7,b=.94;
  const clear=Math.min(1,Math.max(0,(.4-big)*4));
- r+=(.16-r)*clear;g+=(.36-g)*clear;b+=(.55-b)*clear;
+ r+=(.08-r)*clear;g+=(.3-g)*clear;b+=(.52-b)*clear;
  const milk=Math.min(1,Math.max(0,(big-.62)*4))*(.6+.4*fine);
  r+=(.84-r)*milk;g+=(.91-g)*milk;b+=(.95-b)*milk;
  const streak=Math.sin((x*.8+z*.6)*60+noise3(x*8,z*8+off,13)*6)*.03;
