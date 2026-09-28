@@ -26,7 +26,7 @@ import {createCavern} from './cavern.js';
 import {attachModelAsset} from './model-assets.js';
 import {MODEL_URLS} from './asset-urls.js';
 import {potionLook,groundItemCaption} from './item-looks.js';
-import {syncWandAura} from './wand-auras.js';
+import {syncWandAura,syncHeldWandAura,updateHeldWandAura} from './wand-auras.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {fxTimeline} from './fx.js';
 import {createSwingFx} from './swing-fx.js';
@@ -192,7 +192,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    $('.location small').textContent=`THE DUNGEONS OF DOOM · DEPTH ${String(frame.depth).padStart(2,'0')}`;
    if(groundPanelTile!==groundTile(frame)){groundPanel.hidden=true;groundPanelTile=null;}
    if(Array.isArray(frame.ground))showGround(frame.ground);
-   hero.setWeapon?.(frame.player.weapon??null);
+   hero.setWeapon?.(frame.player.weapon??null);syncHeldWandAura(hero,frame.player.weapon??null);
    hero.setHelmet?.(frame.player.helmet??null);addOutlines(hero.g);
    const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
    const seen=new Set(),seenActors=new Set(),seenWells=new Set();
@@ -322,6 +322,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    updateTorchLights(t,dt);cavern.update(t,dt,hero.g.position);
    for(const a of actors.values()){clearActionPose(a,a.actions);clearStalk(a);a.g.userData.updateOracle?.(t);a.g.userData.updateGridBug?.(t);let walking=false;if(a.target){const d=a.target.clone().sub(a.g.position);walking=d.length()>.025;if(walking)a.g.rotation.y=Math.atan2(d.x,d.z);a.g.position.lerp(a.target,1-Math.exp(-dt*10));if(a.legs)a.legs.forEach((l,i)=>l.rotation.x=walking?Math.sin(t*22+i*2)*.4:0);}a.asset?.update(dt,walking);if(a.tail){const tailRate=a.quirk==='dog'?7:a.quirk==='unicorn'?2.6:a.quirk==='nymph'?1.4:3;const tailSwing=a.quirk==='dog'?.34:a.quirk==='unicorn'?.16:a.quirk==='nymph'?.07:.24;a.tail.rotation.z=Math.sin(t*tailRate)*tailSwing;}if(a.charm)a.charm.position.y=.3+Math.sin(t*4)*.025;if(a.body){const idle=a.quirk==='orc'?.025:a.quirk==='dragon'?.035:a.quirk==='unicorn'?.022:.015;a.body.position.y=Math.sin(t*(walking?22:2.5))*idle;}if(a.wings?.length)a.wings.forEach((wing,i)=>{if(a.quirk==='bat'){wing.rotation.z=(wing.userData.side||(i?1:-1))*Math.sin(t*14)*.65;}else if(a.quirk==='bee'){wing.rotation.y=(i?1:-1)*Math.sin(t*60)*.35;}else wing.rotation.y=(i?1:-1)*(-.18+Math.sin(t*5)*.12);});if((a.quirk==='hover'||a.quirk==='bat'||a.quirk==='bee')&&a.body)a.body.position.y=Math.sin(t*2.2+a.g.position.x)*.06;if(a.quirk==='dragon')a.g.rotation.z=Math.sin(t*1.7)*.025;if(a.quirk==='nymph'&&a.body)a.body.rotation.z=Math.sin(t*1.3+a.g.position.x)*.035;if(a.quirk==='gridbug')a.g.rotation.z=Math.sin(t*9)*.035;if(a.quirk==='guard')a.g.rotation.z=Math.sin(t*1.3)*.012;const busy=walking||!!a.actions?.current||!!a.actions?.queue.length;updateGait(a,dt,walking);updateFidget(a,dt,t,busy);updateStalk(a,dt,t,findPrey(a,actors.values()),busy);const core=a.core||a.g.userData.core;if(core)core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;if(a.actions){updateActions(a,a.actions,dt);const q=a.actions;if(q.dead&&q.fade!=null)applyFade(a,q.fade);if(q.deathBurst){deathFx.burst(q.deathBurst.style,a.g.position,{dir:q.deathBurst.dir,...deathLook(a)});q.deathBurst=null;}}}hitFx.update([hero,...actors.values()],dt);deathFx.update(dt);
    for(const item of groundItems.values())if(item.visible)item.userData.wandAura?.userData.update(t);
+   updateHeldWandAura(hero,t);
    for(const item of groundItems.values()){if(!item.userData.coinPile)continue;item.userData.coinAge=(item.userData.coinAge||0)+dt;for(const coin of item.userData.coinPile){if(coin.settled||item.userData.coinAge<coin.delay)continue;coin.velocity-=9.8*dt;coin.disk.position.y+=coin.velocity*dt;coin.stamp.position.y+=coin.velocity*dt;if(coin.disk.position.y<=coin.target){coin.disk.position.y=coin.target;coin.stamp.position.y=coin.target+.019;coin.velocity*=-.16;if(Math.abs(coin.velocity)<.35)coin.settled=true;}}}
    for(const tile of tiles.values())if(tile.visible)tile.userData.liquid?.userData.updateLiquid(t);
    for(const w of wells.values())w.userData.updateFountain?.(t);

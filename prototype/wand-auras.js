@@ -190,3 +190,37 @@ export function syncWandAura(item, object, seedText = '') {
   if (item.userData.wandAura) item.add(item.userData.wandAura);
   return item.userData.wandAura;
 }
+
+// Held wands (item 9, part 2). The bridge sends a wielded weapon as {name: xname(uwep), class}.
+// xname is the hero's view ("oak wand" until identified), so it stands in for `label`.
+export function heldWandObject(weapon) {
+  return weapon && typeof weapon.name === 'string' ? {class: weapon.class, label: weapon.name} : null;
+}
+
+// Where on the held weapon the aura sits (weapon space: the rod runs along +y from the grip),
+// and how big it is next to a floor wand's.
+export const HELD_AURA_POINT = new THREE.Vector3(0, .3, 0);
+export const HELD_AURA_SCALE = .6;
+const heldPoint = new THREE.Vector3();
+
+// Keeps the hero's held-wand aura in step with the wielded weapon's name. The aura hangs from
+// the hero's root group rather than the hand, so embers rise and frost falls straight down
+// however the arm is posed; updateHeldWandAura moves it to the rod each frame.
+export function syncHeldWandAura(hero, weapon) {
+  const root = hero?.g;
+  if (!root) return null;
+  const holder = root.userData.heldWand ??= new THREE.Group();
+  if (!holder.parent) { holder.name = 'held wand aura'; holder.scale.setScalar(HELD_AURA_SCALE); root.add(holder); }
+  const aura = syncWandAura(holder, heldWandObject(weapon), 'held');
+  holder.visible = !!aura && !!hero.weaponSocket;
+  return aura;
+}
+
+export function updateHeldWandAura(hero, t) {
+  const holder = hero?.g?.userData.heldWand, socket = hero?.weaponSocket, aura = holder?.userData.wandAura;
+  if (!aura || !socket || !holder.visible) return;
+  socket.updateWorldMatrix(true, false);
+  heldPoint.copy(HELD_AURA_POINT).applyMatrix4(socket.matrixWorld);
+  holder.position.copy(hero.g.worldToLocal(heldPoint));
+  aura.userData.update(t);
+}

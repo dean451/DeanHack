@@ -92,3 +92,45 @@ test('the aura follows the name as it changes', () => {
   assert.equal(syncWandAura(item, wand('wand called fire')), null);
   assert.equal(item.children.length, 0);
 });
+
+test('a wielded wand glows in the hand only once its name says so', async () => {
+  const {syncHeldWandAura, updateHeldWandAura, heldWandObject} = await import('./wand-auras.js');
+  // A stand-in hero: root, a posed arm and a socket, like main.js's player.
+  const g = new THREE.Group(), arm = new THREE.Group(), weaponSocket = new THREE.Group();
+  arm.position.set(.34, .92, 0); arm.rotation.x = -.8; weaponSocket.rotation.x = Math.PI / 4 + .65;
+  g.add(arm); arm.add(weaponSocket); g.position.set(3, 0, -2); g.rotation.y = 1.1;
+  const hero = {g, weaponSocket};
+  const held = name => ({name, otyp: 400, class: WAND_CLASS});
+  assert.equal(heldWandObject(null), null);
+  assert.equal(syncHeldWandAura(hero, null), null);
+  assert.equal(syncHeldWandAura(hero, held('oak wand')), null);
+  assert.equal(syncHeldWandAura(hero, held('wand called death')), null);
+  assert.equal(syncHeldWandAura(hero, {name: 'long sword', otyp: 28, class: 2}), null);
+  assert.equal(g.userData.heldWand.visible, false);
+  const aura = syncHeldWandAura(hero, held('wand of fire'));
+  assert.equal(aura.userData.kind, 'fire');
+  assert.equal(syncHeldWandAura(hero, held('wand of fire')), aura, 'kept, not rebuilt');
+  // Sampled over time while the arm swings: the aura tracks the rod and stays finite.
+  const tip = new THREE.Vector3();
+  for (let i = 0; i <= 40; i++) {
+    const t = i * .137;
+    arm.rotation.x = -.8 + Math.sin(t * 3) * .9;
+    updateHeldWandAura(hero, t);
+    g.updateMatrixWorld(true);
+    tip.set(0, .3, 0).applyMatrix4(weaponSocket.matrixWorld);
+    const at = g.userData.heldWand.getWorldPosition(new THREE.Vector3());
+    assert.ok(at.distanceTo(tip) < 1e-6, `aura on the rod at t=${t}`);
+    assert.ok(g.userData.heldWand.position.y > .2 && g.userData.heldWand.position.y < 1.6);
+    for (const v of aura.children[0].geometry.attributes.position.array) assert.ok(Number.isFinite(v));
+  }
+  // Unwielding, or a name that stops saying, takes it away.
+  assert.equal(syncHeldWandAura(hero, held('wand of fire named x')).userData.kind, 'fire');
+  assert.equal(syncHeldWandAura(hero, null), null);
+  assert.equal(g.userData.heldWand.children.length, 0);
+  assert.equal(g.userData.heldWand.visible, false);
+  // A hero without a hand socket (a GLB model) never shows it.
+  const bare = {g: new THREE.Group()};
+  assert.ok(syncHeldWandAura(bare, held('wand of cold')));
+  assert.equal(bare.g.userData.heldWand.visible, false);
+  updateHeldWandAura(bare, 1);
+});
