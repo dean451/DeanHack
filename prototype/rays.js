@@ -2,7 +2,9 @@
 // (fx.js timelines): each type of ray gets its own core and glow, travels along the cells
 // NetHack actually drew, and throws sparks where it bounces off a wall or ricochets back
 // off something that reflects it. The trail fades out after the beam ends instead of
-// vanishing. World marks (scorches, ice), mirror flashes and the digging beam come later.
+// vanishing. When the beam turns straight back on a creature's cell (the hero or a monster
+// with reflection), a mirror flash faces the beam there. World marks (scorches, ice) and
+// the digging beam come later.
 //
 // rayFrame() and raySparks() are pure, so they can be tested without a renderer;
 // createRays() draws them with two instanced meshes and one point cloud.
@@ -14,6 +16,8 @@ export const RAY_FADE_MS = 160;
 // Sparks from a bounce live this long (ms).
 export const SPARK_MS = 320;
 export const SPARKS_PER_BOUNCE = 12;
+// A mirror flash (a ray reflected off a creature) lasts this long (ms).
+export const MIRROR_MS = 280;
 
 // core: the bright centre, drawn solid; glow: the additive halo round it.
 // Death is the odd one out, a dark core in a dim violet haze.
@@ -76,6 +80,53 @@ export function rayBounces(timeline) {
   return out;
 }
 
+// Marks the straight-back bounces that happened on a creature's cell as mirror
+// reflections. reflectorAt(x, z) says who is on a map cell ('hero', 'monster' or null);
+// walls never hold creatures, so a wall bounce is never taken for a reflection. A mirror
+// bounce gets `mirror` ({x, z, dir, who}: the creature's cell and the incoming direction),
+// and its sparks move to the creature's face, towards the beam, instead of the far edge.
+export function markMirrors(bounces, reflectorAt) {
+  if (typeof reflectorAt !== 'function') return bounces;
+  for (const b of bounces) {
+    if (!b.back) continue;
+    const [ix, iz] = b.inDir;
+    const cx = b.x - ix * .5, cz = b.z - iz * .5;
+    const who = reflectorAt(cx, cz);
+    if (!who) continue;
+    b.mirror = {x: cx, z: cz, dir: [ix, iz], who};
+    b.x = cx - ix * .3; b.z = cz - iz * .3;
+  }
+  return bounces;
+}
+
+// Who stands on map cell x/z in a bridge frame: 'hero', 'monster' (a visible monster or
+// pet) or null. This is markMirrors()'s lookup for live play.
+export function reflectorAt(frame, x, z) {
+  if (!frame) return null;
+  if (frame.player?.x === x && frame.player?.z === z) return 'hero';
+  for (const c of frame.cells ?? [])
+    if (c.x === x && c.z === z && c.visible && (c.kind === 'monster' || c.kind === 'pet')) return 'monster';
+  return null;
+}
+
+// The mirror flash of one bounce at time t: {x, z, yaw, size, alpha, ring, ringAlpha,
+// color} or null. A bright disc facing the beam snaps open and fades; a ring spreads
+// from it. yaw turns a disc (which faces +z) to face back along the incoming beam.
+export function mirrorFlash(bounce, t) {
+  const m = bounce?.mirror;
+  if (!m) return null;
+  const age = t - bounce.t;
+  if (age < 0 || age >= MIRROR_MS) return null;
+  const u = age / MIRROR_MS;
+  const [ix, iz] = m.dir;
+  const open = clamp01(age / 40);
+  const L = bounce.look;
+  return {x: m.x - ix * .3, z: m.z - iz * .3, yaw: Math.atan2(ix, iz),
+    size: .18 + .3 * open * (1 - .4 * u), alpha: open * (1 - u) * (1 - u),
+    ring: .2 + .75 * Math.sqrt(u), ringAlpha: (1 - u) * .8,
+    color: L.dark ? L.spark : L.glow};
+}
+
 // Beam segments lit at time t (ms): {x, z, yaw, look, intensity, head, offset}. The newest
 // cell of each beam is its head. Cells fade over RAY_FADE_MS after their `until`.
 export function rayFrame(timeline, t) {
@@ -124,9 +175,10 @@ export function raySparks(bounces, t) {
   return out;
 }
 
-const MAX_SEGS = 96, MAX_SPARKS = 96;
+const MAX_SEGS = 96, MAX_SPARKS = 96, MAX_MIRRORS = 8;
 
-// Draws queued ray timelines. play(timeline) starts one now; update(dt, origin) advances
+// Draws queued ray timelines. play(timeline, {reflectorAt}) starts one now (reflectorAt,
+// if given, is markMirrors()'s lookup, in map cells); update(dt, origin) advances
 // them and positions everything relative to the level origin, as live.js places tiles.
 export function createRays(THREE, parent) {
   const box = new THREE.BoxGeometry(1, 1, 1);
@@ -141,20 +193,27 @@ export function createRays(THREE, parent) {
   sparkGeo.setAttribute('color', new THREE.BufferAttribute(sparkCol, 3));
   const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({size: .07, vertexColors: true, transparent: true,
     depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false}));
-  for (const m of [core, glow, sparks]) { m.frustumCulled = false; m.renderOrder = 5; m.userData.part = 'rays'; parent.add(m); }
-  core.count = glow.count = 0; sparkGeo.setDrawRange(0, 0);
+  // Mirror flashes: a disc and a ring per reflection, both white and tinted per instance.
+  const disc = new THREE.CircleGeometry(1, 20), ringGeo = new THREE.RingGeometry(.86, 1, 28);
+  const flashMat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, depthWrite: false,
+    blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false});
+  const flash = new THREE.InstancedMesh(disc, flashMat, MAX_MIRRORS);
+  const ring = new THREE.InstancedMesh(ringGeo, flashMat, MAX_MIRRORS);
+  for (const m of [core, glow, sparks, flash, ring]) { m.frustumCulled = false; m.renderOrder = 5; m.userData.part = 'rays'; parent.add(m); }
+  core.count = glow.count = flash.count = ring.count = 0; sparkGeo.setDrawRange(0, 0);
   const matrix = new THREE.Matrix4(), q = new THREE.Quaternion(), pos = new THREE.Vector3(), scale = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0), color = new THREE.Color();
   const playing = [];
 
-  function play(timeline) {
+  const white = new THREE.Color(0xffffff);
+  function play(timeline, {reflectorAt} = {}) {
     if (!rayRuns(timeline).length) return false;
-    playing.push({timeline, bounces: rayBounces(timeline), t: 0});
+    playing.push({timeline, bounces: markMirrors(rayBounces(timeline), reflectorAt), t: 0});
     return true;
   }
 
   function update(dt, origin) {
-    let n = 0, p = 0;
+    let n = 0, p = 0, f = 0;
     const ox = origin?.x ?? 0, oz = origin?.z ?? 0;
     for (let i = playing.length - 1; i >= 0; i--) {
       const r = playing[i];
@@ -183,21 +242,37 @@ export function createRays(THREE, parent) {
         sparkCol.set([color.r, color.g, color.b], p * 3);
         p++;
       }
+      for (const b of r.bounces) {
+        const m = f < MAX_MIRRORS && mirrorFlash(b, r.t);
+        if (!m) continue;
+        q.setFromAxisAngle(up, m.yaw);
+        pos.set(m.x - ox, RAY_Y, m.z - oz);
+        matrix.compose(pos, q, scale.set(m.size, m.size, m.size));
+        flash.setMatrixAt(f, matrix);
+        // A silvery white core, tinted towards the ray's colour as it fades.
+        flash.setColorAt(f, color.setHex(m.color).lerp(white, .6).multiplyScalar(m.alpha));
+        matrix.compose(pos, q, scale.set(m.ring, m.ring, m.ring));
+        ring.setMatrixAt(f, matrix);
+        ring.setColorAt(f, color.setHex(m.color).lerp(white, .3).multiplyScalar(m.ringAlpha));
+        f++;
+      }
     }
     core.count = glow.count = n;
-    for (const m of [core, glow]) {
+    flash.count = ring.count = f;
+    for (const m of [core, glow, flash, ring]) {
       m.instanceMatrix.needsUpdate = true;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
     }
     sparkGeo.setDrawRange(0, p);
     sparkGeo.attributes.position.needsUpdate = sparkGeo.attributes.color.needsUpdate = true;
-    return n + p;
+    return n + p + f;
   }
 
   const clear = () => { playing.length = 0; update(0); };
   const dispose = () => {
-    for (const m of [core, glow, sparks]) parent.remove(m);
+    for (const m of [core, glow, sparks, flash, ring]) parent.remove(m);
     box.dispose(); sparkGeo.dispose(); coreMat.dispose(); glowMat.dispose(); sparks.material.dispose();
+    disc.dispose(); ringGeo.dispose(); flashMat.dispose();
   };
-  return {play, update, clear, dispose, core, glow, sparks, get active() { return playing.length; }};
+  return {play, update, clear, dispose, core, glow, sparks, flash, ring, get active() { return playing.length; }};
 }
