@@ -215,3 +215,42 @@ test('a monster weapon attack keeps the generic arm wave, and swings count in ho
   assert.ok(hq.current.swing);
   assert.ok(Math.abs(remainingTime(hq) - (.57 - .01 + ACTION_TIME.die)) < 1e-9);
 });
+
+test('deaths play their class style: length, squash, spin, fade and one particle burst, all undone', async () => {
+  const {DEATH_TIME, applyFade, restoreFade, deathLook} = await import('./deaths.js');
+  for (const [name, style] of [['ochre jelly', 'splat'], ['kobold zombie', 'crumble'], ['dust vortex', 'dissipate'],
+    ['yellow light', 'burst'], ['jackal', 'topple']]) {
+    const c = createCreature({name});
+    c.g.userData.height = .7; // stageCreature sets this in the browser
+    c.species = name; c.g.position.set(1, 0, 0); c.target = c.g.position.clone();
+    const before = snap(c);
+    const actors = new Map([['11,10:1', c]]);
+    assert.ok(queueDeath({x: 11, z: 10, name}, s => findActor(actors, s.x, s.z, {origin: {x: 10, z: 10}})));
+    const q = c.actions;
+    assert.equal(q.queue[0].style, style, name);
+    assert.ok(Math.abs(remainingTime(q) - DEATH_TIME[style]) < 1e-9, `${name} length`);
+    assert.ok(holdBackMs([q]) === Math.ceil(DEATH_TIME[style] * 1000));
+    let bursts = 0, lastFade = 1, t = 0;
+    for (; t < DEATH_TIME[style] + .5; t += 1 / 60) {
+      clearActionPose(c, q);
+      updateActions(c, q, 1 / 60);
+      if (q.deathBurst) { bursts++; q.deathBurst = null; }
+      for (const v of [...c.g.position.toArray(), ...c.g.rotation.toArray().slice(0, 3), ...c.g.scale.toArray()])
+        assert.ok(Number.isFinite(v), `${name} finite`);
+      assert.ok(c.g.scale.y > .05 && c.g.scale.x < 3, `${name} scale ${c.g.scale.toArray()}`);
+      assert.ok(q.fade <= lastFade + 1e-9, `${name} fade only falls`);
+      lastFade = q.fade;
+      applyFade(c, q.fade);
+    }
+    assert.equal(bursts, 1, `${name} bursts once`);
+    assert.ok(q.finished);
+    assert.equal(lastFade, style === 'topple' ? 1 : 0, `${name} ends ${style === 'topple' ? 'solid' : 'gone'}`);
+    const look = deathLook(c);
+    assert.ok(look.height > .1 && look.height < 3, `${name} height ${look.height}`);
+    assert.ok(look.color && look.color.every(Number.isFinite), `${name} colour`);
+    // Life saving / re-seen: the pose comes off exactly and the shared materials come back.
+    clearActionPose(c, q); restoreFade(c);
+    assert.equal(snap(c), before, `${name} back at rest`);
+    assert.ok(!c.fadeSaved);
+  }
+});

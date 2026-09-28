@@ -187,6 +187,21 @@ export function createDeathBurst(THREE, max = 256, seed = 23) {
     dispose() { geo.dispose(); mat.dispose(); }};
 }
 
+// What a death burst needs from the actor: its body colour (first plain mesh under the body,
+// else the whole model; outlines and rings are skipped) and its height (from stageCreature).
+export function deathLook(actor) {
+  let color = null;
+  const pick = o => {
+    if (color || !o.isMesh || o.userData.outline || o.userData.ring || Array.isArray(o.material)) return;
+    const c = o.material?.color;
+    if (c && Number.isFinite(c.r)) color = [c.r, c.g, c.b];
+  };
+  actor?.body?.traverse?.(pick);
+  if (!color) actor?.g?.traverse?.(pick);
+  const h = actor?.g?.userData?.height;
+  return {color, height: Number.isFinite(h) && h > 0 ? h : .6};
+}
+
 // Fades an actor's meshes to `f` (1 = as built). Materials are cloned per actor the first time
 // so a fading jelly never fades every other jelly that shares its material. restoreFade puts
 // the shared materials back (life saving).

@@ -52,6 +52,7 @@ export function stageCreature(g,{disposition=null,normalize=true}={}){
   s=Math.min(s,Math.max(1,MAX_FOOTPRINT/footprint));
   if(s>1.001){for(const child of g.children){child.scale.multiplyScalar(s);child.position.multiplyScalar(s);}box.min.multiplyScalar(s);box.max.multiplyScalar(s);world.multiplyScalar(s);g.updateMatrixWorld(true);}
  }
+ g.userData.height=world.y;
  addOutlines(g);
  if(disposition&&RINGS[disposition]){
   const ring=new THREE.Mesh(ringGeo,RINGS[disposition]);const d=Math.min(1,Math.max(.62,Math.max(world.x,world.z)*1.15));

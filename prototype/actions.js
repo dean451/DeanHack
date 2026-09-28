@@ -11,6 +11,7 @@
 // its blow type instead of the generic arm wave, with its hitstop and longer length.
 
 import {monsterAttackPose, foreLegs, wingSide} from './monster-attacks.js';
+import {deathStyle, deathPose, DEATH_TIME, DEATH_BURST_U} from './deaths.js';
 import {swingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9};
@@ -60,8 +61,9 @@ export function enqueueAction(q, action) {
 // Backlogged queues play faster so the actor catches up with the game instead of lagging.
 // Whether this actor plays the full swing for this action.
 const swings = (actor, a) => a.kind === 'attack' && a.attack === 'weapon' && !!actor?.elbow;
-// Seconds an action lasts (a swing is only known to be one once it starts).
-const actionLength = a => a.swing ? swingLength(a.result) : ACTION_TIME[a.kind];
+// Seconds an action lasts (a swing is only known to be one once it starts; a death by its style).
+const actionLength = a => a.swing ? swingLength(a.result)
+  : a.kind === 'die' ? DEATH_TIME[a.style] ?? ACTION_TIME.die : ACTION_TIME[a.kind];
 
 const pace = q => Math.min(3, 1 + .5 * Math.max(0, q.queue.length - 1));
 
@@ -74,7 +76,7 @@ export function actionState(q) {
 export function remainingTime(q) {
   if (!q) return 0;
   let s = q.current ? Math.max(0, actionLength(q.current) - q.age) : 0;
-  for (const a of q.queue) s += ACTION_TIME[a.kind];
+  for (const a of q.queue) s += actionLength(a);
   return s / pace(q);
 }
 
@@ -92,7 +94,7 @@ export function holdBackMs(queues) {
 // are world units (one tile = 1). `yaw` is the heading to face the target, if there is one.
 export function actionPose(action, u, face) {
   const p = {dx: 0, dy: 0, dz: 0, yaw: 0, pitch: 0, roll: 0, body: 0, head: 0, arm: 0, wrist: 0,
-    socket: 0, leg: 0, fore: 0, tail: 0, wing: 0, scale: 1, stretch: 1};
+    socket: 0, leg: 0, fore: 0, tail: 0, wing: 0, scale: 1, stretch: 1, sx: 1, sy: 1, fade: 1};
   const d = action.dir;
   if (action.kind === 'attack') {
     // Per attack type (monster-attacks.js); the hero's own swing replaces its arm parts later.
@@ -109,14 +111,10 @@ export function actionPose(action, u, face) {
     p.head = -.3 * k;
     p.dy = .02 * k;
   } else if (action.kind === 'die') {
-    // Stagger, then topple sideways and sink a little; held at the end.
-    const s = smooth(u / .25), f = smooth((u - .15) / .75);
-    if (d) { p.dx = d[0] * (.06 * s + .12 * f); p.dz = d[1] * (.06 * s + .12 * f); }
-    p.pitch = -.2 * s * (1 - f);
-    p.roll = 1.45 * f;
-    p.dy = -.12 * f;
-    p.head = -.4 * f;
-    p.scale = 1 - .12 * f;
+    // Per class (deaths.js): topple, crumble, splat, dissipate or burst; held at the end.
+    const m = deathPose(action.style, u, d);
+    for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'scale', 'sx', 'sy', 'fade']) p[k] = m[k];
+    p.yaw = m.spin;
   }
   return p;
 }
@@ -130,6 +128,7 @@ export function clearActionPose(actor, q) {
   g.rotation.y -= o.yaw; g.rotation.x -= o.pitch; g.rotation.z -= o.roll;
   if (o.scale !== 1) g.scale.multiplyScalar(1 / o.scale);
   if (o.stretch !== 1) { const w = Math.sqrt(o.stretch); g.scale.y /= o.stretch; g.scale.x *= w; g.scale.z *= w; }
+  if (o.sx !== 1 || o.sy !== 1) { g.scale.x /= o.sx; g.scale.z /= o.sx; g.scale.y /= o.sy; }
   if (actor.body) actor.body.position.y -= o.body;
   if (actor.head) actor.head.rotation.x -= o.head;
   if (actor.arm) actor.arm.rotation.x -= o.arm;
@@ -151,6 +150,7 @@ function applyPose(actor, q, p) {
   g.rotation.y += p.yaw; g.rotation.x += p.pitch; g.rotation.z += p.roll;
   if (p.scale !== 1) g.scale.multiplyScalar(p.scale);
   if (p.stretch !== 1) { const w = Math.sqrt(p.stretch); g.scale.y *= p.stretch; g.scale.x /= w; g.scale.z /= w; }
+  if (p.sx !== 1 || p.sy !== 1) { g.scale.x *= p.sx; g.scale.z *= p.sx; g.scale.y *= p.sy; }
   if (actor.body) actor.body.position.y += p.body;
   if (actor.head) actor.head.rotation.x += p.head;
   if (actor.arm) actor.arm.rotation.x += p.arm;
@@ -194,6 +194,13 @@ export function updateActions(actor, q, dt) {
       contact: a.result === 'hit' && before < tc && q.age >= tc};
   }
   applyPose(actor, q, pose);
+  if (a.kind === 'die') {
+    // For the renderer: how opaque the body is, and (once, as it crosses its moment) the
+    // death's particle burst.
+    q.fade = pose.fade;
+    const bu = (DEATH_BURST_U[a.style] ?? .8) * len;
+    if (before < bu && q.age >= bu) q.deathBurst = {style: a.style ?? 'topple', dir: a.dir};
+  }
   if (q.age >= len) {
     if (a.kind === 'die') { q.finished = true; return 'die'; }
     // Leave the attacker facing where it struck.
@@ -236,9 +243,9 @@ export function queueCombat(c, {hero, find}) {
   return n;
 }
 
-// Queues a death (deathAction() from combat-events.js). The actor topples away from the last
-// blow it took, if one was seen.
+// Queues a death (deathAction() from combat-events.js). The style comes from the seen species
+// (deaths.js); the actor falls or splashes away from the last blow it took, if one was seen.
 export function queueDeath(d, find) {
-  const q = d && queueOf(find(d));
-  return !!q && enqueueAction(q, {kind: 'die', dir: q.lastBlow ?? null});
+  const actor = d && find(d), q = queueOf(actor);
+  return !!q && enqueueAction(q, {kind: 'die', dir: q.lastBlow ?? null, style: deathStyle(actor.species || d.name)});
 }
