@@ -104,9 +104,9 @@ export function hitHeight(actor) {
   return Number.isFinite(h) && h > 0 ? Math.min(1.6, Math.max(.15, h * .55)) : .55;
 }
 
-// Sprays impact particles once for each hit action an actor starts playing. `parent` is the
-// group the actors live in (Live mode's world group). Call update(actors, dt) every frame
-// after updateActions, with any iterable of actors (a Map's values, an array).
+// Sprays impact particles once for each hit action an actor plays, when its blow lands.
+// `parent` is the group the actors live in (Live mode's world group). Call update(actors, dt)
+// every frame after updateActions, with any iterable of actors (a Map's values, an array).
 export function createHitFx(THREE, parent, max = 160) {
   const burst = createImpactBurst(THREE, max, 11);
   parent.add(burst.points);
@@ -115,6 +115,8 @@ export function createHitFx(THREE, parent, max = 160) {
     for (const actor of actors ?? []) {
       const a = actor?.actions?.current, g = actor?.g;
       if (!a || a.kind !== 'hit' || !g || done.has(a)) continue;
+      // Not until the blow lands (a hit can wait for the attacker's strike).
+      if ((actor.actions.age ?? 0) < (a.wait ?? 0)) continue;
       done.add(a);
       if (a.sprayed) continue;
       const spray = HIT_SPRAY[a.style ?? hitStyle(a.attack, a.blow)];
