@@ -106,13 +106,93 @@ export function createTrap(kind,seed=0){
   const trap=add(mergeGeometries(parts),mat({color:0xffffff,vertexColors:true,metalness:.65,roughness:.48}));
   trap.name='bear-trap';for(const p of parts)p.dispose();
  }else if(kind==='mine'){
-  // Land mine: a half-buried domed casing with red trigger prongs.
-  const soil=add(new THREE.CylinderGeometry(.2,.23,.03,20),earth,0,.015,0);soil.castShadow=false;
-  const dome=add(new THREE.SphereGeometry(.14,20,8,0,Math.PI*2,0,Math.PI/2),mat({color:0x4d5243,metalness:.6,roughness:.5}),0,.02,0);dome.scale.y=.45;
-  const red=mat({color:0xb22a1c,emissive:0x5a0c06,roughness:.5});
-  add(new THREE.CylinderGeometry(.03,.03,.02,12),red,0,.09,0);
-  for(let i=0;i<3;i++){const a=i/3*Math.PI*2;const prong=add(new THREE.CylinderGeometry(.005,.005,.07,6),red,Math.cos(a)*.035,.12,Math.sin(a)*.035);prong.rotation.set(Math.sin(a)*.3,0,-Math.cos(a)*.3);}
-  rubble(4,.2,.04,earth);
+  // Land mine: an olive-drab pressure mine half-buried in a ring of freshly
+  // dug soil, with chipped paint, rust at the soil line, a stencilled band, a
+  // bolted lid, a carrying lug and a red pressure plate with trigger prongs.
+  // Two vertex-coloured meshes (soil and casing) instead of loose primitives.
+  const noise=(x,z)=>Math.sin(x*61.3+seed*1.7)*Math.cos(z*57.9-seed*2.3)*.5+Math.sin((x+z)*23.1+seed)*.5;
+  const C=(hex)=>new THREE.Color(hex);
+  const bake=(geo,paint,{x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1}={})=>{
+   const o=new THREE.Object3D();o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.scale.set(sx,sy,sz);o.updateMatrix();
+   const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();
+   n.applyMatrix4(o.matrix);n.deleteAttribute('uv');
+   const pos=n.attributes.position,col=new Float32Array(pos.count*3),c=new THREE.Color();
+   for(let i=0;i<pos.count;i++){paint(c,pos.getX(i),pos.getY(i),pos.getZ(i));col.set([c.r,c.g,c.b],i*3);}
+   n.setAttribute('color',new THREE.BufferAttribute(col,3));return n;
+  };
+  const R=.122,SOIL=.02;
+  // Soil: a ring of turned earth banked up against the casing and falling away
+  // to the floor with a ragged outline. Damp and dark against the casing, dry
+  // and pale on the crest, dusty grey where it meets the slab.
+  const ring=new THREE.RingGeometry(R-.004,.25,48,9);ring.rotateX(-Math.PI/2);
+  {const p=ring.attributes.position;
+   for(let i=0;i<p.count;i++){
+    const x=p.getX(i),z=p.getZ(i),r=Math.hypot(x,z),a=Math.atan2(z,x),t=(r-(R-.004))/(.25-(R-.004));
+    const wob=1+t*(.1*Math.sin(3*a+seed)+.06*Math.sin(5*a-seed*.7));
+    const bank=SOIL*(1-t)+.014*Math.exp(-((t-.25)**2)/.02)*(1-t*.5);
+    const y=Math.max(.001,bank*(1-t*t)+noise(x,z)*.004*(1-t)+.001);
+    p.setXYZ(i,x*wob,y,z*wob);
+   }
+   ring.computeVertexNormals();}
+  const damp=C(0x2e2318),dry=C(0x6b5641),dust=C(0x575149),crumb=C(0x857058);
+  const soil=[bake(ring,(c,x,y,z)=>{
+   const r=Math.hypot(x,z),t=Math.min(1,Math.max(0,(r-R)/.14)),h=noise(x*1.7,z*1.7)*.5+.5;
+   c.copy(damp).lerp(dry,Math.min(1,y/.028)*.8+h*.2);
+   if(t>.6)c.lerp(dust,(t-.6)/.4);
+   if(noise(x*4.1,z*3.7)>.7)c.lerp(crumb,.5);
+  })];
+  // Clods and pebbles thrown out of the hole.
+  for(let i=0;i<11;i++){
+   const a=rand(i+500)*Math.PI*2,r=.17+rand(i+510)*.14,s=.008+rand(i+520)*.014,pebble=i%4===0;
+   const tint=pebble?C(0x77756d):C(0x4a3a2a).lerp(dry,rand(i+530)*.5);
+   soil.push(bake(new THREE.DodecahedronGeometry(s,0),(c,x,y)=>c.copy(tint).multiplyScalar(.75+Math.min(.35,y*12)),
+    {x:Math.cos(a)*r,y:s*.45,z:Math.sin(a)*r,rx:rand(i+540)*3,ry:rand(i+550)*3,sy:pebble?.6:.75}));
+  }
+  // Casing: a squat lathed drum whose rounded lid rises to a flat top with a
+  // lid seam. Olive paint, chipped to bare steel on the rim, rusting at the
+  // soil line, with a yellow stencilled band on one side.
+  const olive=C(0x4f5a2c),oliveDark=C(0x39411f),steelBare=C(0x80867f),rustC=C(0x6b3a1e),rustDark=C(0x3e2414),stencil=C(0xc9b24a);
+  const casing=(c,x,y,z)=>{
+   const r=Math.hypot(x,z),a=Math.atan2(z,x),n=noise(x*1.3,z*1.3)*.5+.5;
+   c.copy(olive).lerp(oliveDark,n*.5);
+   const u=(a-.3)/1.3;
+   if(r>R-.004&&y>.0175&&y<.0285&&u>0&&u<1&&(u*5)%1<.6)c.copy(stencil).lerp(oliveDark,n*.3);
+   if(y>.04&&r>.1&&noise(x*3.1+1,z*2.9)>.35)c.copy(steelBare).lerp(rustC,n*.35);
+   if(r>.083&&r<.089&&y<.0475&&y>.04)c.multiplyScalar(.4);
+   const low=Math.max(0,1-(y-SOIL)/.008);
+   if(low>0)c.lerp(n>.5?rustC:rustDark,Math.min(1,low*(.5+n*.6)));
+   if(noise(x*2.2-3,z*2.6+2)>.6)c.lerp(rustC,.55);
+  };
+  // Extra rings on the wall and lid carry the stencil band and the lid seam.
+  const profile=[[R-.001,-.004],[R,.012],[R,.016],[R,.018],[R+.0005,.028],[R+.0005,.03],[R-.001,.038],[R-.008,.044],[R-.018,.047],
+   [.092,.048],[.088,.046],[.084,.046],[.08,.048],[.06,.048],[.001,.048]].map(([r,y])=>new THREE.Vector2(r,y));
+  const body=[bake(new THREE.LatheGeometry(profile,96),casing)];
+  // Lid bolts.
+  for(let i=0;i<8;i++){const a=i/8*Math.PI*2+.2;
+   body.push(bake(new THREE.CylinderGeometry(.0065,.0065,.006,6),(c,x,y,z)=>c.copy(steelBare).lerp(rustC,.3+(noise(x*5,z*5)*.5+.5)*.5).multiplyScalar(y>.052?1:.7),{x:Math.cos(a)*.1,y:.05,z:Math.sin(a)*.1}));}
+  // Carrying lug: a wire loop standing off the wall.
+  {const a=2.5;
+   body.push(bake(new THREE.TorusGeometry(.013,.003,5,12,Math.PI),(c,x,y,z)=>c.copy(steelBare).lerp(rustDark,.45+noise(x*6,z*6)*.2),{x:Math.cos(a)*(R+.004),y:SOIL+.001,z:Math.sin(a)*(R+.004),ry:-(a+Math.PI/2)}));}
+  // Pressure plate: a raised red disc with grip ridges, worn pale at the edge,
+  // carrying the fuse and its three splayed trigger prongs with red tips.
+  const red=C(0xa8281a),redDark=C(0x5e140c),redWorn=C(0xc98a6a);
+  body.push(bake(new THREE.CylinderGeometry(.05,.052,.01,24),(c,x,y,z)=>{const r=Math.hypot(x,z);c.copy(red).lerp(redDark,noise(x*4,z*4)*.25+.25);if(r>.046&&y>.055)c.lerp(redWorn,.5);},{y:.053}));
+  for(let i=0;i<6;i++){const a=i/6*Math.PI;
+   body.push(bake(new THREE.BoxGeometry(.084,.003,.005),(c)=>c.copy(redDark),{y:.0595,ry:a}));}
+  body.push(bake(new THREE.CylinderGeometry(.013,.016,.016,12),(c,x,y)=>c.copy(steelBare).multiplyScalar(y>.07?1:.75),{y:.066}));
+  for(let i=0;i<3;i++){const a=i/3*Math.PI*2+seed*.3,lean=.28;
+   const dx=Math.cos(a),dz=Math.sin(a),len=.042;
+   const tipX=dx*(.006+Math.sin(lean)*len),tipZ=dz*(.006+Math.sin(lean)*len),tipY=.072+Math.cos(lean)*len;
+   body.push(bake(new THREE.CylinderGeometry(.0028,.0034,len,5),(c,x,y)=>c.copy(steelBare).lerp(rustC,Math.max(0,.08-y)*6),
+    {x:dx*.006+tipX/2-dx*.003,y:.072+Math.cos(lean)*len/2,z:dz*.006+tipZ/2-dz*.003,rx:dz*lean,rz:-dx*lean}));
+   body.push(bake(new THREE.SphereGeometry(.0055,8,6),(c)=>c.copy(red),{x:tipX,y:tipY,z:tipZ}));
+  }
+  // The mine sits a little skew in its hole.
+  const tilt=new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler((rand(560)-.5)*.08,rand(570)*6.28,(rand(580)-.5)*.08));
+  const soilGeo=mergeGeometries(soil),bodyGeo=mergeGeometries(body);bodyGeo.applyMatrix4(tilt);
+  for(const p of [...soil,...body])p.dispose();
+  const ground=add(soilGeo,mat({color:0xffffff,vertexColors:true,roughness:1}));ground.castShadow=false;ground.name='mine-soil';
+  add(bodyGeo,mat({color:0xffffff,vertexColors:true,metalness:.45,roughness:.55})).name='land-mine';
  }else if(kind==='rubble'){
   // Falling rock / rolling boulder / statue trap: cracked flagstone and loose rocks.
   block(.5,.025,.5,stone,0,.0125,0);

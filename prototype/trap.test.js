@@ -111,3 +111,26 @@ test('the rust trap is a standpipe dripping into a puddle over a drain grate',()
  assert(bounds.min.y>=-.01);
  console.log(`rust trap: ${meshes.length} meshes, ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
 });
+
+test('the land mine is a painted casing half-buried in dug soil, two vertex-coloured meshes',()=>{
+ for(const seed of [0,3,9,21]){
+  const model=createTrap('mine',seed);
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.name).sort(),['land-mine','mine-soil']);
+  for(const mesh of meshes){
+   assert(mesh.material.vertexColors,`${mesh.name} should be vertex coloured`);
+   for(const key of ['position','normal','color'])for(const value of mesh.geometry.attributes[key].array)assert(Number.isFinite(value),`${mesh.name} has a bad ${key}`);
+   for(const value of mesh.geometry.attributes.color.array)assert(value>=0&&value<=1);
+  }
+  const soil=new THREE.Box3().setFromObject(meshes.find(m=>m.name==='mine-soil'));
+  const mine=new THREE.Box3().setFromObject(meshes.find(m=>m.name==='land-mine'));
+  assert(soil.min.y>-.015&&soil.max.y<.04,'soil should be a low mound (clods may sink a little)');
+  assert(soil.max.x-soil.min.x>.45,'soil should spread round the mine');
+  assert(mine.min.y<.02&&mine.min.y>-.02,'casing should sink into the soil');
+  assert(mine.max.y>.1&&mine.max.y<.14,'prongs should stand above the plate');
+  for(const v of [soil.min.x,soil.max.x,soil.min.z,soil.max.z])assert(Math.abs(v)<.35);
+  const vertices=meshes.reduce((n,m)=>n+m.geometry.attributes.position.count,0);
+  assert(vertices<20000,`land mine is ${vertices} vertices`);
+  if(seed===0)console.log(`land mine: ${vertices} vertices, soil y ${soil.min.y.toFixed(3)}..${soil.max.y.toFixed(3)} x ${soil.min.x.toFixed(3)}..${soil.max.x.toFixed(3)}, casing y ${mine.min.y.toFixed(3)}..${mine.max.y.toFixed(3)}`);
+ }
+});
