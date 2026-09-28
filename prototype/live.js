@@ -31,6 +31,7 @@ import {syncArtifactGleam,syncHeldGleam,updateHeldGleam} from './artifact-gleam.
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {fxTimeline,fxHoldMs} from './fx.js';
 import {createExplosions} from './explosions.js';
+import {createFlood} from './flood.js';
 import {createSwingFx} from './swing-fx.js';
 import {createHitFx} from './hit-fx.js';
 import {createRays,reflectorAt} from './rays.js';
@@ -190,15 +191,16 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  }
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
  const hero=playerFactory();hero.setWeapon?.(null);hero.actions=createActionQueue();group.add(hero.g);
- const swingFx=createSwingFx(THREE,group);const hitFx=createHitFx(THREE,group);const rays=createRays(THREE,group);const rayMarks=createRayMarks(THREE,group);const rayFlashLight=new THREE.PointLight(0xdce6ff,0,18,1.2);group.add(rayFlashLight);const explosions=createExplosions(THREE,group);const blastLight=new THREE.PointLight(0xffa050,0,9,1.4);group.add(blastLight);let swingTarget=null;
+ const swingFx=createSwingFx(THREE,group);const hitFx=createHitFx(THREE,group);const rays=createRays(THREE,group);const rayMarks=createRayMarks(THREE,group);const rayFlashLight=new THREE.PointLight(0xdce6ff,0,18,1.2);group.add(rayFlashLight);const explosions=createExplosions(THREE,group);const blastLight=new THREE.PointLight(0xffa050,0,9,1.4);group.add(blastLight);const flood=createFlood(THREE,group);let flooding=false;let swingTarget=null;
  const deathFx=createDeathBurst(THREE);group.add(deathFx.points);
- function apply(frame){latest=frame;if(!active)return;
+ function apply(frame){const prevFrame=latest;latest=frame;if(!active)return;
    $('.location small').textContent=`THE DUNGEONS OF DOOM · DEPTH ${String(frame.depth).padStart(2,'0')}`;
    if(groundPanelTile!==groundTile(frame)){groundPanel.hidden=true;groundPanelTile=null;}
    if(Array.isArray(frame.ground))showGround(frame.ground);
    hero.setWeapon?.(frame.player.weapon??null);syncHeldWandAura(hero,frame.player.weapon??null);syncHeldGleam(hero,frame.player.weapon??null);
    hero.setHelmet?.(frame.player.helmet??null);addOutlines(hero.g);
-   const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();rays.clear();rayMarks.clear();explosions.clear();origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
+   const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();rays.clear();rayMarks.clear();explosions.clear();flood.clear();flooding=false;origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
+   if(!newLevel&&flood.add(prevFrame,frame))flooding=true;
    const seen=new Set(),seenActors=new Set(),seenWells=new Set();
    for(const cell of frame.cells){const id=`${cell.x},${cell.z}`,x=cell.x-origin.x,z=cell.z-origin.z;
      if(cell.terrain!=='unknown'){
@@ -328,7 +330,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    for(const item of groundItems.values())if(item.visible){item.userData.wandAura?.userData.update(t);item.userData.artifactGleam?.userData.update(t);}
    updateHeldWandAura(hero,t);updateHeldGleam(hero,t);
    for(const item of groundItems.values()){if(!item.userData.coinPile)continue;item.userData.coinAge=(item.userData.coinAge||0)+dt;for(const coin of item.userData.coinPile){if(coin.settled||item.userData.coinAge<coin.delay)continue;coin.velocity-=9.8*dt;coin.disk.position.y+=coin.velocity*dt;coin.stamp.position.y+=coin.velocity*dt;if(coin.disk.position.y<=coin.target){coin.disk.position.y=coin.target;coin.stamp.position.y=coin.target+.019;coin.velocity*=-.16;if(Math.abs(coin.velocity)<.35)coin.settled=true;}}}
-   for(const tile of tiles.values())if(tile.visible)tile.userData.liquid?.userData.updateLiquid(t);
+   if(flooding)flooding=flood.update(dt,origin).count>0;
+   for(const tile of tiles.values()){const liquid=tile.userData.liquid;if(!liquid)continue;liquid.visible=!(flooding&&flood.pending(tile.position.x+origin.x,tile.position.z+origin.z));if(tile.visible&&liquid.visible)liquid.userData.updateLiquid(t);}
    for(const w of wells.values())w.userData.updateFountain?.(t);
  }};
 }
