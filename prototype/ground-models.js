@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createWand} from './wand.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeVertices,mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {createUnicornHorn} from './unicorn-horn.js';
@@ -1536,8 +1537,8 @@ export function createGroundModel(item={}){
   const mark=add(new THREE.CircleGeometry(.038,20),stamp,0,.205);
   mark.rotation.x=-Math.PI/2;mark.scale.x=1.5;
  }else if(cls===11){
-  const rod=add(new THREE.CylinderGeometry(.025,.035,.6,12),leather,0,.045,0);rod.rotation.z=Math.PI/2;
-  for(const x of [-.27,.2,.27]){const band=add(new THREE.CylinderGeometry(.04,.04,.025,12),gold,x,.045,0);band.rotation.z=Math.PI/2;}
+  // Wands look like their shuffled appearance: wood, metal, stone, glass or a shape (wand.js).
+  const wand=createWand(item.appearance,{floor:true});g.add(wand);materials.push(...wand.userData.materials);
  }else if(/boots|shoes/.test(name)){
   buildBoots((item.appearance||'').toLowerCase(),{g,materials});
  }else if(cls===3&&/cloak|\brobe\b|mummy wrapping/.test(name)){
