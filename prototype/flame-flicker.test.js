@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {createLightItem} from './shop-visuals.js';
 import {createCandelabrum} from './candelabrum.js';
 import {createWatch} from './watch.js';
-import {createFlameFlicker, flameState, FLAME_SCAN_EVERY} from './flame-flicker.js';
+import {createFlameFlicker, flameState, flameLightPosition, FLAME_SCAN_EVERY, FLAME_LIGHTS, FLAME_LIGHT_INTENSITY, FLAME_LIGHT_LANTERN} from './flame-flicker.js';
 
 // The world position of the bottom centre of a flame's geometry (its root on the wick).
 function root(mesh) {
@@ -83,4 +83,50 @@ test('flames that leave the scene are put back, and new ones are picked up on th
   assert.equal(flicker.flames.length, 1);assert.notEqual(flicker.flames[0], flame);
   assert(flame.scale.equals(built.s) && flame.position.equals(built.p), 'the removed candle flame is back at rest');
   assert.equal(flame.userData.flameRest, undefined);
+});
+
+test('a fixed pool of warm lights follows the flames nearest the focus, flickers, fades and never grows', () => {
+  const scene = new THREE.Scene(), focus = new THREE.Vector3();
+  const items = ['a brass lantern (lit)', 'a wax candle (lit)', 'a wax candle (lit)', 'a wax candle (lit)', 'a wax candle (lit)'].map(createLightItem);
+  items.forEach((g, i) => {g.position.set(i * 2, 0, 0);scene.add(g);});
+  const flicker = createFlameFlicker(scene, {focus: () => focus});
+  const lights = flicker.lights, count = () => { let n = 0;scene.traverse(o => { if (o.isLight) n++; });return n; };
+  assert.equal(lights.length, FLAME_LIGHTS);assert.equal(count(), FLAME_LIGHTS);
+  assert(lights.every(l => !l.castShadow && l.intensity === 0));
+  flicker.update(0);
+  const byItem = f => items.findIndex(g => { let hit = false;g.traverse(o => { if (o === f) hit = true; });return hit; });
+  const lit = () => lights.filter(l => l.userData.flame && l.intensity > 0).map(l => byItem(l.userData.flame)).sort();
+  let peak = 0, low = Infinity;
+  for (let t = 0; t <= 3; t += 1 / 60) {
+    flicker.update(t);
+    for (const l of lights) {
+      for (const v of [...l.position.toArray(), l.intensity]) assert(Number.isFinite(v));
+      assert(l.intensity >= 0 && l.intensity < FLAME_LIGHT_INTENSITY * FLAME_LIGHT_LANTERN * 1.3);
+      if (l.userData.flame) {
+        assert(l.position.distanceTo(flameLightPosition(l.userData.flame)) < 1e-9, 'light sits on its flame');
+        if (t > 1) { peak = Math.max(peak, l.intensity);low = Math.min(low, l.intensity); }
+      }
+    }
+  }
+  assert.deepEqual(lit(), [0, 1, 2], 'the three nearest flames are lit');
+  assert(peak - low > 1, 'the lights flicker');
+  const lanternLight = lights.find(l => byItem(l.userData.flame) === 0);
+  assert(lanternLight.userData.strength > lights.find(l => byItem(l.userData.flame) === 1).userData.strength, 'a lantern outshines a candle');
+  // Moving the focus hands a light to the far candles; the old ones fade instead of snapping off.
+  focus.set(8, 0, 0);flicker.update(3 + 1 / 60);
+  assert(lanternLight.intensity > 0, 'fading, not snapped off');
+  for (let t = 3 + 2 / 60; t <= 5; t += 1 / 60) flicker.update(t);
+  assert.deepEqual(lit(), [2, 3, 4]);
+  assert.equal(count(), FLAME_LIGHTS, 'the pool never grows');
+  // Hidden flames (Live mode's group hidden in the demo room) aren't lit.
+  items.forEach(g => { g.visible = false; });
+  for (let t = 5; t <= 6; t += 1 / 60) flicker.update(t);
+  assert(lights.every(l => l.intensity === 0 && !l.userData.flame));
+  // No focus: the lights stay off. restore() turns them off; dispose() removes them.
+  items.forEach(g => { g.visible = true; });
+  const plain = createFlameFlicker(new THREE.Scene().add(...items));
+  for (let t = 0; t < 1; t += 1 / 30) plain.update(t);
+  assert(plain.lights.every(l => l.intensity === 0));
+  flicker.restore();assert(lights.every(l => l.intensity === 0));
+  flicker.dispose();assert.equal(count(), 0);
 });

@@ -6,6 +6,9 @@
 // Candelabrum) only brightens and dims, since stretching it would bob the taller candles' flames.
 // The scene is re-scanned twice a second, so flames on items that come and go are picked up.
 // Everything is a function of t, so it's frame-rate independent and restore() puts back the rest pose.
+// A small fixed pool of warm point lights follows the lit flames nearest the view's focus and
+// brightens and dims with them. The pool never grows or shrinks (a change in light count would
+// recompile every shader); unused lights sit at intensity 0.
 import * as THREE from 'three';
 
 export const FLAME_SCAN_EVERY = .5; // seconds between scene scans
@@ -13,6 +16,12 @@ export const FLAME_STRETCH = .16; // peak height change (fraction)
 export const FLAME_SQUEEZE = .45; // width change per unit of stretch, the other way
 export const FLAME_SWAY = .09; // peak lean, radians
 export const FLAME_GLOW = .22; // peak brightness change (fraction)
+
+export const FLAME_LIGHTS = 3; // point lights shared by the nearest flames
+export const FLAME_LIGHT_INTENSITY = 5; // a candle; a lantern gets FLAME_LIGHT_LANTERN times this
+export const FLAME_LIGHT_LANTERN = 1.6;
+export const FLAME_LIGHT_RANGE = 3.2;
+export const FLAME_LIGHT_FADE = 4; // level change per second as a light takes or drops a flame
 
 const q = new THREE.Quaternion(), e = new THREE.Euler(), a = new THREE.Vector3(), b = new THREE.Vector3();
 
@@ -101,19 +110,85 @@ export function findFlames(scene) {
   return out;
 }
 
-export function createFlameFlicker(scene) {
+// True when the mesh and every ancestor are visible (Live mode hides its whole group in the demo room).
+export function shownInScene(o) {
+  for (; o; o = o.parent) if (!o.visible) return false;
+  return true;
+}
+
+// Where a flame's light sits: a little above its root, in world space.
+export function flameLightPosition(mesh, out = new THREE.Vector3()) {
+  const r = rest(mesh);
+  mesh.updateWorldMatrix(true, false);
+  return out.copy(r.pivot).setY(r.pivot.y + .04).applyMatrix4(mesh.matrixWorld);
+}
+
+// A lantern flame is bigger than a candle's; a merged row of flames (the Candelabrum) is brighter too.
+function flameStrength(mesh) {
+  const r = rest(mesh), box = mesh.geometry.boundingBox;
+  const tall = (box.max.y - box.min.y) * r.scale.y;
+  return (r.many ? 1.8 : tall > .07 ? FLAME_LIGHT_LANTERN : 1) * FLAME_LIGHT_INTENSITY;
+}
+
+function createFlameLights(scene) {
+  const lights = Array.from({length: FLAME_LIGHTS}, () => {
+    const l = new THREE.PointLight(0xffb45e, 0, FLAME_LIGHT_RANGE, 2);
+    l.castShadow = false;l.userData = {flame: null, level: 0, strength: 0};
+    scene.add(l);return l;
+  });
+  let last = null;
+  const p = new THREE.Vector3();
+  return {
+    lights,
+    update(flames, t, focus) {
+      const dt = last === null ? 0 : Math.min(.1, Math.max(0, t - last));last = t;
+      const lit = focus ? flames.filter(shownInScene)
+        .map(f => ({f, d: flameLightPosition(f, p).distanceToSquared(focus)}))
+        .sort((x, y) => x.d - y.d).slice(0, FLAME_LIGHTS).map(x => x.f) : [];
+      const wanted = new Set(lit);
+      // Lights whose flame is gone fade out; free lights take the new flames.
+      for (const l of lights) if (l.userData.flame && !wanted.has(l.userData.flame)) l.userData.target = 0;
+      for (const f of lit) {
+        if (lights.some(l => l.userData.flame === f)) continue;
+        const free = lights.find(l => !l.userData.flame) ?? lights.find(l => !wanted.has(l.userData.flame) && l.userData.level <= 0);
+        if (!free) continue;
+        Object.assign(free.userData, {flame: f, level: 0, strength: flameStrength(f)});
+      }
+      for (const l of lights) {
+        const u = l.userData;
+        if (!u.flame) { l.intensity = 0;continue; }
+        const on = wanted.has(u.flame);
+        u.level = on ? Math.min(1, u.level + dt * FLAME_LIGHT_FADE) : Math.max(0, u.level - dt * FLAME_LIGHT_FADE);
+        if (!on && u.level <= 0) { u.flame = null;l.intensity = 0;continue; }
+        flameLightPosition(u.flame, l.position);
+        l.intensity = u.strength * u.level * flameState(t, rest(u.flame).phase).glow;
+      }
+    },
+    release(flame) { for (const l of lights) if (l.userData.flame === flame) { l.userData.flame = null;l.userData.level = 0;l.intensity = 0; } },
+    restore() { for (const l of lights) { l.userData.flame = null;l.userData.level = 0;l.intensity = 0; } },
+    dispose() { for (const l of lights) { l.removeFromParent();l.dispose?.(); } },
+  };
+}
+
+// `focus` (optional) returns the world point to light around, e.g. the orbit target; without it
+// the flame lights stay off.
+export function createFlameFlicker(scene, {focus} = {}) {
   let flames = [], nextScan = -Infinity;
+  const lights = createFlameLights(scene);
   return {
     get flames() { return flames; },
+    get lights() { return lights.lights; },
     update(t) {
       if (t >= nextScan || t < nextScan - FLAME_SCAN_EVERY * 2) {
         const found = findFlames(scene), keep = new Set(found), used = new Set(found.map(f => f.material));
         // A flame that left the scene is put back, in case its item is shown again.
-        for (const f of flames) if (!keep.has(f)) restoreFlame(f, used.has(f.material));
+        for (const f of flames) if (!keep.has(f)) { lights.release(f);restoreFlame(f, used.has(f.material)); }
         flames = found;nextScan = t + FLAME_SCAN_EVERY;
       }
       for (const f of flames) if (f.visible) poseFlame(f, t);
+      lights.update(flames, t, focus?.());
     },
-    restore() { for (const f of flames) restoreFlame(f);flames = [];nextScan = -Infinity; },
+    restore() { lights.restore();for (const f of flames) restoreFlame(f);flames = [];nextScan = -Infinity; },
+    dispose() { this.restore();lights.dispose(); },
   };
 }
