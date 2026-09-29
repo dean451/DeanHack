@@ -3024,6 +3024,152 @@ function buildLenses({g,materials}){
  g.rotation.y=.35;
 }
 
+// Expensive camera: a chrome-topped rangefinder in black pebbled leatherette, with a knurled
+// lens barrel, a coated front element, a bulb flash gun in the accessory shoe and a leather
+// neck strap trailing on the floor. Built with the lens towards +z.
+function buildCamera({g,materials}){
+ const C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z),c=new THREE.Color();
+ const hideMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.82});
+ const chromeMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.9,roughness:.24});
+ const glassMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.25,roughness:.05,emissive:0x1a2438,emissiveIntensity:.35});
+ materials.push(hideMat,chromeMat,glassMat);
+ const lists={hide:[],chrome:[],glass:[]};
+ const put=(geo,paint,which)=>{
+  geo.deleteAttribute('uv');
+  // Rounded boxes come unindexed; weld them so every list merges as indexed geometry.
+  if(!geo.index){const welded=mergeVertices(geo);geo.dispose();geo=welded;}
+  const p=geo.attributes.position,n=geo.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i));
+   cols[i*3]=Math.min(1,Math.max(0,c.r));cols[i*3+1]=Math.min(1,Math.max(0,c.g));cols[i*3+2]=Math.min(1,Math.max(0,c.b));
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));lists[which].push(geo);return geo;
+ };
+ // Lathe a profile of [radius, z] about an axis along z through (x,y).
+ const lathe=(prof,seg,x,y)=>{const geo=new THREE.LatheGeometry(prof.map(([r,z])=>new THREE.Vector2(r,z)),seg);geo.rotateX(Math.PI/2);geo.translate(x,y,0);return geo;};
+ const W=.23,D=.074,BY=.058,LY=.06;
+ // Polished chrome with a sky-bright top, a dark horizon line and a dim floor reflection.
+ const CHR=C(0xb9bec2),CHR_HI=C(0xf4f7f8),CHR_LO=C(0x4c5256),CHR_MID=C(0x8a9296);
+ const chrome=(col,x,y,z,nx,ny,nz)=>{
+  const up=ny*.8+nz*.35;
+  col.copy(CHR);
+  if(up>.25)col.lerp(CHR_HI,Math.min(1,(up-.25)*1.6));
+  else if(up>-.05)col.lerp(CHR_LO,(.25-up)*1.4);
+  else col.lerp(CHR_MID,Math.min(1,-up));
+ };
+ // Black enamel for the rings that carry engraved scales.
+ const ENAMEL=C(0x151515),TICK=C(0xe8e4d8);
+ // The body shell: pebbled black leatherette between a chrome top plate and base plate.
+ const LEA=C(0x1f1c1a),LEA_HI=C(0x3a3531),LEA_LO=C(0x0d0c0b);
+ const hide=(col,x,y,z,nx,ny,nz)=>{
+  const n=stoneNoise(x*420,y*420,z*420,1)*.6+stoneNoise(x*900+2,y*900,z*900-1,1)*.4;
+  col.copy(LEA).lerp(n>0?LEA_HI:LEA_LO,Math.min(1,Math.abs(n)*.9));
+  col.lerp(LEA_HI,Math.max(0,ny)*.35);
+ };
+ const shell=new RoundedBoxGeometry(W,.094,D,3,.016);shell.translate(0,BY,0);put(shell,hide,'hide');
+ const base=new RoundedBoxGeometry(W+.004,.012,D+.004,2,.005);base.translate(0,.006,0);put(base,chrome,'chrome');
+ const top=new RoundedBoxGeometry(W+.002,.03,D+.002,3,.009);top.translate(0,.118,0);put(top,chrome,'chrome');
+ // A raised rangefinder housing along the top plate's front edge.
+ const hump=new RoundedBoxGeometry(.13,.012,.03,2,.005);hump.translate(-.02,.136,.012);put(hump,chrome,'chrome');
+ // Rangefinder and viewfinder windows, and the frame-line illuminator between them.
+ const win=(w,h,x,y,paint)=>{const geo=new RoundedBoxGeometry(w,h,.004,1,.0015);geo.translate(x,y,D/2+.0012);put(geo,paint,'glass');};
+ const pane=(col,x,y)=>{col.set(0x2a3c52).lerp(C(0x9fc4dc),Math.max(0,(y-.117)/.014));};
+ win(.032,.016,-.085,.121,pane);win(.022,.014,.058,.121,pane);
+ win(.014,.012,-.018,.121,(col,x,y)=>{col.set(0xc9c6bd).lerp(C(0xf2efe6),Math.abs(Math.sin(x*900)));});
+ // Top plate: the rewind crank knob, the accessory shoe, the speed dial, the shutter release and
+ // the film advance lever.
+ {const knob=new THREE.CylinderGeometry(.013,.014,.018,28);knob.translate(-.083,.142,-.01);put(knob,(col,x,y,z,nx,ny,nz)=>{chrome(col,x,y,z,nx,ny,nz);if(Math.abs(ny)<.5&&Math.sin(Math.atan2(z+.01,x+.083)*40)>.1)col.lerp(CHR_LO,.65);},'chrome');}
+ const crank=new THREE.BoxGeometry(.004,.003,.016);crank.translate(-.083,.1525,-.002);put(crank,chrome,'chrome');
+ const shoe=new RoundedBoxGeometry(.03,.006,.024,1,.0015);shoe.translate(.008,.136,-.006);put(shoe,chrome,'chrome');
+ const dial=new THREE.CylinderGeometry(.015,.016,.008,32);dial.translate(.06,.137,-.004);
+ put(dial,(col,x,y,z,nx,ny,nz)=>{
+  if(ny>.9){const a=Math.atan2(z+.004,x-.06),r=Math.hypot(z+.004,x-.06);col.copy(ENAMEL);if(r>.009&&r<.014&&Math.sin(a*12)>.82)col.copy(TICK);if(r<.004)col.copy(CHR);}
+  else{chrome(col,x,y,z,nx,ny,nz);if(Math.sin(Math.atan2(z+.004,x-.06)*48)>.1)col.lerp(CHR_LO,.6);}
+ },'chrome');
+ const release=new THREE.CylinderGeometry(.0045,.0055,.009,14);release.translate(.087,.1375,.012);put(release,chrome,'chrome');
+ const lever=new THREE.CylinderGeometry(.0058,.0058,.0035,16);lever.translate(.094,.1345,-.016);put(lever,chrome,'chrome');
+ const arm=new RoundedBoxGeometry(.04,.003,.008,1,.0012);arm.rotateY(.5);arm.translate(.102,.1375,-.024);put(arm,chrome,'chrome');
+ const tipCap=new THREE.CylinderGeometry(.0042,.0042,.006,10);tipCap.translate(.118,.1395,-.034);put(tipCap,hide,'hide');
+ // Strap lugs on the ends of the top plate, each with a split ring.
+ for(const s of [-1,1]){
+  const lug=new RoundedBoxGeometry(.008,.012,.012,1,.003);lug.translate(s*(W/2+.003),.108,0);put(lug,chrome,'chrome');
+  const ring=new THREE.TorusGeometry(.0075,.0016,6,18);ring.rotateY(Math.PI/2);ring.translate(s*(W/2+.009),.1,0);put(ring,chrome,'chrome');
+ }
+ // The lens: a chrome mount, a knurled focusing ring, an enamelled aperture ring with its scale,
+ // a stepped front barrel and the bezel round the glass.
+ const Z0=D/2-.002;
+ const barrel=[[.0001,Z0],[.034,Z0],[.034,Z0+.006],[.031,Z0+.007],[.031,Z0+.009],[.029,Z0+.01],[.029,Z0+.026],[.027,Z0+.027],[.026,Z0+.03],[.026,Z0+.045],[.024,Z0+.047],[.022,Z0+.047],[.022,Z0+.043],[.019,Z0+.042]];
+ put(lathe(barrel,40,0,LY),(col,x,y,z,nx,ny,nz)=>{
+  const a=Math.atan2(y-LY,x);
+  if(z>Z0+.01&&z<Z0+.026){chrome(col,x,y,z,nx,ny,nz);if(Math.sin(a*60)>0)col.lerp(CHR_LO,.7);}
+  else if(z>Z0+.03&&z<Z0+.042){col.copy(ENAMEL);if(Math.abs(z-(Z0+.036))<.0025&&Math.sin(a*16)>.9)col.copy(TICK);}
+  else chrome(col,x,y,z,nx,ny,nz);
+ },'chrome');
+ {const tab=new RoundedBoxGeometry(.008,.006,.012,1,.002);tab.translate(0,LY-.033,Z0+.018);put(tab,chrome,'chrome');}
+ // The front element: a shallow dome with a violet-amber coating and a window caught in it.
+ const prof=[];for(let i=0;i<=10;i++){const t=i/10*Math.PI/2;prof.push([.0195*Math.sin(t)+.0001,Z0+.042+.006*Math.cos(t)]);}
+ put(lathe(prof.reverse(),32,0,LY),(col,x,y,z)=>{
+  const u=x/.0195,w=(y-LY)/.0195,r=Math.hypot(u,w);
+  col.set(0x10131e).lerp(C(0x3b2a5a),Math.max(0,1-r)*.8).lerp(C(0x7a5a24),Math.max(0,r-.7)*1.6);
+  col.lerp(C(0xf0f6ff),Math.exp(-(((u+.3)**2+(w-.35)**2)/.02))*.9);
+  col.lerp(C(0xa8d0ff),Math.exp(-(((u-.35)**2+(w+.3)**2)/.008))*.5);
+ },'glass');
+ // The bulb flash: a fan-ribbed polished reflector on a bracket in the accessory shoe, a clear
+ // blue-tinted bulb seated in it.
+ const FY=.21,FZ=.012,FX=.008,tilt=-.18;
+ const post=new THREE.CylinderGeometry(.004,.004,.05,10);post.translate(FX,.164,-.012);put(post,chrome,'chrome');
+ const foot=new RoundedBoxGeometry(.024,.006,.02,1,.002);foot.translate(FX,.142,-.006);put(foot,chrome,'chrome');
+ const dishProf=[];for(let i=0;i<=10;i++){const r=.0065+i/10*.046;dishProf.push([r,-.03+(r*r)/.07]);}
+ for(let i=10;i>=0;i--){const [r,z]=dishProf[i];dishProf.push([r+(i===10?.0018:0),z-.0018]);}
+ // Back sheet first, so the lathe's normals face out of the bowl on both sheets.
+ const dish=lathe(dishProf.reverse(),48,0,0);
+ dish.applyMatrix4(new THREE.Matrix4().makeRotationX(tilt));dish.translate(FX,FY,FZ);
+ put(dish,(col,x,y,z,nx,ny,nz)=>{
+  // Inside the bowl, bright towards the rim with dark fan ribs; the back is plain chrome.
+  const a=Math.atan2(y-FY,x-FX),r=Math.hypot(x-FX,y-FY);
+  chrome(col,x,y,z,nx,ny,nz);
+  if(nz>.1){col.copy(CHR_HI).lerp(CHR_MID,.5-.4*Math.min(1,r/.05));if(Math.cos(a*16)>.85)col.lerp(CHR_LO,.55);}
+ },'chrome');
+ const socket=new THREE.CylinderGeometry(.007,.0075,.012,14);socket.rotateX(Math.PI/2);socket.applyMatrix4(new THREE.Matrix4().makeRotationX(tilt));socket.translate(FX,FY,FZ-.026);put(socket,chrome,'chrome');
+ const bulb=new THREE.SphereGeometry(.013,18,12);bulb.scale(1,1,1.2);bulb.translate(0,0,-.006);bulb.applyMatrix4(new THREE.Matrix4().makeRotationX(tilt));bulb.translate(FX,FY,FZ);
+ put(bulb,(col,x,y,z,nx,ny,nz)=>{col.set(0x6f9ccc).lerp(C(0xe9f4ff),Math.max(0,ny*.6+nz*.5));if(Math.sin((x-FX)*900)*Math.sin((y-FY)*900)>.6)col.lerp(C(0xd4d8dc),.5);},'glass');
+ // The neck strap: flat leather with pale edge stitching, leaving each ring, falling to the floor
+ // and trailing in a loose loop behind the camera.
+ const TAN=C(0x6b3d20),TAN_HI=C(0x93603a),TAN_LO=C(0x3a200f),STITCH=C(0xd9c9a4);
+ const strapPts=[V(-W/2-.009,.093,0),V(-W/2-.02,.07,-.006),V(-W/2-.03,.02,-.02),V(-W/2-.02,.004,-.07),V(-.06,.004,-.12),V(.05,.004,-.135),V(W/2+.02,.004,-.09),V(W/2+.034,.018,-.03),V(W/2+.022,.07,-.006),V(W/2+.009,.093,0)];
+ const path=new THREE.CatmullRomCurve3(strapPts,false,'centripetal'),PL=path.getLength(),N=10,rows=Math.ceil(PL/.004);
+ const pos=[],col=[],idx=[];
+ for(let k=0;k<=rows;k++){
+  const u=k/rows,p=path.getPointAt(u),t=path.getTangentAt(u),s=u*PL;
+  const side=t.clone().cross(V(0,1,0));if(side.lengthSq()<1e-4)side.set(0,0,1);side.normalize();
+  const up=side.clone().cross(t).normalize();
+  const w=.0075,h=.0016;if(p.y<h+.0002)p.y=h+.0002;
+  for(let j=0;j<N;j++){
+   const a=j/N*Math.PI*2,q=p.clone().addScaledVector(side,Math.cos(a)*w).addScaledVector(up,Math.sin(a)*h);
+   pos.push(q.x,q.y,q.z);
+   const n=stoneNoise(q.x*300,q.y*300,q.z*300,1);
+   c.copy(TAN).lerp(n>0?TAN_HI:TAN_LO,Math.abs(n)*.35);
+   if(Math.sin(a)<0)c.lerp(TAN_LO,.4);
+   if(Math.abs(Math.abs(Math.cos(a))-.72)<.2&&Math.sin(a)>0&&Math.sin(s*700)>0)c.copy(STITCH);
+   col.push(c.r,c.g,c.b);
+  }
+  if(k>0)for(let j=0;j<N;j++){const a=(k-1)*N+j,b=(k-1)*N+(j+1)%N,d=k*N+j,e=k*N+(j+1)%N;idx.push(a,d,b,b,d,e);}
+ }
+ const strap=new THREE.BufferGeometry();
+ strap.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));strap.setIndex(idx);strap.computeVertexNormals();
+ strap.setAttribute('color',new THREE.Float32BufferAttribute(col,3));lists.hide.push(strap);
+ const parts=[['hide',hideMat],['chrome',chromeMat],['glass',glassMat]];
+ const merged={};
+ const b=new THREE.Box3();
+ for(const [which] of parts){const list=lists[which];merged[which]=mergeGeometries(list);list.forEach(q=>q.dispose());merged[which].computeBoundingBox();b.union(merged[which].boundingBox);}
+ const mid=b.getCenter(V(0,0,0));
+ for(const [which,material] of parts){
+  const geo=merged[which];geo.translate(-mid.x,-b.min.y,-mid.z);
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.part=`camera-${which}`;g.add(mesh);
+ }
+ g.rotation.y=-.4;
+}
+
 // Eucalyptus leaves: long sickle-shaped blades that cup along a raised midrib, curl up
 // at the tip and hang from a short reddish stalk. A stack shows a second leaf crossing
 // the first. Returns merged blade and stalk geometry, so each draws once.
@@ -3911,19 +4057,7 @@ export function createGroundModel(item={}){
     flat(new THREE.TorusGeometry(.03,.003,5,16),plate,x,.055,z);
    }
   }else if(kind==='expensive camera'){
-   // A boxy leather-clad camera with a brass lens barrel and a flash reflector on top.
-   const body=mat(0x2a2624),trim=mat(0xb8bcbe,.8),lens=new THREE.MeshStandardMaterial({color:0x223a4a,metalness:.3,roughness:.05,emissive:0x0e2a3a,emissiveIntensity:.4});materials.push(lens);
-   add(new RoundedBoxGeometry(.24,.14,.1,2,.014),body,0,.07);
-   box(.245,.025,.105,trim,0,.128);
-   const barrel=add(new THREE.CylinderGeometry(.045,.05,.07,20),brass,0,.065,.085);barrel.rotation.x=Math.PI/2;
-   add(new THREE.TorusGeometry(.045,.006,6,20),dark,0,.065,.12);add(new THREE.CircleGeometry(.038,20),lens,0,.065,.121);
-   box(.035,.025,.012,trim,.08,.1,.052);box(.02,.015,.004,lens,.08,.1,.059);
-   add(new THREE.CylinderGeometry(.009,.009,.012,10),mat(0xb03020,.3),.085,.146,0);
-   add(new THREE.CylinderGeometry(.006,.006,.05,8),trim,-.07,.165,0);
-   const dish=add(new THREE.CylinderGeometry(.055,.012,.035,20,1,true),trim,-.07,.2,.01);dish.rotation.x=-.5;dish.material.side=THREE.DoubleSide;
-   const bulb=new THREE.MeshBasicMaterial({color:0xfff4d8});materials.push(bulb);ball(.013,bulb,-.07,.195,.008);
-   for(const x of [-.125,.125])box(.01,.02,.02,trim,x,.1);
-   add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([v(-.13,.1,0),v(-.17,.02,.06),v(-.05,.005,.16),v(.1,.005,.16),v(.17,.02,.06),v(.13,.1,0)]),32,.006,5,false),body);
+   buildCamera({g,materials});
   }else if(kind==='lenses'){
    buildLenses({g,materials});
   }else if(kind==='credit card'){

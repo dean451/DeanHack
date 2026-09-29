@@ -1006,6 +1006,27 @@ test('the lenses are folded gold wire spectacles lying face up on their temples,
  model.userData.dispose();assert.equal(disposed,2);
 });
 
+test('the expensive camera is a chrome and leatherette rangefinder with a flash gun, its strap trailing on the floor',()=>{
+ const model=createGroundModel({name:'expensive camera',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['camera-hide','camera-chrome','camera-glass']);
+ let verts=0;const bounds={};
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+  part.geometry.computeBoundingBox();bounds[part.userData.part]=part.geometry.boundingBox;
+ }
+ assert(verts<10000,`${verts} vertices`);
+ const hide=bounds['camera-hide'],chrome=bounds['camera-chrome'],glass=bounds['camera-glass'];
+ // The chrome base plate stands on the floor; the strap lies on it, never below.
+ assert(Math.abs(chrome.min.y)<1e-6&&hide.min.y>=-1e-6&&hide.min.y<.002,`${chrome.min.y} ${hide.min.y}`);
+ // The flash reflector stands above the body, and the glass (lens, windows, bulb) is off the floor.
+ assert(chrome.max.y>hide.max.y+.08&&chrome.max.y<.3,`${chrome.max.y} ${hide.max.y}`);
+ assert(glass.min.y>.03,`glass ${glass.min.y}`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,3);
+});
+
 test('the crystal ball is a glass orb held in brass talons on a turned stand, centred where its aura swirls',()=>{
  const model=createGroundModel({name:'crystal ball',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['crystal-ball-stand','crystal-ball-brass','crystal-ball-depth','crystal-ball-mist','crystal-ball-glass']);
