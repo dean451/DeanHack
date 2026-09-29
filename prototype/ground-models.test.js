@@ -1045,9 +1045,36 @@ test('the chest is a planked, iron-bound oak chest with a barrel lid, a brass lo
  // The straps ride over the lid, and the drop rings hang out past the ends.
  assert(iron.max.y>wood.max.y&&iron.max.y<wood.max.y+.012,`${iron.max.y}`);
  assert(iron.max.x>wood.max.x+.02&&iron.min.x<wood.min.x-.02,`${iron.min.x} ${iron.max.x}`);
- // The chest stands closed and different from the plain large box.
+ // The chest stands closed and different from the large box.
  const box=createGroundModel({name:'large box',class:6});
- assert.notDeepEqual(box.children.length,model.children.length);box.userData.dispose();
+ assert.notDeepEqual(box.children.map(p=>p.userData.part),model.children.map(p=>p.userData.part));box.userData.dispose();
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
+test('the large box is a nailed pine crate on skids, with a braced frame, rope handles and iron corner guards',()=>{
+ const model=createGroundModel({name:'large box',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['large-box-wood','large-box-iron']);
+ let verts=0;const bounds={};
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+  for(let i=0;i<normal.count;i++)assert(Math.abs(Math.hypot(normal.getX(i),normal.getY(i),normal.getZ(i))-1)<1e-4);
+  part.geometry.computeBoundingBox();bounds[part.userData.part]=part.geometry.boundingBox;
+ }
+ assert(verts<12000,`${verts} vertices`);
+ const wood=bounds['large-box-wood'],iron=bounds['large-box-iron'];
+ // The skids stand on the floor; the flat lid sits at about a quarter of a cell.
+ assert(Math.abs(wood.min.y)<1e-6,`${wood.min.y}`);
+ assert(wood.max.y>.22&&wood.max.y<.26,`lid top ${wood.max.y}`);
+ // The rope handles hang out past the ends, and the corner guards wrap over the lid.
+ assert(wood.max.x>.26&&wood.min.x<-.26&&wood.max.x<.3,`${wood.min.x} ${wood.max.x}`);
+ assert(iron.max.y>wood.max.y-.01&&iron.max.y<wood.max.y+.01,`${iron.max.y}`);
+ assert(Math.abs(wood.max.z)<.2,`${wood.max.z}`);
+ // The ice box is still its own model.
+ const ice=createGroundModel({name:'ice box',class:6});
+ assert(!ice.children.some(p=>p.userData.part==='large-box-wood'));ice.userData.dispose();
  let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
  model.userData.dispose();assert.equal(disposed,2);
 });
