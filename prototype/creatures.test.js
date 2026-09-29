@@ -46,6 +46,24 @@ test('little dog, dog and large dog are grounded canines that grow with the bree
  }
 });
 
+test('hell hounds burn: flickering flame tongues on the spine, head, tail and paws, and ember eyes',()=>{
+ for(const [name,scale] of [['hell hound',1.3],['hell hound pup',.85]]){
+  const hound=createCreature({name,symbol:100,color:1});
+  assert.equal(hound.quirk,'canine');assert.equal(hound.g.scale.x,scale);
+  const flames=[];hound.g.traverse(o=>{if(o.isMesh&&o.userData.part==='flame')flames.push(o);});
+  assert.equal(flames.length,13,name);
+  assert(flames.every(f=>f.geometry===flames[0].geometry&&f.material===flames[0].material&&!f.castShadow),'one shared, shadowless flame');
+  for(const leg of hound.legs)assert(leg.children.some(o=>o.userData.part==='flame'),'a burning paw');
+  assert(hound.tail.children.some(o=>o.userData.part==='flame'),'a burning tail');
+  for(const v of flames[0].geometry.attributes.position.array)assert(Number.isFinite(v));
+  hound.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(hound.g);
+  assert(b.min.y>-.03,`${name}: flames under the floor at ${b.min.y}`);
+ }
+ const wolf=createCreature({name:'wolf'});let lit=0;wolf.g.traverse(o=>{if(o.userData.part==='flame')lit++;});
+ assert.equal(lit,0,'other canines do not burn');
+});
+
 test('pony, horse and warhorse are grounded, hornless horses that grow with the breed and take the glyph colour',()=>{
  let last=0;
  for(const name of ['pony','horse','warhorse']){
