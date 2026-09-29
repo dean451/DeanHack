@@ -2822,6 +2822,138 @@ function buildSafe({g,materials}){
  g.rotation.y=-.3;
 }
 
+// The grappling hook (and its unidentified twin, the iron hook): a forged iron grapnel lying
+// on two of its flukes and its eye, with the third fluke standing up. Three flukes curve back
+// from a crown boss to spade-shaped points; the shank ends in a collar and a forged eye. A
+// three-strand hemp rope is bent on to the eye with a round turn, runs down to the floor and
+// lies in a flat coil beside the shank, its whipped tail crossing back over the turns. Two
+// merged, vertex-coloured meshes: the iron and the rope.
+function buildGrapplingHook({g,materials}){
+ const C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z),c=new THREE.Color(),X=V(1,0,0),Y=V(0,1,0);
+ const ironMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.68,roughness:.55});
+ const ropeMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.95});
+ materials.push(ironMat,ropeMat);
+ // Sweep elliptical rings of N vertices along rows {p,t,w,h,s}. The ring's w axis follows `nrm`
+ // (kept square to the line), so a flattened blade keeps facing one way.
+ const sweep=(rows,N,nrm,tone)=>{
+  const pos=[],col=[],idx=[];
+  rows.forEach(({p,t,w,h,s},k)=>{
+   const side=nrm.clone().addScaledVector(t,-nrm.dot(t)).normalize(),up=t.clone().cross(side);
+   for(let j=0;j<N;j++){
+    const a=j/N*Math.PI*2,q=p.clone().addScaledVector(side,Math.cos(a)*w).addScaledVector(up,Math.sin(a)*h);
+    pos.push(q.x,q.y,q.z);tone(s,a,q,j);col.push(c.r,c.g,c.b);
+   }
+   if(k>0)for(let j=0;j<N;j++){const a=(k-1)*N+j,b=(k-1)*N+(j+1)%N,d=k*N+j,e=k*N+(j+1)%N;idx.push(a,b,d,b,e,d);}
+  });
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  geo.setIndex(idx);return geo;
+ };
+ const paint=(geo,tone)=>{geo.deleteAttribute('uv');geo.deleteAttribute('normal');const P=geo.attributes.position,cs=[],q=V(0,0,0);
+  for(let i=0;i<P.count;i++){q.fromBufferAttribute(P,i);tone(0,0,q,0);cs.push(c.r,c.g,c.b);}
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));return geo;};
+ // Blackened forged iron with hammer marks, rust gathered in the crotches and round the eye,
+ // and the points ground bright.
+ const IRON=C(0x3a3937),IRON_LT=C(0x5f5c57),SCALE=C(0x1d1c1b),RUST=C(0x7a4020),RUST_LT=C(0xa0602c),STEEL=C(0xa7a6a0);
+ const CROWN=.1,EYE_R=.02,EYE_T=.0055,EYE=V(-.1-EYE_R+.002,0,0);
+ const ironTone=(bright,rusty)=>(s,a,q)=>{
+  const n=stoneNoise(q.x*60,q.y*60,q.z*60,5),m=stoneNoise(q.x*140,q.y*140,q.z*140,3);
+  c.copy(IRON).lerp(n>0?IRON_LT:SCALE,Math.abs(n)*.55);
+  if(m>.55)c.lerp(SCALE,.5);
+  const r=rusty(q)+stoneNoise(q.x*35+3,q.y*35,q.z*35,4)*.35;
+  if(r>.35)c.lerp(n>.2?RUST_LT:RUST,Math.min(.85,(r-.35)*1.6));
+  const b=bright(s,q);if(b>0)c.lerp(STEEL,Math.min(.8,b));
+ };
+ const nearCrown=q=>Math.max(0,1-Math.hypot(q.x-CROWN,q.y,q.z)/.05);
+ const nearEye=q=>Math.max(0,1-q.distanceTo(EYE)/.04)*.9;
+ const iron=[];
+ // The shank, one lathe along x: a collar under the eye, a slightly swelling bar and the crown boss.
+ const shankProfile=[[-.104,.0002],[-.103,.009],[-.101,.0135],[-.086,.0135],[-.083,.0105],[.06,.0115],[.074,.0135],[.084,.0172],[.096,.0185],[.108,.017],[.116,.013],[.121,.007],[.1225,.0002]];
+ const shankRows=[];
+ for(let i=1;i<shankProfile.length;i++){const [x0,r0]=shankProfile[i-1],[x1,r1]=shankProfile[i],n=Math.max(1,Math.ceil((x1-x0)/.006));
+  for(let k=i===1?0:1;k<=n;k++){const u=k/n,x=x0+(x1-x0)*u,r=r0+(r1-r0)*u;shankRows.push({p:V(x,0,0),t:X,w:r,h:r*.92,s:x});}}
+ iron.push(sweep(shankRows,20,V(0,0,1),ironTone(()=>0,q=>Math.max(nearCrown(q)*.8,nearEye(q)))));
+ // The forged eye, standing in the same plane as the upright fluke.
+ const eye=new THREE.TorusGeometry(EYE_R,EYE_T,10,28);eye.translate(EYE.x,EYE.y,EYE.z);
+ iron.push(paint(eye,ironTone((s,q)=>q.y>EYE_R*.6?.25:0,nearEye)));
+ // Three flukes, one standing up and two splayed down, each curving back to a spade point.
+ const FLUKE=[[.006,.008],[.02,.035],[.014,.068],[-.01,.092],[-.043,.102],[-.07,.094]];
+ const flukes=[];
+ for(let i=0;i<3;i++){
+  const th=Math.PI/2+i*Math.PI*2/3,d=V(0,Math.sin(th),Math.cos(th)),nrm=X.clone().cross(d).normalize();
+  const curve=new THREE.CatmullRomCurve3(FLUKE.map(([ax,r])=>V(CROWN+ax,0,0).addScaledVector(d,r)),false,'centripetal');
+  const rows=[];
+  for(let k=0;k<=48;k++){
+   const u=k/48,p=curve.getPointAt(u),t=curve.getTangentAt(u);
+   // Round at the root, broadening into a flat palm that tapers to the point.
+   const palm=THREE.MathUtils.smoothstep(u,.58,.8),tip=u>.86?Math.sqrt(Math.max(0,(1-u)/.14)):1;
+   const r=.0088-.0026*Math.min(1,u/.6);
+   rows.push({p,t,w:(r+palm*.0085)*tip+.0002,h:(r-palm*.0042)*tip+.0002,s:u});
+  }
+  const geo=sweep(rows,18,nrm,ironTone(u=>u>.8?(u-.8)*4:0,q=>nearCrown(q)));
+  iron.push(geo);flukes.push(geo);
+ }
+ // Tilt the grapnel about z until the eye and the two lower flukes touch the floor together.
+ const low=(geos,phi)=>{let m=Infinity;const q=V(0,0,0);for(const geo of geos){const P=geo.attributes.position;
+  for(let i=0;i<P.count;i++){q.fromBufferAttribute(P,i);m=Math.min(m,q.x*Math.sin(phi)+q.y*Math.cos(phi));}}return m;};
+ let lo=-.8,hi=.8;
+ for(let k=0;k<40;k++){const mid=(lo+hi)/2;if(low([eye],mid)<low(flukes.slice(1),mid))hi=mid;else lo=mid;}
+ const tilt=(lo+hi)/2;
+ const ironGeo=mergeGeometries(iron);iron.forEach(q=>q.dispose());
+ ironGeo.rotateZ(tilt);ironGeo.computeBoundingBox();const floor=ironGeo.boundingBox.min.y;ironGeo.translate(0,-floor,0);ironGeo.computeVertexNormals();
+ const place=p=>p.clone().applyAxisAngle(V(0,0,1),tilt).setY(p.clone().applyAxisAngle(V(0,0,1),tilt).y-floor);
+ // The rope. It leaves a round turn on the back of the eye, drops to the floor and lies in a flat
+ // coil beside the shank; the inner end rises and its whipped tail crosses back over the turns.
+ const RR=.0062,bar=place(EYE.clone().add(V(-EYE_R,0,0))),barAxis=Y.clone().applyAxisAngle(V(0,0,1),tilt);
+ const HEMP=C(0xb3925c),HEMP_LT=C(0xd2b47c),HEMP_DK=C(0x5e4726),DIRT=C(0x6b5a40),TWINE=C(0xe2d6b8),TWINE_DK=C(0x9c8e70);
+ let whip=Infinity;
+ const ropeTone=(s,a,q,j)=>{
+  // Three strands laid right-handed; the grooves between them run dark.
+  const lay=Math.cos(3*a-s*260),n=stoneNoise(q.x*90,q.y*90,q.z*90,4);
+  c.copy(HEMP).lerp(n>0?HEMP_LT:HEMP_DK,Math.abs(n)*.3);
+  if(lay<-.35)c.lerp(HEMP_DK,(-.35-lay)*1.1);else if(lay>.6)c.lerp(HEMP_LT,(lay-.6)*1.2);
+  if(q.y<RR*.6)c.lerp(DIRT,.35);
+  if(s>whip){c.copy(Math.sin(s*1700)>-.2?TWINE:TWINE_DK);if(Math.cos(a)>.5)c.lerp(C(0xfaf3e0),.3);}
+ };
+ const ropeParts=[];
+ for(const off of [-.0075,.0075]){
+  const turn=new THREE.TorusGeometry(EYE_T+RR*.95,RR,8,24);
+  turn.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(V(0,0,1),barAxis));
+  turn.translate(...bar.clone().addScaledVector(barAxis,off).toArray());
+  turn.deleteAttribute('uv');turn.deleteAttribute('normal');
+  const P=turn.attributes.position,cs=[],q=V(0,0,0);
+  for(let i=0;i<P.count;i++){q.fromBufferAttribute(P,i);const u=i%9/8*Math.PI*2,v=Math.floor(i/9)/24;ropeTone(v*.15,u,q,0);cs.push(c.r,c.g,c.b);}
+  turn.setAttribute('color',new THREE.Float32BufferAttribute(cs,3));ropeParts.push(turn);
+ }
+ const CC=V(-.165,0,.112),RO=.066,RI=.023,TURNS=3,psi0=-1.2,yR=RR*1.05+.0003;
+ const coil=ps=>{const f=Math.min(1,Math.max(0,(ps-psi0)/(TURNS*Math.PI*2))),r=RO-(RO-RI)*f;return V(CC.x+r*Math.cos(ps),yR,CC.z+r*Math.sin(ps));};
+ const start=bar.clone().add(V(-EYE_T-RR*1.6,0,0)).addScaledVector(barAxis,-.0075);
+ const pts=[start,V(start.x-.012,start.y*.45,start.z+.006),V(start.x-.018,yR,start.z+.022)];
+ const psiEnd=psi0+TURNS*Math.PI*2;
+ for(let ps=psi0+.35;ps<=psiEnd;ps+=.22)pts.push(coil(ps));
+ // Up over the turns and out, then down to the floor outside the coil.
+ const out=psiEnd+.9,dir=V(Math.cos(out),0,Math.sin(out)),at=(r,y)=>CC.clone().addScaledVector(dir,r).setY(y);
+ pts.push(at(RI+.004,RR*2.1),at(RI+.016,RR*3.15),at((RI+RO)/2,RR*3.2),at(RO-.004,RR*3.15),at(RO+.011,RR*1.9),at(RO+.022,yR),at(RO+.05,yR));
+ const path=new THREE.CatmullRomCurve3(pts,false,'centripetal'),PL=path.getLength();
+ whip=PL-.016;
+ const ropeRows=[];
+ for(let s=0;s<=PL+1e-6;s+=.0022){
+  const u=Math.min(1,s/PL),p=path.getPointAt(u),t=path.getTangentAt(u);
+  // Keep the coil clear of the floor, and round off the whipped end.
+  if(p.y<yR)p.y=yR;
+  const end=s>PL-.004?Math.sqrt(Math.max(0,(PL-s)/.004)):1,r=(s>whip&&s<PL-.004?RR*1.05:RR)*end+.0002;
+  ropeRows.push({p,t,w:r,h:r,s});
+ }
+ ropeParts.push(sweep(ropeRows,10,Y,ropeTone));
+ const ropeGeo=mergeGeometries(ropeParts);ropeParts.forEach(q=>q.dispose());ropeGeo.computeVertexNormals();
+ for(const [geo,material,part] of [[ironGeo,ironMat,'hook-iron'],[ropeGeo,ropeMat,'hook-rope']]){
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=part;g.add(mesh);
+ }
+ const b=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();b.union(p.geometry.boundingBox);});
+ const mid=b.getCenter(V(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-b.min.y,-mid.z));
+ g.rotation.y=.45;
+}
+
 // Eucalyptus leaves: long sickle-shaped blades that cup along a raised midrib, curl up
 // at the tip and hang from a short reddish stalk. A stack shows a second leaf crossing
 // the first. Returns merged blade and stalk geometry, so each draws once.
@@ -3756,17 +3888,7 @@ export function createGroundModel(item={}){
    add(new THREE.CylinderGeometry(.014,.014,.02,10),brass,.1,.06,.02);
    box(.05,.004,.018,mat(0xc9b04a),-.04,.069,-.02);
   }else if(kind==='hook'){
-   // A grappling hook lying on its side: an iron shank with three curved flukes and a coil of rope.
-   const iron=mat(0x5a5754,.75),rope=mat(0xa88b5c);
-   lie(.012,.012,.28,iron,0,.035,0);
-   flat(new THREE.TorusGeometry(.022,.006,6,14),iron,-.155,.035,0).rotation.x=0;
-   for(let i=0;i<3;i++){
-    const a=i/3*Math.PI*2+.4,fluke=add(new THREE.TorusGeometry(.06,.009,6,16,Math.PI*.8),iron,.14,.035+Math.sin(a)*.03,Math.cos(a)*.03);
-    fluke.rotation.set(a,0,Math.PI*.6);
-    const tip=add(new THREE.ConeGeometry(.014,.035,5),iron,.14+Math.cos(Math.PI*1.4)*.06,.035+Math.sin(a)*.09,Math.cos(a)*.09);tip.rotation.x=a-Math.PI/2;
-   }
-   for(let i=0;i<3;i++)flat(new THREE.TorusGeometry(.065-i*.004,.009,6,24),rope,-.2,.009+i*.017,.02);
-   lie(.008,.008,.03,rope,-.17,.03,.01,.3);
+   buildGrapplingHook({g,materials});
   }else if(kind==='iron safe'){
    buildSafe({g,materials});
   }else{
