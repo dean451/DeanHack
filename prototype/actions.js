@@ -15,7 +15,7 @@ import {deathStyle, deathPose, DEATH_TIME, DEATH_BURST_U} from './deaths.js';
 import {swingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
 import {hitStyle, hitReactionPose, HIT_TIME} from './hit-fx.js';
 import {catMove, catSize, catLength, catAttackPose} from './cats.js';
-import {jawPose} from './jaw.js';
+import {jawPose, jawReach} from './jaw.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9};
 // Wait no longer than this for a death to play before the map (and its corpse) goes on.
@@ -213,6 +213,8 @@ export function updateActions(actor, q, dt) {
   // Heading toward the target is measured once, from the rest pose, when the action starts.
   if (q.face === null) q.face = a.kind === 'attack' && a.dir ? turn(actor.g.rotation.y, Math.atan2(a.dir[0], a.dir[1])) : 0;
   const pose = actionPose(a, u, q.face);
+  // Smaller jaws open less (jaw.js).
+  if (pose.jaw) pose.jaw *= jawReach(actor);
   if (a.swing) {
     pose.arm = pose.wrist = pose.socket = 0;
     pose.swing = swingPose(a.blow, u, a.result);
