@@ -982,6 +982,30 @@ test('the grappling hook is a forged three-fluke grapnel on a tripod, its rope b
  model.userData.dispose();assert.equal(disposed,2);
 });
 
+test('the lenses are folded gold wire spectacles lying face up on their temples, glass held clear of the floor',()=>{
+ const model=createGroundModel({name:'lenses',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['lenses-wire','lenses-glass']);
+ let verts=0;const bounds={};
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+  part.geometry.computeBoundingBox();bounds[part.userData.part]=part.geometry.boundingBox;
+ }
+ assert(verts<8000,`${verts} vertices`);
+ const wire=bounds['lenses-wire'],glass=bounds['lenses-glass'];
+ // Spectacle sized and low: the temples touch the floor and the lenses ride above them, facing up.
+ assert(Math.abs(wire.min.y)<1e-6&&wire.max.y<.045,`wire ${wire.min.toArray()} ${wire.max.toArray()}`);
+ assert(wire.max.x-wire.min.x>.2&&wire.max.x-wire.min.x<.25,`width ${wire.max.x-wire.min.x}`);
+ assert(glass.min.y>.012&&glass.max.y-glass.min.y<.012,`glass ${glass.min.toArray()} ${glass.max.toArray()}`);
+ assert(glass.max.z-glass.min.z>.08,'the lenses face up');
+ const {position,normal}=model.children[0].geometry.attributes;let near=0,down=0;
+ for(let i=0;i<position.count;i++)if(position.getY(i)<.001){near++;if(normal.getY(i)<-.3)down++;}
+ assert(near>0&&down===near,`${down} of ${near} floor normals face down`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
 test('the crystal ball is a glass orb held in brass talons on a turned stand, centred where its aura swirls',()=>{
  const model=createGroundModel({name:'crystal ball',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['crystal-ball-stand','crystal-ball-brass','crystal-ball-depth','crystal-ball-mist','crystal-ball-glass']);

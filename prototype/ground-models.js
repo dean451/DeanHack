@@ -2954,6 +2954,76 @@ function buildGrapplingHook({g,materials}){
  g.rotation.y=.45;
 }
 
+// Lenses: a pair of round gold wire spectacles, folded and laid face up on their temples.
+// Built upright (lenses in the xy plane, the front towards +z), then tipped onto the floor.
+function buildLenses({g,materials}){
+ const C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z),c=new THREE.Color();
+ const wireMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.85,roughness:.28});
+ const glassMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.1,roughness:.04,
+  transparent:true,opacity:.5,depthWrite:false,emissive:0x2a3a40,emissiveIntensity:.3});
+ materials.push(wireMat,glassMat);
+ const GOLD=C(0xc6a153),HI=C(0xf2dc9a),LO=C(0x6e5424),SHELL=C(0x5a3014),AMBER=C(0xa8662a),PAD=C(0xd9d6c8);
+ const lists={wire:[],glass:[]};
+ const put=(geo,paint,which='wire')=>{
+  geo.deleteAttribute('uv');
+  const p=geo.attributes.position,n=geo.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i));
+   cols[i*3]=Math.min(1,Math.max(0,c.r));cols[i*3+1]=Math.min(1,Math.max(0,c.g));cols[i*3+2]=Math.min(1,Math.max(0,c.b));
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));lists[which].push(geo);
+ };
+ // Drawn gold wire: brighter where it faces up and out, a little darker underneath.
+ const gold=(col,x,y,z,nx,ny,nz)=>col.copy(GOLD).lerp(ny+nz*.5>0?HI:LO,Math.min(1,Math.abs(ny+nz*.5))*.45);
+ const wire=(pts,r,paint=gold,seg=24)=>put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),seg,r,6,false),paint);
+ const L=.058,R=.043,W=.0026;
+ for(const s of [-1,1]){
+  // The eye rims, with a tiny lug where the wire meets at the outer side.
+  const rim=new THREE.TorusGeometry(R,W,6,56);rim.translate(s*L,0,0);put(rim,gold);
+  const lug=new THREE.CylinderGeometry(.0034,.0034,.009,8);lug.translate(s*(L+R+.001),.004,0);put(lug,gold);
+  // Ground lenses: biconvex, pale with a cool rim, and a painted window reflection.
+  const prof=[];for(let i=0;i<=8;i++){const t=i/8;prof.push(new THREE.Vector2((R-.0012)*Math.sin(t*Math.PI/2),.0028*Math.cos(t*Math.PI/2)));}
+  for(let i=7;i>=0;i--)prof.push(new THREE.Vector2(prof[i].x,-prof[i].y));
+  const lens=new THREE.LatheGeometry(prof,40);lens.rotateX(Math.PI/2);lens.translate(s*L,0,0);
+  put(lens,(col,x,y,z)=>{
+   const u=(x-s*L)/R,w=y/R,r=Math.hypot(u,w);
+   col.set(0xd4e6ea).lerp(C(0x7fa89c),Math.max(0,r-.75)*2.4);
+   const band=u*.55-w*.85-.12;col.lerp(C(0xffffff),Math.exp(-((band/.12)**2))*.8*(z>0?1:.3));
+   col.lerp(C(0xffffff),Math.exp(-(((band-.42)/.05)**2))*.5*(z>0?1:.2));
+  },'glass');
+  // Nose pads on short arms, and the end pieces running back to the hinge barrels.
+  wire([V(s*.019,-.014,0),V(s*.017,-.017,-.005),V(s*.012,-.017,-.009)],.0012,gold,8);
+  const pad=new THREE.SphereGeometry(.0058,10,8);pad.scale(.4,1,.75);pad.rotateY(s*.35);pad.translate(s*.011,-.018,-.011);
+  put(pad,(col,x,y,z,nx,ny)=>col.copy(PAD).lerp(C(0xffffff),Math.max(0,ny)*.3));
+  wire([V(s*(L+R-.001),.006,0),V(s*(L+R+.004),.007,-.003),V(s*(L+R+.006),.008,-.008)],W,gold,8);
+  const barrel=new THREE.CylinderGeometry(.0034,.0034,.01,10);barrel.translate(s*(L+R+.006),.008,-.009);put(barrel,gold);
+  const screw=new THREE.SphereGeometry(.0022,8,6);screw.translate(s*(L+R+.006),.0135,-.009);put(screw,(col,x,y,z,nx,ny)=>col.copy(HI).lerp(LO,ny>.8&&Math.abs(nx)<.25?.7:0));
+ }
+ // The bridge: a raised saddle arch, bowed a little forward.
+ wire([V(-.0155,.011,0),V(-.012,.019,.002),V(0,.024,.004),V(.012,.019,.002),V(.0155,.011,0)],W*.95,gold,20);
+ // Folded temples, each crossing behind the lenses to the far side and curling into an ear hook
+ // in a tortoiseshell sleeve. The right one folds first and lies nearer the glass.
+ const hx=L+R+.006;
+ for(const [s,z,dy] of [[1,-.012,-.013],[-1,-.019,-.011]]){
+  const end=-s*(hx-.028),y1=.008+dy;
+  wire([V(s*hx,.008,-.009),V(s*(hx-.006),.008,z),V(0,.008+dy*.55,z),V(end,y1,z)],W*.9,gold,28);
+  const sleeve=(col,x,y,z,nx,ny)=>{col.copy(SHELL).lerp(AMBER,Math.max(0,Math.sin(x*420+y*300)*Math.sin(y*260-x*180)));col.lerp(C(0xe0c090),Math.max(0,ny)*.2);};
+  wire([V(end+s*.012,y1+.001,z),V(end,y1,z),V(end-s*.012,y1-.004,z),V(end-s*.019,y1-.016,z),V(end-s*.018,y1-.028,z),V(end-s*.013,y1-.035,z)],.0036,sleeve,24);
+ }
+ const merged={};
+ for(const which of ['wire','glass']){const list=lists[which];merged[which]=mergeGeometries(list);list.forEach(q=>q.dispose());}
+ // Tip it face up onto the folded temples, then settle it on the floor and centre it.
+ const pose=new THREE.Matrix4().makeRotationX(-Math.PI/2+.05);
+ const b=new THREE.Box3();
+ for(const geo of Object.values(merged)){geo.applyMatrix4(pose);geo.computeBoundingBox();b.union(geo.boundingBox);}
+ const mid=b.getCenter(V(0,0,0));
+ for(const [which,material] of [['wire',wireMat],['glass',glassMat]]){
+  const geo=merged[which];geo.translate(-mid.x,-b.min.y,-mid.z);
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=which==='wire';mesh.receiveShadow=true;mesh.userData.part=`lenses-${which}`;g.add(mesh);
+ }
+ g.rotation.y=.35;
+}
+
 // Eucalyptus leaves: long sickle-shaped blades that cup along a raised midrib, curl up
 // at the tip and hang from a short reddish stalk. A stack shows a second leaf crossing
 // the first. Returns merged blade and stalk geometry, so each draws once.
@@ -3855,15 +3925,7 @@ export function createGroundModel(item={}){
    for(const x of [-.125,.125])box(.01,.02,.02,trim,x,.1);
    add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([v(-.13,.1,0),v(-.17,.02,.06),v(-.05,.005,.16),v(.1,.005,.16),v(.17,.02,.06),v(.13,.1,0)]),32,.006,5,false),body);
   }else if(kind==='lenses'){
-   // Folded spectacles: two glass rounds in thin wire rims, a bridge, and temples tucked behind.
-   const glass=new THREE.MeshStandardMaterial({color:0xcfe4ee,metalness:.2,roughness:.04,transparent:true,opacity:.55});materials.push(glass);
-   for(const s of [-1,1]){
-    flat(new THREE.TorusGeometry(.05,.006,6,28),metal,s*.062,.05,0).rotation.x=Math.PI/2-.35;
-    const lens=add(new THREE.CylinderGeometry(.047,.047,.004,28),glass,s*.062,.05,0);lens.rotation.x=-.35;
-    const arm=add(new THREE.CylinderGeometry(.004,.004,.17,6),metal,s*.075,.012,-.085);arm.rotation.set(Math.PI/2,0,s*.1);
-    ball(.007,metal,s*.112,.03,-.012);
-   }
-   const bridge=add(new THREE.TorusGeometry(.016,.004,6,12,Math.PI),metal,0,.062,.006);bridge.rotation.x=-.35;
+   buildLenses({g,materials});
   }else if(kind==='credit card'){
    buildCreditCard({g,materials});
   }else if(kind==='beartrap'){
