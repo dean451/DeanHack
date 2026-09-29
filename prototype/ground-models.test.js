@@ -1222,3 +1222,19 @@ test('the saddle is a merged leather saddle on a blanket with irons on the floor
  let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
  model.userData.dispose();assert.equal(disposed,2);
 });
+
+test('the land mine item lies dug up and tipped on a clod: one vertex-coloured mesh, made safe with a pin',()=>{
+ const model=createGroundModel({name:'land mine',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['land-mine']);
+ const geo=model.children[0].geometry,{position,normal,color}=geo.attributes;
+ for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+ for(const x of color.array)assert(x>=0&&x<=1);
+ for(let i=0;i<normal.count;i++)assert(Math.abs(Math.hypot(normal.getX(i),normal.getY(i),normal.getZ(i))-1)<1e-3,`normal ${i}`);
+ assert(position.count<13000,`${position.count} vertices`);
+ geo.computeBoundingBox();const b=geo.boundingBox;
+ assert(Math.abs(b.min.y)<1e-6&&b.max.y>.08&&b.max.y<.18,`height ${b.min.y}..${b.max.y}`);
+ // Tipped: the casing's base is off the floor on one side, so the lowest vertices bunch on the other.
+ let low=0,lowZ=0;for(let i=0;i<position.count;i++)if(position.getY(i)<.004){low++;lowZ+=position.getZ(i);}
+ assert(low>0&&Math.abs(lowZ/low)>.03,`${low} floor vertices centred at z ${lowZ/low}`);
+ model.userData.dispose();
+});
