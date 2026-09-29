@@ -19,6 +19,7 @@ import {createWatch,WATCH} from './watch.js';
 import {createSoldier,SOLDIERS} from './soldier.js';
 import {createCrocodile,CROCODILES} from './crocodile.js';
 import {createCouatl} from './couatl.js';
+import {createTurtle} from './turtle.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -159,17 +160,6 @@ function golem(params=GOLEM_MATERIALS.stone){
  for(const x of [-.16,.16]){const leg=new THREE.Group();leg.position.set(x,.4,0);torso.add(leg);rounded(leg,.19,.46,.2,body,0,-.2,0,.04);rounded(leg,.21,.06,.22,seam,0,-.4,.02,.01);legs.push(leg);}
  const core=sphere(torso,.07,M.fire,0,.7,.18);g.userData.core=core;eyes(torso,M.fire,1.06,.16,.07);
  return Object.assign(actor(g,torso,legs,null,[],'golem'),{core});
-}
-// Giant turtle: a low domed shell over a snapping head and splayed stubby legs.
-function turtle(o){
- const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
- const shell=mat(o.shell,{roughness:.7}),shellDark=mat(shade(o.shell,.55)),skin=mat(o.skin||shade(o.shell,1.5));
- const dome=part(body,new THREE.SphereGeometry(.26,16,10,0,Math.PI*2,0,Math.PI/2),shell,0,.22,-.02);dome.scale.set(1.15,.72,1.3);
- for(let i=0;i<7;i++){const a=i*.9;sphere(body,.045,i%2?shellDark:shell,Math.cos(a)*.14,.34,Math.sin(a)*.12-.02,1,.55,1);}
- const head=new THREE.Group();head.position.set(0,.18,.28);body.add(head);sphere(head,.09,skin,0,0,0,.9,.75,1.15);for(const side of [-1,1])sphere(head,.018,darkEye,side*.045,.03,.07);
- for(const side of [-1,1])for(const z of [-.17,.17]){const leg=new THREE.Group();leg.position.set(side*.19,.1,z);body.add(leg);const upper=rounded(leg,.11,.08,.14,skin,side*.05,-.02,0,.02);upper.rotation.z=side*-.3;legs.push(leg);}
- const tail=cone(body,.035,.14,skin,0,.09,-.28,6);tail.rotation.x=Math.PI/2+.3;
- return actor(g,body,legs,null,[],'turtle');
 }
 // Dragons. UnNetHack shuffles the dragon names (tatzelworm, wyvern, sirrush...) against the breath
 // types and draws every dragon brown until its scales are identified. So the name picks a body plan
@@ -2342,7 +2332,7 @@ export function createCreature(cell={}){
  if(/unicorn/.test(name))return unicorn();
  if(letter==='D'||/dragon/.test(name))return dragon(dragonLook(name,cell.color));
  {const golemMatch=name.match(/^(.*) golem$/);if(golemMatch)return golem(GOLEM_MATERIALS[golemMatch[1]]||GOLEM_MATERIALS.stone);}
- if(name==='giant turtle')return turtle({shell:color||'#4a6a34'});
+ if(name==='giant turtle')return createTurtle();
  if(name==='tengu')return createTengu();
  if(name==='homunculus')return createHomunculus();
  if(name==='manes')return createManes();
