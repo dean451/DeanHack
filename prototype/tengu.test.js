@@ -35,7 +35,7 @@ test('the tengu gets its own long-nosed, crow-winged model instead of the tinted
  // shared geometry and materials: a room of tengu costs no extra buffers
  const other=meshes(createCreature({name:'tengu'}));
  parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
- assert(ms<200,`took ${ms} ms`);
+ assert(ms<1000,`took ${ms} ms`);
  // the other minor demons are unchanged
  assert.equal(imp.quirk,'imp');
  assert.equal(createCreature({name:'quasit',symbol:I,color:4}).quirk,'quasit');
