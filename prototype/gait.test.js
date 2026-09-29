@@ -189,3 +189,51 @@ test('the couatl beats its raised wings slowly about z and hangs with them held 
     assert.ok(Math.abs(c.body.position.y) < .09);
   }
 });
+
+test('ghost sleeves drift, trail while moving, go limp in death and settle to rest', async () => {
+  const {SLEEVES, sleevePose, hasSleeves, updateSleeves} = await import('./sleeves.js');
+  const r = sleevePose(3.1, 0, 0, 0, {...SLEEVES, pitch: 0, sway: 0, head: 0});
+  assert.deepEqual([...r.arms.flat(), ...r.head].map(v => Math.abs(v)), [0, 0, 0, 0, 0, 0]);
+  for (const name of ['ghost', 'shade']) {
+    const a = createCreature({name, kind: 'monster'});
+    assert.ok(hasSleeves(a), name);
+    const parts = [...a.arms, a.head];
+    const rest = parts.map(p => p.quaternion.clone());
+    const angle = () => Math.max(...parts.map((p, i) => p.quaternion.angleTo(rest[i])));
+    let peak = 0, spread = 0, t = 0;
+    const step = (secs, walking) => { for (let i = 0; i < secs * 60; i++, t += 1 / 60) {
+      a.body.position.y = 0;
+      assert.equal(updateGait(a, 1 / 60, walking), null);
+      const p = a.sleeves && sleevePose(a.sleeves.t, a.sleeves.w, a.sleeves.d, a.sleeves.seed);
+      for (const part of parts) for (const v of part.quaternion.toArray()) assert.ok(Number.isFinite(v));
+      peak = Math.max(peak, angle());
+      if (p) spread = Math.max(spread, Math.abs(p.arms[0][0] - p.arms[1][0]));
+    } };
+    step(12, false);
+    assert.ok(peak > .08 && peak < .3, `${name} idle drift ${peak}`);
+    assert.ok(spread > .1, `${name} sleeves out of step ${spread}`);
+    step(2, true);
+    assert.ok(a.sleeves.w > .99);
+    const trailing = sleevePose(a.sleeves.t, 1, 0, a.sleeves.seed);
+    assert.ok(trailing.arms.every(([x]) => x > SLEEVES.trail - SLEEVES.pitch), 'sleeves trail back');
+    step(3, false);
+    assert.ok(a.sleeves.w < 1e-4);
+    // with the drift switched off, the sleeves come back to exactly the rest pose
+    const saved = {...SLEEVES};
+    Object.assign(SLEEVES, {pitch: 0, sway: 0, head: 0});
+    step(.1, false);
+    assert.ok(angle() < 1e-3, `${name} rest ${angle()}`);
+    a.actions = {dead: true};
+    step(3, false);
+    Object.assign(SLEEVES, saved);
+    assert.ok(Math.abs(a.arms[0].quaternion.angleTo(rest[0]) - SLEEVES.limp) < .02, 'limp in death');
+    assert.ok(peak < 1.2);
+  }
+  // other hoverers and walkers are left alone
+  for (const name of ['floating eye', 'couatl', 'kobold zombie']) {
+    const a = createCreature({name, kind: 'monster'});
+    assert.ok(!hasSleeves(a), name);
+    assert.equal(updateSleeves(a, .1, false), null);
+    assert.equal(a.sleeves, undefined);
+  }
+});
