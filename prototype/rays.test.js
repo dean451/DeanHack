@@ -279,3 +279,55 @@ test('createRays draws a dig with grit and rubble, then ends empty', () => {
   rays.dispose();
   assert.equal(parent.children.length, 0);
 });
+
+test('magic missiles fly as a weaving volley of darts that bank off walls, pop, and leave nothing behind', async () => {
+  const {missilePaths, missileFrame, missileTail, pathAt, VOLLEY, WEAVE} = await import('./missiles.js');
+  const tl = bolt('magic missile');
+  const [path] = missilePaths(tl);
+  assert.equal(missilePaths(bolt('fire')).length, 0, 'only magic missiles');
+  // x 3,4,5,6, then the repeat of 6 moves out to the wall edge, then back 5,4
+  assert.deepEqual(path.pts.map(p => p.x), [3, 4, 5, 6, 6.45, 5, 4]);
+  // the head moves smoothly and turns back at the wall
+  assert.equal(pathAt(path, -1), null);
+  assert.equal(pathAt(path, 1.5 * FX_TICK_MS).x, 4.5);
+  assert.equal(pathAt(path, 4.5 * FX_TICK_MS).dx, -1);
+  const tail = missileTail(path);
+  let sawAll = false, pops = 0;
+  for (let t = 0; t <= tail + 50; t += 4) {
+    const f = missileFrame(path, t);
+    if (f.darts.length === VOLLEY) sawAll = true;
+    pops = Math.max(pops, f.pops.length);
+    for (const d of f.darts) {
+      for (const v of [d.x, d.y, d.z, d.yaw, d.size]) assert.ok(Number.isFinite(v));
+      // never strays further than the weave from the line it flies along (z 2, chest height)
+      assert.ok(Math.hypot(d.z - 2, d.y - RAY_Y) <= WEAVE * 1.21 + 1e-9, `dart off the path at ${t}`);
+      assert.ok(d.x >= 3 - 1e-9 && d.x <= 6.5, `dart x ${d.x}`);
+    }
+    for (const p of f.pops) assert.ok(p.alpha >= 0 && p.alpha <= 1 && p.size > 0 && p.size < .4);
+    for (const s of f.motes) assert.ok(Number.isFinite(s.x + s.y + s.z) && s.y >= .02 && s.alpha >= 0 && s.alpha <= 1);
+  }
+  assert.ok(sawAll, 'the whole volley is in the air at once');
+  assert.equal(pops, VOLLEY, "every dart pops, and the pops overlap");
+  const done = missileFrame(path, tail + 1);
+  assert.equal(done.darts.length + done.pops.length + done.motes.length, 0);
+});
+
+test('createRays draws the magic missile volley, keeps the beam faint, and clears up', () => {
+  const parent = new THREE.Group();
+  const rays = createRays(THREE, parent);
+  assert.ok(rays.play(bolt('magic missile')));
+  let darts = 0, pops = 0, lit = 0;
+  for (let i = 0; i < 120; i++) {
+    lit = rays.update(1 / 60, {x: 0, z: 0});
+    darts = Math.max(darts, rays.dart.count); pops = Math.max(pops, rays.pop.count);
+  }
+  assert.ok(darts >= 3 && pops >= 1, `darts ${darts} pops ${pops}`);
+  assert.equal(rays.active, 0);
+  assert.equal(lit, 0);
+  assert.equal(rays.dart.count + rays.pop.count + rays.core.count, 0);
+  // the beam under the darts is a dim wake next to a fire bolt's
+  const wake = rayFrame(bolt('magic missile'), 60)[0].intensity * RAY_LOOKS['magic missile'].beam;
+  assert.ok(wake < .4 * rayFrame(bolt('fire'), 60)[0].intensity);
+  rays.dispose();
+  assert.equal(parent.children.length, 0);
+});

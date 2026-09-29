@@ -12,6 +12,11 @@
 //
 // rayFrame(), raySparks(), digGrit() and rubble() are pure, so they can be tested
 // without a renderer; createRays() draws them with instanced meshes and one point cloud.
+//
+// Magic missiles fly as a volley of darts (missiles.js); their beam here is only a faint
+// wake (`beam` scales it down).
+
+import {missilePaths, missileFrame, missileTail, MISSILE_LOOK} from './missiles.js';
 
 // Ray cells are 1 tile long; they sit at chest height.
 export const RAY_Y = .5;
@@ -26,7 +31,7 @@ export const MIRROR_MS = 280;
 // core: the bright centre, drawn solid; glow: the additive halo round it.
 // Death is the odd one out, a dark core in a dim violet haze.
 export const RAY_LOOKS = {
-  'magic missile': {core: 0xe8f0ff, glow: 0x6d8cff, width: .05, glowWidth: .2, flicker: .15, spark: 0xaec4ff},
+  'magic missile': {core: 0xe8f0ff, glow: 0x6d8cff, width: .05, glowWidth: .2, flicker: .15, spark: 0xaec4ff, beam: .3},
   fire: {core: 0xfff2c0, glow: 0xff5a14, width: .07, glowWidth: .26, flicker: .3, spark: 0xffa040},
   cold: {core: 0xf2fdff, glow: 0x7fd8ff, width: .05, glowWidth: .22, flicker: .08, spark: 0xd8f6ff},
   sleep: {core: 0xf0e0ff, glow: 0x9a5cff, width: .045, glowWidth: .22, flicker: .1, spark: 0xc9a8ff},
@@ -291,7 +296,7 @@ export function rubble(cells, t) {
   return {puffs, chips};
 }
 
-const MAX_SEGS = 96, MAX_SPARKS = 192, MAX_MIRRORS = 8, MAX_PUFFS = 48, MAX_CHIPS = 64;
+const MAX_DARTS = 32, MAX_SEGS = 96, MAX_SPARKS = 480, MAX_MIRRORS = 8, MAX_PUFFS = 48, MAX_CHIPS = 64;
 
 // Draws queued ray timelines. play(timeline, {reflectorAt, solidAt}) starts one now
 // (reflectorAt, if given, is markMirrors()'s lookup and solidAt digCells()'s, in map cells); update(dt, origin) advances
@@ -323,30 +328,38 @@ export function createRays(THREE, parent) {
   const chipGeo = new THREE.BoxGeometry(1, .45, .8);
   const chipMat = new THREE.MeshLambertMaterial({color: 0xffffff});
   const chip = new THREE.InstancedMesh(chipGeo, chipMat, MAX_CHIPS);
+  // Magic missile darts: a long glowing diamond in a wider halo, and a star where each ends.
+  const dartGeo = new THREE.OctahedronGeometry(1, 0);
+  const dartMat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, depthWrite: false,
+    blending: THREE.AdditiveBlending, toneMapped: false});
+  const dart = new THREE.InstancedMesh(dartGeo, dartMat, MAX_DARTS);
+  const dartGlow = new THREE.InstancedMesh(dartGeo, glowMat, MAX_DARTS);
+  const pop = new THREE.InstancedMesh(dartGeo, dartMat, MAX_DARTS);
+  for (const m of [dart, dartGlow, pop]) { m.frustumCulled = false; m.renderOrder = 5; m.userData.part = 'rays'; parent.add(m); m.count = 0; }
   for (const m of [core, glow, sparks, flash, ring, puff, chip]) { m.frustumCulled = false; m.renderOrder = 5; m.userData.part = 'rays'; parent.add(m); }
   core.count = glow.count = flash.count = ring.count = puff.count = chip.count = 0; sparkGeo.setDrawRange(0, 0);
   const matrix = new THREE.Matrix4(), q = new THREE.Quaternion(), pos = new THREE.Vector3(), scale = new THREE.Vector3();
-  const up = new THREE.Vector3(0, 1, 0), color = new THREE.Color(), euler = new THREE.Euler();
+  const up = new THREE.Vector3(0, 1, 0), color = new THREE.Color(), color2 = new THREE.Color(), euler = new THREE.Euler();
   const playing = [];
 
   const white = new THREE.Color(0xffffff);
   function play(timeline, {reflectorAt, solidAt} = {}) {
     if (!rayRuns(timeline).length) return false;
-    playing.push({timeline, bounces: markMirrors(rayBounces(timeline), reflectorAt), dig: digCells(timeline, solidAt), t: 0});
+    playing.push({timeline, bounces: markMirrors(rayBounces(timeline), reflectorAt), dig: digCells(timeline, solidAt), missiles: missilePaths(timeline), t: 0});
     return true;
   }
 
   function update(dt, origin) {
-    let n = 0, p = 0, f = 0, d = 0, c = 0;
+    let n = 0, p = 0, f = 0, d = 0, c = 0, md = 0, o = 0;
     const ox = origin?.x ?? 0, oz = origin?.z ?? 0;
     for (let i = playing.length - 1; i >= 0; i--) {
       const r = playing[i];
       r.t += dt * 1000;
       const tail = r.dig.length ? Math.max(RAY_FADE_MS, GRIT_MS, PUFF_MS) : Math.max(RAY_FADE_MS, SPARK_MS);
-      if (r.t > r.timeline.duration + tail) { playing.splice(i, 1); continue; }
+      if (r.t > Math.max(r.timeline.duration + tail, ...r.missiles.map(missileTail))) { playing.splice(i, 1); continue; }
       for (const s of rayFrame(r.timeline, r.t)) {
         if (n >= MAX_SEGS) break;
-        const L = s.look, k = s.intensity * (s.head ? 1.25 : 1);
+        const L = s.look, k = s.intensity * (s.head && !L.beam ? 1.25 : 1) * (L.beam ?? 1);
         q.setFromAxisAngle(up, -s.yaw);
         const diag = s.yaw % (Math.PI / 2) ? Math.SQRT2 : 1;
         // The perpendicular jag (lightning) shifts the cell sideways, across its own run.
@@ -360,7 +373,32 @@ export function createRays(THREE, parent) {
         glow.setColorAt(n, color.setHex(L.glow).multiplyScalar(k));
         n++;
       }
-      for (const s of [...raySparks(r.bounces, r.t), ...digGrit(r.dig, r.t)]) {
+      const volley = r.missiles.map(path => missileFrame(path, r.t));
+      for (const v of volley) {
+        for (const s of v.darts) {
+          if (md >= MAX_DARTS) break;
+          q.setFromAxisAngle(up, -s.yaw);
+          pos.set(s.x - ox, s.y, s.z - oz);
+          matrix.compose(pos, q, scale.set(.2 * s.size, .045, .045));
+          dart.setMatrixAt(md, matrix);
+          dart.setColorAt(md, color.setHex(MISSILE_LOOK.core));
+          matrix.compose(pos, q, scale.set(.34 * s.size, .12 * s.size, .12 * s.size));
+          dartGlow.setMatrixAt(md, matrix);
+          dartGlow.setColorAt(md, color.setHex(MISSILE_LOOK.glow).multiplyScalar(1.3));
+          md++;
+        }
+        for (const s of v.pops) {
+          if (o >= MAX_DARTS) break;
+          // A spinning four-point star, squashed flat so it reads as a twinkle.
+          q.setFromEuler(euler.set(s.size * 9, s.size * 5, 0));
+          pos.set(s.x - ox, s.y, s.z - oz);
+          matrix.compose(pos, q, scale.set(s.size, s.size * .25, s.size));
+          pop.setMatrixAt(o, matrix);
+          pop.setColorAt(o, color.setHex(MISSILE_LOOK.core).lerp(color2.setHex(MISSILE_LOOK.glow), 1 - s.alpha).multiplyScalar(s.alpha));
+          o++;
+        }
+      }
+      for (const s of [...raySparks(r.bounces, r.t), ...digGrit(r.dig, r.t), ...volley.flatMap(v => v.motes)]) {
         if (p >= MAX_SPARKS) break;
         sparkPos.set([s.x - ox, s.y, s.z - oz], p * 3);
         color.setHex(s.color).multiplyScalar(s.alpha);
@@ -403,21 +441,23 @@ export function createRays(THREE, parent) {
     core.count = glow.count = n;
     flash.count = ring.count = f;
     puff.count = d; chip.count = c;
-    for (const m of [core, glow, flash, ring, puff, chip]) {
-      m.instanceMatrix.needsUpdate = true;
-      if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    dart.count = dartGlow.count = md; pop.count = o;
+    for (const mesh of [core, glow, flash, ring, puff, chip, dart, dartGlow, pop]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
     sparkGeo.setDrawRange(0, p);
     sparkGeo.attributes.position.needsUpdate = sparkGeo.attributes.color.needsUpdate = true;
-    return n + p + f + d + c;
+    return n + p + f + d + c + md + o;
   }
 
   const clear = () => { playing.length = 0; update(0); };
   const dispose = () => {
-    for (const m of [core, glow, sparks, flash, ring, puff, chip]) parent.remove(m);
+    for (const mesh of [core, glow, sparks, flash, ring, puff, chip, dart, dartGlow, pop]) parent.remove(mesh);
+    dartGeo.dispose(); dartMat.dispose();
     box.dispose(); sparkGeo.dispose(); coreMat.dispose(); glowMat.dispose(); sparks.material.dispose();
     disc.dispose(); ringGeo.dispose(); flashMat.dispose();
     puffGeo.dispose(); puffMat.dispose(); chipGeo.dispose(); chipMat.dispose();
   };
-  return {play, update, clear, dispose, core, glow, sparks, flash, ring, puff, chip, get active() { return playing.length; }};
+  return {play, update, clear, dispose, core, glow, sparks, flash, ring, puff, chip, dart, dartGlow, pop, get active() { return playing.length; }};
 }

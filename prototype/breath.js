@@ -29,7 +29,8 @@ export const ARM_S = 2;
 // Per ray type: end is the colour a particle fades to; rise lifts (or drops) it over its
 // life; puff scales its size. Death (disintegration) throws violet sparks, not a dark cone.
 export const BREATH_LOOKS = {
-  'magic missile': {end: 0x2a3a90, rise: .05, puff: .8},
+  // A blast of missiles sprays glittering arcane sparks rather than a billowing cloud.
+  'magic missile': {end: 0x2a3a90, rise: .05, puff: 1.3, sparks: true},
   fire: {end: 0x3a1208, rise: .38, puff: 1.2},
   cold: {end: 0xbfe8ff, rise: -.08, puff: 1},
   sleep: {end: 0x5a3a8a, rise: .06, puff: 1.1},
