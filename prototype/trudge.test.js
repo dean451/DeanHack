@@ -88,3 +88,63 @@ test('a dead zombie stops trudging and leaves no lurch behind', () => {
   assert(Math.abs(a.body.rotation.z) < 1e-12);
   assert.equal(updateTrudge(a, NaN, false).roll, 0);
 });
+
+// Straw golem loose limbs (straw-flop.js). Kept here so package.json's test list is unchanged.
+import {updateStrawFlop, clearStrawFlop, isStrawFlop, FLOP} from './straw-flop.js';
+
+const limbs = a => [...a.arms.flatMap(r => [r.rotation.x, r.rotation.z]), a.head.rotation.x, a.head.rotation.z];
+
+test('straw golem limbs flop on the move, stay bounded and settle back to rest', () => {
+  const a = make('straw golem', "'");
+  a.target = new THREE.Vector3(0, 0, 0);
+  assert(isStrawFlop(a));
+  assert(!isStrawFlop(make('iron golem', "'")));
+  assert.equal(updateStrawFlop(make('iron golem', "'"), 1 / 60, 0, false), null);
+  const rest = limbs(a);
+  const dt = 1 / 60;
+  let t = 0, prev = limbs(a), maxStep = 0, maxArm = 0, swung = 0;
+  const run = (secs, walking, dead = false) => {
+    for (let i = 0; i < secs * 60; i++) {
+      t += dt;
+      if (dead) a.actions.dead = true;
+      clearActionPose(a, a.actions);
+      const w = walking && a.g.position.distanceTo(a.target) > .025;
+      if (walking) { const d = a.target.clone().sub(a.g.position); if (d.length() > .025) a.g.rotation.y = Math.atan2(d.x, d.z); }
+      slideTo(a, dt);
+      const o = updateStrawFlop(a, dt, t, w);
+      updateActions(a, a.actions, dt);
+      const now = limbs(a);
+      now.forEach((v, k) => { assert(Number.isFinite(v)); maxStep = Math.max(maxStep, Math.abs(v - prev[k])); });
+      prev = now;
+      for (const [x, z] of o.arms) { maxArm = Math.max(maxArm, Math.abs(x), Math.abs(z)); }
+      swung = Math.max(swung, Math.abs(o.arms[0][0]));
+      assert(Math.abs(o.head[0]) <= FLOP.head.max && Math.abs(o.head[1]) <= FLOP.head.max);
+    }
+  };
+  // idle: only a faint stir
+  run(4, false);
+  assert(maxArm < .08, `idle stir ${maxArm}`);
+  // walk one cell east, then a diagonal back: the arms swing out and ring
+  a.target = new THREE.Vector3(1, 0, 0); run(3, true);
+  a.target = new THREE.Vector3(0, 0, 1); run(3, true);
+  assert(swung > .12, `arms barely moved: ${swung}`);
+  assert(maxArm <= FLOP.arm.max + 1e-9);
+  assert(maxStep < .08, `limb jumped ${maxStep} rad in a frame`);
+  // dead: no breeze or flap, so the springs ring down to the model's rest pose
+  run(6, false, true);
+  limbs(a).forEach((v, k) => assert(Math.abs(v - rest[k]) < 1e-3, `limb ${k} off rest by ${v - rest[k]}`));
+  clearStrawFlop(a);
+  limbs(a).forEach((v, k) => assert(Math.abs(v - rest[k]) < 1e-12));
+});
+
+test('straw golem flop ignores teleports and bad frame times', () => {
+  const a = make('straw golem', "'");
+  updateStrawFlop(a, 1 / 60, 0, false);
+  a.g.position.set(40, 0, -30);
+  const o = updateStrawFlop(a, 1 / 60, .02, false);
+  for (const [x, z] of o.arms) assert(Math.abs(x) < .02 && Math.abs(z) < .02);
+  for (const dt of [NaN, -1, Infinity, 0]) {
+    const p = updateStrawFlop(a, dt, NaN, true);
+    [...p.arms.flat(), ...p.head].forEach(v => assert(Number.isFinite(v)));
+  }
+});
