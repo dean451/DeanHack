@@ -688,3 +688,28 @@ test('hobbits get their own curly-haired, waistcoated, bare-footed model instead
  const again=meshes(createCreature({name:'hobbit'}));
  parts.forEach((m,i)=>{assert.equal(m.geometry,again[i].geometry);assert.equal(m.material,parts[0].material);});
 });
+
+test('the tiger is its own striped big cat at full size instead of the scaled-up feline',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const tiger=createCreature({name:'tiger',symbol:102,color:11});
+ assert.equal(tiger.quirk,'feline');assert.equal(tiger.g.scale.x,1,'built at its own size, so its name plate is not blown up');
+ for(const key of ['body','head','tail'])assert(tiger[key]?.isObject3D,key);
+ assert.equal(tiger.legs.length,4);
+ // the old feline leg order: left hind, left fore, right hind, right fore
+ assert.deepEqual(tiger.legs.map(l=>[Math.sign(l.position.x),l.position.z>0]),[[-1,false],[-1,true],[1,false],[1,true]]);
+ const parts=meshes(tiger);assert.equal(parts.length,8);
+ let verts=0,black=0,white=0,n=0;
+ for(const m of parts){const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(m.userData.part==='body')for(let i=0;i<a.color.count;i++){const r=a.color.getX(i),g=a.color.getY(i),b=a.color.getZ(i);n++;if(r<.15&&g<.15)black++;if(r>.8&&g>.75&&b>.6)white++;}
+ }
+ assert(verts<32000,`${verts} vertices`);
+ assert(black/n>.08&&black/n<.45,`striped: ${(black/n).toFixed(2)} black`);
+ assert(white/n>.05,'a white belly');
+ tiger.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(tiger.g);
+ assert(b.min.y>-.02&&b.min.y<.01,`paws at ${b.min.y}`);
+ assert(b.max.y>.6&&b.max.y<.85,`head top at ${b.max.y}`);
+ assert(b.max.z-b.min.z<1.45,`length ${b.max.z-b.min.z}`);
+ const again=meshes(createCreature({name:'tiger'}));parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});

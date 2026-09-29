@@ -28,6 +28,7 @@ import {createPaperGolem} from './paper-golem.js';
 import {createJabberwock,JABBERWOCK_KINDS} from './jabberwock.js';
 import {createMummy} from './mummy.js';
 import {createHobbit} from './hobbit.js';
+import {createTiger} from './tiger.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2236,6 +2237,7 @@ export function createCreature(cell={}){
  if(/grid ?bug/.test(name))return gridBug();
  if(CANINES[name])return canine(CANINES[name]);
  if(PET_DOGS[name])return petDog(PET_DOGS[name]);
+ if(name==='tiger')return createTiger();
  if(FELINES[name])return feline(FELINES[name]);
  if(CROCODILES.includes(name))return createCrocodile(name);
  if(LIZARDS[name])return lizard(LIZARDS[name]);
