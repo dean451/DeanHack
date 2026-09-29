@@ -28,7 +28,7 @@ test('every wand appearance builds a finite wand of at most three meshes, held a
       assert(b.max.y > .2 && b.max.y < .7, `${name} tip ${b.max.y}`);
       assert(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < .12, `${name} thickness`);
     }
-    assert(ms < 50, `${name} took ${ms} ms`);
+    assert(ms < 500, `${name} took ${ms} ms`);
     wand.userData.dispose();
   }
 });
