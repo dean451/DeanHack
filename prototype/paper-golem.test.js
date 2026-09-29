@@ -40,5 +40,5 @@ test('the paper golem is folded from printed paper instead of the tinted stone g
  assert(ms<1000,`took ${ms} ms`);
  console.log(`paper golem: ${verts} vertices, ${ms.toFixed(0)} ms, bounds`,b.min.toArray().map(v=>+v.toFixed(3)),b.max.toArray().map(v=>+v.toFixed(3)));
  // the other golems keep the slab body
- assert(meshes(createCreature({name:'rope golem',symbol:QUOTE})).length>7);
+ assert(meshes(createCreature({name:'leather golem',symbol:QUOTE})).length>7);
 });

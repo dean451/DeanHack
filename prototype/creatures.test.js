@@ -660,3 +660,32 @@ test('ghosts and shades get their own sheeted, floating model instead of the gua
  parts.forEach((m,i)=>assert.equal(m.material,again[i].material));
  assert(ms<1000,`took ${ms} ms`);
 });
+
+test('rope golems get their own coiled, knotted rope model instead of the tinted stone slab',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const t0=performance.now(),golem=createCreature({name:'rope golem',symbol:39,color:3}),ms=performance.now()-t0;
+ assert.equal(golem.quirk,'golem');
+ for(const key of ['body','head','arm','core'])assert(golem[key]?.isObject3D,key);
+ assert.equal(golem.g.userData.core,golem.core);assert(golem.core.material.emissiveIntensity>1,'the eyes glow');
+ assert.equal(golem.legs.length,2);assert.equal(golem.arms.length,2);assert.equal(golem.arm,golem.arms[1]);
+ const parts=meshes(golem);
+ assert.equal(parts.length,7,'one mesh per moving part plus the eyes');
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+ }
+ assert(verts<25000,`${verts} vertices`);
+ golem.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(golem.g);
+ assert(b.min.y>-.02&&b.min.y<.02,`feet at ${b.min.y}`);
+ assert(b.max.y>1&&b.max.y<1.25,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
+ // the noose hangs lower from the left hand than the right hand reaches
+ const left=new THREE.Box3().setFromObject(golem.arms[0]),right=new THREE.Box3().setFromObject(golem.arms[1]);
+ assert(left.min.y<right.min.y-.1,'the noose hangs from the left hand');
+ const again=meshes(createCreature({name:'rope golem'}));
+ parts.forEach((m,i)=>{assert.equal(m.geometry,again[i].geometry);assert.equal(m.material,again[i].material);});
+ assert.notEqual(meshes(createCreature({name:'stone golem'}))[0].geometry,parts[0].geometry);
+ assert(ms<1000,`took ${ms} ms`);
+});

@@ -40,5 +40,5 @@ test('the straw golem is a scarecrow of bound sheaves instead of the tinted ston
  assert(ms<1000,`took ${ms} ms`);
  console.log(`straw golem: ${verts} vertices, ${ms.toFixed(0)} ms, bounds`,b.min.toArray().map(v=>+v.toFixed(3)),b.max.toArray().map(v=>+v.toFixed(3)));
  // the other golems keep the slab body
- assert.equal(meshes(createCreature({name:'rope golem',symbol:QUOTE})).length>7,true);
+ assert.equal(meshes(createCreature({name:'leather golem',symbol:QUOTE})).length>7,true);
 });

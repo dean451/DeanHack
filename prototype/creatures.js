@@ -25,6 +25,7 @@ import {createJuiblex} from './juiblex.js';
 import {createGhost,GHOSTS} from './ghost.js';
 import {createStrawGolem} from './straw-golem.js';
 import {createPaperGolem} from './paper-golem.js';
+import {createRopeGolem} from './rope-golem.js';
 import {createJabberwock,JABBERWOCK_KINDS} from './jabberwock.js';
 import {createMummy} from './mummy.js';
 
@@ -2308,6 +2309,7 @@ export function createCreature(cell={}){
  if(letter==='D'||/dragon/.test(name))return dragon(dragonLook(name,cell.color));
  if(name==='straw golem')return createStrawGolem();
  if(name==='paper golem')return createPaperGolem();
+ if(name==='rope golem')return createRopeGolem();
  {const golemMatch=name.match(/^(.*) golem$/);if(golemMatch)return golem(GOLEM_MATERIALS[golemMatch[1]]||GOLEM_MATERIALS.stone);}
  if(name==='giant turtle')return createTurtle();
  if(name==='tengu')return createTengu();
