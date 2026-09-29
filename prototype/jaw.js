@@ -57,5 +57,7 @@ export function jawPose(kind, attack, u, result = 'hit') {
   }
   if (kind === 'hit') return .18 * bump(u, .22);
   if (kind === 'die') return .38 * smooth((u - .15) / .5);
+  // a risen corpse starts with its jaw hanging as death left it, and shuts it getting up
+  if (kind === 'rise') return .38 * (1 - smooth((u - .3) / .5));
   return 0;
 }

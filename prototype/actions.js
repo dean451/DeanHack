@@ -16,8 +16,9 @@ import {swingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, cl
 import {hitStyle, hitReactionPose, HIT_TIME} from './hit-fx.js';
 import {catMove, catSize, catLength, catAttackPose} from './cats.js';
 import {jawPose, jawReach} from './jaw.js';
+import {risePose, RISE_TIME, RISE_BURST_U} from './rise.js';
 
-export const ACTION_TIME = {attack: .42, hit: .3, die: .9};
+export const ACTION_TIME = {attack: .42, hit: .3, die: .9, rise: RISE_TIME};
 // Wait no longer than this for a death to play before the map (and its corpse) goes on.
 export const MAX_HOLD_MS = 1000;
 // When a generic monster attack lands (monster-attacks.js strikes at u≈.44), and the most a
@@ -137,6 +138,10 @@ export function actionPose(action, u, face) {
     const m = deathPose(action.style, u, d);
     for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'scale', 'sx', 'sy', 'fade']) p[k] = m[k];
     p.yaw = m.spin;
+  } else if (action.kind === 'rise') {
+    // A corpse getting back up (rise.js): the topple's end pose, played back to standing.
+    const m = risePose(u, action.from, action.buried);
+    for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'scale']) p[k] = m[k];
   }
   // The lower jaw, for creatures that have one (jaw.js).
   p.jaw = jawPose(action.kind, action.attack, u, action.result);
@@ -232,6 +237,8 @@ export function updateActions(actor, q, dt) {
     const bu = (DEATH_BURST_U[a.style] ?? .8) * len;
     if (before < bu && q.age >= bu) q.deathBurst = {style: a.style ?? 'topple', dir: a.dir};
   }
+  // The grave dust as a risen corpse starts to push itself up.
+  if (a.kind === 'rise' && before < RISE_BURST_U * len && q.age >= RISE_BURST_U * len) q.riseBurst = {buried: !!a.buried};
   if (q.age >= len) {
     if (a.kind === 'die') { q.finished = true; return 'die'; }
     // Leave the attacker facing where it struck.

@@ -113,6 +113,10 @@ const LOOKS = {
   splat: {count: 34, speed: 1.3, up: 1.1, life: .9, gravity: 5, drag: 1.2, color: [.55, .75, .25], spread: 'ring', size: .05},
   dissipate: {count: 40, speed: .45, up: .6, life: 1.3, gravity: -.25, drag: 1.5, color: [.75, .78, .82], spread: 'swirl', size: .07},
   burst: {count: 36, speed: 2.4, up: .4, life: .45, gravity: 0, drag: 3.5, color: [1, .92, .6], spread: 'sphere', size: .05},
+  // A corpse getting back up (rise.js): grave dust kicked off the floor, and pale sickly
+  // motes curling up round it.
+  rise: {count: 22, speed: .7, up: .35, life: .8, gravity: 1.4, drag: 3.5, color: [.46, .42, .36], spread: 'ring', size: .045},
+  riseMotes: {count: 26, speed: .3, up: .8, life: 1.4, gravity: -.35, drag: 1.8, color: [.55, .78, .45], spread: 'swirl', size: .04},
 };
 
 function rng(seed) {
