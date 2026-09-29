@@ -954,6 +954,34 @@ test('the horn is a curled cow horn with brass fittings and a baldric looped on 
  model.userData.dispose();assert.equal(disposed,3);
 });
 
+test('the grappling hook is a forged three-fluke grapnel on a tripod, its rope bent on to the eye and coiled on the floor',()=>{
+ const model=createGroundModel({name:'grappling hook',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['hook-iron','hook-rope']);
+ let verts=0;const box=new THREE.Box3(),bounds={};
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+  part.geometry.computeBoundingBox();box.union(part.geometry.boundingBox);bounds[part.userData.part]=part.geometry.boundingBox;
+ }
+ assert(verts<12000,`${verts} vertices`);
+ // The iron rests on the floor with one fluke standing up; the rope coil lies flat beside it.
+ const iron=bounds['hook-iron'],rope=bounds['hook-rope'];
+ assert(Math.abs(iron.min.y)<1e-6&&iron.max.y>.13&&iron.max.y<.2,`iron ${iron.min.toArray()} ${iron.max.toArray()}`);
+ assert(rope.min.y>=0&&rope.min.y<.001&&rope.max.y<.05,`rope ${rope.min.toArray()} ${rope.max.toArray()}`);
+ // It stands on three feet: the eye at one end and the two lower flukes, well apart.
+ const P=model.children[0].geometry.attributes.position,feet=[];
+ for(let i=0;i<P.count;i++)if(P.getY(i)<.002)feet.push([P.getX(i),P.getZ(i)]);
+ const xs=feet.map(f=>f[0]),zs=feet.map(f=>f[1]);
+ assert(Math.max(...xs)-Math.min(...xs)>.15&&Math.max(...zs)-Math.min(...zs)>.12,`feet ${JSON.stringify(feet)}`);
+ // Normals point out of the floor-facing skin (the flat palms' edges face sideways), so the sweeps are wound outwards.
+ for(const part of model.children){const {position,normal}=part.geometry.attributes;let near=0,down=0;
+  for(let i=0;i<position.count;i++)if(position.getY(i)<.0012){near++;if(normal.getY(i)<-.3)down++;assert(normal.getY(i)<.5,`${part.userData.part} normal at ${i}`);}
+  assert(near>0&&down/near>.8,`${part.userData.part}: ${down} of ${near} floor normals face down`);}
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
 test('the crystal ball is a glass orb held in brass talons on a turned stand, centred where its aura swirls',()=>{
  const model=createGroundModel({name:'crystal ball',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['crystal-ball-stand','crystal-ball-brass','crystal-ball-depth','crystal-ball-mist','crystal-ball-glass']);
