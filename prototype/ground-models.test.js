@@ -1107,6 +1107,29 @@ test('the ice box is an oak ice chest on bun feet, with nickel fittings, a rimed
  model.userData.dispose();assert.equal(disposed,3);
 });
 
+test('the tinning kit is a tinplate case with a seaming crank, a soldering iron and two labelled tins',()=>{
+ const model=createGroundModel({name:'tinning kit',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['tinning-kit-metal','tinning-kit-matte']);
+ let verts=0;const bounds={};
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+  for(let i=0;i<normal.count;i++)assert(Math.abs(Math.hypot(normal.getX(i),normal.getY(i),normal.getZ(i))-1)<1e-4);
+  part.geometry.computeBoundingBox();bounds[part.userData.part]=part.geometry.boundingBox;
+ }
+ assert(verts<18000,`${verts} vertices`);
+ const metal=bounds['tinning-kit-metal'],matte=bounds['tinning-kit-matte'];
+ // The case sits on the floor; its lid tops out a little over a tenth of a cell.
+ assert(Math.abs(metal.min.y)<1e-6,`${metal.min.y}`);
+ assert(metal.max.y>.11&&metal.max.y<.13,`lid top ${metal.max.y}`);
+ // The labels, knob and handles sit within the metal's spread, no higher than the bail's grip.
+ assert(matte.max.y<metal.max.y+.004&&matte.min.y>-1e-6,`${matte.min.y} ${matte.max.y}`);
+ assert(metal.max.x-metal.min.x>.3,`${metal.min.x} ${metal.max.x}`);
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
 test('the crystal ball is a glass orb held in brass talons on a turned stand, centred where its aura swirls',()=>{
  const model=createGroundModel({name:'crystal ball',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['crystal-ball-stand','crystal-ball-brass','crystal-ball-depth','crystal-ball-mist','crystal-ball-glass']);
