@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
-import {slideTo, heavySlide, HEAVY, EASE_RATE} from './slide.js';
+import {slideTo, heavySlide, HEAVY, SPECIES_SLIDE, EASE_RATE} from './slide.js';
 
 const COLON = ':'.charCodeAt(0);
 const turtle = () => createCreature({name: 'giant turtle', symbol: COLON, color: 2});
@@ -70,4 +70,42 @@ test('a new move mid-slide keeps going smoothly; a far target catches up with th
   const path = run(a, [7, 0, 0], 3);
   assert(path[0].x - 2 > .5, 'catches up fast');
   assert.equal(a.g.position.x, 7);
+});
+
+test('zombies, heavy golems and oozes slide heavily by species; quick kin keep the ease', () => {
+  const mk = (species, symbol) => {
+    const a = createCreature({name: species, symbol: symbol.charCodeAt(0), color: 7});
+    a.species = species;
+    return a;
+  };
+  const heavy = [['kobold zombie', 'Z', 'zombie'], ['giant zombie', 'Z', 'zombie'],
+    ['iron golem', "'", 'golem'], ['clay golem', "'", 'golem'], ['wood golem', "'", 'golem'],
+    ['gelatinous cube', 'b', 'ooze'], ['black pudding', 'P', 'ooze']];
+  for (const [species, sym, kind] of heavy) assert.equal(heavySlide(mk(species, sym)), SPECIES_SLIDE[kind], species);
+  for (const [species, sym] of [['kobold mummy', 'M'], ['straw golem', "'"], ['paper golem', "'"],
+    ['acid blob', 'b'], ['ghoul', 'Z'], ['jackal', 'd']]) assert.equal(heavySlide(mk(species, sym)), null, species);
+
+  for (const [species, sym, kind] of heavy) {
+    const prof = SPECIES_SLIDE[kind];
+    for (const to of [[1, 0, 0], [1, 0, 1]]) {
+      const a = mk(species, sym);
+      const path = run(a, to, 5);
+      const dist = Math.hypot(...to);
+      let prev = new THREE.Vector3(), arrived = -1, maxStep = 0, first = null;
+      path.forEach((p, i) => {
+        for (const v of p.toArray()) assert(Number.isFinite(v));
+        const step = p.distanceTo(prev);
+        if (first == null) first = step;
+        maxStep = Math.max(maxStep, step);
+        assert(p.length() <= dist + 1e-9 && p.length() >= prev.length() - 1e-12);
+        prev = p;
+        if (arrived < 0 && p.distanceTo(a.target) <= .025) arrived = i / 60;
+      });
+      assert(first < .2 / 60, `${species} starts from rest`);
+      assert(maxStep <= prof.cruise / 60 + 1e-9, `${species} never faster than cruise`);
+      assert(arrived > .6 && arrived < 2, `${species} walks ${dist} in ${arrived} s`);
+      assert.deepEqual(a.g.position.toArray(), to.map(Number), `${species} lands exactly`);
+      assert.equal(a.slideSpeed, 0);
+    }
+  }
 });
