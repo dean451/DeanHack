@@ -328,6 +328,40 @@ test('mummies get their own linen-bound model instead of the strapped undead hum
  assert.equal(createCreature({name:'unknown thing',symbol:M,color:7}).quirk,'mummy');
 });
 
+test('zombies get their own rotting, ragged model instead of the tinted undead humanoid',()=>{
+ const Z=90,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ for(const name of ['kobold zombie','gnome zombie','orc zombie','dwarf zombie','elf zombie','human zombie','ettin zombie','giant zombie']){
+  const t0=performance.now(),zombie=createCreature({name,symbol:Z,color:7}),ms=performance.now()-t0;
+  assert.equal(zombie.quirk,'zombie',name);
+  for(const key of ['body','head','arm'])assert(zombie[key]?.isObject3D,`${name} ${key}`);
+  assert.equal(zombie.legs.length,2);assert.equal(zombie.arms.length,2);assert.equal(zombie.wings.length,0);assert.equal(zombie.tail,null);
+  const parts=meshes(zombie),heads=name==='ettin zombie'?2:1;
+  assert.equal(parts.length,5+2*heads,`${name}: one mesh per moving part plus the eyes`);
+  let verts=0;
+  for(const m of parts){
+   const a=m.geometry.attributes;verts+=a.position.count;
+   for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),`${name} ${m.userData.part} ${key}`);
+   if(a.color)for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+  }
+  assert(verts<30000,`${name}: ${verts} vertices`);
+  zombie.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(zombie.g),s=zombie.g.scale.y;
+  assert(b.min.y>-.03*s&&b.min.y<.03*s,`${name}: feet at ${b.min.y}`);
+  assert(b.max.y>1.05*s&&b.max.y<1.3*s,`${name}: top at ${b.max.y}`);
+  // one arm reaches out at chest height, the other hangs lower and shorter
+  const right=new THREE.Box3().setFromObject(zombie.arm),left=new THREE.Box3().setFromObject(zombie.arms[0]);
+  assert(right.max.z>.5*zombie.g.scale.z&&right.max.z<.72*zombie.g.scale.z,`${name}: hand reaches to z ${right.max.z}`);
+  assert(left.min.y<right.min.y&&left.max.z<right.max.z,`${name}: the stripped arm hangs lower`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8*zombie.g.scale.z,`${name} is out of proportion`);
+  assert(ms<1000,`${name} took ${ms} ms`);
+ }
+ // geometry is cached per species, and every zombie shares one material
+ const a=meshes(createCreature({name:'human zombie'})),b=meshes(createCreature({name:'human zombie'})),c=meshes(createCreature({name:'orc zombie'}));
+ a.forEach((m,i)=>{assert.equal(m.geometry,b[i].geometry);assert.equal(m.material,c[i].material);});
+ assert.notEqual(a[0].geometry,c[0].geometry);
+ assert.equal(createCreature({name:'unknown thing',symbol:Z,color:7}).quirk,'zombie');
+});
+
 test('elves get their own slender, cloaked, sword-bearing model instead of the tinted human',()=>{
  const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  for(const name of ['Woodland-elf','Green-elf','Grey-elf','elf-lord','Elvenking','High-elf']){
