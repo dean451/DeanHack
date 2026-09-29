@@ -59,6 +59,7 @@ import {createArcheologist} from './archeologist.js';
 import {createRogue} from './rogue.js';
 import {createBarbarian} from './barbarian.js';
 import {createHealer} from './healer.js';
+import {createElectricEel} from './electric-eel.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2240,6 +2241,7 @@ export function createCreature(cell={}){
  if(ANGELS[name])return angel(ANGELS[name]);
  if(JABBERWOCK_KINDS.includes(name))return createJabberwock(name);
  if(TRAPPERS[name])return trapper(TRAPPERS[name]);
+ if(name==='electric eel')return trimDraws(createElectricEel());
  if(SEA_MONSTERS[name])return seaMonster(SEA_MONSTERS[name]);
  if(name==='hezrou')return createHezrou();
  if(DEMONS[name])return demon(DEMONS[name]);
