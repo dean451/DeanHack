@@ -1792,3 +1792,23 @@ test('tripe rations are honeycomb tripe on butcher paper in one merged, vertex-c
  }
  one.dispose();two.dispose();
 });
+
+test('the slime mold is a lobed blob of see-through jelly around a seeded heart, spreading in a slick',()=>{
+ const model=createGroundModel({name:'slime mold',class:7});
+ const meshes=[];model.traverse(p=>{if(p.isMesh)meshes.push(p);});
+ assert.equal(meshes.length,2,'one jelly mesh and one core mesh');
+ const jelly=meshes.find(m=>m.material.transparent),heart=meshes.find(m=>!m.material.transparent);
+ assert(jelly&&heart,'a translucent jelly over an opaque heart');
+ assert(jelly.material.opacity<.8&&jelly.material.roughness<.2,'the jelly is glossy and see-through');
+ for(const m of meshes){const a=m.geometry.attributes;for(const k of ['position','normal','color'])for(const v of a[k].array)assert(Number.isFinite(v),k);}
+ model.updateMatrixWorld(true);
+ const all=new THREE.Box3().setFromObject(model),core=new THREE.Box3().setFromObject(heart),blob=new THREE.Box3().setFromObject(jelly);
+ assert(Math.abs(all.min.y)<1e-6,'grounded');
+ assert(all.max.y>.08&&all.max.y<.16,`height ${all.max.y}`);
+ // the slick and pseudopods spread wider than the dome, and the heart sits inside the jelly
+ assert(blob.max.x-blob.min.x>.3,'spreads over the floor');
+ assert(blob.containsBox(core),'the heart is inside the jelly');
+ // every slime mold is its own geometry, so disposing one leaves the rest alone
+ const other=[];createGroundModel({name:'slime mold',class:7}).traverse(p=>{if(p.isMesh)other.push(p);});
+ assert.notEqual(other[0].geometry,meshes[0].geometry);
+});
