@@ -136,15 +136,21 @@ const HAT_PIVOT = new THREE.Vector3(0, -.18, 0), BEARD_PIVOT = new THREE.Vector3
 // Wingbeats for the 'bat' quirk (live.js writes wing.rotation.z = side * wingFlap(style, t)).
 // Bats keep their fast, even flutter. Ravens (their own model in raven.js, which reuses the quirk)
 // beat about once a second, with a quick downstroke and a slower recovery, and every few seconds
-// hold their wings out and glide before beating again.
+// hold their wings out and glide before beating again. The couatl (couatl.js, quirk 'hover') gets
+// a slow, lazy feathered beat about the same axis instead of the generic forward/back wing sway,
+// and every so often hangs with its wings held up in their V while it drifts down a little.
 export const FLIGHT = {
   bat: {rate: 14, amp: .65},
-  raven: {rate: 6.5, amp: .5, skew: .5, cycle: 6, glide: 2.2, ease: .45, drift: .03, hover: .03, lift: .012, sink: .05, climb: .6},
+  raven: {rate: 6.5, amp: .5, skew: .5, cycle: 6, glide: 2.2, ease: .45, drift: .03, hold: 0, hover: .03, lift: .012, sink: .05, climb: .6},
+  couatl: {rate: 3.4, amp: .3, skew: .35, cycle: 8.5, glide: 1.8, ease: .6, drift: .025, hold: .12, hover: .045, lift: .014, sink: .025, climb: .5},
 };
 
 export function flapStyle(name) {
-  return /\braven\b/i.test(name || '') ? {kind: 'raven', phase: Math.random() * FLIGHT.raven.cycle} : null;
+  const kind = /\braven\b/i.test(name || '') ? 'raven' : /\bcouatl\b/i.test(name || '') ? 'couatl' : null;
+  return kind ? {kind, phase: Math.random() * FLIGHT[kind].cycle} : null;
 }
+
+const flight = style => FLIGHT[style?.kind] && style.kind !== 'bat' ? FLIGHT[style.kind] : null;
 
 const smooth = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
 
@@ -157,12 +163,13 @@ export function beatWeight(u, F = FLIGHT.raven) {
 }
 
 export function wingFlap(style, t) {
-  if (style?.kind !== 'raven') return Math.sin(t * FLIGHT.bat.rate) * FLIGHT.bat.amp;
-  const F = FLIGHT.raven, u = t + (style.phase || 0), th = u * F.rate;
+  const F = flight(style);
+  if (!F) return Math.sin(t * FLIGHT.bat.rate) * FLIGHT.bat.amp;
+  const u = t + (style.phase || 0), th = u * F.rate;
   // phase warp: one half of the stroke passes quicker than the other
   const stroke = Math.sin(th + F.skew * Math.sin(th)) * F.amp;
   const w = beatWeight(u, F);
-  return stroke * w + Math.sin(u * 1.8) * F.drift * (1 - w);
+  return stroke * w + (F.hold + Math.sin(u * 1.8) * F.drift) * (1 - w);
 }
 
 // Height of a flier's body (live.js writes body.position.y). Bats and other hoverers keep their bob.
@@ -176,8 +183,9 @@ export function glideSink(u, F = FLIGHT.raven) {
 }
 
 export function flightBob(style, t, seed = 0) {
-  if (style?.kind !== 'raven') return Math.sin(t * 2.2 + seed) * .06;
-  const F = FLIGHT.raven, u = t + (style.phase || 0), th = u * F.rate;
+  const F = flight(style);
+  if (!F) return Math.sin(t * 2.2 + seed) * .06;
+  const u = t + (style.phase || 0), th = u * F.rate;
   const w = beatWeight(u, F);
   // the body rides up while the wings sweep down (a quarter stroke ahead of the wings)
   const lift = -Math.cos(th + F.skew * Math.sin(th)) * F.lift * w;

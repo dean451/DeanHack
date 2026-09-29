@@ -150,3 +150,42 @@ test('bats keep their hover bob; ravens sink through the glide and climb back', 
     assert.ok(Math.abs(flightBob(style, t) - (Math.sin(u * 1.1) * F.hover + glideSink(u))) < 1e-9);
   }
 });
+
+test('the couatl beats its raised wings slowly about z and hangs with them held up', async () => {
+  const style = flapStyle('couatl');
+  assert.equal(style.kind, 'couatl');
+  assert.equal(flapStyle('raven').kind, 'raven');
+  const F = FLIGHT.couatl, R = FLIGHT.raven, dt = 1 / 240, beat = F.cycle - F.glide;
+  assert.ok(F.rate < R.rate && F.amp < R.amp, 'lazier than a raven');
+  assert.equal(R.hold, 0);
+  let prevW = wingFlap(style, 0), prevB = flightBob(style, 0), stepW = 0, stepB = 0, lo = 0, hi = 0;
+  for (let t = dt; t < 3 * F.cycle; t += dt) {
+    const w = wingFlap(style, t), b = flightBob(style, t);
+    assert.ok(Number.isFinite(w) && Math.abs(w) <= F.amp + F.hold + F.drift + 1e-9, `${w}`);
+    assert.ok(Number.isFinite(b) && Math.abs(b) <= F.hover + F.lift + F.sink + 1e-9, `${b}`);
+    stepW = Math.max(stepW, Math.abs(w - prevW)); stepB = Math.max(stepB, Math.abs(b - prevB));
+    lo = Math.min(lo, w); hi = Math.max(hi, w);
+    const u = ((t + style.phase) % F.cycle + F.cycle) % F.cycle;
+    // the hang: wings held up in their V, only drifting
+    if (u > beat + F.ease) assert.ok(Math.abs(w - F.hold) <= F.drift + 1e-9, `hang ${w}`);
+    prevW = w; prevB = b;
+  }
+  assert.ok(stepW < F.amp * F.rate * 2 * dt, `wing step ${stepW}`);
+  assert.ok(stepB < .004, `bob step ${stepB}`);
+  assert.ok(hi > .27 && lo < -.27, 'full strokes');
+  for (let u = 0; u < F.cycle; u += .001) assert.ok(Math.abs(beatWeight(u + .001, F) - beatWeight(u, F)) < .01);
+
+  // a real couatl driven like live.js: wings turn about z only, and mirror each other
+  const {createCouatl} = await import('./couatl.js');
+  const c = createCouatl();
+  assert.equal(c.quirk, 'hover');
+  assert.equal(c.wings.length, 2);
+  for (let t = 0; t < 10; t += 1 / 60) {
+    c.wings.forEach((wing, i) => { wing.rotation.z = (wing.userData.side || (i ? 1 : -1)) * wingFlap(style, t); });
+    c.body.position.y = flightBob(style, t, 0);
+    const [a, b] = c.wings;
+    assert.ok(Math.abs(a.rotation.z + b.rotation.z) < 1e-12, 'mirrored');
+    assert.equal(a.rotation.y, 0);
+    assert.ok(Math.abs(c.body.position.y) < .09);
+  }
+});
