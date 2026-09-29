@@ -5,6 +5,8 @@ import {createLightItem} from './shop-visuals.js';
 import {createCandelabrum} from './candelabrum.js';
 import {createWatch} from './watch.js';
 import {createFlameFlicker, flameState, flameLightPosition, FLAME_SCAN_EVERY, FLAME_LIGHTS, FLAME_LIGHT_INTENSITY, FLAME_LIGHT_LANTERN} from './flame-flicker.js';
+import {createThrone} from './throne.js';
+import {createThroneGleam, gleamState, glint, GLEAM_BREATHE, GLEAM_SMOULDER, GLEAM_GLINT, GLEAM_SAPPHIRE_EVERY, GLEAM_RUBY_EVERY} from './throne-gleam.js';
 
 // The world position of the bottom centre of a flame's geometry (its root on the wick).
 function root(mesh) {
@@ -129,4 +131,50 @@ test('a fixed pool of warm lights follows the flames nearest the focus, flickers
   assert(plain.lights.every(l => l.intensity === 0));
   flicker.restore();assert(lights.every(l => l.intensity === 0));
   flicker.dispose();assert.equal(count(), 0);
+});
+
+// Throne jewels (throne-gleam.js) are tested here too, beside the other glowing ambience.
+
+test('gleamState stays finite and bounded, and each stone glints about once per slot', () => {
+  let sapphireGlints = 0, rubyGlints = 0, wasS = false, wasR = false;
+  for (let t = 0; t < 140; t += 1 / 60) {
+    const c = gleamState(t, 1.7);
+    for (const v of Object.values(c)) assert(Number.isFinite(v));
+    assert(c.sapphire >= 1 - GLEAM_BREATHE - 1e-9 && c.sapphire <= 1 + GLEAM_BREATHE + GLEAM_GLINT + 1e-9, `sapphire ${c.sapphire}`);
+    assert(c.ruby >= 1 - GLEAM_SMOULDER - 1e-9 && c.ruby <= 1 + GLEAM_SMOULDER + GLEAM_GLINT + 1e-9, `ruby ${c.ruby}`);
+    const s = c.sapphireGlint > .5, r = c.rubyGlint > .5;
+    if (s && !wasS) sapphireGlints++;
+    if (r && !wasR) rubyGlints++;
+    wasS = s;wasR = r;
+  }
+  assert(Math.abs(sapphireGlints - 140 / GLEAM_SAPPHIRE_EVERY) <= 1, `sapphire glints ${sapphireGlints}`);
+  assert(Math.abs(rubyGlints - 140 / GLEAM_RUBY_EVERY) <= 1, `ruby glints ${rubyGlints}`);
+  // A glint is continuous across slot boundaries: it's ~0 there.
+  for (let k = 1; k < 20; k++) assert(glint(k * GLEAM_SAPPHIRE_EVERY - 1e-6, GLEAM_SAPPHIRE_EVERY) < 1e-6);
+});
+
+test('throne jewels breathe and glint smoothly, out of step between thrones, and restore exactly', () => {
+  const scene = new THREE.Scene(), thrones = [createThrone(), createThrone()];
+  thrones.forEach((th, i) => { th.position.x = i * 2;scene.add(th); });
+  const stones = thrones.map(th => th.children.filter(c => ['jewel', 'ruby'].includes(c.userData.part)));
+  const rest = stones.map(list => list.map(m => m.material.emissiveIntensity));
+  assert(stones.every(list => list.length === 2));
+  const gleam = createThroneGleam(scene);
+  let maxStep = 0, differ = 0, prev = null;
+  for (let t = 0; t < 30; t += 1 / 60) {
+    gleam.update(t);
+    const now = stones.map((list, i) => list.map((m, j) => m.material.emissiveIntensity / rest[i][j]));
+    for (const v of now.flat()) assert(Number.isFinite(v) && v > .5 && v < 2);
+    if (prev) for (let i = 0; i < now.flat().length; i++) maxStep = Math.max(maxStep, Math.abs(now.flat()[i] - prev.flat()[i]));
+    if (Math.abs(now[0][0] - now[1][0]) > .02) differ++;
+    prev = now;
+  }
+  assert.equal(gleam.thrones.length, 2);
+  assert(maxStep < .15, `no glow jump bigger than ${maxStep} a frame`);
+  assert(differ > 100, 'two thrones do not pulse in step');
+  scene.remove(thrones[1]);gleam.update(31);
+  assert.deepEqual(stones[1].map(m => m.material.emissiveIntensity), rest[1], 'a throne that leaves the scene gets its glow back');
+  gleam.restore();
+  assert.deepEqual(stones.map(list => list.map(m => m.material.emissiveIntensity)), rest);
+  for (const th of thrones) th.userData.dispose();
 });
