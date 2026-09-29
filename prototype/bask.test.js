@@ -115,3 +115,25 @@ test('the snout tips up with the gape, holds steady and settles back to rest', a
   assert.equal(a.bask.lift, 0);
   assert(Math.abs(a.head.rotation.x - headRest) < 1e-9, 'head back at rest after the bite');
 });
+
+test('a gallery crocodile, with no action queue, basks on its own and settles back to rest', () => {
+  // The gallery in main.js builds creatures by name alone and never gives them actions.
+  const a = createCreature({name: 'crocodile', kind: 'monster'});
+  assert(basks(a));
+  const jaw0 = a.jaw.rotation.x, head0 = a.head.rotation.x, dt = 1 / 60;
+  let opened = 0, prevJaw = jaw0, t = 0;
+  for (let i = 0; i < 60 * 60; i++, t += dt) {
+    updateBask(a, dt, t, false);
+    const g = a.jaw.rotation.x - jaw0, l = head0 - a.head.rotation.x;
+    assert(Number.isFinite(g) && Number.isFinite(l));
+    assert(g >= -1e-12 && g <= Math.min(JAW_GAPE, BASK_GAPE + BASK_BREATH) + 1e-9, `gape ${g}`);
+    assert(l >= -1e-12 && l <= SNOUT_LIFT + 1e-9, `lift ${l}`);
+    assert(Math.abs(a.jaw.rotation.x - prevJaw) < .01, `no jumps at ${t}`);
+    prevJaw = a.jaw.rotation.x;
+    opened = Math.max(opened, g);
+  }
+  assert(opened > BASK_GAPE * .9, 'it gaped at least once in a minute');
+  // Made busy, it closes all the way back to rest.
+  for (let i = 0; i < 60; i++, t += dt) updateBask(a, dt, t, true);
+  assert(Math.abs(a.jaw.rotation.x - jaw0) < 1e-12 && Math.abs(a.head.rotation.x - head0) < 1e-12);
+});
