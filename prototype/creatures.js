@@ -406,16 +406,29 @@ const nose=mat('#1b1716',{roughness:.5}),darkEye=mat('#0e0c0b',{roughness:.2,met
 function tube(parent,points,radius,material,segments=16){return part(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),segments,radius,8,false),material);}
 
 // Jackals, coyotes, foxes, wolves: lean body, tall ears, long muzzle, bushy tail.
+// Hellfire for hell hounds: tongues of flame tagged part 'flame', so flame-flicker.js flickers
+// them and lends them its point lights. One lathe tongue, white-hot at the root and deep red at
+// the tip, shared by every flame; each is placed, scaled and leaned on its own.
+const HELLFIRE=(()=>{
+ const geo=new THREE.LatheGeometry([[0,0],[.03,.012],[.042,.04],[.036,.08],[.022,.12],[.008,.16],[0,.19]].map(([r,y])=>new THREE.Vector2(r,y)),12);
+ const p=geo.attributes.position,c=new THREE.Color(),cols=[],hot=new THREE.Color(0xfff2b0),mid=new THREE.Color(0xff8a1a),tip=new THREE.Color(0xc81e08);
+ for(let i=0;i<p.count;i++){const t=p.getY(i)/.19;c.copy(hot).lerp(mid,Math.min(1,t*2.2));if(t>.45)c.lerp(tip,(t-.45)/.55);cols.push(c.r,c.g,c.b);}
+ geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+ return {geo,material:new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false})};
+})();
+function hellfire(parent,x,y,z,s,lean=0,tilt=0){const f=new THREE.Mesh(HELLFIRE.geo,HELLFIRE.material);f.position.set(x,y,z);f.scale.setScalar(s);f.rotation.set(lean,0,tilt);f.castShadow=f.receiveShadow=false;f.userData.part='flame';parent.add(f);return f;}
+const EMBER_EYE=mat('#ffc050',{emissive:'#ff6010',emissiveIntensity:3,roughness:.3});
 function canine(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
- const coat=mat(o.coat),back=mat(o.back||shade(o.coat,.55)),belly=mat(o.belly||shade(o.coat,1.45)),legH=o.legH||.3,y=legH+.1;
+ // a hell hound's coat is charred, smouldering through, and its belly glows like embers
+ const coat=o.fire?mat(o.coat,{emissive:'#4a0c02',emissiveIntensity:.5}):mat(o.coat),back=mat(o.back||shade(o.coat,.55)),belly=o.fire?mat(o.belly,{emissive:'#c0300a',emissiveIntensity:1}):mat(o.belly||shade(o.coat,1.45)),legH=o.legH||.3,y=legH+.1,eye=o.fire?EMBER_EYE:darkEye;
  sphere(body,.2,coat,0,y,-.03,.72,.7,1.5);sphere(body,.17,coat,0,y+.03,.16,.82,.9,.9);sphere(body,.12,belly,0,y-.07,.14,.75,.6,1.1);sphere(body,.15,back,0,y+.1,-.08,.72,.38,1.3);
  const neck=cylinder(body,.07,.1,.22,coat,0,y+.15,.26,8);neck.rotation.x=.8;
  const head=new THREE.Group();head.position.set(0,y+.26,.34);body.add(head);
  sphere(head,.1,coat,0,0,0,.95,.85,1.05);
  const snoutL=o.snout||.2,snout=cylinder(head,.03,.065,snoutL,coat,0,-.035,.06+snoutL/2,10);snout.rotation.x=Math.PI/2;
  sphere(head,.05,belly,0,-.07,.1,.9,.5,1.5);sphere(head,.03,nose,0,-.03,.06+snoutL,1,.85,1);
- for(const side of [-1,1]){const ear=cone(head,.045,o.ears||.15,coat,side*.055,.11,-.02,4);ear.rotation.z=-side*.28;const inner=cone(head,.025,(o.ears||.15)*.7,belly,side*.055,.1,.0,4);inner.rotation.z=-side*.28;sphere(head,.018,darkEye,side*.05,.025,.08);}
+ for(const side of [-1,1]){const ear=cone(head,.045,o.ears||.15,coat,side*.055,.11,-.02,4);ear.rotation.z=-side*.28;const inner=cone(head,.025,(o.ears||.15)*.7,belly,side*.055,.1,.0,4);inner.rotation.z=-side*.28;sphere(head,.018,eye,side*.05,.025,.08);}
  for(const x of [-.085,.085])for(const z of [-.2,.17]){const leg=new THREE.Group();leg.position.set(x,y-.03,z);body.add(leg);rounded(leg,.06,legH,.065,coat,0,-legH/2,0,.02);sphere(leg,.035,o.socks?mat(o.socks):back,0,-legH+.02,.02,1,.7,1.3);legs.push(leg);}
  const tail=new THREE.Group();tail.position.set(0,y+.05,-.28);body.add(tail);
  // bushy tail: a lathe profile swept along a drooping curve, dark (or white) tip
@@ -423,6 +436,14 @@ function canine(o){
  const bush=o.bushy??.04,samples=12;
  for(let i=0;i<samples;i++){const t=i/(samples-1),p=tailCurve.getPoint(t),r=.03+Math.sin(Math.min(1,t*1.15)*Math.PI*.95)*bush+(t>.8?-.02*(t-.8)/.2:0);
   const seg=sphere(tail,Math.max(.015,r),t>.78&&o.tip?mat(o.tip):coat,p.x,p.y,p.z);const tan=tailCurve.getTangent(t);seg.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),tan);seg.scale.set(1,1.6,1);}
+ if(o.fire){
+  // a mane of flame down the neck and spine, flames behind the ears, a burning tail tip and
+  // flames licking up round every paw
+  [[.2,.12,1],[.1,.15,1.2],[0,.16,1.15],[-.1,.15,1],[-.2,.12,.8]].forEach(([z,h,sc],i)=>hellfire(body,(i%2?.025:-.025),y+h,z,sc,-.55,(i%2?-1:1)*.12));
+  for(const x of [-.04,.04])hellfire(head,x,.08,-.07,.65,-.8,-x*4);
+  hellfire(tail,0,-.3,-.24,.85,.2);hellfire(tail,0,-.16,-.2,.6,-.3);
+  for(const leg of legs)hellfire(leg,0,-legH+.005,.02,.45);
+ }
  return actor(g,body,legs,tail,[],o.quirk||'canine');
 }
 const CANINES={
@@ -432,7 +453,8 @@ const CANINES={
  fox:{coat:'#c9652b',back:'#b0531f',belly:'#f1e7d8',tip:'#f5f0e8',socks:'#1e1a18',ears:.15,snout:.18,legH:.22,scale:.85,bushy:.06},
  wolf:{coat:'#8a8a86',back:'#4f4f4d',belly:'#d5d3cc',tip:'#2b2b2b',ears:.14,snout:.2,legH:.34,scale:1.2,bushy:.05},
  warg:{coat:'#5a524a',back:'#2c2825',belly:'#8a8176',tip:'#1f1c1a',ears:.13,snout:.2,legH:.36,scale:1.4,bushy:.05},
- 'hell hound':{coat:'#7a2a20',back:'#2a100c',belly:'#c2562c',tip:'#ff7a2a',ears:.14,snout:.2,legH:.34,scale:1.3},
+ 'hell hound pup':{coat:'#3a1812',back:'#140806',belly:'#e0602a',tip:'#ff7a2a',ears:.13,snout:.17,legH:.26,scale:.85,fire:true},
+ 'hell hound':{coat:'#3a1812',back:'#140806',belly:'#e0602a',tip:'#ff7a2a',ears:.14,snout:.2,legH:.34,scale:1.3,fire:true},
 };
 
 // Pet dogs: a deep chest and tucked waist, a boxy muzzle with a panting tongue, a collar
