@@ -3188,6 +3188,139 @@ function buildIceBox({g,materials}){
  g.rotation.y=-.18;
 }
 
+// The tinning kit: a japanned-edge tinplate case with a hinged, panelled lid, soldered corner
+// seams, a wire bail handle folded flat and a paper maker's label on the front. A seaming
+// crank is bolted to one end: a bracket, a spindle, a chuck and a crank with a turned knob.
+// A soldering iron lies in front (copper bit, iron shank, wooden handle), and two finished
+// tins with rolled beads, embossed ends and paper labels sit beside the case, one standing,
+// one on its side. Two merged, vertex-coloured meshes: the metal and the matte (paper, wood).
+function buildTinningKit({g,materials}){
+ const C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z),M=new THREE.Matrix4();
+ const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.78,roughness:.34});
+ const matteMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:0,roughness:.8});
+ materials.push(metalMat,matteMat);
+ const metal=[],matte=[],c=new THREE.Color();
+ // Paint each piece in its own frame, then place it with an optional matrix.
+ const put=(geo,paint,list=metal,mtx)=>{
+  if(geo.attributes.uv)geo.deleteAttribute('uv');
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   paint(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i));
+   cols[i*3]=Math.min(1,Math.max(0,c.r));cols[i*3+1]=Math.min(1,Math.max(0,c.g));cols[i*3+2]=Math.min(1,Math.max(0,c.b));
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));
+  if(mtx)out.applyMatrix4(mtx);list.push(out);
+ };
+ const at=(geo,x,y,z)=>{geo.translate(x,y,z);return geo;};
+ // Tinplate: a crystalline spangle, bright on rolled edges and bevels, freckled with rust low down.
+ const TIN=C(0xb4bdc1),TIN_HI=C(0xeef2f4),TIN_LO=C(0x6c7478),RUST=C(0x7a4424);
+ const tin=(col,x,y,z,nx,ny,nz)=>{
+  const s=stoneNoise(x*9,y*9,z*9,17),f=Math.sin(Math.floor(x*160)*12.9+Math.floor(z*160)*78.2+Math.floor(y*160)*37.7)*.5+.5;
+  col.copy(TIN).lerp(s>0?TIN_HI:TIN_LO,Math.abs(s)*.35).lerp(f>.5?TIN_HI:TIN_LO,.12);
+  const edge=Math.max(Math.abs(nx),Math.abs(ny),Math.abs(nz));if(edge<.92)col.lerp(TIN_HI,(.92-edge)*.8);
+  if(ny<-.5)col.lerp(TIN_LO,.5);
+  const r=stoneNoise(x*5+1.3,y*5,z*5-.7,41);if(r>.55)col.lerp(RUST,Math.min(1,(r-.55)*3)*.55);
+ };
+ const SOLDER=C(0x7d8185),SOLDER_HI=C(0xa9adb0);
+ const solder=(col,x,y,z,nx,ny)=>col.copy(SOLDER).lerp(SOLDER_HI,(Math.sin(y*900+x*300)*.5+.5)*.5*Math.max(0,1-Math.abs(ny)));
+ const IRON=C(0x3d3f42),IRON_HI=C(0x7b7f83);
+ const iron=(col,x,y,z,nx,ny)=>{col.copy(IRON).lerp(IRON_HI,Math.max(0,ny)*.4);const e=Math.max(Math.abs(nx),Math.abs(ny));if(e<.9)col.lerp(IRON_HI,(.9-e)*.7);};
+ const COPPER=C(0xb86a3a),COPPER_HI=C(0xf0a870),VERDIGRIS=C(0x4f7a66),SCALE=C(0x3a2418);
+ const BEECH=C(0x9a6a3e),GRAIN=C(0x5a3719),WORN=C(0xc9a26e);
+ const PAPER=C(0xe4d8b8),RED=C(0x9a2c22),GOLD=C(0xc79a3a),INK=C(0x2a2018);
+ // A tin's label, painted round its open band: a red field, gold rules and a panel of print.
+ const label=hh=>(col,x,y,z)=>{
+  const a=Math.atan2(z,x),v=y/hh;
+  col.copy(PAPER);
+  if(Math.abs(v)<.55)col.copy(RED);
+  if(Math.abs(Math.abs(v)-.62)<.06)col.copy(GOLD);
+  if(Math.abs(Math.sin(a/2))<.45&&Math.abs(v)<.45){
+   col.copy(PAPER);
+   if(Math.sin(v*38)>.35&&Math.abs(Math.sin(a/2))<.36)col.lerp(INK,.75);
+  }
+  col.lerp(INK,.05*stoneNoise(x*30,y*30,z*30,5));
+ };
+ // A finished tin: a rolled bottom bead, a plain side, a rolled top bead and a sunk, ringed end.
+ const TR=.03,TH=.058,LB=.034;
+ const tinGeo=()=>new THREE.LatheGeometry([[0,.0025],[.026,.002],[.029,0],[.0315,.002],[.032,.0045],[.0302,.006],[.0302,TH-.006],[.032,TH-.0045],[.0315,TH-.002],
+  [.029,TH],[.0265,TH-.001],[.026,TH-.004],[.022,TH-.0035],[.021,TH-.002],[.017,TH-.002],[.016,TH-.0035],[.008,TH-.0035],[.007,TH-.0025],[0,TH-.0025]].map(([r,h])=>new THREE.Vector2(r,h)),24);
+ const tinAt=mtx=>{
+  put(tinGeo(),tin,metal,mtx);
+  put(at(new THREE.CylinderGeometry(TR+.0008,TR+.0008,LB,24,2,true),0,TH/2,0),(col,x,y,z)=>label(LB/2)(col,x,y-TH/2,z),matte,mtx);
+ };
+ // Standing, turned so its print faces out; and lying on its side, rolled a little.
+ tinAt(M.clone().makeRotationY(-.6).setPosition(.17,0,-.075));
+ const lying=new THREE.Matrix4().makeRotationZ(Math.PI/2).premultiply(new THREE.Matrix4().makeRotationY(.35));
+ lying.premultiply(new THREE.Matrix4().makeTranslation(.195,.032,.06));
+ tinAt(new THREE.Matrix4().multiplyMatrices(lying,new THREE.Matrix4().makeRotationY(1.1).premultiply(new THREE.Matrix4().makeTranslation(0,-TH/2,0))));
+ // The case: tinplate walls with a rolled rim bead, a hinged lid with a raised panel.
+ const W=.21,H=.095,D=.15,cx=-.06,LT=.016;
+ put(at(new THREE.BoxGeometry(W,H,D,8,4,6),cx,H/2,0),tin);
+ for(const s of [-1,1]){
+  const bx=new THREE.CylinderGeometry(.0035,.0035,W,8);bx.rotateZ(Math.PI/2);put(at(bx,cx,H-.004,s*(D/2+.001)),tin);
+  const bz=new THREE.CylinderGeometry(.0035,.0035,D,8);bz.rotateX(Math.PI/2);put(at(bz,cx+s*(W/2+.001),H-.004,0),tin);
+  // A foot strip along the bottom of each long side.
+  put(at(new THREE.BoxGeometry(W+.004,.006,.006),cx,.003,s*(D/2-.001)),tin);
+ }
+ // Soldered corner seams: a dull bead of solder down each vertical edge.
+ for(const sx of [-1,1])for(const sz of [-1,1])put(at(new THREE.CylinderGeometry(.0028,.0034,H-.008,6),cx+sx*W/2,H/2-.002,sz*D/2),solder);
+ const ly=H+.001+LT/2;
+ put(at(new RoundedBoxGeometry(W+.012,LT,D+.012,1,.004),cx,ly,0),tin);
+ put(at(new RoundedBoxGeometry(W-.05,.005,D-.05,1,.002),cx,ly+LT/2+.0015,0),tin);
+ for(let i=0;i<2;i++)put(at(new RoundedBoxGeometry(W-.07-i*.022,.002,D-.07-i*.022,1,.0008),cx,ly+LT/2+.004+i*.001,0),tin);
+ // The hinge along the back: a long barrel with knuckle joints.
+ const hinge=new THREE.CylinderGeometry(.004,.004,W-.02,10);hinge.rotateZ(Math.PI/2);put(at(hinge,cx,H+.002,-D/2-.008),tin);
+ for(let i=0;i<5;i++){const k=new THREE.CylinderGeometry(.0048,.0048,.004,10);k.rotateZ(Math.PI/2);put(at(k,cx-(W-.02)/2+i*(W-.02)/4,H+.002,-D/2-.008),solder);}
+ // A hasp on the front: a strap down off the lid over a staple, with a tag through it.
+ put(at(new RoundedBoxGeometry(.022,.03,.003,1,.001),cx,H-.004,D/2+.0075),tin);
+ const staple=new THREE.TorusGeometry(.005,.0014,6,12,Math.PI);put(at(staple,cx,H-.02,D/2+.0095),iron);
+ // A wire bail handle folded flat on the lid between two lugs.
+ for(const s of [-1,1])put(at(new RoundedBoxGeometry(.012,.01,.016,1,.002),cx+s*(W/2-.022),ly+LT/2+.003,0),solder);
+ const bail=new THREE.CatmullRomCurve3([V(cx-(W/2-.022),ly+LT/2+.005,0),V(cx-(W/2-.03),ly+LT/2+.006,.03),V(cx-.03,ly+LT/2+.0065,.046),
+  V(cx+.03,ly+LT/2+.0065,.046),V(cx+(W/2-.03),ly+LT/2+.006,.03),V(cx+(W/2-.022),ly+LT/2+.005,0)]);
+ put(new THREE.TubeGeometry(bail,24,.0022,5,false),iron);
+ const grip=new THREE.CylinderGeometry(.005,.005,.05,10);grip.rotateZ(Math.PI/2);
+ put(at(grip,cx,ly+LT/2+.0065,.046),(col,x)=>{col.copy(BEECH).lerp(GRAIN,(Math.sin(x*400)*.5+.5)*.35);},matte);
+ // The maker's label pasted on the front wall.
+ put(at(new THREE.BoxGeometry(.09,.042,.0012,6,4,1),cx-.04,H*.45,D/2+.0007),(col,x,y)=>{
+  const u=(x-cx+.04)/.045,v=(y-H*.45)/.021;col.copy(PAPER);
+  if(Math.max(Math.abs(u),Math.abs(v))>.84)col.copy(RED);
+  else if(Math.abs(v)<.6&&Math.sin(v*14)>.2&&Math.abs(u)<.7)col.lerp(INK,.7);
+  col.lerp(INK,Math.max(0,stoneNoise(x*40,y*40,1,3)-.5)*.3);
+ },matte);
+ // The seamer on the right end: a bracket, a spindle through it, a chuck and a crank with a knob.
+ const ex=cx+W/2;
+ put(at(new RoundedBoxGeometry(.006,.056,.05,1,.002),ex+.003,.052,0),iron);
+ for(const [y,z] of [[.032,-.017],[.032,.017],[.072,-.017],[.072,.017]]){const b=new THREE.CylinderGeometry(.0028,.0028,.004,8);b.rotateZ(Math.PI/2);put(at(b,ex+.007,y,z),iron);}
+ const sp=new THREE.CylinderGeometry(.0045,.0045,.05,10);sp.rotateZ(Math.PI/2);put(at(sp,ex+.03,.052,0),iron);
+ const chuck=new THREE.CylinderGeometry(.018,.018,.008,20);chuck.rotateZ(Math.PI/2);put(at(chuck,ex+.018,.052,0),iron);
+ const collar=new THREE.CylinderGeometry(.008,.008,.006,12);collar.rotateZ(Math.PI/2);put(at(collar,ex+.052,.052,0),iron);
+ put(at(new RoundedBoxGeometry(.006,.012,.052,1,.002),ex+.056,.052,.02),iron);
+ const pin=new THREE.CylinderGeometry(.0025,.0025,.012,8);pin.rotateZ(Math.PI/2);put(at(pin,ex+.062,.052,.042),iron);
+ const knob=new THREE.LatheGeometry([[0,0],[.006,0],[.0075,.006],[.0065,.014],[.0078,.02],[.005,.026],[0,.027]].map(([r,h])=>new THREE.Vector2(r,h)),14);
+ knob.rotateZ(-Math.PI/2);put(at(knob,ex+.066,.052,.042),(col,x,y,z,nx,ny)=>{col.copy(BEECH).lerp(GRAIN,(Math.sin(Math.atan2(z-.042,y-.052)*4+x*300)*.5+.5)*.35).lerp(WORN,Math.max(0,ny)*.35);},matte);
+ // A soldering iron lying in front: a pointed copper bit on an iron shank into a wooden handle.
+ const si=new THREE.Matrix4().makeRotationY(.12).setPosition(-.05,.0105,.125);
+ const bit=new THREE.LatheGeometry([[0,0],[.004,.006],[.0085,.02],[.0095,.03],[.0095,.042],[.006,.044],[0,.044]].map(([r,h])=>new THREE.Vector2(r,h)),14);
+ bit.rotateZ(-Math.PI/2);bit.translate(.1,0,0);
+ put(bit,(col,x,y,z,nx,ny)=>{col.copy(COPPER).lerp(COPPER_HI,Math.max(0,ny)*.45).lerp(x>.125?COPPER_HI:SCALE,x>.125?.3:.25);if(stoneNoise(x*40,y*40,z*40,4)>.6)col.lerp(VERDIGRIS,.5);},metal,si);
+ const shank=new THREE.CylinderGeometry(.0028,.0028,.07,8);shank.rotateZ(Math.PI/2);put(shank.translate(.065,0,0),iron,metal,si);
+ const ferrule=new THREE.CylinderGeometry(.0072,.0072,.01,14);ferrule.rotateZ(Math.PI/2);put(ferrule.translate(.028,0,0),tin,metal,si);
+ const handle=new THREE.LatheGeometry([[0,0],[.0075,0],[.009,.012],[.0098,.04],[.0092,.07],[.0102,.078],[.0085,.086],[0,.088]].map(([r,h])=>new THREE.Vector2(r,h)),16);
+ handle.rotateZ(Math.PI/2);handle.translate(.023,0,0);
+ put(handle,(col,x,y,z,nx,ny)=>{col.copy(BEECH).lerp(GRAIN,(Math.sin(Math.atan2(z,y)*5+x*55)*.5+.5)*.4).lerp(WORN,Math.max(0,ny)*.3).lerp(SCALE,Math.max(0,1-(.023-x)/.012)*.35);},matte,si);
+ // A coil of solder wire beside the iron.
+ const pts=[];for(let i=0;i<=48;i++){const a=i/48*Math.PI*4.6,r=.018-i*.00012;pts.push(V(.035+Math.cos(a)*r,.0022+i*.00002,.162+Math.sin(a)*r));}
+ pts.push(V(.07,.0022,.178));
+ put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),64,.0016,4,false),solder);
+ const mesh=(list,m,part)=>{const geo=mergeGeometries(list);list.forEach(p=>p.dispose());const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=true;o.userData.part=part;g.add(o);};
+ mesh(metal,metalMat,'tinning-kit-metal');mesh(matte,matteMat,'tinning-kit-matte');
+ const box=new THREE.Box3();g.children.forEach(p=>{p.geometry.computeBoundingBox();box.union(p.geometry.boundingBox);});
+ const mid=box.getCenter(V(0,0,0));g.children.forEach(p=>p.geometry.translate(-mid.x,-box.min.y,-mid.z));
+ g.rotation.y=.3;
+}
+
 // The grappling hook (and its unidentified twin, the iron hook): a forged iron grapnel lying
 // on two of its flukes and its eye, with the third fluke standing up. Three flukes curve back
 // from a crown boss to spade-shaped points; the shank ends in a collar and a forged eye. A
@@ -4408,20 +4541,7 @@ export function createGroundModel(item={}){
   }else if(kind==='saddle'){
    buildSaddle({g,materials});
   }else if(kind==='tinning kit'){
-   // A tin-plate case with a carrying handle and a side crank, and two fresh tins beside it.
-   const plate=mat(0xaab4b6,.75),label=mat(0x9a2c22);
-   add(new RoundedBoxGeometry(.24,.13,.16,2,.012),plate,-.04,.065);
-   box(.245,.006,.165,dark,-.04,.1);
-   add(new THREE.TorusGeometry(.04,.007,6,16,Math.PI),plate,-.04,.13,0);
-   for(const x of [-.08,0])box(.014,.012,.012,plate,x,.134);
-   box(.02,.03,.012,brass,-.04,.095,.085);
-   lie(.006,.006,.05,metal,.105,.08,0,Math.PI/2);
-   box(.012,.06,.012,metal,.105,.08,.025);lie(.009,.009,.03,wood,.12,.05,.025);
-   for(const [x,z] of [[.16,-.05],[.19,.06]]){
-    add(new THREE.CylinderGeometry(.032,.032,.055,16),plate,x,.0275,z);
-    add(new THREE.CylinderGeometry(.0325,.0325,.03,16,1,true),label,x,.0275,z).material.side=THREE.DoubleSide;
-    flat(new THREE.TorusGeometry(.03,.003,5,16),plate,x,.055,z);
-   }
+   buildTinningKit({g,materials});
   }else if(kind==='expensive camera'){
    buildCamera({g,materials});
   }else if(kind==='lenses'){
