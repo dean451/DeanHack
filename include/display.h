@@ -195,9 +195,12 @@
     do { if (combat_hook) (*combat_hook)(agr, def, at, res); } while (0)
 #define DEATH_HOOK(mon, ptr) \
     do { if (death_hook) (*death_hook)(mon, ptr); } while (0)
+#define REVIVE_HOOK(mon, corpse) \
+    do { if (revive_hook) (*revive_hook)(mon, corpse); } while (0)
 #else
 #define COMBAT_HOOK(agr, def, at, res)
 #define DEATH_HOOK(mon, ptr)
+#define REVIVE_HOOK(mon, corpse)
 #endif
 
 /*

@@ -377,6 +377,7 @@ extern void tmp_at(coordxy, coordxy);
 extern void (*tmp_at_hook)(int, coordxy, coordxy, int);
 extern void (*combat_hook)(struct monst *, struct monst *, int, int);
 extern void (*death_hook)(struct monst *, struct permonst *);
+extern void (*revive_hook)(struct monst *, struct obj *);
 #endif
 extern void flash_glyph_at(coordxy, coordxy, int, int);
 extern void swallowed(int);

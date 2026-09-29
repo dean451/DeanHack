@@ -1071,6 +1071,9 @@ revive(struct obj *corpse, boolean by_hero)
     /* track that this monster was revived at least once */
     mtmp->mrevived = corpse->mrevived + 1;
 
+    /* the corpse is still where it lay, before it is removed */
+    REVIVE_HOOK(mtmp, corpse);
+
     /* finally, get rid of the corpse--it's gone now */
     remove_corpse(corpse);
 
