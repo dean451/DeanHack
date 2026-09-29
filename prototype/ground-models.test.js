@@ -982,6 +982,28 @@ test('the grappling hook is a forged three-fluke grapnel on a tripod, its rope b
  model.userData.dispose();assert.equal(disposed,2);
 });
 
+test('the beartrap item lies sprung shut: one iron mesh, jaws closed in an arch over the pan, chain curled to a stake',()=>{
+ const model=createGroundModel({name:'beartrap',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['beartrap']);
+ const geo=model.children[0].geometry,{position,normal,color}=geo.attributes;
+ for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+ for(const x of color.array)assert(x>=0&&x<=1);
+ for(let i=0;i<normal.count;i++)assert(Math.abs(Math.hypot(normal.getX(i),normal.getY(i),normal.getZ(i))-1)<1e-3,`normal ${i}`);
+ assert(position.count<14000,`${position.count} vertices`);
+ geo.computeBoundingBox();const b=geo.boundingBox;
+ assert(Math.abs(b.min.y)<1e-6&&b.max.y>.1&&b.max.y<.16,`height ${b.min.y}..${b.max.y}`);
+ // The closed jaws make a thin upright arch: its crown is high over the middle and narrow in z.
+ let crown=0,bright=0;const lo=[Infinity,Infinity],hi=[-Infinity,-Infinity];
+ for(let i=0;i<position.count;i++){
+  if(position.getY(i)>.1){crown++;[position.getX(i),position.getZ(i)].forEach((v,k)=>{lo[k]=Math.min(lo[k],v);hi[k]=Math.max(hi[k],v);});}
+  if(color.getX(i)+color.getY(i)+color.getZ(i)>.9)bright++;
+ }
+ assert(crown>50&&hi[0]-lo[0]<.16&&hi[1]-lo[1]<.03,`crown ${crown} vertices, x ${lo[0]}..${hi[0]}, z ${lo[1]}..${hi[1]}`);
+ // The teeth, the jaws' inner edges and the pins are ground bright (linear colours).
+ assert(bright>150,`${bright} bright vertices`);
+ let disposed=0;geo.addEventListener('dispose',()=>disposed++);model.userData.dispose();assert.equal(disposed,1);
+});
+
 test('the lenses are folded gold wire spectacles lying face up on their temples, glass held clear of the floor',()=>{
  const model=createGroundModel({name:'lenses',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['lenses-wire','lenses-glass']);

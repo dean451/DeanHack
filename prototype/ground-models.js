@@ -3453,6 +3453,93 @@ function buildGrapplingHook({g,materials}){
  g.rotation.y=.45;
 }
 
+// Beartrap: a trap that has been carried off, so it lies sprung shut. The two toothed jaws
+// stand closed in an arch over the trigger pan with their teeth meshed, the leaf springs lie
+// slack under their collars, and the chain trails off in a loose curl to a stake lying on its side.
+// One vertex-coloured mesh: blackened iron pitted with rust, the teeth ground bright.
+function buildBearTrap({g,materials}){
+ const C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z),c=new THREE.Color();
+ const IRON=C(0x4b4d4c),IRON_LT=C(0x6f7372),SCALE=C(0x262625),RUST=C(0x7a4020),RUST_DK=C(0x4a2a18),STEEL=C(0xa9adab);
+ const parts=[];
+ // bright(q) grinds the metal bare; rust is how much the part has rusted overall.
+ const put=(geo,{x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1,rust=.3,bright=null}={})=>{
+  const o=new THREE.Object3D();o.position.set(x,y,z);o.rotation.set(rx,ry,rz,'YXZ');o.scale.set(sx,sy,sz);o.updateMatrix();
+  const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();
+  n.applyMatrix4(o.matrix);n.deleteAttribute('uv');n.clearGroups();
+  const P=n.attributes.position,col=new Float32Array(P.count*3),q=V(0,0,0);
+  for(let i=0;i<P.count;i++){
+   q.fromBufferAttribute(P,i);
+   const h=stoneNoise(q.x*70,q.y*70,q.z*70,5),m=stoneNoise(q.x*31+2,q.y*31,q.z*31-1,4);
+   c.copy(IRON).lerp(h>0?IRON_LT:SCALE,Math.abs(h)*.6);
+   // Rust gathers low down, where the trap has lain on damp ground.
+   const r=rust*(.5+m*.9)+Math.max(0,.02-q.y)*12*rust;
+   if(r>.2)c.lerp(h>.1?RUST:RUST_DK,Math.min(.85,(r-.2)*1.7));
+   const b=bright?bright(q):0;if(b>0)c.lerp(STEEL,Math.min(.85,b));
+   col.set([c.r,c.g,c.b],i*3);
+  }
+  n.setAttribute('color',new THREE.BufferAttribute(col,3));parts.push(n);
+ };
+ const ext=(shape,depth,curveSegments=10)=>new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:false,curveSegments});
+ const R=.1,W=.021,T=.009,BASE=.012,HY=BASE+.004;
+ // Base: a flat bar along x under the hinges, a cross bar and the trigger pan under the arch.
+ put(new RoundedBoxGeometry(2*R+.07,BASE,.04,1,.003),{y:BASE/2,rust:.55});
+ put(new RoundedBoxGeometry(.036,BASE,.17,1,.003),{y:BASE/2,rust:.55});
+ put(new THREE.CylinderGeometry(.055,.058,.008,24),{y:BASE+.004,rust:.7});
+ put(new THREE.CylinderGeometry(.036,.036,.003,20),{y:BASE+.0095,rust:.4});
+ // The dog lies loose beside the pan now the trap is sprung.
+ put(new RoundedBoxGeometry(.1,.006,.014,1,.002),{x:.015,y:BASE+.011,z:-.05,ry:.35,rust:.4});
+ // Jaws: two half-rings standing upright about the hinge line, closed against each other,
+ // with serrated teeth along their inner edges pointing into the arch and meshing.
+ for(const side of [-1,1]){
+  const band=new THREE.Shape();
+  band.absarc(0,0,R+W/2,0,Math.PI,false);band.absarc(0,0,R-W/2,Math.PI,0,true);
+  const z=side*(T/2+.0005);
+  put(ext(band,T,18).translate(0,0,-T/2),{y:HY,z,rust:.3,bright:q=>Math.hypot(q.x,q.y-HY)<R-W/2+.003?.45:0});
+  // A ridge rolled along the outer edge stiffens each jaw.
+  put(new THREE.TorusGeometry(R+W/2-.002,.0035,4,24,Math.PI),{y:HY,z:z+side*T*.35,rust:.35});
+  for(let i=0;i<9;i++){
+   const a=(i+(side<0?.5:1))/10*Math.PI,rr=R-W/2+.001,len=.028*(.9+.2*((i*7+(side<0?3:0))%5)/4);
+   const tooth=new THREE.Shape();tooth.moveTo(-.0095,0);tooth.lineTo(.0095,0);tooth.lineTo(.0022,len);tooth.lineTo(-.0022,len);tooth.closePath();
+   put(ext(tooth,.005,1).translate(0,0,-.0025),{x:Math.cos(a)*rr,y:HY+Math.sin(a)*rr,z,rz:a+Math.PI/2,rust:.2,
+    bright:q=>{const d=Math.hypot(q.x,q.y-HY);return d<rr-len*.45?.9:0;}});
+  }
+ }
+ // Hinge posts where the jaw ends meet, each with its pin through both jaws.
+ for(const x of [-R,R]){
+  put(new THREE.CylinderGeometry(.017,.021,.03,10),{x,y:BASE+.013,rust:.5});
+  put(new THREE.CylinderGeometry(.0065,.0065,.05,8),{x,y:HY,rx:Math.PI/2,rust:.3,bright:q=>Math.abs(q.z)>.02?.5:0});
+ }
+ // Leaf springs, slack now: a flat bottom leaf, the top leaf lifting away from it towards the
+ // jaws, a loop joining them, and the collar dropped down round the jaw ends.
+ const L=.115;
+ for(const side of [-1,1]){
+  const x0=side*(R+.028),x1=side*(R+.028+L),lift=.034;
+  put(new RoundedBoxGeometry(L,.006,.03,1,.002),{x:(x0+x1)/2,y:.005,rust:.45});
+  const top=Math.atan2(lift,L);
+  put(new RoundedBoxGeometry(Math.hypot(L,lift),.006,.03,1,.002),{x:(x0+x1)/2,y:.017+lift/2,rz:-side*top,rust:.4});
+  put(new THREE.TorusGeometry(.006,.003,6,12,Math.PI),{x:x1,y:.011,rz:side<0?Math.PI/2:-Math.PI/2,sz:4.5,rust:.5});
+  put(new THREE.TorusGeometry(.028,.0055,6,18),{x:side*(R+.012),y:.044,rx:Math.PI/2,sy:.7,rz:0,rust:.4});
+ }
+ // Chain from the cross bar in a loose curl on the floor, ending at a stake lying on its side.
+ const path=new THREE.CatmullRomCurve3([V(0,0,.085),V(.025,0,.135),V(.085,0,.16),V(.14,0,.125),V(.15,0,.06)],false,'centripetal');
+ const LINK=.023,n=Math.floor(path.getLength()/LINK);
+ for(let i=0;i<n;i++){
+  const u=(i+.5)/n,p=path.getPointAt(u),t=path.getTangentAt(u),flat=i%2===0;
+  put(new THREE.TorusGeometry(.0105,.0034,4,10),{x:p.x,y:flat?.0034:.0139,z:p.z,ry:-Math.atan2(t.z,t.x),rx:flat?Math.PI/2:0,sx:1.35,rust:.6});
+ }
+ const end=path.getPoint(1),dir=path.getTangent(1).setY(0).normalize(),head=Math.atan2(dir.z,dir.x);
+ put(new THREE.TorusGeometry(.013,.0045,6,14),{x:end.x+dir.x*.012,y:.0045,z:end.z+dir.z*.012,ry:-head,rx:Math.PI/2,rust:.5});
+ // The stake: a square iron spike lying along the chain's run, its head mushroomed by hammering.
+ const S=.1,sx=end.x+dir.x*(.03+S/2),sz=end.z+dir.z*(.03+S/2);
+ put(new THREE.CylinderGeometry(.0085,.002,S,4),{x:sx,y:.0085,z:sz,rz:-Math.PI/2,ry:-head,rust:.65,bright:q=>Math.hypot(q.x-sx,q.z-sz)>S/2-.015?.35:0});
+ put(new THREE.CylinderGeometry(.016,.013,.012,10),{x:end.x+dir.x*.03,y:.016,z:end.z+dir.z*.03,rz:Math.PI/2,ry:-head,rust:.55});
+ const geo=mergeGeometries(parts);parts.forEach(p=>p.dispose());
+ geo.computeBoundingBox();const b=geo.boundingBox,mid=b.getCenter(V(0,0,0));geo.translate(-mid.x,-b.min.y,-mid.z);
+ const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.62,roughness:.52}));
+ mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part='beartrap';materials.push(mesh.material);g.add(mesh);
+ g.rotation.y=-.35;
+}
+
 // Lenses: a pair of round gold wire spectacles, folded and laid face up on their temples.
 // Built upright (lenses in the xy plane, the front towards +z), then tipped onto the floor.
 function buildLenses({g,materials}){
@@ -4549,17 +4636,7 @@ export function createGroundModel(item={}){
   }else if(kind==='credit card'){
    buildCreditCard({g,materials});
   }else if(kind==='beartrap'){
-   // A sprung-open trap: a round base, two toothed half-jaws lying flat, a pan and a chained stake.
-   const iron=mat(0x55504a,.7);
-   flat(new THREE.TorusGeometry(.12,.012,8,32),iron,0,.012,0);
-   add(new THREE.CylinderGeometry(.04,.045,.016,16),iron,0,.008);
-   for(const s of [-1,1]){
-    const jaw=flat(new THREE.TorusGeometry(.15,.01,6,24,Math.PI),metal,0,.012,0);jaw.rotation.z=s>0?0:Math.PI;
-    for(let i=1;i<9;i++){const a=i/9*Math.PI;add(new THREE.ConeGeometry(.012,.04,4),metal,Math.cos(a)*.15,.03,s*Math.sin(a)*.15);}
-   }
-   for(const s of [-1,1]){lie(.012,.012,.05,iron,s*.17,.012,0);add(new THREE.TorusGeometry(.028,.008,6,16),iron,s*.2,.03,0).rotation.y=Math.PI/2;}
-   for(let i=0;i<4;i++){const link=add(new THREE.TorusGeometry(.014,.004,5,10),iron,.16+i*.02,.006,.13+i*.022);link.rotation.set(Math.PI/2,0,i%2?Math.PI/2:0);}
-   add(new THREE.ConeGeometry(.012,.07,6),iron,.24,.012,.24).rotation.x=Math.PI/2;
+   buildBearTrap({g,materials});
   }else if(kind==='land mine'){
    // A squat olive-drab disc with a ribbed rim, a pressure plate and a small arming plug.
    const drab=mat(0x4d5634),plate=mat(0x2c2f24,.4);
