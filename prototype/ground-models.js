@@ -3540,6 +3540,85 @@ function buildBearTrap({g,materials}){
  g.rotation.y=-.35;
 }
 
+// Land mine: a pressure mine dug up and set down, so it lies whole on the floor, tipped onto
+// one edge and propped on a clod of the earth it came out of. The olive casing is chipped to
+// bare steel on the rim and caked with dried soil up to the old ground line; the red pressure
+// plate carries the fuse and its trigger prongs, made safe with a pin, a pull ring and a tag.
+// One vertex-coloured mesh on one material.
+function buildLandMine({g,materials}){
+ const C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const parts=[];
+ const put=(geo,paint,{x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1}={})=>{
+  const o=new THREE.Object3D();o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.scale.set(sx,sy,sz);o.updateMatrix();
+  const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();
+  n.applyMatrix4(o.matrix);n.deleteAttribute('uv');n.clearGroups();
+  const P=n.attributes.position,col=new Float32Array(P.count*3),c=new THREE.Color();
+  for(let i=0;i<P.count;i++){paint(c,P.getX(i),P.getY(i),P.getZ(i));col.set([c.r,c.g,c.b],i*3);}
+  n.setAttribute('color',new THREE.BufferAttribute(col,3));parts.push(n);
+ };
+ const noise=(x,y,z,f)=>stoneNoise(x*f,y*f,z*f,1);
+ const OLIVE=C(0x4f5a2c),OLIVE_DK=C(0x39411f),STEEL=C(0x80867f),RUST=C(0x6b3a1e),RUST_DK=C(0x3e2414),STENCIL=C(0xc9b24a),
+  EARTH=C(0x5a4632),EARTH_DRY=C(0x7b6650),RED=C(0xa8281a),RED_DK=C(0x5e140c),RED_WORN=C(0xc98a6a),BRASS=C(0xb08a3a),TAG=C(0xd9d2bc);
+ const R=.122,LINE=.02;
+ // Casing: a squat lathed drum with a flat base, a rounded lid rising to a flat top and a lid seam.
+ // Below the old ground line it is rusty and caked with dried earth in a ragged tide mark.
+ const casing=(c,x,y,z)=>{
+  const r=Math.hypot(x,z),a=Math.atan2(z,x),n=noise(x,y,z,40)*.5+.5;
+  c.copy(OLIVE).lerp(OLIVE_DK,n*.5);
+  const u=(a-.3)/1.3;
+  if(r>R-.004&&y>.0175&&y<.0285&&u>0&&u<1&&(u*5)%1<.6)c.copy(STENCIL).lerp(OLIVE_DK,n*.3);
+  if(y>.04&&r>.1&&noise(x+1,y,z,95)>.35)c.copy(STEEL).lerp(RUST,n*.35);
+  if(r>.083&&r<.089&&y<.0475&&y>.04)c.multiplyScalar(.4);
+  const tide=LINE+noise(x,0,z,70)*.006;
+  if(y<tide+.004)c.lerp(n>.5?RUST:RUST_DK,Math.min(1,(tide+.004-y)/.006));
+  if(y<tide&&noise(x-2,y,z+3,120)>-.25)c.copy(EARTH).lerp(EARTH_DRY,Math.min(1,(tide-y)/.02)*.4+n*.4);
+ };
+ const profile=[[0,0],[.1,0],[.114,.002],[R-.001,.008],[R,.012],[R,.016],[R,.018],[R+.0005,.028],[R+.0005,.03],[R-.001,.038],[R-.008,.044],[R-.018,.047],
+  [.092,.048],[.088,.046],[.084,.046],[.08,.048],[.06,.048],[0,.048]].map(([r,y])=>new THREE.Vector2(r,y));
+ put(new THREE.LatheGeometry(profile,64),casing);
+ // Crusts of dried earth still stuck to the lower wall.
+ for(let i=0;i<7;i++){const a=i*2.39+.4,s=.007+(i%3)*.003;
+  put(new THREE.DodecahedronGeometry(s,0),(c,x,y,z)=>c.copy(EARTH).lerp(EARTH_DRY,noise(x,y,z,90)*.3+.4),{x:Math.cos(a)*(R+.001),y:.004+(i%2)*.006,z:Math.sin(a)*(R+.001),ry:-a,sx:.45,sz:1.3});}
+ // Lid bolts.
+ for(let i=0;i<8;i++){const a=i/8*Math.PI*2+.2;
+  put(new THREE.CylinderGeometry(.0065,.0065,.006,6),(c,x,y,z)=>c.copy(STEEL).lerp(RUST,.3+(noise(x,y,z,120)*.5+.5)*.5).multiplyScalar(y>.052?1:.7),{x:Math.cos(a)*.1,y:.05,z:Math.sin(a)*.1});}
+ // Carrying lug: a wire loop standing off the wall.
+ {const a=2.5;
+  put(new THREE.TorusGeometry(.013,.003,5,12,Math.PI),(c,x,y,z)=>c.copy(STEEL).lerp(RUST_DK,.45+noise(x,y,z,150)*.2),{x:Math.cos(a)*(R+.004),y:LINE+.001,z:Math.sin(a)*(R+.004),ry:-(a+Math.PI/2)});}
+ // Pressure plate with grip ridges, worn pale at the edge.
+ put(new THREE.CylinderGeometry(.05,.052,.01,24),(c,x,y,z)=>{c.copy(RED).lerp(RED_DK,noise(x,y,z,100)*.25+.25);if(Math.hypot(x,z)>.046&&y>.055)c.lerp(RED_WORN,.5);},{y:.053});
+ for(let i=0;i<6;i++)put(new THREE.BoxGeometry(.084,.003,.005),c=>c.copy(RED_DK),{y:.0595,ry:i/6*Math.PI});
+ // Fuse with three splayed trigger prongs, red-tipped.
+ put(new THREE.CylinderGeometry(.013,.016,.016,12),(c,x,y)=>c.copy(STEEL).multiplyScalar(y>.07?1:.75),{y:.066});
+ for(let i=0;i<3;i++){const a=i/3*Math.PI*2+.9,lean=.28,dx=Math.cos(a),dz=Math.sin(a),len=.042;
+  const tipX=dx*(.006+Math.sin(lean)*len),tipZ=dz*(.006+Math.sin(lean)*len),tipY=.072+Math.cos(lean)*len;
+  put(new THREE.CylinderGeometry(.0028,.0034,len,5),(c,x,y)=>c.copy(STEEL).lerp(RUST,Math.max(0,.08-y)*6),
+   {x:dx*.006+tipX/2-dx*.003,y:.072+Math.cos(lean)*len/2,z:dz*.006+tipZ/2-dz*.003,rx:dz*lean,rz:-dx*lean});
+  put(new THREE.SphereGeometry(.0055,8,6),c=>c.copy(RED),{x:tipX,y:tipY,z:tipZ});
+ }
+ // Made safe: a brass pin through the fuse, its pull ring hanging over the plate with a paper tag tied on.
+ put(new THREE.CylinderGeometry(.0024,.0024,.05,6),c=>c.copy(BRASS),{x:.008,y:.067,rz:Math.PI/2});
+ put(new THREE.TorusGeometry(.012,.0022,5,16),c=>c.copy(BRASS),{x:.045,y:.066,rz:.15,rx:.5});
+ put(new THREE.BoxGeometry(.03,.0015,.018),(c,x,y,z)=>{c.copy(TAG);if(Math.abs(z)<.004)c.copy(RED);},{x:.068,y:.061,z:.012,ry:-.5,rz:-.12});
+ // Tip it onto one edge, rest the low edge on the floor and prop the high edge on a clod of earth.
+ const TILT=.2,tilt=new THREE.Matrix4().makeRotationX(TILT);
+ const geo=mergeGeometries(parts);parts.forEach(p=>p.dispose());geo.applyMatrix4(tilt);
+ geo.computeBoundingBox();const low=geo.boundingBox.min.y;geo.translate(0,-low,0);
+ const edge=V(0,0,-R).applyMatrix4(tilt);edge.y-=low;
+ const clods=[];const clod=(s,x,z,sy,seed)=>{const d=new THREE.DodecahedronGeometry(s,0);d.deleteAttribute('uv');
+  const o=new THREE.Object3D();o.position.set(x,s*sy*.8,z);o.rotation.set(seed,seed*1.7,seed*.6);o.scale.set(1.1,sy,1);o.updateMatrix();d.applyMatrix4(o.matrix);
+  const P=d.attributes.position,col=new Float32Array(P.count*3),c=new THREE.Color();
+  for(let i=0;i<P.count;i++){c.copy(EARTH).lerp(EARTH_DRY,Math.min(1,P.getY(i)*14)*.6+noise(P.getX(i),P.getY(i),P.getZ(i),80)*.15);col.set([c.r,c.g,c.b],i*3);}
+  d.setAttribute('color',new THREE.BufferAttribute(col,3));clods.push(d);};
+ clod(edge.y*.62,edge.x+.004,edge.z-.004,1,.7);
+ clod(.012,.15,-.07,.7,1.9);clod(.008,.135,-.1,.75,2.6);clod(.006,-.16,.05,.7,3.3);
+ const all=mergeGeometries([geo,...clods]);geo.dispose();clods.forEach(d=>d.dispose());
+ all.computeBoundingBox();const b=all.boundingBox,mid=b.getCenter(V(0,0,0));all.translate(-mid.x,-b.min.y,-mid.z);
+ const mesh=new THREE.Mesh(all,new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.4,roughness:.62}));
+ mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part='land-mine';materials.push(mesh.material);g.add(mesh);
+ g.rotation.y=.6;
+}
+
 // Lenses: a pair of round gold wire spectacles, folded and laid face up on their temples.
 // Built upright (lenses in the xy plane, the front towards +z), then tipped onto the floor.
 function buildLenses({g,materials}){
@@ -4638,14 +4717,7 @@ export function createGroundModel(item={}){
   }else if(kind==='beartrap'){
    buildBearTrap({g,materials});
   }else if(kind==='land mine'){
-   // A squat olive-drab disc with a ribbed rim, a pressure plate and a small arming plug.
-   const drab=mat(0x4d5634),plate=mat(0x2c2f24,.4);
-   add(new THREE.CylinderGeometry(.13,.14,.05,28),drab,0,.025);
-   for(let i=0;i<16;i++){const a=i/16*Math.PI*2;box(.012,.04,.012,drab,Math.cos(a)*.138,.022,Math.sin(a)*.138).rotation.y=-a;}
-   add(new THREE.CylinderGeometry(.075,.08,.018,24),plate,0,.059);
-   flat(new THREE.TorusGeometry(.08,.006,6,24),metal,0,.052,0);
-   add(new THREE.CylinderGeometry(.014,.014,.02,10),brass,.1,.06,.02);
-   box(.05,.004,.018,mat(0xc9b04a),-.04,.069,-.02);
+   buildLandMine({g,materials});
   }else if(kind==='hook'){
    buildGrapplingHook({g,materials});
   }else if(kind==='iron safe'){
