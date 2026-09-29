@@ -23,6 +23,7 @@ import {createTurtle} from './turtle.js';
 import {createJuiblex} from './juiblex.js';
 import {createGhost,GHOSTS} from './ghost.js';
 import {createStrawGolem} from './straw-golem.js';
+import {createPaperGolem} from './paper-golem.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2336,6 +2337,7 @@ export function createCreature(cell={}){
  if(/unicorn/.test(name))return unicorn();
  if(letter==='D'||/dragon/.test(name))return dragon(dragonLook(name,cell.color));
  if(name==='straw golem')return createStrawGolem();
+ if(name==='paper golem')return createPaperGolem();
  {const golemMatch=name.match(/^(.*) golem$/);if(golemMatch)return golem(GOLEM_MATERIALS[golemMatch[1]]||GOLEM_MATERIALS.stone);}
  if(name==='giant turtle')return createTurtle();
  if(name==='tengu')return createTengu();
