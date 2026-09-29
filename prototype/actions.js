@@ -15,6 +15,7 @@ import {deathStyle, deathPose, DEATH_TIME, DEATH_BURST_U} from './deaths.js';
 import {swingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
 import {hitStyle, hitReactionPose, HIT_TIME} from './hit-fx.js';
 import {catMove, catSize, catLength, catAttackPose} from './cats.js';
+import {jawPose} from './jaw.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9};
 // Wait no longer than this for a death to play before the map (and its corpse) goes on.
@@ -116,7 +117,7 @@ export function holdBackMs(queues) {
 // are world units (one tile = 1). `yaw` is the heading to face the target, if there is one.
 export function actionPose(action, u, face) {
   const p = {dx: 0, dy: 0, dz: 0, yaw: 0, pitch: 0, roll: 0, body: 0, head: 0, arm: 0, wrist: 0,
-    socket: 0, leg: 0, fore: 0, paw: 0, pawSide: 0, tail: 0, wing: 0, scale: 1, stretch: 1, sx: 1, sy: 1, fade: 1};
+    socket: 0, leg: 0, fore: 0, paw: 0, pawSide: 0, tail: 0, wing: 0, jaw: 0, scale: 1, stretch: 1, sx: 1, sy: 1, fade: 1};
   const d = action.dir;
   if (action.kind === 'attack') {
     // Per attack type (monster-attacks.js); the hero's own swing replaces its arm parts later.
@@ -137,6 +138,8 @@ export function actionPose(action, u, face) {
     for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'scale', 'sx', 'sy', 'fade']) p[k] = m[k];
     p.yaw = m.spin;
   }
+  // The lower jaw, for creatures that have one (jaw.js).
+  p.jaw = jawPose(action.kind, action.attack, u, action.result);
   return p;
 }
 
@@ -157,6 +160,7 @@ export function clearActionPose(actor, q) {
   if (actor.weaponSocket) actor.weaponSocket.rotation.z -= o.socket;
   if (actor.legs?.[0]) actor.legs[0].rotation.x -= o.leg;
   if (actor.tail) actor.tail.rotation.x -= o.tail;
+  if (o.jaw && actor.jaw) actor.jaw.rotation.x -= o.jaw;
   if (o.fore) for (const l of foreLegs(actor)) l.rotation.x -= o.fore;
   if (o.paw || o.pawSide) { const l = foreLegs(actor)[0]; if (l) { l.rotation.x -= o.paw; l.rotation.z -= o.pawSide; } }
   if (o.wing) actor.wings?.forEach((w, i) => { w.rotation.z -= wingSide(w, i) * o.wing; });
@@ -180,6 +184,7 @@ function applyPose(actor, q, p) {
   if (actor.weaponSocket) actor.weaponSocket.rotation.z += p.socket;
   if (actor.legs?.[0]) actor.legs[0].rotation.x += p.leg;
   if (actor.tail) actor.tail.rotation.x += p.tail;
+  if (p.jaw && actor.jaw) actor.jaw.rotation.x += p.jaw;
   if (p.fore) for (const l of foreLegs(actor)) l.rotation.x += p.fore;
   if (p.paw || p.pawSide) { const l = foreLegs(actor)[0]; if (l) { l.rotation.x += p.paw; l.rotation.z += p.pawSide; } }
   if (p.wing) actor.wings?.forEach((w, i) => { w.rotation.z += wingSide(w, i) * p.wing; });
