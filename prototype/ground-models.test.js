@@ -1027,6 +1027,31 @@ test('the expensive camera is a chrome and leatherette rangefinder with a flash 
  model.userData.dispose();assert.equal(disposed,3);
 });
 
+test('the chest is a planked, iron-bound oak chest with a barrel lid, a brass lock and drop rings',()=>{
+ const model=createGroundModel({name:'chest',class:6});
+ assert.deepEqual(model.children.map(p=>p.userData.part),['chest-wood','chest-iron']);
+ let verts=0;const bounds={};
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;verts+=position.count;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+  part.geometry.computeBoundingBox();bounds[part.userData.part]=part.geometry.boundingBox;
+ }
+ assert(verts<12000,`${verts} vertices`);
+ const wood=bounds['chest-wood'],iron=bounds['chest-iron'];
+ // The feet stand on the floor; the barrel lid rises well above the body's iron rim.
+ assert(Math.abs(wood.min.y)<1e-6&&iron.min.y>.015,`${wood.min.y} ${iron.min.y}`);
+ assert(wood.max.y>.25&&wood.max.y<.3,`lid top ${wood.max.y}`);
+ // The straps ride over the lid, and the drop rings hang out past the ends.
+ assert(iron.max.y>wood.max.y&&iron.max.y<wood.max.y+.012,`${iron.max.y}`);
+ assert(iron.max.x>wood.max.x+.02&&iron.min.x<wood.min.x-.02,`${iron.min.x} ${iron.max.x}`);
+ // The chest stands closed and different from the plain large box.
+ const box=createGroundModel({name:'large box',class:6});
+ assert.notDeepEqual(box.children.length,model.children.length);box.userData.dispose();
+ let disposed=0;model.children.forEach(m=>m.geometry.addEventListener('dispose',()=>disposed++));
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
 test('the crystal ball is a glass orb held in brass talons on a turned stand, centred where its aura swirls',()=>{
  const model=createGroundModel({name:'crystal ball',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['crystal-ball-stand','crystal-ball-brass','crystal-ball-depth','crystal-ball-mist','crystal-ball-glass']);

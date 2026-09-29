@@ -2822,6 +2822,123 @@ function buildSafe({g,materials}){
  g.rotation.y=-.3;
 }
 
+// The chest: an iron-bound oak treasure chest with a barrel lid, standing on four block feet.
+// The body is three planks a side over a dark core, so the seams read as real gaps; the lid is
+// five staves round a half-drum with planked end caps. Two iron straps wrap the body and lid,
+// iron rims run round the top and foot, angle brackets guard the corners, drop rings hang from
+// the ends and a brass lock plate with a keyhole sits under the lid's hasp. Two merged,
+// vertex-coloured meshes: the wood and the metal.
+function buildChest({g,materials}){
+ const C=hex=>new THREE.Color(hex);
+ const OAK={base:C(0x74492a),light:C(0xa06c3e),dark:C(0x3e2413)},CORE=C(0x1e120a);
+ const IRON={base:C(0x3a3836),light:C(0x77736c),dark:C(0x161514)},BRASS={base:C(0xb08a3c),light:C(0xecd08a),dark:C(0x5e4318)};
+ const RUST=C(0x6a3a1c),INK=C(0x0a0908);
+ const woodMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:0,roughness:.82});
+ const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.6,roughness:.5});
+ materials.push(woodMat,metalMat);
+ const wood=[],metal=[];
+ // grain: 'x' or 'z' for the direction the fibres run; tone shifts each plank a little.
+ const put=(geo,{look=OAK,flat,grain='x',tone=0,rust=false,into}={})=>{
+  if(geo.attributes.uv)geo.deleteAttribute('uv');
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),c=look.base.clone();
+   if(flat)c.copy(flat);
+   else if(look===OAK){
+    // Long streaky grain across the fibres, a knot or two, and a per-plank tone.
+    const a=grain==='x'?x:z,b=grain==='x'?y+z:y+x;
+    const s=Math.sin(b*260+Math.sin(a*9+tone*7)*2.2)*.5+.5*stoneNoise(a*2,b*20,tone,6);
+    c.lerp(s>0?look.light:look.dark,Math.min(1,Math.abs(s)*.4));
+    c.lerp(tone>0?look.light:look.dark,Math.abs(tone)*.5);
+    const k=stoneNoise(a*14+tone*3,b*40,tone,3);if(k>.82)c.lerp(look.dark,(k-.82)*4);
+    if(n.getY(i)<-.5)c.lerp(look.dark,.5);
+    // Grimed low down, where the chest has been dragged.
+    c.lerp(look.dark,Math.max(0,1-y/.06)*.35);
+   }else{
+    const s=stoneNoise(x*3,y*3,z*3,40);c.lerp(s>0?look.light:look.dark,Math.abs(s)*.35);
+    const edge=Math.max(Math.abs(n.getX(i)),Math.abs(n.getY(i)),Math.abs(n.getZ(i)));
+    if(edge<.9)c.lerp(look.light,(.9-edge)*.8);
+    if(n.getY(i)<0)c.lerp(look.dark,-n.getY(i)*.4);
+    if(rust){const r=stoneNoise(x*5+1.3,y*2,z*5,33)*.5+.5;if(r>.55)c.lerp(RUST,Math.min(1,(r-.55)*2.2)*.5);}
+   }
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));(into??(look===OAK||flat===CORE?wood:metal)).push(out);
+ };
+ const W=.42,D=.28,H=.17,F=.02,base=F,top=F+H,T=.012;
+ const R=D/2+.006,K=.55;// lid radius and its vertical squash
+ // Four block feet and the dark core the planks sit on.
+ for(const x of [-1,1])for(const z of [-1,1]){const foot=new THREE.BoxGeometry(.045,F,.045);foot.translate(x*(W/2-.03),F/2,z*(D/2-.03));put(foot,{grain:'z',tone:-.3});}
+ const core=new THREE.BoxGeometry(W-2*T+.002,H,D-2*T+.002);core.translate(0,base+H/2,0);put(core,{flat:CORE});
+ // Three planks on each long side and on each end, with hairline gaps between them.
+ const ph=H/3;
+ for(const s of [-1,1])for(let i=0;i<3;i++){
+  const tone=((i*7+(s>0?3:0))%5-2)*.12;
+  const long=new THREE.BoxGeometry(W,ph-.004,T,6,1,1);long.translate(0,base+ph*(i+.5),s*(D/2-T/2));put(long,{grain:'x',tone});
+  const end=new THREE.BoxGeometry(T,ph-.004,D-2*T,1,1,4);end.translate(s*(W/2-T/2),base+ph*(i+.5),0);put(end,{grain:'z',tone:-tone});
+ }
+ // The lid: a dark half-drum core, five staves round it and a planked cap on each end.
+ const lidGeo=(r,len,t0,tl,open,seg=6)=>{
+  const c=new THREE.CylinderGeometry(r,r,len,seg,1,open,t0,tl);
+  c.rotateZ(Math.PI/2);c.scale(1,K,1);c.translate(0,top,0);return c;
+ };
+ // CylinderGeometry thetas run round the axis; after rotateZ(+pi/2), theta 0..pi covers the top half.
+ put(lidGeo(R-.008,W-.004,0,Math.PI,false,20),{flat:CORE});
+ const staves=5;
+ for(let i=0;i<staves;i++){
+  const t0=i/staves*Math.PI+.012,tl=Math.PI/staves-.024;
+  put(lidGeo(R,W,t0,tl,true,4),{grain:'x',tone:((i*3)%5-2)*.11});
+ }
+ for(const s of [-1,1]){
+  const cap=new THREE.CircleGeometry(R-.002,20,0,Math.PI);cap.rotateY(s*Math.PI/2);cap.scale(1,K,1);cap.translate(s*(W/2-.001),top,0);
+  put(cap,{grain:'z',tone:.1});
+ }
+ // Iron: a rim band round the top of the body and one round the foot.
+ const band=(w,h,d,x,y,z,opts={})=>{const b=new THREE.BoxGeometry(w,h,d);b.translate(x,y,z);put(b,{look:IRON,rust:true,...opts});};
+ for(const [y,h] of [[top-.009,.018],[base+.009,.018]]){
+  for(const s of [-1,1]){band(W+.006,h,.004,0,y,s*(D/2+.002));band(.004,h,D+.006,s*(W/2+.002),y,0);}
+ }
+ // Two straps wrap the body and run up over the lid.
+ const strapX=.13,sw=.028;
+ for(const x of [-strapX,strapX]){
+  for(const s of [-1,1])band(sw,H,.005,x,base+H/2,s*(D/2+.0035));
+  put(lidGeo(R+.004,sw,0,Math.PI,true,24).translate(x,0,0),{look:IRON,rust:true});
+  // Studs down each strap, front and back, and over the lid.
+  for(const s of [-1,1])for(let i=0;i<3;i++){
+   const st=new THREE.SphereGeometry(.0055,6,3,0,Math.PI*2,0,Math.PI/2);st.rotateX(s*Math.PI/2);st.translate(x,base+.03+i*.055,s*(D/2+.006));put(st,{look:IRON});
+  }
+  for(let i=1;i<6;i++){
+   const a=i/6*Math.PI,st=new THREE.SphereGeometry(.0055,6,3,0,Math.PI*2,0,Math.PI/2);
+   // Point the stud out along the squashed drum's normal.
+   const nx=Math.cos(a)*K,ny=Math.sin(a),len=Math.hypot(nx,ny);
+   st.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(0,ny/len,nx/len)));
+   st.translate(x,top+Math.sin(a)*(R+.004)*K,Math.cos(a)*(R+.004));put(st,{look:IRON});
+  }
+ }
+ // Angle brackets up the four vertical corners.
+ for(const sx of [-1,1])for(const sz of [-1,1]){
+  band(.035,H-.03,.005,sx*(W/2-.0175+.002),base+H/2,sz*(D/2+.0035));
+  band(.005,H-.03,.035,sx*(W/2+.0035),base+H/2,sz*(D/2-.0175+.002));
+ }
+ // A drop ring in a staple on each end.
+ for(const s of [-1,1]){
+  band(.006,.03,.03,s*(W/2+.005),top-.045,0);
+  const ring=new THREE.TorusGeometry(.028,.0045,6,20);ring.rotateY(Math.PI/2);ring.rotateZ(s*.35);ring.translate(s*(W/2+.012),top-.075,0);put(ring,{look:IRON,rust:true});
+ }
+ // The lock: a brass plate on the front with a keyhole, and the lid's hasp hanging over it.
+ const front=D/2+.003;
+ const plate=new RoundedBoxGeometry(.07,.06,.006,1,.002);plate.translate(0,top-.042,front+.002);put(plate,{look:BRASS});
+ const hole=new THREE.CylinderGeometry(.006,.006,.003,10);hole.rotateX(Math.PI/2);hole.translate(0,top-.048,front+.0055);put(hole,{flat:INK,into:metal});
+ const slot=new THREE.BoxGeometry(.004,.014,.003);slot.translate(0,top-.058,front+.0055);put(slot,{flat:INK,into:metal});
+ const hasp=new RoundedBoxGeometry(.026,.05,.005,1,.0018);hasp.translate(0,top-.006,front+.006);put(hasp,{look:IRON});
+ const pin=new THREE.CylinderGeometry(.004,.004,.034,8);pin.rotateZ(Math.PI/2);pin.translate(0,top+.018,front+.004);put(pin,{look:IRON});
+ for(const x of [-.028,.028]){const rv=new THREE.SphereGeometry(.004,8,5);rv.translate(x,top-.02,front+.005);put(rv,{look:BRASS});}
+ const mesh=(list,m,part)=>{const geo=mergeGeometries(list);list.forEach(p=>p.dispose());const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=true;o.userData.part=part;g.add(o);};
+ mesh(wood,woodMat,'chest-wood');mesh(metal,metalMat,'chest-iron');
+ g.rotation.y=-.25;
+}
+
 // The grappling hook (and its unidentified twin, the iron hook): a forged iron grapnel lying
 // on two of its flukes and its eye, with the third fluke standing up. Three flukes curve back
 // from a crown boss to spade-shaped points; the shank ends in a collar and a forged eye. A
@@ -4087,16 +4204,14 @@ export function createGroundModel(item={}){
    buildGrapplingHook({g,materials});
   }else if(kind==='iron safe'){
    buildSafe({g,materials});
+  }else if(kind==='chest'){
+   buildChest({g,materials});
   }else{
-   // Chests, large boxes and ice boxes.
-   const chest=kind==='chest',ice=kind==='ice box';
-   const side=ice?mat(0xd8dfe2):mat(chest?0x6e4528:0x8a6a44),band=ice?metal:mat(0x3a3632,.6),W=.46,D=.32,H=ice?.3:.2;
+   // Large boxes and ice boxes.
+   const ice=kind==='ice box';
+   const side=ice?mat(0xd8dfe2):mat(0x8a6a44),band=ice?metal:mat(0x3a3632,.6),W=.46,D=.32,H=ice?.3:.2;
    add(new RoundedBoxGeometry(W,H,D,2,.012),side,0,H/2);
-   if(chest){
-    const lid=add(new THREE.CylinderGeometry(D/2,D/2,W,20,1,false,0,Math.PI),side,0,H,0);lid.rotation.z=Math.PI/2;lid.scale.x=.45;
-    for(const x of [-.17,.17]){box(.03,H,D+.012,band,x,H/2);const strap=add(new THREE.CylinderGeometry(D/2+.006,D/2+.006,.03,20,1,true,0,Math.PI),band,x,H,0);strap.rotation.z=Math.PI/2;strap.scale.x=.45;}
-    box(.06,.07,.012,mat(0xc9a24a,.7),0,H-.01,D/2+.006);box(.014,.02,.006,dark,0,H-.02,D/2+.014);
-   }else if(ice){
+   if(ice){
     box(W+.01,.03,D+.01,side,0,H+.015);box(.12,.018,.02,band,0,H-.03,D/2+.012);
     for(const x of [-.23,.23])box(.012,.02,.1,band,x,H*.6,0);
     const frost=new THREE.MeshBasicMaterial({color:0xeaf6ff,transparent:true,opacity:.35,depthWrite:false});materials.push(frost);
