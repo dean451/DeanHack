@@ -660,3 +660,31 @@ test('ghosts and shades get their own sheeted, floating model instead of the gua
  parts.forEach((m,i)=>assert.equal(m.material,again[i].material));
  assert(ms<1000,`took ${ms} ms`);
 });
+
+test('hobbits get their own curly-haired, waistcoated, bare-footed model instead of the short humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const hobbit=createCreature({name:'hobbit',symbol:104,color:2});
+ assert.equal(hobbit.quirk,'hobbit');
+ for(const key of ['body','head','arm','weaponSocket'])assert(hobbit[key]?.isObject3D,key);
+ assert.equal(hobbit.legs.length,2);assert.equal(hobbit.arms.length,2);assert.equal(hobbit.arm,hobbit.arms[1]);
+ assert.equal(hobbit.hat,null);assert.equal(hobbit.beard,null);assert.equal(hobbit.pick,null);
+ const parts=meshes(hobbit);
+ assert.equal(parts.length,6,'one mesh per moving part');
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ hobbit.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(hobbit.g);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>.95&&b.max.y<1.15,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
+ // the two feet mirror each other, and share the one material
+ const [l,r]=hobbit.legs.map(leg=>new THREE.Box3().setFromObject(leg));
+ assert(Math.abs((l.min.x+l.max.x)/2+(r.min.x+r.max.x)/2)<1e-6,'feet mirrored');
+ const again=meshes(createCreature({name:'hobbit'}));
+ parts.forEach((m,i)=>{assert.equal(m.geometry,again[i].geometry);assert.equal(m.material,parts[0].material);});
+});
