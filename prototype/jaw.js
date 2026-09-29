@@ -16,6 +16,17 @@ const bump = (u, peak) => u <= 0 || u >= 1 ? 0 : u < peak ? smooth(u / peak) : 1
 
 // Widest gape, in radians.
 export const JAW_GAPE = .6;
+// How far each model opens, as a share of JAW_GAPE. The crocodile's long hinged snout takes the
+// full gape. The leocrotta's maw already splits back to its ears, so a little less still reads as
+// huge. The wumpus and rothe have short, rounded lower jaws that look dislocated at the full .6,
+// so they open about half as far. A model can set `jaw.userData.reach` to override this.
+export const JAW_REACH = {crocodile: 1, leocrotta: .8, wumpus: .6, rothe: .55};
+
+export function jawReach(actor) {
+  const r = actor?.jaw?.userData?.reach ?? JAW_REACH[actor?.g?.name] ?? 1;
+  return Number.isFinite(r) ? Math.min(1, Math.max(0, r)) : 1;
+}
+
 // Where in a bite the jaw is fully open, and where it has slammed shut.
 export const BITE_OPEN_U = .32, BITE_SHUT_U = .42;
 

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
-import {jawPose, JAW_GAPE, BITE_OPEN_U, BITE_SHUT_U} from './jaw.js';
+import {jawPose, jawReach, JAW_GAPE, JAW_REACH, BITE_OPEN_U, BITE_SHUT_U} from './jaw.js';
 import {MONSTER_ATTACKS} from './monster-attacks.js';
 
 const COLON = ':'.charCodeAt(0);
@@ -68,4 +68,44 @@ test('creatures without a jaw are left alone', () => {
   const q = createActionQueue();
   enqueueAction(q, {kind: 'attack', attack: 'bite', result: 'hit', dir: [1, 0]});
   for (let t = 0; t < 1; t += 1 / 60) { clearActionPose(lizard, q); updateActions(lizard, q, 1 / 60); }
+});
+
+test('smaller jaws open less, and every jawed model returns to rest', () => {
+  const Q = 'q'.charCodeAt(0);
+  const models = {
+    crocodile: createCreature({name: 'crocodile', symbol: COLON, color: 2}),
+    leocrotta: createCreature({name: 'leocrotta', symbol: Q, color: 7}),
+    wumpus: createCreature({name: 'wumpus', symbol: Q, color: 6}),
+    rothe: createCreature({name: 'rothe', symbol: Q, color: 3}),
+  };
+  const widest = {};
+  for (const [name, m] of Object.entries(models)) {
+    assert(m.jaw, `${name} has a jaw`);
+    assert.equal(jawReach(m), JAW_REACH[name]);
+    const rest = m.jaw.rotation.x, q = createActionQueue();
+    enqueueAction(q, {kind: 'attack', attack: 'bite', result: 'hit', dir: [1, 0]});
+    enqueueAction(q, {kind: 'hit', attack: 'bite', dir: [-1, 0]});
+    enqueueAction(q, {kind: 'attack', attack: 'breath', result: 'miss', dir: [0, 1]});
+    let w = 0, last = 0;
+    for (let t = 0; t < 4; t += 1 / 120) {
+      clearActionPose(m, q);
+      assert(Math.abs(m.jaw.rotation.x - rest) < 1e-9, `${name} rest restored`);
+      updateActions(m, q, 1 / 120);
+      const open = m.jaw.rotation.x - rest;
+      assert(Number.isFinite(open) && open >= -1e-9 && open <= JAW_GAPE * JAW_REACH[name] + 1e-9, `${name} ${open}`);
+      // only the bite's deliberate snap moves fast, and it shrinks with the jaw
+      assert(Math.abs(open - last) < .55 * JAW_REACH[name], `${name} jumps`);
+      w = Math.max(w, open); last = open;
+    }
+    clearActionPose(m, q);
+    assert(Math.abs(m.jaw.rotation.x - rest) < 1e-9, `${name} back at rest`);
+    widest[name] = w;
+  }
+  assert(widest.crocodile > JAW_GAPE * .95);
+  assert(widest.crocodile > widest.leocrotta && widest.leocrotta > widest.wumpus && widest.wumpus > widest.rothe);
+  assert(widest.rothe > .25, 'a rothe still visibly opens its mouth');
+  // an override on the handle wins, and junk falls back to the full gape
+  assert.equal(jawReach({g: {name: 'rothe'}, jaw: {userData: {reach: .3}}}), .3);
+  assert.equal(jawReach({g: {name: 'x'}, jaw: {userData: {reach: NaN}}}), 1);
+  assert.equal(jawReach(null), 1);
 });
