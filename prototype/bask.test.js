@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
 import {JAW_GAPE} from './jaw.js';
-import {updateBask, baskPose, baskLength, basks, BASK_GAPE, BASK_BREATH, FIRST_MIN, FIRST_SPAN, GAP_MIN, GAP_SPAN, HOLD_MIN, HOLD_SPAN} from './bask.js';
+import {updateBask, baskPose, baskLength, basks, BASK_GAPE, BASK_BREATH, SNOUT_LIFT, OPEN_S, FIRST_MIN, FIRST_SPAN, GAP_MIN, GAP_SPAN, HOLD_MIN, HOLD_SPAN} from './bask.js';
 
 const COLON = ':'.charCodeAt(0);
 const croc = (name = 'crocodile') => { const a = createCreature({name, symbol: COLON, color: 2}); a.actions = createActionQueue(); return a; };
@@ -82,4 +82,36 @@ test('updateBask ignores other creatures and bad input', () => {
   assert.equal(updateBask(null, 1, 0, false), 0);
   const a = croc();
   for (let k = 0; k < 100; k++) assert(Number.isFinite(frame(a, NaN, k)));
+});
+
+test('the snout tips up with the gape, holds steady and settles back to rest', async () => {
+  const THREE = await import('three');
+  const a = croc(), dt = 1 / 60, headRest = a.head.rotation.x, jawRest = a.jaw.rotation.x;
+  // The snout tip, in the head's space: the forward-most point of the head mesh.
+  const box = new THREE.Box3().setFromObject(a.head); a.g.updateMatrixWorld(true);
+  const tip = () => { a.g.updateMatrixWorld(true); return a.head.localToWorld(new THREE.Vector3(0, 0, .2)).y; };
+  const tip0 = tip();
+  let t = 0, widest = 0, highest = -Infinity, prevLift = 0, maxStep = 0, holdLifts = [];
+  let seen = false, done = false;
+  for (; t < 60 && !done; t += dt) {
+    frame(a, dt, t);
+    const lift = headRest - a.head.rotation.x;
+    assert(Number.isFinite(lift) && lift >= -1e-9 && lift <= SNOUT_LIFT + 1e-9, `lift ${lift}`);
+    maxStep = Math.max(maxStep, Math.abs(lift - prevLift)); prevLift = lift;
+    widest = Math.max(widest, lift); highest = Math.max(highest, tip());
+    if (a.bask.cur) { seen = true; const c = a.bask.cur; if (c.s > OPEN_S + .1 && c.s < OPEN_S + c.hold - .1) holdLifts.push(lift); }
+    else if (seen) done = true;
+  }
+  assert(done && box.max.z > .1, 'a full bask ran');
+  assert(widest > SNOUT_LIFT * .99, `lifts ${widest}`);
+  assert(highest > tip0 + .01, `the snout rises (${tip0} -> ${highest})`);
+  assert(maxStep < .01, `no head jumps (${maxStep})`);
+  assert(holdLifts.length > 60 && Math.max(...holdLifts) - Math.min(...holdLifts) < 1e-3, 'steady while the jaw breathes');
+  assert(Math.abs(a.head.rotation.x - headRest) < 1e-9 && Math.abs(a.jaw.rotation.x - jawRest) < 1e-9, 'back at rest');
+  // A bite mid-bask drops the head back with the jaw.
+  for (seen = false; t < 120 && !(seen && a.jaw.rotation.x - jawRest > .3); t += dt) { frame(a, dt, t); seen = seen || !!a.bask.cur; }
+  enqueueAction(a.actions, {kind: 'attack', attack: 'bite', result: 'hit', dir: [1, 0]});
+  for (let k = 0; k < 120; k++, t += dt) frame(a, dt, t);
+  assert.equal(a.bask.lift, 0);
+  assert(Math.abs(a.head.rotation.x - headRest) < 1e-9, 'head back at rest after the bite');
 });
