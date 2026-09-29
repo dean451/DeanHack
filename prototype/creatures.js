@@ -20,6 +20,7 @@ import {createSoldier,SOLDIERS} from './soldier.js';
 import {createCrocodile,CROCODILES} from './crocodile.js';
 import {createCouatl} from './couatl.js';
 import {createTurtle} from './turtle.js';
+import {createJuiblex} from './juiblex.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2307,7 +2308,7 @@ export function createCreature(cell={}){
  if(SEA_MONSTERS[name])return seaMonster(SEA_MONSTERS[name]);
  if(DEMONS[name])return demon(DEMONS[name]);
  if(RIDERS[name])return wraith(RIDERS[name]);
- if(name==='juiblex')return blob({color:'#4f8a2a'});
+ if(name==='juiblex')return createJuiblex();
  if(name==='couatl')return createCouatl();
  if(name==='ki-rin')return unicorn();
  if(name==='floating eye')return floatingEye({});
