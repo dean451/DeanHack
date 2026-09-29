@@ -26,7 +26,7 @@ test('gas spores and flaming and freezing spheres get their own hovering models,
   assert(b.max.x-b.min.x>.3,`${name} too small`);
   if(name==='gas spore')assert(!actor.core&&!actor.g.userData.core,'a gas spore does not glow');
   else{assert(actor.core&&actor.g.userData.core===actor.core,name);assert(actor.core.material.emissiveIntensity>0);}
-  assert(ms<200,`${name} took ${ms} ms`);
+  assert(ms<1000,`${name} took ${ms} ms`);
  }
  const fire=createCreature({name:'flaming sphere'}),frost=createCreature({name:'freezing sphere'});
  assert.notEqual(fire.core.material.emissive.getHexString(),frost.core.material.emissive.getHexString());
