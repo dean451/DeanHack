@@ -2939,6 +2939,117 @@ function buildChest({g,materials}){
  g.rotation.y=-.25;
 }
 
+// The large box: a nailed pine packing crate on two skids. Three boards a side over a dark core,
+// so the seams read as gaps; each long side is framed by rails and stiles with a diagonal brace,
+// each end has two stiles and a knotted rope handle, and the lid is four boards held by two
+// cleats. Iron angle guards cap the top and bottom corners and nail heads dot the frame. Two
+// merged, vertex-coloured meshes: the wood (with the rope) and the iron.
+function buildLargeBox({g,materials}){
+ const C=hex=>new THREE.Color(hex);
+ const PINE={base:C(0xa9814f),light:C(0xd2ae78),dark:C(0x5e4226)},CORE=C(0x22170d);
+ const HEMP={base:C(0x9c8458),light:C(0xc8b184),dark:C(0x5a4a2e)};
+ const IRON={base:C(0x3c3a37),light:C(0x7a766f),dark:C(0x171615)},RUST=C(0x6c3c1e);
+ const woodMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:0,roughness:.88});
+ const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.55,roughness:.55});
+ materials.push(woodMat,metalMat);
+ const wood=[],metal=[];
+ // grain: 'x', 'y' or 'z' for the direction the fibres run; tone shifts each board a little.
+ const put=(geo,{look=PINE,flat,grain='x',tone=0}={})=>{
+  if(geo.attributes.uv)geo.deleteAttribute('uv');
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),c=look.base.clone();
+   if(flat)c.copy(flat);
+   else if(look===PINE){
+    // Straight, fairly even grain across the fibres, a knot here and there, and a per-board tone.
+    const a=grain==='x'?x:grain==='y'?y:z,b=grain==='x'?y+z:grain==='y'?x+z:y+x;
+    const s=Math.sin(b*300+Math.sin(a*7+tone*9)*1.6)*.45+.55*stoneNoise(a*2,b*24,tone,6);
+    c.lerp(s>0?look.light:look.dark,Math.min(1,Math.abs(s)*.3));
+    c.lerp(tone>0?look.light:look.dark,Math.abs(tone)*.5);
+    const k=stoneNoise(a*16+tone*5,b*44,tone,3);if(k>.8)c.lerp(look.dark,Math.min(1,(k-.8)*5));
+    if(n.getY(i)<-.5)c.lerp(look.dark,.5);
+    // Scuffed grey low down, where it has been dragged.
+    c.lerp(look.dark,Math.max(0,1-y/.05)*.3);
+   }else if(look===HEMP){
+    // Three twisted strands: bands that spiral round the rope.
+    const s=Math.sin((x+y+z)*420);c.lerp(s>0?look.light:look.dark,Math.abs(s)*.45);
+   }else{
+    const s=stoneNoise(x*3,y*3,z*3,40);c.lerp(s>0?look.light:look.dark,Math.abs(s)*.35);
+    const edge=Math.max(Math.abs(n.getX(i)),Math.abs(n.getY(i)),Math.abs(n.getZ(i)));
+    if(edge<.9)c.lerp(look.light,(.9-edge)*.8);
+    const r=stoneNoise(x*5+1.3,y*2,z*5,33)*.5+.5;if(r>.55)c.lerp(RUST,Math.min(1,(r-.55)*2.2)*.55);
+   }
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));(look===IRON?metal:wood).push(out);
+ };
+ const W=.46,D=.32,H=.2,S=.016,base=S,top=S+H,T=.012,B=.012;// B: frame batten thickness
+ // Two skids along the length, and the dark core the boards sit on.
+ for(const z of [-1,1]){const skid=new THREE.BoxGeometry(W-.02,S,.04,4,1,1);skid.translate(0,S/2,z*(D/2-.05));put(skid,{grain:'x',tone:-.35});}
+ const core=new THREE.BoxGeometry(W-2*T+.002,H,D-2*T+.002);core.translate(0,base+H/2,0);put(core,{flat:CORE});
+ // Three boards on each long side and each end, with hairline gaps between them.
+ const bh=H/3;
+ for(const s of [-1,1])for(let i=0;i<3;i++){
+  const tone=((i*5+(s>0?2:0))%5-2)*.1;
+  const long=new THREE.BoxGeometry(W,bh-.005,T,6,1,1);long.translate(0,base+bh*(i+.5),s*(D/2-T/2));put(long,{grain:'x',tone});
+  const end=new THREE.BoxGeometry(T,bh-.005,D-2*T,1,1,4);end.translate(s*(W/2-T/2),base+bh*(i+.5),0);put(end,{grain:'z',tone:-tone});
+ }
+ // The long sides: top and bottom rails, two stiles and a diagonal brace, all nailed on.
+ const bw=.03,fz=D/2+B/2;
+ const nail=(x,y,z,axis)=>{
+  const h=new THREE.CylinderGeometry(.0042,.0042,.003,6);
+  if(axis==='z')h.rotateX(Math.PI/2);else if(axis==='x')h.rotateZ(Math.PI/2);
+  h.translate(x,y,z);put(h,{look:IRON});
+ };
+ for(const s of [-1,1]){
+  const z=s*fz,face=s*(D/2+B+.0012);
+  for(const y of [base+bw/2,top-bw/2]){const r=new THREE.BoxGeometry(W,bw,B,6,1,1);r.translate(0,y,z);put(r,{grain:'x',tone:.2});}
+  for(const x of [-1,1]){const st=new THREE.BoxGeometry(bw,H-2*bw,B,1,3,1);st.translate(x*(W/2-bw/2),base+H/2,z);put(st,{grain:'y',tone:.15});}
+  // The brace runs corner to corner inside the frame, a hair thinner so the rails lap over it.
+  const iw=W-2*bw,ih=H-2*bw,ang=Math.atan2(ih,iw)*s,len=Math.hypot(iw,ih)-bw*.9;
+  const br=new THREE.BoxGeometry(len,bw*.9,B*.8,6,1,1);br.rotateZ(ang);br.translate(0,base+H/2,s*(D/2+B*.4));put(br,{grain:'x',tone:.05});
+  for(const x of [-1,1])for(const y of [base+bw/2,top-bw/2])for(const d of [-.009,.009])nail(x*(W/2-bw/2)+d,y,face,'z');
+  for(const t of [-.25,.25])for(const y of [base+bw/2,top-bw/2])nail(t*W,y,face,'z');
+  for(const t of [-.3,0,.3])nail(Math.cos(ang)*t*len,base+H/2+Math.sin(ang)*t*len,s*(D/2+B*.8+.0012),'z');
+ }
+ // The ends: two stiles each, and a rope handle knotted through two holes.
+ const ex=W/2+B/2;
+ for(const s of [-1,1]){
+  for(const z of [-1,1]){const st=new THREE.BoxGeometry(B,H,bw,1,3,1);st.translate(s*ex,base+H/2,z*(D/2-bw/2+B));put(st,{grain:'y',tone:.12});}
+  for(const z of [-1,1])for(const y of [base+.03,top-.03])nail(s*(W/2+B+.0012),y,z*(D/2-bw/2+B),'x');
+  const hy=top-.055,hz=.055,out=W/2;
+  for(const z of [-hz,hz]){
+   const hole=new THREE.CylinderGeometry(.009,.009,.003,10);hole.rotateZ(Math.PI/2);hole.translate(s*(out+.0012),hy,z);put(hole,{flat:CORE});
+   const knot=new THREE.SphereGeometry(.011,8,6);knot.scale(.8,1,1);knot.translate(s*(out+.006),hy,z);put(knot,{look:HEMP});
+  }
+  // The loop sags from both holes and hangs out from the end.
+  const curve=new THREE.CatmullRomCurve3([
+   new THREE.Vector3(s*(out+.006),hy,-hz),new THREE.Vector3(s*(out+.022),hy-.03,-hz*.75),
+   new THREE.Vector3(s*(out+.03),hy-.046,0),new THREE.Vector3(s*(out+.022),hy-.03,hz*.75),new THREE.Vector3(s*(out+.006),hy,hz)]);
+  put(new THREE.TubeGeometry(curve,20,.0065,6,false),{look:HEMP});
+ }
+ const lt=.014;
+ // Iron angle guards over the eight corners: a bent plate on each of the three faces it meets.
+ const g2=.04,gt=.003;
+ for(const sx of [-1,1])for(const sz of [-1,1])for(const sy of [1,-1]){
+  const ox=sx*(W/2+B),oz=sz*(D/2+B),yy=sy>0?top+lt-g2/2:base+g2/2;
+  const a=new THREE.BoxGeometry(g2,g2,gt);a.translate(ox-sx*g2/2,yy,oz+sz*gt/2);put(a,{look:IRON});
+  const b=new THREE.BoxGeometry(gt,g2,g2);b.translate(ox+sx*gt/2,yy,oz-sz*g2/2);put(b,{look:IRON});
+  if(sy>0){const c=new THREE.BoxGeometry(g2,gt,g2);c.translate(ox-sx*g2/2,top+lt+gt/2,oz-sz*g2/2);put(c,{look:IRON});}
+ }
+ // The lid: four boards running lengthwise with gaps, flush with the frame, and two cleats across.
+ const LW=W+2*B,LD=D+2*B,lb=LD/4;
+ for(let i=0;i<4;i++){const bd=new THREE.BoxGeometry(LW,lt,lb-.005,6,1,1);bd.translate(0,top+lt/2,-LD/2+lb*(i+.5));put(bd,{grain:'x',tone:((i*3)%5-2)*.12});}
+ for(const x of [-1,1]){
+  const cx=x*(W/2-.05),cl=new THREE.BoxGeometry(.036,.007,LD-.02,1,1,4);cl.translate(cx,top+lt+.0035,0);put(cl,{grain:'z',tone:.25});
+  for(let i=0;i<4;i++)for(const d of [-.009,.009])nail(cx+d,top+lt+.0075,-LD/2+lb*(i+.5),'y');
+ }
+ const mesh=(list,m,part)=>{const geo=mergeGeometries(list);list.forEach(p=>p.dispose());const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=true;o.userData.part=part;g.add(o);};
+ mesh(wood,woodMat,'large-box-wood');mesh(metal,metalMat,'large-box-iron');
+ g.rotation.y=.2;
+}
+
 // The grappling hook (and its unidentified twin, the iron hook): a forged iron grapnel lying
 // on two of its flukes and its eye, with the third fluke standing up. Three flukes curve back
 // from a crown boss to spade-shaped points; the shank ends in a collar and a forged eye. A
@@ -4206,22 +4317,16 @@ export function createGroundModel(item={}){
    buildSafe({g,materials});
   }else if(kind==='chest'){
    buildChest({g,materials});
+  }else if(kind==='large box'){
+   buildLargeBox({g,materials});
   }else{
-   // Large boxes and ice boxes.
-   const ice=kind==='ice box';
-   const side=ice?mat(0xd8dfe2):mat(0x8a6a44),band=ice?metal:mat(0x3a3632,.6),W=.46,D=.32,H=ice?.3:.2;
+   // Ice boxes.
+   const side=mat(0xd8dfe2),band=metal,W=.46,D=.32,H=.3;
    add(new RoundedBoxGeometry(W,H,D,2,.012),side,0,H/2);
-   if(ice){
-    box(W+.01,.03,D+.01,side,0,H+.015);box(.12,.018,.02,band,0,H-.03,D/2+.012);
-    for(const x of [-.23,.23])box(.012,.02,.1,band,x,H*.6,0);
-    const frost=new THREE.MeshBasicMaterial({color:0xeaf6ff,transparent:true,opacity:.35,depthWrite:false});materials.push(frost);
-    box(W-.04,.004,D-.04,frost,0,H+.032);
-   }else{
-    // A plank crate: slats across the lid and sides, with corner battens.
-    box(W+.01,.02,D+.01,side,0,H+.01);
-    for(const z of [-.08,0,.08])box(W+.012,.004,.004,dark,0,H+.021,z);
-    for(const x of [-1,1])for(const z of [-1,1])box(.03,H+.02,.03,band,x*(W/2-.01),(H+.02)/2,z*(D/2-.01));
-   }
+   box(W+.01,.03,D+.01,side,0,H+.015);box(.12,.018,.02,band,0,H-.03,D/2+.012);
+   for(const x of [-.23,.23])box(.012,.02,.1,band,x,H*.6,0);
+   const frost=new THREE.MeshBasicMaterial({color:0xeaf6ff,transparent:true,opacity:.35,depthWrite:false});materials.push(frost);
+   box(W-.04,.004,D-.04,frost,0,H+.032);
   }
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else{materials.forEach(m=>m.dispose());return null;}
