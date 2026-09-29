@@ -3050,6 +3050,144 @@ function buildLargeBox({g,materials}){
  g.rotation.y=.2;
 }
 
+// The ice box: a golden-oak, top-loading ice chest on bun feet. A lift lid with a raised field
+// covers the ice well; below a moulded cornice the front has one panelled provision door, and
+// each end a framed, raised panel. Nickel-plated fittings: two strap hinges and a lever latch on
+// the door, a latch and two hinges on the lid, and a drain spigot at the back. Rime crusts the
+// lid seam, short icicles hang from the lid's front lip, and meltwater pools under the spigot.
+// Three merged, vertex-coloured meshes: the oak, the nickel and the (translucent) frost.
+function buildIceBox({g,materials}){
+ const C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const OAK={base:C(0xa8733c),light:C(0xd6a262),dark:C(0x5e3a1b)},CORE=C(0x1e140b);
+ const NICKEL={base:C(0xa9aeb0),light:C(0xe9edef),dark:C(0x5a5d5f)},TARNISH=C(0x7a6a4c);
+ const RIME={base:C(0xe6f2fa),light:C(0xffffff),dark:C(0xa9c7da)},WATER=C(0x6f93a8);
+ const woodMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:0,roughness:.62});
+ const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.8,roughness:.3});
+ const frostMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:0,roughness:.35,transparent:true,opacity:.78,depthWrite:false,emissive:0x8fb8d4,emissiveIntensity:.18});
+ materials.push(woodMat,metalMat,frostMat);
+ const wood=[],metal=[],frost=[];
+ // grain: 'x', 'y' or 'z' for the direction the fibres run; tone shifts each board a little.
+ const put=(geo,{look=OAK,flat,grain='x',tone=0}={})=>{
+  if(geo.attributes.uv)geo.deleteAttribute('uv');
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  const p=out.attributes.position,n=out.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),c=look.base.clone();
+   if(flat)c.copy(flat);
+   else if(look===OAK){
+    // Quarter-sawn oak: close straight grain, pale ray flecks across it, and a warm per-board tone.
+    const a=grain==='x'?x:grain==='y'?y:z,b=grain==='x'?y+z:grain==='y'?x+z:y+x;
+    const s=Math.sin(b*260+Math.sin(a*9+tone*7)*1.4)*.5+.5*stoneNoise(a*3,b*30,tone,5);
+    c.lerp(s>0?look.light:look.dark,Math.min(1,Math.abs(s)*.28));
+    const ray=stoneNoise(a*60+tone*3,b*9,tone,4);if(ray>.55)c.lerp(look.light,Math.min(1,(ray-.55)*2.5)*.5);
+    c.lerp(tone>0?look.light:look.dark,Math.abs(tone)*.45);
+    if(n.getY(i)<-.5)c.lerp(look.dark,.55);
+    c.lerp(look.dark,Math.max(0,1-y/.06)*.35);
+   }else if(look===NICKEL){
+    const s=stoneNoise(x*4,y*4,z*4,30);c.lerp(s>0?look.light:look.dark,Math.abs(s)*.3);
+    const edge=Math.max(Math.abs(n.getX(i)),Math.abs(n.getY(i)),Math.abs(n.getZ(i)));
+    if(edge<.9)c.lerp(look.light,(.9-edge)*.9);
+    // The plating has worn through to brass here and there.
+    const w=stoneNoise(x*6+2.1,y*6,z*6,21)*.5+.5;if(w>.62)c.lerp(TARNISH,Math.min(1,(w-.62)*3)*.6);
+   }else{
+    const s=stoneNoise(x*8,y*8,z*8,50);c.lerp(s>0?look.light:look.dark,Math.abs(s)*.5);
+    if(n.getY(i)>.6)c.lerp(look.light,.4);
+   }
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));(look===NICKEL?metal:look===RIME?frost:wood).push(out);
+ };
+ const at=(geo,x,y,z)=>{geo.translate(x,y,z);return geo;};
+ const W=.4,D=.27,B=.012,F=.026,PL=.032,P=F+PL,H=.25,T0=P+H,LT=.026;
+ const OX=W/2+B,OZ=D/2+B;// the outer faces of the carcass
+ // Bun feet, the plinth and the dark core the frames are fixed to.
+ for(const sx of [-1,1])for(const sz of [-1,1]){const f=new THREE.SphereGeometry(.024,8,5);f.scale(1,.58,1);put(at(f,sx*(OX-.022),.024*.58,sz*(OZ-.022)),{grain:'y',tone:-.2});}
+ put(at(new RoundedBoxGeometry(2*OX+.018,PL,2*OZ+.018,1,.006),0,F+PL/2,0),{grain:'x',tone:-.15});
+ put(at(new THREE.BoxGeometry(W,H,D),0,P+H/2,0),{flat:CORE});
+ // The front frame: two stiles, a bottom rail and a deep top rail under the cornice.
+ const sw=.038,br=.036,tr=.048,fz=D/2+B/2;
+ for(const x of [-1,1])put(at(new THREE.BoxGeometry(sw,H,B,1,4,1),x*(W/2-sw/2),P+H/2,fz),{grain:'y',tone:.1*x});
+ put(at(new THREE.BoxGeometry(W-2*sw,br,B,5,1,1),0,P+br/2,fz),{grain:'x',tone:-.1});
+ put(at(new THREE.BoxGeometry(W-2*sw,tr,B,5,1,1),0,T0-tr/2,fz),{grain:'x',tone:.15});
+ // The provision door: a slab sitting proud of the frame, a raised field on it, and a bead round the field.
+ const dw=W-2*sw-.006,dh=H-br-tr-.006,dy=P+br+.003+dh/2,dz=D/2+B+.003;
+ put(at(new THREE.BoxGeometry(dw,dh,.008,6,3,1),0,dy,dz),{grain:'y',tone:.05});
+ put(at(new RoundedBoxGeometry(dw-.05,dh-.05,.008,1,.003),0,dy,dz+.005),{grain:'x',tone:.25});
+ for(const s of [-1,1]){
+  const hb=new THREE.CylinderGeometry(.0025,.0025,dw-.034,5);hb.rotateZ(Math.PI/2);put(at(hb,0,dy+s*(dh/2-.017),dz+.005),{grain:'x',tone:-.3});
+  put(at(new THREE.CylinderGeometry(.0025,.0025,dh-.034,5),s*(dw/2-.017),dy,dz+.005),{grain:'y',tone:-.3});
+ }
+ // The back is a plain board; each end has a frame and a raised panel.
+ put(at(new THREE.BoxGeometry(W,H,B,5,3,1),0,P+H/2,-fz),{grain:'x',tone:-.2});
+ for(const s of [-1,1]){
+  const x=s*(W/2+B/2);
+  for(const z of [-1,1])put(at(new THREE.BoxGeometry(B,H,sw,1,4,1),x,P+H/2,z*(OZ-sw/2)),{grain:'y',tone:.08});
+  put(at(new THREE.BoxGeometry(B,br,2*OZ-2*sw,1,1,4),x,P+br/2,0),{grain:'z',tone:-.12});
+  put(at(new THREE.BoxGeometry(B,tr,2*OZ-2*sw,1,1,4),x,T0-tr/2,0),{grain:'z',tone:.12});
+  put(at(new THREE.BoxGeometry(B*.6,H-br-tr,2*OZ-2*sw,1,3,5),x,P+br+(H-br-tr)/2,0),{grain:'z',tone:-.05});
+  put(at(new RoundedBoxGeometry(.008,H-br-tr-.04,2*OZ-2*sw-.04,1,.003),s*(W/2+B*.6+.004),P+br+(H-br-tr)/2,0),{grain:'y',tone:.2});
+ }
+ // A moulded cornice round the top, and the lift lid over the ice well with a raised field.
+ put(at(new RoundedBoxGeometry(2*OX+.012,.014,2*OZ+.012,1,.005),0,T0-.007,0),{grain:'x',tone:-.25});
+ const LW=2*OX+.022,LD=2*OZ+.022,ly=T0+.002+LT/2,lz=0;
+ put(at(new RoundedBoxGeometry(LW,LT,LD,1,.008),0,ly,lz),{grain:'x',tone:.1});
+ put(at(new THREE.BoxGeometry(LW-.07,.006,LD-.07,7,1,4),0,ly+LT/2+.003,lz),{grain:'x',tone:.28});
+ const lf=LD/2;// the lid's front face
+ // Door hinges: two nickel strap hinges on the left, each a barrel with a leaf on door and stile.
+ const hx=-dw/2;
+ for(const y of [dy+dh/2-.03,dy-dh/2+.03]){
+  put(at(new THREE.CylinderGeometry(.0055,.0055,.032,8),hx-.002,y,dz+.008),{look:NICKEL});
+  for(const t of [-1,1])put(at(new THREE.SphereGeometry(.0055,8,4),hx-.002,y+t*.016,dz+.008),{look:NICKEL});
+  put(at(new THREE.BoxGeometry(.04,.022,.003),hx+.02,y,dz+.0055),{look:NICKEL});
+  put(at(new THREE.BoxGeometry(.018,.022,.003),hx-.017,y,D/2+B+.0015),{look:NICKEL});
+ }
+ // The door latch: a lever on a round rose that swings over a keeper on the right stile.
+ const rx=dw/2-.022,ry=dy+.01;
+ const rose=new THREE.CylinderGeometry(.011,.012,.004,14);rose.rotateX(Math.PI/2);put(at(rose,rx,ry,dz+.006),{look:NICKEL});
+ put(at(new RoundedBoxGeometry(.016,.028,.007,1,.002),W/2-sw/2,ry,D/2+B+.0035),{look:NICKEL});
+ const lever=new THREE.CatmullRomCurve3([V(rx,ry,dz+.008),V(rx+.012,ry+.004,dz+.02),V(rx+.028,ry+.003,dz+.022),V(W/2-sw/2+.006,ry,dz+.014)]);
+ put(new THREE.TubeGeometry(lever,10,.0035,5,false),{look:NICKEL});
+ put(at(new THREE.SphereGeometry(.006,8,5),rx+.03,ry+.003,dz+.022),{look:NICKEL});
+ // The lid latch: a hasp plate on the lid's front, its hook dropping to a keeper on the top rail.
+ put(at(new RoundedBoxGeometry(.05,.016,.004,1,.0015),0,ly,lf+.002),{look:NICKEL});
+ put(at(new RoundedBoxGeometry(.034,.02,.006,1,.002),0,T0-.024,D/2+B+.003),{look:NICKEL});
+ const hook=new THREE.CatmullRomCurve3([V(0,ly-.004,lf+.004),V(0,T0-.004,lf+.008),V(0,T0-.018,D/2+B+.012),V(0,T0-.028,D/2+B+.007)]);
+ put(new THREE.TubeGeometry(hook,8,.004,5,false),{look:NICKEL});
+ put(at(new THREE.SphereGeometry(.0065,8,5),0,ly+.001,lf+.006),{look:NICKEL});
+ // Lid hinges on the back, and the drain spigot low on the back with a drip at its lip.
+ for(const x of [-.12,.12]){
+  const bar=new THREE.CylinderGeometry(.005,.005,.04,8);bar.rotateZ(Math.PI/2);put(at(bar,x,T0+.002,-OZ-.006),{look:NICKEL});
+  put(at(new THREE.BoxGeometry(.036,.026,.003),x,T0-.016,-OZ-.0015),{look:NICKEL});
+ }
+ const sx=.12,sy=P+.03,spz=-OZ-.012;
+ const pipe=new THREE.CylinderGeometry(.0055,.0055,.024,8);pipe.rotateX(Math.PI/2);put(at(pipe,sx,sy,-OZ-.012+.001),{look:NICKEL});
+ put(at(new THREE.CylinderGeometry(.006,.0045,.016,8),sx,sy-.009,spz-.01),{look:NICKEL});
+ const elbow=new THREE.SphereGeometry(.0062,8,6);put(at(elbow,sx,sy,spz-.01),{look:NICKEL});
+ // Rime: flattened clumps crusting the seam under the lid, heaviest at the front corners.
+ const hash=i=>{const s=Math.sin(i*127.1+11.3)*43758.5453;return s-Math.floor(s);};
+ const ex=LW/2-.004,ez=LD/2-.004,perim=4*(ex+ez),N=36;
+ for(let i=0;i<N;i++){
+  let d=(i+hash(i)*.6)/N*perim,x,z;
+  if(d<2*ex){x=-ex+d;z=ez;}else if((d-=2*ex)<2*ez){x=ex;z=ez-d;}else if((d-=2*ez)<2*ex){x=ex-d;z=-ez;}else{d-=2*ex;x=-ex;z=-ez+d;}
+  const corner=Math.max(0,1-Math.min(Math.abs(Math.abs(x)-ex)+Math.abs(Math.abs(z)-ez),.12)/.12);
+  const r=.006+hash(i+50)*.004+corner*.005,cl=new THREE.SphereGeometry(r,5,3);
+  cl.scale(1.5,.55,1.5);put(at(cl,x,T0+.003-hash(i+9)*.003,z),{look:RIME});
+ }
+ // Icicles hanging from the lid's front lip, and a frosted crust on the lid latch.
+ for(let i=0;i<7;i++){
+  const x=-.16+i*.053+(hash(i+30)-.5)*.02;if(Math.abs(x)<.035)continue;
+  const h=.014+hash(i+70)*.026,ic=new THREE.ConeGeometry(.0045+hash(i+3)*.002,h,5);ic.rotateX(Math.PI);
+  put(at(ic,x,T0+.002-h/2,lf-.003),{look:RIME});
+ }
+ for(let i=0;i<3;i++){const cl=new THREE.SphereGeometry(.006,5,3);cl.scale(1.4,.6,1);put(at(cl,(i-1)*.014,ly+.008,lf+.002),{look:RIME});}
+ // Meltwater: a drip at the spigot and a shallow puddle on the floor behind the box.
+ const drip=new THREE.SphereGeometry(.004,6,4);drip.scale(1,1.4,1);put(at(drip,sx,sy-.021,spz-.01),{look:RIME,flat:WATER});
+ const pool=new THREE.CircleGeometry(.04,18);pool.rotateX(-Math.PI/2);pool.scale(1.3,1,.75);put(at(pool,sx-.01,.0012,spz-.018),{look:RIME,flat:WATER});
+ const mesh=(list,m,part,shadow=true)=>{const geo=mergeGeometries(list);list.forEach(p=>p.dispose());const o=new THREE.Mesh(geo,m);o.castShadow=shadow;o.receiveShadow=true;o.userData.part=part;g.add(o);};
+ mesh(wood,woodMat,'ice-box-wood');mesh(metal,metalMat,'ice-box-nickel');mesh(frost,frostMat,'ice-box-frost',false);
+ g.rotation.y=-.18;
+}
+
 // The grappling hook (and its unidentified twin, the iron hook): a forged iron grapnel lying
 // on two of its flukes and its eye, with the third fluke standing up. Three flukes curve back
 // from a crown boss to spade-shaped points; the shank ends in a collar and a forged eye. A
@@ -4320,13 +4458,7 @@ export function createGroundModel(item={}){
   }else if(kind==='large box'){
    buildLargeBox({g,materials});
   }else{
-   // Ice boxes.
-   const side=mat(0xd8dfe2),band=metal,W=.46,D=.32,H=.3;
-   add(new RoundedBoxGeometry(W,H,D,2,.012),side,0,H/2);
-   box(W+.01,.03,D+.01,side,0,H+.015);box(.12,.018,.02,band,0,H-.03,D/2+.012);
-   for(const x of [-.23,.23])box(.012,.02,.1,band,x,H*.6,0);
-   const frost=new THREE.MeshBasicMaterial({color:0xeaf6ff,transparent:true,opacity:.35,depthWrite:false});materials.push(frost);
-   box(W-.04,.004,D-.04,frost,0,H+.032);
+   buildIceBox({g,materials});
   }
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else{materials.forEach(m=>m.dispose());return null;}
