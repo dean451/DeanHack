@@ -212,7 +212,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    if(groundPanelTile!==groundTile(frame)){groundPanel.hidden=true;groundPanelTile=null;}
    if(Array.isArray(frame.ground))showGround(frame.ground);
    hero.setWeapon?.(frame.player.weapon??null);syncHeldWandAura(hero,frame.player.weapon??null);syncHeldGleam(hero,frame.player.weapon??null);
-   hero.setHelmet?.(frame.player.helmet??null);addOutlines(hero.g);
+   hero.setHelmet?.(frame.player.helmet??null);if('shield' in frame.player)hero.setShield?.(frame.player.shield);if('offhand' in frame.player)hero.setOffhand?.(frame.player.offhand);addOutlines(hero.g);
    const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();rays.clear();zapFlash.clear(hero);rayMarks.clear();explosions.clear();flood.clear();flooding=false;splash.clear();grab.clear();hold.clear();poseHeld(hero,null);poly.clear();barsMelt.clear();breath.clear();engulf.clear();dropEngulfCamera(camera,controls);poseEngulfed(hero,null);poseActor(hero,null);origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
    if(!newLevel&&flood.add(prevFrame,frame))flooding=true;splash.flushMessages(frame);grab.frame(frame);hold.frame(frame);poly.frame(frame);barsMelt.frame(frame);engulf.frame(frame);
    const seen=new Set(),seenActors=new Set(),seenWells=new Set();

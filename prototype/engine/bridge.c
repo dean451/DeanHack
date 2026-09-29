@@ -5,6 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#if defined(TTY_GRAPHICS) && defined(TEXTCOLOR)
+/* With tty compiled in, mapglyph() asks the tty's has_color(), which only says yes for colours
+   the tty terminal set up an escape for. The bridge never starts the tty, so every glyph came out
+   NO_COLOR. Give each colour a (never printed) escape so glyph colours come through. */
+extern NEARDATA char *hilites[CLR_MAX];
+static char no_escape[]="";
+#endif
 
 #define BW 32
 #define BM 512
@@ -200,12 +207,28 @@ static void death_hook_bridge(struct monst *m,struct permonst *ptr) {
     if(Hallucination||!ptr)printf("null");else quoted(ptr->mname);
     printf(",\"pet\":%s}\n",m->mtame?"true":"false");fflush(stdout);
 }
+/* A wielded object. An artifact is shown by its name, so "base" also names its object type
+   (its appearance while the type is unidentified) for the model to follow. */
+static void held(struct obj *o) {
+    if (!o) {printf("null");return;}
+    printf("{\"name\":");quoted(xname(o));
+    printf(",\"otyp\":%d,\"class\":%d",o->otyp,o->oclass);
+    if (o->oartifact) {
+        const char *d=OBJ_DESCR(objects[o->otyp]);
+        printf(",\"base\":");quoted(d&&!objects[o->otyp].oc_name_known?d:OBJ_NAME(objects[o->otyp]));
+    }
+    putchar('}');
+}
 static void frame(void) {
     int x,y,g,b,m,col,terrain_glyph,object_type;glyph_t ch;unsigned special;
     printf("{\"type\":\"frame\",\"turn\":%ld,\"depth\":%d,\"branch\":%d,\"player\":{\"x\":%d,\"z\":%d,\"hp\":%d,\"maxhp\":%d,\"ac\":%d,\"level\":%d,\"weapon\":",moves,depth(&u.uz),u.uz.dnum,u.ux,u.uy,Upolyd?u.mh:u.uhp,Upolyd?u.mhmax:u.uhpmax,u.uac,u.ulevel);
-    if (uwep) {
-        printf("{\"name\":");quoted(xname(uwep));
-        printf(",\"otyp\":%d,\"class\":%d}",uwep->otyp,uwep->oclass);
+    held(uwep);
+    /* Two-weaponing: the other hand holds the alternate weapon. */
+    printf(",\"offhand\":");held(u.twoweap?uswapwep:0);
+    printf(",\"shield\":");
+    if (uarms) {
+        printf("{\"name\":");quoted(xname(uarms));
+        printf(",\"otyp\":%d}",uarms->otyp);
     } else printf("null");
     printf(",\"helmet\":");
     if (uarmh) {
@@ -298,7 +321,11 @@ static int key(const char *kind,const char *prompt) {char buf[BUFSZ];read_reques
 static void noop(void) {}
 static void strnoop(const char *s UNUSED) {}
 static void intnoop(int i UNUSED) {}
-static void init(int *a UNUSED,char **v UNUSED) {setvbuf(stdout,NULL,_IOLBF,0);for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;iflags.window_inited=TRUE;iflags.use_background_glyph=TRUE;tmp_at_hook=fx_hook;combat_hook=combat_hook_bridge;death_hook=death_hook_bridge;}
+static void init(int *a UNUSED,char **v UNUSED) {setvbuf(stdout,NULL,_IOLBF,0);for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;iflags.window_inited=TRUE;iflags.use_background_glyph=TRUE;
+#if defined(TTY_GRAPHICS) && defined(TEXTCOLOR)
+    for(int i=0;i<CLR_MAX;i++)if(!hilites[i])hilites[i]=no_escape;
+#endif
+    tmp_at_hook=fx_hook;combat_hook=combat_hook_bridge;death_hook=death_hook_bridge;}
 static void name(void){Strcpy(plname,"Wanderer");}
 static void finish(const char *s){tmp_at_hook=0;combat_hook=0;death_hook=0;fxdepth=0;fx_flush();event("ended",s);iflags.window_inited=FALSE;}
 static winid create(int type){for(int i=1;i<BW;i++)if(!wins[i].type){wins[i].type=type;return i;}panic("bridge windows exhausted");return WIN_ERR;}

@@ -156,6 +156,9 @@ function buildSpellbook(item,{g,add,box,ball,mat,materials,metal}){
 const GEM_COLORS=[0x1d1a26,0xc4202f,0x2f9e55,0xb47a2a,0x2d58d4,0x8c40c4,0x2aa4ac,0x9a9c9e,undefined,
  0xe46c1c,0x55cf5a,0xecc62e,0x5a86f0,0xd46ad0,0x6ad8e0,0xe6eef2];
 
+// The glyph colour each shared gem colour word shows as (objects.c).
+const GEM_WORD_COLOR={white:15,red:1,orange:9,yellow:11,'yellowish brown':3,green:2,blue:4,violet:5,black:0};
+
 // Gem cuts keyed by the shared colour word (objects.c): girdle outline, crown and pavilion
 // rings as [scale, height, twist] (twist .5 staggers facets into kites and stars; 0 makes
 // step-cut terraces), and the table's size. Black stones are domed, polished cabochons.
@@ -4112,7 +4115,8 @@ export function createGroundModel(item={}){
   }else{
    // A cut stone lying tipped on its pavilion. The cut comes from the shuffled colour word,
    // which real stones share with their glass, so the look never tells them apart.
-   const tint=new THREE.Color(GEM_COLORS[item.color]??0xd8e4ea);
+   // Without a glyph colour (NO_COLOR) the shared colour word still says how the stone looks.
+   const tint=new THREE.Color(GEM_COLORS[item.color]??GEM_COLORS[GEM_WORD_COLOR[look]]??0xd8e4ea);
    const cut=GEM_CUTS[look]??GEM_CUTS.white;
    const geo=facetedGem(cut,hashLook(look));
    const facet=new THREE.MeshPhysicalMaterial({color:tint,vertexColors:true,metalness:0,roughness:.05,flatShading:true,

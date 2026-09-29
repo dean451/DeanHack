@@ -11,7 +11,8 @@ export function createHeldWeapon(item){
  const leather=new THREE.MeshStandardMaterial({color:0x442c22,roughness:.92});
  const brass=new THREE.MeshStandardMaterial({color:0xbe9650,metalness:.7,roughness:.35});
  function part(geometry,material,x,y,z=0){const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=true;g.add(m);return m;}
- const name=(item.name||'').toLowerCase();
+ // An artifact ("Excalibur") takes the model of its base type, which the bridge sends as `base`.
+ const name=(item.base||item.name||'').toLowerCase();
  const blade=/sword|dagger|knife|athame|saber|scimitar|katana|tsurugi|wakizashi/.test(name);
  if(blade){
   const short=/dagger|knife|athame/.test(name),length=short?.34:.75,width=short?.055:.075;

@@ -1238,3 +1238,13 @@ test('the land mine item lies dug up and tipped on a clod: one vertex-coloured m
  assert(low>0&&Math.abs(lowZ/low)>.03,`${low} floor vertices centred at z ${lowZ/low}`);
  model.userData.dispose();
 });
+
+test('a gem with no glyph colour is still tinted by its colour word',()=>{
+ const tintOf=m=>{let c=null;m.traverse(o=>{if(!c&&o.material?.isMeshPhysicalMaterial)c=o.material.color;});return c;};
+ const green=tintOf(createGroundModel({name:'worthless piece of green glass',class:13,appearance:'green',color:8}));
+ assert(green.g>green.r*1.5&&green.g>green.b*1.5,`green glass tinted ${green.getHexString()}`);
+ const red=tintOf(createGroundModel({name:'ruby',class:13,appearance:'red',color:8}));
+ assert(red.r>red.g*2,`ruby tinted ${red.getHexString()}`);
+ // a real glyph colour still wins
+ assert.equal(tintOf(createGroundModel({name:'emerald',class:13,appearance:'green',color:10})).getHex(),new THREE.Color(0x55cf5a).getHex());
+});
