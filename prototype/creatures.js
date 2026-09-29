@@ -24,6 +24,7 @@ import {createJuiblex} from './juiblex.js';
 import {createGhost,GHOSTS} from './ghost.js';
 import {createStrawGolem} from './straw-golem.js';
 import {createPaperGolem} from './paper-golem.js';
+import {createMummy} from './mummy.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -40,11 +41,11 @@ function actor(g,body,legs=[],tail=null,wings=[],quirk='idle'){return {g,body,le
 function eyes(head,material=M.eye,y=0,z=.18,spread=.075){for(const x of [-spread,spread])sphere(head,.026,material,x,y,z);}
 function humanoid(kind,o={}){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[],wings=[],arms=[];let hat=null,beard=null,pick=null;
- const short=['gnome','kobold','hobbit','imp'].includes(kind),stocky=kind==='orc'||kind==='dwarf'||kind==='bugbear',guard=kind==='guard',shopkeeper=kind==='shopkeeper',undead=kind==='zombie'||kind==='mummy';
+ const short=['gnome','kobold','hobbit','imp'].includes(kind),stocky=kind==='orc'||kind==='dwarf'||kind==='bugbear',guard=kind==='guard',shopkeeper=kind==='shopkeeper',undead=kind==='zombie';
  const skin=o.skin||(kind==='orc'?M.greenSkin:kind==='dwarf'?M.graySkin:M.skin);
  const torso=o.cloth||(kind==='orc'||shopkeeper?M.brownCloth:guard?M.steel:M.cloth);
  const headY=short?.87:1.0,shoulderY=short?.7:.8,torsoW=stocky?.46:.42;
- for(const x of [-.13,.13]){const leg=new THREE.Group();leg.position.set(x,.4,0);body.add(leg);rounded(leg,.16,short?.27:stocky?.34:.42,.16,kind==='mummy'?torso:M.darkSteel,0,-.12,0,.035);rounded(leg,.21,.13,.28,kind==='imp'||kind==='kobold'?skin:M.leather,0,-.36,.06,.03);legs.push(leg);}
+ for(const x of [-.13,.13]){const leg=new THREE.Group();leg.position.set(x,.4,0);body.add(leg);rounded(leg,.16,short?.27:stocky?.34:.42,.16,M.darkSteel,0,-.12,0,.035);rounded(leg,.21,.13,.28,kind==='imp'||kind==='kobold'?skin:M.leather,0,-.36,.06,.03);legs.push(leg);}
  rounded(body,torsoW,short?.3:stocky?.4:.48,.3,torso,0,.62,0,.06);sphere(body,short?.18:.22,skin,0,headY,.02,1,1.05,1);
  // arms give every humanoid a readable silhouette; the undead reach forward
  for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*(torsoW/2+.07),shoulderY,0);body.add(arm);arms.push(arm);rounded(arm,.11,short?.3:.38,.12,undead?skin:torso,0,short?-.13:-.17,0,.03);sphere(arm,.065,skin,0,short?-.3:-.38,0);if(undead){arm.rotation.x=-1.35;arm.rotation.z=side*.08;}else arm.rotation.z=side*.12;}
@@ -53,7 +54,6 @@ function humanoid(kind,o={}){
  if(kind==='kobold'){const snout=cone(body,.1,.2,skin,0,.83,.24,6);snout.rotation.x=Math.PI/2;sphere(body,.025,M.leather,0,.83,.34);for(const side of [-1,1]){const ear=cone(body,.07,.26,skin,side*.2,.95,-.01,4);ear.rotation.z=-side*1.15;}const spear=rounded(body,.035,.9,.035,M.leather,.34,.62,.2,.01);spear.rotation.x=.15;cone(body,.05,.14,M.darkSteel,.34,1.08,.27,4);}
  if(kind==='hobbit'){sphere(body,.2,M.beard,0,.95,-.02,1,.7,1);for(const side of [-1,1])rounded(body,.14,.06,.26,skin,side*.13,.03,.08,.03);}
  if(kind==='imp'){for(const side of [-1,1]){const horn=cone(body,.04,.16,M.leather,side*.1,1.04,.02,5);horn.rotation.z=-side*.35;const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.34,.2);shape.lineTo(side*.3,-.02);shape.lineTo(side*.18,.04);shape.lineTo(0,-.12);const wing=part(body,new THREE.ShapeGeometry(shape),M.wing,side*.12,.72,-.17);wings.push(wing);}const tail=cone(body,.03,.42,skin,0,.42,-.3,5);tail.rotation.x=-2.1;}
- if(kind==='mummy')for(let i=0;i<6;i++){const wrap=rounded(body,torsoW+.03,.03,.33,M.leather,0,.44+i*.075,0,.012);wrap.rotation.z=(i%2?1:-1)*.12;}
  if(kind==='orc'){for(const x of [-.09,.09]){const tusk=cone(body,.045,.15,M.whiteFur,x,.91,.19,5);tusk.rotation.x=x<0?.35:-.35;}for(const x of [-.31,.31])sphere(body,.16,M.darkSteel,x,.84,0,1,.75,1);}
  // dwarf lords wear a gold-banded helm; dwarf kings trade it for a crown and a cape
  if(kind==='dwarf'&&o.rank==='king'){cylinder(body,.2,.21,.09,M.gold,0,1.16,0,12);for(let i=0;i<6;i++){const a=i/6*Math.PI*2;cone(body,.035,.11,M.gold,Math.sin(a)*.19,1.25,Math.cos(a)*.19,4);}sphere(body,.03,M.fire,0,1.16,.205);const cape=rounded(body,.46,.62,.04,M.redCloth,0,.6,-.19,.02);cape.rotation.x=.08;rounded(body,.5,.06,.1,M.whiteFur,0,.86,-.15,.03);}
@@ -2329,7 +2329,7 @@ export function createCreature(cell={}){
  if(name==='raven')return createRaven();
  if(/^(bat|giant bat|vampire bat)$/.test(name))return bat({color:name==='bat'?'#5a4636':name==='giant bat'?'#7a3a32':'#28242a',scale:name==='giant bat'?1.25:1});
  if(ZOMBIE_SKIN[name])return humanoid('zombie',{skin:mat(ZOMBIE_SKIN[name]),cloth:mat('#3f3a34')});
- if(/mummy$/.test(name))return humanoid('mummy',{skin:mat('#6a5f4a'),cloth:mat('#c9bb98')});
+ if(/mummy$/.test(name))return createMummy(name);
  if(/shopkeeper|merchant/.test(name))return humanoid('shopkeeper');
  if(WATCH.includes(name))return createWatch(name);
  if(SOLDIERS.includes(name))return createSoldier(name);
@@ -2389,7 +2389,7 @@ export function createCreature(cell={}){
   case 'k':return humanoid('kobold',{skin:mat(c),cloth:mat(shade(c,.55))});
   case 'i':return humanoid('imp',{skin:mat(c),cloth:mat(shade(c,.55))});
   case 'Z':return humanoid('zombie',{skin:mat(c),cloth:mat('#3f3a34')});
-  case 'M':return humanoid('mummy',{skin:mat('#6a5f4a'),cloth:mat('#c9bb98')});
+  case 'M':return createMummy('human mummy');
   case 'G':return humanoid('gnome',{cap:mat(c)});
   case 'h':return humanoid('dwarf');
   case 'o':return humanoid('orc',{cloth:mat(shade(c,.75))});

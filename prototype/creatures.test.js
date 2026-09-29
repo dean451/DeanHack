@@ -292,6 +292,42 @@ test('lemures get their own slumped, melting, legless model instead of the tinte
  assert.equal(createCreature({name:'manes',symbol:I,color:1}).quirk,'manes');
 });
 
+test('mummies get their own linen-bound model instead of the strapped undead humanoid',()=>{
+ const M=77,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const names=['kobold mummy','gnome mummy','orc mummy','dwarf mummy','elf mummy','human mummy','ettin mummy','giant mummy'];
+ for(const name of names){
+  const t0=performance.now(),mummy=createCreature({name,symbol:M,color:7}),ms=performance.now()-t0;
+  assert.equal(mummy.quirk,'mummy',name);
+  for(const key of ['body','head','arm'])assert(mummy[key]?.isObject3D,`${name} ${key}`);
+  assert.equal(mummy.legs.length,2);assert.equal(mummy.arms.length,2);assert.equal(mummy.wings.length,0);assert.equal(mummy.tail,null);
+  const parts=meshes(mummy),heads=name==='ettin mummy'?2:1;
+  assert.equal(parts.length,5+2*heads,`${name}: one mesh per moving part plus the eyes`);
+  let verts=0;
+  for(const m of parts){
+   const a=m.geometry.attributes;verts+=a.position.count;
+   for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),`${name} ${m.userData.part} ${key}`);
+   if(a.color)for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+  }
+  assert(verts<52000,`${name}: ${verts} vertices`);
+  mummy.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(mummy.g),s=mummy.g.scale.y;
+  assert(b.min.y>-.03*s&&b.min.y<.03*s,`${name}: feet at ${b.min.y}`);
+  assert(b.max.y>1.05*s&&b.max.y<1.25*s,`${name}: top at ${b.max.y}`);
+  // the arms reach forward, hands at about waist height
+  const hand=new THREE.Box3().setFromObject(mummy.arm);
+  assert(hand.max.z>.5*mummy.g.scale.z&&hand.max.z<.72*mummy.g.scale.z,`${name}: hand reaches to z ${hand.max.z}`);
+  assert(hand.min.y>.3*s&&hand.min.y<.7*s,`${name}: hand (and its loose end) down to ${hand.min.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8*mummy.g.scale.z,`${name} is out of proportion`);
+  assert(ms<1000,`${name} took ${ms} ms`);
+ }
+ // geometry is shared; each species only picks its tint
+ const a=meshes(createCreature({name:'human mummy'})),b=meshes(createCreature({name:'kobold mummy'}));
+ a.forEach((m,i)=>assert.equal(m.geometry,b[i].geometry));
+ assert.equal(a[0].material,meshes(createCreature({name:'orc mummy'}))[0].material);
+ assert.notEqual(a[0].material,b[0].material);
+ assert.equal(createCreature({name:'unknown thing',symbol:M,color:7}).quirk,'mummy');
+});
+
 test('elves get their own slender, cloaked, sword-bearing model instead of the tinted human',()=>{
  const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  for(const name of ['Woodland-elf','Green-elf','Grey-elf','elf-lord','Elvenking','High-elf']){
