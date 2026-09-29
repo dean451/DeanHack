@@ -13,10 +13,30 @@ export const EASE_RATE = 10;
 // so it slows over the last ~.35 cell; creep: the slowest it goes, so it lands instead of
 // crawling forever; catchup: distance (cells) past which it eases instead.
 export const HEAVY = {turtle: {cruise: 1.4, accel: 5, brake: 4, creep: .15, catchup: 1.6}};
+// Other slow, heavy movers share generic quirks, so they're picked by species (live.js sets
+// actor.species to the lower-case monster name). Zombies shamble a little quicker than the
+// turtle; the heavy golems (NetHack speed 3–8) trudge with a slow pull-away; the gelatinous
+// cube and the puddings ooze, with a long soft stop.
+export const SPECIES_SLIDE = {
+  zombie: {cruise: 1.6, accel: 4.5, brake: 4, creep: .15, catchup: 1.6},
+  golem: {cruise: 1.3, accel: 3.5, brake: 4.5, creep: .15, catchup: 1.6},
+  ooze: {cruise: 1.2, accel: 3.5, brake: 3, creep: .12, catchup: 1.6},
+};
+const HEAVY_GOLEMS = new Set(['leather golem', 'wood golem', 'flesh golem', 'clay golem',
+  'stone golem', 'glass golem', 'iron golem']);
+const OOZES = new Set(['gelatinous cube', 'brown pudding', 'black pudding', 'gray ooze']);
+
+export function speciesSlide(species) {
+  if (typeof species !== 'string') return null;
+  if (/ zombie$/.test(species)) return SPECIES_SLIDE.zombie;
+  if (HEAVY_GOLEMS.has(species)) return SPECIES_SLIDE.golem;
+  if (OOZES.has(species)) return SPECIES_SLIDE.ooze;
+  return null;
+}
 // Closer than this and the actor is set exactly on its target.
 const ARRIVE = 2e-3;
 
-export const heavySlide = a => HEAVY[a?.quirk] || null;
+export const heavySlide = a => HEAVY[a?.quirk] || speciesSlide(a?.species);
 
 // Moves actor.g toward actor.target by one frame of dt seconds.
 export function slideTo(actor, dt) {
