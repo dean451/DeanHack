@@ -133,9 +133,9 @@ export function actionPose(action, u, face) {
     const m = hitReactionPose(action.style ?? hitStyle(action.attack, action.blow), u, d);
     for (const k of ['dx', 'dy', 'dz', 'yaw', 'pitch', 'roll', 'body', 'head', 'arm', 'wrist', 'socket', 'leg', 'fore', 'tail', 'wing', 'scale', 'stretch']) p[k] = m[k];
   } else if (action.kind === 'die') {
-    // Per class (deaths.js): topple, crumble, splat, dissipate or burst; held at the end.
+    // Per class (deaths.js): topple, crumble, splat, dissipate, burst or black mist; held at the end.
     const m = deathPose(action.style, u, d);
-    for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'scale', 'sx', 'sy', 'fade']) p[k] = m[k];
+    for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'scale', 'sx', 'sy', 'fade', 'dark']) p[k] = m[k];
     p.yaw = m.spin;
   }
   // The lower jaw, for creatures that have one (jaw.js).
@@ -229,6 +229,7 @@ export function updateActions(actor, q, dt) {
     // For the renderer: how opaque the body is, and (once, as it crosses its moment) the
     // death's particle burst.
     q.fade = pose.fade;
+    q.dark = pose.dark ?? 0;
     const bu = (DEATH_BURST_U[a.style] ?? .8) * len;
     if (before < bu && q.age >= bu) q.deathBurst = {style: a.style ?? 'topple', dir: a.dir};
   }
@@ -290,8 +291,9 @@ export function queueCombat(c, {hero, find}) {
 }
 
 // Queues a death (deathAction() from combat-events.js). The style comes from the seen species
-// (deaths.js); the actor falls or splashes away from the last blow it took, if one was seen.
+// (deaths.js), or is black mist for the strongest monsters (`d.warn`, the warning-scale level);
+// the actor falls or splashes away from the last blow it took, if one was seen.
 export function queueDeath(d, find) {
   const actor = d && find(d), q = queueOf(actor);
-  return !!q && enqueueAction(q, {kind: 'die', dir: q.lastBlow ?? null, style: deathStyle(actor.species || d.name)});
+  return !!q && enqueueAction(q, {kind: 'die', dir: q.lastBlow ?? null, style: deathStyle(actor.species || d.name, d.warn)});
 }

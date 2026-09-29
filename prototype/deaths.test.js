@@ -84,3 +84,36 @@ test('fading an actor clones its materials, and restoring puts the shared ones b
   for (const [o, mat, , visible] of meshes) { assert.equal(o.material, mat); assert.equal(o.visible, visible); }
   assert.equal(actor.fadeSaved, null);
 });
+
+test('5 on the warning scale dies in black mist, whatever it is; lower levels keep their class', () => {
+  assert.equal(deathStyle('master lich', 5), 'blackmist');
+  assert.equal(deathStyle('jackal', 5), 'blackmist');
+  assert.equal(deathStyle(null, 5), 'blackmist');
+  assert.equal(deathStyle('master lich', 4), 'crumble');
+  assert.equal(deathStyle('jackal', null), 'topple');
+  assert.equal(deathStyle('fire vortex', 0), 'dissipate');
+});
+
+test('black mist blackens first, then lifts and thins away, and darkens the actor', () => {
+  let lastDark = 0;
+  for (let u = 0; u <= 1.0001; u += .01) {
+    const p = deathPose('blackmist', u);
+    assert.ok(p.dark >= lastDark - 1e-9 && p.dark <= 1);
+    lastDark = p.dark;
+  }
+  assert.ok(deathPose('blackmist', .4).dark > .99 && deathPose('blackmist', .4).fade > .9, 'black before it fades');
+  assert.equal(deathPose('blackmist', 1).fade, 0);
+  assert.ok(deathPose('blackmist', 1).dy > .1);
+  for (const style of DEATH_STYLES) if (style !== 'blackmist') assert.equal(deathPose(style, .5).dark, 0, style);
+  const actor = createCreature({name: 'master lich'});
+  const meshes = [];
+  actor.g.traverse(o => { if (o.isMesh && o.material?.color && !Array.isArray(o.material)) meshes.push([o, o.material, o.material.color.clone()]); });
+  applyFade(actor, 1, 1);
+  for (const [o, mat, c] of meshes) {
+    if (o.material === mat) continue;
+    assert.ok(o.material.color.r <= c.r * .07 + 1e-6 && o.material.color.g <= c.g * .07 + 1e-6);
+    assert.equal(mat.color.getHex(), c.getHex(), 'shared material untouched');
+  }
+  restoreFade(actor);
+  for (const [o, mat] of meshes) assert.equal(o.material, mat);
+});

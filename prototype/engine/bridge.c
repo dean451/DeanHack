@@ -198,7 +198,11 @@ static void death_hook_bridge(struct monst *m,struct permonst *ptr) {
     if(m->mx<=0||!canspotmon(m))return;
     printf("{\"type\":\"death\",\"x\":%d,\"z\":%d,\"name\":",m->mx,m->my);
     if(Hallucination||!ptr)printf("null");else quoted(ptr->mname);
-    printf(",\"pet\":%s}\n",m->mtame?"true":"false");fflush(stdout);
+    printf(",\"pet\":%s",m->mtame?"true":"false");
+    /* Warning-scale level (0-5, as warning_of() counts it: m_lev/4, capped), for the
+       black-mist death of the strongest monsters. Withheld while hallucinating, like the name. */
+    if(!Hallucination){int wl=m->m_lev/4;printf(",\"warn\":%d",wl>WARNCOUNT-1?WARNCOUNT-1:wl<0?0:wl);}
+    puts("}");fflush(stdout);
 }
 static void frame(void) {
     int x,y,g,b,m,col,terrain_glyph,object_type;glyph_t ch;unsigned special;

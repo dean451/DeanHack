@@ -32,6 +32,9 @@ test('pet fights and hallucinated names pass through safely', () => {
 });
 
 test('deaths keep position and name', () => {
-  assert.deepEqual(deathAction({type: 'death', x: 7, z: 2, name: 'newt', pet: false}), {x: 7, z: 2, name: 'newt', pet: false});
+  assert.deepEqual(deathAction({type: 'death', x: 7, z: 2, name: 'newt', pet: false}), {x: 7, z: 2, name: 'newt', pet: false, warn: null});
+  assert.equal(deathAction({type: 'death', x: 7, z: 2, name: 'master lich', pet: false, warn: 5}).warn, 5);
+  assert.equal(deathAction({type: 'death', x: 7, z: 2, name: 'x', warn: 9}).warn, 5);
+  assert.equal(deathAction({type: 'death', x: 7, z: 2, name: 'x', warn: 'lots'}).warn, null);
   assert.equal(deathAction({type: 'death', x: 'a', z: 2}), null);
 });

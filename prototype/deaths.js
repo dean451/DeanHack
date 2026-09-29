@@ -5,20 +5,26 @@
 //   dissipate vortices, clouds, ghosts, air elementals: spin up, swell and thin into mist
 //   burst     lights and spheres, gas spores: swell fast and pop in a flash
 //   topple    everything else: stagger and fall over away from the blow (the old die pose)
+//   blackmist the strongest monsters (5 on the warning scale, level 20+) whatever they are:
+//             they go rigid, blacken from within and dissolve upward in a black mist
 //
 // deathPose(style, u, dir) gives offsets in actions.js's pose shape plus `sx`/`sy` (squash on
 // width and height, volume roughly kept), `spin` (extra yaw) and `fade` (1 opaque → 0 gone).
 // createDeathBurst(THREE) is a pooled particle system for the dust, splash, mist or flash
 // each style throws off. Only the seen name is used, so nothing here tells you more than the
-// map already does.
+// map already does. The black mist is the exception: it uses the warning-scale level the
+// bridge sends with the death (deathStyle's second argument), withheld while hallucinating.
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
-export const DEATH_STYLES = ['topple', 'crumble', 'splat', 'dissipate', 'burst'];
+export const DEATH_STYLES = ['topple', 'crumble', 'splat', 'dissipate', 'burst', 'blackmist'];
 
 // Seconds each style takes (topple matches actions.js's die).
-export const DEATH_TIME = {topple: .9, crumble: 1, splat: .8, dissipate: 1, burst: .45};
+export const DEATH_TIME = {topple: .9, crumble: 1, splat: .8, dissipate: 1, burst: .45, blackmist: 1.6};
+
+// Warning-scale level (0..5, m_lev / 4) at or above which a monster dies in black mist.
+export const BLACK_MIST_WARN = 5;
 
 const RULES = [
   ['burst', /\b(yellow|black) light\b|\bgas spore\b|\b(flaming|freezing|shocking) sphere\b/],
@@ -28,7 +34,9 @@ const RULES = [
 ];
 
 // Death style for a seen species name (anything unknown, or hallucinated nulls, topple).
-export function deathStyle(name) {
+// A monster at BLACK_MIST_WARN or higher on the warning scale always dies in black mist.
+export function deathStyle(name, warn = null) {
+  if (Number.isFinite(warn) && warn >= BLACK_MIST_WARN) return 'blackmist';
   if (typeof name !== 'string' || !name) return 'topple';
   const n = name.toLowerCase();
   for (const [style, re] of RULES) if (re.test(n)) return style;
@@ -44,7 +52,7 @@ function unit(dir) {
 // Offsets for a death at normalised time u (0..1); the end pose is held.
 export function deathPose(style, u, dir = null) {
   const p = {dx: 0, dy: 0, dz: 0, yaw: 0, pitch: 0, roll: 0, body: 0, head: 0, arm: 0, wrist: 0,
-    socket: 0, leg: 0, tail: 0, scale: 1, sx: 1, sy: 1, spin: 0, fade: 1};
+    socket: 0, leg: 0, tail: 0, scale: 1, sx: 1, sy: 1, spin: 0, fade: 1, dark: 0};
   u = clamp01(u);
   const d = unit(dir);
   const push = k => { if (d) { p.dx = d[0] * k; p.dz = d[1] * k; } };
@@ -89,6 +97,21 @@ export function deathPose(style, u, dir = null) {
       p.fade = u < .33 ? 1 : 0;
       break;
     }
+    case 'blackmist': {
+      // Seized on the blow: a hard tremor while the body blackens from within, a slow lift
+      // onto the toes with the head thrown back, then it thins away into its own mist.
+      const grip = smooth(u / .3), shake = Math.sin(u * 70) * .035 * grip * (1 - smooth((u - .5) / .3));
+      const rise = smooth((u - .25) / .75);
+      p.roll = shake;
+      p.pitch = -.12 * rise;
+      p.head = .35 * rise;
+      p.dy = .16 * rise;
+      p.sx = 1 - .08 * rise;
+      p.sy = 1 + .1 * rise;
+      p.dark = smooth(u / .4);
+      p.fade = 1 - smooth((u - .35) / .6);
+      break;
+    }
     default: {
       // Stagger, then topple sideways away from the blow and sink a little.
       const s = smooth(u / .25), f = smooth((u - .15) / .75);
@@ -104,7 +127,7 @@ export function deathPose(style, u, dir = null) {
 }
 
 // When (u) each style throws off its particles.
-export const DEATH_BURST_U = {topple: .8, crumble: .55, splat: .25, dissipate: .2, burst: .33};
+export const DEATH_BURST_U = {topple: .8, crumble: .55, splat: .25, dissipate: .2, burst: .33, blackmist: .3};
 
 // Particle looks. Splats take the creature's own colour when one is given.
 const LOOKS = {
@@ -112,6 +135,8 @@ const LOOKS = {
   crumble: {count: 44, speed: .35, up: .2, life: 1.1, gravity: 1.2, drag: 2.5, color: [.62, .58, .5], spread: 'column', size: .035},
   splat: {count: 34, speed: 1.3, up: 1.1, life: .9, gravity: 5, drag: 1.2, color: [.55, .75, .25], spread: 'ring', size: .05},
   dissipate: {count: 40, speed: .45, up: .6, life: 1.3, gravity: -.25, drag: 1.5, color: [.75, .78, .82], spread: 'swirl', size: .07},
+  // Slow, rising, curling soot; normal blending, so it stays black on any floor.
+  blackmist: {count: 60, speed: .3, up: .45, life: 1.35, gravity: -.35, drag: 1.2, color: [.035, .03, .045], spread: 'swirl', size: .09},
   burst: {count: 36, speed: 2.4, up: .4, life: .45, gravity: 0, drag: 3.5, color: [1, .92, .6], spread: 'sphere', size: .05},
 };
 
@@ -202,20 +227,23 @@ export function deathLook(actor) {
   return {color, height: Number.isFinite(h) && h > 0 ? h : .6};
 }
 
-// Fades an actor's meshes to `f` (1 = as built). Materials are cloned per actor the first time
+// Fades an actor's meshes to `f` (1 = as built), and darkens them toward black by `dark`
+// (0 = as built, 1 = black; the black mist). Materials are cloned per actor the first time
 // so a fading jelly never fades every other jelly that shares its material. restoreFade puts
 // the shared materials back (life saving).
-export function applyFade(actor, f) {
+export function applyFade(actor, f, dark = 0) {
   const g = actor?.g;
   if (!g) return;
   f = clamp01(f);
-  if (f >= 1 && !actor.fadeSaved) return;
+  dark = clamp01(Number.isFinite(dark) ? dark : 0);
+  if (f >= 1 && !dark && !actor.fadeSaved) return;
   if (!actor.fadeSaved) {
     actor.fadeSaved = [];
     g.traverse(o => {
       if (!o.isMesh || !o.material || Array.isArray(o.material) || o.userData.keepOpaque) return;
       const m = o.material.clone();
-      actor.fadeSaved.push({o, mat: o.material, opacity: m.opacity ?? 1, visible: o.visible});
+      actor.fadeSaved.push({o, mat: o.material, opacity: m.opacity ?? 1, visible: o.visible,
+        color: m.color?.clone?.() ?? null, emissive: m.emissive?.clone?.() ?? null});
       m.transparent = true;
       o.material = m;
     });
@@ -223,6 +251,8 @@ export function applyFade(actor, f) {
   for (const s of actor.fadeSaved) {
     s.o.material.opacity = s.opacity * f;
     s.o.visible = s.visible && f > .01;
+    if (s.color) s.o.material.color.copy(s.color).multiplyScalar(1 - .94 * dark);
+    if (s.emissive) s.o.material.emissive.copy(s.emissive).multiplyScalar(1 - dark);
   }
 }
 
