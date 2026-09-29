@@ -155,6 +155,64 @@ export function createHeldWeapon(item){
    part(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),8,.002,3,false),grain,0,0);
   }
   g.userData.extraMaterial=grain;
+ }else if(/\b(fauchard|pole sickle)\b/.test(name)){
+  // A fauchard: a long ash pole carrying a curved sickle blade whose edge runs down the inside of
+  // the curve, with a back lug for hooking. The blade is socketed, held by riveted langets and
+  // brass collars; the bright ground edge follows the inner curve. The blade lies in the x-y
+  // plane, so on the floor it lies flat.
+  const wood=new THREE.MeshStandardMaterial({color:0x8a6440,roughness:.84}),edge=new THREE.MeshStandardMaterial({color:0xf2f7fa,metalness:.9,roughness:.12});
+  g.userData.extraMaterial=wood;g.userData.extraMaterials=[edge];
+  part(new THREE.CylinderGeometry(.019,.024,1.3,12),wood,0,.3);
+  part(new THREE.CylinderGeometry(.028,.028,.2,12),leather,0,0);
+  for(let i=0;i<6;i++)part(new THREE.CylinderGeometry(.03,.03,.007,12),leather,0,-.085+i*.034);
+  part(new THREE.CylinderGeometry(.026,.021,.07,12),steel,0,-.36);part(new THREE.SphereGeometry(.022,10,6),steel,0,-.395);
+  // socket, collars and langets running down the pole, with rivets
+  part(new THREE.CylinderGeometry(.024,.028,.13,12),steel,0,.93);
+  for(const y of [.87,.99])part(new THREE.CylinderGeometry(.031,.031,.016,12),brass,0,y);
+  for(const z of [-1,1]){part(new THREE.BoxGeometry(.014,.2,.006),steel,0,.76,z*.022);for(const y of [.7,.8])part(new THREE.SphereGeometry(.006,6,4),brass,0,y,z*.026);}
+  // the blade: rises from the socket, arches forward and hooks down to the point
+  const outline=new THREE.Shape();
+  outline.moveTo(-.022,.98);outline.quadraticCurveTo(-.035,1.3,.11,1.37);outline.quadraticCurveTo(.25,1.4,.29,1.2);
+  outline.quadraticCurveTo(.21,1.31,.11,1.29);outline.quadraticCurveTo(.035,1.25,.022,1.0);outline.closePath();
+  const sickle=new THREE.ExtrudeGeometry(outline,{depth:.012,bevelEnabled:true,bevelThickness:.004,bevelSize:.006,bevelSegments:2,steps:1,curveSegments:14});
+  sickle.translate(0,0,-.006);part(sickle,steel,0,0);
+  // the back lug, a short spur for pulling riders down
+  const lug=new THREE.Shape();lug.moveTo(-.02,1.03);lug.lineTo(-.1,1.1);lug.lineTo(-.085,1.115);lug.lineTo(-.02,1.1);lug.closePath();
+  const spur=new THREE.ExtrudeGeometry(lug,{depth:.012,bevelEnabled:true,bevelThickness:.003,bevelSize:.003,bevelSegments:1});spur.translate(0,0,-.006);part(spur,steel,0,0);
+  // the honed edge along the inside of the curve
+  const inner=new THREE.CatmullRomCurve3([[.285,1.205],[.24,1.27],[.17,1.3],[.11,1.29],[.065,1.27],[.037,1.2],[.026,1.07]].map(([x,y])=>new THREE.Vector3(x,y,0)));
+  part(new THREE.TubeGeometry(inner,40,.0045,4,false),edge,0,0);
+ }else if(/\blance\b/.test(name)){
+  // A jousting lance: a long painted shaft, spiral-striped, swelling to a heavy grip behind a
+  // flared steel vamplate that guards the hand, then tapering to a small steel point. A forked
+  // pennon flies just behind the tip. The pennon lies in the x-y plane.
+  const wood=new THREE.MeshStandardMaterial({color:0xd9c9a4,roughness:.7}),paint=new THREE.MeshStandardMaterial({color:0x2c4a8a,roughness:.6});
+  const cloth=new THREE.MeshStandardMaterial({color:0xb8262a,roughness:.85,side:THREE.DoubleSide});
+  g.userData.extraMaterial=wood;g.userData.extraMaterials=[paint,cloth];
+  const R=y=>y<.2?.042:y<.36?.042-(y-.2)*.05:Math.max(.012,.034-(y-.36)*.0175);
+  // the shaft, turned from a profile: a swelled butt, the grip, then the long taper
+  const profile=[[0,-.4],[.03,-.4],[.046,-.34],[.05,-.22],[.036,-.12],[.034,.12],[.042,.2],[.034,.36],[.024,.95],[.014,1.62],[0,1.64]];
+  part(new THREE.LatheGeometry(profile.map(([r,y])=>new THREE.Vector2(r,y)),14),wood,0,0);
+  part(new THREE.CylinderGeometry(.037,.037,.22,12),leather,0,0);
+  for(let i=0;i<6;i++)part(new THREE.CylinderGeometry(.039,.039,.007,12),leather,0,-.09+i*.036);
+  part(new THREE.CylinderGeometry(.032,.03,.05,12),brass,0,-.4);
+  // the painted spiral stripe running up the shaft
+  const spiral=[];for(let i=0;i<=120;i++){const y=.4+i/120*1.12,a=i/120*Math.PI*2*6;spiral.push(new THREE.Vector3(Math.cos(a)*(R(y)+.003),y,Math.sin(a)*(R(y)+.003)));}
+  part(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(spiral),240,.009,4,false),paint,0,0);
+  // the vamplate: a steel cone flaring back over the hand, rolled at the rim and studded
+  const vamp=new THREE.LatheGeometry([[.03,.33],[.05,.3],[.1,.2],[.135,.13],[.14,.12]].map(([r,y])=>new THREE.Vector2(r,y)),24);part(vamp,steel,0,0);
+  const rim=part(new THREE.TorusGeometry(.14,.008,6,28),brass,0,.12);rim.rotation.x=Math.PI/2;
+  for(let i=0;i<8;i++){const a=i/8*Math.PI*2;part(new THREE.SphereGeometry(.008,6,4),brass,Math.cos(a)*.115,.17,Math.sin(a)*.115);}
+  // the point: a socket and a short four-sided bodkin
+  part(new THREE.CylinderGeometry(.013,.017,.07,10),steel,0,1.6);
+  part(new THREE.ConeGeometry(.02,.14,4),steel,0,1.705);
+  part(new THREE.CylinderGeometry(.019,.019,.01,10),brass,0,1.565);
+  // the pennon: a forked swallowtail pinned to the shaft, rippling
+  const flag=new THREE.Shape();flag.moveTo(0,0);flag.lineTo(.3,.02);flag.lineTo(.2,-.055);flag.lineTo(.3,-.13);flag.lineTo(0,-.12);flag.closePath();
+  const pennon=new THREE.ShapeGeometry(flag,1),fp=pennon.attributes.position;
+  for(let i=0;i<fp.count;i++){const x=fp.getX(i);fp.setZ(i,Math.sin(x*18)*.018*x/.3);fp.setY(i,fp.getY(i)-x*.12);}
+  pennon.computeVertexNormals();part(pennon,cloth,.016,1.5);
+  for(const y of [1.5,1.385])part(new THREE.CylinderGeometry(.018,.018,.012,10),brass,0,y);
  }else{
   // A restrained proxy for weapon families whose detailed models are still pending.
   part(new THREE.CylinderGeometry(.027,.035,.65,8),leather,0,.18);
@@ -162,5 +220,5 @@ export function createHeldWeapon(item){
   else if(/mace|hammer|club/.test(name))part(new THREE.BoxGeometry(.19,.18,.16),steel,0,.48);
   else if(/spear|pike|javelin/.test(name))part(new THREE.ConeGeometry(.065,.24,4),steel,0,.61);
  }
- g.userData.dispose=()=>{g.traverse(o=>o.geometry?.dispose());g.userData.extraMaterial?.dispose();steel.dispose();leather.dispose();brass.dispose();};return g;
+ g.userData.dispose=()=>{g.traverse(o=>o.geometry?.dispose());g.userData.extraMaterial?.dispose();g.userData.extraMaterials?.forEach(m=>m.dispose());steel.dispose();leather.dispose();brass.dispose();};return g;
 }
