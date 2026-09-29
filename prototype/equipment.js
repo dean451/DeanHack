@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {createWand,wandAppearance} from './wand.js';
+import {createMissile,missileKind} from './missiles.js';
 
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
@@ -7,6 +8,8 @@ export function createHeldWeapon(item){
  // hero-view name ("oak wand"), since an identified "wand of fire" names no appearance.
  if(item.class===11){const wand=createWand(wandAppearance(item.name));wand.name=item.name;return wand;}
  g.name=item.name;
+ // Arrows, bolts and darts have their own models (missiles.js); an artifact takes its base type's.
+ if(missileKind(item.base||item.name))return createMissile(item.base||item.name);
  const steel=new THREE.MeshStandardMaterial({color:0xd0dce2,metalness:.8,roughness:.23});
  const leather=new THREE.MeshStandardMaterial({color:0x442c22,roughness:.92});
  const brass=new THREE.MeshStandardMaterial({color:0xbe9650,metalness:.7,roughness:.35});
