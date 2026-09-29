@@ -557,6 +557,46 @@ test('body armour lies face-up per kind, dragon hides show only their colour, in
  assert.equal(signature(armor('orcish chain mail','crude chain mail')),signature(armor('chain mail','crude chain mail')),'a shared appearance looks the same');
 });
 
+test('magic dragon scales glow with a breathing sigil on every plate and shed rising motes, and only they do',async()=>{
+ const {moteAt,sigilStrokes,MOTES,MOTE_RISE,GLOW_MIN,GLOW_MAX}=await import('./magic-scales.js');
+ const scales=(name,appearance)=>createGroundModel({name,class:3,appearance});
+ const parts=model=>{const out={};model.traverse(o=>{if(o.userData.part)out[o.userData.part]=o;});return out;};
+ const model=scales('magic dragon scales','tatzelworm scales');
+ const {armor,sigils,motes}=parts(model);
+ assert(armor&&sigils&&motes,'heap, sigils and motes');
+ for(const other of [scales('fire dragon scales','draken scales'),scales('magic dragon scale mail','tatzelworm scale mail')]){
+  assert(!parts(other).sigils&&!parts(other).motes,'no other scales or mail glow');other.userData.dispose();
+ }
+ // the unidentified heap looks just like the identified one
+ const same=scales('tatzelworm scales');
+ assert.equal(parts(same).sigils.geometry.attributes.position.count,sigils.geometry.attributes.position.count);
+ same.userData.dispose();
+ model.updateMatrixWorld(true);
+ const heap=new THREE.Box3().setFromObject(armor);
+ const glyph=new THREE.Box3().setFromBufferAttribute(sigils.geometry.attributes.position);
+ for(const v of sigils.geometry.attributes.position.array)assert(Number.isFinite(v));
+ assert(glyph.min.y>heap.min.y&&glyph.max.y<=heap.max.y+.003,'sigils lie on the plates');
+ assert(glyph.min.x>=heap.min.x-.01&&glyph.max.x<=heap.max.x+.01&&glyph.min.z>=heap.min.z-.01&&glyph.max.z<=heap.max.z+.01,'and inside the heap');
+ assert.equal(new Set([0,1,2].map(k=>JSON.stringify(sigilStrokes(k)))).size,3,'neighbouring plates carry different marks');
+ // the glow breathes between its bounds and never goes dark; motes rise, glow and wink out
+ const col=sigils.geometry.attributes.color,peak=[];
+ for(let t=0;t<8;t+=.05){
+  sigils.onBeforeRender();
+  let hi=0;for(const v of col.array){assert(Number.isFinite(v)&&v>=0);hi=Math.max(hi,v);}peak.push(hi);
+ }
+ assert(Math.max(...peak)<=GLOW_MAX+1e-9&&Math.min(...peak)>=GLOW_MIN*.5,'glow stays within its bounds');
+ for(let i=0;i<MOTES;i++){
+  let lo=1,hi=0;
+  for(let t=0;t<12;t+=.02){const m=moteAt(i,t);for(const v of [m.x,m.y,m.z,m.glow])assert(Number.isFinite(v));
+   assert(m.y>=.02&&m.y<=.025+MOTE_RISE+1e-9&&Math.hypot(m.x,m.z)<=.15);lo=Math.min(lo,m.glow);hi=Math.max(hi,m.glow);}
+  assert(lo<.05&&hi>.9,`mote ${i} glows and winks out`);
+ }
+ motes.onBeforeRender();
+ for(const v of motes.geometry.attributes.position.array)assert(Number.isFinite(v));
+ let disposed=0;for(const m of [sigils.material,motes.material])m.addEventListener('dispose',()=>disposed++);
+ model.userData.dispose();assert.equal(disposed,2);
+});
+
 test('unicorn horn is one merged spiral ivory mesh resting on the floor',()=>{
  const model=createGroundModel({name:'uncursed unicorn horn',class:6});
  assert(model);assert.equal(model.children.length,1);

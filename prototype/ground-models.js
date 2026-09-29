@@ -7,6 +7,7 @@ import {createCandelabrum,candelabrumState} from './candelabrum.js';
 import {createMagicMarker,markerCharges} from './marker.js';
 import {createIronBall,createIronChain} from './iron-ball.js';
 import {createVenom} from './venom.js';
+import {addMagicScales} from './magic-scales.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
@@ -802,8 +803,14 @@ function buildBodyArmor(key,color,{g,materials}){
  if(kind==='scales'){
   // Loose dragon scales: a small scattered heap of big keeled plates, each stacked a little above the last.
   const spots=[[-.1,-.08,.3],[.06,-.12,-.5],[.13,.03,1.1],[-.02,.02,.1],[-.14,.1,-.9],[.05,.14,2.4],[-.05,-.17,2.9]];
+  // Magic (tatzelworm) scales: a pearly sheen that shifts blue to violet across each plate,
+  // and a glowing sigil on each (magic-scales.js). Both names match, so it reveals nothing.
+  const magic=/tatzelworm|\bmagic\b/.test(key),plates=[];
+  const plateY=(W,Ln,x,z)=>{const w=Math.min(1,Math.max(0,z/Ln+.5)),half=W*Math.sin(Math.PI*(.12+.88*w))**.6,a=Math.max(-1,Math.min(1,x/(half||1)));
+   return .013*(1-a*a)*Math.sin(Math.PI*Math.min(1,w*1.15))**.5+.0012*Math.cos(a*Math.PI*2.5)*w+.003*w;};
   spots.forEach(([px,pz,ry],i)=>{
    const W=.045+.01*hash(i,1),Ln=.12+.025*hash(1,i),tone=chromatic?new THREE.Color().setHSL(i/spots.length,.6,.45):base.clone().lerp(hash(i,3)>.5?light:dark,.15);
+   if(magic)plates.push({x:px,z:pz,ry,y:.0035*i,surface:(x,z)=>plateY(W,Ln,x,z)});
    const geo=sheet(22,14,(u,w)=>{
     const a=2*u-1,x=a*W*Math.sin(Math.PI*(.12+.88*w))**.6,z=(w-.5)*Ln;
     const y=.013*(1-a*a)*Math.sin(Math.PI*Math.min(1,w*1.15))**.5+.0012*Math.cos(a*Math.PI*2.5)*w+.003*w;
@@ -811,11 +818,14 @@ function buildBodyArmor(key,color,{g,materials}){
     if(Math.abs(a)<.14&&w>.2)c.lerp(light,.3);
     if(w>.82)c.lerp(light,(w-.82)/.18*.45);
     const n=noise(x*4+i,z*4);c.lerp(n>0?light:dark,Math.abs(n)*.15);
+    if(magic)c.lerp(new THREE.Color().setHSL(.6+.14*(a*.5+.5)+.05*Math.sin(i*2.3),.55,.62),.22+.18*w);
     return [x,y,z,c];
    });
    geo.rotateY(ry);geo.translate(px,.0035*i,pz);
   });
-  return finish();
+  finish();
+  if(magic)addMagicScales(THREE,g,plates,materials);
+  return;
  }
 
  const Z0=-.2,ZH=L.hem,plated=kind==='plate'||kind==='bronze'||kind==='crystal',cuirass=!L.sleeves;
