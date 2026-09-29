@@ -536,3 +536,39 @@ test('the lichen is a leafy rosette with cups and fruiting discs instead of the 
  assert(parts[1].material.roughness<parts[0].material.roughness,'the discs and beads are glossier than the thallus');
  assert(ms<1000,`took ${ms} ms`);
 });
+
+test('ghosts and shades get their own sheeted, floating model instead of the guardian box',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const t0=performance.now(),ghost=createCreature({name:'ghost',symbol:32,color:7}),ms=performance.now()-t0;
+ assert.equal(ghost.quirk,'hover');
+ for(const key of ['body','head','arm'])assert(ghost[key]?.isObject3D,key);
+ assert.equal(ghost.arms.length,2);assert.equal(ghost.legs.length,0);assert.equal(ghost.wings.length,0);assert.equal(ghost.tail,null);
+ const parts=meshes(ghost);
+ assert.equal(parts.length,6,'body, head, face, eyes and two sleeves');
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+  for(let i=0;i<a.normal.count;i++)assert(Math.abs(Math.hypot(a.normal.getX(i),a.normal.getY(i),a.normal.getZ(i))-1)<1e-3,`${m.userData.part} normal`);
+  assert.equal(m.castShadow,false,'a ghost casts no shadow');
+ }
+ assert(verts<20000,`${verts} vertices`);
+ ghost.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(ghost.g);
+ assert(b.min.y>.02&&b.min.y<.15,`hem at ${b.min.y}`);
+ assert(b.max.y>1&&b.max.y<1.2,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'fits the tile');
+ // the sleeves reach out in front of the chest
+ const sleeve=new THREE.Box3().setFromObject(ghost.arm);
+ assert(sleeve.max.z>.25,`sleeve reaches ${sleeve.max.z}`);
+ const sheet=parts.find(m=>m.userData.part==='body').material;
+ assert(sheet.transparent&&sheet.opacity<1,'translucent');
+ const shade=meshes(createCreature({name:'shade',symbol:32,color:0}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,shade[i].geometry));
+ assert.notEqual(shade[0].material,sheet,'the shade has its own dim material');
+ assert(shade[0].material.color.getHSL({}).l<sheet.color.getHSL({}).l,'the shade is darker');
+ const again=meshes(createCreature({name:'ghost'}));
+ parts.forEach((m,i)=>assert.equal(m.material,again[i].material));
+ assert(ms<1000,`took ${ms} ms`);
+});
