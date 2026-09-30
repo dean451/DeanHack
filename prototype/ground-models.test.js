@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,pancakeGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,pancakeGeometry,fortuneCookieGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -1588,6 +1588,43 @@ test('pancakes are a lopsided stack under butter and syrup in one merged, vertex
   model.userData.dispose();
  }
  one.dispose();many.dispose();
+});
+
+test('fortune cookies are a folded, crescent-bent shell with a slip of paper in one merged, vertex-coloured mesh; a stack sets out up to three',()=>{
+ const one=fortuneCookieGeometry(1);
+ for(const k of ['position','normal','color'])for(const v of one.attributes[k].array)assert(Number.isFinite(v),k);
+ const b=one.boundingBox;
+ assert(Math.abs(b.min.y)<1e-6&&b.max.y>.06&&b.max.y<.11,`height ${b.max.y}`);
+ assert(b.max.x>.07&&b.max.x<.1&&b.max.z<.04,`cookie ${b.max.x} x ${b.max.z}`);
+ // Every surface a ray from outside meets faces back out along it.
+ const mesh=new THREE.Mesh(one,new THREE.MeshBasicMaterial({side:THREE.DoubleSide})),ray=new THREE.Raycaster(),c=new THREE.Vector3(),d=new THREE.Vector3();
+ b.getCenter(c);let hits=0;
+ for(let i=0;i<200;i++){
+  d.set(Math.sin(i*2.4)*Math.sqrt(1-((i+.5)/100-1)**2),(i+.5)/100-1,Math.cos(i*2.4)*Math.sqrt(1-((i+.5)/100-1)**2));
+  ray.set(c.clone().addScaledVector(d,.5),d.clone().negate());const hit=ray.intersectObject(mesh)[0];
+  if(hit){hits++;assert(hit.face.normal.dot(d)>0,'faces outward');}
+ }
+ assert(hits>150,`hits ${hits}`);
+ // Golden-brown dough and the fortune's white paper and red print (colours are linear).
+ const col=one.attributes.color;let dough=0,paper=0,ink=0;
+ for(let i=0;i<col.count;i++){const r=col.getX(i),g=col.getY(i),bl=col.getZ(i);
+  if(r>.85&&g>.8&&bl>.7)paper++;else if(r>.3&&r>2.5*g&&r>2.5*bl)ink++;else if(r>g&&g>bl)dough++;}
+ assert(dough>2000&&paper>50&&ink>10,`dough ${dough}, paper ${paper}, ink ${ink}`);
+ const three=fortuneCookieGeometry(9);
+ assert.equal(three.attributes.position.count,3*one.attributes.position.count);
+ assert(three.boundingBox.max.y<b.max.y,'a stack sets out smaller cookies');
+ for(const name of ['fortune cookie','2 fortune cookies','4 fortune cookies']){
+  const model=createGroundModel({name,class:7});
+  const meshes=[];model.traverse(q=>{if(q.isMesh)meshes.push(q);});
+  assert.equal(meshes.length,1,name);
+  assert.equal(meshes[0].userData.part,'fortune-cookie');
+  assert(meshes[0].material.vertexColors);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.12,`${name} height ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
+  model.userData.dispose();
+ }
+ one.dispose();three.dispose();
 });
 
 test('lembas is one merged, vertex-coloured wafer scored into squares, wrapped in mallorn leaves and tied with twine; a stack piles up to three',()=>{

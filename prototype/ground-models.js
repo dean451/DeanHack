@@ -4928,6 +4928,68 @@ export function pancakeGeometry(count=1){
  return merged;
 }
 
+// Fortune cookies: a thin baked disc folded in half and then bent over its crease, so the two
+// halves close into a hollow crescent with pointed horns and the rim edges pressed together on
+// top. Golden, browner along the rim and the crease and freckled where it baked, paler inside.
+// A slip of paper printed with the lucky numbers pokes out of one horn. A stack sets out up to
+// three. One merged vertex-coloured mesh (1 draw).
+export function fortuneCookieGeometry(count=1){
+ const n=Math.min(3,Math.max(1,count|0)),R=.07,t=.0045,Rb=R,A=.715*Math.PI,N=64;
+ const GOLD=new THREE.Color(0xd9a150),PALE=new THREE.Color(0xf0d596),BROWN=new THREE.Color(0x9a5a1e),
+  PAPER=new THREE.Color(0xf4f0e4),INK=new THREE.Color(0xb3141c),col=new THREE.Color();
+ const smooth=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k);};
+ // The fold's cross-section: the tangent turns fastest at the crease and straightens towards
+ // the rim, so the halves rise nearly parallel and meet. Tabulated by arc length s along each half.
+ const tan=s=>A*(1-(1-Math.min(1,s/R))**2),sec=[[0,0]];
+ for(let j=1,z=0,y=0;j<=N;j++){const a=tan((j-.5)/N*R),ds=R/N;z+=Math.cos(a)*ds;y+=Math.sin(a)*ds;sec.push([z,y]);}
+ const fold=(u,v,h)=>{
+  const s=Math.min(R,Math.abs(v)),f=s/R*N,j=Math.min(N-1,Math.floor(f)),k=f-j,a=tan(s),sg=v<0?-1:1;
+  const z=sec[j][0]+(sec[j+1][0]-sec[j][0])*k,y=sec[j][1]+(sec[j+1][1]-sec[j][1])*k;
+  return [u,y+h*Math.cos(a),sg*(z-h*Math.sin(a))];
+ };
+ // Bend the folded crease round a cup's edge: the horns curl down and the rim stays outside.
+ const bend=(x,y,z)=>{const b=x/Rb;return [(Rb+y)*Math.sin(b),(Rb+y)*Math.cos(b)-Rb,z];};
+ const shape=(geo,fn)=>{
+  const p=geo.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){const q=fn(p.getX(i),p.getY(i),p.getZ(i));p.setXYZ(i,...bend(...q));c.set([col.r,col.g,col.b],i*3);}
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));geo.computeVertexNormals();return geo;
+ };
+ // The disc: a thin lathe, flat in x-z with its thickness in y, rounded at the rim.
+ const prof=[[0,-t/2]];
+ for(let i=1;i<=16;i++)prof.push([R*(i/16)*(1-.02*(i===16)),-t/2]);
+ prof.push([R,-t/4],[R+.0008,0],[R,t/4]);
+ for(let i=16;i>=1;i--)prof.push([R*(i/16)*(1-.02*(i===16)),t/2]);
+ prof.push([0,t/2]);
+ const disc=weld(new THREE.LatheGeometry(prof.map(([r,h])=>new THREE.Vector2(r,h)),72));
+ const cookie=shape(disc,(x,y,z)=>{
+  const r=Math.hypot(x,z),inside=y>0;
+  const bake=meatNoise(x*70,z*70,inside?3:1),fleck=meatNoise(x*260,z*260,5);
+  col.copy(GOLD).lerp(PALE,inside?.45:.15*(1-bake));
+  col.lerp(BROWN,smooth(.72,1,r/R)*.55+Math.max(0,bake-.55)*.9);
+  // The outside of the crease browned against the griddle.
+  if(!inside)col.lerp(BROWN,(1-smooth(0,.012,Math.abs(z)))*.35);
+  if(fleck>.8)col.lerp(BROWN,.5);
+  // A faint wobble in the dough.
+  return fold(x,z,y+.0006*(meatNoise(x*40,z*40,7)-.5));
+ });
+ // The fortune: a thin slip standing between the halves, out of one horn, with two rows of red print.
+ const slip=new THREE.BoxGeometry(.07,.012,.0008,28,6,1);slip.deleteAttribute('uv');
+ const paper=shape(slip,(x,y,z)=>{
+  const row=Math.abs(Math.abs(y)-.0028)<.0012,dash=Math.sin(x*900)>-.2&&x>-.012&&x<.03;
+  col.copy(PAPER).lerp(INK,row&&dash?.85:0);
+  return [x+.055,y+.02,z];
+ });
+ const one=mergeGeometries([cookie,paper]);cookie.dispose();paper.dispose();
+ const place=[[[0,0,0,1]],[[-.055,-.02,.4,.85],[.06,.03,2.6,.85]],[[-.06,-.04,.3,.78],[.065,-.03,2.4,.78],[0,.07,4.3,.78]]][n-1];
+ const parts=place.map(([ox,oz,ry,s])=>{const q=one.clone();q.rotateX(-.18);q.scale(s,s,s);q.rotateY(ry);q.translate(ox,0,oz);return q;});
+ one.dispose();
+ const merged=mergeGeometries(parts);parts.forEach(g=>g.dispose());
+ merged.computeBoundingBox();
+ const b=merged.boundingBox;merged.translate(-(b.min.x+b.max.x)/2,-b.min.y,-(b.min.z+b.max.z)/2);
+ merged.computeBoundingBox();
+ return merged;
+}
+
 // Lembas: square elven waybread, baked pale gold and scored into nine squares, browned at its
 // softened edges. It sits on a mallorn leaf whose tip and stem show past it, a second leaf is
 // folded over one corner, and a length of twine is tied round the lot with a knot on top.
@@ -5705,8 +5767,10 @@ export function createGroundModel(item={}){
    add(lembasGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),bread).userData.part='lembas';
    g.rotation.y=-.35;
   }else if(kind==='fortune cookie'){
-   const c=add(new THREE.TorusGeometry(.045,.025,8,16,Math.PI*1.4),mat(0xd09a4c),0,.035,0);c.rotation.x=-Math.PI/2;c.scale.set(1,.8,1);
-   box(.05,.001,.012,mat(0xf2eee2),.05,.03,.02).rotation.y=.4;
+   // Cookie and fortune share one matt vertex-coloured material.
+   const baked=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7});materials.push(baked);
+   add(fortuneCookieGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),baked).userData.part='fortune-cookie';
+   g.rotation.y=-.4;
   }else if(kind==='meatball'||kind==='meat stick'||kind==='meat ring'){
    // Seared and cured meats: faintly glossy, a stack shows up to three.
    const meat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:kind==='meat stick'?.42:.62});materials.push(meat);
