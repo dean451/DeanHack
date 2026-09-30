@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,pancakeGeometry,fortuneCookieGeometry,candyBarGeometry,royalJellyGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,pancakeGeometry,fortuneCookieGeometry,candyBarGeometry,royalJellyGeometry,lembasGeometry,tripeRationGeometry,shapedStone} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -429,6 +429,19 @@ test('every bag shares one cinched drawstring sack, so the kind never shows',()=
  }
 });
 
+test('cut gems bake their glints and mithril its nugget into one mesh each',()=>{
+ const draws=m=>{let n=0;m.traverse(p=>{if(p.isMesh)n++;});return n;};
+ const gem=createGroundModel({name:'ruby',class:13,appearance:'red',color:1});
+ assert.equal(draws(gem),4,'facets, heart, glints, pool');
+ gem.updateMatrixWorld(true);let glints;gem.traverse(p=>{if(p.userData.part==='glints')glints=p;});
+ assert(glints&&!glints.castShadow);
+ const b=new THREE.Box3().setFromObject(glints),box=new THREE.Box3().setFromObject(gem);
+ assert(b.min.y>=box.min.y&&b.max.y<=box.max.y+1e-6&&b.max.x-b.min.x>.01,'glints sit on the stone');
+ const ore=createGroundModel({name:'small piece of unrefined mithril',class:13,appearance:'silvery metal',color:6});
+ assert.equal(draws(ore),1);
+ for(const m of [gem,ore]){const q=new THREE.Box3().setFromObject(m);assert(q.min.y>=-1e-6&&q.max.y<.2);m.userData.dispose();}
+});
+
 test('each gem colour gets its own faceted cut, shared with its glass, grounded and finite',()=>{
  const looks=[['white',15],['red',1],['orange',9],['yellow',11],['yellowish brown',3],['green',2],['blue',4],['violet',5],['black',0]];
  const shapes=new Set();
@@ -456,13 +469,17 @@ test('each gem colour gets its own faceted cut, shared with its glass, grounded 
 test('rocks are fractured rubble and gray stones one veined pebble, grounded and finite',()=>{
  const rock=createGroundModel({name:'rock',class:13,color:7});
  const stones=[];rock.traverse(p=>{if(p.geometry?.attributes.color)stones.push(p);});
- assert(stones.length>=10,`rubble pieces and grit: ${stones.length}`);
+ // Five pieces and nine bits of grit bake to one rubble mesh beside the shadow: 2 draws.
+ assert.equal(stones.length,1);assert.equal(rock.children.length,2);
+ assert(stones[0].geometry.attributes.position.count>=10*shapedStone(31,{size:.006,cuts:4,detail:1,base:0,alt:0}).attributes.position.count,'pieces and grit');
  assert(stones.every(p=>p.material.flatShading&&p.material.vertexColors));
  // The biggest piece is shaped by fracture planes, so many vertices sit well inside its hull.
- const big=stones[0].geometry.attributes.position,lens=[];
+ const piece=shapedStone(9173,{size:.072,scale:[1.1,.66,.9],cuts:8,bump:.05,base:0x6a655d,alt:0x5a5b58,lichen:true});
+ const big=piece.attributes.position,lens=[];
  for(let i=0;i<big.count;i++)lens.push(Math.hypot(big.getX(i)/1.1,big.getY(i)/.66,big.getZ(i)/.9));
  const max=Math.max(...lens);
  assert(lens.filter(l=>l<max*.8).length>big.count*.2,'rubble should have flat broken faces');
+ piece.dispose();
  const verts=m=>{const out=[];m.traverse(p=>{if(p.geometry)out.push(...p.geometry.attributes.position.array);});return out;};
  const luck=createGroundModel({name:'luckstone',class:13,appearance:'gray',color:7});
  for(const name of ['loadstone','touchstone','flint']){
