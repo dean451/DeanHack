@@ -4445,6 +4445,47 @@ export function kelpFrondGeometry(count=1){
  return merged;
 }
 
+// Eggs: true ovoids (blunt at one end, pointed at the other) lying on their sides, blunt end
+// dipping a little lower. Each shell has its own base tint (cream, buff or pale sea-green), faint
+// low mottling, and brown and rust speckles that crowd towards the blunt end. A stack shows a
+// clutch: two eggs side by side, a third lying across in front. One merged mesh (1 draw).
+export function eggGeometry(count=1){
+ const n=Math.min(3,Math.max(1,count|0)),L=.12,R=.042,rows=28,segs=40;
+ const h=(a,b,c=0)=>{const s=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453;return s-Math.floor(s);};
+ const shells=[0xece0c8,0xdcc6a2,0xcfddcf].map(c=>new THREE.Color(c));
+ const dark=new THREE.Color(0x5a3a22),rust=new THREE.Color(0x8e5c34),shade=new THREE.Color(0x9c8f78),col=new THREE.Color();
+ // Blunt end at y=-1, pointed end at y=+1.
+ const profile=[];
+ for(let i=0;i<=rows;i++){
+  const t=i/rows*Math.PI,y=-Math.cos(t);
+  profile.push(new THREE.Vector2(i===0||i===rows?0:R*Math.sin(t)*(1+.13*Math.cos(t)),y*L/2));
+ }
+ const place=n===1?[[0,0,.12,.3]]:[[0,-.046,.12,.3],[.012,.046,-.1,1.9],[.118,.004,Math.PI/2+.12,4.1]].slice(0,n);
+ const eggs=[];
+ for(const [e,[ox,oz,ry,roll]] of place.entries()){
+  const geo=new THREE.LatheGeometry(profile,segs);geo.deleteAttribute('uv');
+  const p=geo.attributes.position,c=new Float32Array(p.count*3),base=shells[e];
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),v=(y/(L/2)+1)/2;
+   // Low mottling, then a speckle when the vertex falls inside its cell's jittered dot.
+   col.copy(base).lerp(shade,.1*h(Math.floor(x*60),Math.floor(y*60),Math.floor(z*60)+e));
+   const S=.011,ci=Math.floor(x/S),cj=Math.floor(y/S),ck=Math.floor(z/S);
+   const dx=x-(ci+h(ci,cj,ck+e*9))*S,dy=y-(cj+h(cj,ck,ci+e*9))*S,dz=z-(ck+h(ck,ci,cj+e*9))*S;
+   const d=Math.hypot(dx,dy,dz),size=.0042*(.5+h(ci+3,cj,ck));
+   if(h(ci,ck,cj+e*5)>.35+.5*v&&d<size)col.lerp(h(ck,cj,ci)>.5?dark:rust,.75*(1-d/size)+.2);
+   c.set([col.r,col.g,col.b],i*3);
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));
+  // Lay it down: long axis along x, pointed end towards +x, rolled so each egg's speckles differ,
+  // blunt end dipping, then turned on the floor and dropped onto it.
+  geo.rotateZ(-Math.PI/2);geo.rotateX(roll);geo.rotateZ(.09);geo.rotateY(ry);
+  geo.computeBoundingBox();geo.translate(ox,-geo.boundingBox.min.y,oz);
+  eggs.push(geo);
+ }
+ const merged=mergeGeometries(eggs);eggs.forEach(g=>g.dispose());
+ return merged;
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -5038,7 +5079,10 @@ export function createGroundModel(item={}){
   if(kind==='apple'||kind==='orange'||kind==='pear'||kind==='melon'||kind==='banana'||kind==='carrot'){
    buildFruit(kind,Number(/^\s*(\d+)/.exec(name)?.[1]??1),{g,materials});
   }else if(kind==='egg'){
-   ball(.045,mat(0xeee6d4),0,.045,0,[.95,1,1.3]).rotation.x=Math.PI/2;
+   // Speckled shells, faintly glossy; a stack shows a clutch of up to three.
+   const shell=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5});materials.push(shell);
+   add(eggGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),shell).userData.part='egg';
+   g.rotation.y=-.3;
   }else if(kind==='tin'){
    const can=mat(0xa3adb0,.7);
    add(new THREE.CylinderGeometry(.075,.075,.1,24),can,0,.05);
