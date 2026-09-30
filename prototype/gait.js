@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {updateSleeves} from './sleeves.js';
+import {updateDangle} from './dangle.js';
 
 // Walk cycles with character for the small folk (queue item 8). Gnomes waddle quickly with a
 // nodding cap, hobbits step lightly and swing their arms, and dwarves stomp with a rolling sway,
@@ -96,8 +97,9 @@ function approach(v, to, rate, dt) {
 // the action layer applies its deltas.
 export function updateGait(actor, dt, walking) {
   const kind = gaitKind(actor);
-  // Ghosts have no legs to walk on; their empty sleeves drift instead (sleeves.js).
-  if (!kind) { updateSleeves(actor, dt, walking); return null; }
+  // Ghosts have no legs to walk on; their empty sleeves drift instead (sleeves.js). Bees fly with
+  // their legs hanging (dangle.js).
+  if (!kind) { updateSleeves(actor, dt, walking); updateDangle(actor, dt, walking); return null; }
   if (actor.asset || !actor.body) return null;
   const G = GAITS[kind];
   const st = actor.gait || (actor.gait = {w: 0, carry: 0, phase: 0, rest: new Map()});
