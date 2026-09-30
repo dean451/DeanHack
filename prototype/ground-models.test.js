@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -857,8 +857,8 @@ test('eggs are speckled ovoids lying on their sides, and a stack shows a clutch 
  one.dispose();
 });
 
-test('meatballs and meat sticks are merged, vertex-coloured meats, and a stack shows up to three',()=>{
- for(const [make,part,names] of [[meatballGeometry,'meatball',['meatball','3 meatballs']],[meatStickGeometry,'meat-stick',['meat stick','2 cursed meat sticks','7 meat sticks']]]){
+test('meatballs, meat sticks and meat rings are merged, vertex-coloured meats, and a stack shows up to three',()=>{
+ for(const [make,part,names] of [[meatballGeometry,'meatball',['meatball','3 meatballs']],[meatStickGeometry,'meat-stick',['meat stick','2 cursed meat sticks','7 meat sticks']],[meatRingGeometry,'meat-ring',['meat ring','2 meat rings','5 meat rings']]]){
   const one=make(1);
   for(const key of ['position','normal','color'])for(const v of one.attributes[key].array)assert(Number.isFinite(v),part);
   assert(one.index,`${part} welded`);
@@ -885,6 +885,13 @@ test('meatballs and meat sticks are merged, vertex-coloured meats, and a stack s
  const stick=meatStickGeometry(1);stick.computeBoundingBox();
  const b=stick.boundingBox;assert(b.max.y<.04&&b.max.x-b.min.x>.18,'lying along the floor');
  stick.dispose();
+ // A meat ring lies flat with an open middle; the third of a stack rests on the other two.
+ const ring=meatRingGeometry(1);ring.computeBoundingBox();
+ const rb=ring.boundingBox;assert(rb.max.y<.05&&rb.max.x-rb.min.x>.13,'lying flat');
+ const p=ring.attributes.position;for(let i=0;i<p.count;i++)assert(Math.hypot(p.getX(i),p.getZ(i))>.025,'open middle');
+ ring.dispose();
+ const pile=meatRingGeometry(3);pile.computeBoundingBox();assert(pile.boundingBox.max.y>.07&&pile.boundingBox.max.y<.1,'third ring on top');
+ pile.dispose();
 });
 
 test('cram, K- and C-rations get their own merged models instead of the food-ration parcel',()=>{
