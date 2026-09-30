@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,tinGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -892,6 +892,35 @@ test('meatballs, meat sticks and meat rings are merged, vertex-coloured meats, a
  ring.dispose();
  const pile=meatRingGeometry(3);pile.computeBoundingBox();assert(pile.boundingBox.max.y>.07&&pile.boundingBox.max.y<.1,'third ring on top');
  pile.dispose();
+});
+
+test('tins are one merged, vertex-coloured tinplate can; an empty tin is opened with its lid bent back',()=>{
+ const one=tinGeometry(1);
+ for(const key of ['position','normal','color'])for(const v of one.attributes[key].array)assert(Number.isFinite(v),key);
+ one.computeBoundingBox();
+ const b=one.boundingBox;assert(b.max.y>.07&&b.max.y<.1&&b.max.x<.06,`standing can ${b.max.y}`);
+ assert.equal(tinGeometry(2).attributes.position.count,2*one.attributes.position.count);
+ assert.equal(tinGeometry(9).attributes.position.count,3*one.attributes.position.count);
+ // A dent pushes part of the side in.
+ const p=one.attributes.position;let lo=1;
+ for(let i=0;i<p.count;i++)if(Math.abs(p.getY(i)-.034)<.004)lo=Math.min(lo,Math.hypot(p.getX(i),p.getZ(i)));
+ assert(lo<.05,`dented to ${lo}`);
+ // Opened: the lid stands up above the rim.
+ const open=tinGeometry(1,{empty:true});open.computeBoundingBox();
+ assert(open.boundingBox.max.y>.12,'lid bent up');
+ const models=[];
+ for(const name of ['tin','3 tins','tin of spinach','empty tin','2 empty tins']){
+  const model=createGroundModel({name,class:7});models.push(model);
+  const meshes=[];model.traverse(q=>{if(q.isMesh)meshes.push(q);});
+  assert.equal(meshes.length,1,name);
+  assert.equal(meshes[0].userData.part,'tin');
+  assert(meshes[0].material.vertexColors&&meshes[0].material.metalness>.3);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.2,`${name} height ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
+ }
+ assert.notEqual(models[0].children[0].geometry.attributes.position.count,models[3].children[0].geometry.attributes.position.count,'empty differs');
+ models.forEach(m=>m.userData.dispose());one.dispose();open.dispose();
 });
 
 test('cram, K- and C-rations get their own merged models instead of the food-ration parcel',()=>{
