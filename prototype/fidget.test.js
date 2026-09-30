@@ -161,3 +161,42 @@ test('GLB-swapped and non-folk actors are left alone', () => {
   const j = createCreature({name: 'jackal'});
   assert.equal(updateFidget(j, .1, 1, false), null);
 });
+
+test('the evil eye darts its eye about while still, eases back to centre when busy, and never drifts', async () => {
+  const {YAW, PITCH, TREMOR} = await import('./glance.js');
+  const a = createCreature({name: 'evil eye'});
+  a.species = 'evil eye';
+  const h = a.head, rest = h.quaternion.clone();
+  const dt = 1 / 60;
+  let t = 0, prev = null, flicks = 0, centres = 0, maxYaw = 0, maxPitch = 0;
+  for (let i = 0; i < 60 * 30; i++, t += dt) {
+    updateFidget(a, dt, t, false);
+    const {x, y, z} = h.rotation;
+    for (const v of [x, y, z]) assert.ok(Number.isFinite(v));
+    assert.ok(Math.abs(y) <= YAW + TREMOR + 1e-9 && Math.abs(x) <= PITCH + TREMOR + 1e-9, `${x} ${y}`);
+    maxYaw = Math.max(maxYaw, Math.abs(y)); maxPitch = Math.max(maxPitch, Math.abs(x));
+    // a flick covers at most the whole range in a few frames; never a jump bigger than one flick's steepest frame
+    if (prev) assert.ok(Math.hypot(x - prev.x, y - prev.y) < .5, 'no teleport');
+    if (a.glance.u === 0) { flicks++; if (!a.glance.to.yaw && !a.glance.to.pitch) centres++; }
+    prev = {x, y};
+  }
+  assert.ok(flicks >= 12 && flicks <= 90, `flicks ${flicks}`);
+  assert.ok(centres >= 2, `centres ${centres}`);
+  assert.ok(maxYaw > .3 && maxPitch > .1, `${maxYaw} ${maxPitch}`);
+  // Walking or an action eases it back to exactly rest within ~0.1 s, then it stays put.
+  for (let i = 0; i < 12; i++, t += dt) updateFidget(a, dt, t, true);
+  assert.ok(Math.abs(Math.abs(h.quaternion.dot(rest)) - 1) < 1e-4, 'nearly centred after .2 s');
+  for (let i = 0; i < 60; i++, t += dt) updateFidget(a, dt, t, true);
+  assert.ok(Math.abs(Math.abs(h.quaternion.dot(rest)) - 1) < 1e-9, 'exactly centred');
+  // It resumes after a short hold, and dying centres it for good.
+  let moved = false;
+  for (let i = 0; i < 60 * 4; i++, t += dt) { updateFidget(a, dt, t, false); moved ||= Math.abs(h.rotation.y) > .05; }
+  assert.ok(moved, 'resumes');
+  a.actions = {dead: true, queue: []};
+  for (let i = 0; i < 60; i++, t += dt) updateFidget(a, dt, t, false);
+  assert.ok(Math.abs(Math.abs(h.quaternion.dot(rest)) - 1) < 1e-9, 'still when dead');
+  // Other hovering things are left alone.
+  const f = createCreature({name: 'floating eye'});
+  f.species = 'floating eye';
+  if (f.head) { const q = f.head.quaternion.clone(); for (let i = 0; i < 120; i++) updateFidget(f, dt, i * dt, false); assert.ok(f.head.quaternion.equals(q)); }
+});
