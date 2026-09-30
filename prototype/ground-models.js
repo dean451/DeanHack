@@ -4845,6 +4845,89 @@ export function creamPieGeometry(count=1){
  return merged;
 }
 
+// Pancakes: a short stack of griddle cakes, each a little lopsided, golden on top with a lacy
+// freckling of darker browning, paler round the rim and cream at the sides. The top one carries
+// a pat of butter, slumped as it melts, in a glossy pool of syrup that runs over the edge in a
+// few drips, each hanging a bead. One pancake stacks three cakes; more pile up to five.
+// One merged vertex-coloured mesh (1 draw).
+export function pancakeGeometry(count=1){
+ const n=Math.min(5,2+Math.max(1,count|0)),R=.1,T=.017,segs=64;
+ const GOLD=new THREE.Color(0xc98a3e),BROWN=new THREE.Color(0x8a4f1c),PALE=new THREE.Color(0xe8c483),CREAM=new THREE.Color(0xf1dcae),
+  SYRUP=new THREE.Color(0x6a2a08),AMBER=new THREE.Color(0xb8621a),BUTTER=new THREE.Color(0xf6e08a),MELT=new THREE.Color(0xfff2b8),col=new THREE.Color();
+ const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+ const lathe=pts=>weld(new THREE.LatheGeometry(pts.map(([r,h])=>new THREE.Vector2(r,h)),segs));
+ const paint=(geo,fn)=>{
+  const p=geo.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);fn(x,y,z,Math.atan2(z,x),Math.hypot(x,z),i,p);c.set([col.r,col.g,col.b],i*3);}
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));geo.computeVertexNormals();return geo;
+ };
+ // Each cake's lopsided outline and the syrup pool's, as a radius scale by angle.
+ const rim=(e,a)=>1+.022*Math.sin(3*a+e*1.7)+.014*Math.sin(5*a+e*2.9)+.008*Math.sin(11*a+e*.6);
+ const spill=a=>1+.14*Math.sin(3*a+1.3)+.08*Math.sin(5*a+.4)+.05*Math.sin(9*a+2.2);
+ // A cake: flat underneath, a rounded edge, and a faintly domed top left uneven by griddle bubbles.
+ const cake=e=>paint(lathe([[0,0],[R*.5,0],[R-.014,.0005],[R-.006,.0025],[R-.002,.0065],[R,.0095],[R-.002,.0125],[R-.007,.0152],[R-.016,T-.0005],[R*.6,T+.0008],[0,T+.0012]]),(x,y,z,a,r,i,p)=>{
+  const s=e*9.7,top=y>T-.001,bottom=y<.001;
+  const bump=top&&r<R-.017?.0008*(meatNoise(x*60+s,z*60,s)-.5):0;
+  const k=rim(e,a);p.setXYZ(i,x*k,y+bump,z*k);
+  if(top){
+   const lace=meatNoise(x*90+s,z*90,1+s),blot=meatNoise(x*25,z*25+s,2);
+   col.copy(GOLD).lerp(BROWN,Math.min(1,Math.max(0,(blot-.45)*2.2))*.6);
+   if(lace>.68)col.lerp(BROWN,Math.min(.8,(lace-.68)*4));
+   col.lerp(PALE,smooth(R-.035,R-.016,r)*.7);
+  }else if(bottom)col.copy(GOLD).lerp(BROWN,.35+.3*meatNoise(x*40+s,z*40,4));
+  else col.copy(CREAM).lerp(PALE,.2+.5*meatNoise(a*8+s,y*300,3));
+ });
+ const syrup=(x,y,z,a,r)=>{col.copy(SYRUP).lerp(AMBER,.3+.3*meatNoise(x*200,y*200,z*200));};
+ // The pool of syrup on the top cake, thinning and lighter towards its ragged edge.
+ const pool=()=>paint(lathe([[.058,T+.0004],[.056,T+.0016],[.05,T+.0027],[.04,T+.0034],[.02,T+.0039],[0,T+.004]]),(x,y,z,a,r,i,p)=>{
+  const w=spill(a);p.setX(i,x*w);p.setZ(i,z*w);
+  col.copy(SYRUP).lerp(AMBER,smooth(.035,.058,r)*.75);
+  col.lerp(AMBER,.35*Math.max(0,1-Math.hypot(x+.02,z-.015)/.016));
+ });
+ // A drip: out of the pool, over the cake's rounded edge and down its side, thin as it runs and
+ // swelling to a hanging bead.
+ const drip=(e,a,len)=>{
+  const k=rim(e,a),c=Math.cos(a),s=Math.sin(a),at=(r,y)=>new THREE.Vector3(c*r,y,s*r),start=.046*spill(a);
+  const curve=new THREE.CatmullRomCurve3([at(start,T+.0032),at(Math.max(start+.012,.074),T+.0018),at((R-.013)*k+.0012,T+.0006),at((R-.006)*k+.0016,.0148),at(R*k+.0017,.0095),at((R-.0015)*k+.0016,.0095-len)]);
+  const TS=28,RS=8,tube=new THREE.TubeGeometry(curve,TS,.0026,RS,false),p=tube.attributes.position,q=new THREE.Vector3();
+  for(let j=0;j<=TS;j++){
+   const t=j/TS,w=.75+.5*t*t;curve.getPointAt(t,q);
+   for(let v=0;v<=RS;v++){const i=j*(RS+1)+v;p.setXYZ(i,q.x+(p.getX(i)-q.x)*w,q.y+(p.getY(i)-q.y)*w,q.z+(p.getZ(i)-q.z)*w);}
+  }
+  const bead=weld(new THREE.SphereGeometry(.0036,12,8));bead.scale(1,1.25,1);
+  const tip=curve.getPointAt(1);bead.translate(tip.x,tip.y-.0012,tip.z);
+  return [paint(weld(tube),syrup),paint(bead,syrup)];
+ };
+ // A pat of butter, spreading at its foot and sagging on top as it melts.
+ const butter=()=>{
+  const b=paint(weld(new RoundedBoxGeometry(.034,.013,.028,2,.0035)),(x,y,z,a,r,i,p)=>{
+   const h=(y+.0065)/.013,spread=1+.18*(1-h)**2;
+   p.setXYZ(i,x*spread,y-.0022*h*Math.hypot(x/.017,z/.014),z*spread);
+   col.copy(BUTTER).lerp(MELT,smooth(.6,1,h)*.6).lerp(AMBER,(1-h)*.15);
+  });
+  b.rotateY(.55);b.rotateZ(.06);b.translate(.006,T+.004+.0065-.0015,-.006);
+  return b;
+ };
+ const parts=[];
+ for(let e=0;e<n;e++){
+  const layer=[cake(e)];
+  if(e===n-1){
+   layer.push(pool(),butter());
+   for(const [a,len] of [[.5,.004],[2.1,.011],[3.6,.007],[5.1,.003]])layer.push(...drip(e,a,len));
+  }
+  const geo=layer.length>1?mergeGeometries(layer):layer[0];
+  if(layer.length>1)layer.forEach(g=>g.dispose());
+  geo.rotateY(e*2.1+.4);geo.rotateX(.012*Math.sin(e*3.1+1));geo.rotateZ(.012*Math.cos(e*2.3));
+  geo.translate(.006*Math.sin(e*4.7),e*(T-.0015),.006*Math.cos(e*3.3+1));
+  parts.push(geo);
+ }
+ const merged=mergeGeometries(parts);parts.forEach(g=>g.dispose());
+ merged.computeBoundingBox();
+ const b=merged.boundingBox;merged.translate(-(b.min.x+b.max.x)/2,-b.min.y,-(b.min.z+b.max.z)/2);
+ merged.computeBoundingBox();
+ return merged;
+}
+
 // Lembas: square elven waybread, baked pale gold and scored into nine squares, browned at its
 // softened edges. It sits on a mallorn leaf whose tip and stem show past it, a second leaf is
 // folded over one corner, and a length of twine is tied round the lot with a knot on top.
@@ -5648,9 +5731,10 @@ export function createGroundModel(item={}){
    box(.22,.03,.08,wrapper,0,.015);box(.07,.032,.082,foil,0,.016);
    for(const s of [-1,1])add(new THREE.ConeGeometry(.03,.04,4),foil,s*.125,.015,0).rotation.z=-s*Math.PI/2;
   }else if(kind==='pancake'){
-   const cake=mat(0xd49a52),butter=mat(0xf0da78);
-   for(let i=0;i<3;i++)add(new THREE.CylinderGeometry(.12-i*.004,.12,.018,24),cake,i*.006,.009+i*.019);
-   box(.04,.012,.04,butter,.01,.063);
+   // Cakes, butter and syrup share one vertex-coloured material, a little glossy for the syrup.
+   const griddle=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45});materials.push(griddle);
+   add(pancakeGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),griddle).userData.part='pancake';
+   g.rotation.y=.3;
   }else if(kind.startsWith('eucalyptus')){
    // Leathery, waxy blue-green leaves (DoubleSide: the cupped blade is a single sheet).
    const {blade,stalk}=eucalyptusLeafGeometry((parseInt(name)||1)>1?2:1);
