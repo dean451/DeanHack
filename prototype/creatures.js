@@ -12,6 +12,7 @@ import {createZombie,ZOMBIES} from './zombie.js';
 import {createRaven} from './raven.js';
 import {createSpider} from './spider.js';
 import {createAnt,isAnt} from './ant.js';
+import {createBee,isBee} from './bee.js';
 import {createMold} from './mold.js';
 import {createMushroom} from './mushroom.js';
 import {createLichen} from './lichen.js';
@@ -619,7 +620,7 @@ function wisp(o){
  g.userData.core=core;return Object.assign(actor(g,body,[],null,[],'hover'),{core});
 }
 
-// Ants, bees: three body segments and six legs; bees add striped abdomen and wings.
+// The giant beetle (ants and bees have their own models): three body segments and six legs.
 function insect(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
  const shell=mat(o.color,{roughness:.45,metalness:.1}),dark=mat('#15130f',{roughness:.4}),y=o.fly?.5:.2;
@@ -631,7 +632,7 @@ function insect(o){
  for(const side of [-1,1])for(const z of [-.02,.06,.14]){const leg=new THREE.Group();leg.position.set(side*.06,y-.02,z);body.add(leg);tube(leg,[[0,0,0],[side*.12,.07,(z-.06)*.6],o.fly?[side*.16,-.12,(z-.06)*1.2-.04]:[side*.22,-y+.03,(z-.06)*1.6]],.011,dark,8);legs.push(leg);}
  return actor(g,body,legs,null,wings,o.fly?'bee':'insect');
 }
-const INSECTS={'killer bee':{color:'#d8a92a',bee:true,fly:true,scale:.75},'giant beetle':{color:'#222028',scale:1.5},'queen bee':{color:'#b98a2a',bee:true,fly:true,scale:1.1}};
+const INSECTS={'giant beetle':{color:'#222028',scale:1.5}};
 
 // Xan-class flyers (grid bugs keep their own model): a xan is a gangly red stinging fly whose
 // hooked tail stinger curls forward under it to lame legs; a chillbug is a squat frost beetle
@@ -2234,6 +2235,7 @@ export function createCreature(cell={}){
  if(LIZARDS[name])return lizard(LIZARDS[name]);
  if(COCKATRICES[name])return cockatrice(COCKATRICES[name]);
  if(isAnt(name))return createAnt(name);
+ if(isBee(name))return createBee(name);
  if(INSECTS[name])return insect(INSECTS[name]);
  if(XANS[name])return xan(XANS[name]);
  if(SNAKES[name])return snake(SNAKES[name]);

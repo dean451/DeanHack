@@ -34,14 +34,14 @@ const Y=.19;// thorax height above the floor, before scaling
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
 
 // a tapered segment from a to b: a cylinder turned to point along b-a
-function segment(P,a,b,r0,r1,colour,radial=7){
+export function segment(P,a,b,r0,r1,colour,radial=7){
  const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),dir=B.clone().sub(A),len=dir.length();
  const geo=new THREE.CylinderGeometry(r1,r0,len,radial,1);
  const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());
  P.add(geo,new THREE.Matrix4().compose(A.clone().add(B).multiplyScalar(.5),q,new THREE.Vector3(1,1,1)),colour);
 }
 // a chain of tapered segments with a ball at each joint
-function chain(P,pts,radii,colour,radial=6){
+export function chain(P,pts,radii,colour,radial=6){
  for(let j=0;j<pts.length-1;j++){
   segment(P,pts[j],pts[j+1],radii[j],radii[j+1],typeof colour==='function'?colour(j):colour,radial);
   if(j>0)P.add(new THREE.SphereGeometry(radii[j]*1.05,radial,4),at(...pts[j]),typeof colour==='function'?colour(j):colour);
