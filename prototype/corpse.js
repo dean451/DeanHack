@@ -6,7 +6,8 @@ import {segment,chain} from './ant.js';
 // the body the monster had, picked by its name (the bridge sends the monster's name for a corpse):
 // - beast: a four-legged animal flopped on its side, legs stiff and out, head on its cheek with
 //   the eye shut and the tongue lolling, tail trailing. Dogs, cats, horses, rats, bears, lizards,
-//   dragons and the like.
+//   dragons and the like. Dragons and wyrms add horns swept back from the head, a ridge of spines
+//   down the back and tail, a spade tail tip, a banded belly and a wing folded over the flank.
 // - humanoid: face down, one arm flung up past the head, the other along the side, one knee bent.
 //   Anything that walks on two legs, and the fallback for names not listed.
 // - serpent: a limp S along the floor, rolled half over near the tail to show the pale belly.
@@ -46,6 +47,7 @@ export function corpsePlan(name=''){
 }
 export function corpseSize(name=''){
  const n=String(name).toLowerCase();
+ if(/\bbaby\b/.test(n))return 'small';
  return LARGE.test(n)?'large':TINY.test(n)?'tiny':SMALL.test(n)?'small':'medium';
 }
 
@@ -53,9 +55,44 @@ const hash=(a,b=0)=>{const v=Math.sin(a*12.9898+b*78.233)*43758.5453;return v-Ma
 const shade=(c,k)=>c.map(v=>v*k);
 const cache=new Map();
 
+// A cone from base along dir (both [x,y,z]), len long.
+function spike(P,base,dir,r,len,colour){
+ const d=new THREE.Vector3(...dir).normalize(),q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d);
+ P.add(new THREE.ConeGeometry(r,len,6),new THREE.Matrix4().compose(new THREE.Vector3(...base).addScaledVector(d,len/2),q,new THREE.Vector3(1,1,1)),colour);
+}
+
+// The beast's trunk, haunch and shoulder as ellipsoids [cx,cy,cz,rx,ry,rz], for draping the wing.
+const TRUNK=[[0,.095,0,.1275,.093,.2325],[-.012,.1,-.14,.095,.08,.105],[-.005,.1,.13,.0855,.072,.09]];
+function drapeY(x,z){
+ let y=.008;
+ for(const [cx,cy,cz,rx,ry,rz] of TRUNK){
+  const q=Math.hypot((x-cx)/rx,(z-cz)/rz);
+  y=Math.max(y,q<1?cy+ry*Math.sqrt(1-q*q):cy-(q-1)*.65);
+ }
+ return y+.012;
+}
+
+// The dragon's wing, folded and draped over the upper flank: the arm bone runs back along the top
+// of the body, and the membrane hangs over the back (-x) to the floor in scallops between the fingers.
+function foldedWing(P,C){
+ const arm=s=>[-.015-.04*s,0,.16-.3*s],D=[-.97,0,-.24],reach=s=>.24*(.78+.22*Math.abs(Math.sin(s*Math.PI*3)))*(1-.35*s);
+ const place=(s,t)=>{const [ax,,az]=arm(s),L=reach(s)*t,x=ax+D[0]*L,z=az+D[2]*L;return [x,drapeY(x,z),z];};
+ const geo=new THREE.PlaneGeometry(1,1,18,10),p=geo.attributes.position;
+ for(let i=0;i<p.count;i++)p.setXYZ(i,...place(p.getX(i)+.5,p.getY(i)+.5));
+ geo.computeVertexNormals();
+ P.add(geo,null,(x,y,z)=>mix(C.dark,C.coat,.35+.25*Math.sin(z*70+x*30)));
+ // The arm bone and three fingers, a shade darker, raised a hair off the membrane.
+ const bone=pts=>chain(P,pts.map(([x,y,z])=>[x,y+.006,z]),pts.map((_,i)=>.013-i*.0025),shade(C.coat,.55),6);
+ bone([0,.25,.5,.75,1].map(s=>place(s,0)));
+ for(const s of [0,.34,.67])bone([0,.35,.7,.95].map(t=>place(s+t*.12,t)));
+ P.add(new THREE.ConeGeometry(.012,.05,6),at(...place(1,0).map((v,i)=>v+[0,.01,-.02][i]),[-Math.PI/2,0,0]),C.claw);
+}
+
 // The beast lies on its right side: back toward -x, belly and legs toward +x.
-function beast(P,C){
- const coat=(x,y,z)=>mix(mix(C.dark,C.coat,.55+x*6),C.light,(x-.05)*9+hash(Math.round(z*40),Math.round(y*40))*.08);
+function beast(P,C,{dragon}={}){
+ const fur=(x,y,z)=>mix(mix(C.dark,C.coat,.55+x*6),C.light,(x-.05)*9+hash(Math.round(z*40),Math.round(y*40))*.08);
+ // Dragon bellies are banded plates; their backs are scaled, not furred.
+ const coat=dragon?(x,y,z)=>{const c=fur(x,y,z);return x>.06?mix(c,shade(C.light,.8),Math.sin(z*110)**8*.7):mix(c,C.dark,Math.max(0,Math.sin(z*160)*Math.sin(y*160))*.35);}:fur;
  P.add(new THREE.SphereGeometry(.15,22,14),at(0,.095,0,[0,0,0],[.85,.62,1.55]),coat);
  P.add(new THREE.SphereGeometry(.1,16,10),at(-.012,.1,-.14,[0,0,0],[.95,.8,1.05]),coat);// haunch
  P.add(new THREE.SphereGeometry(.09,16,10),at(-.005,.1,.13,[0,0,0],[.95,.8,1]),coat);// shoulder
@@ -65,17 +102,38 @@ function beast(P,C){
  P.add(new THREE.SphereGeometry(.017,8,6),at(.062,.05,.476),C.nose);
  P.add(new THREE.SphereGeometry(.012,8,6),at(.06,.115,.37,[0,0,0],[1.4,.3,.6]),C.nose);// shut eye
  P.add(new THREE.SphereGeometry(.03,10,6),at(.09,.03,.45,[0,.3,0],[.55,.2,1]),C.tongue);
- // Ears: the upper one lies back along the neck, the lower one is pressed under the cheek.
- P.add(new THREE.ConeGeometry(.03,.07,8),at(-.02,.11,.3,[-1.9,0,.2],[1,1,.35]),shade(C.coat,.8));
- P.add(new THREE.ConeGeometry(.03,.06,8),at(.0,.02,.31,[-1.7,0,0],[1,1,.35]),shade(C.coat,.7));
+ if(dragon){
+  // Horns swept back past the neck (the upper pair clear of it, the lower pair along the floor),
+  // with a pale tip, and a brow ridge.
+  for(const [bx,by,r,len] of [[-.03,.105,.017,.13],[-.015,.12,.012,.08],[0,.03,.016,.11]]){
+   spike(P,[bx,by,.35],[-.35,by>.06?.25:-.05,-1],r,len,C.horn);
+   spike(P,[bx-.3*len,by+(by>.06?.08:-.02)*len,.35-.9*len],[-.35,.25,-1],r*.45,.03,C.hornTip);
+  }
+  P.add(new THREE.SphereGeometry(.02,8,6),at(.05,.1,.39,[0,0,0],[1,.6,1.6]),shade(C.coat,.7));
+ }else{
+  // Ears: the upper one lies back along the neck, the lower one is pressed under the cheek.
+  P.add(new THREE.ConeGeometry(.03,.07,8),at(-.02,.11,.3,[-1.9,0,.2],[1,1,.35]),shade(C.coat,.8));
+  P.add(new THREE.ConeGeometry(.03,.06,8),at(.0,.02,.31,[-1.7,0,0],[1,1,.35]),shade(C.coat,.7));
+ }
  // Legs: the upper pair stretched out stiff, the lower pair tucked under along the floor.
  const legs=[[[.08,.135,.13],[.25,.13,.22],[.33,.12,.21]],[[.08,.05,.12],[.22,.04,.17],[.3,.035,.14]],
   [[.08,.135,-.13],[.23,.13,-.21],[.33,.12,-.25]],[[.08,.05,-.14],[.2,.04,-.18],[.29,.035,-.2]]];
  for(const leg of legs){
   chain(P,leg,[.042,.03,.022],()=>coat,10);
   P.add(new THREE.SphereGeometry(.028,10,6),at(...leg[2],[0,0,0],[1.1,.8,1.2]),shade(C.coat,.55));
+  if(dragon)for(const a of [-.5,0,.5])spike(P,[leg[2][0]+.015,leg[2][1],leg[2][2]+a*.02],[1,-.1,a*.6],.007,.035,C.claw);
  }
- chain(P,[[-.02,.09,-.22],[-.06,.04,-.32],[-.03,.028,-.42],[.03,.024,-.48]],[.034,.028,.02,.011],()=>coat,10);
+ const tail=[[-.02,.09,-.22],[-.06,.04,-.32],[-.03,.028,-.42],[.03,.024,-.48]];
+ chain(P,tail,[.034,.028,.02,.011],()=>coat,10);
+ if(!dragon)return;
+ // Spines down the back from the neck to the tail tip, shrinking at both ends.
+ const ridge=[];
+ for(let z=.27;z>-.2;z-=.055){const q=Math.min(1,(z/.2325)**2);ridge.push([-.1275*Math.sqrt(1-q)*.92,.1,z]);}
+ for(let j=0;j<tail.length-1;j++)for(const f of [.25,.75]){const [a,b]=[tail[j],tail[j+1]];ridge.push([a[0]+(b[0]-a[0])*f-.02,a[1]+(b[1]-a[1])*f+.012,a[2]+(b[2]-a[2])*f]);}
+ ridge.forEach((p,i)=>{const k=Math.sin((i+1)/(ridge.length+1)*Math.PI);spike(P,p,[-1,.45,-.35],.012+.012*k,.03+.04*k,shade(C.coat,.5));});
+ // The spade at the tail tip, flat on the floor.
+ P.add(new THREE.ConeGeometry(.035,.06,4),at(.035,.014,-.5,[-Math.PI/2,0,Math.PI/4],[1,1,.3]),shade(C.coat,.55));
+ foldedWing(P,C);
 }
 
 // Face down: the back of the head and the back of the clothes face up.
@@ -182,15 +240,16 @@ function colours(plan,colour){
   const cloth=mix(glyph,rgb('#5e4c38'),.35);
   return {cloth,legs:mix(shade(cloth,.6),rgb('#3a3028'),.5),belt:rgb('#2a1c12'),boots:rgb('#2c2118'),skin:rgb('#c8977a'),hair:rgb('#3a2616')};
  }
- return {coat:glyph,dark:shade(glyph,.45),light:mix(glyph,rgb('#e8dcc4'),.55),nose:rgb('#141010'),tongue:rgb('#b85a66'),beak:rgb('#c89a3a')};
+ return {coat:glyph,dark:shade(glyph,.45),light:mix(glyph,rgb('#e8dcc4'),.55),nose:rgb('#141010'),tongue:rgb('#b85a66'),beak:rgb('#c89a3a'),
+  horn:rgb('#d8cbb0'),hornTip:rgb('#3a3026'),claw:rgb('#1a1612')};
 }
 
 function build(name,colour){
  const n=String(name||'').toLowerCase(),plan=corpsePlan(n),size=corpseSize(n);
- const key=[plan,size,colour,/worm/.test(n),/piranha|shark/.test(n),/spider|scorpion/.test(n),/\bbats?\b/.test(n)].join('|');
+ const key=[plan,size,colour,/worm/.test(n),/piranha|shark/.test(n),/spider|scorpion/.test(n),/\bbats?\b/.test(n),/dragon|wyrm/.test(n)].join('|');
  if(cache.has(key))return cache.get(key);
  const P=pieces(),C=colours(plan,colour);
- if(plan==='beast')beast(P,C);
+ if(plan==='beast')beast(P,C,{dragon:/dragon|wyrm/.test(n)});
  else if(plan==='serpent')serpent(P,C,{worm:/worm/.test(n),short:/piranha|shark/.test(n)});
  else if(plan==='bug')bug(P,C,{eight:/spider|scorpion/.test(n)});
  else if(plan==='blob')blob(P,C);

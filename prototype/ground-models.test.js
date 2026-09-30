@@ -1378,4 +1378,13 @@ test('corpses lie as the body plan of the monster that died, finite, on the floo
  assert.notEqual(a.children[0].material,b.children[0].material,'materials are per corpse');
  assert.notEqual(a.rotation.y,b.rotation.y,'the seed turns the body');
  assert.notEqual(createCorpse('jackal',1).children[0].geometry,a.children[0].geometry,'the glyph colour changes the coat');
+ // Dragons keep the beast build but add horns, spines, a spade tail and a folded wing.
+ const verts=n=>createCorpse(n,1).children[0].geometry.attributes.position.count;
+ assert(verts('red dragon')>verts('horse')*1.2,'a dragon has more to it than a horse');
+ assert.equal(verts('horse'),verts('jackal'),'other beasts are unchanged');
+ assert.equal(corpseSize('baby red dragon'),'small','a baby dragon is small');
+ const wing=createCorpse('red dragon',1).children[0].geometry,wy=wing.attributes.position,wn=wing.attributes.normal;
+ wing.computeBoundingBox();const top=wing.boundingBox.max.y*.8;
+ let up=0,down=0;for(let i=0;i<wy.count;i++)if(wy.getY(i)>top)wn.getY(i)>0?up++:down++;
+ assert(up>300&&up>down*2,'the wing draped over the flank faces up');
 });
