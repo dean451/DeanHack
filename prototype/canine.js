@@ -30,8 +30,15 @@ import {segment,chain} from './ant.js';
 // One vertex-coloured fur material and one eye material per look. The body, head, eyes, each
 // leg and the tail are one mesh each: 8 draws (plus 13 flames on a hell hound). Geometry is
 // built once per look and shared; the left legs reuse the right ones mirrored.
+// Pet dogs (little dog, dog, large dog) share the build with a friendlier face: no fangs, a
+// pink tongue lolling from the mouth, a collar and a brass tag round the neck, and a tail
+// carried up over the back for wagging. All three are white on the map (HI_DOMESTIC), so the
+// breed shape and coat carry the size:
+// - little dog: a white terrier with tan patches, a tan eye patch and floppy tan ears.
+// - dog: a golden retriever-ish dog with folded ears, a darker back and cream socks.
+// - large dog: a shepherd with a black saddle, a black muzzle and tall pointed ears.
 // Handles: body, legs (4: left hind, left fore, right hind, right fore), head (the neck pivot),
-// tail, quirk 'canine'.
+// tail, quirk 'canine' ('dog' for pets, which live.js wags faster).
 
 const LOOKS={
  jackal:{scale:1,coat:'#b98b55',saddle:'#2e2a26',belly:'#e4d2ab',tip:'#2a2522',eye:'#7a5220',ears:.18,snout:.2,legH:.31,pattern:'saddle',grizzle:.18},
@@ -40,6 +47,9 @@ const LOOKS={
  fox:{scale:.85,coat:'#c9652b',saddle:'#b0531f',belly:'#f4ece0',tip:'#f5f0e8',socks:'#1e1a18',earBack:'#1e1a18',eye:'#d09a30',ears:.17,snout:.18,legH:.22,bushy:.062,tail:'brush',tailLen:1.1,pattern:'fox',grizzle:.06},
  wolf:{scale:1.2,coat:'#8a8a86',saddle:'#42423f',belly:'#dcdad2',tip:'#262626',eye:'#d8a838',glow:.3,ears:.14,snout:.2,legH:.34,bushy:.05,heavy:1.08,ruff:1,mask:true,pattern:'grizzle',grizzle:.3},
  warg:{scale:1.4,coat:'#5a524a',saddle:'#241f1c',belly:'#8a8176',tip:'#1a1716',eye:'#ff4a20',glow:1.6,ears:.13,snout:.21,legH:.36,bushy:.055,heavy:1.2,ruff:1.35,hackles:true,fangs:1.5,pattern:'grizzle',grizzle:.28},
+ 'little dog':{pet:true,scale:.72,coat:'#ece4d4',saddle:'#ddd2bf',belly:'#faf5ea',tip:'#faf5ea',mark:'#a8683a',eye:'#2a1a10',ears:.12,earStyle:'floppy',snout:.13,legH:.22,bushy:.018,tail:'up',tailLen:.8,pattern:'patches',eyePatch:true,collar:'#c0392b',grizzle:.03},
+ dog:{pet:true,scale:.95,coat:'#c8914f',saddle:'#9a6a36',belly:'#f0dcb8',tip:'#d9ae72',socks:'#e8cfa4',eye:'#3a2414',ears:.12,earStyle:'folded',snout:.16,legH:.28,bushy:.026,tail:'up',pattern:'plain',collar:'#2e6ab0',grizzle:.04},
+ 'large dog':{pet:true,scale:1.18,coat:'#b27a3e',saddle:'#2a2320',belly:'#d9b27a',tip:'#2a2320',socks:'#c89660',muzzle:'#2a2320',eye:'#3a2414',ears:.16,snout:.19,legH:.32,bushy:.034,tail:'up',tailLen:1.1,pattern:'saddle',fleck:false,collar:'#6a3a1e',grizzle:.05},
  'hell hound pup':{scale:.85,coat:'#2a120e',saddle:'#120605',belly:'#e0602a',tip:'#ff7a2a',ember:'#ff5a14',eye:'#ffc050',ears:.13,snout:.17,legH:.26,hackles:true,fangs:1.2,tail:'raised',pattern:'char',fire:true},
  'hell hound':{scale:1.3,coat:'#2a120e',saddle:'#120605',belly:'#e0602a',tip:'#ff7a2a',ember:'#ff5a14',eye:'#ffc050',ears:.14,snout:.2,legH:.34,heavy:1.1,hackles:true,fangs:1.4,tail:'raised',pattern:'char',fire:true},
 };
@@ -48,6 +58,8 @@ const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
 const clamp01=v=>v<0?0:v>1?1:v;
 const smooth=v=>{v=clamp01(v);return v*v*(3-2*v);};
 const WHITE=[1,1,1],BLACK=[0,0,0];
+// big soft-edged blotches (the little dog's tan patches), from a few crossed sine waves
+const patch=(x,y,z)=>smooth((Math.sin(x*17+1.3)*Math.sin(z*13+.4)+Math.sin(y*19+z*6)*.45-.55)/.12);
 
 // Hellfire: tongues of flame tagged part 'flame', so flame-flicker.js flickers them and lends
 // them its point lights. One lathe tongue, white-hot at the root and deep red at the tip, shared
@@ -85,7 +97,8 @@ function torsoAt(L,C){
  return (x,y,z)=>{
   const top=smooth((y-L.Y-.02)/.07);
   let c=C.coat;
-  if(L.pattern==='saddle'){const s=top*smooth((z+.28)/.06)*smooth((.14-z)/.06);c=mix(c,C.saddle,.92*s);if(s>.4&&hash(x*701+y*433+z*997)>.72)c=mix(c,WHITE,.45);}
+  if(L.pattern==='saddle'){const s=top*smooth((z+.28)/.06)*smooth((.14-z)/.06);c=mix(c,C.saddle,.92*s);if(L.fleck!==false&&s>.4&&hash(x*701+y*433+z*997)>.72)c=mix(c,WHITE,.45);}
+  else if(L.pattern==='patches')c=mix(c,C.mark,patch(x,y,z));
   else c=mix(c,C.saddle,top*(L.pattern==='fox'?.4:.6));
   c=fur(L,C,c,x,y,z);
   const belly=smooth((L.Y-.035-y)/.05),throat=smooth((z-.17)/.07)*smooth((L.Y+.1-y)/.08);
@@ -119,6 +132,14 @@ function buildBody(L,C){
  const [nx,ny,nz]=L.neck;
  segment(P,[0,L.Y+.02,.2],[nx,ny-.02,nz-.01],.072*bw,.056*bw,paint,14);
  P.add(new THREE.SphereGeometry(.064*bw,16,10),at(0,L.Y+.09,.25),paint);
+ // a pet's collar round the middle of the neck, with a brass tag hanging at the front
+ if(L.collar){
+  const a=Math.atan2(ny-.02-L.Y-.02,nz-.01-.2),cy=L.Y+.02+(ny-.04-L.Y)*.5,cz=.2+(nz-.21)*.5,r=.071*bw;
+  P.add(new THREE.TorusGeometry(r,.013*bw,8,22),at(0,cy,cz,[-a,0,0]),rgb(L.collar));
+  const tx=0,ty=cy-Math.cos(a)*r-.02,tz=cz+Math.sin(a)*r+.008;
+  P.add(new THREE.CylinderGeometry(.019*bw,.019*bw,.005,12),at(tx,ty,tz,[Math.PI/2,0,0]),rgb('#d8b048'));
+  segment(P,[0,ty+.018,tz-.002],[0,ty+.03,tz-.006],.004,.004,rgb('#a88a3a'),5);
+ }
  // a ruff of tufts round the base of the neck, swept back
  if(L.ruff){
   const k=L.ruff;
@@ -151,8 +172,11 @@ function buildHead(L,C){
   const cheek=L.pattern==='fox'?smooth((-.004-y)/.02)*smooth((ax-.02)/.02):0;
   c=mix(c,C.belly,Math.max(under,cheek));
   if(L.mask){for(const s of [-1,1]){if(Math.hypot(x-s*.05,y+.0,z-.07)<.03)c=mix(c,C.belly,.65);if(Math.hypot(x-s*.03,y-.06,z-.1)<.014)c=mix(c,C.belly,.7);}}
-  // a darker bridge down the muzzle
+  // a darker bridge down the muzzle, or the shepherd's black muzzle
   if(z>.1&&y>tipY+.01&&ax<.02)c=mix(c,C.saddle,.35);
+  if(L.muzzle)c=mix(c,rgb(L.muzzle),smooth((z-.1)/.04)*.85);
+  // the terrier's tan patch over one eye
+  if(L.eyePatch&&Math.hypot(x-.045,y-.035,(z-.1)*.8)<.042)c=mix(c,C.mark,.9);
   return c;
  };
  // skull, brow stop and cheeks
@@ -169,13 +193,30 @@ function buildHead(L,C){
  mz(.075,.07+sn*.86,-.042,.03,.014,tilt+.06,.7,(x,y,z)=>mix(paint(x,y,z),C.belly,.5));
  for(const s of [-1,1])segment(P,[s*.03,-.036,.1],[s*.016,tipY-.024,tipZ-.022],.004,.003,lip,4);
  P.add(new THREE.SphereGeometry(.02,12,8),at(0,tipY+.006,tipZ+.008,[0,0,0],[1.2,.85,.9]),rgb('#141212'));
- const f=L.fangs||1;
- for(const s of [-1,1])spike(P,[s*.014,tipY-.022,tipZ-.03],[0,-1,.15],.0045*f,.018*f,tooth,5);
+ if(L.pet){
+  // a pink tongue lolling out of the side of the mouth
+  P.add(new THREE.SphereGeometry(1,12,8),at(.012,tipY-.058,tipZ-.05,[.35,0,.15],[.02,.036,.008]),rgb('#d9707e'));
+ }else{
+  const f=L.fangs||1;
+  for(const s of [-1,1])spike(P,[s*.014,tipY-.022,tipZ-.03],[0,-1,.15],.0045*f,.018*f,tooth,5);
+ }
  // eyes' pupils (the eyes are their own mesh)
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.009,8,6),at(s*.042,.031,.126,[0,0,0],[1,1,.5]),rgb('#060505'));
  // tall pointed ears
  for(const s of [-1,1]){
-  const e=L.ears,ex=s*.048,ey=.09+e*.42,ez=-.005,rot=[-.18,0,-s*.3];
+  const e=L.ears,earFur=L.mark?C.mark:mix(C.coat,C.saddle,.3);
+  if(L.earStyle==='floppy'){
+   // a soft flap hanging down beside the skull
+   P.add(new THREE.SphereGeometry(.055,14,10),at(s*.083,.02,.02,[.1,0,s*.3],[.35,e*9,.8]),earFur);
+   continue;
+  }
+  if(L.earStyle==='folded'){
+   // a short base on top of the skull, the tip folded forward and down
+   P.add(new THREE.SphereGeometry(.03,10,8),at(s*.062,.085,0,[0,0,0],[1,.7,.9]),earFur);
+   P.add(new THREE.ConeGeometry(.042,e*.75,4),at(s*.07,.078,.036,[1.95,0,-s*.25],[1,1,.35]),earFur);
+   continue;
+  }
+  const ex=s*.048,ey=.09+e*.42,ez=-.005,rot=[-.18,0,-s*.3];
   P.add(new THREE.ConeGeometry(.042,e,4),at(ex,ey,ez,rot,[1,1,.42]),(x,y,z)=>z<ez-.002?mix(earBack,C.coat,L.earBack?0:.4):mix(C.coat,C.saddle,smooth((y-ey-e*.25)/.04)*.5));
   P.add(new THREE.ConeGeometry(.028,e*.74,4),at(ex,ey-e*.08,ez+.008,rot,[1,1,.3]),mix(C.belly,inner,.45));
  }
@@ -232,6 +273,7 @@ function buildLeg(L,C,fore){
 const TAILS={
  droop:[[0,0,0],[0,-.02,-.08],[0,-.09,-.16],[0,-.19,-.21],[0,-.29,-.23]],
  brush:[[0,0,0],[0,-.03,-.09],[0,-.09,-.19],[0,-.15,-.28],[0,-.18,-.36]],
+ up:[[0,0,0],[0,.07,-.05],[0,.15,-.08],[0,.22,-.06],[0,.26,-.01]],
  raised:[[0,0,0],[0,.03,-.08],[0,.0,-.17],[0,-.08,-.24],[0,-.18,-.27]],
 };
 function buildTail(L,C){
@@ -268,7 +310,7 @@ function build(key,look){
  if(cache.has(key))return cache.get(key);
  const legH=look.legH||.3,Y=legH+.1,bw=look.heavy||1;
  const L={...look,legH,Y,neck:[0,Y+.2,.32],shoulder:[.068*bw,Y-.02,.17],hip:[.062*bw,Y+.01,-.2]};
- const C={coat:rgb(L.coat),saddle:rgb(L.saddle),belly:rgb(L.belly),tip:rgb(L.tip),ember:rgb(L.ember||'#ff5a14')};
+ const C={coat:rgb(L.coat),saddle:rgb(L.saddle),belly:rgb(L.belly),tip:rgb(L.tip),ember:rgb(L.ember||'#ff5a14'),mark:L.mark?rgb(L.mark):null};
  const tail=buildTail(L,C);
  const S={L,tailPts:tail.pts,
   fur:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,metalness:0,...(L.fire?{emissive:'#4a0c02',emissiveIntensity:.5}:{})}),
@@ -305,5 +347,5 @@ export function createCanine(name,colour){
   hellfire(tail,0,pts[n][1],pts[n][2],.85,.2);hellfire(tail,0,mid[1],mid[2],.6,-.3);
   for(const leg of legs)hellfire(leg,0,-leg.position.y+.005,.02,.45);
  }
- return {g,body,legs,tail,wings:[],quirk:'canine',head};
+ return {g,body,legs,tail,wings:[],quirk:L.pet?'dog':'canine',head};
 }

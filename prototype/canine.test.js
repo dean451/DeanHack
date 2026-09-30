@@ -49,3 +49,29 @@ test('wild dogs get a shaped torso, a turning head with a muzzle and ears, joint
  x.forEach((m,i)=>{assert.equal(m.geometry,y[i].geometry);assert.equal(m.material,y[i].material);});
  assert.notEqual(meshes(createCreature({name:'coyote'}))[0].geometry,x[0].geometry);
 });
+
+test('pet dogs share the canine build with a collar, a tongue, breed ears and a raised tail for wagging',()=>{
+ let last=0;
+ for(const name of ['little dog','dog','large dog']){
+  const a=createCreature({name,symbol:100,color:15});
+  assert.equal(a.quirk,'dog',name);
+  assert(a.head?.isObject3D&&a.tail?.isObject3D,name);
+  const parts=meshes(a);
+  assert.equal(parts.length,8,`${name}: body, head, eyes, four legs and the tail`);
+  assert.equal(new Set(parts.map(m=>m.material)).size,2,name);
+  for(const m of parts)for(const key of ['position','normal'])for(const v of m.geometry.attributes[key].array)assert(Number.isFinite(v),`${name} ${m.userData.part} ${key}`);
+  a.g.updateMatrixWorld(true);
+  const b=new THREE.Box3();for(const m of parts)b.expandByObject(m);
+  assert(Math.abs(b.min.y)<.02,`${name} feet at ${b.min.y}`);
+  assert(Math.max(-b.min.x,b.max.x)<.4&&Math.max(-b.min.z,b.max.z)<.8,`${name} ${JSON.stringify(b)}`);
+  assert.equal(foreLegs(a).length,2,name);
+  // the tail is carried up: its tip is above where it leaves the rump
+  const t=new THREE.Box3().setFromObject(a.tail),root=a.tail.getWorldPosition(new THREE.Vector3());
+  assert(t.max.y>root.y+.1*a.g.scale.y,`${name}: tail up`);
+  // collar and tongue colours are in the body and head (vertex colours are linear)
+  const has=(part,test)=>{const c=parts.find(m=>m.userData.part===part).geometry.attributes.color;for(let i=0;i<c.count;i++)if(test(c.getX(i),c.getY(i),c.getZ(i)))return true;return false;};
+  assert(has('head',(r,g,bl)=>r>.6&&g<.25&&bl>g&&bl<.3),`${name}: pink tongue`);
+  assert(has('body',(r,g,bl)=>r>.6&&g>.35&&bl<.1),`${name}: brass tag`);
+  assert(b.max.y>last,`${name} taller than the smaller breed`);last=b.max.y;
+ }
+});
