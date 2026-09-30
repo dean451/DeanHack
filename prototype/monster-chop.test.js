@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose, ACTION_TIME, STRIKE_U} from './actions.js';
-import {chopPose, chops, CHOP_STRIKE_U} from './monster-chop.js';
+import {chopPose, chops, thrusts, CHOP_STRIKE_U} from './monster-chop.js';
 
 test('the chop is finite, starts and ends at rest, and strikes when the generic attack does', () => {
   assert.equal(CHOP_STRIKE_U, STRIKE_U);
@@ -63,4 +63,37 @@ test('upright polearms, the hero and centaurs keep their own attacks', () => {
   for (const name of ['soldier', 'watchman']) { const a = createCreature({name}); assert(a.weaponSocket && !chops(a), name); }
   for (const name of ['goblin', 'Woodland-elf', 'hobbit']) assert(chops(createCreature({name})), name);
   assert(!chops({arm: {}, weaponSocket: {}, elbow: {}}) && !chops({arm: {}, weaponSocket: {}, centaur: 'bow'}) && !chops({arm: {}, weaponSocket: {}, centaur: null}) && !chops(null));
+});
+
+test('soldiers and the watch drop their upright spears and halberds level and thrust them at the target', () => {
+  const dt = 1 / 60, strikeAt = Math.round(ACTION_TIME.attack * STRIKE_U / dt);
+  for (const name of ['goblin', 'Woodland-elf', 'aligned priest']) assert(!thrusts(createCreature({name})), `${name} thrusts`);
+  for (const name of ['soldier', 'guard', 'prison guard', 'watchman', 'sergeant', 'captain', 'watch captain']) {
+    const a = createCreature({name});
+    assert(thrusts(a) && !chops(a), `${name} doesn't thrust`);
+    for (const result of ['hit', 'miss']) {
+      const snap = () => { const r = []; a.g.traverse(o => r.push(...o.position.toArray(), o.rotation.x, o.rotation.y, o.rotation.z, ...o.scale.toArray())); return r.map(n => +n.toFixed(9)); };
+      const rest = snap(), restTip = tipOf(a);
+      const q = createActionQueue();
+      enqueueAction(q, {kind: 'attack', attack: 'weapon', result, dir: [0, 1]});
+      let frames = 0, atStrike = null, last = null, jump = 0;
+      while (frames < 80) {
+        clearActionPose(a, q);
+        if (updateActions(a, q, frames ? dt : 0) === 'idle') break;
+        const t = tipOf(a);
+        for (const n of t.toArray()) assert(Number.isFinite(n), name);
+        assert(t.y > -.02, `${name} ${result}: the weapon goes through the floor (${t.y.toFixed(3)})`);
+        if (last) jump = Math.max(jump, t.distanceTo(last));
+        last = t;
+        if (frames === strikeAt) atStrike = t;
+        frames++;
+      }
+      // upright at rest; at the strike the point is out in front about waist to chest high, not overhead
+      assert(restTip.y > restTip.z + .5, `${name} isn't upright at rest`);
+      assert(atStrike.z > restTip.z + .5, `${name} ${result}: the thrust doesn't reach forward (${atStrike.z.toFixed(2)})`);
+      assert(atStrike.y > .5 && atStrike.y < 1.4, `${name} ${result}: the point is at ${atStrike.y.toFixed(2)} at the strike`);
+      assert(jump < .45, `${name} ${result}: the point jumps ${jump.toFixed(2)} in a frame`);
+      assert.deepEqual(snap(), rest, `${name} ${result} back to rest`);
+    }
+  }
 });

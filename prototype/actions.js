@@ -20,7 +20,7 @@ import {risePose, RISE_TIME, RISE_BURST_U} from './rise.js';
 import {groundSamples, groundLift, grounds} from './ground.js';
 import {centaurAttackPose} from './centaur-attack.js';
 import {scorpionAttackPose} from './scorpion-attack.js';
-import {chopPose, chops} from './monster-chop.js';
+import {chopPose, chops, thrusts} from './monster-chop.js';
 import {throwPose, throwLaunches, throwAction, THROW_TIME, THROW_WINDUP_MS, MAX_THROW_LEAD_MS} from './throw-motion.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9, rise: RISE_TIME, throw: THROW_TIME};
@@ -243,6 +243,8 @@ export function updateActions(actor, q, dt) {
   // A monster with a weapon arm but no elbow chops: weapon raised overhead, then brought down
   // through the target (monster-chop.js). The hero's elbowed arm plays swing.js instead.
   if (a.kind === 'attack' && a.attack === 'weapon' && !a.swing && chops(actor)) Object.assign(pose, chopPose(u, a.result));
+  // One with a spear or halberd planted upright drops it level and thrusts it at the target.
+  else if (a.kind === 'attack' && a.attack === 'weapon' && !a.swing && thrusts(actor)) Object.assign(pose, centaurAttackPose('spear', u, a.result));
   // A scorpion keeps low and snaps its pincers or jabs its arched tail (scorpion-attack.js).
   // It strikes straight ahead, so the generic claw's sideways rake twist is taken back out.
   if (a.kind === 'attack' && actor.claws) {
