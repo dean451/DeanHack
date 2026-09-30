@@ -81,6 +81,27 @@ test('pony, horse and warhorse are grounded, hornless horses that grow with the 
  assert.notEqual(createCreature({name:'white unicorn',symbol:117,color:15}).g.name,'horse');
 });
 
+test('unicorns and the ki-rin stand on the horse body with a spiral horn, coloured by kind, in few draw calls',()=>{
+ const hornOf=actor=>{let horn=null;actor.g.traverse(o=>{if(o.isMesh&&o.geometry.parameters?.radiusTop===0&&o.geometry.parameters.height>.2)horn=o;});return horn;};
+ const coats=new Set();
+ for(const name of ['white unicorn','gray unicorn','black unicorn','ki-rin']){
+  const actor=createCreature({name,symbol:117,color:15});
+  assert.equal(actor.g.name,'unicorn',name);assert.equal(actor.legs.length,4,name);assert(actor.tail,name);
+  actor.g.updateMatrixWorld(true);let meshes=0;
+  actor.g.traverse(part=>{if(part.geometry){meshes++;for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);}});
+  assert(meshes<=30,`${name}: ${meshes} meshes`);
+  const bounds=new THREE.Box3().setFromObject(actor.g,true);
+  assert(Math.abs(bounds.min.y)<.01,name);assert(bounds.max.y<1.5,name);assert(Math.max(-bounds.min.z,bounds.max.z)<.85,name);
+  const horn=hornOf(actor);assert(horn,name);
+  const tip=horn.localToWorld(new THREE.Vector3(0,horn.geometry.parameters.height/2,0)),base=horn.localToWorld(new THREE.Vector3(0,-horn.geometry.parameters.height/2,0));
+  assert(Math.abs(tip.y-bounds.max.y)<.01,`${name}: the horn tip is the highest point`);assert(tip.z>base.z&&tip.y>base.y+.15,`${name}: the horn points forward and up`);
+  let coat=null;actor.body.children.find(o=>o.isMesh&&(coat=o.material.color.getHexString()));coats.add(coat);
+ }
+ assert.equal(coats.size,4,'each kind has its own coat');
+ assert.equal(createCreature({name:'unicorn'}).g.name,'unicorn');
+ for(const name of ['pony','horse','warhorse']){const actor=createCreature({name,symbol:117,color:3});assert.equal(hornOf(actor),null,name);let meshes=0;actor.g.traverse(o=>{if(o.isMesh)meshes++;});assert(meshes<=32,`${name}: ${meshes} meshes`);}
+});
+
 test('plain dwarves carry a finite forged pick-axe in hand; lords keep it and kings carry a sceptre instead',()=>{
  for(const [name,hasPick] of [['dwarf',true],['dwarf lord',true],['dwarf king',false]]){
   const actor=createCreature({name,symbol:104,color:1});
