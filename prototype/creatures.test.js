@@ -757,8 +757,40 @@ test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model inste
  assert(new THREE.Box3().setFromObject(valk.head,true).max.y>b.max.y-1e-6,'wings on top');
  assert(new THREE.Box3().setFromObject(valk.shield,true).max.x<-.2,'shield outside the left arm');
  // any other player-monster role still gets the generic humanoid
- assert.equal(createCreature({name:'samurai',symbol:64,color:1}).kind,undefined);
+ assert.equal(createCreature({name:'knight',symbol:64,color:7}).kind,undefined);
  const again=meshes(createCreature({name:'valkyrie'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
+test('samurai get a kabuto-helmed, lacquered o-yoroi model with a katana instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const sam=createCreature({name:'samurai',symbol:64,color:1});
+ assert.equal(sam.kind,'samurai');assert.equal(sam.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket'])assert(sam[key]?.isObject3D,key);
+ assert.equal(sam.legs.length,2);assert.equal(sam.arms.length,2);assert.equal(sam.arm,sam.arms[1]);
+ assert(sam.arm.children.includes(sam.weaponSocket),'the katana is in the right hand');
+ const parts=meshes(sam);
+ assert.equal(parts.length,7,'one mesh per moving part and the katana');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<56000,`${verts} vertices`);
+ sam.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(sam.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.2&&b.max.y<1.35,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
+ // the crescent maedate is the top of the model, and the katana is raised above the hand
+ assert(new THREE.Box3().setFromObject(sam.head,true).max.y>b.max.y-1e-6,'crest on top');
+ assert(new THREE.Box3().setFromObject(sam.weaponSocket,true).max.y>1,'katana raised');
+ // the sode plates hang on the outside of each arm, so the two arms are mirrored builds
+ const [l,r]=sam.arms.map(a=>new THREE.Box3().setFromObject(a,true));
+ assert(l.min.x<-.3&&r.max.x>.3,'sode outside the shoulders');
+ const again=meshes(createCreature({name:'samurai'}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
