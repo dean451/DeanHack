@@ -5,6 +5,7 @@ import {createCreature} from './creatures.js';
 import {createActionQueue, updateActions, clearActionPose} from './actions.js';
 import {slideTo} from './slide.js';
 import {updateTrudge, trudgeKind, trudgePose, TRUDGE} from './trudge.js';
+import {jawReach} from './jaw.js';
 
 const make = (name, symbol) => {
   const a = createCreature({name, symbol: symbol.charCodeAt(0), color: 2});
@@ -23,7 +24,7 @@ function frame(a, t, dt) {
   updateActions(a, a.actions, dt);
   return {p, walking};
 }
-const snap = a => [...a.legs.map(l => l.rotation.x), a.body.rotation.z, a.head?.rotation.x ?? 0, a.head?.rotation.z ?? 0,
+const snap = a => [...a.legs.map(l => l.rotation.x), a.body.rotation.z, a.head?.rotation.x ?? 0, a.head?.rotation.z ?? 0, a.jaw?.rotation.x ?? 0,
   ...(a.arms || []).map(r => r.rotation.x)];
 
 test('trudge poses are finite and within their stride, lurch and dip', () => {
@@ -31,14 +32,15 @@ test('trudge poses are finite and within their stride, lurch and dip', () => {
     const T = TRUDGE[kind];
     for (let i = 0; i <= 400; i++) {
       const p = trudgePose(kind, Math.PI * 2 * i / 400);
-      for (const v of [...p.legs, p.bob, p.roll, p.nod, p.shake, ...p.arms]) assert(Number.isFinite(v));
+      for (const v of [...p.legs, p.bob, p.roll, p.nod, p.shake, p.jaw, ...p.arms]) assert(Number.isFinite(v));
+      assert(p.jaw >= 0 && p.jaw <= (T.clack || 0));
       assert(Math.abs(p.shake) <= (T.rattle || 0));
       assert.equal(p.arms[0], -p.arms[1]);
       assert(Math.abs(p.arms[0]) <= (T.arm || 0) + 1e-12 && p.nod >= 0 && p.nod <= (T.nod || 0));
       assert.equal(p.legs[0], -p.legs[1]);
       assert(Math.abs(p.legs[0]) <= T.stride && Math.abs(p.roll) <= T.roll && p.bob <= 0 && p.bob >= -T.dip);
     }
-    assert.deepEqual(trudgePose(kind, 1, 0), {legs: [0, 0], bob: 0, roll: 0, nod: 0, arms: [0, 0], shake: 0});
+    assert.deepEqual(trudgePose(kind, 1, 0), {legs: [0, 0], bob: 0, roll: 0, nod: 0, arms: [0, 0], shake: 0, jaw: 0});
   }
   assert.equal(trudgeKind(make('ghoul', 'Z')), 'ghoul');
   assert.equal(trudgeKind(make('skeleton', 'Z')), 'skeleton');
@@ -54,6 +56,7 @@ test('trudge poses are finite and within their stride, lurch and dip', () => {
 test('a zombie and a golem trudge slowly across a cell and settle back to their exact rest pose', () => {
   for (const [name, sym, kind] of [['human zombie', 'Z', 'zombie'], ['kobold zombie', 'Z', 'zombie'], ['stone golem', "'", 'golem'], ['clay golem', "'", 'golem'], ['ghoul', 'Z', 'ghoul'], ['skeleton', 'Z', 'skeleton']]) {
     const a = make(name, sym), T = TRUDGE[kind], dt = 1 / 60;
+    const jawRest = a.jaw?.rotation.x ?? 0;
     const armRest = (a.arms || []).map(r => r.rotation.x), headRest = a.head?.rotation.x ?? 0, tiltRest = a.head?.rotation.z ?? 0;
     a.g.position.set(0, 0, 0); a.target = new THREE.Vector3(1, 0, 1);
     const rest = snap(a);
@@ -72,6 +75,7 @@ test('a zombie and a golem trudge slowly across a cell and settle back to their 
         if (a.head) assert(a.head.rotation.x - headRest >= -1e-9 && a.head.rotation.x - headRest <= (T.nod || 0) + 1e-9);
         if (a.head) assert(Math.abs(a.head.rotation.z - tiltRest) <= (T.rattle || 0) + 1e-9, `${name} rattle`);
         (a.arms || []).forEach((r, k) => assert(Math.abs(r.rotation.x - armRest[k]) <= (T.arm || 0) + 1e-9, `${name} arm ${k}`));
+        if (a.jaw) assert(a.jaw.rotation.x - jawRest >= -1e-9 && a.jaw.rotation.x - jawRest <= (T.clack || 0) + 1e-9, `${name} jaw`);
       }
       peak = Math.max(peak, Math.abs(a.legs[0].rotation.x));
       if (i > 0) worst = Math.max(worst, ...now.map((v, k) => Math.abs(v - prev[k])));
@@ -182,4 +186,42 @@ test('the skeleton snaps between strides and its skull rattles after each footfa
   assert(Math.abs(at(Math.PI - 1e-6) - at(Math.PI + 1e-6)) < T.rattle * .002);
   // the other kinds don't rattle
   for (const k of ['zombie', 'golem', 'ghoul']) assert.equal(trudgePose(k, 2).shake, 0);
+});
+
+test('the skeleton\'s jaw clacks a few times after each footfall and shuts before the next', () => {
+  const T = TRUDGE.skeleton;
+  const at = q => trudgePose('skeleton', Math.PI / 2 + q).jaw;
+  assert(at(0) < 1e-12);
+  // count the clacks (local maxima) in one step and check they die away
+  const peaks = [];
+  let prev = at(0), rising = true;
+  for (let q = .005; q < Math.PI; q += .005) {
+    const v = at(q);
+    if (rising && v < prev) peaks.push(prev);
+    rising = v >= prev; prev = v;
+  }
+  assert(peaks.length >= 2 && peaks.length <= T.chatter, `clacks ${peaks.length}`);
+  assert(peaks[0] > T.clack * .4, `first clack ${peaks[0]}`);
+  for (let i = 1; i < peaks.length; i++) assert(peaks[i] < peaks[i - 1]);
+  assert(at(Math.PI - 1e-6) < 1e-4 && Math.abs(at(Math.PI - 1e-6) - at(Math.PI + 1e-6)) < 1e-4);
+  for (const k of ['zombie', 'golem', 'ghoul']) assert.equal(trudgePose(k, 2).jaw, 0);
+  // on the model: scaled by the jaw's reach, and the walk carries it
+  const a = make('skeleton', 'Z'), rest = a.jaw.rotation.x, dt = 1 / 60;
+  a.g.position.set(0, 0, 0); a.target = new THREE.Vector3(2, 0, 0);
+  let open = 0, clacks = 0, was = 0;
+  for (let i = 0; i < 240; i++) {
+    // keep it walking: a new cell ahead whenever it gets close
+    if (a.g.position.distanceTo(a.target) < .3) a.target.x += 1;
+    frame(a, i * dt, dt);
+    const d = a.jaw.rotation.x - rest;
+    assert(d >= -1e-12 && d <= T.clack * jawReach(a) + 1e-12);
+    if (d > .02 && was <= .02) clacks++;
+    was = d; open = Math.max(open, d);
+  }
+  assert(open > T.clack * jawReach(a) * .4, `jaw opened ${open}`);
+  assert(clacks >= 4, `clacks ${clacks}`);
+  // stopped: it settles exactly back to rest
+  for (let i = 0; i < 120; i++) updateTrudge(a, dt, false);
+  assert.equal(a.trudge.w, 0);
+  assert.equal(a.jaw.rotation.x, rest);
 });
