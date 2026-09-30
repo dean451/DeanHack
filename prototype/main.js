@@ -23,6 +23,7 @@ import {createSinkDrip} from './sink-drip.js';
 import {createCanopySway} from './canopy-sway.js';
 import {createThroneGleam} from './throne-gleam.js';
 import {createGraveMist} from './grave-mist.js';
+import {createAltarEmbers} from './altar-embers.js';
 
 const scene=new THREE.Scene();scene.background=new THREE.Color('#142333');scene.fog=new THREE.FogExp2('#1b3040',.032);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setClearColor(0x000000,0);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;document.querySelector('#scene').appendChild(renderer.domElement);
@@ -32,6 +33,7 @@ const sinkDrip=createSinkDrip(scene);
 const canopySway=createCanopySway(scene);
 const throneGleam=createThroneGleam(scene);
 const graveMist=createGraveMist(scene);
+const altarEmbers=createAltarEmbers(scene);
 const camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,.1,100);camera.position.set(11,13,16);
 const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.1,0);controls.enableDamping=true;controls.minDistance=10;controls.maxDistance=27;controls.minPolarAngle=.3;controls.maxPolarAngle=1.22;controls.enablePan=false;
 const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));const ambientOcclusion=new SSAOPass(scene,camera,innerWidth,innerHeight);ambientOcclusion.kernelRadius=12;ambientOcclusion.minDistance=.002;ambientOcclusion.maxDistance=.14;composer.addPass(ambientOcclusion);const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.25,.48,1.25);composer.addPass(bloom);composer.addPass(new OutputPass());
@@ -202,7 +204,7 @@ renderer.setAnimationLoop(ms=>{const t=ms/1000,dt=Math.min(t-lastTime,.05);lastT
  for(const m of motes)m.m.position.set(m.x+Math.sin(t*.3+m.phase)*.2,(m.y+t*.055)%3.5,m.z+Math.cos(t*.2+m.phase)*.15);
  hazeLayers.forEach(({sprite,phase},i)=>{sprite.position.x+=Math.sin(t*.11+phase)*.0015;sprite.position.y+=Math.cos(t*.17+phase)*.0008;sprite.material.opacity=(.12+i*.035)+Math.sin(t*.23+phase)*.025;});enemy.userData.core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;
  if(gain&&audioContext.state==='running')gain.gain.value=.02+Math.sin(t*.7)*.004;
- live.update(t,dt);flameFlicker.update(t);sinkDrip.update(t);canopySway.update(t);throneGleam.update(t);graveMist.update(t);controls.update();renderStats.begin();composer.render();renderStats.end(dt);
+ live.update(t,dt);flameFlicker.update(t);sinkDrip.update(t);canopySway.update(t);throneGleam.update(t);graveMist.update(t);altarEmbers.update(t);controls.update();renderStats.begin();composer.render();renderStats.end(dt);
 });
 // Read-only state snapshot for smoke tests and future engine-adapter experiments.
 window.roomPrototype={snapshot:()=>structuredClone(state),rendererInfo:()=>renderStats.frame(),renderStats:()=>renderStats.summary()};
