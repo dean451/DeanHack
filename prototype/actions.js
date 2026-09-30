@@ -15,7 +15,7 @@ import {deathStyle, deathPose, DEATH_TIME, DEATH_BURST_U} from './deaths.js';
 import {swingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
 import {hitStyle, hitReactionPose, HIT_TIME} from './hit-fx.js';
 import {catMove, catSize, catLength, catAttackPose} from './cats.js';
-import {jawPose, jawReach} from './jaw.js';
+import {jawPose, jawReach, jawChatters, chatterPose} from './jaw.js';
 import {risePose, RISE_TIME, RISE_BURST_U} from './rise.js';
 import {groundSamples, groundLift, grounds} from './ground.js';
 import {centaurAttackPose} from './centaur-attack.js';
@@ -236,6 +236,8 @@ export function updateActions(actor, q, dt) {
   // Heading toward the target is measured once, from the rest pose, when the action starts.
   if (q.face === null) q.face = (a.kind === 'attack' || a.kind === 'throw') && a.dir ? turn(actor.g.rotation.y, Math.atan2(a.dir[0], a.dir[1])) : 0;
   const pose = actionPose(a, u, q.face);
+  // A bare skull chatters its teeth instead of snarling (jaw.js).
+  if (jawChatters(actor)) pose.jaw = Math.max(pose.jaw, chatterPose(a.kind, a.attack, u, a.result));
   // Smaller jaws open less (jaw.js).
   if (pose.jaw) pose.jaw *= jawReach(actor);
   // A centaur thrusts its spear, smashes its club or draws its bow (centaur-attack.js).

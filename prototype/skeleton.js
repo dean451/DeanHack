@@ -237,7 +237,7 @@ export function createSkeleton(){
  const head=new THREE.Group();head.position.set(0,NECK_Y,.005);head.rotation.set(.1,0,-.06);body.add(head);
  mesh(head,S.head,S.bone,'head');mesh(head,S.eyes,S.eye,'eyes');
  // the jaw drops on a positive x rotation (jaw.js); a short mandible looks torn off at the full gape
- const jaw=new THREE.Group();jaw.position.set(...JAW_HINGE);jaw.userData.reach=.5;head.add(jaw);mesh(jaw,S.jaw,S.bone,'jaw');
+ const jaw=new THREE.Group();jaw.position.set(...JAW_HINGE);jaw.userData.reach=.5;jaw.userData.chatter=true;head.add(jaw);mesh(jaw,S.jaw,S.bone,'jaw');
  const legs=[],arms=[];
  for(const s of [-1,1]){
   const leg=new THREE.Group();leg.position.set(s*.07,HIP_Y,0);body.add(leg);mesh(leg,S.leg[s],S.bone,'leg');legs.push(leg);
