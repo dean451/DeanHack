@@ -4575,6 +4575,50 @@ export function meatStickGeometry(count=1){
  return merged;
 }
 
+// Meat rings: a thick loop of seared ground meat, lumpy and dark-crusted like the meatballs,
+// flattened underneath where it sat in the pan, and tied at one point with a pinching wrap of
+// butcher's twine. A stack shows up to three: two side by side and a third lying across them.
+export function meatRingGeometry(count=1){
+ const n=Math.min(3,Math.max(1,count|0)),R=.062,r=.024;
+ const seared=new THREE.Color(0x6e3a21),crust=new THREE.Color(0x331a0d),flesh=new THREE.Color(0xa8714d),fat=new THREE.Color(0xd8b894),twine=new THREE.Color(0xcdbb95),col=new THREE.Color();
+ const place=[[[0,0,0]],[[-.083,0,.012],[.083,0,-.012]],[[-.083,0,.016],[.083,0,-.016],[0,1,0]]][n-1];
+ const rings=[];
+ for(const [e,[ox,oy,oz]] of place.entries()){
+  const geo=weld(new THREE.TorusGeometry(R,r,18,56));
+  const p=geo.attributes.position,c=new Float32Array(p.count*3),s=e*13.1,tie=.6+e*1.9;
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),u=Math.atan2(y,x),cx=Math.cos(u)*R,cy=Math.sin(u)*R;
+   let dx=x-cx,dy=y-cy,dz=z;
+   const lump=meatNoise(x*42+s,y*42,z*42)-.5,grain=meatNoise(x*140,y*140+s,z*140)-.5;
+   // How far round the ring from the twine, as an arc length.
+   const du=Math.abs(Math.atan2(Math.sin(u-tie),Math.cos(u-tie)))*R,bound=du<.0045;
+   const k=(1+.18*lump+.05*grain)*(bound?.84:du<.009?.84+.16*(du-.0045)/.0045:1);
+   dx*=k;dy*=k;dz*=k;
+   // The pan-flattened base (z becomes up once the ring is laid flat).
+   const nz=dz/r;if(nz<-.55)dz=(-.55-(-.55-nz)*.3)*r;
+   p.setXYZ(i,cx+dx,cy+dy,dz);
+   col.copy(seared).lerp(crust,Math.min(1,Math.max(0,.45-lump*3.2)));
+   if(grain>.2)col.lerp(flesh,Math.min(1,(grain-.2)*4));
+   const fleck=meatNoise(x*380,y*380+s,z*380);
+   if(fleck>.8)col.lerp(fat,Math.min(.7,(fleck-.8)*5));
+   // The seared top is darker than the sides.
+   if(nz>.4)col.lerp(crust,Math.min(.35,(nz-.4)*.7));
+   if(bound)col.copy(twine).multiplyScalar(.85+.3*meatNoise(u*300,z*400,s));
+   c.set([col.r,col.g,col.b],i*3);
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));
+  geo.computeVertexNormals();
+  geo.rotateX(-Math.PI/2);geo.rotateY(e*2.3+.3);
+  geo.computeBoundingBox();
+  // The third ring rests across the top of the first two.
+  const lift=oy?rings[0].boundingBox.max.y-.004:0;
+  geo.translate(ox,-geo.boundingBox.min.y+lift,oz);geo.computeBoundingBox();
+  rings.push(geo);
+ }
+ const merged=mergeGeometries(rings);rings.forEach(g=>g.dispose());
+ return merged;
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -5185,16 +5229,15 @@ export function createGroundModel(item={}){
   }else if(kind==='fortune cookie'){
    const c=add(new THREE.TorusGeometry(.045,.025,8,16,Math.PI*1.4),mat(0xd09a4c),0,.035,0);c.rotation.x=-Math.PI/2;c.scale.set(1,.8,1);
    box(.05,.001,.012,mat(0xf2eee2),.05,.03,.02).rotation.y=.4;
-  }else if(kind==='meatball'||kind==='meat stick'){
+  }else if(kind==='meatball'||kind==='meat stick'||kind==='meat ring'){
    // Seared and cured meats: faintly glossy, a stack shows up to three.
-   const meat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:kind==='meatball'?.62:.42});materials.push(meat);
+   const meat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:kind==='meat stick'?.42:.62});materials.push(meat);
    const count=Number(/^\s*(\d+)/.exec(name)?.[1]??1);
-   add(kind==='meatball'?meatballGeometry(count):meatStickGeometry(count),meat).userData.part=kind.replace(' ','-');
-  }else if(kind==='chunk'||kind==='meat ring'){
+   add((kind==='meatball'?meatballGeometry:kind==='meat ring'?meatRingGeometry:meatStickGeometry)(count),meat).userData.part=kind.replace(' ','-');
+  }else if(kind==='chunk'){
    const raw=mat(0x9c3c30),fat=mat(0xe2c8b0);
-   if(kind==='meat ring'){add(new THREE.TorusGeometry(.07,.03,8,20),raw,0,.03,0).rotation.x=Math.PI/2;}
-   else{ball(.13,raw,.03,.08,0,[1.2,.6,1]);ball(.08,fat,.1,.09,.04,[1,.5,.8]);
-    lie(.016,.016,.12,fat,-.15,.06,0);ball(.026,fat,-.21,.06,.012);ball(.026,fat,-.21,.06,-.012);}
+   ball(.13,raw,.03,.08,0,[1.2,.6,1]);ball(.08,fat,.1,.09,.04,[1,.5,.8]);
+   lie(.016,.016,.12,fat,-.15,.06,0);ball(.026,fat,-.21,.06,.012);ball(.026,fat,-.21,.06,-.012);
   }else if(kind==='garlic'){
    buildGarlic(Number(/^\s*(\d+)/.exec(name)?.[1]??1),{g,materials});
   }else if(kind==='royal jelly'){
