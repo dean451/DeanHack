@@ -214,10 +214,12 @@ test('common food gets grounded, finite models and unknown food falls back',()=>
 
 test('scrolls lie on the floor and show only their shuffled label',()=>{
  const scroll=(name,appearance)=>createGroundModel({name,class:9,appearance});
- const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);
+ const signature=model=>model.children.map(part=>[part.geometry.attributes.position.count,...part.position.toArray().map(n=>n.toFixed(5)),[...part.geometry.attributes.color.array].map(n=>n.toFixed(3)).join()]);
  const models={labelled:scroll('scroll of identify','ZELGO MER'),blank:scroll('scroll of blank paper','unlabeled'),mail:scroll('scroll of mail','stamped'),bare:scroll('scroll',undefined)};
  for(const [kind,model] of Object.entries(models)){
   assert(model,kind);
+  assert.equal(model.children.length,1,`${kind} bakes into one draw`);
+  assert(model.children[0].material.vertexColors,`${kind} is painted with vertex colours`);
   const bounds=new THREE.Box3().setFromObject(model);
   assert(bounds.min.y>-1e-6&&bounds.min.y<1e-6,`${kind} rests on the floor`);
   assert(bounds.max.y<.12,`${kind} lies flat`);
@@ -232,13 +234,14 @@ test('scrolls lie on the floor and show only their shuffled label',()=>{
  }
  assert.deepEqual(signature(scroll('scroll of genocide','ZELGO MER')),signature(scroll('scroll of identify','ZELGO MER')),'the true scroll name must not show');
  assert.notDeepEqual(signature(scroll('scroll of identify','ELBIB YLOH')),signature(scroll('scroll of identify','ZELGO MER')));
- assert(models.blank.children.length<models.labelled.children.length,'unlabeled paper has no ribbon, seal or script');
+ const verts=model=>model.children[0].geometry.attributes.position.count;
+ assert(verts(models.blank)<verts(models.labelled),'unlabeled paper has no ribbon, seal or script');
  assert.equal(createGroundModel({name:'scroll of identify',class:6}),null);
 });
 
 test('common tools get grounded, finite models that share their unidentified look',()=>{
  const tools=['tin whistle','mirror','crystal ball','tooled horn','bugle','wooden flute','wooden harp','leather drum','bell','stethoscope','tin opener','leash','saddle','chest','large box','ice box','tinning kit','expensive camera','lenses','credit card','beartrap','land mine','grappling hook'];
- const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);
+ const signature=model=>model.children.map(part=>[part.geometry.attributes.position.count,...part.position.toArray().map(n=>n.toFixed(5)),[...part.geometry.attributes.color.array].map(n=>n.toFixed(3)).join()]);
  for(const name of tools){
   const model=createGroundModel({name,class:6});
   assert(model,name);

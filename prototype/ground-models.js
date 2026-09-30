@@ -236,9 +236,14 @@ function facetedGem(cut,seed){
 
 // Bakes meshes that share one material and one parent into a single mesh on that parent, so a
 // pile of pieces is one draw. Each piece's own transform goes into its vertices.
+// Pieces that mix indexed and unindexed geometry, or carry extra attributes (a hand-built sheet
+// has no uv), are brought to the shape they all share first.
 function bakeMeshes(meshes){
  const [first]=meshes,parent=first.parent;
- const geos=meshes.map(p=>{p.updateMatrix();return p.geometry.clone().applyMatrix4(p.matrix);});
+ let geos=meshes.map(p=>{p.updateMatrix();return p.geometry.clone().applyMatrix4(p.matrix);});
+ if(geos.some(q=>!q.index)&&geos.some(q=>q.index))geos=geos.map(q=>{if(!q.index)return q;const flat=q.toNonIndexed();q.dispose();return flat;});
+ const shared=Object.keys(geos[0].attributes).filter(k=>geos.every(q=>q.attributes[k]));
+ for(const q of geos)for(const k of Object.keys(q.attributes))if(!shared.includes(k))q.deleteAttribute(k);
  const one=new THREE.Mesh(mergeGeometries(geos),first.material);geos.forEach(q=>q.dispose());
  one.castShadow=first.castShadow;one.receiveShadow=first.receiveShadow;
  for(const p of meshes){p.geometry.dispose();p.removeFromParent();}
@@ -5434,7 +5439,19 @@ export function createGroundModel(item={}){
   // Scrolls. The name is the true identity, so the look comes only from the shuffled
   // label: a labelled roll with a ribbon and a wax seal tinted by that label, a bare
   // roll for unlabeled paper, and a sealed envelope for stamped mail.
+  // Every part is the same rough paper-and-wax finish, so the parts are painted with vertex
+  // colours and baked into one mesh at the end: a scroll is one draw.
   const look=(item.appearance||'').toLowerCase();
+  const matte=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.9,side:THREE.DoubleSide});materials.push(matte);
+  const mat=c=>new THREE.Color(c);
+  const add=(geo,c,x=0,y=0,z=0)=>{
+   const n=geo.attributes.position.count,col=new Float32Array(n*3);
+   for(let i=0;i<n;i++)c.toArray(col,i*3);
+   geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+   const p=new THREE.Mesh(geo,matte);p.position.set(x,y,z);p.castShadow=p.receiveShadow=true;g.add(p);return p;
+  };
+  const box=(w,h,d,c,x,y,z=0)=>add(new THREE.BoxGeometry(w,h,d),c,x,y,z);
+  const ball=(r,c,x,y,z,s=[1,1,1])=>{const p=add(new THREE.SphereGeometry(r,16,10),c,x,y,z);p.scale.set(...s);return p;};
   const seal=mat([0x8c1f24,0x2f4f8a,0x2f6b3a,0x6a2f7a,0xa8741e,0x1f2a2a][[...look].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0,7)%6]);
   if(/stamped/.test(look)){
    const paper=mat(0xe6dcc4),fold=mat(0xb9ad92),stamp=mat(0x3b6fa8);
@@ -5462,7 +5479,7 @@ export function createGroundModel(item={}){
    for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){const a=row*(cols+1)+col,b=a+cols+1;indices.push(a,b,a+1,a+1,b,b+1);}
    const sheet=new THREE.BufferGeometry();
    sheet.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-   sheet.setIndex(indices);sheet.computeVertexNormals();paper.side=THREE.DoubleSide;
+   sheet.setIndex(indices);sheet.computeVertexNormals();
    add(sheet,paper);
    if(!blank){
     // Faint lines of script on the tongue; no readable lettering at game zoom.
@@ -5474,6 +5491,7 @@ export function createGroundModel(item={}){
    }
    g.rotation.y=.35;
   }
+  bakeMeshes([...g.children]).userData.part='scroll';
   // The ribbon lifts the roll a little; settle whatever is lowest onto the floor.
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===4){
