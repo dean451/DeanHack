@@ -879,6 +879,33 @@ test('wizards get a robed, bearded model with a starry pointed hat and an orb-to
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('monks get a shaven-headed, saffron-robed martial artist with prayer beads and bare fists instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const mk=createCreature({name:'monk',symbol:64,color:3});
+ assert.equal(mk.kind,'monk');assert.equal(mk.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket'])assert(mk[key]?.isObject3D,key);
+ assert.equal(mk.legs.length,2);assert.equal(mk.arms.length,2);assert.equal(mk.arm,mk.arms[1]);
+ assert(mk.arm.children.includes(mk.weaponSocket),'the socket is at the right fist');
+ assert.equal(mk.weaponSocket.children.length,0,'monks fight unarmed');
+ const parts=meshes(mk);
+ assert.equal(parts.length,6,'one mesh per moving part');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ mk.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(mk.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.1&&b.max.y<1.2,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.4,'out of proportion');
+ const again=meshes(createCreature({name:'monk'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
 test('the hezrou gets its own hunched, warty, fanged toad demon with a hinged jaw instead of the generic demon with a toad head',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const hz=createCreature({name:'hezrou',symbol:38,color:2});
