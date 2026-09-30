@@ -4619,6 +4619,80 @@ export function meatRingGeometry(count=1){
  return merged;
 }
 
+// Huge chunks of meat: a raw haunch lying on its belly. A lumpy joint tapers from a sawn-off cut
+// face into a sinewy shank, and a knobbed bone runs out of the shank. The cut face shows muscle
+// in two reds parted by seams of fat, a rim of fat under the top, and the sawn bone standing
+// proud with its dark marrow. A creamy fat cap runs over the top, the sides are marbled, and the
+// bone is bloodied where it leaves the meat. One merged vertex-coloured mesh (1 draw).
+export function meatHaunchGeometry(){
+ const raw=new THREE.Color(0xa3302a),deep=new THREE.Color(0x6e1a17),marble=new THREE.Color(0xd08a80),fat=new THREE.Color(0xe8d3b6),
+  sinew=new THREE.Color(0xb98e86),bone=new THREE.Color(0xe6dbc0),boneShade=new THREE.Color(0xb9a98a),blood=new THREE.Color(0x8a2a22),marrow=new THREE.Color(0x5c1e18),col=new THREE.Color();
+ const smooth=(a,b,t)=>{const u=Math.min(1,Math.max(0,(t-a)/(b-a)));return u*u*(3-2*u);};
+ // The meat, as a lathe along y from the cut face (y 0) to the shank (y .255). The face is a set
+ // of rings so its colours have vertices to land on; the bone stands .005 proud of it.
+ const prof=[[0,-.003],[.009,-.003],[.0095,-.005],[.0175,-.005],[.019,0]];
+ for(let r=.025;r<.1;r+=.0075)prof.push([r,0]);
+ prof.push([.1,0],[.106,.008],[.113,.03],[.116,.06],[.11,.095],[.094,.135],[.07,.172],[.05,.2],[.036,.228],[.026,.25],[.019,.262]);
+ const meat=weld(new THREE.LatheGeometry(prof.map(([r,y])=>new THREE.Vector2(r,y)),44));
+ {
+  const p=meat.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),rho=Math.hypot(x,z);
+   // Once laid down, up is -x here.
+   const up=rho?-x/rho:0;
+   if(y<=.0001){
+    // The cut face.
+    if(rho<.0092)col.copy(marrow).lerp(blood,.4*meatNoise(x*500,z*500,1));
+    else if(rho<.0185)col.copy(bone).lerp(boneShade,.5*meatNoise(x*400,z*400,2));
+    else{
+     col.copy(raw).lerp(deep,Math.min(1,Math.max(0,(meatNoise(x*45,z*45,3)-.35)*2.2)));
+     const seam=Math.abs(meatNoise(x*32+7,z*32,4)-.5);
+     if(seam<.045)col.lerp(fat,1-seam/.045);
+     if(rho<.026)col.lerp(sinew,.6);
+     // The fat rim under the cap.
+     if(rho>.083&&up>-.1)col.lerp(fat,smooth(.083,.094,rho)*smooth(-.1,.3,up));
+    }
+   }else{
+    const lump=meatNoise(x*36,y*36,z*36)-.5,grain=meatNoise(x*120,y*120+5,z*120)-.5;
+    // Lumpy sides, easing in from the edge of the cut face.
+    const k=1+(.1*lump+.03*grain)*smooth(0,.02,y)*(y>.24?0:1);
+    p.setX(i,x*k);p.setZ(i,z*k);
+    col.copy(raw).lerp(deep,Math.min(1,Math.max(0,.3-lump*2.5)));
+    const streak=Math.abs(meatNoise(x*28+3,y*70,z*28)-.5);
+    if(streak<.035)col.lerp(marble,.7*(1-streak/.035));
+    // The fat cap over the top, with a ragged edge.
+    col.lerp(fat,smooth(.05,.4,up+.35*lump)*(1-smooth(.12,.2,y)));
+    // Pale, sinewy membrane down the shank.
+    col.lerp(sinew,.65*smooth(.17,.24,y));
+   }
+   c.set([col.r,col.g,col.b],i*3);
+  }
+  meat.setAttribute('color',new THREE.BufferAttribute(c,3));
+ }
+ // The bone: a shaft out of the shank to a knuckle, with two condyles either side of it.
+ const shaft=weld(new THREE.LatheGeometry([[0,.2],[.0165,.2],[.015,.255],[.0145,.28],[.018,.3],[.024,.315],[.025,.328],[.019,.342],[0,.346]].map(([r,y])=>new THREE.Vector2(r,y)),20));
+ const condyles=[-1,1].map(s=>{const b=weld(new THREE.SphereGeometry(.018,14,10));b.scale(1,1.1,1);b.translate(0,.33,s*.013);return b;});
+ for(const [e,g] of [shaft,...condyles].entries()){
+  const p=g.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+   col.copy(bone).lerp(boneShade,.55*meatNoise(x*260+e*9,y*90,z*260));
+   col.lerp(blood,.85*(1-smooth(.26,.29,y)));
+   c.set([col.r,col.g,col.b],i*3);
+  }
+  g.setAttribute('color',new THREE.BufferAttribute(c,3));
+ }
+ const merged=mergeGeometries([meat,shaft,...condyles]);[meat,shaft,...condyles].forEach(g=>g.dispose());
+ merged.computeVertexNormals();
+ // Lay it along +x, a little squat, the knuckle dipping to the floor and the cut face turned
+ // up and towards the viewer.
+ merged.rotateZ(-Math.PI/2);merged.scale(1,.74,1);merged.rotateZ(-.14);merged.rotateY(.6);
+ merged.computeBoundingBox();
+ const b=merged.boundingBox;merged.translate(-(b.min.x+b.max.x)/2,-b.min.y,-(b.min.z+b.max.z)/2);
+ merged.computeBoundingBox();
+ return merged;
+}
+
 // Tins: bare tinplate cans with no label. Each has rolled double-seam beads top and bottom,
 // three pressed ribs round the side, a soldered side seam, sunk ends with expansion rings, a
 // crystalline spangle, freckles of rust low down and a knock dented into one side. An empty tin
@@ -5556,9 +5630,9 @@ export function createGroundModel(item={}){
    const count=Number(/^\s*(\d+)/.exec(name)?.[1]??1);
    add((kind==='meatball'?meatballGeometry:kind==='meat ring'?meatRingGeometry:meatStickGeometry)(count),meat).userData.part=kind.replace(' ','-');
   }else if(kind==='chunk'){
-   const raw=mat(0x9c3c30),fat=mat(0xe2c8b0);
-   ball(.13,raw,.03,.08,0,[1.2,.6,1]);ball(.08,fat,.1,.09,.04,[1,.5,.8]);
-   lie(.016,.016,.12,fat,-.15,.06,0);ball(.026,fat,-.21,.06,.012);ball(.026,fat,-.21,.06,-.012);
+   // A raw haunch: wet meat, fat and bone share one glossy vertex-coloured material.
+   const flesh=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.48});materials.push(flesh);
+   add(meatHaunchGeometry(),flesh).userData.part='meat-haunch';
   }else if(kind==='garlic'){
    buildGarlic(Number(/^\s*(\d+)/.exec(name)?.[1]??1),{g,materials});
   }else if(kind==='royal jelly'){

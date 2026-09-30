@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,tinGeometry,creamPieGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -892,6 +892,28 @@ test('meatballs, meat sticks and meat rings are merged, vertex-coloured meats, a
  ring.dispose();
  const pile=meatRingGeometry(3);pile.computeBoundingBox();assert(pile.boundingBox.max.y>.07&&pile.boundingBox.max.y<.1,'third ring on top');
  pile.dispose();
+});
+
+test('a huge chunk of meat is one merged, vertex-coloured raw haunch with a bone out of the shank',()=>{
+ const geo=meatHaunchGeometry();
+ for(const key of ['position','normal','color'])for(const v of geo.attributes[key].array)assert(Number.isFinite(v),key);
+ assert(geo.index,'welded');
+ const b=geo.boundingBox;
+ assert(Math.abs(b.min.y)<1e-6&&b.max.y>.1&&b.max.y<.2,`height ${b.max.y}`);
+ assert(Math.max(b.max.x-b.min.x,b.max.z-b.min.z)>.25,'huge');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.3,'inside the tile');
+ // Raw red meat, creamy fat and pale bone.
+ const c=geo.attributes.color;let red=0,pale=0;
+ for(let i=0;i<c.count;i++){const r=c.getX(i),g=c.getY(i),bl=c.getZ(i);if(r>.25&&g<.06&&bl<.06)red++;if(r>.6&&g>.5&&bl>.35)pale++;}
+ assert(red>200&&pale>200,`red ${red}, pale ${pale}`);
+ assert(geo.attributes.position.count<6000,`vertices ${geo.attributes.position.count}`);
+ geo.dispose();
+ const model=createGroundModel({name:'huge chunk of meat',class:7});
+ const meshes=[];model.traverse(p=>{if(p.isMesh)meshes.push(p);});
+ assert.equal(meshes.length,1);
+ assert.equal(meshes[0].userData.part,'meat-haunch');
+ assert(meshes[0].material.vertexColors);
+ model.userData.dispose();
 });
 
 test('tins are one merged, vertex-coloured tinplate can; an empty tin is opened with its lid bent back',()=>{
