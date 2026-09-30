@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,tinGeometry,creamPieGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,tinGeometry,creamPieGeometry,lembasGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -1528,6 +1528,37 @@ test('cream pies are one merged, vertex-coloured pie with a fluted crust, piped 
   assert(meshes[0].material.vertexColors);
   const bounds=new THREE.Box3().setFromObject(model);
   assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.2,`${name} height ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
+  model.userData.dispose();
+ }
+ one.dispose();three.dispose();
+});
+
+test('lembas is one merged, vertex-coloured wafer scored into squares, wrapped in mallorn leaves and tied with twine; a stack piles up to three',()=>{
+ const one=lembasGeometry(1);
+ for(const key of ['position','normal','color'])for(const v of one.attributes[key].array)assert(Number.isFinite(v),key);
+ one.computeBoundingBox();
+ const b=one.boundingBox;assert(b.max.y>.025&&b.max.y<.05&&Math.abs(b.min.y)<1e-6,`wafer height ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.2,'the leaves stay near the wafer');
+ // Pale crumb and green leaf (colours are linear).
+ const c=one.attributes.color;let green=0,pale=0;
+ for(let i=0;i<c.count;i++){if(c.getY(i)>c.getX(i)*1.2&&c.getY(i)>c.getZ(i)*1.5)green++;if(c.getX(i)>.75&&c.getY(i)>.65)pale++;}
+ assert(green>300&&pale>100,`green ${green}, pale ${pale}`);
+ // The top is scored: the wafer's top face dips along the lines between the squares.
+ const p=one.attributes.position;let groove=1,flat=0;
+ for(let i=0;i<866;i++){const x=p.getX(i),z=p.getZ(i),y=p.getY(i);if(y<.015||Math.abs(z)>.05)continue;
+  if(Math.abs(Math.abs(x)-.025)<.001)groove=Math.min(groove,y);else if(Math.abs(x)<.01)flat=Math.max(flat,y);}
+ assert(flat-groove>.0015,`score ${groove}..${flat}`);
+ const three=lembasGeometry(7);three.computeBoundingBox();
+ assert(Math.abs(three.boundingBox.max.y-b.max.y-.04)<.002,'a stack of three is two wafers taller');
+ for(const name of ['lembas wafer','2 lembas wafers','9 lembas wafers']){
+  const model=createGroundModel({name,class:7});
+  const meshes=[];model.traverse(q=>{if(q.isMesh)meshes.push(q);});
+  assert.equal(meshes.length,1,name);
+  assert.equal(meshes[0].userData.part,'lembas');
+  assert(meshes[0].material.vertexColors);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.1,`${name} height ${bounds.max.y}`);
   assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
   model.userData.dispose();
  }
