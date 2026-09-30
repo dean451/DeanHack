@@ -23,19 +23,23 @@ function frame(a, t, dt) {
   updateActions(a, a.actions, dt);
   return {p, walking};
 }
-const snap = a => [...a.legs.map(l => l.rotation.x), a.body.rotation.z];
+const snap = a => [...a.legs.map(l => l.rotation.x), a.body.rotation.z, a.head?.rotation.x ?? 0,
+  ...(a.arms || []).map(r => r.rotation.x)];
 
 test('trudge poses are finite and within their stride, lurch and dip', () => {
   for (const kind of Object.keys(TRUDGE)) {
     const T = TRUDGE[kind];
     for (let i = 0; i <= 400; i++) {
       const p = trudgePose(kind, Math.PI * 2 * i / 400);
-      for (const v of [...p.legs, p.bob, p.roll]) assert(Number.isFinite(v));
+      for (const v of [...p.legs, p.bob, p.roll, p.nod, ...p.arms]) assert(Number.isFinite(v));
+      assert.equal(p.arms[0], -p.arms[1]);
+      assert(Math.abs(p.arms[0]) <= (T.arm || 0) + 1e-12 && p.nod >= 0 && p.nod <= (T.nod || 0));
       assert.equal(p.legs[0], -p.legs[1]);
       assert(Math.abs(p.legs[0]) <= T.stride && Math.abs(p.roll) <= T.roll && p.bob <= 0 && p.bob >= -T.dip);
     }
-    assert.deepEqual(trudgePose(kind, 1, 0), {legs: [0, 0], bob: 0, roll: 0});
+    assert.deepEqual(trudgePose(kind, 1, 0), {legs: [0, 0], bob: 0, roll: 0, nod: 0, arms: [0, 0]});
   }
+  assert.equal(trudgeKind(make('ghoul', 'Z')), 'ghoul');
   assert.equal(trudgeKind(make('human zombie', 'Z')), 'zombie');
   assert.equal(trudgeKind(make('iron golem', "'")), 'golem');
   for (const [n, s] of [['straw golem', "'"], ['gnome mummy', 'M'], ['brown pudding', 'P'], ['jackal', 'd']]) {
@@ -46,8 +50,9 @@ test('trudge poses are finite and within their stride, lurch and dip', () => {
 });
 
 test('a zombie and a golem trudge slowly across a cell and settle back to their exact rest pose', () => {
-  for (const [name, sym, kind] of [['human zombie', 'Z', 'zombie'], ['kobold zombie', 'Z', 'zombie'], ['stone golem', "'", 'golem'], ['clay golem', "'", 'golem']]) {
+  for (const [name, sym, kind] of [['human zombie', 'Z', 'zombie'], ['kobold zombie', 'Z', 'zombie'], ['stone golem', "'", 'golem'], ['clay golem', "'", 'golem'], ['ghoul', 'Z', 'ghoul']]) {
     const a = make(name, sym), T = TRUDGE[kind], dt = 1 / 60;
+    const armRest = (a.arms || []).map(r => r.rotation.x), headRest = a.head?.rotation.x ?? 0;
     a.g.position.set(0, 0, 0); a.target = new THREE.Vector3(1, 0, 1);
     const rest = snap(a);
     let t = 0, prev = snap(a), worst = 0, walkedFrames = 0, peak = 0;
@@ -62,6 +67,8 @@ test('a zombie and a golem trudge slowly across a cell and settle back to their 
         a.legs.forEach(l => assert(Math.abs(l.rotation.x) <= T.stride + 1e-9, `${name} ${i} ${l.rotation.x}`));
         assert(Math.abs(a.body.rotation.z) <= T.roll + 1e-9);
         assert(a.body.position.y <= 1e-9 && a.body.position.y >= -T.dip - 1e-9);
+        if (a.head) assert(a.head.rotation.x - headRest >= -1e-9 && a.head.rotation.x - headRest <= (T.nod || 0) + 1e-9);
+        (a.arms || []).forEach((r, k) => assert(Math.abs(r.rotation.x - armRest[k]) <= (T.arm || 0) + 1e-9, `${name} arm ${k}`));
       }
       peak = Math.max(peak, Math.abs(a.legs[0].rotation.x));
       if (i > 0) worst = Math.max(worst, ...now.map((v, k) => Math.abs(v - prev[k])));
@@ -69,8 +76,8 @@ test('a zombie and a golem trudge slowly across a cell and settle back to their 
     }
     assert(walkedFrames > 60, `${name} slid for ${walkedFrames} frames`);
     assert(peak > T.stride * .5, `${name} took real steps (${peak})`);
-    // at most rate × stride ≈ .04 rad a frame, plus the blend; the generic swing moved up to .15
-    assert(worst < .06, `${name} smooth (${worst})`);
+    // at most rate × stride ≈ .04 rad a frame (the ghoul's lope ≈ .07), plus the blend; the generic swing moved up to .15
+    assert(worst < Math.max(.06, T.rate * T.stride * dt + .01), `${name} smooth (${worst})`);
     snap(a).forEach((v, k) => assert(Math.abs(v - rest[k]) < 1e-12, `${name} back to rest ${k}: ${v} vs ${rest[k]}`));
     assert.equal(a.trudge.w, 0);
     assert.equal(a.trudge.roll, 0);

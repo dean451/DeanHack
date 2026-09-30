@@ -80,10 +80,10 @@ test('zombies, heavy golems and oozes slide heavily by species; quick kin keep t
   };
   const heavy = [['kobold zombie', 'Z', 'zombie'], ['giant zombie', 'Z', 'zombie'],
     ['iron golem', "'", 'golem'], ['clay golem', "'", 'golem'], ['wood golem', "'", 'golem'],
-    ['gelatinous cube', 'b', 'ooze'], ['black pudding', 'P', 'ooze']];
+    ['gelatinous cube', 'b', 'ooze'], ['black pudding', 'P', 'ooze'], ['ghoul', 'Z', 'ghoul']];
   for (const [species, sym, kind] of heavy) assert.equal(heavySlide(mk(species, sym)), SPECIES_SLIDE[kind], species);
   for (const [species, sym] of [['kobold mummy', 'M'], ['straw golem', "'"], ['paper golem', "'"],
-    ['acid blob', 'b'], ['ghoul', 'Z'], ['jackal', 'd']]) assert.equal(heavySlide(mk(species, sym)), null, species);
+    ['acid blob', 'b'], ['jackal', 'd']]) assert.equal(heavySlide(mk(species, sym)), null, species);
 
   for (const [species, sym, kind] of heavy) {
     const prof = SPECIES_SLIDE[kind];
