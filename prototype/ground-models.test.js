@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,pancakeGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -1554,6 +1554,40 @@ test('cream pies are one merged, vertex-coloured pie with a fluted crust, piped 
   model.userData.dispose();
  }
  one.dispose();three.dispose();
+});
+
+test('pancakes are a lopsided stack under butter and syrup in one merged, vertex-coloured mesh; a stack piles higher',()=>{
+ const one=pancakeGeometry(1),many=pancakeGeometry(9);
+ for(const geo of [one,many]){
+  for(const k of ['position','normal','color'])for(const v of geo.attributes[k].array)assert(Number.isFinite(v),k);
+  const b=geo.boundingBox;
+  assert(Math.abs(b.min.y)<1e-6,`grounded ${b.min.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.13,'the stack stays in the middle of the tile');
+ }
+ assert(one.boundingBox.max.y>.05&&one.boundingBox.max.y<.075,`stack of three ${one.boundingBox.max.y}`);
+ assert(Math.abs(many.boundingBox.max.y-one.boundingBox.max.y-2*.0155)<.004,'more pancakes add two cakes');
+ // Seen from above, the top shows golden cake, a dark pool of syrup and the butter, all facing up.
+ const mesh=new THREE.Mesh(one,new THREE.MeshBasicMaterial({side:THREE.DoubleSide})),ray=new THREE.Raycaster(),c=one.attributes.color;
+ const seen={cake:0,syrup:0,butter:0};
+ for(let x=-.1;x<=.1;x+=.005)for(let z=-.1;z<=.1;z+=.005){
+  ray.set(new THREE.Vector3(x,.2,z),new THREE.Vector3(0,-1,0));
+  const hit=ray.intersectObject(mesh)[0];if(!hit)continue;
+  assert(hit.face.normal.y>0,'surfaces seen from above face up');
+  const i=hit.face.a,r=c.getX(i),g=c.getY(i),bl=c.getZ(i);
+  seen[r<.35&&r>2*g?'syrup':r>.8&&g>.75&&bl<.45?'butter':'cake']++;
+ }
+ assert(seen.cake>600&&seen.syrup>200&&seen.butter>15,JSON.stringify(seen));
+ for(const name of ['pancake','2 pancakes']){
+  const model=createGroundModel({name,class:7});
+  const meshes=[];model.traverse(q=>{if(q.isMesh)meshes.push(q);});
+  assert.equal(meshes.length,1,name);
+  assert.equal(meshes[0].userData.part,'pancake');
+  assert(meshes[0].material.vertexColors);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.1,`${name} height ${bounds.max.y}`);
+  model.userData.dispose();
+ }
+ one.dispose();many.dispose();
 });
 
 test('lembas is one merged, vertex-coloured wafer scored into squares, wrapped in mallorn leaves and tied with twine; a stack piles up to three',()=>{
