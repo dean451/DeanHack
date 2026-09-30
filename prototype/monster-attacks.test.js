@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {MONSTER_ATTACKS, monsterAttackPose, restAttackPose, foreLegs} from './monster-attacks.js';
 import {ACTION_TIME, createActionQueue, enqueueAction, updateActions, clearActionPose, actionsForCombat} from './actions.js';
@@ -99,4 +100,28 @@ test('the attacker action carries the seen defender name', () => {
   assert.equal(seen.attacker.target, 'skeleton');
   const unseen = actionsForCombat({attack: 'weapon', result: 'hit', dir: [1, 0], attacker: {you: true}, defender: {seen: false}});
   assert.equal(unseen.attacker.target, null);
+});
+
+test('a mind flayer\'s tentacle attack lashes its face tentacles forward at the victim, not back into its chest', () => {
+  for (const name of ['mind flayer', 'master mind flayer']) {
+    const a = createCreature({name, symbol: 'h'.charCodeAt(0), color: 5});
+    // the lowest tentacle vertex (the tips), in the model's own space
+    const tip = () => {
+      a.g.updateMatrixWorld(true);
+      const inv = a.g.matrixWorld.clone().invert(), v = new THREE.Vector3();
+      let lo = null;
+      a.tail.traverse(o => {
+        const p = o.geometry?.attributes?.position; if (!p) return;
+        for (let i = 0; i < p.count; i += 3) { v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv); if (!lo || v.y < lo.y) lo = v.clone(); }
+      });
+      return lo;
+    };
+    const rest = tip(), pivot = a.tail.getWorldPosition(new THREE.Vector3());
+    let u = 0, peak = 0;
+    for (let k = 0; k <= 100; k++) { const t = monsterAttackPose('tentacle', k / 100).tail; if (Math.abs(t) > Math.abs(peak)) { peak = t; u = k / 100; } }
+    a.tail.rotation.x += peak;
+    const lash = tip();
+    assert.ok(lash.z > rest.z + .1, `${name} tips reach forward at u ${u} (z ${rest.z.toFixed(3)} -> ${lash.z.toFixed(3)})`);
+    assert.ok(lash.y > rest.y && lash.y < pivot.y, `${name} tips rise toward the victim's head but stay below the mouth (y ${lash.y.toFixed(3)})`);
+  }
 });

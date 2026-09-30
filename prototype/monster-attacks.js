@@ -90,7 +90,9 @@ export function monsterAttackPose(type, u, result = 'hit') {
       p.stretch = 1 - .1 * S;
       p.fore = -1 * S;
       p.arm = -1.6 * S;
-      p.tail = type === 'tentacle' ? .8 * S : 0;
+      // The mind flayer's face tentacles hang from the mouth; negative pitch lashes them forward
+      // and up at the victim's head (positive swung them back into its own chest).
+      p.tail = type === 'tentacle' ? -.8 * S : 0;
       p.roll = .06 * jitter(30) * S;
       break;
     case 'spit':
