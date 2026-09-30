@@ -12,7 +12,8 @@
 // Given where the hero is (`look`), the eye watches them. When the hero comes into its view
 // (within TRACK_RANGE and VIEW rad of straight ahead), it cuts its current glance short and
 // flicks to them. Most later flicks go back to the hero, and it holds those stares longer,
-// following the hero as they move. If the hero leaves its view mid-stare, it flicks back to centre.
+// following the hero as they move. If the hero leaves its view mid-stare, or turns invisible, it
+// flicks back to centre.
 
 // YAW/PITCH: the largest glance to each side and up/down (rad); SACCADE: seconds per flick;
 // HOLD_MIN..+HOLD_SPAN: seconds each fixation lasts; CENTRE: chance a flick comes back to centre;
@@ -51,6 +52,10 @@ export function aimAt(actor, look) {
   const clamp = (v, m) => v < -m ? -m : v > m ? m : v;
   return {yaw: clamp(yaw, YAW), pitch: clamp(pitch, PITCH)};
 }
+
+// Where the eye can look for the hero: nowhere while the hero is invisible (an evil eye doesn't
+// see invisible). The bridge only reports that when the map would hide the hero's glyph anyway.
+export const heroLook = (player, pos) => player?.invisible ? null : pos;
 
 function nextTarget(st) {
   if (rand(st) < CENTRE) return {yaw: 0, pitch: 0};

@@ -236,3 +236,25 @@ test('the evil eye watches the hero when they are in view, follows them, and let
   for (let i = 0; i < 90; i++, t += dt) updateFidget(a, dt, t, true, hero);
   assert.ok(Math.abs(Math.abs(h.quaternion.dot(rest)) - 1) < 1e-9, 'exactly centred when busy');
 });
+
+test('the evil eye loses the hero when they turn invisible, and finds them again when they reappear', async () => {
+  const {heroLook, aimAt} = await import('./glance.js');
+  const a = createCreature({name: 'evil eye'});
+  a.species = 'evil eye';
+  const h = a.head, dt = 1 / 60, pos = {x: 1.5, y: 0, z: 3};
+  assert.equal(heroLook({invisible: true}, pos), null);
+  assert.equal(heroLook({invisible: false}, pos), pos);
+  assert.equal(heroLook(null, pos), pos, 'demo room: no frame, still watched');
+  const aim = aimAt(a, pos), on = () => Math.hypot(h.rotation.y - aim.yaw, h.rotation.x - aim.pitch) < .03;
+  let t = 0;
+  const run = (player, secs) => { let n = 0; for (let i = 0; i < 60 * secs; i++, t += dt) { updateFidget(a, dt, t, false, heroLook(player, pos)); assert.ok(Number.isFinite(h.rotation.x) && Number.isFinite(h.rotation.y)); if (on()) n++; } return n; };
+  assert.ok(run({invisible: false}, 1) > 30, 'staring at the visible hero');
+  assert.equal(a.glance.track, true);
+  // Invisible: the stare breaks at once and it never settles on the hero's spot for long.
+  run({invisible: true}, .1);
+  assert.equal(a.glance.track, false);
+  assert.ok(run({invisible: true}, 20) < 60 * 20 * .15, 'no longer watching');
+  assert.equal(a.glance.track, false);
+  // Visible again: it notices within a moment.
+  assert.ok(run({invisible: false}, 1) > 20, 'finds the hero again');
+});
