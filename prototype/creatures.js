@@ -39,6 +39,7 @@ import {createPaperGolem} from './paper-golem.js';
 import {createJabberwock,JABBERWOCK_KINDS} from './jabberwock.js';
 import {createMummy} from './mummy.js';
 import {createHobbit} from './hobbit.js';
+import {MIND_FLAYER_KINDS,createMindFlayer} from './mind-flayer.js';
 import {createGoblin,isGoblin} from './goblin.js';
 import {createBugbear} from './bugbear.js';
 import {createKobold,isKobold} from './kobold.js';
@@ -1281,23 +1282,6 @@ const NYMPHS={
  'mountain nymph':{skin:'#f3d4bb',cloth:'#2a2030',trim:'#b8b0d8',belt:'#302838',hair:'#241a16',glow:'#b07aff',eye:'#5a3a7a',lips:'#b05c6a'},
 };
 
-// Mind flayers: a robed, high-collared caster with a bulbous cranium and a fringe of face tentacles.
-function mindFlayer(o){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
- const skin=mat(o.skin,{roughness:.55}),robe=mat(o.robe,{roughness:.85}),trim=mat(shade(o.robe,.55),{roughness:.8});
- for(const x of [-.1,.1]){const leg=new THREE.Group();leg.position.set(x,.36,0);body.add(leg);rounded(leg,.12,.3,.12,trim,0,-.14,0,.03);rounded(leg,.15,.08,.22,M.leather,0,-.32,.04,.03);legs.push(leg);}
- cylinder(body,.2,.3,.56,robe,0,.4,0,12);rounded(body,.38,.36,.26,robe,0,.8,0,.07);
- const collar=cylinder(body,.27,.19,.24,trim,0,1.03,-.07,10);collar.rotation.x=-.25;
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.24,.93,0);body.add(arm);rounded(arm,.1,.36,.11,robe,0,-.17,0,.03);for(const f of [-.02,.02])cone(arm,.014,.12,skin,f,-.39,.02,4).rotation.x=Math.PI;arm.rotation.z=side*.14;arm.rotation.x=-.2;}
- sphere(body,.17,skin,0,1.1,.02,.9,1,.9);sphere(body,.21,skin,0,1.25,-.05,1,.95,1.1);
- eyes(body,o.eye,1.13,.14,.075);
- const mouth=new THREE.Group();mouth.position.set(0,1.04,.14);body.add(mouth);
- for(let i=0;i<4;i++){const x=(i-1.5)*.04,sway=(i-1.5)*.03;tube(mouth,[[x,0,0],[x+sway,-.08,.04],[x-sway,-.17,.03],[x+sway*.5,-.24,.06]],.016,skin,10);}
- if(o.circlet){const band=part(body,new THREE.TorusGeometry(.185,.018,6,20),M.gold,0,1.27,-.04);band.rotation.x=Math.PI/2-.1;sphere(body,.03,o.eye,0,1.29,.15);}
- return trimDraws(actor(g,body,legs,mouth));
-}
-const MIND_FLAYERS={'mind flayer':{skin:'#a07aa8',robe:'#3a2a52',eye:M.deadEye},'master mind flayer':{skin:'#b088c0',robe:'#4a1f4a',eye:M.eye,circlet:true,scale:1.1}};
-
 // Trolls: hunched, long-armed brutes whose knuckles nearly drag, with a drooping nose, tusks and a ragged mane.
 function troll(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
@@ -2173,7 +2157,7 @@ export function createCreature(cell={}){
  if(name==='leocrotta')return leocrotta({scale:1.05,coat:'#a8865a',dark:'#6e5436',mane:'#4a3420',belly:'#cdb48c'});
  if(GIANTS[name])return giant(GIANTS[name]);
  if(NYMPHS[name])return nymph(NYMPHS[name]);
- if(MIND_FLAYERS[name])return mindFlayer(MIND_FLAYERS[name]);
+ if(MIND_FLAYER_KINDS[name])return createMindFlayer(name);
  if(TROLLS[name])return troll(TROLLS[name]);
  if(OGRES[name])return ogre(OGRES[name]);
  if(LICHES[name])return lich(LICHES[name]);

@@ -731,6 +731,39 @@ test('hobbits get their own curly-haired, waistcoated, bare-footed model instead
  parts.forEach((m,i)=>{assert.equal(m.geometry,again[i].geometry);assert.equal(m.material,parts[0].material);});
 });
 
+test('mind flayers get a merged robed illithid model with a ridged cranium, glowing eyes and swaying face tentacles',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const tops={};
+ for(const name of ['mind flayer','master mind flayer']){
+  const flayer=createCreature({name,symbol:104,color:5});
+  for(const key of ['body','head','tail','arm','weaponSocket'])assert(flayer[key]?.isObject3D,`${name} ${key}`);
+  assert.equal(flayer.legs.length,2,name);assert.equal(flayer.arms.length,2,name);assert.equal(flayer.arm,flayer.arms[1],name);
+  // the tentacles sway from the mouth and follow the head
+  assert(flayer.head.children.includes(flayer.tail),name);
+  const parts=meshes(flayer);
+  assert.equal(parts.length,8,`${name}: one mesh per moving part plus the eyes`);
+  assert.equal(new Set(parts.map(m=>m.material)).size,2,name);
+  assert(parts.find(m=>m.userData.part==='eyes').material.emissiveIntensity>1,`${name} eyes glow`);
+  let verts=0;
+  for(const m of parts){
+   const a=m.geometry.attributes;verts+=a.position.count;
+   for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${name} ${m.userData.part} ${key}`);
+  }
+  assert(verts<45000,`${name}: ${verts} vertices`);
+  flayer.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(flayer.g);
+  assert(b.min.y>-.03&&b.min.y<.03,`${name} feet at ${b.min.y}`);
+  assert(b.max.y>1.3&&b.max.y<1.75,`${name} top at ${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,`${name} out of proportion`);
+  const t=new THREE.Box3().setFromObject(flayer.tail);
+  assert(t.min.y>.6&&t.max.z>b.max.z-.01,`${name} tentacles hang in front of the chest`);
+  tops[name]=b.max.y;
+  const again=meshes(createCreature({name}));
+  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry,name));
+ }
+ assert(tops['master mind flayer']>tops['mind flayer'],'masters stand taller');
+});
+
 test('centaurs stand on the horse body with a human torso, arms and their own weapon, in few draw calls',()=>{
  const tops=new Set();
  for(const name of ['plains centaur','forest centaur','mountain centaur',null]){
