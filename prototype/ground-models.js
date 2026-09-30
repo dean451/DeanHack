@@ -4364,6 +4364,87 @@ export function eucalyptusLeafGeometry(count=1){
  return {blade,stalk};
 }
 
+// A kelp frond washed up on the floor: a claw of root-like haptera round a knotted holdfast, a
+// thin stipe, an olive gas bladder and a long blade that snakes across the tile. The blade has
+// a dark, slightly raised midrib, is ruffled along both edges and fluted across its width, and
+// its tip lifts and curls. Vertex colours: brown-olive at the base, golden and thin-looking at the
+// ruffled edges, pale grazed flecks, a darker wet sheen on the bladder. A stack adds a second,
+// shorter frond crossing the first. Everything is one merged, glossy, double-sided mesh (1 draw).
+export function kelpFrondGeometry(count=1){
+ const parts=[],col=new THREE.Color();
+ const olive=new THREE.Color(0x4c4a1c),brown=new THREE.Color(0x3a2a14),gilt=new THREE.Color(0xa08a36),fleck=new THREE.Color(0xb7ad72);
+ const h=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s);};
+ // Keeps position/normal and adds a colour per vertex from its position.
+ const tint=(geo,shade)=>{
+  geo.deleteAttribute('uv');
+  const p=geo.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){shade(col,p.getX(i),p.getY(i),p.getZ(i));c.set([col.r,col.g,col.b],i*3);}
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));return geo;
+ };
+ const fronds=[[0,0,0,1,1]];
+ if(count>1)fronds.push([.02,.05,-.42,.82,2]);
+ for(const [ox,oz,ry,sc,seed] of fronds){
+  const L=.28*sc,W=.052*sc,rows=48,cols=8,x0=-.08*sc;
+  // Centreline: an S across the tile, lifting at the curled tip.
+  const spine=u=>new THREE.Vector3(x0+u*L,.006+.045*sc*Math.pow(Math.max(0,u-.72)/.28,2.2),
+   .045*sc*Math.sin(u*Math.PI*1.5+seed)-.02*sc*u);
+  // Narrow where it leaves the bladder, broadest just past a third, tapering to a blunt tip.
+  const width=u=>W*Math.pow(Math.min(1,u/.12),.6)*(1-.72*Math.pow(u,1.6));
+  const positions=[],colours=[],indices=[];
+  for(let r=0;r<=rows;r++){
+   const u=r/rows,c=spine(u),w=width(u);
+   const t=spine(Math.min(1,u+.01)).sub(spine(Math.max(0,u-.01))).normalize();
+   const side=new THREE.Vector3(-t.z,0,t.x).normalize();
+   for(let k=0;k<=cols;k++){
+    const v=k/cols*2-1,a=Math.abs(v);
+    // Ruffles along each edge (out of step on the two sides), low flutes across the blade,
+    // and a raised midrib.
+    const ruffle=.011*sc*a**2.2*Math.sin(u*46+(v>0?0:1.7)+seed)*Math.min(1,u*6);
+    const flute=.0025*sc*Math.sin(v*Math.PI*2.5+u*9)*(1-a);
+    const y=c.y+ruffle+flute+.002*(1-a)**6+.004*sc*a*a;
+    positions.push(c.x+side.x*v*w,y,c.z+side.z*v*w);
+    // Brown-olive at the base, turning golden and thin at the edges; the midrib stays dark.
+    col.copy(olive).lerp(brown,Math.max(0,1-u*4)*.6).lerp(gilt,a**2.5*.7+u*.15).lerp(brown,(1-a)**12*.45);
+    if(h(Math.round(u*60)+seed*17,Math.round(v*6))>.93)col.lerp(fleck,.45);
+    colours.push(col.r,col.g,col.b);
+   }
+  }
+  for(let r=0;r<rows;r++)for(let k=0;k<cols;k++){const a=r*(cols+1)+k,b=a+cols+1;indices.push(a,b,a+1,a+1,b,b+1);}
+  const blade=new THREE.BufferGeometry();
+  blade.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  blade.setAttribute('color',new THREE.Float32BufferAttribute(colours,3));
+  blade.setIndex(indices);blade.computeVertexNormals();
+  parts.push({geo:blade,ox,oz,ry});
+
+  // The bladder: an olive float with a short neck into the blade.
+  const b0=spine(0),bl=new THREE.Vector3(x0-.028*sc,.016*sc,b0.z);
+  const bladder=new THREE.SphereGeometry(.016*sc,12,8);bladder.scale(1.55,.95,.95);bladder.translate(bl.x,bl.y,bl.z);
+  parts.push({geo:tint(bladder,(c,x,y)=>c.copy(olive).lerp(brown,.35).lerp(gilt,Math.max(0,(y-bl.y)/(.016*sc))*.3)),ox,oz,ry});
+  const neck=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([bl.clone().add(new THREE.Vector3(.02*sc,0,0)),new THREE.Vector3(x0-.004*sc,.01*sc,b0.z),b0.clone().add(new THREE.Vector3(.004,0,0))]),6,.0045*sc,6,false);
+  parts.push({geo:tint(neck,c=>c.copy(brown).lerp(olive,.5)),ox,oz,ry});
+  // The stipe: a thin, tough stalk back to the holdfast, bending as it lies.
+  const hold=new THREE.Vector3(x0-.13*sc,.012*sc,b0.z-.03*sc);
+  const stipe=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([bl.clone().add(new THREE.Vector3(-.02*sc,-.004*sc,0)),new THREE.Vector3(x0-.07*sc,.006*sc,b0.z+.012*sc),new THREE.Vector3(x0-.105*sc,.007*sc,b0.z-.02*sc),hold]),14,.005*sc,6,false);
+  parts.push({geo:tint(stipe,c=>c.copy(brown).lerp(olive,.35)),ox,oz,ry});
+  // Holdfast: a knotted knob with branching haptera clawing down to the floor.
+  const knob=new THREE.IcosahedronGeometry(.014*sc,1);knob.scale(1.2,.8,1);knob.translate(hold.x,hold.y,hold.z);
+  parts.push({geo:tint(knob,(c,x,y,z)=>c.copy(brown).lerp(olive,.15+.2*h(Math.round(x*400),Math.round(z*400)))),ox,oz,ry});
+  for(let i=0;i<6;i++){
+   const a=Math.PI*.35+i/5*Math.PI*1.3+h(i,seed)*.3,reach=(.03+.018*h(seed,i))*sc;
+   const mid=hold.clone().add(new THREE.Vector3(Math.cos(a)*reach*.5,-.002,Math.sin(a)*reach*.5));
+   const end=hold.clone().add(new THREE.Vector3(Math.cos(a+.3)*reach,-hold.y+.003*sc,Math.sin(a+.3)*reach));
+   const root=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([hold.clone(),mid,end]),6,.0028*sc,5,false);
+   parts.push({geo:tint(root,c=>c.copy(brown).lerp(fleck,.12)),ox,oz,ry});
+  }
+ }
+ const place=new THREE.Matrix4();
+ // The icosahedron knob has no index, so everything goes in unindexed.
+ const geos=parts.map(({geo,ox,oz,ry})=>{geo.applyMatrix4(place.makeRotationY(ry).setPosition(ox,0,oz));
+  const flat=geo.index?geo.toNonIndexed():geo;if(flat!==geo)geo.dispose();return flat;});
+ const merged=mergeGeometries(geos);geos.forEach(geo=>geo.dispose());
+ return merged;
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -5004,8 +5085,10 @@ export function createGroundModel(item={}){
    add(blade,waxy);add(stalk,mat(0x9a5a44));
    g.rotation.y=.35;
   }else if(kind==='kelp frond'){
-   const kelp=mat(0x3d6a3a);
-   for(let i=0;i<3;i++){const f=ball(.16,kelp,(i-1)*.04,.006+i*.004,(i-1)*.03,[1,.04,.22]);f.rotation.y=(i-1)*.5;}
+   // Glossy and wet-looking; DoubleSide because the blade is a single sheet.
+   const kelp=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.32,metalness:0,side:THREE.DoubleSide});materials.push(kelp);
+   add(kelpFrondGeometry((parseInt(name)||1)>1?2:1),kelp).userData.part='kelp frond';
+   g.rotation.y=.25;
   }else{
    // Slime mold: a lumpy, faintly glowing blob.
    const slime=new THREE.MeshStandardMaterial({color:0x7ab83a,roughness:.3,emissive:0x2a4a10,emissiveIntensity:.35});materials.push(slime);
