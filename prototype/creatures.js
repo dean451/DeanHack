@@ -8,6 +8,7 @@ import {createHomunculus,pieces,rgb,mix} from './homunculus.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
+import {createImp} from './imp.js';
 import {createZombie,ZOMBIES} from './zombie.js';
 import {createGhoul} from './ghoul.js';
 import {createSkeleton} from './skeleton.js';
@@ -2287,6 +2288,7 @@ export function createCreature(cell={}){
  if(name==='manes')return createManes();
  if(name==='lemure')return createLemure();
  if(name==='quasit')return createQuasit();
+ if(name==='imp')return createImp();
  if(isKobold(name))return createKobold(name);
  if(SKIN[name])return humanoid('imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
  if(ELVES[name])return createElf(name);
