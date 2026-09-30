@@ -61,3 +61,37 @@ export function jawPose(kind, attack, u, result = 'hit') {
   if (kind === 'rise') return .38 * (1 - smooth((u - .3) / .5));
   return 0;
 }
+
+// Chattering teeth for bare skulls (the skeleton). A skull has no lips or muscle to snarl with,
+// so instead of the small snarl its jaw clacks: two quick clacks through the windup of any
+// attack, then a cackle of three smaller ones when the blow lands, or two wide angry clacks when it
+// misses. A blow it takes rattles the jaw twice, dying away. An attack lasts .42 s and a flinch
+// .3 s (actions.js), so each clack takes 60–75 ms: fast enough to chatter, slow enough to see. Each clack is a smooth
+// open-and-shut from rest, so the chatter starts and ends shut and never closes past rest.
+// It is layered over jawPose (the larger of the two wins), so a skull's bite still gapes and snaps.
+// A model opts in with `jaw.userData.chatter = true` (skeleton.js does).
+// How far each clack opens, as a share of JAW_GAPE (jawReach still scales it per model).
+export const CLACK = .7;
+
+export function jawChatters(actor) {
+  return actor?.jaw?.userData?.chatter === true;
+}
+
+// n clacks spread over u in [from, to], each (1 - cos) shaped, scaled by amp and an optional decay.
+const clacks = (u, from, to, n, amp, decay = 0) => {
+  const x = (u - from) / (to - from);
+  if (!(x > 0 && x < 1)) return 0;
+  return amp * (1 - decay * x) * .5 * (1 - Math.cos(2 * Math.PI * n * x));
+};
+
+export function chatterPose(kind, attack, u, result = 'hit') {
+  u = clamp01(Number.isFinite(u) ? u : 0);
+  const a = CLACK * JAW_GAPE;
+  if (kind === 'attack') {
+    const windup = clacks(u, .04, .4, 2, a);
+    const after = result === 'hit' ? clacks(u, .5, .95, 3, .6 * a, .5) : clacks(u, .48, .9, 2, a);
+    return Math.max(windup, after);
+  }
+  if (kind === 'hit') return clacks(u, 0, .5, 2, .55 * a, .6);
+  return 0;
+}
