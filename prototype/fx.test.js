@@ -44,14 +44,17 @@ test('nested, open, truncated and empty events stay finite', () => {
   assert.deepEqual(fxTimeline({steps: [{op: 'draw', x: 1, z: 1}, {op: 'end'}]}).sprites, []);
 });
 
-test('fxHoldMs holds frames only for drawn zaps and explosions, capped', async () => {
-  const {fxHoldMs, FX_HOLD_MAX_MS, FX_BLAST_HOLD_MS} = await import('./fx.js');
+test('fxHoldMs holds frames only for drawn zaps, explosions and throws, capped', async () => {
+  const {fxHoldMs, FX_HOLD_MAX_MS, FX_BLAST_HOLD_MS, FX_OBJECT_HOLD_MAX_MS} = await import('./fx.js');
   const zap = {kind: 'zap', zap: 'fire', dir: 'horizontal'};
   const seq = (effect, n, mode = 'beam') => ({steps: [{op: 'start', mode, glyph: 1, effect},
     ...Array.from({length: n}, (_, i) => [{op: 'draw', x: i, z: 0}, {op: 'tick'}]).flat(), {op: 'end'}]});
   const ray = fxTimeline(seq(zap, 6));
   assert.equal(fxHoldMs(ray), ray.duration);
-  assert.equal(fxHoldMs(fxTimeline(seq({kind: 'object', otyp: 17}, 6, 'flash'))), 0);
+  const toss = fxTimeline(seq({kind: 'object', otyp: 17}, 6, 'flash'));
+  assert.equal(fxHoldMs(toss), toss.duration);
+  assert.equal(fxHoldMs(fxTimeline(seq({kind: 'object', otyp: 17}, 30, 'flash'))), FX_OBJECT_HOLD_MAX_MS);
+  assert.equal(fxHoldMs(fxTimeline(seq({kind: 'cmap', cmap: 3}, 6, 'flash'))), 0);
   const dig = fxTimeline(seq({kind: 'dig', cmap: 36}, 5));
   assert.equal(fxHoldMs(dig), dig.duration);
   const blast = fxTimeline({steps: [{op: 'start', mode: 'all', glyph: 2, effect: {kind: 'explosion', explosion: 'fiery', part: 4}},
