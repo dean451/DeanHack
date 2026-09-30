@@ -14,11 +14,13 @@ const FLAYERS = new Set(['mind flayer', 'master mind flayer']);
 // A stable phase for an actor, from where it was first seen, so it doesn't jump as it walks.
 const phaseOf = a => a.tailPhase ??= ((a.g?.position.x || 0) * 1.7 + (a.g?.position.z || 0) * 2.3) % (Math.PI * 2);
 
-export function tailSway(a, t) {
+// `phase` offsets the plain quirk sine (the gallery staggers its actors this way); flayers already
+// carry their own phase.
+export function tailSway(a, t, phase = 0) {
   if (FLAYERS.has(a.species)) {
     const ph = phaseOf(a);
     return Math.sin(t * FLAYER_RATE + ph) * FLAYER_SWING + Math.sin(t * FLAYER_RATE2 + ph * 1.7) * FLAYER_SWING2;
   }
   const [rate, swing] = QUIRKS[a.quirk] || DEFAULT;
-  return Math.sin(t * rate) * swing;
+  return Math.sin(t * rate + phase) * swing;
 }
