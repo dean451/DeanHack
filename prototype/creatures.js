@@ -39,6 +39,7 @@ import {createJabberwock,JABBERWOCK_KINDS} from './jabberwock.js';
 import {createMummy} from './mummy.js';
 import {createHobbit} from './hobbit.js';
 import {createGoblin,isGoblin} from './goblin.js';
+import {createBugbear} from './bugbear.js';
 import {createEvilEye} from './evil-eye.js';
 
 const M={
@@ -56,7 +57,7 @@ function actor(g,body,legs=[],tail=null,wings=[],quirk='idle'){return {g,body,le
 function eyes(head,material=M.eye,y=0,z=.18,spread=.075){for(const x of [-spread,spread])sphere(head,.026,material,x,y,z);}
 function humanoid(kind,o={}){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[],wings=[],arms=[];let hat=null,beard=null,pick=null;
- const short=['gnome','kobold','imp'].includes(kind),stocky=kind==='orc'||kind==='dwarf'||kind==='bugbear',guard=kind==='guard';
+ const short=['gnome','kobold','imp'].includes(kind),stocky=kind==='orc'||kind==='dwarf',guard=kind==='guard';
  const skin=o.skin||(kind==='orc'?M.greenSkin:kind==='dwarf'?M.graySkin:M.skin);
  const torso=o.cloth||(kind==='orc'?M.brownCloth:guard?M.steel:M.cloth);
  const headY=short?.87:1.0,shoulderY=short?.7:.8,torsoW=stocky?.46:.42;
@@ -72,11 +73,9 @@ function humanoid(kind,o={}){
  if(kind==='dwarf'&&o.rank==='king'){cylinder(body,.2,.21,.09,M.gold,0,1.16,0,12);for(let i=0;i<6;i++){const a=i/6*Math.PI*2;cone(body,.035,.11,M.gold,Math.sin(a)*.19,1.25,Math.cos(a)*.19,4);}sphere(body,.03,M.fire,0,1.16,.205);const cape=rounded(body,.46,.62,.04,M.redCloth,0,.6,-.19,.02);cape.rotation.x=.08;rounded(body,.5,.06,.1,M.whiteFur,0,.86,-.15,.03);}
  else if(kind==='dwarf'){cylinder(body,.22,.25,.15,M.darkSteel,0,1.17,0,10);if(o.rank==='lord'){cylinder(body,.255,.255,.04,M.gold,0,1.12,0,12);const crest=rounded(body,.04,.1,.3,M.gold,0,1.27,0,.015);crest.rotation.x=.1;}}
  if(kind==='dwarf'){beard=sphere(body,.2,o.beard||M.beard,0,1.0,.18,.95,1.1,.6);beard.scale.y=1.25;}
- if(kind==='bugbear'){sphere(body,.13,skin,0,.97,.2,.9,.75,.8);sphere(body,.035,M.leather,0,.99,.3);for(const side of [-1,1]){sphere(body,.07,skin,side*.17,1.17,0,1,1,.5);cone(body,.025,.07,M.whiteFur,side*.05,.91,.27,4).rotation.x=Math.PI;}for(const x of [-.25,.25])sphere(body,.14,M.leather,x,.84,0,1,.7,1);}
  if(guard){cylinder(body,.23,.23,.13,M.darkSteel,0,1.19,0,10);const plume=cone(body,.06,.25,M.redCloth,0,1.38,-.01,6);plume.rotation.z=-.12;rounded(body,.48,.07,.32,M.gold,0,.78,0,.02);}
- eyes(body,kind==='orc'||kind==='imp'||kind==='bugbear'?M.fire:M.eye,short?.91:1.04,.205,.075);
+ eyes(body,kind==='orc'||kind==='imp'?M.fire:M.eye,short?.91:1.04,.205,.075);
  if(guard){const spear=rounded(body,.045,.7,.045,M.steel,.36,.7,.24,.01);spear.rotation.z=-.12;cone(body,.07,.14,M.steel,.36,1.1,.24,5).rotation.x=Math.PI;}
- if(kind==='bugbear'){const haft=rounded(body,.045,.5,.045,M.leather,.32,.62,.2,.01);haft.rotation.x=.25;const ball=sphere(body,.08,M.darkSteel,.32,.86,.27);for(const [x,y,z,rx,rz] of [[1,0,0,0,-1],[-1,0,0,0,1],[0,1,0,0,0],[0,0,1,1,0],[0,0,-1,-1,0]]){const spike=cone(ball,.025,.08,M.steel,x*.1,y*.1,z*.1,4);spike.rotation.set(rx*Math.PI/2,0,rz*Math.PI/2);}}
  if(kind==='dwarf'&&o.rank==='king'){const scepter=rounded(body,.04,.62,.04,M.gold,.36,.68,.18,.01);scepter.rotation.z=-.1;sphere(body,.06,M.gold,.39,1.0,.18);}
  else if(kind==='dwarf')pick=dwarfPick(body);
  // arms, hat, beard and pick are handles for the small folk's gaits (gait.js)
@@ -2298,7 +2297,7 @@ export function createCreature(cell={}){
  if(/orc|uruk|snaga/.test(name))return humanoid('orc',color?{cloth:mat(shade(color,.75))}:{});
  if(name==='dwarf lord')return humanoid('dwarf',{rank:'lord',cloth:mat('#3d5a9a')});
  if(name==='dwarf king')return humanoid('dwarf',{rank:'king',cloth:mat('#6a3a8a'),beard:mat('#c9c3b4')});
- if(name==='bugbear')return humanoid('bugbear',{skin:mat('#8a5a32',{roughness:.95}),cloth:M.leather});
+ if(name==='bugbear')return createBugbear();
  if(/dwarf/.test(name))return humanoid('dwarf');
  if(/gnome/.test(name))return humanoid('gnome',color?{cap:mat(color)}:{});
  // unlisted species: fall back on the monster class letter, then the glyph colour
