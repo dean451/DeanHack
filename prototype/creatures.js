@@ -13,6 +13,7 @@ import {createRaven} from './raven.js';
 import {createSpider} from './spider.js';
 import {createAnt,isAnt} from './ant.js';
 import {createBee,isBee} from './bee.js';
+import {createBeetle,isBeetle} from './beetle.js';
 import {createMold} from './mold.js';
 import {createMushroom} from './mushroom.js';
 import {createLichen} from './lichen.js';
@@ -619,20 +620,6 @@ function wisp(o){
  for(let i=0;i<6;i++){const a=i*1.05;sphere(lift,.03,core.material,Math.cos(a)*.3,Math.sin(a*2)*.08,Math.sin(a)*.3);}
  g.userData.core=core;return Object.assign(actor(g,body,[],null,[],'hover'),{core});
 }
-
-// The giant beetle (ants and bees have their own models): three body segments and six legs.
-function insect(o){
- const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
- const shell=mat(o.color,{roughness:.45,metalness:.1}),dark=mat('#15130f',{roughness:.4}),y=o.fly?.5:.2;
- sphere(body,.075,o.bee?dark:shell,0,y+.02,.2);sphere(body,.085,o.bee?mat('#5a4020'):shell,0,y,.06,1,.9,1.1);
- const abdomen=sphere(body,.13,shell,0,y+.03,-.15,.9,.85,1.35);abdomen.rotation.x=o.bee?.3:-.25;
- if(o.bee){for(let i=0;i<3;i++)rounded(body,.23-i*.03,.2-i*.03,.035,dark,0,y+.03-i*.03,-.1-i*.07,.08);cone(body,.02,.1,dark,0,y-.04,-.33,5).rotation.x=-2.2;
-  for(const side of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.quadraticCurveTo(side*.2,.18,side*.32,.04);shape.quadraticCurveTo(side*.18,-.04,0,0);const wing=part(body,new THREE.ShapeGeometry(shape),mat('#dfeaf0',{transparent:true,opacity:.45,side:THREE.DoubleSide,depthWrite:false}),side*.03,y+.1,.03);wing.rotation.x=-Math.PI/2+.25;wings.push(wing);}}
- for(let i=0;i<2;i++){const side=i?1:-1;tube(body,[[side*.03,y+.07,.26],[side*.09,y+.18,.3],[side*.14,y+.2,.38]],.009,dark,8);}
- for(const side of [-1,1])for(const z of [-.02,.06,.14]){const leg=new THREE.Group();leg.position.set(side*.06,y-.02,z);body.add(leg);tube(leg,[[0,0,0],[side*.12,.07,(z-.06)*.6],o.fly?[side*.16,-.12,(z-.06)*1.2-.04]:[side*.22,-y+.03,(z-.06)*1.6]],.011,dark,8);legs.push(leg);}
- return actor(g,body,legs,null,wings,o.fly?'bee':'insect');
-}
-const INSECTS={'giant beetle':{color:'#222028',scale:1.5}};
 
 // Xan-class flyers (grid bugs keep their own model): a xan is a gangly red stinging fly whose
 // hooked tail stinger curls forward under it to lame legs; a chillbug is a squat frost beetle
@@ -2236,7 +2223,7 @@ export function createCreature(cell={}){
  if(COCKATRICES[name])return cockatrice(COCKATRICES[name]);
  if(isAnt(name))return createAnt(name);
  if(isBee(name))return createBee(name);
- if(INSECTS[name])return insect(INSECTS[name]);
+ if(isBeetle(name))return createBeetle(name);
  if(XANS[name])return xan(XANS[name]);
  if(SNAKES[name])return snake(SNAKES[name]);
  if(WORMS[name])return worm(WORMS[name]);

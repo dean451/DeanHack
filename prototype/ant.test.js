@@ -35,9 +35,9 @@ test('ants get a jointed six-legged body with a turning head, jaws, feelers and 
   sizes[name]=b.max.z-b.min.z;
  }
  assert(sizes['soldier ant']>sizes['fire ant'],'the soldier ant is bigger than the fire ant');
- // geometry and materials are shared between ants of the same kind; bees and beetles stay insects
+ // geometry and materials are shared between ants of the same kind; bees and the beetle have their own builds
  const [x,y]=[createCreature({name:'fire ant'}),createCreature({name:'fire ant'})].map(meshes);
  x.forEach((m,i)=>{assert.equal(m.geometry,y[i].geometry);assert.equal(m.material,y[i].material);});
  assert.equal(createCreature({name:'killer bee'}).quirk,'bee');
- assert.notEqual(meshes(createCreature({name:'giant beetle'})).length,8);
+ assert.notEqual(meshes(createCreature({name:'giant beetle'}))[0].geometry,x[0].geometry);
 });
