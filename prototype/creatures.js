@@ -44,6 +44,7 @@ import {createBugbear} from './bugbear.js';
 import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
 import {createGnome,isGnome} from './gnome.js';
+import {createOrc,isOrc} from './orc.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2301,7 +2302,7 @@ export function createCreature(cell={}){
  if(WATCH.includes(name))return createWatch(name);
  if(name==='hobbit')return createHobbit();
  if(isGoblin(name))return createGoblin(name);
- if(/orc|uruk|snaga/.test(name))return humanoid('orc',color?{cloth:mat(shade(color,.75))}:{});
+ if(isOrc(name)||/orc|uruk|snaga/.test(name))return createOrc(name);
  if(name==='dwarf lord')return humanoid('dwarf',{rank:'lord',cloth:mat('#3d5a9a')});
  if(name==='dwarf king')return humanoid('dwarf',{rank:'king',cloth:mat('#6a3a8a'),beard:mat('#c9c3b4')});
  if(name==='bugbear')return createBugbear();
@@ -2342,7 +2343,7 @@ export function createCreature(cell={}){
   case 'M':return createMummy('human mummy');
   case 'G':return createGnome(name);
   case 'h':return humanoid('dwarf');
-  case 'o':return humanoid('orc',{cloth:mat(shade(c,.75))});
+  case 'o':return createOrc(name);
   case 'q':return rothe({...ROTHE,coat:c,saddle:shade(c,1.6)});
   case 'u':return horseFor(name,color);
   case '@':return humanoid('human',{cloth:mat(shade(c,.8))});
