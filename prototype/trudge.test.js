@@ -24,7 +24,7 @@ function frame(a, t, dt) {
   updateActions(a, a.actions, dt);
   return {p, walking};
 }
-const snap = a => [...a.legs.map(l => l.rotation.x), a.body.rotation.z, a.head?.rotation.x ?? 0, a.head?.rotation.z ?? 0, a.jaw?.rotation.x ?? 0,
+const snap = a => [...a.legs.map(l => l.rotation.x), a.body.rotation.z, a.body.rotation.x, a.body.position.z, a.head?.rotation.x ?? 0, a.head?.rotation.z ?? 0, a.jaw?.rotation.x ?? 0,
   ...(a.arms || []).map(r => r.rotation.x)];
 
 test('trudge poses are finite and within their stride, lurch and dip', () => {
@@ -32,7 +32,9 @@ test('trudge poses are finite and within their stride, lurch and dip', () => {
     const T = TRUDGE[kind];
     for (let i = 0; i <= 400; i++) {
       const p = trudgePose(kind, Math.PI * 2 * i / 400);
-      for (const v of [...p.legs, p.bob, p.roll, p.nod, p.shake, p.jaw, ...p.arms]) assert(Number.isFinite(v));
+      for (const v of [...p.legs, p.bob, p.roll, p.nod, p.shake, p.jaw, ...p.arms, p.loom, p.glare]) assert(Number.isFinite(v));
+      assert.equal(p.loom, T.loom || 0);
+      assert(p.glare >= 0 && p.glare <= p.loom);
       assert(p.jaw >= 0 && p.jaw <= (T.clack || 0));
       assert(Math.abs(p.shake) <= (T.rattle || 0));
       assert.equal(p.arms[0], -p.arms[1]);
@@ -40,7 +42,7 @@ test('trudge poses are finite and within their stride, lurch and dip', () => {
       assert.equal(p.legs[0], -p.legs[1]);
       assert(Math.abs(p.legs[0]) <= T.stride && Math.abs(p.roll) <= T.roll && p.bob <= 0 && p.bob >= -T.dip);
     }
-    assert.deepEqual(trudgePose(kind, 1, 0), {legs: [0, 0], bob: 0, roll: 0, nod: 0, arms: [0, 0], shake: 0, jaw: 0});
+    assert.deepEqual(trudgePose(kind, 1, 0), {legs: [0, 0], bob: 0, roll: 0, nod: 0, arms: [0, 0], shake: 0, jaw: 0, loom: 0, glare: 0});
   }
   assert.equal(trudgeKind(make('ghoul', 'Z')), 'ghoul');
   assert.equal(trudgeKind(make('skeleton', 'Z')), 'skeleton');
@@ -59,7 +61,8 @@ test('a zombie and a golem trudge slowly across a cell and settle back to their 
     const jawRest = a.jaw?.rotation.x ?? 0;
     const armRest = (a.arms || []).map(r => r.rotation.x), headRest = a.head?.rotation.x ?? 0, tiltRest = a.head?.rotation.z ?? 0;
     a.g.position.set(0, 0, 0); a.target = new THREE.Vector3(1, 0, 1);
-    const rest = snap(a);
+    const rest = snap(a), loom = T.loom || 0, glare = loom * (T.glare || 0), hip = a.legs[0].position.y;
+    const pitchRest = a.body.rotation.x, zRest = a.body.position.z;
     let t = 0, prev = snap(a), worst = 0, walkedFrames = 0, peak = 0;
     for (let i = 0; i < 300; i++, t += dt) {
       const {walking} = frame(a, t, dt);
@@ -69,10 +72,13 @@ test('a zombie and a golem trudge slowly across a cell and settle back to their 
       if (walking) walkedFrames++;
       if (walking && a.trudge.w > .999) {
         // fully blended in: only the slow stride remains, no generic scurry
-        a.legs.forEach(l => assert(Math.abs(l.rotation.x) <= T.stride + 1e-9, `${name} ${i} ${l.rotation.x}`));
+        const W = a.trudge.w, lm = loom * W, gl = glare * W;
+        a.legs.forEach(l => assert(Math.abs(l.rotation.x + lm) <= T.stride + 1e-9, `${name} ${i} ${l.rotation.x}`));
         assert(Math.abs(a.body.rotation.z) <= T.roll + 1e-9);
-        assert(a.body.position.y <= 1e-9 && a.body.position.y >= -T.dip - 1e-9);
-        if (a.head) assert(a.head.rotation.x - headRest >= -1e-9 && a.head.rotation.x - headRest <= (T.nod || 0) + 1e-9);
+        const lift = hip * (1 - Math.cos(lm));
+        assert(a.body.position.y <= lift + 1e-9 && a.body.position.y >= lift - T.dip - 1e-9);
+        assert(Math.abs(a.body.rotation.x - pitchRest - lm) < 1e-9 && Math.abs(a.body.position.z - zRest + hip * Math.sin(lm)) < 1e-9);
+        if (a.head) assert(a.head.rotation.x - headRest + gl >= -1e-9 && a.head.rotation.x - headRest + gl <= (T.nod || 0) + 1e-9);
         if (a.head) assert(Math.abs(a.head.rotation.z - tiltRest) <= (T.rattle || 0) + 1e-9, `${name} rattle`);
         (a.arms || []).forEach((r, k) => assert(Math.abs(r.rotation.x - armRest[k]) <= (T.arm || 0) + 1e-9, `${name} arm ${k}`));
         if (a.jaw) assert(a.jaw.rotation.x - jawRest >= -1e-9 && a.jaw.rotation.x - jawRest <= (T.clack || 0) + 1e-9, `${name} jaw`);
@@ -91,6 +97,36 @@ test('a zombie and a golem trudge slowly across a cell and settle back to their 
     assert.equal(a.trudge.w, 0);
     assert.equal(a.trudge.roll, 0);
   }
+});
+
+test('a golem looms forward from its hips with its head up, and a death eases it back upright', () => {
+  const a = make('iron golem', "'"), dt = 1 / 60, T = TRUDGE.golem;
+  a.g.updateMatrixWorld(true);
+  const hipAt = () => { a.g.updateMatrixWorld(true); return a.legs[0].getWorldPosition(new THREE.Vector3()); };
+  const footAt = () => a.legs[0].localToWorld(new THREE.Vector3(0, -.46, 0));
+  const hip0 = hipAt(), foot0 = footAt(), head0 = a.head.rotation.x;
+  let maxHip = 0, maxFoot = 0;
+  for (let i = 0; i < 90; i++) {
+    updateTrudge(a, dt, true);
+    const h = hipAt();
+    for (const v of [h.x, h.y, h.z]) assert(Number.isFinite(v));
+    // the lean pivots at the hips; only the small glide dip moves them
+    maxHip = Math.max(maxHip, Math.abs(h.z - hip0.z), Math.abs(h.y - hip0.y));
+    // the legs stay under it, never trailing far behind
+    maxFoot = Math.max(maxFoot, Math.abs(footAt().z - foot0.z));
+  }
+  assert(a.trudge.w > .999);
+  assert(maxHip <= T.dip + .02, `hips moved ${maxHip}`);
+  assert(maxFoot <= Math.sin(T.stride) * .46 * a.g.scale.x + .02, `feet ${maxFoot}`);
+  const lm = T.loom * a.trudge.w;
+  assert(Math.abs(a.body.rotation.x - lm) < 1e-9);
+  // the face pitches down by only loom − glare (≈ .04) more than at rest
+  assert(Math.abs(a.body.rotation.x + a.head.rotation.x - head0 - lm * (1 - T.glare)) < 1e-9);
+  a.actions.dead = true;
+  for (let i = 0; i < 120; i++) updateTrudge(a, dt, true);
+  assert.equal(a.trudge.w, 0);
+  assert(Math.abs(a.body.rotation.x) < 1e-12 && Math.abs(a.body.position.z) < 1e-12 && Math.abs(a.head.rotation.x - head0) < 1e-12);
+  a.legs.forEach(l => assert(Math.abs(l.rotation.x) < 1e-12));
 });
 
 test('a dead zombie stops trudging and leaves no lurch behind', () => {
