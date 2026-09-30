@@ -41,8 +41,9 @@ test('a launch is the thrower cell and first step of each flight', () => {
 test('throw poses rest at both ends and release on the forward whip', () => {
   assert.equal(THROW_WINDUP_MS, Math.round(THROW_TIME * RELEASE_U * 1000));
   for (const [style, c] of [['hurl', null], ['shoot', null], ['shoot', 'bow'], ['hurl', 'spear']]) {
-    for (const u of [0, 1]) for (const v of Object.values(throwPose(style, u, c))) assert.ok(Math.abs(v) < 1e-9, `${style}/${c} at ${u}`);
-    for (let u = 0; u <= 1; u += .01) for (const v of Object.values(throwPose(style, u, c))) assert.ok(Number.isFinite(v) && Math.abs(v) < 3.2);
+    const values = u => { const {swing, ...p} = throwPose(style, u, c); return [...Object.values(p), ...Object.values(swing ?? {})]; };
+    for (const u of [0, 1]) for (const v of values(u)) assert.ok(Math.abs(v) < 1e-9, `${style}/${c} at ${u}`);
+    for (let u = 0; u <= 1; u += .01) for (const v of values(u)) assert.ok(Number.isFinite(v) && Math.abs(v) < 3.2);
   }
   // The hurl goes up and back, then comes forward over the top through the release.
   assert.ok(throwPose('hurl', .24).arm < -2.4);
@@ -76,6 +77,41 @@ test('queueThrows turns the thrower, delays the flight to the release and return
   assert.ok(Math.abs(hero.g.rotation.y - Math.PI / 2) < 1e-9);
   hero.g.rotation.y = 0;
   assert.deepEqual(snapshot(hero), rest);
+});
+
+test('an elbowed arm folds back behind the head, whips straight at the release, and ends at rest', () => {
+  // The hero's arm (main.js): upper arm and forearm .25 each, the elbow resting at -.65.
+  const elbow = new THREE.Object3D(), hand = new THREE.Object3D();
+  const hero = rig({elbow});
+  hero.arm.position.set(.3, 1.2, 0);
+  hero.arm.add(elbow); elbow.position.set(0, -.25, 0); elbow.rotation.x = -.65;
+  elbow.add(hand); hand.position.set(0, -.25, 0);
+  const rest = snapshot(hero);
+  queueThrows(throwTo(6, DAGGER), () => hero);
+  let t = 0, minElbow = 0, behind = false, atRelease = null;
+  const p = new THREE.Vector3();
+  for (let i = 0; i < 40; i++) {
+    clearActionPose(hero, hero.actions);
+    hero.g.rotation.y = 0;
+    updateActions(hero, hero.actions, .02); t += .02;
+    minElbow = Math.min(minElbow, elbow.rotation.x);
+    // The throw turns to face +x; measure in the thrower's own frame.
+    const yaw = hero.g.rotation.y; hero.g.rotation.y = 0; hero.g.updateMatrixWorld(true);
+    hand.getWorldPosition(p);
+    hero.g.rotation.y = yaw;
+    for (const v of p.toArray()) assert.ok(Number.isFinite(v) && Math.abs(v) < 2);
+    if (p.y > 1.2 && p.z < -.05) behind = true;
+    if (atRelease === null && t * 1000 >= THROW_WINDUP_MS - 1) atRelease = {elbow: elbow.rotation.x, z: p.z};
+  }
+  assert.ok(minElbow < -1.35, 'the forearm folds in the windup');
+  assert.ok(behind, 'the hand goes back behind the head');
+  assert.ok(atRelease.elbow > -.4 && atRelease.z > .15, 'the arm is nearly straight and forward at the release');
+  clearActionPose(hero, hero.actions);
+  hero.g.rotation.y = 0;
+  assert.deepEqual(snapshot(hero), rest);
+  assert.ok(Math.abs(elbow.rotation.x + .65) < 1e-9 && elbow.rotation.y === 0 && elbow.rotation.z === 0);
+  // A shot straightens the arm to aim instead.
+  assert.ok(throwPose('shoot', RELEASE_U).swing.elbow > .4);
 });
 
 test('a busy thrower waits, capped; nobody there means no delay', () => {
