@@ -296,6 +296,10 @@ static void frame(void) {
         /* Anonymous remembered presence, not physical invisibility of a
            monster legitimately perceived through see-invisible/telepathy. */
         if(glyph_is_cmap(terrain_glyph)&&(glyph_to_cmap(terrain_glyph)==S_vodoor||glyph_to_cmap(terrain_glyph)==S_hodoor))printf(",\"door\":\"open\"");
+        /* A doorway whose door was smashed (kicked, force bolt, dug, a monster), not one that never
+           had a door, so the client can keep the jamb and scatter splinters. Same test as farlook. */
+        else if(glyph_is_cmap(terrain_glyph)&&glyph_to_cmap(terrain_glyph)==S_ndoor&&IS_DOOR(levl[x][y].typ)&&
+                (levl[x][y].doormask&~D_TRAPPED)==D_BROKEN&&is_drawbridge_wall(x,y)<0)printf(",\"door\":\"broken\"");
         printf(",\"invisible\":%s",glyph_is_invisible(g)?"true":"false");
         printf(",\"kind\":");quoted(glyph_is_pet(g)?"pet":glyph_is_monster(g)?"monster":glyph_is_object(g)?"object":"terrain");
         if (glyph_is_monster(g) && !glyph_is_pet(g)) {
