@@ -5505,7 +5505,11 @@ export function createGroundModel(item={}){
   // Lay the ring down; a set stone keeps one side propped up a little.
   r.rotation.x=-Math.PI/2+(set&&look!=='wedding'?.3:0);
   g.rotation.y=.5;
-  g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
+  // Band, ribs, bezel, prongs and stone bake to one mesh per material (the ridged band was 21
+  // draws), then settle on the floor by the real lowest vertex: a tilted set ring's loose box
+  // used to leave it hovering a few millimetres up.
+  mergeByMaterial(g);
+  g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g,true).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===5){
   // Amulets. The name is the true identity, so the look comes only from the shuffled
   // appearance: a pendant shaped like that word, on a chain coiled loosely beside it.
@@ -5800,6 +5804,9 @@ export function createGroundModel(item={}){
    boss(.055,iron);
   }
   g.rotation.y=-.35;
+  // Nothing on a shield moves, so face, rim, bands, boss, rivets and emblem bake to one mesh per
+  // material: 3 to 6 draws where there were up to 26.
+  mergeByMaterial(g);
  }else if(cls===3&&/\bapron\b/.test(item.appearance||name)||/alchemy smock/.test(name)){
   // "apron" is the alchemy smock's own appearance: a linen apron dropped flat, bib away
   // from the viewer, with a neck strap, waist ties, a patch pocket and potion stains.

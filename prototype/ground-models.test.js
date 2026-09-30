@@ -262,11 +262,14 @@ test('common tools get grounded, finite models that share their unidentified loo
 
 test('rings lie on the floor and show only their shuffled appearance',()=>{
  const ring=(name,appearance)=>createGroundModel({name,class:4,appearance});
- const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);});return out;};
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.type,part.geometry.attributes.position.count,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);});return out;};
  for(const look of ['gold','wooden','ruby','pearl','jade','twisted','wire','ridged','engagement','wedding','shiny',undefined]){
   const model=ring('ring of conflict',look);
   assert(model,look);
-  const bounds=new THREE.Box3().setFromObject(model);
+  // Nothing moves, so each material is one merged mesh: the band and (if set) the stone.
+  const materials=new Set();let draws=0;model.traverse(part=>{if(part.isMesh){draws++;materials.add(part.material);}});
+  assert(draws<=2&&draws===materials.size,`${look}: ${draws} draws`);
+  const bounds=new THREE.Box3().setFromObject(model,true);
   assert(Math.abs(bounds.min.y)<1e-6,`${look} rests on the floor`);
   assert(bounds.max.y<.14,`${look} lies low`);
   assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.16,`${look} fits its tile`);
@@ -313,13 +316,16 @@ test('amulets lie on the floor and show only their shuffled appearance',()=>{
 
 test('shields lie face-up and show their appearance, not their true name',()=>{
  const shield=(name,appearance)=>createGroundModel({name,class:3,appearance});
- const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);});return out;};
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.type,part.geometry.attributes.position.count,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);});return out;};
  const kinds=[['small shield'],['elven shield','blue and green shield'],['Uruk-hai shield','white-handed shield'],['orcish shield','red-eyed shield'],['large shield'],['dwarvish roundshield','large round shield'],['shield of reflection','polished silver shield']];
  const seen=new Set();
  for(const [name,look] of kinds){
   const model=shield(name,look);
   assert(model,name);
-  const bounds=new THREE.Box3().setFromObject(model);
+  // Nothing moves, so each material is one merged mesh.
+  const materials=new Set();let draws=0;model.traverse(part=>{if(part.isMesh){draws++;materials.add(part.material);}});
+  assert(draws<=6&&draws===materials.size,`${name}: ${draws} draws`);
+  const bounds=new THREE.Box3().setFromObject(model,true);
   assert(Math.abs(bounds.min.y)<1e-6,`${name} rests on the floor`);
   assert(bounds.max.y<.08,`${name} lies flat`);
   assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.36,`${name} fits its tile`);
