@@ -11,6 +11,7 @@ import {createQuasit} from './quasit.js';
 import {createZombie,ZOMBIES} from './zombie.js';
 import {createRaven} from './raven.js';
 import {createSpider} from './spider.js';
+import {createAnt,isAnt} from './ant.js';
 import {createMold} from './mold.js';
 import {createMushroom} from './mushroom.js';
 import {createLichen} from './lichen.js';
@@ -630,7 +631,7 @@ function insect(o){
  for(const side of [-1,1])for(const z of [-.02,.06,.14]){const leg=new THREE.Group();leg.position.set(side*.06,y-.02,z);body.add(leg);tube(leg,[[0,0,0],[side*.12,.07,(z-.06)*.6],o.fly?[side*.16,-.12,(z-.06)*1.2-.04]:[side*.22,-y+.03,(z-.06)*1.6]],.011,dark,8);legs.push(leg);}
  return actor(g,body,legs,null,wings,o.fly?'bee':'insect');
 }
-const INSECTS={'giant ant':{color:'#6a3f22'},'killer bee':{color:'#d8a92a',bee:true,fly:true,scale:.75},'soldier ant':{color:'#34457a',scale:1.15},'fire ant':{color:'#b03a22'},'giant beetle':{color:'#222028',scale:1.5},'queen bee':{color:'#b98a2a',bee:true,fly:true,scale:1.1}};
+const INSECTS={'killer bee':{color:'#d8a92a',bee:true,fly:true,scale:.75},'giant beetle':{color:'#222028',scale:1.5},'queen bee':{color:'#b98a2a',bee:true,fly:true,scale:1.1}};
 
 // Xan-class flyers (grid bugs keep their own model): a xan is a gangly red stinging fly whose
 // hooked tail stinger curls forward under it to lame legs; a chillbug is a squat frost beetle
@@ -2232,6 +2233,7 @@ export function createCreature(cell={}){
  if(CROCODILES.includes(name))return createCrocodile(name);
  if(LIZARDS[name])return lizard(LIZARDS[name]);
  if(COCKATRICES[name])return cockatrice(COCKATRICES[name]);
+ if(isAnt(name))return createAnt(name);
  if(INSECTS[name])return insect(INSECTS[name]);
  if(XANS[name])return xan(XANS[name]);
  if(SNAKES[name])return snake(SNAKES[name]);
@@ -2326,7 +2328,7 @@ export function createCreature(cell={}){
   case 'f':return feline({coat:c});
   case ':':return lizard({skin:c});
   case 'c':return cockatrice({skin:c,comb:'#c8262a',beak:shade(c,1.3)});
-  case 'a':return insect({color:c});
+  case 'a':return createAnt(name,c);
   case 's':return createSpider(name,c);
   case 'S':return snake({color:c});
   case 'w':return worm({color:c,baby:/baby/.test(name)});
