@@ -1,6 +1,7 @@
+import * as THREE from 'three';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createDoor,DOOR_LEAF} from './door.js';
+import {createDoor,createBrokenDoor,DOOR_LEAF} from './door.js';
 import {tileKind,setDoorOpen,orientDoor,stepDoor,updateDoorSwings,clearDoorSwings,swingingDoors} from './door-swing.js';
 
 const run=(door,secs,fn)=>{const dt=1/60;let prev=door.userData.leaf.rotation.y;for(let i=0;i<secs*60;i++){stepDoor(door,dt);const a=door.userData.leaf.rotation.y;fn?.(a,prev);prev=a;}};
@@ -9,6 +10,7 @@ test('open doors keep their door tile; other terrain is unchanged',()=>{
  assert.equal(tileKind({terrain:'door'}),'door');
  assert.equal(tileKind({terrain:'floor',door:'open'}),'door');
  assert.equal(tileKind({terrain:'floor'}),'floor');
+ assert.equal(tileKind({terrain:'floor',door:'broken'}),'broken-door');
  assert.equal(tileKind({terrain:'wall'}),'wall');
 });
 
@@ -89,4 +91,28 @@ test('a door first seen open lies away from the hero; one mid-swing is never tur
  setDoorOpen(door,true,{dx:0,dz:1});assert.ok(opensTowards(door).z<-.99);
  // No hero, or a hero on the door's line, leaves it alone.
  const lone=createDoor(9);orientDoor(lone,0);setDoorOpen(lone,false);setDoorOpen(lone,true,{dx:3,dz:0});assert.equal(lone.rotation.y,0);
+});
+
+test('a broken door keeps its frame, has no leaf to swing, and stays inside its tile',()=>{
+ for(const seed of [0,3,42,999]){
+  const door=createBrokenDoor(seed);door.updateMatrixWorld(true);
+  assert.equal(door.userData.broken,true);assert.equal(door.userData.leaf,undefined);
+  setDoorOpen(door,true,{dx:1,dz:1});assert.equal(stepDoor(door,1/60),false);
+  const meshes=[];door.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.deepEqual(meshes.map(m=>m.userData.part).sort(),['iron','stone','wood'],'one mesh per material');
+  const v=new THREE.Vector3();let min=Infinity,maxY=-Infinity,maxXZ=0,pale=0;
+  for(const m of meshes){
+   const p=m.geometry.attributes.position,c=m.geometry.attributes.color;
+   for(let i=0;i<p.count;i++){
+    v.fromBufferAttribute(p,i).applyMatrix4(m.matrixWorld);
+    assert.ok([v.x,v.y,v.z].every(Number.isFinite));
+    min=Math.min(min,v.y);maxY=Math.max(maxY,v.y);maxXZ=Math.max(maxXZ,Math.abs(v.x),Math.abs(v.z));
+    if(m.userData.part==='wood'&&c.getX(i)>.3)pale++;
+   }
+  }
+  assert.ok(min>-.01&&maxY<1.12,`floor to lintel (${min}, ${maxY})`);
+  assert.ok(maxXZ<.5,`inside the tile (${maxXZ})`);
+  assert.ok(pale>200,'fresh pale wood where the planks snapped');
+  door.userData.dispose();
+ }
 });

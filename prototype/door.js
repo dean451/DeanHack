@@ -17,9 +17,17 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // swings the door open about its pintles. The knuckles are on the front, so the leaf
 // opens towards +z (negative angles) and clears the jamb out to `DOOR_LEAF.open`; past
 // about -π/2 it would run into the jamb's front face.
+//
+// `{broken:true}` builds what's left once the door has been smashed: the same frame and
+// pintles, a stub of the two hinge-side planks still hanging open on the bottom strap, a
+// snapped fragment dangling from the top strap, a sliver of the latch-side plank held in
+// the jamb by the shot bolt, and splinters, a plank end and the ring pull on the floor.
+// Every break is torn into teeth and shows paler fresh wood. Nothing on it moves, so it
+// has no leaf group (`userData.broken` is true) and the swing code leaves it alone.
 export const DOOR_LEAF={width:.8,height:.95,bottom:.03,open:-1.5};
-export function createDoor(seed=0){
- const g=new THREE.Group();g.name='Door';
+export function createBrokenDoor(seed=0){return createDoor(seed,{broken:true});}
+export function createDoor(seed=0,{broken=false}={}){
+ const g=new THREE.Group();g.name=broken?'BrokenDoor':'Door';
  const materials=[],geometries=[];
  const mat=(o)=>{const m=new THREE.MeshStandardMaterial(o);materials.push(m);return m;};
  const wood=mat({vertexColors:true,roughness:.86});
@@ -59,114 +67,202 @@ export function createDoor(seed=0){
  put(roughen(place(rbox(.98,LINTEL,DEPTH+.03,.014),0,TOP+LINTEL/2,0),.0035),stone,.96);
  put(roughen(place(rbox(W+.02,.024,DEPTH-.02,.008),0,.012,0),.002),stone,.88);
 
- // Leaf: five to six vertical planks of seeded widths, each warped a little out of
- // plane and ragged along the foot where it has rotted and been kicked.
  const T=.07,plankCount=5+Math.floor(rand(5)*2);
  const widths=Array.from({length:plankCount},(_,i)=>.85+rand(20+i)*.3),sum=widths.reduce((a,b)=>a+b,0);
- let px=-W/2;
- const seams=[];
- for(let i=0;i<plankCount;i++){
-  const w=widths[i]/sum*W,gap=.005;
-  const geo=rbox(w-gap,H,T,.01,2);
-  geo.translate(px+w/2,B+H/2,0);
-  const p=geo.attributes.position,cup=(rand(30+i)-.5)*.014,rot=.3+rand(40+i)*.7;
-  for(let k=0;k<p.count;k++){
-   let x=p.getX(k),y=p.getY(k),z=p.getZ(k);
-   const u=(x-(px+w/2))/(w/2);
-   z+=cup*(1-u*u)*Math.sign(z||1)*.5+cup*Math.sin((y-B)/H*Math.PI)*.4;
-   if(y<B+.03){const bite=noise3(x*40+off,i*3,z*20)*rot*.035;y=Math.max(B-.004,y+bite*(1-(y-B)/.03));}
-   p.setXYZ(k,x,y,z);
-  }
-  geo.computeVertexNormals();
-  put(geo,wood,.88+rand(50+i)*.22);
-  if(i)seams.push(px);
-  px+=w;
- }
-
- // Back: three ledges and two braces rising towards the latch side, pegged at the ends.
  const LEDGES=[B+.16,B+H/2,B+H-.16],BZ=-T/2-.017;
- for(const y of LEDGES)put(roughen(place(rbox(W-.06,.1,.032,.008),0,y,BZ),.0015),wood,.95+rand(y*9)*.1);
- for(let i=0;i<2;i++){
-  const y0=LEDGES[i]+.045,y1=LEDGES[i+1]-.045,x0=-W/2+.09,x1=W/2-.09;
-  const len=Math.hypot(x1-x0,y1-y0),ang=Math.atan2(y1-y0,x1-x0);
-  put(roughen(place(rbox(len,.085,.028,.007),(x0+x1)/2,(y0+y1)/2,BZ+.002,0,0,ang),.0015),wood,.92+rand(60+i)*.1);
- }
- for(const y of LEDGES)for(const x of [-W/2+.07,W/2-.07])put(place(new THREE.CylinderGeometry(.009,.009,.01,6),x,y,BZ-.017,Math.PI/2),wood,.7);
-
- // Front ironwork: strap hinges running from the hinge side, with forked ends and rivets.
  const FZ=T/2+.006,HINGES=[B+.17,B+H-.17],strapEnd=W*.18,HX=-W/2+.014,HZ=FZ+.004;
+ const RX=W/2-.13,RY=B+H*.5;
+ const seams=[];
+
+ // Pintle: a square spike leaded into the jamb, with the pin rising through the knuckle
+ // and poking out above it. It belongs to the frame, so it stays put as the leaf swings.
  for(const y of HINGES){
-  const len=strapEnd+W/2;
-  put(place(rbox(len,.046,.012,.004),-W/2+len/2,y,FZ),iron);
-  for(const d of [-1,1])put(place(rbox(.07,.022,.011,.004),strapEnd+.026,y+d*.017,FZ,0,0,d*.45),iron);
-  put(place(new THREE.SphereGeometry(.018,8,5),strapEnd+.004,y,FZ+.003,0,0,0,1,1,.5),iron);
-  const rivets=6;
-  for(let r=0;r<rivets;r++){
-   const x=-W/2+.05+r*(len-.09)/(rivets-1);
-   put(place(new THREE.SphereGeometry(.0105,6,3,0,Math.PI*2,0,Math.PI/2),x,y,FZ+.006,Math.PI/2,0,0,1,.6,1),iron);
-  }
-  // Knuckle rolled round the pintle at the hinge edge.
-  put(place(new THREE.CylinderGeometry(.016,.016,.075,10),HX,y,HZ),iron);
-  // Pintle: a square spike leaded into the jamb, with the pin rising through the knuckle
-  // and poking out above it. It belongs to the frame, so it stays put as the leaf swings.
   put(place(rbox(.052,.024,.022,.004),-W/2-.004,y-.049,HZ-.004),stone,1,ironColour);
   put(place(new THREE.CylinderGeometry(.0075,.0075,.11,6),HX,y-.004,HZ),stone,1,ironColour);
   put(place(new THREE.SphereGeometry(.009,6,3,0,Math.PI*2,0,Math.PI/2),HX,y+.051,HZ),stone,1,ironColour);
   put(roughen(place(new THREE.CylinderGeometry(.02,.022,.006,8),-W/2-.004,y-.049,HZ-.004,0,0,Math.PI/2),.001),stone,.55);
  }
 
- // Ring pull on a round backplate, hanging slightly askew, with a lock plate above it.
- const RX=W/2-.13,RY=B+H*.5;
- put(place(new THREE.CylinderGeometry(.042,.045,.008,16),RX,RY+.02,FZ,Math.PI/2),iron);
- put(place(new THREE.CylinderGeometry(.01,.012,.022,8),RX,RY+.02,FZ+.012,Math.PI/2),iron);
- put(place(new THREE.TorusGeometry(.045,.0085,6,16),RX,RY-.025,FZ+.024,-.35+rand(7)*.2,0,(rand(8)-.5)*.3),iron);
- put(place(rbox(.06,.1,.01,.004),RX,RY+.13,FZ),iron);
- put(place(rbox(.012,.03,.006,.002),RX,RY+.128,FZ+.007),iron,.2);
- put(place(new THREE.CylinderGeometry(.009,.009,.006,8),RX,RY+.15,FZ+.007,Math.PI/2),iron,.2);
-
- // Nail heads: rows of pyramid clavos across each plank where the ledges sit behind.
- for(const y of LEDGES){
-  if(HINGES.some(h=>Math.abs(h-y)<.06))continue;
-  let x=-W/2;
-  for(let i=0;i<plankCount;i++){
-   const w=widths[i]/sum*W;
-   for(const f of [.3,.7]){
-    if(Math.abs(x+w*f-RX)<.07&&Math.abs(y-RY)<.12)continue;
-    put(place(new THREE.ConeGeometry(.012,.009,4),x+w*f,y+(rand(i*5+y*20)-.5)*.01,FZ-.002,Math.PI/2,0,Math.PI/4),iron);
+ // The smashed door. Planks snapped across get torn, toothed ends: `snapped` stretches a
+ // plank's top (and bottom) row of vertices by a seeded sawtooth, so the break stays a
+ // closed solid, and paints the last few centimetres below a break as fresh, pale wood.
+ function buildWreck(){
+  const pivot=(geo,px,py,pz,rx,ry,rz)=>{geo.translate(-px,-py,-pz);geo.applyMatrix4(m4.makeRotationFromEuler(e.set(rx,ry,rz,'YXZ')));geo.translate(px,py,pz);return geo;};
+  let teeth=0;
+  const tear=(x0,w,amp)=>{
+   const k=teeth++,phase=rand(200+k)*2,count=2.5+rand(210+k)*2;
+   return x=>{const u=(x-x0)/w*count+phase,f=u-Math.floor(u);return amp*(.35+.65*Math.abs(f-.5)*2)*(.6+.8*noise3(x*60+off,k*5,1));};
+  };
+  const snapped=(x0,w,y0,y1,{top=true,bottom=false,thick=T}={})=>{
+   const h=y1-y0,geo=new THREE.BoxGeometry(w,h,thick,8,5,1);geo.translate(x0+w/2,y0+h/2,0);
+   const up=top?tear(x0,w,.085):()=>0,down=bottom?tear(x0,w,.07):()=>0,p=geo.attributes.position;
+   for(let k=0;k<p.count;k++){
+    const x=p.getX(k),y=p.getY(k),z=p.getZ(k),t=(y-y0)/h;
+    const lean=(noise3(x*45+off,y*45,7)-.5)*.012;
+    p.setXYZ(k,x,y+up(x)*t-down(x)*(1-t),z+lean*(t>.99||t<.01?1:0));
    }
-   x+=w;
+   geo.computeVertexNormals();
+   // How fresh each vertex is, worked out now in the plank's own frame, before it's moved.
+   const nor=geo.attributes.normal,fresh=new Float32Array(p.count);
+   for(let k=0;k<p.count;k++){
+    const x=p.getX(k),y=p.getY(k),d=Math.min(top?y1+up(x)-y:1,bottom?y-(y0-down(x)):1);
+    fresh[k]=Math.max(d<.028?1-d/.028:0,Math.abs(nor.getY(k))>.4&&d<.1?.8:0);
+   }
+   geo.setAttribute('fresh',new THREE.BufferAttribute(fresh,1));
+   return put(geo,wood,.9+rand(300+teeth)*.15);
+  };
+  const plankX=[];let px=-W/2;for(const w of widths){plankX.push([px,w/sum*W]);px+=w/sum*W;}
+  const rivet=(x,y)=>put(place(new THREE.SphereGeometry(.0105,6,3,0,Math.PI*2,0,Math.PI/2),x,y,FZ+.006,Math.PI/2,0,0,1,.6,1),iron);
+
+  // Bottom: the two hinge-side planks, snapped off at different heights, still on the
+  // lower strap and its ledge behind, sagging half open on the bottom pintle.
+  const low=[],lowW=plankX[1][0]+plankX[1][1]+W/2;
+  for(let i=0;i<2;i++){const [x,w]=plankX[i];low.push(snapped(x,w-.005,B,B+.34+rand(220+i)*.16));}
+  low.push(put(roughen(place(rbox(lowW-.05,.1,.032,.008),-W/2+lowW/2-.01,LEDGES[0],BZ),.0015),wood,.95));
+  const y0=HINGES[0],stub=lowW+.03;
+  low.push(put(place(rbox(stub,.046,.012,.004),-W/2+stub/2,y0,FZ),iron));
+  low.push(put(place(new THREE.CylinderGeometry(.016,.016,.075,10),HX,y0,HZ),iron));
+  for(let r=0;r<4;r++)low.push(rivet(-W/2+.05+r*(stub-.09)/3,y0));
+  const sag=-.45-rand(230)*.3;
+  for(const geo of low)pivot(geo,HX,0,HZ,0,sag,0);
+
+  // Top: a scrap of the hinge-side plank left on a short, torn strap, hanging from the
+  // top pintle and swung down and out.
+  const y1=HINGES[1],top=[];
+  top.push(snapped(plankX[0][0]+.004,plankX[0][1]*.8,y1-.04,y1+.1,{bottom:true}));
+  top.push(put(place(rbox(.2,.046,.012,.004),-W/2+.1,y1,FZ),iron));
+  top.push(put(place(new THREE.CylinderGeometry(.016,.016,.075,10),HX,y1,HZ),iron));
+  for(let r=0;r<2;r++)top.push(rivet(-W/2+.05+r*.1,y1));
+  for(const geo of top)pivot(geo,HX,y1,HZ,0,-.6-rand(240)*.3,-1.05-rand(241)*.25);
+
+  // Latch side: a sliver of the last plank still held by the shot bolt, snapped above
+  // and below, with the lock plate on it and the bolt run into the jamb.
+  const lw=plankX[plankCount-1][1],sw=Math.min(lw,.12),sx=W/2-sw-.004,lockY=RY+.13;
+  const sliver=[snapped(sx,sw,lockY-.2-rand(250)*.1,lockY+.12+rand(251)*.1,{bottom:true})];
+  sliver.push(put(place(rbox(.06,.1,.01,.004),sx+sw/2,lockY,FZ),iron));
+  sliver.push(put(place(rbox(.012,.03,.006,.002),sx+sw/2,lockY-.002,FZ+.007),iron,.2));
+  sliver.push(put(place(rbox(.08,.018,.018,.004),W/2,lockY-.03,0),iron));
+  for(const geo of sliver)pivot(geo,W/2,lockY,0,0,.12,.05+rand(252)*.06);
+
+  // Floor: a plank end and splinters thrown either side of the doorway, clear of the
+  // threshold, and the ring pull lying flat where it dropped.
+  const side=rand(260)<.5?-1:1;
+  const chunkW=plankX[2][1]-.005,chunkL=.24+rand(261)*.08;
+  const chunk=snapped(-chunkW/2,chunkW,-chunkL/2,chunkL/2,{bottom:true});
+  chunk.rotateX(-Math.PI/2);chunk.rotateY(rand(262)*Math.PI);chunk.translate(-.12+rand(263)*.24,T/2+.006,side*.24);
+  for(let i=0;i<4;i++){
+   const len=.1+rand(270+i)*.14,s=i<2?side:-side;
+   const geo=new THREE.CylinderGeometry(.003,.011,len,4,1);
+   geo.rotateZ(Math.PI/2);geo.scale(1,.7,1);geo.rotateY(rand(280+i)*Math.PI*2);
+   geo.translate(-.28+rand(290+i)*.56,.009,s*(.16+rand(295+i)*.13));
+   put(geo,wood,.8+rand(298+i)*.3,(x,y,z,n,c)=>{const col=woodColour(x,y,z,n,c);return [col[0]*.6+.14,col[1]*.6+.1,col[2]*.6+.05];});
   }
+  put(place(new THREE.TorusGeometry(.045,.0085,6,16),-side*.02+(rand(299)-.5)*.3,.0085,-side*.25,Math.PI/2),iron);
  }
+
+ if(!broken){
+  // Leaf: five to six vertical planks of seeded widths, each warped a little out of
+  // plane and ragged along the foot where it has rotted and been kicked.
+  let px=-W/2;
+  for(let i=0;i<plankCount;i++){
+   const w=widths[i]/sum*W,gap=.005;
+   const geo=rbox(w-gap,H,T,.01,2);
+   geo.translate(px+w/2,B+H/2,0);
+   const p=geo.attributes.position,cup=(rand(30+i)-.5)*.014,rot=.3+rand(40+i)*.7;
+   for(let k=0;k<p.count;k++){
+    let x=p.getX(k),y=p.getY(k),z=p.getZ(k);
+    const u=(x-(px+w/2))/(w/2);
+    z+=cup*(1-u*u)*Math.sign(z||1)*.5+cup*Math.sin((y-B)/H*Math.PI)*.4;
+    if(y<B+.03){const bite=noise3(x*40+off,i*3,z*20)*rot*.035;y=Math.max(B-.004,y+bite*(1-(y-B)/.03));}
+    p.setXYZ(k,x,y,z);
+   }
+   geo.computeVertexNormals();
+   put(geo,wood,.88+rand(50+i)*.22);
+   if(i)seams.push(px);
+   px+=w;
+  }
+
+  // Back: three ledges and two braces rising towards the latch side, pegged at the ends.
+  for(const y of LEDGES)put(roughen(place(rbox(W-.06,.1,.032,.008),0,y,BZ),.0015),wood,.95+rand(y*9)*.1);
+  for(let i=0;i<2;i++){
+   const y0=LEDGES[i]+.045,y1=LEDGES[i+1]-.045,x0=-W/2+.09,x1=W/2-.09;
+   const len=Math.hypot(x1-x0,y1-y0),ang=Math.atan2(y1-y0,x1-x0);
+   put(roughen(place(rbox(len,.085,.028,.007),(x0+x1)/2,(y0+y1)/2,BZ+.002,0,0,ang),.0015),wood,.92+rand(60+i)*.1);
+  }
+  for(const y of LEDGES)for(const x of [-W/2+.07,W/2-.07])put(place(new THREE.CylinderGeometry(.009,.009,.01,6),x,y,BZ-.017,Math.PI/2),wood,.7);
+
+  // Front ironwork: strap hinges running from the hinge side, with forked ends and rivets.
+  for(const y of HINGES){
+   const len=strapEnd+W/2;
+   put(place(rbox(len,.046,.012,.004),-W/2+len/2,y,FZ),iron);
+   for(const d of [-1,1])put(place(rbox(.07,.022,.011,.004),strapEnd+.026,y+d*.017,FZ,0,0,d*.45),iron);
+   put(place(new THREE.SphereGeometry(.018,8,5),strapEnd+.004,y,FZ+.003,0,0,0,1,1,.5),iron);
+   const rivets=6;
+   for(let r=0;r<rivets;r++){
+    const x=-W/2+.05+r*(len-.09)/(rivets-1);
+    put(place(new THREE.SphereGeometry(.0105,6,3,0,Math.PI*2,0,Math.PI/2),x,y,FZ+.006,Math.PI/2,0,0,1,.6,1),iron);
+   }
+   // Knuckle rolled round the pintle at the hinge edge.
+   put(place(new THREE.CylinderGeometry(.016,.016,.075,10),HX,y,HZ),iron);
+  }
+
+  // Ring pull on a round backplate, hanging slightly askew, with a lock plate above it.
+  put(place(new THREE.CylinderGeometry(.042,.045,.008,16),RX,RY+.02,FZ,Math.PI/2),iron);
+  put(place(new THREE.CylinderGeometry(.01,.012,.022,8),RX,RY+.02,FZ+.012,Math.PI/2),iron);
+  put(place(new THREE.TorusGeometry(.045,.0085,6,16),RX,RY-.025,FZ+.024,-.35+rand(7)*.2,0,(rand(8)-.5)*.3),iron);
+  put(place(rbox(.06,.1,.01,.004),RX,RY+.13,FZ),iron);
+  put(place(rbox(.012,.03,.006,.002),RX,RY+.128,FZ+.007),iron,.2);
+  put(place(new THREE.CylinderGeometry(.009,.009,.006,8),RX,RY+.15,FZ+.007,Math.PI/2),iron,.2);
+
+  // Nail heads: rows of pyramid clavos across each plank where the ledges sit behind.
+  for(const y of LEDGES){
+   if(HINGES.some(h=>Math.abs(h-y)<.06))continue;
+   let x=-W/2;
+   for(let i=0;i<plankCount;i++){
+    const w=widths[i]/sum*W;
+    for(const f of [.3,.7]){
+     if(Math.abs(x+w*f-RX)<.07&&Math.abs(y-RY)<.12)continue;
+     put(place(new THREE.ConeGeometry(.012,.009,4),x+w*f,y+(rand(i*5+y*20)-.5)*.01,FZ-.002,Math.PI/2,0,Math.PI/4),iron);
+    }
+    x+=w;
+   }
+  }
+ } else buildWreck();
 
  // Bake: strip to position and normal, paint vertex colours, merge one mesh per material.
  const n=new THREE.Vector3();
  const ctx={off,seams,W,B,H,T,HINGES,RX,RY,JX,TOP};
  const painters={wood:woodColour,iron:ironColour,stone:stoneColour};
- const leaf=new THREE.Group();leaf.name='DoorLeaf';leaf.position.set(HX,0,HZ);g.add(leaf);
+ const leaf=broken?null:new THREE.Group();if(leaf){leaf.name='DoorLeaf';leaf.position.set(HX,0,HZ);g.add(leaf);}
  for(const [material,list] of bins){
   const part=Object.keys(parts).find(key=>parts[key]===material);
   const flats=list.map(geo=>{
    const tint=geo.userData.tint,paint=geo.userData.paint||painters[part];
    const flat=geo.index?geo.toNonIndexed():geo;if(flat!==geo)geo.dispose();
+   const fresh=flat.attributes.fresh;
    for(const key of Object.keys(flat.attributes))if(!['position','normal'].includes(key))flat.deleteAttribute(key);
    const p=flat.attributes.position,nor=flat.attributes.normal,col=new Float32Array(p.count*3);
-   for(let i=0;i<p.count;i++){n.fromBufferAttribute(nor,i);const c=paint(p.getX(i),p.getY(i),p.getZ(i),n,ctx);col[i*3]=c[0]*tint;col[i*3+1]=c[1]*tint;col[i*3+2]=c[2]*tint;}
+   for(let i=0;i<p.count;i++){n.fromBufferAttribute(nor,i);const c=paint(p.getX(i),p.getY(i),p.getZ(i),n,ctx);col[i*3]=c[0]*tint;col[i*3+1]=c[1]*tint;col[i*3+2]=c[2]*tint;if(fresh){const f=fresh.getX(i);col[i*3]+=(FRESH[0]-col[i*3])*f;col[i*3+1]+=(FRESH[1]-col[i*3+1])*f;col[i*3+2]+=(FRESH[2]-col[i*3+2])*f;}}
    flat.setAttribute('color',new THREE.BufferAttribute(col,3));
    return flat;
   });
   const geo=mergeGeometries(flats);flats.forEach(f=>f.dispose());geometries.push(geo);
   // Colours are baked in door space above; the leaf's parts then move into hinge space.
-  const onLeaf=part!=='stone';if(onLeaf)geo.translate(-HX,0,-HZ);
+  const onLeaf=!broken&&part!=='stone';if(onLeaf)geo.translate(-HX,0,-HZ);
   const mesh=new THREE.Mesh(geo,material);mesh.castShadow=true;mesh.receiveShadow=true;
   mesh.userData.part=part;
   (onLeaf?leaf:g).add(mesh);
  }
- g.userData.leaf=leaf;
+ if(leaf)g.userData.leaf=leaf;
+ g.userData.broken=broken;
  g.userData.hinge={x:HX,z:HZ,pins:HINGES.slice()};
  g.userData.planks=plankCount;
  g.userData.dispose=()=>{for(const geo of geometries)geo.dispose();for(const m of materials)m.dispose();};
  return g;
 }
+
+// Freshly broken oak, where a plank has snapped.
+const FRESH=[.4,.28,.15];
 
 // Oak planks: warm brown with long vertical grain and the odd knot, darker in the seams,
 // soaked dark and greenish at the foot, bleached a little at the top, a dark hand-polished

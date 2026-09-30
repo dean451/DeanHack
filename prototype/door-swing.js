@@ -16,8 +16,10 @@ export const SWING={k:60,c:11,slam:5,rebound:.3,settle:.002,maxStep:1/30};
 const LIMIT=Math.max(DOOR_LEAF.open-.05,-Math.PI/2+.01);
 const moving=new Set();
 
-// The tile type a map cell builds: open doors keep their door tile.
-export function tileKind(cell){return cell.door==='open'?'door':cell.terrain;}
+// The tile type a map cell builds: open doors keep their door tile. A broken door (a
+// doorway flagged `door:'broken'`) gets its own tile, so smashing a door swaps the model
+// for the wreck, and the wreck is dropped again if the doorway is ever repaired.
+export function tileKind(cell){return cell.door==='open'?'door':cell.door==='broken'?'broken-door':cell.terrain;}
 
 // Turn a door group to follow its wall (yaw 0 runs along x), keeping any half turn.
 export function orientDoor(door,yaw){door.userData.yaw=yaw;door.rotation.y=yaw+(door.userData.flip?Math.PI:0);}
