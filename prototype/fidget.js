@@ -31,6 +31,11 @@ export const PICK_PLANT = {pos: new THREE.Vector3(-.3, .66, .37), rot: new THREE
 export const LEAN_ARM = -1.35;
 // The hobbit's scratching arm (the right, +x) swings out and up over the shoulder to the crown.
 export const SCRATCH_ARM = {x: .1, z: 3.5};
+// Models with a `head` (gnomes, hobbits): while looking around, the head turns HEAD_LEAD further
+// than the body and runs LEAD_AHEAD of it in the fidget's progress, so the eyes go first and the
+// body follows, and the head is already home as the body settles. While scratching, the head
+// tilts SCRATCH_TILT into the hand.
+export const HEAD_LEAD = .55, LEAD_AHEAD = .07, SCRATCH_TILT = .16;
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
@@ -47,13 +52,16 @@ export function fidgetsFor(actor) {
 
 // The fidget's offsets at progress u (0..1), time t (s), scaled by f (0..1).
 export function fidgetPose(kind, u, t = 0, f = 1) {
-  const p = {yaw: 0, roll: 0, lean: 0, bob: 0, arms: [[0, 0], [0, 0]], pick: 0};
+  const p = {yaw: 0, roll: 0, lean: 0, bob: 0, arms: [[0, 0], [0, 0]], pick: 0, headYaw: 0, headRoll: 0};
   if (!(f > 0) || !FIDGETS[kind]) return p;
   if (kind === 'look') {
     // turn left, hold, sweep right, hold, back
-    const A = .42;
-    p.yaw = A * (smooth(u / .2) - 2 * smooth((u - .4) / .2) + smooth((u - .8) / .2)) * f;
+    const A = .42, look = v => A * (smooth(v / .2) - 2 * smooth((v - .4) / .2) + smooth((v - .8) / .2));
+    p.yaw = look(u) * f;
     p.roll = -.04 * p.yaw / A * Math.abs(p.yaw / A) * f;
+    // the head's own turn on top of the body's, a step ahead of it; the lead eases in from 0 so
+    // the head doesn't jump on the first frame, and look(>=1) is 0 so it's home first
+    p.headYaw = HEAD_LEAD * look(u + LEAD_AHEAD * smooth(u / LEAD_AHEAD)) * f;
   } else if (kind === 'scratch') {
     const e = (smooth(u / .25) - smooth((u - .75) / .25)) * f;
     const rub = smooth((u - .22) / .08) * (1 - smooth((u - .7) / .08));
@@ -61,6 +69,8 @@ export function fidgetPose(kind, u, t = 0, f = 1) {
     p.roll = -.06 * e;
     p.lean = .04 * e;
     p.yaw = .12 * e;
+    // leaning the head over into the right hand (+x): a negative roll tips the crown that way
+    p.headRoll = -SCRATCH_TILT * e;
   } else if (kind === 'lean') {
     const e = (smooth(u / .2) - smooth((u - .8) / .2)) * f;
     p.pick = e;
@@ -108,6 +118,13 @@ export function updateFidget(actor, dt, t, busy, look = null) {
 
 function apply(actor, st, p) {
   const body = actor.body;
+  // The head's turn is an offset taken back each frame (actions.js pitches it after us and takes
+  // that back the same way), so it never drifts.
+  const head = actor.head, h = st.head || (st.head = {yaw: 0, roll: 0});
+  if (head) {
+    head.rotation.y += p.headYaw - h.yaw; head.rotation.z += p.headRoll - h.roll;
+    h.yaw = p.headYaw; h.roll = p.headRoll;
+  }
   tmpQ.setFromEuler(tmpE.set(p.lean, p.yaw, p.roll, 'YXZ'));
   if (p.yaw || p.roll || p.lean) body.quaternion.multiply(tmpQ);
   body.position.y += p.bob;

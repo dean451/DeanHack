@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {updateGait} from './gait.js';
-import {FIDGETS, fidgetPose, fidgetsFor, updateFidget, FIRST_MIN, FIRST_SPAN} from './fidget.js';
+import {FIDGETS, fidgetPose, fidgetsFor, updateFidget, FIRST_MIN, FIRST_SPAN, HEAD_LEAD, SCRATCH_TILT} from './fidget.js';
 
-const parts = a => [a.body, ...a.legs, ...(a.arms || []), a.hat, a.beard, a.pick].filter(Boolean);
+const parts = a => [a.body, ...a.legs, ...(a.arms || []), a.head, a.hat, a.beard, a.pick].filter(Boolean);
 const snapshot = a => parts(a).map(p => ({p, pos: p.position.clone(), quat: p.quaternion.clone()}));
 const atRest = (snap, eps = 1e-6) => snap.every(({p, pos, quat}) => p.position.distanceTo(pos) < eps && Math.abs(Math.abs(p.quaternion.dot(quat)) - 1) < eps);
 
@@ -38,14 +38,14 @@ test('fidget poses are finite, bounded and zero at both ends', () => {
   for (const kind of Object.keys(FIDGETS)) {
     for (let i = 0; i <= 100; i++) {
       const p = fidgetPose(kind, i / 100, i * .07);
-      for (const v of [p.yaw, p.roll, p.lean, p.bob, p.pick, ...p.arms.flat()]) {
+      for (const v of [p.yaw, p.roll, p.lean, p.bob, p.pick, p.headYaw, p.headRoll, ...p.arms.flat()]) {
         assert.ok(Number.isFinite(v), kind);
         assert.ok(Math.abs(v) < 3.7, `${kind} ${v}`);
       }
     }
     for (const u of [0, 1]) {
       const p = fidgetPose(kind, u, 3.1);
-      for (const v of [p.yaw, p.roll, p.lean, p.bob, p.pick, ...p.arms.flat()]) assert.ok(Math.abs(v) < 1e-9, `${kind} at ${u}: ${v}`);
+      for (const v of [p.yaw, p.roll, p.lean, p.bob, p.pick, p.headYaw, p.headRoll, ...p.arms.flat()]) assert.ok(Math.abs(v) < 1e-9, `${kind} at ${u}: ${v}`);
     }
   }
   assert.deepEqual(fidgetsFor(createCreature({name: 'jackal'})), []);
@@ -257,4 +257,49 @@ test('the evil eye loses the hero when they turn invisible, and finds them again
   assert.equal(a.glance.track, false);
   // Visible again: it notices within a moment.
   assert.ok(run({invisible: false}, 1) > 20, 'finds the hero again');
+});
+
+test('the head leads the body round when looking, and tilts into the scratching hand', () => {
+  const dt = 1 / 60;
+  const g = createCreature({name: 'gnome'});
+  assert.ok(g.head, 'gnome has a head');
+  frame(g, 0, dt);
+  const rest = snapshot(g), yaw0 = g.head.rotation.y;
+  let t = startFidget(g, 'look', dt), firstHead = null, firstBody = null, maxHead = 0, prevHead = 0, jump = 0, body = 0;
+  for (let i = 0; i < 60 * 4; i++) {
+    t += dt;
+    const r = frame(g, t, dt);
+    const h = g.head.rotation.y - yaw0;
+    for (const v of [h, g.head.rotation.x, g.head.rotation.z]) assert.ok(Number.isFinite(v));
+    if (!r) break;
+    if (firstHead == null && h > .1) firstHead = r.u;
+    if (firstBody == null && r.pose.yaw > .1) firstBody = r.u;
+    maxHead = Math.max(maxHead, Math.abs(h)); body = Math.max(body, Math.abs(r.pose.yaw));
+    jump = Math.max(jump, Math.abs(h - prevHead)); prevHead = h;
+  }
+  assert.ok(firstHead != null && firstBody != null && firstHead < firstBody, `head first (${firstHead} < ${firstBody})`);
+  // on top of the body's .42, the head turns about half as far again, and never snaps
+  assert.ok(maxHead > .2 && maxHead <= HEAD_LEAD * .42 + 1e-9, `head turn ${maxHead} (body ${body})`);
+  assert.ok(jump < .03, `head step ${jump}`);
+  assert.ok(atRest(rest), 'gnome head back at rest');
+
+  const h = createCreature({name: 'hobbit'});
+  frame(h, 0, dt);
+  const hrest = snapshot(h);
+  t = startFidget(h, 'scratch', dt);
+  let tilt = 0;
+  for (let i = 0; i < 60 * 4; i++) { t += dt; if (!frame(h, t, dt)) break; tilt = Math.min(tilt, h.head.rotation.z); }
+  assert.ok(tilt < -SCRATCH_TILT * .9 && tilt >= -SCRATCH_TILT - 1e-9, `tilt ${tilt}`);
+  assert.ok(atRest(hrest), 'hobbit head back at rest');
+
+  // interrupted mid-look by walking: the head fades home with the rest
+  const w = createCreature({name: 'gnome'});
+  frame(w, 0, dt);
+  const wrest = snapshot(w);
+  t = startFidget(w, 'look', dt);
+  for (let i = 0; i < 20; i++) { t += dt; frame(w, t, dt); }
+  assert.ok(Math.abs(w.head.rotation.y) > .05);
+  for (let i = 0; i < 60; i++) { t += dt; frame(w, t, dt, true); }
+  for (let i = 0; i < 60; i++) { t += dt; frame(w, t, dt, true); }
+  assert.ok(Math.abs(w.head.rotation.y) < 1e-6, `head home after walking ${w.head.rotation.y}`);
 });
