@@ -4703,6 +4703,74 @@ export function tinGeometry(count=1,{empty=false}={}){
  return merged;
 }
 
+// Cream pies: a custard-cream pie in a golden short crust. The crust has a crimped, fluted rim,
+// browned on its ridges and pricked with fork marks; the cream is domed, piped into a spiralling
+// peak in the middle with a ring of star rosettes round it, and topped with a glacé cherry.
+// A stack sets out up to three smaller pies. One merged vertex-coloured mesh (1 draw).
+export function creamPieGeometry(count=1){
+ const n=Math.min(3,Math.max(1,count|0)),R=.12,rim=.036,segs=64;
+ const CRUST=new THREE.Color(0xd49a52),BROWN=new THREE.Color(0x92521f),PALE=new THREE.Color(0xecc88e),
+  CREAM=new THREE.Color(0xf7f2e6),SHADE=new THREE.Color(0xd8cdb4),CHERRY=new THREE.Color(0xa3101e),GLINT=new THREE.Color(0xf07a80),col=new THREE.Color();
+ const lathe=(pts,seg=segs)=>weld(new THREE.LatheGeometry(pts.map(([r,h])=>new THREE.Vector2(r,h)),seg));
+ const paint=(geo,fn)=>{
+  const p=geo.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);fn(x,y,z,Math.atan2(z,x),Math.hypot(x,z),i,p);c.set([col.r,col.g,col.b],i*3);}
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));geo.computeVertexNormals();return geo;
+ };
+ // The crust: a flat base, a sloping side and a rolled rim, crimped into 16 flutes.
+ const crust=paint(lathe([[0,0],[R*.8,0],[R*.86,.004],[R*.93,.02],[R*.97,rim-.006],[R+.002,rim-.003],[R+.004,rim+.003],
+  [R+.001,rim+.008],[R-.006,rim+.01],[R-.011,rim+.006],[R-.013,rim-.002],[R*.8,rim-.004],[0,rim-.004]]),(x,y,z,a,r,i,p)=>{
+  const flute=Math.cos(a*16),onRim=r>R-.016&&y>rim-.006;
+  let k=1;if(onRim)k+=.035*flute;
+  // Fork pricks: a small dip in each trough of the flutes.
+  const prick=onRim&&flute<-.9&&y>rim+.006;
+  const dy=onRim?.004*flute-(prick?.002:0):0;
+  p.setXYZ(i,x*k,y+dy,z*k);
+  const bake=stoneNoise(x*8,y*8,z*8,23);
+  col.copy(CRUST).lerp(bake>0?PALE:BROWN,Math.abs(bake)*.35);
+  if(onRim)col.lerp(flute>0?BROWN:PALE,Math.abs(flute)*.45);
+  if(prick)col.lerp(BROWN,.7);
+  if(y<.003)col.lerp(BROWN,.3);
+ });
+ // The cream: domed over the crust and a little uneven where it was spread.
+ const dome=[];for(let i=0;i<=10;i++){const t=i/10;dome.push([(R-.01)*(1-t),rim-.004+.024*Math.sqrt(1-(1-t)**2)*(.6+.4*t)]);}
+ const top=paint(lathe(dome),(x,y,z,a,r,i,p)=>{
+  const w=stoneNoise(x*14+3,0,z*14,11);
+  p.setY(i,y+.0025*w*(r/R));
+  col.copy(CREAM).lerp(SHADE,Math.max(0,-w)*.35+(r>R-.02?.25:0));
+ });
+ // A piped star shape: ridged round the outside and twisted as it rises to a curled tip.
+ const piped=(r0,h,ridges,twist,seg=48)=>{
+  const pts=[];for(let i=0;i<=12;i++){const t=i/12;pts.push([t===1?0:r0*(1-t)**.8*(1+.25*Math.sin(t*Math.PI)),h*t]);}
+  return paint(lathe(pts,seg),(x,y,z,a,r,i,p)=>{
+   const t=y/h,g=Math.cos(ridges*(a+twist*t));
+   const k=1+.22*g*(1-t*.6),lean=.18*r0*t*t;
+   p.setXYZ(i,x*k+lean,y,z*k);
+   col.copy(CREAM).lerp(SHADE,Math.max(0,-g)*.5*(1-t*.5));
+  });
+ };
+ const parts=[crust,top];
+ // The central swirl, standing on the dome.
+ const peak=piped(.042,.05,6,2.4);peak.translate(0,rim+.016,0);parts.push(peak);
+ // Rosettes round the edge.
+ for(let j=0;j<8;j++){
+  const a=j/8*Math.PI*2+.2,d=R*.68,rose=piped(.017,.022,5,1.6,24);
+  rose.rotateY(j*1.3);rose.translate(Math.cos(a)*d,rim+.009,Math.sin(a)*d);parts.push(rose);
+ }
+ // A glacé cherry, nested into the peak's tip, with a bright glint.
+ const cherry=paint(weld(new THREE.SphereGeometry(.013,18,12)),(x,y,z)=>{
+  col.copy(CHERRY).lerp(GLINT,Math.max(0,(x*.4+y*.8-z*.3)/.013-.55)*1.6);
+ });
+ cherry.translate(.006,rim+.016+.05+.004,0);parts.push(cherry);
+ const pie=mergeGeometries(parts);parts.forEach(g=>g.dispose());
+ if(n===1)return pie;
+ const place=[[[-.09,0,.3],[.09,.012,2.2]],[[-.09,-.05,.3],[.09,-.045,2.2],[0,.1,4.1]]][n-2];
+ const pies=place.map(([ox,oz,ry])=>{const q=pie.clone();q.scale(.72,.72,.72);q.rotateY(ry);q.translate(ox,0,oz);return q;});
+ pie.dispose();
+ const merged=mergeGeometries(pies);pies.forEach(g=>g.dispose());
+ return merged;
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -5327,9 +5395,10 @@ export function createGroundModel(item={}){
    const jelly=new THREE.MeshStandardMaterial({color:0xe6b02e,roughness:.15,transparent:true,opacity:.8,emissive:0x6a4a08,emissiveIntensity:.3});materials.push(jelly);
    ball(.07,jelly,0,.03,0,[1.2,.42,1]);ball(.035,jelly,.05,.04,.03,[1,.6,1]);
   }else if(kind==='cream pie'){
-   const crust=mat(0xc58a48),cream=mat(0xf4eee4);
-   add(new THREE.CylinderGeometry(.14,.11,.04,24),crust,0,.02);add(new THREE.TorusGeometry(.13,.014,6,24),crust,0,.04).rotation.x=Math.PI/2;
-   ball(.12,cream,0,.04,0,[1,.35,1]);ball(.03,cream,0,.08,0);
+   // Crust, cream and cherry share one faintly glossy vertex-coloured material.
+   const pie=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.55});materials.push(pie);
+   add(creamPieGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),pie).userData.part='cream-pie';
+   g.rotation.y=.2;
   }else if(kind==='candy bar'){
    const wrapper=mat(0xa3222a),foil=mat(0xc8cdd0,.75);
    box(.22,.03,.08,wrapper,0,.015);box(.07,.032,.082,foil,0,.016);

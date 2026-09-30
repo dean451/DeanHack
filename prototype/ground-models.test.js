@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,tinGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,tinGeometry,creamPieGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -1503,4 +1503,33 @@ test('corpses lie as the body plan of the monster that died, finite, on the floo
  wing.computeBoundingBox();const top=wing.boundingBox.max.y*.8;
  let up=0,down=0;for(let i=0;i<wy.count;i++)if(wy.getY(i)>top)wn.getY(i)>0?up++:down++;
  assert(up>300&&up>down*2,'the wing draped over the flank faces up');
+});
+
+test('cream pies are one merged, vertex-coloured pie with a fluted crust, piped cream and a cherry; a stack sets out up to three',()=>{
+ const one=creamPieGeometry(1);
+ for(const key of ['position','normal','color'])for(const v of one.attributes[key].array)assert(Number.isFinite(v),key);
+ one.computeBoundingBox();
+ const b=one.boundingBox;assert(b.max.y>.09&&b.max.y<.14&&b.max.x<.14&&Math.abs(b.min.y)<1e-6,`pie ${b.max.x} x ${b.max.y}`);
+ // The cherry's deep red and plenty of cream (colours are linear).
+ const c=one.attributes.color,p=one.attributes.position;let red=0,cream=0;
+ for(let i=0;i<c.count;i++){if(c.getX(i)>.2&&c.getY(i)<.06)red++;if(c.getX(i)>.7&&c.getY(i)>.65&&c.getZ(i)>.5)cream++;}
+ assert(red>50&&cream>500,`red ${red}, cream ${cream}`);
+ // The rim is crimped: its radius varies round the pie.
+ let lo=1,hi=0;for(let i=0;i<p.count;i++)if(Math.abs(p.getY(i)-.036)<.002){const r=Math.hypot(p.getX(i),p.getZ(i));if(r>.11){lo=Math.min(lo,r);hi=Math.max(hi,r);}}
+ assert(hi-lo>.005,`crimp ${lo}..${hi}`);
+ const three=creamPieGeometry(9);three.computeBoundingBox();
+ assert.equal(three.attributes.position.count,3*one.attributes.position.count);
+ assert(three.boundingBox.max.y<b.max.y,'stacked pies are smaller');
+ for(const name of ['cream pie','2 cream pies','5 cream pies']){
+  const model=createGroundModel({name,class:7});
+  const meshes=[];model.traverse(q=>{if(q.isMesh)meshes.push(q);});
+  assert.equal(meshes.length,1,name);
+  assert.equal(meshes[0].userData.part,'cream-pie');
+  assert(meshes[0].material.vertexColors);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.2,`${name} height ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
+  model.userData.dispose();
+ }
+ one.dispose();three.dispose();
 });
