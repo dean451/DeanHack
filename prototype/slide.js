@@ -18,9 +18,11 @@ export const HEAVY = {turtle: {cruise: 1.4, accel: 5, brake: 4, creep: .15, catc
 // turtle; the heavy golems (NetHack speed 3–8) trudge with a slow pull-away; the gelatinous
 // cube and the puddings ooze, with a long soft stop. The ghoul (speed 6, like a human zombie)
 // lopes: it pulls away harder and cruises a little faster than a zombie, then brakes short.
+// The skeleton (speed 8) jerks into motion quicker still and stops dead, like a marionette.
 export const SPECIES_SLIDE = {
   zombie: {cruise: 1.6, accel: 4.5, brake: 4, creep: .15, catchup: 1.6},
   ghoul: {cruise: 1.9, accel: 6, brake: 4.5, creep: .15, catchup: 1.6},
+  skeleton: {cruise: 2, accel: 8, brake: 6, creep: .2, catchup: 1.6},
   golem: {cruise: 1.3, accel: 3.5, brake: 4.5, creep: .15, catchup: 1.6},
   ooze: {cruise: 1.2, accel: 3.5, brake: 3, creep: .12, catchup: 1.6},
 };
@@ -32,6 +34,7 @@ export function speciesSlide(species) {
   if (typeof species !== 'string') return null;
   if (/ zombie$/.test(species)) return SPECIES_SLIDE.zombie;
   if (species === 'ghoul') return SPECIES_SLIDE.ghoul;
+  if (species === 'skeleton') return SPECIES_SLIDE.skeleton;
   if (HEAVY_GOLEMS.has(species)) return SPECIES_SLIDE.golem;
   if (OOZES.has(species)) return SPECIES_SLIDE.ooze;
   return null;
