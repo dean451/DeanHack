@@ -114,6 +114,37 @@ test('an elbowed arm folds back behind the head, whips straight at the release, 
   assert.ok(throwPose('shoot', RELEASE_U).swing.elbow > .4);
 });
 
+test('the off arm swings out wide in the windup, tucks across at the release, and ends at rest', () => {
+  // The hero's off arm (main.js): at x -.34, upper arm and forearm .25 and .23, elbow bent -.9.
+  const shieldArm = new THREE.Object3D(), shieldElbow = new THREE.Object3D(), hand = new THREE.Object3D();
+  const hero = rig({shieldArm});
+  hero.g.add(shieldArm); shieldArm.position.set(-.34, .91, 0);
+  shieldArm.add(shieldElbow); shieldElbow.position.y = -.25; shieldElbow.rotation.x = -.9;
+  shieldElbow.add(hand); hand.position.y = -.23;
+  const rest = shieldArm.rotation.toArray().slice(0, 3);
+  const handX = () => { const y = hero.g.rotation.y; hero.g.rotation.y = 0; hero.g.updateMatrixWorld(true);
+    const p = hand.getWorldPosition(new THREE.Vector3()); hero.g.rotation.y = y; return p; };
+  const restX = handX().x;
+  queueThrows(throwTo(6, DAGGER), () => hero);
+  let minX = Infinity, maxX = -Infinity;
+  for (let i = 0; i < 40; i++) {
+    clearActionPose(hero, hero.actions);
+    hero.g.rotation.y = 0;
+    updateActions(hero, hero.actions, .02);
+    const p = handX();
+    for (const v of p.toArray()) assert.ok(Number.isFinite(v) && Math.abs(v) < 2);
+    assert.ok(p.y > .3, 'the off hand stays well above the floor');
+    minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+  }
+  assert.ok(minX < restX - .12, 'out wide in the windup');
+  assert.ok(maxX > restX + .05 && maxX < -.02, 'in across the body, not through it');
+  clearActionPose(hero, hero.actions);
+  assert.deepEqual(shieldArm.rotation.toArray().slice(0, 3), rest);
+  // Every throw pose leaves the off arm at rest at both ends, and a shot never moves it.
+  for (const style of ['hurl', 'shoot']) for (const u of [0, 1]) assert.equal(throwPose(style, u).swing.shield, 0);
+  for (let u = 0; u <= 1; u += .05) assert.equal(throwPose('shoot', u).swing.shield, 0);
+});
+
 test('a busy thrower waits, capped; nobody there means no delay', () => {
   assert.equal(queueThrows(throwTo(6, DAGGER), () => null), 0);
   const busy = rig();
