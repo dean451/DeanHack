@@ -54,7 +54,8 @@ test('only lying-down actions are grounded', () => {
 });
 
 test('a toppled body stays on the floor, moves smoothly, and a revived one gets back to rest', () => {
-  for (const name of ['housecat', 'tiger', 'jackal', 'wolf', 'dwarf', 'hill orc', 'giant rat', 'pony']) {
+  for (const name of ['housecat', 'tiger', 'jackal', 'wolf', 'dwarf', 'hill orc', 'giant rat', 'pony',
+    'hobbit', 'gnome', 'bugbear', 'troll', 'imp', 'jabberwock', 'mind flayer', 'hell hound', 'soldier']) {
     const a = createCreature({name});
     a.g.position.set(2, 0, 3);
     const q = createActionQueue();
@@ -68,8 +69,8 @@ test('a toppled body stays on the floor, moves smoothly, and a revived one gets 
       low = Math.min(low, lowest(a.g));
     }
     assert.ok(q.finished, name);
-    // it used to sink .2 (cats) to .7 (dwarf); now only a settle, plus sampling slack
-    assert.ok(low > -(SETTLE + .06), `${name} sank to ${low.toFixed(3)}`);
+    // it used to sink .2 (cats) to .7 (dwarf); now only a settle, plus sampling slack (worst: jabberwock .02)
+    assert.ok(low > -(SETTLE + .03), `${name} sank to ${low.toFixed(3)}`);
     assert.ok(q.applied.dy < .8, `${name} lifted ${q.applied.dy}`);
     clearActionPose(a, q);
     assert.ok(Math.abs(a.g.position.y) < 1e-9);
@@ -79,7 +80,7 @@ test('a toppled body stays on the floor, moves smoothly, and a revived one gets 
     enqueueAction(rq, {kind: 'rise', from: [0, 0], buried: false});
     let rlow = Infinity;
     for (let i = 0; i < 200; i++) { clearActionPose(r, rq); updateActions(r, rq, 1 / 60); rlow = Math.min(rlow, lowest(r.g)); }
-    assert.ok(rlow > -(SETTLE + .06), `${name} rose from ${rlow.toFixed(3)}`);
+    assert.ok(rlow > -(SETTLE + .03), `${name} rose from ${rlow.toFixed(3)}`);
     clearActionPose(r, rq);
     assert.equal(rq.current, null);
     assert.ok(Math.abs(r.g.position.y) < 1e-9 && Math.abs(r.g.rotation.z) < 1e-9, `${name} back at rest`);
