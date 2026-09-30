@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose, STRIKE_U, ACTION_TIME} from './actions.js';
-import {updateKamae, holdsKamae, aim, HILT, ARM_LEN} from './kamae.js';
+import {updateKamae, holdsKamae, aim, HILT, ARM_LEN, cutTrailOn} from './kamae.js';
 
 const make = name => {
   const a = createCreature({name, symbol: 64, color: 1});
@@ -140,4 +140,53 @@ test('death fades the stance out and leaves the arms and katana exactly at rest'
   for (let i = 60; i < 360; i++) frame(a, dt, i * dt);
   assert.equal(a.kamae.f, 0);
   assert(snap(a).every((v, k) => Math.abs(v - rest[k]) < 1e-9));
+});
+
+test('the fast part of the cut leaves a blade trail that fades once the blade slows', () => {
+  for (const result of ['hit', 'miss']) {
+    const a = make('samurai'), dt = 1 / 60;
+    for (let i = 0; i < 60; i++) frame(a, dt, i * dt);
+    assert(!a.kamae.trail, 'no trail while standing');
+    enqueueAction(a.actions, {kind: 'attack', attack: 'weapon', result, dir: {x: 0, z: 1}});
+    let i = 60, drawn = 0, maxSamples = 0, raising = 0;
+    while (a.actions.current || a.actions.queue.length) {
+      const u = a.actions.current ? a.actions.u : null;
+      frame(a, dt, i * dt); i++;
+      const tr = a.kamae.trail;
+      if (a.actions.current && cutTrailOn(a.actions.u, result)) drawn++;
+      if (tr) {
+        maxSamples = Math.max(maxSamples, tr.samples);
+        const pos = tr.mesh.geometry.attributes.position.array, col = tr.mesh.geometry.attributes.color.array;
+        for (const v of pos) assert(Number.isFinite(v));
+        for (const v of col) assert(v >= 0 && v <= 1);
+        // the ribbon runs from the blade to the tip, in the samurai's space, above the floor and in front
+        for (let k = 0; k < pos.length; k += 3) if (pos[k] || pos[k + 1] || pos[k + 2]) {
+          assert(pos[k + 1] > -.05 && pos[k + 1] < 2 && Math.abs(pos[k]) < 1.2 && Math.abs(pos[k + 2]) < 1.6, `${result} trail point ${pos.slice(k, k + 3)}`);
+        }
+      }
+      if (u != null && u < .2 && tr?.samples) raising++;
+      assert(i < 600);
+    }
+    assert(drawn >= 4, `${result}: drawn on ${drawn} frames`);
+    assert(maxSamples >= 4, `${result}: ${maxSamples} samples`);
+    assert.equal(raising, 0, 'no trail on the slow raise');
+    assert.equal(a.kamae.trail.mesh.parent, a.g);
+    for (let k = 0; k < 30; k++, i++) frame(a, dt, i * dt);
+    assert.equal(a.kamae.trail.samples, 0);
+    assert.equal(a.kamae.trail.mesh.visible, false, `${result}: the trail fades out`);
+  }
+});
+
+test('a dying samurai stops drawing its trail', () => {
+  const a = make('samurai'), dt = 1 / 60;
+  for (let i = 0; i < 60; i++) frame(a, dt, i * dt);
+  enqueueAction(a.actions, {kind: 'attack', attack: 'weapon', result: 'miss', dir: {x: 0, z: 1}});
+  let i = 60;
+  while (!a.kamae.trail?.samples) { frame(a, dt, i * dt); i++; assert(i < 200); }
+  // struck down mid-cut: the stance drops, and the trail stops and fades
+  enqueueAction(a.actions, {kind: 'die', dir: {x: 0, z: 1}});
+  for (; i < 460; i++) frame(a, dt, i * dt);
+  assert.equal(a.kamae.f, 0);
+  assert.equal(a.kamae.trail.samples, 0);
+  assert.equal(a.kamae.trail.mesh.visible, false);
 });
