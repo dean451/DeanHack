@@ -23,7 +23,7 @@ function frame(a, t, dt) {
   updateActions(a, a.actions, dt);
   return {p, walking};
 }
-const snap = a => [...a.legs.map(l => l.rotation.x), a.body.rotation.z, a.head?.rotation.x ?? 0,
+const snap = a => [...a.legs.map(l => l.rotation.x), a.body.rotation.z, a.head?.rotation.x ?? 0, a.head?.rotation.z ?? 0,
   ...(a.arms || []).map(r => r.rotation.x)];
 
 test('trudge poses are finite and within their stride, lurch and dip', () => {
@@ -31,15 +31,17 @@ test('trudge poses are finite and within their stride, lurch and dip', () => {
     const T = TRUDGE[kind];
     for (let i = 0; i <= 400; i++) {
       const p = trudgePose(kind, Math.PI * 2 * i / 400);
-      for (const v of [...p.legs, p.bob, p.roll, p.nod, ...p.arms]) assert(Number.isFinite(v));
+      for (const v of [...p.legs, p.bob, p.roll, p.nod, p.shake, ...p.arms]) assert(Number.isFinite(v));
+      assert(Math.abs(p.shake) <= (T.rattle || 0));
       assert.equal(p.arms[0], -p.arms[1]);
       assert(Math.abs(p.arms[0]) <= (T.arm || 0) + 1e-12 && p.nod >= 0 && p.nod <= (T.nod || 0));
       assert.equal(p.legs[0], -p.legs[1]);
       assert(Math.abs(p.legs[0]) <= T.stride && Math.abs(p.roll) <= T.roll && p.bob <= 0 && p.bob >= -T.dip);
     }
-    assert.deepEqual(trudgePose(kind, 1, 0), {legs: [0, 0], bob: 0, roll: 0, nod: 0, arms: [0, 0]});
+    assert.deepEqual(trudgePose(kind, 1, 0), {legs: [0, 0], bob: 0, roll: 0, nod: 0, arms: [0, 0], shake: 0});
   }
   assert.equal(trudgeKind(make('ghoul', 'Z')), 'ghoul');
+  assert.equal(trudgeKind(make('skeleton', 'Z')), 'skeleton');
   assert.equal(trudgeKind(make('human zombie', 'Z')), 'zombie');
   assert.equal(trudgeKind(make('iron golem', "'")), 'golem');
   for (const [n, s] of [['straw golem', "'"], ['gnome mummy', 'M'], ['brown pudding', 'P'], ['jackal', 'd']]) {
@@ -50,9 +52,9 @@ test('trudge poses are finite and within their stride, lurch and dip', () => {
 });
 
 test('a zombie and a golem trudge slowly across a cell and settle back to their exact rest pose', () => {
-  for (const [name, sym, kind] of [['human zombie', 'Z', 'zombie'], ['kobold zombie', 'Z', 'zombie'], ['stone golem', "'", 'golem'], ['clay golem', "'", 'golem'], ['ghoul', 'Z', 'ghoul']]) {
+  for (const [name, sym, kind] of [['human zombie', 'Z', 'zombie'], ['kobold zombie', 'Z', 'zombie'], ['stone golem', "'", 'golem'], ['clay golem', "'", 'golem'], ['ghoul', 'Z', 'ghoul'], ['skeleton', 'Z', 'skeleton']]) {
     const a = make(name, sym), T = TRUDGE[kind], dt = 1 / 60;
-    const armRest = (a.arms || []).map(r => r.rotation.x), headRest = a.head?.rotation.x ?? 0;
+    const armRest = (a.arms || []).map(r => r.rotation.x), headRest = a.head?.rotation.x ?? 0, tiltRest = a.head?.rotation.z ?? 0;
     a.g.position.set(0, 0, 0); a.target = new THREE.Vector3(1, 0, 1);
     const rest = snap(a);
     let t = 0, prev = snap(a), worst = 0, walkedFrames = 0, peak = 0;
@@ -68,6 +70,7 @@ test('a zombie and a golem trudge slowly across a cell and settle back to their 
         assert(Math.abs(a.body.rotation.z) <= T.roll + 1e-9);
         assert(a.body.position.y <= 1e-9 && a.body.position.y >= -T.dip - 1e-9);
         if (a.head) assert(a.head.rotation.x - headRest >= -1e-9 && a.head.rotation.x - headRest <= (T.nod || 0) + 1e-9);
+        if (a.head) assert(Math.abs(a.head.rotation.z - tiltRest) <= (T.rattle || 0) + 1e-9, `${name} rattle`);
         (a.arms || []).forEach((r, k) => assert(Math.abs(r.rotation.x - armRest[k]) <= (T.arm || 0) + 1e-9, `${name} arm ${k}`));
       }
       peak = Math.max(peak, Math.abs(a.legs[0].rotation.x));
@@ -76,8 +79,10 @@ test('a zombie and a golem trudge slowly across a cell and settle back to their 
     }
     assert(walkedFrames > 60, `${name} slid for ${walkedFrames} frames`);
     assert(peak > T.stride * .5, `${name} took real steps (${peak})`);
-    // at most rate × stride ≈ .04 rad a frame (the ghoul's lope ≈ .07), plus the blend; the generic swing moved up to .15
-    assert(worst < Math.max(.06, T.rate * T.stride * dt + .01), `${name} smooth (${worst})`);
+    // at most rate × stride ≈ .04 rad a frame (the ghoul's lope ≈ .07; the skeleton's snap steepens
+    // its stride by snap/tanh(snap) ≈ 2.2, to ≈ .11), plus the blend; the generic swing moved up to .15
+    const steep = T.snap ? T.snap / Math.tanh(T.snap) : 1;
+    assert(worst < Math.max(.06, T.rate * T.stride * steep * dt + .01), `${name} smooth (${worst})`);
     snap(a).forEach((v, k) => assert(Math.abs(v - rest[k]) < 1e-12, `${name} back to rest ${k}: ${v} vs ${rest[k]}`));
     assert.equal(a.trudge.w, 0);
     assert.equal(a.trudge.roll, 0);
@@ -154,4 +159,27 @@ test('straw golem flop ignores teleports and bad frame times', () => {
     const p = updateStrawFlop(a, dt, NaN, true);
     [...p.arms.flat(), ...p.head].forEach(v => assert(Number.isFinite(v)));
   }
+});
+
+test('the skeleton snaps between strides and its skull rattles after each footfall, then dies away', () => {
+  const T = TRUDGE.skeleton, N = 2000;
+  // snap: the legs spend far longer near full stride than a sine does
+  let held = 0, sineHeld = 0;
+  for (let i = 0; i < N; i++) {
+    const ph = Math.PI * 2 * i / N;
+    if (Math.abs(trudgePose('skeleton', ph).legs[0]) > T.stride * .8) held++;
+    if (Math.abs(Math.sin(ph)) > .8) sineHeld++;
+  }
+  assert(held > sineHeld * 1.4, `held ${held} vs ${sineHeld}`);
+  // rattle: none at the footfall itself, a real shake just after, almost nothing left before the next
+  const at = q => trudgePose('skeleton', Math.PI / 2 + q).shake;
+  assert(Math.abs(at(0)) < 1e-12);
+  let peak = 0;
+  for (let q = 0; q < Math.PI / 3; q += .01) peak = Math.max(peak, Math.abs(at(q)));
+  assert(peak > T.rattle * .4, `rattle peak ${peak}`);
+  assert(Math.abs(at(Math.PI - 1e-6)) < T.rattle * .002);
+  // continuous across the next footfall
+  assert(Math.abs(at(Math.PI - 1e-6) - at(Math.PI + 1e-6)) < T.rattle * .002);
+  // the other kinds don't rattle
+  for (const k of ['zombie', 'golem', 'ghoul']) assert.equal(trudgePose(k, 2).shake, 0);
 });
