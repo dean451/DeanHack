@@ -4852,6 +4852,90 @@ export function lembasGeometry(count=1){
  return merged;
 }
 
+// Tripe rations: pale, wet honeycomb tripe on a torn sheet of butcher's paper. Each piece is a
+// thick soft sheet with ragged, ruffled margins; its inner face is raised into the honeycomb's
+// hexagonal cells (ridged cream walls, greyer pits) and the outer face is smooth and tan. One
+// piece lies flat, honeycomb up; the other is folded back on itself, so its smooth side shows
+// on top and the honeycomb peeps out along the fold. A stack adds a third, smaller piece.
+// One merged vertex-coloured mesh (1 draw).
+export function tripeRationGeometry(count=1){
+ const n=Math.min(2,Math.max(1,count|0)),T=.014,PAPER=.0012;
+ const CREAM=new THREE.Color(0xe8dcc6),PIT=new THREE.Color(0x9a8c7c),PINK=new THREE.Color(0xd8aa9c),TAN=new THREE.Color(0xc9b08e),
+  WET=new THREE.Color(0xf6efe2),SHEET=new THREE.Color(0xd9c7a4),CREASE=new THREE.Color(0xb49e78),BLOOD=new THREE.Color(0xb88478),col=new THREE.Color();
+ const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+ // Honeycomb walls: 1 on the ridges between hexagonal cells, 0 in the pits (Voronoi F2-F1 on a hex lattice).
+ const CELL=.024,RY=CELL*Math.sqrt(3)/2;
+ const comb=(u,v)=>{
+  const row=Math.round(v/RY);let f1=1,f2=1;
+  for(let r=row-1;r<=row+1;r++){const off=(r&1)?CELL/2:0,col0=Math.round((u-off)/CELL);
+   for(let c=col0-1;c<=col0+1;c++){const d=Math.hypot(u-(c*CELL+off),v-r*RY);if(d<f1){f2=f1;f1=d;}else if(d<f2)f2=d;}}
+  return 1-smooth(.0012,.0045,f2-f1);
+ };
+ // One piece: a sheet L long and W wide, lying along +x from x=0. Past `fold` (if given) it
+ // bends back over itself round a tight radius, honeycomb inward.
+ const piece=(L,W,seed,fold)=>{
+  const geo=weld(new THREE.BoxGeometry(L,T,W,72,2,40));
+  const p=geo.attributes.position,c=new Float32Array(p.count*3),R=T/2+.0065;
+  for(let i=0;i<p.count;i++){
+   const x0=p.getX(i),y0=p.getY(i),z0=p.getZ(i),u=x0+L/2,s=z0/(W/2);
+   // Ragged plan outline: the width wanders along the length and the ends are torn unevenly.
+   const rag=1+.1*Math.sin(u*47+seed)+.06*Math.sin(u*113+seed*2.3);
+   const tear=.012*Math.sin(s*9+seed)+.006*Math.sin(s*23+seed);
+   // The tear fades in over the last few centimetres, so no triangle folds over.
+   const uu=u+(u<L/2?1:-1)*tear*smooth(L/2-.035,L/2,Math.abs(u-L/2)),z=z0*rag;
+   const top=y0>T/2-1e-6,side=!top&&y0>-T/2+1e-6;
+   const k=top?comb(uu,z+seed*.01):0;
+   // The honeycomb face rises in ridges; the margins ruffle up in soft waves.
+   let t=y0+(top?.0032*k-.0016:0);
+   const edge=smooth(.62,1,Math.abs(s)),ruffle=edge*(.5+.5*Math.sin(uu*58+s*3+seed))*.009;
+   let X,Y;
+   if(fold===undefined||uu<=fold){X=uu;Y=T/2+t+ruffle;}
+   else{
+    const arc=uu-fold,th=Math.min(Math.PI,arc/R),rr=R-t;
+    X=fold+rr*Math.sin(th);Y=T/2+R-rr*Math.cos(th);
+    if(arc>Math.PI*R){const back=arc-Math.PI*R;X=fold-back;Y=T/2+2*R-t+ruffle*.6+.004*smooth(0,.05,back)*Math.sin(back*40+seed);}
+   }
+   p.setXYZ(i,X,Y+PAPER,z);
+   // Colour: cream ridges, grey-brown pits, wet highlights on the ridge tops; the outer face tan and smoother.
+   const mott=stoneNoise(uu*30,y0*30,z*30,5+seed);
+   if(top)col.copy(PIT).lerp(CREAM,k).lerp(WET,k*.35*Math.max(0,mott)).lerp(PINK,.18*(1-k)+.12*Math.max(0,-mott));
+   else if(side)col.copy(CREAM).lerp(PINK,.35);
+   else col.copy(TAN).lerp(CREAM,.3+.2*mott).lerp(PINK,.12);
+   col.lerp(PINK,.25*edge);
+   c.set([col.r,col.g,col.b],i*3);
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));geo.computeVertexNormals();
+  return geo;
+ };
+ const parts=[];
+ const flat=piece(.2,.12,1.3);flat.translate(-.1,0,0);flat.rotateY(.35);flat.translate(-.035,0,.035);parts.push(flat);
+ const folded=piece(.27,.11,4.1,.14);folded.translate(-.07,0,0);folded.rotateY(-.5);folded.translate(.045,0,-.04);parts.push(folded);
+ if(n>1){const small=piece(.13,.08,7.7);small.translate(-.065,0,0);small.rotateY(2.1);small.translate(.07,0,.06);parts.push(small);}
+ // Butcher's paper: a torn, creased sheet under the lot, stained where the tripe lies.
+ const paper=new THREE.PlaneGeometry(.36,.3,36,30);paper.rotateX(-Math.PI/2);paper.deleteAttribute('uv');
+ {
+  const p=paper.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   let x=p.getX(i),z=p.getZ(i);
+   // Torn edges: pull the outline in unevenly.
+   // The pull fades in over the outer band, so no triangle folds over.
+   const tx=(.012+.01*Math.sin(z*61))*smooth(.13,.18,Math.abs(x)),tz=(.012+.01*Math.sin(x*53))*smooth(.1,.15,Math.abs(z));
+   x-=Math.sign(x)*tx;z-=Math.sign(z)*tz;
+   const crease=Math.max(1-smooth(0,.006,Math.abs(x*.8+z*.6-.02)),1-smooth(0,.006,Math.abs(x-.3*z+.07)));
+   const lift=.0035*smooth(.13,.18,Math.max(Math.abs(x)/1.2,Math.abs(z)));
+   p.setXYZ(i,x,lift+.0006*crease,z);
+   const stain=1-smooth(.06,.13,Math.hypot(x+.005,z*1.2));
+   col.copy(SHEET).lerp(CREASE,crease*.6+.15*Math.max(0,stoneNoise(x*20,0,z*20,3))).lerp(BLOOD,stain*.3);
+   c.set([col.r,col.g,col.b],i*3);
+  }
+  paper.setAttribute('color',new THREE.BufferAttribute(c,3));paper.computeVertexNormals();
+ }
+ parts.push(paper);
+ for(const g of parts)if(g.attributes.uv)g.deleteAttribute('uv');
+ const merged=mergeGeometries(parts);parts.forEach(g=>g.dispose());
+ return merged;
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -5428,7 +5512,12 @@ export function createGroundModel(item={}){
   }
   for(let y=.035;y<.28;y+=.024)patchAt(-1.75,y,.003,.012,thread);
  }else if(/ration/.test(name)){
-  if(/tripe/.test(name)){const meat=mat(0xa26457);for(let i=0;i<4;i++)ball(.1,meat,(i-1.5)*.075,.065,Math.sin(i)*.035,[.7,.5,1.3]);}
+  if(/tripe/.test(name)){
+   // Tripe and paper share one wet-looking vertex-coloured material.
+   const tripe=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.42});materials.push(tripe);
+   add(tripeRationGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),tripe).userData.part='tripe';
+   g.rotation.y=.25;
+  }
   else if(/\b(cram|k-ration|c-ration)/.test(name))buildRation(/cram/.test(name)?'cram':/k-ration/.test(name)?'k':'c',{g,materials});
   else {
    add(new RoundedBoxGeometry(.42,.14,.28,4,.045),cloth,0,.075);
