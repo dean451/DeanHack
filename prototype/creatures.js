@@ -10,6 +10,7 @@ import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
 import {createZombie,ZOMBIES} from './zombie.js';
 import {createRaven} from './raven.js';
+import {createSpider} from './spider.js';
 import {createMold} from './mold.js';
 import {createMushroom} from './mushroom.js';
 import {createLichen} from './lichen.js';
@@ -670,15 +671,6 @@ function xan(o){
  return actor(g,body,legs,null,wings,'bee');
 }
 
-function spider(o){
- const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
- const shell=mat(o.color,{roughness:.6}),dark=mat(shade(o.color,.45)),y=.24;
- sphere(body,.1,shell,0,y,.08,1,.8,1.05);sphere(body,.16,shell,0,y+.05,-.14,1,.85,1.2);
- rounded(body,.12,.02,.16,dark,0,y+.19,-.14,.01);
- for(const side of [-1,1])for(const [dx,dy] of [[.03,.02],[.06,.0]])sphere(body,.018,mat('#c81e1e',{emissive:'#ff2a1a',emissiveIntensity:1.5}),side*dx,y+.04+dy,.17);
- for(const side of [-1,1])for(let i=0;i<4;i++){const z=.14-i*.06,spread=(i-1.5)*.35;const leg=new THREE.Group();leg.position.set(side*.07,y,z);body.add(leg);tube(leg,[[0,0,0],[side*.16,.16,Math.sin(spread)*.12],[side*.3,-y+.01,Math.sin(spread)*.3]],.014,dark,10);legs.push(leg);}
- return actor(g,body,legs,null,[],'spider');
-}
 function centipede(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);
  const shell=mat(o.color,{roughness:.5}),dark=mat(shade(o.color,.4));
@@ -2292,7 +2284,7 @@ export function createCreature(cell={}){
  if(name==='lichen')return createLichen(name);
  if(/ mold$/.test(name))return createMold(name,color);
  if(name==='shrieker'||name==='violet fungus')return createMushroom(name);
- if(name==='cave spider'||name==='giant spider')return spider({color:name==='cave spider'?'#7a7a74':'#4a2a5a',scale:name==='cave spider'?.65:1.5});
+ if(name==='cave spider'||name==='giant spider')return createSpider(name);
  if(name==='gelatinous cube')return cube({color:color||'#8ad0c0'});
  if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name)});
  if(name==='centipede')return centipede({color:'#c9a03a'});
@@ -2335,7 +2327,7 @@ export function createCreature(cell={}){
   case ':':return lizard({skin:c});
   case 'c':return cockatrice({skin:c,comb:'#c8262a',beak:shade(c,1.3)});
   case 'a':return insect({color:c});
-  case 's':return spider({color:c});
+  case 's':return createSpider(name,c);
   case 'S':return snake({color:c});
   case 'w':return worm({color:c,baby:/baby/.test(name)});
   case 'v':return vortex({color:c});
