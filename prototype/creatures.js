@@ -12,6 +12,7 @@ import {createZombie,ZOMBIES} from './zombie.js';
 import {createRaven} from './raven.js';
 import {createSpider} from './spider.js';
 import {createAnt,isAnt} from './ant.js';
+import {createFeline,isFeline} from './feline.js';
 import {createBee,isBee} from './bee.js';
 import {createBeetle,isBeetle} from './beetle.js';
 import {createMold} from './mold.js';
@@ -506,19 +507,7 @@ const PET_DOGS={
  'large dog':{scale:1.18,coat:'#b27a3e',light:'#d9b27a',saddle:'#2a2320',mask:'#3a2e28',sock:'#c89660',ears:'pointed',legH:.32,snout:.155,collar:'#6a3a1e',tailR:.03,curl:.8},
 };
 
-function feline(o){
- const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
- const coat=mat(o.coat),dark=mat(o.stripe||shade(o.coat,.5)),light=mat(shade(o.coat,1.4)),legH=o.legH||.22,y=legH+.1;
- sphere(body,.18,coat,0,y,0,.75,.72,1.55);sphere(body,.11,light,0,y-.07,.1,.7,.55,1.1);
- for(let i=0;i<(o.stripes??3);i++)rounded(body,.27,.02,.035,dark,0,y+.1,-.12+i*.1,.01);
- const head=new THREE.Group();head.position.set(0,y+.13,.29);body.add(head);
- sphere(head,.11,coat,0,0,0,1.05,.92,.95);sphere(head,.05,light,0,-.035,.085,1.2,.7,.8);sphere(head,.016,nose,0,-.01,.12);
- for(const side of [-1,1]){const ear=cone(head,.045,.1,coat,side*.065,.1,-.01,3);ear.rotation.z=-side*.2;sphere(head,.02,mat(o.eye||'#d6b640',{emissive:o.eye||'#6a5010',emissiveIntensity:.6}),side*.045,.02,.09,1,.8,.6);}
- for(const x of [-.08,.08])for(const z of [-.18,.16]){const leg=new THREE.Group();leg.position.set(x,y-.03,z);body.add(leg);rounded(leg,.055,legH,.06,coat,0,-legH/2,0,.02);legs.push(leg);}
- const tail=new THREE.Group();tail.position.set(0,y+.05,-.26);body.add(tail);tube(tail,[[0,0,0],[0,.1,-.12],[.04,.28,-.16],[.08,.4,-.1]],.028,coat);
- return actor(g,body,legs,tail,[],'feline');
-}
-const FELINES={kitten:{coat:'#c98f55',scale:.7},housecat:{coat:'#c98f55'},'large cat':{coat:'#c98f55',scale:1.15},jaguar:{coat:'#c79a45',stripe:'#3a2a18',scale:1.4,stripes:5},lynx:{coat:'#a88f70',scale:1.1,ears:.14},panther:{coat:'#26242a',stripe:'#1a181c',scale:1.45,eye:'#9ad04a'},tiger:{coat:'#d17a2a',stripe:'#1e1510',scale:1.6,stripes:6},'displacer beast':{coat:'#3a3450',scale:1.5}};
+// Cats are in feline.js.
 
 // Newts, geckos, iguanas, lizards, crocodiles: low splayed body and a long tapering tail.
 function lizard(o){
@@ -2217,7 +2206,7 @@ export function createCreature(cell={}){
  if(/grid ?bug/.test(name))return gridBug();
  if(CANINES[name])return canine(CANINES[name]);
  if(PET_DOGS[name])return petDog(PET_DOGS[name]);
- if(FELINES[name])return feline(FELINES[name]);
+ if(isFeline(name))return createFeline(name);
  if(CROCODILES.includes(name))return createCrocodile(name);
  if(LIZARDS[name])return lizard(LIZARDS[name]);
  if(COCKATRICES[name])return cockatrice(COCKATRICES[name]);
@@ -2314,7 +2303,7 @@ export function createCreature(cell={}){
  const c=color||'#8a8a80';
  switch(letter){
   case 'd':return canine({coat:c,ears:.15,snout:.2});
-  case 'f':return feline({coat:c});
+  case 'f':return createFeline(name,c);
   case ':':return lizard({skin:c});
   case 'c':return cockatrice({skin:c,comb:'#c8262a',beak:shade(c,1.3)});
   case 'a':return createAnt(name,c);
