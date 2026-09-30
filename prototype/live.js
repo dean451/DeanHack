@@ -54,6 +54,7 @@ import {reviveAction,riseActionFor,createRiseWatch} from './rise.js';
 import {updateGait,flapStyle,wingFlap,flightBob} from './gait.js';
 import {updateFidget} from './fidget.js';
 import {heroLook} from './glance.js';
+import {updateGhosting} from './ghosting.js';
 import {updateSkulk} from './skulk.js';
 import {updateTwitch} from './twitch.js';
 import {updateBask} from './bask.js';
@@ -347,7 +348,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    else if(pending?.kind==='position'){code=directions[e.key]??(e.key==='Escape'?27:e.key==='Enter'?46:e.key.length===1?e.key.charCodeAt(0):undefined);}else code=directions[e.key]??(e.key==='Enter'?13:e.key==='Escape'?27:e.key.length===1?e.key.charCodeAt(0):undefined);
    if(code){e.preventDefault();e.stopImmediatePropagation();if(pending)reply(code);else if(pending===null)queuedCommand=code;}
  },true);
- return {get active(){return active;},update(t,dt){if(!active||!hero.target)return;poseEngulfed(hero,null);poseHeld(hero,null);clearActionPose(hero,hero.actions);zapFlash.unpose(hero);const delta=hero.target.clone().sub(hero.g.position),moving=delta.length()>.025;if(moving)hero.g.rotation.y=Math.atan2(delta.x,delta.z);hero.g.position.lerp(hero.target,1-Math.exp(-dt*14));hero.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);hero.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);hero.cape.rotation.x=-.17+Math.sin(t*3)*.06;if(hero.plume)hero.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
+ return {get active(){return active;},update(t,dt){if(!active||!hero.target)return;poseEngulfed(hero,null);poseHeld(hero,null);clearActionPose(hero,hero.actions);zapFlash.unpose(hero);const delta=hero.target.clone().sub(hero.g.position),moving=delta.length()>.025;if(moving)hero.g.rotation.y=Math.atan2(delta.x,delta.z);hero.g.position.lerp(hero.target,1-Math.exp(-dt*14));hero.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);hero.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);hero.cape.rotation.x=-.17+Math.sin(t*3)*.06;if(hero.plume)hero.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;updateGhosting(hero,dt,t,!!latest?.player?.invisible);
    const offset=hero.g.position.clone().sub(controls.target);offset.y=0;offset.multiplyScalar(1-Math.exp(-dt*3));controls.target.add(offset);camera.position.add(offset);lantern.position.copy(hero.g.position).add(new THREE.Vector3(0,3,0));
    for(const tile of tiles.values())if(tile.visible)tile.traverse(o=>o.userData.updateFire?.(t));updateDoorSwings(dt);
    updateActions(hero,hero.actions,dt);zapFlash.update(dt,hero);swingFx.update(hero,dt,swingTarget);
