@@ -73,6 +73,9 @@ export function findBreaks(prev, frame) {
   const out = [];
   for (const c of frame.cells) {
     if (c.terrain !== 'floor' || isDoor(c) || c.visible === false) continue;
+    // Someone (the hero too) or something on the tile hides the door glyph, and the bridge then
+    // guesses the ground as plain floor, so walking through an open door looked like a smash.
+    if (c.kind && c.kind !== 'terrain') continue;
     const was = before.get(`${c.x},${c.z}`);
     if (!isDoor(was) || was.visible === false) continue;
     // The door faced along the walls it joined, as live.js turns it (from prev).

@@ -190,3 +190,18 @@ test('a door that leaves a wreck throws only thin splinters, which sink away soo
   assert.deepEqual(fx.update(.2), {count: 0, shards: 0, dust: 0});
   fx.dispose();
 });
+
+// The bridge sends one cell per tile: someone standing in an open doorway replaces its cell,
+// and the ground under them comes from the background glyph, a plain floor with no `door`.
+const standingIn = (frame, [x, z], kind = 'monster') =>
+  ({...frame, cells: frame.cells.map(c => c.x === x && c.z === z ? {x, z, kind, terrain: 'floor', visible: true, name: 'valkyrie'} : c)});
+
+test('walking through an open door is not a break', () => {
+  const open = room('open', {hero: [2, 3]}), onDoor = standingIn(room('open', {hero: [2, 2]}), [2, 2]);
+  assert.deepEqual(findBreaks(open, onDoor), [], 'the hero steps into the doorway');
+  assert.deepEqual(findBreaks(onDoor, room('open', {hero: [2, 1]})), [], 'and out the other side');
+  assert.deepEqual(findBreaks(open, standingIn(open, [2, 2], 'pet')), [], 'a pet in the doorway');
+  assert.deepEqual(findBreaks(open, standingIn(open, [2, 2], 'object')), [], 'an item in the doorway');
+  // A real break still shows once the doorway is clear.
+  assert.equal(findBreaks(room('closed'), room('broken')).length, 1);
+});
