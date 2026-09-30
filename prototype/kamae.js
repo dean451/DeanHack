@@ -11,9 +11,13 @@ import * as THREE from 'three';
 // reaches across), which keeps the arms clear of the armour.
 //
 // The left hand is aimed at the hilt afresh every frame, after the action layer has moved the
-// sword arm, so it stays on the hilt as the stance fades in and out. An attack (monster-chop.js
-// plays from the one-handed rest pose), a throw or death drops the stance within ~0.3 s, all but a
-// hair of it by the blow; it comes back once the actor is idle or walking again.
+// sword arm, so it stays on the hilt as the stance fades in and out. A throw or death drops the
+// stance within ~0.3 s; it comes back once the actor is idle or walking again.
+//
+// A weapon attack is cut from the stance, two-handed (actions.js takes its generic arm wave off):
+// the katana goes up over the head, blade back (furikaburi), comes down through the target to a
+// little below level at the blow, and then either stops on the hit or follows through low on a
+// miss, before settling back into kamae. The left hand rides the hilt all the way.
 //
 // Everything is an offset (the arms' and socket's Euler angles, the shoulders' positions), taken
 // back first each frame, so actions.js's own offsets on the same parts still stack on top.
@@ -72,13 +76,37 @@ export function hiltGrip(actor, out = new THREE.Vector3()) {
   return out.set(0, y, 0).applyMatrix4(s.matrix).applyMatrix4(arm.matrix);
 }
 
+// The cut, as [u, blade angle, hand y, hand z] (hand x stays at HAND.x), keyed on the attack's
+// phase. CUT_STRIKE_U matches STRIKE_U in actions.js (kept here to avoid an import cycle).
+export const CUT_STRIKE_U = .44;
+const CUT_UP = [[0, RAISE, HAND.y, HAND.z], [.3, 2.2, 1.02, .2]];
+const CUT_HIT = [[CUT_STRIKE_U, -.15, .74, .42], [.54, -.1, .75, .41], [.76, .3, .75, .38], [1, RAISE, HAND.y, HAND.z]];
+const CUT_MISS = [[CUT_STRIKE_U, -.15, .74, .42], [.56, -.6, .6, .38], [.8, .1, .7, .37], [1, RAISE, HAND.y, HAND.z]];
+const smooth = v => { v = v < 0 ? 0 : v > 1 ? 1 : v; return v * v * (3 - 2 * v); };
+
+// The blade angle and where the right hand is aimed, at phase u of a cut.
+export function cutPose(u, result = 'hit') {
+  const keys = [...CUT_UP, ...(result === 'hit' ? CUT_HIT : CUT_MISS)];
+  u = Number.isFinite(u) ? Math.max(0, Math.min(1, u)) : 0;
+  let k = keys[keys.length - 1];
+  for (let i = 1; i < keys.length; i++) {
+    if (u > keys[i][0]) continue;
+    const a = keys[i - 1], b = keys[i], w = smooth((u - a[0]) / (b[0] - a[0]));
+    k = a.map((v, j) => v + (b[j] - v) * w);
+    break;
+  }
+  return {raise: k[1], hand: {x: HAND.x, y: k[2], z: k[3]}};
+}
+
+const cutting = q => q?.current?.kind === 'attack' && q.current.attack === 'weapon' && !q.dead;
+
 const ZERO = () => ({arm: {x: 0, z: 0}, socket: {x: 0, y: 0, z: 0}, off: {x: 0, z: 0}, shoulders: [0, 0]});
 
 // Whether the stance should drop: swinging, throwing or dead.
 function breaking(q) {
   if (!q) return false;
   if (q.dead) return true;
-  const drops = a => a?.kind === 'attack' || a?.kind === 'throw' || a?.kind === 'die';
+  const drops = a => a?.kind === 'throw' || a?.kind === 'die' || (a?.kind === 'attack' && a.attack !== 'weapon');
   return drops(q.current) || !!q.queue?.some(drops);
 }
 
@@ -109,7 +137,8 @@ export function updateKamae(actor, dt, t) {
   p.shoulders = [SHOULDER[0] * f, SHOULDER[1] * f];
   left.position.z += p.shoulders[0]; right.position.z += p.shoulders[1];
   const breath = Number.isFinite(t) ? BREATH * Math.sin(t * BREATH_RATE) : 0;
-  const k = kamaePose(st.rest, right.position, RAISE + breath);
+  const cut = cutting(actor.actions) ? cutPose(actor.actions.u, actor.actions.current.result) : {raise: RAISE, hand: HAND};
+  const k = kamaePose(st.rest, right.position, cut.raise + breath, cut.hand);
   p.arm.x = k.arm.x * f; p.arm.z = k.arm.z * f;
   p.socket.x = k.socket.x * f; p.socket.y = k.socket.y * f; p.socket.z = k.socket.z * f;
   right.rotation.x += p.arm.x; right.rotation.z += p.arm.z;

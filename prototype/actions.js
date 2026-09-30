@@ -21,6 +21,7 @@ import {groundSamples, groundLift, grounds} from './ground.js';
 import {centaurAttackPose} from './centaur-attack.js';
 import {scorpionAttackPose} from './scorpion-attack.js';
 import {chopPose, chops, thrusts} from './monster-chop.js';
+import {holdsKamae} from './kamae.js';
 import {throwPose, throwLaunches, throwAction, THROW_TIME, THROW_WINDUP_MS, MAX_THROW_LEAD_MS} from './throw-motion.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9, rise: RISE_TIME, throw: THROW_TIME};
@@ -235,6 +236,8 @@ export function updateActions(actor, q, dt) {
   const u = a.swing ? swingPhase(Math.min(q.age, len), a.blow, a.result) : clamp01((q.age - wait) / (len - wait));
   // Heading toward the target is measured once, from the rest pose, when the action starts.
   if (q.face === null) q.face = (a.kind === 'attack' || a.kind === 'throw') && a.dir ? turn(actor.g.rotation.y, Math.atan2(a.dir[0], a.dir[1])) : 0;
+  // The action's phase, for modules that pose on top of it (kamae.js).
+  q.u = u;
   const pose = actionPose(a, u, q.face);
   // A bare skull chatters its teeth instead of snarling (jaw.js).
   if (jawChatters(actor)) pose.jaw = Math.max(pose.jaw, chatterPose(a.kind, a.attack, u, a.result));
@@ -244,7 +247,10 @@ export function updateActions(actor, q, dt) {
   if (a.kind === 'attack' && a.attack === 'weapon' && actor.centaur) Object.assign(pose, centaurAttackPose(actor.centaur, u, a.result));
   // A monster with a weapon arm but no elbow chops: weapon raised overhead, then brought down
   // through the target (monster-chop.js). The hero's elbowed arm plays swing.js instead.
-  if (a.kind === 'attack' && a.attack === 'weapon' && !a.swing && chops(actor)) Object.assign(pose, chopPose(u, a.result));
+  // A samurai cuts two-handed from its kamae (kamae.js poses the arms and katana), so the
+  // generic weapon wave is taken off here.
+  if (a.kind === 'attack' && a.attack === 'weapon' && !a.swing && holdsKamae(actor)) Object.assign(pose, {arm: 0, wrist: 0, socket: 0});
+  else if (a.kind === 'attack' && a.attack === 'weapon' && !a.swing && chops(actor)) Object.assign(pose, chopPose(u, a.result));
   // One with a spear or halberd planted upright drops it level and thrusts it at the target.
   else if (a.kind === 'attack' && a.attack === 'weapon' && !a.swing && thrusts(actor)) Object.assign(pose, centaurAttackPose('spear', u, a.result));
   // A scorpion keeps low and snaps its pincers or jabs its arched tail (scorpion-attack.js).

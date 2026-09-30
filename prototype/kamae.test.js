@@ -89,27 +89,47 @@ test('the arms stay clear of the dō in kamae', () => {
   assert(depth() < rest + .015, `arms sink ${depth()} (rest ${rest})`);
 });
 
-test('an attack drops the stance for the one-handed chop, and it comes back after', () => {
-  const a = make('samurai'), plain = make('samurai'), dt = 1 / 60;
-  for (let i = 0; i < 60; i++) { frame(a, dt, i * dt); frame(plain, dt, i * dt, false); }
-  const held = snap(a);
-  for (const x of [a, plain]) enqueueAction(x.actions, {kind: 'attack', attack: 'weapon', result: 'hit', dir: {x: 1, z: 0}});
-  let i = 60, strike = null, blows = 0;
-  while (a.actions.current || a.actions.queue.length) {
-    frame(a, dt, i * dt); frame(plain, dt, i * dt, false); i++;
-    for (const v of snap(a)) assert(Number.isFinite(v));
-    // only a hair of the stance is left at the blow, and then the chop plays exactly as it would one-handed
-    const q = a.actions, diff = Math.max(...snap(a).map((v, k) => Math.abs(v - snap(plain)[k])));
-    if (q.current && q.age >= STRIKE_U * ACTION_TIME.attack && q.age < STRIKE_U * ACTION_TIME.attack + dt) { assert(diff < .05, `at the blow ${diff}`); blows++; }
-    if (!strike && q.current && q.age > .32) strike = diff;
-    assert(i < 600);
+test('a weapon attack is a two-handed cut from kamae: up over the head, down through the target, back to kamae', () => {
+  for (const result of ['hit', 'miss']) {
+    const a = make('samurai'), dt = 1 / 60;
+    for (let i = 0; i < 60; i++) frame(a, dt, i * dt);
+    const held = snap(a);
+    enqueueAction(a.actions, {kind: 'attack', attack: 'weapon', result, dir: {x: 1, z: 0}});
+    let i = 60, top = -Infinity, back = Infinity, blow = null, low = Infinity, off = 0;
+    while (a.actions.current || a.actions.queue.length) {
+      frame(a, dt, i * dt); i++;
+      for (const v of snap(a)) assert(Number.isFinite(v));
+      assert.equal(a.kamae.f, 1, 'the stance holds through the cut');
+      const q = a.actions, socket = inModel(a, a.weaponSocket, 0, 0, 0), tip = inModel(a, a.weaponSocket, 0, .67, 0);
+      const axis = tip.clone().sub(socket).normalize(), left = inModel(a, a.arms[0], 0, -ARM_LEN, 0);
+      const rel = left.clone().sub(socket), along = rel.dot(axis);
+      // the left hand rides the hilt all the way
+      off = Math.max(off, rel.addScaledVector(axis, -along).length());
+      if (q.current && q.u < STRIKE_U) { top = Math.max(top, tip.y); back = Math.min(back, tip.z); }
+      if (q.current && q.age >= STRIKE_U * ACTION_TIME.attack && q.age < STRIKE_U * ACTION_TIME.attack + dt) blow = {tip, axis};
+      if (q.current && q.u > STRIKE_U) low = Math.min(low, tip.y);
+      assert(i < 600);
+    }
+    assert(off < .04, `${result}: left hand ${off} off the hilt`);
+    // furikaburi: the blade up over the head and pointing back
+    assert(top > 1.5 && back < -.1, `${result}: raised to ${top}, back to ${back}`);
+    // at the blow the blade is out in front, about level, straight ahead
+    assert(blow && blow.tip.z > .9 && Math.abs(blow.axis.y) < .3 && Math.abs(blow.axis.x) < .1, `${result}: blow ${blow?.tip.toArray()}`);
+    // a miss follows through low; a hit stops on the target
+    if (result === 'miss') assert(low < .4, `miss follows through to ${low}`); else assert(low > .65, `hit stops at ${low}`);
+    for (let k = 0; k < 90; k++, i++) frame(a, dt, i * dt);
+    // back in kamae (the breath moves only the socket and arm by a hair)
+    assert(snap(a).every((v, k) => Math.abs(v - held[k]) < .05));
   }
-  assert.equal(blows, 1);
-  assert(strike < 1e-9, `kamae left over during the chop: ${strike}`);
-  for (let k = 0; k < 90; k++, i++) frame(a, dt, i * dt);
-  // back in kamae (the breath moves only the socket and arm by a hair)
-  const back = snap(a);
-  assert(back.every((v, k) => Math.abs(v - held[k]) < .05));
+});
+
+test('the samurai cuts instead of thrusting its katana like a spear', () => {
+  const a = make('samurai'), plain = make('samurai'), dt = 1 / 60;
+  for (const x of [a, plain]) enqueueAction(x.actions, {kind: 'attack', attack: 'weapon', result: 'hit', dir: {x: 0, z: 1}});
+  // with no kamae on top, the action layer leaves the sword arm and katana alone
+  const rest = snap(plain);
+  for (let i = 0; i < 30; i++) frame(plain, dt, i * dt, false);
+  assert(snap(plain).every((v, k) => Math.abs(v - rest[k]) < 1e-9));
 });
 
 test('death fades the stance out and leaves the arms and katana exactly at rest', () => {
