@@ -200,3 +200,39 @@ test('the evil eye darts its eye about while still, eases back to centre when bu
   f.species = 'floating eye';
   if (f.head) { const q = f.head.quaternion.clone(); for (let i = 0; i < 120; i++) updateFidget(f, dt, i * dt, false); assert.ok(f.head.quaternion.equals(q)); }
 });
+
+test('the evil eye watches the hero when they are in view, follows them, and lets go when they leave', async () => {
+  const {YAW, PITCH, TREMOR, aimAt} = await import('./glance.js');
+  const a = createCreature({name: 'evil eye'});
+  a.species = 'evil eye';
+  const h = a.head, rest = h.quaternion.clone();
+  const dt = 1 / 60, hero = {x: 1.5, y: 0, z: 3};
+  const on = (aim) => Math.hypot(h.rotation.y - aim.yaw, h.rotation.x - aim.pitch) < .03;
+  // Aim: the hero ahead and to the right means a positive yaw and an upward (negative) pitch.
+  const aim0 = aimAt(a, hero);
+  assert.ok(aim0.yaw > .3 && aim0.yaw <= YAW && aim0.pitch < 0 && aim0.pitch >= -PITCH, JSON.stringify(aim0));
+  assert.equal(aimAt(a, {x: 0, y: 0, z: -3}), null, 'behind it');
+  assert.equal(aimAt(a, {x: 0, y: 0, z: 9}), null, 'out of range');
+  let t = 0, prev = null, onFrames = 0, firstOn = -1;
+  for (let i = 0; i < 60 * 30; i++, t += dt) {
+    // The hero strolls back and forth across the eye's view.
+    hero.x = 1.8 * Math.sin(t * .4);
+    updateFidget(a, dt, t, false, hero);
+    const {x, y} = h.rotation;
+    assert.ok(Number.isFinite(x) && Number.isFinite(y));
+    assert.ok(Math.abs(y) <= YAW + TREMOR + 1e-9 && Math.abs(x) <= PITCH + TREMOR + 1e-9);
+    if (prev) assert.ok(Math.hypot(x - prev.x, y - prev.y) < .5, 'no teleport');
+    prev = {x, y};
+    if (on(aimAt(a, hero))) { onFrames++; if (firstOn < 0) firstOn = t; }
+  }
+  assert.ok(firstOn >= 0 && firstOn < .3, `notices the hero quickly (${firstOn})`);
+  assert.ok(onFrames > 60 * 30 * .45, `mostly watching the hero (${onFrames})`);
+  // The hero walks behind it: the eye stops staring and goes back to plain glances.
+  hero.x = 0; hero.z = -3;
+  for (let i = 0; i < 30; i++, t += dt) updateFidget(a, dt, t, false, hero);
+  assert.equal(a.glance.track, false);
+  // Busy still returns it exactly to rest.
+  hero.z = 3;
+  for (let i = 0; i < 90; i++, t += dt) updateFidget(a, dt, t, true, hero);
+  assert.ok(Math.abs(Math.abs(h.quaternion.dot(rest)) - 1) < 1e-9, 'exactly centred when busy');
+});

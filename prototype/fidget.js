@@ -80,9 +80,9 @@ const tmpQ = new THREE.Quaternion(), tmpQi = new THREE.Quaternion(), tmpE = new 
 
 // Call once per frame right after updateGait. `busy` is true while the actor walks or has an
 // action playing or queued. Returns the current fidget state ({kind, f}) or null.
-export function updateFidget(actor, dt, t, busy) {
-  // The evil eye's darting glances ride on this per-frame call (see glance.js).
-  updateGlance(actor, dt, t, busy);
+export function updateFidget(actor, dt, t, busy, look = null) {
+  // The evil eye's darting glances ride on this per-frame call (see glance.js); `look` is the hero.
+  updateGlance(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {

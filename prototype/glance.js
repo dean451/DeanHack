@@ -8,6 +8,11 @@
 // frame. The evil eye's head is the eyeball and iris group, pivoting at the eyeball's centre, so
 // turning it rolls the eye inside its lids. It takes back its own last offset first, so it never
 // drifts; actions.js's head pitch adds on top and is taken back the same way.
+//
+// Given where the hero is (`look`), the eye watches them. When the hero comes into its view
+// (within TRACK_RANGE and VIEW rad of straight ahead), it cuts its current glance short and
+// flicks to them. Most later flicks go back to the hero, and it holds those stares longer,
+// following the hero as they move. If the hero leaves its view mid-stare, it flicks back to centre.
 
 // YAW/PITCH: the largest glance to each side and up/down (rad); SACCADE: seconds per flick;
 // HOLD_MIN..+HOLD_SPAN: seconds each fixation lasts; CENTRE: chance a flick comes back to centre;
@@ -16,6 +21,13 @@ export const YAW = .5, PITCH = .26, SACCADE = .07, HOLD_MIN = .35, HOLD_SPAN = 1
 // After walking or an action, the eye holds centre this long before it darts again.
 export const RESUME = .6;
 const FADE_OUT = 14, SNAP = 1e-3;
+// Tracking the hero. TRACK_RANGE: how far it watches (tiles); VIEW: how far off straight ahead
+// the hero can be (rad) and still be seen; TRACK: chance a flick goes to the hero once seen;
+// STARE_MIN..+STARE_SPAN: seconds a stare lasts; NOTICE: the longest a glance carries on once the
+// hero comes into view; FOLLOW: how quickly a stare follows the hero (1/s); EYE_H, LOOK_H: heights
+// of the eye and of the hero's face above their feet.
+export const TRACK_RANGE = 6, VIEW = 1.3, TRACK = .72, STARE_MIN = 1.1, STARE_SPAN = 2, NOTICE = .12, FOLLOW = 16;
+const EYE_H = .6, LOOK_H = 1.1;
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
@@ -25,6 +37,21 @@ export const glances = a => !!(a && !a.asset && a.species === 'evil eye' && a.he
 // Deterministic per-actor PRNG, so tests and replays are stable.
 function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; return st.seed / 2147483648; }
 
+// The eye's offset that points at `look`, or null when the hero is out of its view.
+export function aimAt(actor, look) {
+  const g = actor?.g;
+  if (!g || !look || !Number.isFinite(look.x) || !Number.isFinite(look.z)) return null;
+  const dx = look.x - g.position.x, dz = look.z - g.position.z, d = Math.hypot(dx, dz);
+  if (!(d > 1e-3) || d > TRACK_RANGE) return null;
+  let yaw = Math.atan2(dx, dz) - g.rotation.y;
+  yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
+  if (Math.abs(yaw) > VIEW) return null;
+  // Positive head pitch looks down, so a face above the eye needs a negative pitch.
+  const pitch = -Math.atan2(((look.y || 0) + LOOK_H) - (g.position.y + EYE_H), d);
+  const clamp = (v, m) => v < -m ? -m : v > m ? m : v;
+  return {yaw: clamp(yaw, YAW), pitch: clamp(pitch, PITCH)};
+}
+
 function nextTarget(st) {
   if (rand(st) < CENTRE) return {yaw: 0, pitch: 0};
   // Aim somewhere in an ellipse, favouring the outer part so each flick is visible.
@@ -33,8 +60,9 @@ function nextTarget(st) {
 }
 
 // Call once per frame. `busy` is true while the actor walks or has an action playing or queued.
+// `look` is the hero's position (same parent as actor.g), or null.
 // Returns the offset applied this frame ({yaw, pitch}), or null for anything but an evil eye.
-export function updateGlance(actor, dt, t, busy) {
+export function updateGlance(actor, dt, t, busy, look = null) {
   if (!glances(actor)) return null;
   const st = actor.glance || (actor.glance = {
     seed: ((actor.g?.id ?? 1) * 104729) % 2147483647 || 1,
@@ -45,15 +73,24 @@ export function updateGlance(actor, dt, t, busy) {
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
   t = Number.isFinite(t) ? t : 0;
   const still = !busy && !actor.actions?.dead;
+  const aim = still ? aimAt(actor, look) : null;
 
   if (still) {
     st.f = Math.min(1, st.f + dt * FADE_OUT);
+    if (st.track) {
+      if (aim) { const k = 1 - Math.exp(-FOLLOW * dt); st.to = {yaw: st.to.yaw + (aim.yaw - st.to.yaw) * k, pitch: st.to.pitch + (aim.pitch - st.to.pitch) * k}; }
+      else { st.from = cur(st); st.to = {yaw: 0, pitch: 0}; st.u = 0; st.track = false; st.hold = HOLD_MIN + HOLD_SPAN * rand(st); }
+    } else if (aim && !st.saw && st.u >= 1) st.hold = Math.min(st.hold, NOTICE);
     if (st.u < 1) st.u = Math.min(1, st.u + dt / SACCADE);
     else if ((st.hold -= dt) <= 0) {
-      st.from = cur(st); st.to = nextTarget(st); st.u = 0;
-      st.hold = HOLD_MIN + HOLD_SPAN * rand(st);
+      st.from = cur(st); st.u = 0;
+      if (aim && (!st.saw || rand(st) < TRACK)) { st.to = aim; st.track = true; st.hold = STARE_MIN + STARE_SPAN * rand(st); }
+      else { st.to = nextTarget(st); st.track = false; st.hold = HOLD_MIN + HOLD_SPAN * rand(st); }
+      st.saw = !!aim;
     }
+    if (!aim) st.saw = false;
   } else {
+    st.track = false; st.saw = false;
     // Ease back to centre; once there, settle the glance so it restarts from centre.
     st.f *= Math.exp(-FADE_OUT * dt);
     if (st.f < SNAP) { st.f = 0; st.from = {yaw: 0, pitch: 0}; st.to = {yaw: 0, pitch: 0}; st.u = 1; st.hold = RESUME; }
