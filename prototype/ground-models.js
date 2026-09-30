@@ -4497,6 +4497,26 @@ function meatNoise(x,y,z){
 }
 // Weld a fresh geometry (no uv or normals) so displacement and smooth normals don't split at seams.
 const weld=geo=>{geo.deleteAttribute('uv');geo.deleteAttribute('normal');const w=mergeVertices(geo);geo.dispose();return w;};
+// Bakes every mesh under `root` into one mesh per material, laid straight into root, and
+// disposes the sources. Root's own turn is baked in too (and reset), so bounding boxes stay
+// tight around the turned model. Only for models with no animated parts. Keeps position and normal (no
+// material here uses a texture), indexes unindexed pieces so they merge with the rest, and leaves
+// mirrored meshes alone (a flipped matrix would turn their faces inside out).
+function mergeByMaterial(root){
+ root.updateMatrixWorld(true);
+ const toRoot=root.matrix.clone().multiply(root.matrixWorld.clone().invert()),bins=new Map(),old=new Set(),keep=[];
+ root.position.set(0,0,0);root.quaternion.identity();root.scale.set(1,1,1);root.updateMatrix();
+ root.traverse(o=>{if(!o.isMesh)return;const m=new THREE.Matrix4().multiplyMatrices(toRoot,o.matrixWorld);
+  if(m.determinant()<=0){keep.push([o,m]);return;}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',o.geometry.attributes.position.clone());geo.setAttribute('normal',o.geometry.attributes.normal.clone());
+  geo.setIndex(o.geometry.index?o.geometry.index.clone():[...Array(geo.attributes.position.count).keys()]);geo.applyMatrix4(m);
+  if(!bins.has(o.material))bins.set(o.material,[]);bins.get(o.material).push(geo);old.add(o.geometry);});
+ for(const o of [...root.children])root.remove(o);
+ for(const [material,geos] of bins){const merged=mergeGeometries(geos);geos.forEach(q=>q.dispose());
+  const one=new THREE.Mesh(merged,material);one.castShadow=one.receiveShadow=true;root.add(one);}
+ for(const [o,m] of keep){old.delete(o.geometry);o.removeFromParent();m.decompose(o.position,o.quaternion,o.scale);root.add(o);}
+ old.forEach(q=>q.dispose());
+}
 
 // Meatballs: lumpy seared balls, dark-crusted in the hollows, with paler flecks of ground meat,
 // green herb flecks and a slightly flattened base where they sat in the pan. A stack shows up to
@@ -5551,6 +5571,9 @@ export function createGroundModel(item={}){
   }
   g.rotation.y=-.4;
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
+  // Nothing on an amulet moves, so the pendant, bail and chain bake into one mesh per material:
+  // 2 or 3 draws where there were up to 45.
+  mergeByMaterial(g);
  }else if(cls===13){
   // Gems, glass, gray stones and rocks. The name is the true identity, so the look comes
   // only from the shuffled appearance and the glyph colour: a ruby and red glass match.
