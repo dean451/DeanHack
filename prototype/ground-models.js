@@ -234,13 +234,24 @@ function facetedGem(cut,seed){
  geo.computeVertexNormals();return geo;
 }
 
+// Bakes meshes that share one material and one parent into a single mesh on that parent, so a
+// pile of pieces is one draw. Each piece's own transform goes into its vertices.
+function bakeMeshes(meshes){
+ const [first]=meshes,parent=first.parent;
+ const geos=meshes.map(p=>{p.updateMatrix();return p.geometry.clone().applyMatrix4(p.matrix);});
+ const one=new THREE.Mesh(mergeGeometries(geos),first.material);geos.forEach(q=>q.dispose());
+ one.castShadow=first.castShadow;one.receiveShadow=first.receiveShadow;
+ for(const p of meshes){p.geometry.dispose();p.removeFromParent();}
+ parent.add(one);return one;
+}
+
 // A cheap smooth 3D noise (sums of skewed sines), for mottling and bumps on stones.
 const stoneNoise=(x,y,z,f)=>(Math.sin(x*f+Math.sin(z*f*1.7))+Math.sin(y*f*1.3+Math.sin(x*f*.9))+Math.sin(z*f*1.1+Math.sin(y*f*1.5)))/3;
 
 // Builds one stone from an icosphere. Rubble is the intersection of random fracture planes
 // (flat, broken faces with sharp edges); a pebble is a smooth, slightly lumpy ellipsoid.
 // Vertex colours carry mottling, grime in the hollows and dust or lichen on top.
-function shapedStone(seed,{size,scale=[1,1,1],cuts=0,bump=.04,base,alt,detail=6,vein,lichen}){
+export function shapedStone(seed,{size,scale=[1,1,1],cuts=0,bump=.04,base,alt,detail=6,vein,lichen}){
  let h=seed||1;const rnd=()=>(h=(Math.imul(h,1664525)+1013904223)>>>0)/2**32;
  const src=new THREE.IcosahedronGeometry(1,detail);src.deleteAttribute('normal');src.deleteAttribute('uv');
  const geo=mergeVertices(src);src.dispose();
@@ -5620,11 +5631,13 @@ export function createGroundModel(item={}){
    shadow(.15,0,0,1.12,1,.32);
    const pieces=[[.072,-.045,.02,[1.1,.66,.9],.3,.08,8,true],[.052,.075,-.045,[1,.72,.86],1.1,.14,7],
     [.043,.03,.095,[1.05,.62,.8],2,-.1,7],[.03,-.105,-.085,[1,.7,1],.7,.2,6],[.022,.115,.07,[1,.75,.9],2.6,.3,6]];
-   pieces.forEach(([r,x,z,s,ry,tilt,cuts,lichen],i)=>
+   const bits=pieces.map(([r,x,z,s,ry,tilt,cuts,lichen],i)=>
     lay(shapedStone(9173+i*131,{size:r,scale:s,cuts,bump:.05,base:0x6a655d,alt:i%2?0x857c6f:0x5a5b58,lichen}),rubble,x,z,ry,tilt));
    // Grit knocked off the rubble.
    for(let i=0;i<9;i++){const a=i*2.4+.5,d=.075+(i*37%11)/110;
-    lay(shapedStone(31+i*17,{size:.006+(i%3)*.003,cuts:4,bump:0,base:0x6f6a62,alt:0x8d8476,detail:1}),rubble,Math.cos(a)*d,Math.sin(a)*d*.9,a,.4);}
+    bits.push(lay(shapedStone(31+i*17,{size:.006+(i%3)*.003,cuts:4,bump:0,base:0x6f6a62,alt:0x8d8476,detail:1}),rubble,Math.cos(a)*d,Math.sin(a)*d*.9,a,.4));}
+   // Rubble and grit bake to one mesh: 2 draws with the shadow, not 15.
+   bakeMeshes(bits).userData.part='rubble';
   }else if(/gray/.test(look)){
    // Gray stones share one smooth, water-worn pebble with a quartz vein and speckles,
    // so luck, load, touch and flint stay hidden.
@@ -5635,7 +5648,7 @@ export function createGroundModel(item={}){
   }else if(/metal/.test(look)){
    // Unrefined mithril: a lumpy silvery nugget.
    const ore=mat(0xc8d0d6,.85);
-   chip(.07,ore,0,.045,0,[1.2,.65,.9],.4);chip(.04,ore,.07,.03,.03,[1,.7,1],1.3);chip(.035,ore,-.065,.028,-.03,[1,.7,1],2.2);
+   bakeMeshes([chip(.07,ore,0,.045,0,[1.2,.65,.9],.4),chip(.04,ore,.07,.03,.03,[1,.7,1],1.3),chip(.035,ore,-.065,.028,-.03,[1,.7,1],2.2)]).userData.part='nugget';
   }else{
    // A cut stone lying tipped on its pavilion. The cut comes from the shuffled colour word,
    // which real stones share with their glass, so the look never tells them apart.
@@ -5656,11 +5669,13 @@ export function createGroundModel(item={}){
    part(geo,facet);
    if(!cut.cab){const core=part(geo.clone(),heart);core.scale.setScalar(.55);core.renderOrder=-1;}
    // Four-pointed star glints on the table edge and girdle, lying on the facets.
-   const top=cut.crown;
+   const top=cut.crown,stars=[];
    for(const [x,y,z,s] of cut.cab?[[-.3,.75,-.2,.9],[.35,.45,.3,.5]]:[[cut.table*.7,1,-cut.table*.35,1],[-.95,.08,.35,.7],[.2,.55,.7,.55]]){
-    const star=part(GLINT_GEOMETRY(),glint);star.position.set(x*cut.r*(cut.sx??1),y*top,z*cut.r);
+    const star=part(GLINT_GEOMETRY(),glint);stars.push(star);star.position.set(x*cut.r*(cut.sx??1),y*top,z*cut.r);
     star.rotation.set(-Math.PI/2+(1-y)*.9*Math.sign(z||1),0,.4+x);star.scale.setScalar(s*cut.r*.55);
    }
+   // The glints bake to one mesh: 4 draws per stone, not 6.
+   bakeMeshes(stars).userData.part='glints';
    // A soft coloured spill of light on the floor beside it.
    const pool=add(new THREE.CircleGeometry(.13,24),new THREE.MeshBasicMaterial({color:tint,transparent:true,opacity:cut.cab?.08:.2,depthWrite:false,blending:THREE.AdditiveBlending}),.04,.002,.035);
    pool.rotation.x=-Math.PI/2;materials.push(pool.material);
