@@ -32,6 +32,27 @@ test('the dragon breath glow follows the glyph colour, and an unidentified brown
  assert(babies.max.y<adults.max.y*.75);
 });
 
+test('an identified dragon wears its breath, and an unidentified brown one wears nothing that tells',()=>{
+ const sig=a=>{a.g.updateMatrixWorld(true);let n=0,v=0;const mats=new Set();a.g.traverse(o=>{if(o.isMesh){n++;v+=o.geometry.attributes.position.count;mats.add('#'+o.material.color.getHexString()+(o.material.emissive?.getHexString()||''));}});return {n,v,mats};};
+ const elements={0:'disint',1:'fire',2:'poison',4:'lightning',5:'chromatic',6:'shimmer',7:'missile',9:'sleep',11:'acid',13:'lava',14:'silver',15:'cold'};
+ for(const name of ['draken','wyvern','tatzelworm','leviathan','tiamat','baby guivre']){
+  const brown=createCreature({name,symbol:D,color:3}),plain=sig(brown);
+  assert.equal(brown.element,null,name);
+  const seen=new Set();
+  for(const [color,element] of Object.entries(elements)){
+   const a=createCreature({name,symbol:D,color:+color}),s=sig(a);
+   assert.equal(a.element,element,`${name} ${color}`);
+   assert(s.v>plain.v+50,`${name} ${element} adds detail`);
+   assert(s.n<=plain.n+14,`${name} ${element} stays cheap (${s.n} draws)`);
+   seen.add(s.v);
+   const bounds=new THREE.Box3().setFromObject(a.g);
+   assert(bounds.min.y>-.005&&bounds.max.y<1.35,`${name} ${element} height`);
+   assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<1.05,`${name} ${element} width`);
+  }
+  assert.equal(seen.size,Object.keys(elements).length,`${name}: every breath looks different`);
+ }
+});
+
 test('little dog, dog and large dog are grounded canines that grow with the breed',()=>{
  let last=0;
  for(const name of ['little dog','dog','large dog']){
