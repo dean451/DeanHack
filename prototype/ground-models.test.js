@@ -351,10 +351,12 @@ test('spellbook covers follow the shuffled appearance and stay grounded',()=>{
   'spotted','faded','long','rainbow','ochre','tattered','wide','big','fuzzy','black','left-handed','psychedelic','spiral-bound','stapled',
   'stylish','tartan','chartreuse','decrepit','paperback','crimson','charcoal','plain','papyrus'];
  const book=(name,appearance,color=15)=>createGroundModel({name,class:10,appearance,color});
- const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);
+ const signature=model=>model.children.map(part=>[part.geometry.attributes.position.count,part.material.color.getHex()]);
  const seen=new Set();
  for(const look of looks){
   const model=book('spellbook of force bolt',look);
+  // Nothing on a book moves, so each material is one baked draw.
+  assert.equal(model.children.length,new Set(model.children.map(part=>part.material)).size,`${look}: one draw per material`);
   assert.deepEqual(signature(book('spellbook of wishing',look)),signature(model),`${look}: the true spell must not show`);
   seen.add(JSON.stringify(signature(model)));
   const bounds=new THREE.Box3().setFromObject(model);
@@ -404,7 +406,7 @@ test('the blindfold is a padded silk band tied in a loop with frayed trailing ti
 });
 
 test('every bag shares one cinched drawstring sack, so the kind never shows',()=>{
- const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray().map(v=>v.toFixed(5)),part.material.color.getHex()]);
+ const signature=model=>model.children.map(part=>[part.geometry.attributes.position.count,part.material.color.getHex()]);
  const models=['bag','sack','oilskin sack','bag of holding','bag of tricks','an uncursed bag'].map(name=>createGroundModel({name,class:6}));
  for(const model of models){
   assert(model,'bags have a ground model');
@@ -412,9 +414,11 @@ test('every bag shares one cinched drawstring sack, so the kind never shows',()=
   const bounds=new THREE.Box3().setFromObject(model);
   assert(bounds.min.y>=-1e-6);assert(bounds.max.y>.35&&bounds.max.y<.45,`height ${bounds.max.y}`);
   assert(bounds.max.x<.4&&bounds.min.x>-.4&&bounds.max.z<.45&&bounds.min.z>-.4,'fits the tile');
-  const body=model.children.find(part=>part.geometry.type==='LatheGeometry');
-  assert(body?.material.vertexColors,'a shaded canvas body');
-  assert(model.children.filter(part=>part.geometry.type==='TubeGeometry').length>=3,'drawstring and two trailing ends');
+  const body=model.children.find(part=>part.material.vertexColors);
+  assert(body?.geometry.attributes.color,'a shaded canvas body');
+  // Nothing on a sack moves: body, mouth, drawstring, bow, patch and stitches bake to one draw per material.
+  assert.equal(model.children.length,new Set(model.children.map(part=>part.material)).size,'one draw per material');
+  assert(model.children.length<=5,`draws: ${model.children.length}`);
   let vertices=0;
   model.traverse(part=>{if(part.geometry){const a=part.geometry.attributes.position.array;vertices+=a.length/3;for(const value of a)assert(Number.isFinite(value));}});
   assert(vertices<20000,`vertices: ${vertices}`);
@@ -485,12 +489,14 @@ test('the apron lies flat with a bib, neck strap, waist ties, a pocket and stain
  const b=new THREE.Box3().setFromObject(apron);
  assert(b.min.y>=0&&b.max.y<.06,`y ${b.min.y}..${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.43,'footprint');
- const sheet=apron.children[0].geometry,col=sheet.attributes.color;
+ const sheet=apron.children.find(p=>p.material.vertexColors).geometry,col=sheet.attributes.color;
  assert(sheet.attributes.position.count>1000,'the cloth is a fine grid');
  // Stains pull some cloth well away from the linen tone.
  let stained=0;for(let i=0;i<col.count;i++)if(col.getX(i)<.5)stained++;
  assert(stained>10,`stained vertices: ${stained}`);
- assert(apron.children.filter(p=>p.geometry.type==='TubeGeometry').length>=5,'hems and frayed ties');
+ // Sheet, pocket, straps, hems, stitches, vial and cork bake to one draw per material.
+ assert.equal(apron.children.length,new Set(apron.children.map(p=>p.material)).size,'one draw per material');
+ assert(apron.children.length<=7,`draws: ${apron.children.length}`);
  apron.traverse(p=>{if(p.geometry){for(const v of p.geometry.attributes.position.array)assert(Number.isFinite(v));
   for(const v of p.geometry.attributes.normal?.array??[])assert(Number.isFinite(v));}});
  apron.userData.dispose();

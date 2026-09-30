@@ -108,9 +108,10 @@ function buildSpellbook(item,{g,add,box,ball,mat,materials,metal}){
   const fold=mat(0xe0d4b0);
   const corners=has(/dog eared/)?[[1,1],[1,-1]]:[[1,-1]];
   for(const [sx,sz] of corners){
-   const tri=new THREE.Shape([new THREE.Vector2(0,0),new THREE.Vector2(-.05,0),new THREE.Vector2(0,.05)]);
+   // The far corner's triangle is mirrored in the shape, not by a flipped scale, so it bakes with the rest.
+   const tri=new THREE.Shape([new THREE.Vector2(0,0),new THREE.Vector2(-.05,0),new THREE.Vector2(0,.05*sz)]);
    const geo=new THREE.ExtrudeGeometry(tri,{depth:.002,bevelEnabled:false});geo.rotateX(-Math.PI/2);
-   const p=add(geo,fold,W/2-.002,top+.002,sz*(D/2-.002));p.scale.z=sz;
+   add(geo,fold,W/2-.002,top+.002,sz*(D/2-.002));
   }
   if(!has(/dog eared/)){
    const leaf=box(W*.8,.002,D*.7,pages,W*.2,T+P*.62,.04);leaf.rotation.y=-.18;leaf.rotation.z=-.03;
@@ -148,9 +149,15 @@ function buildSpellbook(item,{g,add,box,ball,mat,materials,metal}){
  const from=new THREE.Vector3(.07,T+P*.55,D/2-.01),to=new THREE.Vector3(.1,.006,D/2+.09),d=to.clone().sub(from);
  const ribbon=box(.02,.002,d.length(),mat(0x8c1f24),(from.x+to.x)/2,(from.y+to.y)/2,(from.z+to.z)/2);
  ribbon.rotation.set(Math.atan2(-d.y,Math.hypot(d.x,d.z)),Math.atan2(d.x,d.z),0,'YXZ');
- // A left-handed book binds on the right.
- if(has(/^left-handed$/))for(const p of g.children){p.position.x*=-1;p.rotation.y*=-1;p.rotation.z*=-1;p.scale.x*=-1;}
- g.rotation.y=.3+(rnd()-.5)*.3;
+ // Nothing on a book moves, so cover, page block, bands, clasps, stains and sigils bake to one
+ // mesh per material: 6 to 16 draws where there were up to 61.
+ mergeByMaterial(g);
+ // A left-handed book binds on the right: mirror the baked meshes and turn their faces back round.
+ if(has(/^left-handed$/))for(const p of g.children){
+  p.geometry.scale(-1,1,1);const ix=p.geometry.index.array;
+  for(let i=0;i<ix.length;i+=3){const t=ix[i+1];ix[i+1]=ix[i+2];ix[i+2]=t;}
+ }
+ const turn=.3+(rnd()-.5)*.3;for(const p of g.children)p.geometry.rotateY(turn);
 }
 
 // Gem tints by glyph colour; the appearance is shared by the real stone and its glass.
@@ -5915,6 +5922,8 @@ export function createGroundModel(item={}){
   const neck=new THREE.Vector3(0,.035,0).applyEuler(vial.rotation).add(vial.position);
   const cork=add(new THREE.CylinderGeometry(.0075,.0065,.014,10),mat(0x8a6038),neck.x,neck.y,neck.z);cork.rotation.copy(vial.rotation);
   g.rotation.y=.22;
+  // Sheet, pocket, straps, hems, stitches, vial and cork bake to one mesh per material: 7 draws where there were 57.
+  mergeByMaterial(g);
  }else if(cls===3&&/\bmail\b|mithril|\barmor\b|leather jacket|\bscales\b/.test(name)){
   buildBodyArmor((item.appearance||name).toLowerCase(),item.color,{g,materials});
  }else if(/\bbag\b|sack/.test(name)){
@@ -5973,6 +5982,9 @@ export function createGroundModel(item={}){
    const st=patchAt(2.15+dx/.21,.12+dy,dy?.01:.003,dy?.003:.01,thread);st.position.addScaledVector(new THREE.Vector3(Math.sin(2.15),0,Math.cos(2.15)),.002);
   }
   for(let y=.035;y<.28;y+=.024)patchAt(-1.75,y,.003,.012,thread);
+  // Nothing on a sack moves, so body, mouth, drawstring, bow, patch and stitches bake to one mesh
+  // per material: 5 draws where there were 30.
+  mergeByMaterial(g);
  }else if(/ration/.test(name)){
   if(/tripe/.test(name)){
    // Tripe and paper share one wet-looking vertex-coloured material.
