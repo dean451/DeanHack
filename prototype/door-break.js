@@ -14,6 +14,11 @@ export const MAX_BREAKS = 3;
 export const SHARDS = 16, DUST = 28;
 // How long a break lasts, when the shards start sinking away, and the dust's life (s).
 export const BREAK = {life: 3.2, sink: 2.5, dust: 1.1, gravity: 9.8, bounce: .32, scuff: .55, friction: 6, spinDamp: 5, flatten: 8};
+// A door that breaks into a wreck (`door:'broken'`, drawn by door.js with its frame, hanging
+// stubs, straps and its own floor debris) keeps most of its leaf, so only the loose splinters
+// fly: no strap iron (it stays on the stubs), every other plank, thinner, and they sink away
+// sooner, leaving the wreck's own debris.
+export const WRECK = {keep: 2, thin: .6, life: 2, sink: 1.4};
 // The leaf's size, from door.js's DOOR_LEAF (width .8, height .95, off the floor by .03).
 const LEAF_W = .8, LEAF_H = .95, LEAF_Y = .03;
 
@@ -74,21 +79,24 @@ export function findBreaks(prev, frame) {
     const seed = c.x * 61 + c.z * 37;
     const across = breakerSide(prev, frame, c, turn);
     const push = across > 0 ? -1 : across < 0 ? 1 : (hash(seed, 1) < .5 ? -1 : 1);
-    out.push({x: c.x, z: c.z, seed, turn, push});
+    out.push({x: c.x, z: c.z, seed, turn, push, wreck: c.door === 'broken'});
   }
   return out;
 }
 
 // The shards of one break, in the door's own frame (x along the leaf, z across it, y up
 // from the floor; +z is the push side). Each is a plank splinter or a bit of iron with a
-// size, a start position on the leaf, a velocity, a spin and a tint (0..1 shade).
-export function shardsFor(seed = 0) {
+// size, a start position on the leaf, a velocity, a spin and a tint (0..1 shade). With
+// {wreck: true} only the loose splinters of a door that leaves a wreck (WRECK).
+export function shardsFor(seed = 0, {wreck = false} = {}) {
   const out = [];
   for (let i = 0; i < SHARDS; i++) {
     const r = k => hash(seed, i, k);
     const iron = i < 2;
+    if (wreck && (iron || i % WRECK.keep)) continue;
     // Planks: long along y, a few cm wide, as thick as the leaf. Iron: short flat straps.
     const size = iron ? [.1 + .08 * r(1), .025, .012] : [.035 + .05 * r(1), .1 + .26 * r(2), .028];
+    if (wreck) { size[0] *= WRECK.thin; size[1] *= .5 + .5 * WRECK.thin; }
     // Spread over the leaf, more of them low down where a kick lands.
     const x = (r(3) - .5) * LEAF_W * .9, y = LEAF_Y + LEAF_H * (.08 + .8 * r(4) ** 1.4);
     // Out across the leaf and away from its middle, and up a little.
@@ -136,8 +144,11 @@ export function stepShard(s, h) {
   return s;
 }
 
+// How long a break lasts and when its shards start sinking (s): shorter for a wreck.
+export const breakTimes = wreck => wreck ? {life: WRECK.life, sink: WRECK.sink} : {life: BREAK.life, sink: BREAK.sink};
+
 // How big a shard is at age t (s): full size, then shrinking into the floor at the end.
-export const shardScale = t => 1 - clamp01((t - BREAK.sink) / (BREAK.life - BREAK.sink));
+export const shardScale = (t, {life = BREAK.life, sink = BREAK.sink} = {}) => 1 - clamp01((t - sink) / (life - sink));
 
 // The dust at age t (s): points in the door's frame with an alpha, or [] when it's gone.
 export function dustFrame(seed, t) {
@@ -184,8 +195,9 @@ export function createDoorBreak(THREE, parent) {
 
   function add(brk) {
     if (!brk || !Number.isFinite(brk.x) || !Number.isFinite(brk.z)) return null;
-    const b = {...brk, turn: brk.turn ?? 0, push: brk.push < 0 ? -1 : 1, seed: brk.seed ?? 0, t: 0};
-    b.shards = shardsFor(b.seed);
+    const b = {...brk, turn: brk.turn ?? 0, push: brk.push < 0 ? -1 : 1, seed: brk.seed ?? 0, wreck: !!brk.wreck, t: 0};
+    b.shards = shardsFor(b.seed, {wreck: b.wreck});
+    b.times = breakTimes(b.wreck);
     const same = breaks.findIndex(o => o.x === b.x && o.z === b.z);
     if (same >= 0) breaks.splice(same, 1);
     breaks.push(b);
@@ -203,14 +215,14 @@ export function createDoorBreak(THREE, parent) {
     const ox = origin?.x ?? 0, oz = origin?.z ?? 0;
     for (let i = breaks.length - 1; i >= 0; i--) {
       breaks[i].t += h;
-      if (breaks[i].t >= BREAK.life) breaks.splice(i, 1);
+      if (breaks[i].t >= breaks[i].times.life) breaks.splice(i, 1);
     }
     let n = 0, d = 0;
     for (const b of breaks) {
       const cos = Math.cos(b.turn), sin = Math.sin(b.turn), cx = b.x - ox, cz = b.z - oz;
       // Door-local (x along the leaf, z across, pushed) to the scene, turned like the door.
       const at = (x, y, z) => p.set(cx + x * cos + z * b.push * sin, y, cz - x * sin + z * b.push * cos);
-      const k = shardScale(b.t);
+      const k = shardScale(b.t, b.times);
       for (const sh of b.shards) {
         if (h > 0) { let left = h; while (left > 0) { const st = Math.min(left, 1 / 60); stepShard(sh, st); left -= st; } }
         at(...sh.pos);

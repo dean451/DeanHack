@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {findBreaks, shardsFor, stepShard, halfHeight, shardScale, dustFrame, createDoorBreak, BREAK, SHARDS, MAX_BREAKS} from './door-break.js';
+import {findBreaks, shardsFor, stepShard, halfHeight, shardScale, breakTimes, dustFrame, createDoorBreak, BREAK, WRECK, SHARDS, MAX_BREAKS} from './door-break.js';
 
 // A 5×5 room with a wall across z 2 and a door in it at (2, 2); the hero stands at `hero`.
-// `door` is the door cell's state: 'closed', 'open', 'broken' or 'hidden' (broken, not in view).
+// `door` is the door cell's state: 'closed', 'open', 'broken' (a bare doorway), 'wreck' (a
+// doorway the bridge flags `door:'broken'`) or 'hidden' (broken, not in view).
 const room = (door = 'closed', {hero = [2, 3], depth = 1, vertical = false} = {}) => {
   const cells = [];
   for (let x = 0; x < 5; x++) for (let z = 0; z < 5; z++) {
@@ -13,6 +14,7 @@ const room = (door = 'closed', {hero = [2, 3], depth = 1, vertical = false} = {}
     if (a === 2 && b === 2) {
       cell.terrain = door === 'closed' ? 'door' : 'floor';
       if (door === 'open') cell.door = 'open';
+      if (door === 'wreck') cell.door = 'broken';
       if (door === 'hidden') cell.visible = false;
     }
     cells.push(cell);
@@ -21,7 +23,7 @@ const room = (door = 'closed', {hero = [2, 3], depth = 1, vertical = false} = {}
 };
 
 test('a door that becomes a doorway breaks, and shards fly away from the hero', () => {
-  assert.deepEqual(findBreaks(room(), room('broken')), [{x: 2, z: 2, seed: 2 * 61 + 2 * 37, turn: 0, push: -1}]);
+  assert.deepEqual(findBreaks(room(), room('broken')), [{x: 2, z: 2, seed: 2 * 61 + 2 * 37, turn: 0, push: -1, wreck: false}]);
   assert.equal(findBreaks(room('closed', {hero: [2, 1]}), room('broken', {hero: [2, 1]}))[0].push, 1);
   assert.equal(findBreaks(room('open'), room('broken'))[0].push, -1, 'an open door can be smashed too');
   // A door in a wall running along z turns a quarter; the hero at x 3 pushes shards to -x.
@@ -142,4 +144,45 @@ test('the renderer bursts a broken door, turns it with the door and cleans up', 
   assert.equal(mesh.count, 0);
   fx.dispose();
   assert.equal(parent.children.length, 0);
+});
+
+test('a door that leaves a wreck throws only thin splinters, which sink away sooner', () => {
+  const [brk] = findBreaks(room(), room('wreck'));
+  assert.equal(brk.wreck, true);
+  assert.equal(brk.push, -1);
+  assert.deepEqual(findBreaks(room('wreck'), room('wreck')), [], 'a wreck that stays a wreck is not a new break');
+  for (let seed = 0; seed < 200; seed++) {
+    const all = shardsFor(seed), few = shardsFor(seed, {wreck: true});
+    assert.ok(few.length >= 4 && few.length <= SHARDS / 2, `${few.length} splinters`);
+    assert.ok(few.every(s => !s.iron), 'the strap iron stays on the wreck');
+    for (const s of few) {
+      const twin = all.find(o => o.pos[0] === s.pos[0] && o.vel[2] === s.vel[2]);
+      assert.ok(twin && s.size[0] < twin.size[0] && s.size[1] < twin.size[1], 'thinner than the full-break plank');
+      assert.ok(s.pos[1] >= halfHeight(s) - 1e-9);
+    }
+  }
+  const t = breakTimes(true);
+  assert.deepEqual(t, {life: WRECK.life, sink: WRECK.sink});
+  assert.ok(t.life < BREAK.life && t.sink < t.life);
+  assert.equal(shardScale(t.sink, t), 1);
+  assert.equal(shardScale(t.life, t), 0);
+  assert.equal(shardScale(BREAK.sink), 1, 'a bare doorway keeps the full timing');
+
+  const scene = new THREE.Group(), fx = createDoorBreak(THREE, scene);
+  fx.frame(room()); fx.frame(room('wreck'));
+  const n = fx.update(.05).shards;
+  assert.ok(n > 0 && n <= SHARDS / 2);
+  // Pose over time: finite, above the floor, gone by the wreck's end.
+  const mesh = scene.children.find(o => o.userData.part === 'door-break-shards');
+  const m = new THREE.Matrix4(), p = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3();
+  for (let tt = .05; tt < WRECK.life - .1; tt += .1) {
+    fx.update(.1);
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, m); m.decompose(p, q, sc);
+      assert.ok([p.x, p.y, p.z].every(Number.isFinite) && p.y >= -1e-6);
+      assert.ok(Math.abs(p.x - 2) < 2.2 && Math.abs(p.z - 2) < 2.2);
+    }
+  }
+  assert.deepEqual(fx.update(.2), {count: 0, shards: 0, dust: 0});
+  fx.dispose();
 });
