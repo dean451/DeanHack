@@ -972,6 +972,59 @@ test('the hezrou gets its own hunched, warty, fanged toad demon with a hinged ja
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('material golems are hunched, jagged constructs with a pulsing core, clawed arms and their own material details',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const kinds=['wax','rope','gold','leather','wood','flesh','clay','stone','glass','iron','ice','crystal ice'];
+ const verts={};
+ for(const kind of kinds){
+  const a=createCreature({name:`${kind} golem`,symbol:39,color:7});
+  assert.equal(a.quirk,'golem',kind);
+  for(const key of ['body','head','arm','core'])assert(a[key]?.isObject3D,`${kind} ${key}`);
+  assert.equal(a.legs.length,2);assert.equal(a.arms.length,2);
+  assert(a.core.material.emissiveIntensity>0,'the core glows (live.js pulses it)');
+  const parts=meshes(a);assert.equal(parts.length,8,kind);
+  verts[kind]=0;
+  for(const m of parts){const at=m.geometry.attributes;verts[kind]+=at.position.count;for(const key of ['position','normal'])for(const v of at[key].array)assert(Number.isFinite(v),`${kind} ${m.userData.part} ${key}`);}
+  a.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(a.g,true);
+  assert(Math.abs(b.min.y)<.02,`${kind} feet at ${b.min.y}`);
+  assert(b.max.y>1.1&&b.max.y<1.6,`${kind} top at ${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,`${kind} out of proportion`);
+  // hunched and long-armed: the head sits low and forward, the fists hang near the knees
+  const head=new THREE.Box3().setFromObject(a.head,true),hand=new THREE.Box3().setFromObject(a.arms[1],true);
+  assert(head.max.y<b.max.y+1e-6&&head.getCenter(new THREE.Vector3()).z>.1,`${kind} head hangs forward`);
+  assert(hand.min.y<.35,`${kind} fists at ${hand.min.y}`);
+  // faceted, not smooth: many neighbouring face normals disagree sharply
+  const n=parts[0].geometry.attributes.normal;let sharp=0;
+  for(let i=0;i+3<n.count;i+=3)if(n.getX(i)*n.getX(i+3)+n.getY(i)*n.getY(i+3)+n.getZ(i)*n.getZ(i+3)<.9)sharp++;
+  assert(sharp>n.count/3*.2,`${kind} is jagged (${sharp})`);
+  const again=meshes(createCreature({name:`${kind} golem`}));
+  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+ }
+ // the materials differ: see-through glass and ice, metal iron and gold, and extra details
+ const mat=k=>meshes(createCreature({name:`${k} golem`}))[0].material;
+ assert(mat('glass').transparent&&mat('ice').transparent&&!mat('stone').transparent);
+ assert(mat('iron').metalness>.5&&mat('gold').metalness>.5&&mat('clay').metalness<.1);
+ assert(verts.flesh>verts.clay&&verts.wax>verts.clay&&verts.iron>verts.clay,'stitches, drips and rivets add detail');
+ assert.notEqual(meshes(createCreature({name:'clay golem'}))[1].material.color.getHex(),meshes(createCreature({name:'glass golem'}))[1].material.color.getHex());
+});
+
+test('the gelatinous cube holds skulls, bones and a rusted dagger, not coloured balls',()=>{
+ const cube=createCreature({name:'gelatinous cube',symbol:98,color:6});
+ const parts=[];cube.g.traverse(o=>{if(o.isMesh)parts.push(o);});
+ assert.equal(parts.length,2,'the jelly and one merged mesh of remains');
+ const jelly=parts.find(m=>m.material.transparent),remains=parts.find(m=>m.userData.part==='remains');
+ assert(jelly&&remains&&jelly.material.opacity<.6);
+ for(const v of remains.geometry.attributes.position.array)assert(Number.isFinite(v));
+ cube.g.updateMatrixWorld(true);
+ const box=new THREE.Box3().setFromObject(jelly,true),inside=new THREE.Box3().setFromObject(remains,true);
+ assert(box.containsBox(inside),'everything floats inside the jelly');
+ // bone-coloured and plenty of it, with dark eye sockets
+ const c=remains.geometry.attributes.color;let bone=0,dark=0;
+ for(let i=0;i<c.count;i++){const r=c.getX(i),g=c.getY(i),b=c.getZ(i);if(r>.5&&g>.45&&b>.3&&r-b<.35)bone++;if(r<.05&&g<.05)dark++;}
+ assert(bone>1500&&dark>100,`bone ${bone}, sockets ${dark}`);
+});
+
 test('mind flayers get a merged robed illithid model with a ridged cranium, glowing eyes and swaying face tentacles',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const tops={};

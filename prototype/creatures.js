@@ -5,7 +5,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {heldBoulderGeometry} from './boulder.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
-import {createHomunculus,pieces,rgb,mix} from './homunculus.js';
+import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
@@ -51,6 +51,7 @@ import {createDwarf,isDwarf} from './dwarf.js';
 import {createValkyrie} from './valkyrie.js';
 import {createSamurai} from './samurai.js';
 import {createKnight} from './knight.js';
+import {createGolem} from './golem.js';
 import {createHezrou} from './hezrou.js';
 import {createWizard} from './wizard.js';
 import {createMonk} from './monk.js';
@@ -94,27 +95,7 @@ function gridBug(){
  for(const x of [-.06,.06]){const antenna=rounded(body,.018,.16,.018,M.electric,x,.39,.19,.005);antenna.rotation.x=x<0?-.28:.28;}
  return actor(g,body,legs,null,[],'gridbug');
 }
-// Golems: an inanimate material animated into a blocky humanoid. Seams mark where
-// slabs of the material join; a lit core in the chest and eyes sell "constructed", not "born".
-const GOLEM_MATERIALS={
- straw:{color:'#c2a24a',roughness:.98},paper:{color:'#e8ddc0',roughness:.85},wax:{color:'#e0b56a',roughness:.4},
- rope:{color:'#8a6a3a',roughness:.95},gold:{color:'#d9b23a',metalness:.85,roughness:.25},leather:{color:'#5a3c26',roughness:.85},
- wood:{color:'#7a5530',roughness:.88},flesh:{color:'#9a8070',roughness:.8},clay:{color:'#8a5a3e',roughness:.92},
- stone:{color:'#767468',roughness:.92},glass:{color:'#bfe3e0',roughness:.12,metalness:.05,transparent:!0,opacity:.55},
- iron:{color:'#3c4448',metalness:.75,roughness:.35},ice:{color:'#bfe6f2',roughness:.15,transparent:!0,opacity:.72},
- 'crystal ice':{color:'#d8f3ff',roughness:.08,transparent:!0,opacity:.68,emissive:'#8fd9ff',emissiveIntensity:.15},
-};
-function golem(params=GOLEM_MATERIALS.stone){
- const g=new THREE.Group(),torso=new THREE.Group();g.add(torso);const legs=[];
- const body=mat(params.color,params),seam=mat(shade(params.color,.55),{roughness:.95});
- rounded(torso,.5,.58,.34,body,0,.66,0,.05);
- for(let i=0;i<2;i++)rounded(torso,.52,.03,.36,seam,0,.5+i*.32,0,.01);
- rounded(torso,.34,.3,.32,body,0,1.06,0,.04);rounded(torso,.36,.03,.34,seam,0,.92,0,.01);
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.34,.88,0);torso.add(arm);rounded(arm,.15,.5,.16,body,0,-.24,0,.03);rounded(arm,.17,.05,.18,seam,0,-.46,0,.01);}
- for(const x of [-.16,.16]){const leg=new THREE.Group();leg.position.set(x,.4,0);torso.add(leg);rounded(leg,.19,.46,.2,body,0,-.2,0,.04);rounded(leg,.21,.06,.22,seam,0,-.4,.02,.01);legs.push(leg);}
- const core=sphere(torso,.07,M.fire,0,.7,.18);g.userData.core=core;eyes(torso,M.fire,1.06,.16,.07);
- return Object.assign(actor(g,torso,legs,null,[],'golem'),{core});
-}
+// Golems (other than straw and paper, which have their own files) are built in golem.js.
 // Dragons. UnNetHack shuffles the dragon names (tatzelworm, wyvern, sirrush...) against the breath
 // types and draws every dragon brown until its scales are identified. So the name picks a body plan
 // from the legend it comes from, and the glyph colour picks the hide and the breath glow. An
@@ -422,12 +403,49 @@ function blob(o){
 
 // Gelatinous cube: unlike the other oozes, this one keeps crisp right angles — a
 // near-transparent block with half-digested debris suspended inside.
+// The gelatinous cube: a quivering block of murky jelly with what it has eaten hanging inside it,
+// three skulls at odd tilts, long bones and a rusted dagger, instead of coloured balls. The remains
+// are one merged, vertex-coloured mesh built once and shared: 2 draws.
+let cubeRemains=null;
+function cubeRemainsGeometry(){
+ if(cubeRemains)return cubeRemains;
+ const P=pieces(),BONE=rgb('#d8ccaa'),BONE_DARK=rgb('#8a7c5a'),HOLE=rgb('#1a1410'),RUST=rgb('#6a3a1c'),STEEL=rgb('#7a7a74');
+ const bone=(x,y,z)=>mix(BONE_DARK,BONE,(y+.06)*6);
+ // a skull in its own frame, facing +z: cranium, cheekbones, a hinged jaw hanging a little open,
+ // dark eye sockets and nose hole, and a row of teeth
+ const skull=m=>{
+  const add=(geo,local,c)=>P.add(geo,new THREE.Matrix4().multiplyMatrices(m,local),c);
+  add(new THREE.SphereGeometry(.052,14,10),at(0,.012,-.005,[0,0,0],[.9,.95,1.08]),bone);
+  add(new THREE.BoxGeometry(.07,.035,.05),at(0,-.022,.022),bone);
+  for(const s of [-1,1]){add(new THREE.SphereGeometry(.016,8,6),at(s*.021,.0,.045,[0,0,0],[1,.9,.5]),HOLE);add(new THREE.SphereGeometry(.012,6,4),at(s*.038,-.02,.03),bone);}
+  add(new THREE.ConeGeometry(.008,.018,3),at(0,-.022,.048,[Math.PI,0,0]),HOLE);
+  add(new THREE.BoxGeometry(.058,.012,.042),at(0,-.056,.018,[.35,0,0]),bone);
+  for(let i=0;i<6;i++)add(new THREE.BoxGeometry(.007,.01,.006),at(-.0175+i*.007,-.039,.047),BONE);
+ };
+ skull(at(-.08,.34,.04,[.3,.7,-.25]));
+ skull(at(.1,.18,-.06,[-.5,-1.1,.4]));
+ skull(at(-.02,.1,.12,[.9,.2,2.6]));
+ // long bones with knobbed ends, adrift at angles
+ for(const [x,y,z,r] of [[.08,.36,-.1,[.4,0,1.1]],[-.12,.16,-.08,[1.2,.3,.2]],[.02,.28,.14,[.2,1,1.9]]]){
+  const m=at(x,y,z,r),add=(geo,local,c)=>P.add(geo,new THREE.Matrix4().multiplyMatrices(m,local),c);
+  add(new THREE.CylinderGeometry(.009,.011,.16,6),at(0,0,0),bone);
+  for(const e of [-1,1])for(const s of [-1,1])add(new THREE.SphereGeometry(.014,6,4),at(s*.008,e*.08,0),BONE);
+ }
+ // a rusted dagger, point down
+ {const m=at(.13,.3,.1,[.3,.4,2.7]),add=(geo,local,c)=>P.add(geo,new THREE.Matrix4().multiplyMatrices(m,local),c);
+  add(new THREE.CylinderGeometry(.002,.016,.14,4),at(0,.08,0,[0,0,0],[1,1,.25]),(x,y)=>mix(STEEL,RUST,.5+Math.sin(y*90)*.3));
+  add(new THREE.BoxGeometry(.06,.01,.014),at(0,.005,0),RUST);add(new THREE.CylinderGeometry(.007,.007,.05,6),at(0,-.025,0),rgb('#3a2414'));}
+ cubeRemains=P.merge();
+ return cubeRemains;
+}
+let cubeBones=null;
 function cube(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
- const skin=new THREE.MeshStandardMaterial({color:o.color,emissive:o.color,emissiveIntensity:.14,roughness:.06,transparent:true,opacity:.4,side:THREE.DoubleSide});
+ const tint=new THREE.Color(o.color).lerp(new THREE.Color('#3a5a2a'),.3);
+ const skin=new THREE.MeshStandardMaterial({color:tint,emissive:tint,emissiveIntensity:.1,roughness:.06,transparent:true,opacity:.46,depthWrite:false,side:THREE.DoubleSide});
  rounded(body,.5,.5,.5,skin,0,.25,0,.045);
- const debris=['#8a6a3a','#b8402e','#d9b23a','#7a7a78','#3f5fa0'];
- for(let i=0;i<7;i++){const a=(i*97%360)*Math.PI/180,r=.09+((i*53)%10)/70;sphere(body,.03+((i*29)%4)/130,mat(debris[i%debris.length],{roughness:.6}),Math.cos(a)*r,.1+((i*7)%5)*.06,Math.sin(a)*r);}
+ cubeBones??=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6});
+ const remains=part(body,cubeRemainsGeometry(),cubeBones,0,0,0);remains.userData.part='remains';remains.renderOrder=-1;
  return actor(g,body,[],null,[],'cube');
 }
 
@@ -2226,7 +2244,7 @@ export function createCreature(cell={}){
  if(letter==='D'||/dragon/.test(name))return dragon(dragonLook(name,cell.color));
  if(name==='straw golem')return createStrawGolem();
  if(name==='paper golem')return createPaperGolem();
- {const golemMatch=name.match(/^(.*) golem$/);if(golemMatch)return golem(GOLEM_MATERIALS[golemMatch[1]]||GOLEM_MATERIALS.stone);}
+ {const golemMatch=name.match(/^(.*) golem$/);if(golemMatch)return createGolem(golemMatch[1]);}
  if(name==='giant turtle')return createTurtle();
  if(name==='tengu')return createTengu();
  if(name==='homunculus')return createHomunculus();
@@ -2307,7 +2325,7 @@ export function createCreature(cell={}){
   case '&':return demon({skin:shade(c,.8),horns:'short',tail:true});
   case 't':return trapper({hide:shade(c,.8),eye:'#e0c040'});
   case 'n':return nymph({skin:'#eec7a8',cloth:shade(c,.35),trim:c,hair:'#2a2018'});
-  case "'":return golem(GOLEM_MATERIALS.stone);
+  case "'":return createGolem('stone');
   case 'g':return /gargoyle/.test(name)?gargoyle({stone:shade(c,.9),eye:'#ff9a30',winged:/winged/.test(name)}):gremlin({skin:c,eye:'#ffd23a'});
  }
  return guardian({color});
