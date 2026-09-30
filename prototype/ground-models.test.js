@@ -351,12 +351,15 @@ test('spellbook covers follow the shuffled appearance and stay grounded',()=>{
   'spotted','faded','long','rainbow','ochre','tattered','wide','big','fuzzy','black','left-handed','psychedelic','spiral-bound','stapled',
   'stylish','tartan','chartreuse','decrepit','paperback','crimson','charcoal','plain','papyrus'];
  const book=(name,appearance,color=15)=>createGroundModel({name,class:10,appearance,color});
- const signature=model=>model.children.map(part=>[part.geometry.attributes.position.count,part.material.color.getHex()]);
+ // The matte parts share one white material, so their painted colours go in the signature too.
+ const paint=part=>part.geometry.attributes.color?.array.reduce((sum,v,i)=>sum+v*(1+i%3),0).toFixed(3)??'';
+ const signature=model=>model.children.map(part=>[part.geometry.attributes.position.count,part.material.color.getHex(),paint(part)]);
  const seen=new Set();
  for(const look of looks){
   const model=book('spellbook of force bolt',look);
   // Nothing on a book moves, so each material is one baked draw.
   assert.equal(model.children.length,new Set(model.children.map(part=>part.material)).size,`${look}: one draw per material`);
+  assert(model.children.length<=4,`${look}: the plain parts share one matte paint: ${model.children.length} draws`);
   assert.deepEqual(signature(book('spellbook of wishing',look)),signature(model),`${look}: the true spell must not show`);
   seen.add(JSON.stringify(signature(model)));
   const bounds=new THREE.Box3().setFromObject(model);

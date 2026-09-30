@@ -22,7 +22,21 @@ const BOOK_TINTS={leather:0x6b4527,canvas:0xa89a78,cloth:0x7d7a6a,plaid:0x2f5e34
  'light brown':0x8f6a44,'dark brown':0x4a2e1c};
 const hashLook=look=>{let h=2166136261;for(const c of look)h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return h;};
 
-function buildSpellbook(item,{g,add,box,ball,mat,materials,metal}){
+function buildSpellbook(item,{g,add:place,materials,metal}){
+ // Every plain matte part (page block, bands, strap, stripes, stains, labels, cord, ribbon) is the
+ // same rough, non-metal finish, so they share one vertex-coloured material and bake to one draw.
+ // mat(c) hands back a paint for add() to lay on the geometry, not a material of its own.
+ const matte=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.9});materials.push(matte);
+ const mat=c=>({paint:new THREE.Color(c)});
+ const add=(geo,m,x,y,z)=>{
+  if(!m.paint)return place(geo,m,x,y,z);
+  const n=geo.attributes.position.count,c=new Float32Array(n*3);
+  for(let i=0;i<n;i++)m.paint.toArray(c,i*3);
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));
+  return place(geo,matte,x,y,z);
+ };
+ const box=(w,h,d,m,x,y,z=0)=>add(new THREE.BoxGeometry(w,h,d),m,x,y,z);
+ const ball=(r,m,x,y,z,s=[1,1,1])=>{const p=add(new THREE.SphereGeometry(r,16,10),m,x,y,z);p.scale.set(...s);return p;};
  const look=(item.appearance||'').toLowerCase();
  const has=re=>re.test(look);
  let seed=hashLook(look)||1;const rnd=()=>(seed=(Math.imul(seed,1664525)+1013904223)>>>0)/2**32;
@@ -150,7 +164,7 @@ function buildSpellbook(item,{g,add,box,ball,mat,materials,metal}){
  const ribbon=box(.02,.002,d.length(),mat(0x8c1f24),(from.x+to.x)/2,(from.y+to.y)/2,(from.z+to.z)/2);
  ribbon.rotation.set(Math.atan2(-d.y,Math.hypot(d.x,d.z)),Math.atan2(d.x,d.z),0,'YXZ');
  // Nothing on a book moves, so cover, page block, bands, clasps, stains and sigils bake to one
- // mesh per material: 6 to 16 draws where there were up to 61.
+ // mesh per material: the cover, the matte paints, the brass and the sigil, so 2 to 4 draws.
  mergeByMaterial(g);
  // A left-handed book binds on the right: mirror the baked meshes and turn their faces back round.
  if(has(/^left-handed$/))for(const p of g.children){
@@ -5404,7 +5418,7 @@ export function createGroundModel(item={}){
   const potion=createPotion({appearance:item.appearance,color:item.color,count:item.quantity??Number(/^\s*(\d+)/.exec(name)?.[1]??1)});
   for(const part of [...potion.children]){g.add(part);}materials.push(...potion.userData.materials);g.rotation.y=potion.rotation.y;
  }else if(cls===10){
-  buildSpellbook(item,{g,add,box,ball,mat,materials,metal});
+  buildSpellbook(item,{g,add,materials,metal});
  }else if(cls===9){
   // Scrolls. The name is the true identity, so the look comes only from the shuffled
   // label: a labelled roll with a ribbon and a wax seal tinted by that label, a bare
