@@ -212,3 +212,24 @@ test('the fire trap is a spiked vent over glowing coals in a fading scorch burst
  assert(vertices<16000,`fire trap is ${vertices} vertices`);
  console.log(`fire trap: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
 });
+
+test('the pit is a ragged maw ringed by tipped flagstones, with stakes and a skull rising from the dark, in two draws',()=>{
+ for(const seed of [0,3,7,11,42]){
+  const model=createTrap('pit',seed);
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.name).sort(),['pit-mouth','pit-rim']);
+  const by=Object.fromEntries(meshes.map(m=>[m.name,m]));
+  assert(!by['pit-mouth'].castShadow,'the flat mouth should not cast a shadow');
+  for(const m of meshes){assert(m.material.vertexColors);for(const v of m.geometry.attributes.color.array)assert(v>=0&&v<=1);}
+  const normals=by['pit-mouth'].geometry.attributes.normal;
+  for(let i=0;i<normals.count;i++)assert.equal(normals.getY(i),1);
+  const rim=new THREE.Box3().setFromObject(by['pit-rim']);
+  assert(rim.max.y>.07&&rim.max.y<.16,`the stakes should stand up out of the pit (${rim.max.y})`);
+  const bounds=new THREE.Box3().setFromObject(model);
+  for(const v of [bounds.min.x,bounds.max.x,bounds.min.z,bounds.max.z])assert(Math.abs(v)<.46);
+  assert(bounds.min.y>-.05,"the tipped flagstones may only dip a little into the slab");
+  let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
+  assert(vertices<12000,`pit is ${vertices} vertices`);
+  if(!seed)console.log(`pit: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
+ }
+});
