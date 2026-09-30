@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {createSwingTrail} from './swing.js';
+import {weaponReach} from './swing-fx.js';
 
 // A two-handed katana grip for the samurai (samurai.js). At rest the model holds its katana in
 // the right hand alone, low at the hip. Here it stands in chūdan-no-kamae instead: the right hand
@@ -18,6 +20,11 @@ import * as THREE from 'three';
 // the katana goes up over the head, blade back (furikaburi), comes down through the target to a
 // little below level at the blow, and then either stops on the hit or follows through low on a
 // miss, before settling back into kamae. The left hand rides the hilt all the way.
+//
+// The fast part of the cut, from the top of the raise down through the blow (and on through the
+// follow-through on a miss), leaves a pale steel ribbon behind the blade, like the hero's swing
+// trail. It hangs from the actor's own group, so it goes when the actor does, and fades out in
+// ~0.14 s once the blade slows.
 //
 // Everything is an offset (the arms' and socket's Euler angles, the shoulders' positions), taken
 // back first each frame, so actions.js's own offsets on the same parts still stack on top.
@@ -98,6 +105,30 @@ export function cutPose(u, result = 'hit') {
   return {raise: k[1], hand: {x: HAND.x, y: k[2], z: k[3]}};
 }
 
+// The stretch of the cut (by phase) the trail is drawn over, per result, and where along the blade
+// the ribbon's inner edge sits.
+export const TRAIL_U = Object.freeze({hit: Object.freeze([.28, .46]), miss: Object.freeze([.28, .58])}), TRAIL_INNER = .3;
+export const cutTrailOn = (u, result = 'hit') => { const w = TRAIL_U[result === 'miss' ? 'miss' : 'hit']; return u > w[0] && u < w[1]; };
+
+const trailBase = new THREE.Vector3(), trailTip = new THREE.Vector3();
+function updateCutTrail(actor, st, dt, on) {
+  if (on && !st.trail) {
+    st.trail = createSwingTrail(THREE);
+    st.trail.mesh.userData.keepOpaque = true; // it fades itself; a death fade would pin its visibility
+    actor.g.add(st.trail.mesh);
+  }
+  if (!st.trail) return;
+  if (on) {
+    const s = actor.weaponSocket, reach = weaponReach(s);
+    s.updateWorldMatrix(true, false);
+    const inv = tmpM.copy(actor.g.matrixWorld).invert();
+    s.localToWorld(trailBase.set(0, reach * TRAIL_INNER, 0)).applyMatrix4(inv);
+    s.localToWorld(trailTip.set(0, reach, 0)).applyMatrix4(inv);
+    if ([trailBase.x, trailBase.y, trailBase.z, trailTip.x, trailTip.y, trailTip.z].every(Number.isFinite)) st.trail.sample(trailBase, trailTip);
+  }
+  st.trail.update(dt);
+}
+
 const cutting = q => q?.current?.kind === 'attack' && q.current.attack === 'weapon' && !q.dead;
 
 const ZERO = () => ({arm: {x: 0, z: 0}, socket: {x: 0, y: 0, z: 0}, off: {x: 0, z: 0}, shoulders: [0, 0]});
@@ -131,13 +162,14 @@ export function updateKamae(actor, dt, t) {
   st.f = to + (st.f - to) * Math.exp(-(hold ? FADE_IN : FADE_OUT) * dt);
   if (Math.abs(st.f - to) < SNAP) st.f = to;
   const f = st.f;
-  if (!(f > 0)) return null;
+  if (!(f > 0)) { updateCutTrail(actor, st, dt, false); return null; }
 
   const p = ZERO();
   p.shoulders = [SHOULDER[0] * f, SHOULDER[1] * f];
   left.position.z += p.shoulders[0]; right.position.z += p.shoulders[1];
   const breath = Number.isFinite(t) ? BREATH * Math.sin(t * BREATH_RATE) : 0;
-  const cut = cutting(actor.actions) ? cutPose(actor.actions.u, actor.actions.current.result) : {raise: RAISE, hand: HAND};
+  const cuts = cutting(actor.actions);
+  const cut = cuts ? cutPose(actor.actions.u, actor.actions.current.result) : {raise: RAISE, hand: HAND};
   const k = kamaePose(st.rest, right.position, cut.raise + breath, cut.hand);
   p.arm.x = k.arm.x * f; p.arm.z = k.arm.z * f;
   p.socket.x = k.socket.x * f; p.socket.y = k.socket.y * f; p.socket.z = k.socket.z * f;
@@ -149,5 +181,6 @@ export function updateKamae(actor, dt, t) {
   p.off.x = wrap(l.x - left.rotation.x) * f; p.off.z = wrap(l.z - left.rotation.z) * f;
   left.rotation.x += p.off.x; left.rotation.z += p.off.z;
   st.applied = p;
+  updateCutTrail(actor, st, dt, cuts && f > .5 && cutTrailOn(actor.actions.u, actor.actions.current.result));
   return p;
 }
