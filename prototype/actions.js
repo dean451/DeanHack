@@ -18,6 +18,7 @@ import {catMove, catSize, catLength, catAttackPose} from './cats.js';
 import {jawPose, jawReach} from './jaw.js';
 import {risePose, RISE_TIME, RISE_BURST_U} from './rise.js';
 import {groundSamples, groundLift, grounds} from './ground.js';
+import {centaurAttackPose} from './centaur-attack.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9, rise: RISE_TIME};
 // Wait no longer than this for a death to play before the map (and its corpse) goes on.
@@ -167,6 +168,9 @@ export function clearActionPose(actor, q) {
   if (actor.legs?.[0]) actor.legs[0].rotation.x -= o.leg;
   if (actor.tail) actor.tail.rotation.x -= o.tail;
   if (o.jaw && actor.jaw) actor.jaw.rotation.x -= o.jaw;
+  if (o.grip && actor.weaponSocket) actor.weaponSocket.rotation.x -= o.grip;
+  if (o.off && actor.arms?.[0]) actor.arms[0].rotation.x -= o.off;
+  if (o.offGrip && actor.offHand) actor.offHand.rotation.x -= o.offGrip;
   if (o.fore) for (const l of foreLegs(actor)) l.rotation.x -= o.fore;
   if (o.paw || o.pawSide) { const l = foreLegs(actor)[0]; if (l) { l.rotation.x -= o.paw; l.rotation.z -= o.pawSide; } }
   if (o.wing) actor.wings?.forEach((w, i) => { w.rotation.z -= wingSide(w, i) * o.wing; });
@@ -191,6 +195,9 @@ function applyPose(actor, q, p) {
   if (actor.legs?.[0]) actor.legs[0].rotation.x += p.leg;
   if (actor.tail) actor.tail.rotation.x += p.tail;
   if (p.jaw && actor.jaw) actor.jaw.rotation.x += p.jaw;
+  if (p.grip && actor.weaponSocket) actor.weaponSocket.rotation.x += p.grip;
+  if (p.off && actor.arms?.[0]) actor.arms[0].rotation.x += p.off;
+  if (p.offGrip && actor.offHand) actor.offHand.rotation.x += p.offGrip;
   if (p.fore) for (const l of foreLegs(actor)) l.rotation.x += p.fore;
   if (p.paw || p.pawSide) { const l = foreLegs(actor)[0]; if (l) { l.rotation.x += p.paw; l.rotation.z += p.pawSide; } }
   if (p.wing) actor.wings?.forEach((w, i) => { w.rotation.z += wingSide(w, i) * p.wing; });
@@ -223,6 +230,8 @@ export function updateActions(actor, q, dt) {
   const pose = actionPose(a, u, q.face);
   // Smaller jaws open less (jaw.js).
   if (pose.jaw) pose.jaw *= jawReach(actor);
+  // A centaur thrusts its spear, smashes its club or draws its bow (centaur-attack.js).
+  if (a.kind === 'attack' && a.attack === 'weapon' && actor.centaur) Object.assign(pose, centaurAttackPose(actor.centaur, u, a.result));
   if (a.swing) {
     pose.arm = pose.wrist = pose.socket = 0;
     pose.swing = swingPose(a.blow, u, a.result);
