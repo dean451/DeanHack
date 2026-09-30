@@ -786,3 +786,37 @@ test('heavy monsters merge their static parts but keep every animated handle att
   for(const leg of actor.legs)assert(inTree(leg),name);
  }
 });
+
+test('the ghoul gets its own crouched, clawed corpse-eater instead of the human zombie',()=>{
+ const Z=90,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const t0=performance.now(),ghoul=createCreature({name:'ghoul',symbol:Z,color:0}),ms=performance.now()-t0;
+ assert.equal(ghoul.quirk,'zombie');
+ for(const key of ['body','head','arm'])assert(ghoul[key]?.isObject3D,key);
+ assert.equal(ghoul.legs.length,2);assert.equal(ghoul.arms.length,2);assert(ghoul.arms.includes(ghoul.arm));
+ assert.equal(ghoul.wings.length,0);assert.equal(ghoul.tail,null);
+ const parts=meshes(ghoul);
+ assert.equal(parts.length,7,'one mesh per moving part plus the eyes');
+ assert.deepEqual([...new Set(parts.map(m=>m.userData.part))].sort(),['arm','body','eyes','head','leg']);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ ghoul.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(ghoul.g),zombie=createCreature({name:'human zombie',symbol:Z});
+ zombie.g.updateMatrixWorld(true);
+ assert(b.min.y>-.02&&b.min.y<.02,`feet at ${b.min.y}`);
+ // small and hunched: well under the zombie's height
+ assert(b.max.y>.7&&b.max.y<new THREE.Box3().setFromObject(zombie.g).max.y*.8,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'fits the tile');
+ // the head is thrust forward of the hips, and the claws hang down near the knees
+ const head=new THREE.Box3().setFromObject(ghoul.head);
+ assert(head.min.z>.1,`head at z ${head.min.z}`);
+ for(const arm of ghoul.arms){const h=new THREE.Box3().setFromObject(arm);assert(h.min.y<.3&&h.min.y>.05,`claws at ${h.min.y}`);}
+ // shared geometry and materials
+ const other=meshes(createCreature({name:'ghoul'}));
+ parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
+ assert(ms<1000,`took ${ms} ms`);
+});
