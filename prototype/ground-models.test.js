@@ -286,10 +286,13 @@ test('rings lie on the floor and show only their shuffled appearance',()=>{
 
 test('amulets lie on the floor and show only their shuffled appearance',()=>{
  const amulet=(name,appearance)=>createGroundModel({name,class:5,appearance});
- const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.type,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);});return out;};
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.type,part.geometry.attributes.position.count,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);});return out;};
  for(const look of ['circular','spherical','oval','triangular','pyramidal','square','concave','hexagonal','octagonal','warped','convex','lunate','spiked','rectangular','elliptic','Amulet of Yendor',undefined]){
   const model=amulet('amulet of ESP',look);
   assert(model,look);
+  // Nothing moves, so each material is one merged mesh: setting, chain and (mostly) a stone.
+  const materials=new Set();let draws=0;model.traverse(part=>{if(part.isMesh){draws++;materials.add(part.material);}});
+  assert(draws<=3&&draws===materials.size,`${look}: ${draws} draws`);
   const bounds=new THREE.Box3().setFromObject(model);
   assert(Math.abs(bounds.min.y)<1e-6,`${look} rests on the floor`);
   assert(bounds.max.y<.09,`${look} lies low`);
