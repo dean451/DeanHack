@@ -18,9 +18,36 @@ export function featureKind(symbol,color){
  return null;
 }
 
-// Drawbridges are built with the moat running along x; live.js turns them by
-// the neighbouring water.
+// Drawbridges are built with the moat running along x, the gatehouse toward -z and the
+// moat toward +z; live.js turns them with bridgeYaw.
 export const AXIS_FEATURES=new Set(['bridge-down','bridge-up']);
+
+// The yaw that faces a drawbridge model the right way, from `terrainAt(dx,dz)` (the live
+// terrain of a neighbouring cell), or null when the neighbours don't settle it.
+// A raised bridge is drawn on the gatehouse wall itself (DBWALL), with the moat on one side
+// only, so its moat face (+z) turns toward that water; failing that, it lines up with the wall.
+// A lowered bridge lies on the moat square: the water runs along it, and its hinge end (-z)
+// turns toward the gatehouse, the side flanked by wall.
+export function bridgeYaw(kind,terrainAt){
+ const wet=(dx,dz)=>['water','lava'].includes(terrainAt(dx,dz));
+ const wall=(dx,dz)=>['wall','door','bars'].includes(terrainAt(dx,dz))?1:0;
+ const SIDES=[[1,0],[-1,0],[0,1],[0,-1]];
+ if(kind==='bridge-up'){
+  const water=SIDES.filter(([dx,dz])=>wet(dx,dz)&&!wet(-dx,-dz));
+  if(water.length===1){const [dx,dz]=water[0];return Math.atan2(dx,dz);}
+  const alongX=wall(-1,0)+wall(1,0),alongZ=wall(0,-1)+wall(0,1);
+  return alongX===alongZ?null:alongX>alongZ?0:Math.PI/2;
+ }
+ if(kind==='bridge-down'){
+  const alongX=Number(wet(-1,0))+Number(wet(1,0)),alongZ=Number(wet(0,-1))+Number(wet(0,1));
+  if(alongX===alongZ)return null;
+  // the two ends of the span, across the moat: the gatehouse end has wall either side of it
+  const flank=alongX>alongZ?s=>wall(-1,s)+wall(1,s)+wall(0,s):s=>wall(s,-1)+wall(s,1)+wall(s,0);
+  const s=flank(1)>flank(-1)?1:-1;
+  return alongX>alongZ?Math.atan2(0,-s):Math.atan2(-s,0);
+ }
+ return null;
+}
 
 export function createTerrainFeature(kind,seed=0){
  const g=new THREE.Group();g.name=`Feature (${kind})`;

@@ -163,3 +163,34 @@ test('the rubble trap is a fallen rock in a shattered scar, two vertex-coloured 
   if(seed===0)console.log(`rubble trap: ${vertices} vertices, scar y ${scar.min.y.toFixed(3)}..${scar.max.y.toFixed(3)}, rock y ${rock.min.y.toFixed(3)}..${rock.max.y.toFixed(3)}`);
  }
 });
+
+test('drawbridges face across their moat: raised on the gatehouse wall, lowered with the hinge at the gate',async()=>{
+ const {bridgeYaw}=await import('./terrain-feature.js');
+ const T={'-':'wall','.':'floor','}':'water','L':'lava','#':'feature','=':'feature'};
+ // `rows` is a 3×3 map around the bridge; turn it a quarter at a time to try all four facings
+ const turn=rows=>rows[0].split('').map((_,x)=>rows.map(r=>r[x]).reverse().join(''));
+ const yawOf=(kind,rows)=>bridgeYaw(kind,(dx,dz)=>T[rows[1+dz][1+dx]]);
+ // where the model's local -z (gatehouse side) ends up after the yaw
+ const gate=yaw=>[Math.round(-Math.sin(yaw)),Math.round(-Math.cos(yaw))];
+ const cases=[
+  // raised: drawn on the wall line itself, moat on the far side
+  ['bridge-up',['...','-#-','}}}'],[0,-1]],
+  ['bridge-up',['...','-#-','LLL'],[0,-1]],
+  // lowered: lying on the moat square, the doorway behind it flanked by wall
+  ['bridge-down',['-.-','}=}','...'],[0,-1]],
+ ];
+ for(const [kind,start,dir] of cases){
+  let rows=start,d=dir;
+  for(let k=0;k<4;k++){
+   const yaw=yawOf(kind,rows);
+   assert(yaw!==null,`${kind} ${rows.join('/')}`);
+   assert.deepEqual(gate(yaw).map(v=>v+0),d,`${kind} ${rows.join('/')}: gate toward ${d}`);
+   rows=turn(rows);d=[-d[1]+0,d[0]+0];// a clockwise quarter turn of the map (x right, z down)
+  }
+ }
+ // the screenshot case: raised in a horizontal wall stands across z, not along it
+ assert.equal(yawOf('bridge-up',['...','-#-','}}}']),0);
+ // nothing to go on: leave the model as it is
+ assert.equal(yawOf('bridge-up',['...','.#.','...']),null);
+ assert.equal(yawOf('bridge-down',['}}}','}=}','}}}']),null);
+});
