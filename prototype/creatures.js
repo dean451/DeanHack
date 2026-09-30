@@ -40,6 +40,7 @@ import {createMummy} from './mummy.js';
 import {createHobbit} from './hobbit.js';
 import {createGoblin,isGoblin} from './goblin.js';
 import {createBugbear} from './bugbear.js';
+import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
 
 const M={
@@ -57,16 +58,15 @@ function actor(g,body,legs=[],tail=null,wings=[],quirk='idle'){return {g,body,le
 function eyes(head,material=M.eye,y=0,z=.18,spread=.075){for(const x of [-spread,spread])sphere(head,.026,material,x,y,z);}
 function humanoid(kind,o={}){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[],wings=[],arms=[];let hat=null,beard=null,pick=null;
- const short=['gnome','kobold','imp'].includes(kind),stocky=kind==='orc'||kind==='dwarf',guard=kind==='guard';
+ const short=['gnome','imp'].includes(kind),stocky=kind==='orc'||kind==='dwarf',guard=kind==='guard';
  const skin=o.skin||(kind==='orc'?M.greenSkin:kind==='dwarf'?M.graySkin:M.skin);
  const torso=o.cloth||(kind==='orc'?M.brownCloth:guard?M.steel:M.cloth);
  const headY=short?.87:1.0,shoulderY=short?.7:.8,torsoW=stocky?.46:.42;
- for(const x of [-.13,.13]){const leg=new THREE.Group();leg.position.set(x,.4,0);body.add(leg);rounded(leg,.16,short?.27:stocky?.34:.42,.16,M.darkSteel,0,-.12,0,.035);rounded(leg,.21,.13,.28,kind==='imp'||kind==='kobold'?skin:M.leather,0,-.36,.06,.03);legs.push(leg);}
+ for(const x of [-.13,.13]){const leg=new THREE.Group();leg.position.set(x,.4,0);body.add(leg);rounded(leg,.16,short?.27:stocky?.34:.42,.16,M.darkSteel,0,-.12,0,.035);rounded(leg,.21,.13,.28,kind==='imp'?skin:M.leather,0,-.36,.06,.03);legs.push(leg);}
  rounded(body,torsoW,short?.3:stocky?.4:.48,.3,torso,0,.62,0,.06);sphere(body,short?.18:.22,skin,0,headY,.02,1,1.05,1);
  // arms give every humanoid a readable silhouette
  for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*(torsoW/2+.07),shoulderY,0);body.add(arm);arms.push(arm);rounded(arm,.11,short?.3:.38,.12,torso,0,short?-.13:-.17,0,.03);sphere(arm,.065,skin,0,short?-.3:-.38,0);arm.rotation.z=side*.12;}
  if(kind==='gnome'){const cap=hat=cone(body,.25,.36,o.cap||M.redCloth,0,1.2,.01,8);cap.rotation.z=-.16;beard=sphere(body,.19,M.beard,0,.86,.18,.8,.9,.65);sphere(body,.05,skin,0,.98,.19,1,1,.8);}
- if(kind==='kobold'){const snout=cone(body,.1,.2,skin,0,.83,.24,6);snout.rotation.x=Math.PI/2;sphere(body,.025,M.leather,0,.83,.34);for(const side of [-1,1]){const ear=cone(body,.07,.26,skin,side*.2,.95,-.01,4);ear.rotation.z=-side*1.15;}const spear=rounded(body,.035,.9,.035,M.leather,.34,.62,.2,.01);spear.rotation.x=.15;cone(body,.05,.14,M.darkSteel,.34,1.08,.27,4);}
  if(kind==='imp'){for(const side of [-1,1]){const horn=cone(body,.04,.16,M.leather,side*.1,1.04,.02,5);horn.rotation.z=-side*.35;const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.34,.2);shape.lineTo(side*.3,-.02);shape.lineTo(side*.18,.04);shape.lineTo(0,-.12);const wing=part(body,new THREE.ShapeGeometry(shape),M.wing,side*.12,.72,-.17);wings.push(wing);}const tail=cone(body,.03,.42,skin,0,.42,-.3,5);tail.rotation.x=-2.1;}
  if(kind==='orc'){for(const x of [-.09,.09]){const tusk=cone(body,.045,.15,M.whiteFur,x,.91,.19,5);tusk.rotation.x=x<0?.35:-.35;}for(const x of [-.31,.31])sphere(body,.16,M.darkSteel,x,.84,0,1,.75,1);}
  // dwarf lords wear a gold-banded helm; dwarf kings trade it for a crown and a cape
@@ -2193,7 +2193,7 @@ const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{f
 
 function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const armor=o.color?mat(shade(o.color,.7),{roughness:.5,metalness:.4}):M.darkSteel;rounded(body,.42,.78,.38,armor,0,.5,0,.07);sphere(body,.23,M.graySkin,0,1.03,0,1,.9,1);for(const x of [-.4,.4])rounded(body,.25,.5,.3,o.color?mat(o.color,{roughness:.4,metalness:.3}):M.steel,x,.58,0,.05);const core=sphere(body,.09,M.fire,0,.62,.23);g.userData.core=core;eyes(body,M.fire,1.04,.22,.08);return Object.assign(actor(g,body),{core});}
 
-const SKIN={kobold:'#8a5a3a','large kobold':'#9a3f2f','kobold lord':'#7a3f70','kobold shaman':'#5070a8',homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
+const SKIN={homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
 
 export function createCreature(cell={}){
  const name=(cell.name||'').toLowerCase(),letter=Number.isInteger(cell.symbol)?String.fromCharCode(cell.symbol):'',color=nhColor(cell);
@@ -2287,7 +2287,8 @@ export function createCreature(cell={}){
  if(name==='manes')return createManes();
  if(name==='lemure')return createLemure();
  if(name==='quasit')return createQuasit();
- if(SKIN[name])return humanoid(letter==='k'||/kobold/.test(name)?'kobold':'imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
+ if(isKobold(name))return createKobold(name);
+ if(SKIN[name])return humanoid('imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
  if(ELVES[name])return createElf(name);
  if(PRIESTS[name])return createPriest(name);
  if(name==='nurse')return createNurse();
@@ -2329,7 +2330,7 @@ export function createCreature(cell={}){
   case 'b':case 'j':case 'P':return blob({color:c,flat:letter==='j'});
   case 'e':return floatingEye({iris:c});
   case 'y':return wisp({color:c});
-  case 'k':return humanoid('kobold',{skin:mat(c),cloth:mat(shade(c,.55))});
+  case 'k':return createKobold(name);
   case 'i':return humanoid('imp',{skin:mat(c),cloth:mat(shade(c,.55))});
   case 'Z':return createZombie('human zombie');
   case 'M':return createMummy('human mummy');
