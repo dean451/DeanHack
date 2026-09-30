@@ -2,7 +2,7 @@
 // razed by digging or smashed by a giant, the client only sees a frame where the door tile
 // has become a plain doorway (terrain 'floor' with no `door:'open'`), and live.js drops the
 // door model in one frame. This module plays the break over that swap: the leaf bursts into
-// plank shards and a few bits of strap iron that fly out away from the hero (the way the
+// plank shards and a few bits of strap iron that fly out away from whoever broke it (the way the
 // blow pushed them), tumble, bounce and skid on the floor, lie there a moment and sink
 // away, with a puff of dust and wood chips from the doorway.
 //
@@ -23,13 +23,38 @@ const hash = (a, b = 0, c = 0) => {
   return s - Math.floor(s);
 };
 
-const cellMap = frame => new Map((frame?.cells ?? []).map(c => [`${c.x},${c.z}`, c]));
+// Terrain cells only: a monster standing on a tile sends its own cell at the same x,z.
+const cellMap = frame => new Map((frame?.cells ?? []).filter(c => c.kind !== 'monster' && c.kind !== 'pet').map(c => [`${c.x},${c.z}`, c]));
+const isActor = c => (c.kind === 'monster' || c.kind === 'pet') && c.visible !== false && !c.invisible;
 const STANDING = ['wall', 'bars', 'door'];
 const isDoor = c => c?.terrain === 'door' || c?.door === 'open';
 
+// Which side of the leaf (+1 or -1 across it, 0 unknown) the door was broken from. The hero,
+// if they stood right against the leaf in prev (a kick); otherwise a monster that stood right
+// against it in prev (it breaks the door and steps in with the same move, so frame may already
+// have it in the doorway), when only one side had one; otherwise whichever side the hero is on
+// (a force bolt or striking from further off).
+export function breakerSide(prev, frame, c, turn) {
+  const sin = Math.sin(turn), cos = Math.cos(turn);
+  const across = (x, z) => Math.round((x - c.x) * sin + (z - c.z) * cos);
+  const along = (x, z) => Math.round((x - c.x) * cos - (z - c.z) * sin);
+  const hero = prev.player ?? frame.player;
+  if (Number.isFinite(hero?.x) && Number.isFinite(hero?.z)
+    && Math.abs(across(hero.x, hero.z)) === 1 && along(hero.x, hero.z) === 0) return across(hero.x, hero.z);
+  const sides = new Set();
+  for (const m of prev.cells) {
+    if (!isActor(m) || along(m.x, m.z) !== 0) continue;
+    const a = across(m.x, m.z);
+    if (Math.abs(a) === 1) sides.add(a);
+  }
+  if (sides.size === 1) return [...sides][0];
+  const px = frame.player?.x ?? prev.player?.x, pz = frame.player?.z ?? prev.player?.z;
+  return Number.isFinite(px) && Number.isFinite(pz) ? Math.sign((px - c.x) * sin + (pz - c.z) * cos) : 0;
+}
+
 // The tiles whose door was destroyed between prev and frame, each {x, z, seed, turn, push}.
 // seed and turn (0 or π/2 about y) match how live.js built the door; push (±1) is which side
-// of the leaf the shards fly to, away from the hero. The tile must be in view in both frames
+// of the leaf the shards fly to, away from whoever broke it (breakerSide). The tile must be in view in both frames
 // (a door broken out of sight and seen later as a doorway doesn't burst), and a level change
 // finds nothing. A door that goes from closed to open isn't broken.
 export function findBreaks(prev, frame) {
@@ -45,11 +70,9 @@ export function findBreaks(prev, frame) {
     const joined = (dx, dz) => Number(STANDING.includes(before.get(`${c.x + dx},${c.z + dz}`)?.terrain));
     const h = joined(-1, 0) + joined(1, 0), v = joined(0, -1) + joined(0, 1);
     const turn = h !== v && v > h ? Math.PI / 2 : 0;
-    // Across the leaf is +z at turn 0 and +x at π/2. Shards go away from the hero.
-    const px = frame.player?.x ?? prev.player?.x, pz = frame.player?.z ?? prev.player?.z;
-    const across = Number.isFinite(px) && Number.isFinite(pz)
-      ? (px - c.x) * Math.sin(turn) + (pz - c.z) * Math.cos(turn) : 0;
+    // Across the leaf is +z at turn 0 and +x at π/2. Shards go away from whoever broke it.
     const seed = c.x * 61 + c.z * 37;
+    const across = breakerSide(prev, frame, c, turn);
     const push = across > 0 ? -1 : across < 0 ? 1 : (hash(seed, 1) < .5 ? -1 : 1);
     out.push({x: c.x, z: c.z, seed, turn, push});
   }
