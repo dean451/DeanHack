@@ -5080,6 +5080,117 @@ export function candyBarGeometry(count=1){
  return merged;
 }
 
+// Royal jelly: a queen cell broken off the comb, lying on its side. The cell is a thick,
+// peanut-shaped cup of pale beeswax, pitted all over, with a ragged torn mouth; milky gold jelly
+// wells out of it and slumps into a glossy lobed puddle on the floor, beaded at the edge. Beside it
+// lies a small broken shard of worker comb: a few hexagonal cells, some sealed with domed wax caps,
+// the open ones showing honey. A stack adds a second, sealed queen cell against the shard.
+// One merged vertex-coloured mesh (1 draw).
+export function royalJellyGeometry(count=1){
+ const n=Math.min(2,Math.max(1,count|0));
+ const WAX=new THREE.Color(0xd9b46a),PIT=new THREE.Color(0x9a6a2c),RIM=new THREE.Color(0xeed39a),INSIDE=new THREE.Color(0x7a4a18),
+  JELLY=new THREE.Color(0xf2dd9c),MILK=new THREE.Color(0xfff3cf),DEEP=new THREE.Color(0xd6a043),
+  COMB=new THREE.Color(0xe0b24e),CAP=new THREE.Color(0xf1d48a),HONEY=new THREE.Color(0xb86a10),col=new THREE.Color();
+ const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+ const paint=(geo,fn)=>{
+  const p=geo.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);fn(x,y,z,Math.atan2(z,x),Math.hypot(x,z),i,p);c.set([col.r,col.g,col.b],i*3);}
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));geo.computeVertexNormals();return geo;
+ };
+ // The queen cell, built along +y from its rounded tip to its mouth, then laid along +x.
+ // Outer wall: tip, a fat belly, a faint waist, a second swell, then the lip; the inner wall runs
+ // back down to a floor inside, so the torn mouth shows a thick wax edge.
+ const L=.1,T=.0035;
+ const outer=[[0,0],[.008,.0012],[.014,.005],[.019,.012],[.022,.022],[.023,.033],[.0215,.045],[.0205,.053],[.0215,.062],[.0225,.072],[.022,.082],[.0205,.091],[.019,L]];
+ const queenCell=(seed,sealed)=>{
+  const prof=outer.map(([r,h])=>[r,h]);
+  if(sealed)prof.push([.016,L+.004],[.01,L+.007],[0,L+.008]);
+  else prof.push([.019-T,L],[.0205-T,.09],[.021-T,.075],[.02-T,.06],[.013,.05],[0,.047]);
+  const geo=weld(new THREE.LatheGeometry(prof.map(([r,h])=>new THREE.Vector2(r,h)),40));
+  return paint(geo,(x,y,z,a,r,i,p)=>{
+   const s=seed*7.3,inner=!sealed&&r<.0205-T*.5&&y>.045;
+   // Pits: the cell's peanut-shell dimpling, cut into the outer wall only.
+   const pit=inner||y<.004?0:smooth(.58,.8,meatNoise(a*5.5+s,y*170,s));
+   // The torn mouth: the lip and the top of the inner wall drop raggedly.
+   const tear=sealed?0:smooth(L-.012,L,y)*(.004+.007*meatNoise(a*3+s,1,2+s)+.003*meatNoise(a*9,s,3));
+   const k=r>1e-6?1-.12*pit:1;
+   p.setXYZ(i,x*k,y-tear,z*k);
+   if(inner)col.copy(INSIDE).lerp(WAX,smooth(.07,L,y)*.5);
+   else{
+    col.copy(WAX).lerp(RIM,.35*meatNoise(a*2+s,y*40,1)).lerp(PIT,pit*.75);
+    if(!sealed)col.lerp(RIM,smooth(L-.01,L,y)*.5);
+    else col.lerp(RIM,smooth(L-.002,L+.008,y)*.6);
+   }
+  });
+ };
+ // Jelly: a glob swelling out of the mouth and running down into a lobed puddle.
+ const lobes=a=>1+.16*Math.sin(3*a+.7)+.09*Math.sin(5*a+2.1)+.05*Math.sin(8*a+.3);
+ const jellyPaint=(x,y,z,a,r,i,p,thick)=>{
+  col.copy(JELLY).lerp(DEEP,thick*.55).lerp(MILK,.45*smooth(.55,.85,meatNoise(x*120,y*120,z*120)));
+ };
+ const puddle=()=>{
+  const R=.042,H=.0085;
+  return paint(weld(new THREE.LatheGeometry([[0,0],[R*.8,0],[R,.0012],[R-.002,.004],[R-.008,.0068],[R*.55,H],[R*.25,H+.0007],[0,H+.0009]].map(([r,h])=>new THREE.Vector2(r,h)),48)),(x,y,z,a,r,i,p)=>{
+   const w=lobes(a);p.setX(i,x*w);p.setZ(i,z*w);
+   jellyPaint(x,y,z,a,r,i,p,1-smooth(0,.04,r));
+  });
+ };
+ const glob=()=>{
+  const g=weld(new THREE.SphereGeometry(.017,24,16));
+  return paint(g,(x,y,z,a,r,i,p)=>{
+   // A sagging glob, heavier at the bottom, pulled forward and down towards the puddle.
+   const sag=smooth(.004,-.017,y);
+   p.setXYZ(i,x*1.35+.006*sag,y*(y<0?1.1:.85),z*(1+.25*sag));
+   jellyPaint(x,y,z,a,r,i,p,.3+.4*sag);
+  });
+ };
+ const beads=[];
+ for(const [a,d,s] of [[.4,.052,.0045],[-1.1,.05,.0035],[1.6,.047,.003],[2.7,.03,.0028]]){
+  const b=weld(new THREE.SphereGeometry(s,10,8));b.scale(1,.6,1);
+  b.translate(Math.cos(a)*d*lobes(a)*.95,s*.3,Math.sin(a)*d*lobes(a)*.95);
+  beads.push(paint(b,(x,y,z)=>jellyPaint(x,y,z,0,0,0,0,.2)));
+ }
+ // Worker comb: hexagonal wax cups (a 6-segment lathe is a hex prism), some capped, the open
+ // ones floored with honey. The broken outer cells stand lower, and one has gone entirely.
+ const AP=.012,RO=AP/Math.cos(Math.PI/6),W=.0014;
+ const cup=(cx,cz,h,capped,e)=>{
+  const prof=capped?[[0,0],[RO,0],[RO,h],[RO*.8,h+.0012],[RO*.45,h+.0022],[0,h+.0025]]
+   :[[0,0],[RO,0],[RO,h],[RO-W,h],[RO-W,h*.45],[0,h*.45]];
+  const geo=weld(new THREE.LatheGeometry(prof.map(([r,y])=>new THREE.Vector2(r,y)),6,Math.PI/6));
+  paint(geo,(x,y,z,a,r)=>{
+   if(capped)col.copy(COMB).lerp(CAP,smooth(h-.002,h+.002,y));
+   else if(r<RO-W*.5&&y<h*.45+1e-4)col.copy(HONEY).lerp(DEEP,.3*meatNoise(x*300,z*300,e));
+   else col.copy(COMB).lerp(PIT,.18*meatNoise(a*3+e,y*200,e));
+   col.lerp(PIT,.25*(1-smooth(0,.005,y)));
+  });
+  geo.translate(cx,0,cz);return geo;
+ };
+ const combParts=[cup(0,0,.02,false,0)];
+ const CELLS=[[.018,true],[.016,false],[.013,true],null,[.01,false],[.015,true]];
+ CELLS.forEach((c,k)=>{if(!c)return;const a=Math.PI/6+k*Math.PI/3,d=2*AP;combParts.push(cup(Math.sin(a)*d,Math.cos(a)*d,c[0],c[1],k+1));});
+ const comb=mergeGeometries(combParts);combParts.forEach(g=>g.dispose());
+
+ const parts=[];
+ // The open cell: laid along +x with its tip at the origin, resting on its belly.
+ const cell=queenCell(1,false);cell.rotateZ(-Math.PI/2);cell.rotateY(.18);cell.translate(-.05,.0225,.012);
+ parts.push(cell);
+ const mouth=new THREE.Vector3(L-.004,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),.18).add(new THREE.Vector3(-.05,.0225,.012));
+ const gl=glob();gl.translate(mouth.x+.006,mouth.y-.004,mouth.z);parts.push(gl);
+ const pd=puddle();pd.translate(mouth.x+.022,0,mouth.z-.004);parts.push(pd);
+ beads.forEach(b=>{b.translate(mouth.x+.022,0,mouth.z-.004);parts.push(b);});
+ comb.rotateY(.4);comb.translate(-.04,0,-.062);parts.push(comb);
+ if(n>1){
+  // The sealed cell lies behind the puddle, beside the comb, its capped end away from it.
+  const sealed=queenCell(2,true);sealed.rotateZ(-Math.PI/2);sealed.rotateY(.3);sealed.translate(.008,.0225,-.08);
+  parts.push(sealed);
+ }
+ const merged=mergeGeometries(parts);parts.forEach(g=>g.dispose());
+ merged.computeBoundingBox();
+ const b=merged.boundingBox;merged.translate(-(b.min.x+b.max.x)/2,-b.min.y,-(b.min.z+b.max.z)/2);
+ merged.computeBoundingBox();
+ return merged;
+}
+
 // Lembas: square elven waybread, baked pale gold and scored into nine squares, browned at its
 // softened edges. It sits on a mallorn leaf whose tip and stem show past it, a second leaf is
 // folded over one corner, and a length of twine is tied round the lot with a knot on top.
@@ -5873,8 +5984,10 @@ export function createGroundModel(item={}){
   }else if(kind==='garlic'){
    buildGarlic(Number(/^\s*(\d+)/.exec(name)?.[1]??1),{g,materials});
   }else if(kind==='royal jelly'){
-   const jelly=new THREE.MeshStandardMaterial({color:0xe6b02e,roughness:.15,transparent:true,opacity:.8,emissive:0x6a4a08,emissiveIntensity:.3});materials.push(jelly);
-   ball(.07,jelly,0,.03,0,[1.2,.42,1]);ball(.035,jelly,.05,.04,.03,[1,.6,1]);
+   // Wax, jelly and honey share one glossy vertex-coloured material.
+   const hive=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.35});materials.push(hive);
+   add(royalJellyGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),hive).userData.part='royal-jelly';
+   g.rotation.y=-.25;
   }else if(kind==='cream pie'){
    // Crust, cream and cherry share one faintly glossy vertex-coloured material.
    const pie=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.55});materials.push(pie);

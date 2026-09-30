@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,pancakeGeometry,fortuneCookieGeometry,candyBarGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,pancakeGeometry,fortuneCookieGeometry,candyBarGeometry,royalJellyGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -1662,6 +1662,33 @@ test('candy bars are a torn-open wrapper, peeled foil and scored chocolate in on
   model.userData.dispose();
  }
  one.dispose();three.dispose();
+});
+
+test('royal jelly is a torn queen cell spilling jelly beside a shard of comb, in one merged vertex-coloured mesh; a stack adds a sealed cell',()=>{
+ const one=royalJellyGeometry(1);
+ for(const k of ['position','normal','color'])for(const v of one.attributes[k].array)assert(Number.isFinite(v),k);
+ const b=one.boundingBox;
+ assert(Math.abs(b.min.y)<1e-6&&b.max.y>.035&&b.max.y<.06,`height ${b.max.y}`);
+ assert(b.max.x<.13&&b.max.z<.1,`footprint ${b.max.x} x ${b.max.z}`);
+ // Pale jelly, tan wax and dark honey (colours are linear).
+ const col=one.attributes.color;let jelly=0,wax=0,honey=0;
+ for(let i=0;i<col.count;i++){const r=col.getX(i),g=col.getY(i),bl=col.getZ(i);
+  if(r>.8&&g>.65&&bl>.3)jelly++;else if(r<.5&&r>2.5*g&&r>.2)honey++;else if(r>.4&&g>.25&&bl<.3)wax++;}
+ assert(jelly>150&&wax>400&&honey>10,`jelly ${jelly}, wax ${wax}, honey ${honey}`);
+ const two=royalJellyGeometry(4);
+ assert(two.attributes.position.count>one.attributes.position.count,'a stack adds a cell');
+ for(const name of ['lump of royal jelly','3 lumps of royal jelly']){
+  const model=createGroundModel({name,class:7});
+  const meshes=[];model.traverse(q=>{if(q.isMesh)meshes.push(q);});
+  assert.equal(meshes.length,1,name);
+  assert.equal(meshes[0].userData.part,'royal-jelly');
+  assert(meshes[0].material.vertexColors&&!meshes[0].material.transparent);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.07,`${name} height ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
+  model.userData.dispose();
+ }
+ one.dispose();two.dispose();
 });
 
 test('lembas is one merged, vertex-coloured wafer scored into squares, wrapped in mallorn leaves and tied with twine; a stack piles up to three',()=>{
