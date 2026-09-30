@@ -245,6 +245,19 @@ static void revive_hook_bridge(struct monst *m,struct obj *corpse) {
     if(Hallucination)printf("null");else quoted(m->data->mname);
     printf(",\"pet\":%s}\n",m->mtame?"true":"false");fflush(stdout);
 }
+/* How a magic portal should look, from either of its ends: the icy way to Sheol, the quest
+   portal, Fort Ludios, the Planes. Only asked about portals the hero has seen. */
+static const char *portal_style(struct trap *t) {
+    if(In_sheol(&t->dst)||In_sheol(&u.uz))return "sheol";
+    if(In_quest(&t->dst)||In_quest(&u.uz))return "quest";
+    if(Is_knox(&t->dst)||Is_knox(&u.uz))return "ludios";
+    if(In_endgame(&t->dst)||In_endgame(&u.uz))return "planes";
+    return "other";
+}
+static const char *engraving_kind(int type) {
+    switch(type){case DUST:return "dust";case ENGRAVE:return "engrave";case BURN:return "burn";
+    case MARK:return "mark";case ENGR_BLOOD:return "blood";default:return "other";}
+}
 static void frame(void) {
     int x,y,g,b,m,col,terrain_glyph,object_type;glyph_t ch;unsigned special;
     printf("{\"type\":\"frame\",\"turn\":%ld,\"depth\":%d,\"branch\":%d,\"player\":{\"x\":%d,\"z\":%d,\"hp\":%d,\"maxhp\":%d,\"ac\":%d,\"level\":%d,\"weapon\":",moves,depth(&u.uz),u.uz.dnum,u.ux,u.uy,Upolyd?u.mh:u.uhp,Upolyd?u.mhmax:u.uhpmax,u.uac,u.ulevel);
@@ -313,6 +326,24 @@ static void frame(void) {
                 (levl[x][y].doormask&~D_TRAPPED)==D_BROKEN&&is_drawbridge_wall(x,y)<0)printf(",\"door\":\"broken\"");
         printf(",\"invisible\":%s",glyph_is_invisible(g)?"true":"false");
         printf(",\"kind\":");quoted(glyph_is_pet(g)?"pet":glyph_is_monster(g)?"monster":glyph_is_object(g)?"object":"terrain");
+        /* A trap by the name the hero sees for it (a vibrating square isn't a teleport trap). */
+        if (glyph_is_trap(g)) {
+            int tt=glyph_to_trap(g);
+            printf(",\"trap\":");quoted(defsyms[trap_to_defsym(tt)].explanation);
+            if (tt==MAGIC_PORTAL && !Hallucination) {
+                struct trap *t=t_at(x,y);
+                if (t && t->ttyp==MAGIC_PORTAL && t->tseen) {printf(",\"portal\":");quoted(portal_style(t));}
+            }
+        }
+        /* An engraving the hero has read (or written): its kind, and whether it said Elbereth
+           when they last read it, not what it says now. */
+        {
+            struct engr *ep=engr_at(x,y);
+            if (ep && ep->eread && ep->engr_type!=HEADSTONE && ep->engr_time<=moves) {
+                printf(",\"engraving\":{\"type\":");quoted(engraving_kind(ep->engr_type));
+                printf(",\"elbereth\":%s}",ep->eward?"true":"false");
+            }
+        }
         if (glyph_is_monster(g) && !glyph_is_pet(g)) {
             struct monst *mtmp = m_at(x,y);
             printf(",\"peaceful\":%s",(mtmp && mtmp->mpeaceful && canspotmon(mtmp))?"true":"false");
