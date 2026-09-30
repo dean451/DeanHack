@@ -107,6 +107,29 @@ test('apples, oranges and pears are shaped, painted and stacked in two meshes',(
  }}
 });
 
+test('melons and bananas are shaped and painted in the fruit meshes',()=>{
+ const parts=model=>{const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});return meshes;};
+ const skinCount=name=>{const model=createGroundModel({name,class:7}),count=parts(model).find(m=>m.userData.part==='fruit-skin').geometry.attributes.position.count;model.userData.dispose();return count;};
+ for(const name of ['melon','2 melons','6 melons','banana','2 bananas','3 bananas','12 bananas']){
+  const model=createGroundModel({name,class:7}),meshes=parts(model);
+  // Melons carry a stem and tendril; a banana's crown is part of its skin.
+  assert.deepEqual(meshes.map(m=>m.userData.part).sort(),/melon/.test(name)?['fruit-plant','fruit-skin']:['fruit-skin'],name);
+  for(const mesh of meshes){
+   assert(mesh.geometry.attributes.color,`${name} painted`);
+   for(const key of ['position','normal'])for(const value of mesh.geometry.attributes[key].array)assert(Number.isFinite(value),`${name} ${key}`);
+  }
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} grounded: ${bounds.min.y}`);
+  assert(bounds.max.y<(/melon/.test(name)?.26:.08),`${name} height ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.36,`${name} inside the tile`);
+  model.userData.dispose();
+ }
+ // Two melons at most; a hand of up to three bananas.
+ assert.equal(skinCount('6 melons'),skinCount('melon')*2);
+ assert.equal(skinCount('12 bananas'),skinCount('3 bananas'));
+ assert(skinCount('3 bananas')>skinCount('banana')*2.5);
+});
+
 test('common food gets grounded, finite models and unknown food falls back',()=>{
  const foods=['apple','3 oranges','pear','melon','banana','carrot','2 eggs','tin','lembas wafer','fortune cookie','meatball','meat stick','huge chunk of meat','meat ring','2 cloves of garlic','lump of royal jelly','cream pie','candy bar','pancake','kelp frond','slime mold','eucalyptus leaf','3 eucalyptus leaves'];
  const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push(part.geometry.type);});return out.join();};
