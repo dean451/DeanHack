@@ -17,7 +17,7 @@ import {createBoulder} from './boulder.js';
 import {createStairs} from './stairs.js';
 import {createBars} from './bars.js';
 import {createDoor} from './door.js';
-import {tileKind,setDoorOpen,updateDoorSwings,clearDoorSwings} from './door-swing.js';
+import {tileKind,setDoorOpen,orientDoor,updateDoorSwings,clearDoorSwings} from './door-swing.js';
 import {createFire} from './fire.js';
 import {createTorchSconce} from './torch.js';
 import {createLiquid} from './liquid.js';
@@ -254,8 +254,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
        if(tile.userData.door){
         const connected=(dx,dz)=>frame.cells.some(c=>c.x===cell.x+dx&&c.z===cell.z+dz&&['wall','bars','door'].includes(c.terrain));
         const horizontal=Number(connected(-1,0))+Number(connected(1,0)),vertical=Number(connected(0,-1))+Number(connected(0,1));
-        if(horizontal!==vertical)tile.userData.door.rotation.y=vertical>horizontal?Math.PI/2:0;
-        setDoorOpen(tile.userData.door,cell.door==='open');
+        if(horizontal!==vertical)orientDoor(tile.userData.door,vertical>horizontal?Math.PI/2:0);
+        setDoorOpen(tile.userData.door,cell.door==='open',{dx:frame.player.x-cell.x,dz:frame.player.z-cell.z});
        }
      }
      if(cell.terrain==='fountain'){seenWells.add(id);if(!wells.has(id)){const w=createLiveFountain(wellTemplate);w.position.set(x,0,z);group.add(w);wells.set(id,w);}wells.get(id).visible=cell.visible||cell.remembered;}

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDoor,DOOR_LEAF} from './door.js';
-import {tileKind,setDoorOpen,stepDoor,updateDoorSwings,clearDoorSwings,swingingDoors} from './door-swing.js';
+import {tileKind,setDoorOpen,orientDoor,stepDoor,updateDoorSwings,clearDoorSwings,swingingDoors} from './door-swing.js';
 
 const run=(door,secs,fn)=>{const dt=1/60;let prev=door.userData.leaf.rotation.y;for(let i=0;i<secs*60;i++){stepDoor(door,dt);const a=door.userData.leaf.rotation.y;fn?.(a,prev);prev=a;}};
 
@@ -54,4 +54,39 @@ test('a long frame is sub-stepped and stays stable',()=>{
  stepDoor(door,.5);const a=door.userData.leaf.rotation.y;
  assert.ok(Number.isFinite(a)&&a<0&&a>-Math.PI/2);
  assert.equal(stepDoor(door,-1),true);
+});
+
+// World direction (x,z) the open leaf points into: the door group's +z after its yaw.
+const opensTowards=door=>({x:Math.sin(door.rotation.y),z:Math.cos(door.rotation.y)});
+
+test('a door opens away from the hero, on either wall orientation and from either side',()=>{
+ for(const yaw of [0,Math.PI/2])for(const hero of [{dx:0,dz:1},{dx:0,dz:-1},{dx:1,dz:0},{dx:-1,dz:0}]){
+  clearDoorSwings();
+  const door=createDoor(6);orientDoor(door,yaw);setDoorOpen(door,false,hero);
+  assert.equal(door.rotation.y,yaw,'a shut door is not turned');
+  setDoorOpen(door,true,hero);
+  const o=opensTowards(door),d=o.x*hero.dx+o.z*hero.dz;
+  assert.ok(Number.isFinite(door.rotation.y));
+  assert.ok(d<=1e-9,`yaw ${yaw} hero ${JSON.stringify(hero)} opens towards the hero (${d})`);
+  // The wall-following yaw is reapplied every frame; the half turn must survive it.
+  orientDoor(door,yaw);assert.ok(Math.abs(opensTowards(door).x-o.x)<1e-9&&Math.abs(opensTowards(door).z-o.z)<1e-9);
+  run(door,2);assert.equal(door.userData.leaf.rotation.y,DOOR_LEAF.open);
+ }
+});
+
+test('a door first seen open lies away from the hero; one mid-swing is never turned',()=>{
+ clearDoorSwings();
+ const seen=createDoor(7);orientDoor(seen,0);setDoorOpen(seen,true,{dx:0,dz:1});
+ assert.ok(opensTowards(seen).z<-.99);assert.equal(swingingDoors(),0);
+ const door=createDoor(8);orientDoor(door,0);setDoorOpen(door,false);setDoorOpen(door,true,{dx:0,dz:-1});
+ assert.ok(opensTowards(door).z>.99,'hero behind: no turn needed');
+ run(door,.1);setDoorOpen(door,false,{dx:0,dz:1});run(door,.05);
+ const yaw=door.rotation.y;setDoorOpen(door,true,{dx:0,dz:1});
+ assert.equal(door.rotation.y,yaw,'reopened before it shut: the swinging leaf is not flipped');
+ run(door,2);assert.equal(door.userData.leaf.rotation.y,DOOR_LEAF.open);
+ // Once it has slammed shut and settled, the next opening can turn it.
+ setDoorOpen(door,false);run(door,3);assert.equal(door.userData.leaf.rotation.y,0);
+ setDoorOpen(door,true,{dx:0,dz:1});assert.ok(opensTowards(door).z<-.99);
+ // No hero, or a hero on the door's line, leaves it alone.
+ const lone=createDoor(9);orientDoor(lone,0);setDoorOpen(lone,false);setDoorOpen(lone,true,{dx:3,dz:0});assert.equal(lone.rotation.y,0);
 });
