@@ -35,8 +35,8 @@ test('doors are finite, stay in their tile, merge into wood, iron and stone and 
  for(let seed=0;seed<20;seed++){
   const door=createDoor(seed*61+seed*seed*37);
   door.updateMatrixWorld(true);
-  const meshes=door.children.filter(o=>o.isMesh);
-  assert.equal(meshes.length,door.children.length,'nothing but merged meshes');
+  const meshes=[];door.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.equal(door.children.length,2,'the frame mesh and the leaf group');
   assert.deepEqual(meshes.map(o=>o.userData.part).sort(),['iron','stone','wood']);
   assert.equal(new Set(meshes.map(o=>o.material)).size,3,'one mesh per material');
   for(const o of meshes){
@@ -53,6 +53,43 @@ test('doors are finite, stay in their tile, merge into wood, iron and stone and 
   door.userData.dispose();assert.equal(disposed,meshes.length);
  }
  assert.deepEqual([...planks].sort(),[5,6]);
+});
+
+// The leaf hangs on the hinge axis so the animations lane can swing it; the frame and
+// its pintles stay put, and the leaf's back corner stays clear of the jamb all the way open.
+test('door leaves hang in their own group on the hinge axis and swing clear of the jamb',async()=>{
+ const {createDoor,DOOR_LEAF}=await import('./door.js');
+ const {width:W}=DOOR_LEAF;
+ for(let seed=0;seed<8;seed++){
+  const door=createDoor(seed*61+seed*seed*37);
+  const leaf=door.userData.leaf,hinge=door.userData.hinge;
+  assert(leaf?.isGroup&&leaf.parent===door,'leaf is a child group');
+  assert.deepEqual(leaf.children.map(o=>o.userData.part).sort(),['iron','wood']);
+  assert.deepEqual(door.children.filter(o=>o.isMesh).map(o=>o.userData.part),['stone']);
+  assert.equal(leaf.position.x,hinge.x);assert.equal(leaf.position.z,hinge.z);
+  assert(Math.abs(hinge.x+W/2)<.03&&hinge.z>0,'hinge sits on the front of the hinge edge');
+  door.updateMatrixWorld(true);
+  const closed=new THREE.Box3().setFromObject(leaf);
+  assert(closed.min.x>=-W/2-.02&&closed.max.x<=W/2+.01,`closed leaf spans ${closed.min.x}…${closed.max.x}`);
+  assert(closed.min.z>-.09&&closed.max.z<.1,`closed leaf depth ${closed.min.z}…${closed.max.z}`);
+  const v=new THREE.Vector3();
+  for(let k=0;k<=10;k++){
+   leaf.rotation.y=DOOR_LEAF.open*k/10;door.updateMatrixWorld(true);
+   for(const mesh of leaf.children){
+    const p=mesh.geometry.attributes.position;
+    for(let i=0;i<p.count;i+=3){
+     v.fromBufferAttribute(p,i).applyMatrix4(mesh.matrixWorld);
+     // Only the knuckles (radius .016) wrap the pintle close by the axis; everything
+     // else must stay out of the jamb (inner face at about -W/2) within its depth.
+     if(Math.hypot(v.x-hinge.x,v.z-hinge.z)<.02)continue;
+     assert(!(v.x<-W/2-.012&&Math.abs(v.z)<.11),`leaf enters the jamb at ${k/10} open: ${v.x.toFixed(3)},${v.z.toFixed(3)}`);
+    }
+   }
+  }
+  const open=new THREE.Box3().setFromObject(leaf);
+  assert(open.max.z>.75,'fully open, the latch edge swings out to +z');
+  door.userData.dispose();
+ }
 });
 
 // The torch sconce shares this file because package.json is held by another open PR.

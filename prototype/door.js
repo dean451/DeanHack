@@ -11,8 +11,13 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // down, a dark polished patch round the ring, rust weeping under the ironwork, and
 // soot on the lintel. The door runs along x and is thin in z; the caller turns it to
 // follow the wall. Static parts merge into one mesh per material (`userData.part` is
-// wood, iron or stone).
-export const DOOR_LEAF={width:.8,height:.95,bottom:.03};
+// wood, iron or stone). The frame (stone, plus the iron pintles it carries) sits on the
+// group itself; the leaf (wood and iron) hangs in its own child group, `userData.leaf`,
+// whose origin is the hinge axis through the knuckles, so turning `leaf.rotation.y`
+// swings the door open about its pintles. The knuckles are on the front, so the leaf
+// opens towards +z (negative angles) and clears the jamb out to `DOOR_LEAF.open`; past
+// about -π/2 it would run into the jamb's front face.
+export const DOOR_LEAF={width:.8,height:.95,bottom:.03,open:-1.5};
 export function createDoor(seed=0){
  const g=new THREE.Group();g.name='Door';
  const materials=[],geometries=[];
@@ -26,7 +31,7 @@ export function createDoor(seed=0){
  const off=rand(99)*50;
  const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),v=new THREE.Vector3(),s=new THREE.Vector3();
  const place=(geo,x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=sx,sz=sx)=>geo.applyMatrix4(m4.compose(v.set(x,y,z),q.setFromEuler(e.set(rx,ry,rz)),s.set(sx,sy,sz)));
- const put=(geo,m,tint=1)=>{geo.userData.tint=tint;bins.get(m).push(geo);return geo;};
+ const put=(geo,m,tint=1,paint)=>{geo.userData.tint=tint;geo.userData.paint=paint;bins.get(m).push(geo);return geo;};
  const roughen=(geo,amt)=>{
   const p=geo.attributes.position;
   for(let i=0;i<p.count;i++){
@@ -89,7 +94,7 @@ export function createDoor(seed=0){
  for(const y of LEDGES)for(const x of [-W/2+.07,W/2-.07])put(place(new THREE.CylinderGeometry(.009,.009,.01,6),x,y,BZ-.017,Math.PI/2),wood,.7);
 
  // Front ironwork: strap hinges running from the hinge side, with forked ends and rivets.
- const FZ=T/2+.006,HINGES=[B+.17,B+H-.17],strapEnd=W*.18;
+ const FZ=T/2+.006,HINGES=[B+.17,B+H-.17],strapEnd=W*.18,HX=-W/2+.014,HZ=FZ+.004;
  for(const y of HINGES){
   const len=strapEnd+W/2;
   put(place(rbox(len,.046,.012,.004),-W/2+len/2,y,FZ),iron);
@@ -101,7 +106,13 @@ export function createDoor(seed=0){
    put(place(new THREE.SphereGeometry(.0105,6,3,0,Math.PI*2,0,Math.PI/2),x,y,FZ+.006,Math.PI/2,0,0,1,.6,1),iron);
   }
   // Knuckle rolled round the pintle at the hinge edge.
-  put(place(new THREE.CylinderGeometry(.016,.016,.075,10),-W/2+.014,y,FZ+.004),iron);
+  put(place(new THREE.CylinderGeometry(.016,.016,.075,10),HX,y,HZ),iron);
+  // Pintle: a square spike leaded into the jamb, with the pin rising through the knuckle
+  // and poking out above it. It belongs to the frame, so it stays put as the leaf swings.
+  put(place(rbox(.052,.024,.022,.004),-W/2-.004,y-.049,HZ-.004),stone,1,ironColour);
+  put(place(new THREE.CylinderGeometry(.0075,.0075,.11,6),HX,y-.004,HZ),stone,1,ironColour);
+  put(place(new THREE.SphereGeometry(.009,6,3,0,Math.PI*2,0,Math.PI/2),HX,y+.051,HZ),stone,1,ironColour);
+  put(roughen(place(new THREE.CylinderGeometry(.02,.022,.006,8),-W/2-.004,y-.049,HZ-.004,0,0,Math.PI/2),.001),stone,.55);
  }
 
  // Ring pull on a round backplate, hanging slightly askew, with a lock plate above it.
@@ -131,10 +142,11 @@ export function createDoor(seed=0){
  const n=new THREE.Vector3();
  const ctx={off,seams,W,B,H,T,HINGES,RX,RY,JX,TOP};
  const painters={wood:woodColour,iron:ironColour,stone:stoneColour};
+ const leaf=new THREE.Group();leaf.name='DoorLeaf';leaf.position.set(HX,0,HZ);g.add(leaf);
  for(const [material,list] of bins){
-  const part=Object.keys(parts).find(key=>parts[key]===material),paint=painters[part];
+  const part=Object.keys(parts).find(key=>parts[key]===material);
   const flats=list.map(geo=>{
-   const tint=geo.userData.tint;
+   const tint=geo.userData.tint,paint=geo.userData.paint||painters[part];
    const flat=geo.index?geo.toNonIndexed():geo;if(flat!==geo)geo.dispose();
    for(const key of Object.keys(flat.attributes))if(!['position','normal'].includes(key))flat.deleteAttribute(key);
    const p=flat.attributes.position,nor=flat.attributes.normal,col=new Float32Array(p.count*3);
@@ -143,10 +155,14 @@ export function createDoor(seed=0){
    return flat;
   });
   const geo=mergeGeometries(flats);flats.forEach(f=>f.dispose());geometries.push(geo);
+  // Colours are baked in door space above; the leaf's parts then move into hinge space.
+  const onLeaf=part!=='stone';if(onLeaf)geo.translate(-HX,0,-HZ);
   const mesh=new THREE.Mesh(geo,material);mesh.castShadow=true;mesh.receiveShadow=true;
   mesh.userData.part=part;
-  g.add(mesh);
+  (onLeaf?leaf:g).add(mesh);
  }
+ g.userData.leaf=leaf;
+ g.userData.hinge={x:HX,z:HZ,pins:HINGES.slice()};
  g.userData.planks=plankCount;
  g.userData.dispose=()=>{for(const geo of geometries)geo.dispose();for(const m of materials)m.dispose();};
  return g;
