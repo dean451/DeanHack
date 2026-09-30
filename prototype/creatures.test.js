@@ -495,6 +495,23 @@ test('shopkeepers get an apron, waistcoat, keys, purse, spectacles and a balance
  assert.equal(createCreature({name:'merchant',symbol:AT,color:15}).quirk,'shopkeeper');
 });
 
+test('Live builds watchmen from the shared watch model, not the old primitive guard',async()=>{
+ const {createWatchman}=await import('./shop-visuals.js');
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const live=createWatchman(),gallery=createCreature({name:'watchman',symbol:64,color:2});
+ assert.equal(live.kind,'watchman');assert.equal(live.quirk,'guard');
+ for(const key of ['body','head','arm','weaponSocket','lantern'])assert(live[key]?.isObject3D,key);
+ assert.equal(live.legs.length,2);
+ const a=meshes(live),b=meshes(gallery);
+ assert.equal(a.length,9);
+ assert.deepEqual(a.map(m=>m.geometry),b.map(m=>m.geometry),'geometry is shared with the gallery');
+ assert.equal(live.g.userData.dispose,undefined,'shared geometry is never disposed per actor');
+ for(const m of a)for(const v of m.geometry.attributes.position.array)assert(Number.isFinite(v),m.userData.part);
+ live.g.updateMatrixWorld(true);
+ const box=new THREE.Box3().setFromObject(live.g);
+ assert(box.min.y>-.05&&box.max.y>1&&box.max.y<1.8,JSON.stringify(box));
+});
+
 test('the watch get tabards, helmets and a halberd and lantern or a sword instead of the guard block',()=>{
  const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const expect={watchman:{draws:9,weapon:'halberd',lantern:true},'watch captain':{draws:7,weapon:'sword',lantern:false}},built={};
