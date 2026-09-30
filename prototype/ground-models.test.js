@@ -130,6 +130,29 @@ test('melons and bananas are shaped and painted in the fruit meshes',()=>{
  assert(skinCount('3 bananas')>skinCount('banana')*2.5);
 });
 
+test('carrots are ringed roots with feathery tops lying on the floor, up to three to a bunch',()=>{
+ const parts=model=>{const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});return meshes;};
+ const counts={};
+ for(const name of ['carrot','2 carrots','3 carrots','8 carrots']){
+  const model=createGroundModel({name,class:7}),meshes=parts(model);
+  assert.deepEqual(meshes.map(m=>m.userData.part).sort(),['fruit-plant','fruit-skin'],name);
+  for(const mesh of meshes){
+   assert(mesh.geometry.attributes.color,`${name} painted`);
+   for(const key of ['position','normal'])for(const value of mesh.geometry.attributes[key].array)assert(Number.isFinite(value),`${name} ${key}`);
+  }
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} grounded: ${bounds.min.y}`);
+  assert(bounds.max.y<.08,`${name} lies flat: ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
+  // The tops droop onto the floor but never through it.
+  assert(new THREE.Box3().setFromObject(meshes.find(m=>m.userData.part==='fruit-plant')).min.y>=-1e-6,`${name} tops above the floor`);
+  counts[name]=meshes.find(m=>m.userData.part==='fruit-skin').geometry.attributes.position.count;
+  model.userData.dispose();
+ }
+ assert.equal(counts['8 carrots'],counts['3 carrots']);
+ assert(counts['3 carrots']>counts.carrot*2.5);
+});
+
 test('common food gets grounded, finite models and unknown food falls back',()=>{
  const foods=['apple','3 oranges','pear','melon','banana','carrot','2 eggs','tin','lembas wafer','fortune cookie','meatball','meat stick','huge chunk of meat','meat ring','2 cloves of garlic','lump of royal jelly','cream pie','candy bar','pancake','kelp frond','slime mold','eucalyptus leaf','3 eucalyptus leaves'];
  const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push(part.geometry.type);});return out.join();};

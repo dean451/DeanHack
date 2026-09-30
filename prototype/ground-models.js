@@ -1403,6 +1403,9 @@ function buildRation(kind,{g,materials}){
 // dry stem with a curled tendril; two at most lie side by side. Bananas are swept along a
 // crescent with five ridges, a green neck, sugar spots and a black tip; two or three lie
 // together as one hand fanned from a shared crown, all in the skin mesh.
+// Carrots are ringed, slightly bent roots with pale lenticel dashes, a green shoulder and a hair
+// of a tail; their stalks fan out from a cut crown and flop onto the floor, cut leaflets and all.
+// Up to three lie side by side.
 function buildFruit(kind,count,{g,materials}){
  const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
  const skin=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:kind==='orange'?.74:kind==='apple'?.4:kind==='melon'?.45:.6});
@@ -1571,6 +1574,56 @@ function buildFruit(kind,count,{g,materials}){
    for(let k=0;k<hand;k++){const f=k-(hand-1)/2;parts.skin.push(one(k,f*-.36,hand===3&&f===0?.012:0));}
    if(hand>1){const crown=new THREE.SphereGeometry(.013,10,8);crown.deleteAttribute('uv');crown.scale(1.2,.9,1.4);
     parts.skin.push(paint(crown,(col2)=>col2.set(0x6a5e30)));}
+  }else if(kind==='carrot'){
+   // Built upright with the tip at the origin, then laid along x with the shoulder toward -x
+   // and the axis at y=0; the tops are built lying down, so they can droop to the floor.
+   const L=.24+.03*hash(5),bend=(hash(6)-.5)*.024,R0=.029;
+   const geo=body([[0,0],[.003,.008],[.008,.035],[.014,.08],[.02,.13],[.025,.175],[.028,.205],[.029,.222],[.026,.232],[.018,.238],[.008,.241],[0,.242]].map(([r,y])=>[r,y*L/.242]),t=>{
+    const a=Math.atan2(t.z,t.x),u=t.y/L;
+    // Growth rings pinch the root at uneven heights; it bends a little and is not quite round.
+    const ring=Math.max(0,Math.cos(t.y*150+.9*Math.sin(a*2+seed)+seed))**10;
+    const k=(1-.07*ring*smooth(.05,.2,u)*smooth(1,.9,u))*(1+.04*Math.sin(2*a+seed));
+    t.x*=k;t.z=t.z*k+bend*Math.sin(Math.PI*u);
+   },40,32);
+   const tail=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([v(0,.004,0),v(.002,-.012,bend*.3),v(-.004,-.026,bend*.3+.004),v(-.002,-.038,bend*.3+.01)]),8,.0012,4,false);
+   tail.deleteAttribute('uv');
+   const root=[geo,tail].map(q=>paint(q,(col,x,y,z)=>{
+    const u=y/L,a=Math.atan2(z,x);
+    col.copy(C(0xe2701c)).lerp(C(0xf08a2a),.35*(stoneNoise(x*40,y*40,z*40,3)*.5+.5));
+    // Ring grooves, pale lenticel dashes across them, a sun-greened shoulder and a dark tip.
+    col.lerp(C(0xa4481a),.5*Math.max(0,Math.cos(y*150+.9*Math.sin(a*2+seed)+seed))**10);
+    if(Math.abs(Math.sin(y*75+seed))>.94&&stoneNoise(x*60,y*6,z*60,5)>.25)col.lerp(C(0xf4c68a),.55);
+    col.lerp(C(0x6e7a2c),.75*smooth(.93,.995,u));
+    col.lerp(C(0x7a4a22),.6*smooth(.1,-.05,u));
+    if(stoneNoise(x*25+seed,y*25,z*25,8)>.62)col.lerp(C(0x6b4a2c),.45);
+   }));
+   const lay=new THREE.Matrix4().makeRotationZ(Math.PI/2).setPosition(L/2,0,0);
+   root.forEach(q=>q.applyMatrix4(lay));
+   parts.skin.push(...root);
+   // The crown: a cut ring of stalk bases, then the feathery tops fanned out and flopping to the floor.
+   const x0=-L/2,floor=-R0+.001;
+   const crown=new THREE.CylinderGeometry(.012,.017,.008,12);crown.deleteAttribute('uv');crown.rotateZ(Math.PI/2);crown.translate(x0-.003,0,0);
+   parts.plant.push(paint(crown,(col)=>col.set(0x5e7a2a)));
+   const green=(col,x)=>col.copy(C(0x6f9e3a)).lerp(C(0x4c7a28),smooth(x0,x0-.12,x));
+   const Xa=v(1,0,0),dir=v(0,0,0),T=v(0,0,0),P=v(0,0,0),q=new THREE.Quaternion(),mm=new THREE.Matrix4(),sc=v(1,1,1);
+   const stems=4+(hash(7)>.5?1:0);
+   for(let s=0;s<stems;s++){
+    const f=s/(stems-1)-.5,len=.075+.035*hash(10+s),spread=f*.9+(hash(20+s)-.5)*.2,rise=.012+.012*hash(30+s);
+    const end=v(x0-len*Math.cos(spread),floor+.004,len*Math.sin(spread));
+    const curve=new THREE.CatmullRomCurve3([v(x0-.004,.004*Math.sin(f*3),f*.012),v(x0-len*.35*Math.cos(spread),rise,len*.35*Math.sin(spread)),v(x0-len*.72*Math.cos(spread),rise*.6,len*.72*Math.sin(spread)),end]);
+    const tube=new THREE.TubeGeometry(curve,12,.0024,5,false);tube.deleteAttribute('uv');
+    parts.plant.push(paint(tube,green));
+    // Finely cut leaflets in pairs along the outer half of each stalk, and one at the tip.
+    for(const [t,side] of [[.45,1],[.45,-1],[.62,1],[.62,-1],[.78,1],[.78,-1],[1,0]]){
+     curve.getPointAt(t,P);curve.getTangentAt(t,T);
+     dir.copy(T).applyAxisAngle(v(0,1,0),side*.9).normalize();
+     const l=leaf(side?.028:.034,side?.007:.008);
+     sc.set(1,1,1);q.setFromUnitVectors(Xa,dir);
+     l.applyMatrix4(mm.compose(P,q,sc));
+     const p=l.attributes.position;for(let i=0;i<p.count;i++)if(p.getY(i)<floor)p.setY(i,floor);
+     parts.plant.push(l);
+    }
+   }
   }else{
    const lean=hash(4)>.5?1:-1;
    const geo=body([[0,.012],[.03,.004],[.058,.018],[.072,.046],[.068,.08],[.05,.11],[.037,.136],[.032,.16],[.025,.18],[.012,.192],[0,.19]],t=>{
@@ -1592,13 +1645,13 @@ function buildFruit(kind,count,{g,materials}){
  };
  // A bunch of bananas is one hand; melons are big enough that two fill the tile.
  const n=kind==='banana'?1:Math.max(1,Math.min(kind==='melon'?2:3,count|0));
- const spots=kind==='melon'?[[[0,0]],[[-.03,-.135],[.04,.135]]][n-1]:[[[0,0]],[[-.055,-.02],[.07,.035]],[[-.07,-.045],[.075,-.03],[-.005,.085]]][n-1];
+ const spots=kind==='carrot'?[[[0,0]],[[0,-.035],[.03,.035]],[[-.01,-.062],[.025,0],[-.005,.062]]][n-1]:kind==='melon'?[[[0,0]],[[-.03,-.135],[.04,.135]]][n-1]:[[[0,0]],[[-.055,-.02],[.07,.035]],[[-.07,-.045],[.075,-.03],[-.005,.085]]][n-1];
  const e=new THREE.Euler(),m=new THREE.Matrix4(),box=new THREE.Box3();
  spots.forEach(([x,z],i)=>{
   const parts=fruit(i*1.7+.4),tipped=n>1&&i===n-1;
   // The last of a stack has rolled over: a pear lies on its side, a round fruit just leans.
-  const roll=kind==='banana'?0:tipped?(kind==='pear'?1.35:kind==='melon'?.12:.55):.06*(i%2?1:-1);
-  m.makeRotationFromEuler(e.set(0,kind==='melon'?.15+i*.3:i*2.1+.3,roll,'YXZ'));
+  const roll=kind==='banana'||kind==='carrot'?0:tipped?(kind==='pear'?1.35:kind==='melon'?.12:.55):.06*(i%2?1:-1);
+  m.makeRotationFromEuler(e.set(0,kind==='melon'?.15+i*.3:kind==='carrot'?(i-1)*.14:i*2.1+.3,roll,'YXZ'));
   const all=[...parts.skin,...parts.plant];all.forEach(q=>q.applyMatrix4(m));
   box.makeEmpty();all.forEach(q=>{q.computeBoundingBox();box.union(q.boundingBox);});
   all.forEach(q=>q.translate(x,-box.min.y,z));
@@ -4703,13 +4756,8 @@ export function createGroundModel(item={}){
   // Everyday food: small, grounded, and shaped by kind. Food names are never shuffled.
   const kind=name.match(FOOD_KIND)[1];
   const lie=(r0,r1,len,m,x,y,z,ry=0,seg=12)=>{const p=add(new THREE.CylinderGeometry(r0,r1,len,seg),m,x,y,z);p.rotation.set(0,ry,Math.PI/2);return p;};
-  const stalk=mat(0x4a3322),leaf=mat(0x4f8a3a);
-  if(kind==='apple'||kind==='orange'||kind==='pear'||kind==='melon'||kind==='banana'){
+  if(kind==='apple'||kind==='orange'||kind==='pear'||kind==='melon'||kind==='banana'||kind==='carrot'){
    buildFruit(kind,Number(/^\s*(\d+)/.exec(name)?.[1]??1),{g,materials});
-  }else if(kind==='carrot'){
-   const root=mat(0xe06a1c);
-   lie(.035,.004,.3,root,.02,.036,0,0,10).rotation.z=-Math.PI/2;
-   for(let i=0;i<3;i++){const f=ball(.06,leaf,-.17,.03+i*.008,(i-1)*.03,[1,.1,.3]);f.rotation.y=(i-1)*.45;}
   }else if(kind==='egg'){
    ball(.045,mat(0xeee6d4),0,.045,0,[.95,1,1.3]).rotation.x=Math.PI/2;
   }else if(kind==='tin'){
