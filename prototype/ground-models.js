@@ -4486,6 +4486,95 @@ export function eggGeometry(count=1){
  return merged;
 }
 
+// Cured meats, one merged vertex-coloured mesh each (1 draw). Both use a smooth value noise so
+// welded seams displace alike.
+const meatHash=(a,b,c)=>{const s=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453;return s-Math.floor(s);};
+function meatNoise(x,y,z){
+ const i=Math.floor(x),j=Math.floor(y),k=Math.floor(z),u=x-i,v=y-j,w=z-k;
+ const f=t=>t*t*(3-2*t),a=f(u),b=f(v),c=f(w),lerp=(p,q,t)=>p+(q-p)*t,h=(di,dj,dk)=>meatHash(i+di,j+dj,k+dk);
+ return lerp(lerp(lerp(h(0,0,0),h(1,0,0),a),lerp(h(0,1,0),h(1,1,0),a),b),lerp(lerp(h(0,0,1),h(1,0,1),a),lerp(h(0,1,1),h(1,1,1),a),b),c);
+}
+// Weld a fresh geometry (no uv or normals) so displacement and smooth normals don't split at seams.
+const weld=geo=>{geo.deleteAttribute('uv');geo.deleteAttribute('normal');const w=mergeVertices(geo);geo.dispose();return w;};
+
+// Meatballs: lumpy seared balls, dark-crusted in the hollows, with paler flecks of ground meat,
+// green herb flecks and a slightly flattened base where they sat in the pan. A stack shows up to
+// three: two side by side and a third resting on top.
+export function meatballGeometry(count=1){
+ const n=Math.min(3,Math.max(1,count|0)),R=.05;
+ const seared=new THREE.Color(0x6b3820),crust=new THREE.Color(0x341a0e),flesh=new THREE.Color(0xa4704e),herb=new THREE.Color(0x4c5a22),col=new THREE.Color();
+ const place=[[[0,0,0]],[[-.047,0,.01],[.047,0,-.01]],[[-.047,0,.012],[.047,0,-.012],[0,.078,0]]][n-1];
+ const balls=[];
+ for(const [e,[ox,oy,oz]] of place.entries()){
+  const geo=weld(new THREE.SphereGeometry(R,28,20));
+  const p=geo.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),s=e*17.3;
+   const lump=meatNoise(x*45+s,y*45,z*45)-.5,grain=meatNoise(x*140,y*140+s,z*140)-.5;
+   const r=1+.16*lump+.05*grain;
+   // The pan-flattened base.
+   const ny=y/R,fy=ny<-.55?-.55-(-.55-ny)*.35:ny;
+   p.setXYZ(i,x*r,fy*R*r,z*r);
+   col.copy(seared).lerp(crust,Math.min(1,Math.max(0,.5-lump*3.2)));
+   if(grain>.2)col.lerp(flesh,Math.min(1,(grain-.2)*4));
+   // Herb flecks: a jittered dot in some cells.
+   const S=.012,ci=Math.floor(x/S),cj=Math.floor(y/S),ck=Math.floor(z/S);
+   const d=Math.hypot(x-(ci+meatHash(ci,cj,ck+s))*S,y-(cj+meatHash(cj,ck,ci+s))*S,z-(ck+meatHash(ck,ci,cj+s))*S);
+   if(meatHash(ci+5,ck,cj+s)>.8&&d<.0028)col.lerp(herb,.85);
+   c.set([col.r,col.g,col.b],i*3);
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));
+  geo.computeVertexNormals();
+  geo.rotateY(e*2.1+.4);
+  geo.computeBoundingBox();geo.translate(ox,-geo.boundingBox.min.y+oy,oz);
+  balls.push(geo);
+ }
+ const merged=mergeGeometries(balls);balls.forEach(g=>g.dispose());
+ return merged;
+}
+
+// Meat sticks: slim cured sausages in a wrinkled, glossy casing, gently bowed, dark mahogany
+// marbled with red and flecked with fat, each end pinched and twisted off into a little nub.
+// A stack fans up to three across the floor.
+export function meatStickGeometry(count=1){
+ const n=Math.min(3,Math.max(1,count|0)),L=.24,r=.016,rows=48,segs=14;
+ const casing=new THREE.Color(0x4e1f13),marble=new THREE.Color(0x8c3522),fat=new THREE.Color(0xd9b99a),twist=new THREE.Color(0x2c120a),col=new THREE.Color();
+ // Along y from -L/2 to L/2: a rounded shoulder into a pinched neck and a small nub at each end.
+ const profile=[];
+ for(let i=0;i<=rows;i++){
+  const t=i/rows,e=Math.min(t,1-t)*L;
+  let rad=e<.004?r*.45*Math.sqrt(e/.004):e<.01?r*.45*(1-.4*(e-.004)/.006):r*(.27+.73*Math.sqrt(Math.min(1,(e-.01)/.02)));
+  if(i===0||i===rows)rad=0;
+  profile.push(new THREE.Vector2(rad,(t-.5)*L));
+ }
+ const place=[[[0,0,.35]],[[0,-.024,.3],[.004,.024,.5]],[[0,-.04,.2],[.01,0,.42],[-.004,.042,.68]]][n-1];
+ const sticks=[];
+ for(const [e,[ox,oz,ry]] of place.entries()){
+  const geo=weld(new THREE.LatheGeometry(profile,segs));
+  const p=geo.attributes.position,c=new Float32Array(p.count*3),s=e*9.7;
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),rho=Math.hypot(x,z),end=L/2-Math.abs(y);
+   // Wrinkles run round the casing; they fade out into the twisted ends.
+   const wr=rho?1+.07*(meatNoise(x*260+s,y*90,z*260)-.5)+.04*Math.sin(y*260+meatNoise(x*80,y*30+s,z*80)*6):1;
+   // Bowed along its length.
+   p.setXYZ(i,x*wr,y,z*wr+.55*(L*L/4-y*y));
+   col.copy(casing).lerp(marble,Math.max(0,meatNoise(x*120+s,y*60,z*120)-.45)*1.6);
+   const fleck=meatNoise(x*420,y*420+s,z*420);
+   if(fleck>.78)col.lerp(fat,Math.min(.8,(fleck-.78)*6));
+   if(end<.012)col.lerp(twist,1-end/.012);
+   c.set([col.r,col.g,col.b],i*3);
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));
+  geo.computeVertexNormals();
+  // Lay it down along x, turned on the floor, dropped onto it.
+  geo.rotateZ(Math.PI/2);geo.rotateX(e*.3);geo.rotateY(ry);
+  geo.computeBoundingBox();geo.translate(ox,-geo.boundingBox.min.y,oz);
+  sticks.push(geo);
+ }
+ const merged=mergeGeometries(sticks);sticks.forEach(g=>g.dispose());
+ return merged;
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -5096,10 +5185,11 @@ export function createGroundModel(item={}){
   }else if(kind==='fortune cookie'){
    const c=add(new THREE.TorusGeometry(.045,.025,8,16,Math.PI*1.4),mat(0xd09a4c),0,.035,0);c.rotation.x=-Math.PI/2;c.scale.set(1,.8,1);
    box(.05,.001,.012,mat(0xf2eee2),.05,.03,.02).rotation.y=.4;
-  }else if(kind==='meatball'){
-   ball(.055,mat(0x6e3a26),0,.05,0,[1,.9,1]);
-  }else if(kind==='meat stick'){
-   lie(.02,.02,.26,mat(0x7a3420),0,.02,0,.4,10);
+  }else if(kind==='meatball'||kind==='meat stick'){
+   // Seared and cured meats: faintly glossy, a stack shows up to three.
+   const meat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:kind==='meatball'?.62:.42});materials.push(meat);
+   const count=Number(/^\s*(\d+)/.exec(name)?.[1]??1);
+   add(kind==='meatball'?meatballGeometry(count):meatStickGeometry(count),meat).userData.part=kind.replace(' ','-');
   }else if(kind==='chunk'||kind==='meat ring'){
    const raw=mat(0x9c3c30),fat=mat(0xe2c8b0);
    if(kind==='meat ring'){add(new THREE.TorusGeometry(.07,.03,8,20),raw,0,.03,0).rotation.x=Math.PI/2;}

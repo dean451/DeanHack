@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -855,6 +855,36 @@ test('eggs are speckled ovoids lying on their sides, and a stack shows a clutch 
   model.userData.dispose();
  }
  one.dispose();
+});
+
+test('meatballs and meat sticks are merged, vertex-coloured meats, and a stack shows up to three',()=>{
+ for(const [make,part,names] of [[meatballGeometry,'meatball',['meatball','3 meatballs']],[meatStickGeometry,'meat-stick',['meat stick','2 cursed meat sticks','7 meat sticks']]]){
+  const one=make(1);
+  for(const key of ['position','normal','color'])for(const v of one.attributes[key].array)assert(Number.isFinite(v),part);
+  assert(one.index,`${part} welded`);
+  // Seared or cured: no two-tone flat fill, the colours vary.
+  const c=one.attributes.color,sum=i=>c.getX(i)+c.getY(i)+c.getZ(i);
+  let lo=9,hi=0;for(let i=0;i<c.count;i++){lo=Math.min(lo,sum(i));hi=Math.max(hi,sum(i));}
+  assert(hi-lo>.3,`${part} colour range ${lo}..${hi}`);
+  assert.equal(make(2).attributes.position.count,2*one.attributes.position.count);
+  assert.equal(make(9).attributes.position.count,3*one.attributes.position.count);
+  for(const name of names){
+   const model=createGroundModel({name,class:7});
+   const meshes=[];model.traverse(p=>{if(p.isMesh)meshes.push(p);});
+   assert.equal(meshes.length,1,name);
+   assert.equal(meshes[0].userData.part,part);
+   assert(meshes[0].material.vertexColors);
+   const bounds=new THREE.Box3().setFromObject(model);
+   assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.2,`${name} height ${bounds.max.y}`);
+   assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
+   model.userData.dispose();
+  }
+  one.dispose();
+ }
+ // A meat stick lies long and low.
+ const stick=meatStickGeometry(1);stick.computeBoundingBox();
+ const b=stick.boundingBox;assert(b.max.y<.04&&b.max.x-b.min.x>.18,'lying along the floor');
+ stick.dispose();
 });
 
 test('cram, K- and C-rations get their own merged models instead of the food-ration parcel',()=>{
