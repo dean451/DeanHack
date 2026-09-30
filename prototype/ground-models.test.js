@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -805,6 +805,28 @@ test('eucalyptus leaves are a thin sickle blade on a reddish stalk, two when sta
  const bounds=new THREE.Box3().setFromObject(model);
  assert(bounds.max.y<.05);
  model.userData.dispose();
+});
+
+test('a kelp frond is one glossy merged mesh lying flat, with a second frond when stacked',()=>{
+ const one=kelpFrondGeometry(1),two=kelpFrondGeometry(2);
+ for(const geo of [one,two])for(const key of ['position','normal','color'])for(const v of geo.attributes[key].array)assert(Number.isFinite(v));
+ assert(two.attributes.position.count===2*one.attributes.position.count);
+ one.computeBoundingBox();
+ const b=one.boundingBox;
+ assert(b.max.x-b.min.x>.35,'long');
+ assert(b.max.y-b.min.y<.07,'lies flat');
+ for(const name of ['kelp frond','2 kelp fronds']){
+  const model=createGroundModel({name,class:7});
+  const meshes=[];model.traverse(p=>{if(p.isMesh)meshes.push(p);});
+  assert.equal(meshes.length,1,name);
+  assert.equal(meshes[0].userData.part,'kelp frond');
+  assert(meshes[0].material.vertexColors&&meshes[0].material.side===THREE.DoubleSide);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.08,`${name} height ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
+  model.userData.dispose();
+ }
+ one.dispose();two.dispose();
 });
 
 test('cram, K- and C-rations get their own merged models instead of the food-ration parcel',()=>{
