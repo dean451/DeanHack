@@ -731,6 +731,37 @@ test('hobbits get their own curly-haired, waistcoated, bare-footed model instead
  parts.forEach((m,i)=>{assert.equal(m.geometry,again[i].geometry);assert.equal(m.material,parts[0].material);});
 });
 
+test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const valk=createCreature({name:'valkyrie',symbol:64,color:7});
+ assert.equal(valk.kind,'valkyrie');assert.equal(valk.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','shieldArm','shield'])assert(valk[key]?.isObject3D,key);
+ assert.equal(valk.legs.length,2);assert.equal(valk.arms.length,2);assert.equal(valk.arm,valk.arms[1]);assert.equal(valk.shieldArm,valk.arms[0]);
+ assert(valk.shieldArm.children.includes(valk.shield),'the shield rides the off arm');
+ const parts=meshes(valk);
+ assert.equal(parts.length,8,'one mesh per moving part, the sword and the shield');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<50000,`${verts} vertices`);
+ valk.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(valk.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.15&&b.max.y<1.35,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.4,'out of proportion');
+ // the helm's wings are the top of the model, and the shield hangs outside the left arm
+ assert(new THREE.Box3().setFromObject(valk.head,true).max.y>b.max.y-1e-6,'wings on top');
+ assert(new THREE.Box3().setFromObject(valk.shield,true).max.x<-.2,'shield outside the left arm');
+ // any other player-monster role still gets the generic humanoid
+ assert.equal(createCreature({name:'samurai',symbol:64,color:1}).kind,undefined);
+ const again=meshes(createCreature({name:'valkyrie'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
 test('mind flayers get a merged robed illithid model with a ridged cranium, glowing eyes and swaying face tentacles',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const tops={};
