@@ -156,7 +156,11 @@ test('a door that leaves a wreck throws only thin splinters, which sink away soo
     assert.ok(few.length >= 4 && few.length <= SHARDS / 2, `${few.length} splinters`);
     assert.ok(few.every(s => !s.iron), 'the strap iron stays on the wreck');
     for (const s of few) {
-      const twin = all.find(o => o.pos[0] === s.pos[0] && o.vel[2] === s.vel[2]);
+      const twin = all.find(o => o.vel[1] === s.vel[1] && o.vel[2] === s.vel[2]);
+      // Only from where the leaf broke away: clear of the latch sliver, the low hinge-side
+      // stubs and the scrap on the top strap.
+      const [x, y] = s.pos;
+      assert.ok(x < WRECK.from[1] && x >= (y < WRECK.low.y ? WRECK.low.x : WRECK.from[0]), `starts at ${x.toFixed(3)}, ${y.toFixed(3)}`);
       assert.ok(twin && s.size[0] < twin.size[0] && s.size[1] < twin.size[1], 'thinner than the full-break plank');
       assert.ok(s.pos[1] >= halfHeight(s) - 1e-9);
     }
