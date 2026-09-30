@@ -43,6 +43,7 @@ import {createGoblin,isGoblin} from './goblin.js';
 import {createBugbear} from './bugbear.js';
 import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
+import {createGnome,isGnome} from './gnome.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2305,7 +2306,7 @@ export function createCreature(cell={}){
  if(name==='dwarf king')return humanoid('dwarf',{rank:'king',cloth:mat('#6a3a8a'),beard:mat('#c9c3b4')});
  if(name==='bugbear')return createBugbear();
  if(/dwarf/.test(name))return humanoid('dwarf');
- if(/gnome/.test(name))return humanoid('gnome',color?{cap:mat(color)}:{});
+ if(isGnome(name))return createGnome(name);
  // unlisted species: fall back on the monster class letter, then the glyph colour
  const c=color||'#8a8a80';
  switch(letter){
@@ -2339,7 +2340,7 @@ export function createCreature(cell={}){
   case 'i':return humanoid('imp',{skin:mat(c),cloth:mat(shade(c,.55))});
   case 'Z':return createZombie('human zombie');
   case 'M':return createMummy('human mummy');
-  case 'G':return humanoid('gnome',{cap:mat(c)});
+  case 'G':return createGnome(name);
   case 'h':return humanoid('dwarf');
   case 'o':return humanoid('orc',{cloth:mat(shade(c,.75))});
   case 'q':return rothe({...ROTHE,coat:c,saddle:shade(c,1.6)});
