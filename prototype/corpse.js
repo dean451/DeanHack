@@ -6,7 +6,7 @@ import {segment,chain} from './ant.js';
 // the body the monster had, picked by its name (the bridge sends the monster's name for a corpse):
 // - beast: a four-legged animal flopped on its side, legs stiff and out, head on its cheek with
 //   the eye shut and the tongue lolling, tail trailing. Dogs, cats, horses, rats, bears, lizards,
-//   dragons and the like. Dragons and wyrms add horns swept back from the head, a ridge of spines
+//   dragons (under UnNetHack's names too: leviathan, wyvern, lindworm...) and the like. Dragons add horns swept back from the head, a ridge of spines
 //   down the back and tail, a spade tail tip, a banded belly and a wing folded over the flank.
 // - humanoid: face down, one arm flung up past the head, the other along the side, one knee bent.
 //   Anything that walks on two legs, and the fallback for names not listed.
@@ -25,16 +25,19 @@ import {segment,chain} from './ant.js';
 // NetHack's 16 terminal colours, as creatures.js tones them.
 const NH_COLORS=['#34343c','#a83b2e','#4f8a3a','#8a6440','#3d5fb0','#8a3f8f','#3f9a9a','#8f8f88',null,'#d9782e','#7fbf4f','#d6ac3a','#5f8fe0','#b85cbf','#6fd0d0','#e2ded2'];
 
+// UnNetHack renames most of the adult dragons (the 'D' class), so match those names too.
+const DRAGONS=/dragon|wyrm|tatzelworm|amphitere|draken|lindworm|sarkany|sirrush|leviathan|wyvern|guivre|tiamat|ixoth/;
 const PLANS=[
- ['blob',/jelly|pudding|ooze|slime|blob|mou?ld\b|lichen|shrieker|fungus|gelatinous cube|lurker above|trapper|jellyfish/],
- ['bug',/\bants?\b|\bbees?\b|beetle|spider|centipede|scorpion|\bticks?\b|grid bug|\bxan\b|\bfly\b|locust|cockroach|wasp|hornet|\blice\b|\blouse\b/],
- ['bird',/\bbats?\b|raven|\bbird|cockatrice|chickatrice|phoenix|vulture|\bcrow\b|eagle|\bhawk\b|\bowl\b/],
- ['serpent',/snake|cobra|python|pit viper|\basp\b|water moccasin|serpent|\beel\b|\bworm\b|naga|piranha|shark|couatl/],
- ['beast',/\bdog\b|jackal|coyote|\bfox\b|wolf|warg|hound|\bcat\b|kitten|lynx|panther|jaguar|tiger|\blion|leopard|pony|horse|unicorn|\brat\b|rabbit|rodent|mouse|woodchuck|badger|\bbear\b|\bape\b|monkey|yeti|sasquatch|carnotaur|titanothere|baluchitherium|mastodon|mumak|leocrotta|wumpus|lizard|\bnewt\b|gecko|iguana|crocodile|alligator|salamander|chameleon|dragon|wyrm|dingo|rothe|displacer|rust monster|disenchanter|basilisk|turtle|tortoise|squirrel|lemming|hellcat|jabberwock|owlbear|dog\b/],
+ ['blob',/jelly|pudding|ooze|slime|blob|mou?ld\b|lichen|shrieker|fungus|gelatinous cube|lurker above|trapper|jellyfish|mimic|piercer|\bfern\b|fern sprout/],
+ ['bug',/\bants?\b|chillbug|scorpius|\bbees?\b|beetle|spider|centipede|scorpion|\bticks?\b|grid bug|\bxan\b|\bfly\b|locust|cockroach|wasp|hornet|\blice\b|\blouse\b/],
+ ['bird',/\bbats?\b|raven|pyrolisk|\bbird|cockatrice|chickatrice|phoenix|vulture|\bcrow\b|eagle|\bhawk\b|\bowl\b/],
+ ['serpent',/kraken|watcher in the water|snake|cobra|python|pit viper|\basp\b|water moccasin|serpent|\beel\b|\bworm\b|naga|piranha|shark|couatl/],
+ ['beast',DRAGONS],
+ ['beast',/\bdog\b|housecat|cerberus|rock mole|centaur|jackal|coyote|\bfox\b|wolf|warg|hound|\bcat\b|kitten|lynx|panther|jaguar|tiger|\blion|leopard|pony|horse|unicorn|\brat\b|rabbit|rodent|mouse|woodchuck|badger|\bbear\b|\bape\b|monkey|yeti|sasquatch|carnotaur|titanothere|baluchitherium|mastodon|mumak|leocrotta|wumpus|lizard|\bnewt\b|gecko|iguana|crocodile|alligator|salamander|chameleon|dragon|wyrm|dingo|rothe|displacer|rust monster|disenchanter|basilisk|turtle|tortoise|squirrel|lemming|hellcat|jabberwock|owlbear|dog\b/],
 ];
 const TINY=/\bnewt\b|gecko|sewer rat|\brat\b|\bbats?\b|\bbees?\b|kitten|mouse|lichen|grid bug|lemming|\bticks?\b|\bfly\b|\blouse\b|little dog|homunculus|\bimp\b|manes|lemure/;
 const SMALL=/jackal|coyote|\bfox\b|centipede|cave spider|kobold|gnome|hobbit|\bdwarf\b|housecat|small|baby|\bgiant rat\b|piranha|raven|chickatrice|cockatrice|\blizard\b|iguana|leprechaun|nymph|quasit|tengu|garter/;
-const LARGE=/\bgiant\b(?! (?:ant|beetle|spider|bat|rat|eel|turtle|centipede|mimic|louse|tick))|titan|dragon|mastodon|mumak|titanothere|baluchitherium|purple worm|ettin|minotaur|juiblex|jabberwock|kraken|owlbear|warhorse|\bhorse\b|\bbear\b|troll|ogre|yeti|sasquatch|leviathan|wyrm|crocodile|python|carnotaur|\bgiant eel\b|shark|naga\b|gelatinous cube|black pudding/;
+const LARGE=/\bgiant\b(?! (?:ant|beetle|spider|bat|rat|eel|turtle|centipede|mimic|louse|tick))|titan|dragon|tatzelworm|amphitere|draken|lindworm|sarkany|sirrush|leviathan|wyvern|guivre|tiamat|ixoth|cerberus|mastodon|mumak|titanothere|baluchitherium|purple worm|ettin|minotaur|juiblex|jabberwock|kraken|owlbear|warhorse|\bhorse\b|\bbear\b|troll|ogre|yeti|sasquatch|leviathan|wyrm|crocodile|python|carnotaur|\bgiant eel\b|shark|naga\b|gelatinous cube|black pudding/;
 const SCALE={tiny:.5,small:.72,medium:1,large:1.3};
 // A body lying flat is longer than one standing, so people are drawn a little smaller.
 const PLAN_SCALE={humanoid:.85};
@@ -246,10 +249,10 @@ function colours(plan,colour){
 
 function build(name,colour){
  const n=String(name||'').toLowerCase(),plan=corpsePlan(n),size=corpseSize(n);
- const key=[plan,size,colour,/worm/.test(n),/piranha|shark/.test(n),/spider|scorpion/.test(n),/\bbats?\b/.test(n),/dragon|wyrm/.test(n)].join('|');
+ const key=[plan,size,colour,/worm/.test(n),/piranha|shark/.test(n),/spider|scorpion/.test(n),/\bbats?\b/.test(n),DRAGONS.test(n)].join('|');
  if(cache.has(key))return cache.get(key);
  const P=pieces(),C=colours(plan,colour);
- if(plan==='beast')beast(P,C,{dragon:/dragon|wyrm/.test(n)});
+ if(plan==='beast')beast(P,C,{dragon:DRAGONS.test(n)});
  else if(plan==='serpent')serpent(P,C,{worm:/worm/.test(n),short:/piranha|shark/.test(n)});
  else if(plan==='bug')bug(P,C,{eight:/spider|scorpion/.test(n)});
  else if(plan==='blob')blob(P,C);

@@ -1563,6 +1563,13 @@ test('corpses lie as the body plan of the monster that died, finite, on the floo
  assert(verts('red dragon')>verts('horse')*1.2,'a dragon has more to it than a horse');
  assert.equal(verts('horse'),verts('jackal'),'other beasts are unchanged');
  assert.equal(corpseSize('baby red dragon'),'small','a baby dragon is small');
+ // UnNetHack's renamed dragons are dragons too, not people lying face down
+ for(const name of ['leviathan','wyvern','lindworm','tatzelworm','amphitere','draken','sarkany','sirrush','guivre','tiamat','ixoth']){
+  assert.equal(corpsePlan(name),'beast',name);assert.equal(corpseSize(name),'large',name);
+  assert.equal(verts(name),verts('red dragon'),name+' gets the horns, spines and wing');
+ }
+ assert.equal(corpseSize('baby leviathan'),'small');
+ for(const [name,plan] of [['housecat','beast'],['cerberus','beast'],['kraken','serpent'],['pyrolisk','bird'],['scorpius','bug'],['large mimic','blob']])assert.equal(corpsePlan(name),plan,name);
  const wing=createCorpse('red dragon',1).children[0].geometry,wy=wing.attributes.position,wn=wing.attributes.normal;
  wing.computeBoundingBox();const top=wing.boundingBox.max.y*.8;
  let up=0,down=0;for(let i=0;i<wy.count;i++)if(wy.getY(i)>top)wn.getY(i)>0?up++:down++;
