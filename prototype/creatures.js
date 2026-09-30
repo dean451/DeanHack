@@ -666,7 +666,8 @@ const MIMICS={'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a
 // seam, bare arms bend at the elbow, and the head has a face, ears and a mop of hair.
 // Plains centaurs wear a vest and carry a spear, forest centaurs a longbow with an arrow quiver on
 // the back, mountain centaurs a fur mantle, a beard and a club. Handles: head, arms, arm (the
-// weapon arm), weaponSocket, as on the humanoids.
+// weapon arm), weaponSocket, as on the humanoids, plus offHand (the left fist) and centaur (the
+// weapon's name, for centaur-attack.js).
 function centaur(o){
  const coatHex=o.coat,{g,body,legs,tail,y,s}=horse({scale:o.scale||1,coat:coatHex,hair:o.hair,points:shade(coatHex,.62),legH:.4,stock:1,tail:.42,centaur:true,feathered:o.feathered,mane:o.feathered?'shaggy':undefined});
  g.name='centaur';
@@ -719,7 +720,7 @@ function centaur(o){
   const strap=segment(body,[-.13,hip+.34,z0+.06],[.12,hip+.08,z0+.07],.012,.012,leather);strap.scale.z=.5;
  }
  mergeStatic(g);
- return Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head,arms,arm:arms[1],weaponSocket});
+ return Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head,arms,arm:arms[1],weaponSocket,offHand,centaur:o.weapon||null});
 }
 const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#6a8aa0',weapon:'spear'},'forest centaur':{coat:'#5a3c24',hair:'#2a1a10',tunic:'#3f6a34',weapon:'bow',scale:1.05},'mountain centaur':{coat:'#7a7670',hair:'#3a3632',mantle:'#8a7058',beard:true,weapon:'club',scale:1.08}};
 // Ponies, horses and warhorses (u): a barrel with a sloped croup, an arched neck with a mane, a long
