@@ -11,7 +11,7 @@ import {createThrone} from './throne.js';
 import {createSink} from './sink.js';
 import {createGrave} from './grave.js';
 import {createTrap,trapKind} from './trap.js';
-import {createTerrainFeature,featureKind,AXIS_FEATURES} from './terrain-feature.js';
+import {createTerrainFeature,featureKind,AXIS_FEATURES,bridgeYaw} from './terrain-feature.js';
 import {createTree} from './tree.js';
 import {createBoulder} from './boulder.js';
 import {createStairs} from './stairs.js';
@@ -243,10 +243,9 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
          group.add(tile);tiles.set(id,tile);
        }if(cell.terrain==='feature')dressFeature(tile,cell);tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
        if(tile.userData.axisFeature){
-        // Drawbridge models assume the moat runs along x; turn them when the water runs along z.
-        const wet=(dx,dz)=>Number(frame.cells.some(c=>c.x===cell.x+dx&&c.z===cell.z+dz&&['water','lava'].includes(c.terrain)));
-        const alongX=wet(-1,0)+wet(1,0),alongZ=wet(0,-1)+wet(0,1);
-        if(alongX!==alongZ)tile.userData.axisFeature.rotation.y=alongZ>alongX?Math.PI/2:0;
+        // Face the drawbridge across its moat, the hinge toward the gatehouse (terrain-feature.js).
+        const yaw=bridgeYaw(tile.userData.featureKey,(dx,dz)=>frame.cells.find(c=>c.x===cell.x+dx&&c.z===cell.z+dz)?.terrain);
+        if(yaw!==null)tile.userData.axisFeature.rotation.y=yaw;
        }
        if(tile.userData.grate){
         const connected=(dx,dz)=>frame.cells.some(c=>c.x===cell.x+dx&&c.z===cell.z+dz&&['wall','bars','door'].includes(c.terrain));
