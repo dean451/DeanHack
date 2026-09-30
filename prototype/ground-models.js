@@ -7,6 +7,7 @@ import {createCandelabrum,candelabrumState} from './candelabrum.js';
 import {createMagicMarker,markerCharges} from './marker.js';
 import {createIronBall,createIronChain} from './iron-ball.js';
 import {createVenom} from './venom.js';
+import {createPotion} from './potion.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
@@ -5366,6 +5367,11 @@ export function createGroundModel(item={}){
  const ball=(r,m,x,y,z,s=[1,1,1])=>{const p=add(new THREE.SphereGeometry(r,16,10),m,x,y,z);p.scale.set(...s);return p;};
  if(/wolfsbane/.test(name)){
   buildWolfsbane({g,materials});
+ }else if(cls===8){
+  // Potions: a corked bottle whose shape and colour come from the shuffled look (potion.js).
+  // Its three merged meshes move into g like the unicorn horn.
+  const potion=createPotion({appearance:item.appearance,color:item.color,count:item.quantity??Number(/^\s*(\d+)/.exec(name)?.[1]??1)});
+  for(const part of [...potion.children]){g.add(part);}materials.push(...potion.userData.materials);g.rotation.y=potion.rotation.y;
  }else if(cls===10){
   buildSpellbook(item,{g,add,box,ball,mat,materials,metal});
  }else if(cls===9){
