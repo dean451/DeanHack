@@ -4619,6 +4619,90 @@ export function meatRingGeometry(count=1){
  return merged;
 }
 
+// Tins: bare tinplate cans with no label. Each has rolled double-seam beads top and bottom,
+// three pressed ribs round the side, a soldered side seam, sunk ends with expansion rings, a
+// crystalline spangle, freckles of rust low down and a knock dented into one side. An empty tin
+// has been opened: its rim is cut ragged, the inside is dull, and the lid is still hinged on,
+// bent up and back. A stack stands a second tin beside the first, and a third lies on its side
+// in front. One merged vertex-coloured mesh (1 draw).
+export function tinGeometry(count=1,{empty=false}={}){
+ const n=Math.min(3,Math.max(1,count|0)),R=.052,H=.082,segs=40;
+ const TIN=new THREE.Color(0xb4bdc1),HI=new THREE.Color(0xeef2f4),LO=new THREE.Color(0x6c7478),
+  RUST=new THREE.Color(0x7a4424),SOLDER=new THREE.Color(0x767a7e),INSIDE=new THREE.Color(0x5d6468),col=new THREE.Color();
+ // The side, from the bottom bead to the top bead, with three pressed ribs.
+ const side=[];
+ for(let h=.009;h<H-.008;h+=.0035){
+  let rib=0;for(const c of [.3,.5,.7])rib+=Math.exp(-((((h/H)-c)/.022)**2));
+  side.push([R+.0016*rib,h]);
+ }
+ const bottom=[[0,.0035],[R*.5,.0035],[R*.53,.0024],[R*.66,.0024],[R*.69,.0035],[R-.007,.0035],[R-.005,0],[R-.001,0],[R+.0018,.0022],[R+.0021,.0055],[R,.0085]];
+ const top=empty
+  // Cut open: the stub of the seam, a ragged edge, then down the dull inside to the floor.
+  ?[[R,H-.008],[R+.0018,H-.0055],[R+.001,H-.0025],[R-.0015,H-.0025],[R-.0022,H-.005],[R-.0022,.012],[R-.0022,.0065],[R-.006,.0058],[0,.0058]]
+  :[[R,H-.0085],[R+.0021,H-.0055],[R+.0018,H-.0022],[R-.001,H],[R-.005,H],[R-.007,H-.0035],[R*.69,H-.0035],[R*.66,H-.0024],[R*.53,H-.0024],[R*.5,H-.0035],[0,H-.0035]];
+ const profile=[...bottom,...side,...top].map(([r,h])=>new THREE.Vector2(r,h));
+ // Tinplate spangle, bright on the beads and the ribs, dark underneath, rust low down.
+ const plate=(x,y,z,s)=>{
+  const sp=stoneNoise(x*9+s,y*9,z*9,17),f=Math.sin(Math.floor(x*170)*12.9+Math.floor(z*170)*78.2+Math.floor(y*170+s)*37.7)*.5+.5;
+  col.copy(TIN).lerp(sp>0?HI:LO,Math.abs(sp)*.35).lerp(f>.5?HI:LO,.14);
+  const r=stoneNoise(x*6+s,y*7,z*6-.7,37);if(r>.5)col.lerp(RUST,Math.min(1,(r-.5)*3)*(.35+.5*Math.max(0,1-y/.04)));
+ };
+ const paint=(geo,s)=>{
+  geo.deleteAttribute('uv');
+  const p=geo.attributes.position,c=new Float32Array(p.count*3),dent=1.2+s*2.3;
+  for(let i=0;i<p.count;i++){
+   let x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+   const a=Math.atan2(z,x),rho=Math.hypot(x,z),onSide=y>.009&&y<H-.009&&rho>R-.001;
+   // A knock dented into the side, and the soldered seam standing proud at angle 0.
+   const da=Math.atan2(Math.sin(a-dent),Math.cos(a-dent)),seam=Math.abs(Math.sin(a/2))<.02;
+   let k=1;
+   if(onSide)k-=.07*Math.exp(-((da/.32)**2)-((y-H*.42)/.014)**2);
+   if(onSide&&seam)k+=.012;
+   // The ragged cut edge of an opened tin.
+   if(empty&&y>H-.0035)y-=.0012*(Math.sin(a*23+s)*.5+.5)+.0008*(Math.sin(a*57)*.5+.5);
+   x*=k;z*=k;p.setXYZ(i,x,y,z);
+   plate(x,y,z,s);
+   const inner=empty&&rho<R-.0019&&y<H-.004;
+   if(inner)col.lerp(INSIDE,.6);
+   else if(onSide&&seam)col.lerp(SOLDER,.7);
+   else if(rho>R+.001||(y<.004&&rho<R-.004&&!inner))col.lerp(y<.003&&rho<R-.004?LO:HI,.35);
+   // The dent's crease catches a scuffed highlight.
+   if(onSide&&Math.abs(da)<.4&&Math.abs(y-H*.42)<.018)col.lerp(HI,.25*Math.cos(da*4)**2);
+   c.set([col.r,col.g,col.b],i*3);
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));
+  geo.computeVertexNormals();
+  return geo;
+ };
+ const place=[[[0,0,.4,0]],[[-.034,-.02,.4,0],[.05,.045,1.3,1]],[[-.06,-.035,.4,0],[.05,-.035,2.1,0],[-.005,.075,.25,1]]][n-1];
+ const cans=place.map(([ox,oz,ry,lying],e)=>{
+  const parts=[paint(new THREE.LatheGeometry(profile,segs),e*11.3)];
+  if(empty&&!lying){
+   // The lid, hinged at the back and bent up and back.
+   const lid=new THREE.CylinderGeometry(R-.004,R-.004,.0012,segs,1);lid.deleteAttribute('uv');
+   const lp=lid.attributes.position,lc=new Float32Array(lp.count*3);
+   for(let i=0;i<lp.count;i++){
+    const x=lp.getX(i),y=lp.getY(i),z=lp.getZ(i),r=Math.hypot(x,z),a=Math.atan2(z,x);
+    const cut=r>R-.005?1-.03*(Math.sin(a*19+e)*.5+.5):1;
+    lp.setXYZ(i,x*cut,y,z*cut);
+    plate(x,y,z,e*7.1);
+    if(r>R*.5&&r<R*.53||r>R*.66&&r<R*.69)col.lerp(HI,.35);
+    lc.set([col.r,col.g,col.b],i*3);
+   }
+   lid.setAttribute('color',new THREE.BufferAttribute(lc,3));
+   lid.computeVertexNormals();
+   lid.translate(R-.004,0,0);lid.rotateZ(1.95);lid.translate(-(R-.004),H-.0025,0);
+   parts.push(lid);
+  }
+  const can=mergeGeometries(parts);parts.forEach(g=>g.dispose());
+  if(lying){can.rotateZ(Math.PI/2);can.rotateX(.9);}
+  can.rotateY(ry);can.computeBoundingBox();can.translate(ox,-can.boundingBox.min.y,oz);
+  return can;
+ });
+ const merged=mergeGeometries(cans);cans.forEach(g=>g.dispose());
+ return merged;
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -5217,10 +5301,9 @@ export function createGroundModel(item={}){
    add(eggGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),shell).userData.part='egg';
    g.rotation.y=-.3;
   }else if(kind==='tin'){
-   const can=mat(0xa3adb0,.7);
-   add(new THREE.CylinderGeometry(.075,.075,.1,24),can,0,.05);
-   for(const y of [.006,.094])add(new THREE.TorusGeometry(.074,.006,6,24),can,0,y).rotation.x=Math.PI/2;
-   for(const y of [.035,.065])add(new THREE.TorusGeometry(.076,.003,5,24),can,0,y).rotation.x=Math.PI/2;
+   // Bare tinplate; an empty tin stands opened with its lid bent back.
+   const plate=new THREE.MeshStandardMaterial({vertexColors:true,metalness:.6,roughness:.4});materials.push(plate);
+   add(tinGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1),{empty:/\bempty\b/.test(name)}),plate).userData.part='tin';
   }else if(kind==='lembas'){
    const wafer=mat(0xe7dcb4),wrap=mat(0x5e8b43);
    add(new RoundedBoxGeometry(.2,.025,.14,2,.01),wafer,0,.0125);
