@@ -9,9 +9,10 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // bones. Rags of a burial shroud still hang from a rotted cord at the hips, and it grips a
 // notched, rust-eaten short sword. The bone is stained darker in the joints and cracked in places.
 // Each moving part (body, head, each leg and arm, and the sword) is one merged, vertex-coloured
-// mesh on one shared material, plus one small emissive mesh for the eyes: 8 draws. The geometry
+// mesh on one shared material, plus one small emissive mesh for the eyes: 9 draws. The geometry
 // is built once.
-// Handles: legs, arms, arm (the sword arm), weaponSocket, head, body, like the elf rig; it keeps
+// Handles: legs, arms, arm (the sword arm), weaponSocket, head, body, like the elf rig, and a
+// jaw hinged at the ear that opens on a positive x rotation (so jaw.js moves it); it keeps
 // the 'zombie' quirk it had as a zombie stand-in.
 
 const C={
@@ -106,15 +107,26 @@ function buildHead(){
  // deep sockets and the nasal hollow
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.022,10,8),at(s*.03,.07,.066,[0,0,0],[1,1.05,.8]),C.cavity);
  P.add(new THREE.ConeGeometry(.011,.028,3),at(0,.042,.08,[0,0,Math.PI]),C.cavity);
- // a row of upper teeth, and the slack lower jaw with its own
+ // a row of upper teeth
  for(let i=0;i<8;i++){
   const u=(i-3.5)/3.5,x=u*.03,z=.075-u*u*.022;
   P.add(new THREE.BoxGeometry(.0075,.013,.007),at(x,.007,z,[0,u*.6,0]),C.tooth);
  }
- const jaw=at(0,-.004,.004,[.18,0,0]);
+ return P.merge();
+}
+// The lower jaw hinges at the ear, so it is built about that point (JAW_HINGE, in head space)
+// and hangs on its own handle: the U of the mandible with a squared chin, the rami rising to
+// the hinge knobs, and seven lower teeth. It rests slack, a little open.
+export const JAW_HINGE=[0,.016,.022];
+function buildJaw(){
+ const P=pieces(),jaw=times(at(-JAW_HINGE[0],-JAW_HINGE[1],-JAW_HINGE[2]),at(0,-.004,.004,[.18,0,0]));
  P.add(new THREE.TorusGeometry(.04,.009,5,14,Math.PI),times(jaw,at(0,-.018,.03,[Math.PI/2+.2,0,0],[1,1.15,1])),bone);
  P.add(new THREE.BoxGeometry(.03,.012,.016),times(jaw,at(0,-.022,.07)),bone);
- for(const s of [-1,1])P.add(new THREE.BoxGeometry(.01,.045,.018),times(jaw,at(s*.04,-.003,.028,[.2,0,0])),bone);
+ P.add(new THREE.SphereGeometry(.012,8,6),times(jaw,at(0,-.026,.074,[0,0,0],[1.4,.8,.9])),bone);// the point of the chin
+ for(const s of [-1,1]){
+  P.add(new THREE.BoxGeometry(.01,.045,.018),times(jaw,at(s*.04,-.003,.028,[.2,0,0])),bone);
+  P.add(new THREE.SphereGeometry(.008,6,5),times(jaw,at(s*.04,.02,.024)),joint);// the hinge knob
+ }
  for(let i=0;i<7;i++){
   const u=(i-3)/3,x=u*.027,z=.068-u*u*.02;
   P.add(new THREE.BoxGeometry(.007,.011,.006),times(jaw,at(x,-.009,z,[0,u*.6,0])),C.tooth);
@@ -210,7 +222,7 @@ function buildSword(){
 
 let shared=null;
 function geometry(){
- if(!shared)shared={body:buildBody(),head:buildHead(),eyes:buildEyes(),sword:buildSword(),
+ if(!shared)shared={body:buildBody(),head:buildHead(),jaw:buildJaw(),eyes:buildEyes(),sword:buildSword(),
   leg:{'-1':buildLeg(-1),'1':buildLeg(1)},arm:{'-1':buildArm(-1),'1':buildArm(1)},
   bone:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.72,metalness:.05,side:THREE.DoubleSide}),
   eye:new THREE.MeshStandardMaterial({color:0xd4ecff,emissive:0x5a9cff,emissiveIntensity:2.2,roughness:.3})};
@@ -224,6 +236,8 @@ export function createSkeleton(){
  // the skull tilts a little forward and to one side
  const head=new THREE.Group();head.position.set(0,NECK_Y,.005);head.rotation.set(.1,0,-.06);body.add(head);
  mesh(head,S.head,S.bone,'head');mesh(head,S.eyes,S.eye,'eyes');
+ // the jaw drops on a positive x rotation (jaw.js); a short mandible looks torn off at the full gape
+ const jaw=new THREE.Group();jaw.position.set(...JAW_HINGE);jaw.userData.reach=.5;head.add(jaw);mesh(jaw,S.jaw,S.bone,'jaw');
  const legs=[],arms=[];
  for(const s of [-1,1]){
   const leg=new THREE.Group();leg.position.set(s*.07,HIP_Y,0);body.add(leg);mesh(leg,S.leg[s],S.bone,'leg');legs.push(leg);
@@ -231,5 +245,5 @@ export function createSkeleton(){
  }
  const weaponSocket=new THREE.Group();weaponSocket.position.set(...GRIP);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.sword,S.bone,'sword');
- return {g,body,legs,tail:null,wings:[],quirk:'zombie',arms,arm:arms[1],weaponSocket,head,heads:[head],hat:null,beard:null,pick:null};
+ return {g,body,legs,tail:null,wings:[],quirk:'zombie',arms,arm:arms[1],weaponSocket,head,heads:[head],jaw,hat:null,beard:null,pick:null};
 }
