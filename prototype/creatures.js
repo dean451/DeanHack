@@ -10,6 +10,7 @@ import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
 import {createZombie,ZOMBIES} from './zombie.js';
 import {createGhoul} from './ghoul.js';
+import {createSkeleton} from './skeleton.js';
 import {createRaven} from './raven.js';
 import {createSpider} from './spider.js';
 import {createScorpion,isScorpion} from './scorpion.js';
@@ -2268,6 +2269,7 @@ export function createCreature(cell={}){
  if(/^(bat|giant bat|vampire bat)$/.test(name))return bat({color:name==='bat'?'#5a4636':name==='giant bat'?'#7a3a32':'#28242a',scale:name==='giant bat'?1.25:1});
  if(ZOMBIES[name])return createZombie(name);
  if(name==='ghoul')return createGhoul();
+ if(name==='skeleton')return createSkeleton();
  if(/mummy$/.test(name))return createMummy(name);
  if(/shopkeeper|merchant/.test(name))return createShopkeeper();
  if(WATCH.includes(name))return createWatch(name);

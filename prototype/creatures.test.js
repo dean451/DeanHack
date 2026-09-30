@@ -820,3 +820,35 @@ test('the ghoul gets its own crouched, clawed corpse-eater instead of the human 
  parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
  assert(ms<1000,`took ${ms} ms`);
 });
+
+test('the skeleton gets its own bony model with a rusty sword instead of the human zombie',async ()=>{
+ const Z=90,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const t0=performance.now(),skel=createCreature({name:'skeleton',symbol:Z,color:15}),ms=performance.now()-t0;
+ assert.equal(skel.quirk,'zombie');
+ for(const key of ['body','head','arm','weaponSocket'])assert(skel[key]?.isObject3D,key);
+ assert.equal(skel.legs.length,2);assert.equal(skel.arms.length,2);assert.equal(skel.arm,skel.arms[1]);
+ assert.equal(skel.weaponSocket.parent,skel.arm);
+ const parts=meshes(skel);
+ assert.equal(parts.length,8,'one mesh per moving part, the sword and the eyes');
+ assert.deepEqual([...new Set(parts.map(m=>m.userData.part))].sort(),['arm','body','eyes','head','leg','sword']);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ skel.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(skel.g);
+ assert(b.min.y>-.02&&b.min.y<.02,`feet at ${b.min.y}`);
+ assert(b.max.y>.95&&b.max.y<1.25,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'fits the tile');
+ // the sword points forward of the body, so the armed chop applies
+ const sword=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='sword'));
+ assert(sword.max.z>.25,`sword reaches z ${sword.max.z}`);
+ assert((await import('./monster-chop.js')).chops(skel),'chops with the sword');
+ // shared geometry and materials
+ const other=meshes(createCreature({name:'skeleton'}));
+ parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
+ assert(ms<1000,`took ${ms} ms`);
+});
