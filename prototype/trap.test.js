@@ -194,3 +194,21 @@ test('drawbridges face across their moat: raised on the gatehouse wall, lowered 
  assert.equal(yawOf('bridge-up',['...','.#.','...']),null);
  assert.equal(yawOf('bridge-down',['}}}','}=}','}}}']),null);
 });
+
+test('the fire trap is a spiked vent over glowing coals in a fading scorch burst, with charred remains, in four draws',()=>{
+ const model=createTrap('fire',6);
+ const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+ assert.deepEqual(meshes.map(m=>m.name).sort(),['charred-remains','coal-glow','scorch','vent']);
+ const by=Object.fromEntries(meshes.map(m=>[m.name,m]));
+ assert(by['coal-glow'].material.isMeshBasicMaterial,'the coals should glow without lights');
+ assert.equal(by.scorch.geometry.attributes.color.itemSize,4,'the scorch should fade out through vertex alpha');
+ assert(by.scorch.material.transparent&&!by.scorch.castShadow);
+ for(const m of meshes){assert(m.material.vertexColors);for(const v of m.geometry.attributes.color.array)assert(v>=0&&v<=1);}
+ const vent=new THREE.Box3().setFromObject(by.vent);
+ assert(vent.max.y>.07,'the collar spikes should stand up');
+ const bounds=new THREE.Box3().setFromObject(model);
+ assert(bounds.max.y<.15&&bounds.min.y>-.02,'the trap should lie flat on the floor');
+ let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
+ assert(vertices<16000,`fire trap is ${vertices} vertices`);
+ console.log(`fire trap: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
+});
