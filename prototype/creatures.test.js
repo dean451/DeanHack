@@ -825,12 +825,13 @@ test('the skeleton gets its own bony model with a rusty sword instead of the hum
  const Z=90,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const t0=performance.now(),skel=createCreature({name:'skeleton',symbol:Z,color:15}),ms=performance.now()-t0;
  assert.equal(skel.quirk,'zombie');
- for(const key of ['body','head','arm','weaponSocket'])assert(skel[key]?.isObject3D,key);
+ for(const key of ['body','head','arm','weaponSocket','jaw'])assert(skel[key]?.isObject3D,key);
  assert.equal(skel.legs.length,2);assert.equal(skel.arms.length,2);assert.equal(skel.arm,skel.arms[1]);
+ assert.equal(skel.jaw.parent,skel.head);
  assert.equal(skel.weaponSocket.parent,skel.arm);
  const parts=meshes(skel);
- assert.equal(parts.length,8,'one mesh per moving part, the sword and the eyes');
- assert.deepEqual([...new Set(parts.map(m=>m.userData.part))].sort(),['arm','body','eyes','head','leg','sword']);
+ assert.equal(parts.length,9,'one mesh per moving part, the jaw, the sword and the eyes');
+ assert.deepEqual([...new Set(parts.map(m=>m.userData.part))].sort(),['arm','body','eyes','head','jaw','leg','sword']);
  let verts=0;
  for(const m of parts){
   const a=m.geometry.attributes;verts+=a.position.count;
@@ -847,6 +848,14 @@ test('the skeleton gets its own bony model with a rusty sword instead of the hum
  const sword=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='sword'));
  assert(sword.max.z>.25,`sword reaches z ${sword.max.z}`);
  assert((await import('./monster-chop.js')).chops(skel),'chops with the sword');
+ // the jaw hangs under the upper teeth, opens downward about the ear, and stays under the skull
+ const jawMesh=parts.find(m=>m.userData.part==='jaw'),skull=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='head'));
+ const closed=new THREE.Box3().setFromObject(jawMesh);
+ assert(closed.max.y<skull.max.y-.12&&closed.min.y<skull.min.y&&closed.min.y>skull.min.y-.08,`jaw from ${closed.min.y} to ${closed.max.y}`);
+ const chin=()=>{skel.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(jawMesh);};
+ skel.jaw.rotation.x+=.3;const open=chin();skel.jaw.rotation.x-=.3;
+ assert(open.min.y<closed.min.y-.01,`chin drops from ${closed.min.y} to ${open.min.y}`);
+ assert.equal((await import('./jaw.js')).jawReach(skel),.5);
  // shared geometry and materials
  const other=meshes(createCreature({name:'skeleton'}));
  parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
