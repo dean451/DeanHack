@@ -237,3 +237,47 @@ test('ghost sleeves drift, trail while moving, go limp in death and settle to re
     assert.equal(a.sleeves, undefined);
   }
 });
+
+test('bee legs hang in flight, trail while flying on, and go slack to rest in death', async () => {
+  const {DANGLE, dangles, dangleLayout, danglePose} = await import('./dangle.js');
+  for (const name of ['killer bee', 'queen bee']) {
+    const a = createCreature({name});
+    assert.ok(dangles(a), name);
+    // right legs front to back, then left: the layout reads that from the hips
+    assert.deepEqual(dangleLayout(a.legs), {side: [1, 1, 1, -1, -1, -1], rank: [0, 1, 2, 0, 1, 2]});
+    const pitch = () => a.legs.map(l => l.rotation.x), splay = () => a.legs.map(l => l.rotation.z);
+    let t = 0, prev = null;
+    const run = (secs, walking) => {
+      for (let k = 0; k < secs * 60; k++, t += 1 / 60) {
+        frame(a, t, 1 / 60, walking);
+        const now = [...pitch(), ...splay()];
+        for (const v of now) { assert.ok(Number.isFinite(v)); assert.ok(Math.abs(v) < .7, `${name} ${v}`); }
+        // no snaps as flight starts, stops or the bee dies (the tremble alone moves ~.02 a frame)
+        if (prev) now.forEach((v, i) => assert.ok(Math.abs(v - prev[i]) < .06, `${name} jump ${v - prev[i]}`));
+        prev = now;
+      }
+    };
+    run(1, false);
+    // hovering: hind legs trail behind the front ones and every leg splays outward on its side
+    const hover = pitch();
+    assert.ok(hover[2] > hover[0] + .15 && hover[5] > hover[3] + .15, `${name} ${hover}`);
+    splay().forEach((z, i) => assert.ok(z * (i < 3 ? 1 : -1) > 0, `${name} splay ${i}`));
+    // the generic walker swing is replaced, not added to
+    run(1, true);
+    const fly = pitch();
+    assert.ok(fly[2] > hover[2] + .2 && fly[5] > hover[5] + .2, `${name} trail ${fly}`);
+    assert.ok(Math.abs(splay()[2]) < DANGLE.splay[2] * (1 - DANGLE.tuck) * 1.2, `${name} tuck`);
+    run(1.5, false);
+    const st = a.dangle, settled = danglePose(st.layout, st.t, 0, 1, st.seed);
+    assert.equal(st.w, 0, `${name} settles back`);
+    pitch().forEach((x, i) => assert.ok(Math.abs(x - settled.pitch[i]) < 1e-12, `${name} hover ${i}`));
+    // death: the legs go slack to exactly their rest pose and stay there
+    a.actions = {dead: true};
+    run(1, false);
+    assert.deepEqual([...pitch(), ...splay()], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    const r = danglePose(dangleLayout(a.legs), 3.3, 1, 0);
+    assert.deepEqual([...r.pitch, ...r.splay], Array(12).fill(0));
+  }
+  // nothing else dangles
+  for (const name of ['giant ant', 'cave spider', 'bat', 'hobbit']) assert.ok(!dangles(createCreature({name})), name);
+});
