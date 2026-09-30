@@ -419,6 +419,14 @@ wipe_engr_at(coordxy x, coordxy y, xint16 cnt)
     }
 }
 
+/* The hero now knows what this engraving says (read, felt or just written). */
+static void
+note_engr_read(struct engr *ep)
+{
+    ep->eread = 1;
+    ep->eward = strstri(ep->engr_txt, "Elbereth") != 0;
+}
+
 void
 read_engr_at(coordxy x, coordxy y)
 {
@@ -492,6 +500,7 @@ read_engr_at(coordxy x, coordxy y)
             } else {
                 You("%s: \"%s\".",
                     (Blind) ? "feel the words" : "read",  et);
+                note_engr_read(ep);
             }
             if (flags.run > 1) {
                 nomul(0, 0);
@@ -1130,6 +1139,9 @@ engrave(const char *engraving, boolean fingers)
     /* Something has changed the engraving here */
     if (*buf) {
         make_engr_at(u.ux, u.uy, buf, moves, type);
+        if (engr_at(u.ux, u.uy)) {
+            note_engr_read(engr_at(u.ux, u.uy));
+        }
         pline_The("engraving now reads: \"%s\".", buf);
         ptext = FALSE;
     }
@@ -1443,6 +1455,9 @@ engrave(const char *engraving, boolean fingers)
 #else
     make_engr_at(u.ux, u.uy, buf, (moves - multi), type);
 #endif
+    if (engr_at(u.ux, u.uy)) {
+        note_engr_read(engr_at(u.ux, u.uy));
+    }
 
     if (post_engr_text[0]) {
         pline("%s", post_engr_text);

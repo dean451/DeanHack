@@ -5,7 +5,10 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // The bridge reports traps as generic `feature` cells, so the trap family comes
 // from the map symbol and its colour (drawing.c defsyms). Several traps share a
 // colour, so each model stands for its family, not one exact trap.
-export function trapKind(symbol,color){
+// A newer bridge also sends the trap's name, which tells the vibrating square (magenta, like a
+// teleport trap) apart.
+export function trapKind(symbol,color,name){
+ if(name==='vibrating square')return 'vibrating';
  if(symbol===34)return 'web';            // '"'
  if(symbol!==94)return null;             // '^'
  return {0:'pit',1:'mine',3:'hatch',4:'rust',6:'jaws',7:'rubble',9:'fire',
@@ -394,7 +397,7 @@ export function createTrap(kind,seed=0){
   block(.9,.1,.17,arch,0,.95,0,.03);
   for(const x of [-.2,0,.2])add(new THREE.BoxGeometry(.04,.004,.01),rune,x,.95,.087).castShadow=false;
   // Rift: a dark core ringed by overlapping emissive arcs that read as a spiral.
-  const rift=new THREE.Group();rift.position.y=.48;rift.scale.y=1.3;g.add(rift);
+  const rift=new THREE.Group();rift.name='rift';rift.position.y=.48;rift.scale.y=1.3;g.add(rift);
   const core=add(new THREE.CircleGeometry(.29,32),mat({color:0x12031c,emissive:0x2a0640,roughness:1,side:THREE.DoubleSide}),0,0,0,rift);core.castShadow=false;
   const swirl=[0xff7aff,0xc04dff,0x8a3cff,0xe6a3ff];
   for(let i=0;i<7;i++){
