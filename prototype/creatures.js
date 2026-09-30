@@ -11,6 +11,7 @@ import {createQuasit} from './quasit.js';
 import {createZombie,ZOMBIES} from './zombie.js';
 import {createRaven} from './raven.js';
 import {createSpider} from './spider.js';
+import {createScorpion,isScorpion} from './scorpion.js';
 import {createAnt,isAnt} from './ant.js';
 import {createFeline,isFeline} from './feline.js';
 import {createCanine,isCanine} from './canine.js';
@@ -2257,6 +2258,7 @@ export function createCreature(cell={}){
  if(/ mold$/.test(name))return createMold(name,color);
  if(name==='shrieker'||name==='violet fungus')return createMushroom(name);
  if(name==='cave spider'||name==='giant spider')return createSpider(name);
+ if(isScorpion(name))return createScorpion(name);
  if(name==='gelatinous cube')return cube({color:color||'#8ad0c0'});
  if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name)});
  if(name==='centipede')return centipede({color:'#c9a03a'});
