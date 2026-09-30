@@ -756,3 +756,21 @@ test('hobbits get their own curly-haired, waistcoated, bare-footed model instead
  const again=meshes(createCreature({name:'hobbit'}));
  parts.forEach((m,i)=>{assert.equal(m.geometry,again[i].geometry);assert.equal(m.material,parts[0].material);});
 });
+
+test('centaurs stand on the horse body with a human torso, arms and their own weapon, in few draw calls',()=>{
+ const tops=new Set();
+ for(const name of ['plains centaur','forest centaur','mountain centaur',null]){
+  const actor=createCreature(name?{name,symbol:67,color:3}:{symbol:67,color:2,kind:'monster'});
+  const label=name||'unnamed C';
+  assert.equal(actor.g.name,'centaur',label);assert.equal(actor.legs.length,4,label);assert(actor.tail&&actor.head&&actor.arm&&actor.weaponSocket,label);
+  assert.equal(actor.arms.length,2,label);
+  actor.g.updateMatrixWorld(true);let meshes=0;
+  actor.g.traverse(part=>{if(part.geometry){meshes++;for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),label);}});
+  assert(meshes<=40,`${label}: ${meshes} meshes`);
+  const bounds=new THREE.Box3().setFromObject(actor.g,true);
+  assert(Math.abs(bounds.min.y)<.02,`${label}: grounded (${bounds.min.y})`);assert(bounds.max.y<1.6,`${label}: ${bounds.max.y}`);assert(Math.max(-bounds.min.z,bounds.max.z,-bounds.min.x,bounds.max.x)<.85,label);
+  const head=actor.head.getWorldPosition(new THREE.Vector3());assert(head.y>1.05*actor.g.scale.y,`${label}: the head rides above the horse`);
+  if(name)tops.add(actor.weaponSocket.children.length+':'+bounds.max.y.toFixed(2));
+ }
+ assert.equal(tops.size,3,'each kind carries something different');
+});

@@ -661,26 +661,65 @@ function mimic(o){
  return actor(g,body,[],tail,[],'idle');
 }
 const MIMICS={'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true},'giant mimic':{color:'#6a3a22',glare:true,scale:1.25}};
-// centaurs (C): a horse's barrel on four hooved legs with a human torso rising from the withers, arms at the sides and a flowing tail;
-// plains centaurs carry a spear, forest centaurs a longbow and quiver, mountain centaurs a fur mantle and a club
+// centaurs (C): the horse body (croup, barrel, jointed legs with hooves, flowing tail; see horse())
+// with a man's torso rising from the withers where the horse's neck would be: a belt hides the
+// seam, bare arms bend at the elbow, and the head has a face, ears and a mop of hair.
+// Plains centaurs wear a vest and carry a spear, forest centaurs a longbow with an arrow quiver on
+// the back, mountain centaurs a fur mantle, a beard and a club. Handles: head, arms, arm (the
+// weapon arm), weaponSocket, as on the humanoids.
 function centaur(o){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
- const coat=mat(o.coat,{roughness:.85}),dark=mat(shade(o.coat,.55),{roughness:.9}),skin=mat(o.skin||'#d2a47c',{roughness:.75}),hair=mat(o.hair,{roughness:.9}),hoof=mat('#2a2420',{roughness:.6}),wood=mat('#6a4a2a',{roughness:.8});
- sphere(body,.24,coat,0,.44,-.06,.8,.72,1.25);
- for(const x of [-.12,.12])for(const z of [-.24,.14]){const leg=new THREE.Group();leg.position.set(x,.3,z);body.add(leg);rounded(leg,.08,.26,.09,coat,0,-.12,0,.025);rounded(leg,.085,.06,.1,hoof,0,-.27,.01,.02);legs.push(leg);}
- sphere(body,.13,skin,0,.66,.18,1,1.1,.8);
- rounded(body,.26,.3,.17,o.tunic?mat(o.tunic,{roughness:.8}):skin,0,.8,.2,.06);
- if(o.mantle)sphere(body,.17,mat(o.mantle,{roughness:1}),0,.93,.19,1.25,.55,.95);
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.16,.92,.2);body.add(arm);rounded(arm,.075,.3,.08,skin,0,-.14,0,.03);sphere(arm,.045,skin,0,-.3,.01);arm.rotation.z=side*.14;arm.rotation.x=-.2;}
- const head=new THREE.Group();head.position.set(0,1.07,.22);body.add(head);sphere(head,.12,skin,0,0,0,.9,1.05,.95);
- const locks=sphere(head,.13,hair,0,.04,-.04,.95,.9,.95);locks.rotation.x=.2;cone(head,.07,.22,hair,0,-.1,-.08,6).rotation.x=Math.PI+.25;
- if(o.beard)sphere(head,.08,hair,0,-.1,.08,.9,1.1,.6);
- eyes(head,M.eye,.01,.105,.045);
- if(o.weapon==='spear'){const shaft=rounded(body,.03,1.0,.03,wood,.24,.78,.28,.01);shaft.rotation.x=.12;cone(body,.045,.13,M.steel,.24,1.3,.34,4);}
- if(o.weapon==='bow'){const bow=part(body,new THREE.TorusGeometry(.22,.014,5,16,Math.PI*.8),wood,-.22,.82,.16);bow.rotation.z=Math.PI/2+Math.PI*.1;bow.rotation.y=Math.PI/2;cylinder(body,.045,.045,.3,mat('#5a3a22',{roughness:.8}),.1,.9,.06,8).rotation.z=-.4;for(const dx of [-.02,.02])cone(body,.02,.05,mat('#d8d0b8'),.16+dx,1.06,.06,3);}
- if(o.weapon==='club'){const club=cylinder(body,.06,.025,.4,wood,.24,.74,.26,7);club.rotation.x=.25;}
- const tail=new THREE.Group();tail.position.set(0,.5,-.3);body.add(tail);tube(tail,[[0,0,0],[0,-.05,-.08],[0,-.16,-.12],[0,-.28,-.1]],.035,hair,12);
- return actor(g,body,legs,tail,[],'unicorn');
+ const coatHex=o.coat,{g,body,legs,tail,y,s}=horse({scale:o.scale||1,coat:coatHex,hair:o.hair,points:shade(coatHex,.62),legH:.4,stock:1,tail:.42,centaur:true,feathered:o.feathered,mane:o.feathered?'shaggy':undefined});
+ g.name='centaur';
+ const coat=mat(coatHex,{roughness:.8}),skin=mat(o.skin||'#d2a47c',{roughness:.72}),hair=mat(o.hair,{roughness:.95}),leather=mat('#4a3222',{roughness:.8}),wood=mat('#6a4a2a',{roughness:.8});
+ // the horse's shoulders swell up into the human hips; the belt sits on the seam
+ const hip=y+.1,z0=.25;
+ sphere(body,.13,coat,0,hip,z0-.02,.95*s,.85,.85);
+ lathe(body,[[0,0],[.1,0],[.105,.06],[.095,.13],[.11,.2],[.128,.28],[.135,.33],[.11,.37],[.06,.395],[.035,.41],[.035,.46],[0,.46]],skin,0,hip,z0).scale.set(1.2,1,.78);
+ if(o.tunic)lathe(body,[[.103,.05],[.108,.07],[.098,.13],[.113,.2],[.132,.28],[.138,.32],[.1,.365],[.06,.38]],mat(o.tunic,{roughness:.85}),0,hip,z0).scale.set(1.2,1,.8);
+ const belt=part(body,new THREE.TorusGeometry(.104,.017,6,20),leather,0,hip+.055,z0);belt.rotation.x=Math.PI/2;belt.scale.set(1.2,.8,1);
+ sphere(body,.022,M.gold,0,hip+.055,z0+.086,1,1,.5);
+ if(o.mantle){const fur=mat(o.mantle,{roughness:1});sphere(body,.16,fur,0,hip+.34,z0-.01,1.15,.42,.85);for(const side of [-1,1])sphere(body,.07,fur,side*.15,hip+.33,z0,1,.8,1);}
+ // head: skull, jaw, nose, ears, eyes, brows and a mop of hair falling to the nape
+ const head=new THREE.Group();head.position.set(0,hip+.53,z0+.01);body.add(head);
+ sphere(head,.095,skin,0,0,0,.88,1.05,.95);sphere(head,.06,skin,0,-.05,.035,.9,.8,.9);
+ cone(head,.018,.05,skin,0,-.005,.1,4).rotation.x=Math.PI/2+.35;
+ for(const side of [-1,1]){sphere(head,.022,skin,side*.083,0,-.005,.5,1,.8);sphere(head,.012,darkEye,side*.033,.015,.083);const brow=rounded(head,.04,.01,.012,hair,side*.034,.035,.084,.004);brow.rotation.z=side*.15;}
+ const mop=sphere(head,.1,hair,0,.035,-.02,.95,.85,1);mop.rotation.x=.25;sphere(head,.07,hair,0,-.04,-.07,1.15,1.1,.7);
+ if(o.beard){sphere(head,.065,hair,0,-.075,.055,1.05,1.15,.75);sphere(head,.04,hair,0,-.14,.06,.9,1.1,.7);}
+ // arms: shoulder, upper arm, elbow, forearm, hand; the right (+x) one is the weapon arm
+ const arms=[];let weaponSocket=null,offHand=null;
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.15,hip+.33,z0);arm.rotation.z=side*.1;body.add(arm);arms.push(arm);
+  sphere(arm,.05,skin);
+  segment(arm,[0,0,0],[0,-.19,-.01],.043,.036,skin);sphere(arm,.036,skin,0,-.19,-.01);
+  segment(arm,[0,-.19,-.01],[0,-.32,.11],.034,.028,skin);sphere(arm,.034,skin,0,-.34,.125,.9,1.1,1);
+  if(o.weapon==='bow'||o.mantle)cylinder(arm,.033,.033,.05,leather,0,-.29,.075,8).rotation.x=-.85;
+  const hand=new THREE.Group();hand.position.set(0,-.34,.125);arm.add(hand);if(side>0)weaponSocket=hand;else offHand=hand;}
+ if(o.weapon==='spear'){
+  // held upright beside the flank, butt near the ground
+  cylinder(weaponSocket,.016,.016,1.08,wood,0,.1,0,6);
+  const tip=cone(weaponSocket,.034,.15,M.steel,0,.715,0,4);tip.scale.z=.4;
+  cylinder(weaponSocket,.02,.02,.06,leather,0,.6,0,6);
+ }
+ if(o.weapon==='club'){
+  // a knotted cudgel hanging forward from the fist
+  const club=new THREE.Group();club.rotation.x=2.45;weaponSocket.add(club);
+  cylinder(club,.022,.026,.14,leather,0,-.02,0,7);cylinder(club,.028,.06,.36,wood,0,.22,0,8);sphere(club,.062,wood,0,.4,0,1,.8,1);
+  for(const [a,h] of [[0,.26],[2.1,.33],[4.2,.38],[1,.42]])sphere(club,.022,wood,Math.cos(a)*.05,h,Math.sin(a)*.05);
+ }
+ if(o.weapon==='bow'){
+  // a tall longbow held in the left fist with its string, and a quiver of fletched arrows on the back
+  const bow=new THREE.Group();offHand.add(bow);bow.rotation.y=-Math.PI/2;
+  part(bow,new THREE.TorusGeometry(.4,.013,5,24,Math.PI*.62),wood,-.36,0,0).rotation.z=-Math.PI*.31;
+  const h=.4*Math.sin(Math.PI*.31);cylinder(bow,.003,.003,h*2,mat('#e8e0c8'),.4*Math.cos(Math.PI*.31)-.36,0,0,3);
+  cylinder(bow,.018,.018,.07,leather,.04,0,0,6);
+  const quiver=new THREE.Group();quiver.position.set(.07,hip+.2,z0-.11);quiver.rotation.set(-.2,0,-.35);body.add(quiver);
+  cylinder(quiver,.042,.036,.3,leather,0,0,0,10);cylinder(quiver,.045,.045,.02,M.gold,0,.14,0,10);
+  const fletch=mat('#d8d0b8',{roughness:.9});
+  for(const [x,z,h] of [[-.015,.01,.2],[.018,0,.22],[0,-.018,.19]]){cylinder(quiver,.005,.005,.12,wood,x,h-.04,z,4);sphere(quiver,.018,fletch,x,h,z,.45,1.6,1);}
+  const strap=segment(body,[-.13,hip+.34,z0+.06],[.12,hip+.08,z0+.07],.012,.012,leather);strap.scale.z=.5;
+ }
+ mergeStatic(g);
+ return Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head,arms,arm:arms[1],weaponSocket});
 }
 const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#6a8aa0',weapon:'spear'},'forest centaur':{coat:'#5a3c24',hair:'#2a1a10',tunic:'#3f6a34',weapon:'bow',scale:1.05},'mountain centaur':{coat:'#7a7670',hair:'#3a3632',mantle:'#8a7058',beard:true,weapon:'club',scale:1.08}};
 // Ponies, horses and warhorses (u): a barrel with a sloped croup, an arched neck with a mane, a long
@@ -695,6 +734,7 @@ function horse(o){
  const legH=o.legH,y=legH+.16,s=o.stock;
  sphere(body,.2,coat,0,y,0,.82*s,.85,1.55);sphere(body,.17,coat,0,y+.02,.2,.9*s,1,.9);sphere(body,.18,coat,0,y+.04,-.22,.95*s,.95,.9);
  sphere(body,.14,belly,0,y-.08,0,.78*s,.6,1.45);sphere(body,.08,coat,0,y+.15,.15,.9,.8,1.4);
+ if(!o.centaur){
  // neck, with the mane on its upper edge
  const n0=new THREE.Vector3(0,y+.1,.24),n1=new THREE.Vector3(0,y+.38,.44),dir=n1.clone().sub(n0).normalize(),up=new THREE.Vector3(0,dir.z,-dir.y);
  segment(body,n0.toArray(),n1.toArray(),.11*s,.07,coat);
@@ -720,6 +760,7 @@ function horse(o){
  if(o.barded){rounded(head,.075,.014,.17,M.steel,0,.06,.11,.006).rotation.x=.18;const noseband=part(head,new THREE.TorusGeometry(.055,.008,5,16),M.leather,0,-.02,.2);noseband.scale.set(.85,1,1);
   // saddle blanket with gilt trim draped over the barrel
   rounded(body,.34*s,.025,.34,mat(o.cloth,{roughness:.9}),0,y+.19,-.02,.01);for(const side of [-1,1]){const drape=rounded(body,.02,.2,.34,mat(o.cloth,{roughness:.9}),side*.165*s,y+.1,-.02,.008);drape.rotation.z=side*.12;rounded(body,.022,.02,.35,M.gold,side*.178*s,y+.005,-.02,.006);}}
+ }
  const H=(hy,front)=>{const leg=new THREE.Group();body.add(leg);
   if(front){sphere(leg,.075,coat,0,-.02,0,.8,1.3,1);segment(leg,[0,.02,0],[0,-hy*.5,.01],.06,.04,coat);sphere(leg,.036,lower,0,-hy*.5,.012);segment(leg,[0,-hy*.5,.012],[0,-hy*.86,0],.03,.028,lower);}
   else{sphere(leg,.09,coat,0,-.06,0,.8,1.4,1.1);segment(leg,[0,-.05,.02],[0,-hy*.55,-.07],.06,.038,coat);sphere(leg,.036,lower,0,-hy*.55,-.07);segment(leg,[0,-hy*.55,-.07],[0,-hy*.86,-.03],.032,.028,lower);}
@@ -732,6 +773,7 @@ function horse(o){
  const tail=new THREE.Group();tail.position.set(0,y+.1,-.37);body.add(tail);
  segment(tail,[0,.02,.03],[0,-.04,-.07],.04,.03,coat);
  for(const k of [-1,0,1])tube(tail,[[0,-.03,-.06],[k*.02,-.12,-.13],[k*.03,-.3,-.16],[k*.035,-o.tail,-.13+Math.abs(k)*.02]],o.mane==='shaggy'?.036:.028,hair,12);
+ if(o.centaur)return {g,body,legs,tail,y,s};
  mergeStatic(g);
  return actor(g,body,legs,tail,[],'unicorn');
 }
