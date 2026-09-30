@@ -28,3 +28,11 @@ test('each flayer keeps its own phase, fixed from where it was first seen', () =
   assert.notEqual(tailSway(a, 5), tailSway(b, 5));
   const before = tailSway(a, 7); a.g.position.x = 9; assert.equal(tailSway(a, 7), before);
 });
+
+test('a phase shifts the quirk sway exactly as the gallery used to, and leaves flayers alone', () => {
+  const old = (q, t, ph) => Math.sin(t * (q === 'dog' ? 7 : q === 'turtle' ? 1.1 : q === 'unicorn' ? 2.6 : q === 'nymph' ? 1.4 : 3) + ph) * (q === 'dog' ? .34 : q === 'turtle' ? .06 : q === 'unicorn' ? .16 : q === 'nymph' ? .07 : .24);
+  for (const quirk of ['dog', 'turtle', 'unicorn', 'nymph', 'idle'])
+    for (let t = 0; t < 10; t += .37) assert.equal(tailSway(actor({quirk, species: 'fox'}), t, 2.19), old(quirk, t, 2.19));
+  const f = actor({species: 'mind flayer'});
+  assert.equal(tailSway(f, 4, 1.5), tailSway(f, 4));
+});
