@@ -16,7 +16,7 @@ import {createTree} from './tree.js';
 import {createBoulder} from './boulder.js';
 import {createStairs} from './stairs.js';
 import {createBars} from './bars.js';
-import {createDoor} from './door.js';
+import {createDoor,createBrokenDoor} from './door.js';
 import {tileKind,setDoorOpen,orientDoor,updateDoorSwings,clearDoorSwings} from './door-swing.js';
 import {createFire} from './fire.js';
 import {createTorchSconce} from './torch.js';
@@ -230,7 +230,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
           box(wallGeo,wall,tile,0,.28,0);
           if(hasTorch(cell.x,cell.z)){const sconce=createTorchSconce(cell.x*43+cell.z*71);tile.add(sconce);const fire=createFire(cell.x+cell.z);fire.position.copy(sconce.userData.flame);tile.add(fire);const halo=new THREE.Sprite(torchHaloMaterial);halo.position.copy(sconce.userData.flame).setY(1.12);halo.scale.setScalar(.9);tile.add(halo);tile.userData.torch={phase:(cell.x*3.7+cell.z*5.3)%(Math.PI*2)};}
          }
-         if(tileKind(cell)==='door'){const doorGroup=createDoor(cell.x*61+cell.z*37);tile.add(doorGroup);tile.userData.door=doorGroup;}
+         if(['door','broken-door'].includes(tileKind(cell))){const doorGroup=(tileKind(cell)==='door'?createDoor:createBrokenDoor)(cell.x*61+cell.z*37);tile.add(doorGroup);tile.userData.door=doorGroup;}
          if(cell.terrain==='up'||cell.terrain==='down'){tile.add(createStairs(cell.terrain,cell.x*131+cell.z));tile.add(label(cell.terrain==='up'?'↑ stone stairs':'↓ stone stairs'));}
          if(['water','lava'].includes(cell.terrain)){slab.visible=false;const liquid=createLiquid(cell.terrain,cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
          group.add(tile);tiles.set(id,tile);
