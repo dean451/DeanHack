@@ -411,50 +411,7 @@ const nose=mat('#1b1716',{roughness:.5}),darkEye=mat('#0e0c0b',{roughness:.2,met
 
 function tube(parent,points,radius,material,segments=16){return part(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),segments,radius,8,false),material);}
 
-// Pet dogs: a deep chest and tucked waist, a boxy muzzle with a panting tongue, a collar
-// and tag, and a raised tail for wagging. Ears and markings change with the breed size.
-function petDog(o){
- const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale);
- const coat=mat(o.coat),light=mat(o.light),mark=mat(o.mark||o.coat),sock=mat(o.sock||o.light),tongue=mat('#d9707e',{roughness:.5}),legH=o.legH,y=legH+.1;
- sphere(body,.17,coat,0,y+.01,.11,.85,1.05,1);sphere(body,.11,light,0,y-.05,.19,.8,1,.7);
- sphere(body,.14,coat,0,y+.02,-.09,.78,.78,1.3);sphere(body,.13,coat,0,y+.03,-.2,.88,.9,.9);
- if(o.saddle)sphere(body,.15,mat(o.saddle),0,y+.07,-.06,.84,.55,1.55);
- if(o.patch)sphere(body,.08,mark,.05,y+.1,-.14,.9,.5,1.1);
- const neck=cylinder(body,.065,.09,.2,coat,0,y+.14,.22,10);neck.rotation.x=.55;
- const collar=part(body,new THREE.TorusGeometry(.083,.016,6,18),mat(o.collar,{roughness:.6}),0,y+.13,.23);collar.rotation.x=.55-Math.PI/2;
- part(body,new THREE.CylinderGeometry(.022,.022,.006,10),M.gold,0,y+.06,.29).rotation.x=Math.PI/2-.3;
- const head=new THREE.Group();head.position.set(0,y+.28,.31);body.add(head);
- sphere(head,.1,coat,0,0,0,.95,.9,1);
- const snout=o.snout,muzzle=rounded(head,.085,.07,snout,o.mask?mat(o.mask):light,0,-.04,.07+snout/2,.03);muzzle.rotation.x=.08;
- sphere(head,.024,nose,0,-.02,.075+snout,1.25,.9,.9);
- for(const side of [-1,1]){sphere(head,.034,o.mask?mat(o.mask):light,side*.028,-.07,.07+snout*.6,1,.8,1.5);sphere(head,.018,darkEye,side*.045,.022,.078);sphere(head,.022,coat,side*.045,.045,.07,1.2,.45,.8);}
- const lick=rounded(head,.042,.012,.075,tongue,0,-.105,.07+snout*.75,.006);lick.rotation.x=.55;
- if(o.eyePatch)sphere(head,.05,mark,.045,.03,.05,1,1,.6);
- for(const side of [-1,1]){
-  if(o.ears==='pointed'){const ear=cone(head,.045,.14,o.saddle?mat(o.saddle):coat,side*.058,.12,-.02,4);ear.rotation.z=-side*.22;const inner=cone(head,.026,.09,light,side*.056,.11,-.004,4);inner.rotation.z=-side*.22;}
-  else{const ear=new THREE.Group();ear.position.set(side*.085,.06,-.01);ear.rotation.z=side*(o.ears==='folded'?.9:.28);head.add(ear);
-   if(o.ears==='folded'){cone(ear,.04,.07,mark,0,.03,0,4);const tip=sphere(ear,.04,mark,0,.06,.035,.8,.3,1);tip.rotation.x=1.1;}
-   else sphere(ear,.055,mark,0,-.06,0,.35,1.15,.8);}
- }
- for(const side of [-1,1]){
-  const front=new THREE.Group();front.position.set(side*.075,y-.04,.15);body.add(front);
-  rounded(front,.06,legH*.6,.065,coat,0,-legH*.28,0,.022);rounded(front,.046,legH*.5,.05,sock,0,-legH*.72,.01,.018);sphere(front,.034,sock,0,-legH-.04,.025,1,.6,1.3);legs.push(front);
-  const hind=new THREE.Group();hind.position.set(side*.08,y-.02,-.21);body.add(hind);
-  sphere(hind,.075,coat,0,-.03,0,.8,1.15,1.1);const shank=rounded(hind,.05,legH*.6,.055,coat,0,-legH*.4,-.035,.02);shank.rotation.x=-.25;
-  rounded(hind,.042,legH*.42,.046,sock,0,-legH*.8,-.04,.016);sphere(hind,.034,sock,0,-legH-.06,-.02,1,.6,1.3);legs.push(hind);
- }
- const tail=new THREE.Group();tail.position.set(0,y+.07,-.3);body.add(tail);
- const curl=o.curl??1,r=o.tailR||.022;
- tube(tail,[[0,0,0],[0,.06,-.06],[0,.15*curl,-.09],[0,.23*curl,-.06+(curl-1)*.1]],r,o.saddle?mat(o.saddle):coat,12);
- sphere(tail,r*1.25,o.tip?mat(o.tip):light,0,.23*curl,-.06+(curl-1)*.1);
- return actor(g,body,legs,tail,[],'dog');
-}
-// All three are white on the map (HI_DOMESTIC), so the breed shape and coat carry the size.
-const PET_DOGS={
- 'little dog':{scale:.72,coat:'#ece4d4',light:'#faf5ea',mark:'#a8683a',patch:true,eyePatch:true,ears:'floppy',legH:.2,snout:.1,collar:'#c0392b',tip:'#faf5ea',curl:1.1},
- dog:{scale:.95,coat:'#c8914f',light:'#f0dcb8',mark:'#9a6a36',sock:'#e8cfa4',ears:'folded',legH:.27,snout:.13,collar:'#2e6ab0',curl:.95},
- 'large dog':{scale:1.18,coat:'#b27a3e',light:'#d9b27a',saddle:'#2a2320',mask:'#3a2e28',sock:'#c89660',ears:'pointed',legH:.32,snout:.155,collar:'#6a3a1e',tailR:.03,curl:.8},
-};
+// Pet dogs are in canine.js, with the wild dogs.
 
 // Cats are in feline.js.
 
@@ -2154,7 +2111,6 @@ export function createCreature(cell={}){
  if(name==='woodchuck')return woodchuck();
  if(/grid ?bug/.test(name))return gridBug();
  if(isCanine(name))return createCanine(name);
- if(PET_DOGS[name])return petDog(PET_DOGS[name]);
  if(isFeline(name))return createFeline(name);
  if(CROCODILES.includes(name))return createCrocodile(name);
  if(LIZARDS[name])return lizard(LIZARDS[name]);
