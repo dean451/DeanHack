@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {updateGlance} from './glance.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -80,6 +81,8 @@ const tmpQ = new THREE.Quaternion(), tmpQi = new THREE.Quaternion(), tmpE = new 
 // Call once per frame right after updateGait. `busy` is true while the actor walks or has an
 // action playing or queued. Returns the current fidget state ({kind, f}) or null.
 export function updateFidget(actor, dt, t, busy) {
+  // The evil eye's darting glances ride on this per-frame call (see glance.js).
+  updateGlance(actor, dt, t, busy);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
