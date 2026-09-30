@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,tinGeometry,creamPieGeometry,lembasGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,tinGeometry,creamPieGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -949,7 +949,7 @@ test('cram, K- and C-rations get their own merged models instead of the food-rat
  // Parcel, cram, K and C: plurals and articles don't change the look, the kind does.
  assert.equal(looks.size,4);
  // Tripe keeps its own meat model.
- assert(createGroundModel({name:'tripe ration',class:7}).children.every(p=>!p.userData.part));
+ assert.deepEqual(createGroundModel({name:'tripe ration',class:7}).children.map(p=>p.userData.part),['tripe']);
 });
 
 test('whistles are a merged pea whistle with a lanyard, the same for tin and magic',()=>{
@@ -1563,4 +1563,33 @@ test('lembas is one merged, vertex-coloured wafer scored into squares, wrapped i
   model.userData.dispose();
  }
  one.dispose();three.dispose();
+});
+
+test('tripe rations are honeycomb tripe on butcher paper in one merged, vertex-coloured mesh; a stack adds a piece',()=>{
+ const one=tripeRationGeometry(1),two=tripeRationGeometry(4);
+ for(const geo of [one,two]){
+  for(const k of ['position','normal','color'])for(const v of geo.attributes[k].array)assert(Number.isFinite(v));
+  geo.computeBoundingBox();const b=geo.boundingBox;
+  assert(Math.abs(b.min.y)<1e-6);assert(b.max.y>.03&&b.max.y<.07);
+  assert(b.max.x-b.min.x<.4&&b.max.z-b.min.z<.4);
+ }
+ assert(two.attributes.position.count>one.attributes.position.count);
+ // The honeycomb face shows cream ridges and darker pits.
+ const c=one.attributes.color,lum=[];for(let i=0;i<c.count;i++)lum.push(c.getX(i)+c.getY(i)+c.getZ(i));
+ assert(Math.max(...lum)-Math.min(...lum)>.6);
+ // Seen from above, every surface faces up (nothing inside out or folded over).
+ const mesh=new THREE.Mesh(one,new THREE.MeshBasicMaterial({side:THREE.DoubleSide})),ray=new THREE.Raycaster();
+ let hits=0;
+ for(let x=-.15;x<=.15;x+=.025)for(let z=-.12;z<=.12;z+=.02){
+  ray.set(new THREE.Vector3(x,1,z),new THREE.Vector3(0,-1,0));const h=ray.intersectObject(mesh)[0];
+  if(h){hits++;assert(h.face.normal.y>0,`${x},${z}`);}
+ }
+ assert(hits>100);
+ for(const name of ['tripe ration','3 tripe rations']){
+  const model=createGroundModel({name,class:7});
+  const meshes=[];model.traverse(p=>{if(p.geometry)meshes.push(p);});
+  assert.equal(meshes.length,1);assert.equal(meshes[0].userData.part,'tripe');
+  model.userData.dispose();
+ }
+ one.dispose();two.dispose();
 });
