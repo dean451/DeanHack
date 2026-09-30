@@ -1419,10 +1419,13 @@ function lich(o){
  rounded(body,.34,.32,.24,robe,0,.82,0,.06);
  const hood=sphere(body,.24,trim,0,1.1,-.06,1,1.05,1);hood.scale.z=1.05;
  // skull: cranium, cheekbones, dark sockets with a glow deep inside, a toothed jaw
- sphere(body,.16,bone,0,1.1,.04,.95,1,1);rounded(body,.16,.07,.1,bone,0,.99,.1,.03);
+ sphere(body,.16,bone,0,1.1,.04,.95,1,1);
  for(const x of [-.06,.06]){sphere(body,.042,socket,x,1.11,.165,1,1,.5);sphere(body,.02,glow,x,1.11,.18);}
  cone(body,.02,.04,socket,0,1.05,.19,3).rotation.x=Math.PI;
- for(let i=0;i<5;i++)rounded(body,.018,.025,.015,bone,(i-2)*.024,.975,.155,.004);
+ // the jaw and its teeth hinge under the ears, so it chatters like the skeleton's (jaw.js)
+ const jaw=new THREE.Group();jaw.position.set(0,1.04,.03);body.add(jaw);jaw.userData.chatter=true;jaw.userData.reach=.45;
+ rounded(jaw,.16,.07,.1,bone,0,-.05,.07,.03);
+ for(let i=0;i<5;i++)rounded(jaw,.018,.025,.015,bone,(i-2)*.024,-.065,.125,.004);
  // skeletal arms: thin bone forearms and claw fingers poking out of wide sleeves
  for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.93,0);body.add(arm);cylinder(arm,.06,.1,.3,robe,0,-.14,0,8);cylinder(arm,.018,.018,.16,bone,0,-.34,.02,6);for(const f of [-.025,0,.025])cone(arm,.01,.09,bone,f,-.45,.03,4).rotation.x=Math.PI;arm.rotation.z=side*.16;arm.rotation.x=side<0?-.55:-.2;}
  // staff held out on the right, orb glowing in the lich's colour
@@ -1431,7 +1434,7 @@ function lich(o){
  sphere(body,.055,glow,.37,1.3,.16);
  if(o.crown){const n=o.crown==='tall'?7:5,h=o.crown==='tall'?.14:.09;cylinder(body,.155,.165,.05,o.crown==='tall'?M.gold:bone,0,1.21,.02,12);for(let i=0;i<n;i++){const a=(i/n-.5)*Math.PI*1.3;cone(body,.02,h,o.crown==='tall'?M.gold:bone,Math.sin(a)*.155,1.26+h/2-.02,.02+Math.cos(a)*.155,4);}sphere(body,.026,glow,0,1.22,.18);}
  if(o.mantle){for(const side of [-1,1]){const spike=cone(body,.05,.22,bone,side*.24,1.02,-.04,5);spike.rotation.z=-side*.9;}rounded(body,.46,.08,.3,trim,0,.97,-.02,.03);}
- return trimDraws(actor(g,body,[],null,[],'idle'));
+ return trimDraws(Object.assign(actor(g,body,[],null,[],'idle'),{jaw}));
 }
 const LICHES={lich:{robe:'#5a4430',glow:'#8ad060'},demilich:{robe:'#6a2a24',glow:'#ff5a3a',bone:'#c8bc98',tattered:true},'master lich':{robe:'#4a1f52',glow:'#c070ff',crown:'bone',scale:1.05},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',crown:'tall',mantle:true,scale:1.1}};
 
