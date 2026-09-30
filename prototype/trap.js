@@ -353,14 +353,129 @@ export function createTrap(kind,seed=0){
   for(let i=0;i<9;i++){const a=rand(i+160)*Math.PI*2,near=i<5?foot:new THREE.Vector3(.04,0,.04),rr=i<5?.09+rand(i+170)*.06:.2+rand(i+180)*.1;
    add(new THREE.DodecahedronGeometry(.008+rand(i+190)*.008,0),rustMat,near.x+Math.cos(a)*rr,.005,near.z+Math.sin(a)*rr).scale.y=.4;}
  }else if(kind==='fire'){
-  // Fire trap: a scorched iron vent with glowing embers underneath.
-  flat(new THREE.CircleGeometry(.36,24),mat({color:0x1b1512,roughness:1}),.004);
-  flat(new THREE.CircleGeometry(.16,20),mat({color:0xff6a1a,emissive:0xff4a0a,emissiveIntensity:1.4,roughness:.6}),.008);
-  const iron=mat({color:0x2d2a28,metalness:.7,roughness:.5});
-  const rim=add(new THREE.TorusGeometry(.17,.02,6,24),iron,0,.02,0);rim.rotation.x=Math.PI/2;
-  for(let i=-2;i<=2;i++)block(.3,.014,.018,iron,0,.022,i*.06,.005);
-  const ember=mat({color:0xffb04a,emissive:0xff8a20,emissiveIntensity:1.8});
-  for(let i=0;i<6;i++){const a=rand(i+120)*Math.PI*2,r=.2+rand(i+140)*.12;add(new THREE.DodecahedronGeometry(.012,0),ember,Math.cos(a)*r,.012,Math.sin(a)*r);}
+  // Fire trap: a maw in the floor. A heat-warped iron collar ringed with outward-bent spikes
+  // holds a sagging, half-broken grate over a glowing shaft of coals. Around it a jagged
+  // scorch burst is split by molten cracks, and the charred skull and bones of the last one
+  // caught lie at its edge. Four merged, vertex-coloured meshes: the scorch (no shadow), the
+  // iron, the char, and the unlit glow, which stays bright in the dark like the embers do.
+  const up=new THREE.Vector3(0,1,0);
+  const noise=(x,z)=>{const s=Math.sin(x*127.1+z*311.7+seed*7.3)*43758.5453;return s-Math.floor(s);};
+  const hot=new THREE.Color(0xffd27a),orange=new THREE.Color(0xff5a10),red=new THREE.Color(0x7a1004);
+  const soot=new THREE.Color(0x0b0908),burnt=new THREE.Color(0x3a2a1f);
+  // A flat quad strip or fan on the floor, built directly as triangles with an upward normal.
+  const flatGeo=(tris,colors,size)=>{const g2=new THREE.BufferGeometry();
+   g2.setAttribute('position',new THREE.Float32BufferAttribute(tris,3));
+   g2.setAttribute('normal',new THREE.Float32BufferAttribute(tris.map((_,i)=>i%3===1?1:0),3));
+   g2.setAttribute('color',new THREE.Float32BufferAttribute(colors,size));return g2;};
+  // Scorch burst: rings out to a rim of long and short flame tongues, soot-black at the heart
+  // and fading (vertex alpha) into the floor at the tips.
+  const N=44,K=6,reach=[];
+  for(let i=0;i<N;i++)reach.push(Math.min(.45,.25+(i%2?.04:.12)*rand(i+500)+(i%4===0?.08:0)));
+  const sp=[],sc=[],c=new THREE.Color();
+  const scorchAt=(k,i)=>{const a=i/N*Math.PI*2,r=reach[i%N]*k/K,x=Math.cos(a)*r,z=Math.sin(a)*r,t=k/K;
+   c.copy(soot).lerp(burnt,Math.max(0,t-.45)/.55).lerp(soot,.3*noise(x*9,z*9));
+   sp.push(x,.003,z);sc.push(c.r,c.g,c.b,Math.min(1,1.15-t*t*1.1)*(.8+.2*noise(z*13,x*13)));};
+  for(let k=0;k<K;k++)for(let i=0;i<N;i++){scorchAt(k,i);scorchAt(k+1,i+1);scorchAt(k+1,i);scorchAt(k,i);scorchAt(k,i+1);scorchAt(k+1,i+1);}
+  const scorchMesh=add(flatGeo(sp,sc,4),mat({color:0xffffff,vertexColors:true,roughness:1,transparent:true,depthWrite:false}));
+  scorchMesh.castShadow=false;scorchMesh.name='scorch';
+  // Glow: the coal bed seen through the grate, hot yellow at the centre to dull red at the wall.
+  const glow=[];
+  const bed=new THREE.CircleGeometry(.15,32,0,Math.PI*2);bed.rotateX(-Math.PI/2);
+  glow.push(bake(bed,(col,x,y,z)=>{const r=Math.hypot(x,z)/.15;col.copy(hot).lerp(orange,Math.min(1,r*1.3)).lerp(red,Math.max(0,r-.55)/.45).lerp(red,.35*noise(x*40,z*40));},{y:.006}));
+  // Molten cracks: jagged, forking lines out of the collar, tapering and cooling toward the tips.
+  const crack=(a0,r0,len,w0,salt)=>{const tris=[],cols=[];let a=a0,r=r0,px=Math.cos(a)*r,pz=Math.sin(a)*r;
+   const steps=6;
+   for(let s=0;s<steps;s++){
+    const t0=s/steps,t1=(s+1)/steps;a+=(rand(salt+s)-.5)*.5/Math.max(r,.2);r+=len/steps;
+    const nx=Math.cos(a)*r,nz=Math.sin(a)*r,dx=nx-px,dz=nz-pz,l=Math.hypot(dx,dz)||1,ox=-dz/l,oz=dx/l;
+    const w0s=w0*(1-t0),w1s=w0*(1-t1)+.0008;
+    const q=[[px+ox*w0s,pz+oz*w0s,t0],[px-ox*w0s,pz-oz*w0s,t0],[nx+ox*w1s,nz+oz*w1s,t1],[nx-ox*w1s,nz-oz*w1s,t1]];
+    for(const j of [0,2,1,1,2,3]){const [x,z,t]=q[j];c.copy(orange).lerp(red,t).lerp(hot,Math.max(0,.25-t)*2);tris.push(x,.005,z);cols.push(c.r,c.g,c.b);}
+    px=nx;pz=nz;
+   }
+   glow.push(flatGeo(tris,cols,3));};
+  for(let i=0;i<6;i++){
+   const a=i/6*Math.PI*2+rand(i+520)*.6,len=.1+rand(i+530)*.12;
+   crack(a,.19,Math.min(len,.4-.19),.011,600+i*10);
+   if(rand(i+540)>.45)crack(a+(rand(i+550)>.5?.25:-.25),.25,Math.min(.08,.42-.25),.006,700+i*10);
+  }
+  // Coals heaped in the shaft: the bright ones glow, the rest are black clinker.
+  const char=[];
+  for(let i=0;i<14;i++){
+   const a=rand(i+560)*Math.PI*2,r=rand(i+570)*.12,s=.012+rand(i+580)*.014,lit=i%3!==0;
+   const geo=new THREE.DodecahedronGeometry(s,0),at={x:Math.cos(a)*r,y:.008+s*.4,z:Math.sin(a)*r,rx:rand(i+590)*3,ry:rand(i+600)*3,sy:.6};
+   if(lit)glow.push(bake(geo,(col,x,y,z)=>{col.copy(y>at.y?hot:orange).lerp(red,.4*noise(x*60,z*60));},at));
+   else char.push(bake(geo,(col,x,y,z)=>col.copy(soot).lerp(burnt,.4*noise(x*50,z*50)),at));
+  }
+  // Iron: a jagged octagonal collar, blued and rust-scaled by the heat toward its inner lip.
+  const ironParts=[];
+  const heat=(col,x,y,z)=>{const r=Math.hypot(x,z),n=noise(x*70+y*30,z*70);
+   col.set(0x2a2624).lerp(new THREE.Color(0x151212),.5*n);
+   if(r<.17)col.lerp(new THREE.Color(0x5a3a5e),Math.min(1,(.17-r)/.03)*.5);// heat-blued lip
+   if(r<.155)col.lerp(new THREE.Color(0x8a3a14),.55);// glowing-hot rim
+   if(n>.78)col.lerp(new THREE.Color(0x6e3a1e),.6);};// rust scale
+  const collar=new THREE.Shape();
+  for(let i=0;i<8;i++){const a=(i+.5)/8*Math.PI*2,r=.2+(rand(i+620)-.5)*.02;i?collar.lineTo(Math.cos(a)*r,Math.sin(a)*r):collar.moveTo(Math.cos(a)*r,Math.sin(a)*r);
+   const m=(i+1)/8*Math.PI*2,rm=.185+(rand(i+630)-.5)*.02;collar.lineTo(Math.cos(m)*rm,Math.sin(m)*rm);}
+  collar.closePath();
+  collar.holes.push(new THREE.Path().absarc(0,0,.145,0,Math.PI*2,true));
+  const collarGeo=new THREE.ExtrudeGeometry(collar,{depth:.03,bevelEnabled:true,bevelThickness:.004,bevelSize:.004,bevelSegments:1,curveSegments:24});
+  collarGeo.rotateX(-Math.PI/2);
+  ironParts.push(bake(collarGeo,heat,{y:.004}));
+  // Spikes at the corners, bent outward and a little ragged, like teeth round a mouth.
+  for(let i=0;i<8;i++){
+   const a=(i+.5)/8*Math.PI*2,h=.05+rand(i+640)*.03,r=.19,dir=new THREE.Vector3(Math.cos(a)*.55,1,Math.sin(a)*.55).normalize();
+   const cone=new THREE.ConeGeometry(.014,h,5);cone.translate(0,h/2,0);
+   const q=new THREE.Quaternion().setFromUnitVectors(up,dir),e=new THREE.Euler().setFromQuaternion(q);
+   ironParts.push(bake(cone,heat,{x:Math.cos(a)*r,y:.03,z:Math.sin(a)*r,rx:e.x,ry:e.y,rz:e.z}));
+   ironParts.push(bake(new THREE.CylinderGeometry(.009,.009,.008,6),heat,{x:Math.cos(a+.39)*.175,y:.038,z:Math.sin(a+.39)*.175}));
+  }
+  // The grate: bars sagging into the heat, the middle one snapped and its halves bent down.
+  for(let i=-2;i<=2;i++){
+   const z=i*.052,half=Math.sqrt(.155*.155-z*z);
+   const barPaint=(col,x,y,zz)=>{heat(col,x,y,zz);col.lerp(new THREE.Color(0x9a3a10),Math.max(0,1-Math.abs(x)/half)*.5);};
+   if(i===0){
+    for(const s of [-1,1]){const b=new THREE.BoxGeometry(half*.75,.014,.016);b.translate(s*half*.375,0,0);
+     ironParts.push(bake(b,barPaint,{x:s*half,y:.034,z,rz:s*.55}));}
+   }else{
+    // Two segments per bar so it dips in the middle.
+    for(const s of [-1,1]){const b=new THREE.BoxGeometry(half+.01,.014,.016);b.translate(s*(half+.01)/2,0,0);
+     ironParts.push(bake(b,barPaint,{x:0,y:.026,z,rz:-s*.09*(1-Math.abs(i)*.3)}));}
+   }
+  }
+  add(mergeGeometries(ironParts),mat({color:0xffffff,vertexColors:true,metalness:.6,roughness:.62})).name='vent';
+  ironParts.forEach(p=>p.dispose());
+  // The victim: a charred skull fallen on its side facing the vent, its jaw nearby, a long bone
+  // and a few ribs. Blackened toward the heat, ash-pale on the far side.
+  const sa=rand(660)*Math.PI*2,sr=.3,sx=Math.cos(sa)*sr,sz=Math.sin(sa)*sr,face=Math.atan2(-sx,-sz);
+  const charPaint=(col,x,y,z)=>{const r=Math.hypot(x,z);col.copy(soot).lerp(new THREE.Color(0xb3a996),Math.min(1,Math.min(1,Math.max(0,(r-.2)/.12))*(.6+.4*noise(x*80,z*80))+y*2));};
+  const skull=new THREE.Object3D();skull.position.set(sx,.038,sz);skull.rotation.set(0,face,.35);skull.updateMatrix();
+  const piece=(geo,{x=0,y=0,z=0,rx=0,ry=0,rz=0,sx:a=1,sy:b=1,sz:cc=1},paint=charPaint)=>{
+   const o=new THREE.Object3D();o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.scale.set(a,b,cc);o.updateMatrix();
+   const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();n.applyMatrix4(o.matrix);n.applyMatrix4(skull.matrix);
+   return bake(n,paint);};
+  char.push(piece(new THREE.SphereGeometry(.042,14,10),{z:-.012,sx:.9,sy:.85,sz:1.1}));// cranium
+  char.push(piece(new THREE.BoxGeometry(.05,.034,.04),{y:-.018,z:.03}));// face
+  // Sockets and the nasal hole, painted as black recesses on the face.
+  for(const [x,y,r] of [[-.013,-.006,.011],[.013,-.006,.011],[0,-.024,.006]])
+   char.push(piece(new THREE.SphereGeometry(r,8,6),{x,y,z:.047,sz:.5},col=>col.copy(soot).multiplyScalar(.4)));
+  for(let i=0;i<5;i++)char.push(piece(new THREE.BoxGeometry(.006,.008,.006),{x:(i-2)*.008,y:-.037,z:.048},col=>col.set(0x8a8276)));// upper teeth
+  const bones=(geo,at)=>char.push(bake(geo,charPaint,at));
+  const ja=sa+.55,jx=Math.cos(ja)*.33,jz=Math.sin(ja)*.33;
+  bones(new THREE.TorusGeometry(.028,.006,5,12,Math.PI),{x:jx,y:.006,z:jz,rx:-Math.PI/2,ry:0,rz:ja+1});// jaw
+  const la=sa-.6,lx=Math.cos(la)*.34,lz=Math.sin(la)*.34,lr=la+Math.PI/2+.3;
+  // A long bone lying roughly across the burst, with a knuckle at each end.
+  const shaft=new THREE.CylinderGeometry(.008,.007,.15,7);shaft.rotateX(Math.PI/2);shaft.rotateY(-lr);
+  bones(shaft,{x:lx,y:.01,z:lz});
+  for(const s of [-1,1]){const k=new THREE.SphereGeometry(.013,8,6);k.scale(1,.8,1.2);k.translate(0,0,s*.075);k.rotateY(-lr);k.translate(lx,.012,lz);char.push(bake(k,charPaint));}
+  for(let i=0;i<3;i++){const ra=sa+1.05+i*.12;
+   bones(new THREE.TorusGeometry(.055-i*.006,.004,4,14,Math.PI*.75),{x:Math.cos(ra)*.36,y:.005,z:Math.sin(ra)*.36,rx:-Math.PI/2,rz:ra+.4+i*.15});}
+  add(mergeGeometries(char),mat({color:0xffffff,vertexColors:true,roughness:.92})).name='charred-remains';
+  char.forEach(p=>p.dispose());
+  const glowMat=new THREE.MeshBasicMaterial({vertexColors:true});materials.push(glowMat);
+  const glowMesh=add(mergeGeometries(glow),glowMat);
+  glowMesh.castShadow=false;glowMesh.name='coal-glow';
+  glow.forEach(p=>p.dispose());
  }else if(RUNES[kind]){
   // Magical traps: a glowing inscribed circle with a star, in the trap's colour.
   const [color,glow]=RUNES[kind];
