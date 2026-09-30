@@ -256,6 +256,9 @@ static void frame(void) {
         printf("{\"name\":");quoted(xname(uarms));
         printf(",\"otyp\":%d}",uarms->otyp);
     } else printf("null");
+    /* Invisible to the eye: exactly when the map hides the hero's own glyph (canseeself()),
+       so it tells the player nothing the tty display doesn't. Blind heroes still show. */
+    printf(",\"invisible\":%s",(!Blind && !u.uswallow && Invisible)?"true":"false");
     printf(",\"helmet\":");
     if (uarmh) {
         printf("{\"name\":");quoted(xname(uarmh));

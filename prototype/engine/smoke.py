@@ -21,7 +21,7 @@ try:
     if not line:continue
     try:v=json.loads(line)
     except Exception:raise AssertionError('Non-JSON engine output: '+line[:250].decode(errors='replace'))
-    if v['type']=='frame':frame=v
+    if v['type']=='frame':frame=v;assert v['player']['invisible'] is False,v['player']
     elif v['type']=='message':messages.append(v['text'])
     elif v['type'] in ('text','menu'):
      if stage==2:inventory=True
