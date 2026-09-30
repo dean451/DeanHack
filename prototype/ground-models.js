@@ -1752,6 +1752,131 @@ function buildGarlic(count,{g,materials}){
  g.rotation.y=.5;
 }
 
+// A cut sprig of wolfsbane (monkshood) lying on its side: a tapering stalk with a raceme of
+// hooded violet flowers opening from tight buds at the tip, and deeply cut palmate leaves
+// lying flat along the lower stem. Coloured per vertex and merged into one mesh.
+function buildWolfsbane({g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z),c=new THREE.Color();
+ const skin=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.62,side:THREE.DoubleSide});materials.push(skin);
+ const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+ const paint=(geo,fn)=>{
+  const p=geo.attributes.position,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){fn(c,p.getX(i),p.getY(i),p.getZ(i));cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;}
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));return geo;
+ };
+ const weld=geo=>{geo.deleteAttribute('uv');geo.deleteAttribute('normal');geo=mergeVertices(geo,1e-6);geo.computeVertexNormals();return geo;};
+ // A tube whose radius follows r(t) along the curve.
+ const tube=(curve,r,rows,sides)=>{
+  const geo=new THREE.TubeGeometry(curve,rows,1,sides,false),p=geo.attributes.position,q=new THREE.Vector3();
+  for(let i=0;i<=rows;i++){
+   const t=i/rows,o=curve.getPointAt(t),k=r(t);
+   for(let j=0;j<=sides;j++){const n=i*(sides+1)+j;q.fromBufferAttribute(p,n).sub(o).multiplyScalar(k).add(o);p.setXYZ(n,q.x,q.y,q.z);}
+  }
+  return weld(geo);
+ };
+ const place=(geo,pos,fwd,up)=>{
+  const z=fwd.clone().normalize(),x=new THREE.Vector3().crossVectors(up,z).normalize(),y=new THREE.Vector3().crossVectors(z,x);
+  return geo.applyMatrix4(new THREE.Matrix4().makeBasis(x,y,z).setPosition(pos));
+ };
+ const parts=[];
+ // The stalk: the tip end (t=0) is thin and the cut end thick, both resting on the floor.
+ const R=t=>.0022+.0042*t;
+ const path=[[-.012,-.24],[.006,-.17],[.014,-.08],[.002,.02],[-.012,.12],[-.004,.22]].map(([x,z],i,a)=>v(x,R(i/(a.length-1))+.0004,z));
+ const stalk=new THREE.CatmullRomCurve3(path);
+ parts.push(paint(tube(stalk,R,48,8),(col,x,y,z)=>{
+  const t=smooth(-.24,.22,z);
+  col.copy(C(0x5a3f5e)).lerp(C(0x4d6a36),smooth(.05,.4,t)).lerp(C(0x3e5a2c),.3*(stoneNoise(x*200,y*200,z*200,3)*.5+.5));
+ }));
+ const cut=new THREE.CircleGeometry(R(1),8);cut.deleteAttribute('uv');
+ place(cut,stalk.getPointAt(1),stalk.getTangentAt(1),v(0,1,0));
+ parts.push(paint(cut,(col,x,y,z)=>col.set(0xb8c48a).lerp(C(0x7e9a52),smooth(0,R(1),Math.hypot(x-path[5].x,y-path[5].y)))));
+ // One monkshood flower in its own frame: the mouth faces +z and the helmet rises along +y.
+ const flower=(s,open)=>{
+  const bits=[];
+  const hood=new THREE.SphereGeometry(1,16,12),h=hood.attributes.position;
+  for(let i=0;i<h.count;i++){
+   let x=h.getX(i),y=h.getY(i),z=h.getZ(i);
+   if(y>0){y*=1+.7*open;z+=.55*open*y*y;}
+   // The helmet's front is drawn out into a visor and hollowed into a dark mouth below it.
+   const m=smooth(.1,.9,z)*smooth(.35,-.1,y)*open;
+   z-=.7*m;x*=.72;
+   h.setXYZ(i,x*s,y*s,z*s);
+  }
+  bits.push(paint(weld(hood),(col,x,y,z)=>{
+   const u=y/s,w=z/s;
+   col.copy(C(0x2e2c86)).lerp(C(0x5a4cc0),.5*smooth(.4,1.4,u)).lerp(C(0x7766d8),.4*smooth(.5,1,w)*smooth(.2,.9,u));
+   col.lerp(C(0x241c50),.4*Math.max(0,Math.sin(Math.atan2(x,w)*9))**3*smooth(0,1,u));
+   col.lerp(C(0x120c24),.85*open*smooth(-.1,.4,w)*smooth(.3,-.1,u)*smooth(.2,.55,.72-Math.abs(x/s)));
+   if(!open)col.lerp(C(0x4d6a3a),.45*smooth(.2,-.8,u));
+  }));
+  if(open){
+   // Two broad side sepals cupping the mouth and a pair of narrow lower sepals hanging below it.
+   for(const side of[-1,1]){
+    const sep=new THREE.SphereGeometry(1,12,8);sep.scale(.22*s,.75*s,.7*s);
+    sep.rotateY(side*.55);sep.rotateZ(-side*.25);sep.translate(side*.72*s,-.2*s,.25*s);
+    bits.push(paint(weld(sep),(col,x,y)=>col.copy(C(0x3a36a0)).lerp(C(0x7a6ad8),.5*smooth(-.4*s,.4*s,y))));
+    const low=new THREE.SphereGeometry(1,8,6);low.scale(.16*s,.42*s,.2*s);
+    low.rotateZ(side*.3);low.translate(side*.22*s,-1.05*s,.42*s);
+    bits.push(paint(weld(low),col=>col.set(0x3c349a)));
+   }
+  }
+  const geo=mergeGeometries(bits);bits.forEach(b=>b.dispose());return geo;
+ };
+ // The raceme: tight green-violet buds at the tip opening into full flowers towards the leaves.
+ for(let i=0;i<10;i++){
+  const t=.02+i*.043,open=smooth(1.5,4.5,i),s=.006+.0085*smooth(0,6,i);
+  const at=stalk.getPointAt(t),tip=stalk.getTangentAt(t).negate();
+  // Flowers fan across the upper side only, so none sink into the floor.
+  const phi=(i%2?1:-1)*(.35+.75*((i*3)%4)/3),out=v(Math.sin(phi),Math.cos(phi),0),stem=.012+.006*open;
+  const end=at.clone().addScaledVector(out,stem).addScaledVector(tip,.006);
+  const ped=new THREE.CatmullRomCurve3([at,at.clone().addScaledVector(out,stem*.6),end]);
+  parts.push(paint(tube(ped,()=>.0011,6,5),col=>col.set(0x4a5a34)));
+  const pos=end.clone().addScaledVector(out,s*.9);pos.y=Math.max(pos.y,s*.95);
+  const face=out.clone().addScaledVector(tip,-.25),up=tip.clone().addScaledVector(out,.3);
+  parts.push(place(flower(s,open),pos,face,up));
+ }
+ // Palmate leaves on long stalks, split into five toothed lobes, lying flat and a little cupped.
+ const lobe=(L,W)=>{
+  const geo=new THREE.PlaneGeometry(1,1,4,26);geo.rotateX(-Math.PI/2);
+  const p=geo.attributes.position;
+  for(let i=0;i<p.count;i++){
+   const u=p.getX(i)*2,t=p.getZ(i)+.5;
+   const teeth=1-.45*Math.max(0,Math.sin(t*Math.PI*5.5-1.2))**2*smooth(.3,.5,t);
+   const w=W*Math.sin(Math.PI*Math.min(1,t*1.08))**.7*teeth*(1-.4*t);
+   p.setXYZ(i,u*w,.35*u*u*w+.02*t*L,t*L);
+  }
+  return geo;
+ };
+ const leafSpots=[[.1,1.1,.95],[.3,-1,1],[.52,1.25,1.1],[.72,-1.3,.9]];
+ for(const [t,side,k] of leafSpots){
+  const at=stalk.getPointAt(t),across=v(Math.sign(side),0,0),turn=Math.PI/2-side*.35;
+  const hub=at.clone().addScaledVector(across,.028*k).setY(.004);hub.z+=.012;
+  const pet=new THREE.CatmullRomCurve3([at,at.clone().lerp(hub,.5).setY(.006),hub]);
+  parts.push(paint(tube(pet,()=>.0013,8,5),col=>col.set(0x4e6c34)));
+  const bits=[];
+  for(let j=0;j<5;j++){
+   const a=(j-2)*.55,L=(.055-.012*Math.abs(j-2))*k;
+   const geo=lobe(L,.011*k);geo.rotateY(a+.08*Math.sin(j*2.1+t*9));bits.push(geo);
+  }
+  const leaf=weld(mergeGeometries(bits));bits.forEach(b=>b.dispose());
+  leaf.rotateY(turn);leaf.translate(hub.x,hub.y,hub.z);
+  const hx=hub.x,hz=hub.z;
+  parts.push(paint(leaf,(col,x,y,z)=>{
+   // A pale midrib down each lobe, the blade darkening towards its toothed edges.
+   const dx=x-hx,dz=z-hz,r=Math.hypot(dx,dz);
+   let a=Math.atan2(dx,dz)-turn;a=Math.atan2(Math.sin(a),Math.cos(a));
+   const d=a-Math.max(-2,Math.min(2,Math.round(a/.55)))*.55,off=r*Math.abs(Math.sin(d));
+   col.copy(C(0x2c5226)).lerp(C(0x3f6e30),.5*(stoneNoise(x*90,y*90,z*90,4)*.5+.5));
+   col.lerp(C(0x1e3a1a),.3*smooth(.002,.008,off));
+   col.lerp(C(0x9ab87a),.55*smooth(.0016,.0004,off)*smooth(.05*k,.01,r));
+  }));
+ }
+ const geo=mergeGeometries(parts);parts.forEach(q=>q.dispose());
+ geo.computeBoundingBox();geo.translate(0,-geo.boundingBox.min.y,0);
+ const mesh=new THREE.Mesh(geo,skin);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part='wolfsbane';g.add(mesh);
+ g.rotation.y=-.35;
+}
+
 // Tin and magic whistles share the look "whistle": a nickel-plated pea whistle lying on its
 // side, so its round chamber and flat mouthpiece read from above like a "q". The window over
 // the pea is cut in the mouthpiece's outer wall, a ring on a tab holds a braided red lanyard
@@ -4248,17 +4373,7 @@ export function createGroundModel(item={}){
  const box=(w,h,d,m,x,y,z=0)=>add(new THREE.BoxGeometry(w,h,d),m,x,y,z);
  const ball=(r,m,x,y,z,s=[1,1,1])=>{const p=add(new THREE.SphereGeometry(r,16,10),m,x,y,z);p.scale.set(...s);return p;};
  if(/wolfsbane/.test(name)){
-  const stem=mat(0x4c6334),leaf=mat(0x65884a),flower=mat(0x7965a6);
-  const stalk=add(new THREE.CylinderGeometry(.009,.014,.55,8),stem,0,.026,0);stalk.rotation.x=Math.PI/2;
-  for(let i=0;i<5;i++){
-   const side=i%2?1:-1,z=-.19+i*.082;
-   const blade=ball(.09,leaf,side*.065,.036,z,[.85,.15,.42]);blade.rotation.y=side*.55;
-  }
-  for(let i=0;i<3;i++){
-   const x=(i-1)*.05,z=-.23+i*.035;
-   ball(.043,flower,x,.07,z,[.8,1,.75]);
-   ball(.027,flower,x,.04,z+.022,[1,.45,1]);
-  }
+  buildWolfsbane({g,materials});
  }else if(cls===10){
   buildSpellbook(item,{g,add,box,ball,mat,materials,metal});
  }else if(cls===9){

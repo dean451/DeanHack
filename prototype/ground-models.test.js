@@ -172,6 +172,20 @@ test('garlic is a papery bulb on its roots with up to three loose cloves beside 
  assert.equal(counts['9 cloves of garlic'],counts['3 cloves of garlic']);
 });
 
+test('wolfsbane is one merged sprig of hooded flowers and cut leaves lying on the floor',()=>{
+ const model=createGroundModel({name:'sprig of wolfsbane',class:7}),meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+ assert.deepEqual(meshes.map(m=>m.userData.part),['wolfsbane']);
+ const {attributes}=meshes[0].geometry;
+ for(const key of ['position','normal','color'])for(const value of attributes[key].array)assert(Number.isFinite(value),key);
+ for(const value of attributes.color.array)assert(value>=0&&value<=1,'colour');
+ const bounds=new THREE.Box3().setFromObject(model);
+ assert(Math.abs(bounds.min.y)<1e-6,`grounded: ${bounds.min.y}`);
+ assert(bounds.max.y>.04&&bounds.max.y<.09,`height: ${bounds.max.y}`);
+ assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,'inside the tile');
+ assert(attributes.position.count<12000,`vertices: ${attributes.position.count}`);
+ model.userData.dispose();
+});
+
 test('common food gets grounded, finite models and unknown food falls back',()=>{
  const foods=['apple','3 oranges','pear','melon','banana','carrot','2 eggs','tin','lembas wafer','fortune cookie','meatball','meat stick','huge chunk of meat','meat ring','2 cloves of garlic','lump of royal jelly','cream pie','candy bar','pancake','kelp frond','slime mold','eucalyptus leaf','3 eucalyptus leaves'];
  const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push(part.userData.part??part.geometry.type);});return out.join();};
