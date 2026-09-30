@@ -4990,6 +4990,96 @@ export function fortuneCookieGeometry(count=1){
  return merged;
 }
 
+// Candy bars: a chocolate bar in a red paper wrapper with a cream label band, crimped shut at the
+// far end. The near end is torn open: the wrapper stops in a ragged white-backed edge, crinkled
+// foil peels back past it, and the chocolate shows scored into pillowed squares with the last one
+// snapped off. The torn-off crimped end lies crumpled beside it. A stack adds up to two sealed
+// bars. One merged vertex-coloured mesh (1 draw).
+export function candyBarGeometry(count=1){
+ const n=Math.min(3,Math.max(1,count|0)),L=.2,W=.07,H=.022,P=.2,SEG=L/6;
+ const RED=new THREE.Color(0xb3202a),DARK=new THREE.Color(0x6e1016),CREAM=new THREE.Color(0xf0e2bc),GOLD=new THREE.Color(0xd8a63a),
+  INK=new THREE.Color(0x4a1a10),WHITE=new THREE.Color(0xf2ece0),FOIL=new THREE.Color(0xd4d8dc),FOILDARK=new THREE.Color(0x7c8288),
+  CHOC=new THREE.Color(0x4f2a16),GROOVE=new THREE.Color(0x2a1409),SNAP=new THREE.Color(0x6e4428),col=new THREE.Color();
+ const smooth=(a,b,x)=>{const k=Math.min(1,Math.max(0,(x-a)/(b-a)));return k*k*(3-2*k);};
+ const sq=(v,p)=>Math.sign(v)*Math.abs(v)**p;
+ // A sleeve round the bar: rings of a rounded-rectangle (superellipse) section stepped along x.
+ // `fn(x,z,y,u,a)` returns the moved point (u runs 0..1 along it, a round it) and sets `col`.
+ const sleeve=(x0,x1,hw,hh,NX,M,fn)=>{
+  const pos=[],cols=[],idx=[];
+  for(let i=0;i<=NX;i++){const u=i/NX,x=x0+(x1-x0)*u;
+   for(let j=0;j<M;j++){const a=j/M*Math.PI*2;pos.push(...fn(x,hw*sq(Math.cos(a),P),hh*sq(Math.sin(a),P),u,a));cols.push(col.r,col.g,col.b);}}
+  for(let i=0;i<NX;i++)for(let j=0;j<M;j++){const a=i*M+j,b=i*M+(j+1)%M;idx.push(a,a+M,b,b,a+M,b+M);}
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+  geo.setIndex(idx);geo.computeVertexNormals();return geo;
+ };
+ const hw=W/2+.003,hh=H/2+.003;
+ // Crimping pinches the paper flat and fans it a little, pressed into fine ridges.
+ const crimp=(x,z,y,k)=>[x,y*(1-.92*k)+.0009*k*Math.sin(z*420),z*(1+.07*k)];
+ // Printed paper: red, a cream label band edged in gold with rows of dark lettering on top,
+ // darker ridges in the crimps, and a white paper back showing along a torn edge.
+ const print=(x,z,y,k,torn)=>{
+  const band=smooth(-.072,-.068,x)*(1-smooth(-.014,-.01,x)),edge=Math.abs(x+.07)<.0025||Math.abs(x+.012)<.0025;
+  col.copy(RED).lerp(CREAM,band).lerp(GOLD,edge?.9:0);
+  if(band>.5&&y>0&&Math.abs(z)<.026&&(Math.abs(z-.009)<.004||Math.abs(z+.006)<.0025)&&Math.sin(x*700+(z>0?0:2))>-.3)col.lerp(INK,.9);
+  col.lerp(DARK,k*(.35+.35*Math.sin(z*420)));
+  col.lerp(WHITE,torn*.8);
+ };
+ const rip=a=>.007*meatNoise(a*2.2,.5,1)+.0035*Math.abs(Math.sin(a*19));
+ const crumple=(x,a,s=1)=>1+s*.012*(meatNoise(x*260,a*3,3)-.5);
+ // A wrapper from x0 to x1; each end is crimped shut, torn open, or plain.
+ const wrapper=(x0,x1,ends)=>sleeve(x0,x1,hw,hh,44,40,(x,z,y,u,a)=>{
+  const k=Math.max(ends[0]==='crimp'?smooth(x0+.016,x0+.006,x):0,ends[1]==='crimp'?smooth(x1-.016,x1-.006,x):0);
+  const t0=ends[0]==='torn'?1-smooth(0,.12,u):0,t1=ends[1]==='torn'?smooth(.88,1,u):0;
+  const px=x-t0*rip(a)+t1*rip(a),s=crumple(x,a);
+  print(px,z,y,k,Math.max(smooth(.6,1,t0),smooth(.6,1,t1)));
+  return crimp(px,z*s,y*s,k);
+ });
+ // The foil: crinkled into facets and flaring where it's been peeled back, torn at the end.
+ const foil=(x0,x1)=>sleeve(x0,x1,W/2+.0014,H/2+.0014,28,40,(x,z,y,u,a)=>{
+  const f=smooth(.55,1,u),c=meatNoise(x*420,a*5,2),s=1+.04*(c-.5)*(.3+f)+.22*f*f,rag=.009*meatNoise(a*2.7,2,6)+.003*Math.abs(Math.sin(a*23));
+  col.copy(FOIL).lerp(FOILDARK,Math.abs(c-.5)*1.3);
+  return [x+f*f*rag,y*s,z*s];
+ });
+ // The chocolate, its corners rounded to the same section, the top scored into squares, the end snapped.
+ const XB=L/2-SEG*.3;
+ const chocolate=()=>{
+  const geo=weld(new THREE.BoxGeometry(XB+L/2,H,W,54,4,20));geo.translate((XB-L/2)/2,0,0);
+  const p=geo.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   let x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+   const m=(Math.abs(z)/(W/2))**(1/P)+(Math.abs(y)/(H/2))**(1/P);if(m>1){const s=m**-P;z*=s;y*=s;}
+   const snap=x>XB-1e-6;
+   if(snap){x+=.007*(meatNoise(z*140,y*140,4)-.5)-.003*Math.abs(Math.sin(z*90));}
+   const dx=Math.min(...[-L/2,-L/2+SEG,-L/2+2*SEG,-L/2+3*SEG,-L/2+4*SEG,-L/2+5*SEG,XB].map(b=>Math.abs(x-b))),dz=Math.min(Math.abs(z),W/2-Math.abs(z));
+   const g=1-smooth(0,.0045,Math.min(dx,dz)),top=smooth(0,H/2,y);
+   y-=.0035*g*top;
+   col.copy(CHOC).multiplyScalar(.9+.2*meatNoise(x*90,y*90,z*90)).lerp(GROOVE,g*top*.6);
+   if(snap)col.copy(SNAP).lerp(CHOC,meatNoise(z*300,y*300,8)*.7);
+   p.setXYZ(i,x,y,z);c.set([col.r,col.g,col.b],i*3);
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));geo.computeVertexNormals();return geo;
+ };
+ const WT=-.005,FT=.03,lift=g=>{g.translate(0,hh,0);return g;};
+ const opened=mergeGeometries([wrapper(-L/2-.018,WT,['crimp','torn']),foil(-.014,FT),chocolate()].map(lift));
+ const sealed=()=>lift(wrapper(-L/2-.018,L/2+.018,['crimp','crimp']));
+ // The torn-off end: a short crimped stub, squashed flat and crumpled, lying beside the bar.
+ const scrap=wrapper(L/2-.02,L/2+.018,['torn','crimp']);
+ {const p=scrap.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,p.getY(i)*.45);scrap.computeVertexNormals();}
+ scrap.translate(-L/2,hh*.45,0);scrap.rotateY(-2.3);
+ const parts=[];
+ const put=(geo,ry,x,y,z)=>{geo.rotateY(ry);geo.translate(x,y,z);parts.push(geo);};
+ if(n===1){put(opened,0,0,0,0);scrap.translate(.1,0,.06);}
+ else if(n===2){put(sealed(),.06,-.01,0,-.05);put(opened,-.04,.01,0,.045);scrap.translate(.1,0,.11);}
+ else{put(sealed(),.05,0,0,-.042);put(sealed(),-.03,-.005,0,.042);put(opened,.45,.005,2*hh+.0005,0);scrap.translate(.11,0,.13);}
+ parts.push(scrap);
+ const merged=mergeGeometries(parts);parts.forEach(g=>g.dispose());
+ merged.computeBoundingBox();
+ const b=merged.boundingBox;merged.translate(-(b.min.x+b.max.x)/2,-b.min.y,-(b.min.z+b.max.z)/2);
+ merged.computeBoundingBox();
+ return merged;
+}
+
 // Lembas: square elven waybread, baked pale gold and scored into nine squares, browned at its
 // softened edges. It sits on a mallorn leaf whose tip and stem show past it, a second leaf is
 // folded over one corner, and a length of twine is tied round the lot with a knot on top.
@@ -5791,9 +5881,10 @@ export function createGroundModel(item={}){
    add(creamPieGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),pie).userData.part='cream-pie';
    g.rotation.y=.2;
   }else if(kind==='candy bar'){
-   const wrapper=mat(0xa3222a),foil=mat(0xc8cdd0,.75);
-   box(.22,.03,.08,wrapper,0,.015);box(.07,.032,.082,foil,0,.016);
-   for(const s of [-1,1])add(new THREE.ConeGeometry(.03,.04,4),foil,s*.125,.015,0).rotation.z=-s*Math.PI/2;
+   // Wrapper, foil and chocolate share one faintly glossy vertex-coloured material.
+   const bar=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5});materials.push(bar);
+   add(candyBarGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),bar).userData.part='candy-bar';
+   g.rotation.y=-.3;
   }else if(kind==='pancake'){
    // Cakes, butter and syrup share one vertex-coloured material, a little glossy for the syrup.
    const griddle=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45});materials.push(griddle);
