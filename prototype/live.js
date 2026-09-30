@@ -63,7 +63,7 @@ import {slideTo} from './slide.js';
 import {updateTrudge} from './trudge.js';
 import {updateStrawFlop} from './straw-flop.js';
 import {findPrey,updateStalk,clearStalk} from './stalk.js';
-import {createActionQueue,enqueueAction,clearActionPose,updateActions,holdBackMs,findActor,queueCombat,queueDeath} from './actions.js';
+import {createActionQueue,enqueueAction,clearActionPose,updateActions,holdBackMs,findActor,queueCombat,queueDeath,queueThrows} from './actions.js';
 
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
@@ -286,6 +286,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  let meleeIntent=null,queuedCommand=null,combatStream=false,heldFrame=null,heldTimer=null,fxHoldUntil=0;
  // A bridge that sends combat events drives the action layer; text matching is the fallback for older engines.
  const findSide=s=>findActor(actors,s.x,s.z,{name:s.name,origin});
+ // Whoever stands where a thrown object starts (throw-motion.js): the hero or a seen monster.
+ const findThrower=(x,z)=>latest?.player&&x===latest.player.x&&z===latest.player.z?hero:findActor(actors,x,z,{exact:true});
  function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(v.type!=='combat'){grab.death(c);queueDeath(c,findSide);return;}grab.combat(c);combatStream=true;if(c.heroAttacks){meleeIntent=null;swingTarget=c.defender?.name??null;}queueCombat(c,{hero,find:findSide});}
  // Map frames wait for queued deaths to play, so the corpse appears after the fall; a newer frame replaces a held one.
  function applySoon(frame){heldFrame=frame;if(heldTimer)return;const wait=active?Math.max(holdBackMs([hero.actions,...[...actors.values()].map(a=>a.actions)]),Math.ceil(fxHoldUntil-performance.now())):0;const go=()=>{heldTimer=null;const f=heldFrame;heldFrame=null;if(f)apply(f);};if(wait>0)heldTimer=setTimeout(go,wait);else go();}
@@ -317,7 +319,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function connect(){
    meleeIntent=null;source?.close?.();
    let usingPolling=false,pollTimer=null,stopped=false,since=0;
-   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='revive'){if(active)rises.add(reviveAction(v),performance.now());}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];const tl=fxTimeline(v);fx.push(tl);if(active){const heroZap=zapFlash.play(tl,latest?.player,hero,latest,{windup:ZAP_WINDUP_MS});const shown=heroZap?delayTimeline(tl,ZAP_WINDUP_MS):tl;rays.play(shown,{reflectorAt:(x,z)=>reflectorAt(latest,x,z),solidAt:(x,z)=>solidAt(latest,x,z)});rayMarks.add(shown);explosions.add(shown);flights.play(shown);splash.fromFx(shown,latest);breath.fromFx(shown,latest,{always:heroZap==='breath'});fxHoldUntil=Math.max(fxHoldUntil,performance.now()+fxHoldMs(shown));}if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
+   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='revive'){if(active)rises.add(reviveAction(v),performance.now());}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];const tl=fxTimeline(v);fx.push(tl);if(active){const heroZap=zapFlash.play(tl,latest?.player,hero,latest,{windup:ZAP_WINDUP_MS});const shown=heroZap?delayTimeline(tl,ZAP_WINDUP_MS):delayTimeline(tl,queueThrows(tl,findThrower));rays.play(shown,{reflectorAt:(x,z)=>reflectorAt(latest,x,z),solidAt:(x,z)=>solidAt(latest,x,z)});rayMarks.add(shown);explosions.add(shown);flights.play(shown);splash.fromFx(shown,latest);breath.fromFx(shown,latest,{always:heroZap==='breath'});fxHoldUntil=Math.max(fxHoldUntil,performance.now()+fxHoldMs(shown));}if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
    async function pollLoop(){
      if(stopped)return;
      try{const r=await fetch(`/engine/poll?since=${since}`);const {events,seq}=await r.json();since=seq;for(const event of events)handle(event);}

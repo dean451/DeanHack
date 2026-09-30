@@ -1,0 +1,79 @@
+// The thrower's side of a thrown or fired object. flights.js flies the object from the cell
+// behind its first drawn cell; this module finds who stands there and gives them a short
+// 'throw' action whose release lands on the moment the object leaves. The fx timeline is
+// delayed by the windup (delayTimeline in fx.js), as a hero zap is, so the object leaves the
+// hand instead of appearing ahead of it.
+//
+//   hurl:  arm up and back over the shoulder, whip it forward over the top, follow through
+//          low, with the body leaning into it (daggers, spears, stones, potions, anything).
+//   shoot: arrows and crossbow bolts are loosed from a launcher: the arm comes up level to
+//          aim, jolts back a little at the release, then lowers.
+//   A centaur plays its own bow draw (centaur-attack.js), re-timed so the loose is the release.
+//
+// Nothing here looks at what the object is beyond flights.js's shape, which never reveals
+// identity. The pose is offsets from rest for the action layer; every part is 0 at u = 0 and 1.
+
+import {flightsFromFx} from './flights.js';
+import {centaurAttackPose} from './centaur-attack.js';
+
+export const THROW_TIME = .4;
+// Where in the action the object leaves the hand, and so how long the windup is.
+export const RELEASE_U = .35;
+export const THROW_WINDUP_MS = Math.round(THROW_TIME * RELEASE_U * 1000);
+// The most a throw waits for its thrower to finish something else first (ms).
+export const MAX_THROW_LEAD_MS = 450;
+// A multishot volley gets one throw per missile, up to this many.
+export const MAX_THROWS = 3;
+// Where the loose falls in centaur-attack.js's bow draw.
+const CENTAUR_LOOSE_U = .48;
+
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
+
+// Smoothstepped value between keyframes [[u, ...values]], sorted by u, first at 0, last at 1.
+function keys(list, u) {
+  u = clamp01(u);
+  let i = 1;
+  while (i < list.length - 1 && list[i][0] < u) i++;
+  const a = list[i - 1], b = list[i], t = smooth((u - a[0]) / (b[0] - a[0] || 1));
+  return a.slice(1).map((v, k) => v + (b[k + 1] - v) * t);
+}
+
+// [u, shoulder (negative raises forward), wrist, body pitch (forward is positive)].
+const HURL = [[0, 0, 0, 0], [.24, -2.6, -.5, -.12], [RELEASE_U, -1.35, .35, .1], [.55, -.55, .2, .16], [1, 0, 0, 0]];
+const SHOOT = [[0, 0, 0, 0], [.24, -1.45, 0, -.02], [RELEASE_U, -1.45, 0, -.02], [.45, -1.2, .1, -.06], [.7, -1.1, 0, 0], [1, 0, 0, 0]];
+
+export const throwStyle = shape => shape === 'arrow' || shape === 'bolt' ? 'shoot' : 'hurl';
+
+// Offsets for a throw at u (0..1): {arm, wrist, pitch} for most actors; a centaur's bow draw
+// adds its `off`/`offGrip` (and a centaur spear or club thrower hurls like anyone else).
+export function throwPose(style, u, centaur = null) {
+  if (centaur === 'bow' && style === 'shoot') {
+    // Map the release onto the bow's loose, before and after.
+    const v = u <= RELEASE_U ? CENTAUR_LOOSE_U * u / RELEASE_U
+      : CENTAUR_LOOSE_U + (1 - CENTAUR_LOOSE_U) * (u - RELEASE_U) / (1 - RELEASE_U);
+    const b = centaurAttackPose('bow', v);
+    return {arm: b.arm, off: b.off, offGrip: b.offGrip, wrist: 0, pitch: 0};
+  }
+  const [arm, wrist, pitch] = keys(style === 'shoot' ? SHOOT : HURL, u);
+  return {arm, wrist, pitch};
+}
+
+// Launches in a replayed fx timeline: [{x, z, dir, at, style}], one per flight (earliest first,
+// at most MAX_THROWS from the same cell). x, z is the thrower's map cell; dir the first step.
+export function throwLaunches(timeline) {
+  const out = [], perCell = new Map();
+  const flights = flightsFromFx(timeline).sort((a, b) => a.start - b.start);
+  for (const f of flights) {
+    const [a, b] = f.knots;
+    if (!b || (a.x === b.x && a.z === b.z)) continue;
+    const key = `${a.x},${a.z}`, n = perCell.get(key) ?? 0;
+    if (n >= MAX_THROWS) continue;
+    perCell.set(key, n + 1);
+    out.push({x: a.x, z: a.z, dir: [Math.sign(b.x - a.x), Math.sign(b.z - a.z)], at: f.start, style: throwStyle(f.shape)});
+  }
+  return out;
+}
+
+// The action to queue on a thrower.
+export const throwAction = launch => ({kind: 'throw', dir: launch.dir, style: launch.style});

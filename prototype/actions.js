@@ -19,8 +19,9 @@ import {jawPose, jawReach} from './jaw.js';
 import {risePose, RISE_TIME, RISE_BURST_U} from './rise.js';
 import {groundSamples, groundLift, grounds} from './ground.js';
 import {centaurAttackPose} from './centaur-attack.js';
+import {throwPose, throwLaunches, throwAction, THROW_TIME, THROW_WINDUP_MS, MAX_THROW_LEAD_MS} from './throw-motion.js';
 
-export const ACTION_TIME = {attack: .42, hit: .3, die: .9, rise: RISE_TIME};
+export const ACTION_TIME = {attack: .42, hit: .3, die: .9, rise: RISE_TIME, throw: THROW_TIME};
 // Wait no longer than this for a death to play before the map (and its corpse) goes on.
 export const MAX_HOLD_MS = 1000;
 // When a generic monster attack lands (monster-attacks.js strikes at u≈.44), and the most a
@@ -140,6 +141,9 @@ export function actionPose(action, u, face) {
     const m = deathPose(action.style, u, d);
     for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'scale', 'sx', 'sy', 'fade']) p[k] = m[k];
     p.yaw = m.spin;
+  } else if (action.kind === 'throw') {
+    // Turn to the throw; the arm and lean come from throw-motion.js in updateActions.
+    p.yaw = face ? face * smooth(u / .2) : 0;
   } else if (action.kind === 'rise') {
     // A corpse getting back up (rise.js): the topple's end pose, played back to standing.
     const m = risePose(u, action.from, action.buried);
@@ -226,12 +230,14 @@ export function updateActions(actor, q, dt) {
   const wait = a.wait ?? 0;
   const u = a.swing ? swingPhase(Math.min(q.age, len), a.blow, a.result) : clamp01((q.age - wait) / (len - wait));
   // Heading toward the target is measured once, from the rest pose, when the action starts.
-  if (q.face === null) q.face = a.kind === 'attack' && a.dir ? turn(actor.g.rotation.y, Math.atan2(a.dir[0], a.dir[1])) : 0;
+  if (q.face === null) q.face = (a.kind === 'attack' || a.kind === 'throw') && a.dir ? turn(actor.g.rotation.y, Math.atan2(a.dir[0], a.dir[1])) : 0;
   const pose = actionPose(a, u, q.face);
   // Smaller jaws open less (jaw.js).
   if (pose.jaw) pose.jaw *= jawReach(actor);
   // A centaur thrusts its spear, smashes its club or draws its bow (centaur-attack.js).
   if (a.kind === 'attack' && a.attack === 'weapon' && actor.centaur) Object.assign(pose, centaurAttackPose(actor.centaur, u, a.result));
+  // A throw or shot, released as the object leaves (throw-motion.js).
+  if (a.kind === 'throw') Object.assign(pose, throwPose(a.style, u, actor.centaur));
   if (a.swing) {
     pose.arm = pose.wrist = pose.socket = 0;
     pose.swing = swingPose(a.blow, u, a.result);
@@ -259,7 +265,7 @@ export function updateActions(actor, q, dt) {
   if (q.age >= len) {
     if (a.kind === 'die') { q.finished = true; return 'die'; }
     // Leave the attacker facing where it struck.
-    if (a.kind === 'attack') q.applied.yaw -= q.face;
+    if (a.kind === 'attack' || a.kind === 'throw') q.applied.yaw -= q.face;
     q.current = null; q.age = 0;
   }
   return a.kind;
@@ -268,11 +274,13 @@ export function updateActions(actor, q, dt) {
 // The live actor standing at map cell (x, z). Actors are keyed "x,z:glyph" by the last map
 // frame; a monster that stepped and struck in the same turn is still under its old key, so
 // fall back to the nearest one within a step and a half (same species when the event names
-// one). `origin` turns map cells into the scene coordinates of `a.target`.
-export function findActor(actors, x, z, {name = null, origin = {x: 0, z: 0}} = {}) {
+// one). `origin` turns map cells into the scene coordinates of `a.target`. `exact` skips the
+// fallback.
+export function findActor(actors, x, z, {name = null, origin = {x: 0, z: 0}, exact = false} = {}) {
   if (!actors || !Number.isFinite(x) || !Number.isFinite(z)) return null;
   const prefix = `${x},${z}:`;
   for (const [key, a] of actors) if (key.startsWith(prefix) && !a.actions?.dead) return a;
+  if (exact) return null;
   const species = typeof name === 'string' ? name.toLowerCase() : null;
   let best = null, bestD = 1.5;
   for (const a of actors.values()) {
@@ -318,4 +326,21 @@ export function queueCombat(c, {hero, find}) {
 export function queueDeath(d, find) {
   const actor = d && find(d), q = queueOf(actor);
   return !!q && enqueueAction(q, {kind: 'die', dir: q.lastBlow ?? null, style: deathStyle(actor.species || d.name)});
+}
+
+// Queues a throw on whoever threw or fired each object in a replayed fx timeline
+// (throw-motion.js). `find(x, z)` returns the actor on a map cell, or null. Returns how long
+// (ms) to delay the timeline so the first object leaves the hand at its thrower's release,
+// after whatever that thrower is still playing; 0 when no thrower was found.
+export function queueThrows(timeline, find) {
+  let delay = 0, first = true;
+  for (const launch of throwLaunches(timeline)) {
+    const q = queueOf(find(launch.x, launch.z));
+    if (!q || q.dead) continue;
+    const lead = remainingTime(q) * 1000 + THROW_WINDUP_MS / pace(q);
+    if (!enqueueAction(q, throwAction(launch))) continue;
+    if (first) delay = Math.max(0, Math.min(MAX_THROW_LEAD_MS, Math.ceil(lead)) - launch.at);
+    first = false;
+  }
+  return delay;
 }
