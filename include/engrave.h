@@ -25,7 +25,9 @@ struct engr {
                                 * to how Elbereth did in 3.4.3) */
     Bitfield(nowipeout, 1);    /* this engraving will not degrade */
     Bitfield(eread, 1);        /* the engraving text has been read or felt */
-    /* 5 free bits */
+    Bitfield(eward, 1);        /* when last read or written, it said Elbereth
+                                * (what the hero believes, for the bridge) */
+    /* 4 free bits */
 };
 
 #define newengr(lth) (struct engr *)alloc((unsigned)(lth) + sizeof(struct engr))
