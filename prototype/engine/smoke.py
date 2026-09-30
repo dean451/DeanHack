@@ -21,7 +21,7 @@ try:
     if not line:continue
     try:v=json.loads(line)
     except Exception:raise AssertionError('Non-JSON engine output: '+line[:250].decode(errors='replace'))
-    if v['type']=='frame':frame=v;assert v['player']['invisible'] is False,v['player']
+    if v['type']=='frame':frame=v;assert v['player']['invisible'] is False,v['player'];assert v['dungeon']=='The Dungeons of Doom' and v['special']=='',(v.get('dungeon'),v.get('special'))
     elif v['type']=='message':messages.append(v['text'])
     elif v['type'] in ('text','menu'):
      if stage==2:inventory=True
@@ -54,7 +54,7 @@ try:
  assert stage==3 and inventory,(stage,messages[-10:])
  saves=list((Path(m['prefix'])/'var/unnethack/saves').glob('*BridgeSmoke*'))
  assert saves,'Save file missing'
- print(json.dumps({'turn_before':start_turn,'turn_after':frame['turn'],'observed_cells':len(frame['cells']),'inventory':inventory,'movement_target':target,'save_files':[s.name for s in saves],'exit':p.returncode}))
+ print(json.dumps({'dungeon':frame['dungeon'],'special':frame['special'],'turn_before':start_turn,'turn_after':frame['turn'],'observed_cells':len(frame['cells']),'inventory':inventory,'movement_target':target,'save_files':[s.name for s in saves],'exit':p.returncode}))
 finally:
  if p.poll() is None:
   p.stdin.close()

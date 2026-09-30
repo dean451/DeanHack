@@ -260,7 +260,11 @@ static const char *engraving_kind(int type) {
 }
 static void frame(void) {
     int x,y,g,b,m,col,terrain_glyph,object_type;glyph_t ch;unsigned special;
-    printf("{\"type\":\"frame\",\"turn\":%ld,\"depth\":%d,\"branch\":%d,\"player\":{\"x\":%d,\"z\":%d,\"hp\":%d,\"maxhp\":%d,\"ac\":%d,\"level\":%d,\"weapon\":",moves,depth(&u.uz),u.uz.dnum,u.ux,u.uy,Upolyd?u.mh:u.uhp,Upolyd?u.mhmax:u.uhpmax,u.uac,u.ulevel);
+    printf("{\"type\":\"frame\",\"turn\":%ld,\"depth\":%d,\"branch\":%d,\"dungeon\":",moves,depth(&u.uz),u.uz.dnum);
+    quoted(dungeons[u.uz.dnum].dname);
+    /* the special level's prototype name ("medusa", "orcus", "tower1"...), or "" */
+    {s_level *sp=Is_special(&u.uz);printf(",\"special\":");quoted(sp?sp->proto:"");}
+    printf(",\"player\":{\"x\":%d,\"z\":%d,\"hp\":%d,\"maxhp\":%d,\"ac\":%d,\"level\":%d,\"weapon\":",u.ux,u.uy,Upolyd?u.mh:u.uhp,Upolyd?u.mhmax:u.uhpmax,u.uac,u.ulevel);
     held(uwep);
     /* Two-weaponing: the other hand holds the alternate weapon. */
     printf(",\"offhand\":");held(u.twoweap?uswapwep:0);

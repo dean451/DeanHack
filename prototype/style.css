@@ -52,3 +52,11 @@ dialog button{margin:18px 8px 0 0;font-size:12px}
 #ground-notice{display:none;position:absolute;z-index:4;left:24px;bottom:145px;width:220px;max-height:32vh;overflow:auto;padding:14px 16px;background:#0c181bed;border:1px solid #64797266;border-radius:5px;color:#dedfce;font:13px/1.5 Inter,sans-serif;pointer-events:none}
 #ground-notice strong{font-size:14px;color:#f0e5cc}#ground-notice ul{padding:0;margin:8px 0;list-style:none}#ground-notice li+li{margin-top:4px}#ground-notice small{color:#9fb5b0}
 @media(max-width:650px){#ground-notice{left:12px;bottom:155px;width:175px;max-height:22vh}}
+/* live character panel: attributes, low vitality, and the level name on arrival */
+.attributes{display:none;grid-template-columns:repeat(3,1fr);gap:6px 10px;margin-top:12px;color:#9aaab7;font-size:11px;letter-spacing:1px}.live-engine .attributes:not(:empty){display:grid}.attributes b{color:#e4d8c2;font-weight:400;margin-left:5px}.attributes .alignment{grid-column:1/-1;font-size:10px;letter-spacing:2px;color:#b6c4ce}
+.character.low-hp #hp{color:#ff6a5a}.character.low-hp .bar{background:#ff4a3a22}.character.low-hp .bar i{background:#e0402f;box-shadow:0 0 10px #ff4a3a;animation:hp-flash 1s ease-in-out infinite}.character.low-hp .health{animation:hp-flash 1s ease-in-out infinite}
+@keyframes hp-flash{0%,100%{opacity:1}50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.character.low-hp .bar i,.character.low-hp .health{animation:none}}
+#level-banner{position:fixed;left:50%;top:26%;transform:translateX(-50%);z-index:4;text-align:center;pointer-events:none;opacity:0;text-shadow:0 2px 14px #000}#level-banner small{display:block;letter-spacing:4px;color:#c4b683}#level-banner strong{display:block;margin-top:6px;font:500 46px 'Cormorant Garamond',Georgia,serif;color:#f0e6d4;white-space:nowrap}#level-banner.show{animation:level-banner 4.5s ease forwards}
+@keyframes level-banner{0%{opacity:0;transform:translate(-50%,8px)}12%,70%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-4px)}}
+@media(max-width:650px){#level-banner strong{font-size:30px;white-space:normal}}
