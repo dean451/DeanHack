@@ -291,3 +291,48 @@ test('jabberwocks stalk on slow opposed strides, balance with the tail and settl
   // nothing else strides
   for (const name of ['jackal', 'hill giant', 'red dragon']) assert.equal(updateStride(createCreature({name}), 1 / 60, true), null);
 });
+
+test('walking jabberwocks fold their wings back along the flanks and spread them again at rest', async () => {
+  const {STRIDE, stridePose, clearStride} = await import('./stride.js');
+  const a = createCreature({name: 'jabberwock', symbol: 'J'});
+  assert.equal(a.wings.length, 2);
+  const restX = a.wings.map(w => w.rotation.x);
+  let t = 0, prev = null, maxStep = 0, foldMin = Infinity, droopMax = 0;
+  const step = (dt, walking) => {
+    t += dt;
+    // live.js's dragon wing flutter (absolute) and an action-layer flare on z
+    a.wings.forEach((w, i) => { w.rotation.y = (i ? 1 : -1) * (-.18 + Math.sin(t * 5) * .12); w.rotation.z = 0; });
+    a.legs.forEach((l, i) => l.rotation.x = walking ? Math.sin(t * 22 + i * 2) * .4 : 0);
+    updateGait(a, dt, walking);
+    const v = a.wings.flatMap(w => [w.rotation.x, w.rotation.y]);
+    for (const x of v) assert.ok(Number.isFinite(x));
+    if (prev) maxStep = Math.max(maxStep, ...v.map((x, i) => Math.abs(x - prev[i])));
+    prev = v;
+    // mirrored: both wings sweep the same way about their own side
+    assert.ok(Math.abs(a.wings[0].rotation.y + a.wings[1].rotation.y) < 1e-9);
+    a.wings.forEach((w, i) => {
+      assert.ok(w.rotation.x - restX[i] <= 1e-12 && w.rotation.x - restX[i] >= -(STRIDE.droop + STRIDE.jolt) - 1e-9);
+      assert.ok(Math.abs(w.rotation.y) <= STRIDE.fold + 1e-9);
+    });
+    if (walking && t > 2.4) {
+      foldMin = Math.min(foldMin, a.wings[1].rotation.y);
+      droopMax = Math.max(droopMax, restX[1] - a.wings[1].rotation.x);
+    }
+  };
+  for (let i = 0; i < 60; i++) step(1 / 60, false);
+  assert.ok(a.wings[1].rotation.y < 0, 'standing: half spread, forward');
+  for (let i = 0; i < 180; i++) step(1 / 60, true);
+  assert.ok(foldMin > STRIDE.fold - .01, `folded ${foldMin}`);
+  assert.ok(droopMax > STRIDE.droop, `droop ${droopMax}`);
+  for (let i = 0; i < 120; i++) step(1 / 60, false);
+  assert.ok(maxStep < .15, `step ${maxStep}`);
+  // back at rest: live.js's flutter owns the sweep again and the droop is gone exactly
+  a.wings.forEach((w, i) => {
+    assert.ok(Math.abs(w.rotation.x - restX[i]) < 1e-12);
+    assert.ok(Math.abs(w.rotation.y - (i ? 1 : -1) * (-.18 + Math.sin(t * 5) * .12)) < 1e-12);
+  });
+  clearStride(a);
+  a.wings.forEach((w, i) => assert.ok(Math.abs(w.rotation.x - restX[i]) < 1e-12));
+  const p = stridePose(2, 0, 1, 3);
+  assert.equal(Math.abs(p.fold) + Math.abs(p.droop), 0);
+});
