@@ -9,6 +9,9 @@
 //   shoot: arrows and crossbow bolts are loosed from a launcher: the arm comes up level to
 //          aim, jolts back a little at the release, then lowers.
 //   A centaur plays its own bow draw (centaur-attack.js), re-timed so the loose is the release.
+//   An arm with an elbow (the hero's) bends it too, through swing.js's layer: a hurl folds the
+//   forearm back behind the head in the windup and whips it straight just after the shoulder
+//   comes over; a shot straightens the arm to aim and gives a little at the release.
 //
 // Nothing here looks at what the object is beyond flights.js's shape, which never reveals
 // identity. The pose is offsets from rest for the action layer; every part is 0 at u = 0 and 1.
@@ -43,9 +46,18 @@ function keys(list, u) {
 const HURL = [[0, 0, 0, 0], [.24, -2.6, -.5, -.12], [RELEASE_U, -1.35, .35, .1], [.55, -.55, .2, .16], [1, 0, 0, 0]];
 const SHOOT = [[0, 0, 0, 0], [.24, -1.45, 0, -.02], [RELEASE_U, -1.45, 0, -.02], [.45, -1.2, .1, -.06], [.7, -1.1, 0, 0], [1, 0, 0, 0]];
 
+// [u, elbow] added to the rest bend (swing.js: negative bends, positive straightens). The hurl's
+// elbow stays folded a beat after the shoulder starts forward, so the forearm whips.
+const HURL_ELBOW = [[0, 0], [.24, -.85], [.29, -.8], [RELEASE_U, .5], [.55, .3], [1, 0]];
+const SHOOT_ELBOW = [[0, 0], [.24, .55], [RELEASE_U, .55], [.45, .35], [.7, .3], [1, 0]];
+
+// swing.js's offsets with only the elbow set; a rig without an elbow ignores it.
+const elbowSwing = elbow => ({arm: 0, armZ: 0, elbow, wrist: 0, socket: 0, shield: 0, twist: 0, lean: 0});
+
 export const throwStyle = shape => shape === 'arrow' || shape === 'bolt' ? 'shoot' : 'hurl';
 
-// Offsets for a throw at u (0..1): {arm, wrist, pitch} for most actors; a centaur's bow draw
+// Offsets for a throw at u (0..1): {arm, wrist, pitch, swing} for most actors (swing holds the
+// elbow, for actions.js to hand to applySwing); a centaur's bow draw
 // adds its `off`/`offGrip` (and a centaur spear or club thrower hurls like anyone else).
 export function throwPose(style, u, centaur = null) {
   if (centaur === 'bow' && style === 'shoot') {
@@ -55,8 +67,10 @@ export function throwPose(style, u, centaur = null) {
     const b = centaurAttackPose('bow', v);
     return {arm: b.arm, off: b.off, offGrip: b.offGrip, wrist: 0, pitch: 0};
   }
-  const [arm, wrist, pitch] = keys(style === 'shoot' ? SHOOT : HURL, u);
-  return {arm, wrist, pitch};
+  const shoot = style === 'shoot';
+  const [arm, wrist, pitch] = keys(shoot ? SHOOT : HURL, u);
+  const [elbow] = keys(shoot ? SHOOT_ELBOW : HURL_ELBOW, u);
+  return {arm, wrist, pitch, swing: elbowSwing(elbow)};
 }
 
 // Launches in a replayed fx timeline: [{x, z, dir, at, style}], one per flight (earliest first,
