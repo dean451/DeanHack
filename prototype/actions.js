@@ -19,6 +19,7 @@ import {jawPose, jawReach} from './jaw.js';
 import {risePose, RISE_TIME, RISE_BURST_U} from './rise.js';
 import {groundSamples, groundLift, grounds} from './ground.js';
 import {centaurAttackPose} from './centaur-attack.js';
+import {scorpionAttackPose} from './scorpion-attack.js';
 import {throwPose, throwLaunches, throwAction, THROW_TIME, THROW_WINDUP_MS, MAX_THROW_LEAD_MS} from './throw-motion.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9, rise: RISE_TIME, throw: THROW_TIME};
@@ -175,6 +176,7 @@ export function clearActionPose(actor, q) {
   if (o.grip && actor.weaponSocket) actor.weaponSocket.rotation.x -= o.grip;
   if (o.off && actor.arms?.[0]) actor.arms[0].rotation.x -= o.off;
   if (o.offGrip && actor.offHand) actor.offHand.rotation.x -= o.offGrip;
+  if ((o.pincer || o.pincerLift) && actor.claws) actor.claws.forEach((c, i) => { c.rotation.y -= (i ? -1 : 1) * o.pincer; c.rotation.x += o.pincerLift; });
   if (o.fore) for (const l of foreLegs(actor)) l.rotation.x -= o.fore;
   if (o.paw || o.pawSide) { const l = foreLegs(actor)[0]; if (l) { l.rotation.x -= o.paw; l.rotation.z -= o.pawSide; } }
   if (o.wing) actor.wings?.forEach((w, i) => { w.rotation.z -= wingSide(w, i) * o.wing; });
@@ -202,6 +204,7 @@ function applyPose(actor, q, p) {
   if (p.grip && actor.weaponSocket) actor.weaponSocket.rotation.x += p.grip;
   if (p.off && actor.arms?.[0]) actor.arms[0].rotation.x += p.off;
   if (p.offGrip && actor.offHand) actor.offHand.rotation.x += p.offGrip;
+  if ((p.pincer || p.pincerLift) && actor.claws) actor.claws.forEach((c, i) => { c.rotation.y += (i ? -1 : 1) * p.pincer; c.rotation.x -= p.pincerLift; });
   if (p.fore) for (const l of foreLegs(actor)) l.rotation.x += p.fore;
   if (p.paw || p.pawSide) { const l = foreLegs(actor)[0]; if (l) { l.rotation.x += p.paw; l.rotation.z += p.pawSide; } }
   if (p.wing) actor.wings?.forEach((w, i) => { w.rotation.z += wingSide(w, i) * p.wing; });
@@ -236,6 +239,12 @@ export function updateActions(actor, q, dt) {
   if (pose.jaw) pose.jaw *= jawReach(actor);
   // A centaur thrusts its spear, smashes its club or draws its bow (centaur-attack.js).
   if (a.kind === 'attack' && a.attack === 'weapon' && actor.centaur) Object.assign(pose, centaurAttackPose(actor.centaur, u, a.result));
+  // A scorpion keeps low and snaps its pincers or jabs its arched tail (scorpion-attack.js).
+  // It strikes straight ahead, so the generic claw's sideways rake twist is taken back out.
+  if (a.kind === 'attack' && actor.claws) {
+    pose.yaw -= monsterAttackPose(a.attack, u, a.result).twist;
+    Object.assign(pose, scorpionAttackPose(a.attack, u, a.result));
+  }
   // A throw or shot, released as the object leaves (throw-motion.js).
   if (a.kind === 'throw') Object.assign(pose, throwPose(a.style, u, actor.centaur));
   if (a.swing) {
