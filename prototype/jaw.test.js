@@ -173,3 +173,31 @@ test('a skeleton chatters through its attack and flinch; a crocodile does not', 
   // the crocodile keeps its plain snarl: one small parting, no clacking
   assert(peaks(run(croc, events), .03) <= 2);
 });
+
+test('liches chatter their jaws too, and the open jaw drops away from the skull', () => {
+  const L = 'L'.charCodeAt(0);
+  const events = [{kind: 'attack', attack: 'magic', result: 'miss', dir: [0, 1]}, {kind: 'hit', attack: 'weapon', dir: [0, -1]}];
+  for (const name of ['lich', 'demilich', 'master lich', 'arch-lich', 'unknown L']) {
+    const m = createCreature({name, symbol: L, color: 5});
+    assert(jawChatters(m), `${name} chatters`);
+    assert(m.jaw.children.some(o => o.isMesh), `${name} jaw keeps its bone`);
+    const chin = () => { m.g.updateMatrixWorld(true); return m.jaw.children.filter(o => o.isMesh).reduce((a, o) => { o.geometry.computeBoundingBox(); return a + o.geometry.boundingBox.getCenter(o.position.clone()).applyMatrix4(o.matrixWorld).y; }, 0); };
+    const rest = m.jaw.rotation.x, restY = chin(), q = createActionQueue(), s = [];
+    for (const e of events) enqueueAction(q, e);
+    let lowest = restY;
+    for (let t = 0; t < 4; t += 1 / 120) {
+      clearActionPose(m, q);
+      updateActions(m, q, 1 / 120);
+      const open = m.jaw.rotation.x - rest;
+      assert(Number.isFinite(open) && open >= -1e-9 && open <= JAW_GAPE * jawReach(m) + 1e-9, `${name} ${open}`);
+      s.push(open);
+      lowest = Math.min(lowest, chin());
+    }
+    clearActionPose(m, q);
+    assert(Math.abs(m.jaw.rotation.x - rest) < 1e-9, `${name} back at rest`);
+    assert(Math.abs(chin() - restY) < 1e-9, `${name} jaw back in place`);
+    assert(peaks(s, .03) >= 5, `${name} clacks ${peaks(s, .03)}`);
+    assert(Math.max(...s) > .15 && Math.max(...s) < .3, `${name} opens ${Math.max(...s)}`);
+    assert(lowest < restY - 1e-3, `${name} jaw drops when it opens`);
+  }
+});
