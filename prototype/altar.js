@@ -113,6 +113,8 @@ export function createAltar(){
  // Brazier: a footed brass dish on three claw feet, heaped with coals, some glowing.
  {
   const bz=.02;
+  // Where the coal heap sits, for altar-embers.js.
+  g.userData.brazier={x:0,y:top+.085,z:bz,r:.07};
   for(let k=0;k<3;k++){const a=k/3*Math.PI*2+.4;put(new THREE.SphereGeometry(.012,8,6),brass,Math.cos(a)*.06,top+.01,bz+Math.sin(a)*.06,0,0,0,1,.8,1);}
   put(lathe([[0,.012],[.03,.012],[.024,.02],[.02,.034],[.05,.04],[.1,.07],[.108,.078],[.104,.082],[.094,.074],[.05,.05],[0,.05]],24),brass,0,top,bz);
   let k=0;
