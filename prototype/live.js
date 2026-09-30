@@ -17,6 +17,7 @@ import {createBoulder} from './boulder.js';
 import {createStairs} from './stairs.js';
 import {createBars} from './bars.js';
 import {createDoor} from './door.js';
+import {tileKind,setDoorOpen,updateDoorSwings,clearDoorSwings} from './door-swing.js';
 import {createFire} from './fire.js';
 import {createTorchSconce} from './torch.js';
 import {createLiquid} from './liquid.js';
@@ -217,13 +218,13 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    if(Array.isArray(frame.ground))showGround(frame.ground);
    hero.setWeapon?.(frame.player.weapon??null);syncHeldWandAura(hero,frame.player.weapon??null);syncHeldGleam(hero,frame.player.weapon??null);
    hero.setHelmet?.(frame.player.helmet??null);if('shield' in frame.player)hero.setShield?.(frame.player.shield);if('offhand' in frame.player)hero.setOffhand?.(frame.player.offhand);addOutlines(hero.g);
-   const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();rays.clear();zapFlash.clear(hero);rayMarks.clear();explosions.clear();flood.clear();flooding=false;splash.clear();grab.clear();hold.clear();poseHeld(hero,null);poly.clear();barsMelt.clear();breath.clear();engulf.clear();dropEngulfCamera(camera,controls);poseEngulfed(hero,null);poseActor(hero,null);origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
+   const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();clearDoorSwings();rays.clear();zapFlash.clear(hero);rayMarks.clear();explosions.clear();flood.clear();flooding=false;splash.clear();grab.clear();hold.clear();poseHeld(hero,null);poly.clear();barsMelt.clear();breath.clear();engulf.clear();dropEngulfCamera(camera,controls);poseEngulfed(hero,null);poseActor(hero,null);origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
    if(!newLevel&&flood.add(prevFrame,frame))flooding=true;splash.flushMessages(frame);grab.frame(frame);hold.frame(frame);poly.frame(frame);barsMelt.frame(frame);engulf.frame(frame);
    const seen=new Set(),seenActors=new Set(),seenWells=new Set();
    for(const cell of frame.cells){const id=`${cell.x},${cell.z}`,x=cell.x-origin.x,z=cell.z-origin.z;
      if(cell.terrain!=='unknown'){
-       seen.add(id);let tile=tiles.get(id);if(tile&&tile.userData.type!==cell.terrain){release(tile);tiles.delete(id);tile=null;}
-       if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=cell.terrain;const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);tile.userData.slab=slab;floorKit.dress(slab,tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
+       seen.add(id);let tile=tiles.get(id);if(tile&&tile.userData.type!==tileKind(cell)){release(tile);tiles.delete(id);tile=null;}
+       if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=tileKind(cell);const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);tile.userData.slab=slab;floorKit.dress(slab,tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
          if(cell.terrain==='altar')tile.add(createAltar());
          if(cell.terrain==='throne')tile.add(createThrone());
          if(cell.terrain==='sink')tile.add(createSink());
@@ -234,7 +235,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
           box(wallGeo,wall,tile,0,.28,0);
           if(hasTorch(cell.x,cell.z)){const sconce=createTorchSconce(cell.x*43+cell.z*71);tile.add(sconce);const fire=createFire(cell.x+cell.z);fire.position.copy(sconce.userData.flame);tile.add(fire);const halo=new THREE.Sprite(torchHaloMaterial);halo.position.copy(sconce.userData.flame).setY(1.12);halo.scale.setScalar(.9);tile.add(halo);tile.userData.torch={phase:(cell.x*3.7+cell.z*5.3)%(Math.PI*2)};}
          }
-         if(cell.terrain==='door'){const doorGroup=createDoor(cell.x*61+cell.z*37);tile.add(doorGroup);tile.userData.door=doorGroup;}
+         if(tileKind(cell)==='door'){const doorGroup=createDoor(cell.x*61+cell.z*37);tile.add(doorGroup);tile.userData.door=doorGroup;}
          if(cell.terrain==='up'||cell.terrain==='down'){tile.add(createStairs(cell.terrain,cell.x*131+cell.z));tile.add(label(cell.terrain==='up'?'↑ stone stairs':'↓ stone stairs'));}
          if(['water','lava'].includes(cell.terrain)){slab.visible=false;const liquid=createLiquid(cell.terrain,cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
          group.add(tile);tiles.set(id,tile);
@@ -254,6 +255,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
         const connected=(dx,dz)=>frame.cells.some(c=>c.x===cell.x+dx&&c.z===cell.z+dz&&['wall','bars','door'].includes(c.terrain));
         const horizontal=Number(connected(-1,0))+Number(connected(1,0)),vertical=Number(connected(0,-1))+Number(connected(0,1));
         if(horizontal!==vertical)tile.userData.door.rotation.y=vertical>horizontal?Math.PI/2:0;
+        setDoorOpen(tile.userData.door,cell.door==='open');
        }
      }
      if(cell.terrain==='fountain'){seenWells.add(id);if(!wells.has(id)){const w=createLiveFountain(wellTemplate);w.position.set(x,0,z);group.add(w);wells.set(id,w);}wells.get(id).visible=cell.visible||cell.remembered;}
@@ -346,7 +348,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  },true);
  return {get active(){return active;},update(t,dt){if(!active||!hero.target)return;poseEngulfed(hero,null);poseHeld(hero,null);clearActionPose(hero,hero.actions);zapFlash.unpose(hero);const delta=hero.target.clone().sub(hero.g.position),moving=delta.length()>.025;if(moving)hero.g.rotation.y=Math.atan2(delta.x,delta.z);hero.g.position.lerp(hero.target,1-Math.exp(-dt*14));hero.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);hero.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);hero.cape.rotation.x=-.17+Math.sin(t*3)*.06;if(hero.plume)hero.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
    const offset=hero.g.position.clone().sub(controls.target);offset.y=0;offset.multiplyScalar(1-Math.exp(-dt*3));controls.target.add(offset);camera.position.add(offset);lantern.position.copy(hero.g.position).add(new THREE.Vector3(0,3,0));
-   for(const tile of tiles.values())if(tile.visible)tile.traverse(o=>o.userData.updateFire?.(t));
+   for(const tile of tiles.values())if(tile.visible)tile.traverse(o=>o.userData.updateFire?.(t));updateDoorSwings(dt);
    updateActions(hero,hero.actions,dt);zapFlash.update(dt,hero);swingFx.update(hero,dt,swingTarget);
    updateTorchLights(t,dt);cavern.update(t,dt,hero.g.position);
    for(const a of actors.values()){clearActionPose(a,a.actions);clearStalk(a);a.g.userData.updateOracle?.(t);a.g.userData.updateGridBug?.(t);let walking=false;if(a.target){const d=a.target.clone().sub(a.g.position);walking=d.length()>.025;if(walking)a.g.rotation.y=Math.atan2(d.x,d.z);slideTo(a,dt);if(a.legs)a.legs.forEach((l,i)=>l.rotation.x=walking?Math.sin(t*22+i*2)*.4:0);}a.asset?.update(dt,walking);if(a.tail){const tailRate=a.quirk==='dog'?7:a.quirk==='turtle'?1.1:a.quirk==='unicorn'?2.6:a.quirk==='nymph'?1.4:3;const tailSwing=a.quirk==='dog'?.34:a.quirk==='turtle'?.06:a.quirk==='unicorn'?.16:a.quirk==='nymph'?.07:.24;a.tail.rotation.z=Math.sin(t*tailRate)*tailSwing;}if(a.charm)a.charm.position.y=.3+Math.sin(t*4)*.025;if(a.body){const idle=a.quirk==='orc'?.025:a.quirk==='dragon'?.035:a.quirk==='unicorn'?.022:.015;a.body.position.y=Math.sin(t*(walking?22:2.5))*idle;}if(a.wings?.length)a.wings.forEach((wing,i)=>{if(a.quirk==='bat'||a.flap){wing.rotation.z=(wing.userData.side||(i?1:-1))*wingFlap(a.flap,t);}else if(a.quirk==='bee'){wing.rotation.y=(i?1:-1)*Math.sin(t*60)*.35;}else wing.rotation.y=(i?1:-1)*(-.18+Math.sin(t*5)*.12);});if((a.quirk==='hover'||a.quirk==='bat'||a.quirk==='bee')&&a.body)a.body.position.y=flightBob(a.flap,t,a.g.position.x);if(a.quirk==='dragon')a.g.rotation.z=Math.sin(t*1.7)*.025;if(a.quirk==='nymph'&&a.body)a.body.rotation.z=Math.sin(t*1.3+a.g.position.x)*.035;if(a.quirk==='gridbug')a.g.rotation.z=Math.sin(t*9)*.035;if(a.quirk==='guard')a.g.rotation.z=Math.sin(t*1.3)*.012;const busy=walking||!!a.actions?.current||!!a.actions?.queue.length;updateGait(a,dt,walking);updatePlod(a,dt,walking);updateSkitter(a,dt,walking);updateTripod(a,dt,walking);updateTrudge(a,dt,walking);updateStrawFlop(a,dt,t,walking);updateFidget(a,dt,t,busy);updateStalk(a,dt,t,findPrey(a,actors.values()),busy);const core=a.core||a.g.userData.core;if(core)core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;if(a.actions){updateActions(a,a.actions,dt);const q=a.actions;if(q.dead&&q.fade!=null)applyFade(a,q.fade);if(q.deathBurst){deathFx.burst(q.deathBurst.style,a.g.position,{dir:q.deathBurst.dir,...deathLook(a)});q.deathBurst=null;}if(q.riseBurst){for(const look of ['rise','riseMotes'])deathFx.burst(look,a.g.position,deathLook(a));q.riseBurst=null;}}updateBask(a,dt,t,busy);updateWhiffle(a,dt,t,walking,!!a.actions?.current||!!a.actions?.queue.length);updateTuck(a,dt,walking);}hitFx.update([hero,...actors.values()],dt);deathFx.update(dt);rays.update(dt,origin);const {flash:rayFlash}=rayMarks.update(dt,origin);rayFlashLight.intensity=rayFlash*RAY_FLASH_INTENSITY;rayFlashLight.position.set(hero.g.position.x,3.2,hero.g.position.z);const blast=explosions.update(dt,origin);blastLight.intensity=blast.light*BLAST_LIGHT_INTENSITY;if(blast.light>0){blastLight.color.setHex(blast.color);blastLight.position.set(blast.x-origin.x,1.2,blast.z-origin.z);}
