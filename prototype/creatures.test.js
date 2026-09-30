@@ -757,7 +757,7 @@ test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model inste
  assert(new THREE.Box3().setFromObject(valk.head,true).max.y>b.max.y-1e-6,'wings on top');
  assert(new THREE.Box3().setFromObject(valk.shield,true).max.x<-.2,'shield outside the left arm');
  // any other player-monster role still gets the generic humanoid
- assert.equal(createCreature({name:'wizard',symbol:64,color:7}).kind,undefined);
+ assert.equal(createCreature({name:'tourist',symbol:64,color:7}).kind,undefined);
  const again=meshes(createCreature({name:'valkyrie'}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
@@ -822,6 +822,39 @@ test('knights get a great-helmed, plumed, surcoated model with an arming sword a
  assert(new THREE.Box3().setFromObject(kn.weaponSocket,true).max.y>1,'sword raised');
  assert(new THREE.Box3().setFromObject(kn.shield,true).max.x<-.2,'shield outside the left arm');
  const again=meshes(createCreature({name:'knight'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
+test('wizards get a robed, bearded model with a starry pointed hat and an orb-topped quarterstaff instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const wz=createCreature({name:'wizard',symbol:64,color:12});
+ assert.equal(wz.kind,'wizard');assert.equal(wz.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','orb'])assert(wz[key]?.isObject3D,key);
+ assert.equal(wz.legs.length,2);assert.equal(wz.arms.length,2);assert.equal(wz.arm,wz.arms[1]);
+ assert(wz.arm.children.includes(wz.weaponSocket),'the staff is in the right hand');
+ const parts=meshes(wz);
+ assert.equal(parts.length,8,'one mesh per moving part, the staff and the orb');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(m!==wz.orb)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<50000,`${verts} vertices`);
+ wz.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(wz.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.3&&b.max.y<1.6,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.45,'out of proportion');
+ // the hat rises above the face, the orb tops the staff above the hat brim, and the staff
+ // reaches down towards the floor without going through it
+ const head=new THREE.Box3().setFromObject(wz.head,true);
+ assert(head.max.y>1.35,`hat top at ${head.max.y}`);
+ const orb=new THREE.Box3().setFromObject(wz.orb,true),staff=new THREE.Box3().setFromObject(wz.weaponSocket,true);
+ assert(orb.max.y>=staff.max.y-.02&&orb.min.y>1.2,'orb on top of the staff');
+ assert(staff.min.y>0&&staff.min.y<.12,`staff foot at ${staff.min.y}`);
+ const again=meshes(createCreature({name:'wizard'}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
