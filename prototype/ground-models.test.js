@@ -153,9 +153,28 @@ test('carrots are ringed roots with feathery tops lying on the floor, up to thre
  assert(counts['3 carrots']>counts.carrot*2.5);
 });
 
+test('garlic is a papery bulb on its roots with up to three loose cloves beside it',()=>{
+ const counts={};
+ for(const name of ['clove of garlic','2 cloves of garlic','3 cloves of garlic','9 cloves of garlic']){
+  const model=createGroundModel({name,class:7}),meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.userData.part),['garlic'],name);
+  const {attributes}=meshes[0].geometry;
+  for(const key of ['position','normal','color'])for(const value of attributes[key].array)assert(Number.isFinite(value),`${name} ${key}`);
+  for(const value of attributes.color.array)assert(value>=0&&value<=1,`${name} colour`);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} grounded: ${bounds.min.y}`);
+  assert(bounds.max.y>.1&&bounds.max.y<.13,`${name} height: ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.16,`${name} inside the tile`);
+  counts[name]=attributes.position.count;
+  model.userData.dispose();
+ }
+ assert(counts['2 cloves of garlic']>counts['clove of garlic']);
+ assert.equal(counts['9 cloves of garlic'],counts['3 cloves of garlic']);
+});
+
 test('common food gets grounded, finite models and unknown food falls back',()=>{
  const foods=['apple','3 oranges','pear','melon','banana','carrot','2 eggs','tin','lembas wafer','fortune cookie','meatball','meat stick','huge chunk of meat','meat ring','2 cloves of garlic','lump of royal jelly','cream pie','candy bar','pancake','kelp frond','slime mold','eucalyptus leaf','3 eucalyptus leaves'];
- const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push(part.geometry.type);});return out.join();};
+ const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push(part.userData.part??part.geometry.type);});return out.join();};
  const seen=new Set();
  for(const name of foods){
   const model=createGroundModel({name,class:7});

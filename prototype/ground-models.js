@@ -1669,6 +1669,89 @@ function buildFruit(kind,count,{g,materials}){
  g.rotation.y=.4;
 }
 
+// Garlic: a papery bulb of eight twisted cloves, streaked lilac, on a brown root plate with a
+// tuft of wiry roots, and a cut neck of dry stalk. Cloves pulled off the head lie beside it on
+// their flat sides, one for a single clove and up to three for more. One vertex-coloured mesh.
+function buildGarlic(count,{g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z),c=new THREE.Color();
+ const skin=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.78});materials.push(skin);
+ const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+ const paint=(geo,fn)=>{
+  const p=geo.attributes.position,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){fn(c,p.getX(i),p.getY(i),p.getZ(i));cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;}
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));return geo;
+ };
+ const weld=geo=>{geo.deleteAttribute('uv');geo.deleteAttribute('normal');return mergeVertices(geo,1e-5);};
+ const tube=(curve,r,rows,sides)=>{const geo=weld(new THREE.TubeGeometry(curve,rows,r,sides,false));geo.computeVertexNormals();return geo;};
+ const parts=[];
+ // The head: a lathe pinched into cloves that twist a little as they rise and fade out at both poles.
+ const H=.08,seed=.7;
+ const pts=new THREE.SplineCurve([[0,.004],[.018,0],[.034,.006],[.045,.02],[.049,.036],[.046,.05],[.036,.062],[.02,.071],[.009,.077],[.006,.08],[0,.08]]
+  .map(([x,y])=>new THREE.Vector2(x,y))).getPoints(30).map(q=>new THREE.Vector2(Math.max(0,q.x),q.y));
+ pts[0].x=0;pts[pts.length-1].x=0;
+ const turn=(a,y)=>a+.55*y/H+.08*Math.sin(3*a+seed);
+ let bulb=weld(new THREE.LatheGeometry(pts,56));
+ const p=bulb.attributes.position;
+ for(let i=0;i<p.count;i++){
+  const x=p.getX(i),y=p.getY(i),z=p.getZ(i),a=Math.atan2(z,x),u=y/H;
+  const lobe=Math.abs(Math.cos(4*turn(a,y))),w=smooth(.02,.3,u)*smooth(.97,.62,u);
+  const k=(1-.11*(1-Math.sqrt(lobe))*w)*(1+.035*Math.sin(a+seed)+.01*stoneNoise(x*80,y*80,z*80,3));
+  p.setXYZ(i,x*k,y,z*k);
+ }
+ bulb.computeVertexNormals();
+ parts.push(paint(bulb,(col,x,y,z)=>{
+  const a=Math.atan2(z,x),u=y/H,ang=turn(a,y),groove=(1-Math.abs(Math.cos(4*ang)))**4;
+  col.copy(C(0xece3d2)).lerp(C(0xf8f4ea),.5*(stoneNoise(x*60,y*60,z*60,4)*.5+.5));
+  // Lilac streaks follow the cloves up from the base; the grooves between them sit in shade.
+  col.lerp(C(0xa8729a),.42*Math.max(0,Math.sin(ang*26+1.5*Math.sin(y*110)))**3*smooth(.05,.35,u)*smooth(.95,.55,u));
+  col.lerp(C(0xa8987a),.55*groove*smooth(.02,.2,u));
+  if(stoneNoise(x*140,y*140,z*140,5)>.7)col.lerp(C(0xc9b89a),.4);
+  col.lerp(C(0x8a6a48),.8*smooth(.1,.02,u));
+  col.lerp(C(0xcfbb92),.7*smooth(.86,.97,u));
+ }));
+ // The neck: a short cut stub of dry stalk, capped so it reads solid from above.
+ const neck=new THREE.CatmullRomCurve3([v(0,.072,0),v(.002,.09,.001),v(.006,.106,0),v(.011,.118,-.002)]);
+ const straw=(col,x,y)=>col.copy(C(0xd9c9a2)).lerp(C(0xa88c5c),smooth(.09,.12,y));
+ parts.push(paint(tube(neck,.0058,10,10),straw));
+ const cap=new THREE.CircleGeometry(.0058,10);cap.deleteAttribute('uv');
+ cap.applyMatrix4(new THREE.Matrix4().compose(neck.getPointAt(1),new THREE.Quaternion().setFromUnitVectors(v(0,0,1),neck.getTangentAt(1)),v(1,1,1)));
+ parts.push(paint(cap,col=>col.set(0x9a7c4c)));
+ // Wiry roots splay out from the plate and curl along the floor.
+ for(let i=0;i<18;i++){
+  const a=i/18*Math.PI*2+Math.sin(i*2.3)*.25,r0=.004+.009*((i*7)%5)/4,len=.028+.018*(Math.sin(i*5.1)*.5+.5),cu=Math.sin(i*1.7)*.5;
+  const dir=(t,r)=>v(Math.cos(a+cu*t)*r,0,Math.sin(a+cu*t)*r);
+  const curve=new THREE.CatmullRomCurve3([dir(0,r0).setY(.004),dir(.3,r0+len*.35).setY(.0022),dir(.7,r0+len*.75).setY(.0012),dir(1,r0+len).setY(.0009)]);
+  parts.push(paint(tube(curve,.0009,8,4),(col,x,y,z)=>col.copy(C(0x9a7a50)).lerp(C(0xc9b28a),smooth(r0,r0+len,Math.hypot(x,z)))));
+ }
+ // Loose cloves: a crescent wedge, flat on the inside, pointed at the tip, with a cut brown heel.
+ const loose=Math.max(1,Math.min(3,count|0)),spots=[[.08,.018,.4],[-.052,.066,2.3],[.012,-.078,4.2]];
+ for(let k=0;k<loose;k++){
+  const clove=weld(new THREE.SphereGeometry(1,18,14)),q=clove.attributes.position;
+  for(let i=0;i<q.count;i++){
+   let x=q.getX(i),y=q.getY(i),z=q.getZ(i);
+   const taper=y>0?1-.88*smooth(0,1,y):1-.3*smooth(-.55,-1,y);
+   x*=taper;z*=taper;if(x<0)x*=.4;
+   x-=.45*y*y;y=Math.max(y,-.82);
+   q.setXYZ(i,x*.013,y*.021,z*.013*(1+.06*Math.sin(k+y*3)));
+  }
+  clove.computeVertexNormals();
+  paint(clove,(col,x,y,z)=>{
+   col.copy(C(0xecdcd0)).lerp(C(0xf6eee4),.4*(stoneNoise(x*120,y*120,z*120,4)*.5+.5));
+   col.lerp(C(0xb07c98),.35*Math.max(0,Math.sin(Math.atan2(z,x)*9+y*40+k))**4*smooth(.018,.004,Math.abs(y+.004)));
+   col.lerp(C(0xd4bf98),.6*smooth(.01,.019,y));
+   col.lerp(C(0x9c7a50),.85*smooth(-.0165,-.0172,y));
+  });
+  // Lie it on its flat inner face, turned any which way.
+  const [x,z,yaw]=spots[k];
+  clove.rotateZ(Math.PI/2);clove.rotateY(yaw);
+  clove.computeBoundingBox();clove.translate(x,-clove.boundingBox.min.y,z);
+  parts.push(clove);
+ }
+ const geo=mergeGeometries(parts);parts.forEach(q=>q.dispose());
+ const mesh=new THREE.Mesh(geo,skin);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part='garlic';g.add(mesh);
+ g.rotation.y=.5;
+}
+
 // Tin and magic whistles share the look "whistle": a nickel-plated pea whistle lying on its
 // side, so its round chamber and flat mouthpiece read from above like a "q". The window over
 // the pea is cut in the mouthpiece's outer wall, a ring on a tab holds a braided red lanyard
@@ -4783,7 +4866,7 @@ export function createGroundModel(item={}){
    else{ball(.13,raw,.03,.08,0,[1.2,.6,1]);ball(.08,fat,.1,.09,.04,[1,.5,.8]);
     lie(.016,.016,.12,fat,-.15,.06,0);ball(.026,fat,-.21,.06,.012);ball(.026,fat,-.21,.06,-.012);}
   }else if(kind==='garlic'){
-   const bulb=mat(0xe8e1cf);ball(.04,bulb,0,.035,0,[1,.85,1]);add(new THREE.ConeGeometry(.02,.05,8),bulb,0,.085,0);
+   buildGarlic(Number(/^\s*(\d+)/.exec(name)?.[1]??1),{g,materials});
   }else if(kind==='royal jelly'){
    const jelly=new THREE.MeshStandardMaterial({color:0xe6b02e,roughness:.15,transparent:true,opacity:.8,emissive:0x6a4a08,emissiveIntensity:.3});materials.push(jelly);
    ball(.07,jelly,0,.03,0,[1.2,.42,1]);ball(.035,jelly,.05,.04,.03,[1,.6,1]);
