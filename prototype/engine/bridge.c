@@ -295,6 +295,7 @@ static void frame(void) {
         printf("{\"x\":%d,\"z\":%d,\"glyph\":%d,\"symbol\":%d,\"color\":%d,\"visible\":%s,\"remembered\":%s,\"terrain\":",x,y,g,ch,col,cansee(x,y)?"true":"false",levl[x][y].seenv?"true":"false");quoted(terrain(terrain_glyph));
         /* Anonymous remembered presence, not physical invisibility of a
            monster legitimately perceived through see-invisible/telepathy. */
+        if(glyph_is_cmap(terrain_glyph)&&(glyph_to_cmap(terrain_glyph)==S_vodoor||glyph_to_cmap(terrain_glyph)==S_hodoor))printf(",\"door\":\"open\"");
         printf(",\"invisible\":%s",glyph_is_invisible(g)?"true":"false");
         printf(",\"kind\":");quoted(glyph_is_pet(g)?"pet":glyph_is_monster(g)?"monster":glyph_is_object(g)?"object":"terrain");
         if (glyph_is_monster(g) && !glyph_is_pet(g)) {
