@@ -1,4 +1,4 @@
-// A six-legged insect's tripod gait (ants in ant.js, the giant beetle in creatures.js). live.js
+// A six-legged insect's tripod gait (ants in ant.js, the giant beetle in beetle.js). live.js
 // swings every walker's legs about x (±.4 rad at 22 rad/s). An insect's legs splay out sideways,
 // so that pitch reads as the legs lifting and dropping in place, not as a stride. Real insects
 // walk on alternating tripods: the front and hind legs of one side step with the middle leg of
