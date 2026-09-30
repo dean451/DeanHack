@@ -92,7 +92,10 @@ test('deaths hold their pose, block later actions and hold back the map', () => 
   assert.ok(q.finished);
   assert.equal(holdBackMs([q]), 0);
   assert.ok(Math.abs(a.g.rotation.z) > 1.2, 'toppled');
-  assert.ok(a.g.position.y < -.05 && a.g.position.y > -.2, 'sunk');
+  // it lies on the floor (ground.js), not sunk through it
+  a.g.updateMatrixWorld(true);
+  const low = new THREE.Box3().setFromObject(a.g, true).min.y;
+  assert.ok(low < .01 && low > -.08, `lies at ${low}`);
 });
 
 test('a backlog plays faster so the actor keeps up', () => {

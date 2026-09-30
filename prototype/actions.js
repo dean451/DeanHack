@@ -17,6 +17,7 @@ import {hitStyle, hitReactionPose, HIT_TIME} from './hit-fx.js';
 import {catMove, catSize, catLength, catAttackPose} from './cats.js';
 import {jawPose, jawReach} from './jaw.js';
 import {risePose, RISE_TIME, RISE_BURST_U} from './rise.js';
+import {groundSamples, groundLift, grounds} from './ground.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9, rise: RISE_TIME};
 // Wait no longer than this for a death to play before the map (and its corpse) goes on.
@@ -205,6 +206,8 @@ export function updateActions(actor, q, dt) {
   if (!q.current && q.queue.length) {
     q.current = q.queue.shift(); q.age = 0; q.face = null;
     if (swings(actor, q.current)) q.current.swing = true;
+    // A body that lies down is kept on the floor (ground.js); its points are taken at rest.
+    q.ground = grounds(q.current, q.current.style) ? groundSamples(actor.g) : null;
   }
   const a = q.current;
   q.swing = null;
@@ -229,7 +232,12 @@ export function updateActions(actor, q, dt) {
     q.swing = {blow: blowOf(a.blow), u, trail: swingTrailOn(a.blow, u), dir: a.dir, target: a.target ?? null,
       contact: a.result === 'hit' && before < tc && q.age >= tc};
   }
+  const restY = actor.g.position.y;
   applyPose(actor, q, pose);
+  if (q.ground) {
+    const lift = groundLift(actor.g, q.ground, restY);
+    actor.g.position.y += lift; q.applied.dy += lift;
+  }
   if (a.kind === 'die') {
     // For the renderer: how opaque the body is, and (once, as it crosses its moment) the
     // death's particle burst.
