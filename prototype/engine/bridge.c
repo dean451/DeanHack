@@ -137,6 +137,14 @@ static void fx_glyph(int g) {
         int o=glyph_to_obj(g);
         fx_printf("\"object\",\"otyp\":%d,\"class\":%d,\"material\":%d",o,objects[o].oc_class,objects[o].oc_material);
         if(OBJ_DESCR(objects[o])){fx_printf(",\"appearance\":");fx_quoted(OBJ_DESCR(objects[o]));}
+        /* How a thrown weapon flies. Every appearance of a type shares its skill, so this
+           says no more than the glyph does. */
+        if(objects[o].oc_class==WEAPON_CLASS){
+            int sk=objects[o].oc_skill;
+            const char *shape=sk==-P_BOW?"arrow":sk==-P_CROSSBOW?"bolt":sk==-P_DART?"dart":sk==-P_SHURIKEN?"shuriken":
+                sk==-P_SLING?"stone":sk==P_DAGGER||sk==P_KNIFE?"dagger":sk==P_SPEAR||sk==P_TRIDENT||sk==P_LANCE?"spear":"weapon";
+            fx_printf(",\"shape\":\"%s\"",shape);
+        }
     } else if(glyph_is_monster(g)&&glyph_to_mon(g)>=0&&glyph_to_mon(g)<NUMMONS){
         fx_printf("\"monster\",\"name\":");fx_quoted(mons[glyph_to_mon(g)].mname);
     } else if(glyph_is_cmap(g)){
