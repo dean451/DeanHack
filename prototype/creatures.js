@@ -51,6 +51,7 @@ import {createDwarf,isDwarf} from './dwarf.js';
 import {createValkyrie} from './valkyrie.js';
 import {createSamurai} from './samurai.js';
 import {createKnight} from './knight.js';
+import {createHezrou} from './hezrou.js';
 import {createWizard} from './wizard.js';
 
 const M={
@@ -2010,7 +2011,7 @@ const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',horns:'short',head:'to
  'horned devil':{skin:'#8a3a24',horns:'long',tail:true,weapon:'trident'},succubus:{skin:'#d8a090',eye:'#ff60a0',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true},
  incubus:{skin:'#b07a60',eye:'#ff60a0',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true},erinys:{skin:'#a86a58',eye:'#ff4030',slim:true,hair:'#3a2418',wings:.8,weapon:'sword'},
  'barbed devil':{skin:'#9a2e20',horns:'short',spikes:true,tail:true},marilith:{skin:'#7a3a5a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true},
- vrock:{skin:'#6a5a48',head:'beak',horn:'#3a3028',wings:.9},hezrou:{skin:'#6a7a3a',eye:'#ffe060',head:'toad',bulk:1.25},'bone devil':{skin:'#9a9078',head:'skull',spikes:'bone',tail:true},
+ vrock:{skin:'#6a5a48',head:'beak',horn:'#3a3028',wings:.9},'bone devil':{skin:'#9a9078',head:'skull',spikes:'bone',tail:true},
  'ice devil':{skin:'#b8d0e0',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true},nalfeshnee:{skin:'#5a4a3a',head:'toad',horns:'short',wings:.5,bulk:1.3},
  'pit fiend':{skin:'#7a1a18',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.1},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',weapon:'whip',bulk:1.2,scale:1.2},
  "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.25},
@@ -2189,6 +2190,7 @@ export function createCreature(cell={}){
  if(JABBERWOCK_KINDS.includes(name))return createJabberwock(name);
  if(TRAPPERS[name])return trapper(TRAPPERS[name]);
  if(SEA_MONSTERS[name])return seaMonster(SEA_MONSTERS[name]);
+ if(name==='hezrou')return createHezrou();
  if(DEMONS[name])return demon(DEMONS[name]);
  if(RIDERS[name])return wraith(RIDERS[name]);
  if(name==='juiblex')return createJuiblex();
