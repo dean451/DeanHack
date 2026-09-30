@@ -17,8 +17,12 @@ export const BREAK = {life: 3.2, sink: 2.5, dust: 1.1, gravity: 9.8, bounce: .32
 // A door that breaks into a wreck (`door:'broken'`, drawn by door.js with its frame, hanging
 // stubs, straps and its own floor debris) keeps most of its leaf, so only the loose splinters
 // fly: no strap iron (it stays on the stubs), every other plank, thinner, and they sink away
-// sooner, leaving the wreck's own debris.
-export const WRECK = {keep: 2, thin: .6, life: 2, sink: 1.4};
+// sooner, leaving the wreck's own debris. They start from the part of the leaf that broke
+// away (x along the leaf in door space, hinge at -.4): not the latch-side sliver held by the
+// shot bolt (the last .12, so x < `from[1]`), not the two hinge-side plank stubs still on the
+// bottom strap (up to about .38 wide and .53 high, so low down x > `low.x`), and not the
+// scrap on the top strap (the first plank, so x > `from[0]` above that).
+export const WRECK = {keep: 2, thin: .6, life: 2, sink: 1.4, from: [-.25, .26], low: {y: .56, x: 0}};
 // The leaf's size, from door.js's DOOR_LEAF (width .8, height .95, off the floor by .03).
 const LEAF_W = .8, LEAF_H = .95, LEAF_Y = .03;
 
@@ -97,8 +101,11 @@ export function shardsFor(seed = 0, {wreck = false} = {}) {
     // Planks: long along y, a few cm wide, as thick as the leaf. Iron: short flat straps.
     const size = iron ? [.1 + .08 * r(1), .025, .012] : [.035 + .05 * r(1), .1 + .26 * r(2), .028];
     if (wreck) { size[0] *= WRECK.thin; size[1] *= .5 + .5 * WRECK.thin; }
-    // Spread over the leaf, more of them low down where a kick lands.
-    const x = (r(3) - .5) * LEAF_W * .9, y = LEAF_Y + LEAF_H * (.08 + .8 * r(4) ** 1.4);
+    // Spread over the leaf (for a wreck, its broken-away part), more of them low down where a
+    // kick lands.
+    const y = LEAF_Y + LEAF_H * (.08 + .8 * r(4) ** 1.4);
+    const lo = y < WRECK.low.y ? WRECK.low.x : WRECK.from[0];
+    const x = wreck ? lo + (WRECK.from[1] - lo) * r(3) : (r(3) - .5) * LEAF_W * .9;
     // Out across the leaf and away from its middle, and up a little.
     const out_ = .9 + 1.3 * r(5);
     const vel = [x * (.8 + 1.2 * r(6)) + (r(7) - .5) * .6, .6 + 1.8 * r(8), out_];
