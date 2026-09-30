@@ -31,6 +31,32 @@ test('a door that becomes a doorway breaks, and shards fly away from the hero', 
   assert.equal(v[0].push, -1);
 });
 
+// room() plus a monster cell at each [x, z] (optionally unseen).
+const withMonsters = (frame, spots, extra = {}) =>
+  ({...frame, cells: [...frame.cells, ...spots.map(([x, z]) => ({x, z, kind: 'monster', glyph: 'H', name: 'hill giant', ...extra}))]});
+
+test('a monster that breaks the door sends the shards away from itself, not from the hero', () => {
+  // The hero is off to the side (not against the leaf); a giant south of the door smashes it
+  // and steps into the doorway with the same move.
+  const hero = {hero: [0, 3]};
+  const giantSouth = withMonsters(room('closed', {hero: [4, 0]}), [[2, 1]]);
+  assert.equal(findBreaks(giantSouth, withMonsters(room('broken', {hero: [4, 0]}), [[2, 2]]))[0].push, 1,
+    'the giant south of the door (z 1) pushes shards north even though the hero is south too');
+  assert.equal(findBreaks(withMonsters(room('closed', hero), [[2, 3]]), room('broken', hero))[0].push, -1);
+  // A vertical door broken by a monster at x 1: shards go to +x, though the hero is at x 4.
+  const vHero = {vertical: true, hero: [4, 0]};
+  assert.equal(findBreaks(withMonsters(room('closed', vHero), [[1, 2]]), room('broken', vHero))[0].push, 1);
+  // The hero against the leaf wins (a kick), even with a monster on the other side.
+  assert.equal(findBreaks(withMonsters(room('closed'), [[2, 1]]), room('broken'))[0].push, -1);
+  // Monsters on both sides, or only diagonal/far ones, or unseen ones: back to the hero's side.
+  const far = {hero: [4, 4]};
+  assert.equal(findBreaks(withMonsters(room('closed', far), [[2, 1], [2, 3]]), room('broken', far))[0].push, -1);
+  assert.equal(findBreaks(withMonsters(room('closed', far), [[1, 1], [2, 0]]), room('broken', far))[0].push, -1);
+  assert.equal(findBreaks(withMonsters(room('closed', far), [[2, 1]], {invisible: true}), room('broken', far))[0].push, -1);
+  // A monster standing in an open doorway doesn't hide the door from findBreaks.
+  assert.equal(findBreaks(withMonsters(room('open', far), [[2, 2]]), room('broken', far)).length, 1);
+});
+
 test('opening, closing, staying put, unseen breaks and level changes find nothing', () => {
   assert.deepEqual(findBreaks(room(), room('open')), []);
   assert.deepEqual(findBreaks(room('open'), room()), []);
