@@ -3,7 +3,9 @@
 // now that a zombie takes ~1.2 s to cross a cell it looks like its legs are running in place.
 // Instead the stride is slow and short, and its pace follows the slide speed, so the feet slow
 // as the body pulls away and brakes. A zombie lurches from side to side onto each planted leg;
-// a golem stamps down hard at each footfall. Everything blends in and out with the walk, so a
+// a golem looms: it leans its hulking chest forward from the hips, its sunk head held up so the
+// burning eyes stay fixed ahead, and glides on a short, smooth shuffle with no stamp, the long
+// arms hanging and dragging a beat behind, so it seems to slide toward you. Everything blends in and out with the walk, so a
 // monster that stops eases its legs back to rest instead of snapping them straight.
 // The ghoul (ghoul.js) lopes instead: a quicker, longer, springier stride with a deep crouch at
 // each footfall, its skull dipping with the step and its long arms swinging loose, a beat
@@ -17,7 +19,9 @@
 // plod.js), so the idle breathing comes back as the walk fades. The lurch
 // (body.rotation.z), the head dip (head.rotation.x), the skeleton's skull rattle
 // (head.rotation.z), its jaw clack (jaw.rotation.x, scaled by jawReach) and the arm swing (arms[i].rotation.x) are offsets taken back every frame, so they never drift and the action layer's deltas still
-// stack on top.
+// stack on top. So is the golem's loom: body.rotation.x, with body.position.z/y moved so the lean
+// pivots at the hips (the leg pivots), not the feet, and the legs turned back by the same angle
+// so they stay upright under it; its head glare comes off head.rotation.x.
 import {speciesSlide, SPECIES_SLIDE} from './slide.js';
 import {jawReach} from './jaw.js';
 
@@ -28,10 +32,12 @@ import {jawReach} from './jaw.js';
 // legs and arms flick between strides (0 = a plain sine; the curve is tanh(snap·sin)/tanh(snap),
 // so the peak stays at `stride`); rattle: the skull's side-to-side clatter after each footfall
 // (rad), ringing at `ring` shakes per step and dying away by the next one; clack: how far the jaw
-// flies open after each footfall (rad, before jawReach), shutting `chatter` times per step.
+// flies open after each footfall (rad, before jawReach), shutting `chatter` times per step;
+// loom: forward lean from the hips while walking (rad); glare: the share of the loom the head
+// takes back, so the face stays level.
 export const TRUDGE = {
   zombie: {rate: 8, stride: .3, roll: .05, dip: .018, sharp: 2},
-  golem: {rate: 6, stride: .22, roll: .025, dip: .026, sharp: 6},
+  golem: {rate: 5, stride: .15, roll: .035, dip: .008, sharp: 1, arm: .09, lag: 1.3, loom: .2, glare: .8},
   ghoul: {rate: 10.5, stride: .42, roll: .02, dip: .032, sharp: 1.5, nod: .09, arm: .24, lag: .6},
   skeleton: {rate: 9, stride: .34, roll: .03, dip: .014, sharp: 4, nod: .04, arm: .16, lag: .15,
     snap: 2.2, rattle: .07, ring: 3, clack: .24, chatter: 3},
@@ -60,7 +66,7 @@ export function trudgeKind(a) {
 // sin(phase) = 0 and are spread (footfall, body low) at |sin(phase)| = 1.
 export function trudgePose(kind, phase, w = 1) {
   const T = TRUDGE[kind];
-  if (!T || !(w > 0)) return {legs: [0, 0], bob: 0, roll: 0, nod: 0, arms: [0, 0], shake: 0, jaw: 0};
+  if (!T || !(w > 0)) return {legs: [0, 0], bob: 0, roll: 0, nod: 0, arms: [0, 0], shake: 0, jaw: 0, loom: 0, glare: 0};
   const s = Math.sin(phase), c = Math.cos(phase), fall = Math.pow(Math.abs(s), T.sharp);
   const flick = v => T.snap ? Math.tanh(T.snap * v) / Math.tanh(T.snap) : v;
   const leg = T.stride * flick(s) * w;
@@ -82,6 +88,9 @@ export function trudgePose(kind, phase, w = 1) {
     shake,
     // + opens the jaw; never closes it past rest
     jaw,
+    // + leans the body forward from the hips; the head tips back up by `glare`
+    loom: (T.loom || 0) * w,
+    glare: (T.loom || 0) * (T.glare || 0) * w,
   };
 }
 
@@ -99,6 +108,12 @@ export function updateTrudge(actor, dt, walking) {
   const st = actor.trudge || (actor.trudge = {w: 0, phase: 0, roll: 0, nod: 0, shake: 0, jaw: 0, arms: [0, 0]});
   actor.body.rotation.z -= st.roll;
   st.roll = 0;
+  if (st.loom) {
+    actor.body.rotation.x -= st.loom;
+    actor.body.position.z -= st.loomZ;
+    if (actor.head) actor.head.rotation.x += st.glare;
+  }
+  st.loom = 0; st.loomZ = 0; st.glare = 0;
   if (actor.head) { actor.head.rotation.x -= st.nod; actor.head.rotation.z -= st.shake || 0; }
   if (actor.jaw) actor.jaw.rotation.x -= st.jaw || 0;
   st.nod = 0; st.shake = 0; st.jaw = 0;
@@ -116,8 +131,17 @@ export function updateTrudge(actor, dt, walking) {
 
   // The legs are owned outright (live.js writes 0 at rest anyway), so none of the generic
   // scurry leaks in while the walk blends in.
-  actor.legs.forEach((l, i) => { l.rotation.x = p.legs[i]; });
-  actor.body.position.y = actor.body.position.y * (1 - w) + p.bob;
+  // Loom about the hips: rotating the body by θ about its base carries the hip pivot (0, h, 0) to
+  // (0, h·cos θ, h·sin θ), so shift it back by that; the legs turn back by θ to stay upright.
+  const hip = actor.legs[0].position?.y || 0;
+  actor.legs.forEach((l, i) => { l.rotation.x = p.legs[i] - p.loom; });
+  actor.body.position.y = actor.body.position.y * (1 - w) + p.bob + hip * (1 - Math.cos(p.loom));
+  if (p.loom) {
+    st.loom = p.loom; st.loomZ = -hip * Math.sin(p.loom); st.glare = p.glare;
+    actor.body.rotation.x += st.loom;
+    actor.body.position.z += st.loomZ;
+    if (actor.head) actor.head.rotation.x -= st.glare;
+  }
   st.roll = p.roll;
   actor.body.rotation.z += st.roll;
   if (actor.head) {
