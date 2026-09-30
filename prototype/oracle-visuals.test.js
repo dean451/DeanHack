@@ -64,3 +64,24 @@ test('the fountain is finite, merged per material, and its spray moves',()=>{
   for(const x of spray.instanceMatrix.array)assert.ok(Number.isFinite(x));
   f.userData.dispose();
 });
+
+test('centaur statues are posed per species, weathered, and merged into two draws',()=>{
+  const sums=new Set();
+  for(const [species,kind] of [['plains centaur','plains'],['forest centaur','forest'],['mountain centaur','mountain'],[undefined,'plains']]){
+    const s=createCentaurStatue(species);s.updateMatrixWorld(true);
+    assert.equal(s.userData.species,kind);assert.equal(s.userData.restingWeapon,true);
+    assert.deepEqual(s.children.map(o=>o.userData.part).sort(),['figure','plinth']);
+    let sum=0;
+    for(const o of s.children){
+      assert.ok(o.geometry.attributes.color,'weathering is baked');
+      for(const key of ['position','normal','color'])for(const x of o.geometry.attributes[key].array)assert.ok(Number.isFinite(x),`${o.userData.part} ${key}`);
+      for(const x of o.geometry.attributes.position.array)sum+=x;
+    }
+    const b=new THREE.Box3().setFromObject(s,true);
+    assert.ok(b.min.y>=-.001&&b.max.y<1.5,`y ${b.min.y}..${b.max.y}`);
+    for(const k of ['x','z'])assert.ok(b.min[k]>-.7&&b.max[k]<.7,`${k} ${b.min[k]}..${b.max[k]}`);
+    if(species)sums.add(sum.toFixed(2));
+    s.userData.dispose();
+  }
+  assert.equal(sums.size,3,'each species has its own pose');
+});
