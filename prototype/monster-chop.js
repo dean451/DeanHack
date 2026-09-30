@@ -1,5 +1,5 @@
-// A weapon chop for monsters that hold a weapon on an arm without an elbow (goblins, elves,
-// priests, soldiers, the watch...). The generic weapon wave in monster-attacks.js lifts the arm
+// A weapon chop for monsters that hold a weapon forward on an arm without an elbow (goblins,
+// elves, priests...). Soldiers and the watch, who hold theirs upright, thrust instead (thrusts()). The generic weapon wave in monster-attacks.js lifts the arm
 // to its peak at the strike, so the blow lands with the blade pointing at the ceiling. Here the
 // arm is raised overhead in the windup with the weapon cocked back behind the head, then
 // brought down through the target at the strike (STRIKE_U in actions.js), the wrist snapping
@@ -33,16 +33,17 @@ function keyed(keys, u) {
   return keys[keys.length - 1];
 }
 
-// Whether an actor chops: an arm and a weapon socket, no elbow (the hero's arm plays swing.js)
-// and no centaur rig, armed or not (centaur-attack.js). The weapon has to be held pointing forward; an
-// upright spear or halberd (the soldiers and the watch) would only be rolled out sideways, so
-// those keep the generic wave. An empty socket chops with the arm alone. Measured once, at rest.
-const heldForward = new WeakMap();
-export function chops(actor) {
+// How an armed actor holds its weapon: 'forward' (a blade or club held out, which chops),
+// 'upright' (a spear or halberd planted at its side, which thrusts) or null (no arm and socket,
+// an elbowed hero arm that plays swing.js, or a centaur rig, armed or not, which plays
+// centaur-attack.js). An empty socket counts as forward and chops with the arm alone. Measured
+// once, at rest, from the weapon's far end.
+const grips = new WeakMap();
+function weaponGrip(actor) {
   const s = actor?.weaponSocket;
-  if (!actor?.arm || !s || actor.elbow || actor.centaur !== undefined) return false;
-  let fwd = heldForward.get(s);
-  if (fwd === undefined) {
+  if (!actor?.arm || !s || actor.elbow || actor.centaur !== undefined) return null;
+  let grip = grips.get(s);
+  if (grip === undefined) {
     let far = null, best = -1;
     const v = {x: 0, y: 0, z: 0}, e = new Float64Array(16);
     s.updateMatrixWorld(true);
@@ -58,11 +59,18 @@ export function chops(actor) {
         if (d > best) { best = d; far = {...v}; }
       }
     });
-    fwd = !far || far.z > Math.abs(far.y);
-    heldForward.set(s, fwd);
+    grip = !far || far.z > Math.abs(far.y) ? 'forward' : far.y > .5 ? 'upright' : null;
+    grips.set(s, grip);
   }
-  return fwd;
+  return grip;
 }
+
+// Whether an actor chops: it holds its weapon (or nothing) forward.
+export const chops = actor => weaponGrip(actor) === 'forward';
+// Whether an actor thrusts instead: a long polearm held upright (the soldiers' spears and the
+// watch's halberds). actions.js drops it level and drives it at the target with the centaur's
+// spear thrust (centaur-attack.js), which uses the same shoulder and hand handles.
+export const thrusts = actor => weaponGrip(actor) === 'upright';
 
 export function chopPose(u, result = 'hit') {
   u = Number.isFinite(u) ? clamp01(u) : 0;
