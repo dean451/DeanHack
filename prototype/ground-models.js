@@ -4499,9 +4499,10 @@ function meatNoise(x,y,z){
 const weld=geo=>{geo.deleteAttribute('uv');geo.deleteAttribute('normal');const w=mergeVertices(geo);geo.dispose();return w;};
 // Bakes every mesh under `root` into one mesh per material, laid straight into root, and
 // disposes the sources. Root's own turn is baked in too (and reset), so bounding boxes stay
-// tight around the turned model. Only for models with no animated parts. Keeps position and normal (no
-// material here uses a texture), indexes unindexed pieces so they merge with the rest, and leaves
-// mirrored meshes alone (a flipped matrix would turn their faces inside out).
+// tight around the turned model. Only for models with no animated parts. Keeps position, normal and
+// vertex colour (no material here uses a texture; a piece without colours in a bin that has some is
+// filled white), indexes unindexed pieces so they merge with the rest, and leaves mirrored meshes
+// alone (a flipped matrix would turn their faces inside out).
 function mergeByMaterial(root){
  root.updateMatrixWorld(true);
  const toRoot=root.matrix.clone().multiply(root.matrixWorld.clone().invert()),bins=new Map(),old=new Set(),keep=[];
@@ -4509,10 +4510,13 @@ function mergeByMaterial(root){
  root.traverse(o=>{if(!o.isMesh)return;const m=new THREE.Matrix4().multiplyMatrices(toRoot,o.matrixWorld);
   if(m.determinant()<=0){keep.push([o,m]);return;}
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',o.geometry.attributes.position.clone());geo.setAttribute('normal',o.geometry.attributes.normal.clone());
+  const color=o.geometry.attributes.color;if(color)geo.setAttribute('color',color.clone());
   geo.setIndex(o.geometry.index?o.geometry.index.clone():[...Array(geo.attributes.position.count).keys()]);geo.applyMatrix4(m);
   if(!bins.has(o.material))bins.set(o.material,[]);bins.get(o.material).push(geo);old.add(o.geometry);});
  for(const o of [...root.children])root.remove(o);
- for(const [material,geos] of bins){const merged=mergeGeometries(geos);geos.forEach(q=>q.dispose());
+ for(const [material,geos] of bins){
+  if(geos.some(q=>q.attributes.color))for(const q of geos)if(!q.attributes.color)q.setAttribute('color',new THREE.Float32BufferAttribute(new Float32Array(q.attributes.position.count*3).fill(1),3));
+  const merged=mergeGeometries(geos);geos.forEach(q=>q.dispose());
   const one=new THREE.Mesh(merged,material);one.castShadow=one.receiveShadow=true;root.add(one);}
  for(const [o,m] of keep){old.delete(o.geometry);o.removeFromParent();m.decompose(o.position,o.quaternion,o.scale);root.add(o);}
  old.forEach(q=>q.dispose());
@@ -5714,6 +5718,8 @@ export function createGroundModel(item={}){
     edge([new THREE.Vector3(x,height(x,z),z),new THREE.Vector3(x+.004,.012,z+side*(.018+(i%3)*.004))]);
    }
   }
+  // Nothing moves, so the cloth, hems and fringe bake to one mesh per material: 2 draws, not up to 31.
+  mergeByMaterial(g);
  }else if(cls===3&&/\bgloves\b|\bgauntlets\b/.test(name)){
   buildGloves((item.appearance||'').toLowerCase(),{g,materials});
  }else if(cls===3&&/\bhelm\b|helmet|\bhat\b|\bcap\b|fedora|cornuthaum|dented pot/.test(name)){
@@ -6122,6 +6128,9 @@ export function createGroundModel(item={}){
    }
   }
   g.rotation.y=.3;
+  // The band, hems, seams, 44 stitches, knot and frayed threads bake to one mesh per material:
+  // 3 draws where there were 61.
+  mergeByMaterial(g);
  }else if(cls===6&&/\bfigurine\b/.test(name)){
   buildFigurine({g,materials});
  }else if(cls===6&&TOOL_KIND.test(name)){
@@ -6177,6 +6186,8 @@ export function createGroundModel(item={}){
    ball(.013,brass,joint+.028+.176,.02,0);
    // Drop onto the floor and centre on the tile.
    g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(g),mid=(b.min.x+b.max.x)/2;g.children.forEach(p=>{p.position.y-=b.min.y;p.position.x-=mid;});
+   // Frame, beads, crest, glass and handle bake to one mesh per material: 5 draws, not 45.
+   mergeByMaterial(g);
   }else if(kind==='crystal ball'){
    buildCrystalBall({g,materials});
   }else if(kind==='horn'){

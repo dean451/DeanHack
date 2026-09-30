@@ -375,8 +375,10 @@ test('the looking glass lies flat with a painted reflection, a beaded frame and 
  assert(glass,'the glass carries a painted reflection');
  const colors=glass.geometry.attributes.color.array;
  assert(Math.max(...colors)-Math.min(...colors)>.4,'the reflection has bright streaks');
- assert(model.children.filter(part=>part.geometry.type==='LatheGeometry').length>=2,'moulded frame and turned handle');
- assert(model.children.filter(part=>part.geometry.type==='SphereGeometry').length>=30,'beaded rim');
+ const frame=model.children.find(part=>part.material.metalness>.8);
+ assert(frame.geometry.attributes.position.count>3000,'moulded frame with a beaded rim and crest');
+ assert.equal(model.children.length,new Set(model.children.map(part=>part.material)).size,'one draw per material');
+ assert(model.children.length<=5);
  model.userData.dispose();
 });
 
@@ -389,7 +391,9 @@ test('the blindfold is a padded silk band tied in a loop with frayed trailing ti
  let vertices=0;
  model.traverse(part=>{if(part.geometry){const a=part.geometry.attributes.position.array;vertices+=a.length/3;for(const value of a)assert(Number.isFinite(value));}});
  assert(vertices<20000,`vertices: ${vertices}`);
- assert(model.children.filter(part=>part.geometry.type==='TubeGeometry').length>=10,'hems and frayed threads');
+ assert(vertices>4000,'hems, stitches and frayed threads are all there');
+ const materials=new Set(model.children.map(part=>part.material));
+ assert(model.children.length<=3&&model.children.length===materials.size,`one draw per material, got ${model.children.length}`);
  model.userData.dispose();
 });
 
