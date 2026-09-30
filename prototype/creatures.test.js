@@ -465,6 +465,36 @@ test('the nurse gets a dress, apron, cap and syringe instead of the plain humano
  assert.equal(again[0].geometry,parts[0].geometry,'geometry is shared');
 });
 
+test('shopkeepers get an apron, waistcoat, keys, purse, spectacles and a balance, the same in Live and the gallery',async()=>{
+ const {createShopkeeper}=await import('./shop-visuals.js');
+ const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const t0=performance.now(),k=createCreature({name:'shopkeeper',symbol:AT,color:15}),ms=performance.now()-t0;
+ assert.equal(k.quirk,'shopkeeper');
+ for(const key of ['body','head','arm','weaponSocket'])assert(k[key]?.isObject3D,key);
+ assert.equal(k.legs.length,2);assert.equal(k.arms.length,2);
+ assert(k.arm.children.includes(k.weaponSocket),'the balance rides the arm');
+ const parts=meshes(k);assert.equal(parts.length,7);
+ assert.deepEqual(parts.map(m=>m.userData.part).sort(),['arm','balance','body','head','ledger arm','leg','leg']);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ k.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(k.g);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.1&&b.max.y<1.35,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.48,`fits the tile: ${JSON.stringify(b)}`);
+ assert(ms<1000,`took ${ms} ms`);
+ // Live builds it through shop-visuals; it is the same shared model
+ const live=createShopkeeper();
+ assert.equal(meshes(live)[0].geometry,parts[0].geometry,'geometry is shared with Live');
+ assert.equal(live.g.userData.dispose,undefined,'shared geometry is never disposed per actor');
+ assert.equal(createCreature({name:'merchant',symbol:AT,color:15}).quirk,'shopkeeper');
+});
+
 test('the watch get tabards, helmets and a halberd and lantern or a sword instead of the guard block',()=>{
  const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const expect={watchman:{draws:9,weapon:'halberd',lantern:true},'watch captain':{draws:7,weapon:'sword',lantern:false}},built={};

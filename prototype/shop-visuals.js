@@ -12,38 +12,8 @@ function kit(name){
  g.userData.dispose=()=>{geometries.forEach(o=>o.dispose());materials.forEach(o=>o.dispose());};
  return {g,mat,mesh,ball,box,cyl,ring};
 }
-export function createShopkeeper(){
- const {g,mat,ball,box,ring}=kit('Aproned shopkeeper');
- const body=new THREE.Group();g.add(body);const legs=[];
- const skin=mat(0xc68c65),shirt=mat(0x536f68),apron=mat(0xd8c6a1),hair=mat(0x443027),boot=mat(0x352e2a),eye=mat(0x20252a),gold=mat(0xb59b5e,{metalness:.6});
- for(const x of [-.17,.17]){const leg=new THREE.Group();leg.position.set(x,.27,0);g.add(leg);box(boot,0,-.04,0,.18,.28,.2,leg);box(boot,0,-.19,.055,.23,.12,.3,leg);legs.push(leg);}
- ball(shirt,0,.65,0,.37,.4,.25,body);
- // The apron follows the belly instead of disappearing inside it.
- ball(apron,0,.65,.13,.30,.33,.19,body);
- box(apron,0,.38,.22,.50,.27,.065,body);
- box(apron,0,.94,.19,.26,.20,.045,body);
- box(hair,0,.57,.322,.23,.13,.024,body);
- box(apron,0,.59,.338,.19,.075,.018,body);
- for(const x of [-.14,.14]){const strap=box(apron,x,.99,.13,.047,.24,.045,body);strap.rotation.x=-.28;}
- ball(skin,0,1.2,.025,.23,.25,.20,body);
- ball(skin,0,1.10,.14,.18,.10,.13,body);
- for(const x of [-.23,.23])ball(skin,x,1.2,.025,.05,.074,.045,body);
- // Receding hair, round nose, dark eyes and a broad curled mustache.
- ball(hair,0,1.34,-.07,.23,.12,.17,body);
- ball(skin,0,1.35,.025,.19,.13,.16,body);
- ball(skin,0,1.19,.23,.064,.058,.06,body);
- for(const side of [-1,1]){
-  ball(eye,side*.082,1.265,.203,.024,.025,.016,body);
-  const brow=box(hair,side*.082,1.31,.185,.09,.024,.025,body);brow.rotation.z=side*.08;
-  const moustache=ball(hair,side*.069,1.135,.239,.085,.039,.035,body);moustache.rotation.z=side*.18;
-  ball(hair,side*.139,1.151,.233,.036,.023,.025,body);
-  const arm=box(shirt,side*.365,.79,0,.15,.35,.18,body);arm.rotation.z=side*.16;
-  box(apron,side*.39,.62,.01,.16,.075,.18,body);
-  ball(skin,side*.40,.55,.03,.082,.095,.079,body);
- }
- const buckle=ring(gold,0,.81,.314,.045,.008);buckle.scale.set(1,.7,1);
- return {g,body,legs,quirk:'shopkeeper'};
-}
+// Shopkeepers share their model with the creature builder (shopkeeper.js).
+export {createShopkeeper} from './shopkeeper.js';
 
 export function createWatchman(){
  const {g,mat,mesh,ball,box,ring}=kit('Armored watchman');
