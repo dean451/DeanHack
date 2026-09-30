@@ -45,6 +45,7 @@ import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
 import {createGnome,isGnome} from './gnome.js';
 import {createOrc,isOrc} from './orc.js';
+import {createDwarf,isDwarf} from './dwarf.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -61,8 +62,8 @@ function actor(g,body,legs=[],tail=null,wings=[],quirk='idle'){return {g,body,le
 function eyes(head,material=M.eye,y=0,z=.18,spread=.075){for(const x of [-spread,spread])sphere(head,.026,material,x,y,z);}
 function humanoid(kind,o={}){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[],wings=[],arms=[];let hat=null,beard=null,pick=null;
- const short=['gnome','imp'].includes(kind),stocky=kind==='orc'||kind==='dwarf',guard=kind==='guard';
- const skin=o.skin||(kind==='orc'?M.greenSkin:kind==='dwarf'?M.graySkin:M.skin);
+ const short=['gnome','imp'].includes(kind),stocky=kind==='orc',guard=kind==='guard';
+ const skin=o.skin||(kind==='orc'?M.greenSkin:M.skin);
  const torso=o.cloth||(kind==='orc'?M.brownCloth:guard?M.steel:M.cloth);
  const headY=short?.87:1.0,shoulderY=short?.7:.8,torsoW=stocky?.46:.42;
  for(const x of [-.13,.13]){const leg=new THREE.Group();leg.position.set(x,.4,0);body.add(leg);rounded(leg,.16,short?.27:stocky?.34:.42,.16,M.darkSteel,0,-.12,0,.035);rounded(leg,.21,.13,.28,kind==='imp'?skin:M.leather,0,-.36,.06,.03);legs.push(leg);}
@@ -72,71 +73,11 @@ function humanoid(kind,o={}){
  if(kind==='gnome'){const cap=hat=cone(body,.25,.36,o.cap||M.redCloth,0,1.2,.01,8);cap.rotation.z=-.16;beard=sphere(body,.19,M.beard,0,.86,.18,.8,.9,.65);sphere(body,.05,skin,0,.98,.19,1,1,.8);}
  if(kind==='imp'){for(const side of [-1,1]){const horn=cone(body,.04,.16,M.leather,side*.1,1.04,.02,5);horn.rotation.z=-side*.35;const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.34,.2);shape.lineTo(side*.3,-.02);shape.lineTo(side*.18,.04);shape.lineTo(0,-.12);const wing=part(body,new THREE.ShapeGeometry(shape),M.wing,side*.12,.72,-.17);wings.push(wing);}const tail=cone(body,.03,.42,skin,0,.42,-.3,5);tail.rotation.x=-2.1;}
  if(kind==='orc'){for(const x of [-.09,.09]){const tusk=cone(body,.045,.15,M.whiteFur,x,.91,.19,5);tusk.rotation.x=x<0?.35:-.35;}for(const x of [-.31,.31])sphere(body,.16,M.darkSteel,x,.84,0,1,.75,1);}
- // dwarf lords wear a gold-banded helm; dwarf kings trade it for a crown and a cape
- if(kind==='dwarf'&&o.rank==='king'){cylinder(body,.2,.21,.09,M.gold,0,1.16,0,12);for(let i=0;i<6;i++){const a=i/6*Math.PI*2;cone(body,.035,.11,M.gold,Math.sin(a)*.19,1.25,Math.cos(a)*.19,4);}sphere(body,.03,M.fire,0,1.16,.205);const cape=rounded(body,.46,.62,.04,M.redCloth,0,.6,-.19,.02);cape.rotation.x=.08;rounded(body,.5,.06,.1,M.whiteFur,0,.86,-.15,.03);}
- else if(kind==='dwarf'){cylinder(body,.22,.25,.15,M.darkSteel,0,1.17,0,10);if(o.rank==='lord'){cylinder(body,.255,.255,.04,M.gold,0,1.12,0,12);const crest=rounded(body,.04,.1,.3,M.gold,0,1.27,0,.015);crest.rotation.x=.1;}}
- if(kind==='dwarf'){beard=sphere(body,.2,o.beard||M.beard,0,1.0,.18,.95,1.1,.6);beard.scale.y=1.25;}
  if(guard){cylinder(body,.23,.23,.13,M.darkSteel,0,1.19,0,10);const plume=cone(body,.06,.25,M.redCloth,0,1.38,-.01,6);plume.rotation.z=-.12;rounded(body,.48,.07,.32,M.gold,0,.78,0,.02);}
  eyes(body,kind==='orc'||kind==='imp'?M.fire:M.eye,short?.91:1.04,.205,.075);
  if(guard){const spear=rounded(body,.045,.7,.045,M.steel,.36,.7,.24,.01);spear.rotation.z=-.12;cone(body,.07,.14,M.steel,.36,1.1,.24,5).rotation.x=Math.PI;}
- if(kind==='dwarf'&&o.rank==='king'){const scepter=rounded(body,.04,.62,.04,M.gold,.36,.68,.18,.01);scepter.rotation.z=-.1;sphere(body,.06,M.gold,.39,1.0,.18);}
- else if(kind==='dwarf')pick=dwarfPick(body);
  // arms, hat, beard and pick are handles for the small folk's gaits (gait.js)
  return Object.assign(actor(g,body,legs,null,wings,kind),{arms,hat,beard,pick});
-}
-// The dwarves' pick-axe, held low in the left hand and leaning out: an arched forged head with a
-// drawn point and a chisel end (polished at the tips, forge-dark in the middle, flecked with rust),
-// an eye boss with bands, riveted langets, a wedge through the top, a turned haft with a swelled
-// butt and a spiralled leather grip.
-const PICK={
- forged:new THREE.MeshStandardMaterial({vertexColors:true,metalness:.72,roughness:.36}),
- wood:new THREE.MeshStandardMaterial({color:0x7a5436,roughness:.82}),
- grip:new THREE.MeshStandardMaterial({color:0x3a2519,roughness:.95}),
-};
-function forgedPickHead(rows=26,sides=10){
- const pos=[],col=[],idx=[],hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
- for(let i=0;i<=rows;i++){
-  const u=i/rows*2-1,a=Math.abs(u),x=u*.19,y=.034*(1-u*u)-.01;
-  let tx=.19,ty=-.068*u;const tl=Math.hypot(tx,ty);tx/=tl;ty/=tl;const nx=-ty,ny=tx;
-  const taper=1-Math.pow(a,1.5)*.9,hh=.028*taper+.003;
-  // u<0 is the chisel end: thin in height but keeping its width; u>0 draws out to a point
-  const hw=u<0?.017*(1-a*.15):.017*taper+.0012;
-  const bright=Math.pow(a,2.5),rust=hash(i*7.1+3)>.82?.35:0;
-  for(let j=0;j<sides;j++){
-   const th=j/sides*Math.PI*2,c=Math.cos(th),s=Math.sin(th);
-   const px=Math.sign(c)*Math.pow(Math.abs(c),.55),py=Math.sign(s)*Math.pow(Math.abs(s),.55);
-   pos.push(x+nx*py*hh,y+ny*py*hh,px*hw);
-   const f=hash(i*31+j*17)*.06,r=rust*(hash(i*5+j*13)>.5?1:.4);
-   col.push(.24+bright*.46+f+r*.3,.26+bright*.46+f+r*.02,.27+bright*.44+f-r*.12);
-  }
- }
- for(let i=0;i<rows;i++)for(let j=0;j<sides;j++){const a=i*sides+j,b=i*sides+(j+1)%sides,c=a+sides,d=b+sides;idx.push(a,c,b,b,c,d);}
- // close both ends with a small fan
- for(const [ring,flip] of [[0,true],[rows,false]]){
-  const base=ring*sides,center=pos.length/3;let cx=0,cy=0,cz=0;
-  for(let j=0;j<sides;j++){cx+=pos[(base+j)*3];cy+=pos[(base+j)*3+1];cz+=pos[(base+j)*3+2];}
-  pos.push(cx/sides,cy/sides,cz/sides);col.push(col[base*3],col[base*3+1],col[base*3+2]);
-  for(let j=0;j<sides;j++){const a=base+j,b=base+(j+1)%sides;flip?idx.push(center,a,b):idx.push(center,b,a);}
- }
- const geometry=new THREE.BufferGeometry();
- geometry.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
- geometry.setIndex(idx);geometry.computeVertexNormals();return geometry;
-}
-function dwarfPick(body){
- const pick=new THREE.Group();pick.name='dwarf-pick';pick.position.set(-.36,.44,.1);pick.rotation.set(.12,0,.42);body.add(pick);
- // haft from the butt (y -.13) to just above the head (y .6), gripped at y 0
- cylinder(pick,.016,.02,.72,PICK.wood,0,.235,0,10);sphere(pick,.026,PICK.wood,0,-.12,0,1,.75,1);
- const grain=new THREE.MeshStandardMaterial({color:0x5b3c25,roughness:.85});
- for(const [x,z] of [[.0165,.004],[-.012,.012],[.004,-.017]])part(pick,new THREE.BoxGeometry(.003,.5,.003),grain,x,.28,z);
- const helix=[];for(let i=0;i<=60;i++){const t=i/60,a=t*Math.PI*2*5.5;helix.push(new THREE.Vector3(Math.cos(a)*.022,-.09+t*.2,Math.sin(a)*.022));}
- part(pick,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix),120,.0055,5),PICK.grip);
- for(const y of [-.095,.115]){const band=part(pick,new THREE.TorusGeometry(.023,.005,6,14),PICK.grip,0,y,0);band.rotation.x=Math.PI/2;}
- part(pick,forgedPickHead(),PICK.forged,0,.56,0);
- cylinder(pick,.03,.03,.075,M.darkSteel,0,.56,0,10);
- for(const y of [.527,.593]){const band=part(pick,new THREE.TorusGeometry(.031,.0045,6,14),M.steel,0,y,0);band.rotation.x=Math.PI/2;}
- for(const z of [-.02,.02]){part(pick,new THREE.BoxGeometry(.014,.13,.005),M.darkSteel,0,.46,z);for(const y of [.42,.49])part(pick,new THREE.SphereGeometry(.005,6,4),M.steel,0,y,z*1.25);}
- part(pick,new THREE.BoxGeometry(.028,.018,.008),M.darkSteel,0,.605,0);
- return pick;
 }
 function gridBug(){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[];sphere(body,.17,M.electric,0,.25,0,.8,.6,1.25);sphere(body,.11,M.darkSteel,0,.27,.16,.9,.72,1);eyes(body,M.electric,.01,.15,.055);
@@ -2303,10 +2244,9 @@ export function createCreature(cell={}){
  if(name==='hobbit')return createHobbit();
  if(isGoblin(name))return createGoblin(name);
  if(isOrc(name)||/orc|uruk|snaga/.test(name))return createOrc(name);
- if(name==='dwarf lord')return humanoid('dwarf',{rank:'lord',cloth:mat('#3d5a9a')});
- if(name==='dwarf king')return humanoid('dwarf',{rank:'king',cloth:mat('#6a3a8a'),beard:mat('#c9c3b4')});
+ if(isDwarf(name))return createDwarf(name);
  if(name==='bugbear')return createBugbear();
- if(/dwarf/.test(name))return humanoid('dwarf');
+ if(/dwarf/.test(name))return createDwarf(name);
  if(isGnome(name))return createGnome(name);
  // unlisted species: fall back on the monster class letter, then the glyph colour
  const c=color||'#8a8a80';
@@ -2342,7 +2282,7 @@ export function createCreature(cell={}){
   case 'Z':return createZombie('human zombie');
   case 'M':return createMummy('human mummy');
   case 'G':return createGnome(name);
-  case 'h':return humanoid('dwarf');
+  case 'h':return createDwarf(name);
   case 'o':return createOrc(name);
   case 'q':return rothe({...ROTHE,coat:c,saddle:shade(c,1.6)});
   case 'u':return horseFor(name,color);
