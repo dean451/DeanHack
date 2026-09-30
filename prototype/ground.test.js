@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
 import {deathStyle} from './deaths.js';
@@ -19,6 +20,25 @@ test('samples are sparse, finite and in the actor\'s own space', () => {
   assert.equal(groundSamples(new THREE.Group()), null);
   // standing at rest nothing needs lifting
   assert.equal(groundLift(d.g, s, d.g.position.y), 0);
+});
+
+test('a dense merged mesh keeps its box corners when rolled', () => {
+  // one mesh, like a merged model: a head, a body and two box soles; the even spread alone
+  // skips most of the sole corners, which then poke .2 through the floor on a roll
+  const parts = [new THREE.SphereGeometry(.3, 48, 32).translate(0, .8, 0),
+    new THREE.CylinderGeometry(.2, .25, .6, 48, 8).translate(0, .4, 0),
+    new THREE.BoxGeometry(.3, .08, .5).translate(.12, .04, .05),
+    new THREE.BoxGeometry(.3, .08, .5).translate(-.12, .04, .05)];
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(mergeGeometries(parts.map(p => p.toNonIndexed())), new THREE.MeshBasicMaterial()));
+  const s = groundSamples(g);
+  assert.ok(s.pts.length / 3 <= MAX_SAMPLES, `${s.pts.length / 3} points`);
+  for (let k = 0; k < 64; k++) {
+    g.rotation.set(Math.sin(k * 1.7) * 1.6, k * .4, Math.cos(k * 2.3) * 1.6);
+    g.position.y = 0;
+    g.position.y = groundLift(g, s, 0, 0);
+    assert.ok(lowest(g) > -.01, `roll ${k} sank to ${lowest(g).toFixed(3)}`);
+  }
 });
 
 test('only lying-down actions are grounded', () => {

@@ -15,6 +15,11 @@ import {DEATH_STYLES} from './deaths.js';
 export const SETTLE = .02;
 export const MAX_SAMPLES = 600;
 
+// Directions (unnormalised is fine: only the order along each matters) for the extremes.
+const DIRS = [[1, 0, 0], [0, 1, 0], [0, 0, 1],
+  [1, 1, 0], [1, -1, 0], [1, 0, 1], [1, 0, -1], [0, 1, 1], [0, 1, -1],
+  [1, 1, 1], [1, 1, -1], [1, -1, 1], [1, -1, -1]];
+
 const inv = new THREE.Matrix4(), rel = new THREE.Matrix4(), v = new THREE.Vector3();
 
 function shown(o, root) {
@@ -23,7 +28,8 @@ function shown(o, root) {
 }
 
 // Points (flat x,y,z) from g's visible meshes in g's space, plus `low`: the lowest of them.
-// Each mesh gives an even spread of its vertices and its six extreme ones, so tips aren't missed.
+// Each mesh gives an even spread of its vertices and up to 26 extreme ones, so tips and
+// corners aren't missed.
 export function groundSamples(g, max = MAX_SAMPLES) {
   if (!g) return null;
   g.updateMatrixWorld(true);
@@ -35,7 +41,9 @@ export function groundSamples(g, max = MAX_SAMPLES) {
     if (pos && pos.count && shown(o, g)) { meshes.push([o, pos]); total += pos.count; }
   });
   if (!total) return null;
-  const stride = Math.max(1, Math.ceil(total / max));
+  // The even spread gets what the extremes leave of the budget (but never under half of it).
+  const spread = Math.max(max / 2, max - 2 * DIRS.length * meshes.length);
+  const stride = Math.max(1, Math.ceil(total / spread));
   const pts = [];
   let low = Infinity;
   const add = (pos, i) => {
@@ -46,15 +54,19 @@ export function groundSamples(g, max = MAX_SAMPLES) {
   };
   for (const [o, pos] of meshes) {
     rel.multiplyMatrices(inv, o.matrixWorld);
-    const ext = [0, 0, 0, 0, 0, 0];
+    // The extreme vertex along each of the 13 axis, edge and corner directions, both ways.
+    // Axes alone missed a box corner on a merged model (a dwarf's boot sole) once it rolled.
+    const lo = new Array(DIRS.length).fill(Infinity), hi = new Array(DIRS.length).fill(-Infinity);
+    const loI = new Array(DIRS.length).fill(0), hiI = new Array(DIRS.length).fill(0);
     for (let i = 0; i < pos.count; i++) {
-      for (let a = 0; a < 3; a++) {
-        const c = pos.getComponent(i, a);
-        if (c < pos.getComponent(ext[a * 2], a)) ext[a * 2] = i;
-        if (c > pos.getComponent(ext[a * 2 + 1], a)) ext[a * 2 + 1] = i;
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      for (let d = 0; d < DIRS.length; d++) {
+        const [a, b, c] = DIRS[d], k = a * x + b * y + c * z;
+        if (k < lo[d]) { lo[d] = k; loI[d] = i; }
+        if (k > hi[d]) { hi[d] = k; hiI[d] = i; }
       }
     }
-    for (const i of new Set(ext)) add(pos, i);
+    for (const i of new Set([...loI, ...hiI])) add(pos, i);
     for (let i = 0; i < pos.count; i += stride) add(pos, i);
   }
   return pts.length ? {pts: new Float32Array(pts), low, scaleY: g.scale.y} : null;
