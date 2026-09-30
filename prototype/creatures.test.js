@@ -774,3 +774,15 @@ test('centaurs stand on the horse body with a human torso, arms and their own we
  }
  assert.equal(tops.size,3,'each kind carries something different');
 });
+
+test('heavy monsters merge their static parts but keep every animated handle attached',()=>{
+ const counts={'wood nymph':40,Angel:30,'shimmering dragon':40,marilith:25,'Kop Kaptain':25,gremlin:20,'lurker above':15,'electric eel':15};
+ for(const [name,most] of Object.entries(counts)){
+  const actor=createCreature({name});let meshes=0;actor.g.traverse(o=>{if(o.isMesh)meshes++;});
+  assert(meshes<=most,`${name}: ${meshes} meshes`);
+  const inTree=o=>{for(let p=o;p;p=p.parent)if(p===actor.g)return true;return false;};
+  const check=(v,deep)=>{if(!v||typeof v!=='object')return;if(v.isObject3D){assert(inTree(v),name);return;}if(deep)for(const w of Object.values(v))check(w,false);};
+  for(const v of [...Object.values(actor),...Object.values(actor.g.userData)])check(v,true);
+  for(const leg of actor.legs)assert(inTree(leg),name);
+ }
+});

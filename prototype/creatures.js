@@ -307,7 +307,7 @@ function dragon(o={}){
   const barb=cone(tail,f.sirrush?.025:.06,f.sirrush?.09:.12,f.sirrush?m.ivory:m.dark,end.x+dir.x*.04,end.y+dir.y*.04,end.z+dir.z*.04,f.sirrush?5:4);barb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);if(!f.sirrush)barb.scale.set(1,1,.3);
  }
  g.userData.core=core;
- return Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core});
+ return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core}));
 }
 function rat(giant=false,rabid=false){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(giant?1.25:.85);
@@ -787,20 +787,35 @@ function spiralHorn(r,h,turns=3.5){
 }
 // Merges each group's own mesh children that share a material into one mesh. The groups (body,
 // head, legs, tail) stay, so every handle that animates still works; only the draw calls drop.
-function mergeStatic(root){
+// Meshes in `keep` (animation handles), named or tagged meshes, see-through ones (they sort per
+// object), hidden ones and mirrored ones (a flipped matrix would turn their faces inside out)
+// are left alone. Shadow flags and draw order are part of the bin, so no shadow changes.
+function mergeStatic(root,keep=new Set()){
  const groups=[];root.traverse(o=>{if(!o.isMesh)groups.push(o);});
  for(const group of groups){
   const bins=new Map();
-  for(const mesh of group.children){if(!mesh.isMesh||mesh.children.length)continue;
-   const geo=mesh.geometry,key=mesh.material.uuid+(geo.index?'i':'n')+Object.keys(geo.attributes).sort().join();
+  for(const mesh of group.children){
+   if(!mesh.isMesh||mesh.children.length||keep.has(mesh)||mesh.isInstancedMesh||mesh.isSkinnedMesh||!mesh.visible||mesh.name||Array.isArray(mesh.material)||mesh.material.transparent||Object.keys(mesh.userData).length)continue;
+   mesh.updateMatrix();if(mesh.matrix.determinant()<=0)continue;
+   const geo=mesh.geometry,key=[mesh.material.uuid,geo.index?'i':'n',Object.keys(geo.attributes).sort().join(),Object.keys(geo.morphAttributes).length,mesh.castShadow,mesh.receiveShadow,mesh.renderOrder].join('|');
    if(!bins.has(key))bins.set(key,[]);bins.get(key).push(mesh);}
   for(const meshes of bins.values()){if(meshes.length<2)continue;
-   const geos=meshes.map(mesh=>{mesh.updateMatrix();return mesh.geometry.clone().applyMatrix4(mesh.matrix);}),merged=mergeGeometries(geos);
-   for(const geo of geos)geo.dispose();if(!merged)continue;
-   for(const mesh of meshes){group.remove(mesh);mesh.geometry.dispose();}
-   part(group,merged,meshes[0].material);}
+   const geos=meshes.map(mesh=>mesh.geometry.clone().applyMatrix4(mesh.matrix)),merged=mergeGeometries(geos);
+   if(!merged)continue;
+   // no dispose: this runs before the first render, and a source geometry may be shared
+   for(const mesh of meshes)group.remove(mesh);
+   const one=part(group,merged,meshes[0].material);one.castShadow=meshes[0].castShadow;one.receiveShadow=meshes[0].receiveShadow;one.renderOrder=meshes[0].renderOrder;}
  }
 }
+// Every Object3D an actor hands out (its own fields and g.userData, one level into arrays and
+// plain objects), so mergeStatic keeps the meshes that something animates or recolours.
+function handles(a){
+ const keep=new Set(),add=(v,deep)=>{if(!v||typeof v!=='object')return;if(v.isObject3D){keep.add(v);return;}
+  if(deep&&(Array.isArray(v)||Object.getPrototypeOf(v)===Object.prototype))for(const w of Object.values(v))add(w,false);};
+ for(const v of [...Object.values(a),...Object.values(a.g.userData)])add(v,true);
+ return keep;
+}
+function trimDraws(a){mergeStatic(a.g,handles(a));return a;}
 const HORSES={
  pony:{scale:.8,coat:1.15,hair:'#e0cc9a',legH:.34,stock:1.12,mane:'shaggy',hindSocks:true,tail:.4},
  horse:{scale:1,coat:1,hair:'#1e1a18',points:'#231e1b',legH:.42,stock:1,blaze:true,tail:.44},
@@ -1190,7 +1205,7 @@ function giant(o){
  if(o.weapon==='axe'||o.weapon==='axe2'){const shaft=cylinder(body,.02,.02,.6,wood,.29,.5,.16,6);shaft.rotation.x=.3;const bit=part(body,new THREE.CylinderGeometry(.1,.1,.018,10,1,false,0,Math.PI),o.weapon==='axe'?mat('#b8dcea',{roughness:.2,metalness:.4}):M.steel,.29,.74,.23);bit.rotation.set(.3,0,Math.PI/2);}
  if(o.weapon==='spear'){const shaft=cylinder(body,.018,.018,.95,wood,.29,.6,.18,6);shaft.rotation.x=.2;core=cone(body,.04,.12,new THREE.MeshStandardMaterial({color:'#bfe6ff',emissive:'#3aa0ff',emissiveIntensity:4.5,roughness:.2}),.29,1.1,.28,4);core.rotation.x=.2;g.userData.core=core;}
  if(o.hair==='fire'&&!core){core=sphere(body,.05,new THREE.MeshStandardMaterial({color:'#ffb060',emissive:'#f05010',emissiveIntensity:4.5,roughness:.3}),0,1.08,.13);g.userData.core=core;}
- return Object.assign(actor(g,body,legs,null,[],'orc'),core?{core}:{});
+ return trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),core?{core}:{}));
 }
 const GIANTS={giant:{skin:'#b08a6a',cloth:'#6a5a40',weapon:'club',scale:1.1},'stone giant':{skin:'#8a867c',cloth:'#5a5650',hair:'#4a4642',weapon:'boulder',scale:1.05},'hill giant':{skin:'#a88060',cloth:'#5a6a3a',hair:'#5a3a22',beard:true,weapon:'club',scale:1.12},'fire giant':{skin:'#6a4234',cloth:'#3a2a24',hair:'fire',beard:true,armor:'#3a3436',boot:'#2a2424',weapon:'sword',glare:M.fire,scale:1.18},'frost giant':{skin:'#a8c0d0',cloth:'#4a5a6a',hair:'#eef2f4',beard:true,mantle:'#e2e2dc',ice:true,weapon:'axe',scale:1.18},ettin:{skin:'#8a7a6a',cloth:'#4a3a2a',hair:'#2a2420',twoHeads:true,weapon:'club',scale:1.18},'storm giant':{skin:'#9aa4b4',cloth:'#2e4a78',tunic:'#3d5f9a',hair:'#1e2230',beard:true,weapon:'spear',glare:M.electric,scale:1.2},titan:{skin:'#d8b890',cloth:'#e8e0cc',hair:'#c9a23a',armor:'#c9a23a',circlet:true,glare:M.eye,weapon:'spear',scale:1.22},minotaur:{skin:'#5a3a24',cloth:'#3a2a1c',bull:true,weapon:'axe2',scale:1.15}};
 // vortices (v): a tapering funnel of tilted, offset swirl rings over a scuffed ground patch, with debris caught in the spiral; fog clouds are a low puffy bank instead
@@ -1310,7 +1325,7 @@ function nymph(o){
   const amulet=cylinder(body,.028,.028,.008,M.gold,tip[0],tip[1]-.13,tip[2],16);amulet.rotation.x=Math.PI/2;sphere(body,.012,mat('#d9344a',{emissive:'#d9344a',emissiveIntensity:1.4}),tip[0],tip[1]-.13,tip[2]+.006);}
  // embers drifting around her
  for(const [x,y,z] of [[.32,1.05,.1],[-.3,.78,.16],[.16,1.48,-.08],[-.22,1.25,.12]])sphere(body,.011,ember,x,y,z);
- return actor(g,body,legs,locks,[],'nymph');
+ return trimDraws(actor(g,body,legs,locks,[],'nymph'));
 }
 const NYMPHS={
  'wood nymph':{skin:'#eab991',cloth:'#3a2e1e',trim:'#b8923a',belt:'#3a2a1a',hair:'#b5502a',glow:'#ff8a3a',eye:'#4f7a36',lips:'#c46868'},
@@ -1331,7 +1346,7 @@ function mindFlayer(o){
  const mouth=new THREE.Group();mouth.position.set(0,1.04,.14);body.add(mouth);
  for(let i=0;i<4;i++){const x=(i-1.5)*.04,sway=(i-1.5)*.03;tube(mouth,[[x,0,0],[x+sway,-.08,.04],[x-sway,-.17,.03],[x+sway*.5,-.24,.06]],.016,skin,10);}
  if(o.circlet){const band=part(body,new THREE.TorusGeometry(.185,.018,6,20),M.gold,0,1.27,-.04);band.rotation.x=Math.PI/2-.1;sphere(body,.03,o.eye,0,1.29,.15);}
- return actor(g,body,legs,mouth);
+ return trimDraws(actor(g,body,legs,mouth));
 }
 const MIND_FLAYERS={'mind flayer':{skin:'#a07aa8',robe:'#3a2a52',eye:M.deadEye},'master mind flayer':{skin:'#b088c0',robe:'#4a1f4a',eye:M.eye,circlet:true,scale:1.1}};
 
@@ -1357,7 +1372,7 @@ function troll(o){
  eyes(head,o.glare?M.eye:mat(o.eye||'#e8d040',{emissive:o.eye||'#a08a10',emissiveIntensity:.8,roughness:.3}),.015,.095,.042);
  for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.25,.84,.06);body.add(arm);rounded(arm,.11,.32,.12,skin,0,-.15,0,.045);rounded(arm,.1,.34,.11,skin,0,-.46,.03,.04).rotation.x=-.12;sphere(arm,.075,dark,0,-.66,.06,1.1,.8,1.2);for(let k=-1;k<=1;k++)cone(arm,.012,.05,tusk,k*.03,-.69,.14,4).rotation.x=Math.PI/2;arm.rotation.x=-.28;arm.rotation.z=side*.1;}
  if(o.club){const club=cylinder(body,.07,.028,.44,mat('#4a3420',{roughness:.9}),.3,.22,.24,7);club.rotation.x=.5;if(o.armor)for(let i=0;i<3;i++)cone(body,.02,.05,M.darkSteel,.3+(i-1)*.05,.37,.33,4).rotation.x=.5;}
- return actor(g,body,legs,null,[],'orc');
+ return trimDraws(actor(g,body,legs,null,[],'orc'));
 }
 const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020'},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,eye:'#8ad8ff',scale:1.05},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.1},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.05},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,scale:1.15}};
 
@@ -1383,7 +1398,7 @@ function ogre(o){
  eyes(head,o.glare?M.eye:mat('#d8c048',{emissive:'#7a6010',emissiveIntensity:.7,roughness:.3}),.015,.115,.05);
  const clubL=o.bigClub?.55:.46,club=cylinder(body,o.bigClub?.085:.07,.03,clubL,wood,.33,.4,.2,7);club.rotation.x=.55;
  for(let i=0;i<(o.bigClub?5:3);i++){const a=i*2.1,nail=cone(body,.016,.05,metal||M.darkSteel,.33+Math.cos(a)*.07,.56+(i%2)*.04,.29+Math.sin(a)*.03,4);nail.rotation.set(.55+Math.sin(a),0,Math.cos(a));}
- return actor(g,body,legs,null,[],'orc');
+ return trimDraws(actor(g,body,legs,null,[],'orc'));
 }
 const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#8a6a48',hide:'#4a3a2a',metal:'#a0703a',scale:1.05},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.1}};
 
@@ -1411,7 +1426,7 @@ function lich(o){
  sphere(body,.055,glow,.37,1.3,.16);
  if(o.crown){const n=o.crown==='tall'?7:5,h=o.crown==='tall'?.14:.09;cylinder(body,.155,.165,.05,o.crown==='tall'?M.gold:bone,0,1.21,.02,12);for(let i=0;i<n;i++){const a=(i/n-.5)*Math.PI*1.3;cone(body,.02,h,o.crown==='tall'?M.gold:bone,Math.sin(a)*.155,1.26+h/2-.02,.02+Math.cos(a)*.155,4);}sphere(body,.026,glow,0,1.22,.18);}
  if(o.mantle){for(const side of [-1,1]){const spike=cone(body,.05,.22,bone,side*.24,1.02,-.04,5);spike.rotation.z=-side*.9;}rounded(body,.46,.08,.3,trim,0,.97,-.02,.03);}
- return actor(g,body,[],null,[],'idle');
+ return trimDraws(actor(g,body,[],null,[],'idle'));
 }
 const LICHES={lich:{robe:'#5a4430',glow:'#8ad060'},demilich:{robe:'#6a2a24',glow:'#ff5a3a',bone:'#c8bc98',tattered:true},'master lich':{robe:'#4a1f52',glow:'#c070ff',crown:'bone',scale:1.05},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',crown:'tall',mantle:true,scale:1.1}};
 
@@ -1435,7 +1450,7 @@ function wraith(o){
  if(o.circlet){cylinder(body,.17,.18,.04,mat('#7a5a34',{roughness:.6,metalness:.5}),0,1.2,-.01,12);sphere(body,.022,glow,0,1.2,.17);}
  if(o.crown){const silver=mat('#c8ccd4',{roughness:.25,metalness:.9});cylinder(body,.16,.17,.05,silver,0,1.26,-.01,12);for(let i=0;i<7;i++){const a=(i/7-.5)*Math.PI*1.4;cone(body,.018,.1,silver,Math.sin(a)*.16,1.32,-.01+Math.cos(a)*.16,4);}}
  if(o.sword){const blade=rounded(body,.04,.5,.012,o.crown?mat('#9aa0ac',{roughness:.3,metalness:.85}):mat('#8a7a64',{roughness:.6,metalness:.5}),.3,.74,.2,.008);blade.rotation.x=.9;rounded(body,.13,.025,.035,trim,.3,.62,.08,.008).rotation.x=.9;}
- return actor(g,body,[],null,[],'hover');
+ return trimDraws(actor(g,body,[],null,[],'hover'));
 }
 const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff'},'barrow wight':{robe:'#4a4a3a',glow:'#e0c040',bone:'#a89878',solid:true,circlet:true,sword:true},nazgul:{robe:'#141218',glow:'#ff3a2a',crown:true,sword:true,scale:1.1}};
 
@@ -1463,7 +1478,7 @@ function vampire(o){
  if(o.orb){const orb=sphere(body,.06,mat(o.orb,{emissive:o.orb,emissiveIntensity:3,roughness:.2,transparent:true,opacity:.9}),.26,.5,.2);g.userData.core=orb;}
  if(o.vlad){const red=mat('#9a1a24',{roughness:.7});cylinder(head,.125,.135,.1,red,0,.11,-.01,12);sphere(head,.02,mat('#e8e0c8',{roughness:.3}),0,.12,.125);for(const side of [-1,1]){const m=rounded(head,.07,.018,.02,hair,side*.035,-.065,.12,.008);m.rotation.z=side*-.35;}
   const spear=rounded(body,.03,1.4,.03,mat('#4a3420',{roughness:.9}),-.3,.71,.12,.01);spear.rotation.z=.04;cone(body,.035,.18,M.steel,-.33,1.49,.12,4);}
- return actor(g,body,legs,null,[],'idle');
+ return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
 // Xorns: a faceted stone barrel on three stubby legs, with three arms and three eyes spaced around its sides
 // and a wide, fanged mouth on top.
@@ -1484,7 +1499,7 @@ function xorn(o){
   const arm=new THREE.Group();arm.position.set(Math.sin(a+Math.PI/3)*.2,.52,Math.cos(a+Math.PI/3)*.2);arm.rotation.set(-.35,a+Math.PI/3,0,'YXZ');body.add(arm);
   rounded(arm,.075,.075,.14,stone,0,0,.06,.03);const fore=rounded(arm,.065,.065,.12,stone,0,.04,.16,.025);fore.rotation.x=-.5;
   for(const f of [-.025,0,.025])cone(arm,.012,.06,claw,f,.08,.24,4).rotation.x=Math.PI/2-.4;}
- return actor(g,body,legs,null,[],'idle');
+ return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
 const XORNS={xorn:{}};
 
@@ -1514,7 +1529,7 @@ function naga(o){
  if(o.crest==='spines'){const spine=mat(shade(o.color,.55),{roughness:.4});for(let i=0;i<4;i++)cone(neck,r*.2,r*.7,spine,0,.1+i*.11,-r*.9,4).rotation.x=-1.2;for(let i=0;i<3;i++)cone(head,r*.2,r*.7,spine,0,r*1.25-i*r*.35,-r*.8-i*r*.3,4).rotation.x=-.6-i*.35;}
  if(o.crest==='circlet'){cylinder(head,r*1.3,r*1.36,r*.3,M.gold,0,r*.75,-.01,14);sphere(head,r*.22,mat('#3aa0ff',{emissive:'#1a60c0',emissiveIntensity:1.2,roughness:.2}),0,r*.8,r*1.3);for(const side of [-1,1])cone(head,r*.15,r*.5,M.gold,side*r*.7,r*1.12,r*.95,4);}
  if(o.crest==='hood'){const hood=sphere(neck,r*3.2,scales,0,.43,-.035,1,1.25,.18);hood.rotation.x=.12;sphere(neck,r*2.6,belly,0,.42,-.022,1,1.2,.12).rotation.x=.12;for(const side of [-1,1])sphere(neck,r*.45,mat(shade(o.color,.45)),side*r*1.7,.47,-.04,1,1.4,.3);}
- return actor(g,body,[],neck,[],'snake');
+ return trimDraws(actor(g,body,[],neck,[],'snake'));
 }
 const NAGAS={'red naga':{color:'#b0321e',belly:'#e0a040',eye:'#ffcc40',crest:'flame'},'black naga':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',crest:'spines'},'golden naga':{color:'#c8a032',belly:'#f0dc8a',eye:'#ff5a3a',crest:'circlet',scale:1.05},'guardian naga':{color:'#3a8a3a',belly:'#c0d880',eye:'#ffe040',crest:'hood',scale:1.1},
  'red naga hatchling':{color:'#b0321e',belly:'#e0a040',baby:true,scale:.8},'black naga hatchling':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',baby:true,scale:.8},'golden naga hatchling':{color:'#c8a032',belly:'#f0dc8a',baby:true,scale:.8},'guardian naga hatchling':{color:'#3a8a3a',belly:'#c0d880',baby:true,scale:.8}};
@@ -1555,7 +1570,7 @@ function umberHulk(o){
   tube(head,[[side*.07,-.08,.12],[side*.11,-.13,.2],[side*.07,-.18,.27],[side*.015,-.19,.28]],.018,claw,10);
   cone(head,.02,.05,claw,side*.015,-.19,.29,4).rotation.z=side*Math.PI/2;
   const antenna=cone(head,.012,.12,dark,side*.07,.12,.02,4);antenna.rotation.set(-.6,0,-side*.5);}
- return actor(g,body,legs,head,[],'orc');
+ return trimDraws(actor(g,body,legs,head,[],'orc'));
 }
 const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.05}};
 
@@ -1603,7 +1618,7 @@ function zruty(o){
   for(let k=0;k<3;k++){const b=cone(head,.03,.1,shag,side*(.12+k*.02),-.08-k*.03,.02,5);b.rotation.set(0,0,side*(2.4+k*.2));}}
  for(let k=0;k<5;k++){const b=cone(head,.035,.12,shag,(k-2)*.05,-.17,.08,5);b.rotation.x=Math.PI-.3;}
  head.rotation.x=.1;
- return actor(g,body,legs,head,[],'orc');
+ return trimDraws(actor(g,body,legs,head,[],'orc'));
 }
 const ZRUTIES={'zruty':{fur:'#6a4a2c',hide:'#a07a58',eye:'#e8a030',scale:1.18}};
 
@@ -1634,7 +1649,7 @@ function rustMonster(o){
  for(let i=0;i<4;i++){const r=.045-i*.008,seg=cylinder(tail,r*.85,r,.06,i%2?shell:hide,0,0,-.03-i*.055,8);seg.rotation.x=Math.PI/2;}
  const vane=new THREE.Group();vane.position.set(0,0,-.25);tail.add(vane);sphere(vane,.03,shell);
  for(const a of [0,Math.PI]){const blade=rounded(vane,.16,.018,.06,shell,Math.cos(a)*.09,Math.sin(a)*.09,0,.008);blade.rotation.set(.35,0,a);}
- return actor(g,body,legs,tail,[],'lizard');
+ return trimDraws(actor(g,body,legs,tail,[],'lizard'));
 }
 const RUST_MONSTERS={'rust monster':{color:'#8a5a34',belly:'#c08a5a',fleck:'#c0602a',feeler:'#d0a070'},disenchanter:{color:'#3d5fb0',belly:'#8aa0d8',fleck:'#6a3aa0',feeler:'#b0c0f0',eye:'#c080ff',scale:1.05}};
 
@@ -1684,7 +1699,7 @@ function leprechaun(o){
  const loot=new THREE.Group();loot.position.set(.2,.32,.06);body.add(loot);
  sphere(loot,.07,sack,0,-.1,0,1,1.15,.95);cylinder(loot,.022,.03,.04,sack,0,-.02,0,8);part(loot,new THREE.TorusGeometry(.024,.006,6,12),wood,0,-.03,0).rotation.x=Math.PI/2;
  for(const [x,y,z,r] of [[.03,-.02,.03,.3],[-.02,-.01,.035,-.4],[.01,.005,.02,.1]]){const c=cylinder(loot,.018,.018,.005,coin,x,y,z,14);c.rotation.set(Math.PI/2-.4,0,r);}
- return actor(g,body,legs,loot,[],'idle');
+ return trimDraws(actor(g,body,legs,loot,[],'idle'));
 }
 const LEPRECHAUNS={leprechaun:{coat:'#2f8a3a'}};
 // Gargoyles: crouching carved-stone brutes on digitigrade haunches with knuckles on the floor, a horned
@@ -1736,7 +1751,7 @@ function gargoyle(o){
  const tail=new THREE.Group();tail.position.set(0,.2,-.14);body.add(tail);
  tube(tail,[[0,0,0],[.05,-.12,-.12],[.18,-.14,-.2],[.3,-.14,-.12]],.035,stone,16);
  const spade=cone(tail,.05,.1,dark,.34,-.14,-.1,4);spade.rotation.z=-Math.PI/2;spade.scale.set(1,1,.35);
- return actor(g,body,legs,tail,wings,'idle');
+ return trimDraws(actor(g,body,legs,tail,wings,'idle'));
 }
 function gremlin(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
@@ -1767,7 +1782,7 @@ function gremlin(o){
  // tail: a thin whip ending in a tuft
  const tail=new THREE.Group();tail.position.set(0,.26,-.08);body.add(tail);
  tube(tail,[[0,0,0],[.04,-.08,-.1],[.12,-.1,-.18],[.2,-.04,-.22]],.012,skin,12);cone(tail,.022,.05,dark,.21,-.03,-.22,4).rotation.z=-1.2;
- return actor(g,body,legs,tail,[],'idle');
+ return trimDraws(actor(g,body,legs,tail,[],'idle'));
 }
 const GARGOYLES={gargoyle:{stone:'#8a8478',eye:'#ff7a2a'},'winged gargoyle':{stone:'#6f6a74',eye:'#ffb030',winged:true,scale:1.12}};
 const GREMLINS={gremlin:{skin:'#4f8a3a',eye:'#ffd23a'}};
@@ -1820,7 +1835,7 @@ function kop(o){
  sphere(hat,.014,rank===3?brass:boot,0,.08,.118,1,1,.5);
  if(rank===3)for(const y of [.02,.045])cylinder(hat,.117-y*.08,.117-y*.08,.01,brass,0,y,0,24);
  tube(hat,[[-.11,.0,.02],[-.06,-.12,.07],[.06,-.12,.07],[.11,.0,.02]],.005,boot,12);
- return actor(g,body,legs,club,[],'guard');
+ return trimDraws(actor(g,body,legs,club,[],'guard'));
 }
 // Quantum mechanic: a stooped scientist in a long white lab coat over a coloured shirt and tie, with a shock of
 // white hair, round wire spectacles, Schrödinger's box tucked under one arm and a glowing atom held aloft in the
@@ -1867,7 +1882,7 @@ function quantumMechanic(o){
  sphere(body,.1,hair,0,headY+.045,-.025,1.05,.75,1.05);
  for(let i=0;i<11;i++){const a=i/11*Math.PI*2,tilt=i%2?.85:1.25;const tuft=cone(body,.035,.11,hair,Math.sin(a)*.09,headY+.06+(i%3)*.012,Math.cos(a)*.08-.035,5);
   tuft.rotation.set(Math.cos(a)*tilt,0,-Math.sin(a)*tilt);}
- return actor(g,body,legs,atom,[],'idle');
+ return trimDraws(actor(g,body,legs,atom,[],'idle'));
 }
 const QUANTUM_MECHANICS={'quantum mechanic':{shirt:'#3a9aa8',glow:'#5ae0ff'},'genetic engineer':{shirt:'#3f8a3a',glow:'#7aff6a'}};
 const KOPS={'keystone kop':{coat:'#2f3f8a'},'kop sergeant':{coat:'#2a3a82',rank:1,scale:1.15},'kop lieutenant':{coat:'#2a5f86',rank:2,scale:1.18,tache:'#5a3a22'},'kop kaptain':{coat:'#5a2a72',rank:3,scale:1.22,tache:'#8a8478'}};
@@ -1912,7 +1927,7 @@ function elemental(o){
  if(k==='water'){const foam=mat('#eef8ff',{roughness:.4});for(let i=0;i<7;i++){const a=(i-3)*.4;sphere(body,.04-Math.abs(i-3)*.004,foam,Math.sin(a)*.1,headY+.1+Math.cos(a)*.03,-.05-Math.abs(i-3)*.015).castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.2;sphere(body,.018,dark,Math.cos(a)*.32,.3+i*.1,Math.sin(a)*.28,1,1.4,1).castShadow=false;}}
  if(core)g.userData.core=core;
- return Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),core?{core}:{});
+ return trimDraws(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),core?{core}:{}));
 }
 const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff'},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0'},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.1},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff'},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff'}};
 
@@ -1960,7 +1975,7 @@ function angel(o){
    feather(wing,x,y,-.015,len,.04,Math.PI+side*(.1+1.2*t),i>7?plumeTip:plume);
    if(i<9)feather(wing,x,y+.01,-.004,len*.55,.045,Math.PI+side*(.15+1.1*t),plume);}
   pivot.userData.side=side;wings.push(pivot);}
- return actor(g,body,[],null,wings,'hover');
+ return trimDraws(actor(g,body,[],null,wings,'hover'));
 }
 const ANGELS={angel:{robe:'#eeeae0',sword:true,flame:'#ff9a3a'},aleax:{robe:'#b8b0a0',trim:'#9aa4aa',hair:'#6a4a2a',wing:'#dcd6ca',glow:'#fff4d0',sword:true,span:.65},archon:{robe:'#f6f2ea',trim:'#e0b83a',armor:true,rays:true,sword:true,flame:'#bfe4ff',glow:'#fff2b0',scale:1.15,span:.85}};
 
@@ -2042,7 +2057,7 @@ function demon(o){
  if(o.tail&&!o.smoke){tail=new THREE.Group();tail.position.set(0,.5,-.1*bulk);tail.scale.setScalar(.75);body.add(tail);
   const pts=[[0,0,0],[0,-.14,-.12],[.06,-.3,-.24],[.14,-.36,-.36],[.2,-.3,-.44]];tube(tail,pts,.018,skin,18);
   const spade=cone(tail,.045,.09,dark,.22,-.27,-.47,4);spade.rotation.set(-1,0,-.5);spade.scale.z=.3;}
- return actor(g,body,legs,tail,wings,o.smoke?'hover':'orc');
+ return trimDraws(actor(g,body,legs,tail,wings,o.smoke?'hover':'orc'));
 }
 const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,scale:1.15},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,scale:1.1},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,scale:1.1}};
 const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',horns:'short',head:'toad',tail:true},'lava demon':{skin:'#5a2418',eye:'#ffdd40',horns:'short',flame:'#ff6a20',tail:true},
@@ -2090,7 +2105,7 @@ function trapper(o){
  const back=new THREE.Group();back.position.set(0,.01,-.26);body.add(back);
  mantle(back,[[0,.05],[.12,.04],[.18,.018],[.22,.004]],.08,hide,Math.PI/2,Math.PI,-.02);
  legs.push(back);
- return actor(g,body,legs,null,[],'idle');
+ return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
 const TRAPPERS={'lurker above':{hide:'#4a4452',eye:'#c8e040',scale:.9},trapper:{hide:'#6a6f5e',eye:'#ff8a3a',scale:1}};
 
@@ -2113,7 +2128,7 @@ function seaMonster(o){
   const tail=new THREE.Group();tail.position.y=.52;body.add(tail);
   for(let i=0;i<10;i++){const a=i/10*Math.PI*2+.2,r=.2,pts=[];for(let k=0;k<=5;k++){const t=k/5;pts.push([Math.sin(a)*r*(1-t*.3)+Math.sin(t*6+i)*.03,-t*.46,Math.cos(a)*r*(1-t*.3)+Math.cos(t*6+i)*.03]);}tube(tail,pts,.006,glass,12);}
   for(let i=0;i<4;i++){const a=i/4*Math.PI*2+.8,pts=[];for(let k=0;k<=6;k++){const t=k/6;pts.push([Math.sin(a)*.05+Math.sin(t*9+i)*.035,-t*.36,Math.cos(a)*.05+Math.cos(t*9+i)*.035]);}tube(tail,pts,.022-.004*(i%2),rim,18);}
-  return actor(g,body,[],tail,[],'hover');
+  return trimDraws(actor(g,body,[],tail,[],'hover'));
  }
  if(o.form==='kraken'){
   // a tall, backward-tilted squid mantle with a lateral fin, great round eyes, a ring of curling arms and two long clubbed tentacles
@@ -2128,7 +2143,7 @@ function seaMonster(o){
    tube(arm,pts,.028,skin,20);for(let k=2;k<8;k+=2){const p=pts[k];sphere(arm,.012,belly,p[0],p[1]-.02,p[2],1,.5,1);}
    legs.push(arm);}
   for(const side of [-1,1]){const pts=[[side*.04,.2,.12],[side*.12,.3,.3],[side*.2,.42,.38],[side*.24,.5,.34]];tube(body,pts,.016,skin,16);sphere(body,.045,belly,side*.25,.52,.33,1,1.6,1);}
-  return actor(g,body,legs,null,[],'idle');
+  return trimDraws(actor(g,body,legs,null,[],'idle'));
  }
  if(o.form==='eel'){
   // a sinuous eel reared out of the water: the rear coils lie low (on the tail, so they sweep), the front rises in an S to a gaping head
@@ -2146,7 +2161,7 @@ function seaMonster(o){
   for(let k=0;k<6;k++){const x=(k-2.5)*.012;cone(head,.005,.018,tooth,x,-.005,.125,4).rotation.x=Math.PI;cone(head,.005,.016,tooth,x,-.04,.12,4);}
   for(const side of [-1,1]){sphere(head,.015,eye,side*.045,.03,.09);sphere(head,.007,pupil,side*.055,.035,.1);}
   if(o.spark){const glow=mat(o.spark,{emissive:o.spark,emissiveIntensity:2.4,roughness:.3});for(const p of rear.slice(1))sphere(tail,.014,glow,p[0]+.03,p[1],p[2]+.03);for(const p of front.slice(1,4))sphere(body,.014,glow,p[0]+.035,p[1],p[2]+.02);}
-  return actor(g,body,[],tail,[],'snake');
+  return trimDraws(actor(g,body,[],tail,[],'snake'));
  }
  // fish: a tapered torpedo (shark) or a deep, blunt body with an underbite (piranha), side eyes, dorsal and pectoral fins,
  // and the back third plus the caudal fin on the swinging tail
@@ -2165,7 +2180,7 @@ function seaMonster(o){
  const slit=part(body,new THREE.TorusGeometry(H*.42,H*.1,6,14,Math.PI),mouth,0,jawY,jawZ-H*.25);slit.rotation.x=Math.PI/2;slit.rotation.z=Math.PI;
  for(let k=0;k<9;k++){const a=Math.PI*(k+.5)/9,t=cone(body,H*.06,H*.2,tooth,Math.cos(a)*H*.42,jawY+H*.05,jawZ-H*.25+Math.sin(a)*H*.42,4);t.rotation.x=Math.PI;}
  if(o.underbite)for(let k=0;k<7;k++){const a=Math.PI*(k+.5)/7;cone(body,H*.06,H*.22,tooth,Math.cos(a)*H*.38,jawY+H*.02,jawZ-H*.12+Math.sin(a)*H*.3,4);}
- return actor(g,body,[],tail,[],'hover');
+ return trimDraws(actor(g,body,[],tail,[],'hover'));
 }
 const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{form:'fish',color:'#8a8a94',belly:'#c83a2a',fin:'#6a5a5a',length:.26,depth:.13,underbite:true,dorsal:1,scale:.8},
  shark:{form:'fish',color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c'},'giant eel':{form:'eel',color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040'},
