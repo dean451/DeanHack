@@ -12,26 +12,11 @@ function kit(name){
  g.userData.dispose=()=>{geometries.forEach(o=>o.dispose());materials.forEach(o=>o.dispose());};
  return {g,mat,mesh,ball,box,cyl,ring};
 }
-// Shopkeepers share their model with the creature builder (shopkeeper.js).
+// Shopkeepers and watchmen share their models with the creature builder (shopkeeper.js, watch.js),
+// so Live and the gallery draw the same figure.
 export {createShopkeeper} from './shopkeeper.js';
-
-export function createWatchman(){
- const {g,mat,mesh,ball,box,ring}=kit('Armored watchman');
- const steel=mat(0x33454d,{metalness:.65,roughness:.32}),dark=mat(0x17252d,{metalness:.35}),leather=mat(0x493529),skin=mat(0xb87956),gold=mat(0xc3a04b,{metalness:.7}),red=mat(0x8e3d3b);
- const body=new THREE.Group();g.add(body);const legs=[];
- for(const x of [-.14,.14]){const l=new THREE.Group();l.position.set(x,.3,0);g.add(l);box(leather,0,-.08,0,.17,.34,.18,l);box(dark,0,.12,.02,.19,.2,.22,l);legs.push(l);}
- box(steel,0,.68,0,.52,.54,.3,body);box(dark,0,.67,.17,.35,.38,.04,body);box(gold,0,.67,.205,.31,.035,.025,body);
- for(const x of [-.32,.32]){const a=box(steel,x,.75,0,.16,.43,.2,body);a.rotation.z=x*.2;box(dark,x,.52,.02,.17,.15,.21,body);}
- ball(skin,0,1.17,.02,.2,.23,.18,body);
- // Helm, visor, cheek guards, and a red plume make the military role readable.
- ball(steel,0,1.3,-.02,.22,.16,.19,body);box(dark,0,1.18,.18,.34,.075,.055,body);box(steel,0,1.23,.21,.34,.045,.035,body);
- const plume=mesh(new THREE.ConeGeometry(.055,.24,5),red,0,1.53,-.02);plume.rotation.z=-.12;
- for(const x of [-.105,.105]){box(steel,x,1.15,.08,.07,.18,.1,body);ball(gold,x,1.19,.225,.018,.018,.012,body);}
- // Sword and shield are intentionally oversized enough to survive the camera.
- const blade=mesh(new THREE.BoxGeometry(.045,.72,.035),steel,.36,.79,.16);blade.rotation.z=-.12;mesh(new THREE.ConeGeometry(.06,.13,4),steel,.405,1.16,.16).rotation.z=-.12;box(leather,.36,.42,.16,.13,.16,.1,body);
- ball(dark,-.36,.72,.19,.19,.25,.07,body);ring(gold,-.36,.72,.26,.14,.018).rotation.x=Math.PI/2;ball(gold,-.36,.72,.28,.035,.035,.025,body);
- return {g,body,legs,quirk:'watchman'};
-}
+import {createWatch} from './watch.js';
+export const createWatchman=()=>createWatch('watchman');
 
 export function createShopItem(name){
  const n=name.toLowerCase();
