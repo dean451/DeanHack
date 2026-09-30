@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -827,6 +827,34 @@ test('a kelp frond is one glossy merged mesh lying flat, with a second frond whe
   model.userData.dispose();
  }
  one.dispose();two.dispose();
+});
+
+test('eggs are speckled ovoids lying on their sides, and a stack shows a clutch of up to three',()=>{
+ const one=eggGeometry(1);
+ for(const key of ['position','normal','color'])for(const v of one.attributes[key].array)assert(Number.isFinite(v));
+ one.computeBoundingBox();
+ const b=one.boundingBox;
+ assert(Math.abs(b.min.y)<1e-6,'resting on the floor');
+ assert(b.max.x-b.min.x>b.max.y-b.min.y+.02,'lying on its side');
+ // Speckled: some vertices are much darker than the shell.
+ const c=one.attributes.color,sum=i=>c.getX(i)+c.getY(i)+c.getZ(i);
+ let top=0,dark=0;for(let i=0;i<c.count;i++)top=Math.max(top,sum(i));
+ for(let i=0;i<c.count;i++)if(sum(i)<top*.8)dark++;
+ assert(dark>c.count*.02&&dark<c.count*.2,`speckles ${dark}/${c.count}`);
+ assert.equal(eggGeometry(2).attributes.position.count,2*one.attributes.position.count);
+ assert.equal(eggGeometry(9).attributes.position.count,3*one.attributes.position.count);
+ for(const name of ['egg','2 eggs','5 uncursed eggs']){
+  const model=createGroundModel({name,class:7});
+  const meshes=[];model.traverse(p=>{if(p.isMesh)meshes.push(p);});
+  assert.equal(meshes.length,1,name);
+  assert.equal(meshes[0].userData.part,'egg');
+  assert(meshes[0].material.vertexColors);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.1,`${name} height ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
+  model.userData.dispose();
+ }
+ one.dispose();
 });
 
 test('cram, K- and C-rations get their own merged models instead of the food-ration parcel',()=>{
