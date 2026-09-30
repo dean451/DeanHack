@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {createGroundModel,eucalyptusLeafGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
+import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
 
 test('grease can has a grounded finite tin model and releases resources',()=>{
  const model=createGroundModel({name:'an uncursed can of grease (0:12)',class:6});
@@ -1346,4 +1347,35 @@ test('a gem with no glyph colour is still tinted by its colour word',()=>{
  assert(red.r>red.g*2,`ruby tinted ${red.getHexString()}`);
  // a real glyph colour still wins
  assert.equal(tintOf(createGroundModel({name:'emerald',class:13,appearance:'green',color:10})).getHex(),new THREE.Color(0x55cf5a).getHex());
+});
+
+test('corpses lie as the body plan of the monster that died, finite, on the floor and within a tile or so',()=>{
+ const cases=[['jackal','beast'],['newt','beast'],['red dragon','beast'],['human','humanoid'],['gnome lord','humanoid'],['troll','humanoid'],
+  ['garter snake','serpent'],['long worm','serpent'],['giant eel','serpent'],['giant ant','bug'],['cave spider','bug'],['acid blob','blob'],
+  ['brown pudding','blob'],['bat','bird'],['raven','bird'],['archeologist','humanoid']];
+ for(const [name,plan] of cases){
+  assert.equal(corpsePlan(name),plan,name);
+  const g=createCorpse(name,3,90);g.rotation.y=0;g.updateMatrixWorld(true);
+  const meshes=[];g.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert(meshes.length>=1&&meshes.length<=2,name+' draws');
+  for(const m of meshes){
+   for(const v of m.geometry.attributes.position.array)assert(Number.isFinite(v),name);
+   for(const v of m.geometry.attributes.normal.array)assert(Number.isFinite(v),name);
+   const c=m.geometry.attributes.color;if(c)for(const v of c.array)assert(v>=0&&v<=1,name+' colour');
+  }
+  const b=new THREE.Box3().setFromObject(g);
+  assert(Math.abs(b.min.y)<1e-6,name+' rests on the floor');
+  assert(b.max.y<.3,name+' lies low');
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.72,name+' stays near its tile');
+  g.userData.dispose();
+ }
+ assert.equal(corpseSize('newt'),'tiny');assert.equal(corpseSize('troll'),'large');assert.equal(corpseSize('giant ant'),'medium');
+ assert.equal(createCorpse('acid blob',2).children.length,1,'a blob is its own puddle');
+ assert.equal(createCorpse('kobold zombie',1).children.length,1,'undead do not bleed');
+ assert.equal(createCorpse('jackal',3).children.filter(c=>c.userData.part==='pool').length,1,'a jackal lies in a pool');
+ const a=createCorpse('jackal',3,1),b=createCorpse('jackal',3,200);
+ assert.equal(a.children[0].geometry,b.children[0].geometry,'geometry is shared per look');
+ assert.notEqual(a.children[0].material,b.children[0].material,'materials are per corpse');
+ assert.notEqual(a.rotation.y,b.rotation.y,'the seed turns the body');
+ assert.notEqual(createCorpse('jackal',1).children[0].geometry,a.children[0].geometry,'the glyph colour changes the coat');
 });

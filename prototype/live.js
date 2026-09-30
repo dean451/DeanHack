@@ -22,6 +22,7 @@ import {createFire} from './fire.js';
 import {createTorchSconce} from './torch.js';
 import {createLiquid} from './liquid.js';
 import {createFloorKit,cellHash} from './floor.js';
+import {createCorpse} from './corpse.js';
 import {stageCreature,addOutlines} from './readability.js';
 import {createCavern} from './cavern.js';
 import {attachModelAsset} from './model-assets.js';
@@ -148,16 +149,9 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      icon.userData.restingWeapon=true;icon.name=`Stone statue of ${statueCreature}`;
      icon.userData.dispose=()=>{const geometries=new Set();sculpture.traverse(o=>{if(o.geometry)geometries.add(o.geometry);});geometries.forEach(geo=>geo.dispose());base.geometry.dispose();stoneMaterials.forEach(material=>material.dispose());};
    }else if(kind==='corpse'){
-     const bone=new THREE.MeshStandardMaterial({color:0xc9b993,roughness:.78}),boneShade=new THREE.MeshStandardMaterial({color:0x756a5c,roughness:.86}),socket=new THREE.MeshStandardMaterial({color:0x17191a,roughness:1});
-     icon.userData.restingWeapon=true;
-     const addBone=(angle,x,z,length=.48)=>{const shaft=add(new THREE.CylinderGeometry(.024,.033,length,10),bone,x,.054,z);shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(Math.cos(angle),0,Math.sin(angle)));for(const end of [-1,1])for(const offset of [-.022,.022]){const p=add(new THREE.SphereGeometry(.04,10,8),bone,x+Math.cos(angle)*length*.5*end-Math.sin(angle)*offset,.045,z+Math.sin(angle)*length*.5*end+Math.cos(angle)*offset);p.scale.set(1,.7,1);}};
-     addBone(.18,-.08,-.02,.55);addBone(-.92,.08,.02,.52);addBone(1.25,0,-.08,.4);addBone(-.28,.02,.1,.34);
-     const skull=add(new THREE.SphereGeometry(.13,20,14),bone,0,.163,-.055);skull.scale.set(.94,.92,1.12);
-     const jaw=add(new THREE.TorusGeometry(.073,.018,6,18,Math.PI),boneShade,0,.053,.057);jaw.rotation.x=Math.PI/2;
-     for(const x of [-.05,.05]){const cavity=add(new THREE.SphereGeometry(.043,14,10),socket,x,.151,.067);cavity.scale.set(1,.84,.32);const brow=add(new THREE.SphereGeometry(.047,12,8),bone,x,.183,.069);brow.scale.set(1,.26,.35);}
-     const nose=add(new THREE.ConeGeometry(.023,.043,3),socket,0,.109,.083);nose.rotation.z=Math.PI;
-     for(let i=0;i<6;i++)add(new THREE.BoxGeometry(.014,.026,.02),bone,(i-2.5)*.017,.07,.09);
-     icon.userData.dispose=()=>{bone.dispose();boneShade.dispose();socket.dispose();};
+     // The monster's own body plan, lying where it fell (corpse.js); cell.name is the monster.
+     const corpse=createCorpse(cell.object?.name||cell.name,cell.color,cellHash(cell.x|0,cell.z|0,11));icon.add(corpse);
+     icon.userData.restingWeapon=true;icon.userData.dispose=()=>corpse.userData.dispose();
    } else if(/boulder|large rock/.test(itemName)){
      const boulder=createBoulder(cellHash(cell.x|0,cell.z|0,7));icon.add(boulder);icon.userData.dispose=()=>boulder.userData.dispose();
    } else if(cls===WEAPON_CLASS){
