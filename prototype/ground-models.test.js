@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,pancakeGeometry,fortuneCookieGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
+import {createGroundModel,eucalyptusLeafGeometry,kelpFrondGeometry,eggGeometry,meatballGeometry,meatStickGeometry,meatRingGeometry,meatHaunchGeometry,tinGeometry,creamPieGeometry,pancakeGeometry,fortuneCookieGeometry,candyBarGeometry,lembasGeometry,tripeRationGeometry} from './ground-models.js';
 import {candelabrumState} from './candelabrum.js';
 import {markerCharges} from './marker.js';
 import {createCorpse,corpsePlan,corpseSize} from './corpse.js';
@@ -1621,6 +1621,43 @@ test('fortune cookies are a folded, crescent-bent shell with a slip of paper in 
   assert(meshes[0].material.vertexColors);
   const bounds=new THREE.Box3().setFromObject(model);
   assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.12,`${name} height ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
+  model.userData.dispose();
+ }
+ one.dispose();three.dispose();
+});
+
+test('candy bars are a torn-open wrapper, peeled foil and scored chocolate in one merged, vertex-coloured mesh; a stack adds sealed bars',()=>{
+ const one=candyBarGeometry(1);
+ for(const k of ['position','normal','color'])for(const v of one.attributes[k].array)assert(Number.isFinite(v),k);
+ const b=one.boundingBox;
+ assert(Math.abs(b.min.y)<1e-6&&b.max.y>.025&&b.max.y<.04,`height ${b.max.y}`);
+ assert(b.max.x>.1&&b.max.x<.16&&b.max.z<.1,`bar ${b.max.x} x ${b.max.z}`);
+ // Nearly every surface a ray from outside meets faces back out along it (a few look into the torn end).
+ const mesh=new THREE.Mesh(one,new THREE.MeshBasicMaterial({side:THREE.DoubleSide})),ray=new THREE.Raycaster(),c=new THREE.Vector3(),d=new THREE.Vector3();
+ b.getCenter(c);let hits=0,out=0;
+ for(let i=0;i<200;i++){
+  const y=(i+.5)/100-1,r=Math.sqrt(1-y*y);d.set(Math.sin(i*2.4)*r,y,Math.cos(i*2.4)*r);
+  ray.set(c.clone().addScaledVector(d,.5),d.clone().negate());const hit=ray.intersectObject(mesh)[0];
+  if(hit){hits++;if(hit.face.normal.dot(d)>0)out++;}
+ }
+ assert(hits>190&&out>.95*hits,`hits ${hits}, outward ${out}`);
+ // Red paper, a cream label, grey foil and dark chocolate (colours are linear).
+ const col=one.attributes.color;let red=0,cream=0,foil=0,choc=0;
+ for(let i=0;i<col.count;i++){const r=col.getX(i),g=col.getY(i),bl=col.getZ(i);
+  if(r>.3&&r>4*g&&r>4*bl)red++;else if(Math.abs(r-g)<.06&&Math.abs(g-bl)<.06&&r>.15)foil++;else if(r<.12&&r>1.5*bl&&r>g)choc++;else if(r>.7&&g>.6&&bl>.35)cream++;}
+ assert(red>1000&&cream>300&&foil>500&&choc>1000,`red ${red}, cream ${cream}, foil ${foil}, chocolate ${choc}`);
+ const three=candyBarGeometry(9);
+ assert(three.attributes.position.count>one.attributes.position.count,'a stack adds bars');
+ assert(three.boundingBox.max.y>b.max.y*1.5,'the opened bar sits on top of the stack');
+ for(const name of ['candy bar','2 candy bars','5 candy bars']){
+  const model=createGroundModel({name,class:7});
+  const meshes=[];model.traverse(q=>{if(q.isMesh)meshes.push(q);});
+  assert.equal(meshes.length,1,name);
+  assert.equal(meshes[0].userData.part,'candy-bar');
+  assert(meshes[0].material.vertexColors);
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6&&bounds.max.y<.07,`${name} height ${bounds.max.y}`);
   assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} inside the tile`);
   model.userData.dispose();
  }
