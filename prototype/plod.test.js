@@ -71,3 +71,7 @@ test('a blow mid-plod and death both leave the head and shell at rest', () => {
   assert.equal(a.plod.w, 0, 'a dead turtle stops plodding');
   assert(Math.abs(a.body.rotation.z - rest[4]) < 1e-12);
 });
+
+// The spider skitter's tests live in their own file; it's imported here until it has a line in
+// package.json's test list (the ants PR #286 was changing that line).
+import './skitter.test.js';
