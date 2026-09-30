@@ -191,6 +191,8 @@ export function createBog(seed=0){
   mesh.userData.part=Object.keys(parts).find(key=>parts[key]===material);
   g.add(mesh);
  }
+ // Pool shapes and the water level, for the rising-gas effect (bog-bubbles.js).
+ g.userData.pools=pools.map(({x,z,r,sx})=>({x,z,r,sx}));g.userData.water=WATER;
  g.userData.dispose=()=>{for(const geo of geometries)geo.dispose();for(const m of materials)m.dispose();};
  return g;
 }
