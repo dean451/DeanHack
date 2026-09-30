@@ -56,6 +56,7 @@ import {createHezrou} from './hezrou.js';
 import {createWizard} from './wizard.js';
 import {createMonk} from './monk.js';
 import {createArcheologist} from './archeologist.js';
+import {createRogue} from './rogue.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2265,6 +2266,7 @@ export function createCreature(cell={}){
  if(name==='wizard')return createWizard();
  if(name==='monk')return createMonk();
  if(name==='archeologist')return createArcheologist();
+ if(name==='rogue')return createRogue();
  if(isGoblin(name))return createGoblin(name);
  if(isOrc(name)||/orc|uruk|snaga/.test(name))return createOrc(name);
  if(isDwarf(name))return createDwarf(name);

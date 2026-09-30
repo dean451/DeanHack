@@ -936,6 +936,36 @@ test('archeologists get a fedora, an open leather jacket, a satchel, a coiled wh
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('rogues get a deep hood, a black mask, a torn cloak and mantle, a bandolier of knives and a toothed dagger instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const ro=createCreature({name:'rogue',symbol:64,color:1});
+ assert.equal(ro.kind,'rogue');assert.equal(ro.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket'])assert(ro[key]?.isObject3D,key);
+ assert.equal(ro.legs.length,2);assert.equal(ro.arms.length,2);assert.equal(ro.arm,ro.arms[1]);
+ assert(ro.arm.children.includes(ro.weaponSocket),'the socket is at the right hand');
+ assert.equal(ro.weaponSocket.children.length,1,'the dagger is held');
+ const parts=meshes(ro);
+ assert.equal(parts.length,7,'one mesh per moving part and the dagger');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ ro.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(ro.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.15&&b.max.y<1.3,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
+ // the cloak's torn hem hangs below the knees behind, but stays off the floor
+ const body=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='body'),true);
+ assert(body.min.y>.12&&body.min.y<.26,`cloak hem at ${body.min.y}`);
+ const again=meshes(createCreature({name:'rogue'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
 test('the hezrou gets its own hunched, warty, fanged toad demon with a hinged jaw instead of the generic demon with a toad head',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const hz=createCreature({name:'hezrou',symbol:38,color:2});
