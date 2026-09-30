@@ -137,20 +137,6 @@ function gridBug(){
  for(const x of [-.06,.06]){const antenna=rounded(body,.018,.16,.018,M.electric,x,.39,.19,.005);antenna.rotation.x=x<0?-.28:.28;}
  return actor(g,body,legs,null,[],'gridbug');
 }
-function unicorn(){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[];const mane=new THREE.MeshStandardMaterial({color:0xe2e2ee,roughness:.75});
- sphere(body,.3,M.whiteFur,0,.43,0,.8,.72,1.25);const neck=cylinder(body,.12,.19,.42,M.whiteFur,0,.75,.12,10);neck.rotation.x=-.12;
- const head=new THREE.Group();head.position.set(0,1.0,.24);body.add(head);
- sphere(head,.17,M.whiteFur,0,0,0,.85,.85,1.05);const muzzle=cylinder(head,.055,.095,.22,M.whiteFur,0,-.05,.16,10);muzzle.rotation.x=Math.PI/2;sphere(head,.032,M.leather,0,-.06,.27);
- const horn=cone(head,.05,.32,M.gold,0,.2,.07,5);horn.rotation.z=-.08;for(const x of [-.1,.1]){const ear=cone(head,.055,.15,M.whiteFur,x,.17,0,5);ear.rotation.z=x>0?-.25:.25;}
- eyes(head,M.eye,-.01,.13,.075);
- for(let i=0;i<5;i++){const t=i/4,tuft=cone(body,.03,.12-t*.05,mane,0,.98-t*.18,.16-t*.22,4);tuft.rotation.x=-.3-t*.5;tuft.rotation.z=(i%2?1:-1)*.15;}
- for(const x of [-.13,.13])for(const z of [-.17,.17]){const leg=new THREE.Group();leg.position.set(x,.27,z);body.add(leg);rounded(leg,.09,.34,.1,M.whiteFur,0,-.15,0,.025);rounded(leg,.1,.08,.11,M.gold,0,-.32,0,.02);legs.push(leg);}
- const tail=new THREE.Group();tail.position.set(0,.48,-.3);body.add(tail);
- const tailCurve=new THREE.CatmullRomCurve3([[0,0,0],[0,-.04,-.14],[0,-.16,-.24],[0,-.32,-.3],[0,-.46,-.32]].map(p=>new THREE.Vector3(...p)));
- for(let i=0;i<12;i++){const t=i/11,p=tailCurve.getPoint(t),r=.025+Math.sin(Math.min(1,t*1.1)*Math.PI*.9)*.055;const seg=sphere(tail,Math.max(.012,r),mane,p.x,p.y,p.z);const tan=tailCurve.getTangent(t);seg.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),tan);seg.scale.set(1,1.5,1);}
- return actor(g,body,legs,tail,[],'unicorn');
-}
 // Golems: an inanimate material animated into a blocky humanoid. Seams mark where
 // slabs of the material join; a lit core in the chest and eyes sell "constructed", not "born".
 const GOLEM_MATERIALS={
@@ -701,9 +687,11 @@ const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#6a8aa0',
 // wedge head with a blaze, legs with knees, hocks, fetlocks and hooves, and a flowing tail. No horn.
 // All three are brown on the map, so the glyph colour is the base coat and the breed sets the
 // shade, build and points: a shaggy flaxen pony, a sleek bay horse, a dark barded warhorse.
+// Unicorns and the ki-rin use the same body with `horn`: a lighter build, a spiral horn on the
+// brow, a goat's tuft on the chin, feathered fetlocks and pale hooves (see UNICORNS).
 function horse(o){
- const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale);g.name='horse';
- const coat=mat(o.coat,{roughness:.8}),belly=mat(shade(o.coat,1.15),{roughness:.85}),hair=mat(o.hair,{roughness:.95}),lower=mat(o.points||o.coat,{roughness:.85}),sock=mat('#ece6da',{roughness:.85}),hoof=mat('#2a2420',{roughness:.55}),snoot=mat(shade(o.coat,.55),{roughness:.7});
+ const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale);g.name=o.horn?'unicorn':'horse';
+ const coat=mat(o.coat,{roughness:.8}),belly=mat(shade(o.coat,1.15),{roughness:.85}),hair=mat(o.hair,{roughness:.95}),lower=mat(o.points||o.coat,{roughness:.85}),sock=mat(o.feather||'#ece6da',{roughness:.85}),hoof=mat(o.hoof||'#2a2420',{roughness:.55,metalness:o.hoof?.3:0}),snoot=mat(shade(o.coat,o.horn?.8:.55),{roughness:.7});
  const legH=o.legH,y=legH+.16,s=o.stock;
  sphere(body,.2,coat,0,y,0,.82*s,.85,1.55);sphere(body,.17,coat,0,y+.02,.2,.9*s,1,.9);sphere(body,.18,coat,0,y+.04,-.22,.95*s,.95,.9);
  sphere(body,.14,belly,0,y-.08,0,.78*s,.6,1.45);sphere(body,.08,coat,0,y+.15,.15,.9,.8,1.4);
@@ -720,7 +708,14 @@ function horse(o){
  for(const side of [-1,1]){sphere(head,.014,darkEye,side*.026,-.01,.3);sphere(head,.02,darkEye,side*.066,.02,.05);sphere(head,.024,coat,side*.06,.042,.045,1,.5,1.2);
   const ear=cone(head,.028,.1,coat,side*.045,.1,-.035,5);ear.rotation.set(-.6,0,-side*.2);}
  if(o.blaze)rounded(head,.03,.01,.2,sock,0,.052,.13,.004).rotation.x=.18;
- else sphere(head,.022,sock,0,.068,.07,1,.3,1.2);
+ else if(!o.horn)sphere(head,.022,sock,0,.068,.07,1,.3,1.2);
+ if(o.horn){
+  // the horn leans a little back from the head's up axis, so it juts forward and up off the brow
+  const h=.27,lean=-.1,horn=part(head,spiralHorn(.026,h),mat(o.horn,{roughness:.35,metalness:.08}),0,.075+Math.cos(lean)*h/2,.06+Math.sin(lean)*h/2);horn.rotation.x=lean;
+  const burr=part(head,new THREE.TorusGeometry(.024,.007,5,12),hair,0,.078,.058);burr.rotation.x=Math.PI/2+lean;
+  // chin tuft, hanging straight down in world space (the head is pitched .85 forward)
+  const beard=cone(head,.016,.08,hair,0,-.075-Math.cos(.85)*.035,.15+Math.sin(.85)*.035,5);beard.rotation.x=Math.PI+.85;
+ }
  sphere(head,o.mane==='shaggy'?.06:.042,hair,0,.075,.03,1,.5,1.5);
  if(o.barded){rounded(head,.075,.014,.17,M.steel,0,.06,.11,.006).rotation.x=.18;const noseband=part(head,new THREE.TorusGeometry(.055,.008,5,16),M.leather,0,-.02,.2);noseband.scale.set(.85,1,1);
   // saddle blanket with gilt trim draped over the barrel
@@ -737,7 +732,31 @@ function horse(o){
  const tail=new THREE.Group();tail.position.set(0,y+.1,-.37);body.add(tail);
  segment(tail,[0,.02,.03],[0,-.04,-.07],.04,.03,coat);
  for(const k of [-1,0,1])tube(tail,[[0,-.03,-.06],[k*.02,-.12,-.13],[k*.03,-.3,-.16],[k*.035,-o.tail,-.13+Math.abs(k)*.02]],o.mane==='shaggy'?.036:.028,hair,12);
+ mergeStatic(g);
  return actor(g,body,legs,tail,[],'unicorn');
+}
+// A horn that tapers to a point with two ridges winding round it, like the unicorn horn on the
+// floor (unicorn-horn.js) but light enough to wear. Base at y -h/2, tip at +h/2.
+function spiralHorn(r,h,turns=3.5){
+ const geo=new THREE.CylinderGeometry(0,r,h,10,14,true),pos=geo.attributes.position,v=new THREE.Vector3();
+ for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i);const t=v.y/h+.5,a=Math.atan2(v.z,v.x),k=1+.16*Math.cos(a*2-t*turns*Math.PI*2)*(1-t*.4);pos.setXYZ(i,v.x*k,v.y,v.z*k);}
+ geo.computeVertexNormals();return geo;
+}
+// Merges each group's own mesh children that share a material into one mesh. The groups (body,
+// head, legs, tail) stay, so every handle that animates still works; only the draw calls drop.
+function mergeStatic(root){
+ const groups=[];root.traverse(o=>{if(!o.isMesh)groups.push(o);});
+ for(const group of groups){
+  const bins=new Map();
+  for(const mesh of group.children){if(!mesh.isMesh||mesh.children.length)continue;
+   const geo=mesh.geometry,key=mesh.material.uuid+(geo.index?'i':'n')+Object.keys(geo.attributes).sort().join();
+   if(!bins.has(key))bins.set(key,[]);bins.get(key).push(mesh);}
+  for(const meshes of bins.values()){if(meshes.length<2)continue;
+   const geos=meshes.map(mesh=>{mesh.updateMatrix();return mesh.geometry.clone().applyMatrix4(mesh.matrix);}),merged=mergeGeometries(geos);
+   for(const geo of geos)geo.dispose();if(!merged)continue;
+   for(const mesh of meshes){group.remove(mesh);mesh.geometry.dispose();}
+   part(group,merged,meshes[0].material);}
+ }
 }
 const HORSES={
  pony:{scale:.8,coat:1.15,hair:'#e0cc9a',legH:.34,stock:1.12,mane:'shaggy',hindSocks:true,tail:.4},
@@ -745,6 +764,16 @@ const HORSES={
  warhorse:{scale:1.15,coat:.62,hair:'#141210',points:'#1a1614',legH:.43,stock:1.1,mane:'braided',feathered:true,barded:true,cloth:'#7a1f24',tail:.44},
 };
 function horseFor(name,color){const o=HORSES[name]||HORSES.horse;return horse({...o,coat:shade(color||'#8a6440',o.coat)});}
+// The three unicorns follow their alignment: a white one with a pearl horn and gilt hooves, a
+// dappled grey one with a silver mane, a black one whose ivory horn stands out. The ki-rin is a
+// golden, flame-maned cousin a size up.
+const UNICORN_BASE={legH:.45,stock:.92,tail:.46,horn:'#f1e9d4',feathered:true};
+const UNICORNS={
+ 'white unicorn':{...UNICORN_BASE,scale:1.05,coat:'#ece9e2',hair:'#f8f6f0',feather:'#fbfaf6',hoof:'#c8a860',horn:'#f6f0de'},
+ 'gray unicorn':{...UNICORN_BASE,scale:1.05,coat:'#8f8f8c',points:'#6a6a68',hair:'#d4d4d0',feather:'#c8c8c4',hoof:'#9a9ca0'},
+ 'black unicorn':{...UNICORN_BASE,scale:1.05,coat:'#262428',points:'#1b1a1d',hair:'#0f0e11',feather:'#18171a',hoof:'#2e2c30',horn:'#e2d6b8'},
+ 'ki-rin':{...UNICORN_BASE,scale:1.12,coat:'#c99a36',points:'#a87a26',hair:'#d8602a',feather:'#e07a34',hoof:'#e0c060',horn:'#f4dc90',stock:1},
+};
 // Bakes static pieces into one mesh per (parent, material), so a big beast costs a
 // handful of draw calls instead of dozens. Pieces are posed with a matrix before merging.
 function baker(){
@@ -2161,7 +2190,7 @@ export function createCreature(cell={}){
  if(name==='juiblex')return createJuiblex();
  if(GHOSTS.includes(name))return createGhost(name);
  if(name==='couatl')return createCouatl();
- if(name==='ki-rin')return unicorn();
+ if(UNICORNS[name])return horse(UNICORNS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='shocking sphere')return shockingSphere();
  if(SPHERE_KINDS.includes(name)){const {g,body,core}=createSphereCreature(name);return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});}
@@ -2181,7 +2210,7 @@ export function createCreature(cell={}){
  if(WATCH.includes(name))return createWatch(name);
  if(SOLDIERS.includes(name))return createSoldier(name);
  if(/guard|soldier|watchman|watch captain/.test(name))return humanoid('guard');
- if(/unicorn/.test(name))return unicorn();
+ if(/unicorn/.test(name))return horse(UNICORNS['white unicorn']);
  if(letter==='D'||/dragon/.test(name))return dragon(dragonLook(name,cell.color));
  if(name==='straw golem')return createStrawGolem();
  if(name==='paper golem')return createPaperGolem();
