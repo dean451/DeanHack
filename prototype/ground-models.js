@@ -4,6 +4,7 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {mergeVertices,mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {createUnicornHorn} from './unicorn-horn.js';
 import {createCandelabrum,candelabrumState} from './candelabrum.js';
+import {createSlimeMold} from './slime-mold.js';
 import {createMagicMarker,markerCharges} from './marker.js';
 import {createIronBall,createIronChain} from './iron-ball.js';
 import {createVenom} from './venom.js';
@@ -6116,9 +6117,8 @@ export function createGroundModel(item={}){
    add(kelpFrondGeometry((parseInt(name)||1)>1?2:1),kelp).userData.part='kelp frond';
    g.rotation.y=.25;
   }else{
-   // Slime mold: a lumpy, faintly glowing blob.
-   const slime=new THREE.MeshStandardMaterial({color:0x7ab83a,roughness:.3,emissive:0x2a4a10,emissiveIntensity:.35});materials.push(slime);
-   ball(.08,slime,0,.035,0,[1.2,.5,1]);ball(.045,slime,.06,.03,.04,[1,.6,1]);ball(.04,slime,-.05,.025,-.05,[1,.6,1]);
+   // Slime mold: a lobed blob of translucent jelly with a seeded heart, spreading in a slick (slime-mold.js).
+   for(const part of [...createSlimeMold().children]){g.add(part);materials.push(part.material);}
   }
   // Drop the whole model onto the floor.
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
