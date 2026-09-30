@@ -49,6 +49,7 @@ import {createOrc,isOrc} from './orc.js';
 import {createDwarf,isDwarf} from './dwarf.js';
 import {createValkyrie} from './valkyrie.js';
 import {createSamurai} from './samurai.js';
+import {createKnight} from './knight.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -2230,6 +2231,7 @@ export function createCreature(cell={}){
  if(name==='hobbit')return createHobbit();
  if(name==='valkyrie')return createValkyrie();
  if(name==='samurai')return createSamurai();
+ if(name==='knight')return createKnight();
  if(isGoblin(name))return createGoblin(name);
  if(isOrc(name)||/orc|uruk|snaga/.test(name))return createOrc(name);
  if(isDwarf(name))return createDwarf(name);

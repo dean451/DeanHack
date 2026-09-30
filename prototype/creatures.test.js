@@ -757,7 +757,7 @@ test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model inste
  assert(new THREE.Box3().setFromObject(valk.head,true).max.y>b.max.y-1e-6,'wings on top');
  assert(new THREE.Box3().setFromObject(valk.shield,true).max.x<-.2,'shield outside the left arm');
  // any other player-monster role still gets the generic humanoid
- assert.equal(createCreature({name:'knight',symbol:64,color:7}).kind,undefined);
+ assert.equal(createCreature({name:'wizard',symbol:64,color:7}).kind,undefined);
  const again=meshes(createCreature({name:'valkyrie'}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
@@ -791,6 +791,37 @@ test('samurai get a kabuto-helmed, lacquered o-yoroi model with a katana instead
  const [l,r]=sam.arms.map(a=>new THREE.Box3().setFromObject(a,true));
  assert(l.min.x<-.3&&r.max.x>.3,'sode outside the shoulders');
  const again=meshes(createCreature({name:'samurai'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
+test('knights get a great-helmed, plumed, surcoated model with an arming sword and a blazoned heater shield instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const kn=createCreature({name:'knight',symbol:64,color:7});
+ assert.equal(kn.kind,'knight');assert.equal(kn.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','shieldArm','shield'])assert(kn[key]?.isObject3D,key);
+ assert.equal(kn.legs.length,2);assert.equal(kn.arms.length,2);assert.equal(kn.arm,kn.arms[1]);assert.equal(kn.shieldArm,kn.arms[0]);
+ assert(kn.arm.children.includes(kn.weaponSocket),'the sword is in the right hand');
+ assert(kn.shieldArm.children.includes(kn.shield),'the shield rides the off arm');
+ const parts=meshes(kn);
+ assert.equal(parts.length,8,'one mesh per moving part, the sword and the shield');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<50000,`${verts} vertices`);
+ kn.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(kn.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.25&&b.max.y<1.4,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.45,'out of proportion');
+ // the plume is the top of the model, the sword is raised, and the shield hangs outside the left arm
+ assert(new THREE.Box3().setFromObject(kn.head,true).max.y>b.max.y-1e-6,'plume on top');
+ assert(new THREE.Box3().setFromObject(kn.weaponSocket,true).max.y>1,'sword raised');
+ assert(new THREE.Box3().setFromObject(kn.shield,true).max.x<-.2,'shield outside the left arm');
+ const again=meshes(createCreature({name:'knight'}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
