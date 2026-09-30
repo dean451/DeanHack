@@ -879,6 +879,42 @@ test('wizards get a robed, bearded model with a starry pointed hat and an orb-to
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('the hezrou gets its own hunched, warty, fanged toad demon with a hinged jaw instead of the generic demon with a toad head',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const hz=createCreature({name:'hezrou',symbol:38,color:2});
+ assert.equal(hz.kind,'hezrou');
+ for(const key of ['body','head','jaw','arm'])assert(hz[key]?.isObject3D,key);
+ assert.equal(hz.legs.length,2);assert.equal(hz.arms.length,2);
+ assert(hz.head.children.includes(hz.jaw),'the jaw hinges from the head');
+ const parts=meshes(hz);
+ assert.equal(parts.length,8,'body, head, eyes, jaw, two legs, two arms');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+ }
+ assert(verts<60000,`${verts} vertices`);
+ hz.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(hz.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.05&&b.max.y<1.35,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ // hunched: the head hangs forward of the body, no higher than the hump and its spines
+ const head=new THREE.Box3().setFromObject(hz.head,true);
+ assert(head.max.z>b.max.z-.02,'the head leads');
+ // the hands hang low, near the knees
+ assert(new THREE.Box3().setFromObject(hz.arms[1],true).min.y<.35,'long arms');
+ // the bite opens the maw: dropping the jaw moves its teeth down and away from the upper fangs
+ const before=new THREE.Box3().setFromObject(hz.jaw,true).min.y;
+ hz.jaw.rotation.x+=.5;hz.g.updateMatrixWorld(true);
+ assert(new THREE.Box3().setFromObject(hz.jaw,true).min.y<before-.02,'the jaw drops open');
+ // the old toad-headed build is gone, and other demons still use it
+ assert.equal(createCreature({name:'nalfeshnee',symbol:38}).kind,undefined);
+ const again=meshes(createCreature({name:'hezrou'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
 test('mind flayers get a merged robed illithid model with a ridged cranium, glowing eyes and swaying face tentacles',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const tops={};
