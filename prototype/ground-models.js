@@ -4771,6 +4771,87 @@ export function creamPieGeometry(count=1){
  return merged;
 }
 
+// Lembas: square elven waybread, baked pale gold and scored into nine squares, browned at its
+// softened edges. It sits on a mallorn leaf whose tip and stem show past it, a second leaf is
+// folded over one corner, and a length of twine is tied round the lot with a knot on top.
+// A stack piles up to three wafers under the same leaf and twine. One merged vertex-coloured
+// mesh (1 draw); the leaves are single sheets, so its material is double-sided.
+export function lembasGeometry(count=1){
+ const n=Math.min(3,Math.max(1,count|0)),W=.15,H=.02,y0=.003,top=y0+n*H,rc=.014,seg=18;
+ const CRUMB=new THREE.Color(0xf0e4c0),GOLD=new THREE.Color(0xd8b56c),BROWN=new THREE.Color(0xa0703a),
+  LEAF=new THREE.Color(0x3f6e2e),DEEP=new THREE.Color(0x2c5222),VEIN=new THREE.Color(0xa9b35a),EDGE=new THREE.Color(0xb49a3c),
+  TWINE=new THREE.Color(0x8c6a3e),DARK=new THREE.Color(0x5a4226),col=new THREE.Color();
+ const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+ const paint=(geo,fn)=>{
+  const p=geo.attributes.position,c=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){fn(p.getX(i),p.getY(i),p.getZ(i),i,p);c.set([col.r,col.g,col.b],i*3);}
+  geo.setAttribute('color',new THREE.BufferAttribute(c,3));geo.computeVertexNormals();return geo;
+ };
+ // How far a floor point lies outside the stack's rounded square (0 inside).
+ const outside=(x,z)=>{const a=W/2+.007-rc,dx=Math.max(0,Math.abs(x)-a),dz=Math.max(0,Math.abs(z)-a);return Math.max(0,Math.hypot(dx,dz)-rc);};
+ const parts=[];
+ for(let k=0;k<n;k++){
+  // A finely divided box: corners rounded in plan, top and bottom edges bevelled, the top scored.
+  const w=paint(weld(new THREE.BoxGeometry(W,H,W,seg,3,seg)),(x,y,z,i,p)=>{
+   const a=W/2-rc;let px=x,pz=z;
+   if(Math.abs(x)>a&&Math.abs(z)>a){const cx=Math.sign(x)*a,cz=Math.sign(z)*a,d=Math.hypot(x-cx,z-cz)||1,s=Math.min(1,rc/d);px=cx+(x-cx)*s;pz=cz+(z-cz)*s;}
+   const e=Math.min(W/2-Math.abs(px),W/2-Math.abs(pz)),ramp=1-smooth(0,.009,e),face=y>0?1:-1;
+   let py=y-face*.0045*ramp;
+   const edge=Math.abs(y)>H/2-1e-6;if(edge&&ramp>.99){px*=1-.02;pz*=1-.02;}
+   // Scoring: shallow grooves dividing the top into nine squares.
+   const groove=y>0?Math.max(...[px,pz].map(v=>1-smooth(.0015,.0055,Math.abs(Math.abs(v)-W/6)))):0;
+   py-=.0022*groove*(1-ramp);
+   p.setXYZ(i,px,py+H/2+y0+k*H,pz);
+   const bake=stoneNoise(px*20,py*20+k,pz*20,7);
+   col.copy(y>0?CRUMB:GOLD).lerp(GOLD,Math.max(0,bake)*.4).lerp(BROWN,ramp*.7+(y<0?.25:0)).lerp(GOLD,groove*.6);
+   if(Math.abs(y)<H/2-1e-6)col.copy(GOLD).lerp(BROWN,.35+.3*Math.abs(bake));
+  });
+  // Stacked wafers sit a little askew.
+  const j=k?(k%2?1:-1):0;w.rotateY(j*.06);w.translate(j*.004,0,-j*.003);parts.push(w);
+ }
+ // A mallorn leaf: a pointed oval with a gold-green midrib, paired side veins and a gilded margin.
+ // `height(x,z,v)` lifts each point of the sheet.
+ const leaf=(L,hw,ang,cx,cz,height)=>{
+  const U=28,V=12,pos=[],idx=[],cols=[];
+  const ca=Math.cos(ang),sa=Math.sin(ang);
+  for(let a=0;a<=U;a++){
+   const u=a/U,half=hw*Math.sin(Math.PI*Math.pow(u,.85))**.8+(u<.04?.004:0);
+   for(let b=0;b<=V;b++){
+    const v=b/V*2-1,lx=(u-.5)*L,lz=v*half,x=cx+lx*ca-lz*sa,z=cz+lx*sa+lz*ca;
+    pos.push(x,height(x,z,v,u),z);
+    const vein=Math.max(1-smooth(0,.14,Math.abs(v)),.8*(1-smooth(.02,.09,Math.abs(Math.sin((u*6-Math.abs(v)*1.6)*Math.PI)))*smooth(.1,.2,Math.abs(v))*(1-smooth(.75,.95,Math.abs(v)))));
+    col.copy(LEAF).lerp(DEEP,.4*(1-Math.abs(v))+.2*stoneNoise(x*30,0,z*30,5)).lerp(VEIN,vein*.7).lerp(EDGE,smooth(.8,1,Math.abs(v))*.7+smooth(.9,1,u)*.4);
+    cols.push(col.r,col.g,col.b);
+   }
+  }
+  for(let a=0;a<U;a++)for(let b=0;b<V;b++){const i=a*(V+1)+b,j=i+V+1;idx.push(i,j,i+1,i+1,j,j+1);}
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+  geo.setIndex(idx);geo.computeVertexNormals();
+  return geo;
+ };
+ // The leaf underneath: flat under the wafers, its edges and tip curling up where they show.
+ parts.push(leaf(.31,.1,.55,.01,.006,(x,z,v,u)=>.0015+(.012*Math.abs(v)**2.5*smooth(.35,.6,u)+.018*smooth(.8,1,u)**2)*smooth(0,.025,outside(x,z))));
+ // The leaf folded over a corner: across the top, then down the sides to the floor.
+ parts.push(leaf(.25,.085,-.75,-.055,-.05,(x,z,v)=>.004+top*(1-smooth(0,.03,outside(x,z)))+.002*v*v));
+ // Twine: tied round the stack across the leaf, with a knot and two loose ends on top; where it
+ // passes under the wafers it flattens against the floor.
+ const tw=.0026,zt=.028,a=W/2+.006,t=top+.004,r=.006,loop=[];
+ for(const [x0,y0c,s0] of [[a-r,t-r,0],[-(a-r),t-r,Math.PI/2],[-(a-r),r+tw,Math.PI],[a-r,r+tw,Math.PI*1.5]])
+  for(let i=0;i<=4;i++){const s=s0+i/4*Math.PI/2;loop.push(new THREE.Vector3(x0+Math.cos(s)*r,y0c+Math.sin(s)*r,zt));}
+ const twine=g=>paint(g,(x,y,z,i,p)=>{if(y<0)p.setY(i,0);col.copy(TWINE).lerp(DARK,.35+.35*Math.sin(Math.atan2(y-t,z-zt)*3+x*260));});
+ parts.push(twine(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(loop,true),96,tw,6,true)));
+ const knot=twine(weld(new THREE.SphereGeometry(.0075,12,8)));knot.scale(1.3,.7,1);knot.translate(.012,t+.002,zt);parts.push(knot);
+ for(const s of [-1,1]){
+  const end=[new THREE.Vector3(.012,t+.002,zt),new THREE.Vector3(.012+s*.012,t+.003,zt+.012),new THREE.Vector3(.012+s*.02,t+.0015,zt+.034),new THREE.Vector3(.012+s*.032,t+.0012,zt+.046)];
+  parts.push(twine(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(end),16,tw*.9,5,false)));
+ }
+ for(const g of parts){g.deleteAttribute('uv');}
+ const merged=mergeGeometries(parts);parts.forEach(g=>g.dispose());
+ return merged;
+}
+
 export function createGroundModel(item={}){
  const name=(item.name||'').toLowerCase(),cls=item.class;
  const g=new THREE.Group(),materials=[];
@@ -5373,10 +5454,10 @@ export function createGroundModel(item={}){
    const plate=new THREE.MeshStandardMaterial({vertexColors:true,metalness:.6,roughness:.4});materials.push(plate);
    add(tinGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1),{empty:/\bempty\b/.test(name)}),plate).userData.part='tin';
   }else if(kind==='lembas'){
-   const wafer=mat(0xe7dcb4),wrap=mat(0x5e8b43);
-   add(new RoundedBoxGeometry(.2,.025,.14,2,.01),wafer,0,.0125);
-   const l=ball(.13,wrap,-.03,.02,0,[1,.12,.62]);l.rotation.y=.25;
-   box(.012,.004,.16,mat(0x8a6b3a),.03,.034);
+   // Wafers, leaves and twine share one matt vertex-coloured material; double-sided for the leaf sheets.
+   const bread=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.8,side:THREE.DoubleSide});materials.push(bread);
+   add(lembasGeometry(Number(/^\s*(\d+)/.exec(name)?.[1]??1)),bread).userData.part='lembas';
+   g.rotation.y=-.35;
   }else if(kind==='fortune cookie'){
    const c=add(new THREE.TorusGeometry(.045,.025,8,16,Math.PI*1.4),mat(0xd09a4c),0,.035,0);c.rotation.x=-Math.PI/2;c.scale.set(1,.8,1);
    box(.05,.001,.012,mat(0xf2eee2),.05,.03,.02).rotation.y=.4;
