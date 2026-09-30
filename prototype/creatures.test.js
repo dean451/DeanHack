@@ -966,6 +966,38 @@ test('rogues get a deep hood, a black mask, a torn cloak and mantle, a bandolier
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('barbarians get a horned iron cap, ash war paint, braided beard, wolf-pelt mantle, ring mail, spiked bracers and a notched great axe instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const ba=createCreature({name:'barbarian',symbol:64,color:1});
+ assert.equal(ba.kind,'barbarian');assert.equal(ba.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket'])assert(ba[key]?.isObject3D,key);
+ assert.equal(ba.legs.length,2);assert.equal(ba.arms.length,2);assert.equal(ba.arm,ba.arms[1]);
+ assert(ba.arm.children.includes(ba.weaponSocket),'the socket is at the right hand');
+ assert.equal(ba.weaponSocket.children.length,1,'the axe is held');
+ const parts=meshes(ba);
+ assert.equal(parts.length,7,'one mesh per moving part and the axe');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ ba.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(ba.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.2&&b.max.y<1.35,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
+ // the horns stand above the cap, and the axe head rises past the shoulder, held forward
+ const head=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='head'),true);
+ assert(head.max.y>1.25,`horn tips at ${head.max.y}`);
+ const axe=new THREE.Box3().setFromObject(ba.weaponSocket,true);
+ assert(axe.max.y>.9&&axe.max.z>.25,`axe head at y ${axe.max.y}, z ${axe.max.z}`);
+ const again=meshes(createCreature({name:'barbarian'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
 test('the hezrou gets its own hunched, warty, fanged toad demon with a hinged jaw instead of the generic demon with a toad head',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const hz=createCreature({name:'hezrou',symbol:38,color:2});
