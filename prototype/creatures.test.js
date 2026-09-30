@@ -906,6 +906,36 @@ test('monks get a shaven-headed, saffron-robed martial artist with prayer beads 
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('archeologists get a fedora, an open leather jacket, a satchel, a coiled whip and a pick-axe instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const ar=createCreature({name:'archeologist',symbol:64,color:3});
+ assert.equal(ar.kind,'archeologist');assert.equal(ar.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket'])assert(ar[key]?.isObject3D,key);
+ assert.equal(ar.legs.length,2);assert.equal(ar.arms.length,2);assert.equal(ar.arm,ar.arms[1]);
+ assert(ar.arm.children.includes(ar.weaponSocket),'the socket is at the right hand');
+ assert.equal(ar.weaponSocket.children.length,1,'the pick-axe is held');
+ assert.equal(ar.pick,null,'the dwarf digging handle stays unused');
+ const parts=meshes(ar);
+ assert.equal(parts.length,7,'one mesh per moving part and the pick-axe');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ ar.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(ar.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.2&&b.max.y<1.35,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ const pick=new THREE.Box3().setFromObject(ar.weaponSocket,true);
+ assert(pick.max.z>.2,`pick-axe held forward (${pick.max.z})`);
+ const again=meshes(createCreature({name:'archeologist'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
 test('the hezrou gets its own hunched, warty, fanged toad demon with a hinged jaw instead of the generic demon with a toad head',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const hz=createCreature({name:'hezrou',symbol:38,color:2});
