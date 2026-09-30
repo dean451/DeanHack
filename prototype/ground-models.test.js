@@ -87,6 +87,26 @@ test('gems, gray stones and rocks are grounded, hide their identity, and release
  }
 });
 
+test('apples, oranges and pears are shaped, painted and stacked in two meshes',()=>{
+ for(const kind of ['apple','orange','pear']){let single=0;for(const count of [1,2,3,7]){
+  const name=count===1?kind:`${count} ${kind}s`,model=createGroundModel({name,class:7});
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.userData.part).sort(),['fruit-plant','fruit-skin'],name);
+  for(const mesh of meshes){
+   assert(mesh.geometry.attributes.color,`${name} painted`);
+   for(const value of mesh.geometry.attributes.normal.array)assert(Number.isFinite(value),`${name} normals`);
+  }
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(Math.abs(bounds.min.y)<1e-6,`${name} grounded: ${bounds.min.y}`);
+  assert(bounds.max.y<.26,`${name} height ${bounds.max.y}`);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${name} centred on the tile`);
+  // A stack has as much skin as up to three fruit, no more.
+  const skin=meshes.find(m=>m.userData.part==='fruit-skin').geometry.attributes.position.count;
+  if(count===1)single=skin;else assert(skin>single*1.5&&skin<=single*3.2,`${name} stack size`);
+  model.userData.dispose();
+ }}
+});
+
 test('common food gets grounded, finite models and unknown food falls back',()=>{
  const foods=['apple','3 oranges','pear','melon','banana','carrot','2 eggs','tin','lembas wafer','fortune cookie','meatball','meat stick','huge chunk of meat','meat ring','2 cloves of garlic','lump of royal jelly','cream pie','candy bar','pancake','kelp frond','slime mold','eucalyptus leaf','3 eucalyptus leaves'];
  const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push(part.geometry.type);});return out.join();};

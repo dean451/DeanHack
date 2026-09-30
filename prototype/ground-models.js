@@ -1393,6 +1393,155 @@ function buildRation(kind,{g,materials}){
  }
 }
 
+// Apples, oranges and pears, up to three to a stack. Each fruit is a shaped body painted per
+// vertex: the apple a lobed red lathe with yellow streaks, a sunny cheek and pale lenticels,
+// sunk at the stalk; the orange a slightly squashed ball with a pitted peel, a navel and a
+// green star calyx; the pear a leaning lathe with a waisted neck, russet speckles and a blush.
+// Stalks and leaves are painted too. Two meshes in all (skin, and stalk and leaf), however many
+// fruit lie in the stack; the last of two or three lies tipped over.
+function buildFruit(kind,count,{g,materials}){
+ const C=hex=>new THREE.Color(hex),v=(x,y,z)=>new THREE.Vector3(x,y,z);
+ const skin=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:kind==='orange'?.74:kind==='apple'?.4:.6});
+ const plant=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.8,side:THREE.DoubleSide});
+ materials.push(skin,plant);
+ const lists={skin:[],plant:[]},c=new THREE.Color();
+ const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+ // Paint a part in the fruit's own frame; placing it comes later.
+ const paint=(geo,fn)=>{
+  const p=geo.attributes.position,n=geo.attributes.normal,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){fn(c,p.getX(i),p.getY(i),p.getZ(i),n.getX(i),n.getY(i),n.getZ(i));cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;}
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));return geo;
+ };
+ // A lathe from a smoothed profile, then warped per vertex and welded so the seam and poles shade smoothly.
+ const body=(profile,warp,rows=26,segs=40)=>{
+  const pts=new THREE.SplineCurve(profile.map(([x,y])=>new THREE.Vector2(x,y))).getPoints(rows).map(q=>new THREE.Vector2(Math.max(0,q.x),q.y));
+  pts[0].x=0;pts[pts.length-1].x=0;
+  let geo=new THREE.LatheGeometry(pts,segs);geo.deleteAttribute('uv');geo.deleteAttribute('normal');
+  geo=mergeVertices(geo,1e-5);
+  const p=geo.attributes.position,t=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){warp(t.fromBufferAttribute(p,i));p.setXYZ(i,t.x,t.y,t.z);}
+  geo.computeVertexNormals();return geo;
+ };
+ const stalk=(points,r)=>{
+  const geo=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),10,r,6,false);geo.deleteAttribute('uv');
+  const top=points[points.length-1].y,bottom=points[0].y;
+  return paint(geo,(col,x,y)=>col.copy(C(0x5a3d22)).lerp(C(0x2e1f12),smooth(bottom,top,y)*.7));
+ };
+ // A leaf along +x from its base: pointed, folded up along the midrib and drooping at the tip.
+ const leaf=(L,W)=>{
+  const geo=new THREE.PlaneGeometry(1,1,10,4);geo.deleteAttribute('uv');
+  const p=geo.attributes.position;
+  for(let i=0;i<p.count;i++){
+   const u=p.getX(i)+.5,s=p.getY(i)*2,w=W*Math.sin(Math.PI*Math.min(1,u*1.08))**.8;
+   p.setXYZ(i,u*L,Math.abs(s)*w*.35-.3*L*u*u,s*w);
+  }
+  geo.computeVertexNormals();
+  return paint(geo,(col,x,y,z)=>{
+   const edge=Math.abs(z)/(W+1e-6);
+   col.copy(C(0x4a8a2c)).lerp(C(0x2f5f1e),smooth(.5,1,edge)*.6);
+   if(Math.abs(z)<W*.07)col.lerp(C(0x9cc46a),.7);
+   else if(Math.abs(Math.sin(x/L*18-Math.abs(z)/W*5))<.12)col.lerp(C(0x7aa850),.35);
+  });
+ };
+ const fruit=(seed)=>{
+  const parts={skin:[],plant:[]};
+  const hash=k=>{const s=Math.sin(seed*127.1+k*311.7)*43758.5453;return s-Math.floor(s);};
+  const side=hash(1)*Math.PI*2;
+  if(kind==='apple'){
+   const R=.086;
+   const geo=body([[0,.016],[.024,.006],[.052,.005],[.074,.022],[.086,.052],[.087,.086],[.078,.115],[.06,.135],[.036,.144],[.018,.139],[.006,.128],[0,.123]],t=>{
+    const a=Math.atan2(t.z,t.x),k=1+.035*Math.cos(5*a+seed)*smooth(.07,0,t.y)+.025*Math.sin(a+side);
+    t.x*=k;t.z*=k;
+   });
+   parts.skin.push(paint(geo,(col,x,y,z)=>{
+    const a=Math.atan2(z,x),r=Math.hypot(x,z);
+    col.copy(C(0xa0161a));
+    // Streaks running from the stalk, a green-gold cheek that faced away from the sun, lenticels.
+    col.lerp(C(0xd1452c),.45*Math.max(0,Math.sin(a*21+Math.sin(y*70+seed)*1.6)));
+    col.lerp(C(0xc9b63c),.85*smooth(-.1,-.85,Math.cos(a-side))*smooth(.13,.06,y));
+    if(y>.11&&r<.045)col.lerp(C(0x8e9a38),.75*smooth(.045,.012,r));
+    if(y<.02)col.lerp(C(0x5f4a26),.6);
+    if(stoneNoise(x*90,y*90,z*90,4.1)>.72)col.lerp(C(0xf0d79a),.55);
+   }));
+   const top=.125;
+   parts.plant.push(stalk([v(0,top-.004,0),v(.004,top+.02,.002),v(.012,top+.04,0)],.0042));
+   if(hash(2)>.35){
+    const l=leaf(.075,.024);
+    l.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(.25,hash(3)*1.5+.5,.1,'YXZ')).setPosition(.006,top+.022,.001));
+    parts.plant.push(l);
+   }
+  }else if(kind==='orange'){
+   const R=.078;
+   let geo=new THREE.SphereGeometry(R,44,30);geo.deleteAttribute('uv');geo.deleteAttribute('normal');
+   geo=mergeVertices(geo,1e-5);
+   const p=geo.attributes.position,d=new THREE.Vector3();
+   for(let i=0;i<p.count;i++){
+    d.fromBufferAttribute(p,i).normalize();
+    // A pitted peel, a small sunk navel underneath and a dimple round the calyx.
+    let r=R*(1+.012*stoneNoise(d.x*6,d.y*6,d.z*6,9)-.006*Math.abs(stoneNoise(d.x*14+seed,d.y*14,d.z*14,7)));
+    r-=R*(.09*smooth(-.93,-1,d.y)+.05*smooth(.95,1,d.y));
+    p.setXYZ(i,d.x*r,d.y*r*.93+R*.93,d.z*r);
+   }
+   geo.computeVertexNormals();
+   parts.skin.push(paint(geo,(col,x,y,z)=>{
+    col.copy(C(0xe8761a)).lerp(C(0xf29a2e),.35*(stoneNoise(x*20,y*20,z*20,3)*.5+.5));
+    if(stoneNoise(x*120,y*120,z*120,5)>.55)col.lerp(C(0xb9520e),.5);
+    if(y>R*1.7)col.lerp(C(0xb89a28),.4*smooth(R*1.7,R*1.86,y));
+    if(y<R*.12)col.lerp(C(0xa84a10),.55);
+   }));
+   const top=R*1.86-R*.05*.93;
+   const calyx=[new THREE.CylinderGeometry(.009,.011,.008,8)];
+   calyx[0].translate(0,top+.003,0);
+   for(let i=0;i<5;i++){
+    const a=i/5*Math.PI*2+seed,petal=new THREE.SphereGeometry(.009,8,4);
+    petal.scale(1.6,.3,.9);petal.translate(.011,0,0);petal.rotateY(a);petal.translate(0,top+.001,0);calyx.push(petal);
+   }
+   const merged=mergeGeometries(calyx.map(q=>{q.deleteAttribute('uv');return q;}));calyx.forEach(q=>q.dispose());
+   parts.plant.push(paint(merged,(col,x,y)=>col.copy(C(0x5e6a2a)).lerp(C(0x3a3a1c),smooth(top+.004,top+.007,y))));
+  }else{
+   const lean=hash(4)>.5?1:-1;
+   const geo=body([[0,.012],[.03,.004],[.058,.018],[.072,.046],[.068,.08],[.05,.11],[.037,.136],[.032,.16],[.025,.18],[.012,.192],[0,.19]],t=>{
+    const a=Math.atan2(t.z,t.x),k=1+.03*Math.sin(2*a+seed);t.x*=k;t.z*=k;
+    t.x+=lean*.014*smooth(.08,.19,t.y);
+   });
+   parts.skin.push(paint(geo,(col,x,y,z)=>{
+    const a=Math.atan2(z,x);
+    col.copy(C(0xb9b43c)).lerp(C(0xd6c850),.35*(stoneNoise(x*14,y*14,z*14,4)*.5+.5));
+    col.lerp(C(0xb4502c),.6*smooth(.1,.95,Math.cos(a-side))*smooth(.02,.07,y)*smooth(.15,.09,y));
+    if(stoneNoise(x*110,y*110,z*110,6)>.6)col.lerp(C(0x8a6630),.6);
+    if(y>.165)col.lerp(C(0x8a6a36),.6*smooth(.165,.19,y));
+    if(y<.018)col.lerp(C(0x4e3a20),.7);
+   }));
+   const x0=lean*.014;
+   parts.plant.push(stalk([v(x0,.184,0),v(x0+lean*.004,.21,.003),v(x0+lean*.016,.232,-.002),v(x0+lean*.03,.24,-.004)],.0038));
+  }
+  return parts;
+ };
+ const n=Math.max(1,Math.min(3,count|0));
+ const spots=[[[0,0]],[[-.055,-.02],[.07,.035]],[[-.07,-.045],[.075,-.03],[-.005,.085]]][n-1];
+ const e=new THREE.Euler(),m=new THREE.Matrix4(),box=new THREE.Box3();
+ spots.forEach(([x,z],i)=>{
+  const parts=fruit(i*1.7+.4),tipped=n>1&&i===n-1;
+  // The last of a stack has rolled over: a pear lies on its side, a round fruit just leans.
+  const roll=tipped?(kind==='pear'?1.35:.55):.06*(i%2?1:-1);
+  m.makeRotationFromEuler(e.set(0,i*2.1+.3,roll,'YXZ'));
+  const all=[...parts.skin,...parts.plant];all.forEach(q=>q.applyMatrix4(m));
+  box.makeEmpty();all.forEach(q=>{q.computeBoundingBox();box.union(q.boundingBox);});
+  all.forEach(q=>q.translate(x,-box.min.y,z));
+  lists.skin.push(...parts.skin);lists.plant.push(...parts.plant);
+ });
+ // Centre the stack on the tile; a pear lying on its side reaches well past its spot.
+ box.makeEmpty();for(const q of [...lists.skin,...lists.plant]){q.computeBoundingBox();box.union(q.boundingBox);}
+ const mx=(box.min.x+box.max.x)/2,mz=(box.min.z+box.max.z)/2;
+ for(const q of [...lists.skin,...lists.plant])q.translate(-mx,0,-mz);
+ for(const [which,material] of [['skin',skin],['plant',plant]]){
+  const list=lists[which];
+  const geo=mergeGeometries(list);list.forEach(q=>q.dispose());
+  const mesh=new THREE.Mesh(geo,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=`fruit-${which}`;g.add(mesh);
+ }
+ g.rotation.y=.4;
+}
+
 // Tin and magic whistles share the look "whistle": a nickel-plated pea whistle lying on its
 // side, so its round chamber and flat mouthpiece read from above like a "q". The window over
 // the pea is cut in the mouthpiece's outer wall, a ring on a tab holds a braided red lanyard
@@ -4482,13 +4631,7 @@ export function createGroundModel(item={}){
   const lie=(r0,r1,len,m,x,y,z,ry=0,seg=12)=>{const p=add(new THREE.CylinderGeometry(r0,r1,len,seg),m,x,y,z);p.rotation.set(0,ry,Math.PI/2);return p;};
   const stalk=mat(0x4a3322),leaf=mat(0x4f8a3a);
   if(kind==='apple'||kind==='orange'||kind==='pear'){
-   const skin=mat(kind==='apple'?0xb3261e:kind==='orange'?0xe07a18:0xb7b848);
-   if(kind==='pear'){ball(.075,skin,0,.075,0,[1,.95,1]);ball(.05,skin,0,.15,0);}
-   else ball(.085,skin,0,.08,0,[1,.9,1]);
-   const top=kind==='pear'?.2:kind==='apple'?.155:.16;
-   if(kind==='orange')ball(.014,leaf,0,top,0,[1,.4,1]);
-   else{const s=add(new THREE.CylinderGeometry(.005,.007,.05,6),stalk,.004,top+.015,0);s.rotation.z=-.25;
-    const l=ball(.03,leaf,.03,top+.02,0,[1,.12,.45]);l.rotation.z=.4;}
+   buildFruit(kind,Number(/^\s*(\d+)/.exec(name)?.[1]??1),{g,materials});
   }else if(kind==='melon'){
    const rind=mat(0x3f7a33),stripe=mat(0x2a5424);
    ball(.14,rind,0,.105,0,[1.25,.78,1]);
