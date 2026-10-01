@@ -1,0 +1,131 @@
+// The glowing eyes of the Executioner (executioner.js) and Croesus (croesus.js). Both models hang a
+// small emissive `eyes` mesh on the head; this makes those eyes live.
+//  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
+//    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
+//    they burn brighter and steadier.
+//  - Croesus: small greedy eyes that shift. They dart side to side in their sockets, and every
+//    few seconds catch a sharp gold glint, much more often with the hero near (eyeing their purse).
+//  - An attack: the eyes blaze up through the wind-up and widen (the Executioner) or narrow to
+//    slits (Croesus), peak just before the blow lands, and die back down after.
+//  - A blow: a hard blink, then they flare in anger and settle.
+//  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
+//    greys the glow and this holds.
+//
+// Each actor gets its own clone of the shared glow material (no extra draws). Owns the eyes' scale
+// and position (scaled about their own centre) and the material's emissiveIntensity.
+
+const TAU = Math.PI * 2;
+export const RANGE = 6, NEAR_RATE = 2, REST_RATE = 3;
+export const LOOK = {
+  executioner: {near: 1.35, breath: .12, breathHz: .35, glareMin: 4, glareSpan: 6, glareLen: 1.6, glareY: .55, glareGlow: 1.3,
+    atkGlow: 3, atkX: 1.35, atkY: 1.5, dart: 0, glintMin: 0, glintSpan: 0},
+  croesus: {near: 1.15, breath: .06, breathHz: .5, glareMin: 0, glareSpan: 0, glareLen: 0, glareY: 1, glareGlow: 1,
+    atkGlow: 3.2, atkX: 1.15, atkY: .55, dart: .0045, glintMin: 2, glintSpan: 3, glintNear: 2.5, glintLen: .28, glintGlow: 2},
+};
+// The blink and the anger after a blow (s), and the gutter at death.
+export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
+const SNAP = 1e-3;
+
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
+const approach = (v, to, rate, dt) => to + (v - to) * Math.exp(-rate * dt);
+
+export const hasEyes = a => !!(a && !a.asset && LOOK[a.kind] && a.eyes?.isMesh && a.eyes.material && a.head);
+
+function rand(st) { st.seed = (st.seed * 16807) % 2147483647; return (st.seed - 1) / 2147483646; }
+
+// The attack's flare over action progress u: up through the wind-up, held to the strike, then down.
+export function attackCurve(u) {
+  if (!(u > 0) || !(u < 1)) return 0;
+  return smooth(u / .3) * (1 - smooth((u - .5) / .5));
+}
+// A blink's openness over its progress v: shut fast, open a little slower. 1 outside.
+export function blinkCurve(v) {
+  if (!(v > 0) || !(v < 1)) return 1;
+  return v < .35 ? 1 - .88 * smooth(v / .35) : .12 + .88 * smooth((v - .35) / .65);
+}
+// A narrowing (the glare, a glint) over its progress v: in, held, out. 0 outside.
+export const holdCurve = v => !(v > 0) || !(v < 1) ? 0 : smooth(v / .2) * (1 - smooth((v - .7) / .3));
+
+function setup(a) {
+  const L = LOOK[a.kind], st = {seed: ((a.g?.id ?? 1) * 40692) % 2147483647 || 1, T: 0, L, life: 1, near: 0, anger: 0,
+    blink: null, glare: null, glint: null, dart: 0, dartTo: 0, dartWait: 0, lastHit: null};
+  a.eyes.material = a.eyes.material.clone();
+  st.base = a.eyes.material.emissiveIntensity;
+  a.eyes.geometry.computeBoundingBox();
+  st.c = a.eyes.geometry.boundingBox.getCenter(a.eyes.position.clone());
+  st.pos = a.eyes.position.clone();
+  st.glareWait = L.glareMin + L.glareSpan * rand(st);
+  st.glintWait = L.glintMin + L.glintSpan * rand(st);
+  st.ph = rand(st) * TAU;
+  return st;
+}
+
+// Call once a frame (fidget.js does). `look` is the hero's position (same parent as actor.g).
+// Returns the state, or null for anything else.
+export function updateEyeFlare(a, dt, t, busy, look = null) {
+  if (!hasEyes(a)) return null;
+  const st = a.eyeFlare || (a.eyeFlare = setup(a)), L = st.L;
+  if (a.stone) return st;
+  dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
+  st.T += dt;
+  const q = a.actions, cur = q?.current, dead = !!q?.dead;
+  st.life = dead ? approach(st.life, 0, DEATH_RATE, dt) : 1;
+  if (st.life < SNAP) st.life = 0;
+
+  let near = false;
+  if (look && Number.isFinite(look.x) && Number.isFinite(look.z))
+    near = Math.hypot(look.x - a.g.position.x, look.z - a.g.position.z) <= RANGE;
+  near = near && !dead;
+  st.near = approach(st.near, near ? 1 : 0, near ? NEAR_RATE : REST_RATE, dt);
+
+  // A blow: a hard blink, then anger.
+  if (!dead && cur?.kind === 'hit' && cur !== st.lastHit) { st.lastHit = cur; st.blink = 0; st.anger = 1; }
+  let open = 1;
+  if (st.blink !== null) { st.blink += dt / BLINK_LEN; open = blinkCurve(st.blink); if (st.blink >= 1) st.blink = null; }
+  st.anger = st.anger > SNAP ? st.anger * Math.exp(-ANGER_RATE * dt) : 0;
+
+  // The Executioner's glare: a long narrowing, now and then.
+  let glare = 0;
+  if (L.glareLen && !dead) {
+    if (st.glare === null) { st.glareWait -= dt; if (st.glareWait <= 0 && !busy) { st.glare = 0; st.glareWait = L.glareMin + L.glareSpan * rand(st); } }
+    if (st.glare !== null) { st.glare += dt / L.glareLen; glare = holdCurve(st.glare); if (st.glare >= 1) st.glare = null; }
+  }
+  // Croesus: a darting look, and a glint (much sooner with the hero near).
+  let glint = 0;
+  if (L.glintLen && !dead) {
+    if (st.glint === null) { st.glintWait -= dt * (near ? L.glintNear : 1); if (st.glintWait <= 0) { st.glint = 0; st.glintWait = L.glintMin + L.glintSpan * rand(st); } }
+    if (st.glint !== null) { st.glint += dt / L.glintLen; const v = st.glint; glint = v > 0 && v < 1 ? Math.sin(Math.PI * v) ** 2 : 0; if (st.glint >= 1) st.glint = null; }
+  }
+  if (L.dart && !dead) {
+    st.dartWait -= dt;
+    if (st.dartWait <= 0) { st.dartTo = (rand(st) * 2 - 1) * L.dart; st.dartWait = (near ? .4 : .9) + 1.6 * rand(st); }
+  } else st.dartTo = 0;
+  st.dart = approach(st.dart, st.dartTo, 14, dt);
+
+  // The attack, on any kind of attack once it starts.
+  const atk = !dead && cur?.kind === 'attack' && (q.age ?? 0) >= (cur.wait ?? 0) ? attackCurve(q.u ?? 0) : 0;
+
+  // The glow.
+  const breath = 1 + L.breath * (1 - .5 * st.near) * Math.sin(st.T * L.breathHz * TAU + st.ph);
+  let k = breath * (1 + (L.near - 1) * st.near) * (1 + (L.glareGlow - 1) * glare) * (1 + ((L.glintGlow ?? 1) - 1) * glint);
+  k *= 1 + (L.atkGlow - 1) * atk + (ANGER - 1) * st.anger;
+  k *= .35 + .65 * open;
+  if (dead) {
+    // guttering: a ragged flicker as it dies down
+    const fl = .75 + .25 * Math.sin(st.T * 31 + st.ph) * Math.sin(st.T * 13.7);
+    k = k * st.life * (st.life > .02 ? fl : 1);
+  }
+  a.eyes.material.emissiveIntensity = st.base * k;
+  st.k = k;
+
+  // The shape: widened or narrowed in the attack, narrowed in a glare, shut in a blink, sagged dead.
+  let sx = 1 + (L.atkX - 1) * atk, sy = 1 + (L.atkY - 1) * atk;
+  sy *= 1 + (L.glareY - 1) * glare;
+  sy *= open;
+  sy *= DEATH_Y + (1 - DEATH_Y) * st.life;
+  const sz = 1;
+  a.eyes.scale.set(sx, sy, sz);
+  a.eyes.position.set(st.pos.x + st.c.x * (1 - sx) + st.dart, st.pos.y + st.c.y * (1 - sy), st.pos.z + st.c.z * (1 - sz));
+  return st;
+}
