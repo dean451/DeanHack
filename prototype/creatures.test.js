@@ -1573,3 +1573,27 @@ test('snakes get a sculpted head with a hinged lower jaw, slit-eyed vipers with 
  const fangs=name=>{const c=createCreature({name,symbol:83,color:3}).jaw.parent.children.find(m=>m.userData.part==='skull').geometry.attributes.color.array;const f=new THREE.Color('#ece4cc');let n=0;for(let i=0;i<c.length;i+=3)if(Math.abs(c[i]-f.r)+Math.abs(c[i+1]-f.g)+Math.abs(c[i+2]-f.b)<.01)n++;return n;};
  assert(fangs('pit viper')>20,'viper fangs');assert.equal(fangs('python'),0,'no fangs on the python');
 });
+
+test('Cthulhu is its own towering, tentacle-bearded, winged horror instead of the small generic h',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const generic=createCreature({name:'',symbol:104,color:10}),c=createCreature({name:'Cthulhu',symbol:104,color:10});
+ assert.equal(c.kind,'cthulhu');
+ for(const key of ['body','head','tail','arm','weaponSocket'])assert(c[key]?.isObject3D,key);
+ assert.equal(c.legs.length,2);assert.equal(c.arms.length,2);assert.equal(c.wings.length,2);
+ const parts=meshes(c);assert.equal(parts.length,10,'one merged mesh per moving part, plus the eyes');
+ for(const m of parts){for(const x of m.geometry.attributes.position.array)assert(Number.isFinite(x));for(const x of m.geometry.attributes.normal.array)assert(Number.isFinite(x));}
+ c.g.updateMatrixWorld(true);generic.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(c.g,true),gb=new THREE.Box3().setFromObject(generic.g,true);
+ assert(b.max.y>gb.max.y*1.5&&b.max.y<2.2,`stands ${b.max.y.toFixed(2)}`);
+ assert(b.min.y>-.02,'feet on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
+ // the tentacles hang from the face, in front of and below the eyes
+ const eyes=parts.find(m=>m.userData.part==='eyes'),beard=new THREE.Box3().setFromObject(c.tail,true);
+ const eyeAt=new THREE.Box3().setFromObject(eyes,true).getCenter(new THREE.Vector3());
+ assert(beard.min.y<eyeAt.y-.4&&beard.max.z>eyeAt.z,'the beard hangs down the chest');
+ assert(eyes.material.emissiveIntensity>1,'the eyes glow');
+ // the wings rise behind the shoulders
+ for(const w of c.wings)assert(new THREE.Box3().setFromObject(w,true).max.z<0,'wing behind');
+ const again=meshes(createCreature({name:'Cthulhu'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
