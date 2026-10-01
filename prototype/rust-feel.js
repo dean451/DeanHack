@@ -16,7 +16,8 @@
 //
 // The module owns the feelers' rotation, the head's rotation and the vane's roll (all written
 // absolutely from the rest pose every frame; live.js rolls the whole tail on top). No extra draws
-// beyond the feelers' own groups.
+// beyond the feelers' own groups (the disintegrator adds one mote cloud, crumble-motes.js).
+import {updateCrumbleMotes} from './crumble-motes.js';
 
 const TAU = Math.PI * 2;
 // Hero sensing: range (tiles), the feelers' and head's turn limits (rad) and the head's turn rate.
@@ -41,6 +42,9 @@ const SNAP = 1e-3;
 export const LOOKS = {
   'rust monster': {jerk: 16, gap: .2, gapSpan: .65, qHz: 15, quiver: .018, quiverNear: .07, tick: Math.PI / 3, tickGap: .5, tickSpan: 1, whirr: 15, drift: 0},
   disenchanter: {jerk: 3.2, gap: .8, gapSpan: 1.4, qHz: 9, quiver: .01, quiverNear: .045, tick: 0, tickGap: 1, tickSpan: 1, whirr: 9, drift: .7},
+  // The disintegrator: slower still, a long patient glide between holds, a faint low quiver, and its
+  // vane turning slowly round; it doesn't need to hurry. Its rump sheds motes (crumble-motes.js).
+  disintegrator: {jerk: 2.2, gap: 1.1, gapSpan: 1.8, qHz: 6, quiver: .007, quiverNear: .05, tick: 0, tickGap: 1, tickSpan: 1, whirr: 6, drift: .35},
 };
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
@@ -175,5 +179,6 @@ export function updateRustFeel(a, dt, t, busy, look = null, walking = false) {
   if (st.spinTo > 1e4) { const k = Math.floor(st.spinTo / TAU) * TAU; st.spinTo -= k; st.spin -= k; }
   if (dead && w === 0) { st.spin = st.spinTo; }
   a.vane.rotation.z = st.vaneRest + st.spin;
+  updateCrumbleMotes(a, dt, T, ex, lp.lash, hit, dead, w);
   return st;
 }
