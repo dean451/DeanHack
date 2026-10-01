@@ -1663,3 +1663,22 @@ test('plain rats carry a head handle that turns the face about the neck and leav
   assert.ok(local(trunk).distanceTo(body)<1e-12,name);
  }
 });
+
+test('the disintegrator is its own crumbling, green-lit bug instead of a green rust monster',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const d=createCreature({name:'disintegrator',symbol:82,color:10}),rust=createCreature({name:'rust monster',symbol:82,color:3});
+ assert.equal(d.kind,'disintegrator');assert.equal(d.rustFeel,'disintegrator');
+ assert.equal(d.feelers.length,2);for(const f of d.feelers)assert.equal(f.parent,d.feelHead);
+ assert(d.vane.parent===d.tail&&d.tail.parent===d.body);assert.equal(d.legs.length,4);
+ const parts=meshes(d);assert.equal(parts.length,12,'one merged mesh per moving part, plus two glow meshes');
+ for(const m of parts){for(const x of m.geometry.attributes.position.array)assert(Number.isFinite(x));for(const x of m.geometry.attributes.normal.array)assert(Number.isFinite(x));}
+ d.g.updateMatrixWorld(true);rust.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(d.g,true),rb=new THREE.Box3().setFromObject(rust.g,true);
+ assert(b.min.y>-.02&&b.min.y<.03,`needle feet on the floor (${b.min.y.toFixed(3)})`);
+ assert(b.max.y>rb.max.y,'bigger than a rust monster');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
+ const glow=parts.filter(m=>m.material.emissiveIntensity>1).map(m=>m.userData.part).sort();
+ assert.deepEqual(glow,['eyes','seams']);
+ const again=meshes(createCreature({name:'disintegrator'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});

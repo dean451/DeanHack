@@ -35,6 +35,7 @@ import {createNurse} from './nurse.js';
 import {createShopkeeper} from './shopkeeper.js';
 import {createMedusa} from './medusa.js';
 import {createCthulhu} from './cthulhu.js';
+import {createDisintegrator} from './disintegrator.js';
 import {createWeepingAngel,WEEPING_ANGELS} from './weeping-angel.js';
 import {createWatch,WATCH} from './watch.js';
 import {createSoldier,SOLDIERS} from './soldier.js';
@@ -2447,6 +2448,7 @@ export function createCreature(cell={}){
  if(VAMPIRES[name])return vampire({...VAMPIRES[name],kind:name});
  if(XORNS[name])return xorn(XORNS[name]);
  if(NAGAS[name])return naga(NAGAS[name]);
+ if(name==='disintegrator')return createDisintegrator();
  if(RUST_MONSTERS[name])return rustMonster({...RUST_MONSTERS[name],kind:name});
  if(UMBER_HULKS[name])return umberHulk(UMBER_HULKS[name]);
  if(HORRORS[name])return shamblingHorror(HORRORS[name]);
