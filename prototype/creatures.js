@@ -65,6 +65,7 @@ import {createKnight} from './knight.js';
 import {createGolem} from './golem.js';
 import {createHezrou} from './hezrou.js';
 import {createWizard} from './wizard.js';
+import {createWizardOfYendor} from './wizard-of-yendor.js';
 import {createMonk} from './monk.js';
 import {createArcheologist} from './archeologist.js';
 import {createCaveman,CAVE_KINDS} from './caveman.js';
@@ -2525,6 +2526,7 @@ export function createCreature(cell={}){
  if(name==='samurai')return createSamurai();
  if(name==='knight')return createKnight();
  if(name==='wizard')return createWizard();
+ if(name==='wizard of yendor')return createWizardOfYendor();
  if(name==='monk')return createMonk();
  if(name==='archeologist')return createArcheologist();
  if(CAVE_KINDS.includes(name))return createCaveman(name);
