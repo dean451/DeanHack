@@ -130,6 +130,8 @@ export function createHeldWeapon(item){
   buildBardiche(g);
  }else if(/\b(voulge|pole cleaver)\b/.test(name)){
   buildVoulge(g);
+ }else if(/\b(ranseur|hilted polearm)\b/.test(name)){
+  buildRanseur(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -579,6 +581,63 @@ function buildVoulge(g){
  b.holes.push(slit);
  const geo=new THREE.ExtrudeGeometry(b,{depth:.012,bevelEnabled:true,bevelThickness:.004,bevelSize:.004,bevelSegments:1,steps:1,curveSegments:8});geo.translate(0,0,-.006);
  put(geo,blade);
+ for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The ranseur: a long four-edged spike rising from a forged hilt, flanked by two side prongs
+// that sweep out from the crossbar and hook up into talons, each barbed on its inner edge so
+// a thrust that misses can be dragged back to catch. A ring of rivets nails the langets down
+// the haft below the socket, the grip is wound on a slant and the butt ends in an iron spike.
+// Merged per material like the partisan: 4 draws. The blades stay metalness >= .75, so
+// weapon-magic sheathes them.
+function buildRanseur(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x33241a,roughness:.92});
+ const iron=new THREE.MeshStandardMaterial({color:0x4a4745,metalness:.78,roughness:.55});
+ const blade=new THREE.MeshStandardMaterial({color:0xa4acb1,metalness:.82,roughness:.31});
+ const wrap=new THREE.MeshStandardMaterial({color:0x2b1c16,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,blade,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ // Haft, a little thicker toward the head, and the grip wound on a slant.
+ put(new THREE.CylinderGeometry(.025,.022,1.2,10),wood,0,.21);
+ put(new THREE.CylinderGeometry(.031,.031,.22,10),wrap,0,-.01);
+ for(let i=0;i<6;i++){const turn=new THREE.TorusGeometry(.032,.006,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.1+i*.036,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // Butt: an iron shoe ending in a short spike.
+ put(new THREE.CylinderGeometry(.026,.022,.06,10),iron,0,-.4);
+ put(new THREE.ConeGeometry(.018,.09,4),blade,0,-.475,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI));
+ // Two langets nailed down the haft below the socket, and a band at their foot.
+ for(const s of [-1,1]){
+  put(new THREE.BoxGeometry(.006,.2,.016),iron,0,.67,s*.025);
+  for(const y of [.6,.67,.74])put(new THREE.SphereGeometry(.0055,5,4),iron,0,y,s*.029);
+ }
+ put(new THREE.CylinderGeometry(.03,.03,.02,10),iron,0,.57);
+ // The hilt: a tapered socket, a collar and a squared crossbar the prongs are forged from.
+ put(new THREE.CylinderGeometry(.024,.031,.1,8),iron,0,.82);
+ put(new THREE.CylinderGeometry(.036,.036,.018,8),iron,0,.775);
+ put(new THREE.BoxGeometry(.1,.026,.03),iron,0,.875);
+ // The spike: a four-edged lozenge in section, swelling just above the hilt and drawing
+ // into a long needle point.
+ const stations=[[.885,.012],[.92,.03],[.96,.033],[1.04,.026],[1.18,.016],[1.31,.008]],tip=1.43;
+ const verts=[],index=[];
+ for(const [y,w] of stations)verts.push(w,y,0, 0,y,w*.55, -w,y,0, 0,y,-w*.55);
+ for(let i=0;i<stations.length-1;i++)for(let j=0;j<4;j++){const a=i*4+j,b=i*4+(j+1)%4;index.push(a,b+4,b,a,a+4,b+4);}
+ const apex=stations.length*4;verts.push(0,tip,0);
+ const last=(stations.length-1)*4;for(let j=0;j<4;j++)index.push(last+j,apex,last+(j+1)%4);
+ index.push(0,1,2,0,2,3);
+ const spike=new THREE.BufferGeometry();spike.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));spike.setIndex(index);
+ const spikeFlat=spike.toNonIndexed();spike.dispose();spikeFlat.computeVertexNormals();put(spikeFlat,blade);
+ // The side prongs, built as the right half and mirrored: out from the crossbar, sweeping up
+ // into a talon that hooks outward, then back down the inner edge past a barb.
+ const half=[[0,.862],[.05,.862],[.1,.875],[.138,.905],[.162,.95],[.176,1.01],[.19,1.07],[.2,1.12],
+  [.172,1.07],[.152,1.02],[.13,1.0],[.142,.985],[.122,.958],[.095,.928],[.06,.912],[.028,.906]];
+ const s=new THREE.Shape();s.moveTo(half[0][0],half[0][1]);
+ for(let i=1;i<half.length;i++)s.lineTo(half[i][0],half[i][1]);
+ for(let i=half.length-1;i>=1;i--)s.lineTo(-half[i][0],half[i][1]);
+ s.closePath();
+ const prongs=new THREE.ExtrudeGeometry(s,{depth:.01,bevelEnabled:true,bevelThickness:.004,bevelSize:.004,bevelSegments:1,steps:1});prongs.translate(0,0,-.005);
+ put(prongs,blade);
  for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
   const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
