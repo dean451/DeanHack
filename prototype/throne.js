@@ -2,11 +2,13 @@ import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
-// A royal throne for the `throne` terrain: a two-step dais of dressed stone blocks
-// with a tasselled carpet runner draped over the steps; a gilded seat on turned
-// legs and lion-paw feet with a button-tufted cushion; armrests ending in scrolled
-// volutes set with rubies; a tall back of turned columns and urn finials framing a
-// quilted velvet panel, a crown motif and an ogee crest with a sapphire.
+// A tyrant's throne for the `throne` terrain: a two-step dais of dressed stone blocks
+// with a tasselled carpet runner draped over the steps, blood soaked into it; a
+// gilded seat on turned legs and taloned lion-paw feet with a button-tufted cushion;
+// armrests ending in scrolled volutes set with rubies; a tall back of turned columns
+// crowned with horned skulls, embers in their sockets, framing a quilted velvet
+// panel, a crown motif and an ogee crest with a sapphire, behind which splays a fan
+// of gilt blades. Skulls and picked bones lie on the lower tread.
 // Wear is baked into vertex colours: mottled stone with grime at the foot, gilt
 // tarnished in the hollows and rubbed bright where hands rest, crushed velvet worn
 // paler on the seat, and a faded carpet with a gold-thread border and lozenges.
@@ -40,6 +42,32 @@ export function createThrone(){
  const box=(w,h,d,r,seg=2)=>new RoundedBoxGeometry(w,h,d,seg,Math.min(r,w/2-1e-4,h/2-1e-4,d/2-1e-4));
  const lathe=(pts,seg=14)=>new THREE.LatheGeometry(pts.map(([r,y])=>new THREE.Vector2(r,y)),seg);
  const goldBox=(w,h,d,x,y,z,r=.008)=>put(place(box(w,h,d,r),x,y,z),gold);
+ // A tube tapering to a point along a curve.
+ function spike(pts,r,n=12,radial=6){
+  const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
+  const geo=new THREE.TubeGeometry(curve,n,r,radial,false),p=geo.attributes.position,c=new THREE.Vector3();
+  for(let i=0;i<=n;i++){curve.getPointAt(i/n,c);const k=Math.max(.04,1-i/n);for(let j=0;j<=radial;j++){const idx=i*(radial+1)+j;p.setXYZ(idx,c.x+(p.getX(idx)-c.x)*k,c.y+(p.getY(idx)-c.y)*k,c.z+(p.getZ(idx)-c.z)*k);}}
+  geo.computeVertexNormals();return geo;
+ }
+ // A skull resting on (x,y,z), facing +z turned by ry, tilted by rx/rz, in the
+ // stone bin painted as old bone: cranium, cheeks, muzzle, a jaw with teeth and
+ // dark sockets and nose; `horned` adds two ridged horns sweeping back and up.
+ function skull(x,y,z,ry,rx,rz,sc,horned=false){
+  const local=[],add=(geo,paint)=>local.push([geo,paint]);
+  add(new THREE.SphereGeometry(.042,14,10).scale(1,.92,1.1).translate(0,.05,-.006),bone);
+  add(new THREE.SphereGeometry(.03,12,8).scale(1.15,.8,.9).translate(0,.03,.022),bone);
+  add(box(.04,.018,.03,.008).translate(0,.012,.03),bone);
+  for(const sx of [-1,1]){
+   add(new THREE.SphereGeometry(.0125,8,6).scale(1,.85,.6).translate(sx*.017,.042,.046),socket);
+   add(new THREE.SphereGeometry(.0028,5,4).translate(sx*.017,.041,.051),ember);
+   add(new THREE.SphereGeometry(.01,6,5).scale(1,.7,1.4).translate(sx*.031,.032,.02),bone);
+  }
+  add(new THREE.ConeGeometry(.007,.014,3).rotateX(Math.PI).scale(1,1,.5).translate(0,.028,.051),socket);
+  for(let i=0;i<6;i++)add(new THREE.BoxGeometry(.005,.008,.004).translate((i-2.5)*.0058,.014,.045-Math.abs(i-2.5)*.0012),tooth);
+  if(horned)for(const sx of [-1,1])add(spike([[sx*.026,.075,-.004],[sx*.05,.1,-.02],[sx*.056,.135,-.048],[sx*.042,.16,-.062],[sx*.03,.172,-.05]],.011,18,6),horn);
+  m4.compose(v.set(x,y,z),q.setFromEuler(e.set(rx,ry,rz)),s.set(sc,sc,sc));
+  for(const [geo,paint] of local)put(geo.applyMatrix4(m4),stone,{paint});
+ }
  const ball=(r,m,x,y,z,sx=1,sy=sx,sz=sx,w=10,h=8)=>put(place(new THREE.SphereGeometry(r,w,h),x,y,z,0,0,0,sx,sy,sz),m);
 
  // Dais: three dressed blocks on the lower step and two on the upper, with fine
@@ -101,8 +129,9 @@ export function createThrone(){
  goldBox(.46,.72,.05,0,.68,bz,.012);
  for(const x of [-.225,.225]){
   put(place(lathe([[0,0],[.036,0],[.038,.02],[.03,.035],[.026,.05],[.029,.3],[.026,.6],[.03,.63],[.024,.645],[.036,.67],[.04,.69],[0,.69]]),x,.35,bz),gold);
-  put(place(lathe([[0,0],[.022,0],[.034,.03],[.03,.06],[.012,.075],[.016,.085],[0,.09]]),x,1.04,bz),gold);
-  ball(.016,gold,x,1.142,bz);
+  // A horned skull crowns each column where the urn finials used to be.
+  put(place(lathe([[0,0],[.03,0],[.032,.01],[.022,.018],[0,.018]]),x,1.04,bz),gold);
+  skull(x,1.058,bz+.004,-Math.sign(x)*.25,-.12,0,.85,true);
  }
  {
   const pw=.36,ph=.52,py=.66,pz=bz+.027,geo=new THREE.PlaneGeometry(pw,ph,28,40),p=geo.attributes.position;
@@ -132,6 +161,28 @@ export function createThrone(){
   ball(.012,gold,0,1.26,bz+.008);
  }
 
+ // A fan of gilt blades, long and short by turns, splays out behind the crest.
+ for(let i=0;i<11;i++){
+  const a=(i-5)/5*1.3,L=(i%2?.15:.24)*(.72+.28*Math.cos(a))+(i===5?.05:0);
+  const geo=new THREE.ConeGeometry(.018,L,4,1).rotateY(Math.PI/4).scale(1,1,.35).translate(0,L/2,0);
+  put(place(geo,Math.sin(a)*.07,1.05+Math.cos(a)*.07,bz-.022,0,0,-a),gold);
+ }
+
+ // Hooked talons curl out of each lion paw.
+ for(const x of [-.2,.2])for(const z of [-.2,.14])for(const dx of [-.018,0,.018])
+  put(spike([[x+dx,.156,z+.046],[x+dx,.16,z+.064],[x+dx*1.2,.152,z+.078],[x+dx*1.3,.142,z+.082]],.0055,10,5),stone,{paint:horn});
+
+ // Picked bones on the lower tread: a skull either side of the runner, one
+ // tipped on its side, and long bones heaped by the right-hand one.
+ skull(-.34,.07,.355,.55,0,0,1);
+ skull(.37,.088,.33,-.9,.25,1.35,.9);
+ for(const [x,z,ry,len] of [[.25,.37,.4,.17],[.3,.31,-.7,.14],[-.24,.31,1.2,.12]]){
+  const parts=[new THREE.CylinderGeometry(.008,.009,len,7)];
+  for(const sy of [-1,1])for(const sx of [-1,1])parts.push(new THREE.SphereGeometry(.011,7,5).translate(sx*.006,sy*len/2,0));
+  const geo=mergeGeometries(parts.map(p=>p.toNonIndexed()));parts.forEach(p=>p.dispose());
+  put(place(geo,x,.081,z,0,ry,Math.PI/2),stone,{paint:bone});
+ }
+
  // Bake: every bin gets its colours, then becomes one mesh.
  const n=new THREE.Vector3(),paints={stone:stoneColour,gold:goldColour,velvet:(x,y,z)=>seatVelvet(x,y,z),carpet:carpetColour};
  for(const [material,list] of bins){
@@ -154,6 +205,22 @@ export function createThrone(){
  }
  g.userData.dispose=()=>{for(const geo of geometries)geo.dispose();for(const m of materials)m.dispose();};
  return g;
+}
+
+// Old bone: yellowed ivory, mottled, browner in the hollows facing down.
+function bone(x,y,z,n){
+ let k=.8+noise3(x*70,y*70,z*70)*.28;if(n.y<-.3)k*=.62;
+ return [.74*k,.66*k,.5*k];
+}
+// Eye sockets, nose and the dark gaps: near black.
+function socket(){return [.035,.025,.022];}
+// A dying ember deep in each socket.
+function ember(){return [.9,.22,.06];}
+function tooth(x,y,z){const k=.86+noise3(x*200,y*200,z*200)*.2;return [.8*k,.74*k,.56*k];}
+// Horn and talon: near-black keratin, ridged in bands and paling toward the tip.
+function horn(x,y,z){
+ const k=.7+.3*Math.abs(Math.sin((x*3+y*2+z*3)*90))+noise3(x*90,y*90,z*90)*.2;
+ return [.13*k,.1*k,.085*k];
 }
 
 // Quilting: pillows between a diamond grid of buttons, flat on the grid lines.
@@ -203,6 +270,10 @@ function carpetColour(x,y,z){
  else if(ax>.116&&ax<.128){r=.66;g=.47;b=.2;}
  else{const f=along*8.5-Math.floor(along*8.5),loz=ax/.05+Math.abs(f-.5)*2;if(loz<.75){r=.14;g=.12;b=.3;if(loz<.3){r=.66;g=.47;b=.2;}}}
  if(ax<.12)k*=1+.18*Math.max(0,1-Math.abs(z-.33)/.14)+.1*Math.max(0,1-Math.abs(z-.17)/.1);
+ // Old blood soaked in where it ran down the steps from the seat: a trail of
+ // dark blots that thickens toward the top.
+ const blot=noise3(x*26,along*26,9)+.22*Math.max(0,1-Math.abs(x+.03)/.07)*Math.min(1,Math.max(0,(.42-z)/.3));
+ if(blot>.74){const t=Math.min(1,(blot-.74)*6);r+=(.13-r)*t;g+=(.015-g)*t;b+=(.02-b)*t;}
  return [r*k,g*k,b*k];
 }
 
