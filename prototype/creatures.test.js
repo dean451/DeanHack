@@ -1431,3 +1431,23 @@ test('nymphs are dancers: sheer gold-trimmed sashes, gold cuffs and a gem on the
  }
  assert.equal(looks.size,3,'wood, water and mountain nymphs differ');
 });
+
+test('the enormous rat is its own hulking, mangy rat, bigger than a giant rat, in nine shared draws',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const box=a=>{a.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(a.g);};
+ const m=createCreature({name:'enormous rat',symbol:114,color:3});
+ assert.equal(m.quirk,'rat');assert.equal(m.legs.length,4);
+ for(const h of ['body','head','tail'])assert(m[h]?.isObject3D,h);
+ const parts=meshes(m);
+ assert.deepEqual(parts.map(p=>p.userData.part).sort(),['body','eyes','foreleg','foreleg','head','hindleg','hindleg','tail','teeth']);
+ for(const p of parts){const a=p.geometry.attributes;for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${p.userData.part} ${key}`);}
+ assert(parts.find(p=>p.userData.part==='eyes').material.emissiveIntensity>0,'red eyes glow');
+ const b=box(m);assert(b.min.y>-.005&&b.min.y<.01,`sits on the floor at ${b.min.y}`);
+ assert(b.max.y>.5&&b.max.y<.75,`top at ${b.max.y}`);
+ const reach=Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z);assert(reach<.9,`reach ${reach}`);
+ // a longer torso than the giant rat's (whose ears and 1.25 scale make it as tall)
+ const length=a=>{a.g.updateMatrixWorld(true);const t=new THREE.Box3().setFromObject(a.body.children[0]);return t.max.z-t.min.z;};
+ assert(length(m)>length(createCreature({name:'giant rat',symbol:114})),'longer than a giant rat');
+ const again=meshes(createCreature({name:'enormous rat',symbol:114}));
+ parts.forEach((p,i)=>{assert.equal(p.geometry,again[i].geometry);assert.equal(p.material,again[i].material);});
+});
