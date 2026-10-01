@@ -237,3 +237,77 @@ test('ghost sleeves drift, trail while moving, go limp in death and settle to re
     assert.equal(a.sleeves, undefined);
   }
 });
+
+// Vortices whirl (vortex-spin.js, driven from updateGait).
+import {VORTEX, debrisAt, updateVortexSpin} from './vortex-spin.js';
+
+const vortexSnap = a => {
+  const parts = [];
+  a.g.traverse(o => { if (o.isMesh && !o.userData.outline) parts.push({o, pos: o.position.clone(), quat: o.quaternion.clone(), scale: o.scale.clone()}); });
+  return parts;
+};
+const vortexFrame = (a, dt, t, walking) => {
+  a.body.position.y = flightBob(null, t, 0);
+  updateGait(a, dt, walking);
+};
+
+test('debris path is closed: it ends where it starts and climbs to the top', () => {
+  for (const angle of [0, 1.3]) {
+    const a = debrisAt(0, angle, .1, .8, .1, .34), b = debrisAt(1, angle, .1, .8, .1, .34);
+    assert.ok(Math.abs(a.x - b.x) < 1e-9 && Math.abs(a.y - b.y) < 1e-9 && Math.abs(a.z - b.z) < 1e-9);
+    let top = 0, prev = a;
+    for (let u = .002; u <= 1; u += .002) {
+      const p = debrisAt(u, angle, .1, .8, .1, .34);
+      top = Math.max(top, p.y);
+      assert.ok(p.y >= .1 - 1e-9, `below the floor at ${u}`);
+      assert.ok(Math.hypot(p.x - prev.x, p.y - prev.y, p.z - prev.z) < .03, `jump at ${u}`);
+      prev = p;
+    }
+    assert.ok(top >= .8 - 1e-9);
+  }
+});
+
+test('every vortex whirls, stays finite and in its tile, and dies back to rest', () => {
+  for (const name of Object.keys(VORTEX)) {
+    const a = createCreature({name, kind: 'monster'});
+    a.species = name;
+    const rest = vortexSnap(a), restRot = a.body.rotation.clone();
+    let moved = 0, t = 0;
+    for (let i = 0; i < 600; i++) {
+      t += 1 / 60; vortexFrame(a, 1 / 60, t, i > 200 && i < 400);
+      if (i === 300) assert.ok(a.body.rotation.x - restRot.x > .1, `${name} leans into travel`);
+      for (const r of rest) {
+        for (const v of [r.o.position.x, r.o.position.y, r.o.position.z, r.o.quaternion.w, r.o.scale.x]) assert.ok(Number.isFinite(v), `${name} finite`);
+        assert.ok(Math.hypot(r.o.position.x, r.o.position.z) < .55, `${name} stays in its tile`);
+        if (r.o.parent === a.body) assert.ok(r.o.position.y > -.01, `${name} above the floor`);
+        moved = Math.max(moved, r.o.position.distanceTo(r.pos), 1 - Math.abs(r.o.quaternion.dot(r.quat)));
+      }
+    }
+    assert.ok(moved > .02, `${name} moves`);
+    a.actions = {dead: true};
+    for (let i = 0; i < 600; i++) { t += 1 / 60; vortexFrame(a, 1 / 60, t, false); }
+    for (const r of rest) {
+      assert.ok(r.o.position.distanceTo(r.pos) < 1e-6, `${name} position back to rest`);
+      assert.ok(1 - Math.abs(r.o.quaternion.dot(r.quat)) < 1e-9, `${name} rotation back to rest`);
+      assert.ok(r.o.scale.distanceTo(r.scale) < 1e-6, `${name} scale back to rest`);
+    }
+    assert.ok(Math.abs(a.body.rotation.x - restRot.x) < 1e-6 && Math.abs(a.body.rotation.z - restRot.z) < 1e-6, `${name} lean taken back`);
+  }
+});
+
+test('the bottom ring of a vortex turns faster than the top one', () => {
+  const a = createCreature({name: 'dust vortex'});
+  a.species = 'dust vortex';
+  updateVortexSpin(a, 1 / 60, false);
+  const rings = a.vortexSpin.rings, low = rings.reduce((m, r) => r.h < m.h ? r : m), high = rings.reduce((m, r) => r.h > m.h ? r : m);
+  let lo = 0, hi = 0;
+  for (let i = 0; i < 60; i++) { const a0 = low.phi, b0 = high.phi; updateVortexSpin(a, 1 / 60, false); lo += (low.phi - a0 + Math.PI * 2) % (Math.PI * 2); hi += (high.phi - b0 + Math.PI * 2) % (Math.PI * 2); }
+  assert.ok(lo > hi * 1.5, `bottom ${lo} vs top ${hi}`);
+});
+
+test('non-vortices are left alone', () => {
+  const a = createCreature({name: 'jackal'});
+  a.species = 'jackal';
+  assert.equal(updateVortexSpin(a, 1 / 60, true), null);
+  assert.equal(a.vortexSpin, undefined);
+});
