@@ -317,6 +317,23 @@ test('amulets lie on the floor and show only their shuffled appearance',()=>{
  assert.notDeepEqual(signature(amulet('amulet of ESP','hexagonal')),signature(amulet('amulet of ESP','lunate')));
 });
 
+test('the orcish shield bakes to three draws: painted hide, iron and the glowing eye',()=>{
+ const model=createGroundModel({name:'orcish shield',class:3,appearance:'red-eyed shield'});
+ const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+ assert.equal(meshes.length,3);
+ const hide=meshes.find(m=>m.material.vertexColors);
+ assert(hide,'the matte parts share one vertex-coloured material');
+ assert(meshes.some(m=>m.material.emissiveIntensity>0&&m.material.color.r>m.material.color.g*3),'the iris glows red');
+ // The drips, soot, gouges, eye white and stitches are painted, so the hide carries all of them.
+ const col=hide.geometry.attributes.color.array,c=new THREE.Color();let blood=0,eye=0,dark=0;
+ for(let i=0;i<col.length;i+=3){
+  c.fromArray(col,i);for(const v of [c.r,c.g,c.b])assert(Number.isFinite(v)&&v>=0&&v<=1);
+  if(c.r>.07&&c.r>c.g*3)blood++;if(c.r>.6&&c.g>.5)eye++;if(c.r+c.g+c.b<.08)dark++;
+ }
+ assert(blood>20,`dried blood drips (${blood})`);assert(eye>10,`eye white (${eye})`);assert(dark>10,`pupil and gouges (${dark})`);
+ model.userData.dispose();
+});
+
 test('shields lie face-up and show their appearance, not their true name',()=>{
  const shield=(name,appearance)=>createGroundModel({name,class:3,appearance});
  const signature=model=>{const out=[];model.traverse(part=>{if(part.geometry)out.push([part.geometry.type,part.geometry.attributes.position.count,...part.position.toArray().map(n=>n.toFixed(5)),part.material.color.getHex()]);});return out;};

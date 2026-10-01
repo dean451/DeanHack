@@ -5794,7 +5794,10 @@ export function createGroundModel(item={}){
    /large round|dwarvish/.test(look)?'dwarvish':/polished silver|reflection/.test(look)?'silver':/large/.test(look)?'tower':'small';
   const shine=(color,metalness,roughness,emissive=0)=>{const m=new THREE.MeshStandardMaterial({color,metalness,roughness,emissive:emissive?color:0,emissiveIntensity:emissive});materials.push(m);return m;};
   const iron=shine(0x6f777a,.8,.42),brass=shine(0xb08a42,.8,.34);
-  const face=shine({small:0x7a5634,elven:0x2c5d9a,uruk:0x1c1a1a,orcish:0x5a3a2a,dwarvish:0x6a4a2c,silver:0xdfe7ec,tower:0x6e4d2e}[kind],kind==='silver'?1:0,kind==='silver'?.08:.82);
+  // The orcish shield's matte parts (hide, eye white, pupil, stitches) share one vertex-coloured
+  // material; only the glowing iris keeps its own.
+  const hide=kind==='orcish'?new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.88}):null;if(hide)materials.push(hide);
+  const face=hide??shine({small:0x7a5634,elven:0x2c5d9a,uruk:0x1c1a1a,dwarvish:0x6a4a2c,silver:0xdfe7ec,tower:0x6e4d2e}[kind],kind==='silver'?1:0,kind==='silver'?.08:.82);
   const rimMat=kind==='elven'?shine(0x3f8a4a,.55,.4):kind==='silver'?shine(0xc9d3d8,1,.16):iron;
   // Outlines are point lists in floor-plan space (x right, y toward -z), scaled for the rim inset.
   const circle=r=>s=>Array.from({length:48},(_,i)=>{const a=i/48*Math.PI*2;return new THREE.Vector2(Math.cos(a)*r*s,Math.sin(a)*r*s);});
@@ -5805,7 +5808,7 @@ export function createGroundModel(item={}){
   const T=.024,bevel=.004;
   const slab=(shape,depth,m,y=0)=>{const geo=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:2,curveSegments:24});geo.rotateX(-Math.PI/2);geo.translate(0,bevel+y,0);return add(geo,m);};
   const emblem=(pts,m,y=T+2*bevel)=>{const geo=new THREE.ExtrudeGeometry(new THREE.Shape(pts),{depth:.004,bevelEnabled:false});geo.rotateX(-Math.PI/2);geo.translate(0,y,0);return add(geo,m);};
-  slab(new THREE.Shape(outline(1)),T,face);
+  const faceMesh=slab(new THREE.Shape(outline(1)),T,face);
   const rim=new THREE.Shape(outline(1));rim.holes.push(new THREE.Path(outline(kind==='dwarvish'?.9:.88).reverse()));
   slab(rim,T+.006,rimMat);
   const top=T+2*bevel,rimTop=top+.006;
@@ -5832,14 +5835,43 @@ export function createGroundModel(item={}){
    const thumb=box(.018,.004,.055,white,-.07,top+.002,-.01);thumb.rotation.y=-.9;
    for(const x of [-.14,0,.14])add(new THREE.SphereGeometry(.008,8,4,0,Math.PI*2,0,Math.PI/2),iron,x,rimTop,-.185);
   }else if(kind==='orcish'){
-   // Crude hide-covered round shield with a staring red eye.
-   const eyeWhite=shine(0xd8c27a,0,.6),iris=shine(0xc0181c,0,.4,.6),pupil=shine(0x0c0a0a,0,.5);
+   // Crude raw-hide round shield with a staring red eye, dried-blood drips under it, claw gouges
+   // and a sinew-stitched seam. Colour per vertex: f(x,z) gives the hide at a floor-plan point.
+   const C=hex=>new THREE.Color(hex),c=new THREE.Color();
+   const paint=(mesh,f)=>{const p=mesh.geometry.attributes.position,col=new Float32Array(p.count*3);
+    for(let i=0;i<p.count;i++)f(p.getX(i),p.getZ(i)).toArray(col,i*3);mesh.geometry.setAttribute('color',new THREE.BufferAttribute(col,3));return mesh;};
+   const flat=hex=>{const k=C(hex);return()=>k;};
+   const smooth=(a,b,t)=>{const x=Math.min(1,Math.max(0,(t-a)/(b-a)));return x*x*(3-2*x);};
+   const seg=(x,z,ax,az,bx,bz)=>{const dx=bx-ax,dz=bz-az,t=Math.min(1,Math.max(0,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz)));return [Math.hypot(x-ax-dx*t,z-az-dz*t),t];};
+   const pale=C(0x7c5a40),base=C(0x5a3a2a),dark=C(0x2e1c12),blood=C(0x5a0c0a),soot=C(0x1a100c);
+   // Three gouges raked across the upper right, and three drips running toward the viewer from the eye.
+   const gouges=[[.1,.07],[.115,.09],[.13,.11]].map(([x,z])=>[x-.479*.035,z-.878*.035,x+.479*.035,z+.878*.035]);
+   const drips=[[-.046,.03,.075],[-.008,.04,.105],[.032,.034,.062]];
+   const hideAt=(x,z)=>{
+    const r=Math.hypot(x,z),n=Math.sin(x*37+Math.sin(z*23)*1.5)*Math.sin(z*41-x*17),speck=Math.sin(x*530+z*170)*Math.sin(z*610-x*90);
+    c.copy(base).lerp(n>0?pale:dark,Math.abs(n)*.55).multiplyScalar(.92+.08*speck);
+    c.lerp(dark,.6*smooth(.12,.16,r));
+    // Old soot smeared round the eye, as if it had been painted with a burnt thumb.
+    c.lerp(soot,.5*(1-smooth(.06,.13,Math.hypot(x/1.35,z*1.6))));
+    for(const [x0,z0,len] of drips){const [d,t]=seg(x,z,x0,z0,x0+Math.sin(z0*90)*.01,z0+len);
+     const w=.0075*(1-.45*t)+.006*smooth(.8,1,t);c.lerp(blood,.9*(1-smooth(w*.7,w,d)));}
+    for(const [ax,az,bx,bz] of gouges){const [d,t]=seg(x,z,ax,az,bx,bz);c.lerp(dark,.85*(1-smooth(.002,.0055*(1-Math.abs(t-.5)),d)));}
+    return c;
+   };
+   // A finely divided disc of hide over the slab, so the mottling, drips and gouges have
+   // vertices to live on, with a faint lumpy rise where the skin was stretched over the frame.
+   const skin=new THREE.RingGeometry(0,.162,96,24);skin.rotateX(-Math.PI/2);
+   const sp=skin.attributes.position;
+   for(let i=0;i<sp.count;i++){const x=sp.getX(i),z=sp.getZ(i);sp.setY(i,top+.0008+.0009*Math.sin(x*37+Math.sin(z*23)*1.5)*Math.sin(z*41-x*17)*(1-smooth(.13,.162,Math.hypot(x,z))));}
+   skin.computeVertexNormals();
+   paint(add(skin,hide),hideAt);paint(faceMesh,hideAt);
    const almond=[];for(let i=0;i<=16;i++){const t=i/16*Math.PI;almond.push(new THREE.Vector2(Math.cos(t)*-.1,Math.sin(t)*.045));}for(let i=15;i>0;i--){const t=i/16*Math.PI;almond.push(new THREE.Vector2(Math.cos(t)*.1,-Math.sin(t)*.045));}
-   emblem(almond,eyeWhite);
-   add(new THREE.CylinderGeometry(.036,.036,.004,20),iris,0,top+.006);
-   const slit=add(new THREE.CylinderGeometry(.01,.01,.004,12),pupil,0,top+.009);slit.scale.z=2.8;
-   // Jagged claw marks and uneven iron studs.
-   const scratch=shine(0x2a1a12,0,1);for(const [x,z,a] of [[.1,.07,.5],[.115,.09,.5],[.13,.11,.5]]){const c=box(.004,.002,.07,scratch,x,top+.001,z);c.rotation.y=a;}
+   paint(emblem(almond,hide,top+.0015),(x,z)=>c.set(0xd8c27a).lerp(C(0x8a5a2a),smooth(.05,.1,Math.abs(x))*.7));
+   add(new THREE.CylinderGeometry(.036,.036,.004,20),shine(0xc0181c,0,.4,.6),0,top+.006);
+   const slit=paint(add(new THREE.CylinderGeometry(.01,.01,.004,12),hide,0,top+.009),flat(0x0c0a0a));slit.scale.z=2.8;
+   // A seam of crude sinew cross-stitches down the left, where two hides were laced together.
+   for(let i=0;i<6;i++){const z=-.11+i*.042,x=-.115+Math.sin(i*1.7)*.006;
+    for(const a of [.6,-.6]){const st=paint(box(.004,.003,.026,hide,x,top+.0025,z),flat(0x8a7350));st.rotation.y=a+Math.sin(i*2.3)*.12;}}
    rivets(7,.165,iron,.011);
   }else if(kind==='dwarvish'){
    // Large round shield with a cross of iron bands, rivets and a heavy boss.
