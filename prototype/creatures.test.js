@@ -1540,3 +1540,18 @@ test('the shambling horror gets its own lopsided body, not the umber hulk',()=>{
  assert.notEqual(horror.legs[0].children.length,horror.legs[1].children.length);
  assert.notDeepEqual(b.max.toArray(),hb.max.toArray());assert(meshes<40);
 });
+
+test('the cobra spreads a ribbed hood with a spectacle mark on its own foldable handle',()=>{
+ const c=createCreature({name:'cobra',symbol:83,color:4}),s=createCreature({name:'snake',symbol:83,color:3});
+ assert.equal(c.quirk,'snake');assert(c.hood?.isObject3D,'hood handle');assert.equal(s.hood,undefined,'plain snakes have no hood');
+ const mesh=c.hood.children.find(o=>o.isMesh);assert(mesh?.material.vertexColors,'one vertex-coloured hood mesh');
+ const pos=mesh.geometry.attributes.position.array,col=mesh.geometry.attributes.color.array;
+ for(const v of pos)assert(Number.isFinite(v),'finite');
+ assert(pos.length/3<4000,`${pos.length/3} hood vertices`);
+ // the spectacle: near-black eyes and a pale cream ring on the back
+ let ink=0,pale=0;for(let i=0;i<col.length;i+=3){if(col[i]+col[i+1]+col[i+2]<.15)ink++;if(col[i]>.6&&col[i+1]>.5&&col[i+2]<.5)pale++;}
+ assert(ink>10&&pale>10,`spectacle ink ${ink}, pale ${pale}`);
+ c.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(c.hood);
+ assert(b.max.x-b.min.x>.3,`hood spreads ${b.max.x-b.min.x} wide`);assert(b.min.y>.15&&b.max.y<.5,`hood from ${b.min.y} to ${b.max.y}`);
+ c.hood.scale.x=.3;c.g.updateMatrixWorld(true);const f=new THREE.Box3().setFromObject(c.hood);assert(f.max.x-f.min.x<.12,'folds flat against the neck');
+});

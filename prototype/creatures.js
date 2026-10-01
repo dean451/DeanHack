@@ -568,10 +568,47 @@ function snake(o){
  tube(body,coil,.045,skin,64);
  const head=new THREE.Group();head.position.set(0,.44,.18);body.add(head);
  sphere(head,.065,skin,0,0,0,1,.6,1.35);sphere(head,.04,belly,0,-.02,.03,1,.4,1.3);
- if(o.hood)sphere(head,.13,skin,0,-.08,-.06,1.2,1,.25);
+ const hood=o.hood?cobraHood(head,o):null;
  for(const side of [-1,1])sphere(head,.016,mat('#e0b020',{emissive:'#6a4a00',emissiveIntensity:.8}),side*.04,.02,.05);
  const tongue=rounded(head,.012,.004,.12,mat('#c0282a'),0,-.01,.12,.002);tongue.rotation.x=.2;
- return actor(g,body,[],null,[],'snake');
+ const a=actor(g,body,[],null,[],'snake');
+ if(hood)a.hood=hood;
+ return a;
+}
+// The cobra's hood: one vertex-coloured lens of skin that spreads either side of the neck and
+// cups forward, its edges thinning to a blade. Long ribs fan out from the spine under the back
+// of it, and a pale spectacle mark (two black-eyed rings joined by a hooked band) stares back
+// from between them; dark throat bands cross the pale front. It all hangs on the 'hood' group,
+// pivoted on the neck, so hood.scale.x folds it flat against the neck (about .3) and spreads it.
+function cobraHood(head,o){
+ const pivot=new THREE.Group();pivot.position.set(0,-.085,-.1);head.add(pivot);
+ const NU=44,NV=40,W=.17,H=.25,y0=-.15,back=new THREE.Color(o.color),pale=new THREE.Color('#e4d6a8'),ink=new THREE.Color('#0b0c10'),
+  bellyC=new THREE.Color(o.belly||shade(o.color,1.9)),band=new THREE.Color(shade(o.color,.35)),pos=[],col=[],idx=[],c=new THREE.Color();
+ const ribs=[.2,.32,.44,.56,.68,.8];
+ // the spectacle: two rings (u ±.4, v .58) joined by a band that dips under them
+ const spec=(u,v)=>{const dx=Math.abs(u)-.4,dy=(v-.58)*1.9,r=Math.hypot(dx,dy);
+  if(r<.08)return 'ink';if(r<.17)return 'pale';if(r<.23)return 'ink';
+  const bv=.5+.2*u*u;if(Math.abs(u)<.34&&Math.abs(v-bv)<.035)return 'pale';if(Math.abs(u)<.36&&Math.abs(v-bv)<.055)return 'ink';return null;};
+ const surf=(u,v,side)=>{
+  const half=.032+(W-.032)*Math.pow(Math.sin(Math.PI*Math.min(1,v*1.08)),.75),x=u*half,y=y0+v*H;
+  // the centre runs up the slant of the neck, then eases off behind the head; the edges cup forward round it
+  const L=-.02+.85*(y+.055),cap=-.01,k=.015,zc=L-k*Math.log(1+Math.exp((L-cap)/k))+1.5*x*x-.02*Math.pow(Math.abs(u),3);
+  let t=.045*Math.sqrt(Math.max(0,1-u*u))*Math.pow(Math.sin(Math.PI*v),.5)+.002;
+  if(side<0){const au=Math.abs(u),fade=Math.min(1,Math.max(0,(au-.12)/.2))*(1-au*au);
+   for(const rv of ribs){const cv=rv+.18*(rv-.5)*au;t+=.012*fade*Math.exp(-Math.pow((v-cv)/.028,2));}}
+  return [x,y,zc+side*t];};
+ for(const side of [-1,1]){const base=pos.length/3;
+  for(let j=0;j<=NV;j++)for(let i=0;i<=NU;i++){const u=-1+2*i/NU,v=j/NV;pos.push(...surf(u,v,side));
+   if(side<0){const m=spec(u,v),au=Math.abs(u);c.copy(back).multiplyScalar(.75+.35*au);
+    for(const rv of ribs){const cv=rv+.18*(rv-.5)*au;c.multiplyScalar(1+.25*Math.exp(-Math.pow((v-cv)/.03,2))*(au>.15?1:0));}
+    if(m==='pale')c.copy(pale);else if(m==='ink')c.copy(ink);c.multiplyScalar(1-.45*Math.pow(au,6));}
+   else{c.copy(bellyC);const bands=[.16,.27,.38];for(const b of bands)if(Math.abs(v-b)<.035)c.copy(band);c.lerp(back,Math.pow(Math.abs(u),5)*.8);}
+   col.push(c.r,c.g,c.b);}
+  for(let j=0;j<NV;j++)for(let i=0;i<NU;i++){const a=base+j*(NU+1)+i,b=a+1,d=a+NU+1,e=d+1;
+   if(side>0)idx.push(a,b,d,b,e,d);else idx.push(a,d,b,b,d,e);}}
+ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));geo.setIndex(idx);geo.computeVertexNormals();
+ part(pivot,geo,mat('#ffffff',{vertexColors:true,roughness:.5}));
+ return pivot;
 }
 const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75},snake:{color:'#7a5a34'},'water moccasin':{color:'#5a3228'},'pit viper':{color:'#3a5a8a'},python:{color:'#7a5a7a',scale:1.4},cobra:{color:'#3a4a7a',hood:true}};
 
