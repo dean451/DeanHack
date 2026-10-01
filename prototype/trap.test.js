@@ -5,7 +5,7 @@ import {createTrap,trapKind} from './trap.js';
 import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
 import {beatAt,flameAt,attachSigilFx,BEAT_EVERY,GLOW_REST} from './sigil-fx.js';
 
-const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
+const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','gas','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
 test('magic portals get their own kind; teleporters keep the rune circle',()=>{
  assert.equal(trapKind(94,13),'portal');
@@ -368,6 +368,24 @@ test('squeaky boards get their own warped floorboards by name; nameless brown tr
   const b=new THREE.Box3().setFromObject(model);
   assert(b.max.y>.06&&b.max.y<.2,`squeaky board height ${b.max.y}`);
   assert(b.min.y>=-.01,'squeaky board sinks into the floor');
+  for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&Number.isFinite(v));}
+  model.userData.dispose();
+ }
+});
+
+test('sleeping gas traps get the yawning stone face by name; nameless bright blue traps keep the sigil',()=>{
+ assert.equal(trapKind(94,12,'sleeping gas trap'),'gas');
+ assert.equal(trapKind(94,12,'magic trap'),'magic');
+ assert.equal(trapKind(94,12),'magic');
+ for(const seed of [0,3,42]){
+  const model=createTrap('gas',seed);
+  const meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.deepEqual(meshes.map(o=>o.name).sort(),['gas-cloud','gas-glow','gas-iron','gas-stone']);
+  const b=new THREE.Box3().setFromObject(model);
+  assert(b.max.y>.3&&b.max.y<.5,`gas wisps reach ${b.max.y}`);
+  assert(b.min.y>=-.01,'the gas trap sinks into the floor');
+  const cloud=model.getObjectByName('gas-cloud');
+  assert(cloud.material.transparent&&!cloud.material.depthWrite&&!cloud.castShadow,'the gas is see-through and casts no shadow');
   for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&Number.isFinite(v));}
   model.userData.dispose();
  }

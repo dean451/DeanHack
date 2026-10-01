@@ -9,12 +9,14 @@ import {sigilAnimator} from './sigil-fx.js';
 // colour, so each model stands for its family, not one exact trap.
 // A newer bridge also sends the trap's name, which tells the vibrating square (magenta, like a
 // teleport trap) apart, arrow and dart traps from the bear trap (all cyan), and the squeaky
-// board from the trap door (both brown).
+// board from the trap door (both brown), and the sleeping gas trap from the magic trap (both
+// bright blue).
 export function trapKind(symbol,color,name){
  if(name==='vibrating square')return 'vibrating';
  if(name==='arrow trap')return 'arrow';
  if(name==='dart trap')return 'dart';
  if(name==='squeaky board')return 'squeaky';
+ if(name==='sleeping gas trap')return 'gas';
  if(symbol===34)return 'web';            // '"'
  if(symbol!==94)return null;             // '^'
  return {0:'pit',1:'mine',3:'hatch',4:'rust',6:'jaws',7:'rubble',9:'fire',
@@ -386,6 +388,128 @@ export function createTrap(kind,seed=0){
   const eyes=new THREE.MeshBasicMaterial({color:new THREE.Color(0xe8d040).multiplyScalar(1.3),vertexColors:true});materials.push(eyes);
   const glow=add(mergeGeometries(glowParts),eyes);glow.name='squeaky-eyes';glow.castShadow=false;
   for(const p of [...woodParts,...boneParts,...glowParts])p.dispose();
+ }else if(kind==='gas'){
+  // Sleeping gas trap: a round flagstone carved as a sleeper's face, set in the floor looking up
+  // with its eyes shut under heavy, lashed lids. Its mouth hangs open in a yawn that is the vent:
+  // rusted bars across it, worn fangs round the rim, a violet glow deep in the throat. The gas
+  // pools low round the stone and curls up in two lazy wisps. The floor round it is cracked and
+  // stained, wilted poppies droop by it, and the last one who lay down here is still curled up
+  // beside it, one hand reaching for the bars.
+  // Four draws: stone and bone, the iron, the gas, the throat's glow.
+  const stoneParts=[],ironParts=[],gasParts=[],glowParts=[];
+  const noise=(x,y,z)=>{const s=Math.sin(x*157.3+y*311.9+z*97.1+seed*3.7)*43758.5453;return s-Math.floor(s);};
+  const up=new THREE.Vector3(0,1,0),q=new THREE.Quaternion(),m=new THREE.Matrix4(),one=new THREE.Vector3(1,1,1);
+  const put=(bin,geo,matrix,paint,chip=0)=>{
+   const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();
+   n.applyMatrix4(matrix);n.deleteAttribute('uv');
+   const pos=n.attributes.position;
+   if(chip){for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+    pos.setXYZ(i,x+(noise(x,y,z)-.5)*chip,y+(noise(z,x,y)-.5)*chip*.4,z+(noise(y,z,x)-.5)*chip);}n.computeVertexNormals();}
+   const col=new Float32Array(pos.count*3),c=new THREE.Color();
+   for(let i=0;i<pos.count;i++){paint(c,pos.getX(i),pos.getY(i),pos.getZ(i));col.set([c.r,c.g,c.b],i*3);}
+   n.setAttribute('color',new THREE.BufferAttribute(col,3));bin.push(n);
+  };
+  const at=(x,y,z,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1)=>m.clone().compose(new THREE.Vector3(x,y,z),q.clone().setFromEuler(new THREE.Euler(rx,ry,rz)),new THREE.Vector3(sx,sy,sz));
+  // A cylinder from a to b (bones, stems), radius r0 at a and r1 at b.
+  const span=(bin,a,b,r0,r1,paint,radial=6)=>{const d=new THREE.Vector3().subVectors(b,a),len=d.length();
+   put(bin,new THREE.CylinderGeometry(r1,r0,len,radial),m.clone().compose(a.clone().addScaledVector(d,.5),q.clone().setFromUnitVectors(up,d.normalize()),one),paint);};
+  const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+  const rock=new THREE.Color(0x605d58),stain=new THREE.Color(0x2e2238),soot=new THREE.Color(0x1a1719),black=new THREE.Color(0x060506);
+  const bone=new THREE.Color(0xb3a684),moss=new THREE.Color(0x2c3020),floorGrey=new THREE.Color(0x56544f);
+  const flat=(col)=>(c)=>c.copy(col);
+  const mz=.1,top=.03;   // the mouth's centre (z) and the face's surface
+  // Stone darkens and goes violet toward the mouth, where the gas has soaked into it.
+  const stone=(lift=0)=>(c,x,y,z)=>{const h=noise(x,y,z);c.copy(rock).offsetHSL(0,0,lift+(h-.5)*.09);
+   const d=Math.hypot(x,(z-mz)*1.2);c.lerp(stain,Math.max(0,Math.min(.75,(.2-d)*5)));if(h>.88)c.lerp(soot,.55);};
+  // The stain on the floor: a ragged blot fading to the floor's grey, cracks running out of it.
+  const blot=new THREE.CircleGeometry(.45,40,0,Math.PI*2);
+  {const p=blot.attributes.position;for(let i=1;i<p.count;i++){const a=Math.atan2(p.getY(i),p.getX(i)),r=.34+noise(Math.round(a*6),1,2)*.1+Math.sin(a*5+seed)*.02;
+   p.setXY(i,Math.cos(a)*r,Math.sin(a)*r);}p.needsUpdate=true;}
+  put(stoneParts,blot,at(0,.001,0,-Math.PI/2),(c,x,y,z)=>{const d=Math.hypot(x,z);c.copy(stain).lerp(floorGrey,Math.min(1,Math.max(0,(d-.24)*6)));c.offsetHSL(0,0,(noise(x,0,z)-.5)*.04);});
+  for(let i=0;i<7;i++){const a=i/7*Math.PI*2+noise(i,4,4)*.6,r0=.27,L=.07+noise(i,5,5)*.1;
+   put(stoneParts,new THREE.BoxGeometry(L,.003,.006),at(Math.cos(a)*(r0+L/2),.0025,Math.sin(a)*(r0+L/2),0,-a+(noise(i,6,6)-.5)*.3),flat(black));}
+  // The flagstone: a shadow gap, then the chipped round slab.
+  put(stoneParts,new THREE.CylinderGeometry(.285,.285,.004,32),at(0,.002,0),flat(black));
+  put(stoneParts,new THREE.CylinderGeometry(.265,.275,top,32,2),at(0,top/2,0),stone(),.012);
+  // The face, head toward -z. A heavy brow, lids bulging shut, lashes spiking out of the crease.
+  put(stoneParts,new THREE.BoxGeometry(.3,.02,.045,6,1,2),at(0,top+.006,-.105,0,0,0),stone(.03),.008);
+  for(const s of [-1,1]){
+   put(stoneParts,new THREE.SphereGeometry(.05,14,8,0,Math.PI*2,0,Math.PI/2),at(s*.08,top-.002,-.058,0,s*.15,0,1,.38,.62),stone(.05));
+   put(stoneParts,new THREE.TorusGeometry(.047,.0045,4,14,Math.PI),at(s*.08,top+.002,-.058,Math.PI/2,0,0,1,.62,1),flat(black));
+   for(let k=0;k<5;k++){const a=.35+k*(Math.PI-.7)/4,x=s*.08+Math.cos(a)*.047,z=-.058+Math.sin(a)*.047*.62;
+    put(stoneParts,new THREE.ConeGeometry(.0035,.022,3),m.clone().compose(V(x,top+.004,z+.009),q.clone().setFromUnitVectors(up,V(Math.cos(a)*.6,.15,1).normalize()),one),flat(soot));}
+   // Sunken cheeks under jutting cheekbones.
+   put(stoneParts,new THREE.SphereGeometry(.045,10,6,0,Math.PI*2,0,Math.PI/2),at(s*.14,top-.004,-.01,0,0,0,1,.4,.8),stone(.04));
+   put(stoneParts,new THREE.SphereGeometry(.032,8,6),at(s*.13,top+.001,.05,0,0,0,1,.12,1.3),flat(soot));
+  }
+  // A long hooked nose with flared, sooty nostrils.
+  put(stoneParts,new THREE.ConeGeometry(.028,.085,4),at(0,top+.008,-.02,Math.PI/2,Math.PI/4,0,1,1,.55),stone(.03),.004);
+  for(const s of [-1,1])put(stoneParts,new THREE.SphereGeometry(.011,8,4),at(s*.018,top+.006,.024,0,0,0,1,.4,.8),flat(black));
+  // The mouth: thick lips round a gaping yawn, fangs worn round its rim.
+  put(stoneParts,new THREE.TorusGeometry(.07,.016,6,24),at(0,top+.002,mz,Math.PI/2,0,0,1.25,.85,.45),stone(.02),.004);
+  put(stoneParts,new THREE.CircleGeometry(.072,24),at(0,top+.004,mz,-Math.PI/2,0,0,1.22,.82,1),flat(black));
+  for(let k=0;k<10;k++){const a=k/10*Math.PI*2+.3,x=Math.cos(a)*.078,z=mz+Math.sin(a)*.055,h=.018+noise(k,7,7)*.012;
+   const dir=V(-Math.cos(a),-.35,-Math.sin(a)).normalize();
+   put(stoneParts,new THREE.ConeGeometry(.0065,h,4),m.clone().compose(V(x,top+.006,z).addScaledVector(dir,h/2),q.clone().setFromUnitVectors(up,dir),one),
+    (c,x2,y)=>c.copy(bone).lerp(soot,Math.max(0,Math.min(1,(top+.008-y)*40))));}
+  // The throat's glow, down in the dark.
+  put(glowParts,new THREE.CircleGeometry(.042,18),at(0,top+.0045,mz,-Math.PI/2,0,0,1.2,.8,1),(c,x,y,z)=>{const d=Math.hypot(x/1.2,(z-mz)/.8);c.setScalar(Math.max(.25,1-d*16));});
+  // Rusted bars across the yawn, pinned into the lips.
+  const iron=new THREE.Color(0x4a4744),rust=new THREE.Color(0x6e3a1e);
+  const ironPaint=(c,x,y,z)=>c.copy(iron).lerp(rust,noise(x,y,z)*.8);
+  for(let i=-2;i<=2;i++){const x=i*.03,hz=.055*Math.sqrt(1-(x/.09)**2)+.008;
+   span(ironParts,V(x,top+.009,mz-hz),V(x,top+.009,mz+hz),.0055,.0055,ironPaint);
+   for(const s of [-1,1])put(ironParts,new THREE.SphereGeometry(.008,6,4),at(x,top+.009,mz+s*hz),ironPaint);}
+  span(ironParts,V(-.1,top+.011,mz),V(.1,top+.011,mz),.006,.006,ironPaint);
+  // Gouges where something scraped at the bars.
+  for(let i=0;i<4;i++)put(stoneParts,new THREE.BoxGeometry(.004,.003,.05),at(.1+i*.012,top+.001,mz+.03+i*.006,0,.5+i*.05),flat(black));
+  // The sleeper: curled on the stain at the -x,+z corner, its skull pillowed on one arm and the
+  // other hand reaching for the bars.
+  const bonePaint=(c,x,y,z)=>c.copy(bone).lerp(moss,noise(x,y,z)*.3).offsetHSL(0,0,(noise(z,x,y)-.5)*.08);
+  const sk=V(-.33,.035,.3);
+  put(stoneParts,new THREE.SphereGeometry(.04,14,10),at(sk.x,sk.y,sk.z,0,.6,1.35,1,.92,1.12),bonePaint);
+  put(stoneParts,new THREE.BoxGeometry(.045,.03,.035),at(sk.x+.004,.022,sk.z+.035,0,.6,1.35),bonePaint,.006);
+  for(const s of [-1,1])put(stoneParts,new THREE.SphereGeometry(.012,8,6),at(sk.x+.012,.03+s*.014,sk.z+.03,0,0,0,.6,1,1),flat(black));
+  // Spine curling round behind the stone, ribs arching off it.
+  const spine=new THREE.CatmullRomCurve3([V(-.35,.016,.24),V(-.4,.016,.14),V(-.4,.016,.02),V(-.36,.016,-.08)]);
+  for(let i=0;i<9;i++){const p=spine.getPoint(i/8);put(stoneParts,new THREE.SphereGeometry(.013-i*.0004,8,5),at(p.x,p.y,p.z,0,0,0,1,.8,1),bonePaint);}
+  for(let i=0;i<4;i++){const p=spine.getPoint(.15+i*.13),r=.045-i*.004;
+   put(stoneParts,new THREE.TorusGeometry(r,.0045,4,12,Math.PI*1.05),at(p.x+r*.6,.012,p.z,0,.3,.1,1,.7,1),bonePaint);}
+  put(stoneParts,new THREE.TorusGeometry(.04,.009,5,14),at(-.36,.012,-.1,Math.PI/2,0,0,1,1.3,1),bonePaint);
+  // The reaching arm: upper arm, forearm, finger bones splayed on the slab's edge.
+  const sh=V(-.34,.014,.2),el=V(-.24,.012,.24),wr=V(-.17,.02,.17);
+  span(stoneParts,sh,el,.009,.008,bonePaint);span(stoneParts,el,wr,.007,.006,bonePaint);
+  for(let k=0;k<4;k++){const a=-.9+k*.32,f=V(wr.x+Math.cos(a)*.045,.032,wr.z-Math.sin(-a)*.045-.01);
+   span(stoneParts,wr,f,.004,.003,bonePaint,4);}
+  // Wilted poppies at the +x,-z corner, heads hanging, petals gone black at the edges.
+  const stem=new THREE.Color(0x3d4a24),petal=new THREE.Color(0x8a1410);
+  for(let i=0;i<3;i++){const bx=.33+(i-1)*.05,bz=-.33+noise(i,8,8)*.06,hgt=.12+noise(i,9,9)*.06,lean=(noise(i,2,9)-.5)*.5;
+   const base=V(bx,0,bz),bend=V(bx+lean*.05,hgt,bz+.02),head=V(bx+lean*.07+.03,hgt-.04,bz+.05);
+   span(stoneParts,base,bend,.0035,.003,flat(stem),4);span(stoneParts,bend,head,.003,.0025,flat(stem),4);
+   for(let k=0;k<4;k++){const a=k/4*Math.PI*2+i;
+    put(stoneParts,new THREE.SphereGeometry(.02,8,5,0,Math.PI*2,0,Math.PI/2),at(head.x+Math.cos(a)*.006,head.y-.006,head.z+Math.sin(a)*.006,Math.PI+Math.cos(a)*.5,0,Math.sin(a)*.5,1,.5,.7),
+     (c,x,y)=>c.copy(petal).lerp(black,Math.max(0,Math.min(1,(head.y-.002-y)*60))*.8));}
+   put(stoneParts,new THREE.SphereGeometry(.007,6,4),at(head.x,head.y-.004,head.z),flat(soot));}
+  // A fallen petal on the stain.
+  put(stoneParts,new THREE.CircleGeometry(.014,8),at(.22,.0025,-.27,-Math.PI/2,0,.4,1,.6,1),flat(petal.clone().lerp(black,.4)));
+  // The gas: a low mantle pooled round the stone, and two wisps curling up out of the yawn,
+  // thinning as they rise. Lighter and more lilac at the top.
+  const gasLow=new THREE.Color(0x6a4a8c),gasHigh=new THREE.Color(0xc8b0e8);
+  const gasPaint=(c,x,y)=>c.copy(gasLow).lerp(gasHigh,Math.min(1,y/.3));
+  for(let i=0;i<9;i++){const a=i/9*Math.PI*2+noise(i,1,1)*.5,r=.27+noise(i,2,2)*.1,s=.07+noise(i,3,3)*.04;
+   put(gasParts,new THREE.SphereGeometry(s,12,6),at(Math.cos(a)*Math.min(r,.44-s),.017,Math.sin(a)*Math.min(r,.44-s),0,a,0,1,.22,.8),gasPaint);}
+  put(gasParts,new THREE.SphereGeometry(.09,14,6),at(0,top+.01,mz,0,0,0,1.1,.2,.8),gasPaint);
+  for(const s of [-1,1]){
+   for(let i=0;i<11;i++){const t=i/10,a=s*(t*5.2)+(s>0?0:1.4),r=.02+t*.07;
+    const x=Math.cos(a)*r+s*.02,z=mz+Math.sin(a)*r*.8-t*.06,y=top+.03+t*(s>0?.34:.26),R=.042*(1-t*.62);
+    put(gasParts,new THREE.SphereGeometry(R,10,6),at(x,y,z,0,a,0,1,.75,1),gasPaint);}}
+  const stoneMesh=add(mergeGeometries(stoneParts),mat({color:0xffffff,vertexColors:true,roughness:.93}));stoneMesh.name='gas-stone';
+  const ironMesh=add(mergeGeometries(ironParts),mat({color:0xffffff,vertexColors:true,metalness:.55,roughness:.7}));ironMesh.name='gas-iron';
+  const gas=add(mergeGeometries(gasParts),mat({color:0xffffff,vertexColors:true,emissive:0x3a1f5c,emissiveIntensity:.7,roughness:1,transparent:true,opacity:.3,depthWrite:false}));
+  gas.name='gas-cloud';gas.castShadow=false;gas.receiveShadow=false;
+  const throat=new THREE.MeshBasicMaterial({color:new THREE.Color(0xb060ff).multiplyScalar(1.2),vertexColors:true});materials.push(throat);
+  const glow=add(mergeGeometries(glowParts),throat);glow.name='gas-glow';glow.castShadow=false;
+  for(const p of [...stoneParts,...ironParts,...gasParts,...glowParts])p.dispose();
  }else if(kind==='jaws'){
   // Bear trap (also arrow and dart traps when the bridge sends no name), set and open: two
   // hinged jaw bands lying flat in a ring with serrated teeth standing up, the
@@ -810,7 +934,7 @@ export function createTrap(kind,seed=0){
   // The coals breathe and spit sparks (fire-trap-fx.js).
   g.userData.animate=fireTrapAnimator(g,seed);
  }else if(RUNES[kind]){
-  // Magical traps (teleport, magic / sleeping gas / anti-magic, polymorph, ice): a sigil
+  // Magical traps (teleport, magic / anti-magic / nameless sleeping gas, polymorph, ice): a sigil
   // gouged into the floor and still burning in the trap's colour. Broken, scratched rings
   // hold a band of angular runes; a star of tapered slashes overshoots them, and a slit-pupilled
   // eye stares up from the middle. A burn stain fades out under it. Black candle stubs, guttered
