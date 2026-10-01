@@ -116,6 +116,8 @@ export function createHeldWeapon(item){
   }
  }else if(/\bmorning star\b/.test(name)){
   buildMorningStar(g);
+ }else if(/\bhalberd\b/.test(name)){
+  buildHalberd(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -222,4 +224,60 @@ function buildMorningStar(g){
  });
  for(const [m,geos] of sets){const geo=mergeGeometries(geos.map(x=>{x.deleteAttribute('uv');return x;}));geos.forEach(x=>x.dispose());
   const mesh=new THREE.Mesh(geo,m);mesh.castShadow=true;mesh.userData.part=m===spikeSteel?'spikes':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The halberd: a long blackened haft under a forged head. A broad axe blade with a hooked
+// beard, two jagged notches and a crescent cut clean through it; a back fluke curving down
+// like a talon; a four-sided spike crowning it. Iron langets nailed down the haft hold the
+// head on, the grip is wound on a slant and the butt ends in an iron spike. Merged per
+// material like the morning star: 4 draws. The blade, fluke and spike stay metalness >= .75,
+// so weapon-magic sheathes them.
+function buildHalberd(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x3a281c,roughness:.92});
+ const iron=new THREE.MeshStandardMaterial({color:0x4f4c47,metalness:.78,roughness:.55});
+ const blade=new THREE.MeshStandardMaterial({color:0xaeb6b9,metalness:.82,roughness:.3});
+ const wrap=new THREE.MeshStandardMaterial({color:0x2e1d17,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,blade,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ const flat=(shape,depth,bevel)=>{const geo=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:1,steps:1,curveSegments:8});geo.translate(0,0,-depth/2);return geo;};
+ // Haft, a little thicker toward the head, and the grip wound on a slant.
+ put(new THREE.CylinderGeometry(.025,.022,1.2,10),wood,0,.21);
+ put(new THREE.CylinderGeometry(.031,.031,.22,10),wrap,0,-.01);
+ for(let i=0;i<6;i++){const turn=new THREE.TorusGeometry(.032,.006,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.1+i*.036,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // Butt: an iron shoe ending in a short spike.
+ put(new THREE.CylinderGeometry(.026,.022,.06,10),iron,0,-.4);
+ put(new THREE.ConeGeometry(.018,.09,4),blade,0,-.475,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI));
+ // Two long langets nailed down the haft below the socket, and a band at their foot.
+ for(const s of [-1,1]){
+  put(new THREE.BoxGeometry(.006,.26,.016),iron,0,.66,s*.025);
+  for(const y of [.57,.65,.73])put(new THREE.SphereGeometry(.0055,5,4),iron,0,y,s*.029);
+ }
+ put(new THREE.CylinderGeometry(.03,.03,.02,10),iron,0,.53);
+ // The socket the head is forged onto.
+ put(new THREE.CylinderGeometry(.03,.034,.17,8),iron,0,.875);
+ put(new THREE.CylinderGeometry(.037,.037,.018,8),iron,0,.79);
+ // Axe blade on +x: the beard hooks down, the edge swells forward and the upper horn rises;
+ // two notches bite into the edge and a crescent is cut clean through near the socket.
+ const axe=new THREE.Shape();
+ axe.moveTo(.02,.81);axe.lineTo(.07,.79);axe.quadraticCurveTo(.13,.76,.17,.68);
+ axe.lineTo(.215,.71);
+ axe.lineTo(.222,.76);axe.lineTo(.206,.775);axe.lineTo(.226,.79);
+ axe.quadraticCurveTo(.234,.85,.226,.9);
+ axe.lineTo(.21,.915);axe.lineTo(.23,.93);
+ axe.quadraticCurveTo(.228,.98,.21,1.0);
+ axe.quadraticCurveTo(.15,.95,.07,.945);axe.lineTo(.02,.94);axe.closePath();
+ const cut=new THREE.Path();cut.moveTo(.085,.83);cut.quadraticCurveTo(.125,.87,.085,.91);cut.quadraticCurveTo(.11,.87,.085,.83);
+ axe.holes.push(cut);
+ put(flat(axe,.012,.004),blade);
+ // The back fluke, a talon curving out and down.
+ const fluke=new THREE.Shape();
+ fluke.moveTo(-.02,.85);fluke.lineTo(-.02,.92);fluke.quadraticCurveTo(-.1,.9,-.15,.79);fluke.quadraticCurveTo(-.09,.85,-.02,.85);
+ put(flat(fluke,.01,.004),blade);
+ // The crowning spike: a long four-sided point on a short neck.
+ put(new THREE.CylinderGeometry(.018,.03,.04,4),iron,0,.98,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI/4));
+ put(new THREE.ConeGeometry(.022,.17,4),blade,0,1.085,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI/4));
+ for(const [m,geos] of sets){const geo=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(geo,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
