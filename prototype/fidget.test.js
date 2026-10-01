@@ -196,8 +196,8 @@ test('the evil eye darts its eye about while still, eases back to centre when bu
   for (let i = 0; i < 60; i++, t += dt) updateFidget(a, dt, t, false);
   assert.ok(Math.abs(Math.abs(h.quaternion.dot(rest)) - 1) < 1e-9, 'still when dead');
   // Other hovering things are left alone.
-  const f = createCreature({name: 'floating eye'});
-  f.species = 'floating eye';
+  const f = createCreature({name: 'shocking sphere'});
+  f.species = 'shocking sphere';
   if (f.head) { const q = f.head.quaternion.clone(); for (let i = 0; i < 120; i++) updateFidget(f, dt, i * dt, false); assert.ok(f.head.quaternion.equals(q)); }
 });
 
@@ -257,6 +257,56 @@ test('the evil eye loses the hero when they turn invisible, and finds them again
   assert.equal(a.glance.track, false);
   // Visible again: it notices within a moment.
   assert.ok(run({invisible: false}, 1) > 20, 'finds the hero again');
+});
+
+test('the floating eye glides its gaze, fixes on the hero, dilates as they come close, and settles exactly', async () => {
+  const {FLOAT, DILATE, PINCH, DEAD, aimAt} = await import('./glance.js');
+  const a = createCreature({name: 'floating eye'});
+  a.species = 'floating eye';
+  const h = a.head, pu = a.pupil, rest = h.quaternion.clone();
+  assert.ok(h && pu, 'iris group and pupil handles');
+  const pupilRest = {sx: pu.scale.x, sy: pu.scale.y, z: pu.position.z};
+  const width = () => pu.scale.x / pupilRest.sx;
+  const dt = 1 / 60;
+  let t = 0, prev = null, flicks = 0, maxYaw = 0, steepest = 0;
+  // Alone: lazy glides, never past its range, no jumps; the pupil only breathes.
+  for (let i = 0; i < 60 * 30; i++, t += dt) {
+    updateFidget(a, dt, t, false);
+    const {x, y, z} = h.rotation;
+    for (const v of [x, y, z, pu.scale.x, pu.scale.y, pu.position.z]) assert.ok(Number.isFinite(v));
+    assert.ok(Math.abs(y) <= FLOAT.yaw + FLOAT.tremor + 1e-9 && Math.abs(x) <= FLOAT.pitch + FLOAT.tremor + 1e-9, `${x} ${y}`);
+    assert.ok(width() > .9 && width() < 1.1, `idle pupil ${width()}`);
+    if (prev) steepest = Math.max(steepest, Math.hypot(x - prev.x, y - prev.y));
+    if (a.glance.u === 0) flicks++;
+    maxYaw = Math.max(maxYaw, Math.abs(y));
+    prev = {x, y};
+  }
+  assert.ok(flicks >= 5 && flicks <= 25, `glides ${flicks}`);
+  assert.ok(maxYaw > .3, `looks about ${maxYaw}`);
+  assert.ok(steepest < .12, `glides, not flicks (${steepest})`);
+  // The hero at the edge of its range and then close by: it stares, and the pupil widens with nearness.
+  const far = {x: .5, y: 0, z: 6.5}, near = {x: .3, y: 0, z: 1.2};
+  let on = 0;
+  for (let i = 0; i < 60 * 10; i++, t += dt) { updateFidget(a, dt, t, false, far); const m = aimAt(a, far); if (Math.hypot(h.rotation.y - m.yaw, h.rotation.x - m.pitch) < .03) on++; }
+  assert.ok(on > 60 * 10 * .6, `stares at the hero (${on})`);
+  const farWidth = width();
+  for (let i = 0; i < 60 * 4; i++, t += dt) updateFidget(a, dt, t, false, near);
+  assert.ok(width() > farWidth + .3 && width() <= 1 + DILATE + .06, `dilates ${farWidth} -> ${width()}`);
+  assert.ok(pu.position.z < pupilRest.z && pu.position.z > pupilRest.z - .02, 'sinks a little into the iris');
+  // Struck: the pupil pinches fast.
+  a.actions = {current: {kind: 'hit'}, queue: []};
+  for (let i = 0; i < 30; i++, t += dt) updateFidget(a, dt, t, true, near);
+  assert.ok(Math.abs(width() - PINCH) < .05, `pinches ${width()}`);
+  // Walking: everything back exactly to rest.
+  a.actions = {queue: []};
+  for (let i = 0; i < 60 * 8; i++, t += dt) updateFidget(a, dt, t, true, near);
+  assert.ok(Math.abs(Math.abs(h.quaternion.dot(rest)) - 1) < 1e-9, 'gaze centred');
+  assert.equal(pu.scale.x, pupilRest.sx); assert.equal(pu.scale.y, pupilRest.sy); assert.equal(pu.position.z, pupilRest.z);
+  // Dead: the gaze centres and the pupil is left blown wide.
+  a.actions = {dead: true, queue: []};
+  for (let i = 0; i < 60 * 4; i++, t += dt) updateFidget(a, dt, t, false, near);
+  assert.ok(Math.abs(Math.abs(h.quaternion.dot(rest)) - 1) < 1e-9, 'still when dead');
+  assert.ok(Math.abs(width() - DEAD) < .02, `blown ${width()}`);
 });
 
 test('the head leads the body round when looking, and tilts into the scratching hand', () => {
