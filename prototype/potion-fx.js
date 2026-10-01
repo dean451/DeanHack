@@ -8,6 +8,12 @@
 //  - viscous, gooey, greasy, oily, slimy, squishy: a slow drop oozes down the outside of the glass
 //  - dark, black, blood-red: two dim red points drift together in the depths, and blink
 //  - glowing, luminescent, sparkling: the liquid's own glow swells and fades
+//  - any other look (pink, ochre, amber...) takes one of PLAIN_STYLES, picked by a hash of the
+//    look word: a heavy vapour of its colour seeping out round the cork and sliding down the
+//    glass to pool at the foot, a slow swirl, or a few lazy bubbles; clear gets the bubbles
+// Since 2026-09-30 (the user: "not seeing them do anything fun") every layer is BOOST× bigger,
+// the glint comes round more often, every liquid breathes a little, and every SURGE_MIN..
+// +SURGE_SPAN s the potion stirs: its effect and glow swell for SURGE_S and settle.
 // Identity: it keys only on the shuffled appearance (the same word that picks the bottle and its
 // colour), never the potion's true type, so it tells you nothing a glance at the bottle wouldn't.
 // Positions are in the ground model's space, inside each bottle of the stack (potion.js
@@ -31,10 +37,28 @@ export const POTION_STYLES = [
   {name: 'lurk', test: /^dark$|black|blood-red/, motion: 'lurk', color: 0xb0141a, blend: 'add', count: 2, size: .008, period: 8, alpha: .75, together: true},
 ];
 export const GLOW_STYLE = /glowing|luminescent|sparkling/;
-export const GLINT = {motion: 'glint', color: 0xffffff, blend: 'add', count: 1, size: .03, period: 6.5, alpha: .5};
+export const GLINT = {motion: 'glint', color: 0xffffff, blend: 'add', count: 1, size: .03, period: 4, alpha: .7};
+// For looks with no style of their own. Only the look word picks one, so it tells nothing.
+export const PLAIN_STYLES = [
+  {name: 'wisp', motion: 'wisp', color: 'liquid', blend: 'normal', count: 6, size: .03, period: 4.6, alpha: .55},
+  {name: 'swirl', motion: 'swirl', color: 'light', blend: 'add', count: 8, size: .014, period: 5.5, alpha: .5},
+  {name: 'bubbles', motion: 'bubbles', color: 'light', blend: 'add', count: 4, size: .012, period: 3, alpha: .55},
+];
+export const BOOST = 1.5, SURGE = 1.6, SURGE_S = 1.6, SURGE_MIN = 8, SURGE_SPAN = 5, BREATHE = .25;
 
 export function potionStyle(look = '') {
   return POTION_STYLES.find(s => s.test.test(look)) ?? null;
+}
+// The style a potion actually shows: its own, or a plain one for any other non-empty look.
+export function shownStyle(look = '') {
+  const own = potionStyle(look);
+  if (own || !look) return own;
+  return look === 'clear' ? PLAIN_STYLES[2] : PLAIN_STYLES[(hashString(look) >>> 16) % PLAIN_STYLES.length];
+}
+// How stirred a potion is at time t: 1 at rest, up to 1+SURGE.
+export function surgeAt(t, every, phase = 0) {
+  const s = (((t / every + phase) % 1) + 1) % 1 * every;
+  return s < SURGE_S ? 1 + SURGE * Math.sin(Math.PI * s / SURGE_S) ** 2 : 1;
 }
 
 const clamp01 = v => Math.min(1, Math.max(0, v));
@@ -78,6 +102,15 @@ export function particleAt(motion, seed, p, L, bx = 0, bz = 0) {
       const blink = Math.abs(((p * 5) % 1) - .5) < .03 ? 0 : 1;
       return {x: bx + Math.cos(ang) * r + ex, y, z: bz + Math.sin(ang) * r + ez, alpha: (.5 + .5 * Math.sin(p * TAU * 2) ** 2) * blink, size: 1};
     }
+    case 'wisp': { // heavy vapour seeps out round the cork, rolls over the lip, slides down the glass and pools
+      const ang = a * TAU + p * .7;
+      if (p < .2) { const u = p / .2, r = L.neck * .9 + u * .012;
+        return {x: bx + Math.cos(ang) * r, y: L.top + .012 + u * .02, z: bz + Math.sin(ang) * r, alpha: clamp01(p / .08), size: .5 + .2 * u}; }
+      if (p < .85) { const v = (p - .2) / .65, y = Math.max(.004, L.top + .032 - (L.top + .028) * v ** 1.4), r = radiusAt(L.profile, Math.min(y, L.top)) + .006 + v * .004;
+        return {x: bx + Math.cos(ang) * r, y, z: bz + Math.sin(ang) * r, alpha: 1, size: .7 + .2 * v}; }
+      const w = (p - .85) / .15, r = radiusAt(L.profile, .004) + .01 + w * .025;
+      return {x: bx + Math.cos(ang) * r, y: .004, z: bz + Math.sin(ang) * r, alpha: 1 - w, size: .9 + .5 * w};
+    }
     case 'glint': { // light sliding up the glass on the side facing the camera
       const u = clamp01((p - .05) / .3), y = .02 + (L.fill + .03) * u, r = radiusAt(L.profile, y) + .001;
       return {x: bx + r * .5, y, z: bz + r * .86, alpha: Math.sin(Math.PI * u) * (p < .35 ? 1 : 0), size: .6 + .4 * Math.sin(Math.PI * u)};
@@ -101,12 +134,13 @@ export function createPotionFx(model, seedText = '') {
   model.traverse(o => { if (!liquid && o.isMesh && o.name === 'liquid') liquid = o; });
   const tint = new THREE.Color(liquid?.material.emissive ?? 0x88ccff);
   const random = rng(hashString(`${L.look}|${seedText}`)), g = new THREE.Group();g.name = 'potion fx';
-  const style = potionStyle(L.look), layers = [];
+  const style = shownStyle(L.look), layers = [], stir = {v: 1}, every = SURGE_MIN + SURGE_SPAN * random(), stirPhase = random();
   const layer = s => {
     const color = s.color === 'liquid' ? tint.clone() : s.color === 'light' ? tint.clone().lerp(new THREE.Color(0xffffff), .55) : s.color;
-    const n = L.bottles.length;
-    const made = makePointLayer({...s, color, count: s.count * n}, random,
-      (seed, p, i) => { const bottle = L.bottles[i % n];return particleAt(s.motion, seed, p, L, bottle.x, bottle.z); });
+    const n = L.bottles.length, alpha = Math.min(.95, s.alpha), cap = .95 / alpha;
+    const made = makePointLayer({...s, alpha, size: s.size * BOOST, color, count: s.count * n}, random,
+      (seed, p, i) => { const bottle = L.bottles[i % n], q = particleAt(s.motion, seed, p, L, bottle.x, bottle.z), k = stir.v;
+        return k === 1 ? q : {...q, alpha: Math.min(cap, q.alpha * k), size: q.size * (1 + (k - 1) * .2)}; });
     layers.push(made);g.add(made.points);
   };
   layer(GLINT);
@@ -114,10 +148,13 @@ export function createPotionFx(model, seedText = '') {
   const glows = GLOW_STYLE.test(L.look) && liquid, base = liquid?.material.emissiveIntensity ?? 0, phase = random();
   g.userData.style = style?.name ?? null;g.userData.glows = !!glows;
   g.userData.update = t => {
+    stir.v = surgeAt(t, every, stirPhase);
     for (const l of layers) l.update(t);
-    if (glows) liquid.material.emissiveIntensity = base * glowPulse(t, phase);
+    if (!liquid) return;
+    const breathe = 1 + BREATHE * Math.sin(t * .9 + phase * TAU) ** 2;
+    liquid.material.emissiveIntensity = base * (glows ? glowPulse(t, phase) : breathe) * (1 + (stir.v - 1) * .5);
   };
-  g.userData.dispose = () => { if (glows) liquid.material.emissiveIntensity = base;for (const l of layers) l.dispose(); };
+  g.userData.dispose = () => { if (liquid) liquid.material.emissiveIntensity = base;for (const l of layers) l.dispose(); };
   g.userData.update(0);
   model.add(g);
   return g;

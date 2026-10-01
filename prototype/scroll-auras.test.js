@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createGroundModel} from './ground-models.js';
-import {SCROLL_AURAS,scrollAuraKind,syncScrollAura,particleAt,trembleAt} from './scroll-auras.js';
+import {SCROLL_AURAS,scrollAuraKind,syncScrollAura,particleAt,trembleAt,surgeAt,boosted,SURGE} from './scroll-auras.js';
 
 const scrollItem=name=>{const item=new THREE.Group();item.add(createGroundModel({class:9,name,appearance:'ZELGO MER'}));return item;};
 
@@ -52,4 +52,11 @@ test('flood drops bead, fall and land on the floor; the tremble dies back to res
  for(const extra of ['shiver','twitch']){let moved=false,still=0;
   for(let t=0;t<20;t+=1/60){const r=trembleAt(extra,t);if(Math.abs(r.x)+Math.abs(r.y)+Math.abs(r.z)>.005)moved=true;else still++;}
   assert(moved&&still>20*60*.7,`${extra} should be brief`);}
+});
+
+test('scroll tells are boosted and swell now and then, still under the alpha cap',()=>{
+ const fire=boosted(SCROLL_AURAS.fire);assert(fire.size>SCROLL_AURAS.fire.size&&fire.count>SCROLL_AURAS.fire.count&&fire.alpha<=.95);
+ assert.equal(boosted(SCROLL_AURAS['create monster']).count,2,'a pair of eyes stays a pair');
+ let peak=0,calm=0;for(let t=0;t<30;t+=1/30){const k=surgeAt(t,9,.5);peak=Math.max(peak,k);if(k===1)calm++;}
+ assert(peak>1+SURGE*.9&&calm>30*30*.75);
 });

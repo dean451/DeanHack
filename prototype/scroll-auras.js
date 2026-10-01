@@ -1,4 +1,5 @@
-// Small magic tells on scrolls lying on the floor, one per scroll type, kept subtle: a scroll of
+// Small magic tells on scrolls lying on the floor, one per scroll type (stepped up and stirring
+// now and then since 2026-09-30, see BOOST): a scroll of
 // flood is damp, sitting in a sheen of water with drops beading off the roll's ends; fire
 // smoulders along the edge of its tongue and lets off a thread of smoke; earth twitches grit
 // around it; scare monster sits in a low shadow and shivers; create monster twitches, and two
@@ -154,8 +155,34 @@ export function trembleAt(extra, t, phase = 0) {
   return {x: 0, y: 0, z: 0};
 }
 
-function makeLayer(style, random) {
-  return makePointLayer({...style, together: style.motion === 'eyes'}, random, (seed, p) => particleAt(style.motion, seed, p));
+// The tells were too faint to read from the play camera (the user, 2026-09-30: "still not seeing
+// much"), so every layer draws BOOST.size× bigger and BOOST.alpha× brighter, with BOOST.count× the
+// points (pairs of eyes and the lone fly stay as they are). Every SURGE_MIN..+SURGE_SPAN s the
+// scroll stirs: for SURGE_S its effect swells to SURGE× brighter and SURGE_GROW× bigger, then
+// settles. The peak alpha is still capped at MAX_ALPHA.
+export const BOOST = {size: 1.6, alpha: 1.3, count: 1.5}, MAX_ALPHA = .95;
+export const SOFT_SURGE = .3, SURGE = 1.8, SURGE_GROW = .35, SURGE_S = 1.4, SURGE_MIN = 7, SURGE_SPAN = 4;
+
+// How stirred a scroll is at time t (1 at rest, up to 1+SURGE), for a scroll whose surges come
+// every `every` seconds starting at `phase` (0–1).
+export function surgeAt(t, every, phase = 0) {
+  const s = (((t / every + phase) % 1) + 1) % 1 * every;
+  return s < SURGE_S ? 1 + SURGE * Math.sin(Math.PI * s / SURGE_S) ** 2 : 1;
+}
+
+export function boosted(style) {
+  const keep = style.motion === 'eyes' || style.motion === 'fly';
+  return {...style, size: style.size * BOOST.size, alpha: Math.min(MAX_ALPHA, style.alpha * BOOST.alpha), count: keep ? style.count : Math.round(style.count * BOOST.count)};
+}
+
+function makeLayer(style, random, stir) {
+  // Big soft layers (glow, shadow, smoke, vapour) swell only SOFT_SURGE as much, so a surge
+  // doesn't turn them into a blot over the tile.
+  const s = boosted(style), cap = MAX_ALPHA / s.alpha, soft = s.size >= .12 ? SOFT_SURGE : 1;
+  return makePointLayer({...s, together: s.motion === 'eyes'}, random, (seed, p) => {
+    const q = particleAt(s.motion, seed, p), k = 1 + (stir.v - 1) * soft;
+    return k === 1 ? q : {...q, alpha: Math.min(cap, q.alpha * k), size: q.size * (1 + (k - 1) * SURGE_GROW / SURGE)};
+  });
 }
 
 // Flood: a dark, glassy sheen of water under the scroll, and a ring spreading where each drop lands.
@@ -188,13 +215,15 @@ export function createScrollAura(kind, seedText = '', scroll = null) {
   if (!style) return null;
   const seed = hashString(`${kind}|${seedText}`), random = rng(seed), g = new THREE.Group();
   g.name = `scroll aura: ${kind}`;
-  const layers = [makeLayer(style, random)];
-  if (style.core) layers.push(makeLayer(style.core, random));
+  const stir = {v: 1}, every = SURGE_MIN + SURGE_SPAN * random(), stirPhase = random();
+  const layers = [makeLayer(style, random, stir)];
+  if (style.core) layers.push(makeLayer(style.core, random, stir));
   if (style.extra === 'puddle') layers.push({...makePuddle(layers[0]), points: null});
   for (const layer of layers) g.add(layer.points ?? layer.group);
   const rest = scroll ? scroll.rotation.clone() : null, phase = random();
   g.userData.kind = kind;
   g.userData.update = t => {
+    stir.v = surgeAt(t, every, stirPhase);
     for (const layer of layers) layer.update(t);
     if (rest && (style.extra === 'shiver' || style.extra === 'twitch')) {
       const r = trembleAt(style.extra, t, style.extra === 'twitch' ? 0 : phase);

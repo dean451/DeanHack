@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createGroundModel} from './ground-models.js';
-import {potionStyle,syncPotionFx} from './potion-fx.js';
+import {potionStyle,shownStyle,surgeAt,PLAIN_STYLES,SURGE,syncPotionFx} from './potion-fx.js';
 import {radiusAt as r2} from './potion.js';
 
-const LOOKS=['bubbly','smoky','steamy','swirly','milky','murky','viscous','oily','dark','black','blood-red','glowing','luminescent','sparkling','ruby','emerald','clear'];
+const LOOKS=['bubbly','smoky','steamy','swirly','milky','murky','viscous','oily','dark','black','blood-red','glowing','luminescent','sparkling','ruby','emerald','clear','pink','ochre','yellow','white','amber','silver'];
 
 test('potion motion keys only on the shuffled look',()=>{
  assert.equal(potionStyle('effervescent').name,'bubbles');
@@ -42,4 +42,15 @@ test('every potion look animates finitely inside or right by its bottles, and fr
 test('non-potions get no potion fx',()=>{
  const item=new THREE.Group();item.add(createGroundModel({class:9,name:'fire',appearance:'ZELGO MER'}));
  assert.equal(syncPotionFx(item,{class:9}),null);
+});
+
+test('plain colour looks get a plain style picked by the look word alone, and potions stir now and then',()=>{
+ for(const look of ['pink','ochre','yellow','white','amber','silver','ruby','clear']){
+  const s=shownStyle(look);assert(PLAIN_STYLES.includes(s),look);assert.equal(shownStyle(look),s,'stable');}
+ assert.equal(shownStyle('clear').name,'bubbles');
+ assert.equal(shownStyle('smoky').name,'smoke','own styles win');
+ assert.equal(shownStyle(''),null);
+ assert(new Set(['pink','ochre','yellow','white','amber','silver','ruby','emerald','orange','brown'].map(l=>shownStyle(l).name)).size>1,'not all the same');
+ let peak=0,calm=0;for(let t=0;t<30;t+=1/30){const k=surgeAt(t,10,.3);assert(k>=1&&k<=1+SURGE+1e-9);peak=Math.max(peak,k);if(k===1)calm++;}
+ assert(peak>1+SURGE*.9&&calm>30*30*.75,'brief surges');
 });
