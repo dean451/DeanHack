@@ -10,9 +10,9 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // shoulder. Tight hakama go into criss-cross kyahan shin wraps and split-toed tabi; tekko
 // gauntlets cover the forearms. The right hand holds the ninjato low and forward: a straight,
 // short blade with a dull oiled edge, a square iron tsuba and a diamond-wrapped hilt.
-// Each moving part (body, head, each leg and arm, the sword) is one merged, vertex-coloured mesh
-// with one shared material: 7 draws. Geometry is built once and shared.
-// Handles: legs, arms, arm (the sword arm), weaponSocket, head, body. The pivots match rogue.js
+// Each moving part (body, head, each hood tail, each leg and arm, the sword) is one merged,
+// vertex-coloured mesh with one shared material: 9 draws. Geometry is built once and shared.
+// Handles: legs, arms, arm (the sword arm), weaponSocket, head, body, hoodTails (groups at the knot). The pivots match rogue.js
 // and samurai.js (shoulders ±.215 at .82, hand .37 down the arm, legs ±.08 at .47, head at .955).
 
 const CLOTH=rgb('#16171f'),CLOTH_DARK=rgb('#0a0a10'),CLOTH_HI=rgb('#2a2c3a'),CLOTH_SEAM=rgb('#06060a');
@@ -104,11 +104,18 @@ function buildHead(){
   P.add(new THREE.SphereGeometry(.012,8,6),at(s*.03,.113,.08,[0,0,s*.3],[1.55,.42,.5]),(x,y,z)=>Math.abs(x)<.03?EYE_HOT:EYE);
   P.add(new THREE.SphereGeometry(.0045,6,4),at(s*.029,.113,.085,[0,0,0],[.7,1.3,1]),PUPIL);
  }
- // the knot at the back of the head, and its two long ragged tails hanging down the back
+ // the knot at the back of the head (its two tails are their own meshes, so they can stream)
  P.add(new THREE.SphereGeometry(.026,10,8),at(0,.13,-.096,[0,0,0],[1.4,.9,.8]),CLOTH_HI);
- for(const s of [-1,1])P.add(tail(.36,.042),at(s*.016,.13,-.11,[.1,s*.14,s*.12]),(x,y)=>ramp(CLOTH_DARK,CLOTH_HI,-.24,.13)(y));
  return P.merge();
 }
+// one long ragged tail of the hood's knot, hanging from its top at the knot
+function buildTail(){
+ const P=pieces();
+ P.add(tail(.36,.042),at(0,0,0),(x,y)=>ramp(CLOTH_DARK,CLOTH_HI,-.37,0)(y));
+ return P.merge();
+}
+// where the tails hang from the knot (head-local) and their rest angles; ninja-tails.js streams them
+export const TAIL_REST=[-1,1].map(s=>({pos:[s*.016,.13,-.11],rot:[.1,s*.14,s*.12]}));
 
 // tight hakama into criss-cross kyahan wraps and split-toed tabi
 function buildLeg(){
@@ -164,7 +171,7 @@ let S=null,material=null;
 function geometry(){
  if(S)return S;
  material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.82,metalness:.08,side:THREE.DoubleSide});
- S={body:buildBody(),head:buildHead(),leg:buildLeg(),arm:buildArm(),sword:buildSword()};
+ S={body:buildBody(),head:buildHead(),tail:buildTail(),leg:buildLeg(),arm:buildArm(),sword:buildSword()};
  return S;
 }
 function mesh(parent,geo,name){const o=new THREE.Mesh(geo,material);o.castShadow=o.receiveShadow=true;o.userData.part=name;parent.add(o);return o;}
@@ -174,6 +181,7 @@ export function createNinja(){
  mesh(body,S.body,'body');
  const head=new THREE.Group();head.position.set(0,.955,0);body.add(head);
  mesh(head,S.head,'head');
+ const hoodTails=TAIL_REST.map(r=>{const k=new THREE.Group();k.position.set(...r.pos);k.rotation.set(...r.rot);head.add(k);mesh(k,S.tail,'hoodTail');return k;});
  const legs=[],arms=[];
  for(const s of [-1,1]){
   const leg=new THREE.Group();leg.position.set(s*.08,.47,0);body.add(leg);mesh(leg,S.leg,'leg');legs.push(leg);
@@ -181,5 +189,5 @@ export function createNinja(){
  }
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-.37,.012);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.sword,'ninjato');
- return {g,body,legs,tail:null,wings:[],quirk:'human',kind:'ninja',arms,arm:arms[1],weaponSocket,head,hat:null,beard:null,pick:null};
+ return {g,body,legs,tail:null,wings:[],quirk:'human',kind:'ninja',arms,arm:arms[1],weaponSocket,head,hoodTails,hat:null,beard:null,pick:null};
 }
