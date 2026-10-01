@@ -35,5 +35,5 @@ export function combatAction(ev) {
 
 export function deathAction(ev) {
   if (!ev || ev.type !== 'death' || !Number.isFinite(ev.x) || !Number.isFinite(ev.z)) return null;
-  return {x: ev.x, z: ev.z, name: typeof ev.name === 'string' ? ev.name : null, pet: !!ev.pet};
+  return {x: ev.x, z: ev.z, name: typeof ev.name === 'string' ? ev.name : null, pet: !!ev.pet, stoned: !!ev.stoned};
 }

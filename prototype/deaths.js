@@ -4,6 +4,8 @@
 //   splat     jellies, puddings, blobs, molds: bulge, then flatten wide and fade into a puddle
 //   dissipate vortices, clouds, ghosts, air elementals: spin up, swell and thin into mist
 //   burst     lights and spheres, gas spores: swell fast and pop in a flash
+//   petrify   turned to stone (the bridge's `stoned` death, not a species): a gasp, then stone
+//             creeps up from the feet and it sets where it stands (petrify.js tints it)
 //   topple    everything else: stagger and fall over away from the blow (the old die pose)
 //
 // deathPose(style, u, dir) gives offsets in actions.js's pose shape plus `sx`/`sy` (squash on
@@ -15,10 +17,10 @@
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
-export const DEATH_STYLES = ['topple', 'crumble', 'splat', 'dissipate', 'burst'];
+export const DEATH_STYLES = ['topple', 'crumble', 'splat', 'dissipate', 'burst', 'petrify'];
 
 // Seconds each style takes (topple matches actions.js's die).
-export const DEATH_TIME = {topple: .9, crumble: 1, splat: .8, dissipate: 1, burst: .45};
+export const DEATH_TIME = {topple: .9, crumble: 1, splat: .8, dissipate: 1, burst: .45, petrify: 1.8};
 
 const RULES = [
   ['burst', /\b(yellow|black) light\b|\bgas spore\b|\b(flaming|freezing|shocking) sphere\b/],
@@ -44,7 +46,7 @@ function unit(dir) {
 // Offsets for a death at normalised time u (0..1); the end pose is held.
 export function deathPose(style, u, dir = null) {
   const p = {dx: 0, dy: 0, dz: 0, yaw: 0, pitch: 0, roll: 0, body: 0, head: 0, arm: 0, wrist: 0,
-    socket: 0, leg: 0, tail: 0, scale: 1, sx: 1, sy: 1, spin: 0, fade: 1};
+    socket: 0, leg: 0, tail: 0, wing: 0, scale: 1, sx: 1, sy: 1, spin: 0, fade: 1, stone: 0};
   u = clamp01(u);
   const d = unit(dir);
   const push = k => { if (d) { p.dx = d[0] * k; p.dz = d[1] * k; } };
@@ -89,6 +91,21 @@ export function deathPose(style, u, dir = null) {
       p.fade = u < .33 ? 1 : 0;
       break;
     }
+    case 'petrify': {
+      // A sharp gasp: it jerks upright and back, draws itself in and flares its wings; a shiver
+      // runs through it as the stone climbs, and it sets in what's left of the gasp. No fall,
+      // no fade: the statue takes its place.
+      const gasp = u < .12 ? smooth(u / .12) : 1 - .45 * smooth((u - .12) / .3), stone = smooth((u - .14) / .66);
+      p.pitch = -.16 * gasp;
+      p.dy = .035 * gasp;
+      p.head = -.35 * gasp;
+      p.wing = .55 * gasp;
+      p.scale = 1 + .035 * gasp;
+      p.roll = .022 * Math.sin(u * 140) * smooth(u / .1) * (1 - stone);
+      p.stone = stone;
+      push(-.04 * gasp);
+      break;
+    }
     default: {
       // Stagger, then topple sideways away from the blow and sink a little.
       const s = smooth(u / .25), f = smooth((u - .15) / .75);
@@ -104,7 +121,7 @@ export function deathPose(style, u, dir = null) {
 }
 
 // When (u) each style throws off its particles.
-export const DEATH_BURST_U = {topple: .8, crumble: .55, splat: .25, dissipate: .2, burst: .33};
+export const DEATH_BURST_U = {topple: .8, crumble: .55, splat: .25, dissipate: .2, burst: .33, petrify: .62};
 
 // Particle looks. Splats take the creature's own colour when one is given.
 const LOOKS = {
@@ -112,6 +129,8 @@ const LOOKS = {
   crumble: {count: 44, speed: .35, up: .2, life: 1.1, gravity: 1.2, drag: 2.5, color: [.62, .58, .5], spread: 'column', size: .035},
   splat: {count: 34, speed: 1.3, up: 1.1, life: .9, gravity: 5, drag: 1.2, color: [.55, .75, .25], spread: 'ring', size: .05},
   dissipate: {count: 40, speed: .45, up: .6, life: 1.3, gravity: -.25, drag: 1.5, color: [.75, .78, .82], spread: 'swirl', size: .07},
+  // Grit shed as the stone sets, sifting down the body.
+  petrify: {count: 20, speed: .12, up: .05, life: .9, gravity: 1.6, drag: 3, color: [.56, .56, .53], spread: 'column', size: .03},
   burst: {count: 36, speed: 2.4, up: .4, life: .45, gravity: 0, drag: 3.5, color: [1, .92, .6], spread: 'sphere', size: .05},
   // A corpse getting back up (rise.js): grave dust kicked off the floor, and pale sickly
   // motes curling up round it.
