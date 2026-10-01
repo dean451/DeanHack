@@ -118,6 +118,8 @@ export function createHeldWeapon(item){
   buildMorningStar(g);
  }else if(/\bhalberd\b/.test(name)){
   buildHalberd(g);
+ }else if(/\btrident\b/.test(name)){
+  buildTrident(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -280,4 +282,71 @@ function buildHalberd(g){
  put(new THREE.ConeGeometry(.022,.17,4),blade,0,1.085,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI/4));
  for(const [m,geos] of sets){const geo=mergeGeometries(geos);geos.forEach(x=>x.dispose());
   const mesh=new THREE.Mesh(geo,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The trident: a blackened haft under three barbed tines. The outer two splay out from a
+// downswept iron crossbar and hook back in at the top like claws; the longer middle one runs
+// straight. Each ends in a flat harpoon head whose barbs hook back down, and the middle tine
+// carries two more barbs below its head. Two iron fangs hang under the crossbar either side
+// of the socket. The grip is wound on a slant and the butt ends in a ringed iron ferrule.
+// Merged per material like the halberd: 4 draws. Tines and heads stay metalness >= .75, so
+// weapon-magic sheathes them.
+function buildTrident(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x33251b,roughness:.92});
+ const iron=new THREE.MeshStandardMaterial({color:0x48464a,metalness:.78,roughness:.55});
+ const blade=new THREE.MeshStandardMaterial({color:0xa9b3b8,metalness:.82,roughness:.3});
+ const wrap=new THREE.MeshStandardMaterial({color:0x2a1b16,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,blade,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ const zTurn=a=>new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),a);
+ // A tube along a curve whose radius tapers from r0 to r1, for tines that thin to their heads.
+ const taper=(points,r0,r1,segments=14)=>{
+  const curve=new THREE.CatmullRomCurve3(points.map(([x,y])=>new THREE.Vector3(x,y,0)));
+  const geo=new THREE.TubeGeometry(curve,segments,1,6,false),pos=geo.attributes.position,v=new THREE.Vector3(),c=new THREE.Vector3();
+  for(let i=0;i<=segments;i++){curve.getPointAt(i/segments,c);const r=r0+(r1-r0)*i/segments;
+   for(let j=0;j<=6;j++){const k=i*7+j;v.fromBufferAttribute(pos,k).sub(c).multiplyScalar(r).add(c);pos.setXYZ(k,v.x,v.y,v.z);}}
+  geo.computeVertexNormals();return {geo,curve};
+ };
+ // A flat harpoon head pointing up local +y from its neck at 0, its barbs hooking back down.
+ const head=(len,w)=>{
+  const s=new THREE.Shape();
+  s.moveTo(0,len);s.lineTo(w*.95,len*.3);s.lineTo(w*1.15,-.04);s.lineTo(w*.42,.02);s.lineTo(w*.3,0);
+  s.lineTo(-w*.3,0);s.lineTo(-w*.42,.02);s.lineTo(-w*1.15,-.04);s.lineTo(-w*.95,len*.3);s.closePath();
+  const geo=new THREE.ExtrudeGeometry(s,{depth:.007,bevelEnabled:true,bevelThickness:.003,bevelSize:.003,bevelSegments:1,steps:1});geo.translate(0,0,-.0035);return geo;
+ };
+ // Haft, a little thicker toward the head, and the grip wound on a slant.
+ put(new THREE.CylinderGeometry(.024,.021,1.12,10),wood,0,.2);
+ put(new THREE.CylinderGeometry(.03,.03,.22,10),wrap,0,-.01);
+ for(let i=0;i<6;i++){const turn=new THREE.TorusGeometry(.031,.006,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.1+i*.036,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // Butt: a ringed iron ferrule ending in a blunt knob.
+ put(new THREE.CylinderGeometry(.026,.022,.07,10),iron,0,-.38);
+ put(new THREE.TorusGeometry(.026,.005,4,12).rotateX(Math.PI/2),iron,0,-.355);
+ put(new THREE.SphereGeometry(.024,8,6),iron,0,-.415);
+ // Socket and collar, with a band lower down.
+ put(new THREE.CylinderGeometry(.028,.032,.15,8),iron,0,.83);
+ put(new THREE.CylinderGeometry(.036,.036,.018,8),iron,0,.755);
+ put(new THREE.CylinderGeometry(.029,.029,.018,10),iron,0,.6);
+ // The crossbar sweeps down to the socket and up to the outer tines' roots.
+ put(taper([[-.13,.95],[-.07,.9],[0,.885],[.07,.9],[.13,.95]],.017,.017,16).geo,iron);
+ // Two iron fangs hang under it either side of the socket.
+ for(const s of [-1,1])put(new THREE.ConeGeometry(.011,.06,4),iron,s*.055,.86,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),Math.PI-s*.25));
+ // Outer tines splay out, then hook back in at the top like claws.
+ for(const s of [-1,1]){
+  const {geo,curve}=taper([[s*.13,.95],[s*.175,1.03],[s*.18,1.12],[s*.15,1.2]],.015,.008);
+  put(geo,blade);
+  const tip=curve.getPointAt(1),dir=curve.getTangentAt(1);
+  put(head(.1,.03),blade,tip.x,tip.y,0,zTurn(Math.atan2(-dir.x,dir.y)));
+ }
+ // The middle tine runs straight and longer, with two more barbs below its head.
+ put(taper([[0,.89],[0,1.07],[0,1.25]],.017,.01).geo,blade);
+ put(head(.12,.034),blade,0,1.25);
+ for(const s of [-1,1]){
+  const barb=new THREE.Shape();barb.moveTo(0,.02);barb.lineTo(s*.045,-.03);barb.lineTo(0,-.005);barb.closePath();
+  const geo=new THREE.ExtrudeGeometry(barb,{depth:.006,bevelEnabled:true,bevelThickness:.002,bevelSize:.002,bevelSegments:1,steps:1});geo.translate(0,0,-.003);
+  put(geo,blade,0,1.1+(s>0?0:.05));
+ }
+ for(const [m,geos] of sets){const geo=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(geo,m);mesh.castShadow=true;mesh.userData.part=m===blade?'tines':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
