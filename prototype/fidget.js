@@ -29,6 +29,7 @@ import {updateCthulhuWrithe} from './cthulhu-writhe.js';
 import {updateWeepingLunge} from './weeping-lunge.js';
 import {updateCerberusHeads} from './cerberus-heads.js';
 import {updateSnareWrithe} from './snare-writhe.js';
+import {updateDoppelRake} from './doppel-rake.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -181,6 +182,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateCerberusHeads(actor, dt, t, busy, look, walking);
   // And Devil's Snare: its vines writhe, wring tight, lean and beckon at the hero, rear and lash, recoil and slump in death (snare-writhe.js).
   updateSnareWrithe(actor, dt, t, busy, look);
+  // And the doppelganger: its flesh never settles, its shape slips, it studies and mimics the hero, and rakes with its left talons (doppel-rake.js).
+  updateDoppelRake(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
