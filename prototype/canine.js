@@ -36,6 +36,13 @@ import {segment,chain} from './ant.js';
 // One vertex-coloured fur material and one eye material per look. The body, head, eyes, each
 // leg and the tail are one mesh each: 8 draws (plus 13 flames on a hell hound). Geometry is
 // built once per look and shared; the left legs reuse the right ones mirrored.
+// Cerberus used to be the jackal build in red. He is now the hound of the underworld: a huge,
+// heavy sooty-black hound with ember cracks smouldering through the hide, three heads on a broad
+// chest (the middle one is the `head` handle; all three are in `heads`, left, middle, right, each
+// on its own neck pivot with the side heads splayed outward), each neck clasped by a black iron
+// collar with brass-tipped spikes, a mane of small vipers writhing up along the neck and spine in
+// place of hackles, and a serpent for a tail ending in a fanged, hooded snake head. The eyes burn
+// red. 12 draws: the body, three heads, three eye meshes, four legs and the tail.
 // Pet dogs (little dog, dog, large dog) share the build with a friendlier face: no fangs, a
 // pink tongue lolling from the mouth, a collar and a brass tag round the neck, and a tail
 // carried up over the back for wagging. All three are white on the map (HI_DOMESTIC), so the
@@ -60,6 +67,7 @@ const LOOKS={
  werewolf:{scale:1.25,coat:'#6e5c48',saddle:'#2a211a',belly:'#a08c72',tip:'#1c1612',eye:'#ffaa18',glow:1.4,ears:.15,snout:.21,legH:.34,bushy:.055,heavy:1.15,ruff:1.25,hackles:true,fangs:1.45,mask:true,pattern:'grizzle',grizzle:.36},
  'winter wolf cub':{scale:.88,coat:'#dbe4ea',saddle:'#94abbc',belly:'#f5f9fc',tip:'#a6c6dc',eye:'#8adcff',glow:1.2,ears:.15,snout:.17,legH:.27,bushy:.05,ruff:.9,mask:true,pattern:'frost',grizzle:.1,frost:.6},
  'winter wolf':{scale:1.35,coat:'#d4dee5',saddle:'#86a0b3',belly:'#f3f8fb',tip:'#98bed8',eye:'#7fd8ff',glow:1.8,ears:.14,snout:.21,legH:.35,bushy:.06,heavy:1.12,ruff:1.4,hackles:true,fangs:1.4,mask:true,pattern:'frost',grizzle:.12,frost:1},
+ cerberus:{scale:1.7,coat:'#1e1614',saddle:'#0a0706',belly:'#4a2418',tip:'#1e2a16',ember:'#ff4a12',eye:'#ff3010',glow:2.6,ears:.13,snout:.21,legH:.36,heavy:1.3,ruff:1.1,fangs:1.7,tail:'serpent',pattern:'char',heads:3,vipers:true},
  'hell hound pup':{scale:.85,coat:'#2a120e',saddle:'#120605',belly:'#e0602a',tip:'#ff7a2a',ember:'#ff5a14',eye:'#ffc050',ears:.13,snout:.17,legH:.26,hackles:true,fangs:1.2,tail:'raised',pattern:'char',fire:true},
  'hell hound':{scale:1.3,coat:'#2a120e',saddle:'#120605',belly:'#e0602a',tip:'#ff7a2a',ember:'#ff5a14',eye:'#ffc050',ears:.14,snout:.2,legH:.34,heavy:1.1,hackles:true,fangs:1.4,tail:'raised',pattern:'char',fire:true},
 };
@@ -134,6 +142,57 @@ function torso(L){
  return merged;
 }
 
+// the side neck pivots of a three-headed hound: out to the side, a little lower and further back
+const sideNeck=(L,s)=>{const [nx,ny,nz]=L.neck,bw=L.heavy||1;return [nx+s*.15*bw,ny-.035,nz-.07];};
+const IRON=rgb('#26221f'),IRON_HI=rgb('#4a423a'),BRASS=rgb('#b08a3a');
+
+// a black iron collar clasped round the neck from `a` to `b`, halfway up, with brass-tipped
+// spikes standing out round it (none under the throat)
+function spikedCollar(P,a,b,r){
+ const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A).normalize();
+ const c=A.clone().lerp(B,.5),q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),d);
+ P.add(new THREE.TorusGeometry(r,.014,8,24),new THREE.Matrix4().compose(c,q,new THREE.Vector3(1,1,1.6)),(x,y,z)=>mix(IRON,IRON_HI,smooth((y-c.y)/.02)));
+ for(let i=0;i<8;i++){
+  const ang=i/8*Math.PI*2,out=new THREE.Vector3(Math.cos(ang),Math.sin(ang),0).applyQuaternion(q);
+  if(out.y<-.6)continue;
+  const base=c.clone().addScaledVector(out,r+.008),h=.03;
+  spike(P,base.toArray(),out.toArray(),.008,h,(x,y,z)=>mix(IRON,BRASS,smooth((Math.hypot(x-base.x,y-base.y,z-base.z)-h*.45)/(h*.4))),5);
+ }
+}
+
+// a small viper: a sinuous scaled body rising out of the hide from `root`, arching and then
+// hooking its head forward and down, with a flat wedge head, a pale mouth line and red eye beads
+function viper(P,root,dir,len,r,C,seed){
+ const [rx,ry,rz]=root,[dx,dz]=dir,n=6,pts=[],radii=[];
+ for(let i=0;i<=n;i++){
+  const t=i/n,up=Math.sin(t*Math.PI*.75)*len*.85,w=Math.sin(t*Math.PI*2+seed)*len*.12;
+  pts.push([rx+dx*t*len*.55+w*dz,ry+up-(t>.7?(t-.7)*len*.5:0),rz+dz*t*len*.55-w*dx]);
+  radii.push(r*(1-.45*t));
+ }
+ const scale=(x,y,z)=>{const n=hash(Math.round(x*900)+Math.round(y*700)*7+Math.round(z*800)*13);return mix(mix(C.tip,C.saddle,.35),n>.55?mix(C.tip,rgb('#5a6a2a'),.5):C.tip,.8);};
+ chain(P,pts,radii,scale,6);
+ const [hx,hy,hz]=pts[n],[px,py,pz]=pts[n-1],yaw=Math.atan2(hx-px,hz-pz);
+ P.add(new THREE.SphereGeometry(r*1.15,8,6),at(hx,hy,hz,[.35,yaw,0],[1.1,.55,1.7]),scale);
+ for(const s of [-1,1]){
+  const ex=hx+Math.cos(yaw)*s*r*.75+Math.sin(yaw)*r*.6,ez=hz-Math.sin(yaw)*s*r*.75+Math.cos(yaw)*r*.6;
+  P.add(new THREE.SphereGeometry(r*.26,5,4),at(ex,hy+r*.25,ez),rgb('#ff2a0a'));
+ }
+}
+
+// the viper mane: two rows of small snakes along the neck and the spine, longest at the withers,
+// with a cluster up the backs of the side necks on a three-headed hound
+function vipers(P,L,C){
+ const bw=L.heavy||1;
+ for(let i=0;i<9;i++){
+  const z=.24-i*.055,k=1-Math.abs(i-2)/9,side=i%2?1:-1,top=L.Y+.085+.012*(z/.3)+Math.max(0,z-.18)*1.4;
+  viper(P,[side*.018,top,z],[side*.35,-.8],(.1+.04*hash(i+3))*k,.011*bw,C,i*1.7);
+ }
+ if(L.heads===3)for(const s of [-1,1])for(let i=0;i<3;i++){
+  const [hx,hy,hz]=sideNeck(L,s),t=.25+i*.22,x=s*.04*bw+(hx-s*.04*bw)*t,y=L.Y+.07+(hy-L.Y-.07)*t,z=.18+(hz-.18)*t;
+  viper(P,[x,y+.035,z-.01],[s*.6,-.7],.07+.02*hash(i*5+s),.009*bw,C,i*2.3+s);
+ }
+}
+
 function buildBody(L,C){
  const P=pieces(),bw=L.heavy||1,paint=torsoAt(L,C);
  P.add(torso(L),null,paint);
@@ -146,6 +205,19 @@ function buildBody(L,C){
  const [nx,ny,nz]=L.neck;
  segment(P,[0,L.Y+.02,.2],[nx,ny-.02,nz-.01],.072*bw,.056*bw,paint,14);
  P.add(new THREE.SphereGeometry(.064*bw,16,10),at(0,L.Y+.09,.25),paint);
+ if(L.heads===3){
+  // two more necks splaying out from the shoulders to the side heads, and iron collars on all three
+  for(const s of [-1,1]){
+   const [hx,hy,hz]=sideNeck(L,s);
+   segment(P,[s*.04*bw,L.Y+.02,.18],[hx-s*.012,hy-.02,hz-.01],.066*bw,.05*bw,paint,14);
+   P.add(new THREE.SphereGeometry(.056*bw,14,10),at(s*.06*bw,L.Y+.08,.22),paint);
+  }
+  for(const [hx,hy,hz] of [sideNeck(L,-1),L.neck,sideNeck(L,1)]){
+   const base=hx===0?[0,L.Y+.02,.2]:[Math.sign(hx)*.04*bw,L.Y+.02,.18];
+   spikedCollar(P,base,[hx,hy-.02,hz-.01],.058*bw);
+  }
+ }
+ if(L.vipers)vipers(P,L,C);
  // a pet's collar round the middle of the neck, with a brass tag hanging at the front
  if(L.collar){
   const a=Math.atan2(ny-.02-L.Y-.02,nz-.01-.2),cy=L.Y+.02+(ny-.04-L.Y)*.5,cz=.2+(nz-.21)*.5,r=.071*bw;
@@ -307,7 +379,39 @@ const TAILS={
  up:[[0,0,0],[0,.07,-.05],[0,.15,-.08],[0,.22,-.06],[0,.26,-.01]],
  raised:[[0,0,0],[0,.03,-.08],[0,.0,-.17],[0,-.08,-.24],[0,-.18,-.27]],
 };
+// a serpent tail: a long sinuous scaled snake from the rump, lashing out to one side and rising
+// into a hooded head with an open fanged mouth
+function serpentTail(L,C){
+ const P=pieces(),n=14,bw=L.heavy||1;
+ const curve=new THREE.CatmullRomCurve3([[0,0,0],[.02,-.06,-.1],[-.06,-.12,-.2],[-.1,-.1,-.3],[-.04,-.02,-.38],[.06,.06,-.42],[.1,.12,-.4]].map(p=>new THREE.Vector3(...p)));
+ const pts=Array.from({length:n+1},(_,i)=>curve.getPoint(i/n).toArray());
+ const radii=pts.map((_,i)=>{const t=i/n;return (.036-.02*t)*bw;});
+ const belly=mix(C.belly,rgb('#8a7a4a'),.5);
+ const colour=j=>(x,y,z)=>{
+  const [cx,cy]=pts[j],under=smooth((cy-radii[j]*.3-y)/(radii[j]*.4));
+  const band=Math.sin(j*2.1+z*60)>.6?.5:0,n=hash(Math.round(x*900)*3+Math.round(y*900)*5+Math.round(z*900)*7);
+  let c=mix(C.tip,C.saddle,band);if(n>.6)c=mix(c,rgb('#4a5a24'),.35);
+  return mix(c,belly,under*.8);
+ };
+ chain(P,pts,radii,colour,10);
+ P.add(new THREE.SphereGeometry(radii[0]*1.1,10,8),at(0,0,0),fur(L,C,C.coat,0,0,0));
+ // the head: a flat wedge skull, a hood flaring behind it, an open jaw, fangs and red eyes
+ const [hx,hy,hz]=pts[n],t=curve.getTangent(1),yaw=Math.atan2(t.x,t.z),r=radii[n];
+ const local=(x,y,z)=>new THREE.Vector3(x,y,z).applyEuler(new THREE.Euler(0,yaw,0)).add(new THREE.Vector3(hx,hy,hz)).toArray();
+ const head=colour(n-1);
+ P.add(new THREE.SphereGeometry(1,14,10),at(...local(0,.012,.03),[0,yaw,0],[r*1.7,r*.9,r*2.6]),head);
+ P.add(new THREE.SphereGeometry(1,12,8),at(...local(0,-.012,.03),[.3,yaw,0],[r*1.4,r*.45,r*2.2]),head);
+ P.add(new THREE.SphereGeometry(1,14,10),at(...local(0,.005,-.02),[-.3,yaw,0],[r*3.4,r*2.2,r*.6]),(x,y,z)=>mix(head(x,y,z),C.ember,.12));
+ P.add(new THREE.SphereGeometry(r*.6,10,6),at(...local(0,-.002,.05),[.15,yaw,0],[1.2,.5,1.6]),rgb('#5a0e08'));
+ for(const s of [-1,1]){
+  P.add(new THREE.SphereGeometry(r*.28,6,4),at(...local(s*r*.95,.02,.045)),rgb('#ff2a0a'));
+  spike(P,local(s*r*.55,.004,.068),new THREE.Vector3(0,-1,.25).applyEuler(new THREE.Euler(0,yaw,0)).toArray(),r*.16,r*.75,rgb('#eee6d0'),5);
+ }
+ return {geo:P.merge(),pts};
+}
+
 function buildTail(L,C){
+ if(L.tail==='serpent')return serpentTail(L,C);
  const P=pieces(),s=L.tailLen||1,bush=L.bushy??.042,n=12;
  const curve=new THREE.CatmullRomCurve3(TAILS[L.tail||'droop'].map(([x,y,z])=>new THREE.Vector3(x*s,y*s,z*s)));
  const pts=Array.from({length:n+1},(_,i)=>curve.getPoint(i/n).toArray());
@@ -344,7 +448,7 @@ function build(key,look){
  const C={coat:rgb(L.coat),saddle:rgb(L.saddle),belly:rgb(L.belly),tip:rgb(L.tip),ember:rgb(L.ember||'#ff5a14'),mark:L.mark?rgb(L.mark):null};
  const tail=buildTail(L,C);
  const S={L,tailPts:tail.pts,
-  fur:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,metalness:0,...(L.fire?{emissive:'#4a0c02',emissiveIntensity:.5}:{})}),
+  fur:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,metalness:0,...(L.pattern==='char'?{emissive:'#4a0c02',emissiveIntensity:.5}:{})}),
   eye:new THREE.MeshStandardMaterial({color:L.eye,emissive:L.eye,emissiveIntensity:L.fire?3:L.glow||.15,roughness:.2}),
   body:buildBody(L,C),head:buildHead(L,C),eyes:buildEyes(),fore:buildLeg(L,C,true),hind:buildLeg(L,C,false),tail:tail.geo,
  };
@@ -360,6 +464,13 @@ export function createCanine(name,colour){
  mesh(body,S.body,S.fur,'body');
  const head=new THREE.Group();head.position.set(...L.neck);body.add(head);
  mesh(head,S.head,S.fur,'head');mesh(head,S.eyes,S.eye,'eyes');
+ const heads=[head];
+ if(L.heads===3)for(const s of [-1,1]){
+  // the side heads, turned outward and canted, so the three look three ways
+  const h=new THREE.Group();h.position.set(...sideNeck(L,s));h.rotation.set(.05,s*.5,-s*.12);body.add(h);
+  mesh(h,S.head,S.fur,'head');mesh(h,S.eyes,S.eye,'eyes');
+  if(s<0)heads.unshift(h);else heads.push(h);
+ }
  const legs=[];
  for(const s of [-1,1])for(const fore of [false,true]){
   const [x,y,z]=fore?L.shoulder:L.hip,leg=new THREE.Group();
@@ -378,5 +489,5 @@ export function createCanine(name,colour){
   hellfire(tail,0,pts[n][1],pts[n][2],.85,.2);hellfire(tail,0,mid[1],mid[2],.6,-.3);
   for(const leg of legs)hellfire(leg,0,-leg.position.y+.005,.02,.45);
  }
- return {g,body,legs,tail,wings:[],quirk:L.pet?'dog':'canine',head};
+ return {g,body,legs,tail,wings:[],quirk:L.pet?'dog':'canine',head,...(L.heads===3?{heads}:{})};
 }

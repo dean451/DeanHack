@@ -109,3 +109,24 @@ test('pet dogs share the canine build with a collar, a tongue, breed ears and a 
   assert(b.max.y>last,`${name} taller than the smaller breed`);last=b.max.y;
  }
 });
+
+test('Cerberus is a three-headed hound with spiked collars, a viper mane and a serpent tail, not a red jackal',()=>{
+ const a=createCreature({name:'Cerberus',symbol:100,color:1});
+ assert.equal(a.quirk,'canine');assert.equal(a.legs.length,4);
+ assert.equal(a.heads.length,3,'three heads');
+ assert.equal(a.heads[1],a.head,'the middle head is the head handle');
+ assert(a.heads[0].position.x<0&&a.heads[2].position.x>0,'left, middle, right');
+ assert(a.heads[0].rotation.y<0&&a.heads[2].rotation.y>0,'the side heads look outward');
+ for(const h of a.heads)assert(h.children.some(o=>o.userData.part==='head')&&h.children.some(o=>o.userData.part==='eyes'));
+ const parts=meshes(a);
+ assert.equal(parts.length,12,'body, three heads, three eyes, four legs and the tail');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2,'fur and eyes');
+ for(const m of parts)for(const key of ['position','normal'])for(const v of m.geometry.attributes[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+ a.g.updateMatrixWorld(true);
+ const b=new THREE.Box3();for(const m of parts)b.expandByObject(m,true);
+ const hound=new THREE.Box3().setFromObject(createCreature({name:'hell hound'}).g,true);
+ assert(b.min.y>-.03&&b.max.y>hound.max.y,'stands on the floor, bigger than a hell hound');
+ assert(b.max.x-b.min.x>hound.max.x-hound.min.x+.3,'the heads spread him wide');
+ assert(a.tail.children[0].geometry.attributes.position.count>3000,'a scaled serpent tail with a head');
+ assert.equal(createCreature({name:'jackal'}).heads,undefined,'one head on other dogs');
+});
