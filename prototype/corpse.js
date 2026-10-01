@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
 
@@ -264,10 +265,132 @@ function build(name,colour){
  cache.set(key,S);return S;
 }
 
+// Creatures with a model of their own (creatures.js) leave that model as their corpse, so a lizard
+// corpse is a lizard: the live model is knocked over, baked into one vertex-coloured mesh and laid
+// on the floor. How it lies:
+// - people (anything on two legs) fall face down, so their arms and weapons lie flat;
+// - tall beasts (dogs, horses, dragons...) fall on their side, legs stiff and out;
+// - low, flat bodies (lizards, newts, crocodiles), bugs, birds and snakes lie on their backs,
+//   belly up;
+// - blobs, molds and the like slump flat and spread, as their splat death leaves them.
+// The colours lose a little life (greyed and darkened), and glowing eyes and other lit parts go
+// dark. See-through parts (auras, glows, mist) are dropped. Sizes follow the live model, with
+// the same small-creature minimum readability.js gives it, but the corpse is kept within a tile.
+const POSED=new Map();
+const MIN_SIZE=.72,MAX_GROW=1.8,MAX_FOOTPRINT=1;
+
+function isShown(o){for(let p=o;p;p=p.parent)if(!p.visible)return false;return true;}
+
+// The model's meshes baked with their world transforms into one non-indexed geometry with a
+// colour attribute (null when nothing solid is left).
+function bakeModel(root){
+ root.updateMatrixWorld(true);
+ const parts=[],c=new THREE.Color(),grey=new THREE.Color();
+ root.traverse(o=>{
+  if(!o.isMesh||o.isInstancedMesh||o.isSkinnedMesh||o.userData.outline||o.userData.ring||!isShown(o))return;
+  const material=Array.isArray(o.material)?o.material[0]:o.material;
+  if(!material||material.visible===false)return;
+  if(material.transparent&&(material.opacity??1)<.6)return;
+  if(material.blending===THREE.AdditiveBlending)return;
+  const src=o.geometry;if(!src?.attributes?.position)return;
+  const geo=src.index?src.toNonIndexed():src.clone();
+  for(const key of Object.keys(geo.attributes))if(!['position','normal','color'].includes(key))geo.deleteAttribute(key);
+  geo.morphAttributes={};
+  if(!geo.attributes.normal)geo.computeVertexNormals();
+  geo.applyMatrix4(o.matrixWorld);
+  // A mirrored part (negative scale) turns its faces inside out; flip them back.
+  if(o.matrixWorld.determinant()<0){
+   for(const key of Object.keys(geo.attributes)){const a=geo.attributes[key],n=a.itemSize;
+    for(let i=0;i+2<a.count;i+=3)for(let k=0;k<n;k++){const t=a.array[(i+1)*n+k];a.array[(i+1)*n+k]=a.array[(i+2)*n+k];a.array[(i+2)*n+k]=t;}}
+  }
+  // The part's colour: lit (unshaded or glowing) parts go dark, the rest lose a little life.
+  const base=material.color?c.copy(material.color):c.setRGB(.6,.55,.5);
+  const glow=material.isMeshBasicMaterial||(material.emissive&&material.emissive.getHSL({h:0,s:0,l:0}).l*(material.emissiveIntensity??1)>.25);
+  if(glow)base.multiplyScalar(.18);
+  grey.setScalar(base.r*.3+base.g*.59+base.b*.11);base.lerp(grey,.22).multiplyScalar(.82);
+  const pos=geo.attributes.position,old=material.vertexColors&&geo.attributes.color,col=new Float32Array(pos.count*3);
+  for(let i=0;i<pos.count;i++){
+   let r=base.r,g=base.g,b=base.b;
+   if(old&&old.itemSize>=3){r*=old.getX(i);g*=old.getY(i);b*=old.getZ(i);}
+   col[i*3]=r;col[i*3+1]=g;col[i*3+2]=b;
+  }
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  if(geo.attributes.normal.itemSize!==3||!Number.isFinite(pos.array[0]))return;
+  parts.push(geo);
+ });
+ if(!parts.length)return null;
+ const merged=mergeGeometries(parts);parts.forEach(g=>g.dispose());
+ return merged;
+}
+
+// How the creature lies, from its plan and its standing shape.
+export function corpseLie(plan,height,footprint){
+ if(plan==='blob')return 'splat';
+ if(plan==='humanoid')return 'front';
+ if(plan==='bug'||plan==='bird'||plan==='serpent')return 'back';
+ return height<footprint*.45?'back':'side';
+}
+
+// The class letter when the bridge didn't send one: UnNetHack's dragons and its people only
+// get their own models by letter.
+const guessLetter=(name,plan)=>DRAGONS.test(name)?'D':plan==='humanoid'?'@':'';
+// A corpse never stands taller than this; anything taller (wings, a crest) slumps down.
+const MAX_HEIGHT=.62;
+
+function posed(name,colour,factory,symbol){
+ const key=`${name}|${colour}|${symbol??''}`;
+ if(POSED.has(key))return POSED.get(key);
+ let S=null;
+ try{
+  const letter=Number.isInteger(symbol)?symbol:guessLetter(name,corpsePlan(name)).charCodeAt(0);
+  const a=factory({name,color:colour,symbol:Number.isFinite(letter)?letter:undefined});
+  const model=a?.g||a;
+  if(model?.isObject3D){
+   const holder=new THREE.Group();holder.add(model);
+   model.position.set(0,0,0);model.rotation.set(0,0,0);
+   holder.updateMatrixWorld(true);
+   const stand=new THREE.Box3().setFromObject(holder),size=stand.getSize(new THREE.Vector3());
+   const footprint=Math.max(size.x,size.z),plan=corpsePlan(name),lie=corpseLie(plan,size.y,footprint);
+   const grow=Math.min(MAX_GROW,Math.max(1,MIN_SIZE/Math.max(size.y,footprint,1e-3)));
+   holder.scale.setScalar(grow);
+   // Which way it falls is fixed per species (the corpse's yaw already varies per tile).
+   const side=hash(name.length,name.charCodeAt(0)||1)<.5?-1:1;
+   if(lie==='side')model.rotation.z=side*Math.PI/2;
+   else if(lie==='back')model.rotation.z=Math.PI;
+   else if(lie==='front')model.rotation.x=Math.PI/2;
+   else holder.scale.set(grow*1.35,grow*.32,grow*1.35);
+   let body=bakeModel(holder);
+   if(body){
+    body.computeBoundingBox();
+    const b=body.boundingBox,mid=b.getCenter(new THREE.Vector3());
+    body.translate(-mid.x,-b.min.y-.004,-mid.z);
+    const dims=b.getSize(new THREE.Vector3()),wide=Math.max(dims.x,dims.z);
+    if(wide>MAX_FOOTPRINT){const k=MAX_FOOTPRINT/wide;body.scale(k,k,k);dims.multiplyScalar(k);}
+    if(dims.y>MAX_HEIGHT){body.scale(1,MAX_HEIGHT/dims.y,1);dims.y=MAX_HEIGHT;}
+    body.computeBoundingBox();body.computeBoundingSphere();
+    S={plan,lie,body,pool:creaturePool(dims.x,dims.z,key.length),ichor:plan==='bug'};
+   }
+  }
+ }catch(error){S=null;}
+ POSED.set(key,S);return S;
+}
+
+// A ragged pool spreading out from under the body.
+function creaturePool(w,d,seed){
+ const s=new THREE.Shape(),n=28,rx=Math.min(.4,Math.max(.14,w*.45)),rz=Math.min(.4,Math.max(.14,d*.45));
+ for(let i=0;i<n;i++){const a=i/n*Math.PI*2,k=.78+.3*hash(i,seed)+.1*Math.sin(a*3+seed);s[i?'lineTo':'moveTo'](Math.cos(a)*rx*k,Math.sin(a)*rz*k);}
+ s.closePath();
+ const geo=new THREE.ShapeGeometry(s);geo.rotateX(-Math.PI/2);geo.translate(0,.003,0);geo.deleteAttribute('uv');return geo;
+}
+
 // The corpse of the named monster. colour is its glyph colour (CLR_*); seed turns it.
-export function createCorpse(name,colour,seed=0){
- const n=String(name||'').toLowerCase(),S=build(n,colour);
- const g=new THREE.Group();g.name=`Corpse of ${n||'creature'}`;g.scale.setScalar(SCALE[S.size]*(PLAN_SCALE[S.plan]??1));g.rotation.y=(seed%360)*Math.PI/180;
+// creatureFactory (creatures.js's createCreature) lets it use the creature's own model, and symbol
+// (the class letter the bridge sends) picks the right one where the name alone can't; without
+// it, or when the model can't be built, the corpse falls back to a generic body plan.
+export function createCorpse(name,colour,seed=0,{creatureFactory=null,symbol}={}){
+ const n=String(name||'').toLowerCase(),fromModel=creatureFactory&&n?posed(n,colour,creatureFactory,symbol):null,S=fromModel||build(n,colour);
+ const g=new THREE.Group();g.name=`Corpse of ${n||'creature'}`;g.rotation.y=(seed%360)*Math.PI/180;
+ if(!fromModel)g.scale.setScalar(SCALE[S.size]*(PLAN_SCALE[S.plan]??1));
  const flesh=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.86});
  const body=new THREE.Mesh(S.body,flesh);body.castShadow=body.receiveShadow=true;body.userData.part='corpse';g.add(body);
  const materials=[flesh];
@@ -275,7 +398,7 @@ export function createCorpse(name,colour,seed=0){
   const wet=new THREE.MeshStandardMaterial({color:S.ichor?0x3e4a14:0x4a0b0e,roughness:.22,metalness:.05,polygonOffset:true,polygonOffsetFactor:-1});
   const puddle=new THREE.Mesh(S.pool,wet);puddle.receiveShadow=true;puddle.userData.part='pool';g.add(puddle);materials.push(wet);
  }
- g.userData.plan=S.plan;
+ g.userData.plan=S.plan;g.userData.lie=S.lie||null;
  g.userData.dispose=()=>materials.forEach(m=>m.dispose());
  return g;
 }

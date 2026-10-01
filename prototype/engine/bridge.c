@@ -400,6 +400,12 @@ static void frame(void) {
                     printf(",\"creatureSymbol\":%d,\"creatureColor\":%d",def_monsyms[(int)mons[statue->corpsenm].mlet],mons[statue->corpsenm].mcolor);
                 }
             }
+            /* A corpse's monster class letter and colour, so the client lays out the same model the
+               live monster had (UnNetHack's dragons and many @ only tell apart by letter). */
+            if (glyph_is_body(g)) {
+                m = g - GLYPH_BODY_OFF;
+                printf(",\"creatureSymbol\":%d,\"creatureColor\":%d",def_monsyms[(int)mons[m].mlet],mons[m].mcolor);
+            }
             putchar('}');
         }
         putchar('}');
