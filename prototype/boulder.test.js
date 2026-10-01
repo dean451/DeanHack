@@ -18,6 +18,11 @@ test('boulders are finite, sit on the floor inside their tile, vary by seed and 
   const mass=boulder.children.find(o=>o.userData.part==='mass');
   assert(mass.geometry.attributes.color,'the mass has baked vertex colours');
   mass.geometry.computeBoundingBox();sizes.add(mass.geometry.boundingBox.max.y.toFixed(4));
+  let draws=0;boulder.traverse(o=>{if(o.isMesh)draws++;});
+  assert.equal(draws,2,`seed ${seed} draws the stone and its shadow only`);
+  const shadow=boulder.children.find(o=>o.userData.part==='shadow'),col=shadow.geometry.attributes.color;
+  assert.equal(col.itemSize,4,'the shadow fades by vertex alpha');
+  assert(col.getW(0)>.5&&col.getW(col.count-1)===0,'the shadow is dark at the centre and clear at the rim');
   let disposed=0;boulder.traverse(o=>o.geometry?.addEventListener('dispose',()=>disposed++));
   boulder.userData.dispose();assert(disposed>0);
  }
