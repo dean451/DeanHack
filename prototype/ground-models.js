@@ -5906,16 +5906,22 @@ export function createGroundModel(item={}){
   sheet.setIndex(indices);sheet.computeVertexNormals();
   const linenMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.96,side:THREE.DoubleSide});materials.push(linenMat);
   add(sheet,linenMat);
+  // Everything else made of cloth, thread or cork shares the linen's material, painted with
+  // vertex colours; dye() can grime a part along its length (t runs 0 to 1 through its vertices).
+  const dye=(geo,hex,grime=()=>0)=>{
+   const base=new THREE.Color(hex),dirt=new THREE.Color(0x5e5038),pos=geo.attributes.position,col=[];
+   for(let i=0;i<pos.count;i++){c.copy(base).lerp(dirt,grime(pos.getX(i),pos.getY(i),pos.getZ(i),i/pos.count));col.push(c.r,c.g,c.b);}
+   geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));return geo;
+  };
   // A rolled hem round the whole outline, following the folds.
   const P=(x,z,up=.0015)=>new THREE.Vector3(x,lift(x,z)+up,z);
   for(let i=0;i<=N;i++)edge.push(P(-half(i/N),zAt(i/N)));
   for(let j=1;j<M;j++){const u=j/M*2-1;edge.push(P(u*half(1),zAt(1)));}
   for(let i=N;i>=0;i--)edge.push(P(half(i/N),zAt(i/N)));
   for(let j=M-1;j>0;j--){const u=j/M*2-1;edge.push(P(u*half(0),zAt(0)));}
-  const hem=mat(0xb7a67f);
-  add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge,true),260,.0028,5,true),hem);
+  // The hem picks up the same grime as the cloth at the bottom edge.
+  add(dye(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge,true),260,.0028,5,true),0xb7a67f,(x,y,z)=>.35*smooth(.15,.21,z)),linenMat);
   // Straps are flat tape ribbons lying on the floor, with a small twist and frayed tips.
-  const tape=mat(0xc3b28a);tape.side=THREE.DoubleSide;
   const strap=(pts,wide=.013,fray=true)=>{
    const path=new THREE.CatmullRomCurve3(pts),S=Math.max(24,pts.length*10),pos=[],idx=[];
    for(let i=0;i<=S;i++){
@@ -5924,13 +5930,13 @@ export function createGroundModel(item={}){
     if(i<S)idx.push(i*2,i*2+2,i*2+1,i*2+1,i*2+2,i*2+3);
    }
    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();
-   add(geo,tape);
+   // Tape darkens toward the loose end, where it trails on the floor and gets handled.
+   add(dye(geo,0xc3b28a,(x,y,z,t)=>fray?.45*smooth(.55,1,t):0),linenMat);
    if(!fray)return;
    const p=path.getPoint(1),d=path.getTangent(1);
    for(let k=0;k<5;k++){
     const off=(k-2)*wide*.4,x=p.x-d.z*off,z=p.z+d.x*off,len=.01+.005*((k*7)%3);
-    const f=add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(x,p.y,z),new THREE.Vector3(x+d.x*len+.002*(k-2),.002,z+d.z*len)]),4,.001,3,false),hem);
-    f.castShadow=false;
+    add(dye(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(x,p.y,z),new THREE.Vector3(x+d.x*len+.002*(k-2),.002,z+d.z*len)]),4,.001,3,false),0xa99470),linenMat);
    }
   };
   const V=(x,z,y=.0055)=>new THREE.Vector3(x,y,z);
@@ -5944,8 +5950,8 @@ export function createGroundModel(item={}){
   strap([V(-ww,wz,lift(-ww,wz)+.004),V(-ww-.04,wz+.004),V(-ww-.08,wz+.03),V(-ww-.095,wz+.085),V(-ww-.07,wz+.14),V(-ww-.085,wz+.19)]);
   strap([V(ww,wz,lift(ww,wz)+.004),V(ww+.05,wz-.006),V(ww+.1,wz+.012),V(ww+.12,wz+.05),V(ww+.08,wz+.075),V(ww+.03,wz+.1,.0095),V(ww+.02,wz+.14,.0095)]);
   // Box stitches where the ties and neck strap are sewn on.
-  const thread=mat(0x8a7a58);
-  for(const [x,z] of [[-ww,wz],[ww,wz],[-bw,top+.004],[bw,top+.004]]){const y=lift(x,z)+.007;box(.018,.0015,.0015,thread,x,y,z-.006);box(.018,.0015,.0015,thread,x,y,z+.006);}
+  const stitch=(w,h,d,x,y,z)=>add(dye(new THREE.BoxGeometry(w,h,d),0x8a7a58),linenMat,x,y,z);
+  for(const [x,z] of [[-ww,wz],[ww,wz],[-bw,top+.004],[bw,top+.004]]){const y=lift(x,z)+.007;stitch(.018,.0015,.0015,x,y,z-.006);stitch(.018,.0015,.0015,x,y,z+.006);}
   // A patch pocket on the skirt: its own small sheet over the folds, open along the top,
   // stitched on three sides, with a corked vial leaning out.
   const PX=.035,PW=.07,PZ0=zAt(.4),PZ1=zAt(.18),pk=[],pc=[],pi=[],PN=12;
@@ -5959,19 +5965,21 @@ export function createGroundModel(item={}){
   pocket.setIndex(pi);pocket.computeVertexNormals();add(pocket,linenMat);
   // The pocket mouth is hemmed; stitches run down the sides and along the bottom.
   const mouth=[];for(let j=0;j<=PN;j++){const x=PX-PW+2*PW*j/PN;mouth.push(P(x,PZ0,.0035+.005*(1-((j/PN)*2-1)**2)+.0015));}
-  add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(mouth),24,.0026,5,false),hem);
+  add(dye(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(mouth),24,.0026,5,false),0xb7a67f),linenMat);
   for(let k=0;k<9;k++){
    const z=PZ0+.008+(PZ1-PZ0-.012)*k/8;
-   for(const x of [PX-PW+.004,PX+PW-.004]){box(.0015,.0015,.007,thread,x,lift(x,z)+.005,z);}
+   for(const x of [PX-PW+.004,PX+PW-.004]){stitch(.0015,.0015,.007,x,lift(x,z)+.005,z);}
   }
-  for(let k=0;k<11;k++){const x=PX-PW+.008+(2*PW-.016)*k/10;box(.007,.0015,.0015,thread,x,lift(x,PZ1-.004)+.005,PZ1-.004);}
+  for(let k=0;k<11;k++){const x=PX-PW+.008+(2*PW-.016)*k/10;stitch(.007,.0015,.0015,x,lift(x,PZ1-.004)+.005,PZ1-.004);}
   const glass=new THREE.MeshStandardMaterial({color:0x7fd0a0,roughness:.12,metalness:.1,transparent:true,opacity:.6,emissive:0x1f5a3a,emissiveIntensity:.35});materials.push(glass);
   const vial=add(new THREE.CylinderGeometry(.011,.011,.07,12),glass,PX+.02,lift(PX+.02,PZ0)+.021,PZ0+.004);
   vial.rotation.set(-1.25,0,-.25);
   const neck=new THREE.Vector3(0,.035,0).applyEuler(vial.rotation).add(vial.position);
-  const cork=add(new THREE.CylinderGeometry(.0075,.0065,.014,10),mat(0x8a6038),neck.x,neck.y,neck.z);cork.rotation.copy(vial.rotation);
+  // The cork is stained dark at its wet end, where it sat in the potion.
+  const cork=add(dye(new THREE.CylinderGeometry(.0075,.0065,.014,10),0x8a6038,(x,y)=>.5*smooth(0,-.007,y)),linenMat,neck.x,neck.y,neck.z);cork.rotation.copy(vial.rotation);
   g.rotation.y=.22;
-  // Sheet, pocket, straps, hems, stitches, vial and cork bake to one mesh per material: 7 draws where there were 57.
+  // Sheet, pocket, straps, hems, stitches and cork bake into one linen mesh, beside the brass
+  // slider and the glass vial: 3 draws where there were 57.
   mergeByMaterial(g);
  }else if(cls===3&&/\bmail\b|mithril|\barmor\b|leather jacket|\bscales\b/.test(name)){
   buildBodyArmor((item.appearance||name).toLowerCase(),item.color,{g,materials});
