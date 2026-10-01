@@ -1183,7 +1183,8 @@ test('ninja get a wrapped zukin with an eye slit and trailing tails, a red sash 
  assert(ni.arm.children.includes(ni.weaponSocket),'the socket is at the right hand');
  assert.equal(ni.weaponSocket.children.length,1,'the ninjato is held');
  const parts=meshes(ni);
- assert.equal(parts.length,7,'one mesh per moving part and the sword');
+ assert.equal(parts.length,9,'one mesh per moving part, each hood tail and the sword');
+ assert.equal(ni.hoodTails.length,2);for(const k of ni.hoodTails)assert.equal(k.parent,ni.head,'the tails hang from the knot');
  assert.equal(new Set(parts.map(m=>m.material)).size,1);
  let verts=0;
  for(const m of parts){
@@ -1199,7 +1200,7 @@ test('ninja get a wrapped zukin with an eye slit and trailing tails, a red sash 
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
  // the saya rides on the back, and the hood's tails hang down it
  assert(new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='body'),true).min.z<-.15,'saya on the back');
- const hb=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='head'),true);
+ const hb=new THREE.Box3();for(const m of parts.filter(m=>m.userData.part==='hoodTail'))hb.expandByObject(m,true);
  assert(hb.min.y<.8&&hb.min.z<-.12,`tails ${hb.min.y} ${hb.min.z}`);
  assert(new THREE.Box3().setFromObject(ni.weaponSocket,true).max.z>.25,'blade held forward');
  const again=meshes(createCreature({name:'ninja'}));
