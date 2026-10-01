@@ -56,6 +56,7 @@ import {createHezrou} from './hezrou.js';
 import {createWizard} from './wizard.js';
 import {createMonk} from './monk.js';
 import {createArcheologist} from './archeologist.js';
+import {createCaveman,CAVE_KINDS} from './caveman.js';
 import {createRogue} from './rogue.js';
 import {createBarbarian} from './barbarian.js';
 import {createHealer} from './healer.js';
@@ -2296,6 +2297,7 @@ export function createCreature(cell={}){
  if(name==='wizard')return createWizard();
  if(name==='monk')return createMonk();
  if(name==='archeologist')return createArcheologist();
+ if(CAVE_KINDS.includes(name))return createCaveman(name);
  if(name==='rogue')return createRogue();
  if(name==='barbarian')return createBarbarian();
  if(name==='healer')return createHealer();
