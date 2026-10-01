@@ -5,7 +5,7 @@ import {createTrap,trapKind} from './trap.js';
 import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
 import {beatAt,flameAt,attachSigilFx,BEAT_EVERY,GLOW_REST} from './sigil-fx.js';
 
-const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','gas','mine','rubble','rolling','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
+const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','gas','mine','rubble','rolling','antimagic','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
 test('magic portals get their own kind; teleporters keep the rune circle',()=>{
  assert.equal(trapKind(94,13),'portal');
@@ -406,6 +406,29 @@ test('rolling boulder traps get their own worn track by name; other grey traps k
   assert(b.max.x-b.min.x>.9,'the track runs right across the tile');
   for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&Number.isFinite(v));}
   console.log(`rolling ${seed}: ${meshes.map(o=>o.geometry.attributes.position.count).join('+')} vertices, y ${b.min.y.toFixed(3)}..${b.max.y.toFixed(3)}, x ${b.min.x.toFixed(3)}..${b.max.x.toFixed(3)}, z ${b.min.z.toFixed(3)}..${b.max.z.toFixed(3)}`);
+  model.userData.dispose();
+ }
+});
+
+test('anti-magic fields get a drained, iron-staked null sigil by name; nameless bright blue traps keep the burning sigil',()=>{
+ assert.equal(trapKind(94,12,'anti-magic field'),'antimagic');
+ assert.equal(trapKind(94,12,'magic trap'),'magic');
+ assert.equal(trapKind(94,12),'magic');
+ for(const seed of [0,3,42]){
+  const model=createTrap('antimagic',seed);
+  const meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.deepEqual(meshes.map(o=>o.name).sort(),['null-etching','null-iron','null-stain']);
+  for(const name of ['null-stain','null-etching'])assert(!model.getObjectByName(name).castShadow,`${name} lies flat and casts no shadow`);
+  for(const o of meshes){
+   assert(o.material.isMeshStandardMaterial&&o.material.emissive.getHex()===0,`${o.name} must not glow`);
+   for(const v of o.geometry.attributes.color.array)assert(v>=0&&v<=1&&Number.isFinite(v));
+  }
+  assert.equal(model.userData.animate,undefined,'the dead sigil has no beat');
+  const b=new THREE.Box3().setFromObject(model);
+  assert(b.max.y>.03&&b.max.y<.1,`anti-magic nails reach ${b.max.y}`);
+  assert(b.min.y>=-.03,'the anti-magic nails are driven too deep');
+  assert(b.max.x-b.min.x>.8&&b.max.z-b.min.z>.8,'the iron hoop rings the tile');
+  console.log(`antimagic ${seed}: ${meshes.map(o=>o.geometry.attributes.position.count).join('+')} vertices, y ${b.min.y.toFixed(3)}..${b.max.y.toFixed(3)}, x ${b.min.x.toFixed(3)}..${b.max.x.toFixed(3)}, z ${b.min.z.toFixed(3)}..${b.max.z.toFixed(3)}`);
   model.userData.dispose();
  }
 });
