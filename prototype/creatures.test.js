@@ -1740,3 +1740,21 @@ test('the doppelganger gets its own half-changed mimic instead of the plain @ hu
  const again=meshes(createCreature({name:'doppelganger',symbol:64}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
+
+test('the minotaur gets its own hunched, horned bull-headed brute with a labrys instead of the giant',()=>{
+ const m=createCreature({name:'minotaur',symbol:'H'.charCodeAt(0),color:3});
+ assert.equal(m.kind,'minotaur');
+ for(const k of ['head','arm','weaponSocket','tail','body'])assert(m[k],`handle ${k}`);
+ assert.equal(m.legs.length,2);assert.equal(m.arms.length,2);
+ let draws=0;m.g.traverse(o=>{if(o.isMesh){draws++;const p=o.geometry.attributes.position.array;assert(p.every(Number.isFinite),o.userData.part);}});
+ assert(draws<=9,`draws ${draws}`);
+ m.g.updateMatrixWorld(true);
+ const box=new THREE.Box3().setFromObject(m.g),s=box.getSize(new THREE.Vector3());
+ assert(box.min.y>-.02&&box.min.y<.02,`stands on the floor ${box.min.y}`);
+ assert(s.y>1.3&&s.y<1.7,`height ${s.y}`);
+ // the head hangs forward of the chest, below the top of the hump and horns
+ const head=new THREE.Box3().setFromObject(m.head);
+ assert(head.max.z>.4,`the muzzle juts forward ${head.max.z}`);
+ assert(head.max.x-head.min.x>.5,`the horns sweep wide ${head.max.x-head.min.x}`);
+ assert(m.weaponSocket.children.some(c=>c.userData.part==='labrys'));
+});
