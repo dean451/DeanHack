@@ -36,6 +36,20 @@ export function menuCommand(key,items){
  return ids.length?{toggle:ids}:null;
 }
 
+// The classes in a pick-any object list (putting things in a bag, picking up a pile), for the
+// one-click class buttons: each group accelerator with the heading it sits under ("Potions",
+// weight note dropped) and the items it toggles. Same toggle as typing the symbol (menuCommand).
+export function menuGroups(items){
+ const groups=new Map();let heading='';
+ for(const item of items){
+  if(!item.selectable){if(item.text.trim())heading=item.text.replace(/\s*\(\d+ aum\)\s*$/,'').trim();continue;}
+  if(!item.group||item.group===item.key)continue;
+  if(!groups.has(item.group))groups.set(item.group,{key:item.group,label:heading||item.group,ids:[]});
+  groups.get(item.group).ids.push(item.id);
+ }
+ return [...groups.values()];
+}
+
 // Commands that are only reachable through #, used until the engine sends its own list.
 export const EXT_FALLBACK=[
  ['adjust','adjust inventory letters'],['annotate','name current level'],['chat','talk to someone'],
