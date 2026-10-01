@@ -32,6 +32,7 @@ import {createEnormousRat,isEnormousRat} from './enormous-rat.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
+import {createDoppelganger} from './doppelganger.js';
 import {createShopkeeper} from './shopkeeper.js';
 import {createMedusa} from './medusa.js';
 import {createCthulhu} from './cthulhu.js';
@@ -2517,6 +2518,7 @@ export function createCreature(cell={}){
  if(name==='medusa')return createMedusa();
  if(name==='cthulhu')return createCthulhu();
  if(name==='nurse')return createNurse();
+ if(name==='doppelganger')return createDoppelganger();
  if(WATCH.includes(name))return createWatch(name);
  if(name==='hobbit')return createHobbit();
  if(name==='valkyrie')return createValkyrie();
