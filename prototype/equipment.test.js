@@ -64,3 +64,22 @@ test('a glaive has its own single-edged blade, merged to one mesh per material',
   glaive.userData.dispose();
  }
 });
+
+test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
+ const saber=createHeldWeapon({name:'silver saber',class:2});
+ const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});
+ for(const g of [saber,grayswandir]){
+  assert.deepEqual(g.children.map(c=>c.userData.part).sort(),['blade','grip','hilt']);
+  const s=size(g);
+  assert(s.y>.95&&s.y<1.1,`length ${s.y}`);
+  for(const m of g.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));}
+  const blade=g.children.find(c=>c.userData.part==='blade');
+  assert(blade.material.metalness>=.75,'weapon-magic sheathes the blade');
+  const hex=blade.material.color.getHex();
+  assert((hex>>16)>0xe0&&(hex&0xff)>0xe0,'bright silver, not steel');
+  blade.geometry.computeBoundingBox();
+  assert(blade.geometry.boundingBox.min.x<-.08,'the blade curves back');
+ }
+ assert.notEqual(saber.children.length,createHeldWeapon({name:'long sword',class:2}).children.length);
+ saber.userData.dispose();grayswandir.userData.dispose();
+});

@@ -15,7 +15,9 @@ export function createHeldWeapon(item){
  // An artifact ("Excalibur") takes the model of its base type, which the bridge sends as `base`.
  const name=(item.base||item.name||'').toLowerCase();
  const blade=/sword|dagger|knife|athame|saber|scimitar|katana|tsurugi|wakizashi/.test(name);
- if(blade){
+ if(/\bsilver saber\b/.test(name)){
+  buildSilverSaber(g);
+ }else if(blade){
   const short=/dagger|knife|athame/.test(name),length=short?.34:.75,width=short?.055:.075;
   part(new THREE.CylinderGeometry(.029,.035,.17,8),leather,0,0);
   part(new THREE.SphereGeometry(.044,8,6),brass,0,-.11);
@@ -402,4 +404,68 @@ function buildGlaive(g){
  put(geo,blade);
  for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
   const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The silver saber: a long, gently curved single-edged blade of bright silver. Its edge runs
+// along the convex side, a fuller is sunk down its flat and the tip is clipped into a false
+// edge. A tarnished silver knuckle-bow sweeps from the guard down to a hooked bird's-head
+// pommel, and the back quillon curls down like a talon. The grip is blackened and bound in
+// silver wire. Merged per material: 3 draws. Blade and hilt stay metalness >= .75, so
+// weapon-magic sheathes them.
+function buildSilverSaber(g){
+ const silver=new THREE.MeshStandardMaterial({color:0xe9eef1,metalness:.92,roughness:.16});
+ const tarnish=new THREE.MeshStandardMaterial({color:0x9c9fa3,metalness:.86,roughness:.36});
+ const grip=new THREE.MeshStandardMaterial({color:0x1d1a1c,roughness:.8});
+ g.userData.extraMaterial=[silver,tarnish,grip];
+ const sets=new Map([[silver,[]],[tarnish,[]],[grip,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);if(geo.attributes.uv)geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ // A tube along a curve whose radius tapers from r0 to r1.
+ const taper=(points,r0,r1,segments=16,radial=6)=>{
+  const curve=new THREE.CatmullRomCurve3(points.map(([x,y,z=0])=>new THREE.Vector3(x,y,z)));
+  const geo=new THREE.TubeGeometry(curve,segments,1,radial,false),pos=geo.attributes.position,v=new THREE.Vector3(),c=new THREE.Vector3();
+  for(let i=0;i<=segments;i++){curve.getPointAt(i/segments,c);const r=r0+(r1-r0)*i/segments;
+   for(let j=0;j<=radial;j++){const k=i*(radial+1)+j;v.fromBufferAttribute(pos,k).sub(c).multiplyScalar(r).add(c);pos.setXYZ(k,v.x,v.y,v.z);}}
+  geo.computeVertexNormals();return geo;
+ };
+ // The blade, built station by station up +y. Each cross-section is a wedge: a thick spine on
+ // -x, a fuller sunk into each flat and the edge on +x. The whole blade bends back toward the
+ // spine, so the edge rides the convex side; the last stretch is clipped into a false edge.
+ const N=28,y0=.115,L=.8,ring=[],sections=[];
+ const tipX=-.1+.012;
+ for(let i=0;i<=N;i++){
+  const t=i/N,y=y0+L*t,c=-.1*t*t,w=.064-.014*t;
+  let back=c-w*.42,edge=c+w*.58;
+  const s=Math.max(0,(t-.8)/.2);
+  back+= (tipX-back)*s;edge+=(tipX-edge)*s*s*(3-2*s);
+  const thick=.0095*(1-.85*s),width=edge-back;
+  sections.push([[back,y,thick],[back+width*.35,y,thick*.55],[back+width*.62,y,thick*.8],[edge,y,0],[back+width*.62,y,-thick*.8],[back+width*.35,y,-thick*.55],[back,y,-thick]]);
+ }
+ const verts=[],index=[],K=7;
+ sections.forEach(sec=>sec.forEach(p=>verts.push(...p)));
+ for(let i=0;i<N;i++)for(let j=0;j<K;j++){const a=i*K+j,b=i*K+(j+1)%K,c=a+K,d=b+K;index.push(a,b,d,a,d,c);}
+ // Cap the heel against the guard.
+ for(let j=1;j<K-1;j++)index.push(0,j+1,j);
+ const bladeGeo=new THREE.BufferGeometry();bladeGeo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));bladeGeo.setIndex(index);
+ const flatBlade=bladeGeo.toNonIndexed();bladeGeo.dispose();flatBlade.computeVertexNormals();put(flatBlade,silver);
+ // A ricasso collar where the blade meets the guard.
+ put(new THREE.BoxGeometry(.06,.03,.024),tarnish,-.003,.112);
+ // Guard: a short plate, the back quillon curling down like a talon, the knuckle-bow sweeping
+ // from the front of the guard down to the pommel.
+ put(new THREE.BoxGeometry(.13,.018,.034),tarnish,-.005,.09);
+ put(taper([[-.065,.09],[-.095,.085],[-.112,.06],[-.104,.03],[-.088,.022]],.009,.003,14),tarnish);
+ put(taper([[.06,.09],[.083,.06],[.088,-.01],[.072,-.08],[.035,-.118],[.012,-.12]],.0075,.0065,22),tarnish);
+ // A thorn on the knuckle-bow's outer curve.
+ put(new THREE.ConeGeometry(.007,.03,4),tarnish,.1,.02,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),-Math.PI/2-.2));
+ // Grip, a little oval and swelling in the middle, bound in silver wire on a slant.
+ const handle=new THREE.CylinderGeometry(.019,.017,.17,10);handle.scale(1.15,1,.9);
+ const hp=handle.attributes.position,hv=new THREE.Vector3();
+ for(let i=0;i<hp.count;i++){hv.fromBufferAttribute(hp,i);const k=1+.12*Math.cos(hv.y/.085*Math.PI/2);hp.setXYZ(i,hv.x*k,hv.y,hv.z*k);}
+ handle.computeVertexNormals();put(handle,grip,0,0);
+ for(let i=0;i<7;i++){const turn=new THREE.TorusGeometry(.021,.0028,4,14);turn.rotateX(Math.PI/2);turn.scale(1.15,1,.92);
+  put(turn,silver,0,-.066+i*.022,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.3));}
+ // Bird's-head pommel: a cap that hooks back toward the spine.
+ put(new THREE.CylinderGeometry(.021,.019,.016,10),tarnish,0,-.092);
+ put(taper([[.012,-.1],[-.005,-.118],[-.03,-.122],[-.045,-.108]],.016,.006,12,8),tarnish);
+ for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===silver?'blade':m===tarnish?'hilt':'grip';g.add(mesh);}
 }
