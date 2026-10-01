@@ -1,4 +1,4 @@
-// A mind flayer's brain-eating attack (AT_TENT, AD_DRIN). Four tentacles lash out of the
+// A mind flayer's (or Cthulhu's) brain-eating attack (AT_TENT, AD_DRIN). Four tentacles lash out of the
 // flayer's mouth, reach the hero's face and wrap round the head. What happens next comes from
 // the message that follows "<flayer>'s tentacles suck you!" (mhitu.c):
 //  - "Your brain is eaten!": the coils clamp and throb, gulps run down each tentacle back to the
@@ -44,7 +44,20 @@ export function suckMessage(text) {
 
 // Skin for the tentacles: the flayer's own mauve, paler for a master.
 export function suckTint(name) {
-  return typeof name === 'string' && /master/i.test(name) ? 0xb088c0 : 0xa07aa8;
+  return suckStyle(name).tint;
+}
+
+// Whose tentacles they are. A mind flayer's come from its mouth at MOUTH_Y. Cthulhu (also
+// AT_TENT AD_DRIN) is half again a man's height, so its beard tentacles reach down from a maw
+// at about 1.52 and .44 forward of its tile, half again as thick, in its green hide with the
+// pale suckers of its model (cthulhu.js) on every third bead.
+const STYLE = {flayer: {tint: 0xa07aa8, sucker: null, mouthY: MOUTH_Y, mouthForward: MOUTH_FORWARD, girth: 1},
+  master: {tint: 0xb088c0, sucker: null, mouthY: MOUTH_Y, mouthForward: MOUTH_FORWARD, girth: 1},
+  cthulhu: {tint: 0x3a6036, sucker: 0xcfcaa0, mouthY: 1.52, mouthForward: .44, girth: 1.5}};
+export function suckStyle(name) {
+  if (typeof name !== 'string') return STYLE.flayer;
+  if (/^cthulhu$/i.test(name.trim())) return STYLE.cthulhu;
+  return /master/i.test(name) ? STYLE.master : STYLE.flayer;
 }
 
 // Per-tentacle wrap: height offset on the head, which way round, and how far.
@@ -61,7 +74,8 @@ export function suckShape(a, t) {
   let dx = a.flayer ? a.flayer.x - hx : 0, dz = a.flayer ? a.flayer.z - hz : 1;
   const dl = Math.hypot(dx, dz) || 1;dx /= dl;dz /= dl;
   const fx = hx + dx * dl, fz = hz + dz * dl;
-  const S = {x: fx - dx * MOUTH_FORWARD, y: MOUTH_Y, z: fz - dz * MOUTH_FORWARD};
+  const fwd = a.mouthForward ?? MOUTH_FORWARD, girth = a.girth ?? 1;
+  const S = {x: fx - dx * fwd, y: a.mouthY ?? MOUTH_Y, z: fz - dz * fwd};
   const face = Math.atan2(dz, dx);
   // Reach (e), how much of each tentacle is wrapped round the head (k), the coil's slide up
   // and loosening (slide), recoil wiggle, and the gulps (pulse).
@@ -126,7 +140,7 @@ export function suckShape(a, t) {
         const v = (u - split) / k, phi = a0 + dir * span * Math.PI * v;
         x = H.x + Math.cos(phi) * R;y = H.y + dy + v * .03 * dir;z = H.z + Math.sin(phi) * R;
       }
-      const taper = .028 - .016 * (j / (BEADS - 1));
+      const taper = (.028 - .016 * (j / (BEADS - 1))) * girth;
       // A gulp: a swelling that runs from the head back to the mouth.
       const gulp = pulse >= 0 ? Math.exp(-((((j / (BEADS - 1)) - (1 - pulse)) / .1) ** 2)) : 0;
       beads.push({x, y, z, r: taper * (1 + .7 * gulp), heat: gulp});
@@ -158,14 +172,16 @@ export function createBrainSuck(THREE, parent) {
 
   let queue = [], current = null, hero = null, lastFlayer = null, now = 0;
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
-  const tint = new THREE.Color(), col = new THREE.Color(), hot = new THREE.Color(0x8a1030);
+  const tint = new THREE.Color(), sucker = new THREE.Color(), col = new THREE.Color(), hot = new THREE.Color(0x8a1030);
   const SPARK = new THREE.Color(0xfff2c8), GREASE = new THREE.Color(0xd8c070);
 
   const pending = () => queue.at(-1) ?? null;
   function start(name, outcome) {
     if (!hero) return null;
     const flayer = lastFlayer && cheb(lastFlayer, hero) <= 1 ? {...lastFlayer} : null;
-    const a = {hero: {...hero}, flayer, outcome, name, tint: suckTint(name), queuedAt: now};
+    const st = suckStyle(name);
+    const a = {hero: {...hero}, flayer, outcome, name, tint: st.tint, sucker: st.sucker, mouthY: st.mouthY,
+      mouthForward: st.mouthForward, girth: st.girth, queuedAt: now};
     if (queue.length < MAX_QUEUE) queue.push(a);
     return a;
   }
@@ -197,11 +213,14 @@ export function createBrainSuck(THREE, parent) {
     let n = 0, b = 0;
     if (sh) {
       tint.setHex(current.tint);
+      if (current.sucker != null) sucker.setHex(current.sucker);
       for (const bd of sh.beads) {
         if (n >= max) break;
         beads.setMatrixAt(n, m4.compose(p.set(ox + bd.x, bd.y, oz + bd.z), q, s.setScalar(bd.r)));
         // Suckers: a paler bead every third, flushed dark red where a gulp passes.
-        beads.setColorAt(n, col.copy(tint).multiplyScalar(n % 3 === 0 ? 1.2 : .9).lerp(hot, bd.heat * .7));
+        if (n % 3 === 0 && current.sucker != null) col.copy(sucker);
+        else col.copy(tint).multiplyScalar(n % 3 === 0 ? 1.2 : .9);
+        beads.setColorAt(n, col.lerp(hot, bd.heat * .7));
         n++;
       }
       for (const pt of sh.particles) {
