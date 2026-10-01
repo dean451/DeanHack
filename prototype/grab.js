@@ -13,6 +13,8 @@
 //
 // grabMessage() and grabShape() are pure, so they can be tested without a renderer;
 // createGrab() tracks the state and draws it with one instanced bead mesh and a point cloud.
+// An electric eel's coil also crackles: grabSparks() gives jagged arcs that jump between its
+// beads, and createGrab() draws them as line segments and flashes the beads white under them.
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = k => { k = clamp01(k); return k * k * (3 - 2 * k); };
@@ -26,6 +28,8 @@ export const REACH_MS = 350, COIL_MS = 550, SQUEEZE_MS = 420, DROWN_MS = 1800, R
 // Coil shape (tiles): helix turns, beads, radius, bottom and top height; tentacle beads.
 export const TURNS = 2.5, COIL_BEADS = 40, COIL_R = .21, COIL_Y0 = .16, COIL_Y1 = .58, ARM_BEADS = 14;
 export const MAX_BUBBLES = 36;
+// Electric coil: arcs per slot at most, segments per arc, slot length (ms).
+export const MAX_ARCS = 3, ARC_SEGS = 5, SPARK_SLOT_MS = 70;
 const SINK = .75;
 
 // Monster name from a message (with articles dropped), or null.
@@ -131,6 +135,42 @@ export function grabShape(g, t) {
   return {beads, bubbles, sink, squeeze, wrap};
 }
 
+// Sparks crackling over an electric eel's coil at time t (ms), from grabShape()'s output sh.
+// Time is cut into SPARK_SLOT_MS slots; each slot may hold up to MAX_ARCS arcs, each a jagged
+// ARC_SEGS-segment polyline from one coil bead to another a few beads up, bowed outward. A
+// squeeze or drowning makes every slot crackle with full arcs. Returns {arcs:[[{x,y,z}...]],
+// zap}; zap (0..1) is how bright the coil flashes this moment. Not electric, or no coil yet,
+// gives no arcs.
+export function grabSparks(g, sh, t) {
+  const none = {arcs: [], zap: 0};
+  if (!g?.electric || !sh || !(sh.wrap > .3)) return none;
+  const coil = sh.beads.slice(-Math.floor(COIL_BEADS * sh.wrap));
+  if (coil.length < 6) return none;
+  const slot = Math.floor((t - g.wrapAt) / SPARK_SLOT_MS);
+  const surge = Math.max(sh.squeeze, sh.sink < 0 ? .8 : 0);
+  // Fresh wraps crackle hard for the first half second, then settle into fits.
+  const fresh = clamp01(1 - (t - g.wrapAt - REACH_MS - COIL_MS) / 500);
+  // Between surges it crackles in fits: about a third of each 600 ms stretch is live.
+  const fit = hash(Math.floor((t - g.wrapAt) / 600), 5) < .35 ? .5 : .03;
+  const chance = Math.max(fit, surge, fresh) * sh.wrap;
+  const arcs = [];
+  for (let k = 0; k < MAX_ARCS; k++) {
+    if (hash(slot, 10 + k) >= chance * (k ? .75 : 1)) continue;
+    const span = 3 + Math.floor(hash(slot, 20 + k) * 6);
+    const i0 = Math.floor(hash(slot, 30 + k) * (coil.length - span)), a = coil[i0], b = coil[i0 + span];
+    const arc = [];
+    for (let j = 0; j <= ARC_SEGS; j++) {
+      const u = j / ARC_SEGS, bow = Math.sin(Math.PI * u);
+      const x = a.x + (b.x - a.x) * u, z = a.z + (b.z - a.z) * u, rr = Math.hypot(x, z) || 1;
+      const out = bow * (.05 + .04 * hash(slot, 40 + k)) + (j && j < ARC_SEGS ? (hash(slot * 7 + j, 50 + k) - .5) * .06 : 0);
+      arc.push({x: x + x / rr * out, y: a.y + (b.y - a.y) * u + (j && j < ARC_SEGS ? (hash(slot * 7 + j, 60 + k) - .5) * .07 : 0),
+        z: z + z / rr * out});
+    }
+    arcs.push(arc);
+  }
+  return {arcs, zap: arcs.length ? clamp01(.35 + .2 * arcs.length + .4 * surge) * sh.wrap : 0};
+}
+
 // The holder's tile from a frame's player.stuck, or null. Null too when the hero is the one
 // doing the sticking (holding), since then nothing coils around the hero. Older engines don't
 // send stuck, so everything here also works from messages and combat events alone.
@@ -165,9 +205,19 @@ export function createGrab(THREE, parent, {onSplash} = {}) {
   bubbles.frustumCulled = false; bubbles.renderOrder = 3; bubbles.userData.part = 'grab-bubbles';
   parent.add(bubbles);
 
+  const maxSparkVerts = MAX_ARCS * ARC_SEGS * 2;
+  const sparkPos = new Float32Array(maxSparkVerts * 3);
+  const sparkGeo = new THREE.BufferGeometry();
+  sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+  sparkGeo.setDrawRange(0, 0);
+  const sparks = new THREE.LineSegments(sparkGeo, new THREE.LineBasicMaterial({color: 0xcfe6ff, transparent: true,
+    opacity: .95, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending}));
+  sparks.frustumCulled = false; sparks.renderOrder = 4; sparks.userData.part = 'grab-sparks';
+  parent.add(sparks);
+
   let g = null, hero = null, lastHolder = null, now = 0;
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
-  const tint = new THREE.Color(), col = new THREE.Color();
+  const tint = new THREE.Color(), col = new THREE.Color(), white = new THREE.Color(0xdcecff);
 
   function message(text, frame) {
     if (frame?.player) hero = {x: frame.player.x, z: frame.player.z};
@@ -177,7 +227,7 @@ export function createGrab(THREE, parent, {onSplash} = {}) {
       if (!hero) return m;
       // The hug's combat event may come before its message; keep a holder that is next to us.
       const holder = lastHolder && cheb(lastHolder, hero) <= 1 ? lastHolder : null;
-      g = {hero: {...hero}, holder, wrapAt: now};
+      g = {hero: {...hero}, holder, wrapAt: now, electric: /electric/i.test(m.name || '')};
       tint.setHex(grabTint(m.name, m.vegetation));
     } else if (g && !Number.isFinite(g.releaseAt)) {
       if (m.phase === 'crush') g.squeezeAt = now;
@@ -224,15 +274,23 @@ export function createGrab(THREE, parent, {onSplash} = {}) {
     const sh = g ? grabShape(g, now) : null;
     if (g && !sh && now > g.wrapAt) g = null;
     const ox = (g?.hero.x ?? 0) - (origin?.x ?? 0), oz = (g?.hero.z ?? 0) - (origin?.z ?? 0);
-    let n = 0, b = 0;
+    let n = 0, b = 0, v = 0;
+    const sp = sh ? grabSparks(g, sh, now) : null;
     if (sh) {
       for (const bd of sh.beads) {
         if (n >= maxBeads) break;
         p.set(ox + bd.x, bd.y, oz + bd.z); s.setScalar(bd.r);
         beads.setMatrixAt(n, m4.compose(p, q, s));
         // A paler belly on every other bead gives the coil some banding.
-        beads.setColorAt(n, col.copy(tint).multiplyScalar(n % 3 === 0 ? 1.25 : 1));
+        col.copy(tint).multiplyScalar(n % 3 === 0 ? 1.25 : 1);
+        if (sp.zap) col.lerp(white, sp.zap * (.25 + .35 * hash(n, Math.floor(now / SPARK_SLOT_MS))));
+        beads.setColorAt(n, col);
         n++;
+      }
+      for (const arc of sp.arcs) {
+        for (let j = 0; j < arc.length - 1 && v < maxSparkVerts; j++) {
+          for (const q2 of [arc[j], arc[j + 1]]) sparkPos.set([ox + q2.x, q2.y, oz + q2.z], (v++) * 3);
+        }
       }
       for (const bu of sh.bubbles) {
         bubPos.set([ox + bu.x, bu.y, oz + bu.z], b * 3);
@@ -246,13 +304,16 @@ export function createGrab(THREE, parent, {onSplash} = {}) {
     bubGeo.setDrawRange(0, b);
     bubGeo.attributes.position.needsUpdate = true;
     bubGeo.attributes.color.needsUpdate = true;
-    return {held: !!sh, beads: n, bubbles: b, sink: sh?.sink ?? 0};
+    sparkGeo.setDrawRange(0, v);
+    sparkGeo.attributes.position.needsUpdate = true;
+    return {held: !!sh, beads: n, bubbles: b, sink: sh?.sink ?? 0, sparks: v / 2, zap: sp?.zap ?? 0};
   }
 
   const clear = () => { g = null; lastHolder = null; update(0); };
   const dispose = () => {
-    parent.remove(beads); parent.remove(bubbles);
+    parent.remove(beads); parent.remove(bubbles); parent.remove(sparks);
     beadGeo.dispose(); beadMat.dispose(); bubGeo.dispose(); bubbles.material.dispose();
+    sparkGeo.dispose(); sparks.material.dispose();
   };
   return {message, combat, death, frame, update, clear, dispose, get state() { return g; }};
 }
