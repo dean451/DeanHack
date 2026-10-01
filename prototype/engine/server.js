@@ -20,18 +20,18 @@ export function encodeReply(request, body) {
 export default function enginePlugin(){
  const root=fileURLToPath(new URL('../.engine/',import.meta.url));
  const token=randomBytes(24).toString('hex');
- let child=null,pending=null,frame=null,menu=null,text=null,ended=null,buffer='',seq=0;const clients=new Set();const history=[];const log=[];
+ let child=null,pending=null,frame=null,menu=null,text=null,ended=null,commands=null,buffer='',seq=0;const clients=new Set();const history=[];const log=[];
  // A monotonic, capped event log backs GET /engine/poll: some hosting paths (a proxy or
  // tunnel that buffers/holds back streaming responses) never deliver anything over the
  // SSE endpoint below, so the client can fall back to polling this instead.
- function send(event){if(event.type==='frame')frame=event;else if(event.type==='request')pending=event;else if(event.type==='menu')menu=event;else if(event.type==='text')text=event;else if(event.type==='ended')ended=event;else if(event.type==='message'||event.type==='status'){history.push(event);if(history.length>40)history.shift();}log.push({seq:++seq,event});if(log.length>500)log.shift();for(const res of clients)res.write(`data: ${JSON.stringify(event)}\n\n`);}
+ function send(event){if(event.type==='frame')frame=event;else if(event.type==='request')pending=event;else if(event.type==='menu')menu=event;else if(event.type==='commands')commands=event;else if(event.type==='text')text=event;else if(event.type==='ended')ended=event;else if(event.type==='message'||event.type==='status'){history.push(event);if(history.length>40)history.shift();}log.push({seq:++seq,event});if(log.length>500)log.shift();for(const res of clients)res.write(`data: ${JSON.stringify(event)}\n\n`);}
  function start(){
    if(child)return;
    const manifest=JSON.parse(readFileSync(resolve(root,'manifest.json'),'utf8'));
    for(const p of [manifest.binary,manifest.cwd,manifest.home,manifest.prefix])if(!realpathSync(p).startsWith(realpathSync(root)+sep))throw new Error('Engine path is outside isolated runtime');
-   pending=frame=menu=text=ended=null;history.length=0;buffer='';
+   pending=frame=menu=text=ended=commands=null;history.length=0;buffer='';
    child=spawn(manifest.binary,['-d',manifest.cwd,'-u','Wanderer','-p','Valkyrie','-r','human'],{cwd:manifest.cwd,env:{PATH:process.env.PATH,HOME:manifest.home,USER:process.env.USER,LOGNAME:process.env.LOGNAME,TERM:'dumb',NETHACKOPTIONS:'windowtype:bridge,name:Wanderer,role:Valkyrie,race:human,gender:female,align:lawful,pettype:cat,!news,autopickup,pickup_types:/!?="'},stdio:['pipe','pipe','pipe']});
-   child.stdout.setEncoding('utf8');child.stdout.on('data',chunk=>{buffer+=chunk;if(buffer.length>2000000){send({type:'message',text:'Engine output exceeded protocol limit.'});child.stdin.end();buffer='';return;}let i;while((i=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,i);buffer=buffer.slice(i+1);if(!line.trim())continue;try{const data=JSON.parse(line);if(['frame','request','menu','text','message','status','ended','fx','combat','death','revive'].includes(data.type))send(data);}catch{send({type:'message',text:line.slice(0,500)});}}});
+   child.stdout.setEncoding('utf8');child.stdout.on('data',chunk=>{buffer+=chunk;if(buffer.length>2000000){send({type:'message',text:'Engine output exceeded protocol limit.'});child.stdin.end();buffer='';return;}let i;while((i=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,i);buffer=buffer.slice(i+1);if(!line.trim())continue;try{const data=JSON.parse(line);if(['frame','request','menu','commands','text','message','status','ended','fx','combat','death','revive'].includes(data.type))send(data);}catch{send({type:'message',text:line.slice(0,500)});}}});
    child.stderr.on('data',b=>send({type:'message',text:String(b).slice(0,1000)}));
    child.on('error',e=>send({type:'message',text:e.message}));
    child.on('close',code=>{child=null;pending=null;send({type:'ended',text:`Engine session closed (${code}). Start again to resume any saved character.`});});
@@ -59,7 +59,7 @@ export default function enginePlugin(){
        // streaming response until enough bytes accumulate. Padding past that threshold
        // forces an immediate flush instead of leaving the client waiting on nothing.
        res.write(': connected\n\n');
-       for(const event of [...history,frame,menu,text,ended,pending].filter(Boolean))res.write(`data: ${JSON.stringify(event)}\n\n`);
+       for(const event of [...history,frame,commands,menu,text,ended,pending].filter(Boolean))res.write(`data: ${JSON.stringify(event)}\n\n`);
        const timer=setInterval(()=>res.write(': alive\n\n'),15000);req.on('close',()=>{clearInterval(timer);clients.delete(res);});return;
      }
      if(req.method==='GET'&&path==='/engine/poll'){

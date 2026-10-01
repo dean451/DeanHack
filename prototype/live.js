@@ -3,6 +3,7 @@ import {createGridBug} from './grid-bug.js';
 import * as THREE from 'three';
 import {createGroundModel} from './ground-models.js';
 import {groundNotice,groundTile} from './ground-notice.js';
+import {menuKeys,autoCategory,menuCommand,EXT_FALLBACK,matchCommands,resolveCommand,completePrefix} from './engine-menus.js';
 import {meleeDirection,confirmsPlayerMelee} from './combat-visuals.js';
 import {createHeldWeapon} from './equipment.js';
 import {createCentaurStatue,createOracle,createLiveFountain} from './oracle-visuals.js';
@@ -89,7 +90,7 @@ import {createActionQueue,enqueueAction,clearActionPose,updateActions,holdBackMs
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
  const group=new THREE.Group();scene.add(group);group.visible=false;
- const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map();let active=false,pending=null,latest=null,token='',menu=null,lines=[],origin=null,lastLevel='',source,pollNow=null;
+ const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map();let active=false,pending=null,latest=null,token='',menu=null,commands=null,lines=[],origin=null,lastLevel='',source,pollNow=null;
  const $=s=>document.querySelector(s);
  const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
  const button=document.createElement('button');button.textContent='Live UnNetHack';button.id='live-mode';$('.buttons').prepend(button);
@@ -347,7 +348,35 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
     void reply(13);return;
    }
    dialog.replaceChildren();const kicker=document.createElement('small');kicker.textContent='UNNETHACK ASKS';const title=document.createElement('h2');title.textContent=pending.prompt||'UnNetHack';dialog.append(kicker,title);
-   if(pending.kind==='menu'&&menu){const form=document.createElement('form');for(const item of menu.items){const row=document.createElement('label');row.className='engine-menu-row';if(item.selectable&&menu.how!==0){const input=document.createElement('input');input.type=menu.how===1?'radio':'checkbox';input.name='selection';input.value=item.id;input.dataset.accelerator=item.accelerator||'';row.append(input);const accel=document.createElement('kbd');accel.textContent=item.accelerator?`[${item.accelerator}]`:'';row.append(accel);}row.append(document.createTextNode(item.text));form.append(row);}const submit=document.createElement('button');submit.textContent=menu.how===2?'Continue (Enter) · , selects all':'Continue (Enter)';submit.type='submit';form.append(submit);form.onsubmit=e=>{e.preventDefault();reply([...form.querySelectorAll('input:checked')].map(i=>i.value).join(','));};form.addEventListener('keydown',e=>{const key=e.key;if(key==='Escape'){e.preventDefault();reply('!');return;}if(key==='Enter'){e.preventDefault();form.requestSubmit();return;}if(key===','&&menu.how===2){e.preventDefault();form.querySelectorAll('input').forEach(i=>i.checked=true);return;}const input=[...form.querySelectorAll('input')].find(i=>i.dataset.accelerator===key);if(input){e.preventDefault();if(menu.how===1)reply(input.value);else input.checked=!input.checked;}});dialog.append(form);}
+   if(pending.kind==='menu'&&menu){
+    // "Take out / pick up what type of objects?" is answered with All types, so the full list opens at once.
+    const skip=autoCategory(menu,pending.prompt);if(skip!==null){void reply(String(skip));return;}
+    const items=menuKeys(menu.items),form=document.createElement('form'),pickAny=menu.how===2;
+    for(const item of items){const row=document.createElement('label');row.className='engine-menu-row';
+     if(item.selectable&&menu.how!==0){const input=document.createElement('input');input.type=menu.how===1?'radio':'checkbox';input.name='selection';input.value=item.id;input.dataset.accelerator=item.key;row.append(input);const accel=document.createElement('kbd');accel.textContent=item.key?`[${item.key}]`:'';row.append(accel);}
+     else if(!item.selectable&&item.text.trim())row.classList.add('engine-menu-heading');
+     row.append(document.createTextNode(item.text));form.append(row);}
+    const boxes=()=>[...form.querySelectorAll('input')];
+    if(menu.how!==0){const hint=document.createElement('p');hint.className='engine-menu-hint';hint.textContent=pickAny?'Letters toggle items · , selects all · - clears · @ inverts · Enter takes them':'Press a letter to choose';form.append(hint);}
+    const submit=document.createElement('button');submit.textContent='Continue (Enter)';submit.type='submit';form.append(submit);
+    form.onsubmit=e=>{e.preventDefault();reply(boxes().filter(i=>i.checked).map(i=>i.value).join(','));};
+    form.addEventListener('keydown',e=>{const key=e.key;if(e.metaKey||e.ctrlKey||e.altKey)return;if(key==='Escape'){e.preventDefault();reply('!');return;}if(key==='Enter'){e.preventDefault();form.requestSubmit();return;}
+     const input=boxes().find(i=>i.dataset.accelerator===key);if(input){e.preventDefault();if(menu.how===1)reply(input.value);else input.checked=!input.checked;return;}
+     const cmd=pickAny&&key.length===1?menuCommand(key,items):null;if(!cmd)return;e.preventDefault();
+     if(cmd.select)for(const i of boxes())i.checked=cmd.select==='all'?true:cmd.select==='none'?false:!i.checked;
+     else{const ids=new Set(cmd.toggle.map(String)),group=boxes().filter(i=>ids.has(i.value)),on=!group.every(i=>i.checked);for(const i of group)i.checked=on;}});
+    dialog.append(form);}
+   else if(pending.kind==='line'&&pending.prompt==='Extended command'){
+    // # commands complete as you type: arrows pick, Tab completes, Enter runs the highlighted one.
+    const list=commands?.length?commands:EXT_FALLBACK,form=Object.assign(document.createElement('form'),{className:'engine-ext-form'}),input=document.createElement('input'),ul=document.createElement('ul');
+    input.maxLength=60;input.autofocus=true;input.autocomplete='off';input.spellcheck=false;input.placeholder='loot, force, enhance, pray…';ul.className='engine-ext-list';
+    let shown=[],sel=0;
+    const render=()=>{shown=matchCommands(list,input.value);sel=Math.min(sel,Math.max(0,shown.length-1));ul.replaceChildren(...shown.map((c,i)=>{const li=document.createElement('li'),b=document.createElement('b'),span=document.createElement('span');b.textContent='#'+c.name;span.textContent=c.desc;li.append(b,span);li.classList.toggle('active',i===sel);li.onmousedown=e=>{e.preventDefault();reply(c.name);};return li;}));};
+    input.oninput=()=>{sel=0;render();};
+    input.onkeydown=e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(shown.length)sel=(sel+(e.key==='ArrowDown'?1:-1)+shown.length)%shown.length;render();}
+     else if(e.key==='Tab'){e.preventDefault();const done=completePrefix(list,input.value);input.value=done!==input.value?done:shown[sel]?.name??input.value;sel=0;render();}};
+    form.onsubmit=e=>{e.preventDefault();reply(resolveCommand(list,input.value,shown[sel]));};
+    form.append(input,ul);render();dialog.append(form);}
    else if(pending.kind==='line'){const form=document.createElement('form'),input=document.createElement('input'),submit=document.createElement('button');input.maxLength=200;input.autofocus=true;submit.textContent='Enter';form.append(input,submit);form.onsubmit=e=>{e.preventDefault();reply(input.value);};dialog.append(form);}
    else{if(lines.length){const pre=document.createElement('pre');pre.textContent=lines.join('\n');dialog.append(pre);}const p=document.createElement('p');p.textContent=pending.kind==='more'?'Press Enter to continue.':'Press a response key. For a direction use arrows or h/j/k/l.';dialog.append(p);const ok=document.createElement('button');ok.textContent='Enter';ok.onclick=()=>reply(13);dialog.append(ok);}
    const cancel=document.createElement('button');cancel.textContent='Cancel / Escape';cancel.onclick=()=>reply(pending.kind==='menu'?'!':pending.kind==='line'?'\u001b':27);dialog.append(cancel);dialog.showModal();
@@ -359,7 +388,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function connect(){
    meleeIntent=null;source?.close?.();
    let usingPolling=false,pollTimer=null,stopped=false,since=0;
-   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='revive'){if(active)rises.add(reviveAction(v),performance.now());}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];const tl=fxTimeline(v);fx.push(tl);if(active){const heroZap=zapFlash.play(tl,latest?.player,hero,latest,{windup:ZAP_WINDUP_MS});const shown=heroZap?delayTimeline(tl,ZAP_WINDUP_MS):delayTimeline(tl,queueThrows(tl,findThrower));rays.play(shown,{reflectorAt:(x,z)=>reflectorAt(latest,x,z),solidAt:(x,z)=>solidAt(latest,x,z)});rayMarks.add(shown);explosions.add(shown);flights.play(shown);splash.fromFx(shown,latest);breath.fromFx(shown,latest,{always:heroZap==='breath'});fxHoldUntil=Math.max(fxHoldUntil,performance.now()+fxHoldMs(shown));}if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
+   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='commands')commands=v.items;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='revive'){if(active)rises.add(reviveAction(v),performance.now());}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];const tl=fxTimeline(v);fx.push(tl);if(active){const heroZap=zapFlash.play(tl,latest?.player,hero,latest,{windup:ZAP_WINDUP_MS});const shown=heroZap?delayTimeline(tl,ZAP_WINDUP_MS):delayTimeline(tl,queueThrows(tl,findThrower));rays.play(shown,{reflectorAt:(x,z)=>reflectorAt(latest,x,z),solidAt:(x,z)=>solidAt(latest,x,z)});rayMarks.add(shown);explosions.add(shown);flights.play(shown);splash.fromFx(shown,latest);breath.fromFx(shown,latest,{always:heroZap==='breath'});fxHoldUntil=Math.max(fxHoldUntil,performance.now()+fxHoldMs(shown));}if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
    async function pollLoop(){
      if(stopped)return;
      try{const r=await fetch(`/engine/poll?since=${since}`);const {events,seq}=await r.json();since=seq;for(const event of events)handle(event);}
