@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {updateGlance} from './glance.js';
 import {updateHezrouGurgle} from './hezrou-gurgle.js';
+import {updateHezrouSlime} from './hezrou-slime.js';
 import {updateJellyFrost} from './jelly-frost.js';
 import {updateAcidFizz} from './acid-fizz.js';
 import {updateMoldFrost} from './mold-frost.js';
@@ -115,6 +116,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   // So do the hezrou's drool, throat sac and gurgle (hezrou-gurgle.js); busy without an action is walking.
   const walking = busy && !actor.actions?.current && !actor.actions?.queue?.length;
   updateHezrouGurgle(actor, dt, t, busy, walking);
+  // And what drips off it: slime gobs, the puddle under it and its stench haze (hezrou-slime.js).
+  updateHezrouSlime(actor, dt, t, busy, walking);
   // And the blue jelly's frost, mist, glints and shiver (jelly-frost.js).
   updateJellyFrost(actor, dt, t, busy, walking);
   // And the ochre and spotted jellies' acid: etch, bubbles, fumes, seethe and spatter (acid-fizz.js).
