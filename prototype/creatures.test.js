@@ -858,7 +858,7 @@ test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model inste
  assert(new THREE.Box3().setFromObject(valk.head,true).max.y>b.max.y-1e-6,'wings on top');
  assert(new THREE.Box3().setFromObject(valk.shield,true).max.x<-.2,'shield outside the left arm');
  // any other player-monster role still gets the generic humanoid
- assert.equal(createCreature({name:'doppelganger',symbol:64,color:7}).kind,undefined);
+ assert.equal(createCreature({name:'prisoner',symbol:64,color:7}).kind,undefined);
  const again=meshes(createCreature({name:'valkyrie'}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
@@ -1680,5 +1680,33 @@ test('the disintegrator is its own crumbling, green-lit bug instead of a green r
  const glow=parts.filter(m=>m.material.emissiveIntensity>1).map(m=>m.userData.part).sort();
  assert.deepEqual(glow,['eyes','seams']);
  const again=meshes(createCreature({name:'disintegrator'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
+test('the doppelganger gets its own half-changed mimic instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const dop=createCreature({name:'doppelganger',symbol:64,color:7});
+ assert.equal(dop.kind,'doppelganger');assert.equal(dop.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket'])assert(dop[key]?.isObject3D,key);
+ assert.equal(dop.legs.length,2);assert.equal(dop.arms.length,2);assert.equal(dop.arm,dop.arms[1]);
+ const parts=meshes(dop);
+ assert.equal(parts.length,7,'one mesh per moving part plus the eyes');
+ assert.deepEqual([...new Set(parts.map(m=>m.userData.part))].sort(),['arm','body','eyes','head','leg']);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ dop.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(dop.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.15&&b.max.y<1.35,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.45,'fits the tile');
+ // the left arm's talons hang well below the human right hand
+ const left=new THREE.Box3().setFromObject(dop.arms[0],true),right=new THREE.Box3().setFromObject(dop.arms[1],true);
+ assert(left.min.y<right.min.y-.15,`talons at ${left.min.y}, hand at ${right.min.y}`);
+ const again=meshes(createCreature({name:'doppelganger',symbol:64}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
