@@ -136,6 +136,8 @@ export function createHeldWeapon(item){
   buildSpetum(g);
  }else if(/\b(lucern hammer|pronged polearm)\b/.test(name)){
   buildLucernHammer(g);
+ }else if(/\b(fauchard|pole sickle)\b/.test(name)){
+  buildFauchard(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -761,6 +763,70 @@ function buildLucernHammer(g){
  // A collar on the block and the top spike, four-edged and drawn to a long point.
  put(new THREE.CylinderGeometry(.022,.028,.025,8),iron,0,.97);
  put(lozenge([[.982,.013],[1.01,.027],[1.06,.029],[1.16,.021],[1.27,.011]],1.4,.5),blade);
+ for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The fauchard: a long sickle blade rising from a forged socket. Its broad back climbs up
+// the haft's line and rolls over into a crown, then the blade hooks down into a cruel point
+// out over +x, so the concave inner edge faces the foe like a reaping hook. That edge is
+// bitten by two jagged teeth near the root, a fuller runs up the flat and a hooked thorn
+// juts back and down off the socket. Langets are nailed down the haft, the grip is wound on
+// a slant and the butt ends in an iron spike. Merged per material like the lucern hammer:
+// 4 draws. The blade stays metalness >= .75, so weapon-magic sheathes it.
+function buildFauchard(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x31241a,roughness:.92});
+ const iron=new THREE.MeshStandardMaterial({color:0x4a4744,metalness:.78,roughness:.56});
+ const blade=new THREE.MeshStandardMaterial({color:0xa1a9ae,metalness:.82,roughness:.33});
+ const wrap=new THREE.MeshStandardMaterial({color:0x2b1c16,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,blade,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);if(geo.attributes.uv)geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ // Haft, a little thicker toward the head, and the grip wound on a slant.
+ put(new THREE.CylinderGeometry(.025,.022,1.2,10),wood,0,.21);
+ put(new THREE.CylinderGeometry(.031,.031,.22,10),wrap,0,-.01);
+ for(let i=0;i<6;i++){const turn=new THREE.TorusGeometry(.032,.006,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.1+i*.036,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // Butt: an iron shoe ending in a short spike.
+ put(new THREE.CylinderGeometry(.026,.022,.06,10),iron,0,-.4);
+ put(new THREE.ConeGeometry(.018,.09,4),blade,0,-.475,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI));
+ // Two langets nailed down the haft below the socket, and a band at their foot.
+ for(const s of [-1,1]){
+  put(new THREE.BoxGeometry(.006,.22,.016),iron,0,.67,s*.025);
+  for(const y of [.59,.66,.73])put(new THREE.SphereGeometry(.0055,5,4),iron,0,y,s*.029);
+ }
+ put(new THREE.CylinderGeometry(.03,.03,.02,10),iron,0,.555);
+ // The socket: a tapered sleeve, a collar, and a flattened cap the blade's root sits in.
+ put(new THREE.CylinderGeometry(.025,.031,.1,8),iron,0,.83);
+ put(new THREE.CylinderGeometry(.036,.036,.018,8),iron,0,.785);
+ const cap=new THREE.CylinderGeometry(.03,.026,.04,8);cap.scale(1.25,1,.75);put(cap,iron,.004,.89);
+ // A thorn juts back off the socket and hooks down.
+ const t=new THREE.Shape();
+ t.moveTo(-.024,.875);t.quadraticCurveTo(-.07,.885,-.112,.84);t.quadraticCurveTo(-.068,.86,-.024,.848);t.closePath();
+ const thorn=new THREE.ExtrudeGeometry(t,{depth:.01,bevelEnabled:true,bevelThickness:.003,bevelSize:.003,bevelSegments:1,steps:1,curveSegments:6});thorn.translate(0,0,-.005);
+ put(thorn,iron);
+ // Rivets pin the blade's root through the cap, both flats.
+ for(const s of [-1,1])for(const y of [.88,.9])put(new THREE.SphereGeometry(.0065,5,4),iron,.004,y,s*.024);
+ // The blade: the back climbs from the socket and rolls over into a crown, the point hooks
+ // down over +x, and the concave inner edge runs back down past two jagged teeth.
+ const b=new THREE.Shape();
+ b.moveTo(-.022,.88);
+ b.quadraticCurveTo(-.05,1.1,.02,1.27);
+ b.quadraticCurveTo(.09,1.39,.2,1.36);
+ b.quadraticCurveTo(.252,1.335,.272,1.21);
+ b.quadraticCurveTo(.24,1.29,.19,1.302);
+ b.quadraticCurveTo(.11,1.318,.07,1.24);
+ b.quadraticCurveTo(.04,1.18,.042,1.1);
+ b.lineTo(.062,1.074);b.lineTo(.037,1.052);
+ b.quadraticCurveTo(.03,1.0,.04,.962);
+ b.lineTo(.058,.936);b.lineTo(.031,.918);
+ b.lineTo(.026,.88);
+ b.closePath();
+ // A fuller cut through along the back, following its curve.
+ const fuller=new THREE.Path();fuller.moveTo(-.006,.96);fuller.quadraticCurveTo(-.016,1.12,.03,1.24);fuller.quadraticCurveTo(-.002,1.12,.006,.96);
+ b.holes.push(fuller);
+ const geo=new THREE.ExtrudeGeometry(b,{depth:.012,bevelEnabled:true,bevelThickness:.004,bevelSize:.004,bevelSegments:1,steps:1,curveSegments:8});geo.translate(0,0,-.006);
+ put(geo,blade);
  for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
   const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
