@@ -1206,6 +1206,43 @@ test('ninja get a wrapped zukin with an eye slit and trailing tails, a red sash 
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('the Executioner gets a black sack hood with ice-blue eyes, a frosted, scarred bare torso, a bloodied apron, a grey cloak and Cleaver instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const ex=createCreature({name:'Executioner',symbol:64,color:13});
+ assert.equal(ex.kind,'executioner');assert.equal(ex.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','eyes'])assert(ex[key]?.isObject3D,key);
+ assert.equal(ex.legs.length,2);assert.equal(ex.arms.length,2);assert.equal(ex.arm,ex.arms[1]);
+ assert(ex.arm.children.includes(ex.weaponSocket),'the socket is at the right hand');
+ assert.equal(ex.weaponSocket.children.length,1,'Cleaver is held');
+ const parts=meshes(ex);
+ assert.equal(parts.length,8,'one mesh per moving part, the axe and the eyes');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ ex.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(ex.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.25&&b.max.y<1.5,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ // the eyes show through the hood's holes: looking at them from the front, they are hit first
+ const eye=new THREE.Box3().setFromObject(ex.eyes,true).getCenter(new THREE.Vector3());
+ for(const s of [-1,1]){
+  const hit=new THREE.Raycaster(new THREE.Vector3(s*.041,eye.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===ex.eyes,`the ${s<0?'left':'right'} eye is hidden behind the ${hit?.object.userData.part}`);
+ }
+ // the cloak hangs down the back, and Cleaver's blade stands above the shoulder
+ assert(new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='body'),true).min.z<-.22,'cloak on the back');
+ assert(new THREE.Box3().setFromObject(ex.weaponSocket,true).max.y>1.2,'the blade is held high');
+ const again=meshes(createCreature({name:'executioner'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+ assert.notEqual(createCreature({name:'human',symbol:64}).kind,'executioner');
+});
+
 test('barbarians get a horned iron cap, ash war paint, braided beard, wolf-pelt mantle, ring mail, spiked bracers and a notched great axe instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const ba=createCreature({name:'barbarian',symbol:64,color:1});
