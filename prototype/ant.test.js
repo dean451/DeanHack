@@ -56,3 +56,38 @@ test('the snow ant has its own frosted build, not the giant ant tinted cyan',()=
  const [r,,b]=avg(snow[0]);assert(b>r,'blue shell');
  assert(snow[0].material.roughness<giant[0].material.roughness,'glossy ice');
 });
+
+test('the locust has its own build: folded wings, jumping hind legs and a hooded head, not a grey ant',()=>{
+ const a=createCreature({name:'locust',symbol:97,color:7}),ant=createCreature({name:'giant ant'});
+ assert.equal(a.quirk,'insect');
+ assert.equal(a.legs.length,6);
+ assert(a.head.children.some(o=>o.isMesh),'the head handle carries the head mesh');
+ const parts=meshes(a);
+ assert.equal(parts.length,8,'head, body and one mesh per leg');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1,'one material');
+ assert.notEqual(parts[0].geometry,meshes(ant)[0].geometry);
+ let verts=0;
+ for(const m of parts){
+  const at=m.geometry.attributes;verts+=at.position.count;
+  for(const key of ['position','normal'])for(const v of at[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of at.color.array)assert(v>=0&&v<=1,'colour');
+ }
+ assert(verts<30000,`${verts} vertices`);
+ a.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(a.g);
+ assert(Math.abs(b.min.y)<.02,`feet at ${b.min.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.48,`fits the tile: ${JSON.stringify(b)}`);
+ // the hind legs are the big ones: their knees rise above the folded wings, well behind the hips
+ const legBoxes=a.legs.map(l=>new THREE.Box3().setFromObject(l));
+ const body=new THREE.Box3().setFromObject(a.body.children[0]);
+ for(const i of [2,5]){
+  assert(legBoxes[i].max.y>body.max.y,`hind leg ${i} knee above the wings`);
+  assert(legBoxes[i].min.z<a.legs[i].getWorldPosition(new THREE.Vector3()).z-.15,`hind leg ${i} reaches back`);
+ }
+ for(let i=0;i<3;i++){const c=x=>(legBoxes[x].min.x+legBoxes[x].max.x)/2;assert(Math.abs(c(i)+c(i+3))<1e-6,`leg ${i} mirrored`);}
+ // a long insect: the wings run well past the hind hips
+ assert(b.max.z-b.min.z>.6,'long body');
+ // shared geometry between locusts
+ const [x,y]=[a,createCreature({name:'locust'})].map(meshes);
+ x.forEach((m,i)=>{assert.equal(m.geometry,y[i].geometry);assert.equal(m.material,y[i].material);});
+});

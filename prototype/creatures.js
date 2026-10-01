@@ -17,6 +17,7 @@ import {createRaven} from './raven.js';
 import {createSpider} from './spider.js';
 import {createScorpion,isScorpion} from './scorpion.js';
 import {createAnt,isAnt} from './ant.js';
+import {createLocust,isLocust} from './locust.js';
 import {createFeline,isFeline} from './feline.js';
 import {createCanine,isCanine} from './canine.js';
 import {createBee,isBee} from './bee.js';
@@ -2222,6 +2223,7 @@ export function createCreature(cell={}){
  if(LIZARDS[name])return lizard(LIZARDS[name]);
  if(COCKATRICES[name])return cockatrice(COCKATRICES[name]);
  if(isAnt(name))return createAnt(name);
+ if(isLocust(name))return createLocust(name);
  if(isBee(name))return createBee(name);
  if(isBeetle(name))return createBeetle(name);
  if(XANS[name])return xan(XANS[name]);
