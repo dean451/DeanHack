@@ -17,6 +17,10 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // - giant ant: a rich chestnut brown, one petiole node, heavy mandibles.
 // - soldier ant: steel blue, a big head with outsized mandibles, two nodes and a stinger.
 // - fire ant: bright red-orange with a darker, smoky gaster, two nodes and a stinger.
+// - snow ant: a pale glacial blue shell, deep blue in the joints, glossier than the others and
+//   dusted with hoarfrost (white flecks and a frosted crown on the gaster). Jagged rime shards
+//   bristle from the gaster, the thorax hump and the back of the head, small icicles hang from
+//   the jaw corners, the feeler clubs and claws are frosted white and the eyes glint ice blue.
 // - any other 'a' falls back on the giant ant's build in the glyph colour.
 // The head (with eyes, jaws and feelers) is one vertex-coloured mesh on a neck pivot, the
 // thorax, waist and gaster another; each leg is its own group holding one mesh (the walk swings
@@ -28,10 +32,17 @@ const LOOKS={
  'giant ant':{scale:1,shell:'#7a4424',dark:'#2c170c',gaster:'#6a3a20',sheen:'#c08058',nodes:1,sting:false,jaw:1,headSize:1},
  'soldier ant':{scale:1.08,shell:'#3a4f8a',dark:'#141a30',gaster:'#2e3f72',sheen:'#8aa0d8',nodes:2,sting:true,jaw:1.35,headSize:1.18},
  'fire ant':{scale:.9,shell:'#c0441e',dark:'#4a140a',gaster:'#5a1e14',sheen:'#ff9a60',nodes:2,sting:true,jaw:.9,headSize:.95},
+ 'snow ant':{scale:.94,shell:'#9cc4d6',dark:'#1a3446',gaster:'#78a4be',sheen:'#eef9ff',nodes:1,sting:false,jaw:1.1,headSize:1.02,frost:true,glint:'#a8e4ff',rough:.24},
 };
 const Y=.19;// thorax height above the floor, before scaling
 
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
+const ICE=rgb('#cde6f2'),FROST=rgb('#f6fbff');
+// hoarfrost: white flecks everywhere, and a dusting that thickens toward the top (t is 0..1, low to high)
+const hoar=(c,x,y,z,t)=>{
+ if(hash(Math.floor(x*170)*5.1+Math.floor(y*170)*9.7+Math.floor(z*170)*1.3)>.86)c=mix(c,FROST,.7);
+ return t>.55?mix(c,FROST,(t-.55)*.9):c;
+};
 
 // a tapered segment from a to b: a cylinder turned to point along b-a
 export function segment(P,a,b,r0,r1,colour,radial=7){
@@ -48,6 +59,19 @@ export function chain(P,pts,radii,colour,radial=6){
  }
 }
 
+// rime: count jagged ice shards bristling out of an ellipsoid (unit sphere under matrix M), only
+// where the sphere's own up (y) is above minUp. They lean a little toward the sky.
+function rime(P,M,count,seed,minUp,len,r){
+ const c=new THREE.Vector3().applyMatrix4(M),up=new THREE.Vector3(0,1,0);
+ for(let k=0;k<count;k++){
+  const a=hash(seed+k*3.1)*Math.PI*2,h=minUp+(1-minUp)*hash(seed+k*7.7),s=Math.sqrt(1-h*h);
+  const p=new THREE.Vector3(Math.cos(a)*s,h,Math.sin(a)*s).applyMatrix4(M);
+  const dir=p.clone().sub(c).normalize().lerp(up,.35).normalize();
+  const l=len*(.55+.9*hash(seed+k*1.3)),base=p.clone().addScaledVector(dir,-l*.3),tip=p.clone().addScaledVector(dir,l);
+  segment(P,base.toArray(),tip.toArray(),r*(.7+.6*hash(seed+k*5.9)),.0005,(x,y,z)=>mix(ICE,FROST,new THREE.Vector3(x,y,z).distanceTo(base)/(l*1.3)),4);
+ }
+}
+
 // the neck pivot the head turns about
 const neck=L=>[0,Y+.03,.2+(L.headSize-1)*.03-.055];
 
@@ -60,14 +84,14 @@ function buildHead(L){
   const t=top(Y-.02,Y+.09)(y);let c=mix(dark,shell,.25+t*.85);
   if(t>.75&&Math.abs(x)<.006&&z<hz)c=mix(c,dark,.5);
   if(t>.8&&Math.abs(x)<.03&&z>hz-.02)c=mix(c,sheen,.35);
-  return c;
+  return L.frost?hoar(c,x,y,z,t*.8):c;
  });
  // the back of the head bulges into two lobes
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.04,12,8),at(s*.032*hs,Y+.04,hz-.035*hs,[0,0,0],[1,.8,1].map(v=>v*hs)),(x,y)=>mix(dark,shell,.2+top(Y,Y+.08)(y)*.8));
  // clypeus: a little plate over the jaws
  P.add(new THREE.SphereGeometry(.03,12,6),at(0,Y+.02,hz+.06*hs,[0,0,0],[1.3*hs,.45*hs,.7*hs]),(x,y)=>mix(dark,shell,top(Y,Y+.035)(y)));
  // compound eyes: glossy black ovals with a faint pale glint
- for(const s of [-1,1])P.add(new THREE.SphereGeometry(.02,10,8),at(s*.066*hs,Y+.05,hz+.015,[0,s*.4,0],[.7,1,1.2]),(x,y,z)=>y>Y+.058&&z>hz+.018?rgb('#58504c'):black);
+ for(const s of [-1,1])P.add(new THREE.SphereGeometry(.02,10,8),at(s*.066*hs,Y+.05,hz+.015,[0,s*.4,0],[.7,1,1.2]),(x,y,z)=>y>Y+.058&&z>hz+.018?rgb(L.glint||'#58504c'):black);
  // mandibles: hooked blades from the jaw corners, crossing a little in front, with teeth inside
  const J=L.jaw*hs,mz=hz+.055*hs;
  for(const s of [-1,1]){
@@ -78,6 +102,14 @@ function buildHead(L){
    segment(P,a.toArray(),[a.x-s*.013*J,a.y-.002,a.z+.004],.004,.0008,dark,4);
   }
  }
+ if(L.frost){
+  // icicles hang from the jaw corners, and rime crusts the back of the head
+  for(const s of [-1,1])for(let k=0;k<2;k++){
+   const x=s*(.03+k*.014)*hs,z=mz+.008+k*.012,l=.03-k*.01;
+   segment(P,[x,Y-.002,z],[x+s*.002,Y-.002-l,z+.004],.0055-k*.001,.0005,(px,py)=>mix(ICE,FROST,(Y-py)/l),4);
+  }
+  rime(P,at(0,Y+.04,hz-.025*hs,[-.15,0,0],[.07*hs,.055*hs,.06*hs]),7,31,.35,.026,.0065);
+ }
  // antennae: the scape rises up and out, elbows, then the beaded funiculus reaches forward to a club
  for(const s of [-1,1]){
   const base=[s*.02*hs,Y+.05,hz+.05*hs],elbow=[s*.085*hs,Y+.13,hz+.06],mid=[s*.105*hs,Y+.125,hz+.12],tip=[s*.115*hs,Y+.09,hz+.18];
@@ -85,7 +117,7 @@ function buildHead(L){
   P.add(new THREE.SphereGeometry(.0075,6,5),at(...elbow),dark);
   const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(...elbow),new THREE.Vector3(...mid),new THREE.Vector3(...tip));
   const n=9;
-  for(let k=1;k<=n;k++){const p=curve.getPoint(k/n),r=k===n?.011:.0055+k*.0002;P.add(new THREE.SphereGeometry(r,6,5),at(p.x,p.y,p.z,[0,0,0],k===n?[1,1,1.5]:[1,1,1.3]),k>=n-1?dark:mix(dark,shell,.35));}
+  for(let k=1;k<=n;k++){const p=curve.getPoint(k/n),r=k===n?.011:.0055+k*.0002;P.add(new THREE.SphereGeometry(r,6,5),at(p.x,p.y,p.z,[0,0,0],k===n?[1,1,1.5]:[1,1,1.3]),k>=n-1?(L.frost?mix(dark,FROST,.75):dark):mix(dark,shell,.35));}
  }
  const geo=P.merge(),[nx,ny,nz]=neck(L);geo.translate(-nx,-ny,-nz);return geo;
 }
@@ -94,7 +126,7 @@ function buildBody(L){
  const P=pieces(),shell=rgb(L.shell),dark=rgb(L.dark),gaster=rgb(L.gaster),sheen=rgb(L.sheen);
  const top=(lo,hi)=>y=>THREE.MathUtils.clamp((y-lo)/(hi-lo),0,1);
  // mesosoma: a narrow humped thorax, the pronotum high at the front, the propodeum low behind
- P.add(new THREE.SphereGeometry(.05,16,10),at(0,Y+.035,.115,[.3,0,0],[.9,.85,1.05]),(x,y)=>{const t=top(Y,Y+.08)(y);return Math.abs(x)<.015&&t>.85?mix(shell,sheen,.45):mix(dark,shell,.3+t*.8);});
+ P.add(new THREE.SphereGeometry(.05,16,10),at(0,Y+.035,.115,[.3,0,0],[.9,.85,1.05]),(x,y,z)=>{const t=top(Y,Y+.08)(y),c=Math.abs(x)<.015&&t>.85?mix(shell,sheen,.45):mix(dark,shell,.3+t*.8);return L.frost?hoar(c,x,y,z,t*.75):c;});
  P.add(new THREE.SphereGeometry(.045,14,10),at(0,Y+.02,.05,[0,0,0],[.75,.8,1.5]),(x,y)=>mix(dark,shell,.3+top(Y-.02,Y+.06)(y)*.7));
  P.add(new THREE.SphereGeometry(.035,12,8),at(0,Y+.025,-.015,[-.4,0,0],[.85,.9,1.1]),(x,y)=>mix(dark,shell,.3+top(Y,Y+.06)(y)*.6));
  // waist: the petiole and its node (or two)
@@ -113,8 +145,13 @@ function buildBody(L){
   if(u>.1&&u<.95&&band<.12)c=mix(c,dark,.6);
   if(t>.78&&Math.abs(x)<.03+t*.01&&band>.2&&band<.7)c=mix(c,sheen,.4);
   if(hash(Math.floor(x*140)*7.3+Math.floor(y*140)*3.1+Math.floor(z*140))>.965)c=mix(c,rgb('#d8c8b0'),.35);
-  return c;
+  return L.frost?hoar(c,x,y,z,t):c;
  });
+ if(L.frost){
+  // jagged rime shards bristle from the gaster's top and back, and a few from the thorax hump
+  rime(P,at(0,Y+.035,gz,[-.28,0,0],[.88*gr,.8*gr,1.12*gr]),16,7,.2,.05,.011);
+  rime(P,at(0,Y+.035,.115,[.3,0,0],[.045,.0425,.0525]),5,19,.5,.03,.008);
+ }
  if(L.sting){
   const tip=[0,Y-.04,gz-.14];
   segment(P,[0,Y-.02,gz-.115],tip,.009,.001,dark,6);
@@ -134,8 +171,9 @@ function buildLeg(L,i){
  chain(P,pts,radii,j=>j===1?mix(dark,shell,.85):mix(dark,shell,.55-j*.1),6);
  // tarsal beads and the claw
  const a=new THREE.Vector3(...pts[3]),b=new THREE.Vector3(...pts[4]);
- for(let k=1;k<4;k++){const p=a.clone().lerp(b,k/4);P.add(new THREE.SphereGeometry(.0055,5,4),at(p.x,p.y,p.z),dark);}
- P.add(new THREE.SphereGeometry(.005,5,4),at(...pts[4]),dark);
+ const tarsus=L.frost?mix(dark,FROST,.55):dark,claw=L.frost?FROST:dark;
+ for(let k=1;k<4;k++){const p=a.clone().lerp(b,k/4);P.add(new THREE.SphereGeometry(.0055,5,4),at(p.x,p.y,p.z),k===3?claw:tarsus);}
+ P.add(new THREE.SphereGeometry(.005,5,4),at(...pts[4]),claw);
  return P.merge();
 }
 
@@ -143,7 +181,7 @@ const cache=new Map();
 function build(key,L){
  if(cache.has(key))return cache.get(key);
  const S={
-  material:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.34,metalness:.08}),
+  material:new THREE.MeshStandardMaterial({vertexColors:true,roughness:L.rough??.34,metalness:.08}),
   body:buildBody(L),head:buildHead(L),legs:PAIRS.map((p,i)=>buildLeg(L,i)),
  };
  cache.set(key,S);return S;
