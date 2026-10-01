@@ -465,7 +465,11 @@ test('cut gems bake their glints and mithril its nugget into one mesh each',()=>
  const b=new THREE.Box3().setFromObject(glints),box=new THREE.Box3().setFromObject(gem);
  assert(b.min.y>=box.min.y&&b.max.y<=box.max.y+1e-6&&b.max.x-b.min.x>.01,'glints sit on the stone');
  const ore=createGroundModel({name:'small piece of unrefined mithril',class:13,appearance:'silvery metal',color:6});
- assert.equal(draws(ore),1);
+ assert.equal(draws(ore),3,'shadow, rock, metal');
+ const parts={};ore.traverse(p=>{if(p.userData.part)parts[p.userData.part]=p;});
+ assert(parts['ore-rock']&&parts.nugget&&parts.nugget.material.metalness>.9,'the mithril is its own shiny mesh');
+ const rock=new THREE.Box3().setFromObject(parts['ore-rock']),metal=new THREE.Box3().setFromObject(parts.nugget,true);
+ assert(metal.max.y>rock.max.y,'crystals break above the rock');assert(Math.abs(metal.min.y)<1e-3,'loose nuggets rest on the floor');
  for(const m of [gem,ore]){const q=new THREE.Box3().setFromObject(m);assert(q.min.y>=-1e-6&&q.max.y<.2);m.userData.dispose();}
 });
 

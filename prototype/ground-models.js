@@ -5638,8 +5638,6 @@ export function createGroundModel(item={}){
   // Gems, glass, gray stones and rocks. The name is the true identity, so the look comes
   // only from the shuffled appearance and the glyph colour: a ruby and red glass match.
   const look=(item.appearance||'').toLowerCase();
-  const chip=(r,m,x,y,z,s,ry)=>{const p=add(new THREE.DodecahedronGeometry(r,0),m,x,y,z);p.scale.set(...s);p.rotation.set(.4,ry,.25);
-   p.updateMatrixWorld();p.position.y-=new THREE.Box3().setFromObject(p).min.y;return p;};
   // Lays a stone on the floor at (x,z), turned by ry and tipped slightly, resting on its lowest point.
   const lay=(geo,m,x,z,ry,tilt=0)=>{const p=add(geo,m,x,0,z);p.rotation.set(tilt,ry,tilt*.6);
    p.updateMatrixWorld();p.position.y-=new THREE.Box3().setFromObject(p).min.y;return p;};
@@ -5666,9 +5664,47 @@ export function createGroundModel(item={}){
    lay(shapedStone(4099,{size:.1,scale:[1.25,.44,.92],bump:.035,base:0x6f7274,alt:0x8a8b88,detail:12,
     vein:{dir:[.9,.15,.45],at:.08,width:.09,color:0xdcd8cc}}),pebble,0,0,.5);
   }else if(/metal/.test(look)){
-   // Unrefined mithril: a lumpy silvery nugget.
-   const ore=mat(0xc8d0d6,.85);
-   bakeMeshes([chip(.07,ore,0,.045,0,[1.2,.65,.9],.4),chip(.04,ore,.07,.03,.03,[1,.7,1],1.3),chip(.035,ore,-.065,.028,-.03,[1,.7,1],2.2)]).userData.part='nugget';
+   // Unrefined mithril: a broken lump of dark country rock split along a quartz vein. The
+   // mithril breaks through the seam as bright, lumpy nodules and a few stubby six-sided
+   // crystals, and two nuggets knocked loose lie beside it in the grit.
+   // Rock and metal each bake to one mesh: 3 draws with the shadow.
+   const rock=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.93,flatShading:true});
+   const ore=new THREE.MeshStandardMaterial({vertexColors:true,metalness:.95,roughness:.24,emissive:0x3c5466,emissiveIntensity:.2});
+   materials.push(rock,ore);
+   shadow(.14,.005,0,1.25,.95,.36);
+   let h=7741;const rnd=()=>(h=(Math.imul(h,1664525)+1013904223)>>>0)/2**32;
+   const seat=p=>{p.updateMatrixWorld();p.position.y-=new THREE.Box3().setFromObject(p,true).min.y;return p;};
+   // The host rock is transformed in its geometry, so the vein's vertices can be read in place.
+   const S=.07,vein={dir:[.25,.4,.88],at:.08,width:.17,color:0xcfd1c8};
+   const hostGeo=shapedStone(5821,{size:S,scale:[1.25,.66,.95],cuts:7,bump:.05,base:0x363a42,alt:0x51545a,vein});
+   const vn=new THREE.Vector3(...vein.dir).normalize(),pos=hostGeo.attributes.position,seam=[];
+   for(let i=0;i<pos.count;i++){const w=Math.abs((pos.getX(i)*vn.x+pos.getY(i)*vn.y+pos.getZ(i)*vn.z)/S-vein.at);if(w<.06)seam.push(i);}
+   hostGeo.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(.12,.45,.08)));
+   hostGeo.computeBoundingBox();hostGeo.translate(0,-hostGeo.boundingBox.min.y,0);hostGeo.computeVertexNormals();
+   const host=add(hostGeo,rock),rubble=[host],metal=[];
+   const up=new THREE.Vector3(0,1,0),nrm=hostGeo.attributes.normal;
+   const at=i=>[new THREE.Vector3().fromBufferAttribute(pos,i),new THREE.Vector3().fromBufferAttribute(nrm,i).normalize()];
+   // Nodules swell out of the seam wherever it faces up or out, half sunk into the rock.
+   const open=seam.filter(i=>nrm.getY(i)>-.2).sort((a,b)=>pos.getY(b)-pos.getY(a));
+   const picked=[];for(const i of open){const [p]=at(i);if(picked.every(j=>at(j)[0].distanceTo(p)>.026))picked.push(i);if(picked.length===7)break;}
+   picked.forEach((i,k)=>{const [p,n]=at(i),r=.011+rnd()*.008;
+    const lump=add(shapedStone(613+k*41,{size:r,scale:[1.2,.75,1],bump:.16,base:0x9fb0b8,alt:0xe4edf1,detail:2}),ore);
+    lump.position.copy(p).addScaledVector(n,-r*.25);lump.quaternion.setFromUnitVectors(up,n);lump.rotateY(rnd()*6);metal.push(lump);});
+   // Stubby crystals, flat-faced hexagonal prisms with pointed tips, jut from the highest nodules.
+   const crystal=(len,r)=>{const lathe=new THREE.LatheGeometry([new THREE.Vector2(0,-r),new THREE.Vector2(r,0),new THREE.Vector2(r,len),new THREE.Vector2(0,len+r*1.6)],6);
+    const flat=lathe.toNonIndexed();lathe.dispose();flat.computeVertexNormals();const p=flat.attributes.position,col=[],c=new THREE.Color();
+    for(let i=0;i<p.count;i++){c.set(0x8494a0).lerp(new THREE.Color(0xf2f8fb),THREE.MathUtils.clamp(p.getY(i)/(len+r),0,1));col.push(c.r,c.g,c.b);}
+    flat.setAttribute('color',new THREE.Float32BufferAttribute(col,3));return flat;};
+   picked.slice(0,3).forEach((i,k)=>{const [p,n]=at(i),len=[.034,.024,.018][k],r=[.0065,.005,.0045][k];
+    const dir=n.clone().lerp(up,.45).add(new THREE.Vector3(rnd()-.5,0,rnd()-.5).multiplyScalar(.5)).normalize();
+    const spike=add(crystal(len,r),ore);spike.position.copy(p).addScaledVector(dir,-.004);spike.quaternion.setFromUnitVectors(up,dir);metal.push(spike);});
+   // Two nuggets knocked loose, and grit chipped off the rock.
+   for(const [x,z,r,s] of [[.115,.055,.016,77],[-.1,.075,.011,91]]){
+    const nug=add(shapedStone(s,{size:r,scale:[1.3,.7,1],bump:.16,base:0x9fb0b8,alt:0xe4edf1,detail:2}),ore,x,0,z);nug.rotation.set(.2,s,.1);metal.push(seat(nug));}
+   for(let i=0;i<7;i++){const a=i*2.3+.9,d=.105+(i*29%9)/100;
+    rubble.push(lay(shapedStone(211+i*13,{size:.006+(i%3)*.003,cuts:4,bump:0,base:0x3e4148,alt:0x5a5c60,detail:1}),rock,Math.cos(a)*d,Math.sin(a)*d*.85,a,.4));}
+   bakeMeshes(rubble).userData.part='ore-rock';
+   bakeMeshes(metal).userData.part='nugget';
   }else{
    // A cut stone lying tipped on its pavilion. The cut comes from the shuffled colour word,
    // which real stones share with their glass, so the look never tells them apart.
