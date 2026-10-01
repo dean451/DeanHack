@@ -6,15 +6,20 @@
 // scatter and fade. Its sapphire and rubies tumble out and bounce. Last of all "Q.E.D." rises
 // out of the smoke and fades.
 //
-// live.js calls add(x, z) with the throne tile's position when a throne cell becomes something
-// else on the same level, update(dt) every frame, and clear() on a level change. A throne is
-// terrain, so nothing here can reveal anything the hero doesn't know.
+// live.js calls add(x, z) at the hero's square when the game says the throne vanished
+// (isThronePuff), update(dt) every frame, and clear() on a level change. It keys on the message,
+// not on the tile: the bridge reports a square under the hero (or a monster or an item) as floor,
+// so a throne tile also "turns to floor" every time something stands on it. A throne is terrain,
+// so nothing here can reveal anything the hero doesn't know.
 
 import {createThrone} from './throne.js';
 import {softDot, softRing, glyphTexture, rng, smooth, clamp01} from './fx-textures.js';
 
 export const VANISH = {flicker: .5, poof: .5, collapse: .18, total: 2.8};
 export const LOGIC = ['∴', '∀', '∃', '¬', '⊢', '⊥', '≡', '∧', '∨', '→', '?', '!'];
+// Only sitting can do it, and only the hero sits (sit.c), so the message always means the
+// throne under the hero.
+export const isThronePuff = text => /throne vanishes in a puff of logic/i.test(text || '');
 const WIRE_ON = [[.12, .17], [.26, .32], [.39, .47]];
 const PUFFS = 16, JEWELS = [0x5fd1ff, 0xff4058, 0xff4058, 0xff4058, 0xff4058];
 

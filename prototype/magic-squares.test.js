@@ -5,7 +5,7 @@ import {createTrap, trapKind} from './trap.js';
 import {animatePortal, createSheolVortex, funnelY, intoEye, VORTEX} from './portal-fx.js';
 import {createVibratingSquare, humBeat, plateShake, ripple, VIBRATE} from './vibrating-square.js';
 import {createElberethWard, syncWard, wardGlow, wardMote, WARD_COLUMN, WARD_RADIUS} from './elbereth-ward.js';
-import {createThroneVanish, thronePose, glyphFlight, VANISH, LOGIC} from './throne-vanish.js';
+import {createThroneVanish, thronePose, glyphFlight, isThronePuff, VANISH, LOGIC} from './throne-vanish.js';
 
 // World-space bounds of everything visible under o (sprites and points by position).
 function bounds(o) {
@@ -144,4 +144,10 @@ test('a vanishing throne glitches, collapses in a puff of logic, and tidies itse
   assert(Math.abs(t - VANISH.total) < .05, `done after ${t.toFixed(2)}s`);
   assert.equal(parent.children.length, 0);
   fx.add(0, 0); fx.clear(); assert.equal(fx.active, 0); assert.equal(parent.children.length, 0);
+});
+
+test('the puff of logic keys on the game saying so, not on walking over the throne', () => {
+  assert(isThronePuff('The throne vanishes in a puff of logic.'));
+  for (const t of ['There is a throne here.', 'You sit on the throne.', 'You feel very comfortable here.', '', undefined])
+    assert(!isThronePuff(t), String(t));
 });

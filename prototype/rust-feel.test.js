@@ -119,3 +119,58 @@ test('a disenchanter glides rather than jerks and its vane turns smoothly', () =
   assert.equal(back, 0, 'vane never turns back');
   assert.ok(st.spin > 5, `vane turns (${st.spin})`);
 });
+
+test('a disintegrator glides slowly and sheds motes off its rump, more near the hero, bursting at a blow and the lash', () => {
+  const a = createCreature({name: 'disintegrator', symbol: 'R'.charCodeAt(0), color: 2}); a.species = 'disintegrator';
+  a.g.position.set(0, 0, 0);
+  const far = new THREE.Vector3(20, 0, 0), near = new THREE.Vector3(1.5, 0, 1);
+  updateFidget(a, 0, 0, false, far);
+  const st = a.rustFeel_, cs = a.crumble_;
+  assert.equal(st.look, R.LOOKS.disintegrator);
+  assert.ok(cs && a.body.children.includes(cs.cloud), 'mote cloud on the body');
+  assert.equal(cs.cloud.userData.part, 'crumbleMotes');
+  const live = () => cs.motes.filter(m => m.age < 1).length;
+  const alphas = () => { const c = cs.cloud.geometry.attributes.color.array; let s = 0; for (let i = 3; i < c.length; i += 4) s += c[i]; return s; };
+  const check = () => {
+    const p = cs.cloud.geometry.attributes.position.array, c = cs.cloud.geometry.attributes.color.array;
+    assert.ok([...p].every(Number.isFinite) && [...c].every(Number.isFinite));
+    for (let i = 0; i < p.length; i += 3) {
+      assert.ok(Math.abs(p[i]) < .8 && p[i + 1] > .3 && p[i + 1] < 1.4 && p[i + 2] > -1.1 && p[i + 2] < 1, `mote ${i / 3} in bounds ${p.slice(i, i + 3)}`);
+    }
+    for (let i = 3; i < c.length; i += 4) assert.ok(c[i] >= 0 && c[i] <= 1);
+  };
+  let t = 0, prev = pose(a), jerk = 0, sumFar = 0, sumNear = 0;
+  for (let i = 0; i < 60 * 12; i++) {
+    t += dt; updateFidget(a, dt, t, false, far); check();
+    const p = pose(a);
+    if (st.taste == null) for (let k = 0; k < 6; k++) jerk = Math.max(jerk, Math.abs(p[k] - prev[k]));
+    prev = p; if (i > 120) sumFar += live();
+  }
+  assert.ok(jerk < .04, `glides (${jerk})`);
+  for (let i = 0; i < 60 * 12; i++) { t += dt; updateFidget(a, dt, t, false, near); check(); if (i > 120) sumNear += live(); }
+  assert.ok(sumNear > sumFar * 1.5, `sheds more near the hero (${sumFar} -> ${sumNear})`);
+
+  // a blow knocks a burst loose
+  const quiet = () => { for (const m of cs.motes) m.age = 1; cs.owed = 0; };
+  quiet(); a.actions = {current: {kind: 'hit'}, age: 0, u: .1, queue: []};
+  updateFidget(a, dt, t += dt, true, near);
+  assert.ok(live() >= 8, `burst at a blow (${live()})`);
+  // the lash flings a gust forward
+  quiet(); a.actions = {current: {kind: 'attack'}, age: 0, u: .45, queue: []};
+  for (let i = 0; i < 20; i++) updateFidget(a, dt, t += dt, true, near);
+  assert.ok(cs.motes.some(m => m.age < 1 && m.v.z > .1), 'gust thrown forward');
+  for (let i = 0; i < 40; i++) { updateFidget(a, dt, t += dt, true, near); check(); }
+
+  // stone holds the cloud
+  a.actions = null; a.stone = true;
+  const held = [...cs.cloud.geometry.attributes.position.array];
+  for (let i = 0; i < 60; i++) updateFidget(a, dt, t += dt, false, near);
+  assert.deepEqual([...cs.cloud.geometry.attributes.position.array], held);
+  a.stone = false;
+
+  // death: nothing more is shed and the last motes burn out
+  a.actions = {dead: true, current: null, queue: []};
+  for (let i = 0; i < 60 * 8; i++) { updateFidget(a, dt, t += dt, false, near); check(); }
+  assert.equal(live(), 0);
+  assert.equal(alphas(), 0);
+});

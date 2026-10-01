@@ -50,7 +50,7 @@ import {createDoorBreak} from './door-break.js';
 import {animatePortal,createSheolVortex} from './portal-fx.js';
 import {createVibratingSquare} from './vibrating-square.js';
 import {syncWard} from './elbereth-ward.js';
-import {createThroneVanish} from './throne-vanish.js';
+import {createThroneVanish,isThronePuff} from './throne-vanish.js';
 import {createBreath} from './breath.js';
 import {createEngulf,engulfCamera,dropEngulfCamera,poseEngulfed} from './engulf.js';
 import {createSwingFx} from './swing-fx.js';
@@ -270,7 +270,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    const seen=new Set(),seenActors=new Set(),seenWells=new Set();
    for(const cell of frame.cells){const id=`${cell.x},${cell.z}`,x=cell.x-origin.x,z=cell.z-origin.z;
      if(cell.terrain!=='unknown'){
-       seen.add(id);let tile=tiles.get(id);if(tile&&tile.userData.type!==tileKind(cell)){if(tile.userData.type==='throne'&&!newLevel&&cell.visible)throneVanish.add(tile.position.x,tile.position.z,cell.x*7+cell.z);release(tile);tiles.delete(id);tile=null;}
+       seen.add(id);let tile=tiles.get(id);if(tile&&tile.userData.type!==tileKind(cell)){release(tile);tiles.delete(id);tile=null;}
        if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=tileKind(cell);const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);tile.userData.slab=slab;floorKit.dress(slab,tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
          if(cell.terrain==='altar')tile.add(createAltar());
          if(cell.terrain==='throne')tile.add(createThrone());
@@ -341,7 +341,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(v.type!=='combat'){grab.death(c);queueDeath(c,findSide);return;}grab.combat(c);brainSuck.combat(c);combatStream=true;if(c.heroAttacks){meleeIntent=null;swingTarget=c.defender?.name??null;}queueCombat(c,{hero,find:findSide});}
  // Map frames wait for queued deaths to play, so the corpse appears after the fall; a newer frame replaces a held one.
  function applySoon(frame){heldFrame=frame;if(heldTimer)return;const wait=active?Math.max(holdBackMs([hero.actions,...[...actors.values()].map(a=>a.actions)]),Math.ceil(fxHoldUntil-performance.now())):0;const go=()=>{heldTimer=null;const f=heldFrame;heldFrame=null;if(f)apply(f);};if(wait>0)heldTimer=setTimeout(go,wait);else go();}
- function message(text){splash.queueMessage(text);grab.message(text,latest);brainSuck.message(text,latest);poly.message(text);barsMelt.message(text);breath.message(text);if(!combatStream&&meleeIntent&&confirmsPlayerMelee(text)){enqueueAction(hero.actions,{kind:'attack',attack:'weapon',result:'hit',dir:meleeIntent});meleeIntent=null;}const line=$('#engine-line'),log=$('#engine-messages');if(line.textContent){const p=document.createElement('div');p.textContent=line.textContent;log.prepend(p);while(log.children.length>3)log.lastChild.remove();}line.textContent=text;$('#message').textContent=text;}
+ function message(text){splash.queueMessage(text);if(isThronePuff(text)&&latest?.player)throneVanish.add(latest.player.x-origin.x,latest.player.z-origin.z,latest.player.x*7+latest.player.z);grab.message(text,latest);brainSuck.message(text,latest);poly.message(text);barsMelt.message(text);breath.message(text);if(!combatStream&&meleeIntent&&confirmsPlayerMelee(text)){enqueueAction(hero.actions,{kind:'attack',attack:'weapon',result:'hit',dir:meleeIntent});meleeIntent=null;}const line=$('#engine-line'),log=$('#engine-messages');if(line.textContent){const p=document.createElement('div');p.textContent=line.textContent;log.prepend(p);while(log.children.length>3)log.lastChild.remove();}line.textContent=text;$('#message').textContent=text;}
  async function post(path,body={}){if(!token)token=(await fetch('/engine/token').then(r=>r.json())).token;const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Engine-Token':token},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw new Error(data.error);return data;}
  async function reply(value){if(!pending)return;const req=pending;meleeIntent=req.kind==='command'?meleeDirection(value):null;pending=null;lines=[];menu=null;dialog.close();setPrompt('Engine is resolving your action…');try{await post('/engine/input',{id:req.id,value});pollNow?.();}catch(e){meleeIntent=null;message(e.message);setPrompt('Input was not accepted. Reconnect Live mode to refresh the prompt.');}}
  function showGround(items){
