@@ -24,6 +24,7 @@ import {createBeetle,isBeetle} from './beetle.js';
 import {createMold} from './mold.js';
 import {createMushroom} from './mushroom.js';
 import {createLichen} from './lichen.js';
+import {createFern,isFern} from './fern.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
@@ -2268,6 +2269,7 @@ export function createCreature(cell={}){
  if(name==='shocking sphere')return shockingSphere();
  if(SPHERE_KINDS.includes(name)){const {g,body,core}=createSphereCreature(name);return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});}
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
+ if(isFern(name))return createFern(name);
  if(name==='lichen')return createLichen(name);
  if(/ mold$/.test(name))return createMold(name,color);
  if(name==='shrieker'||name==='violet fungus')return createMushroom(name);

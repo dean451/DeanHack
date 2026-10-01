@@ -688,6 +688,33 @@ test('the lichen is a leafy rosette with cups and fruiting discs instead of the 
  assert(ms<1000,`took ${ms} ms`);
 });
 
+test('ferns are jagged frond clumps and their spores floating sporangia instead of the mound and eye',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const box=a=>{a.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(a.g);};
+ const finite=parts=>{for(const p of parts){const a=p.geometry.attributes;for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${p.userData.part} ${key}`);for(const v of a.color.array)assert(v>=0&&v<=1,'colour');}};
+ const sizes={};
+ for(const kind of ['dungeon','arctic','blazing','swamp']){
+  const fern=createCreature({name:`${kind} fern`,symbol:70,color:10});
+  assert.equal(fern.quirk,'fungus');assert.equal(fern.kind,kind);assert(fern.body?.isObject3D);
+  const parts=meshes(fern);assert.deepEqual(parts.map(p=>p.userData.part),['fronds','sori'],'two draws');finite(parts);
+  assert.equal(parts[0].material.side,THREE.DoubleSide,'fronds are thin blades seen from both sides');
+  const b=box(fern);assert(b.min.y>-.001&&b.min.y<.01,`${kind} sits on the floor at ${b.min.y}`);
+  assert(b.max.y>.4&&b.max.y<.6,`${kind} top at ${b.max.y}`);
+  const reach=Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z);assert(reach>.3&&reach<.5,`${kind} reach ${reach}`);
+  sizes[kind]=b.max.y;
+  const sprout=createCreature({name:`${kind} fern sprout`,symbol:70});finite(meshes(sprout));
+  assert(box(sprout).max.y<b.max.y*.7,'the sprout is smaller');
+  const spore=createCreature({name:`${kind} fern spore`,symbol:101});
+  assert.equal(spore.quirk,'hover');assert.deepEqual(meshes(spore).map(p=>p.userData.part),['husk','dust']);finite(meshes(spore));
+  const sb=box(spore);assert(sb.min.y>.25&&sb.max.y<.75,'the spore floats');
+ }
+ assert.equal(createCreature({name:'fern spore',symbol:101}).kind,'plain');
+ assert(meshes(createCreature({name:'blazing fern',symbol:70}))[1].material.emissiveIntensity>meshes(createCreature({name:'dungeon fern',symbol:70}))[1].material.emissiveIntensity,'blazing sori smoulder');
+ const a=meshes(createCreature({name:'swamp fern',symbol:70})),b=meshes(createCreature({name:'swamp fern',symbol:70}));
+ a.forEach((p,i)=>{assert.equal(p.geometry,b[i].geometry);assert.equal(p.material,b[i].material);});
+ assert(a[0].geometry.attributes.position.count<40000);
+});
+
 test('ghosts and shades get their own sheeted, floating model instead of the guardian box',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const t0=performance.now(),ghost=createCreature({name:'ghost',symbol:32,color:7}),ms=performance.now()-t0;
