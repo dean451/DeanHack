@@ -1258,3 +1258,24 @@ test('the skeleton gets its own bony model with a rusty sword instead of the hum
  parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
  assert(ms<1000,`took ${ms} ms`);
 });
+
+test('nymphs are dancers: sheer gold-trimmed sashes, gold cuffs and a gem on the brow, each kind in its own colours',()=>{
+ const looks=new Set();
+ for(const name of ['wood nymph','water nymph','mountain nymph']){
+  const actor=createCreature({name});
+  assert.equal(actor.quirk,'nymph');assert(actor.tail?.isObject3D,'the hair still sways');assert.equal(actor.legs.length,2);
+  const mats=new Set();let meshes=0;actor.g.traverse(o=>{if(o.isMesh){meshes++;mats.add(o.material);}});
+  assert(meshes<=40,`${name}: ${meshes} meshes`);
+  const sheer=[...mats].filter(m=>m.transparent&&m.opacity<1);
+  assert.equal(sheer.length,1,`${name}: one sheer sash material`);
+  const gold=[...mats].filter(m=>m.metalness>=.7);
+  assert(gold.length>=1,`${name}: gold trim`);
+  const gem=[...mats].find(m=>m.emissiveIntensity===.6);
+  assert(gem,`${name}: a gem`);
+  looks.add(sheer[0].color.getHexString()+gem.color.getHexString());
+  const bounds=new THREE.Box3().setFromObject(actor.g,true);
+  assert(bounds.min.y>=0&&bounds.min.y<.02,`${name}: grounded (${bounds.min.y})`);
+  assert(bounds.max.y<1.6,`${name}: the sunburst crown stays under 1.6 (${bounds.max.y})`);
+ }
+ assert.equal(looks.size,3,'wood, water and mountain nymphs differ');
+});

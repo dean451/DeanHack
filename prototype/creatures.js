@@ -1237,25 +1237,36 @@ function hand(parent,wrist,dir,side,skin){
  segment(h,[0,-.012,.02],[side*-.008,-.04,.034],.0065,.005,skin);
  return h;
 }
-// Nymphs: fae seductresses who charm you and walk off with your things. She wears a
-// ragged, open-fronted vest with a deep plunge and bare sides, a low studded belt with
-// tattered panels front and back and bare hips, and a long torn coat slipping off her
-// shoulders. Weight on one hip, a hand hooked in her belt, a warm smile and long glowing
-// hair; the other hand dangles the amulet she just stole. The hair is actor.tail, so it
-// sways, and the 'nymph' quirk rolls her hips.
+// Nymphs: fae dancers who charm you and slip away with your things. A halter top tied at a
+// jewelled choker, coins chiming under the bust and along a low belt, long sheer sashes front
+// and back edged in gold with tassels, gold cuffs on her arms, wrists and ankles, a garter on
+// one thigh, a sunburst crown over a top-knot and a gem hung on her brow. Weight on one hip,
+// a hand hooked in her belt, half-lidded eyes over a sly smile; the other hand dangles the
+// amulet she just stole. The hair is actor.tail, so it sways, and the 'nymph' quirk rolls
+// her hips. Each kind has its own colours: wood (emerald), water (aquamarine), mountain
+// (amethyst and silver).
 function nymph(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const legs=[];
- const skin=mat(o.skin,{roughness:.42}),cloth=mat(o.cloth,{roughness:.8,side:THREE.DoubleSide}),trim=mat(o.trim||'#c9a24a',{roughness:.35,metalness:.55}),leather=mat(o.belt||'#2c3446',{roughness:.6});
+ const skin=mat(o.skin,{roughness:.42}),cloth=mat(o.cloth,{roughness:.6,side:THREE.DoubleSide}),trim=mat(o.trim||'#c9a24a',{roughness:.3,metalness:.7}),leather=mat(o.belt||'#2c3446',{roughness:.6});
+ const sheer=mat(o.sheer||shade(o.cloth,1.7),{roughness:.5,side:THREE.DoubleSide,transparent:true,opacity:.62,depthWrite:false});
+ const gemHex=o.gem||o.trim||'#2fae4a',gem=mat(gemHex,{emissive:gemHex,emissiveIntensity:.6,roughness:.15,metalness:.2});
  const hair=mat(o.hair,{roughness:.45,side:THREE.DoubleSide,emissive:o.glow||'#ff9a3a',emissiveIntensity:.18});
- const eye=o.eye||'#7a4a22',white=mat('#f3eee8',{roughness:.3}),iris=mat(eye,{emissive:eye,emissiveIntensity:.2,roughness:.2}),lash=mat(shade(o.hair,.4)),brow=mat(shade(o.hair,.65)),lips=mat(o.lips||'#c86a6a',{roughness:.3}),teeth=mat('#f6f2ea',{roughness:.3});
- const ember=mat('#ffc46a',{emissive:'#ffb040',emissiveIntensity:2.4});
+ const eye=o.eye||'#7a4a22',white=mat('#f3eee8',{roughness:.3}),iris=mat(eye,{emissive:eye,emissiveIntensity:.2,roughness:.2}),lash=mat(shade(o.hair,.4)),brow=mat(shade(o.hair,.65)),lips=mat(o.lips||'#c86a6a',{roughness:.3}),teeth=mat('#f6f2ea',{roughness:.3}),lid=mat(o.lid||shade(o.skin,.9),{roughness:.4});
+ const ember=mat(o.glow||'#ffc46a',{emissive:o.glow||'#ffb040',emissiveIntensity:2.4});
+ // an open gold band round a limb, from p toward q
+ const cuff=(parent,p,q,r,h)=>{const A=new THREE.Vector3(...p),d=new THREE.Vector3(...q).sub(A).normalize(),m=part(parent,new THREE.CylinderGeometry(r,r*1.04,h,16,1,true),trim,A.x,A.y,A.z);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d);return m;};
+ const coin=(parent,x,y,z,ry=0,r=.0075)=>{const c=cylinder(parent,r,r,.002,trim,x,y,z,8);c.rotation.set(Math.PI/2,0,ry);return c;};
  // long bare legs in contrapposto: weight on her left, right knee bent onto its toes
  for(const side of [-1,1]){
   const bent=side<0,leg=new THREE.Group();leg.position.set(side*.06,.62,0);body.add(leg);legs.push(leg);
   const thigh=new THREE.Group();thigh.rotation.set(bent?-.3:0,0,bent?.09:.05);leg.add(thigh);
   segment(thigh,[0,.02,0],[0,-.3,0],.066,.04,skin);sphere(thigh,.04,skin,0,-.3,0);
+  // a dark garter high on the standing thigh
+  if(!bent){const garter=part(thigh,new THREE.TorusGeometry(.057,.006,5,20),leather,0,-.11,0);garter.rotation.x=Math.PI/2;}
   const knee=new THREE.Group();knee.position.y=-.3;knee.rotation.x=bent?.7:0;thigh.add(knee);
   segment(knee,[0,0,0],[0,-.27,0],.039,.021,skin);sphere(knee,.037,skin,0,-.085,-.009,.95,2,1);
+  // a wide gold anklet with a bead hanging from it
+  cuff(knee,[0,-.235,0],[0,-.2,0],.025,.034);sphere(knee,.006,trim,0,-.262,.026,.8,1.3,.6);
   const foot=new THREE.Group();foot.position.y=-.27;foot.rotation.x=bent?.45:0;knee.add(foot);
   sphere(foot,.021,skin);sphere(foot,.021,skin,0,-.024,-.012,.95,.75,1.1);sphere(foot,.024,skin,0,-.03,.03,.85,.5,1.55);
   for(let t=0;t<5;t++)sphere(foot,t===0?.0085:.0065-t*.0004,skin,(t-2)*.0085*-side,-.036,.068-Math.abs(t-1)*.004,1,.8,1.2);
@@ -1263,58 +1274,75 @@ function nymph(o){
  // curvy torso, shoulders and bust
  lathe(body,[[0,.56],[.09,.58],[.122,.63],[.128,.68],[.115,.74],[.09,.81],[.083,.85],[.09,.9],[.1,.95],[.103,1],[.1,1.04],[.098,1.07],[.07,1.115],[.034,1.14],[0,1.15]],skin).scale.z=.78;
  for(const side of [-1,1]){sphere(body,.044,skin,side*.1,1.07,0,1.25,.85,.9);sphere(body,.054,skin,side*.046,.983,.05,1,.92,.86);}
- // the vest: a panel over each breast plunging to the navel, a lapel over each shoulder
- // with a patterned cap, and bare sides between the panels and the back
+ // the halter: a panel over each breast, its strap running up to the choker, gold-rimmed
  for(const side of [-1,1]){
   const panel=part(body,new THREE.SphereGeometry(.062,14,10,0,Math.PI*2,0,Math.PI*.55),cloth,side*.047,.983,.05);panel.scale.set(1.02,1.04,.9);panel.rotation.set(Math.PI/2,0,-side*.12);
-  const lapel=rounded(body,.042,.14,.01,cloth,side*.062,1.07,.06,.004);lapel.rotation.set(-.55,0,-side*.35);
-  segment(body,[side*.03,.93,.085],[side*.012,.8,.07],.014,.006,cloth);
-  rounded(body,.05,.2,.012,cloth,side*.075,1.0,-.075,.005).rotation.set(.12,0,-side*.1);
-  const cap=part(body,new THREE.SphereGeometry(.058,12,8,0,Math.PI*2,0,Math.PI/2),cloth,side*.112,1.085,0);cap.scale.set(1.1,.7,1.15);cap.rotation.z=-side*.35;
-  const rim=part(body,new THREE.TorusGeometry(.058,.005,5,20),trim,side*.112,1.085,0);rim.scale.set(1.1,1.15,1);rim.rotation.set(Math.PI/2,-side*.35,0);
+  const rim=part(body,new THREE.TorusGeometry(.061,.003,4,24),trim,side*.047,.983,.041);rim.scale.set(1.02,1.04,1);rim.rotation.z=-side*.12;
+  segment(body,[side*.035,1.02,.08],[side*.016,1.155,.026],.011,.006,cloth);
  }
- // a low studded belt riding on the hips, tilted down toward the bent leg
+ // the choker: a dark band at the throat with a gem in a gold setting
+ const choker=part(body,new THREE.TorusGeometry(.034,.0055,5,20),leather,0,1.165,.004);choker.rotation.x=Math.PI/2;
+ const set=part(body,new THREE.SphereGeometry(.011,4,2),trim,0,1.158,.04);set.scale.set(.9,1.3,.5);sphere(body,.0065,gem,0,1.156,.044,1,1.3,.6);
+ // under the bust a chain band with coins hanging along the front
+ const band=part(body,new THREE.TorusGeometry(.098,.004,4,28),trim,0,.928,0);band.rotation.x=Math.PI/2;band.scale.set(1,.8,1);
+ for(let i=0;i<9;i++){const a=-1.2+i*.3;coin(body,Math.sin(a)*.1,.913-(i%2)*.006,Math.cos(a)*.08+.002,-a);}
+ // a low studded belt riding on the hips, tilted down toward the bent leg, fringed with
+ // coins, a gold medallion and a gem at the front
  const belt=part(body,new THREE.TorusGeometry(.128,.011,6,32),leather,0,.685,0);belt.rotation.set(Math.PI/2,-.09,0);belt.scale.set(1,.82,1);
- for(let i=0;i<9;i++){const a=-1.1+i*.275;sphere(body,.007,trim,Math.sin(a)*.139,.685+Math.sin(a)*.011,Math.cos(a)*.139*.82);}
- // a narrow brief under the belt, then tattered panels front and back; the hips stay bare
+ for(let i=0;i<13;i++){const a=-1.5+i*.25;if(Math.abs(a)<.2)continue;coin(body,Math.sin(a)*.137,.667+Math.sin(a)*.011-(i%2)*.007,Math.cos(a)*.137*.82+.003,-a,.0085);}
+ const medal=part(body,new THREE.SphereGeometry(.024,4,2),trim,0,.682,.112);medal.scale.set(1.2,.9,.35);sphere(body,.011,gem,0,.682,.12,1,1,.6);
+ // a narrow brief under the belt, then long sheer sashes front and back to the shins, their
+ // edges trimmed in gold and a gold bead and tassels at each point
  lathe(body,[[.123,.675],[.12,.64],[.1,.6],[.06,.57],[0,.555]],cloth,0,0,0,-.62,1.24).scale.z=.8;
  lathe(body,[[.123,.675],[.12,.64],[.1,.6],[.06,.57],[0,.555]],cloth,0,0,0,Math.PI-.7,1.4).scale.z=.8;
- tatteredLathe(body,[[.132,.69],[.14,.6],[.148,.5],[.155,.4],[.16,.33]],cloth,-.42,.84,.47,.07,9).scale.z=.84;
- tatteredLathe(body,[[.132,.69],[.14,.6],[.15,.5],[.158,.4],[.165,.3]],cloth,Math.PI-.5,1,.47,.08,8).scale.z=.84;
- // a long torn coat slipping off her shoulders, open at the front
- const coat=tatteredLathe(body,[[.13,1.09],[.15,1.02],[.155,.9],[.165,.72],[.19,.52],[.215,.34],[.23,.2]],cloth,1.2,Math.PI*2-2.4,.5,.12,7);coat.scale.z=.9;
- // neck and face: a warm, open smile, brown eyes, long pointed ears
+ const SASH=[[.132,.69],[.14,.6],[.148,.5],[.156,.4],[.164,.3],[.172,.2]];
+ for(const [start,width,back] of [[-.42,.84,0],[Math.PI-.5,1,1]]){
+  tatteredLathe(body,SASH,sheer,start,width,.28,.05,6).scale.z=.84;
+  for(const a of [start,start+width]){const top=SASH[0],low=SASH[5];segment(body,[Math.sin(a)*top[0],top[1]-.02,Math.cos(a)*top[0]*.84],[Math.sin(a)*low[0],low[1]+.01,Math.cos(a)*low[0]*.84],.0028,.0028,trim);}
+  const mid=start+width/2,r=.176,x=Math.sin(mid)*r,z=Math.cos(mid)*r*.84;
+  sphere(body,.012,trim,x,.19,z);
+  for(const dx of [-.012,0,.012])cone(body,.005,.03,trim,x+dx*Math.cos(mid),.165-Math.abs(dx)*.5,z-dx*Math.sin(mid),5).rotation.x=Math.PI;
+  if(back)cone(body,.004,.02,trim,x,.205,z,5);
+ }
+ // neck and face: half-lidded eyes over a sly smile, long pointed ears
  segment(body,[0,1.13,0],[0,1.235,.005],.037,.03,skin);
  const head=new THREE.Group();head.position.set(0,1.28,.005);head.rotation.set(.02,.1,.09);body.add(head);
  sphere(head,.08,skin,0,.025,-.004,.9,1.02,.98);sphere(head,.058,skin,0,-.03,.026,.82,.92,.88);
  const nose=cone(head,.01,.026,skin,0,-.008,.082,6);nose.rotation.x=Math.PI/2-.3;
  sphere(head,.012,teeth,0,-.048,.073,1.45,.4,.5);
- const smile=part(head,new THREE.TorusGeometry(.018,.004,5,12,Math.PI*.9),lips,0,-.044,.074);smile.rotation.z=Math.PI+Math.PI*.05;smile.scale.set(1,.55,.8);
+ const smile=part(head,new THREE.TorusGeometry(.018,.004,5,12,Math.PI*.9),lips,0,-.044,.074);smile.rotation.z=Math.PI+Math.PI*.05;smile.scale.set(1,.55,.8);smile.rotation.y=.12;
  sphere(head,.011,lips,0,-.04,.075,1.5,.35,.6);
  for(const side of [-1,1]){
-  sphere(head,.013,white,side*.03,.008,.068,1.5,.8,.5);sphere(head,.0078,iris,side*.03,.007,.074,1,1,.5);
-  rounded(head,.032,.005,.008,lash,side*.03,.017,.073,.002).rotation.z=side*.14;
-  rounded(head,.03,.004,.008,brow,side*.031,.043,.071,.002).rotation.z=side*.1;
+  sphere(head,.013,white,side*.03,.008,.068,1.5,.8,.5);sphere(head,.0078,iris,side*.03,.006,.074,1,1,.5);
+  // a heavy, shadowed upper lid drawn half down over the eye
+  const upper=part(head,new THREE.SphereGeometry(.0142,12,6,0,Math.PI*2,0,Math.PI*.5),lid,side*.03,.006,.0705);upper.scale.set(1.5,.85,.62);upper.rotation.x=.35;
+  rounded(head,.034,.005,.008,lash,side*.03,.012,.075,.002).rotation.z=side*.2;
+  rounded(head,.03,.004,.008,brow,side*.031,.043,.071,.002).rotation.z=side*.22;
   sphere(head,.012,mat(shade(o.skin,.93)),side*.045,-.022,.058,1.3,.8,.5);
   cone(head,.013,.1,skin,side*.08,.02,-.015,5).rotation.set(-.3,0,-side*1.1);
  }
- // long, full hair with a warm rim glow: a cap, bangs and two flowing layers that sway
+ // long, full hair with a warm rim glow: a cap, bangs, a top-knot and two flowing layers that sway
  sphere(head,.087,hair,0,.042,-.024);sphere(head,.055,hair,.02,.076,.045,1.3,.42,.7).rotation.z=.3;
+ sphere(head,.036,hair,0,.115,-.06,1,.9,1);
  const locks=new THREE.Group();locks.position.set(0,.02,-.02);head.add(locks);nymphHair(locks,hair,0);nymphHair(locks,hair,1);
- // arms: her left hooks the belt, her right hangs loose and dangles the stolen amulet
- const armBand=(p,r)=>{const band=part(body,new THREE.TorusGeometry(r,.005,5,16),trim,...p);band.rotation.x=Math.PI/2;return band;};
- {const S=[.118,1.07,0],E=[.24,.88,-.03],W=[.13,.735,.09];segment(body,S,E,.031,.025,skin);sphere(body,.025,skin,...E);segment(body,E,W,.024,.017,skin);armBand([.19,.975,-.02],.032);segment(body,[.16,.77,.06],[.13,.735,.09],.021,.019,leather);hand(body,W,[-.07,-.05,.05],1,skin);}
- {const S=[-.118,1.07,0],E=[-.17,.845,-.04],W=[-.2,.63,0];segment(body,S,E,.031,.025,skin);sphere(body,.025,skin,...E);segment(body,E,W,.024,.017,skin);armBand([-.15,.96,-.02],.032);segment(body,[-.19,.68,-.01],[-.2,.63,0],.021,.019,leather);hand(body,W,[-.01,-1,.02],-1,skin);
+ // the sunburst crown fanned behind the top-knot, a gold circlet and a gem hung on her brow
+ for(let i=0;i<9;i++){const a=(i-4)*.26,len=.06+(i%2?0:.035),ray=cone(head,.0055,len,trim,Math.sin(a)*(.03+len/2),.12+Math.cos(a)*(.03+len/2),-.075,4);ray.rotation.set(-.25,0,-a);}
+ const crown=part(head,new THREE.TorusGeometry(.03,.004,4,16),trim,0,.12,-.075);crown.rotation.x=-.25;
+ const circlet=part(head,new THREE.TorusGeometry(.086,.0035,4,28),trim,0,.058,-.006);circlet.rotation.x=Math.PI/2-.2;circlet.scale.set(.92,1,1);
+ const browSet=part(head,new THREE.SphereGeometry(.012,4,2),trim,0,.05,.083);browSet.scale.set(.9,1.4,.45);sphere(head,.0075,gem,0,.047,.087,.9,1.4,.6);
+ // arms in gold cuffs: her left hooks the belt, her right hangs loose and dangles the stolen amulet
+ {const S=[.118,1.07,0],E=[.24,.88,-.03],W=[.13,.735,.09];segment(body,S,E,.031,.025,skin);sphere(body,.025,skin,...E);segment(body,E,W,.024,.017,skin);cuff(body,[.2,.95,-.02],E,.03,.035);cuff(body,[.15,.765,.065],W,.02,.026);hand(body,W,[-.07,-.05,.05],1,skin);}
+ {const S=[-.118,1.07,0],E=[-.17,.845,-.04],W=[-.2,.63,0];segment(body,S,E,.031,.025,skin);sphere(body,.025,skin,...E);segment(body,E,W,.024,.017,skin);cuff(body,[-.152,.92,-.025],E,.03,.035);cuff(body,[-.195,.67,-.01],W,.02,.026);hand(body,W,[-.01,-1,.02],-1,skin);
   const tip=[-.204,.545,.006];tube(body,[tip,[tip[0]+.004,tip[1]-.05,tip[2]],[tip[0],tip[1]-.1,tip[2]]],.003,M.gold,6);
   const amulet=cylinder(body,.028,.028,.008,M.gold,tip[0],tip[1]-.13,tip[2],16);amulet.rotation.x=Math.PI/2;sphere(body,.012,mat('#d9344a',{emissive:'#d9344a',emissiveIntensity:1.4}),tip[0],tip[1]-.13,tip[2]+.006);}
- // embers drifting around her
+ // motes drifting around her
  for(const [x,y,z] of [[.32,1.05,.1],[-.3,.78,.16],[.16,1.48,-.08],[-.22,1.25,.12]])sphere(body,.011,ember,x,y,z);
  return trimDraws(actor(g,body,legs,locks,[],'nymph'));
 }
 const NYMPHS={
- 'wood nymph':{skin:'#eab991',cloth:'#3a2e1e',trim:'#b8923a',belt:'#3a2a1a',hair:'#b5502a',glow:'#ff8a3a',eye:'#4f7a36',lips:'#c46868'},
- 'water nymph':{skin:'#f0cdb4',cloth:'#2a2620',trim:'#c9a24a',belt:'#2c3446',hair:'#f0d27a',glow:'#ffa040',eye:'#7a4a22',lips:'#cc6c6c'},
- 'mountain nymph':{skin:'#f3d4bb',cloth:'#2a2030',trim:'#b8b0d8',belt:'#302838',hair:'#241a16',glow:'#b07aff',eye:'#5a3a7a',lips:'#b05c6a'},
+ 'wood nymph':{skin:'#f2d4c2',cloth:'#2c5a2e',sheer:'#5a9a52',trim:'#d4a845',belt:'#1c2420',hair:'#3a5a2e',glow:'#8ad86a',eye:'#5a4aa0',lips:'#c86a72',gem:'#2fbf55',lid:'#7f9a5e'},
+ 'water nymph':{skin:'#f0d2c0',cloth:'#1e4e64',sheer:'#4a9ab4',trim:'#d6b04a',belt:'#1a2834',hair:'#2e6e78',glow:'#6fd8ff',eye:'#2a5a8a',lips:'#cc6c74',gem:'#3fc4ea',lid:'#5f8ea2'},
+ 'mountain nymph':{skin:'#f3d4bb',cloth:'#3e2a54',sheer:'#8a64ae',trim:'#cfc8e4',belt:'#241c2c',hair:'#241a16',glow:'#b07aff',eye:'#5a3a7a',lips:'#b05c6a',gem:'#a862ea',lid:'#7a5a8c'},
 };
 
 // Trolls: hunched, long-armed brutes whose knuckles nearly drag, with a drooping nose, tusks and a ragged mane.
