@@ -10,15 +10,26 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // curling up behind with a spade tip.
 // Each moving part (body, head, each leg, arm and wing, and the tail) is one merged,
 // vertex-coloured mesh with a shared material, plus one small emissive mesh for the eyes: 10 draws.
-// The geometry is built once and shared by every imp.
+// The geometry is built once per kind ('red', or 'uranium' for the uranium imp) and shared. The
+// uranium imp adds one more emissive mesh on the body (shards and veins), so it takes 11 draws.
 // Handles: legs, arms, arm, head, wings, tail, body, like the humanoid rig. The quirk stays 'imp'.
 
-const C={
+const RED={
  skin:rgb('#b33a26'),skinDark:rgb('#5a1a12'),chest:rgb('#d0634a'),fur:rgb('#2a1712'),furLit:rgb('#4a2a1e'),
  hoof:rgb('#141010'),horn:rgb('#2a2220'),hornTip:rgb('#d8c8a8'),mouth:rgb('#1a0808'),tooth:rgb('#efe6d0'),
  nail:rgb('#1a1212'),socket:rgb('#2a0a08'),bone:rgb('#6a2418'),membrane:rgb('#5e1c16'),membraneLit:rgb('#a0402c'),
 };
-const skinShade=(lo,hi)=>(x,y)=>mix(C.skinDark,C.skin,(y-lo)/(hi-lo));
+// The uranium imp: the same imp gone sickly and radioactive. Its hide is a dark, livid green over
+// charred, ashen fur; its horns are jagged shards of glowing uranium glass; more shards jut from
+// its shoulder blades and spine; green-gold veins burn across its chest and belly, a glow leaks
+// from its grin, and its wings are eaten through with ragged holes.
+const URANIUM={
+ skin:rgb('#3c5a26'),skinDark:rgb('#141e10'),chest:rgb('#62802e'),fur:rgb('#18170f'),furLit:rgb('#34352a'),
+ hoof:rgb('#0c0c0a'),horn:rgb('#2a2220'),hornTip:rgb('#d8c8a8'),mouth:rgb('#0a1606'),tooth:rgb('#d8e8a0'),
+ nail:rgb('#0e120a'),socket:rgb('#06100a'),bone:rgb('#24321a'),membrane:rgb('#16220f'),membraneLit:rgb('#46622a'),
+ ore:true,
+};
+const skinShade=(C,lo,hi)=>(x,y)=>mix(C.skinDark,C.skin,(y-lo)/(hi-lo));
 const UP=new THREE.Vector3(0,1,0);
 // A tapered cylinder from point a to point b.
 function seg(P,a,b,r0,r1,colour,sides=8){
@@ -35,14 +46,14 @@ function taperedTube(points,segments,radius,taper,sides=6){
  return {tube,path};
 }
 
-function buildBody(){
+function buildBody(C){
  const P=pieces();
  // shaggy hips where the goat legs join, dark fur fading up into red skin at the waist
  P.add(new THREE.SphereGeometry(.085,14,10),at(0,.37,-.01,[0,0,0],[1.25,.85,1]),(x,y)=>mix(C.fur,C.furLit,(y-.32)/.1));
  for(let i=0;i<10;i++){const a=i/10*Math.PI*2;P.add(new THREE.ConeGeometry(.018,.05,4),at(Math.sin(a)*.1,.33,Math.cos(a)*.08-.01,[Math.PI+Math.cos(a)*.3,0,-Math.sin(a)*.3]),C.fur);}
  // a narrow waist and a lean chest widening to the shoulders, ruddy down the front
- P.add(new THREE.CylinderGeometry(.06,.07,.1,12),at(0,.45,0),(x,y,z)=>z>.04?C.chest:skinShade(.4,.5)(x,y));
- P.add(new THREE.SphereGeometry(.09,14,12),at(0,.55,.01,[.1,0,0],[1.2,1.05,.8]),(x,y,z)=>z>.05?mix(C.skin,C.chest,(z-.05)/.03):skinShade(.46,.64)(x,y));
+ P.add(new THREE.CylinderGeometry(.06,.07,.1,12),at(0,.45,0),(x,y,z)=>z>.04?C.chest:skinShade(C,.4,.5)(x,y));
+ P.add(new THREE.SphereGeometry(.09,14,12),at(0,.55,.01,[.1,0,0],[1.2,1.05,.8]),(x,y,z)=>z>.05?mix(C.skin,C.chest,(z-.05)/.03):skinShade(C,.46,.64)(x,y));
  // shoulder blades and a spine ridge showing through the back
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.035,8,6),at(s*.05,.58,-.055,[0,0,s*.3],[1,1.3,.5]),C.skin);
  for(let i=0;i<5;i++)P.add(new THREE.SphereGeometry(.009,6,4),at(0,.46+i*.035,-.06-Math.sin(i/4*Math.PI)*.008),C.skinDark);
@@ -52,11 +63,11 @@ function buildBody(){
  return P.merge();
 }
 
-function buildHead(){
+function buildHead(C){
  const P=pieces();
  // a sharp, narrow face over a rounded skull, tapering to a pointed chin
- P.add(new THREE.SphereGeometry(.07,14,12),at(0,.06,-.005,[0,0,0],[.95,1,1.05]),skinShade(0,.13));
- P.add(new THREE.ConeGeometry(.05,.09,10),at(0,.005,.03,[Math.PI+.35,0,0],[1.05,1,.8]),skinShade(-.05,.05));
+ P.add(new THREE.SphereGeometry(.07,14,12),at(0,.06,-.005,[0,0,0],[.95,1,1.05]),skinShade(C,0,.13));
+ P.add(new THREE.ConeGeometry(.05,.09,10),at(0,.005,.03,[Math.PI+.35,0,0],[1.05,1,.8]),skinShade(C,-.05,.05));
  // a pointed goatee jutting from the chin
  P.add(new THREE.ConeGeometry(.018,.07,6),at(0,-.055,.055,[Math.PI+.35,0,0]),C.fur);
  // a scowling brow over sunken sockets, and a hooked nose
@@ -69,7 +80,7 @@ function buildHead(){
  // long pointed ears swept back
  for(const s of [-1,1])P.add(new THREE.ConeGeometry(.024,.12,4),at(s*.08,.07,-.03,[-1.25,0,s*-.5],[1,1,.35]),(x,y,z)=>mix(C.skin,C.skinDark,(-z-.03)/.08));
  // two horns sweeping up and back from the brow, dark at the root and bone at the tip
- for(const s of [-1,1]){
+ if(!C.ore)for(const s of [-1,1]){
   const {tube}=taperedTube([[.03,.11,.03],[.045,.16,.01],[.055,.195,-.03],[.05,.21,-.08]].map(([x,y,z])=>[s*x,y,z]),10,.013,.8);
   P.add(tube,null,(x,y,z)=>mix(C.horn,C.hornTip,(y-.13)/.08));
  }
@@ -84,7 +95,7 @@ function buildEyes(){
 
 // A goat leg: a shaggy thigh forward to the knee, a thin shin back to a high hock, a short cannon
 // down to a split black hoof.
-function buildLeg(){
+function buildLeg(C){
  const P=pieces(),hip=[0,0,0],knee=[0,-.13,.05],hock=[0,-.24,-.04],fetlock=[0,-.34,-.01];
  P.add(new THREE.SphereGeometry(.05,10,8),at(0,-.04,.02,[.3,0,0],[1,1.4,1.1]),(x,y)=>mix(C.fur,C.furLit,(y+.1)/.1));
  for(let i=0;i<8;i++){const a=i/8*Math.PI*2;P.add(new THREE.ConeGeometry(.013,.045,4),at(Math.sin(a)*.042,-.1,.035+Math.cos(a)*.035,[Math.PI+Math.cos(a)*.35,0,-Math.sin(a)*.35]),C.fur);}
@@ -100,12 +111,12 @@ function buildLeg(){
 }
 
 // A thin arm with a bony elbow and a hand of four long black nails reaching forward.
-function buildArm(side){
+function buildArm(C,side){
  const P=pieces(),elbow=[0,-.14,-.015],wrist=[0,-.25,.04];
  P.add(new THREE.SphereGeometry(.028,8,6),at(0,0,0),C.skin);
- seg(P,[0,0,0],elbow,.024,.017,skinShade(-.15,0));
+ seg(P,[0,0,0],elbow,.024,.017,skinShade(C,-.15,0));
  P.add(new THREE.SphereGeometry(.019,8,6),at(...elbow),C.skin);
- seg(P,elbow,wrist,.016,.013,skinShade(-.27,-.12));
+ seg(P,elbow,wrist,.016,.013,skinShade(C,-.27,-.12));
  P.add(new THREE.SphereGeometry(.022,8,6),at(0,-.265,.05,[0,0,0],[.9,1,.75]),C.skin);
  for(const a of [-.5,-.17,.17,.5]){
   const x=side*Math.sin(a)*.026,knuckle=[x,-.28,.06],tip=[x*1.4,-.315,.085];
@@ -117,7 +128,7 @@ function buildArm(side){
 
 // A small leathery bat wing: two finger bones from the wrist, a scalloped membrane between them
 // (extruded thin so both faces render with the one material) and a thumb claw.
-function buildWing(side){
+function buildWing(C,side){
  const P=pieces();
  const wrist=new THREE.Vector2(side*.1,.12);
  P.add(new THREE.CylinderGeometry(.012,.016,.15,6),at(side*.05,.06,0,[0,0,-side*.9]),C.bone);
@@ -130,13 +141,20 @@ function buildWing(side){
  const outline=[new THREE.Vector2(0,.14),wrist,tips[0]];
  const scallop=(a,b,n=4,depth=.03)=>{for(let k=1;k<=n;k++){const u=k/n,p=a.clone().lerp(b,u),dip=Math.sin(u*Math.PI)*depth;const nrm=new THREE.Vector2(b.y-a.y,a.x-b.x).normalize().multiplyScalar(side*dip);outline.push(p.add(nrm));}};
  scallop(tips[0],tips[1]);scallop(tips[1],tips[2]);scallop(tips[2],new THREE.Vector2(0,0),4,.035);
- const membrane=new THREE.ExtrudeGeometry(new THREE.Shape(outline),{depth:.005,bevelEnabled:false,curveSegments:1});
+ const shape=new THREE.Shape(outline);
+ // the uranium imp's membranes are eaten through with ragged holes
+ if(C.ore)for(const [hx,hy,r] of [[.19,.14,.026],[.15,.03,.02],[.22,.06,.015]]){
+  const hole=new THREE.Path();
+  for(let k=0;k<7;k++){const a=k/7*Math.PI*2,rr=r*(k%2?.6:1);hole[k?'lineTo':'moveTo'](side*hx+Math.cos(a)*rr,hy+Math.sin(a)*rr);}
+  shape.holes.push(hole);
+ }
+ const membrane=new THREE.ExtrudeGeometry(shape,{depth:.005,bevelEnabled:false,curveSegments:1});
  P.add(membrane,null,(x,y)=>mix(C.membrane,C.membraneLit,Math.abs(x)/.3*.7+y*.4));
  return P.merge();
 }
 
 // A long thin tail sweeping down, back and curling up behind, ending in a spade.
-function buildTail(){
+function buildTail(C){
  const P=pieces();
  const {tube,path}=taperedTube([[0,0,0],[0,-.1,-.07],[.02,-.17,-.16],[.04,-.14,-.25],[.05,-.05,-.3],[.05,.04,-.28]],28,.016,.55);
  P.add(tube,null,(x,y,z)=>mix(C.skin,C.skinDark,-z/.3));
@@ -147,20 +165,59 @@ function buildTail(){
  return P.merge();
 }
 
-let shared=null;
-function geometry(){
- if(shared)return shared;
- const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6});
- const eye=new THREE.MeshStandardMaterial({color:0xffb040,emissive:0xff6010,emissiveIntensity:2.6,roughness:.25});
- shared={material,eye,body:buildBody(),head:buildHead(),eyes:buildEyes(),leg:buildLeg(),tail:buildTail(),arm:{'-1':buildArm(-1),'1':buildArm(1)},wing:{'-1':buildWing(-1),'1':buildWing(1)}};
- return shared;
+// A cluster of jagged glowing shards (5-sided cones) bursting out from a point along a direction.
+function shards(P,origin,dir,count,len,seed){
+ const o=new THREE.Vector3(...origin),d=new THREE.Vector3(...dir).normalize();
+ for(let i=0;i<count;i++){
+  const a=seed+i*2.39996,tilt=i?.45:.08,spread=new THREE.Vector3(Math.cos(a),Math.sin(a*1.3),Math.sin(a)).multiplyScalar(tilt);
+  const axis=d.clone().add(spread).normalize(),l=len*(i?.55+.2*Math.sin(a*3)**2:1),q=new THREE.Quaternion().setFromUnitVectors(UP,axis);
+  P.add(new THREE.ConeGeometry(l*.22,l,5),new THREE.Matrix4().compose(o.clone().addScaledVector(axis,l*.42),q,new THREE.Vector3(1,1,1)),[1,1,1]);
+ }
+}
+// The uranium imp's glowing body parts: shard clusters out of the shoulder blades, a row of
+// shards down the spine, and thin cracked veins over the chest and belly.
+function buildBodyGlow(){
+ const P=pieces();
+ for(const s of [-1,1])shards(P,[s*.055,.6,-.07],[s*.5,.7,-.6],3,.09,s>0?1.1:2.7);
+ for(let i=0;i<4;i++)shards(P,[0,.47+i*.04,-.068],[0,.25,-1],1,.035+i*.008,i);
+ const vein=(pts,r)=>{const {tube}=taperedTube(pts,10,r,.7,4);P.add(tube,null,[1,1,1]);};
+ vein([[0,.62,.07],[.02,.58,.09],[-.01,.53,.096],[.015,.48,.075],[0,.42,.065]],.0045);
+ for(const s of [-1,1]){
+  vein([[s*.01,.57,.093],[s*.045,.555,.085],[s*.07,.59,.065],[s*.095,.6,.04]],.0035);
+  vein([[s*.008,.49,.075],[s*.04,.465,.06],[s*.05,.43,.05]],.003);
+ }
+ return P.merge();
+}
+// The uranium imp's glowing head parts: the eyes, a glow leaking through the grin, and two
+// jagged ore horns sweeping up and back from the brow.
+function buildHeadGlow(){
+ const P=pieces();
+ for(const s of [-1,1])P.add(new THREE.SphereGeometry(.012,8,6),at(s*.027,.064,.066,[0,0,s*-.4],[1.5,.7,.8]),[1,1,1]);
+ P.add(new THREE.TorusGeometry(.03,.004,4,10,Math.PI),at(.004,.014,.064,[Math.PI+.4,0,.08],[1,.4,1]),[1,1,1]);
+ for(const s of [-1,1]){shards(P,[s*.03,.11,.02],[s*.35,1,-.5],3,.13,s>0?.4:3.3);}
+ return P.merge();
+}
+
+const VARIANTS={
+ red:{palette:RED,eye:{color:0xffb040,emissive:0xff6010,emissiveIntensity:2.6}},
+ uranium:{palette:URANIUM,eye:{color:0xc8ff70,emissive:0x5cff18,emissiveIntensity:1.9}},
+};
+const shared={};
+function geometry(kind){
+ if(shared[kind])return shared[kind];
+ const {palette:C,eye}=VARIANTS[kind];
+ const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:C.ore?.7:.6});
+ const glow=new THREE.MeshStandardMaterial({...eye,roughness:.25});
+ return shared[kind]={material,eye:glow,body:buildBody(C),head:buildHead(C),eyes:C.ore?buildHeadGlow():buildEyes(),bodyGlow:C.ore?buildBodyGlow():null,
+  leg:buildLeg(C),tail:buildTail(C),arm:{'-1':buildArm(C,-1),'1':buildArm(C,1)},wing:{'-1':buildWing(C,-1),'1':buildWing(C,1)}};
 }
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
-export function createImp(){
- const S=geometry();
+export function createImp(kind='red'){
+ const S=geometry(kind);
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
  mesh(body,S.body,S.material,'body');
+ if(S.bodyGlow)mesh(body,S.bodyGlow,S.eye,'glow');
  const head=new THREE.Group();head.position.set(0,.7,.03);body.add(head);
  mesh(head,S.head,S.material,'head');mesh(head,S.eyes,S.eye,'eyes');
  const legs=[],arms=[],wings=[];
