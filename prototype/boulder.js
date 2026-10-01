@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // A boulder for the `0` object: one weathered granite mass that fills most of its
 // tile. An icosphere is sheared by a few fracture planes (flat broken faces with
@@ -6,45 +7,81 @@ import * as THREE from 'three';
 // Vertex colours bake the weathering: speckled grain, darker fracture faces, a pale
 // quartz seam, grime and damp near the floor, dust on the top and moss on the
 // shaded side. A few spalled chips and grit lie around it on a soft contact shadow.
+// Two draws: the baked stone and the shadow.
 // `seed` varies the shape per tile; the same seed always gives the same stone.
 export function createBoulder(seed=1){
  const g=new THREE.Group();g.name='Boulder';
  const geometries=[],materials=[];
  const rand=rng(seed||1);
  const mat=(o)=>{const m=new THREE.MeshStandardMaterial(o);materials.push(m);return m;};
- const add=(geo,m,x=0,y=0,z=0)=>{geometries.push(geo);const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;g.add(o);return o;};
+ const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),p=new THREE.Vector3(),s=new THREE.Vector3();
+ // Nothing on a boulder moves, so the mass, chips and grit are placed in their geometry and
+ // baked into one vertex-coloured stone mesh: 2 draws with the shadow, not 9.
+ const parts=[];
+ const place=(geo,x,y,z,ry,rx=0,rz=0,sx=1,sy=1,sz=1)=>{
+  geo.applyMatrix4(m4.compose(p.set(x,y,z),q.setFromEuler(e.set(rx,ry,rz)),s.set(sx,sy,sz)));
+  geo.deleteAttribute('uv');parts.push(geo);return geo;
+ };
 
  const stone=mat({vertexColors:true,roughness:.94,flatShading:true});
- const mass=add(rockGeometry(rand,{radius:.31,detail:4,planes:5,sx:1.05,sy:.8,sz:1.1,base:.26,seam:true,moss:true}),stone);
- mass.rotation.y=rand()*Math.PI*2;
- mass.userData.part='mass';
+ place(rockGeometry(rand,{radius:.31,detail:4,planes:5,sx:1.05,sy:.8,sz:1.1,base:.26,seam:true,moss:true}),0,0,0,rand()*Math.PI*2);
 
  // Spalled chips and grit that have broken off and settled round the foot.
  const chipCount=3+Math.floor(rand()*2);
  for(let i=0;i<chipCount;i++){
   const a=rand()*Math.PI*2,d=.33+rand()*.07,r=.035+rand()*.03;
-  const chip=add(rockGeometry(rand,{radius:r,detail:1,planes:3,sx:1.2,sy:.6,sz:1,base:.5}),stone,Math.cos(a)*d,0,Math.sin(a)*d);
-  chip.rotation.y=rand()*Math.PI*2;
+  const chip=rockGeometry(rand,{radius:r,detail:1,planes:3,sx:1.2,sy:.6,sz:1,base:.5});
+  place(chip,Math.cos(a)*d,0,Math.sin(a)*d,rand()*Math.PI*2);
  }
- const gritMat=mat({color:0x5e5a53,roughness:1,flatShading:true});
- const grit=new THREE.TetrahedronGeometry(.012,0);geometries.push(grit);
- const gritMesh=new THREE.InstancedMesh(grit,gritMat,14);gritMesh.receiveShadow=true;
- const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),p=new THREE.Vector3(),s=new THREE.Vector3();
+ // Grit: each grain its own shade of the granite, some dark flecks, some pale felspar.
+ const gritTones=[0x5e5a53,0x6e6960,0x4a4743,0x857b70,0x3a3835],c=new THREE.Color();
  for(let i=0;i<14;i++){
   const a=rand()*Math.PI*2,d=.3+rand()*.13,k=.6+rand()*.9;
-  e.set(rand()*6,rand()*6,rand()*6);q.setFromEuler(e);p.set(Math.cos(a)*d,.012*k,Math.sin(a)*d);s.set(k,k*.6,k);
-  gritMesh.setMatrixAt(i,m4.compose(p,q,s));
+  const grain=new THREE.TetrahedronGeometry(.012,0);
+  c.set(gritTones[Math.floor(rand()*gritTones.length)]);
+  const col=new Float32Array(grain.attributes.position.count*3);for(let j=0;j<col.length;j+=3)c.toArray(col,j);
+  grain.setAttribute('color',new THREE.BufferAttribute(col,3));
+  place(grain,Math.cos(a)*d,.012*k,Math.sin(a)*d,rand()*6,rand()*6,rand()*6,k,k*.6,k);
  }
- g.add(gritMesh);
+ const merged=mergeGeometries(parts);parts.forEach(x=>x.dispose());
+ merged.computeBoundingBox();merged.computeBoundingSphere();geometries.push(merged);
+ const mass=new THREE.Mesh(merged,stone);mass.castShadow=mass.receiveShadow=true;mass.userData.part='mass';g.add(mass);
 
- // Contact shadow: a dark core under the stone fading out in two rings.
- for(const [r,o] of [[.4,.22],[.33,.3],[.26,.4]]){
-  const shadowMat=new THREE.MeshBasicMaterial({color:0x0e1112,transparent:true,opacity:o,depthWrite:false});materials.push(shadowMat);
-  const disc=add(new THREE.CircleGeometry(r,28),shadowMat,0,.002,0);disc.rotation.x=-Math.PI/2;disc.castShadow=disc.receiveShadow=false;disc.renderOrder=-1;
- }
+ // Contact shadow: one disc whose vertex alpha is darkest under the stone and fades smoothly
+ // to nothing past its edge (it was three stacked discs, stepped at each rim).
+ const shadowMat=new THREE.MeshBasicMaterial({color:0xffffff,vertexColors:true,transparent:true,depthWrite:false});materials.push(shadowMat);
+ const shadowGeo=contactShadowGeometry(.44,rand);geometries.push(shadowGeo);
+ const shadow=new THREE.Mesh(shadowGeo,shadowMat);shadow.position.y=.002;shadow.renderOrder=-1;shadow.userData.part='shadow';g.add(shadow);
 
  g.userData.dispose=()=>{geometries.forEach(x=>x.dispose());materials.forEach(x=>x.dispose());};
  return g;
+}
+
+// A flat disc in the floor plane (y=0) with RGBA vertex colours: near-black, alpha .66 out
+// to .2 of its radius, then easing to 0 at the rim. The rim wobbles a little so the shadow
+// isn't a perfect circle.
+function contactShadowGeometry(radius,rand){
+ const rings=8,seg=40,pos=[],col=[],idx=[];
+ const wob=[rand()*6,rand()*6],ease=t=>t*t*(3-2*t);
+ pos.push(0,0,0);col.push(.055,.066,.07,.66);
+ for(let r=1;r<=rings;r++){
+  const t=r/rings,alpha=.66*(1-ease(Math.max(0,(t-.45)/.55)));
+  for(let i=0;i<seg;i++){
+   const a=i/seg*Math.PI*2,k=radius*t*(1+.05*t*Math.sin(a*2+wob[0])+.03*t*Math.sin(a*3+wob[1]));
+   pos.push(Math.cos(a)*k,0,Math.sin(a)*k);col.push(.055,.066,.07,alpha);
+  }
+ }
+ for(let i=0;i<seg;i++)idx.push(0,1+(i+1)%seg,1+i);
+ for(let r=1;r<rings;r++)for(let i=0;i<seg;i++){
+  const a=1+(r-1)*seg+i,b=1+(r-1)*seg+(i+1)%seg,c=a+seg,d=b+seg;
+  idx.push(a,b,c,b,d,c);
+ }
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+ geo.setAttribute('normal',new THREE.Float32BufferAttribute(new Array(pos.length/3).fill([0,1,0]).flat(),3));
+ geo.setAttribute('color',new THREE.Float32BufferAttribute(col,4));
+ geo.setIndex(idx);geo.computeBoundingSphere();
+ return geo;
 }
 
 // A carried boulder (the stone giant's): the same weathered granite, fractured on all
