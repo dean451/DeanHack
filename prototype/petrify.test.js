@@ -8,7 +8,7 @@ import {createActionQueue, enqueueAction, updateActions, clearActionPose, queueD
 import {applyStone, restoreStone, createPetrify, stoneAt, STONE} from './petrify.js';
 
 // A live winged, glowing angel: an 'A' in grey (the bridge's symbol and colour). The dark Angel
-// still uses the generic angel; the weeping angel is now a stone statue with no glow or wing beat.
+// is the fallen variant of the angel model; the weeping angel is a stone statue with no glow or wing beat.
 const A = 'A'.charCodeAt(0), GRAY = 7;
 function angel() { const a = createCreature({name: 'dark angel', symbol: A, color: GRAY}); a.species = 'dark angel'; return a; }
 const meshes = g => { const out = []; g.traverse(o => { if (o.isMesh) out.push(o); }); return out; };
