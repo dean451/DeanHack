@@ -38,3 +38,15 @@ test('a halberd has its own forged head, merged to one mesh per material',()=>{
  assert(halberd.children.find(c=>c.userData.part==='blade').material.metalness>=.75,'weapon-magic sheathes the blade');
  halberd.userData.dispose();
 });
+
+test('a trident has three barbed tines, merged to one mesh per material',()=>{
+ const trident=createHeldWeapon({name:'trident',class:2});
+ assert.deepEqual(trident.children.map(c=>c.userData.part).sort(),['grip','haft','head','tines']);
+ const s=size(trident);
+ assert(s.y>1.6&&s.y<1.85,`length ${s.y}`);
+ const b=new THREE.Box3().setFromObject(trident);
+ assert(b.max.x>.17&&b.min.x<-.17,'the outer tines splay out past the haft');
+ for(const m of trident.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));}
+ assert(trident.children.find(c=>c.userData.part==='tines').material.metalness>=.75,'weapon-magic sheathes the tines');
+ trident.userData.dispose();
+});
