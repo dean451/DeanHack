@@ -26,6 +26,12 @@ import {segment,chain} from './ant.js';
 // - warg: a huge, heavy dark wolf with a big ruff, raised hackles and glowing red eyes.
 // - hell hounds: charred black-red hide split by glowing ember cracks, an ember belly, flame
 //   tongues (below) and ember eyes.
+// - dingo: ginger with cream socks, chest and belly and a pale tail tip; short-coated, alert ears.
+// - werewolf: a heavy brown-black grizzled wolf with a ruff, hackles, big fangs and burning
+//   amber eyes.
+// - winter wolf cub, winter wolf: a frost-white wolf with a blue-grey saddle, hoarfrost glinting
+//   through the coat, a crest of ice-crystal hackles (the adult), icicles hanging from the belly
+//   fur, the ruff and the chin, and pale ice-blue glowing eyes.
 // - any other 'd' gets the jackal's build in the glyph colour.
 // One vertex-coloured fur material and one eye material per look. The body, head, eyes, each
 // leg and the tail are one mesh each: 8 draws (plus 13 flames on a hell hound). Geometry is
@@ -50,6 +56,10 @@ const LOOKS={
  'little dog':{pet:true,scale:.72,coat:'#ece4d4',saddle:'#ddd2bf',belly:'#faf5ea',tip:'#faf5ea',mark:'#a8683a',eye:'#2a1a10',ears:.12,earStyle:'floppy',snout:.13,legH:.22,bushy:.018,tail:'up',tailLen:.8,pattern:'patches',eyePatch:true,collar:'#c0392b',grizzle:.03},
  dog:{pet:true,scale:.95,coat:'#c8914f',saddle:'#9a6a36',belly:'#f0dcb8',tip:'#d9ae72',socks:'#e8cfa4',eye:'#3a2414',ears:.12,earStyle:'folded',snout:.16,legH:.28,bushy:.026,tail:'up',pattern:'plain',collar:'#2e6ab0',grizzle:.04},
  'large dog':{pet:true,scale:1.18,coat:'#b27a3e',saddle:'#2a2320',belly:'#d9b27a',tip:'#2a2320',socks:'#c89660',muzzle:'#2a2320',eye:'#3a2414',ears:.16,snout:.19,legH:.32,bushy:.034,tail:'up',tailLen:1.1,pattern:'saddle',fleck:false,collar:'#6a3a1e',grizzle:.05},
+ dingo:{scale:1,coat:'#c98a46',saddle:'#a86a30',belly:'#f0e2c4',tip:'#f4ead8',socks:'#eee0c4',eye:'#b07a28',ears:.15,snout:.19,legH:.31,bushy:.04,pattern:'plain',grizzle:.06},
+ werewolf:{scale:1.25,coat:'#6e5c48',saddle:'#2a211a',belly:'#a08c72',tip:'#1c1612',eye:'#ffaa18',glow:1.4,ears:.15,snout:.21,legH:.34,bushy:.055,heavy:1.15,ruff:1.25,hackles:true,fangs:1.45,mask:true,pattern:'grizzle',grizzle:.36},
+ 'winter wolf cub':{scale:.88,coat:'#dbe4ea',saddle:'#94abbc',belly:'#f5f9fc',tip:'#a6c6dc',eye:'#8adcff',glow:1.2,ears:.15,snout:.17,legH:.27,bushy:.05,ruff:.9,mask:true,pattern:'frost',grizzle:.1,frost:.6},
+ 'winter wolf':{scale:1.35,coat:'#d4dee5',saddle:'#86a0b3',belly:'#f3f8fb',tip:'#98bed8',eye:'#7fd8ff',glow:1.8,ears:.14,snout:.21,legH:.35,bushy:.06,heavy:1.12,ruff:1.4,hackles:true,fangs:1.4,mask:true,pattern:'frost',grizzle:.12,frost:1},
  'hell hound pup':{scale:.85,coat:'#2a120e',saddle:'#120605',belly:'#e0602a',tip:'#ff7a2a',ember:'#ff5a14',eye:'#ffc050',ears:.13,snout:.17,legH:.26,hackles:true,fangs:1.2,tail:'raised',pattern:'char',fire:true},
  'hell hound':{scale:1.3,coat:'#2a120e',saddle:'#120605',belly:'#e0602a',tip:'#ff7a2a',ember:'#ff5a14',eye:'#ffc050',ears:.14,snout:.2,legH:.34,heavy:1.1,hackles:true,fangs:1.4,tail:'raised',pattern:'char',fire:true},
 };
@@ -57,7 +67,9 @@ const LOOKS={
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
 const clamp01=v=>v<0?0:v>1?1:v;
 const smooth=v=>{v=clamp01(v);return v*v*(3-2*v);};
-const WHITE=[1,1,1],BLACK=[0,0,0];
+const WHITE=[1,1,1],BLACK=[0,0,0],ICE=rgb('#d8f4ff'),ICE_DEEP=rgb('#7cc4ec');
+// an icicle colour: clear ice-white at the root, deepening to blue toward the point
+const icicle=(top,h)=>(x,y,z)=>mix(ICE,ICE_DEEP,smooth((top-y)/h));
 // big soft-edged blotches (the little dog's tan patches), from a few crossed sine waves
 const patch=(x,y,z)=>smooth((Math.sin(x*17+1.3)*Math.sin(z*13+.4)+Math.sin(y*19+z*6)*.45-.55)/.12);
 
@@ -84,6 +96,8 @@ function spike(P,base,dir,r,h,colour,radial=4){
 // and, on a hell hound, glowing ember cracks through the charred hide.
 function fur(L,C,c,x,y,z){
  if(L.grizzle){const n=hash(x*913.1+y*577.3+z*311.7);c=n>.5?mix(c,WHITE,(n-.5)*2*L.grizzle):mix(c,BLACK,(.5-n)*2*L.grizzle*.8);}
+ // hoarfrost: scattered glints of pale ice-blue rime through the coat
+ if(L.frost){const n=hash(x*271.3+y*839.9+z*467.1);if(n>.84)c=mix(c,ICE,(.45+.5*(n-.84)/.16)*L.frost);}
  if(L.pattern==='char'){
   const a=Math.abs(Math.sin(z*52+Math.sin(y*34+x*26)*1.8)),b=Math.abs(Math.sin(x*48-y*40+Math.sin(z*30)*1.5));
   if(a<.1&&Math.sin(x*37+y*23+z*11)>-.3)c=mix(c,C.ember,1-a/.1);
@@ -153,7 +167,19 @@ function buildBody(L,C){
  // hackles: a raised crest of coarse tufts along the spine
  if(L.hackles)for(let i=0;i<9;i++){
   const z=.2-i*.045,top=L.Y+.095+.012*(z/.3)-.004;
-  spike(P,[(i%2?.008:-.008),top,z],[(i%2?.25:-.25),1,-.7],.016,.045+.015*hash(i+4),(x,y,zz)=>mix(C.saddle,L.fire?C.ember:C.coat,smooth((y-top-.02)/.02)),4);
+  spike(P,[(i%2?.008:-.008),top,z],[(i%2?.25:-.25),1,-.7],.016,.045+.015*hash(i+4),(x,y,zz)=>mix(C.saddle,L.fire?C.ember:L.frost?ICE:C.coat,smooth((y-top-.02)/.02)),4);
+ }
+ // icicles frozen into the fur: a fringe along each flank of the belly and under the ruff
+ if(L.frost){
+  const k=L.frost;
+  for(let i=0;i<7;i++)for(const s of [-1,1]){
+   const z=-.15+i*.05+s*.008,top=L.Y-.07+.02*Math.max(0,z/.3),h=(.025+.03*hash(i*3+s))*k*bw;
+   spike(P,[s*.05*bw,top,z],[s*.12,-1,0],.007*bw,h,icicle(top,h),5);
+  }
+  for(let i=0;i<5;i++){
+   const x=(i-2)*.024*bw,top=L.Y+.07-.01*Math.abs(i-2),z=.27,h=(.03+.02*hash(i+11))*k*bw;
+   spike(P,[x,top,z],[x,-1,.15],.008*bw,h,icicle(top,h),5);
+  }
  }
  return P.merge();
 }
@@ -199,6 +225,11 @@ function buildHead(L,C){
  }else{
   const f=L.fangs||1;
   for(const s of [-1,1])spike(P,[s*.014,tipY-.022,tipZ-.03],[0,-1,.15],.0045*f,.018*f,tooth,5);
+ }
+ // a beard of small icicles under the chin
+ if(L.frost)for(let i=-1;i<=1;i++){
+  const top=-.062,z=.11+.012*(1-Math.abs(i)),h=(.022+.008*(1-Math.abs(i)))*L.frost;
+  spike(P,[i*.014,top,z],[i*.15,-1,.1],.005,h,icicle(top,h),5);
  }
  // eyes' pupils (the eyes are their own mesh)
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.009,8,6),at(s*.042,.031,.126,[0,0,0],[1,1,.5]),rgb('#060505'));
