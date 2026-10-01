@@ -2466,7 +2466,7 @@ export function createCreature(cell={}){
  if(SEA_MONSTERS[name])return seaMonster(SEA_MONSTERS[name]);
  if(name==='hezrou')return createHezrou();
  if(DEMONS[name])return demon(DEMONS[name]);
- if(RIDERS[name])return wraith(RIDERS[name]);
+ if(RIDERS[name])return wraith({...RIDERS[name],kind:name});
  if(name==='juiblex')return createJuiblex();
  if(GHOSTS.includes(name))return createGhost(name);
  if(name==='couatl')return createCouatl();

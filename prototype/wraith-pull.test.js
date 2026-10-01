@@ -12,9 +12,9 @@ const finite = p => p.geometry.attributes.position.array.every(Number.isFinite) 
 const pose = a => [...a.body.rotation.toArray().slice(0, 3), ...a.head.rotation.toArray().slice(0, 3),
   ...a.arms.flatMap(m => m.rotation.toArray().slice(0, 3)), ...a.claws.flat().map(k => k.rotation.x), ...a.wraithPull.eyes.scale.toArray()];
 
-test('wraiths, barrow wights and Nazgul pull; ghosts, liches and riders do not', () => {
-  for (const name of ['wraith', 'barrow wight', 'nazgul']) {
-    const a = mon(name, 'W');
+test('wraiths, barrow wights, Nazgul and the Riders pull; ghosts and liches do not', () => {
+  for (const [name, s] of [['wraith', 'W'], ['barrow wight', 'W'], ['nazgul', 'W'], ['death', '&'], ['famine', '&'], ['pestilence', '&']]) {
+    const a = mon(name, s);
     assert.equal(a.wraith, name);
     assert.equal(a.claws.length, 2);
     assert.equal(a.claws[0].length, 3);
@@ -22,7 +22,7 @@ test('wraiths, barrow wights and Nazgul pull; ghosts, liches and riders do not',
     assert.ok(st?.eyes?.isGroup, name);
     assert.ok(st.eyes.children.length >= 1, name);
   }
-  for (const [name, s] of [['ghost', ' '], ['lich', 'L'], ['Death', '&']]) assert.equal(W.updateWraithPull(mon(name, s), dt, 0, false), null, name);
+  for (const [name, s] of [['ghost', ' '], ['lich', 'L']]) assert.equal(W.updateWraithPull(mon(name, s), dt, 0, false), null, name);
 });
 
 test('poses stay in bounds and end at zero', () => {
@@ -99,4 +99,48 @@ test('two wraiths are out of step, and the looks differ', () => {
   assert.notEqual(a.body.rotation.z, b.body.rotation.z);
   assert.notDeepEqual(W.LOOKS.nazgul.smoke, W.LOOKS.wraith.smoke);
   assert.ok(W.LOOKS['barrow wight'].alpha < W.LOOKS.wraith.alpha);
+});
+
+test('each Rider has its own gait and colours, and rests exactly after death', () => {
+  const hero = new THREE.Vector3(1.5, 0, 2);
+  const run = name => {
+    const a = mon(name, '&');
+    a.g.position.set(0, 0, 0);
+    updateFidget(a, 0, 0, false, hero);
+    const st = a.wraithPull;
+    let t = 0, pulls = 0, was = false, twitches = 0, roll = 0, hunch = 0, mote = 0, smoke = 0;
+    let prev = a.claws[0].map(k => k.rotation.x);
+    for (let i = 0; i < 60 * 40; i++) {
+      t += dt; updateFidget(a, dt, t, false, hero);
+      if (st.pull && !was) pulls++;
+      was = !!st.pull;
+      assert.ok(pose(a).every(Number.isFinite) && finite(st.smoke) && finite(st.motes), name);
+      const now = a.claws[0].map(k => k.rotation.x);
+      if (!st.pull && now.some((v, k) => Math.abs(v - prev[k]) > .02)) twitches++;
+      prev = now;
+      if (!st.pull) roll = Math.max(roll, Math.abs(a.body.rotation.z - st.body.z));
+      assert.ok(Math.abs(a.body.rotation.z - st.body.z) < .2, name);
+      if (!st.pull) hunch = Math.max(hunch, a.body.rotation.x - st.body.x);
+      mote = Math.max(mote, ...alphas(st.motes));
+      smoke = Math.max(smoke, ...alphas(st.smoke).slice(0, W.SMOKE));
+      assert.ok(Math.abs(a.body.rotation.x - st.body.x) < .45, name);
+    }
+    assert.ok(pulls >= 2 && mote > .5 && smoke > .1, `${name} pulls (${pulls}, ${mote}, ${smoke})`);
+    a.actions = {current: null, dead: true, queue: []};
+    for (let i = 0; i < 60 * 8; i++) updateFidget(a, dt, t += dt, false, hero);
+    assert.equal(a.body.rotation.x, st.body.x);
+    assert.equal(a.body.rotation.z, st.body.z);
+    a.arms.forEach((m, i) => assert.equal(m.rotation.x, st.arms[i].x));
+    st.fingers.flat().forEach(f => assert.equal(f.k.rotation.x, f.x));
+    assert.equal(Math.max(...alphas(st.smoke), ...alphas(st.motes)), 0);
+    return {st, twitches, roll, hunch};
+  };
+  const d = run('death'), f = run('famine'), p = run('pestilence');
+  assert.equal(d.st.look, W.LOOKS.death);
+  assert.equal(f.st.look, W.LOOKS.famine);
+  assert.equal(p.st.look, W.LOOKS.pestilence);
+  assert.ok(f.twitches > 2 * d.twitches, `Famine is restless, Death patient (${f.twitches} vs ${d.twitches})`);
+  assert.ok(p.roll > 1.8 * d.roll, `Pestilence lurches (${p.roll} vs ${d.roll})`);
+  assert.ok(f.hunch > 2.5 * d.hunch, `Famine stoops (${f.hunch} vs ${d.hunch})`);
+  assert.ok(W.LOOKS.pestilence.alpha > W.LOOKS.death.alpha);
 });
