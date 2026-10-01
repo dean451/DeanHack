@@ -1555,3 +1555,21 @@ test('the cobra spreads a ribbed hood with a spectacle mark on its own foldable 
  assert(b.max.x-b.min.x>.3,`hood spreads ${b.max.x-b.min.x} wide`);assert(b.min.y>.15&&b.max.y<.5,`hood from ${b.min.y} to ${b.max.y}`);
  c.hood.scale.x=.3;c.g.updateMatrixWorld(true);const f=new THREE.Box3().setFromObject(c.hood);assert(f.max.x-f.min.x<.12,'folds flat against the neck');
 });
+
+test('snakes get a sculpted head with a hinged lower jaw, slit-eyed vipers with heat pits and fangs',()=>{
+ const counts=name=>{const a=createCreature({name,symbol:83,color:3});let draws=0;a.g.traverse(o=>{if(o.isMesh){draws++;for(const v of o.geometry.attributes.position.array)assert(Number.isFinite(v),name);}});return {a,draws};};
+ for(const name of ['garter snake','snake','water moccasin','pit viper','python','cobra']){
+  const {a,draws}=counts(name);assert(a.jaw?.isObject3D,`${name} jaw handle`);assert.equal(a.jaw.parent,a.hood?.parent??a.jaw.parent);
+  assert(draws<=(a.hood?6:5),`${name}: ${draws} draws`);
+  const head=a.jaw.parent,skull=head.children.find(m=>m.userData.part==='skull');assert(skull?.material.vertexColors,name);
+  // the cobra animation finds the tongue by where it sits in the head
+  assert(head.children.some(m=>m.isMesh&&Math.abs(m.position.z-.12)<.01&&Math.abs(m.position.y+.01)<.01),`${name} tongue`);
+  a.g.updateMatrixWorld(true);const shut=new THREE.Box3().setFromObject(a.jaw);a.jaw.rotation.x=.6;a.g.updateMatrixWorld(true);
+  const open=new THREE.Box3().setFromObject(a.jaw);assert(open.min.y<shut.min.y-.04,`${name} jaw gapes`);
+ }
+ // the vipers' arrowhead jowls are broader than the garter snake's narrow head (relative to scale)
+ const w=name=>{const a=createCreature({name,symbol:83,color:3});const s=a.jaw.parent.children.find(m=>m.userData.part==='skull').geometry;s.computeBoundingBox();return s.boundingBox;};
+ assert(w('pit viper').max.z-w('pit viper').min.z>.15);
+ const fangs=name=>{const c=createCreature({name,symbol:83,color:3}).jaw.parent.children.find(m=>m.userData.part==='skull').geometry.attributes.color.array;const f=new THREE.Color('#ece4cc');let n=0;for(let i=0;i<c.length;i+=3)if(Math.abs(c[i]-f.r)+Math.abs(c[i+1]-f.g)+Math.abs(c[i+2]-f.b)<.01)n++;return n;};
+ assert(fangs('pit viper')>20,'viper fangs');assert.equal(fangs('python'),0,'no fangs on the python');
+});
