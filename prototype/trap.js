@@ -11,7 +11,8 @@ import {sigilAnimator} from './sigil-fx.js';
 // teleport trap) apart, arrow and dart traps from the bear trap (all cyan), and the squeaky
 // board from the trap door (both brown), the sleeping gas trap from the magic trap (both
 // bright blue), the rolling boulder trap and the statue trap from the falling rock trap (all
-// grey), and the anti-magic field from the magic trap (both bright blue).
+// grey), the anti-magic field from the magic trap (both bright blue), and a dug hole from the
+// trap door (both brown).
 export function trapKind(symbol,color,name){
  if(name==='vibrating square')return 'vibrating';
  if(name==='arrow trap')return 'arrow';
@@ -21,6 +22,7 @@ export function trapKind(symbol,color,name){
  if(name==='rolling boulder trap')return 'rolling';
  if(name==='anti-magic field')return 'antimagic';
  if(name==='statue trap')return 'statue';
+ if(name==='hole')return 'hole';
  if(symbol===34)return 'web';            // '"'
  if(symbol!==94)return null;             // '^'
  return {0:'pit',1:'mine',3:'hatch',4:'rust',6:'jaws',7:'rubble',9:'fire',
@@ -139,7 +141,7 @@ export function createTrap(kind,seed=0){
   add(mergeGeometries(parts),mat({color:0xffffff,vertexColors:true,roughness:.93})).name='pit-rim';
   parts.forEach(p=>p.dispose());
  }else if(kind==='hatch'){
-  // Trap door / hole (and a squeaky board when the bridge sends no name): a heavy door of warped, rotting planks in an iron-bound
+  // Trap door (and a hole or a squeaky board when the bridge sends no name): a heavy door of warped, rotting planks in an iron-bound
   // frame, left ajar. Its free edge has lifted off the frame on a black gap, and bony fingers
   // with long claws have curled out from under it over the beam, leaving a smear of blood.
   // Barbed strap hinges, studs and a rusted pull ring hold it together. Three merged,
@@ -212,6 +214,98 @@ export function createTrap(kind,seed=0){
   }
   const iron=add(mergeGeometries(irons),mat({color:0xffffff,vertexColors:true,metalness:.6,roughness:.55}));iron.name='hatch-iron';
   for(const p of [...woody,...irons])p.dispose();
+ }else if(kind==='hole'){
+  // Hole: a shaft dug clean through the floor. The flat mouth is painted in false perspective:
+  // from the play camera (up at +x+z) the far inner wall shows as bands of earth and rock
+  // sinking into black, while the near lip drops straight away. Cracks run out across the
+  // floor, flagstones have snapped off at the edge and one has slid in, wedged nose-down in
+  // the shaft. An iron spike is driven in at the lip with a rope knotted to it that runs over
+  // the edge into the dark, and two dragged streaks of blood end at the drop. Two merged,
+  // vertex-coloured meshes: the flat mouth, cracks and streaks (no shadow), and everything standing.
+  const noise=(x,z)=>{const s=Math.sin(x*127.1+z*311.7+seed*7.3)*43758.5453;return s-Math.floor(s);};
+  const black=new THREE.Color(0x030303),c=new THREE.Color();
+  const N=48,K=12,reach=[];
+  for(let i=0;i<N;i++)reach.push(.24+rand(i+1300)*.035+(i%5===0?.025*rand(i+1310):0));
+  const R=(a)=>{const f=((a/(Math.PI*2))%1+1)%1*N,i=Math.floor(f),t=f-i;return reach[i%N]*(1-t)+reach[(i+1)%N]*t;};
+  // The bottom of the visible wall: the mouth shrunk and slid toward the camera.
+  const view=new THREE.Vector2(.566,.824),shift=.075,shrink=.7;
+  const wallAt=(x,z)=>{
+   const r=Math.hypot(x,z),a=Math.atan2(z,x),L=R(a);if(r<1e-6)return 1;
+   const ux=x/r,uz=z/r,cx=view.x*shift,cz=view.y*shift,uc=ux*cx+uz*cz,rho=L*shrink;
+   const inner=uc+Math.sqrt(Math.max(0,uc*uc-(cx*cx+cz*cz)+rho*rho));
+   return Math.min(1,Math.max(0,(L-r)/Math.max(.004,L-inner)));};
+  const strata=[0x4a3a28,0x2f251a,0x5a5550,0x3a2d1f,0x46413b,0x241b12].map(h=>new THREE.Color(h));
+  const mp=[],mc=[];
+  const push=(x,y,z,col)=>{mp.push(x,y,z);mc.push(col.r,col.g,col.b);};
+  const mouthAt=(k,i)=>{const a=i/N*Math.PI*2,r=R(a)*k/K,x=Math.cos(a)*r,z=Math.sin(a)*r,t=wallAt(x,z);
+   // Bands of earth and rock down the wall, a little wavy, swallowed by black with depth.
+   const band=Math.min(strata.length-1,Math.floor((t+.04*Math.sin(a*5+seed))*strata.length));
+   c.copy(strata[Math.max(0,band)]).lerp(black,.25*noise(x*40,z*40)).lerp(black,Math.min(1,t**1.3));
+   push(x,.004,z,c);};
+  for(let k=0;k<K;k++)for(let i=0;i<N;i++){mouthAt(k,i);mouthAt(k+1,i+1);mouthAt(k+1,i);if(k){mouthAt(k,i);mouthAt(k,i+1);mouthAt(k+1,i+1);}}
+  // A flat strip between floor points: a crack (tapered) or a streak.
+  const strip=(pts,w,taper,col,y=.0045)=>{
+   const L=[],Rr=[];
+   for(let i=0;i<pts.length;i++){
+    const p=pts[i],q=pts[Math.min(pts.length-1,i+1)],o=pts[Math.max(0,i-1)];
+    let dx=q[0]-o[0],dz=q[1]-o[1];const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;
+    const ww=w*(taper?Math.max(.1,1-i/(pts.length-1)):1);
+    L.push([p[0]-dz*ww,p[1]+dx*ww]);Rr.push([p[0]+dz*ww,p[1]-dx*ww]);
+   }
+   for(let i=0;i<pts.length-1;i++)for(const [x,z] of [L[i],L[i+1],Rr[i],Rr[i],L[i+1],Rr[i+1]])push(x,y,z,col);};
+  // Cracks running out from the lip, jagged, a few forking once.
+  const crackCol=new THREE.Color(0x0c0b0a);
+  for(let s=0;s<7;s++){
+   const a0=(s+rand(s+1320)*.6)/7*Math.PI*2,len=.08+rand(s+1330)*.1;
+   let a=a0,r=R(a0)-.005;const pts=[[Math.cos(a)*r,Math.sin(a)*r]];
+   for(let j=1;j<=6;j++){r=Math.min(.46,r+len/6);a+=(rand(s*9+j+1340)-.5)*.22;pts.push([Math.cos(a)*r,Math.sin(a)*r]);}
+   strip(pts,.0042,true,crackCol);
+   if(rand(s+1350)>.5){const [fx,fz]=pts[2],fa=Math.atan2(fz,fx)+(rand(s+1360)>.5?.5:-.5),fr=Math.hypot(fx,fz);
+    strip([[fx,fz],[Math.cos(fa)*(fr+.03),Math.sin(fa)*(fr+.03)],[Math.cos(fa+.1)*Math.min(.46,fr+.06),Math.sin(fa+.1)*Math.min(.46,fr+.06)]],.003,true,crackCol);}
+  }
+  // Two dragged streaks of old blood coming in from the tile edge and ending at the drop.
+  const dragA=Math.PI*1.15+(rand(1370)-.5)*.5,blood=new THREE.Color(0x3d0806),dried=new THREE.Color(0x24100c);
+  for(const off of [-.022,.022]){
+   const ca=Math.cos(dragA),sa=Math.sin(dragA),pts=[];
+   for(let j=0;j<=8;j++){const r=.45-j/8*(.45-R(dragA)+.01),w=(rand(j+1380+off*100)-.5)*.008;pts.push([ca*r-sa*(off+w),sa*r+ca*(off+w)]);}
+   for(let j=0;j<8;j++)strip([pts[j],pts[j+1]],.006*(.6+.4*j/8),false,c.copy(dried).lerp(blood,j/8),.0042);
+  }
+  const mouthGeo=new THREE.BufferGeometry();
+  mouthGeo.setAttribute('position',new THREE.Float32BufferAttribute(mp,3));
+  mouthGeo.setAttribute('normal',new THREE.Float32BufferAttribute(mp.map((_,i)=>i%3===1?1:0),3));
+  mouthGeo.setAttribute('color',new THREE.Float32BufferAttribute(mc,3));
+  const mouth=add(mouthGeo,mat({color:0xffffff,vertexColors:true,roughness:1}));mouth.castShadow=false;mouth.name='hole-mouth';
+  const parts=[];
+  // Snapped flagstones at the edge, tipped toward the drop and dark on the side facing it.
+  const slab=(col,x,y,z)=>{const r=Math.hypot(x,z);
+   col.set(0x6f716c).lerp(new THREE.Color(0x4c4e4a),.6*noise(x*60+y*20,z*60)).lerp(black,Math.min(1,Math.max(0,(.3-r)/.06))*.8);};
+  for(let i=0;i<8;i++){
+   const a=(i+rand(i+1390)*.6)/8*Math.PI*2;if(Math.abs(Math.atan2(Math.sin(a-dragA),Math.cos(a-dragA)))<.35)continue;
+   const r=Math.min(R(a)+.03+rand(i+1400)*.02,.37),w=.06+rand(i+1410)*.05,d=.045+rand(i+1420)*.03;
+   parts.push(bake(new THREE.BoxGeometry(w,.02,d),slab,{x:Math.cos(a)*r,y:.008,z:Math.sin(a)*r,ry:-a+Math.PI/2+(rand(i+1430)-.5)*.6,rx:-.18-rand(i+1440)*.3,rz:(rand(i+1450)-.5)*.25}));
+  }
+  // The flagstone that slid in: wedged nose-down against the far wall, its top edge just
+  // proud of the floor (the rest is hidden below the slab).
+  const wedgeA=Math.atan2(-view.y,-view.x)+(rand(1460)-.5)*.8,wr=R(wedgeA)-.06;
+  parts.push(bake(new THREE.BoxGeometry(.13,.022,.1),slab,{x:Math.cos(wedgeA)*wr,y:.004,z:Math.sin(wedgeA)*wr,ry:-wedgeA+Math.PI/2,rx:.62,rz:(rand(1470)-.5)*.3}));
+  // Grit and chips of stone round the edge.
+  for(let i=0;i<14;i++){const a=rand(i+1480)*Math.PI*2,r=Math.min(R(a)+.015+rand(i+1490)*.1,.43),s=.008+rand(i+1500)*.014;
+   parts.push(bake(new THREE.DodecahedronGeometry(s,0),(col,x,y,z)=>col.set(i%3?0x5d5f5a:0x3f3223).lerp(black,.3*noise(x*80,z*80)),{x:Math.cos(a)*r,y:s*.4,z:Math.sin(a)*r,rx:rand(i+1510)*3,ry:rand(i+1520)*3,sy:.6}));}
+  // The spike, hammered in at the lip on the near side, its head burred flat.
+  const pinA=wedgeA+Math.PI*.62,pr=R(pinA)+.05,px=Math.cos(pinA)*pr,pz=Math.sin(pinA)*pr;
+  const iron=(col,x,y,z)=>col.set(0x3c3f40).lerp(new THREE.Color(0x6b4128),.6*noise(x*90+y*60,z*90));
+  parts.push(bake(new THREE.CylinderGeometry(.006,.009,.05,6),iron,{x:px,y:.022,z:pz,rx:(rand(1530)-.5)*.3,rz:.2}));
+  parts.push(bake(new THREE.CylinderGeometry(.014,.012,.008,8),iron,{x:px-.005,y:.048,z:pz}));
+  parts.push(bake(new THREE.TorusGeometry(.012,.003,5,12),iron,{x:px-.005,y:.04,z:pz,rx:Math.PI/2}));
+  // The rope: knotted round the spike, slack across the floor, then over the lip and down.
+  const ux=-Math.cos(pinA),uz=-Math.sin(pinA),lipR=R(pinA);
+  const rope=(col,x,y,z)=>col.set(0x8a7450).lerp(new THREE.Color(0x4e3d26),.5*noise(x*140+y*90,z*140)).lerp(black,Math.min(1,Math.max(0,-y/.04)));
+  const ropePts=[[0,.032],[.03,.008],[.06,.007],[pr-lipR,.008],[pr-lipR+.012,.002],[pr-lipR+.02,-.04]].map(([d,y],j)=>
+   new THREE.Vector3(px+ux*d+(j===2?-uz*.015:0),y,pz+uz*d+(j===2?ux*.015:0)));
+  parts.push(bake(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ropePts),20,.0045,5,false),rope));
+  parts.push(bake(new THREE.TorusGeometry(.011,.005,5,10),rope,{x:px,y:.032,z:pz,rx:Math.PI/2+.3}));
+  add(mergeGeometries(parts),mat({color:0xffffff,vertexColors:true,roughness:.93})).name='hole-rim';
+  parts.forEach(p=>p.dispose());
  }else if(kind==='arrow'||kind==='dart'){
   // Arrow and dart traps: a snarling stone mask squats at the back of the tile, horned and
   // spiked, slit eyes glowing, with arrowheads (or venom-tipped darts) bristling between its

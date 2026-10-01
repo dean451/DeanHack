@@ -5,7 +5,7 @@ import {createTrap,trapKind} from './trap.js';
 import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
 import {beatAt,flameAt,attachSigilFx,BEAT_EVERY,GLOW_REST} from './sigil-fx.js';
 
-const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','gas','mine','rubble','rolling','statue','antimagic','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
+const KINDS=['pit','hatch','hole','jaws','arrow','dart','squeaky','gas','mine','rubble','rolling','statue','antimagic','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
 test('magic portals get their own kind; teleporters keep the rune circle',()=>{
  assert.equal(trapKind(94,13),'portal');
@@ -256,6 +256,33 @@ test('the trap door is a warped plank hatch left ajar on a black gap, with bony 
   assert(bounds.min.y>=0,'nothing sinks below the slab');
   let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
   assert(vertices<12000,`hatch is ${vertices} vertices`);
+ }
+});
+
+test('a hole is a shaft through the floor: a false-perspective mouth, cracks, snapped stones and a rope over the lip, in two draws',()=>{
+ assert.equal(trapKind(94,3,'hole'),'hole');
+ assert.equal(trapKind(94,3,'trap door'),'hatch');
+ for(const seed of [0,3,7,11,42]){
+  const model=createTrap('hole',seed);
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.name).sort(),['hole-mouth','hole-rim']);
+  const by=Object.fromEntries(meshes.map(m=>[m.name,m]));
+  assert(!by['hole-mouth'].castShadow,'the flat mouth should not cast a shadow');
+  for(const m of meshes){assert(m.material.vertexColors);for(const v of m.geometry.attributes.color.array)assert(v>=0&&v<=1);}
+  // The mouth is flat, facing up, and black at its heart.
+  const mouth=by['hole-mouth'].geometry,pos=mouth.attributes.position,col=mouth.attributes.color;
+  for(let i=0;i<pos.count;i++)assert(Math.abs(pos.getY(i)-.004)<.001);
+  // The far wall (away from the camera at +x+z) shows earth; the near lip drops straight to black.
+  let far=0,near=0;
+  for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i),r=Math.hypot(x,z);if(r<.17||r>.21)continue;
+   const lum=col.getX(i)+col.getY(i)+col.getZ(i),side=(x*.566+z*.824)/r;
+   if(side<-.8)far=Math.max(far,lum);if(side>.8)near=Math.max(near,lum);}
+  assert(far>near+.1,`the far wall should show (${far} vs ${near})`);
+  const bounds=new THREE.Box3().setFromObject(model);
+  for(const v of [bounds.min.x,bounds.max.x,bounds.min.z,bounds.max.z])assert(Math.abs(v)<.48);
+  assert(bounds.max.y<.08,`a hole stands low (${bounds.max.y})`);
+  let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
+  assert(vertices<15000,`hole is ${vertices} vertices`);
  }
 });
 
