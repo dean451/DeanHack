@@ -53,6 +53,23 @@ static const char *terrain(int glyph) {
     if(c==S_ndoor || c==S_vodoor || c==S_hodoor) return "floor";
     return "feature";
 }
+/* get_bk_glyph() only knows floor, corridor, water, lava, ice, air and cloud, and calls
+   everything else S_room. So a throne, altar, stairs, sink, grave, fountain, tree or doorway
+   under the hero, a monster or an item read as bare floor and dropped out of the render.
+   Under an occupant, use what the hero remembers there when that is furniture, and on the
+   hero's own square what they stand on. Nothing here is more than the tty map or a ':' look
+   shows: an item lying on unseen furniture still hides it, as it does on the tty map. */
+static int under_glyph(int x,int y,int b) {
+    int m=levl[x][y].glyph,c;
+    if (b!=cmap_to_glyph(S_room)) return b;
+    if (x==u.ux && y==u.uy && !Blind && !u.uswallow && !Underwater) m=back_to_glyph(x,y);
+    if (!glyph_is_cmap(m)) return b;
+    c=glyph_to_cmap(m);
+    if (c==S_fountain || c==S_altar || c==S_throne || c==S_sink || c==S_grave ||
+        c==S_upstair || c==S_dnstair || c==S_upladder || c==S_dnladder ||
+        c==S_tree || c==S_deadtree || c==S_ndoor || c==S_vodoor || c==S_hodoor) return m;
+    return b;
+}
 static const char *object_kind(int glyph) {
     if (glyph_is_statue(glyph) || (glyph_is_object(glyph) && glyph_to_obj(glyph)==STATUE)) return "statue";
     if (glyph_is_body(glyph)) return "corpse";
@@ -331,7 +348,7 @@ static void frame(void) {
             (levl[x][y].wall_info & WM_MASK) > 2)
             levl[x][y].wall_info &= ~WM_MASK;
         mapglyph(g,&ch,&col,&special,x,y,0);
-        terrain_glyph = glyph_is_cmap(g) ? g : b;
+        terrain_glyph = glyph_is_cmap(g) ? g : under_glyph(x,y,b);
         printf("{\"x\":%d,\"z\":%d,\"glyph\":%d,\"symbol\":%d,\"color\":%d,\"visible\":%s,\"remembered\":%s,\"terrain\":",x,y,g,ch,col,cansee(x,y)?"true":"false",levl[x][y].seenv?"true":"false");quoted(terrain(terrain_glyph));
         /* Anonymous remembered presence, not physical invisibility of a
            monster legitimately perceived through see-invisible/telepathy. */
