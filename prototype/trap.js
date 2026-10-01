@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {fireTrapAnimator} from './fire-trap-fx.js';
+import {sigilAnimator} from './sigil-fx.js';
 
 // The bridge reports traps as generic `feature` cells, so the trap family comes
 // from the map symbol and its colour (drawing.c defsyms). Several traps share a
@@ -749,6 +750,8 @@ export function createTrap(kind,seed=0){
   const solidMat=kind==='ice'?mat({color:0xffffff,vertexColors:true,roughness:.15,metalness:.1,transparent:true,opacity:.82}):mat({color:0xffffff,vertexColors:true,roughness:.55});
   const solidMesh=add(mergeGeometries(solid),solidMat);solidMesh.name=kind==='ice'?'sigil-frost':'sigil-wax';
   solid.forEach(p=>p.dispose());
+  // The sigil beats and its candle flames gutter (sigil-fx.js).
+  g.userData.animate=sigilAnimator(g,seed);
  }else if(kind==='portal'){
   // Magic portal: a standing-stone arch around a swirling violet rift, over a
   // scorched rune circle. Only the portal uses bright magenta, so it gets its own model.

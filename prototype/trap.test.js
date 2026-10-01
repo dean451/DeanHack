@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createTrap,trapKind} from './trap.js';
 import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
+import {beatAt,flameAt,attachSigilFx,BEAT_EVERY,GLOW_REST} from './sigil-fx.js';
 
 const KINDS=['pit','hatch','jaws','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
@@ -315,5 +316,27 @@ test('the magic traps are a burning sigil with a staring eye, ringed by black ca
   let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
   assert(vertices<16000,`${kind} is ${vertices} vertices`);
   if(!seed)console.log(`${kind} sigil: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}`);
+ }
+});
+
+test('the sigil beats lub-dub and its candle flames are drawn toward the eye, gutter and come back',()=>{
+ // The beat: two throbs close together, then a long dim wait; continuous, and it catches the bloom only on the throbs.
+ let lo=Infinity,hi=-Infinity,bright=0,n=0;
+ for(let t=0;t<BEAT_EVERY*20;t+=1/120){const g=beatAt(t,.4).glow;assert(Number.isFinite(g));lo=Math.min(lo,g);hi=Math.max(hi,g);if(g>1.25)bright++;n++;
+  assert(Math.abs(beatAt(t+1/120,.4).glow-g)<.03,'the beat should not jump between frames');}
+ assert(Math.abs(lo-GLOW_REST)<.01&&hi>1.5&&hi<1.7,`beat ${lo}..${hi}`);
+ assert(bright/n>.05&&bright/n<.3,`over the bloom ${(bright/n*100).toFixed(0)}% of the time`);
+ let dips=0,prev=1;
+ for(let t=0;t<240;t+=1/30){const f=flameAt(t,3,.2);for(const v of Object.values(f))assert(Number.isFinite(v));if(f.bright<.6&&prev>=.6)dips++;prev=f.bright;}
+ assert(dips>=2&&dips<=30,`${dips} near-snuffs in 4 minutes`);
+ for(const kind of ['teleport','polymorph','ice']){
+  const model=createTrap(kind,7),glow=model.getObjectByName('sigil-glow');
+  const fx=attachSigilFx(model);assert.equal(fx.flames.length,kind==='ice'?0:kind==='polymorph'?7:5,`${kind} candle flames`);
+  const pos=glow.geometry.attributes.position,rest=pos.array.slice(),meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  let top=0;
+  for(let t=0;t<30;t+=1/30){model.userData.animate(t);for(let v=0;v<pos.count;v++)top=Math.max(top,pos.getY(v));}
+  for(let v=0;v<pos.count;v++)if(rest[v*3+1]<.015)assert.equal(pos.getY(v),rest[v*3+1],'the flat strokes stay put');
+  if(kind==='ice')assert(top<.01);else assert(top<.2&&top>.05,`${kind} flames reach y ${top}`);
+  let after=0;model.traverse(o=>{if(o.isMesh)after++;});assert.equal(after,meshes.length,'no extra draws');
  }
 });
