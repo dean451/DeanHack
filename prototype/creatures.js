@@ -45,6 +45,7 @@ import {createGoblin,isGoblin} from './goblin.js';
 import {createBugbear} from './bugbear.js';
 import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
+import {createBeholder} from './beholder.js';
 import {createGnome,isGnome} from './gnome.js';
 import {createOrc,isOrc} from './orc.js';
 import {createDwarf,isDwarf} from './dwarf.js';
@@ -2256,6 +2257,7 @@ export function createCreature(cell={}){
  if(UNICORNS[name])return horse(UNICORNS[name]);
  if(name==='floating eye')return floatingEye({});
  if(name==='evil eye')return createEvilEye();
+ if(name==='beholder')return createBeholder();
  if(name==='shocking sphere')return shockingSphere();
  if(SPHERE_KINDS.includes(name)){const {g,body,core}=createSphereCreature(name);return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});}
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
