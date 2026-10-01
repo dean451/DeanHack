@@ -1328,13 +1328,17 @@ function nymph(o){
  const circlet=part(head,new THREE.TorusGeometry(.086,.0035,4,28),trim,0,.058,-.006);circlet.rotation.x=Math.PI/2-.2;circlet.scale.set(.92,1,1);
  const browSet=part(head,new THREE.SphereGeometry(.012,4,2),trim,0,.05,.083);browSet.scale.set(.9,1.4,.45);sphere(head,.0075,gem,0,.047,.087,.9,1.4,.6);
  // arms in gold cuffs: her left hooks the belt, her right hangs loose and dangles the stolen amulet
- {const S=[.118,1.07,0],E=[.24,.88,-.03],W=[.13,.735,.09];segment(body,S,E,.031,.025,skin);sphere(body,.025,skin,...E);segment(body,E,W,.024,.017,skin);cuff(body,[.2,.95,-.02],E,.03,.035);cuff(body,[.15,.765,.065],W,.02,.026);hand(body,W,[-.07,-.05,.05],1,skin);}
+ // (the belt arm hangs from a shoulder pivot and the amulet from her fingertips, so nymph-beckon.js can move them)
+ const arm=new THREE.Group();arm.position.set(.118,1.07,0);body.add(arm);let beckonHand;
+ {const at=v=>[v[0]-.118,v[1]-1.07,v[2]],S=[0,0,0],E=at([.24,.88,-.03]),W=at([.13,.735,.09]);segment(arm,S,E,.031,.025,skin);sphere(arm,.025,skin,...E);segment(arm,E,W,.024,.017,skin);cuff(arm,at([.2,.95,-.02]),E,.03,.035);cuff(arm,at([.15,.765,.065]),W,.02,.026);beckonHand=hand(arm,W,[-.07,-.05,.05],1,skin);}
+ let bauble,baubleGem;
  {const S=[-.118,1.07,0],E=[-.17,.845,-.04],W=[-.2,.63,0];segment(body,S,E,.031,.025,skin);sphere(body,.025,skin,...E);segment(body,E,W,.024,.017,skin);cuff(body,[-.152,.92,-.025],E,.03,.035);cuff(body,[-.195,.67,-.01],W,.02,.026);hand(body,W,[-.01,-1,.02],-1,skin);
-  const tip=[-.204,.545,.006];tube(body,[tip,[tip[0]+.004,tip[1]-.05,tip[2]],[tip[0],tip[1]-.1,tip[2]]],.003,M.gold,6);
-  const amulet=cylinder(body,.028,.028,.008,M.gold,tip[0],tip[1]-.13,tip[2],16);amulet.rotation.x=Math.PI/2;sphere(body,.012,mat('#d9344a',{emissive:'#d9344a',emissiveIntensity:1.4}),tip[0],tip[1]-.13,tip[2]+.006);}
+  const tip=[-.204,.545,.006];bauble=new THREE.Group();bauble.position.set(...tip);body.add(bauble);tube(bauble,[[0,0,0],[.004,-.05,0],[0,-.1,0]],.003,M.gold,6);
+  const amulet=cylinder(bauble,.028,.028,.008,M.gold,0,-.13,0,16);amulet.rotation.x=Math.PI/2;baubleGem=sphere(bauble,.012,mat('#d9344a',{emissive:'#d9344a',emissiveIntensity:1.4}),0,-.13,.006);}
  // motes drifting around her
- for(const [x,y,z] of [[.32,1.05,.1],[-.3,.78,.16],[.16,1.48,-.08],[-.22,1.25,.12]])sphere(body,.011,ember,x,y,z);
- return trimDraws(actor(g,body,legs,locks,[],'nymph'));
+ // (on one ring, so they stay a single draw and nymph-beckon.js can turn it)
+ const motes=new THREE.Group();body.add(motes);for(const [x,y,z] of [[.32,1.05,.1],[-.3,.78,.16],[.16,1.48,-.08],[-.22,1.25,.12]])sphere(motes,.011,ember,x,y,z);
+ return trimDraws(Object.assign(actor(g,body,legs,locks,[],'nymph'),{head,beckonArm:arm,beckonHand,bauble,baubleGem,motes,nymph:true}));
 }
 const NYMPHS={
  'wood nymph':{skin:'#f2d4c2',cloth:'#2c5a2e',sheer:'#5a9a52',trim:'#d4a845',belt:'#1c2420',hair:'#3a5a2e',glow:'#8ad86a',eye:'#5a4aa0',lips:'#c86a72',gem:'#2fbf55',lid:'#7f9a5e'},
