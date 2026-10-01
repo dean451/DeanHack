@@ -255,6 +255,20 @@ test('a bec de corbin has its own crow beak, toothed hammer, top spike and ronde
  }
 });
 
+test('a lance has its own fluted, toothed vamplate, spiral bands and barbed point, merged to one mesh per material',()=>{
+ const lance=createHeldWeapon({name:'lance',class:2});
+ assert.deepEqual(lance.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+ const s=size(lance);
+ assert(s.y>1.95&&s.y<2.15,`length ${s.y}`);
+ for(const m of lance.children){assert(m.geometry.attributes.position.array.every(Number.isFinite));assert(m.geometry.attributes.normal.array.every(Number.isFinite));}
+ const blade=lance.children.find(c=>c.userData.part==='blade');
+ assert(blade.material.metalness>=.75,'weapon-magic sheathes the point');
+ blade.geometry.computeBoundingBox();assert(blade.geometry.boundingBox.max.y>1.65,'the point');
+ const head=lance.children.find(c=>c.userData.part==='head');
+ head.geometry.computeBoundingBox();assert(head.geometry.boundingBox.max.x>.12&&head.geometry.boundingBox.max.x<.16,`the vamplate ${head.geometry.boundingBox.max.x}`);
+ lance.userData.dispose();
+});
+
 test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
  const saber=createHeldWeapon({name:'silver saber',class:2});
  const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});
