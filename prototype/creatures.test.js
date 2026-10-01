@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createCreature} from './creatures.js';
+import {createCreature,RAT_NECK} from './creatures.js';
 
 const D=68;
 function glowOf(actor){return '#'+actor.core.material.emissive.getHexString();}
@@ -1642,4 +1642,24 @@ test('weeping angels are weathered stone statues, hands over their faces, instea
  const again=meshes(createCreature({name:'weeping angel'}));
  meshes(createCreature({name:'weeping angel'})).forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
  assert.notEqual(meshes(createCreature({name:'weeping archangel'}))[0].geometry,again[0].geometry);
+});
+
+test('plain rats carry a head handle that turns the face about the neck and leaves the body put',()=>{
+ for(const [name,symbol] of [['sewer rat',114],['giant rat',114],['rabid rat',114],['wererat',114]]){
+  const m=createCreature({name,symbol,color:3});
+  assert.equal(m.quirk,'rat',name);assert.ok(m.head,name);
+  assert.equal(m.head.parent,m.body,name);
+  assert.deepEqual(m.head.position.toArray(),RAT_NECK,name);
+  // at rest the face sits exactly where it did before the handle: the snout ball at (0,.24,.35)
+  m.g.updateMatrixWorld(true);
+  const local=o=>m.body.worldToLocal(o.getWorldPosition(new THREE.Vector3()));
+  const snout=m.head.children[0].children[0],trunk=m.body.children[0];
+  assert.ok(local(snout).distanceTo(new THREE.Vector3(0,.24,.35))<1e-9,name);
+  const meshes=[];m.head.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.ok(meshes.length>=15,`${name}: ${meshes.length}`);
+  const before=local(snout),body=local(trunk);
+  m.head.rotation.y=.6;m.g.updateMatrixWorld(true);
+  assert.ok(local(snout).x>before.x+.05,name);
+  assert.ok(local(trunk).distanceTo(body)<1e-12,name);
+ }
 });
