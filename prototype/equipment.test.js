@@ -114,6 +114,24 @@ test('a voulge has its own tall cleaver blade with a raised point, merged to one
  }
 });
 
+test('a ranseur has its own spike and barbed side prongs, merged to one mesh per material',()=>{
+ for(const name of ['ranseur','hilted polearm']){
+  const ranseur=createHeldWeapon({name,class:2});
+  assert.deepEqual(ranseur.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+  const s=size(ranseur);
+  assert(s.y>1.85&&s.y<2,`length ${s.y}`);
+  for(const m of ranseur.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));
+   const n=m.geometry.attributes.normal.array;assert(n.every(Number.isFinite));}
+  const blade=ranseur.children.find(c=>c.userData.part==='blade');
+  assert(blade.material.metalness>=.75,'weapon-magic sheathes the blade');
+  blade.geometry.computeBoundingBox();
+  const bb=blade.geometry.boundingBox;
+  assert(bb.max.x>.19&&bb.min.x<-.19,'prongs flare out both sides');
+  assert(bb.max.y>1.4,'the spike rises well above the prongs');
+  ranseur.userData.dispose();
+ }
+});
+
 test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
  const saber=createHeldWeapon({name:'silver saber',class:2});
  const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});
