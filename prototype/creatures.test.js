@@ -1451,3 +1451,20 @@ test('the enormous rat is its own hulking, mangy rat, bigger than a giant rat, i
  const again=meshes(createCreature({name:'enormous rat',symbol:114}));
  parts.forEach((p,i)=>{assert.equal(p.geometry,again[i].geometry);assert.equal(p.material,again[i].material);});
 });
+
+test('the white naga is a pale Gehennom serpent with a crown of ice, frost fangs and rime on its coil',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const icy=o=>(Array.isArray(o.material)?o.material:[o.material]).some(m=>m.emissive?.getHexString()==='3a90d0');
+ const box=a=>{a.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(a.g);};
+ const w=createCreature({name:'white naga',symbol:78,color:15}),gold=createCreature({name:'golden naga',symbol:78,color:11});
+ assert.equal(w.quirk,'snake');assert(w.tail?.isObject3D,'raised neck sways');
+ const parts=meshes(w);assert(parts.length<=12,`${parts.length} meshes`);
+ for(const p of parts)for(const v of p.geometry.attributes.position.array)assert(Number.isFinite(v),'finite');
+ assert(parts.some(icy),'ice crest');assert(!meshes(gold).some(icy),'other nagas have no ice');
+ const body=parts.find(p=>p.material.color?.getHexString()==='d8d8d0');assert(body,'bone-white scales');
+ const b=box(w);assert(b.min.y>-.005&&b.min.y<.01,`on the floor at ${b.min.y}`);
+ assert(b.max.y>box(gold).max.y,'taller than a golden naga');assert(b.max.y<1.1,`top ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.6,'stays on its tile');
+ const baby=createCreature({name:'white naga hatchling',symbol:78,color:15});
+ assert(!meshes(baby).some(icy),'hatchlings are plain');assert(box(baby).max.y<b.max.y);
+});
