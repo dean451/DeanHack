@@ -1684,19 +1684,19 @@ function leprechaun(o){
   cylinder(body,.04,.04,.03,stocking,hand[0]*.97,hand[1]+.035,hand[2]);sphere(body,.034,skin,...hand);}
  tube(body,[[-.23,.005,.1],[-.215,.2,.08],[-.2,.36,.06],[-.2,.46,.06]],.014,wood,12);sphere(body,.03,wood,-.2,.47,.06,1,.9,1);
  for(const [y,z] of [[.12,.095],[.25,.075]])sphere(body,.017,wood,-.225,y,z);
- // head: rosy cheeks, a bulbous nose, pointed ears, a green glint in the eye and a ginger chin-curtain beard
- const headY=.64;sphere(body,.11,skin,0,headY,.01,1,1.02,1);
- sphere(body,.032,rosy,0,headY-.01,.11,1,.9,1);for(const side of [-1,1]){sphere(body,.028,rosy,side*.058,headY-.025,.085,1,.8,.6);
-  sphere(body,.022,vest,side*.04,headY+.02,.092,1,.8,.5);sphere(body,.012,glint,side*.04,headY+.02,.103);
-  const brow=box(body,.05,.016,.02,beard,side*.042,headY+.052,.095);brow.rotation.z=-side*.25;
-  const ear=cone(body,.025,.075,skin,side*.11,headY+.02,0,5);ear.rotation.z=-side*1.25;
-  sphere(body,.045,beard,side*.085,headY-.04,.04,.8,1.2,.9);}
- lathe(body,[[.0,-.09],[.07,-.08],[.11,-.03],[.115,.0]],beard,0,headY-.055,.015,-Math.PI*.55,Math.PI*1.1).scale.set(1,1,.95);
- part(body,new THREE.TorusGeometry(.03,.006,6,12,Math.PI),black,0,headY-.045,.098).rotation.z=Math.PI;
+ // head (on a neck pivot): rosy cheeks, a bulbous nose, pointed ears, a green glint in the eye and a ginger chin-curtain beard
+ const head=new THREE.Group();head.position.set(0,.56,0);body.add(head);const headY=.08;sphere(head,.11,skin,0,headY,.01,1,1.02,1);
+ sphere(head,.032,rosy,0,headY-.01,.11,1,.9,1);for(const side of [-1,1]){sphere(head,.028,rosy,side*.058,headY-.025,.085,1,.8,.6);
+  sphere(head,.022,vest,side*.04,headY+.02,.092,1,.8,.5);sphere(head,.012,glint,side*.04,headY+.02,.103);
+  const brow=box(head,.05,.016,.02,beard,side*.042,headY+.052,.095);brow.rotation.z=-side*.25;
+  const ear=cone(head,.025,.075,skin,side*.11,headY+.02,0,5);ear.rotation.z=-side*1.25;
+  sphere(head,.045,beard,side*.085,headY-.04,.04,.8,1.2,.9);}
+ lathe(head,[[.0,-.09],[.07,-.08],[.11,-.03],[.115,.0]],beard,0,headY-.055,.015,-Math.PI*.55,Math.PI*1.1).scale.set(1,1,.95);
+ part(head,new THREE.TorusGeometry(.03,.006,6,12,Math.PI),black,0,headY-.045,.098).rotation.z=Math.PI;
  // pipe: a clay pipe clamped in the grin with a glowing ember
- segment(body,[.02,headY-.05,.1],[.08,headY-.08,.15],.006,.005,vest);cylinder(body,.014,.011,.03,vest,.085,headY-.065,.155,8);cylinder(body,.011,.011,.004,M.fire,.085,headY-.05,.155,8);
+ segment(head,[.02,headY-.05,.1],[.08,headY-.08,.15],.006,.005,vest);cylinder(head,.014,.011,.03,vest,.085,headY-.065,.155,8);cylinder(head,.011,.011,.004,M.fire,.085,headY-.05,.155,8);
  // hat: a tall green hat, jauntily tilted, with a black band, gold buckle and shamrock
- const hat=new THREE.Group();hat.position.set(0,headY+.085,0);hat.rotation.set(-.06,0,-.14);body.add(hat);
+ const hat=new THREE.Group();hat.position.set(0,headY+.085,0);hat.rotation.set(-.06,0,-.14);head.add(hat);
  cylinder(hat,.155,.155,.014,hatMat,0,0,0,24);cylinder(hat,.095,.085,.19,hatMat,0,.1,0,20);cylinder(hat,.097,.097,.012,hatMat,0,.195,0,20);
  cylinder(hat,.089,.087,.04,black,0,.03,0,20);box(hat,.055,.045,.012,coin,0,.03,.088);box(hat,.03,.022,.014,black,0,.03,.09);
  for(let i=0;i<3;i++){const a=i/3*Math.PI*2+.5;sphere(hat,.014,glint,.06+Math.cos(a)*.012,.045+Math.sin(a)*.012,.07,1,1,.5);}
@@ -1704,7 +1704,7 @@ function leprechaun(o){
  const loot=new THREE.Group();loot.position.set(.2,.32,.06);body.add(loot);
  sphere(loot,.07,sack,0,-.1,0,1,1.15,.95);cylinder(loot,.022,.03,.04,sack,0,-.02,0,8);part(loot,new THREE.TorusGeometry(.024,.006,6,12),wood,0,-.03,0).rotation.x=Math.PI/2;
  for(const [x,y,z,r] of [[.03,-.02,.03,.3],[-.02,-.01,.035,-.4],[.01,.005,.02,.1]]){const c=cylinder(loot,.018,.018,.005,coin,x,y,z,14);c.rotation.set(Math.PI/2-.4,0,r);}
- return trimDraws(actor(g,body,legs,loot,[],'idle'));
+ return trimDraws(Object.assign(actor(g,body,legs,loot,[],'idle'),{head,hat,loot,leprechaun:true}));
 }
 const LEPRECHAUNS={leprechaun:{coat:'#2f8a3a'}};
 // Gargoyles: crouching carved-stone brutes on digitigrade haunches with knuckles on the floor, a horned
