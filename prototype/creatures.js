@@ -1707,7 +1707,7 @@ const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',sc
 // fingers; a sagging head with a vertical maw ringed in needle teeth, mismatched cold-glowing eyes strewn
 // over head and shoulder, and dripping feelers hanging from the jaw and belly. The head is the 'tail' group.
 function shamblingHorror(o){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];let digArm,limpArm;
  const flesh=mat(o.color,{roughness:.32,metalness:.05}),dark=mat(shade(o.color,.5),{roughness:.6}),raw=mat(o.raw,{roughness:.25}),
   bone=mat('#d8d2bc',{roughness:.5}),claw=mat('#16141a',{roughness:.3,metalness:.25}),maw=mat('#14060a',{roughness:1}),
   eye=mat(o.eye,{emissive:o.eye,emissiveIntensity:1.1,roughness:.1}),pupil=mat('#050505',{roughness:.2});
@@ -1731,13 +1731,13 @@ function shamblingHorror(o){
  for(const [x,z,len,sw] of [[-.1,.2,.26,.06],[.04,.24,.32,-.05],[.14,.18,.2,.04],[-.02,.22,.18,-.07]])
   tube(body,[[x,.56,z],[x+sw,.46,z+.05],[x-sw*.5,.56-len*.7,z+.08],[x+sw*.3,.56-len,z+.06]],.012,dark,8);
  // left arm: huge, knotted, dragging three hooked claws near the floor
- {const arm=new THREE.Group();arm.position.set(-.27,.94,.02);body.add(arm);
+ {const arm=digArm=new THREE.Group();arm.position.set(-.27,.94,.02);body.add(arm);
   segment(arm,[0,0,0],[-.09,-.3,.06],.11,.09,flesh);sphere(arm,.09,flesh,-.09,-.3,.06,1.1,.9,1);
   segment(arm,[-.09,-.3,.06],[-.08,-.62,.16],.1,.09,flesh);sphere(arm,.12,dark,-.08,-.66,.17,1.2,.8,1.1);
   for(let k=-1;k<=1;k++){const c=tube(arm,[[-.08+k*.05,-.68,.2],[-.08+k*.06,-.78,.27],[-.08+k*.05,-.86,.25],[-.08+k*.045,-.88,.18]],.02,claw,8);c.castShadow=true;}
   arm.rotation.z=.04;}
  // right arm: withered and too long, hanging forward with five spindly, many-jointed fingers
- {const arm=new THREE.Group();arm.position.set(.27,.98,.04);body.add(arm);
+ {const arm=limpArm=new THREE.Group();arm.position.set(.27,.98,.04);body.add(arm);
   segment(arm,[0,0,0],[.06,-.26,.1],.05,.035,flesh);segment(arm,[.06,-.26,.1],[.05,-.52,.2],.035,.028,dark);
   for(let k=0;k<5;k++){const a=(k-2)*.32,x=.05+Math.sin(a)*.025,z=.2+Math.cos(a)*.025;
    tube(arm,[[x,-.52,z],[x+Math.sin(a)*.05,-.6,z+.04],[x+Math.sin(a)*.07,-.7,z+.02],[x+Math.sin(a)*.06,-.78,z+.06]],.008,dark,8);}
@@ -1755,7 +1755,8 @@ function shamblingHorror(o){
  // stray eyes on the shoulder, staring in different directions
  for(const [x,y,z,r,ry] of [[-.26,1.02,.1,.026,-.6],[-.18,1.08,.04,.018,.4],[.2,.9,.16,.02,.9]]){
   const e=sphere(body,r,eye,x,y,z);const p=sphere(body,r*.45,pupil,x+Math.sin(ry)*r*.75,y,z+Math.cos(ry)*r*.75,1,1.6,.5);p.rotation.y=ry;e.rotation.y=ry;}
- return trimDraws(actor(g,body,legs,head,[],'orc'));
+ // the arms are kept as their own groups (digArm, limpArm) so shambler-lurch.js can swing them
+ return trimDraws(Object.assign(actor(g,body,legs,head,[],'orc'),{kind:'shambling horror',digArm,limpArm}));
 }
 const HORRORS={'shambling horror':{color:'#9aa8a4',raw:'#8a2a3a',eye:'#7affe8',scale:1.08}};
 
