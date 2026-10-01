@@ -485,7 +485,7 @@ function shockingSphere(){
   const spike=cone(lift,.032,.22+((i*17)%3)*.03,arc,dir.x*.24,dir.y*.24,dir.z*.24,4);spike.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
  }
  sphere(lift,.22,new THREE.MeshStandardMaterial({color:'#4fd2ff',emissive:'#4fd2ff',emissiveIntensity:.5,transparent:true,opacity:.14,depthWrite:false}));
- g.userData.core=core;return Object.assign(actor(g,body,[],null,[],'hover'),{core});
+ g.userData.core=core;return Object.assign(actor(g,body,[],null,[],'hover'),{core,orb:lift,sphere:'shock'});
 }
 
 // Yellow/black lights: a glowing mote. Explodes when it touches you, so it should glow.
@@ -2275,7 +2275,7 @@ export function createCreature(cell={}){
  if(name==='evil eye')return createEvilEye();
  if(name==='beholder')return createBeholder();
  if(name==='shocking sphere')return shockingSphere();
- if(SPHERE_KINDS.includes(name)){const {g,body,core}=createSphereCreature(name);return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});}
+ if(SPHERE_KINDS.includes(name)){const {g,body,core,orb,sphere}=createSphereCreature(name);return Object.assign(actor(g,body,[],null,[],'hover'),{orb,sphere},core?{core}:{});}
  if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
  if(isFern(name))return createFern(name);
  if(name==='lichen')return createLichen(name);
