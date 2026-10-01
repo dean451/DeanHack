@@ -1547,15 +1547,78 @@ export function createTrap(kind,seed=0){
   flat(new THREE.CircleGeometry(.44,32),mat({color:0x241a24,roughness:1}),.003);
   for(const r of [.42,.35]){const ring=flat(new THREE.RingGeometry(r-.012,r,40),rune,.006);ring.material.side=THREE.DoubleSide;}
   for(let i=0;i<12;i++){const a=i/12*Math.PI*2;const glyph=add(new THREE.BoxGeometry(.035,.004,.012),rune,Math.cos(a)*.385,.007,Math.sin(a)*.385);glyph.rotation.y=-a+(i%2?.6:0);glyph.castShadow=false;}
-  // Arch: two leaning rough-hewn stones and a capstone.
-  const arch=mat({color:0x5d5a63,roughness:.92}),moss=mat({color:0x3f4a33,roughness:1});
+  // Arch: two jagged menhirs leaning in over the rift, their broken tops holding up a lintel
+  // that has cracked through and sags in the middle, with a horned skull wedged in the crack.
+  // Stone, moss, soot and bone are vertex-painted onto one flat-shaded material, so the whole
+  // arch is one draw; the carved runes and the skull's eyes join the glowing rune mesh.
+  const archMat=mat({color:0xffffff,vertexColors:true,roughness:.92,flatShading:true});
+  const hue=(c,hex)=>c.setHex(hex);
+  // A box whose corners are chipped and faces knocked uneven. The noise is keyed on the
+  // undisplaced position, so the box's split edge vertices stay together and it stays closed.
+  const rough=(w,h,d,sx,sy,sz,amp,salt,shape)=>{
+   const geo=new THREE.BoxGeometry(w,h,d,sx,sy,sz),p=geo.attributes.position;
+   for(let i=0;i<p.count;i++){
+    const x=p.getX(i),y=p.getY(i),z=p.getZ(i),k=Math.round(x*131)*7+Math.round(y*127)*13+Math.round(z*137)*19;
+    const n=[rand(salt+k)-.5,rand(salt+k+.31)-.5,rand(salt+k+.67)-.5];
+    p.setXYZ(i,...(shape?shape(x,y,z,n):[x+n[0]*amp,y+n[1]*amp,z+n[2]*amp]));
+   }
+   geo.computeVertexNormals();return geo;
+  };
+  const H=.94,W=.13,D=.17,LEAN=.035,PX=.39,archParts=[];
   for(const side of [-1,1]){
-   const post=block(.11,.9,.15,arch,side*.37,.45,0,.03);post.rotation.z=side*.035;
-   block(.14,.08,.18,arch,side*.37,.04,0,.02);
-   add(new THREE.SphereGeometry(.035,8,6),moss,side*.33,.12+rand(side+3)*.2,.07).scale.set(1,.5,.4);
+   const salt=side*500+1000;
+   // Tapering as it rises, the top snapped off in a slant that is high on the outer edge.
+   const geo=rough(W,H,D,3,10,3,0,salt,(x,y,z,n)=>{
+    const t=y/H+.5,taper=1-.32*t;let yy=y+H/2;
+    if(t>.99)yy+=(x*side>0?.05:-.025)+n[1]*.06;else if(t>.01)yy+=n[1]*.012;
+    return [x*taper+n[0]*.016,yy,z*taper+n[2]*.016];
+   });
+   archParts.push(bake(geo,(c,x,y,z,nx,ny)=>{
+    const g0=rand(salt+Math.round(x*40)*3+Math.round(y*40)*5+Math.round(z*40)*7);
+    hue(c,g0>.5?0x57545c:0x4a4850);
+    // Soot licked up the inner face by the rift, moss creeping up from the foot and over the tops.
+    if(nx*side<-.4)c.lerp(new THREE.Color(0x1d1620),Math.max(0,.75-Math.abs(y-.48)*1.4));
+    if(y<.16+g0*.12||ny>.6&&g0>.45)c.lerp(new THREE.Color(0x34402a),.55+g0*.3);
+   },{x:side*PX,rz:side*LEAN}));
+   // A plinth stone sunk at the foot, and chips spalled off around it.
+   archParts.push(bake(rough(.17,.07,.21,2,1,2,.018,salt+40),(c,x,y,z,nx,ny)=>hue(c,ny>.5?0x3c4630:0x423f46),{x:side*PX,y:.04}));
+   for(let i=0;i<3;i++){const a=rand(salt+60+i)*Math.PI*2,r=.13+rand(salt+70+i)*.05,s=.016+rand(salt+80+i)*.014;
+    archParts.push(bake(new THREE.DodecahedronGeometry(s,0),(c)=>hue(c,0x4d4a52),
+     {x:side*PX+Math.cos(a)*r*.6,y:s*.75,z:Math.sin(a)*r,rx:rand(salt+90+i)*3,ry:rand(salt+95+i)*3,sy:.6}));}
+   // Carved runes running down the inner face, burning the same violet as the floor circle.
+   for(let i=0;i<4;i++){
+    const y=.3+i*.14,inner=side*(PX-y*LEAN-W/2*(1-.32*y/H))-side*.006;
+    for(let s=0;s<2;s++){const stroke=add(new THREE.BoxGeometry(.012,.045-s*.012,.007),rune,inner,y+(s?.008:0),(s?.012:-.004)*(i%2?1:-1));
+     stroke.rotation.x=(s?-.7:.35)*(i%2?-1:1);stroke.castShadow=false;}
+   }
+   // Two halves of the lintel, each tipped down toward the crack between them.
+   archParts.push(bake(rough(.48,.11,.19,6,2,2,0,salt+200,(x,y,z,n)=>{
+    // The broken end is ragged; the outer end is squarer.
+    const brk=x*-side>.2;return [x+n[0]*(brk?.03:.01),y+n[1]*(brk?.03:.012),z+n[2]*.014];}),
+    (c,x,y,z,nx,ny)=>{const g0=rand(salt+300+Math.round(x*50)*3+Math.round(z*50)*7);hue(c,g0>.5?0x5a5760:0x4b4952);
+     if(ny>.6&&g0>.35)c.lerp(new THREE.Color(0x34402a),.6);if(ny<-.6)c.lerp(new THREE.Color(0x1d1620),.5);},
+    {x:side*.245,y:.965,rz:side*.06}));
   }
-  block(.9,.1,.17,arch,0,.95,0,.03);
-  for(const x of [-.2,0,.2])add(new THREE.BoxGeometry(.04,.004,.01),rune,x,.95,.087).castShadow=false;
+  // A horned skull jammed into the crack, staring out from the front face.
+  const bone=(c,x,y,z,nx,ny,nz)=>{hue(c,0xcdbf9e);if(nz<-.2||ny<-.5)c.multiplyScalar(.6);};
+  const SK={x:0,y:.915,z:.075};
+  archParts.push(bake(new THREE.SphereGeometry(.05,12,9),bone,{x:SK.x,y:SK.y+.012,z:SK.z,sx:.95,sy:.85,sz:1}));
+  archParts.push(bake(new THREE.BoxGeometry(.06,.028,.05,2,1,2),bone,{x:SK.x,y:SK.y-.035,z:SK.z+.022,rx:.25}));
+  for(let i=0;i<5;i++)archParts.push(bake(new THREE.ConeGeometry(.005,.014,4),(c)=>hue(c,0xe0d6bd),{x:SK.x-.02+i*.01,y:SK.y-.052,z:SK.z+.045,rx:Math.PI}));
+  for(const s of [-1,1]){
+   // Each horn curls back and up from the temple, thinning to a point.
+   const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(s*.035,.03,0),new THREE.Vector3(s*.075,.06,-.02),new THREE.Vector3(s*.1,.095,-.015),new THREE.Vector3(s*.095,.12,.025)]);
+   for(let i=0;i<5;i++){
+    const a=curve.getPoint(i/5),b=curve.getPoint((i+1)/5),d=b.clone().sub(a),q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());
+    const e=new THREE.Euler().setFromQuaternion(q);
+    archParts.push(bake(new THREE.CylinderGeometry(.013*(1-(i+1)/5)+.001,.013*(1-i/5)+.001,d.length()*1.05,7),(c,x,y)=>hue(c,y>SK.y+.1?0x2a2420:0x4a3f33),
+     {x:SK.x+(a.x+b.x)/2,y:SK.y+(a.y+b.y)/2,z:SK.z+(a.z+b.z)/2,rx:e.x,ry:e.y,rz:e.z}));
+   }
+   // Hollow sockets with a coal of the rift's light deep inside.
+   add(new THREE.SphereGeometry(.009,8,6),rune,SK.x+s*.017,SK.y+.012,SK.z+.044).castShadow=false;
+  }
+  const archMesh=add(mergeGeometries(archParts),archMat);archMesh.name='portal-arch';
+  for(const geo of archParts)geo.dispose();
   // Rift: a dark core ringed by overlapping emissive arcs that read as a spiral.
   const rift=new THREE.Group();rift.name='rift';rift.position.y=.48;rift.scale.y=1.3;g.add(rift);
   const core=add(new THREE.CircleGeometry(.29,32),mat({color:0x12031c,emissive:0x2a0640,roughness:1,side:THREE.DoubleSide}),0,0,0,rift);core.castShadow=false;
@@ -1566,10 +1629,11 @@ export function createTrap(kind,seed=0){
    arc.rotation.z=i*1.7+rand(i+310);arc.castShadow=false;
   }
   add(new THREE.SphereGeometry(.03,10,8),mat({color:0xffffff,emissive:0xffd6ff,emissiveIntensity:2}),0,0,.02,rift).castShadow=false;
-  // Motes drifting out of the rift on both faces.
+  // Motes drifting out of the rift on both faces. They stay separate meshes (keep), because
+  // portal-fx.js moves each one on its own.
   const mote=mat({color:0xffc6ff,emissive:0xff8aff,emissiveIntensity:1.8});
   for(let i=0;i<8;i++){const a=rand(i+320)*Math.PI*2,r=.1+rand(i+330)*.22;
-   add(new THREE.OctahedronGeometry(.012,0),mote,Math.cos(a)*r*.9,.48+Math.sin(a)*r*1.2,(i%2?1:-1)*(.04+rand(i+340)*.1)).castShadow=false;}
+   const m=add(new THREE.OctahedronGeometry(.012,0),mote,Math.cos(a)*r*.9,.48+Math.sin(a)*r*1.2,(i%2?1:-1)*(.04+rand(i+340)*.1));m.castShadow=false;m.userData.keep=true;}
  }else if(kind==='web'){
   // Spider web strung upright between two gnarled posts. Silk is real (thin)
   // geometry rather than 1px lines, so it still reads from the play camera.
@@ -1631,10 +1695,10 @@ export function createTrap(kind,seed=0){
  // The parts are static, so direct children that share a material (and shadow
  // setting) are merged into one mesh each: one draw call per material instead
  // of one per strand, rock or rune line. Subgroups (the portal's rift, the
- // web's spider) stay separate so they can still be moved as a whole.
+ // web's spider) and meshes marked keep stay separate so they can still be moved.
  const bins=new Map();
  for(const o of [...g.children]){
-  if(!o.isMesh)continue;
+  if(!o.isMesh||o.userData.keep)continue;
   const key=`${o.material.uuid}:${o.castShadow}`;
   if(!bins.has(key))bins.set(key,[]);
   bins.get(key).push(o);

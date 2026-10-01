@@ -43,6 +43,17 @@ test('the portal is an upright arch around a glowing rift',()=>{
  console.log(`portal: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
 });
 
+test('the portal arch is one jagged mesh and its motes stay loose for portal-fx',()=>{
+ const model=createTrap('portal',3);
+ const arch=model.getObjectByName('portal-arch');
+ assert(arch&&arch.material.vertexColors&&arch.material.flatShading);
+ const box=new THREE.Box3().setFromObject(arch);
+ assert(box.min.y>-.01&&box.max.y<1.05&&box.min.x>-.5&&box.max.x<.5,'arch stays on its tile');
+ for(const v of arch.geometry.attributes.position.array)assert(Number.isFinite(v));
+ assert.equal(model.children.filter(o=>o.geometry?.type==='OctahedronGeometry').length,8);
+ model.userData.dispose();
+});
+
 test('the web is solid silk geometry with a spider, not 1px lines',()=>{
  const model=createTrap('web',5);
  let lines=0,meshes=0,vertices=0;
@@ -59,7 +70,7 @@ test('the web is solid silk geometry with a spider, not 1px lines',()=>{
 test('static trap parts are merged: one draw call per material outside moving subgroups',()=>{
  for(const kind of KINDS){
   const model=createTrap(kind,2),seen=new Set();
-  for(const part of model.children)if(part.isMesh){
+  for(const part of model.children)if(part.isMesh&&!part.userData.keep){
    const key=`${part.material.uuid}:${part.castShadow}`;
    assert(!seen.has(key),`${kind} has two top-level meshes sharing a material`);seen.add(key);
   }
