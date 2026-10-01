@@ -9,11 +9,15 @@
 //  - Stench: a faint, slow yellow-green haze that hangs about its body and rolls lazily round it.
 //    A gurgle's belch spews a thicker puff of it forward from the maw.
 //  - A blow knocks a spray of gobs off it, flung away from the attacker.
+//  - Wet prints: as it walks it leaves a trail of webbed, three-toed clawed prints, left and right
+//    in turn. They stay where they were trodden on the floor, glossy at first, then dry dark and fade.
+//    The first prints off the puddle are the wettest; the trail thins as its feet dry.
 //  - On death nothing new drips and the haze thins away; gobs already falling still land, and the
-//    puddle stays where it is.
+//    puddle stays where it is. A dead one leaves no more prints, and the old ones go on drying.
 //
-// Three extra draws per hezrou: the puddle (a mesh on the actor's group, at the floor) and two
-// point clouds on the group (the gobs and the haze). The module never moves the model itself.
+// Four extra draws per hezrou: the puddle (a mesh on the actor's group, at the floor), the prints
+// (one mesh on the group, its quads re-placed each frame from fixed world spots) and two point clouds
+// on the group (the gobs and the haze). The module never moves the model itself.
 import * as THREE from 'three';
 import {STRETCH} from './hezrou-gurgle.js';
 
@@ -28,11 +32,23 @@ export const WET0 = .45, WET_MIN = .25, SOAK = .035, DRY = .03, DRY_WALK = .5, P
 export const HAZE = 10, HAZE_ALPHA = .13, BELCH_ALPHA = .34, ROLL = .25;
 // How fast the haze thins after death (1/s), and its share while walking.
 export const REST_RATE = 2, WALK_RATE = 4, WALK_HAZE = .55;
+// Prints: how many, one per STEP of ground covered, FOOT_X out to the side; their size, peak
+// opacity, how long they stay glossy (s) and how long until they're gone (s). A jump further than
+// JUMP in one frame (a teleport, a new level) starts a fresh trail; prints further than FAR away go.
+export const PRINTS = 14, STEP = .3, FOOT_X = .13, PRINT_LEN = .24, PRINT_W = .2, PRINT_ALPHA = .75, PRINT_WET = 1.5, PRINT_LIFE = 8, JUMP = 1.5, FAR = 8;
 const SNAP = 1e-3;
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 const approach = (v, to, rate, dt) => to + (v - to) * Math.exp(-rate * dt);
+
+// A print's opacity share (0..1) at `age` s: it presses in, stays wet a while, then dries away.
+export function printFade(age) {
+  if (!(age >= 0) || age >= PRINT_LIFE) return 0;
+  return smooth(age / .12) * (1 - smooth((age - PRINT_WET) / (PRINT_LIFE - PRINT_WET)));
+}
+// How much a print shows for the puddle's wetness when it was trodden: wettest off the full puddle.
+export const printStrength = wet => .45 + .55 * smooth((wet - WET_MIN) / (.65 - WET_MIN));
 
 export const slimes = a => !!(a && !a.asset && a.kind === 'hezrou' && a.g && a.body && a.drools?.length);
 
@@ -64,12 +80,42 @@ function softDot() {
   tex.needsUpdate = true;
   return tex;
 }
+// A webbed foot with three clawed toes, toes toward +v: a heel pad, three splayed toes with hooked
+// claw tips and a thinner web between them, with a slightly ragged edge.
+export function printMask(u, v) {
+  const ell = (x, y, cx, cy, rx, ry, a = 0) => {
+    const c = Math.cos(a), s = Math.sin(a), dx = x - cx, dy = y - cy;
+    return Math.hypot((dx * c - dy * s) / rx, (dx * s + dy * c) / ry);
+  };
+  const soft = d => clamp01((1 - d) / .25);
+  let m = soft(ell(u, v, 0, -.42, .34, .4));
+  for (const a of [-.5, 0, .5]) {
+    const cx = Math.sin(a) * .5, cy = -.12 + Math.cos(a) * .5;
+    m = Math.max(m, soft(ell(u, v, cx, cy, .13, .32, a)));
+    m = Math.max(m, soft(ell(u, v, Math.sin(a) * .86, -.12 + Math.cos(a) * .86, .04, .12, a + .25)));
+  }
+  m = Math.max(m, .5 * soft(ell(u, v, 0, .12, .44, .36)));
+  return m * (.85 + .15 * Math.sin(u * 23 + v * 17) * Math.sin(u * 11 - v * 29));
+}
+function printTexture() {
+  const n = 48, data = new Uint8Array(n * n * 4);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    const k = (j * n + i) * 4;
+    data[k] = data[k + 1] = data[k + 2] = 255;
+    data[k + 3] = Math.round(clamp01(printMask((i + .5) / n * 2 - 1, (j + .5) / n * 2 - 1)) * 255);
+  }
+  const tex = new THREE.DataTexture(data, n, n, THREE.RGBAFormat);
+  tex.needsUpdate = true;
+  return tex;
+}
 function sharedResources() {
   if (shared) return shared;
   const dot = softDot();
   shared = {
     poolMat: new THREE.MeshBasicMaterial({vertexColors: true, transparent: true, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -2, side: THREE.DoubleSide}),
+    printMat: new THREE.MeshBasicMaterial({map: printTexture(), vertexColors: true, transparent: true, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -1, side: THREE.DoubleSide}),
     gobMat: new THREE.PointsMaterial({size: .05, map: dot, vertexColors: true, transparent: true, depthWrite: false}),
     hazeMat: new THREE.PointsMaterial({size: .5, map: dot, vertexColors: true, transparent: true, depthWrite: false}),
   };
@@ -105,6 +151,21 @@ function poolGeometry(st) {
   return geo;
 }
 
+// The prints: PRINTS quads whose corners are re-placed every frame; UVs are set per print (a left
+// foot is the right one mirrored).
+function printMesh(material) {
+  const geo = new THREE.BufferGeometry(), idx = [];
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(PRINTS * 12), 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(PRINTS * 8), 2));
+  geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(PRINTS * 16), 4));
+  for (let i = 0; i < PRINTS; i++) { const b = i * 4; idx.push(b, b + 1, b + 2, b, b + 2, b + 3); }
+  geo.setIndex(idx);
+  const m = new THREE.Mesh(geo, material);
+  m.frustumCulled = false; m.renderOrder = -3; m.userData.part = 'hezrouPrints';
+  m.castShadow = m.receiveShadow = false;
+  return m;
+}
+
 function points(count, material, part) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
@@ -136,7 +197,9 @@ function setup(a) {
   st.gobPts = points(GOBS, R.gobMat, 'hezrouGobs');
   st.hazePts = points(HAZE, R.hazeMat, 'hezrouHaze');
   st.haze = Array.from({length: HAZE}, () => [rand(st), rand(st), rand(st), rand(st)]);
-  a.g.add(st.pool, st.gobPts, st.hazePts);
+  st.printMesh = printMesh(R.printMat);
+  st.prints = new Array(PRINTS).fill(null); st.nextPrint = 0; st.trail = null; st.stride = 0; st.foot = 1;
+  a.g.add(st.pool, st.printMesh, st.gobPts, st.hazePts);
   return st;
 }
 
@@ -150,6 +213,56 @@ function toGroup(a, obj, p) {
 function drop(st, p, vx = 0, vy = 0, vz = 0) {
   st.gobs[st.next] = {x: p.x, y: p.y, z: p.z, vx, vy, vz, age: 0, landed: null};
   st.next = (st.next + 1) % GOBS;
+}
+
+const here = new THREE.Vector3(), corner = new THREE.Vector3();
+// Lay a print at world spot (x, y, z), facing world yaw `yaw`, on side `foot` (+1 or -1; the -1 foot is mirrored).
+function tread(st, x, y, z, yaw, foot) {
+  const fx = Math.sin(yaw), fz = Math.cos(yaw), rx = fz, rz = -fx, j = (rand(st) - .5) * .03;
+  st.prints[st.nextPrint] = {x: x + rx * FOOT_X * foot + fx * j, y: y + .004, z: z + rz * FOOT_X * foot + fz * j,
+    yaw: yaw + foot * .12 + (rand(st) - .5) * .1, foot, age: 0, strength: printStrength(st.wet)};
+  const uv = st.printMesh.geometry.attributes.uv, l = foot < 0;
+  uv.setXY(st.nextPrint * 4, l ? 1 : 0, 0); uv.setXY(st.nextPrint * 4 + 1, l ? 0 : 1, 0);
+  uv.setXY(st.nextPrint * 4 + 2, l ? 0 : 1, 1); uv.setXY(st.nextPrint * 4 + 3, l ? 1 : 0, 1);
+  uv.needsUpdate = true;
+  st.nextPrint = (st.nextPrint + 1) % PRINTS;
+}
+
+// Follow the hezrou over the floor and tread a print every STEP; then place and fade every print.
+function updatePrints(a, st, dt, dead) {
+  a.g.updateMatrixWorld(true);
+  a.g.getWorldPosition(here);
+  const tr = st.trail;
+  if (!tr || Math.hypot(here.x - tr.x, here.z - tr.z) > JUMP) { st.trail = {x: here.x, z: here.z}; st.stride = 0; }
+  else {
+    const dx = here.x - tr.x, dz = here.z - tr.z, d = Math.hypot(dx, dz);
+    if (d > 1e-6) {
+      if (!dead) {
+        st.stride += d;
+        if (st.stride >= STEP) { st.stride %= STEP; st.foot = -st.foot; tread(st, here.x, here.y, here.z, Math.atan2(dx, dz), st.foot); }
+      }
+      tr.x = here.x; tr.z = here.z;
+    }
+  }
+  const pos = st.printMesh.geometry.attributes.position, col = st.printMesh.geometry.attributes.color;
+  for (let i = 0; i < PRINTS; i++) {
+    const p = st.prints[i];
+    if (p) { p.age += dt; if (p.age >= PRINT_LIFE || Math.hypot(p.x - here.x, p.z - here.z) > FAR) st.prints[i] = null; }
+    const q = st.prints[i];
+    if (!q) { for (let k = 0; k < 4; k++) { pos.setXYZ(i * 4 + k, 0, 0, 0); col.setXYZW(i * 4 + k, 0, 0, 0, 0); } continue; }
+    const fx = Math.sin(q.yaw), fz = Math.cos(q.yaw), hl = PRINT_LEN / 2, hw = PRINT_W / 2;
+    // the corners in the same order as their uvs: u across the foot, v from heel to toes
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([cu, cv], k) => {
+      corner.set(q.x + fz * hw * cu + fx * hl * cv, q.y, q.z - fx * hw * cu + fz * hl * cv);
+      a.g.worldToLocal(corner);
+      pos.setXYZ(i * 4 + k, corner.x, corner.y, corner.z);
+    });
+    // glossy green while wet, drying to the puddle's dark
+    const w = 1 - smooth(q.age / (PRINT_WET + 1)), alpha = PRINT_ALPHA * q.strength * printFade(q.age);
+    const r = POOL_DARK[0] + (POOL_RIM[0] * .7 - POOL_DARK[0]) * w, g = POOL_DARK[1] + (POOL_RIM[1] * .7 - POOL_DARK[1]) * w, b = POOL_DARK[2] + (POOL_RIM[2] * .7 - POOL_DARK[2]) * w;
+    for (let k = 0; k < 4; k++) col.setXYZW(i * 4 + k, r, g, b, alpha);
+  }
+  pos.needsUpdate = col.needsUpdate = true;
 }
 
 // The live hit action on this actor, once its blow has landed.
@@ -227,6 +340,9 @@ export function updateHezrouSlime(a, dt, t, busy, walking) {
     gc.setXYZW(i, ...GOB_C, alpha);
   }
   gp.needsUpdate = gc.needsUpdate = true;
+
+  // wet prints where it treads (read before the puddle dries this frame, so the first are wettest)
+  updatePrints(a, st, dt, dead);
 
   // the puddle dries back (faster while walking), never below a wet patch; a dead one stays put
   if (!dead) st.wet = Math.max(WET_MIN, st.wet - dt * (DRY + DRY_WALK * st.walk));
