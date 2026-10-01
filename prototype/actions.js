@@ -158,6 +158,10 @@ export function actionPose(action, u, face) {
 }
 
 // Takes the previous frame's offsets back off, so the frame loop sees the rest pose.
+// Only a scorpion's `claws` are pincers: one bone per claw. A wraith's `claws` are its hands, each a list
+// of finger bones (wraith-pull.js), and must not get the pincer pose.
+const pincers = actor => Array.isArray(actor.claws) && actor.claws.length > 0 && actor.claws.every(c => c?.isObject3D);
+
 export function clearActionPose(actor, q) {
   const o = q?.applied;
   if (!o || !actor?.g) return;
@@ -178,7 +182,7 @@ export function clearActionPose(actor, q) {
   if (o.grip && actor.weaponSocket) actor.weaponSocket.rotation.x -= o.grip;
   if (o.off && actor.arms?.[0]) actor.arms[0].rotation.x -= o.off;
   if (o.offGrip && actor.offHand) actor.offHand.rotation.x -= o.offGrip;
-  if ((o.pincer || o.pincerLift) && actor.claws) actor.claws.forEach((c, i) => { c.rotation.y -= (i ? -1 : 1) * o.pincer; c.rotation.x += o.pincerLift; });
+  if ((o.pincer || o.pincerLift) && pincers(actor)) actor.claws.forEach((c, i) => { c.rotation.y -= (i ? -1 : 1) * o.pincer; c.rotation.x += o.pincerLift; });
   if (o.fore) for (const l of foreLegs(actor)) l.rotation.x -= o.fore;
   if (o.paw || o.pawSide) { const l = foreLegs(actor)[0]; if (l) { l.rotation.x -= o.paw; l.rotation.z -= o.pawSide; } }
   if (o.wing) actor.wings?.forEach((w, i) => { w.rotation.z -= wingSide(w, i) * o.wing; });
@@ -206,7 +210,7 @@ function applyPose(actor, q, p) {
   if (p.grip && actor.weaponSocket) actor.weaponSocket.rotation.x += p.grip;
   if (p.off && actor.arms?.[0]) actor.arms[0].rotation.x += p.off;
   if (p.offGrip && actor.offHand) actor.offHand.rotation.x += p.offGrip;
-  if ((p.pincer || p.pincerLift) && actor.claws) actor.claws.forEach((c, i) => { c.rotation.y += (i ? -1 : 1) * p.pincer; c.rotation.x -= p.pincerLift; });
+  if ((p.pincer || p.pincerLift) && pincers(actor)) actor.claws.forEach((c, i) => { c.rotation.y += (i ? -1 : 1) * p.pincer; c.rotation.x -= p.pincerLift; });
   if (p.fore) for (const l of foreLegs(actor)) l.rotation.x += p.fore;
   if (p.paw || p.pawSide) { const l = foreLegs(actor)[0]; if (l) { l.rotation.x += p.paw; l.rotation.z += p.pawSide; } }
   if (p.wing) actor.wings?.forEach((w, i) => { w.rotation.z += wingSide(w, i) * p.wing; });
@@ -255,7 +259,7 @@ export function updateActions(actor, q, dt) {
   else if (a.kind === 'attack' && a.attack === 'weapon' && !a.swing && thrusts(actor)) Object.assign(pose, centaurAttackPose('spear', u, a.result));
   // A scorpion keeps low and snaps its pincers or jabs its arched tail (scorpion-attack.js).
   // It strikes straight ahead, so the generic claw's sideways rake twist is taken back out.
-  if (a.kind === 'attack' && actor.claws) {
+  if (a.kind === 'attack' && pincers(actor)) {
     pose.yaw -= monsterAttackPose(a.attack, u, a.result).twist;
     Object.assign(pose, scorpionAttackPose(a.attack, u, a.result));
   }

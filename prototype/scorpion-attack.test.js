@@ -65,3 +65,14 @@ test('other creatures ignore the scorpion poses', () => {
   const a = createCreature({name: 'cave spider', symbol: 115, color: 7});
   assert.equal(a.claws, undefined);
 });
+
+test('a wraith attacks without the pincer pose: its claws are hands of finger bones, not pincers', () => {
+  const dt = 1 / 60;
+  for (const name of ['wraith', 'barrow wight']) {
+    const a = createCreature({name, symbol: 87, color: 0}), q = createActionQueue();
+    assert(Array.isArray(a.claws?.[0]), `${name} claws are hands`);
+    enqueueAction(q, {kind: 'attack', attack: 'touch', result: 'hit', dx: 1, dz: 0});
+    for (let i = 0; i < Math.ceil(ACTION_TIME.attack / dt) + 2; i++) assert.doesNotThrow(() => updateActions(a, q, dt), name);
+    clearActionPose(a, q);
+  }
+});
