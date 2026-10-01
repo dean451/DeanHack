@@ -358,6 +358,14 @@ static void frame(void) {
         if (glyph_is_monster(g) && !glyph_is_pet(g)) {
             struct monst *mtmp = m_at(x,y);
             printf(",\"peaceful\":%s",(mtmp && mtmp->mpeaceful && canspotmon(mtmp))?"true":"false");
+            /* A shopkeeper's own name, as farlook gives it (x_monnam). */
+            if (mtmp && mtmp->isshk && has_eshk(mtmp) && canspotmon(mtmp) && !Hallucination
+#ifdef BLACKMARKET
+                && mtmp->data != &mons[PM_ONE_EYED_SAM]
+#endif
+                ) {
+                printf(",\"title\":");quoted(shkname(mtmp));
+            }
         }
         printf(",\"name\":");m=glyph_to_mon(g);quoted(glyph_is_monster(g)&&m>=0?mons[m].mname:glyph_is_object(g)?object_name(g):"");
         if (glyph_is_object(g)) {
