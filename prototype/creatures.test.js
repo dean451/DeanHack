@@ -136,6 +136,18 @@ test('stone giants hoist a fractured granite boulder on the palm of the raised a
  assert(hand.distanceTo(rock.getWorldPosition(new THREE.Vector3()))<.24,'the hand touches the boulder');
 });
 
+test('the Cyclops and Lord Surtur are their own towering giants, not the generic H',()=>{
+ const height=a=>{a.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(a.g).max.y;};
+ const generic=height(createCreature({name:'',symbol:72,color:3})),hill=height(createCreature({name:'hill giant',symbol:72}));
+ for(const name of ['Cyclops','Lord Surtur']){
+  const a=createCreature({name,symbol:72});
+  a.g.traverse(o=>{if(o.isMesh)for(const x of o.geometry.attributes.position.array)assert(Number.isFinite(x),name);});
+  const h=height(a);assert(h>hill&&h>generic&&h<2.2,`${name} stands ${h.toFixed(2)}`);
+  assert(a.legs.length===2&&a.body,`${name} keeps its legs and body handles`);
+ }
+ assert(createCreature({name:'Lord Surtur',symbol:72}).core,'Surtur burns');
+});
+
 test('mumakil and mastodons are tusked, trunked beasts baked into a few meshes, not rothe clones',()=>{
  const counts={};
  for(const name of ['mumak','mastodon']){
