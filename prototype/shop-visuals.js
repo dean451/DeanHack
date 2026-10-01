@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {createOilLamp} from './oil-lamp.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {mergeGeometries,mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 function kit(name){
  const g=new THREE.Group();g.name=name;const geometries=new Set(),materials=new Set();
  const mat=(color,extra={})=>{const m=new THREE.MeshStandardMaterial({color,roughness:.7,...extra});materials.add(m);return m;};
@@ -192,13 +192,17 @@ function sweepGeometry(points,halfWidth,halfHeight,shade,rows=28,sides=10){
 // swelled butt and a spiralled leather grip, iron langets riveted up to a forged head, the haft end
 // showing through the eye with its wedge, and vertex-coloured wear (polished points, scale, scratches).
 // A crystal pick keeps the haft but cuts the head from faceted, pale blue glass set in silvered fittings.
+// The parts are laid out as placeholders, then baked by finish into two merged, vertex-coloured meshes,
+// forged metal and wood-and-leather; a crystal pick's glass head is a third.
 function createPick(name,broad,crystal=false){
  const {g,mat,mesh}=kit(name);g.userData.restingWeapon=true;
  const tool=new THREE.Group();g.add(tool);
- const steel=crystal?mat(0xffffff,{vertexColors:true,flatShading:true,metalness:.05,roughness:.08,transparent:true,opacity:.86,emissive:0x2a5a78,emissiveIntensity:.45})
-  :mat(0xffffff,{vertexColors:true,metalness:.72,roughness:.42}),wood=mat(0xffffff,{vertexColors:true,roughness:.82}),iron=mat(crystal?0xb4bcc2:broad?0x4b4f52:0x5a6265,{metalness:crystal?.85:.7,roughness:crystal?.3:.5}),leather=mat(0x4a2c1e,{roughness:.9}),endGrain=mat(0xa47a51,{roughness:.9}),bright=mat(0xc8d0d2,{metalness:.85,roughness:.25});
- const length=broad?.86:.76,r=broad?.034:.03,headY=broad?.07:.034;
  const noise=(a,b)=>Math.sin(a*12.9898+b*78.233)*43758.5453%1;
+ // Each part is a placeholder carrying its geometry and tone: a colour, or a function painting each vertex.
+ const part=(geo,tone,x=0,y=0,z=0)=>{const o=new THREE.Object3D();o.position.set(x,y,z);o.userData={geo,tone};tool.add(o);return o;};
+ const iron=new THREE.Color(crystal?0xb4bcc2:broad?0x4b4f52:0x5a6265),bright=new THREE.Color(0xc8d0d2);
+ const leather=new THREE.Color(0x4a2c1e),hide=new THREE.Color(0x2a180f),endGrain=new THREE.Color(0xa47a51),heart=new THREE.Color(0x6e4c2e);
+ const length=broad?.86:.76,r=broad?.034:.03,headY=broad?.07:.034;
  // Head: one curved bar from tip to tip through the eye at the origin; the points curve back toward the haft.
  const span=broad?.25:.29,bend=broad?.05:.085;
  const headPoints=[];for(let i=0;i<=8;i++){const z=-span+i/8*span*2;headPoints.push(new THREE.Vector3(-bend*(z/span)**2,headY,z));}
@@ -207,7 +211,7 @@ function createPick(name,broad,crystal=false){
  const halfHeight=broad?t=>t<.5?.003+.033*swell(t):Math.min(headY,.034+(t-.5)*.08):t=>.003+.031*swell(t);
  const steelTone=new THREE.Color(broad?0x5c6164:0x6a7376),polish=new THREE.Color(0xd9e1e3),scale=new THREE.Color(0x2e2c2a);
  const facetDark=new THREE.Color(0x6fa6c8),facetLight=new THREE.Color(0xeef8ff),core=new THREE.Color(0x9fd0ec);
- const head=mesh(sweepGeometry(headPoints,halfWidth,halfHeight,crystal?(t,cx,cy,c)=>{
+ const head=part(sweepGeometry(headPoints,halfWidth,halfHeight,crystal?(t,cx,cy,c)=>{
   // Cut facets alternate light and shade; the points clear to near white, the thick middle stays blue.
   const edge=Math.abs(2*t-1),f=noise(Math.floor(t*9)+cx*3,Math.round(cy*2));
   c.copy(core).lerp(Math.abs(f)>.5?facetLight:facetDark,Math.abs(Math.abs(f)-.5)*1.2).lerp(facetLight,Math.max(0,edge-.6)*1.5);
@@ -217,38 +221,52 @@ function createPick(name,broad,crystal=false){
   c.copy(steelTone).lerp(polish,Math.max(0,edge-.45)*1.8);
   const n=noise(t*31+cx,cy*7);if(edge<.5&&n>.55)c.lerp(scale,.5);
   if(n<.06)c.lerp(new THREE.Color(0x6b3d24),.55);
- }),steel,0,0,0,tool);
+ }),null);
  // Eye boss round the haft, with a raised band either side.
  const boss=halfHeight(.5)*2;
- mesh(new RoundedBoxGeometry(.085,boss+.014,.09,3,.012),iron,0,headY,0,tool);
- for(const z of [-.05,.05])mesh(new RoundedBoxGeometry(.07,boss+.022,.012,2,.004),iron,0,headY,z,tool);
+ part(new RoundedBoxGeometry(.085,boss+.014,.09,3,.012),iron,0,headY,0);
+ for(const z of [-.05,.05])part(new RoundedBoxGeometry(.07,boss+.022,.012,2,.004),iron,0,headY,z);
  // Haft: lathed along +y, then laid along -x. Swelled butt, slim neck, thickening into the eye.
  const profile=[[0,0],[r*.7,0],[r*1.22,.012],[r*1.3,.04],[r*1.02,.08],[r*.94,.2],[r*.98,length*.6],[r*1.08,length-.02],[r*1.1,length+.05],[r*.9,length+.058],[0,length+.058]].map(([a,b])=>new THREE.Vector2(a,b));
  const haftGeo=new THREE.LatheGeometry(profile,16);haftGeo.rotateZ(-Math.PI/2);haftGeo.translate(-length,headY,0);
- {const p=haftGeo.attributes.position,cols=[],c=new THREE.Color();
-  for(let i=0;i<p.count;i++){
-   const x=p.getX(i),a=Math.atan2(p.getZ(i),p.getY(i)-headY),along=(x+length)/length;
-   // Grain runs along the haft; hands have darkened the butt, and the eye end is grimy.
-   c.set(0x7c5534).lerp(new THREE.Color(0x5a3a22),.5+.5*Math.sin(a*3+x*23+Math.sin(x*61)*1.5));
-   if(along<.28)c.multiplyScalar(.72+along);if(along>.9)c.multiplyScalar(.8);
-   cols.push(c.r,c.g,c.b);}
-  haftGeo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));}
- mesh(haftGeo,wood,0,0,0,tool);
- // End grain through the eye, split by an iron wedge.
- const cap=mesh(new THREE.CylinderGeometry(r*.92,r*.92,.006,14),endGrain,.061,headY,0,tool);cap.rotation.z=Math.PI/2;
- mesh(new THREE.BoxGeometry(.008,r*1.5,.009),iron,.065,headY,0,tool);
+ part(haftGeo,(x,y,z,c)=>{
+  const a=Math.atan2(z,y-headY),along=(x+length)/length;
+  // Grain runs along the haft; hands have darkened the butt, and the eye end is grimy.
+  c.set(0x7c5534).lerp(new THREE.Color(0x5a3a22),.5+.5*Math.sin(a*3+x*23+Math.sin(x*61)*1.5));
+  if(along<.28)c.multiplyScalar(.72+along);if(along>.9)c.multiplyScalar(.8);
+ });
+ // End grain through the eye, ringed dark toward the heart, split by an iron wedge.
+ const cap=part(new THREE.CylinderGeometry(r*.92,r*.92,.006,14,1,false),(x,y,z,c)=>{const d=Math.hypot(x,z)/r;c.copy(endGrain).lerp(heart,d<.5?.6:.15);},.061,headY,0);cap.rotation.z=Math.PI/2;
+ part(new THREE.BoxGeometry(.008,r*1.5,.009),iron,.065,headY,0);
  // Langets riveted along the top and bottom of the haft below the head.
  for(const y of [1,-1]){
-  mesh(new THREE.BoxGeometry(.15,.006,.024),iron,-.105,headY+y*r*1.02,0,tool);
-  for(const x of [-.06,-.14]){const rivet=mesh(new THREE.SphereGeometry(.009,8,6),bright,x,headY+y*(r*1.02+.003),0,tool);rivet.scale.y=.6;}
+  part(new THREE.BoxGeometry(.15,.006,.024),iron,-.105,headY+y*r*1.02,0);
+  for(const x of [-.06,-.14]){const rivet=part(new THREE.SphereGeometry(.009,8,6),bright,x,headY+y*(r*1.02+.003),0);rivet.scale.y=.6;}
  }
- // Spiralled leather grip near the butt, bound at both ends.
+ // Spiralled leather grip near the butt, bound at both ends; the strap is worn dark in patches by the hand.
  const gripStart=-length+.1,gripEnd=-length+.33,turns=8,helix=[];
  for(let i=0;i<=turns*12;i++){const t=i/(turns*12),a=t*turns*Math.PI*2;helix.push(new THREE.Vector3(gripStart+(gripEnd-gripStart)*t,headY+Math.cos(a)*(r*.97+.005),Math.sin(a)*(r*.97+.005)));}
- mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix),turns*24,.0075,6),leather,0,0,0,tool);
- for(const x of [gripStart,gripEnd]){const band=mesh(new THREE.TorusGeometry(r*.97+.006,.006,6,20),leather,x,headY,0,tool);band.rotation.y=Math.PI/2;}
+ part(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix),turns*24,.0075,6),(x,y,z,c)=>c.copy(leather).lerp(hide,Math.max(0,noise(Math.round(x*90),3)-.4)*1.2));
+ for(const x of [gripStart,gripEnd]){const band=part(new THREE.TorusGeometry(r*.97+.006,.006,6,20),hide,x,headY,0);band.rotation.y=Math.PI/2;}
  // Scratches across the top face of the head.
- if(!crystal)for(let i=0;i<5;i++){const z=(i-2)*.042+(broad?.03:0),s=mesh(new THREE.BoxGeometry(.028,.0015,.0022),bright,-.002-bend*(z/span)**2,headY+halfHeight(.5+z/span/2)+.0004,z,tool);s.rotation.y=.5+noise(i,3)*.6;}
+ if(!crystal)for(let i=0;i<5;i++){const z=(i-2)*.042+(broad?.03:0),s=part(new THREE.BoxGeometry(.028,.0015,.0022),bright,-.002-bend*(z/span)**2,headY+halfHeight(.5+z/span/2)+.0004,z);s.rotation.y=.5+noise(i,3)*.6;}
+ // Paint each placeholder, bake it into the pick's own space, then merge by finish.
+ const finishes={metal:[],wood:[],glass:[]},c=new THREE.Color();
+ for(const o of [...tool.children]){
+  // Painters work in the part's own space (the haft and grip are built in pick space already).
+  const {geo,tone}=o.userData;geo.deleteAttribute('uv');
+  if(tone){const p=geo.attributes.position,cols=new Float32Array(p.count*3);
+   for(let i=0;i<p.count;i++){if(tone.isColor)c.copy(tone);else tone(p.getX(i),p.getY(i),p.getZ(i),c);c.toArray(cols,i*3);}
+   geo.setAttribute('color',new THREE.BufferAttribute(cols,3));}
+  // Rounded boxes come unindexed, so every part is unindexed to merge, then welded again.
+  o.updateMatrix();geo.applyMatrix4(o.matrix);const flat=geo.index?geo.toNonIndexed():geo;if(flat!==geo)geo.dispose();
+  const finish=o===head?(crystal?'glass':'metal'):tone===iron||tone===bright?'metal':'wood';
+  finishes[finish].push(flat);tool.remove(o);
+ }
+ const bake=(list,material,label)=>{if(!list.length)return;const merged=mergeGeometries(list),geo=mergeVertices(merged);list.forEach(q=>q.dispose());merged.dispose();mesh(geo,material,0,0,0,tool).userData.part=label;};
+ bake(finishes.metal,mat(0xffffff,{vertexColors:true,metalness:crystal?.85:.72,roughness:crystal?.3:.44}),'metal');
+ bake(finishes.wood,mat(0xffffff,{vertexColors:true,roughness:.85}),'wood');
+ bake(finishes.glass,mat(0xffffff,{vertexColors:true,flatShading:true,metalness:.05,roughness:.08,transparent:true,opacity:.86,emissive:0x2a5a78,emissiveIntensity:.45}),'glass');
  // Lay the butt down on the floor, then drop the lowest point to y=0 and centre it on the tile.
  tool.rotation.z=Math.asin(Math.max(0,headY-r*1.3)/length);
  tool.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(tool,true),centre=bounds.getCenter(new THREE.Vector3());

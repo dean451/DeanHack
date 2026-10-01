@@ -18,7 +18,9 @@ test('pick-axe and broad pick lie flat on the floor with finite, disposable geom
    for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
    geometries.add(part.geometry);materials.add(part.material);
   }});
-  assert(geometries.size>10,'head, haft, grip, langets and wedge are separate parts');
+  // Head, haft, grip, langets and wedge bake into metal and wood meshes; the crystal head is a third.
+  assert.equal(geometries.size,/crystal/.test(name)?3:2,`${name} is merged by finish`);
+  for(const geometry of geometries)assert(geometry.attributes.color&&geometry.attributes.normal,`${name} parts are painted and lit`);
   let disposed=0;
   for(const item of [...geometries,...materials])item.addEventListener('dispose',()=>disposed++);
   model.userData.dispose();
