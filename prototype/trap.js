@@ -625,24 +625,130 @@ export function createTrap(kind,seed=0){
   // The coals breathe and spit sparks (fire-trap-fx.js).
   g.userData.animate=fireTrapAnimator(g,seed);
  }else if(RUNES[kind]){
-  // Magical traps: a glowing inscribed circle with a star, in the trap's colour.
-  const [color,glow]=RUNES[kind];
-  const rune=mat({color,emissive:glow,emissiveIntensity:1.3,roughness:.5,transparent:true,opacity:.9});
-  for(const r of [.36,.3]){const ring=flat(new THREE.RingGeometry(r-.012,r,40),rune,.006);ring.material.side=THREE.DoubleSide;}
-  const points=kind==='polymorph'?7:kind==='ice'?6:5,step=kind==='ice'?1:2;
+  // Magical traps (teleport, magic / sleeping gas / anti-magic, polymorph, ice): a sigil
+  // gouged into the floor and still burning in the trap's colour. Broken, scratched rings
+  // hold a band of angular runes; a star of tapered slashes overshoots them, and a slit-pupilled
+  // eye stares up from the middle. A burn stain fades out under it. Black candle stubs, guttered
+  // and dripping, stand at the star's points with flames of the same cold colour (the ice trap
+  // grows jagged frost shards there instead). Three merged, vertex-coloured meshes: the stain
+  // (no shadow), the unlit glow, and the wax (or frost).
+  const [color,glowHex]=RUNES[kind];
+  const noise=(x,z)=>{const s=Math.sin(x*127.1+z*311.7+seed*7.3)*43758.5453;return s-Math.floor(s);};
+  const edge=new THREE.Color(glowHex),hot=new THREE.Color(color).lerp(new THREE.Color(0xffffff),.45);
+  const soot=new THREE.Color(0x0c0a0c),tint=new THREE.Color(glowHex).multiplyScalar(.18).lerp(soot,.4);
+  // Flat triangles on the floor, wound to face up, with an upward normal.
+  const flatGeo=(tris,cols,size)=>{
+   for(let i=0;i<tris.length;i+=9){const ax=tris[i],az=tris[i+2],bx=tris[i+3],bz=tris[i+5],cx=tris[i+6],cz=tris[i+8];
+    if((bz-az)*(cx-ax)-(bx-ax)*(cz-az)<0)for(let k=0;k<3;k++){const j=i+3+k,l=i+6+k;[tris[j],tris[l]]=[tris[l],tris[j]];
+     const cj=(i/3+1)*size+k,cl=(i/3+2)*size+k;[cols[cj],cols[cl]]=[cols[cl],cols[cj]];if(size===4&&k===2){const aj=cj+1,al=cl+1;[cols[aj],cols[al]]=[cols[al],cols[aj]];}}}
+   const geo=new THREE.BufferGeometry();
+   geo.setAttribute('position',new THREE.Float32BufferAttribute(tris,3));
+   geo.setAttribute('normal',new THREE.Float32BufferAttribute(tris.map((_,i)=>i%3===1?1:0),3));
+   geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,size));return geo;};
+  // Glowing strokes: a polyline cut into the floor, hot along its centre and the deep colour at
+  // its edges. `taper` points both ends, like a slash; otherwise the width only wavers.
+  const gp=[],gc=[],GY=.005;
+  const vert=(x,z,c)=>{gp.push(x,GY,z);gc.push(Math.min(1,c.r),Math.min(1,c.g),Math.min(1,c.b));};
+  const stroke=(pts,w0,taper,salt=0)=>{
+   const n=pts.length,L=[],M=[],R=[];
+   for(let i=0;i<n;i++){
+    const p=pts[i],q=pts[Math.min(n-1,i+1)],o=pts[Math.max(0,i-1)];
+    let dx=q[0]-o[0],dz=q[1]-o[1];const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;
+    const t=i/(n-1),w=w0*(taper?Math.max(.08,Math.pow(Math.sin(Math.PI*t),.7)):1)*(.75+.5*rand(salt+i));
+    L.push([p[0]-dz*w,p[1]+dx*w]);M.push(p);R.push([p[0]+dz*w,p[1]-dx*w]);
+   }
+   for(let i=0;i<n-1;i++)for(const [A,B] of [[L,M],[M,R]]){
+    const quad=[[A[i],A===M],[A[i+1],A===M],[B[i],B===M],[B[i],B===M],[A[i+1],A===M],[B[i+1],B===M]];
+    for(const [[x,z],mid] of quad)vert(x,z,mid?hot:edge);
+   }};
+  // Rings: broken arcs with a scratched, wavering radius.
+  const ring=(r,w,salt)=>{
+   let a=rand(salt)*Math.PI*2;const end=a+Math.PI*2;
+   while(a<end-.15){
+    const span=Math.min(end-a,.9+rand(salt+a*7)*1.5),pts=[],n=Math.ceil(span/.08);
+    for(let i=0;i<=n;i++){const b=a+span*i/n,rr=r+(rand(salt+i*3+a)-.5)*.007;pts.push([Math.cos(b)*rr,Math.sin(b)*rr]);}
+    stroke(pts,w,false,salt+a*11);a+=span+.06+rand(salt+a*5)*.08;
+   }};
+  ring(.372,.0075,900);ring(.312,.0045,940);
+  // Star: tapered slashes between the points, kinked a little and run past the inner ring.
+  const points=kind==='polymorph'?7:kind==='ice'?6:5,step=2,R0=.318;
+  const tip=(i)=>{const a=i/points*Math.PI*2+Math.PI/2;return [Math.cos(a)*R0,Math.sin(a)*R0];};
   for(let i=0;i<points;i++){
-   const a=i/points*Math.PI*2,b=(i+step)/points*Math.PI*2;
-   const ax=Math.cos(a)*.3,az=Math.sin(a)*.3,bx=Math.cos(b)*.3,bz=Math.sin(b)*.3;
-   const len=Math.hypot(bx-ax,bz-az);
-   const line=add(new THREE.BoxGeometry(len,.004,.012),rune,(ax+bx)/2,.007,(az+bz)/2);line.rotation.y=-Math.atan2(bz-az,bx-ax);line.castShadow=false;
-   const glyph=add(new THREE.BoxGeometry(.03,.004,.012),rune,Math.cos(a)*.33,.007,Math.sin(a)*.33);glyph.rotation.y=-a;glyph.castShadow=false;
+   const [ax,az]=tip(i),[bx,bz]=tip(i+step),pts=[],nx=-(bz-az),nz=bx-ax,l=Math.hypot(nx,nz);
+   for(let k=0;k<=8;k++){const t=-.03+k/8*1.06,j=k%8?(rand(i*13+k+960)-.5)*.012:0;pts.push([ax+(bx-ax)*t+nx/l*j,az+(bz-az)*t+nz/l*j]);}
+   stroke(pts,.0075,true,980+i*9);
   }
-  flat(new THREE.CircleGeometry(.05,16),rune,.008);
+  // Runes in the band between the rings: two or three angular strokes on a 3x3 grid each.
+  const glyphs=points*3;
+  for(let i=0;i<glyphs;i++){
+   const a=(i+.5)/glyphs*Math.PI*2+Math.PI/2,ca=Math.cos(a),sa=Math.sin(a);
+   const at=(u,v)=>{const r=.342+v;return [ca*r-sa*u,sa*r+ca*u];};
+   const strokes=2+(rand(i+1000)>.55?1:0);
+   for(let s=0;s<strokes;s++){
+    const g0=Math.floor(rand(i*7+s+1010)*9);let g1=Math.floor(rand(i*7+s+1030)*9);if(g1===g0)g1=(g0+4)%9;
+    const P=(k)=>at(((k%3)-1)*.0085,(Math.floor(k/3)-1)*.011);
+    const [x0,z0]=P(g0),[x1,z1]=P(g1);
+    stroke([[x0,z0],[(x0+x1)/2,(z0+z1)/2],[x1,z1]],.0032,false,1050+i*5+s);
+   }
+  }
+  // The eye: two curved lids, and an iris split by a dark slit pupil.
+  const EW=.075,EH=.034,IR=.026,SW=.006;
+  for(const s of [1,-1]){const pts=[];for(let k=0;k<=12;k++){const t=k/12,x=(t*2-1)*EW;pts.push([x,s*EH*(1-(x/EW)**2)]);}stroke(pts,.0055,true,1200+s);}
+  for(const s of [1,-1])for(let k=0;k<10;k++){
+   const z0=-IR+2*IR*k/10,z1=-IR+2*IR*(k+1)/10;
+   const ox=(z)=>s*Math.sqrt(Math.max(0,IR*IR-z*z)),ix=(z)=>s*SW*(1-(z/IR)**2);
+   for(const [x,z,c] of [[ix(z0),z0,hot],[ox(z0),z0,edge],[ix(z1),z1,hot],[ix(z1),z1,hot],[ox(z0),z0,edge],[ox(z1),z1,edge]])vert(x,z,c);
+  }
+  // Flames over the candles (or a cold spark in each frost cluster), built into the same glow.
+  const stubs=[];
+  for(let i=0;i<points;i++){const a=i/points*Math.PI*2+Math.PI/2+(rand(i+1100)-.5)*.12,r=.405+rand(i+1110)*.02;stubs.push({x:Math.cos(a)*r,z:Math.sin(a)*r,h:.035+rand(i+1120)*.05,s:.016+rand(i+1130)*.005});}
+  const glowParts=[flatGeo(gp,gc,3)];
+  if(kind!=='ice')for(const [i,c] of stubs.entries()){
+   const fh=.028+rand(i+1140)*.012,lean=(rand(i+1150)-.5)*.3;
+   glowParts.push(bake(new THREE.SphereGeometry(.0075,8,6),(col,x,y)=>{const t=(y-c.h-.006)/fh;col.copy(hot).lerp(edge,Math.max(0,Math.min(1,t*1.4)));},{x:c.x,y:c.h+.006+fh*.42,z:c.z,sy:fh/.015,rz:lean}));
+  }
+  const glowMat=new THREE.MeshBasicMaterial({vertexColors:true,color:new THREE.Color(1.35,1.35,1.35)});materials.push(glowMat);
+  const glowMesh=add(mergeGeometries(glowParts),glowMat);glowMesh.castShadow=false;glowMesh.name='sigil-glow';
+  glowParts.forEach(p=>p.dispose());
+  // Burn stain: soot at the heart, a faint glow bleeding into it near the rings, fading out
+  // (vertex alpha) to a ragged edge.
+  const N=48,K=7,reach=[],sp=[],sc=[],c=new THREE.Color();
+  for(let i=0;i<N;i++)reach.push(Math.min(.47,.4+.06*rand(i+1160)+(i%3===0?.02:0)));
+  const at=(k,i)=>{const a=i/N*Math.PI*2,r=reach[i%N]*k/K,x=Math.cos(a)*r,z=Math.sin(a)*r,t=k/K;
+   const near=Math.max(0,1-Math.min(Math.abs(r-.372),Math.abs(r-.312),Math.abs(r-.05))/.05);
+   c.copy(soot).lerp(tint,near*.8).lerp(soot,.35*noise(x*11,z*11));
+   sp.push(x,.003,z);sc.push(c.r,c.g,c.b,Math.min(.92,1.05-t*t)*(.75+.25*noise(z*13,x*13)));};
+  for(let k=0;k<K;k++)for(let i=0;i<N;i++){at(k,i);at(k+1,i+1);at(k+1,i);at(k,i);at(k,i+1);at(k+1,i+1);}
+  const stain=add(flatGeo(sp,sc,4),mat({color:0xffffff,vertexColors:true,roughness:1,transparent:true,depthWrite:false}));
+  stain.castShadow=false;stain.name='sigil-stain';
+  const solid=[];
   if(kind==='ice'){
-   const frost=mat({color:0xe6f7ff,roughness:.2,metalness:.1,transparent:true,opacity:.8});
-   for(let i=0;i<7;i++){const a=rand(i+160)*Math.PI*2,r=.08+rand(i+180)*.18,h=.06+rand(i+200)*.08;
-    const spike=add(new THREE.ConeGeometry(.02,h,5),frost,Math.cos(a)*r,h/2,Math.sin(a)*r);spike.rotation.set((rand(i+220)-.5)*.6,0,(rand(i+240)-.5)*.6);}
+   // Frost: a cluster of jagged shards at each point, leaning out, white at the tips.
+   const ice=new THREE.Color(0x9fd6f0),rime=new THREE.Color(0xf2fbff);
+   for(const [i,p] of stubs.entries())for(let j=0;j<3;j++){
+    const h=.05+rand(i*5+j+1170)*.07,a=Math.atan2(p.z,p.x),off=(j-1)*.022;
+    const x=p.x-Math.sin(a)*off,z=p.z+Math.cos(a)*off,tilt=.25+rand(i*5+j+1180)*.35;
+    solid.push(bake(new THREE.ConeGeometry(.011+rand(i*5+j+1190)*.008,h,4),(col,vx,vy)=>col.copy(ice).lerp(rime,Math.min(1,vy/h*1.6)),
+     {x,y:h*.42,z,rx:Math.sin(a)*tilt,rz:-Math.cos(a)*tilt,ry:rand(i*5+j+1200)*3}));
+   }
+  }else{
+   // Candle stubs of black wax: guttered tops, drips down the side, a puddle at the foot, a wick.
+   const wax=new THREE.Color(0x1d1a1c),waxHi=new THREE.Color(0x3a3436),wick=new THREE.Color(0x050404);
+   const paintWax=(col,x,y,z)=>col.copy(wax).lerp(waxHi,.6*noise(x*80+y*40,z*80));
+   for(const [i,p] of stubs.entries()){
+    const top=new THREE.CylinderGeometry(p.s*.92,p.s,p.h,9,1);
+    const pos=top.attributes.position;for(let v=0;v<pos.count;v++)if(pos.getY(v)>0){const ang=Math.atan2(pos.getZ(v),pos.getX(v));pos.setY(v,p.h/2-.006*(.5+.5*Math.sin(ang*3+i))*(1-Math.hypot(pos.getX(v),pos.getZ(v))/p.s*.2));}
+    top.computeVertexNormals();
+    solid.push(bake(top,paintWax,{x:p.x,y:p.h/2,z:p.z}));
+    solid.push(bake(new THREE.CylinderGeometry(p.s*1.9,p.s*2.2,.006,10),paintWax,{x:p.x,y:.003,z:p.z,sx:1+rand(i+1210)*.3}));
+    for(let j=0;j<2;j++){const a=rand(i*3+j+1220)*Math.PI*2,len=p.h*(.4+rand(i*3+j+1230)*.4);
+     solid.push(bake(new THREE.CapsuleGeometry(.0035,len,2,5),paintWax,{x:p.x+Math.cos(a)*p.s*.98,y:p.h-.004-len/2,z:p.z+Math.sin(a)*p.s*.98}));}
+    solid.push(bake(new THREE.CylinderGeometry(.0012,.0012,.012,4),(col)=>col.copy(wick),{x:p.x,y:p.h+.002,z:p.z}));
+   }
   }
+  const solidMat=kind==='ice'?mat({color:0xffffff,vertexColors:true,roughness:.15,metalness:.1,transparent:true,opacity:.82}):mat({color:0xffffff,vertexColors:true,roughness:.55});
+  const solidMesh=add(mergeGeometries(solid),solidMat);solidMesh.name=kind==='ice'?'sigil-frost':'sigil-wax';
+  solid.forEach(p=>p.dispose());
  }else if(kind==='portal'){
   // Magic portal: a standing-stone arch around a swirling violet rift, over a
   // scorched rune circle. Only the portal uses bright magenta, so it gets its own model.
