@@ -7,6 +7,7 @@ import {updateMoldFrost} from './mold-frost.js';
 import {updateSporePuff} from './spore-puff.js';
 import {updatePuddingHeave} from './pudding-heave.js';
 import {updateLichChill} from './lich-chill.js';
+import {updateGhostDrift} from './ghost-drift.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -115,6 +116,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updatePuddingHeave(actor, dt, t, busy, walking);
   // And the liches' cold: flexing claws, a slow grasp that wrings in cold motes, a breathing orb and a cast (lich-chill.js).
   updateLichChill(actor, dt, t, busy);
+  // And the ghosts' drift: a swaying, smoking shroud, limp sleeves, a head that follows the hero and a drain (ghost-drift.js).
+  updateGhostDrift(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
