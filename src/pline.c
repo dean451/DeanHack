@@ -438,7 +438,7 @@ impossible VA_DECL(const char *, s)
         Strcat(pbuf, "  (Saving and reloading may fix this problem.)");
     }
     pline("%s", pbuf);
-    pline("Please report these messages to %s.", DEVTEAM_EMAIL);
+    pline("Please report these messages at %s.", DEVTEAM_URL);
     if (sysopt.support) {
         pline("Alternatively, contact local support: %s", sysopt.support);
     }
