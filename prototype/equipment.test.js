@@ -150,6 +150,25 @@ test('a spetum has its own central blade and forked side blades, merged to one m
  }
 });
 
+test('a lucern hammer has its own pronged hammer, hooked beak and top spike, merged to one mesh per material',()=>{
+ for(const name of ['lucern hammer','pronged polearm']){
+  const hammer=createHeldWeapon({name,class:2});
+  assert.deepEqual(hammer.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+  const s=size(hammer);
+  assert(s.y>1.8&&s.y<2.05,`length ${s.y}`);
+  for(const m of hammer.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));
+   const n=m.geometry.attributes.normal.array;assert(n.every(Number.isFinite));}
+  const blade=hammer.children.find(c=>c.userData.part==='blade');
+  assert(blade.material.metalness>=.75,'weapon-magic sheathes the head');
+  blade.geometry.computeBoundingBox();
+  const bb=blade.geometry.boundingBox;
+  assert(bb.min.x<-.25,'the beak reaches back');
+  assert(bb.max.x>.15,'the prongs stand out from the face');
+  assert(bb.max.y>1.35,'the spike rises above the block');
+  hammer.userData.dispose();
+ }
+});
+
 test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
  const saber=createHeldWeapon({name:'silver saber',class:2});
  const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});
