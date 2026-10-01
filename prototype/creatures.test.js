@@ -768,7 +768,7 @@ test('piercers are twisted, eyeless stalactites with a toothed gash, and the roc
  assert.equal(createCreature({name:'unknown piercer thing',symbol:112}).kind,'piercer','the p fallback');
 });
 
-test('ghosts and shades get their own sheeted, floating model instead of the guardian box',()=>{
+test('ghosts get their own sheeted, floating model instead of the guardian box',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const t0=performance.now(),ghost=createCreature({name:'ghost',symbol:32,color:7}),ms=performance.now()-t0;
  assert.equal(ghost.quirk,'hover');
@@ -795,13 +795,41 @@ test('ghosts and shades get their own sheeted, floating model instead of the gua
  assert(sleeve.max.z>.25,`sleeve reaches ${sleeve.max.z}`);
  const sheet=parts.find(m=>m.userData.part==='body').material;
  assert(sheet.transparent&&sheet.opacity<1,'translucent');
- const shade=meshes(createCreature({name:'shade',symbol:32,color:0}));
- parts.forEach((m,i)=>assert.equal(m.geometry,shade[i].geometry));
- assert.notEqual(shade[0].material,sheet,'the shade has its own dim material');
- assert(shade[0].material.color.getHSL({}).l<sheet.color.getHSL({}).l,'the shade is darker');
  const again=meshes(createCreature({name:'ghost'}));
  parts.forEach((m,i)=>assert.equal(m.material,again[i].material));
  assert(ms<1000,`took ${ms} ms`);
+});
+
+test('shades get their own gaunt, hunched shadow with ribs, a cowled skull, clawed arms and a body of smoke tendrils instead of the ghost sheet',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const shade=createCreature({name:'shade',symbol:32,color:0});
+ assert.equal(shade.quirk,'hover');assert.equal(shade.ghost,'shade');
+ for(const key of ['body','head','arm'])assert(shade[key]?.isObject3D,key);
+ assert.equal(shade.arms.length,2);assert.equal(shade.legs.length,0);assert.equal(shade.tail,null);
+ assert(shade.head.children.some(c=>c.userData.part==='eyes'),'eyes for the drain flare');
+ const parts=meshes(shade);
+ assert.equal(parts.length,7,'body, bones, cowl, skull, eyes and two arms');
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+  assert.equal(m.castShadow,false,'a shade casts no shadow');
+ }
+ assert(verts<30000,`${verts} vertices`);
+ shade.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(shade.g);
+ assert(b.min.y>.02&&b.min.y<.2,`tendrils end at ${b.min.y}`);
+ assert(b.max.y>1&&b.max.y<1.25,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'fits the tile');
+ // the claws reach out in front of the chest; the shadow is see-through, the bones are not
+ assert(new THREE.Box3().setFromObject(shade.arm).max.z>.3,'claws reach forward');
+ const body=parts.find(m=>m.userData.part==='body').material,bones=parts.find(m=>m.userData.part==='bones').material;
+ assert(body.transparent&&body.opacity<1,'translucent');assert(!bones.transparent,'solid bones');
+ const ghost=meshes(createCreature({name:'ghost',symbol:32,color:7}));
+ assert(!ghost.some(m=>parts.some(p=>p.geometry===m.geometry)),'not the ghost sheet');
+ const again=meshes(createCreature({name:'shade'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
 test('hobbits get their own curly-haired, waistcoated, bare-footed model instead of the short humanoid',()=>{
@@ -1757,4 +1785,10 @@ test('the minotaur gets its own hunched, horned bull-headed brute with a labrys 
  assert(head.max.z>.4,`the muzzle juts forward ${head.max.z}`);
  assert(head.max.x-head.min.x>.5,`the horns sweep wide ${head.max.x-head.min.x}`);
  assert(m.weaponSocket.children.some(c=>c.userData.part==='labrys'));
+ // the labrys is gripped low and held up beside the head, clear of it, not hung behind the hump
+ const labrys=m.weaponSocket.children.find(c=>c.userData.part==='labrys'),lb=new THREE.Box3().setFromObject(labrys);
+ assert(lb.max.y>1.25,`the double bit stands up by the head ${lb.max.y}`);
+ assert(lb.max.z>.3,`it is carried in front, not behind ${lb.max.z}`);
+ const hb=new THREE.Box3().setFromObject(m.head.children[0]),pos=labrys.geometry.attributes.position,v=new THREE.Vector3();
+ for(let i=0;i<pos.count;i++)assert(!hb.containsPoint(v.fromBufferAttribute(pos,i).applyMatrix4(labrys.matrixWorld)),'the labrys clears the head');
 });

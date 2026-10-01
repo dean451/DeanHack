@@ -46,6 +46,7 @@ import {createCouatl} from './couatl.js';
 import {createTurtle} from './turtle.js';
 import {createJuiblex} from './juiblex.js';
 import {createGhost,GHOSTS} from './ghost.js';
+import {createShade} from './shade.js';
 import {createStrawGolem} from './straw-golem.js';
 import {createPaperGolem} from './paper-golem.js';
 import {createJabberwock,JABBERWOCK_KINDS} from './jabberwock.js';
@@ -2471,6 +2472,7 @@ export function createCreature(cell={}){
  if(DEMONS[name])return demon(DEMONS[name]);
  if(RIDERS[name])return wraith({...RIDERS[name],kind:name});
  if(name==='juiblex')return createJuiblex();
+ if(name==='shade')return createShade();
  if(GHOSTS.includes(name))return createGhost(name);
  if(name==='couatl')return createCouatl();
  if(UNICORNS[name])return horse(UNICORNS[name]);
