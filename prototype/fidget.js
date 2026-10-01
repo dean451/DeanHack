@@ -26,6 +26,7 @@ import {updateBeholderWrithe} from './beholder-writhe.js';
 import {updateMedusaCoil} from './medusa-coil.js';
 import {updateMedusaHair} from './medusa-hair.js';
 import {updateCthulhuWrithe} from './cthulhu-writhe.js';
+import {updateWeepingLunge} from './weeping-lunge.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -172,6 +173,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateMedusaHair(actor, dt, t, busy, look);
   // And Cthulhu: its tentacle beard writhes, twitches and reaches for the hero, its torn wings twitch and spread, flare, jolt and sag (cthulhu-writhe.js).
   updateCthulhuWrithe(actor, dt, t, busy, look);
+  // And the weeping angels: stone that never moves while watched, only snaps a notch nearer each time the hero steps, and lunges with its hands torn from its face (weeping-lunge.js).
+  updateWeepingLunge(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {

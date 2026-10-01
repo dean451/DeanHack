@@ -264,6 +264,8 @@ export function updateActions(actor, q, dt) {
     pose.yaw -= monsterAttackPose(a.attack, u, a.result).twist;
     Object.assign(pose, scorpionAttackPose(a.attack, u, a.result));
   }
+  // A weeping angel poses its own arms when it strikes (weeping-lunge.js).
+  if (a.kind === 'attack' && actor.ownsAttackArms) pose.arm = pose.wrist = 0;
   // A throw or shot, released as the object leaves (throw-motion.js).
   if (a.kind === 'throw') Object.assign(pose, throwPose(a.style, u, actor.centaur));
   if (a.swing) {
