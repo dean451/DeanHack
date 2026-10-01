@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {fireTrapAnimator} from './fire-trap-fx.js';
 
 // The bridge reports traps as generic `feature` cells, so the trap family comes
 // from the map symbol and its colour (drawing.c defsyms). Several traps share a
@@ -621,6 +622,8 @@ export function createTrap(kind,seed=0){
   const glowMesh=add(mergeGeometries(glow),glowMat);
   glowMesh.castShadow=false;glowMesh.name='coal-glow';
   glow.forEach(p=>p.dispose());
+  // The coals breathe and spit sparks (fire-trap-fx.js).
+  g.userData.animate=fireTrapAnimator(g,seed);
  }else if(RUNES[kind]){
   // Magical traps: a glowing inscribed circle with a star, in the trap's colour.
   const [color,glow]=RUNES[kind];
