@@ -5,7 +5,7 @@ import {createTrap,trapKind} from './trap.js';
 import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
 import {beatAt,flameAt,attachSigilFx,BEAT_EVERY,GLOW_REST} from './sigil-fx.js';
 
-const KINDS=['pit','hatch','jaws','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
+const KINDS=['pit','hatch','jaws','arrow','dart','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
 test('magic portals get their own kind; teleporters keep the rune circle',()=>{
  assert.equal(trapKind(94,13),'portal');
@@ -338,5 +338,21 @@ test('the sigil beats lub-dub and its candle flames are drawn toward the eye, gu
   for(let v=0;v<pos.count;v++)if(rest[v*3+1]<.015)assert.equal(pos.getY(v),rest[v*3+1],'the flat strokes stay put');
   if(kind==='ice')assert(top<.01);else assert(top<.2&&top>.05,`${kind} flames reach y ${top}`);
   let after=0;model.traverse(o=>{if(o.isMesh)after++;});assert.equal(after,meshes.length,'no extra draws');
+ }
+});
+
+test('arrow and dart traps get the arrow mask by name; nameless cyan traps stay bear traps',()=>{
+ assert.equal(trapKind(94,6,'arrow trap'),'arrow');
+ assert.equal(trapKind(94,6,'dart trap'),'dart');
+ assert.equal(trapKind(94,6,'bear trap'),'jaws');
+ assert.equal(trapKind(94,6),'jaws');
+ for(const kind of ['arrow','dart'])for(const seed of [0,3,42]){
+  const model=createTrap(kind,seed);
+  const meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.deepEqual(meshes.map(o=>o.name).sort(),[`${kind}-eyes`,`${kind}-shafts`,`${kind}-stone`]);
+  const b=new THREE.Box3().setFromObject(model);
+  assert(b.max.y>.3&&b.max.y<.6,`${kind} mask height ${b.max.y}`);
+  for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&Number.isFinite(v));}
+  model.userData.dispose();
  }
 });
