@@ -109,18 +109,24 @@ function teeth(P){
 // Ten eyestalks rising from the crown: each leaves the hide along its normal, bends outward and
 // back on itself, ringed like a worm, thinning to a neck under its eye. Their tips are returned
 // with the way each eye looks.
-const STALKS=[[.95,-.55,.26],[.95,.55,.27],[1.1,-1.35,.3],[1.1,1.35,.29],[1.0,-2.2,.25],[1.0,2.2,.26],[1.25,-2.9,.22],[1.25,2.9,.23],[1.38,-.25,.32],[1.38,.4,.3]];
+export const STALKS=[[.95,-.55,.26],[.95,.55,.27],[1.1,-1.35,.3],[1.1,1.35,.29],[1.0,-2.2,.25],[1.0,2.2,.26],[1.25,-2.9,.22],[1.25,2.9,.23],[1.38,-.25,.32],[1.38,.4,.3]];
+// Stalk i's control points (in the lifted body's frame) and the way it leans out from the crown.
+// beholder-writhe.js reads these to find each stalk's vertices.
+export function stalkPath(i){
+ const [up,side,len]=STALKS[i],n=dir(up,side),root=n.clone().multiplyScalar(R*.96);
+ const outward=new THREE.Vector3(n.x,0,n.z).normalize(),curl=(i%2?1:-1)*(.4+.3*hash(i,1));
+ const tangent=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),outward).normalize();
+ const pts=[root];
+ for(let k=1;k<=5;k++){const f=k/5;
+  pts.push(root.clone().addScaledVector(n,len*f*.6).addScaledVector(new THREE.Vector3(0,1,0),len*f*.55)
+   .addScaledVector(outward,len*.35*Math.sin(f*2.4))
+   .addScaledVector(tangent,len*.22*curl*Math.sin(f*Math.PI*1.3)));}
+ return {pts,root,len,outward};
+}
 function stalks(P){
  const tips=[];
- STALKS.forEach(([up,side,len],i)=>{
-  const n=dir(up,side),root=n.clone().multiplyScalar(R*.96);
-  const outward=new THREE.Vector3(n.x,0,n.z).normalize(),curl=(i%2?1:-1)*(.4+.3*hash(i,1));
-  const tangent=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),outward).normalize();
-  const pts=[root];
-  for(let k=1;k<=5;k++){const f=k/5;
-   pts.push(root.clone().addScaledVector(n,len*f*.6).addScaledVector(new THREE.Vector3(0,1,0),len*f*.55)
-    .addScaledVector(outward,len*.35*Math.sin(f*2.4))
-    .addScaledVector(tangent,len*.22*curl*Math.sin(f*Math.PI*1.3)));}
+ STALKS.forEach((_,i)=>{
+  const {pts,root,len,outward}=stalkPath(i);
   const radius=f=>(.019-.01*f)*(1+.18*Math.max(0,Math.sin(f*Math.PI*9)))*(f>.9?1-.3*(f-.9)/.1:1)+.004*smooth(.08,0,f);
   P.add(tube(pts,radius,40,7),null,(x,y,z)=>{
    const h=new THREE.Vector3(x,y,z).sub(root).length()/len;

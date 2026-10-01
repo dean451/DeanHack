@@ -47,7 +47,12 @@ export const FLOAT = {yaw: .55, pitch: .36, saccade: .3, holdMin: 1.1, holdSpan:
 // acting; DEAD: after death. WIDEN/NARROW: how quickly it eases wider or narrower (1/s); SINK:
 // how far the pupil sinks back into the iris per unit of extra width, so it stays on the ball.
 export const HIPPUS = .05, DILATE = .65, PINCH = .62, DEAD = 1.6, WIDEN = 2.2, NARROW = 9, SINK = .015;
-const PARAMS = {'evil eye': EVIL, 'floating eye': FLOAT};
+// The beholder's great eye: lidded like the evil eye but a tyrant's glare. It sees further and
+// wider, and once it has the hero it holds long stares, breaking off only to dart a look aside.
+// EYE_H is its eye's height (the lifted orb at .62 plus the eye's rise).
+export const BEHOLDER = {yaw: .45, pitch: .24, saccade: .06, holdMin: .3, holdSpan: 1.1, centre: .25, tremor: .005,
+  resume: .5, range: 7, view: 1.5, track: .86, stareMin: 1.6, stareSpan: 2.4, notice: .1, follow: 14, eyeH: .71};
+const PARAMS = {'evil eye': EVIL, 'floating eye': FLOAT, beholder: BEHOLDER};
 const paramsOf = a => PARAMS[a?.species] || EVIL;
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;

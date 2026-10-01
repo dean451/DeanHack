@@ -22,6 +22,7 @@ import {updateBatJitter} from './bat-jitter.js';
 import {updateAntJaws} from './ant-jaws.js';
 import {updateEelCharge} from './eel-charge.js';
 import {updateCobraRear} from './cobra-rear.js';
+import {updateBeholderWrithe} from './beholder-writhe.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -160,6 +161,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateEelCharge(actor, dt, t, busy, look, walking);
   // And the cobra: it rears and spreads its hood at the hero, sways as if charmed, flicks its tongue, hisses, strikes and spits (cobra-rear.js).
   updateCobraRear(actor, dt, t, busy, look, walking);
+  // And the beholder's eyestalks: a worming writhe, twitches, all bending to the hero, a lash, a flinch and a limp death (beholder-writhe.js).
+  updateBeholderWrithe(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
