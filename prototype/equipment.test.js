@@ -132,6 +132,24 @@ test('a ranseur has its own spike and barbed side prongs, merged to one mesh per
  }
 });
 
+test('a spetum has its own central blade and forked side blades, merged to one mesh per material',()=>{
+ for(const name of ['spetum','forked polearm']){
+  const spetum=createHeldWeapon({name,class:2});
+  assert.deepEqual(spetum.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+  const s=size(spetum);
+  assert(s.y>1.9&&s.y<2.05,`length ${s.y}`);
+  for(const m of spetum.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));
+   const n=m.geometry.attributes.normal.array;assert(n.every(Number.isFinite));}
+  const blade=spetum.children.find(c=>c.userData.part==='blade');
+  assert(blade.material.metalness>=.75,'weapon-magic sheathes the blade');
+  blade.geometry.computeBoundingBox();
+  const bb=blade.geometry.boundingBox;
+  assert(bb.max.x>.2&&bb.min.x<-.2,'side blades fork out both sides');
+  assert(bb.max.y>1.45,'the central blade rises above the fork');
+  spetum.userData.dispose();
+ }
+});
+
 test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
  const saber=createHeldWeapon({name:'silver saber',class:2});
  const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});
