@@ -688,6 +688,24 @@ test('the lichen is a leafy rosette with cups and fruiting discs instead of the 
  assert(ms<1000,`took ${ms} ms`);
 });
 
+test("Devil's Snare is a nest of thorned, hook-tipped vines instead of the xorn",()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const snare=createCreature({name:"Devil's Snare",symbol:88,color:2});
+ assert.equal(snare.quirk,'fungus');assert.equal(snare.kind,'devils snare');assert(snare.body?.isObject3D);
+ const parts=meshes(snare);assert.deepEqual(parts.map(p=>p.userData.part),['vines','thorns'],'two draws');
+ assert.equal(snare.vines,parts[0]);
+ for(const p of parts){const a=p.geometry.attributes;for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${p.userData.part} ${key}`);for(const v of a.color.array)assert(v>=0&&v<=1,'colour');}
+ snare.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(snare.g);
+ assert(b.min.y>-.001&&b.min.y<.01,`sits on the floor at ${b.min.y}`);
+ assert(b.max.y>.6&&b.max.y<1,`vines reach ${b.max.y}`);
+ const reach=Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z);assert(reach>.3&&reach<.5,`reach ${reach}`);
+ assert(parts[1].material.roughness<parts[0].material.roughness,'thorns and sap are glossier than the vines');
+ const again=meshes(createCreature({name:"Devil's Snare",symbol:88}));
+ parts.forEach((p,i)=>{assert.equal(p.geometry,again[i].geometry);assert.equal(p.material,again[i].material);});
+ assert(parts.reduce((n,p)=>n+p.geometry.attributes.position.count,0)<20000);
+ assert.notEqual(meshes(createCreature({name:'xorn',symbol:88})).length,2,'the xorn is still a xorn');
+});
+
 test('ferns are jagged frond clumps and their spores floating sporangia instead of the mound and eye',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const box=a=>{a.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(a.g);};
