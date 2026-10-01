@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createOilLamp} from './oil-lamp.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 function kit(name){
@@ -266,16 +267,7 @@ export function createLightItem(name){
  const kind=lightItemKind(name);if(!kind)return null;
  if(kind==='lantern')return createBrassLantern(name);
  if(kind==='candle')return createCandle(name);
- const {g,mat,mesh,ball,cyl,ring}=kit(name);g.userData.restingWeapon=true;
- const brass=mat(0xb79b53,{metalness:.75,roughness:.3}),dark=mat(0x34312c);
- if(kind==='lamp'){
-  cyl(brass,0,.035,0,.18,.21,.07);
-  ball(brass,0,.14,0,.22,.11,.16);cyl(brass,0,.25,0,.10,.14,.045);ball(brass,0,.285,0,.035,.03,.035);
-  const spout=mesh(new THREE.ConeGeometry(.075,.32,12),brass,.25,.20,0);spout.rotation.z=-Math.PI/2-.25;
-  cyl(dark,.395,.25,0,.013,.013,.042,6);
-  const handle=ring(brass,-.23,.20,0,.115,.021);handle.scale.set(.85,1,1);
- }
- return g;
+ return createOilLamp(name);
 }
 // A brass hurricane lantern standing on the floor: a stepped fount with a wick-raising knob, a
 // bulging glass globe caged by four bowed guard wires and two hoops, a vented, domed cap with a

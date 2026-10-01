@@ -48,7 +48,7 @@ function paint(geo,fn){
 }
 const lathe=(points,segments=28)=>new THREE.LatheGeometry(points.map(([r,y])=>new THREE.Vector2(r,y)),segments);
 // The profile's radius at height y (the first crossing from the bottom).
-function radiusAt(profile,y){
+export function radiusAt(profile,y){
  for(let i=1;i<profile.length;i++){const [r0,y0]=profile[i-1],[r1,y1]=profile[i];
   if(y>=y0&&y<=y1)return y1===y0?Math.max(r0,r1):r0+(r1-r0)*(y-y0)/(y1-y0);}
  return profile.at(-1)[0];
@@ -126,6 +126,9 @@ export function createPotion({appearance='',color,count=1}={}){
  mesh(merge(parts.stopper),stopperMat,'stopper',0);
  mesh(merge(parts.glass),glassMat,'glass',1);
  g.rotation.y=.4;
+ // Where each bottle stands and how it's shaped, for potion-fx.js.
+ g.userData.layout={look,shape:kind,profile:shape.profile,fill:shape.fill,top:shape.top,neck:shape.neck,
+  bottles:STACK.slice(0,n).map(([sx,sz])=>({x:sx*shape.belly*2,z:sz*shape.belly*2}))};
  g.userData.materials=[glassMat,liquidMat,stopperMat];
  g.userData.dispose=()=>{g.children.forEach(o=>o.geometry.dispose());g.userData.materials.forEach(m=>m.dispose());};
  return g;
