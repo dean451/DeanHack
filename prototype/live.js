@@ -3,7 +3,7 @@ import {createGridBug} from './grid-bug.js';
 import * as THREE from 'three';
 import {createGroundModel} from './ground-models.js';
 import {groundNotice,groundTile} from './ground-notice.js';
-import {menuKeys,autoCategory,menuCommand,EXT_FALLBACK,matchCommands,resolveCommand,completePrefix} from './engine-menus.js';
+import {menuKeys,autoCategory,menuCommand,menuGroups,EXT_FALLBACK,matchCommands,resolveCommand,completePrefix} from './engine-menus.js';
 import {meleeDirection,confirmsPlayerMelee} from './combat-visuals.js';
 import {createHeldWeapon} from './equipment.js';
 import {createCentaurStatue,createOracle,createLiveFountain} from './oracle-visuals.js';
@@ -365,14 +365,19 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      else if(!item.selectable&&item.text.trim())row.classList.add('engine-menu-heading');
      row.append(document.createTextNode(item.text));form.append(row);}
     const boxes=()=>[...form.querySelectorAll('input')];
-    if(menu.how!==0){const hint=document.createElement('p');hint.className='engine-menu-hint';hint.textContent=pickAny?'Letters toggle items · , selects all · - clears · @ inverts · Enter takes them':'Press a letter to choose';form.append(hint);}
+    // One button per class in the list (Potions !, Scrolls ?...), the same toggle as typing its symbol.
+    const toggleGroup=ids=>{const set=new Set(ids.map(String)),group=boxes().filter(i=>set.has(i.value)),on=!group.every(i=>i.checked);for(const i of group)i.checked=on;};
+    if(pickAny){const classes=menuGroups(items);if(classes.length){const bar=document.createElement('div');bar.className='engine-menu-groups';
+     for(const c of classes){const b=document.createElement('button');b.type='button';b.textContent=c.label+' ';const k=document.createElement('kbd');k.textContent=c.key;b.append(k);b.title=`Select or clear every item in ${c.label} (${c.key})`;b.onclick=()=>toggleGroup(c.ids);bar.append(b);}
+     form.prepend(bar);}}
+    if(menu.how!==0){const hint=document.createElement('p');hint.className='engine-menu-hint';hint.textContent=pickAny?'Letters toggle items · a class symbol (! ? / …) toggles that class · , selects all · - clears · @ inverts · Enter takes them':'Press a letter to choose';form.append(hint);}
     const submit=document.createElement('button');submit.textContent='Continue (Enter)';submit.type='submit';form.append(submit);
     form.onsubmit=e=>{e.preventDefault();reply(boxes().filter(i=>i.checked).map(i=>i.value).join(','));};
     form.addEventListener('keydown',e=>{const key=e.key;if(e.metaKey||e.ctrlKey||e.altKey)return;if(key==='Escape'){e.preventDefault();reply('!');return;}if(key==='Enter'){e.preventDefault();form.requestSubmit();return;}
      const input=boxes().find(i=>i.dataset.accelerator===key);if(input){e.preventDefault();if(menu.how===1)reply(input.value);else input.checked=!input.checked;return;}
      const cmd=pickAny&&key.length===1?menuCommand(key,items):null;if(!cmd)return;e.preventDefault();
      if(cmd.select)for(const i of boxes())i.checked=cmd.select==='all'?true:cmd.select==='none'?false:!i.checked;
-     else{const ids=new Set(cmd.toggle.map(String)),group=boxes().filter(i=>ids.has(i.value)),on=!group.every(i=>i.checked);for(const i of group)i.checked=on;}});
+     else toggleGroup(cmd.toggle);});
     dialog.append(form);}
    else if(pending.kind==='line'&&pending.prompt==='Extended command'){
     // # commands complete as you type: arrows pick, Tab completes, Enter runs the highlighted one.

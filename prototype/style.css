@@ -81,3 +81,4 @@ dialog button{font:600 12px 'Cinzel',Georgia,serif;letter-spacing:1.5px}
 .engine-menu-hint{font:italic 14px 'IM Fell English',Georgia,serif}
 .engine-ext-list li{font-size:16px;font-family:'IM Fell English',Georgia,serif}
 .engine-ext-list li b{font:600 13px 'Cinzel',Georgia,serif;letter-spacing:1px}
+.engine-menu-groups{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.engine-menu-groups button{margin:0;font:13px/1.2 Inter,sans-serif;padding:5px 9px}.engine-menu-groups kbd{margin-left:4px}

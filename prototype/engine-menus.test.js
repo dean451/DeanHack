@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {menuKeys,autoCategory,menuCommand,EXT_FALLBACK,matchCommands,resolveCommand,completePrefix} from './engine-menus.js';
+import {menuKeys,autoCategory,menuCommand,menuGroups,EXT_FALLBACK,matchCommands,resolveCommand,completePrefix} from './engine-menus.js';
 
 const row=(id,text,accelerator='',selectable=true,group)=>({id,text,accelerator,selectable,...(group?{group}:{})});
 
@@ -47,4 +47,12 @@ test('# commands autocomplete: prefixes first, #-only commands ahead, Tab comple
  assert.equal(completePrefix(list,'en'),'enhance');
  assert.equal(completePrefix(list,'t'),'t','tip, turn, twoweapon and terrain share only "t"');
  assert.equal(completePrefix(list,'tw'),'twoweapon');
+});
+
+test('class buttons: each class in a pick-any list, named by its heading, toggling its items',()=>{
+ const items=menuKeys([row(0,'Scrolls (15 aum)','',false),row(1,'a scroll labeled FOO','',true,'?'),row(2,'2 scrolls labeled BAR','',true,'?'),
+  row(3,'Potions','',false),row(4,'a bubbly potion','',true,'!'),row(5,'Wands','',false),row(6,'a oak wand','',true,'/')]);
+ assert.deepEqual(menuGroups(items),[{key:'?',label:'Scrolls',ids:[1,2]},{key:'!',label:'Potions',ids:[4]},{key:'/',label:'Wands',ids:[6]}]);
+ assert.deepEqual(menuGroups(items).find(g=>g.key==='!').ids,menuCommand('!',items).toggle,'same items as typing the symbol');
+ assert.deepEqual(menuGroups(menuKeys([row(0,'Auto-select every item','A'),row(1,'All types','a')])),[],'no classes, no buttons');
 });
