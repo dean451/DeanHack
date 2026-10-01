@@ -16,6 +16,7 @@ import {updateNymphBeckon} from './nymph-beckon.js';
 import {updateElementalRoil} from './elemental-roil.js';
 import {updateSpherePulse} from './sphere-pulse.js';
 import {updateLightFlare} from './light-flare.js';
+import {updateRustFeel} from './rust-feel.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -142,6 +143,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateSpherePulse(actor, dt, t, busy, look);
   // And the lights' flare: a yellow light gutters and glares, a black one drinks its motes in, both leaning toward the hero (light-flare.js).
   updateLightFlare(actor, dt, t, busy, look);
+  // And the rust monsters' feelers: questing jerks, pointing at the hero, tasting the floor and the rust-touch lash (rust-feel.js).
+  updateRustFeel(actor, dt, t, busy, look, walking);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
