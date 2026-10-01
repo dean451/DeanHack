@@ -97,6 +97,23 @@ test('a bardiche has its own crescent cleaver blade, merged to one mesh per mate
  }
 });
 
+test('a voulge has its own tall cleaver blade with a raised point, merged to one mesh per material',()=>{
+ for(const name of ['voulge','pole cleaver']){
+  const voulge=createHeldWeapon({name,class:2});
+  assert.deepEqual(voulge.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+  const s=size(voulge);
+  assert(s.y>1.6&&s.y<1.75,`length ${s.y}`);
+  for(const m of voulge.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));}
+  const blade=voulge.children.find(c=>c.userData.part==='blade');
+  assert(blade.material.metalness>=.75,'weapon-magic sheathes the blade');
+  blade.geometry.computeBoundingBox();
+  const bb=blade.geometry.boundingBox;
+  assert(bb.max.x>.14&&bb.max.x<.18,'narrower than the bardiche');
+  assert(bb.max.y>1.15,'the point rises above the haft');
+  voulge.userData.dispose();
+ }
+});
+
 test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
  const saber=createHeldWeapon({name:'silver saber',class:2});
  const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});

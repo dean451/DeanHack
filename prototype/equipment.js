@@ -128,6 +128,8 @@ export function createHeldWeapon(item){
   buildPartisan(g);
  }else if(/\b(bardiche|long poleaxe)\b/.test(name)){
   buildBardiche(g);
+ }else if(/\b(voulge|pole cleaver)\b/.test(name)){
+  buildVoulge(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -515,6 +517,66 @@ function buildBardiche(g){
  for(const [x,y] of [[.075,.6],[.088,.69],[.09,.78]]){
   const h=new THREE.Path();h.absarc(x,y,.014,0,Math.PI*2,true);b.holes.push(h);
  }
+ const geo=new THREE.ExtrudeGeometry(b,{depth:.012,bevelEnabled:true,bevelThickness:.004,bevelSize:.004,bevelSegments:1,steps:1,curveSegments:8});geo.translate(0,0,-.006);
+ put(geo,blade);
+ for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The voulge: a tall, narrow cleaver bolted up the side of a blackened haft. Its back runs
+// straight up the haft between two iron sockets; the edge bellies out only a little, bitten by
+// two jagged notches, then draws up and back into a long point leaning over the haft's crown
+// like a raised knife. A thorn hooks up off the back of the upper socket, a slit is cut
+// through the blade along its back and rivets pin it between the sockets. The grip is wound
+// on a slant and the butt ends in an iron spike. Merged per material like the bardiche:
+// 4 draws. The blade stays metalness >= .75, so weapon-magic sheathes it.
+function buildVoulge(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x33251a,roughness:.92});
+ const iron=new THREE.MeshStandardMaterial({color:0x4a4744,metalness:.78,roughness:.56});
+ const blade=new THREE.MeshStandardMaterial({color:0xa2aaae,metalness:.82,roughness:.33});
+ const wrap=new THREE.MeshStandardMaterial({color:0x2b1c16,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,blade,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ // Haft, a little thicker toward the head, and the grip wound on a slant.
+ put(new THREE.CylinderGeometry(.025,.022,1.2,10),wood,0,.21);
+ put(new THREE.CylinderGeometry(.031,.031,.22,10),wrap,0,-.01);
+ for(let i=0;i<6;i++){const turn=new THREE.TorusGeometry(.032,.006,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.1+i*.036,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // Butt: an iron shoe ending in a short spike.
+ put(new THREE.CylinderGeometry(.026,.022,.06,10),iron,0,-.4);
+ put(new THREE.ConeGeometry(.018,.09,4),blade,0,-.475,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI));
+ // An iron cap over the haft's head, under the blade's point.
+ put(new THREE.CylinderGeometry(.022,.027,.04,8),iron,0,.83);
+ put(new THREE.ConeGeometry(.016,.05,4),iron,0,.875,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI/4));
+ // Two sockets clamp the blade's back to the haft.
+ for(const y of [.78,.48]){
+  put(new THREE.CylinderGeometry(.033,.033,.045,10),iron,0,y);
+  put(new THREE.BoxGeometry(.03,.036,.016),iron,.033,y);
+ }
+ // A thorn hooks up off the back of the upper socket.
+ const t=new THREE.Shape();
+ t.moveTo(-.028,.765);t.quadraticCurveTo(-.07,.77,-.1,.84);t.quadraticCurveTo(-.065,.8,-.028,.797);t.closePath();
+ const thorn=new THREE.ExtrudeGeometry(t,{depth:.01,bevelEnabled:true,bevelThickness:.003,bevelSize:.003,bevelSegments:1,steps:1,curveSegments:6});thorn.translate(0,0,-.005);
+ put(thorn,iron);
+ // Rivets pin the back between the sockets, both flats.
+ for(const s of [-1,1])for(const y of [.56,.63,.7])put(new THREE.SphereGeometry(.0065,5,4),iron,.034,y,s*.011);
+ // The blade on +x: a straight back up the haft, the edge bellying out a little, bitten by
+ // two notches, then drawing up and back into a point leaning over the crown. A slit is cut
+ // through along the back.
+ const b=new THREE.Shape();
+ b.moveTo(.027,.44);b.lineTo(.05,.44);
+ b.quadraticCurveTo(.11,.46,.132,.53);
+ b.lineTo(.14,.62);b.lineTo(.122,.636);b.lineTo(.146,.66);
+ b.quadraticCurveTo(.156,.76,.148,.86);
+ b.lineTo(.131,.874);b.lineTo(.15,.895);
+ b.quadraticCurveTo(.142,1,.1,1.065);
+ b.quadraticCurveTo(.065,1.12,.008,1.17);
+ b.quadraticCurveTo(.04,1.08,.034,.96);
+ b.quadraticCurveTo(.03,.9,.027,.86);
+ b.closePath();
+ const slit=new THREE.Path();slit.moveTo(.058,.6);slit.quadraticCurveTo(.07,.75,.062,.92);slit.quadraticCurveTo(.054,.75,.058,.6);
+ b.holes.push(slit);
  const geo=new THREE.ExtrudeGeometry(b,{depth:.012,bevelEnabled:true,bevelThickness:.004,bevelSize:.004,bevelSegments:1,steps:1,curveSegments:8});geo.translate(0,0,-.006);
  put(geo,blade);
  for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
