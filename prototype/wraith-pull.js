@@ -3,7 +3,8 @@
 // motion is jagged and watchful rather than limp:
 //  - The shroud glides with a slow hunch and roll, and its trailing hem sheds smoke that sinks and
 //    drags back behind it: grey-blue for a wraith, a thin grave dust for a barrow wight, a black
-//    reek for a Nazgul.
+//    reek for a Nazgul. The Riders (Death, Famine, Pestilence) share the motion, each with its
+//    own gait and colours (LOOKS).
 //  - The claws are never still: each finger holds, then twitches to a new crook, out of step.
 //  - The burning eyes flicker like embers, in small hard jumps.
 //  - The head holds still, then snaps to the hero (within RANGE tiles); out of range it snaps
@@ -51,6 +52,16 @@ export const LOOKS = {
   wraith: {smoke: [.55, .6, .7], alpha: .45, mote: [1, .78, .5]},
   'barrow wight': {smoke: [.42, .38, .28], alpha: .26, mote: [1, .84, .45]},
   nazgul: {smoke: [.05, .04, .07], alpha: .6, mote: [1, .62, .42]},
+  // The Riders, each with its own gait (hz scales the glide, roll and hunch its sway and stoop,
+  // twitch the claws' hold between crooks: lower is more restless).
+  // Death: upright and slow, the claws patient and still; a cold pale mist, and the soul drawn
+  // out as frost-white motes.
+  death: {smoke: [.8, .86, .94], alpha: .3, mote: [.85, .94, 1], hz: .6, roll: .6, hunch: .35, twitch: 2.2},
+  // Famine: stooped and starved, quick and gnawing, the claws never still; dry dust, and the
+  // hero's warmth drawn out gold.
+  famine: {smoke: [.56, .47, .33], alpha: .3, mote: [1, .8, .4], hz: 1.35, roll: 1.3, hunch: 1.7, twitch: .45},
+  // Pestilence: a sick lurching sway; a thick green miasma, and sickly motes.
+  pestilence: {smoke: [.42, .58, .2], alpha: .58, mote: [.78, 1, .36], hz: .85, roll: 1.9, hunch: 1.2, twitch: .8},
 };
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
@@ -205,10 +216,10 @@ export function updateWraithPull(a, dt, t, busy, look = null) {
   st.turn = approach(st.turn, b == null ? 0 : clamp(b, BODY_YAW) * pp.turn, TURN_RATE, dt);
   const turn = st.turn * w, headYaw = clamp(st.aim - turn, HEAD_YAW) * w;
 
-  const shud = pp.shudder * w * Math.sin(T * 47) * .05;
-  a.body.rotation.y = st.body.y + turn + SWAY * Math.sin(T * GLIDE_HZ * TAU * .6 + ph + 2) * w * (1 - pp.turn);
-  a.body.rotation.z = st.body.z + (ROLL * Math.sin(T * GLIDE_HZ * TAU + ph) + shud) * w;
-  a.body.rotation.x = st.body.x + (HUNCH * (.7 + .3 * Math.sin(T * GLIDE_HZ * TAU * .8 + ph + 1)) + REAR * pp.rear
+  const shud = pp.shudder * w * Math.sin(T * 47) * .05, L = st.look, hz = GLIDE_HZ * (L.hz ?? 1);
+  a.body.rotation.y = st.body.y + turn + SWAY * Math.sin(T * hz * TAU * .6 + ph + 2) * w * (1 - pp.turn);
+  a.body.rotation.z = st.body.z + (ROLL * (L.roll ?? 1) * Math.sin(T * hz * TAU + ph) + shud) * w;
+  a.body.rotation.x = st.body.x + (HUNCH * (L.hunch ?? 1) * (.7 + .3 * Math.sin(T * hz * TAU * .8 + ph + 1)) + REAR * pp.rear
     + PULL_HUNCH * pp.drag + RAKE_LEAN * lu) * w;
   a.head.rotation.x = st.head.x + (-.1 * pp.rear + .1 * pp.drag + JUT * lu) * w;
   a.head.rotation.y = st.head.y + headYaw;
@@ -230,7 +241,7 @@ export function updateWraithPull(a, dt, t, busy, look = null) {
     const grip = left ? pp.clench : 0, open = left ? pp.fling * (1 - pp.clench) : 0, rake = i ? rk.right : rk.left;
     hand.forEach(f => {
       f.hold -= dt;
-      if (f.hold <= 0) { f.to = CURL_LO + (CURL_HI - CURL_LO) * rand(st) ** 1.5; f.hold = TWITCH_MIN + TWITCH_SPAN * rand(st); }
+      if (f.hold <= 0) { f.to = CURL_LO + (CURL_HI - CURL_LO) * rand(st) ** 1.5; f.hold = (TWITCH_MIN + TWITCH_SPAN * rand(st)) * (L.twitch ?? 1); }
       f.curl = approach(f.curl, f.to, CURL_RATE, dt);
       const g = Math.max(grip, rake);
       const curl = f.curl * (1 - g) * (1 - open) + CLENCH * g + SPLAY * open * (1 - g);
@@ -248,7 +259,7 @@ export function updateWraithPull(a, dt, t, busy, look = null) {
   }
 
   // hem smoke: off the trailing hem, sinking as it drags back, spreading as it fades
-  const L = st.look, C = L.smoke, pos = st.smoke.geometry.attributes.position, col = st.smoke.geometry.attributes.color;
+  const C = L.smoke, pos = st.smoke.geometry.attributes.position, col = st.smoke.geometry.attributes.color;
   st.wisps.forEach((m, i) => {
     const u = ((T / m.len) + m.off) % 1;
     const r = .08 + .14 * u, ang = m.th + .5 * u * m.wob;
