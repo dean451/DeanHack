@@ -199,8 +199,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      icon.userData.restingWeapon=true;icon.name=`Stone statue of ${statueCreature}`;
      icon.userData.dispose=()=>{const geometries=new Set();sculpture.traverse(o=>{if(o.geometry)geometries.add(o.geometry);});geometries.forEach(geo=>geo.dispose());base.geometry.dispose();stoneMaterials.forEach(material=>material.dispose());};
    }else if(kind==='corpse'){
-     // The monster's own body plan, lying where it fell (corpse.js); cell.name is the monster.
-     const corpse=createCorpse(cell.object?.name||cell.name,cell.color,cellHash(cell.x|0,cell.z|0,11));icon.add(corpse);
+     // The monster's own model, knocked over where it fell (corpse.js); cell.name is the monster.
+     const corpse=createCorpse(cell.object?.name||cell.name,cell.color,cellHash(cell.x|0,cell.z|0,11),{creatureFactory,symbol:cell.object?.creatureSymbol});icon.add(corpse);
      icon.userData.restingWeapon=true;icon.userData.dispose=()=>corpse.userData.dispose();
    } else if(/boulder|large rock/.test(itemName)){
      const boulder=createBoulder(cellHash(cell.x|0,cell.z|0,7));icon.add(boulder);icon.userData.dispose=()=>boulder.userData.dispose();
