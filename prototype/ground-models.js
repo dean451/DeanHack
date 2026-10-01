@@ -5722,16 +5722,73 @@ export function createGroundModel(item={}){
   const handle=add(new THREE.TorusGeometry(.091,.018,8,24),gold,-.21,.14);
   handle.scale.y=.85;
  }else if(cls===6&&/\bcan of grease\b/.test(name)){
-  const tin=mat(0x7b8588,.65),label=mat(0x8c7750),stamp=mat(0x443c2c);
-  add(new THREE.CylinderGeometry(.145,.145,.19,32),tin,0,.105);
-  // A paper band and concentric stamped lid distinguish this from a potion.
-  add(new THREE.CylinderGeometry(.147,.147,.09,32,1,true),label,0,.105);
-  add(new THREE.CylinderGeometry(.133,.133,.009,32),tin,0,.198);
-  for(const y of [.016,.2])add(new THREE.TorusGeometry(.141,.009,8,32),metal,0,y).rotation.x=Math.PI/2;
-  add(new THREE.TorusGeometry(.105,.003,6,32),stamp,0,.204).rotation.x=Math.PI/2;
-  // Pressed oval maker's mark: no invented readable lettering at game zoom.
-  const mark=add(new THREE.CircleGeometry(.038,20),stamp,0,.205);
-  mark.rotation.x=-Math.PI/2;mark.scale.x=1.5;
+  // A grimy tin with its lid pried a little askew. The tin, rims and stamped lid share one
+  // vertex-coloured metal; the paper band its own matte; the oozing grease one glossy black-brown.
+  // Baked by material at the end: 3 draws, not 7.
+  const tinMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.6,roughness:.5});
+  const paperMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.92});
+  const greaseMat=new THREE.MeshStandardMaterial({color:0x2a1d0d,roughness:.14,metalness:.05});
+  materials.push(tinMat,paperMat,greaseMat);
+  add(new THREE.CylinderGeometry(.145,.145,.19,64,12),tinMat,0,.105);
+  // A paper band distinguishes this from a potion.
+  add(new THREE.CylinderGeometry(.147,.147,.09,96,36,true),paperMat,0,.105);
+  for(const y of [.016,.2])add(new THREE.TorusGeometry(.141,.009,8,40),tinMat,0,y).rotation.x=Math.PI/2;
+  // Lid, stamped ring and pressed oval maker's mark (no invented readable lettering at game zoom).
+  const lid=new THREE.Group();lid.position.set(0,.204,0);lid.rotation.set(.07,0,.03);g.add(lid);
+  const onLid=(geo,m,y)=>{const p=new THREE.Mesh(geo,m);p.position.y=y;lid.add(p);return p;};
+  onLid(new THREE.CylinderGeometry(.133,.133,.009,40),tinMat,0);
+  onLid(new THREE.TorusGeometry(.105,.003,6,40),tinMat,.0055).rotation.x=Math.PI/2;
+  const mark=onLid(new THREE.CircleGeometry(.038,20),tinMat,.0056);mark.rotation.x=-Math.PI/2;mark.scale.x=1.5;
+  // Grease welling out round the lid's edge in lumps, thick where the lid rides high.
+  const ooze=new THREE.TorusGeometry(.136,.009,8,64),op=ooze.attributes.position;
+  for(let i=0;i<op.count;i++){
+   const x=op.getX(i),y=op.getY(i),z=op.getZ(i),u=Math.atan2(y,x),cx=.136*Math.cos(u),cy=.136*Math.sin(u);
+   const lump=Math.max(.25,.85+.45*Math.sin(u*3+1)+.3*Math.sin(u*7+.4)+.2*Math.sin(u*13));
+   op.setXYZ(i,cx+(x-cx)*lump,cy+(y-cy)*lump,z*lump*.8);
+  }
+  ooze.computeVertexNormals();add(ooze,greaseMat,0,.203).rotation.x=Math.PI/2;
+  // Runs of grease down the side, each ending in a hanging bead; the longest pools on the floor.
+  const DRIPS=[[.5,.07],[1.9,.045],[4.2,.17],[5.3,.03]],R=.149;
+  const at=(a,r,y)=>new THREE.Vector3(r*Math.sin(a),y,r*Math.cos(a));
+  for(const [a,len] of DRIPS){
+   const pts=[0,.33,.66,1].map((t,k)=>at(a+.03*Math.sin(k*2.1+a),R,.205-len*t));
+   add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),12,.0055,6,false),greaseMat);
+   const bead=add(new THREE.SphereGeometry(.009,10,8),greaseMat);
+   bead.position.copy(at(a,R+.001,.205-len));bead.scale.set(1,1.35,.8);bead.rotation.y=a;
+  }
+  const pool=add(new THREE.SphereGeometry(.05,20,8),greaseMat);
+  pool.position.copy(at(4.2,.165,.004));pool.scale.set(1.15,.07,.75);pool.rotation.y=4.2;
+  mergeByMaterial(g);
+  // Paint the baked tin and paper from their final positions.
+  const near=(x,z,spread)=>DRIPS.reduce((best,[a])=>{let d=Math.abs(Math.atan2(x,z)-a);d=Math.min(d,Math.PI*2-d);return Math.max(best,Math.max(0,1-d/spread));},0);
+  const tinC=new THREE.Color(0x7b8588),rust=new THREE.Color(0x6a3a1c),grime=new THREE.Color(0x2c2316),stamp=new THREE.Color(0x3a3326),col=new THREE.Color();
+  const kraft=new THREE.Color(0x8c7750),border=new THREE.Color(0x5a4630),ink=new THREE.Color(0x3b2c1c),soak=new THREE.Color(0x45341d);
+  for(const mesh of g.children){
+   if(mesh.material!==tinMat&&mesh.material!==paperMat)continue;
+   const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal,c=new Float32Array(p.count*3);
+   for(let i=0;i<p.count;i++){
+    const x=p.getX(i),y=p.getY(i),z=p.getZ(i),r=Math.hypot(x,z),mottle=meatNoise(x*60,y*60,z*60),fine=meatNoise(x*190+7,y*190,z*190);
+    if(mesh.material===tinMat){
+     col.copy(tinC).multiplyScalar(.82+.3*mottle+.1*fine);
+     // Rust creeping up from the floor and around the bottom rim.
+     const rustAmt=Math.max(0,(.07-y)/.07)*Math.max(0,meatNoise(x*35+3,y*35,z*35)*1.6-.55);
+     col.lerp(rust,Math.min(.85,rustAmt*1.4));
+     // Grease smeared under each run and across the lid's edge.
+     col.lerp(grime,Math.min(.8,near(x,z,.35)*(y>.03?.8:.3)+(y>.19&&r>.118?.45:0)));
+     if(n.getY(i)>.8&&y>.2&&(Math.abs(r-.105)<.006||Math.hypot(x/1.5,z)<.04))col.lerp(stamp,.8);
+    }else{
+     col.copy(kraft).multiplyScalar(.88+.22*mottle);
+     const dy=Math.abs(y-.105);
+     if(dy>.036)col.copy(border).multiplyScalar(.9+.2*mottle);
+     else if(Math.abs(dy-.026)<.002)col.copy(ink);
+     // Oil soaked dark into the paper under the runs, and a few old blotches.
+     const blot=Math.max(0,meatNoise(x*28+11,y*28,z*28)*1.7-1.05);
+     col.lerp(soak,Math.min(.85,near(x,z,.3)*1.1+blot));
+    }
+    c.set([Math.min(1,col.r),Math.min(1,col.g),Math.min(1,col.b)],i*3);
+   }
+   mesh.geometry.setAttribute('color',new THREE.BufferAttribute(c,3));
+  }
  }else if(cls===11){
   // Wands look like their shuffled appearance: wood, metal, stone, glass or a shape (wand.js).
   const wand=createWand(item.appearance,{floor:true});g.add(wand);materials.push(...wand.userData.materials);
