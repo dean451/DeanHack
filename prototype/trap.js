@@ -9,14 +9,15 @@ import {sigilAnimator} from './sigil-fx.js';
 // colour, so each model stands for its family, not one exact trap.
 // A newer bridge also sends the trap's name, which tells the vibrating square (magenta, like a
 // teleport trap) apart, arrow and dart traps from the bear trap (all cyan), and the squeaky
-// board from the trap door (both brown), and the sleeping gas trap from the magic trap (both
-// bright blue).
+// board from the trap door (both brown), the sleeping gas trap from the magic trap (both
+// bright blue), and the rolling boulder trap from the falling rock trap (both grey).
 export function trapKind(symbol,color,name){
  if(name==='vibrating square')return 'vibrating';
  if(name==='arrow trap')return 'arrow';
  if(name==='dart trap')return 'dart';
  if(name==='squeaky board')return 'squeaky';
  if(name==='sleeping gas trap')return 'gas';
+ if(name==='rolling boulder trap')return 'rolling';
  if(symbol===34)return 'web';            // '"'
  if(symbol!==94)return null;             // '^'
  return {0:'pit',1:'mine',3:'hatch',4:'rust',6:'jaws',7:'rubble',9:'fire',
@@ -655,7 +656,7 @@ export function createTrap(kind,seed=0){
   const ground=add(soilGeo,mat({color:0xffffff,vertexColors:true,roughness:1}));ground.castShadow=false;ground.name='mine-soil';
   add(bodyGeo,mat({color:0xffffff,vertexColors:true,metalness:.45,roughness:.55})).name='land-mine';
  }else if(kind==='rubble'){
-  // Falling rock / rolling boulder / statue trap: a jagged rock lying in the
+  // Falling rock / statue trap (and a rolling boulder trap from an older bridge): a jagged rock lying in the
   // scar where it struck. The flagstone is shattered into shards tipped up
   // round a rim of crushed grit, cracks run out across the floor and gravel
   // is thrown wide. Two vertex-coloured meshes: the flat scar (no shadow) and
@@ -758,6 +759,89 @@ export function createTrap(kind,seed=0){
   for(const p of [...scar,...rocks])p.dispose();
   const ground=add(scarGeo,mat({color:0xffffff,vertexColors:true,roughness:1}));ground.castShadow=false;ground.name='rubble-scar';
   add(rockGeo,mat({color:0xffffff,vertexColors:true,roughness:.93})).name='fallen-rock';
+ }else if(kind==='rolling'){
+  // Rolling boulder trap: no rock lies here. Its path does: a channel worn glassy-smooth right
+  // across the tile, scored with long parallel scrapes and walled by chipped kerbstones the
+  // boulder has knocked askew. A hexagonal trigger stone sits flush in the middle, ringed by a
+  // black gap. Past it, something that stood on the trigger lies pressed flat into the track: a
+  // crushed skull, splayed ribs and a snapped long bone, with a dark smear dragged on toward the
+  // tile's edge the way the boulder went. Two draws: the flat track (no shadow) and the stone
+  // and bone standing on it.
+  const noise=(x,y,z)=>{const s=Math.sin(x*157.3+y*311.9+z*97.1+seed*3.7)*43758.5453;return s-Math.floor(s);};
+  const C=(hex)=>new THREE.Color(hex);
+  const L=.96,W=.2,SKULL=.17;
+  const polished=C(0x5d5e5a),deep=C(0x2c2c2a),scrape=C(0x161615),sheen=C(0x8a8a84),gore=C(0x2a0b08),dried=C(0x401610);
+  // The track: a slightly dished strip, darkest down its centre line, scored lengthwise.
+  const strip=new THREE.PlaneGeometry(L,W,48,10);strip.rotateX(-Math.PI/2);
+  {const p=strip.attributes.position;
+   for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),t=Math.abs(z)/(W/2);p.setY(i,.001+.0035*t*t);}
+   strip.computeVertexNormals();}
+  const smear=(x,z)=>x<SKULL-.04?0:Math.max(0,1-Math.abs(z+.012*Math.sin(x*30))/(.05*(1-(x-SKULL)/(L/2-SKULL)*.6)))*Math.min(1,(x-SKULL+.04)/.06)*(1-.75*(x-SKULL)/(L/2-SKULL));
+  const track=[bake(strip,(c,x,y,z)=>{
+   const t=Math.abs(z)/(W/2),lines=Math.pow(Math.abs(Math.sin(z*190+Math.sin(x*6+seed)*.8)),14);
+   c.copy(deep).lerp(polished,t*.7+(noise(x,0,z)-.5)*.08);
+   c.lerp(sheen,Math.max(0,.45-Math.abs(t-.45))*.5);
+   c.lerp(scrape,lines*.7*(1-t*.6));
+   const s=smear(x,z);if(s>0)c.lerp(gore,Math.min(.9,s)).lerp(dried,noise(x*3,1,z*3)*.3*s);
+  })];
+  // The trigger: a hexagonal flag sunk flush in a black gap, a ring and six spokes cut in it.
+  const plateX=-.07;
+  track.push(bake(new THREE.CylinderGeometry(.088,.088,.004,6),(c)=>c.copy(scrape).multiplyScalar(.4),{x:plateX,y:.002}));
+  track.push(bake(new THREE.CylinderGeometry(.078,.078,.008,6,1),(c,x,y,z,nx,ny)=>{
+   const dx=x-plateX,r=Math.hypot(dx,z),a=Math.atan2(z,dx);
+   c.copy(polished).lerp(sheen,.25+(noise(x,y,z)-.5)*.1);
+   if(ny<.5)c.multiplyScalar(.6);
+   else if(Math.abs(r-.042)<.004||(r>.012&&r<.06&&Math.abs(Math.sin(a*3))<.07)||r<.008)c.copy(scrape);
+  },{x:plateX,y:.004,ry:Math.PI/6}));
+  // Kerbstones down both sides: chipped blocks, the odd one knocked askew or cracked off.
+  const parts=[];
+  const chip=(geo,amt)=>{const p=geo.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+   p.setXYZ(i,x+(noise(x,y,z)-.5)*amt,y+(noise(z,x,y)-.5)*amt*.6,z+(noise(y,z,x)-.5)*amt);}geo.computeVertexNormals();return geo;};
+  const kerb=C(0x6f716c),kerbDark=C(0x484a46),kerbFresh=C(0xa29e94);
+  for(const side of [-1,1]){
+   let x=-L/2+.005;
+   for(let k=0;x<L/2-.04;k++){
+    const len=Math.min(.1+noise(k,side,1)*.07,L/2-x-.005),h=.035+noise(k,side,2)*.02,skew=noise(k,side,3)>.8;
+    const geo=chip(new THREE.BoxGeometry(len-.006,h,.05,4,2,2),.008);
+    parts.push(bake(geo,(c,px,py,pz,nx,ny,nz)=>{
+     c.copy(kerb).lerp(kerbDark,noise(px*4,py*4,pz*4)*.5+Math.max(0,.02-py)*12);
+     if(nz*side<-.6)c.lerp(kerbFresh,.35+noise(px*9,0,0)*.3);
+     if(nx*nx>.7)c.lerp(kerbFresh,.25);
+    },{x:x+len/2,y:h/2-.004,z:side*(W/2+.027),ry:skew?(noise(k,side,4)-.5)*.35:(noise(k,side,5)-.5)*.05,rz:(noise(k,side,6)-.5)*.06}));
+    x+=len;
+   }
+  }
+  // Bone: the skull pressed flat, its sockets dark; ribs fanned out; a thigh bone snapped in two.
+  const bone=C(0xb7aa88),boneDark=C(0x6a5f46),hollow=C(0x120d0a);
+  const bonePaint=(c,x,y,z)=>c.copy(bone).lerp(boneDark,noise(x*8,y*8,z*8)*.45).lerp(gore,smear(x,z)*.35);
+  const skull=new THREE.SphereGeometry(.052,16,10);
+  {const p=skull.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+   p.setXYZ(i,x*1.15,y*.3+(y<0?-y*.15:0)+(noise(x,y,z)-.5)*.006,z*(1+.25*Math.max(0,x/.052)));}skull.computeVertexNormals();}
+  parts.push(bake(skull,(c,x,y,z)=>{
+   bonePaint(c,x,y,z);
+   const lx=x-SKULL,lz=z-.004;
+   for(const e of [-1,1])if(Math.hypot(lx-.024,lz-e*.022)<.013&&y>.014)c.copy(hollow);
+   if(Math.abs(lz-.02*Math.sin(lx*90))<.002&&lx<.01)c.copy(hollow);
+  },{x:SKULL,y:.012,z:.004,ry:-.2}));
+  // Jaw knocked loose beside it.
+  parts.push(bake(new THREE.TorusGeometry(.03,.006,4,10,Math.PI*.9),bonePaint,{x:SKULL+.07,y:.006,z:-.05,rx:-Math.PI/2,rz:.6,sy:1.1}));
+  for(let i=0;i<5;i++){
+   const side=i%2?1:-1,x=SKULL+.07+i*.032,a=side*(.9+noise(i,1,9)*.5);
+   parts.push(bake(new THREE.TorusGeometry(.05,.0045,4,12,Math.PI*.55),bonePaint,{x,y:.005,z:side*.012,rx:-Math.PI/2,rz:a,sy:.85}));
+  }
+  for(const [x,z,ry] of [[-.27,.03,.25],[-.36,-.02,-.4]]){
+   parts.push(bake(new THREE.CylinderGeometry(.008,.006,.1,6),bonePaint,{x,y:.008,z,rz:Math.PI/2,ry}));
+   parts.push(bake(new THREE.SphereGeometry(.014,8,6),bonePaint,{x:x-Math.cos(ry)*.05,y:.01,z:z+Math.sin(ry)*.05,sy:.75}));
+  }
+  // Grit and chips ground out of the kerbs, caught along the walls of the track.
+  for(let i=0;i<16;i++){
+   const side=i%2?1:-1,x=(noise(i,2,7)-.5)*L*.9,z=side*(W/2-.012-noise(i,3,7)*.03),s=.006+noise(i,4,7)*.01;
+   parts.push(bake(new THREE.DodecahedronGeometry(s,0),(c,px,py,pz,nx,ny)=>c.copy(kerb).multiplyScalar(ny>.4?1:.65),{x,y:s*.4,z,rx:noise(i,5,7)*3,ry:noise(i,6,7)*3,sy:.6}));
+  }
+  const trackGeo=mergeGeometries(track),partGeo=mergeGeometries(parts);
+  for(const p of [...track,...parts])p.dispose();
+  const ground=add(trackGeo,mat({color:0xffffff,vertexColors:true,roughness:.55,metalness:.05}));ground.castShadow=false;ground.name='rolling-track';
+  add(partGeo,mat({color:0xffffff,vertexColors:true,roughness:.88})).name='rolling-stone';
  }else if(kind==='rust'){
   // Rust trap: a corroded standpipe rises from the floor, bends over and drips into a
   // blue-green puddle pooled over a drain grate, leaving orange rust stains and flakes.
