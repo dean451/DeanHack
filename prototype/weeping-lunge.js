@@ -63,10 +63,12 @@ function setup(a) {
   return st;
 }
 
-// An offset on obj[prop][axis] taken back next frame, unless someone has rewritten it since.
+// An offset on obj[prop][axis] taken back next frame, unless someone has rewritten it since. The
+// match has a tolerance: actions.js adds its pose after us and takes it back before us, and that
+// round trip isn't always exact in floating point.
 function offset(st, obj, prop, axis, v) {
   const key = obj.uuid + prop + axis, o = st.off.get(key);
-  if (o && obj[prop][axis] === o.out) obj[prop][axis] -= o.v;
+  if (o && Math.abs(obj[prop][axis] - o.out) < 1e-9) obj[prop][axis] -= o.v;
   obj[prop][axis] += v;
   st.off.set(key, {v, out: obj[prop][axis]});
 }

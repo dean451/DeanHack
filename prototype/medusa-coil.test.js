@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {tailSway} from './tail-sway.js';
+import {createActionQueue, enqueueAction, clearActionPose, updateActions} from './actions.js';
 import * as M from './medusa-coil.js';
 
 const dt = 1 / 60;
@@ -85,4 +86,27 @@ test('the tail waves, lifts its tip at the hero, lashes, and everything rests af
   const still = Float32Array.from(tailGeo(a).attributes.position.array);
   run(1, look);
   assert.deepEqual(Float32Array.from(tailGeo(a).attributes.position.array), still, 'holds still');
+});
+
+test('with the real action queue, many bites and blows leave no drift: she still rests after death', () => {
+  // actions.js pitches the head after us and takes it back before us; that round trip isn't exact
+  // in floating point, and an exact take-back match once left her head 1.8 rad off after this run.
+  const a = medusa(), rest = pose(a);
+  a.actions = createActionQueue();
+  const look = new THREE.Vector3(.7, 0, 2);
+  let t = 0;
+  const frame = () => {
+    clearActionPose(a, a.actions);
+    M.updateMedusaCoil(a, dt, t += dt, !!a.actions.current || !!a.actions.queue.length, look);
+    updateActions(a, a.actions, dt);
+  };
+  for (let i = 0; i < 60 * 20; i++) {
+    if (i % 30 === 0) { enqueueAction(a.actions, {kind: i % 60 ? 'hit' : 'attack', attack: 'bite', result: 'hit', dir: [0, 1]}); look.x = -look.x; }
+    frame();
+  }
+  a.actions.dead = true;
+  for (let i = 0; i < 60 * 5; i++) frame();
+  clearActionPose(a, a.actions);
+  const off = Math.max(...pose(a).map((v, i) => Math.abs(v - rest[i])));
+  assert.ok(off < 1e-6, `dead at rest ${off}`);
 });
