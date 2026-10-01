@@ -14,7 +14,7 @@ test('ants get a jointed six-legged body with a turning head, jaws, feelers and 
   assert(a.body?.isObject3D&&a.head?.isObject3D,name);
   assert(a.head.children.some(o=>o.isMesh),`${name}: the head handle carries the head mesh`);
   const parts=meshes(a);
-  assert.equal(parts.length,8,`${name}: head, body and one mesh per leg`);
+  assert.equal(parts.length,10,`${name}: head, body, two jaws and one mesh per leg`);
   assert.equal(new Set(parts.map(m=>m.material)).size,1,`${name}: one material`);
   let verts=0;
   for(const m of parts){
