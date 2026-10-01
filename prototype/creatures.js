@@ -254,7 +254,7 @@ function dragon(o={}){
  const element=dragonElement(o.color??3);
  if(element)dressDragon({element,m,trunk,heads:dressHeads,tail,tailCurve,wings:wings.map(w=>({inner:w.userData.inner,edge:w.userData.inner.userData.edge})),baby});
  g.userData.core=core;
- return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element}));
+ return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element,heads:dressHeads.map(h=>h.head)}));
 }
 function rat(giant=false,rabid=false){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(giant?1.25:.85);
