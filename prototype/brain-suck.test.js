@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {suckMessage,suckShape,createBrainSuck,poseBrainSuck,DURATION,HEAD_Y,HEAD_R,REACH_MS} from './brain-suck.js';
+import {suckMessage,suckShape,suckStyle,createBrainSuck,poseBrainSuck,DURATION,HEAD_Y,HEAD_R,REACH_MS,MOUTH_Y} from './brain-suck.js';
 
 test('the engine messages for the brain attack are read, including the helmet and grease saves',()=>{
  assert.deepEqual(suckMessage("The mind flayer's tentacles suck you!"),{phase:'suck',name:'mind flayer'});
@@ -59,4 +59,33 @@ test('the hero\'s head jerk is an offset that comes back to rest',()=>{
  for(let t=0;t<2;t+=1/60)poseBrainSuck(hero,Math.sin(t*9));
  poseBrainSuck(hero,0);
  assert(Math.abs(head.rotation.x-.1)<1e-9&&Math.abs(head.rotation.z-.3)<1e-9);
+});
+
+test('Cthulhu\'s tentacles are its own: green, thick, from its high maw, with pale suckers',()=>{
+ assert.deepEqual(suckMessage("Cthulhu's tentacles suck you!"),{phase:'suck',name:'Cthulhu'});
+ const c=suckStyle('Cthulhu'),f=suckStyle('mind flayer');
+ assert.equal(f.tint,0xa07aa8);assert.equal(suckStyle('master mind flayer').tint,0xb088c0);assert.equal(suckStyle(null),f);
+ assert.notEqual(c.tint,f.tint);assert(c.mouthY>MOUTH_Y+.3&&c.girth>1);
+ for(const outcome of Object.keys(DURATION)){
+  for(let t=0;t<DURATION[outcome];t+=8){
+   const sh=suckShape({...at,...c,outcome},t);
+   for(const b of sh.beads)assert(Number.isFinite(b.x+b.y+b.z+b.r)&&b.r>0&&b.r<.09&&b.y>.5&&b.y<2.1,`${outcome} bead ${JSON.stringify(b)}`);
+   if(outcome==='miss')assert(tipsNearHead(sh)>HEAD_R+.05);
+  }
+  if(outcome!=='miss')assert(tipsNearHead(suckShape({...at,...c,outcome},REACH_MS+20))<HEAD_R+.06,`${outcome} should reach the face`);
+ }
+ // The roots leave the maw: high up and well out of Cthulhu's side of the gap.
+ const r=suckShape({...at,...c,outcome:'eaten'},REACH_MS).beads[0];
+ assert(Math.abs(r.y-c.mouthY)<1e-9&&Math.abs(r.x-(6-c.mouthForward))<1e-9,`root ${JSON.stringify(r)}`);
+ assert(r.r>suckShape({...at,outcome:'eaten'},REACH_MS).beads[0].r*1.4);
+ // The tracker takes the style from the name, and paints the suckers pale.
+ const parent=new THREE.Group(),s=createBrainSuck(THREE,parent),frame={player:{x:5,z:5}};
+ s.combat({attack:'tentacle',result:'hit',heroDefends:true,attacker:{x:6,z:5,name:'Cthulhu'},defender:{you:true,x:5,z:5}});
+ s.message("Cthulhu's tentacles suck you!",frame);s.message('Your brain is eaten!',frame);
+ assert.equal(s.queue[0].mouthY,c.mouthY);
+ for(let i=0;i<20;i++)s.update(1/60,{x:0,z:0});
+ const mesh=parent.children.find(o=>o.isInstancedMesh),col=new THREE.Color();
+ mesh.getColorAt(0,col);const pale=col.getHex();mesh.getColorAt(1,col);
+ assert(new THREE.Color(pale).r>.5&&col.g>col.r&&col.g>col.b,`sucker ${pale.toString(16)} skin ${col.getHexString()}`);
+ s.dispose();
 });
