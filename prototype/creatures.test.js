@@ -715,6 +715,29 @@ test('ferns are jagged frond clumps and their spores floating sporangia instead 
  assert(a[0].geometry.attributes.position.count<40000);
 });
 
+test('piercers are twisted, eyeless stalactites with a toothed gash, and the rock piercer has its own',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const box=a=>{a.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(a.g);};
+ const tops={};
+ for(const name of ['piercer','rock piercer','iron piercer','glass piercer']){
+  const m=createCreature({name,symbol:112,color:7});
+  assert.equal(m.kind,name);assert.equal(m.quirk,'idle');assert(m.body?.isObject3D);
+  const parts=meshes(m);assert.deepEqual(parts.map(p=>p.userData.part),['hide','teeth'],'two draws');
+  for(const p of parts){const a=p.geometry.attributes;for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${name} ${p.userData.part} ${key}`);}
+  assert(parts[0].material.flatShading,'faceted');
+  const b=box(m);assert(b.min.y>-.005&&b.min.y<.01,`${name} sits on the floor at ${b.min.y}`);
+  assert(b.max.y>.8&&b.max.y<1.15,`${name} top at ${b.max.y}`);
+  const reach=Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z);assert(reach>.25&&reach<.55,`${name} reach ${reach}`);
+  tops[name]=b.max.y;
+ }
+ assert(tops['glass piercer']>tops['iron piercer']&&tops['iron piercer']>tops.piercer);
+ assert(meshes(createCreature({name:'glass piercer',symbol:112}))[0].material.transparent,'glass is see-through');
+ assert(meshes(createCreature({name:'iron piercer',symbol:112}))[0].material.metalness>.5,'iron is metal');
+ const a=meshes(createCreature({name:'rock piercer',symbol:112})),b=meshes(createCreature({name:'rock piercer',symbol:112}));
+ a.forEach((p,i)=>{assert.equal(p.geometry,b[i].geometry);assert.equal(p.material,b[i].material);});
+ assert.equal(createCreature({name:'unknown piercer thing',symbol:112}).kind,'piercer','the p fallback');
+});
+
 test('ghosts and shades get their own sheeted, floating model instead of the guardian box',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const t0=performance.now(),ghost=createCreature({name:'ghost',symbol:32,color:7}),ms=performance.now()-t0;
