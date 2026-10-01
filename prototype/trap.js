@@ -127,12 +127,79 @@ export function createTrap(kind,seed=0){
   add(mergeGeometries(parts),mat({color:0xffffff,vertexColors:true,roughness:.93})).name='pit-rim';
   parts.forEach(p=>p.dispose());
  }else if(kind==='hatch'){
-  // Trap door / hole / squeaky board: a plank hatch set in a dark frame.
-  block(.66,.02,.66,dark,0,.01,0);
-  for(let i=0;i<4;i++)block(.14,.035,.58,i%2?wood:mat({color:0x5e4127,roughness:.92}),(i-1.5)*.148,.028,0,.008);
-  for(const z of [-.2,.2])block(.6,.012,.05,steel,0,.05,z,.004);
-  for(const z of [-.2,.2])add(new THREE.CylinderGeometry(.022,.022,.07,8),steel,-.3,.05,z).rotation.x=Math.PI/2;
-  const ring=add(new THREE.TorusGeometry(.04,.009,6,16),steel,.2,.05,0);ring.rotation.x=Math.PI/2;
+  // Trap door / hole / squeaky board: a heavy door of warped, rotting planks in an iron-bound
+  // frame, left ajar. Its free edge has lifted off the frame on a black gap, and bony fingers
+  // with long claws have curled out from under it over the beam, leaving a smear of blood.
+  // Barbed strap hinges, studs and a rusted pull ring hold it together. Three merged,
+  // vertex-coloured meshes: the flat void (no shadow), wood and bone, and iron.
+  const noise=(x,z)=>{const s=Math.sin(x*127.1+z*311.7+seed*7.3)*43758.5453;return s-Math.floor(s);};
+  const black=new THREE.Color(0x030303),c=new THREE.Color();
+  const O=.25,TOP=.04,T=.025,LIFT=.1+rand(1200)*.04;
+  // The door is built hinge-at-origin, spanning x 0..DOOR, then swung up about the hinge line.
+  const DOOR=.49,hinge=new THREE.Matrix4().makeRotationZ(LIFT).premultiply(new THREE.Matrix4().makeTranslation(-O,TOP,0));
+  const swing=(geo)=>{geo.applyMatrix4(hinge);return geo;};
+  const voidGeo=bake(new THREE.PlaneGeometry(O*2,O*2),(col,x,y,z)=>col.copy(black).lerp(new THREE.Color(0x1a140e),.5*Math.max(Math.abs(x),Math.abs(z))/O*noise(x*30,z*30)),{y:.003,rx:-Math.PI/2});
+  const gap=add(voidGeo,mat({color:0xffffff,vertexColors:true,roughness:1}));gap.castShadow=false;gap.name='hatch-void';
+  const woody=[],irons=[];
+  // Frame: four old beams round the opening, black with damp toward the drop, blood smeared
+  // where the fingers grip the far beam.
+  const beam=(col,x,y,z)=>{const n=noise(x*70+y*30,z*9);
+   col.set(0x3d2b1b).lerp(new THREE.Color(0x58402a),.55*n).lerp(black,Math.min(1,Math.max(0,(O+.02-Math.max(Math.abs(x),Math.abs(z)))/.03))*.7);
+   if(x>.25&&y>TOP-.004&&Math.abs(z+.01)<.1+.03*noise(x*40,z*40))col.lerp(new THREE.Color(0x3a0705),.75);};
+  for(const s of [-1,1]){
+   woody.push(bake(new THREE.BoxGeometry(.06,TOP,.62,1,1,6),beam,{x:s*(O+.03),y:TOP/2}));
+   woody.push(bake(new THREE.BoxGeometry(.5,TOP*.95,.06),beam,{z:s*(O+.03),y:TOP*.475}));
+  }
+  // Planks: run toward the hinge, each warped and a little uneven, grain streaked along its
+  // length, seams dark, rotting black at the free end.
+  const W=DOOR/5;
+  for(let i=0;i<5;i++){
+   const len=.47+rand(i+1210)*.02,dz=(rand(i+1220)-.5)*.012,bow=(rand(i+1230)-.5)*.008;
+   const plank=new THREE.BoxGeometry(len,T,W-.005,6,1,2);
+   const p=plank.attributes.position;
+   for(let k=0;k<p.count;k++){const u=p.getX(k)/len;p.setY(k,p.getY(k)+bow*(1-4*u*u));}
+   plank.computeVertexNormals();
+   const zc=-DOOR/2+W*(i+.5);
+   woody.push(swing(bake(plank,(col,x,y,z)=>{const g=noise(Math.round(x*40)*.1,z*140+i);
+    col.set(0x4a3420).lerp(new THREE.Color(0x6d5034),.6*g).lerp(new THREE.Color(0x2a1d12),.6*Math.min(1,Math.abs(z-zc)/(W/2))**4);
+    col.lerp(black,Math.min(1,Math.max(0,(x-.36)/.13))*.75);},{x:len/2+.005,y:-T/2,z:zc+dz,rz:(rand(i+1240)-.5)*.02})));
+  }
+  // Bones: four gaunt fingers out of the dark, over the far beam, claws dug into its edge.
+  const bone=(col,x,y)=>col.set(0xbab09a).lerp(new THREE.Color(0x5e5546),.45*noise(x*90,y*90)).lerp(black,Math.min(1,Math.max(0,(.255-x)/.035)));
+  const seg=(p,q,r0,r1)=>{const d=new THREE.Vector3().subVectors(q,p),geo=new THREE.CylinderGeometry(r1,r0,d.length(),6);
+   geo.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize()));
+   geo.translate((p.x+q.x)/2,(p.y+q.y)/2,(p.z+q.z)/2);return bake(geo,bone);};
+  for(let i=0;i<4;i++){
+   const z=-.085+i*.047+(rand(i+1250)-.5)*.01,sp=(i-1.5)*.012,curl=rand(i+1260)*.006;
+   const pts=[[.222,.008,z*.8],[.255,.051,z],[.289,.053+curl,z+sp],[.313,.036,z+sp*1.6],[.323,.012,z+sp*2]].map(v=>new THREE.Vector3(...v));
+   const r=[.0075,.0068,.0058,.0048,.0012];
+   for(let j=0;j<4;j++)woody.push(seg(pts[j],pts[j+1],r[j],r[j+1]));
+   for(let j=1;j<4;j++){const k=new THREE.SphereGeometry(r[j]*1.3,7,5);k.translate(pts[j].x,pts[j].y,pts[j].z);woody.push(bake(k,bone));}
+  }
+  const boards=add(mergeGeometries(woody),mat({color:0xffffff,vertexColors:true,roughness:.92}));boards.name='hatch-wood';
+  // Iron: barbed strap hinges across the planks with studs, the hinge knuckles and their
+  // leaves on the frame, a pull ring on a staple near the free edge, and corner brackets.
+  const ironPaint=(rust)=>(col,x,y,z)=>{const h=noise(x*50+y*80,z*50);col.set(0x3c3f40).lerp(new THREE.Color(0x6b4128),Math.min(1,rust*(.3+h*1.4))).lerp(black,.3*noise(x*120,z*120));};
+  for(const zs of [-.16,.16]){
+   const h=.016,L=.3+rand(1270+zs)*.04,s=new THREE.Shape();
+   s.moveTo(-.01,-h);s.lineTo(L,-h);s.lineTo(L-.012,-h*2.3);s.lineTo(L+.032,-h*.6);s.lineTo(L+.07,0);s.lineTo(L+.032,h*.6);s.lineTo(L-.012,h*2.3);s.lineTo(L,h);s.lineTo(-.01,h);s.closePath();
+   irons.push(swing(bake(new THREE.ExtrudeGeometry(s,{depth:.005,bevelEnabled:false}),ironPaint(.5),{z:zs,rx:-Math.PI/2})));
+   for(let i=0;i<4;i++){const st=new THREE.CylinderGeometry(.0055,.0065,.004,8);irons.push(swing(bake(st,ironPaint(.7),{x:W*(i+.5),y:.006,z:zs})));}
+   irons.push(bake(new THREE.CylinderGeometry(.012,.012,.07,10),ironPaint(.4),{x:-O,y:TOP,z:zs,rx:Math.PI/2}));
+   irons.push(bake(new THREE.BoxGeometry(.06,.004,.05),ironPaint(.55),{x:-O-.03,y:TOP+.002,z:zs}));
+  }
+  const ring=new THREE.TorusGeometry(.03,.0055,6,18);
+  irons.push(swing(bake(ring,ironPaint(.8),{x:.41,y:.008,z:.02,rx:-Math.PI/2+.25})));
+  irons.push(swing(bake(new THREE.TorusGeometry(.012,.004,5,10,Math.PI),ironPaint(.6),{x:.385,y:0,z:.02,ry:Math.PI/2})));
+  for(const sx of [-1,1])for(const sz of [-1,1]){
+   const plate=new THREE.Shape();plate.moveTo(0,0);plate.lineTo(.07,0);plate.lineTo(.07,.022);plate.lineTo(.022,.022);plate.lineTo(.022,.07);plate.lineTo(0,.07);plate.closePath();
+   const geo=new THREE.ExtrudeGeometry(plate,{depth:.004,bevelEnabled:false});geo.rotateX(Math.PI/2);
+   // Turn the L from the +x/+z quadrant to point in from this corner.
+   const ry=sx>0?(sz>0?Math.PI:-Math.PI/2):(sz>0?Math.PI/2:0);
+   irons.push(bake(geo,ironPaint(.6),{x:sx*(O+.06),y:TOP+.004,z:sz*(O+.06),ry}));
+  }
+  const iron=add(mergeGeometries(irons),mat({color:0xffffff,vertexColors:true,metalness:.6,roughness:.55}));iron.name='hatch-iron';
+  for(const p of [...woody,...irons])p.dispose();
  }else if(kind==='jaws'){
   // Bear trap (also stands in for arrow and dart traps), set and open: two
   // hinged jaw bands lying flat in a ring with serrated teeth standing up, the
