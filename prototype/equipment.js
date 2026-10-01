@@ -134,6 +134,8 @@ export function createHeldWeapon(item){
   buildRanseur(g);
  }else if(/\b(spetum|forked polearm)\b/.test(name)){
   buildSpetum(g);
+ }else if(/\b(lucern hammer|pronged polearm)\b/.test(name)){
+  buildLucernHammer(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -644,6 +646,19 @@ function buildRanseur(g){
   const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
 
+// A four-edged blade up +y: lozenge sections [y,width] with depth = width*thin, closed at the
+// root and drawn to a point at `tip`. Flat-shaded.
+function lozenge(stations,tip,thin){
+ const verts=[],index=[];
+ for(const [y,w] of stations)verts.push(w,y,0, 0,y,w*thin, -w,y,0, 0,y,-w*thin);
+ for(let i=0;i<stations.length-1;i++)for(let j=0;j<4;j++){const a=i*4+j,b=i*4+(j+1)%4;index.push(a,b+4,b,a,a+4,b+4);}
+ const apex=stations.length*4;verts.push(0,tip,0);
+ const last=(stations.length-1)*4;for(let j=0;j<4;j++)index.push(last+j,apex,last+(j+1)%4);
+ index.push(0,1,2,0,2,3);
+ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(index);
+ const flat=geo.toNonIndexed();geo.dispose();flat.computeVertexNormals();return flat;
+}
+
 // The spetum: a long, narrow central blade with a raised midrib, rising from a forged socket
 // between two straight side blades that fork out and up at a steep slant like a pair of
 // daggers. Each side blade is four-edged and ends in a needle point, and a hooked thorn
@@ -659,18 +674,6 @@ function buildSpetum(g){
  g.userData.extraMaterial=[wood,iron,blade,wrap];
  const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
  const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);if(geo.attributes.uv)geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
- // A four-edged blade up +y from 0: lozenge sections [y,width] with depth = width*thin,
- // closed at the root and drawn to a point at `tip`.
- const lozenge=(stations,tip,thin)=>{
-  const verts=[],index=[];
-  for(const [y,w] of stations)verts.push(w,y,0, 0,y,w*thin, -w,y,0, 0,y,-w*thin);
-  for(let i=0;i<stations.length-1;i++)for(let j=0;j<4;j++){const a=i*4+j,b=i*4+(j+1)%4;index.push(a,b+4,b,a,a+4,b+4);}
-  const apex=stations.length*4;verts.push(0,tip,0);
-  const last=(stations.length-1)*4;for(let j=0;j<4;j++)index.push(last+j,apex,last+(j+1)%4);
-  index.push(0,1,2,0,2,3);
-  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(index);
-  const flat=geo.toNonIndexed();geo.dispose();flat.computeVertexNormals();return flat;
- };
  // Haft, a little thicker toward the head, and the grip wound on a slant.
  put(new THREE.CylinderGeometry(.025,.022,1.2,10),wood,0,.21);
  put(new THREE.CylinderGeometry(.031,.031,.22,10),wrap,0,-.01);
@@ -703,6 +706,61 @@ function buildSpetum(g){
   put(thorn,blade,s*.06,.9,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1),Math.PI+s*.75));
  }
  side.dispose();
+ for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The lucern hammer: a squat hammer block on a forged socket, its face split into four
+// pyramid prongs for punching through plate, a long beak curving down off its back with a
+// barb hooked under it to drag a rider from the saddle, and a four-edged spike rising from
+// a collar over the block. Langets are nailed down the haft, the grip is wound on a slant
+// and the butt ends in an iron spike. Merged per material like the spetum: 4 draws. The
+// striking parts stay metalness >= .75, so weapon-magic sheathes them.
+function buildLucernHammer(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x32241a,roughness:.92});
+ const iron=new THREE.MeshStandardMaterial({color:0x4a4744,metalness:.78,roughness:.56});
+ const blade=new THREE.MeshStandardMaterial({color:0xa2aaaf,metalness:.82,roughness:.32});
+ const wrap=new THREE.MeshStandardMaterial({color:0x2b1c16,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,blade,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);if(geo.attributes.uv)geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ // Haft, a little thicker toward the head, and the grip wound on a slant.
+ put(new THREE.CylinderGeometry(.025,.022,1.2,10),wood,0,.21);
+ put(new THREE.CylinderGeometry(.031,.031,.22,10),wrap,0,-.01);
+ for(let i=0;i<6;i++){const turn=new THREE.TorusGeometry(.032,.006,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.1+i*.036,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // Butt: an iron shoe ending in a short spike.
+ put(new THREE.CylinderGeometry(.026,.022,.06,10),iron,0,-.4);
+ put(new THREE.ConeGeometry(.018,.09,4),blade,0,-.475,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI));
+ // Two langets nailed down the haft below the socket, and a band at their foot.
+ for(const s of [-1,1]){
+  put(new THREE.BoxGeometry(.006,.22,.016),iron,0,.67,s*.025);
+  for(const y of [.59,.66,.73])put(new THREE.SphereGeometry(.0055,5,4),iron,0,y,s*.029);
+ }
+ put(new THREE.CylinderGeometry(.03,.03,.02,10),iron,0,.555);
+ // The socket: a tapered sleeve and a collar under the head.
+ put(new THREE.CylinderGeometry(.026,.031,.1,8),iron,0,.83);
+ put(new THREE.CylinderGeometry(.036,.036,.018,8),iron,0,.785);
+ // The hammer block straddles the haft's head, a little proud on the +x face side.
+ put(new THREE.BoxGeometry(.15,.075,.058),iron,.035,.92);
+ // The face: four pyramid prongs pointing out along +x, splayed a little apart.
+ for(const y of [-1,1])for(const z of [-1,1]){
+  const prong=new THREE.ConeGeometry(.017,.06,4);prong.rotateY(Math.PI/4);prong.translate(0,.03,0);
+  const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(1,y*.2,z*.2).normalize());
+  put(prong,blade,.11,.92+y*.018,z*.015,q);
+ }
+ // The beak on -x: thick at the block, curving down to a point, with a barb under it that
+ // hooks back toward the haft.
+ const b=new THREE.Shape();
+ b.moveTo(-.04,.955);
+ for(const [x,y] of [[-.09,.952],[-.145,.94],[-.195,.915],[-.235,.878],[-.268,.82],
+  [-.24,.852],[-.205,.878],[-.17,.893],[-.155,.872],[-.125,.852],[-.13,.888],[-.09,.895],[-.04,.89]])b.lineTo(x,y);
+ b.closePath();
+ const beak=new THREE.ExtrudeGeometry(b,{depth:.014,bevelEnabled:true,bevelThickness:.005,bevelSize:.004,bevelSegments:1,steps:1});beak.translate(0,0,-.007);
+ put(beak,blade);
+ // A collar on the block and the top spike, four-edged and drawn to a long point.
+ put(new THREE.CylinderGeometry(.022,.028,.025,8),iron,0,.97);
+ put(lozenge([[.982,.013],[1.01,.027],[1.06,.029],[1.16,.021],[1.27,.011]],1.4,.5),blade);
  for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
   const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
