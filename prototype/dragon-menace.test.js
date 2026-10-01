@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue} from './actions.js';
-import {updateDragonMenace, menaces, mantleWeight, mantleLength, lashCurve, aimAt, LASH_S, OPEN_S, HOLD_S, REST, FURL, YAW} from './dragon-menace.js';
+import {updateDragonMenace, menaces, mantleWeight, mantleLength, lashCurve, aimAt, LASH_S, OPEN_S, HOLD_S, REST, FURL, YAW, SMOKE_ALPHA, SIZE1} from './dragon-menace.js';
 
 const D = 'D'.charCodeAt(0);
 const dragon = (name = 'draken') => { const a = createCreature({name, symbol: D, color: 1}); a.actions = createActionQueue(); a.species = name; return a; };
@@ -77,4 +77,62 @@ test('sixty seconds of a dragon: finite, bounded, furls to walk, and death settl
     assert(Math.abs(end.tailY - rest.tailY) < 1e-9 && Math.abs(a.tail.rotation.z) < 1e-9, name);
     for (const w of a.wings) assert(Math.abs(w.rotation.y - w.userData.side * (REST + FURL)) < 1e-3, `${name} wings folded in death`);
   }
+});
+
+const smokeOf = a => a.g.children.find(o => o.userData.part === 'dragonSmoke');
+const alphas = a => { const c = smokeOf(a).geometry.attributes.aColor.array; return Array.from({length: c.length / 4}, (_, i) => c[i * 4 + 3]); };
+
+test('smoke curls from the nostrils in breaths, snorts after a mantle, and thins away on death', () => {
+  for (const name of ['draken', 'tiamat', 'tatzelworm', 'baby amphitere']) {
+    const a = dragon(name), dt = 1 / 60;
+    updateDragonMenace(a, dt, 0, false);
+    const p = smokeOf(a);
+    assert(p && p.isPoints, name);
+    assert.equal(a.menace.smoke.noses.length, name === 'tiamat' ? 10 : name === 'tatzelworm' ? 1 : 2, `${name} nostrils`);
+    let shown = 0, snorts = 0, huffs = 0, peak = 0, minCount = Infinity, maxCount = 0;
+    for (let i = 1; i < 2400; i++) {
+      const t = i * dt;
+      if (t >= 30 && !a.actions.dead) a.actions.dead = true;
+      const r = updateDragonMenace(a, dt, t, false, false, null);
+      if (r.snort) snorts++;
+      if (r.huff) huffs++;
+      // a fresh wisp starts at a nostril, and smoke stays near the head and above the floor
+      for (const w of a.menace.smoke.wisps) {
+        for (const v of [w.x, w.y, w.z, w.vx, w.vy, w.vz]) assert(Number.isFinite(v), `${name} ${t}`);
+        assert(w.y > 0 && w.y < 2.5 && Math.abs(w.x) < 2 && Math.abs(w.z) < 2, `${name} wisp ${w.x} ${w.y} ${w.z}`);
+      }
+      const al = alphas(a);
+      for (const v of al) assert(Number.isFinite(v) && v >= 0 && v <= SMOKE_ALPHA + 1e-9);
+      for (const v of p.geometry.attributes.aSize.array) assert(Number.isFinite(v) && v >= 0 && v <= SIZE1 + 1e-9);
+      if (t < 30) { const n = r.smoke; minCount = Math.min(minCount, t > 5 ? n : Infinity); maxCount = Math.max(maxCount, n); if (n) shown++; peak = Math.max(peak, ...al); }
+    }
+    assert(shown > 1000, `${name} smokes most of the time: ${shown}`);
+    assert(peak > SMOKE_ALPHA * .5, `${name} peak ${peak}`);
+    assert(maxCount > minCount + 2, `${name} comes in breaths: ${minCount}..${maxCount}`);
+    assert(snorts + huffs >= 1, `${name} snorted or huffed`);
+    // dead ten seconds: nothing left
+    assert.equal(a.menace.smoke.wisps.length, 0, name);
+    assert(alphas(a).every(v => v === 0), name);
+  }
+});
+
+test('a fresh wisp leaves the nostril, and smoke hangs in place when the dragon turns and walks on', () => {
+  const a = dragon(), dt = 1 / 60;
+  let t = 0;
+  while (!a.menace?.smoke.wisps.length) updateDragonMenace(a, dt, t += dt, false);
+  const w = a.menace.smoke.wisps.at(-1), nose = a.menace.smoke.noses.map(n => { const v = n.at.clone(); for (let o = n.head; o !== a.g; o = o.parent) { o.updateMatrix(); v.applyMatrix4(o.matrix); } return v; });
+  assert(Math.min(...nose.map(v => Math.hypot(v.x - w.x, v.y - w.y, v.z - w.z))) < .03, 'born at a nostril');
+  for (let i = 0; i < 30; i++) updateDragonMenace(a, dt, t += dt, false);
+  a.g.updateMatrixWorld(true);
+  const before = a.menace.smoke.wisps.map(w => new THREE.Vector3(w.x, w.y, w.z).applyMatrix4(a.g.matrixWorld));
+  a.g.rotation.y += 1.1; a.g.position.x += .6; a.g.position.z -= .3;
+  updateDragonMenace(a, 0, t, false);
+  a.g.updateMatrixWorld(true);
+  const after = a.menace.smoke.wisps.map(w => new THREE.Vector3(w.x, w.y, w.z).applyMatrix4(a.g.matrixWorld));
+  assert(before.length > 0 && before.length === after.length);
+  for (const [i, v] of before.entries()) assert(v.distanceTo(after[i]) < 1e-6, `${v.toArray()} ${after[i].toArray()}`);
+  // a jump (a new level, a teleport) drops the old smoke
+  a.g.position.x += 5;
+  updateDragonMenace(a, 0, t, false);
+  assert.equal(a.menace.smoke.wisps.length, 0);
 });
