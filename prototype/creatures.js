@@ -459,11 +459,14 @@ function cube(o){
 function floatingEye(o){
  const g=new THREE.Group(),body=new THREE.Group(),lift=new THREE.Group();g.add(body);body.add(lift);lift.position.y=.58;
  sphere(lift,.24,mat('#ebe6da',{roughness:.3}));
- sphere(lift,.115,mat(o.iris||'#2f6ad0',{roughness:.2,emissive:o.iris||'#2f6ad0',emissiveIntensity:.25}),0,0,.2,1,1,.38);
- sphere(lift,.05,mat('#050505',{roughness:.1}),0,0,.24,1,1,.35);
+ // The iris and pupil sit in their own group pivoting at the eyeball's centre (its `head`), so
+ // glance.js can roll the gaze across the ball; the pupil is its own handle so it can dilate.
+ const eye=new THREE.Group();lift.add(eye);
+ sphere(eye,.115,mat(o.iris||'#2f6ad0',{roughness:.2,emissive:o.iris||'#2f6ad0',emissiveIntensity:.25}),0,0,.2,1,1,.38);
+ const pupil=sphere(eye,.05,mat('#050505',{roughness:.1}),0,0,.24,1,1,.35);
  for(let i=0;i<6;i++){const a=i*1.05;tube(lift,[[Math.cos(a)*.12,-.18,Math.sin(a)*.12],[Math.cos(a)*.16,-.32,Math.sin(a)*.16],[Math.cos(a)*.12,-.44,Math.sin(a)*.12]],.012,mat('#b98a7a'),8);}
  for(let i=0;i<5;i++){const a=i*1.3-2.6;const vein=rounded(lift,.006,.12,.006,mat('#b8453a'),Math.sin(a)*.2,Math.cos(a)*.08,.1,.002);vein.rotation.z=a;}
- return actor(g,body,[],null,[],'hover');
+ return {...actor(g,body,[],null,[],'hover'),head:eye,pupil};
 }
 
 // Shocking spheres: a metallic orb crackling with jagged spikes of electricity,
