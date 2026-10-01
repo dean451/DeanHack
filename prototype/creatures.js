@@ -25,6 +25,7 @@ import {createMold} from './mold.js';
 import {createMushroom} from './mushroom.js';
 import {createLichen} from './lichen.js';
 import {createFern,isFern} from './fern.js';
+import {createPiercer,isPiercer} from './piercer.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
@@ -604,19 +605,6 @@ function wormTail(o){
  for(const z of [-.3,.3])for(const [dx,dz,s] of [[-.07,-.04,1],[.07,.03,.8],[0,.06,.6]])sphere(body,.07*s,mound,dx,.01,z+dz,1.4,.35,1.2);
  return actor(g,body,[],null,[],'worm');
 }
-// piercers (p): a ridged stalactite that has dropped point-up onto the floor, with a lurking face and a lipless mouth slit near its base and loose rubble around it
-function piercer(o){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);const s=o.scale||1;
- const hide=o.glass?new THREE.MeshStandardMaterial({color:o.color,transparent:true,opacity:.55,roughness:.08,metalness:.1}):mat(o.color,o.metal?{roughness:.35,metalness:.7}:{roughness:.95});
- const pts=[];for(let i=0;i<=10;i++){const t=i/10;pts.push(new THREE.Vector2((.25*(1-t)**1.25+.012)*(1+(i%2)*.06)*s,t*.82*s));}
- const spire=part(body,new THREE.LatheGeometry(pts,9),hide);spire.rotation.z=.05;
- for(const [y,r] of [[.2,.2],[.4,.14],[.58,.08]])part(body,new THREE.TorusGeometry(r*s,.016*s,5,12),mat(shade(o.color,.7),o.metal?{metalness:.6,roughness:.4}:{}),0,y*s,0).rotation.x=Math.PI/2;
- part(body,new THREE.TorusGeometry(.1*s,.018*s,6,12,Math.PI),mat('#1a1210'),0,.13*s,.21*s).rotation.z=Math.PI;
- eyes(body,M.eye,.27*s,.17*s,.06*s);
- const rubble=mat(shade(o.color,.55));for(let i=0;i<6;i++){const a=i*1.1+.4,r=(.28+(i%3)*.04)*s;sphere(g,(.035+(i%2)*.015)*s,rubble,Math.cos(a)*r,.02,Math.sin(a)*r,1.2,.6,1);}
- return actor(g,body,[],null,[],'idle');
-}
-const PIERCERS={piercer:{color:'#8a8478'},'iron piercer':{color:'#5f7c86',metal:true,scale:1.15},'glass piercer':{color:'#d8eef4',glass:true,scale:1.25}};
 // apelike creatures (Y): a hunched, barrel-chested body on short bowed legs, with long arms knuckling the floor in front,
 // a heavy brow over a pale muzzle; monkeys get a curled tail, owlbears a hooked beak and ear tufts, yeti and sasquatch shaggy shoulders
 function ape(o){
@@ -2225,7 +2213,7 @@ export function createCreature(cell={}){
  if(WORMS[name])return worm(WORMS[name]);
  if(name==='long worm tail')return wormTail({color:color||WORMS['long worm'].color});
  if(VORTICES[name])return vortex(VORTICES[name]);
- if(PIERCERS[name])return piercer(PIERCERS[name]);
+ if(isPiercer(name))return createPiercer(name);
  if(APES[name])return ape(APES[name]);
  if(MIMICS[name])return mimic(MIMICS[name]);
  if(CENTAURS[name])return centaur(CENTAURS[name]);
@@ -2339,7 +2327,7 @@ export function createCreature(cell={}){
   case 'S':return snake({color:c});
   case 'w':return worm({color:c,baby:/baby/.test(name)});
   case 'v':return vortex({color:c});
-  case 'p':return piercer({color:c});
+  case 'p':return createPiercer('piercer');
   case 'Y':return ape({fur:c});
   case 'm':return mimic({color:c});
   case 'C':return centaur({coat:c,hair:shade(c,.4)});
