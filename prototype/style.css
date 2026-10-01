@@ -60,3 +60,10 @@ dialog button{margin:18px 8px 0 0;font-size:12px}
 #level-banner{position:fixed;left:50%;top:26%;transform:translateX(-50%);z-index:4;text-align:center;pointer-events:none;opacity:0;text-shadow:0 2px 14px #000}#level-banner small{display:block;letter-spacing:4px;color:#c4b683}#level-banner strong{display:block;margin-top:6px;font:500 46px 'Cormorant Garamond',Georgia,serif;color:#f0e6d4;white-space:nowrap}#level-banner.show{animation:level-banner 4.5s ease forwards}
 @keyframes level-banner{0%{opacity:0;transform:translate(-50%,8px)}12%,70%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,-4px)}}
 @media(max-width:650px){#level-banner strong{font-size:30px;white-space:normal}}
+.engine-menu-heading{font:600 11px/1.4 Inter,sans-serif;letter-spacing:1.5px;text-transform:uppercase;color:#aab9c5;margin-top:14px}
+.engine-menu-hint{margin:14px 0 0;color:#8e9fac;font-size:11px}
+.engine-ext-list{list-style:none;margin:10px 0 0;padding:0;max-height:300px;overflow:auto}
+.engine-ext-list li{display:flex;gap:12px;align-items:baseline;padding:6px 10px;border-radius:3px;cursor:pointer;color:#aab8c0;font-size:13px}
+.engine-ext-list li b{font-weight:500;color:#ebe5d6;min-width:110px}
+.engine-ext-list li.active,.engine-ext-list li:hover{background:#294660;color:#d6d9c9}
+.engine-ext-form>input{width:100%}

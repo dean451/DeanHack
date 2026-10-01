@@ -418,7 +418,7 @@ static void file(
 static void add(winid w,int glyph UNUSED,int cnt UNUSED,const ANY_P *id,char accel,char group,int attr UNUSED,const char *s,unsigned int selected UNUSED){if(w<1||w>=BW||wins[w].n>=BM)return;struct entry *e=&wins[w].items[wins[w].n++];e->id=*id;e->selectable=id->a_void!=0;e->accelerator=accel;e->group_accelerator=group;e->text=strdup(s);}
 static void end(winid w,const char *s){if(w>0&&w<BW)snprintf(wins[w].prompt,BUFSZ,"%s",s?s:"");}
 static int bridge_select(winid w,int how,menu_item **out){char buf[BUFSZ];*out=NULL;if(w<1||w>=BW)return -1;
- printf("{\"type\":\"menu\",\"how\":%d,\"items\":[",how);for(int i=0;i<wins[w].n;i++){if(i)putchar(',');printf("{\"id\":%d,\"selectable\":%s,\"accelerator\":",i,wins[w].items[i].selectable?"true":"false");if(wins[w].items[i].accelerator) { char accel[2]={wins[w].items[i].accelerator,0};quoted(accel); } else quoted("");printf(",\"text\":");quoted(wins[w].items[i].text);putchar('}');}puts("]}");
+ printf("{\"type\":\"menu\",\"how\":%d,\"items\":[",how);for(int i=0;i<wins[w].n;i++){if(i)putchar(',');printf("{\"id\":%d,\"selectable\":%s,\"accelerator\":",i,wins[w].items[i].selectable?"true":"false");if(wins[w].items[i].accelerator) { char accel[2]={wins[w].items[i].accelerator,0};quoted(accel); } else quoted("");if(wins[w].items[i].group_accelerator){char group[2]={wins[w].items[i].group_accelerator,0};printf(",\"group\":");quoted(group);}printf(",\"text\":");quoted(wins[w].items[i].text);putchar('}');}puts("]}");
  read_request("menu",wins[w].prompt,buf,sizeof buf);if(buf[0]=='!' )return -1;if(how==PICK_NONE)return 0;
  menu_item picked[BM];boolean seen[BM]={0};int n=0;char *p=strtok(buf,",");while(p){char *tail;long i=strtol(p,&tail,10);if(*tail==0&&i>=0&&i<wins[w].n&&wins[w].items[i].selectable&&!seen[i]){seen[i]=TRUE;picked[n].item=wins[w].items[i].id;picked[n++].count=-1;if(how==PICK_ONE)break;}p=strtok(NULL,",");}
  if(n){*out=(menu_item*)alloc(n*sizeof(menu_item));memcpy(*out,picked,n*sizeof(menu_item));}return n;}
@@ -431,7 +431,17 @@ static int poskey(coordxy *x UNUSED,coordxy *y UNUSED,int *m UNUSED){
  return key("command","Your move");}
 static char bridge_yn(const char *q,const char *choices,char def){char prompt[BUFSZ];snprintf(prompt,sizeof prompt,"%s [%s] (default: %c)",q,choices?choices:"any key",def?def:' ');for(;;){int k=key("key",prompt);if((k==13||k==10||k==' ')&&def)return def;if(k==27)return choices&&strchr(choices,'q')?'q':choices&&strchr(choices,'n')?'n':def?def:27;if(!choices||strchr(choices,k))return k;}}
 static void line(const char *q,char *buf){read_request("line",q,buf,BUFSZ);}
-static int ext(void){char buf[BUFSZ];line("Extended command",buf);for(int i=0;extcmdlist[i].ef_txt;i++)if(!strcmp(buf,extcmdlist[i].ef_txt)&&(!(extcmdlist[i].flags & WIZMODECMD)||wizard))return i;return -1;}
+/* Extended commands: the client gets the list (for autocomplete) before the prompt, and a
+   typed name may be cut short as long as only one command starts with it. */
+static boolean ext_ok(int i){const struct ext_func_tab *c=&extcmdlist[i];return strcmp(c->ef_txt,"#")&&!(c->flags&CMD_NOT_AVAILABLE)&&(!(c->flags&WIZMODECMD)||wizard);}
+static int ext(void){char buf[BUFSZ];
+ printf("{\"type\":\"commands\",\"items\":[");boolean first=TRUE;
+ for(int i=0;extcmdlist[i].ef_txt;i++){if(!ext_ok(i))continue;if(!first)putchar(',');first=FALSE;printf("{\"name\":");quoted(extcmdlist[i].ef_txt);printf(",\"desc\":");quoted(extcmdlist[i].ef_desc);printf(",\"auto\":%s}",extcmdlist[i].flags&AUTOCOMPLETE?"true":"false");}
+ puts("]}");
+ line("Extended command",buf);
+ char *p=buf;while(*p==' '||*p=='#')p++;int n=(int)strlen(p);while(n&&p[n-1]==' ')p[--n]=0;for(int i=0;i<n;i++)p[i]=lowc(p[i]);if(!n)return -1;
+ int hit=-1;for(int i=0;extcmdlist[i].ef_txt;i++){if(!ext_ok(i))continue;if(!strcmp(p,extcmdlist[i].ef_txt))return i;if(!strncmp(p,extcmdlist[i].ef_txt,n))hit=hit==-1?i:-2;}
+ return hit>=0?hit:-1;}
 static void clip(int x UNUSED,int y UNUSED){}
 static int prev(void){return 0;}
 static void rip(winid w UNUSED,int how UNUSED){}
