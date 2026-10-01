@@ -5,7 +5,7 @@ import {createTrap,trapKind} from './trap.js';
 import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
 import {beatAt,flameAt,attachSigilFx,BEAT_EVERY,GLOW_REST} from './sigil-fx.js';
 
-const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','gas','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
+const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','gas','mine','rubble','rolling','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
 test('magic portals get their own kind; teleporters keep the rune circle',()=>{
  assert.equal(trapKind(94,13),'portal');
@@ -387,6 +387,25 @@ test('sleeping gas traps get the yawning stone face by name; nameless bright blu
   const cloud=model.getObjectByName('gas-cloud');
   assert(cloud.material.transparent&&!cloud.material.depthWrite&&!cloud.castShadow,'the gas is see-through and casts no shadow');
   for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&Number.isFinite(v));}
+  model.userData.dispose();
+ }
+});
+
+test('rolling boulder traps get their own worn track by name; other grey traps keep the fallen rock',()=>{
+ assert.equal(trapKind(94,7,'rolling boulder trap'),'rolling');
+ assert.equal(trapKind(94,7,'falling rock trap'),'rubble');
+ assert.equal(trapKind(94,7),'rubble');
+ for(const seed of [0,3,42]){
+  const model=createTrap('rolling',seed);
+  const meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.deepEqual(meshes.map(o=>o.name).sort(),['rolling-stone','rolling-track']);
+  assert(!model.getObjectByName('rolling-track').castShadow,'the flat track casts no shadow');
+  const b=new THREE.Box3().setFromObject(model);
+  assert(b.max.y>.03&&b.max.y<.1,`rolling track kerbs reach ${b.max.y}`);
+  assert(b.min.y>=-.015,'the rolling track sinks into the floor');
+  assert(b.max.x-b.min.x>.9,'the track runs right across the tile');
+  for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&Number.isFinite(v));}
+  console.log(`rolling ${seed}: ${meshes.map(o=>o.geometry.attributes.position.count).join('+')} vertices, y ${b.min.y.toFixed(3)}..${b.max.y.toFixed(3)}, x ${b.min.x.toFixed(3)}..${b.max.x.toFixed(3)}, z ${b.min.z.toFixed(3)}..${b.max.z.toFixed(3)}`);
   model.userData.dispose();
  }
 });
