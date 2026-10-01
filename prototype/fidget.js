@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {updateGlance} from './glance.js';
 import {updateHezrouGurgle} from './hezrou-gurgle.js';
+import {updateJellyFrost} from './jelly-frost.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -95,7 +96,10 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   // The evil eye's darting glances ride on this per-frame call (see glance.js); `look` is the hero.
   updateGlance(actor, dt, t, busy, look);
   // So do the hezrou's drool, throat sac and gurgle (hezrou-gurgle.js); busy without an action is walking.
-  updateHezrouGurgle(actor, dt, t, busy, busy && !actor.actions?.current && !actor.actions?.queue?.length);
+  const walking = busy && !actor.actions?.current && !actor.actions?.queue?.length;
+  updateHezrouGurgle(actor, dt, t, busy, walking);
+  // And the blue jelly's frost, mist, glints and shiver (jelly-frost.js).
+  updateJellyFrost(actor, dt, t, busy, walking);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
