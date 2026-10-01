@@ -15,6 +15,7 @@ import {updateLeprechaunCoin} from './leprechaun-coin.js';
 import {updateNymphBeckon} from './nymph-beckon.js';
 import {updateElementalRoil} from './elemental-roil.js';
 import {updateSpherePulse} from './sphere-pulse.js';
+import {updateLightFlare} from './light-flare.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -139,6 +140,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateElementalRoil(actor, dt, t, busy, look);
   // And the spheres' pulse: gas spores and flaming, freezing and shocking spheres throb faster as the hero nears (sphere-pulse.js).
   updateSpherePulse(actor, dt, t, busy, look);
+  // And the lights' flare: a yellow light gutters and glares, a black one drinks its motes in, both leaning toward the hero (light-flare.js).
+  updateLightFlare(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {

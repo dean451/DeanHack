@@ -492,9 +492,11 @@ function shockingSphere(){
 function wisp(o){
  const g=new THREE.Group(),body=new THREE.Group(),lift=new THREE.Group();g.add(body);body.add(lift);lift.position.y=.55;
  const core=sphere(lift,.12,new THREE.MeshStandardMaterial({color:o.color,emissive:o.color,emissiveIntensity:5,roughness:.2}));
- sphere(lift,.24,new THREE.MeshStandardMaterial({color:o.color,emissive:o.color,emissiveIntensity:1.2,transparent:true,opacity:.28,depthWrite:false}));
- for(let i=0;i<6;i++){const a=i*1.05;sphere(lift,.03,core.material,Math.cos(a)*.3,Math.sin(a*2)*.08,Math.sin(a)*.3);}
- g.userData.core=core;return Object.assign(actor(g,body,[],null,[],'hover'),{core});
+ const halo=sphere(lift,.24,new THREE.MeshStandardMaterial({color:o.color,emissive:o.color,emissiveIntensity:1.2,transparent:true,opacity:.28,depthWrite:false}));
+ // the motes circle on their own group so light-flare.js can swirl them
+ const ring=new THREE.Group();lift.add(ring);
+ for(let i=0;i<6;i++){const a=i*1.05;sphere(ring,.03,core.material,Math.cos(a)*.3,Math.sin(a*2)*.08,Math.sin(a)*.3);}
+ g.userData.core=core;return Object.assign(actor(g,body,[],null,[],'hover'),{core,lift,halo,ring,light:o.color==='#4a2a8a'||o.black?'black':'yellow'});
 }
 
 // Xan-class flyers (grid bugs keep their own model): a xan is a gangly red stinging fly whose
@@ -2276,7 +2278,7 @@ export function createCreature(cell={}){
  if(name==='beholder')return createBeholder();
  if(name==='shocking sphere')return shockingSphere();
  if(SPHERE_KINDS.includes(name)){const {g,body,core,orb,sphere}=createSphereCreature(name);return Object.assign(actor(g,body,[],null,[],'hover'),{orb,sphere},core?{core}:{});}
- if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a')});
+ if(/ light$/.test(name))return wisp({color:color||(name.startsWith('black')?'#4a2a8a':'#ffd23a'),black:name.startsWith('black')});
  if(isFern(name))return createFern(name);
  if(name==='lichen')return createLichen(name);
  if(/ mold$/.test(name))return createMold(name,color);

@@ -207,7 +207,9 @@ export function updateSpherePulse(a, dt, t, busy, look = null) {
     if (st.wait <= 0 && !busy) { st.surge = 0; st.wait = GAP_MIN + GAP_SPAN * rand(st); }
   }
   if (dead) st.surge = null;
-  const s = surgeAt(st.surge ?? 0), kick = Math.max(s, swell, squash);
+  // eased, so a blow or an attack cutting a surge short lets it go fast rather than in one frame
+  st.s = approach(st.s ?? 0, surgeAt(st.surge ?? 0), 14, dt);
+  const s = st.s, kick = Math.max(s, swell, squash);
   st.flash = approach(st.flash, 0, 7, dt);
 
   // the heartbeat quickens as the hero comes near, and races in a surge
