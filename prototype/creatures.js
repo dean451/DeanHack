@@ -2115,15 +2115,19 @@ const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff'},'fi
 // Angels: a robed figure hovering on feathered wings, with a halo and a sword. The wings
 // are pivots at the shoulder blades, so the default wing beat in live.js flexes them.
 const FEATHER=new THREE.SphereGeometry(1,8,6);
+// A fallen angel's feather: a flat blade tapering to a point at its far end, not a rounded vane.
+const SHARD=new THREE.ConeGeometry(1,2,4,1);
 function angel(o){
- const g=new THREE.Group(),body=new THREE.Group(),wings=[];g.add(body);g.scale.setScalar(o.scale||1);
+ const g=new THREE.Group(),body=new THREE.Group(),wings=[],fallen=!!o.fallen;g.add(body);g.scale.setScalar(o.scale||1);
  const robe=mat(o.robe,{roughness:.75}),fold=mat(shade(o.robe,.82),{roughness:.8}),trim=mat(o.trim||'#d8b04a',{metalness:.7,roughness:.3}),skin=mat(o.skin||'#f0d4b8',{roughness:.7}),
-  hair=mat(o.hair||'#e0c070',{roughness:.6}),plume=mat(o.wing||'#f4f0e6',{roughness:.7,side:THREE.DoubleSide}),plumeTip=mat(shade(o.wing||'#f4f0e6',.8),{roughness:.75,side:THREE.DoubleSide}),
-  light=mat(o.glow||'#ffe89a',{emissive:o.glow||'#ffe89a',emissiveIntensity:2.2,roughness:.3});
- const feather=(p,x,y,z,len,w,a,m)=>{const f=part(p,FEATHER,m,x+Math.sin(-a)*len/2,y+Math.cos(a)*len/2,z);f.scale.set(w,len/2,.008);f.rotation.z=a;f.castShadow=false;return f;};
- // robe: a long gown that flares to a rippling hem above the floor, with a gold hem band and folds
- const gown=part(body,tatter(new THREE.LatheGeometry([[.2,.1],[.2,.12],[.17,.22],[.14,.38],[.13,.5],[.14,.6],[.12,.7],[.08,.76]].map(([r,h])=>new THREE.Vector2(r,h)),28),.16,.035,5),robe);gown.scale.z=.85;
- cylinder(body,.203,.2,.02,trim,0,.12,0,28).scale.z=.85;
+  hair=mat(o.hair||'#e0c070',{roughness:.6}),plume=mat(o.wing||'#f4f0e6',{roughness:.7,side:THREE.DoubleSide}),plumeTip=mat(o.wingTip||shade(o.wing||'#f4f0e6',.8),{roughness:.75,side:THREE.DoubleSide}),
+  light=mat(o.glow||'#ffe89a',{emissive:o.glow||'#ffe89a',emissiveIntensity:2.2,roughness:.3}),horn=fallen?mat('#19141a',{roughness:.4,metalness:.2}):null;
+ const feather=(p,x,y,z,len,w,a,m)=>{const f=part(p,fallen?SHARD:FEATHER,m,x+Math.sin(-a)*len/2,y+Math.cos(a)*len/2,z);f.scale.set(w,len/2,.008);f.rotation.z=a;f.castShadow=false;return f;};
+ // robe: a long gown that flares to a rippling hem above the floor, with a gold hem band and folds.
+ // A fallen angel's is torn: a deep ragged hem with shreds hanging off it, and no hem band.
+ const gown=part(body,tatter(new THREE.LatheGeometry([[.2,.1],[.2,.12],[.17,.22],[.14,.38],[.13,.5],[.14,.6],[.12,.7],[.08,.76]].map(([r,h])=>new THREE.Vector2(r,h)),28),fallen?.3:.16,fallen?.058:.035,fallen?9:5),robe);gown.scale.z=.85;
+ if(!fallen)cylinder(body,.203,.2,.02,trim,0,.12,0,28).scale.z=.85;
+ else for(let i=0;i<9;i++){const a=(i+.3)/9*Math.PI*2+.2*Math.sin(i*2.7),len=.07+.05*((i*5)%3)/2,r=cone(body,.022,len,robe,Math.sin(a)*.19,.1-len/2+.03,Math.cos(a)*.16,4);r.rotation.set(Math.PI+Math.cos(a)*.18,a,-Math.sin(a)*.18);}
  for(let i=0;i<6;i++){const a=(i+.5)/6*Math.PI*2;segment(body,[Math.sin(a)*.19,.13,Math.cos(a)*.16],[Math.sin(a)*.13,.5,Math.cos(a)*.11],.014,.006,fold);}
  part(body,new THREE.TorusGeometry(.135,.014,6,24),trim,0,.5,0).rotation.x=Math.PI/2;
  // chest: a gold breastplate for archons, a crossed stole otherwise
@@ -2133,18 +2137,36 @@ function angel(o){
  for(const side of [-1,1]){const sh=[side*.13,.71,0],el=side>0?[.21,.6,.08]:[-.2,.56,.06],wr=side>0?[.2,.7,.17]:[-.25,.5,.16];
   sphere(body,.05,robe,...sh);segment(body,sh,el,.045,.05,robe);segment(body,el,wr,.05,.065,robe);
   const cuff=segment(body,el,wr,.066,.068,trim);cuff.scale.y=.12;cuff.position.set(...wr.map((v,i)=>v-(wr[i]-el[i])*.06));
-  hand(body,wr,side>0?[0,.3,1]:[-.2,-.3,1],side,skin);}
+  hand(body,wr,side>0?[0,.3,1]:[-.2,-.3,1],side,skin);
+  // a fallen angel's left wrist still wears an iron manacle, its broken chain hanging from it
+  if(fallen&&side<0){const d=new THREE.Vector3(...wr).sub(new THREE.Vector3(...el)).normalize();
+   const cuffRing=part(body,new THREE.TorusGeometry(.038,.012,6,18),trim,wr[0]+d.x*.015,wr[1]+d.y*.015,wr[2]+d.z*.015);cuffRing.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),d);
+   for(let k=0;k<4;k++){const l=part(body,new THREE.TorusGeometry(.016,.0045,5,10,k===3?Math.PI*1.4:Math.PI*2),trim,wr[0]-.01,wr[1]-.07-k*.027,wr[2]-.01);l.rotation.set(0,k%2?Math.PI/2:0,Math.PI/2);l.scale.y=1.35;}}}
  if(o.sword){const s=new THREE.Group();s.position.set(.2,.72,.2);s.rotation.set(.5,0,-.25);body.add(s);
   cylinder(s,.014,.014,.08,mat('#4a3020'),0,-.02,0,8);rounded(s,.14,.02,.03,trim,0,.03,0,.008);sphere(s,.018,trim,0,-.065,0);
   const blade=rounded(s,.035,.44,.008,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.6,roughness:.2}):M.steel,0,.26,0,.004);
-  if(o.flame){blade.castShadow=false;for(let i=0;i<6;i++){const f=cone(s,.02,.09,light,(i%2?1:-1)*.02,.1+i*.065,0,5);f.rotation.z=(i%2?-1:1)*.35;f.castShadow=false;}}}
+  if(o.flame){blade.castShadow=false;for(let i=0;i<6;i++){const f=cone(s,.02,.09,light,(i%2?1:-1)*.02,.1+i*.065,0,5);f.rotation.z=(i%2?-1:1)*.35;f.castShadow=false;}}
+  // a fallen angel's blade is serrated: hooked iron teeth swept back up both edges
+  if(fallen)for(const side of [-1,1])for(let i=0;i<5;i++){const t=cone(s,.007,.032,trim,side*.022,.1+i*.07+(side>0?.035:0),0,4);t.rotation.z=-side*1.05;}}
  // head: a calm face with softly glowing eyes and long golden locks
  const headY=.86;cylinder(body,.035,.04,.08,skin,0,.78,0,10);sphere(body,.085,skin,0,headY,.01,1,1.08,1);
- for(const side of [-1,1])sphere(body,.013,light,side*.032,headY+.01,.08,1,.7,.6).castShadow=false;
+ for(const side of [-1,1]){const eye=sphere(body,.013,light,side*.032,headY+.01,.08,fallen?1.25:1,.7,.6);eye.castShadow=false;if(fallen)eye.rotation.z=side*.45;}
+ // a fallen angel scowls under a heavy brow, and black horns sweep back from its temples
+ if(fallen)for(const side of [-1,1]){rounded(body,.05,.013,.022,hair,side*.032,headY+.032,.074,.005).rotation.set(-.2,0,side*.42);
+  const pts=[[side*.045,headY+.06,.04],[side*.075,headY+.12,-.01],[side*.09,headY+.145,-.08],[side*.085,headY+.13,-.15],[side*.07,headY+.1,-.19]],rad=[.02,.014,.009,.005,.0015];
+  for(let k=0;k<4;k++)segment(body,pts[k],pts[k+1],rad[k],rad[k+1],horn);}
  sphere(body,.093,hair,0,headY+.025,-.01,1.02,1,1).scale.set(1.03,1,1);
  for(let i=0;i<7;i++){const a=(i-3)*.42;tube(body,[[Math.sin(a)*.085,headY+.02,Math.cos(a)*.06-.02],[Math.sin(a)*.1,headY-.06,Math.cos(a)*.05-.04],[Math.sin(a)*.09,headY-.14,Math.cos(a)*.04-.06]],.022,hair,6).scale.z=.9;}
  // halo: a glowing ring over the head; archons wear a crown of light rays on it
- const halo=part(body,new THREE.TorusGeometry(.1,.011,8,32),light,0,headY+.14,-.03);halo.rotation.x=Math.PI/2-.25;halo.castShadow=false;
+ // A halo with rays or thorns is a group of its own, so mergeStatic bakes them into one draw
+ // (meshes parented to a mesh are never merged).
+ const crowned=fallen||o.rays,halo=crowned?new THREE.Group():part(body,new THREE.TorusGeometry(.1,.011,8,32),light);
+ if(crowned){body.add(halo);part(halo,new THREE.TorusGeometry(.1,.011,8,32,fallen?Math.PI*1.5:Math.PI*2),light).castShadow=false;}
+ halo.position.set(0,headY+.14,-.03);halo.rotation.x=Math.PI/2-.25;halo.castShadow=false;
+ // a fallen angel's halo is broken and askew: a gap with a shard drifting off it, and jagged thorns
+ if(fallen){halo.rotation.set(Math.PI/2-.45,.32,.6);halo.position.set(.015,headY+.17,-.05);
+  const shard=part(halo,new THREE.TorusGeometry(.1,.011,6,6,Math.PI*.2),light,.016,-.022,.012);shard.rotation.z=Math.PI*1.64;shard.castShadow=false;
+  for(let i=0;i<8;i++){const a=(i+.4)/8*Math.PI*1.45,len=i%2?.028:.055,r=cone(halo,.009,len,light,Math.cos(a)*(.1+len/2),Math.sin(a)*(.1+len/2),0,4);r.rotation.z=a-Math.PI/2+(i%3-1)*.25;r.castShadow=false;}}
  if(o.rays)for(let i=0;i<9;i++){const a=i/9*Math.PI*2,r=cone(halo,.012,.07,light,Math.cos(a)*.1,Math.sin(a)*.1,0,4);r.rotation.z=a-Math.PI/2;r.castShadow=false;}
  // wings: a pivot at each shoulder blade holding a leading-edge bone, long primaries fanning
  // down from it and a shorter covert row over their roots
@@ -2152,13 +2174,21 @@ function angel(o){
   const wing=new THREE.Group();wing.rotation.y=side*.45;pivot.add(wing);const span=o.span||.75;
   const edge=[];for(let i=0;i<=6;i++){const t=i/6;edge.push([side*(.02+.44*t)*span,(.02+.28*Math.sin(t*2.4))*span,-.01]);}
   tube(wing,edge,.018,plume,16);
-  for(let i=0;i<11;i++){const t=i/10,x=side*(.03+.43*t)*span,y=(.02+.28*Math.sin(t*2.4))*span,len=(.2+.2*t+.06*Math.sin(t*3))*span;
-   feather(wing,x,y,-.015,len,.04,Math.PI+side*(.1+1.2*t),i>7?plumeTip:plume);
-   if(i<9)feather(wing,x,y+.01,-.004,len*.55,.045,Math.PI+side*(.15+1.1*t),plume);}
+  // a fallen angel's wing is ragged: blade-like primaries of uneven length with two torn out, and
+  // hooked horn claws at the wrist and the tip of the bone
+  const jag=[1,.8,1.18,.7,1.12,.86,1.26,.74,1.1,.82,1.22];
+  for(let i=0;i<11;i++){const t=i/10,x=side*(.03+.43*t)*span,y=(.02+.28*Math.sin(t*2.4))*span,len=(.2+.2*t+.06*Math.sin(t*3))*span*(fallen?jag[i]:1);
+   if(!fallen||(i!==3&&i!==8))feather(wing,x,y,-.015,len,fallen?.034:.04,Math.PI+side*(.1+1.2*t),i>7?plumeTip:plume);
+   if(i<9)feather(wing,x,y+.01,-.004,len*.55,fallen?.04:.045,Math.PI+side*(.15+1.1*t),fallen&&i%3===2?plumeTip:plume);}
+  if(fallen)for(const [k,len] of [[4,.06],[6,.045]]){const [x,y,z]=edge[k],c=cone(wing,.011,len,horn,x+side*len*.35,y+len*.3,z,5);c.rotation.z=-side*(k===6?1.4:.9);}
   pivot.userData.side=side;wings.push(pivot);}
  return trimDraws(actor(g,body,[],null,wings,'hover'));
 }
-const ANGELS={angel:{robe:'#eeeae0',sword:true,flame:'#ff9a3a'},aleax:{robe:'#b8b0a0',trim:'#9aa4aa',hair:'#6a4a2a',wing:'#dcd6ca',glow:'#fff4d0',sword:true,span:.65},archon:{robe:'#f6f2ea',trim:'#e0b83a',armor:true,rays:true,sword:true,flame:'#bfe4ff',glow:'#fff2b0',scale:1.15,span:.85}};
+const ANGELS={angel:{robe:'#eeeae0',sword:true,flame:'#ff9a3a'},
+ // the dark Angel (UnNetHack, Gehennom only): a fallen angel in torn black, ashen-skinned, horned,
+ // with a broken ember halo, ragged black wings, a serrated burning blade and a broken manacle
+ 'dark angel':{fallen:true,robe:'#1d1a21',trim:'#3c3638',skin:'#8c8690',hair:'#141116',wing:'#18151b',wingTip:'#3a1714',glow:'#ff3a1e',sword:true,flame:'#c4261a',span:.82},
+ aleax:{robe:'#b8b0a0',trim:'#9aa4aa',hair:'#6a4a2a',wing:'#dcd6ca',glow:'#fff4d0',sword:true,span:.65},archon:{robe:'#f6f2ea',trim:'#e0b83a',armor:true,rays:true,sword:true,flame:'#bfe4ff',glow:'#fff2b0',scale:1.15,span:.85}};
 
 const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,scale:1.05},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',scale:1.05},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,scale:1.1}};
 

@@ -1598,6 +1598,26 @@ test('Cthulhu is its own towering, tentacle-bearded, winged horror instead of th
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('the dark Angel is a fallen angel, not the generic glowing one',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const dark=createCreature({name:'dark Angel',symbol:65,color:7}),plain=createCreature({name:'angel'});
+ const colors=a=>new Set(meshes(a).map(m=>m.material.color.getHexString()));
+ for(const c of ['1d1a21','8c8690','19141a','ff3a1e'])assert(colors(dark).has(c),`torn black robe, ashen skin, horns, ember glow: ${c}`);
+ assert(!colors(dark).has('eeeae0')&&!colors(dark).has('d8b04a'),'no white robe or gold');
+ assert.equal(dark.wings.length,2);
+ assert(meshes(dark).some(m=>m.material.emissiveIntensity>1),'still glows, so petrify has something to dim');
+ assert(meshes(dark).length<=28,`draws ${meshes(dark).length}`);
+ // the halo's thorns and shard bake into one draw, and so do the archon's rays
+ for(const a of [dark,createCreature({name:'archon'})])for(const m of meshes(a))assert(!m.parent.isMesh,'no mesh parented to a mesh');
+ const box=a=>{a.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(a.g,true);};
+ const b=box(dark);
+ assert(b.min.y>=0&&b.min.y<.03,`ragged hem stays above the floor ${b.min.y}`);
+ assert(b.max.y>1&&b.max.y<1.25,`height ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'wings fit');
+ for(const m of meshes(dark))for(const x of m.geometry.attributes.position.array)assert(Number.isFinite(x));
+ assert.equal(meshes(plain).length,22,'the Angel is unchanged');
+});
+
 test('weeping angels are weathered stone statues, hands over their faces, instead of the generic glowing angel',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  for(const name of ['weeping angel','weeping archangel']){
