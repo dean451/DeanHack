@@ -13,6 +13,7 @@ import {updateVampireSweep} from './vampire-sweep.js';
 import {updateTrollKnit} from './troll-knit.js';
 import {updateLeprechaunCoin} from './leprechaun-coin.js';
 import {updateNymphBeckon} from './nymph-beckon.js';
+import {updateElementalRoil} from './elemental-roil.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -133,6 +134,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateLeprechaunCoin(actor, dt, t, busy, look);
   // And the nymph's beckon: a coy sidelong look, a crooked finger luring you in, an amulet twirled to tease and a snatch (nymph-beckon.js).
   updateNymphBeckon(actor, dt, t, busy, look);
+  // And the elementals' roil: a dust devil, a heat shimmer, falling grit or a slosh, with a surge now and then (elemental-roil.js).
+  updateElementalRoil(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
