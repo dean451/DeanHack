@@ -233,3 +233,26 @@ test('the pit is a ragged maw ringed by tipped flagstones, with stakes and a sku
   if(!seed)console.log(`pit: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
  }
 });
+
+test('the trap door is a warped plank hatch left ajar on a black gap, with bony fingers curled out over its frame, in three draws',()=>{
+ for(const seed of [0,3,7,11,42]){
+  const model=createTrap('hatch',seed);
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.name).sort(),['hatch-iron','hatch-void','hatch-wood']);
+  const by=Object.fromEntries(meshes.map(m=>[m.name,m]));
+  assert(!by['hatch-void'].castShadow,'the flat void should not cast a shadow');
+  for(const m of meshes){assert(m.material.vertexColors);for(const v of m.geometry.attributes.color.array)assert(v>=0&&v<=1);}
+  const normals=by['hatch-void'].geometry.attributes.normal;
+  for(let i=0;i<normals.count;i++)assert(Math.abs(normals.getY(i)-1)<1e-6);
+  // The door is ajar: its free edge stands well above the frame top.
+  const wood=new THREE.Box3().setFromObject(by['hatch-wood']);
+  assert(wood.max.y>.08&&wood.max.y<.15,`the door's free edge should lift off the frame (${wood.max.y})`);
+  // The claws hook over the far side of the frame.
+  assert(wood.max.x>.315,`the fingers should curl over the far beam (${wood.max.x})`);
+  const bounds=new THREE.Box3().setFromObject(model);
+  for(const v of [bounds.min.x,bounds.max.x,bounds.min.z,bounds.max.z])assert(Math.abs(v)<.4);
+  assert(bounds.min.y>=0,'nothing sinks below the slab');
+  let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
+  assert(vertices<12000,`hatch is ${vertices} vertices`);
+ }
+});
