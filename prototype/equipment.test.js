@@ -233,6 +233,28 @@ test('a bill-guisarme has its own billhook blade, top spike and back spike, merg
  }
 });
 
+test('a bec de corbin has its own crow beak, toothed hammer, top spike and rondel, merged to one mesh per material',()=>{
+ for(const name of ['bec de corbin','beaked polearm']){
+  const pole=createHeldWeapon({name,class:2});
+  assert.deepEqual(pole.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+  const s=size(pole);
+  assert(s.y>1.75&&s.y<1.95,`length ${s.y}`);
+  for(const m of pole.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));
+   const n=m.geometry.attributes.normal.array;assert(n.every(Number.isFinite));}
+  const blade=pole.children.find(c=>c.userData.part==='blade');
+  assert(blade.material.metalness>=.75,'weapon-magic sheathes the beak');
+  blade.geometry.computeBoundingBox();
+  const bb=blade.geometry.boundingBox;
+  assert(bb.max.x>.3,`the long beak ${bb.max.x}`);
+  assert(bb.min.x<-.14&&bb.min.x>-.17,`the hammer teeth ${bb.min.x}`);
+  assert(bb.max.y>1.33,`the top spike ${bb.max.y}`);
+  const head=pole.children.find(c=>c.userData.part==='head');
+  head.geometry.computeBoundingBox();
+  assert(head.geometry.boundingBox.max.z>.06,'the rondel');
+  pole.userData.dispose();
+ }
+});
+
 test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
  const saber=createHeldWeapon({name:'silver saber',class:2});
  const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});

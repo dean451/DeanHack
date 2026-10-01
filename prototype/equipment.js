@@ -142,6 +142,8 @@ export function createHeldWeapon(item){
   buildGuisarme(g);
  }else if(/\b(bill-guisarme|hooked polearm)\b/.test(name)){
   buildBillGuisarme(g);
+ }else if(/\b(bec de corbin|beaked polearm)\b/.test(name)){
+  buildBecDeCorbin(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -949,6 +951,73 @@ function buildBillGuisarme(g){
  b.holes.push(fuller);
  const geo=new THREE.ExtrudeGeometry(b,{depth:.014,bevelEnabled:true,bevelThickness:.004,bevelSize:.004,bevelSegments:1,steps:1,curveSegments:8});geo.translate(0,0,-.007);
  put(geo,blade);
+ for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The bec de corbin: a crow's beak on a pole. A long, thick beak juts out over +x from a forged
+// block and curves down to a hooked point, a ridge running along its back and a notch cut
+// under its root. On -x a short neck ends in a small square hammer face crowned with a grid
+// of teeth, and a four-edged spike rises off the top. A round iron rondel guards the hand
+// below the head. Langets, slant-wound grip and spiked butt like the other polearms. Merged
+// per material: 4 draws. The striking parts stay metalness >= .75, so weapon-magic sheathes
+// them.
+function buildBecDeCorbin(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x2a1f17,roughness:.93});
+ const iron=new THREE.MeshStandardMaterial({color:0x3f3d3c,metalness:.78,roughness:.58});
+ const blade=new THREE.MeshStandardMaterial({color:0x9aa1a6,metalness:.82,roughness:.36});
+ const wrap=new THREE.MeshStandardMaterial({color:0x261913,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,blade,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);if(geo.attributes.uv)geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ // Haft, a little thicker toward the head, and the grip wound on a slant.
+ put(new THREE.CylinderGeometry(.025,.022,1.2,10),wood,0,.21);
+ put(new THREE.CylinderGeometry(.031,.031,.22,10),wrap,0,-.01);
+ for(let i=0;i<6;i++){const turn=new THREE.TorusGeometry(.032,.006,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.1+i*.036,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // Butt: an iron shoe ending in a short spike.
+ put(new THREE.CylinderGeometry(.026,.022,.06,10),iron,0,-.4);
+ put(new THREE.ConeGeometry(.018,.09,4),blade,0,-.475,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI));
+ // The rondel: a round iron disc guarding the hand, with a boss on each face.
+ const rondel=new THREE.CylinderGeometry(.062,.062,.008,16);put(rondel,iron,0,.62);
+ for(const s of [-1,1])put(new THREE.CylinderGeometry(.03,.034,.008,10),iron,0,.62+s*.007);
+ // Two langets nailed down the haft below the socket, and a band at their foot.
+ for(const s of [-1,1]){
+  put(new THREE.BoxGeometry(.006,.13,.016),iron,0,.71,s*.025);
+  for(const y of [.67,.74])put(new THREE.SphereGeometry(.0055,5,4),iron,0,y,s*.029);
+ }
+ // The socket: a tapered sleeve and a collar under the head.
+ put(new THREE.CylinderGeometry(.026,.031,.1,8),iron,0,.83);
+ put(new THREE.CylinderGeometry(.036,.036,.018,8),iron,0,.785);
+ // The block the beak and hammer are forged from, straddling the haft's head.
+ put(new THREE.BoxGeometry(.1,.08,.054),iron,0,.92);
+ // The hammer on -x: a short octagonal neck and a square face crowned with a 3x3 grid of
+ // pyramid teeth.
+ const neck=new THREE.CylinderGeometry(.022,.026,.06,8);neck.rotateZ(Math.PI/2);put(neck,iron,-.075,.92);
+ put(new THREE.BoxGeometry(.03,.062,.062),iron,-.118,.92);
+ for(const y of [-1,0,1])for(const z of [-1,0,1]){
+  const tooth=new THREE.ConeGeometry(.011,.018,4);tooth.rotateY(Math.PI/4);tooth.rotateZ(Math.PI/2);
+  put(tooth,blade,-.142,.92+y*.019,z*.019);
+ }
+ // The beak on +x: thick at the block, sweeping out and curving down to a hooked point, a
+ // notch cut under its root.
+ const b=new THREE.Shape();
+ b.moveTo(.04,.958);
+ b.quadraticCurveTo(.17,.965,.25,.92);
+ b.quadraticCurveTo(.305,.88,.318,.79);
+ b.quadraticCurveTo(.282,.85,.235,.874);
+ b.quadraticCurveTo(.16,.9,.1,.9);
+ b.lineTo(.085,.884);b.lineTo(.068,.9);
+ b.lineTo(.04,.884);
+ b.closePath();
+ const beak=new THREE.ExtrudeGeometry(b,{depth:.016,bevelEnabled:true,bevelThickness:.006,bevelSize:.005,bevelSegments:2,steps:1,curveSegments:10});beak.translate(0,0,-.008);
+ put(beak,blade);
+ // A ridge along the beak's back, following its curve.
+ const ridge=new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(new THREE.Vector3(.05,.96,0),new THREE.Vector3(.19,.97,0),new THREE.Vector3(.29,.86,0)),12,.006,4,false);
+ put(ridge,blade);
+ // A collar on the block and the top spike, four-edged and drawn to a long point.
+ put(new THREE.CylinderGeometry(.022,.028,.025,8),iron,0,.97);
+ put(lozenge([[.982,.013],[1.01,.025],[1.06,.026],[1.15,.019],[1.24,.01]],1.36,.55),blade);
  for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
   const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
