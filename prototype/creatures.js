@@ -1515,7 +1515,7 @@ const XORNS={xorn:{}};
 // Nagas: a thick serpent coil on the floor whose front rises into an upright neck with a human face,
 // scaled belly plates and slit-pupil eyes. The raised half is the swaying 'tail' group so it weaves.
 // Red nagas have a flame crest, black nagas a spine ridge, golden nagas a jewelled circlet,
-// guardian nagas a cobra hood. Hatchlings are small and plain.
+// guardian nagas a cobra hood, white nagas a crown of ice. Hatchlings are small and plain.
 function naga(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);
  const scales=mat(o.color,{roughness:.5,metalness:.1}),belly=mat(o.belly||shade(o.color,1.45),{roughness:.6}),face=mat(o.face||shade(o.color,1.25),{roughness:.65}),
@@ -1537,11 +1537,18 @@ function naga(o){
  if(o.crest==='flame'){const fire=mat('#ff7a2a',{emissive:'#ff4a10',emissiveIntensity:1.6,roughness:.4});for(let i=0;i<5;i++){const a=(i-2)*.32;const c=cone(head,r*.22,r*(1.3-Math.abs(i-2)*.25),fire,Math.sin(a)*r*.9,r*1.25,-.02-Math.cos(a)*r*.25,4);c.rotation.z=-a*.8;c.rotation.x=-.35;}}
  if(o.crest==='spines'){const spine=mat(shade(o.color,.55),{roughness:.4});for(let i=0;i<4;i++)cone(neck,r*.2,r*.7,spine,0,.1+i*.11,-r*.9,4).rotation.x=-1.2;for(let i=0;i<3;i++)cone(head,r*.2,r*.7,spine,0,r*1.25-i*r*.35,-r*.8-i*r*.3,4).rotation.x=-.6-i*.35;}
  if(o.crest==='circlet'){cylinder(head,r*1.3,r*1.36,r*.3,M.gold,0,r*.75,-.01,14);sphere(head,r*.22,mat('#3aa0ff',{emissive:'#1a60c0',emissiveIntensity:1.2,roughness:.2}),0,r*.8,r*1.3);for(const side of [-1,1])cone(head,r*.15,r*.5,M.gold,side*r*.7,r*1.12,r*.95,4);}
+ // frost (white naga, a Gehennom cold-spitter): a crooked crown of ice shards raking back off the skull,
+ // uneven ice spines down the nape, two long frost fangs past the lip and rime splinters jutting from the coil
+ if(o.crest==='frost'){const ice=mat('#d6f2ff',{emissive:'#3a90d0',emissiveIntensity:.55,roughness:.12,metalness:.15});
+  for(let i=0;i<7;i++){const a=(i-3)*.36,h=r*(1.9-Math.abs(i-3)*.32+(i%2)*.35);const c=cone(head,r*.16,h,ice,Math.sin(a)*r*1.05,r*1.05,-.03-Math.cos(a)*r*.35,4);c.rotation.set(-.75-(i%3)*.12,(i%2?.3:-.3),-a*.9);}
+  for(let i=0;i<5;i++)cone(neck,r*(.18+(i%2)*.08),r*(.65+(i%3)*.3),ice,(i%2?1:-1)*r*.12,.08+i*.085,-r*.9,4).rotation.set(-1.25+(i%2)*.25,i,0);
+  for(const side of [-1,1]){const f=cone(head,r*.08,r*.55,ice,side*r*.22,-r*.75,r*1,4);f.rotation.x=Math.PI+.2;}
+  for(let i=0;i<6;i++){const t=.12+i*.14,a=Math.PI*.5+t*Math.PI*3.2,rad=.3-t*.18,c=cone(body,r*.14,r*(.5+(i%2)*.3),ice,Math.cos(a)*rad,r*1.9+t*.04,-Math.sin(a)*rad*.9-.02,4);c.rotation.set(Math.sin(a)*.5,i,Math.cos(a)*.5);}}
  if(o.crest==='hood'){const hood=sphere(neck,r*3.2,scales,0,.43,-.035,1,1.25,.18);hood.rotation.x=.12;sphere(neck,r*2.6,belly,0,.42,-.022,1,1.2,.12).rotation.x=.12;for(const side of [-1,1])sphere(neck,r*.45,mat(shade(o.color,.45)),side*r*1.7,.47,-.04,1,1.4,.3);}
  return trimDraws(actor(g,body,[],neck,[],'snake'));
 }
-const NAGAS={'red naga':{color:'#b0321e',belly:'#e0a040',eye:'#ffcc40',crest:'flame'},'black naga':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',crest:'spines'},'golden naga':{color:'#c8a032',belly:'#f0dc8a',eye:'#ff5a3a',crest:'circlet',scale:1.05},'guardian naga':{color:'#3a8a3a',belly:'#c0d880',eye:'#ffe040',crest:'hood',scale:1.1},
- 'red naga hatchling':{color:'#b0321e',belly:'#e0a040',baby:true,scale:.8},'black naga hatchling':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',baby:true,scale:.8},'golden naga hatchling':{color:'#c8a032',belly:'#f0dc8a',baby:true,scale:.8},'guardian naga hatchling':{color:'#3a8a3a',belly:'#c0d880',baby:true,scale:.8}};
+const NAGAS={'red naga':{color:'#b0321e',belly:'#e0a040',eye:'#ffcc40',crest:'flame'},'black naga':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',crest:'spines'},'golden naga':{color:'#c8a032',belly:'#f0dc8a',eye:'#ff5a3a',crest:'circlet',scale:1.05},'guardian naga':{color:'#3a8a3a',belly:'#c0d880',eye:'#ffe040',crest:'hood',scale:1.1},'white naga':{color:'#d8d8d0',belly:'#a8c4d4',face:'#c4c8c6',eye:'#6ad4ff',crest:'frost',scale:1.15},
+ 'red naga hatchling':{color:'#b0321e',belly:'#e0a040',baby:true,scale:.8},'black naga hatchling':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',baby:true,scale:.8},'golden naga hatchling':{color:'#c8a032',belly:'#f0dc8a',baby:true,scale:.8},'guardian naga hatchling':{color:'#3a8a3a',belly:'#c0d880',baby:true,scale:.8},'white naga hatchling':{color:'#d8d8d0',belly:'#a8c4d4',face:'#c4c8c6',eye:'#6ad4ff',baby:true,scale:.8}};
 
 // Umber hulks (U): a hunched, beetle-backed burrower with a domed carapace of overlapping chitin plates,
 // thick legs, long arms ending in three huge digging claws, and a broad head with two big confusing
