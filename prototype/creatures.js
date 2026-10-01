@@ -14,6 +14,9 @@ import {createZombie,ZOMBIES} from './zombie.js';
 import {createGhoul} from './ghoul.js';
 import {createSkeleton} from './skeleton.js';
 import {createRaven} from './raven.js';
+import {createBat,isBat} from './bat.js';
+import {createSnake,isSnake} from './snake.js';
+import {createOoze,isOoze} from './ooze.js';
 import {createSpider} from './spider.js';
 import {createScorpion,isScorpion} from './scorpion.js';
 import {createAnt,isAnt} from './ant.js';
@@ -394,16 +397,6 @@ function fungus(o){
  return actor(g,body,[],null,[],'fungus');
 }
 
-// Blobs, jellies, puddings: translucent mass with a visible nucleus.
-function blob(o){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);
- const skin=new THREE.MeshStandardMaterial({color:o.color,emissive:o.color,emissiveIntensity:.18,roughness:.15,transparent:true,opacity:.78});
- sphere(body,.28,skin,0,o.flat?.12:.2,0,1,o.flat?.45:.72,1);sphere(body,.09,mat(shade(o.color,.4)),0,o.flat?.12:.2,0,1,.8,1);
- if(o.flat)for(let i=0;i<6;i++){const a=i*Math.PI/3;tube(body,[[Math.cos(a)*.2,.08,Math.sin(a)*.2],[Math.cos(a)*.34,.03,Math.sin(a)*.34],[Math.cos(a)*.4,.01,Math.sin(a)*.4]],.022,skin,8);}
- else for(let i=0;i<5;i++){const a=i*1.3;sphere(body,.07,skin,Math.cos(a)*.24,.07,Math.sin(a)*.24,1,.6,1);}
- return actor(g,body,[],null,[],'blob');
-}
-
 // Gelatinous cube: unlike the other oozes, this one keeps crisp right angles — a
 // near-transparent block with half-digested debris suspended inside.
 // The gelatinous cube: a quivering block of murky jelly with what it has eaten hanging inside it,
@@ -533,31 +526,6 @@ function centipede(o){
  return actor(g,body,legs,null,[],'insect');
 }
 
-// Bats: big scalloped wings and ears. Wings flap in live.js via the 'bat' quirk.
-function bat(o){
- const g=new THREE.Group(),body=new THREE.Group(),lift=new THREE.Group(),wings=[];g.add(body);body.add(lift);lift.position.y=.62;g.scale.setScalar(o.scale||1);
- const fur=mat(o.color),membrane=mat(shade(o.color,.6),{side:THREE.DoubleSide,roughness:.8});
- sphere(lift,.085,fur,0,0,0,1,1.15,.9);sphere(lift,.065,fur,0,.08,.05);
- for(const side of [-1,1]){const ear=cone(lift,.03,.1,fur,side*.035,.16,.04,4);ear.rotation.z=-side*.3;sphere(lift,.012,mat('#ff5a3a',{emissive:'#ff3a1a',emissiveIntensity:2}),side*.025,.09,.105);
-  const shape=new THREE.Shape();shape.moveTo(0,.05);shape.lineTo(side*.2,.14);shape.lineTo(side*.42,.08);shape.quadraticCurveTo(side*.36,-.02,side*.3,-.08);shape.quadraticCurveTo(side*.22,-.02,side*.16,-.1);shape.quadraticCurveTo(side*.08,-.04,0,-.06);
-  const pivot=new THREE.Group();pivot.position.set(side*.05,.02,0);lift.add(pivot);part(pivot,new THREE.ShapeGeometry(shape),membrane);pivot.userData.side=side;wings.push(pivot);}
- return actor(g,body,[],null,wings,'bat');
-}
-
-function snake(o){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);
- const skin=mat(o.color,{roughness:.55}),belly=mat(o.belly||shade(o.color,1.5)),coil=[];
- for(let i=0;i<=28;i++){const t=i/28,a=t*Math.PI*3.6,r=.24-t*.13;coil.push([Math.cos(a)*r,.05+t*.1,Math.sin(a)*r]);}
- coil.push([0,.3,.06],[0,.42,.14]);
- tube(body,coil,.045,skin,64);
- const head=new THREE.Group();head.position.set(0,.44,.18);body.add(head);
- sphere(head,.065,skin,0,0,0,1,.6,1.35);sphere(head,.04,belly,0,-.02,.03,1,.4,1.3);
- if(o.hood)sphere(head,.13,skin,0,-.08,-.06,1.2,1,.25);
- for(const side of [-1,1])sphere(head,.016,mat('#e0b020',{emissive:'#6a4a00',emissiveIntensity:.8}),side*.04,.02,.05);
- const tongue=rounded(head,.012,.004,.12,mat('#c0282a'),0,-.01,.12,.002);tongue.rotation.x=.2;
- return actor(g,body,[],null,[],'snake');
-}
-const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75},snake:{color:'#7a5a34'},'water moccasin':{color:'#5a3228'},'pit viper':{color:'#3a5a8a'},python:{color:'#7a5a7a',scale:1.4},cobra:{color:'#3a4a7a',hood:true}};
 
 // Long worms and purple worms: a ringed body that surfaces from the floor in an arch,
 // with the forward half as a swaying 'tail' group (live.js already sways actor.tail)
@@ -2204,7 +2172,7 @@ export function createCreature(cell={}){
  if(isBee(name))return createBee(name);
  if(isBeetle(name))return createBeetle(name);
  if(XANS[name])return xan(XANS[name]);
- if(SNAKES[name])return snake(SNAKES[name]);
+ if(isSnake(name))return createSnake(name);
  if(WORMS[name])return worm(WORMS[name]);
  if(name==='long worm tail')return wormTail({color:color||WORMS['long worm'].color});
  if(VORTICES[name])return vortex(VORTICES[name]);
@@ -2259,10 +2227,10 @@ export function createCreature(cell={}){
  if(name==='cave spider'||name==='giant spider')return createSpider(name);
  if(isScorpion(name))return createScorpion(name);
  if(name==='gelatinous cube')return cube({color:color||'#8ad0c0'});
- if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name)});
+ if(isOoze(name))return createOoze(name);
  if(name==='centipede')return centipede({color:'#c9a03a'});
  if(name==='raven')return createRaven();
- if(/^(bat|giant bat|vampire bat)$/.test(name))return bat({color:name==='bat'?'#5a4636':name==='giant bat'?'#7a3a32':'#28242a',scale:name==='giant bat'?1.25:1});
+ if(isBat(name))return createBat(name);
  if(ZOMBIES[name])return createZombie(name);
  if(name==='ghoul')return createGhoul();
  if(name==='skeleton')return createSkeleton();
@@ -2314,7 +2282,7 @@ export function createCreature(cell={}){
   case 'c':return cockatrice({skin:c,comb:'#c8262a',beak:shade(c,1.3)});
   case 'a':return createAnt(name,c);
   case 's':return createSpider(name,c);
-  case 'S':return snake({color:c});
+  case 'S':return createSnake(null,c);
   case 'w':return worm({color:c,baby:/baby/.test(name)});
   case 'v':return vortex({color:c});
   case 'p':return piercer({color:c});
@@ -2329,9 +2297,9 @@ export function createCreature(cell={}){
   case 'L':return lich({robe:shade(c,.6),glow:c});
   case 'T':return troll({skin:c,hair:shade(c,.4)});
   case 'H':return giant({skin:shade(c,1.1),cloth:shade(c,.55),weapon:'club',scale:1.1});
-  case 'B':return bat({color:c});
+  case 'B':return createBat(null,c);
   case 'F':return fungus({form:'mound',color:c});
-  case 'b':case 'j':case 'P':return blob({color:c,flat:letter==='j'});
+  case 'b':case 'j':case 'P':return createOoze(null,c,letter);
   case 'e':return floatingEye({iris:c});
   case 'y':return wisp({color:c});
   case 'k':return createKobold(name);

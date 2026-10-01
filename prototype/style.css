@@ -67,3 +67,4 @@ dialog button{margin:18px 8px 0 0;font-size:12px}
 .engine-ext-list li b{font-weight:500;color:#ebe5d6;min-width:110px}
 .engine-ext-list li.active,.engine-ext-list li:hover{background:#294660;color:#d6d9c9}
 .engine-ext-form>input{width:100%}
+.gallery-nav{display:flex;gap:8px;align-items:center}.gallery-nav[hidden]{display:none}.gallery-nav select{cursor:pointer;border:1px solid #738ba050;background:#12233bbb;color:#cbd8df;border-radius:3px;padding:8px 10px;font:10px Inter,sans-serif;max-width:220px}.gallery-nav select option{background:#12233b}.gallery-info{font-size:10px;letter-spacing:1px;color:#aab8c0;min-width:150px}
