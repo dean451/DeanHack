@@ -74,6 +74,7 @@ import {createCaveman,CAVE_KINDS} from './caveman.js';
 import {createTourist} from './tourist.js';
 import {createRanger} from './ranger.js';
 import {createRogue} from './rogue.js';
+import {createNinja} from './ninja.js';
 import {createBarbarian} from './barbarian.js';
 import {createHealer} from './healer.js';
 
@@ -2536,6 +2537,7 @@ export function createCreature(cell={}){
  if(name==='tourist')return createTourist();
  if(name==='ranger')return createRanger();
  if(name==='rogue')return createRogue();
+ if(name==='ninja')return createNinja();
  if(name==='barbarian')return createBarbarian();
  if(name==='healer')return createHealer();
  if(isGoblin(name))return createGoblin(name);

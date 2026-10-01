@@ -1174,6 +1174,38 @@ test('rogues get a deep hood, a black mask, a torn cloak and mantle, a bandolier
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('ninja get a wrapped zukin with an eye slit and trailing tails, a red sash with shuriken, a saya on the back and a straight ninjato instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const ni=createCreature({name:'ninja',symbol:64,color:4});
+ assert.equal(ni.kind,'ninja');assert.equal(ni.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket'])assert(ni[key]?.isObject3D,key);
+ assert.equal(ni.legs.length,2);assert.equal(ni.arms.length,2);assert.equal(ni.arm,ni.arms[1]);
+ assert(ni.arm.children.includes(ni.weaponSocket),'the socket is at the right hand');
+ assert.equal(ni.weaponSocket.children.length,1,'the ninjato is held');
+ const parts=meshes(ni);
+ assert.equal(parts.length,7,'one mesh per moving part and the sword');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<30000,`${verts} vertices`);
+ ni.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(ni.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.03&&b.max.y<1.2,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
+ // the saya rides on the back, and the hood's tails hang down it
+ assert(new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='body'),true).min.z<-.15,'saya on the back');
+ const hb=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='head'),true);
+ assert(hb.min.y<.8&&hb.min.z<-.12,`tails ${hb.min.y} ${hb.min.z}`);
+ assert(new THREE.Box3().setFromObject(ni.weaponSocket,true).max.z>.25,'blade held forward');
+ const again=meshes(createCreature({name:'ninja'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
 test('barbarians get a horned iron cap, ash war paint, braided beard, wolf-pelt mantle, ring mail, spiked bracers and a notched great axe instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const ba=createCreature({name:'barbarian',symbol:64,color:1});
