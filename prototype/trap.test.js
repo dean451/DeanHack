@@ -295,3 +295,25 @@ test('animating the fire trap adds one spark draw, drives the coal glow and clea
  // Other traps don't animate.
  assert.equal(createTrap('pit',6).userData.animate,undefined);
 });
+
+test('the magic traps are a burning sigil with a staring eye, ringed by black candles (frost for ice), in three draws',()=>{
+ for(const kind of ['teleport','magic','polymorph','ice'])for(const seed of [0,3,7,11,42]){
+  const model=createTrap(kind,seed);
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.name).sort(),['sigil-glow',kind==='ice'?'sigil-frost':'sigil-wax','sigil-stain'].sort());
+  const by=Object.fromEntries(meshes.map(m=>[m.name,m]));
+  assert(by['sigil-glow'].material.isMeshBasicMaterial,'the sigil should burn without lights');
+  assert(by['sigil-glow'].material.color.r>1.25,'the hottest strokes should catch the bloom');
+  assert.equal(by['sigil-stain'].geometry.attributes.color.itemSize,4,'the stain should fade out through vertex alpha');
+  assert(!by['sigil-stain'].castShadow&&!by['sigil-glow'].castShadow);
+  for(const m of meshes){assert(m.material.vertexColors);for(const v of m.geometry.attributes.color.array)assert(v>=0&&v<=1);}
+  const solid=new THREE.Box3().setFromObject(by[kind==='ice'?'sigil-frost':'sigil-wax']);
+  assert(solid.max.y>.05,'the candles (or shards) should stand up off the floor');
+  const bounds=new THREE.Box3().setFromObject(model);
+  assert(bounds.max.y<.15&&bounds.min.y>-.02,'the trap should lie low on the floor');
+  for(const v of [bounds.min.x,bounds.max.x,bounds.min.z,bounds.max.z])assert(Math.abs(v)<.48);
+  let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
+  assert(vertices<16000,`${kind} is ${vertices} vertices`);
+  if(!seed)console.log(`${kind} sigil: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}`);
+ }
+});
