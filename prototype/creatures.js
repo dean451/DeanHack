@@ -1602,6 +1602,64 @@ function umberHulk(o){
 }
 const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.05}};
 
+// Shambling horror (U): a thing that should not have been made. A lopsided, lurching mound of pallid, wet
+// flesh swollen with tumorous lumps and split by bone spurs; one leg a thick club, the other a thin
+// backward-bent shank; one arm a huge hooked digging claw and the other a withered limb with too many long
+// fingers; a sagging head with a vertical maw ringed in needle teeth, mismatched cold-glowing eyes strewn
+// over head and shoulder, and dripping feelers hanging from the jaw and belly. The head is the 'tail' group.
+function shamblingHorror(o){
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
+ const flesh=mat(o.color,{roughness:.32,metalness:.05}),dark=mat(shade(o.color,.5),{roughness:.6}),raw=mat(o.raw,{roughness:.25}),
+  bone=mat('#d8d2bc',{roughness:.5}),claw=mat('#16141a',{roughness:.3,metalness:.25}),maw=mat('#14060a',{roughness:1}),
+  eye=mat(o.eye,{emissive:o.eye,emissiveIntensity:1.1,roughness:.1}),pupil=mat('#050505',{roughness:.2});
+ // legs: the left a thick, stumpy club foot; the right thin and bent back like a hock, ending in two talons
+ {const leg=new THREE.Group();leg.position.set(-.16,.4,0);body.add(leg);
+  segment(leg,[0,0,0],[-.04,-.22,.04],.12,.1,flesh);segment(leg,[-.04,-.22,.04],[-.05,-.34,.03],.1,.11,dark);
+  sphere(leg,.12,flesh,-.05,-.34,.05,1.1,.45,1.25);for(let k=-1;k<=1;k++)cone(leg,.022,.06,claw,-.05+k*.05,-.36,.17,4).rotation.x=Math.PI/2;legs.push(leg);}
+ {const leg=new THREE.Group();leg.position.set(.15,.4,-.02);body.add(leg);
+  segment(leg,[0,0,0],[.05,-.14,.12],.08,.055,flesh);segment(leg,[.05,-.14,.12],[.06,-.26,-.04],.05,.04,dark);segment(leg,[.06,-.26,-.04],[.06,-.365,.04],.04,.035,flesh);
+  sphere(leg,.04,raw,.05,-.14,.12);for(const k of [-1,1]){const t=cone(leg,.018,.09,claw,.06+k*.03,-.375,.1,4);t.rotation.x=Math.PI/2;t.rotation.y=k*.25;}legs.push(leg);}
+ // torso: a hunched mound leaning to one side, swollen with lumps of uneven size
+ const torso=sphere(body,.29,flesh,.02,.72,0,1.1,1.05,.95);torso.rotation.set(.4,0,-.18);
+ const lumps=[[-.2,.84,-.1,.13],[.16,.96,-.14,.11],[-.06,1.0,-.2,.09],[.22,.66,.06,.08],[-.24,.6,.08,.07],[.05,.58,.22,.1],[-.12,.78,.22,.06],[.1,.82,-.26,.12]];
+ for(const [x,y,z,r] of lumps)sphere(body,r,flesh,x,y,z,1,.9,1.05);
+ // raw, glistening sores where the skin has split
+ for(const [x,y,z,r] of [[-.18,.88,-.16,.05],[.2,.72,.14,.04],[.02,.62,.27,.045]])sphere(body,r,raw,x,y,z,1,1,.6);
+ // bone spurs jutting from the back at wrong angles
+ for(const [x,y,z,rx,rz,h] of [[-.08,1.06,-.16,-.9,.5,.16],[.12,1.02,-.24,-1.3,-.4,.13],[-.2,.92,-.22,-1.1,.9,.1],[.04,.86,-.32,-1.6,.1,.12],[.24,.86,-.16,-.8,-1,.09]]){
+  const s=cone(body,.028,h,bone,x,y,z,5);s.rotation.set(rx,0,rz);}
+ // belly feelers: limp, dripping tendrils
+ for(const [x,z,len,sw] of [[-.1,.2,.26,.06],[.04,.24,.32,-.05],[.14,.18,.2,.04],[-.02,.22,.18,-.07]])
+  tube(body,[[x,.56,z],[x+sw,.46,z+.05],[x-sw*.5,.56-len*.7,z+.08],[x+sw*.3,.56-len,z+.06]],.012,dark,8);
+ // left arm: huge, knotted, dragging three hooked claws near the floor
+ {const arm=new THREE.Group();arm.position.set(-.27,.94,.02);body.add(arm);
+  segment(arm,[0,0,0],[-.09,-.3,.06],.11,.09,flesh);sphere(arm,.09,flesh,-.09,-.3,.06,1.1,.9,1);
+  segment(arm,[-.09,-.3,.06],[-.08,-.62,.16],.1,.09,flesh);sphere(arm,.12,dark,-.08,-.66,.17,1.2,.8,1.1);
+  for(let k=-1;k<=1;k++){const c=tube(arm,[[-.08+k*.05,-.68,.2],[-.08+k*.06,-.78,.27],[-.08+k*.05,-.86,.25],[-.08+k*.045,-.88,.18]],.02,claw,8);c.castShadow=true;}
+  arm.rotation.z=.04;}
+ // right arm: withered and too long, hanging forward with five spindly, many-jointed fingers
+ {const arm=new THREE.Group();arm.position.set(.27,.98,.04);body.add(arm);
+  segment(arm,[0,0,0],[.06,-.26,.1],.05,.035,flesh);segment(arm,[.06,-.26,.1],[.05,-.52,.2],.035,.028,dark);
+  for(let k=0;k<5;k++){const a=(k-2)*.32,x=.05+Math.sin(a)*.025,z=.2+Math.cos(a)*.025;
+   tube(arm,[[x,-.52,z],[x+Math.sin(a)*.05,-.6,z+.04],[x+Math.sin(a)*.07,-.7,z+.02],[x+Math.sin(a)*.06,-.78,z+.06]],.008,dark,8);}
+  arm.rotation.z=.12;}
+ // head: lolling low and off to one side, sagging; a vertical maw split down its face
+ const head=new THREE.Group();head.position.set(.06,1.0,.22);head.rotation.z=.32;body.add(head);
+ sphere(head,.15,flesh,0,0,0,1.05,.9,1);sphere(head,.11,flesh,-.02,-.12,.04,.95,.8,.9);
+ rounded(head,.06,.2,.04,maw,0,-.08,.13,.02);
+ for(const side of [-1,1])for(let i=0;i<5;i++){const y=-.16+i*.04,t=cone(head,.008,.035,bone,side*.025,y,.14,4);t.rotation.z=-side*Math.PI/2;}
+ // mismatched eyes: one large, one small and drooping, a cluster of three tiny ones high on the brow
+ for(const [x,y,z,r] of [[-.08,.04,.11,.04],[.08,-.02,.12,.022],[-.02,.1,.12,.016],[.03,.11,.11,.013],[.0,.07,.14,.011]]){
+  sphere(head,r,eye,x,y,z);sphere(head,r*.45,pupil,x,y,z+r*.75,1,1.6,.5);}
+ // jaw feelers dripping from under the maw
+ for(const [x,sw] of [[-.05,-.03],[.0,.04],[.05,.02]])tube(head,[[x,-.2,.08],[x+sw,-.27,.12],[x-sw,-.34,.1],[x+sw*.5,-.4,.13]],.01,raw,8);
+ // stray eyes on the shoulder, staring in different directions
+ for(const [x,y,z,r,ry] of [[-.26,1.02,.1,.026,-.6],[-.18,1.08,.04,.018,.4],[.2,.9,.16,.02,.9]]){
+  const e=sphere(body,r,eye,x,y,z);const p=sphere(body,r*.45,pupil,x+Math.sin(ry)*r*.75,y,z+Math.cos(ry)*r*.75,1,1.6,.5);p.rotation.y=ry;e.rotation.y=ry;}
+ return trimDraws(actor(g,body,legs,head,[],'orc'));
+}
+const HORRORS={'shambling horror':{color:'#9aa8a4',raw:'#8a2a3a',eye:'#7affe8',scale:1.08}};
+
 // Zruty: the huge, primeval wild man of Czech legend. A hunched, shaggy bear-ape with a broad back mane,
 // knuckle-dragging arms ending in hooked claws, a heavy underslung jaw with upthrust tusks and small, deep-set eyes.
 // The head is the 'tail' group, so live.js sways it slowly from side to side.
@@ -2267,6 +2325,7 @@ export function createCreature(cell={}){
  if(NAGAS[name])return naga(NAGAS[name]);
  if(RUST_MONSTERS[name])return rustMonster({...RUST_MONSTERS[name],kind:name});
  if(UMBER_HULKS[name])return umberHulk(UMBER_HULKS[name]);
+ if(HORRORS[name])return shamblingHorror(HORRORS[name]);
  if(ZRUTIES[name])return zruty(ZRUTIES[name]);
  if(LEPRECHAUNS[name])return leprechaun(LEPRECHAUNS[name]);
  if(GARGOYLES[name])return gargoyle(GARGOYLES[name]);

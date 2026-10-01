@@ -1498,3 +1498,15 @@ test('the white naga is a pale Gehennom serpent with a crown of ice, frost fangs
  const baby=createCreature({name:'white naga hatchling',symbol:78,color:15});
  assert(!meshes(baby).some(icy),'hatchlings are plain');assert(box(baby).max.y<b.max.y);
 });
+
+test('the shambling horror gets its own lopsided body, not the umber hulk',()=>{
+ const horror=createCreature({name:'shambling horror',symbol:85,color:14}),hulk=createCreature({name:'umber hulk',symbol:85,color:3});
+ assert.equal(horror.legs.length,2);assert(horror.tail);
+ horror.g.updateMatrixWorld(true);let meshes=0;
+ horror.g.traverse(o=>{if(!o.isMesh)return;meshes++;for(const v of o.geometry.attributes.position.array)assert(Number.isFinite(v));});
+ const b=new THREE.Box3().setFromObject(horror.g),hb=new THREE.Box3().setFromObject(hulk.g);
+ assert(b.min.y>-.01);assert(b.max.y<1.5);assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.65);
+ // the two legs differ: a club foot and a thin hock
+ assert.notEqual(horror.legs[0].children.length,horror.legs[1].children.length);
+ assert.notDeepEqual(b.max.toArray(),hb.max.toArray());assert(meshes<40);
+});
