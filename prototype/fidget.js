@@ -30,6 +30,7 @@ import {updateWeepingLunge} from './weeping-lunge.js';
 import {updateCerberusHeads} from './cerberus-heads.js';
 import {updateSnareWrithe} from './snare-writhe.js';
 import {updateDoppelRake} from './doppel-rake.js';
+import {updateYendorHover} from './yendor-hover.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -184,6 +185,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateSnareWrithe(actor, dt, t, busy, look);
   // And the doppelganger: its flesh never settles, its shape slips, it studies and mimics the hero, and rakes with its left talons (doppel-rake.js).
   updateDoppelRake(actor, dt, t, busy, look);
+  // And the Wizard of Yendor: he hovers off the floor, his orb throbs and gathers at the hero, and he casts through the staff (yendor-hover.js).
+  updateYendorHover(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
