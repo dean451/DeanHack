@@ -26,6 +26,7 @@ import {createMushroom} from './mushroom.js';
 import {createLichen} from './lichen.js';
 import {createFern,isFern} from './fern.js';
 import {createPiercer,isPiercer} from './piercer.js';
+import {createEnormousRat,isEnormousRat} from './enormous-rat.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
@@ -2198,6 +2199,7 @@ const SKIN={homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',
 export function createCreature(cell={}){
  const name=(cell.name||'').toLowerCase(),letter=Number.isInteger(cell.symbol)?String.fromCharCode(cell.symbol):'',color=nhColor(cell);
  if(/^(sewer rat|giant rat|rabid rat|rat)$/.test(name))return rat(name==='giant rat',name==='rabid rat');
+ if(isEnormousRat(name))return createEnormousRat();
  if(name==='rock mole')return rockMole();
  if(name==='woodchuck')return woodchuck();
  if(/grid ?bug/.test(name))return gridBug();
