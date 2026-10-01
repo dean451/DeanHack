@@ -5,7 +5,7 @@ import {createTrap,trapKind} from './trap.js';
 import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
 import {beatAt,flameAt,attachSigilFx,BEAT_EVERY,GLOW_REST} from './sigil-fx.js';
 
-const KINDS=['pit','hatch','jaws','arrow','dart','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
+const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
 test('magic portals get their own kind; teleporters keep the rune circle',()=>{
  assert.equal(trapKind(94,13),'portal');
@@ -352,6 +352,22 @@ test('arrow and dart traps get the arrow mask by name; nameless cyan traps stay 
   assert.deepEqual(meshes.map(o=>o.name).sort(),[`${kind}-eyes`,`${kind}-shafts`,`${kind}-stone`]);
   const b=new THREE.Box3().setFromObject(model);
   assert(b.max.y>.3&&b.max.y<.6,`${kind} mask height ${b.max.y}`);
+  for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&Number.isFinite(v));}
+  model.userData.dispose();
+ }
+});
+
+test('squeaky boards get their own warped floorboards by name; nameless brown traps stay trap doors',()=>{
+ assert.equal(trapKind(94,3,'squeaky board'),'squeaky');
+ assert.equal(trapKind(94,3,'trap door'),'hatch');
+ assert.equal(trapKind(94,3),'hatch');
+ for(const seed of [0,3,42]){
+  const model=createTrap('squeaky',seed);
+  const meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.deepEqual(meshes.map(o=>o.name).sort(),['squeaky-bone','squeaky-eyes','squeaky-wood']);
+  const b=new THREE.Box3().setFromObject(model);
+  assert(b.max.y>.06&&b.max.y<.2,`squeaky board height ${b.max.y}`);
+  assert(b.min.y>=-.01,'squeaky board sinks into the floor');
   for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&Number.isFinite(v));}
   model.userData.dispose();
  }
