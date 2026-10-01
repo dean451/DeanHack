@@ -9,6 +9,7 @@ import {updatePuddingHeave} from './pudding-heave.js';
 import {updateLichChill} from './lich-chill.js';
 import {updateGhostDrift} from './ghost-drift.js';
 import {updateWraithPull} from './wraith-pull.js';
+import {updateVampireSweep} from './vampire-sweep.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -121,6 +122,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateGhostDrift(actor, dt, t, busy, look);
   // And the wraiths' pull: sinking hem smoke, twitching claws, a snapping head and a hauled thread of life (wraith-pull.js).
   updateWraithPull(actor, dt, t, busy, look);
+  // And the vampires' feed: a trailing, breathing cape, a cold breath and the cape sweep (vampire-sweep.js).
+  updateVampireSweep(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {

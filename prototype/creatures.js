@@ -1476,8 +1476,10 @@ function vampire(o){
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.1,.44,0);body.add(leg);rounded(leg,.12,.42,.13,suit,0,-.18,0,.035);rounded(leg,.13,.1,.24,boot,0,-.39,.04,.03);legs.push(leg);}
  rounded(body,.34,.44,.22,suit,0,.68,0,.05);rounded(body,.08,.3,.02,mat('#e8e4dc',{roughness:.6}),0,.74,.11,.01);
  // cape: a back panel flaring toward the hem, red-lined, with a tall two-piece collar framing the head
- const back=rounded(body,.46,.86,.03,cape,0,.52,-.14,.015);back.rotation.x=-.08;rounded(body,.43,.82,.012,lining,0,.53,-.12,.006).rotation.x=-.08;
- for(const side of [-1,1]){const flap=rounded(body,.05,.74,.2,cape,side*.24,.52,-.03,.015);flap.rotation.z=side*.1;
+ // the back panel hangs from a pivot at the shoulders (`cape`), and each side flap from its own (`flaps`), so they can sweep
+ const capeG=new THREE.Group();capeG.position.set(0,.95,-.14);body.add(capeG);const flaps=[];
+ const back=rounded(capeG,.46,.86,.03,cape,0,-.43,0,.015);back.rotation.x=-.08;rounded(capeG,.43,.82,.012,lining,0,-.42,.02,.006).rotation.x=-.08;
+ for(const side of [-1,1]){const fg=new THREE.Group();fg.position.set(side*.24,.89,-.03);body.add(fg);flaps.push(fg);const flap=rounded(fg,.05,.74,.2,cape,0,-.37,0,.015);flap.rotation.z=side*.1;
   const collar=rounded(body,.16,o.collar||.24,.015,lining,side*.12,1.02,-.06,.006);collar.rotation.set(-.25,side*.55,side*-.25);
   const outer=rounded(body,.17,(o.collar||.24)+.02,.012,cape,side*.125,1.02,-.075,.006);outer.rotation.copy(collar.rotation);}
  // head: gaunt face, pointed ears, widow's peak, fangs and red eyes
@@ -1485,13 +1487,13 @@ function vampire(o){
  sphere(head,.13,skin,0,0,0,.9,1.08,1);rounded(head,.08,.05,.06,skin,0,-.1,.06,.02);
  const cap=sphere(head,.135,hair,0,.04,-.015,.93,.95,1.02);cap.scale.y=.85;cone(head,.035,.07,hair,0,.075,.105,4).rotation.x=Math.PI+.35;
  for(const side of [-1,1]){const ear=cone(head,.025,.09,skin,side*.115,.01,-.01,4);ear.rotation.z=-side*1.1;cone(head,.008,.035,fang,side*.022,-.09,.108,4).rotation.x=Math.PI;}
- eyes(head,glow,.01,.11,.045);
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.86,0);body.add(arm);rounded(arm,.1,.4,.11,suit,0,-.18,0,.03);sphere(arm,.05,skin,0,-.4,.01,.9,1.2,.9);for(const f of [-.02,0,.02])cone(arm,.008,.05,skin,f,-.46,.02,4).rotation.x=Math.PI;arm.rotation.z=side*.1;arm.rotation.x=side>0?-.35:-.1;}
+ const eyeG=new THREE.Group();eyeG.position.set(0,.01,.11);eyeG.userData.part='eyes';head.add(eyeG);eyes(eyeG,glow,0,0,.045);
+ const arms=[];for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.86,0);body.add(arm);arms.push(arm);rounded(arm,.1,.4,.11,suit,0,-.18,0,.03);sphere(arm,.05,skin,0,-.4,.01,.9,1.2,.9);for(const f of [-.02,0,.02])cone(arm,.008,.05,skin,f,-.46,.02,4).rotation.x=Math.PI;arm.rotation.z=side*.1;arm.rotation.x=side>0?-.35:-.1;}
  if(o.medallion){cylinder(body,.045,.045,.012,M.gold,0,.8,.12,12).rotation.x=Math.PI/2;sphere(body,.018,glow,0,.8,.13);}
  if(o.orb){const orb=sphere(body,.06,mat(o.orb,{emissive:o.orb,emissiveIntensity:3,roughness:.2,transparent:true,opacity:.9}),.26,.5,.2);g.userData.core=orb;}
  if(o.vlad){const red=mat('#9a1a24',{roughness:.7});cylinder(head,.125,.135,.1,red,0,.11,-.01,12);sphere(head,.02,mat('#e8e0c8',{roughness:.3}),0,.12,.125);for(const side of [-1,1]){const m=rounded(head,.07,.018,.02,hair,side*.035,-.065,.12,.008);m.rotation.z=side*-.35;}
   const spear=rounded(body,.03,1.4,.03,mat('#4a3420',{roughness:.9}),-.3,.71,.12,.01);spear.rotation.z=.04;cone(body,.035,.18,M.steel,-.33,1.49,.12,4);}
- return trimDraws(actor(g,body,legs,null,[],'idle'));
+ return trimDraws(Object.assign(actor(g,body,legs,null,[],'idle'),{head,arms,arm:arms[1],cape:capeG,flaps,vampire:o.kind||'vampire'}));
 }
 // Xorns: a faceted stone barrel on three stubby legs, with three arms and three eyes spaced around its sides
 // and a wide, fanged mouth on top.
@@ -2240,7 +2242,7 @@ export function createCreature(cell={}){
  if(OGRES[name])return ogre(OGRES[name]);
  if(LICHES[name])return lich(LICHES[name]);
  if(WRAITHS[name])return wraith({...WRAITHS[name],kind:name});
- if(VAMPIRES[name])return vampire(VAMPIRES[name]);
+ if(VAMPIRES[name])return vampire({...VAMPIRES[name],kind:name});
  if(XORNS[name])return xorn(XORNS[name]);
  if(NAGAS[name])return naga(NAGAS[name]);
  if(RUST_MONSTERS[name])return rustMonster(RUST_MONSTERS[name]);
