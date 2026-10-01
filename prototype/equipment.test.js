@@ -14,3 +14,15 @@ test('a wielded artifact takes the model of its base type',()=>{
  // without a base (an older bridge) it keeps the fallback
  assert.notEqual(createHeldWeapon({name:'Excalibur',class:2}).children.length,sword.children.length);
 });
+
+test('a morning star has its own spiked head, merged to one mesh per material',()=>{
+ const star=createHeldWeapon({name:'morning star',class:2});
+ const parts=star.children.map(c=>c.userData.part).sort();
+ assert.deepEqual(parts,['grip','haft','head','spikes']);
+ const s=size(star);
+ assert(s.y>.85&&s.y<1.05,`length ${s.y}`);
+ assert(s.x>.2&&s.x<.36,'the spiked ball is wider than the haft');
+ for(const m of star.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));}
+ assert(star.children.find(c=>c.userData.part==='spikes').material.metalness>=.75,'weapon-magic sheathes the spikes');
+ star.userData.dispose();
+});
