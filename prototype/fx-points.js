@@ -12,8 +12,16 @@ export function hashString(text) {
   return h >>> 0;
 }
 
+// A small point is drawn at its true size in world units (projectionMatrix[1][1] is the camera's
+// focal factor, about 3 for the play camera; leaving it out drew every spark a third of its size,
+// under a pixel from the play camera). Big soft layers (smoke, shadow, vapour, .12 and up) only
+// grow 1.5×, so they don't swallow the tile. A lit point is never smaller than MIN_PX of
+// the drawing buffer's half-height (about 6 device pixels on a 1600-pixel-high canvas), so the
+// small sparks still read when zoomed out.
+export const MIN_PX = .0075;
 const VERT = `attribute float aAlpha;attribute float aSize;uniform float uScale;varying float vAlpha;
-void main(){vAlpha=aAlpha;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=aSize*uScale/max(.1,-mv.z);gl_Position=projectionMatrix*mv;}`;
+void main(){vAlpha=aAlpha;vec4 mv=modelViewMatrix*vec4(position,1.);float k=mix(projectionMatrix[1][1],1.5,smoothstep(.05,.12,aSize));float px=aSize*uScale*k/max(.1,-mv.z);
+gl_PointSize=aAlpha>.01&&aSize>0.?max(px,uScale*${MIN_PX}):0.;gl_Position=projectionMatrix*mv;}`;
 const FRAG = `uniform vec3 uColor;varying float vAlpha;
 void main(){float r=length(gl_PointCoord-.5)*2.;float a=vAlpha*smoothstep(1.,.2,r);if(a<.01)discard;gl_FragColor=vec4(uColor,a);}`;
 
