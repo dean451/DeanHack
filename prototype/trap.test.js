@@ -5,7 +5,7 @@ import {createTrap,trapKind} from './trap.js';
 import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
 import {beatAt,flameAt,attachSigilFx,BEAT_EVERY,GLOW_REST} from './sigil-fx.js';
 
-const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','gas','mine','rubble','rolling','antimagic','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
+const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','gas','mine','rubble','rolling','statue','antimagic','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
 test('magic portals get their own kind; teleporters keep the rune circle',()=>{
  assert.equal(trapKind(94,13),'portal');
@@ -431,4 +431,27 @@ test('anti-magic fields get a drained, iron-staked null sigil by name; nameless 
   console.log(`antimagic ${seed}: ${meshes.map(o=>o.geometry.attributes.position.count).join('+')} vertices, y ${b.min.y.toFixed(3)}..${b.max.y.toFixed(3)}, x ${b.min.x.toFixed(3)}..${b.max.x.toFixed(3)}, z ${b.min.z.toFixed(3)}..${b.max.z.toFixed(3)}`);
   model.userData.dispose();
  }
+});
+
+test('statue traps get their own empty, burst plinth by name; it stays low and inside the tile',()=>{
+ assert.equal(trapKind(94,7,'statue trap'),'statue');
+ assert.equal(trapKind(94,7,'falling rock trap'),'rubble');
+ const facing=new Set();
+ for(const seed of [0,1,2,3,42]){
+  const model=createTrap('statue',seed);
+  const meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.deepEqual(meshes.map(o=>o.name).sort(),['statue-dust','statue-plinth']);
+  assert(!model.getObjectByName('statue-dust').castShadow,'the flat dust casts no shadow');
+  const b=new THREE.Box3().setFromObject(model);
+  assert(b.max.y>.2&&b.max.y<.3,`the plinth and its collars reach ${b.max.y}`);
+  assert(b.min.y>=-.012,`shards sink to ${b.min.y}`);
+  for(const v of [b.min.x,b.max.x,b.min.z,b.max.z])assert(Math.abs(v)<.49,`statue trap leaves its tile (${v})`);
+  const dust=new THREE.Box3().setFromObject(model.getObjectByName('statue-dust'));
+  assert(dust.max.y<.01,'the dust and prints lie flat on the floor');
+  facing.add([Math.sign(dust.max.x+dust.min.x),Math.sign(dust.max.z+dust.min.z)].join());
+  for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&v<=1.2&&Number.isFinite(v));}
+  console.log(`statue ${seed}: ${meshes.map(o=>o.geometry.attributes.position.count).join('+')} vertices, y ${b.min.y.toFixed(3)}..${b.max.y.toFixed(3)}, x ${b.min.x.toFixed(3)}..${b.max.x.toFixed(3)}, z ${b.min.z.toFixed(3)}..${b.max.z.toFixed(3)}`);
+  model.userData.dispose();
+ }
+ assert(facing.size>1,'the trail of prints leads off in different directions');
 });

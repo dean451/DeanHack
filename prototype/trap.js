@@ -10,8 +10,8 @@ import {sigilAnimator} from './sigil-fx.js';
 // A newer bridge also sends the trap's name, which tells the vibrating square (magenta, like a
 // teleport trap) apart, arrow and dart traps from the bear trap (all cyan), and the squeaky
 // board from the trap door (both brown), the sleeping gas trap from the magic trap (both
-// bright blue), the rolling boulder trap from the falling rock trap (both grey), and the
-// anti-magic field from the magic trap (both bright blue).
+// bright blue), the rolling boulder trap and the statue trap from the falling rock trap (all
+// grey), and the anti-magic field from the magic trap (both bright blue).
 export function trapKind(symbol,color,name){
  if(name==='vibrating square')return 'vibrating';
  if(name==='arrow trap')return 'arrow';
@@ -20,6 +20,7 @@ export function trapKind(symbol,color,name){
  if(name==='sleeping gas trap')return 'gas';
  if(name==='rolling boulder trap')return 'rolling';
  if(name==='anti-magic field')return 'antimagic';
+ if(name==='statue trap')return 'statue';
  if(symbol===34)return 'web';            // '"'
  if(symbol!==94)return null;             // '^'
  return {0:'pit',1:'mine',3:'hatch',4:'rust',6:'jaws',7:'rubble',9:'fire',
@@ -658,7 +659,7 @@ export function createTrap(kind,seed=0){
   const ground=add(soilGeo,mat({color:0xffffff,vertexColors:true,roughness:1}));ground.castShadow=false;ground.name='mine-soil';
   add(bodyGeo,mat({color:0xffffff,vertexColors:true,metalness:.45,roughness:.55})).name='land-mine';
  }else if(kind==='rubble'){
-  // Falling rock / statue trap (and a rolling boulder trap from an older bridge): a jagged rock lying in the
+  // Falling rock trap (and a rolling boulder or statue trap from an older bridge): a jagged rock lying in the
   // scar where it struck. The flagstone is shattered into shards tipped up
   // round a rim of crushed grit, cracks run out across the floor and gravel
   // is thrown wide. Two vertex-coloured meshes: the flat scar (no shadow) and
@@ -844,6 +845,116 @@ export function createTrap(kind,seed=0){
   for(const p of [...track,...parts])p.dispose();
   const ground=add(trackGeo,mat({color:0xffffff,vertexColors:true,roughness:.55,metalness:.05}));ground.castShadow=false;ground.name='rolling-track';
   add(partGeo,mat({color:0xffffff,vertexColors:true,roughness:.88})).name='rolling-stone';
+ }else if(kind==='statue'){
+  // Statue trap, sprung: the statue is gone and only its pedestal is left. The stone shell it
+  // stood in has burst open at the ankles, so two jagged collars of stone ring the clean,
+  // unweathered soles where its feet were, and curved shards of its skin lie split open on the
+  // cap and spilled on the floor. A crack runs across the cap and one corner has sheared off.
+  // Clawed, three-toed prints in pale stone dust lead away from the plinth toward a corner of
+  // the tile. Two vertex-coloured meshes: the flat dust and prints (no shadow), and the plinth
+  // with its collars and shards.
+  const noise=(x,y,z)=>{const s=Math.sin(x*127.1+y*311.7+z*74.7+seed*5.3)*43758.5453;return s-Math.floor(s);};
+  const smooth=(x,z)=>Math.sin(x*41.3+seed)*Math.cos(z*37.9-seed*.7)*.5+Math.sin((x+z)*17.1-seed)*.5;
+  const C=(hex)=>new THREE.Color(hex);
+  const weathered=C(0x67685f),grime=C(0x3b3d35),moss=C(0x4c5640),fresh=C(0xb1ab9c),inner=C(0xc8c1ae),crackC=C(0x181816),dustC=C(0x8f8a7e);
+  const TOP=.19,heading=Math.PI/4+Math.floor(rand(900)*4)*Math.PI/2;
+  const fwd=[Math.cos(heading),Math.sin(heading)],side=[-fwd[1],fwd[0]];
+  // The broken corner faces away from the trail.
+  const cx=-Math.sign(Math.cos(heading)),cz=-Math.sign(Math.sin(heading));
+  const chipBox=(w,h,d,sx,sy,sz,amt)=>{const geo=new THREE.BoxGeometry(w,h,d,sx,sy,sz),p=geo.attributes.position;
+   for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+    const edge=(Math.abs(x)>w/2-.001)+(Math.abs(y)>h/2-.001)+(Math.abs(z)>d/2-.001);
+    const k=edge>1?amt:amt*.35;
+    p.setXYZ(i,x+(noise(x,y,z)-.5)*k,y+(noise(z,x,y)-.5)*k*.6,z+(noise(y,z,x)-.5)*k);}
+   return geo;};
+  const feet=[-1,1].map(s=>({x:side[0]*s*.055-fwd[0]*.01,z:side[1]*s*.055-fwd[1]*.01}));
+  const inSole=(x,z)=>feet.some(f=>{const dx=x-f.x,dz=z-f.z,u=dx*fwd[0]+dz*fwd[1],v=dx*side[0]+dz*side[1];return (u/.068)**2+(v/.036)**2<1;});
+  const crackLine=(x,z)=>{const u=x*side[0]+z*side[1],v=x*fwd[0]+z*fwd[1];return Math.abs(v-.04-.018*Math.sin(u*38+seed)-.008*Math.sin(u*91));};
+  const stonePaint=(c,x,y,z,nx,ny)=>{
+   const h=smooth(x*2.1,z*2.3+y*3)*.5+.5,low=Math.max(0,1-y/.09);
+   c.copy(weathered).lerp(grime,low*.6+(noise(x*3,y*3,z*3)-.5)*.12);
+   c.lerp(moss,Math.max(0,h-.55)*1.6*(.4+low));
+   if(ny>.8&&y>TOP-.004){
+    if(inSole(x,z))c.copy(fresh).lerp(inner,noise(x,0,z)*.4);
+    else if(crackLine(x,z)<.004)c.copy(crackC);
+    else c.lerp(dustC,.18);
+   }
+   if(ny<-.5)c.multiplyScalar(.45);
+  };
+  const parts=[];
+  // Base slab, dado and cap: chipped blocks, the cap with one corner sheared away.
+  parts.push(bake(chipBox(.5,.05,.5,10,2,10,.012),stonePaint,{y:.022}));
+  parts.push(bake(chipBox(.36,.11,.36,8,4,8,.01),stonePaint,{y:.1}));
+  const cap=chipBox(.42,.034,.42,28,2,28,.008);
+  {const p=cap.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),k=x*cx+z*cz-.27;
+   if(k>0){p.setX(i,x-cx*k/2);p.setZ(i,z-cz*k/2);p.setY(i,p.getY(i)-k*.25);}}}
+  cap.computeVertexNormals();
+  const capPaint=(c,x,y,z,nx,ny,nz)=>{stonePaint(c,x,y,z,nx,ny);if(x*cx+z*cz>.255&&ny<.95)c.copy(fresh).lerp(weathered,noise(x,y,z)*.35);};
+  parts.push(bake(cap,capPaint,{y:TOP-.017}));
+  // The crack, as a thin dark strip lying on the cap so it reads at play zoom.
+  {const v=[],N=20;
+   for(let i=0;i<N;i++){
+    const at=(t)=>{const u=-.2+.4*t,off=.04+.018*Math.sin(u*38+seed)+.008*Math.sin(u*91);return [side[0]*u+fwd[0]*off,side[1]*u+fwd[1]*off];};
+    const [x0,z0]=at(i/N),[x1,z1]=at((i+1)/N),w=.0045*(1-Math.abs(i/N-.5)*1.2)+.001;
+    const A=[x0-fwd[0]*w,TOP+.0012,z0-fwd[1]*w],B=[x0+fwd[0]*w,TOP+.0012,z0+fwd[1]*w],P=[x1-fwd[0]*w,TOP+.0012,z1-fwd[1]*w],Q=[x1+fwd[0]*w,TOP+.0012,z1+fwd[1]*w];
+    v.push(...A,...B,...P,...P,...B,...Q);
+   }
+   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));geo.computeVertexNormals();
+   parts.push(bake(geo,(c)=>c.copy(crackC)));}
+  // Collars: jagged stone teeth round each sole, splayed outward where the ankles broke free.
+  for(const [fi,f] of feet.entries())for(let k=0;k<9;k++){
+   const a=k/9*Math.PI*2+rand(fi*20+k+600)*.4,u=Math.cos(a)*.072,v=Math.sin(a)*.04;
+   const x=f.x+fwd[0]*u+side[0]*v,z=f.z+fwd[1]*u+side[1]*v,h=.03+rand(fi*20+k+620)*.045,out=Math.atan2(z-f.z,x-f.x);
+   const tooth=new THREE.ConeGeometry(.016+rand(fi*20+k+640)*.008,h,4,1);tooth.translate(0,h/2,0);
+   const tilt=new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(-Math.sin(out),0,Math.cos(out)),-(.25+rand(fi*20+k+660)*.45));
+   tooth.applyMatrix4(tilt);
+   parts.push(bake(tooth,(c,px,py,pz,nx,ny,nz)=>{
+    const t=(py-TOP)/h;c.copy(weathered).lerp(grime,.25);
+    if((nx*(f.x-px)+nz*(f.z-pz))>0)c.copy(inner).lerp(fresh,t);   // the broken inner faces are pale
+    c.lerp(fresh,Math.max(0,t-.6)*.8);
+   },{x,y:TOP-.002,z,ry:rand(fi*20+k+680)*3}));
+  }
+  // Shards of its skin: curved stone shells, pale inside, grey outside.
+  const shard=(r,phi,theta,o)=>{const geo=new THREE.SphereGeometry(r,8,5,0,phi,.3,theta);
+   const b=bake(geo,(c,x,y,z,nx,ny,nz)=>{const lx=x-o.x,ly=y-o.y,lz=z-o.z;const outside=nx*lx+ny*ly+nz*lz>0;
+    c.copy(outside?weathered:inner).lerp(outside?grime:fresh,noise(x*5,y*5,z*5)*.4);},o);
+   b.computeBoundingBox();b.translate(0,o.y-b.boundingBox.min.y-.004,0);parts.push(b);};   // rest its lowest edge on the surface
+  for(let i=0;i<7;i++){
+   const onCap=i<3,a=rand(i+700)*Math.PI*2,r=onCap?.08+rand(i+710)*.08:.28+rand(i+710)*.1;
+   let x=Math.cos(a)*r,z=Math.sin(a)*r;
+   if(!onCap&&Math.abs(x)<.27&&Math.abs(z)<.27){const s=.27/Math.max(Math.abs(x),Math.abs(z));x*=s;z*=s;}
+   if(onCap&&inSole(x,z)){x*=-.6;z*=-.6;}
+   shard(.04+rand(i+720)*.03,1+rand(i+730)*.9,.6+rand(i+740)*.5,{x,y:onCap?TOP:0,z,rx:Math.PI*(.85+rand(i+750)*.3),ry:rand(i+760)*6.28,rz:(rand(i+770)-.5)*.6});
+  }
+  // Grit knocked off the plinth.
+  for(let i=0;i<12;i++){
+   const a=rand(i+800)*Math.PI*2,r=.27+rand(i+810)*.14,s=.006+rand(i+820)*.01;
+   parts.push(bake(new THREE.DodecahedronGeometry(s,0),(c,px,py,pz,nx,ny)=>c.copy(weathered).multiplyScalar(ny>.4?1.1:.7),
+    {x:Math.max(-.46,Math.min(.46,Math.cos(a)*r)),y:s*.4,z:Math.max(-.46,Math.min(.46,Math.sin(a)*r)),rx:rand(i+830)*3,ry:rand(i+840)*3,sy:.65}));
+  }
+  // Floor: a skirt of pale dust round the base, thinning outward, and the trail of clawed prints.
+  const flat=[];
+  const skirt=new THREE.PlaneGeometry(.78,.78,16,16);skirt.rotateX(-Math.PI/2);
+  {const p=skirt.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,.0015);}
+  flat.push(bake(skirt,(c,x,y,z)=>{const d=Math.max(Math.abs(x),Math.abs(z))-.25;c.copy(dustC).lerp(C(0x4a4844),Math.min(1,Math.max(0,d)/.14+(noise(x,0,z)-.5)*.3));}));
+  const print=(px,pz,ang,mirror,fade)=>{
+   const pieces=[];
+   const sole=new THREE.Shape();for(let k=0;k<=14;k++){const t=k/14*Math.PI*2;const x=Math.cos(t)*.024,y=Math.sin(t)*.015;(k?sole.lineTo(x,y):sole.moveTo(x,y));}
+   pieces.push(new THREE.ShapeGeometry(sole));
+   for(const t of [-.5,0,.5]){const toe=new THREE.Shape(),bx=.02,a=t*mirror;
+    const ex=bx+Math.cos(a)*.042,ey=Math.sin(a)*.042,nx=-Math.sin(a)*.006,ny=Math.cos(a)*.006;
+    toe.moveTo(bx+nx,ny);toe.lineTo(ex,ey);toe.lineTo(bx-nx,-ny);pieces.push(new THREE.ShapeGeometry(toe));}
+   for(const geo of pieces){geo.rotateX(-Math.PI/2);geo.rotateY(-ang);geo.translate(px,.003,pz);
+    flat.push(bake(geo,(c,x,y,z)=>c.copy(fresh).lerp(dustC,fade+(noise(x*7,0,z*7)-.5)*.2)));}
+  };
+  for(let i=0;i<3;i++){
+   const d=.36+i*.095,s=(i%2?1:-1)*.035;
+   print(fwd[0]*d+side[0]*s,fwd[1]*d+side[1]*s,heading,i%2?1:-1,.15+i*.25);
+  }
+  const flatGeo=mergeGeometries(flat),partGeo=mergeGeometries(parts);
+  for(const p of [...flat,...parts])p.dispose();
+  const ground=add(flatGeo,mat({color:0xffffff,vertexColors:true,roughness:1}));ground.castShadow=false;ground.name='statue-dust';
+  add(partGeo,mat({color:0xffffff,vertexColors:true,roughness:.92,side:THREE.DoubleSide})).name='statue-plinth';
  }else if(kind==='rust'){
   // Rust trap: a corroded standpipe rises from the floor, bends over and drips into a
   // blue-green puddle pooled over a drain grate, leaving orange rust stains and flakes.
