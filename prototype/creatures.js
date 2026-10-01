@@ -567,13 +567,62 @@ function snake(o){
  coil.push([0,.3,.06],[0,.42,.14]);
  tube(body,coil,.045,skin,64);
  const head=new THREE.Group();head.position.set(0,.44,.18);body.add(head);
- sphere(head,.065,skin,0,0,0,1,.6,1.35);sphere(head,.04,belly,0,-.02,.03,1,.4,1.3);
+ const jaw=snakeHead(head,o);
  const hood=o.hood?cobraHood(head,o):null;
- for(const side of [-1,1])sphere(head,.016,mat('#e0b020',{emissive:'#6a4a00',emissiveIntensity:.8}),side*.04,.02,.05);
  const tongue=rounded(head,.012,.004,.12,mat('#c0282a'),0,-.01,.12,.002);tongue.rotation.x=.2;
  const a=actor(g,body,[],null,[],'snake');
+ a.jaw=jaw;
  if(hood)a.hood=hood;
  return a;
+}
+// Snake heads. The skull is one vertex-coloured mesh: head shields over a flat crown, a scowling
+// brow jutting over each eye, a dark stripe raking back from the eye to the jaw, pale lips, a dark
+// palate, nostrils, heat pits on the vipers, slit (or round) pupils, and fangs that hang down past
+// the lip outside the narrower lower jaw. The lower jaw is its own mesh on the 'jaw' group, hinged
+// under the back of the skull, so jaw.rotation.x>0 gapes the mouth. o.wedge (0..1) swells the jowls
+// into a viper's arrowhead; o.fangs is the fang length. 3 draws (skull, eyes, jaw) plus the tongue.
+function snakeHead(head,o){
+ const wedge=o.wedge??.5,top=rgb(o.color),dark=mix(top,[0,0,0],.6),lip=rgb(o.belly||shade(o.color,1.9)),
+  mouth=rgb('#3a1418'),ink=rgb('#07070a'),fang=rgb('#ece4cc'),skull=pieces(),eyes=[];
+ // half width, crown height and snout drop along the head at t (0 neck .. 1 snout tip)
+ const Z0=-.07,LEN=.155,width=t=>.068*(1+.5*wedge*(.5-t)),crown=t=>.036-.013*t,EYE=[.055,.01,.024];
+ // the snout dips toward the tip; the lower jaw follows it
+ const drop=z=>.012*Math.max(0,(z-Z0)/LEN)**2;
+ const brow=(x,z)=>.007*(.4+.6*wedge)*Math.exp(-((Math.abs(x)-.042)**2)/.00025-((z-EYE[2]+.004)**2)/.0004);
+ const g=new THREE.SphereGeometry(1,28,18),p=g.attributes.position;
+ for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),t=(z+1)/2,X=x*width(t),Z=Z0+t*LEN;
+  const Y=y>0?Math.pow(y,.7)*crown(t)+brow(X,Z)*Math.pow(y,.5):y*.014;p.setXYZ(i,X,Y-drop(Z),Z);}
+ g.computeVertexNormals();
+ skull.add(g,null,(x,Y,z)=>{const t=(z-Z0)/LEN,ax=Math.abs(x),y=Y+drop(z);
+  if(y<-.006)return ax<width(t)*.62*Math.sqrt(Math.max(0,1-(2*t-1)**4))?mouth:lip;
+  if(y<.002+.004*t)return lip;
+  // the eye stripe rakes back and down from behind the eye to the corner of the mouth
+  const along=(EYE[2]-z)/.08;if(along>0&&along<1&&Math.abs(y-(EYE[1]-.004-.016*along))<.006&&ax>width(t)*.7)return mix(dark,ink,.5);
+  // head shields: big plates on the crown, finer scales down the sides
+  const plate=Math.abs(Math.sin(z*90+(ax<.02?0:1.6))*Math.sin(x*70))<.08?.72:1;
+  return mix(dark,top,(y/.04)*.6+.45).map(v=>v*plate);});
+ for(const side of [-1,1]){
+  // nostrils near the snout tip and, on the vipers, a heat pit between nostril and eye
+  skull.add(new THREE.SphereGeometry(.0045,6,4),at(side*.016,.008,.078),ink);
+  if(o.pits)skull.add(new THREE.SphereGeometry(.006,6,4),at(side*.035,.002,.055,[0,0,0],[.6,1,1]),ink);
+  // pupils: a black slit (or a round pupil on the elapids and garter snakes) on the eye's outer face
+  const [ex,ey,ez]=EYE;skull.add(new THREE.SphereGeometry(.0105,8,6),at(side*(ex+.0142),ey,ez,[0,0,0],o.round?[.35,1,1]:[.35,1.2,.3]),ink);
+  eyes.push(new THREE.SphereGeometry(.0155,12,8).applyMatrix4(at(side*ex,ey,ez)));
+  // fangs: curved needles hanging from the front of the upper lip, outside the lower jaw
+  if(o.fangs){const len=o.fangs,fz=.058,fx=side*Math.max(.022,width((fz-Z0)/LEN)*.6);
+   skull.add(new THREE.ConeGeometry(.0042,len,6),at(fx,-.004-len/2,fz,[Math.PI+.35,0,0]),fang);}}
+ const jaw=new THREE.Group();jaw.position.set(0,-.012,-.045);head.add(jaw);
+ // the lower jaw: a flat-topped scoop, narrower than the skull, its inside the dark of the mouth
+ const jg=new THREE.SphereGeometry(1,20,12),q=jg.attributes.position,J0=-.02,JL=.135;
+ for(let i=0;i<q.count;i++){const x=q.getX(i),y=q.getY(i),z=q.getZ(i),t=(z+1)/2;
+  const Z=J0+t*JL;q.setXYZ(i,x*width(t*.82+.12)*.78,(y>0?y*.002:y*(.02-.008*t))-drop(Z-.045),Z);}
+ jg.computeVertexNormals();
+ const jp=pieces();jp.add(jg,null,(x,y,z)=>y+drop(z-.045)>-.0005&&Math.abs(x)<.03*(1-((z-J0)/JL)**3)?mouth:mix(lip,top,Math.max(0,Math.abs(x)/.055-.45)));
+ part(jaw,jp.merge(),mat('#ffffff',{vertexColors:true,roughness:.5})).userData.part='jaw';
+ part(head,skull.merge(),mat('#ffffff',{vertexColors:true,roughness:.5})).userData.part='skull';
+ part(head,mergeGeometries(eyes),mat('#e0b020',{emissive:'#6a4a00',emissiveIntensity:.8,roughness:.25})).userData.part='eyes';
+ eyes.forEach(e=>e.dispose());
+ return jaw;
 }
 // The cobra's hood: one vertex-coloured lens of skin that spreads either side of the neck and
 // cups forward, its edges thinning to a blade. Long ribs fan out from the spine under the back
@@ -610,7 +659,7 @@ function cobraHood(head,o){
  part(pivot,geo,mat('#ffffff',{vertexColors:true,roughness:.5}));
  return pivot;
 }
-const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75},snake:{color:'#7a5a34'},'water moccasin':{color:'#5a3228'},'pit viper':{color:'#3a5a8a'},python:{color:'#7a5a7a',scale:1.4},cobra:{color:'#3a4a7a',hood:true}};
+const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75,wedge:.1,round:true},snake:{color:'#7a5a34',fangs:.012},'water moccasin':{color:'#5a3228',wedge:1,fangs:.022,pits:true},'pit viper':{color:'#3a5a8a',wedge:1,fangs:.024,pits:true},python:{color:'#7a5a7a',scale:1.4,wedge:.4},cobra:{color:'#3a4a7a',hood:true,wedge:.25,fangs:.012,round:true}};
 
 // Long worms and purple worms: a ringed body that surfaces from the floor in an arch,
 // with the forward half as a swaying 'tail' group (live.js already sways actor.tail)
