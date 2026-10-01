@@ -2,7 +2,7 @@ import {createShopkeeper,createWatchman,createLightItem,createShopItem} from './
 import {createGridBug} from './grid-bug.js';
 import * as THREE from 'three';
 import {createGroundModel} from './ground-models.js';
-import {groundNotice,groundTile} from './ground-notice.js';
+import {bareMore,groundNotice,groundTile} from './ground-notice.js';
 import {menuKeys,autoCategory,menuCommand,menuGroups,EXT_FALLBACK,matchCommands,resolveCommand,completePrefix} from './engine-menus.js';
 import {meleeDirection,confirmsPlayerMelee} from './combat-visuals.js';
 import {createHeldWeapon} from './equipment.js';
@@ -356,6 +356,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
     showGround(groundItems);
     void reply(13);return;
    }
+   if(bareMore(pending,lines)){void reply(13);return;}
    dialog.replaceChildren();const kicker=document.createElement('small');kicker.textContent='UNNETHACK ASKS';const title=document.createElement('h2');title.textContent=pending.prompt||'UnNetHack';dialog.append(kicker,title);
    if(pending.kind==='menu'&&menu){
     // "Take out / pick up what type of objects?" is answered with All types, so the full list opens at once.
