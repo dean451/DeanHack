@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createTrap,trapKind} from './trap.js';
+import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
 
 const KINDS=['pit','hatch','jaws','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
@@ -255,4 +256,42 @@ test('the trap door is a warped plank hatch left ajar on a black gap, with bony 
   let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
   assert(vertices<12000,`hatch is ${vertices} vertices`);
  }
+});
+
+test('the fire trap breathes: a slow dim inhale, a quicker hot exhale, gasps that flare and spit jagged sparks',()=>{
+ const phase=.37;let lo=Infinity,hi=-Infinity,gasps=0,flown=0,maxY=0,maxR=0;const cycles=new Set();
+ for(let t=0;t<BREATH_EVERY*40;t+=1/60){
+  const g=breathAt(t,phase);assert(Number.isFinite(g));lo=Math.min(lo,g);hi=Math.max(hi,g);
+  const c=breathCycle(t,phase);if(c.gasp&&!cycles.has(c.cycle))gasps++;cycles.add(c.cycle);
+  for(let i=0;i<SPARKS;i++){const s=sparkState(t,i,phase);
+   for(const v of [s.x,s.y,s.z,s.size])assert(Number.isFinite(v));
+   if(s.life<0){assert.equal(s.size,0);continue;}
+   flown++;maxY=Math.max(maxY,s.y);maxR=Math.max(maxR,Math.hypot(s.x,s.z));
+   // Sparks only fly from the exhale onward, never at the start of an inhale.
+   assert(c.u>.6||c.u<.15,`spark ${i} flying at breath ${c.u.toFixed(2)}`);}
+ }
+ assert(lo>GLOW_LOW-.08&&lo<GLOW_LOW+.08,`inhale bottoms out at ${lo}`);
+ assert(hi>GASP_PEAK-.1&&hi<GASP_PEAK+.08,`gasps peak at ${hi}`);
+ assert(gasps>=4&&gasps<=24,`${gasps} gasps in 40 breaths`);
+ assert(flown>0&&maxY<.5&&maxR<=SPARK_REACH+1e-9,`sparks y ${maxY}, reach ${maxR}`);
+ // The breath is continuous: no jump between frames bigger than the flicker allows.
+ for(let t=0;t<BREATH_EVERY*6;t+=1/120)assert(Math.abs(breathAt(t+1/120,phase)-breathAt(t,phase))<.05);
+});
+
+test('animating the fire trap adds one spark draw, drives the coal glow and cleans up after itself',()=>{
+ const model=createTrap('fire',6);
+ const before=new THREE.Box3().setFromObject(model);
+ let coals;model.traverse(o=>{if(o.name==='coal-glow')coals=o.material;});
+ for(let t=0;t<30;t+=1/30)model.userData.animate(t);
+ const fx=model.getObjectByName('FireTrapBreath');assert(fx,'the spark group should be added on the first frame');
+ let draws=0;fx.traverse(o=>{if(o.isMesh)draws++;});assert.equal(draws,1);
+ assert(coals.color.r!==1&&Number.isFinite(coals.color.r));
+ const after=new THREE.Box3().setFromObject(model);
+ assert(after.max.y<.5&&after.min.y>=before.min.y-1e-6,`trap with sparks spans y ${after.min.y}..${after.max.y}`);
+ let freed=0;const sparks=fx.children[0];
+ for(const item of [sparks.geometry,sparks.material])item.addEventListener('dispose',()=>freed++);
+ model.traverse(o=>o.userData.dispose?.());
+ assert.equal(freed,2,'the sparks should free their geometry and material');
+ // Other traps don't animate.
+ assert.equal(createTrap('pit',6).userData.animate,undefined);
 });
