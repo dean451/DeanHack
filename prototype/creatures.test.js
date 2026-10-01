@@ -936,6 +936,40 @@ test('archeologists get a fedora, an open leather jacket, a satchel, a coiled wh
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('cavemen and cavewomen get a hunched brute with a heavy brow, a ragged hide, a fang necklace and a flint-studded club instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ for(const name of ['caveman','cavewoman']){
+  const cm=createCreature({name,symbol:64,color:3});
+  assert.equal(cm.kind,'caveman');assert.equal(cm.quirk,'human');assert.equal(cm.female,name==='cavewoman');
+  for(const key of ['body','head','arm','weaponSocket'])assert(cm[key]?.isObject3D,key);
+  assert.equal(cm.legs.length,2);assert.equal(cm.arms.length,2);assert.equal(cm.arm,cm.arms[1]);
+  assert(cm.arm.children.includes(cm.weaponSocket),'the socket is at the right hand');
+  assert.equal(cm.weaponSocket.children.length,1,'the club is held');
+  const parts=meshes(cm);
+  assert.equal(parts.length,7,'one mesh per moving part and the club');
+  assert.equal(new Set(parts.map(m=>m.material)).size,1);
+  let verts=0;
+  for(const m of parts){
+   const a=m.geometry.attributes;verts+=a.position.count;
+   for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${name} ${m.userData.part} ${key}`);
+   for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+  }
+  assert(verts<40000,`${verts} vertices`);
+  cm.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(cm.g,true);
+  assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+  assert(b.max.y>1.05&&b.max.y<1.3,`top at ${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+  const club=new THREE.Box3().setFromObject(cm.weaponSocket,true);
+  assert(club.max.z>.2,`club held forward (${club.max.z})`);
+  const again=meshes(createCreature({name}));
+  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+ }
+ const [man,woman]=['caveman','cavewoman'].map(name=>meshes(createCreature({name})));
+ assert.notEqual(man[1].geometry,woman[1].geometry,'the heads differ (beard, longer mane)');
+ assert.equal(man[0].geometry,woman[0].geometry,'the body is shared');
+});
+
 test('rogues get a deep hood, a black mask, a torn cloak and mantle, a bandolier of knives and a toothed dagger instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const ro=createCreature({name:'rogue',symbol:64,color:1});
