@@ -126,6 +126,8 @@ export function createHeldWeapon(item){
   buildGlaive(g);
  }else if(/\b(partisan|vulgar polearm)\b/.test(name)){
   buildPartisan(g);
+ }else if(/\b(bardiche|long poleaxe)\b/.test(name)){
+  buildBardiche(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -460,6 +462,63 @@ function buildPartisan(g){
  const ribFlat=rib.toNonIndexed();rib.dispose();ribFlat.computeVertexNormals();put(ribFlat,blade);
  for(const [m,geos] of sets){const geo=mergeGeometries(geos);geos.forEach(x=>x.dispose());
   const mesh=new THREE.Mesh(geo,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The bardiche: a huge crescent cleaver on a blackened haft. The blade hangs off the haft on
+// two iron sockets, the upper ring near the top and its long tail lashed lower down; the edge
+// swells out in a great bite, chipped with three jagged notches, and sweeps up into a point
+// that leans back over the haft's head like a hooked beak. A row of three holes is punched
+// along the back, a spike of iron crowns the haft and rivets pin the tail. The grip is wound
+// on a slant and the butt ends in an iron spike. Merged per material like the halberd:
+// 4 draws. The blade stays metalness >= .75, so weapon-magic sheathes it.
+function buildBardiche(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x35261a,roughness:.92});
+ const iron=new THREE.MeshStandardMaterial({color:0x4c4945,metalness:.78,roughness:.55});
+ const blade=new THREE.MeshStandardMaterial({color:0xa4acb0,metalness:.82,roughness:.32});
+ const wrap=new THREE.MeshStandardMaterial({color:0x2b1c16,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,blade,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ // Haft, a little thicker toward the head, and the grip wound on a slant.
+ put(new THREE.CylinderGeometry(.025,.022,1.2,10),wood,0,.21);
+ put(new THREE.CylinderGeometry(.031,.031,.22,10),wrap,0,-.01);
+ for(let i=0;i<6;i++){const turn=new THREE.TorusGeometry(.032,.006,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.1+i*.036,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // Butt: an iron shoe ending in a short spike.
+ put(new THREE.CylinderGeometry(.026,.022,.06,10),iron,0,-.4);
+ put(new THREE.ConeGeometry(.018,.09,4),blade,0,-.475,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI));
+ // The haft's crown: an iron cap and a short four-sided spike above the upper socket.
+ put(new THREE.CylinderGeometry(.024,.027,.05,8),iron,0,.835);
+ put(new THREE.ConeGeometry(.02,.1,4),iron,0,.905,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI/4));
+ // Two sockets clamp the blade to the haft: a ring near the top and one round its tail.
+ for(const y of [.77,.43]){
+  put(new THREE.CylinderGeometry(.033,.033,.05,10),iron,0,y);
+  put(new THREE.BoxGeometry(.035,.04,.016),iron,.035,y);
+ }
+ // Rivets pin the tail between the sockets, both flats.
+ for(const s of [-1,1])for(const y of [.5,.57,.64])put(new THREE.SphereGeometry(.0065,5,4),iron,.03,y,s*.011);
+ // The blade on +x: its tail runs up beside the haft from the lower socket, the edge swells
+ // out in a great bite, chipped by three notches, and sweeps up into a beak hooking back
+ // over the haft's crown. Three holes are punched along the back.
+ const b=new THREE.Shape();
+ b.moveTo(.03,.41);b.lineTo(.05,.41);
+ b.quadraticCurveTo(.13,.47,.18,.56);
+ b.lineTo(.2,.62);b.lineTo(.183,.635);b.lineTo(.21,.66);
+ b.quadraticCurveTo(.225,.72,.218,.78);
+ b.lineTo(.2,.795);b.lineTo(.222,.815);
+ b.quadraticCurveTo(.215,.88,.18,.93);
+ b.lineTo(.165,.935);b.lineTo(.17,.96);
+ b.quadraticCurveTo(.1,1.02,-.03,1.03);
+ b.quadraticCurveTo(.05,.98,.07,.92);
+ b.quadraticCurveTo(.06,.84,.03,.8);
+ b.closePath();
+ for(const [x,y] of [[.075,.6],[.088,.69],[.09,.78]]){
+  const h=new THREE.Path();h.absarc(x,y,.014,0,Math.PI*2,true);b.holes.push(h);
+ }
+ const geo=new THREE.ExtrudeGeometry(b,{depth:.012,bevelEnabled:true,bevelThickness:.004,bevelSize:.004,bevelSegments:1,steps:1,curveSegments:8});geo.translate(0,0,-.006);
+ put(geo,blade);
+ for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
 
 // The silver saber: a long, gently curved single-edged blade of bright silver. Its edge runs

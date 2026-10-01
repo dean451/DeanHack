@@ -80,6 +80,23 @@ test('a partisan has its own winged leaf blade, merged to one mesh per material'
  assert.deepEqual(createHeldWeapon({name:'angled poleaxe',class:2}).children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
 });
 
+test('a bardiche has its own crescent cleaver blade, merged to one mesh per material',()=>{
+ for(const name of ['bardiche','long poleaxe']){
+  const bardiche=createHeldWeapon({name,class:2});
+  assert.deepEqual(bardiche.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+  const s=size(bardiche);
+  assert(s.y>1.5&&s.y<1.6,`length ${s.y}`);
+  for(const m of bardiche.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));}
+  const blade=bardiche.children.find(c=>c.userData.part==='blade');
+  assert(blade.material.metalness>=.75,'weapon-magic sheathes the blade');
+  blade.geometry.computeBoundingBox();
+  const bb=blade.geometry.boundingBox;
+  assert(bb.max.x>.2&&bb.max.y-bb.min.y>.55,'a long crescent swelling out to one side');
+  assert(bb.min.x<-.02,'the beak hooks back over the haft');
+  bardiche.userData.dispose();
+ }
+});
+
 test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
  const saber=createHeldWeapon({name:'silver saber',class:2});
  const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});
