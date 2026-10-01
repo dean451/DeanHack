@@ -22,11 +22,12 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 //   bristle from the gaster, the thorax hump and the back of the head, small icicles hang from
 //   the jaw corners, the feeler clubs and claws are frosted white and the eyes glint ice blue.
 // - any other 'a' falls back on the giant ant's build in the glyph colour.
-// The head (with eyes, jaws and feelers) is one vertex-coloured mesh on a neck pivot, the
+// The head (with eyes and feelers) is one vertex-coloured mesh on a neck pivot, the
 // thorax, waist and gaster another; each leg is its own group holding one mesh (the walk swings
-// them). 8 draws, one material. Geometry is built once per look and
+// them); each mandible is its own mesh on a hinge group so it can open and snap. 10 draws, one material. Geometry is built once per look and
 // shared; the left legs reuse the right ones mirrored.
-// Handles: body, legs (6), head (the neck pivot group), quirk 'insect'.
+// Handles: body, legs (6), head (the neck pivot group), jaws (2, right then left, hinged at the jaw
+// corners; +rotation.y*side opens), antJaws (the look), quirk 'insect'.
 
 const LOOKS={
  'giant ant':{scale:1,shell:'#7a4424',dark:'#2c170c',gaster:'#6a3a20',sheen:'#c08058',nodes:1,sting:false,jaw:1,headSize:1},
@@ -92,16 +93,8 @@ function buildHead(L){
  P.add(new THREE.SphereGeometry(.03,12,6),at(0,Y+.02,hz+.06*hs,[0,0,0],[1.3*hs,.45*hs,.7*hs]),(x,y)=>mix(dark,shell,top(Y,Y+.035)(y)));
  // compound eyes: glossy black ovals with a faint pale glint
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.02,10,8),at(s*.066*hs,Y+.05,hz+.015,[0,s*.4,0],[.7,1,1.2]),(x,y,z)=>y>Y+.058&&z>hz+.018?rgb(L.glint||'#58504c'):black);
- // mandibles: hooked blades from the jaw corners, crossing a little in front, with teeth inside
- const J=L.jaw*hs,mz=hz+.055*hs;
- for(const s of [-1,1]){
-  const pts=[[s*.036*hs,Y+.005,mz],[s*.05*J,Y,mz+.035*J],[s*.034*J,Y-.004,mz+.07*J],[-s*.006*J,Y-.006,mz+.085*J]];
-  chain(P,pts,[.014*J,.012*J,.009*J,.003],j=>mix(dark,shell,.45-j*.15),6);
-  for(let k=0;k<3;k++){
-   const a=new THREE.Vector3(...pts[1]).lerp(new THREE.Vector3(...pts[2]),k/3+.1);
-   segment(P,a.toArray(),[a.x-s*.013*J,a.y-.002,a.z+.004],.004,.0008,dark,4);
-  }
- }
+ // the mandibles are their own meshes (buildJaw), so they can open and snap
+ const mz=hz+.055*hs;
  if(L.frost){
   // icicles hang from the jaw corners, and rime crusts the back of the head
   for(const s of [-1,1])for(let k=0;k<2;k++){
@@ -120,6 +113,21 @@ function buildHead(L){
   for(let k=1;k<=n;k++){const p=curve.getPoint(k/n),r=k===n?.011:.0055+k*.0002;P.add(new THREE.SphereGeometry(r,6,5),at(p.x,p.y,p.z,[0,0,0],k===n?[1,1,1.5]:[1,1,1.3]),k>=n-1?(L.frost?mix(dark,FROST,.75):dark):mix(dark,shell,.35));}
  }
  const geo=P.merge(),[nx,ny,nz]=neck(L);geo.translate(-nx,-ny,-nz);return geo;
+}
+
+// The jaw corner a mandible hinges on (head space, before the neck shift), side s = +1 right, -1 left.
+const jawRoot=(L,s)=>[s*.036*L.headSize,Y+.005,.2+(L.headSize-1)*.03+.055*L.headSize];
+// One mandible: a hooked blade from the jaw corner, crossing a little in front, with teeth inside.
+// Built about its hinge, so turning its group about y opens it (ant-jaws.js).
+function buildJaw(L,s){
+ const P=pieces(),shell=rgb(L.shell),dark=rgb(L.dark),hs=L.headSize,J=L.jaw*hs,[,,mz]=jawRoot(L,s);
+ const pts=[[s*.036*hs,Y+.005,mz],[s*.05*J,Y,mz+.035*J],[s*.034*J,Y-.004,mz+.07*J],[-s*.006*J,Y-.006,mz+.085*J]];
+ chain(P,pts,[.014*J,.012*J,.009*J,.003],j=>mix(dark,shell,.45-j*.15),6);
+ for(let k=0;k<3;k++){
+  const a=new THREE.Vector3(...pts[1]).lerp(new THREE.Vector3(...pts[2]),k/3+.1);
+  segment(P,a.toArray(),[a.x-s*.013*J,a.y-.002,a.z+.004],.004,.0008,dark,4);
+ }
+ const geo=P.merge(),[rx,ry,rz]=jawRoot(L,s);geo.translate(-rx,-ry,-rz);return geo;
 }
 
 function buildBody(L){
@@ -182,7 +190,7 @@ function build(key,L){
  if(cache.has(key))return cache.get(key);
  const S={
   material:new THREE.MeshStandardMaterial({vertexColors:true,roughness:L.rough??.34,metalness:.08}),
-  body:buildBody(L),head:buildHead(L),legs:PAIRS.map((p,i)=>buildLeg(L,i)),
+  body:buildBody(L),head:buildHead(L),jaws:[1,-1].map(s=>buildJaw(L,s)),legs:PAIRS.map((p,i)=>buildLeg(L,i)),
  };
  cache.set(key,S);return S;
 }
@@ -198,6 +206,10 @@ export function createAnt(name,colour){
  mesh(body,S.body,S.material,'body');
  const head=new THREE.Group();head.position.set(...neck(L));body.add(head);
  mesh(head,S.head,S.material,'head');
+ const [nx,ny,nz]=neck(L),jaws=[1,-1].map((side,i)=>{
+  const jaw=new THREE.Group(),[rx,ry,rz]=jawRoot(L,side);jaw.position.set(rx-nx,ry-ny,rz-nz);jaw.userData.side=side;head.add(jaw);
+  mesh(jaw,S.jaws[i],S.material,'jaw');return jaw;
+ });
  const legs=[];
  for(const s of [1,-1])S.legs.forEach((geo,i)=>{
   const leg=new THREE.Group();
@@ -205,5 +217,5 @@ export function createAnt(name,colour){
   const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
   legs.push(leg);
  });
- return {g,body,legs,tail:null,wings:[],quirk:'insect',head};
+ return {g,body,legs,tail:null,wings:[],quirk:'insect',head,jaws,antJaws:known?name:'giant ant'};
 }
