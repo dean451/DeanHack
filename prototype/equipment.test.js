@@ -50,3 +50,17 @@ test('a trident has three barbed tines, merged to one mesh per material',()=>{
  assert(trident.children.find(c=>c.userData.part==='tines').material.metalness>=.75,'weapon-magic sheathes the tines');
  trident.userData.dispose();
 });
+
+test('a glaive has its own single-edged blade, merged to one mesh per material',()=>{
+ for(const name of ['glaive','single-edged polearm']){
+  const glaive=createHeldWeapon({name,class:2});
+  assert.deepEqual(glaive.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+  const s=size(glaive);
+  assert(s.y>1.75&&s.y<1.95,`length ${s.y}`);
+  const b=new THREE.Box3().setFromObject(glaive);
+  assert(b.max.x>.09&&b.min.x<-.11,'the edge swells out and the fang juts back');
+  for(const m of glaive.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));}
+  assert(glaive.children.find(c=>c.userData.part==='blade').material.metalness>=.75,'weapon-magic sheathes the blade');
+  glaive.userData.dispose();
+ }
+});

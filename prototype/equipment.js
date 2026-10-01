@@ -120,6 +120,8 @@ export function createHeldWeapon(item){
   buildHalberd(g);
  }else if(/\btrident\b/.test(name)){
   buildTrident(g);
+ }else if(/\b(glaive|single-edged polearm)\b/.test(name)){
+  buildGlaive(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -349,4 +351,55 @@ function buildTrident(g){
  }
  for(const [m,geos] of sets){const geo=mergeGeometries(geos);geos.forEach(x=>x.dispose());
   const mesh=new THREE.Mesh(geo,m);mesh.castShadow=true;mesh.userData.part=m===blade?'tines':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The glaive: a long single-edged blade on a blackened haft. The edge swells out like a
+// cleaver and sweeps back into a point that leans over the spine; a fang juts down off the
+// spine and the spine below it is saw-toothed. A slit fuller is cut clean through the blade.
+// Two iron lugs jut out sideways under the socket, langets are nailed down the haft, the grip
+// is wound on a slant and the butt ends in an iron spike. Merged per material like the
+// halberd: 4 draws. The blade stays metalness >= .75, so weapon-magic sheathes it.
+function buildGlaive(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x362619,roughness:.92});
+ const iron=new THREE.MeshStandardMaterial({color:0x4a4744,metalness:.78,roughness:.55});
+ const blade=new THREE.MeshStandardMaterial({color:0xa8b0b3,metalness:.82,roughness:.3});
+ const wrap=new THREE.MeshStandardMaterial({color:0x2c1c16,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,blade,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ // Haft, a little thicker toward the head, and the grip wound on a slant.
+ put(new THREE.CylinderGeometry(.025,.022,1.2,10),wood,0,.21);
+ put(new THREE.CylinderGeometry(.031,.031,.22,10),wrap,0,-.01);
+ for(let i=0;i<6;i++){const turn=new THREE.TorusGeometry(.032,.006,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.1+i*.036,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // Butt: an iron shoe ending in a short spike.
+ put(new THREE.CylinderGeometry(.026,.022,.06,10),iron,0,-.4);
+ put(new THREE.ConeGeometry(.018,.09,4),blade,0,-.475,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI));
+ // Two langets nailed down the haft below the socket, and a band at their foot.
+ for(const s of [-1,1]){
+  put(new THREE.BoxGeometry(.006,.24,.016),iron,0,.65,s*.025);
+  for(const y of [.57,.65,.73])put(new THREE.SphereGeometry(.0055,5,4),iron,0,y,s*.029);
+ }
+ put(new THREE.CylinderGeometry(.03,.03,.02,10),iron,0,.53);
+ // Socket and collar, with two lugs jutting out flat to the blade.
+ put(new THREE.CylinderGeometry(.027,.033,.1,8),iron,0,.83);
+ put(new THREE.CylinderGeometry(.037,.037,.018,8),iron,0,.785);
+ for(const s of [-1,1])put(new THREE.ConeGeometry(.012,.07,4),iron,0,.79,s*.064,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),s*(Math.PI/2+.35)));
+ // The blade: edge on +x swelling out, then sweeping back into a point over the spine; down
+ // the spine a fang hooks down and saw teeth run to the socket. A slit fuller is cut through.
+ const b=new THREE.Shape();
+ b.moveTo(-.022,.87);b.lineTo(.022,.87);b.lineTo(.03,.9);
+ b.quadraticCurveTo(.1,.98,.098,1.1);
+ b.lineTo(.086,1.13);b.lineTo(.1,1.15);
+ b.quadraticCurveTo(.095,1.27,-.04,1.38);
+ b.quadraticCurveTo(-.02,1.3,-.03,1.22);
+ b.lineTo(-.05,1.19);b.lineTo(-.125,1.12);b.lineTo(-.06,1.15);b.lineTo(-.035,1.13);
+ for(let i=0;i<4;i++){const y=1.08-i*.045;b.lineTo(-.05,y);b.lineTo(-.03,y-.022);}
+ b.lineTo(-.022,.87);
+ const slit=new THREE.Path();slit.moveTo(.0,.94);slit.quadraticCurveTo(.03,1.06,.018,1.2);slit.quadraticCurveTo(.012,1.06,.0,.94);
+ b.holes.push(slit);
+ const geo=new THREE.ExtrudeGeometry(b,{depth:.012,bevelEnabled:true,bevelThickness:.004,bevelSize:.004,bevelSegments:1,steps:1,curveSegments:8});geo.translate(0,0,-.006);
+ put(geo,blade);
+ for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
