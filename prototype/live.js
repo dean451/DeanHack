@@ -32,6 +32,7 @@ import {potionLook,groundItemCaption} from './item-looks.js';
 import {levelTitle,lowHealth,parseAttributes} from './hud.js';
 import {syncWandAura,syncHeldWandAura,updateHeldWandAura} from './wand-auras.js';
 import {syncArtifactGleam,syncHeldGleam,updateHeldGleam} from './artifact-gleam.js';
+import {syncHeldMagic,syncFloorMagic} from './weapon-magic.js';
 import {syncScrollAura} from './scroll-auras.js';
 import {syncPotionFx} from './potion-fx.js';
 import {createBrainSuck,poseBrainSuck} from './brain-suck.js';
@@ -258,7 +259,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    const where=levelTitle(frame);$('.location small').textContent=where.place;$('.location h1').textContent=where.title;announceLevel(where);
    if(groundPanelTile!==groundTile(frame)){groundPanel.hidden=true;groundPanelTile=null;}
    if(Array.isArray(frame.ground))showGround(frame.ground);
-   hero.setWeapon?.(frame.player.weapon??null);syncHeldWandAura(hero,frame.player.weapon??null);syncHeldGleam(hero,frame.player.weapon??null);
+   hero.setWeapon?.(frame.player.weapon??null);syncHeldWandAura(hero,frame.player.weapon??null);syncHeldGleam(hero,frame.player.weapon??null);syncHeldMagic(hero,frame.player.weapon??null);
    hero.setHelmet?.(frame.player.helmet??null);if('shield' in frame.player)hero.setShield?.(frame.player.shield);if('offhand' in frame.player)hero.setOffhand?.(frame.player.offhand);addOutlines(hero.g);
    const level=`${frame.branch}:${frame.depth}`;const newLevel=level!==lastLevel;if(newLevel){clear();throneVanish.clear();clearDoorSwings();rays.clear();zapFlash.clear(hero);rayMarks.clear();explosions.clear();flood.clear();flooding=false;splash.clear();flights.clear();grab.clear();brainSuck.clear();hold.clear();poseHeld(hero,null);poly.clear();barsMelt.clear();doorBreak.clear();breath.clear();engulf.clear();dropEngulfCamera(camera,controls);poseEngulfed(hero,null);poseActor(hero,null);origin={x:frame.player.x,z:frame.player.z};lastLevel=level;clearActionPose(hero,hero.actions);hero.actions=createActionQueue();hero.g.position.set(0,0,0);camera.position.set(9,10.7,13.1);controls.target.set(0,0,0);}
    if(!newLevel&&flood.add(prevFrame,frame))flooding=true;splash.flushMessages(frame);grab.frame(frame);hold.frame(frame);poly.frame(frame);barsMelt.frame(frame);doorBreak.frame(frame);engulf.frame(frame);
@@ -304,7 +305,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
        if(cell.kind==='object'){
        const key=`${id}:${cell.glyph}:${cell.object?.creature||''}${cell.object?.lit?':lit':''}`,seenObject=cell.visible||cell.remembered;seenActors.add(key);
        if(seenObject&&!groundItems.has(key)){const item=pickupIcon(cell);item.position.set(x,0,z);group.add(item);groundItems.set(key,item);}
-       const item=groundItems.get(key);if(item){item.visible=cell.visible;syncWandAura(item,cell.object,key);syncArtifactGleam(item,cell.object,key);syncScrollAura(item,cell.object,key);syncPotionFx(item,cell.object,key);if(!item.userData.coinPile&&!item.userData.restingWeapon)item.position.y=Math.sin(performance.now()/600+x+z)*.025;}
+       const item=groundItems.get(key);if(item){item.visible=cell.visible;syncWandAura(item,cell.object,key);syncArtifactGleam(item,cell.object,key);syncFloorMagic(item,cell.object,key);syncScrollAura(item,cell.object,key);syncPotionFx(item,cell.object,key);if(!item.userData.coinPile&&!item.userData.restingWeapon)item.position.y=Math.sin(performance.now()/600+x+z)*.025;}
      }
        if(cell.kind==='monster'||cell.kind==='pet'){
        const key=`${id}:${cell.glyph}`;seenActors.add(key);let a=actors.get(key);const fresh=!a;
