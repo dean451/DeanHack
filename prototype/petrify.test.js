@@ -7,9 +7,10 @@ import {deathAction} from './combat-events.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose, queueDeath} from './actions.js';
 import {applyStone, restoreStone, createPetrify, stoneAt, STONE} from './petrify.js';
 
-// The live weeping angel: an 'A' in grey (the bridge's symbol and colour).
+// A live winged, glowing angel: an 'A' in grey (the bridge's symbol and colour). The dark Angel
+// still uses the generic angel; the weeping angel is now a stone statue with no glow or wing beat.
 const A = 'A'.charCodeAt(0), GRAY = 7;
-function angel() { const a = createCreature({name: 'weeping angel', symbol: A, color: GRAY}); a.species = 'weeping angel'; return a; }
+function angel() { const a = createCreature({name: 'dark angel', symbol: A, color: GRAY}); a.species = 'dark angel'; return a; }
 const meshes = g => { const out = []; g.traverse(o => { if (o.isMesh) out.push(o); }); return out; };
 const dist = (c, d) => Math.hypot(c.r - d.r, c.g - d.g, c.b - d.b);
 
@@ -41,9 +42,11 @@ test('the bridge\'s stoned flag picks the petrify death', () => {
 });
 
 test('a statue built from the bridge\'s letter and colour is the live angel\'s model', () => {
-  const live = angel(), statue = createCreature({name: 'weeping angel', symbol: A, color: GRAY});
+  const live = angel(), statue = createCreature({name: 'dark angel', symbol: A, color: GRAY});
   assert.equal(meshes(statue.g).length, meshes(live.g).length);
   assert.equal(statue.wings.length, 2, 'winged');
+  const weeping = createCreature({name: 'weeping angel', symbol: A, color: GRAY});
+  assert.equal(meshes(weeping.g)[0].geometry, meshes(createCreature({name: 'weeping angel'}).g)[0].geometry, 'a weeping angel statue is its own model');
 });
 
 test('stone creeps up from the feet, greys and dims everything, and leaves other angels alone', () => {
@@ -105,7 +108,7 @@ test('the statue on the square is the stoned angel itself, and finishes setting 
   enqueueAction(q, {kind: 'die', style: 'petrify'});
   for (let i = 0; i < 20; i++) { clearActionPose(a, q); updateActions(a, q, 1 / 60); }
   const body = a.g, actors = new Map([['2,3:1', a]]), petrify = createPetrify({onBurst: (b, at) => bursts.push([b.style, at])});
-  const cell = {kind: 'object', object: {kind: 'statue', name: 'statue', creature: 'weeping angel', creatureSymbol: A, creatureColor: GRAY}};
+  const cell = {kind: 'object', object: {kind: 'statue', name: 'statue', creature: 'dark angel', creatureSymbol: A, creatureColor: GRAY}};
   assert.equal(petrify.adopt(actors, {...cell, object: {...cell.object, creature: 'jackal'}}, 2, 3), null, 'only its own statue');
   assert.equal(petrify.adopt(actors, cell, 5, 3), null, 'only on its square');
   const icon = petrify.adopt(actors, cell, 2, 3);
