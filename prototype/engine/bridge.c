@@ -213,6 +213,11 @@ static void death_hook_bridge(struct monst *m,struct permonst *ptr) {
     if(m->mx<=0||!canspotmon(m))return;
     printf("{\"type\":\"death\",\"x\":%d,\"z\":%d,\"name\":",m->mx,m->my);
     if(Hallucination||!ptr)printf("null");else quoted(ptr->mname);
+    /* Turned to stone: monstone() leaves the statue on the square before the monster dies, so a
+       fresh statue of this monster there means it was petrified (two weeping angels locking
+       eyes, a cockatrice). The hero sees the statue on the next frame anyway. */
+    if(!Hallucination&&ptr){struct obj *o;for(o=level.objects[m->mx][m->my];o;o=o->nexthere)
+        if(o->otyp==STATUE&&o->corpsenm==monsndx(ptr)&&o->age==monstermoves){printf(",\"stoned\":true");break;}}
     printf(",\"pet\":%s}\n",m->mtame?"true":"false");fflush(stdout);
 }
 /* A wielded object. An artifact is shown by its name, so "base" also names its object type
@@ -382,13 +387,17 @@ static void frame(void) {
             if (object_type != CORPSE && OBJ_DESCR(objects[object_type])) {
                 printf(",\"appearance\":");quoted(OBJ_DESCR(objects[object_type]));
             }
+            /* A statue's monster, with its class letter and colour so the client builds the same
+               model the live monster gets. */
             if (glyph_is_statue(g)) {
                 m = glyph_to_mon(g);
                 printf(",\"creature\":");quoted(mons[m].mname);
+                printf(",\"creatureSymbol\":%d,\"creatureColor\":%d",def_monsyms[(int)mons[m].mlet],mons[m].mcolor);
             } else if (object_type == STATUE && cansee(x,y) && !Hallucination) {
                 struct obj *statue = sobj_at(STATUE,x,y);
                 if (statue && statue->corpsenm >= 0 && statue->corpsenm < NUMMONS) {
                     printf(",\"creature\":");quoted(mons[statue->corpsenm].mname);
+                    printf(",\"creatureSymbol\":%d,\"creatureColor\":%d",def_monsyms[(int)mons[statue->corpsenm].mlet],mons[statue->corpsenm].mcolor);
                 }
             }
             putchar('}');

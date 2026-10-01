@@ -22,6 +22,7 @@ import {centaurAttackPose} from './centaur-attack.js';
 import {scorpionAttackPose} from './scorpion-attack.js';
 import {chopPose, chops, thrusts} from './monster-chop.js';
 import {holdsKamae} from './kamae.js';
+import {applyStone} from './petrify.js';
 import {throwPose, throwLaunches, throwAction, THROW_TIME, THROW_WINDUP_MS, MAX_THROW_LEAD_MS} from './throw-motion.js';
 
 export const ACTION_TIME = {attack: .42, hit: .3, die: .9, rise: RISE_TIME, throw: THROW_TIME};
@@ -124,7 +125,7 @@ export function holdBackMs(queues) {
 // are world units (one tile = 1). `yaw` is the heading to face the target, if there is one.
 export function actionPose(action, u, face) {
   const p = {dx: 0, dy: 0, dz: 0, yaw: 0, pitch: 0, roll: 0, body: 0, head: 0, arm: 0, wrist: 0,
-    socket: 0, leg: 0, fore: 0, paw: 0, pawSide: 0, tail: 0, wing: 0, jaw: 0, scale: 1, stretch: 1, sx: 1, sy: 1, fade: 1};
+    socket: 0, leg: 0, fore: 0, paw: 0, pawSide: 0, tail: 0, wing: 0, jaw: 0, scale: 1, stretch: 1, sx: 1, sy: 1, fade: 1, stone: 0};
   const d = action.dir;
   if (action.kind === 'attack') {
     // Per attack type (monster-attacks.js); the hero's own swing replaces its arm parts later.
@@ -142,7 +143,7 @@ export function actionPose(action, u, face) {
   } else if (action.kind === 'die') {
     // Per class (deaths.js): topple, crumble, splat, dissipate or burst; held at the end.
     const m = deathPose(action.style, u, d);
-    for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'scale', 'sx', 'sy', 'fade']) p[k] = m[k];
+    for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'wing', 'scale', 'sx', 'sy', 'fade', 'stone']) p[k] = m[k];
     p.yaw = m.spin;
   } else if (action.kind === 'throw') {
     // Turn to the throw; the arm and lean come from throw-motion.js in updateActions.
@@ -284,6 +285,8 @@ export function updateActions(actor, q, dt) {
     // For the renderer: how opaque the body is, and (once, as it crosses its moment) the
     // death's particle burst.
     q.fade = pose.fade;
+    // Turned to stone: the stone creeps up it and holds its wings and bob still (petrify.js).
+    if (a.style === 'petrify') applyStone(actor, pose.stone);
     const bu = (DEATH_BURST_U[a.style] ?? .8) * len;
     if (before < bu && q.age >= bu) q.deathBurst = {style: a.style ?? 'topple', dir: a.dir};
   }
@@ -350,9 +353,10 @@ export function queueCombat(c, {hero, find}) {
 
 // Queues a death (deathAction() from combat-events.js). The style comes from the seen species
 // (deaths.js); the actor falls or splashes away from the last blow it took, if one was seen.
+// One turned to stone gasps and sets where it stands instead (petrify.js).
 export function queueDeath(d, find) {
   const actor = d && find(d), q = queueOf(actor);
-  return !!q && enqueueAction(q, {kind: 'die', dir: q.lastBlow ?? null, style: deathStyle(actor.species || d.name)});
+  return !!q && enqueueAction(q, {kind: 'die', dir: q.lastBlow ?? null, style: d.stoned ? 'petrify' : deathStyle(actor.species || d.name)});
 }
 
 // Queues a throw on whoever threw or fired each object in a replayed fx timeline
