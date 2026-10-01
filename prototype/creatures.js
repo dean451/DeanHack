@@ -2204,7 +2204,7 @@ export function createCreature(cell={}){
  if(name==='rock mole')return rockMole();
  if(name==='woodchuck')return woodchuck();
  if(/grid ?bug/.test(name))return gridBug();
- if(isCanine(name))return createCanine(name);
+ if(isCanine(name)&&letter!=='@')return createCanine(name);// a were in human form shares the name
  if(isFeline(name))return createFeline(name);
  if(CROCODILES.includes(name))return createCrocodile(name);
  if(LIZARDS[name])return lizard(LIZARDS[name]);

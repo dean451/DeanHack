@@ -5,11 +5,11 @@ import {createCreature} from './creatures.js';
 import {foreLegs} from './monster-attacks.js';
 
 const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh&&o.userData.part!=='flame')l.push(o);});return l;};
-const NAMES=['jackal','werejackal','coyote','fox','wolf','warg','hell hound pup','hell hound'];
+const NAMES=['jackal','werejackal','coyote','fox','dingo','wolf','werewolf','warg','winter wolf cub','winter wolf','hell hound pup','hell hound'];
 
 test('wild dogs get a shaped torso, a turning head with a muzzle and ears, jointed legs, a brush tail and a painted coat',()=>{
  const sizes={};
- for(const [name,extra] of [...NAMES.map(n=>[n,{}]),['dingo',{symbol:100,color:3}]]){
+ for(const [name,extra] of [...NAMES.map(n=>[n,{}]),['dingo',{symbol:100,color:3}],['winter wolf',{symbol:100,color:6}],['jackalwere',{symbol:100,color:3}]]){
   const a=createCreature({name,...extra});
   assert.equal(a.quirk,'canine',name);
   assert.equal(a.legs.length,4,name);
@@ -48,6 +48,40 @@ test('wild dogs get a shaped torso, a turning head with a muzzle and ears, joint
  const [x,y]=[createCreature({name:'wolf'}),createCreature({name:'wolf'})].map(meshes);
  x.forEach((m,i)=>{assert.equal(m.geometry,y[i].geometry);assert.equal(m.material,y[i].material);});
  assert.notEqual(meshes(createCreature({name:'coyote'}))[0].geometry,x[0].geometry);
+});
+
+test('winter wolves are frost-white with ice-blue eyes, rime in the coat and icicles hanging from the belly and chin',()=>{
+ for(const name of ['winter wolf cub','winter wolf']){
+  const a=createCreature({name,symbol:100,color:6}),parts=meshes(a);
+  const eye=parts.find(m=>m.userData.part==='eyes').material;
+  assert(eye.emissive.b>eye.emissive.r&&eye.emissiveIntensity>=1,`${name}: glowing ice-blue eyes`);
+  // the cyan glyph colour is not used: the coat is near white
+  const body=parts.find(m=>m.userData.part==='body').geometry,c=body.attributes.color,p=body.attributes.position;
+  let pale=0,ice=0,below=0;
+  const Y=a.legs[0].position.y;
+  for(let i=0;i<c.count;i++){
+   const r=c.getX(i),g=c.getY(i),bl=c.getZ(i);
+   if(r>.5&&g>.6&&bl>.65)pale++;
+   if(bl>r+.25&&bl>.4){ice++;if(p.getY(i)<Y-.06)below++;}
+  }
+  assert(pale>c.count*.3,`${name}: pale coat ${pale}/${c.count}`);
+  assert(ice>200&&below>60,`${name}: icicles below the belly (${ice} ice, ${below} hanging)`);
+  const head=parts.find(m=>m.userData.part==='head').geometry;
+  let chin=0;for(let i=0;i<head.attributes.color.count;i++)if(head.attributes.color.getZ(i)>head.attributes.color.getX(i)+.25&&head.attributes.position.getY(i)<-.07)chin++;
+  assert(chin>10,`${name}: icicle beard ${chin}`);
+ }
+ const cub=new THREE.Box3().setFromObject(createCreature({name:'winter wolf cub'}).g),adult=new THREE.Box3().setFromObject(createCreature({name:'winter wolf'}).g);
+ assert(adult.max.y>cub.max.y+.1,'the adult towers over the cub');
+ // wolves without frost keep no icicles
+ const wolf=meshes(createCreature({name:'wolf'})).find(m=>m.userData.part==='body').geometry.attributes.color;
+ for(let i=0;i<wolf.count;i++)assert(!(wolf.getZ(i)>wolf.getX(i)+.25&&wolf.getZ(i)>.4),'grey wolf has no ice');
+});
+
+test('a were in human form is not drawn as a dog',()=>{
+ for(const name of ['werejackal','werewolf']){
+  assert.equal(createCreature({name,symbol:100,color:3}).quirk,'canine',name);
+  assert.notEqual(createCreature({name,symbol:64,color:3}).quirk,'canine',`${name} as @`);
+ }
 });
 
 test('pet dogs share the canine build with a collar, a tongue, breed ears and a raised tail for wagging',()=>{
