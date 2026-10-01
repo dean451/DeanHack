@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
 import {JAW_GAPE} from './jaw.js';
 import {updateBask, baskPose, baskLength, basks, BASK_GAPE, BASK_BREATH, SNOUT_LIFT, OPEN_S, FIRST_MIN, FIRST_SPAN, GAP_MIN, GAP_SPAN, HOLD_MIN, HOLD_SPAN} from './bask.js';
+import {sparkles, pawPose, tossPose, pawLength, tossLength, moteAt, LOOKS, PAW_LIFT, TOSS_UP, MOTES} from './unicorn-sparkle.js';
 
 const COLON = ':'.charCodeAt(0);
 const croc = (name = 'crocodile') => { const a = createCreature({name, symbol: COLON, color: 2}); a.actions = createActionQueue(); return a; };
@@ -136,4 +138,57 @@ test('a gallery crocodile, with no action queue, basks on its own and settles ba
   // Made busy, it closes all the way back to rest.
   for (let i = 0; i < 60; i++, t += dt) updateBask(a, dt, t, true);
   assert(Math.abs(a.jaw.rotation.x - jaw0) < 1e-12 && Math.abs(a.head.rotation.x - head0) < 1e-12);
+});
+
+// ---- unicorns (unicorn-sparkle.js rides updateBask) ----
+
+const uni = name => { const a = createCreature({name, symbol: 'u'.charCodeAt(0), color: 7}); a.species = name; a.actions = createActionQueue(); a.target = new THREE.Vector3(); return a; };
+const headOf = a => a.body.children.find(c => !c.isMesh && !c.isPoints && !a.legs.includes(c) && c !== a.tail);
+
+test('unicorns paw and toss, sparkle by alignment, and settle exactly at rest when they die', () => {
+  assert.ok(sparkles(uni('white unicorn')) && sparkles(uni('ki-rin')));
+  assert.ok(!sparkles(uni('pony')) && !sparkles(croc()));
+  assert.equal(LOOKS['black unicorn'].sink, true);
+  assert.ok(!LOOKS['black unicorn'].add && LOOKS['white unicorn'].add);
+  // poses start and end at rest; the paw lifts forward and the toss snaps the muzzle up
+  for (const s of [0, pawLength()]) assert.deepEqual(pawPose(s), {leg: 0, head: 0});
+  assert.ok(Math.min(...Array.from({length: 60}, (_, i) => pawPose(i * pawLength() / 60).leg)) <= PAW_LIFT + .01);
+  assert.deepEqual(tossPose(tossLength(), 1), {x: 0, z: 0});
+  assert.ok(Math.abs(tossPose(.2, 1).x - TOSS_UP) < 1e-9 && tossPose(.2, -1).z < 0);
+  // motes rise past the tip (the black unicorn's sink below the root)
+  const base = new THREE.Vector3(0, 1, 0), tip = new THREE.Vector3(0, 1.3, .05);
+  assert.ok(moteAt(.95, base, tip, 0, 0, false).pos.y > tip.y);
+  assert.ok(moteAt(.95, base, tip, 0, 0, true).pos.y < base.y);
+
+  for (const name of ['white unicorn', 'black unicorn']) {
+    const a = uni(name), head = headOf(a), rx = head.rotation.x, rz = head.rotation.z, dt = 1 / 60;
+    let moved = 0, legMoved = 0, lit = 0;
+    for (let f = 0, t = 0; f < 3600; f++, t += dt) {
+      if (f === 3000) a.actions.dead = true;
+      a.legs.forEach(l => { l.rotation.x = 0; });
+      const st = updateBask(a, dt, t, false) || a.unicorn;
+      moved = Math.max(moved, Math.abs(head.rotation.x - rx));
+      legMoved = Math.max(legMoved, ...a.legs.map(l => Math.abs(l.rotation.x)));
+      const c = st.points.geometry.attributes.color.array, p = st.points.geometry.attributes.position.array;
+      for (const v of p) assert.ok(Number.isFinite(v));
+      for (let i = 3; i < c.length; i += 4) { assert.ok(c[i] >= 0 && c[i] <= 1); lit = Math.max(lit, c[i]); }
+    }
+    assert.ok(moved > .15 && lit > .3, `${name} moves and sparkles`);
+    assert.ok(Math.abs(head.rotation.x - rx) < 1e-9 && Math.abs(head.rotation.z - rz) < 1e-9, `${name} head at rest`);
+    assert.equal(a.unicorn.points.visible, false);
+    assert.equal(a.unicorn.points.geometry.attributes.position.count, MOTES + 1);
+    a.legs.forEach(l => { l.rotation.x = 0; });
+    updateBask(a, 1 / 60, 61, false);
+    assert.ok(a.legs.every(l => l.rotation.x === 0), `${name} legs at rest`);
+    if (name === 'white unicorn') assert.ok(legMoved > .3, 'it paws');
+  }
+  // walking breaks off a toss within a few frames
+  const a = uni('gray unicorn'), head = headOf(a), rx = head.rotation.x;
+  updateBask(a, 1 / 60, 0, false);
+  a.unicorn.wait = 0; a.unicorn.seed = 1;
+  let f = 0;
+  while (!a.unicorn.cur && f++ < 10) updateBask(a, 1 / 60, f / 60, false);
+  for (let i = 0; i < 20; i++) updateBask(a, 1 / 60, 1 + i / 60, false);
+  for (let i = 0; i < 30; i++) updateBask(a, 1 / 60, 2 + i / 60, true);
+  assert.ok(Math.abs(head.rotation.x - rx) < 1e-9 && !a.unicorn.cur);
 });

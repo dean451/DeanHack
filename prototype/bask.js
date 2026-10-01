@@ -10,6 +10,7 @@
 // crocodile raises its snout; it's the same kind of offset on `head`, taken back each frame.
 
 import {JAW_GAPE} from './jaw.js';
+import {updateUnicornSparkle} from './unicorn-sparkle.js';
 
 // How wide the basking gape is, in radians, and its faint breath on top.
 export const BASK_GAPE = .42, BASK_BREATH = .018;
@@ -42,6 +43,8 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 // Call once per frame after updateActions. `busy` is true while the actor walks or has an action
 // playing or queued. Returns the offset applied this frame.
 export function updateBask(actor, dt, t, busy) {
+  // Unicorns sparkle, paw and toss their heads (unicorn-sparkle.js); it rides this call so live.js stays untouched.
+  updateUnicornSparkle(actor, dt, t, busy);
   if (!basks(actor)) return 0;
   const st = actor.bask || (actor.bask = {seed: ((actor.g?.id ?? 1) * 104729) % 2147483647 || 1, wait: 0, cur: null, f: 0, applied: 0, lift: 0});
   actor.jaw.rotation.x -= st.applied;
