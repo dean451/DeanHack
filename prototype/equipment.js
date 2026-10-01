@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {createWand,wandAppearance} from './wand.js';
 
 export function createHeldWeapon(item){
@@ -113,6 +114,8 @@ export function createHeldWeapon(item){
    const stud=part(new THREE.ConeGeometry(.033,.095,4),steel,pos.x,pos.y,pos.z);
    stud.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
   }
+ }else if(/\bmorning star\b/.test(name)){
+  buildMorningStar(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -163,5 +166,60 @@ export function createHeldWeapon(item){
   else if(/mace|hammer|club/.test(name))part(new THREE.BoxGeometry(.19,.18,.16),steel,0,.48);
   else if(/spear|pike|javelin/.test(name))part(new THREE.ConeGeometry(.065,.24,4),steel,0,.61);
  }
- g.userData.dispose=()=>{g.traverse(o=>o.geometry?.dispose());g.userData.extraMaterial?.dispose();steel.dispose();leather.dispose();brass.dispose();};return g;
+ g.userData.dispose=()=>{g.traverse(o=>o.geometry?.dispose());[].concat(g.userData.extraMaterial??[]).forEach(m=>m.dispose());steel.dispose();leather.dispose();brass.dispose();};return g;
+}
+
+// The morning star: a blackened, iron-banded haft under a hammered iron ball bristling with
+// uneven forged spikes, one long spike crowning it and a spiked pommel below the grip.
+// Iron straps (langets) run down from the head to hold it on. Every part shares one of
+// four materials and is merged per material: 4 draws, where a part-per-mesh build was ~60.
+// The ball and spikes stay metalness >= .75, so weapon-magic still sheathes them.
+function buildMorningStar(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x3f2a1d,roughness:.92});
+ const iron=new THREE.MeshStandardMaterial({color:0x58554f,metalness:.78,roughness:.52});
+ const spikeSteel=new THREE.MeshStandardMaterial({color:0xb4bcbf,metalness:.82,roughness:.3});
+ const wrap=new THREE.MeshStandardMaterial({color:0x2e1d17,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,spikeSteel,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[spikeSteel,[]],[wrap,[]]]);
+ const up=new THREE.Vector3(0,1,0);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ const hash=i=>{const v=Math.sin(i*127.1+31.7)*43758.5453;return v-Math.floor(v);};
+ // Haft, swelling slightly toward the head, and the leather grip wound on a slant.
+ put(new THREE.CylinderGeometry(.027,.023,.66,10),wood,0,.18);
+ put(new THREE.CylinderGeometry(.033,.033,.21,10),wrap,0,-.015);
+ for(let i=0;i<6;i++){const turn=new THREE.TorusGeometry(.034,.006,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.1+i*.034,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // Pommel: an iron cap ending in a short downward spike.
+ put(new THREE.CylinderGeometry(.036,.03,.04,10),iron,0,-.14);
+ put(new THREE.ConeGeometry(.02,.07,5),spikeSteel,0,-.19,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI));
+ // Iron bands and four langets nailed down the haft below the head.
+ for(const y of [.12,.36])put(new THREE.CylinderGeometry(.031,.031,.022,10),iron,0,y);
+ for(let i=0;i<4;i++){const a=i*Math.PI/2+.4;put(new THREE.BoxGeometry(.012,.2,.006),iron,Math.cos(a)*.027,.44,Math.sin(a)*.027,new THREE.Quaternion().setFromAxisAngle(up,-a+Math.PI/2));
+  for(const y of [.38,.48])put(new THREE.SphereGeometry(.006,5,4),iron,Math.cos(a)*.031,y,Math.sin(a)*.031);}
+ put(new THREE.CylinderGeometry(.04,.032,.05,10),iron,0,.535);
+ // The ball, hammered lumpy so it catches the light unevenly.
+ const R=.088,cy=.63,ball=new THREE.IcosahedronGeometry(R,2),pos=ball.attributes.position,v=new THREE.Vector3();
+ const dent=new Map();
+ for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i);const key=v.toArray().map(n=>n.toFixed(4)).join();
+  if(!dent.has(key))dent.set(key,1-.07*hash(dent.size+3));v.multiplyScalar(dent.get(key));pos.setXYZ(i,v.x,v.y,v.z);}
+ ball.computeVertexNormals();put(ball,iron,0,cy);
+ // Spikes on the icosahedron's 12 points and 20 face centres, uneven in length and bent off
+ // true; none under the collar. The top one is a long crowning spike.
+ const dirs=[],ico=new THREE.IcosahedronGeometry(1,0).attributes.position,seen=new Set();
+ for(let i=0;i<ico.count;i++){v.fromBufferAttribute(ico,i).normalize();const key=v.toArray().map(n=>n.toFixed(3)).join();if(!seen.has(key)){seen.add(key);dirs.push(v.clone());}}
+ for(let i=0;i<ico.count;i+=3)dirs.push(new THREE.Vector3().fromBufferAttribute(ico,i).add(new THREE.Vector3().fromBufferAttribute(ico,i+1)).add(new THREE.Vector3().fromBufferAttribute(ico,i+2)).normalize());
+ const tilt=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(.3,0,1).normalize(),.28);
+ dirs.forEach((d,i)=>{
+  d.applyQuaternion(tilt);
+  if(d.y<-.72)return;
+  const crown=d.y>.97,len=crown?.15:(.065+.05*hash(i+11))*(i<12?1:.82),r=crown?.019:.015+.004*hash(i+29);
+  const bent=d.clone().add(new THREE.Vector3(hash(i+41)-.5,hash(i+53)-.5,hash(i+67)-.5).multiplyScalar(.22)).normalize();
+  const at=d.clone().multiplyScalar(R*.9+len/2);
+  put(new THREE.ConeGeometry(r,len,5),spikeSteel,at.x,cy+at.y,at.z,new THREE.Quaternion().setFromUnitVectors(up,bent));
+  // A rough iron boss where each spike is forged into the ball.
+  const foot=d.clone().multiplyScalar(R*.93);
+  put(new THREE.CylinderGeometry(r*1.25,r*1.6,.016,5),iron,foot.x,cy+foot.y,foot.z,new THREE.Quaternion().setFromUnitVectors(up,d));
+ });
+ for(const [m,geos] of sets){const geo=mergeGeometries(geos.map(x=>{x.deleteAttribute('uv');return x;}));geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(geo,m);mesh.castShadow=true;mesh.userData.part=m===spikeSteel?'spikes':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
