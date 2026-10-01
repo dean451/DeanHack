@@ -1449,15 +1449,20 @@ function wraith(o){
  for(let i=0;i<8;i++){const a=i/8*Math.PI*2,t=cone(body,.045,.16+(i%3)*.05,robe,Math.sin(a)*.1,.26-(i%3)*.02,Math.cos(a)*.1,4);t.rotation.x=Math.PI;t.rotation.z=Math.sin(a)*.35;}
  rounded(body,.4,.16,.26,robe,0,.9,0,.06);
  // hood: an outer cowl, a darker rim and a void where the face should be
- sphere(body,.2,robe,0,1.1,-.02,1,1.12,1);cylinder(body,.14,.15,.05,trim,0,1.07,.12).rotation.x=Math.PI/2;
- sphere(body,.13,void_,0,1.07,.07,1,1.1,.9);
- for(const x of [-.05,.05])sphere(body,.024,glow,x,1.09,.17,1.2,.7,.6);
- // sleeves reach forward, ending in thin clawed fingers
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.2,.92,.02);body.add(arm);cylinder(arm,.05,.09,.34,robe,0,-.15,0,8);for(const f of [-.03,0,.03])cone(arm,.011,.11,claw,f,-.37,.02,4).rotation.x=Math.PI;arm.rotation.x=-1.05;arm.rotation.z=side*.12;}
- if(o.circlet){cylinder(body,.17,.18,.04,mat('#7a5a34',{roughness:.6,metalness:.5}),0,1.2,-.01,12);sphere(body,.022,glow,0,1.2,.17);}
- if(o.crown){const silver=mat('#c8ccd4',{roughness:.25,metalness:.9});cylinder(body,.16,.17,.05,silver,0,1.26,-.01,12);for(let i=0;i<7;i++){const a=(i/7-.5)*Math.PI*1.4;cone(body,.018,.1,silver,Math.sin(a)*.16,1.32,-.01+Math.cos(a)*.16,4);}}
+ // The hood (with its eyes and any circlet or crown) turns on its own pivot, and the eyes sit in their
+ // own group, so wraith-pull.js can turn the head and flare the eyes (handles: head, eyes).
+ const head=new THREE.Group();head.position.set(0,1.07,0);body.add(head);const H=1.07;
+ sphere(head,.2,robe,0,1.1-H,-.02,1,1.12,1);cylinder(head,.14,.15,.05,trim,0,0,.12).rotation.x=Math.PI/2;
+ sphere(head,.13,void_,0,0,.07,1,1.1,.9);
+ const eyeGroup=new THREE.Group();eyeGroup.position.set(0,1.09-H,.17);eyeGroup.userData.part='eyes';head.add(eyeGroup);
+ for(const x of [-.05,.05])sphere(eyeGroup,.024,glow,x,0,0,1.2,.7,.6);
+ // sleeves reach forward, ending in thin clawed fingers; each claw hangs from its own knuckle so it can flex (handles: arms, claws)
+ const arms=[],claws=[];
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.2,.92,.02);body.add(arm);cylinder(arm,.05,.09,.34,robe,0,-.15,0,8);const fingers=[];for(const f of [-.03,0,.03]){const k=new THREE.Group();k.position.set(f,-.315,.02);arm.add(k);cone(k,.011,.11,claw,0,-.055,0,4).rotation.x=Math.PI;fingers.push(k);}arm.rotation.x=-1.05;arm.rotation.z=side*.12;arms.push(arm);claws.push(fingers);}
+ if(o.circlet){cylinder(head,.17,.18,.04,mat('#7a5a34',{roughness:.6,metalness:.5}),0,1.2-H,-.01,12);sphere(head,.022,glow,0,1.2-H,.17);}
+ if(o.crown){const silver=mat('#c8ccd4',{roughness:.25,metalness:.9});cylinder(head,.16,.17,.05,silver,0,1.26-H,-.01,12);for(let i=0;i<7;i++){const a=(i/7-.5)*Math.PI*1.4;cone(head,.018,.1,silver,Math.sin(a)*.16,1.32-H,-.01+Math.cos(a)*.16,4);}}
  if(o.sword){const blade=rounded(body,.04,.5,.012,o.crown?mat('#9aa0ac',{roughness:.3,metalness:.85}):mat('#8a7a64',{roughness:.6,metalness:.5}),.3,.74,.2,.008);blade.rotation.x=.9;rounded(body,.13,.025,.035,trim,.3,.62,.08,.008).rotation.x=.9;}
- return trimDraws(actor(g,body,[],null,[],'hover'));
+ return trimDraws(Object.assign(actor(g,body,[],null,[],'hover'),{head,arms,arm:arms[1],claws},o.kind?{wraith:o.kind}:{}));
 }
 const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff'},'barrow wight':{robe:'#4a4a3a',glow:'#e0c040',bone:'#a89878',solid:true,circlet:true,sword:true},nazgul:{robe:'#141218',glow:'#ff3a2a',crown:true,sword:true,scale:1.1}};
 
@@ -2233,7 +2238,7 @@ export function createCreature(cell={}){
  if(TROLLS[name])return troll(TROLLS[name]);
  if(OGRES[name])return ogre(OGRES[name]);
  if(LICHES[name])return lich(LICHES[name]);
- if(WRAITHS[name])return wraith(WRAITHS[name]);
+ if(WRAITHS[name])return wraith({...WRAITHS[name],kind:name});
  if(VAMPIRES[name])return vampire(VAMPIRES[name]);
  if(XORNS[name])return xorn(XORNS[name]);
  if(NAGAS[name])return naga(NAGAS[name]);
@@ -2338,7 +2343,7 @@ export function createCreature(cell={}){
   case 'X':return xorn({stone:shade(c,.9),eye:c});
   case 'N':return naga({color:c,crest:/hatchling/.test(name)?null:'spines',baby:/hatchling/.test(name)});
   case 'V':return vampire({lining:c,eye:c});
-  case 'W':return wraith({robe:shade(c,.6),glow:c});
+  case 'W':return wraith({robe:shade(c,.6),glow:c,kind:'wraith'});
   case 'L':return lich({robe:shade(c,.6),glow:c});
   case 'T':return troll({skin:c,hair:shade(c,.4)});
   case 'H':return giant({skin:shade(c,1.1),cloth:shade(c,.55),weapon:'club',scale:1.1});
