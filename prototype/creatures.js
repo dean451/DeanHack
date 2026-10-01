@@ -76,6 +76,7 @@ import {createRanger} from './ranger.js';
 import {createRogue} from './rogue.js';
 import {createNinja} from './ninja.js';
 import {createExecutioner} from './executioner.js';
+import {createCroesus} from './croesus.js';
 import {createBarbarian} from './barbarian.js';
 import {createHealer} from './healer.js';
 
@@ -2534,6 +2535,7 @@ export function createCreature(cell={}){
  if(name==='wizard')return createWizard();
  if(name==='wizard of yendor')return createWizardOfYendor();
  if(name==='executioner')return createExecutioner();
+ if(name==='croesus')return createCroesus();
  if(name==='monk')return createMonk();
  if(name==='archeologist')return createArcheologist();
  if(CAVE_KINDS.includes(name))return createCaveman(name);
