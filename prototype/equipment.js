@@ -144,6 +144,8 @@ export function createHeldWeapon(item){
   buildBillGuisarme(g);
  }else if(/\b(bec de corbin|beaked polearm)\b/.test(name)){
   buildBecDeCorbin(g);
+ }else if(/\blance\b/.test(name)){
+  buildLance(g);
  }else if(/\bmace\b/.test(name)){
   // Flanged head and bound grip distinguish a mace from a square hammer.
   part(new THREE.CylinderGeometry(.024,.03,.57,10),steel,0,.18);
@@ -1018,6 +1020,74 @@ function buildBecDeCorbin(g){
  // A collar on the block and the top spike, four-edged and drawn to a long point.
  put(new THREE.CylinderGeometry(.022,.028,.025,8),iron,0,.97);
  put(lozenge([[.982,.013],[1.01,.025],[1.06,.026],[1.15,.019],[1.24,.01]],1.36,.55),blade);
+ for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
+  const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
+}
+
+// The lance: a war lance, not a tourney pole. A long turned haft swells behind the hand and
+// tapers to a narrow four-edged point with two barbs raked back off its base; two blackened
+// iron bands wind up the haft in a spiral. A deep, fluted vamplate of black iron flares over
+// the hand, its rim cut into hooked teeth, and an iron burr with a ring of studs stops the
+// grip sliding back. A spiked iron butt. Merged per material: 4 draws.
+function buildLance(g){
+ const wood=new THREE.MeshStandardMaterial({color:0x2c1f16,roughness:.9});
+ const iron=new THREE.MeshStandardMaterial({color:0x2e2c2c,metalness:.78,roughness:.55});
+ const blade=new THREE.MeshStandardMaterial({color:0x9aa1a6,metalness:.84,roughness:.33});
+ const wrap=new THREE.MeshStandardMaterial({color:0x261913,roughness:.95});
+ g.userData.extraMaterial=[wood,iron,blade,wrap];
+ const sets=new Map([[wood,[]],[iron,[]],[blade,[]],[wrap,[]]]);
+ const put=(geo,m,x=0,y=0,z=0,q)=>{if(q)geo.applyQuaternion(q);geo.translate(x,y,z);if(geo.attributes.uv)geo.deleteAttribute('uv');sets.get(m).push(geo.index?geo.toNonIndexed():geo);};
+ const up=new THREE.Vector3(0,1,0);
+ // The haft's radius along its length: a thin butt, a swell behind the burr, a narrow grip,
+ // then thick under the vamplate and a long taper to the point's socket.
+ const profile=[[-.34,.017],[-.25,.024],[-.17,.033],[-.13,.028],[-.1,.023],[.08,.023],[.13,.036],[.3,.039],[.7,.031],[1.1,.022],[1.3,.017]];
+ const radius=y=>{for(let i=1;i<profile.length;i++)if(y<=profile[i][0]){const [y0,r0]=profile[i-1],[y1,r1]=profile[i];return r0+(r1-r0)*(y-y0)/(y1-y0);}return profile.at(-1)[1];};
+ put(new THREE.LatheGeometry([new THREE.Vector2(0,-.34),...profile.map(([y,r])=>new THREE.Vector2(r,y)),new THREE.Vector2(0,1.3)],12),wood);
+ // Two iron bands winding up the haft from the vamplate to the socket, half a turn apart.
+ for(const phase of [0,Math.PI]){
+  const pts=[];for(let i=0;i<=40;i++){const y=.24+i*1.04/40,a=phase+i/40*Math.PI*2*3.5,r=radius(y)+.0015;pts.push(new THREE.Vector3(Math.cos(a)*r,y,Math.sin(a)*r));}
+  put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),120,.0045,4,false),iron);
+ }
+ // The grip, wound on a slant.
+ put(new THREE.CylinderGeometry(.026,.026,.17,10),wrap,0,-.01);
+ for(let i=0;i<5;i++){const turn=new THREE.TorusGeometry(.027,.0055,4,14);turn.rotateX(Math.PI/2);
+  put(turn,wrap,0,-.075+i*.033,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,.4).normalize(),.32));}
+ // The burr: an iron ring behind the grip with a ring of studs.
+ put(new THREE.CylinderGeometry(.036,.036,.026,12),iron,0,-.12);
+ for(let i=0;i<8;i++){const a=i*Math.PI/4,d=new THREE.Vector3(Math.cos(a),0,Math.sin(a));
+  put(new THREE.ConeGeometry(.007,.016,4),iron,d.x*.039,-.12,d.z*.039,new THREE.Quaternion().setFromUnitVectors(up,d));}
+ // The butt: an iron shoe and a short spike.
+ put(new THREE.CylinderGeometry(.019,.016,.05,10),iron,0,-.335);
+ put(new THREE.ConeGeometry(.014,.08,4),blade,0,-.4,0,new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),Math.PI));
+ // The vamplate: a deep iron funnel flaring down over the hand, with a thickness so it reads
+ // from inside, eight raised flutes and a rim cut into teeth hooked down and out.
+ put(new THREE.LatheGeometry([[.038,.33],[.05,.27],[.08,.19],[.118,.12],[.13,.1],[.122,.1],[.11,.12],[.073,.19],[.044,.27],[.034,.33]].map(([r,y])=>new THREE.Vector2(r,y)),16),iron);
+ for(let i=0;i<8;i++){
+  const a=(i+.5)*Math.PI/4,c=Math.cos(a),s=Math.sin(a);
+  const flute=[[.05,.28],[.07,.22],[.1,.155],[.128,.104]].map(([r,y])=>new THREE.Vector3(c*(r+.004),y,s*(r+.004)));
+  put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(flute),8,.0045,4,false),iron);
+ }
+ for(let i=0;i<12;i++){
+  const a=i*Math.PI/6,d=new THREE.Vector3(Math.cos(a),-.55,Math.sin(a)).normalize();
+  const tooth=new THREE.ConeGeometry(.011,.04,3);tooth.translate(0,.02,0);
+  // Each tooth hooks a little sideways, so the rim reads jagged rather than a neat crown.
+  const q=new THREE.Quaternion().setFromUnitVectors(up,d).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),.35));
+  put(tooth,blade,Math.cos(a)*.126,.1,Math.sin(a)*.126,q);
+ }
+ put(new THREE.CylinderGeometry(.042,.042,.02,12),iron,0,.33);
+ // The point's socket and two langets nailed down the haft.
+ put(new THREE.CylinderGeometry(.019,.02,.09,8),iron,0,1.33);
+ put(new THREE.CylinderGeometry(.026,.026,.016,8),iron,0,1.29);
+ for(const s of [-1,1]){
+  put(new THREE.BoxGeometry(.005,.12,.012),iron,0,1.23,s*.02);
+  for(const y of [1.19,1.25])put(new THREE.SphereGeometry(.0045,5,4),iron,0,y,s*.023);
+ }
+ // The point: long, narrow and four-edged, with two barbs raked back off its base.
+ put(lozenge([[1.375,.022],[1.41,.03],[1.47,.026],[1.54,.016],[1.6,.008]],1.66,.62),blade);
+ for(const s of [-1,1]){
+  const d=new THREE.Vector3(s*.6,-1,0).normalize();
+  put(new THREE.ConeGeometry(.009,.06,4),blade,s*.04,1.375,0,new THREE.Quaternion().setFromUnitVectors(up,d));
+ }
  for(const [m,geos] of sets){const merged=mergeGeometries(geos);geos.forEach(x=>x.dispose());
   const mesh=new THREE.Mesh(merged,m);mesh.castShadow=true;mesh.userData.part=m===blade?'blade':m===iron?'head':m===wood?'haft':'grip';g.add(mesh);}
 }
