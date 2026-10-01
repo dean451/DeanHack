@@ -46,6 +46,12 @@ export const heavySlide = a => HEAVY[a?.quirk] || speciesSlide(a?.species);
 
 // Moves actor.g toward actor.target by one frame of dt seconds.
 export function slideTo(actor, dt) {
+  beginHop(actor);
+  glide(actor, dt);
+  endHop(actor, dt);
+}
+
+function glide(actor, dt) {
   const pos = actor.g.position, target = actor.target;
   const heavy = heavySlide(actor);
   const d = pos.distanceTo(target);
@@ -65,4 +71,53 @@ export function slideTo(actor, dt) {
   const step = speed * dt;
   if (step >= d) pos.copy(target);
   else pos.lerp(target, step / d);
+}
+
+// Hops. A step that changes height (onto an altar, up a stair, off a grave; see perch.js)
+// would otherwise ramp straight up through the furniture's edge. Instead the actor's height
+// follows an arc over the step: the straight line from where it stood to the new height, plus
+// a bump of lift + k·|rise| that peaks halfway across, so it springs up and drops onto the top,
+// or hops off and lands on the floor. Progress is how much of the step's ground distance is
+// covered, so the hop keeps pace with whichever slide carries it, but never ahead of its own
+// clock (`time` s): the ordinary ease covers 15% of a step in its first frame, which would pop. Steps of under `min` rise
+// (the down stair's .03) just ramp; a jump of more than `far` (a teleport, a level change) or a
+// height change with no step under it (the furniture appearing under someone) just eases.
+export const HOP = {min: .05, lift: .07, k: .25, near: .3, far: 1.6, time: .3};
+
+// Height of the hop at progress p (0–1) from y0 to y1.
+export function hopArc(y0, y1, p) {
+  if (p >= 1) return y1;
+  if (p <= 0) return y0;
+  return y0 + (y1 - y0) * p + (HOP.lift + HOP.k * Math.abs(y1 - y0)) * 4 * p * (1 - p);
+}
+
+// beginHop and endHop go round whatever moves actor.g toward actor.target this frame. The
+// move itself sees a plain straight-line height (actor.slideY); endHop puts the arc on top and
+// remembers the shown height (actor.hopAt.y), which others may add to and take back between frames.
+export function beginHop(actor) {
+  const pos = actor.g.position, target = actor.target, at = actor.hopAt;
+  // Something else put the actor somewhere new (a level change): start from where it is.
+  const moved = !at || Math.abs(at.x - pos.x) > 1e-6 || Math.abs(at.z - pos.z) > 1e-6;
+  const shown = moved ? pos.y : at.y;
+  if (moved) actor.slideY = shown;
+  const h = actor.hop;
+  if (!h || h.tx !== target.x || h.ty !== target.y || h.tz !== target.z) {
+    const ground = Math.hypot(target.x - pos.x, target.z - pos.z), rise = target.y - shown;
+    actor.hop = {tx: target.x, ty: target.y, tz: target.z, ground, y0: shown, t: 0,
+      on: Math.abs(rise) >= HOP.min && ground >= HOP.near && ground <= HOP.far};
+    actor.slideY = shown;
+  }
+  pos.y = actor.slideY ?? shown;
+}
+
+export function endHop(actor, dt) {
+  const pos = actor.g.position, target = actor.target, h = actor.hop;
+  actor.slideY = pos.y;
+  if (h?.on) {
+    h.t += dt;
+    const p = Math.min(1 - Math.hypot(target.x - pos.x, target.z - pos.z) / h.ground, h.t / HOP.time);
+    if (p >= 1 - 1e-4) { h.on = false; pos.y = target.y; actor.slideY = target.y; }
+    else pos.y = hopArc(h.y0, h.ty, p);
+  }
+  actor.hopAt = {x: pos.x, y: pos.y, z: pos.z};
 }

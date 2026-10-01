@@ -112,6 +112,7 @@ test('zombies, heavy golems and oozes slide heavily by species; quick kin keep t
 
 // Perches: occupants of furniture tiles stand on the model's top, not inside it.
 import {PERCH, perchHeight} from './perch.js';
+import {HOP, hopArc} from './slide.js';
 import {createAltar} from './altar.js';
 import {createThrone} from './throne.js';
 import {createSink} from './sink.js';
@@ -146,16 +147,72 @@ test('perchHeight is 0 on plain ground and unknown terrain', () => {
   assert.equal(perchHeight('altar'), PERCH.altar);
 });
 
-test('an actor slides up onto a perch and back down to the floor', () => {
+test('an actor hops up onto a perch and back down to the floor', () => {
   const a = dog(), up = new THREE.Vector3(1, perchHeight('altar'), 0);
   a.target = up;
   const ys = [];
   for (let i = 0; i < 120; i++) { slideTo(a, 1 / 60); ys.push(a.g.position.y); }
   assert.ok(ys.every(Number.isFinite));
-  assert.ok(Math.abs(a.g.position.y - PERCH.altar) < 1e-3);
-  assert.ok(ys.every((y, i) => i === 0 || y >= ys[i - 1] - 1e-12), 'climbs without dipping');
-  assert.ok(Math.max(...ys) <= PERCH.altar + 1e-9, 'never overshoots');
+  assert.equal(a.g.position.y, PERCH.altar, 'lands exactly on top');
+  const peak = Math.max(...ys), lift = HOP.lift + HOP.k * PERCH.altar;
+  assert.ok(peak > PERCH.altar && peak <= PERCH.altar + lift, `springs up and drops on (peak ${peak.toFixed(3)})`);
+  // Halfway across it is clear of the straight ramp by the full lift.
+  assert.ok(Math.abs(hopArc(0, PERCH.altar, .5) - (PERCH.altar / 2 + lift)) < 1e-12);
+  assert.ok(ys.every(y => y >= -1e-12), 'never dips below the floor');
+  const frames = [];
   a.target = new THREE.Vector3(2, 0, 0);
+  for (let i = 0; i < 120; i++) { slideTo(a, 1 / 60); frames.push(a.g.position.y); }
+  assert.equal(a.g.position.y, 0, 'back on the floor');
+  assert.ok(Math.max(...frames) > PERCH.altar, 'hops off rather than sinking through the edge');
+  assert.ok(frames.every(y => y >= -1e-12));
+  // Per-frame height change stays a smooth hop, not a pop.
+  const all = [...ys, ...frames];
+  assert.ok(all.every((y, i) => i === 0 || Math.abs(y - all[i - 1]) < .12));
+});
+
+test('no hop on a low step, a teleport, or furniture appearing underfoot', () => {
+  const a = dog();
+  a.target = new THREE.Vector3(1, perchHeight('down'), 0);
+  const ys = [];
+  for (let i = 0; i < 90; i++) { slideTo(a, 1 / 60); ys.push(a.g.position.y); }
+  assert.ok(Math.max(...ys) <= PERCH.down + 1e-9, 'the down stair just ramps');
+  const b = dog();
+  b.target = new THREE.Vector3(5, PERCH.throne, 0);
+  const far = [];
+  for (let i = 0; i < 90; i++) { slideTo(b, 1 / 60); far.push(b.g.position.y); }
+  assert.ok(Math.max(...far) <= PERCH.throne + 1e-9, 'a teleport eases');
+  b.target = new THREE.Vector3(5, PERCH.altar, 0);
+  const under = [];
+  for (let i = 0; i < 90; i++) { slideTo(b, 1 / 60); under.push(b.g.position.y); }
+  assert.ok(Math.max(...under) <= PERCH.altar + 1e-9 && Math.abs(b.g.position.y - PERCH.altar) < 1e-3, 'standing still, it just rises');
+});
+
+test('a hop interrupted by the next step carries on from where it is', () => {
+  const a = dog();
+  a.target = new THREE.Vector3(1, PERCH.altar, 0);
+  for (let i = 0; i < 6; i++) slideTo(a, 1 / 60);
+  const mid = a.g.position.y;
+  a.target = new THREE.Vector3(2, 0, 0);
+  slideTo(a, 1 / 60);
+  assert.ok(Math.abs(a.g.position.y - mid) < .12, 'no jump in height');
   for (let i = 0; i < 120; i++) slideTo(a, 1 / 60);
-  assert.ok(Math.abs(a.g.position.y) < 1e-3, 'back on the floor');
+  assert.equal(a.g.position.y, 0);
+});
+
+test('heavy movers hop too, at their own pace, and others can pose y in between', () => {
+  const a = turtle();
+  a.target = new THREE.Vector3(1, PERCH.grave, 0);
+  const ys = [];
+  for (let i = 0; i < 240; i++) {
+    slideTo(a, 1 / 60);
+    ys.push(a.g.position.y);
+    a.g.position.y += .3; a.g.position.y -= .3; // an action pose, taken back
+  }
+  assert.ok(Math.max(...ys) > PERCH.grave);
+  assert.ok(Math.abs(a.g.position.y - PERCH.grave) < 1e-9);
+  // Something else moving the actor (a level change) starts it afresh from there.
+  a.g.position.set(7, 0, 7);
+  a.target = new THREE.Vector3(7, 0, 7);
+  slideTo(a, 1 / 60);
+  assert.equal(a.g.position.y, 0);
 });
