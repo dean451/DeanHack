@@ -2,14 +2,19 @@ import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {fireTrapAnimator} from './fire-trap-fx.js';
+import {sigilAnimator} from './sigil-fx.js';
 
 // The bridge reports traps as generic `feature` cells, so the trap family comes
 // from the map symbol and its colour (drawing.c defsyms). Several traps share a
 // colour, so each model stands for its family, not one exact trap.
 // A newer bridge also sends the trap's name, which tells the vibrating square (magenta, like a
-// teleport trap) apart.
+// teleport trap) apart, arrow and dart traps from the bear trap (all cyan), and the squeaky
+// board from the trap door (both brown).
 export function trapKind(symbol,color,name){
  if(name==='vibrating square')return 'vibrating';
+ if(name==='arrow trap')return 'arrow';
+ if(name==='dart trap')return 'dart';
+ if(name==='squeaky board')return 'squeaky';
  if(symbol===34)return 'web';            // '"'
  if(symbol!==94)return null;             // '^'
  return {0:'pit',1:'mine',3:'hatch',4:'rust',6:'jaws',7:'rubble',9:'fire',
@@ -128,7 +133,7 @@ export function createTrap(kind,seed=0){
   add(mergeGeometries(parts),mat({color:0xffffff,vertexColors:true,roughness:.93})).name='pit-rim';
   parts.forEach(p=>p.dispose());
  }else if(kind==='hatch'){
-  // Trap door / hole / squeaky board: a heavy door of warped, rotting planks in an iron-bound
+  // Trap door / hole (and a squeaky board when the bridge sends no name): a heavy door of warped, rotting planks in an iron-bound
   // frame, left ajar. Its free edge has lifted off the frame on a black gap, and bony fingers
   // with long claws have curled out from under it over the beam, leaving a smear of blood.
   // Barbed strap hinges, studs and a rusted pull ring hold it together. Three merged,
@@ -201,8 +206,188 @@ export function createTrap(kind,seed=0){
   }
   const iron=add(mergeGeometries(irons),mat({color:0xffffff,vertexColors:true,metalness:.6,roughness:.55}));iron.name='hatch-iron';
   for(const p of [...woody,...irons])p.dispose();
+ }else if(kind==='arrow'||kind==='dart'){
+  // Arrow and dart traps: a snarling stone mask squats at the back of the tile, horned and
+  // spiked, slit eyes glowing, with arrowheads (or venom-tipped darts) bristling between its
+  // fangs. In front, a sunken pressure plate with a dried bloodstain; spent shafts stand in the
+  // floor where they struck, leaning back toward the mouth, and a snapped one lies by the plate.
+  // Three draws: stone, shafts and the eyes' glow.
+  const dart=kind==='dart',stoneParts=[],shaftParts=[],glowParts=[];
+  const noise=(x,y,z)=>{const s=Math.sin(x*157.3+y*311.9+z*97.1+seed*3.7)*43758.5453;return s-Math.floor(s);};
+  const up=new THREE.Vector3(0,1,0),q=new THREE.Quaternion(),m=new THREE.Matrix4(),one=new THREE.Vector3(1,1,1);
+  // Transforms a part, optionally chips it (offsets depend only on position, so shared corners
+  // stay shut), then paints it and files it in a bin.
+  const put=(bin,geo,matrix,paint,chip=0)=>{
+   const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();
+   n.applyMatrix4(matrix);n.deleteAttribute('uv');
+   const pos=n.attributes.position;
+   if(chip){for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+    pos.setXYZ(i,x+(noise(x,y,z)-.5)*chip,y+(noise(z,x,y)-.5)*chip,z+(noise(y,z,x)-.5)*chip);}n.computeVertexNormals();}
+   const col=new Float32Array(pos.count*3),c=new THREE.Color();
+   for(let i=0;i<pos.count;i++){paint(c,pos.getX(i),pos.getY(i),pos.getZ(i));col.set([c.r,c.g,c.b],i*3);}
+   n.setAttribute('color',new THREE.BufferAttribute(col,3));bin.push(n);
+  };
+  const at=(x,y,z,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1)=>m.clone().compose(new THREE.Vector3(x,y,z),q.clone().setFromEuler(new THREE.Euler(rx,ry,rz)),new THREE.Vector3(sx,sy,sz));
+  const rock=new THREE.Color(0x5e5d57),moss=new THREE.Color(0x2c3020),soot=new THREE.Color(0x1b1a18),black=new THREE.Color(0x070606);
+  const bone=new THREE.Color(0xb3a684),blood=new THREE.Color(0x3a0c08);
+  const stone=(lift=0)=>(c,x,y,z)=>{const h=noise(x,y,z);c.copy(rock).offsetHSL(0,0,lift+(h-.5)*.08);
+   if(y<.05)c.lerp(moss,(1-y/.05)*.55*noise(z,x,0));if(h>.86)c.lerp(soot,.6);};
+  const flat=(col)=>(c)=>c.copy(col);
+  // The plate: a gap of shadow, then a slab set a hair proud of the floor, chipped at the edges,
+  // stained where something bled out on it.
+  const px=.02,pz=.08;
+  put(stoneParts,new THREE.BoxGeometry(.34,.004,.34),at(px,.002,pz),flat(black));
+  put(stoneParts,new THREE.BoxGeometry(.3,.014,.3,4,1,4),at(px,.007,pz,0,.06),(c,x,y,z)=>{stone(.03)(c,x,y,z);
+   const d=Math.hypot(x-px-.05,z-pz-.03)+(noise(x,0,z)-.5)*.05;if(y>.01&&d<.09)c.lerp(blood,Math.min(1,(.09-d)*22));},.008);
+  // The mask block, chipped hard so it reads as old hewn stone.
+  const zf=-.3;
+  put(stoneParts,new THREE.BoxGeometry(.44,.27,.13,6,4,2),at(0,.135,zf-.065),stone(),.02);
+  // Crown of jagged spikes and two swept-back horns.
+  for(let i=0;i<7;i++){const x=-.18+i*.06,h=.05+noise(i,1,2)*.07+(i===3?.04:0);
+   put(stoneParts,new THREE.ConeGeometry(.022,h,4),at(x,.27+h/2,zf-.06+(noise(i,3,1)-.5)*.04,(noise(i,0,5)-.5)*.4,i*.7,(x>0?-1:1)*.2*(1+noise(i,2,2))),stone(-.02));}
+  for(const s of [-1,1]){let p=new THREE.Vector3(s*.2,.24,zf-.05),r=.035;
+   for(let k=0;k<4;k++){const len=.06-k*.006,dir=new THREE.Vector3(s*(.7-k*.15),.6+k*.25,-.35-k*.1).normalize();
+    const mid=p.clone().addScaledVector(dir,len/2);
+    const seg=new THREE.CylinderGeometry(r*.72,r,len,6);
+    put(stoneParts,seg,m.clone().compose(mid,q.clone().setFromUnitVectors(up,dir),one),(c,x,y,z)=>c.copy(bone).lerp(soot,.35+k*.12+(noise(x,y,z)-.5)*.2));
+    p.addScaledVector(dir,len);r*=.72;}
+   put(stoneParts,new THREE.ConeGeometry(r,.03,6),m.clone().compose(p.clone().add(new THREE.Vector3(0,.012,-.004)),q.clone().setFromUnitVectors(up,new THREE.Vector3(s*.2,1,-.6).normalize()),one),flat(soot));}
+  // Scowling brow meeting low over the nose, sunk eye pits with slit pupils, a hooked nose.
+  for(const s of [-1,1]){
+   put(stoneParts,new THREE.BoxGeometry(.16,.035,.05),at(s*.085,.205,zf+.012,.1,0,s*.32),stone(.04),.006);
+   put(stoneParts,new THREE.SphereGeometry(.036,10,6),at(s*.09,.168,zf+.006,0,0,s*.35,1,.62,.35),flat(black));
+   put(glowParts,new THREE.BoxGeometry(.008,.034,.01),at(s*.09,.168,zf+.014,0,0,s*.2),flat(new THREE.Color(0xffffff)));
+  }
+  put(stoneParts,new THREE.ConeGeometry(.026,.07,4),at(0,.14,zf+.018,-.5,Math.PI/4,0,1,1,.7),stone(.02));
+  // The mouth: a black maw with fangs above and below; the barbed heads wait between them.
+  put(stoneParts,new THREE.BoxGeometry(.27,.075,.02),at(0,.075,zf+.004),flat(black));
+  const fangs=dart?8:6;
+  for(let i=0;i<fangs;i++){const x=-.12+(i+.5)*(.24/fangs),h=.03+noise(i,9,1)*.02;
+   put(stoneParts,new THREE.ConeGeometry(.011,h,4),at(x,.112-h/2,zf+.012,0,0,Math.PI),(c,x0,y)=>c.copy(bone).lerp(soot,Math.max(0,(y-.09)*15)));
+   put(stoneParts,new THREE.ConeGeometry(.01,h*.8,4),at(x+.012,.038+h*.4,zf+.012),(c,x0,y)=>c.copy(bone).lerp(soot,Math.max(0,(.05-y)*15)));}
+  // A lower lip and a split chin give the jaw some weight.
+  put(stoneParts,new THREE.BoxGeometry(.3,.03,.04),at(0,.024,zf+.014,.15),stone(.03),.006);
+  // Shafts: built tip at the origin, running back along +y.
+  const steel=new THREE.Color(0x7b8589),rust=new THREE.Color(0x5a3420),venom=new THREE.Color(0x5bd23a);
+  const wood=new THREE.Color(dart?0x3a3d40:0x4a3424),fletch=new THREE.Color(dart?0x7a1610:0x141416),fletch2=new THREE.Color(dart?0xb3a684:0x262022);
+  const len=dart?.15:.25;
+  const shaft=(tip,back,full=true,size=len)=>{const mat4=m.clone().compose(tip,q.clone().setFromUnitVectors(up,back.clone().normalize()),one);
+   const part=(geo,local,paint)=>put(shaftParts,geo,mat4.clone().multiply(local),paint);
+   const head=new THREE.ConeGeometry(dart?.008:.013,dart?.03:.045,4);head.rotateX(Math.PI);head.translate(0,dart?.015:.0225,0);
+   part(head,new THREE.Matrix4(),(c,x,y,z)=>{c.copy(steel).lerp(rust,noise(x,y,z)*.6);if(dart&&y-tip.y<.02&&Math.hypot(x-tip.x,z-tip.z)<.03)c.copy(venom);});
+   if(dart)part(new THREE.SphereGeometry(.006,6,4),at(0,.002,0),flat(venom));
+   const L=full?size:size*.55,hl=dart?.03:.045;
+   part(new THREE.CylinderGeometry(.0042,.0042,L-hl,5),at(0,(L+hl)/2,0),(c,x,y,z)=>c.copy(wood).offsetHSL(0,0,(noise(x,y,z)-.5)*.05));
+   if(!full){part(new THREE.ConeGeometry(.006,.02,3),at(0,L+.008,0,.4),flat(wood));return;}
+   for(let k=0;k<3;k++)part(new THREE.BoxGeometry(.0016,dart?.035:.055,.02),at(0,L-(dart?.025:.035),0,0,k*Math.PI*2/3).multiply(at(0,0,.011,.12)),(c,x,y)=>c.copy(k?fletch:fletch2));
+  };
+  // Heads waiting in the maw, pointing out (short: the rest is hidden in the block).
+  const out=new THREE.Vector3(0,0,-1);
+  for(let i=0;i<(dart?5:3);i++){const x=(i-(dart?2:1))*(dart?.045:.065),y=.068+(i%2)*.012;
+   shaft(new THREE.Vector3(x,y,zf+(dart?.03:.045)),out.clone().add(new THREE.Vector3(x*.5,0,0)),true,.13);}
+  // Spent shafts stuck in the floor, leaning back toward the mouth they flew from.
+  const mouth=new THREE.Vector3(0,.08,zf);
+  const spots=dart?[[-.3,.12],[.28,.02],[-.12,.36],[.18,.32],[.36,.3],[-.32,.36]]:[[-.28,.1],[.3,.06],[-.1,.36],[.22,.34]];
+  for(const [x,z] of spots){const tip=new THREE.Vector3(x+(noise(x,z,1)-.5)*.04,-.018,z+(noise(z,x,1)-.5)*.04);
+   const h=Math.hypot(tip.x-mouth.x,tip.z-mouth.z),back=new THREE.Vector3(mouth.x-tip.x,h*.85,mouth.z-tip.z);
+   shaft(tip,back);}
+  // A snapped shaft lying by the plate.
+  shaft(new THREE.Vector3(.27,.006,.3),new THREE.Vector3(-.4,.02,.9),false);
+  const stoneMesh=add(mergeGeometries(stoneParts),mat({color:0xffffff,vertexColors:true,roughness:.93}));stoneMesh.name=`${kind}-stone`;
+  const shaftMesh=add(mergeGeometries(shaftParts),mat({color:0xffffff,vertexColors:true,metalness:.35,roughness:.6}));shaftMesh.name=`${kind}-shafts`;
+  const eyes=new THREE.MeshBasicMaterial({color:new THREE.Color(dart?0x8cff5a:0xff3a1e).multiplyScalar(1.3),vertexColors:true});materials.push(eyes);
+  const glow=add(mergeGeometries(glowParts),eyes);glow.name=`${kind}-eyes`;glow.castShadow=false;
+  for(const p of [...stoneParts,...shaftParts,...glowParts])p.dispose();
+ }else if(kind==='squeaky'){
+  // Squeaky board: a patch of rotten floorboards nailed down over a black void. The middle board
+  // has sprung its nails at one end and warps up off the floor like a lip, split along its grain
+  // and bristling with splinters, baring rows of needle teeth in the dark beneath it. The crack
+  // beside it gapes wider than the rest, and two sickly eyes look up through it.
+  // Three draws: the wood, the bone and iron, and the eyes' glow.
+  const woodParts=[],boneParts=[],glowParts=[];
+  const noise=(x,y,z)=>{const s=Math.sin(x*157.3+y*311.9+z*97.1+seed*3.7)*43758.5453;return s-Math.floor(s);};
+  const up=new THREE.Vector3(0,1,0),q=new THREE.Quaternion(),m=new THREE.Matrix4(),one=new THREE.Vector3(1,1,1);
+  // Transforms a part, optionally chips it (by position only, so shared corners stay shut) and
+  // bends it, then paints it and files it in a bin.
+  const put=(bin,geo,matrix,paint,{chip=0,bend=null}={})=>{
+   const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();
+   n.applyMatrix4(matrix);n.deleteAttribute('uv');
+   const pos=n.attributes.position;
+   for(let i=0;i<pos.count;i++){let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+    if(chip){const dx=(noise(x,y,z)-.5)*chip,dy=(noise(z,x,y)-.5)*chip*.4,dz=(noise(y,z,x)-.5)*chip;x+=dx;y+=dy;z+=dz;}
+    if(bend)y+=bend(x,z);pos.setXYZ(i,x,y,z);}
+   if(chip||bend)n.computeVertexNormals();
+   const col=new Float32Array(pos.count*3),c=new THREE.Color();
+   for(let i=0;i<pos.count;i++){paint(c,pos.getX(i),pos.getY(i),pos.getZ(i));col.set([c.r,c.g,c.b],i*3);}
+   n.setAttribute('color',new THREE.BufferAttribute(col,3));bin.push(n);
+  };
+  const at=(x,y,z,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1)=>m.clone().compose(new THREE.Vector3(x,y,z),q.clone().setFromEuler(new THREE.Euler(rx,ry,rz)),new THREE.Vector3(sx,sy,sz));
+  const along=(p,dir)=>m.clone().compose(p,q.clone().setFromUnitVectors(up,dir.clone().normalize()),one);
+  const flat=(col)=>(c)=>c.copy(col);
+  const timber=new THREE.Color(0x4a3626),grain=new THREE.Color(0x24180f),worn=new THREE.Color(0x6e5439),rot=new THREE.Color(0x1c2117);
+  const black=new THREE.Color(0x050404),gouge=new THREE.Color(0x0e0907);
+  // Old boards: dark grain running their length, worn pale down the middle where feet pass,
+  // blackening with rot toward the ends.
+  const board=(salt)=>(c,x,y,z)=>{
+   const g=Math.sin(z*260+salt*5+Math.sin(x*14+salt)*1.6)*.5+.5;
+   c.copy(timber).lerp(grain,g*g*.6).offsetHSL(0,0,(noise(x,y,z)-.5)*.05);
+   if(y>.018)c.lerp(worn,Math.max(0,.3-Math.abs(x))*.9*(1-g*.5));
+   c.lerp(rot,Math.min(1,Math.max(0,Math.abs(x)-.2)*7)*(.4+noise(z,x,salt)*.5));
+  };
+  // The void under the floor.
+  put(woodParts,new THREE.BoxGeometry(.64,.003,.5),at(0,.0015,0),flat(black));
+  // Five boards across the tile; the gap beside the middle one gapes.
+  const widths=[.085,.085,.075,.085,.085],gaps=[.012,.012,.03,.012];
+  const total=widths.reduce((a,b)=>a+b)+gaps.reduce((a,b)=>a+b);
+  const lift=(x)=>{const d=Math.max(0,x+.1);return d*d*.45;};
+  let z0=-total/2;const boards=[];
+  for(let i=0;i<widths.length;i++){
+   const w=widths[i],cz=z0+w/2,warped=i===2,L=.58+noise(i,4,1)*.06,cx=(noise(i,7,3)-.5)*.03;
+   boards.push({cz,w,warped,L,cx});
+   put(woodParts,new THREE.BoxGeometry(L,.02,w-.004,30,1,4),at(cx,.012,cz,0,(noise(i,2,9)-.5)*.03),board(i),
+    {chip:.006,bend:warped?(x,z)=>lift(x)+(z-cz)*Math.max(0,x)*.25:null});
+   z0+=w+(gaps[i]||0);
+  }
+  const mid=boards[2],gapZ=mid.cz+mid.w/2+gaps[2]/2;
+  // The split down the warped board, and splinters standing up along it.
+  for(let k=0;k<14;k++){const x=.02+k*.02,lz=mid.cz+Math.sin(k*1.7)*.004;
+   put(woodParts,new THREE.BoxGeometry(.021,.002,.0045),at(x,.0225+lift(x)+.0005,lz,0,Math.sin(k*1.3)*.4),flat(gouge));}
+  for(let k=0;k<6;k++){const x=.1+k*.035+noise(k,1,1)*.015,lz=mid.cz+(k%2?.006:-.006),y=.022+lift(x);
+   put(woodParts,new THREE.ConeGeometry(.0045,.025+noise(k,5,5)*.025,3),along(new THREE.Vector3(x,y+.01,lz),new THREE.Vector3(.6,1,(k%2?1:-1)*.5)),(c,x2,y2)=>c.copy(worn).lerp(grain,Math.max(0,(y-y2)*30+.3)));}
+  // Claw gouges dragged across the boards either side, from the crack outward.
+  for(const [side,x0] of [[-1,.05],[1,-.12],[1,.16]]){const a=side*(.25+noise(x0,1,0)*.3);
+   for(let j=-1;j<=1;j++){const len=.06+noise(x0,j,2)*.035,zs=(side<0?mid.cz-mid.w/2-.012:gapZ+gaps[2]/2)+side*len/2,xs=x0+j*.017;
+    put(woodParts,new THREE.BoxGeometry(.004,.002,len),at(xs+Math.sin(a)*len*.5,.0228,zs,0,a),flat(gouge));}}
+  // Bone and iron.
+  const bone=new THREE.Color(0xb3a684),boneDark=new THREE.Color(0x5e5440),claw=new THREE.Color(0x141110);
+  const iron=new THREE.Color(0x2b2826),rust=new THREE.Color(0x5a3420);
+  const metal=(c,x,y,z)=>c.copy(iron).lerp(rust,noise(x,y,z)*.7);
+  // Nail heads at the board ends; the warped board has torn free at its far end.
+  for(const b of boards)for(const s of [-1,1]){if(b.warped&&s>0)continue;
+   for(const o of [-.022,.022])put(boneParts,new THREE.CylinderGeometry(.0065,.0075,.004,6),at(b.cx+s*(b.L/2-.03),.0235,b.cz+o),metal);}
+  // A sprung nail lying bent by the lifted end, and another still standing up out of it.
+  put(boneParts,new THREE.CylinderGeometry(.0025,.0025,.045,4),at(.36,.026,mid.cz+.07,0,.5,Math.PI/2-.12),metal);
+  put(boneParts,new THREE.CylinderGeometry(.007,.007,.003,6),at(.338,.028,mid.cz+.058,.1,.5,Math.PI/2-.12),metal);
+  {const p=new THREE.Vector3(.2,.022+lift(.2),mid.cz+.02);put(boneParts,new THREE.CylinderGeometry(.0025,.002,.04,4),along(p.clone().add(new THREE.Vector3(.004,.018,0)),new THREE.Vector3(.25,1,.1)),metal);}
+  // The mouth: under the lifted end the void is lined with needle teeth, rows hanging from the
+  // board's underside and rising from the dark to meet them, yellowed and black at the root.
+  const tooth=(root,tipY)=>(c,x,y)=>c.copy(bone).lerp(boneDark,.25+noise(x,y,root)*.25).lerp(claw,Math.max(0,1-Math.abs(y-root)/Math.max(.004,Math.abs(tipY-root)*.35)));
+  for(let k=0;k<9;k++){const x=.06+k*.028,gape=lift(x),lz=mid.cz+(k%2?.016:-.016)+(noise(k,3,3)-.5)*.008;
+   if(gape<.012)continue;
+   const h=gape*(.55+noise(k,6,2)*.2),top=.002+gape,r=.0035+gape*.04;
+   const down=new THREE.ConeGeometry(r,h,5);down.rotateX(Math.PI);
+   put(boneParts,down,at(x,top-h/2,lz,0,0,(noise(k,1,8)-.5)*.3),tooth(top,top-h));
+   const h2=gape*(.45+noise(k,2,6)*.2),lz2=mid.cz+(k%2?-.012:.012);
+   put(boneParts,new THREE.ConeGeometry(r*.9,h2,5),at(x+.012,.003+h2/2,lz2,0,0,(noise(k,9,1)-.5)*.3),tooth(.003,.003+h2));}
+  // Two eyes looking up through the wide crack.
+  for(const x of [-.135,-.095])put(glowParts,new THREE.SphereGeometry(.011,10,6),at(x,.004,gapZ,0,.08,0,1,.3,.55),(c,x2,y,z)=>c.setScalar(Math.abs(x2-x)<.0025?.15:1));
+  const woodMesh=add(mergeGeometries(woodParts),mat({color:0xffffff,vertexColors:true,roughness:.92}));woodMesh.name='squeaky-wood';
+  const boneMesh=add(mergeGeometries(boneParts),mat({color:0xffffff,vertexColors:true,metalness:.2,roughness:.62}));boneMesh.name='squeaky-bone';
+  const eyes=new THREE.MeshBasicMaterial({color:new THREE.Color(0xe8d040).multiplyScalar(1.3),vertexColors:true});materials.push(eyes);
+  const glow=add(mergeGeometries(glowParts),eyes);glow.name='squeaky-eyes';glow.castShadow=false;
+  for(const p of [...woodParts,...boneParts,...glowParts])p.dispose();
  }else if(kind==='jaws'){
-  // Bear trap (also stands in for arrow and dart traps), set and open: two
+  // Bear trap (also arrow and dart traps when the bridge sends no name), set and open: two
   // hinged jaw bands lying flat in a ring with serrated teeth standing up, the
   // trigger pan in the middle, a leaf spring on each side with its collar over
   // the jaw ends, and a chain to a stake. It is all one vertex-coloured mesh,
@@ -749,6 +934,8 @@ export function createTrap(kind,seed=0){
   const solidMat=kind==='ice'?mat({color:0xffffff,vertexColors:true,roughness:.15,metalness:.1,transparent:true,opacity:.82}):mat({color:0xffffff,vertexColors:true,roughness:.55});
   const solidMesh=add(mergeGeometries(solid),solidMat);solidMesh.name=kind==='ice'?'sigil-frost':'sigil-wax';
   solid.forEach(p=>p.dispose());
+  // The sigil beats and its candle flames gutter (sigil-fx.js).
+  g.userData.animate=sigilAnimator(g,seed);
  }else if(kind==='portal'){
   // Magic portal: a standing-stone arch around a swirling violet rift, over a
   // scorched rune circle. Only the portal uses bright magenta, so it gets its own model.

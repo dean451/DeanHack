@@ -6,8 +6,9 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // animation; supplied stone textures remain owned by the scene that created them.
 //
 // A round basin on a twelve-sided plinth: a moulded lathe wall capped by eight
-// dressed coping slabs, a baluster pedestal and a gilt bowl whose four lips pour
-// thin streams back into the pool. Stone is lightly roughened by a position-keyed
+// dressed coping slabs, a baluster pedestal and a thorn-crowned gilt bowl whose four
+// lips pour thin streams back into the pool. Four horned gargoyle heads snarl out from
+// the pedestal between the streams, spitting jets of their own, eyes lit by the water. Stone is lightly roughened by a position-keyed
 // noise, and its weathering is baked into vertex colours (mottling, dark seams, a wet
 // band at the waterline, moss in the damp places, grime at the foot). Static parts
 // are merged into one mesh per material; the pool surface stays its own mesh, and
@@ -61,6 +62,19 @@ export function createFountain({materials={},scale=1}={}) {
   put(stream,waterMaterial,0,0,0,-a);
  }
  put(new THREE.CylinderGeometry(.35,.35,.012,40),waterMaterial,0,.955,0);
+ // A crown of thorns round the bowl's rim: twelve tapered barbs leaning out, set
+ // between the pouring lips.
+ for(let i=0;i<12;i++){const a=i*Math.PI/6+Math.PI/12,h=.045+(i*7%5)*.006;
+  const thorn=new THREE.ConeGeometry(.011,h,5).translate(0,h/2,0).rotateZ(-.45-(i%3)*.12).rotateY(-a);
+  put(thorn,gold,Math.cos(a)*.37,.962,Math.sin(a)*.37);
+ }
+ // Four horned gargoyle heads glare out from the pedestal between the streams, each
+ // spitting its own thin jet into the pool; their sunken eyes catch the water's glow.
+ for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;
+  for(const [geo,m] of gargoyleHead(i))put(geo,m===0?trim:waterMaterial,Math.cos(a)*.13,.58,Math.sin(a)*.13,-a,.9);
+  const pts=[new THREE.Vector3(.235,.565,0),new THREE.Vector3(.32,.56,0),new THREE.Vector3(.4,.48,0),new THREE.Vector3(.45,.36,0)];
+  put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),12,.007,6,false),waterMaterial,0,0,0,-a);
+ }
 
  // Bake weathering into the stone and trim, then merge each bin into one mesh.
  const n=new THREE.Vector3();
@@ -103,6 +117,33 @@ export function createFountain({materials={},scale=1}={}) {
  };
  g.userData.dispose=()=>{geometries.forEach(o=>o.dispose());own.forEach(o=>o.dispose());spray.dispose();ripples.dispose();};
  g.userData.updateFountain(0);return g;
+}
+
+// A snarling gargoyle head facing +x, its back sunk into the pedestal: a heavy skull,
+// a long gaping muzzle with fangs above and below, a scowling brow, swept-back ears and
+// two ridged horns curling back over the crown. Returns [geometry, 0 stone | 1 eyes].
+function gargoyleHead(variant){
+ const parts=[];
+ const blob=(r,sx,sy,sz,x,y,z,rz=0,ry=0)=>{parts.push([new THREE.SphereGeometry(r,12,8).scale(sx,sy,sz).rotateZ(rz).rotateY(ry).translate(x,y,z),0]);};
+ const fang=(x,y,z,h,down)=>{parts.push([new THREE.ConeGeometry(.0055,h,5).rotateZ(down?Math.PI:0).translate(x,y+(down?-h/2:h/2),z),0]);};
+ blob(.05,1.1,.9,.95,.03,.005,0);                    // skull
+ blob(.034,1.45,.5,.72,.085,.004,0,.12);              // upper jaw, tipped up in a snarl
+ blob(.03,1.4,.36,.6,.08,-.04,0,-.32);                // lower jaw, dropped open
+ blob(.012,1,1,1,.13,.018,0);                         // flared snout
+ for(const z of [-1,1]){
+  blob(.017,1.9,.55,.75,.068,.034,z*.02,.35,z*.5);    // brow ridge, pinched into a V
+  parts.push([new THREE.SphereGeometry(.0085,8,6).translate(.074,.02,z*.021),1]);   // eye
+  blob(.016,1.6,.45,.35,.0,.035,z*.05,.5,z*.9);       // swept-back ear
+  fang(.118,-.006,z*.011,.026,true);fang(.1,-.004,z*.022,.018,true);
+  fang(.104,-.058,z*.012,.02,false);
+  // Horn: a tube along a curve, tapered to a point by pulling each ring to its centre.
+  const curve=new THREE.CatmullRomCurve3([[.03,.04,z*.035],[.0,.085,z*.055],[-.06,.11,z*.06],[-.1,.085+variant%2*.02,z*.045],[-.105,.05,z*.03]].map(p=>new THREE.Vector3(...p)));
+  const T=14,R=6,horn=new THREE.TubeGeometry(curve,T,.016,R,false),p=horn.attributes.position,c=new THREE.Vector3();
+  for(let t=0;t<=T;t++){curve.getPointAt(t/T,c);const k=Math.pow(1-t/T,.8)*(1-.18*(t%2));
+   for(let j=0;j<=R;j++){const n=t*(R+1)+j;p.setXYZ(n,c.x+(p.getX(n)-c.x)*k,c.y+(p.getY(n)-c.y)*k,c.z+(p.getZ(n)-c.z)*k);}}
+  horn.computeVertexNormals();parts.push([horn,0]);
+ }
+ return parts;
 }
 
 // A multiplier over the material's own colour and texture: mottling, dark seams,

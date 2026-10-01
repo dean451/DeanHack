@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createTrap,trapKind} from './trap.js';
 import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
+import {beatAt,flameAt,attachSigilFx,BEAT_EVERY,GLOW_REST} from './sigil-fx.js';
 
-const KINDS=['pit','hatch','jaws','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
+const KINDS=['pit','hatch','jaws','arrow','dart','squeaky','mine','rubble','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
 test('magic portals get their own kind; teleporters keep the rune circle',()=>{
  assert.equal(trapKind(94,13),'portal');
@@ -315,5 +316,59 @@ test('the magic traps are a burning sigil with a staring eye, ringed by black ca
   let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
   assert(vertices<16000,`${kind} is ${vertices} vertices`);
   if(!seed)console.log(`${kind} sigil: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}`);
+ }
+});
+
+test('the sigil beats lub-dub and its candle flames are drawn toward the eye, gutter and come back',()=>{
+ // The beat: two throbs close together, then a long dim wait; continuous, and it catches the bloom only on the throbs.
+ let lo=Infinity,hi=-Infinity,bright=0,n=0;
+ for(let t=0;t<BEAT_EVERY*20;t+=1/120){const g=beatAt(t,.4).glow;assert(Number.isFinite(g));lo=Math.min(lo,g);hi=Math.max(hi,g);if(g>1.25)bright++;n++;
+  assert(Math.abs(beatAt(t+1/120,.4).glow-g)<.03,'the beat should not jump between frames');}
+ assert(Math.abs(lo-GLOW_REST)<.01&&hi>1.5&&hi<1.7,`beat ${lo}..${hi}`);
+ assert(bright/n>.05&&bright/n<.3,`over the bloom ${(bright/n*100).toFixed(0)}% of the time`);
+ let dips=0,prev=1;
+ for(let t=0;t<240;t+=1/30){const f=flameAt(t,3,.2);for(const v of Object.values(f))assert(Number.isFinite(v));if(f.bright<.6&&prev>=.6)dips++;prev=f.bright;}
+ assert(dips>=2&&dips<=30,`${dips} near-snuffs in 4 minutes`);
+ for(const kind of ['teleport','polymorph','ice']){
+  const model=createTrap(kind,7),glow=model.getObjectByName('sigil-glow');
+  const fx=attachSigilFx(model);assert.equal(fx.flames.length,kind==='ice'?0:kind==='polymorph'?7:5,`${kind} candle flames`);
+  const pos=glow.geometry.attributes.position,rest=pos.array.slice(),meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  let top=0;
+  for(let t=0;t<30;t+=1/30){model.userData.animate(t);for(let v=0;v<pos.count;v++)top=Math.max(top,pos.getY(v));}
+  for(let v=0;v<pos.count;v++)if(rest[v*3+1]<.015)assert.equal(pos.getY(v),rest[v*3+1],'the flat strokes stay put');
+  if(kind==='ice')assert(top<.01);else assert(top<.2&&top>.05,`${kind} flames reach y ${top}`);
+  let after=0;model.traverse(o=>{if(o.isMesh)after++;});assert.equal(after,meshes.length,'no extra draws');
+ }
+});
+
+test('arrow and dart traps get the arrow mask by name; nameless cyan traps stay bear traps',()=>{
+ assert.equal(trapKind(94,6,'arrow trap'),'arrow');
+ assert.equal(trapKind(94,6,'dart trap'),'dart');
+ assert.equal(trapKind(94,6,'bear trap'),'jaws');
+ assert.equal(trapKind(94,6),'jaws');
+ for(const kind of ['arrow','dart'])for(const seed of [0,3,42]){
+  const model=createTrap(kind,seed);
+  const meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.deepEqual(meshes.map(o=>o.name).sort(),[`${kind}-eyes`,`${kind}-shafts`,`${kind}-stone`]);
+  const b=new THREE.Box3().setFromObject(model);
+  assert(b.max.y>.3&&b.max.y<.6,`${kind} mask height ${b.max.y}`);
+  for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&Number.isFinite(v));}
+  model.userData.dispose();
+ }
+});
+
+test('squeaky boards get their own warped floorboards by name; nameless brown traps stay trap doors',()=>{
+ assert.equal(trapKind(94,3,'squeaky board'),'squeaky');
+ assert.equal(trapKind(94,3,'trap door'),'hatch');
+ assert.equal(trapKind(94,3),'hatch');
+ for(const seed of [0,3,42]){
+  const model=createTrap('squeaky',seed);
+  const meshes=[];model.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.deepEqual(meshes.map(o=>o.name).sort(),['squeaky-bone','squeaky-eyes','squeaky-wood']);
+  const b=new THREE.Box3().setFromObject(model);
+  assert(b.max.y>.06&&b.max.y<.2,`squeaky board height ${b.max.y}`);
+  assert(b.min.y>=-.01,'squeaky board sinks into the floor');
+  for(const o of meshes){const c=o.geometry.attributes.color.array;for(const v of c)assert(v>=0&&Number.isFinite(v));}
+  model.userData.dispose();
  }
 });

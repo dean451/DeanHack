@@ -13,11 +13,12 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // - long, thick arms that hang to the knee, a spur at each elbow, and webbed four-fingered hands
 //   with black hooked claws;
 // - squat, crouched legs on wide webbed feet with three clawed toes.
-// Each moving part (body, head, jaw, each leg and arm) is one merged, vertex-coloured mesh with a
-// shared material, plus one small glowing mesh for the eyes: 8 draws. Geometry is built once and
-// shared by every hezrou.
-// Handles: legs, arms, arm, head, jaw, body. The jaw is a child of the head hinged about x
-// (jaw.js), so its bite gapes.
+// Each moving part (body, head, jaw, throat sac, each leg and arm, and the drool at each corner of
+// the mouth) is one merged, vertex-coloured mesh with a shared material, plus one small glowing
+// mesh for the eyes: 11 draws. Geometry is built once and shared by every hezrou.
+// Handles: legs, arms, arm, head, jaw, body, sac, drools. The jaw is a child of the head hinged
+// about x (jaw.js), so its bite gapes. The sac and the two drool groups are children of the jaw,
+// at rest scale 1, so hezrou-gurgle.js can swell the sac and stretch the drool.
 
 const HIDE=rgb('#5c6a2c'),HIDE_DARK=rgb('#303a16'),HIDE_BROWN=rgb('#5a4424'),WART=rgb('#8a8a3e'),WART_TIP=rgb('#b0a458');
 const BELLY=rgb('#c8b460'),BELLY_SHADE=rgb('#8e7e3a'),BONE=rgb('#d6c8a0'),BONE_DARK=rgb('#8a7a58');
@@ -106,7 +107,7 @@ function buildEyes(){
 }
 
 // the lower jaw, from its hinge at the back of the mouth: a wide scoop with teeth pointing up,
-// a dark mouth and tongue inside, a pale throat sac below and drool at the corners
+// a dark mouth and tongue inside (the throat sac and drool are separate meshes, see below)
 function buildJaw(){
  const P=pieces();
  add(P,new THREE.SphereGeometry(.16,26,12,0,Math.PI*2,Math.PI*.5,Math.PI*.5),at(0,.0,.06,[0,0,0],[1.3,.55,1.1]),(x,y,z,n)=>{
@@ -114,13 +115,26 @@ function buildJaw(){
  },[0,0,.06]);
  P.add(new THREE.CircleGeometry(.16,26),at(0,.002,.06,[-Math.PI/2,0,0],[1.28,1.08,1]),MOUTH);
  P.add(new THREE.SphereGeometry(.07,14,8),at(0,.004,.09,[0,0,0],[1.2,.3,1.5]),TONGUE);
- // the throat sac, puffed out under the chin
- P.add(new THREE.SphereGeometry(.12,16,10),at(0,-.07,.05,[0,0,0],[1.2,.6,1.1]),(x,y)=>mix(BELLY,BELLY_SHADE,(-.07-y)*10));
  for(let i=0;i<11;i++){
   const a=(i/10-.5)*2.3,len=.024+(Math.abs(Math.abs(a)-.7)<.15?.03:0);
   P.add(new THREE.ConeGeometry(.008,len,5),at(Math.sin(a)*.195,len/2,.06+Math.cos(a)*.162),TOOTH);
  }
- for(const s of [-1,1])for(const [dx,l] of [[0,.1],[.015,.06]])P.add(new THREE.CylinderGeometry(.004,.0015,l,5),at(s*(.2-dx),-l/2,.1),DROOL);
+ return P.merge();
+}
+
+// the throat sac, puffed out under the chin, centred on its group (at SAC in the jaw)
+const SAC=[0,-.07,.05];
+function buildSac(){
+ const P=pieces();
+ P.add(new THREE.SphereGeometry(.12,16,10),at(0,0,0,[0,0,0],[1.2,.6,1.1]),(x,y)=>mix(BELLY,BELLY_SHADE,-y*10));
+ return P.merge();
+}
+// two strings of drool hanging from the right corner of the mouth (the left is mirrored), from
+// their group's origin straight down, so scaling the group in y stretches them
+const DROOL_AT=[.2,0,.1];
+function buildDrool(){
+ const P=pieces();
+ for(const [dx,l] of [[0,.1],[.015,.06]])P.add(new THREE.CylinderGeometry(.004,.0015,l,5),at(-dx,-l/2,0),DROOL);
  return P.merge();
 }
 
@@ -176,7 +190,7 @@ function geometry(){
  if(shared)return shared;
  const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.55,side:THREE.DoubleSide});
  const eye=new THREE.MeshStandardMaterial({color:0xffe060,emissive:0xffb020,emissiveIntensity:2.6,roughness:.25});
- shared={material,eye,body:buildBody(),head:buildHead(),eyes:buildEyes(),jaw:buildJaw(),leg:buildLeg(),arm:{'-1':buildArm(-1),'1':buildArm(1)}};
+ shared={material,eye,body:buildBody(),head:buildHead(),eyes:buildEyes(),jaw:buildJaw(),sac:buildSac(),drool:buildDrool(),leg:buildLeg(),arm:{'-1':buildArm(-1),'1':buildArm(1)}};
  return shared;
 }
 function mesh(parent,geo,material,name,shadow=true){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=shadow;m.userData.part=name;parent.add(m);return m;}
@@ -190,10 +204,16 @@ export function createHezrou(){
  // the jaw hinges at the back of the mouth and rests a little open, fangs bared
  const jaw=new THREE.Group();jaw.position.set(0,-.005,-.03);jaw.rotation.x=.14;jaw.userData.reach=.8;head.add(jaw);
  mesh(jaw,S.jaw,S.material,'jaw');
+ const sac=new THREE.Group();sac.position.set(...SAC);jaw.add(sac);mesh(sac,S.sac,S.material,'sac');
+ const drools=[-1,1].map(s=>{
+  const d=new THREE.Group();d.position.set(s*DROOL_AT[0],DROOL_AT[1],DROOL_AT[2]);jaw.add(d);
+  // the left string is the right one mirrored (the material is double-sided)
+  const m=mesh(d,S.drool,S.material,'drool',false);m.scale.x=s;return d;
+ });
  const legs=[],arms=[];
  for(const s of [-1,1]){
   const leg=new THREE.Group();leg.position.set(s*.15,.5,0);leg.rotation.y=s*.15;body.add(leg);mesh(leg,S.leg,S.material,'leg');legs.push(leg);
   const arm=new THREE.Group();arm.position.set(s*.33,.88,.03);arm.rotation.set(-.12,0,s*.12);body.add(arm);mesh(arm,S.arm[s],S.material,'arm');arms.push(arm);
  }
- return {g,body,legs,tail:null,wings:[],quirk:'orc',kind:'hezrou',arms,arm:arms[1],head,jaw,hat:null,beard:null,pick:null};
+ return {g,body,legs,tail:null,wings:[],quirk:'orc',kind:'hezrou',arms,arm:arms[1],head,jaw,sac,drools,hat:null,beard:null,pick:null};
 }
