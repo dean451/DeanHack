@@ -65,6 +65,21 @@ test('a glaive has its own single-edged blade, merged to one mesh per material',
  }
 });
 
+test('a partisan has its own winged leaf blade, merged to one mesh per material',()=>{
+ for(const name of ['partisan','vulgar polearm']){
+  const partisan=createHeldWeapon({name,class:2});
+  assert.deepEqual(partisan.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+  const s=size(partisan);
+  assert(s.y>1.85&&s.y<2,`length ${s.y}`);
+  const b=new THREE.Box3().setFromObject(partisan);
+  assert(b.max.x>.13&&b.min.x<-.13,'the wings flare out both sides');
+  for(const m of partisan.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));}
+  assert(partisan.children.find(c=>c.userData.part==='blade').material.metalness>=.75,'weapon-magic sheathes the blade');
+  partisan.userData.dispose();
+ }
+ assert.deepEqual(createHeldWeapon({name:'angled poleaxe',class:2}).children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+});
+
 test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
  const saber=createHeldWeapon({name:'silver saber',class:2});
  const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});
