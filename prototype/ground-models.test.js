@@ -517,9 +517,11 @@ test('the apron lies flat with a bib, neck strap, waist ties, a pocket and stain
  // Stains pull some cloth well away from the linen tone.
  let stained=0;for(let i=0;i<col.count;i++)if(col.getX(i)<.5)stained++;
  assert(stained>10,`stained vertices: ${stained}`);
- // Sheet, pocket, straps, hems, stitches, vial and cork bake to one draw per material.
+ // Sheet, pocket, straps, hems, stitches and cork bake into one linen draw; only the brass
+ // slider and the glass vial keep their own.
  assert.equal(apron.children.length,new Set(apron.children.map(p=>p.material)).size,'one draw per material');
- assert(apron.children.length<=7,`draws: ${apron.children.length}`);
+ assert.equal(apron.children.length,3,`draws: ${apron.children.length}`);
+ for(const p of apron.children)assert(p.material.vertexColors===(p.geometry===sheet),'only the linen is vertex coloured');
  apron.traverse(p=>{if(p.geometry){for(const v of p.geometry.attributes.position.array)assert(Number.isFinite(v));
   for(const v of p.geometry.attributes.normal?.array??[])assert(Number.isFinite(v));}});
  apron.userData.dispose();
