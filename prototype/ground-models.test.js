@@ -11,7 +11,14 @@ test('grease can has a grounded finite tin model and releases resources',()=>{
  assert(model);
  const bounds=new THREE.Box3().setFromObject(model);
  assert(bounds.min.y>=0);assert(bounds.max.y<.25);
- assert(model.children.some(part=>part.geometry.type==='CylinderGeometry'));
+ // Tin, paper band and grease bake to one mesh each; the tin and paper are painted per vertex.
+ assert.equal(model.children.length,3);
+ const grease=model.children.find(part=>!part.material.vertexColors);
+ assert(grease&&grease.material.roughness<.3,'the grease is glossy');
+ for(const part of model.children)if(part.material.vertexColors){
+  const color=part.geometry.attributes.color.array;
+  for(const value of color)assert(Number.isFinite(value)&&value>=0&&value<=1);
+ }
  let geometries=0,materials=0;
  const uniqueMaterials=new Set();
  model.traverse(part=>{if(part.geometry){
