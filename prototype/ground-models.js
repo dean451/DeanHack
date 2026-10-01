@@ -8,6 +8,7 @@ import {createSlimeMold} from './slime-mold.js';
 import {createMagicMarker,markerCharges} from './marker.js';
 import {createIronBall,createIronChain} from './iron-ball.js';
 import {createVenom} from './venom.js';
+import {makeTwinkle} from './gem-twinkle.js';
 import {createPotion} from './potion.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
@@ -5639,7 +5640,7 @@ export function createGroundModel(item={}){
   // only from the shuffled appearance and the glyph colour: a ruby and red glass match.
   const look=(item.appearance||'').toLowerCase();
   const chip=(r,m,x,y,z,s,ry)=>{const p=add(new THREE.DodecahedronGeometry(r,0),m,x,y,z);p.scale.set(...s);p.rotation.set(.4,ry,.25);
-   p.updateMatrixWorld();p.position.y-=new THREE.Box3().setFromObject(p).min.y;return p;};
+   p.updateMatrixWorld();p.position.y-=new THREE.Box3().setFromObject(p,true).min.y;return p;};
   // Lays a stone on the floor at (x,z), turned by ry and tipped slightly, resting on its lowest point.
   const lay=(geo,m,x,z,ry,tilt=0)=>{const p=add(geo,m,x,0,z);p.rotation.set(tilt,ry,tilt*.6);
    p.updateMatrixWorld();p.position.y-=new THREE.Box3().setFromObject(p).min.y;return p;};
@@ -5670,7 +5671,7 @@ export function createGroundModel(item={}){
    const ore=mat(0xc8d0d6,.85);
    bakeMeshes([chip(.07,ore,0,.045,0,[1.2,.65,.9],.4),chip(.04,ore,.07,.03,.03,[1,.7,1],1.3),chip(.035,ore,-.065,.028,-.03,[1,.7,1],2.2)]).userData.part='nugget';
   }else{
-   // A cut stone lying tipped on its pavilion. The cut comes from the shuffled colour word,
+   // A cut stone lying on its side, one pavilion facet flat on the floor. The cut comes from the shuffled colour word,
    // which real stones share with their glass, so the look never tells them apart.
    // Without a glyph colour (NO_COLOR) the shared colour word still says how the stone looks.
    const tint=new THREE.Color(GEM_COLORS[item.color]??GEM_COLORS[GEM_WORD_COLOR[look]]??0xd8e4ea);
@@ -5682,9 +5683,10 @@ export function createGroundModel(item={}){
    // A brighter heart inside the stone, seen through the facets as the light it gathers.
    const heart=new THREE.MeshStandardMaterial({color:tint.clone().lerp(new THREE.Color(0xffffff),.25),roughness:.3,
     emissive:tint,emissiveIntensity:cut.cab?.12:.55,transparent:true,opacity:.7,depthWrite:false});
-   const glint=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false});
+   const glint=new THREE.MeshBasicMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false});
    materials.push(facet,heart,glint);
-   const gem=new THREE.Group();gem.position.set(0,.06,0);gem.rotation.set(cut.cab?0:.62,.35,cut.cab?0:.12);g.add(gem);
+   // Tipped by the pavilion's slope, so the stone lies on a pavilion facet with its table facing out.
+   const gem=new THREE.Group();gem.position.set(0,.06,0);gem.rotation.set(cut.cab?0:Math.atan2(cut.pavilion,cut.r),.35,0);g.add(gem);
    const part=(geo,m)=>{const p=new THREE.Mesh(geo,m);p.castShadow=p.receiveShadow=m!==glint;gem.add(p);return p;};
    part(geo,facet);
    if(!cut.cab){const core=part(geo.clone(),heart);core.scale.setScalar(.55);core.renderOrder=-1;}
@@ -5693,13 +5695,14 @@ export function createGroundModel(item={}){
    for(const [x,y,z,s] of cut.cab?[[-.3,.75,-.2,.9],[.35,.45,.3,.5]]:[[cut.table*.7,1,-cut.table*.35,1],[-.95,.08,.35,.7],[.2,.55,.7,.55]]){
     const star=part(GLINT_GEOMETRY(),glint);stars.push(star);star.position.set(x*cut.r*(cut.sx??1),y*top,z*cut.r);
     star.rotation.set(-Math.PI/2+(1-y)*.9*Math.sign(z||1),0,.4+x);star.scale.setScalar(s*cut.r*.55);
+    star.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Array(star.geometry.attributes.position.count*3).fill(1),3));
    }
-   // The glints bake to one mesh: 4 draws per stone, not 6.
-   bakeMeshes(stars).userData.part='glints';
-   // A soft coloured spill of light on the floor beside it.
-   const pool=add(new THREE.CircleGeometry(.13,24),new THREE.MeshBasicMaterial({color:tint,transparent:true,opacity:cut.cab?.08:.2,depthWrite:false,blending:THREE.AdditiveBlending}),.04,.002,.035);
-   pool.rotation.x=-Math.PI/2;materials.push(pool.material);
-   gem.updateMatrixWorld(true);gem.position.y-=new THREE.Box3().setFromObject(gem).min.y;
+   // The glints bake to one mesh (4 draws per stone, not 6) and take turns flaring (gem-twinkle.js).
+   let start=0;const ranges=stars.map(p=>{const count=p.geometry.attributes.position.count,r={start,count,centre:p.position.toArray()};start+=count;return r;});
+   const glints=bakeMeshes(stars);glints.userData.part='glints';
+   const twinkle=makeTwinkle(glints,ranges,hashLook(look));twinkle(0);g.userData.animate=twinkle;
+   // Rest on the lowest vertex (precise: a tipped stone's loose box reaches below it, so it floated).
+   gem.updateMatrixWorld(true);gem.position.y-=new THREE.Box3().setFromObject(gem,true).min.y;
   }
  }else if(cls===6&&/\b(?:oil lamp|magic lamp|lamp)\b/.test(name)){
   // Oil and magic lamps deliberately share their unidentified appearance.

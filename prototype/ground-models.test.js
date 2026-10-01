@@ -74,7 +74,7 @@ test('gems, gray stones and rocks are grounded, hide their identity, and release
  assert.deepEqual(signature(stone('luckstone','gray',7)),signature(stone('flint','gray',7)));
  for(const model of [ruby,stone('diamond','white',15),stone('loadstone','gray',7),stone('rock',undefined,7),stone('small piece of unrefined mithril','silvery metal',6)]){
   assert(model);
-  const bounds=new THREE.Box3().setFromObject(model);
+  const bounds=new THREE.Box3().setFromObject(model,true);
   assert(bounds.min.y>=-1e-6,`grounded: ${bounds.min.y}`);assert(bounds.max.y<.25);
   assert(bounds.max.x-bounds.min.x<.4&&bounds.max.z-bounds.min.z<.4);
   let geometries=0,disposed=0;
@@ -435,14 +435,14 @@ test('every bag shares one cinched drawstring sack, so the kind never shows',()=
 test('cut gems bake their glints and mithril its nugget into one mesh each',()=>{
  const draws=m=>{let n=0;m.traverse(p=>{if(p.isMesh)n++;});return n;};
  const gem=createGroundModel({name:'ruby',class:13,appearance:'red',color:1});
- assert.equal(draws(gem),4,'facets, heart, glints, pool');
+ assert.equal(draws(gem),3,'facets, heart, glints (no light-pool disc)');
  gem.updateMatrixWorld(true);let glints;gem.traverse(p=>{if(p.userData.part==='glints')glints=p;});
  assert(glints&&!glints.castShadow);
- const b=new THREE.Box3().setFromObject(glints),box=new THREE.Box3().setFromObject(gem);
+ const b=new THREE.Box3().setFromObject(glints,true),box=new THREE.Box3().setFromObject(gem,true);
  assert(b.min.y>=box.min.y&&b.max.y<=box.max.y+1e-6&&b.max.x-b.min.x>.01,'glints sit on the stone');
  const ore=createGroundModel({name:'small piece of unrefined mithril',class:13,appearance:'silvery metal',color:6});
  assert.equal(draws(ore),1);
- for(const m of [gem,ore]){const q=new THREE.Box3().setFromObject(m);assert(q.min.y>=-1e-6&&q.max.y<.2);m.userData.dispose();}
+ for(const m of [gem,ore]){const q=new THREE.Box3().setFromObject(m,true);assert(q.min.y>=-1e-6&&q.max.y<.2);m.userData.dispose();}
 });
 
 test('each gem colour gets its own faceted cut, shared with its glass, grounded and finite',()=>{
@@ -454,13 +454,13 @@ test('each gem colour gets its own faceted cut, shared with its glass, grounded 
   const verts=m=>{const out=[];m.traverse(p=>{if(p.geometry)out.push(...p.geometry.attributes.position.array);});return out;};
   assert.deepEqual(verts(glass),verts(model),`${look} glass must match its gem`);
   let facets=0;
-  model.traverse(p=>{if(p.geometry?.attributes.color){
+  model.traverse(p=>{if(p.geometry?.attributes.color&&p.userData.part!=='glints'){
    facets=p.geometry.attributes.position.count/3;
    for(const v of p.geometry.attributes.position.array)assert(Number.isFinite(v));
    for(const v of p.geometry.attributes.normal.array)assert(Number.isFinite(v));
   }});
   assert(facets>=40,`${look}: ${facets} facets`);
-  const b=new THREE.Box3().setFromObject(model);
+  const b=new THREE.Box3().setFromObject(model,true);
   assert(b.min.y>=-1e-6&&b.max.y<.25,`${look} y ${b.min.y}..${b.max.y}`);
   assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.3,`${look} footprint`);
   shapes.add(verts(model).slice(0,60).map(v=>v.toFixed(4)).join());
