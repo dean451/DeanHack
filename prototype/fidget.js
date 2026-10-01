@@ -20,6 +20,7 @@ import {updateLightFlare} from './light-flare.js';
 import {updateRustFeel} from './rust-feel.js';
 import {updateBatJitter} from './bat-jitter.js';
 import {updateAntJaws} from './ant-jaws.js';
+import {updateEelCharge} from './eel-charge.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -154,6 +155,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateBatJitter(actor, dt, t, busy, look);
   // And the ants' jaws: trembling, clacking mandibles, a head that ticks round, a threat gape at the hero and a snapping bite (ant-jaws.js).
   updateAntJaws(actor, dt, t, busy, look, walking);
+  // And the eels: a gliding weave and a head that tracks the hero; the electric eel's charge wave, crackling arcs and shock bite (eel-charge.js).
+  updateEelCharge(actor, dt, t, busy, look, walking);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
