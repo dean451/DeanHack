@@ -217,10 +217,17 @@ static void death_hook_bridge(struct monst *m,struct permonst *ptr) {
 }
 /* A wielded object. An artifact is shown by its name, so "base" also names its object type
    (its appearance while the type is unidentified) for the model to follow. */
+/* What the hero already knows of a weapon's magic: its enchantment once o->known, and
+   whether it is blessed or cursed once o->bknown. Never more than doname() would show. */
+static void known_magic(struct obj *o) {
+    if (o->known && (o->oclass==WEAPON_CLASS || is_weptool(o))) printf(",\"spe\":%d",o->spe);
+    if (o->bknown) printf(",\"buc\":\"%s\"",o->blessed?"blessed":o->cursed?"cursed":"uncursed");
+}
 static void held(struct obj *o) {
     if (!o) {printf("null");return;}
     printf("{\"name\":");quoted(xname(o));
     printf(",\"otyp\":%d,\"class\":%d",o->otyp,o->oclass);
+    known_magic(o);
     if (o->oartifact) {
         const char *d=OBJ_DESCR(objects[o->otyp]);
         printf(",\"base\":");quoted(d&&!objects[o->otyp].oc_name_known?d:OBJ_NAME(objects[o->otyp]));
@@ -362,6 +369,11 @@ static void frame(void) {
             quoted(object_name(g));
             printf(",\"label\":");quoted(seen_name(g,x,y));
             if (seen_identified(g,x,y)) printf(",\"identified\":true");
+            /* the top weapon's known enchantment and blessing, only while the hero sees it */
+            if (cansee(x,y) && !Hallucination && !glyph_is_body(g)) {
+                struct obj *top=vobj_at(x,y);
+                if (top && top->otyp==object_type && top->dknown) known_magic(top);
+            }
             /* A lit lamp, lantern or candle the hero can see, so the client can light its flame. */
             {
                 struct obj *top=vobj_at(x,y);

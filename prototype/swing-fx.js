@@ -24,6 +24,7 @@ export function weaponReach(socket) {
 
 // `parent` is the group the effects live in (Live mode's world group, which also holds the
 // hero). The trail and burst are added to it.
+export const PLAIN_TINT = [.85, .9, 1];
 export function createSwingFx(THREE, parent) {
   const trail = createSwingTrail(THREE), burst = createImpactBurst(THREE, 128, 7);
   parent.add(trail.mesh, burst.points);
@@ -39,6 +40,8 @@ export function createSwingFx(THREE, parent) {
       socket.localToWorld(tip.set(0, reach, 0));
       parent.updateWorldMatrix(true, false);
       parent.worldToLocal(base); parent.worldToLocal(tip);
+      // a magic weapon's trail takes its colour (weapon-magic.js); plain steel stays pale blue
+      trail.setTint(socket.userData.weaponMagic?.tint ?? PLAIN_TINT);
       if ([base.x, base.y, base.z, tip.x, tip.y, tip.z].every(Number.isFinite)) trail.sample(base, tip);
     }
     if (s?.contact && hero.g) {
