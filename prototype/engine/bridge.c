@@ -397,17 +397,31 @@ static void frame(void) {
     }
     puts("]}");fflush(stdout);
 }
+/* Ctrl+C or a closed terminal signals the engine while it sits in fgets() holding stdin's lock.
+   NetHack's own handlers (done1, hangup) then prompt and save from inside the handler, and the
+   save's compressor fork deadlocks on that lock: the engine hangs for good, holding the game's
+   lock files, and the next start finds "a game in progress". Instead, only note the signal here
+   (no SA_RESTART, so fgets() returns) and save from read_request(). Re-armed before every read,
+   since NetHack puts done1 back on SIGINT after each save or restore. */
+static volatile sig_atomic_t signalled;
+static void note_signal(int sig UNUSED){signalled=1;}
+static void catch_signals(void){struct sigaction sa;memset(&sa,0,sizeof sa);sa.sa_handler=note_signal;sigemptyset(&sa.sa_mask);
+    sigaction(SIGINT,&sa,0);sigaction(SIGHUP,&sa,0);sigaction(SIGTERM,&sa,0);}
 /* Input is one decimal keycode or a UTF-8 line, only after a request. */
 static void read_request(const char *kind,const char *prompt,char *buf,int size) {
-    fx_flush();frame();printf("{\"type\":\"request\",\"id\":%ld,\"kind\":",++request_id);quoted(kind);printf(",\"prompt\":");quoted(prompt);puts("}");fflush(stdout);
-    if(!fgets(buf,size,stdin)) { hangup(0);exit(0); }
+    /* Before a level exists (getlock's "Destroy old game?" comes before the dungeon is set up)
+       there is no map to describe, so send the prompt alone. */
+    fx_flush();if(u.uz.dlevel)frame();printf("{\"type\":\"request\",\"id\":%ld,\"kind\":",++request_id);quoted(kind);printf(",\"prompt\":");quoted(prompt);puts("}");fflush(stdout);
+    catch_signals();
+    if(signalled||!fgets(buf,size,stdin)) { hangup(0);exit(0); }
     buf[strcspn(buf,"\r\n")]=0;
 }
 static int key(const char *kind,const char *prompt) {char buf[BUFSZ];read_request(kind,prompt,buf,sizeof buf);int k=atoi(buf);return k>0&&k<256?k:27;}
 static void noop(void) {}
 static void strnoop(const char *s UNUSED) {}
 static void intnoop(int i UNUSED) {}
-static void init(int *a UNUSED,char **v UNUSED) {setvbuf(stdout,NULL,_IOLBF,0);for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;iflags.window_inited=TRUE;iflags.use_background_glyph=TRUE;
+/* SIGPIPE is ignored so an engine whose server has gone can still finish saving. */
+static void init(int *a UNUSED,char **v UNUSED) {setvbuf(stdout,NULL,_IOLBF,0);signal(SIGPIPE,SIG_IGN);for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;iflags.window_inited=TRUE;iflags.use_background_glyph=TRUE;
 #if defined(TTY_GRAPHICS) && defined(TEXTCOLOR)
     for(int i=0;i<CLR_MAX;i++)if(!hilites[i])hilites[i]=no_escape;
 #endif
