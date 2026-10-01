@@ -2308,6 +2308,7 @@ export function createCreature(cell={}){
  if(name==='lemure')return createLemure();
  if(name==='quasit')return createQuasit();
  if(name==='imp')return createImp();
+ if(name==='uranium imp')return createImp('uranium');
  if(isKobold(name))return createKobold(name);
  if(SKIN[name])return humanoid('imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
  if(ELVES[name])return createElf(name);
