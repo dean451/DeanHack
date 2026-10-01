@@ -85,3 +85,17 @@ test('centaur statues are posed per species, weathered, and merged into two draw
   }
   assert.equal(sums.size,3,'each species has its own pose');
 });
+
+test('the fountain pedestal carries four snarling gargoyle heads and a thorned bowl',()=>{
+  const f=createFountain();f.updateMatrixWorld(true);
+  const box=part=>new THREE.Box3().setFromObject(f.children.find(o=>o.userData.part===part));
+  // the horns rise over the gargoyle heads, well under the bowl
+  const trim=f.children.find(o=>o.userData.part==='trim').geometry.attributes.position;
+  let heads=0;for(let i=0;i<trim.count;i++){const r=Math.hypot(trim.getX(i),trim.getZ(i)),y=trim.getY(i);if(r>.19&&y>.5&&y<.75)heads++;}
+  assert.ok(heads>200,`${heads} gargoyle vertices out from the pedestal`);
+  // the thorns stand over the bowl rim
+  assert.ok(box('gold').max.y>1&&box('gold').max.y<1.05,`gold top ${box('gold').max.y}`);
+  // eight streams: four from the bowl lips and four from the gargoyles' mouths
+  const streams=box('streams');assert.ok(streams.min.y<.37&&streams.max.y<1);
+  f.userData.dispose();
+});
