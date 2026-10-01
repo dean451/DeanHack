@@ -7,7 +7,7 @@ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;}
 
 test('ants get a jointed six-legged body with a turning head, jaws, feelers and a banded gaster',()=>{
  const sizes={};
- for(const [name,extra] of [['giant ant',{}],['soldier ant',{symbol:97,color:4}],['fire ant',{}],['army ant',{symbol:97,color:3}]]){
+ for(const [name,extra] of [['giant ant',{}],['soldier ant',{symbol:97,color:4}],['fire ant',{}],['snow ant',{symbol:97,color:6}],['army ant',{symbol:97,color:3}]]){
   const a=createCreature({name,...extra});
   assert.equal(a.quirk,'insect',name);
   assert.equal(a.legs.length,6,name);
@@ -40,4 +40,19 @@ test('ants get a jointed six-legged body with a turning head, jaws, feelers and 
  x.forEach((m,i)=>{assert.equal(m.geometry,y[i].geometry);assert.equal(m.material,y[i].material);});
  assert.equal(createCreature({name:'killer bee'}).quirk,'bee');
  assert.notEqual(meshes(createCreature({name:'giant beetle'}))[0].geometry,x[0].geometry);
+});
+
+test('the snow ant has its own frosted build, not the giant ant tinted cyan',()=>{
+ const snow=meshes(createCreature({name:'snow ant',symbol:97,color:6})),giant=meshes(createCreature({name:'giant ant'}));
+ const verts=l=>l.reduce((n,m)=>n+m.geometry.attributes.position.count,0);
+ assert.notEqual(snow[0].geometry,giant[0].geometry);
+ assert(verts(snow)>verts(giant)+800,'rime shards and icicles add geometry');
+ // hoarfrost: a good share of near-white vertices on the body, which the giant ant has none of
+ const white=m=>{const c=m.geometry.attributes.color.array;let n=0;for(let i=0;i<c.length;i+=3)if(c[i]>.85&&c[i+1]>.9&&c[i+2]>.92)n++;return n/(c.length/3);};
+ assert(white(snow[0])>.05,`snow ant body frost ${white(snow[0])}`);
+ assert.equal(white(giant[0]),0);
+ // the shell is cold: blue over red on average
+ const avg=m=>{const c=m.geometry.attributes.color.array,s=[0,0,0];for(let i=0;i<c.length;i++)s[i%3]+=c[i];return s;};
+ const [r,,b]=avg(snow[0]);assert(b>r,'blue shell');
+ assert(snow[0].material.roughness<giant[0].material.roughness,'glossy ice');
 });
