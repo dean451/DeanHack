@@ -12,7 +12,7 @@ import {sigilAnimator} from './sigil-fx.js';
 // board from the trap door (both brown), the sleeping gas trap from the magic trap (both
 // bright blue), the rolling boulder trap and the statue trap from the falling rock trap (all
 // grey), the anti-magic field from the magic trap (both bright blue), and a dug hole from the
-// trap door (both brown).
+// trap door (both brown), and a plain pit from a spiked pit (both black).
 export function trapKind(symbol,color,name){
  if(name==='vibrating square')return 'vibrating';
  if(name==='arrow trap')return 'arrow';
@@ -23,6 +23,7 @@ export function trapKind(symbol,color,name){
  if(name==='anti-magic field')return 'antimagic';
  if(name==='statue trap')return 'statue';
  if(name==='hole')return 'hole';
+ if(name==='pit')return 'barepit';
  if(symbol===34)return 'web';            // '"'
  if(symbol!==94)return null;             // '^'
  return {0:'pit',1:'mine',3:'hatch',4:'rust',6:'jaws',7:'rubble',9:'fire',
@@ -57,7 +58,7 @@ export function createTrap(kind,seed=0){
  const rubble=(n,r0,spread,m=stone)=>{for(let i=0;i<n;i++){const a=rand(i)*Math.PI*2,r=r0+rand(i+20)*spread,s=.025+rand(i+40)*.035;add(new THREE.DodecahedronGeometry(s,0),m,Math.cos(a)*r,s*.6,Math.sin(a)*r).rotation.set(rand(i+60)*3,rand(i+80)*3,0);}};
 
  if(kind==='pit'){
-  // Pit (and spiked pit): the floor has caved into a ragged maw. The broken flagstones round it
+  // Spiked pit (and a plain pit when the bridge sends no name): the floor has caved into a ragged maw. The broken flagstones round it
   // tip inward, roots hang over its lip, and earth strata darken into black where sharpened
   // stakes rise from the dark, one of them run through a skull. Claw scratches score the floor
   // where something tried to climb out. Two merged, vertex-coloured meshes: the flat mouth and
@@ -139,6 +140,105 @@ export function createTrap(kind,seed=0){
   for(const [x,y,rr] of [[-.009,-.004,.008],[.009,-.004,.008],[0,-.017,.004]])
    parts.push(skull(new THREE.SphereGeometry(rr,7,5),{x,y,z:.034,sz:.5},col=>col.copy(black)));
   add(mergeGeometries(parts),mat({color:0xffffff,vertexColors:true,roughness:.93})).name='pit-rim';
+  parts.forEach(p=>p.dispose());
+ }else if(kind==='barepit'){
+  // Plain pit: no stakes, just a raw hole clawed out of the earth under the flagstones. The
+  // flat mouth is painted in false perspective (as for the hole), so from the play camera the
+  // far wall shows as crumbling bands of loam, clay and pale chalk threaded with roots, sliding
+  // down to a dim earthen floor where an earlier victim lies: a skull, a scatter of long bones
+  // and a broken arc of ribs. The spoil of the digging is heaped on the far side, flagstones
+  // lie heaved up and tipped round the lip, clods have crumbled over the edge, and two heel
+  // gouges in a smear of loose earth show where someone slid in. Two merged, vertex-coloured
+  // meshes: the flat mouth and gouges (no shadow), and everything standing.
+  const noise=(x,z)=>{const s=Math.sin(x*127.1+z*311.7+seed*7.3)*43758.5453;return s-Math.floor(s);};
+  const black=new THREE.Color(0x030303),c=new THREE.Color();
+  const N=48,K=12,reach=[];
+  for(let i=0;i<N;i++)reach.push(.25+rand(i+1600)*.04+(i%4===0?.02*rand(i+1610):0));
+  const R=(a)=>{const f=((a/(Math.PI*2))%1+1)%1*N,i=Math.floor(f),t=f-i;return reach[i%N]*(1-t)+reach[(i+1)%N]*t;};
+  // The pit floor: the mouth shrunk and slid toward the camera. A pit is shallower than a
+  // hole, so it slides less and shrinks less, and its floor is dark earth, not black.
+  const view=new THREE.Vector2(.566,.824),shift=.06,shrink=.62;
+  const floorC=new THREE.Vector2(view.x*shift,view.y*shift);
+  const wallAt=(x,z)=>{
+   const r=Math.hypot(x,z),a=Math.atan2(z,x),L=R(a);if(r<1e-6)return 1;
+   const ux=x/r,uz=z/r,uc=ux*floorC.x+uz*floorC.y,rho=L*shrink;
+   const inner=uc+Math.sqrt(Math.max(0,uc*uc-floorC.lengthSq()+rho*rho));
+   return Math.min(1,Math.max(0,(L-r)/Math.max(.004,L-inner)));};
+  const strata=[0x3c2e1f,0x5a4630,0x2c2117,0x7a7262,0x4a3826,0x2a2016].map(h=>new THREE.Color(h));
+  const loam=new THREE.Color(0x3a2c1e),root=new THREE.Color(0x140e09);
+  const mp=[],mc=[];
+  const push=(x,y,z,col)=>{mp.push(x,y,z);mc.push(col.r,col.g,col.b);};
+  const mouthAt=(k,i)=>{const a=i/N*Math.PI*2,r=R(a)*k/K,x=Math.cos(a)*r,z=Math.sin(a)*r,t=wallAt(x,z);
+   if(t>=1){
+    // The floor: dim loam, lumpy, darkest against the walls.
+    const d=Math.hypot(x-floorC.x,z-floorC.y)/(R(a)*shrink);
+    c.copy(loam).lerp(black,.35*noise(x*30,z*30)+.4*Math.max(0,d-.6));
+   }else{
+    // Wavy bands down the wall; thin dark root threads cross them, and it all dims with depth.
+    const band=Math.min(strata.length-1,Math.floor((t+.05*Math.sin(a*7+seed))*strata.length));
+    c.copy(strata[Math.max(0,band)]).lerp(black,.3*noise(x*40,z*40));
+    if(Math.sin(a*23+seed*3)>.93&&t>.15)c.lerp(root,.8);
+    c.lerp(black,.65*Math.min(1,t**1.2));
+   }
+   push(x,.004,z,c);};
+  for(let k=0;k<K;k++)for(let i=0;i<N;i++){mouthAt(k,i);mouthAt(k+1,i+1);mouthAt(k+1,i);if(k){mouthAt(k,i);mouthAt(k,i+1);mouthAt(k+1,i+1);}}
+  // Where someone slid in: a fan of loose earth on the near side, scored by two heel gouges
+  // that run over the lip.
+  const slideA=Math.atan2(view.y,view.x)+(rand(1620)-.5)*1.1,sa=Math.cos(slideA),sb=Math.sin(slideA),lip=R(slideA);
+  const smear=new THREE.Color(0x3a2c1e),gouge=new THREE.Color(0x0f0b08);
+  const quad=(pts,col,y)=>{for(const n of [0,1,2,0,2,3])push(pts[n][0],y,pts[n][1],col);};
+  const at=(r,o)=>[sa*r-sb*o,sb*r+sa*o];
+  for(let j=0;j<6;j++){const r0=lip-.01+j*.022,r1=r0+.022,w0=.05-j*.006,w1=.05-(j+1)*.006;
+   quad([at(r0,-w0),at(r1,-w1),at(r1,w1),at(r0,w0)],c.copy(smear).lerp(black,.15*noise(j,seed)+.3*(1-j/6)),.0042);}
+  for(const off of [-.018,.016]){for(let j=0;j<5;j++){const r0=lip-.015+j*.024,r1=r0+.024,w=.0045*(1-j/6);
+   quad([at(r0,off-w),at(r1,off-w*.8),at(r1,off+w*.8),at(r0,off+w)],gouge,.0046);}}
+  const mouthGeo=new THREE.BufferGeometry();
+  mouthGeo.setAttribute('position',new THREE.Float32BufferAttribute(mp,3));
+  mouthGeo.setAttribute('normal',new THREE.Float32BufferAttribute(mp.map((_,i)=>i%3===1?1:0),3));
+  mouthGeo.setAttribute('color',new THREE.Float32BufferAttribute(mc,3));
+  const mouth=add(mouthGeo,mat({color:0xffffff,vertexColors:true,roughness:1}));mouth.castShadow=false;mouth.name='barepit-mouth';
+  const parts=[];
+  // Spoil heap on the far side: a low lumpy mound of dug earth with stones turned up in it.
+  const heapA=Math.atan2(-view.y,-view.x)+(rand(1630)-.5)*.9,hr=Math.min(R(heapA)+.07,.34),hx=Math.cos(heapA)*hr,hz=Math.sin(heapA)*hr;
+  const heap=new THREE.SphereGeometry(.075,20,10,0,Math.PI*2,0,Math.PI/2);
+  {const p=heap.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),n=noise(x*30+3,z*30+5);
+   const s=1+.18*(n-.5)+.08*Math.sin(Math.atan2(z,x)*5+seed);p.setXYZ(i,x*s,y*(.75+.5*n)*s,z*s);}heap.computeVertexNormals();}
+  parts.push(bake(heap,(col,x,y,z)=>{col.set(0x4a3826).lerp(new THREE.Color(0x2a2016),.6*noise(x*70,z*70)).lerp(new THREE.Color(0x6a5a44),Math.max(0,y-.05)*6);},
+   {x:hx,y:-.008,z:hz,sx:.85,sy:.7,sz:1.45,ry:-heapA}));
+  for(let i=0;i<5;i++){const a=heapA+(rand(i+1640)-.5)*1.2,r=hr+(rand(i+1650)-.5)*.08,s=.012+rand(i+1660)*.012;
+   parts.push(bake(new THREE.DodecahedronGeometry(s,0),(col,x,y,z)=>col.set(0x5d5f5a).lerp(black,.35*noise(x*80,z*80)),
+    {x:Math.cos(a)*r,y:.02+rand(i+1670)*.02,z:Math.sin(a)*r,rx:rand(i+1680)*3,ry:rand(i+1690)*3,sy:.7}));}
+  // Flagstones heaved up and tipped toward the drop, dark on the edge that faces it.
+  const slab=(col,x,y,z)=>{const r=Math.hypot(x,z);
+   col.set(0x6f716c).lerp(new THREE.Color(0x4f514c),.6*noise(x*60+y*20,z*60)).lerp(black,Math.min(1,Math.max(0,(.32-r)/.06))*.75);};
+  const near=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));
+  for(let i=0;i<9;i++){
+   const a=(i+rand(i+1700)*.6)/9*Math.PI*2;if(near(a,heapA)<.5||near(a,slideA)<.4)continue;
+   const r=Math.min(R(a)+.035+rand(i+1710)*.02,.38),w=.065+rand(i+1720)*.05,d=.045+rand(i+1730)*.03;
+   parts.push(bake(new THREE.BoxGeometry(w,.02,d),slab,{x:Math.cos(a)*r,y:.008,z:Math.sin(a)*r,ry:-a+Math.PI/2+(rand(i+1740)-.5)*.6,rx:-.2-rand(i+1750)*.3,rz:(rand(i+1760)-.5)*.25}));
+  }
+  // Clods crumbled over the lip, the ones that fell in darkened by the shadow of the wall.
+  for(let i=0;i<16;i++){const a=rand(i+1770)*Math.PI*2,inside=i%3===0,r=inside?R(a)-.02-rand(i+1780)*.03:Math.min(R(a)+.01+rand(i+1790)*.07,.42),s=.009+rand(i+1800)*.014;
+   parts.push(bake(new THREE.DodecahedronGeometry(s,0),(col,x,y,z)=>col.set(i%4?0x45362a:0x5d5f5a).lerp(black,(inside?.6:0)+.25*noise(x*80,z*80)),
+    {x:Math.cos(a)*r,y:inside?.002:s*.45,z:Math.sin(a)*r,rx:rand(i+1810)*3,ry:rand(i+1820)*3,sy:.6}));}
+  // Roots hanging over the far lip.
+  for(let i=0;i<3;i++){
+   const a=heapA+(i-1)*.7+(rand(i+1830)-.5)*.3,r=R(a),tw=(rand(i+1840)-.5)*.4;
+   const pts=[[r+.03,.006],[r-.005,.009],[r-.035,.006],[r-.065,.004]].map(([rr,y],j)=>new THREE.Vector3(Math.cos(a+tw*j*.25)*rr,y,Math.sin(a+tw*j*.25)*rr));
+   parts.push(bake(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),8,.004-i*.0006,4,false),(col,x,y,z)=>{const rr=Math.hypot(x,z);col.set(0x3a2a1a).lerp(black,Math.min(.85,Math.max(0,(r-rr)/.07)));}));
+  }
+  // The last one in, lying on the floor: dimmed bone (the wall's shadow falls on it).
+  const bone=(col,x,y,z)=>col.set(0xa89e88).lerp(new THREE.Color(0x4a4236),.5*noise(x*70,z*70)).lerp(black,.55);
+  const fa=rand(1850)*Math.PI*2,fx=floorC.x+Math.cos(fa)*.03,fz=floorC.y+Math.sin(fa)*.03;
+  parts.push(bake(new THREE.SphereGeometry(.024,10,7),bone,{x:fx,y:.008,z:fz,sx:.9,sy:.7,sz:1.1,ry:fa}));
+  parts.push(bake(new THREE.SphereGeometry(.0055,6,4),col=>col.copy(black),{x:fx+Math.cos(fa+.4)*.02,y:.012,z:fz+Math.sin(fa+.4)*.02}));
+  parts.push(bake(new THREE.SphereGeometry(.0055,6,4),col=>col.copy(black),{x:fx+Math.cos(fa-.4)*.02,y:.012,z:fz+Math.sin(fa-.4)*.02}));
+  for(let i=0;i<4;i++){const a=fa+Math.PI+(rand(i+1860)-.5)*1.6,r=.035+rand(i+1870)*.04,len=.05+rand(i+1880)*.03;
+   const shaft=new THREE.CylinderGeometry(.0035,.0035,len,5);
+   parts.push(bake(shaft,bone,{x:fx+Math.cos(a)*r,y:.005,z:fz+Math.sin(a)*r,rz:Math.PI/2,ry:rand(i+1890)*Math.PI}));}
+  for(let i=0;i<4;i++)parts.push(bake(new THREE.TorusGeometry(.022-i*.002,.0022,4,10,Math.PI*.8),bone,
+   {x:fx+Math.cos(fa+Math.PI)*.04+Math.cos(fa+Math.PI/2)*(i-1.5)*.011,y:.004,z:fz+Math.sin(fa+Math.PI)*.04+Math.sin(fa+Math.PI/2)*(i-1.5)*.011,rx:-Math.PI/2+.3,rz:-fa}));
+  add(mergeGeometries(parts),mat({color:0xffffff,vertexColors:true,roughness:.93})).name='barepit-rim';
   parts.forEach(p=>p.dispose());
  }else if(kind==='hatch'){
   // Trap door (and a hole or a squeaky board when the bridge sends no name): a heavy door of warped, rotting planks in an iron-bound

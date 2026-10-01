@@ -5,7 +5,7 @@ import {createTrap,trapKind} from './trap.js';
 import {breathAt,breathCycle,sparkState,SPARKS,SPARK_REACH,GLOW_LOW,GASP_PEAK,BREATH_EVERY} from './fire-trap-fx.js';
 import {beatAt,flameAt,attachSigilFx,BEAT_EVERY,GLOW_REST} from './sigil-fx.js';
 
-const KINDS=['pit','hatch','hole','jaws','arrow','dart','squeaky','gas','mine','rubble','rolling','statue','antimagic','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
+const KINDS=['pit','barepit','hatch','hole','jaws','arrow','dart','squeaky','gas','mine','rubble','rolling','statue','antimagic','rust','fire','teleport','magic','polymorph','ice','portal','web','plate'];
 
 test('magic portals get their own kind; teleporters keep the rune circle',()=>{
  assert.equal(trapKind(94,13),'portal');
@@ -233,6 +233,37 @@ test('the pit is a ragged maw ringed by tipped flagstones, with stakes and a sku
   let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
   assert(vertices<12000,`pit is ${vertices} vertices`);
   if(!seed)console.log(`pit: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
+ }
+});
+
+test('a plain pit is a raw earthen hole with no stakes: false-perspective walls, a dim floor with bones, and a spoil heap, in two draws',()=>{
+ assert.equal(trapKind(94,0,'pit'),'barepit');
+ assert.equal(trapKind(94,0,'spiked pit'),'pit');
+ assert.equal(trapKind(94,0),'pit');
+ for(const seed of [0,3,7,11,42]){
+  const model=createTrap('barepit',seed);
+  const meshes=[];model.traverse(part=>{if(part.isMesh)meshes.push(part);});
+  assert.deepEqual(meshes.map(m=>m.name).sort(),['barepit-mouth','barepit-rim']);
+  const by=Object.fromEntries(meshes.map(m=>[m.name,m]));
+  assert(!by['barepit-mouth'].castShadow,'the flat mouth should not cast a shadow');
+  for(const m of meshes){assert(m.material.vertexColors);for(const v of m.geometry.attributes.color.array)assert(v>=0&&v<=1);}
+  const mouth=by['barepit-mouth'].geometry,pos=mouth.attributes.position,col=mouth.attributes.color;
+  for(let i=0;i<pos.count;i++){assert(Math.abs(pos.getY(i)-.004)<.001);assert.equal(mouth.attributes.normal.getY(i),1);}
+  // The far wall shows earth; the near lip drops away; the floor is dim earth, not black.
+  let far=0,nearLum=0,floor=0;
+  for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i),r=Math.hypot(x,z),lum=col.getX(i)+col.getY(i)+col.getZ(i);
+   if(r<.02)floor=Math.max(floor,lum);if(r<.17||r>.21)continue;
+   const side=(x*.566+z*.824)/r;if(side<-.8)far=Math.max(far,lum);if(side>.8)nearLum=Math.max(nearLum,lum);}
+  assert(far>nearLum+.1,`the far wall should show (${far} vs ${nearLum})`);
+  assert(floor>.03&&floor<.25,`the floor should be dim earth (${floor})`);
+  // No stakes: everything stands low.
+  const bounds=new THREE.Box3().setFromObject(model);
+  for(const v of [bounds.min.x,bounds.max.x,bounds.min.z,bounds.max.z])assert(Math.abs(v)<.46,`barepit leaves its tile (${v})`);
+  assert(bounds.max.y<.08,`a plain pit has no stakes (${bounds.max.y})`);
+  assert(bounds.min.y>-.05,"the tipped flagstones may only dip a little into the slab");
+  let vertices=0;for(const m of meshes)vertices+=m.geometry.attributes.position.count;
+  assert(vertices<15000,`barepit is ${vertices} vertices`);
+  if(!seed)console.log(`barepit: ${vertices} vertices, y ${bounds.min.y.toFixed(3)}..${bounds.max.y.toFixed(3)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}`);
  }
 });
 
