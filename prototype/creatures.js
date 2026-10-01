@@ -35,6 +35,7 @@ import {createNurse} from './nurse.js';
 import {createShopkeeper} from './shopkeeper.js';
 import {createMedusa} from './medusa.js';
 import {createCthulhu} from './cthulhu.js';
+import {createWeepingAngel,WEEPING_ANGELS} from './weeping-angel.js';
 import {createWatch,WATCH} from './watch.js';
 import {createSoldier,SOLDIERS} from './soldier.js';
 import {createCrocodile,CROCODILES} from './crocodile.js';
@@ -2423,6 +2424,7 @@ export function createCreature(cell={}){
  if(QUANTUM_MECHANICS[name])return quantumMechanic(QUANTUM_MECHANICS[name]);
  if(ELEMENTALS[name])return elemental(ELEMENTALS[name]);
  if(ANGELS[name])return angel(ANGELS[name]);
+ if(WEEPING_ANGELS.includes(name))return createWeepingAngel(name);
  if(JABBERWOCK_KINDS.includes(name))return createJabberwock(name);
  if(TRAPPERS[name])return trapper(TRAPPERS[name]);
  if(SEA_MONSTERS[name])return seaMonster(SEA_MONSTERS[name]);

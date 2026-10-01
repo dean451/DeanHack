@@ -1597,3 +1597,29 @@ test('Cthulhu is its own towering, tentacle-bearded, winged horror instead of th
  const again=meshes(createCreature({name:'Cthulhu'}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
+
+test('weeping angels are weathered stone statues, hands over their faces, instead of the generic glowing angel',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ for(const name of ['weeping angel','weeping archangel']){
+  const a=createCreature({name,symbol:65,color:7});
+  assert.equal(a.kind,name);
+  for(const key of ['body','head','arm','weaponSocket'])assert(a[key]?.isObject3D,key);
+  assert.equal(a.arms.length,2);assert.equal(a.stoneWings.length,2);assert.equal(a.wings.length,0,'stone wings do not flutter');
+  const parts=meshes(a);assert.equal(parts.length,6,'body, head, two arms, two wings');
+  assert.equal(new Set(parts.map(m=>m.material)).size,1,'one stone material');
+  for(const m of parts){for(const x of m.geometry.attributes.position.array)assert(Number.isFinite(x));for(const x of m.geometry.attributes.normal.array)assert(Number.isFinite(x));
+   assert(!m.material.emissive||m.material.emissive.getHex()===0,'no glow');}
+  a.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(a.g,true);
+  assert(b.min.y>-.03&&b.min.y<.03,`stands on the floor ${b.min.y}`);
+  assert(b.max.y>1&&b.max.y<1.8,`height ${b.max.y.toFixed(2)}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.6,'fits its tile');
+  // the right palm sits on the face, and the wings rise over the bowed head behind it
+  const palm=a.weaponSocket.getWorldPosition(new THREE.Vector3()),head=new THREE.Box3().setFromObject(a.head,true);
+  assert(palm.y>head.min.y&&palm.y<head.max.y&&palm.z>head.getCenter(new THREE.Vector3()).z,'hand over the face');
+  for(const w of a.stoneWings){const wb=new THREE.Box3().setFromObject(w,true);assert(wb.max.y>head.max.y,'wing crown over the head');assert(wb.max.z<head.min.z+.05,'wing behind');assert(wb.min.y<.45*a.g.scale.y,'primaries hang low');}
+ }
+ const again=meshes(createCreature({name:'weeping angel'}));
+ meshes(createCreature({name:'weeping angel'})).forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+ assert.notEqual(meshes(createCreature({name:'weeping archangel'}))[0].geometry,again[0].geometry);
+});
