@@ -5434,6 +5434,7 @@ export function createGroundModel(item={}){
   // Its three merged meshes move into g like the unicorn horn.
   const potion=createPotion({appearance:item.appearance,color:item.color,count:item.quantity??Number(/^\s*(\d+)/.exec(name)?.[1]??1)});
   for(const part of [...potion.children]){g.add(part);}materials.push(...potion.userData.materials);g.rotation.y=potion.rotation.y;
+  g.userData.potion=potion.userData.layout;
  }else if(cls===10){
   buildSpellbook(item,{g,add,materials,metal});
  }else if(cls===9){
