@@ -13,10 +13,10 @@ test('unlettered items (a chest, a pile, #enhance) get a-z then A-Z, skipping le
  assert.equal(new Set(keys.filter(Boolean)).size,52,'no letter is used twice');
 });
 
-test('looting and picking up skip the "what type of objects?" step with All types',()=>{
+test('taking out and picking up skip the "what type of objects?" step with All types; putting in keeps it',()=>{
  const menu={how:2,items:[row(0,'Auto-select every item','A'),row(1,'','',false),row(2,'All types','a'),row(3,'Weapons','b')]};
  assert.equal(autoCategory(menu,'Take out what type of objects?'),2);
- assert.equal(autoCategory(menu,'Put in what type of objects?'),2);
+ assert.equal(autoCategory(menu,'Put in what type of objects?'),null,'stashing keeps its type filter');
  assert.equal(autoCategory(menu,'Pick up what type of objects?'),2);
  assert.equal(autoCategory(menu,'Drop what type of items?'),null,'D keeps its type filter');
  assert.equal(autoCategory({...menu,how:1},'Take out what type of objects?'),null);

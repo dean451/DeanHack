@@ -17,9 +17,10 @@ export function menuKeys(items){
  });
 }
 
-// Looting and picking up first ask which kinds of objects to list. Answer "All types" for the
-// player so the whole list opens at once (, still selects everything in it).
-const CATEGORY_PROMPT=/^(take out|put in|pick up) what type of objects\?/i;
+// Taking out and picking up first ask which kinds of objects to list. Answer "All types" for the
+// player so the whole list opens at once (, still selects everything in it). Putting in keeps the
+// type step, so whole classes (scrolls and potions, say) can be stashed in one go.
+const CATEGORY_PROMPT=/^(take out|pick up) what type of objects\?/i;
 export function autoCategory(menu,prompt){
  if(!menu||menu.how!==2||!CATEGORY_PROMPT.test(prompt||''))return null;
  const all=menu.items.find(i=>i.selectable&&/^all types$/i.test(i.text.trim()));
