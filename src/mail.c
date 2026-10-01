@@ -487,7 +487,7 @@ struct obj *otmp;
         "Only Amiga makes it possible.",
         "CATS have all the answers.",
 #endif
-        "Report bugs to <" DEVTEAM_EMAIL ">.",
+        "Report bugs at " DEVTEAM_URL ".",
         "Invitation: Visit the UnNetHack web site at https://unnethack.wordpress.com/",
 
         "This mail complies with the Yendorian Anti-Spam Act (YASA)",

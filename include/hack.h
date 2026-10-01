@@ -725,7 +725,7 @@ enum optset_restrictions {
 # define debug_pline if (0) pline
 #endif
 
-#define DEVTEAM_EMAIL "bhaak@gmx.net"
-#define DEVTEAM_URL "https://github.com/unnethack/unnethack"
+/* Bug reports go to the DeanHack fork, not to the UnNetHack maintainer. */
+#define DEVTEAM_URL "https://github.com/dean451/DeanHack/issues"
 
 #endif /* HACK_H */
