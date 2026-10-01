@@ -31,6 +31,10 @@ try:
       assert frame and frame['player']['hp']>0 and frame['cells']
       if stage==0:
        start_turn=frame['turn'];reply='46'
+       # A new game starts on the up stairs; they stay stairs under the hero (bridge under_glyph).
+       if start_turn==1:
+        start_cell=next(c for c in frame['cells'] if c['x']==frame['player']['x'] and c['z']==frame['player']['z'])
+        assert start_cell['terrain']=='up',start_cell
        for dx,dz,keycode in [(1,0,108),(-1,0,104),(0,1,106),(0,-1,107)]:
         x,z=frame['player']['x']+dx,frame['player']['z']+dz
         if any(c['x']==x and c['z']==z and c['kind']=='terrain' and c['terrain']=='floor' for c in frame['cells']):

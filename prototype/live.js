@@ -91,6 +91,7 @@ import {updatePlod} from './plod.js';
 import {updateSkitter} from './skitter.js';
 import {updateTripod} from './tripod.js';
 import {slideTo} from './slide.js';
+import {perchHeight} from './perch.js';
 import {updateTrudge} from './trudge.js';
 import {updateStrawFlop} from './straw-flop.js';
 import {findPrey,updateStalk,clearStalk} from './stalk.js';
@@ -316,7 +317,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
        if(!a){for(const [previous,candidate] of actors){if(!seenActors.has(previous)&&!candidate.actions?.dead&&candidate.glyph===cell.glyph&&Math.hypot(candidate.g.position.x-x,candidate.g.position.z-z)<2.1){a=candidate;actors.delete(previous);actors.set(key,a);break;}}}
        if(!a){const disposition=cell.kind==='pet'?'pet':cell.peaceful?'peaceful':'hostile';if(cell.kind==='pet'&&/cat|kitten/.test(cell.name)){a=catFactory();stageCreature(a.g,{disposition});a.g.add(label(cell.name,'#b8ead3'));}else{const made=/^shopkeeper$/i.test(cell.name||'')?createShopkeeper():/^watchman$/i.test(cell.name||'')?createWatchman():/^grid bug$/i.test(cell.name||'')?createGridBug():/^oracle$/i.test(cell.name||'')?createOracle():creatureFactory?creatureFactory(cell):monsterFactory();a=made.g?made:{g:made};stageCreature(a.g,{disposition});a.g.add(label(cell.name||'creature',cell.kind==='pet'?'#b8ead3':cell.peaceful?'#e8dfb0':'#e9c8ad'));attachModelAsset(a,cell.name,MODEL_URLS);}a.flap=flapStyle(cell.name);a.g.position.set(x,0,z);group.add(a.g);actors.set(key,a);}
        if(a.actions?.finished){clearActionPose(a,a.actions);restoreFade(a);restoreStone(a);a.actions=createActionQueue();}
-       a.glyph=cell.glyph;a.species=(cell.name||'').toLowerCase();a.target=new THREE.Vector3(x,0,z);a.cell=`${cell.x},${cell.z}`;
+       a.glyph=cell.glyph;a.species=(cell.name||'').toLowerCase();a.target=new THREE.Vector3(x,perchHeight(cell.terrain),z);a.cell=`${cell.x},${cell.z}`;
        // A monster that just rose from its corpse gets up off the floor instead of popping in (rise.js).
        if(fresh){const risen=rises.claim(cell.x,cell.z,cell.name||null,performance.now());if(risen){a.actions??=createActionQueue();enqueueAction(a.actions,riseActionFor(risen));}}
        // Invisible-and-sensed monsters (telepathy, warning) still send a cell, but the model,
@@ -329,7 +330,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    for(const [id,a] of actors)if(!seenActors.has(id)){restoreFade(a);release(a.g);actors.delete(id);}
    for(const [id,item] of groundItems)if(!seenActors.has(id)){release(item);groundItems.delete(id);}
    for(const [id,w] of wells)if(!seenWells.has(id)){release(w);wells.delete(id);}
-   hero.target=new THREE.Vector3(frame.player.x-origin.x,0,frame.player.z-origin.z);renderSurroundings(frame);
+   hero.target=new THREE.Vector3(frame.player.x-origin.x,perchHeight(frame.cells.find(c=>c.x===frame.player.x&&c.z===frame.player.z)?.terrain),frame.player.z-origin.z);renderSurroundings(frame);
    $('#hp').textContent=`${frame.player.hp} / ${frame.player.maxhp}`;$('.character').classList.toggle('low-hp',lowHealth(frame.player.hp,frame.player.maxhp));$('#healthbar').style.width=`${100*frame.player.hp/Math.max(1,frame.player.maxhp)}%`;$('#turn').textContent=frame.turn;$('.stats').innerHTML=`<span>AC <b>${frame.player.ac}</b></span><span>LVL <b>${frame.player.level}</b></span><span>TURN <b id="turn">${frame.turn}</b></span>`;
  }
  const rises=createRiseWatch();
