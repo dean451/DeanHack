@@ -33,6 +33,7 @@ import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
 import {createShopkeeper} from './shopkeeper.js';
+import {createMedusa} from './medusa.js';
 import {createWatch,WATCH} from './watch.js';
 import {createSoldier,SOLDIERS} from './soldier.js';
 import {createCrocodile,CROCODILES} from './crocodile.js';
@@ -2388,6 +2389,7 @@ export function createCreature(cell={}){
  if(SKIN[name])return humanoid('imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
  if(ELVES[name])return createElf(name);
  if(PRIESTS[name])return createPriest(name);
+ if(name==='medusa')return createMedusa();
  if(name==='nurse')return createNurse();
  if(WATCH.includes(name))return createWatch(name);
  if(name==='hobbit')return createHobbit();

@@ -1212,6 +1212,36 @@ test('healers get a plague doctor\'s beaked mask with green glass eyes, a wide b
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('Medusa gets her own serpent-bodied gorgon with snake hair, glowing eyes, talons and a bronze harpe instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const me=createCreature({name:'Medusa',symbol:64,color:2});
+ assert.equal(me.kind,'medusa');assert.equal(me.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','tail'])assert(me[key]?.isObject3D,key);
+ assert.equal(me.legs.length,0,'a serpent body, no legs');assert.equal(me.arms.length,2);assert.equal(me.arm,me.arms[1]);
+ assert(me.arm.children.includes(me.weaponSocket),'the harpe is in the right hand');
+ const parts=meshes(me);
+ assert.equal(parts.length,7,'body, head, glowing eyes, tail, two arms and the harpe');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2,'one lit and one glowing material');
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ me.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(me.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`coil on the floor at ${b.min.y}`);
+ assert(b.max.y>1.2&&b.max.y<1.4,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
+ // the tail trails out behind her along the floor, and the snakes rise well above the skull
+ const tail=new THREE.Box3().setFromObject(me.tail,true);
+ assert(tail.min.z<-.4&&tail.max.y<.15,`tail ${tail.min.z} ${tail.max.y}`);
+ const eyes=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='eyes'),true);
+ assert(eyes.max.y>1.2,`snake eyes up to ${eyes.max.y}`);
+ assert.equal(createCreature({name:'Medusa',symbol:64}).head.children[0].geometry,parts.find(m=>m.userData.part==='head').geometry,'geometry is shared');
+});
+
 test('the hezrou gets its own hunched, warty, fanged toad demon with a hinged jaw instead of the generic demon with a toad head',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const hz=createCreature({name:'hezrou',symbol:38,color:2});
