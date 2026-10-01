@@ -1559,6 +1559,25 @@ test('a gem with no glyph colour is still tinted by its colour word',()=>{
  assert.equal(tintOf(createGroundModel({name:'emerald',class:13,appearance:'green',color:10})).getHex(),new THREE.Color(0x55cf5a).getHex());
 });
 
+test('a cockatrice leaves a rubber chicken: glossy yellow whatever its colour, legs up, no pool',()=>{
+ for(const name of ['cockatrice','chickatrice']){
+  assert.equal(corpsePlan(name),'rubber',name);
+  const g=createCorpse(name,1,0);g.updateMatrixWorld(true);
+  assert.equal(g.children.length,1,'rubber does not bleed');
+  const m=g.children[0],pos=m.geometry.attributes.position.array,col=m.geometry.attributes.color.array;
+  for(const v of pos)assert(Number.isFinite(v),name);
+  assert(m.material.roughness<.5,'glossy rubber');
+  let yellow=0,red=0;for(let i=0;i<col.length;i+=3){if(col[i]>.6&&col[i+1]>.4&&col[i+2]<.06)yellow++;if(col[i]>.6&&col[i+1]<.05&&col[i+2]<.05)red++;}
+  assert(yellow>col.length/3*.5,`mostly yellow (${yellow})`);assert(red>50,'a red comb and wattle');
+  const b=new THREE.Box3().setFromObject(g);assert(Math.abs(b.min.y)<1e-6&&b.max.y<.3,name+' on the floor, legs up');
+  assert.equal(createCorpse(name,4).children[0].geometry,m.geometry,'the same yellow whatever the glyph colour');
+  assert(m.geometry.attributes.position.count<12000);
+  g.userData.dispose();
+ }
+ assert.equal(corpseSize('chickatrice'),'tiny');assert.equal(corpseSize('cockatrice'),'small');
+ assert.equal(corpsePlan('raven'),'bird');
+});
+
 test('corpses lie as the body plan of the monster that died, finite, on the floor and within a tile or so',()=>{
  const cases=[['jackal','beast'],['newt','beast'],['red dragon','beast'],['human','humanoid'],['gnome lord','humanoid'],['troll','humanoid'],
   ['garter snake','serpent'],['long worm','serpent'],['giant eel','serpent'],['giant ant','bug'],['cave spider','bug'],['acid blob','blob'],

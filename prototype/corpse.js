@@ -16,6 +16,10 @@ import {segment,chain} from './ant.js';
 // - blob: a slumped, lumpy splat with a few flung droplets. Jellies, puddings, oozes, molds.
 // - bird: on its back with the wings spread flat (feathered, or a membrane for bats) and the feet
 //   curled up.
+// - rubber: cockatrices and chickatrices leave a rubber chicken (the user's request): glossy
+//   yellow, plucked and goose-bumped, on its back with stiff legs up, a long limp neck flopped
+//   to one side, the beak gaping in a last squawk, a floppy red comb and wattle, and X'd-out eyes.
+//   Always the same yellow, whatever the glyph colour, and no pool: it's rubber.
 // The coat or clothing takes the glyph colour. Most lie in a pool (blood, or ichor for bugs; none
 // for undead, blobs or golems). Size comes from the name (tiny, small, medium, large).
 // Two draws: the body (one merged, vertex-coloured mesh) and the pool (a glossier one). The
@@ -30,12 +34,13 @@ const DRAGONS=/dragon|wyrm|tatzelworm|amphitere|draken|lindworm|sarkany|sirrush|
 const PLANS=[
  ['blob',/jelly|pudding|ooze|slime|blob|mou?ld\b|lichen|shrieker|fungus|gelatinous cube|lurker above|trapper|jellyfish|mimic|piercer|\bfern\b|fern sprout/],
  ['bug',/\bants?\b|chillbug|scorpius|\bbees?\b|beetle|spider|centipede|scorpion|\bticks?\b|grid bug|\bxan\b|\bfly\b|locust|cockroach|wasp|hornet|\blice\b|\blouse\b/],
+ ['rubber',/cockatrice|chickatrice/],
  ['bird',/\bbats?\b|raven|pyrolisk|\bbird|cockatrice|chickatrice|phoenix|vulture|\bcrow\b|eagle|\bhawk\b|\bowl\b/],
  ['serpent',/kraken|watcher in the water|snake|cobra|python|pit viper|\basp\b|water moccasin|serpent|\beel\b|\bworm\b|naga|piranha|shark|couatl/],
  ['beast',DRAGONS],
  ['beast',/\bdog\b|housecat|cerberus|rock mole|centaur|jackal|coyote|\bfox\b|wolf|warg|hound|\bcat\b|kitten|lynx|panther|jaguar|tiger|\blion|leopard|pony|horse|unicorn|\brat\b|rabbit|rodent|mouse|woodchuck|badger|\bbear\b|\bape\b|monkey|yeti|sasquatch|carnotaur|titanothere|baluchitherium|mastodon|mumak|leocrotta|wumpus|lizard|\bnewt\b|gecko|iguana|crocodile|alligator|salamander|chameleon|dragon|wyrm|dingo|rothe|displacer|rust monster|disenchanter|basilisk|turtle|tortoise|squirrel|lemming|hellcat|jabberwock|owlbear|dog\b/],
 ];
-const TINY=/\bnewt\b|gecko|sewer rat|\brat\b|\bbats?\b|\bbees?\b|kitten|mouse|lichen|grid bug|lemming|\bticks?\b|\bfly\b|\blouse\b|little dog|homunculus|\bimp\b|manes|lemure/;
+const TINY=/\bnewt\b|chickatrice|gecko|sewer rat|\brat\b|\bbats?\b|\bbees?\b|kitten|mouse|lichen|grid bug|lemming|\bticks?\b|\bfly\b|\blouse\b|little dog|homunculus|\bimp\b|manes|lemure/;
 const SMALL=/jackal|coyote|\bfox\b|centipede|cave spider|kobold|gnome|hobbit|\bdwarf\b|housecat|small|baby|\bgiant rat\b|piranha|raven|chickatrice|cockatrice|\blizard\b|iguana|leprechaun|nymph|quasit|tengu|garter/;
 const LARGE=/\bgiant\b(?! (?:ant|beetle|spider|bat|rat|eel|turtle|centipede|mimic|louse|tick))|titan|dragon|tatzelworm|amphitere|draken|lindworm|sarkany|sirrush|leviathan|wyvern|guivre|tiamat|ixoth|cerberus|mastodon|mumak|titanothere|baluchitherium|purple worm|ettin|minotaur|juiblex|jabberwock|kraken|owlbear|warhorse|\bhorse\b|\bbear\b|troll|ogre|yeti|sasquatch|leviathan|wyrm|crocodile|python|carnotaur|\bgiant eel\b|shark|naga\b|gelatinous cube|black pudding/;
 const SCALE={tiny:.5,small:.72,medium:1,large:1.3};
@@ -229,8 +234,41 @@ function bird(P,C,{bat}){
  if(!bat)P.add(new THREE.ConeGeometry(.05,.1,6),at(0,.025,-.13,[-Math.PI/2,0,0],[1,1,.25]),shade(C.coat,.8));
 }
 
+function rubberChicken(P,C){
+ const yellow=C.rubber,tan=shade(C.rubber,.82),body=(x,y)=>mix(tan,yellow,(y-.02)/.09);
+ // a plucked teardrop body, fat at the back, on its back
+ P.add(new THREE.SphereGeometry(.075,18,14),at(0,.06,-.03,[0,0,0],[1,.78,1.3]),body);
+ P.add(new THREE.SphereGeometry(.05,14,10),at(0,.055,.05,[0,0,0],[1,.8,1.1]),body);
+ // goosebumps over the upturned belly and sides
+ for(let i=0;i<36;i++){const a=hash(i,3)*Math.PI*2,p=Math.acos(1-1.4*hash(i,7)),d=[Math.cos(a)*Math.sin(p),Math.cos(p),Math.sin(a)*Math.sin(p)];
+  P.add(new THREE.SphereGeometry(.006,4,3),at(d[0]*.076,.06+d[1]*.059,-.03+d[2]*.099),shade(yellow,.93));}
+ // plucked stub wings flopped out to the sides, and a stubby tail nub
+ for(const s of [-1,1])P.add(new THREE.SphereGeometry(.04,10,8),at(s*.078,.045,-.01,[0,s*.4,s*.5],[.3,.55,1]),body);
+ P.add(new THREE.ConeGeometry(.03,.06,8),at(0,.05,-.15,[-Math.PI/2-.3,0,0],[1,1,.6]),tan);
+ // stiff legs straight up in the air, three toes splayed at the top and a spur behind
+ for(const s of [-1,1]){const hip=[s*.032,.095,-.05],knee=[s*.04,.16,-.06],ankle=[s*.046,.215,-.05];
+  chain(P,[hip,knee,ankle],[.013,.008,.007],C.leg,7);
+  for(const t of [-1,0,1])chain(P,[ankle,[ankle[0]+t*.022,ankle[1]+.02,ankle[2]+.035-Math.abs(t)*.012]],[.0055,.0035],C.leg,5);
+  chain(P,[ankle,[ankle[0],ankle[1]+.008,ankle[2]-.02]],[.005,.003],C.leg,5);}
+ // the long limp neck drapes off the front and flops sideways along the floor
+ const neck=[[0,.065,.09],[.012,.05,.14],[.04,.025,.19],[.075,.018,.23],[.1,.022,.27]];
+ chain(P,neck,[.024,.02,.017,.016,.018],yellow,9);
+ // the head lies on its cheek, beak to +z; its up is +x, the floor-facing cheek is -y
+ const H=[.11,.028,.3];
+ P.add(new THREE.SphereGeometry(.03,14,10),at(...H,[0,0,0],[1,.85,1.15]),yellow);
+ // beak gaping in a last squawk: upper and lower bills splayed apart
+ P.add(new THREE.ConeGeometry(.014,.05,8),at(H[0]+.008,H[1],H[2]+.045,[Math.PI/2,0,-.35]),C.beak);
+ P.add(new THREE.ConeGeometry(.011,.04,8),at(H[0]-.012,H[1]-.002,H[2]+.04,[Math.PI/2,0,.4]),shade(C.beak,.85));
+ P.add(new THREE.SphereGeometry(.012,8,6),at(H[0]-.002,H[1],H[2]+.026,[0,0,0],[1,.6,.8]),C.mouth);
+ // the comb flops along the crown in floppy red lobes; the wattle dangles under the beak
+ for(let i=0;i<4;i++)P.add(new THREE.SphereGeometry(.012-i*.0015,8,6),at(H[0]+.03,H[1]+.006,H[2]-.016+i*.014,[0,0,0],[.8,.45,1]),C.comb);
+ for(const s of [-1,1])P.add(new THREE.SphereGeometry(.009,8,6),at(H[0]-.032,H[1]+s*.006,H[2]+.024,[0,0,0],[1.5,.6,.8]),C.comb);
+ // X'd-out eyes on the upturned cheek
+ for(const r of [.75,-.75])P.add(new THREE.BoxGeometry(.004,.003,.022),at(H[0]+.006,H[1]+.026,H[2]+.006,[0,r,0]),C.ink);
+}
+
 function pool(plan,size,seed){
- const s=new THREE.Shape(),n=28,R={blob:.3,bug:.14,bird:.16,serpent:.2,beast:.26,humanoid:.26}[plan];
+ const s=new THREE.Shape(),n=28,R={blob:.3,bug:.14,bird:.16,rubber:.16,serpent:.2,beast:.26,humanoid:.26}[plan];
  for(let i=0;i<n;i++){const a=i/n*Math.PI*2,r=R*(.72+.28*hash(i,seed)+.12*Math.sin(a*3+seed));s[i?'lineTo':'moveTo'](Math.cos(a)*r,Math.sin(a)*r*(plan==='humanoid'?1.25:1));}
  s.closePath();
  const geo=new THREE.ShapeGeometry(s);geo.rotateX(-Math.PI/2);geo.translate(plan==='beast'?.06:0,.003/(SCALE[size]*(PLAN_SCALE[plan]??1)),plan==='humanoid'?.2:plan==='beast'?.12:0);
@@ -243,19 +281,21 @@ function colours(plan,colour){
   const cloth=mix(glyph,rgb('#5e4c38'),.35);
   return {cloth,legs:mix(shade(cloth,.6),rgb('#3a3028'),.5),belt:rgb('#2a1c12'),boots:rgb('#2c2118'),skin:rgb('#c8977a'),hair:rgb('#3a2616')};
  }
+ if(plan==='rubber')return {rubber:rgb('#f2cc2a'),leg:rgb('#e8a020'),beak:rgb('#f08a1c'),comb:rgb('#d8261e'),mouth:rgb('#7a1414'),ink:rgb('#101010')};
  return {coat:glyph,dark:shade(glyph,.45),light:mix(glyph,rgb('#e8dcc4'),.55),nose:rgb('#141010'),tongue:rgb('#b85a66'),beak:rgb('#c89a3a'),
   horn:rgb('#d8cbb0'),hornTip:rgb('#3a3026'),claw:rgb('#1a1612')};
 }
 
 function build(name,colour){
  const n=String(name||'').toLowerCase(),plan=corpsePlan(n),size=corpseSize(n);
- const key=[plan,size,colour,/worm/.test(n),/piranha|shark/.test(n),/spider|scorpion/.test(n),/\bbats?\b/.test(n),DRAGONS.test(n)].join('|');
+ const key=[plan,size,plan==='rubber'?'':colour,/worm/.test(n),/piranha|shark/.test(n),/spider|scorpion/.test(n),/\bbats?\b/.test(n),DRAGONS.test(n)].join('|');
  if(cache.has(key))return cache.get(key);
  const P=pieces(),C=colours(plan,colour);
  if(plan==='beast')beast(P,C,{dragon:DRAGONS.test(n)});
  else if(plan==='serpent')serpent(P,C,{worm:/worm/.test(n),short:/piranha|shark/.test(n)});
  else if(plan==='bug')bug(P,C,{eight:/spider|scorpion/.test(n)});
  else if(plan==='blob')blob(P,C);
+ else if(plan==='rubber')rubberChicken(P,C);
  else if(plan==='bird')bird(P,C,{bat:/\bbats?\b/.test(n)});
  else humanoid(P,C);
  const body=P.merge();body.computeBoundingBox();
@@ -268,10 +308,10 @@ function build(name,colour){
 export function createCorpse(name,colour,seed=0){
  const n=String(name||'').toLowerCase(),S=build(n,colour);
  const g=new THREE.Group();g.name=`Corpse of ${n||'creature'}`;g.scale.setScalar(SCALE[S.size]*(PLAN_SCALE[S.plan]??1));g.rotation.y=(seed%360)*Math.PI/180;
- const flesh=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.86});
+ const rubber=S.plan==='rubber',flesh=new THREE.MeshStandardMaterial({vertexColors:true,roughness:rubber?.32:.86});
  const body=new THREE.Mesh(S.body,flesh);body.castShadow=body.receiveShadow=true;body.userData.part='corpse';g.add(body);
  const materials=[flesh];
- if(S.plan!=='blob'&&!NO_POOL.test(n)){
+ if(S.plan!=='blob'&&!rubber&&!NO_POOL.test(n)){
   const wet=new THREE.MeshStandardMaterial({color:S.ichor?0x3e4a14:0x4a0b0e,roughness:.22,metalness:.05,polygonOffset:true,polygonOffsetFactor:-1});
   const puddle=new THREE.Mesh(S.pool,wet);puddle.receiveShadow=true;puddle.userData.part='pool';g.add(puddle);materials.push(wet);
  }
