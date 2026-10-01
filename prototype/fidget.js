@@ -24,6 +24,7 @@ import {updateEelCharge} from './eel-charge.js';
 import {updateCobraRear} from './cobra-rear.js';
 import {updateBeholderWrithe} from './beholder-writhe.js';
 import {updateMedusaCoil} from './medusa-coil.js';
+import {updateMedusaHair} from './medusa-hair.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -166,6 +167,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateBeholderWrithe(actor, dt, t, busy, look);
   // And Medusa: a wave slides along her tail, she sways on her coils and stares the hero down, eyes smouldering, flaring at a gaze (medusa-coil.js).
   updateMedusaCoil(actor, dt, t, busy, look, walking);
+  // And the snakes of her hair: they writhe, flick their tongues, strike at the hero, lunge on a bite, rear at a gaze and droop in death (medusa-hair.js).
+  updateMedusaHair(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
