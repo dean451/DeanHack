@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {grabMessage, grabShape, grabTint, createGrab, stuckHolder, REACH_MS, COIL_MS, RELEASE_MS, DROWN_MS, COIL_BEADS} from './grab.js';
+import {grabMessage, grabShape, grabTint, grabSparks, createGrab, stuckHolder, REACH_MS, COIL_MS, RELEASE_MS, DROWN_MS, COIL_BEADS, MAX_ARCS, ARC_SEGS} from './grab.js';
 
 const frame = (x, z) => ({player: {x, z}, cells: []});
 const finite = sh => [...sh.beads, ...sh.bubbles].every(b => Object.values(b).every(Number.isFinite));
@@ -133,4 +133,58 @@ test('the frame\'s stuck holder places the arm and its absence releases', () => 
   grab.frame(stuck(3, 2, 3, 3, true));
   assert.ok(Number.isFinite(grab.state.releaseAt));
   grab.dispose();
+});
+
+test('an electric eel\'s coil crackles, harder when it squeezes, and other holders never do', () => {
+  const held = REACH_MS + COIL_MS + 800;
+  const count = (g, t0, t1) => {
+    let slots = 0, arcs = 0;
+    for (let t = t0; t < t1; t += 70) {
+      const sh = grabShape(g, t), sp = grabSparks(g, sh, t);
+      assert.ok(sp.zap >= 0 && sp.zap <= 1);
+      assert.ok(sp.arcs.length <= MAX_ARCS);
+      for (const arc of sp.arcs) {
+        assert.equal(arc.length, ARC_SEGS + 1);
+        for (const q of arc) {
+          assert.ok([q.x, q.y, q.z].every(Number.isFinite));
+          assert.ok(Math.hypot(q.x, q.z) < .4 && q.y > 0 && q.y < .75);
+        }
+      }
+      if (sp.arcs.length) slots++;
+      arcs += sp.arcs.length;
+    }
+    return {slots, arcs};
+  };
+  const eel = {hero: {x: 5, z: 5}, holder: {x: 6, z: 5}, wrapAt: 0, electric: true};
+  // Before the coil is up there's nothing to arc across.
+  assert.equal(grabSparks(eel, grabShape(eel, REACH_MS * .5), REACH_MS * .5).arcs.length, 0);
+  const calm = count(eel, held, held + 7000);
+  assert.ok(calm.slots > 10 && calm.slots < 80, `calm slots ${calm.slots}`);
+  eel.squeezeAt = held + 8000;
+  const sq = count(eel, held + 8000 + 100, held + 8000 + 320);
+  assert.ok(sq.slots >= 3, `squeeze slots ${sq.slots}`);
+  // Not electric: no sparks at all.
+  const giant = {...eel, electric: false};
+  assert.equal(count(giant, held, held + 3000).arcs, 0);
+  assert.deepEqual(grabSparks(null, null, 0), {arcs: [], zap: 0});
+
+  const group = new THREE.Group();
+  const grab = createGrab(THREE, group);
+  grab.message('The electric eel swings itself around you!', frame(5, 5));
+  assert.equal(grab.state.electric, true);
+  let r, sparks = 0;
+  for (let i = 0; i < 180; i++) { r = grab.update(1 / 60, {x: 0, z: 0}); sparks += r.sparks; }
+  assert.ok(sparks > 0);
+  const lines = group.children.find(c => c.userData.part === 'grab-sparks');
+  for (const v of lines.geometry.attributes.position.array) assert.ok(Number.isFinite(v));
+  // Released: the sparks stop with the coil.
+  grab.message('You get released!', frame(5, 5));
+  for (let i = 0; i < 60; i++) r = grab.update(1 / 60, {x: 0, z: 0});
+  assert.equal(r.held, false);
+  assert.equal(r.sparks, 0);
+  assert.equal(r.zap, 0);
+  grab.message('The giant eel swings itself around you!', frame(5, 5));
+  assert.equal(grab.state.electric, false);
+  grab.dispose();
+  assert.equal(group.children.length, 0);
 });
