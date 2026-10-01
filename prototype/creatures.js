@@ -1932,18 +1932,20 @@ function elemental(o){
   lump(body,k==='earth'?.09:.065,dark,...fist);
   if(k==='fire')for(let i=0;i<3;i++){const f=cone(body,.022,.12,dark,fist[0]+(i-1)*.025,fist[1]+.09,fist[2],5);f.rotation.z=(i-1)*.3;f.castShadow=false;}}
  // element flourishes
- let core=null;
+ // swirl: the bits that circle the body (spun about y); crown: the flames or foam on the head
+ let core=null,crown=null;const swirl=new THREE.Group();body.add(swirl);
  if(k==='earth'){for(let i=0;i<5;i++){const a=(i-2)*.45,sh=cone(body,.035,.16+(i%2)*.06,glow(o.crystal||'#7fd8c0',1.2),Math.sin(a)*.16,chestY+.12+Math.cos(a)*.05,-.13,5);sh.rotation.set(-.6,0,-a);}
   for(const [x,y,z] of [[-.12,chestY+.15,.14],[.1,chestY-.05,.15],[.06,headY+.1,.08]])lump(body,.035,mat('#4f6a34',{roughness:1,flatShading:true}),x,y,z,1.3,.5,1);}
  if(k==='fire'){core=sphere(body,.08,glow(o.hot||'#ffe070',4.5),0,chestY,.1,1,1.2,.6);core.castShadow=false;
-  for(let i=0;i<7;i++){const a=(i-3)*.42,f=cone(body,.045-Math.abs(i-3)*.005,.28-Math.abs(i-3)*.04,i%2?skin:dark,Math.sin(a)*.09,headY+.12+Math.cos(a)*.04,-.02,6);f.rotation.z=-a*.7;f.castShadow=false;}
-  for(let i=0;i<6;i++){const a=i*1.1;sphere(body,.016,dark,Math.cos(a)*.34,.35+i*.12,Math.sin(a)*.3).castShadow=false;}}
- if(k==='air'){for(let i=0;i<3;i++){const ring=part(body,new THREE.TorusGeometry(.3+i*.05,.008,4,28,Math.PI*1.3),dark,0,chestY-.1+i*.14,0);ring.rotation.set(Math.PI/2+(i-1)*.3,0,i*2);ring.castShadow=false;}
-  for(let i=0;i<8;i++){const a=i*.8;const leaf=part(body,new THREE.PlaneGeometry(.04,.02),mat(i%2?'#8a7a4a':'#6a8a3a',{side:THREE.DoubleSide}),Math.cos(a)*.34,.3+i*.09,Math.sin(a)*.34);leaf.rotation.set(a,a*2,a*.5);}}
- if(k==='water'){const foam=mat('#eef8ff',{roughness:.4});for(let i=0;i<7;i++){const a=(i-3)*.4;sphere(body,.04-Math.abs(i-3)*.004,foam,Math.sin(a)*.1,headY+.1+Math.cos(a)*.03,-.05-Math.abs(i-3)*.015).castShadow=false;}
-  for(let i=0;i<6;i++){const a=i*1.2;sphere(body,.018,dark,Math.cos(a)*.32,.3+i*.1,Math.sin(a)*.28,1,1.4,1).castShadow=false;}}
+  crown=new THREE.Group();crown.position.set(0,headY+.12,-.02);body.add(crown);
+  for(let i=0;i<7;i++){const a=(i-3)*.42,f=cone(crown,.045-Math.abs(i-3)*.005,.28-Math.abs(i-3)*.04,i%2?skin:dark,Math.sin(a)*.09,Math.cos(a)*.04,0,6);f.rotation.z=-a*.7;f.castShadow=false;}
+  for(let i=0;i<6;i++){const a=i*1.1;sphere(swirl,.016,dark,Math.cos(a)*.34,.35+i*.12,Math.sin(a)*.3).castShadow=false;}}
+ if(k==='air'){for(let i=0;i<3;i++){const ring=part(swirl,new THREE.TorusGeometry(.3+i*.05,.008,4,28,Math.PI*1.3),dark,0,chestY-.1+i*.14,0);ring.rotation.set(Math.PI/2+(i-1)*.3,0,i*2);ring.castShadow=false;}
+  for(let i=0;i<8;i++){const a=i*.8;const leaf=part(swirl,new THREE.PlaneGeometry(.04,.02),mat(i%2?'#8a7a4a':'#6a8a3a',{side:THREE.DoubleSide}),Math.cos(a)*.34,.3+i*.09,Math.sin(a)*.34);leaf.rotation.set(a,a*2,a*.5);}}
+ if(k==='water'){const foam=mat('#eef8ff',{roughness:.4});crown=new THREE.Group();crown.position.set(0,headY+.1,-.05);body.add(crown);for(let i=0;i<7;i++){const a=(i-3)*.4;sphere(crown,.04-Math.abs(i-3)*.004,foam,Math.sin(a)*.1,Math.cos(a)*.03,-Math.abs(i-3)*.015).castShadow=false;}
+  for(let i=0;i<6;i++){const a=i*1.2;sphere(swirl,.018,dark,Math.cos(a)*.32,.3+i*.1,Math.sin(a)*.28,1,1.4,1).castShadow=false;}}
  if(core)g.userData.core=core;
- return trimDraws(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),core?{core}:{}));
+ return trimDraws(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),{element:k,swirl},crown?{crown}:{},core?{core}:{}));
 }
 const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff'},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0'},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.1},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff'},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff'}};
 
