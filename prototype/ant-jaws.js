@@ -14,6 +14,9 @@
 // The module owns the jaws' rotation.y (written absolutely from rest every frame). The head's
 // pitch and yaw are offsets taken back each frame (actions.js and bask.js do the same), so they
 // never drift. No extra draws beyond the two jaw meshes ant.js now has.
+// The locust (another S_ANT, no jaws) hops instead: updateAntJaws hands it to locust-hop.js.
+
+import {hops, updateLocustHop} from './locust-hop.js';
 
 // Hero sensing: range (tiles), the most the head turns toward the hero (rad) and how fast.
 export const RANGE = 5, FACE_YAW = .45, FACE_RATE = 6;
@@ -106,6 +109,7 @@ function sense(a, look) {
 // Call once a frame (fidget.js does). `busy` holds off a clack or threat while it moves or acts;
 // `look` is the hero's position (same parent as actor.g); `walking` scissors the jaws.
 export function updateAntJaws(a, dt, t, busy, look = null, walking = false) {
+  if (hops(a)) return updateLocustHop(a, dt, t, busy, look, walking);
   if (!chews(a)) return null;
   const st = a.antJaws_ || (a.antJaws_ = setup(a));
   const L = st.look, dead = !!a.actions?.dead;

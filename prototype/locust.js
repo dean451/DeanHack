@@ -18,7 +18,7 @@ import {segment,chain} from './ant.js';
 // The head is one vertex-coloured mesh on a neck pivot, the thorax, wings and abdomen another;
 // each leg is its own group holding one mesh (the tripod walk swings them). 8 draws, one material.
 // Geometry is built once and shared; the left legs reuse the right ones mirrored.
-// Handles: body, legs (6), head (the neck pivot group), quirk 'insect'.
+// Handles: body, legs (6), head (the neck pivot group), quirk 'insect', hopper 'locust' (locust-hop.js).
 
 const LOOKS={
  locust:{scale:1.15,shell:'#77705c',dark:'#211d16',pale:'#b0a684',wing:'#857a5e',soot:'#2c261c',eye:'#6e1a10',glint:'#e0b49a',blood:'#8e2216',sting:'#100d0a'},
@@ -188,5 +188,5 @@ export function createLocust(name){
   const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
   legs.push(leg);
  });
- return {g,body,legs,tail:null,wings:[],quirk:'insect',head};
+ return {g,body,legs,tail:null,wings:[],quirk:'insect',head,hopper:'locust'};
 }
