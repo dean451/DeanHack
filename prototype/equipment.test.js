@@ -190,6 +190,30 @@ test('a fauchard has its own hooked sickle blade and back thorn, merged to one m
  }
 });
 
+test('a guisarme has its own pruning-hook blade and back spur, merged to one mesh per material',()=>{
+ for(const name of ['guisarme','pruning hook']){
+  const pole=createHeldWeapon({name,class:2});
+  assert.deepEqual(pole.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+  const s=size(pole);
+  assert(s.y>1.8&&s.y<2.05,`length ${s.y}`);
+  for(const m of pole.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));
+   const n=m.geometry.attributes.normal.array;assert(n.every(Number.isFinite));}
+  const blade=pole.children.find(c=>c.userData.part==='blade');
+  assert(blade.material.metalness>=.75,'weapon-magic sheathes the blade');
+  blade.geometry.computeBoundingBox();
+  const bb=blade.geometry.boundingBox;
+  assert(bb.max.x>.18,'the beak hooks out over the haft');
+  assert(bb.min.x<-.15,'the spur juts back');
+  assert(bb.max.y>1.35&&bb.max.y<1.45,`the crown ${bb.max.y}`);
+  pole.userData.dispose();
+ }
+ // The bill-guisarme is a different weapon and doesn't take the guisarme's blade.
+ const bill=createHeldWeapon({name:'bill-guisarme',class:2});
+ const bb=new THREE.Box3().setFromObject(bill);
+ assert(bb.min.x>-.15,'no back spur on the bill-guisarme');
+ bill.userData.dispose();
+});
+
 test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
  const saber=createHeldWeapon({name:'silver saber',class:2});
  const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});
