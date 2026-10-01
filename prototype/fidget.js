@@ -23,6 +23,7 @@ import {updateAntJaws} from './ant-jaws.js';
 import {updateEelCharge} from './eel-charge.js';
 import {updateCobraRear} from './cobra-rear.js';
 import {updateBeholderWrithe} from './beholder-writhe.js';
+import {updateMedusaCoil} from './medusa-coil.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -163,6 +164,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateCobraRear(actor, dt, t, busy, look, walking);
   // And the beholder's eyestalks: a worming writhe, twitches, all bending to the hero, a lash, a flinch and a limp death (beholder-writhe.js).
   updateBeholderWrithe(actor, dt, t, busy, look);
+  // And Medusa: a wave slides along her tail, she sways on her coils and stares the hero down, eyes smouldering, flaring at a gaze (medusa-coil.js).
+  updateMedusaCoil(actor, dt, t, busy, look, walking);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {

@@ -17,6 +17,8 @@ const phaseOf = a => a.tailPhase ??= ((a.g?.position.x || 0) * 1.7 + (a.g?.posit
 // `phase` offsets the plain quirk sine (the gallery staggers its actors this way); flayers already
 // carry their own phase.
 export function tailSway(a, t, phase = 0) {
+  // Medusa's tail lies along the floor; medusa-coil.js bends it with a wave instead of rocking it.
+  if (a.kind === 'medusa' || a.species === 'medusa') return 0;
   if (FLAYERS.has(a.species)) {
     const ph = phaseOf(a);
     return Math.sin(t * FLAYER_RATE + ph) * FLAYER_SWING + Math.sin(t * FLAYER_RATE2 + ph * 1.7) * FLAYER_SWING2;
