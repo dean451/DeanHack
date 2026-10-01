@@ -26,3 +26,15 @@ test('a morning star has its own spiked head, merged to one mesh per material',(
  assert(star.children.find(c=>c.userData.part==='spikes').material.metalness>=.75,'weapon-magic sheathes the spikes');
  star.userData.dispose();
 });
+
+test('a halberd has its own forged head, merged to one mesh per material',()=>{
+ const halberd=createHeldWeapon({name:'halberd',class:2});
+ assert.deepEqual(halberd.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+ const s=size(halberd);
+ assert(s.y>1.5&&s.y<1.8,`length ${s.y}`);
+ const b=new THREE.Box3().setFromObject(halberd);
+ assert(b.max.x>.2&&b.min.x<-.12,'the axe blade and the back fluke stand out from the haft');
+ for(const m of halberd.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));}
+ assert(halberd.children.find(c=>c.userData.part==='blade').material.metalness>=.75,'weapon-magic sheathes the blade');
+ halberd.userData.dispose();
+});
