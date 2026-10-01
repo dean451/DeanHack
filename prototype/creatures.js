@@ -34,6 +34,7 @@ import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
 import {createShopkeeper} from './shopkeeper.js';
 import {createMedusa} from './medusa.js';
+import {createCthulhu} from './cthulhu.js';
 import {createWatch,WATCH} from './watch.js';
 import {createSoldier,SOLDIERS} from './soldier.js';
 import {createCrocodile,CROCODILES} from './crocodile.js';
@@ -2476,6 +2477,7 @@ export function createCreature(cell={}){
  if(ELVES[name])return createElf(name);
  if(PRIESTS[name])return createPriest(name);
  if(name==='medusa')return createMedusa();
+ if(name==='cthulhu')return createCthulhu();
  if(name==='nurse')return createNurse();
  if(WATCH.includes(name))return createWatch(name);
  if(name==='hobbit')return createHobbit();
