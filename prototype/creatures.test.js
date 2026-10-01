@@ -1683,6 +1683,36 @@ test('the disintegrator is its own crumbling, green-lit bug instead of a green r
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('the Wizard of Yendor gets his own hooded sorcerer instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const wiz=createCreature({name:'Wizard of Yendor',symbol:64,color:5});
+ assert.equal(wiz.kind,'wizard of yendor');assert.equal(wiz.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','orb'])assert(wiz[key]?.isObject3D,key);
+ assert.equal(wiz.legs.length,2);assert.equal(wiz.arms.length,2);assert.equal(wiz.arm,wiz.arms[1]);
+ const parts=meshes(wiz);
+ assert.equal(parts.length,9,'one mesh per moving part plus the eyes and the orb');
+ assert.deepEqual([...new Set(parts.map(m=>m.userData.part))].sort(),['arm','body','eyes','head','leg','orb','staff']);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ wiz.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(wiz.body.children.find(o=>o.userData.part==='body'),true);
+ assert(b.min.y>-.02&&b.min.y<.04,`hem at ${b.min.y}`);
+ const all=new THREE.Box3().setFromObject(wiz.g,true);
+ assert(all.max.y>1.4&&all.max.y<1.8,`top at ${all.max.y}`);
+ assert(Math.max(-all.min.x,all.max.x,-all.min.z,all.max.z)<.45,'fits the tile');
+ // the orb sits at the top of the staff, above the head
+ const orb=new THREE.Vector3();wiz.orb.getWorldPosition(orb);
+ const head=new THREE.Vector3();wiz.head.getWorldPosition(head);
+ assert(orb.y>head.y+.1,`orb at ${orb.y}, head at ${head.y}`);
+ assert.notEqual(createCreature({name:'wizard',symbol:64}).kind,'wizard of yendor');
+ const again=meshes(createCreature({name:'Wizard of Yendor',symbol:64}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
 test('the doppelganger gets its own half-changed mimic instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const dop=createCreature({name:'doppelganger',symbol:64,color:7});
