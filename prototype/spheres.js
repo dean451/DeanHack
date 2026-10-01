@@ -166,19 +166,20 @@ function mesh(parent,geo,material,part,shadow=true){const m=new THREE.Mesh(geo,m
 
 export const SPHERE_KINDS=['gas spore','flaming sphere','freezing sphere'];
 
-// Returns {g,body,core?} for one of SPHERE_KINDS, or null.
+// Returns {g,body,orb,sphere,core?} for one of SPHERE_KINDS, or null. `orb` is the hovering
+// group that sphere-pulse.js throbs; `sphere` names the kind for it.
 export function createSphereCreature(name){
  const S=shared(),{g,body,lift}=hover();
- if(name==='gas spore'){mesh(lift,S.spore,S.sporeMat,'spore');return {g,body};}
+ if(name==='gas spore'){mesh(lift,S.spore,S.sporeMat,'spore');return {g,body,orb:lift,sphere:'gas'};}
  if(name==='flaming sphere'){
   const core=mesh(lift,S.coreGeo,S.fireCore,'core',false);core.scale.setScalar(.14);
   mesh(lift,S.flame,S.flameMat,'flames',false).renderOrder=1;
-  g.userData.core=core;return {g,body,core};
+  g.userData.core=core;return {g,body,core,orb:lift,sphere:'fire'};
  }
  if(name==='freezing sphere'){
   const core=mesh(lift,S.coreGeo,S.frostCore,'core',false);core.scale.setScalar(.12);
   mesh(lift,S.ice,S.iceMat,'ice');
-  g.userData.core=core;return {g,body,core};
+  g.userData.core=core;return {g,body,core,orb:lift,sphere:'frost'};
  }
  return null;
 }
