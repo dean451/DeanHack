@@ -104,6 +104,26 @@ function buildBody(){
  return P.merge();
 }
 
+// Snake i of the nest: its centre line (head frame), root and the way it springs from the skull.
+// medusa-hair.js reads these to find each snake's vertices.
+export const SNAKES=15;
+export function snakePath(i){
+ const a=(i/SNAKES)*Math.PI*2+hash(i,1)*.4,up=.35+hash(i,2)*.85;// azimuth and elevation of the root
+ const dir=new THREE.Vector3(Math.sin(a)*Math.cos(up),Math.sin(up),Math.cos(a)*Math.cos(up)*.85-.25).normalize();
+ if(dir.z>.55)dir.z=.2;// keep the face clear
+ dir.normalize();
+ const root=new THREE.Vector3(0,.1,0).addScaledVector(dir,.075);
+ const len=.1+hash(i,3)*.07,curl=(hash(i,4)-.5)*2,side=new THREE.Vector3(-dir.z,0,dir.x).normalize();
+ const pts=[];
+ for(let k=0;k<=5;k++){
+  const t=k/5,p=root.clone().addScaledVector(dir,len*t);
+  p.addScaledVector(side,Math.sin(t*Math.PI*1.6+i)*.03*curl);
+  p.y+=Math.sin(t*Math.PI)*.04-t*t*.06*(dir.y<.6?1:-.2);
+  pts.push([p.x,p.y,p.z]);
+ }
+ return {pts,root,dir,len};
+}
+
 // head centre at y .1 in the head's frame; the eyes and snake eyes go to the glow mesh
 function buildHead(){
  const P=pieces(),G=pieces();
@@ -133,21 +153,8 @@ function buildHead(){
  for(let k=0;k<6;k++){const x=-.02+k*.008;P.add(new THREE.ConeGeometry(.0024,.016+(k===1||k===4?.01:0),4),at(x,.05,.072,[Math.PI,0,0]),FANG);}
  // the snakes: a nest springing from the crown and back of the skull, each arching out and
  // curling, its head raised, tongue out and eyes glinting
- const N=15;
- for(let i=0;i<N;i++){
-  const a=(i/N)*Math.PI*2+hash(i,1)*.4,up=.35+hash(i,2)*.85;// azimuth and elevation of the root
-  const dir=new THREE.Vector3(Math.sin(a)*Math.cos(up),Math.sin(up),Math.cos(a)*Math.cos(up)*.85-.25).normalize();
-  if(dir.z>.55)dir.z=.2;// keep the face clear
-  dir.normalize();
-  const root=new THREE.Vector3(0,.1,0).addScaledVector(dir,.075);
-  const len=.1+hash(i,3)*.07,curl=(hash(i,4)-.5)*2,side=new THREE.Vector3(-dir.z,0,dir.x).normalize();
-  const pts=[];
-  for(let k=0;k<=5;k++){
-   const t=k/5,p=root.clone().addScaledVector(dir,len*t);
-   p.addScaledVector(side,Math.sin(t*Math.PI*1.6+i)*.03*curl);
-   p.y+=Math.sin(t*Math.PI)*.04-t*t*.06*(dir.y<.6?1:-.2);
-   pts.push([p.x,p.y,p.z]);
-  }
+ for(let i=0;i<SNAKES;i++){
+  const {pts}=snakePath(i);
   const {geo,curve}=taper(pts,.013,.55,12,5);
   P.add(geo,null,(x,y,z)=>{const s=Math.sin(x*140+y*90+z*120);return s>.5?SCALE_HI:s<-.6?SCALE_DARK:SCALE;});
   // the head: a flat wedge pointing along the end of the body, lifted a little
