@@ -11,6 +11,9 @@ const DEFAULT = [3, .24];
 // Flayer tentacles: slow wave RATE/SWING, plus a second wave RATE2/SWING2.
 export const FLAYER_RATE = 1.2, FLAYER_SWING = .1, FLAYER_RATE2 = 2.9, FLAYER_SWING2 = .035;
 const FLAYERS = new Set(['mind flayer', 'master mind flayer', 'cthulhu']);
+// The shambling horror's tail handle is its head, built lolled over by HORROR_LOLL; it hangs there
+// and drifts slowly instead of wagging (shambler-lurch.js lolls and snaps it on top).
+export const HORROR_LOLL = .32, HORROR_DRIFT = .07;
 
 // A stable phase for an actor, from where it was first seen, so it doesn't jump as it walks.
 const phaseOf = a => a.tailPhase ??= ((a.g?.position.x || 0) * 1.7 + (a.g?.position.z || 0) * 2.3) % (Math.PI * 2);
@@ -20,6 +23,10 @@ const phaseOf = a => a.tailPhase ??= ((a.g?.position.x || 0) * 1.7 + (a.g?.posit
 export function tailSway(a, t, phase = 0) {
   // Medusa's tail lies along the floor; medusa-coil.js bends it with a wave instead of rocking it.
   if (a.kind === 'medusa' || a.species === 'medusa') return 0;
+  if (a.kind === 'shambling horror') {
+    const ph = phaseOf(a);
+    return HORROR_LOLL + Math.sin(t * .7 + ph) * HORROR_DRIFT + Math.sin(t * 1.9 + ph * 2.3) * HORROR_DRIFT * .35;
+  }
   if (FLAYERS.has(a.species)) {
     const ph = phaseOf(a);
     return Math.sin(t * FLAYER_RATE + ph) * FLAYER_SWING + Math.sin(t * FLAYER_RATE2 + ph * 1.7) * FLAYER_SWING2;
