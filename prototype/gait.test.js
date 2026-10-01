@@ -311,3 +311,62 @@ test('non-vortices are left alone', () => {
   assert.equal(updateVortexSpin(a, 1 / 60, true), null);
   assert.equal(a.vortexSpin, undefined);
 });
+
+// Each vortex's own weather (vortex-fx.js, called from updateVortexSpin).
+import {FX, PATHS, ARCS} from './vortex-fx.js';
+
+test('vortex effect paths stay finite, near the funnel and above the floor', () => {
+  for (const [name, path] of Object.entries(PATHS)) {
+    for (const seed of [[0, 0, 0, 0], [.3, .7, .2, .9], [.99, .5, .99, .5]]) for (let u = 0; u <= 1; u += .01) {
+      const p = path(seed, u, 1.1, u * 7.3, .05);
+      for (const k of ['x', 'y', 'z', 'alpha', 'size']) assert.ok(Number.isFinite(p[k]), `${name} ${k}`);
+      assert.ok(Math.hypot(p.x, p.z) < .55 && p.y >= .01 && p.y < 1.45, `${name} at ${u}: ${JSON.stringify(p)}`);
+      assert.ok(p.alpha >= 0 && p.alpha <= 1 + 1e-9 && p.size > 0, `${name} alpha/size`);
+    }
+  }
+});
+
+test('every vortex throws off its own effects, and they die away after death', () => {
+  const layerAlphas = st => st.layers.flatMap(l => [...l.points.geometry.attributes.aAlpha.array]);
+  for (const name of Object.keys(FX)) {
+    const a = createCreature({name, kind: 'monster'});
+    a.species = name;
+    let t = 0, peak = 0, arcs = 0, glow = 0;
+    for (let i = 0; i < 600; i++) {
+      t += 1 / 60; vortexFrame(a, 1 / 60, t, i > 200 && i < 400);
+      const st = a.vortexFx;
+      for (const l of st.layers) {
+        const g = l.points.geometry.attributes;
+        assert.ok(g.position.array.every(Number.isFinite) && g.aAlpha.array.every(Number.isFinite) && g.aSize.array.every(Number.isFinite), `${name} finite`);
+        for (let k = 0; k < g.position.count; k++) assert.ok(Math.hypot(g.position.getX(k), g.position.getZ(k)) < .6 && g.position.getY(k) >= .01, `${name} in its tile`);
+      }
+      peak = Math.max(peak, ...layerAlphas(st));
+      if (st.arcLines) arcs = Math.max(arcs, ...[...st.arcLines.geometry.attributes.color.array].filter((_, k) => k % 4 === 3));
+      if (st.mark) glow = Math.max(glow, st.mark.geometry.attributes.color.getW(2));
+      if (st.arcLines) assert.ok(st.arcLines.geometry.attributes.position.array.every(v => Number.isFinite(v) && Math.abs(v) < 1.2), `${name} arcs bounded`);
+    }
+    assert.ok(peak > .15, `${name} shows its effect (${peak})`);
+    if (FX[name].arcs) assert.ok(arcs > .3, `${name} crackles`);
+    if (FX[name].frost) assert.ok(a.vortexFx.mark.scale.x > .9, 'the frost has crept out');
+    if (FX[name].scorch) assert.ok(glow > .4, 'the scorch smoulders');
+    a.actions = {dead: true};
+    for (let i = 0; i < 600; i++) { t += 1 / 60; vortexFrame(a, 1 / 60, t, false); }
+    const st = a.vortexFx;
+    assert.ok(layerAlphas(st).every(v => v === 0), `${name} effects gone after death`);
+    if (st.arcLines) assert.ok([...st.arcLines.geometry.attributes.color.array].filter((_, k) => k % 4 === 3).every(v => v === 0), `${name} no arcs after death`);
+    if (FX[name].scorch) assert.ok(st.mark.geometry.attributes.color.getW(2) < .26, 'the dead scorch stops smouldering');
+  }
+});
+
+test('energy arcs come and go, at most ARCS at once', () => {
+  const a = createCreature({name: 'energy vortex', kind: 'monster'});
+  a.species = 'energy vortex';
+  let on = 0, off = 0;
+  for (let i = 0; i < 600; i++) {
+    updateVortexSpin(a, 1 / 60, false);
+    const live = a.vortexFx.arcs.filter(s => s.arc).length;
+    assert.ok(live <= ARCS);
+    live ? on++ : off++;
+  }
+  assert.ok(on > 30 && off > 0, `on ${on} off ${off}`);
+});

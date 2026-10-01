@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {updateVortexFx} from './vortex-fx.js';
 
 // Vortices that whirl (creature animation queue, item 1). creatures.js vortex() builds a stack of
 // tilted tori (the funnel) with debris bits between them, or a heap of puffs for the fog cloud,
@@ -17,6 +18,7 @@ import * as THREE from 'three';
 // puffs are the cloud's transparent spheres, debris is any other body mesh but the core. All are
 // written absolutely from a stored rest pose; the body's lean is an offset taken back each frame,
 // so live.js's hover bob and the action layer still stack. gait.js calls updateVortexSpin.
+// Each kind's grit, frost, arcs, steam, embers or mist come from vortex-fx.js, called at the end.
 
 export const VORTEX = {
   // spin: base precession speed (rad/s at the funnel's top; the bottom ring turns BOTTOM times faster);
@@ -165,5 +167,6 @@ export function updateVortexSpin(a, dt, walking) {
     const g = 1 + SPIN.breathe * w * Math.sin(t * V.spin * .9);
     st.ground.scale.copy(st.groundScale).multiplyScalar(g);
   }
+  updateVortexFx(a, dt, walking);
   return st;
 }
