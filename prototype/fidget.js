@@ -5,6 +5,7 @@ import {updateJellyFrost} from './jelly-frost.js';
 import {updateAcidFizz} from './acid-fizz.js';
 import {updateMoldFrost} from './mold-frost.js';
 import {updateSporePuff} from './spore-puff.js';
+import {updatePuddingHeave} from './pudding-heave.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -109,6 +110,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateMoldFrost(actor, dt, t, busy);
   // And the yellow mold's spores: breath, a hanging pall, coughing puffs and a blast at a blow (spore-puff.js).
   updateSporePuff(actor, dt, t, busy);
+  // And the puddings' heave: rolling lumps, groping lobes, a sink-and-surge lurch and a straining bud at a blow (pudding-heave.js).
+  updatePuddingHeave(actor, dt, t, busy, walking);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
