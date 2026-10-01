@@ -169,6 +169,27 @@ test('a lucern hammer has its own pronged hammer, hooked beak and top spike, mer
  }
 });
 
+test('a fauchard has its own hooked sickle blade and back thorn, merged to one mesh per material',()=>{
+ for(const name of ['fauchard','pole sickle']){
+  const pole=createHeldWeapon({name,class:2});
+  assert.deepEqual(pole.children.map(c=>c.userData.part).sort(),['blade','grip','haft','head']);
+  const s=size(pole);
+  assert(s.y>1.8&&s.y<2.05,`length ${s.y}`);
+  for(const m of pole.children){const p=m.geometry.attributes.position.array;assert(p.every(Number.isFinite));
+   const n=m.geometry.attributes.normal.array;assert(n.every(Number.isFinite));}
+  const blade=pole.children.find(c=>c.userData.part==='blade');
+  assert(blade.material.metalness>=.75,'weapon-magic sheathes the blade');
+  blade.geometry.computeBoundingBox();
+  const bb=blade.geometry.boundingBox;
+  assert(bb.max.x>.25,'the point hooks out over the haft');
+  assert(bb.max.y>1.35&&bb.max.y<1.45,`the crown ${bb.max.y}`);
+  const head=pole.children.find(c=>c.userData.part==='head');
+  head.geometry.computeBoundingBox();
+  assert(head.geometry.boundingBox.min.x<-.1,'the thorn juts back');
+  pole.userData.dispose();
+ }
+});
+
 test('a silver saber has its own curved silver blade and knuckle-bow, not the long sword',()=>{
  const saber=createHeldWeapon({name:'silver saber',class:2});
  const grayswandir=createHeldWeapon({name:'Grayswandir',class:2,base:'silver saber'});
