@@ -10,7 +10,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // front of it. Coarse spiky shag bristles off the hump, the neck and the dewlap. It stands on
 // digitigrade bull legs with shaggy hocks and cloven black hooves, a ragged studded loincloth at
 // its hips and a tufted tail behind. Its left wrist still wears the broken manacle it was chained
-// with, a few links of chain hanging off it; its right hand grips a notched, blood-darkened labrys, carried back over the shoulder.
+// with, a few links of chain hanging off it; its right hand grips a notched, blood-darkened labrys, held up beside its head.
 // Each moving part (body, head, each leg and arm, the tail) is one merged, vertex-coloured mesh on
 // one shared material, plus an emissive mesh for the eyes and a metal one for the labrys: 9 draws.
 // The geometry is built once.
@@ -211,6 +211,18 @@ function buildLabrys(){
  return P.merge();
 }
 
+// The labrys is gripped low in the right fist, its haft rising up and a little forward and out, so
+// the double bit stands beside the head with both crescents turned to face whoever it is facing.
+// Worked out in body space (haft along LABRYS_HAFT, blades along LABRYS_BITS) and then taken into
+// the right arm's frame.
+const ARM_TILT=[-.3,0,.14];
+const LABRYS_HAFT=new THREE.Vector3(.27,.93,.2).normalize(),LABRYS_BITS=new THREE.Vector3(1,0,-.3);
+const LABRYS_GRIP=(()=>{
+ const y=LABRYS_HAFT,x=LABRYS_BITS.clone().addScaledVector(y,-LABRYS_BITS.dot(y)).normalize(),z=new THREE.Vector3().crossVectors(x,y);
+ const body=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z));
+ return new THREE.Quaternion().setFromEuler(new THREE.Euler(...ARM_TILT)).invert().multiply(body);
+})();
+
 let shared=null;
 function geometry(){
  if(!shared)shared={body:buildBody(),head:buildHead(),eyes:buildEyes(),leg:buildLeg(),
@@ -231,9 +243,9 @@ export function createMinotaur(){
  const legs=[],arms=[];
  for(const s of [-1,1]){
   const leg=new THREE.Group();leg.position.set(s*.12,HIP_Y,0);body.add(leg);mesh(leg,S.leg,S.flesh,'leg');legs.push(leg);
-  const arm=new THREE.Group();arm.position.set(s*.32,SHOULDER_Y-.02,.03);arm.rotation.set(s>0?-.3:-.1,0,s*.14);body.add(arm);mesh(arm,S.arm[s],S.flesh,'arm');arms.push(arm);
+  const arm=new THREE.Group();arm.position.set(s*.32,SHOULDER_Y-.02,.03);arm.rotation.set(s>0?ARM_TILT[0]:-.1,0,s*ARM_TILT[2]);body.add(arm);mesh(arm,S.arm[s],S.flesh,'arm');arms.push(arm);
  }
- const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-.6,.05);weaponSocket.rotation.set(-.35,Math.PI/2,-.25);arms[1].add(weaponSocket);// the labrys rests back over the right shoulder
+ const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-.6,.05);weaponSocket.quaternion.copy(LABRYS_GRIP);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.labrys,S.metal,'labrys');
  const tail=new THREE.Group();tail.position.set(0,.72,-.14);body.add(tail);mesh(tail,S.tail,S.flesh,'tail');
  return {g,body,legs,tail,wings:[],quirk:'orc',kind:'minotaur',arms,arm:arms[1],weaponSocket,head,hat:null,beard:null,pick:null};

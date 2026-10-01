@@ -1,14 +1,13 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 
-// Ghosts and shades have no class letter (their glyph is a space), so they used to fall right
+// Ghosts have no class letter (their glyph is a space), so they used to fall right
 // through to the armoured guardian box. They now drift as the sheeted dead: a translucent shroud
 // that swells over the shoulders and falls in folds to a ragged, tongued hem trailing back as it
 // floats, a round hooded head with hollow, sorrowful eye sockets and a gaping mouth, faint
 // pinpoints of light deep in the sockets, and two drooping sleeves held out in front, their cuffs
-// hanging in limp rags. A few wisps stream from the hem. The shade is the same figure, dim and
-// smoky violet.
-// Draws: body, head, face, eyes, one per sleeve: 6, sharing two materials per kind. Geometry is
+// hanging in limp rags. A few wisps stream from the hem. (The shade has its own model: shade.js.)
+// Draws: body, head, face, eyes, one per sleeve: 6, sharing three materials. Geometry is
 // built once and shared. The shroud casts no shadow.
 // Handles: body, head, arms, arm, ghost (the kind, for ghost-drift.js). No legs, wings or tail. Quirk 'hover', so it bobs like a wraith.
 
@@ -114,7 +113,6 @@ function buildArm(){
 
 const LOOKS={
  ghost:{tint:'#e6eaf2',emissive:'#7888aa',glow:.35,opacity:.78,eye:'#d8f0ff',eyeGlow:2.2},
- shade:{tint:'#524c64',emissive:'#1e1630',glow:.5,opacity:.7,eye:'#b890ff',eyeGlow:2.6},
 };
 
 let shared=null;
@@ -135,9 +133,9 @@ function materials(kind){
 }
 function mesh(parent,geo,material,name,shadow=true){const m=new THREE.Mesh(geo,material);m.castShadow=shadow;m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
-export const GHOSTS=['ghost','shade'];
+export const GHOSTS=['ghost'];
 export function createGhost(name='ghost'){
- const kind=name==='shade'?'shade':'ghost',S=geometry(),Mt=materials(kind);
+ const kind='ghost',S=geometry(),Mt=materials(kind);
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
  mesh(body,S.body,Mt.sheet,'body',false);
  const head=new THREE.Group();head.position.set(0,.96,.015);head.rotation.x=.12;body.add(head);
