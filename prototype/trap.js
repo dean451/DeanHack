@@ -10,7 +10,8 @@ import {sigilAnimator} from './sigil-fx.js';
 // A newer bridge also sends the trap's name, which tells the vibrating square (magenta, like a
 // teleport trap) apart, arrow and dart traps from the bear trap (all cyan), and the squeaky
 // board from the trap door (both brown), the sleeping gas trap from the magic trap (both
-// bright blue), and the rolling boulder trap from the falling rock trap (both grey).
+// bright blue), the rolling boulder trap from the falling rock trap (both grey), and the
+// anti-magic field from the magic trap (both bright blue).
 export function trapKind(symbol,color,name){
  if(name==='vibrating square')return 'vibrating';
  if(name==='arrow trap')return 'arrow';
@@ -18,6 +19,7 @@ export function trapKind(symbol,color,name){
  if(name==='squeaky board')return 'squeaky';
  if(name==='sleeping gas trap')return 'gas';
  if(name==='rolling boulder trap')return 'rolling';
+ if(name==='anti-magic field')return 'antimagic';
  if(symbol===34)return 'web';            // '"'
  if(symbol!==94)return null;             // '^'
  return {0:'pit',1:'mine',3:'hatch',4:'rust',6:'jaws',7:'rubble',9:'fire',
@@ -1017,8 +1019,97 @@ export function createTrap(kind,seed=0){
   glow.forEach(p=>p.dispose());
   // The coals breathe and spit sparks (fire-trap-fx.js).
   g.userData.animate=fireTrapAnimator(g,seed);
+ }else if(kind==='antimagic'){
+  // Anti-magic field: a sigil turned inside out. Where the other magical traps burn, this one
+  // has been drained dead: a glassy black pool of floor with a jagged, ash-bleached rim, grooves
+  // spiralling down into its heart as if the colour was sucked away along them, a band of runes
+  // each struck through, and the black shards of whatever focus once lay at the centre. A broken
+  // hoop of cold iron is staked round it with bent, hand-forged nails. Nothing glows.
+  // Three merged, vertex-coloured meshes: the stain and the etching (no shadow), and the iron
+  // and glass.
+  const noise=(x,z)=>{const s=Math.sin(x*127.1+z*311.7+seed*7.3)*43758.5453;return s-Math.floor(s);};
+  // Flat triangles on the floor, wound to face up; a vertex is [x,z,[r,g,b(,a)]].
+  const sheet=(size)=>{const p=[],c=[];return{
+   tri(a,b,d,y){if((b[1]-a[1])*(d[0]-a[0])-(b[0]-a[0])*(d[1]-a[1])<0)[b,d]=[d,b];
+    for(const v of [a,b,d]){p.push(v[0],y,v[1]);for(let k=0;k<size;k++)c.push(Math.max(0,Math.min(1,v[2][k])));}},
+   geo(){const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));
+    geo.setAttribute('normal',new THREE.Float32BufferAttribute(p.map((_,i)=>i%3===1?1:0),3));
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(c,size));return geo;}};};
+  const rgb=(hex)=>{const c=new THREE.Color(hex);return [c.r,c.g,c.b];};
+  const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
+  // The stain: glassy black at the heart, an ash-pale band where the colour was bled out, then a
+  // jagged edge fading (vertex alpha) into the floor.
+  const pool=rgb(0x040306),sheen=rgb(0x16121c),ash=rgb(0x77737c);
+  const N=56,K=8,reach=[],stain=sheet(4);
+  for(let i=0;i<N;i++)reach.push(Math.min(.47,.38+.04*rand(i+1300)+(i%2?.035*rand(i+1310):0)));
+  const sv=(k,i)=>{const a=i/N*Math.PI*2,t=k/K,r=reach[i%N]*t,x=Math.cos(a)*r,z=Math.sin(a)*r;
+   const band=Math.max(0,1-Math.abs(t-.86)/.1),n=noise(x*13,z*13);
+   const col=mix(mix(pool,sheen,n*.6*(1-t)),ash,band*(.45+.25*n));
+   return [x,z,[...col,(t<.8?.95:Math.max(0,.95*(1-(t-.8)/.2)))*(.8+.2*noise(z*9,x*9))]];};
+  for(let k=0;k<K;k++)for(let i=0;i<N;i++){stain.tri(sv(k,i),sv(k+1,i+1),sv(k+1,i),.003);stain.tri(sv(k,i),sv(k,i+1),sv(k+1,i+1),.003);}
+  const stainMesh=add(stain.geo(),mat({color:0xffffff,vertexColors:true,roughness:.22,metalness:.3,transparent:true,depthWrite:false}));
+  stainMesh.castShadow=false;stainMesh.name='null-stain';
+  // The etching: grooves cut into the glassy floor, pale ash along the cut and dark at its lips.
+  const pale=rgb(0x9a96a2),lip=rgb(0x1b1720),etch=sheet(3);
+  const groove=(pts,width,salt=0)=>{
+   const n=pts.length,L=[],M=[],R=[];
+   for(let i=0;i<n;i++){
+    const p=pts[i],q=pts[Math.min(n-1,i+1)],o=pts[Math.max(0,i-1)];
+    let dx=q[0]-o[0],dz=q[1]-o[1];const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;
+    const w=width(i/(n-1))*(.8+.4*rand(salt+i));
+    L.push([p[0]-dz*w,p[1]+dx*w,lip]);M.push([p[0],p[1],pale]);R.push([p[0]+dz*w,p[1]-dx*w,lip]);
+   }
+   for(let i=0;i<n-1;i++)for(const [A,B] of [[L,M],[M,R]]){etch.tri(A[i],A[i+1],B[i],.005);etch.tri(B[i],A[i+1],B[i+1],.005);}};
+  // Spiral arms winding in to the centre, thinning as they go, like water down a drain.
+  const ARMS=7,R0=.33;
+  for(let j=0;j<ARMS;j++){const a0=j/ARMS*Math.PI*2+rand(j+1320)*.3,pts=[];
+   for(let k=0;k<=28;k++){const th=k/28*2.7,r=R0*Math.exp(-th*.95)+(rand(j*31+k+1330)-.5)*.006;pts.push([Math.cos(a0+th)*r,Math.sin(a0+th)*r]);}
+   groove(pts,t=>.0065*(1-.8*t),1340+j*29);}
+  // A broken inner ring, then a band of runes, each one struck through with a slash.
+  for(let a=rand(1400)*Math.PI*2,end=a+Math.PI*2;a<end-.2;){
+   const span=Math.min(end-a,.8+rand(1410+a*7)*1.2),pts=[],n=Math.ceil(span/.08);
+   for(let i=0;i<=n;i++){const b=a+span*i/n,rr=.348+(rand(1420+i*3+a)-.5)*.008;pts.push([Math.cos(b)*rr,Math.sin(b)*rr]);}
+   groove(pts,()=>.004,1430+a*11);a+=span+.08+rand(1440+a*5)*.1;}
+  const GLYPHS=16;
+  for(let i=0;i<GLYPHS;i++){
+   const a=(i+.5)/GLYPHS*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a);
+   const at=(u,v)=>{const r=.385+v;return [ca*r-sa*u,sa*r+ca*u];};
+   const P=(k)=>at(((k%3)-1)*.009,(Math.floor(k/3)-1)*.011);
+   for(let s=0;s<2+(rand(i+1450)>.5?1:0);s++){
+    const g0=Math.floor(rand(i*7+s+1460)*9);let g1=Math.floor(rand(i*7+s+1470)*9);if(g1===g0)g1=(g0+4)%9;
+    const [x0,z0]=P(g0),[x1,z1]=P(g1);groove([[x0,z0],[(x0+x1)/2,(z0+z1)/2],[x1,z1]],()=>.003,1480+i*5+s);}
+   const sl=rand(i+1490)>.5?1:-1,[x0,z0]=at(-.016*sl,-.017),[x1,z1]=at(.016*sl,.017);
+   groove([[x0,z0],[(x0+x1)/2,(z0+z1)/2],[x1,z1]],t=>.0042*Math.max(.15,Math.sin(Math.PI*t)),1500+i);
+  }
+  const etchMesh=add(etch.geo(),mat({color:0xffffff,vertexColors:true,roughness:.85}));
+  etchMesh.castShadow=false;etchMesh.name='null-etching';
+  // Cold iron: square forged nails driven in round the rim, leaning, some bent over, with a flat
+  // hoop run through them that has snapped at one point.
+  const iron=new THREE.Color(0x2a2a2e),rust=new THREE.Color(0x5e3820),glass=new THREE.Color(0x060509),glint=new THREE.Color(0x3a3247);
+  const paintIron=(col,x,y,z)=>col.copy(iron).lerp(rust,Math.min(1,.55*noise(x*60+y*90,z*60)+(y<.012?.35:0)));
+  const solid=[],NAILS=9;
+  for(let i=0;i<NAILS;i++){
+   const a=i/NAILS*Math.PI*2+(rand(i+1510)-.5)*.25,r=.425+(rand(i+1520)-.5)*.015,h=.05+rand(i+1530)*.04;
+   const bent=rand(i+1540)>.6,lo=bent?h*.55:h,hi=h-lo;
+   const parts=[new THREE.CylinderGeometry(.0055,.0022,lo,4).translate(0,lo/2-.012,0)];
+   const head=new THREE.BoxGeometry(.02,.006,.02).translate(0,hi+.002,0),top=[head];
+   if(bent)top.push(new THREE.CylinderGeometry(.0055,.0055,hi,4).translate(0,hi/2,0));
+   const bend=bent?(rand(i+1550)>.5?1:-1)*(.9+rand(i+1560)*.5):0;
+   for(const p of top){p.rotateZ(bend);p.translate(0,lo-.012,0);parts.push(p);}
+   const nail=mergeGeometries(parts.map(p=>{const n=p.toNonIndexed();p.dispose();return n;}));
+   solid.push(bake(nail,paintIron,{x:Math.cos(a)*r,z:Math.sin(a)*r,ry:rand(i+1570)*3,rx:(rand(i+1580)-.5)*.5,rz:(rand(i+1590)-.5)*.5}));
+  }
+  solid.push(bake(new THREE.TorusGeometry(.425,.007,4,56,Math.PI*2-.5),paintIron,{y:.003,rx:-Math.PI/2,rz:rand(1600)*Math.PI*2,sz:.45}));
+  // The focus, smashed: splinters of black glass heaped in the middle, a few flung along the grooves.
+  const paintGlass=(col,x,y,z,nx,ny)=>col.copy(glass).lerp(glint,Math.max(0,ny)*.8);
+  for(let i=0;i<11;i++){
+   const near=i<7,a=rand(i+1610)*Math.PI*2,r=near?rand(i+1620)*.05:.09+rand(i+1630)*.14,s=near?.012+rand(i+1640)*.012:.005+rand(i+1650)*.004;
+   solid.push(bake(new THREE.TetrahedronGeometry(s,0),paintGlass,{x:Math.cos(a)*r,y:s*.35,z:Math.sin(a)*r,sy:near?1.7:.6,rx:rand(i+1660)*.6,ry:rand(i+1670)*6,rz:rand(i+1680)*.6}));
+  }
+  const solidMesh=add(mergeGeometries(solid),mat({color:0xffffff,vertexColors:true,roughness:.38,metalness:.55}));
+  solidMesh.name='null-iron';solid.forEach(p=>p.dispose());
  }else if(RUNES[kind]){
-  // Magical traps (teleport, magic / anti-magic / nameless sleeping gas, polymorph, ice): a sigil
+  // Magical traps (teleport, magic / nameless anti-magic or sleeping gas, polymorph, ice): a sigil
   // gouged into the floor and still burning in the trap's colour. Broken, scratched rings
   // hold a band of angular runes; a star of tapered slashes overshoots them, and a slit-pupilled
   // eye stares up from the middle. A burn stain fades out under it. Black candle stubs, guttered
