@@ -3,6 +3,7 @@ import {updateGlance} from './glance.js';
 import {updateHezrouGurgle} from './hezrou-gurgle.js';
 import {updateJellyFrost} from './jelly-frost.js';
 import {updateAcidFizz} from './acid-fizz.js';
+import {updateMoldFrost} from './mold-frost.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -103,6 +104,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateJellyFrost(actor, dt, t, busy, walking);
   // And the ochre and spotted jellies' acid: etch, bubbles, fumes, seethe and spatter (acid-fizz.js).
   updateAcidFizz(actor, dt, t, busy, walking);
+  // And the brown mold's cold: breath, sinking mist, sighs of freezing fog, glints and a frost burst (mold-frost.js).
+  updateMoldFrost(actor, dt, t, busy);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
   const st = actor.fidget || (actor.fidget = {
