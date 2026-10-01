@@ -10,6 +10,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // - curved wind ribbons above the tile that taper and fade at both ends.
 // Two draws a tile (`userData.part` is sky or drift). live.js hides the stone slab.
 export const SKY_Y=-.42;
+export const SKY_COLOR=0x6f9fd0;
 
 export function createAir(seed=0){
  const g=new THREE.Group();g.name='Open air';
@@ -18,7 +19,7 @@ export function createAir(seed=0){
  const EDGE=.495;
  const clampEdge=(v)=>THREE.MathUtils.clamp(v,-EDGE,EDGE);
 
- const skyMat=new THREE.MeshBasicMaterial({color:0x6f9fd0});
+ const skyMat=new THREE.MeshBasicMaterial({color:SKY_COLOR});
  const driftMat=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide});
  const pieces=[];
  // Each piece gives positions and an RGBA colour per vertex, as a non-indexed geometry.
