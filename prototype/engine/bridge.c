@@ -362,6 +362,11 @@ static void frame(void) {
             quoted(object_name(g));
             printf(",\"label\":");quoted(seen_name(g,x,y));
             if (seen_identified(g,x,y)) printf(",\"identified\":true");
+            /* A lit lamp, lantern or candle the hero can see, so the client can light its flame. */
+            {
+                struct obj *top=vobj_at(x,y);
+                if (cansee(x,y) && top && top->otyp==object_type && top->lamplit) printf(",\"lit\":true");
+            }
             if (object_type != CORPSE && OBJ_DESCR(objects[object_type])) {
                 printf(",\"appearance\":");quoted(OBJ_DESCR(objects[object_type]));
             }

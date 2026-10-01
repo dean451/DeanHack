@@ -176,7 +176,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    // usable while they are being replaced; the current bridge supplies creature directly.
    const statueCreature=cell.object?.creature||({6746:'gecko'}[cell.glyph]);
    if((kind==='statue'||itemName==='statue')&&/centaur/i.test(statueCreature||'')){const statue=createCentaurStatue(statueCreature);const caption=label(statueCreature,'#d7c8a7');caption.position.y=1.55;statue.add(caption);return statue;}
-   const lightItem=createLightItem(itemName);if(lightItem){const caption=label(groundItemCaption(cell),'#d7c8a7');caption.position.y=.9;lightItem.add(caption);return lightItem;}
+   const lightItem=createLightItem(cell.object?.lit?`${itemName} (lit)`:itemName);if(lightItem){const caption=label(groundItemCaption(cell),'#d7c8a7');caption.position.y=.9;lightItem.add(caption);return lightItem;}
    const shopItem=createShopItem(itemName);if(shopItem){const caption=label(groundItemCaption(cell),'#d7c8a7');caption.position.y=.82;shopItem.add(caption);return shopItem;}
    const warm=new THREE.MeshStandardMaterial({color:kind==='corpse'?0x72534a:cls===POTION_CLASS?0x5bd0c7:cls===WEAPON_CLASS?0xd9b15e:0xc9a86b,emissive:kind==='corpse'?0x241314:0x362718,roughness:.42,metalness:cls===WEAPON_CLASS?.65:.18});
    const edge=new THREE.MeshStandardMaterial({color:kind==='corpse'?0xb9a189:0xe8d8aa,roughness:.55,metalness:cls===WEAPON_CLASS?.7:.25});
@@ -300,7 +300,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      if(cell.terrain==='fountain'){seenWells.add(id);if(!wells.has(id)){const w=createLiveFountain(wellTemplate);w.position.set(x,0,z);group.add(w);wells.set(id,w);}wells.get(id).visible=cell.visible||cell.remembered;}
      if(cell.x===frame.player.x&&cell.z===frame.player.z)continue;
        if(cell.kind==='object'){
-       const key=`${id}:${cell.glyph}:${cell.object?.creature||''}`,seenObject=cell.visible||cell.remembered;seenActors.add(key);
+       const key=`${id}:${cell.glyph}:${cell.object?.creature||''}${cell.object?.lit?':lit':''}`,seenObject=cell.visible||cell.remembered;seenActors.add(key);
        if(seenObject&&!groundItems.has(key)){const item=pickupIcon(cell);item.position.set(x,0,z);group.add(item);groundItems.set(key,item);}
        const item=groundItems.get(key);if(item){item.visible=cell.visible;syncWandAura(item,cell.object,key);syncArtifactGleam(item,cell.object,key);syncScrollAura(item,cell.object,key);syncPotionFx(item,cell.object,key);if(!item.userData.coinPile&&!item.userData.restingWeapon)item.position.y=Math.sin(performance.now()/600+x+z)*.025;}
      }
