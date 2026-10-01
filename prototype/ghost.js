@@ -10,7 +10,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // smoky violet.
 // Draws: body, head, face, eyes, one per sleeve: 6, sharing two materials per kind. Geometry is
 // built once and shared. The shroud casts no shadow.
-// Handles: body, head, arms, arm. No legs, wings or tail. Quirk 'hover', so it bobs like a wraith.
+// Handles: body, head, arms, arm, ghost (the kind, for ghost-drift.js). No legs, wings or tail. Quirk 'hover', so it bobs like a wraith.
 
 const C={
  sheet:rgb('#ffffff'),fold:rgb('#a8b0c4'),hem:rgb('#c4cad8'),
@@ -147,5 +147,5 @@ export function createGhost(name='ghost'){
   const arm=new THREE.Group();arm.position.set(s*.16,.79,.03);arm.rotation.set(ARM_PITCH,0,s*.1);body.add(arm);
   mesh(arm,S.arm,Mt.sheet,'arm',false);arms.push(arm);
  }
- return {g,body,legs:[],tail:null,wings:[],quirk:'hover',arms,arm:arms[1],head};
+ return {g,body,legs:[],tail:null,wings:[],quirk:'hover',arms,arm:arms[1],head,ghost:kind};
 }
