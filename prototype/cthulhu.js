@@ -93,13 +93,19 @@ function buildEyes(){
 
 // eight tentacles across the maw, the middle ones longest, curling out at the tips; suckers stud
 // their outer faces from halfway down
+// (exported for cthulhu-writhe.js, which bends them: beardPath(i) gives tentacle i's control
+// points, length and root radius in the tail's frame)
+export const BEARD=8;
+export function beardPath(i){
+ const a=(i-3.5)/3.5,side=Math.sign(a)||1,len=.46-Math.abs(a)*.2+hash(i,3)*.04;
+ const x=a*.07,z=-.02+Math.cos(a)*.02,curl=side*(.012+hash(i,5)*.016);
+ return {pts:[[x,0,z],[x*1.25,-len*.25,z+.04],[x*1.4+curl*.3,-len*.55,z+.07],[x*1.5+curl,-len*.85,z+.11],[x*1.55+curl*1.7,-len*.93,z+.16],[x*1.5+curl*2,-len*.86,z+.19]],len,r0:.024-Math.abs(a)*.004};
+}
 function buildTentacles(){
  const P=pieces();
- for(let i=0;i<8;i++){
-  const a=(i-3.5)/3.5,side=Math.sign(a)||1,len=.46-Math.abs(a)*.2+hash(i,3)*.04;
-  const x=a*.07,z=-.02+Math.cos(a)*.02,curl=side*(.012+hash(i,5)*.016);
-  const pts=[[x,0,z],[x*1.25,-len*.25,z+.04],[x*1.4+curl*.3,-len*.55,z+.07],[x*1.5+curl,-len*.85,z+.11],[x*1.55+curl*1.7,-len*.93,z+.16],[x*1.5+curl*2,-len*.86,z+.19]];
-  const {geo,curve}=taper(pts,.024-Math.abs(a)*.004,.003,20,7);
+ for(let i=0;i<BEARD;i++){
+  const {pts,len,r0}=beardPath(i);
+  const {geo,curve}=taper(pts,r0,.003,20,7);
   P.add(geo,null,(px,py)=>mix(HIDE_DARK,mix(HIDE,BELLY_DARK,.4),Math.min(1,-py/len*1.2)));
   for(let k=0;k<6;k++){
    const t=.42+k*.09,c=curve.getPointAt(t),r=(.024-.021*t)*.75;
