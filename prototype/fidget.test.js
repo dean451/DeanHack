@@ -303,3 +303,51 @@ test('the head leads the body round when looking, and tilts into the scratching 
   for (let i = 0; i < 60; i++) { t += dt; frame(w, t, dt, true); }
   assert.ok(Math.abs(w.head.rotation.y) < 1e-6, `head home after walking ${w.head.rotation.y}`);
 });
+
+test('the hezrou drools, breathes through its throat sac and now and then gurgles and belches, all back to rest after death', async () => {
+  const G = await import('./hezrou-gurgle.js');
+  const hz = createCreature({name: 'hezrou'});
+  assert.ok(G.gurgles(hz)); assert.equal(G.gurgles(createCreature({name: 'gnome'})), false);
+  assert.equal(updateFidget(createCreature({name: 'gnome'}), 0, 0, false), null);
+  const head0 = hz.head.rotation.x, jaw0 = hz.jaw.rotation.x, dt = 1 / 60;
+  // the drool sags long and snaps back short; the sac swells big in a gurgle and empties past rest
+  assert.ok(Math.abs(G.droolLength(0, Infinity) - 1) < 1e-9 && Math.abs(G.droolLength(1) - G.STRETCH) < 1e-9);
+  assert.ok(Math.abs(G.droolLength(0, 0) - G.RECOIL) < 1e-9 && Math.abs(G.droolLength(.2, G.SETTLE) - G.droolLength(.2)) < 1e-9);
+  let t = 0, maxSac = 0, minSac = 9, maxDrool = 0, minDrool = 9, snaps = 0, gurgled = false, belched = false, step = 0, prev = null;
+  for (let i = 0; i < 60 * 40; i++) {
+    t += dt;
+    updateFidget(hz, dt, t, false);
+    const st = hz.hezrouGurgle;
+    const sac = hz.sac.scale.x, d = hz.drools.map(x => x.scale.y);
+    for (const v of [sac, hz.sac.scale.y, ...d, hz.head.rotation.x, hz.jaw.rotation.x, ...hz.drools.map(x => x.scale.x)]) assert.ok(Number.isFinite(v));
+    maxSac = Math.max(maxSac, sac); minSac = Math.min(minSac, sac);
+    maxDrool = Math.max(maxDrool, ...d); minDrool = Math.min(minDrool, ...d);
+    if (prev) { if (d.some((v, k) => prev[k] - v > .8)) snaps++; step = Math.max(step, Math.abs(sac - prev.sac)); }
+    prev = Object.assign([...d], {sac});
+    if (st.cur) { gurgled = true; if (hz.jaw.rotation.x - jaw0 > G.GAPE * .8) belched = true; }
+    assert.ok(hz.jaw.rotation.x - jaw0 > -1e-9, 'the jaw never closes past rest');
+  }
+  assert.ok(gurgled && belched, 'gurgled and belched');
+  assert.ok(maxSac > 1 + G.SWELL * .9 && maxSac < 1 + G.SWELL + G.QUIVER + G.BREATH + 1e-9, `sac swells to ${maxSac}`);
+  assert.ok(minSac < 1 - G.EMPTY * .6 && minSac > .55, `sac empties to ${minSac}`);
+  assert.ok(maxDrool > G.STRETCH * .95 && maxDrool <= G.STRETCH + 1e-9, `drool to ${maxDrool}`);
+  assert.ok(minDrool < .5 && minDrool > .2, `drool snaps to ${minDrool}`);
+  assert.ok(snaps >= 10, `${snaps} snaps`);
+  // the belch and the quiver are quick (about 4 per second at most) but never a jump
+  assert.ok(step < .09, `sac step ${step}`);
+  // walking: the gurgle fades out and the drool swings
+  for (let i = 0; i < 60; i++) { t += dt; updateFidget(hz, dt, t, true); }
+  assert.equal(hz.hezrouGurgle.cur, null);
+  assert.ok(Math.abs(hz.head.rotation.x - head0) < 1e-9, 'the head is home while walking');
+  let swing = 0;
+  for (let i = 0; i < 60; i++) { t += dt; updateFidget(hz, dt, t, true); swing = Math.max(swing, Math.abs(hz.drools[0].rotation.x)); }
+  assert.ok(swing > G.SWING * .8 && swing <= G.SWING + 1e-9, `swing ${swing}`);
+  // stand still until a gurgle is under way, then die in the middle of it
+  for (let i = 0; i < 60 * 20 && !(hz.hezrouGurgle.cur?.u > .4); i++) { t += dt; updateFidget(hz, dt, t, false); }
+  assert.ok(hz.hezrouGurgle.cur, 'gurgling again');
+  hz.actions = {dead: true, current: null, queue: []};
+  for (let i = 0; i < 60 * 6; i++) { t += dt; updateFidget(hz, dt, t, false); }
+  assert.ok(Math.abs(hz.head.rotation.x - head0) < 1e-9 && Math.abs(hz.jaw.rotation.x - jaw0) < 1e-9, 'head and jaw at rest');
+  for (const v of [hz.sac.scale.x, hz.sac.scale.y, ...hz.drools.flatMap(d => [d.scale.x, d.scale.y])]) assert.ok(Math.abs(v - 1) < 1e-6, `scale ${v}`);
+  assert.ok(hz.drools.every(d => Math.abs(d.rotation.x) < 1e-6));
+});
