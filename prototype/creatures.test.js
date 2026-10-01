@@ -1040,7 +1040,9 @@ test('the hezrou gets its own hunched, warty, fanged toad demon with a hinged ja
  assert.equal(hz.legs.length,2);assert.equal(hz.arms.length,2);
  assert(hz.head.children.includes(hz.jaw),'the jaw hinges from the head');
  const parts=meshes(hz);
- assert.equal(parts.length,8,'body, head, eyes, jaw, two legs, two arms');
+ assert.equal(parts.length,11,'body, head, eyes, jaw, throat sac, two drools, two legs, two arms');
+ assert(hz.jaw.children.includes(hz.sac),'the throat sac hangs from the jaw');
+ assert.equal(hz.drools.length,2);for(const d of hz.drools)assert(hz.jaw.children.includes(d),'the drool hangs from the jaw');
  assert.equal(new Set(parts.map(m=>m.material)).size,2);
  let verts=0;
  for(const m of parts){
