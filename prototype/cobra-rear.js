@@ -5,7 +5,8 @@
 //    It holds there swaying slowly side to side, as if charmed, always turned to the hero.
 //  - Tongue: a quick flicker now and then, more often with the hero near.
 //  - Hiss (reared, now and then): the hood flares past full, the head draws back and tips up, and
-//    it trembles.
+//    it trembles, its jaw (creatures.js snakeHead's `actor.jaw`) dropping open in a gape that
+//    shivers with the tremble.
 //  - Strike (a bite): the head draws back, then whips forward and down at the target and snaps back
 //    up into the raised pose.
 //  - Spit (NetHack cobras spit blinding venom): the head jerks forward and a small spray of pale
@@ -34,6 +35,8 @@ export const HOOD_FOLD = .32, HOOD_FLARE = .16, HOOD_RATE = 3.5;
 export const FLICK_TIME = .36, FLICK_WAIT = [1.8, 4.5], FLICK_WAIT_NEAR = [.5, 1.3], QUIVER_HZ = 14, QUIVER = .3;
 // Hiss: the wait between hisses (s), how long one lasts (s), and the tremble (units, Hz).
 export const HISS_WAIT = [4, 8.5], HISS_TIME = 1.2, TREMBLE = .006, TREMBLE_HZ = 23;
+// Hiss gape: how far the jaw drops (rad) and its shiver (rad); never past jaw.js's widest gape.
+export const HISS_GAPE = .42, GAPE_SHIVER = .04, MAX_GAPE = .6;
 // Spit: droplets per spit, their life (s), launch speed (units/s), upward speed and gravity.
 export const DROPS = 12, DROP_LIFE = .42, DROP_SPEED = [3, 4.2], DROP_LIFT = [.2, .9], GRAVITY = 6, DROP_SIZE = .045;
 // The rearing neck: bead count and radius (the coil tube's radius).
@@ -106,6 +109,7 @@ function setup(a) {
   st.hissWait = between(st, HISS_WAIT);
   // the tongue: the head's mesh sitting out front, just under the jaw line
   st.tongue = head.children.find(m => m.isMesh && Math.abs(m.position.z - .12) < .01 && Math.abs(m.position.y + .01) < .01) || null;
+  st.gape = 0; st.open = 0;
   if (st.tongue) st.tongueRest = {z: st.tongue.position.z, rx: st.tongue.rotation.x, sz: st.tongue.scale.z};
   const R = sharedResources(), coil = a.body.children.find(m => m.isMesh && m.geometry?.type === 'TubeGeometry');
   st.neck = new THREE.InstancedMesh(R.bead, coil?.material || new THREE.MeshStandardMaterial({color: '#3a4a7a'}), BEADS);
@@ -219,6 +223,18 @@ export function updateCobraRear(a, dt, t, busy, look = null, walking = false) {
   offset(st, head, 'rotation', 'x', (LOW_DIP * low + .08 * r - .28 * hs + pose.pitch) * w);
   offset(st, head, 'rotation', 'y', (headFace + Math.sin(P * .8 + 1) * WEAVE_YAW * low) * w);
   offset(st, head, 'rotation', 'z', (-sway * SWAY_ROLL * r) * w);
+
+  // the hiss gape on the jaw. actions.js takes its own jaw pose off before this runs and puts it
+  // back after, so this takes back last frame's gape first and leaves room for the action's.
+  if (a.jaw) {
+    a.jaw.rotation.x -= st.gape;
+    const room = Math.max(0, MAX_GAPE - (a.actions?.applied?.jaw || 0));
+    // eased, so a hiss cut short by a strike closes quickly rather than snapping shut
+    st.open = approach(st.open, hs, atk ? 40 : 12, dt);
+    st.gape = Math.min(room, Math.max(0, st.open * (HISS_GAPE + GAPE_SHIVER * Math.sin(st.T * TREMBLE_HZ * TAU * .7))) * w);
+    if (st.gape < SNAP) st.gape = 0;
+    a.jaw.rotation.x += st.gape;
+  }
 
   // the rearing neck, shown while the head is off its rest spot
   const lifted = (r > .02 || !!atk) && head.position.distanceTo(st.restHead) > .012;

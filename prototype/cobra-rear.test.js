@@ -95,3 +95,21 @@ test('the cobra lies low and folded alone, rears and spreads at the hero, strike
   assert.equal(a.cobraRear.drops.length, 0);
   assert.ok(!a.cobraRear.neck.visible);
 });
+
+test('a hiss drops the jaw open and it closes again, sharing the jaw with the action layer', () => {
+  const a = snake('cobra'), rest = a.jaw.rotation.x, look = {x: 1.5, z: 1.5};
+  assert.ok(a.jaw, 'cobra has a jaw');
+  let t = 0, most = 0;
+  for (let i = 0; i < 40 * 60; i++) {
+    t += dt;
+    updateFidget(a, dt, t, false, look);
+    const g = a.jaw.rotation.x - rest;
+    assert.ok(Number.isFinite(g) && g >= -1e-9 && g <= C.MAX_GAPE + 1e-9, `gape ${g}`);
+    assert.ok(Math.abs(g - a.cobraRear.gape) < 1e-9, 'jaw is rest plus its own gape');
+    most = Math.max(most, g);
+  }
+  assert.ok(most > .3, `hissed open (${most})`);
+  // away from the hero it sinks, stops hissing, and the jaw shuts
+  for (let i = 0; i < 10 * 60; i++) { t += dt; updateFidget(a, dt, t, false, null); }
+  assert.ok(Math.abs(a.jaw.rotation.x - rest) < 1e-9);
+});
