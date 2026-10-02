@@ -565,3 +565,47 @@ test("Pelias's eyes drift slowly and glower alone, and with the hero near narrow
   for (let i = 0; i < 8 * 60; i++) frame(a, t += dt, hero);
   assert.ok(glow(a) === 0 && Math.abs(a.eyes.scale.y - E.DEATH_Y) < 1e-6, `dead ${glow(a)} ${a.eyes.scale.y}`);
 });
+
+test("the Master Assassin's eyes wait patiently alone, and with the hero near sink dark into still slits, flaring venom-green to mark them", () => {
+  // (made here, last, so the other creatures' ids and so their seeds don't shift)
+  const a = make('master assassin'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK['master assassin'];
+  assert.ok(E.hasEyes(a));
+  const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
+  let t = 0;
+  const run = (look, secs) => {
+    let sum = 0, n = 0, waits = 0, waitLid = Infinity, marks = 0, was = false, wasG = false, lidLo = Infinity, lidHi = 0, markHi = 0, reach = 0;
+    for (let i = 0; i < secs * 60; i++) {
+      const st = frame(a, t += dt, look);
+      const dx = a.eyes.position.x - (rest.x + st.c.x * (1 - a.eyes.scale.x));
+      assert.ok(Math.abs(dx) <= L.xMax + 1e-12, `in the slit ${dx}`);
+      reach = Math.max(reach, Math.abs(dx));
+      assert.ok(a.eyes.scale.y > 0 && a.eyes.scale.y < 1.2 && Number.isFinite(glow(a)) && glow(a) >= 0);
+      if (st.glint !== null && !was) marks++; was = st.glint !== null;
+      if (st.glare !== null && !wasG) waits++; wasG = st.glare !== null;
+      if (st.glare !== null && st.glint === null) waitLid = Math.min(waitLid, a.eyes.scale.y);
+      if (st.glint !== null && st.glare === null) markHi = Math.max(markHi, st.k);
+      if (st.glare === null && st.glint === null && st.blink === null) { sum += st.k; n++; lidLo = Math.min(lidLo, a.eyes.scale.y); lidHi = Math.max(lidHi, a.eyes.scale.y); }
+    }
+    return {mean: sum / n, waits, waitLid, marks, markHi, lidLo, lidHi, reach};
+  };
+  const alone = run(far, 40);
+  run(hero, 5);
+  const near = run(hero, 40);
+  assert.ok(alone.reach > .001, `creeps along the slits ${alone.reach}`);
+  assert.ok(near.reach < .0006, `dead still near ${near.reach}`);
+  assert.ok(alone.waits >= 4 && alone.waitLid < L.glareY + .03, `patience ${alone.waits} to ${alone.waitLid}`);
+  assert.ok(near.waits < alone.waits / 2, `fewer near ${alone.waits} → ${near.waits}`);
+  assert.ok(near.mean < .8 * alone.mean, `sinks dark ${alone.mean} → ${near.mean}`);
+  assert.ok(Math.abs(near.lidLo - L.nearY) < .02 && Math.abs(near.lidHi - L.nearY) < .02, `slits ${near.lidLo}..${near.lidHi}`);
+  assert.ok(near.marks > 2 * alone.marks && near.marks >= 6, `marks ${alone.marks} → ${near.marks}`);
+  assert.ok(near.markHi > 2.5 * near.mean, `venom flare ${near.markHi} vs ${near.mean}`);
+  // an attack narrows them to blazing slits
+  enqueueAction(a.actions, {kind: 'attack', attack: 'weapon', dir: [0, 1]});
+  let peak = 0, thin = 1;
+  for (let i = 0; i < 60; i++) { const st = frame(a, t += dt, hero); peak = Math.max(peak, st.k); thin = Math.min(thin, a.eyes.scale.y); }
+  assert.ok(peak > 2.4 * near.mean && thin < L.atkY + .02, `attack ${peak} vs ${near.mean}, thin ${thin}`);
+  // death gutters them out
+  enqueueAction(a.actions, {kind: 'die', dir: null, style: 'fall'});
+  for (let i = 0; i < 8 * 60; i++) frame(a, t += dt, hero);
+  assert.ok(glow(a) === 0 && Math.abs(a.eyes.scale.y - E.DEATH_Y) < 1e-6, `dead ${glow(a)} ${a.eyes.scale.y}`);
+});
