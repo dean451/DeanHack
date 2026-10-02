@@ -305,3 +305,21 @@ test('a bullwhip has its own coiled, braided lash, merged to one mesh per materi
  assert(box.max.z<.04,`z ${box.max.z}`);
  whip.userData.dispose();
 });
+
+test('a boomerang has its own hooked, bone-toothed stick, merged to one mesh per material',()=>{
+ const stick=createHeldWeapon({name:'boomerang',class:2});
+ assert.deepEqual(stick.children.map(c=>c.userData.part).sort(),['fittings','stick']);
+ const iron=stick.children.find(c=>c.userData.part==='fittings');
+ assert(iron.material.metalness>=.75,'weapon-magic can sheathe the iron');
+ for(const mesh of stick.children){const p=mesh.geometry.attributes.position;
+  for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)),'finite vertices');}
+ stick.updateMatrixWorld(true);
+ const box=new THREE.Box3().setFromObject(stick);
+ // The grip rises from the hand to the elbow and the long arm reaches out along +x; it is
+ // flat in z, so laid on the floor (x −PI/2, scale .8, y .052 in live.js) it lies flat.
+ assert(box.max.y>.2&&box.max.y<.3,`top ${box.max.y}`);
+ assert(box.max.x>.35&&box.max.x<.45&&box.min.x>-.06,`x ${box.min.x}..${box.max.x}`);
+ assert(box.max.z<.025&&box.min.z>-.025,`z ${box.min.z}..${box.max.z}`);
+ assert(.052+.8*box.min.z>0,'above the floor');
+ stick.userData.dispose();
+});
