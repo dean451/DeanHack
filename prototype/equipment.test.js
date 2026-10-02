@@ -441,7 +441,7 @@ test('a sling is two braided cords to a cupped pouch holding a flint, two meshes
   w.userData.dispose();
  }
  // No longer the leather-stick proxy.
- assert.notEqual(createHeldWeapon({name:'sling',class:2}).children.length,createHeldWeapon({name:'rubber hose',class:2}).children.length);
+ assert.notEqual(createHeldWeapon({name:'sling',class:2}).children.length,createHeldWeapon({name:'plain stick',class:2}).children.length);
 });
 
 test('a stiletto is a square-sectioned needle blade over a clawed guard and corded grip, two meshes',()=>{
@@ -463,7 +463,7 @@ test('a stiletto is a square-sectioned needle blade over a clawed guard and cord
   w.userData.dispose();
  }
  // No longer the leather-stick proxy, and not the generic dagger either.
- assert.notEqual(createHeldWeapon({name:'stiletto',class:2}).children.length,createHeldWeapon({name:'rubber hose',class:2}).children.length);
+ assert.notEqual(createHeldWeapon({name:'stiletto',class:2}).children.length,createHeldWeapon({name:'plain stick',class:2}).children.length);
  assert.notEqual(createHeldWeapon({name:'stiletto',class:2}).children.length,createHeldWeapon({name:'dagger',class:2}).children.length);
 });
 
@@ -486,6 +486,30 @@ test('a scalpel is a small bellied blade on a cracked bone handle, two meshes',(
   w.userData.dispose();
  }
  // No longer the leather-stick proxy, and not the generic dagger either.
- assert.notEqual(createHeldWeapon({name:'scalpel',class:2}).children.length,createHeldWeapon({name:'rubber hose',class:2}).children.length);
+ assert.notEqual(createHeldWeapon({name:'scalpel',class:2}).children.length,createHeldWeapon({name:'plain stick',class:2}).children.length);
  assert.notEqual(createHeldWeapon({name:'scalpel',class:2}).children.length,createHeldWeapon({name:'dagger',class:2}).children.length);
+});
+
+test('a rubber hose is a perished black hose over a taped grip with a brass coupling and barbed wire, two meshes',()=>{
+ for(const name of ['rubber hose','+1 rubber hose','cursed rubber hose']){
+  const w=createHeldWeapon({name,class:2});
+  assert.deepEqual(w.userData.rubberHose,{kind:'rubber hose'},name);
+  assert.deepEqual(w.children.map(c=>c.userData.part).sort(),['fittings','hose'],name);
+  assert(w.children.find(c=>c.userData.part==='fittings').material.metalness>=.75,'weapon-magic can sheathe the fittings');
+  for(const mesh of w.children){const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)+n.getX(i)+n.getY(i)+n.getZ(i)),'finite vertices and normals');}
+  w.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(w);
+  assert(box.max.y>.45&&box.max.y<.52&&box.min.y>-.16,`${name} y ${box.min.y}..${box.max.y}`);
+  assert(box.min.x>-.03&&box.max.x<.26,`${name} x ${box.min.x}..${box.max.x}`);
+  assert(box.max.z-box.min.z<.06,`${name} lies flat: z ${box.min.z}..${box.max.z}`);
+  assert(.052+.8*box.min.z>0,`${name} above the floor`);
+  // The coupling hangs at the far end, out past the bend, below the top of the curve.
+  const fit=new THREE.Box3().setFromObject(w.children.find(c=>c.userData.part==='fittings'));
+  assert(fit.max.x>.2&&fit.min.y>.2,'coupling and wire at the striking end');
+  w.userData.dispose();
+ }
+ // No longer the leather-stick proxy, and not the bullwhip either.
+ assert.notEqual(createHeldWeapon({name:'rubber hose',class:2}).children.length,createHeldWeapon({name:'plain stick',class:2}).children.length);
+ assert.equal(createHeldWeapon({name:'bullwhip',class:2}).userData.rubberHose,undefined);
 });
