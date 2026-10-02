@@ -4,9 +4,11 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // A grave for the `grave` terrain: a plot of turned earth heaped into a lumpy mound
 // inside a stone kerb, with a leaning headstone on a plinth at -z, grass tufts along
-// the kerb, a faded posy on the mound and a candle stub with running wax.
-// The seed picks the headstone (round-topped slab, pointed gothic slab or ringed
-// cross), its lean, the tilt of one sunken kerb stone and where the clods fall.
+// the kerb, a dead posy on the mound and a candle stub with running wax.
+// The seed picks the headstone (a cracked round-topped slab with a winged death's head,
+// a cracked pointed gothic slab with a cross, or a ringed cross), its lean, the tilt of one sunken kerb
+// stone and where the clods fall. On about half the graves a skeletal hand has clawed
+// up through a torn hollow in the mound (userData.risen); it is baked into the stone.
 // The stone is lightly roughened and its weathering is baked into vertex colours
 // (mottling, rain streaks down the face, lichen on the tops, moss at the foot); the
 // soil is darker and damp at the edges, drier and crumbly on top.
@@ -54,6 +56,12 @@ export function createGrave(seed=0){
  });
  for(const x of [-.25,.25])for(const z of [-.3,.42])block(.08,.09,.08,x,.045,z,{r:.02,ry:(rand(x*7+z*5+9)-.5)*.3,tint:1.04});
 
+ // About half the graves are not resting: a skeletal hand has clawed up through the
+ // mound. Where it breaks out, the soil is torn open into a dark hollow.
+ const risen=rand(100)<.5,hx=(rand(101)-.5)*.12,hz=.14+rand(102)*.1,HOLE=.05;
+ const hollow=(x,z)=>{if(!risen)return 0;const d=Math.hypot(x-hx,(z-hz)*.85)/HOLE;return d<1?(1-d*d):0;};
+ const soil=soilColour(off),torn=(x,y,z)=>{const c=soil(x,y,z),k=1-.7*hollow(x,z);return [c[0]*k,c[1]*k,c[2]*k];};
+
  // Earth: a height field filling the plot, heaped into a lumpy mound. Its edges
  // tuck under the kerb.
  {
@@ -64,10 +72,10 @@ export function createGrave(seed=0){
    const x=p.getX(i),z=p.getZ(i),u=x/.2,w=(z-.07)/.31,r2=u*u+w*w;
    const heap=r2<1?.105*Math.pow(1-r2,.65):0;
    const lump=(noise3(x*38+off,z*38,1)-.5)*.02+(noise3(x*90,z*90+off,4)-.5)*.006;
-   p.setY(i,.022+heap+lump*(.4+Math.min(1,heap*14)));
+   p.setY(i,.022+heap+lump*(.4+Math.min(1,heap*14))-.045*hollow(x,z));
   }
   geo.computeVertexNormals();
-  put(geo,earth,{paint:soilColour(off)});
+  put(geo,earth,{paint:torn});
  }
  const moundY=(x,z)=>{const u=x/.2,w=(z-.07)/.31,r2=u*u+w*w;return .022+(r2<1?.105*Math.pow(1-r2,.65):0);};
  // Clods of earth and a few pebbles on the mound.
@@ -76,6 +84,51 @@ export function createGrave(seed=0){
   const size=.012+rand(i+30)*.012,geo=new THREE.DodecahedronGeometry(size,0);
   place(geo,x,moundY(x,z)+size*.3,z,rand(i+40)*3,rand(i+50)*3,0,1,.7,1);
   if(i%3===2)put(roughen(geo,.002),stone,{tint:1.1});else put(geo,earth,{paint:soilColour(off),tint:.85});
+ }
+
+ // The hand: forearm bones rising out of the hollow, a bony palm, and long fingers hooked
+ // into claws that rake toward the foot of the grave. Baked into the stone mesh with a
+ // bone paint: yellowed, darker in the joints and caked with earth near the soil.
+ if(risen){
+  const up=new THREE.Vector3(0,1,0),dir=new THREE.Vector3(),mid=new THREE.Vector3();
+  const frame=new THREE.Matrix4().compose(v.set(hx,moundY(hx,hz)-.045*hollow(hx,hz)-.02,hz),q.setFromEuler(e.set(0,(rand(103)-.5)*1.4,0)),s.set(1.4,1.4,1.4));
+  const bone=(a,b,r)=>{
+   dir.subVectors(b,a);const len=dir.length();mid.addVectors(a,b).multiplyScalar(.5);
+   const geo=new THREE.CapsuleGeometry(r,Math.max(.001,len-r),3,6);
+   geo.applyMatrix4(new THREE.Matrix4().compose(mid,new THREE.Quaternion().setFromUnitVectors(up,dir.normalize()),s.set(1,1,1)));
+   put(geo.applyMatrix4(frame),stone,{paint:boneColour(off,moundY(hx,hz)-.02)});
+  };
+  const P=(x,y,z)=>new THREE.Vector3(x,y,z);
+  // Radius and ulna, leaning out toward +z, and a knobbly wrist.
+  const wrist=P(0,.085,.03);
+  bone(P(-.008,-.01,-.01),P(-.007,.08,.027),.0055);bone(P(.008,-.01,-.012),P(.008,.08,.025),.0045);
+  for(const x of [-.009,0,.009])put(place(new THREE.IcosahedronGeometry(.006,0),x,wrist.y+.004,wrist.z+.002).applyMatrix4(frame),stone,{paint:boneColour(off,0)});
+  // Metacarpals fan from the wrist to the knuckles; each finger then curls in three joints.
+  const spread=[-.021,-.007,.007,.02],lens=[.024,.027,.025,.02];
+  spread.forEach((x,i)=>{
+   const knuckle=P(x,.122+(i===1||i===2?.004:0),.05+.002*i);
+   bone(P(x*.4,wrist.y+.004,wrist.z+.002),knuckle,.0034);
+   let p=knuckle,pitch=.35+rand(110+i)*.25,yaw=x*4;
+   for(let j=0;j<3;j++){
+    const L=lens[i]*[1,.75,.62][j];
+    pitch+=.55+rand(120+i*3+j)*.3;// each joint hooks further down: a claw
+    const n=P(p.x+Math.sin(yaw)*Math.sin(pitch)*L,p.y+Math.cos(pitch)*L,p.z+Math.cos(yaw)*Math.sin(pitch)*L);
+    bone(p,n,.0032-j*.0006);p=n;
+   }
+   // A long, sharp, broken nail on the tip.
+   const tip=new THREE.ConeGeometry(.0022,.009,5);tip.rotateX(pitch);tip.rotateY(yaw);
+   tip.translate(p.x+Math.sin(yaw)*Math.sin(pitch)*.004,p.y+Math.cos(pitch)*.004,p.z+Math.cos(yaw)*Math.sin(pitch)*.004);
+   put(tip.applyMatrix4(frame),stone,{paint:boneColour(off,0),tint:.7});
+  });
+  // The thumb, splayed off the inner side of the palm.
+  bone(P(-.01,wrist.y+.004,wrist.z),P(-.03,.11,.045),.0036);bone(P(-.03,.11,.045),P(-.04,.122,.062),.003);
+  // Earth heaped round the break-out, and clods flung onto the mound.
+  for(let i=0;i<7;i++){
+   const a=i/7*Math.PI*2+rand(130+i),r=HOLE*(.95+rand(140+i)*.3),x=hx+Math.cos(a)*r,z=hz+Math.sin(a)*r/.85;
+   if(Math.abs(x)>.21||z<-.26||z>.38)continue;
+   const size=.011+rand(150+i)*.01,geo=new THREE.DodecahedronGeometry(size,0);
+   put(place(geo,x,moundY(x,z)+size*.2,z,rand(160+i)*3,rand(170+i)*3,0,1.2,.6,1),earth,{paint:soil,tint:.8});
+  }
  }
 
  // Headstone: a plinth, then the stone itself, leaning back a little. Slabs carry
@@ -108,11 +161,40 @@ export function createGrave(seed=0){
   const slab=new THREE.ExtrudeGeometry(new THREE.Shape(pts),{depth:.056,bevelEnabled:true,bevelThickness:.007,bevelSize:.007,bevelSegments:2,curveSegments:24});
   slab.translate(0,.007,-.028);
   onHead(slab);
-  // Carved cross and epitaph: dark recessed strokes just proud of the face.
+  // Carvings: dark recessed strokes just proud of the face. The gothic slab bears a cross;
+  // the round one a winged death's head, its sockets cut deep, its wings swept down.
   const cy=kind==='round'?.34:.35;
-  inset(.026,.13,0,cy);inset(.085,.026,0,cy+.025);
+  if(kind==='round'){
+   const relief=(geo,tint=1)=>onHead(geo,tint);
+   relief(place(new THREE.SphereGeometry(.03,14,10),0,cy+.012,.03,0,0,0,1,1.08,.42),1.02);
+   relief(place(new RoundedBoxGeometry(.034,.022,.012,1,.004),0,cy-.022,.034),.98);
+   for(const x of [-.012,.012])relief(place(new THREE.SphereGeometry(.0095,8,6),x,cy+.008,.04,0,0,x>0?-.3:.3,1,.8,.5),.25);
+   relief(place(new THREE.ConeGeometry(.005,.01,3),0,cy-.006,.042,Math.PI,0,0,1,1,.5),.3);
+   for(let t=0;t<4;t++)inset(.003,.012,-.011+t*.0073,cy-.022,.041);
+   // Each wing: five feathers fanned out and down from behind the skull, longest on top.
+   for(const side of [-1,1])for(let f=0;f<5;f++){
+    const len=.075-f*.009,a=side*(1.25+f*.2),r0=.03;
+    const x=side*r0+Math.sin(a)*len/2,y=cy+.01-f*.004+Math.cos(a)*len/2;
+    relief(place(new RoundedBoxGeometry(.013,len,.007,1,.003),x,y,.031,0,0,-a),.94-f*.03);
+    inset(.002,len*.7,x,y,.0352,-a);
+   }
+  }else{
+   inset(.026,.13,0,cy);inset(.085,.026,0,cy+.025);
+  }
   for(const [y,w] of [[.21,.17],[.17,.12],[.13,.15]])inset(w,.011,0,y);
   inset(.05,.008,0,.09);
+  // A jagged crack runs down from the shoulder through the epitaph, splitting once.
+  const zig=(x,y,steps,dx)=>{
+   for(let i=0;i<steps;i++){
+    const nx=x+dx+(rand(180+i+steps*7)-.5)*.04,ny=y-.035-rand(190+i+steps*5)*.025;
+    const len=Math.hypot(nx-x,ny-y);
+    inset(.0045-i*.0004,len+.003,(x+nx)/2,(y+ny)/2,.0375,Math.atan2(nx-x,y-ny));
+    x=nx;y=ny;
+   }
+   return [x,y];
+  };
+  const side=rand(8)<.5?-1:1,[bx,by]=zig(side*(.1+rand(9)*.03),body+.03,3,-side*.012);
+  zig(bx,by,3,-side*.006);zig(bx,by,2,side*.02);
  }
 
  // Grass: tufts of tapered blades hugging the kerb, the corners and the plinth.
@@ -127,7 +209,7 @@ export function createGrave(seed=0){
    geo.computeVertexNormals();
    const dry=rand(k*23+b);
    put(geo,grass,{paint:(px,py)=>{
-    green.setRGB(.13+dry*.08,.2+dry*.05,.07);tip.setRGB(.42+dry*.2,.46+dry*.06,.18);
+    green.setRGB(.16+dry*.1,.19+dry*.04,.08);tip.setRGB(.47+dry*.16,.42+dry*.06,.2);
     green.lerp(tip,Math.min(1,py/h));return [green.r,green.g,green.b];
    }});
   }
@@ -139,17 +221,17 @@ export function createGrave(seed=0){
  tuft(-.19,-.36,6,.06,k++);tuft(.19,-.37,4,.05,k++);
  tuft(.17,-.22,4,.04,k++);tuft(-.18,.33,4,.035,k++);
 
- // A faded posy laid on the mound: three stems tied together with petal heads.
+ // A dead posy laid on the mound: three stems tied together, the heads withered dark.
  {
   const px=-.05+rand(80)*.06,pz=.15+rand(81)*.06,ang=rand(82)*Math.PI*2,y0=moundY(px,pz)+.004;
-  const petal=[[.62,.22,.25],[.82,.78,.68],[.66,.46,.62]][Math.floor(rand(83)*3)];
+  const petal=[[.34,.05,.08],[.38,.28,.18],[.24,.11,.26]][Math.floor(rand(83)*3)];
   for(let i=0;i<3;i++){
    const spread=(i-1)*.22,len=.1+rand(84+i)*.03;
    const stem=new THREE.CylinderGeometry(.0025,.0025,len,5);stem.rotateZ(Math.PI/2);stem.translate(len/2,0,0);
    const head=new THREE.IcosahedronGeometry(.014,0);head.scale(1,.6,1);head.translate(len+.01,.004,0);
    for(const geo of [stem,head]){geo.rotateY(ang+spread);geo.translate(px,y0,pz);}
    const tie=new THREE.TorusGeometry(.006,.002,4,8);tie.rotateY(Math.PI/2);tie.translate(.025,0,0);tie.rotateY(ang);tie.translate(px,y0,pz);
-   put(stem,grass,{paint:()=>[.18,.24,.1]});
+   put(stem,grass,{paint:()=>[.2,.17,.09]});
    put(head,grass,{paint:(x,y,z)=>{const f=.8+noise3(x*200,y*200,z*200)*.3;return petal.map(c=>c*f);}});
    if(i===0)put(tie,grass,{paint:()=>[.5,.4,.26]});
   }
@@ -187,7 +269,7 @@ export function createGrave(seed=0){
   mesh.userData.part=Object.keys(parts).find(key=>parts[key]===material);
   g.add(mesh);
  }
- g.userData.headstone=kind;
+ g.userData.headstone=kind;g.userData.risen=risen;
  g.userData.dispose=()=>{for(const geo of geometries)geo.dispose();for(const m of materials)m.dispose();};
  return g;
 }
@@ -205,6 +287,18 @@ function stoneColour(x,y,z,n,off){
  const moss=Math.max(0,1-y/.1)*noise3(x*25,y*25+off,z*25);
  if(moss>.35){const t=Math.min(1,(moss-.35)*3);r+=(.16-r)*t;g+=(.22-g)*t;b+=(.1-b)*t;}
  return [r,g,b];
+}
+
+// Old bone: yellowed ivory, mottled, darker in the creases, and caked with earth up to a
+// little above the soil line `ground`.
+function boneColour(off,ground){
+ return (x,y,z)=>{
+  const k=.82+noise3(x*120+off,y*120,z*120)*.25;
+  let r=.74*k,g=.67*k,b=.5*k;
+  const dirt=Math.min(1,Math.max(0,1-(y-ground)/.06))*(.7+noise3(x*60,y*60+off,z*60)*.3);
+  r+=(.24-r)*dirt;g+=(.16-g)*dirt;b+=(.1-b)*dirt;
+  return [r,g,b];
+ };
 }
 
 // Turned soil: damp and dark where it meets the kerb, drier and paler on the crown,
