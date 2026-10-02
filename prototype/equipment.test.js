@@ -421,3 +421,25 @@ test('a worm tooth is a hooked, saw-edged fang and a crysknife the curved blade 
  // A crysknife is no longer the generic dagger.
  assert.notEqual(createHeldWeapon({name:'crysknife',class:2}).children.length,createHeldWeapon({name:'knife',class:2}).children.length);
 });
+
+test('a sling is two braided cords to a cupped pouch holding a flint, two meshes',()=>{
+ for(const name of ['sling','+1 sling','uncursed sling']){
+  const w=createHeldWeapon({name,class:2});
+  assert.deepEqual(w.userData.sling,{kind:'sling'},name);
+  assert.deepEqual(w.children.map(c=>c.userData.part).sort(),['sling','stone'],name);
+  assert(w.children.find(c=>c.userData.part==='stone').material.metalness>=.75,'weapon-magic can sheathe the stone');
+  for(const mesh of w.children){const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)+n.getX(i)+n.getY(i)+n.getZ(i)),'finite vertices and normals');}
+  w.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(w);
+  assert(box.max.y>.4&&box.max.y<.46&&box.min.y>-.11,`${name} y ${box.min.y}..${box.max.y}`);
+  assert(box.min.x>-.07&&box.max.x<.07,`${name} x ${box.min.x}..${box.max.x}`);
+  assert(.052+.8*box.min.z>0,`${name} above the floor`);
+  // The stone sits in the pouch at the top, the hand end at the bottom.
+  const stone=new THREE.Box3().setFromObject(w.children.find(c=>c.userData.part==='stone'));
+  assert(stone.min.y>.35&&stone.max.y<box.max.y,'stone in the pouch');
+  w.userData.dispose();
+ }
+ // No longer the leather-stick proxy.
+ assert.notEqual(createHeldWeapon({name:'sling',class:2}).children.length,createHeldWeapon({name:'rubber hose',class:2}).children.length);
+});

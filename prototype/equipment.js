@@ -8,6 +8,7 @@ import {buildDart} from './dart.js';
 import {buildAklys} from './aklys.js';
 import {buildArrow,ARROW_NAME} from './arrow.js';
 import {buildWormTooth,WORM_TOOTH_NAME} from './worm-tooth.js';
+import {buildSling,SLING_NAME} from './sling.js';
 
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
@@ -192,6 +193,8 @@ export function createHeldWeapon(item){
   if(/battle-axe/.test(name)){const second=axeBlade.clone();second.rotateY(Math.PI);part(second,steel,0,0);}
  }else if(/\bbullwhip\b/.test(name)){
   buildBullwhip(g);
+ }else if(SLING_NAME.test(name)){
+  buildSling(g);
  }else if(/\bboomerang\b/.test(name)){
   buildBoomerang(g);
  }else if(/\b(shuriken|throwing star)\b/.test(name)){
