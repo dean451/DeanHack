@@ -16,17 +16,28 @@
 
 // top: height (body space) where the sway starts; bottom: the hem's lowest edge (default 0), where
 // it moves fully; lag: the most the hem trails (body units) at speed `sat`; freq/damp: the trail
-// spring; crawl/flutter: amplitudes; flutterY: how far above `bottom` the points flutter.
+// spring; crawl/flutter: amplitudes; flutterY: how far above `bottom` the points flutter;
+// pick (optional): (x, y, z) => whether a vertex below `top` belongs to the hanging cloth at all.
 // Pelias: the bearskin cloak's ragged hem hangs to the knee (.26) and the war-kilt's leather strips
 // hang from the belt (.5) to about .35. Heavy fur swings slow and wide and barely lifts; the stir is
 // a cold wind in the fur, not a crawl, and the strip ends and the hem's tatters flap with it.
 // Charon: the river-murk robe falls from the rope girdle (.56) to the floor, soaked black and slimed
 // at the hem. Waterlogged, it drags slow and heavy, barely overshoots and never lifts; standing, the
 // Styx's slow current still laps round it, and the sodden points only twitch, as if dripping.
+// Master Assassin: the ragged half-cape hangs from his left shoulder round his back and left side,
+// its torn points down to the thigh. Only its two lowest rings move (the belt row at .48 and the
+// points), picked by the cape's own radius (lathe radius .18–.2, squashed to .85 in z and set back
+// .012) against the hips', vials' and baldrics' .15 at most. Light and thin, it snaps out behind
+// when he darts, whips past on the stop and lifts; standing, a faint cold draught stirs it, and the
+// long jagged points twitch on their own like something restless.
 export const HEMS = {
   'dark one': {top: .42, lag: .045, sat: 1.2, freq: 6.5, damp: .28, lift: .3, crawl: .007, crawlHz: .21, flutter: .006, flutterY: .045},
   pelias: {top: .5, bottom: .26, lag: .05, sat: 1.4, freq: 4.2, damp: .32, lift: .15, crawl: .004, crawlHz: .13, flutter: .005, flutterY: .15},
   charon: {top: .5, lag: .04, sat: 1.2, freq: 3.6, damp: .45, lift: .04, crawl: .006, crawlHz: .09, flutter: .003, flutterY: .05},
+  'master assassin': {
+    top: .62, bottom: .257, lag: .055, sat: 1.1, freq: 7, damp: .26, lift: .35, crawl: .004, crawlHz: .17, flutter: .007, flutterY: .1,
+    pick: (x, y, z) => y < .5 && Math.hypot(x, (z + .012) / .85) > .165,
+  },
 };
 // TELEPORT: a speed (world units/s) no glide reaches
 const STEP = 1 / 120, MAX_DT = .1, EASE = 1.5, TELEPORT = 20, REST = 1e-4;
@@ -49,7 +60,7 @@ function setup(actor, P) {
   const p = geo.attributes.position, idx = [], w = [], f = [], ang = [], lo = P.bottom ?? 0;
   for (let i = 0; i < p.count; i++) {
     const y = p.getY(i);
-    if (y >= P.top) continue;
+    if (y >= P.top || (P.pick && !P.pick(p.getX(i), y, p.getZ(i)))) continue;
     const s = Math.min(1, (P.top - y) / (P.top - lo));
     idx.push(i); w.push(s * s);
     f.push(Math.max(0, Math.min(1, (lo + P.flutterY - y) / P.flutterY)));
