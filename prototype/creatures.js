@@ -76,6 +76,7 @@ import {createRanger} from './ranger.js';
 import {createRogue} from './rogue.js';
 import {createNinja} from './ninja.js';
 import {createExecutioner} from './executioner.js';
+import {createCharon} from './charon.js';
 import {createThothAmon} from './thoth-amon.js';
 import {createCroesus} from './croesus.js';
 import {createOneEyedSam} from './one-eyed-sam.js';
@@ -2543,6 +2544,7 @@ export function createCreature(cell={}){
  if(name==='wizard')return createWizard();
  if(name==='wizard of yendor')return createWizardOfYendor();
  if(name==='executioner')return createExecutioner();
+ if(name==='charon')return createCharon();
  if(name==='thoth amon')return createThothAmon();
  if(name==='croesus')return createCroesus();
  if(name==='one-eyed sam')return createOneEyedSam();
