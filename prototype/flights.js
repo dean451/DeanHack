@@ -4,6 +4,8 @@
 // (the real arrow.js models), darts and spears point where they're going on a shallow arc (a dart rolling on its
 // flights), daggers tumble end over
 // end, shuriken spin flat, stones, gems and potions lob, and boulders roll along the floor.
+// An aklys (the real aklys.js club) tumbles end over end with its rawhide thong paid out
+// behind it, whipping and sagging along its path (thongTrail).
 // A boomerang (the bridge's cmap `boomerang` sequence, not an object) whirls flat along its
 // looping path, banked into the turn, and comes back to the thrower's hand.
 //
@@ -19,6 +21,7 @@ import {buildShuriken, SHURIKEN_CENTER} from './shuriken.js';
 import {buildDart} from './dart.js';
 import {buildBoomerang} from './boomerang.js';
 import {buildArrow} from './arrow.js';
+import {buildAklys} from './aklys.js';
 
 // Object classes and materials from include/objclass.h.
 const WEAPON_CLASS = 2, POTION_CLASS = 8, COIN_CLASS = 12, GEM_CLASS = 13, ROCK_CLASS = 14, BALL_CLASS = 15,
@@ -43,6 +46,7 @@ export const STYLES = {
   dart: {spin: 'point', roll: 16, arc: .06, perCell: .025, maxArc: .32},
   spear: {spin: 'point', arc: .08, perCell: .03, maxArc: .4},
   dagger: {spin: 'tumble', rate: 17, arc: .08, perCell: .03, maxArc: .4},
+  aklys: {spin: 'tumble', rate: 10, arc: .1, perCell: .035, maxArc: .45},
   weapon: {spin: 'tumble', rate: 12, arc: .1, perCell: .035, maxArc: .45},
   shuriken: {spin: 'flat', rate: 28, arc: .04, perCell: .015, maxArc: .22, bank: .22, wobble: .07, wobbleRate: 14},
   boomerang: {spin: 'flat', rate: 24, arc: .1, perCell: 0, maxArc: .1, bank: .38, wobble: .06, wobbleRate: 9, curve: true},
@@ -208,6 +212,42 @@ export function flightFrame(flight, t) {
   return {x, z, y, yaw, pitch, spin, bank};
 }
 
+// The aklys's thong in flight: THONG_LEN tiles of cord in THONG_SEGS links. It trails back
+// along the path the club has flown (so it curves with the arc), sags toward its free end
+// and whips side to side in a wave running down its length; near the launch the unpaid
+// rest of it is still bunched at the hand.
+export const THONG_LEN = .6, THONG_SEGS = 10;
+const THONG_SAG = .09, THONG_WHIP = .07, THONG_WHIP_RATE = 26, THONG_WAVE = 4.5, THONG_STEP_MS = 4;
+// THONG_SEGS + 1 points {x, z (map cells), y (tiles)}, from the club's centre at t back to
+// the free end, or null when the flight isn't in the air.
+export function thongTrail(flight, t) {
+  const here = flightFrame(flight, t);
+  if (!here) return null;
+  const seg = THONG_LEN / THONG_SEGS, sec = (t - flight.start) / 1000;
+  const px = Math.cos(here.yaw), pz = -Math.sin(here.yaw);
+  const pts = [{x: here.x, y: here.y, z: here.z}];
+  let prev = here, run = 0, tt = t;
+  while (pts.length <= THONG_SEGS) {
+    const back = Math.max(flight.start, tt - THONG_STEP_MS);
+    const fr = back < tt ? flightFrame(flight, back) : null;
+    if (!fr) break;
+    const d = Math.hypot(fr.x - prev.x, fr.y - prev.y, fr.z - prev.z);
+    // Drop a point at each whole link along the way back.
+    while (pts.length <= THONG_SEGS && run + d >= seg * pts.length) {
+      const u = d > 0 ? (seg * pts.length - run) / d : 0;
+      pts.push({x: prev.x + (fr.x - prev.x) * u, y: prev.y + (fr.y - prev.y) * u, z: prev.z + (fr.z - prev.z) * u});
+    }
+    run += d; prev = fr; tt = back;
+  }
+  while (pts.length <= THONG_SEGS) pts.push({x: prev.x, y: prev.y, z: prev.z});
+  for (let i = 1; i < pts.length; i++) {
+    const s = i / THONG_SEGS, w = THONG_WHIP * s * Math.sin(THONG_WHIP_RATE * sec - THONG_WAVE * s);
+    pts[i].x += px * w; pts[i].z += pz * w;
+    pts[i].y = Math.max(.02, pts[i].y - THONG_SAG * s ** 1.5);
+  }
+  return pts;
+}
+
 // Draws flights. play(timeline) queues a replay's flights, update(dt, origin) moves them and
 // returns the number in the air, clear() drops them all.
 export function createFlights(THREE, parent) {
@@ -243,6 +283,7 @@ export function createFlights(THREE, parent) {
       geo(mesh.geometry.translate(0, -mid, 0).rotateX(Math.PI / 2));
       root.add(mesh);
     }
+    return mid;
   }
   function arrow(root, look) {
     const held = new THREE.Group();
@@ -262,6 +303,13 @@ export function createFlights(THREE, parent) {
       buildDart(held);
       extraMats.push(...held.userData.extraMaterial);
       pointed(r, held);
+    },
+    aklys(r) {
+      // The held model (aklys.js); its iron eye (where the thong is tied) sits at y -.127.
+      const held = new THREE.Group();
+      buildAklys(held);
+      extraMats.push(...held.userData.extraMaterial);
+      r.userData.thongEye = new THREE.Vector3(0, 0, -.127 - pointed(r, held));
     },
     spear(r, m) {
       r.add(new THREE.Mesh(shaftGeo(.017, .9, -.08), mats.wood));
@@ -320,6 +368,40 @@ export function createFlights(THREE, parent) {
     boulder: r => r.add(new THREE.Mesh(geo(new THREE.IcosahedronGeometry(STYLES.boulder.radius, 1)), mats.stone)),
     lump: r => r.add(new THREE.Mesh(geo(new THREE.BoxGeometry(.09, .07, .11)), mats.lump)),
   };
+  // One thong link: a unit-long cord from the origin up +y, stretched and turned per frame.
+  const thongGeo = geo(new THREE.CylinderGeometry(.0055, .0055, 1, 5, 1, true).translate(0, .5, 0));
+  const thongMat = new THREE.MeshStandardMaterial({color: 0x6b5038, roughness: .9, side: THREE.DoubleSide});
+  extraMats.push(thongMat);
+  // The thong lives under the flight's outer group (so it goes when the flight does) but is
+  // laid out in the parent's space: its matrix undoes the outer group's.
+  function makeThong() {
+    const g = new THREE.Group();
+    g.matrixAutoUpdate = false;
+    for (let i = 0; i < THONG_SEGS; i++) g.add(new THREE.Mesh(thongGeo, thongMat));
+    return g;
+  }
+  const UP = new THREE.Vector3(0, 1, 0), eye = new THREE.Vector3(), a = new THREE.Vector3(), b = new THREE.Vector3();
+  function layThong(fl, t, ox, oz) {
+    const pts = thongTrail(fl.f, t);
+    if (!pts) return;
+    fl.outer.updateMatrix();
+    fl.inner.updateMatrix();
+    fl.thong.matrix.copy(fl.outer.matrix).invert();
+    // clone() copies userData through JSON, so the eye is a plain {x, y, z} here.
+    const e = fl.inner.userData.thongEye;
+    eye.set(e.x, e.y, e.z).applyMatrix4(fl.inner.matrix).applyMatrix4(fl.outer.matrix);
+    for (let i = 0; i < THONG_SEGS; i++) {
+      const link = fl.thong.children[i];
+      if (i) a.set(pts[i].x - ox, pts[i].y, pts[i].z - oz); else a.copy(eye);
+      b.set(pts[i + 1].x - ox, pts[i + 1].y, pts[i + 1].z - oz);
+      const len = a.distanceTo(b);
+      link.visible = len > 1e-4;
+      if (!link.visible) continue;
+      link.position.copy(a);
+      link.quaternion.setFromUnitVectors(UP, b.sub(a).divideScalar(len));
+      link.scale.set(1, len, 1);
+    }
+  }
   const templates = new Map();
   function model(shape, metal, look = '') {
     const key = `${shape}:${metal}:${look}`;
@@ -347,7 +429,9 @@ export function createFlights(THREE, parent) {
       const {outer, inner} = model(f.shape, f.metal, f.look);
       outer.visible = false;
       parent.add(outer);
-      flights.push({f, t0: now, outer, inner});
+      const thong = inner.userData.thongEye ? makeThong() : null;
+      if (thong) outer.add(thong);
+      flights.push({f, t0: now, outer, inner, thong});
       while (flights.length > MAX_FLIGHTS) parent.remove(flights.shift().outer);
     }
     return found;
@@ -370,6 +454,7 @@ export function createFlights(THREE, parent) {
       // ZYX: spin about the star's own axis first, then lean the spinning star over.
       else if (style === 'flat') fl.inner.rotation.set(0, fr.spin, fr.bank, 'ZYX');
       if (fl.f.shape === 'stone' || fl.f.shape === 'gem' || fl.f.shape === 'lump') fl.inner.rotation.z = fr.spin * .6;
+      if (fl.thong) layThong(fl, t, ox, oz);
     }
     return flights.length;
   }
