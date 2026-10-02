@@ -1553,6 +1553,43 @@ test('Lord Carnarvon gets a dusty pith helmet, a sallow face with a monocle and 
  assert.notEqual(createCreature({name:'human',symbol:64}).kind,'lord carnarvon');
 });
 
+test('Pelias gets a spiked iron crown, a scarred bald head with frost-pale glints, a white plaited beard, a gold torc, a bearskin cloak, a war-kilt, cross-gartered legs, fur boots and an upright broadsword instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const c=createCreature({name:'Pelias',symbol:64,color:13});
+ assert.equal(c.kind,'pelias');assert.equal(c.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','eyes'])assert(c[key]?.isObject3D,key);
+ assert.equal(c.legs.length,2);assert.equal(c.arms.length,2);assert.equal(c.arm,c.arms[1]);
+ assert(c.arm.children.includes(c.weaponSocket),'the socket is at the right hand');
+ assert.equal(c.weaponSocket.children.length,1,'the sword is held');
+ const parts=meshes(c);
+ assert.equal(parts.length,8,'one mesh per moving part, the sword and the eyes');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ c.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(c.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`boots at ${b.min.y}`);
+ assert(b.max.y>1.2&&b.max.y<1.6,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
+ const eye=new THREE.Box3().setFromObject(c.eyes,true).getCenter(new THREE.Vector3());
+ for(const s of [-1,1]){
+  const hit=new THREE.Raycaster(new THREE.Vector3(eye.x+s*.029,eye.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===c.eyes,`the ${s<0?'left':'right'} eye is hidden behind the ${hit?.object.userData.part}`);
+ }
+ // the crown's spikes rise over the scalp, and the sword stands taller than the head
+ const head=new THREE.Box3().setFromObject(c.head,true),sword=new THREE.Box3().setFromObject(c.weaponSocket,true);
+ assert(head.max.y-eye.y>.1,'a spiked crown');
+ assert(sword.max.y-sword.min.y>.75&&sword.max.y>eye.y,`sword ${sword.min.y}..${sword.max.y}`);
+ const again=meshes(createCreature({name:'pelias'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+ assert.notEqual(createCreature({name:'human',symbol:64}).kind,'pelias');
+});
+
 test('One-eyed Sam gets a tricorn, an eyepatch and one burning eye, a braid, grey dragon scale mail under a ragged greatcoat, speed boots, a mirror shield on the left arm and Thiefbane instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const sam=createCreature({name:'One-eyed Sam',symbol:64,color:0});
