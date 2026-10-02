@@ -8,12 +8,15 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // The seed picks the headstone (a cracked round-topped slab with a winged death's head,
 // a cracked pointed gothic slab with a cross, or a ringed cross), its lean, the tilt of one sunken kerb
 // stone and where the clods fall. On about half the graves a skeletal hand has clawed
-// up through a torn hollow in the mound (userData.risen); it is baked into the stone.
+// up through a torn hollow in the mound (userData.risen). The hand is its own pivoted
+// piece (userData.hand, pivot at the wrist where it leaves the soil) with the fingers
+// in a child pivot at the knuckles (userData.claw), so it can twitch and
+// flex; both share the stone material.
 // The stone is lightly roughened and its weathering is baked into vertex colours
 // (mottling, rain streaks down the face, lichen on the tops, moss at the foot); the
 // soil is darker and damp at the edges, drier and crumbly on top.
 // Static parts are merged into one mesh per material: stone, earth, grass, wax and
-// flame. The mound faces +z like the altar and everything stays inside its tile.
+// flame (plus the hand's two meshes on a risen grave). The mound faces +z like the altar and everything stays inside its tile.
 export function createGrave(seed=0){
  const g=new THREE.Group();g.name='Grave';
  const materials=[],geometries=[];
@@ -31,7 +34,7 @@ export function createGrave(seed=0){
  const place=(geo,x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=sx,sz=sx)=>geo.applyMatrix4(m4.compose(v.set(x,y,z),q.setFromEuler(e.set(rx,ry,rz)),s.set(sx,sy,sz)));
  // Queue a placed geometry into a material's bin. `paint(x,y,z,normal)` gives its
  // vertex colour at bake time (for vertex-coloured materials); `tint` scales it.
- const put=(geo,m,{paint=null,tint=1}={})=>{geo.userData.paint=paint;geo.userData.tint=tint;bins.get(m).push(geo);return geo;};
+ const put=(geo,m,{paint=null,tint=1,bin=bins.get(m)}={})=>{geo.userData.paint=paint;geo.userData.tint=tint;bin.push(geo);return geo;};
  // Roughen a geometry by a position-keyed noise, so shared corners move together
  // and no cracks open between faces.
  const roughen=(geo,amt=.003)=>{
@@ -87,27 +90,30 @@ export function createGrave(seed=0){
  }
 
  // The hand: forearm bones rising out of the hollow, a bony palm, and long fingers hooked
- // into claws that rake toward the foot of the grave. Baked into the stone mesh with a
- // bone paint: yellowed, darker in the joints and caked with earth near the soil.
+ // into claws that rake toward the foot of the grave. Painted like bone: yellowed, darker
+ // in the joints and caked with earth near the soil. Forearm, palm and thumb go in
+ // handBin, the four fingers in clawBin; both are baked in grave space (so the soil line on the
+ // paint is right) and then moved into their pivots' frames.
+ const handBin=[],clawBin=[],frame=new THREE.Matrix4(),KNUCKLES=new THREE.Vector3(0,.124,.053);
  if(risen){
   const up=new THREE.Vector3(0,1,0),dir=new THREE.Vector3(),mid=new THREE.Vector3();
-  const frame=new THREE.Matrix4().compose(v.set(hx,moundY(hx,hz)-.045*hollow(hx,hz)-.02,hz),q.setFromEuler(e.set(0,(rand(103)-.5)*1.4,0)),s.set(1.4,1.4,1.4));
-  const bone=(a,b,r)=>{
+  frame.compose(v.set(hx,moundY(hx,hz)-.045*hollow(hx,hz)-.02,hz),q.setFromEuler(e.set(0,(rand(103)-.5)*1.4,0)),s.set(1.4,1.4,1.4));
+  const bone=(a,b,r,bin=clawBin)=>{
    dir.subVectors(b,a);const len=dir.length();mid.addVectors(a,b).multiplyScalar(.5);
    const geo=new THREE.CapsuleGeometry(r,Math.max(.001,len-r),3,6);
    geo.applyMatrix4(new THREE.Matrix4().compose(mid,new THREE.Quaternion().setFromUnitVectors(up,dir.normalize()),s.set(1,1,1)));
-   put(geo.applyMatrix4(frame),stone,{paint:boneColour(off,moundY(hx,hz)-.02)});
+   put(geo.applyMatrix4(frame),stone,{paint:boneColour(off,moundY(hx,hz)-.02),bin});
   };
   const P=(x,y,z)=>new THREE.Vector3(x,y,z);
   // Radius and ulna, leaning out toward +z, and a knobbly wrist.
   const wrist=P(0,.085,.03);
-  bone(P(-.008,-.01,-.01),P(-.007,.08,.027),.0055);bone(P(.008,-.01,-.012),P(.008,.08,.025),.0045);
-  for(const x of [-.009,0,.009])put(place(new THREE.IcosahedronGeometry(.006,0),x,wrist.y+.004,wrist.z+.002).applyMatrix4(frame),stone,{paint:boneColour(off,0)});
+  bone(P(-.008,-.01,-.01),P(-.007,.08,.027),.0055,handBin);bone(P(.008,-.01,-.012),P(.008,.08,.025),.0045,handBin);
+  for(const x of [-.009,0,.009])put(place(new THREE.IcosahedronGeometry(.006,0),x,wrist.y+.004,wrist.z+.002).applyMatrix4(frame),stone,{paint:boneColour(off,0),bin:handBin});
   // Metacarpals fan from the wrist to the knuckles; each finger then curls in three joints.
   const spread=[-.021,-.007,.007,.02],lens=[.024,.027,.025,.02];
   spread.forEach((x,i)=>{
    const knuckle=P(x,.122+(i===1||i===2?.004:0),.05+.002*i);
-   bone(P(x*.4,wrist.y+.004,wrist.z+.002),knuckle,.0034);
+   bone(P(x*.4,wrist.y+.004,wrist.z+.002),knuckle,.0034,handBin);
    let p=knuckle,pitch=.35+rand(110+i)*.25,yaw=x*4;
    for(let j=0;j<3;j++){
     const L=lens[i]*[1,.75,.62][j];
@@ -118,10 +124,10 @@ export function createGrave(seed=0){
    // A long, sharp, broken nail on the tip.
    const tip=new THREE.ConeGeometry(.0022,.009,5);tip.rotateX(pitch);tip.rotateY(yaw);
    tip.translate(p.x+Math.sin(yaw)*Math.sin(pitch)*.004,p.y+Math.cos(pitch)*.004,p.z+Math.cos(yaw)*Math.sin(pitch)*.004);
-   put(tip.applyMatrix4(frame),stone,{paint:boneColour(off,0),tint:.7});
+   put(tip.applyMatrix4(frame),stone,{paint:boneColour(off,0),tint:.7,bin:clawBin});
   });
   // The thumb, splayed off the inner side of the palm.
-  bone(P(-.01,wrist.y+.004,wrist.z),P(-.03,.11,.045),.0036);bone(P(-.03,.11,.045),P(-.04,.122,.062),.003);
+  bone(P(-.01,wrist.y+.004,wrist.z),P(-.03,.11,.045),.0036,handBin);bone(P(-.03,.11,.045),P(-.04,.122,.062),.003,handBin);
   // Earth heaped round the break-out, and clods flung onto the mound.
   for(let i=0;i<7;i++){
    const a=i/7*Math.PI*2+rand(130+i),r=HOLE*(.95+rand(140+i)*.3),x=hx+Math.cos(a)*r,z=hz+Math.sin(a)*r/.85;
@@ -250,8 +256,7 @@ export function createGrave(seed=0){
 
  // Bake: vertex-coloured bins get their colours, then every bin becomes one mesh.
  const n=new THREE.Vector3();
- for(const [material,list] of bins){
-  if(!list.length)continue;
+ const bake=(material,list)=>{
   const flats=list.map(geo=>{
    const {paint,tint}=geo.userData;
    const flat=geo.index?geo.toNonIndexed():geo;if(flat!==geo)geo.dispose();
@@ -267,7 +272,22 @@ export function createGrave(seed=0){
   const geo=mergeGeometries(flats);flats.forEach(f=>f.dispose());geometries.push(geo);
   const mesh=new THREE.Mesh(geo,material);mesh.castShadow=material!==flame&&material!==grass;mesh.receiveShadow=material!==flame;
   mesh.userData.part=Object.keys(parts).find(key=>parts[key]===material);
-  g.add(mesh);
+  return mesh;
+ };
+ for(const [material,list] of bins)if(list.length)g.add(bake(material,list));
+ // The hand: a pivot at the wrist (the frame's origin, just under the soil) holding the
+ // forearm, palm and thumb, and a child pivot at the knuckles holding the four fingers.
+ // At rest the bones sit exactly where the old baked-in hand did.
+ if(risen){
+  const hand=new THREE.Group(),claw=new THREE.Group();hand.name='GraveHand';claw.name='GraveClaw';
+  frame.decompose(hand.position,hand.quaternion,hand.scale);claw.position.copy(KNUCKLES);
+  hand.add(claw);g.add(hand);
+  const palm=bake(stone,handBin),fingers=bake(stone,clawBin);
+  palm.geometry.applyMatrix4(frame.clone().invert());palm.userData.part='hand';hand.add(palm);
+  fingers.geometry.applyMatrix4(frame.clone().multiply(new THREE.Matrix4().makeTranslation(KNUCKLES.x,KNUCKLES.y,KNUCKLES.z)).invert());
+  fingers.userData.part='claw';claw.add(fingers);
+  for(const o of [hand,claw])o.userData.rest={position:o.position.clone(),quaternion:o.quaternion.clone()};
+  g.userData.hand=hand;g.userData.claw=claw;
  }
  g.userData.headstone=kind;g.userData.risen=risen;
  g.userData.dispose=()=>{for(const geo of geometries)geo.dispose();for(const m of materials)m.dispose();};
