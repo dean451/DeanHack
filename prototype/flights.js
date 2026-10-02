@@ -1,7 +1,7 @@
 // Thrown objects in flight. The fx stream (fx.js) records a thrown or fired object as a
 // flash sequence: its glyph drawn one cell per tick along the path. Map frames only show
-// where it ended up, so this module flies a small model along those cells: arrows, bolts,
-// darts and spears point where they're going on a shallow arc (a dart rolling on its
+// where it ended up, so this module flies a small model along those cells: arrows and bolts
+// (the real arrow.js models), darts and spears point where they're going on a shallow arc (a dart rolling on its
 // flights), daggers tumble end over
 // end, shuriken spin flat, stones, gems and potions lob, and boulders roll along the floor.
 // A boomerang (the bridge's cmap `boomerang` sequence, not an object) whirls flat along its
@@ -9,7 +9,8 @@
 //
 // The shape comes from the object's class and the bridge's `shape` (from the weapon's
 // skill), and the metal from its material, never from its identity: every appearance of a
-// type flies the same way, so nothing unidentified shows through.
+// type flies the same way, so nothing unidentified shows through. Arrows also take their
+// look from the glyph's appearance ("runed arrow"), which is what the map shows anyway.
 //
 // flightShape(), flightsFromFx() and flightFrame() are pure; createFlights() draws them.
 
@@ -17,6 +18,7 @@ import {FX_TICK_MS} from './fx.js';
 import {buildShuriken, SHURIKEN_CENTER} from './shuriken.js';
 import {buildDart} from './dart.js';
 import {buildBoomerang} from './boomerang.js';
+import {buildArrow} from './arrow.js';
 
 // Object classes and materials from include/objclass.h.
 const WEAPON_CLASS = 2, POTION_CLASS = 8, COIN_CLASS = 12, GEM_CLASS = 13, ROCK_CLASS = 14, BALL_CLASS = 15,
@@ -49,6 +51,15 @@ export const STYLES = {
   lump: {spin: 'tumble', rate: 8, arc: .12, perCell: .05, maxArc: .6},
   boulder: {spin: 'roll', radius: .36},
 };
+// The arrow.js name an arrow or bolt flies as, from what the glyph shows: the appearance
+// ("crude arrow") if the type has one, else the bolt shape or the silver of a silver arrow.
+// Other shapes have no look.
+export function flightLook(effect, shape) {
+  if (shape === 'bolt') return 'crossbow bolt';
+  if (shape !== 'arrow') return '';
+  if (effect?.appearance) return effect.appearance;
+  return effect?.material === SILVER ? 'silver arrow' : 'arrow';
+}
 // Height (tiles) the object leaves the thrower's hand at and comes down to at the last cell.
 export const LAUNCH_Y = .85, LAND_Y = .4;
 export const MAX_FLIGHTS = 12;
@@ -94,7 +105,7 @@ function pathTurn(knots) {
   return Math.sign(sum);
 }
 
-// Flights in a replayed fx timeline: [{seq, shape, metal, knots:[{x, z, t}], start, end}].
+// Flights in a replayed fx timeline: [{seq, shape, metal, look, knots:[{x, z, t}], start, end}].
 // A boomerang also has `turn` (pathTurn) and, when it made the whole loop and came back,
 // `endY` at the hand and a last knot on the thrower one tick after its last cell.
 // A sprite is on a cell from `from` to `until`; the object reaches that cell at `until`, so
@@ -133,7 +144,7 @@ export function flightsFromFx(timeline) {
     }
     const end = knots[knots.length - 1].t;
     if (!(end > first.from)) continue;
-    out.push({seq, shape: last.shape, metal: flightMetal(last.s.effect?.material), knots, start: first.from, end, ...extra});
+    out.push({seq, shape: last.shape, metal: flightMetal(last.s.effect?.material), look: flightLook(last.s.effect, last.shape), knots, start: first.from, end, ...extra});
   }
   return out;
 }
@@ -198,8 +209,6 @@ export function flightFrame(flight, t) {
 export function createFlights(THREE, parent) {
   const mats = {
     wood: new THREE.MeshStandardMaterial({color: 0x7a5534, roughness: .85}),
-    shaft: new THREE.MeshStandardMaterial({color: 0x9a7448, roughness: .8}),
-    fletch: new THREE.MeshStandardMaterial({color: 0xd8d0c0, roughness: .9, side: THREE.DoubleSide}),
     steel: new THREE.MeshStandardMaterial({color: 0xc8d2d8, metalness: .8, roughness: .28}),
     silver: new THREE.MeshStandardMaterial({color: 0xeef2f6, metalness: .9, roughness: .18}),
     gold: new THREE.MeshStandardMaterial({color: 0xd8a84e, metalness: .85, roughness: .3}),
@@ -216,37 +225,39 @@ export function createFlights(THREE, parent) {
   const along = (g, z = 0) => geo(g.rotateX(Math.PI / 2).translate(0, 0, z));
   const shaftGeo = (r, len, z = 0) => along(new THREE.CylinderGeometry(r, r, len, 6), z);
   const headGeo = (r, h, z, seg = 4) => along(new THREE.ConeGeometry(r, h, seg), z);
-  const vane = (w, len, z) => geo(new THREE.BoxGeometry(.002, w, len).translate(0, w / 2 + .008, z));
 
-  function fletched(root, {len, r, head, vanes, vaneW, vaneLen}, metal) {
-    root.add(new THREE.Mesh(shaftGeo(r, len), mats.shaft));
-    root.add(new THREE.Mesh(headGeo(head[0], head[1], len / 2 + head[1] / 2), mats[metal]));
-    const v = vane(vaneW, vaneLen, -len / 2 + vaneLen / 2 + .01);
-    for (let j = 0; j < vanes; j++) {
-      const m = new THREE.Mesh(v, mats.fletch);
-      m.rotation.z = j * Math.PI * 2 / vanes;
-      root.add(m);
+  // A held model (the hand at the origin, the point up +y) centred on its length with the
+  // point turned to +z.
+  function pointed(root, held) {
+    const box = new THREE.Box3();
+    for (const mesh of held.children) {
+      mesh.geometry.computeBoundingBox();
+      box.union(mesh.geometry.boundingBox);
+    }
+    const mid = (box.min.y + box.max.y) / 2;
+    for (const mesh of [...held.children]) {
+      geo(mesh.geometry.translate(0, -mid, 0).rotateX(Math.PI / 2));
+      root.add(mesh);
     }
   }
+  function arrow(root, look) {
+    const held = new THREE.Group();
+    buildArrow(held, look);
+    extraMats.push(...held.userData.extraMaterial);
+    root.userData.arrow = held.userData.arrow;
+    pointed(root, held);
+  }
   const build = {
-    arrow: (r, m) => fletched(r, {len: .44, r: .011, head: [.026, .07], vanes: 3, vaneW: .03, vaneLen: .09}, m),
-    bolt: (r, m) => fletched(r, {len: .3, r: .015, head: [.032, .06], vanes: 2, vaneW: .028, vaneLen: .07}, m),
+    // The real arrow.js arrow or bolt, in the look the glyph shows (flightLook); its iron
+    // and wood are its own, so it ignores the metal.
+    arrow: (r, m, look) => arrow(r, look || 'arrow'),
+    bolt: r => arrow(r, 'crossbow bolt'),
     dart(r) {
-      // The held model (dart.js) points up +y from the hand; centre it on its length and turn
-      // the point to +z. Darts are iron, so it ignores the metal.
+      // The held model (dart.js); darts are iron, so it ignores the metal.
       const held = new THREE.Group();
       buildDart(held);
       extraMats.push(...held.userData.extraMaterial);
-      const box = new THREE.Box3();
-      for (const mesh of held.children) {
-        mesh.geometry.computeBoundingBox();
-        box.union(mesh.geometry.boundingBox);
-      }
-      const mid = (box.min.y + box.max.y) / 2;
-      for (const mesh of [...held.children]) {
-        geo(mesh.geometry.translate(0, -mid, 0).rotateX(Math.PI / 2));
-        r.add(mesh);
-      }
+      pointed(r, held);
     },
     spear(r, m) {
       r.add(new THREE.Mesh(shaftGeo(.017, .9, -.08), mats.wood));
@@ -306,11 +317,11 @@ export function createFlights(THREE, parent) {
     lump: r => r.add(new THREE.Mesh(geo(new THREE.BoxGeometry(.09, .07, .11)), mats.lump)),
   };
   const templates = new Map();
-  function model(shape, metal) {
-    const key = `${shape}:${metal}`;
+  function model(shape, metal, look = '') {
+    const key = `${shape}:${metal}:${look}`;
     if (!templates.has(key)) {
       const g = new THREE.Group();
-      (build[shape] ?? build.lump)(g, metal);
+      (build[shape] ?? build.lump)(g, metal, look);
       g.traverse(o => { if (o.isMesh) o.castShadow = true; });
       templates.set(key, g);
     }
@@ -329,7 +340,7 @@ export function createFlights(THREE, parent) {
   function play(timeline) {
     const found = flightsFromFx(timeline);
     for (const f of found) {
-      const {outer, inner} = model(f.shape, f.metal);
+      const {outer, inner} = model(f.shape, f.metal, f.look);
       outer.visible = false;
       parent.add(outer);
       flights.push({f, t0: now, outer, inner});

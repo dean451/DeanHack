@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline} from './fx.js';
-import {flightShape, flightMetal, flightsFromFx, flightFrame, createFlights, STYLES, LAUNCH_Y, LAND_Y} from './flights.js';
+import {flightShape, flightMetal, flightLook, flightsFromFx, flightFrame, createFlights, STYLES, LAUNCH_Y, LAND_Y} from './flights.js';
 
 // A flash-mode throw from the hero at (2, 2) towards +x, one cell per tick.
 const throwTo = (endX, effect, dz = 0) => {
@@ -174,6 +174,42 @@ test('a thrown dart is the real dart, point first, rolling on its flights', () =
   const inner = scene.children[0].children[0];
   assert.ok(Math.abs(inner.rotation.z - STYLES.dart.roll * .12) < 1e-9);
   assert.equal(inner.rotation.x, 0);
+  fl.dispose();
+});
+
+test('shot arrows and bolts are the real arrow.js models, in the look the glyph shows', () => {
+  assert.equal(flightLook(ARROW, 'arrow'), 'arrow');
+  assert.equal(flightLook({...ARROW, material: 8, appearance: 'runed arrow'}, 'arrow'), 'runed arrow');
+  assert.equal(flightLook({...ARROW, appearance: 'crude arrow'}, 'arrow'), 'crude arrow');
+  assert.equal(flightLook({...ARROW, material: 14}, 'arrow'), 'silver arrow');
+  assert.equal(flightLook({...ARROW, shape: 'bolt'}, 'bolt'), 'crossbow bolt');
+  assert.equal(flightLook({kind: 'object', class: 2, material: 11, shape: 'dart'}, 'dart'), '');
+  const cases = [[ARROW, 'arrow'], [{...ARROW, material: 8, appearance: 'runed arrow'}, 'elven'],
+    [{...ARROW, appearance: 'crude arrow'}, 'orcish'], [{...ARROW, material: 14}, 'silver'],
+    [{...ARROW, material: 12, appearance: 'bamboo arrow'}, 'ya'], [{...ARROW, shape: 'bolt'}, 'bolt']];
+  const scene = new THREE.Group();
+  const fl = createFlights(THREE, scene);
+  for (const [effect, kind] of cases) {
+    const [f] = fl.play(throwTo(6, effect));
+    assert.equal(f.shape, effect.shape);
+    const inner = scene.children[scene.children.length - 1].children[0];
+    assert.equal(inner.userData.arrow.kind, kind);
+    assert.equal(inner.userData.arrow.count, 1);
+    const meshes = inner.children;
+    assert.deepEqual(meshes.map(m => m.userData.part).sort(), ['head', 'shaft']);
+    const box = new THREE.Box3();
+    for (const m of meshes) box.union(new THREE.Box3().setFromBufferAttribute(m.geometry.attributes.position));
+    for (const c of [...box.min.toArray(), ...box.max.toArray()]) assert.ok(Number.isFinite(c));
+    assert.ok(Math.abs(box.min.z + box.max.z) < 1e-6, 'centred on its length');
+    assert.ok(box.max.z - box.min.z > .3 && Math.max(-box.min.x, box.max.x, -box.min.y, box.max.y) < .05, 'long along z');
+    const head = meshes.find(m => m.userData.part === 'head');
+    const hb = new THREE.Box3().setFromBufferAttribute(head.geometry.attributes.position);
+    assert.ok(Math.abs(hb.max.z - box.max.z) < 1e-6, 'the point leads');
+  }
+  // Two arrows of one look share the template's geometry.
+  fl.play(throwTo(6, ARROW));
+  const kids = scene.children.map(o => o.children[0]);
+  assert.equal(kids[kids.length - 1].children[0].geometry, kids[0].children[0].geometry);
   fl.dispose();
 });
 
