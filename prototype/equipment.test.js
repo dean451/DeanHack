@@ -487,6 +487,13 @@ test('a katana is a curved, ridged blade over a pierced tsuba and silk-wrapped h
   // The long two-handed hilt sits at the hand, below the tsuba.
   const grip=new THREE.Box3().setFromObject(w.children.find(c=>c.userData.part==='grip'));
   assert(grip.min.y<-.17&&grip.max.y<.06,'grip at the hand');
+  // The blade's flats face outward: on each side of the blade the faces look away from the middle.
+  {const q=p,a=new THREE.Vector3(),b=new THREE.Vector3(),d=new THREE.Vector3(),nrm=new THREE.Vector3();let out=0,inn=0;
+   for(let i=0;i<q.count;i+=3){a.fromBufferAttribute(q,i);b.fromBufferAttribute(q,i+1);d.fromBufferAttribute(q,i+2);
+    const cx=(a.x+b.x+d.x)/3,cy=(a.y+b.y+d.y)/3;if(cy<.1||cy>.8||Math.abs(cx)<.0005)continue;
+    nrm.subVectors(b,a).cross(d.clone().sub(a)).normalize();if(Math.abs(nrm.x)<.5)continue;
+    if(Math.sign(nrm.x)===Math.sign(cx))out++;else inn++;}
+   assert(out>500&&inn===0,`${name} flats wound outward: ${out} out, ${inn} in`);}
   w.userData.dispose?.();
  }
  // The tsurugi ("long samurai sword") is not a katana; the generic sword is not either.
