@@ -466,3 +466,26 @@ test('a stiletto is a square-sectioned needle blade over a clawed guard and cord
  assert.notEqual(createHeldWeapon({name:'stiletto',class:2}).children.length,createHeldWeapon({name:'rubber hose',class:2}).children.length);
  assert.notEqual(createHeldWeapon({name:'stiletto',class:2}).children.length,createHeldWeapon({name:'dagger',class:2}).children.length);
 });
+
+test('a scalpel is a small bellied blade on a cracked bone handle, two meshes',()=>{
+ for(const name of ['scalpel','+1 scalpel','rusty scalpel']){
+  const w=createHeldWeapon({name,class:2});
+  assert.deepEqual(w.userData.scalpel,{kind:'scalpel'},name);
+  assert.deepEqual(w.children.map(c=>c.userData.part).sort(),['blade','grip'],name);
+  assert(w.children.find(c=>c.userData.part==='blade').material.metalness>=.75,'weapon-magic can sheathe the blade');
+  for(const mesh of w.children){const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)+n.getX(i)+n.getY(i)+n.getZ(i)),'finite vertices and normals');}
+  w.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(w);
+  assert(box.max.y>.19&&box.max.y<.21&&box.min.y>-.16,`${name} y ${box.min.y}..${box.max.y}`);
+  assert(box.min.x>-.02&&box.max.x<.02,`${name} x ${box.min.x}..${box.max.x}`);
+  assert(.052+.8*box.min.z>0,`${name} above the floor`);
+  // The bone handle sits at the hand, below the blade.
+  const grip=new THREE.Box3().setFromObject(w.children.find(c=>c.userData.part==='grip'));
+  assert(grip.min.y<-.14&&grip.max.y<.02,'handle at the hand');
+  w.userData.dispose();
+ }
+ // No longer the leather-stick proxy, and not the generic dagger either.
+ assert.notEqual(createHeldWeapon({name:'scalpel',class:2}).children.length,createHeldWeapon({name:'rubber hose',class:2}).children.length);
+ assert.notEqual(createHeldWeapon({name:'scalpel',class:2}).children.length,createHeldWeapon({name:'dagger',class:2}).children.length);
+});
