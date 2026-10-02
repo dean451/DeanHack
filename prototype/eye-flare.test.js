@@ -609,3 +609,51 @@ test("the Master Assassin's eyes wait patiently alone, and with the hero near si
   for (let i = 0; i < 8 * 60; i++) frame(a, t += dt, hero);
   assert.ok(glow(a) === 0 && Math.abs(a.eyes.scale.y - E.DEATH_Y) < 1e-6, `dead ${glow(a)} ${a.eyes.scale.y}`);
 });
+
+test("Hippocrates' eyes creep and weigh alone, and with the hero near fix on them, wider and paler, and look them over coldly", () => {
+  // (made here, last, so the other creatures' ids and so their seeds don't shift)
+  const a = make('hippocrates'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK.hippocrates;
+  assert.ok(E.hasEyes(a));
+  const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
+  let t = 0;
+  const run = (look, secs) => {
+    let sum = 0, n = 0, weighs = 0, weighLid = Infinity, exams = 0, was = false, wasG = false, lidLo = Infinity, lidHi = 0, examHi = 0, examLid = Infinity, drop = 0, reach = 0;
+    for (let i = 0; i < secs * 60; i++) {
+      const st = frame(a, t += dt, look);
+      const dx = a.eyes.position.x - (rest.x + st.c.x * (1 - a.eyes.scale.x));
+      const dy = a.eyes.position.y - (rest.y + st.c.y * (1 - a.eyes.scale.y));
+      assert.ok(Math.abs(dx) <= L.xMax + 1e-12 && dy <= 1e-12 && dy >= -L.glintDrop - 1e-9, `in the socket ${dx} ${dy}`);
+      if (st.glint === null) reach = Math.max(reach, Math.abs(dx));
+      drop = Math.max(drop, -dy);
+      assert.ok(a.eyes.scale.y > 0 && a.eyes.scale.y < 1.2 && Number.isFinite(glow(a)) && glow(a) >= 0);
+      if (st.glint !== null && !was) exams++; was = st.glint !== null;
+      if (st.glare !== null && !wasG) weighs++; wasG = st.glare !== null;
+      if (st.glare !== null && st.glint === null) weighLid = Math.min(weighLid, a.eyes.scale.y);
+      if (st.glint !== null && st.glare === null) { examHi = Math.max(examHi, st.k); examLid = Math.min(examLid, a.eyes.scale.y); }
+      if (st.glare === null && st.glint === null && st.blink === null) { sum += st.k; n++; lidLo = Math.min(lidLo, a.eyes.scale.y); lidHi = Math.max(lidHi, a.eyes.scale.y); }
+    }
+    return {mean: sum / n, weighs, weighLid, exams, examHi, examLid, lidLo, lidHi, drop, reach};
+  };
+  const alone = run(far, 40);
+  run(hero, 5);
+  const near = run(hero, 40);
+  assert.ok(alone.reach > .0015, `creeps ${alone.reach}`);
+  assert.ok(near.reach < .001, `fixed near ${near.reach}`);
+  assert.ok(alone.exams === 0 && alone.drop < 1e-9, `no examining alone ${alone.exams}`);
+  assert.ok(alone.weighs >= 4 && alone.weighLid < L.glareY + .03, `weighs ${alone.weighs} to ${alone.weighLid}`);
+  assert.ok(near.weighs < alone.weighs / 2, `fewer near ${alone.weighs} → ${near.weighs}`);
+  assert.ok(near.mean > 1.2 * alone.mean, `paler, brighter ${alone.mean} → ${near.mean}`);
+  assert.ok(Math.abs(near.lidLo - L.nearY) < .02 && Math.abs(near.lidHi - L.nearY) < .02, `wide stare ${near.lidLo}..${near.lidHi}`);
+  assert.ok(near.exams >= 6, `examines ${near.exams}`);
+  assert.ok(near.drop > .8 * L.glintDrop && near.examLid < L.nearY * L.glintY + .03 && near.examHi > 1.4 * near.mean,
+    `looks them over ${near.drop}, lid ${near.examLid}, ${near.examHi} vs ${near.mean}`);
+  // an attack narrows them to a lancet's slit and blazes
+  enqueueAction(a.actions, {kind: 'attack', attack: 'weapon', dir: [0, 1]});
+  let peak = 0, thin = 2;
+  for (let i = 0; i < 60; i++) { const st = frame(a, t += dt, hero); peak = Math.max(peak, st.k); thin = Math.min(thin, a.eyes.scale.y); }
+  assert.ok(peak > 2.2 * near.mean && thin < L.atkY * 1.12 + .05, `attack ${peak} vs ${near.mean}, thin ${thin}`);
+  // death gutters them out
+  enqueueAction(a.actions, {kind: 'die', dir: null, style: 'fall'});
+  for (let i = 0; i < 8 * 60; i++) frame(a, t += dt, hero);
+  assert.ok(glow(a) === 0 && Math.abs(a.eyes.scale.y - E.DEATH_Y) < 1e-6, `dead ${glow(a)} ${a.eyes.scale.y}`);
+});

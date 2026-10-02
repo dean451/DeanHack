@@ -2,8 +2,8 @@
 // (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js), the mugger
 // (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js), the prisoner (prisoner.js), the abbot (abbot.js), the neanderthal
 // (caveman.js), Master Kaen (master-kaen.js, the lenses of the Eyes of the Overworld), the Dark One
-// (dark-one.js), Lord Carnarvon (carnarvon.js), Pelias (pelias.js) and the Master Assassin
-// (master-assassin.js). Each model hangs a small emissive `eyes` mesh on
+// (dark-one.js), Lord Carnarvon (carnarvon.js), Pelias (pelias.js), the Master Assassin
+// (master-assassin.js) and Hippocrates (hippocrates.js). Each model hangs a small emissive `eyes` mesh on
 // the head; this makes those eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -77,9 +77,14 @@
 //    half-lidded narrowing, a killer's patience. With the hero near he goes dark: the glow sinks into
 //    the mask's shadow, the eyes draw down to thin slits and hold dead still on the mark, and every
 //    few seconds a sudden venomous flare, a quick bright flash of green, marks them for the kill.
+//  - Hippocrates: pale, cold, ice-blue eyes deep under the brow, a physician without pity. Alone a
+//    cool, slow glow; the eyes creep side to side now and then, and every few seconds narrow in a
+//    long, weighing look. With the hero near they open a touch wider and paler and fix on them,
+//    unblinking and clinical, and every few seconds they examine: a slow look down over the hero's
+//    body and a little aside, narrowing and sharpening as if choosing where to open a vein, then back.
 //  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict, Charon, the prisoner, the abbot,
 //    the neanderthal, Lord Carnarvon, Pelias with a war-cry) or
-//    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon, the Dark One, the Master Assassin; Master Kaen's round lenses a little), peak just before the blow lands, and die back down after.
+//    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon, the Dark One, the Master Assassin, Hippocrates with a lancet's precision; Master Kaen's round lenses a little), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
 //    greys the glow and this holds.
@@ -177,6 +182,15 @@ export const LOOK = {
   'master assassin': {near: .7, nearY: .55, breath: .05, breathHz: .1, glareMin: 4, glareSpan: 4, glareLen: 2.2, glareY: .5, glareGlow: .85, glareNear: .2,
     atkGlow: 3.4, atkX: 1.15, atkY: .4, dart: .0025, dartNear: .05, dartGap: [1.5, 2], glintMin: 2.5, glintSpan: 3, glintNear: 1.5, glintFar: .2,
     glintLen: .32, glintGlow: 3, glintY: .85, xMax: .003},
+  // a pitiless physician: slow creeps alone (long dartGap), fixed with the hero near (dartNear
+  // small) and a touch wider (nearY > 1); the "glare" is a long weighing narrowing, mostly alone
+  // (glareNear < 1); each glint an examination, only with the hero near (glintFar 0), like the
+  // mugger's glance: the eyes travel down (glintDrop) and a little aside over the hero's body,
+  // narrowing (glintY < 1) and sharpening. The socket is about .0099 wider than the eye each side
+  // and .009 taller, so xMax and the drop keep them in its shadow.
+  hippocrates: {near: 1.3, nearY: 1.12, breath: .05, breathHz: .12, glareMin: 4, glareSpan: 4, glareLen: 1.8, glareY: .45, glareGlow: 1.2, glareNear: .2,
+    atkGlow: 3, atkX: 1.1, atkY: .5, dart: .003, dartNear: .2, dartGap: [1.4, 1.8], glintMin: 2.5, glintSpan: 3, glintNear: 1, glintFar: 0,
+    glintLen: 1.3, glintGlow: 1.6, glintY: .8, glintDrop: .004, glintSide: .002, xMax: .006},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
