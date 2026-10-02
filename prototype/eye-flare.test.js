@@ -520,3 +520,48 @@ test("Lord Carnarvon's eyes sweep slowly as if reading and squint to study alone
   for (let i = 0; i < 8 * 60; i++) frame(a, t += dt, hero);
   assert.ok(glow(a) === 0 && Math.abs(a.eyes.scale.y - E.DEATH_Y) < 1e-6, `dead ${glow(a)} ${a.eyes.scale.y}`);
 });
+
+test("Pelias's eyes drift slowly and glower alone, and with the hero near narrow to a war-squint, flick over the foe and flare with battle-lust", () => {
+  // (made here, last, so the other creatures' ids and so their seeds don't shift)
+  const a = make('pelias'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK.pelias;
+  assert.ok(E.hasEyes(a));
+  const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
+  let t = 0;
+  const run = (look, secs) => {
+    let sum = 0, n = 0, glowers = 0, glowerLid = Infinity, lusts = 0, was = false, wasG = false, lidLo = Infinity, lidHi = 0, lustHi = 0, lustLid = Infinity, moves = 0, last = 0, reach = 0;
+    for (let i = 0; i < secs * 60; i++) {
+      const st = frame(a, t += dt, look);
+      const dx = a.eyes.position.x - (rest.x + st.c.x * (1 - a.eyes.scale.x));
+      assert.ok(Math.abs(dx) <= L.xMax + 1e-12, `in the socket ${dx}`);
+      reach = Math.max(reach, Math.abs(dx));
+      if (st.dartTo !== last) moves++; last = st.dartTo;
+      assert.ok(a.eyes.scale.y > 0 && a.eyes.scale.y < 1.6 && Number.isFinite(glow(a)) && glow(a) >= 0);
+      if (st.glint !== null && !was) lusts++; was = st.glint !== null;
+      if (st.glare !== null && !wasG) glowers++; wasG = st.glare !== null;
+      if (st.glare !== null && st.glint === null) glowerLid = Math.min(glowerLid, a.eyes.scale.y);
+      if (st.glint !== null && st.glare === null) { lustHi = Math.max(lustHi, st.k); lustLid = Math.min(lustLid, a.eyes.scale.y); }
+      if (st.glare === null && st.glint === null && st.blink === null) { sum += st.k; n++; lidLo = Math.min(lidLo, a.eyes.scale.y); lidHi = Math.max(lidHi, a.eyes.scale.y); }
+    }
+    return {mean: sum / n, glowers, glowerLid, lusts, lustHi, lustLid, lidLo, lidHi, moves: moves / secs, reach};
+  };
+  const alone = run(far, 40);
+  run(hero, 5);
+  const near = run(hero, 40);
+  assert.ok(alone.reach > .0015 && alone.moves < .6, `slow drifts ${alone.reach}, ${alone.moves}/s`);
+  assert.ok(near.moves > 2.5 * alone.moves && near.reach > alone.reach, `measuring flicks ${near.moves}/s to ${near.reach}`);
+  assert.ok(alone.glowers >= 4 && alone.glowerLid < L.glareY + .03, `glowers ${alone.glowers} to ${alone.glowerLid}`);
+  assert.ok(near.glowers < alone.glowers / 2, `fewer glowers near ${alone.glowers} → ${near.glowers}`);
+  assert.ok(near.mean > 1.25 * alone.mean, `brighter ${alone.mean} → ${near.mean}`);
+  assert.ok(Math.abs(near.lidLo - L.nearY) < .02 && Math.abs(near.lidHi - L.nearY) < .02, `war-squint ${near.lidLo}..${near.lidHi}`);
+  assert.ok(near.lusts > 2 * alone.lusts && near.lusts >= 6, `battle-lust ${alone.lusts} → ${near.lusts}`);
+  assert.ok(near.lustHi > 2 * near.mean && near.lustLid < L.nearY * L.glintY + .03, `lust ${near.lustHi} vs ${near.mean}, lid ${near.lustLid}`);
+  // an attack widens them in a war-cry and blazes
+  enqueueAction(a.actions, {kind: 'attack', attack: 'weapon', dir: [0, 1]});
+  let peak = 0, wide = 0;
+  for (let i = 0; i < 60; i++) { const st = frame(a, t += dt, hero); peak = Math.max(peak, st.k); wide = Math.max(wide, a.eyes.scale.y); }
+  assert.ok(peak > 2.4 * near.mean && wide > 1.35, `attack ${peak} vs ${near.mean}, wide ${wide}`);
+  // death gutters them out
+  enqueueAction(a.actions, {kind: 'die', dir: null, style: 'fall'});
+  for (let i = 0; i < 8 * 60; i++) frame(a, t += dt, hero);
+  assert.ok(glow(a) === 0 && Math.abs(a.eyes.scale.y - E.DEATH_Y) < 1e-6, `dead ${glow(a)} ${a.eyes.scale.y}`);
+});
