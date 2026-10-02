@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
-import {updateConvictHunted, huntedPoseAt, glances, glanceLength, LOOK, TWIST, CHIN, SHAKE, GUARD, TURN, FIRST_MIN, FIRST_SPAN} from './convict-hunted.js';
+import {updateConvictHunted, huntedPoseAt, glances, glanceLength, LOOK, TWIST, CHIN, SHAKE, GUARD, TURN, FIRST_MIN, FIRST_SPAN, GAP_MIN, GAP_SPAN} from './convict-hunted.js';
 
 const make = name => {
   const a = createCreature({name, symbol: 64, color: 1});
@@ -82,7 +82,7 @@ test('glances come when still, fade out when interrupted, and leave the rest pos
   for (let i = 0; i < 60 * (FIRST_MIN + FIRST_SPAN + .5); i++) { t += 1 / 60; if (frame(a, 1 / 60) && first == null) first = t; }
   assert(first != null && first >= FIRST_MIN - 1e-9 && first <= FIRST_MIN + FIRST_SPAN + .05, `first glance at ${first}`);
   // walk mid-glance: it fades out within ~0.1 s and does not pick back up
-  for (let i = 0; i < 400 && !a.convictHunted.cur; i++) frame(a, 1 / 60);
+  for (let i = 0; i < 60 * (GAP_MIN + GAP_SPAN + 1) && !a.convictHunted.cur; i++) frame(a, 1 / 60);
   for (let i = 0; i < 10; i++) frame(a, 1 / 60);
   assert(a.convictHunted.cur);
   for (let i = 0; i < 6; i++) frame(a, 1 / 60, true);

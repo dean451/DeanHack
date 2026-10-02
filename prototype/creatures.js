@@ -85,6 +85,7 @@ import {createMiner} from './miner.js';
 import {createMugger} from './mugger.js';
 import {isWereMan,createWereMan} from './were-man.js';
 import {createConvict} from './convict.js';
+import {createPrisoner} from './prisoner.js';
 import {createBarbarian} from './barbarian.js';
 import {createHealer} from './healer.js';
 
@@ -2552,6 +2553,7 @@ export function createCreature(cell={}){
  if(name==='miner')return createMiner();
  if(name==='mugger')return createMugger();
  if(name==='convict')return createConvict();
+ if(name==='prisoner')return createPrisoner();
  if(name==='monk')return createMonk();
  if(name==='archeologist')return createArcheologist();
  if(CAVE_KINDS.includes(name))return createCaveman(name);
