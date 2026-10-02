@@ -11,8 +11,14 @@ import * as THREE from 'three';
 //    for the edge of the hollow.
 // The motion is keyframed with fast moves and holds so it reads jerky and wrong rather than
 // soft. Tilts stay under HAND_TILT so the forearm's stump never shows at the hollow's rim.
-// The scene is re-scanned twice a second; everything is a function of t, so it's frame-rate
-// independent. A grave is terrain, not an item, so nothing here gives anything away.
+// With the hero near, the dead notice. Within AWARE tiles the hand turns its lean toward them
+// and its fingers creep open; within REACH it strains out at them, splayed wide and trembling,
+// and every CLUTCH seconds the claw snaps shut on the air and slowly prises open again. The
+// idle moves keep going under it, fading out as it fixes on the hero. The alertness rises
+// fast and fades slowly, so a hero who steps away leaves it groping for a moment.
+// The scene is re-scanned twice a second; poses are functions of t (the alertness eases by
+// the time since the last update), so it's frame-rate independent. A grave is terrain, not
+// an item, so nothing here gives anything away.
 
 export const HAND_SCAN_EVERY = .5; // seconds between scene scans
 export const HAND_SLOT = 7; // seconds per slot; at most one move per slot
@@ -28,6 +34,14 @@ export const MOVES = {
   drum: [[0, 0, 0, 0], [.1, -.2, .02, 0], [.17, .1, 0, 0], [.32, .1, 0, 0], [.42, -.2, .02, 0], [.49, .1, 0, 0], [.64, .1, 0, 0], [.74, -.2, .02, 0], [.81, .1, 0, 0], [1.6, 0, 0, 0]],
   feel: [[0, 0, 0, 0], [.8, -.16, .06, .17], [1.0, -.08, .06, .17], [1.8, -.18, .05, -.17], [2.0, -.1, .05, -.17], [2.8, 0, 0, 0]],
 };
+// Hero sensing: the range it notices them (tiles), the range it reaches, how far it leans at
+// full reach (rad, within HAND_TILT), the clutch period (s), and how fast alertness rises and
+// fades (1/s).
+export const AWARE = 3;
+export const REACH = 1.5;
+export const REACH_TILT = .18;
+export const CLUTCH = 1.7;
+export const ALERT_RISE = 4, ALERT_FALL = 1.2;
 const KINDS = ['spasm', 'spasm', 'grasp', 'drum', 'feel'];
 
 function hash(n) {
@@ -73,10 +87,60 @@ export function handPose(t, phase = 0) {
   return {claw: 0, x: 0, z: 0, kind: null};
 }
 
-const e = new THREE.Euler(), q = new THREE.Quaternion();
-export function poseHand(grave, t) {
+// How keen the hand should be at a hero distance (tiles): 0 beyond AWARE, 1 within REACH.
+export function heroPull(dist) {
+  if (!(dist < AWARE)) return 0;
+  return smooth(Math.min(1, (AWARE - dist) / (AWARE - REACH)));
+}
+
+// The reach toward the hero at alertness `alert` (0..1), with (dx, dz) the unit direction to
+// them in the hand's rest frame: {claw, x, z}. At low alertness it only leans a little and
+// curls the fingers open; at full alertness it strains, trembles and clutches.
+export function reachPose(t, alert, dx, dz, phase = 0) {
+  if (!(alert > 0)) return {claw: 0, x: 0, z: 0};
+  const strain = alert * alert;
+  // the clutch: a snap shut over .12 s, held .25 s, then a slow prise open over the rest
+  const u = ((t / CLUTCH + phase) % 1 + 1) % 1 * CLUTCH;
+  const shut = u < .12 ? smooth(u / .12) : u < .37 ? 1 : 1 - smooth(Math.min(1, (u - .37) / (CLUTCH * .55)));
+  const open = -.18 * alert - .34 * strain;
+  const claw = open + (.16 - open) * shut * strain;
+  // the lean, with a fine tremble while it strains and a jerk forward on each clutch
+  const tremble = Math.sin(t * 31 + phase * 40) * .012 + Math.sin(t * 47 + phase * 17) * .007;
+  const lean = Math.min(REACH_TILT, (.06 * alert + .1 * strain) + strain * (tremble + .02 * shut));
+  return {claw, x: dz * lean, z: -dx * lean};
+}
+
+const mixPose = (a, b, k) => ({claw: a.claw + (b.claw - a.claw) * k, x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k});
+function clampPose(p) {
+  p.claw = Math.min(CLAW_RANGE[1], Math.max(CLAW_RANGE[0], p.claw));
+  const tilt = Math.hypot(p.x, p.z);
+  if (tilt > HAND_TILT) { p.x *= HAND_TILT / tilt; p.z *= HAND_TILT / tilt; }
+  return p;
+}
+
+const e = new THREE.Euler(), q = new THREE.Quaternion(), qi = new THREE.Quaternion(), v = new THREE.Vector3();
+// Where the hero is from a grave's hand: {dist (tiles), dx, dz (unit, in the hand's rest
+// frame)}, or null. `heroWorld` is the hero's world position (or null).
+export function heroFromHand(grave, heroWorld) {
+  if (!heroWorld) return null;
+  const {hand} = grave.userData;
+  grave.updateWorldMatrix(true, false);
+  v.copy(heroWorld);grave.worldToLocal(v).sub(hand.userData.rest.position);
+  v.y = 0;
+  const dist = v.length();
+  v.applyQuaternion(qi.copy(hand.userData.rest.quaternion).invert());
+  const len = Math.hypot(v.x, v.z);
+  // Standing on the grave itself: no way to lean, so lean out toward the foot (+z).
+  return len < 1e-6 ? {dist, dx: 0, dz: 1} : {dist, dx: v.x / len, dz: v.z / len};
+}
+
+// Pose a grave's hand at time t. `alert` (0..1) and `look` ({dx, dz}) add the reach toward
+// the hero on top of the idle moves.
+export function poseHand(grave, t, alert = 0, look = null) {
   const {hand, claw} = grave.userData;
-  const p = handPose(t, grave.userData.handPhase ?? 0);
+  const phase = grave.userData.handPhase ?? 0;
+  const idle = handPose(t, phase);
+  const p = alert > 0 && look ? {...clampPose(mixPose(idle, reachPose(t, alert, look.dx, look.dz, phase), Math.min(1, alert * 1.5))), kind: idle.kind} : idle;
   hand.quaternion.copy(hand.userData.rest.quaternion).multiply(q.setFromEuler(e.set(p.x, 0, p.z)));
   claw.quaternion.copy(claw.userData.rest.quaternion).multiply(q.setFromEuler(e.set(p.claw, 0, 0)));
   return p;
@@ -94,16 +158,28 @@ export function findRisenGraves(scene) {
 }
 
 export function createGraveHands(scene) {
-  let graves = [], nextScan = -Infinity;
+  let graves = [], nextScan = -Infinity, last = null;
   return {
     get graves() { return graves; },
-    update(t) {
+    // `heroWorld`: the hero's world position, or null when there is no hero to see.
+    update(t, heroWorld = null) {
+      const dt = last == null ? 0 : Math.min(.25, Math.max(0, t - last));last = t;
       if (t >= nextScan || t < nextScan - HAND_SCAN_EVERY * 2) {
         graves = findRisenGraves(scene);
         for (const g of graves) g.userData.handPhase ??= phaseOf(g);
         nextScan = t + HAND_SCAN_EVERY;
       }
-      for (const g of graves) if (g.visible) poseHand(g, t);
+      for (const g of graves) {
+        if (!g.visible) continue;
+        const h = heroFromHand(g, heroWorld), want = h ? heroPull(h.dist) : 0;
+        let a = g.userData.handAlert ?? 0;
+        a += (want - a) * (1 - Math.exp(-dt * (want > a ? ALERT_RISE : ALERT_FALL)));
+        if (a < 1e-3 && want === 0) a = 0;
+        g.userData.handAlert = a;
+        // keep leaning the last way it saw the hero while the alertness fades
+        if (h) g.userData.handLook = {dx: h.dx, dz: h.dz};
+        poseHand(g, t, a, g.userData.handLook);
+      }
     },
   };
 }
