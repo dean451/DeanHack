@@ -17,14 +17,14 @@ function frame(a, t, look) {
 }
 const glow = a => a.eyes.material.emissiveIntensity;
 
-test('only the Executioner, Croesus, One-eyed Sam, the miner, the black marketeer, the mugger and the convict are lit, each with its own glow material', () => {
+test('only the Executioner, Croesus, One-eyed Sam, the miner, the black marketeer, the mugger, the convict and Thoth Amon are lit, each with its own glow material', () => {
   for (const name of ['jackal', 'minotaur', 'ninja']) assert.equal(E.updateEyeFlare(createCreature({name}), dt, 0, false), null, name);
   const a = make('executioner'), b = make('executioner'), shared = a.eyes.material;
   assert.ok(shared === b.eyes.material);
   E.updateEyeFlare(a, dt, 0, false); E.updateEyeFlare(b, dt, 0, false);
   assert.ok(a.eyes.material !== shared && a.eyes.material !== b.eyes.material);
   assert.equal(shared.emissiveIntensity, 1.8);
-  assert.ok(E.hasEyes(make('croesus')) && E.hasEyes(make('one-eyed sam')) && E.hasEyes(make('miner')) && E.hasEyes(make('black marketeer')) && E.hasEyes(make('mugger')) && E.hasEyes(make('convict')));
+  assert.ok(E.hasEyes(make('croesus')) && E.hasEyes(make('one-eyed sam')) && E.hasEyes(make('miner')) && E.hasEyes(make('black marketeer')) && E.hasEyes(make('mugger')) && E.hasEyes(make('convict')) && E.hasEyes(make('thoth amon')));
 });
 
 test('the curves are bounded and quiet outside their spans', () => {
@@ -38,7 +38,7 @@ test('the curves are bounded and quiet outside their spans', () => {
 });
 
 test('idle, near the hero and in an attack: finite, eyes stay put, and the attack blazes', () => {
-  for (const name of ['executioner', 'croesus', 'one-eyed sam', 'miner', 'black marketeer', 'mugger', 'convict']) {
+  for (const name of ['executioner', 'croesus', 'one-eyed sam', 'miner', 'black marketeer', 'mugger', 'convict', 'thoth amon']) {
     const a = make(name), hero = new THREE.Vector3(1, 0, 2), far = new THREE.Vector3(30, 0, 30);
     const centre = () => { a.g.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(a.eyes); return b.getCenter(new THREE.Vector3()); };
     const c0 = centre();
@@ -202,4 +202,37 @@ test("the convict's eyes flick alone, go wide and cut aside with the hero near, 
   for (let i = 0; i < 4 * 60 && (st.glare !== null || st.glint !== null || i < 60); i++) frame(a, t += dt, far);
   assert.ok(st.near < 1e-3 && st.glance === 0 && Math.abs(a.eyes.scale.y - 1) < .01);
   assert.ok(Math.abs(offset(st)[0] - st.dart) < 1e-12 && Math.abs(st.dart) <= L.dart + 1e-9, 'only the idle flick left');
+});
+
+test("Thoth Amon's eyes hold still, draw to slits and throb with the hero near, and flash wide with sorcery", () => {
+  const a = make('thoth amon'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK['thoth amon'];
+  const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
+  let t = 0;
+  const run = (look, secs) => {
+    let lo = Infinity, hi = 0, slitLo = Infinity, slitHi = 0, flashes = 0, was = false, wide = 0;
+    for (let i = 0; i < secs * 60; i++) {
+      const st = frame(a, t += dt, look);
+      assert.equal(st.dart, 0);
+      assert.ok(Math.abs(a.eyes.position.x - (rest.x + st.c.x * (1 - a.eyes.scale.x))) < 1e-12, 'never darts');
+      assert.ok(a.eyes.scale.y > 0 && a.eyes.scale.y <= L.glintY + 1e-9 && Number.isFinite(glow(a)));
+      if (st.glint !== null && !was) flashes++; was = st.glint !== null;
+      wide = Math.max(wide, a.eyes.scale.y);
+      if (st.glare === null && st.glint === null && st.blink === null) {
+        lo = Math.min(lo, st.k); hi = Math.max(hi, st.k);
+        slitLo = Math.min(slitLo, a.eyes.scale.y); slitHi = Math.max(slitHi, a.eyes.scale.y);
+      }
+    }
+    return {throb: (hi - lo) / (hi + lo), flashes, wide, slitLo, slitHi};
+  };
+  const alone = run(far, 30);
+  run(hero, 4);
+  const near = run(hero, 30);
+  assert.ok(near.throb > 1.8 * alone.throb, `throb ${alone.throb} alone vs ${near.throb} near`);
+  assert.ok(Math.abs(near.slitLo - L.nearY) < .02 && Math.abs(near.slitHi - L.nearY) < .02, `slits ${near.slitLo}..${near.slitHi}`);
+  assert.ok(near.flashes > alone.flashes && near.flashes >= 4, `flashes ${alone.flashes} → ${near.flashes}`);
+  assert.ok(near.wide > .75 && alone.wide > 1.4, `flash opens the slits ${near.wide}, ${alone.wide}`);
+  run(far, 8);
+  const st = a.eyeFlare;
+  for (let i = 0; i < 3 * 60 && (st.glare !== null || st.glint !== null); i++) frame(a, t += dt, far);
+  assert.ok(st.near < 1e-3 && Math.abs(a.eyes.scale.y - 1) < .01 && Math.abs(a.eyes.scale.x - 1) < 1e-9);
 });

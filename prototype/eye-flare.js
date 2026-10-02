@@ -1,6 +1,6 @@
 // The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js), One-eyed Sam
 // (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js), the mugger
-// (mugger.js) and the convict (convict.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
+// (mugger.js), the convict (convict.js) and Thoth Amon (thoth-amon.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
 // eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -26,8 +26,12 @@
 //    few seconds they cut hard aside (and a hair up) toward a way out, hold, and come back. When the
 //    convict jerks its head round over a shoulder (convict-hunted.js) the eyes go to the corners
 //    with it, looking further back still.
+//  - Thoth Amon: venom-green serpent's eyes that never dart. Alone a slow, cold smoulder, and now and
+//    then a long, contemptuous narrowing. With the hero near they draw down to slits and the glow
+//    throbs slow and deep, a mesmeric pulse, and every few seconds they flash wide and bright with a
+//    surge of sorcery before sinking back to slits.
 //  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict) or
-//    narrow to slits (Croesus, Sam, the marketeer, the mugger), peak just before the blow lands, and die back down after.
+//    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
 //    greys the glow and this holds.
@@ -63,6 +67,11 @@ export const LOOK = {
   convict: {near: 1.25, nearY: 1.2, breath: .07, breathHz: .45, glareMin: 3, glareSpan: 4, glareLen: .7, glareY: 1.3, glareGlow: 1.45,
     atkGlow: 2.8, atkX: 1.1, atkY: 1.4, dart: .0035, dartNear: 1.3, dartGap: [.28, .16], glintMin: 3, glintSpan: 4, glintNear: 1.8,
     glintLen: .6, glintGlow: 1.35, glintDrop: -.001, glintSide: .004, follow: .004, xMax: .0065},
+  // serpentine: slits with the hero near (nearY < 1) where the slow breath deepens into a throb
+  // (breathNear > 1 scales its depth there; the others quieten, .5), and each glint is a flash of
+  // sorcery that opens the eyes wide (glintY) and bright
+  'thoth amon': {near: 1.3, nearY: .55, breath: .1, breathHz: .18, breathNear: 2.2, glareMin: 4, glareSpan: 5, glareLen: 1.5, glareY: .45, glareGlow: 1.3,
+    atkGlow: 3, atkX: 1.1, atkY: .5, dart: 0, glintMin: 4, glintSpan: 4, glintNear: 1.6, glintLen: .55, glintGlow: 2, glintY: 1.5},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
@@ -135,7 +144,7 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
     if (st.glare === null) { st.glareWait -= dt; if (st.glareWait <= 0 && !busy) { st.glare = 0; st.glareWait = L.glareMin + L.glareSpan * rand(st); } }
     if (st.glare !== null) { st.glare += dt / L.glareLen; glare = holdCurve(st.glare); if (st.glare >= 1) st.glare = null; }
   }
-  // Croesus, the marketeer, the mugger and the convict: a darting look, and a glint (much sooner with
+  // Croesus, the marketeer, the mugger, the convict and Thoth Amon: a darting look (not Thoth's), and a glint (much sooner with
   // the hero near; the mugger's is a glance down at their pack, so only then, and the convict's a
   // look aside for a way out).
   let glint = 0;
@@ -169,7 +178,7 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
   const atk = !dead && cur?.kind === 'attack' && (q.age ?? 0) >= (cur.wait ?? 0) ? attackCurve(q.u ?? 0) : 0;
 
   // The glow.
-  const breath = 1 + L.breath * (1 - .5 * st.near) * Math.sin(st.T * L.breathHz * TAU + st.ph);
+  const breath = 1 + L.breath * (1 + ((L.breathNear ?? .5) - 1) * st.near) * Math.sin(st.T * L.breathHz * TAU + st.ph);
   let k = breath * (1 + (L.near - 1) * st.near) * (1 + (L.glareGlow - 1) * glare) * (1 + ((L.glintGlow ?? 1) - 1) * glint);
   // an ember's restless flicker (Sam), quieter as the eye fixes on the hero
   if (L.ember) k *= 1 + L.ember * (1 - .5 * st.near) * Math.sin(st.T * 9.3 + st.ph) * Math.sin(st.T * 5.1 + 2 * st.ph);
@@ -186,6 +195,7 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
   // The shape: widened or narrowed in the attack, narrowed in a glare, shut in a blink, sagged dead.
   let sx = 1 + (L.atkX - 1) * atk, sy = 1 + (L.atkY - 1) * atk;
   sy *= 1 + (L.glareY - 1) * glare;
+  if (L.glintY) sy *= 1 + (L.glintY - 1) * glint;
   if (L.nearY) sy *= 1 + (L.nearY - 1) * st.near * (1 - atk);
   sy *= open;
   sy *= DEATH_Y + (1 - DEATH_Y) * st.life;
