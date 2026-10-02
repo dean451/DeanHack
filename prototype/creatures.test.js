@@ -1399,6 +1399,45 @@ test('the mugger gets a burlap sack over its head with red-glinting eyeholes, a 
  assert.equal(createCreature({name:'black marketeer',symbol:64}).kind,'black marketeer');
 });
 
+test('the convict gets a shaved, scarred head with pale eyes in deep sockets, a torn striped prison suit, manacles, a ball and chain and a glass shiv instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const cv=createCreature({name:'convict',symbol:64,color:7});
+ assert.equal(cv.kind,'convict');assert.equal(cv.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','eyes'])assert(cv[key]?.isObject3D,key);
+ assert.equal(cv.legs.length,2);assert.equal(cv.arms.length,2);assert(cv.arm===cv.arms[1]);
+ assert(cv.arm.children.includes(cv.weaponSocket),'the socket is at the right hand');
+ assert.equal(cv.weaponSocket.children.length,1,'the shiv is held');
+ const parts=meshes(cv);
+ assert.equal(parts.length,8,'one mesh per moving part, the shiv and the eyes');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ cv.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(cv.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.1&&b.max.y<1.35,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.45,'out of proportion');
+ // the eyes glint out of the sockets: looking at them from the front, they are hit first
+ const eye=new THREE.Box3().setFromObject(cv.eyes,true).getCenter(new THREE.Vector3());
+ for(const s of [-1,1]){
+  const hit=new THREE.Raycaster(new THREE.Vector3(eye.x+s*.03,eye.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===cv.eyes,`the ${s<0?'left':'right'} eye is hidden behind the ${hit?.object.userData.part}`);
+ }
+ // the iron ball drags on the floor behind the right heel, and the shiv points forward
+ const right=new THREE.Box3().setFromObject(cv.legs[1],true),left=new THREE.Box3().setFromObject(cv.legs[0],true);
+ assert(right.min.z<-.2&&left.min.z>-.1,'the ball is chained to the right ankle only');
+ assert(new THREE.Box3().setFromObject(cv.weaponSocket,true).max.z>.2,'the shiv points forward');
+ const again=meshes(createCreature({name:'Convict'}));
+ parts.forEach((m,i)=>assert(m.geometry===again[i].geometry));
+ assert.notEqual(createCreature({name:'prisoner',symbol:64}).kind,'convict');
+ assert.equal(createCreature({name:'mugger',symbol:64}).kind,'mugger');
+});
+
 test('miners get a battered hard hat with a burnt-out candle stub, a coal-black gaunt face with pale eyes, a hunch, a scorched apron, a worn pick-axe and a lit brass lantern instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const mi=createCreature({name:'miner',symbol:64,color:7});
