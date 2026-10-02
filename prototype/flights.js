@@ -32,11 +32,14 @@ const WOOD = 8, BONE = 9, COPPER = 13, SILVER = 14, GOLD = 15, PLATINUM = 16, MI
 // A flat spinner is thrown banked: it leans `bank` rad about its line of flight, and the lean
 // wobbles by `wobble` at `wobbleRate` rad/s, so the spinning face catches the light.
 // A pointed shape with `roll` turns that many rad/s about its own length, as fletching spins it.
+// One with `wag` leaves the string fishtailing: its nose swings side to side by up to `wag`
+// rad at `wagRate` rad/s, dying away at `wagDamp` per second (a shot arrow flexing round the
+// bow until its fletching steadies it). The wag is 0 at release, so it starts on the line.
 // A `curve` shape follows a smooth spline through its cells instead of straight hops, banks
 // into its turn (the lean's sign follows the path) and spins the way it turns.
 export const STYLES = {
-  arrow: {spin: 'point', arc: .05, perCell: .02, maxArc: .3},
-  bolt: {spin: 'point', arc: .04, perCell: .015, maxArc: .22},
+  arrow: {spin: 'point', roll: 8, wag: .07, wagRate: 46, wagDamp: 9, arc: .05, perCell: .02, maxArc: .3},
+  bolt: {spin: 'point', roll: 5, arc: .04, perCell: .015, maxArc: .22},
   dart: {spin: 'point', roll: 16, arc: .06, perCell: .025, maxArc: .32},
   spear: {spin: 'point', arc: .08, perCell: .03, maxArc: .4},
   dagger: {spin: 'tumble', rate: 17, arc: .08, perCell: .03, maxArc: .4},
@@ -181,9 +184,10 @@ export function flightFrame(flight, t) {
     if (tx || tz) { dx = tx; dz = tz; }
   }
   if (!dx && !dz) { const f = k[0], l = k[k.length - 1]; dx = l.x - f.x; dz = l.z - f.z; }
-  const yaw = dx || dz ? Math.atan2(dx, dz) : 0;
+  let yaw = dx || dz ? Math.atan2(dx, dz) : 0;
   const L = pathLength(k);
   const sec = (t - flight.start) / 1000;
+  if (S.wag) yaw += S.wag * Math.exp(-S.wagDamp * sec) * Math.sin(S.wagRate * sec);
   if (S.spin === 'roll') {
     // Rolls along the floor: the distance covered so far over the radius.
     let run = 0;
