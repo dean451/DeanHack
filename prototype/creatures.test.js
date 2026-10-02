@@ -886,7 +886,7 @@ test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model inste
  assert(new THREE.Box3().setFromObject(valk.head,true).max.y>b.max.y-1e-6,'wings on top');
  assert(new THREE.Box3().setFromObject(valk.shield,true).max.x<-.2,'shield outside the left arm');
  // any other player-monster role still gets the generic humanoid
- assert.equal(createCreature({name:'prisoner',symbol:64,color:7}).kind,undefined);
+ assert.equal(createCreature({name:'human',symbol:64,color:7}).kind,undefined);
  const again=meshes(createCreature({name:'valkyrie'}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
@@ -1512,6 +1512,43 @@ test('the convict gets a shaved, scarred head with pale eyes in deep sockets, a 
  parts.forEach((m,i)=>assert(m.geometry===again[i].geometry));
  assert.notEqual(createCreature({name:'prisoner',symbol:64}).kind,'convict');
  assert.equal(createCreature({name:'mugger',symbol:64}).kind,'mugger');
+});
+
+test('the prisoner gets a starved, stooped body with matted hair, pale eyes in bruised sockets, a burlap sack, an iron collar and chain, manacles, fetters and a sharpened bone instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const pr=createCreature({name:'prisoner',symbol:64,color:7});
+ assert.equal(pr.kind,'prisoner');assert.equal(pr.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','eyes'])assert(pr[key]?.isObject3D,key);
+ assert.equal(pr.legs.length,2);assert.equal(pr.arms.length,2);assert(pr.arm===pr.arms[1]);
+ assert(pr.arm.children.includes(pr.weaponSocket),'the socket is at the right hand');
+ assert.equal(pr.weaponSocket.children.length,1,'the bone is held');
+ const parts=meshes(pr);
+ assert.equal(parts.length,8,'one mesh per moving part, the bone and the eyes');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ pr.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(pr.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1&&b.max.y<1.25,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.45,'out of proportion');
+ // the eyes peer out of the sockets past the hair: looking at them from the front, they are hit first
+ const eye=new THREE.Box3().setFromObject(pr.eyes,true).getCenter(new THREE.Vector3());
+ for(const s of [-1,1]){
+  const hit=new THREE.Raycaster(new THREE.Vector3(eye.x+s*.028,eye.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===pr.eyes,`the ${s<0?'left':'right'} eye is hidden behind the ${hit?.object.userData.part}`);
+ }
+ // the head hangs forward of the chest, and the bone points forward
+ assert(new THREE.Box3().setFromObject(pr.head,true).max.z>.15,'the head hangs forward');
+ assert(new THREE.Box3().setFromObject(pr.weaponSocket,true).max.z>.2,'the bone points forward');
+ const again=meshes(createCreature({name:'Prisoner'}));
+ parts.forEach((m,i)=>assert(m.geometry===again[i].geometry));
+ assert.equal(createCreature({name:'convict',symbol:64}).kind,'convict');
 });
 
 test('miners get a battered hard hat with a burnt-out candle stub, a coal-black gaunt face with pale eyes, a hunch, a scorched apron, a worn pick-axe and a lit brass lantern instead of the plain @ humanoid',()=>{
