@@ -57,7 +57,7 @@ export function fxSpritesAt(timeline, t) {
 
 // How long (ms) to hold back the next map frame so a ray or explosion plays before the
 // frame shows its result (a corpse, a scorched door). Only sequences the client draws
-// (zaps, the digging beam, explosions and thrown objects) count; a blast gets extra time
+// (zaps, the digging beam, explosions, thrown objects and boomerangs) count; a blast gets extra time
 // for its fireball to swell. Holding a dig keeps the wall standing until the beam has gone
 // through it; holding a throw keeps the landed item and the target's hit off the map until
 // the flight arrives. Throws get a lower cap, since a long volley is many short flights.
@@ -71,7 +71,7 @@ export function fxHoldMs(timeline, cap = FX_HOLD_MAX_MS) {
     const kind = s.effect?.kind;
     if (kind === 'zap' || kind === 'dig') ms = Math.max(ms, s.until);
     else if (kind === 'explosion') ms = Math.max(ms, s.from + FX_BLAST_HOLD_MS, s.until);
-    else if (kind === 'object') thrown = Math.max(thrown, s.until);
+    else if (kind === 'object' || kind === 'boomerang') thrown = Math.max(thrown, s.until);
   }
   ms = Math.max(ms || 0, Math.min(FX_OBJECT_HOLD_MAX_MS, thrown || 0));
   return Math.min(cap, Math.max(0, Math.ceil(ms)));

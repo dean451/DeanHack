@@ -4,6 +4,8 @@
 // darts and spears point where they're going on a shallow arc (a dart rolling on its
 // flights), daggers tumble end over
 // end, shuriken spin flat, stones, gems and potions lob, and boulders roll along the floor.
+// A boomerang (the bridge's cmap `boomerang` sequence, not an object) whirls flat along its
+// looping path, banked into the turn, and comes back to the thrower's hand.
 //
 // The shape comes from the object's class and the bridge's `shape` (from the weapon's
 // skill), and the metal from its material, never from its identity: every appearance of a
@@ -14,6 +16,7 @@
 import {FX_TICK_MS} from './fx.js';
 import {buildShuriken, SHURIKEN_CENTER} from './shuriken.js';
 import {buildDart} from './dart.js';
+import {buildBoomerang} from './boomerang.js';
 
 // Object classes and materials from include/objclass.h.
 const WEAPON_CLASS = 2, POTION_CLASS = 8, COIN_CLASS = 12, GEM_CLASS = 13, ROCK_CLASS = 14, BALL_CLASS = 15,
@@ -27,6 +30,8 @@ const WOOD = 8, BONE = 9, COPPER = 13, SILVER = 14, GOLD = 15, PLATINUM = 16, MI
 // A flat spinner is thrown banked: it leans `bank` rad about its line of flight, and the lean
 // wobbles by `wobble` at `wobbleRate` rad/s, so the spinning face catches the light.
 // A pointed shape with `roll` turns that many rad/s about its own length, as fletching spins it.
+// A `curve` shape follows a smooth spline through its cells instead of straight hops, banks
+// into its turn (the lean's sign follows the path) and spins the way it turns.
 export const STYLES = {
   arrow: {spin: 'point', arc: .05, perCell: .02, maxArc: .3},
   bolt: {spin: 'point', arc: .04, perCell: .015, maxArc: .22},
@@ -35,6 +40,7 @@ export const STYLES = {
   dagger: {spin: 'tumble', rate: 17, arc: .08, perCell: .03, maxArc: .4},
   weapon: {spin: 'tumble', rate: 12, arc: .1, perCell: .035, maxArc: .45},
   shuriken: {spin: 'flat', rate: 28, arc: .04, perCell: .015, maxArc: .22, bank: .22, wobble: .07, wobbleRate: 14},
+  boomerang: {spin: 'flat', rate: 24, arc: .1, perCell: 0, maxArc: .1, bank: .38, wobble: .06, wobbleRate: 9, curve: true},
   stone: {spin: 'tumble', rate: 9, arc: .12, perCell: .05, maxArc: .6},
   gem: {spin: 'tumble', rate: 11, arc: .12, perCell: .05, maxArc: .6},
   coin: {spin: 'tumble', rate: 20, arc: .14, perCell: .05, maxArc: .6},
@@ -46,9 +52,13 @@ export const STYLES = {
 // Height (tiles) the object leaves the thrower's hand at and comes down to at the last cell.
 export const LAUNCH_Y = .85, LAND_Y = .4;
 export const MAX_FLIGHTS = 12;
+// boomhit() (zap.c) draws at most 9 cells of its loop; on the 10th step it is back on the
+// thrower, who catches it (or is hit). Either way it flies home.
+export const BOOMERANG_LOOP = 9;
 
 // The flight shape for an fx object effect, or null for things other modules draw (venom).
 export function flightShape(effect) {
+  if (effect?.kind === 'boomerang') return 'boomerang';
   if (effect?.kind !== 'object') return null;
   const c = effect.class;
   if (c === VENOM_CLASS) return null;
@@ -72,7 +82,21 @@ export function flightMetal(material) {
   return 'steel';
 }
 
+// Which way a path turns overall: +1 toward +x when heading +z (counterclockwise seen from
+// above), -1 the other way, 0 if straight.
+function pathTurn(knots) {
+  let sum = 0;
+  for (let i = 2; i < knots.length; i++) {
+    const ax = knots[i - 1].x - knots[i - 2].x, az = knots[i - 1].z - knots[i - 2].z;
+    const bx = knots[i].x - knots[i - 1].x, bz = knots[i].z - knots[i - 1].z;
+    sum += az * bx - ax * bz;
+  }
+  return Math.sign(sum);
+}
+
 // Flights in a replayed fx timeline: [{seq, shape, metal, knots:[{x, z, t}], start, end}].
+// A boomerang also has `turn` (pathTurn) and, when it made the whole loop and came back,
+// `endY` at the hand and a last knot on the thrower one tick after its last cell.
 // A sprite is on a cell from `from` to `until`; the object reaches that cell at `until`, so
 // it covers the first cell's tick coming from the thrower's side and lands on the last cell
 // just as the sprite goes (when splash.js drops it into water). The launch point is one cell
@@ -98,9 +122,18 @@ export function flightsFromFx(timeline) {
     const knots = [{x: lx, z: lz, t: first.from}];
     for (const c of cells) knots.push({x: c.x, z: c.z, t: Math.max(c.until, knots[knots.length - 1].t)});
     const last = list[list.length - 1];
+    const extra = {};
+    if (last.shape === 'boomerang') {
+      const tail = cells[cells.length - 1];
+      if (cells.length >= BOOMERANG_LOOP && Math.max(Math.abs(tail.x - lx), Math.abs(tail.z - lz)) === 1) {
+        knots.push({x: lx, z: lz, t: knots[knots.length - 1].t + FX_TICK_MS});
+        extra.endY = LAUNCH_Y;
+      }
+      extra.turn = pathTurn(knots);
+    }
     const end = knots[knots.length - 1].t;
     if (!(end > first.from)) continue;
-    out.push({seq, shape: last.shape, metal: flightMetal(last.s.effect.material), knots, start: first.from, end});
+    out.push({seq, shape: last.shape, metal: flightMetal(last.s.effect?.material), knots, start: first.from, end, ...extra});
   }
   return out;
 }
@@ -123,8 +156,19 @@ export function flightFrame(flight, t) {
   while (i < k.length - 1 && t >= k[i].t) i++;
   const a = k[i - 1], b = k[i];
   const u = b.t > a.t ? Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))) : 1;
-  const x = a.x + (b.x - a.x) * u, z = a.z + (b.z - a.z) * u;
+  let x = a.x + (b.x - a.x) * u, z = a.z + (b.z - a.z) * u;
   let dx = b.x - a.x, dz = b.z - a.z;
+  if (S.curve) {
+    // Uniform Catmull-Rom through the cells, the ends held: passes through every knot.
+    const p0 = k[Math.max(0, i - 2)], p3 = k[Math.min(k.length - 1, i + 1)];
+    const cr = (q0, q1, q2, q3) => .5 * (2 * q1 + (q2 - q0) * u + (2 * q0 - 5 * q1 + 4 * q2 - q3) * u * u
+      + (3 * q1 - q0 - 3 * q2 + q3) * u * u * u);
+    const dcr = (q0, q1, q2, q3) => .5 * ((q2 - q0) + 2 * (2 * q0 - 5 * q1 + 4 * q2 - q3) * u
+      + 3 * (3 * q1 - q0 - 3 * q2 + q3) * u * u);
+    x = cr(p0.x, a.x, b.x, p3.x); z = cr(p0.z, a.z, b.z, p3.z);
+    const tx = dcr(p0.x, a.x, b.x, p3.x), tz = dcr(p0.z, a.z, b.z, p3.z);
+    if (tx || tz) { dx = tx; dz = tz; }
+  }
   if (!dx && !dz) { const f = k[0], l = k[k.length - 1]; dx = l.x - f.x; dz = l.z - f.z; }
   const yaw = dx || dz ? Math.atan2(dx, dz) : 0;
   const L = pathLength(k);
@@ -138,11 +182,14 @@ export function flightFrame(flight, t) {
   }
   const K = (t - flight.start) / (flight.end - flight.start);
   const arc = Math.min(S.maxArc, S.arc + S.perCell * L);
-  const y = LAUNCH_Y + (LAND_Y - LAUNCH_Y) * K + arc * 4 * K * (1 - K);
-  const dy = (LAND_Y - LAUNCH_Y) + arc * 4 * (1 - 2 * K);
+  const endY = flight.endY ?? LAND_Y;
+  const y = LAUNCH_Y + (endY - LAUNCH_Y) * K + arc * 4 * K * (1 - K);
+  const dy = (endY - LAUNCH_Y) + arc * 4 * (1 - 2 * K);
   const pitch = L > 0 ? Math.atan2(dy, L) : -Math.PI / 2;
-  const spin = (S.spin === 'point' ? S.roll ?? 0 : S.rate) * sec;
-  const bank = S.bank ? S.bank + S.wobble * Math.sin(S.wobbleRate * sec) : 0;
+  // A curving shape spins and leans the way its path turns (a lean toward +x is negative z).
+  const turn = S.curve ? flight.turn || 1 : 1;
+  const spin = (S.spin === 'point' ? S.roll ?? 0 : S.rate) * sec * turn;
+  const bank = S.bank ? (S.bank + S.wobble * Math.sin(S.wobbleRate * sec)) * (S.curve ? -turn : 1) : 0;
   return {x, z, y, yaw, pitch, spin, bank};
 }
 
@@ -217,6 +264,23 @@ export function createFlights(THREE, parent) {
     weapon(r, m) {
       r.add(new THREE.Mesh(geo(new THREE.BoxGeometry(.03, .03, .3)), mats[m]));
       r.add(new THREE.Mesh(geo(new THREE.BoxGeometry(.09, .02, .02).translate(0, 0, -.06)), mats.leather));
+    },
+    boomerang(r) {
+      // The held model (boomerang.js) lies flat in xy with the hand at the origin; centre it
+      // on its bounds (near where it whirls about) and lay it flat in xz.
+      const held = new THREE.Group();
+      buildBoomerang(held);
+      extraMats.push(...held.userData.extraMaterial);
+      const box = new THREE.Box3();
+      for (const mesh of held.children) {
+        mesh.geometry.computeBoundingBox();
+        box.union(mesh.geometry.boundingBox);
+      }
+      const mid = box.getCenter(new THREE.Vector3());
+      for (const mesh of [...held.children]) {
+        geo(mesh.geometry.translate(-mid.x, -mid.y, -mid.z).rotateX(-Math.PI / 2));
+        r.add(mesh);
+      }
     },
     shuriken(r) {
       // The held model (shuriken.js) stands in the xy plane above the hand; centre it and lay
