@@ -10,6 +10,7 @@ import {buildArrow,ARROW_NAME} from './arrow.js';
 import {buildWormTooth,WORM_TOOTH_NAME} from './worm-tooth.js';
 import {buildSling,SLING_NAME} from './sling.js';
 import {buildStiletto,STILETTO_NAME} from './stiletto.js';
+import {buildScalpel,SCALPEL_NAME} from './scalpel.js';
 
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
@@ -34,6 +35,8 @@ export function createHeldWeapon(item){
   buildWormTooth(g,name);
  }else if(STILETTO_NAME.test(name)){
   buildStiletto(g);
+ }else if(SCALPEL_NAME.test(name)){
+  buildScalpel(g);
  }else if(blade){
   const short=/dagger|knife|athame/.test(name),length=short?.34:.75,width=short?.055:.075;
   part(new THREE.CylinderGeometry(.029,.035,.17,8),leather,0,0);
