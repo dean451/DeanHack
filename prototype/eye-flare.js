@@ -2,7 +2,8 @@
 // (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js), the mugger
 // (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js), the prisoner (prisoner.js), the abbot (abbot.js), the neanderthal
 // (caveman.js), Master Kaen (master-kaen.js, the lenses of the Eyes of the Overworld), the Dark One
-// (dark-one.js), Lord Carnarvon (carnarvon.js) and Pelias (pelias.js). Each model hangs a small emissive `eyes` mesh on
+// (dark-one.js), Lord Carnarvon (carnarvon.js), Pelias (pelias.js) and the Master Assassin
+// (master-assassin.js). Each model hangs a small emissive `eyes` mesh on
 // the head; this makes those eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -71,9 +72,14 @@
 //    few seconds the brow lowers in a long, brooding glower. With the hero near they narrow to a hard
 //    war-squint, brighter, flicking quickly over the foe (measuring them), and every few seconds the
 //    battle-lust bites: a sharp, icy flare that narrows them harder still, then ebbs.
+//  - Master Assassin: sickly green eyes in the slits of a bone-white mask. Alone a cold, steady,
+//    patient glow, the eyes creeping now and then along the slits, and every few seconds a long,
+//    half-lidded narrowing, a killer's patience. With the hero near he goes dark: the glow sinks into
+//    the mask's shadow, the eyes draw down to thin slits and hold dead still on the mark, and every
+//    few seconds a sudden venomous flare, a quick bright flash of green, marks them for the kill.
 //  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict, Charon, the prisoner, the abbot,
 //    the neanderthal, Lord Carnarvon, Pelias with a war-cry) or
-//    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon, the Dark One; Master Kaen's round lenses a little), peak just before the blow lands, and die back down after.
+//    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon, the Dark One, the Master Assassin; Master Kaen's round lenses a little), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
 //    greys the glow and this holds.
@@ -163,6 +169,14 @@ export const LOOK = {
   pelias: {near: 1.35, nearY: .72, breath: .08, breathHz: .14, glareMin: 4, glareSpan: 5, glareLen: 2, glareY: .5, glareGlow: 1.25, glareNear: .2,
     atkGlow: 3.4, atkX: 1.2, atkY: 1.5, dart: .0025, dartNear: 1.4, dartGap: [1.8, .45], glintMin: 2.5, glintSpan: 3, glintNear: 1.6, glintFar: .2,
     glintLen: .45, glintGlow: 2.5, glintY: .6, xMax: .006},
+  // a killer in shadow: the hero near dims the glow (near < 1) as he sinks into the mask's dark,
+  // thin slits (nearY < 1), dead still (dartNear near 0); the "glare" is a patient half-lidded
+  // narrowing, mostly alone (glareNear < 1); each glint a short venomous flare marking the hero,
+  // rare alone (glintFar < 1). The slits slant (rise .32 per unit out) and the eyes move together,
+  // so xMax stays small: at .003 they drift at most .001 off the slit's line (half-height .0045).
+  'master assassin': {near: .7, nearY: .55, breath: .05, breathHz: .1, glareMin: 4, glareSpan: 4, glareLen: 2.2, glareY: .5, glareGlow: .85, glareNear: .2,
+    atkGlow: 3.4, atkX: 1.15, atkY: .4, dart: .0025, dartNear: .05, dartGap: [1.5, 2], glintMin: 2.5, glintSpan: 3, glintNear: 1.5, glintFar: .2,
+    glintLen: .32, glintGlow: 3, glintY: .85, xMax: .003},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
