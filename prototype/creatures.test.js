@@ -1668,6 +1668,45 @@ test('the Master Assassin gets a hood over a mouthless bone-white mask with slit
  assert.notEqual(createCreature({name:'human',symbol:64}).kind,'master assassin');
 });
 
+test('Hippocrates gets a laurel wreath on a bald dome, a long jagged white beard, a fluted blood-spotted chiton under a slate himation, a herb satchel, a roll of lancets, a bleeding bowl and the serpent staff of Asclepius instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const h=createCreature({name:'Hippocrates',symbol:64,color:15});
+ assert.equal(h.kind,'hippocrates');assert.equal(h.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','shieldArm','eyes'])assert(h[key]?.isObject3D,key);
+ assert.equal(h.legs.length,2);assert.equal(h.arms.length,2);assert(h.arm===h.arms[1]);assert(h.shieldArm===h.arms[0]);
+ assert(h.arm.children.includes(h.weaponSocket),'the socket is at the right hand');
+ assert.equal(h.weaponSocket.children.length,1,'the staff is held');
+ const parts=meshes(h);
+ assert.equal(parts.length,8,'one mesh per moving part, the staff and the eyes');
+ assert.equal(new Set(parts.map(p=>p.material)).size,2);
+ let verts=0;
+ for(const p of parts){
+  const a=p.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${p.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,p.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ h.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(h.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.1&&b.max.y<1.4,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ // both eyes look out of their sockets, past the brow and the nose
+ for(const s of [-1,1]){
+  const e=new THREE.Box3().setFromObject(h.eyes,true).getCenter(new THREE.Vector3());e.x+=s*.029*1.04;
+  const hit=new THREE.Raycaster(new THREE.Vector3(e.x,e.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===h.eyes,`eye ${s} is hidden behind the ${hit?.object.userData.part}`);
+ }
+ // the staff stands from the floor to above the head; the bowl is held out in front
+ const staff=new THREE.Box3().setFromObject(h.weaponSocket,true);
+ assert(staff.max.y-staff.min.y>1,'a full-length staff');
+ assert(staff.min.y<.1,'the staff reaches the floor');
+ assert(new THREE.Box3().setFromObject(h.shieldArm,true).max.z>.2,'the bowl is held out');
+ const again=meshes(createCreature({name:'hippocrates'}));
+ parts.forEach((p,i)=>assert(p.geometry===again[i].geometry));
+ assert.notEqual(createCreature({name:'human',symbol:64}).kind,'hippocrates');
+});
+
 test('the black marketeer gets a deep peaked cowl over a scarfed face with sickly glinting eyes, a ragged lined cloak hung with stolen wares, a bandolier of vials, a coin purse and a notched long sword instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const bm=createCreature({name:'black marketeer',symbol:64,color:0});
