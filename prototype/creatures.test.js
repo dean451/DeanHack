@@ -1319,6 +1319,48 @@ test('One-eyed Sam gets a tricorn, an eyepatch and one burning eye, a braid, gre
  assert.notEqual(createCreature({name:'human',symbol:64}).kind,'one-eyed sam');
 });
 
+test('miners get a battered hard hat with a burnt-out candle stub, a coal-black gaunt face with pale eyes, a hunch, a scorched apron, a worn pick-axe and a lit brass lantern instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const mi=createCreature({name:'miner',symbol:64,color:7});
+ assert.equal(mi.kind,'miner');assert.equal(mi.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','eyes','lantern'])assert(mi[key]?.isObject3D,key);
+ assert.equal(mi.legs.length,2);assert.equal(mi.arms.length,2);assert(mi.arm===mi.arms[1]);assert(mi.lantern===mi.arms[0]);
+ assert(mi.arm.children.includes(mi.weaponSocket),'the socket is at the right hand');
+ assert.equal(mi.weaponSocket.children.length,1,'the pick is held');
+ const parts=meshes(mi);
+ assert.equal(parts.length,9,'one mesh per moving part, the pick, the eyes and the flame');
+ assert.equal(new Set(parts.map(m=>m.material)).size,3);
+ const flame=parts.find(m=>m.userData.part==='flame');
+ assert(flame&&flame.parent===mi.lantern,'the lantern flame is tagged for flame-flicker');
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ mi.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(mi.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.1&&b.max.y<1.5,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ // both pale eyes look out from under the brim
+ for(const s of [-1,1]){
+  const e=new THREE.Box3().setFromObject(mi.eyes,true),c=e.getCenter(new THREE.Vector3());
+  const x=s*(e.max.x-.009);
+  const hit=new THREE.Raycaster(new THREE.Vector3(x,c.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===mi.eyes,`an eye is hidden behind the ${hit?.object.userData.part}`);
+ }
+ // the lantern hangs below the left hand, its flame inside the chimney; the pick head rides high
+ const fp=flame.getWorldPosition(new THREE.Vector3());
+ assert(fp.x<-.1&&fp.y>.2&&fp.y<.4,`flame at ${fp.toArray()}`);
+ assert(new THREE.Box3().setFromObject(mi.weaponSocket,true).max.y>.95,'the pick is held high');
+ assert(new THREE.Box3().setFromObject(mi.head,true).getCenter(new THREE.Vector3()).z>.04,'the head is thrust forward on the hunch');
+ const again=meshes(createCreature({name:'miner'}));
+ parts.forEach((m,i)=>assert(m.geometry===again[i].geometry));
+ assert.notEqual(createCreature({name:'human',symbol:64}).kind,'miner');
+});
+
 test('barbarians get a horned iron cap, ash war paint, braided beard, wolf-pelt mantle, ring mail, spiked bracers and a notched great axe instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const ba=createCreature({name:'barbarian',symbol:64,color:1});

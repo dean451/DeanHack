@@ -236,7 +236,7 @@ function buildWeapon(L,C){
 
 // The pick-axe's forged head, along x: a drawn point (+x) and a chisel end (−x), arched, closed at
 // both ends.
-function forgedPickHead(rows=26,sides=10){
+export function forgedPickHead(rows=26,sides=10){
  const pos=[],idx=[];
  for(let i=0;i<=rows;i++){
   const u=i/rows*2-1,a=Math.abs(u),x=u*.19,y=.034*(1-u*u)-.01;
