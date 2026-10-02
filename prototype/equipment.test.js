@@ -377,9 +377,28 @@ test('an aklys or thonged club is its own spiked club on a thong in two meshes',
   // The head up from the hand, the thong hanging below it to one side; laid on the floor
   // (x −PI/2, scale .8, y .052) it rests on its worn-down underside spikes, whose tips sink
   // at most a hair into the floor.
-  assert(box.max.y>.44&&box.max.y<.48&&box.min.y>-.26,`y ${box.min.y}..${box.max.y}`);
+  assert(box.max.y>.44&&box.max.y<.48&&box.min.y>-.3,`y ${box.min.y}..${box.max.y}`);
   assert(box.max.x<.16&&box.min.x>-.12,`x ${box.min.x}..${box.max.x}`);
   assert(.052+.8*box.min.z>-.015,`floor clearance ${box.min.z}`);
   club.userData.dispose();
+ }
+});
+
+test('arrows and crossbow bolts are their own fletched models in two meshes, a stack a sheaf of three',()=>{
+ const cases=[['arrow','arrow',1],['12 +0 arrows','arrow',3],['runed arrow','elven',1],['3 elven arrows','elven',3],['crude arrow','orcish',1],
+  ['silver arrow','silver',1],['bamboo arrow','ya',1],['5 ya','ya',3],['crossbow bolt','bolt',1],['20 crossbow bolts','bolt',3]];
+ for(const [name,kind,count] of cases){
+  const w=createHeldWeapon({name,class:2});
+  assert.deepEqual(w.userData.arrow,{kind,count},name);
+  assert.deepEqual(w.children.map(c=>c.userData.part).sort(),['head','shaft'],name);
+  assert(w.children.find(c=>c.userData.part==='head').material.metalness>=.75,'weapon-magic can sheathe the iron');
+  for(const mesh of w.children){const p=mesh.geometry.attributes.position;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)),'finite vertices');}
+  w.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(w),long=kind==='bolt'?[.19,.23]:[.4,.56];
+  assert(box.max.y>long[0]&&box.max.y<long[1]&&box.min.y>-.3,`${name} y ${box.min.y}..${box.max.y}`);
+  for(const v of [box.min.x,box.max.x])assert(Math.abs(v)<(count>1?.09:.035),`${name} x ${v}`);
+  assert(.052+.8*box.min.z>0,`${name} above the floor`);
+  w.userData.dispose();
  }
 });

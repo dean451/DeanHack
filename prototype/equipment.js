@@ -6,6 +6,7 @@ import {buildBoomerang} from './boomerang.js';
 import {buildShuriken} from './shuriken.js';
 import {buildDart} from './dart.js';
 import {buildAklys} from './aklys.js';
+import {buildArrow,ARROW_NAME} from './arrow.js';
 
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
@@ -22,6 +23,9 @@ export function createHeldWeapon(item){
  const blade=/sword|dagger|knife|athame|saber|scimitar|katana|tsurugi|wakizashi/.test(name);
  if(/\bsilver saber\b/.test(name)){
   buildSilverSaber(g);
+ }else if(ARROW_NAME.test(name)){
+  // Before the crossbow, which a "crossbow bolt" would otherwise match.
+  buildArrow(g,item.name||name);
  }else if(blade){
   const short=/dagger|knife|athame/.test(name),length=short?.34:.75,width=short?.055:.075;
   part(new THREE.CylinderGeometry(.029,.035,.17,8),leather,0,0);
