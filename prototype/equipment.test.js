@@ -362,3 +362,24 @@ test('a shuriken is its own six-pointed, raked iron star in one mesh',()=>{
   star.userData.dispose();
  }
 });
+
+test('an aklys or thonged club is its own spiked club on a thong in two meshes',()=>{
+ for(const name of ['aklys','thonged club','a +1 aklys']){
+  const club=createHeldWeapon({name,class:2});
+  assert.deepEqual(club.children.map(c=>c.userData.part).sort(),['head','shaft']);
+  const head=club.children.find(c=>c.userData.part==='head');
+  assert(head.material.metalness>=.75,'weapon-magic can sheathe the iron');
+  for(const mesh of club.children){const p=mesh.geometry.attributes.position;
+   assert.equal(mesh.geometry.attributes.color.count,p.count);
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)),'finite vertices');}
+  club.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(club);
+  // The head up from the hand, the thong hanging below it to one side; laid on the floor
+  // (x −PI/2, scale .8, y .052) it rests on its worn-down underside spikes, whose tips sink
+  // at most a hair into the floor.
+  assert(box.max.y>.44&&box.max.y<.48&&box.min.y>-.26,`y ${box.min.y}..${box.max.y}`);
+  assert(box.max.x<.16&&box.min.x>-.12,`x ${box.min.x}..${box.max.x}`);
+  assert(.052+.8*box.min.z>-.015,`floor clearance ${box.min.z}`);
+  club.userData.dispose();
+ }
+});
