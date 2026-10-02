@@ -1,9 +1,9 @@
 // The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js), One-eyed Sam
 // (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js), the mugger
 // (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js), the prisoner (prisoner.js), the abbot (abbot.js), the neanderthal
-// (caveman.js), Master Kaen (master-kaen.js, the lenses of the Eyes of the Overworld) and the Dark One
-// (dark-one.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
-// eyes live.
+// (caveman.js), Master Kaen (master-kaen.js, the lenses of the Eyes of the Overworld), the Dark One
+// (dark-one.js) and Lord Carnarvon (carnarvon.js). Each model hangs a small emissive `eyes` mesh on
+// the head; this makes those eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
 //    they burn brighter and steadier.
@@ -61,8 +61,13 @@
 //    the face drowned in its own shadow, then creeps back. With the hero near the eyes never go out:
 //    they draw down to cold slits, brighter and steadier, and every few seconds an unholy surge swells
 //    through them, slow and bright, narrowing them further, before it ebbs.
+//  - Lord Carnarvon: two pale tomb-gold glints in sunken sockets. Alone a dim, slow glow; the eyes
+//    creep side to side in slow, scholarly sweeps, as if reading an inscription, and now and then
+//    narrow in a long, studying squint. With the hero near the sweeps stop and the eyes fix on them,
+//    a touch wider and brighter, appraising them like a find, and every few seconds the tomb fever
+//    takes him: a slow, greedy swell of gold that opens the eyes wide, then ebbs.
 //  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict, Charon, the prisoner, the abbot,
-//    the neanderthal) or
+//    the neanderthal, Lord Carnarvon) or
 //    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon, the Dark One; Master Kaen's round lenses a little), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
@@ -138,6 +143,13 @@ export const LOOK = {
   // (glintY < 1), rare alone (glintFar < 1). No dart: they are pinpricks.
   'dark one': {near: 1.5, nearY: .6, ember: .05, emberNear: .3, breath: .12, breathHz: .1, glareMin: 4, glareSpan: 4, glareLen: 2.2, glareY: .7, glareGlow: .15, glareNear: 0,
     atkGlow: 3.4, atkX: 1.15, atkY: .45, dart: 0, glintMin: 2, glintSpan: 2.5, glintNear: 1.7, glintFar: .25, glintLen: 1.1, glintGlow: 2.3, glintY: .7},
+  // an obsessed scholar: slow reading sweeps alone (long dartGap), still with the hero near
+  // (dartNear < 1); the "glare" is a studying squint, mostly alone (glareNear < 1); each glint the
+  // tomb fever, a long greedy swell of gold that widens the eyes (glintY > 1), rare alone. The
+  // sunken socket is about .008 wider than the glint each side, so xMax keeps it in.
+  'lord carnarvon': {near: 1.3, nearY: 1.1, ember: .03, breath: .08, breathHz: .16, glareMin: 4, glareSpan: 4, glareLen: 1.8, glareY: .55, glareGlow: 1.15, glareNear: .25,
+    atkGlow: 2.8, atkX: 1.15, atkY: 1.35, dart: .0035, dartNear: .15, dartGap: [1.1, 1.6], glintMin: 2.5, glintSpan: 3, glintNear: 1.5, glintFar: .3,
+    glintLen: 1.3, glintGlow: 2.1, glintY: 1.2, xMax: .0045},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;

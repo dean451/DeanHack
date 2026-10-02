@@ -476,3 +476,47 @@ test("the Dark One's eyes pulse cold and sink into shadow alone, and with the he
   for (let i = 0; i < 4 * 60 && (st.glare !== null || st.glint !== null); i++) frame(a, t += dt, far);
   assert.ok(st.near < 1e-3 && Math.abs(a.eyes.scale.y - 1) < .01 && Math.abs(a.eyes.scale.x - 1) < 1e-9);
 });
+
+test("Lord Carnarvon's eyes sweep slowly as if reading and squint to study alone, and with the hero near fix on them, wider and brighter, swelling with tomb fever", () => {
+  // (made here, last, so the other creatures' ids and so their seeds don't shift)
+  const a = make('lord carnarvon'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK['lord carnarvon'];
+  assert.ok(E.hasEyes(a));
+  const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
+  let t = 0;
+  const run = (look, secs) => {
+    let sum = 0, n = 0, squints = 0, squintLid = Infinity, fevers = 0, was = false, wasG = false, lidLo = Infinity, lidHi = 0, feverHi = 0, feverLid = 0, sweep = 0;
+    for (let i = 0; i < secs * 60; i++) {
+      const st = frame(a, t += dt, look);
+      const dx = a.eyes.position.x - (rest.x + st.c.x * (1 - a.eyes.scale.x));
+      assert.ok(Math.abs(dx) <= L.xMax + 1e-12, `in the socket ${dx}`);
+      sweep = Math.max(sweep, Math.abs(dx));
+      assert.ok(a.eyes.scale.y > 0 && a.eyes.scale.y < 1.5 && Number.isFinite(glow(a)) && glow(a) >= 0);
+      if (st.glint !== null && !was) fevers++; was = st.glint !== null;
+      if (st.glare !== null && !wasG) squints++; wasG = st.glare !== null;
+      if (st.glare !== null && st.glint === null) squintLid = Math.min(squintLid, a.eyes.scale.y);
+      if (st.glint !== null && st.glare === null) { feverHi = Math.max(feverHi, st.k); feverLid = Math.max(feverLid, a.eyes.scale.y); }
+      if (st.glare === null && st.glint === null && st.blink === null) { sum += st.k; n++; lidLo = Math.min(lidLo, a.eyes.scale.y); lidHi = Math.max(lidHi, a.eyes.scale.y); }
+    }
+    return {mean: sum / n, squints, squintLid, fevers, feverHi, feverLid, lidLo, lidHi, sweep};
+  };
+  const alone = run(far, 40);
+  run(hero, 5);
+  const near = run(hero, 40);
+  assert.ok(alone.sweep > .002, `reads ${alone.sweep}`);
+  assert.ok(near.sweep < .25 * alone.sweep + 1e-4, `fixed ${near.sweep} vs ${alone.sweep}`);
+  assert.ok(alone.squints >= 4 && alone.squintLid < L.glareY + .03, `squints ${alone.squints} to ${alone.squintLid}`);
+  assert.ok(near.squints < alone.squints / 2, `fewer squints near ${near.squints}`);
+  assert.ok(near.mean > 1.2 * alone.mean, `brighter ${alone.mean} → ${near.mean}`);
+  assert.ok(Math.abs(near.lidLo - L.nearY) < .02 && Math.abs(near.lidHi - L.nearY) < .02, `wide ${near.lidLo}..${near.lidHi}`);
+  assert.ok(near.fevers > 2 * alone.fevers && near.fevers >= 6, `fevers ${alone.fevers} → ${near.fevers}`);
+  assert.ok(near.feverHi > 1.8 * near.mean && near.feverLid > L.nearY + .15, `fever ${near.feverHi} vs ${near.mean}, lid ${near.feverLid}`);
+  // an attack widens them in a mad stare and blazes
+  enqueueAction(a.actions, {kind: 'attack', attack: 'weapon', dir: [0, 1]});
+  let peak = 0, wide = 0;
+  for (let i = 0; i < 60; i++) { const st = frame(a, t += dt, hero); peak = Math.max(peak, st.k); wide = Math.max(wide, a.eyes.scale.y); }
+  assert.ok(peak > 2.2 * near.mean && wide > 1.25, `attack ${peak} vs ${near.mean}, wide ${wide}`);
+  // death gutters them out
+  enqueueAction(a.actions, {kind: 'die', dir: null, style: 'fall'});
+  for (let i = 0; i < 8 * 60; i++) frame(a, t += dt, hero);
+  assert.ok(glow(a) === 0 && Math.abs(a.eyes.scale.y - E.DEATH_Y) < 1e-6, `dead ${glow(a)} ${a.eyes.scale.y}`);
+});
