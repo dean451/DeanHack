@@ -323,3 +323,23 @@ test('a boomerang has its own hooked, bone-toothed stick, merged to one mesh per
  assert(.052+.8*box.min.z>0,'above the floor');
  stick.userData.dispose();
 });
+
+test('a shuriken is its own six-pointed, raked iron star in one mesh',()=>{
+ for(const name of ['shuriken','throwing star']){
+  const star=createHeldWeapon({name,class:2});
+  assert.deepEqual(star.children.map(c=>c.userData.part),['star']);
+  const mesh=star.children[0];
+  assert(mesh.material.metalness>=.75,'weapon-magic can sheathe the iron');
+  const p=mesh.geometry.attributes.position;
+  for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)),'finite vertices');
+  star.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(star);
+  // It stands in the xy plane just above the hand and is flat in z, so laid on the floor
+  // (x −PI/2, scale .8, y .052 in live.js) it lies flat.
+  assert(box.min.y>-.01&&box.max.y<.2,`y ${box.min.y}..${box.max.y}`);
+  assert(Math.abs(box.max.x)<.1&&Math.abs(box.min.x)<.1,`x ${box.min.x}..${box.max.x}`);
+  assert(box.max.z<.01&&box.min.z>-.01,`z ${box.min.z}..${box.max.z}`);
+  assert(.052+.8*box.min.z>0,'above the floor');
+  star.userData.dispose();
+ }
+});
