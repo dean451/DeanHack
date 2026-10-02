@@ -20,9 +20,13 @@
 // Pelias: the bearskin cloak's ragged hem hangs to the knee (.26) and the war-kilt's leather strips
 // hang from the belt (.5) to about .35. Heavy fur swings slow and wide and barely lifts; the stir is
 // a cold wind in the fur, not a crawl, and the strip ends and the hem's tatters flap with it.
+// Charon: the river-murk robe falls from the rope girdle (.56) to the floor, soaked black and slimed
+// at the hem. Waterlogged, it drags slow and heavy, barely overshoots and never lifts; standing, the
+// Styx's slow current still laps round it, and the sodden points only twitch, as if dripping.
 export const HEMS = {
   'dark one': {top: .42, lag: .045, sat: 1.2, freq: 6.5, damp: .28, lift: .3, crawl: .007, crawlHz: .21, flutter: .006, flutterY: .045},
   pelias: {top: .5, bottom: .26, lag: .05, sat: 1.4, freq: 4.2, damp: .32, lift: .15, crawl: .004, crawlHz: .13, flutter: .005, flutterY: .15},
+  charon: {top: .5, lag: .04, sat: 1.2, freq: 3.6, damp: .45, lift: .04, crawl: .006, crawlHz: .09, flutter: .003, flutterY: .05},
 };
 // TELEPORT: a speed (world units/s) no glide reaches
 const STEP = 1 / 120, MAX_DT = .1, EASE = 1.5, TELEPORT = 20, REST = 1e-4;

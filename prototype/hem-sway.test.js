@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDarkOne} from './dark-one.js';
 import {createPelias} from './pelias.js';
+import {createCharon} from './charon.js';
 import {updateHemSway, isHemSway, HEMS} from './hem-sway.js';
 
 const bodyGeo = a => a.body.children.find(o => o.isMesh && o.userData.part === 'body').geometry;
@@ -82,6 +83,31 @@ test('Pelias\'s bearskin hem and kilt strips swing heavy from the belt and settl
   const stir = at(0, P.top);
   assert(stir > .001 && stir < .02, `wind stir ${stir}`);
   assert.equal(at(P.top, 9), 0, 'nothing above the belt moves');
+  a.actions.dead = true;
+  for (let i = 0; i < 600; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); }
+  assert.equal(at(-9, 9), 0);
+  assert(st.settled);
+});
+
+test('Charon\'s soaked robe drags heavy, barely lifts, laps while he stands and settles in death', () => {
+  const a = createCharon(), P = HEMS.charon;
+  a.actions = {dead: false};
+  assert(isHemSway(a));
+  updateHemSway(a, 1 / 60, 0);
+  const st = a.hemSway, p = st.geo.attributes.position.array;
+  const at = (lo, hi) => { let d = 0; for (let i = 1; i < p.length; i += 3) if (st.rest[i] >= lo && st.rest[i] < hi) d = Math.max(d, Math.hypot(p[i - 1] - st.rest[i - 1], p[i] - st.rest[i], p[i + 1] - st.rest[i + 1])); return d; };
+  const lift = () => { let d = 0; for (let i = 1; i < p.length; i += 3) d = Math.max(d, p[i] - st.rest[i]); return d; };
+  let t = 0, minZ = 0, maxZ = -1, up = 0;
+  for (let i = 0; i < 90; i++) { t += 1 / 60; a.g.position.z += 1.2 / 60; updateHemSway(a, 1 / 60, t); minZ = Math.min(minZ, trailZ(a)); up = Math.max(up, lift()); }
+  assert(minZ < -.025 && minZ > -P.lag * 1.6, `robe drags: ${minZ}`);
+  assert(up < .005, `sodden hem barely lifts: ${up}`);
+  for (let i = 0; i < 120; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); maxZ = Math.max(maxZ, trailZ(a)); }
+  assert(maxZ > .002 && maxZ < .012, `a small swing past: ${maxZ}`);
+  for (let i = 0; i < 400; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); }
+  const lap = at(0, P.top);
+  assert(lap > .002 && lap < .015, `current laps the hem: ${lap}`);
+  assert(at(.42, P.top) < .001, 'the purse at the girdle stays put');
+  assert.equal(at(P.top, 9), 0, 'nothing above the girdle moves');
   a.actions.dead = true;
   for (let i = 0; i < 600; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); }
   assert.equal(at(-9, 9), 0);
