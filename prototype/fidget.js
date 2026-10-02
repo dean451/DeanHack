@@ -35,6 +35,7 @@ import {updateMinotaurCharge} from './minotaur-charge.js';
 import {updateShamblerLurch} from './shambler-lurch.js';
 import {updateNinjaTails} from './ninja-tails.js';
 import {updateEyeFlare} from './eye-flare.js';
+import {updateSamHover} from './sam-hover.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -197,6 +198,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateShamblerLurch(actor, dt, t, busy, look, walking);
   // And the ninja's hood tails: they stream and flutter behind it as it moves, lag its turns, whip with a cut and slap against its back (ninja-tails.js).
   updateNinjaTails(actor, dt, t, busy);
+  // And One-eyed Sam: she hovers off the floor, legs dangling, glides between tiles, looms at the hero and swoops into her cuts (sam-hover.js).
+  updateSamHover(actor, dt, t, busy, look);
   // And the Executioner's, Croesus', One-eyed Sam's and the miner's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
   updateEyeFlare(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
