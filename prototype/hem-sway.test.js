@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDarkOne} from './dark-one.js';
+import {createPelias} from './pelias.js';
 import {updateHemSway, isHemSway, HEMS} from './hem-sway.js';
 
 const bodyGeo = a => a.body.children.find(o => o.isMesh && o.userData.part === 'body').geometry;
@@ -60,6 +61,31 @@ test('the Dark One\'s hem trails a glide, swings past on the stop, crawls while 
   shift(a);
   // the mesh disposes its clone with the actor
   assert.equal(typeof a.body.children.find(o => o.userData.part === 'body').userData.dispose, 'function');
+});
+
+test('Pelias\'s bearskin hem and kilt strips swing heavy from the belt and settle in death', () => {
+  const a = createPelias(), P = HEMS.pelias;
+  a.actions = {dead: false};
+  assert(isHemSway(a));
+  updateHemSway(a, 1 / 60, 0);
+  const st = a.hemSway, p = st.geo.attributes.position.array;
+  // the cloak hem (knee) and the kilt strips' ends move; the torso and belt don't
+  const at = (lo, hi) => { let d = 0; for (let i = 1; i < p.length; i += 3) if (st.rest[i] >= lo && st.rest[i] < hi) d = Math.max(d, Math.hypot(p[i - 1] - st.rest[i - 1], p[i] - st.rest[i], p[i + 1] - st.rest[i + 1])); return d; };
+  const hemZ = () => { let s = 0, n = 0; for (const i of st.idx) if (st.rest[i * 3 + 1] < .28) { s += p[i * 3 + 2] - st.rest[i * 3 + 2]; n++; } return s / n; };
+  let t = 0, minZ = 0, maxZ = -1;
+  for (let i = 0; i < 90; i++) { t += 1 / 60; a.g.position.z += 1.2 / 60; updateHemSway(a, 1 / 60, t); minZ = Math.min(minZ, hemZ()); }
+  assert(minZ < -.03 && minZ > -P.lag * 1.6, `cloak hem trails: ${minZ}`);
+  assert(at(.34, .42) > .005, 'kilt strip ends swing');
+  for (let i = 0; i < 90; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); maxZ = Math.max(maxZ, hemZ()); }
+  assert(maxZ > .004, `hem swings past: ${maxZ}`);
+  for (let i = 0; i < 400; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); }
+  const stir = at(0, P.top);
+  assert(stir > .001 && stir < .02, `wind stir ${stir}`);
+  assert.equal(at(P.top, 9), 0, 'nothing above the belt moves');
+  a.actions.dead = true;
+  for (let i = 0; i < 600; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); }
+  assert.equal(at(-9, 9), 0);
+  assert(st.settled);
 });
 
 test('stone holds the hem and other actors are ignored', () => {
