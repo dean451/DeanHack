@@ -1435,6 +1435,47 @@ test('the abbot gets a deep pointed hood over a sunken grey face with pale burni
  assert.notEqual(createCreature({name:'human',symbol:64}).kind,'abbot');
 });
 
+test('Master Kaen gets a hulking bare ash-grey torso inked with sutras, a gaunt shaven head with a long white moustache and queue, the Eyes of the Overworld burning over his eyes, an iron rosary with skulls, a black sash, tattered trousers and clawed hands instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const mk=createCreature({name:'Master Kaen',symbol:64,color:13});
+ assert.equal(mk.kind,'master kaen');assert.equal(mk.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','eyes'])assert(mk[key]?.isObject3D,key);
+ assert.equal(mk.legs.length,2);assert.equal(mk.arms.length,2);assert(mk.arm===mk.arms[1]);
+ assert(mk.arm.children.includes(mk.weaponSocket),'the socket is at the right hand');
+ assert.equal(mk.weaponSocket.children.length,0,'he fights barehanded');
+ const parts=meshes(mk);
+ assert.equal(parts.length,7,'one mesh per moving part and the lenses');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ assert(mk.eyes.material.emissiveIntensity>1,'the lenses glow');
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ mk.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(mk.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.25&&b.max.y<1.5,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ // both lenses show from the front, and he is broader than the monk
+ const eye=new THREE.Box3().setFromObject(mk.eyes,true).getCenter(new THREE.Vector3());
+ for(const s of [-1,1]){
+  const hit=new THREE.Raycaster(new THREE.Vector3(eye.x+s*.031*1.1,eye.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===mk.eyes,`the ${s<0?'left':'right'} lens is hidden behind the ${hit?.object.userData.part}`);
+ }
+ const monk=createCreature({name:'monk',symbol:64});monk.g.updateMatrixWorld(true);
+ const mb=new THREE.Box3().setFromObject(monk.g,true);
+ assert(b.max.x-b.min.x>(mb.max.x-mb.min.x)*1.1,'hulking');
+ // the queue hangs down his back
+ const head=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='head'),true);
+ assert(head.min.z<eye.z-.15&&head.min.y<eye.y-.3,'queue behind');
+ const again=meshes(createCreature({name:'master kaen'}));
+ parts.forEach((m,i)=>assert(m.geometry===again[i].geometry));
+ assert.notEqual(createCreature({name:'human',symbol:64}).kind,'master kaen');
+});
+
 test('One-eyed Sam gets a tricorn, an eyepatch and one burning eye, a braid, grey dragon scale mail under a ragged greatcoat, speed boots, a mirror shield on the left arm and Thiefbane instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const sam=createCreature({name:'One-eyed Sam',symbol:64,color:0});
