@@ -1087,7 +1087,11 @@ test('neanderthals get a broad brute in a wolf pelt, the wolf\'s head worn as a 
  assert(ne.arm.children.includes(ne.weaponSocket),'the socket is at the right hand');
  assert.equal(ne.weaponSocket.children[0].userData.part,'spear');
  const parts=meshes(ne);
- assert.equal(parts.length,7,'one mesh per moving part and the spear');
+ assert.equal(parts.length,8,'one mesh per moving part, the spear and the eyes');
+ assert(ne.eyes?.isMesh&&ne.head.children.includes(ne.eyes)&&ne.eyes.userData.part==='eyes','the amber eyes are their own mesh on the head');
+ assert(ne.eyes.material.emissiveIntensity>0&&ne.eyes.material!==parts[0].material,'the eyes glow with their own material');
+ assert.equal(ne.eyes.castShadow,false);
+ assert.equal(createCreature({name:'caveman'}).eyes,null,'the caveman\'s eyes stay in the head');
  let verts=0;
  for(const m of parts){
   const a=m.geometry.attributes;verts+=a.position.count;
