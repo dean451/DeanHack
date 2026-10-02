@@ -1,6 +1,6 @@
 // The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js), One-eyed Sam
 // (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js), the mugger
-// (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js) and the prisoner (prisoner.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
+// (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js), the prisoner (prisoner.js) and the abbot (abbot.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
 // eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -39,7 +39,12 @@
 //    sag. With the hero near they stare wide and frightened, a little brighter, the flicks quick and
 //    jumpy, and every few seconds they cringe: squeezed shut and dimmed, dropped and turned aside as if
 //    from a raised hand, then they creep back up.
-//  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict, Charon, the prisoner) or
+//  - Abbot: pale violet eyes deep in the hood, never darting. Alone they are lowered in prayer: a
+//    dim, slow glow, and every few seconds the lids close in a long devotion that sinks the light
+//    to embers, then lift again. With the hero near the prayer stops: the eyes open wide in an
+//    unblinking, fixed stare, paler and brighter, and every few seconds a slow surge of zealous
+//    fervour swells them brighter still and a little wider.
+//  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict, Charon, the prisoner, the abbot) or
 //    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
@@ -93,6 +98,11 @@ export const LOOK = {
   prisoner: {near: 1.25, nearY: 1.3, breath: .09, breathHz: .2, glareMin: 3, glareSpan: 4, glareLen: 1.2, glareY: .3, glareGlow: .7,
     atkGlow: 3, atkX: 1.15, atkY: 1.4, dart: .002, dartNear: 1.6, dartGap: [.9, .25], glintMin: 2.5, glintSpan: 3, glintNear: 1, glintFar: 0,
     glintLen: .9, glintGlow: .55, glintY: .25, glintDrop: .0025, glintSide: .002, xMax: .005},
+  // devout: the "glare" is eyes closed in prayer (glareY near 0, glareGlow < 1), only while alone
+  // (glareNear 0 stops the countdown with the hero near); wide and fixed with the hero near (nearY > 1,
+  // no dart), and each glint is a slow swell of fervour (glintY > 1), mostly then (glintFar < 1)
+  abbot: {near: 1.35, nearY: 1.2, breath: .07, breathHz: .12, glareMin: 3, glareSpan: 3, glareLen: 2.2, glareY: .12, glareGlow: .45, glareNear: 0,
+    atkGlow: 3, atkX: 1.2, atkY: 1.4, dart: 0, glintMin: 3, glintSpan: 3, glintNear: 1.5, glintFar: .25, glintLen: 1.4, glintGlow: 1.9, glintY: 1.15},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
@@ -159,10 +169,10 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
   if (st.blink !== null) { st.blink += dt / BLINK_LEN; open = blinkCurve(st.blink); if (st.blink >= 1) st.blink = null; }
   st.anger = st.anger > SNAP ? st.anger * Math.exp(-ANGER_RATE * dt) : 0;
 
-  // The Executioner's glare: a long narrowing, now and then.
+  // The Executioner's glare: a long narrowing, now and then (the abbot's prayer, only while alone).
   let glare = 0;
   if (L.glareLen && !dead) {
-    if (st.glare === null) { st.glareWait -= dt; if (st.glareWait <= 0 && !busy) { st.glare = 0; st.glareWait = L.glareMin + L.glareSpan * rand(st); } }
+    if (st.glare === null) { st.glareWait -= dt * (near ? L.glareNear ?? 1 : 1); if (st.glareWait <= 0 && !busy) { st.glare = 0; st.glareWait = L.glareMin + L.glareSpan * rand(st); } }
     if (st.glare !== null) { st.glare += dt / L.glareLen; glare = holdCurve(st.glare); if (st.glare >= 1) st.glare = null; }
   }
   // Croesus, the marketeer, the mugger, the convict, Thoth Amon, Charon and the prisoner: a darting look (not Thoth's or Charon's), and a glint (much sooner with
