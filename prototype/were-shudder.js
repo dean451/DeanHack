@@ -10,11 +10,13 @@
 //    howl at a moon it can't see, and settles low again.
 //  - In human form (the `@` were, a plain humanoid) the change fights the man: he hunches and
 //    clutches at his chest, his shoulders bulge and jerk, and fur sprouts and sheds off him;
-//    then he arches back with his arms flung out before he masters it.
+//    then he arches back with his arms flung out before he masters it. His head (were-man.js)
+//    glares up at the hero and flinches like the beast's, bows into the clutch, wrenches with the
+//    fit and is flung back in the arch, and his eyes flare through it.
 //  - On death everything eases back to rest and the last tufts fall.
 //
 // Matched on `species` (set by live.js and the gallery), so the model files need no change. It
-// owns the body's rotation and scale, and the head's, eyes', tail's (x) and arms' rotation where
+// owns the body's rotation and scale, and the head's and eyes' (both forms), the tail's (x) and arms' rotation where
 // they exist, written absolutely from the rest pose every frame; actions.js adds its attack nod
 // afterwards and takes it off next frame. One point cloud of fur tufts on the body: one extra
 // draw per were.
@@ -40,6 +42,9 @@ export const JERK = {pitch: .07, roll: .13, yaw: .08, headPitch: .22, headYaw: .
 export const TREMOR = .025, SHIFT = .07, EYE_FLARE = .7, TUCK = .4;
 // Human form: the clutch (arms forward and across), shoulder bulge, arch and fling.
 export const CLUTCH_X = -1.15, CLUTCH_Z = .5, BULGE = .09, ARCH = .1, FLING = .6;
+// The man's head moves this share of the beast's drop, throw and jerks (not the aim); it has no
+// stalking drop, since were-man.js already hangs it low on the curled neck.
+export const MAN_HEAD = .75;
 // Fur tufts: pool size, life (s), emission (per s at full convulsion), gravity, size.
 export const TUFTS = 16, TUFT_LIFE = .9, TUFT_RATE = 20, GRAVITY = 2.4, TUFT_ALPHA = .85;
 export const REST_RATE = 2.5;
@@ -192,23 +197,16 @@ export function updateWereShudder(a, dt, t, busy, look = null) {
   const fl = st.flinch == null ? 0 : Math.sin(Math.PI * clamp01(st.flinch / FLINCH_LEN)) ** .5 * w;
   const breath = .5 + .5 * Math.sin(T * BREATH_HZ * TAU + ph);
   const S = st.scale, man = st.form === 'man';
+  // the head stalks the hero, low; held off while it convulses or howls
+  const b = dead ? null : bearing(a, look);
+  st.aim = approach(st.aim, b == null ? .3 * Math.sin(T * .21 + ph) : clamp(b, HEAD_YAW), HEAD_RATE, dt);
   if (!man) {
-    // the head stalks the hero, low; held off while it convulses or howls
-    const b = dead ? null : bearing(a, look);
-    st.aim = approach(st.aim, b == null ? .3 * Math.sin(T * .21 + ph) : clamp(b, HEAD_YAW), HEAD_RATE, dt);
     a.body.rotation.x = st.body.x + (BREATH * breath + CROUCH * crouch - REAR * howl) * w + fit * J.pitch;
     a.body.rotation.y = st.body.y + fit * J.yaw;
     a.body.rotation.z = st.body.z + fit * (J.roll + trem);
     // the spine buckles: length, width and height shift out of step as the bones move
     a.body.scale.set(S.x * (1 + fit * SHIFT * Math.sin(T * 9.3 + ph)), S.y * (1 - SQUASH * crouch + fit * SHIFT * .6 * Math.sin(T * 11.1 + 1)),
       S.z * (1 + fit * SHIFT * Math.sin(T * 7.7 + 2)));
-    if (a.head) {
-      const H = st.head, calm = (1 - sp.fit) * (1 - sp.howl);
-      a.head.rotation.x = H.x + (STALK * (1 - howl) + DROP * crouch * (1 - sp.fit) - THROW * howl) * w + fit * J.headPitch + .3 * fl * FLINCH;
-      a.head.rotation.y = H.y + st.aim * calm * w + fit * J.headYaw + st.flinchDir * fl * FLINCH;
-      a.head.rotation.z = H.z + fit * (J.headRoll + 3 * trem) + st.flinchDir * fl * FLINCH * .6;
-      if (st.eyes) st.eyes.scale.copy(st.eyeScale).multiplyScalar(1 + EYE_FLARE * Math.max(fit, howl * .7));
-    }
     if (a.tail) a.tail.rotation.x = st.tail + (-TUCK * crouch * (1 - sp.fit) + .25 * howl) * w + fit * J.pitch * 2;
   } else {
     // the man hunches and clutches at his chest; his shoulders bulge and jerk; then he arches back
@@ -222,6 +220,15 @@ export function updateWereShudder(a, dt, t, busy, look = null) {
       arm.rotation.y = r.y;
       arm.rotation.z = r.z + (-s * CLUTCH_Z * crouch * (1 - howl) + s * FLING * howl) * w + fit * J.roll * s;
     });
+  }
+  if (a.head) {
+    // the man's head (were-man.js) does the same, a little less: he glares up from under his brow,
+    // bows it into the clutch, wrenches it as the beast fights him and flings it back as he arches
+    const H = st.head, calm = (1 - sp.fit) * (1 - sp.howl), k = man ? MAN_HEAD : 1;
+    a.head.rotation.x = H.x + ((man ? 0 : STALK) * (1 - howl) + DROP * k * crouch * (1 - sp.fit) - THROW * k * howl) * w + fit * k * J.headPitch + .3 * fl * FLINCH;
+    a.head.rotation.y = H.y + st.aim * calm * w + fit * k * J.headYaw + st.flinchDir * fl * FLINCH;
+    a.head.rotation.z = H.z + fit * k * (J.headRoll + 3 * trem) + st.flinchDir * fl * FLINCH * .6;
+    if (st.eyes) st.eyes.scale.copy(st.eyeScale).multiplyScalar(1 + EYE_FLARE * Math.max(fit, howl * .7));
   }
   // the tufts: shaken off while it convulses, falling and fading
   if (fit > .05 && !dead) {

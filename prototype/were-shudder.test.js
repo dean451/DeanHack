@@ -27,7 +27,7 @@ test('the shudder pose stays in 0..1 and ends at zero', () => {
   assert.ok(p.fit > .99 && p.crouch > .99 && q.howl > .99);
 });
 
-for (const [name, s] of [['werewolf', 'd'], ['wererat', 'r'], ['werejackal', '@']]) {
+for (const [name, s] of [['werewolf', 'd'], ['wererat', 'r'], ['werejackal', '@'], ['werewolf', '@'], ['wererat', '@']]) {
   test(`a ${name} (${s}) stalks, shudders after a blow, sheds fur and rests after death`, () => {
     const a = mon(name, s);
     const hero = new THREE.Vector3(2, 0, 2);
@@ -60,11 +60,12 @@ for (const [name, s] of [['werewolf', 'd'], ['wererat', 'r'], ['werejackal', '@'
     }
     assert.ok(shudders >= 2 && shudders <= 6, `${shudders}`);
     assert.ok(fur > .5 && roll > .05, `${fur} ${roll}`);
-    // the howl, the stalking head and the eye flare are the beast's; the man (were-man.js) has a
-    // head and eyes the shudder leaves be
+    // both forms throw the head back, follow the hero and flare the eyes; the man (were-man.js)
+    // a little less
     const beast = W.wereForm(a) === 'beast';
-    if (a.head && beast) assert.ok(throwBack < -.4 && aim > .4, `${throwBack} ${aim}`);
-    if (st.eyes && beast) assert.ok(eyes > 1.4);
+    if (!beast) assert.ok(a.head && st.eyes, 'the man has a head and eyes');
+    if (a.head) assert.ok(throwBack < (beast ? -.4 : -.3) && aim > .4, `${throwBack} ${aim}`);
+    if (st.eyes) assert.ok(eyes > 1.4, `${eyes}`);
     if (st.arms) assert.ok(clutch < -.9);
     // death: back to the exact rest pose and the last tufts gone
     a.actions = {dead: true};
@@ -72,6 +73,7 @@ for (const [name, s] of [['werewolf', 'd'], ['wererat', 'r'], ['werejackal', '@'
     assert.equal(st.life, 0);
     pose(a).forEach((v, k) => assert.ok(Math.abs(v - rest[k]) < 1e-9, `${k}: ${v} vs ${rest[k]}`));
     assert.ok(alphas(st.cloud).every(v => v === 0));
+    if (st.eyes) assert.ok(Math.abs(st.eyes.scale.x / st.eyeScale.x - 1) < 1e-9);
     assert.equal(st.sh, null);
   });
 }
