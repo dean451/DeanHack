@@ -1,6 +1,6 @@
 // The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js), One-eyed Sam
-// (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js) and the mugger
-// (mugger.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
+// (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js), the mugger
+// (mugger.js) and the convict (convict.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
 // eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -20,7 +20,13 @@
 //  - Mugger: a low, mean glare from the sack's eyeholes. Alone, a dull red smoulder that now and then
 //    narrows to a hard squint. With the hero near they narrow and burn hotter, and every few seconds
 //    flick down and aside to the hero's pack and belt, hold a beat with a covetous glint, and come back.
-//  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner) or
+//  - Convict: pale, feral eyes deep in the sockets that never rest. Alone they dart about in quick
+//    nervous flicks, and now and then start wide, white and bright, at some sound behind. With the
+//    hero near they stay wide like a cornered animal's, the flicks come faster and wider, and every
+//    few seconds they cut hard aside (and a hair up) toward a way out, hold, and come back. When the
+//    convict jerks its head round over a shoulder (convict-hunted.js) the eyes go to the corners
+//    with it, looking further back still.
+//  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict) or
 //    narrow to slits (Croesus, Sam, the marketeer, the mugger), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
@@ -50,10 +56,19 @@ export const LOOK = {
   mugger: {near: 1.3, nearY: .65, breath: .05, breathHz: .25, glareMin: 4, glareSpan: 5, glareLen: 1.3, glareY: .5, glareGlow: 1.3,
     atkGlow: 3, atkX: 1.15, atkY: .4, dart: .0015, dartNear: .5, dartGap: [1.4, 1.8], glintMin: 2.5, glintSpan: 3, glintNear: 1, glintFar: 0,
     glintLen: .9, glintGlow: 1.5, glintDrop: .0045, glintSide: .0025},
+  // hunted: the "glare" is a start (glareY > 1, wide and bright); wide with the hero near (nearY > 1)
+  // with faster, wider flicks (dartNear > 1); each glint is a hard look aside toward a way out (a
+  // negative glintDrop lifts it); follow moves the eyes with convict-hunted.js's head turn; xMax caps
+  // the total sideways shift (the socket is about .013 wider than the eye each side)
+  convict: {near: 1.25, nearY: 1.2, breath: .07, breathHz: .45, glareMin: 3, glareSpan: 4, glareLen: .7, glareY: 1.3, glareGlow: 1.45,
+    atkGlow: 2.8, atkX: 1.1, atkY: 1.4, dart: .0035, dartNear: 1.3, dartGap: [.28, .16], glintMin: 3, glintSpan: 4, glintNear: 1.8,
+    glintLen: .6, glintGlow: 1.35, glintDrop: -.001, glintSide: .004, follow: .004, xMax: .0065},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
 const SNAP = 1e-3;
+// convict-hunted.js's full look over the shoulder (rad), for `follow`
+const HUNT_YAW = 1.05;
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
@@ -120,8 +135,9 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
     if (st.glare === null) { st.glareWait -= dt; if (st.glareWait <= 0 && !busy) { st.glare = 0; st.glareWait = L.glareMin + L.glareSpan * rand(st); } }
     if (st.glare !== null) { st.glare += dt / L.glareLen; glare = holdCurve(st.glare); if (st.glare >= 1) st.glare = null; }
   }
-  // Croesus, the marketeer and the mugger: a darting look, and a glint (much sooner with the hero
-  // near; the mugger's is a glance down at their pack, so only then).
+  // Croesus, the marketeer, the mugger and the convict: a darting look, and a glint (much sooner with
+  // the hero near; the mugger's is a glance down at their pack, so only then, and the convict's a
+  // look aside for a way out).
   let glint = 0;
   st.glance = 0;
   if (L.glintLen && !dead) {
@@ -176,7 +192,14 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
   const sz = 1;
   a.eyes.scale.set(sx, sy, sz);
   const gl = st.glance * st.life;
-  a.eyes.position.set(st.pos.x + st.c.x * (1 - sx) + st.dart + st.side * gl,
+  // the head turn of convict-hunted.js (last frame's; it runs after this), the eyes leading it
+  let dx = st.dart + st.side * gl;
+  if (L.follow) {
+    const yaw = a.convictHunted?.applied?.yaw;
+    if (Number.isFinite(yaw)) dx += L.follow * Math.max(-1, Math.min(1, yaw / HUNT_YAW)) * st.life;
+  }
+  if (L.xMax) dx = Math.max(-L.xMax, Math.min(L.xMax, dx));
+  a.eyes.position.set(st.pos.x + st.c.x * (1 - sx) + dx,
     st.pos.y + st.c.y * (1 - sy) - (L.glintDrop ?? 0) * gl, st.pos.z + st.c.z * (1 - sz));
   return st;
 }
