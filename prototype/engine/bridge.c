@@ -158,7 +158,8 @@ static void fx_glyph(int g) {
            says no more than the glyph does. */
         if(objects[o].oc_class==WEAPON_CLASS){
             int sk=objects[o].oc_skill;
-            const char *shape=sk==-P_BOW?"arrow":sk==-P_CROSSBOW?"bolt":sk==-P_DART?"dart":sk==-P_SHURIKEN?"shuriken":
+            /* The aklys has its own look ("thonged club") whether known or not. */
+            const char *shape=o==AKLYS?"aklys":sk==-P_BOW?"arrow":sk==-P_CROSSBOW?"bolt":sk==-P_DART?"dart":sk==-P_SHURIKEN?"shuriken":
                 sk==-P_SLING?"stone":sk==P_DAGGER||sk==P_KNIFE?"dagger":sk==P_SPEAR||sk==P_TRIDENT||sk==P_LANCE?"spear":"weapon";
             fx_printf(",\"shape\":\"%s\"",shape);
         }

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline} from './fx.js';
-import {flightShape, flightMetal, flightLook, flightsFromFx, flightFrame, createFlights, STYLES, LAUNCH_Y, LAND_Y} from './flights.js';
+import {flightShape, flightMetal, flightLook, flightsFromFx, flightFrame, createFlights, STYLES, LAUNCH_Y, LAND_Y, thongTrail, THONG_LEN, THONG_SEGS} from './flights.js';
 
 // A flash-mode throw from the hero at (2, 2) towards +x, one cell per tick.
 const throwTo = (endX, effect, dz = 0) => {
@@ -309,5 +309,56 @@ test('a shot arrow rolls slowly on its fletching and fishtails off the string; a
   const inner = scene.children[0].children[0];
   assert.ok(Math.abs(inner.rotation.z - STYLES.arrow.roll * .1) < 1e-9);
   assert.equal(inner.rotation.x, 0);
+  fl.dispose();
+});
+
+test('a thrown aklys tumbles with its thong trailing, sagging and whipping behind it', () => {
+  const AKLYS = {kind: 'object', class: 2, material: 8, shape: 'aklys', appearance: 'thonged club'};
+  assert.equal(flightShape(AKLYS), 'aklys');
+  const [f] = flightsFromFx(throwTo(7, AKLYS));
+  assert.equal(thongTrail(f, -1), null);
+  assert.equal(thongTrail(f, f.end), null);
+  let maxWhip = 0;
+  for (let t = 0; t < f.end; t += 5) {
+    const fr = flightFrame(f, t), pts = thongTrail(f, t);
+    assert.equal(pts.length, THONG_SEGS + 1);
+    assert.deepEqual(pts[0], {x: fr.x, y: fr.y, z: fr.z}, 'tied to the club');
+    let len = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const p = pts[i], q = pts[i - 1];
+      for (const v of [p.x, p.y, p.z]) assert.ok(Number.isFinite(v));
+      assert.ok(p.y >= .02 && p.y < 1.5);
+      assert.ok(p.x <= fr.x + .1, 'trails behind the club');
+      assert.ok(p.x >= 2 - .2, 'never behind the thrower');
+      maxWhip = Math.max(maxWhip, Math.abs(p.z - 2));
+      len += Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z);
+    }
+    assert.ok(len < THONG_LEN * 1.6, 'never stretches far past its length');
+    if (t > 120) assert.ok(len > THONG_LEN * .8, 'fully paid out in mid-flight');
+  }
+  assert.ok(maxWhip > .02 && maxWhip < .1, 'whips a little side to side');
+
+  const scene = new THREE.Group();
+  const fl = createFlights(THREE, scene);
+  fl.play(throwTo(7, AKLYS));
+  assert.equal(scene.children.length, 1);
+  for (let i = 0; i < 14; i++) {
+    fl.update(1 / 60, {x: 2, z: 2});
+    const o = scene.children[0];
+    if (!o.visible) continue;
+    o.updateMatrixWorld(true);
+    const thong = o.children.find(c => !c.matrixAutoUpdate);
+    assert.ok(thong, 'has a thong');
+    const box = new THREE.Box3().setFromObject(o, true);
+    for (const c of [...box.min.toArray(), ...box.max.toArray()]) assert.ok(Number.isFinite(c));
+    assert.ok(box.min.y >= -.01 && box.max.y < 2);
+    // The links join end to end, starting at the club's iron eye.
+    const ends = thong.children.filter(m => m.visible).map(m => [
+      new THREE.Vector3(0, 0, 0).applyMatrix4(m.matrixWorld), new THREE.Vector3(0, 1, 0).applyMatrix4(m.matrixWorld)]);
+    for (let k = 1; k < ends.length; k++) assert.ok(ends[k][0].distanceTo(ends[k - 1][1]) < 1e-6);
+    assert.ok(ends[0][0].distanceTo(o.position) < .35, 'tied near the club');
+  }
+  fl.update(1, {x: 2, z: 2});
+  assert.equal(scene.children.length, 0);
   fl.dispose();
 });
