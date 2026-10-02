@@ -249,6 +249,8 @@ static void held(struct obj *o) {
     if (!o) {printf("null");return;}
     printf("{\"name\":");quoted(xname(o));
     printf(",\"otyp\":%d,\"class\":%d",o->otyp,o->oclass);
+    /* A wand's true type: the client shows the big wands' auras from it (wand-auras.js). */
+    if (o->oclass==WAND_CLASS) {printf(",\"type\":");quoted(OBJ_NAME(objects[o->otyp]));}
     known_magic(o);
     if (o->oartifact) {
         const char *d=OBJ_DESCR(objects[o->otyp]);

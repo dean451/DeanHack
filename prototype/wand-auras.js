@@ -3,9 +3,14 @@
 // sheds embers, cold frost motes, lightning crackles, sleep drifts violet motes, digging
 // puffs dust, and so on.
 //
-// Identity rule: the kind comes only from the bridge's `label` (the hero's view of the
-// name: "oak wand" until identified). The true `name` is never read. "wand called fire" is
-// the player's guess, not a type, so it gets nothing; so does "oak wand named wand of death".
+// Identity: most wands glow only once the bridge's `label` (the hero's view of the name: "oak
+// wand" until identified) says "wand of X". "wand called fire" is the player's guess, not a
+// type, so it gets nothing; so does "oak wand named wand of death".
+// The big wands are the exception (TELLS: death, fire, cold, lightning, striking, cancellation,
+// digging). They show their aura from the true type (the floor object's `name`, the held
+// weapon's `type`) even unidentified. The user chose that on 2026-10-01: a player can zap or
+// engrave to identify a wand anyway, so learning the glows is one more way in, in the spirit
+// of the game.
 //
 // Each aura is one THREE.Points (death and lightning add a second layer) whose particles are
 // a pure function of time, so a frame can land at any moment without state to catch up.
@@ -23,7 +28,9 @@ export const WAND_AURAS = {
   cold: {color: 0xbfe6ff, blend: 'add', motion: 'fall', count: 14, size: .06, period: 2.6, alpha: .85},
   lightning: {color: 0xcfe2ff, blend: 'add', motion: 'sparkle', count: 8, size: .05, period: .9, alpha: .9, crackle: true},
   sleep: {color: 0xa77bff, blend: 'add', motion: 'drift', count: 12, size: .08, period: 4.2, alpha: .7},
-  digging: {color: 0x8a6a45, blend: 'normal', motion: 'dust', count: 12, size: .1, period: 1.9, alpha: .55},
+  // Low puffs, with little dust devils spinning up off the rod.
+  digging: {color: 0x8a6a45, blend: 'normal', motion: 'dust', count: 10, size: .1, period: 1.9, alpha: .5,
+    core: {color: 0xa88a62, blend: 'normal', motion: 'devil', count: 18, size: .045, period: 1.3, alpha: .7}},
   'magic missile': {color: 0x8fb4ff, blend: 'add', motion: 'orbit', count: 10, size: .06, period: 1.4, alpha: .9},
   striking: {color: 0xe6dcc0, blend: 'add', motion: 'orbit', count: 6, size: .05, period: 1.1, alpha: .6},
   light: {color: 0xfff1c4, blend: 'add', motion: 'sparkle', count: 12, size: .07, period: 2.2, alpha: .8},
@@ -64,12 +71,20 @@ export const MAGIC_AURAS = {
 };
 const AURAS = {...WAND_AURAS, ...MAGIC_AURAS};
 
-// The identified kind from the hero's name for the item, or null. Only "wand(s) of X".
+// The big wands, whose aura shows from their true type before they are identified.
+export const TELLS = new Set(['death', 'fire', 'cold', 'lightning', 'striking', 'cancellation', 'digging']);
+
+// The kind from the hero's name for the item ("wand(s) of X"), or for a big wand its true type
+// (`name`: "fire" or "wand of fire"), or null.
 export function wandAuraKind(object) {
-  if (!object || object.class !== WAND_CLASS || typeof object.label !== 'string') return null;
-  const seen = object.label.toLowerCase().trim().replace(/ named .*$/, '');
-  const m = seen.match(/^(?:\d+ )?wands? of ([a-z ]+)$/);
-  return m && WAND_AURAS[m[1]] ? m[1] : null;
+  if (!object || object.class !== WAND_CLASS) return null;
+  if (typeof object.label === 'string') {
+    const seen = object.label.toLowerCase().trim().replace(/ named .*$/, '');
+    const m = seen.match(/^(?:\d+ )?wands? of ([a-z ]+)$/);
+    if (m && WAND_AURAS[m[1]]) return m[1];
+  }
+  const type = typeof object.name === 'string' ? object.name.toLowerCase().trim().replace(/^(?:\d+ )?wands? of /, '') : '';
+  return TELLS.has(type) ? type : null;
 }
 
 // The identified magic item kind (a MAGIC_AURAS key), or null. "lamp called magic" is a guess.
@@ -127,6 +142,11 @@ export function particleAt(motion, seed, p) {
       const out = .04 + p * .16, ang = c * TAU;
       return {x: along + Math.cos(ang) * out, y: .02 + Math.sin(Math.PI * p) * (.08 + b * .08), z: Math.sin(ang) * out,
         alpha: fade * (1 - p * .3), size: .5 + p * .5};
+    }
+    case 'devil': { // dust devils: two little whirls at points along the rod, spinning up and widening
+      const cx = (a < .5 ? -.14 : .14) + (d - .5) * .06, ang = b * TAU + p * TAU * 2.5, r = .015 + p * .06;
+      return {x: cx + Math.cos(ang) * r, y: .03 + p * .26, z: Math.sin(ang) * r,
+        alpha: Math.sin(Math.PI * p) * (1 - p * .4), size: .6 + .4 * p};
     }
     case 'orbit': { // sparks circle the rod lengthwise
       const ang = d * TAU + p * TAU;
@@ -267,11 +287,13 @@ export function syncWandAura(item, object, seedText = '') {
   return item.userData.wandAura;
 }
 
-// Held wands (item 9, part 2). The bridge sends a wielded weapon as {name: xname(uwep), class}.
-// xname is the hero's view ("oak wand" until identified), so it stands in for `label`.
+// Held wands (item 9, part 2). The bridge sends a wielded weapon as {name: xname(uwep), class},
+// and a wand's true `type` too. xname is the hero's view ("oak wand" until identified), so it
+// stands in for `label`; the type lets a big wand show its tell.
 export function heldWandObject(weapon) {
   // Only wands: a wielded magic lamp's hum is laid out for a lamp on the floor, not a rod.
-  return weapon?.class === WAND_CLASS && typeof weapon.name === 'string' ? {class: weapon.class, label: weapon.name} : null;
+  if (weapon?.class !== WAND_CLASS || typeof weapon.name !== 'string') return null;
+  return typeof weapon.type === 'string' ? {class: weapon.class, label: weapon.name, name: weapon.type} : {class: weapon.class, label: weapon.name};
 }
 
 // Where on the held weapon the aura sits (weapon space: the rod runs along +y from the grip),

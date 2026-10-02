@@ -3,18 +3,25 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {wandAuraKind, magicAuraKind, particleAt, crackleAt, createWandAura, syncWandAura, WAND_AURAS, MAGIC_AURAS, WAND_CLASS, TOOL_CLASS} from './wand-auras.js';
 
-const wand = (label, extra = {}) => ({class: WAND_CLASS, name: 'wand of death', appearance: 'oak', label, ...extra});
+const wand = (label, extra = {}) => ({class: WAND_CLASS, name: 'sleep', appearance: 'oak', label, ...extra});
 
-test('only the hero-known name picks an aura', () => {
+test('the hero-known name picks an aura; a big wand shows its true type unidentified', () => {
   assert.equal(wandAuraKind(wand('wand of death')), 'death');
+  assert.equal(wandAuraKind(wand('wand of sleep')), 'sleep');
+  // The big wands: their true type shows through, whatever the hero calls them.
+  for (const type of ['death', 'fire', 'cold', 'lightning', 'striking', 'cancellation', 'digging']) {
+    assert.equal(wandAuraKind(wand('oak wand', {name: type})), type);
+    assert.equal(wandAuraKind(wand('wand called sleep', {name: type})), type);
+  }
+  assert.equal(wandAuraKind({class: WAND_CLASS, name: 'wand of death'}), 'death');
   assert.equal(wandAuraKind(wand('wands of fire')), 'fire');
   assert.equal(wandAuraKind(wand('2 wands of cold')), 'cold');
   assert.equal(wandAuraKind(wand('wand of magic missile named zap')), 'magic missile');
-  // Unidentified: the true name is right there on the object, and must not leak.
+  // Unidentified small wands: the true name is right there on the object, and must not leak.
   assert.equal(wandAuraKind(wand('oak wand')), null);
   assert.equal(wandAuraKind(wand('wand')), null);
   assert.equal(wandAuraKind(wand(undefined)), null);
-  assert.equal(wandAuraKind({class: WAND_CLASS, name: 'wand of death'}), null);
+  assert.equal(wandAuraKind(wand('oak wand', {name: 'teleportation'})), null);
   // Player guesses and names are not identification.
   assert.equal(wandAuraKind(wand('wand called death')), null);
   assert.equal(wandAuraKind(wand('wand called wand of death')), null);
@@ -22,6 +29,7 @@ test('only the hero-known name picks an aura', () => {
   // Nothing shows nothing; other classes never glow.
   assert.equal(wandAuraKind(wand('wand of nothing')), null);
   assert.equal(wandAuraKind({class: 6, label: 'wand of death'}), null);
+  assert.equal(wandAuraKind({class: 6, name: 'death'}), null);
 });
 
 test('every style keeps particles finite and near the wand', () => {
@@ -93,7 +101,7 @@ test('the aura follows the name as it changes', () => {
   assert.equal(item.children.length, 0);
 });
 
-test('a wielded wand glows in the hand only once its name says so', async () => {
+test('a wielded wand glows in the hand once its name says so, or at once for a big wand', async () => {
   const {syncHeldWandAura, updateHeldWandAura, heldWandObject} = await import('./wand-auras.js');
   // A stand-in hero: root, a posed arm and a socket, like main.js's player.
   const g = new THREE.Group(), arm = new THREE.Group(), weaponSocket = new THREE.Group();
@@ -105,6 +113,10 @@ test('a wielded wand glows in the hand only once its name says so', async () => 
   assert.equal(syncHeldWandAura(hero, null), null);
   assert.equal(syncHeldWandAura(hero, held('oak wand')), null);
   assert.equal(syncHeldWandAura(hero, held('wand called death')), null);
+  assert.equal(heldWandObject({name: 'oak wand', otyp: 400, class: WAND_CLASS, type: 'sleep'}).name, 'sleep');
+  assert.equal(syncHeldWandAura(hero, {name: 'oak wand', otyp: 400, class: WAND_CLASS, type: 'sleep'}), null);
+  assert.equal(syncHeldWandAura(hero, {name: 'oak wand', otyp: 401, class: WAND_CLASS, type: 'digging'}).userData.kind, 'digging');
+  assert.equal(syncHeldWandAura(hero, null), null);
   assert.equal(syncHeldWandAura(hero, {name: 'long sword', otyp: 28, class: 2}), null);
   assert.equal(syncHeldWandAura(hero, {name: 'magic lamp', otyp: 200, class: TOOL_CLASS}), null);
   assert.equal(g.userData.heldWand.visible, false);
