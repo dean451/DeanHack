@@ -14,6 +14,7 @@ import {createGrave} from './grave.js';
 import {createTrap,trapKind} from './trap.js';
 import {createTerrainFeature,featureKind,AXIS_FEATURES,bridgeYaw} from './terrain-feature.js';
 import {createTree} from './tree.js';
+import {createDeadTree,deadTreeShown} from './dead-tree.js';
 import {createBoulder} from './boulder.js';
 import {createStairs} from './stairs.js';
 import {createLadder,ladderShown} from './ladder.js';
@@ -268,6 +269,15 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
   const caption=label(`${cell.terrain==='up'?'↑':'↓'} ${ladder?'ladder':'stone stairs'}`);
   tile.add(model,caption);tile.userData.stairs=[model,caption];tile.userData.stairsKey=key;tile.userData.ladder=ladder;
  }
+ // Dead trees share the tree terrain; the glyph's colour tells them apart while nothing
+ // covers it (dead-tree.js), and a tree withered by a death ray swaps in place.
+ function dressTree(tile,cell){
+  const dead=deadTreeShown(cell)??tile.userData.deadTree??false;
+  if(tile.userData.tree&&dead===tile.userData.deadTree)return;
+  if(tile.userData.tree){tile.userData.tree.userData.dispose?.();tile.remove(tile.userData.tree);}
+  const model=(dead?createDeadTree:createTree)(cell.x*97+cell.z);
+  tile.add(model);tile.userData.tree=model;tile.userData.deadTree=dead;
+ }
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
  const hero=playerFactory();hero.setWeapon?.(null);hero.actions=createActionQueue();group.add(hero.g);
  const swingFx=createSwingFx(THREE,group);const hitFx=createHitFx(THREE,group);const rays=createRays(THREE,group);const zapFlash=createZapFlash(THREE,group);const rayMarks=createRayMarks(THREE,group);const rayFlashLight=new THREE.PointLight(0xdce6ff,0,18,1.2);group.add(rayFlashLight);const explosions=createExplosions(THREE,group);const blastLight=new THREE.PointLight(0xffa050,0,9,1.4);group.add(blastLight);const flood=createFlood(THREE,group);let flooding=false;const splash=createSplash(THREE,group);const flights=createFlights(THREE,group);const grab=createGrab(THREE,group,{onSplash:s=>splash.add(s)});const brainSuck=createBrainSuck(THREE,group);const hold=createHold(THREE,group);const poly=createPolymorph(THREE,group);const barsMelt=createBarsMelt(THREE,group);const doorBreak=createDoorBreak(THREE,group);const breath=createBreath(THREE,group);const engulf=createEngulf(THREE,group);let swingTarget=null;
@@ -289,7 +299,6 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
          if(cell.terrain==='throne')tile.add(createThrone());
          if(cell.terrain==='sink')tile.add(createSink());
          if(cell.terrain==='grave')tile.add(createGrave(cell.x*31+cell.z*17));
-         if(cell.terrain==='tree')tile.add(createTree(cell.x*97+cell.z));
          if(cell.terrain==='bars'){const grate=createBars(cell.x*53+cell.z*29);tile.add(grate);tile.userData.grate=grate;}
          if(cell.terrain==='wall'){
           box(wallGeo,wall,tile,0,.28,0);
@@ -298,7 +307,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
          if(['door','broken-door'].includes(tileKind(cell))){const doorGroup=(tileKind(cell)==='door'?createDoor:createBrokenDoor)(cell.x*61+cell.z*37);tile.add(doorGroup);tile.userData.door=doorGroup;}
          if(['water','lava'].includes(cell.terrain)){slab.visible=false;const liquid=createLiquid(cell.terrain,cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
          group.add(tile);tiles.set(id,tile);
-       }if(cell.terrain==='feature')dressFeature(tile,cell);if(cell.terrain==='up'||cell.terrain==='down')dressStairs(tile,cell);syncWard(tile,cell);tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
+       }if(cell.terrain==='feature')dressFeature(tile,cell);if(cell.terrain==='up'||cell.terrain==='down')dressStairs(tile,cell);if(cell.terrain==='tree')dressTree(tile,cell);syncWard(tile,cell);tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
        if(tile.userData.axisFeature){
         // Face the drawbridge across its moat, the hinge toward the gatehouse (terrain-feature.js).
         const yaw=bridgeYaw(tile.userData.featureKey,(dx,dz)=>frame.cells.find(c=>c.x===cell.x+dx&&c.z===cell.z+dz)?.terrain);
