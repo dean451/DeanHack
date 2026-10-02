@@ -200,7 +200,7 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateNinjaTails(actor, dt, t, busy);
   // And One-eyed Sam: she hovers off the floor, legs dangling, glides between tiles, looms at the hero and swoops into her cuts (sam-hover.js).
   updateSamHover(actor, dt, t, busy, look);
-  // And the Executioner's, Croesus', One-eyed Sam's, the miner's, the black marketeer's, the mugger's, the convict's, Thoth Amon's and Charon's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
+  // And the Executioner's, Croesus', One-eyed Sam's, the miner's, the black marketeer's, the mugger's, the convict's, Thoth Amon's, Charon's and the prisoner's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
   updateEyeFlare(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;
