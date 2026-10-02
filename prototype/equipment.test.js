@@ -538,6 +538,44 @@ test('a tsurugi is a long straight double-edged blade over a spurred tsuba, cord
  assert.equal(createHeldWeapon({name:'samurai sword',class:2}).userData.tsurugi,undefined);
 });
 
+test('a two-handed sword is a long wavy flamberge over barbed hooks, a wide quillon guard, a long leather grip and a pear pommel, two meshes',()=>{
+ for(const name of ['two-handed sword','+3 two-handed sword','rusty +0 two-handed sword']){
+  const w=createHeldWeapon({name,class:2});
+  assert.deepEqual(w.userData.twoHandedSword,{kind:'two-handed sword'},name);
+  assert.deepEqual(w.children.map(c=>c.userData.part).sort(),['blade','grip'],name);
+  assert(w.children.find(c=>c.userData.part==='blade').material.metalness>=.75,'weapon-magic can sheathe the blade');
+  for(const mesh of w.children){const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)+n.getX(i)+n.getY(i)+n.getZ(i)),'finite vertices and normals');}
+  w.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(w);
+  assert(box.max.y>1.11&&box.max.y<1.13&&box.min.y>-.4&&box.min.y<-.37,`${name} y ${box.min.y}..${box.max.y}`);
+  // The quillons run along the edges (x); the flats face ±z, so it lies flat on the floor.
+  assert(box.max.x>.17&&box.max.x<.2&&Math.abs(box.max.x+box.min.x)<1e-6,`${name} x ${box.min.x}..${box.max.x}`);
+  assert(.052+.8*box.min.z>0,`${name} above the floor`);
+  // The lower blade snakes side to side; the point is back on the axis.
+  const p=w.children.find(c=>c.userData.part==='blade').geometry.attributes.position;let tip=0,left=0,right=0;
+  for(let i=0;i<p.count;i++){if(p.getY(i)>p.getY(tip))tip=i;
+   if(p.getY(i)>.25&&p.getY(i)<.7&&Math.abs(p.getZ(i))>.003&&Math.abs(p.getX(i))<.012){left=Math.min(left,p.getX(i));right=Math.max(right,p.getX(i));}}
+  assert(Math.abs(p.getX(tip))<1e-6&&Math.abs(p.getZ(tip))<1e-6,'the point is on the axis');
+  assert(left<-.004&&right>.004,`the ridge waves ${left}..${right}`);
+  // The leather grip sits at the hand, under the guard.
+  const grip=new THREE.Box3().setFromObject(w.children.find(c=>c.userData.part==='grip'));
+  assert(grip.min.y<-.29&&grip.min.y>-.32,'grip at the hand');
+  // The blade's flats face outward.
+  {const a=new THREE.Vector3(),b=new THREE.Vector3(),d=new THREE.Vector3(),nrm=new THREE.Vector3();let out=0,inn=0;
+   for(let i=0;i<p.count;i+=3){a.fromBufferAttribute(p,i);b.fromBufferAttribute(p,i+1);d.fromBufferAttribute(p,i+2);
+    const cz=(a.z+b.z+d.z)/3,cy=(a.y+b.y+d.y)/3,cx=(a.x+b.x+d.x)/3;if(cy<.22||cy>1.05||Math.abs(cx)>.035||Math.abs(cz)<.0005)continue;
+    nrm.subVectors(b,a).cross(d.clone().sub(a)).normalize();if(Math.abs(nrm.z)<.5)continue;
+    if(Math.sign(nrm.z)===Math.sign(cz))out++;else inn++;}
+   assert(out>500&&inn===0,`${name} flats wound outward: ${out} out, ${inn} in`);}
+  w.userData.dispose();
+ }
+ // The other long blades keep their own models.
+ assert.equal(createHeldWeapon({name:'long sword',class:2}).userData.twoHandedSword,undefined);
+ assert.equal(createHeldWeapon({name:'broadsword',class:2}).userData.twoHandedSword,undefined);
+ assert.equal(createHeldWeapon({name:'tsurugi',class:2}).userData.twoHandedSword,undefined);
+});
+
 test('a scalpel is a small bellied blade on a cracked bone handle, two meshes',()=>{
  for(const name of ['scalpel','+1 scalpel','rusty scalpel']){
   const w=createHeldWeapon({name,class:2});
