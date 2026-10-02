@@ -4,6 +4,7 @@ import {createWand,wandAppearance} from './wand.js';
 import {buildBullwhip} from './bullwhip.js';
 import {buildBoomerang} from './boomerang.js';
 import {buildShuriken} from './shuriken.js';
+import {buildDart} from './dart.js';
 
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
@@ -186,6 +187,8 @@ export function createHeldWeapon(item){
   buildBoomerang(g);
  }else if(/\b(shuriken|throwing star)\b/.test(name)){
   buildShuriken(g);
+ }else if(/\bdarts?\b/.test(name)){
+  buildDart(g);
  }else if(/\bclub\b/.test(name)){
   // A carved wooden striking head flows into the grip, without a metal cube.
   const profile=[new THREE.Vector2(0,-.15),new THREE.Vector2(.038,-.14),new THREE.Vector2(.029,-.09),new THREE.Vector2(.028,.09),new THREE.Vector2(.047,.22),new THREE.Vector2(.078,.4),new THREE.Vector2(.086,.49),new THREE.Vector2(.058,.55),new THREE.Vector2(0,.57)];
