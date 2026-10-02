@@ -1,7 +1,8 @@
 // The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js), One-eyed Sam
 // (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js), the mugger
 // (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js), the prisoner (prisoner.js), the abbot (abbot.js), the neanderthal
-// (caveman.js) and Master Kaen (master-kaen.js, the lenses of the Eyes of the Overworld). Each model hangs a small emissive `eyes` mesh on the head; this makes those
+// (caveman.js), Master Kaen (master-kaen.js, the lenses of the Eyes of the Overworld) and the Dark One
+// (dark-one.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
 // eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -55,9 +56,14 @@
 //    of light that draws the lenses a little narrower. With the hero near the breath quickens into a
 //    fighter's, the lenses narrow a touch and burn brighter, and every few seconds the Overworld sight
 //    flashes through them: a sharp, cold white-out, as if the lenses saw straight through the hero.
+//  - The Dark One: two violet pinpricks in a corpse-pale face, never darting. Alone a cold, slow
+//    pulse of dread with a faint tremble, and now and then the light sinks almost to nothing, as if
+//    the face drowned in its own shadow, then creeps back. With the hero near the eyes never go out:
+//    they draw down to cold slits, brighter and steadier, and every few seconds an unholy surge swells
+//    through them, slow and bright, narrowing them further, before it ebbs.
 //  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict, Charon, the prisoner, the abbot,
 //    the neanderthal) or
-//    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon; Master Kaen's round lenses a little), peak just before the blow lands, and die back down after.
+//    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon, the Dark One; Master Kaen's round lenses a little), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
 //    greys the glow and this holds.
@@ -126,6 +132,12 @@ export const LOOK = {
   // cold white-out, rare alone. The lenses are round under iron rims, so they narrow only a little.
   'master kaen': {near: 1.4, nearY: .88, breath: .2, breathHz: .08, breathHzNear: .45, breathNear: .45, glareMin: 4, glareSpan: 5, glareLen: 2.6, glareY: .85, glareGlow: 1.7, glareNear: .3,
     atkGlow: 3.4, atkX: 1.08, atkY: .78, dart: 0, glintMin: 2.5, glintSpan: 3, glintNear: 1.6, glintFar: .2, glintLen: .35, glintGlow: 2.6, glintY: 1.06},
+  // an apostate's dread: the "glare" is the light sinking almost out (glareGlow near 0, the lids a
+  // little lowered), only alone (glareNear 0); cold slits with the hero near (nearY < 1), the
+  // faint tremble stilled (emberNear < 1); each glint a slow unholy surge that narrows them further
+  // (glintY < 1), rare alone (glintFar < 1). No dart: they are pinpricks.
+  'dark one': {near: 1.5, nearY: .6, ember: .05, emberNear: .3, breath: .12, breathHz: .1, glareMin: 4, glareSpan: 4, glareLen: 2.2, glareY: .7, glareGlow: .15, glareNear: 0,
+    atkGlow: 3.4, atkX: 1.15, atkY: .45, dart: 0, glintMin: 2, glintSpan: 2.5, glintNear: 1.7, glintFar: .25, glintLen: 1.1, glintGlow: 2.3, glintY: .7},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;

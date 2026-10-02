@@ -433,3 +433,46 @@ test("Master Kaen's lenses breathe slow and gather ki alone, and with the hero n
   for (let i = 0; i < 4 * 60 && (st.glare !== null || st.glint !== null); i++) frame(a, t += dt, far);
   assert.ok(st.near < 1e-3 && Math.abs(a.eyes.scale.y - 1) < .01 && Math.abs(a.eyes.scale.x - 1) < 1e-9);
 });
+
+test("the Dark One's eyes pulse cold and sink into shadow alone, and with the hero near draw to slits that never go out, swelling with unholy surges", () => {
+  // (made here, last, so the other creatures' ids and so their seeds don't shift)
+  const a = make('dark one'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK['dark one'];
+  assert.ok(E.hasEyes(a));
+  const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
+  let t = 0;
+  const run = (look, secs) => {
+    let sum = 0, n = 0, sinks = 0, sinkGlow = Infinity, sinkLid = Infinity, surges = 0, was = false, wasG = false, lidLo = Infinity, lidHi = 0, surgeHi = 0, surgeLid = Infinity, max = 0;
+    for (let i = 0; i < secs * 60; i++) {
+      const st = frame(a, t += dt, look);
+      assert.equal(st.dart, 0);
+      assert.ok(Math.abs(a.eyes.position.x - (rest.x + st.c.x * (1 - a.eyes.scale.x))) < 1e-12, 'never darts');
+      assert.ok(a.eyes.scale.y > 0 && a.eyes.scale.y < 1.1 && Number.isFinite(glow(a)) && glow(a) >= 0);
+      max = Math.max(max, st.k);
+      if (st.glint !== null && !was) surges++; was = st.glint !== null;
+      if (st.glare !== null && !wasG) sinks++; wasG = st.glare !== null;
+      if (st.glare !== null && st.glint === null) { sinkGlow = Math.min(sinkGlow, st.k); sinkLid = Math.min(sinkLid, a.eyes.scale.y); }
+      if (st.glint !== null && st.glare === null) { surgeHi = Math.max(surgeHi, st.k); surgeLid = Math.min(surgeLid, a.eyes.scale.y); }
+      if (st.glare === null && st.glint === null && st.blink === null) { sum += st.k; n++; lidLo = Math.min(lidLo, a.eyes.scale.y); lidHi = Math.max(lidHi, a.eyes.scale.y); }
+    }
+    return {mean: sum / n, sinks, sinkGlow, sinkLid, surges, surgeHi, surgeLid, lidLo, lidHi, max};
+  };
+  const alone = run(far, 40);
+  run(hero, 5);
+  const near = run(hero, 40);
+  assert.ok(alone.sinks >= 4 && alone.sinkGlow < .3 * alone.mean && alone.sinkLid < L.glareY + .03, `sinks ${alone.sinks} to ${alone.sinkGlow} vs ${alone.mean}, lid ${alone.sinkLid}`);
+  assert.ok(alone.lidHi < 1.01 && alone.lidLo > .99, `open alone ${alone.lidLo}..${alone.lidHi}`);
+  assert.equal(near.sinks, 0, "they never sink with the hero near");
+  assert.ok(near.mean > 1.4 * alone.mean, `brighter ${alone.mean} → ${near.mean}`);
+  assert.ok(Math.abs(near.lidLo - L.nearY) < .02 && Math.abs(near.lidHi - L.nearY) < .02, `slits ${near.lidLo}..${near.lidHi}`);
+  assert.ok(near.surges > 2 * alone.surges && near.surges >= 8, `surges ${alone.surges} → ${near.surges}`);
+  assert.ok(near.surgeHi > 1.8 * near.mean && near.surgeLid < L.nearY - .1, `surge ${near.surgeHi} vs ${near.mean}, lid ${near.surgeLid}`);
+  // an attack narrows them to slits and blazes
+  enqueueAction(a.actions, {kind: 'attack', attack: 'weapon', dir: [0, 1]});
+  let peak = 0, slit = Infinity;
+  for (let i = 0; i < 60; i++) { const st = frame(a, t += dt, hero); peak = Math.max(peak, st.k); slit = Math.min(slit, a.eyes.scale.y); }
+  assert.ok(peak > 2.5 * near.mean && slit < .5, `attack ${peak} vs ${near.mean}, slit ${slit}`);
+  run(far, 8);
+  const st = a.eyeFlare;
+  for (let i = 0; i < 4 * 60 && (st.glare !== null || st.glint !== null); i++) frame(a, t += dt, far);
+  assert.ok(st.near < 1e-3 && Math.abs(a.eyes.scale.y - 1) < .01 && Math.abs(a.eyes.scale.x - 1) < 1e-9);
+});
