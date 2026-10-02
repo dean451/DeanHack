@@ -7,6 +7,7 @@ import {buildShuriken} from './shuriken.js';
 import {buildDart} from './dart.js';
 import {buildAklys} from './aklys.js';
 import {buildArrow,ARROW_NAME} from './arrow.js';
+import {buildWormTooth,WORM_TOOTH_NAME} from './worm-tooth.js';
 
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
@@ -26,6 +27,9 @@ export function createHeldWeapon(item){
  }else if(ARROW_NAME.test(name)){
   // Before the crossbow, which a "crossbow bolt" would otherwise match.
   buildArrow(g,item.name||name);
+ }else if(WORM_TOOTH_NAME.test(name)){
+  // Before the blades, which a "crysknife" would otherwise match.
+  buildWormTooth(g,name);
  }else if(blade){
   const short=/dagger|knife|athame/.test(name),length=short?.34:.75,width=short?.055:.075;
   part(new THREE.CylinderGeometry(.029,.035,.17,8),leather,0,0);

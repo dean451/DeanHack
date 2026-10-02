@@ -402,3 +402,22 @@ test('arrows and crossbow bolts are their own fletched models in two meshes, a s
   w.userData.dispose();
  }
 });
+
+test('a worm tooth is a hooked, saw-edged fang and a crysknife the curved blade ground from one, two meshes each',()=>{
+ for(const [name,kind] of [['worm tooth','worm tooth'],['+2 worm tooth','worm tooth'],['crysknife','crysknife'],['uncursed +0 crysknife','crysknife']]){
+  const w=createHeldWeapon({name,class:2});
+  assert.deepEqual(w.userData.wormTooth,{kind},name);
+  assert.deepEqual(w.children.map(c=>c.userData.part).sort(),['blade','grip'],name);
+  assert(w.children.find(c=>c.userData.part==='blade').material.metalness>=.75,'weapon-magic can sheathe the tooth');
+  for(const mesh of w.children){const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)+n.getX(i)+n.getY(i)+n.getZ(i)),'finite vertices and normals');}
+  w.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(w);
+  assert(box.max.y>.34&&box.max.y<.46&&box.min.y>-.13,`${name} y ${box.min.y}..${box.max.y}`);
+  assert(box.max.x>.05&&box.max.x<.14&&box.min.x>-.06,`${name} hooks toward +x: ${box.min.x}..${box.max.x}`);
+  assert(.052+.8*box.min.z>0,`${name} above the floor`);
+  w.userData.dispose();
+ }
+ // A crysknife is no longer the generic dagger.
+ assert.notEqual(createHeldWeapon({name:'crysknife',class:2}).children.length,createHeldWeapon({name:'knife',class:2}).children.length);
+});
