@@ -25,7 +25,8 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // wearer's. Under it: a long, low skull, a still heavier brow, small amber eyes, a huge nose, a
 // chinless jaw with bared teeth, a wild auburn beard, and a band of red ochre smeared across the
 // eyes with streaks down the cheeks. It carries a thrusting spear: a gnarled haft with a knapped
-// flint point bound on with sinew, dark with old blood. Same 7 draws and the same material.
+// flint point bound on with sinew, dark with old blood. Same 7 draws and the same material, plus
+// one small glowing mesh for the amber eyes (handle `eyes`, on the head): 8 draws.
 
 const SKIN=rgb('#9c7252'),SKIN_DARK=rgb('#5e3e2a'),SKIN_HI=rgb('#b88a66'),ASH=rgb('#2a2622'),SCAR=rgb('#c49a80');
 const HAIR=rgb('#16120e'),HAIR_HI=rgb('#34281e'),BONE=rgb('#d6cab0'),BONE_DARK=rgb('#7e705a');
@@ -34,7 +35,7 @@ const TOOTH=rgb('#c8b88a'),GUM=rgb('#3a1410'),EYE=rgb('#c8c0a0'),PUPIL=rgb('#140
 const WOOD=rgb('#5a3e24'),WOOD_DARK=rgb('#2e1e12'),WOOD_HI=rgb('#7e5a36'),FLINT=rgb('#3a3a40'),FLINT_HI=rgb('#8a8a94');
 const BLOOD=rgb('#3a0c08');
 const FUR=rgb('#6a6258'),FUR_DARK=rgb('#2e2a26'),FUR_HI=rgb('#a29888'),OCHRE=rgb('#8e2c16');
-const AUBURN=rgb('#3e1e10'),AUBURN_HI=rgb('#6a3a20'),AMBER=rgb('#d0962e'),CLAW=rgb('#1e1a16');
+const AUBURN=rgb('#3e1e10'),AUBURN_HI=rgb('#6a3a20'),AMBER_SLIT=rgb('#3a1c06'),CLAW=rgb('#1e1a16');
 
 const ramp=(a,b,lo,hi)=>y=>mix(a,b,(y-lo)/(hi-lo));
 const lathe=(profile,segments=24,phiStart=0,phiLength=Math.PI*2)=>new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),segments,phiStart,phiLength);
@@ -249,9 +250,10 @@ function buildNeanderthalHead(){
  P.add(new THREE.CapsuleGeometry(.031,.1,3,10),at(0,.133,.08,[0,0,Math.PI/2],[1,1,.85]),(x,y,z)=>y>.14?SKIN_HI:ochre(x,y,z,SKIN_DARK));
  for(const s of [-1,1]){
   P.add(new THREE.SphereGeometry(.03,10,8),at(s*.037,.135,.088,[0,0,0],[1.1,.8,.8]),(x,y,z)=>y>.14?SKIN_HI:ochre(x,y,z,SKIN_DARK));
-  // small amber eyes sunk under the brow
-  P.add(new THREE.SphereGeometry(.012,8,6),at(s*.036,.11,.083,[0,0,0],[1.2,.6,.5]),AMBER);
-  P.add(new THREE.SphereGeometry(.005,8,6),at(s*.035,.11,.089),PUPIL);
+  // the dark pits the eyes sit in, sunk under the brow (the eyes themselves are their own mesh)
+  P.add(new THREE.SphereGeometry(.015,8,6),at(s*.036,.111,.078,[0,0,0],[1.25,.7,.5]),PUPIL);
+  // and a beast's slit pupil, laid over the glowing eye
+  P.add(new THREE.CapsuleGeometry(.0018,.0045,2,6),at(s*.036,.11,.0905,[0,0,-s*.2],[1,1,.4]),AMBER_SLIT);
   // cheeks, each with two ochre streaks clawed down it
   P.add(new THREE.SphereGeometry(.028,10,8),at(s*.052,.082,.064,[0,0,0],[1,.75,.8]),(x,y,z)=>Math.abs(Math.sin((x-s*.052)*170))<.35&&z>.07?OCHRE:SKIN);
   P.add(new THREE.SphereGeometry(.022,8,6),at(s*.094,.1,-.012,[0,0,0],[.45,1,.75]),SKIN_DARK);
@@ -286,6 +288,15 @@ function buildNeanderthalHead(){
  return P.merge();
 }
 
+// small amber eyes sunk under the brow, glowing faintly like a beast's caught in firelight: one
+// mesh with its own glow material, so eye-flare.js can make them live. Each is a slanted almond
+// set just proud of its dark pit; the slit pupils over them are part of the head.
+function buildNeanderthalEyes(){
+ const P=pieces();
+ for(const s of [-1,1])P.add(new THREE.SphereGeometry(.012,10,6),at(s*.036,.11,.084,[0,0,-s*.2],[1.25,.6,.5]),[1,1,1]);
+ return P.merge();
+}
+
 // the spear: a gnarled haft with a knapped, leaf-shaped flint point bound on with sinew
 const SPEAR_LEN=1.1,SPEAR_GRIP=.36,SPEAR_TILT=.7;
 function buildSpear(){
@@ -316,11 +327,12 @@ function buildSpear(){
 }
 
 const cache=new Map();
-let material=null;
+let material=null,glow=null;
 function geometry(female){
  if(!material)material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.86,metalness:.02,side:THREE.DoubleSide});
  if(female==='neanderthal'){
-  if(!cache.has('n')){const m=geometry(false);cache.set('n',{body:buildNeanderthalBody(m.body),head:buildNeanderthalHead(),leg:m.leg,arm:m.arm,club:buildSpear()});}
+  if(!glow)glow=new THREE.MeshStandardMaterial({color:'#ffd27a',emissive:'#e08a1c',emissiveIntensity:1.1,roughness:.25,metalness:0});
+  if(!cache.has('n')){const m=geometry(false);cache.set('n',{body:buildNeanderthalBody(m.body),head:buildNeanderthalHead(),eyes:buildNeanderthalEyes(),leg:m.leg,arm:m.arm,club:buildSpear()});}
   return cache.get('n');
  }
  const key=female?'f':'m';
@@ -330,7 +342,7 @@ function geometry(female){
  }
  return cache.get(key);
 }
-function mesh(parent,geo,name){const o=new THREE.Mesh(geo,material);o.castShadow=o.receiveShadow=true;o.userData.part=name;parent.add(o);return o;}
+function mesh(parent,geo,name,m=material){const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=m===material;o.userData.part=name;parent.add(o);return o;}
 
 export const CAVE_KINDS=['caveman','cavewoman','neanderthal'];
 
@@ -340,6 +352,7 @@ export function createCaveman(name='caveman'){
  // the hunch: the head hangs low and forward of the shoulders
  const head=new THREE.Group();head.position.set(0,.93,.045);body.add(head);
  mesh(head,S.head,'head');
+ const eyes=neanderthal?mesh(head,S.eyes,'eyes',glow):null;
  const legs=[],arms=[];
  for(const s of [-1,1]){
   const leg=new THREE.Group();leg.position.set(s*.085,.47,0);body.add(leg);mesh(leg,S.leg,'leg');legs.push(leg);
@@ -348,5 +361,5 @@ export function createCaveman(name='caveman'){
  }
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-.37,.012);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.club,neanderthal?'spear':'club');
- return {g,body,legs,tail:null,wings:[],quirk:'human',kind:neanderthal?'neanderthal':'caveman',female,arms,arm:arms[1],weaponSocket,head,hat:null,beard:null,pick:null};
+ return {g,body,legs,tail:null,wings:[],quirk:'human',kind:neanderthal?'neanderthal':'caveman',female,arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null};
 }
