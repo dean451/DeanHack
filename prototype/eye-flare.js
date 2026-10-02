@@ -1,5 +1,5 @@
 // The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js), One-eyed Sam
-// (one-eyed-sam.js) and the miner (miner.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
+// (one-eyed-sam.js), the miner (miner.js) and the black marketeer (black-marketeer.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
 // eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -12,8 +12,12 @@
 //  - Miner: pale eyes gone half-blind in the tunnels. A dull, slow glow; every few seconds the lids
 //    droop in a heavy blink and the glow sinks with them. With the hero near they open wide in a
 //    hollow stare and pale up, flicking a little in their sockets.
+//  - Black marketeer: sickly eyes in the cowl's shadow that never settle. Alone they flick quickly
+//    side to side, watching for the watch, and now and then narrow in a sidelong, calculating look.
+//    With the hero near they go still and fix on them, half-lidded, with a greedy glint every few
+//    seconds (sizing up their purse).
 //  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner) or
-//    narrow to slits (Croesus, Sam), peak just before the blow lands, and die back down after.
+//    narrow to slits (Croesus, Sam, the marketeer), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
 //    greys the glow and this holds.
@@ -33,6 +37,10 @@ export const LOOK = {
   // the "glare" here is a heavy-lidded droop (a slow blink), and nearY > 1 widens them into a stare
   miner: {near: 1.3, nearY: 1.25, breath: .1, breathHz: .22, glareMin: 2, glareSpan: 3.5, glareLen: .75, glareY: .18, glareGlow: .7,
     atkGlow: 2.6, atkX: 1.25, atkY: 1.45, dart: .002, glintMin: 0, glintSpan: 0},
+  // shifty: quick darts while alone (dartGap [far, near] s between looks), still and fixed with the
+  // hero near (dartNear scales the dart), where the glint comes much sooner
+  'black marketeer': {near: 1.2, nearY: .75, breath: .06, breathHz: .4, glareMin: 3, glareSpan: 4, glareLen: .9, glareY: .5, glareGlow: 1.25,
+    atkGlow: 2.8, atkX: 1.2, atkY: .45, dart: .004, dartNear: .25, dartGap: [.22, 1.3], glintMin: 3, glintSpan: 4, glintNear: 2.4, glintLen: .25, glintGlow: 1.8},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
@@ -103,7 +111,7 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
     if (st.glare === null) { st.glareWait -= dt; if (st.glareWait <= 0 && !busy) { st.glare = 0; st.glareWait = L.glareMin + L.glareSpan * rand(st); } }
     if (st.glare !== null) { st.glare += dt / L.glareLen; glare = holdCurve(st.glare); if (st.glare >= 1) st.glare = null; }
   }
-  // Croesus: a darting look, and a glint (much sooner with the hero near).
+  // Croesus and the marketeer: a darting look, and a glint (much sooner with the hero near).
   let glint = 0;
   if (L.glintLen && !dead) {
     if (st.glint === null) { st.glintWait -= dt * (near ? L.glintNear : 1); if (st.glintWait <= 0) { st.glint = 0; st.glintWait = L.glintMin + L.glintSpan * rand(st); } }
@@ -111,7 +119,11 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
   }
   if (L.dart && !dead) {
     st.dartWait -= dt;
-    if (st.dartWait <= 0) { st.dartTo = (rand(st) * 2 - 1) * L.dart; st.dartWait = (near ? .4 : .9) + 1.6 * rand(st); }
+    if (st.dartWait <= 0) {
+      const gap = L.dartGap ?? [.9, .4];
+      st.dartTo = (rand(st) * 2 - 1) * L.dart * (1 + ((L.dartNear ?? 1) - 1) * st.near);
+      st.dartWait = gap[near ? 1 : 0] + (L.dartGap ? gap[near ? 1 : 0] : 1.6) * rand(st);
+    }
   } else st.dartTo = 0;
   st.dart = approach(st.dart, st.dartTo, 14, dt);
 
