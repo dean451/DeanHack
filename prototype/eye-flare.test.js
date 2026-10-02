@@ -17,14 +17,14 @@ function frame(a, t, look) {
 }
 const glow = a => a.eyes.material.emissiveIntensity;
 
-test('only the Executioner, Croesus, One-eyed Sam, the miner, the black marketeer and the mugger are lit, each with its own glow material', () => {
+test('only the Executioner, Croesus, One-eyed Sam, the miner, the black marketeer, the mugger and the convict are lit, each with its own glow material', () => {
   for (const name of ['jackal', 'minotaur', 'ninja']) assert.equal(E.updateEyeFlare(createCreature({name}), dt, 0, false), null, name);
   const a = make('executioner'), b = make('executioner'), shared = a.eyes.material;
   assert.ok(shared === b.eyes.material);
   E.updateEyeFlare(a, dt, 0, false); E.updateEyeFlare(b, dt, 0, false);
   assert.ok(a.eyes.material !== shared && a.eyes.material !== b.eyes.material);
   assert.equal(shared.emissiveIntensity, 1.8);
-  assert.ok(E.hasEyes(make('croesus')) && E.hasEyes(make('one-eyed sam')) && E.hasEyes(make('miner')) && E.hasEyes(make('black marketeer')) && E.hasEyes(make('mugger')));
+  assert.ok(E.hasEyes(make('croesus')) && E.hasEyes(make('one-eyed sam')) && E.hasEyes(make('miner')) && E.hasEyes(make('black marketeer')) && E.hasEyes(make('mugger')) && E.hasEyes(make('convict')));
 });
 
 test('the curves are bounded and quiet outside their spans', () => {
@@ -38,7 +38,7 @@ test('the curves are bounded and quiet outside their spans', () => {
 });
 
 test('idle, near the hero and in an attack: finite, eyes stay put, and the attack blazes', () => {
-  for (const name of ['executioner', 'croesus', 'one-eyed sam', 'miner', 'black marketeer', 'mugger']) {
+  for (const name of ['executioner', 'croesus', 'one-eyed sam', 'miner', 'black marketeer', 'mugger', 'convict']) {
     const a = make(name), hero = new THREE.Vector3(1, 0, 2), far = new THREE.Vector3(30, 0, 30);
     const centre = () => { a.g.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(a.eyes); return b.getCenter(new THREE.Vector3()); };
     const c0 = centre();
@@ -163,4 +163,43 @@ test("the mugger glares alone, and with the hero near glances down and aside at 
   for (let i = 0; i < 2 * 60 && (st.glare !== null || st.glint !== null); i++) frame(a, t += dt, far);
   assert.ok(st.near < 1e-3 && st.glance === 0 && Math.abs(a.eyes.scale.y - 1) < .01);
   assert.ok(Math.abs(a.eyes.position.y - rest.y) < 1e-9, `back to rest ${a.eyes.position.y - rest.y}`);
+});
+
+test("the convict's eyes flick alone, go wide and cut aside with the hero near, and follow its look over the shoulder", () => {
+  const a = make('convict'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK.convict;
+  const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
+  const offset = st => [a.eyes.position.x - (rest.x + st.c.x * (1 - a.eyes.scale.x)), a.eyes.position.y - (rest.y + st.c.y * (1 - a.eyes.scale.y))];
+  let t = 0;
+  const run = (look, secs, extra) => {
+    let looks = 0, last = a.eyeFlare.dartTo, starts = 0, glances = 0, wasG = false, wasS = false, wide = 0, hiY = 0, hiX = 0, up = 0;
+    for (let i = 0; i < secs * 60; i++) {
+      extra?.(i);
+      const st = frame(a, t += dt, look);
+      if (st.dartTo !== last) looks++; last = st.dartTo;
+      if (st.glare !== null && !wasS) starts++; wasS = st.glare !== null;
+      if (st.glint !== null && !wasG) glances++; wasG = st.glint !== null;
+      const [dx, dy] = offset(st);
+      wide = Math.max(wide, Math.abs(st.dartTo)); hiY = Math.max(hiY, a.eyes.scale.y); hiX = Math.max(hiX, Math.abs(dx)); up = Math.max(up, dy);
+      assert.ok(Math.abs(dx) <= L.xMax + 1e-12 && dy >= -1e-12 && dy <= -L.glintDrop + 1e-12, `stays in the socket ${dx} ${dy}`);
+      assert.ok(a.eyes.scale.y <= L.nearY * L.glareY * L.atkY + 1e-9, `not too wide ${a.eyes.scale.y}`);
+    }
+    return {looks, starts, glances, wide, hiY, hiX, up};
+  };
+  const alone = run(far, 20);
+  assert.ok(alone.looks > 35 && alone.starts >= 3 && alone.hiY > 1.25, `alone ${JSON.stringify(alone)}`);
+  run(hero, 4);
+  const near = run(hero, 30);
+  assert.ok(near.looks > alone.looks && near.wide > alone.wide && near.glances >= 6 && near.up > .0009, `near ${JSON.stringify(near)}`);
+  const st = a.eyeFlare;
+  if (st.glare === null && st.blink === null) assert.ok(a.eyes.scale.y > 1.15, `wide ${a.eyes.scale.y}`);
+  // a head turn over the shoulder: the eyes go to that corner
+  run(far, 8);
+  let lead = 0;
+  run(far, 3, i => { a.convictHunted = {applied: {yaw: 1.05 * Math.min(1, i / 10)}}; });
+  for (let i = 0; i < 60; i++) { frame(a, t += dt, far); lead += offset(st)[0]; }
+  assert.ok(lead / 60 > .0015, `follows the look ${lead / 60}`);
+  a.convictHunted = {applied: {yaw: 0}};
+  for (let i = 0; i < 4 * 60 && (st.glare !== null || st.glint !== null || i < 60); i++) frame(a, t += dt, far);
+  assert.ok(st.near < 1e-3 && st.glance === 0 && Math.abs(a.eyes.scale.y - 1) < .01);
+  assert.ok(Math.abs(offset(st)[0] - st.dart) < 1e-12 && Math.abs(st.dart) <= L.dart + 1e-9, 'only the idle flick left');
 });
