@@ -501,6 +501,43 @@ test('a katana is a curved, ridged blade over a pierced tsuba and silk-wrapped h
  assert.equal(createHeldWeapon({name:'long sword',class:2}).userData.katana,undefined);
 });
 
+test('a tsurugi is a long straight double-edged blade over a spurred tsuba, cord grip and ring pommel, two meshes',()=>{
+ for(const name of ['tsurugi','+2 tsurugi','long samurai sword','rusty +0 tsurugi']){
+  const w=createHeldWeapon({name,class:2});
+  assert.deepEqual(w.userData.tsurugi,{kind:'tsurugi'},name);
+  assert.equal(w.userData.katana,undefined,name);
+  assert.deepEqual(w.children.map(c=>c.userData.part).sort(),['blade','grip'],name);
+  assert(w.children.find(c=>c.userData.part==='blade').material.metalness>=.75,'weapon-magic can sheathe the blade');
+  for(const mesh of w.children){const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)+n.getX(i)+n.getY(i)+n.getZ(i)),'finite vertices and normals');}
+  w.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(w);
+  assert(box.max.y>.99&&box.max.y<1.01&&box.min.y>-.28&&box.min.y<-.25,`${name} y ${box.min.y}..${box.max.y}`);
+  assert(box.min.x>-.04&&box.max.x<.04,`${name} x ${box.min.x}..${box.max.x}`);
+  assert(.052+.8*box.min.z>0,`${name} above the floor`);
+  // Straight and double-edged: the point is on the axis and the blade is as wide each side of it.
+  const p=w.children.find(c=>c.userData.part==='blade').geometry.attributes.position;let tip=0,zMin=0,zMax=0;
+  for(let i=0;i<p.count;i++){if(p.getY(i)>p.getY(tip))tip=i;if(p.getY(i)>.1&&p.getY(i)<.9){zMin=Math.min(zMin,p.getZ(i));zMax=Math.max(zMax,p.getZ(i));}}
+  assert(Math.abs(p.getZ(tip))<1e-6&&Math.abs(p.getX(tip))<1e-6,'the point is on the axis');
+  assert(Math.abs(zMax+zMin)<1e-4&&zMax>.015,`two edges ${zMin}..${zMax}`);
+  // The cord grip sits at the hand, below the tsuba.
+  const grip=new THREE.Box3().setFromObject(w.children.find(c=>c.userData.part==='grip'));
+  assert(grip.min.y<-.18&&grip.max.y<.06,'grip at the hand');
+  // The blade's flats face outward.
+  {const a=new THREE.Vector3(),b=new THREE.Vector3(),d=new THREE.Vector3(),nrm=new THREE.Vector3();let out=0,inn=0;
+   for(let i=0;i<p.count;i+=3){a.fromBufferAttribute(p,i);b.fromBufferAttribute(p,i+1);d.fromBufferAttribute(p,i+2);
+    const cx=(a.x+b.x+d.x)/3,cy=(a.y+b.y+d.y)/3;if(cy<.1||cy>.9||Math.abs(cx)<.0005)continue;
+    nrm.subVectors(b,a).cross(d.clone().sub(a)).normalize();if(Math.abs(nrm.x)<.5)continue;
+    if(Math.sign(nrm.x)===Math.sign(cx))out++;else inn++;}
+   assert(out>500&&inn===0,`${name} flats wound outward: ${out} out, ${inn} in`);}
+  w.userData.dispose();
+ }
+ // The artifact takes it through its base; the plain long sword stays the generic blade.
+ assert.deepEqual(createHeldWeapon({name:'Tsurugi of Muramasa',class:2,base:'tsurugi'}).userData.tsurugi,{kind:'tsurugi'});
+ assert.equal(createHeldWeapon({name:'long sword',class:2}).userData.tsurugi,undefined);
+ assert.equal(createHeldWeapon({name:'samurai sword',class:2}).userData.tsurugi,undefined);
+});
+
 test('a scalpel is a small bellied blade on a cracked bone handle, two meshes',()=>{
  for(const name of ['scalpel','+1 scalpel','rusty scalpel']){
   const w=createHeldWeapon({name,class:2});
