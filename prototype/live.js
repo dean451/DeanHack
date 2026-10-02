@@ -16,6 +16,7 @@ import {createTerrainFeature,featureKind,AXIS_FEATURES,bridgeYaw} from './terrai
 import {createTree} from './tree.js';
 import {createBoulder} from './boulder.js';
 import {createStairs} from './stairs.js';
+import {createLadder,ladderShown} from './ladder.js';
 import {createBars} from './bars.js';
 import {createDoor,createBrokenDoor} from './door.js';
 import {tileKind,setDoorOpen,orientDoor,updateDoorSwings,clearDoorSwings} from './door-swing.js';
@@ -257,6 +258,16 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
   tile.userData.slab.visible=!model.userData.hidesFloor;
   tile.add(model);tile.userData.feature=model;tile.userData.featureKey=key;tile.userData.axisFeature=AXIS_FEATURES.has(key)?model:null;
  }
+ // Stairs and ladders share the up/down terrain; the glyph's colour tells them apart while
+ // nothing covers it (ladder.js), so a square first seen occupied shows stairs until then.
+ function dressStairs(tile,cell){
+  const ladder=ladderShown(cell)??tile.userData.ladder??false,key=`${cell.terrain}:${ladder}`;
+  if(key===tile.userData.stairsKey)return;
+  for(const o of tile.userData.stairs||[]){o.traverse(c=>c.userData.dispose?.());tile.remove(o);}
+  const seed=cell.x*131+cell.z,model=(ladder?createLadder:createStairs)(cell.terrain,seed);
+  const caption=label(`${cell.terrain==='up'?'↑':'↓'} ${ladder?'ladder':'stone stairs'}`);
+  tile.add(model,caption);tile.userData.stairs=[model,caption];tile.userData.stairsKey=key;tile.userData.ladder=ladder;
+ }
  function setDim(tile,dim){tile.userData.fog.visible=dim;tile.userData.fog.material.opacity=dim?.72:0;tile.userData.fog.material.needsUpdate=true;}
  const hero=playerFactory();hero.setWeapon?.(null);hero.actions=createActionQueue();group.add(hero.g);
  const swingFx=createSwingFx(THREE,group);const hitFx=createHitFx(THREE,group);const rays=createRays(THREE,group);const zapFlash=createZapFlash(THREE,group);const rayMarks=createRayMarks(THREE,group);const rayFlashLight=new THREE.PointLight(0xdce6ff,0,18,1.2);group.add(rayFlashLight);const explosions=createExplosions(THREE,group);const blastLight=new THREE.PointLight(0xffa050,0,9,1.4);group.add(blastLight);const flood=createFlood(THREE,group);let flooding=false;const splash=createSplash(THREE,group);const flights=createFlights(THREE,group);const grab=createGrab(THREE,group,{onSplash:s=>splash.add(s)});const brainSuck=createBrainSuck(THREE,group);const hold=createHold(THREE,group);const poly=createPolymorph(THREE,group);const barsMelt=createBarsMelt(THREE,group);const doorBreak=createDoorBreak(THREE,group);const breath=createBreath(THREE,group);const engulf=createEngulf(THREE,group);let swingTarget=null;
@@ -285,10 +296,9 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
           if(hasTorch(cell.x,cell.z)){const sconce=createTorchSconce(cell.x*43+cell.z*71);tile.add(sconce);const fire=createFire(cell.x+cell.z);fire.position.copy(sconce.userData.flame);tile.add(fire);const halo=new THREE.Sprite(torchHaloMaterial);halo.position.copy(sconce.userData.flame).setY(1.12);halo.scale.setScalar(.9);tile.add(halo);tile.userData.torch={phase:(cell.x*3.7+cell.z*5.3)%(Math.PI*2)};}
          }
          if(['door','broken-door'].includes(tileKind(cell))){const doorGroup=(tileKind(cell)==='door'?createDoor:createBrokenDoor)(cell.x*61+cell.z*37);tile.add(doorGroup);tile.userData.door=doorGroup;}
-         if(cell.terrain==='up'||cell.terrain==='down'){tile.add(createStairs(cell.terrain,cell.x*131+cell.z));tile.add(label(cell.terrain==='up'?'↑ stone stairs':'↓ stone stairs'));}
          if(['water','lava'].includes(cell.terrain)){slab.visible=false;const liquid=createLiquid(cell.terrain,cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
          group.add(tile);tiles.set(id,tile);
-       }if(cell.terrain==='feature')dressFeature(tile,cell);syncWard(tile,cell);tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
+       }if(cell.terrain==='feature')dressFeature(tile,cell);if(cell.terrain==='up'||cell.terrain==='down')dressStairs(tile,cell);syncWard(tile,cell);tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
        if(tile.userData.axisFeature){
         // Face the drawbridge across its moat, the hinge toward the gatehouse (terrain-feature.js).
         const yaw=bridgeYaw(tile.userData.featureKey,(dx,dz)=>frame.cells.find(c=>c.x===cell.x+dx&&c.z===cell.z+dz)?.terrain);
