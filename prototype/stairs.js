@@ -188,7 +188,7 @@ export function createStairs(direction='up',seed=0){
 // Grey-green dungeon stone: mottled, darker underneath and in the grime at the back of
 // each tread, worn pale and smooth down the middle of the treads, with moss creeping in
 // at floor level and into the corners where feet don't reach.
-function stoneColour(x,y,z,n,off){
+export function stoneColour(x,y,z,n,off){
  let k=.82+noise3(x*14+off,y*14,z*14)*.3+(noise3(x*90,y*90+off,z*90)-.5)*.12;
  if(n.y<-.5)k*=.6;
  let r=.44*k,g=.48*k,b=.46*k;
@@ -206,7 +206,7 @@ function stoneColour(x,y,z,n,off){
 }
 
 function hash3(x,y,z){const s=Math.sin(x*127.1+y*311.7+z*74.7)*43758.5453;return s-Math.floor(s);}
-function noise3(x,y,z){
+export function noise3(x,y,z){
  const ix=Math.floor(x),iy=Math.floor(y),iz=Math.floor(z);
  const fx=x-ix,fy=y-iy,fz=z-iz,ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy),uz=fz*fz*(3-2*fz);
  const l=(a,b,t)=>a+(b-a)*t;
