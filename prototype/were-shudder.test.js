@@ -60,8 +60,11 @@ for (const [name, s] of [['werewolf', 'd'], ['wererat', 'r'], ['werejackal', '@'
     }
     assert.ok(shudders >= 2 && shudders <= 6, `${shudders}`);
     assert.ok(fur > .5 && roll > .05, `${fur} ${roll}`);
-    if (a.head) assert.ok(throwBack < -.4 && aim > .4, `${throwBack} ${aim}`);
-    if (st.eyes) assert.ok(eyes > 1.4);
+    // the howl, the stalking head and the eye flare are the beast's; the man (were-man.js) has a
+    // head and eyes the shudder leaves be
+    const beast = W.wereForm(a) === 'beast';
+    if (a.head && beast) assert.ok(throwBack < -.4 && aim > .4, `${throwBack} ${aim}`);
+    if (st.eyes && beast) assert.ok(eyes > 1.4);
     if (st.arms) assert.ok(clutch < -.9);
     // death: back to the exact rest pose and the last tufts gone
     a.actions = {dead: true};

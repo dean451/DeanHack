@@ -2098,3 +2098,45 @@ test('the minotaur gets its own hunched, horned bull-headed brute with a labrys 
  const hb=new THREE.Box3().setFromObject(m.head.children[0]),pos=labrys.geometry.attributes.position,v=new THREE.Vector3();
  for(let i=0;i<pos.count;i++)assert(!hb.containsPoint(v.fromBufferAttribute(pos,i).applyMatrix4(labrys.matrixWorld)),'the labrys clears the head');
 });
+test('the werecreatures in human form get a hunched, feral man with glowing slanted eyes, hackles, a torn shirt and clawed hands instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const tops={};
+ for(const name of ['werewolf','werejackal','wererat']){
+  const w=createCreature({name,symbol:64,color:3});
+  assert.equal(w.kind,name);assert.equal(w.quirk,'human');
+  for(const key of ['body','head','arm','weaponSocket','eyes'])assert(w[key]?.isObject3D,`${name} ${key}`);
+  assert.equal(w.legs.length,2);assert.equal(w.arms.length,2);assert(w.arm===w.arms[1]);
+  assert(w.head.children.includes(w.eyes)&&w.eyes.userData.part==='eyes','were-shudder flares the eyes under the head');
+  const parts=meshes(w);
+  assert.equal(parts.length,7,'one mesh per moving part and the eyes');
+  assert.equal(new Set(parts.map(m=>m.material)).size,2);
+  let verts=0;
+  for(const m of parts){
+   const a=m.geometry.attributes;verts+=a.position.count;
+   for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${name} ${m.userData.part} ${key}`);
+   if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,`${name} ${m.userData.part}`);
+  }
+  assert(verts<40000,`${name}: ${verts} vertices`);
+  w.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(w.g,true);
+  assert(b.min.y>-.03&&b.min.y<.03,`${name} feet at ${b.min.y}`);
+  assert(b.max.y>1&&b.max.y<1.4,`${name} top at ${b.max.y}`);
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,`${name} out of proportion`);
+  tops[name]=b.max.y;
+  // the eyes glow out of the sockets: looking at them from the front, they are hit first
+  const eye=new THREE.Box3().setFromObject(w.eyes,true).getCenter(new THREE.Vector3());
+  for(const s of [-1,1]){
+   const hit=new THREE.Raycaster(new THREE.Vector3(eye.x+s*.03*w.g.scale.x,eye.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+   assert(hit?.object===w.eyes,`${name}: the ${s<0?'left':'right'} eye is hidden behind the ${hit?.object.userData.part}`);
+  }
+  // hunched: the head is thrust out ahead of the hips
+  const hip=new THREE.Box3().setFromObject(w.legs[0],true).getCenter(new THREE.Vector3());
+  assert(eye.z-hip.z>.15,`${name} stands upright (${eye.z-hip.z})`);
+  const again=meshes(createCreature({name,symbol:64}));
+  parts.forEach((m,i)=>assert(m.geometry===again[i].geometry));
+ }
+ assert(tops.werewolf>tops.wererat,'the werewolf stands over the wererat');
+ // the beast forms keep their own models
+ assert.notEqual(createCreature({name:'werewolf',symbol:100}).kind,'werewolf');
+ assert.equal(createCreature({name:'human',symbol:64}).quirk,'human');
+});
