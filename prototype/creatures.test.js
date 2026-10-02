@@ -1244,6 +1244,45 @@ test('the Executioner gets a black sack hood with ice-blue eyes, a frosted, scar
  assert.notEqual(createCreature({name:'human',symbol:64}).kind,'executioner');
 });
 
+test('Charon gets a deep hood over a skull-thin face with ember eyes, a white beard, a slimed river-murk robe, a string of obols and his oar instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const ch=createCreature({name:'Charon',symbol:64,color:15});
+ assert.equal(ch.kind,'charon');assert.equal(ch.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','eyes'])assert(ch[key]?.isObject3D,key);
+ assert.equal(ch.legs.length,2);assert.equal(ch.arms.length,2);assert.equal(ch.arm,ch.arms[1]);
+ assert(ch.arm.children.includes(ch.weaponSocket),'the socket is at the right hand');
+ assert.equal(ch.weaponSocket.children.length,1,'the oar is held');
+ const parts=meshes(ch);
+ assert.equal(parts.length,8,'one mesh per moving part, the oar and the eyes');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ ch.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(ch.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`hem at ${b.min.y}`);
+ assert(b.max.y>1.2&&b.max.y<1.55,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ // the eyes show in the hood's shadow: looking at them from the front, they are hit first
+ const eye=new THREE.Box3().setFromObject(ch.eyes,true).getCenter(new THREE.Vector3());
+ for(const s of [-1,1]){
+  const hit=new THREE.Raycaster(new THREE.Vector3(eye.x+s*.033,eye.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===ch.eyes,`the ${s<0?'left':'right'} eye is hidden behind the ${hit?.object.userData.part}`);
+ }
+ // the toes poke out under the hem, and the oar's blade stands above the hood
+ const toes=new THREE.Box3().setFromObject(ch.legs[0],true),hem=.235*.82*1.12;
+ assert(toes.max.z>hem+.01&&toes.max.z<hem+.08,`toes at ${toes.max.z}, hem at ${hem}`);
+ assert(toes.min.y>-.03,'feet above the floor');
+ assert(new THREE.Box3().setFromObject(ch.weaponSocket,true).max.y>new THREE.Box3().setFromObject(ch.head,true).max.y,'the oar stands above the hood');
+ const again=meshes(createCreature({name:'charon'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+ assert.notEqual(createCreature({name:'human',symbol:64}).kind,'charon');
+});
+
 test('Thoth Amon gets a shaven head with kohl-lined venom-green eyes, a cobra circlet, a fanned collar, a black robe, an asp on his arm and a cobra staff instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const th=createCreature({name:'Thoth Amon',symbol:64,color:13});
