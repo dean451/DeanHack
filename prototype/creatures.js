@@ -80,6 +80,7 @@ import {createCroesus} from './croesus.js';
 import {createOneEyedSam} from './one-eyed-sam.js';
 import {createBlackMarketeer} from './black-marketeer.js';
 import {createMiner} from './miner.js';
+import {createMugger} from './mugger.js';
 import {createBarbarian} from './barbarian.js';
 import {createHealer} from './healer.js';
 
@@ -2542,6 +2543,7 @@ export function createCreature(cell={}){
  if(name==='one-eyed sam')return createOneEyedSam();
  if(name==='black marketeer')return createBlackMarketeer();
  if(name==='miner')return createMiner();
+ if(name==='mugger')return createMugger();
  if(name==='monk')return createMonk();
  if(name==='archeologist')return createArcheologist();
  if(CAVE_KINDS.includes(name))return createCaveman(name);
