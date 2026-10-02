@@ -443,3 +443,26 @@ test('a sling is two braided cords to a cupped pouch holding a flint, two meshes
  // No longer the leather-stick proxy.
  assert.notEqual(createHeldWeapon({name:'sling',class:2}).children.length,createHeldWeapon({name:'rubber hose',class:2}).children.length);
 });
+
+test('a stiletto is a square-sectioned needle blade over a clawed guard and corded grip, two meshes',()=>{
+ for(const name of ['stiletto','+2 stiletto','cursed stiletto']){
+  const w=createHeldWeapon({name,class:2});
+  assert.deepEqual(w.userData.stiletto,{kind:'stiletto'},name);
+  assert.deepEqual(w.children.map(c=>c.userData.part).sort(),['blade','grip'],name);
+  assert(w.children.find(c=>c.userData.part==='blade').material.metalness>=.75,'weapon-magic can sheathe the blade');
+  for(const mesh of w.children){const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)+n.getX(i)+n.getY(i)+n.getZ(i)),'finite vertices and normals');}
+  w.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(w);
+  assert(box.max.y>.49&&box.max.y<.51&&box.min.y>-.15,`${name} y ${box.min.y}..${box.max.y}`);
+  assert(box.min.x>-.075&&box.max.x<.075,`${name} x ${box.min.x}..${box.max.x}`);
+  assert(.052+.8*box.min.z>0,`${name} above the floor`);
+  // The cord grip sits at the hand, below the guard.
+  const grip=new THREE.Box3().setFromObject(w.children.find(c=>c.userData.part==='grip'));
+  assert(grip.min.y<-.07&&grip.max.y<.07,'grip at the hand');
+  w.userData.dispose();
+ }
+ // No longer the leather-stick proxy, and not the generic dagger either.
+ assert.notEqual(createHeldWeapon({name:'stiletto',class:2}).children.length,createHeldWeapon({name:'rubber hose',class:2}).children.length);
+ assert.notEqual(createHeldWeapon({name:'stiletto',class:2}).children.length,createHeldWeapon({name:'dagger',class:2}).children.length);
+});
