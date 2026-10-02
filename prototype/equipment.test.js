@@ -609,3 +609,31 @@ test('a rubber hose is a perished black hose over a taped grip with a brass coup
  assert.notEqual(createHeldWeapon({name:'rubber hose',class:2}).children.length,createHeldWeapon({name:'plain stick',class:2}).children.length);
  assert.equal(createHeldWeapon({name:'bullwhip',class:2}).userData.rubberHose,undefined);
 });
+
+test('a scimitar is a curved, yelman-tipped blade over a clawed guard and wire-bound horn grip, two meshes',()=>{
+ for(const name of ['scimitar','+1 scimitar','curved sword','rusty +0 scimitar']){
+  const w=createHeldWeapon({name,class:2});
+  assert.deepEqual(w.userData.scimitar,{kind:'scimitar'},name);
+  assert.deepEqual(w.children.map(c=>c.userData.part).sort(),['blade','grip'],name);
+  assert(w.children.find(c=>c.userData.part==='blade').material.metalness>=.75,'weapon-magic can sheathe the blade');
+  for(const mesh of w.children){const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)+n.getX(i)+n.getY(i)+n.getZ(i)),'finite vertices and normals');}
+  w.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(w);
+  assert(box.max.y>.83&&box.max.y<.85&&box.min.y>-.2,`${name} y ${box.min.y}..${box.max.y}`);
+  assert(box.min.x>-.03&&box.max.x<.03,`${name} x ${box.min.x}..${box.max.x}`);
+  assert(box.max.z<.09,`${name} z ${box.max.z}`);
+  assert(.052+.8*box.min.z>0,`${name} above the floor, z ${box.min.z}`);
+  // The blade bellies forward toward the edge, then the point hooks back behind the grip.
+  const p=w.children.find(c=>c.userData.part==='blade').geometry.attributes.position;let tip=0,belly=-1;
+  for(let i=1;i<p.count;i++){if(p.getY(i)>p.getY(tip))tip=i;if(p.getY(i)>.3&&p.getY(i)<.5)belly=Math.max(belly,p.getZ(i));}
+  assert(p.getZ(tip)<-.02,`the point hooks back, z ${p.getZ(tip)}`);
+  assert(belly>.04,`the belly sweeps forward, z ${belly}`);
+  const grip=new THREE.Box3().setFromObject(w.children.find(c=>c.userData.part==='grip'));
+  assert(grip.min.y<-.1&&grip.max.y<.05,'grip at the hand');
+  w.userData.dispose?.();
+ }
+ // Other swords keep their own models.
+ assert.equal(createHeldWeapon({name:'long sword',class:2}).userData.scimitar,undefined);
+ assert.equal(createHeldWeapon({name:'silver saber',class:2}).userData.scimitar,undefined);
+});
