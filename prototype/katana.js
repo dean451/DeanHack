@@ -48,19 +48,20 @@ export function buildKatana(g){
  // The blade. Each station is a shinogi-zukuri section across z (edge at +z): the edge, four
  // points up each flat (ji) to the ridge (shinogi), the groove between ridge and spine, and the
  // peaked spine. In the kissaki the edge sweeps up to meet the spine at the point.
- {const N=96,stations=[],fr=[.12,.3,.52,.76];
+ {const N=96,stations=[],fr=[.12,.3,.48,.63];
   for(let i=0;i<=N;i++){
    const u=i/N,y=BLADE_Y+(KATANA_TIP-BLADE_Y)*u,zc=bend(u);
    const v=Math.max(0,(u-KISSAKI)/(1-KISSAKI));
    const w=.036-.01*u,t=(.0085-.003*u)*(1-.75*v**1.5)+.0003*(1-v);
    const spine=zc-w/2+w*.3*v*v,edge=i===N?spine:spine+w*Math.sqrt(Math.max(0,1-v*v));
    const z=f=>edge+(spine-edge)*f;// f: 0 at the edge, 1 at the spine
-   const ridgeF=.7,ring=[[0,y,edge]];
+   const ridgeF=.7,ring=[[0,y,edge]];// fr stays below ridgeF so the flat never folds back past the ridge
    // up the +x flat to the ridge, a slight convex swell (niku) in the middle
    for(const f of fr)ring.push([t/2*(f/ridgeF)*(1+.18*Math.sin(f/ridgeF*Math.PI)),y,z(f)]);
    ring.push([t/2,y,z(ridgeF)],[t*.3,y,z(.83)],[t*.36,y,z(.95)],[0,y,z(1)+(i===N?0:-.0022*(1-v))],[-t*.36,y,z(.95)],[-t*.3,y,z(.83)],[-t/2,y,z(ridgeF)]);
    for(const f of [...fr].reverse())ring.push([-t/2*(f/ridgeF)*(1+.18*Math.sin(f/ridgeF*Math.PI)),y,z(f)]);
-   stations.push(ring);
+   // Wound edge -> -x flat -> spine -> +x flat, so with the stations rising up +y each face looks outward.
+   stations.push([ring[0],...ring.slice(1).reverse()]);
   }
   const n=stations[0].length;
   put(lattice(stations,n),steel,(x,y,z,col)=>{
