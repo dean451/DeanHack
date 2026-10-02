@@ -12,6 +12,7 @@ import {buildSling,SLING_NAME} from './sling.js';
 import {buildStiletto,STILETTO_NAME} from './stiletto.js';
 import {buildScalpel,SCALPEL_NAME} from './scalpel.js';
 import {buildRubberHose,RUBBER_HOSE_NAME} from './rubber-hose.js';
+import {buildKatana,KATANA_NAME} from './katana.js';
 
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
@@ -40,6 +41,8 @@ export function createHeldWeapon(item){
   buildScalpel(g);
  }else if(RUBBER_HOSE_NAME.test(name)){
   buildRubberHose(g);
+ }else if(KATANA_NAME.test(name)){
+  buildKatana(g);
  }else if(blade){
   const short=/dagger|knife|athame/.test(name),length=short?.34:.75,width=short?.055:.075;
   part(new THREE.CylinderGeometry(.029,.035,.17,8),leather,0,0);
