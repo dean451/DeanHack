@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 
 // The caveman and cavewoman (the player-monster role) used to be the generic '@' humanoid: a tinted
@@ -16,6 +17,15 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // Handles: legs, arms, arm (the right, club arm), weaponSocket (the club), head, body. The pivots
 // match archeologist.js and barbarian.js (shoulders ±.215 at .82, hand .37 down the arm, legs ±.08
 // at .47); the head pivot sits lower and further forward (.93, z .04) for the hunch.
+// The neanderthal (the Caveman quest's guardian) used to be the plain '@' humanoid too. It shares
+// the legs and arms but is broader in the chest (the body is the caveman's, widened, with its arms
+// set further out), and wears a grey wolf's pelt: the mantle over the shoulders, torn along the
+// hem, its forepaws knotted across the chest, and the wolf's own head worn as a hood, so the
+// beast's snout and upper fangs hang over the brow and its empty eye sockets stare above the
+// wearer's. Under it: a long, low skull, a still heavier brow, small amber eyes, a huge nose, a
+// chinless jaw with bared teeth, a wild auburn beard, and a band of red ochre smeared across the
+// eyes with streaks down the cheeks. It carries a thrusting spear: a gnarled haft with a knapped
+// flint point bound on with sinew, dark with old blood. Same 7 draws and the same material.
 
 const SKIN=rgb('#9c7252'),SKIN_DARK=rgb('#5e3e2a'),SKIN_HI=rgb('#b88a66'),ASH=rgb('#2a2622'),SCAR=rgb('#c49a80');
 const HAIR=rgb('#16120e'),HAIR_HI=rgb('#34281e'),BONE=rgb('#d6cab0'),BONE_DARK=rgb('#7e705a');
@@ -23,6 +33,8 @@ const HIDE=rgb('#7a5a3a'),HIDE_DARK=rgb('#3e2a1a'),HIDE_PALE=rgb('#a88a64'),SINE
 const TOOTH=rgb('#c8b88a'),GUM=rgb('#3a1410'),EYE=rgb('#c8c0a0'),PUPIL=rgb('#140c08'),NAIL=rgb('#4a3a2a');
 const WOOD=rgb('#5a3e24'),WOOD_DARK=rgb('#2e1e12'),WOOD_HI=rgb('#7e5a36'),FLINT=rgb('#3a3a40'),FLINT_HI=rgb('#8a8a94');
 const BLOOD=rgb('#3a0c08');
+const FUR=rgb('#6a6258'),FUR_DARK=rgb('#2e2a26'),FUR_HI=rgb('#a29888'),OCHRE=rgb('#8e2c16');
+const AUBURN=rgb('#3e1e10'),AUBURN_HI=rgb('#6a3a20'),AMBER=rgb('#d0962e'),CLAW=rgb('#1e1a16');
 
 const ramp=(a,b,lo,hi)=>y=>mix(a,b,(y-lo)/(hi-lo));
 const lathe=(profile,segments=24,phiStart=0,phiLength=Math.PI*2)=>new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),segments,phiStart,phiLength);
@@ -198,10 +210,119 @@ function buildClub(){
  return P.merge();
 }
 
+// wolf fur: grey with darker guard hairs streaking down, paler at the tips
+const fur=(x,y,z)=>{const s=Math.sin(Math.atan2(x,z)*31+y*40)*.5+.5,t=Math.sin(y*70+x*23)*.5+.5;return mix(mix(FUR_DARK,FUR,s),FUR_HI,t*t*.35);};
+const auburn=(x,y,z)=>{const s=Math.sin(Math.atan2(x,z)*21+y*85)*.5+.5;return mix(AUBURN,AUBURN_HI,s*s*.7);};
+
+// the caveman's body widened, under a wolf-pelt mantle with the forepaws knotted at the chest
+function buildNeanderthalBody(base){
+ const wide=base.clone().scale(1.08,1,1.08);
+ const P=pieces();
+ // the mantle: over both shoulders and down the back, open at the front, torn at the hem
+ P.add(tear(lathe([[.1,.96],[.17,.93],[.235,.87],[.255,.8],[.25,.72],[.24,.64]],30,Math.PI*.3,Math.PI*1.4),.64,.08,6,11),at(0,0,0,[0,0,0],[1.08,1,.95]),fur);
+ // the forepaws, slung over the shoulders and knotted together over the breastbone
+ for(const s of [-1,1]){
+  const from=new THREE.Vector3(s*.2,.87,.1),to=new THREE.Vector3(s*.035,.77,.225),mid=from.clone().lerp(to,.5),dir=to.clone().sub(from);
+  const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize()),e=new THREE.Euler().setFromQuaternion(q);
+  P.add(new THREE.CapsuleGeometry(.024,dir.length(),3,8),at(mid.x,mid.y,mid.z,[e.x,e.y,e.z]),fur);
+  // the paw dangling below the knot, black claws hooked out
+  P.add(new THREE.SphereGeometry(.03,10,6),at(s*.04,.71,.232,[0,0,0],[.9,1.2,.7]),fur);
+  for(let k=0;k<3;k++)P.add(new THREE.ConeGeometry(.005,.026,4),at(s*.04+(k-1)*.014,.68,.247,[Math.PI+.4,0,(k-1)*.2]),CLAW);
+ }
+ P.add(new THREE.SphereGeometry(.032,10,8),at(0,.77,.23,[0,0,0],[1.3,.9,.8]),fur);
+ const extra=P.merge(),geo=mergeGeometries([wide,extra]);
+ wide.dispose();extra.dispose();
+ return geo;
+}
+
+// a long, low skull under the wolf's head; ochre across the eyes
+function buildNeanderthalHead(){
+ const P=pieces();
+ const ochre=(x,y,z,base)=>z>.04&&y>.098&&y<.128?mix(base,OCHRE,.85):base;
+ P.add(new THREE.SphereGeometry(.1,20,16),at(0,.1,-.012,[0,0,0],[1,.86,1.16]),(x,y,z)=>{
+  if(z<-.03||y>.16)return auburn(x,y,z);
+  return ochre(x,y,z,y<.07?SKIN_DARK:SKIN);
+ });
+ // the occipital bun swelling out behind
+ P.add(new THREE.SphereGeometry(.06,12,8),at(0,.1,-.1,[0,0,0],[1.2,.9,1]),auburn);
+ // the brow: a massive shelf with a lobe over each eye
+ P.add(new THREE.CapsuleGeometry(.031,.1,3,10),at(0,.133,.08,[0,0,Math.PI/2],[1,1,.85]),(x,y,z)=>y>.14?SKIN_HI:ochre(x,y,z,SKIN_DARK));
+ for(const s of [-1,1]){
+  P.add(new THREE.SphereGeometry(.03,10,8),at(s*.037,.135,.088,[0,0,0],[1.1,.8,.8]),(x,y,z)=>y>.14?SKIN_HI:ochre(x,y,z,SKIN_DARK));
+  // small amber eyes sunk under the brow
+  P.add(new THREE.SphereGeometry(.012,8,6),at(s*.036,.11,.083,[0,0,0],[1.2,.6,.5]),AMBER);
+  P.add(new THREE.SphereGeometry(.005,8,6),at(s*.035,.11,.089),PUPIL);
+  // cheeks, each with two ochre streaks clawed down it
+  P.add(new THREE.SphereGeometry(.028,10,8),at(s*.052,.082,.064,[0,0,0],[1,.75,.8]),(x,y,z)=>Math.abs(Math.sin((x-s*.052)*170))<.35&&z>.07?OCHRE:SKIN);
+  P.add(new THREE.SphereGeometry(.022,8,6),at(s*.094,.1,-.012,[0,0,0],[.45,1,.75]),SKIN_DARK);
+ }
+ // a huge, broad nose
+ P.add(new THREE.SphereGeometry(.03,12,8),at(0,.083,.105,[0,0,0],[1.4,.95,.85]),SKIN_HI);
+ for(const s of [-1,1])P.add(new THREE.SphereGeometry(.007,6,4),at(s*.016,.071,.119),PUPIL);
+ // the jaw thrust forward, with no chin, on a row of bared teeth
+ P.add(new THREE.SphereGeometry(.075,14,10),at(0,.034,.045,[0,0,0],[1.12,.66,1.08]),SKIN_DARK);
+ P.add(new THREE.BoxGeometry(.066,.013,.012),at(0,.052,.11),GUM);
+ for(let i=0;i<7;i++){
+  const x=-.03+i*.01,h=.008+hash(i,6)*.009;
+  P.add(new THREE.BoxGeometry(.007,h,.006),at(x,.058-h/2+.004,.114,[0,0,(hash(i,3)-.5)*.4]),mix(TOOTH,BONE_DARK,hash(i,7)*.6));
+ }
+ // a wild beard, longer and wider than the caveman's
+ P.add(new THREE.SphereGeometry(.068,12,8),at(0,.005,.052,[.3,0,0],[1.15,.9,.8]),auburn);
+ for(let i=0;i<7;i++)P.add(new THREE.ConeGeometry(.013,.07+hash(i,2)*.03,5),at(-.054+i*.018,-.04,.058,[Math.PI+.25,0,(i-3)*.09]),auburn);
+ // the wolf's head worn as a hood: its skull over the crown, its snout over the brow
+ P.add(new THREE.SphereGeometry(.1,18,12,0,Math.PI*2,0,Math.PI*.5),at(0,.135,-.01,[-.12,0,0],[1.06,.95,1.12]),fur);
+ P.add(new THREE.CapsuleGeometry(.032,.07,3,10),at(0,.19,.125,[Math.PI/2+.2,0,0],[1.05,1,.8]),(x,y,z)=>z>.19?FUR_DARK:fur(x,y,z));
+ P.add(new THREE.SphereGeometry(.013,8,6),at(0,.18,.198),CLAW);
+ // its upper fangs hanging over the brow
+ for(const s of [-1,1]){
+  P.add(new THREE.ConeGeometry(.0065,.04,5),at(s*.02,.15,.17,[Math.PI+.1,0,0]),TOOTH);
+  for(const k of [.35,.7])P.add(new THREE.ConeGeometry(.004,.016,4),at(s*.02*k,.158,.188,[Math.PI,0,0]),TOOTH);
+  // the empty eye sockets, and the ears still pricked
+  P.add(new THREE.SphereGeometry(.012,8,6),at(s*.042,.2,.07,[0,0,0],[1.3,.8,.6]),FUR_DARK);
+  P.add(new THREE.ConeGeometry(.024,.06,4),at(s*.058,.255,-.005,[-.2,0,-s*.3]),fur);
+ }
+ // the pelt falls down the back of the neck in a torn flap
+ P.add(tear(lathe([[.105,.12],[.115,.04],[.12,-.04],[.125,-.1]],18,Math.PI*.6,Math.PI*.8),-.1,.05,4,5),at(0,0,-.015,[0,0,0],[1,1,1.05]),fur);
+ return P.merge();
+}
+
+// the spear: a gnarled haft with a knapped, leaf-shaped flint point bound on with sinew
+const SPEAR_LEN=1.1,SPEAR_GRIP=.36,SPEAR_TILT=.7;
+function buildSpear(){
+ const P=pieces(),tilt=at(0,.02,0,[SPEAR_TILT,0,0]),on=m=>new THREE.Matrix4().multiplyMatrices(tilt,m);
+ const top=SPEAR_LEN-SPEAR_GRIP;
+ const haft=new THREE.CylinderGeometry(.014,.018,SPEAR_LEN,8,16);
+ {const p=haft.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i),k=1+Math.sin(y*37)*.1;p.setX(i,p.getX(i)*k+Math.sin(y*6)*.006);p.setZ(i,p.getZ(i)*k);}haft.computeVertexNormals();}
+ P.add(haft,on(at(0,SPEAR_LEN/2-SPEAR_GRIP,0)),(x,y,z)=>mix(WOOD_DARK,WOOD,Math.sin(y*55+x*90)*.5+.5));
+ // a knot halfway up and the butt charred to a point
+ P.add(new THREE.SphereGeometry(.022,8,6),on(at(.008,.2,0,[0,0,0],[1,1.4,1])),WOOD_DARK);
+ P.add(new THREE.ConeGeometry(.016,.06,8),on(at(0,-SPEAR_GRIP-.03,0,[Math.PI,0,0])),ASH);
+ // the point: a flat, leaf-shaped flake, chipped facets along both edges, bloodied at the tip
+ const L=.17,W=.032,T=.009,pts=[];
+ for(let i=0;i<=10;i++){const t=i/10,w=Math.sin(Math.PI*Math.pow(t,.7))*W*(1-t*.25)*(1+(i%2?-.18:.12));pts.push([t*L,w]);}
+ const blade=new THREE.BufferGeometry(),pos=[];
+ for(let i=0;i<10;i++){
+  const [y0,w0]=pts[i],[y1,w1]=pts[i+1];
+  for(const s of [-1,1])for(const f of [-1,1]){
+   // each face rises to a ridge down the middle
+   pos.push(0,y0,f*T, s*w0,y0,0, s*w1,y1,0, 0,y0,f*T, s*w1,y1,0, 0,y1,f*T*(i===9?0:1));
+  }
+ }
+ blade.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));blade.computeVertexNormals();
+ P.add(blade,on(at(0,top-.01,0)),(x,y,z)=>{const t=(y-top)/L;return mix(mix(FLINT,FLINT_HI,Math.abs(Math.sin(y*260))*.5),BLOOD,THREE.MathUtils.clamp((t-.55)*2,0,.75));});
+ // the sinew lashing the point into the split haft
+ for(let i=0;i<4;i++)P.add(new THREE.TorusGeometry(.019,.005,4,12).rotateX(Math.PI/2),on(at(0,top-.035+i*.014,0,[0,0,(i%2?.25:-.25)])),i%2?SINEW:HIDE_DARK);
+ return P.merge();
+}
+
 const cache=new Map();
 let material=null;
 function geometry(female){
  if(!material)material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.86,metalness:.02,side:THREE.DoubleSide});
+ if(female==='neanderthal'){
+  if(!cache.has('n')){const m=geometry(false);cache.set('n',{body:buildNeanderthalBody(m.body),head:buildNeanderthalHead(),leg:m.leg,arm:m.arm,club:buildSpear()});}
+  return cache.get('n');
+ }
  const key=female?'f':'m';
  if(!cache.has(key)){
   const shared=cache.get(female?'m':'f');
@@ -211,10 +332,10 @@ function geometry(female){
 }
 function mesh(parent,geo,name){const o=new THREE.Mesh(geo,material);o.castShadow=o.receiveShadow=true;o.userData.part=name;parent.add(o);return o;}
 
-export const CAVE_KINDS=['caveman','cavewoman'];
+export const CAVE_KINDS=['caveman','cavewoman','neanderthal'];
 
 export function createCaveman(name='caveman'){
- const female=name==='cavewoman',S=geometry(female),g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const neanderthal=name==='neanderthal',female=name==='cavewoman',S=geometry(neanderthal?'neanderthal':female),g=new THREE.Group(),body=new THREE.Group();g.add(body);
  mesh(body,S.body,'body');
  // the hunch: the head hangs low and forward of the shoulders
  const head=new THREE.Group();head.position.set(0,.93,.045);body.add(head);
@@ -223,9 +344,9 @@ export function createCaveman(name='caveman'){
  for(const s of [-1,1]){
   const leg=new THREE.Group();leg.position.set(s*.085,.47,0);body.add(leg);mesh(leg,S.leg,'leg');legs.push(leg);
   // the arms hang long and a little forward, held out from the bulk of the chest
-  const arm=new THREE.Group();arm.position.set(s*.225,.82,.01);arm.rotation.z=s*.1;arm.rotation.x=-.08;body.add(arm);mesh(arm,S.arm,'arm');arms.push(arm);
+  const arm=new THREE.Group();arm.position.set(s*(neanderthal?.245:.225),.82,.01);arm.rotation.z=s*.1;arm.rotation.x=-.08;body.add(arm);mesh(arm,S.arm,'arm');arms.push(arm);
  }
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-.37,.012);arms[1].add(weaponSocket);
- mesh(weaponSocket,S.club,'club');
- return {g,body,legs,tail:null,wings:[],quirk:'human',kind:'caveman',female,arms,arm:arms[1],weaponSocket,head,hat:null,beard:null,pick:null};
+ mesh(weaponSocket,S.club,neanderthal?'spear':'club');
+ return {g,body,legs,tail:null,wings:[],quirk:'human',kind:neanderthal?'neanderthal':'caveman',female,arms,arm:arms[1],weaponSocket,head,hat:null,beard:null,pick:null};
 }
