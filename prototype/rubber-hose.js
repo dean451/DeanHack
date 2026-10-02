@@ -13,7 +13,8 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // x -PI/2) it lies flat. Rubber and tape are one material, the metal another: 2 draws. The metal
 // stays metalness >= .75, so weapon-magic sheathes it.
 export const RUBBER_HOSE_NAME=/\brubber hose\b/;
-const R=.0165,TAPE_LO=.02,TAPE_HI=.27,WIRE_LO=.7,WIRE_HI=.86;
+export const TAPE_HI=.27;
+const R=.0165,TAPE_LO=.02,WIRE_LO=.7,WIRE_HI=.86;
 const RUBBER=0x1b1816,CRAZE=0x6a6056,STRIPE=0x5a1c16,BLOOD=0x2e0c08,TAPE=0x6c6450,TAPE_DARK=0x2c2620;
 const BRASS=0xa8843e,VERDIGRIS=0x3f7a62,STEEL=0x8c9298,RUST=0x6a3418;
 
@@ -22,7 +23,7 @@ const smooth=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3
 const Z=new THREE.Vector3(0,0,1),UP=new THREE.Vector3(0,1,0);
 
 // The hose's centreline: hacked off below the hand, up through the grip, over and down.
-const CURVE=new THREE.CatmullRomCurve3([[0,-.13],[0,-.04],[0,.08],[.006,.22],[.03,.34],[.075,.43],[.13,.465],[.18,.45],[.208,.39],[.214,.31]]
+export const CURVE=new THREE.CatmullRomCurve3([[0,-.13],[0,-.04],[0,.08],[.006,.22],[.03,.34],[.075,.43],[.13,.465],[.18,.45],[.208,.39],[.214,.31]]
  .map(([x,y])=>new THREE.Vector3(x,y,0)));
 // The point at u, the tangent, and the in-plane side direction (tangent x z).
 function frame(u){const p=CURVE.getPointAt(u),t=CURVE.getTangentAt(u),side=t.clone().cross(Z).normalize();return {p,t,side};}
