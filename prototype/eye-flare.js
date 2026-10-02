@@ -1,6 +1,7 @@
 // The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js), One-eyed Sam
 // (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js), the mugger
-// (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js), the prisoner (prisoner.js) and the abbot (abbot.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
+// (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js), the prisoner (prisoner.js), the abbot (abbot.js) and the neanderthal
+// (caveman.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
 // eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -44,7 +45,13 @@
 //    to embers, then lift again. With the hero near the prayer stops: the eyes open wide in an
 //    unblinking, fixed stare, paler and brighter, and every few seconds a slow surge of zealous
 //    fervour swells them brighter still and a little wider.
-//  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict, Charon, the prisoner, the abbot) or
+//  - Neanderthal: small amber beast's eyes under the brow, like a wolf's caught in firelight. Alone
+//    a low smoulder with a fire's flicker, and now and then a long, brooding narrowing. With the hero
+//    near they draw down into a hunter's squint, brighter and steady, never darting (the slit pupils
+//    are on the head), and every few seconds the eyeshine catches: a sudden hard flash of amber that
+//    snaps the eyes a little wider, gone as fast as it came.
+//  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict, Charon, the prisoner, the abbot,
+//    the neanderthal) or
 //    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
@@ -103,6 +110,11 @@ export const LOOK = {
   // no dart), and each glint is a slow swell of fervour (glintY > 1), mostly then (glintFar < 1)
   abbot: {near: 1.35, nearY: 1.2, breath: .07, breathHz: .12, glareMin: 3, glareSpan: 3, glareLen: 2.2, glareY: .12, glareGlow: .45, glareNear: 0,
     atkGlow: 3, atkX: 1.2, atkY: 1.4, dart: 0, glintMin: 3, glintSpan: 3, glintNear: 1.5, glintFar: .25, glintLen: 1.4, glintGlow: 1.9, glintY: 1.15},
+  // a beast in firelight: a fire's flicker (ember) that steadies with the hero near (emberNear < 1),
+  // a hunter's squint then (nearY < 1), and each glint a short, hard flash of eyeshine (glintGlow,
+  // a little wider: glintY), rare alone (glintFar < 1). No dart: the slit pupils are on the head.
+  neanderthal: {near: 1.35, nearY: .65, ember: .1, emberNear: .35, breath: .06, breathHz: .2, glareMin: 4, glareSpan: 5, glareLen: 1.6, glareY: .5, glareGlow: 1.2,
+    atkGlow: 3, atkX: 1.15, atkY: 1.45, dart: 0, glintMin: 2.5, glintSpan: 3, glintNear: 1.6, glintFar: .3, glintLen: .3, glintGlow: 2.4, glintY: 1.25},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;

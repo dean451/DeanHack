@@ -17,14 +17,15 @@ function frame(a, t, look) {
 }
 const glow = a => a.eyes.material.emissiveIntensity;
 
-test('only the Executioner, Croesus, One-eyed Sam, the miner, the black marketeer, the mugger, the convict, Thoth Amon, Charon, the prisoner and the abbot are lit, each with its own glow material', () => {
+test('only the Executioner, Croesus, One-eyed Sam, the miner, the black marketeer, the mugger, the convict, Thoth Amon, Charon, the prisoner, the abbot and the neanderthal are lit, each with its own glow material', () => {
   for (const name of ['jackal', 'minotaur', 'ninja']) assert.equal(E.updateEyeFlare(createCreature({name}), dt, 0, false), null, name);
   const a = make('executioner'), b = make('executioner'), shared = a.eyes.material;
   assert.ok(shared === b.eyes.material);
   E.updateEyeFlare(a, dt, 0, false); E.updateEyeFlare(b, dt, 0, false);
   assert.ok(a.eyes.material !== shared && a.eyes.material !== b.eyes.material);
   assert.equal(shared.emissiveIntensity, 1.8);
-  assert.ok(E.hasEyes(make('croesus')) && E.hasEyes(make('one-eyed sam')) && E.hasEyes(make('miner')) && E.hasEyes(make('black marketeer')) && E.hasEyes(make('mugger')) && E.hasEyes(make('convict')) && E.hasEyes(make('thoth amon')) && E.hasEyes(make('charon')) && E.hasEyes(make('prisoner')) && E.hasEyes(make('abbot')));
+  assert.ok(E.hasEyes(make('croesus')) && E.hasEyes(make('one-eyed sam')) && E.hasEyes(make('miner')) && E.hasEyes(make('black marketeer')) && E.hasEyes(make('mugger')) && E.hasEyes(make('convict')) && E.hasEyes(make('thoth amon')) && E.hasEyes(make('charon')) && E.hasEyes(make('prisoner')) && E.hasEyes(make('abbot')) && E.hasEyes(make('neanderthal')));
+  assert.ok(!E.hasEyes(make('caveman')) && !E.hasEyes(make('cavewoman')));
 });
 
 test('the curves are bounded and quiet outside their spans', () => {
@@ -38,7 +39,7 @@ test('the curves are bounded and quiet outside their spans', () => {
 });
 
 test('idle, near the hero and in an attack: finite, eyes stay put, and the attack blazes', () => {
-  for (const name of ['executioner', 'croesus', 'one-eyed sam', 'miner', 'black marketeer', 'mugger', 'convict', 'thoth amon', 'charon', 'prisoner', 'abbot']) {
+  for (const name of ['executioner', 'croesus', 'one-eyed sam', 'miner', 'black marketeer', 'mugger', 'convict', 'thoth amon', 'charon', 'prisoner', 'abbot', 'neanderthal']) {
     const a = make(name), hero = new THREE.Vector3(1, 0, 2), far = new THREE.Vector3(30, 0, 30);
     const centre = () => { a.g.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(a.eyes); return b.getCenter(new THREE.Vector3()); };
     const c0 = centre();
@@ -344,6 +345,46 @@ test("the abbot's eyes close in long prayers alone, and with the hero near open 
   assert.ok(Math.abs(near.lidLo - L.nearY) < .02 && Math.abs(near.lidHi - L.nearY) < .02, `wide and fixed ${near.lidLo}..${near.lidHi}`);
   assert.ok(near.surges > 2 * alone.surges && near.surges >= 6, `surges ${alone.surges} → ${near.surges}`);
   assert.ok(near.surgeHi > 1.6 * near.mean && near.surgeLid > L.nearY + .1, `surge ${near.surgeHi} vs ${near.mean}, lid ${near.surgeLid}`);
+  run(far, 8);
+  const st = a.eyeFlare;
+  for (let i = 0; i < 4 * 60 && (st.glare !== null || st.glint !== null); i++) frame(a, t += dt, far);
+  assert.ok(st.near < 1e-3 && Math.abs(a.eyes.scale.y - 1) < .01 && Math.abs(a.eyes.scale.x - 1) < 1e-9);
+});
+
+test("the neanderthal's eyes smoulder and brood alone, and with the hero near narrow to a steady hunter's squint lit by sharp flashes of eyeshine", () => {
+  const a = make('neanderthal'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK.neanderthal;
+  const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
+  let t = 0;
+  const run = (look, secs) => {
+    let sum = 0, n = 0, broods = 0, broodLo = Infinity, flashes = 0, was = false, wasG = false, lidLo = Infinity, lidHi = 0, flashHi = 0, flashLid = 0, lo = Infinity, hi = 0, last = null, jit = 0;
+    for (let i = 0; i < secs * 60; i++) {
+      const st = frame(a, t += dt, look);
+      assert.equal(st.dart, 0);
+      assert.ok(Math.abs(a.eyes.position.x - (rest.x + st.c.x * (1 - a.eyes.scale.x))) < 1e-12, 'never darts off the pupils');
+      assert.ok(a.eyes.scale.y > 0 && a.eyes.scale.y < 1.6 && Number.isFinite(glow(a)) && glow(a) >= 0);
+      if (st.glint !== null && !was) flashes++; was = st.glint !== null;
+      if (st.glare !== null && !wasG) broods++; wasG = st.glare !== null;
+      if (st.glare !== null) broodLo = Math.min(broodLo, a.eyes.scale.y);
+      if (st.glint !== null && st.glare === null) { flashHi = Math.max(flashHi, st.k); flashLid = Math.max(flashLid, a.eyes.scale.y); }
+      if (st.glare === null && st.glint === null && st.blink === null) {
+        sum += st.k; n++; lidLo = Math.min(lidLo, a.eyes.scale.y); lidHi = Math.max(lidHi, a.eyes.scale.y);
+        lo = Math.min(lo, st.k); hi = Math.max(hi, st.k);
+        if (last !== null) jit += Math.abs(st.k - last);
+        last = st.k;
+      } else last = null;
+    }
+    return {mean: sum / n, broods, broodLo, flashes, flashHi, flashLid, lidLo, lidHi, spread: (hi - lo) / (sum / n), jit: jit / n / (sum / n)};
+  };
+  const alone = run(far, 40);
+  run(hero, 5);
+  const near = run(hero, 40);
+  assert.ok(alone.broods >= 4 && alone.broodLo < L.glareY + .03, `broods ${alone.broods} to ${alone.broodLo}`);
+  assert.ok(alone.lidHi < 1.01 && alone.lidLo > .99, `open alone ${alone.lidLo}..${alone.lidHi}`);
+  assert.ok(near.mean > 1.25 * alone.mean, `brighter ${alone.mean} → ${near.mean}`);
+  assert.ok(Math.abs(near.lidLo - L.nearY) < .02 && Math.abs(near.lidHi - L.nearY) < .02, `squint ${near.lidLo}..${near.lidHi}`);
+  assert.ok(near.jit < .6 * alone.jit, `steadier flicker ${alone.jit} → ${near.jit}`);
+  assert.ok(near.flashes > 2 * alone.flashes && near.flashes >= 8, `flashes ${alone.flashes} → ${near.flashes}`);
+  assert.ok(near.flashHi > 2 * near.mean && near.flashLid > L.nearY + .1, `flash ${near.flashHi} vs ${near.mean}, lid ${near.flashLid}`);
   run(far, 8);
   const st = a.eyeFlare;
   for (let i = 0; i < 4 * 60 && (st.glare !== null || st.glint !== null); i++) frame(a, t += dt, far);
