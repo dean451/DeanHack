@@ -1628,6 +1628,46 @@ test('One-eyed Sam gets a tricorn, an eyepatch and one burning eye, a braid, gre
  assert.notEqual(createCreature({name:'human',symbol:64}).kind,'one-eyed sam');
 });
 
+test('the Master Assassin gets a hood over a mouthless bone-white mask with slit eyes, crossed baldrics of throwing knives, a belt of poison vials, a ragged half-cape, a poisoned kris and a reverse-grip dagger instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const m=createCreature({name:'Master Assassin',symbol:64,color:13});
+ assert.equal(m.kind,'master assassin');assert.equal(m.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','shieldArm','eyes'])assert(m[key]?.isObject3D,key);
+ assert.equal(m.legs.length,2);assert.equal(m.arms.length,2);assert(m.arm===m.arms[1]);assert(m.shieldArm===m.arms[0]);
+ assert(m.arm.children.includes(m.weaponSocket),'the socket is at the right hand');
+ assert.equal(m.weaponSocket.children.length,1,'the kris is held');
+ const parts=meshes(m);
+ assert.equal(parts.length,8,'one mesh per moving part, the kris and the eyes');
+ assert.equal(new Set(parts.map(p=>p.material)).size,2);
+ let verts=0;
+ for(const p of parts){
+  const a=p.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${p.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,p.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ m.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(m.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.05&&b.max.y<1.4,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ // both eyes show through the mask's slits
+ for(const s of [-1,1]){
+  const e=new THREE.Box3().setFromObject(m.eyes,true).getCenter(new THREE.Vector3());e.x+=s*.028*1.05;
+  const hit=new THREE.Raycaster(new THREE.Vector3(e.x,e.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===m.eyes,`eye ${s} is hidden behind the ${hit?.object.userData.part}`);
+ }
+ // the off-hand dagger runs up the left forearm; the cape hangs behind
+ const arm=new THREE.Box3().setFromObject(m.shieldArm,true);
+ assert(arm.max.z-arm.min.z>.08,'the dagger stands off the left arm');
+ assert(new THREE.Box3().setFromObject(parts.find(p=>p.userData.part==='body'),true).min.z<-.15,'cape behind');
+ const kris=new THREE.Box3().setFromObject(m.weaponSocket,true);
+ assert(Math.max(kris.max.x-kris.min.x,kris.max.y-kris.min.y,kris.max.z-kris.min.z)>.35,'a full-length kris');
+ const again=meshes(createCreature({name:'master assassin'}));
+ parts.forEach((p,i)=>assert(p.geometry===again[i].geometry));
+ assert.notEqual(createCreature({name:'human',symbol:64}).kind,'master assassin');
+});
+
 test('the black marketeer gets a deep peaked cowl over a scarfed face with sickly glinting eyes, a ragged lined cloak hung with stolen wares, a bandolier of vials, a coin purse and a notched long sword instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const bm=createCreature({name:'black marketeer',symbol:64,color:0});

@@ -81,6 +81,7 @@ import {createThothAmon} from './thoth-amon.js';
 import {createCroesus} from './croesus.js';
 import {createAbbot} from './abbot.js';
 import {createOneEyedSam} from './one-eyed-sam.js';
+import {createMasterAssassin} from './master-assassin.js';
 import {createMasterKaen} from './master-kaen.js';
 import {createDarkOne} from './dark-one.js';
 import {createCarnarvon} from './carnarvon.js';
@@ -2555,6 +2556,7 @@ export function createCreature(cell={}){
  if(name==='croesus')return createCroesus();
  if(name==='abbot')return createAbbot();
  if(name==='one-eyed sam')return createOneEyedSam();
+ if(name==='master assassin')return createMasterAssassin();
  if(name==='master kaen')return createMasterKaen();
  if(name==='dark one')return createDarkOne();
  if(name==='lord carnarvon')return createCarnarvon();
