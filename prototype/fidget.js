@@ -197,7 +197,7 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateShamblerLurch(actor, dt, t, busy, look, walking);
   // And the ninja's hood tails: they stream and flutter behind it as it moves, lag its turns, whip with a cut and slap against its back (ninja-tails.js).
   updateNinjaTails(actor, dt, t, busy);
-  // And the Executioner's and Croesus' glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
+  // And the Executioner's, Croesus', One-eyed Sam's and the miner's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
   updateEyeFlare(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
   if (!list.length || actor.asset || !actor.body) return null;

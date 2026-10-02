@@ -1,5 +1,5 @@
-// The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js) and One-eyed Sam
-// (one-eyed-sam.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
+// The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js), One-eyed Sam
+// (one-eyed-sam.js) and the miner (miner.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
 // eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -9,8 +9,11 @@
 //  - One-eyed Sam: a single ember-red eye beside the patch. It smoulders with a restless ember
 //    flicker and shifts in its socket, now and then narrowing in a sly squint. With the hero near it
 //    settles into a held squint, sizing them up, with a cold glint every so often.
-//  - An attack: the eyes blaze up through the wind-up and widen (the Executioner) or narrow to
-//    slits (Croesus), peak just before the blow lands, and die back down after.
+//  - Miner: pale eyes gone half-blind in the tunnels. A dull, slow glow; every few seconds the lids
+//    droop in a heavy blink and the glow sinks with them. With the hero near they open wide in a
+//    hollow stare and pale up, flicking a little in their sockets.
+//  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner) or
+//    narrow to slits (Croesus, Sam), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
 //    greys the glow and this holds.
@@ -27,6 +30,9 @@ export const LOOK = {
     atkGlow: 3.2, atkX: 1.15, atkY: .55, dart: .0045, glintMin: 2, glintSpan: 3, glintNear: 2.5, glintLen: .28, glintGlow: 2},
   'one-eyed sam': {near: 1.25, nearY: .7, ember: .07, breath: .08, breathHz: .3, glareMin: 3, glareSpan: 5, glareLen: 1.1, glareY: .5, glareGlow: 1.35,
     atkGlow: 2.8, atkX: 1.2, atkY: .4, dart: .003, glintMin: 3, glintSpan: 4, glintNear: 2, glintLen: .22, glintGlow: 1.7},
+  // the "glare" here is a heavy-lidded droop (a slow blink), and nearY > 1 widens them into a stare
+  miner: {near: 1.3, nearY: 1.25, breath: .1, breathHz: .22, glareMin: 2, glareSpan: 3.5, glareLen: .75, glareY: .18, glareGlow: .7,
+    atkGlow: 2.6, atkX: 1.25, atkY: 1.45, dart: .002, glintMin: 0, glintSpan: 0},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
