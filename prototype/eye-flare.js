@@ -1,10 +1,14 @@
-// The glowing eyes of the Executioner (executioner.js) and Croesus (croesus.js). Both models hang a
-// small emissive `eyes` mesh on the head; this makes those eyes live.
+// The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js) and One-eyed Sam
+// (one-eyed-sam.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
+// eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
 //    they burn brighter and steadier.
 //  - Croesus: small greedy eyes that shift. They dart side to side in their sockets, and every
 //    few seconds catch a sharp gold glint, much more often with the hero near (eyeing their purse).
+//  - One-eyed Sam: a single ember-red eye beside the patch. It smoulders with a restless ember
+//    flicker and shifts in its socket, now and then narrowing in a sly squint. With the hero near it
+//    settles into a held squint, sizing them up, with a cold glint every so often.
 //  - An attack: the eyes blaze up through the wind-up and widen (the Executioner) or narrow to
 //    slits (Croesus), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
@@ -21,6 +25,8 @@ export const LOOK = {
     atkGlow: 3, atkX: 1.35, atkY: 1.5, dart: 0, glintMin: 0, glintSpan: 0},
   croesus: {near: 1.15, breath: .06, breathHz: .5, glareMin: 0, glareSpan: 0, glareLen: 0, glareY: 1, glareGlow: 1,
     atkGlow: 3.2, atkX: 1.15, atkY: .55, dart: .0045, glintMin: 2, glintSpan: 3, glintNear: 2.5, glintLen: .28, glintGlow: 2},
+  'one-eyed sam': {near: 1.25, nearY: .7, ember: .07, breath: .08, breathHz: .3, glareMin: 3, glareSpan: 5, glareLen: 1.1, glareY: .5, glareGlow: 1.35,
+    atkGlow: 2.8, atkX: 1.2, atkY: .4, dart: .003, glintMin: 3, glintSpan: 4, glintNear: 2, glintLen: .22, glintGlow: 1.7},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
@@ -109,6 +115,8 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
   // The glow.
   const breath = 1 + L.breath * (1 - .5 * st.near) * Math.sin(st.T * L.breathHz * TAU + st.ph);
   let k = breath * (1 + (L.near - 1) * st.near) * (1 + (L.glareGlow - 1) * glare) * (1 + ((L.glintGlow ?? 1) - 1) * glint);
+  // an ember's restless flicker (Sam), quieter as the eye fixes on the hero
+  if (L.ember) k *= 1 + L.ember * (1 - .5 * st.near) * Math.sin(st.T * 9.3 + st.ph) * Math.sin(st.T * 5.1 + 2 * st.ph);
   k *= 1 + (L.atkGlow - 1) * atk + (ANGER - 1) * st.anger;
   k *= .35 + .65 * open;
   if (dead) {
@@ -122,6 +130,7 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
   // The shape: widened or narrowed in the attack, narrowed in a glare, shut in a blink, sagged dead.
   let sx = 1 + (L.atkX - 1) * atk, sy = 1 + (L.atkY - 1) * atk;
   sy *= 1 + (L.glareY - 1) * glare;
+  if (L.nearY) sy *= 1 + (L.nearY - 1) * st.near * (1 - atk);
   sy *= open;
   sy *= DEATH_Y + (1 - DEATH_Y) * st.life;
   const sz = 1;
