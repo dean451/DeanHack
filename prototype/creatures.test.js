@@ -1078,6 +1078,38 @@ test('cavemen and cavewomen get a hunched brute with a heavy brow, a ragged hide
  assert.equal(man[0].geometry,woman[0].geometry,'the body is shared');
 });
 
+test('neanderthals get a broad brute in a wolf pelt, the wolf\'s head worn as a hood, ochre across the eyes and a flint-tipped spear instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const ne=createCreature({name:'neanderthal',symbol:64,color:3});
+ assert.equal(ne.kind,'neanderthal');assert.equal(ne.quirk,'human');assert.equal(ne.female,false);
+ for(const key of ['body','head','arm','weaponSocket'])assert(ne[key]?.isObject3D,key);
+ assert.equal(ne.legs.length,2);assert.equal(ne.arms.length,2);assert.equal(ne.arm,ne.arms[1]);
+ assert(ne.arm.children.includes(ne.weaponSocket),'the socket is at the right hand');
+ assert.equal(ne.weaponSocket.children[0].userData.part,'spear');
+ const parts=meshes(ne);
+ assert.equal(parts.length,7,'one mesh per moving part and the spear');
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ ne.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(ne.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.05&&b.max.y<1.3,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.7,'out of proportion');
+ const spear=new THREE.Box3().setFromObject(ne.weaponSocket,true);
+ assert(spear.max.z>.35,`spear levelled forward (${spear.max.z})`);
+ assert(spear.min.y>.05,`spear butt clear of the floor (${spear.min.y})`);
+ const cm=meshes(createCreature({name:'caveman'})),again=meshes(createCreature({name:'neanderthal'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+ assert.equal(parts[0].material,cm[0].material,'one material shared with the caveman');
+ assert.notEqual(parts[0].geometry,cm[0].geometry,'the body is broader and wears the pelt');
+ assert(parts.some(m=>m.geometry===cm[2].geometry),'the legs are shared');
+});
+
 test('tourists get a straw hat, mirrored shades, a hibiscus shirt, a camera, a fanny pack, a map and a dart instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const to=createCreature({name:'tourist',symbol:64,color:7});
