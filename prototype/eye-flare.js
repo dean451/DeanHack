@@ -2,7 +2,7 @@
 // (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js), the mugger
 // (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js), the prisoner (prisoner.js), the abbot (abbot.js), the neanderthal
 // (caveman.js), Master Kaen (master-kaen.js, the lenses of the Eyes of the Overworld), the Dark One
-// (dark-one.js) and Lord Carnarvon (carnarvon.js). Each model hangs a small emissive `eyes` mesh on
+// (dark-one.js), Lord Carnarvon (carnarvon.js) and Pelias (pelias.js). Each model hangs a small emissive `eyes` mesh on
 // the head; this makes those eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -66,8 +66,13 @@
 //    narrow in a long, studying squint. With the hero near the sweeps stop and the eyes fix on them,
 //    a touch wider and brighter, appraising them like a find, and every few seconds the tomb fever
 //    takes him: a slow, greedy swell of gold that opens the eyes wide, then ebbs.
+//  - Pelias: two frost-pale glints deep under an old war-king's brow. Alone a cold, slow, steady
+//    glow; the eyes drift now and then, slow and unhurried, as if watching a far horizon, and every
+//    few seconds the brow lowers in a long, brooding glower. With the hero near they narrow to a hard
+//    war-squint, brighter, flicking quickly over the foe (measuring them), and every few seconds the
+//    battle-lust bites: a sharp, icy flare that narrows them harder still, then ebbs.
 //  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict, Charon, the prisoner, the abbot,
-//    the neanderthal, Lord Carnarvon) or
+//    the neanderthal, Lord Carnarvon, Pelias with a war-cry) or
 //    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon, the Dark One; Master Kaen's round lenses a little), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
@@ -150,6 +155,14 @@ export const LOOK = {
   'lord carnarvon': {near: 1.3, nearY: 1.1, ember: .03, breath: .08, breathHz: .16, glareMin: 4, glareSpan: 4, glareLen: 1.8, glareY: .55, glareGlow: 1.15, glareNear: .25,
     atkGlow: 2.8, atkX: 1.15, atkY: 1.35, dart: .0035, dartNear: .15, dartGap: [1.1, 1.6], glintMin: 2.5, glintSpan: 3, glintNear: 1.5, glintFar: .3,
     glintLen: 1.3, glintGlow: 2.1, glintY: 1.2, xMax: .0045},
+  // an old war-king: slow drifts alone (long dartGap) that quicken and widen into a fighter's
+  // measuring flicks with the hero near (dartNear > 1, short gap); the "glare" is a brooding glower,
+  // mostly alone (glareNear < 1); a war-squint near (nearY < 1); each glint the battle-lust, a short
+  // icy flare that narrows them harder (glintY < 1), rare alone. The deep socket is about .009 wider
+  // than the glint each side, so xMax keeps it in.
+  pelias: {near: 1.35, nearY: .72, breath: .08, breathHz: .14, glareMin: 4, glareSpan: 5, glareLen: 2, glareY: .5, glareGlow: 1.25, glareNear: .2,
+    atkGlow: 3.4, atkX: 1.2, atkY: 1.5, dart: .0025, dartNear: 1.4, dartGap: [1.8, .45], glintMin: 2.5, glintSpan: 3, glintNear: 1.6, glintFar: .2,
+    glintLen: .45, glintGlow: 2.5, glintY: .6, xMax: .006},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
