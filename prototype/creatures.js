@@ -79,6 +79,7 @@ import {createExecutioner} from './executioner.js';
 import {createCharon} from './charon.js';
 import {createThothAmon} from './thoth-amon.js';
 import {createCroesus} from './croesus.js';
+import {createAbbot} from './abbot.js';
 import {createOneEyedSam} from './one-eyed-sam.js';
 import {createBlackMarketeer} from './black-marketeer.js';
 import {createMiner} from './miner.js';
@@ -2548,6 +2549,7 @@ export function createCreature(cell={}){
  if(name==='charon')return createCharon();
  if(name==='thoth amon')return createThothAmon();
  if(name==='croesus')return createCroesus();
+ if(name==='abbot')return createAbbot();
  if(name==='one-eyed sam')return createOneEyedSam();
  if(name==='black marketeer')return createBlackMarketeer();
  if(name==='miner')return createMiner();
