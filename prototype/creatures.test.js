@@ -1281,6 +1281,44 @@ test('Croesus gets a spiked jewelled crown, a gaunt sallow face with greedy gold
  assert.notEqual(createCreature({name:'human',symbol:64}).kind,'croesus');
 });
 
+test('One-eyed Sam gets a tricorn, an eyepatch and one burning eye, a braid, grey dragon scale mail under a ragged greatcoat, speed boots, a mirror shield on the left arm and Thiefbane instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const sam=createCreature({name:'One-eyed Sam',symbol:64,color:0});
+ assert.equal(sam.kind,'one-eyed sam');assert.equal(sam.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','shieldArm','eyes'])assert(sam[key]?.isObject3D,key);
+ assert.equal(sam.legs.length,2);assert.equal(sam.arms.length,2);assert(sam.arm===sam.arms[1]);assert(sam.shieldArm===sam.arms[0]);
+ assert(sam.arm.children.includes(sam.weaponSocket),'the socket is at the right hand');
+ assert.equal(sam.weaponSocket.children.length,1,'the sword is held');
+ const parts=meshes(sam);
+ assert.equal(parts.length,8,'one mesh per moving part, the sword and the eye');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ sam.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(sam.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.2&&b.max.y<1.55,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ // one eye burns from its socket, the other is under the patch
+ const eye=new THREE.Box3().setFromObject(sam.eyes,true).getCenter(new THREE.Vector3());
+ const hit=new THREE.Raycaster(new THREE.Vector3(eye.x,eye.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+ assert(hit?.object===sam.eyes,`the eye is hidden behind the ${hit?.object.userData.part}`);
+ assert(eye.x>0,'the eye is on the right, the patch on the left');
+ // the mirror shield stands out from the left forearm; the coat hangs behind
+ const arm=new THREE.Box3().setFromObject(sam.shieldArm,true);
+ assert(arm.min.x<-.3&&arm.max.y-arm.min.y>.3,'the shield is on the left arm');
+ assert(new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='body'),true).min.z<-.18,'coat behind');
+ assert(new THREE.Box3().setFromObject(sam.weaponSocket,true).max.y>1.1,'the blade is held high');
+ const again=meshes(createCreature({name:'one-eyed sam'}));
+ parts.forEach((m,i)=>assert(m.geometry===again[i].geometry));
+ assert.notEqual(createCreature({name:'human',symbol:64}).kind,'one-eyed sam');
+});
+
 test('barbarians get a horned iron cap, ash war paint, braided beard, wolf-pelt mantle, ring mail, spiked bracers and a notched great axe instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const ba=createCreature({name:'barbarian',symbol:64,color:1});
