@@ -79,7 +79,7 @@ export function throwPose(style, u, centaur = null) {
   return {arm, wrist, pitch, swing: throwSwing(elbow, shield)};
 }
 
-// Launches in a replayed fx timeline: [{x, z, dir, at, style}], one per flight (earliest first,
+// Launches in a replayed fx timeline: [{x, z, dir, at, style, shape}], one per flight (earliest first,
 // at most MAX_THROWS from the same cell). x, z is the thrower's map cell; dir the first step.
 export function throwLaunches(timeline) {
   const out = [], perCell = new Map();
@@ -90,10 +90,10 @@ export function throwLaunches(timeline) {
     const key = `${a.x},${a.z}`, n = perCell.get(key) ?? 0;
     if (n >= MAX_THROWS) continue;
     perCell.set(key, n + 1);
-    out.push({x: a.x, z: a.z, dir: [Math.sign(b.x - a.x), Math.sign(b.z - a.z)], at: f.start, style: throwStyle(f.shape)});
+    out.push({x: a.x, z: a.z, dir: [Math.sign(b.x - a.x), Math.sign(b.z - a.z)], at: f.start, style: throwStyle(f.shape), shape: f.shape});
   }
   return out;
 }
 
-// The action to queue on a thrower.
-export const throwAction = launch => ({kind: 'throw', dir: launch.dir, style: launch.style});
+// The action to queue on a thrower. The shape lets a held sling whirl for a stone (sling-whirl.js).
+export const throwAction = launch => ({kind: 'throw', dir: launch.dir, style: launch.style, shape: launch.shape});

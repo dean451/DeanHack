@@ -28,7 +28,7 @@ const snapshot = a => [a.g.position.toArray(), a.g.rotation.toArray().slice(0, 3
   a.wrist.rotation.toArray().slice(0, 3), a.arms?.[0]?.rotation.toArray().slice(0, 3), a.offHand?.rotation.toArray().slice(0, 3)];
 
 test('a launch is the thrower cell and first step of each flight', () => {
-  assert.deepEqual(throwLaunches(throwTo(6, DAGGER)), [{x: 2, z: 2, dir: [1, 0], at: 0, style: 'hurl'}]);
+  assert.deepEqual(throwLaunches(throwTo(6, DAGGER)), [{x: 2, z: 2, dir: [1, 0], at: 0, style: 'hurl', shape: 'dagger'}]);
   assert.equal(throwLaunches(throwTo(6, ARROW))[0].style, 'shoot');
   assert.equal(throwStyle('bolt'), 'shoot');
   assert.equal(throwStyle('flask'), 'hurl');
