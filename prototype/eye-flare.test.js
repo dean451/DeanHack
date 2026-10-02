@@ -17,7 +17,7 @@ function frame(a, t, look) {
 }
 const glow = a => a.eyes.material.emissiveIntensity;
 
-test('only the Executioner, Croesus, One-eyed Sam, the miner, the black marketeer, the mugger, the convict, Thoth Amon, Charon, the prisoner, the abbot and the neanderthal are lit, each with its own glow material', () => {
+test('only the Executioner, Croesus, One-eyed Sam, the miner, the black marketeer, the mugger, the convict, Thoth Amon, Charon, the prisoner, the abbot, the neanderthal and Master Kaen are lit, each with its own glow material', () => {
   for (const name of ['jackal', 'minotaur', 'ninja']) assert.equal(E.updateEyeFlare(createCreature({name}), dt, 0, false), null, name);
   const a = make('executioner'), b = make('executioner'), shared = a.eyes.material;
   assert.ok(shared === b.eyes.material);
@@ -39,7 +39,7 @@ test('the curves are bounded and quiet outside their spans', () => {
 });
 
 test('idle, near the hero and in an attack: finite, eyes stay put, and the attack blazes', () => {
-  for (const name of ['executioner', 'croesus', 'one-eyed sam', 'miner', 'black marketeer', 'mugger', 'convict', 'thoth amon', 'charon', 'prisoner', 'abbot', 'neanderthal']) {
+  for (const name of ['executioner', 'croesus', 'one-eyed sam', 'miner', 'black marketeer', 'mugger', 'convict', 'thoth amon', 'charon', 'prisoner', 'abbot', 'neanderthal', 'master kaen']) {
     const a = make(name), hero = new THREE.Vector3(1, 0, 2), far = new THREE.Vector3(30, 0, 30);
     const centre = () => { a.g.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(a.eyes); return b.getCenter(new THREE.Vector3()); };
     const c0 = centre();
@@ -385,6 +385,49 @@ test("the neanderthal's eyes smoulder and brood alone, and with the hero near na
   assert.ok(near.jit < .6 * alone.jit, `steadier flicker ${alone.jit} → ${near.jit}`);
   assert.ok(near.flashes > 2 * alone.flashes && near.flashes >= 8, `flashes ${alone.flashes} → ${near.flashes}`);
   assert.ok(near.flashHi > 2 * near.mean && near.flashLid > L.nearY + .1, `flash ${near.flashHi} vs ${near.mean}, lid ${near.flashLid}`);
+  run(far, 8);
+  const st = a.eyeFlare;
+  for (let i = 0; i < 4 * 60 && (st.glare !== null || st.glint !== null); i++) frame(a, t += dt, far);
+  assert.ok(st.near < 1e-3 && Math.abs(a.eyes.scale.y - 1) < .01 && Math.abs(a.eyes.scale.x - 1) < 1e-9);
+});
+
+test("Master Kaen's lenses breathe slow and gather ki alone, and with the hero near quicken, narrow a touch and flash with the Overworld sight", () => {
+  // (made here, not in the first test, so the other creatures' ids and so their seeds don't shift)
+  const a = make('master kaen'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK['master kaen'];
+  assert.ok(E.hasEyes(a));
+  const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
+  let t = 0, prevK = null;
+  const run = (look, secs) => {
+    let sum = 0, n = 0, gathers = 0, gatherHi = 0, gatherLo = Infinity, flashes = 0, was = false, wasG = false, lidLo = Infinity, lidHi = 0, flashHi = 0, ph = 0, jump = 0;
+    for (let i = 0; i < secs * 60; i++) {
+      const b0 = a.eyeFlare?.bph ?? 0, st = frame(a, t += dt, look);
+      ph += ((st.bph - b0) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+      assert.equal(st.dart, 0);
+      assert.ok(Math.abs(a.eyes.position.x - (rest.x + st.c.x * (1 - a.eyes.scale.x))) < 1e-12, 'never darts');
+      assert.ok(a.eyes.scale.y > .7 && a.eyes.scale.y < 1.1 && Number.isFinite(glow(a)) && glow(a) >= 0, `round lenses barely narrow ${a.eyes.scale.y}`);
+      const calm = st.blink === null && st.glint === null;
+      if (calm && prevK !== null) jump = Math.max(jump, Math.abs(st.k - prevK));
+      prevK = calm ? st.k : null;
+      if (st.glint !== null && !was) flashes++; was = st.glint !== null;
+      if (st.glare !== null && !wasG) gathers++; wasG = st.glare !== null;
+      if (st.glare !== null && st.glint === null) { gatherHi = Math.max(gatherHi, st.k); gatherLo = Math.min(gatherLo, a.eyes.scale.y); }
+      if (st.glint !== null && st.glare === null) flashHi = Math.max(flashHi, st.k);
+      if (st.glare === null && st.glint === null && st.blink === null) { sum += st.k; n++; lidLo = Math.min(lidLo, a.eyes.scale.y); lidHi = Math.max(lidHi, a.eyes.scale.y); }
+    }
+    return {mean: sum / n, gathers, gatherHi, gatherLo, flashes, flashHi, lidLo, lidHi, hz: ph / (2 * Math.PI) / secs, jump};
+  };
+  const alone = run(far, 40);
+  const into = run(hero, 5);
+  const near = run(hero, 40);
+  assert.ok(Math.abs(alone.hz - L.breathHz) < .01 && Math.abs(near.hz - L.breathHzNear) < .01, `breath ${alone.hz} → ${near.hz} Hz`);
+  assert.ok(into.jump < .1, `the breath quickens without a jump ${into.jump}`);
+  assert.ok(alone.gathers >= 3 && alone.gatherHi > 1.4 * alone.mean && alone.gatherLo < L.glareY + .03, `gathers ${alone.gathers} ${alone.gatherHi} vs ${alone.mean}, ${alone.gatherLo}`);
+  assert.ok(alone.lidHi < 1.01 && alone.lidLo > .99, `open alone ${alone.lidLo}..${alone.lidHi}`);
+  assert.ok(near.gathers < alone.gathers, `ki gathers mostly alone ${alone.gathers} → ${near.gathers}`);
+  assert.ok(near.mean > 1.3 * alone.mean, `brighter ${alone.mean} → ${near.mean}`);
+  assert.ok(Math.abs(near.lidLo - L.nearY) < .02 && Math.abs(near.lidHi - L.nearY) < .02, `narrowed ${near.lidLo}..${near.lidHi}`);
+  assert.ok(near.flashes > 2 * alone.flashes && near.flashes >= 8, `flashes ${alone.flashes} → ${near.flashes}`);
+  assert.ok(near.flashHi > 2 * near.mean, `flash ${near.flashHi} vs ${near.mean}`);
   run(far, 8);
   const st = a.eyeFlare;
   for (let i = 0; i < 4 * 60 && (st.glare !== null || st.glint !== null); i++) frame(a, t += dt, far);

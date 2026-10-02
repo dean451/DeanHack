@@ -1,7 +1,7 @@
 // The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js), One-eyed Sam
 // (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js), the mugger
-// (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js), the prisoner (prisoner.js), the abbot (abbot.js) and the neanderthal
-// (caveman.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
+// (mugger.js), the convict (convict.js), Thoth Amon (thoth-amon.js), Charon (charon.js), the prisoner (prisoner.js), the abbot (abbot.js), the neanderthal
+// (caveman.js) and Master Kaen (master-kaen.js, the lenses of the Eyes of the Overworld). Each model hangs a small emissive `eyes` mesh on the head; this makes those
 // eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -50,9 +50,14 @@
 //    near they draw down into a hunter's squint, brighter and steady, never darting (the slit pupils
 //    are on the head), and every few seconds the eyeshine catches: a sudden hard flash of amber that
 //    snaps the eyes a little wider, gone as fast as it came.
+//  - Master Kaen: the cold blue-white lenses of the Eyes of the Overworld, never darting. Alone they
+//    rise and fall with a deep, slow meditative breath, and now and then his ki gathers: a long swell
+//    of light that draws the lenses a little narrower. With the hero near the breath quickens into a
+//    fighter's, the lenses narrow a touch and burn brighter, and every few seconds the Overworld sight
+//    flashes through them: a sharp, cold white-out, as if the lenses saw straight through the hero.
 //  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner, the convict, Charon, the prisoner, the abbot,
 //    the neanderthal) or
-//    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon), peak just before the blow lands, and die back down after.
+//    narrow to slits (Croesus, Sam, the marketeer, the mugger, Thoth Amon; Master Kaen's round lenses a little), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
 //    greys the glow and this holds.
@@ -115,6 +120,12 @@ export const LOOK = {
   // a little wider: glintY), rare alone (glintFar < 1). No dart: the slit pupils are on the head.
   neanderthal: {near: 1.35, nearY: .65, ember: .1, emberNear: .35, breath: .06, breathHz: .2, glareMin: 4, glareSpan: 5, glareLen: 1.6, glareY: .5, glareGlow: 1.2,
     atkGlow: 3, atkX: 1.15, atkY: 1.45, dart: 0, glintMin: 2.5, glintSpan: 3, glintNear: 1.6, glintFar: .3, glintLen: .3, glintGlow: 2.4, glintY: 1.25},
+  // a ki master: a deep, slow breath alone that quickens into a fighter's with the hero near
+  // (breathHzNear, Hz there) and grows shallower (breathNear); the "glare" is his ki gathering, a long
+  // bright swell (glareGlow > 1), mostly alone (glareNear < 1); each glint the Overworld sight, a sharp
+  // cold white-out, rare alone. The lenses are round under iron rims, so they narrow only a little.
+  'master kaen': {near: 1.4, nearY: .88, breath: .2, breathHz: .08, breathHzNear: .45, breathNear: .45, glareMin: 4, glareSpan: 5, glareLen: 2.6, glareY: .85, glareGlow: 1.7, glareNear: .3,
+    atkGlow: 3.4, atkX: 1.08, atkY: .78, dart: 0, glintMin: 2.5, glintSpan: 3, glintNear: 1.6, glintFar: .2, glintLen: .35, glintGlow: 2.6, glintY: 1.06},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
@@ -145,7 +156,7 @@ export const holdCurve = v => !(v > 0) || !(v < 1) ? 0 : smooth(v / .2) * (1 - s
 
 function setup(a) {
   const L = LOOK[a.kind], st = {seed: ((a.g?.id ?? 1) * 40692) % 2147483647 || 1, T: 0, L, life: 1, near: 0, anger: 0,
-    blink: null, glare: null, glint: null, glance: 0, side: 0, dart: 0, dartTo: 0, dartWait: 0, lastHit: null};
+    blink: null, glare: null, glint: null, glance: 0, bph: 0, side: 0, dart: 0, dartTo: 0, dartWait: 0, lastHit: null};
   a.eyes.material = a.eyes.material.clone();
   st.base = a.eyes.material.emissiveIntensity;
   a.eyes.geometry.computeBoundingBox();
@@ -221,7 +232,9 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
   const atk = !dead && cur?.kind === 'attack' && (q.age ?? 0) >= (cur.wait ?? 0) ? attackCurve(q.u ?? 0) : 0;
 
   // The glow.
-  const breath = 1 + L.breath * (1 + ((L.breathNear ?? .5) - 1) * st.near) * Math.sin(st.T * L.breathHz * TAU + st.ph);
+  // (its phase is integrated, so Kaen's breath can quicken with the hero near without jumping)
+  st.bph = (st.bph + dt * TAU * (L.breathHz + ((L.breathHzNear ?? L.breathHz) - L.breathHz) * st.near)) % TAU;
+  const breath = 1 + L.breath * (1 + ((L.breathNear ?? .5) - 1) * st.near) * Math.sin(st.bph + st.ph);
   let k = breath * (1 + (L.near - 1) * st.near) * (1 + (L.glareGlow - 1) * glare) * (1 + ((L.glintGlow ?? 1) - 1) * glint);
   // an ember's restless flicker: Sam's quieter as the eye fixes on the hero, Charon's coals fanned
   if (L.ember) k *= 1 + L.ember * (1 + ((L.emberNear ?? .5) - 1) * st.near) * Math.sin(st.T * 9.3 + st.ph) * Math.sin(st.T * 5.1 + 2 * st.ph);
