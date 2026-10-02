@@ -324,6 +324,25 @@ test('a boomerang has its own hooked, bone-toothed stick, merged to one mesh per
  stick.userData.dispose();
 });
 
+test('a dart is its own barbed, fletched dart in two meshes',()=>{
+ for(const name of ['dart','12 +0 darts']){
+  const dart=createHeldWeapon({name,class:2});
+  assert.deepEqual(dart.children.map(c=>c.userData.part).sort(),['head','shaft']);
+  const head=dart.children.find(c=>c.userData.part==='head');
+  assert(head.material.metalness>=.75,'weapon-magic can sheathe the iron');
+  for(const mesh of dart.children){const p=mesh.geometry.attributes.position;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)),'finite vertices');}
+  dart.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(dart);
+  // Point up from the hand, a slim body; laid on the floor (x −PI/2, scale .8, y .052) the
+  // flights stay above it.
+  assert(box.max.y>.2&&box.max.y<.21&&box.min.y>-.09,`y ${box.min.y}..${box.max.y}`);
+  for(const v of [box.min.x,box.max.x,box.min.z,box.max.z])assert(Math.abs(v)<.03,`xz ${v}`);
+  assert(.052+.8*box.min.z>0,'above the floor');
+  dart.userData.dispose();
+ }
+});
+
 test('a shuriken is its own six-pointed, raked iron star in one mesh',()=>{
  for(const name of ['shuriken','throwing star']){
   const star=createHeldWeapon({name,class:2});
