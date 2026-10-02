@@ -20,11 +20,11 @@ const BUTT_Y=-.31,EYE_LO=.655,EYE_HI=.785,R=.024;
 const IRON=0x34373a,POLISH=0xc9cfd1,SCALE=0x1c1a19,RUST=0x5e3018,COPPER=0x8a5532,
  WOOD=0x3a2618,WOOD_DARK=0x1f130c,LEATHER=0x2b1a12,LEATHER_HI=0x4a3022;
 
-const hash=i=>{const v=Math.sin(i*127.1+31.7)*43758.5453;return v-Math.floor(v);};
-const smooth=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
+export const hash=i=>{const v=Math.sin(i*127.1+31.7)*43758.5453;return v-Math.floor(v);};
+export const smooth=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
 
 // Rings joined into quads, each end closed by a fan to its centroid.
-function lattice(stations){
+export function lattice(stations){
  const n=stations[0].length,pos=[],idx=[];
  for(const ring of stations)for(const p of ring)pos.push(...p);
  for(let i=0;i<stations.length-1;i++)for(let k=0;k<n;k++){const a=i*n+k,b=i*n+(k+1)%n,c=a+n,d=b+n;idx.push(a,c,b,b,c,d);}
@@ -36,7 +36,7 @@ function lattice(stations){
 }
 // A blade swept out from the eye along a drooping centre line in the x-y plane: at u, `center(u)`
 // is the centre, and the section is `section(u)` as [across the line in x-y, z] pairs.
-function sweep(N,center,section){
+export function sweep(N,center,section){
  const stations=[];
  for(let i=0;i<=N;i++){
   const u=i/N,c=center(u),e=.001,a=center(Math.max(0,u-e)),b=center(Math.min(1,u+e));
@@ -47,7 +47,7 @@ function sweep(N,center,section){
  return lattice(stations);
 }
 // An octagon with bevelled corners: half sizes h (across) and w (z), corners cut by k.
-const bevelBox=(h,w,k=.3)=>[[h,w*(1-k)],[h*(1-k),w],[-h*(1-k),w],[-h,w*(1-k)],[-h,-w*(1-k)],[-h*(1-k),-w],[h*(1-k),-w],[h,-w*(1-k)]];
+export const bevelBox=(h,w,k=.3)=>[[h,w*(1-k)],[h*(1-k),w],[-h*(1-k),w],[-h,w*(1-k)],[-h,-w*(1-k)],[-h*(1-k),-w],[h*(1-k),-w],[h,-w*(1-k)]];
 
 export function buildMattock(g){
  const iron=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.78,roughness:.52});

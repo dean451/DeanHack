@@ -551,6 +551,41 @@ test('a dwarvish mattock is a broad adze and hooked pick on a long iron-shod haf
  assert.equal(createHeldWeapon({name:'pick-axe',class:6}).userData.mattock,undefined);
 });
 
+test('a pick-axe is a square pick and narrow chisel on a leather-gripped hickory haft, two meshes; a crystal pick adds a glass head',()=>{
+ for(const name of ['pick-axe','+1 pick-axe','rusty pick-axe','crystal pick','+2 crystal pick']){
+  const crystal=/crystal/.test(name),w=createHeldWeapon({name,class:6});
+  assert.deepEqual(w.userData.pickAxe,{kind:crystal?'crystal pick':'pick-axe'},name);
+  assert.deepEqual(w.children.map(c=>c.userData.part).sort(),crystal?['fittings','haft','head']:['haft','head'],name);
+  const head=w.children.find(c=>c.userData.part==='head');
+  if(crystal)assert(head.material.transparent&&head.material.opacity<1,'glass head');
+  else assert(head.material.metalness>=.75,'weapon-magic can sheathe the iron');
+  for(const mesh of w.children){const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal;
+   for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)+n.getX(i)+n.getY(i)+n.getZ(i)),'finite vertices and normals');}
+  w.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(w);
+  assert(box.max.y>.6&&box.max.y<.7&&box.min.y>-.23&&box.min.y<-.18,`${name} y ${box.min.y}..${box.max.y}`);
+  assert(box.max.x>.24&&box.min.x<-.26&&box.max.x<.3&&box.min.x>-.3,`${name} x ${box.min.x}..${box.max.x}`);
+  assert(.052+.8*box.min.z>0&&box.max.z<.05,`${name} flat on the floor, z ${box.min.z}..${box.max.z}`);
+  // Both ends curve down below the eye; the pick ends in a point, the chisel in a narrow edge.
+  const p=head.geometry.attributes.position;let ax=0,px=0;
+  for(let i=1;i<p.count;i++){if(p.getX(i)>p.getX(ax))ax=i;if(p.getX(i)<p.getX(px))px=i;}
+  assert(p.getY(ax)<.56&&p.getY(px)<.54,`ends curve down, ${p.getY(ax)} ${p.getY(px)}`);
+  let edge=0,point=0;for(let i=0;i<p.count;i++){if(p.getX(i)>p.getX(ax)-.004)edge=Math.max(edge,Math.abs(p.getZ(i)));if(p.getX(i)<p.getX(px)+.004)point=Math.max(point,Math.abs(p.getZ(i)));}
+  assert(edge>.015&&point<.006,`edge ${edge}, point ${point}`);
+  // Every part is closed and wound outward, so each mesh encloses a positive volume.
+  for(const mesh of w.children){const q=mesh.geometry.attributes.position,a=new THREE.Vector3(),b=new THREE.Vector3(),d=new THREE.Vector3();let v=0;
+   for(let i=0;i<q.count;i+=3){a.fromBufferAttribute(q,i);b.fromBufferAttribute(q,i+1);d.fromBufferAttribute(q,i+2);v+=a.dot(b.cross(d));}
+   assert(v>0,`${mesh.userData.part} winds outward`);}
+  const haft=new THREE.Box3().setFromObject(w.children.find(c=>c.userData.part==='haft'));
+  assert(haft.min.y<-.18&&Math.max(-haft.min.x,haft.max.x)<.04,'haft at the hand');
+  w.userData.dispose();
+ }
+ // No longer the hand axe; the mattock and the plain axe keep their own models.
+ assert.equal(createHeldWeapon({name:'dwarvish mattock',class:2}).userData.pickAxe,undefined);
+ assert.equal(createHeldWeapon({name:'axe',class:2}).userData.pickAxe,undefined);
+ assert.equal(createHeldWeapon({name:'lock pick',class:6}).userData.pickAxe,undefined);
+});
+
 test('a rubber hose is a perished black hose over a taped grip with a brass coupling and barbed wire, two meshes',()=>{
  for(const name of ['rubber hose','+1 rubber hose','cursed rubber hose']){
   const w=createHeldWeapon({name,class:2});

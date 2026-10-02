@@ -14,6 +14,7 @@ import {buildScalpel,SCALPEL_NAME} from './scalpel.js';
 import {buildRubberHose,RUBBER_HOSE_NAME} from './rubber-hose.js';
 import {buildKatana,KATANA_NAME} from './katana.js';
 import {buildMattock,MATTOCK_NAME} from './mattock.js';
+import {buildPickAxe,PICK_AXE_NAME} from './pick-axe.js';
 
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
@@ -46,6 +47,9 @@ export function createHeldWeapon(item){
   buildKatana(g);
  }else if(MATTOCK_NAME.test(name)){
   buildMattock(g);
+ }else if(PICK_AXE_NAME.test(name)){
+  // Before the axe, which a "pick-axe" would otherwise match.
+  buildPickAxe(g,name);
  }else if(blade){
   const short=/dagger|knife|athame/.test(name),length=short?.34:.75,width=short?.055:.075;
   part(new THREE.CylinderGeometry(.029,.035,.17,8),leather,0,0);
