@@ -55,8 +55,8 @@ test('an arrow flies nose-first on a shallow arc and is gone when it lands', () 
     for (const v of Object.values(fr)) assert.ok(Number.isFinite(v));
     assert.ok(fr.x >= prevX, 'moves forward');
     prevX = fr.x;
-    assert.ok(Math.abs(fr.yaw - Math.PI / 2) < 1e-9, 'faces +x');
-    assert.equal(fr.spin, 0);
+    assert.ok(Math.abs(fr.yaw - Math.PI / 2) <= STYLES.arrow.wag + 1e-9, 'faces +x');
+    assert.ok(Math.abs(fr.spin - STYLES.arrow.roll * t / 1000) < 1e-9);
     assert.ok(fr.y > .3 && fr.y < LAUNCH_Y + STYLES.arrow.maxArc + 1e-9);
     assert.ok(Math.abs(fr.pitch) < .6);
     peak = Math.max(peak, fr.y);
@@ -166,10 +166,10 @@ test('a thrown dart is the real dart, point first, rolling on its flights', () =
   const head = meshes.find(m => m.userData.part === 'head');
   const hb = new THREE.Box3().setFromBufferAttribute(head.geometry.attributes.position);
   assert.ok(Math.abs(hb.max.z - box.max.z) < 1e-6, 'the point leads');
-  // It rolls at a steady rate about its length; arrows don't.
+  // It rolls at a steady rate about its length, faster than an arrow.
   const a = flightFrame(f, 40), b = flightFrame(f, 140);
   assert.ok(Math.abs(b.spin - a.spin - STYLES.dart.roll * .1) < 1e-9);
-  assert.equal(flightFrame(flightsFromFx(throwTo(6, ARROW))[0], 140).spin, 0);
+  assert.ok(STYLES.dart.roll > STYLES.arrow.roll);
   fl.update(.12, {x: 0, z: 0});
   const inner = scene.children[0].children[0];
   assert.ok(Math.abs(inner.rotation.z - STYLES.dart.roll * .12) < 1e-9);
@@ -277,5 +277,37 @@ test('a boomerang whirls round its loop, banked into the turn, and flies back to
   assert.equal(inner.rotation.order, 'ZYX');
   assert.ok(Math.abs(inner.rotation.y) > 1 && inner.rotation.z !== 0);
   assert.equal(fl.update(.4, {x: 10, z: 10}), 0, 'gone once home');
+  fl.dispose();
+});
+
+test('a shot arrow rolls slowly on its fletching and fishtails off the string; a bolt only rolls', () => {
+  const [f] = flightsFromFx(throwTo(8, ARROW));
+  const [g] = flightsFromFx(throwTo(8, {...ARROW, shape: 'bolt'}));
+  const line = Math.atan2(1, 0);
+  assert.ok(Math.abs(flightFrame(f, f.start).yaw - line) < 1e-9, 'leaves on the line');
+  let peak = 0, late = 0, prev = flightFrame(f, f.start);
+  for (let t = f.start + 5; t < f.end; t += 5) {
+    const fr = flightFrame(f, t);
+    for (const v of Object.values(fr)) assert.ok(Number.isFinite(v));
+    const off = Math.abs(fr.yaw - line);
+    assert.ok(off <= STYLES.arrow.wag + 1e-9);
+    if (t - f.start < 120) peak = Math.max(peak, off);
+    else late = Math.max(late, off);
+    // Roll is steady and slow: a fraction of a turn per frame-sized step.
+    assert.ok(Math.abs(fr.spin - prev.spin - STYLES.arrow.roll * .005) < 1e-9);
+    prev = fr;
+    const fg = flightFrame(g, t);
+    if (fg) { assert.ok(Math.abs(fg.yaw - line) < 1e-9, 'a bolt flies true'); assert.ok(Math.abs(fg.spin - STYLES.bolt.roll * (t - g.start) / 1000) < 1e-9); }
+  }
+  assert.ok(peak > STYLES.arrow.wag * .4, 'a visible fishtail early');
+  assert.ok(f.end - f.start <= 120 || late < peak * .5, 'dies away');
+  // The arrow's model rolls about its own length (inner z), not end over end.
+  const scene = new THREE.Group();
+  const fl = createFlights(THREE, scene);
+  fl.play(throwTo(8, ARROW));
+  fl.update(.1, {x: 0, z: 0});
+  const inner = scene.children[0].children[0];
+  assert.ok(Math.abs(inner.rotation.z - STYLES.arrow.roll * .1) < 1e-9);
+  assert.equal(inner.rotation.x, 0);
   fl.dispose();
 });
