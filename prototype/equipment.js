@@ -14,6 +14,7 @@ import {buildScalpel,SCALPEL_NAME} from './scalpel.js';
 import {buildRubberHose,RUBBER_HOSE_NAME} from './rubber-hose.js';
 import {buildKatana,KATANA_NAME} from './katana.js';
 import {buildScimitar,SCIMITAR_NAME} from './scimitar.js';
+import {buildTsurugi,TSURUGI_NAME} from './tsurugi.js';
 import {buildMattock,MATTOCK_NAME} from './mattock.js';
 import {buildPickAxe,PICK_AXE_NAME} from './pick-axe.js';
 
@@ -48,6 +49,8 @@ export function createHeldWeapon(item){
   buildKatana(g);
  }else if(SCIMITAR_NAME.test(name)){
   buildScimitar(g);
+ }else if(TSURUGI_NAME.test(name)){
+  buildTsurugi(g);
  }else if(MATTOCK_NAME.test(name)){
   buildMattock(g);
  }else if(PICK_AXE_NAME.test(name)){
