@@ -287,3 +287,21 @@ test('a silver saber has its own curved silver blade and knuckle-bow, not the lo
  assert.notEqual(saber.children.length,createHeldWeapon({name:'long sword',class:2}).children.length);
  saber.userData.dispose();grayswandir.userData.dispose();
 });
+
+test('a bullwhip has its own coiled, braided lash, merged to one mesh per material',()=>{
+ const whip=createHeldWeapon({name:'bullwhip',class:2});
+ assert.deepEqual(whip.children.map(c=>c.userData.part).sort(),['fittings','whip']);
+ const iron=whip.children.find(c=>c.userData.part==='fittings');
+ assert(iron.material.metalness>=.75,'weapon-magic can sheathe the iron');
+ whip.updateMatrixWorld(true);
+ for(const mesh of whip.children){const p=mesh.geometry.attributes.position;
+  for(let i=0;i<p.count;i++)assert(Number.isFinite(p.getX(i)+p.getY(i)+p.getZ(i)),'finite vertices');}
+ const box=new THREE.Box3().setFromObject(whip);
+ // The coils rise above the hand and hang beside it; they sag back (−z), so laid on the floor
+ // (x −PI/2, scale .8, y .052 in live.js) they stay above the floor.
+ assert(box.max.y>.3&&box.max.y<.5,`top ${box.max.y}`);
+ assert(box.max.x>.2&&box.min.x>-.06,`x ${box.min.x}..${box.max.x}`);
+ assert(.052+.8*box.min.z>0,`floor clearance ${box.min.z}`);
+ assert(box.max.z<.04,`z ${box.max.z}`);
+ whip.userData.dispose();
+});
