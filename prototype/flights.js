@@ -11,6 +11,7 @@
 // flightShape(), flightsFromFx() and flightFrame() are pure; createFlights() draws them.
 
 import {FX_TICK_MS} from './fx.js';
+import {buildShuriken, SHURIKEN_CENTER} from './shuriken.js';
 
 // Object classes and materials from include/objclass.h.
 const WEAPON_CLASS = 2, POTION_CLASS = 8, COIN_CLASS = 12, GEM_CLASS = 13, ROCK_CLASS = 14, BALL_CLASS = 15,
@@ -21,6 +22,8 @@ const WOOD = 8, BONE = 9, COPPER = 13, SILVER = 14, GOLD = 15, PLATINUM = 16, MI
 // How each shape flies: `spin` is 'point' (nose along the path), 'tumble' (end over end),
 // 'flat' (spins about the vertical) or 'roll' (along the floor); `rate` is rad/s for tumble
 // and flat. The arc's peak is `arc` + `perCell` per cell of path, capped at `maxArc`.
+// A flat spinner is thrown banked: it leans `bank` rad about its line of flight, and the lean
+// wobbles by `wobble` at `wobbleRate` rad/s, so the spinning face catches the light.
 export const STYLES = {
   arrow: {spin: 'point', arc: .05, perCell: .02, maxArc: .3},
   bolt: {spin: 'point', arc: .04, perCell: .015, maxArc: .22},
@@ -28,7 +31,7 @@ export const STYLES = {
   spear: {spin: 'point', arc: .08, perCell: .03, maxArc: .4},
   dagger: {spin: 'tumble', rate: 17, arc: .08, perCell: .03, maxArc: .4},
   weapon: {spin: 'tumble', rate: 12, arc: .1, perCell: .035, maxArc: .45},
-  shuriken: {spin: 'flat', rate: 28, arc: .04, perCell: .015, maxArc: .22},
+  shuriken: {spin: 'flat', rate: 28, arc: .04, perCell: .015, maxArc: .22, bank: .22, wobble: .07, wobbleRate: 14},
   stone: {spin: 'tumble', rate: 9, arc: .12, perCell: .05, maxArc: .6},
   gem: {spin: 'tumble', rate: 11, arc: .12, perCell: .05, maxArc: .6},
   coin: {spin: 'tumble', rate: 20, arc: .14, perCell: .05, maxArc: .6},
@@ -107,7 +110,7 @@ const pathLength = knots => {
 
 // Where a flight is at t ms into the replay, or null before it starts or once it has landed:
 // {x, z} in (fractional) map cells, y in tiles, yaw (about +y, 0 = facing +z), pitch (nose up
-// is positive) and spin (radians about the style's axis).
+// is positive), spin (radians about the style's axis) and bank (lean about the line of flight).
 export function flightFrame(flight, t) {
   if (!flight || !(t >= flight.start) || t >= flight.end) return null;
   const S = STYLES[flight.shape] ?? STYLES.lump;
@@ -127,7 +130,7 @@ export function flightFrame(flight, t) {
     let run = 0;
     for (let j = 1; j < i; j++) run += Math.hypot(k[j].x - k[j - 1].x, k[j].z - k[j - 1].z);
     run += Math.hypot(x - a.x, z - a.z);
-    return {x, z, y: S.radius, yaw, pitch: 0, spin: run / S.radius};
+    return {x, z, y: S.radius, yaw, pitch: 0, spin: run / S.radius, bank: 0};
   }
   const K = (t - flight.start) / (flight.end - flight.start);
   const arc = Math.min(S.maxArc, S.arc + S.perCell * L);
@@ -135,7 +138,8 @@ export function flightFrame(flight, t) {
   const dy = (LAND_Y - LAUNCH_Y) + arc * 4 * (1 - 2 * K);
   const pitch = L > 0 ? Math.atan2(dy, L) : -Math.PI / 2;
   const spin = S.spin === 'point' ? 0 : S.rate * sec;
-  return {x, z, y, yaw, pitch, spin};
+  const bank = S.bank ? S.bank + S.wobble * Math.sin(S.wobbleRate * sec) : 0;
+  return {x, z, y, yaw, pitch, spin, bank};
 }
 
 // Draws flights. play(timeline) queues a replay's flights, update(dt, origin) moves them and
@@ -155,7 +159,7 @@ export function createFlights(THREE, parent) {
     iron: new THREE.MeshStandardMaterial({color: 0x45484c, metalness: .7, roughness: .45}),
     lump: new THREE.MeshStandardMaterial({color: 0xb09a74, roughness: .7}),
   };
-  const geos = [];
+  const geos = [], extraMats = [];
   const geo = g => (geos.push(g), g);
   // Models point along +z with their centre of mass near the origin.
   const along = (g, z = 0) => geo(g.rotateX(Math.PI / 2).translate(0, 0, z));
@@ -194,16 +198,16 @@ export function createFlights(THREE, parent) {
       r.add(new THREE.Mesh(geo(new THREE.BoxGeometry(.03, .03, .3)), mats[m]));
       r.add(new THREE.Mesh(geo(new THREE.BoxGeometry(.09, .02, .02).translate(0, 0, -.06)), mats.leather));
     },
-    shuriken(r, m) {
-      const arm = geo(new THREE.BoxGeometry(.17, .006, .03));
-      for (let j = 0; j < 2; j++) {
-        const s = new THREE.Mesh(arm, mats[m]);
-        s.rotation.y = j * Math.PI / 2;
-        r.add(s);
-        const d = new THREE.Mesh(arm, mats[m]);
-        d.rotation.y = Math.PI / 4 + j * Math.PI / 2;
-        d.scale.set(.7, 1, .8);
-        r.add(d);
+    shuriken(r) {
+      // The held model (shuriken.js) stands in the xy plane above the hand; centre it and lay
+      // it flat in xz. Its raked points lead counterclockwise seen from above, the way the
+      // flight spins it (+y).
+      const held = new THREE.Group();
+      buildShuriken(held);
+      extraMats.push(held.userData.extraMaterial);
+      for (const mesh of [...held.children]) {
+        geo(mesh.geometry.translate(0, -SHURIKEN_CENTER, 0).rotateX(-Math.PI / 2));
+        r.add(mesh);
       }
     },
     stone: r => r.add(new THREE.Mesh(geo(new THREE.IcosahedronGeometry(.055, 0)), mats.stone)),
@@ -261,9 +265,10 @@ export function createFlights(THREE, parent) {
       fl.outer.position.set(fr.x - ox, fr.y, fr.z - oz);
       fl.outer.rotation.set(-fr.pitch, fr.yaw, 0);
       const style = STYLES[fl.f.shape]?.spin;
-      fl.inner.rotation.set(0, 0, 0);
+      fl.inner.rotation.set(0, 0, 0, 'XYZ');
       if (style === 'tumble' || style === 'roll') fl.inner.rotation.x = fr.spin;
-      else if (style === 'flat') fl.inner.rotation.y = fr.spin;
+      // ZYX: spin about the star's own axis first, then lean the spinning star over.
+      else if (style === 'flat') fl.inner.rotation.set(0, fr.spin, fr.bank, 'ZYX');
       if (fl.f.shape === 'stone' || fl.f.shape === 'gem' || fl.f.shape === 'lump') fl.inner.rotation.z = fr.spin * .6;
     }
     return flights.length;
@@ -275,7 +280,7 @@ export function createFlights(THREE, parent) {
   function dispose() {
     clear();
     for (const g of geos) g.dispose();
-    for (const m of Object.values(mats)) m.dispose();
+    for (const m of [...Object.values(mats), ...extraMats]) m.dispose();
   }
   return {play, update, clear, dispose, get count() { return flights.length; }};
 }

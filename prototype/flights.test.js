@@ -114,3 +114,41 @@ test('createFlights draws each flight while it is in the air and then removes it
   assert.equal(scene.children.length, 0);
   fl.dispose();
 });
+
+test('a thrown shuriken is the real star, laid flat, banked and spinning point-first', () => {
+  const scene = new THREE.Group();
+  const fl = createFlights(THREE, scene);
+  const [f] = fl.play(throwTo(6, {kind: 'object', class: 2, material: 11, shape: 'shuriken'}));
+  const star = scene.children[0].children[0].children[0];
+  assert.equal(star.userData.part, 'star');
+  const box = new THREE.Box3().setFromBufferAttribute(star.geometry.attributes.position);
+  assert.ok(box.max.y - box.min.y < .015, 'flat in xz');
+  for (const c of [...box.min.toArray(), ...box.max.toArray()]) assert.ok(Math.abs(c) < .09, 'centred');
+  // The raked tips sit ahead of their points in the +y spin sense (atan2(-z, x) grows).
+  const p = star.geometry.attributes.position;
+  let lead = 0, tips = 0;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i);
+    if (Math.hypot(x, z) < .075) continue;
+    const a = Math.atan2(-z, x), axis = Math.round((a - Math.PI / 2) / (Math.PI / 3)) * Math.PI / 3 + Math.PI / 2;
+    tips++;
+    if (a - axis > 0) lead++;
+  }
+  assert.ok(tips > 0 && lead === tips);
+  let lo = Infinity, hi = -Infinity;
+  for (let t = 0; t < f.end; t += 8) {
+    const fr = flightFrame(f, t);
+    if (!fr) continue;
+    lo = Math.min(lo, fr.bank); hi = Math.max(hi, fr.bank);
+  }
+  const S = STYLES.shuriken;
+  assert.ok(lo >= S.bank - S.wobble - 1e-9 && hi <= S.bank + S.wobble + 1e-9 && hi > lo, 'leans and wobbles');
+  assert.equal(flightFrame(flightsFromFx(throwTo(6, ARROW))[0], 50).bank, 0);
+  fl.update(.05, {x: 0, z: 0});
+  const o = scene.children[0];
+  assert.equal(o.children[0].rotation.order, 'ZYX');
+  const wb = new THREE.Box3().setFromObject(o, true);
+  for (const c of [...wb.min.toArray(), ...wb.max.toArray()]) assert.ok(Number.isFinite(c));
+  assert.ok(wb.max.y - wb.min.y < .1, 'banked, not on edge');
+  fl.dispose();
+});
