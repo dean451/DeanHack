@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {createWand,wandAppearance} from './wand.js';
 import {buildBullwhip} from './bullwhip.js';
+import {buildBoomerang} from './boomerang.js';
 
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
@@ -180,6 +181,8 @@ export function createHeldWeapon(item){
   if(/battle-axe/.test(name)){const second=axeBlade.clone();second.rotateY(Math.PI);part(second,steel,0,0);}
  }else if(/\bbullwhip\b/.test(name)){
   buildBullwhip(g);
+ }else if(/\bboomerang\b/.test(name)){
+  buildBoomerang(g);
  }else if(/\bclub\b/.test(name)){
   // A carved wooden striking head flows into the grip, without a metal cube.
   const profile=[new THREE.Vector2(0,-.15),new THREE.Vector2(.038,-.14),new THREE.Vector2(.029,-.09),new THREE.Vector2(.028,.09),new THREE.Vector2(.047,.22),new THREE.Vector2(.078,.4),new THREE.Vector2(.086,.49),new THREE.Vector2(.058,.55),new THREE.Vector2(0,.57)];
