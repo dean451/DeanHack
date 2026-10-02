@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createDarkOne} from './dark-one.js';
 import {createPelias} from './pelias.js';
 import {createCharon} from './charon.js';
+import {createMasterAssassin} from './master-assassin.js';
 import {updateHemSway, isHemSway, HEMS} from './hem-sway.js';
 
 const bodyGeo = a => a.body.children.find(o => o.isMesh && o.userData.part === 'body').geometry;
@@ -111,6 +112,37 @@ test('Charon\'s soaked robe drags heavy, barely lifts, laps while he stands and 
   a.actions.dead = true;
   for (let i = 0; i < 600; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); }
   assert.equal(at(-9, 9), 0);
+  assert(st.settled);
+});
+
+test('the Master Assassin\'s half-cape snaps out behind, whips past, stirs while he stands and settles in death', () => {
+  const a = createMasterAssassin(), P = HEMS['master assassin'];
+  a.actions = {dead: false};
+  assert(isHemSway(a));
+  updateHemSway(a, 1 / 60, 0);
+  const st = a.hemSway, p = st.geo.attributes.position.array;
+  // only the cape's two lowest rings: on his left and back, well out from the hips, vials and baldrics
+  assert.equal(st.idx.length, 252);
+  for (const i of st.idx) {
+    const x = st.rest[i * 3], y = st.rest[i * 3 + 1], z = st.rest[i * 3 + 2];
+    assert(x < .001 && y < .5 && Math.hypot(x, (z + .012) / .85) > .179, `cape vertex ${x} ${y} ${z}`);
+  }
+  const picked = new Set(st.idx);
+  const others = () => { let d = 0; for (let i = 0; i < p.length / 3; i++) if (!picked.has(i)) d = Math.max(d, Math.abs(p[i * 3] - st.rest[i * 3]) + Math.abs(p[i * 3 + 1] - st.rest[i * 3 + 1]) + Math.abs(p[i * 3 + 2] - st.rest[i * 3 + 2])); return d; };
+  const capeD = () => { let d = 0; for (const i of st.idx) { const j = i * 3; d = Math.max(d, Math.hypot(p[j] - st.rest[j], p[j + 1] - st.rest[j + 1], p[j + 2] - st.rest[j + 2])); } return d; };
+  const pointsZ = () => { let s = 0, n = 0; for (const i of st.idx) if (st.rest[i * 3 + 1] < .36) { s += p[i * 3 + 2] - st.rest[i * 3 + 2]; n++; } return s / n; };
+  let t = 0, minZ = 0, maxZ = -1;
+  for (let i = 0; i < 90; i++) { t += 1 / 60; a.g.position.z += 1.2 / 60; updateHemSway(a, 1 / 60, t); minZ = Math.min(minZ, pointsZ()); }
+  assert(minZ < -.03 && minZ > -P.lag * 1.6, `cape snaps out behind: ${minZ}`);
+  for (let i = 0; i < 90; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); maxZ = Math.max(maxZ, pointsZ()); }
+  assert(maxZ > .008, `cape whips past: ${maxZ}`);
+  for (let i = 0; i < 400; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); }
+  const stir = capeD();
+  assert(stir > .001 && stir < .02, `draught stirs the cape: ${stir}`);
+  assert.equal(others(), 0, 'the rest of the body stays put');
+  a.actions.dead = true;
+  for (let i = 0; i < 600; i++) { t += 1 / 60; updateHemSway(a, 1 / 60, t); }
+  assert.equal(capeD(), 0);
   assert(st.settled);
 });
 
