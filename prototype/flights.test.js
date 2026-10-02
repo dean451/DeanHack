@@ -176,3 +176,70 @@ test('a thrown dart is the real dart, point first, rolling on its flights', () =
   assert.equal(inner.rotation.x, 0);
   fl.dispose();
 });
+
+// boomhit() (zap.c): from the hero at (hx, hz) thrown along (dx, dz), the cells it draws.
+const XDIR = [-1, -1, 0, 1, 1, 1, 0, -1], YDIR = [0, -1, -1, -1, 0, 1, 1, 1];
+const boomerangFx = (hx, hz, dx, dz, stopAfter = 99) => {
+  const boom = c => ({kind: 'boomerang', cmap: c});
+  const steps = [{op: 'start', mode: 'flash', effect: boom(37)}];
+  let i = XDIR.findIndex((x, j) => x === dx && YDIR[j] === dz), x = hx, z = hz, c = 37;
+  for (let ct = 0; ct < 10; ct++) {
+    i = (i + 8) % 8;
+    c = 37 + 38 - c;
+    steps.push({op: 'change', effect: boom(c)});
+    x += XDIR[i]; z += YDIR[i];
+    if (x === hx && z === hz) break;
+    if (ct >= stopAfter) break;
+    steps.push({op: 'draw', x, z}, {op: 'tick'});
+    if (ct % 5 !== 0) i++;
+  }
+  steps.push({op: 'end'});
+  return fxTimeline({type: 'fx', steps});
+};
+
+test('a boomerang whirls round its loop, banked into the turn, and flies back to the hand', () => {
+  assert.equal(flightShape({kind: 'boomerang', cmap: 37}), 'boomerang');
+  const [f, ...rest] = flightsFromFx(boomerangFx(10, 10, 1, 0));
+  assert.equal(rest.length, 0);
+  assert.equal(f.shape, 'boomerang');
+  assert.deepEqual(f.knots[0], {x: 10, z: 10, t: 0});
+  assert.deepEqual(f.knots.at(-1), {x: 10, z: 10, t: 500}, 'nine cells, then home');
+  assert.equal(f.knots.length, 11);
+  assert.equal(f.endY, LAUNCH_Y);
+  assert.equal(f.turn, -1, 'xdir order turns it toward -x from +z');
+  // boomhit() always loops the same way (a right-handed throw), whatever the direction.
+  assert.equal(flightsFromFx(boomerangFx(10, 10, -1, 0))[0].turn, -1);
+  assert.equal(flightsFromFx(boomerangFx(10, 10, 0, 1))[0].turn, -1);
+  let prev = null, maxStep = 0;
+  for (let t = 0; t < f.end; t += 1000 / 60) {
+    const fr = flightFrame(f, t);
+    for (const v of Object.values(fr)) assert.ok(Number.isFinite(v));
+    assert.ok(fr.y > .8 && fr.y < LAUNCH_Y + STYLES.boomerang.maxArc + 1e-9, 'flies level at hand height');
+    assert.ok(fr.bank * -f.turn >= STYLES.boomerang.bank - STYLES.boomerang.wobble - 1e-9, 'leans into the turn');
+    assert.ok(fr.x > 8.5 && fr.x < 13.5 && fr.z > 8.5 && fr.z < 13.5);
+    if (prev) maxStep = Math.max(maxStep, Math.hypot(fr.x - prev.x, fr.z - prev.z));
+    prev = fr;
+  }
+  assert.ok(maxStep < .6, "smooth (a diagonal cell per tick is .47 a frame)");
+  const near = flightFrame(f, f.end - 1);
+  assert.ok(Math.hypot(near.x - 10, near.z - 10) < .05, 'back at the hand');
+  // Cut short (it hit something): ends on its last cell and drops.
+  const [s] = flightsFromFx(boomerangFx(10, 10, 1, 0, 4));
+  assert.equal(s.knots.length, 5);
+  assert.equal(s.endY, undefined);
+  // Drawn: the real boomerang laid flat, spinning and leaning about its line of flight.
+  const scene = new THREE.Group();
+  const fl = createFlights(THREE, scene);
+  fl.play(boomerangFx(10, 10, 1, 0));
+  const inner = scene.children[0].children[0];
+  assert.deepEqual(inner.children.map(m => m.userData.part).sort(), ['fittings', 'stick']);
+  const box = new THREE.Box3();
+  for (const m of inner.children) box.union(new THREE.Box3().setFromBufferAttribute(m.geometry.attributes.position));
+  assert.ok(box.max.y - box.min.y < .04 && box.max.x - box.min.x > .3, 'flat in xz');
+  for (const c of [...box.min.toArray(), ...box.max.toArray()]) assert.ok(Math.abs(c) < .25, 'centred');
+  fl.update(.2, {x: 10, z: 10});
+  assert.equal(inner.rotation.order, 'ZYX');
+  assert.ok(Math.abs(inner.rotation.y) > 1 && inner.rotation.z !== 0);
+  assert.equal(fl.update(.4, {x: 10, z: 10}), 0, 'gone once home');
+  fl.dispose();
+});
