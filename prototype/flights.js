@@ -1,7 +1,8 @@
 // Thrown objects in flight. The fx stream (fx.js) records a thrown or fired object as a
 // flash sequence: its glyph drawn one cell per tick along the path. Map frames only show
 // where it ended up, so this module flies a small model along those cells: arrows, bolts,
-// darts and spears point where they're going on a shallow arc, daggers tumble end over
+// darts and spears point where they're going on a shallow arc (a dart rolling on its
+// flights), daggers tumble end over
 // end, shuriken spin flat, stones, gems and potions lob, and boulders roll along the floor.
 //
 // The shape comes from the object's class and the bridge's `shape` (from the weapon's
@@ -12,6 +13,7 @@
 
 import {FX_TICK_MS} from './fx.js';
 import {buildShuriken, SHURIKEN_CENTER} from './shuriken.js';
+import {buildDart} from './dart.js';
 
 // Object classes and materials from include/objclass.h.
 const WEAPON_CLASS = 2, POTION_CLASS = 8, COIN_CLASS = 12, GEM_CLASS = 13, ROCK_CLASS = 14, BALL_CLASS = 15,
@@ -24,10 +26,11 @@ const WOOD = 8, BONE = 9, COPPER = 13, SILVER = 14, GOLD = 15, PLATINUM = 16, MI
 // and flat. The arc's peak is `arc` + `perCell` per cell of path, capped at `maxArc`.
 // A flat spinner is thrown banked: it leans `bank` rad about its line of flight, and the lean
 // wobbles by `wobble` at `wobbleRate` rad/s, so the spinning face catches the light.
+// A pointed shape with `roll` turns that many rad/s about its own length, as fletching spins it.
 export const STYLES = {
   arrow: {spin: 'point', arc: .05, perCell: .02, maxArc: .3},
   bolt: {spin: 'point', arc: .04, perCell: .015, maxArc: .22},
-  dart: {spin: 'point', arc: .06, perCell: .025, maxArc: .32},
+  dart: {spin: 'point', roll: 16, arc: .06, perCell: .025, maxArc: .32},
   spear: {spin: 'point', arc: .08, perCell: .03, maxArc: .4},
   dagger: {spin: 'tumble', rate: 17, arc: .08, perCell: .03, maxArc: .4},
   weapon: {spin: 'tumble', rate: 12, arc: .1, perCell: .035, maxArc: .45},
@@ -110,7 +113,8 @@ const pathLength = knots => {
 
 // Where a flight is at t ms into the replay, or null before it starts or once it has landed:
 // {x, z} in (fractional) map cells, y in tiles, yaw (about +y, 0 = facing +z), pitch (nose up
-// is positive), spin (radians about the style's axis) and bank (lean about the line of flight).
+// is positive), spin (radians about the style's axis; a pointed shape's roll about its
+// length) and bank (lean about the line of flight).
 export function flightFrame(flight, t) {
   if (!flight || !(t >= flight.start) || t >= flight.end) return null;
   const S = STYLES[flight.shape] ?? STYLES.lump;
@@ -137,7 +141,7 @@ export function flightFrame(flight, t) {
   const y = LAUNCH_Y + (LAND_Y - LAUNCH_Y) * K + arc * 4 * K * (1 - K);
   const dy = (LAND_Y - LAUNCH_Y) + arc * 4 * (1 - 2 * K);
   const pitch = L > 0 ? Math.atan2(dy, L) : -Math.PI / 2;
-  const spin = S.spin === 'point' ? 0 : S.rate * sec;
+  const spin = (S.spin === 'point' ? S.roll ?? 0 : S.rate) * sec;
   const bank = S.bank ? S.bank + S.wobble * Math.sin(S.wobbleRate * sec) : 0;
   return {x, z, y, yaw, pitch, spin, bank};
 }
@@ -180,7 +184,23 @@ export function createFlights(THREE, parent) {
   const build = {
     arrow: (r, m) => fletched(r, {len: .44, r: .011, head: [.026, .07], vanes: 3, vaneW: .03, vaneLen: .09}, m),
     bolt: (r, m) => fletched(r, {len: .3, r: .015, head: [.032, .06], vanes: 2, vaneW: .028, vaneLen: .07}, m),
-    dart: (r, m) => fletched(r, {len: .18, r: .01, head: [.018, .06], vanes: 3, vaneW: .025, vaneLen: .06}, m),
+    dart(r) {
+      // The held model (dart.js) points up +y from the hand; centre it on its length and turn
+      // the point to +z. Darts are iron, so it ignores the metal.
+      const held = new THREE.Group();
+      buildDart(held);
+      extraMats.push(...held.userData.extraMaterial);
+      const box = new THREE.Box3();
+      for (const mesh of held.children) {
+        mesh.geometry.computeBoundingBox();
+        box.union(mesh.geometry.boundingBox);
+      }
+      const mid = (box.min.y + box.max.y) / 2;
+      for (const mesh of [...held.children]) {
+        geo(mesh.geometry.translate(0, -mid, 0).rotateX(Math.PI / 2));
+        r.add(mesh);
+      }
+    },
     spear(r, m) {
       r.add(new THREE.Mesh(shaftGeo(.017, .9, -.08), mats.wood));
       const head = new THREE.Mesh(headGeo(.038, .17, .455), mats[m]);
@@ -267,6 +287,7 @@ export function createFlights(THREE, parent) {
       const style = STYLES[fl.f.shape]?.spin;
       fl.inner.rotation.set(0, 0, 0, 'XYZ');
       if (style === 'tumble' || style === 'roll') fl.inner.rotation.x = fr.spin;
+      else if (style === 'point') fl.inner.rotation.z = fr.spin;
       // ZYX: spin about the star's own axis first, then lean the spinning star over.
       else if (style === 'flat') fl.inner.rotation.set(0, fr.spin, fr.bank, 'ZYX');
       if (fl.f.shape === 'stone' || fl.f.shape === 'gem' || fl.f.shape === 'lump') fl.inner.rotation.z = fr.spin * .6;

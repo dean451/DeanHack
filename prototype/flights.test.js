@@ -152,3 +152,27 @@ test('a thrown shuriken is the real star, laid flat, banked and spinning point-f
   assert.ok(wb.max.y - wb.min.y < .1, 'banked, not on edge');
   fl.dispose();
 });
+
+test('a thrown dart is the real dart, point first, rolling on its flights', () => {
+  const scene = new THREE.Group();
+  const fl = createFlights(THREE, scene);
+  const [f] = fl.play(throwTo(6, {kind: 'object', class: 2, material: 11, shape: 'dart'}));
+  const meshes = scene.children[0].children[0].children;
+  assert.deepEqual(meshes.map(m => m.userData.part).sort(), ['head', 'shaft']);
+  const box = new THREE.Box3();
+  for (const m of meshes) box.union(new THREE.Box3().setFromBufferAttribute(m.geometry.attributes.position));
+  assert.ok(Math.abs(box.min.z + box.max.z) < 1e-6, 'centred on its length');
+  assert.ok(box.max.z - box.min.z > .25 && Math.max(-box.min.x, box.max.x, -box.min.y, box.max.y) < .03, 'long along z');
+  const head = meshes.find(m => m.userData.part === 'head');
+  const hb = new THREE.Box3().setFromBufferAttribute(head.geometry.attributes.position);
+  assert.ok(Math.abs(hb.max.z - box.max.z) < 1e-6, 'the point leads');
+  // It rolls at a steady rate about its length; arrows don't.
+  const a = flightFrame(f, 40), b = flightFrame(f, 140);
+  assert.ok(Math.abs(b.spin - a.spin - STYLES.dart.roll * .1) < 1e-9);
+  assert.equal(flightFrame(flightsFromFx(throwTo(6, ARROW))[0], 140).spin, 0);
+  fl.update(.12, {x: 0, z: 0});
+  const inner = scene.children[0].children[0];
+  assert.ok(Math.abs(inner.rotation.z - STYLES.dart.roll * .12) < 1e-9);
+  assert.equal(inner.rotation.x, 0);
+  fl.dispose();
+});
