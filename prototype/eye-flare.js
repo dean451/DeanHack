@@ -1,5 +1,6 @@
 // The glowing eyes of the Executioner (executioner.js), Croesus (croesus.js), One-eyed Sam
-// (one-eyed-sam.js), the miner (miner.js) and the black marketeer (black-marketeer.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
+// (one-eyed-sam.js), the miner (miner.js), the black marketeer (black-marketeer.js) and the mugger
+// (mugger.js). Each model hangs a small emissive `eyes` mesh on the head; this makes those
 // eyes live.
 //  - Executioner: a cold, slow burn behind the hood's holes. It breathes a little brighter and
 //    dimmer, and now and then the eyes narrow to a long glare. With the hero within RANGE tiles
@@ -16,8 +17,11 @@
 //    side to side, watching for the watch, and now and then narrow in a sidelong, calculating look.
 //    With the hero near they go still and fix on them, half-lidded, with a greedy glint every few
 //    seconds (sizing up their purse).
+//  - Mugger: a low, mean glare from the sack's eyeholes. Alone, a dull red smoulder that now and then
+//    narrows to a hard squint. With the hero near they narrow and burn hotter, and every few seconds
+//    flick down and aside to the hero's pack and belt, hold a beat with a covetous glint, and come back.
 //  - An attack: the eyes blaze up through the wind-up and widen (the Executioner, the miner) or
-//    narrow to slits (Croesus, Sam, the marketeer), peak just before the blow lands, and die back down after.
+//    narrow to slits (Croesus, Sam, the marketeer, the mugger), peak just before the blow lands, and die back down after.
 //  - A blow: a hard blink, then they flare in anger and settle.
 //  - Death: they gutter out, flickering down to dark as the lids sag. Stone (`a.stone`): petrify.js
 //    greys the glow and this holds.
@@ -41,6 +45,11 @@ export const LOOK = {
   // hero near (dartNear scales the dart), where the glint comes much sooner
   'black marketeer': {near: 1.2, nearY: .75, breath: .06, breathHz: .4, glareMin: 3, glareSpan: 4, glareLen: .9, glareY: .5, glareGlow: 1.25,
     atkGlow: 2.8, atkX: 1.2, atkY: .45, dart: .004, dartNear: .25, dartGap: [.22, 1.3], glintMin: 3, glintSpan: 4, glintNear: 2.4, glintLen: .25, glintGlow: 1.8},
+  // a low glare: glints only with the hero near (glintFar 0), and each one is a glance at their pack,
+  // the eyes flicking down by glintDrop and aside by up to glintSide (head-local units) for the glint
+  mugger: {near: 1.3, nearY: .65, breath: .05, breathHz: .25, glareMin: 4, glareSpan: 5, glareLen: 1.3, glareY: .5, glareGlow: 1.3,
+    atkGlow: 3, atkX: 1.15, atkY: .4, dart: .0015, dartNear: .5, dartGap: [1.4, 1.8], glintMin: 2.5, glintSpan: 3, glintNear: 1, glintFar: 0,
+    glintLen: .9, glintGlow: 1.5, glintDrop: .0045, glintSide: .0025},
 };
 // The blink and the anger after a blow (s), and the gutter at death.
 export const BLINK_LEN = .22, ANGER = 1.7, ANGER_RATE = 2.5, DEATH_RATE = 1.6, DEATH_Y = .35;
@@ -69,7 +78,7 @@ export const holdCurve = v => !(v > 0) || !(v < 1) ? 0 : smooth(v / .2) * (1 - s
 
 function setup(a) {
   const L = LOOK[a.kind], st = {seed: ((a.g?.id ?? 1) * 40692) % 2147483647 || 1, T: 0, L, life: 1, near: 0, anger: 0,
-    blink: null, glare: null, glint: null, dart: 0, dartTo: 0, dartWait: 0, lastHit: null};
+    blink: null, glare: null, glint: null, glance: 0, side: 0, dart: 0, dartTo: 0, dartWait: 0, lastHit: null};
   a.eyes.material = a.eyes.material.clone();
   st.base = a.eyes.material.emissiveIntensity;
   a.eyes.geometry.computeBoundingBox();
@@ -111,11 +120,24 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
     if (st.glare === null) { st.glareWait -= dt; if (st.glareWait <= 0 && !busy) { st.glare = 0; st.glareWait = L.glareMin + L.glareSpan * rand(st); } }
     if (st.glare !== null) { st.glare += dt / L.glareLen; glare = holdCurve(st.glare); if (st.glare >= 1) st.glare = null; }
   }
-  // Croesus and the marketeer: a darting look, and a glint (much sooner with the hero near).
+  // Croesus, the marketeer and the mugger: a darting look, and a glint (much sooner with the hero
+  // near; the mugger's is a glance down at their pack, so only then).
   let glint = 0;
+  st.glance = 0;
   if (L.glintLen && !dead) {
-    if (st.glint === null) { st.glintWait -= dt * (near ? L.glintNear : 1); if (st.glintWait <= 0) { st.glint = 0; st.glintWait = L.glintMin + L.glintSpan * rand(st); } }
-    if (st.glint !== null) { st.glint += dt / L.glintLen; const v = st.glint; glint = v > 0 && v < 1 ? Math.sin(Math.PI * v) ** 2 : 0; if (st.glint >= 1) st.glint = null; }
+    if (st.glint === null) {
+      st.glintWait -= dt * (near ? L.glintNear : L.glintFar ?? 1);
+      if (st.glintWait <= 0 && !(busy && L.glintDrop)) {
+        st.glint = 0; st.glintWait = L.glintMin + L.glintSpan * rand(st);
+        if (L.glintSide) st.side = (rand(st) * 2 - 1) * L.glintSide;
+      }
+    }
+    if (st.glint !== null) {
+      st.glint += dt / L.glintLen; const v = st.glint;
+      glint = v > 0 && v < 1 ? Math.sin(Math.PI * v) ** 2 : 0;
+      if (L.glintDrop) st.glance = holdCurve(v);
+      if (st.glint >= 1) st.glint = null;
+    }
   }
   if (L.dart && !dead) {
     st.dartWait -= dt;
@@ -153,6 +175,8 @@ export function updateEyeFlare(a, dt, t, busy, look = null) {
   sy *= DEATH_Y + (1 - DEATH_Y) * st.life;
   const sz = 1;
   a.eyes.scale.set(sx, sy, sz);
-  a.eyes.position.set(st.pos.x + st.c.x * (1 - sx) + st.dart, st.pos.y + st.c.y * (1 - sy), st.pos.z + st.c.z * (1 - sz));
+  const gl = st.glance * st.life;
+  a.eyes.position.set(st.pos.x + st.c.x * (1 - sx) + st.dart + st.side * gl,
+    st.pos.y + st.c.y * (1 - sy) - (L.glintDrop ?? 0) * gl, st.pos.z + st.c.z * (1 - sz));
   return st;
 }
