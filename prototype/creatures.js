@@ -78,6 +78,7 @@ import {createNinja} from './ninja.js';
 import {createExecutioner} from './executioner.js';
 import {createCroesus} from './croesus.js';
 import {createOneEyedSam} from './one-eyed-sam.js';
+import {createBlackMarketeer} from './black-marketeer.js';
 import {createMiner} from './miner.js';
 import {createBarbarian} from './barbarian.js';
 import {createHealer} from './healer.js';
@@ -2539,6 +2540,7 @@ export function createCreature(cell={}){
  if(name==='executioner')return createExecutioner();
  if(name==='croesus')return createCroesus();
  if(name==='one-eyed sam')return createOneEyedSam();
+ if(name==='black marketeer')return createBlackMarketeer();
  if(name==='miner')return createMiner();
  if(name==='monk')return createMonk();
  if(name==='archeologist')return createArcheologist();

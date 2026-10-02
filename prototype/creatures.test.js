@@ -1319,6 +1319,46 @@ test('One-eyed Sam gets a tricorn, an eyepatch and one burning eye, a braid, gre
  assert.notEqual(createCreature({name:'human',symbol:64}).kind,'one-eyed sam');
 });
 
+test('the black marketeer gets a deep peaked cowl over a scarfed face with sickly glinting eyes, a ragged lined cloak hung with stolen wares, a bandolier of vials, a coin purse and a notched long sword instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const bm=createCreature({name:'black marketeer',symbol:64,color:0});
+ assert.equal(bm.kind,'black marketeer');assert.equal(bm.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','eyes'])assert(bm[key]?.isObject3D,key);
+ assert.equal(bm.legs.length,2);assert.equal(bm.arms.length,2);assert(bm.arm===bm.arms[1]);
+ assert(bm.arm.children.includes(bm.weaponSocket),'the socket is at the right hand');
+ assert.equal(bm.weaponSocket.children.length,1,'the sword is held');
+ const parts=meshes(bm);
+ assert.equal(parts.length,8,'one mesh per moving part, the sword and the eyes');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ bm.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(bm.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.15&&b.max.y<1.45,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ // the eyes glint out of the cowl's shadow: looking at them from the front, they are hit first
+ const eye=new THREE.Box3().setFromObject(bm.eyes,true).getCenter(new THREE.Vector3());
+ for(const s of [-1,1]){
+  const hit=new THREE.Raycaster(new THREE.Vector3(eye.x+s*.028,eye.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===bm.eyes,`the ${s<0?'left':'right'} eye is hidden behind the ${hit?.object.userData.part}`);
+ }
+ // the cowl rises above the face, and the cloak hangs down the back almost to the floor
+ const head=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='head'),true);
+ assert(head.max.y-eye.y>.12,'the cowl stands over the eyes');
+ const body=new THREE.Box3().setFromObject(parts.find(m=>m.userData.part==='body'),true);
+ assert(body.min.z<-.2&&body.min.y<.08,'the cloak hangs behind, to the ankles');
+ const again=meshes(createCreature({name:'Black marketeer'}));
+ parts.forEach((m,i)=>assert(m.geometry===again[i].geometry));
+ assert.notEqual(createCreature({name:'shopkeeper',symbol:64}).kind,'black marketeer');
+ assert.notEqual(createCreature({name:'human',symbol:64}).kind,'black marketeer');
+});
+
 test('miners get a battered hard hat with a burnt-out candle stub, a coal-black gaunt face with pale eyes, a hunch, a scorched apron, a worn pick-axe and a lit brass lantern instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const mi=createCreature({name:'miner',symbol:64,color:7});
