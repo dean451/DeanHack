@@ -1476,6 +1476,46 @@ test('Master Kaen gets a hulking bare ash-grey torso inked with sutras, a gaunt 
  assert.notEqual(createCreature({name:'human',symbol:64}).kind,'master kaen');
 });
 
+test('the Dark One gets a black alb and inverted-cross chasuble, a spined collar, a pale veined face with violet eyes under the defiled Mitre of Holiness, black-taloned hands and a thorned crozier instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const d=createCreature({name:'Dark One',symbol:64,color:0});
+ assert.equal(d.kind,'dark one');assert.equal(d.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','eyes'])assert(d[key]?.isObject3D,key);
+ assert.equal(d.legs.length,2);assert.equal(d.arms.length,2);assert.equal(d.arm,d.arms[1]);
+ assert(d.arm.children.includes(d.weaponSocket),'the socket is at the right hand');
+ assert.equal(d.weaponSocket.children.length,1,'the crozier is held');
+ const parts=meshes(d);
+ assert.equal(parts.length,8,'one mesh per moving part, the crozier and the eyes');
+ assert.equal(new Set(parts.map(m=>m.material)).size,2);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  if(a.color)for(const v of a.color.array)assert(Number.isFinite(v)&&v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<40000,`${verts} vertices`);
+ d.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(d.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`hem at ${b.min.y}`);
+ assert(b.max.y>1.3&&b.max.y<1.65,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ // the eyes show from the front
+ const eye=new THREE.Box3().setFromObject(d.eyes,true).getCenter(new THREE.Vector3());
+ for(const s of [-1,1]){
+  const hit=new THREE.Raycaster(new THREE.Vector3(eye.x+s*.03,eye.y,2),new THREE.Vector3(0,0,-1)).intersectObjects(parts,false)[0];
+  assert(hit?.object===d.eyes,`the ${s<0?'left':'right'} eye is hidden behind the ${hit?.object.userData.part}`);
+ }
+ // it glides: nothing of the legs shows below the alb's hem
+ for(const leg of d.legs){const l=new THREE.Box3().setFromObject(leg,true);assert(l.min.y>.02&&Math.abs(l.max.z)<.2,'legs hidden in the alb');}
+ // the mitre crowns the head, and the crook rises beside it
+ const head=new THREE.Box3().setFromObject(d.head,true),crozier=new THREE.Box3().setFromObject(d.weaponSocket,true);
+ assert(head.max.y-eye.y>.2,'a tall mitre');
+ assert(crozier.max.y>head.max.y-.15,`crook at ${crozier.max.y}, mitre at ${head.max.y}`);
+ const again=meshes(createCreature({name:'dark one'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+ assert.notEqual(createCreature({name:'human',symbol:64}).kind,'dark one');
+});
+
 test('One-eyed Sam gets a tricorn, an eyepatch and one burning eye, a braid, grey dragon scale mail under a ragged greatcoat, speed boots, a mirror shield on the left arm and Thiefbane instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const sam=createCreature({name:'One-eyed Sam',symbol:64,color:0});
