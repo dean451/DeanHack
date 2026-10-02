@@ -81,6 +81,7 @@ import {createOneEyedSam} from './one-eyed-sam.js';
 import {createBlackMarketeer} from './black-marketeer.js';
 import {createMiner} from './miner.js';
 import {createMugger} from './mugger.js';
+import {isWereMan,createWereMan} from './were-man.js';
 import {createConvict} from './convict.js';
 import {createBarbarian} from './barbarian.js';
 import {createHealer} from './healer.js';
@@ -2421,6 +2422,7 @@ const SKIN={homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',
 
 export function createCreature(cell={}){
  const name=(cell.name||'').toLowerCase(),letter=Number.isInteger(cell.symbol)?String.fromCharCode(cell.symbol):'',color=nhColor(cell);
+ if(letter==='@'&&isWereMan(name))return createWereMan(name);// a were in human form
  if(/^(sewer rat|giant rat|rabid rat|rat)$/.test(name))return rat(name==='giant rat',name==='rabid rat');
  if(isEnormousRat(name))return createEnormousRat();
  if(name==='rock mole')return rockMole();
