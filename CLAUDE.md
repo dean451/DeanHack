@@ -4,13 +4,21 @@ Read `AGENTS.md` first. It holds the project rules (handoff log, lighting consta
 
 ## Where things live
 
-| Checkout | Branch | Who | Dev server |
-| --- | --- | --- | --- |
-| `/Users/dpalm/Desktop/deanhack` | `master` (or whatever the user reviews) | the user's play/review copy; runs the user's Live game | 5173 |
-| `/Users/dpalm/Desktop/deanhack-claude` | `claude/*` | Claude | **5174** (`--strictPort`) |
+| Role | Folder name | Branch | Who | Dev server |
+| --- | --- | --- | --- | --- |
+| Play copy | `deanhack` | `master` (or whatever the user reviews) | the user's play/review copy; runs the user's Live game | 5173 |
+| Claude worktree | `deanhack-claude` | `claude/*` | Claude | **5174** (`--strictPort`) |
 
-- **Handoff log:** always read and append to `/Users/dpalm/Desktop/deanhack/deanhack-handoff.md`, never the copy inside another worktree.
-- **Stay in this worktree.** Never edit, commit in, or run dev servers from another checkout. `/Users/dpalm/Desktop/deanhack-codex` is a leftover from the retired Codex setup; leave it alone.
+The two folders are siblings. Where they sit depends on the machine:
+
+| Machine | Parent folder |
+| --- | --- |
+| MacBook | `/Users/dpalm/Desktop/` |
+| Windows PC | `C:\Users\Owner\Desktop\` (the play copy folder is named `DeanHack`) |
+
+- **Handoff log:** always read and append to `deanhack-handoff.md` in the root of the play copy, never the copy inside another worktree.
+- **Stay in this worktree.** Never edit, commit in, or run dev servers from another checkout. A `deanhack-codex` folder, if present, is a leftover from the retired Codex setup; leave it alone.
+- **Windows:** the live UnNetHack engine build (`npm run engine:build`) is Unix-only and needs WSL. The demo scene and `npm test` / `npm run build` run natively.
 
 ## Live engine
 
