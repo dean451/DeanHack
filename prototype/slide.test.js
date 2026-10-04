@@ -181,10 +181,11 @@ test('no hop on a low step, a teleport, or furniture appearing underfoot', () =>
   const far = [];
   for (let i = 0; i < 90; i++) { slideTo(b, 1 / 60); far.push(b.g.position.y); }
   assert.ok(Math.max(...far) <= PERCH.throne + 1e-9, 'a teleport eases');
-  b.target = new THREE.Vector3(5, PERCH.altar, 0);
+  const tall = PERCH.throne + .2;
+  b.target = new THREE.Vector3(5, tall, 0);
   const under = [];
   for (let i = 0; i < 90; i++) { slideTo(b, 1 / 60); under.push(b.g.position.y); }
-  assert.ok(Math.max(...under) <= PERCH.altar + 1e-9 && Math.abs(b.g.position.y - PERCH.altar) < 1e-3, 'standing still, it just rises');
+  assert.ok(Math.max(...under) <= tall + 1e-9 && Math.abs(b.g.position.y - tall) < 1e-3, 'standing still, it just rises');
 });
 
 test('a hop interrupted by the next step carries on from where it is', () => {
