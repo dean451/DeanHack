@@ -23,6 +23,10 @@ export const OPEN_S = 1.8, HOLD_MIN = 5, HOLD_SPAN = 4, CLOSE_S = 1.6;
 export const CLACK = .05, CLACK_S = .4;
 // First gape after FIRST_MIN..+FIRST_SPAN s of lying still, then GAP_MIN..+GAP_SPAN apart.
 export const FIRST_MIN = 3, FIRST_SPAN = 5, GAP_MIN = 8, GAP_SPAN = 7;
+// Partway through the hold (TWITCH_AT of it) the jaw gives two quick little snaps shut, TWITCH
+// radians each over TWITCH_S seconds, like something crawled across its tongue, then it forgets
+// about it and goes on gaping.
+export const TWITCH = .04, TWITCH_S = .24, TWITCH_AT = .7;
 const FADE_OUT = 14, SNAP = 1e-3;
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
@@ -32,12 +36,13 @@ const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 export const basks = a => !!(a?.jaw && a.quirk === 'lizard' && !a.asset);
 
 // The gape at s seconds into a bask that holds for `hold` seconds; t drives the breath.
-export function baskPose(s, hold, t = 0) {
+export function baskPose(s, hold, t = 0, twitch = true) {
   if (!(s > 0) || !(hold >= 0)) return 0;
   const open = smooth(s / OPEN_S), x = clamp01((s - OPEN_S - hold) / CLOSE_S), shut = x ** 1.7;
   const e = open * (1 - shut);
   const c = clamp01((s - OPEN_S - hold - CLOSE_S) / CLACK_S);
-  return e * (BASK_GAPE + BASK_BREATH * Math.sin(t * 1.9)) + CLACK * Math.sin(Math.PI * c) * (1 - c);
+  const w = (s - OPEN_S - hold * TWITCH_AT) / TWITCH_S, snap = twitch && w > 0 && w < 2 ? Math.sin(Math.PI * (w % 1)) ** 2 : 0;
+  return e * (BASK_GAPE + BASK_BREATH * Math.sin(t * 1.9) - TWITCH * snap) + CLACK * Math.sin(Math.PI * c) * (1 - c);
 }
 export const baskLength = hold => OPEN_S + hold + CLOSE_S + CLACK_S;
 
@@ -74,8 +79,8 @@ export function updateBask(actor, dt, t, busy) {
   const room = Math.max(0, JAW_GAPE - (actor.actions?.applied?.jaw || 0));
   const a = Math.min(room, baskPose(st.cur.s, st.cur.hold, t) * st.f);
   if (a > 0) { actor.jaw.rotation.x += a; st.applied = a; }
-  // The lift follows the gape without its breath, so the head stays steady while the jaw breathes.
-  const lift = SNOUT_LIFT * Math.min(1, baskPose(st.cur.s, st.cur.hold, 0) / BASK_GAPE) * st.f;
+  // The lift follows the gape without its breath or its twitch, so the head stays steady while the jaw breathes.
+  const lift = SNOUT_LIFT * Math.min(1, baskPose(st.cur.s, st.cur.hold, 0, false) / BASK_GAPE) * st.f;
   if (actor.head && lift > 0) { actor.head.rotation.x -= lift; st.lift = lift; }
   return st.applied;
 }
