@@ -10,7 +10,7 @@ function glows(name){
 }
 
 test('the balrog and Durin\'s Bane glow with evil: cracks in the hide and a hellglow pool underfoot',()=>{
- for(const name of ['balrog',"durin's bane"]){
+ for(const name of ['balrog',"durin's bane",'pit fiend','asmodeus','nalzok']){
   const parts=glows(name);
   assert(parts.length>=2,name+' has evil-glow parts');
   assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),name+' has a pool of light on the floor');
