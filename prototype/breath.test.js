@@ -91,3 +91,28 @@ test('the renderer only plays after a message, and ends empty', () => {
   br.clear(); br.dispose();
   assert.equal(group.children.length, 0);
 });
+
+test('each breath type swirls its own way: fire licks wider and faster than frost, sparks stay straight', () => {
+  const spread = zap => {
+    const [b] = breathsFromFx(beam(zap, 0, 0, 1, 0), null);
+    let lo = Infinity, hi = -Infinity;
+    for (let t = b.t0 + 300; t < b.t1 + PARTICLE_MS; t += 11) for (const p of breathFrame(b, t)?.particles ?? []) { lo = Math.min(lo, p.z);hi = Math.max(hi, p.z); }
+    return hi - lo;
+  };
+  assert.ok(BREATH_LOOKS.fire.wobble.amp > BREATH_LOOKS.cold.wobble.amp);
+  assert.ok(BREATH_LOOKS.fire.wobble.hz > BREATH_LOOKS.cold.wobble.hz);
+  assert.equal(BREATH_LOOKS.lightning.wobble.amp, 0);
+  assert.ok(spread('poison gas') > .5);
+  for (const zap of Object.keys(BREATH_LOOKS)) assert.ok(BREATH_LOOKS[zap].wobble, zap);
+});
+
+test('the cone has a tight throat that flares as the breath travels', () => {
+  const [b] = breathsFromFx(beam('cold', 0, 0, 1, 0), null);
+  const ratio = {early: [], late: []};
+  for (let t = b.t0; t < b.t1 + PARTICLE_MS; t += 9) for (const p of breathFrame(b, t)?.particles ?? []) {
+    if (p.u < .15) ratio.early.push(Math.abs(p.z) / p.x);else if (p.u > .7) ratio.late.push(Math.abs(p.z) / p.x);
+  }
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  assert.ok(ratio.early.length > 10 && ratio.late.length > 10);
+  assert.ok(mean(ratio.late) > mean(ratio.early) * 1.5, `${mean(ratio.early)} -> ${mean(ratio.late)}`);
+});
