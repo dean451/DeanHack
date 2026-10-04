@@ -33,7 +33,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Warhorse:** it is just a red box. Give it armour. Simple is fine, but not a red box.
 - **Gems:** they have no shimmer or sparkle and they float off the ground. Rest them on the floor and give them a subtle glint. They are not magical, so keep it modest.
 - **Sinks:** they look like a modern house sink. This is a dungeon: little more than a rusty pipe and a rusty grate in the floor.
-- **Gold pieces:** too large and very dull. Make them smaller and much shinier.
 
 **Animations**
 
