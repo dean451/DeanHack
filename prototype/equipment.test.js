@@ -719,3 +719,8 @@ test('a scimitar is a curved, yelman-tipped blade over a clawed guard and wire-b
  assert.equal(createHeldWeapon({name:'long sword',class:2}).userData.scimitar,undefined);
  assert.equal(createHeldWeapon({name:'silver saber',class:2}).userData.scimitar,undefined);
 });
+
+test('the generic long blade carries a fuller on each flat; a dagger does not',()=>{
+ const count=name=>createHeldWeapon({name,class:2}).children.length;
+ assert.equal(count('long sword'),count('dagger')+1);
+});
