@@ -3,7 +3,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 // Gnomes used to be the generic box humanoid with a cone for a cap and a ball for a beard. They
 // now have their own model: a stumpy, pot-bellied little fellow with a big round head, a bulbous
-// rosy nose, apple cheeks, beady eyes under bushy brows and big pointed ears. A tall felt cap
+// raw, bruised nose, gaunt cheeks, beady eyes under bushy brows and big pointed ears. A tall felt cap
 // with a rolled brim flops back at the tip, and a long forked beard with a curled moustache falls
 // to the belt. He wears a belted tunic with a pouch, patched breeches, and boots with curled toes.
 // Each kind, tinted by its glyph colour, has its own kit:
@@ -29,7 +29,7 @@ const LOOKS={
 export const GNOMES=Object.keys(LOOKS);
 export const isGnome=name=>Object.hasOwn(LOOKS,name);
 
-const SKIN=rgb('#dca27c'),SKIN_SHADE=rgb('#b27a5a'),ROSE=rgb('#d8705c'),EYE=rgb('#1a1210'),GLINT=rgb('#f4f0e8'),
+const SKIN=rgb('#a58a6a'),SKIN_SHADE=rgb('#6e5840'),ROSE=rgb('#7a4a40'),EYE=rgb('#1a1210'),GLINT=rgb('#f4f0e8'),
  LEATHER=rgb('#5a3a24'),LEATHER_DARK=rgb('#36220f'),BRASS=rgb('#c8a04a'),GOLD=rgb('#e0b440'),GOLD_DARK=rgb('#9a7420'),
  WOOD=rgb('#7a5434'),WOOD_DARK=rgb('#4a3020'),STEEL=rgb('#b4bcc0'),ERMINE=rgb('#f2eee4'),SPOT=rgb('#1a1616'),
  RUBY=rgb('#c0182a'),SAPPHIRE=rgb('#2a4ad0'),EMERALD=rgb('#1a9a4a'),CRYSTAL=rgb('#bff4ff'),ROPE=rgb('#b09a6a');
@@ -85,8 +85,8 @@ function buildHead(L,C){
  // a big round head, fuller in the cheeks
  P.add(new THREE.SphereGeometry(r,20,16),at(0,0,0,[0,0,0],[1.02,1,1]),(x,y,z)=>mix(SKIN,SKIN_SHADE,THREE.MathUtils.clamp(-z*6,0,.45)));
  for(const s of [-1,1]){
-  // apple cheeks
-  P.add(new THREE.SphereGeometry(.042,10,8),at(s*.06,-.025,.085,[0,0,0],[1,.85,.7]),mix(SKIN,ROSE,.55));
+  // gaunt, bruised cheeks
+  P.add(new THREE.SphereGeometry(.036,10,8),at(s*.06,-.035,.085,[0,0,0],[1,.7,.6]),mix(SKIN,ROSE,.55));
   // beady eyes with a glint, under bushy brows
   P.add(new THREE.SphereGeometry(.018,10,8),at(s*.043,.03,.108,[0,0,0],[1,1.1,.6]),EYE);
   P.add(new THREE.SphereGeometry(.005,5,4),at(s*.043+.006,.037,.118),GLINT);
@@ -97,7 +97,7 @@ function buildHead(L,C){
   // tufts of hair over the ears, below the cap
   for(let i=0;i<3;i++)P.add(new THREE.SphereGeometry(.03,8,6),at(s*(.11-i*.01),.0-i*.025,-.05-i*.02,[0,0,0],[.8,1,1.1]),C.beard);
  }
- // a big bulbous nose, redder at the tip
+ // a big bulbous nose, raw and bruised at the tip
  P.add(new THREE.SphereGeometry(.048,14,12),at(0,-.01,.13,[0,0,0],[1,.95,1]),(x,y,z)=>mix(SKIN,ROSE,(z-.12)*14));
  P.add(new THREE.SphereGeometry(.02,8,6),at(0,.02,.115),SKIN);
  return P.merge();
