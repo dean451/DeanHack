@@ -38,3 +38,11 @@ test('every UnNetHack potion appearance has its own look',()=>{
  assert.notEqual(potionLook('dark').liquid,potionLook('dark green').liquid);
  assert.notEqual(potionLook('blood-red').liquid,potionLook('red').liquid);
 });
+
+test('blood-red is dark, thick and glossy',()=>{
+ const blood=potionLook('blood-red');
+ assert.ok(blood.opacity>=.9);
+ assert.ok(blood.emissiveIntensity<.2);
+ const hex=c=>parseInt(c.slice(1,3),16);
+ assert.ok(hex(blood.liquid)<hex(potionLook('red').liquid));
+});

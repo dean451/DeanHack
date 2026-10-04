@@ -9,7 +9,7 @@ const POTION_LOOKS={
  magenta:['#d060c0','#a02090'],purple:['#9a60c0','#5a2090'],violet:['#a67fea','#6a3fc7'],
  puce:['#a67a72','#7a4a4a'],lavender:['#bcaeea','#8a7ac0'],
  white:['#f2f2ea','#dcdcd0'],silver:['#dadee0','#a6acb0'],golden:['#e0bf5a','#b8892a'],brown:['#8a6238','#5a3a1e'],
- black:['#2a2a2a','#0a0a0a'],dark:['#3a3440','#141018',{opacity:.8}],'blood-red':['#a01a1a','#5a0808',{opacity:.8}],
+ black:['#2a2a2a','#0a0a0a'],dark:['#3a3440','#141018',{opacity:.8}],'blood-red':['#7a1010','#3a0404',{opacity:.96,transmission:.02,emissiveIntensity:.12}],
  amber:['#e8b04a','#b8741a'],indigo:['#6a5ad0','#34208a'],ochre:['#c89a4a','#8a5e1e'],
  viscous:['#a6a08a','#6e6850',{opacity:.8,transmission:.06}],
  muddy:['#7a6040','#4a3620',{opacity:.85,transmission:.04}],icy:['#d8f0ff','#9ccfe8',{opacity:.4,transmission:.5,emissiveIntensity:.5}],
