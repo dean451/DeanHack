@@ -27,17 +27,18 @@ export const EMIT_MIN_MS = 200, EMIT_MAX_MS = 600;
 export const ARM_S = 2;
 
 // Per ray type: end is the colour a particle fades to; rise lifts (or drops) it over its
-// life; puff scales its size. Death (disintegration) throws violet sparks, not a dark cone.
+// life; puff scales its size; wobble {amp, hz} is how far and how fast it swirls sideways
+// and up and down as it ages (fire licks fast, gas rolls slow, frost hangs nearly still). Death (disintegration) throws violet sparks, not a dark cone.
 export const BREATH_LOOKS = {
-  'magic missile': {end: 0x2a3a90, rise: .05, puff: .8},
-  fire: {end: 0x3a1208, rise: .38, puff: 1.2},
-  cold: {end: 0xbfe8ff, rise: -.08, puff: 1},
-  sleep: {end: 0x5a3a8a, rise: .06, puff: 1.1},
-  death: {end: 0x2a0a3a, rise: .02, puff: .55, sparks: true},
-  lightning: {end: 0x6a90ff, rise: 0, puff: .5, sparks: true},
-  'poison gas': {end: 0x2f5a12, rise: .1, puff: 1.4},
-  lava: {end: 0x301008, rise: .15, puff: 1},
-  acid: {end: 0x4a6a08, rise: -.22, puff: .8},
+  'magic missile': {end: 0x2a3a90, rise: .05, puff: .8, wobble: {amp: 0.03, hz: 0.01}},
+  fire: {end: 0x3a1208, rise: .38, puff: 1.2, wobble: {amp: 0.11, hz: 0.02}},
+  cold: {end: 0xbfe8ff, rise: -.08, puff: 1, wobble: {amp: 0.03, hz: 0.006}},
+  sleep: {end: 0x5a3a8a, rise: .06, puff: 1.1, wobble: {amp: 0.07, hz: 0.005}},
+  death: {end: 0x2a0a3a, rise: .02, puff: .55, sparks: true, wobble: {amp: 0, hz: 0}},
+  lightning: {end: 0x6a90ff, rise: 0, puff: .5, sparks: true, wobble: {amp: 0, hz: 0}},
+  'poison gas': {end: 0x2f5a12, rise: .1, puff: 1.4, wobble: {amp: 0.12, hz: 0.007}},
+  lava: {end: 0x301008, rise: .15, puff: 1, wobble: {amp: 0.06, hz: 0.009}},
+  acid: {end: 0x4a6a08, rise: -.22, puff: .8, wobble: {amp: 0.05, hz: 0.014}},
 };
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
@@ -107,9 +108,12 @@ export function breathFrame(breath, t) {
     const th = (hash(i, 2) * 2 - 1) * CONE_HALF, ph = (hash(i, 3) * 2 - 1) * CONE_HALF * .5;
     const along = Math.cos(th) * d, side = Math.sin(th) * d;
     // Sparks crackle sideways a little; everything else billows.
+    // Each particle swirls on its own phase, growing with age so the throat stays tight.
+    const sw = look.wobble.amp * u * Math.sin(age * look.wobble.hz * 2 * Math.PI + hash(i, 5) * 6.28);
+    const lift = look.wobble.amp * .5 * u * Math.sin(age * look.wobble.hz * 1.7 * Math.PI + hash(i, 6) * 6.28);
     const jit = look.sparks ? (hash(i, Math.floor(t / 40), 4) * 2 - 1) * .08 : 0;
-    const y = MOUTH_Y + Math.sin(ph) * d + look.rise * u * u;
-    particles.push({x: breath.x + fx * along + px * (side + jit), y: Math.max(.03, y), z: breath.z + fz * along + pz * (side + jit),
+    const y = MOUTH_Y + Math.sin(ph) * d + look.rise * u * u + lift;
+    particles.push({x: breath.x + fx * along + px * (side + jit + sw), y: Math.max(.03, y), z: breath.z + fz * along + pz * (side + jit + sw),
       size: look.puff * (look.sparks ? .05 : .07 + .2 * u), u,
       color: u < .25 ? mixHex(ray.core, ray.glow, u / .25) : mixHex(ray.glow, look.end, (u - .25) / .75),
       alpha: clamp01(age / 40) * Math.pow(1 - u, 1.5)});
