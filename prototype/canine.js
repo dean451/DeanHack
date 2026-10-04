@@ -44,7 +44,7 @@ import {segment,chain} from './ant.js';
 // place of hackles, and a serpent for a tail ending in a fanged, hooded snake head. The eyes burn
 // red. 12 draws: the body, three heads, three eye meshes, four legs and the tail.
 // Pet dogs (little dog, dog, large dog) share the build with a friendlier face: no fangs, a
-// pink tongue lolling from the mouth, a collar and a brass tag round the neck, and a tail
+// dull, bruised tongue lolling from the mouth, a collar and a brass tag round the neck, and a tail
 // carried up over the back for wagging. All three are white on the map (HI_DOMESTIC), so the
 // breed shape and coat carry the size:
 // - little dog: a white terrier with tan patches, a tan eye patch and floppy tan ears.
@@ -292,8 +292,8 @@ function buildHead(L,C){
  for(const s of [-1,1])segment(P,[s*.03,-.036,.1],[s*.016,tipY-.024,tipZ-.022],.004,.003,lip,4);
  P.add(new THREE.SphereGeometry(.02,12,8),at(0,tipY+.006,tipZ+.008,[0,0,0],[1.2,.85,.9]),rgb('#141212'));
  if(L.pet){
-  // a pink tongue lolling out of the side of the mouth
-  P.add(new THREE.SphereGeometry(1,12,8),at(.012,tipY-.058,tipZ-.05,[.35,0,.15],[.02,.036,.008]),rgb('#d9707e'));
+  // a dull, dark-bruised tongue lolling out of the side of the mouth
+  P.add(new THREE.SphereGeometry(1,12,8),at(.012,tipY-.058,tipZ-.05,[.35,0,.15],[.02,.036,.008]),rgb('#7a3036'));
  }else{
   const f=L.fangs||1;
   for(const s of [-1,1])spike(P,[s*.014,tipY-.022,tipZ-.03],[0,-1,.15],.0045*f,.018*f,tooth,5);
