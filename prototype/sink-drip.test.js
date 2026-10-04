@@ -8,12 +8,11 @@ test('the drip is read off the sink model: the tip under the spout, the pool bel
  const sink=createSink(),water=sink.children.find(o=>o.userData.part==='water');
  const {tip,pool}=dripPoints(water.geometry);
  for(const v of [tip.x,tip.y,tip.z,pool])assert(Number.isFinite(v));
- assert(Math.abs(pool-.445)<.002,`pool at ${pool}`);
- assert(tip.y>.65&&tip.y<.72,`tip at ${tip.y}`);
+ assert(Math.abs(pool-.012)<.002,`pool at ${pool}`);
+ assert(tip.y>.4&&tip.y<.55,`tip at ${tip.y}`);
  assert(Math.abs(tip.x)<.005,`tip x ${tip.x}`);
- // Over the basin (an oval centred at z -.02, radii .145*1.3 by .145), with room for the rings.
- assert(((tip.x/(.145*1.3))**2+((tip.z+.02)/.145)**2)<.5,`tip over the pool edge at ${tip.x},${tip.z}`);
- assert(Math.abs(tip.z+.02)+DRIP_RING_RADIUS<.145);
+ // Over the puddle in the grate (a disc of radius .15 centred at z -.06), with room for the rings.
+ assert(Math.hypot(tip.x,tip.z+.06)+DRIP_RING_RADIUS<.15,`tip over the pool edge at ${tip.x},${tip.z}`);
 });
 
 test('a drip cycle swells, falls, lands on the pool and fades back to nothing',()=>{
@@ -55,9 +54,9 @@ test('the drip rig attaches to sinks in the scene, animates, and comes off clean
    const rig=s.children.find(o=>o.name==='sink-drip');
    const [drop,...rings]=rig.children;
    if(drop.visible){dropsSeen++;for(const v of [...drop.position.toArray(),...drop.scale.toArray()])assert(Number.isFinite(v));
-    assert(drop.position.y>.44&&drop.position.y<.72,`drop y ${drop.position.y}`);}
+    assert(drop.position.y>.01&&drop.position.y<.55,`drop y ${drop.position.y}`);}
    for(const r of rings)if(r.visible){ringsSeen++;assert(r.material.opacity>0&&r.material.opacity<=.55);
-    r.getWorldPosition(p);assert(Math.abs(p.y-.446)<.003);}
+    r.getWorldPosition(p);assert(Math.abs(p.y-.012)<.003);}
   }
  }
  assert(dropsSeen>100&&ringsSeen>20,`drops ${dropsSeen}, rings ${ringsSeen}`);
