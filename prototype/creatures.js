@@ -1963,7 +1963,7 @@ function gargoyle(o){
 function gremlin(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
  const skin=mat(o.skin,{roughness:.75}),dark=mat(shade(o.skin,.55),{roughness:.85}),ear=mat(shade(o.skin,1.15),{roughness:.7,side:THREE.DoubleSide}),
-  pink=mat('#c87a78',{roughness:.7,side:THREE.DoubleSide}),claw=mat('#1c1812',{roughness:.4}),tooth=mat('#f0ead0',{roughness:.4}),
+  pink=mat('#5a2622',{roughness:.7,side:THREE.DoubleSide}),claw=mat('#1c1812',{roughness:.4}),tooth=mat('#f0ead0',{roughness:.4}),
   mouth=mat('#3a0c10',{roughness:1}),glow=mat(o.eye,{emissive:o.eye,emissiveIntensity:2.2,roughness:.2}),pupil=mat('#100808',{roughness:.2});
  // legs: skinny bowed legs with knobbly knees and long splayed clawed feet
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.07,.22,0);body.add(leg);
