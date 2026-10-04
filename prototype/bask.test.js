@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
 import {JAW_GAPE} from './jaw.js';
-import {updateBask, baskPose, baskLength, basks, BASK_GAPE, BASK_BREATH, SNOUT_LIFT, OPEN_S, FIRST_MIN, FIRST_SPAN, GAP_MIN, GAP_SPAN, HOLD_MIN, HOLD_SPAN, CLOSE_S, CLACK, CLACK_S} from './bask.js';
+import {updateBask, baskPose, baskLength, basks, BASK_GAPE, BASK_BREATH, SNOUT_LIFT, OPEN_S, FIRST_MIN, FIRST_SPAN, GAP_MIN, GAP_SPAN, HOLD_MIN, HOLD_SPAN, CLOSE_S, CLACK, CLACK_S, TWITCH, TWITCH_S, TWITCH_AT} from './bask.js';
 import {sparkles, pawPose, tossPose, pawLength, tossLength, moteAt, LOOKS, PAW_LIFT, TOSS_UP, MOTES} from './unicorn-sparkle.js';
 
 const COLON = ':'.charCodeAt(0);
@@ -203,4 +203,20 @@ test('unicorns paw and toss, sparkle by alignment, and settle exactly at rest wh
   for (let i = 0; i < 20; i++) updateBask(a, 1 / 60, 1 + i / 60, false);
   for (let i = 0; i < 30; i++) updateBask(a, 1 / 60, 2 + i / 60, true);
   assert.ok(Math.abs(head.rotation.x - rx) < 1e-9 && !a.unicorn.cur);
+});
+
+test('a held gape snaps twice at nothing, then goes back to gaping wide', () => {
+  const hold = 6, start = OPEN_S + hold * TWITCH_AT;
+  assert(Math.abs(baskPose(start - .01, hold) - BASK_GAPE) < 1e-9, 'wide before');
+  let low = BASK_GAPE, dips = 0, prev = BASK_GAPE, down = false;
+  for (let k = 0; k <= 400; k++) {
+    const v = baskPose(start - .05 + (2 * TWITCH_S + .1) * k / 400, hold);
+    low = Math.min(low, v);
+    if (v < prev - 1e-9) down = true;
+    else if (v > prev + 1e-9 && down) { dips++; down = false; }
+    prev = v;
+  }
+  assert(Math.abs(low - (BASK_GAPE - TWITCH)) < 2e-3, `snaps ${TWITCH} shut: ${low}`);
+  assert.equal(dips, 2, 'two snaps, each rebounding to the gape');
+  assert(Math.abs(baskPose(start + 2 * TWITCH_S + .01, hold) - BASK_GAPE) < 1e-9, 'wide after');
 });
