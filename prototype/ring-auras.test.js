@@ -9,9 +9,13 @@ const ringItem=name=>{const item=new THREE.Group();item.add(createGroundModel({c
 test('ring effects key on the true ring type; unknown rings and other classes get none',()=>{
  assert.equal(ringAuraKind({class:4,name:'regeneration'}),'regeneration');
  assert.equal(ringAuraKind({class:4,name:'ring of fire resistance'}),'fire resistance');
- assert.equal(ringAuraKind({class:4,name:'adornment'}),null);
+ assert.equal(ringAuraKind({class:4,name:'ring of nonsense'}),null);
  assert.equal(ringAuraKind({class:5,name:'regeneration'}),null);
  assert.equal(ringAuraKind(null),null);
+});
+
+test('the later ring types have effects too',()=>{
+ for(const k of ['adornment','free action','polymorph','polymorph control','teleport control','see invisible','protection from shape changers'])assert.equal(ringAuraKind({class:4,name:`ring of ${k}`}),k);
 });
 
 test('every ring effect stays finite, tiny and near its ring, and frees itself',()=>{
@@ -39,7 +43,7 @@ test('the effect follows what is lying there: swapped, removed and unchanged',()
  assert.equal(syncRingAura(item,{class:4,name:'hunger'},'1,1'),a);
  const b=syncRingAura(item,{class:4,name:'conflict'},'1,1');
  assert.notEqual(a,b);assert.equal(a.parent,null);
- assert.equal(syncRingAura(item,{class:4,name:'adornment'},'1,1'),null);
+ assert.equal(syncRingAura(item,{class:4,name:'ring of nonsense'},'1,1'),null);
  assert.equal(item.userData.ringAura,null);
  assert.equal(b.parent,null);
 });

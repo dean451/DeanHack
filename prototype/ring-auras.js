@@ -36,6 +36,13 @@ export const RING_AURAS = {
   teleportation: {color: 0xb070ff, blend: 'add', motion: 'blink', count: 3, size: .02, period: 1.9, alpha: .8},
   invisibility: {color: 0xdfe6ea, blend: 'add', motion: 'pulse', count: 2, size: .07, period: 2.4, alpha: .2},
   'sustain ability': {color: 0xdce8f4, blend: 'add', motion: 'pulse', count: 2, size: .07, period: 6, alpha: .22},
+  adornment: {color: 0xe8a0b8, blend: 'add', motion: 'orbit', count: 1, size: .018, period: 4.2, alpha: .6},
+  'free action': {color: 0x9fb0c0, blend: 'add', motion: 'pulse', count: 2, size: .07, period: 5.2, alpha: .2},
+  polymorph: {color: 0x9ad04a, blend: 'add', motion: 'blink', count: 4, size: .022, period: 1.3, alpha: .8},
+  'polymorph control': {color: 0x8a60d0, blend: 'add', motion: 'orbit', count: 2, size: .016, period: 3, alpha: .65},
+  'teleport control': {color: 0x7ad0e8, blend: 'add', motion: 'orbit', count: 1, size: .02, period: 1.8, alpha: .75},
+  'see invisible': {color: 0xf0f4ff, blend: 'add', motion: 'blink', count: 1, size: .024, period: 5.6, alpha: .85},
+  'protection from shape changers': {color: 0xb8a4d8, blend: 'add', motion: 'pulse', count: 2, size: .08, period: 4, alpha: .2},
   'slow digestion': {color: 0xe0a030, blend: 'add', motion: 'pulse', count: 2, size: .075, period: 4.8, alpha: .26},
 };
 
