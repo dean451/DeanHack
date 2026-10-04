@@ -15,7 +15,7 @@ test('ring effects key on the true ring type; unknown rings and other classes ge
 });
 
 test('the later ring types have effects too',()=>{
- for(const k of ['adornment','free action','polymorph','polymorph control','teleport control','see invisible','protection from shape changers'])assert.equal(ringAuraKind({class:4,name:`ring of ${k}`}),k);
+ for(const k of ['gain intelligence','gain wisdom','gain dexterity','adornment','free action','polymorph','polymorph control','teleport control','see invisible','protection from shape changers'])assert.equal(ringAuraKind({class:4,name:`ring of ${k}`}),k);
 });
 
 test('every ring effect stays finite, tiny and near its ring, and frees itself',()=>{

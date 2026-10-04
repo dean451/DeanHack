@@ -18,6 +18,9 @@ export const RING_CLASS = 4;
 export const RING_AURAS = {
   'gain strength': {color: 0xc0703a, blend: 'add', motion: 'pulse', count: 2, size: .07, period: 1.6, alpha: .3},
   'gain constitution': {color: 0xb86a48, blend: 'add', motion: 'pulse', count: 2, size: .07, period: 2.1, alpha: .28},
+  'gain intelligence': {color: 0x6a8cff, blend: 'add', motion: 'pulse', count: 2, size: .065, period: 1.3, alpha: .3},
+  'gain wisdom': {color: 0xa8b4d8, blend: 'add', motion: 'pulse', count: 2, size: .075, period: 3.8, alpha: .26},
+  'gain dexterity': {color: 0xd8c860, blend: 'add', motion: 'orbit', count: 2, size: .016, period: 1.5, alpha: .7},
   'increase damage': {color: 0xff3a1a, blend: 'add', motion: 'spark', count: 4, size: .014, period: 1.4, alpha: .85},
   'increase accuracy': {color: 0xe8f0ff, blend: 'add', motion: 'orbit', count: 1, size: .02, period: 3.4, alpha: .8},
   protection: {color: 0xaab8c8, blend: 'add', motion: 'pulse', count: 2, size: .09, period: 3.6, alpha: .2},
