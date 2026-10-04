@@ -91,7 +91,7 @@ const HELLFIRE=(()=>{
  geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
  return {geo,material:new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false})};
 })();
-function hellfire(parent,x,y,z,s,lean=0,tilt=0){const f=new THREE.Mesh(HELLFIRE.geo,HELLFIRE.material);f.position.set(x,y,z);f.scale.setScalar(s);f.rotation.set(lean,0,tilt);f.castShadow=f.receiveShadow=false;f.userData.part='flame';parent.add(f);return f;}
+export function hellfire(parent,x,y,z,s,lean=0,tilt=0){const f=new THREE.Mesh(HELLFIRE.geo,HELLFIRE.material);f.position.set(x,y,z);f.scale.setScalar(s);f.rotation.set(lean,0,tilt);f.castShadow=f.receiveShadow=false;f.userData.part='flame';parent.add(f);return f;}
 
 // a cone from `base` pointing along `dir`: tufts, hackles, claws, fangs
 function spike(P,base,dir,r,h,colour,radial=4){

@@ -19,7 +19,7 @@ import {createScorpion,isScorpion} from './scorpion.js';
 import {createAnt,isAnt} from './ant.js';
 import {createLocust,isLocust} from './locust.js';
 import {createFeline,isFeline} from './feline.js';
-import {createCanine,isCanine} from './canine.js';
+import {createCanine,isCanine,hellfire} from './canine.js';
 import {createBee,isBee} from './bee.js';
 import {createBeetle,isBeetle} from './beetle.js';
 import {createMold} from './mold.js';
@@ -412,9 +412,16 @@ function lizard(o){
  for(const side of [-1,1])for(const z of [-.12,.13]){const leg=new THREE.Group();leg.position.set(side*.1,.13,z);body.add(leg);const upper=rounded(leg,.13,.035,.04,skin,side*.07,-.03,0,.012);upper.rotation.z=side*-.5;rounded(leg,.05,.02,.07,skin,side*.13,-.1,.02,.008);legs.push(leg);}
  const tail=new THREE.Group();tail.position.set(0,.13,-.2);body.add(tail);
  let px=0,pz=0;for(let i=0;i<6;i++){const r=.055*(1-i/7),len=.09;const seg=cylinder(tail,r*.8,r,len,skin,px,-.012*i,pz-len/2,8);seg.rotation.x=Math.PI/2;px+=Math.sin(i*.6)*.012;pz-=len*.95;}
+ // Salamanders burn like hell hounds: tongues of flame (tagged part 'flame', so flame-flicker.js
+ // flickers and lights them) licking along the spine, on the brow and from the tail's tip.
+ if(o.fire){
+  [[.14,.8],[.04,1],[-.06,.9]].forEach(([z,sc],i)=>hellfire(body,(i%2?.02:-.02),.2,z,sc*.6,-.5,(i%2?-1:1)*.15));
+  hellfire(head,0,.07,-.02,.45,-.7);
+  hellfire(tail,px,-.012*5,pz+.05,.6,.3);
+ }
  return actor(g,body,legs,tail,[],'lizard');
 }
-const LIZARDS={newt:{skin:'#d69a38',belly:'#e9763a',spot:'#5a3a1a',scale:.8},gecko:{skin:'#6f9a45',scale:.8},iguana:{skin:'#7a6a42',scale:1},'baby crocodile':{skin:'#5f6a3a',scale:1},lizard:{skin:'#4f8a3a',scale:1},chameleon:{skin:'#6aa08a',scale:1},crocodile:{skin:'#4f5a32',scale:1.6},salamander:{skin:'#d9582a',belly:'#ffb040',scale:1.4}};
+const LIZARDS={newt:{skin:'#d69a38',belly:'#e9763a',spot:'#5a3a1a',scale:.8},gecko:{skin:'#6f9a45',scale:.8},iguana:{skin:'#7a6a42',scale:1},'baby crocodile':{skin:'#5f6a3a',scale:1},lizard:{skin:'#4f8a3a',scale:1},chameleon:{skin:'#6aa08a',scale:1},crocodile:{skin:'#4f5a32',scale:1.6},salamander:{skin:'#d9582a',belly:'#ffb040',scale:1.4,fire:true}};
 
 // Cockatrices: a rooster head (comb, wattle, beak) on the same low scaled body and
 // tapering tail as lizard() — reads as "petrifying bird-lizard", not another lizard.
@@ -2266,7 +2273,7 @@ function demon(o){
   for(let k=-1;k<=1;k++){const c=cone(body,.01,.06,claw,wr[0]+k*.015,wr[1]-.04,wr[2]+.01,4);c.rotation.x=Math.PI+.3;c.rotation.z=k*.2;}}
  // weapon in the right hand
  const grip=[shoulderX+.08,chestY-.2,.16];
- if(o.weapon==='whip'){const pts=[grip,[grip[0]+.1,grip[1]-.12,.3],[grip[0]+.05,.1,.42],[grip[0]-.12,.02,.38],[grip[0]-.24,.01,.22]];tube(body,pts,.012,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.4}):M.leather,20).castShadow=false;}
+ if(o.weapon==='whip'){const pts=[grip,[grip[0]+.1,grip[1]-.12,.3],[grip[0]+.05,.1,.42],[grip[0]-.12,.02,.38],[grip[0]-.24,.01,.22]];const lash=tube(body,pts,.012,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.4}):M.leather,20);lash.castShadow=false;if(o.flame){lash.userData.part='whip';lash.userData.path=pts;}}
  else if(o.weapon==='trident'){const t=new THREE.Group();t.position.set(...grip);t.rotation.x=.15;body.add(t);cylinder(t,.012,.012,.9,mat('#3a2a1a'),0,.15,0,8);
   for(const x of [-.05,0,.05]){cylinder(t,.008,.008,.12,M.darkSteel,x,.64,0,6);cone(t,.016,.05,M.darkSteel,x,.72,0,4);}rounded(t,.12,.02,.02,M.darkSteel,0,.58,0,.006);}
  else if(o.weapon==='sword'){const s=new THREE.Group();s.position.set(...grip);s.rotation.set(.9,0,-.2);body.add(s);cylinder(s,.013,.013,.08,M.leather,0,-.02,0,8);rounded(s,.12,.02,.03,M.darkSteel,0,.03,0,.006);rounded(s,.035,.42,.008,M.steel,0,.25,0,.004);}
