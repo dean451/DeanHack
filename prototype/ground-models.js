@@ -136,8 +136,8 @@ function buildSpellbook(item,{g,add:place,materials,metal}){
  }
  const clean=!has(/^(plaid|tartan|rainbow|psychedelic|colorful|stylish|glittering)$/);
  if(soft){
-  // A printed title label instead of a gilt sigil.
-  patch(cw*.62,.07,mat(0xf1ead8),cx,-cd*.22);
+  // A printed title label instead of a gilt sigil. Yellowed, stained paper, not clean white.
+  patch(cw*.62,.07,mat(0x9c9170),cx,-cd*.22);
   for(let i=0;i<3;i++)patch(cw*(.5-i*.1),.006,mat(0x2a2622),cx,-cd*.22-.02+i*.02,0,top+.001);
  }else if(clean){
   // A glinting sigil: a ring around a flattened gem, with four short rays.
