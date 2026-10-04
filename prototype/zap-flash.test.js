@@ -205,3 +205,13 @@ test('play with a windup lines the release up with the delayed timeline', () => 
   assert.equal(arm.rotation.x, 0);
   fx.dispose();
 });
+
+test('after a windup the arm snaps out of the release at once, then settles at full reach', () => {
+  const cells = Array.from({length: 6}, (_, i) => [6 + i, 5]);
+  const src = {...zapSource(zap('cold', cells), {x: 5, z: 5}), breath: false};
+  src.from += ZAP_WINDUP_MS; src.until += ZAP_WINDUP_MS; src.windup = ZAP_WINDUP_MS;
+  const arm = t => zapPose(src, src.from + t, 0).arm;
+  const early = Math.abs(arm(10) - arm(0)), late = Math.abs(arm(ZAP_RAISE_MS) - arm(ZAP_RAISE_MS - 10));
+  assert.ok(early > late * 3, `early ${early} late ${late}`);
+  for (let t = 1; t <= ZAP_RAISE_MS; t++) assert.ok(Math.abs(arm(t)) >= Math.abs(arm(t - 1)) - 1e-9 || t > 40, `monotone at ${t}`);
+});
