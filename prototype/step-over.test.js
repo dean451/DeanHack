@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {stepPulseAt, updateStepOver, STEP_DURATION, STEP_SWELL} from './step-over.js';
 import {createWandAura} from './wand-auras.js';
+import {createScrollAura} from './scroll-auras.js';
 
 const floorItem = kind => {
   const item = new THREE.Group();
@@ -49,4 +50,17 @@ test('only wand auras answer; a lamp hum or a bare item is left alone', () => {
   assert.equal(lamp.userData.wandAura.scale.x, 1);
   const bare = new THREE.Group();
   assert.doesNotThrow(() => updateStepOver(bare, true, .1));
+});
+
+test('a scroll aura swells on arrival and returns exactly to rest', () => {
+  const item = new THREE.Group();
+  item.userData.scrollAura = createScrollAura('fire', 'k', null);
+  item.add(item.userData.scrollAura);
+  const aura = item.userData.scrollAura;
+  assert.ok(aura, 'the fire scroll has an aura');
+  let biggest = 1;
+  updateStepOver(item, true, 0);
+  for (let t = 0; t < 1; t += 1 / 60) { updateStepOver(item, true, 1 / 60); biggest = Math.max(biggest, aura.scale.x); }
+  assert.ok(biggest > 1.5 && biggest <= 1 + STEP_SWELL + 1e-9);
+  assert.equal(aura.scale.x, 1);
 });
