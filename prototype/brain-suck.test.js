@@ -89,3 +89,12 @@ test('Cthulhu\'s tentacles are its own: green, thick, from its high maw, with pa
  assert(new THREE.Color(pale).r>.5&&col.g>col.r&&col.g>col.b,`sucker ${pale.toString(16)} skin ${col.getHexString()}`);
  s.dispose();
 });
+
+test('an eaten brain ends on one last gulp down the tentacles; a harmless wrap does not',()=>{
+ const base={hero:{x:5,z:5},flayer:{x:6,z:5}},letGo=DURATION.eaten-420,heat=(o,t)=>Math.max(...suckShape({...base,outcome:o},t).beads.map(b=>b.heat));
+ assert(heat('eaten',letGo+100)>.2);
+ assert.equal(heat('eaten',letGo+300),0);
+ assert.equal(heat('eaten',DURATION.eaten-1),0);
+ assert.equal(heat('harmless',DURATION.harmless-300),0);
+ assert.equal(suckShape({...base,outcome:'eaten'},DURATION.eaten),null);
+});
