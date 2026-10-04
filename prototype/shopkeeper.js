@@ -7,7 +7,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // rolled and held by red garters, a maroon cravat and a gold watch chain. Over it hangs a stained
 // canvas apron with a bib, neck and waist straps tied in a bow at the back, and a front pocket with
 // a pencil. A drawstring coin purse hangs at one hip and the shop's ring of keys at the other.
-// Brown trousers, stout shoes. His face is round and jowly, with a rosy nose and cheeks, a bald pate
+// Brown trousers, stout shoes. His face is sallow and jowly, with a bruised, broken-veined nose and dull cheeks, a bald pate
 // ringed by a grey fringe, bushy brows, a curled grey moustache and little gold spectacles. He holds
 // a brass hand balance in his right hand and a ledger in his left.
 // Each moving part (body, head, each leg and arm, and the balance) is one merged, vertex-coloured
@@ -15,7 +15,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // built once and shared, so nothing here is disposed per actor.
 // Handles: legs, arms, arm (the balance arm), weaponSocket, head, body, like the nurse and priests.
 
-const SKIN=rgb('#e2ab8a'),SKIN_SHADE=rgb('#b87e62'),SKIN_LIGHT=rgb('#f2c6a8'),ROSY=rgb('#d06e62'),EYE=rgb('#1c1612');
+const SKIN=rgb('#a8906f'),SKIN_SHADE=rgb('#7a6450'),SKIN_LIGHT=rgb('#bba685'),ROSY=rgb('#7e4c48'),EYE=rgb('#1c1612');
 const GREY=rgb('#c9c3b8'),GREY_DARK=rgb('#8a8378');
 const VEST=rgb('#2f5e52'),VEST_DARK=mix(VEST,[0,0,0],.45),SHIRT=rgb('#efe6d2'),SHIRT_SHADE=rgb('#c8bca4');
 const TROUSER=rgb('#4d3b2d'),TROUSER_DARK=rgb('#2e231a'),SHOE=rgb('#2a211b'),SOLE=rgb('#17120e');
@@ -126,7 +126,7 @@ function buildHead(){
  // jowls and a double chin
  P.add(new THREE.SphereGeometry(.075,14,10),at(0,.05,.03,[0,0,0],[1.12,.8,1]),SKIN);
  P.add(new THREE.SphereGeometry(.06,12,8),at(0,.018,.048,[0,0,0],[1.1,.6,.9]),SKIN_SHADE);
- // rosy bulb of a nose, apple cheeks, ears
+ // bruised bulb of a nose, sunken dull cheeks, ears
  P.add(new THREE.SphereGeometry(.022,10,8),at(0,.086,.108,[0,0,0],[1,.9,1.1]),mix(SKIN,ROSY,.55));
  for(const s of [-1,1]){
   P.add(new THREE.SphereGeometry(.026,10,8),at(s*.056,.07,.083,[0,0,0],[1,.8,.6]),mix(SKIN,ROSY,.4));
