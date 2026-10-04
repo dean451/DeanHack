@@ -106,7 +106,9 @@ export function breathFrame(breath, t) {
     const age = t - born;
     if (age < 0 || age >= PARTICLE_MS) continue;
     const u = age / PARTICLE_MS;
-    const d = .15 + CONE_REACH * (.8 + .2 * hash(i, 1)) * (1 - (1 - u) * (1 - u));
+    // A ragged front: reach varies widely per puff, and a slow gust ripples it (never past CONE_REACH).
+    const gust = .94 + .06 * Math.sin(age * .014 + hash(i, 7) * 6.28);
+    const d = .15 + CONE_REACH * (.62 + .38 * hash(i, 1)) * gust * (1 - (1 - u) * (1 - u));
     const th = (hash(i, 2) * 2 - 1) * CONE_HALF, ph = (hash(i, 3) * 2 - 1) * CONE_HALF * .5;
     // A tight throat that flares as it goes, so the cone reads as a billow, not a wedge.
     const along = Math.cos(th) * d, side = Math.sin(th) * d * (.35 + .65 * Math.sqrt(u));

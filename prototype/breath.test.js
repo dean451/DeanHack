@@ -124,3 +124,11 @@ test('the mouth flashes at the start of a breath', () => {
   assert.ok(bright(early).length >= 2, 'flash at the mouth');
   assert.ok(late.particles.every(p => p.size < .3));
 });
+
+test('the leading edge of the breath is ragged', () => {
+  const [b] = breathsFromFx(beam('fire', 10, 5, -1, 0), null);
+  const late = breathFrame(b, b.t0 + 300);
+  // Reach varies from puff to puff: the leading edge is not one clean arc.
+  const reaches = late.particles.map(p => Math.hypot(p.x - b.x, p.z - b.z));
+  assert.ok(Math.max(...reaches) - Math.min(...reaches) > .8);
+});
