@@ -7,7 +7,8 @@
 //    the wider the nearer. Now and then it threatens: the head rears up with the jaws spread to
 //    their widest and shuddering, then lunges a little and snaps them shut.
 //  - Walking, the jaws scissor in time with the stride.
-//  - A bite: the jaws spread wide, the head drops and lunges, and they slam shut past rest.
+//  - A bite: the jaws spread wide, the head drops and lunges, and they slam shut past rest; then
+//    the head worries the bite, three fast side-to-side shakes like an ant tearing at its prey.
 //  - A blow: the jaws splay and quiver, the head flinches up; it fades.
 //  - On death everything eases to the exact rest pose.
 //
@@ -75,11 +76,14 @@ export function threatPose(u) {
     spread, shake: smooth((u - .2) / .15) * (1 - down), snap: -.35 * Math.sin(clamp01((u - .8) / .2) * Math.PI)};
 }
 
-// The bite at action phase u (0..1): {open (-.35..1), lunge (0..1)}.
+// The bite at action phase u (0..1): {open (-.35..1), lunge (0..1), worry (-1..1)}. The worry is
+// the head's shake after the jaws shut, three swings fading out to exactly zero.
 export function bitePose(u) {
-  if (!(u > 0) || !(u < 1)) return {open: 0, lunge: 0};
+  if (!(u > 0) || !(u < 1)) return {open: 0, lunge: 0, worry: 0};
+  const w = clamp01((u - .6) / .4);
   return {open: smooth(u / .38) * (1 - smooth((u - .45) / .1)) - .35 * Math.sin(clamp01((u - .52) / .48) * Math.PI),
-    lunge: Math.sin(clamp01((u - .3) / .6) * Math.PI)};
+    lunge: Math.sin(clamp01((u - .3) / .6) * Math.PI),
+    worry: Math.sin(w * Math.PI * 6) * Math.sin(w * Math.PI)};
 }
 
 function setup(a) {
@@ -175,7 +179,7 @@ export function updateAntJaws(a, dt, t, busy, look = null, walking = false) {
 
   // the head: the tick and the turn to the hero, rearing in a threat, dropping into a bite, a flinch
   const pitch = (-.38 * th.rear + .28 * bite.lunge - .25 * sp * (1 + .3 * Math.sin(st.T * 23))) * w;
-  const yaw = (st.tick + st.face * (.4 + .6 * st.near)) * w;
+  const yaw = (st.tick + st.face * (.4 + .6 * st.near) + .3 * bite.worry) * w;
   const hd = a.head, o = st.applied;
   hd.rotation.x += pitch - o.pitch; hd.rotation.y += yaw - o.yaw;
   o.pitch = pitch; o.yaw = yaw;
