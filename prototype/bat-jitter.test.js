@@ -26,11 +26,19 @@ test('poses stay in bounds and end at zero', () => {
   for (let u = -.1; u <= 1.1; u += .005) {
     const s = B.swoopPose(u);
     assert.ok(s.drop >= -.3 && s.drop <= 1 && s.glide >= 0 && s.glide <= 1 && s.climb >= 0 && s.climb <= 1, `${u}`);
-    for (const v of [B.feintPose(u), B.bitePose(u)]) assert.ok(v >= 0 && v <= 1, `${u}`);
+    assert.ok(B.bitePose(u) >= 0 && B.bitePose(u) <= 1, `${u}`);
+    assert.ok(B.feintPose(u) >= -B.FEINT_WINDUP - 1e-9 && B.feintPose(u) <= 1, `${u}`);
   }
   assert.deepEqual(B.swoopPose(1), {drop: 0, glide: 0, climb: 0});
   assert.equal(B.feintPose(1), 0);
   assert.equal(B.bitePose(1), 0);
+});
+
+test('a feint rocks back before it darts in, then returns to rest', () => {
+  assert.ok(B.feintPose(.05) < -.1, 'windup');
+  assert.ok(B.feintPose(.3) > .5, 'dart');
+  assert.ok(B.feintPose(.5) < B.feintPose(.3), 'snap back');
+  assert.equal(B.feintPose(0), 0);
 });
 
 test('it flits, swoops when alone, feints when the hero is near, and stays aloft and finite', () => {
