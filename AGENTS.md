@@ -23,8 +23,31 @@ The player trudges through a dark, barren, hostile fantasy world full of monster
 
 ### Known art fixes
 
-Models work through this list first (one small step per run), then move on to ordinary improvements. Remove an item once it is done.
+Work queues for the scheduled routines. Each routine takes the first item on its own list, does one small step per run, and **deletes the item in the same PR once it is fully done** (or edits it to say what remains). When your own list is empty, take the next item from **UI and controls**, and when that is empty too, make an ordinary improvement.
 
+**Models**
+
+- **Boulders:** a boulder is redrawn as a different model every time it is pushed onto a different tile or model. It must keep the same model wherever it moves.
+- **Slime mold:** it has no drawn model, just the default brown diamond. This has been requested many times. Find why it still falls through to the default and give it a real model.
+- **Warrior and the Norn:** the warrior monster (the Valkyrie quest guardians) and the Norn (the Valkyrie quest leader) need models.
+- **Warhorse:** it is just a red box. Give it armour. Simple is fine, but not a red box.
+- **Gems:** they have no shimmer or sparkle and they float off the ground. Rest them on the floor and give them a subtle glint. They are not magical, so keep it modest.
+- **Sinks:** they look like a modern house sink. This is a dungeon: little more than a rusty pipe and a rusty grate in the floor.
+- **Gold pieces:** too large and very dull. Make them smaller and much shinier.
+
+**Animations**
+
+- **Altars:** add the missing animations: sacrificing a corpse, the altar glowing in the colour of your alignment, a four-leaf clover when your luck goes up, and being gifted an artifact.
+- **Death marker:** on death, the red circle under a monster's feet must disappear immediately. It must not topple over with the corpse.
+- **Engulf:** remove the zoom effect on being engulfed entirely. It is broken.
+- **Status effects:** it must be VERY CLEAR when the hero is blind, confused, stunned, sick, deathly ill, on fire, frozen, grabbed or otherwise incapacitated. Right now a stunned hero whose movement doesn't work has no idea why. Give each state a distinct, unmistakable visual and an on-screen label.
+
+**UI and controls**
+
+- **Message history:** Ctrl-P must work in some capacity so the player can see messages that have scrolled by.
+- **Naming prompt:** when asked to name a scroll or potion, show the last message so the player can see what they are naming.
+- **Search tooltip:** next to the `s` (search) tooltip, also tell the player about `v` (explore).
+- **Zoom and map:** allow zooming in further, keep the zoom when changing dungeon level (do not reset it), and add a small minimap. Shift-`>` points toward stairs down and it is hard to tell which of several staircases is being pointed at; the minimap should help.
 
 ### Magic items
 
