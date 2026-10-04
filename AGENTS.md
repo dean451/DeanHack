@@ -29,6 +29,7 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 
 - **Boulders:** a boulder is redrawn as a different model every time it is pushed onto a different tile or model. It must keep the same model wherever it moves.
 - **Slime mold:** it has no drawn model, just the default brown diamond. This has been requested many times. Find why it still falls through to the default and give it a real model.
+- **Magic item signatures:** go class by class (wands and rings first, then amulets, potions, scrolls and magic weapons) and make each item look distinct within its class and hint at its effect, following the Magic items notes below. Unidentified items keep their randomized appearance. One class per step.
 - **Warrior and the Norn:** the warrior monster (the Valkyrie quest guardians) and the Norn (the Valkyrie quest leader) need models.
 - **Warhorse:** it is just a red box. Give it armour. Simple is fine, but not a red box.
 - **Gems:** they have no shimmer or sparkle and they float off the ground. Rest them on the floor and give them a subtle glint. They are not magical, so keep it modest.
@@ -37,6 +38,7 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 
 **Animations**
 
+- **Magic item moments:** add the step-over hit, the floor presence and the pickup moment described under Magic items. Wands and rings first, then amulets, potions, scrolls and magic weapons. One class per step, and keep it cheap.
 - **Altars:** add the missing animations: sacrificing a corpse, the altar glowing in the colour of your alignment, a four-leaf clover when your luck goes up, and being gifted an artifact.
 - **Status effects:** it must be VERY CLEAR when the hero is blind, confused, stunned, sick, deathly ill, on fire, frozen, grabbed or otherwise incapacitated. Right now a stunned hero whose movement doesn't work has no idea why. Give each state a distinct, unmistakable visual and an on-screen label.
 
@@ -55,4 +57,10 @@ The world gives a lot to draw on: a lamp that never runs dry, a wand of death th
 
 - **Models:** build the effect into the object's look: materials, glow, runes, wear, silhouette. Different items of the same class (two rings, two wands) should look different from each other, and each should hint at what it does.
 - **Animations:** let the item's power show in how it moves and behaves: idles, pulses, flickers, drifting motes, and a clear, satisfying beat when it is used.
+- **The dopamine hit:** walking onto a magic item should feel like a small jackpot. Treat the step-over as an event: as the hero arrives, the item answers with a flash or pulse in its own colour, motes lift off it, and its glow swells for a beat and settles. Keep it brief (about half a second), repeatable without becoming annoying, and never block input.
+- **Floor presence:** a magic item lying on the floor should catch the eye from across a room: a steady glow, shimmer or slow pulse in its own colour, with a faint halo on the ground. Rarer and more powerful items present more strongly, and artifacts the strongest of all. Mundane items stay dull so the magic stands out.
+- **Pickup:** picking one up should feel like claiming it: a short lift, a flash, then it settles into the pack.
+- **A signature per class, a twist per item:** give each class its own character (wands crackle and arc, rings glint along the band, amulets pulse like a heartbeat, potions swirl and slosh, scrolls shed drifting glyphs, magic weapons hum with edge-light), then give each item its own twist that is true to its effect.
+- **Do not spoil unidentified items:** an unidentified item looks like its randomized appearance (the "oak wand", the "ruby ring") and shows only the generic magic presence of its class. Reveal the true signature effect only once the item is identified. Never leak identity, enchantment or blessed/cursed status through visuals before the player has earned it.
+- **Readable and cheap:** effects must not hide the map or the monsters, must read at the game camera distance, and must stay cheap, because many items can be on screen at once. Do not retune the lighting constants; use emissive materials and small effects instead.
 - **Tone:** this is a dark world, but it is inhabited by extremely strong magic that the player must harness to survive. Magic items are the player's lifeline and the strongest things in the world, so let their power read as vivid, intense and unmistakable against the grim backdrop: bright, strange, ancient and a little dangerous. Power is never cute, bubbly or pastel.
