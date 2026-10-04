@@ -9,6 +9,9 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // shaded side. A few spalled chips and grit lie around it on a soft contact shadow.
 // Two draws: the baked stone and the shadow.
 // `seed` varies the shape per tile; the same seed always gives the same stone.
+// Every boulder uses this seed, so a pushed boulder is the same stone on every tile.
+export const BOULDER_SEED=7;
+
 export function createBoulder(seed=1){
  const g=new THREE.Group();g.name='Boulder';
  const geometries=[],materials=[];

@@ -28,3 +28,10 @@ test('boulders are finite, sit on the floor inside their tile, vary by seed and 
  }
  assert(sizes.size>1,'the seed changes the shape');
 });
+
+test('live.js gives every boulder the one fixed seed, so a pushed boulder keeps its model',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const src=readFileSync(new URL('./live.js',import.meta.url),'utf8');
+ assert(src.includes('createBoulder(BOULDER_SEED)'),'the boulder is built from BOULDER_SEED, not the tile');
+ assert(!/createBoulder\(cellHash/.test(src),'the boulder seed must not depend on its tile');
+});
