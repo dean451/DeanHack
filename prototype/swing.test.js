@@ -142,3 +142,12 @@ test('the blade is moving fastest into contact, not slowing to a stop at it', ()
     assert.ok(speed(blow, c + .01) > speed(blow, c + .15), blow + ' follow-through eases out');
   }
 });
+
+test('a whiff overbalances the hero forward and recovers; a hit does not', () => {
+  for (const blow of ['slash', 'pierce', 'blunt']) {
+    const c = CONTACT_U[blow], u = c + (1 - c) * .3;
+    assert.ok(swingPose(blow, u, 'miss').lean > swingPose(blow, u, 'hit').lean + .03, `${blow} lurches on a miss`);
+    assert.equal(swingPose(blow, c, 'miss').lean, swingPose(blow, c, 'hit').lean);
+    assert.ok(Math.abs(swingPose(blow, 1, 'miss').lean) < 1e-12);
+  }
+});

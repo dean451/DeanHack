@@ -65,6 +65,14 @@ export function swingPose(blow, u, result = 'hit') {
   const whiff = result === 'hit' ? 1 : 1 + .3 * smooth((u - contact) / .12) * (1 - smooth((u - .8) / .2));
   const p = {};
   for (const f of FIELDS) p[f] = (a[f] + (b[f] - a[f]) * k) * (u > contact ? whiff : 1);
+  // A whiff overbalances the hero: the torso pitches on after the blade and lurches, then
+  // hauls itself back upright. Zero at the end of the swing, so it still returns to rest.
+  if (result !== 'hit' && u > contact) {
+    const w = clamp01((u - contact) / (1 - contact));
+    const lurch = Math.sin(Math.PI * w) * (1 - w);
+    p.lean += .16 * lurch;
+    p.twist -= .1 * lurch;
+  }
   return p;
 }
 
