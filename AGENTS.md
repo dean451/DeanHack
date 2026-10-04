@@ -25,5 +25,4 @@ The player trudges through a dark, barren, hostile fantasy world full of monster
 
 Models work through this list first (one small step per run), then move on to ordinary improvements. Remove an item once it is done.
 
-- **Altars:** sit them low to the floor, remove the cute red cloth, cover them in blood and scatter bones around them (`altar.js`, `altar-embers.js`).
 - **Nalfeshnee:** it reuses the generic `toad` head, so it reads as the hezrou's frog (`DEMONS` in `creatures.js`). Give it its own traditional look: a heavy, bloated demon with a boar-like head and tusks, small wings, coarse hide. It must not look like the hezrou.

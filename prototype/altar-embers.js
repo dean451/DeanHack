@@ -100,7 +100,7 @@ function phaseOf(obj) {
 }
 
 export function attachEmbers(altar) {
-  const b = altar.userData.brazier ?? {x: 0, y: .675, z: .02};
+  const b = altar.userData.brazier ?? {x: 0, y: .43, z: .02};
   const group = new THREE.Group();
   group.name = 'AltarEmbers';group.position.set(b.x, b.y, b.z);
   const sparkMat = new THREE.MeshBasicMaterial({color: 0xffffff, toneMapped: false});

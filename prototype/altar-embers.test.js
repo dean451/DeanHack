@@ -78,7 +78,7 @@ test('embers attach to altars above the coals, animate, and clean up and restore
   fx.update(0);
   assert.equal(fx.embers.size, 2);
   const group = a.getObjectByName('AltarEmbers');
-  assert.ok(group.position.y > .6 && group.position.y < .72, 'sits on the coal heap');
+  assert.ok(group.position.y > .4 && group.position.y < .47, 'sits on the coal heap');
   assert.equal(group.children.length, 1 + SMOKE_PUFFS);
   fx.update(1.3);
   assert.notEqual(coals[0].emissiveIntensity, base);

@@ -3,13 +3,11 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {createFire} from './fire.js';
 
-// An altar for the `altar` terrain: a two-step dais under a carved stone block with
-// corner pilasters, a moulded overhanging mensa and a sunken rune panel on each side.
-// A crimson runner with gold borders lies along the top and hangs over the front in a
-// pointed, fringed pennant with a brass sun disc. On top: a brass brazier of glowing
-// coals, four candles in brass sticks with running wax, a chalice and a few coins.
-// The stone is lightly roughened and its weathering is baked into vertex colours
-// (mottling, grit, dark seams, worn tops, grime at the foot, shade under the lip).
+// An altar for the `altar` terrain: a low, brutal sacrificial slab on a two-step dais,
+// its short corner posts and sunken rune panels weathered and filthy. Dried blood crusts
+// the top, runs down the front and pools on the floor; a skull sits on the slab and bones
+// and ribs lie scattered about it. On top: a brass brazier of glowing coals, four stubby
+// candles, a chalice and a few coins. Stone weathering is baked into vertex colours.
 // Static parts are merged into one mesh per material; only the candle flames are
 // separate (they animate through `updateFire`). It faces +z and stays in its tile.
 export function createAltar(){
@@ -18,10 +16,11 @@ export function createAltar(){
  const mat=(o)=>{const m=new THREE.MeshStandardMaterial(o);materials.push(m);return m;};
  const stone=mat({vertexColors:true,roughness:.93});
  const brass=mat({color:0xb79455,metalness:.78,roughness:.4});
- const cloth=mat({vertexColors:true,roughness:.96,side:THREE.DoubleSide});
+ const blood=mat({color:0x4a0a0a,roughness:.3,metalness:.1});
+ const bone=mat({color:0xb5a98c,roughness:.88});
  const wax=mat({color:0xdac49a,roughness:.72});
  const ember=mat({color:0xffc27a,emissive:0xff7a22,emissiveIntensity:2.6,roughness:.8});
- const bins=new Map([[stone,[]],[brass,[]],[cloth,[]],[wax,[]],[ember,[]]]);
+ const bins=new Map([[stone,[]],[brass,[]],[blood,[]],[bone,[]],[wax,[]],[ember,[]]]);
  const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),v=new THREE.Vector3(),s=new THREE.Vector3();
  // Queue a geometry into its material's bin, placed by position, rotation and scale.
  // `tint` darkens or lightens the baked stone colour of that one part.
@@ -47,67 +46,54 @@ export function createAltar(){
  block(.92,.06,.86,0,.03,0,{r:.016,tint:.92});
  block(.82,.06,.74,0,.09,0,{r:.014,tint:.97});
  // Body: a block with corner pilasters (base, shaft, capital) and a moulded lip.
- block(.6,.36,.5,0,.3,0,{r:.01});
- for(const x of [-.29,.29])for(const z of [-.23,.23]){
-  block(.14,.04,.14,x,.14,z,{r:.01,tint:1.05});
-  block(.1,.3,.1,x,.3,z,{r:.012});
-  block(.14,.04,.14,x,.46,z,{r:.01,tint:1.05});
- }
- block(.8,.03,.62,0,.495,0,{r:.01,tint:1.04});
+ block(.66,.14,.54,0,.19,0,{r:.01});
+ for(const x of [-.31,.31])for(const z of [-.25,.25])block(.1,.16,.1,x,.19,z,{r:.012,tint:.9});
+ block(.76,.025,.62,0,.2725,0,{r:.01,tint:1.04});
  // Sunken rune panels on the sides: a dark recess with a pale carved ember sign.
  for(const sx of [-1,1]){
-  block(.012,.2,.28,sx*.298,.3,0,{r:.004,tint:.55,rough:.001});
-  block(.008,.12,.018,sx*.305,.3,0,{r:.003,tint:1.35,rough:0});
-  block(.008,.014,.1,sx*.305,.235,0,{r:.003,tint:1.35,rough:0});
+  block(.012,.09,.28,sx*.328,.19,0,{r:.004,tint:.55,rough:.001});
+  block(.008,.06,.018,sx*.335,.19,0,{r:.003,tint:1.35,rough:0});
+  block(.008,.012,.1,sx*.335,.16,0,{r:.003,tint:1.35,rough:0});
  }
  // Leaning strokes of the ember sign (tilted, so placed by hand).
  for(const sx of [-1,1])for(const a of [-1,1]){
-  const geo=new RoundedBoxGeometry(.008,.08,.014,1,.003);
-  put(geo,stone,sx*.305,.345,a*.035,a*.55,0,0,1,1,1,1.35);
+  const geo=new RoundedBoxGeometry(.008,.04,.014,1,.003);
+  put(geo,stone,sx*.335,.215,a*.035,a*.55,0,0,1,1,1,1.35);
  }
  // Mensa: the overhanging top slab.
- block(.86,.08,.68,0,.55,0,{r:.016,tint:1.02});
- const top=.59;
+ block(.84,.06,.68,0,.315,0,{r:.016,tint:1.02});
+ const top=.345;
 
- // Runner: a strip lying along the top from the back, rolling over the front edge
- // and hanging as a pointed pennant. Gold borders, a gold end band, a fringe.
+ // Blood: a dried crust and a fresh pool on the slab, runs down the front and a
+ // spreading stain on the floor. Bones: a skull on the slab, long bones and ribs
+ // scattered about the dais.
  {
-  const W=.3,back=-.31,front=.345,drop=.2,nu=12,nv=40;
-  const lenTop=front-back,lenAll=lenTop+drop;
-  const pos=[],col=[],idx=[];
-  const red=new THREE.Color(0x6d1f2e),dark=new THREE.Color(0x4a1420),gold=new THREE.Color(0xc9a24f),c=new THREE.Color();
-  for(let j=0;j<=nv;j++)for(let i=0;i<=nu;i++){
-   const u=i/nu,t=j/nv,xw=(u-.5)*W;
-   // The pennant point: the hanging part is longest at the middle.
-   const L=lenTop+drop*(1-.45*Math.abs(u-.5)*2),d=t*L;
-   let x=xw,y,z;
-   if(d<=lenTop){y=top+.003+Math.sin(u*Math.PI*3+d*20)*.0012;z=back+d;}
-   else{const h=d-lenTop,sway=Math.sin(u*Math.PI*2.4+1)*.006*Math.min(1,h/.05);y=top+.003-h;z=front+.004+sway+h*.03;}
-   pos.push(x,y,z);
-   const edge=Math.min(u,1-u)*W,fromEnd=L-d;
-   const border=(edge>.012&&edge<.024)||(fromEnd>.022&&fromEnd<.036);
-   c.copy(border?gold:red);
-   if(!border){const n=noise3(x*60,d*60,3);c.lerp(dark,.25+n*.3);}
-   // Soot and wear where the brazier and candles stand.
-   const r2=x*x+(z-.02)**2;if(d<lenTop&&r2<.02)c.multiplyScalar(.75+r2*12);
-   col.push(c.r,c.g,c.b);
+  const pool=(x,y,z,r,sz=1)=>put(new THREE.CylinderGeometry(r,r*1.1,.004,12),blood,x,y,z,0,x*7+z*5,0,1,1,sz);
+  pool(-.05,top+.002,.12,.17,.7);pool(.16,top+.002,-.02,.09);pool(-.2,top+.002,-.1,.07,1.3);
+  for(const [x,len] of [[-.2,.13],[-.08,.2],[.04,.09],[.17,.16],[.28,.1]]){
+   put(new THREE.BoxGeometry(.026,len,.006),blood,x,top-len/2,.343);
+   put(new THREE.SphereGeometry(.015,6,4),blood,x,top-len,.347,0,0,0,1,.8,.5);
   }
-  for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const a=j*(nu+1)+i;idx.push(a,a+nu+1,a+1,a+1,a+nu+1,a+nu+2);}
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-  geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-  geo.setIndex(idx);geo.computeVertexNormals();
-  put(geo,cloth);
-  // Fringe: short brass tassels along the pennant's two lower edges.
-  for(let i=0;i<=10;i++){
-   const u=i/10,L=drop*(1-.45*Math.abs(u-.5)*2);
-   put(new THREE.CylinderGeometry(.0035,.0015,.028,4),brass,(u-.5)*W,top-L-.01,front+.004+Math.sin(u*Math.PI*2.4+1)*.006+L*.03);
+  pool(-.3,.005,.36,.09,.8);pool(.34,.005,.32,.08);pool(.02,.003,.38,.1,.4);
+  // Skull on the slab, jaw agape.
+  const sx=.27,sz=.03;
+  put(new THREE.SphereGeometry(.032,8,6),bone,sx,top+.03,sz,0,-.5,0,1,.9,1.05);
+  put(new THREE.BoxGeometry(.034,.016,.03),bone,sx+.01,top+.01,sz+.02,0,-.5,0);
+  for(const o of [-.012,.012])put(new THREE.SphereGeometry(.007,5,4),stone,sx+.02-o*.4,top+.036,sz+.026+o*.9,0,0,0,1,1,.6,.1);
+  // A long bone: shaft with a knob at each end.
+  const longBone=(x,y,z,ry,len)=>{
+   put(new THREE.CylinderGeometry(.007,.007,len,5),bone,x,y,z,0,ry,Math.PI/2);
+   for(const k of [-1,1])for(const j of [-.006,.006])put(new THREE.SphereGeometry(.011,5,4),bone,x+Math.cos(ry)*k*len/2,y,z-Math.sin(ry)*k*len/2+j);
+  };
+  longBone(-.3,top+.008,.2,.4,.2);
+  for(const [x,z,ry,len] of [[-.36,.1,.9,.16],[.36,-.12,2.2,.14],[-.1,.4,0,.2],[.3,.38,0,.14],[-.36,-.3,1.5,.14],[.12,-.38,0,.14]])longBone(x,.014,z,ry,len);
+  // Ribs: half-hoops standing from the floor.
+  for(const [x,z,ry] of [[.4,.25,.3],[.35,.3,.45],[-.4,.36,2],[-.1,-.4,1]])put(new THREE.TorusGeometry(.03,.005,4,8,Math.PI),bone,x,.006,z,0,ry,0);
+  // Skulls on the floor.
+  for(const [x,z,ry] of [[.38,.38,.8],[-.4,-.1,2.5]]){
+   put(new THREE.SphereGeometry(.03,8,6),bone,x,.036,z,0,ry,0,1,.9,1.05);
+   put(new THREE.BoxGeometry(.03,.014,.026),bone,x+Math.cos(ry)*.012,.012,z-Math.sin(ry)*.012,0,ry,0);
   }
-  // Brass sun disc on the pennant with short rays.
-  const cy=top-.09,cz=front+.004+Math.sin(Math.PI*1.2+1)*.006+.09*.03+.004;
-  put(new THREE.CylinderGeometry(.034,.034,.006,20),brass,0,cy,cz,Math.PI/2);
-  put(new THREE.TorusGeometry(.046,.004,5,24),brass,0,cy,cz);
-  for(let k=0;k<8;k++){const a=k/8*Math.PI*2;put(new THREE.BoxGeometry(.006,.022,.003),brass,Math.cos(a)*.062,cy+Math.sin(a)*.062,cz,0,0,a-Math.PI/2);}
  }
 
  // Brazier: a footed brass dish on three claw feet, heaped with coals, some glowing.
@@ -127,7 +113,7 @@ export function createAltar(){
 
  // Candles in brass sticks at the back corners, each with running wax and a flame.
  const flames=[];
- for(const [x,z,h] of [[-.3,-.16,.2],[-.21,-.24,.13],[.29,-.17,.25],[.2,-.25,.16]]){
+ for(const [x,z,h] of [[-.3,-.16,.12],[-.21,-.24,.08],[.29,-.17,.14],[.2,-.25,.09]]){
   put(lathe([[0,0],[.045,0],[.046,.008],[.03,.014],[.012,.022],[.016,.032],[.011,.04],[.012,.05],[.036,.054],[.038,.06],[.028,.061],[0,.061]],16),brass,x,top,z);
   const base=top+.06;
   put(lathe([[0,0],[.026,0],[.027,h*.5],[.025,h],[.02,h+.004],[.008,h+.002],[0,h+.006]],14),wax,x,base,z);
@@ -155,12 +141,12 @@ export function createAltar(){
     const p=flat.attributes.position,nor=flat.attributes.normal,col=new Float32Array(p.count*3);
     for(let i=0;i<p.count;i++){n.fromBufferAttribute(nor,i);const [r,gg,b]=stoneColour(p.getX(i),p.getY(i),p.getZ(i),n,tint);col[i*3]=r;col[i*3+1]=gg;col[i*3+2]=b;}
     flat.setAttribute('color',new THREE.BufferAttribute(col,3));
-   }else if(material!==cloth)flat.deleteAttribute('color');
+   }else flat.deleteAttribute('color');
    return flat;
   });
   const geo=mergeGeometries(parts);parts.forEach(p=>p.dispose());geometries.push(geo);
   const mesh=new THREE.Mesh(geo,material);mesh.castShadow=material!==ember;mesh.receiveShadow=true;
-  mesh.userData.part=material===stone?'stone':material===brass?'brass':material===cloth?'cloth':material===wax?'wax':'coals';
+  mesh.userData.part=material===stone?'stone':material===brass?'brass':material===blood?'blood':material===bone?'bone':material===wax?'wax':'coals';
   g.add(mesh);
  }
  g.userData.flames=flames;
