@@ -67,10 +67,12 @@ export function feintPose(u) {
   return smooth((u - .1) / .2) * (1 - smooth((u - .4) / .5)) - FEINT_WINDUP * Math.sin(Math.PI * clamp01(u / .1));
 }
 
-// The bite at action phase u (0..1): forward pitch (0..1).
+// The bite at action phase u (0..1): forward pitch (0..1), then a short tug (down to -BITE_TUG) as
+// the head jerks back and up, like tearing off a mouthful.
+export const BITE_TUG = .2;
 export function bitePose(u) {
   if (!(u > 0) || !(u < 1)) return 0;
-  return Math.sin(Math.PI * u) ** 2;
+  return Math.sin(Math.PI * u) ** 2 - BITE_TUG * Math.sin(Math.PI * clamp01((u - .7) / .3));
 }
 
 const rot = o => ({x: o.rotation.x, y: o.rotation.y, z: o.rotation.z});
@@ -129,7 +131,7 @@ export function updateBatJitter(a, dt, t, busy, look = null) {
 
   // the bite
   const atk = dead ? null : current(a, 'attack');
-  const bite = atk ? bitePose(a.actions.u ?? 0) : 0;
+  const bite = atk ? bitePose(a.actions.u ?? 0) : 0, chomp = Math.max(bite, 0);
 
   // swoops while the hero is away, feints while they're near; each on its own clock
   if (st.swoop != null) { st.swoop += dt / SWOOP_LEN; if (st.swoop >= 1) st.swoop = null; }
@@ -149,7 +151,7 @@ export function updateBatJitter(a, dt, t, busy, look = null) {
     st.yawTo = (rand(st) * 2 - 1) * L.yaw;
     st.hold = L.gap + L.gapSpan * rand(st) * (1 + L.calm * ex);
   }
-  const calm = (1 - L.calm * ex) * (1 - Math.max(sw.glide, bite));
+  const calm = (1 - L.calm * ex) * (1 - Math.max(sw.glide, chomp));
   const prev = {...st.at};
   for (const k of ['x', 'y', 'z']) st.at[k] = approach(st.at[k], st.to[k] * calm, L.jerk, dt);
   for (const k of ['x', 'y', 'z']) st.vel[k] = dt > 0 ? approach(st.vel[k], (st.at[k] - prev[k]) / dt, 20, dt) : st.vel[k];
@@ -168,7 +170,7 @@ export function updateBatJitter(a, dt, t, busy, look = null) {
   lift.rotation.z = r.z + roll * w;
 
   // the wings: their own beat, whipped faster by darts, climbs, bites and blows, locked in a V to glide
-  st.phase += L.beat * (1 + Math.min(L.whip * speed * 4, 1) + .6 * sw.climb + bite + tb) * dt;
+  st.phase += L.beat * (1 + Math.min(L.whip * speed * 4, 1) + .6 * sw.climb + chomp + tb) * dt;
   if (st.phase > 1e4) st.phase -= Math.floor(st.phase / TAU) * TAU;
   const beat = Math.sin(st.phase) * L.amp * (1 + .15 * sw.climb + .2 * tb), flap = beat * (1 - sw.glide) + .22 * sw.glide;
   if (w > 0) a.wings.forEach((wing, i) => {

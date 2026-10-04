@@ -26,7 +26,7 @@ test('poses stay in bounds and end at zero', () => {
   for (let u = -.1; u <= 1.1; u += .005) {
     const s = B.swoopPose(u);
     assert.ok(s.drop >= -.3 && s.drop <= 1 && s.glide >= 0 && s.glide <= 1 && s.climb >= 0 && s.climb <= 1, `${u}`);
-    assert.ok(B.bitePose(u) >= 0 && B.bitePose(u) <= 1, `${u}`);
+    assert.ok(B.bitePose(u) >= -B.BITE_TUG - 1e-9 && B.bitePose(u) <= 1, `${u}`);
     assert.ok(B.feintPose(u) >= -B.FEINT_WINDUP - 1e-9 && B.feintPose(u) <= 1, `${u}`);
   }
   assert.deepEqual(B.swoopPose(1), {drop: 0, glide: 0, climb: 0});
@@ -84,4 +84,11 @@ test('a blow tumbles it, and death eases it to the exact rest pose and hands the
   a.wings[0].rotation.z = .5;
   B.updateBatJitter(a, dt, 9, true);
   assert.equal(a.wings[0].rotation.z, .5, 'live.js keeps the wings once it is at rest');
+});
+
+test('a bite tugs back after the chomp, then returns to rest', () => {
+  assert.ok(B.bitePose(.5) > .9, 'chomp');
+  assert.ok(B.bitePose(.95) < 0, 'tug');
+  assert.equal(B.bitePose(0), 0);
+  assert.equal(B.bitePose(1), 0);
 });
