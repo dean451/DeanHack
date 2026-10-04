@@ -2309,6 +2309,11 @@ function demon(o){
  if(o.flame){const fire=mat(o.flame,{emissive:o.flame,emissiveIntensity:3.2,roughness:.3,transparent:true,opacity:.85});
   for(let i=0;i<9;i++){const a=(i/8-.5)*2.6,f=cone(body,.035,.16+.06*Math.cos(a),fire,Math.sin(a)*.2*bulk,chestY+.16+Math.cos(a)*.04,-.08-Math.cos(a)*.04,5);f.rotation.z=-a*.3;f.castShadow=false;}
   for(let i=0;i<3;i++){const f=cone(head,.025,.1,fire,(i-1)*.04,.14,-.04,5);f.castShadow=false;}}
+ // evil glow (balrogs): molten cracks split the hide of chest and belly, and a pool of hellglow lies under the hooves
+ if(o.evil){const ember=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.4,roughness:.5}),pool=mat(o.evil,{emissive:o.evil,emissiveIntensity:1.6,transparent:true,opacity:.34,depthWrite:false});ember.name=pool.name='evil-glow';
+  for(const [x,y,z,rz] of [[-.07,chestY+.06,.15,.35],[.06,chestY,.16,-.5],[-.03,chestY-.08,.17,-.2],[.02,.55,.14,.45],[-.07,.5,.13,-.55]]){const c=rounded(body,.012,.08,.008,ember,x*bulk,y,z*bulk,.004);c.rotation.z=rz;c.castShadow=false;}
+  for(const side of [-1,1]){const c=rounded(body,.01,.07,.008,ember,side*.12*bulk,chestY+.05,.1,.004);c.rotation.z=side*.7;c.castShadow=false;}
+  const p=cylinder(body,.62,.7,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;}
  // bat wings on finger bones
  if(o.wings)for(const side of [-1,1]){const wing=new THREE.Group();wing.position.set(side*.08,chestY+.12,-.12*bulk);body.add(wing);const sp=o.wings*1.45;
   const tips=[[side*.26*sp,.4*sp],[side*.46*sp,.26*sp],[side*.5*sp,.02],[side*.32*sp,-.16*sp]],shape=new THREE.Shape();shape.moveTo(0,0);
@@ -2332,8 +2337,8 @@ const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',horns:'short',head:'to
  'barbed devil':{skin:'#9a2e20',horns:'short',spikes:true,tail:true},marilith:{skin:'#7a3a5a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true},
  vrock:{skin:'#6a5a48',head:'beak',horn:'#3a3028',wings:.9},'bone devil':{skin:'#9a9078',head:'skull',spikes:'bone',tail:true},
  'ice devil':{skin:'#b8d0e0',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true},nalfeshnee:{skin:'#5a4a3a',head:'boar',spikes:'bone',wings:.5,bulk:1.3},
- 'pit fiend':{skin:'#7a1a18',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.1},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',weapon:'whip',bulk:1.2,scale:1.2},
- "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.25},
+ 'pit fiend':{skin:'#7a1a18',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.1},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.2},
+ "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',evil:'#ff3a08',weapon:'whip',bulk:1.2,scale:1.25},
  yeenoghu:{skin:'#8a7040',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
  geryon:{skin:'#6a4a2a',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',horns:'long',tail:true,weapon:'trident',scale:1.15},
  baalzebub:{skin:'#3a4a2a',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
