@@ -34,10 +34,10 @@ const LOOKS={
  kitten:{scale:.7,coat:'#9a9690',stripe:'#4a4640',belly:'#b8b4a8',nose:'#6a3a38',eye:'#6aa8e0',pattern:'tabby',headSize:1.22,legH:.19,tail:'up',tailLen:.8},
  housecat:{scale:1,coat:'#cf9050',stripe:'#8a4e22',belly:'#c8b898',nose:'#6a3838',eye:'#d6b640',pattern:'tabby',socks:true},
  'large cat':{scale:1.15,coat:'#8a7050',stripe:'#2e241a',belly:'#dccab0',nose:'#5a3630',eye:'#c8b030',pattern:'tabby'},
- jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#efe2c8',nose:'#b87a6a',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
- lynx:{scale:1.1,coat:'#a88f70',stripe:'#5a4630',belly:'#ece2d2',nose:'#8a5a4a',eye:'#c8b040',pattern:'spots',tufts:true,ruff:true,legH:.26,tail:'bob'},
+ jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#c4b497',nose:'#5e3630',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
+ lynx:{scale:1.1,coat:'#a88f70',stripe:'#5a4630',belly:'#b8ac98',nose:'#5a3a30',eye:'#c8b040',pattern:'spots',tufts:true,ruff:true,legH:.26,tail:'bob'},
  panther:{scale:1.45,coat:'#232226',stripe:'#121114',belly:'#2e2c32',nose:'#141214',eye:'#9ad04a',pattern:'ghost',ears:'round',round:true,heavy:1.1,headSize:.95,tail:'low',gloss:.45,whisker:'#8a8a8a'},
- tiger:{scale:1.6,coat:'#d9782a',stripe:'#1a120c',belly:'#f4ece0',nose:'#c07a6a',eye:'#e0a030',pattern:'tiger',ears:'round',round:true,heavy:1.2,headSize:.95,tail:'low',tailLen:1.05,brows:true,earSpots:true},
+ tiger:{scale:1.6,coat:'#d9782a',stripe:'#1a120c',belly:'#cbbfa8',nose:'#5e3630',eye:'#e0a030',pattern:'tiger',ears:'round',round:true,heavy:1.2,headSize:.95,tail:'low',tailLen:1.05,brows:true,earSpots:true},
  'displacer beast':{scale:1.5,coat:'#2e2a48',stripe:'#4a4880',belly:'#3a3656',nose:'#1a1828',eye:'#50f0d0',pattern:'shimmer',heavy:1.1,tail:'low',tentacles:'#6a68b0',whisker:'#9a98c8'},
 };
 
