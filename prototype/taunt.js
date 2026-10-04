@@ -43,8 +43,8 @@ export function tauntPose(u, f = 1) {
   const up = win(u, .05, .8, .15);
   const beckon = (.5 - .5 * Math.cos(2 * Math.PI * (s - .3 * TAUNT_LEN) * BECKON_RATE)) * (u > .3 && u < .3 + 3 / BECKON_RATE / TAUNT_LEN ? 1 : 0);
   p.arm = (RAISE * up - BECKON * beckon * up) * f;
-  // a cackle between the beckons and the whip
-  p.nod = CACKLE * hump(u, .42, .72) * (.5 - .5 * Math.cos(2 * Math.PI * (s - .42 * TAUNT_LEN) * CACKLE_RATE)) * f;
+  // a cackle between the beckons and the whip, then a flinch: the imp ducks its head from its own crack
+  p.nod = (CACKLE * hump(u, .42, .72) * (.5 - .5 * Math.cos(2 * Math.PI * (s - .42 * TAUNT_LEN) * CACKLE_RATE)) + CACKLE * hump(u, .8, .94)) * f;
   // wings snap open early, shiver, and fold back before the whip
   p.flare = (FLARE * win(u, 0, .55, .1) + FLUTTER * hump(u, .08, .5) * Math.sin(2 * Math.PI * s * FLUTTER_RATE)) * f;
   // the tail lifts behind, then cracks: one full sideways lash under a hump

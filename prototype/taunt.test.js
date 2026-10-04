@@ -43,6 +43,13 @@ test('the taunt pose stays in bounds, moves smoothly and starts and ends at rest
   assert(tauntPose(.6).arm > RAISE * .5 && tauntPose(.6).lift > LIFT * .5 && tauntPose(.2).flare > FLARE * .5);
 });
 
+test('the imp ducks its head after the whip cracks, then lifts it again', () => {
+  const crack = tauntPose(.78), flinch = tauntPose(.87);
+  assert(crack.nod < 1e-9, 'no nodding while the tail lashes');
+  assert(flinch.nod > CACKLE * .95 && flinch.nod <= CACKLE + 1e-12, 'the flinch is a full duck');
+  assert(tauntPose(.96).nod === 0 && tauntPose(.8).nod === 0);
+});
+
 test('a standing imp taunts now and then and goes back exactly to rest', () => {
   const a = make();
   assert(taunts(a));
