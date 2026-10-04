@@ -1865,8 +1865,8 @@ const RUST_MONSTERS={'rust monster':{color:'#8a5a34',belly:'#c08a5a',fleck:'#c06
 function leprechaun(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
  const box=(p,w,h,d,m,x,y,z)=>part(p,new THREE.BoxGeometry(w,h,d),m,x,y,z);
- const coat=mat(o.coat,{roughness:.85}),coatDark=mat(shade(o.coat,.6),{roughness:.9}),vest=mat(o.vest||'#d8c89a',{roughness:.85}),skin=mat('#e8b896',{roughness:.8}),rosy=mat('#d8806e',{roughness:.8}),
-  beard=mat(o.beard||'#c8561e',{roughness:.95}),stocking=mat('#ece6d8',{roughness:.9}),black=mat('#161414',{roughness:.45}),hatMat=mat(shade(o.coat,.8),{roughness:.8}),
+ const coat=mat(o.coat,{roughness:.85}),coatDark=mat(shade(o.coat,.6),{roughness:.9}),vest=mat(o.vest||'#d8c89a',{roughness:.85}),skin=mat('#a08468',{roughness:.8}),rosy=mat('#6e3e36',{roughness:.8}),
+  beard=mat(o.beard||'#c8561e',{roughness:.95}),stocking=mat('#b5ab94',{roughness:.9}),black=mat('#161414',{roughness:.45}),hatMat=mat(shade(o.coat,.8),{roughness:.8}),
   wood=mat('#4a3020',{roughness:.95}),sack=mat('#8a6a40',{roughness:1}),coin=mat('#e0b83a',{metalness:.85,roughness:.25}),glint=mat('#8ae05a',{emissive:'#4ac02a',emissiveIntensity:1.4,roughness:.2});
  // legs: knee breeches, white stockings and buckled shoes with turned-up toes
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.07,.25,0);body.add(leg);
@@ -1886,7 +1886,7 @@ function leprechaun(o){
   cylinder(body,.04,.04,.03,stocking,hand[0]*.97,hand[1]+.035,hand[2]);sphere(body,.034,skin,...hand);}
  tube(body,[[-.23,.005,.1],[-.215,.2,.08],[-.2,.36,.06],[-.2,.46,.06]],.014,wood,12);sphere(body,.03,wood,-.2,.47,.06,1,.9,1);
  for(const [y,z] of [[.12,.095],[.25,.075]])sphere(body,.017,wood,-.225,y,z);
- // head (on a neck pivot): rosy cheeks, a bulbous nose, pointed ears, a green glint in the eye and a ginger chin-curtain beard
+ // head (on a neck pivot): bruised cheeks, a bulbous scabbed nose, pointed ears, a green glint in the eye and a ginger chin-curtain beard
  const head=new THREE.Group();head.position.set(0,.56,0);body.add(head);const headY=.08;sphere(head,.11,skin,0,headY,.01,1,1.02,1);
  sphere(head,.032,rosy,0,headY-.01,.11,1,.9,1);for(const side of [-1,1]){sphere(head,.028,rosy,side*.058,headY-.025,.085,1,.8,.6);
   sphere(head,.022,vest,side*.04,headY+.02,.092,1,.8,.5);sphere(head,.012,glint,side*.04,headY+.02,.103);
