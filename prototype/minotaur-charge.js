@@ -6,7 +6,8 @@
 //    levelled. Standing still near them it paws the floor: one hoof scrapes back hard, two or three
 //    times, the body rocking with each scrape, before a charge that may or may not come.
 //  - Its butt (actions.js already charges it in head down): it digs in the back hoof, ducks its
-//    head lower still, and after the impact hooks the horns up and across in a gore, rearing back.
+//    head lower still, and after the impact hooks the horns up and across in a gore, rearing back, then flicks the head
+//    side to side to fling the muck off the horns.
 //    Its claws and the labrys swing are left to actions.js.
 //  - A blow: it shakes its head hard and snorts.
 //  - Death: everything eases back to rest. Turned to stone (`a.stone`): it holds.
@@ -24,6 +25,8 @@ export const SNORT_MIN = 5, SNORT_SPAN = 5, SNORT_NEAR = .5, SNORT_LEN = 1.1, TO
 export const PAW_MIN = 3, PAW_SPAN = 4, PAW_SCRAPES = [2, 3], SCRAPE_LEN = .55, PAW_REACH = -.45, PAW_DRAG = .5, PAW_ROCK = .05;
 // The gore (on top of actions.js's butt): head ducks lower, then hooks up and across; the body rears.
 export const GORE = {duck: .3, toss: -.9, twist: .35, rear: -.16, dig: .45};
+// The wipe after the gore: how far the head flicks side to side (rad) and how many swings.
+export const WIPE = .2, WIPE_SWINGS = 2.5;
 export const REST_RATE = 3;
 const SNAP = 1e-3;
 
@@ -54,11 +57,13 @@ export function scrapeCurve(v) {
 
 // The gore over the butt's action progress u: the duck while it charges, the hook after impact.
 export function goreCurve(u) {
-  if (!(u > 0) || !(u < 1)) return {duck: 0, hook: 0, dig: 0};
+  if (!(u > 0) || !(u < 1)) return {duck: 0, hook: 0, dig: 0, wipe: 0};
   const duck = smooth(u / .3) * (1 - smooth((u - .45) / .1));
   const hook = smooth((u - .47) / .12) * (1 - smooth((u - .7) / .3));
   const dig = smooth((u - .2) / .15) * (1 - smooth((u - .5) / .2));
-  return {duck, hook, dig};
+  // the wipe: a swinging flick (-1..1) that swells and dies away over the last stretch
+  const k = clamp01((u - .72) / .28), wipe = Math.sin(k * Math.PI) * Math.sin(k * WIPE_SWINGS * TAU);
+  return {duck, hook, dig, wipe};
 }
 
 function setup(a) {
@@ -145,7 +150,7 @@ export function updateMinotaurCharge(a, dt, t, busy, look = null) {
 
   // The gore, on top of actions.js's butt charge.
   const atk = !dead && cur?.kind === 'attack' && cur.attack === 'butt' && (q.age ?? 0) >= (cur.wait ?? 0) ? cur : null;
-  const gr = atk ? goreCurve(q.u ?? 0) : {duck: 0, hook: 0, dig: 0};
+  const gr = atk ? goreCurve(q.u ?? 0) : {duck: 0, hook: 0, dig: 0, wipe: 0};
   const gs = atk ? (atk.dir?.[0] ?? 0) >= 0 ? 1 : -1 : 1;
 
   const w = st.life, sd = st.snort?.dir ?? 1;
@@ -161,7 +166,7 @@ export function updateMinotaurCharge(a, dt, t, busy, look = null) {
   offset(st, a.body, 'rotation', 'z', (.04 * sn.hook * sd + .03 * shake) * w);
   // the head: glare, toss and hook, duck and gore, shake
   offset(st, a.head, 'rotation', 'x', (st.drop + TOSS * sn.toss + HOOK * sn.hook + GORE.duck * gr.duck + GORE.toss * gr.hook) * w);
-  offset(st, a.head, 'rotation', 'y', (st.look * (1 - gr.duck - gr.hook * .5) + .1 * shake) * w);
+  offset(st, a.head, 'rotation', 'y', (st.look * (1 - gr.duck - gr.hook * .5) + .1 * shake + WIPE * gr.wipe * gs) * w);
   offset(st, a.head, 'rotation', 'z', (HOOK_SIDE * sn.hook * sd + GORE.twist * gr.hook * gs + .22 * shake) * w);
   // the legs: the pawing hoof, and the back hoof dug in for the charge
   offset(st, a.legs[pawLeg], 'rotation', 'x', PAW_DRAG * scrape * w);

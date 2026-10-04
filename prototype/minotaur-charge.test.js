@@ -32,7 +32,7 @@ test('the curves are zero outside their spans and bounded inside', () => {
   for (const v of [-1, 0, 1, 2, NaN]) {
     assert.deepEqual(M.snortCurve(v), {toss: 0, hook: 0});
     assert.equal(M.scrapeCurve(v), 0);
-    assert.deepEqual(M.goreCurve(v), {duck: 0, hook: 0, dig: 0});
+    assert.deepEqual(M.goreCurve(v), {duck: 0, hook: 0, dig: 0, wipe: 0});
   }
   let reach = 0, drag = 0, toss = 0, hook = 0;
   for (let v = 0; v <= 1; v += .005) {
@@ -40,6 +40,7 @@ test('the curves are zero outside their spans and bounded inside', () => {
     reach = Math.min(reach, s); drag = Math.max(drag, s);
     toss = Math.max(toss, n.toss); hook = Math.max(hook, n.hook);
     for (const x of [n.toss, n.hook, g.duck, g.hook, g.dig]) assert.ok(x >= 0 && x <= 1);
+    assert.ok(Math.abs(g.wipe) <= 1);
   }
   assert.ok(reach < -.5 && drag > .95, 'the hoof reaches forward, then drags back');
   assert.ok(toss > .9 && hook > .9);
@@ -79,6 +80,14 @@ test('the butt ducks, digs in and gores; the claw leaves the head to actions.js'
     assert.ok(pose(a).every(Number.isFinite));
   }
   assert.ok(duck > .9 && hook > .9 && dig > .9, `${duck} ${hook} ${dig}`);
+});
+
+test('after the gore it flicks its head side to side to fling the muck off, ending at rest', () => {
+  let left = 0, right = 0;
+  for (let u = 0; u <= 1; u += .002) { const w = M.goreCurve(u).wipe; left = Math.min(left, w); right = Math.max(right, w); if (u < .7) assert.equal(w, 0, `${u}`); }
+  assert.ok(left < -.5 && right > .5, 'swings both ways');
+  assert.equal(M.goreCurve(1).wipe, 0);
+  assert.ok(Math.abs(M.goreCurve(.9999).wipe) < 1e-3, 'no pop at the end');
 });
 
 test('death eases back to exact rest; stone holds', () => {
