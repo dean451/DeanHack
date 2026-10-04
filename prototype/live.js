@@ -15,7 +15,7 @@ import {createTrap,trapKind} from './trap.js';
 import {createTerrainFeature,featureKind,AXIS_FEATURES,bridgeYaw} from './terrain-feature.js';
 import {createTree} from './tree.js';
 import {createDeadTree,deadTreeShown} from './dead-tree.js';
-import {createBoulder} from './boulder.js';
+import {createBoulder,BOULDER_SEED} from './boulder.js';
 import {createStairs} from './stairs.js';
 import {createLadder,ladderShown} from './ladder.js';
 import {createBars} from './bars.js';
@@ -217,7 +217,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      const corpse=createCorpse(cell.object?.name||cell.name,cell.color,cellHash(cell.x|0,cell.z|0,11),{creatureFactory,symbol:cell.object?.creatureSymbol});icon.add(corpse);
      icon.userData.restingWeapon=true;icon.userData.dispose=()=>corpse.userData.dispose();
    } else if(/boulder|large rock/.test(itemName)){
-     const boulder=createBoulder(cellHash(cell.x|0,cell.z|0,7));icon.add(boulder);icon.userData.dispose=()=>boulder.userData.dispose();
+     const boulder=createBoulder(BOULDER_SEED);icon.add(boulder);icon.userData.dispose=()=>boulder.userData.dispose();
    } else if(cls===WEAPON_CLASS){
      const weapon=createHeldWeapon({name:itemName});
      const pose=new THREE.Group();pose.rotation.y=-.65;icon.add(pose);
