@@ -27,6 +27,10 @@ Things are not always facing the way you would expect. The game moved from a fla
 
 We want one standard convention for objects, traps, doors and weapons so facing stays consistent in feel, not a pile of per-object fixes. If you catch yourself adding a per-object rotation fudge (an offset such as a quarter turn), stop and ask whether the shared convention should be fixed instead.
 
+### High-threat monsters
+
+Anything with a warning level of 4 or above, and every demon, demon lord, demon prince and devil, needs special attention to detail and a lot more respect. These are the things that end the player. A balrog, for instance, is a maiar-level being incarnate with the power to end you, and it must look and feel like one: size, silhouette, glow, menace. Give them richer detail than ordinary monsters: more parts, more material variety, signature effects (evil glow, embers, smoke, heat), and wings that are large, bat-like and torn with holes. Never cute, never small, never a plain blob.
+
 ### Known art fixes
 
 Work queues for the scheduled routines. Each routine takes the first item on its own list, does one small step per run, and **deletes the item in the same PR once it is fully done** (or edits it to say what remains). When your own list is empty, take the next item from **UI and controls**, and when that is empty too, make an ordinary improvement.
@@ -34,6 +38,11 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 **Models**
 
 - **Slime mold:** it has no drawn model, just the default brown diamond. This has been requested many times. Find why it still falls through to the default and give it a real model. Checked so far: `createGroundModel` already builds a jelly blob (`slime-mold.js`) for every name form tried (`slime mold`, plural, BUC-prefixed, named, capitalised) with class 7, so the fall-through must come from what the live bridge sends (a different class or name for the item); needs a look at a live engine's object payload.
+- **High-threat monsters:** go one monster at a time through everything with a warning level of 4 or above and every demon, demon lord, demon prince and devil, following the High-threat monsters notes. Start with the balrog: it must glow with evil, with presence to match a maiar-level being. Winged demons: make the wings larger and bat-like, with holes torn in them.
+- **Snakes and nagas:** give them tapered tails that narrow to a point instead of a blunt cylinder.
+- **Blood red potion:** it should look like blood and actually be red: dark, thick, a glossy red.
+- **Strange object:** it needs a model. A mimic shown as a strange object currently comes out as the default tetrahedron.
+- **Poison gas:** it needs a model. It is drawn as a plain `#`, and it wrongly makes regular floor tiles appear over lava. It should be a nasty green cloud.
 - **Orientation convention:** audit how facing and rotation are handled for monsters, held weapons, doors, traps and boulders: find where a map direction becomes a 3D rotation and where per-object fudge offsets creep in. Step one: write the convention down in a short `prototype/ORIENTATION.md` (which way is forward for a model, how a map direction becomes a rotation, how doors in horizontal and vertical walls, held weapons, traps and boulders get their facing) and put it behind one small shared helper with tests. Later steps move one category at a time onto it: doors that sit 90 degrees off in a doorway first, then monster facing, then held weapon angle. This is shared code, so each step goes in its own PR.
 - **Magic item signatures:** go class by class (wands and rings first, then amulets, potions, scrolls and magic weapons) and make each item look distinct within its class and hint at its effect, following the Magic items notes below. One class per step.
 - **Warrior and the Norn:** the warrior monster (the Valkyrie quest guardians) and the Norn (the Valkyrie quest leader) need models.
@@ -42,6 +51,9 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 **Animations**
 
 - **Magic item moments:** add the step-over hit, the floor presence and the pickup moment described under Magic items. Wands and rings first, then amulets, potions, scrolls and magic weapons. One class per step, and keep it cheap. Done so far: the step-over hit for wands, scrolls, potions and artifacts (`step-over.js`, swells the aura or artifact gleam for half a second on arrival). Remaining: step-over for rings, amulets and enchanted weapons that have no aura yet (they need a floor aura first), then floor presence and the pickup lift per class.
+- **Breath weapons:** they are too blocky and square. Loosen them up and give each breath type its own variety of shape and motion.
+- **Salamanders:** give them a fiery effect like the hell hounds have.
+- **Balrog's bull whip:** embers should fall off it.
 - **Rolling boulder traps:** the boulder's orientation is off while it rolls. Fix it using the orientation convention once it exists; until then fix it locally and say so in the PR body.
 - **Altars:** add the missing animations: sacrificing a corpse, the altar glowing in the colour of your alignment, a four-leaf clover when your luck goes up, and being gifted an artifact.
 - **Status effects:** it must be VERY CLEAR when the hero is blind, confused, stunned, sick, deathly ill, on fire, frozen, grabbed or otherwise incapacitated. Right now a stunned hero whose movement doesn't work has no idea why. Give each state a distinct, unmistakable visual and an on-screen label.
@@ -52,6 +64,9 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Naming prompt:** when asked to name a scroll or potion, show the last message so the player can see what they are naming.
 - **Search tooltip:** next to the `s` (search) tooltip, also tell the player about `v` (explore).
 - **Zoom and map:** allow zooming in further, keep the zoom when changing dungeon level (do not reset it), and add a small minimap. Shift-`>` points toward stairs down and it is hard to tell which of several staircases is being pointed at; the minimap should help.
+- **Hostile ring:** turn the red ring under hostile monsters off entirely. Most monsters are enemies and the ring states the obvious. Keep the yellow or green circle for peaceful and friendly creatures only.
+- **Auto-dig default:** the `autodig` option should be on by default, so the player does not have to switch it on manually with Shift-O. (I read this as: nobody should have to turn it on.) If the default has to change in `prototype/engine/bridge.c` or `server.js`, say so in the PR body.
+- **Two-weapon persistence:** the two-weapon status is lost every time the player returns to a game; it should persist. Find where it is dropped when a game resumes. If the fix needs `bridge.c` or `server.js`, say so in the PR body.
 
 ### Magic items
 
