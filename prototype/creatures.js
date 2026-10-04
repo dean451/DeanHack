@@ -776,7 +776,8 @@ function mimic(o){
  for(const [x,z] of [[-.19,.12],[.19,.12],[-.19,-.12],[.19,-.12]])sphere(body,.05,mat(shade(o.color,.7),{roughness:.8}),x,.05,z,1.2,.8,1.2);
  return actor(g,body,[],tail,[],'idle');
 }
-const MIMICS={'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true},'giant mimic':{color:'#6a3a22',glare:true,scale:1.25}};
+// A mimic that is mimicking an object the hero cannot yet see through is reported as a "strange object"; it is a mimic underneath.
+const MIMICS={'strange object':{color:'#7a4a2a',glare:true},'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true},'giant mimic':{color:'#6a3a22',glare:true,scale:1.25}};
 // centaurs (C): the horse body (croup, barrel, jointed legs with hooves, flowing tail; see horse())
 // with a man's torso rising from the withers where the horse's neck would be: a belt hides the
 // seam, bare arms bend at the elbow, and the head has a face, ears and a mop of hair.

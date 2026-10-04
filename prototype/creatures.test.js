@@ -2629,3 +2629,10 @@ test('snake and naga tails narrow to a point',()=>{
   assert(at(0)<at(Math.floor(rings*.8))*.3,name+' tail tip is a point');
  }
 });
+
+test('a strange object is drawn as a mimic, not the default shape',()=>{
+ const strange=createCreature({name:'strange object',symbol:93,color:3}),mimic=createCreature({name:'large mimic',symbol:109,color:3});
+ const count=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n++;});return n;};
+ assert.equal(count(strange),count(mimic));
+ assert.ok(count(strange)>10);
+});
