@@ -3985,10 +3985,10 @@ function buildGrapplingHook({g,materials}){
 // One vertex-coloured mesh: blackened iron pitted with rust, the teeth ground bright.
 function buildBearTrap({g,materials}){
  const C=hex=>new THREE.Color(hex),V=(x,y,z)=>new THREE.Vector3(x,y,z),c=new THREE.Color();
- const IRON=C(0x4b4d4c),IRON_LT=C(0x6f7372),SCALE=C(0x262625),RUST=C(0x7a4020),RUST_DK=C(0x4a2a18),STEEL=C(0xa9adab);
+ const IRON=C(0x4b4d4c),IRON_LT=C(0x6f7372),SCALE=C(0x262625),RUST=C(0x7a4020),RUST_DK=C(0x4a2a18),STEEL=C(0xa9adab),BLOOD=C(0x3a0d0a);
  const parts=[];
  // bright(q) grinds the metal bare; rust is how much the part has rusted overall.
- const put=(geo,{x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1,rust=.3,bright=null}={})=>{
+ const put=(geo,{x=0,y=0,z=0,rx=0,ry=0,rz=0,sx=1,sy=1,sz=1,rust=.3,bright=null,blood=null}={})=>{
   const o=new THREE.Object3D();o.position.set(x,y,z);o.rotation.set(rx,ry,rz,'YXZ');o.scale.set(sx,sy,sz);o.updateMatrix();
   const n=geo.index?geo.toNonIndexed():geo;if(n!==geo)geo.dispose();
   n.applyMatrix4(o.matrix);n.deleteAttribute('uv');n.clearGroups();
@@ -4001,6 +4001,7 @@ function buildBearTrap({g,materials}){
    const r=rust*(.5+m*.9)+Math.max(0,.02-q.y)*12*rust;
    if(r>.2)c.lerp(h>.1?RUST:RUST_DK,Math.min(.85,(r-.2)*1.7));
    const b=bright?bright(q):0;if(b>0)c.lerp(STEEL,Math.min(.85,b));
+   const k=blood?blood(q):0;if(k>0)c.lerp(BLOOD,Math.min(.9,k));
    col.set([c.r,c.g,c.b],i*3);
   }
   n.setAttribute('color',new THREE.BufferAttribute(col,3));parts.push(n);
@@ -4027,7 +4028,9 @@ function buildBearTrap({g,materials}){
    const a=(i+(side<0?.5:1))/10*Math.PI,rr=R-W/2+.001,len=.028*(.9+.2*((i*7+(side<0?3:0))%5)/4);
    const tooth=new THREE.Shape();tooth.moveTo(-.0095,0);tooth.lineTo(.0095,0);tooth.lineTo(.0022,len);tooth.lineTo(-.0022,len);tooth.closePath();
    put(ext(tooth,.005,1).translate(0,0,-.0025),{x:Math.cos(a)*rr,y:HY+Math.sin(a)*rr,z,rz:a+Math.PI/2,rust:.2,
-    bright:q=>{const d=Math.hypot(q.x,q.y-HY);return d<rr-len*.45?.9:0;}});
+    bright:q=>{const d=Math.hypot(q.x,q.y-HY);return d<rr-len*.45?.9:0;},
+    // Old blood dried black on the points of most of the teeth.
+    blood:(i+(side<0?1:0))%3!==0?null:q=>Math.hypot(q.x,q.y-HY)<rr-len*.75?.95:0});
   }
  }
  // Hinge posts where the jaw ends meet, each with its pin through both jaws.
