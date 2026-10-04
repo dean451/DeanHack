@@ -69,7 +69,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Search payoff:** when searching reveals a hidden trap or secret door, show it with a small animation (a door sliding open, a trap rising out of the floor) so searching feels rewarded.
 - **Pet cues:** distinct, readable cues for a pet that is tame, hungry or in trouble, and a little personality in how it follows the hero.
 - **Breath weapons:** they are too blocky and square. Loosen them up and give each breath type its own variety of shape and motion.
-- **Salamanders:** give them a fiery effect like the hell hounds have.
 - **Balrog's bull whip:** embers should fall off it.
 - **Rolling boulder traps:** the boulder's orientation is off while it rolls. Fix it using the orientation convention once it exists; until then fix it locally and say so in the PR body.
 - **Altars:** add the missing animations: sacrificing a corpse, the altar glowing in the colour of your alignment, a four-leaf clover when your luck goes up, and being gifted an artifact.
