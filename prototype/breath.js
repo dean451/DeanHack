@@ -106,7 +106,8 @@ export function breathFrame(breath, t) {
     const u = age / PARTICLE_MS;
     const d = .15 + CONE_REACH * (.8 + .2 * hash(i, 1)) * (1 - (1 - u) * (1 - u));
     const th = (hash(i, 2) * 2 - 1) * CONE_HALF, ph = (hash(i, 3) * 2 - 1) * CONE_HALF * .5;
-    const along = Math.cos(th) * d, side = Math.sin(th) * d;
+    // A tight throat that flares as it goes, so the cone reads as a billow, not a wedge.
+    const along = Math.cos(th) * d, side = Math.sin(th) * d * (.35 + .65 * Math.sqrt(u));
     // Sparks crackle sideways a little; everything else billows.
     // Each particle swirls on its own phase, growing with age so the throat stays tight.
     const sw = look.wobble.amp * u * Math.sin(age * look.wobble.hz * 2 * Math.PI + hash(i, 5) * 6.28);
