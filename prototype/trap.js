@@ -1688,7 +1688,9 @@ export function createTrap(kind,seed=0){
     leg.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());}
   }
  }else{
-  // Unknown trap: a raised pressure plate with a shadow gap.
+  // Unknown trap: a raised pressure plate with a shadow gap. Tagged so fallback-audit.test.js
+  // can fail on any trap that reaches it.
+  g.userData.fallback=true;
   block(.5,.012,.5,dark,0,.006,0);
   block(.44,.03,.44,stone,0,.022,0,.008);
  }
