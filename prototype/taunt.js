@@ -17,6 +17,8 @@
 // which hangs behind at −z); WHIP: the tail's sideways crack.
 export const COCK = .2, CACKLE = .09, RAISE = 1.5, BECKON = .45, FLARE = .38, FLUTTER = .12, LIFT = .5, WHIP = .7;
 // Seconds for one taunt; beckons, cackling nods and wing shivers per second.
+// GIGGLE: how much faster the cackle's nods come by its end (0.6 = 60% quicker).
+export const GIGGLE = .6;
 export const TAUNT_LEN = 3, BECKON_RATE = 3, CACKLE_RATE = 6, FLUTTER_RATE = 11;
 // First taunt after FIRST_MIN..+FIRST_SPAN s of standing still, then GAP_MIN..+GAP_SPAN apart.
 export const FIRST_MIN = 3, FIRST_SPAN = 4, GAP_MIN = 6, GAP_SPAN = 7;
@@ -43,8 +45,8 @@ export function tauntPose(u, f = 1) {
   const up = win(u, .05, .8, .15);
   const beckon = (.5 - .5 * Math.cos(2 * Math.PI * (s - .3 * TAUNT_LEN) * BECKON_RATE)) * (u > .3 && u < .3 + 3 / BECKON_RATE / TAUNT_LEN ? 1 : 0);
   p.arm = (RAISE * up - BECKON * beckon * up) * f;
-  // a cackle between the beckons and the whip, then a flinch: the imp ducks its head from its own crack
-  p.nod = (CACKLE * hump(u, .42, .72) * (.5 - .5 * Math.cos(2 * Math.PI * (s - .42 * TAUNT_LEN) * CACKLE_RATE)) + CACKLE * hump(u, .8, .94)) * f;
+  // a cackle between the beckons and the whip that speeds up as it goes (it can't help itself), then a flinch: the imp ducks its head from its own crack
+  p.nod = (CACKLE * hump(u, .42, .72) * (.5 - .5 * Math.cos(2 * Math.PI * (s - .42 * TAUNT_LEN) * CACKLE_RATE * (1 + GIGGLE * (u - .42) / .3))) + CACKLE * hump(u, .8, .94)) * f;
   // wings snap open early, shiver, and fold back before the whip
   p.flare = (FLARE * win(u, 0, .55, .1) + FLUTTER * hump(u, .08, .5) * Math.sin(2 * Math.PI * s * FLUTTER_RATE)) * f;
   // the tail lifts behind, then cracks: one full sideways lash under a hump
