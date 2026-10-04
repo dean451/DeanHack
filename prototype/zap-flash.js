@@ -107,7 +107,10 @@ export function zapPose(src, t, face = 0) {
     return {arm: ZAP_ARM * up, head: 0, body: 0, yaw: face * w, flash};
   }
   const pre = lead ? ZAP_WINDUP_UP : 0;
-  const up = age < hold ? pre + (1 - pre) * smooth(age / ZAP_RAISE_MS) : 1 - smooth((age - hold) / ZAP_LOWER_MS);
+  // After a windup the arm eases out of the release, so it snaps at once instead of
+  // starting again from rest; without one it eases in as before.
+  const r = clamp01(age / ZAP_RAISE_MS), raise = lead ? 1 - (1 - r) * (1 - r) : smooth(r);
+  const up = age < hold ? pre + (1 - pre) * raise : 1 - smooth((age - hold) / ZAP_LOWER_MS);
   // After a windup the hero already faces the beam.
   const turn = lead && age < hold ? 1 : up;
   // The kick peaks just after the arm arrives and settles by ~200 ms.
