@@ -144,3 +144,19 @@ test('each Rider has its own gait and colours, and rests exactly after death', (
   assert.ok(f.hunch > 2.5 * d.hunch, `Famine stoops (${f.hunch} vs ${d.hunch})`);
   assert.ok(W.LOOKS.pestilence.alpha > W.LOOKS.death.alpha);
 });
+
+test('after the shudder the pull cocks the head over to savour it, then lets it go', () => {
+  assert.equal(W.pullPose(.8).savor, 0);
+  assert.ok(W.pullPose(.9).savor > .99);
+  assert.equal(W.pullPose(.99).savor, 0);
+  const a = mon('wraith', 'W');
+  updateFidget(a, 0, 0, false, null);
+  const st = a.wraithPull, rest = st.head.z;
+  let tilt = 0, t = 0;
+  st.wait = 0;
+  for (let i = 0; i < 60 * 8; i++) {
+    t += dt; updateFidget(a, dt, t, false, null);
+    if (st.pull) tilt = Math.max(tilt, a.head.rotation.z - rest);
+  }
+  assert.ok(tilt > W.SAVOR_TILT * .8, `${tilt}`);
+});
