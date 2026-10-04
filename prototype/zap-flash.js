@@ -26,6 +26,9 @@ export const ZAP_WINDUP_MS = 120;
 export const ZAP_WINDUP_UP = .7;
 export const ZAP_CHARGE_SIZE = .09;
 export const ZAP_CHARGE_ALPHA = .4;
+// The strain: while the charge gathers the arm (or head) shudders like a hand holding
+// something that wants to get loose, peaking mid-windup and dying away by the release.
+export const ZAP_STRAIN = .035;
 // The hand flash lasts this long (ms) from the first cell.
 export const ZAP_FLASH_MS = 320;
 // Once the beam ends, the arm lowers over this long (ms).
@@ -102,9 +105,10 @@ export function zapPose(src, t, face = 0) {
     // The windup: turn to the beam, bring the arm most of the way up, gather a charge.
     const w = smooth((age + lead) / lead), up = ZAP_WINDUP_UP * w;
     const charge = w * w, flicker = .85 + .15 * Math.sin(age / 17);
+    const strain = ZAP_STRAIN * 4 * w * (1 - w) * Math.sin(age / 6);
     const flash = {size: .02 + ZAP_CHARGE_SIZE * charge, alpha: ZAP_CHARGE_ALPHA * charge * flicker, ring: 0, ringAlpha: 0, color};
-    if (src.breath) return {arm: 0, head: BREATH_HEAD * up, body: BREATH_LEAN * up, yaw: face * w, flash: {...flash, size: flash.size * 1.25}};
-    return {arm: ZAP_ARM * up, head: 0, body: 0, yaw: face * w, flash};
+    if (src.breath) return {arm: 0, head: BREATH_HEAD * up + strain, body: BREATH_LEAN * up, yaw: face * w, flash: {...flash, size: flash.size * 1.25}};
+    return {arm: ZAP_ARM * up + strain, head: 0, body: 0, yaw: face * w, flash};
   }
   const pre = lead ? ZAP_WINDUP_UP : 0;
   // After a windup the arm eases out of the release, so it snaps at once instead of

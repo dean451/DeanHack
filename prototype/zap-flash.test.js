@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline, delayTimeline} from './fx.js';
-import {zapSource, zapPose, createZapFlash, heroBreathes, BREATH_HEAD, BREATH_LEAN, ZAP_ARM, ZAP_RAISE_MS, ZAP_LOWER_MS, ZAP_HOLD_MAX_MS, ZAP_WINDUP_MS, ZAP_WINDUP_UP} from './zap-flash.js';
+import {zapSource, zapPose, createZapFlash, heroBreathes, BREATH_HEAD, BREATH_LEAN, ZAP_ARM, ZAP_RAISE_MS, ZAP_LOWER_MS, ZAP_HOLD_MAX_MS, ZAP_WINDUP_MS, ZAP_WINDUP_UP, ZAP_STRAIN} from './zap-flash.js';
 
 const zap = (zapType, cells, dir = 'horizontal') => fxTimeline({steps: [
   {op: 'start', mode: 'beam', glyph: 1, effect: {kind: 'zap', zap: zapType, dir}},
@@ -214,4 +214,20 @@ test('after a windup the arm snaps out of the release at once, then settles at f
   const early = Math.abs(arm(10) - arm(0)), late = Math.abs(arm(ZAP_RAISE_MS) - arm(ZAP_RAISE_MS - 10));
   assert.ok(early > late * 3, `early ${early} late ${late}`);
   for (let t = 1; t <= ZAP_RAISE_MS; t++) assert.ok(Math.abs(arm(t)) >= Math.abs(arm(t - 1)) - 1e-9 || t > 40, `monotone at ${t}`);
+});
+
+test('the windup arm shudders with strain mid-charge and is steady again at the release', () => {
+  const cells = Array.from({length: 6}, (_, i) => [6 + i, 5]);
+  const src = {...zapSource(zap('cold', cells), {x: 5, z: 5}), breath: false};
+  src.from += ZAP_WINDUP_MS; src.until += ZAP_WINDUP_MS; src.windup = ZAP_WINDUP_MS;
+  let maxDev = 0, endDev = 0;
+  for (let t = 0; t < src.from; t += .5) {
+    const w = t / ZAP_WINDUP_MS, base = ZAP_ARM * ZAP_WINDUP_UP * w * w * (3 - 2 * w);
+    const dev = Math.abs(zapPose(src, t, 0).arm - base);
+    assert.ok(dev <= ZAP_STRAIN + 1e-9, `strain ${dev} at ${t}`);
+    maxDev = Math.max(maxDev, dev);
+    if (t > src.from - 1) endDev = dev;
+  }
+  assert.ok(maxDev > ZAP_STRAIN * .4, `max strain ${maxDev}`);
+  assert.ok(endDev < .002, `end strain ${endDev}`);
 });
