@@ -15,7 +15,7 @@ make, pkg-config, and Lua development headers. The engine build currently target
 macOS, matching this repository's local setup.
 
 ```sh
-cd /Users/dpalm/Desktop/deanhack/prototype
+cd <your checkout>/prototype
 npm ci
 npm run engine:build
 npm run dev
