@@ -225,6 +225,8 @@ export function createHeldWeapon(item){
  }else if(/\baxe\b/.test(name)){
   part(new THREE.CylinderGeometry(.026,.036,.68,10),leather,0,.18);
   for(let i=0;i<5;i++)part(new THREE.CylinderGeometry(.037,.037,.01,10),brass,0,-.12+i*.033);
+  // A brass pommel caps the butt of the haft, as on the mace and hammer, so the grip ends in a knob.
+  part(new THREE.SphereGeometry(.043,10,8),brass,0,-.165);
   part(new THREE.CylinderGeometry(.045,.045,.12,10),steel,0,.47);
   const outline=new THREE.Shape();outline.moveTo(.02,.53);outline.quadraticCurveTo(.14,.56,.24,.63);outline.quadraticCurveTo(.29,.45,.23,.29);outline.quadraticCurveTo(.13,.39,.02,.4);outline.closePath();
   const axeBlade=new THREE.ExtrudeGeometry(outline,{depth:.025,bevelEnabled:true,bevelSize:.008,bevelThickness:.005,bevelSegments:2,steps:1,curveSegments:10});axeBlade.translate(0,0,-.0125);part(axeBlade,steel,0,0);
