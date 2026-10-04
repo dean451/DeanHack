@@ -4,7 +4,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // The scimitar ("curved sword" unidentified): a deep-bellied sabre of blackened watered steel. It
 // sweeps forward off the hilt and hooks back toward the point, flaring in its last third into a
 // yelman: the spine steps out in a hard shoulder and runs to the point as a second, false edge. A
-// narrow fuller runs up the spine side of the lower blade; the edge is honed bright and bitten with
+// narrow fuller, clotted with old dried blood, runs up the spine side of the lower blade; the edge is honed bright and bitten with
 // a few old notches. A pointed iron langet clasps the blade above a short cross whose quillons
 // droop toward the hand and end in hooked claws. The one-handed grip is black horn bound with
 // twisted brass wire, and it ends in an iron raptor's-beak pommel hooked toward the edge, with a
@@ -18,7 +18,7 @@ export const SCIMITAR_NAME=/\bscimitar\b|\bcurved sword\b/;
 export const SCIMITAR_TIP=.84;
 const BLADE_Y=.07,GUARD_Y=.056,GRIP_LO=-.115,GRIP_HI=.044,YELMAN=.68,POINT=.86;
 const DARK=0x1b1d21,WATER=0x5d646b,EDGE=0xdfe6ea,IRON=0x26231f,GILT=0xa98236,HORN=0x17110e,HORN_HI=0x3a2a1f,
- BRASS=0xb48a40,GARNET=0x6e0a10;
+ BRASS=0xb48a40,GARNET=0x6e0a10,BLOOD=0x3a0906;
 
 const hash=i=>{const v=Math.sin(i*127.1+31.7)*43758.5453;return v-Math.floor(v);};
 const smooth=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
@@ -84,7 +84,8 @@ export function buildScimitar(g){
    // Watered steel: dark, with pale wavering bands drifting up the flat.
    const band=Math.sin(u*150+9*Math.sin(u*21+f*5.5)+6*f+2.4*hash(Math.floor(u*40)));
    col.set(DARK).lerp(new THREE.Color(WATER),.55*smooth(.35,1,band)).multiplyScalar(.9+.2*hash(Math.floor(u*300)));
-   if(f>.76&&f<.94&&u<.58)col.multiplyScalar(.45);// the fuller
+   if(f>.76&&f<.94&&u<.58){col.multiplyScalar(.45);// the fuller, its groove clotted with old blood
+    col.lerp(new THREE.Color(BLOOD),.75*smooth(.35,.75,hash(Math.floor(u*55)+3)+.35*(1-u)));}
    col.lerp(new THREE.Color(EDGE),1-smooth(0,.09,f));// the honed edge
    const yel=smooth(YELMAN+.02,YELMAN+.06,u);
    col.lerp(new THREE.Color(EDGE),yel*smooth(.9,.99,f));// the false edge
