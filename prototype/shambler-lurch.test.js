@@ -52,6 +52,14 @@ test('the curves are zero outside their spans and bounded inside', () => {
   assert.ok(raisedAt < slamAt && slamAt < dragAt, 'raised, then slammed, then raked back');
 });
 
+test('the claw sticks after the slam: it judders both ways, only in its span, and stays small', () => {
+  let lo = 0, hi = 0;
+  for (const u of [-1, 0, S.TUG_FROM, S.TUG_TO, 1, 2, NaN]) assert.equal(S.clawTug(u), 0, `${u}`);
+  for (let u = S.TUG_FROM; u <= S.TUG_TO; u += .002) { const c = S.clawTug(u); assert.ok(Math.abs(c) <= 1); lo = Math.min(lo, c); hi = Math.max(hi, c); }
+  assert.ok(lo < -.3 && hi > .3, `judders both ways ${lo} ${hi}`);
+  assert.ok(S.slamCurve(.5).slam > .5 && S.slamCurve(S.TUG_TO).drag < .6, 'it is still in the floor while the tug runs');
+});
+
 test('it shambles, spasms and reaches for the hero, all finite and bounded', () => {
   const a = horror(), hero = new THREE.Vector3(1.5, 0, 2.5);
   let t = 0, spasms = 0, reaches = 0, was = false, wasReach = false, maxRoll = 0, maxDrag = 0, minReach = 0;

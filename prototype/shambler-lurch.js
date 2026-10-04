@@ -9,7 +9,8 @@
 //  - With the hero within RANGE tiles the lolling head creeps round to them, and now and then the
 //    withered arm slowly reaches out for them, trembling, and draws back.
 //  - It attacks with the claw: heaved up high and out over the head as the mound rears and twists
-//    away, slammed down into the floor in front as it lurches through, then raked back past its side.
+//    away, slammed down into the floor in front as it lurches through, stuck there and tugged at
+//    (a judder) until it tears free, then raked back past its side.
 //  - A blow: the lumps quiver, the head snaps back and a hard spasm takes it.
 //  - Death: everything eases back to rest. Turned to stone (`a.stone`): it holds.
 // Handles used: body, tail (the head; tail-sway.js keeps its loll), digArm, limpArm. No extra draws.
@@ -50,6 +51,15 @@ export function slamCurve(u) {
   // the claw lands about u .44, where the generic monster strike lands (monster-attacks.js)
   const up = smooth(u / .32), strike = smooth((u - .3) / .16), toDrag = smooth((u - .54) / .18), back = 1 - smooth((u - .72) / .28);
   return {raise: up * (1 - strike), slam: strike * (1 - toDrag), drag: toDrag * back};
+}
+
+// The claw sticks in the floor after the slam: it judders as the horror tugs at it (-1..1), then
+// tears free into the rake. Zero outside its span, so the attack still returns exactly to rest.
+export const TUG = .1, TUG_FROM = .46, TUG_TO = .64;
+export function clawTug(u) {
+  if (!(u > TUG_FROM) || !(u < TUG_TO)) return 0;
+  const v = (u - TUG_FROM) / (TUG_TO - TUG_FROM);
+  return Math.sin(v * TAU * 2) * (1 - v);
 }
 
 // A spasm's envelope over its progress v: a sharp jerk, then easing off.
@@ -136,7 +146,7 @@ export function updateShamblerLurch(a, dt, t, busy, look = null, walking = false
   }
 
   const atk = !dead && cur?.kind === 'attack' && (q.age ?? 0) >= (cur.wait ?? 0) ? cur : null;
-  const s = atk ? slamCurve(q.u ?? 0) : {raise: 0, slam: 0, drag: 0};
+  const s = atk ? slamCurve(q.u ?? 0) : {raise: 0, slam: 0, drag: 0}, tug = atk ? clawTug(q.u ?? 0) : 0;
 
   const w = st.life, k = st.walk, sd = st.spasm?.dir ?? 1, T = st.T;
   const step = Math.sin(st.ph), half = Math.sin(st.ph / 2);
@@ -149,7 +159,7 @@ export function updateShamblerLurch(a, dt, t, busy, look = null, walking = false
   const lurch = WALK.club * Math.sqrt(Math.max(0, step)) - WALK.thin * Math.max(0, -step);
   offset(st, a.body, 'rotation', 'z', (LIST * (.6 + .4 * Math.sin(T * .5 + st.phase)) + lurch * k + SPASM_ROLL * spasm * sd) * w);
   offset(st, a.body, 'rotation', 'x', (WALK.pitch * k - .06 * spasm + REACH_LEAN * reach
-    + SLAM.rear * s.raise + SLAM.lurch * s.slam + SLAM.rake * s.drag) * w);
+    + SLAM.rear * s.raise + SLAM.lurch * s.slam + SLAM.rake * s.drag + .3 * TUG * tug) * w);
   offset(st, a.body, 'rotation', 'y', (WALK.yaw * half * k + .25 * st.look * (1 - k) + SLAM.coil * s.raise + SLAM.whip * (s.slam + s.drag * .5)) * w);
   offset(st, a.body, 'position', 'y', (-SLAM.drop * s.slam) * w);
   // The head: creeps round to the hero, lolls with each lurch, snaps in a spasm or a blow, lifts and drops with the slam.
@@ -159,7 +169,7 @@ export function updateShamblerLurch(a, dt, t, busy, look = null, walking = false
     + SLAM.headUp * s.raise + SLAM.headDown * s.slam) * w);
   // The claw: dragged behind, catching on each step; twitches in a spasm; heaved, slammed and raked.
   offset(st, a.digArm, 'rotation', 'x', ((WALK.drag + WALK.catch * Math.abs(step)) * k * (1 - s.raise - s.slam)
-    + .15 * spasm * tremble + SLAM.raiseX * s.raise + SLAM.slamX * s.slam + SLAM.dragX * s.drag) * w);
+    + .15 * spasm * tremble + SLAM.raiseX * s.raise + SLAM.slamX * s.slam + SLAM.dragX * s.drag + TUG * tug) * w);
   offset(st, a.digArm, 'rotation', 'z', (SLAM.raiseOut * s.raise + SLAM.slamOut * s.slam) * w);
   // The withered arm: hangs out in front and swings while it walks, jerks in a spasm, reaches for the
   // hero trembling, flails at a slam or a blow.
