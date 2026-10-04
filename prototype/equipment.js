@@ -67,6 +67,16 @@ export function createHeldWeapon(item){
   // Diamond cross-section: bright bevels and a continuous pointed tip.
   const vertices=[-width,.13,0,0,.13,.024,width,.13,0,0,.13,-.024,-width*.65,length,0,0,length,.017,width*.65,length,0,0,length,-.017,0,length+.16,0];
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setIndex([0,4,5,0,5,1,1,5,6,1,6,2,2,6,7,2,7,3,3,7,4,3,4,0,4,8,5,5,8,6,6,8,7,7,8,4,0,1,2,0,2,3]);geo.computeVertexNormals();part(geo,steel,0,0);
+  if(!short){
+   // A dark fuller inlaid down each flat, so the blade reads as a sword edge-on and face-on at
+   // game distance. It follows the blade's thickness (.024 at the base to .017 at the tip) and dies out short of the point.
+   const half=y=>.024-.007*(y-.13)/(length-.13)+.0006,y0=.24,y1=length*.78,fw=.011,fv=[],fi=[];
+   for(const s of [1,-1]){const o=fv.length/3;
+    for(const y of [y0,y1])for(const x of [-fw,fw])fv.push(x,y,s*half(y));
+    fi.push(...(s>0?[o,o+1,o+3,o,o+3,o+2]:[o,o+3,o+1,o,o+2,o+3]));}
+   const fg=new THREE.BufferGeometry();fg.setAttribute('position',new THREE.Float32BufferAttribute(fv,3));fg.setIndex(fi);fg.computeVertexNormals();
+   part(fg,new THREE.MeshStandardMaterial({color:0x56646c,metalness:.6,roughness:.45,side:THREE.DoubleSide}),0,0);
+  }
  }else if(/\bquarterstaff\b/.test(name)){
   const wood=new THREE.MeshStandardMaterial({color:0x735035,roughness:.9});
   g.userData.extraMaterial=wood;
