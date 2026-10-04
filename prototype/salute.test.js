@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
-import {updateSalute, salutePose, salutes, HILT, LOW, BOW, SHIELD, PEER, SALUTE_LEN, FIRST_MIN, FIRST_SPAN} from './salute.js';
+import {updateSalute, salutePose, salutes, HILT, LOW, BOW, SHIELD, PEER, SLIP, SALUTE_LEN, FIRST_MIN, FIRST_SPAN} from './salute.js';
 
 const make = name => {
   const a = createCreature({name, symbol: 64, color: 4});
@@ -47,7 +47,7 @@ test('the salute pose stays in bounds, moves smoothly and starts and ends at res
   for (let i = 0; i <= n; i++) {
     const u = i / n, p = salutePose(u);
     for (const v of Object.values(p)) assert(Number.isFinite(v));
-    assert(p.arm <= 1e-12 && p.arm >= HILT.arm - 1e-12 && p.bow >= 0 && p.bow <= BOW + 1e-12 && p.shield >= 0 && p.shield <= SHIELD + 1e-12);
+    assert(p.arm <= 1e-12 && p.arm >= HILT.arm - 1e-12 && p.bow >= 0 && p.bow <= BOW + 1e-12 && p.shield >= -SLIP - 1e-12 && p.shield <= SHIELD + 1e-12);
     for (const k of Object.keys(p)) assert(Math.abs(p[k] - prev[k]) < .02, `${k} jumps at ${u}`);
     prev = p;
   }
@@ -60,6 +60,8 @@ test('the salute pose stays in bounds, moves smoothly and starts and ends at res
   // Two nods at the lowered point: the first deeper, a dip back to level between them, then home.
   const nod1 = salutePose(.64).bow, nod2 = salutePose(.72).bow, gap = salutePose(.68).bow;
   assert(Math.abs(nod1 - PEER) < 1e-9 && Math.abs(nod2 - PEER * .6) < 1e-9 && gap < 1e-9, `nods ${nod1} ${gap} ${nod2}`);
+  // The shield arm sags past rest near the end, then is back exactly at rest.
+  assert(Math.abs(salutePose(.945).shield + SLIP) < 2e-3 && salutePose(.5).shield > SHIELD * .99 && salutePose(.999).shield > -1e-3, 'shield strap slips');
   assert(salutePose(.5).bow === 0 && salutePose(.8).bow === 0, 'level between the bows and after');
 });
 

@@ -1,7 +1,7 @@
 // Idle sword salute for the knight, whose model (knight.js) holds an arming sword upright in its
 // right fist and a heater shield on its left forearm. A knight that has stood still for a few
 // seconds now and then salutes: it brings the hilt up before its visor with the blade standing
-// straight up, squaring the shield a little forward, and bows its head over the cross-guard; then
+// straight up, squaring the shield a little forward (and as it ends the shield sags on its rotted strap and is hauled back up), and bows its head over the cross-guard; then
 // it sweeps the blade forward and down, point lowered to the floor at its front right, holds it
 // there a moment, and raises it back to rest at its side. Walking, an action or death fades it out
 // within ~0.1 s.
@@ -18,6 +18,9 @@ export const HILT = {arm: -1.9, roll: -.5, pitch: 1.9}, LOW = {arm: -.5, roll: .
 // BOW: the head's bow over the hilt (positive rotation.x nods down); SHIELD: the shield arm
 // squared forward (negative x) through the salute.
 export const BOW = .16, SHIELD = .22;
+// SLIP: as the salute ends the shield arm sags past rest, as if the rotted strap slipped, then is
+// hauled back up (positive rotation.x drops the arm; the pose's `shield` goes negative).
+export const SLIP = .12;
 // PEER: the two quick nods down at the lowered point (the second a little shallower).
 export const PEER = .12;
 // Seconds for one salute.
@@ -43,7 +46,7 @@ export function salutePose(u, f = 1) {
   const up = smooth((u - .04) / .2), sweep = smooth((u - .44) / .16), home = smooth((u - .76) / .19);
   for (const k of ['arm', 'roll', 'pitch']) p[k] = (HILT[k] * up + (LOW[k] - HILT[k]) * sweep - LOW[k] * home) * f;
   p.bow = (BOW * hump(u, .24, .44) + PEER * (hump(u, .6, .68) + .6 * hump(u, .68, .76))) * f;
-  p.shield = SHIELD * (smooth((u - .04) / .2) - smooth((u - .78) / .17)) * f;
+  p.shield = SHIELD * (smooth((u - .04) / .2) - smooth((u - .78) / .17) - SLIP / SHIELD * hump(u, .9, .99)) * f;
   return p;
 }
 
