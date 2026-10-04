@@ -36,16 +36,21 @@ const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
 // Smoothstepped value between keyframes [[u, ...values]], sorted by u, first at 0, last at 1.
-function keys(list, u) {
+// `eases` optionally names a segment's curve by its index ('in' or 'out'); the rest are smoothstepped.
+function keys(list, u, eases = {}) {
   u = clamp01(u);
   let i = 1;
   while (i < list.length - 1 && list[i][0] < u) i++;
-  const a = list[i - 1], b = list[i], t = smooth((u - a[0]) / (b[0] - a[0] || 1));
+  const a = list[i - 1], b = list[i], f = clamp01((u - a[0]) / (b[0] - a[0] || 1)), e = eases[i - 1];
+  const t = e === 'in' ? f * f : e === 'out' ? 1 - (1 - f) * (1 - f) : smooth(f);
   return a.slice(1).map((v, k) => v + (b[k + 1] - v) * t);
 }
 
 // [u, shoulder (negative raises forward), wrist, body pitch (forward is positive)].
 const HURL = [[0, 0, 0, 0], [.24, -2.6, -.5, -.12], [RELEASE_U, -1.35, .35, .1], [.55, -.55, .2, .16], [1, 0, 0, 0]];
+// The hurl's arm and elbow speed up into the release and ease out after it, so the throw is
+// fastest where the object leaves the hand instead of stopping at that key.
+const HURL_EASE = {1: 'in', 2: 'out'}, HURL_ELBOW_EASE = {2: 'in', 3: 'out'};
 const SHOOT = [[0, 0, 0, 0], [.24, -1.45, 0, -.02], [RELEASE_U, -1.45, 0, -.02], [.45, -1.2, .1, -.06], [.7, -1.1, 0, 0], [1, 0, 0, 0]];
 
 // [u, elbow] added to the rest bend (swing.js: negative bends, positive straightens). The hurl's
@@ -73,8 +78,8 @@ export function throwPose(style, u, centaur = null) {
     return {arm: b.arm, off: b.off, offGrip: b.offGrip, wrist: 0, pitch: 0};
   }
   const shoot = style === 'shoot';
-  const [arm, wrist, pitch] = keys(shoot ? SHOOT : HURL, u);
-  const [elbow] = keys(shoot ? SHOOT_ELBOW : HURL_ELBOW, u);
+  const [arm, wrist, pitch] = keys(shoot ? SHOOT : HURL, u, shoot ? {} : HURL_EASE);
+  const [elbow] = keys(shoot ? SHOOT_ELBOW : HURL_ELBOW, u, shoot ? {} : HURL_ELBOW_EASE);
   const shield = shoot ? 0 : keys(HURL_OFF, u)[0];
   return {arm, wrist, pitch, swing: throwSwing(elbow, shield)};
 }
