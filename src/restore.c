@@ -942,6 +942,12 @@ dorecover(NHFILE *nhfp)
     restlevelstate();
     max_rank_sz(); /* to recompute mrank_sz (botl.c) */
 
+    /* The worn items were already re-worn in restgamestate(); this second
+       pass runs with uwep and uswapwep set, so setworn() takes it for a
+       weapon being replaced and drops two-weapon combat. Keep the saved
+       state across it. */
+    boolean was_twoweap = u.twoweap;
+
     /* this comes after inventory has been loaded */
     for (otmp = invent; otmp; otmp = otmp->nobj) {
         if (otmp->owornmask) {
@@ -958,6 +964,9 @@ dorecover(NHFILE *nhfp)
     setuwep(otmp);  /* (don't need any null check here) */
     if (!uwep || uwep->otyp == PICK_AXE || uwep->otyp == GRAPPLING_HOOK) {
         unweapon = TRUE;
+    }
+    if (was_twoweap && uwep && uswapwep) {
+        set_twoweap(TRUE);
     }
 
     /* take care of iron ball & chain */

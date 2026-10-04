@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
-import {createTerrainFeature,featureKind} from './terrain-feature.js';
+import {createTerrainFeature,featureKind,groundOf} from './terrain-feature.js';
 import {trapKind} from './trap.js';
 
 test('poison gas (bright green #) is a ragged green veil over the floor, in two draws, and frees its resources',()=>{
@@ -45,4 +45,21 @@ test('every settled terrain feature in drawing.c has a model, not a bare symbol 
   if(!featureKind(ch,COLOR[color]))gaps.push(`${name} (${sym}, ${color})`);
  }
  assert.deepEqual(gaps,[],'these features would show as a bare symbol label; give them a model');
+});
+
+test('a poison cloud is drawn over the terrain beneath it, not plain floor',()=>{
+ assert.equal(groundOf({terrain:'feature',under:'lava'}),'lava');
+ assert.equal(groundOf({terrain:'feature',under:'water'}),'water');
+ assert.equal(groundOf({terrain:'feature',under:'floor'}),'floor');
+ assert.equal(groundOf({terrain:'feature'}),'feature','without `under` the cell keeps its own terrain');
+ assert.equal(groundOf({terrain:'lava'}),'lava');
+});
+
+test('the bridge tells the client what a poison cloud floats over',()=>{
+ const src=readFileSync(new URL('./engine/bridge.c',import.meta.url),'utf8');
+ const at=src.indexOf('glyph_to_cmap(g)==S_poisoncloud');
+ assert(at>0,'bridge must test for the poison cloud glyph');
+ const block=src.slice(at,at+400);
+ assert(block.includes('\\"under\\"'),'bridge must emit an under field');
+ for(const kind of ['floor','water','lava'])assert(block.includes(`"${kind}"`),`under may be ${kind}`);
 });
