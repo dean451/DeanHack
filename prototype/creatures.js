@@ -2000,7 +2000,7 @@ function kop(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1.12);const legs=[],rank=o.rank||0;
  const box=(p,w,h,d,m,x,y,z)=>part(p,new THREE.BoxGeometry(w,h,d),m,x,y,z);
  const coat=mat(o.coat,{roughness:.8}),coatDark=mat(shade(o.coat,.55),{roughness:.85}),trousers=mat(shade(o.coat,.4),{roughness:.9}),
-  skin=mat('#e6b494',{roughness:.8}),nose=mat('#d06a5a',{roughness:.7}),tache=mat(o.tache||'#3a2a1e',{roughness:.95}),
+  skin=mat('#a8896e',{roughness:.8}),nose=mat('#7a3a34',{roughness:.7}),tache=mat(o.tache||'#3a2a1e',{roughness:.95}),
   boot=mat('#141212',{roughness:.4}),brass=mat('#d8b048',{metalness:.85,roughness:.28}),silver=mat('#c8ccd0',{metalness:.9,roughness:.22}),
   glove=mat('#ece8dc',{roughness:.85}),wood=mat('#3a2616',{roughness:.7}),helm=mat(shade(o.coat,.7),{roughness:.6});
  // legs: straight dark trousers into big flat boots splayed outward
@@ -2028,7 +2028,7 @@ function kop(o){
  const club=new THREE.Group();club.position.set(...rHand);body.add(club);
  segment(club,[0,-.03,0],[-.06,.2,-.03],.02,.026,wood);sphere(club,.027,wood,-.06,.2,-.03);box(club,.012,.03,.012,glove,0,-.045,0);
  tube(club,[[0,-.03,0],[.01,-.07,.01],[.0,-.1,.0]],.003,glove,6);
- // head: round pink face, bulbous red nose, beady eyes, big ears and a drooping walrus moustache
+ // head: sallow, gaunt face, bruised swollen nose, beady eyes, big ears and a drooping walrus moustache
  const headY=.75;sphere(body,.1,skin,0,headY,.01,1,1.05,1);
  sphere(body,.03,nose,0,headY-.01,.1,1,.9,1);
  for(const side of [-1,1]){sphere(body,.013,boot,side*.035,headY+.022,.088);sphere(body,.03,skin,side*.1,headY,.0,.5,1,.8);
