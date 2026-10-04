@@ -228,14 +228,14 @@ function buildArm(kind,L,C,left){
 function buildWeapon(kind,C){
  const P=pieces();
  if(kind==='goblin'){
-  // a crude jagged knife: a rag-wrapped grip, a bent crossguard and a notched, rusty blade
+  // a crude jagged knife: a rag-wrapped grip, a bent crossguard and a notched, rusty blade crusted with dried blood toward the point
   P.add(new THREE.CylinderGeometry(.013,.015,.08,6),at(0,0,.01,[Math.PI/2,0,0]),C.cloth);
   P.add(new THREE.BoxGeometry(.07,.012,.014),at(0,0,.055,[0,0,.1]),C.metal);
   const shape=new THREE.Shape();
   shape.moveTo(-.018,0);shape.lineTo(-.02,.06);shape.lineTo(-.03,.075);shape.lineTo(-.02,.1);shape.lineTo(-.024,.13);shape.lineTo(-.006,.2);
   shape.lineTo(.018,.15);shape.lineTo(.012,.12);shape.lineTo(.02,.09);shape.lineTo(.014,.05);shape.lineTo(.018,0);shape.lineTo(-.018,0);
   const blade=new THREE.ExtrudeGeometry(shape,{depth:.006,bevelEnabled:true,bevelThickness:.002,bevelSize:.002,bevelSegments:1});
-  P.add(blade,at(0,.003,.06,[Math.PI/2,0,0]),(x,y,z)=>mix(C.metal,rgb('#7a4a2a'),hash(Math.round(x*200)+Math.round(z*200)*3)>.7?.6:.1));
+  P.add(blade,at(0,.003,.06,[Math.PI/2,0,0]),(x,y,z)=>mix(mix(C.metal,rgb('#7a4a2a'),hash(Math.round(x*200)+Math.round(z*200)*3)>.7?.6:.1),rgb('#4a0e0a'),z>.17?.85:z>.13?.55*hash(Math.round(x*150)+Math.round(z*150)*5):0));
  }else{
   // a heavy club, knotted and banded with iron, with nails driven through the head
   P.add(new THREE.CylinderGeometry(.018,.022,.1,8),at(0,0,.02,[Math.PI/2,0,0]),C.clothDark);
