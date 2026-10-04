@@ -4849,8 +4849,8 @@ export function tinGeometry(count=1,{empty=false}={}){
 // A stack sets out up to three smaller pies. One merged vertex-coloured mesh (1 draw).
 export function creamPieGeometry(count=1){
  const n=Math.min(3,Math.max(1,count|0)),R=.12,rim=.036,segs=64;
- const CRUST=new THREE.Color(0xd49a52),BROWN=new THREE.Color(0x92521f),PALE=new THREE.Color(0xecc88e),
-  CREAM=new THREE.Color(0xf7f2e6),SHADE=new THREE.Color(0xd8cdb4),CHERRY=new THREE.Color(0xa3101e),GLINT=new THREE.Color(0xf07a80),col=new THREE.Color();
+ const CRUST=new THREE.Color(0x9a7140),BROWN=new THREE.Color(0x4f2c12),PALE=new THREE.Color(0xb59462),
+  CREAM=new THREE.Color(0xb8aa84),SHADE=new THREE.Color(0x7c7152),CHERRY=new THREE.Color(0x5e0c12),GLINT=new THREE.Color(0x8c4a46),col=new THREE.Color();
  const lathe=(pts,seg=segs)=>weld(new THREE.LatheGeometry(pts.map(([r,h])=>new THREE.Vector2(r,h)),seg));
  const paint=(geo,fn)=>{
   const p=geo.attributes.position,c=new Float32Array(p.count*3);
@@ -4897,7 +4897,7 @@ export function creamPieGeometry(count=1){
   const a=j/8*Math.PI*2+.2,d=R*.68,rose=piped(.017,.022,5,1.6,24);
   rose.rotateY(j*1.3);rose.translate(Math.cos(a)*d,rim+.009,Math.sin(a)*d);parts.push(rose);
  }
- // A glacé cherry, nested into the peak's tip, with a bright glint.
+ // A glacé cherry, nested into the peak's tip, with a dull glint.
  const cherry=paint(weld(new THREE.SphereGeometry(.013,18,12)),(x,y,z)=>{
   col.copy(CHERRY).lerp(GLINT,Math.max(0,(x*.4+y*.8-z*.3)/.013-.55)*1.6);
  });
