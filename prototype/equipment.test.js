@@ -724,3 +724,11 @@ test('the generic long blade carries a fuller on each flat; a dagger does not',(
  const count=name=>createHeldWeapon({name,class:2}).children.length;
  assert.equal(count('long sword'),count('dagger')+1);
 });
+
+test('a wielded unicorn horn is the spiral ivory horn standing on its root, not the stick proxy',()=>{
+ const w=createHeldWeapon({name:'uncursed unicorn horn',class:6});
+ assert.equal(w.children.length,1);
+ const box=new THREE.Box3().setFromObject(w);
+ assert.ok(box.max.y>.35&&box.min.y<-.05&&box.min.y>-.2,`horn spans ${box.min.y}..${box.max.y}`);
+ assert.ok(w.children[0].geometry.attributes.color,'ivory is baked into vertex colours');
+});

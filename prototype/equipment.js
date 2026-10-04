@@ -17,6 +17,7 @@ import {buildScimitar,SCIMITAR_NAME} from './scimitar.js';
 import {buildTsurugi,TSURUGI_NAME} from './tsurugi.js';
 import {buildTwoHandedSword,TWO_HANDED_SWORD_NAME} from './two-handed-sword.js';
 import {buildMattock,MATTOCK_NAME} from './mattock.js';
+import {createUnicornHorn} from './unicorn-horn.js';
 import {buildPickAxe,PICK_AXE_NAME} from './pick-axe.js';
 
 export function createHeldWeapon(item){
@@ -255,6 +256,12 @@ export function createHeldWeapon(item){
    part(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),8,.002,3,false),grain,0,0);
   }
   g.userData.extraMaterial=grain;
+ }else if(/\bunicorn horn\b/.test(name)){
+  // The floor horn stood on its root: its spiral ivory shaft points up +y with the hand a little
+  // above the burr, instead of the plain stick proxy. One merged mesh, so one draw.
+  const [horn]=createUnicornHorn().children;
+  horn.rotation.set(0,0,Math.PI/2);horn.position.set(0,.5/2-.1,0);
+  g.add(horn);g.userData.extraMaterial=horn.material;
  }else{
   // A restrained proxy for weapon families whose detailed models are still pending.
   part(new THREE.CylinderGeometry(.027,.035,.65,8),leather,0,.18);
