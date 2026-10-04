@@ -3,7 +3,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 // The skeleton used to fall through to the human zombie on its letter. It now stands as bare,
 // yellowed bone: a skull with deep black sockets lit by cold blue pinpoints, a nasal hollow, a
-// row of upper teeth over a slack lower jaw; a spine of knobbed vertebrae running down from the
+// row of upper teeth (two knocked out), an old axe-cleft in the cranium over a slack lower jaw; a spine of knobbed vertebrae running down from the
 // skull to a flared pelvis; a ribcage of curved ribs around a narrow sternum, with collarbones
 // and shoulder blades; paired forearm and shin bones, kneecaps, bony feet and a fist of finger
 // bones. Rags of a burial shroud still hang from a rotted cord at the hips, and it grips a
@@ -17,7 +17,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 const C={
  bone:rgb('#d8cfb2'),pale:rgb('#ece6d2'),stain:rgb('#8a7a58'),crack:rgb('#3a3226'),
- cavity:rgb('#0e0b0a'),tooth:rgb('#e2d8b8'),
+ cavity:rgb('#0e0b0a'),dried:rgb('#4a1a14'),tooth:rgb('#e2d8b8'),
  shroud:rgb('#8a8270'),shroudDark:rgb('#4a4436'),cord:rgb('#3e3424'),
  steel:rgb('#7a7e80'),rust:rgb('#8a4a22'),rustDark:rgb('#4a2614'),leather:rgb('#3a2a1c'),
 };
@@ -110,8 +110,12 @@ function buildHead(){
  // a row of upper teeth
  for(let i=0;i<8;i++){
   const u=(i-3.5)/3.5,x=u*.03,z=.075-u*u*.022;
+  if(i===2||i===6)continue;// two teeth knocked out
   P.add(new THREE.BoxGeometry(.0075,.013,.007),at(x,.007,z,[0,u*.6,0]),C.tooth);
  }
+ // an old axe-cleft split across the right of the cranium, its edges crusted with dried blood
+ P.add(new THREE.BoxGeometry(.009,.07,.01),at(-.03,.128,.03,[.5,.15,.55]),C.cavity);
+ P.add(new THREE.BoxGeometry(.022,.05,.006),at(-.032,.118,.036,[.5,.15,.55]),C.dried);
  return P.merge();
 }
 // The lower jaw hinges at the ear, so it is built about that point (JAW_HINGE, in head space)
