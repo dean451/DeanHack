@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline} from './fx.js';
-import {BREATH_LOOKS, BREATH_PARTICLES, CONE_REACH, MOUTH_Y, PARTICLE_MS, breathMessage, breathsFromFx, breathFrame, createBreath} from './breath.js';
+import {BREATH_LOOKS, FLASH_MS, BREATH_PARTICLES, CONE_REACH, MOUTH_Y, PARTICLE_MS, breathMessage, breathsFromFx, breathFrame, createBreath} from './breath.js';
 
 // buzz() from (sx, sz) in direction (dx, dz): each cell drawn, then a tick.
 const beam = (zap, sx, sz, dx, dz, cells = 6) => {
@@ -115,4 +115,12 @@ test('the cone has a tight throat that flares as the breath travels', () => {
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   assert.ok(ratio.early.length > 10 && ratio.late.length > 10);
   assert.ok(mean(ratio.late) > mean(ratio.early) * 1.5, `${mean(ratio.early)} -> ${mean(ratio.late)}`);
+});
+
+test('the mouth flashes at the start of a breath', () => {
+  const [b] = breathsFromFx(beam('fire', 10, 5, -1, 0), null);
+  const early = breathFrame(b, b.t0 + 10), late = breathFrame(b, b.t0 + 300);
+  const bright = f => f.particles.filter(p => p.size >= .15 && p.u < .2);
+  assert.ok(bright(early).length >= 2, 'flash at the mouth');
+  assert.ok(late.particles.every(p => p.size < .3));
 });

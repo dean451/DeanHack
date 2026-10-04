@@ -25,6 +25,8 @@ export const PARTICLE_MS = 520;
 export const EMIT_MIN_MS = 200, EMIT_MAX_MS = 600;
 // A "breathes" message arms the next zap for this long (seconds of update time).
 export const ARM_S = 2;
+// How long the bloom at the mouth lasts as the breath starts (ms).
+export const FLASH_MS = 130;
 
 // Per ray type: end is the colour a particle fades to; rise lifts (or drops) it over its
 // life; puff scales its size; wobble {amp, hz} is how far and how fast it swirls sideways
@@ -118,6 +120,16 @@ export function breathFrame(breath, t) {
       size: look.puff * (look.sparks ? .05 : .07 + .2 * u), u,
       color: u < .25 ? mixHex(ray.core, ray.glow, u / .25) : mixHex(ray.glow, look.end, (u - .25) / .75),
       alpha: clamp01(age / 40) * Math.pow(1 - u, 1.5)});
+  }
+  // The mouth flash: a hot bloom at the throat for the first instant, before the cone fills.
+  const flashAge = t - breath.t0;
+  if (flashAge >= 0 && flashAge < FLASH_MS) {
+    const k = flashAge / FLASH_MS;
+    for (let j = 0; j < 2; j++) {
+      const lead = .12 + .18 * j;
+      particles.push({x: breath.x + fx * lead, y: MOUTH_Y + .03 * j, z: breath.z + fz * lead,
+        size: look.puff * (.2 + .1 * k) * (look.sparks ? .8 : 1), u: k, color: mixHex(0xffffff, ray.core, k), alpha: clamp01(1 - k) * (j ? .6 : 1)});
+    }
   }
   const glow = t < breath.t0 ? 0 : t < breath.t1 ? clamp01((t - breath.t0) / 60) : clamp01(1 - (t - breath.t1) / 180);
   return {particles, glow: ray.dark && !look.sparks ? 0 : glow};
