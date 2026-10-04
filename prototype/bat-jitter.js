@@ -10,7 +10,7 @@
 //    with a burst of hard beats.
 //  - Within RANGE tiles it turns to face the hero; the flitting tightens (a vampire bat's almost
 //    stops, and it hangs, staring) and now and then it feints: darts at the hero and jerks back.
-//  - It bites with a forward pitch and a flurry of beats; a blow tumbles it (a rolling wobble and a
+//  - It bites with a forward pitch and a flurry of beats, then shakes its head to worry the mouthful; a blow tumbles it (a rolling wobble and a
 //    drop) and the wings flail.
 //  - On death everything eases back to rest and live.js's flap takes the wings again.
 //
@@ -75,6 +75,15 @@ export function bitePose(u) {
   return Math.sin(Math.PI * u) ** 2 - BITE_TUG * Math.sin(Math.PI * clamp01((u - .7) / .3));
 }
 
+// The head-shake as the bite tugs back: the bat worries its mouthful, whipping its head side to
+// side three times (-1..1) and fading out as the bite ends, so it returns exactly to rest.
+export const BITE_SHAKE = .5;
+export function biteShake(u) {
+  if (!(u > .7) || !(u < 1)) return 0;
+  const v = (u - .7) / .3;
+  return Math.sin(Math.PI * v) * Math.sin(v * TAU * 3);
+}
+
 const rot = o => ({x: o.rotation.x, y: o.rotation.y, z: o.rotation.z});
 function setup(a) {
   const L = a.batLift;
@@ -131,7 +140,7 @@ export function updateBatJitter(a, dt, t, busy, look = null) {
 
   // the bite
   const atk = dead ? null : current(a, 'attack');
-  const bite = atk ? bitePose(a.actions.u ?? 0) : 0, chomp = Math.max(bite, 0);
+  const bite = atk ? bitePose(a.actions.u ?? 0) : 0, shake = atk ? biteShake(a.actions.u ?? 0) : 0, chomp = Math.max(bite, 0);
 
   // swoops while the hero is away, feints while they're near; each on its own clock
   if (st.swoop != null) { st.swoop += dt / SWOOP_LEN; if (st.swoop >= 1) st.swoop = null; }
@@ -166,7 +175,7 @@ export function updateBatJitter(a, dt, t, busy, look = null) {
   const roll = clamp(-st.vel.x * BANK, BANK_MAX) + TUMBLE * tb * Math.sin(st.T * 19 + ph);
   const pitch = clamp(st.vel.z * PITCH, PITCH_MAX) + .3 * fe + .4 * bite + .25 * sw.drop - .2 * sw.climb + .35 * tb * Math.sin(st.T * 13);
   lift.rotation.x = r.x + pitch * w;
-  lift.rotation.y = r.y + (st.yaw + st.face * ex + .03 * Math.sin(st.T * 1.3 + ph)) * w;
+  lift.rotation.y = r.y + (st.yaw + st.face * ex + .03 * Math.sin(st.T * 1.3 + ph) + BITE_SHAKE * shake) * w;
   lift.rotation.z = r.z + roll * w;
 
   // the wings: their own beat, whipped faster by darts, climbs, bites and blows, locked in a V to glide

@@ -92,3 +92,16 @@ test('a bite tugs back after the chomp, then returns to rest', () => {
   assert.equal(B.bitePose(0), 0);
   assert.equal(B.bitePose(1), 0);
 });
+
+test('a bite ends with a head-shake that stays in bounds and returns to rest', () => {
+  assert.equal(B.biteShake(.5), 0);
+  assert.equal(B.biteShake(1), 0);
+  let lo = 0, hi = 0;
+  for (let u = -.1; u <= 1.1; u += .002) { const v = B.biteShake(u); assert.ok(Math.abs(v) <= 1 + 1e-9, `${u}`); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  assert.ok(lo < -.5 && hi > .5, 'shakes both ways');
+  const a = mon('bat');
+  for (let i = 0; i < 30; i++) B.updateBatJitter(a, dt, i * dt, false);
+  a.actions = {current: {kind: 'attack'}, queue: [], age: 0, u: .8};
+  B.updateBatJitter(a, dt, 1, true);
+  assert.ok(Number.isFinite(a.batLift.rotation.y));
+});
