@@ -30,7 +30,7 @@ const LOOKS={
 export const DWARVES=Object.keys(LOOKS);
 export const isDwarf=name=>Object.hasOwn(LOOKS,name);
 
-const SKIN=rgb('#c8906c'),SKIN_SHADE=rgb('#9a6448'),ROSE=rgb('#c86a54'),EYE=rgb('#16100c'),GLINT=rgb('#f4f0e8'),
+const SKIN=rgb('#a8846a'),SKIN_SHADE=rgb('#7a5a46'),ROSE=rgb('#7a4a42'),EYE=rgb('#16100c'),GLINT=rgb('#f4f0e8'),
  LEATHER=rgb('#5a3a22'),LEATHER_DARK=rgb('#301e10'),IRON=rgb('#5a5c5e'),DARK=rgb('#2a2c30'),STEEL=rgb('#b4bcc0'),
  GOLD=rgb('#e0b440'),GOLD_DARK=rgb('#9a7420'),WOOD=rgb('#7a5436'),WOOD_DARK=rgb('#4e3420'),GRIP=rgb('#3a2519'),
  ERMINE=rgb('#f2eee4'),SPOT=rgb('#1a1616'),RUBY=rgb('#c0182a'),SAPPHIRE=rgb('#2a4ad0'),EMERALD=rgb('#1a9a4a'),
@@ -108,7 +108,7 @@ function buildHead(L,C){
   for(let i=0;i<3;i++)P.add(new THREE.ConeGeometry(.018,.06,5),at(s*(.035+i*.022),.064-i*.004,.132-i*.008,[.3,0,s*(1.25+i*.12)],[1,1,.6]),C.beard);
   // round ears
   P.add(new THREE.SphereGeometry(.038,10,8),at(s*.148,.0,-.01,[0,s*.3,0],[.45,1,.8]),mix(SKIN,SKIN_SHADE,.3));
-  // ruddy cheeks
+  // gaunt, bruised cheeks
   P.add(new THREE.SphereGeometry(.04,10,8),at(s*.07,-.035,.105,[0,0,0],[1,.8,.7]),mix(SKIN,ROSE,.45));
  }
  // a big, knobbly nose
