@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline, delayTimeline} from './fx.js';
-import {zapSource, zapPose, createZapFlash, heroBreathes, BREATH_HEAD, BREATH_LEAN, ZAP_ARM, ZAP_RAISE_MS, ZAP_LOWER_MS, ZAP_HOLD_MAX_MS, ZAP_WINDUP_MS, ZAP_WINDUP_UP, ZAP_STRAIN} from './zap-flash.js';
+import {zapSource, zapPose, createZapFlash, heroBreathes, BREATH_HEAD, BREATH_LEAN, ZAP_ARM, ZAP_RAISE_MS, ZAP_LOWER_MS, ZAP_HOLD_MAX_MS, ZAP_WINDUP_MS, ZAP_WINDUP_UP, ZAP_STRAIN, ZAP_SHAKE, ZAP_KICK} from './zap-flash.js';
 
 const zap = (zapType, cells, dir = 'horizontal') => fxTimeline({steps: [
   {op: 'start', mode: 'beam', glyph: 1, effect: {kind: 'zap', zap: zapType, dir}},
@@ -230,4 +230,22 @@ test('the windup arm shudders with strain mid-charge and is steady again at the 
   }
   assert.ok(maxDev > ZAP_STRAIN * .4, `max strain ${maxDev}`);
   assert.ok(endDev < .002, `end strain ${endDev}`);
+});
+
+test('the hand shakes itself loose as the arm lowers, then settles exactly at rest', () => {
+  const src = zapSource(zap('fire', [[6, 5], [7, 5]]), {x: 5, z: 5});
+  const hold = Math.max(ZAP_RAISE_MS, src.until - src.from);
+  let maxDev = 0, last = null;
+  for (let t = hold; t < hold + ZAP_LOWER_MS; t += 2) {
+    const p = zapPose(src, t);
+    const up = 1 - (x => x * x * (3 - 2 * x))((t - hold) / ZAP_LOWER_MS);
+    const kick = t > 40 ? Math.sin(Math.PI * Math.min(1, (t - 40) / 160)) : 0;
+    const base = ZAP_ARM * up + ZAP_KICK * kick * up;
+    maxDev = Math.max(maxDev, Math.abs(p.arm - base));
+    assert.ok(p.arm <= .01 && p.arm >= ZAP_ARM - .01, `arm ${p.arm}`);
+    if (last !== null) assert.ok(Math.abs(p.arm - last) < .06);
+    last = p.arm;
+  }
+  assert.ok(maxDev > ZAP_SHAKE * .3 && maxDev <= ZAP_SHAKE + 1e-9, `shake ${maxDev}`);
+  assert.ok(Math.abs(zapPose(src, hold + ZAP_LOWER_MS - 1).arm) < .01);
 });

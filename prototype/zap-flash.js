@@ -35,6 +35,9 @@ export const ZAP_FLASH_MS = 320;
 export const ZAP_LOWER_MS = 260;
 // The arm never holds out longer than this (ms), however long the beam.
 export const ZAP_HOLD_MAX_MS = 1000;
+// The shake-off: as the arm lowers, the hand flaps loosely like shaking off a scorch,
+// strongest mid-lowering and gone by the time the arm is at rest.
+export const ZAP_SHAKE = .09;
 // Arm pitch when pointing (the elbow's bend makes the forearm roughly level), and the
 // recoil kick on release.
 export const ZAP_ARM = -1.15;
@@ -136,7 +139,8 @@ export function zapPose(src, t, face = 0) {
     if (flash) { flash.size *= 1.25; flash.ring *= 1.2; }
     return {arm: 0, head: BREATH_HEAD * up + BREATH_KICK * kick * up, body: BREATH_LEAN * up, yaw: face * turn, flash};
   }
-  return {arm: ZAP_ARM * up + ZAP_KICK * kick * up, head: 0, body: 0, yaw: face * turn, flash};
+  const shake = age >= hold ? ZAP_SHAKE * 4 * up * (1 - up) * Math.sin((age - hold) / 14) : 0;
+  return {arm: ZAP_ARM * up + ZAP_KICK * kick * up + shake, head: 0, body: 0, yaw: face * turn, flash};
 }
 
 // Poses the hero and draws the hand flash. In the frame loop, call unpose(hero) right after
