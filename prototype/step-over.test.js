@@ -76,3 +76,15 @@ test('a potion effect swells on arrival and returns exactly to rest', () => {
   assert.ok(biggest > 1.5 && biggest <= 1 + STEP_SWELL + 1e-9);
   assert.equal(fx.scale.x, 1);
 });
+
+test('an artifact gleam swells on arrival, flinging its motes out, and returns exactly to rest', () => {
+  const item = new THREE.Group();
+  const gleam = new THREE.Group();
+  item.userData.artifactGleam = gleam;
+  item.add(gleam);
+  let biggest = 1;
+  updateStepOver(item, true, 0);
+  for (let t = 0; t < 1; t += 1 / 60) { updateStepOver(item, true, 1 / 60); biggest = Math.max(biggest, gleam.scale.x); }
+  assert.ok(biggest > 1.5 && biggest <= 1 + STEP_SWELL + 1e-9);
+  assert.equal(gleam.scale.x, 1);
+});
