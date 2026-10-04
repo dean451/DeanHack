@@ -1611,9 +1611,9 @@ test('cream pies are one merged, vertex-coloured pie with a fluted crust, piped 
  for(const key of ['position','normal','color'])for(const v of one.attributes[key].array)assert(Number.isFinite(v),key);
  one.computeBoundingBox();
  const b=one.boundingBox;assert(b.max.y>.09&&b.max.y<.14&&b.max.x<.14&&Math.abs(b.min.y)<1e-6,`pie ${b.max.x} x ${b.max.y}`);
- // The cherry's deep red and plenty of cream (colours are linear).
+ // The cherry's dried-blood red and plenty of stale, yellowed cream (colours are linear).
  const c=one.attributes.color,p=one.attributes.position;let red=0,cream=0;
- for(let i=0;i<c.count;i++){if(c.getX(i)>.2&&c.getY(i)<.06)red++;if(c.getX(i)>.7&&c.getY(i)>.65&&c.getZ(i)>.5)cream++;}
+ for(let i=0;i<c.count;i++){if(c.getX(i)>.07&&c.getY(i)<.025)red++;if(c.getX(i)>.3&&c.getY(i)>.25&&c.getZ(i)>.12)cream++;}
  assert(red>50&&cream>500,`red ${red}, cream ${cream}`);
  // The rim is crimped: its radius varies round the pie.
  let lo=1,hi=0;for(let i=0;i<p.count;i++)if(Math.abs(p.getY(i)-.036)<.002){const r=Math.hypot(p.getX(i),p.getZ(i));if(r>.11){lo=Math.min(lo,r);hi=Math.max(hi,r);}}
