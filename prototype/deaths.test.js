@@ -43,6 +43,14 @@ test('every style starts at rest, stays finite and bounded, and ends held', () =
   assert.deepEqual(deathPose('nope', .7, [0, 1]), deathPose('topple', .7, [0, 1]));
 });
 
+test('a crumbling body jerks its head up in a last double take before it sags', () => {
+  const head = u => deathPose('crumble', u).head;
+  assert.equal(head(0), 0);
+  assert.ok(head(.37) > .25, 'head snaps up after the shudder');
+  assert.ok(head(.37) > head(.3) && head(.37) > head(.6), 'then drops');
+  assert.ok(Math.abs(head(1) + .5) < 1e-9, 'still ends sagged');
+});
+
 test('death particles stay finite, land on or above the floor and all expire', () => {
   const fx = createDeathBurst(THREE);
   for (const style of DEATH_STYLES) {
