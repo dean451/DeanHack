@@ -21,6 +21,10 @@ The player trudges through a dark, barren, hostile fantasy world full of monster
 - **Models** are rooted in common-sense fantasy tropes: things look like what a player expects (a dragon looks like a dragon, an altar like a place of sacrifice).
 - **Animations** lead into whimsy: personality, odd tics and surprise in how things move. The whimsy lives in the motion, not the look, so keep it dark-humoured and a little uncanny, never cute or bouncy.
 
+### No audio
+
+This game has no sound and will not get any. Do not add audio, sound effects, music or audio libraries, and do not propose them. Every cue (a step-over, a pickup, a hit, a status effect, a high-threat monster coming into view) must work visually.
+
 ### Orientation
 
 Things are not always facing the way you would expect. The game moved from a flat ASCII world into 3D, and the translation from the engine's map directions to 3D facing is not always consistent. Known symptoms: monsters facing the wrong way, held weapons at the wrong angle, doors 90 degrees off in a doorway, and rolling boulder traps with the wrong orientation. Treat orientation as a real source of bugs. Whenever you add or touch a model, door, trap, weapon or animation, check which way it faces and which way it moves, and make that match what a player expects.
