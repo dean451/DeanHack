@@ -25,10 +25,36 @@ test('ghosts and shades drift; nothing else does', () => {
 test('poses stay in bounds', () => {
   for (let u = -.1; u <= 1.1; u += .01) {
     const d = G.drainPose(u);
-    for (const v of [d.reach, d.lean, d.flare, d.draw, d.shudder, G.lungePose(u)]) assert.ok(v >= 0 && v <= 1, `${u}`);
+    for (const v of [d.reach, d.lean, d.flare, d.draw, d.shudder, G.lungePose(u), G.recoilPose(u)]) assert.ok(v >= 0 && v <= 1, `${u}`);
   }
   assert.deepEqual(G.drainPose(1), {reach: 0, lean: 0, flare: 0, draw: 0, shudder: 0});
   assert.equal(G.lungePose(1), 0);
+  // the breath comes before the lunge, and is gone by the time the sleeves are out
+  assert.ok(G.recoilPose(.08) > .95 && G.recoilPose(.2) === 0 && G.lungePose(.1) === 0 && G.lungePose(.3) > .95);
+});
+
+test('a touch draws the sleeves in before they lunge, then returns to rest', () => {
+  const a = mon('ghost');
+  updateFidget(a, 0, 0, false);
+  const st = a.ghostDrift;
+  a.actions = {current: {kind: 'attack', attack: 'touch', dir: [0, 1]}, age: 0, u: 0, queue: [], dead: false};
+  let drawn = 0, out = 0, firstOut = 1, drawnAt = 1;
+  for (let i = 0; i <= 40; i++) {
+    const u = i / 40;
+    a.actions.u = u; a.actions.age = i * dt;
+    updateFidget(a, dt, i * dt, true);
+    const d = a.arms[0].rotation.x - st.arms[0].x;
+    if (d > drawn) { drawn = d; drawnAt = u; }
+    if (d < -.2 && u < firstOut) firstOut = u;
+    out = Math.min(out, d);
+    assert.ok(Number.isFinite(d));
+  }
+  assert.ok(drawn > G.RECOIL * .5, `drawn in ${drawn}`);
+  assert.ok(drawnAt < firstOut, 'drawn in before they swing out');
+  assert.ok(out < G.LUNGE * .85, `lunge ${out}`);
+  a.actions = {current: null, age: 0, queue: [], dead: true};
+  for (let i = 0; i < 60 * 8; i++) updateFidget(a, dt, 10 + i * dt, false);
+  assert.equal(a.arms[0].rotation.x, st.arms[0].x);
 });
 
 test('a ghost sways, smokes, follows the hero, drains, lunges and rests after death', () => {

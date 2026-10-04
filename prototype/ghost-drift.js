@@ -8,8 +8,9 @@
 //  - Now and then it drains: the body turns toward the hero and leans in, both sleeves
 //    lift and reach, the pinpoint eyes flare, and pale motes of warmth are drawn out of the air in
 //    front of it and stream into the cuffs. Then it shudders and settles.
-//  - When it attacks (a touch), both sleeves lunge forward, the head juts, and a puff of smoke is
-//    flung ahead.
+//  - When it attacks (a touch), it first draws itself back and up like a held breath (sleeves
+//    pulled in, head sunk, leaning away), then both sleeves lunge forward, the head juts, and a
+//    puff of smoke is flung ahead.
 //  - On death everything eases back to rest and the smoke thins to nothing.
 //
 // The module owns the body's rotation, the head's rotation, both arms' rotation and the eyes'
@@ -30,8 +31,10 @@ export const RANGE = 6, HEAD_YAW = .75, BODY_YAW = 1.1, FOLLOW = 2.2;
 export const FIRST_MIN = 3, FIRST_SPAN = 3, GAP_MIN = 6, GAP_SPAN = 5, DRAIN_LEN = 4.2;
 // The drain's pose: sleeve lift (rad, negative = up and forward), lean, eye flare.
 export const REACH = -.42, DRAIN_LEAN = .2, FLARE = 1.1;
-// The attack lunge: sleeves, head, lean.
+// The attack lunge: sleeves, head, lean. Before it, the held breath: sleeves drawn in, head sunk,
+// lean back (rad).
 export const LUNGE = -.6, JUT = .25, LUNGE_LEAN = .18;
+export const RECOIL = .3, RECOIL_SINK = -.12, RECOIL_LEAN = -.1;
 // Smoke and motes.
 export const SMOKE = 26, SMOKE_LEN = 2.6, SMOKE_ALPHA = .5, MOTES = 14, MOTE_ALPHA = .85, PUFF = 10, PUFF_LIFE = .8;
 // How fast the motion eases out after death (1/s).
@@ -62,10 +65,17 @@ export function drainPose(u) {
   return {reach, lean: reach, flare, draw, shudder};
 }
 
-// The attack lunge at action phase u (0..1): quick out, hold, back.
+// The held breath at action phase u (0..1): drawn back over the first tenth, held, then let go as
+// the lunge starts. Zero by u .2.
+export function recoilPose(u) {
+  if (!(u > 0) || !(u < .2)) return 0;
+  return smooth(u / .08) * (1 - smooth((u - .1) / .1));
+}
+
+// The attack lunge at action phase u (0..1): the breath, then quick out, hold, back.
 export function lungePose(u) {
   if (!(u > 0) || !(u < 1)) return 0;
-  return u < .25 ? smooth(u / .25) : 1 - smooth((u - .5) / .5);
+  return u < .3 ? smooth((u - .1) / .2) : 1 - smooth((u - .5) / .5);
 }
 
 // ---- shared resources (built once) ----
@@ -162,7 +172,7 @@ export function updateGhostDrift(a, dt, t, busy, look = null) {
 
   // an attack: both sleeves lunge, the head juts, smoke is flung ahead
   const atk = dead ? null : current(a, 'attack');
-  const lu = atk ? lungePose(a.actions.u ?? 0) * w : 0;
+  const lu = atk ? lungePose(a.actions.u ?? 0) * w : 0, rc = atk ? recoilPose(a.actions.u ?? 0) * w : 0;
   if (atk && atk !== st.lastAttack) {
     st.lastAttack = atk;
     st.drain = null;
@@ -180,14 +190,14 @@ export function updateGhostDrift(a, dt, t, busy, look = null) {
   const reach = dp.reach * w, shud = dp.shudder * w * Math.sin(T * 41) * .04;
   a.body.rotation.y = st.body.y + turn;
   a.body.rotation.z = st.body.z + (ROLL * Math.sin(T * SWAY_HZ * TAU + ph) + shud) * w * (1 - .6 * reach);
-  a.body.rotation.x = st.body.x + (LEAN * (.6 + .4 * Math.sin(T * SWAY_HZ * TAU * .7 + ph + 1)) + DRAIN_LEAN * reach + LUNGE_LEAN * lu) * w;
-  a.head.rotation.x = st.head.x + (.12 * reach + JUT * lu) * w;
+  a.body.rotation.x = st.body.x + (LEAN * (.6 + .4 * Math.sin(T * SWAY_HZ * TAU * .7 + ph + 1)) + DRAIN_LEAN * reach + LUNGE_LEAN * lu + RECOIL_LEAN * rc) * w;
+  a.head.rotation.x = st.head.x + (.12 * reach + JUT * lu + RECOIL_SINK * rc) * w;
   a.head.rotation.y = st.head.y + headYaw;
   a.head.rotation.z = st.head.z + TILT * Math.sin(T * TILT_HZ * TAU + ph * 1.7) * w * (1 - reach) + shud * 2;
   a.arms.forEach((arm, i) => {
     const r = st.arms[i], s = i ? 1 : -1;
     const stir = STIR * Math.sin(T * STIR_HZ * TAU + ph + i * 2.3) * (1 - reach) * (1 - lu);
-    arm.rotation.x = r.x + (stir + REACH * reach + LUNGE * lu) * w;
+    arm.rotation.x = r.x + (stir + REACH * reach + LUNGE * lu + RECOIL * rc) * w;
     arm.rotation.z = r.z + s * (.05 * Math.sin(T * STIR_HZ * TAU * .8 + ph + i) - .12 * reach) * w;
   });
   if (st.eyes && st.eyeScale) {
