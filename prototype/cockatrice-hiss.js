@@ -6,7 +6,8 @@
 //    lands on them, so it keeps jerking back to stare at you. Walking, the head pumps fore and aft.
 //  - Now and then, standing still, it hisses: it crouches, thrusts its head out low toward you,
 //    throws both wings up and out (mantled) and fans its tail plumes up, the head trembling, then
-//    slowly folds back. It hisses more often while the hero is near.
+//    slowly folds back, the head giving two sharp sideways flicks as it goes, like shaking off a
+//    bad taste. It hisses more often while the hero is near.
 //  - A grey, stony shimmer hangs at the beak: a few faint glinting motes that drift off it at rest
 //    and swell into a cloud of grey grit while it hisses. The pyrolisk (same model, a fire gaze,
 //    no stoning) gets embers instead.
@@ -32,6 +33,9 @@ export const PUMP = .03, PUMP_RATE = 11;
 // at TREMBLE_HZ, and the wings shiver SHIVER.
 export const RISE_S = .22, HISS_S = 1.2, FALL_S = .7;
 export const WING_LIFT = .95, WING_FAN = .4, CROUCH = .14, HEAD_DROP = .035, HEAD_JUT = .06, HEAD_DIP = .18, TAIL_UP = .45;
+// Aftershake: while the hiss folds back the head flicks side to side, FLICK_AMP rad, FLICK_COUNT
+// flicks, dying away to nothing as the fold ends.
+export const FLICK_AMP = .05, FLICK_COUNT = 2;
 export const TREMBLE = .045, TREMBLE_HZ = 24, SHIVER = .06;
 // First hiss after FIRST_MIN..+FIRST_SPAN s still, then GAP_MIN..+GAP_SPAN apart (× NEAR_GAP with
 // the hero in range). BREAK_RATE: how fast walking, an action or death cuts one short (1/s);
@@ -62,6 +66,14 @@ export function hissWeight(s) {
   if (s < RISE_S) { const u = s / RISE_S; return 1 - (1 - u) ** 3; }
   if (s < RISE_S + HISS_S) return 1;
   return 1 - smooth((s - RISE_S - HISS_S) / FALL_S);
+}
+// The head's sideways flick (rad) s seconds into the hiss: zero until the fold begins and zero again
+// when it ends, a fading wobble of FLICK_COUNT flicks between.
+export function aftershake(s) {
+  s = fin(s, -1);
+  const u = (s - RISE_S - HISS_S) / FALL_S;
+  if (u <= 0 || u >= 1) return 0;
+  return FLICK_AMP * Math.sin(2 * Math.PI * FLICK_COUNT * u) * (1 - u);
 }
 // A head snap's progress at u (0..1): almost all of it in the first half, then a tiny overshoot
 // settling, so it reads as a jerk rather than a turn.
@@ -165,7 +177,8 @@ export function updateCockatriceHiss(a, dt, t, busy, walking = busy, look = null
   const pump = PUMP * st.pump * Math.sin(t * PUMP_RATE) * life;
 
   const h = a.head, o = st.applied;
-  o.hy = (yaw + tremble) * life; o.hx = pitch * life + HEAD_DIP * hiss;
+  const flick = st.hiss ? aftershake(st.hiss.s) * st.f : 0;
+  o.hy = (yaw + tremble + flick) * life; o.hx = pitch * life + HEAD_DIP * hiss;
   o.py = -HEAD_DROP * hiss; o.pz = HEAD_JUT * hiss + pump;
   h.rotation.y += o.hy; h.rotation.x += o.hx; h.position.y += o.py; h.position.z += o.pz;
   if (a.body) { o.body = CROUCH * hiss; a.body.rotation.x += o.body; }
