@@ -29,10 +29,10 @@ Models work through this list first (one small step per run), then move on to or
 
 ### Magic items
 
-Give special attention to magic weapons, scrolls, rings, amulets, potions and wands, and to tools, above all the magical ones. In a dark, hostile world these are the things that carry wonder and awe. Each magic item should radiate power in some way that is true to its effect, in both its model and its motion. Look for a unique, even whimsical, way to show what it does, so a player can feel the item's character before they use it.
+Give special attention to magic weapons, scrolls, rings, amulets, potions and wands, and to tools, above all the magical ones. In a dark, hostile world these are the things that carry wonder and awe, and the strong magic the player must harness to survive. Each magic item should radiate power in some way that is true to its effect, in both its model and its motion. Look for a unique, even whimsical, way to show what it does, so a player can feel the item's character before they use it.
 
 The world gives a lot to draw on: a lamp that never runs dry, a wand of death that ends the most dangerous foe, a scroll that makes you vanish and reappear elsewhere, bolsters your defences, calls a fireball, floods a river, tames a monster or erases a whole species, an amulet that changes your sex or alignment or lets you fly, a ring that means you never go hungry or get grabbed, or that heals your wounds faster.
 
 - **Models:** build the effect into the object's look: materials, glow, runes, wear, silhouette. Different items of the same class (two rings, two wands) should look different from each other, and each should hint at what it does.
 - **Animations:** let the item's power show in how it moves and behaves: idles, pulses, flickers, drifting motes, and a clear, satisfying beat when it is used.
-- **Tone:** the wonder is a counterpoint to the grim world, not a break from it. Power should feel strange, old and a little dangerous. Never cute, bubbly or pastel.
+- **Tone:** this is a dark world, but it is inhabited by extremely strong magic that the player must harness to survive. Magic items are the player's lifeline and the strongest things in the world, so let their power read as vivid, intense and unmistakable against the grim backdrop: bright, strange, ancient and a little dangerous. Power is never cute, bubbly or pastel.
