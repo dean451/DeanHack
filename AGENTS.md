@@ -35,6 +35,10 @@ We want one standard convention for objects, traps, doors and weapons so facing 
 
 Anything with a warning level of 4 or above, and every demon, demon lord, demon prince and devil, needs special attention to detail and a lot more respect. These are the things that end the player. A balrog, for instance, is a maiar-level being incarnate with the power to end you, and it must look and feel like one: size, silhouette, glow, menace. Give them richer detail than ordinary monsters: more parts, more material variety, signature effects (evil glow, embers, smoke, heat), and wings that are large, bat-like and torn with holes. Never cute, never small, never a plain blob.
 
+### Performance
+
+Many routines add glows, motes, decals and effects, so keep a busy level smooth. Reuse geometry and materials, cap particle and decal counts, prefer cheap emissive materials to extra lights, and never add a per-frame cost that scales with everything on the map. Stay inside the budget checked by the performance budget test once it exists.
+
 ### Known art fixes
 
 Work queues for the scheduled routines. Each routine takes the first item on its own list, does one small step per run, and **deletes the item in the same PR once it is fully done** (or edits it to say what remains). When your own list is empty, take the next item from **UI and controls**, and when that is empty too, make an ordinary improvement.
@@ -42,8 +46,12 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 **Models**
 
 - **Fallback audit:** the slime mold, strange object and poison gas problems are all the same bug: something falls back to the default shape. Add a test that lists every monster, object, trap and terrain name known to the engine data and reports any that have no bespoke model (list the gaps in this file as new items, one per name or group). Also make the default fallback shape loud in development (bright magenta) so it cannot hide. Shared code, so it goes alone.
+- **Render smoke test:** the unit tests can pass while the game looks broken. Add a headless-browser smoke test, run by `npm test`, that loads the gallery pages and asserts there are no console errors, no fallback shapes and sane render stats. Routines may not edit `.github/`, so it must live inside `npm test`; if the test needs a browser the CI job does not have, say so in the PR body instead of editing workflows. Shared code, so it goes alone.
+- **Performance budget test:** add a test that caps particles, lights, decals and draw calls for a busy scene (`render-stats.js` is the place to start), so effects cannot slowly drag the frame rate down. Shared code, so it goes alone.
 - **Visual language:** write a short `prototype/VISUAL-LANGUAGE.md` mapping each element and effect to a colour and motion (fire orange and embers, cold pale blue and frost, poison sickly green, holy white-gold, curse dark violet, magic missile violet-blue, and so on), and put the palette behind one small shared module with tests. Later work (items, breath, effects) should use it so the grammar stays consistent. Shared code, so it goes alone.
 - **Branch atmosphere:** give each part of the dungeon its own feel through materials, tints, dust, drips, fog and particles, not by retuning the lighting constants. The Gnomish Mines: grimy, cold, dripping stone. Sokoban: stark, clean, puzzle-room. Gehennom: heat shimmer, embers and a red-black palette that gets worse with depth. One branch per step.
+- **Remembered versus seen:** areas the hero has explored but cannot currently see should dim and desaturate, and remembered monsters should show as faded ghosts. Keep it readable and cheap.
+- **Shop price tags:** items for sale in a shop get a subtle price-tag marker, and the shopkeeper stands at the door, so shops read as shops.
 - **Slime mold:** it has no drawn model, just the default brown diamond. This has been requested many times. Find why it still falls through to the default and give it a real model. Checked so far: `createGroundModel` already builds a jelly blob (`slime-mold.js`) for every name form tried (`slime mold`, plural, BUC-prefixed, named, capitalised) with class 7, so the fall-through must come from what the live bridge sends (a different class or name for the item); needs a look at a live engine's object payload.
 - **High-threat monsters:** go one monster at a time through everything with a warning level of 4 or above and every demon, demon lord, demon prince and devil, following the High-threat monsters notes. Start with the balrog: it must glow with evil, with presence to match a maiar-level being. Winged demons: make the wings larger and bat-like, with holes torn in them.
 - **Snakes and nagas:** give them tapered tails that narrow to a point instead of a blunt cylinder.
@@ -60,6 +68,9 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Persistent combat marks:** let fights leave marks that stay where they happened: blood trails and pools, scorch marks, frost patches, scattered bones. It fits the blood-and-bones theme and should be cheap (flat decals, capped in number, fading the oldest).
 - **Dread cue:** when a monster with a warning level of 4 or above comes into view, give a subtle cue that the player feels before they read it: a brief vignette pulse, a darkening, a shadow that arrives first. Short, not annoying, never blocking input.
 - **Hit feel:** a tiny hit-stop and a camera nudge scaled to the damage, with a bigger beat when the hero is hit hard. Camera code is shared and risky, so it goes alone, and it must be easy to switch off.
+- **Death sequence:** a grim, dignified end: a tombstone with the cause of death and an epitaph, and bones left where the hero fell. An ascension deserves a matching moment.
+- **Search payoff:** when searching reveals a hidden trap or secret door, show it with a small animation (a door sliding open, a trap rising out of the floor) so searching feels rewarded.
+- **Pet cues:** distinct, readable cues for a pet that is tame, hungry or in trouble, and a little personality in how it follows the hero.
 - **Breath weapons:** they are too blocky and square. Loosen them up and give each breath type its own variety of shape and motion.
 - **Salamanders:** give them a fiery effect like the hell hounds have.
 - **Balrog's bull whip:** embers should fall off it.
@@ -78,6 +89,11 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Two-weapon persistence:** the two-weapon status is lost every time the player returns to a game; it should persist. Find where it is dropped when a game resumes. If the fix needs `bridge.c` or `server.js`, say so in the PR body.
 - **Health bars:** with the red ring gone, show a thin health bar on a monster only once it is damaged. It should add information instead of stating the obvious, and stay small and quiet.
 - **Colour-blind safety:** make sure no cue relies on colour alone. Pair the yellow and green friendly circles, the element colours and the status effects with a shape or motion cue as well.
+- **Inventory panel:** show the pack as the actual item models in a grid, keeping the letter keys, with hover details and enchantment and blessed/cursed hints once known.
+- **Targeting previews:** when zapping, throwing or firing, show the ray or trajectory, its range, and what it would hit. The ray code (`rays.js`) already exists, so connect it to the direction prompt.
+- **Farlook on hover:** pointing at a monster or item shows its name, whether it is peaceful or hostile, asleep, and anything known about it, as the 3D version of `;`.
+- **Message log colours:** colour-code messages (damage, magic, pickups, warnings) and emphasise the important ones. It pairs with the Ctrl-P message history item.
+- **Level title cards:** a brief, silent visual card (a quiet text fade) when the hero first enters a special level such as the Oracle, Bigroom, Medusa, the Castle or the Valley.
 
 ### Magic items
 
