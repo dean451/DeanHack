@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 
 // The hobbit used to be the generic short humanoid: a teal box for a body and a brown lump of
-// hair. It now stands as a plump little halfling: a round rosy face with a button nose, a smile
+// hair. It now stands as a plump little halfling: a round, sallow, weathered face with a bruised button nose, a smile
 // and pointed ears under a mop of brown curls; a cream shirt with the sleeves rolled to the elbow,
 // a red neckerchief, and a green waistcoat left open over the belly, with brass buttons and a
 // watch chain looped from the pocket. Brown knee breeches are buttoned at the knee, and a leather
@@ -14,7 +14,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // match the old humanoid('hobbit') (shoulders at ±.28, .7; hand .3 down the arm; head centre
 // .87), which gait.js and fidget.js's head scratch are tuned to. hat, beard and pick are null.
 
-const SKIN=rgb('#e8b894'),SKIN_SHADE=rgb('#c48e6c'),CHEEK=rgb('#e0857a'),LIPS=rgb('#a85a50');
+const SKIN=rgb('#b89a78'),SKIN_SHADE=rgb('#8a6e52'),CHEEK=rgb('#8a6a5a'),LIPS=rgb('#6e4a40');
 const EYE=rgb('#2a1a10'),EYE_GLINT=rgb('#f4efe6');
 const HAIR=rgb('#7a4a24'),HAIR_DARK=rgb('#3e2412'),HAIR_LIGHT=rgb('#9a6434');
 const SHIRT=rgb('#efe6cf'),SHIRT_SHADE=rgb('#c8bc9c');
