@@ -12,7 +12,8 @@
 //  - Now and then it pulls: it rears back and turns square to the hero, flings its left claw out
 //    with the fingers splayed, clenches it on the air, and drags it back to its chest while a
 //    wavering thread of warm motes (the hero's life) is hauled out of the air ahead and into the
-//    fist. The eyes blaze; it shudders with it, and settles.
+//    fist. The eyes blaze; it shudders with it, then cocks its head hard to one side, as if
+//    savouring the taste, and settles.
 //  - When it attacks, the right claw rakes and the left follows a beat behind, fingers clenching,
 //    the head jutting, and a gust of its smoke is flung ahead.
 //  - On death everything eases back to rest and the smoke thins to nothing.
@@ -38,6 +39,8 @@ export const FLICKER = .14, FLARE = 1.2;
 export const FIRST_MIN = 3, FIRST_SPAN = 3, GAP_MIN = 6, GAP_SPAN = 5, PULL_LEN = 4.6;
 // The pull's pose: the rear back, the fling of the left claw (rad), the drag to the chest, the hunch.
 export const REAR = -.14, FLING = -.75, FLING_OUT = .35, DRAG = .25, PULL_HUNCH = .16;
+// The savour after the shudder: the head cocks over to one side (rad, roll) and drops a hair.
+export const SAVOR_TILT = .32, SAVOR_NOD = .08;
 // The attack: the rake of each arm and the head's jut.
 export const RAKE = -.7, JUT = .25, RAKE_LEAN = .16;
 // Smoke and motes.
@@ -75,11 +78,11 @@ export const pulls = a => !!(a && !a.asset && a.body && a.head && a.wraith && Ar
 
 function rand(st) { st.seed = (st.seed * 16807) % 2147483647; return (st.seed - 1) / 2147483646; }
 
-// The pull at progress u (0..1): {rear, fling, clench, drag, draw, flare, shudder, turn}, all 0..1.
+// The pull at progress u (0..1): {rear, fling, clench, drag, draw, flare, shudder, turn, savor}, all 0..1.
 // It rears and turns (to .2), flings the claw out splayed (.1–.3), clenches (.3–.38), hauls the
-// thread in (.35–.8), drags the fist back (.6–.85), then shudders and settles.
+// thread in (.35–.8), drags the fist back (.6–.85), then shudders, cocks the head to savour it (.84–.98) and settles.
 export function pullPose(u) {
-  const z = {rear: 0, fling: 0, clench: 0, drag: 0, draw: 0, flare: 0, shudder: 0, turn: 0};
+  const z = {rear: 0, fling: 0, clench: 0, drag: 0, draw: 0, flare: 0, shudder: 0, turn: 0, savor: 0};
   if (!(u > 0) || !(u < 1)) return z;
   const out = 1 - smooth((u - .85) / .15);
   z.turn = smooth(u / .2) * out;
@@ -90,6 +93,7 @@ export function pullPose(u) {
   z.draw = smooth((u - .35) / .05) * (1 - smooth((u - .8) / .06));
   z.flare = smooth((u - .3) / .15) * (1 - smooth((u - .82) / .15));
   z.shudder = smooth((u - .8) / .04) * (1 - smooth((u - .86) / .14));
+  z.savor = smooth((u - .84) / .05) * (1 - smooth((u - .93) / .05));
   return z;
 }
 
@@ -221,9 +225,9 @@ export function updateWraithPull(a, dt, t, busy, look = null) {
   a.body.rotation.z = st.body.z + (ROLL * (L.roll ?? 1) * Math.sin(T * hz * TAU + ph) + shud) * w;
   a.body.rotation.x = st.body.x + (HUNCH * (L.hunch ?? 1) * (.7 + .3 * Math.sin(T * hz * TAU * .8 + ph + 1)) + REAR * pp.rear
     + PULL_HUNCH * pp.drag + RAKE_LEAN * lu) * w;
-  a.head.rotation.x = st.head.x + (-.1 * pp.rear + .1 * pp.drag + JUT * lu) * w;
+  a.head.rotation.x = st.head.x + (-.1 * pp.rear + .1 * pp.drag + JUT * lu + SAVOR_NOD * pp.savor) * w;
   a.head.rotation.y = st.head.y + headYaw;
-  a.head.rotation.z = st.head.z + (.05 * Math.sin(T * .7 + ph) + shud * 1.5) * w;
+  a.head.rotation.z = st.head.z + (.05 * Math.sin(T * .7 + ph) + shud * 1.5 + SAVOR_TILT * pp.savor) * w;
 
   // the arms: the left flings out and drags back during a pull; both rake in an attack
   a.arms.forEach((arm, i) => {
