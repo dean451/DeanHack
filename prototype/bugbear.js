@@ -18,7 +18,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // pick are null.
 
 const L={
- fur:'#7a5230',dark:'#4a301c',pale:'#a8845a',skin:'#5a3a26',nose:'#1c1410',inner:'#8a5a4a',
+ fur:'#7a5230',dark:'#4a301c',pale:'#a8845a',skin:'#5a3a26',nose:'#1c1410',inner:'#4a2420',
  eye:'#ffc22a',teeth:'#ece0bc',claw:'#1e1812',hide:'#8a6a44',spot:'#4a3422',strap:'#3a2618',
  bone:'#d8ccaa',metal:'#6a6e70',wood:'#5a3e24',
  hip:.5,shoulderY:.92,shoulderX:.3,headY:1.06,headZ:.12,head:.14,arm:.46,
@@ -91,9 +91,9 @@ function buildHead(C){
  for(const s of [-1,1]){
   P.add(new THREE.ConeGeometry(.011,.045,6),at(s*.035,-.085,.17,[Math.PI-.15,0,0]),C.teeth);
   P.add(new THREE.ConeGeometry(.01,.035,6),at(s*.05,-.085,.15,[.2,0,s*-.15]),C.teeth);
-  // round ears set high on the skull, with a pink-brown inside
-  P.add(new THREE.SphereGeometry(.05,12,8),at(s*.12,.115,-.02,[0,s*-.3,0],[1,1,.45]),C.fur);
-  P.add(new THREE.SphereGeometry(.032,10,6),at(s*.118,.112,.0,[0,s*-.3,0],[1,1,.3]),C.inner);
+  // torn, pointed ears set high on the skull, with a dark dried-blood inside
+  P.add(new THREE.ConeGeometry(.05,.13,4),at(s*.125,.13,-.02,[0,s*-.3,s*-.45],[1,1,.4]),C.fur);
+  P.add(new THREE.ConeGeometry(.03,.08,4),at(s*.122,.125,.0,[0,s*-.3,s*-.45],[1,1,.3]),C.inner);
   // shaggy cheek ruff
   for(let i=0;i<5;i++)tuft(P,s*(.12+i*.004),-.07+i*.035,-.01-i*.01,[s,-.4+i*.1,-.2],.075,.026,mix(C.fur,C.dark,hash(i*7+s)*.6));
  }
