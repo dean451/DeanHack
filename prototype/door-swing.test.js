@@ -39,6 +39,21 @@ test('opening swings out smoothly, stays clear of the jamb and settles open',()=
  assert.equal(stepDoor(door,1/60),false);
 });
 
+test('a door forced open catches once on its pintles, then wrenches free and settles',()=>{
+ clearDoorSwings();
+ const door=createDoor(10);setDoorOpen(door,false);setDoorOpen(door,true);
+ const speeds=[];let prev=0;
+ for(let i=0;i<30;i++){stepDoor(door,1/60);const a=door.userData.leaf.rotation.y;speeds.push(Math.abs(a-prev)*60);prev=a;}
+ const at=speeds.findIndex((v,i)=>i>2&&v<speeds[i-1]*.3);
+ assert.ok(at>0,'the leaf lurches almost to a stop');
+ assert.ok(Math.max(...speeds.slice(at+1))>speeds[at]*2,'then the spring wrenches it free');
+ run(door,2);assert.equal(door.userData.leaf.rotation.y,DOOR_LEAF.open);
+ // Reopening a door that never shut does not catch again.
+ setDoorOpen(door,false);run(door,.05);setDoorOpen(door,true);
+ const before=door.userData.leaf.rotation.y;assert.ok(before<0);
+ run(door,2);assert.equal(door.userData.leaf.rotation.y,DOOR_LEAF.open);
+});
+
 test('closing swings shut, rebounds off the jamb and returns exactly to rest',()=>{
  clearDoorSwings();
  const door=createDoor(4);setDoorOpen(door,true);setDoorOpen(door,false);
