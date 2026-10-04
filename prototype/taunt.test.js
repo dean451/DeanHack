@@ -43,6 +43,17 @@ test('the taunt pose stays in bounds, moves smoothly and starts and ends at rest
   assert(tauntPose(.6).arm > RAISE * .5 && tauntPose(.6).lift > LIFT * .5 && tauntPose(.2).flare > FLARE * .5);
 });
 
+test('the imp\'s cackle speeds up: later nods come closer together than the first', () => {
+  const n = 30000, tops = [];
+  for (let i = 1; i < n; i++) {
+    const u = .42 + .3 * i / n, a = tauntPose(u - .3 / n).nod, b = tauntPose(u).nod, c = tauntPose(u + .3 / n).nod;
+    if (b > a && b >= c && b > CACKLE * .3) tops.push(u * TAUNT_LEN);
+  }
+  assert(tops.length >= 4, `nods ${tops.length}`);
+  const gaps = tops.slice(1).map((v, k) => v - tops[k]);
+  assert(gaps[gaps.length - 1] < gaps[0] * .85, `gaps ${gaps}`);
+});
+
 test('the imp ducks its head after the whip cracks, then lifts it again', () => {
   const crack = tauntPose(.78), flinch = tauntPose(.87);
   assert(crack.nod < 1e-9, 'no nodding while the tail lashes');
