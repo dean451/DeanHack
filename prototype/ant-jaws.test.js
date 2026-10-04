@@ -40,13 +40,18 @@ test('poses stay in bounds and end at zero', () => {
     const t = J.threatPose(u);
     assert.ok(t.rear >= -.41 && t.rear <= 1 && t.spread >= 0 && t.spread <= 1 && t.shake >= 0 && t.shake <= 1 && t.snap >= -.35 && t.snap <= 0, `${u}`);
     const b = J.bitePose(u);
-    assert.ok(b.open >= -.36 && b.open <= 1 && b.lunge >= 0 && b.lunge <= 1, `${u}`);
+    assert.ok(b.open >= -.36 && b.open <= 1 && b.lunge >= 0 && b.lunge <= 1 && Math.abs(b.worry) <= 1, `${u}`);
   }
   assert.equal(J.clackPose(1), 0);
   // a clack slams shut past rest, then rebounds open a hair before settling
   assert.ok(J.clackPose(.7) < -.3 && J.clackPose(.91) > .05 && J.clackPose(.91) <= .1 + 1e-9, 'slam then rebound');
   assert.deepEqual(J.threatPose(1), {rear: 0, spread: 0, shake: 0, snap: 0});
-  assert.deepEqual(J.bitePose(1), {open: 0, lunge: 0});
+  assert.deepEqual(J.bitePose(1), {open: 0, lunge: 0, worry: 0});
+  assert.equal(J.bitePose(.5).worry, 0, 'no shake before the jaws shut');
+  // the worry swings both ways, three times, after the jaws shut
+  let flips = 0, last = 0;
+  for (let u = .6; u < 1; u += .002) { const s = Math.sign(J.bitePose(u).worry); if (s && last && s !== last) flips++; if (s) last = s; }
+  assert.ok(flips >= 4, `worry swings ${flips}`);
   // the poses are continuous: no step bigger than a frame's worth
   for (const f of [u => J.clackPose(u), u => J.threatPose(u).rear, u => J.threatPose(u).spread, u => J.bitePose(u).open])
     for (let u = 0; u < 1; u += .002) assert.ok(Math.abs(f(u + .002) - f(u)) < .05, `${u}`);
