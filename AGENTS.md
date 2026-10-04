@@ -37,6 +37,9 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 
 **Models**
 
+- **Fallback audit:** the slime mold, strange object and poison gas problems are all the same bug: something falls back to the default shape. Add a test that lists every monster, object, trap and terrain name known to the engine data and reports any that have no bespoke model (list the gaps in this file as new items, one per name or group). Also make the default fallback shape loud in development (bright magenta) so it cannot hide. Shared code, so it goes alone.
+- **Visual language:** write a short `prototype/VISUAL-LANGUAGE.md` mapping each element and effect to a colour and motion (fire orange and embers, cold pale blue and frost, poison sickly green, holy white-gold, curse dark violet, magic missile violet-blue, and so on), and put the palette behind one small shared module with tests. Later work (items, breath, effects) should use it so the grammar stays consistent. Shared code, so it goes alone.
+- **Branch atmosphere:** give each part of the dungeon its own feel through materials, tints, dust, drips, fog and particles, not by retuning the lighting constants. The Gnomish Mines: grimy, cold, dripping stone. Sokoban: stark, clean, puzzle-room. Gehennom: heat shimmer, embers and a red-black palette that gets worse with depth. One branch per step.
 - **Slime mold:** it has no drawn model, just the default brown diamond. This has been requested many times. Find why it still falls through to the default and give it a real model. Checked so far: `createGroundModel` already builds a jelly blob (`slime-mold.js`) for every name form tried (`slime mold`, plural, BUC-prefixed, named, capitalised) with class 7, so the fall-through must come from what the live bridge sends (a different class or name for the item); needs a look at a live engine's object payload.
 - **High-threat monsters:** go one monster at a time through everything with a warning level of 4 or above and every demon, demon lord, demon prince and devil, following the High-threat monsters notes. Start with the balrog: it must glow with evil, with presence to match a maiar-level being. Winged demons: make the wings larger and bat-like, with holes torn in them.
 - **Snakes and nagas:** give them tapered tails that narrow to a point instead of a blunt cylinder.
@@ -44,17 +47,21 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Strange object:** it needs a model. A mimic shown as a strange object currently comes out as the default tetrahedron.
 - **Poison gas:** it needs a model. It is drawn as a plain `#`, and it wrongly makes regular floor tiles appear over lava. It should be a nasty green cloud.
 - **Orientation convention:** audit how facing and rotation are handled for monsters, held weapons, doors, traps and boulders: find where a map direction becomes a 3D rotation and where per-object fudge offsets creep in. Step one: write the convention down in a short `prototype/ORIENTATION.md` (which way is forward for a model, how a map direction becomes a rotation, how doors in horizontal and vertical walls, held weapons, traps and boulders get their facing) and put it behind one small shared helper with tests. Later steps move one category at a time onto it: doors that sit 90 degrees off in a doorway first, then monster facing, then held weapon angle. This is shared code, so each step goes in its own PR.
+- **Orientation debug overlay:** add a development toggle that draws a small arrow for each monster, door, trap, held weapon and boulder showing which way it faces, so orientation bugs can be seen at a glance. Extend `item-review.html` with a monster and trap gallery that shows the arrows. Keep it out of normal play.
 - **Magic item signatures:** go class by class (wands and rings first, then amulets, potions, scrolls and magic weapons) and make each item look distinct within its class and hint at its effect, following the Magic items notes below. One class per step.
 
 **Animations**
 
 - **Magic item moments:** add the step-over hit, the floor presence and the pickup moment described under Magic items. Wands and rings first, then amulets, potions, scrolls and magic weapons. One class per step, and keep it cheap. Done so far: the step-over hit for wands, scrolls, potions and artifacts (`step-over.js`, swells the aura or artifact gleam for half a second on arrival). Remaining: step-over for rings, amulets and enchanted weapons that have no aura yet (they need a floor aura first), then floor presence and the pickup lift per class.
+- **Persistent combat marks:** let fights leave marks that stay where they happened: blood trails and pools, scorch marks, frost patches, scattered bones. It fits the blood-and-bones theme and should be cheap (flat decals, capped in number, fading the oldest).
+- **Dread cue:** when a monster with a warning level of 4 or above comes into view, give a subtle cue that the player feels before they read it: a brief vignette pulse, a darkening, a shadow that arrives first. Short, not annoying, never blocking input.
+- **Hit feel:** a tiny hit-stop and a camera nudge scaled to the damage, with a bigger beat when the hero is hit hard. Camera code is shared and risky, so it goes alone, and it must be easy to switch off.
 - **Breath weapons:** they are too blocky and square. Loosen them up and give each breath type its own variety of shape and motion.
 - **Salamanders:** give them a fiery effect like the hell hounds have.
 - **Balrog's bull whip:** embers should fall off it.
 - **Rolling boulder traps:** the boulder's orientation is off while it rolls. Fix it using the orientation convention once it exists; until then fix it locally and say so in the PR body.
 - **Altars:** add the missing animations: sacrificing a corpse, the altar glowing in the colour of your alignment, a four-leaf clover when your luck goes up, and being gifted an artifact.
-- **Status effects:** it must be VERY CLEAR when the hero is blind, confused, stunned, sick, deathly ill, on fire, frozen, grabbed or otherwise incapacitated. Right now a stunned hero whose movement doesn't work has no idea why. Give each state a distinct, unmistakable visual and an on-screen label.
+- **Status effects:** it must be VERY CLEAR when the hero is blind, confused, stunned, sick, deathly ill, on fire, frozen, grabbed or otherwise incapacitated. Right now a stunned hero whose movement doesn't work has no idea why. Give each state a distinct, unmistakable visual and an on-screen label, and also a whole-screen treatment so the player feels it: blind darkens the edges, confused wobbles, hallucinating shifts the colours, stunned shakes. The HUD and screen effects are shared code, so do one state per step.
 
 **UI and controls**
 
@@ -65,6 +72,8 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Hostile ring:** turn the red ring under hostile monsters off entirely. Most monsters are enemies and the ring states the obvious. Keep the yellow or green circle for peaceful and friendly creatures only.
 - **Auto-dig default:** the `autodig` option should be on by default, so the player does not have to switch it on manually with Shift-O. (I read this as: nobody should have to turn it on.) If the default has to change in `prototype/engine/bridge.c` or `server.js`, say so in the PR body.
 - **Two-weapon persistence:** the two-weapon status is lost every time the player returns to a game; it should persist. Find where it is dropped when a game resumes. If the fix needs `bridge.c` or `server.js`, say so in the PR body.
+- **Health bars:** with the red ring gone, show a thin health bar on a monster only once it is damaged. It should add information instead of stating the obvious, and stay small and quiet.
+- **Colour-blind safety:** make sure no cue relies on colour alone. Pair the yellow and green friendly circles, the element colours and the status effects with a shape or motion cue as well.
 
 ### Magic items
 
