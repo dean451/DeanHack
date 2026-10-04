@@ -11,7 +11,9 @@ import {DOOR_LEAF} from './door.js';
 // starts opening from shut (or is first seen open) turns half round first if the hero is
 // on that side: doors swing away from the hero instead of through them. The door is
 // symmetric apart from its front ironwork, which changes face while the door is shut.
-export const SWING={k:60,c:11,slam:5,rebound:.3,settle:.002,maxStep:1/30};
+// A door forced open from shut catches once on its rusted pintles a third of the way out: the
+// leaf lurches almost to a stop, then the spring wrenches it free and it carries on.
+export const SWING={k:60,c:11,slam:5,rebound:.3,settle:.002,maxStep:1/30,stickAt:.33,stickKeep:.1};
 // Opening overshoots by a few percent; stop it short of the jamb's front face (-π/2).
 const LIMIT=Math.max(DOOR_LEAF.open-.05,-Math.PI/2+.01);
 const moving=new Set();
@@ -39,8 +41,8 @@ export function setDoorOpen(door,open,hero){
  const target=open?DOOR_LEAF.open:0,s=door.userData.swing;
  if(!s){if(open)faceAway(door,hero);door.userData.swing={angle:target,vel:0,target};leaf.rotation.y=target;return;}
  if(s.target===target)return;
- if(open&&s.angle===0&&s.vel===0)faceAway(door,hero);
- s.target=target;moving.add(door);
+ if(open&&s.angle===0&&s.vel===0){faceAway(door,hero);s.stick=true;}
+ if(!open)s.stick=false;s.target=target;moving.add(door);
 }
 
 // Step one door's swing; returns true while it is still moving.
@@ -53,6 +55,7 @@ export function stepDoor(door,dt){
   s.vel+=(SWING.k*(s.target-s.angle)-c*s.vel)*h;s.angle+=s.vel*h;
   if(s.angle>0){s.angle=0;s.vel=-s.vel*SWING.rebound;}
   if(s.angle<LIMIT){s.angle=LIMIT;s.vel=0;}
+  if(s.stick&&s.target<0&&s.angle<DOOR_LEAF.open*SWING.stickAt){s.stick=false;s.vel*=SWING.stickKeep;}
  }
  const done=Math.abs(s.target-s.angle)<SWING.settle&&Math.abs(s.vel)<SWING.settle*10;
  if(done){s.angle=s.target;s.vel=0;}
