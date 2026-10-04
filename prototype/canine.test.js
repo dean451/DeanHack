@@ -104,7 +104,7 @@ test('pet dogs share the canine build with a collar, a tongue, breed ears and a 
   assert(t.max.y>root.y+.1*a.g.scale.y,`${name}: tail up`);
   // collar and tongue colours are in the body and head (vertex colours are linear)
   const has=(part,test)=>{const c=parts.find(m=>m.userData.part===part).geometry.attributes.color;for(let i=0;i<c.count;i++)if(test(c.getX(i),c.getY(i),c.getZ(i)))return true;return false;};
-  assert(has('head',(r,g,bl)=>r>.6&&g<.25&&bl>g&&bl<.3),`${name}: pink tongue`);
+  assert(has('head',(r,g,bl)=>r>.17&&r<.3&&g<.045&&bl>g&&bl<.05),`${name}: dull bruised tongue`);
   assert(has('body',(r,g,bl)=>r>.6&&g>.35&&bl<.1),`${name}: brass tag`);
   assert(b.max.y>last,`${name} taller than the smaller breed`);last=b.max.y;
  }
