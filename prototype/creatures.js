@@ -322,11 +322,11 @@ function rat(giant=false,rabid=false){
   const mange=mat('#5e564c',{roughness:1});for(let i=0;i<7;i++){const spike=cone(body,.024,.09,mange,(i%2?.025:-.025),.43-Math.abs(i-2)*.018,.14-i*.07,4);spike.rotation.x=-.5;}}
  return Object.assign(actor(g,body,legs,tail,[],'rat'),{head});
 }
-// Rock moles: a squat velvet-grey digger with no ear flaps, pin-prick eyes, a bare pink
+// Rock moles: a squat velvet-grey digger with no ear flaps, pin-prick eyes, a bare scarred mauve
 // snout and oversized spade forepaws tipped with pale claws. Chewed pebbles cling to its coat.
 function rockMole(){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(.9);
- const coat=mat('#5b5a60',{roughness:1}),pink=mat('#d99a94',{roughness:.6}),claw=mat('#e6dcc4',{roughness:.45}),pebble=mat('#8a8274',{roughness:.95});
+ const coat=mat('#5b5a60',{roughness:1}),pink=mat('#7a5650',{roughness:.8}),claw=mat('#b5a98c',{roughness:.5}),pebble=mat('#8a8274',{roughness:.95});
  sphere(body,.24,coat,0,.22,-.02,1.05,.78,1.3);
  const head=new THREE.Group();head.position.set(0,.22,.27);body.add(head);
  sphere(head,.13,coat,0,0,0,.95,.82,1.05);
