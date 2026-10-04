@@ -2223,7 +2223,7 @@ const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',colla
 
 // Demons and devils: a hunched fiend on goat-jointed legs ending in cloven hooves, with a heavy chest,
 // clawed hands, a snarling fanged face and glowing eyes. Options pick horns (ram, long, short), a head
-// (fiend, vulture beak, toad, bone skull), bat wings, a spade-tipped tail, extra arm pairs, back spikes,
+// (fiend, vulture beak, toad, boar, bone skull), bat wings, a spade-tipped tail, extra arm pairs, back spikes,
 // a flame mantle and a weapon (whip, trident, sword). Slim demons (succubus, incubus, erinys) get long hair
 // and a lighter build; djinn and sandestins trail a smoky wisp instead of legs and hover.
 function demon(o){
@@ -2266,6 +2266,12 @@ function demon(o){
   for(const s of [-1,1])sphere(head,.02,glow,s*.05,.02,.07).castShadow=false;}
  else if(form==='toad'){sphere(head,.12,skin,0,-.01,.02,1.4,.65,1.1);cylinder(head,.1,.1,.012,mouth,0,-.04,.1,16).scale.set(1,1,.35);
   for(const s of [-1,1]){sphere(head,.04,skin,s*.08,.06,.04);sphere(head,.025,glow,s*.08,.08,.07).castShadow=false;}}
+ else if(form==='boar'){sphere(head,.11,skin,0,0,0,1.15,1,1.05);const snout=cylinder(head,.045,.06,.15,skin,0,-.035,.13,8);snout.rotation.x=Math.PI/2;
+  cylinder(head,.062,.062,.03,dark,0,-.035,.21,8).rotation.x=Math.PI/2;for(const s of [-1,1])sphere(head,.009,mouth,s*.025,-.03,.228).castShadow=false;
+  rounded(head,.16,.03,.07,dark,0,.07,.03,.012);
+  for(const s of [-1,1]){tube(head,[[s*.05,-.07,.13],[s*.08,-.1,.17],[s*.095,-.03,.2],[s*.085,.05,.19]],.013,tooth,10);
+   sphere(head,.016,glow,s*.06,.025,.09,1.2,.6,.6).castShadow=false;const ear=cone(head,.022,.07,dark,s*.1,.07,-.03,4);ear.rotation.z=-s*.9;}
+  for(let i=0;i<5;i++)cone(head,.012,.06,dark,0,.07,-.07-i*.035,4).rotation.x=-.9;}
  else if(form==='skull'){const bone=mat('#d8cfb4',{roughness:.6});sphere(head,.09,bone,0,.01,0,1,1.05,1.05);rounded(head,.1,.06,.08,bone,0,-.06,.05,.02);
   for(const s of [-1,1]){sphere(head,.026,mouth,s*.035,.01,.075);sphere(head,.012,glow,s*.035,.01,.09).castShadow=false;}
   for(let k=-2;k<=2;k++)rounded(head,.012,.02,.008,tooth,k*.016,-.09,.09,.003);}
@@ -2304,7 +2310,7 @@ const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',horns:'short',head:'to
  incubus:{skin:'#b07a60',eye:'#ff60a0',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true},erinys:{skin:'#a86a58',eye:'#ff4030',slim:true,hair:'#3a2418',wings:.8,weapon:'sword'},
  'barbed devil':{skin:'#9a2e20',horns:'short',spikes:true,tail:true},marilith:{skin:'#7a3a5a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true},
  vrock:{skin:'#6a5a48',head:'beak',horn:'#3a3028',wings:.9},'bone devil':{skin:'#9a9078',head:'skull',spikes:'bone',tail:true},
- 'ice devil':{skin:'#b8d0e0',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true},nalfeshnee:{skin:'#5a4a3a',head:'toad',horns:'short',wings:.5,bulk:1.3},
+ 'ice devil':{skin:'#b8d0e0',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true},nalfeshnee:{skin:'#5a4a3a',head:'boar',spikes:'bone',wings:.5,bulk:1.3},
  'pit fiend':{skin:'#7a1a18',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.1},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',weapon:'whip',bulk:1.2,scale:1.2},
  "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.25},
  yeenoghu:{skin:'#8a7040',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
