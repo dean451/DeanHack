@@ -22,12 +22,12 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 const LOOKS={
  goblin:{
-  skin:'#7f8c5a',shade:'#56613a',inner:'#b0806c',eye:'#ffd23a',teeth:'#e6dcb4',claw:'#2e281c',
+  skin:'#7f8c5a',shade:'#56613a',inner:'#5a3028',eye:'#ffd23a',teeth:'#e6dcb4',claw:'#2e281c',
   cloth:'#6a5638',clothDark:'#3e3020',rope:'#a08a5c',leather:'#4a3222',metal:'#6e706a',
   hip:.34,shoulderY:.62,shoulderX:.2,headY:.66,headZ:.07,head:.13,arm:.34,
  },
  hobgoblin:{
-  skin:'#b0643a',shade:'#7a3e22',inner:'#c8806a',eye:'#ff8a2a',teeth:'#ece2c0',claw:'#2a1e16',
+  skin:'#b0643a',shade:'#7a3e22',inner:'#5e2c22',eye:'#ff8a2a',teeth:'#ece2c0',claw:'#2a1e16',
   cloth:'#3a3430',clothDark:'#221e1c',rope:'#5a3a24',leather:'#5c3a22',metal:'#7a8084',hair:'#1c1614',
   hip:.46,shoulderY:.86,shoulderX:.27,headY:.9,headZ:.03,head:.125,arm:.4,
  },
@@ -102,7 +102,7 @@ function buildHead(kind,L,C){
   for(const s of [-1,1]){
    // brow ridges over deep sockets
    P.add(new THREE.SphereGeometry(.036,10,8),at(s*.045,.05,.118,[0,0,s*.3],[1.3,.55,.8]),C.shade);
-   // huge bat ears flaring out sideways, with a pink inner and a nick out of the rim
+   // huge bat ears flaring out sideways, with a dried-blood inner and a nick out of the rim
    P.add(new THREE.ConeGeometry(.058,.21,6),at(s*.185,.04,-.02,[0,s*.25,s*-1.3],[1,1,.28]),ramp(C.skin,C.shade,-.02,.1));
    P.add(new THREE.ConeGeometry(.038,.155,6),at(s*.176,.042,-.005,[0,s*.25,s*-1.3],[1,1,.16]),C.inner);
    // hollow cheeks

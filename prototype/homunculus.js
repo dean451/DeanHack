@@ -35,7 +35,7 @@ export const at=(x,y,z,r=[0,0,0],s=[1,1,1])=>new THREE.Matrix4().compose(new THR
 const C={
  skin:rgb('#5f8a3f'),skinDark:rgb('#34521f'),belly:rgb('#a8b86a'),wart:rgb('#7a9a48'),
  lid:rgb('#46682c'),mouth:rgb('#2a0e10'),fang:rgb('#f0ead0'),horn:rgb('#3a2e20'),hornTip:rgb('#a89878'),
- claw:rgb('#1e1a14'),ear:rgb('#b86a5a'),membrane:rgb('#3e5a2a'),membraneLit:rgb('#7a8a3a'),bone:rgb('#2a3c1a'),
+ claw:rgb('#1e1a14'),ear:rgb('#5a2a22'),membrane:rgb('#3e5a2a'),membraneLit:rgb('#7a8a3a'),bone:rgb('#2a3c1a'),
 };
 const skinShade=(lo,hi)=>(x,y)=>mix(C.skinDark,C.skin,(y-lo)/(hi-lo));
 
@@ -76,7 +76,7 @@ function buildHead(){
  // brow ridge and two horn nubs
  P.add(new THREE.SphereGeometry(.05,10,6),at(0,.2,.1,[0,0,0],[2.4,.45,.7]),C.skinDark);
  for(const s of [-1,1])P.add(new THREE.ConeGeometry(.022,.07,7),at(s*.06,.26,.04,[-.3,0,s*-.35]),(x,y)=>mix(C.horn,C.hornTip,(y-.23)/.06));
- // wide bat ears, pink-veined inside
+ // wide bat ears, dried-blood inside
  for(const s of [-1,1]){
   P.add(new THREE.ConeGeometry(.065,.2,4,1,true),at(s*.19,.19,-.01,[0,.5*s,s*-1.05],[1,1,.35]),(x,y,z)=>z>-.005?C.ear:C.skin);
   P.add(new THREE.SphereGeometry(.03,6,5),at(s*.14,.14,-.01),C.skin);
