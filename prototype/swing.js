@@ -57,8 +57,11 @@ export function swingPose(blow, u, result = 'hit') {
   let i = 0;
   while (i < keys.length - 2 && u > keys[i + 1][0]) i++;
   const [u0, a] = keys[i], [u1, b] = keys[i + 1];
-  const k = smooth((u - u0) / (u1 - u0));
   const contact = CONTACT_U[blowOf(blow)];
+  // The blade is fastest at contact: the strike eases in to it and the follow-through eases out
+  // of it, rather than slowing to a stop at the contact key the way the other joins do.
+  const raw = clamp01((u - u0) / (u1 - u0));
+  const k = u1 === contact ? raw * raw : u0 === contact ? raw * (2 - raw) : smooth(raw);
   const whiff = result === 'hit' ? 1 : 1 + .3 * smooth((u - contact) / .12) * (1 - smooth((u - .8) / .2));
   const p = {};
   for (const f of FIELDS) p[f] = (a[f] + (b[f] - a[f]) * k) * (u > contact ? whiff : 1);

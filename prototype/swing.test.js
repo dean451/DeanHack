@@ -129,3 +129,16 @@ test('the weapon trail follows samples and fades away', () => {
   assert.equal(trail.mesh.visible, false);
   trail.dispose();
 });
+
+test('the blade is moving fastest into contact, not slowing to a stop at it', () => {
+  const speed = (blow, u) => {
+    const a = swingPose(blow, u - .005), b = swingPose(blow, u + .005);
+    return Math.hypot(...Object.keys(a).map(f => b[f] - a[f]));
+  };
+  for (const blow of ['slash', 'pierce', 'blunt']) {
+    const c = CONTACT_U[blow];
+    assert.ok(speed(blow, c - .01) > speed(blow, c - .08), blow + ' accelerates into contact');
+    assert.ok(speed(blow, c - .01) > speed(blow, .1), blow + ' strike is faster than the windup start');
+    assert.ok(speed(blow, c + .01) > speed(blow, c + .15), blow + ' follow-through eases out');
+  }
+});
