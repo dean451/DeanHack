@@ -31,9 +31,9 @@ import {segment,chain} from './ant.js';
 // quirk 'feline'.
 
 const LOOKS={
- kitten:{scale:.7,coat:'#9a9690',stripe:'#4a4640',belly:'#e4e0d8',nose:'#d88a90',eye:'#6aa8e0',pattern:'tabby',headSize:1.22,legH:.19,tail:'up',tailLen:.8},
- housecat:{scale:1,coat:'#cf9050',stripe:'#8a4e22',belly:'#f4e2c8',nose:'#d88a8a',eye:'#d6b640',pattern:'tabby',socks:true},
- 'large cat':{scale:1.15,coat:'#8a7050',stripe:'#2e241a',belly:'#dccab0',nose:'#b87a70',eye:'#c8b030',pattern:'tabby'},
+ kitten:{scale:.7,coat:'#9a9690',stripe:'#4a4640',belly:'#b8b4a8',nose:'#6a3a38',eye:'#6aa8e0',pattern:'tabby',headSize:1.22,legH:.19,tail:'up',tailLen:.8},
+ housecat:{scale:1,coat:'#cf9050',stripe:'#8a4e22',belly:'#c8b898',nose:'#6a3838',eye:'#d6b640',pattern:'tabby',socks:true},
+ 'large cat':{scale:1.15,coat:'#8a7050',stripe:'#2e241a',belly:'#dccab0',nose:'#5a3630',eye:'#c8b030',pattern:'tabby'},
  jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#efe2c8',nose:'#b87a6a',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
  lynx:{scale:1.1,coat:'#a88f70',stripe:'#5a4630',belly:'#ece2d2',nose:'#8a5a4a',eye:'#c8b040',pattern:'spots',tufts:true,ruff:true,legH:.26,tail:'bob'},
  panther:{scale:1.45,coat:'#232226',stripe:'#121114',belly:'#2e2c32',nose:'#141214',eye:'#9ad04a',pattern:'ghost',ears:'round',round:true,heavy:1.1,headSize:.95,tail:'low',gloss:.45,whisker:'#8a8a8a'},
@@ -153,7 +153,7 @@ function buildBody(L,C){
 
 // Head, in head space: the origin is the neck pivot.
 function buildHead(L,C){
- const P=pieces(),inner=rgb(L.pattern==='ghost'||L.pattern==='shimmer'?'#4a3a40':'#d8a0a0');
+ const P=pieces(),inner=rgb(L.pattern==='ghost'||L.pattern==='shimmer'?'#4a3a40':'#5a2a28');
  const paint=(x,y,z)=>{
   let c=mix(C.coat,C.back,smooth((y-.04)/.06)*.4);
   const ax=Math.abs(x);
