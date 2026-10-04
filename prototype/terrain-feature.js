@@ -6,15 +6,16 @@ import {createIceFloor} from './ice-floor.js';
 import {createCloud} from './cloud.js';
 import {createAir} from './air.js';
 import {createMagicPlatform} from './magic-platform.js';
+import {createPoisonCloud} from './poison-cloud.js';
 
 // Non-trap `feature` cells (ice, bog, drawbridges, ice walls, clouds, open air, magic
-// platforms). The bridge
+// platforms, poison gas). The bridge
 // sends them as generic features, so the kind comes from the map symbol and its
 // colour (drawing.c defsyms). Anything unknown returns null and keeps its label.
 export function featureKind(symbol,color){
  if(symbol===46)return {6:'ice',3:'bridge-down',7:'magic-platform'}[color]||null;   // '.'
  if(symbol===125&&color===2)return 'bog';                         // '}'
- if(symbol===35)return {3:'bridge-up',7:'cloud'}[color]||null;    // '#'
+ if(symbol===35)return {3:'bridge-up',7:'cloud',10:'poison-cloud'}[color]||null;   // '#'
  if(symbol===56)return color===15?'crystal-wall':'ice-wall';      // '8'
  if(symbol===32&&color===6)return 'air';                          // ' '
  return null;
@@ -86,6 +87,11 @@ export function createTerrainFeature(kind,seed=0){
   const platform=createMagicPlatform(seed);g.add(platform);
   g.userData.hidesFloor=true;
   g.userData.dispose=()=>platform.userData.dispose();
+  return g;
+ }else if(kind==='poison-cloud'){
+  // Poison gas is a veil of ragged green vapour (poison-cloud.js) over the floor it hangs above.
+  const gas=createPoisonCloud(seed);g.add(gas);
+  g.userData.dispose=()=>gas.userData.dispose();
   return g;
  }else if(kind==='air'){
   // Open air is a merged sky and drift of its own (air.js); it replaces the floor.
