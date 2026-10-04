@@ -891,6 +891,31 @@ test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model inste
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('the Norn gets a hooded, grey seeress model with a threaded staff instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const norn=createCreature({name:'norn',symbol:64,color:5});
+ assert.equal(norn.kind,'norn');assert.equal(norn.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket'])assert(norn[key]?.isObject3D,key);
+ assert.equal(norn.legs.length,2);assert.equal(norn.arms.length,2);assert.equal(norn.arm,norn.arms[1]);
+ const parts=meshes(norn);
+ assert.equal(parts.length,7,'one mesh per moving part and the staff');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<50000,`${verts} vertices`);
+ norn.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(norn.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.1&&b.max.y<1.5,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.4,'out of proportion');
+ const again=meshes(createCreature({name:'norn'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
 test('samurai get a kabuto-helmed, lacquered o-yoroi model with a katana instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const sam=createCreature({name:'samurai',symbol:64,color:1});

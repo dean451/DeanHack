@@ -62,6 +62,7 @@ import {createGnome,isGnome} from './gnome.js';
 import {createOrc,isOrc} from './orc.js';
 import {createDwarf,isDwarf} from './dwarf.js';
 import {createValkyrie} from './valkyrie.js';
+import {createNorn} from './norn.js';
 import {createSamurai} from './samurai.js';
 import {createKnight} from './knight.js';
 import {createGolem} from './golem.js';
@@ -2553,6 +2554,7 @@ export function createCreature(cell={}){
  if(WATCH.includes(name))return createWatch(name);
  if(name==='hobbit')return createHobbit();
  if(name==='valkyrie')return createValkyrie();
+ if(name==='norn')return createNorn();
  if(name==='samurai')return createSamurai();
  if(name==='knight')return createKnight();
  if(name==='wizard')return createWizard();
