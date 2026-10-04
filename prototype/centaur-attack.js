@@ -2,7 +2,8 @@
 // rolls the hand, which suits a sword but swings a centaur's upright spear out flat to its side.
 // Each centaur weapon gets its own arm motion instead; the body lean and lunge stay generic.
 //
-//   spear: draw the arm back as the spear drops level, then thrust it forward at the target.
+//   spear: draw the arm back as the spear drops level, then thrust it forward at the target. On a
+//          hit the barb sticks: it wrenches the spear back out with a jerk, one more tug, then lets go.
 //   club:  raise it up over the head, then smash it down in front.
 //   bow:   raise the bow in the left fist, draw with the right hand, loose, lower.
 //
@@ -26,7 +27,7 @@ function keys(list, u) {
 // Keyframes are [u, shoulder angle, weapon angle]: both about x, the weapon's measured in the
 // arm's parent frame, so the hand's own turn is weapon − shoulder − the weapon's rest angle.
 // Negative shoulder angles raise the arm forward; weapon angle π/2 points it straight ahead.
-const SPEAR = {rest: 0, hit: [[0, 0, 0], [.22, .45, 1.42], [.44, -1.2, 1.62], [.6, -1, 1.6], [1, 0, 0]],
+const SPEAR = {rest: 0, hit: [[0, 0, 0], [.22, .45, 1.42], [.44, -1.2, 1.62], [.58, -1.1, 1.6], [.7, -.75, 1.45], [.8, -.9, 1.55], [.9, -.35, .8], [1, 0, 0]],
   miss: [[0, 0, 0], [.22, .45, 1.42], [.44, -1.45, 1.66], [.62, -1.2, 1.64], [1, 0, 0]]};
 // The club hangs forward and down from the fist at rest (creatures.js turns it 2.45).
 const CLUB = {rest: 2.45, hit: [[0, 0, 2.45], [.3, -2.7, -.4], [.44, -.95, 2.1], [.58, -.8, 2.3], [1, 0, 2.45]],

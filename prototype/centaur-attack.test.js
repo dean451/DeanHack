@@ -73,3 +73,11 @@ test('a centaur with an empty hand keeps the generic weapon wave', () => {
   assert(q.applied.arm < -1, 'the arm waves forward');
   assert(!q.applied.grip && !q.applied.off);
 });
+
+test('a spear that hits sticks and is wrenched back out; a miss has no tug', () => {
+  const hit = u => centaurAttackPose('spear', u, 'hit').arm, miss = u => centaurAttackPose('spear', u, 'miss').arm;
+  assert(hit(.7) - hit(.56) > .3, 'the arm jerks back to free the spear');
+  assert(hit(.7) - hit(.8) > .1 && hit(.8) < -.5, 'then one more tug as it comes free');
+  for (let u = .44; u <= 1; u += .02) assert(Math.abs(hit(u)) < 1.5 && Math.abs(centaurAttackPose('spear', u, 'hit').grip) < 3, `in bounds at ${u}`);
+  for (let u = .62; u < .98; u += .02) assert(miss(u + .02) >= miss(u) - 1e-9, `a miss just recovers at ${u}`);
+});
