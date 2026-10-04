@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
-import {updateSalute, salutePose, salutes, HILT, LOW, BOW, SHIELD, SALUTE_LEN, FIRST_MIN, FIRST_SPAN} from './salute.js';
+import {updateSalute, salutePose, salutes, HILT, LOW, BOW, SHIELD, PEER, SALUTE_LEN, FIRST_MIN, FIRST_SPAN} from './salute.js';
 
 const make = name => {
   const a = createCreature({name, symbol: 64, color: 4});
@@ -57,6 +57,10 @@ test('the salute pose stays in bounds, moves smoothly and starts and ends at res
     assert(Math.abs(salutePose(.7)[k] - LOW[k]) < 1e-9, `${k} at the lowered point`);
   }
   assert(salutePose(.34).bow > BOW * .99 && salutePose(.6).bow === 0, 'bows over the hilt only');
+  // Two nods at the lowered point: the first deeper, a dip back to level between them, then home.
+  const nod1 = salutePose(.64).bow, nod2 = salutePose(.72).bow, gap = salutePose(.68).bow;
+  assert(Math.abs(nod1 - PEER) < 1e-9 && Math.abs(nod2 - PEER * .6) < 1e-9 && gap < 1e-9, `nods ${nod1} ${gap} ${nod2}`);
+  assert(salutePose(.5).bow === 0 && salutePose(.8).bow === 0, 'level between the bows and after');
 });
 
 test('only knights salute', () => {

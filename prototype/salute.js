@@ -18,6 +18,8 @@ export const HILT = {arm: -1.9, roll: -.5, pitch: 1.9}, LOW = {arm: -.5, roll: .
 // BOW: the head's bow over the hilt (positive rotation.x nods down); SHIELD: the shield arm
 // squared forward (negative x) through the salute.
 export const BOW = .16, SHIELD = .22;
+// PEER: the two quick nods down at the lowered point (the second a little shallower).
+export const PEER = .12;
 // Seconds for one salute.
 export const SALUTE_LEN = 3.6;
 // First salute after FIRST_MIN..+FIRST_SPAN s of standing still, then GAP_MIN..+GAP_SPAN apart.
@@ -40,7 +42,7 @@ export function salutePose(u, f = 1) {
   if (!(f > 0) || !(u > 0) || !(u < 1)) return p;
   const up = smooth((u - .04) / .2), sweep = smooth((u - .44) / .16), home = smooth((u - .76) / .19);
   for (const k of ['arm', 'roll', 'pitch']) p[k] = (HILT[k] * up + (LOW[k] - HILT[k]) * sweep - LOW[k] * home) * f;
-  p.bow = BOW * hump(u, .24, .44) * f;
+  p.bow = (BOW * hump(u, .24, .44) + PEER * (hump(u, .6, .68) + .6 * hump(u, .68, .76))) * f;
   p.shield = SHIELD * (smooth((u - .04) / .2) - smooth((u - .78) / .17)) * f;
   return p;
 }
