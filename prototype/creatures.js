@@ -495,7 +495,7 @@ function cube(o){
 // Floating eyes: a big eyeball hovering at head height. Easily the most recognisable shape.
 function floatingEye(o){
  const g=new THREE.Group(),body=new THREE.Group(),lift=new THREE.Group();g.add(body);body.add(lift);lift.position.y=.58;
- sphere(lift,.24,mat('#ebe6da',{roughness:.3}));
+ sphere(lift,.24,mat('#b8a47a',{roughness:.4}));
  // The iris and pupil sit in their own group pivoting at the eyeball's centre (its `head`), so
  // glance.js can roll the gaze across the ball; the pupil is its own handle so it can dilate.
  const eye=new THREE.Group();lift.add(eye);
