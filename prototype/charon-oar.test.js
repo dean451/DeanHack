@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
-import {updateCharonOar, strokePoseAt, strokeLength, rows, PLANT, PUSH, ENTER, PUSH_T, FIRST_MIN, FIRST_SPAN} from './charon-oar.js';
+import {updateCharonOar, strokePoseAt, strokeLength, rows, PLANT, PUSH, SNAG, SNAG_SPAN, ENTER, PUSH_T, FIRST_MIN, FIRST_SPAN} from './charon-oar.js';
 
 const make = name => {
   const a = createCreature({name, symbol: 64, color: 1});
@@ -114,4 +114,15 @@ test('walking or an attack fades it out fast and it never resumes', () => {
   snap(a).forEach((v, i) => assert.ok(Math.abs(v - rest[i]) < 1e-9, `rest ${i}: ${v} vs ${rest[i]}`));
   // walking holds it off
   for (let i = 0; i < 30 * 60; i++) assert.equal(frame(a, dt, true), null);
+});
+
+test('each push ends with the oar snagging: the arm judders, then settles exactly on the push pose', () => {
+  const plan = PLANS[0], at = k => strokePoseAt(ENTER + PUSH_T * k, plan).rx;
+  // before the snag the arm eases along its smooth path; inside it, it strays from it both ways
+  const smooth = k => PLANT.rx + (PUSH.rx - PLANT.rx) * k * k * (3 - 2 * k);
+  assert.ok(Math.abs(at(.7) - smooth(.7)) < 1e-12);
+  let hi = 0, lo = 0;
+  for (let k = 1 - SNAG_SPAN; k < 1; k += .005) { const d = at(k) - smooth(k); hi = Math.max(hi, d); lo = Math.min(lo, d); }
+  assert.ok(hi > SNAG * .8 && lo < -SNAG * .8, `judder ${lo}..${hi}`);
+  assert.ok(Math.abs(at(1 - 1e-9) - PUSH.rx) < 1e-6, 'steady at the end of the push');
 });
