@@ -59,10 +59,12 @@ export function swoopPose(u) {
   return {drop, glide: smooth(u / .12) * (1 - smooth((u - .4) / .1)), climb: clamp01(Math.sin(clamp01((u - .42) / .5) * Math.PI))};
 }
 
-// The feint at progress u (0..1): how far toward the hero (0..1). A fast dart in, a snap back.
+// The feint at progress u (0..1): how far toward the hero (-FEINT_WINDUP..1). It rocks back a hair
+// first, like a cat about to pounce, then a fast dart in and a snap back.
+export const FEINT_WINDUP = .2;
 export function feintPose(u) {
   if (!(u > 0) || !(u < 1)) return 0;
-  return smooth(u / .25) * (1 - smooth((u - .35) / .5));
+  return smooth((u - .1) / .2) * (1 - smooth((u - .4) / .5)) - FEINT_WINDUP * Math.sin(Math.PI * clamp01(u / .1));
 }
 
 // The bite at action phase u (0..1): forward pitch (0..1).
