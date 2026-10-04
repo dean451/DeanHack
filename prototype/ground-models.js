@@ -5435,7 +5435,7 @@ export function createGroundModel(item={}){
  }else if(cls===8){
   // Potions: a corked bottle whose shape and colour come from the shuffled look (potion.js).
   // Its three merged meshes move into g like the unicorn horn.
-  const potion=createPotion({appearance:item.appearance,color:item.color,count:item.quantity??Number(/^\s*(\d+)/.exec(name)?.[1]??1)});
+  const potion=createPotion({appearance:/\bblood\b/.test(name)?'blood-red':item.appearance,color:item.color,count:item.quantity??Number(/^\s*(\d+)/.exec(name)?.[1]??1)});
   for(const part of [...potion.children]){g.add(part);}materials.push(...potion.userData.materials);g.rotation.y=potion.rotation.y;
   g.userData.potion=potion.userData.layout;
  }else if(cls===10){
