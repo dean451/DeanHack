@@ -14,7 +14,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // claws, and the bare feet stand high on the toes with claws of their own.
 //  - werewolf: big and broad, grizzled brown-black hair and a heavy mane, burning orange eyes.
 //  - werejackal: lean and narrow-faced, tawny hair with a black streak, tall ears, amber eyes.
-//  - wererat: small and most hunched, greasy grey hair, round pink ears, a pointed pink-tipped
+//  - wererat: small and most hunched, greasy grey hair, round dull bruised-flesh ears, a pointed bruise-tipped
 //    snout with yellow buck teeth and whiskers, red eyes, and a bare scaly tail out of the trousers.
 // Each moving part (body, head, each leg and arm) is one merged, vertex-coloured mesh on one shared
 // material, plus one small glowing mesh for the eyes: 7 draws. Geometry is built once per kind.
@@ -32,7 +32,7 @@ const LOOKS={
 };
 const C0={
  skinDark:rgb('#3a2a22'),socket:rgb('#120a08'),mouth:rgb('#1a0606'),blood:rgb('#4a0a08'),bloodHi:rgb('#7a1610'),
- bone:rgb('#d8ccb0'),yellow:rgb('#c8a848'),nail:rgb('#0c0a08'),nailHi:rgb('#3a3430'),pink:rgb('#c08a88'),pinkDark:rgb('#7a4a4a'),
+ bone:rgb('#d8ccb0'),yellow:rgb('#c8a848'),nail:rgb('#0c0a08'),nailHi:rgb('#3a3430'),pink:rgb('#7e5a54'),pinkDark:rgb('#3e1a16'),
  cord:rgb('#5a4a30'),cordDark:rgb('#2a2216'),stain:rgb('#3a2a18'),
 };
 const up=new THREE.Vector3(0,1,0);
@@ -150,7 +150,7 @@ function buildHead(L,C){
  P.add(new THREE.BoxGeometry(.05,.008,.03),at(0,.05,.075+sn*.5,[.15,0,0]),C.mouth);
  for(const s of [-1,1])spike(P,[s*.018,.057,.088+sn*.5],[0,-1,.25],.0055,.026,C.bone,5);
  if(L.rat)for(const s of [-1,1])P.add(new THREE.BoxGeometry(.009,.022,.004),at(s*.005,.05,.1+sn*.5,[.2,0,0]),C.yellow);
- // the ears: drawn up into points, or a rat's round pink cups
+ // the ears: drawn up into points, or a rat's round bruised cups
  for(const s of [-1,1]){
   if(L.ears==='round'){P.add(new THREE.CylinderGeometry(.03,.03,.006,14),at(s*.075,.165,-.01,[Math.PI/2,s*.5,0]),(x,y,z)=>Math.hypot(x-s*.075,y-.165)<.02?C.pinkDark:C.pink);continue;}
   P.add(new THREE.ConeGeometry(.024,L.earH,4),at(s*.072,.15+L.earH*.45,-.02,[-.2,0,-s*.35],[1,1,.45]),(x,y,z)=>mix(C.fur,C.hair,clamp01((.2+L.earH-y)*12)));
