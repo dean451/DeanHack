@@ -228,6 +228,8 @@ export function createHeldWeapon(item){
   const outline=new THREE.Shape();outline.moveTo(.02,.53);outline.quadraticCurveTo(.14,.56,.24,.63);outline.quadraticCurveTo(.29,.45,.23,.29);outline.quadraticCurveTo(.13,.39,.02,.4);outline.closePath();
   const axeBlade=new THREE.ExtrudeGeometry(outline,{depth:.025,bevelEnabled:true,bevelSize:.008,bevelThickness:.005,bevelSegments:2,steps:1,curveSegments:10});axeBlade.translate(0,0,-.0125);part(axeBlade,steel,0,0);
   part(new THREE.BoxGeometry(.09,.085,.065),steel,-.055,.47);
+  // Steel langets run down the haft either side of the head, so the grip below it reads as bound wood.
+  for(const s of [-1,1])part(new THREE.BoxGeometry(.022,.2,.012),steel,-.02,.33,s*.034);
   if(/battle-axe/.test(name)){const second=axeBlade.clone();second.rotateY(Math.PI);part(second,steel,0,0);}
  }else if(/\bbullwhip\b/.test(name)){
   buildBullwhip(g);
