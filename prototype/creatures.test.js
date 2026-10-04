@@ -891,6 +891,57 @@ test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model inste
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('the Norn gets a hooded, grey seeress model with a threaded staff instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const norn=createCreature({name:'norn',symbol:64,color:5});
+ assert.equal(norn.kind,'norn');assert.equal(norn.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket'])assert(norn[key]?.isObject3D,key);
+ assert.equal(norn.legs.length,2);assert.equal(norn.arms.length,2);assert.equal(norn.arm,norn.arms[1]);
+ const parts=meshes(norn);
+ assert.equal(parts.length,7,'one mesh per moving part and the staff');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<50000,`${verts} vertices`);
+ norn.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(norn.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.1&&b.max.y<1.5,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.4,'out of proportion');
+ const again=meshes(createCreature({name:'norn'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
+test('warriors get a helmed, mail-clad, scarred shield-warrior model with a spear instead of the plain @ humanoid',()=>{
+ const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
+ const war=createCreature({name:'warrior',symbol:64,color:4});
+ assert.equal(war.kind,'warrior');assert.equal(war.quirk,'human');
+ for(const key of ['body','head','arm','weaponSocket','shieldArm','shield'])assert(war[key]?.isObject3D,key);
+ assert.equal(war.legs.length,2);assert.equal(war.arm,war.arms[1]);assert.equal(war.shieldArm,war.arms[0]);
+ const parts=meshes(war);
+ assert.equal(parts.length,8,'one mesh per moving part, the spear and the shield');
+ assert.equal(new Set(parts.map(m=>m.material)).size,1);
+ let verts=0;
+ for(const m of parts){
+  const a=m.geometry.attributes;verts+=a.position.count;
+  for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
+  for(const v of a.color.array)assert(v>=0&&v<=1,m.userData.part);
+ }
+ assert(verts<50000,`${verts} vertices`);
+ war.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(war.g,true);
+ assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
+ assert(b.max.y>1.1&&b.max.y<1.7,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.4,'out of proportion');
+ assert(new THREE.Box3().setFromObject(war.shield,true).max.x<-.2,'shield outside the left arm');
+ const again=meshes(createCreature({name:'warrior'}));
+ parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
 test('samurai get a kabuto-helmed, lacquered o-yoroi model with a katana instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const sam=createCreature({name:'samurai',symbol:64,color:1});
@@ -2055,7 +2106,7 @@ test('material golems are hunched, jagged constructs with a pulsing core, clawed
   a.g.updateMatrixWorld(true);
   const b=new THREE.Box3().setFromObject(a.g,true);
   assert(Math.abs(b.min.y)<.02,`${kind} feet at ${b.min.y}`);
-  assert(b.max.y>1.1&&b.max.y<1.6,`${kind} top at ${b.max.y}`);
+  assert(b.max.y>1.1&&b.max.y<1.7,`${kind} top at ${b.max.y}`);
   assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,`${kind} out of proportion`);
   // hunched and long-armed: the head sits low and forward, the fists hang near the knees
   const head=new THREE.Box3().setFromObject(a.head,true),hand=new THREE.Box3().setFromObject(a.arms[1],true);

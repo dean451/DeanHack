@@ -45,8 +45,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Poison gas:** it needs a model. It is drawn as a plain `#`, and it wrongly makes regular floor tiles appear over lava. It should be a nasty green cloud.
 - **Orientation convention:** audit how facing and rotation are handled for monsters, held weapons, doors, traps and boulders: find where a map direction becomes a 3D rotation and where per-object fudge offsets creep in. Step one: write the convention down in a short `prototype/ORIENTATION.md` (which way is forward for a model, how a map direction becomes a rotation, how doors in horizontal and vertical walls, held weapons, traps and boulders get their facing) and put it behind one small shared helper with tests. Later steps move one category at a time onto it: doors that sit 90 degrees off in a doorway first, then monster facing, then held weapon angle. This is shared code, so each step goes in its own PR.
 - **Magic item signatures:** go class by class (wands and rings first, then amulets, potions, scrolls and magic weapons) and make each item look distinct within its class and hint at its effect, following the Magic items notes below. One class per step.
-- **Warrior and the Norn:** the warrior monster (the Valkyrie quest guardians) and the Norn (the Valkyrie quest leader) need models.
-- **Gems:** they have no shimmer or sparkle and they float off the ground. Rest them on the floor and give them a subtle glint. They are not magical, so keep it modest.
 
 **Animations**
 
