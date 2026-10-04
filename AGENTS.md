@@ -13,3 +13,17 @@ Do not retune `LIVE_AMBIENT`, `TORCH_INTENSITY`, or lantern lighting without doc
 The user's Live game runs from the play copy. Never send input to it for testing. Use the worktree's own engine, or `prototype/engine/smoke.py` and its separate character.
 
 Merge one branch at a time. After a merge, update the working branch from `origin/master` before beginning another task.
+
+## Art direction
+
+The player trudges through a dark, barren, hostile fantasy world full of monsters. It is not baking tea cakes. Lean into sinister, sharp and menacing: harsh angular silhouettes, worn, scarred, grimy materials, desaturated earth tones with sickly accents, blood, bone, rust, ash and rot. Never make things rounder, softer, brighter, cuter, pastel, bubbly or fairy-tale. If something looks cute, make it grim.
+
+- **Models** are rooted in common-sense fantasy tropes: things look like what a player expects (a dragon looks like a dragon, an altar like a place of sacrifice).
+- **Animations** lead into whimsy: personality, odd tics and surprise in how things move. The whimsy lives in the motion, not the look, so keep it dark-humoured and a little uncanny, never cute or bouncy.
+
+### Known art fixes
+
+Models work through this list first (one small step per run), then move on to ordinary improvements. Remove an item once it is done.
+
+- **Altars:** sit them low to the floor, remove the cute red cloth, cover them in blood and scatter bones around them (`altar.js`, `altar-embers.js`).
+- **Nalfeshnee:** it reuses the generic `toad` head, so it reads as the hezrou's frog (`DEMONS` in `creatures.js`). Give it its own traditional look: a heavy, bloated demon with a boar-like head and tusks, small wings, coarse hide. It must not look like the hezrou.
