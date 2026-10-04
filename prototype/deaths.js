@@ -52,12 +52,13 @@ export function deathPose(style, u, dir = null) {
   const push = k => { if (d) { p.dx = d[0] * k; p.dz = d[1] * k; } };
   switch (DEATH_STYLES.includes(style) ? style : 'topple') {
     case 'crumble': {
-      // A dry shudder, then the frame sags onto itself and sifts away.
+      // A dry shudder, then a last uncanny double take (the head jerks up as if it had heard
+      // its name), and only then the frame sags onto itself and sifts away.
       const shake = u < .35 ? Math.sin(u * 90) * .05 * (1 - u / .35) : 0;
       const sag = smooth((u - .25) / .6);
       p.roll = shake;
       p.pitch = .18 * sag;
-      p.head = -.5 * sag;
+      p.head = -.5 * sag + .45 * Math.sin(Math.PI * clamp01((u - .3) / .14));
       p.sy = 1 - .72 * sag;
       p.sx = 1 + .18 * sag;
       p.fade = 1 - smooth((u - .6) / .4);
