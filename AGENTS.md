@@ -38,7 +38,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Magic item signatures:** go class by class (wands and rings first, then amulets, potions, scrolls and magic weapons) and make each item look distinct within its class and hint at its effect, following the Magic items notes below. One class per step.
 - **Warrior and the Norn:** the warrior monster (the Valkyrie quest guardians) and the Norn (the Valkyrie quest leader) need models.
 - **Gems:** they have no shimmer or sparkle and they float off the ground. Rest them on the floor and give them a subtle glint. They are not magical, so keep it modest.
-- **Sinks:** they look like a modern house sink. This is a dungeon: little more than a rusty pipe and a rusty grate in the floor.
 
 **Animations**
 
