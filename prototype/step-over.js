@@ -1,4 +1,4 @@
-// The step-over hit (magic item moments, part 1: wands and scrolls). When the hero arrives on a floor
+// The step-over hit (magic item moments, part 1: wands, scrolls and potions). When the hero arrives on a floor
 // wand, its aura answers: the motes fling outward and the whole glow swells for half a second,
 // then settles back to exactly its resting size. It fires once per arrival, so pacing back and
 // forth is a small jackpot each time, and it never touches input.
@@ -17,10 +17,10 @@ export function stepPulseAt(age) {
 }
 
 // Advances one floor item's step-over. `near` is whether the hero is standing on it now.
-// Only the aura of a wand or scroll swells (lamps, crystal balls and the Amulet keep their own looks).
+// Only the aura of a wand, scroll or potion swells (lamps, crystal balls and the Amulet keep their own looks).
 export function updateStepOver(item, near, dt) {
   const data = item.userData, wand = data.wandAura;
-  const aura = wand && Object.hasOwn(WAND_AURAS, wand.userData.kind) ? wand : data.scrollAura;
+  const aura = wand && Object.hasOwn(WAND_AURAS, wand.userData.kind) ? wand : data.scrollAura ?? data.potionFx;
   if (!aura) { data.stepAge = null; data.stepNear = false; return; }
   if (near && !data.stepNear) data.stepAge = 0;
   data.stepNear = near;
