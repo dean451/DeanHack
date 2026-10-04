@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
 import {JAW_GAPE} from './jaw.js';
-import {updateBask, baskPose, baskLength, basks, BASK_GAPE, BASK_BREATH, SNOUT_LIFT, OPEN_S, FIRST_MIN, FIRST_SPAN, GAP_MIN, GAP_SPAN, HOLD_MIN, HOLD_SPAN} from './bask.js';
+import {updateBask, baskPose, baskLength, basks, BASK_GAPE, BASK_BREATH, SNOUT_LIFT, OPEN_S, FIRST_MIN, FIRST_SPAN, GAP_MIN, GAP_SPAN, HOLD_MIN, HOLD_SPAN, CLOSE_S, CLACK, CLACK_S} from './bask.js';
 import {sparkles, pawPose, tossPose, pawLength, tossLength, moteAt, LOOKS, PAW_LIFT, TOSS_UP, MOTES} from './unicorn-sparkle.js';
 
 const COLON = ':'.charCodeAt(0);
@@ -30,6 +30,18 @@ test('the basking gape opens slowly, holds, breathes and shuts back to rest', ()
   assert(baskPose(len, hold) < 1e-9, 'ends shut');
   assert(Math.abs(baskPose(2 + hold / 2, hold, 0) - BASK_GAPE) < 1e-9, 'held wide in the middle');
   assert.equal(baskPose(NaN, hold), 0);
+});
+
+test('the gape slams shut, clacks back open a hair and settles exactly shut', () => {
+  const hold = 6, shutAt = OPEN_S + hold + CLOSE_S;
+  // the close accelerates: the first half sheds less of the gape than the second
+  const g0 = baskPose(OPEN_S + hold, hold), mid = baskPose(OPEN_S + hold + CLOSE_S / 2, hold);
+  assert(g0 - mid < mid, 'lazy at first, fast at the end');
+  let peak = 0;
+  for (let c = 0; c <= 1; c += .01) peak = Math.max(peak, baskPose(shutAt + CLACK_S * c, hold));
+  assert(peak > CLACK * .5 && peak <= CLACK + 1e-9, `clack ${peak}`);
+  assert(baskPose(shutAt, hold) < 1e-9 && baskPose(shutAt + CLACK_S, hold) < 1e-9);
+  assert.equal(baskPose(baskLength(hold), hold), baskPose(shutAt + CLACK_S, hold));
 });
 
 test('a still crocodile basks, and walking, a bite or death closes its mouth', () => {

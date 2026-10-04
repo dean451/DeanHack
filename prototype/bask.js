@@ -17,7 +17,10 @@ export const BASK_GAPE = .42, BASK_BREATH = .018;
 // How far the snout tips up at full gape, in radians. Negative head.rotation.x lifts the snout (+z).
 export const SNOUT_LIFT = .1;
 // Seconds: the slow opening, the hold (HOLD_MIN..+HOLD_SPAN) and the close.
-export const OPEN_S = 1.8, HOLD_MIN = 5, HOLD_SPAN = 4, CLOSE_S = 1.4;
+export const OPEN_S = 1.8, HOLD_MIN = 5, HOLD_SPAN = 4, CLOSE_S = 1.6;
+// The close starts lazy and speeds up until the jaws clack shut, then bounce open a hair (CLACK
+// radians) and settle again over CLACK_S seconds, like a bored croc that bit down on nothing.
+export const CLACK = .05, CLACK_S = .4;
 // First gape after FIRST_MIN..+FIRST_SPAN s of lying still, then GAP_MIN..+GAP_SPAN apart.
 export const FIRST_MIN = 3, FIRST_SPAN = 5, GAP_MIN = 8, GAP_SPAN = 7;
 const FADE_OUT = 14, SNAP = 1e-3;
@@ -31,11 +34,12 @@ export const basks = a => !!(a?.jaw && a.quirk === 'lizard' && !a.asset);
 // The gape at s seconds into a bask that holds for `hold` seconds; t drives the breath.
 export function baskPose(s, hold, t = 0) {
   if (!(s > 0) || !(hold >= 0)) return 0;
-  const open = smooth(s / OPEN_S), shut = smooth((s - OPEN_S - hold) / CLOSE_S);
+  const open = smooth(s / OPEN_S), x = clamp01((s - OPEN_S - hold) / CLOSE_S), shut = x ** 1.7;
   const e = open * (1 - shut);
-  return e * (BASK_GAPE + BASK_BREATH * Math.sin(t * 1.9));
+  const c = clamp01((s - OPEN_S - hold - CLOSE_S) / CLACK_S);
+  return e * (BASK_GAPE + BASK_BREATH * Math.sin(t * 1.9)) + CLACK * Math.sin(Math.PI * c) * (1 - c);
 }
-export const baskLength = hold => OPEN_S + hold + CLOSE_S;
+export const baskLength = hold => OPEN_S + hold + CLOSE_S + CLACK_S;
 
 // Deterministic per-actor PRNG, so tests and replays are stable.
 function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; return st.seed / 2147483648; }
