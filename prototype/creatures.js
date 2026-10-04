@@ -386,6 +386,17 @@ const nose=mat('#1b1716',{roughness:.5}),darkEye=mat('#0e0c0b',{roughness:.2,met
 
 function tube(parent,points,radius,material,segments=16){return part(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),segments,radius,8,false),material);}
 
+// A tube that narrows to a point at its start: ring vertices are pulled in toward the centreline by taper(t),
+// t running 0..1 along the curve. Snakes and nagas use it so the tail ends in a point, not a blunt stump.
+const tailTaper=t=>{const k=Math.min(1,t/.6);return .1+.9*k*k*(3-2*k);};
+function pointedTailTube(parent,points,radius,material,segments=16,taper=tailTaper){
+ const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),geo=new THREE.TubeGeometry(curve,segments,radius,8,false);
+ const pos=geo.attributes.position,ring=9,c=new THREE.Vector3(),v=new THREE.Vector3();
+ for(let i=0;i<=segments;i++){curve.getPointAt(i/segments,c);const k=taper(i/segments);
+  for(let j=0;j<ring;j++){const n=i*ring+j;v.fromBufferAttribute(pos,n).sub(c).multiplyScalar(k).add(c);pos.setXYZ(n,v.x,v.y,v.z);}}
+ geo.computeVertexNormals();return part(parent,geo,material);
+}
+
 // Pet dogs are in canine.js, with the wild dogs.
 
 // Cats are in feline.js.
@@ -595,9 +606,9 @@ function bat(o){
 function snake(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);
  const skin=mat(o.color,{roughness:.55}),belly=mat(o.belly||shade(o.color,1.5)),coil=[];
- for(let i=0;i<=28;i++){const t=i/28,a=t*Math.PI*3.6,r=.24-t*.13;coil.push([Math.cos(a)*r,.05+t*.1,Math.sin(a)*r]);}
+ for(let i=0;i<=28;i++){const t=i/28,a=t*Math.PI*3.6,r=.24-t*.13;coil.push([Math.cos(a)*r,.005+.045*tailTaper(t)+t*.1,Math.sin(a)*r]);}
  coil.push([0,.3,.06],[0,.42,.14]);
- tube(body,coil,.045,skin,64);
+ pointedTailTube(body,coil,.045,skin,64);
  const head=new THREE.Group();head.position.set(0,.44,.18);body.add(head);
  const jaw=snakeHead(head,o);
  const hood=o.hood?cobraHood(head,o):null;
@@ -1652,10 +1663,8 @@ function naga(o){
  const scales=mat(o.color,{roughness:.5,metalness:.1}),belly=mat(o.belly||shade(o.color,1.45),{roughness:.6}),face=mat(o.face||shade(o.color,1.25),{roughness:.65}),
   glow=mat(o.eye||'#f0d040',{emissive:o.eye||'#f0d040',emissiveIntensity:2,roughness:.3}),pupil=mat('#0c0a08',{roughness:.4}),r=o.baby?.05:.075;
  // lower body: a flat spiral coil ending under the raised neck
- const coil=[];for(let i=0;i<=30;i++){const t=i/30,a=Math.PI*.5+t*Math.PI*3.2,rad=.3-t*.18;coil.push([Math.cos(a)*rad,r+t*.04,-Math.sin(a)*rad*.9-.02]);}
- coil.push([0,r+.08,.1]);tube(body,coil,r,scales,72);
- // tail tip trailing off the outside of the coil
- cone(body,r*.9,.16,scales,-.06,r,.29,8).rotation.z=Math.PI/2;
+ const coil=[];for(let i=0;i<=30;i++){const t=i/30,a=Math.PI*.5+t*Math.PI*3.2,rad=.3-t*.18;coil.push([Math.cos(a)*rad,r*tailTaper(t)+t*.04,-Math.sin(a)*rad*.9-.02]);}
+ coil.push([0,r+.08,.1]);pointedTailTube(body,coil,r,scales,72);
  // raised half: pivots above the coil centre
  const neck=new THREE.Group();neck.position.set(0,r+.08,.1);body.add(neck);
  const rise=[[0,0,0],[0,.14,.03],[0,.3,.02],[0,.44,-.01]];tube(neck,rise,r*.95,scales,20);

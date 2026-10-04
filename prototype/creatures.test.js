@@ -2616,3 +2616,16 @@ test('the werecreatures in human form get a hunched, feral man with glowing slan
  assert.notEqual(createCreature({name:'werewolf',symbol:100}).kind,'werewolf');
  assert.equal(createCreature({name:'human',symbol:64}).quirk,'human');
 });
+
+test('snake and naga tails narrow to a point',()=>{
+ for(const name of ['garter snake','python','water moccasin','red naga','guardian naga']){
+  const actor=createCreature({name,symbol:83,color:2});
+  let longest=null,count=0;
+  actor.g.traverse(m=>{if(m.geometry?.type==='TubeGeometry'&&(!longest||m.geometry.attributes.position.count>count)){longest=m;count=m.geometry.attributes.position.count;}});
+  assert(longest,name);
+  const pos=longest.geometry.attributes.position,ring=9,at=i=>{let cx=0,cy=0,cz=0;for(let j=0;j<8;j++){cx+=pos.getX(i*ring+j);cy+=pos.getY(i*ring+j);cz+=pos.getZ(i*ring+j);}cx/=8;cy/=8;cz/=8;
+   let r=0;for(let j=0;j<8;j++)r+=Math.hypot(pos.getX(i*ring+j)-cx,pos.getY(i*ring+j)-cy,pos.getZ(i*ring+j)-cz);return r/8;};
+  const rings=pos.count/ring-1;
+  assert(at(0)<at(Math.floor(rings*.8))*.3,name+' tail tip is a point');
+ }
+});
