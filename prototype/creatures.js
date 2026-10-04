@@ -2310,9 +2310,11 @@ function demon(o){
   for(let i=0;i<9;i++){const a=(i/8-.5)*2.6,f=cone(body,.035,.16+.06*Math.cos(a),fire,Math.sin(a)*.2*bulk,chestY+.16+Math.cos(a)*.04,-.08-Math.cos(a)*.04,5);f.rotation.z=-a*.3;f.castShadow=false;}
   for(let i=0;i<3;i++){const f=cone(head,.025,.1,fire,(i-1)*.04,.14,-.04,5);f.castShadow=false;}}
  // bat wings on finger bones
- if(o.wings)for(const side of [-1,1]){const wing=new THREE.Group();wing.position.set(side*.08,chestY+.12,-.12*bulk);body.add(wing);const sp=o.wings;
+ if(o.wings)for(const side of [-1,1]){const wing=new THREE.Group();wing.position.set(side*.08,chestY+.12,-.12*bulk);body.add(wing);const sp=o.wings*1.45;
   const tips=[[side*.26*sp,.4*sp],[side*.46*sp,.26*sp],[side*.5*sp,.02],[side*.32*sp,-.16*sp]],shape=new THREE.Shape();shape.moveTo(0,0);
   tips.forEach(([x,y],i)=>{shape.lineTo(x,y);if(i<tips.length-1){const [nx,ny]=tips[i+1];shape.quadraticCurveTo((x+nx)*.38,(y+ny)*.38,nx,ny);}});shape.lineTo(side*.04,-.1*sp);shape.lineTo(0,0);
+  // torn holes between the finger bones: ragged little triangles, each well inside the membrane
+  for(const [hx,hy,hr,ha] of [[.3,.13,.05,.2],[.4,.08,.04,1.1],[.19,.03,.035,2.3]]){const hole=new THREE.Path();for(let k=0;k<3;k++){const an=ha+k*2.1,rr=hr*(k===1?1.5:1);hole[k?'lineTo':'moveTo'](side*(hx+Math.cos(an)*rr)*sp,(hy+Math.sin(an)*rr)*sp);}hole.closePath();shape.holes.push(hole);}
   part(wing,new THREE.ShapeGeometry(shape,6),web);
   segment(wing,[0,0,0],[side*.12*sp,.22*sp,.005],.02,.014,dark);for(const [x,y] of tips.slice(0,3))segment(wing,[side*.12*sp,.22*sp,.005],[x,y,.005],.01,.005,dark);
   cone(wing,.012,.05,claw,side*.12*sp,.25*sp,.005,4);wing.rotation.y=side*-.4;wings.push(wing);}
