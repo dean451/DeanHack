@@ -2273,7 +2273,7 @@ function demon(o){
   for(let k=-1;k<=1;k++){const c=cone(body,.01,.06,claw,wr[0]+k*.015,wr[1]-.04,wr[2]+.01,4);c.rotation.x=Math.PI+.3;c.rotation.z=k*.2;}}
  // weapon in the right hand
  const grip=[shoulderX+.08,chestY-.2,.16];
- if(o.weapon==='whip'){const pts=[grip,[grip[0]+.1,grip[1]-.12,.3],[grip[0]+.05,.1,.42],[grip[0]-.12,.02,.38],[grip[0]-.24,.01,.22]];tube(body,pts,.012,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.4}):M.leather,20).castShadow=false;}
+ if(o.weapon==='whip'){const pts=[grip,[grip[0]+.1,grip[1]-.12,.3],[grip[0]+.05,.1,.42],[grip[0]-.12,.02,.38],[grip[0]-.24,.01,.22]];const lash=tube(body,pts,.012,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.4}):M.leather,20);lash.castShadow=false;if(o.flame){lash.userData.part='whip';lash.userData.path=pts;}}
  else if(o.weapon==='trident'){const t=new THREE.Group();t.position.set(...grip);t.rotation.x=.15;body.add(t);cylinder(t,.012,.012,.9,mat('#3a2a1a'),0,.15,0,8);
   for(const x of [-.05,0,.05]){cylinder(t,.008,.008,.12,M.darkSteel,x,.64,0,6);cone(t,.016,.05,M.darkSteel,x,.72,0,4);}rounded(t,.12,.02,.02,M.darkSteel,0,.58,0,.006);}
  else if(o.weapon==='sword'){const s=new THREE.Group();s.position.set(...grip);s.rotation.set(.9,0,-.2);body.add(s);cylinder(s,.013,.013,.08,M.leather,0,-.02,0,8);rounded(s,.12,.02,.03,M.darkSteel,0,.03,0,.006);rounded(s,.035,.42,.008,M.steel,0,.25,0,.004);}
