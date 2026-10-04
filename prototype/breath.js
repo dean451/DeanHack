@@ -29,18 +29,20 @@ export const ARM_S = 2;
 export const FLASH_MS = 130;
 
 // Per ray type: end is the colour a particle fades to; rise lifts (or drops) it over its
-// life; puff scales its size; wobble {amp, hz} is how far and how fast it swirls sideways
+// life; puff scales its size; shape {len, thin, spin} stretches each puff along the flow (len) and pinches it across (thin), with spin
+// the random yaw (radians) a puff may twist off the flow: fire streams as flame tongues, frost splinters into shards, gas and
+// the rest stay round; wobble {amp, hz} is how far and how fast it swirls sideways
 // and up and down as it ages (fire licks fast, gas rolls slow, frost hangs nearly still). Death (disintegration) throws violet sparks, not a dark cone.
 export const BREATH_LOOKS = {
   'magic missile': {end: 0x2a3a90, rise: .05, puff: .8, wobble: {amp: 0.03, hz: 0.01}},
-  fire: {end: 0x3a1208, rise: .38, puff: 1.2, wobble: {amp: 0.11, hz: 0.02}},
-  cold: {end: 0xbfe8ff, rise: -.08, puff: 1, wobble: {amp: 0.03, hz: 0.006}},
+  fire: {end: 0x3a1208, rise: .38, puff: 1.2, shape: {len: 2.1, thin: .55, spin: .25}, wobble: {amp: 0.11, hz: 0.02}},
+  cold: {end: 0xbfe8ff, rise: -.08, puff: 1, shape: {len: 2, thin: .4, spin: 1.1}, wobble: {amp: 0.03, hz: 0.006}},
   sleep: {end: 0x5a3a8a, rise: .06, puff: 1.1, wobble: {amp: 0.07, hz: 0.005}},
   death: {end: 0x2a0a3a, rise: .02, puff: .55, sparks: true, wobble: {amp: 0, hz: 0}},
   lightning: {end: 0x6a90ff, rise: 0, puff: .5, sparks: true, wobble: {amp: 0, hz: 0}},
   'poison gas': {end: 0x2f5a12, rise: .1, puff: 1.4, wobble: {amp: 0.12, hz: 0.007}},
-  lava: {end: 0x301008, rise: .15, puff: 1, wobble: {amp: 0.06, hz: 0.009}},
-  acid: {end: 0x4a6a08, rise: -.22, puff: .8, wobble: {amp: 0.05, hz: 0.014}},
+  lava: {end: 0x301008, rise: .15, puff: 1, shape: {len: 1.5, thin: .7, spin: .3}, wobble: {amp: 0.06, hz: 0.009}},
+  acid: {end: 0x4a6a08, rise: -.22, puff: .8, shape: {len: 1.6, thin: .6, spin: .4}, wobble: {amp: 0.05, hz: 0.014}},
 };
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
@@ -120,6 +122,7 @@ export function breathFrame(breath, t) {
     const y = MOUTH_Y + Math.sin(ph) * d + look.rise * u * u + lift;
     particles.push({x: breath.x + fx * along + px * (side + jit + sw), y: Math.max(.03, y), z: breath.z + fz * along + pz * (side + jit + sw),
       size: look.puff * (look.sparks ? .05 : .07 + .2 * u), u,
+      len: look.shape?.len ?? 1, thin: look.shape?.thin ?? 1, yaw: -Math.atan2(fz, fx) + (hash(i, 8) * 2 - 1) * (look.shape?.spin ?? 0),
       color: u < .25 ? mixHex(ray.core, ray.glow, u / .25) : mixHex(ray.glow, look.end, (u - .25) / .75),
       alpha: clamp01(age / 40) * Math.pow(1 - u, 1.5)});
   }
@@ -130,7 +133,7 @@ export function breathFrame(breath, t) {
     for (let j = 0; j < 2; j++) {
       const lead = .12 + .18 * j;
       particles.push({x: breath.x + fx * lead, y: MOUTH_Y + .03 * j, z: breath.z + fz * lead,
-        size: look.puff * (.2 + .1 * k) * (look.sparks ? .8 : 1), u: k, color: mixHex(0xffffff, ray.core, k), alpha: clamp01(1 - k) * (j ? .6 : 1)});
+        size: look.puff * (.2 + .1 * k) * (look.sparks ? .8 : 1), u: k, len: 1, thin: 1, yaw: 0, color: mixHex(0xffffff, ray.core, k), alpha: clamp01(1 - k) * (j ? .6 : 1)});
     }
   }
   const glow = t < breath.t0 ? 0 : t < breath.t1 ? clamp01((t - breath.t0) / 60) : clamp01(1 - (t - breath.t1) / 180);
@@ -159,7 +162,7 @@ export function createBreath(THREE, parent) {
   mesh.frustumCulled = false; mesh.renderOrder = 5; mesh.userData.part = 'breath'; mesh.count = 0;
   parent.add(mesh);
   const matrix = new THREE.Matrix4(), q = new THREE.Quaternion(), pos = new THREE.Vector3(), scale = new THREE.Vector3();
-  const color = new THREE.Color();
+  const color = new THREE.Color(), UP = new THREE.Vector3(0, 1, 0);
   const playing = [];
   let armed = 0;
 
@@ -190,7 +193,8 @@ export function createBreath(THREE, parent) {
       for (const s of f.particles) {
         if (n >= MAX_PARTICLES) break;
         pos.set(s.x - ox, s.y, s.z - oz);
-        matrix.compose(pos, q, scale.set(s.size, s.size, s.size));
+        q.setFromAxisAngle(UP, s.yaw);
+        matrix.compose(pos, q, scale.set(s.size * s.len, s.size * s.thin, s.size * s.thin));
         mesh.setMatrixAt(n, matrix);
         mesh.setColorAt(n, color.setHex(s.color).multiplyScalar(s.alpha));
         n++;

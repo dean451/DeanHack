@@ -132,3 +132,26 @@ test('the leading edge of the breath is ragged', () => {
   const reaches = late.particles.map(p => Math.hypot(p.x - b.x, p.z - b.z));
   assert.ok(Math.max(...reaches) - Math.min(...reaches) > .8);
 });
+
+test('fire streams as flame tongues and frost as shards; gas stays round', () => {
+  const stretch = zap => {
+    const [b] = breathsFromFx(beam(zap, 0, 0, 1, 0), null);
+    const ps = breathFrame(b, b.t0 + 300).particles.filter(p => p.u > .2);
+    assert.ok(ps.length > 5);
+    return ps;
+  };
+  for (const zap of ['fire', 'cold']) for (const p of stretch(zap)) {
+    assert.ok(p.len > 1.4 && p.thin < .7, zap);
+    assert.ok(p.size * p.len < .6, `${zap} puff too long`);
+    assert.ok(Number.isFinite(p.yaw));
+  }
+  assert.ok(stretch('cold').some(p => Math.abs(p.yaw) > .3), 'shards twist off the flow');
+  for (const p of stretch('poison gas')) assert.deepEqual([p.len, p.thin], [1, 1]);
+  const group = new THREE.Group(), br = createBreath(THREE, group);
+  br.add(breathsFromFx(beam('fire', 5, 5, 1, 0), null)[0]);
+  br.update(.3, null);
+  const m = new THREE.Matrix4(), sc = new THREE.Vector3();
+  br.mesh.getMatrixAt(0, m); sc.setFromMatrixScale(m);
+  assert.ok(sc.x > sc.y * 1.5, 'drawn elongated');
+  br.dispose();
+});
