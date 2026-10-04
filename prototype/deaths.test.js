@@ -84,3 +84,15 @@ test('fading an actor clones its materials, and restoring puts the shared ones b
   for (const [o, mat, , visible] of meshes) { assert.equal(o.material, mat); assert.equal(o.visible, visible); }
   assert.equal(actor.fadeSaved, null);
 });
+
+test('the topple falls faster as it goes over, rebounds a little off the floor and ends exactly down', () => {
+  const roll = u => deathPose('topple', u, [1, 0]).roll, end = roll(1);
+  // accelerating: the second half of the fall covers more angle than the first
+  const a = .15, b = .9, mid = (a + b) / 2;
+  assert.ok(roll(b) - roll(mid) > (roll(mid) - roll(a)) * 1.2, 'fastest at the landing');
+  // rebound: lifts back off the floor angle just after landing, then returns to it
+  assert.ok(roll(.95) < end - .03, 'rebounds');
+  assert.ok(roll(.95) > 1, 'but stays mostly down');
+  assert.equal(roll(1), roll(1.5));
+  for (let i = 0; i <= 100; i++) assert.ok(roll(i / 100) <= end + 1e-9 && roll(i / 100) >= 0, 'in bounds');
+});

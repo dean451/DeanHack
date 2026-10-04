@@ -107,11 +107,14 @@ export function deathPose(style, u, dir = null) {
       break;
     }
     default: {
-      // Stagger, then topple sideways away from the blow and sink a little.
-      const s = smooth(u / .25), f = smooth((u - .15) / .75);
+      // Stagger, then topple sideways away from the blow and sink a little. The fall speeds up
+      // as it goes over (the body is fastest as it lands), then rebounds a touch off the floor
+      // and settles back.
+      const s = smooth(u / .25), f = smooth((u - .15) / .75), drop = f * (.5 + .5 * f);
+      const rebound = .07 * Math.sin(Math.PI * clamp01((u - .9) / .1));
       push(.06 * s + .12 * f);
       p.pitch = -.2 * s * (1 - f);
-      p.roll = 1.45 * f;
+      p.roll = 1.45 * drop - rebound;
       p.dy = -.12 * f;
       p.head = -.4 * f;
       p.scale = 1 - .12 * f;
