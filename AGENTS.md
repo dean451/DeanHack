@@ -2,7 +2,7 @@
 
 Claude is the only agent working on DeanHack; Codex was retired on 2026-09-24. Any file in the repository may be edited, including `prototype/engine/bridge.c`, `prototype/engine/server.js` and gameplay code in `src/`.
 
-Agents work in the **Claude worktree**, a sibling folder named `deanhack-claude` next to the user's **play copy** (the folder named `deanhack`). Never work in the play copy. The exact locations on each machine are in the table in `CLAUDE.md`.
+Agents work in the **Claude worktree**, never in the user's **play copy** (the checkout on `master`). The exact locations on each machine are in the table in `CLAUDE.md`.
 
 Keep the **handoff log** (`deanhack-handoff.md` in the root of the play copy) up to date. Always use that copy, never the one inside another worktree. It is the running record the user and scheduled runs read:
 - Before starting, read the recent entries.

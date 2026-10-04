@@ -4,17 +4,19 @@ Read `AGENTS.md` first. It holds the project rules (handoff log, lighting consta
 
 ## Where things live
 
-| Role | Folder name | Branch | Who | Dev server |
-| --- | --- | --- | --- | --- |
-| Play copy | `deanhack` | `master` (or whatever the user reviews) | the user's play/review copy; runs the user's Live game | 5173 |
-| Claude worktree | `deanhack-claude` | `claude/*` | Claude | **5174** (`--strictPort`) |
+| Role | Branch | Who | Dev server |
+| --- | --- | --- | --- |
+| Play copy | `master` (or whatever the user reviews) | the user's play/review copy; runs the user's Live game | 5173 |
+| Claude worktree | `claude/*` | Claude | **5174** (`--strictPort`) |
 
-The two folders are siblings. Where they sit depends on the machine:
+Where they sit depends on the machine:
 
-| Machine | Parent folder |
-| --- | --- |
-| MacBook | `/Users/dpalm/Desktop/` |
-| Windows PC | `C:\Users\Owner\Desktop\` (the play copy folder is named `DeanHack`) |
+| Machine | Play copy | Claude worktree |
+| --- | --- | --- |
+| MacBook | `/Users/dpalm/Desktop/DeanHack/deanhack` | `/Users/dpalm/Desktop/DeanHack/worktrees/claude` |
+| Windows PC | `C:\Users\Owner\Desktop\DeanHack` | `C:\Users\Owner\Desktop\deanhack-claude` |
+
+On the MacBook, `/Users/dpalm/Desktop/DeanHack` is a plain folder, not a repo; its `README.md` maps the other worktrees (`worktrees/anim` for the animations routine, `worktrees/share`, `archive/`).
 
 - **Handoff log:** always read and append to `deanhack-handoff.md` in the root of the play copy, never the copy inside another worktree.
 - **Stay in this worktree.** Never edit, commit in, or run dev servers from another checkout. A `deanhack-codex` folder, if present, is a leftover from the retired Codex setup; leave it alone.
