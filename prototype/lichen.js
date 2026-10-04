@@ -15,8 +15,8 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // caps and beads). The geometry is built once and shared by every lichen.
 // Handles: body (the whole lichen), quirk 'fungus', like the old crust.
 
-const C={top:rgb('#8fb262'),deep:rgb('#5e7d3e'),pale:rgb('#d2dcb4'),speck:rgb('#2f3a22'),under:rgb('#2a2319'),underPale:rgb('#6a5d48'),
- cup:rgb('#b9c79a'),cupIn:rgb('#7e9064'),disc:rgb('#b8642a'),discRim:rgb('#e0d6b0'),scarlet:rgb('#d8261c'),bead:rgb('#d8f0b0')};
+const C={top:rgb('#6f7a45'),deep:rgb('#444d2b'),pale:rgb('#a9a584'),speck:rgb('#1f2416'),under:rgb('#241d15'),underPale:rgb('#554a38'),
+ cup:rgb('#8e9672'),cupIn:rgb('#4f5a3d'),disc:rgb('#8a4a22'),discRim:rgb('#a89a70'),scarlet:rgb('#8e1812'),bead:rgb('#a9b672')};
 
 const noise=(x,y,z,s)=>(Math.sin(x*4.1+s)*Math.sin(z*3.7-s*1.3)+Math.sin(y*5.3+x*2.2+s*2.1)*.6+Math.sin((x-z)*7.9+s*.7)*Math.sin(y*6.1)*.35)/1.95;
 const rand=seed=>{let s=seed>>>0||1;return ()=>((s=(s*1664525+1013904223)>>>0)/4294967296);};
