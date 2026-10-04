@@ -11,10 +11,10 @@ import {segment,chain} from './ant.js';
 // - Coat: filthy brown, darker down the spine and grizzled, a dirty pale belly; bald, mangy
 //   patches of grey-pink skin flecked with dark scabs, and an old pale scar raked across the
 //   right flank.
-// - Head: a long wedge skull to a pointed muzzle and a wet pink nose; the lip drawn back off
+// - Head: a long wedge skull to a pointed muzzle and a wet, bruised dark nose; the lip drawn back off
 //   dark gums over long yellow chisel incisors, top and bottom; small red eyes sunk under a
 //   heavy scowling brow; thin round ears, the left one torn; stiff whiskers fanning back.
-// - Legs: short forelegs with long pink fingers and dark hooked claws; heavy haunches over long,
+// - Legs: short forelegs with long dull grey-mauve fingers and dark hooked claws; heavy haunches over long,
 //   flat, five-toed hind feet.
 // - Tail: long and naked, ringed with scales, furred only at the root, curling round to one side
 //   along the floor; a kink and a scabbed nick partway down.
@@ -27,7 +27,7 @@ const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
 const smooth=v=>{const t=THREE.MathUtils.clamp(v,0,1);return t*t*(3-2*t);};
 const C={
  coat:rgb('#4e3c2c'),spine:rgb('#231a13'),belly:rgb('#7c6c58'),grizzle:rgb('#9a8a72'),
- skin:rgb('#8a6c66'),scab:rgb('#3e1610'),scar:rgb('#b49a8c'),pink:rgb('#b07a76'),
+ skin:rgb('#8a6c66'),scab:rgb('#3e1610'),scar:rgb('#b49a8c'),pink:rgb('#7a5650'),
  ear:rgb('#92605e'),gum:rgb('#3a1214'),tooth:rgb('#d49a3c'),toothRoot:rgb('#7a4a1a'),
  claw:rgb('#16110d'),nose:rgb('#b0706e'),nostril:rgb('#2a0e0e'),whisker:rgb('#c8bfae'),
  tail:rgb('#8c6e66'),tailDark:rgb('#5e4440'),eye:'#ff2a12',
@@ -159,7 +159,7 @@ function buildLeg(fore){
   segment(P,[0,0,0],[0,-.07,.012],.04,.026,paint,10);
   P.add(new THREE.SphereGeometry(.026,10,6),at(0,-.07,.012),paint);
   segment(P,[0,-.07,.012],[0,fy+.022,.03],.023,.016,C.pink,8);
-  // the hand: a pink palm with four long splayed fingers
+  // the hand: a dull, bruised palm with four long splayed fingers
   P.add(new THREE.SphereGeometry(1,10,6),at(0,fy+.012,.045,[0,0,0],[.022,.01,.026]),C.pink);
   for(const [a,l] of [[-.55,.034],[-.18,.044],[.18,.044],[.55,.034]])digit(P,[Math.sin(a)*.014,fy+.012,.058],[Math.sin(a)*.6,-.08,Math.cos(a)],l,.0055,C.pink);
  }else{
