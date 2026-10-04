@@ -107,7 +107,7 @@ function shrieker(K,P,A,r){
 }
 
 function violetFungus(K,P,A,r){
- const stem=rgb(K.stem),stemDark=rgb(K.stemDark),main=rgb(K.main),dark=rgb(K.dark),light=rgb(K.light),wart=rgb('#f4e8f6');
+ const stem=rgb(K.stem),stemDark=rgb(K.stemDark),main=rgb(K.main),dark=rgb(K.dark),light=rgb(K.light),wart=rgb('#b8ab8c');
  // stalk with a swollen foot
  P.add(lathe([[.1,0],[.115,.025],[.1,.06],[.075,.1],[.066,.18],[.062,.26],[.064,.3],[.07,.33]],24,(rr,y,a)=>[rr*(1+.05*noise(a*2,y*8,0,4)),y]),null,
   (x,y,z)=>mix(mix(stemDark,stem,y/.12+.1),mix(stem,dark,.25),Math.max(0,Math.cos(Math.atan2(x,z)*18))**4*.5));
@@ -131,7 +131,7 @@ function violetFungus(K,P,A,r){
   P.add(new THREE.IcosahedronGeometry(1,1),at(Math.sin(a)*rr,y,Math.cos(a)*rr,[0,a,0]).multiply(at(0,0,0,[-slope,0,0],[s,s*.5,s])),mix(wart,light,r()*.4));
  }
  // four grasping tendrils: out from under the cap, down to the floor and curling back up
- const ten=rgb('#7a3a88'),tenLight=rgb('#b070c0'),sucker=rgb('#f0a8d8');
+ const ten=rgb('#7a3a88'),tenLight=rgb('#b070c0'),sucker=rgb('#8a5c6a');
  for(let i=0;i<4;i++){
   const a=i*Math.PI/2+.4+(r()-.5)*.3,c=Math.cos(a),s=Math.sin(a),swing=(r()-.5)*.5,pt=(d,y,w=0)=>[Math.cos(a+w)*d,y,Math.sin(a+w)*d];
   const {geo,curve}=taperTube([pt(.12,.3),pt(.24,.27,swing*.2),pt(.33,.15,swing*.5),pt(.37,.03,swing*.8),pt(.43,.025,swing),pt(.46,.06,swing*1.2),pt(.42,.08,swing*1.4)],.026,.006,32,8);
