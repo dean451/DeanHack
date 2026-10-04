@@ -1134,7 +1134,7 @@ function leocrotta(o){
 }
 // Wumpuses (q): used to borrow the rothe, tinted cyan. A squat, round, shaggy beast too heavy for
 // a bat to lift, on four short, thick legs that end in the sucker feet of the old Hunt the Wumpus
-// game: each a broad pink pad with a raised rim and a dark cupped hollow. A huge round head sits low
+// game: each a broad bruised, mauve-grey pad with a raised rim and a dark cupped hollow. A huge round head sits low
 // on the body, split almost ear to ear by a grinning maw of blunt teeth, with small sunken yellow
 // eyes under a heavy brow, two stubby horns curling outward and small round ears. Coarse tufts of
 // darker fur ruff the back and flanks, and a short tail ends in a tuft.
@@ -1146,7 +1146,7 @@ function wumpus(o){
  const put=(parent,colour,geo,pos=[0,0,0],rot=[0,0,0],scl=[1,1,1])=>{
   if(!bins.has(parent))bins.set(parent,pieces());
   bins.get(parent).add(geo,m.clone().compose(new THREE.Vector3(...pos),rot.isQuaternion?rot:new THREE.Quaternion().setFromEuler(e.set(...rot)),new THREE.Vector3(...scl)),colour);};
- const hide=rgb(o.hide),dark=rgb(o.fur),belly=rgb(o.belly),pad=rgb('#c98a90'),cup=rgb('#5a2a34'),mouth=rgb('#3a1418'),tooth=rgb('#ece2c4'),horn=rgb('#d6c9a4');
+ const hide=rgb(o.hide),dark=rgb(o.fur),belly=rgb(o.belly),pad=rgb('#6e4a4c'),cup=rgb('#2e1418'),mouth=rgb('#3a1418'),tooth=rgb('#cfc29c'),horn=rgb('#a89c78');
  const S=(r,w=16,h=12)=>new THREE.SphereGeometry(r,w,h),legH=.17,y=legH+.2;
  // hide darkens toward the underside
  const shaded=(lo,hi)=>(x,py)=>mix(mix(hide,dark,.55),hide,(py-lo)/(hi-lo));
@@ -1185,7 +1185,7 @@ function wumpus(o){
  put(jaw,hide,S(.11,16,10),[0,-.03,.04],[0,0,0],[1.2,.45,.95]);
  put(jaw,mouth,S(.1,14,8),[0,-.005,.05],[0,0,0],[1.1,.18,.85]);
  for(let k=0;k<9;k++){const a=Math.PI*(.15+.7*k/8);put(jaw,tooth,new THREE.ConeGeometry(.012,.03,5),[Math.cos(a)*.11,.01,.04+Math.sin(a)*.09]);}
- // four short, thick legs with a shaggy cuff, each on a broad sucker pad: pink rim, dark cupped hollow
+ // four short, thick legs with a shaggy cuff, each on a broad sucker pad: bruised rim, dark cupped hollow
  for(const side of [-1,1])for(const z of [.13,-.15]){
   const leg=new THREE.Group();leg.position.set(side*.16,legH,z);body.add(leg);legs.push(leg);
   put(leg,hide,S(.08,12,10),[0,.03,0],[0,0,0],[1,1.3,1.1]);
