@@ -121,6 +121,8 @@ export function suckShape(a, t) {
       pulse = ((t - close) / 380) % 1;
       shake = Math.sin((t - close) * .045) * Math.min(1, (t - close) / 200) * Math.min(1, (letGo - t) / 200);
     }
+    // One last gulp runs down the tentacles as they let go, the flayer savouring the swallow.
+    if (outcome === 'eaten' && t >= letGo && t < letGo + 280) pulse = (t - letGo) / 280;
   }
   const beads = [];
   const H = {x: hx, y: HEAD_Y + slide * .28, z: hz}, R = HEAD_R * (1 + slide * .7);
