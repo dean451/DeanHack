@@ -13,6 +13,14 @@ test('scorpion attack poses are finite and start and end at rest', () => {
   for (const v of Object.values(scorpionAttackPose('claw', NaN))) assert(Number.isFinite(v));
 });
 
+test('a stinging scorpion pumps its tail once more after a hit, but not after a miss', () => {
+  const tail = (result, u) => scorpionAttackPose('sting', u, result).tail;
+  assert(tail('hit', .54) < tail('hit', .44) - .1, 'eases back');
+  assert(tail('hit', .64) > tail('hit', .54) + .1, 'drives in again');
+  for (let u = .46; u < 1; u += .02) assert(tail('miss', u + .02) <= tail('miss', u) + 1e-9, `miss only withdraws at ${u}`);
+  for (let i = 0; i <= 100; i++) assert(Math.abs(tail('hit', i / 100)) < .8, 'stays in bounds');
+});
+
 // Bounds in the scorpion's own frame (after its lunge and turn), so the numbers read as its left/right.
 const box = (o, a) => {
   a.g.updateMatrixWorld(true);

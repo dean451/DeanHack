@@ -6,7 +6,8 @@
 //   claw:  both pincers lift and spread wide, then snap in and shut on the target. On a hit they
 //          stay clamped a moment; a miss snaps a little further, onto nothing.
 //   sting: the tail cocks back, then jabs forward and down over the head at the strike, while
-//          the pincers rise and part in a threat.
+//          the pincers rise and part in a threat. On a hit the tail then pumps once more, easing
+//          back and driving in again as if squeezing the last of the venom in, before it lets go.
 //   other: the pincers rise a little.
 //
 // The pose is offsets from rest for the handles scorpion.js gives: `pincer` (the claws' spread
@@ -36,7 +37,7 @@ const POSES = {
     miss: [[0, 0, 0, 0, 0], [.26, .55, .35, -.08, -.08], [.44, -.28, .06, .06, .08], [.6, -.1, .1, .02, .03], [1, 0, 0, 0, 0]],
   },
   sting: {
-    hit: [[0, 0, 0, 0, 0], [.26, .2, .22, -.3, -.06], [.44, .25, .18, .62, .1], [.6, .22, .16, .5, .08], [1, 0, 0, 0, 0]],
+    hit: [[0, 0, 0, 0, 0], [.26, .2, .22, -.3, -.06], [.44, .25, .18, .62, .1], [.54, .24, .17, .46, .08], [.64, .22, .16, .64, .09], [.76, .14, .1, .36, .05], [1, 0, 0, 0, 0]],
     miss: [[0, 0, 0, 0, 0], [.26, .2, .22, -.3, -.06], [.46, .25, .18, .75, .12], [.62, .18, .14, .4, .06], [1, 0, 0, 0, 0]],
   },
   other: {
