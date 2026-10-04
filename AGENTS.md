@@ -38,7 +38,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 **Animations**
 
 - **Altars:** add the missing animations: sacrificing a corpse, the altar glowing in the colour of your alignment, a four-leaf clover when your luck goes up, and being gifted an artifact.
-- **Engulf:** remove the zoom effect on being engulfed entirely. It is broken.
 - **Status effects:** it must be VERY CLEAR when the hero is blind, confused, stunned, sick, deathly ill, on fire, frozen, grabbed or otherwise incapacitated. Right now a stunned hero whose movement doesn't work has no idea why. Give each state a distinct, unmistakable visual and an on-screen label.
 
 **UI and controls**

@@ -73,7 +73,7 @@ test('the chamber closes in, breathes, and bursts open back to nothing', () => {
     minR = Math.min(minR, f.radius); maxR = Math.max(maxR, f.radius); maxFov = Math.max(maxFov, f.camera.fovAdd);
   }
   assert.ok(minR > CHAMBER_R * .97 && maxR < CHAMBER_R * 1.03 && maxR - minR > .05);
-  assert.ok(maxFov > 14 && maxFov < 22);
+  assert.equal(maxFov, 0);
   e.outAt = 6000;
   const mid = engulfFrame(e, 6000 + EXIT_MS / 2);
   assert.ok(mid.k > 0 && mid.k < 1 && mid.radius > CHAMBER_R * 1.3);
@@ -84,33 +84,22 @@ test('the chamber closes in, breathes, and bursts open back to nothing', () => {
   for (let t = 200; t < 200 + EXIT_MS; t += 10) assert.ok(engulfFrame(quick, t).k <= before + 1e-9);
 });
 
-test('the camera goes inside and comes back out exactly', () => {
+test('being engulfed never zooms the camera or widens the lens', () => {
   const camera = new THREE.PerspectiveCamera(36, 1.5, .1, 100);
   const controls = {target: new THREE.Vector3(2, 0, 3), minDistance: 10};
   camera.position.set(11, 10.7, 16.1);
-  const rest = camera.position.clone(), restDist = rest.distanceTo(controls.target);
+  const rest = camera.position.clone();
   const e = {look: engulfLook('air elemental'), at: 0};
-  let deepest = Infinity;
   for (let t = 0; t <= 2500; t += 16) {
     if (t >= 1800 && !e.outAt) e.outAt = t;
     const f = engulfFrame(e, t);
-    // The follow code moves target and camera together each frame; that must survive.
-    controls.target.x += .001; camera.position.x += .001; rest.x += .001;
-    const d = engulfCamera(camera, controls, f?.camera);
-    assert.ok([camera.position.x, camera.position.y, camera.position.z, camera.fov].every(Number.isFinite));
-    if (f?.k === 1) {
-      assert.ok(Math.abs(camera.position.distanceTo(controls.target) - INSIDE_DIST) < 1e-6);
-      assert.ok(controls.minDistance < INSIDE_DIST && camera.fov > 36 + 12);
-      deepest = Math.min(deepest, d);
-    }
+    if (f) assert.deepEqual(f.camera, {inside: 0, fovAdd: 0});
+    engulfCamera(camera, controls, f?.camera);
+    assert.ok(camera.position.distanceTo(rest) < 1e-9);
+    assert.ok(Math.abs(camera.fov - 36) < 1e-9);
+    assert.equal(controls.minDistance, 10);
   }
-  assert.ok(Math.abs(deepest - INSIDE_DIST) < 1e-6);
-  assert.ok(camera.position.distanceTo(rest) < 1e-6);
-  assert.ok(Math.abs(camera.position.distanceTo(controls.target) - restDist) < 1e-6);
-  assert.ok(Math.abs(camera.fov - 36) < 1e-9);
-  assert.equal(controls.minDistance, 10);
-  assert.equal(camera.userData.engulfCam, null);
-  // Dropping it mid-way restores the lens and the controls but leaves the position to the caller.
+  // A leftover view from an older frame is still undone cleanly.
   engulfCamera(camera, controls, {inside: 1, fovAdd: 30});
   dropEngulfCamera(camera, controls);
   assert.ok(Math.abs(camera.fov - 36) < 1e-9);
@@ -127,7 +116,7 @@ test('createEngulf follows the frame flag and clears up', () => {
   eg.frame(frame(6, 5, {name: 'ochre jelly'}));
   let r;
   for (let i = 0; i < 60; i++) r = eg.update(.016, origin);
-  assert.ok(r.engulfed && r.inside === 1 && r.motes > 10);
+  assert.ok(r.engulfed && r.inside === 0 && r.motes > 10);
   const chamber = group.children.find(o => o.userData.part === 'engulf-chamber');
   assert.ok(chamber.visible);
   assert.ok(Math.abs(chamber.position.x - 2) < 1e-9 && Math.abs(chamber.position.z - 1) < 1e-9);
@@ -135,7 +124,7 @@ test('createEngulf follows the frame flag and clears up', () => {
   // Hallucination blanks the name mid-way: the look changes, the chamber stays shut.
   eg.frame(frame(6, 5, {name: null}));
   r = eg.update(.016, origin);
-  assert.equal(r.inside, 1);
+  assert.equal(r.inside, 0);
   assert.equal(eg.state.look.name, null);
   // Expelled: it opens and goes away.
   eg.frame(frame(7, 5));
@@ -208,15 +197,4 @@ test('createEngulf hands the hero pose out only while the chamber is there', () 
   for (let i = 0; i < 60; i++) r = en.update(.016, {x: 0, z: 0});
   assert.equal(r.hero, null);
   en.dispose();
-});
-
-test('the camera sits further back inside the toned-down chamber but still inside it', () => {
-  assert.ok(CALM > .4 && CALM < .7 && INSIDE_DIST > 1.15);
-  // The narrowest the walls get (a gullet's ribs and wave at their deepest, the breath drawn in).
-  const narrowest = CHAMBER_R * (1 - CALM * .04) * (1 - CALM * .18);
-  // Looking down at 30..70 degrees from the default orbit, the camera stays within the walls.
-  for (let deg = 30; deg <= 70; deg += 5) {
-    const a = deg * Math.PI / 180, h = Math.cos(a) * INSIDE_DIST, y = Math.sin(a) * INSIDE_DIST;
-    assert.ok(Math.hypot(h, y - CHAMBER_Y) < narrowest * .95, `${deg} degrees`);
-  }
 });
