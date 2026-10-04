@@ -112,7 +112,8 @@ export function moteAt(look, i, t) {
 
 // The chamber at time t (ms). e is {look, at, outAt?}. Returns null before it starts and once it
 // has burst open, else {k, radius, opacity, breathe, camera:{inside, fovAdd}}: k is how closed
-// the chamber is (0..1), radius its size (tiles), camera.inside how far the view has gone in.
+// the chamber is (0..1), radius its size (tiles). camera is always {inside: 0, fovAdd: 0}: being
+// engulfed never moves the camera or the lens.
 export function engulfFrame(e, t) {
   if (!e || !Number.isFinite(e.at) || !(t >= e.at)) return null;
   const sec = t / 1000;
@@ -130,7 +131,8 @@ export function engulfFrame(e, t) {
   const breathe = Math.sin(sec * e.look.pulse * Math.PI * 2);
   radius *= 1 + CALM * .04 * breathe * k;
   return {k, radius, opacity: e.look.opacity * k, breathe,
-    camera: {inside: k, fovAdd: k * (FOV_ADD + FOV_BREATHE * breathe)}};
+    // The camera no longer zooms in or widens its lens when engulfed (it was broken on screen).
+    camera: {inside: 0, fovAdd: 0}};
 }
 
 // The hero's own motion at time t (ms), or null when there's none. Swallowed, the hero is

@@ -253,7 +253,24 @@ export function applyFade(actor, f) {
   }
 }
 
+// The disposition ring under a monster is a marker, not part of the body: the moment it dies the
+// ring vanishes instead of toppling over with the corpse. restoreFade brings it back.
+export function hideDeathRing(actor) {
+  const g = actor?.g;
+  if (!g || actor.ringHidden) return;
+  actor.ringHidden = [];
+  g.traverse(o => {
+    if (!o.userData?.ring) return;
+    actor.ringHidden.push({o, visible: o.visible});
+    o.visible = false;
+  });
+}
+
 export function restoreFade(actor) {
+  if (actor?.ringHidden) {
+    for (const s of actor.ringHidden) s.o.visible = s.visible;
+    actor.ringHidden = null;
+  }
   if (!actor?.fadeSaved) return;
   for (const s of actor.fadeSaved) { s.o.material.dispose(); s.o.material = s.mat; s.o.visible = s.visible; }
   actor.fadeSaved = null;

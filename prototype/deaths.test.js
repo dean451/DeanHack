@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {deathStyle, deathPose, DEATH_STYLES, DEATH_TIME, DEATH_BURST_U, createDeathBurst, applyFade, restoreFade} from './deaths.js';
+import {deathStyle, deathPose, DEATH_STYLES, DEATH_TIME, DEATH_BURST_U, createDeathBurst, applyFade, restoreFade, hideDeathRing} from './deaths.js';
 import {createCreature} from './creatures.js';
 
 test('death styles come from the seen species name only', () => {
@@ -103,4 +103,17 @@ test('the topple falls faster as it goes over, rebounds a little off the floor a
   assert.ok(roll(.95) > 1, 'but stays mostly down');
   assert.equal(roll(1), roll(1.5));
   for (let i = 0; i <= 100; i++) assert.ok(roll(i / 100) <= end + 1e-9 && roll(i / 100) >= 0, 'in bounds');
+});
+
+test('a dying monster loses its disposition ring at once, and restoreFade brings it back', () => {
+  const g = new THREE.Group(), ring = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1)), body = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1));
+  ring.userData.ring = true;
+  g.add(ring, body);
+  const actor = {g};
+  hideDeathRing(actor);
+  hideDeathRing(actor);
+  assert.equal(ring.visible, false);
+  assert.equal(body.visible, true);
+  restoreFade(actor);
+  assert.equal(ring.visible, true);
 });
