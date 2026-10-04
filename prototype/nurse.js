@@ -10,7 +10,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // mesh with a shared material: 7 draws. The geometry is built once and shared.
 // Handles: legs, arms, arm (the syringe arm), weaponSocket, head, body, like the priest rig.
 
-const SKIN=rgb('#ecc6a8'),SKIN_SHADE=rgb('#c89c80'),LIPS=rgb('#b8646a'),EYE=rgb('#1a1410');
+const SKIN=rgb('#b9a283'),SKIN_SHADE=rgb('#8c7660'),LIPS=rgb('#6e4a4a'),EYE=rgb('#1a1410');
 const DRESS=rgb('#a9c2dc'),DRESS_DARK=mix(DRESS,[0,0,0],.35),STRIPE=rgb('#eef2f6');
 const WHITE=rgb('#f2efe8'),WHITE_SHADE=rgb('#c9c4ba'),RED=rgb('#c8202a');
 const HAIR=rgb('#5a3a22'),HAIR_DARK=rgb('#33200f'),SILVER=rgb('#c8ccd0'),SILVER_DARK=rgb('#6a7078');
@@ -58,7 +58,7 @@ function buildBody(){
 
 function buildHead(){
  const P=pieces();
- // a softer face: rounded chin, small nose, rosy lips, dark eyes under fine brows
+ // a sallow, gaunt face: pale cracked lips, bruised hollows under the cheeks, dark eyes under fine brows
  P.add(new THREE.SphereGeometry(.098,18,14),at(0,.1,0,[0,0,0],[.88,1.04,.94]),SKIN);
  P.add(new THREE.SphereGeometry(.052,10,8),at(0,.045,.035),SKIN);
  P.add(new THREE.ConeGeometry(.012,.034,5),at(0,.09,.097,[Math.PI/2-.35,0,0]),SKIN_SHADE);
