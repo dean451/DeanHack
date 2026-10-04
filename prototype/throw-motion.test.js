@@ -54,6 +54,14 @@ test('throw poses rest at both ends and release on the forward whip', () => {
   assert.ok(throwPose('shoot', RELEASE_U + .05, 'bow').arm > loose.arm);
 });
 
+test('the hurl is fastest at the release instead of stopping there', () => {
+  const speed = (f, u) => Math.abs(f(u + .005) - f(u - .005));
+  for (const f of [u => throwPose('hurl', u).arm, u => throwPose('hurl', u).swing.elbow]) {
+    assert.ok(speed(f, RELEASE_U) > speed(f, RELEASE_U - .06) && speed(f, RELEASE_U) > speed(f, RELEASE_U + .1));
+  }
+  assert.ok(speed(u => throwPose('hurl', u).arm, RELEASE_U) > 0);
+});
+
 test('queueThrows turns the thrower, delays the flight to the release and returns to rest', () => {
   const hero = rig();
   const tl = throwTo(6, DAGGER);
