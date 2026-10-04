@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue} from './actions.js';
-import {updateCockatriceHiss, hisses, hissWeight, hissLength, snapCurve, moteAt, aimAt, RISE_S, HISS_S, YAW_MAX, PITCH_MAX, WING_LIFT, SHIVER, IDLE_GLOW, LOOKS} from './cockatrice-hiss.js';
+import {updateCockatriceHiss, hisses, hissWeight, hissLength, snapCurve, aftershake, FLICK_AMP, moteAt, aimAt, RISE_S, HISS_S, YAW_MAX, PITCH_MAX, WING_LIFT, SHIVER, IDLE_GLOW, LOOKS} from './cockatrice-hiss.js';
 
 const C = 'c'.charCodeAt(0);
 const bird = (name = 'cockatrice') => { const a = createCreature({name, symbol: C, color: 3}); a.actions = createActionQueue(); a.species = name; return a; };
@@ -78,4 +78,15 @@ test('sixty seconds of each: finite, bounded, hisses, and death settles it exact
     end.forEach((v, k) => assert(Math.abs(v - rest[k]) < 1e-9, `${name} part ${k} back at rest: ${v} vs ${rest[k]}`));
     assert(!a.hissing.layer.points.visible, `${name} shimmer gone in death`);
   }
+});
+
+test('the fold-back flicks the head side to side, from and to nothing', () => {
+  assert.equal(aftershake(0), 0); assert.equal(aftershake(RISE_S + HISS_S), 0);
+  assert.equal(aftershake(hissLength()), 0); assert.equal(aftershake(NaN), 0);
+  let lo = 0, hi = 0;
+  for (let i = 0; i <= 500; i++) {
+    const v = aftershake(RISE_S + HISS_S + (hissLength() - RISE_S - HISS_S) * i / 500);
+    assert(Math.abs(v) <= FLICK_AMP + 1e-12); lo = Math.min(lo, v); hi = Math.max(hi, v);
+  }
+  assert(lo < -FLICK_AMP * .4 && hi > FLICK_AMP * .4, 'flicks both ways');
 });
