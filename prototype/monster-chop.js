@@ -74,7 +74,13 @@ export const thrusts = actor => weaponGrip(actor) === 'upright';
 
 export function chopPose(u, result = 'hit') {
   u = Number.isFinite(u) ? clamp01(u) : 0;
-  const [, arm, grip] = keyed([...WINDUP, ...(result === 'hit' ? HIT : MISS)], u);
+  let [, arm, grip] = keyed([...WINDUP, ...(result === 'hit' ? HIT : MISS)], u);
+  // A miss meets no resistance, so the blade overswings and the arm wobbles twice as the attacker
+  // fights to stop it, a sheepish little stagger before it recovers.
+  if (result !== 'hit' && u > MISS[0][0]) {
+    const w = clamp01((u - MISS[0][0]) / (1 - MISS[0][0]));
+    arm -= .2 * Math.sin(w * Math.PI * 5) * Math.sin(w * Math.PI);
+  }
   // The edge turns down as the weapon comes up, and back once the blow is spent.
   const socket = -1.1 * (u < .6 ? smooth(u / .25) : 1 - smooth((u - .6) / .4));
   return {arm, grip, socket, wrist: 0};

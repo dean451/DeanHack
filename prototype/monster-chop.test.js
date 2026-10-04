@@ -16,6 +16,14 @@ test('the chop is finite, starts and ends at rest, and strikes when the generic 
   assert(chopPose(.3).arm < -2.3 && chopPose(CHOP_STRIKE_U).arm > -.9);
 });
 
+test('a missed chop overswings and wobbles the arm, a hit does not', () => {
+  const reversals = result => { let n = 0, prev = null, dir = 0;
+    for (let i = 0; i <= 400; i++) { const a = chopPose(CHOP_STRIKE_U + (1 - CHOP_STRIKE_U) * i / 400, result).arm;
+      if (prev !== null && Math.abs(a - prev) > 1e-9) { const d = Math.sign(a - prev); if (dir && d !== dir) n++; dir = d; } prev = a; } return n; };
+  assert(reversals('miss') >= reversals('hit') + 2, 'the miss wobbles');
+  for (let i = 0; i <= 100; i++) assert(Math.abs(chopPose(i / 100, 'miss').arm) < 2.6);
+});
+
 // The weapon's far end (the vertex furthest from the socket), in the attacker's own frame.
 function tipOf(a) {
   let far = null, best = -1;
