@@ -5,6 +5,7 @@
 // his shoulder. He hauls it up again and plants it for the next stroke, two or three strokes in all, and
 // then lets the oar sink back upright at his side. The head holds its stare on the way (it pitches back
 // against the lean), so the burning eyes keep watching while the body labours.
+// Each push ends with the butt snagging in the muck: the arm judders and lets go.
 // The strokes are slow and weary, following the sinister direction. Walking, an action or death fades it
 // out within ~0.1 s.
 //
@@ -24,6 +25,9 @@ export const STARE = .8;
 // How far (model units, socket space) the oar slides up through the fist on each haul, and the extra
 // hunch (rad) at the heart of each push.
 export const HAUL = .09, HEAVE = .04;
+// The butt snags in the riverbed at the end of each push: the oar arm judders by this much (rad) for
+// 1.5 cycles over the last SNAG_SPAN share of the push, steady again at the very end.
+export const SNAG = .06, SNAG_SPAN = .2;
 // The oar's built-in tilt inside the socket (charon.js buildOar), so the haul runs along its axis.
 const TILT_X = .12, TILT_Z = -.06;
 // Seconds: the first haul and plant, each push, each haul back to the plant, the ease back to rest.
@@ -53,7 +57,7 @@ export function strokePoseAt(time, plan, f = 1) {
   else if (time >= T - EASE) { const k = (time - (T - EASE)) / EASE; lerp(PUSH, null, smooth(k), p); p.haul = .5 * Math.sin(Math.PI * k); }
   else {
     const u = time - ENTER, cycle = PUSH_T + RETURN, c = u % cycle;
-    if (c < PUSH_T) { const k = c / PUSH_T; lerp(PLANT, PUSH, smooth(k), p); p.bx += HEAVE * Math.sin(Math.PI * k); }
+    if (c < PUSH_T) { const k = c / PUSH_T; lerp(PLANT, PUSH, smooth(k), p); p.bx += HEAVE * Math.sin(Math.PI * k); p.rx += SNAG * Math.sin(3 * Math.PI * clamp01((k - 1 + SNAG_SPAN) / SNAG_SPAN)); }
     else { const k = (c - PUSH_T) / RETURN; lerp(PUSH, PLANT, smooth(k), p); p.haul = Math.sin(Math.PI * k); }
   }
   // the haul runs along the oar's axis in the arm's frame (the socket's tilt plus the oar's own)
