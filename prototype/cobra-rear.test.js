@@ -27,6 +27,10 @@ test('helpers stay in bounds and come back to rest', () => {
   for (const p of [C.strikePose(0), C.strikePose(1), C.spitPose(0), C.spitPose(1)]) assert.deepEqual(p, {dy: 0, dz: 0, pitch: 0});
   // the strike draws back, then reaches forward and down
   assert.ok(C.strikePose(.25).dz < -.05 && C.strikePose(.48).dz > .25 && C.strikePose(.48).dy < -.2);
+  // the sour head shake on the way back up: pitch swings both ways around the plain recovery, and is gone by the end
+  const sw = []; for (let u = .6; u <= 1; u += .005) sw.push(C.strikePose(u).pitch - .55 * (1 - Math.min(1, Math.max(0, (u - .55) / .45)) ** 2 * (3 - 2 * Math.min(1, Math.max(0, (u - .55) / .45)))));
+  assert.ok(Math.max(...sw) > .04 && Math.min(...sw) < -.04, 'shakes its head');
+  assert.ok(Math.abs(C.strikePose(.999).pitch) < .01);
   assert.ok(C.spitPose(.3).dz < -.03 && C.spitPose(.47).dz > .08);
 });
 
