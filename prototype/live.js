@@ -12,7 +12,7 @@ import {createThrone} from './throne.js';
 import {createSink} from './sink.js';
 import {createGrave} from './grave.js';
 import {createTrap,trapKind} from './trap.js';
-import {createTerrainFeature,featureKind,AXIS_FEATURES,bridgeYaw} from './terrain-feature.js';
+import {createTerrainFeature,featureKind,AXIS_FEATURES,bridgeYaw,groundOf} from './terrain-feature.js';
 import {createTree} from './tree.js';
 import {createDeadTree,deadTreeShown} from './dead-tree.js';
 import {createBoulder,BOULDER_SEED} from './boulder.js';
@@ -308,8 +308,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    const seen=new Set(),seenActors=new Set(),seenWells=new Set();
    for(const cell of frame.cells){const id=`${cell.x},${cell.z}`,x=cell.x-origin.x,z=cell.z-origin.z;
      if(cell.terrain!=='unknown'){
-       seen.add(id);let tile=tiles.get(id);if(tile&&tile.userData.type!==tileKind(cell)){release(tile);tiles.delete(id);tile=null;}
-       if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=tileKind(cell);const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);tile.userData.slab=slab;floorKit.dress(slab,tile,cell.x,cell.z,cell.terrain);const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
+       seen.add(id);let tile=tiles.get(id);if(tile&&(tile.userData.type!==tileKind(cell)||tile.userData.ground!==groundOf(cell))){release(tile);tiles.delete(id);tile=null;}
+       if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=tileKind(cell);tile.userData.ground=groundOf(cell);const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);tile.userData.slab=slab;floorKit.dress(slab,tile,cell.x,cell.z,groundOf(cell));const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:0x101a35,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
          if(cell.terrain==='altar')tile.add(createAltar());
          if(cell.terrain==='throne')tile.add(createThrone());
          if(cell.terrain==='sink')tile.add(createSink());
@@ -320,7 +320,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
           if(hasTorch(cell.x,cell.z)){const sconce=createTorchSconce(cell.x*43+cell.z*71);tile.add(sconce);const fire=createFire(cell.x+cell.z);fire.position.copy(sconce.userData.flame);tile.add(fire);const halo=new THREE.Sprite(torchHaloMaterial);halo.position.copy(sconce.userData.flame).setY(1.12);halo.scale.setScalar(.9);tile.add(halo);tile.userData.torch={phase:(cell.x*3.7+cell.z*5.3)%(Math.PI*2)};}
          }
          if(['door','broken-door'].includes(tileKind(cell))){const doorGroup=(tileKind(cell)==='door'?createDoor:createBrokenDoor)(cell.x*61+cell.z*37);tile.add(doorGroup);tile.userData.door=doorGroup;}
-         if(['water','lava'].includes(cell.terrain)){slab.visible=false;const liquid=createLiquid(cell.terrain,cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
+         if(['water','lava'].includes(groundOf(cell))){slab.visible=false;const liquid=createLiquid(groundOf(cell),cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
          group.add(tile);tiles.set(id,tile);
        }if(cell.terrain==='feature')dressFeature(tile,cell);if(cell.terrain==='up'||cell.terrain==='down')dressStairs(tile,cell);if(cell.terrain==='tree')dressTree(tile,cell);syncWard(tile,cell);tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
        if(tile.userData.axisFeature){

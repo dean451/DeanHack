@@ -353,6 +353,12 @@ static void frame(void) {
         mapglyph(g,&ch,&col,&special,x,y,0);
         terrain_glyph = glyph_is_cmap(g) ? g : under_glyph(x,y,b);
         printf("{\"x\":%d,\"z\":%d,\"glyph\":%d,\"symbol\":%d,\"color\":%d,\"visible\":%s,\"remembered\":%s,\"terrain\":",x,y,g,ch,col,cansee(x,y)?"true":"false",levl[x][y].seenv?"true":"false");quoted(terrain(terrain_glyph));
+        /* A poison cloud takes the cell's own glyph, so it would read as plain floor even over
+           lava or water. The background glyph still knows what lies beneath, so pass it along. */
+        if(glyph_is_cmap(g)&&glyph_to_cmap(g)==S_poisoncloud&&b>=0&&glyph_is_cmap(b)){
+            const char *under=terrain(b);
+            if(!strcmp(under,"floor")||!strcmp(under,"water")||!strcmp(under,"lava")){printf(",\"under\":");quoted(under);}
+        }
         /* Anonymous remembered presence, not physical invisibility of a
            monster legitimately perceived through see-invisible/telepathy. */
         if(glyph_is_cmap(terrain_glyph)&&(glyph_to_cmap(terrain_glyph)==S_vodoor||glyph_to_cmap(terrain_glyph)==S_hodoor))printf(",\"door\":\"open\"");
@@ -442,10 +448,26 @@ static volatile sig_atomic_t signalled;
 static void note_signal(int sig UNUSED){signalled=1;}
 static void catch_signals(void){struct sigaction sa;memset(&sa,0,sizeof sa);sa.sa_handler=note_signal;sigemptyset(&sa.sa_mask);
     sigaction(SIGINT,&sa,0);sigaction(SIGHUP,&sa,0);sigaction(SIGTERM,&sa,0);}
+/* Autodig is on by default here (server.js puts it in NETHACKOPTIONS), but a restore reads the
+   saved flags over the environment, so a character saved before that default would keep it off.
+   Switch it on once per runtime for such a character, marked by a file in HOME, and after that
+   leave the player's own choice (O) alone. */
+static void default_autodig(void) {
+    static boolean done=FALSE;
+    const char *home;char path[BUFSZ];FILE *f;
+    if(done)return;
+    done=TRUE;
+    if(!(home=getenv("HOME")))return;
+    snprintf(path,sizeof path,"%s/.autodig-default",home);
+    if((f=fopen(path,"r"))){fclose(f);return;}
+    flags.autodig=TRUE;
+    if((f=fopen(path,"w"))){fputs("1\n",f);fclose(f);}
+}
 /* Input is one decimal keycode or a UTF-8 line, only after a request. */
 static void read_request(const char *kind,const char *prompt,char *buf,int size) {
     /* Before a level exists (getlock's "Destroy old game?" comes before the dungeon is set up)
        there is no map to describe, so send the prompt alone. */
+    if(u.uz.dlevel)default_autodig();
     fx_flush();if(u.uz.dlevel)frame();printf("{\"type\":\"request\",\"id\":%ld,\"kind\":",++request_id);quoted(kind);printf(",\"prompt\":");quoted(prompt);puts("}");fflush(stdout);
     catch_signals();
     if(signalled||!fgets(buf,size,stdin)) { hangup(0);exit(0); }

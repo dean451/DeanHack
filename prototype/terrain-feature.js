@@ -21,6 +21,10 @@ export function featureKind(symbol,color){
  return null;
 }
 
+// A poison cloud takes the cell's own glyph, so the bridge adds `under` (floor, water or
+// lava) to say what it floats over. The ground a cell is drawn on is that, not its terrain.
+export function groundOf(cell){return cell.under||cell.terrain;}
+
 // Drawbridges are built with the moat running along x, the gatehouse toward -z and the
 // moat toward +z; live.js turns them with bridgeYaw.
 export const AXIS_FEATURES=new Set(['bridge-down','bridge-up']);
