@@ -1,13 +1,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {tailSway, FLAYER_SWING, FLAYER_SWING2} from './tail-sway.js';
+import {tailSway, dogFreeze, DOG_PERIOD, DOG_HOLD, DOG_STILL, FLAYER_SWING, FLAYER_SWING2} from './tail-sway.js';
 
 const actor = (extra = {}) => ({g: {position: {x: 0, z: 0}}, ...extra});
 
 test('other tails keep their old per-quirk sway', () => {
   const old = (q, t) => Math.sin(t * (q === 'dog' ? 7 : q === 'turtle' ? 1.1 : q === 'unicorn' ? 2.6 : q === 'nymph' ? 1.4 : 3)) * (q === 'dog' ? .34 : q === 'turtle' ? .06 : q === 'unicorn' ? .16 : q === 'nymph' ? .07 : .24);
-  for (const quirk of ['dog', 'turtle', 'unicorn', 'nymph', 'idle', 'human', undefined])
+  for (const quirk of ['turtle', 'unicorn', 'nymph', 'idle', 'human', undefined])
     for (let t = 0; t < 10; t += .37) assert.equal(tailSway(actor({quirk, species: 'jackal'}), t), old(quirk, t));
+});
+
+test('a dog\'s wag cuts out and holds the tail stiff now and then, then resumes, within its old reach', () => {
+  const a = actor({quirk: 'dog', species: 'jackal'});
+  let frozen = 0, maxAbs = 0, maxStep = 0, prev = tailSway(a, 0);
+  for (let t = 1 / 60; t < DOG_PERIOD * 4; t += 1 / 60) {
+    const v = tailSway(a, t), g = dogFreeze(t, 0);
+    assert.ok(Number.isFinite(v) && g >= DOG_STILL - 1e-9 && g <= 1 + 1e-9);
+    if (g < .2) frozen += 1 / 60;
+    maxAbs = Math.max(maxAbs, Math.abs(v)); maxStep = Math.max(maxStep, Math.abs(v - prev)); prev = v;
+  }
+  assert.ok(maxAbs <= .34 + 1e-9 && maxAbs > .3, `reach ${maxAbs}`);
+  assert.ok(maxStep < .07, `step ${maxStep}`);
+  assert.ok(Math.abs(frozen - 4 * (DOG_HOLD - .1)) < .6, `frozen ${frozen}`);
+  // outside the freeze it is the plain wag, exactly
+  for (const t of [3, 4.1, 5.5, 6.9]) assert.equal(tailSway(a, t), Math.sin(t * 7) * .34);
+  // each dog freezes at its own time, and gallery phase still shifts the wag
+  assert.ok(dogFreeze(.5, 0) < .2 && dogFreeze(.5, 2.5) === 1);
+  const b = actor({quirk: 'dog', species: 'jackal'});
+  assert.equal(tailSway(b, 4, 1.2), Math.sin(4 * 7 + 1.2) * .34);
 });
 
 test('mind flayer tentacles sway slower and smaller than the generic tail, within bounds', () => {
@@ -31,7 +51,7 @@ test('each flayer keeps its own phase, fixed from where it was first seen', () =
 
 test('a phase shifts the quirk sway exactly as the gallery used to, and leaves flayers alone', () => {
   const old = (q, t, ph) => Math.sin(t * (q === 'dog' ? 7 : q === 'turtle' ? 1.1 : q === 'unicorn' ? 2.6 : q === 'nymph' ? 1.4 : 3) + ph) * (q === 'dog' ? .34 : q === 'turtle' ? .06 : q === 'unicorn' ? .16 : q === 'nymph' ? .07 : .24);
-  for (const quirk of ['dog', 'turtle', 'unicorn', 'nymph', 'idle'])
+  for (const quirk of ['turtle', 'unicorn', 'nymph', 'idle'])
     for (let t = 0; t < 10; t += .37) assert.equal(tailSway(actor({quirk, species: 'fox'}), t, 2.19), old(quirk, t, 2.19));
   const f = actor({species: 'mind flayer'});
   assert.equal(tailSway(f, 4, 1.5), tailSway(f, 4));
