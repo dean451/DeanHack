@@ -50,10 +50,12 @@ export const chews = a => !!(a && !a.asset && a.antJaws && a.head && Array.isArr
 function rand(st) { st.seed = (st.seed * 16807) % 2147483647; return (st.seed - 1) / 2147483646; }
 
 // One clack at progress f (0..1): the extra gape (1 = the look's clack width). It spreads, slams
-// shut past rest (to -.35, about SHUT) and settles back.
+// shut past rest (to -.35, about SHUT), then the stiff mandibles rebound open a hair (.1) and
+// settle, as if the clack jarred them.
 export function clackPose(f) {
   if (!(f > 0) || !(f < 1)) return 0;
-  return smooth(f / .5) * (1 - smooth((f - .5) / .12)) - .35 * Math.sin(clamp01((f - .6) / .4) * Math.PI);
+  return smooth(f / .5) * (1 - smooth((f - .5) / .12)) - .35 * Math.sin(clamp01((f - .6) / .22) * Math.PI)
+    + .1 * Math.sin(clamp01((f - .82) / .18) * Math.PI);
 }
 
 // n clacks in a row over u (0..1).

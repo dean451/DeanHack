@@ -43,6 +43,8 @@ test('poses stay in bounds and end at zero', () => {
     assert.ok(b.open >= -.36 && b.open <= 1 && b.lunge >= 0 && b.lunge <= 1, `${u}`);
   }
   assert.equal(J.clackPose(1), 0);
+  // a clack slams shut past rest, then rebounds open a hair before settling
+  assert.ok(J.clackPose(.7) < -.3 && J.clackPose(.91) > .05 && J.clackPose(.91) <= .1 + 1e-9, 'slam then rebound');
   assert.deepEqual(J.threatPose(1), {rear: 0, spread: 0, shake: 0, snap: 0});
   assert.deepEqual(J.bitePose(1), {open: 0, lunge: 0});
   // the poses are continuous: no step bigger than a frame's worth
