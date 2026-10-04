@@ -21,6 +21,12 @@ The player trudges through a dark, barren, hostile fantasy world full of monster
 - **Models** are rooted in common-sense fantasy tropes: things look like what a player expects (a dragon looks like a dragon, an altar like a place of sacrifice).
 - **Animations** lead into whimsy: personality, odd tics and surprise in how things move. The whimsy lives in the motion, not the look, so keep it dark-humoured and a little uncanny, never cute or bouncy.
 
+### Orientation
+
+Things are not always facing the way you would expect. The game moved from a flat ASCII world into 3D, and the translation from the engine's map directions to 3D facing is not always consistent. Known symptoms: monsters facing the wrong way, held weapons at the wrong angle, doors 90 degrees off in a doorway, and rolling boulder traps with the wrong orientation. Treat orientation as a real source of bugs. Whenever you add or touch a model, door, trap, weapon or animation, check which way it faces and which way it moves, and make that match what a player expects.
+
+We want one standard convention for objects, traps, doors and weapons so facing stays consistent in feel, not a pile of per-object fixes. If you catch yourself adding a per-object rotation fudge (an offset such as a quarter turn), stop and ask whether the shared convention should be fixed instead.
+
 ### Known art fixes
 
 Work queues for the scheduled routines. Each routine takes the first item on its own list, does one small step per run, and **deletes the item in the same PR once it is fully done** (or edits it to say what remains). When your own list is empty, take the next item from **UI and controls**, and when that is empty too, make an ordinary improvement.
@@ -28,6 +34,7 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 **Models**
 
 - **Slime mold:** it has no drawn model, just the default brown diamond. This has been requested many times. Find why it still falls through to the default and give it a real model.
+- **Orientation convention:** audit how facing and rotation are handled for monsters, held weapons, doors, traps and boulders: find where a map direction becomes a 3D rotation and where per-object fudge offsets creep in. Step one: write the convention down in a short `prototype/ORIENTATION.md` (which way is forward for a model, how a map direction becomes a rotation, how doors in horizontal and vertical walls, held weapons, traps and boulders get their facing) and put it behind one small shared helper with tests. Later steps move one category at a time onto it: doors that sit 90 degrees off in a doorway first, then monster facing, then held weapon angle. This is shared code, so each step goes in its own PR.
 - **Magic item signatures:** go class by class (wands and rings first, then amulets, potions, scrolls and magic weapons) and make each item look distinct within its class and hint at its effect, following the Magic items notes below. One class per step.
 - **Warrior and the Norn:** the warrior monster (the Valkyrie quest guardians) and the Norn (the Valkyrie quest leader) need models.
 - **Gems:** they have no shimmer or sparkle and they float off the ground. Rest them on the floor and give them a subtle glint. They are not magical, so keep it modest.
@@ -36,6 +43,7 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 **Animations**
 
 - **Magic item moments:** add the step-over hit, the floor presence and the pickup moment described under Magic items. Wands and rings first, then amulets, potions, scrolls and magic weapons. One class per step, and keep it cheap.
+- **Rolling boulder traps:** the boulder's orientation is off while it rolls. Fix it using the orientation convention once it exists; until then fix it locally and say so in the PR body.
 - **Altars:** add the missing animations: sacrificing a corpse, the altar glowing in the colour of your alignment, a four-leaf clover when your luck goes up, and being gifted an artifact.
 - **Status effects:** it must be VERY CLEAR when the hero is blind, confused, stunned, sick, deathly ill, on fire, frozen, grabbed or otherwise incapacitated. Right now a stunned hero whose movement doesn't work has no idea why. Give each state a distinct, unmistakable visual and an on-screen label.
 
