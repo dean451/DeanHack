@@ -8,7 +8,7 @@
 //    it trembles, its jaw (creatures.js snakeHead's `actor.jaw`) dropping open in a gape that
 //    shivers with the tremble.
 //  - Strike (a bite): the head draws back, then whips forward and down at the target and snaps back
-//    up into the raised pose.
+//    up into the raised pose, shaking its head twice on the way as if the bite tasted foul.
 //  - Spit (NetHack cobras spit blinding venom): the head jerks forward and a small spray of pale
 //    droplets flies at the target.
 //  - On death no new flicks, hisses or spit; it all eases back to rest.
@@ -63,7 +63,9 @@ const between = (st, [lo, hi], k = 1) => (lo + (hi - lo) * rand(st)) * k;
 export function strikePose(u) {
   if (!(u > 0) || !(u < 1)) return {dy: 0, dz: 0, pitch: 0};
   const draw = smooth(u / .3) * (1 - smooth((u - .3) / .14)), snap = smooth((u - .3) / .14) * (1 - smooth((u - .55) / .45));
-  return {dy: .03 * draw - .3 * snap, dz: -.07 * draw + .32 * snap, pitch: -.2 * draw + .55 * snap};
+  // coming back up it gives its head two sour little shakes, as if the bite tasted foul
+  const s = clamp01((u - .6) / .4), shake = Math.sin(Math.PI * s) * Math.sin(s * TAU * 2) * .1;
+  return {dy: .03 * draw - .3 * snap, dz: -.07 * draw + .32 * snap, pitch: -.2 * draw + .55 * snap + shake};
 }
 // The spit: a shorter draw back and a jerk forward; `release` is the moment the venom leaves.
 export const SPIT_RELEASE = .44;
