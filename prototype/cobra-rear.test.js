@@ -31,6 +31,9 @@ test('helpers stay in bounds and come back to rest', () => {
   const sw = []; for (let u = .6; u <= 1; u += .005) sw.push(C.strikePose(u).pitch - .55 * (1 - Math.min(1, Math.max(0, (u - .55) / .45)) ** 2 * (3 - 2 * Math.min(1, Math.max(0, (u - .55) / .45)))));
   assert.ok(Math.max(...sw) > .04 && Math.min(...sw) < -.04, 'shakes its head');
   assert.ok(Math.abs(C.strikePose(.999).pitch) < .01);
+  // the spit ends in a single dry retch: the nose dips past the plain recovery, and is gone by the end
+  const plain = u => { const j = Math.min(1, Math.max(0, (u - .5) / .5)); return .22 * (1 - j * j * (3 - 2 * j)); };
+  assert.ok(C.spitPose(.72).pitch - plain(.72) > .1 && C.spitPose(.55).pitch - plain(.55) < .01 && Math.abs(C.spitPose(.999).pitch) < .01, 'retches after the spit');
   assert.ok(C.spitPose(.3).dz < -.03 && C.spitPose(.47).dz > .08);
 });
 

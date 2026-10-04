@@ -10,7 +10,7 @@
 //  - Strike (a bite): the head draws back, then whips forward and down at the target and snaps back
 //    up into the raised pose, shaking its head twice on the way as if the bite tasted foul.
 //  - Spit (NetHack cobras spit blinding venom): the head jerks forward and a small spray of pale
-//    droplets flies at the target.
+//    droplets flies at the target, then it dips its nose in a dry retch to hawk out the last of it.
 //  - On death no new flicks, hisses or spit; it all eases back to rest.
 //
 // The model (creatures.js snake() with SNAKES cobra:{hood:true}) has an `actor.hood` handle; the head
@@ -72,7 +72,9 @@ export const SPIT_RELEASE = .44;
 export function spitPose(u) {
   if (!(u > 0) || !(u < 1)) return {dy: 0, dz: 0, pitch: 0};
   const draw = smooth(u / .38) * (1 - smooth((u - .38) / .07)), jerk = smooth((u - .38) / .07) * (1 - smooth((u - .5) / .5));
-  return {dy: .02 * draw, dz: -.05 * draw + .11 * jerk, pitch: -.18 * draw + .22 * jerk};
+  // then a dry little retch: the nose dips once as it hawks out the last of the venom
+  const hawk = Math.sin(Math.PI * clamp01((u - .6) / .25));
+  return {dy: .02 * draw - .012 * hawk, dz: -.05 * draw + .11 * jerk, pitch: -.18 * draw + .22 * jerk + .14 * hawk};
 }
 // A hiss envelope over its progress u: quick to flare, a hold, slower to settle.
 export const hissCurve = u => !(u > 0) || !(u < 1) ? 0 : smooth(u / .15) * (1 - smooth((u - .7) / .3));
