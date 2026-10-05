@@ -40,3 +40,8 @@ test('demon lords and princes glow with evil in their own colours',()=>{
  }
  assert(tints.size>=5,'each lord has its own glow colour');
 });
+
+test('Demogorgon has two heads',()=>{
+ const eyes=name=>{let n=0;createCreature({name,symbol:38,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.emissive&&o.material.emissive.getHex()===0xff3030)n++;});return n;};
+ assert.equal(eyes('demogorgon'),2,'one pair of eye meshes per head');
+});
