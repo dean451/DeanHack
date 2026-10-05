@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {digSwingPose, spentPose, finishMessage, SPENT_TIME, createDigSwing, digMessage, DIG_TIME, BITE_U} from './dig-swing.js';
+import {digSwingPose, spentPose, finishMessage, SPENT_TIME, createDigSwing, digMessage, DIG_TIME, BITE_U, TIRE_BLOWS, CHAIN_GAP} from './dig-swing.js';
 
 const FIELDS = ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'shield', 'twist', 'lean', 'offArm', 'offElbow'];
 const rig = () => ({arm: new THREE.Object3D(), elbow: new THREE.Object3D(), wrist: new THREE.Object3D(),
@@ -93,4 +93,30 @@ test('the free hand hauls up with the tool and flings back on the bite', () => {
   assert.ok(moved, 'the off-hand arm really moves');
   d.clear(a);
   assert.equal(a.shieldArm.rotation.x, 0);
+});
+
+test('a long dig tires the hero: later blows lift less, slump more and still return to rest', () => {
+  const fresh = digSwingPose(.34), tired = digSwingPose(.34, 1);
+  assert.ok(Math.abs(tired.arm) < Math.abs(fresh.arm), 'lifts less');
+  assert.ok(digSwingPose(.5, 1).lean > digSwingPose(.5, 0).lean, 'slumps forward');
+  for (const t of [0, .5, 1]) for (let u = 0; u <= 1; u += .01) for (const f of FIELDS) {
+    const v = digSwingPose(u, t)[f];
+    assert.ok(Number.isFinite(v) && Math.abs(v) < 3.2, `${f}@${u},${t}`);
+  }
+  for (const f of FIELDS) { assert.equal(digSwingPose(0, 1)[f], 0); assert.equal(digSwingPose(1, 1)[f], 0); }
+  assert.deepEqual(digSwingPose(.3, NaN), digSwingPose(.3, 0));
+});
+
+test('chained blows build fatigue, a pause or a new level starts fresh', () => {
+  const a = rig(), d = createDigSwing(), blow = 'You hit the rock with all your might.';
+  for (let i = 0; i < TIRE_BLOWS + 3; i++) {
+    d.message(blow);
+    for (let t = 0; t < DIG_TIME + .1; t += 1 / 30) d.update(a, 1 / 30);
+    assert.equal(d.chain, Math.min(i, TIRE_BLOWS));
+  }
+  for (let t = 0; t < CHAIN_GAP + .5; t += .1) d.update(a, .1);
+  d.message(blow);
+  assert.equal(d.chain, 0);
+  d.message(blow); d.clear(a); d.message(blow);
+  assert.equal(d.chain, 0);
 });
