@@ -74,3 +74,26 @@ test('gallery bees hang their legs too, over main.js\'s small generic sway', () 
     assert.ok(a.legs[2].rotation.x > a.legs[0].rotation.x + .15, `${name} hind legs trail`);
   }
 });
+
+test('a hovering bee now and then scrapes its front legs together; in flight or dead it does not', () => {
+  const layout = dangleLayout(createCreature({name: 'killer bee'}).legs), D = DANGLE;
+  const rank = r => (_, i) => layout.rank[i] === r;
+  const front = (t, w = 0, a = 1) => danglePose(layout, t, w, a, 0).pitch.filter(rank(0));
+  const hind = t => danglePose(layout, t, 0, 1, 0).pitch.filter(rank(2));
+  const base = D.pitch[0], start = D.rubEvery - 1; // seed 0: the window opens 6 s in
+  // outside the window the front legs stay near their hover pose; mid-window they lift well clear of it
+  front(start - .1).forEach(v => assert.ok(Math.abs(v - base) < .12, `calm ${v}`));
+  front(start + D.rubFor / 2).forEach(v => assert.ok(v > base + D.rub - D.rubShake - .12, `rub ${v}`));
+  // nothing happens in the first 3 s whatever the seed
+  for (let seed = 0; seed < 7; seed++) for (let t = 0; t < 3; t += .05) {
+    danglePose(layout, t, 0, 1, seed).pitch.filter(rank(0)).forEach(v => assert.ok(Math.abs(v - base) < .12, `early ${seed} ${t}`));
+  }
+  // hind legs never join in
+  hind(start + D.rubFor / 2).forEach((v, i) => assert.ok(Math.abs(v - hind(start - .1)[i]) < .12));
+  // the rub fades out as flight starts, and dead legs are slack
+  front(start + D.rubFor / 2, 1).forEach(v => assert.ok(Math.abs(v - (base + D.trail[0])) < .12, `flying ${v}`));
+  assert.deepEqual(front(start + D.rubFor / 2, 0, 0), [0, 0]);
+  // the window starts and ends at rest (no pop), and comes round again
+  front(start).concat(front(start + D.rubFor)).forEach(v => assert.ok(Math.abs(v - base) < .12));
+  assert.ok(front(start + D.rubEvery + D.rubFor / 2)[0] > base + D.rub - D.rubShake - .12);
+});
