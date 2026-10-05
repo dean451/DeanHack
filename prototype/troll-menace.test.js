@@ -18,3 +18,9 @@ test('rock trolls carry dull magma veins and no other troll does', () => {
   for (const n of ['troll', 'ice troll', 'water troll', 'olog-hai']) assert(!make(n).g.userData.veined, n);
   assert(meshCount(make('rock troll')) <= 30);
 });
+
+test('ettins wear spiked iron collars and other giants do not', () => {
+  assert.equal(createCreature({name: 'ettin', symbol: 'H'.charCodeAt(0), color: 1}).g.userData.collared, true);
+  for (const n of ['giant', 'hill giant', 'stone giant']) assert(!createCreature({name: n, symbol: 'H'.charCodeAt(0), color: 1}).g.userData.collared, n);
+  assert(meshCount(createCreature({name: 'ettin', symbol: 'H'.charCodeAt(0), color: 1})) <= 30);
+});

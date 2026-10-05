@@ -1334,6 +1334,8 @@ function giant(o){
  for(const hx of heads){const head=new THREE.Group();head.position.set(hx,1.16,.03);head.rotation.z=-hx*1.2;body.add(head);
   {sphere(head,.12,skin,0,0,0,.95,1.05,.95);if(o.cyclops)sphere(head,.024,skin,0,-.045,.115,1.3,.8,1);else{rounded(head,.2,.04,.06,mat(shade(o.skin,.8),{roughness:.9}),0,.04,.09,.015);sphere(head,.028,skin,0,-.01,.12,1,1.2,1);}
    const scalp=sphere(head,.125,hair,0,.035,-.03,1,.85,1);scalp.rotation.x=.25;if(o.beard)sphere(head,.09,hair,0,-.09,.07,1,1.2,.65);}
+  // ettins: a rusted iron collar studded with spikes at each neck, and a raked scar over one eye
+  if(o.twoHeads){const rust=mat('#4a3426',{roughness:.7,metalness:.6});g.userData.collared=true;part(head,new THREE.TorusGeometry(.09,.017,5,14),rust,0,-.1,0).rotation.x=Math.PI/2;for(let i=0;i<5;i++){const a=(i-2)*.6,spike=cone(head,.014,.05,rust,Math.sin(a)*.1,-.1,Math.cos(a)*.1,4);spike.rotation.set(Math.cos(a)*1.2,0,-Math.sin(a)*1.2);}if(hx<0)rounded(head,.012,.1,.01,mat('#5a2a22',{roughness:1}),.04,.03,.1,.004).rotation.z=.5;}
   if(o.circlet)part(head,new THREE.TorusGeometry(.12,.012,5,16),M.gold,0,.07,0).rotation.x=Math.PI/2;
   // a crown of jagged black-iron spikes, their tips white-hot
   if(o.crown){const iron=mat('#2a2224',{roughness:.45,metalness:.75}),hot=mat('#ffb060',{emissive:'#f05010',emissiveIntensity:3});part(head,new THREE.TorusGeometry(.118,.016,5,18),iron,0,.075,-.01).rotation.x=Math.PI/2;
