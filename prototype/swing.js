@@ -88,7 +88,10 @@ export function dualSwingPose(blow, u, result = 'hit', offLead = false) {
   const env = u < c ? smooth(u / c) : 1 - smooth((u - c) / (1 - c));
   if (offLead) {
     for (const f of ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'twist']) p[f] *= DUAL_GUARD;
-    p.offArm = -1.15 * env; p.offElbow = .55 * env;
+    // The off hand cocks back a little before it drives through (anticipation), settling
+    // to zero by a third of the way to contact.
+    const cock = Math.sin(Math.PI * clamp01(u / (c * .6)));
+    p.offArm = -1.15 * env + .3 * cock; p.offElbow = .55 * env - .25 * cock;
   } else {
     p.offArm = .3 * env; p.offElbow = -.2 * env;
   }
