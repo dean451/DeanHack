@@ -1,7 +1,8 @@
 // Bee legs in flight (bee.js). live.js swings every walker's legs about x (±.4 rad at 22 rad/s),
 // which on a bee reads as it running on thin air. A flying bee lets its legs hang instead: the
 // front pair held a little forward, the long hind legs trailing back, all splayed slightly out.
-// They sway lazily as the bee bobs, with a faint tremble from the wingbeat. When it flies from
+// They sway lazily as the bee bobs, with a faint tremble from the wingbeat. Every few seconds a
+// hovering bee scrapes its front legs together for a moment, an odd, fussy little tic. When it flies from
 // tile to tile the legs sweep further back and draw in, streamlined, and swing forward again as
 // it stops. A dead bee's legs go slack to their exact rest pose.
 //
@@ -19,6 +20,7 @@ export const DANGLE = {
   sway: .05, swayRate: 2.2, // lazy swing lagging the flight bob
   jitter: .1, jitterRate: 1.7, // slow splay drift, as a fraction of the splay
   tremble: .012, trembleRate: 60, // wingbeat buzz
+  rub: .3, rubShake: .07, rubRate: 26, rubEvery: 7, rubFor: .8, // now and then, hovering, the front legs scrape together like a fly's
 };
 // Flight blend in over ~.3 s, out over ~.35 s; the legs go slack over ~.3 s on death.
 const EASE_IN = 7, EASE_OUT = 6, SLACK = 7, SNAP = 1e-3;
@@ -37,9 +39,13 @@ export function danglePose(layout, t, w = 0, a = 1, seed = 0) {
   const D = DANGLE, {side, rank} = layout;
   if (!(a > 0)) return {pitch: side.map(() => 0), splay: side.map(() => 0)};
   const swing = D.sway * Math.sin(t * D.swayRate + seed - 1.2) * (1 - .6 * w);
+  // the rub: a smooth lift of the front pair that trembles fast, only when the bee is hovering
+  const ru = ((t + 1 + seed * .5) % D.rubEvery) / D.rubFor; // the first one comes no sooner than 3 s in
+  const rub = ru < 1 ? Math.sin(Math.PI * ru) ** 2 * (1 - w) : 0;
   return {
     pitch: rank.map((r, i) => a * (D.pitch[r] + D.trail[r] * w + swing * (1 + .3 * r)
-      + D.tremble * Math.sin(t * D.trembleRate + i * 1.9))),
+      + D.tremble * Math.sin(t * D.trembleRate + i * 1.9)
+      + (r === 0 ? rub * (D.rub + D.rubShake * Math.sin(t * D.rubRate + i * 2.4)) : 0))),
     splay: rank.map((r, i) => a * side[i] * D.splay[r] * (1 - D.tuck * w)
       * (1 + D.jitter * Math.sin(t * D.jitterRate + i * 1.1 + seed))),
   };

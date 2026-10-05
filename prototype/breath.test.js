@@ -133,6 +133,16 @@ test('the leading edge of the breath is ragged', () => {
   assert.ok(Math.max(...reaches) - Math.min(...reaches) > .8);
 });
 
+test('flame tongues lean up as they climb and acid drops lean down as they fall', () => {
+  const at = zap => { const [b] = breathsFromFx(beam(zap, 0, 0, 1, 0), null); return breathFrame(b, b.t0 + 400).particles.filter(p => p.u > .1 && p.len > 1); };
+  const fire = at('fire'), acid = at('acid'), cold = at('cold');
+  assert.ok(fire.length && fire.every(p => p.pitch > 0 && p.pitch <= .9));
+  assert.ok(acid.length && acid.every(p => p.pitch < 0 && p.pitch >= -.6));
+  assert.ok(cold.every(p => p.pitch === 0), 'frost shards stay level');
+  const [b] = breathsFromFx(beam('fire', 0, 0, 1, 0), null);
+  assert.equal(breathFrame(b, b.t0 + 20).particles.at(-1).pitch, 0, 'the mouth flash stays level');
+});
+
 test('fire streams as flame tongues and frost as shards; gas and sleep as curling wisps', () => {
   const stretch = zap => {
     const [b] = breathsFromFx(beam(zap, 0, 0, 1, 0), null);
