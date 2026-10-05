@@ -164,7 +164,7 @@ function dragonMats(i){
  const fin=HIDE_FINISH[dragonElement(i)]||{},hideOpts={roughness:fin.roughness??(silver?.3:.62),metalness:fin.metalness??(silver?.7:.08)};
  if(fin.emissiveK)Object.assign(hideOpts,{emissive:shade(breath,fin.emissiveK*4),emissiveIntensity:.25});
  return {hide:mat(hex,hideOpts),dark:mat(shade(hex,.5),{roughness:.7,metalness:silver?.6:0}),belly:mat(belly,{roughness:.78}),
-  membrane:mat(shade(hex,.72),{side:THREE.DoubleSide,roughness:.82}),feather:mat(belly,{side:THREE.DoubleSide,roughness:.9}),ivory:mat('#e6dcc0',{roughness:.45}),
+  membrane:mat(shade(hex,.72),{side:THREE.DoubleSide,roughness:.82}),feather:mat(belly,{side:THREE.DoubleSide,roughness:.9}),ivory:mat('#e6dcc0',{roughness:.45}),scar:mat('#3a0e0c',{roughness:.9}),
   glow:new THREE.MeshStandardMaterial({color:breath,emissive:breath,emissiveIntensity:4.5,roughness:.3})};
 }
 // a chain of scale-covered segments along a curve, each stretched along the curve, with a paler belly.
@@ -203,8 +203,16 @@ function dragonHead(head,m,f,baby){
   cone(head,.011,.07,m.ivory,s*.055,-.045,.2,4).rotation.x=Math.PI-.15;
   const frill=cone(head,.035,.1,m.dark,s*.11,-.01,-.05,3);frill.rotation.z=-s*1.3;frill.rotation.y=s*.4;
   if(f.sirrush){const horn=cone(head,.018,.22,m.ivory,s*.03,.1,.02,6);horn.rotation.x=-.35;horn.rotation.z=-s*.12;}
-  else{const horn=cone(head,.026,(baby?.08:.17)*(f.horns||1),m.ivory,s*.06,.09,-.07,6);horn.rotation.x=-1.1;horn.rotation.z=-s*.25;}
+  else{
+   // the left horn is snapped off short, its stump blunt and splintered
+   const len=(baby?.08:.17)*(f.horns||1)*(s<0&&!baby?.55:1),horn=cone(head,s<0&&!baby?.03:.026,len,m.ivory,s*.06,.09,-.07,s<0&&!baby?5:6);horn.rotation.x=-1.1;horn.rotation.z=-s*.25;}
+  // two jagged spines sweep back off the cheek
+  for(let i=0;i<2;i++){const spine=cone(head,.016-i*.004,.075-i*.02,m.dark,s*(.1-i*.005),-.02-i*.045,-.01-i*.03,4);spine.rotation.set(-1.25,0,-s*.7);}
  }
+ // an old slash scars the snout and brow, raked across the scales
+ dragonBox(head,.1,.006,.014,m.scar,.04,.048,.16,.002).rotation.y=.6;
+ dragonBox(head,.07,.006,.012,m.scar,.05,.058,.12,.002).rotation.y=.45;
+ dragonBox(head,.05,.006,.01,m.scar,.03,.052,.2,.002).rotation.y=.8;
  if(f.sirrush)tube(head,[[0,-.05,.2],[0,-.07,.28],[.015,-.075,.33]],.005,mat('#b03040'),5);
  if(f.beard)for(let i=0;i<5;i++)cone(head,.014,.09,m.dark,(i-2)*.018,-.1,.1-Math.abs(i-2)*.02,4).rotation.x=Math.PI+.3;
  eyes(head,m.glow,.045,.085,.066);
@@ -276,6 +284,8 @@ function dragon(o={}){
   const lean=f.sirrush?.82:1;
   const torso=sphere(body,.26,m.hide,0,.46,0,1.1*lean,.85,1.45);const under=sphere(body,.22,m.belly,0,.38,.03,1.02*lean,.6,1.35);
   if(f.legs===2){torso.rotation.x=under.rotation.x=-.3;}
+  // three claw rakes score the left flank, the old wounds of a long life of killing
+  for(let i=0;i<3;i++){const rake=dragonBox(body,.012,.2,.02,m.scar,-.27+i*.0,.5-i*.0,.0,.004);rake.position.set(-.275+i*.0,.5,-.08+i*.055);rake.rotation.set(0,0,.35);rake.scale.set(1,1-i*.12,1);}
   trunk=torsoTrunk(body,{center:torso.position,radii:[.26*1.1*lean,.26*.85,.26*1.45],tilt:torso.rotation.x});
   const spine=new THREE.CatmullRomCurve3([[0,.63,.28],[0,.68,0],[0,.6,-.3]].map(p=>new THREE.Vector3(...p)));
   dragonRidge(body,spine,6,.02,.02,baby?.05:.1,m.dark);

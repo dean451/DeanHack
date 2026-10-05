@@ -146,3 +146,9 @@ test('a dragon head carries two long upper fangs (the merged head grows by their
   let n = 0; dragon('draken').heads[0].traverse(o => { if (o.isMesh) n += o.geometry.attributes.position.count; });
   assert(n >= 2900, `head has ${n} vertices; 2866 without the fangs`);
 });
+
+test('dragon heads carry a scar mark on the snout', () => {
+  const a = dragon('red dragon'); let scar = false;
+  a.heads[0].traverse(o => { if (o.isMesh && o.material.color && o.material.color.getHexString() === '3a0e0c') scar = true; });
+  assert(scar, 'scar material present on the head');
+});
