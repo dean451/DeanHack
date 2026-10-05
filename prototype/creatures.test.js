@@ -2642,3 +2642,9 @@ test('the purple worm has a venom-lit gullet and long fangs; the long worm does 
  assert(has('purple worm','worm-venom')&&has('purple worm','worm-fangs'));
  assert(!has('long worm','worm-venom')&&!has('baby purple worm','worm-fangs'));
 });
+
+test('the titan is a scarred colossus, taller than any ordinary giant',()=>{
+ const t=createCreature({name:'titan',symbol:72,color:5}),f=createCreature({name:'fire giant',symbol:72,color:1});
+ assert(t.g.userData.scarred&&!f.g.userData.scarred,'war-scars on the breastplate');
+ assert(t.g.scale.y>=1.4&&t.g.scale.y>f.g.scale.y,'the titan towers over giants');
+});
