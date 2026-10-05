@@ -66,7 +66,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Trap looks:** every trap type needs its own look and its own trigger moment: arrow, dart, falling rock, bear trap, pit and spiked pit, sleeping gas, rust, fire, land mine, squeaky board, magic trap, polymorph trap, anti-magic field. Audit which exist (`trap.js`, `fire-trap-fx.js`) and fill the gaps, one trap per step.
 - **Sokoban boulders:** a boulder that fills a pit should land with a satisfying thud, dust and a closing pit, and the filled square should look settled.
 - **Spellcasting:** casting a spell, reading a spellbook, and the glow, or the failure, when it goes wrong. Give each school of magic a colour from the Visual language palette.
-- **Level-up:** a short rising flourish when the hero gains a level, in keeping with the grim tone.
 - **Wishing:** a wand or fountain wish is a grand moment: the air bends, gold light gathers, and the wished-for item takes form.
 - **Blessing and curses:** holy water, unholy water and remove curse each get a visible flash that fits (a pale holy light, a dim dark one, dark flecks shaken off), applied to the item that changed.
 - **Thrones:** sitting on a throne is a gamble, so show the moment of sitting and the result in colour (a gift, a curse, a flash, a vanishing).
