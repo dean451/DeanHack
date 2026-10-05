@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {createPoisonCloud} from './poison-cloud.js';
 import {createGasRoil, gasState, GAS_HEAVE, GAS_CURL, GAS_DRIFT, gasGround, GAS_LAVA_GLOW, GAS_RIPPLE} from './poison-cloud-roil.js';
 import {GAS_SPARKS} from './poison-gas-sparks.js';
+import {GAS_SHIMMERS, GAS_SHIMMER_RISE, shimmerState} from './poison-gas-shimmer.js';
 import {GAS_RIPPLES, GAS_RIPPLE_REACH, rippleState} from './poison-gas-ripples.js';
 
 const snap = m => [...m.position.toArray(), m.rotation.y, ...m.scale.toArray()];
@@ -127,4 +128,25 @@ test('gas over water spreads sickly rings that stay on the tile and never pop, a
   assert(seen > 100, 'a ring is visible most of the time');
   roils.forEach(r => r.restore());
   assert(!water.scene.getObjectByName('GasRipples'));
+});
+
+test('gas over lava sends up heat-haze streaks that stay in bounds and never pop, and restore removes them', () => {
+  for (let i = 0; i < GAS_SHIMMERS; i++) for (let t = 0; t < 40; t += 1 / 30) {
+    const s = shimmerState(t, i, .3);
+    assert(s.y >= 0 && s.y <= .08 + GAS_SHIMMER_RISE + 1e-9 && Math.hypot(s.x, s.z) < .35 && s.opacity >= 0 && s.opacity <= .28);
+  }
+  assert(shimmerState(0, 0).opacity < 1e-9 && shimmerState(2.6 - 1e-6, 0).opacity < 1e-3, 'a streak starts and ends faint');
+  const lava = onGround('lava'), plain = onGround('floor');
+  const roils = [lava, plain].map(w => createGasRoil(w.scene));
+  let seen = 0;
+  for (let t = 0; t < 30; t += 1 / 30) {
+    roils.forEach(r => r.update(t));
+    const g = lava.scene.getObjectByName('GasShimmer');
+    assert.equal(g.children.length, GAS_SHIMMERS);
+    if (g.children[0].material.opacity > .05) seen++;
+    assert(!plain.scene.getObjectByName('GasShimmer'), 'plain floor gets no haze');
+  }
+  assert(seen > 100, 'haze is visible most of the time');
+  roils.forEach(r => r.restore());
+  assert(!lava.scene.getObjectByName('GasShimmer'));
 });
