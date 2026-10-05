@@ -5,11 +5,13 @@
 // has its own phase, so a bank of gas never moves in unison. Everything is a function of t, so
 // it is frame-rate independent and restore() puts back the rest pose exactly.
 // What the cloud hangs over shows in it (the tile's ground, set by live.js): over lava the core
-// is lit orange from beneath, gutters like a coal and lets off sparks (poison-gas-sparks.js); over water the bank clings low and spreads
-// into a film whose thin edge ripples. Both are functions of t as well.
+// is lit orange from beneath, gutters like a coal and lets off sparks (poison-gas-sparks.js) and heat-haze streaks climb off it (poison-gas-shimmer.js); over water the bank clings low and spreads
+// into a film whose thin edge ripples, on a ragged oily skin that crawls on the surface (poison-gas-film.js). Both are functions of t as well.
 // The scene is re-scanned twice a second, so tiles that come and go are picked up.
 import * as THREE from 'three';
 import {attachGasSparks, poseGasSparks, detachGasSparks} from './poison-gas-sparks.js';
+import {attachGasShimmer, poseGasShimmer, detachGasShimmer} from './poison-gas-shimmer.js';
+import {attachGasFilm, poseGasFilm, detachGasFilm} from './poison-gas-film.js';
 import {attachGasRipples, poseGasRipples, detachGasRipples} from './poison-gas-ripples.js';
 
 export const GAS_SCAN_EVERY = .5; // seconds between scene scans
@@ -79,7 +81,7 @@ export function poseGas(mesh, t) {
   mesh.position.set(r.position.x + s.dx, r.position.y, r.position.z + s.dz);
   const ground = mesh.parent?.parent?.parent?.userData.ground;
   const g = gasGround(ground, mesh.userData.part, t, r.phase), mat = mesh.material;
-  if (mesh.userData.part === 'core') { poseSparks(mesh.parent, ground === 'lava', t, r.phase);poseRipples(mesh.parent, ground === 'water', t, r.phase); }
+  if (mesh.userData.part === 'core') { poseSparks(mesh.parent, ground === 'lava', t, r.phase);poseShimmer(mesh.parent, ground === 'lava', t, r.phase);poseRipples(mesh.parent, ground === 'water', t, r.phase);poseFilm(mesh.parent, ground === 'water', t, r.phase); }
   mesh.scale.x *= g.spread;mesh.scale.z *= g.spread;mesh.scale.y *= g.squash;
   if (mat.emissive) {
     mat.emissive.copy(r.emissive).lerp(LAVA_LIGHT, g.glow);
@@ -97,6 +99,22 @@ function poseSparks(cloud, over, t, phase) {
   if (sparks) poseGasSparks(sparks, t, phase / (Math.PI * 2));
 }
 
+// Faint heat-haze streaks climb off the core over lava.
+function poseShimmer(cloud, over, t, phase) {
+  let haze = cloud.userData.gasShimmer;
+  if (over && !haze) haze = cloud.userData.gasShimmer = attachGasShimmer(cloud);
+  else if (!over && haze) { detachGasShimmer(haze);delete cloud.userData.gasShimmer;return; }
+  if (haze) poseGasShimmer(haze, t, phase / (Math.PI * 2));
+}
+
+// A flat sickly film crawls on the water under the bank.
+function poseFilm(cloud, over, t, phase) {
+  let film = cloud.userData.gasFilm;
+  if (over && !film) film = cloud.userData.gasFilm = attachGasFilm(cloud);
+  else if (!over && film) { detachGasFilm(film);delete cloud.userData.gasFilm;return; }
+  if (film) poseGasFilm(film, t, phase);
+}
+
 // The same for the rings spreading over water.
 function poseRipples(cloud, over, t, phase) {
   let rings = cloud.userData.gasRipples;
@@ -110,6 +128,10 @@ export function restoreGas(mesh) {
   if (!r) return;
   const sparks = mesh.parent?.userData.gasSparks;
   if (mesh.userData.part === 'core' && sparks) { detachGasSparks(sparks);delete mesh.parent.userData.gasSparks; }
+  const haze = mesh.parent?.userData.gasShimmer;
+  if (mesh.userData.part === 'core' && haze) { detachGasShimmer(haze);delete mesh.parent.userData.gasShimmer; }
+  const film = mesh.parent?.userData.gasFilm;
+  if (mesh.userData.part === 'core' && film) { detachGasFilm(film);delete mesh.parent.userData.gasFilm; }
   const rings = mesh.parent?.userData.gasRipples;
   if (mesh.userData.part === 'core' && rings) { detachGasRipples(rings);delete mesh.parent.userData.gasRipples; }
   mesh.position.copy(r.position);mesh.rotation.y = r.rotation;mesh.scale.copy(r.scale);
