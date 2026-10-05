@@ -60,3 +60,20 @@ test('demo scene boots, draws a frame and logs no errors', {skip, timeout: 12000
   assert.ok(size[0] > 100 && size[1] > 100, `canvas is ${size}`);
   assert.deepEqual(problems.filter(p => !/WebSocket|\/engine|net::ERR/.test(p)), []);
 }));
+
+test('demo scene render stats are sane', {skip, timeout: 120000}, () => withPage(async (page, base) => {
+  await page.goto(`${base}?demo&stats`, {waitUntil: 'load'});
+  await page.waitForFunction(() => /meshes\s+[1-9]/.test(document.querySelector('#render-stats')?.textContent || ''), null, {timeout: 30000});
+  const text = await page.$eval('#render-stats', pre => pre.textContent);
+  const read = label => {
+    const found = new RegExp(`${label}\\s+([\\d.]+)(k|M)?`).exec(text);
+    return found ? Number(found[1]) * ({k: 1e3, M: 1e6}[found[2]] || 1) : NaN;
+  };
+  const [calls, triangles, meshes, lights] = ['calls', 'triangles', 'meshes', 'lights'].map(read);
+  // Generous ceilings (the demo measures about 1900 calls over all passes, 750k triangles, 500 meshes, 8 lights): they catch a runaway effect or a duplicated scene, not tuning.
+  assert.ok(calls > 0 && calls < 4000, `draw calls out of range:\n${text}`);
+  assert.ok(triangles > 0, `nothing was drawn:\n${text}`);
+  assert.ok(triangles < 3e6, `triangle count too high:\n${text}`);
+  assert.ok(meshes > 0 && meshes < 3000, `mesh count out of range:\n${text}`);
+  assert.ok(lights >= 1 && lights < 40, `light count out of range:\n${text}`);
+}));
