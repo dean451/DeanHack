@@ -29,3 +29,15 @@ test('snakes crawl out one after another, never backwards, and pause to taste th
   }
   assert.ok(snakePose(0, .5).alpha > snakePose(3, .5).alpha);
 });
+
+test('each snake lifts its head only while it tastes the air and rests flat otherwise', () => {
+  for (let i = 0; i < SNAKES.count; i++) {
+    let peak = 0;
+    for (let t = 0; t <= SNAKES.total; t += .005) {
+      const p = snakePose(i, t);
+      for (let k = 0; k < 7; k++) { const r = p.rear(k); assert.ok(r >= 0 && r <= .12, `${i} ${t} ${k}`); if (k) assert.ok(r <= p.rear(k - 1) + 1e-9); peak = Math.max(peak, r); }
+    }
+    assert.ok(peak > .05, String(i));
+    for (const t of [0, SNAKES.total]) assert.equal(snakePose(i, t).rear(0), 0);
+  }
+});
