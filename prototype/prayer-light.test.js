@@ -1,18 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {prayerKind, pillarPose, glowPose, createPrayerLight, TOTAL} from './prayer-light.js';
+import {prayerKind, pillarPose, glowPose, createPrayerLight, wispPose, WISPS, TOTAL} from './prayer-light.js';
 
 test('only the prayer messages count', () => {
   assert.equal(prayerKind('You begin praying to Anhur.'), 'begin');
   assert.equal(prayerKind('You are surrounded by a shimmering light.'), 'boon');
   assert.equal(prayerKind('Suddenly, a bolt of lightning strikes you!'), 'wrath');
   assert.equal(prayerKind('"Thou hast angered me."'), 'wrath');
+  assert.equal(prayerKind('You feel much better.'), 'fix');
   for (const t of ['You hit the newt.', 'You pray.', null]) assert.equal(prayerKind(t), null, String(t));
 });
 
 test('pillars stay in bounds, start and end at nothing, and the begin pillar never outshines a boon', () => {
-  for (const kind of ['begin', 'boon', 'wrath']) {
+  for (const kind of ['begin', 'boon', 'wrath', 'fix']) {
     assert.equal(pillarPose(kind, 0).alpha, 0);
     assert.equal(pillarPose(kind, TOTAL[kind]).alpha, 0);
     assert.equal(glowPose(kind, TOTAL[kind]).alpha, 0);
@@ -43,4 +44,27 @@ test('a prayer plays, a boon replaces the begin pillar, and nothing is left behi
   fx.message('You begin praying to Anhur.', 0, 0); fx.clear();
   assert.equal(parent.children.length, 0);
   fx.dispose();
+});
+
+test('fix wisps rise dark and thin, stay in bounds and are all gone by the end', () => {
+  assert.equal(pillarPose('fix', 1).alpha, 0);
+  for (let i = 0; i < WISPS; i++) {
+    assert.equal(wispPose(i, TOTAL.fix).alpha, 0);
+    let top = 0;
+    for (let t = 0; t < TOTAL.fix; t += .02) {
+      const w = wispPose(i, t);
+      assert.ok(w.alpha >= 0 && w.alpha <= 1 && w.size >= 0 && w.size <= .4 && w.y >= 0 && w.y <= 2.2 && Math.hypot(w.x, w.z) <= .31, `${i} ${t}`);
+      top = Math.max(top, w.y);
+    }
+    assert.ok(top > 1.5);
+  }
+});
+
+test('a fix spawns its wisps and leaves nothing behind', () => {
+  const parent = new THREE.Group(), fx = createPrayerLight(THREE, parent);
+  const g = fx.message('You feel much better.', 2, 2);
+  assert.equal(g.children.length, 2 + WISPS);
+  for (let i = 0; i < 40; i++) fx.update(.1);
+  assert.equal(fx.active, 0);
+  assert.equal(parent.children.length, 0);
 });
