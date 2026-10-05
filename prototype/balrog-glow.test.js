@@ -24,8 +24,9 @@ test('lesser fiends carry no evil glow',()=>{
 });
 
 test('the balrog trails smoke and embers and towers over a pit fiend',()=>{
- const smoke=name=>{let n=0;createCreature({name,symbol:38,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.name==='evil-smoke')n++;});return n;};
- assert(smoke('balrog')>=4);assert(smoke("durin's bane")>=4);
+ const smoke=name=>{let n=0;createCreature({name,symbol:38,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.name==='evil-smoke')n+=o.geometry.attributes.position.count;});return n;};
+ // the six trailing cones are baked into one mesh (transparent, so mergeStatic would not), so count their vertices
+ assert(smoke('balrog')>=6*7);assert(smoke("durin's bane")>=6*7);
  const h=name=>new THREE.Box3().setFromObject(createCreature({name,symbol:38,color:1}).g).getSize(new THREE.Vector3()).y;
  assert(h('balrog')>h('pit fiend'));assert(h("durin's bane")>h('balrog'));
 });
@@ -91,4 +92,10 @@ test('the marilith wears a gilt torque of spikes and bloody slashes',()=>{
  const has=(name,mark)=>{let n=0;createCreature({name,symbol:38,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.name===mark)n++;});return n>0;};
  assert(has('marilith','devil-gilt')&&has('marilith','devil-gore'),'marilith has a torque and gore');
  assert(!has('vrock','devil-gilt')&&!has('bone devil','devil-gore'),'marks stay with their own devil');
+});
+
+test('the marilith glows with evil too, within the mesh cap',()=>{
+ const m=createCreature({name:'marilith',symbol:38,color:1});let glow=0,meshes=0;
+ m.g.traverse(o=>{if(o.isMesh){meshes++;if(o.material.name==='evil-glow')glow++;}});
+ assert(glow>=2,'marilith has evil-glow parts');assert(meshes<=25,'marilith stays within the mesh cap: '+meshes);
 });
