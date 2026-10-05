@@ -20,7 +20,7 @@ test('the balrog and Durin\'s Bane glow with evil: cracks in the hide and a hell
 
 test('lesser fiends carry no evil glow',()=>{
  assert.equal(glows('mail daemon').length,0);
- assert.equal(glows('succubus').length,0);
+ assert.equal(glows('incubus').length,0);
 });
 
 test('the balrog trails smoke and embers and towers over a pit fiend',()=>{
@@ -121,4 +121,10 @@ test('the djinni and sandestin glow with their own fire and stand larger than a 
  for(const name of ['djinni','sandestin']){const parts=glows(name);
  assert(parts.length>=2,name+' has evil-glow parts');
  assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),name+' has a pool of light below');}
+});
+
+test('the succubus glows with evil: cracks in the skin and a hellglow pool',()=>{
+ const parts=glows('succubus');
+ assert(parts.length>=2,'succubus has evil-glow parts');
+ assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),'succubus has a hellglow pool');
 });
