@@ -24,3 +24,10 @@ test('ettins wear spiked iron collars and other giants do not', () => {
   for (const n of ['giant', 'hill giant', 'stone giant']) assert(!createCreature({name: n, symbol: 'H'.charCodeAt(0), color: 1}).g.userData.collared, n);
   assert(meshCount(createCreature({name: 'ettin', symbol: 'H'.charCodeAt(0), color: 1})) <= 30);
 });
+
+test('fire giants are cracked like cooling slag and no other giant is', () => {
+  const H = n => createCreature({name: n, symbol: 'H'.charCodeAt(0), color: 1});
+  assert.equal(H('fire giant').g.userData.cracked, true);
+  for (const n of ['giant', 'frost giant', 'stone giant', 'lord surtur']) assert(!H(n).g.userData.cracked, n);
+  assert(meshCount(H('fire giant')) <= 30);
+});
