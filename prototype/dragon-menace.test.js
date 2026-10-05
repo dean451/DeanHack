@@ -136,3 +136,8 @@ test('a fresh wisp leaves the nostril, and smoke hangs in place when the dragon 
   updateDragonMenace(a, 0, t, false);
   assert.equal(a.menace.smoke.wisps.length, 0);
 });
+
+test('dragon wings are torn, with holes cut in the membrane; feathered amphiteres are spared', () => {
+  const verts = a => { let n = 0; a.wings[0].traverse(o => { if (o.isMesh && o.geometry.type === 'ShapeGeometry') n = o.geometry.attributes.position.count; }); return n; };
+  assert(verts(dragon('draken')) > verts(dragon('amphitere')) + 5, 'holes add vertices (a plain outline has 27)');
+});

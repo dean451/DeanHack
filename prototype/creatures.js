@@ -216,6 +216,8 @@ function dragonWing(parent,side,span,m,feathered){
  // leading edge out to the tip, then a scalloped trailing edge between the finger bones
  const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(...elbow);shape.lineTo(...tip);
  let prev=tip;for(const q of fingers){const mx=(prev[0]+q[0])/2,my=(prev[1]+q[1])/2;shape.quadraticCurveTo(mx+(elbow[0]-mx)*.28,my+(elbow[1]-my)*.28,...q);prev=q;}
+ // torn holes between the finger bones: a dragon's membrane is old, scarred and ragged (feathered wings are spared)
+ if(!feathered)for(const [hx,hy,hr,ha] of [[.3,.1,.05,.2],[.44,.15,.035,1.1],[.2,.04,.035,2.3]]){const hole=new THREE.Path();for(let k=0;k<3;k++){const an=ha+k*2.1,rr=hr*(k===1?1.5:1);hole[k?'lineTo':'moveTo'](side*(hx+Math.cos(an)*rr)*span,(hy+Math.sin(an)*rr)*span);}hole.closePath();shape.holes.push(hole);}
  part(inner,new THREE.ShapeGeometry(shape,6),feathered?m.feather:m.membrane);
  tube(inner,[[0,0,0],[...elbow,0],[...tip,0]],.014*span,m.dark,8);
  for(const q of fingers.slice(0,3))tube(inner,[[...elbow,0],[(elbow[0]+q[0])/2,(elbow[1]+q[1])/2+.02*span,0],[...q,0]],.007*span,m.dark,6);
