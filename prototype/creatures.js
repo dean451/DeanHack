@@ -2315,9 +2315,11 @@ function demon(o){
   for(const side of [-1,1]){const c=rounded(body,.01,.07,.008,ember,side*.12*bulk,chestY+.05,.1,.004);c.rotation.z=side*.7;c.castShadow=false;}
   const p=cylinder(body,.62,.7,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;
   // presence: dark smoke trails off the shoulders and horns, and embers hang in the air around the fiend (static, no per-frame cost)
-  const smoke=mat('#1a1210',{roughness:1,transparent:true,opacity:.38,depthWrite:false}),spark=mat(o.evil,{emissive:o.evil,emissiveIntensity:3});smoke.name='evil-smoke';spark.name='evil-glow';
-  for(const side of [-1,1])for(let i=0;i<3;i++){const c=cone(body,.07-i*.012,.4+i*.12,smoke,side*(.2+i*.05)*bulk,chestY+.3+i*.1,-.1-i*.03,6);c.rotation.z=-side*(.15+i*.12);c.castShadow=false;}
-  for(let i=0;i<7;i++){const a=i*2.4,r=.3+.06*(i%3),e=sphere(body,.011,spark,Math.sin(a)*r*bulk,.3+i*.13,Math.cos(a)*r*bulk);e.castShadow=false;}}
+  const smoke=mat('#1a1210',{roughness:1,transparent:true,opacity:.38,depthWrite:false}),trail=new THREE.Group();smoke.name='evil-smoke';
+  // the trails are transparent, so mergeStatic leaves them alone: bake the six cones into one mesh here
+  for(const side of [-1,1])for(let i=0;i<3;i++){const c=cone(trail,.07-i*.012,.4+i*.12,smoke,side*(.2+i*.05)*bulk,chestY+.3+i*.1,-.1-i*.03,6);c.rotation.z=-side*(.15+i*.12);c.updateMatrix();}
+  const trails=part(body,mergeGeometries(trail.children.map(c=>c.geometry.clone().applyMatrix4(c.matrix))),smoke);trails.castShadow=false;
+  for(let i=0;i<7;i++){const a=i*2.4,r=.3+.06*(i%3),e=rounded(body,.02,.02,.02,ember,Math.sin(a)*r*bulk,.3+i*.13,Math.cos(a)*r*bulk,.006);e.castShadow=false;}}
  // signature detail for the lesser devils: each carries the mark of its own torment
  if(o.mark==='ribs'){const bone=mat('#d8cfb4',{roughness:.6});bone.name='devil-ribs';for(let i=0;i<4;i++){const y=chestY-.06+i*.05;for(const side of [-1,1])tube(body,[[side*.02,y,.15*bulk],[side*.11,y-.01,.13*bulk],[side*.17,y-.04,.05*bulk]],.009,bone,6).castShadow=false;}}
  if(o.mark==='frost'){const ice=mat('#cfeaff',{emissive:'#50b8ff',emissiveIntensity:.9,roughness:.2,transparent:true,opacity:.8});ice.name='devil-rime';
@@ -2356,7 +2358,7 @@ const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,sca
 const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',horns:'short',head:'toad',tail:true},'lava demon':{skin:'#5a2418',eye:'#ffdd40',horns:'short',flame:'#ff6a20',tail:true},
  'horned devil':{skin:'#8a3a24',mark:'iron',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident',scale:1.1},succubus:{skin:'#d8a090',eye:'#ff60a0',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true},
  incubus:{skin:'#b07a60',eye:'#ff60a0',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true},erinys:{skin:'#a86a58',eye:'#ff4030',slim:true,hair:'#3a2418',wings:.8,weapon:'sword'},
- 'barbed devil':{skin:'#9a2e20',evil:'#ff2a28',horns:'short',spikes:true,tail:true,scale:1.1},marilith:{skin:'#7a3a5a',mark:'gilt',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true,scale:1.1},
+ 'barbed devil':{skin:'#9a2e20',evil:'#ff2a28',horns:'short',spikes:true,tail:true,scale:1.1},marilith:{skin:'#7a3a5a',mark:'gilt',evil:'#c04a8a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true,scale:1.1},
  vrock:{skin:'#6a5a48',mark:'ruff',evil:'#a8b030',head:'beak',horn:'#3a3028',wings:.9,scale:1.1},'bone devil':{skin:'#9a9078',mark:'ribs',evil:'#c8e04a',head:'skull',spikes:'bone',tail:true,scale:1.1},
  'ice devil':{skin:'#b8d0e0',mark:'frost',evil:'#50b8ff',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true,scale:1.15},nalfeshnee:{skin:'#5a4a3a',mark:'boils',evil:'#e07a20',head:'boar',spikes:'bone',wings:.5,bulk:1.3,scale:1.15},
  'pit fiend':{skin:'#7a1a18',evil:'#ff3a1a',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.1},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.35},
