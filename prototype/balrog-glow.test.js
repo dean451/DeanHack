@@ -162,3 +162,13 @@ test('evil-glow floor pools hang from the creature root, so leaning attacks cann
   for(const p of pools){let a=p,leans=false;while(a){if(a===c.body)leans=true;a=a.parent;}assert(!leans,name+' pool is not under the leaning body');}
  }
 });
+
+test('the Nazgul glow with dread: a cold pool under the hem, a lit blade edge, and a towering height',()=>{
+ const parts=glows('nazgul');
+ assert(parts.length>=2,'nazgul has evil-glow parts');
+ assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),'nazgul has a pool of light on the floor');
+ assert(parts.some(m=>!m.material.transparent&&m.material.emissiveIntensity>=2),'nazgul blade edge glows');
+ assert.equal(glows('wraith').length,0);assert.equal(glows('barrow wight').length,0);
+ const h=name=>new THREE.Box3().setFromObject(createCreature({name,symbol:87,color:1}).g).getSize(new THREE.Vector3()).y;
+ assert(h('nazgul')>h('wraith')*1.15);
+});

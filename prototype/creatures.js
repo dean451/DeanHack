@@ -1655,9 +1655,13 @@ function wraith(o){
  if(o.circlet){cylinder(head,.17,.18,.04,mat('#7a5a34',{roughness:.6,metalness:.5}),0,1.2-H,-.01,12);sphere(head,.022,glow,0,1.2-H,.17);}
  if(o.crown){const silver=mat('#c8ccd4',{roughness:.25,metalness:.9});cylinder(head,.16,.17,.05,silver,0,1.26-H,-.01,12);for(let i=0;i<7;i++){const a=(i/7-.5)*Math.PI*1.4;cone(head,.018,.1,silver,Math.sin(a)*.16,1.32-H,-.01+Math.cos(a)*.16,4);}}
  if(o.sword){const blade=rounded(body,.04,.5,.012,o.crown?mat('#9aa0ac',{roughness:.3,metalness:.85}):mat('#8a7a64',{roughness:.6,metalness:.5}),.3,.74,.2,.008);blade.rotation.x=.9;rounded(body,.13,.025,.035,trim,.3,.62,.08,.008).rotation.x=.9;}
+ // evil glow (Nazgul): a pool of cold dread under the hem and a morgul-lit edge along the blade
+ if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.5,transparent:true,opacity:.3,depthWrite:false}),edge=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=edge.name='evil-glow';
+  const p=cylinder(g,.55,.62,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;
+  const e=rounded(body,.012,.46,.008,edge,.3,.74,.21,.004);e.rotation.x=.9;e.castShadow=false;}
  return trimDraws(Object.assign(actor(g,body,[],null,[],'hover'),{head,arms,arm:arms[1],claws},o.kind?{wraith:o.kind}:{}));
 }
-const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff'},'barrow wight':{robe:'#4a4a3a',glow:'#e0c040',bone:'#a89878',solid:true,circlet:true,sword:true},nazgul:{robe:'#141218',glow:'#ff3a2a',crown:true,sword:true,scale:1.1}};
+const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff'},'barrow wight':{robe:'#4a4a3a',glow:'#e0c040',bone:'#a89878',solid:true,circlet:true,sword:true},nazgul:{robe:'#141218',glow:'#ff3a2a',crown:true,sword:true,evil:true,scale:1.3}};
 
 // Vampires: a tall, pale aristocrat in a high-collared cape with a red lining, slicked hair with a widow's peak,
 // fangs and red eyes. Lords wear a gold medallion, mages a violet cape and a glowing hand orb,
