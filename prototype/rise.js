@@ -67,9 +67,11 @@ export function risePose(u, from = null, buried = false) {
   // it overshoots upright, swaying back past vertical, then steadies
   const sway = u > .7 ? Math.sin((u - .7) / .3 * Math.PI * 2) * .1 * (1 - (u - .7) / .3) : 0;
   const hunch = Math.sin(up * Math.PI);              // bent forward while it pushes up
+  // halfway up, the neck cracks sideways the wrong way, once, and the head lolls back into place
+  const crick = Math.sin(Math.PI * clamp01((u - .55) / .14)) ** 2 * .3;
   p.roll = 1.45 * (1 - up) + twitch + sway;
   p.pitch = .3 * hunch;
-  p.head = -.4 * (1 - up) + .3 * hunch * (1 - up) + twitch * 1.5;
+  p.head = -.4 * (1 - up) + .3 * hunch * (1 - up) + twitch * 1.5 + crick;
   p.scale = 1 - .12 * (1 - up);
   if (buried) {
     // clawing out of the ground: sunk to the shoulders, standing as it comes up
