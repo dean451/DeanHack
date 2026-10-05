@@ -15,15 +15,15 @@ export const DIG_TIME = .85;
 export const BITE_U = .52, HANG_U = .34;
 const FIELDS = ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'shield', 'twist', 'lean', 'offArm', 'offElbow'];
 const REST = Object.fromEntries(FIELDS.map(f => [f, 0]));
-const TOP = {arm: -2.9, armZ: .3, elbow: -.45, wrist: -.5, socket: .45, shield: .22, twist: .2, lean: -.16, offArm: 0, offElbow: 0};
-const BITE = {arm: -1.0, armZ: -.05, elbow: .4, wrist: .4, socket: -1.1, shield: .05, twist: -.12, lean: .26, offArm: 0, offElbow: 0};
+const TOP = {arm: -2.9, armZ: .3, elbow: -.45, wrist: -.5, socket: .45, shield: .22, twist: .2, lean: -.16, offArm: -.55, offElbow: .4};
+const BITE = {arm: -1.0, armZ: -.05, elbow: .4, wrist: .4, socket: -1.1, shield: .05, twist: -.12, lean: .26, offArm: .35, offElbow: -.2};
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
 export const digMessage = text => typeof text === 'string' && /^You hit the .+ with all your might\.$/.test(text);
 
 // Offsets at normalised time u: a slow haul to the top, a hang with a faint quiver, a fast
-// accelerating drop to the bite, then a recoil that shudders and settles back to rest.
+// accelerating drop to the bite (the free hand hauls up with it and flings back as a counterweight), then a recoil that shudders and settles back to rest.
 export function digSwingPose(u) {
   u = clamp01(Number.isFinite(u) ? u : 1);
   const p = {...REST};
@@ -37,7 +37,8 @@ export function digSwingPose(u) {
   } else {
     const k = clamp01((u - BITE_U) / (1 - BITE_U));
     mix(BITE, REST, smooth(k));
-    // the jolt of the strike runs back up the arm and dies away
+    // the jolt of the strike runs back up the arm and dies away; the free hand flings back for balance
+    p.offArm -= .12 * Math.sin(k * Math.PI) * (1 - k);
     const jolt = Math.sin(k * Math.PI * 5) * Math.pow(1 - k, 2);
     p.wrist += .22 * jolt; p.elbow -= .1 * jolt; p.lean += .04 * jolt;
   }
