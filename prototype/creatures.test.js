@@ -2422,8 +2422,8 @@ test('the dark Angel is a fallen angel, not the generic glowing one',()=>{
  const box=a=>{a.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(a.g,true);};
  const b=box(dark);
  assert(b.min.y>=0&&b.min.y<.03,`ragged hem stays above the floor ${b.min.y}`);
- assert(b.max.y>1&&b.max.y<1.25,`height ${b.max.y}`);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'wings fit');
+ assert(b.max.y>1&&b.max.y<1.5,`height ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1,'wings fit');
  for(const m of meshes(dark))for(const x of m.geometry.attributes.position.array)assert(Number.isFinite(x));
  assert.equal(meshes(plain).length,22,'the Angel is unchanged');
 });
@@ -2561,7 +2561,7 @@ test('the minotaur gets its own hunched, horned bull-headed brute with a labrys 
  m.g.updateMatrixWorld(true);
  const box=new THREE.Box3().setFromObject(m.g),s=box.getSize(new THREE.Vector3());
  assert(box.min.y>-.02&&box.min.y<.02,`stands on the floor ${box.min.y}`);
- assert(s.y>1.3&&s.y<1.7,`height ${s.y}`);
+ assert(s.y>1.7&&s.y<2.1,`height ${s.y}`);
  // the head hangs forward of the chest, below the top of the hump and horns
  const head=new THREE.Box3().setFromObject(m.head);
  assert(head.max.z>.4,`the muzzle juts forward ${head.max.z}`);
@@ -2647,4 +2647,12 @@ test('the titan is a scarred colossus, taller than any ordinary giant',()=>{
  const t=createCreature({name:'titan',symbol:72,color:5}),f=createCreature({name:'fire giant',symbol:72,color:1});
  assert(t.g.userData.scarred&&!f.g.userData.scarred,'war-scars on the breastplate');
  assert(t.g.scale.y>=1.4&&t.g.scale.y>f.g.scale.y,'the titan towers over giants');
+});
+
+test('angels, the dark Angel, aleaxes and archons stand taller than a man, the archon tallest of the light',()=>{
+ const h=n=>{const c=createCreature({name:n});c.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(c.g).getSize(new THREE.Vector3()).y;};
+ const [angel,aleax,archon,dark]=['angel','aleax','archon','dark angel'].map(h);
+ assert(angel>h('dwarf')*.95&&aleax>1.1,`angel ${angel} aleax ${aleax}`);
+ assert(archon>angel&&angel>aleax,`archon ${archon} angel ${angel} aleax ${aleax}`);
+ assert(dark>angel,`dark angel ${dark} looms over an angel ${angel}`);
 });
