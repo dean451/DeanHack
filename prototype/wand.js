@@ -17,13 +17,16 @@ const METALS = {tin: [0xb2b7b5, .7, .42], brass: [0xc39a48, .85, .3], copper: [0
   silver: [0xd8dde2, .95, .18], platinum: [0xe4e4de, .95, .14], iridium: [0xaec4d2, .95, .2],
   zinc: [0x9ca6aa, .7, .46], aluminum: [0xc8ccd0, .8, .3], uranium: [0x6d7a58, .6, .5],
   iron: [0x55595e, .75, .55], steel: [0x98a3aa, .9, .24], bronze: [0x9a7738, .85, .36],
-  rusty: [0x7b3f24, .35, .88], chrome: [0xeef1f3, 1, .06]};
+  rusty: [0x7b3f24, .35, .88], chrome: [0xeef1f3, 1, .06],
+  titanium: [0x80878d, .85, .5], electrum: [0xd9c88e, .92, .2]};
 // Shape-only appearances are iron in objects.c (jeweled is gemstone, forked is wood).
 const SHAPES = new Set(['hexagonal', 'octagonal', 'short', 'long', 'curved', 'runed', 'spiked', 'forked', 'jeweled']);
 const STONES = {marble: 0xe6e2da, ceramic: 0xd8c3a0, porcelain: 0xf3f2ee, black: 0x151515};
+// Moulded plastic (a dull black rod) and bone (yellowed, with a knuckled grip): neither is stone or wood.
+const ODD = {plastic: 0x1d1f22, bone: 0xcfc3a2};
 const GLASSES = {glass: [0xbfe4ea, .5], crystal: [0xe6f3ff, .45], quartz: [0xf1ece6, .7]};
 export const WAND_APPEARANCES = [...Object.keys(WOODS), ...Object.keys(METALS), ...SHAPES,
-  ...Object.keys(STONES), ...Object.keys(GLASSES)].filter((v, i, a) => a.indexOf(v) === i);
+  ...Object.keys(STONES), ...Object.keys(ODD), ...Object.keys(GLASSES)].filter((v, i, a) => a.indexOf(v) === i);
 
 // The appearance from a hero-view name: "oak wand", "2 oak wands", "oak wand named x".
 // "wand of fire" and "wand called fire" carry none, so they get the plain wand.
@@ -59,6 +62,9 @@ function wandLook(look) {
     L.radius = .021; L.taper = .85;
     if (look === 'marble') L.extras.push('veins');
     if (look === 'porcelain') L.extras.push('bands');
+  } else if (look in ODD) {
+    if (look === 'plastic') { L.shaft = std(ODD.plastic, 0, .3); L.fit = std(0x34373b, 0, .38); L.radius = .019; }
+    else { L.shaft = std(ODD.bone, 0, .66); L.fit = std(0x8b7c5a, 0, .8); L.radius = .021; L.taper = .8; L.extras.push('knots'); }
   } else if (look in GLASSES) {
     const [c, opacity] = GLASSES[look];
     L.shaft = std(c, .05, .06, {transparent: true, opacity, emissive: c, emissiveIntensity: .08});
@@ -129,7 +135,7 @@ function buildParts(L) {
       const y = span(i, extra === 'bands' ? 3 : 4), ring = new THREE.TorusGeometry(rAt(y) * 1.01, extra === 'bands' ? .003 : .0018, 4, 14);
       put('fit', ring, 0, y, 0, Math.PI / 2 + (extra === 'veins' ? (i % 2 ? .5 : -.4) : 0));
     }
-    if (extra === 'knots') for (const [y, a] of [[.08, 0], [.2, 2.4]]) put('shaft', new THREE.SphereGeometry(.011, 6, 5), Math.cos(a) * rAt(y), y, Math.sin(a) * rAt(y));
+    if (extra === 'knots') for (const [y, a] of L.tip === 'fork' ? [[.08, 0], [.2, 2.4]] : [[.06, 0], [.14, 2.1], [.22, 4.2], [.3, 1]]) put('shaft', new THREE.SphereGeometry(.011, 6, 5), Math.cos(a) * rAt(y), y, Math.sin(a) * rAt(y));
     if (extra === 'pits') for (let i = 0; i < 6; i++) { const y = span(i, 6), a = around(i, 6, i * 1.7); put('fit', new THREE.SphereGeometry(.006, 5, 4), Math.cos(a) * rAt(y), y, Math.sin(a) * rAt(y)); }
     if (extra === 'spikes') for (let i = 0; i < 3; i++) for (let k = 0; k < 4; k++) {
       const y = .08 + i * .09, a = around(k, 4, i * .8), cone = new THREE.ConeGeometry(.007, .03, 5);
