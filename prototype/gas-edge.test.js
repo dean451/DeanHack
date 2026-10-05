@@ -53,3 +53,16 @@ test('the overlay eases in, eases out and is never made outside gas', () => {
   assert.equal(made[0].style.opacity, '0');
   assert.equal(style.transform, '');
 });
+
+test('the hero folds forward with each heave and stands upright between coughs', async () => {
+  const {coughHunch, COUGH_HUNCH} = await import('./gas-edge.js');
+  assert.equal(coughHunch({flare: 0, jolt: 0}), 0);
+  let peak = 0;
+  for (let t = 0; t < COUGH_LEN; t += .01) { const h = coughHunch(coughState(t, 1)); assert.ok(h >= 0 && h <= COUGH_HUNCH); peak = Math.max(peak, h); }
+  assert.ok(peak > COUGH_HUNCH * .4);
+  const edge = createGasEdge({body: {appendChild() {}}, createElement: () => ({style: {}}), getElementById: () => null});
+  const mesh = {visible: true, parent: {getWorldPosition: v => v.set(0, 0, 0)}};
+  for (let t = 0; t < 12; t += .05) edge.update(t, .05, {x: 0, z: 0}, [mesh]);
+  for (let t = 12; t < 20; t += .1) edge.update(t, .1, {x: 9, z: 9}, [mesh]);
+  assert.equal(edge.hunch, 0);
+});

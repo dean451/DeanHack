@@ -36,14 +36,19 @@ export function coughState(t, exposure) {
   return {flare: heave * COUGH_FLARE * exposure, jolt: heave * COUGH_JOLT * exposure * Math.sin(age * 40)};
 }
 
+// The hero's body folds forward with each heave (radians of forward lean), and is upright between coughs.
+export const COUGH_HUNCH = .34;
+export const coughHunch = cough => Math.min(1, cough.flare / COUGH_FLARE) * COUGH_HUNCH;
+
 // The tint's opacity from smoothed exposure and the cough flare.
 export const gasTint = (exposure, flare = 0) => Math.min(1, exposure * GAS_TINT + flare);
 
 export function createGasEdge(doc = globalThis.document) {
-  let level = 0, last = null, el = null;
+  let level = 0, last = null, el = null, hunch = 0;
   const scratch = new THREE.Vector3();
   return {
     get level() { return level; },
+    get hunch() { return hunch; },
     update(t, dt, heroWorld, gasMeshes) {
       const clouds = [];
       const seen = new Set();
@@ -56,6 +61,7 @@ export function createGasEdge(doc = globalThis.document) {
       level += (target - level) * (1 - Math.exp(-dt * GAS_EASE));
       if (level < .004 && target === 0) level = 0;
       const cough = coughState(t, level);
+      hunch = coughHunch(cough);
       if (!el && level > 0 && doc) {
         el = doc.createElement('div');el.id = 'gas-edge';
         el.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0;background:radial-gradient(ellipse at center,rgba(70,110,20,0) 45%,rgba(78,120,24,.55) 80%,rgba(40,70,10,.9) 100%)';
