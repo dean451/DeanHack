@@ -2875,9 +2875,11 @@ do_twall:
                       S_stone;
             break;
         default:
-            impossible("wall_angle: unknown vwall mode %d",
-                       lev->wall_info & WM_MASK);
-            idx = S_stone;
+            /* Stale mode bits left on a generated level (seen after a level
+               teleport). Treat as the plain wall and clear them rather than
+               hiding the wall behind an impossible(). */
+            lev->wall_info &= ~WM_MASK;
+            idx = seenv ? S_vwall : S_stone;
             break;
         }
         break;
@@ -2893,9 +2895,11 @@ horiz:
                       S_stone;
             break;
         default:
-            impossible("wall_angle: unknown hwall mode %d",
-                       lev->wall_info & WM_MASK);
-            idx = S_stone;
+            /* Stale mode bits left on a generated level (seen after a level
+               teleport). Treat as the plain wall and clear them rather than
+               hiding the wall behind an impossible(). */
+            lev->wall_info &= ~WM_MASK;
+            idx = seenv ? S_hwall : S_stone;
             break;
         }
         break;
@@ -2906,9 +2910,9 @@ horiz:
     case WM_C_OUTER: idx = seenv &  (outer) ? which : S_stone; break;   \
     case WM_C_INNER: idx = seenv & ~(inner) ? which : S_stone; break;   \
     default:                                \
-        impossible("wall_angle: unknown %s mode %d", name,          \
-                   (lev)->wall_info & WM_MASK);                    \
-        idx = S_stone;                          \
+        /* stale mode bits: draw the plain corner and clear them */    \
+        (lev)->wall_info &= ~WM_MASK;                   \
+        idx = which;                            \
         break;                              \
     }
 
