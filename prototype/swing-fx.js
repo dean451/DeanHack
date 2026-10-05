@@ -27,12 +27,14 @@ export function weaponReach(socket) {
 export const PLAIN_TINT = [.85, .9, 1];
 export function createSwingFx(THREE, parent) {
   const trail = createSwingTrail(THREE), burst = createImpactBurst(THREE, 128, 7);
-  parent.add(trail.mesh, burst.points);
+  // A second, shorter ribbon for the off-hand blade of a two-weapon strike.
+  const offTrail = createSwingTrail(THREE, 8, .1);
+  parent.add(trail.mesh, offTrail.mesh, burst.points);
   const base = new THREE.Vector3(), tip = new THREE.Vector3(), at = new THREE.Vector3();
   // Where along the weapon the ribbon's inner edge sits (the blade, not the grip).
   const INNER = .25;
   function update(hero, dt, targetName = null) {
-    const s = hero?.actions?.swing, socket = hero?.weaponSocket;
+    const s = hero?.actions?.swing, socket = s?.off && hero?.offhandSocket ? hero.offhandSocket : hero?.weaponSocket;
     if (s?.trail && socket) {
       const reach = weaponReach(socket);
       socket.updateWorldMatrix(true, false);
@@ -41,8 +43,9 @@ export function createSwingFx(THREE, parent) {
       parent.updateWorldMatrix(true, false);
       parent.worldToLocal(base); parent.worldToLocal(tip);
       // a magic weapon's trail takes its colour (weapon-magic.js); plain steel stays pale blue
-      trail.setTint(socket.userData.weaponMagic?.tint ?? PLAIN_TINT);
-      if ([base.x, base.y, base.z, tip.x, tip.y, tip.z].every(Number.isFinite)) trail.sample(base, tip);
+      const ribbon = s.off ? offTrail : trail;
+      ribbon.setTint(socket.userData.weaponMagic?.tint ?? PLAIN_TINT);
+      if ([base.x, base.y, base.z, tip.x, tip.y, tip.z].every(Number.isFinite)) ribbon.sample(base, tip);
     }
     if (s?.contact && hero.g) {
       const d = Array.isArray(s.dir) ? s.dir : null, len = d ? Math.hypot(d[0], d[1]) : 0;
@@ -53,8 +56,9 @@ export function createSwingFx(THREE, parent) {
       burst.burst(at, [dx, dz], impactKind(s.target ?? targetName), s.blow);
     }
     trail.update(dt);
+    offTrail.update(dt);
     burst.update(dt);
   }
-  return {trail, burst, update,
-    dispose() { parent.remove(trail.mesh, burst.points); trail.dispose(); burst.dispose(); }};
+  return {trail, offTrail, burst, update,
+    dispose() { parent.remove(trail.mesh, offTrail.mesh, burst.points); trail.dispose(); offTrail.dispose(); burst.dispose(); }};
 }

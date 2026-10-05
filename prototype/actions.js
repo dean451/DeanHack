@@ -271,11 +271,12 @@ export function updateActions(actor, q, dt) {
   if (a.swing) {
     pose.arm = pose.wrist = pose.socket = 0;
     // Wielding two weapons, the off hand takes every other strike.
-    pose.swing = actor.dual ? dualSwingPose(a.blow, u, a.result, q.strikes % 2 === 0) : swingPose(a.blow, u, a.result);
+    const off = !!actor.dual && q.strikes % 2 === 0;
+    pose.swing = actor.dual ? dualSwingPose(a.blow, u, a.result, off) : swingPose(a.blow, u, a.result);
     // What the renderer needs for the trail and the impact burst. `contact` is true on the one
     // frame the blade reaches a target it hits.
     const tc = CONTACT_U[blowOf(a.blow)] * SWING_TIME;
-    q.swing = {blow: blowOf(a.blow), u, trail: swingTrailOn(a.blow, u), dir: a.dir, target: a.target ?? null,
+    q.swing = {blow: blowOf(a.blow), u, trail: swingTrailOn(a.blow, u), off, dir: a.dir, target: a.target ?? null,
       contact: a.result === 'hit' && before < tc && q.age >= tc};
   }
   const restY = actor.g.position.y;

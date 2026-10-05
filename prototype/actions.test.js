@@ -205,6 +205,26 @@ test('hero weapon attacks play the swing arc with hitstop and a single contact, 
   }
 });
 
+test('two-weapon strikes flag every other blow as the off hand\'s, one-weapon strikes never do', () => {
+  for (const dual of [true, false]) {
+    const r = knight(), q = createActionQueue();
+    Object.defineProperty(r, 'dual', {get: () => dual});
+    const flags = [];
+    for (let n = 0; n < 4; n++) {
+      enqueueAction(q, {kind: 'attack', attack: 'weapon', blow: 'slash', result: 'hit', dir: [0, 1]});
+      let seen = null;
+      for (let t = 0; t < 1; t += 1 / 60) {
+        clearActionPose(r, q);
+        const state = updateActions(r, q, 1 / 60);
+        if (q.swing && seen === null) seen = q.swing.off;
+        if (state === 'idle') break;
+      }
+      flags.push(seen);
+    }
+    assert.deepEqual(flags, dual ? [false, true, false, true] : [false, false, false, false]);
+  }
+});
+
 test('a monster weapon attack keeps the generic arm wave, and swings count in hold-back time', () => {
   const d = createCreature({name: 'dwarf'}), q = createActionQueue();
   enqueueAction(q, {kind: 'attack', attack: 'weapon', blow: 'slash', result: 'hit', dir: [1, 0]});
