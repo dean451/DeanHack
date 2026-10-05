@@ -13,11 +13,13 @@ import {clamp01, smooth, rng} from './fx-textures.js';
 
 export const MAX_BURSTS = 4, CHIPS = 14;
 // How each message looks: chips thrown, how hard, how long (s) the burst lives and a dust ring.
+// `slump` is how many of the chips are not thrown at all: they are the last strike's rubble,
+// which lets go a beat after the blow and drops straight down, so the rock gives way in stages.
 export const DIG_LOOKS = {
-  blow: {chips: 6, speed: 1.3, life: .7, dust: 0},
-  pit: {chips: 10, speed: 1.5, life: .95, dust: 1},
-  hole: {chips: CHIPS, speed: 1.8, life: 1.2, dust: 1},
-  breach: {chips: CHIPS, speed: 2, life: 1.1, dust: 1},
+  blow: {chips: 6, speed: 1.3, life: .7, dust: 0, slump: 0},
+  pit: {chips: 10, speed: 1.5, life: .95, dust: 1, slump: 0},
+  hole: {chips: CHIPS, speed: 1.8, life: 1.2, dust: 1, slump: 5},
+  breach: {chips: CHIPS, speed: 2, life: 1.1, dust: 1, slump: 6},
 };
 
 export function digMessage(text) {
@@ -36,6 +38,12 @@ export function chipFlight(kind, seed, i, t) {
   const look = DIG_LOOKS[kind] ?? DIG_LOOKS.blow;
   if (!(t >= 0) || t >= look.life || i >= look.chips) return null;
   const r = rng(seed * 31 + i * 7 + 1);
+  if (i >= look.chips - look.slump) {
+    // rubble: hangs unseen, lets go after .2 to .45 s, falls from above the tile and lies where it lands
+    const wait = .2 + .25 * r(), top = .8 + .5 * r(), a = r() * Math.PI * 2, d = .3 * r(), f = Math.max(0, t - wait);
+    return {x: Math.cos(a) * d, y: Math.max(.03, top - .5 * GRAVITY * f * f), z: Math.sin(a) * d,
+      size: .04 + .025 * r(), alpha: t < wait ? 0 : 1 - smooth((t / look.life - .6) / .4), grey: .3 + .25 * r()};
+  }
   const a = r() * Math.PI * 2, sp = look.speed * (.4 + .6 * r()), up = 1 + 1.4 * r();
   let y = .35 + up * t - .5 * GRAVITY * t * t;
   if (y < .03) {

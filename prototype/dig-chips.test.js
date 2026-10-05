@@ -45,3 +45,22 @@ test('bursts are capped, expire and clear back to nothing', () => {
   assert.equal(dig.update(0).bursts, 0);
   dig.dispose();
 });
+
+test('the last strike lets go of rubble a beat late, and it drops straight down', () => {
+  assert.equal(DIG_LOOKS.blow.slump, 0);
+  for (const kind of ['hole', 'breach']) {
+    const look = DIG_LOOKS[kind], i = look.chips - 1;
+    assert.ok(look.slump > 0 && look.slump < look.chips, kind);
+    assert.equal(chipFlight(kind, 5, i, 0).alpha, 0, 'unseen while it hangs');
+    let seen = 0, last = null;
+    for (let t = 0; t < look.life; t += .02) {
+      const c = chipFlight(kind, 5, i, t);
+      if (c.alpha > 0) seen++;
+      if (last && t > .5) assert.ok(c.y <= last.y + 1e-9, 'never rises once let go');
+      assert.ok(Math.hypot(c.x, c.z) <= .3 + 1e-9, 'stays over the tile');
+      last = c;
+    }
+    assert.ok(seen > 10, 'shows up');
+    assert.equal(chipFlight(kind, 5, look.chips - look.slump - 1, 0).alpha, 1, 'thrown chips still fly at once');
+  }
+});
