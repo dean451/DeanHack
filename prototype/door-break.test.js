@@ -205,3 +205,31 @@ test('walking through an open door is not a break', () => {
   // A real break still shows once the doorway is clear.
   assert.equal(findBreaks(room('closed'), room('broken')).length, 1);
 });
+
+// A moat row along z 2 with a drawbridge feature at (2, 2): `state` is 'down' (the lowered
+// span, '.' colour 3), 'up' (the portcullis, '#' colour 3) or 'gone' (plain water).
+const moat = (state, hero = [2, 3]) => {
+  const cells = [];
+  for (let x = 0; x < 5; x++) for (let z = 0; z < 5; z++) {
+    cells.push({x, z, kind: 'terrain', terrain: z === 2 ? 'water' : 'floor', visible: true});
+  }
+  const c = cells.find(k => k.x === 2 && k.z === 2);
+  if (state === 'down') Object.assign(c, {terrain: 'feature', symbol: 46, color: 3});
+  if (state === 'up') Object.assign(c, {terrain: 'feature', symbol: 35, color: 3});
+  return {branch: 'main', depth: 1, player: {x: hero[0], z: hero[1]}, cells};
+};
+
+test('a drawbridge that is struck away bursts into planks, but raising and lowering do not', () => {
+  assert.deepEqual(findBreaks(moat('down'), moat('gone')), [{x: 2, z: 2, seed: 2 * 61 + 2 * 37 + 7, turn: 0, push: -1, wreck: false}]);
+  assert.equal(findBreaks(moat('up'), moat('gone')).length, 1, 'a raised bridge splinters too');
+  assert.equal(findBreaks(moat('down', [2, 1]), moat('gone', [2, 1]))[0].push, 1);
+  assert.deepEqual(findBreaks(moat('down'), moat('down')), []);
+  // Raising: the span goes and the portcullis (next door) comes up.
+  const raised = moat('gone');
+  Object.assign(raised.cells.find(k => k.x === 2 && k.z === 1), {terrain: 'feature', symbol: 35, color: 3});
+  assert.deepEqual(findBreaks(moat('down'), raised), []);
+  // Out of view in frame, or on another level: nothing.
+  const hidden = moat('gone'); hidden.cells.find(k => k.x === 2 && k.z === 2).visible = false;
+  assert.deepEqual(findBreaks(moat('down'), hidden), []);
+  assert.deepEqual(findBreaks(moat('down'), {...moat('gone'), depth: 2}), []);
+});
