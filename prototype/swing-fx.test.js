@@ -106,3 +106,23 @@ test('a contact with no direction strikes where the hero faces, by the seen mate
   const xs = []; for (let i = 0; i < p.length; i += 3) if (p[i + 1] > -100) xs.push(p[i]);
   assert.ok(xs.length && xs.every(x => x > .3), 'particles start to the hero\'s +x');
 });
+
+test('an off-hand strike draws its ribbon from the off-hand blade, not the sword', () => {
+  const world = new THREE.Group(), h = hero(); world.add(h.g);
+  h.offhandSocket = new THREE.Group(); h.offhandSocket.position.set(-.34, .5, .1);
+  h.shieldArm.add(h.offhandSocket); h.offhandSocket.add(createHeldWeapon({name: 'dagger'}));
+  const fx = createSwingFx(THREE, world);
+  assert.ok(world.children.includes(fx.offTrail.mesh));
+  h.actions.swing = {blow: 'slash', u: .4, trail: true, off: true, dir: [0, 1], contact: false};
+  fx.update(h, 1 / 60); fx.update(h, 1 / 60);
+  assert.ok(fx.offTrail.samples >= 2 && fx.trail.samples === 0);
+  // Near the off hand's side of the body, a dagger length from its base.
+  const p = fx.offTrail.mesh.geometry.attributes.position.array;
+  assert.ok(p[3] < 0, 'tip on the off side');
+  h.actions.swing = null;
+  for (let i = 0; i < 30; i++) fx.update(h, 1 / 60);
+  assert.equal(fx.offTrail.samples, 0);
+  assert.equal(fx.offTrail.mesh.visible, false);
+  fx.dispose();
+  assert.ok(!world.children.includes(fx.offTrail.mesh));
+});
