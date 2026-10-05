@@ -18,11 +18,11 @@ export const MAX_BURSTS = 4, CHIPS = 14, PALL_MAX = 8, GRIT_MAX = 6, WALL_MAX = 
 export const DIG_LOOKS = {
   blow: {chips: 6, speed: 1.3, life: .7, dust: 0, slump: 0},
   pit: {chips: 10, speed: 1.5, life: .95, dust: 1, slump: 0},
-  hole: {chips: CHIPS, speed: 1.8, life: 1.2, dust: 1, slump: 5, pall: 6, pallLife: 2.4, grit: 4, gritLife: 3},
+  hole: {chips: CHIPS, speed: 1.8, life: 1.2, dust: 1, slump: 5, pall: 6, pallLife: 2.4, grit: 4, gritLife: 3, voidLife: 2.6},
   breach: {chips: CHIPS, speed: 2, life: 1.1, dust: 1, slump: 6, pall: PALL_MAX, pallLife: 2.8, grit: GRIT_MAX, gritLife: 3.4, wall: WALL_MAX, wallLife: 1.6},
 };
 // How long a burst lives: the chips' life, or the dust pall that hangs on after them.
-const lifeOf = look => Math.max(look.life, look.pallLife || 0, look.gritLife || 0, look.wallLife || 0);
+const lifeOf = look => Math.max(look.life, look.pallLife || 0, look.gritLife || 0, look.wallLife || 0, look.voidLife || 0);
 
 export function digMessage(text) {
   if (typeof text !== 'string') return null;
@@ -105,6 +105,18 @@ export function wallCrumble(kind, seed, i, t, face) {
     grey: .25 + .2 * r()};
 }
 
+// The hole is not a decoration: the floor under the hero gives up. A black disc irises open from
+// a point on the finishing strike, lurches wider in two uneven gulps, then holds a faint slow
+// throb while the hero is about to fall. Returns the disc's scale (0..1 of VOID_R) and opacity.
+export const VOID_R = .34;
+export function voidOpen(kind, t) {
+  const look = DIG_LOOKS[kind];
+  if (!look?.voidLife || !(t >= 0) || t >= look.voidLife) return null;
+  const grow = smooth(t / .35) * .7 + smooth((t - .55) / .3) * .3;
+  const throb = t > .9 ? .03 * Math.sin((t - .9) * 5) : 0;
+  return {scale: Math.min(1, grow + throb), opacity: .92 * Math.min(1, t * 10) * (1 - smooth((t - look.voidLife + .5) / .5))};
+}
+
 export function createDigChips(THREE, parent) {
   const N = MAX_BURSTS * (CHIPS + PALL_MAX + GRIT_MAX + WALL_MAX);
   const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
@@ -117,18 +129,28 @@ export function createDigChips(THREE, parent) {
   points.frustumCulled = false; points.renderOrder = 3; points.userData.part = 'dig-chips';
   parent.add(points);
   const ringGeo = new THREE.RingGeometry(.9, 1, 20).rotateX(-Math.PI / 2);
+  const voidGeo = new THREE.CircleGeometry(VOID_R, 20).rotateX(-Math.PI / 2);
   const bursts = [];
   let count = 0;
 
-  function drop(b) { if (b.ring) { parent.remove(b.ring); b.ring.material.dispose(); } }
+  function drop(b) {
+    if (b.ring) { parent.remove(b.ring); b.ring.material.dispose(); }
+    if (b.void) { parent.remove(b.void); b.void.material.dispose(); }
+  }
   function add(kind, x, z, face) {
     if (!DIG_LOOKS[kind] || !Number.isFinite(x) || !Number.isFinite(z)) return null;
-    const b = {kind, x, z, face, t: 0, seed: ++count, ring: null};
+    const b = {kind, x, z, face, t: 0, seed: ++count, ring: null, void: null};
     if (DIG_LOOKS[kind].dust) {
       b.ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({color: 0x9a8f80, transparent: true, opacity: 0,
         depthWrite: false, side: THREE.DoubleSide}));
       b.ring.position.set(x, .03, z); b.ring.renderOrder = 2;
       parent.add(b.ring);
+    }
+    if (DIG_LOOKS[kind].voidLife) {
+      b.void = new THREE.Mesh(voidGeo, new THREE.MeshBasicMaterial({color: 0x000000, transparent: true, opacity: 0,
+        depthWrite: false}));
+      b.void.position.set(x, .035, z); b.void.renderOrder = 2; b.void.scale.setScalar(.01);
+      parent.add(b.void);
     }
     bursts.push(b);
     if (bursts.length > MAX_BURSTS) drop(bursts.shift());
@@ -177,6 +199,11 @@ export function createDigChips(THREE, parent) {
         col[n * 3] = g * 1.05; col[n * 3 + 1] = g; col[n * 3 + 2] = g * .9;
         n++;
       }
+      if (b.void) {
+        const v = voidOpen(b.kind, b.t);
+        b.void.visible = !!v;
+        if (v) { b.void.scale.setScalar(Math.max(.01, v.scale)); b.void.material.opacity = v.opacity; }
+      }
       if (b.ring) {
         const k = clamp01(b.t / look.life);
         b.ring.scale.setScalar(.12 + .5 * smooth(k));
@@ -188,6 +215,6 @@ export function createDigChips(THREE, parent) {
     return {bursts: bursts.length, chips: n};
   }
   const clear = () => { while (bursts.length) drop(bursts.pop()); update(0); };
-  const dispose = () => { clear(); parent.remove(points); geo.dispose(); points.material.dispose(); ringGeo.dispose(); };
+  const dispose = () => { clear(); parent.remove(points); geo.dispose(); points.material.dispose(); ringGeo.dispose(); voidGeo.dispose(); };
   return {add, message, update, clear, dispose};
 }

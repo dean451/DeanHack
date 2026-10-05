@@ -17,6 +17,9 @@ const FIELDS = ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'shield', 'twist', 'l
 const REST = Object.fromEntries(FIELDS.map(f => [f, 0]));
 const TOP = {arm: -2.9, armZ: .3, elbow: -.45, wrist: -.5, socket: .45, shield: .22, twist: .2, lean: -.16, offArm: -.55, offElbow: .4};
 const BITE = {arm: -1.0, armZ: -.05, elbow: .4, wrist: .4, socket: -1.1, shield: .05, twist: -.12, lean: .26, offArm: .35, offElbow: -.2};
+// How many chained blows it takes to wear the hero down fully, the share of reach lost by then,
+// the extra forward slump, and the pause (s) after which a dig counts as a fresh start.
+export const TIRE_BLOWS = 5, TIRE_LOSS = .16, TIRE_SLUMP = .1, CHAIN_GAP = 2.5;
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
@@ -24,7 +27,8 @@ export const digMessage = text => typeof text === 'string' && /^You hit the .+ w
 
 // Offsets at normalised time u: a slow haul to the top, a hang with a faint quiver, a fast
 // accelerating drop to the bite (the free hand hauls up with it and flings back as a counterweight), then a recoil that shudders and settles back to rest.
-export function digSwingPose(u) {
+export function digSwingPose(u, tire = 0) {
+  tire = clamp01(Number.isFinite(tire) ? tire : 0);
   u = clamp01(Number.isFinite(u) ? u : 1);
   const p = {...REST};
   const mix = (a, b, k) => { for (const f of FIELDS) p[f] = a[f] + (b[f] - a[f]) * k; };
@@ -41,6 +45,12 @@ export function digSwingPose(u) {
     p.offArm -= .12 * Math.sin(k * Math.PI) * (1 - k);
     const jolt = Math.sin(k * Math.PI * 5) * Math.pow(1 - k, 2);
     p.wrist += .22 * jolt; p.elbow -= .1 * jolt; p.lean += .04 * jolt;
+  }
+  // a long dig wears the hero down: every blow in a run lifts the tool a little less and
+  // drags the shoulders further forward, the slump riding the swing so rest stays exact
+  if (tire) {
+    for (const f of FIELDS) p[f] *= 1 - TIRE_LOSS * tire;
+    if (u > 0 && u < 1) p.lean += TIRE_SLUMP * tire * Math.sin(u * Math.PI);
   }
   return p;
 }
@@ -69,26 +79,28 @@ export function spentPose(u) {
 }
 
 export function createDigSwing() {
-  let age = null, applied = null, spent = false;
+  let age = null, applied = null, spent = false, chain = 0, quiet = CHAIN_GAP;
   return {
     // Call with each engine message; true when it started (or restarted) a blow or the spent slump.
     message(text) {
-      if (digMessage(text)) { age = 0; spent = false; return true; }
+      if (digMessage(text)) { chain = quiet < CHAIN_GAP ? Math.min(chain + 1, TIRE_BLOWS) : 0; quiet = 0; age = 0; spent = false; return true; }
       if (finishMessage(text)) { age = 0; spent = true; return true; }
       return false;
     },
     // Each frame, after actions.js: take back last frame's offset, then add this frame's.
     update(actor, dt, busy = false) {
       if (applied) { clearSwing(actor, applied); applied = null; }
+      quiet += Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
       if (age === null) return null;
       if (busy || !actor?.arm) { age = null; return null; }
       age += Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
       if (age >= (spent ? SPENT_TIME : DIG_TIME)) { age = null; return null; }
-      applied = spent ? spentPose(age / SPENT_TIME) : digSwingPose(age / DIG_TIME);
+      applied = spent ? spentPose(age / SPENT_TIME) : digSwingPose(age / DIG_TIME, chain / TIRE_BLOWS);
       applySwing(actor, applied);
       return applied;
     },
-    clear(actor) { if (applied) clearSwing(actor, applied); applied = null; age = null; spent = false; },
+    clear(actor) { if (applied) clearSwing(actor, applied); applied = null; age = null; spent = false; chain = 0; quiet = CHAIN_GAP; },
+    get chain() { return chain; },
     get playing() { return age !== null; },
   };
 }

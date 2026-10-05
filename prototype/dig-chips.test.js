@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {digMessage, chipFlight, createDigChips, pallPuff, gritTrickle, wallCrumble, DIG_LOOKS, MAX_BURSTS, CHIPS, PALL_MAX, GRIT_MAX, WALL_MAX} from './dig-chips.js';
+import {digMessage, chipFlight, createDigChips, pallPuff, gritTrickle, wallCrumble, voidOpen, VOID_R, DIG_LOOKS, MAX_BURSTS, CHIPS, PALL_MAX, GRIT_MAX, WALL_MAX} from './dig-chips.js';
 
 test('dig messages give a kind, others do not', () => {
   assert.equal(digMessage('You hit the rock with all your might.'), 'blow');
@@ -142,4 +142,26 @@ test('the burst cloud holds the wall flakes within its cap', () => {
   let peak = 0;
   for (let t = 0; t < 4; t += .05) peak = Math.max(peak, dig.update(.05).chips);
   assert.ok(peak <= MAX_BURSTS * (CHIPS + PALL_MAX + GRIT_MAX + WALL_MAX));
+});
+
+test('a dug hole opens a black void under the hero that gulps wider and then goes', () => {
+  for (const kind of ['blow', 'pit', 'breach']) assert.equal(voidOpen(kind, .5), null, kind);
+  const life = DIG_LOOKS.hole.voidLife;
+  assert.equal(voidOpen('hole', life), null);
+  assert.equal(voidOpen('hole', -1), null);
+  let big = 0;
+  for (let t = 0; t < life; t += .02) {
+    const v = voidOpen('hole', t);
+    assert.ok(v.scale >= 0 && v.scale <= 1 && v.opacity >= 0 && v.opacity <= 1, `t ${t}`);
+    big = Math.max(big, v.scale);
+  }
+  assert.ok(big > .9, 'opens nearly full');
+  assert.ok(voidOpen('hole', .1).scale < voidOpen('hole', .4).scale && voidOpen('hole', .4).scale < voidOpen('hole', .95).scale, 'two gulps');
+  assert.ok(VOID_R < .5, 'stays inside the tile');
+  const parent = new THREE.Group(), dig = createDigChips(THREE, parent);
+  dig.message('You dig a hole through the floor.', 0, 0);
+  dig.update(.5);
+  assert.equal(parent.children.filter(o => o.isMesh).length, 2, 'dust ring and void');
+  for (let i = 0; i < 40; i++) dig.update(.1);
+  assert.equal(parent.children.filter(o => o.isMesh).length, 0, 'void removed');
 });
