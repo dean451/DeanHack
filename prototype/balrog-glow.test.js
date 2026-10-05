@@ -22,3 +22,10 @@ test('lesser demons carry no evil glow',()=>{
  assert.equal(glows('horned devil').length,0);
  assert.equal(glows('vrock').length,0);
 });
+
+test('the balrog trails smoke and embers and towers over a pit fiend',()=>{
+ const smoke=name=>{let n=0;createCreature({name,symbol:38,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.name==='evil-smoke')n++;});return n;};
+ assert(smoke('balrog')>=4);assert(smoke("durin's bane")>=4);
+ const h=name=>new THREE.Box3().setFromObject(createCreature({name,symbol:38,color:1}).g).getSize(new THREE.Vector3()).y;
+ assert(h('balrog')>h('pit fiend'));assert(h("durin's bane")>h('balrog'));
+});
