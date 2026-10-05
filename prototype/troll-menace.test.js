@@ -49,3 +49,10 @@ test('ice trolls hang icicle fangs and no other troll does', () => {
   for (const n of ['troll', 'rock troll', 'water troll', 'olog-hai']) assert(!make(n).g.userData.rimed, n);
   assert(meshCount(make('ice troll')) <= 30);
 });
+
+test('frost giants wear a beard of icicles ', () => {
+  const H = n => createCreature({name: n, symbol: 'H'.charCodeAt(0), color: 1});
+  assert.equal(H('frost giant').g.userData.icicled, true);
+  for (const n of ['giant', 'stone giant', 'fire giant', 'ettin', 'hill giant']) assert(!H(n).g.userData.icicled, n);
+  assert(meshCount(H('frost giant')) <= 30);
+});
