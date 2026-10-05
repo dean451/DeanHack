@@ -12,3 +12,9 @@ test('olog-hai wear a horned black iron helm; other trolls go bare-headed', () =
   for (const n of ['troll', 'ice troll', 'rock troll', 'water troll']) assert(!make(n).g.userData.helmed, n);
   assert(meshCount(make('olog-hai')) <= 30);
 });
+
+test('rock trolls carry dull magma veins and no other troll does', () => {
+  assert.equal(make('rock troll').g.userData.veined, true);
+  for (const n of ['troll', 'ice troll', 'water troll', 'olog-hai']) assert(!make(n).g.userData.veined, n);
+  assert(meshCount(make('rock troll')) <= 30);
+});
