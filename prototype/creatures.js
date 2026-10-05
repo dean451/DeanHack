@@ -1624,7 +1624,7 @@ function lich(o){
  if(o.mantle){for(const side of [-1,1]){const spike=cone(body,.05,.22,bone,side*.24,1.02,-.04,5);spike.rotation.z=-side*.9;}rounded(body,.46,.08,.3,trim,0,.97,-.02,.03);}
  // evil glow (demiliches and above): a pool of necrotic light under the hem, and cold soul-flames licking up off the shoulders
  if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.5,transparent:true,opacity:.3,depthWrite:false}),flame=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=flame.name='evil-glow';
-  const p=cylinder(body,.62,.7,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;
+  const p=cylinder(g,.62,.7,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;
   for(const [x,y,z,h,r] of [[-.25,1.0,-.05,.2,.3],[.25,1.0,-.05,.24,-.3],[0,1.0,-.2,.28,0]]){const f=cone(body,.035,h,flame,x,y+h/2,z,5);f.rotation.z=r;f.castShadow=false;}}
  return trimDraws(Object.assign(actor(g,body,[],null,[],'idle'),{jaw,lichHands,orb}));
 }
@@ -1683,7 +1683,7 @@ function vampire(o){
  const arms=[];for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.86,0);body.add(arm);arms.push(arm);rounded(arm,.1,.4,.11,suit,0,-.18,0,.03);sphere(arm,.05,skin,0,-.4,.01,.9,1.2,.9);for(const f of [-.02,0,.02])cone(arm,.008,.05,skin,f,-.46,.02,4).rotation.x=Math.PI;arm.rotation.z=side*.1;arm.rotation.x=side>0?-.35:-.1;}
  // evil glow (vampire lords, mages and Vlad): a pool of blood-dark light under the cape hem
  if(o.evil){const pool=mat(o.evil,{emissive:o.evil,emissiveIntensity:1.5,transparent:true,opacity:.3,depthWrite:false});pool.name='evil-glow';
-  const p=cylinder(body,.6,.68,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;}
+  const p=cylinder(g,.6,.68,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;}
  if(o.medallion){cylinder(body,.045,.045,.012,M.gold,0,.8,.12,12).rotation.x=Math.PI/2;sphere(body,.018,glow,0,.8,.13);}
  if(o.orb){const orb=sphere(body,.06,mat(o.orb,{emissive:o.orb,emissiveIntensity:3,roughness:.2,transparent:true,opacity:.9}),.26,.5,.2);g.userData.core=orb;}
  if(o.vlad){const red=mat('#9a1a24',{roughness:.7});cylinder(head,.125,.135,.1,red,0,.11,-.01,12);sphere(head,.02,mat('#e8e0c8',{roughness:.3}),0,.12,.125);for(const side of [-1,1]){const m=rounded(head,.07,.018,.02,hair,side*.035,-.065,.12,.008);m.rotation.z=side*-.35;}
@@ -2364,7 +2364,7 @@ function demon(o){
  if(o.evil){const ember=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.4,roughness:.5}),pool=mat(o.evil,{emissive:o.evil,emissiveIntensity:1.6,transparent:true,opacity:.34,depthWrite:false});ember.name=pool.name='evil-glow';
   for(const [x,y,z,rz] of [[-.07,chestY+.06,.15,.35],[.06,chestY,.16,-.5],[-.03,chestY-.08,.17,-.2],[.02,.55,.14,.45],[-.07,.5,.13,-.55]]){const c=rounded(body,.012,.08,.008,ember,x*bulk,y,z*bulk,.004);c.rotation.z=rz;c.castShadow=false;}
   for(const side of [-1,1]){const c=rounded(body,.01,.07,.008,ember,side*.12*bulk,chestY+.05,.1,.004);c.rotation.z=side*.7;c.castShadow=false;}
-  const p=cylinder(body,.62,.7,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;
+  const p=cylinder(g,.62,.7,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;
   // presence: dark smoke trails off the shoulders and horns, and embers hang in the air around the fiend (static, no per-frame cost)
   const smoke=mat('#1a1210',{roughness:1,transparent:true,opacity:.38,depthWrite:false}),trail=new THREE.Group();smoke.name='evil-smoke';
   // the trails are transparent, so mergeStatic leaves them alone: bake the six cones into one mesh here
