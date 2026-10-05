@@ -197,6 +197,8 @@
     do { if (death_hook) (*death_hook)(mon, ptr); } while (0)
 #define REVIVE_HOOK(mon, corpse) \
     do { if (revive_hook) (*revive_hook)(mon, corpse); } while (0)
+#define PICKUP_HOOK(obj, x, y, cnt) \
+    do { if (pickup_hook) (*pickup_hook)(obj, x, y, cnt); } while (0)
 #else
 #define COMBAT_HOOK(agr, def, at, res)
 #define DEATH_HOOK(mon, ptr)
