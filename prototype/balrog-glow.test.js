@@ -20,7 +20,6 @@ test('the balrog and Durin\'s Bane glow with evil: cracks in the hide and a hell
 
 test('lesser fiends carry no evil glow',()=>{
  assert.equal(glows('mail daemon').length,0);
- assert.equal(glows('incubus').length,0);
 });
 
 test('the balrog trails smoke and embers and towers over a pit fiend',()=>{
@@ -127,4 +126,11 @@ test('the succubus glows with evil: cracks in the skin and a hellglow pool',()=>
  const parts=glows('succubus');
  assert(parts.length>=2,'succubus has evil-glow parts');
  assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),'succubus has a hellglow pool');
+});
+
+test('the incubus glows with evil in a different colour from the succubus',()=>{
+ const parts=glows('incubus');
+ assert(parts.length>=2,'incubus has evil-glow parts');
+ assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),'incubus has a hellglow pool');
+ assert.notEqual(parts[0].material.color.getHex(),glows('succubus')[0].material.color.getHex());
 });
