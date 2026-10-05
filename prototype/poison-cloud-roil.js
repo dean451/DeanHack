@@ -5,10 +5,11 @@
 // has its own phase, so a bank of gas never moves in unison. Everything is a function of t, so
 // it is frame-rate independent and restore() puts back the rest pose exactly.
 // What the cloud hangs over shows in it (the tile's ground, set by live.js): over lava the core
-// is lit orange from beneath and gutters like a coal; over water the bank clings low and spreads
+// is lit orange from beneath, gutters like a coal and lets off sparks (poison-gas-sparks.js); over water the bank clings low and spreads
 // into a film whose thin edge ripples. Both are functions of t as well.
 // The scene is re-scanned twice a second, so tiles that come and go are picked up.
 import * as THREE from 'three';
+import {attachGasSparks, poseGasSparks, detachGasSparks} from './poison-gas-sparks.js';
 
 export const GAS_SCAN_EVERY = .5; // seconds between scene scans
 export const GAS_CORE_TURN = .22; // core spin, radians per second
@@ -75,7 +76,9 @@ export function poseGas(mesh, t) {
   mesh.rotation.y = r.rotation + s.spin;
   mesh.scale.set(r.scale.x * s.sxz, r.scale.y * s.sy, r.scale.z * s.sxz);
   mesh.position.set(r.position.x + s.dx, r.position.y, r.position.z + s.dz);
-  const g = gasGround(mesh.parent?.parent?.parent?.userData.ground, mesh.userData.part, t, r.phase), mat = mesh.material;
+  const ground = mesh.parent?.parent?.parent?.userData.ground;
+  const g = gasGround(ground, mesh.userData.part, t, r.phase), mat = mesh.material;
+  if (mesh.userData.part === 'core') poseSparks(mesh.parent, ground === 'lava', t, r.phase);
   mesh.scale.x *= g.spread;mesh.scale.z *= g.spread;mesh.scale.y *= g.squash;
   if (mat.emissive) {
     mat.emissive.copy(r.emissive).lerp(LAVA_LIGHT, g.glow);
@@ -84,9 +87,20 @@ export function poseGas(mesh, t) {
   mat.opacity = Math.min(1, r.opacity * g.ripple);
 }
 
+// Sparks lift off the core over lava; they are added to the cloud group and removed again when
+// the ground changes or the roil is restored.
+function poseSparks(cloud, over, t, phase) {
+  let sparks = cloud.userData.gasSparks;
+  if (over && !sparks) sparks = cloud.userData.gasSparks = attachGasSparks(cloud);
+  else if (!over && sparks) { detachGasSparks(sparks);delete cloud.userData.gasSparks;return; }
+  if (sparks) poseGasSparks(sparks, t, phase / (Math.PI * 2));
+}
+
 export function restoreGas(mesh) {
   const r = mesh.userData.gasRest;
   if (!r) return;
+  const sparks = mesh.parent?.userData.gasSparks;
+  if (mesh.userData.part === 'core' && sparks) { detachGasSparks(sparks);delete mesh.parent.userData.gasSparks; }
   mesh.position.copy(r.position);mesh.rotation.y = r.rotation;mesh.scale.copy(r.scale);
   if (mesh.material.emissive) { mesh.material.emissive.copy(r.emissive);mesh.material.emissiveIntensity = r.intensity; }
   mesh.material.opacity = r.opacity;
