@@ -29,3 +29,14 @@ test('the balrog trails smoke and embers and towers over a pit fiend',()=>{
  const h=name=>new THREE.Box3().setFromObject(createCreature({name,symbol:38,color:1}).g).getSize(new THREE.Vector3()).y;
  assert(h('balrog')>h('pit fiend'));assert(h("durin's bane")>h('balrog'));
 });
+
+test('demon lords and princes glow with evil in their own colours',()=>{
+ const lords=['orcus','demogorgon','yeenoghu','geryon','dispater','baalzebub'],tints=new Set();
+ for(const name of lords){
+  const parts=glows(name);
+  assert(parts.length>=2,name+' has evil-glow parts');
+  assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),name+' has a hellglow pool');
+  tints.add(parts[0].material.color.getHex());
+ }
+ assert(tints.size>=5,'each lord has its own glow colour');
+});

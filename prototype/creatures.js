@@ -2343,10 +2343,10 @@ const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',horns:'short',head:'to
  'ice devil':{skin:'#b8d0e0',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true},nalfeshnee:{skin:'#5a4a3a',head:'boar',spikes:'bone',wings:.5,bulk:1.3},
  'pit fiend':{skin:'#7a1a18',evil:'#ff3a1a',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.1},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.35},
  "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',evil:'#ff3a08',weapon:'whip',bulk:1.2,scale:1.45},
- yeenoghu:{skin:'#8a7040',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
- geryon:{skin:'#6a4a2a',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',horns:'long',tail:true,weapon:'trident',scale:1.15},
- baalzebub:{skin:'#3a4a2a',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
- demogorgon:{skin:'#5a6a4a',eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
+ yeenoghu:{skin:'#8a7040',evil:'#e0a020',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',evil:'#8aff6a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
+ geryon:{skin:'#6a4a2a',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
+ baalzebub:{skin:'#3a4a2a',evil:'#b8ff30',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
+ demogorgon:{skin:'#5a6a4a',evil:'#40ffa0',eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
  'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',horns:'short',wings:.6,tail:true,scale:.85},djinni:{skin:'#d8a040',eye:'#fff080',hair:'#1a1410',smoke:true},sandestin:{skin:'#8a8aa0',eye:'#c0f0ff',horns:'short',smoke:true}};
 
 // trappers (t): a broad, ragged mantle flattened against the floor like a dropped cloak, mottled to match the stone,
