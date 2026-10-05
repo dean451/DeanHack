@@ -64,3 +64,10 @@ test('the vrock and nalfeshnee glow with evil',()=>{
   assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),name+' has a hellglow pool');
  }
 });
+
+test('the greater devils stand larger than ordinary demons',()=>{
+ for(const name of ['horned devil','barbed devil','bone devil','ice devil','vrock','marilith','nalfeshnee']){
+  const c=createCreature({name,symbol:38,color:1});
+  assert(c.g.scale.y>=1.1,name+' is scaled up');
+ }
+});
