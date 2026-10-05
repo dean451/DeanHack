@@ -32,7 +32,17 @@ static void quoted(const char *s) {
     for (;*p;p++) { if (*p=='"'||*p=='\\') {putchar('\\');putchar(*p);} else if (*p<32 || *p>=127) printf("\\u%04x",*p); else putchar(*p); }
     putchar('"');
 }
-static void event(const char *kind,const char *text) { printf("{\"type\":");quoted(kind);printf(",\"text\":");quoted(text);puts("}");fflush(stdout); }
+/* While a frame is being written it goes to a memory buffer (see frame()), and this holds the real
+   stdout. A message raised in the middle of the frame (an impossible() from inside the map walk)
+   must not be spliced into the frame's line, or the client gets broken JSON and the message itself
+   is lost in it. Messages always go straight to the real stream; the frame follows whole. */
+static FILE *frame_real;
+static void event(const char *kind,const char *text) {
+    FILE *mem=stdout;
+    if(frame_real)stdout=frame_real;
+    printf("{\"type\":");quoted(kind);printf(",\"text\":");quoted(text);puts("}");fflush(stdout);
+    stdout=mem;
+}
 static const char *terrain(int glyph) {
     int c=glyph_to_cmap(glyph);
     if(!glyph_is_cmap(glyph) || c==S_stone) return "unknown";
@@ -290,7 +300,7 @@ static const char *engraving_kind(int type) {
     switch(type){case DUST:return "dust";case ENGRAVE:return "engrave";case BURN:return "burn";
     case MARK:return "mark";case ENGR_BLOOD:return "blood";default:return "other";}
 }
-static void frame(void) {
+static void frame_body(void) {
     int x,y,g,b,m,col,terrain_glyph,object_type;glyph_t ch;unsigned special;
     printf("{\"type\":\"frame\",\"turn\":%ld,\"depth\":%d,\"branch\":%d,\"dungeon\":",moves,depth(&u.uz),u.uz.dnum);
     quoted(dungeons[u.uz.dnum].dname);
@@ -437,6 +447,15 @@ static void frame(void) {
         putchar('}');
     }
     puts("]}");fflush(stdout);
+}
+static void frame(void) {
+    char *buf=NULL;size_t len=0;FILE *mem=open_memstream(&buf,&len),*real=stdout;
+    if(!mem){frame_body();return;}
+    frame_real=real;stdout=mem;
+    frame_body();
+    fflush(mem);stdout=real;frame_real=NULL;
+    fclose(mem);
+    if(buf){fwrite(buf,1,len,real);fflush(real);free(buf);}
 }
 /* Ctrl+C or a closed terminal signals the engine while it sits in fgets() holding stdin's lock.
    NetHack's own handlers (done1, hangup) then prompt and save from inside the handler, and the
