@@ -1545,6 +1545,8 @@ function troll(o){
  sphere(head,.08,skin,0,-.07,.05,1.15,.7,1);for(const side of [-1,1]){const t=cone(head,.013,.06,tusk,side*.045,-.07,.11,5);t.rotation.x=-.2;}
  for(const side of [-1,1]){const ear=cone(head,.03,.12,skin,side*.12,.02,-.02,4);ear.rotation.z=-side*1.25;ear.rotation.y=side*.3;}
  const mane=sphere(head,.1,hair,0,.06,-.05,1.05,.7,1.1);mane.rotation.x=.3;
+ // ice trolls: long icicle fangs hang from the jaw and black frostbite blotches the chest
+ if(o.ice){const rime=mat('#e8f8ff',{roughness:.1,transparent:true,opacity:.9}),bite=mat('#2a3038',{roughness:1});g.userData.icicled=true;for(const [x,l] of [[-.04,.12],[.04,.14]]){const ic=cone(head,.012,l,rime,x,-.13-l/2+.03,.1,4);ic.rotation.x=Math.PI;}for(const [x,y] of [[-.09,.74],[.08,.8]])sphere(body,.04,bite,x,y,.2,1.3,.9,.4);}
  if(o.fin){const fin=part(head,new THREE.CylinderGeometry(.13,.13,.012,10,1,false,0,Math.PI),mat(shade(o.skin,1.25),{roughness:.5,transparent:true,opacity:.85}),0,.08,-.06);fin.rotation.set(0,Math.PI/2,Math.PI/2);}
  eyes(head,o.glare?M.eye:mat(o.eye||'#e8d040',{emissive:o.eye||'#a08a10',emissiveIntensity:.8,roughness:.3}),.015,.095,.042);
  const arms=[];for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.25,.84,.06);body.add(arm);arms.push(arm);rounded(arm,.11,.32,.12,skin,0,-.15,0,.045);rounded(arm,.1,.34,.11,skin,0,-.46,.03,.04).rotation.x=-.12;sphere(arm,.075,dark,0,-.66,.06,1.1,.8,1.2);for(let k=-1;k<=1;k++)cone(arm,.012,.05,tusk,k*.03,-.69,.14,4).rotation.x=Math.PI/2;arm.rotation.x=-.28;arm.rotation.z=side*.1;}
