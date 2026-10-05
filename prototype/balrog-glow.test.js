@@ -79,3 +79,10 @@ test('lesser devils carry the mark of their torment: ribs, rime and iron',()=>{
  assert(has('horned devil','devil-iron'),'horned devil wears an iron collar and belt');
  assert(!has('barbed devil','devil-iron')&&!has('bone devil','devil-rime'),'marks stay with their own devil');
 });
+
+test('the vrock wears a carrion ruff and the nalfeshnee tusks and glowing boils',()=>{
+ const has=(name,mark)=>{let n=0;createCreature({name,symbol:38,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.name===mark)n++;});return n>0;};
+ assert(has('vrock','devil-ruff'),'vrock has a ruff');
+ assert(has('nalfeshnee','devil-tusks')&&has('nalfeshnee','devil-boils'),'nalfeshnee has tusks and boils');
+ assert(!has('vrock','devil-boils')&&!has('nalfeshnee','devil-ruff'),'marks stay with their own devil');
+});
