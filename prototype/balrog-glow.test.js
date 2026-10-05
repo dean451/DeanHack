@@ -116,3 +116,9 @@ test('the erinys glows with furious evil',()=>{
  const parts=glows('erinys');
  assert(parts.length>=2);assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5));
 });
+
+test('the djinni glows with its own fire and stands larger than a man',()=>{
+ const parts=glows('djinni');
+ assert(parts.length>=2,'djinni has evil-glow parts');
+ assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),'djinni has a pool of light below');
+});
