@@ -1350,6 +1350,8 @@ function giant(o){
   else eyes(head,o.glare||M.eye,.01,.11,.045);}
  // hill giants: a belt strung with the yellowed skulls of past meals
  if(o.skulls){const bone=mat('#cfc29a',{roughness:.75}),pit=mat('#14100c',{roughness:1});g.userData.skulled=true;for(const x of [-.17,-.06,.06,.17]){sphere(body,.032,bone,x,.55,.15,1,1,.9);rounded(body,.036,.01,.01,pit,x,.56,.18,.003);sphere(body,.012,bone,x,.52,.165,1.3,.8,.7);}}
+ // the Cyclops: an iron manacle still locked on one wrist, the chain broken after a few rusted links
+ if(o.cyclops){const iron=mat('#3a3430',{roughness:.6,metalness:.7});g.userData.shackled=true;part(arms[0],new THREE.TorusGeometry(.065,.016,5,12),iron,0,-.52,.02).rotation.x=Math.PI/2;for(let i=0;i<3;i++)part(arms[0],new THREE.TorusGeometry(.025,.006,4,8),iron,0,-.6-i*.05,.02).rotation.set(0,i%2?0:Math.PI/2,0);}
  // fire giants: the skin has cracked like cooling slag, glowing seams across the chest and shoulders
  if(o.cracked){const seam=mat('#ffb060',{emissive:'#e0400e',emissiveIntensity:2.4,roughness:.5});g.userData.cracked=true;for(const [x,y,z,rz] of [[-.1,.86,.145,.6],[.07,.8,.147,-.5],[.13,.95,.14,.3],[-.02,.74,.148,-.1]]){const v=rounded(body,.014,.13,.01,seam,x,y,z,.004);v.rotation.z=rz;}}
  // titans: old war-scars slash the gilded breastplate

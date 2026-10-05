@@ -60,3 +60,10 @@ test('frost giants wear a beard of icicles and hill giants a belt of skulls', ()
   assert(meshCount(H('frost giant')) <= 30);
   assert(meshCount(H('hill giant')) <= 30);
 });
+
+test('the cyclops wears a locked manacle with a broken chain and no other giant does', () => {
+  const H = n => createCreature({name: n, symbol: 'H'.charCodeAt(0), color: 1});
+  assert.equal(H('cyclops').g.userData.shackled, true);
+  for (const n of ['giant', 'stone giant', 'hill giant', 'frost giant', 'fire giant', 'ettin']) assert(!H(n).g.userData.shackled, n);
+  assert(meshCount(H('cyclops')) <= 30);
+});
