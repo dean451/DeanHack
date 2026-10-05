@@ -17,7 +17,8 @@ function ringMaterial(color){
  const texture=new THREE.CanvasTexture(c);
  return new THREE.MeshBasicMaterial({map:texture,color,transparent:true,depthWrite:false,toneMapped:false,opacity:.85});
 }
-const RINGS={hostile:ringMaterial(0xff4a2a),pet:ringMaterial(0x4fe08a),peaceful:ringMaterial(0xe8c860)};
+// Hostile monsters get no ring: most monsters are enemies and the ring states the obvious.
+const RINGS={pet:ringMaterial(0x4fe08a),peaceful:ringMaterial(0xe8c860)};
 const ringGeo=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
 
 const MIN_SIZE=.72,MAX_FOOTPRINT=.98,MAX_SCALE=1.8;
