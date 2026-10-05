@@ -11,16 +11,18 @@
 
 import {clamp01, smooth, rng} from './fx-textures.js';
 
-export const MAX_BURSTS = 4, CHIPS = 14;
+export const MAX_BURSTS = 4, CHIPS = 14, PALL_MAX = 8;
 // How each message looks: chips thrown, how hard, how long (s) the burst lives and a dust ring.
 // `slump` is how many of the chips are not thrown at all: they are the last strike's rubble,
 // which lets go a beat after the blow and drops straight down, so the rock gives way in stages.
 export const DIG_LOOKS = {
   blow: {chips: 6, speed: 1.3, life: .7, dust: 0, slump: 0},
   pit: {chips: 10, speed: 1.5, life: .95, dust: 1, slump: 0},
-  hole: {chips: CHIPS, speed: 1.8, life: 1.2, dust: 1, slump: 5},
-  breach: {chips: CHIPS, speed: 2, life: 1.1, dust: 1, slump: 6},
+  hole: {chips: CHIPS, speed: 1.8, life: 1.2, dust: 1, slump: 5, pall: 6, pallLife: 2.4},
+  breach: {chips: CHIPS, speed: 2, life: 1.1, dust: 1, slump: 6, pall: PALL_MAX, pallLife: 2.8},
 };
+// How long a burst lives: the chips' life, or the dust pall that hangs on after them.
+const lifeOf = look => Math.max(look.life, look.pallLife || 0);
 
 export function digMessage(text) {
   if (typeof text !== 'string') return null;
@@ -56,8 +58,21 @@ export function chipFlight(kind, seed, i, t) {
     size: .028 + .02 * r(), alpha: 1 - smooth((t / look.life - .55) / .45), grey: .35 + .3 * r()};
 }
 
+// Pall mote i of a burst at age t (s): the finishing strike raises dust that does not fall
+// like the chips do. It wells up from the broken rock a beat late, climbs slowly, sways in
+// the stale air and thins away long after the rubble has settled.
+export function pallPuff(kind, seed, i, t) {
+  const look = DIG_LOOKS[kind];
+  if (!look?.pall || !(t >= 0) || i >= look.pall || t >= look.pallLife) return null;
+  const r = rng(seed * 41 + i * 13 + 5);
+  const wait = .1 + .3 * r(), a = r() * Math.PI * 2, d = .05 + .25 * r(), f = Math.max(0, t - wait);
+  const u = t / look.pallLife, sway = Math.sin(f * 2.1 + r() * 6.28) * .06;
+  return {x: Math.cos(a) * d + sway, y: .1 + .35 * smooth(f / 1.4) + .12 * f * r(), z: Math.sin(a) * d - sway,
+    size: .06, alpha: t < wait ? 0 : smooth((t - wait) / .25) * (1 - smooth((u - .35) / .65)) * .55, grey: .3 + .15 * r()};
+}
+
 export function createDigChips(THREE, parent) {
-  const N = MAX_BURSTS * CHIPS;
+  const N = MAX_BURSTS * (CHIPS + PALL_MAX);
   const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -92,12 +107,20 @@ export function createDigChips(THREE, parent) {
     for (let i = bursts.length - 1; i >= 0; i--) {
       const b = bursts[i];
       b.t += Math.min(Math.max(dt || 0, 0), .1);
-      if (b.t >= DIG_LOOKS[b.kind].life) { drop(b); bursts.splice(i, 1); }
+      if (b.t >= lifeOf(DIG_LOOKS[b.kind])) { drop(b); bursts.splice(i, 1); }
     }
     for (const b of bursts) {
       const look = DIG_LOOKS[b.kind];
       for (let i = 0; i < look.chips; i++) {
         const c = chipFlight(b.kind, b.seed, i, b.t);
+        if (!c) continue;
+        pos[n * 3] = b.x + c.x; pos[n * 3 + 1] = c.y; pos[n * 3 + 2] = b.z + c.z;
+        const g = c.grey * c.alpha;
+        col[n * 3] = g * 1.05; col[n * 3 + 1] = g; col[n * 3 + 2] = g * .9;
+        n++;
+      }
+      for (let i = 0; i < (look.pall || 0); i++) {
+        const c = pallPuff(b.kind, b.seed, i, b.t);
         if (!c) continue;
         pos[n * 3] = b.x + c.x; pos[n * 3 + 1] = c.y; pos[n * 3 + 2] = b.z + c.z;
         const g = c.grey * c.alpha;

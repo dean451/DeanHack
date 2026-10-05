@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {digMessage, chipFlight, createDigChips, DIG_LOOKS, MAX_BURSTS, CHIPS} from './dig-chips.js';
+import {digMessage, chipFlight, createDigChips, pallPuff, DIG_LOOKS, MAX_BURSTS, CHIPS, PALL_MAX} from './dig-chips.js';
 
 test('dig messages give a kind, others do not', () => {
   assert.equal(digMessage('You hit the rock with all your might.'), 'blow');
@@ -35,7 +35,7 @@ test('bursts are capped, expire and clear back to nothing', () => {
   for (let i = 0; i < MAX_BURSTS + 3; i++) dig.message('You dig a hole through the floor.', i, 0);
   const s = dig.update(.016);
   assert.equal(s.bursts, MAX_BURSTS);
-  assert.ok(s.chips > 0 && s.chips <= MAX_BURSTS * CHIPS);
+  assert.ok(s.chips > 0 && s.chips <= MAX_BURSTS * (CHIPS + PALL_MAX));
   for (let i = 0; i < 40; i++) dig.update(.1);
   assert.equal(dig.update(.1).bursts, 0);
   assert.equal(dig.update(0).chips, 0);
@@ -63,4 +63,30 @@ test('the last strike lets go of rubble a beat late, and it drops straight down'
     assert.ok(seen > 10, 'shows up');
     assert.equal(chipFlight(kind, 5, look.chips - look.slump - 1, 0).alpha, 1, 'thrown chips still fly at once');
   }
+});
+
+test('the finishing strike raises a dust pall that outlasts the chips and stays in bounds', () => {
+  for (const kind of ['hole', 'breach']) {
+    const look = DIG_LOOKS[kind];
+    assert.ok(look.pall > 0 && look.pall <= PALL_MAX && look.pallLife > look.life, kind);
+    let late = false;
+    for (let seed = 1; seed < 6; seed++) for (let i = 0; i < look.pall; i++) for (let t = 0; t < look.pallLife; t += .05) {
+      const c = pallPuff(kind, seed, i, t);
+      assert.ok(c, `${kind} ${i} ${t}`);
+      assert.ok(Math.hypot(c.x, c.z) < .5 && c.y >= .09 && c.y < 1 && c.alpha >= 0 && c.alpha <= .6);
+      if (t > look.life + .2 && c.alpha > .02) late = true;
+    }
+    assert.ok(late, 'still hanging after the chips are gone');
+    assert.equal(pallPuff(kind, 1, look.pall, 0), null);
+    assert.equal(pallPuff(kind, 1, 0, look.pallLife), null);
+    assert.equal(pallPuff(kind, 1, 0, 0).alpha, 0, 'wells up a beat late');
+  }
+  for (const kind of ['blow', 'pit']) assert.equal(pallPuff(kind, 1, 0, .3), null);
+  const dig = createDigChips(THREE, new THREE.Group());
+  dig.message('You make an opening in the wall.', 0, 0);
+  dig.update(DIG_LOOKS.breach.life + .2);
+  assert.ok(dig.update(.1).chips > 0, 'pall still drawn after the chips have gone');
+  for (let t = 0; t < 4; t += .1) dig.update(.1);
+  assert.equal(dig.update(0).bursts, 0);
+  dig.dispose();
 });
