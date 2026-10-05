@@ -1543,6 +1543,8 @@ function troll(o){
  if(o.helm){const iron=mat('#26282a',{roughness:.4,metalness:.75});g.userData.helmed=true;sphere(head,.118,iron,0,.04,-.015,1,.6,1.05);rounded(head,.025,.11,.02,iron,0,-.01,.108,.006);for(const side of [-1,1]){const horn=cone(head,.022,.15,iron,side*.1,.08,-.01,5);horn.rotation.z=-side*1.0;horn.rotation.x=-.2;}for(const side of [-1,1])rounded(head,.05,.012,.01,mat('#8a1a14',{roughness:1}),side*.05,.012,.1,.004).rotation.z=side*.5;}rounded(head,.19,.04,.06,dark,0,.04,.08,.015);
  const snout=cone(head,.035,.13,dark,0,-.03,.14,7);snout.rotation.x=Math.PI/2+.7;
  sphere(head,.08,skin,0,-.07,.05,1.15,.7,1);for(const side of [-1,1]){const t=cone(head,.013,.06,tusk,side*.045,-.07,.11,5);t.rotation.x=-.2;}
+ // ice trolls: long clear icicle fangs hang past the jaw
+ if(o.rime){const clear=mat('#d8f2fc',{roughness:.12,transparent:true,opacity:.85});g.userData.rimed=true;for(const side of [-1,1]){const f=cone(head,.016,.12,clear,side*.05,-.13,.115,5);f.rotation.x=Math.PI;}}
  for(const side of [-1,1]){const ear=cone(head,.03,.12,skin,side*.12,.02,-.02,4);ear.rotation.z=-side*1.25;ear.rotation.y=side*.3;}
  const mane=sphere(head,.1,hair,0,.06,-.05,1.05,.7,1.1);mane.rotation.x=.3;
  if(o.fin){const fin=part(head,new THREE.CylinderGeometry(.13,.13,.012,10,1,false,0,Math.PI),mat(shade(o.skin,1.25),{roughness:.5,transparent:true,opacity:.85}),0,.08,-.06);fin.rotation.set(0,Math.PI/2,Math.PI/2);}
@@ -1552,7 +1554,7 @@ function troll(o){
  // handles for troll-knit.js: the head and both arms, and which troll it is
  return trimDraws({...actor(g,body,legs,null,[],'orc'),head,arms,arm:arms[1],troll:o.kind||'troll'});
 }
-const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020',trophy:true},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,eye:'#8ad8ff',scale:1.05},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.1},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.05},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,helm:true,scale:1.15}};
+const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020',trophy:true},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,rime:true,eye:'#8ad8ff',scale:1.05},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.1},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.05},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,helm:true,scale:1.15}};
 
 // Ogres (O): a squat, pot-bellied brute with a heavy underbite, a greasy topknot, a hide loincloth and a nail-studded club;
 // ogre lords add a bronze helm and pauldrons, ogre kings a spiked crown, a fur mantle and a bigger club.

@@ -43,3 +43,9 @@ test('plain trolls wear a cord of fangs and knucklebones and no other troll does
   for (const n of ['ice troll', 'rock troll', 'water troll', 'olog-hai']) assert(!make(n).g.userData.trophied, n);
   assert(meshCount(make('troll')) <= 30);
 });
+
+test('ice trolls hang icicle fangs and no other troll does', () => {
+  assert.equal(make('ice troll').g.userData.rimed, true);
+  for (const n of ['troll', 'rock troll', 'water troll', 'olog-hai']) assert(!make(n).g.userData.rimed, n);
+  assert(meshCount(make('ice troll')) <= 30);
+});
