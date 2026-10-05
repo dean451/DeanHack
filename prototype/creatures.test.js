@@ -2636,3 +2636,9 @@ test('a strange object is drawn as a mimic, not the default shape',()=>{
  assert.equal(count(strange),count(mimic));
  assert.ok(count(strange)>10);
 });
+
+test('the purple worm has a venom-lit gullet and long fangs; the long worm does not',()=>{
+ const has=(name,n)=>{let f=false;createCreature({name,symbol:87,color:5}).g.traverse(o=>{if(o.isMesh&&o.material.name===n)f=true;});return f;};
+ assert(has('purple worm','worm-venom')&&has('purple worm','worm-fangs'));
+ assert(!has('long worm','worm-venom')&&!has('baby purple worm','worm-fangs'));
+});

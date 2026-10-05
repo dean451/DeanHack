@@ -730,7 +730,10 @@ function worm(o){
  // head: blunt cap turned forward with a dark round maw ringed by teeth
  const head=new THREE.Group();head.position.set(0,.19,.27);head.rotation.x=-.55;neck.add(head);
  sphere(head,r*1.05,skin,0,0,0,1,1,.8);
- cylinder(head,r*.62,r*.62,.02,mat('#1a0c0c',{roughness:1}),0,0,r*.72,16).rotation.x=Math.PI/2;
+ // purple worms: the gullet glows with a sickly venom light and four long curved fangs flank the maw
+ const gullet=o.venom?mat('#3a6a1a',{emissive:'#8aff30',emissiveIntensity:1.8,roughness:.5}):mat('#1a0c0c',{roughness:1});if(o.venom)gullet.name='worm-venom';
+ cylinder(head,r*.62,r*.62,.02,gullet,0,0,r*.72,16).rotation.x=Math.PI/2;
+ if(o.venom){const fang=mat('#d8cfa8',{roughness:.35});fang.name='worm-fangs';for(const [fx,fy] of [[-.4,.5],[.4,.5],[-.4,-.5],[.4,-.5]])cone(head,r*.1,r*.7,fang,fx*r,fy*r,r*.8,5).rotation.set(Math.PI/2+(fy>0?.25:-.25),0,fx*.8);}
  part(head,new THREE.TorusGeometry(r*.66,r*.12,6,18),mat(o.lip||'#8a3a3a',{roughness:.5}),0,0,r*.74);
  const toothMat=mat('#e8e0c8',{roughness:.35});const teeth=o.baby?6:10;
  for(let i=0;i<teeth;i++){const a=i/teeth*Math.PI*2;cone(head,r*.08,r*.3,toothMat,Math.cos(a)*r*.52,Math.sin(a)*r*.52,r*.76,4).rotation.z=a+Math.PI/2;}
@@ -1352,7 +1355,7 @@ function vortex(o){
  return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});
 }
 const VORTICES={'fog cloud':{color:'#b4b8bc',cloud:true,opacity:.6},'dust vortex':{color:'#9a7a52',debris:'#6a5038'},'ice vortex':{color:'#bfe6f4',debris:'#e8f8ff',shard:true},'energy vortex':{color:'#4f8cff',debris:'#d8f0ff',glow:true,scale:1.1},'steam vortex':{color:'#d4dce4',opacity:.42,scale:1.1},'fire vortex':{color:'#ff7a28',debris:'#ffd24a',glow:true,scale:1.1}};
-const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.7}};
+const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.9,venom:true}};
 
 // Smooth-body helpers: a lathed profile, and a tapered limb between two joint points
 // (so arms and legs read as one body rather than a jointed mannequin).
