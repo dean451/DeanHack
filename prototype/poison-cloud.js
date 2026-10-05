@@ -7,7 +7,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // shows through it. Lumpy puffs are baked with vertex colours and merged into two meshes:
 // `userData.part` is core (the dense, dark middle) or wisps (the thin, pale edges).
 export function createPoisonCloud(seed=0){
- const g=new THREE.Group();g.name='Poison cloud';
+ const g=new THREE.Group();g.name='Poison cloud';g.userData.poisonCloud=true;
  const materials=[],geometries=[];
  const rand=i=>{const s=Math.sin(seed*12.9898+i*78.233)*43758.5453;return s-Math.floor(s);};
  const mat=o=>{const m=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,transparent:true,depthWrite:false,...o});materials.push(m);return m;};
