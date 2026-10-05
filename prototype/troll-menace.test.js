@@ -24,3 +24,22 @@ test('ettins wear spiked iron collars and other giants do not', () => {
   for (const n of ['giant', 'hill giant', 'stone giant']) assert(!createCreature({name: n, symbol: 'H'.charCodeAt(0), color: 1}).g.userData.collared, n);
   assert(meshCount(createCreature({name: 'ettin', symbol: 'H'.charCodeAt(0), color: 1})) <= 30);
 });
+
+test('fire giants are cracked like cooling slag and no other giant is', () => {
+  const H = n => createCreature({name: n, symbol: 'H'.charCodeAt(0), color: 1});
+  assert.equal(H('fire giant').g.userData.cracked, true);
+  for (const n of ['giant', 'frost giant', 'stone giant', 'lord surtur']) assert(!H(n).g.userData.cracked, n);
+  assert(meshCount(H('fire giant')) <= 30);
+});
+
+test('water trolls carry a spine of barnacle shells and no other troll does', () => {
+  assert.equal(make('water troll').g.userData.barnacled, true);
+  for (const n of ['troll', 'ice troll', 'rock troll', 'olog-hai']) assert(!make(n).g.userData.barnacled, n);
+  assert(meshCount(make('water troll')) <= 30);
+});
+
+test('plain trolls wear a cord of fangs and knucklebones and no other troll does', () => {
+  assert.equal(make('troll').g.userData.trophied, true);
+  for (const n of ['ice troll', 'rock troll', 'water troll', 'olog-hai']) assert(!make(n).g.userData.trophied, n);
+  assert(meshCount(make('troll')) <= 30);
+});
