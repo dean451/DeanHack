@@ -67,3 +67,10 @@ test('the cyclops wears a locked manacle with a broken chain and no other giant 
   for (const n of ['giant', 'stone giant', 'hill giant', 'frost giant', 'fire giant', 'ettin']) assert(!H(n).g.userData.shackled, n);
   assert(meshCount(H('cyclops')) <= 30);
 });
+
+test('storm giants carry glowing lightning scars and no other giant does', () => {
+  const H = n => createCreature({name: n, symbol: 'H'.charCodeAt(0), color: 1});
+  assert.equal(H('storm giant').g.userData.lightningScarred, true);
+  for (const n of ['giant', 'stone giant', 'hill giant', 'frost giant', 'fire giant', 'ettin', 'cyclops', 'titan']) assert(!H(n).g.userData.lightningScarred, n);
+  assert(meshCount(H('storm giant')) <= 30);
+});
