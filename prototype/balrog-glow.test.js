@@ -134,3 +134,15 @@ test('the incubus glows with evil in a different colour from the succubus',()=>{
  assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),'incubus has a hellglow pool');
  assert.notEqual(parts[0].material.color.getHex(),glows('succubus')[0].material.color.getHex());
 });
+
+test('demiliches, master liches and arch-liches glow with necrotic light and loom over a plain lich',()=>{
+ const h=name=>new THREE.Box3().setFromObject(createCreature({name,symbol:76,color:1}).g).getSize(new THREE.Vector3()).y;
+ const glowOf=name=>{const out=[];createCreature({name,symbol:76,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.name==='evil-glow')out.push(o);});return out;};
+ assert.equal(glowOf('lich').length,0);
+ for(const name of ['demilich','master lich','arch-lich']){
+  const parts=glowOf(name);
+  assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),name+' has a pool of light underfoot');
+  assert(parts.some(m=>!m.material.transparent),name+' has soul-flames');
+ }
+ assert(h('arch-lich')>h('master lich')&&h('master lich')>h('lich'));
+});

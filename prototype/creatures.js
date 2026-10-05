@@ -1578,9 +1578,13 @@ function lich(o){
  const orb=sphere(body,.055,glow,.37,1.3,.16);
  if(o.crown){const n=o.crown==='tall'?7:5,h=o.crown==='tall'?.14:.09;cylinder(body,.155,.165,.05,o.crown==='tall'?M.gold:bone,0,1.21,.02,12);for(let i=0;i<n;i++){const a=(i/n-.5)*Math.PI*1.3;cone(body,.02,h,o.crown==='tall'?M.gold:bone,Math.sin(a)*.155,1.26+h/2-.02,.02+Math.cos(a)*.155,4);}sphere(body,.026,glow,0,1.22,.18);}
  if(o.mantle){for(const side of [-1,1]){const spike=cone(body,.05,.22,bone,side*.24,1.02,-.04,5);spike.rotation.z=-side*.9;}rounded(body,.46,.08,.3,trim,0,.97,-.02,.03);}
+ // evil glow (demiliches and above): a pool of necrotic light under the hem, and cold soul-flames licking up off the shoulders
+ if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.5,transparent:true,opacity:.3,depthWrite:false}),flame=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=flame.name='evil-glow';
+  const p=cylinder(body,.62,.7,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;
+  for(const [x,y,z,h,r] of [[-.25,1.0,-.05,.2,.3],[.25,1.0,-.05,.24,-.3],[0,1.0,-.2,.28,0]]){const f=cone(body,.035,h,flame,x,y+h/2,z,5);f.rotation.z=r;f.castShadow=false;}}
  return trimDraws(Object.assign(actor(g,body,[],null,[],'idle'),{jaw,lichHands,orb}));
 }
-const LICHES={lich:{robe:'#5a4430',glow:'#8ad060'},demilich:{robe:'#6a2a24',glow:'#ff5a3a',bone:'#c8bc98',tattered:true},'master lich':{robe:'#4a1f52',glow:'#c070ff',crown:'bone',scale:1.05},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',crown:'tall',mantle:true,scale:1.1}};
+const LICHES={lich:{robe:'#5a4430',glow:'#8ad060'},demilich:{robe:'#6a2a24',glow:'#ff5a3a',evil:true,bone:'#c8bc98',tattered:true},'master lich':{robe:'#4a1f52',glow:'#c070ff',evil:true,crown:'bone',scale:1.12},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',evil:true,crown:'tall',mantle:true,scale:1.25}};
 
 // Wraiths: a floating, translucent shroud that trails off into wisps, a hood with only a void and two burning eyes inside,
 // and long sleeves reaching forward with bony claws. Barrow wights are solid, with a rusty circlet and a sword;
