@@ -3,18 +3,20 @@
 // the pillar burns gold, holds, then withdraws and leaves a tight ring of ash-gold on the floor.
 //
 // live.js calls message(text, x, z) with the hero's tile, update(dt) every frame and clear()
-// on a level change. It keys on the message text only, so it shows nothing the hero doesn't know.
+// on a level change. An angry god answers with a thin dark-red bolt that snaps down and stutters out.
+// It keys on the message text only, so it shows nothing the hero doesn't know.
 
 import {softRing, smooth, clamp01} from './fx-textures.js';
 
 export const PRAYER = {begin: 2.4, boon: 3.0, height: 5};
-export const TOTAL = {begin: PRAYER.begin, boon: PRAYER.boon};
+export const TOTAL = {begin: PRAYER.begin, boon: PRAYER.boon, wrath: .8};
 
 // Which kind of moment a message starts, or null.
 export function prayerKind(text) {
   const t = text || '';
   if (/^You begin praying to /.test(t)) return 'begin';
   if (/^You are surrounded by a shimmering light\.$/.test(t)) return 'boon';
+  if (/^Suddenly,? a bolt of lightning (strikes you|comes down at you)|^"?Thou hast angered me\.|^"?Thou durst call upon me|^"?Thou must relearn thy lessons/.test(t)) return 'wrath';
   return null;
 }
 
@@ -26,6 +28,8 @@ export function pillarPose(kind, t) {
   const u = t / total;
   if (kind === 'begin') // lowers slowly, hesitates, never quite bright
     return {reach: smooth(u / .8) ** 1.4, alpha: .32 * smooth(u / .3) * (1 - smooth((u - .85) / .15)) * (.85 + .15 * Math.sin(t * 9)), width: .7 + .25 * u};
+  // wrath: a thin bolt slams down at once and stutters as it dies
+  if (kind === 'wrath') return {reach: smooth(u / .08), alpha: .95 * smooth(u / .04) * (1 - smooth((u - .3) / .7)) * (Math.sin(t * 70) > -.4 ? 1 : .25), width: .22 + .1 * Math.sin(t * 40)};
   // boon: drops fast, burns gold, holds, then draws thin and withdraws
   return {reach: smooth(u / .18), alpha: .85 * smooth(u / .12) * (1 - smooth((u - .7) / .3)), width: 1.1 * (1 - .8 * smooth((u - .65) / .35))};
 }
@@ -41,11 +45,11 @@ export function createPrayerLight(THREE, parent) {
   const live = [];
   const beamGeo = new THREE.CylinderGeometry(.5, .5, PRAYER.height, 14, 1, true).translate(0, PRAYER.height / 2, 0);
   const ringGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-  const colours = {begin: 0xcfd3d8, boon: 0xe0b85a};
+  const colours = {begin: 0xcfd3d8, boon: 0xe0b85a, wrath: 0xa01818};
   function add(kind, x, z) {
     if (!TOTAL[kind] || !Number.isFinite(x) || !Number.isFinite(z)) return null;
-    // a boon takes over from the begin pillar already standing there
-    for (let i = live.length - 1; i >= 0; i--) if (live[i].kind === 'begin' && kind === 'boon') { drop(live[i]); live.splice(i, 1); }
+    // an answer takes over from the begin pillar already standing there
+    for (let i = live.length - 1; i >= 0; i--) if (live[i].kind === 'begin' && kind !== 'begin') { drop(live[i]); live.splice(i, 1); }
     const g = new THREE.Group(); g.name = 'PrayerLight'; g.position.set(x, 0, z); parent.add(g);
     const mk = (map, color) => new THREE.MeshBasicMaterial({map, color, transparent: true, opacity: 0, side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false});

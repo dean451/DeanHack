@@ -6,21 +6,25 @@ import {prayerKind, pillarPose, glowPose, createPrayerLight, TOTAL} from './pray
 test('only the prayer messages count', () => {
   assert.equal(prayerKind('You begin praying to Anhur.'), 'begin');
   assert.equal(prayerKind('You are surrounded by a shimmering light.'), 'boon');
+  assert.equal(prayerKind('Suddenly, a bolt of lightning strikes you!'), 'wrath');
+  assert.equal(prayerKind('"Thou hast angered me."'), 'wrath');
   for (const t of ['You hit the newt.', 'You pray.', null]) assert.equal(prayerKind(t), null, String(t));
 });
 
 test('pillars stay in bounds, start and end at nothing, and the begin pillar never outshines a boon', () => {
-  for (const kind of ['begin', 'boon']) {
+  for (const kind of ['begin', 'boon', 'wrath']) {
     assert.equal(pillarPose(kind, 0).alpha, 0);
     assert.equal(pillarPose(kind, TOTAL[kind]).alpha, 0);
     assert.equal(glowPose(kind, TOTAL[kind]).alpha, 0);
     for (let t = 0; t < TOTAL[kind]; t += .02) {
       const p = pillarPose(kind, t), g = glowPose(kind, t);
-      assert.ok(p.alpha >= 0 && p.alpha <= 1 && p.reach >= 0 && p.reach <= 1.001 && p.width >= 0 && p.width <= 1.2, `${kind} ${t}`);
+      assert.ok(p.alpha >= 0 && p.alpha <= 1 && p.reach >= 0 && p.reach <= 1.001 && p.width >= 0 && p.width <= 1.2 && p.width >= 0, `${kind} ${t}`);
       assert.ok(g.alpha >= 0 && g.alpha <= 1 && g.radius >= 0 && g.radius <= .9);
     }
   }
   assert.equal(glowPose('begin', 1).alpha, 0);
+  assert.equal(glowPose('wrath', .3).alpha, 0);
+  assert.ok(pillarPose('wrath', .1).reach > .99 && TOTAL.wrath < 1);
   assert.ok(pillarPose('begin', 1.5).alpha < pillarPose('boon', 1).alpha);
   assert.ok(pillarPose('begin', 1).reach < pillarPose('begin', 2).reach);
 });
