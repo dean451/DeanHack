@@ -152,6 +152,14 @@ test('a whiff overbalances the hero forward and recovers; a hit does not', () =>
   }
 });
 
+test('the off hand cocks back before it drives through', () => {
+  for (const blow of ['slash', 'pierce', 'blunt']) {
+    const c = CONTACT_U[blow], u = c * .3;
+    assert.ok(dualSwingPose(blow, u, 'hit', true).offArm > 0, `${blow} off arm draws back first`);
+    assert.ok(dualSwingPose(blow, c, 'hit', true).offArm < -1);
+  }
+});
+
 test('two-weapon strikes alternate hands, rest at both ends and take back off cleanly', () => {
   for (const blow of ['slash', 'pierce', 'blunt']) for (const lead of [false, true]) {
     for (const u of [0, 1]) for (const v of Object.values(dualSwingPose(blow, u, 'hit', lead))) assert.ok(Math.abs(v) < 1e-12);
