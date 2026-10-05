@@ -141,3 +141,8 @@ test('dragon wings are torn, with holes cut in the membrane; feathered amphitere
   const verts = a => { let n = 0; a.wings[0].traverse(o => { if (o.isMesh && o.geometry.type === 'ShapeGeometry') n = o.geometry.attributes.position.count; }); return n; };
   assert(verts(dragon('draken')) > verts(dragon('amphitere')) + 5, 'holes add vertices (a plain outline has 27)');
 });
+
+test('a dragon head carries two long upper fangs (the merged head grows by their vertices)', () => {
+  let n = 0; dragon('draken').heads[0].traverse(o => { if (o.isMesh) n += o.geometry.attributes.position.count; });
+  assert(n >= 2900, `head has ${n} vertices; 2866 without the fangs`);
+});
