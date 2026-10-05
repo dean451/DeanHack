@@ -2656,3 +2656,18 @@ test('angels, the dark Angel, aleaxes and archons stand taller than a man, the a
  assert(archon>angel&&angel>aleax,`archon ${archon} angel ${angel} aleax ${aleax}`);
  assert(dark>angel,`dark angel ${dark} looms over an angel ${angel}`);
 });
+
+test('the kraken is a towering, beaked drowner',()=>{
+ const k=createCreature({name:'kraken',symbol:';'.charCodeAt(0),color:1});
+ assert(k.g.scale.x>=1.3,'larger than a man');
+ let beak=false;k.g.traverse(m=>{if(m.isMesh&&m.material.color?.getHexString()==='1a1410')beak=true;});
+ assert(beak,'a dark horny beak');
+});
+
+test('trappers carry the bones of their meals on the mantle',()=>{
+ for(const name of ['trapper','lurker above']){
+  const t=createCreature({name,symbol:'t'.charCodeAt(0),color:1});
+  let bone=false;t.g.traverse(m=>{if(m.isMesh&&m.material.color?.getHexString()==='cfc4a4')bone=true;});
+  assert(bone,name);
+ }
+});
