@@ -22,7 +22,10 @@ export function snakePose(i, t) {
   const dist = .1 + .75 * (u < .55 ? u : pause ? .55 : .55 + (u - .7) * 1.2);
   const alpha = u <= 0 ? 0 : Math.min(1, u * 6) * (1 - smooth((u - .8) / .2));
   const weave = k => Math.sin(t * 7 + i * 1.7 - k * 1.1) * .05 * (pause ? .25 : 1) * (1 - k / LINKS * .3);
-  return {dist, alpha, weave, angle: i / SNAKES.count * Math.PI * 2 + i * .5};
+  // While it tastes the air the head rises off the floor, links nearest it lifting most, and
+  // sinks back as it slides on. Zero outside the pause.
+  const rear = k => pause ? Math.sin(Math.PI * (u - .55) / .15) * .09 * Math.max(0, 1 - k / 4) ** 2 * (k === 0 ? 1.3 : 1) : 0;
+  return {dist, alpha, weave, rear, angle: i / SNAKES.count * Math.PI * 2 + i * .5};
 }
 
 export function createFountainSnakes(THREE, parent) {
@@ -46,7 +49,7 @@ export function createFountainSnakes(THREE, parent) {
       const p = snakePose(i, e.t);
       sg.visible = p.alpha > .01;
       sg.rotation.y = p.angle; mat.opacity = p.alpha;
-      links.forEach((m, k) => m.position.set(p.dist - k * .075, k === 0 ? .045 : .03, p.weave(k)));
+      links.forEach((m, k) => m.position.set(p.dist - k * .075, (k === 0 ? .045 : .03) + p.rear(k), p.weave(k)));
     });
     return e.t < SNAKES.total;
   }

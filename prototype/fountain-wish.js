@@ -9,7 +9,7 @@
 
 import {clamp01, smooth} from './fx-textures.js';
 
-export const WISH = {motes: 16, pull: 1.6, flare: .35, total: 2.6};
+export const WISH = {motes: 16, pull: 1.6, flare: .35, settle: .6, total: 3.2};
 export const isWishMessage = text => /grateful for his release, he grants you a wish/i.test(text || '');
 
 // Mote i at time t: radius from the middle, spiral angle, height and alpha. Each starts at its
@@ -25,6 +25,16 @@ export function flarePose(t) {
   return {size: u > 0 && u < 1 ? .08 + .5 * Math.sin(Math.PI * u) : .06 * grow * (t < WISH.pull + .5 ? 1 : 0), alpha: t <= 0 || u >= 1 ? 0 : u > 0 ? Math.sin(Math.PI * u) : .5 * grow};
 }
 
+// After the flare something is left behind: a thin gold column of light stands up from the
+// water for a breath, as if the wish were being weighed, then thins and drops away, while one
+// ring spreads over the floor. Both are nothing at the start and at the end.
+export function afterPose(t) {
+  const u = clamp01((t - WISH.pull - .5 - WISH.flare) / WISH.settle);
+  if (u <= 0 || u >= 1) return {ring: .001, ringAlpha: 0, column: .001, columnAlpha: 0};
+  const rise = smooth(Math.min(1, u * 3)), fade = 1 - smooth(clamp01((u - .45) / .55));
+  return {ring: .2 + .7 * smooth(u), ringAlpha: .5 * (1 - u) * (1 - u), column: .02 + .5 * rise * (1 - .8 * u), columnAlpha: .55 * fade * Math.min(1, u * 6)};
+}
+
 export function createFountainWish(THREE, parent) {
   const live = [];
   function add(x, z) {
@@ -33,12 +43,17 @@ export function createFountainWish(THREE, parent) {
     const mk = c => { const m = new THREE.MeshBasicMaterial({color: c, transparent: true, opacity: 0, depthWrite: false}); mats.push(m); return m; };
     const motes = Array.from({length: WISH.motes}, () => { const m = new THREE.Mesh(geo, mk(0xe0b040)); m.scale.setScalar(.025); g.add(m); return m; });
     const point = new THREE.Mesh(geo, mk(0xfff0b0)); point.position.y = .6; g.add(point);
-    live.push({g, geos: [geo], mats, motes, point, t: 0});
+    const ringGeo = new THREE.RingGeometry(.85, 1, 24), ring = new THREE.Mesh(ringGeo, mk(0xe0b040)); ring.rotation.x = -Math.PI / 2; ring.position.y = .03; g.add(ring);
+    const column = new THREE.Mesh(geo, mk(0xfff0b0)); column.position.y = .6; g.add(column);
+    live.push({g, geos: [geo, ringGeo], mats, motes, point, ring, column, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
     e.motes.forEach((m, i) => { const p = motePose(i, e.t); m.visible = p.alpha > .01; m.position.set(Math.cos(p.angle) * p.r, p.y, Math.sin(p.angle) * p.r); m.material.opacity = p.alpha; });
     const f = flarePose(e.t); e.point.visible = f.alpha > .01; e.point.scale.setScalar(Math.max(f.size, .001)); e.point.material.opacity = f.alpha;
+    const a = afterPose(e.t);
+    e.ring.visible = a.ringAlpha > .01; e.ring.scale.setScalar(a.ring); e.ring.material.opacity = a.ringAlpha;
+    e.column.visible = a.columnAlpha > .01; e.column.scale.set(.035, a.column, .035); e.column.material.opacity = a.columnAlpha;
     return e.t < WISH.total;
   }
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); parent.remove(e.g); }
