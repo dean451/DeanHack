@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {digMessage, chipFlight, createDigChips, pallPuff, DIG_LOOKS, MAX_BURSTS, CHIPS, PALL_MAX} from './dig-chips.js';
+import {digMessage, chipFlight, createDigChips, pallPuff, gritTrickle, DIG_LOOKS, MAX_BURSTS, CHIPS, PALL_MAX, GRIT_MAX} from './dig-chips.js';
 
 test('dig messages give a kind, others do not', () => {
   assert.equal(digMessage('You hit the rock with all your might.'), 'blow');
@@ -35,7 +35,7 @@ test('bursts are capped, expire and clear back to nothing', () => {
   for (let i = 0; i < MAX_BURSTS + 3; i++) dig.message('You dig a hole through the floor.', i, 0);
   const s = dig.update(.016);
   assert.equal(s.bursts, MAX_BURSTS);
-  assert.ok(s.chips > 0 && s.chips <= MAX_BURSTS * (CHIPS + PALL_MAX));
+  assert.ok(s.chips > 0 && s.chips <= MAX_BURSTS * (CHIPS + PALL_MAX + GRIT_MAX));
   for (let i = 0; i < 40; i++) dig.update(.1);
   assert.equal(dig.update(.1).bursts, 0);
   assert.equal(dig.update(0).chips, 0);
@@ -89,4 +89,29 @@ test('the finishing strike raises a dust pall that outlasts the chips and stays 
   for (let t = 0; t < 4; t += .1) dig.update(.1);
   assert.equal(dig.update(0).bursts, 0);
   dig.dispose();
+});
+
+test('grit sifts down from the ceiling one grain at a time, long after the rubble', () => {
+  for (const kind of ['hole', 'breach']) {
+    const look = DIG_LOOKS[kind];
+    assert.ok(look.grit > 0 && look.grit <= GRIT_MAX && look.gritLife > look.pallLife - 1, kind);
+    let late = false;
+    for (let seed = 1; seed < 6; seed++) for (let i = 0; i < look.grit; i++) {
+      let last = null, seen = false;
+      for (let t = 0; t < look.gritLife; t += .02) {
+        const c = gritTrickle(kind, seed, i, t);
+        assert.ok(c, `${kind} ${i} ${t}`);
+        assert.ok(Math.hypot(c.x, c.z) < .5 && c.y >= .04 && c.y <= 1.2 && c.alpha >= 0 && c.alpha <= 1, `${kind} ${i} ${t}`);
+        if (c.alpha > 0) { seen = true; if (t > look.life + .3) late = true; }
+        if (last && last.alpha > 0 && c.alpha > 0) assert.ok(c.y <= last.y + .02, 'never climbs');
+        last = c;
+      }
+      assert.ok(seen, 'every grain shows');
+      assert.equal(gritTrickle(kind, seed, i, look.gritLife), null);
+    }
+    assert.ok(late, 'grains still falling after the chips are gone');
+    assert.equal(gritTrickle(kind, 1, look.grit, 0), null);
+    assert.equal(gritTrickle(kind, 1, 0, 0).alpha, 0, 'nothing at first');
+  }
+  for (const kind of ['blow', 'pit']) assert.equal(gritTrickle(kind, 1, 0, 1), null);
 });
