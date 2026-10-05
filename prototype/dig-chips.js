@@ -11,18 +11,18 @@
 
 import {clamp01, smooth, rng} from './fx-textures.js';
 
-export const MAX_BURSTS = 4, CHIPS = 14, PALL_MAX = 8;
+export const MAX_BURSTS = 4, CHIPS = 14, PALL_MAX = 8, GRIT_MAX = 6;
 // How each message looks: chips thrown, how hard, how long (s) the burst lives and a dust ring.
 // `slump` is how many of the chips are not thrown at all: they are the last strike's rubble,
 // which lets go a beat after the blow and drops straight down, so the rock gives way in stages.
 export const DIG_LOOKS = {
   blow: {chips: 6, speed: 1.3, life: .7, dust: 0, slump: 0},
   pit: {chips: 10, speed: 1.5, life: .95, dust: 1, slump: 0},
-  hole: {chips: CHIPS, speed: 1.8, life: 1.2, dust: 1, slump: 5, pall: 6, pallLife: 2.4},
-  breach: {chips: CHIPS, speed: 2, life: 1.1, dust: 1, slump: 6, pall: PALL_MAX, pallLife: 2.8},
+  hole: {chips: CHIPS, speed: 1.8, life: 1.2, dust: 1, slump: 5, pall: 6, pallLife: 2.4, grit: 4, gritLife: 3},
+  breach: {chips: CHIPS, speed: 2, life: 1.1, dust: 1, slump: 6, pall: PALL_MAX, pallLife: 2.8, grit: GRIT_MAX, gritLife: 3.4},
 };
 // How long a burst lives: the chips' life, or the dust pall that hangs on after them.
-const lifeOf = look => Math.max(look.life, look.pallLife || 0);
+const lifeOf = look => Math.max(look.life, look.pallLife || 0, look.gritLife || 0);
 
 export function digMessage(text) {
   if (typeof text !== 'string') return null;
@@ -71,8 +71,24 @@ export function pallPuff(kind, seed, i, t) {
     size: .06, alpha: t < wait ? 0 : smooth((t - wait) / .25) * (1 - smooth((u - .35) / .65)) * .55, grey: .3 + .15 * r()};
 }
 
+// Grit grain i of a burst at age t (s): the broken rock above is not done yet. Long after the
+// rubble has settled a few grains let go of the ceiling one at a time, in a thin crooked line
+// over the tile, and sift down at a slow constant pace with a faint drift, the way a roof
+// does when it is deciding whether to follow. Each lands, lies a moment and fades.
+export function gritTrickle(kind, seed, i, t) {
+  const look = DIG_LOOKS[kind];
+  if (!look?.grit || !(t >= 0) || i >= look.grit || t >= look.gritLife) return null;
+  const r = rng(seed * 47 + i * 19 + 9), line = rng(seed * 47 + 2);
+  const wait = .6 + (look.gritLife - 1.9) * (i + r() * .6) / look.grit, f = t - wait;
+  const fall = .7 + .3 * r(), cx = (line() - .5) * .4, cz = (line() - .5) * .4;
+  const k = f < 0 ? 0 : Math.min(1, f / fall);
+  const rest = f - fall, a = f < 0 ? 0 : (f < .08 ? f / .08 : 1) * (1 - smooth(rest / (look.gritLife - wait - fall + 1e-9)));
+  return {x: cx + Math.sin(f * 3 + i) * .02 + .03 * k, y: 1.15 - 1.1 * k * k * (3 - 2 * k) * (1 - .1 * k) + .04 * (1 - k),
+    z: cz + Math.cos(f * 2.3 + i) * .02, size: .03, alpha: a, grey: .3 + .2 * r()};
+}
+
 export function createDigChips(THREE, parent) {
-  const N = MAX_BURSTS * (CHIPS + PALL_MAX);
+  const N = MAX_BURSTS * (CHIPS + PALL_MAX + GRIT_MAX);
   const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -121,6 +137,14 @@ export function createDigChips(THREE, parent) {
       }
       for (let i = 0; i < (look.pall || 0); i++) {
         const c = pallPuff(b.kind, b.seed, i, b.t);
+        if (!c) continue;
+        pos[n * 3] = b.x + c.x; pos[n * 3 + 1] = c.y; pos[n * 3 + 2] = b.z + c.z;
+        const g = c.grey * c.alpha;
+        col[n * 3] = g * 1.05; col[n * 3 + 1] = g; col[n * 3 + 2] = g * .9;
+        n++;
+      }
+      for (let i = 0; i < (look.grit || 0); i++) {
+        const c = gritTrickle(b.kind, b.seed, i, b.t);
         if (!c) continue;
         pos[n * 3] = b.x + c.x; pos[n * 3 + 1] = c.y; pos[n * 3 + 2] = b.z + c.z;
         const g = c.grey * c.alpha;

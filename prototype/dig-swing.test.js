@@ -80,3 +80,17 @@ test('the finishing strike leaves the hero spent: slack, heaving, one tic, then 
   assert.ok(moved && !d.playing);
   snap(a).forEach((v, i) => assert.ok(Math.abs(v - before[i]) < 1e-9, `joint ${i}`));
 });
+
+test('the free hand hauls up with the tool and flings back on the bite', () => {
+  assert.ok(digSwingPose(.34).offArm < -.4, 'raised at the top');
+  assert.ok(digSwingPose(BITE_U).offArm > .25, 'flung back at the bite');
+  assert.ok(digSwingPose(.8).offArm < digSwingPose(BITE_U).offArm, 'eases back to rest');
+  for (const u of [0, 1]) assert.equal(spentPose(u).offArm, 0);
+  const a = rig(), d = createDigSwing();
+  d.message('You hit the rock with all your might.');
+  let moved = false;
+  for (let t = 0; t < DIG_TIME * .4; t += 1 / 60) { d.update(a, 1 / 60); if (Math.abs(a.shieldArm.rotation.x) > .3) moved = true; }
+  assert.ok(moved, 'the off-hand arm really moves');
+  d.clear(a);
+  assert.equal(a.shieldArm.rotation.x, 0);
+});
