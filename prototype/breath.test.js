@@ -133,7 +133,7 @@ test('the leading edge of the breath is ragged', () => {
   assert.ok(Math.max(...reaches) - Math.min(...reaches) > .8);
 });
 
-test('fire streams as flame tongues and frost as shards; gas stays round', () => {
+test('fire streams as flame tongues and frost as shards; gas and sleep as curling wisps', () => {
   const stretch = zap => {
     const [b] = breathsFromFx(beam(zap, 0, 0, 1, 0), null);
     const ps = breathFrame(b, b.t0 + 300).particles.filter(p => p.u > .2);
@@ -146,7 +146,16 @@ test('fire streams as flame tongues and frost as shards; gas stays round', () =>
     assert.ok(Number.isFinite(p.yaw));
   }
   assert.ok(stretch('cold').some(p => Math.abs(p.yaw) > .3), 'shards twist off the flow');
-  for (const p of stretch('poison gas')) assert.deepEqual([p.len, p.thin], [1, 1]);
+  for (const zap of ['poison gas', 'sleep']) {
+    const ps = stretch(zap);
+    for (const p of ps) {
+      assert.ok(p.len > 1.4 && p.thin < .8, `${zap} wisp`);
+      assert.ok(p.size * p.len < .9, `${zap} wisp too long`);
+      assert.ok(Number.isFinite(p.yaw));
+    }
+    assert.ok(ps.some(p => Math.abs(p.yaw) > .3), `${zap} wisps curl off the flow`);
+  }
+  assert.deepEqual([stretch('magic missile')[0].len, stretch('magic missile')[0].thin], [1, 1]);
   const group = new THREE.Group(), br = createBreath(THREE, group);
   br.add(breathsFromFx(beam('fire', 5, 5, 1, 0), null)[0]);
   br.update(.3, null);
