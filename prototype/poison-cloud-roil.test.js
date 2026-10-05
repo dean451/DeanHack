@@ -5,6 +5,7 @@ import {createPoisonCloud} from './poison-cloud.js';
 import {createGasRoil, gasState, GAS_HEAVE, GAS_CURL, GAS_DRIFT, gasGround, GAS_LAVA_GLOW, GAS_RIPPLE} from './poison-cloud-roil.js';
 import {GAS_SPARKS} from './poison-gas-sparks.js';
 import {GAS_SHIMMERS, GAS_SHIMMER_RISE, shimmerState} from './poison-gas-shimmer.js';
+import {GAS_FILM_REACH, GAS_FILM_OPACITY, filmState} from './poison-gas-film.js';
 import {GAS_RIPPLES, GAS_RIPPLE_REACH, rippleState} from './poison-gas-ripples.js';
 
 const snap = m => [...m.position.toArray(), m.rotation.y, ...m.scale.toArray()];
@@ -149,4 +150,24 @@ test('gas over lava sends up heat-haze streaks that stay in bounds and never pop
   assert(seen > 100, 'haze is visible most of the time');
   roils.forEach(r => r.restore());
   assert(!lava.scene.getObjectByName('GasShimmer'));
+});
+
+test('gas over water leaves a crawling film that stays on the tile, and restore removes it', () => {
+  for (let t = 0; t < 60; t += 1 / 30) {
+    const s = filmState(t, 1.7);
+    assert(s.radius * Math.max(s.stretch, 1 / s.stretch) <= GAS_FILM_REACH * 1.2 && s.opacity > 0 && s.opacity <= GAS_FILM_OPACITY + 1e-9);
+  }
+  const water = onGround('water'), plain = onGround('floor');
+  const roils = [water, plain].map(w => createGasRoil(w.scene));
+  let spin = new Set();
+  for (let t = 0; t < 10; t += 1 / 30) {
+    roils.forEach(r => r.update(t));
+    const f = water.scene.getObjectByName('GasFilm');
+    assert(f.material.opacity > 0 && f.scale.x > .2 && f.scale.x < .6);
+    spin.add(f.rotation.y.toFixed(3));
+    assert(!plain.scene.getObjectByName('GasFilm'), 'plain floor gets no film');
+  }
+  assert(spin.size > 100, 'the film keeps crawling');
+  roils.forEach(r => r.restore());
+  assert(!water.scene.getObjectByName('GasFilm'));
 });
