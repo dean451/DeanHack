@@ -2318,6 +2318,12 @@ function demon(o){
   const smoke=mat('#1a1210',{roughness:1,transparent:true,opacity:.38,depthWrite:false}),spark=mat(o.evil,{emissive:o.evil,emissiveIntensity:3});smoke.name='evil-smoke';spark.name='evil-glow';
   for(const side of [-1,1])for(let i=0;i<3;i++){const c=cone(body,.07-i*.012,.4+i*.12,smoke,side*(.2+i*.05)*bulk,chestY+.3+i*.1,-.1-i*.03,6);c.rotation.z=-side*(.15+i*.12);c.castShadow=false;}
   for(let i=0;i<7;i++){const a=i*2.4,r=.3+.06*(i%3),e=sphere(body,.011,spark,Math.sin(a)*r*bulk,.3+i*.13,Math.cos(a)*r*bulk);e.castShadow=false;}}
+ // signature detail for the lesser devils: each carries the mark of its own torment
+ if(o.mark==='ribs'){const bone=mat('#d8cfb4',{roughness:.6});bone.name='devil-ribs';for(let i=0;i<4;i++){const y=chestY-.06+i*.05;for(const side of [-1,1])tube(body,[[side*.02,y,.15*bulk],[side*.11,y-.01,.13*bulk],[side*.17,y-.04,.05*bulk]],.009,bone,6).castShadow=false;}}
+ if(o.mark==='frost'){const ice=mat('#cfeaff',{emissive:'#50b8ff',emissiveIntensity:.9,roughness:.2,transparent:true,opacity:.8});ice.name='devil-rime';
+  for(const side of [-1,1])for(let i=0;i<3;i++){const c=cone(body,.018,.12+i*.03,ice,side*(.14+i*.05)*bulk,chestY+.12-i*.02,-.02+i*.05,4);c.rotation.z=Math.PI+side*(.2+i*.15);c.castShadow=false;}}
+ if(o.mark==='iron'){const iron=mat('#2a2a2e',{roughness:.5,metalness:.6});iron.name='devil-iron';part(body,new THREE.TorusGeometry(.1*bulk,.012,6,16),iron,0,chestY+.12,0).rotation.x=Math.PI/2;
+  part(body,new THREE.TorusGeometry(.14*bulk,.014,6,16),iron,0,.5,0).rotation.x=Math.PI/2;for(let i=0;i<5;i++){const a=(i/4-.5)*1.8;cone(body,.012,.05,iron,Math.sin(a)*.14*bulk,.5,Math.cos(a)*.14*bulk,4).rotation.set(Math.cos(a)*1.5,0,-Math.sin(a)*1.5);}}
  // a second head (Demogorgon): the first is shifted aside and a twin snarls beside it, turned slightly away
  if(o.heads===2){head.position.x=-.12;head.rotation.y=.25;const twin=head.clone();twin.position.set(.12,headY-.01,.02);twin.rotation.y=-.3;body.add(twin);}
  // bat wings on finger bones
@@ -2333,16 +2339,17 @@ function demon(o){
  let tail=null;
  if(o.tail&&!o.smoke){tail=new THREE.Group();tail.position.set(0,.5,-.1*bulk);tail.scale.setScalar(.75);body.add(tail);
   const pts=[[0,0,0],[0,-.14,-.12],[.06,-.3,-.24],[.14,-.36,-.36],[.2,-.3,-.44]];tube(tail,pts,.018,skin,18);
-  const spade=cone(tail,.045,.09,dark,.22,-.27,-.47,4);spade.rotation.set(-1,0,-.5);spade.scale.z=.3;}
+  const spade=cone(tail,.045,.09,dark,.22,-.27,-.47,4);spade.rotation.set(-1,0,-.5);spade.scale.z=.3;
+  if(o.spikes)for(const [x,y,z] of [[0,-.14,-.12],[.06,-.3,-.24],[.14,-.36,-.36]])cone(tail,.012,.06,horn,x,y+.03,z,4);}
  return trimDraws(actor(g,body,legs,tail,wings,o.smoke?'hover':'orc'));
 }
 const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,scale:1.15},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,scale:1.1},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,scale:1.1}};
 const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',horns:'short',head:'toad',tail:true},'lava demon':{skin:'#5a2418',eye:'#ffdd40',horns:'short',flame:'#ff6a20',tail:true},
- 'horned devil':{skin:'#8a3a24',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident',scale:1.1},succubus:{skin:'#d8a090',eye:'#ff60a0',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true},
+ 'horned devil':{skin:'#8a3a24',mark:'iron',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident',scale:1.1},succubus:{skin:'#d8a090',eye:'#ff60a0',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true},
  incubus:{skin:'#b07a60',eye:'#ff60a0',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true},erinys:{skin:'#a86a58',eye:'#ff4030',slim:true,hair:'#3a2418',wings:.8,weapon:'sword'},
  'barbed devil':{skin:'#9a2e20',evil:'#ff2a28',horns:'short',spikes:true,tail:true,scale:1.1},marilith:{skin:'#7a3a5a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true,scale:1.1},
- vrock:{skin:'#6a5a48',evil:'#a8b030',head:'beak',horn:'#3a3028',wings:.9,scale:1.1},'bone devil':{skin:'#9a9078',evil:'#c8e04a',head:'skull',spikes:'bone',tail:true,scale:1.1},
- 'ice devil':{skin:'#b8d0e0',evil:'#50b8ff',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true,scale:1.15},nalfeshnee:{skin:'#5a4a3a',evil:'#e07a20',head:'boar',spikes:'bone',wings:.5,bulk:1.3,scale:1.15},
+ vrock:{skin:'#6a5a48',evil:'#a8b030',head:'beak',horn:'#3a3028',wings:.9,scale:1.1},'bone devil':{skin:'#9a9078',mark:'ribs',evil:'#c8e04a',head:'skull',spikes:'bone',tail:true,scale:1.1},
+ 'ice devil':{skin:'#b8d0e0',mark:'frost',evil:'#50b8ff',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true,scale:1.15},nalfeshnee:{skin:'#5a4a3a',evil:'#e07a20',head:'boar',spikes:'bone',wings:.5,bulk:1.3,scale:1.15},
  'pit fiend':{skin:'#7a1a18',evil:'#ff3a1a',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.1},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.35},
  "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',evil:'#ff3a08',weapon:'whip',bulk:1.2,scale:1.45},
  yeenoghu:{skin:'#8a7040',evil:'#e0a020',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',evil:'#8aff6a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},

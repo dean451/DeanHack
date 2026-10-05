@@ -71,3 +71,11 @@ test('the greater devils stand larger than ordinary demons',()=>{
   assert(c.g.scale.y>=1.1,name+' is scaled up');
  }
 });
+
+test('lesser devils carry the mark of their torment: ribs, rime and iron',()=>{
+ const has=(name,mark)=>{let n=0;createCreature({name,symbol:38,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.name===mark)n++;});return n>0;};
+ assert(has('bone devil','devil-ribs'),'bone devil shows ribs');
+ assert(has('ice devil','devil-rime'),'ice devil hangs icicles');
+ assert(has('horned devil','devil-iron'),'horned devil wears an iron collar and belt');
+ assert(!has('barbed devil','devil-iron')&&!has('bone devil','devil-rime'),'marks stay with their own devil');
+});
