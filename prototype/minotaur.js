@@ -235,7 +235,7 @@ function geometry(){
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
 export function createMinotaur(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.25);
  mesh(body,S.body,S.flesh,'body');
  // the head hangs low off the thrust neck, the horns levelled at whatever is in front of it
  const head=new THREE.Group();head.position.set(...NECK);head.rotation.set(.32,0,0);body.add(head);

@@ -2561,7 +2561,7 @@ test('the minotaur gets its own hunched, horned bull-headed brute with a labrys 
  m.g.updateMatrixWorld(true);
  const box=new THREE.Box3().setFromObject(m.g),s=box.getSize(new THREE.Vector3());
  assert(box.min.y>-.02&&box.min.y<.02,`stands on the floor ${box.min.y}`);
- assert(s.y>1.3&&s.y<1.7,`height ${s.y}`);
+ assert(s.y>1.7&&s.y<2.1,`height ${s.y}`);
  // the head hangs forward of the chest, below the top of the hump and horns
  const head=new THREE.Box3().setFromObject(m.head);
  assert(head.max.z>.4,`the muzzle juts forward ${head.max.z}`);
