@@ -10,6 +10,8 @@
 // without a renderer; createDoorBreak() draws every shard in one instanced mesh and the
 // dust in one point cloud.
 
+import {featureKind} from './terrain-feature.js';
+
 export const MAX_BREAKS = 3;
 export const SHARDS = 16, DUST = 28;
 // How long a break lasts, when the shards start sinking away, and the dust's life (s).
@@ -87,6 +89,30 @@ export function findBreaks(prev, frame) {
     const across = breakerSide(prev, frame, c, turn);
     const push = across > 0 ? -1 : across < 0 ? 1 : (hash(seed, 1) < .5 ? -1 : 1);
     out.push({x: c.x, z: c.z, seed, turn, push, wreck: c.door === 'broken'});
+  }
+  return out.concat(findBridgeBreaks(prev, frame));
+}
+
+const bridgeOf = c => c?.terrain === 'feature' ? featureKind(c.symbol, c.color)?.startsWith('bridge-') : false;
+
+// Drawbridge tiles (a lowered span or the raised portcullis) that were smashed by striking or
+// force bolt: the bridge feature is in view in prev and gone in frame, and no bridge feature
+// is left on or next to it. Raising and lowering move the bridge between the span and the
+// portcullis, so a bridge still standing beside the tile means it was only worked, not wrecked.
+// The planks burst the same way a door's do.
+export function findBridgeBreaks(prev, frame) {
+  const before = cellMap(prev), now = cellMap(frame);
+  const out = [];
+  for (const was of before.values()) {
+    if (!bridgeOf(was) || was.visible === false) continue;
+    const c = now.get(`${was.x},${was.z}`);
+    if (!c || c.visible === false || bridgeOf(c) || (c.kind && c.kind !== 'terrain')) continue;
+    let worked = false;
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) worked ||= bridgeOf(now.get(`${was.x + dx},${was.z + dz}`));
+    if (worked) continue;
+    const across = breakerSide(prev, frame, was, 0);
+    const seed = was.x * 61 + was.z * 37 + 7;
+    out.push({x: was.x, z: was.z, seed, turn: 0, push: across > 0 ? -1 : across < 0 ? 1 : (hash(seed, 1) < .5 ? -1 : 1), wreck: false});
   }
   return out;
 }
