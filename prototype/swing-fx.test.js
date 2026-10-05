@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {swingPose, swingPhase, swingLength, swingTrailOn, applySwing, clearSwing, CONTACT_U, IMPACTS, impactKind} from './swing.js';
-import {createSwingFx, weaponReach} from './swing-fx.js';
+import {createSwingFx, weaponReach, glintScale, GLINT_LIFE, GLINT_SIZE} from './swing-fx.js';
 import {createHeldWeapon} from './equipment.js';
 
 // The hero's arm chain as main.js builds it, facing +z, with a held weapon.
@@ -125,4 +125,29 @@ test('an off-hand strike draws its ribbon from the off-hand blade, not the sword
   assert.equal(fx.offTrail.mesh.visible, false);
   fx.dispose();
   assert.ok(!world.children.includes(fx.offTrail.mesh));
+});
+
+test('an off-hand blow flashes a glint at the off-hand blade that flares and is gone', () => {
+  const world = new THREE.Group(), h = hero(); world.add(h.g);
+  h.offhandSocket = new THREE.Group(); h.offhandSocket.position.set(-.34, .5, .1);
+  h.shieldArm.add(h.offhandSocket); h.offhandSocket.add(createHeldWeapon({name: 'dagger'}));
+  const fx = createSwingFx(THREE, world);
+  assert.equal(fx.glint.visible, false);
+  // the sword hand's contact does not glint
+  h.actions.swing = {blow: 'slash', u: .5, trail: false, dir: [0, 1], contact: true};
+  fx.update(h, 1 / 60);
+  assert.equal(fx.glint.visible, false);
+  h.actions.swing = {blow: 'slash', u: .5, trail: false, off: true, dir: [0, 1], contact: true};
+  fx.update(h, 1 / 60);
+  assert.equal(fx.glint.visible, true);
+  assert.ok(fx.glint.position.x < 0, 'on the off side');
+  h.actions.swing = null;
+  let peak = 0;
+  for (let i = 0; i < 4; i++) { fx.update(h, 1 / 60); peak = Math.max(peak, fx.glint.scale.x); }
+  assert.ok(peak > .1 && peak <= GLINT_SIZE + 1e-9);
+  for (let i = 0; i < 30; i++) fx.update(h, 1 / 60);
+  assert.equal(fx.glint.visible, false);
+  assert.equal(glintScale(0), 0); assert.equal(glintScale(GLINT_LIFE), 0); assert.equal(glintScale(NaN), 0);
+  fx.dispose();
+  assert.ok(!world.children.includes(fx.glint));
 });

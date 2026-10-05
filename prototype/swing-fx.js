@@ -25,11 +25,26 @@ export function weaponReach(socket) {
 // `parent` is the group the effects live in (Live mode's world group, which also holds the
 // hero). The trail and burst are added to it.
 export const PLAIN_TINT = [.85, .9, 1];
+// The brief cold flash at an off-hand blade's edge when its blow lands: a thin four-point star
+// that flares, spins a quarter turn and is gone.
+export const GLINT_LIFE = .16, GLINT_SIZE = .34;
+export function glintScale(age) {
+  if (!(age >= 0) || age >= GLINT_LIFE) return 0;
+  const u = age / GLINT_LIFE;
+  return Math.sin(Math.PI * Math.sqrt(u)) * GLINT_SIZE;
+}
 export function createSwingFx(THREE, parent) {
   const trail = createSwingTrail(THREE), burst = createImpactBurst(THREE, 128, 7);
   // A second, shorter ribbon for the off-hand blade of a two-weapon strike.
   const offTrail = createSwingTrail(THREE, 8, .1);
-  parent.add(trail.mesh, offTrail.mesh, burst.points);
+  const glint = new THREE.Group(), glintMat = new THREE.MeshBasicMaterial({color: 0xdfe8ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide});
+  for (const rz of [0, Math.PI / 2]) {
+    const bar = new THREE.Mesh(new THREE.PlaneGeometry(1, .07), glintMat);
+    bar.rotation.z = rz; glint.add(bar);
+  }
+  glint.visible = false;
+  let glintAge = GLINT_LIFE;
+  parent.add(trail.mesh, offTrail.mesh, burst.points, glint);
   const base = new THREE.Vector3(), tip = new THREE.Vector3(), at = new THREE.Vector3();
   // Where along the weapon the ribbon's inner edge sits (the blade, not the grip).
   const INNER = .25;
@@ -55,10 +70,24 @@ export function createSwingFx(THREE, parent) {
       // The action's own defender, else the caller's last-known one (text-fallback swings).
       burst.burst(at, [dx, dz], impactKind(s.target ?? targetName), s.blow);
     }
+    if (s?.contact && s.off && socket && hero.g) {
+      socket.updateWorldMatrix(true, false);
+      socket.localToWorld(tip.set(0, weaponReach(socket), 0));
+      parent.updateWorldMatrix(true, false);
+      parent.worldToLocal(tip);
+      if ([tip.x, tip.y, tip.z].every(Number.isFinite)) { glint.position.copy(tip); glintAge = 0; }
+    }
+    if (glintAge < GLINT_LIFE) {
+      glintAge += dt;
+      const k = glintScale(glintAge);
+      glint.visible = k > 0;
+      glint.scale.setScalar(Math.max(k, 1e-4));
+      glint.rotation.z = glintAge / GLINT_LIFE * Math.PI / 2;
+    } else glint.visible = false;
     trail.update(dt);
     offTrail.update(dt);
     burst.update(dt);
   }
-  return {trail, offTrail, burst, update,
-    dispose() { parent.remove(trail.mesh, offTrail.mesh, burst.points); trail.dispose(); offTrail.dispose(); burst.dispose(); }};
+  return {trail, offTrail, burst, glint, update,
+    dispose() { parent.remove(trail.mesh, offTrail.mesh, burst.points, glint); glint.children.forEach(c => c.geometry.dispose()); glintMat.dispose(); trail.dispose(); offTrail.dispose(); burst.dispose(); }};
 }
