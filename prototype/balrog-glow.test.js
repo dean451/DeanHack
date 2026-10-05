@@ -86,3 +86,9 @@ test('the vrock wears a carrion ruff and the nalfeshnee tusks and glowing boils'
  assert(has('nalfeshnee','devil-tusks')&&has('nalfeshnee','devil-boils'),'nalfeshnee has tusks and boils');
  assert(!has('vrock','devil-boils')&&!has('nalfeshnee','devil-ruff'),'marks stay with their own devil');
 });
+
+test('the marilith wears a gilt torque of spikes and bloody slashes',()=>{
+ const has=(name,mark)=>{let n=0;createCreature({name,symbol:38,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.name===mark)n++;});return n>0;};
+ assert(has('marilith','devil-gilt')&&has('marilith','devil-gore'),'marilith has a torque and gore');
+ assert(!has('vrock','devil-gilt')&&!has('bone devil','devil-gore'),'marks stay with their own devil');
+});
