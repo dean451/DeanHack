@@ -81,6 +81,10 @@ export function deathPose(style, u, dir = null) {
       p.sy = 1 - .8 * sag;
       p.sx = 1 + .22 * sag;
       p.dy = -.02 * sag;
+      // The extremities give out first: the arm drops limp with a dead twitch, the wrist lolls
+      // after it, as if the hand had already stopped being a part of it.
+      p.arm = .95 * smooth((u - .08) / .22) + .12 * Math.sin(u * 40) * smooth((u - .3) / .1) * (1 - smooth((u - .6) / .2));
+      p.wrist = .8 * smooth((u - .18) / .25);
       p.fade = 1 - smooth((u - .6) / .4);
       push(.03 * sag);
       break;
