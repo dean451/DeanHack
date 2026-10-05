@@ -5,14 +5,14 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // Staircases for the `up` and `down` terrain. Up is a solid flight climbing toward +z
 // between stepped side walls, under a round arch of voussoirs with a keystone and faint
 // daylight in its opening. Down is a curbed stairwell whose steps darken as they sink
-// into a black shaft, guarded at the far edge by two iron posts and a hanging chain.
+// into a black shaft with nothing to guard it.
 // Risers are laid as jointed blocks, and treads have an overhanging nosing. The stone
 // is roughened by position-keyed noise, and its weathering is baked into vertex colours:
 // mottling, treads worn pale down the middle, grime at the back of each tread, moss at
 // the foot and in the corners, and the stairwell's depth. The iron is rusty in patches.
 // The seed (usually the map cell) varies the stone tint, joints, rubble and weathering.
-// Static parts are merged into one mesh per material (`userData.part` is stone, iron,
-// and glow for up or void for down). Everything stays inside its tile.
+// Static parts are merged into one mesh per material (`userData.part` is stone, iron
+// and glow for up, stone and void for down). Everything stays inside its tile.
 export function createStairs(direction='up',seed=0){
  const up=direction!=='down';
  const g=new THREE.Group();g.name=up?'Stairs up':'Stairs down';
@@ -23,7 +23,7 @@ export function createStairs(direction='up',seed=0){
  const iron=new THREE.MeshStandardMaterial({vertexColors:true,metalness:.7,roughness:.45});
  const glow=new THREE.MeshBasicMaterial({color:0xffe3a8,vertexColors:true,transparent:true,opacity:.35,depthWrite:false,side:THREE.DoubleSide});
  const voidMat=new THREE.MeshBasicMaterial({color:0x020303});
- const parts=up?{stone,iron,glow}:{stone,iron,void:voidMat};
+ const parts=up?{stone,iron,glow}:{stone,void:voidMat};
  materials.push(...Object.values(parts));
  const bins=new Map(Object.values(parts).map(m=>[m,[]]));
  const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),v=new THREE.Vector3(),s=new THREE.Vector3();
@@ -137,23 +137,6 @@ export function createStairs(direction='up',seed=0){
    const top=.05-i*.01,z=hz-run*(i+.5);
    block(hx*2-.01,top-.008,run-.004,0,(top-.008)/2,z+.002,{r:.006,paint:deep});
    block(hx*2-.012,.009,run+.008,0,top-.0045,z+.004,{r:.004,paint:deep});
-  }
-  // Two iron posts with collars and ball finials, and a sagging chain of real links.
-  const postZ=-(hz+wall/2),px=hx+wall/2;
-  for(const x of [-px,px]){
-   put(roughen(place(new RoundedBoxGeometry(.045,.3,.045,2,.01),x,curb+.15,postZ),.0015),iron,{paint:rust});
-   put(place(new THREE.CylinderGeometry(.034,.036,.018,12),x,curb+.012,postZ),iron,{paint:rust});
-   put(place(new THREE.TorusGeometry(.027,.006,6,14),x,curb+.28,postZ,Math.PI/2,0,0),iron,{paint:rust});
-   put(place(new THREE.SphereGeometry(.035,12,8),x,curb+.31,postZ),iron,{paint:rust});
-  }
-  const sag=new THREE.CatmullRomCurve3([new THREE.Vector3(-px+.02,curb+.27,postZ),new THREE.Vector3(0,curb+.16,postZ),new THREE.Vector3(px-.02,curb+.27,postZ)]);
-  const links=17,tan=new THREE.Vector3(),look=new THREE.Matrix4(),up3=new THREE.Vector3(0,0,1),zero=new THREE.Vector3();
-  for(let i=0;i<links;i++){
-   const t=(i+.5)/links,p=sag.getPointAt(t);sag.getTangentAt(t,tan);
-   const geo=new THREE.TorusGeometry(.011,.0035,5,10);geo.scale(1.6,1,1);
-   if(i%2)geo.rotateX(Math.PI/2);
-   look.lookAt(zero,tan,up3);geo.rotateY(Math.PI/2);geo.applyMatrix4(look);geo.translate(p.x,p.y,p.z);
-   put(geo,iron,{paint:rust});
   }
  }
 
