@@ -173,6 +173,7 @@ const DRAGON_SEGMENT=new THREE.SphereGeometry(1,10,8);
 function dragonSegment(parent,r,material,p,q,sx,sy,sz){const mesh=part(parent,DRAGON_SEGMENT,material,p.x,p.y,p.z);mesh.quaternion.copy(q);mesh.scale.set(r*sx,r*sy,r*sz);return mesh;}
 // small rounded boxes with a single bevel step; the default three-step bevel costs 1.7k vertices each
 function dragonBox(parent,w,h,d,material,x=0,y=0,z=0,r=.02){return part(parent,new RoundedBoxGeometry(w,h,d,1,Math.min(r,w/2,h/2,d/2)*.9),material,x,y,z);}
+const DRAGON_SCUTE=new THREE.BoxGeometry(.1,.012,.07);
 function dragonChain(parent,curve,n,r0,r1,m){
  const Z=new THREE.Vector3(0,0,1);
  for(let i=0;i<=n;i++){const t=i/n,p=curve.getPoint(t),r=r0+(r1-r0)*t,q=new THREE.Quaternion().setFromUnitVectors(Z,curve.getTangent(t).negate());
@@ -286,6 +287,9 @@ function dragon(o={}){
   if(f.legs===2){torso.rotation.x=under.rotation.x=-.3;}
   // three claw rakes score the left flank, the old wounds of a long life of killing
   for(let i=0;i<3;i++){const rake=dragonBox(body,.012,.2,.02,m.scar,-.27+i*.0,.5-i*.0,.0,.004);rake.position.set(-.275+i*.0,.5,-.08+i*.055);rake.rotation.set(0,0,.35);rake.scale.set(1,1-i*.12,1);}
+  // overlapping armour scutes crust the back and flanks: dark, sharp-edged plates over the hide
+  {const geos=[];for(let i=0;i<5;i++)for(const s of [-1,0,1]){const plate=new THREE.Mesh(DRAGON_SCUTE);plate.position.set(s*.13,.7-Math.abs(s)*.1,.3-i*.15);plate.scale.set(1-Math.abs(s)*.2,1,1);plate.rotation.set(-.2,0,s*.55);plate.updateMatrix();geos.push(DRAGON_SCUTE.clone().applyMatrix4(plate.matrix));}
+   part(body,mergeGeometries(geos),m.dark);geos.forEach(g=>g.dispose());}
   trunk=torsoTrunk(body,{center:torso.position,radii:[.26*1.1*lean,.26*.85,.26*1.45],tilt:torso.rotation.x});
   const spine=new THREE.CatmullRomCurve3([[0,.63,.28],[0,.68,0],[0,.6,-.3]].map(p=>new THREE.Vector3(...p)));
   dragonRidge(body,spine,6,.02,.02,baby?.05:.1,m.dark);

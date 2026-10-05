@@ -9,7 +9,7 @@ const meshes = g => { const list = []; g.traverse(o => { if (o.isMesh) list.push
 const bounds = g => { g.updateMatrixWorld(true); return new THREE.Box3().setFromObject(g); };
 
 test('every wand appearance builds a finite wand of at most three meshes, held and on the floor', () => {
-  assert.equal(WAND_APPEARANCES.length, 39);
+  assert.equal(WAND_APPEARANCES.length, 43);
   for (const look of [...WAND_APPEARANCES, null, 'unknown']) for (const floor of [false, true]) {
     const t0 = performance.now(), wand = createWand(look, {floor}), ms = performance.now() - t0, parts = meshes(wand);
     const name = `${look} ${floor ? 'floor' : 'held'}`;
@@ -75,4 +75,13 @@ test('a floor wand model uses the appearance and frees its resources', () => {
   model.userData.dispose();
   assert.equal(disposed.filter(d => d === 'g').length, parts.length);
   assert.equal(disposed.filter(d => d === 'm').length, parts.length);
+});
+
+test('titanium, electrum, plastic and bone wands each look like their material', () => {
+  const shaft = look => meshes(createWand(look)).find(m => m.userData.part === 'shaft').material;
+  assert(shaft('titanium').metalness > .7 && shaft('titanium').color.getHexString() !== shaft('iron').color.getHexString());
+  assert(shaft('electrum').color.r > shaft('electrum').color.b + .1, 'a warm pale gold');
+  assert(shaft('plastic').metalness === 0 && shaft('plastic').roughness < .4 && shaft('plastic').color.r < .1);
+  assert(shaft('bone').metalness === 0 && shaft('bone').color.r > .6);
+  assert(wandAppearance('a bone wand') === 'bone' && wandAppearance('2 plastic wands') === 'plastic');
 });
