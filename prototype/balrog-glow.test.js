@@ -20,7 +20,7 @@ test('the balrog and Durin\'s Bane glow with evil: cracks in the hide and a hell
 
 test('lesser fiends carry no evil glow',()=>{
  assert.equal(glows('mail daemon').length,0);
- assert.equal(glows('vrock').length,0);
+ assert.equal(glows('succubus').length,0);
 });
 
 test('the balrog trails smoke and embers and towers over a pit fiend',()=>{
@@ -55,4 +55,12 @@ test('the horned, barbed, bone and ice devils glow with evil in their own colour
   tints.add(parts[0].material.color.getHex());
  }
  assert.equal(tints.size,4,'each devil has its own glow colour');
+});
+
+test('the vrock and nalfeshnee glow with evil',()=>{
+ for(const name of ['vrock','nalfeshnee']){
+  const parts=glows(name);
+  assert(parts.length>=2,name+' has evil-glow parts');
+  assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),name+' has a hellglow pool');
+ }
 });
