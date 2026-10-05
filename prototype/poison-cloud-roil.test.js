@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createPoisonCloud} from './poison-cloud.js';
 import {createGasRoil, gasState, GAS_HEAVE, GAS_CURL, GAS_DRIFT, gasGround, GAS_LAVA_GLOW, GAS_RIPPLE} from './poison-cloud-roil.js';
+import {GAS_SPARKS} from './poison-gas-sparks.js';
 
 const snap = m => [...m.position.toArray(), m.rotation.y, ...m.scale.toArray()];
 
@@ -83,4 +84,25 @@ test('gas over lava glows orange and over water clings low, and both restore exa
   [lava.core, water.core, water.wisps, plain.core].forEach((m, i) =>
     assert.deepEqual([m.material.emissive.getHex(), m.material.emissiveIntensity, m.material.opacity], mats[i]));
   assert.equal(water.core.scale.y, restScale);
+});
+
+test('gas over lava lets off sparks that stay in bounds, and restore removes them', () => {
+  const lava = onGround('lava'), plain = onGround('floor');
+  const roils = [lava, plain].map(w => { const r = createGasRoil(w.scene);w.roil = r;return r; });
+  const sparkCount = w => w.scene.getObjectByName('GasSparks') ? 1 : 0;
+  let lit = 0;
+  for (let t = 0; t < 30; t += 1 / 30) {
+    roils.forEach(r => r.update(t));
+    const s = lava.scene.getObjectByName('GasSparks'), m = new THREE.Matrix4(), p = new THREE.Vector3(), k = new THREE.Vector3();
+    assert.equal(s.count, GAS_SPARKS);
+    for (let i = 0; i < s.count; i++) {
+      s.getMatrixAt(i, m);m.decompose(p, new THREE.Quaternion(), k);
+      if (k.x > 1e-3) lit++;
+      assert(Math.hypot(p.x, p.z) < .35 && p.y >= 0 && p.y < .5, 'sparks stay near the bank');
+    }
+  }
+  assert(lit > 0, 'some spark is in the air at some point');
+  assert.equal(sparkCount(plain), 0, 'plain floor gets no sparks');
+  roils.forEach(r => r.restore());
+  assert.equal(sparkCount(lava), 0);
 });
