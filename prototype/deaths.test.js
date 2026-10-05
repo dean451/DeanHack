@@ -6,7 +6,7 @@ import {createCreature} from './creatures.js';
 
 test('death styles come from the seen species name only', () => {
   const cases = {
-    'kobold zombie': 'crumble', 'gnome mummy': 'crumble', skeleton: 'crumble', 'master lich': 'crumble',
+    'kobold zombie': 'crumble', 'gnome mummy': 'crumble', skeleton: 'crumble', 'master lich': 'lichdust',
     'clay golem': 'crumble', 'ochre jelly': 'splat', 'black pudding': 'splat', 'acid blob': 'splat',
     'brown mold': 'splat', lichen: 'splat', 'fire vortex': 'dissipate', 'fog cloud': 'dissipate',
     ghost: 'dissipate', 'air elemental': 'dissipate', 'yellow light': 'burst', 'gas spore': 'burst',
@@ -16,6 +16,19 @@ test('death styles come from the seen species name only', () => {
   for (const [name, style] of Object.entries(cases)) assert.equal(deathStyle(name), style, name);
   assert.equal(deathStyle(null), 'topple');
   assert.equal(deathStyle(''), 'topple');
+});
+
+test('liches and demiliches crumble to dust in stages', () => {
+  for (const n of ['lich', 'demilich', 'master lich', 'arch-lich']) assert.equal(deathStyle(n), 'lichdust', n);
+  assert.equal(deathStyle('lichen'), 'splat');
+  assert.ok(DEATH_TIME.lichdust > DEATH_TIME.crumble);
+  const sy = u => deathPose('lichdust', u).sy;
+  // The drop comes in jolts: flat spells between three falls, and it never rises back.
+  assert.ok(sy(.5) < sy(.4) && sy(.7) < sy(.5));
+  for (let u = 0; u < .99; u += .01) assert.ok(sy(u + .01) <= sy(u) + 1e-9, `no rebound at ${u}`);
+  const end = deathPose('lichdust', 1);
+  assert.ok(end.sy < .3 && end.fade === 0);
+  assert.ok(deathPose('lichdust', .8).fade > 0, 'the glow outlasts the frame');
 });
 
 test('every style starts at rest, stays finite and bounded, and ends held', () => {

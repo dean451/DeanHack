@@ -1,6 +1,8 @@
 // Per-class deaths (motion queue item 6). Instead of every creature toppling the same way,
 // the seen species name picks a death style:
 //   crumble   undead and golems of earth: shudder, sag straight down and fall to dust
+//   lichdust  liches and demiliches: crack, drop in stages like a collapsing frame, then a grey
+//             dust cloud while the necrotic glow gutters out last
 //   splat     jellies, puddings, blobs, molds: bulge, then flatten wide and fade into a puddle
 //   dissipate vortices, clouds, ghosts, air elementals: spin up, swell and thin into mist
 //   burst     lights and spheres, gas spores: swell fast and pop in a flash
@@ -17,12 +19,13 @@
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
-export const DEATH_STYLES = ['topple', 'crumble', 'splat', 'dissipate', 'burst', 'petrify'];
+export const DEATH_STYLES = ['topple', 'crumble', 'lichdust', 'splat', 'dissipate', 'burst', 'petrify'];
 
 // Seconds each style takes (topple matches actions.js's die).
-export const DEATH_TIME = {topple: .9, crumble: 1, splat: .8, dissipate: 1, burst: .45, petrify: 1.8};
+export const DEATH_TIME = {topple: .9, crumble: 1, lichdust: 1.8, splat: .8, dissipate: 1, burst: .45, petrify: 1.8};
 
 const RULES = [
+  ['lichdust', /\b(demi|arch-?)?lich\b|\bdemilich\b/],
   ['burst', /\b(yellow|black) light\b|\bgas spore\b|\b(flaming|freezing|shocking) sphere\b/],
   ['dissipate', /vortex|\bfog cloud\b|\bair elemental\b|\bghost\b|\bshade\b|\bwraith\b|\bstalker\b|\bwill o'? the wisp\b/],
   ['splat', /\bjelly\b|\bpudding\b|\bblob\b|\booze\b|\bslime\b|\bmold\b|\blichen\b|\bshrieker\b|\bviolet fungus\b/],
@@ -63,6 +66,23 @@ export function deathPose(style, u, dir = null) {
       p.sx = 1 + .18 * sag;
       p.fade = 1 - smooth((u - .6) / .4);
       push(.04 * sag);
+      break;
+    }
+    case 'lichdust': {
+      // A rattling shudder, then the frame drops in three jolts (robe, ribs, skull) rather than
+      // one smooth sag; the head lolls, the body slumps to a heap, and the dust sifts away with
+      // the glow (fade) guttering out last.
+      const shake = u < .3 ? Math.sin(u * 150) * .06 * (1 - u / .3) : 0;
+      const step = a => smooth((u - a) / .12);
+      const sag = (step(.25) + step(.45) + step(.65)) / 3;
+      p.roll = shake + .05 * sag;
+      p.pitch = .22 * sag;
+      p.head = -.7 * smooth((u - .3) / .5);
+      p.sy = 1 - .8 * sag;
+      p.sx = 1 + .22 * sag;
+      p.dy = -.02 * sag;
+      p.fade = 1 - smooth((u - .6) / .4);
+      push(.03 * sag);
       break;
     }
     case 'splat': {
@@ -127,12 +147,13 @@ export function deathPose(style, u, dir = null) {
 }
 
 // When (u) each style throws off its particles.
-export const DEATH_BURST_U = {topple: .8, crumble: .55, splat: .25, dissipate: .2, burst: .33, petrify: .62};
+export const DEATH_BURST_U = {topple: .8, crumble: .55, lichdust: .5, splat: .25, dissipate: .2, burst: .33, petrify: .62};
 
 // Particle looks. Splats take the creature's own colour when one is given.
 const LOOKS = {
   topple: {count: 10, speed: .5, up: .5, life: .6, gravity: 1.5, drag: 4, color: [.42, .38, .32], spread: 'ring', size: .04},
   crumble: {count: 44, speed: .35, up: .2, life: 1.1, gravity: 1.2, drag: 2.5, color: [.62, .58, .5], spread: 'column', size: .035},
+  lichdust: {count: 70, speed: .3, up: .3, life: 1.6, gravity: .5, drag: 2, color: [.5, .49, .47], spread: 'column', size: .04},
   splat: {count: 34, speed: 1.3, up: 1.1, life: .9, gravity: 5, drag: 1.2, color: [.55, .75, .25], spread: 'ring', size: .05},
   dissipate: {count: 40, speed: .45, up: .6, life: 1.3, gravity: -.25, drag: 1.5, color: [.75, .78, .82], spread: 'swirl', size: .07},
   // Grit shed as the stone sets, sifting down the body.
