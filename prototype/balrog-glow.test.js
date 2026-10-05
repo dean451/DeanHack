@@ -153,3 +153,12 @@ test('vampire lords, vampire mages and Vlad cast a pool of dark light and stand 
  assert.equal(pools('vampire'),0);
  for(const name of ['vampire lord','vampire mage','vlad the impaler']){assert.equal(pools(name),1,name);assert(h(name)>h('vampire'),name);}
 });
+
+test('evil-glow floor pools hang from the creature root, so leaning attacks cannot tip them off the floor',()=>{
+ for(const [name,symbol] of [['balrog',38],['demilich',76],['vampire lord',86],['arch-lich',76]]){
+  const c=createCreature({name,symbol,color:1});
+  const pools=glows(name).filter(m=>m.material.transparent);
+  assert(pools.length>=1,name+' has a pool');
+  for(const p of pools){let a=p,leans=false;while(a){if(a===c.body)leans=true;a=a.parent;}assert(!leans,name+' pool is not under the leaning body');}
+ }
+});
