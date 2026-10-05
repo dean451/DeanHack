@@ -18,8 +18,8 @@ test('the balrog and Durin\'s Bane glow with evil: cracks in the hide and a hell
  }
 });
 
-test('lesser demons carry no evil glow',()=>{
- assert.equal(glows('horned devil').length,0);
+test('lesser fiends carry no evil glow',()=>{
+ assert.equal(glows('mail daemon').length,0);
  assert.equal(glows('vrock').length,0);
 });
 
@@ -44,4 +44,15 @@ test('demon lords and princes glow with evil in their own colours',()=>{
 test('Demogorgon has two heads',()=>{
  const eyes=name=>{let n=0;createCreature({name,symbol:38,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.emissive&&o.material.emissive.getHex()===0xff3030)n++;});return n;};
  assert.equal(eyes('demogorgon'),2,'one pair of eye meshes per head');
+});
+
+test('the horned, barbed, bone and ice devils glow with evil in their own colours',()=>{
+ const tints=new Set();
+ for(const name of ['horned devil','barbed devil','bone devil','ice devil']){
+  const parts=glows(name);
+  assert(parts.length>=2,name+' has evil-glow parts');
+  assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),name+' has a hellglow pool');
+  tints.add(parts[0].material.color.getHex());
+ }
+ assert.equal(tints.size,4,'each devil has its own glow colour');
 });

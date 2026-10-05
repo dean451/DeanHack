@@ -2338,11 +2338,11 @@ function demon(o){
 }
 const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,scale:1.15},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,scale:1.1},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,scale:1.1}};
 const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',horns:'short',head:'toad',tail:true},'lava demon':{skin:'#5a2418',eye:'#ffdd40',horns:'short',flame:'#ff6a20',tail:true},
- 'horned devil':{skin:'#8a3a24',horns:'long',tail:true,weapon:'trident'},succubus:{skin:'#d8a090',eye:'#ff60a0',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true},
+ 'horned devil':{skin:'#8a3a24',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident'},succubus:{skin:'#d8a090',eye:'#ff60a0',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true},
  incubus:{skin:'#b07a60',eye:'#ff60a0',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true},erinys:{skin:'#a86a58',eye:'#ff4030',slim:true,hair:'#3a2418',wings:.8,weapon:'sword'},
- 'barbed devil':{skin:'#9a2e20',horns:'short',spikes:true,tail:true},marilith:{skin:'#7a3a5a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true},
- vrock:{skin:'#6a5a48',head:'beak',horn:'#3a3028',wings:.9},'bone devil':{skin:'#9a9078',head:'skull',spikes:'bone',tail:true},
- 'ice devil':{skin:'#b8d0e0',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true},nalfeshnee:{skin:'#5a4a3a',head:'boar',spikes:'bone',wings:.5,bulk:1.3},
+ 'barbed devil':{skin:'#9a2e20',evil:'#ff2a28',horns:'short',spikes:true,tail:true},marilith:{skin:'#7a3a5a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true},
+ vrock:{skin:'#6a5a48',head:'beak',horn:'#3a3028',wings:.9},'bone devil':{skin:'#9a9078',evil:'#c8e04a',head:'skull',spikes:'bone',tail:true},
+ 'ice devil':{skin:'#b8d0e0',evil:'#50b8ff',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true},nalfeshnee:{skin:'#5a4a3a',head:'boar',spikes:'bone',wings:.5,bulk:1.3},
  'pit fiend':{skin:'#7a1a18',evil:'#ff3a1a',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.1},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.35},
  "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',evil:'#ff3a08',weapon:'whip',bulk:1.2,scale:1.45},
  yeenoghu:{skin:'#8a7040',evil:'#e0a020',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',evil:'#8aff6a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
