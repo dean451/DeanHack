@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {crackPath, crackReach, createDigCracks, MAX_TILES, MAX_CRACKS, SEGS, GROW, HOLD, FADE} from './dig-cracks.js';
+import {wallPoint, crackPath, crackReach, createDigCracks, MAX_TILES, MAX_CRACKS, SEGS, GROW, HOLD, FADE} from './dig-cracks.js';
 
 const BLOW = 'You hit the rock with all your might.';
 
@@ -48,4 +48,21 @@ test('tiles are capped, idle cracks fade out and clear empties everything', () =
   assert.equal(cracks.update(0).vertices, 0);
   cracks.dispose();
   assert.equal(parent.children.length, 0);
+});
+
+test('with a heading, cracks also split the wall face ahead of the hero', () => {
+  for (const face of [0, 1, Math.PI / 2, Math.PI, -2]) for (let k = 0; k < MAX_CRACKS; k++) for (const p of crackPath(3, k)) {
+    const w = wallPoint(p, face);
+    assert.ok(w.y >= .06 && w.y <= .95);
+    // it lies on the tile edge in the heading, never off to the side
+    assert.ok(Math.abs(w.x * Math.sin(face) + w.z * Math.cos(face) - .47) < 1e-9);
+  }
+  const parent = new THREE.Group(), cracks = createDigCracks(THREE, parent);
+  cracks.message(BLOW, 0, 0);
+  for (let t = 0; t < GROW + .2; t += .1) cracks.update(.1);
+  assert.equal(cracks.update(0).vertices, SEGS * 2);
+  cracks.message(BLOW, 0, 0, 0);
+  for (let t = 0; t < GROW + .2; t += .1) cracks.update(.1);
+  assert.equal(cracks.update(0).vertices, SEGS * 4 * 2);
+  cracks.dispose();
 });
