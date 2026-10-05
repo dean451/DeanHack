@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {digMessage, chipFlight, createDigChips, pallPuff, gritTrickle, DIG_LOOKS, MAX_BURSTS, CHIPS, PALL_MAX, GRIT_MAX} from './dig-chips.js';
+import {digMessage, chipFlight, createDigChips, pallPuff, gritTrickle, wallCrumble, DIG_LOOKS, MAX_BURSTS, CHIPS, PALL_MAX, GRIT_MAX, WALL_MAX} from './dig-chips.js';
 
 test('dig messages give a kind, others do not', () => {
   assert.equal(digMessage('You hit the rock with all your might.'), 'blow');
@@ -114,4 +114,32 @@ test('grit sifts down from the ceiling one grain at a time, long after the rubbl
     assert.equal(gritTrickle(kind, 1, 0, 0).alpha, 0, 'nothing at first');
   }
   for (const kind of ['blow', 'pit']) assert.equal(gritTrickle(kind, 1, 0, 1), null);
+});
+
+test('a breach crumbles the wall ahead from the top down and only with a heading', () => {
+  const look = DIG_LOOKS.breach;
+  assert.equal(wallCrumble('breach', 1, 0, .3, undefined), null);
+  assert.equal(wallCrumble('blow', 1, 0, .3, 0), null);
+  for (const face of [0, 1.2, -2.5]) {
+    for (let i = 0; i < look.wall; i++) {
+      for (let t = 0; t < look.wallLife; t += .02) {
+        const c = wallCrumble('breach', 5, i, t, face);
+        assert.ok(c.y >= .039 && c.y <= 1, `y ${c.y}`);
+        assert.ok(Math.hypot(c.x, c.z) < .9 && c.alpha >= 0 && c.alpha <= 1);
+        // the flakes sit on the facing side of the tile
+        assert.ok(c.x * Math.sin(face) + c.z * Math.cos(face) > .3);
+      }
+      assert.equal(wallCrumble('breach', 5, i, look.wallLife, face), null);
+    }
+  }
+  const first = wallCrumble('breach', 5, 0, .15, 0), last = wallCrumble('breach', 5, look.wall - 1, .15, 0);
+  assert.ok(first.alpha > 0 && last.alpha === 0);
+});
+
+test('the burst cloud holds the wall flakes within its cap', () => {
+  const dig = createDigChips(THREE, new THREE.Group());
+  for (let i = 0; i < MAX_BURSTS + 2; i++) dig.message('You make an opening in the wall.', 0, 0, i);
+  let peak = 0;
+  for (let t = 0; t < 4; t += .05) peak = Math.max(peak, dig.update(.05).chips);
+  assert.ok(peak <= MAX_BURSTS * (CHIPS + PALL_MAX + GRIT_MAX + WALL_MAX));
 });
