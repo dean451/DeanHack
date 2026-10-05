@@ -16,10 +16,13 @@ export const LADY = {rise: .45, riseTime: 1.1, turnAt: 1.9, twitchAt: 2.75, sink
 export const ARM_MAX = .85; // how far the wrist clears the water
 export const STIR = {at: .05, end: .55}; // the water bulges and shivers before the arm breaks it
 export const isLadyMessage = text => /a hand reaches up to bless the sword/i.test(text || '');
+// The other outcome: she curses the blade instead. Same arm, but the sword gutters a bruised
+// violet, the blade turns the wrong way and the glow stutters like a failing flame.
+export const isLadyCurseMessage = text => /a hand reaches up to curse the sword/i.test(text || '');
 
 // The arm at time t: height out of the water, the blade's turn about its own axis, a sideways
 // twitch, the sword's glow (0 to 1) and the ripple progress.
-export function ladyPose(t) {
+export function ladyPose(t, curse = false) {
   const up = smooth((t - LADY.rise) / LADY.riseTime);
   const down = smooth((t - LADY.sinkAt) / LADY.sinkTime);
   const rise = ARM_MAX * up * (1 - down);
@@ -27,20 +30,21 @@ export function ladyPose(t) {
   const tw = t - LADY.twitchAt;
   const twitch = tw > 0 && tw < .25 ? Math.sin(tw / .25 * Math.PI * 3) * .22 * (1 - tw / .25) : 0;
   const glowIn = smooth((t - LADY.rise - .5) / .8), glowOut = smooth((t - LADY.sinkAt - .5) / (LADY.total - LADY.sinkAt - .5));
-  const glow = glowIn * (1 - glowOut) * (.85 + .15 * Math.sin(t * 9));
+  const sputter = curse ? .55 + .45 * Math.sin(t * 23) * Math.sin(t * 7.3 + 1) : .85 + .15 * Math.sin(t * 9);
+  const glow = glowIn * (1 - glowOut) * Math.min(1, Math.max(0, sputter));
   const ripple = clamp01(t / (LADY.sinkAt + LADY.sinkTime));
   // A dark swell under the surface that heaves and shivers, then slides away as the arm breaks through.
   const sk = clamp01((t - STIR.at) / (STIR.end - STIR.at));
   const stir = t <= STIR.at || t >= STIR.end ? 0 : Math.sin(sk * Math.PI) * (.9 + .1 * Math.sin(t * 38));
-  return {stir, rise, turn: t >= LADY.turnAt + .7 ? 0 : turn, twitch, glow: t >= LADY.total ? 0 : glow, ripple};
+  return {stir, rise, turn: t >= LADY.turnAt + .7 ? 0 : curse ? 0 - turn : turn, twitch, glow: t >= LADY.total ? 0 : glow, ripple};
 }
 
 export function createFountainLady(THREE, parent) {
   const live = [];
-  function add(x, z) {
+  function add(x, z, curse = false) {
     const g = new THREE.Group(); g.name = 'FountainLady'; g.position.set(x, .3, z); parent.add(g);
     const flesh = new THREE.MeshStandardMaterial({color: 0x8fa396, roughness: .9});
-    const steel = new THREE.MeshStandardMaterial({color: 0xbfd6e6, metalness: .8, roughness: .25, emissive: 0x5fb8ff, emissiveIntensity: 0});
+    const steel = new THREE.MeshStandardMaterial({color: 0xbfd6e6, metalness: .8, roughness: .25, emissive: curse ? 0x8a2bd0 : 0x5fb8ff, emissiveIntensity: 0});
     const geos = [];
     const mesh = (geo, mat, parentObj = g) => { geos.push(geo); const m = new THREE.Mesh(geo, mat); parentObj.add(m); return m; };
     const arm = new THREE.Group(); g.add(arm);
@@ -50,7 +54,7 @@ export function createFountainLady(THREE, parent) {
     const blade = new THREE.Group(); blade.position.y = .02; hand.add(blade);
     const b = mesh(new THREE.BoxGeometry(.04, .62, .012), steel, blade); b.position.y = .3;
     const guard = mesh(new THREE.BoxGeometry(.2, .025, .03), steel, blade); guard.position.y = .02;
-    const glowMat = new THREE.SpriteMaterial({map: softDot(THREE), color: 0x8fd8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
+    const glowMat = new THREE.SpriteMaterial({map: softDot(THREE), color: curse ? 0x9b3fd8 : 0x8fd8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
     const glow = new THREE.Sprite(glowMat); glow.position.y = .3; glow.scale.setScalar(1.1); blade.add(glow);
     const ringGeo = new THREE.PlaneGeometry(1, 1); ringGeo.rotateX(-Math.PI / 2);
     const rings = [0, .18].map(delay => {
@@ -59,11 +63,11 @@ export function createFountainLady(THREE, parent) {
     });
     const swellMat = new THREE.MeshBasicMaterial({map: softDot(THREE), color: 0x0c1814, transparent: true, opacity: 0, depthWrite: false});
     const swell = new THREE.Mesh(ringGeo, swellMat); swell.position.y = .015; g.add(swell);
-    live.push({swell, swellMat, g, arm, hand, blade, steel, glowMat, rings, geos, mats: [flesh, steel, glowMat, swellMat, ...rings.map(r => r.mat)], ringGeo, t: 0});
+    live.push({curse, swell, swellMat, g, arm, hand, blade, steel, glowMat, rings, geos, mats: [flesh, steel, glowMat, swellMat, ...rings.map(r => r.mat)], ringGeo, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
-    const p = ladyPose(e.t);
+    const p = ladyPose(e.t, e.curse);
     e.swell.scale.set(.25 + .5 * p.stir, 1, .25 + .5 * p.stir); e.swellMat.opacity = .75 * p.stir;
     e.arm.visible = p.rise > .01;
     e.arm.position.set(p.twitch, p.rise, 0);
@@ -79,6 +83,7 @@ export function createFountainLady(THREE, parent) {
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(m => m.dispose()); e.ringGeo.dispose(); parent.remove(e.g); }
   return {
     add,
+    message(text, x, z) { if (isLadyCurseMessage(text)) add(x, z, true); },
     update(dt) { for (let i = live.length - 1; i >= 0; i--) if (!step(live[i], dt)) { drop(live[i]); live.splice(i, 1); } },
     clear() { live.forEach(drop); live.length = 0; },
     get active() { return live.length; },

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ladyPose, isLadyMessage, LADY, ARM_MAX, STIR} from './fountain-lady.js';
+import {ladyPose, isLadyMessage, isLadyCurseMessage, LADY, ARM_MAX, STIR} from './fountain-lady.js';
 
 test('only the Lady of the Lake message triggers her', () => {
   assert.ok(isLadyMessage('From the murky depths, a hand reaches up to bless the sword.'));
@@ -53,4 +53,19 @@ test('the water stirs before the arm breaks it, then goes still', () => {
   assert.ok(peak > .5);
   assert.equal(ladyPose(0).stir, 0);
   assert.equal(ladyPose(LADY.rise).rise, 0);
+});
+
+test('the curse variant has its own message and a wrong-way, stuttering blade', () => {
+  assert.ok(isLadyCurseMessage('From the murky depths, a hand reaches up to curse the sword.'));
+  assert.ok(!isLadyCurseMessage('From the murky depths, a hand reaches up to bless the sword.'));
+  assert.ok(!isLadyMessage('From the murky depths, a hand reaches up to curse the sword.'));
+  assert.ok(ladyPose(LADY.turnAt + .35, true).turn < -1);
+  let min = 1;
+  for (let t = LADY.rise + 1.4; t < LADY.sinkAt; t += .01) {
+    const p = ladyPose(t, true);
+    min = Math.min(min, p.glow);
+    assert.ok(p.glow >= 0 && p.glow <= 1.0001, `${t}`);
+  }
+  assert.ok(min < .3);
+  for (const t of [0, LADY.total, LADY.total + 1]) { const p = ladyPose(t, true); assert.equal(p.rise, 0); assert.equal(p.glow, 0); assert.equal(p.turn, 0); }
 });
