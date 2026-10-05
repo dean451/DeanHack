@@ -37,3 +37,9 @@ test('water trolls carry a spine of barnacle shells and no other troll does', ()
   for (const n of ['troll', 'ice troll', 'rock troll', 'olog-hai']) assert(!make(n).g.userData.barnacled, n);
   assert(meshCount(make('water troll')) <= 30);
 });
+
+test('plain trolls wear a cord of fangs and knucklebones and no other troll does', () => {
+  assert.equal(make('troll').g.userData.trophied, true);
+  for (const n of ['ice troll', 'rock troll', 'water troll', 'olog-hai']) assert(!make(n).g.userData.trophied, n);
+  assert(meshCount(make('troll')) <= 30);
+});
