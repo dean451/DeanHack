@@ -284,6 +284,8 @@ function dragon(o={}){
   const lean=f.sirrush?.82:1;
   const torso=sphere(body,.26,m.hide,0,.46,0,1.1*lean,.85,1.45);const under=sphere(body,.22,m.belly,0,.38,.03,1.02*lean,.6,1.35);
   if(f.legs===2){torso.rotation.x=under.rotation.x=-.3;}
+  // three claw rakes score the left flank, the old wounds of a long life of killing
+  for(let i=0;i<3;i++){const rake=dragonBox(body,.012,.2,.02,m.scar,-.27+i*.0,.5-i*.0,.0,.004);rake.position.set(-.275+i*.0,.5,-.08+i*.055);rake.rotation.set(0,0,.35);rake.scale.set(1,1-i*.12,1);}
   trunk=torsoTrunk(body,{center:torso.position,radii:[.26*1.1*lean,.26*.85,.26*1.45],tilt:torso.rotation.x});
   const spine=new THREE.CatmullRomCurve3([[0,.63,.28],[0,.68,0],[0,.6,-.3]].map(p=>new THREE.Vector3(...p)));
   dragonRidge(body,spine,6,.02,.02,baby?.05:.1,m.dark);
