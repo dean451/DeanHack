@@ -38,7 +38,8 @@ test('a dying lich lets its arm and wrist go limp before the frame collapses', (
   assert.ok(p(.3).arm > .6 && p(.3).arm > 3 * (1 - p(.3).sy), 'the arm falls before the frame sags');
   assert.ok(p(.5).wrist > .4);
   for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).arm) < 1.3 && Math.abs(p(u).wrist) < 1, `arm in bounds at ${u}`);
-  assert.equal(deathPose('crumble', 1).arm, 0, 'other deaths leave the arm alone');
+  assert.equal(deathPose('topple', 1).arm, 0, 'other deaths leave the arm alone');
+  assert.ok(deathPose('crumble', 1).arm > .5 && deathPose('crumble', 0).arm === 0, 'a crumbling corpse lets its arm hang slack');
 });
 
 test('every style starts at rest, stays finite and bounded, and ends held', () => {

@@ -64,6 +64,7 @@ export function deathPose(style, u, dir = null) {
       p.head = -.5 * sag + .45 * Math.sin(Math.PI * clamp01((u - .3) / .14));
       p.sy = 1 - .72 * sag;
       p.sx = 1 + .18 * sag;
+      p.arm = .6 * smooth((u - .35) / .3);
       p.fade = 1 - smooth((u - .6) / .4);
       push(.04 * sag);
       break;
