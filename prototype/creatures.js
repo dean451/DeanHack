@@ -199,6 +199,8 @@ function dragonHead(head,m,f,baby){
   sphere(head,.012,m.glow,s*.03,.04,.24);
   const brow=dragonBox(head,.05,.02,.07,m.dark,s*.055,.075,.07,.008);brow.rotation.z=s*.3;
   for(let i=0;i<3;i++)cone(head,.008,.03,m.ivory,s*.045,-.03,.12+i*.045,4).rotation.x=Math.PI;
+  // two long curved fangs hang from the upper jaw past the lower teeth,
+  cone(head,.011,.07,m.ivory,s*.055,-.045,.2,4).rotation.x=Math.PI-.15;
   const frill=cone(head,.035,.1,m.dark,s*.11,-.01,-.05,3);frill.rotation.z=-s*1.3;frill.rotation.y=s*.4;
   if(f.sirrush){const horn=cone(head,.018,.22,m.ivory,s*.03,.1,.02,6);horn.rotation.x=-.35;horn.rotation.z=-s*.12;}
   else{const horn=cone(head,.026,(baby?.08:.17)*(f.horns||1),m.ivory,s*.06,.09,-.07,6);horn.rotation.x=-1.1;horn.rotation.z=-s*.25;}
@@ -216,6 +218,8 @@ function dragonWing(parent,side,span,m,feathered){
  // leading edge out to the tip, then a scalloped trailing edge between the finger bones
  const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(...elbow);shape.lineTo(...tip);
  let prev=tip;for(const q of fingers){const mx=(prev[0]+q[0])/2,my=(prev[1]+q[1])/2;shape.quadraticCurveTo(mx+(elbow[0]-mx)*.28,my+(elbow[1]-my)*.28,...q);prev=q;}
+ // torn holes between the finger bones: a dragon's membrane is old, scarred and ragged (feathered wings are spared)
+ if(!feathered)for(const [hx,hy,hr,ha] of [[.3,.1,.05,.2],[.44,.15,.035,1.1],[.2,.04,.035,2.3]]){const hole=new THREE.Path();for(let k=0;k<3;k++){const an=ha+k*2.1,rr=hr*(k===1?1.5:1);hole[k?'lineTo':'moveTo'](side*(hx+Math.cos(an)*rr)*span,(hy+Math.sin(an)*rr)*span);}hole.closePath();shape.holes.push(hole);}
  part(inner,new THREE.ShapeGeometry(shape,6),feathered?m.feather:m.membrane);
  tube(inner,[[0,0,0],[...elbow,0],[...tip,0]],.014*span,m.dark,8);
  for(const q of fingers.slice(0,3))tube(inner,[[...elbow,0],[(elbow[0]+q[0])/2,(elbow[1]+q[1])/2+.02*span,0],[...q,0]],.007*span,m.dark,6);
