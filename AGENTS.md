@@ -64,7 +64,7 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 
 **Animations**
 
-- **Excalibur and fountains:** dipping a long sword into a fountain should be a scene: the water stirs, a hand rises from the fountain holding the glowing sword (the lady of the lake). Give the other fountain results (a wish, water moccasins, water nymphs, a gush) their own moments too.
+- **Excalibur and fountains:** give the fountain results their own moments: a wish, water moccasins, water nymphs, a gush. Done so far: the Lady of the Lake (a drowned arm rises with a glowing sword, turns it, twitches and sinks; `fountain-lady.js`, keyed on the "a hand reaches up to bless the sword" message). Remaining: the water stirring before the arm, and the other results.
 - **Falling and travelling:** trapdoors and holes (the floor gives way and the hero drops), level teleporters and teleport traps (a bright blink and a streak), magic portals (a swirling pull), and falling down stairs (a tumble). Each ends with the hero arriving, not just a map change.
 - **Trap looks:** every trap type needs its own look and its own trigger moment: arrow, dart, falling rock, bear trap, pit and spiked pit, sleeping gas, rust, fire, land mine, squeaky board, magic trap, polymorph trap, anti-magic field. Audit which exist (`trap.js`, `fire-trap-fx.js`) and fill the gaps, one trap per step.
 - **Sokoban boulders:** a boulder that fills a pit should land with a satisfying thud, dust and a closing pit, and the filled square should look settled.
