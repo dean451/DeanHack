@@ -15,7 +15,7 @@ export const CONTACT_U = {slash: .46, pierce: .42, blunt: .5};
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
-const FIELDS = ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'shield', 'twist', 'lean'];
+const FIELDS = ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'shield', 'twist', 'lean', 'offArm', 'offElbow'];
 const REST = Object.fromEntries(FIELDS.map(f => [f, 0]));
 
 // Keyframes: [u, offsets]. Rest at both ends. arm = shoulder pitch (negative raises forward),
@@ -64,7 +64,7 @@ export function swingPose(blow, u, result = 'hit') {
   const k = u1 === contact ? raw * raw : u0 === contact ? raw * (2 - raw) : smooth(raw);
   const whiff = result === 'hit' ? 1 : 1 + .3 * smooth((u - contact) / .12) * (1 - smooth((u - .8) / .2));
   const p = {};
-  for (const f of FIELDS) p[f] = (a[f] + (b[f] - a[f]) * k) * (u > contact ? whiff : 1);
+  for (const f of FIELDS) p[f] = ((a[f] ?? 0) + ((b[f] ?? 0) - (a[f] ?? 0)) * k) * (u > contact ? whiff : 1);
   // A whiff overbalances the hero: the torso pitches on after the blade and lurches, then
   // hauls itself back upright. Zero at the end of the swing, so it still returns to rest.
   if (result !== 'hit' && u > contact) {
@@ -72,6 +72,25 @@ export function swingPose(blow, u, result = 'hit') {
     const lurch = Math.sin(Math.PI * w) * (1 - w);
     p.lean += .16 * lurch;
     p.twist -= .1 * lurch;
+  }
+  return p;
+}
+
+// Two-weapon fighting: strikes alternate, right hand then left. On the off-hand's turn the
+// sword arm only half-commits (a guard) and the off arm drives forward through the blow, peaking
+// at contact; on the sword hand's turn the off arm just draws back a little, ready. Both are
+// zero at the ends, so the swing still returns to rest.
+export const DUAL_GUARD = .55;
+export function dualSwingPose(blow, u, result = 'hit', offLead = false) {
+  const p = swingPose(blow, u, result);
+  const c = CONTACT_U[blowOf(blow)];
+  u = clamp01(Number.isFinite(u) ? u : 1);
+  const env = u < c ? smooth(u / c) : 1 - smooth((u - c) / (1 - c));
+  if (offLead) {
+    for (const f of ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'twist']) p[f] *= DUAL_GUARD;
+    p.offArm = -1.15 * env; p.offElbow = .55 * env;
+  } else {
+    p.offArm = .3 * env; p.offElbow = -.2 * env;
   }
   return p;
 }
@@ -105,6 +124,8 @@ export function applySwing(actor, p) {
   if (actor.wrist) actor.wrist.rotation.x += p.wrist;
   if (actor.weaponSocket) actor.weaponSocket.rotation.z += p.socket;
   if (actor.shieldArm) actor.shieldArm.rotation.z += p.shield;
+  if (actor.shieldArm && p.offArm) actor.shieldArm.rotation.x += p.offArm;
+  if (actor.shieldElbow && p.offElbow) actor.shieldElbow.rotation.x += p.offElbow;
   if (actor.body) { actor.body.rotation.y += p.twist; actor.body.rotation.x += p.lean; }
 }
 

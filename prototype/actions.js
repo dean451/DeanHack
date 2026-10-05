@@ -12,7 +12,7 @@
 
 import {monsterAttackPose, foreLegs, wingSide} from './monster-attacks.js';
 import {deathStyle, deathPose, DEATH_TIME, DEATH_BURST_U} from './deaths.js';
-import {swingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
+import {swingPose, dualSwingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
 import {hitStyle, hitReactionPose, HIT_TIME} from './hit-fx.js';
 import {catMove, catSize, catLength, catAttackPose} from './cats.js';
 import {jawPose, jawReach, jawChatters, chatterPose} from './jaw.js';
@@ -226,7 +226,7 @@ export function updateActions(actor, q, dt) {
   if (!actor?.g || !q) return 'idle';
   if (!q.current && q.queue.length) {
     q.current = q.queue.shift(); q.age = 0; q.face = null;
-    if (swings(actor, q.current)) q.current.swing = true;
+    if (swings(actor, q.current)) { q.current.swing = true; q.strikes = (q.strikes ?? 0) + 1; }
     // A body that lies down is kept on the floor (ground.js); its points are taken at rest.
     q.ground = grounds(q.current, q.current.style) ? groundSamples(actor.g) : null;
   }
@@ -270,7 +270,8 @@ export function updateActions(actor, q, dt) {
   if (a.kind === 'throw') Object.assign(pose, throwPose(a.style, u, actor.centaur));
   if (a.swing) {
     pose.arm = pose.wrist = pose.socket = 0;
-    pose.swing = swingPose(a.blow, u, a.result);
+    // Wielding two weapons, the off hand takes every other strike.
+    pose.swing = actor.dual ? dualSwingPose(a.blow, u, a.result, q.strikes % 2 === 0) : swingPose(a.blow, u, a.result);
     // What the renderer needs for the trail and the impact burst. `contact` is true on the one
     // frame the blade reaches a target it hits.
     const tc = CONTACT_U[blowOf(a.blow)] * SWING_TIME;

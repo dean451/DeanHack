@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import './swing-fx.test.js';
-import {swingPose, swingPhase, swingLength, swingTrailOn, applySwing, clearSwing, impactKind,
+import {swingPose, dualSwingPose, swingPhase, swingLength, swingTrailOn, applySwing, clearSwing, impactKind,
   createImpactBurst, createSwingTrail, SWING_TIME, HITSTOP, CONTACT_U, IMPACTS} from './swing.js';
 
 // The hero's arm chain as main.js builds it (knight()), facing +z with the sword on +x.
@@ -150,4 +150,27 @@ test('a whiff overbalances the hero forward and recovers; a hit does not', () =>
     assert.equal(swingPose(blow, c, 'miss').lean, swingPose(blow, c, 'hit').lean);
     assert.ok(Math.abs(swingPose(blow, 1, 'miss').lean) < 1e-12);
   }
+});
+
+test('two-weapon strikes alternate hands, rest at both ends and take back off cleanly', () => {
+  for (const blow of ['slash', 'pierce', 'blunt']) for (const lead of [false, true]) {
+    for (const u of [0, 1]) for (const v of Object.values(dualSwingPose(blow, u, 'hit', lead))) assert.ok(Math.abs(v) < 1e-12);
+    for (let u = 0; u <= 1; u += .02) for (const [k, v] of Object.entries(dualSwingPose(blow, u, 'miss', lead))) {
+      assert.ok(Number.isFinite(v) && Math.abs(v) < 3.8, `${blow} ${k}=${v}`);
+    }
+    const c = CONTACT_U[blow];
+    const mine = dualSwingPose(blow, c, 'hit', lead), plain = swingPose(blow, c, 'hit');
+    if (lead) {
+      assert.ok(mine.offArm < -1, 'off arm drives through the blow');
+      assert.ok(Math.abs(mine.arm) < Math.abs(plain.arm), 'sword arm only guards');
+    } else {
+      assert.ok(Math.abs(mine.offArm) < .4 && mine.arm === plain.arm);
+    }
+  }
+  const r = rig(); r.shieldElbow = new THREE.Group(); r.shieldArm.add(r.shieldElbow);
+  const before = snapshot(r).concat(r.shieldElbow.rotation.x), p = dualSwingPose('slash', .46, 'hit', true);
+  applySwing(r, p);
+  assert.notEqual(r.shieldArm.rotation.x, 0);
+  clearSwing(r, p);
+  snapshot(r).concat(r.shieldElbow.rotation.x).forEach((v, i) => assert.ok(Math.abs(v - before[i]) < 1e-9));
 });
