@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {digSwingPose, createDigSwing, digMessage, DIG_TIME, BITE_U} from './dig-swing.js';
+import {digSwingPose, spentPose, finishMessage, SPENT_TIME, createDigSwing, digMessage, DIG_TIME, BITE_U} from './dig-swing.js';
 
 const FIELDS = ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'shield', 'twist', 'lean', 'offArm', 'offElbow'];
 const rig = () => ({arm: new THREE.Object3D(), elbow: new THREE.Object3D(), wrist: new THREE.Object3D(),
@@ -55,4 +55,28 @@ test('a busy hero (real swing or death) cuts it off and clear takes it back', ()
   for (let i = 0; i < 20; i++) d.update(a, 1 / 60);
   d.clear(a);
   snap(a).forEach((v, i) => assert.ok(Math.abs(v - before[i]) < 1e-9));
+});
+
+test('the finishing strike leaves the hero spent: slack, heaving, one tic, then rest', () => {
+  for (const m of ['You dig a pit in the floor.', 'You dig a hole through the floor.', 'You succeed in cutting away some rock.', 'You make an opening in the wall.']) assert.ok(finishMessage(m), m);
+  for (const m of ['You hit the rock with all your might.', 'You dig a pit', null]) assert.ok(!finishMessage(m), String(m));
+  for (const u of [0, 1]) for (const f of FIELDS) assert.equal(spentPose(u)[f], 0, `${f}@${u}`);
+  for (let u = 0; u <= 1; u += .01) for (const f of FIELDS) {
+    const v = spentPose(u)[f];
+    assert.ok(Number.isFinite(v) && Math.abs(v) < 1, `${f}@${u}=${v}`);
+  }
+  assert.ok(spentPose(.4).lean > .2, 'sagging forward');
+  assert.ok(spentPose(.64).twist < spentPose(.5).twist - .1, 'the tic snaps the twist');
+  assert.deepEqual(spentPose(NaN), spentPose(1));
+  const a = rig(), before = snap(a), d = createDigSwing();
+  d.message('You hit the rock with all your might.');
+  assert.ok(d.message('You make an opening in the wall.'));
+  let moved = false;
+  for (let t = 0; t < SPENT_TIME + .3; t += 1 / 60) {
+    d.update(a, 1 / 60);
+    if (snap(a).some((v, i) => Math.abs(v - before[i]) > .1)) moved = true;
+  }
+  d.update(a, 1 / 60);
+  assert.ok(moved && !d.playing);
+  snap(a).forEach((v, i) => assert.ok(Math.abs(v - before[i]) < 1e-9, `joint ${i}`));
 });
