@@ -1342,6 +1342,8 @@ function giant(o){
   // a crown of jagged black-iron spikes, their tips white-hot
   if(o.crown){const iron=mat('#2a2224',{roughness:.45,metalness:.75}),hot=mat('#ffb060',{emissive:'#f05010',emissiveIntensity:3});part(head,new THREE.TorusGeometry(.118,.016,5,18),iron,0,.075,-.01).rotation.x=Math.PI/2;
    for(let i=0;i<7;i++){const a=(i-3)*.42,tall=.09-Math.abs(i-3)*.012,spike=cone(head,.022,tall,iron,Math.sin(a)*.118,.075+tall/2,Math.cos(a)*.118-.01,4);spike.rotation.set(Math.cos(a)*.22,0,-Math.sin(a)*.22);sphere(head,.009,hot,Math.sin(a)*(.118+tall*.22),.075+tall*.95,Math.cos(a)*(.118+tall*.22)-.01,1,1.4,1);}}
+  // Surtur: two great horns of black iron sweep up and out from under the crown, their tips smouldering
+  if(o.crown){const horn=mat('#1a1416',{roughness:.4,metalness:.8}),ember=mat('#ffb060',{emissive:'#f05010',emissiveIntensity:3});g.userData.horned=true;for(const side of [-1,1]){const lo=cone(head,.03,.12,horn,side*.12,.07,-.01,5);lo.rotation.z=-side*.9;const hi=cone(head,.02,.1,horn,side*.2,.14,-.01,5);hi.rotation.z=-side*.35;sphere(head,.008,ember,side*.215,.195,-.01,1,1.4,1);}}
   // the Cyclops: one great bloodshot eye under a single heavy brow, slit-pupilled, and tusks jutting from the underbite
   if(o.cyclops){const white=mat('#e8dcae',{roughness:.3}),iris=mat('#d08a1a',{emissive:'#c06a10',emissiveIntensity:1.6,roughness:.2}),slit=mat('#0e0a08',{roughness:.2});
    sphere(head,.05,white,0,.005,.085,1.1,.9,.75);sphere(head,.028,iris,0,.005,.118,1,1,.5);sphere(head,.009,slit,0,.005,.131,.45,2.2,.4);

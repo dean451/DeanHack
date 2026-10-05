@@ -74,3 +74,10 @@ test('storm giants carry glowing lightning scars and no other giant does', () =>
   for (const n of ['giant', 'stone giant', 'hill giant', 'frost giant', 'fire giant', 'ettin', 'cyclops', 'titan']) assert(!H(n).g.userData.lightningScarred, n);
   assert(meshCount(H('storm giant')) <= 30);
 });
+
+test('Surtur wears black iron horns and no other giant does', () => {
+  const H = n => createCreature({name: n, symbol: 'H'.charCodeAt(0), color: 1});
+  assert.equal(H('lord surtur').g.userData.horned, true);
+  for (const n of ['giant', 'stone giant', 'hill giant', 'frost giant', 'fire giant', 'ettin', 'cyclops', 'titan', 'storm giant']) assert(!H(n).g.userData.horned, n);
+  assert(meshCount(H('lord surtur')) <= 30);
+});
