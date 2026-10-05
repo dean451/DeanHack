@@ -3,11 +3,15 @@
 // is not a plain blend: as the arm moves it flares a little past its mark and tightens back, a
 // quick wary twitch, and the guard keeps a faint restless tremor while it stands.
 //
-// Everything is an offset on the shield arm and elbow's pitch (swing.js's strike poses stack on
+// The sword arm shifts with it: it draws in and drops to a lower, cocked guard, a half-beat
+// behind the off arm so the two hands do not move as one.
+//
+// Everything is an offset on the arms' and elbows' pitch (swing.js's strike poses stack on
 // top), taken back first each frame, so it returns exactly to rest and never fights the frame
 // loop's own absolute poses (which set the arm's roll, not its pitch).
 
 export const READY = Object.freeze({arm: -.38, elbow: .3});
+export const SWORD_READY = Object.freeze({arm: -.14, elbow: .2});
 export const FLARE = .22, SETTLE_RATE = 7, TREMOR = .018;
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
@@ -18,7 +22,9 @@ export function stancePose(k, t = 0) {
   k = clamp01(Number.isFinite(k) ? k : 0);
   const e = smooth(k), flare = Math.sin(Math.PI * e) * FLARE;
   const tremor = Math.sin((Number.isFinite(t) ? t : 0) * 9.3) * TREMOR * e;
-  return {arm: READY.arm * e - flare + tremor, elbow: READY.elbow * e + flare * .6 - tremor * .5};
+  const lag = smooth(k * k), sflare = Math.sin(Math.PI * lag) * FLARE * .5;
+  return {arm: READY.arm * e - flare + tremor, elbow: READY.elbow * e + flare * .6 - tremor * .5,
+    sword: 0 + SWORD_READY.arm * lag - sflare - tremor * .4, swordElbow: SWORD_READY.elbow * lag + sflare * .6 + tremor * .3};
 }
 
 const rigged = a => !!(a && a.shieldArm && a.shieldElbow);
@@ -28,6 +34,8 @@ export function unposeDualStance(actor) {
   if (!o || !rigged(actor)) return;
   actor.shieldArm.rotation.x -= o.arm;
   actor.shieldElbow.rotation.x -= o.elbow;
+  if (actor.arm) actor.arm.rotation.x -= o.sword;
+  if (actor.elbow) actor.elbow.rotation.x -= o.swordElbow;
   actor.dualStance.applied = null;
 }
 
@@ -46,6 +54,8 @@ export function updateDualStance(actor, dt, t = 0) {
   const p = stancePose(st.k, t);
   actor.shieldArm.rotation.x += p.arm;
   actor.shieldElbow.rotation.x += p.elbow;
+  if (actor.arm) actor.arm.rotation.x += p.sword;
+  if (actor.elbow) actor.elbow.rotation.x += p.swordElbow;
   st.applied = p;
   return st.k;
 }

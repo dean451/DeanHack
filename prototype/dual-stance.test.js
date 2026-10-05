@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {stancePose, updateDualStance, unposeDualStance, READY, FLARE, TREMOR} from './dual-stance.js';
+import {SWORD_READY, stancePose, updateDualStance, unposeDualStance, READY, FLARE, TREMOR} from './dual-stance.js';
 
 function rig(dual) {
   const shieldArm = new THREE.Group(), shieldElbow = new THREE.Group();
@@ -18,7 +18,7 @@ test('the stance is nothing at rest, ready when full, and stays in bounds betwee
     const p = stancePose(k, t);
     assert.ok(Math.abs(p.arm) <= Math.abs(READY.arm) + FLARE + TREMOR + 1e-9 && Math.abs(p.elbow) < 1, `${k} ${t}`);
   }
-  assert.deepEqual(stancePose(NaN, NaN), {arm: 0, elbow: 0});
+  assert.deepEqual(stancePose(NaN, NaN), {arm: 0, elbow: 0, sword: 0, swordElbow: 0});
 });
 
 test('the arm flares past its ready mark on the way in', () => {
@@ -57,4 +57,18 @@ test('an actor without the off arm rig, or a bad dt, is left alone', () => {
   const r = rig(true);
   updateDualStance(r, NaN); updateDualStance(r, -1);
   assert.equal(r.shieldArm.rotation.x, 0);
+});
+
+test('the sword arm drops into a lower guard with the off arm and returns exactly', () => {
+  const r = rig(true);
+  r.arm = new THREE.Group(); r.elbow = new THREE.Group(); r.arm.rotation.x = .2; r.elbow.rotation.x = -.65;
+  for (let i = 0; i < 120; i++) updateDualStance(r, 1 / 60, i / 60);
+  assert.ok(Math.abs(r.arm.rotation.x - (.2 + SWORD_READY.arm)) < TREMOR + 1e-9);
+  assert.ok(r.elbow.rotation.x > -.65 + .1);
+  // it trails the off arm: early on the sword arm has moved a smaller share of its way
+  assert.ok(Math.abs(stancePose(.3).sword / SWORD_READY.arm) < Math.abs(stancePose(.3).arm / READY.arm));
+  r.dual = false;
+  for (let i = 0; i < 180; i++) updateDualStance(r, 1 / 60, 2 + i / 60);
+  assert.equal(r.arm.rotation.x, .2);
+  assert.ok(Math.abs(r.elbow.rotation.x + .65) < 1e-12);
 });
