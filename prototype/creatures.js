@@ -2446,6 +2446,10 @@ function trapper(o){
  for(let i=0;i<9;i++){const a=i*2.39,r=.06+(i%4)*.065;sphere(body,.05+(i%3)*.012,mottle,Math.sin(a)*r,.105-r*.14,Math.cos(a)*r*1.1,1.2,.18,1);}
  for(let i=0;i<14;i++){const a=i*1.7+.3,r=.1+(i%5)*.045;sphere(body,.016+(i%2)*.006,wart,Math.sin(a)*r,.125-r*.2,Math.cos(a)*r*1.1,1,.7,1);}
  for(const side of [-1,1])tube(body,[[side*.05,.13,-.2],[side*.1,.125,-.05],[side*.1,.12,.1],[side*.06,.11,.22]],.012,wart,10);
+ // the gnawed remains of earlier meals lie half-dissolved on the back: a skull and a few ribs
+ const bone=mat('#cfc4a4',{roughness:.7});
+ sphere(body,.032,bone,.1,.1,-.05,1,.8,1.1);sphere(body,.012,mouth,.1,.118,-.035,1.2,.6,1);
+ for(let i=0;i<3;i++){const rib=part(body,new THREE.BoxGeometry(.05,.008,.008),bone,-.1+i*.01,.1-i*.01,.02+i*.05);rib.rotation.set(0,.4+i*.2,.25);}
  // front lip: a separate flap carrying the maw and eyes, so it can rear up
  const lip=new THREE.Group();lip.position.set(0,.02,.2);body.add(lip);
  mantle(lip,[[0,.08],[.1,.07],[.16,.045],[.2,.012]],.04,hide,-Math.PI/2,Math.PI,.02);

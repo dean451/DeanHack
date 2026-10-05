@@ -2663,3 +2663,11 @@ test('the kraken is a towering, beaked drowner',()=>{
  let beak=false;k.g.traverse(m=>{if(m.isMesh&&m.material.color?.getHexString()==='1a1410')beak=true;});
  assert(beak,'a dark horny beak');
 });
+
+test('trappers carry the bones of their meals on the mantle',()=>{
+ for(const name of ['trapper','lurker above']){
+  const t=createCreature({name,symbol:'t'.charCodeAt(0),color:1});
+  let bone=false;t.g.traverse(m=>{if(m.isMesh&&m.material.color?.getHexString()==='cfc4a4')bone=true;});
+  assert(bone,name);
+ }
+});
