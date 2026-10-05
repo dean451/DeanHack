@@ -9,7 +9,7 @@
 import {softDot, softRing, smooth, clamp01} from './fx-textures.js';
 
 export const PRAYER = {begin: 2.4, boon: 3.0, height: 5};
-export const TOTAL = {begin: PRAYER.begin, boon: PRAYER.boon, wrath: .8, fix: 2.8};
+export const TOTAL = {begin: PRAYER.begin, boon: PRAYER.boon, wrath: .8, fix: 2.8, glow: 4};
 export const WISPS = 6;
 
 // Which kind of moment a message starts, or null.
@@ -20,6 +20,8 @@ export function prayerKind(text) {
   if (/^Suddenly,? a bolt of lightning (strikes you|comes down at you)|^"?Thou hast angered me\.|^"?Thou durst call upon me|^"?Thou must relearn thy lessons/.test(t)) return 'wrath';
   // a fixed trouble: the sickness lifts off the hero as dark wisps
   if (/^You feel much better\.$|^Your stomach feels content\.$|^You feel purified\.$/.test(t)) return 'fix';
+  // a pleased god with nothing to give: a quiet gold glow stays on the floor a while
+  if (/^You feel that .* is (well-pleased|satisfied)\.$|^You feel a hopeful feeling\.$/.test(t)) return 'glow';
   return null;
 }
 
@@ -29,7 +31,7 @@ export function pillarPose(kind, t) {
   const total = TOTAL[kind];
   if (!total || t < 0 || t >= total) return {reach: 0, alpha: 0, width: 0};
   const u = t / total;
-  if (kind === 'fix') return {reach: 0, alpha: 0, width: 0}; // wisps only, no pillar
+  if (kind === 'fix' || kind === 'glow') return {reach: 0, alpha: 0, width: 0}; // wisps only, no pillar
   if (kind === 'begin') // lowers slowly, hesitates, never quite bright
     return {reach: smooth(u / .8) ** 1.4, alpha: .32 * smooth(u / .3) * (1 - smooth((u - .85) / .15)) * (.85 + .15 * Math.sin(t * 9)), width: .7 + .25 * u};
   // wrath: a thin bolt slams down at once and stutters as it dies
@@ -40,6 +42,10 @@ export function pillarPose(kind, t) {
 
 // The floor ring at age t: only a boon leaves one, drawn in as the pillar thins.
 export function glowPose(kind, t) {
+  if (kind === 'glow' && t >= 0 && t < TOTAL.glow) { // swells, breathes slowly, fades; never as bright as a boon
+    const u = t / TOTAL.glow;
+    return {radius: .55 + .1 * Math.sin(t * 2.2), alpha: .45 * smooth(u / .15) * (1 - smooth((u - .6) / .4)) * (.8 + .2 * Math.sin(t * 2.2))};
+  }
   if (kind !== 'boon' || t < 0 || t >= TOTAL.boon) return {radius: 0, alpha: 0};
   const u = t / TOTAL.boon;
   return {radius: .9 - .35 * smooth((u - .3) / .5), alpha: .8 * smooth((u - .1) / .2) * (1 - smooth((u - .75) / .25))};

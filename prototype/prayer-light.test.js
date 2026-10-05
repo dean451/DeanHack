@@ -9,11 +9,13 @@ test('only the prayer messages count', () => {
   assert.equal(prayerKind('Suddenly, a bolt of lightning strikes you!'), 'wrath');
   assert.equal(prayerKind('"Thou hast angered me."'), 'wrath');
   assert.equal(prayerKind('You feel much better.'), 'fix');
+  assert.equal(prayerKind('You feel that Anhur is well-pleased.'), 'glow');
+  assert.equal(prayerKind('You feel that Anhur is displeased.'), null);
   for (const t of ['You hit the newt.', 'You pray.', null]) assert.equal(prayerKind(t), null, String(t));
 });
 
 test('pillars stay in bounds, start and end at nothing, and the begin pillar never outshines a boon', () => {
-  for (const kind of ['begin', 'boon', 'wrath', 'fix']) {
+  for (const kind of ['begin', 'boon', 'wrath', 'fix', 'glow']) {
     assert.equal(pillarPose(kind, 0).alpha, 0);
     assert.equal(pillarPose(kind, TOTAL[kind]).alpha, 0);
     assert.equal(glowPose(kind, TOTAL[kind]).alpha, 0);
@@ -67,4 +69,14 @@ test('a fix spawns its wisps and leaves nothing behind', () => {
   for (let i = 0; i < 40; i++) fx.update(.1);
   assert.equal(fx.active, 0);
   assert.equal(parent.children.length, 0);
+});
+
+test('the lingering glow is a quiet ring, dimmer than a boon, with no pillar', () => {
+  assert.equal(pillarPose('glow', 1).alpha, 0);
+  let peak = 0;
+  for (let t = 0; t < TOTAL.glow; t += .02) peak = Math.max(peak, glowPose('glow', t).alpha);
+  assert.ok(peak > .2 && peak < .6);
+  let boon = 0;
+  for (let t = 0; t < TOTAL.boon; t += .02) boon = Math.max(boon, glowPose('boon', t).alpha);
+  assert.ok(peak < boon);
 });
