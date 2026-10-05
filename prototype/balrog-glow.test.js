@@ -146,3 +146,10 @@ test('demiliches, master liches and arch-liches glow with necrotic light and loo
  }
  assert(h('arch-lich')>h('master lich')&&h('master lich')>h('lich'));
 });
+
+test('vampire lords, vampire mages and Vlad cast a pool of dark light and stand taller than a vampire',()=>{
+ const h=name=>new THREE.Box3().setFromObject(createCreature({name,symbol:86,color:1}).g).getSize(new THREE.Vector3()).y;
+ const pools=name=>{let n=0;createCreature({name,symbol:86,color:1}).g.traverse(o=>{if(o.isMesh&&o.material.name==='evil-glow'&&o.material.transparent)n++;});return n;};
+ assert.equal(pools('vampire'),0);
+ for(const name of ['vampire lord','vampire mage','vlad the impaler']){assert.equal(pools(name),1,name);assert(h(name)>h('vampire'),name);}
+});

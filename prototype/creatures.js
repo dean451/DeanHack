@@ -1637,6 +1637,9 @@ function vampire(o){
  for(const side of [-1,1]){const ear=cone(head,.025,.09,skin,side*.115,.01,-.01,4);ear.rotation.z=-side*1.1;cone(head,.008,.035,fang,side*.022,-.09,.108,4).rotation.x=Math.PI;}
  const eyeG=new THREE.Group();eyeG.position.set(0,.01,.11);eyeG.userData.part='eyes';head.add(eyeG);eyes(eyeG,glow,0,0,.045);
  const arms=[];for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.86,0);body.add(arm);arms.push(arm);rounded(arm,.1,.4,.11,suit,0,-.18,0,.03);sphere(arm,.05,skin,0,-.4,.01,.9,1.2,.9);for(const f of [-.02,0,.02])cone(arm,.008,.05,skin,f,-.46,.02,4).rotation.x=Math.PI;arm.rotation.z=side*.1;arm.rotation.x=side>0?-.35:-.1;}
+ // evil glow (vampire lords, mages and Vlad): a pool of blood-dark light under the cape hem
+ if(o.evil){const pool=mat(o.evil,{emissive:o.evil,emissiveIntensity:1.5,transparent:true,opacity:.3,depthWrite:false});pool.name='evil-glow';
+  const p=cylinder(body,.6,.68,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;}
  if(o.medallion){cylinder(body,.045,.045,.012,M.gold,0,.8,.12,12).rotation.x=Math.PI/2;sphere(body,.018,glow,0,.8,.13);}
  if(o.orb){const orb=sphere(body,.06,mat(o.orb,{emissive:o.orb,emissiveIntensity:3,roughness:.2,transparent:true,opacity:.9}),.26,.5,.2);g.userData.core=orb;}
  if(o.vlad){const red=mat('#9a1a24',{roughness:.7});cylinder(head,.125,.135,.1,red,0,.11,-.01,12);sphere(head,.02,mat('#e8e0c8',{roughness:.3}),0,.12,.125);for(const side of [-1,1]){const m=rounded(head,.07,.018,.02,hair,side*.035,-.065,.12,.008);m.rotation.z=side*-.35;}
@@ -2241,7 +2244,7 @@ const ANGELS={angel:{robe:'#eeeae0',sword:true,flame:'#ff9a3a'},
  'dark angel':{fallen:true,robe:'#1d1a21',trim:'#3c3638',skin:'#8c8690',hair:'#141116',wing:'#18151b',wingTip:'#3a1714',glow:'#ff3a1e',sword:true,flame:'#c4261a',span:.82},
  aleax:{robe:'#b8b0a0',trim:'#9aa4aa',hair:'#6a4a2a',wing:'#dcd6ca',glow:'#fff4d0',sword:true,span:.65},archon:{robe:'#f6f2ea',trim:'#e0b83a',armor:true,rays:true,sword:true,flame:'#bfe4ff',glow:'#fff2b0',scale:1.15,span:.85}};
 
-const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,scale:1.05},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',scale:1.05},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,scale:1.1}};
+const VAMPIRES={vampire:{},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,evil:'#c01828',scale:1.1},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',evil:'#8a30d0',scale:1.1},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,evil:'#d02030',scale:1.2}};
 
 
 // Demons and devils: a hunched fiend on goat-jointed legs ending in cloven hooves, with a heavy chest,
