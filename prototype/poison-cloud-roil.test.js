@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {createPoisonCloud} from './poison-cloud.js';
 import {createGasRoil, gasState, GAS_HEAVE, GAS_CURL, GAS_DRIFT, gasGround, GAS_LAVA_GLOW, GAS_RIPPLE} from './poison-cloud-roil.js';
 import {GAS_SPARKS} from './poison-gas-sparks.js';
+import {GAS_RIPPLES, GAS_RIPPLE_REACH, rippleState} from './poison-gas-ripples.js';
 
 const snap = m => [...m.position.toArray(), m.rotation.y, ...m.scale.toArray()];
 
@@ -105,4 +106,25 @@ test('gas over lava lets off sparks that stay in bounds, and restore removes the
   assert.equal(sparkCount(plain), 0, 'plain floor gets no sparks');
   roils.forEach(r => r.restore());
   assert.equal(sparkCount(lava), 0);
+});
+
+test('gas over water spreads sickly rings that stay on the tile and never pop, and restore removes them', () => {
+  for (let i = 0; i < GAS_RIPPLES; i++) for (let t = 0; t < 40; t += 1 / 30) {
+    const s = rippleState(t, i, .3);
+    assert(s.radius > 0 && s.radius <= GAS_RIPPLE_REACH + 1e-9 && s.opacity >= 0 && s.opacity <= .5);
+  }
+  assert(rippleState(0, 0).opacity < 1e-9 && rippleState(3.4 - 1e-6, 0).opacity < 1e-4, 'a ring starts and ends invisible');
+  const water = onGround('water'), plain = onGround('floor');
+  const roils = [water, plain].map(w => createGasRoil(w.scene));
+  let seen = 0;
+  for (let t = 0; t < 30; t += 1 / 30) {
+    roils.forEach(r => r.update(t));
+    const g = water.scene.getObjectByName('GasRipples');
+    assert.equal(g.children.length, GAS_RIPPLES);
+    if (g.children.some(r => r.material.opacity > .05)) seen++;
+    assert(!plain.scene.getObjectByName('GasRipples'), 'plain floor gets no rings');
+  }
+  assert(seen > 100, 'a ring is visible most of the time');
+  roils.forEach(r => r.restore());
+  assert(!water.scene.getObjectByName('GasRipples'));
 });
