@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {AMULET_AURAS,amuletAuraKind,syncAmuletAura,particleAt} from './amulet-auras.js';
-import {updateStepOver,STEP_DURATION} from './step-over.js';
+import {scoopSwell} from './step-over.js';
 
 test('amulet effects key on the true type; Yendor, unknown and other classes get none',()=>{
  assert.equal(amuletAuraKind({class:5,name:'life saving'}),'life saving');
@@ -50,10 +50,10 @@ test('the heartbeat is two beats then a rest, and a pure function of life',()=>{
  assert.equal(particleAt('beat',seed,.7).alpha,0);
 });
 
-test('stepping onto an amulet swells its aura once and settles exactly to rest',()=>{
+test('the pickup scoop swells an amulet aura once and settles exactly to rest',()=>{
  const item=new THREE.Group();syncAmuletAura(item,{class:5,name:'life saving'},'k');
  const aura=item.userData.amuletAura;let biggest=1;
- updateStepOver(item,true,0);
- for(let t=0;t<STEP_DURATION+.2;t+=1/60){updateStepOver(item,true,1/60);biggest=Math.max(biggest,aura.scale.x);}
+ for(let u=0;u<=1;u+=1/60){scoopSwell(item,u);biggest=Math.max(biggest,aura.scale.x);}
+ scoopSwell(item,1);
  assert(biggest>1.5);assert.equal(aura.scale.x,1);
 });
