@@ -111,3 +111,8 @@ test('the water demon glows a drowned green-blue',()=>{
  const parts=glows('water demon');
  assert(parts.length>=2);assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5));
 });
+
+test('the erinys glows with furious evil',()=>{
+ const parts=glows('erinys');
+ assert(parts.length>=2);assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5));
+});
