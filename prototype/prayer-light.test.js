@@ -10,7 +10,7 @@ test('only the prayer messages count', () => {
   assert.equal(prayerKind('"Thou hast angered me."'), 'wrath');
   assert.equal(prayerKind('You feel much better.'), 'fix');
   assert.equal(prayerKind('You feel that Anhur is well-pleased.'), 'glow');
-  assert.equal(prayerKind('You feel that Anhur is displeased.'), null);
+  assert.equal(prayerKind('You feel that Anhur is displeased.'), 'curse');
   for (const t of ['You hit the newt.', 'You pray.', null]) assert.equal(prayerKind(t), null, String(t));
 });
 
@@ -79,4 +79,32 @@ test('the lingering glow is a quiet ring, dimmer than a boon, with no pillar', (
   let boon = 0;
   for (let t = 0; t < TOTAL.boon; t += .02) boon = Math.max(boon, glowPose('boon', t).alpha);
   assert.ok(peak < boon);
+});
+
+test('a curse closes a dark ring and drops wisps onto the hero, in bounds and gone at the end', () => {
+  assert.equal(pillarPose('curse', 1).alpha, 0);
+  assert.equal(glowPose('curse', 0).alpha, 0);
+  assert.equal(glowPose('curse', TOTAL.curse).alpha, 0);
+  let peak = 0;
+  for (let t = 0; t < TOTAL.curse; t += .02) {
+    const g = glowPose('curse', t); peak = Math.max(peak, g.alpha);
+    assert.ok(g.alpha >= 0 && g.alpha <= .9 && g.radius >= .4 && g.radius <= 1, `${t}`);
+  }
+  assert.ok(peak > .4);
+  assert.ok(glowPose('curse', 1.5).radius < glowPose('curse', .2).radius);
+  for (let i = 0; i < WISPS; i++) {
+    assert.equal(wispPose(i, TOTAL.curse, true).alpha, 0);
+    let first = null, last = null;
+    for (let t = i * .22; t < TOTAL.curse; t += .02) {
+      const w = wispPose(i, t, true);
+      assert.ok(w.alpha >= 0 && w.alpha <= 1 && w.y >= 0 && w.y <= 2.2 && Math.hypot(w.x, w.z) <= .51 && w.size <= .35, `${i} ${t}`);
+      if (w.alpha > 0) { first ??= w.y; last = w.y; }
+    }
+    assert.ok(first > last);
+  }
+  const parent = new THREE.Group(), fx = createPrayerLight(THREE, parent);
+  assert.equal(fx.message('You feel that Anhur is displeased.', 1, 1).children.length, 2 + WISPS);
+  for (let i = 0; i < 40; i++) fx.update(.1);
+  assert.equal(fx.active, 0);
+  assert.equal(parent.children.length, 0);
 });

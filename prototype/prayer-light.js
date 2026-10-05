@@ -9,7 +9,7 @@
 import {softDot, softRing, smooth, clamp01} from './fx-textures.js';
 
 export const PRAYER = {begin: 2.4, boon: 3.0, height: 5};
-export const TOTAL = {begin: PRAYER.begin, boon: PRAYER.boon, wrath: .8, fix: 2.8, glow: 4};
+export const TOTAL = {begin: PRAYER.begin, boon: PRAYER.boon, wrath: .8, fix: 2.8, glow: 4, curse: 2.8};
 export const WISPS = 6;
 
 // Which kind of moment a message starts, or null.
@@ -18,6 +18,8 @@ export function prayerKind(text) {
   if (/^You begin praying to /.test(t)) return 'begin';
   if (/^You are surrounded by a shimmering light\.$/.test(t)) return 'boon';
   if (/^Suddenly,? a bolt of lightning (strikes you|comes down at you)|^"?Thou hast angered me\.|^"?Thou durst call upon me|^"?Thou must relearn thy lessons/.test(t)) return 'wrath';
+  // a displeased god: no bolt, only a cold shadow closing around the hero
+  if (/^You feel that .* is displeased\.$/.test(t)) return 'curse';
   // a fixed trouble: the sickness lifts off the hero as dark wisps
   if (/^You feel much better\.$|^Your stomach feels content\.$|^You feel purified\.$/.test(t)) return 'fix';
   // a pleased god with nothing to give: a quiet gold glow stays on the floor a while
@@ -31,7 +33,7 @@ export function pillarPose(kind, t) {
   const total = TOTAL[kind];
   if (!total || t < 0 || t >= total) return {reach: 0, alpha: 0, width: 0};
   const u = t / total;
-  if (kind === 'fix' || kind === 'glow') return {reach: 0, alpha: 0, width: 0}; // wisps only, no pillar
+  if (kind === 'fix' || kind === 'glow' || kind === 'curse') return {reach: 0, alpha: 0, width: 0}; // wisps only, no pillar
   if (kind === 'begin') // lowers slowly, hesitates, never quite bright
     return {reach: smooth(u / .8) ** 1.4, alpha: .32 * smooth(u / .3) * (1 - smooth((u - .85) / .15)) * (.85 + .15 * Math.sin(t * 9)), width: .7 + .25 * u};
   // wrath: a thin bolt slams down at once and stutters as it dies
@@ -42,6 +44,10 @@ export function pillarPose(kind, t) {
 
 // The floor ring at age t: only a boon leaves one, drawn in as the pillar thins.
 export function glowPose(kind, t) {
+  if (kind === 'curse' && t >= 0 && t < TOTAL.curse) { // a dark ring closes in on the hero, stutters once, and lets go
+    const u = t / TOTAL.curse;
+    return {radius: 1 - .55 * smooth(u / .7), alpha: .6 * smooth(u / .2) * (1 - smooth((u - .65) / .35)) * (u > .45 && u < .5 ? .5 : 1)};
+  }
   if (kind === 'glow' && t >= 0 && t < TOTAL.glow) { // swells, breathes slowly, fades; never as bright as a boon
     const u = t / TOTAL.glow;
     return {radius: .55 + .1 * Math.sin(t * 2.2), alpha: .45 * smooth(u / .15) * (1 - smooth((u - .6) / .4)) * (.8 + .2 * Math.sin(t * 2.2))};
@@ -53,10 +59,13 @@ export function glowPose(kind, t) {
 
 // Wisp i of a fix at age t: a dark curl that peels off the hero's shoulders and climbs, twisting
 // and thinning, each a little later and a little off-beat from the last. Offsets are in tile units.
-export function wispPose(i, t) {
+export function wispPose(i, t, down = false) {
   const age = t - i * .22, life = 1.3 + (i % 3) * .15;
   if (age < 0 || age >= life) return {x: 0, y: 0, z: 0, alpha: 0, size: 0};
   const u = age / life, a = i * 2.4 + age * (2.2 + i % 2);
+  // a curse's wisps fall onto the hero instead, tightening as they come
+  if (down) return {x: Math.cos(a) * (.5 - .32 * u), y: 2.1 - 1.6 * smooth(u) ** .8, z: Math.sin(a) * (.5 - .32 * u),
+    alpha: .7 * smooth(u / .15) * (1 - smooth((u - .6) / .4)), size: .3 * (1 - .4 * u)};
   return {x: Math.cos(a) * (.18 + .12 * u), y: .5 + 1.6 * smooth(u) ** .8, z: Math.sin(a) * (.18 + .12 * u),
     alpha: .7 * smooth(u / .15) * (1 - smooth((u - .5) / .5)), size: .34 * (1 - .6 * u)};
 }
@@ -76,8 +85,9 @@ export function createPrayerLight(THREE, parent) {
     const beamMat = mk(null, colours[kind] ?? 0), ringMat = mk(softRing(THREE), 0xc9a85a), mats = [beamMat, ringMat];
     const beam = new THREE.Mesh(beamGeo, beamMat); beam.renderOrder = 4; g.add(beam);
     const ring = new THREE.Mesh(ringGeo, ringMat); ring.position.y = .03; g.add(ring);
+    if (kind === 'curse') ringMat.blending = THREE.NormalBlending; // dark light needs ordinary blending to show
     const wisps = [];
-    if (kind === 'fix') for (let i = 0; i < WISPS; i++) {
+    if (kind === 'fix' || kind === 'curse') for (let i = 0; i < WISPS; i++) {
       const m = new THREE.SpriteMaterial({map: softDot(THREE), color: 0x1c1224, transparent: true, opacity: 0, depthWrite: false, toneMapped: false});
       const w = new THREE.Sprite(m); w.renderOrder = 4; g.add(w); wisps.push(w); mats.push(m);
     }
@@ -90,7 +100,7 @@ export function createPrayerLight(THREE, parent) {
     const p = pillarPose(e.kind, e.t), r = glowPose(e.kind, e.t);
     e.beam.scale.set(p.width, Math.max(p.reach, .001), p.width); e.beam.material.opacity = p.alpha;
     e.ring.scale.setScalar(r.radius * 2); e.ring.material.opacity = r.alpha;
-    e.wisps.forEach((w, i) => { const q = wispPose(i, e.t); w.position.set(q.x, q.y, q.z); w.scale.setScalar(Math.max(q.size, .001)); w.material.opacity = q.alpha; });
+    e.wisps.forEach((w, i) => { const q = wispPose(i, e.t, e.kind === 'curse'); w.position.set(q.x, q.y, q.z); w.scale.setScalar(Math.max(q.size, .001)); w.material.opacity = q.alpha; });
     return e.t < TOTAL[e.kind];
   };
   return {
