@@ -15,7 +15,7 @@ const TOP = .3;
 
 // motion: 'column' motes lift off the cork, 'stream' a tight fast column, 'spiral' a helix round
 // the neck, 'beat' a swell over the cork, 'spark' glints flaring over the bottle, 'drift' motes
-// sinking slowly, 'gnaw' dark motes drawn into the cork and swallowed.
+// sinking slowly (paralysis: one mote, nearly still), 'gnaw' dark motes drawn into the cork and swallowed.
 export const POTION_AURAS = {
   healing: {color: 0xff4a50, blend: 'add', motion: 'column', count: 3, size: .02, period: 3, alpha: .55},
   'extra healing': {color: 0xe02030, blend: 'add', motion: 'beat', count: 2, size: .1, period: 1.8, alpha: .34},
@@ -34,6 +34,14 @@ export const POTION_AURAS = {
   'see invisible': {color: 0xf0f4ff, blend: 'add', motion: 'spark', count: 1, size: .024, period: 5, alpha: .85},
   levitation: {color: 0xd8ecff, blend: 'add', motion: 'column', count: 4, size: .014, period: 3.6, alpha: .6},
   enlightenment: {color: 0xfff8d8, blend: 'add', motion: 'beat', count: 1, size: .07, period: 3.4, alpha: .5},
+  paralysis: {color: 0xb8c0c8, blend: 'add', motion: 'drift', count: 1, size: .016, period: 14, alpha: .3},
+  invisibility: {color: 0xdcdcff, blend: 'add', motion: 'spark', count: 2, size: .02, period: 3.2, alpha: .3},
+  'monster detection': {color: 0xff5040, blend: 'add', motion: 'beat', count: 2, size: .12, period: 2.4, alpha: .26},
+  'object detection': {color: 0xffd060, blend: 'add', motion: 'spark', count: 5, size: .01, period: 1.5, alpha: .8},
+  polymorph: {color: 0xa0e0a0, blend: 'add', motion: 'spiral', count: 4, size: .02, period: 1.2, alpha: .65},
+  oil: {color: 0xd08030, blend: 'add', motion: 'column', count: 2, size: .018, period: 3.2, alpha: .4},
+  blood: {color: 0x7a0c14, blend: 'normal', motion: 'drift', count: 2, size: .024, period: 7, alpha: .55},
+  'vampire blood': {color: 0xb01020, blend: 'normal', motion: 'gnaw', count: 3, size: .04, period: 2.6, alpha: .65},
 };
 
 // The potion type from a floor object, or null for unknown potions, water and other classes.

@@ -5,6 +5,20 @@ import {readFileSync} from 'node:fs';
 import {createCreature} from './creatures.js';
 import {createGroundModel} from './ground-models.js';
 import {sceneCounts} from './render-stats.js';
+import {createAltar} from './altar.js';
+import {createFountain} from './fountain.js';
+import {createThrone} from './throne.js';
+import {createSink} from './sink.js';
+import {createGrave} from './grave.js';
+import {createTree} from './tree.js';
+import {createDoor, createBrokenDoor} from './door.js';
+import {createStairs} from './stairs.js';
+import {createLadder} from './ladder.js';
+import {createBars} from './bars.js';
+import {createBog} from './bog.js';
+import {createDrawbridge} from './drawbridge.js';
+import {createBoulder} from './boulder.js';
+import {createTrap} from './trap.js';
 
 // A budget for what the models themselves add to a busy level, so detail and effects cannot slowly
 // drag the frame rate down. Models carry no lights and no particle layers of their own (lights are
@@ -16,6 +30,10 @@ const BUDGET = {
   busyMaterials: 180, // today 142
   meshesPerItem: 16, // the heaviest floor item today has 8
   materialsPerItem: 8, // the heaviest has 5
+  meshesPerFeature: 56, // the heaviest terrain feature today (the altar) has 42
+  materialsPerFeature: 20, // the heaviest has 14
+  instancesPerFeature: 160, // the fountain's droplets: 104
+  busyFeatures: 320, // today about 210, // a room of every feature, and every trap once
   busyItems: 160, // today about 80, // a floor strewn with two of each sample item
 };
 
@@ -91,4 +109,38 @@ test('a floor strewn with items stays inside the draw-call budget', () => {
   for (let pass = 0; pass < 2; pass++) for (const [name, cls] of items) scene.add(createGroundModel({name, class: cls}));
   const counts = sceneCounts(scene);
   assert(counts.meshes <= BUDGET.busyItems, `${counts.meshes} meshes, budget ${BUDGET.busyItems}`);
+});
+
+// Terrain features: one of each, plus every trap kind, which is more than any screen shows at once.
+const TRAPS = ['pit', 'barepit', 'hatch', 'hole', 'arrow', 'dart', 'squeaky', 'gas', 'jaws', 'mine', 'rubble', 'rolling',
+  'statue', 'rust', 'fire', 'antimagic', 'polymorph', 'ice', 'portal', 'web', 'magic', 'sleeping', 'teleport'];
+const features = {
+  altar: createAltar, fountain: createFountain, throne: createThrone, sink: createSink, grave: createGrave,
+  tree: createTree, door: createDoor, 'broken door': createBrokenDoor, 'stairs up': () => createStairs('up'),
+  'stairs down': () => createStairs('down'), 'ladder up': () => createLadder('up'), 'ladder down': () => createLadder('down'),
+  bars: createBars, bog: createBog, 'drawbridge up': () => createDrawbridge(true),
+  'drawbridge down': () => createDrawbridge(false), boulder: createBoulder,
+};
+for (const kind of TRAPS) features[`${kind} trap`] = () => createTrap(kind);
+
+test('terrain feature models stay under the per-feature caps and carry no lights or particles', () => {
+  for (const [name, make] of Object.entries(features)) {
+    const scene = new THREE.Scene();
+    scene.add(make());
+    const counts = sceneCounts(scene);
+    let points = 0;
+    scene.traverse(o => { if (o.isPoints) points++; });
+    assert(counts.meshes <= BUDGET.meshesPerFeature, `${name}: ${counts.meshes} meshes, budget ${BUDGET.meshesPerFeature}`);
+    assert(counts.materials <= BUDGET.materialsPerFeature, `${name}: ${counts.materials} materials, budget ${BUDGET.materialsPerFeature}`);
+    assert(counts.instances <= BUDGET.instancesPerFeature, `${name}: ${counts.instances} instances, budget ${BUDGET.instancesPerFeature}`);
+    assert.equal(counts.lights, 0, `${name} adds lights`);
+    assert.equal(points, 0, `${name} adds particle layers`);
+  }
+});
+
+test('a room of every terrain feature stays inside the draw-call budget', () => {
+  const scene = new THREE.Scene();
+  for (const make of Object.values(features)) scene.add(make());
+  const counts = sceneCounts(scene);
+  assert(counts.meshes <= BUDGET.busyFeatures, `${counts.meshes} meshes, budget ${BUDGET.busyFeatures}`);
 });

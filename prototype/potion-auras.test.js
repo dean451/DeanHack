@@ -13,6 +13,12 @@ test('potion effects key on the true type; water, unknown and other classes get 
  assert.equal(potionAuraKind(null),null);
 });
 
+test('paralysis, invisibility, detection, polymorph, oil and the bloods have effects',()=>{
+ for(const kind of ['paralysis','invisibility','monster detection','object detection','polymorph','oil','blood','vampire blood'])
+  assert.equal(potionAuraKind({class:8,name:`potion of ${kind}`}),kind);
+ assert.equal(POTION_AURAS.paralysis.count,1,'paralysis stays nearly still');
+});
+
 test('every potion effect stays finite and over its bottle, and frees itself',()=>{
  for(const kind of Object.keys(POTION_AURAS)){
   const item=new THREE.Group(),aura=syncPotionAura(item,{class:8,name:kind},'3,4');
