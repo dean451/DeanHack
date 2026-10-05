@@ -8,7 +8,9 @@ import * as THREE from 'three';
 //    then the claw snaps shut hard and holds, and the whole thing sinks back;
 //  - drum: three quick, impatient taps of the fingers;
 //  - feel: the hand turns slowly one way then the other, fingers flexing, as if feeling
-//    for the edge of the hollow.
+//    for the edge of the hollow;
+//  - beckon: the fingers curl in slowly and crooked, three times, as if calling the hero
+//    down, with the wrist swaying a little in time.
 // The motion is keyframed with fast moves and holds so it reads jerky and wrong rather than
 // soft. Tilts stay under HAND_TILT so the forearm's stump never shows at the hollow's rim.
 // With the hero near, the dead notice. Within AWARE tiles the hand turns its lean toward them
@@ -32,6 +34,7 @@ export const MOVES = {
   spasm: [[0, 0, 0, 0], [.06, -.38, .05, 0], [.16, -.38, .05, 0], [.22, .14, -.02, 0], [.34, -.22, .03, .02], [.4, -.22, .03, .02], [.5, .08, 0, 0], [.9, 0, 0, 0]],
   grasp: [[0, 0, 0, 0], [1.1, -.55, .14, .05], [1.35, -.6, .17, .07], [1.45, .18, .08, -.03], [2.1, .16, .07, -.03], [3.2, 0, 0, 0]],
   drum: [[0, 0, 0, 0], [.1, -.2, .02, 0], [.17, .1, 0, 0], [.32, .1, 0, 0], [.42, -.2, .02, 0], [.49, .1, 0, 0], [.64, .1, 0, 0], [.74, -.2, .02, 0], [.81, .1, 0, 0], [1.6, 0, 0, 0]],
+  beckon: [[0, 0, 0, 0], [.25, -.3, .04, .03], [.9, .18, .06, .03], [1.0, .18, .06, .03], [1.3, -.25, .04, -.03], [1.95, .18, .06, -.03], [2.05, .18, .06, -.03], [2.35, -.25, .04, .03], [3.0, .18, .06, .03], [3.1, .18, .06, .03], [4.2, 0, 0, 0]],
   feel: [[0, 0, 0, 0], [.8, -.16, .06, .17], [1.0, -.08, .06, .17], [1.8, -.18, .05, -.17], [2.0, -.1, .05, -.17], [2.8, 0, 0, 0]],
 };
 // Hero sensing: the range it notices them (tiles), the range it reaches, how far it leans at
@@ -42,7 +45,7 @@ export const REACH = 1.5;
 export const REACH_TILT = .18;
 export const CLUTCH = 1.7;
 export const ALERT_RISE = 4, ALERT_FALL = 1.2;
-const KINDS = ['spasm', 'spasm', 'grasp', 'drum', 'feel'];
+const KINDS = ['spasm', 'spasm', 'grasp', 'drum', 'feel', 'beckon'];
 
 function hash(n) {
   const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;

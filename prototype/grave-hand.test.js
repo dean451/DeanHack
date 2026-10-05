@@ -113,3 +113,12 @@ test('the hand reaches toward a nearby hero, within bounds, and settles back whe
   const p = handPose(29.9, risen.userData.handPhase);
   if (!p.kind) assert.ok(hand.quaternion.angleTo(hand.userData.rest.quaternion) < 1e-6);
 });
+
+test('the beckon move curls the fingers in three slow, crooked pulls', () => {
+  const keys = MOVES.beckon;
+  assert.ok(keys, 'beckon exists');
+  let clenches = 0;
+  for (let i = 1; i < keys.length; i++) if (keys[i][1] > .1 && keys[i - 1][1] <= .1) clenches++;
+  assert.equal(clenches, 3);
+  assert.ok(keys[keys.length - 1][0] - keys[0][0] > 3, 'slow');
+});
