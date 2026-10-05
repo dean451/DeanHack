@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createSink} from './sink.js';
-import {createSinkDrip, dripPoints, dripState, DRIP_SWELL, DRIP_GRAVITY, DRIP_RING_RADIUS} from './sink-drip.js';
+import {createSinkDrip, dripPoints, dripState, DRIP_SWELL, DRIP_GRAVITY, DRIP_RING_RADIUS,DRIP_TREMBLE} from './sink-drip.js';
 
 test('the drip is read off the sink model: the tip under the spout, the pool below it',()=>{
  const sink=createSink(),water=sink.children.find(o=>o.userData.part==='water');
@@ -69,4 +69,18 @@ test('the drip rig attaches to sinks in the scene, animates, and comes off clean
  drip.dispose();
  assert.equal(a.children.length,built);
  assert.equal(drip.count,0);
+});
+
+test('the drop shivers just before it lets go, and is steady otherwise',()=>{
+ const height=.25,period=3;
+ let early=0,late=0;
+ for(let t=0;t<period;t+=1/240){
+  const s=dripState(t,period,0,height);
+  assert(Math.abs(s.sx)<=DRIP_TREMBLE+1e-12&&Math.abs(s.sz)<=DRIP_TREMBLE+1e-12);
+  if(t<DRIP_SWELL*.6)early=Math.max(early,Math.abs(s.sx),Math.abs(s.sz));
+  else if(t<DRIP_SWELL)late=Math.max(late,Math.abs(s.sx),Math.abs(s.sz));
+  else assert.equal(s.sx+s.sz,0,'steady once falling');
+ }
+ assert.equal(early,0);
+ assert(late>DRIP_TREMBLE*.5,`only shivered ${late}`);
 });

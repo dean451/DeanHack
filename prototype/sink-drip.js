@@ -15,6 +15,7 @@ export const DRIP_GRAVITY = 9.8; // tiles are a metre
 export const DRIP_RIPPLE = .75; // seconds a ring takes to spread and fade
 export const DRIP_RING_DELAY = .16; // the second, smaller ring follows this much later
 export const DRIP_RING_RADIUS = .065; // how far the first ring spreads
+export const DRIP_TREMBLE = .0025; // sideways shiver of a drop about to let go
 export const DRIP_RADIUS = .008; // the drop, the same size as the one hanging in the model
 
 const DROP_GEO = new THREE.SphereGeometry(DRIP_RADIUS, 10, 8);
@@ -48,12 +49,16 @@ function phaseOf(object) {
 export function dripState(t, period, offset, height) {
   const u = ((t + offset) % period + period) % period;
   const fallTime = Math.sqrt(2 * height / DRIP_GRAVITY);
-  const out = {drop: false, fall: 0, size: 0, stretch: 1, rings: [{r: 0, a: 0}, {r: 0, a: 0}]};
+  const out = {drop: false, fall: 0, size: 0, stretch: 1, rings: [{r: 0, a: 0}, {r: 0, a: 0}], sx: 0, sz: 0};
   if (u < DRIP_SWELL) {
     // Swells from nothing, and sags into a teardrop just before it lets go.
     const k = u / DRIP_SWELL;
     out.drop = true;out.size = .25 + .75 * k * k * (3 - 2 * k);out.stretch = 1 + .45 * k * k * k;
     out.fall = DRIP_RADIUS * .6 * k * k; // it sags a little as it grows
+    // In the last third it starts to shiver, nervous, faster and wider as it gives way.
+    const n = Math.max(0, (k - .65) / .35);
+    out.sx = DRIP_TREMBLE * n * n * Math.sin(u * 70);
+    out.sz = DRIP_TREMBLE * n * n * Math.sin(u * 53 + 1.3);
   } else if (u < DRIP_SWELL + fallTime) {
     const s = u - DRIP_SWELL;
     out.drop = true;out.size = 1;out.stretch = 1.45 + .25 * s / fallTime;
@@ -123,7 +128,7 @@ export function createSinkDrip(scene) {
         const s = dripState(t, r.period, r.offset, r.height);
         r.drop.visible = s.drop;
         if (s.drop) {
-          r.drop.position.set(r.tip.x, r.tip.y - s.fall, r.tip.z);
+          r.drop.position.set(r.tip.x + s.sx, r.tip.y - s.fall, r.tip.z + s.sz);
           const w = s.size / Math.sqrt(s.stretch);
           r.drop.scale.set(w, s.size * s.stretch, w);
         }
