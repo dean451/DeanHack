@@ -44,23 +44,50 @@ export function digSwingPose(u) {
   return p;
 }
 
+// The strike that finishes the job (pit, hole or breach, as dig-chips.js reads them).
+export const finishMessage = text => typeof text === 'string' &&
+  /^You dig a pit in the |^You dig a hole through the |^You succeed in cutting away some rock\.$|^You make an opening in the wall\.$/.test(text);
+
+// After the last strike the hero is spent: the tool drags at the end of a slack arm, the
+// shoulders sag and heave twice, then one sharp involuntary jerk as if the rock had twitched
+// back, and a slow recovery. Offsets like digSwingPose, exactly at rest at both ends.
+export const SPENT_TIME = 1.5;
+const SPENT = {arm: .45, armZ: .1, elbow: .25, wrist: .3, socket: -.2, shield: .1, twist: .08, lean: .3, offArm: 0, offElbow: 0};
+export function spentPose(u) {
+  u = clamp01(Number.isFinite(u) ? u : 1);
+  const p = {...REST};
+  const sag = smooth(u / .2) * (1 - smooth((u - .78) / .22));
+  for (const f of FIELDS) p[f] = SPENT[f] * sag + 0;
+  // two tired heaves of the shoulders while it hangs
+  const heave = Math.sin(clamp01((u - .15) / .55) * Math.PI * 4) * sag * .05;
+  p.lean += heave; p.arm += heave * .6;
+  // the tic: a quick snap of the twist and wrist, gone in a blink
+  const tic = clamp01((u - .6) / .08) * (1 - clamp01((u - .68) / .1)), k = Math.sin(tic * Math.PI);
+  p.twist -= .35 * k; p.wrist -= .25 * k;
+  return p;
+}
+
 export function createDigSwing() {
-  let age = null, applied = null;
+  let age = null, applied = null, spent = false;
   return {
-    // Call with each engine message; true when it started (or restarted) a blow.
-    message(text) { if (!digMessage(text)) return false; age = 0; return true; },
+    // Call with each engine message; true when it started (or restarted) a blow or the spent slump.
+    message(text) {
+      if (digMessage(text)) { age = 0; spent = false; return true; }
+      if (finishMessage(text)) { age = 0; spent = true; return true; }
+      return false;
+    },
     // Each frame, after actions.js: take back last frame's offset, then add this frame's.
     update(actor, dt, busy = false) {
       if (applied) { clearSwing(actor, applied); applied = null; }
       if (age === null) return null;
       if (busy || !actor?.arm) { age = null; return null; }
       age += Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
-      if (age >= DIG_TIME) { age = null; return null; }
-      applied = digSwingPose(age / DIG_TIME);
+      if (age >= (spent ? SPENT_TIME : DIG_TIME)) { age = null; return null; }
+      applied = spent ? spentPose(age / SPENT_TIME) : digSwingPose(age / DIG_TIME);
       applySwing(actor, applied);
       return applied;
     },
-    clear(actor) { if (applied) clearSwing(actor, applied); applied = null; age = null; },
+    clear(actor) { if (applied) clearSwing(actor, applied); applied = null; age = null; spent = false; },
     get playing() { return age !== null; },
   };
 }
