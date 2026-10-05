@@ -172,3 +172,11 @@ test('the Nazgul glow with dread: a cold pool under the hem, a lit blade edge, a
  const h=name=>new THREE.Box3().setFromObject(createCreature({name,symbol:87,color:1}).g).getSize(new THREE.Vector3()).y;
  assert(h('nazgul')>h('wraith')*1.15);
 });
+
+test('the four Riders glow with their own dread: a pool under the hem, and a lit blade edge only on War',()=>{
+ for(const name of ['death','famine','pestilence','war']){
+  const parts=glows(name);
+  assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),name+' has a pool of light on the floor');
+  assert.equal(parts.some(m=>!m.material.transparent),name==='war',name+' blade edge');
+ }
+});

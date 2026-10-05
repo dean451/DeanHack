@@ -2671,3 +2671,12 @@ test('trappers carry the bones of their meals on the mantle',()=>{
   assert(bone,name);
  }
 });
+
+test('War, the fourth Rider, wears a dark red robe and carries a sword like his brothers',()=>{
+ const w=createCreature({name:'war',symbol:'&'.charCodeAt(0),color:1}),d=createCreature({name:'death',symbol:'&'.charCodeAt(0),color:1});
+ assert.equal(w.wraith,'war');
+ const hh=a=>new THREE.Box3().setFromObject(a.g).getSize(new THREE.Vector3()).y;
+ assert(hh(w)>1.2,'War towers over a man');
+ const meshes=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n++;});return n;};
+ assert(meshes(w)>meshes(d),'War carries a blade Death does not');
+});

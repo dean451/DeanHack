@@ -1662,7 +1662,7 @@ function wraith(o){
  // evil glow (Nazgul): a pool of cold dread under the hem and a morgul-lit edge along the blade
  if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.5,transparent:true,opacity:.3,depthWrite:false}),edge=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=edge.name='evil-glow';
   const p=cylinder(g,.55,.62,.004,pool,0,.004,0,24);p.castShadow=false;p.receiveShadow=false;
-  const e=rounded(body,.012,.46,.008,edge,.3,.74,.21,.004);e.rotation.x=.9;e.castShadow=false;}
+  if(o.sword){const e=rounded(body,.012,.46,.008,edge,.3,.74,.21,.004);e.rotation.x=.9;e.castShadow=false;}}
  return trimDraws(Object.assign(actor(g,body,[],null,[],'hover'),{head,arms,arm:arms[1],claws},o.kind?{wraith:o.kind}:{}));
 }
 const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff'},'barrow wight':{robe:'#4a4a3a',glow:'#e0c040',bone:'#a89878',solid:true,circlet:true,sword:true},nazgul:{robe:'#141218',glow:'#ff3a2a',crown:true,sword:true,evil:true,scale:1.3}};
@@ -2413,7 +2413,7 @@ function demon(o){
   if(o.spikes)for(const [x,y,z] of [[0,-.14,-.12],[.06,-.3,-.24],[.14,-.36,-.36]])cone(tail,.012,.06,horn,x,y+.03,z,4);}
  return trimDraws(actor(g,body,legs,tail,wings,o.smoke?'hover':'orc'));
 }
-const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,scale:1.15},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,scale:1.1},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,scale:1.1}};
+const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,evil:true,scale:1.15},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,evil:true,scale:1.1},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,evil:true,scale:1.1},war:{robe:'#3a1414',glow:'#ff3a2a',bone:'#a89080',solid:true,sword:true,evil:true,scale:1.15}};
 const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',evil:'#40d8c0',horns:'short',head:'toad',tail:true,bulk:1.1,scale:1.1},'lava demon':{skin:'#5a2418',eye:'#ffdd40',horns:'short',flame:'#ff6a20',evil:'#ff6a20',tail:true,bulk:1.15,scale:1.15},
  'horned devil':{skin:'#8a3a24',mark:'iron',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident',scale:1.1},succubus:{skin:'#d8a090',eye:'#ff60a0',evil:'#d0306a',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true,scale:1.1},
  incubus:{skin:'#b07a60',eye:'#ff60a0',evil:'#7a30d0',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true,scale:1.1},erinys:{skin:'#a86a58',eye:'#ff4030',evil:'#ff4030',slim:true,hair:'#3a2418',wings:.8,weapon:'sword',scale:1.05},
