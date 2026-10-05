@@ -106,3 +106,8 @@ test('the lava demon glows with molten evil and stands bigger than a plain demon
  const h=name=>new THREE.Box3().setFromObject(createCreature({name,symbol:38,color:1}).g).getSize(new THREE.Vector3()).y;
  assert(h('lava demon')>h('mail daemon'));
 });
+
+test('the water demon glows a drowned green-blue',()=>{
+ const parts=glows('water demon');
+ assert(parts.length>=2);assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5));
+});
