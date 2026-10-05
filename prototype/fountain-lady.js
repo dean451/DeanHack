@@ -14,6 +14,7 @@ import {softDot, softRing, clamp01, smooth} from './fx-textures.js';
 
 export const LADY = {rise: .45, riseTime: 1.1, turnAt: 1.9, twitchAt: 2.75, sinkAt: 3.2, sinkTime: .9, total: 4.4};
 export const ARM_MAX = .85; // how far the wrist clears the water
+export const STIR = {at: .05, end: .55}; // the water bulges and shivers before the arm breaks it
 export const isLadyMessage = text => /a hand reaches up to bless the sword/i.test(text || '');
 
 // The arm at time t: height out of the water, the blade's turn about its own axis, a sideways
@@ -28,7 +29,10 @@ export function ladyPose(t) {
   const glowIn = smooth((t - LADY.rise - .5) / .8), glowOut = smooth((t - LADY.sinkAt - .5) / (LADY.total - LADY.sinkAt - .5));
   const glow = glowIn * (1 - glowOut) * (.85 + .15 * Math.sin(t * 9));
   const ripple = clamp01(t / (LADY.sinkAt + LADY.sinkTime));
-  return {rise, turn: t >= LADY.turnAt + .7 ? 0 : turn, twitch, glow: t >= LADY.total ? 0 : glow, ripple};
+  // A dark swell under the surface that heaves and shivers, then slides away as the arm breaks through.
+  const sk = clamp01((t - STIR.at) / (STIR.end - STIR.at));
+  const stir = t <= STIR.at || t >= STIR.end ? 0 : Math.sin(sk * Math.PI) * (.9 + .1 * Math.sin(t * 38));
+  return {stir, rise, turn: t >= LADY.turnAt + .7 ? 0 : turn, twitch, glow: t >= LADY.total ? 0 : glow, ripple};
 }
 
 export function createFountainLady(THREE, parent) {
@@ -53,11 +57,14 @@ export function createFountainLady(THREE, parent) {
       const mat = new THREE.MeshBasicMaterial({map: softRing(THREE), color: 0xa8d8d0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
       const r = new THREE.Mesh(ringGeo, mat); r.position.y = .02; g.add(r); return {r, mat, delay};
     });
-    live.push({g, arm, hand, blade, steel, glowMat, rings, geos, mats: [flesh, steel, glowMat, ...rings.map(r => r.mat)], ringGeo, t: 0});
+    const swellMat = new THREE.MeshBasicMaterial({map: softDot(THREE), color: 0x0c1814, transparent: true, opacity: 0, depthWrite: false});
+    const swell = new THREE.Mesh(ringGeo, swellMat); swell.position.y = .015; g.add(swell);
+    live.push({swell, swellMat, g, arm, hand, blade, steel, glowMat, rings, geos, mats: [flesh, steel, glowMat, swellMat, ...rings.map(r => r.mat)], ringGeo, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
     const p = ladyPose(e.t);
+    e.swell.scale.set(.25 + .5 * p.stir, 1, .25 + .5 * p.stir); e.swellMat.opacity = .75 * p.stir;
     e.arm.visible = p.rise > .01;
     e.arm.position.set(p.twitch, p.rise, 0);
     e.hand.rotation.z = p.twitch * 1.5;
