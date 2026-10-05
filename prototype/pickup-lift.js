@@ -1,6 +1,8 @@
 // The pickup lift (magic item moments, part 2). When the hero picks up a magic item from the floor
 // it does not vanish: it lifts a hand's breadth toward the hero and shrinks into the pack over
-// about a third of a second. No flash; claiming it is quiet. Mundane items still just go.
+// about a third of a second while its aura swells once. No screen flash. Mundane items still just go.
+import {scoopSwell} from './step-over.js';
+
 export const PICKUP_DURATION = .35;
 export const PICKUP_RISE = .45;
 // How close (world units) the hero must be for a vanished item to count as picked up.
@@ -26,5 +28,6 @@ export function updatePickupLift(item, hero, dt) {
   const {y, scale} = pickupLiftAt(data.liftAge), pull = Math.min(1, data.liftAge / PICKUP_DURATION) ** 2 * .5;
   item.position.set(data.liftBase.x + (hero.x - data.liftBase.x) * pull, y, data.liftBase.z + (hero.z - data.liftBase.z) * pull);
   item.scale.setScalar(Math.max(scale, 1e-4));
+  scoopSwell(item, data.liftAge / PICKUP_DURATION);
   return data.liftAge >= PICKUP_DURATION;
 }

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {weaponAuraStyle,weaponAuraKey,syncWeaponAura} from './weapon-auras.js';
-import {updateStepOver,STEP_DURATION} from './step-over.js';
+import {scoopSwell} from './step-over.js';
 
 test('only a known positive enchantment on a weapon shows an edge-light',()=>{
  assert.equal(weaponAuraKey({class:2,spe:3}),3);
@@ -46,11 +46,10 @@ test('the effect follows what is lying there',()=>{
  assert.equal(item.children.length,0);
 });
 
-test('stepping on an enchanted weapon swells the edge-light and settles exactly to rest',()=>{
+test('the pickup scoop swells the edge-light of an enchanted weapon and settles exactly to rest',()=>{
  const item=new THREE.Group(),aura=syncWeaponAura(item,{class:2,spe:3},'1,1');
- updateStepOver(item,true,.01);
- updateStepOver(item,true,STEP_DURATION/2);
+ scoopSwell(item,.3);
  assert(aura.scale.x>1);
- updateStepOver(item,true,STEP_DURATION);
+ scoopSwell(item,1);
  assert.equal(aura.scale.x,1);
 });

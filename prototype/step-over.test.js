@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {stepPulseAt, updateStepOver, STEP_DURATION, STEP_SWELL} from './step-over.js';
+import {stepPulseAt, scoopSwell, STEP_DURATION, STEP_SWELL} from './step-over.js';
 import {createWandAura} from './wand-auras.js';
 import {createScrollAura} from './scroll-auras.js';
+import {updatePickupLift} from './pickup-lift.js';
 
 const floorItem = kind => {
   const item = new THREE.Group();
@@ -26,30 +27,21 @@ test('the pulse is zero at both ends, peaks early and stays in bounds', () => {
   assert.ok(peak > .99 && peakAt < STEP_DURATION / 2, 'a quick heave, then a slow ease back');
 });
 
-test('arriving on a wand swells its aura once, then it returns exactly to rest', () => {
+test('the pickup scoop swells a wand aura once, then it returns exactly to rest', () => {
   const item = floorItem('death');
   let biggest = 1;
-  updateStepOver(item, true, 0);
-  for (let t = 0; t < 1; t += 1 / 60) { updateStepOver(item, true, 1 / 60); biggest = Math.max(biggest, item.userData.wandAura.scale.x); }
+  for (let u = 0; u <= 1; u += 1 / 60) { scoopSwell(item, u); biggest = Math.max(biggest, item.userData.wandAura.scale.x); }
+  scoopSwell(item, 1);
   assert.ok(biggest > 1.5 && biggest <= 1 + STEP_SWELL + 1e-9);
   assert.equal(item.userData.wandAura.scale.x, 1);
-  // Still standing there: no second pulse.
-  updateStepOver(item, true, .1);
-  assert.equal(item.userData.wandAura.scale.x, 1);
-  // Step off and back on: it answers again.
-  updateStepOver(item, false, 1 / 60);
-  updateStepOver(item, true, 1 / 60);
-  updateStepOver(item, true, .1);
-  assert.ok(item.userData.wandAura.scale.x > 1);
 });
 
 test('only wand auras answer; a lamp hum or a bare item is left alone', () => {
   const lamp = floorItem('magic lamp');
-  updateStepOver(lamp, true, .1);
-  updateStepOver(lamp, true, .1);
+  scoopSwell(lamp, .3);
   assert.equal(lamp.userData.wandAura.scale.x, 1);
   const bare = new THREE.Group();
-  assert.doesNotThrow(() => updateStepOver(bare, true, .1));
+  assert.doesNotThrow(() => scoopSwell(bare, .3));
 });
 
 test('a scroll aura swells on arrival and returns exactly to rest', () => {
@@ -59,8 +51,8 @@ test('a scroll aura swells on arrival and returns exactly to rest', () => {
   const aura = item.userData.scrollAura;
   assert.ok(aura, 'the fire scroll has an aura');
   let biggest = 1;
-  updateStepOver(item, true, 0);
-  for (let t = 0; t < 1; t += 1 / 60) { updateStepOver(item, true, 1 / 60); biggest = Math.max(biggest, aura.scale.x); }
+  for (let u = 0; u <= 1; u += 1 / 60) { scoopSwell(item, u); biggest = Math.max(biggest, aura.scale.x); }
+  scoopSwell(item, 1);
   assert.ok(biggest > 1.5 && biggest <= 1 + STEP_SWELL + 1e-9);
   assert.equal(aura.scale.x, 1);
 });
@@ -71,8 +63,8 @@ test('a potion effect swells on arrival and returns exactly to rest', () => {
   item.userData.potionFx = fx;
   item.add(fx);
   let biggest = 1;
-  updateStepOver(item, true, 0);
-  for (let t = 0; t < 1; t += 1 / 60) { updateStepOver(item, true, 1 / 60); biggest = Math.max(biggest, fx.scale.x); }
+  for (let u = 0; u <= 1; u += 1 / 60) { scoopSwell(item, u); biggest = Math.max(biggest, fx.scale.x); }
+  scoopSwell(item, 1);
   assert.ok(biggest > 1.5 && biggest <= 1 + STEP_SWELL + 1e-9);
   assert.equal(fx.scale.x, 1);
 });
@@ -83,8 +75,8 @@ test('an artifact gleam swells on arrival, flinging its motes out, and returns e
   item.userData.artifactGleam = gleam;
   item.add(gleam);
   let biggest = 1;
-  updateStepOver(item, true, 0);
-  for (let t = 0; t < 1; t += 1 / 60) { updateStepOver(item, true, 1 / 60); biggest = Math.max(biggest, gleam.scale.x); }
+  for (let u = 0; u <= 1; u += 1 / 60) { scoopSwell(item, u); biggest = Math.max(biggest, gleam.scale.x); }
+  scoopSwell(item, 1);
   assert.ok(biggest > 1.5 && biggest <= 1 + STEP_SWELL + 1e-9);
   assert.equal(gleam.scale.x, 1);
 });
@@ -95,8 +87,17 @@ test('a ring aura swells on arrival and returns exactly to rest', () => {
   item.userData.ringAura = aura;
   item.add(aura);
   let biggest = 1;
-  updateStepOver(item, true, 0);
-  for (let t = 0; t < 1; t += 1 / 60) { updateStepOver(item, true, 1 / 60); biggest = Math.max(biggest, aura.scale.x); }
+  for (let u = 0; u <= 1; u += 1 / 60) { scoopSwell(item, u); biggest = Math.max(biggest, aura.scale.x); }
+  scoopSwell(item, 1);
   assert.ok(biggest > 1.5 && biggest <= 1 + STEP_SWELL + 1e-9);
   assert.equal(aura.scale.x, 1);
+});
+
+test('a lifting item swells its aura, and nothing swells before the lift starts', () => {
+  const item = floorItem('death');
+  item.position.set(2, 0, 2);
+  assert.equal(item.userData.wandAura.scale.x, 1);
+  let biggest = 1, done = false;
+  for (let i = 0; i < 60 && !done; i++) { done = updatePickupLift(item, {x: 0, z: 0}, 1 / 60); biggest = Math.max(biggest, item.userData.wandAura.scale.x); }
+  assert.ok(done && biggest > 1.5);
 });
