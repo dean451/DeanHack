@@ -1334,6 +1334,8 @@ function giant(o){
  for(const hx of heads){const head=new THREE.Group();head.position.set(hx,1.16,.03);head.rotation.z=-hx*1.2;body.add(head);
   {sphere(head,.12,skin,0,0,0,.95,1.05,.95);if(o.cyclops)sphere(head,.024,skin,0,-.045,.115,1.3,.8,1);else{rounded(head,.2,.04,.06,mat(shade(o.skin,.8),{roughness:.9}),0,.04,.09,.015);sphere(head,.028,skin,0,-.01,.12,1,1.2,1);}
    const scalp=sphere(head,.125,hair,0,.035,-.03,1,.85,1);scalp.rotation.x=.25;if(o.beard)sphere(head,.09,hair,0,-.09,.07,1,1.2,.65);}
+  // ettins: a rusted iron collar studded with spikes at each neck, and a raked scar over one eye
+  if(o.twoHeads){const rust=mat('#4a3426',{roughness:.7,metalness:.6});g.userData.collared=true;part(head,new THREE.TorusGeometry(.09,.017,5,14),rust,0,-.1,0).rotation.x=Math.PI/2;for(let i=0;i<5;i++){const a=(i-2)*.6,spike=cone(head,.014,.05,rust,Math.sin(a)*.1,-.1,Math.cos(a)*.1,4);spike.rotation.set(Math.cos(a)*1.2,0,-Math.sin(a)*1.2);}if(hx<0)rounded(head,.012,.1,.01,mat('#5a2a22',{roughness:1}),.04,.03,.1,.004).rotation.z=.5;}
   if(o.circlet)part(head,new THREE.TorusGeometry(.12,.012,5,16),M.gold,0,.07,0).rotation.x=Math.PI/2;
   // a crown of jagged black-iron spikes, their tips white-hot
   if(o.crown){const iron=mat('#2a2224',{roughness:.45,metalness:.75}),hot=mat('#ffb060',{emissive:'#f05010',emissiveIntensity:3});part(head,new THREE.TorusGeometry(.118,.016,5,18),iron,0,.075,-.01).rotation.x=Math.PI/2;
@@ -1524,11 +1526,15 @@ function troll(o){
  const torso=sphere(body,.23,skin,0,.66,.02,1.1,1.15,.9);torso.rotation.x=.45;sphere(body,.15,dark,0,.56,.12,1.05,.95,.55);
  for(const [x,y,z] of [[-.12,.72,.17],[.09,.64,.2],[.16,.78,.1],[-.05,.82,.14]])sphere(body,.022,wart,x,y,z);
  for(let i=0;i<5;i++){const spike=cone(body,.04,.13,hair,(i%2?.04:-.04),.98-i*.08,-.06-i*.045,4);spike.rotation.x=-1.1-i*.12;}
+ // rock trolls: seams of dull magma glow between the stone plates, as if the creature were still cooling
+ if(o.rock){const vein=mat('#ff8a3a',{emissive:'#d04a0c',emissiveIntensity:1.8,roughness:.5});g.userData.veined=true;for(const [x,y,z,rz] of [[-.08,.66,.228,.5],[.1,.74,.212,-.6],[0,.55,.222,.1]]){const v=rounded(body,.012,.13,.01,vein,x,y,z,.004);v.rotation.z=rz;}}
  if(o.rock)for(const side of [-1,1]){const plate=part(body,new THREE.DodecahedronGeometry(.085,0),mat(shade(o.skin,.85),{roughness:1}),side*.19,.86,-.03);plate.rotation.set(.5,side*.4,.3);}
  if(o.ice)for(const side of [-1,1])for(const k of [0,1]){const shard=cone(body,.03,.15,mat('#d8f2fc',{roughness:.12,transparent:true,opacity:.85}),side*(.1+k*.07),.9-k*.06,-.1,4);shard.rotation.set(-.5,0,-side*(.4+k*.35));}
  if(o.armor)for(const side of [-1,1]){const pad=sphere(body,.1,mat(o.armor,{roughness:.4,metalness:.65}),side*.22,.88,.02,1.1,.65,1.1);pad.rotation.z=side*.3;}
  const head=new THREE.Group();head.position.set(0,.92,.21);body.add(head);
- sphere(head,.11,skin,0,0,0,1,.95,1.05);rounded(head,.19,.04,.06,dark,0,.04,.08,.015);
+ sphere(head,.11,skin,0,0,0,1,.95,1.05);
+ // olog-hai: a black iron helm with a nose-guard and swept horns, and war-paint gashed across the brow
+ if(o.helm){const iron=mat('#26282a',{roughness:.4,metalness:.75});g.userData.helmed=true;sphere(head,.118,iron,0,.04,-.015,1,.6,1.05);rounded(head,.025,.11,.02,iron,0,-.01,.108,.006);for(const side of [-1,1]){const horn=cone(head,.022,.15,iron,side*.1,.08,-.01,5);horn.rotation.z=-side*1.0;horn.rotation.x=-.2;}for(const side of [-1,1])rounded(head,.05,.012,.01,mat('#8a1a14',{roughness:1}),side*.05,.012,.1,.004).rotation.z=side*.5;}rounded(head,.19,.04,.06,dark,0,.04,.08,.015);
  const snout=cone(head,.035,.13,dark,0,-.03,.14,7);snout.rotation.x=Math.PI/2+.7;
  sphere(head,.08,skin,0,-.07,.05,1.15,.7,1);for(const side of [-1,1]){const t=cone(head,.013,.06,tusk,side*.045,-.07,.11,5);t.rotation.x=-.2;}
  for(const side of [-1,1]){const ear=cone(head,.03,.12,skin,side*.12,.02,-.02,4);ear.rotation.z=-side*1.25;ear.rotation.y=side*.3;}
@@ -1540,7 +1546,7 @@ function troll(o){
  // handles for troll-knit.js: the head and both arms, and which troll it is
  return trimDraws({...actor(g,body,legs,null,[],'orc'),head,arms,arm:arms[1],troll:o.kind||'troll'});
 }
-const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020'},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,eye:'#8ad8ff',scale:1.05},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.1},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.05},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,scale:1.15}};
+const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020'},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,eye:'#8ad8ff',scale:1.05},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.1},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.05},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,helm:true,scale:1.15}};
 
 // Ogres (O): a squat, pot-bellied brute with a heavy underbite, a greasy topknot, a hide loincloth and a nail-studded club;
 // ogre lords add a bronze helm and pauldrons, ogre kings a spiked crown, a fur mantle and a bigger club.
