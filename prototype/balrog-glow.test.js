@@ -99,3 +99,10 @@ test('the marilith glows with evil too, within the mesh cap',()=>{
  m.g.traverse(o=>{if(o.isMesh){meshes++;if(o.material.name==='evil-glow')glow++;}});
  assert(glow>=2,'marilith has evil-glow parts');assert(meshes<=25,'marilith stays within the mesh cap: '+meshes);
 });
+
+test('the lava demon glows with molten evil and stands bigger than a plain demon',()=>{
+ const parts=glows('lava demon');
+ assert(parts.length>=2);assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5));
+ const h=name=>new THREE.Box3().setFromObject(createCreature({name,symbol:38,color:1}).g).getSize(new THREE.Vector3()).y;
+ assert(h('lava demon')>h('mail daemon'));
+});
