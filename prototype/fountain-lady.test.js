@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ladyPose, isLadyMessage, LADY, ARM_MAX} from './fountain-lady.js';
+import {ladyPose, isLadyMessage, LADY, ARM_MAX, STIR} from './fountain-lady.js';
 
 test('only the Lady of the Lake message triggers her', () => {
   assert.ok(isLadyMessage('From the murky depths, a hand reaches up to bless the sword.'));
@@ -40,4 +40,17 @@ test('it is smooth: no pop between frames', () => {
     assert.ok(Math.abs(p.rise - prev.rise) < .03 && Math.abs(p.glow - prev.glow) < .12, `${t}`);
     prev = p;
   }
+});
+
+test('the water stirs before the arm breaks it, then goes still', () => {
+  let peak = 0;
+  for (let t = 0; t <= LADY.total; t += .01) {
+    const p = ladyPose(t);
+    assert.ok(p.stir >= 0 && p.stir <= 1.0001, `${t}`);
+    if (t < LADY.rise) peak = Math.max(peak, p.stir);
+    if (t >= STIR.end) assert.equal(p.stir, 0);
+  }
+  assert.ok(peak > .5);
+  assert.equal(ladyPose(0).stir, 0);
+  assert.equal(ladyPose(LADY.rise).rise, 0);
 });
