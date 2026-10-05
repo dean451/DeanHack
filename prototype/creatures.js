@@ -1531,6 +1531,8 @@ function troll(o){
  // rock trolls: seams of dull magma glow between the stone plates, as if the creature were still cooling
  if(o.rock){const vein=mat('#ff8a3a',{emissive:'#d04a0c',emissiveIntensity:1.8,roughness:.5});g.userData.veined=true;for(const [x,y,z,rz] of [[-.08,.66,.228,.5],[.1,.74,.212,-.6],[0,.55,.222,.1]]){const v=rounded(body,.012,.13,.01,vein,x,y,z,.004);v.rotation.z=rz;}}
  if(o.rock)for(const side of [-1,1]){const plate=part(body,new THREE.DodecahedronGeometry(.085,0),mat(shade(o.skin,.85),{roughness:1}),side*.19,.86,-.03);plate.rotation.set(.5,side*.4,.3);}
+ // water trolls: a spine of sharp grey barnacle shells crusts the drowned back
+ if(o.fin){const shell=mat('#8a9690',{roughness:.95});g.userData.barnacled=true;for(let i=0;i<5;i++){const c=cone(body,.028-i*.002,.09,shell,(i%2?.05:-.05),.86-i*.08,-.17-i*.03,5);c.rotation.x=-.9;}}
  if(o.ice)for(const side of [-1,1])for(const k of [0,1]){const shard=cone(body,.03,.15,mat('#d8f2fc',{roughness:.12,transparent:true,opacity:.85}),side*(.1+k*.07),.9-k*.06,-.1,4);shard.rotation.set(-.5,0,-side*(.4+k*.35));}
  if(o.armor)for(const side of [-1,1]){const pad=sphere(body,.1,mat(o.armor,{roughness:.4,metalness:.65}),side*.22,.88,.02,1.1,.65,1.1);pad.rotation.z=side*.3;}
  const head=new THREE.Group();head.position.set(0,.92,.21);body.add(head);

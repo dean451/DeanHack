@@ -31,3 +31,9 @@ test('fire giants are cracked like cooling slag and no other giant is', () => {
   for (const n of ['giant', 'frost giant', 'stone giant', 'lord surtur']) assert(!H(n).g.userData.cracked, n);
   assert(meshCount(H('fire giant')) <= 30);
 });
+
+test('water trolls carry a spine of barnacle shells and no other troll does', () => {
+  assert.equal(make('water troll').g.userData.barnacled, true);
+  for (const n of ['troll', 'ice troll', 'rock troll', 'olog-hai']) assert(!make(n).g.userData.barnacled, n);
+  assert(meshCount(make('water troll')) <= 30);
+});
