@@ -2489,8 +2489,12 @@ function seaMonster(o){
   const mantle=lathe(body,[[0,0],[.14,.03],[.2,.14],[.19,.3],[.14,.44],[.06,.54],[0,.57]],skin,0,.22,-.08);mantle.rotation.x=-.45;
   for(const side of [-1,1]){const f=finShape(body,[[0,0],[.16,.1],[.02,.2]],fin,side*.12,.62,-.28);f.rotation.y=side>0?0:Math.PI;f.rotation.x=-.45;}
   for(let i=0;i<7;i++){const a=i*2.3,r=.1+(i%3)*.04;sphere(body,.028,dark,Math.sin(a)*r*.9,.36+i*.035,.02-i*.035+Math.cos(a)*.05,1,.4,1);}
-  for(const side of [-1,1]){sphere(body,.07,eye,side*.14,.3,.1);sphere(body,.036,pupil,side*.175,.3,.14,.6,1.2,.6);}
+  for(const side of [-1,1]){sphere(body,.07,eye,side*.14,.3,.1);sphere(body,.036,pupil,side*.175,.3,.14,.35,1.5,.6);}
   sphere(body,.06,dark,0,.2,.14,1.2,.8,1);
+  // a horny parrot beak hooked down over the mouth, and old scars raked across the mantle: a kraken is a drowner, not a pet
+  const beak=mat('#1a1410',{roughness:.3});
+  cone(body,.04,.12,beak,0,.17,.2,5).rotation.x=Math.PI*.78;cone(body,.03,.08,beak,0,.12,.19,5).rotation.x=Math.PI*.2;
+  for(let i=0;i<3;i++){const sc=part(body,new THREE.BoxGeometry(.01,.16,.012),dark,.06-i*.04,.34+i*.015,-.1-i*.01);sc.rotation.set(-.45,0,.5);}
   const n=o.arms||8;
   for(let i=0;i<n;i++){const a=i/n*Math.PI*2,arm=new THREE.Group();arm.position.set(Math.sin(a)*.08,.18,Math.cos(a)*.08+.04);arm.rotation.y=a;body.add(arm);
    const pts=[];for(let k=0;k<=8;k++){const t=k/8,r=.02+t*.4,curl=t*t*2.2*(i%2?1:-1);pts.push([Math.sin(curl)*r*.4,.02-t*.17+Math.max(0,t-.75)*.5,r*Math.cos(curl*.4)]);}
@@ -2538,7 +2542,7 @@ function seaMonster(o){
 }
 const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{form:'fish',color:'#8a8a94',belly:'#c83a2a',fin:'#6a5a5a',length:.26,depth:.13,underbite:true,dorsal:1,scale:.8},
  shark:{form:'fish',color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c'},'giant eel':{form:'eel',color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040'},
- 'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff'},kraken:{form:'kraken',color:'#8a3a3a',belly:'#e0a8a0',eye:'#f0c040',scale:1.1},
+ 'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff'},kraken:{form:'kraken',color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
  'watcher in the water':{form:'kraken',color:'#4a5a52',belly:'#9aa89a',eye:'#b8ff90',arms:12,scale:1.2}};
 
 // In development the default shape is bright magenta so a missing model cannot hide.
