@@ -70,7 +70,9 @@ export function deathPose(style, u, dir = null) {
       const bulge = u < .2 ? smooth(u / .2) : 1 - smooth((u - .2) / .15);
       const flat = smooth((u - .2) / .4);
       p.sy = (1 + .25 * bulge) * (1 - .85 * flat);
-      p.sx = (1 - .1 * bulge) * (1 + .7 * flat);
+      // the puddle quivers as it settles, a few shrinking ripples, before it soaks away
+      const quiver = Math.sin((u - .4) * 55) * .05 * (1 - smooth((u - .4) / .3)) * smooth((u - .4) / .04);
+      p.sx = (1 - .1 * bulge) * (1 + .7 * flat) * (1 + (u > .4 ? quiver : 0));
       p.fade = 1 - smooth((u - .65) / .35);
       push(.08 * flat);
       break;

@@ -88,3 +88,12 @@ test('a troll rises through the real action layer, puffs dust once, and ends exa
   assert(a.g.scale.distanceTo(rest.scale) < 1e-9);
   if (a.head) assert(Math.abs(a.head.rotation.x - rest.head) < 1e-9);
 });
+
+test('a rising body cricks its neck the wrong way halfway up, then lolls back into place', () => {
+  for (const buried of [false, true]) {
+    const head = u => risePose(u, null, buried).head;
+    assert.ok(head(.62) > head(.5) + .15, 'head jerks round');
+    assert.ok(head(.62) > head(.8), 'and falls back');
+    assert.ok(Math.abs(head(1)) < 1e-9);
+  }
+});

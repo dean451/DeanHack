@@ -117,3 +117,12 @@ test('a dying monster loses its disposition ring at once, and restoreFade brings
   restoreFade(actor);
   assert.equal(ring.visible, true);
 });
+
+test('a splatted body quivers as it settles, and the ripples die away', () => {
+  const sx = u => deathPose('splat', u).sx;
+  let turns = 0, prev = sx(.42) - sx(.4);
+  for (let u = .43; u <= .7; u += .01) { const d = sx(u) - sx(u - .01); if (d * prev < 0) turns++; prev = d; }
+  assert.ok(turns >= 2, 'wobbles back and forth');
+  assert.equal(deathPose('splat', 1).sx, 1.7);
+  assert.ok(Math.abs(sx(.4) - deathPose('splat', .4).sx) < 1e-12);
+});
