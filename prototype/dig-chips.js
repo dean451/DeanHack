@@ -6,12 +6,12 @@
 // strikes throw more, and a pit or hole adds a low ring of dust. One Points cloud holds every
 // burst (capped), so the cost is a single draw.
 //
-// live.js calls message(text, x, z) with the hero's tile, update(dt) every frame and clear()
+// live.js calls message(text, x, z, face) with the hero's tile, update(dt) every frame and clear()
 // on a level change. Nothing here reveals anything the hero does not already know.
 
 import {clamp01, smooth, rng} from './fx-textures.js';
 
-export const MAX_BURSTS = 4, CHIPS = 14, PALL_MAX = 8, GRIT_MAX = 6;
+export const MAX_BURSTS = 4, CHIPS = 14, PALL_MAX = 8, GRIT_MAX = 6, WALL_MAX = 8;
 // How each message looks: chips thrown, how hard, how long (s) the burst lives and a dust ring.
 // `slump` is how many of the chips are not thrown at all: they are the last strike's rubble,
 // which lets go a beat after the blow and drops straight down, so the rock gives way in stages.
@@ -19,10 +19,10 @@ export const DIG_LOOKS = {
   blow: {chips: 6, speed: 1.3, life: .7, dust: 0, slump: 0},
   pit: {chips: 10, speed: 1.5, life: .95, dust: 1, slump: 0},
   hole: {chips: CHIPS, speed: 1.8, life: 1.2, dust: 1, slump: 5, pall: 6, pallLife: 2.4, grit: 4, gritLife: 3},
-  breach: {chips: CHIPS, speed: 2, life: 1.1, dust: 1, slump: 6, pall: PALL_MAX, pallLife: 2.8, grit: GRIT_MAX, gritLife: 3.4},
+  breach: {chips: CHIPS, speed: 2, life: 1.1, dust: 1, slump: 6, pall: PALL_MAX, pallLife: 2.8, grit: GRIT_MAX, gritLife: 3.4, wall: WALL_MAX, wallLife: 1.6},
 };
 // How long a burst lives: the chips' life, or the dust pall that hangs on after them.
-const lifeOf = look => Math.max(look.life, look.pallLife || 0, look.gritLife || 0);
+const lifeOf = look => Math.max(look.life, look.pallLife || 0, look.gritLife || 0, look.wallLife || 0);
 
 export function digMessage(text) {
   if (typeof text !== 'string') return null;
@@ -87,8 +87,26 @@ export function gritTrickle(kind, seed, i, t) {
     z: cz + Math.cos(f * 2.3 + i) * .02, size: .03, alpha: a, grey: .3 + .2 * r()};
 }
 
+// Wall flake i of a breach at age t (s), `face` being the hero's heading (radians, as
+// rotation.y: 0 looks down +z). The wall face in front of the hero does not just vanish: it
+// comes away from the top down in crumbling flakes that slip out of the rock, then slide down
+// the face with a sideways wobble and pile at its foot. Offsets are about the hero's feet.
+export function wallCrumble(kind, seed, i, t, face) {
+  const look = DIG_LOOKS[kind];
+  if (!look?.wall || !Number.isFinite(face) || !(t >= 0) || i >= look.wall || t >= look.wallLife) return null;
+  const r = rng(seed * 59 + i * 11 + 7);
+  // flake 0 sits highest and lets go first; each lower one waits a little longer
+  const row = i / look.wall, top = .95 - .6 * row, wait = .05 + .5 * row + .08 * r(), f = Math.max(0, t - wait);
+  const side = (r() - .5) * .7, out = .46 + .06 * r();
+  const fall = Math.min(1, f / (.35 + .25 * row)), y = Math.max(.04, top * (1 - fall * fall) + .04 * (1 - fall));
+  const along = side + Math.sin(f * 7 + i) * .03 * (1 - fall), sn = Math.sin(face), cs = Math.cos(face);
+  return {x: sn * (out - .1 * fall) + cs * along, y, z: cs * (out - .1 * fall) - sn * along,
+    size: .035 + .02 * r(), alpha: t < wait ? 0 : smooth((t - wait) / .08) * (1 - smooth((t / look.wallLife - .6) / .4)),
+    grey: .25 + .2 * r()};
+}
+
 export function createDigChips(THREE, parent) {
-  const N = MAX_BURSTS * (CHIPS + PALL_MAX + GRIT_MAX);
+  const N = MAX_BURSTS * (CHIPS + PALL_MAX + GRIT_MAX + WALL_MAX);
   const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -103,9 +121,9 @@ export function createDigChips(THREE, parent) {
   let count = 0;
 
   function drop(b) { if (b.ring) { parent.remove(b.ring); b.ring.material.dispose(); } }
-  function add(kind, x, z) {
+  function add(kind, x, z, face) {
     if (!DIG_LOOKS[kind] || !Number.isFinite(x) || !Number.isFinite(z)) return null;
-    const b = {kind, x, z, t: 0, seed: ++count, ring: null};
+    const b = {kind, x, z, face, t: 0, seed: ++count, ring: null};
     if (DIG_LOOKS[kind].dust) {
       b.ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({color: 0x9a8f80, transparent: true, opacity: 0,
         depthWrite: false, side: THREE.DoubleSide}));
@@ -116,7 +134,7 @@ export function createDigChips(THREE, parent) {
     if (bursts.length > MAX_BURSTS) drop(bursts.shift());
     return b;
   }
-  const message = (text, x, z) => { const k = digMessage(text); return k ? add(k, x, z) : null; };
+  const message = (text, x, z, face) => { const k = digMessage(text); return k ? add(k, x, z, face) : null; };
 
   function update(dt) {
     let n = 0;
@@ -145,6 +163,14 @@ export function createDigChips(THREE, parent) {
       }
       for (let i = 0; i < (look.grit || 0); i++) {
         const c = gritTrickle(b.kind, b.seed, i, b.t);
+        if (!c) continue;
+        pos[n * 3] = b.x + c.x; pos[n * 3 + 1] = c.y; pos[n * 3 + 2] = b.z + c.z;
+        const g = c.grey * c.alpha;
+        col[n * 3] = g * 1.05; col[n * 3 + 1] = g; col[n * 3 + 2] = g * .9;
+        n++;
+      }
+      for (let i = 0; i < (look.wall || 0); i++) {
+        const c = wallCrumble(b.kind, b.seed, i, b.t, b.face);
         if (!c) continue;
         pos[n * 3] = b.x + c.x; pos[n * 3 + 1] = c.y; pos[n * 3 + 2] = b.z + c.z;
         const g = c.grey * c.alpha;
