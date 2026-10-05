@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createPoisonCloud} from './poison-cloud.js';
-import {createGasRoil, gasState, GAS_HEAVE, GAS_CURL, GAS_DRIFT} from './poison-cloud-roil.js';
+import {createGasRoil, gasState, GAS_HEAVE, GAS_CURL, GAS_DRIFT, gasGround, GAS_LAVA_GLOW, GAS_RIPPLE} from './poison-cloud-roil.js';
 
 const snap = m => [...m.position.toArray(), m.rotation.y, ...m.scale.toArray()];
 
@@ -48,4 +48,39 @@ test('a cloud removed from the scene is put back to rest and dropped', () => {
   roil.update(4);
   assert.equal(roil.meshes.length, 0);
   c.children.forEach((m, i) => assert.deepEqual(snap(m), r[i]));
+});
+
+function onGround(ground, seed = 4) {
+  const scene = new THREE.Scene(), tile = new THREE.Group(), feature = new THREE.Group(), cloud = createPoisonCloud(seed);
+  tile.userData.ground = ground;feature.add(cloud);tile.add(feature);scene.add(tile);
+  return {scene, cloud, core: cloud.children.find(m => m.userData.part === 'core'), wisps: cloud.children.find(m => m.userData.part === 'wisps')};
+}
+
+test('gasGround stays in bounds and only lava glows, only water films', () => {
+  for (let t = 0; t < 60; t += 1 / 30) {
+    const lava = gasGround('lava', 'core', t, 2.1), water = gasGround('water', 'wisps', t, 2.1);
+    assert(lava.glow >= 0 && lava.glow <= 1 && Math.abs(water.ripple - 1) <= GAS_RIPPLE + 1e-9);
+  }
+  assert.deepEqual(gasGround('floor', 'core', 5), {glow: 0, squash: 1, spread: 1, ripple: 1});
+  assert.equal(gasGround('lava', 'wisps', 5).glow, 0);
+  assert(gasGround('water', 'core', 5).squash < 1 && gasGround('water', 'core', 5).spread > 1);
+});
+
+test('gas over lava glows orange and over water clings low, and both restore exactly', () => {
+  const lava = onGround('lava'), water = onGround('water'), plain = onGround('floor');
+  const mats = [lava.core, water.core, water.wisps, plain.core].map(m => [m.material.emissive.getHex(), m.material.emissiveIntensity, m.material.opacity]);
+  const restScale = water.core.scale.y;
+  for (const w of [lava, water, plain]) {
+    const roil = createGasRoil(w.scene);
+    roil.update(1.3);
+    w.roil = roil;
+  }
+  assert(lava.core.material.emissive.r > lava.core.material.emissive.g, 'lava lights the core orange');
+  assert(lava.core.material.emissiveIntensity > mats[0][1] && lava.core.material.emissiveIntensity <= mats[0][1] + GAS_LAVA_GLOW);
+  assert(water.core.scale.y < restScale * .75, 'over water the bank is squashed low');
+  assert.equal(plain.core.material.emissive.getHex(), mats[3][0], 'plain floor leaves the glow alone');
+  for (const w of [lava, water, plain]) w.roil.restore();
+  [lava.core, water.core, water.wisps, plain.core].forEach((m, i) =>
+    assert.deepEqual([m.material.emissive.getHex(), m.material.emissiveIntensity, m.material.opacity], mats[i]));
+  assert.equal(water.core.scale.y, restScale);
 });
