@@ -1,0 +1,59 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {holeMessage, sinkOffset, arriveOffset, createDigDrop, HANG, SINK, SINK_DEPTH, GIVE_UP, RISE, ARRIVE_HEIGHT, ARRIVE_GRAVITY, ARRIVE_TIME} from './dig-drop.js';
+
+test('only the hole message starts a drop', () => {
+  assert.ok(holeMessage('You dig a hole through the floor.'));
+  for (const t of ['You dig a pit in the floor.', 'You hit the rock with all your might.', null, 4]) assert.ok(!holeMessage(t), String(t));
+});
+
+test('the hero hangs on the edge, then sinks faster and faster, bounded', () => {
+  assert.equal(sinkOffset(0), 0);
+  assert.equal(sinkOffset(HANG), 0);
+  const a = sinkOffset(HANG + SINK * .5), b = sinkOffset(HANG + SINK);
+  assert.ok(a < 0 && b <= a && Math.abs(b - a) > Math.abs(a), 'accelerating');
+  for (let t = 0; t < 6; t += .01) { const v = sinkOffset(t); assert.ok(Number.isFinite(v) && v <= 0 && v >= -SINK_DEPTH - 1e-9, `t=${t}`); }
+  assert.equal(sinkOffset(GIVE_UP + RISE), 0, 'hauled back up if no level comes');
+  assert.equal(sinkOffset(NaN), 0);
+});
+
+test('arriving: a fall from above, one low dead bounce, then exactly at rest', () => {
+  assert.equal(arriveOffset(0), ARRIVE_HEIGHT);
+  const fall = Math.sqrt(2 * ARRIVE_HEIGHT / ARRIVE_GRAVITY);
+  let peak = 0;
+  for (let t = 0; t <= ARRIVE_TIME + .2; t += .005) {
+    const v = arriveOffset(t);
+    assert.ok(Number.isFinite(v) && v >= -1e-9 && v <= ARRIVE_HEIGHT + 1e-9, `t=${t} ${v}`);
+    if (t > fall + .01) peak = Math.max(peak, v);
+  }
+  assert.ok(peak > .03 && peak < .3, `a small bounce, peak ${peak}`);
+  assert.equal(arriveOffset(ARRIVE_TIME + .5), 0);
+  assert.equal(arriveOffset(-1), 0);
+});
+
+test('the controller sinks, lands on arrival and finishes at exactly zero', () => {
+  const d = createDigDrop();
+  assert.equal(d.update(.016), 0);
+  assert.ok(!d.arrive(), 'no drop, no fall-in');
+  assert.ok(d.message('You dig a hole through the floor.'));
+  let low = 0;
+  for (let t = 0; t < HANG + SINK + .1; t += 1 / 60) low = Math.min(low, d.update(1 / 60));
+  assert.ok(low < -.5 && d.active);
+  assert.ok(d.arrive());
+  assert.ok(d.update(1 / 60) > ARRIVE_HEIGHT - .1, 'starts high');
+  for (let t = 0; t < ARRIVE_TIME + .2; t += 1 / 60) d.update(1 / 60);
+  assert.ok(!d.active);
+  assert.equal(d.update(1 / 60), 0);
+});
+
+test('with no new level the controller gives up and clear cancels at once', () => {
+  const d = createDigDrop();
+  d.message('You dig a hole through the floor.');
+  for (let t = 0; t < GIVE_UP + RISE + .3; t += 1 / 60) d.update(1 / 60);
+  assert.ok(!d.active);
+  d.message('You dig a hole through the floor.');
+  d.update(1);
+  d.clear();
+  assert.equal(d.update(1 / 60), 0);
+  assert.ok(!d.arrive());
+});
