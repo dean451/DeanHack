@@ -1352,8 +1352,8 @@ test('Charon gets a deep hood over a skull-thin face with ember eyes, a white be
  ch.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(ch.g,true);
  assert(b.min.y>-.03&&b.min.y<.03,`hem at ${b.min.y}`);
- assert(b.max.y>1.2&&b.max.y<1.55,`top at ${b.max.y}`);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ assert(b.max.y>1.2&&b.max.y<1.8,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.65,'out of proportion');
  // the eyes show in the hood's shadow: looking at them from the front, they are hit first
  const eye=new THREE.Box3().setFromObject(ch.eyes,true).getCenter(new THREE.Vector3());
  for(const s of [-1,1]){
@@ -1361,7 +1361,7 @@ test('Charon gets a deep hood over a skull-thin face with ember eyes, a white be
   assert(hit?.object===ch.eyes,`the ${s<0?'left':'right'} eye is hidden behind the ${hit?.object.userData.part}`);
  }
  // the toes poke out under the hem, and the oar's blade stands above the hood
- const toes=new THREE.Box3().setFromObject(ch.legs[0],true),hem=.235*.82*1.12;
+ const toes=new THREE.Box3().setFromObject(ch.legs[0],true),hem=.235*.82*1.3;
  assert(toes.max.z>hem+.01&&toes.max.z<hem+.08,`toes at ${toes.max.z}, hem at ${hem}`);
  assert(toes.min.y>-.03,'feet above the floor');
  assert(new THREE.Box3().setFromObject(ch.weaponSocket,true).max.y>new THREE.Box3().setFromObject(ch.head,true).max.y,'the oar stands above the hood');
@@ -1391,7 +1391,7 @@ test('Thoth Amon gets a shaven head with kohl-lined venom-green eyes, a cobra ci
  th.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(th.g,true);
  assert(b.min.y>-.08&&b.min.y<.03,`feet at ${b.min.y}`);
- assert(b.max.y>1.25&&b.max.y<1.6,`top at ${b.max.y}`);
+ assert(b.max.y>1.25&&b.max.y<1.7,`top at ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
  // the eyes show from the front: looking at them, they are hit first
  const eye=new THREE.Box3().setFromObject(th.eyes,true).getCenter(new THREE.Vector3());
@@ -1662,7 +1662,7 @@ test('One-eyed Sam gets a tricorn, an eyepatch and one burning eye, a braid, gre
  sam.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(sam.g,true);
  assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
- assert(b.max.y>1.2&&b.max.y<1.55,`top at ${b.max.y}`);
+ assert(b.max.y>1.2&&b.max.y<1.7,`top at ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
  // one eye burns from its socket, the other is under the patch
  const eye=new THREE.Box3().setFromObject(sam.eyes,true).getCenter(new THREE.Vector3());

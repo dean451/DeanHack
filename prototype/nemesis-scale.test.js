@@ -10,3 +10,8 @@ test('Master Kaen and the Master Assassin loom over a plain human', () => {
   assert(size('Master Kaen').y > human * 1.15);
   assert(size('Master Assassin').y > human * 1.05);
 });
+
+test('Warden Arianna, Anaraxis the Black and Schliemann loom over a plain human', () => {
+  const human = size('human').y;
+  for (const name of ['Warden Arianna', 'Anaraxis the Black', 'Schliemann']) assert(size(name).y > human * 1.1, name);
+});

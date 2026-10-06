@@ -255,7 +255,7 @@ function geometry(){
 function mesh(parent,geo,name,m){const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=m===S.hide;o.userData.part=name;parent.add(o);return o;}
 
 export function createCharon(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.12);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.3);
  mesh(body,S.body,'body',S.hide);
  const head=new THREE.Group();head.position.set(0,NECK_Y,.05);head.rotation.x=.16;body.add(head);// thrust forward off the hump, looking down
  mesh(head,S.head,'head',S.hide);const eyes=mesh(head,S.eyes,'eyes',S.glow);
