@@ -2216,7 +2216,7 @@ function elemental(o){
  if(core)g.userData.core=core;
  return trimDraws(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),{element:k,swirl},crown?{crown}:{},core?{core}:{}));
 }
-const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff'},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0'},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.1},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff'},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff'}};
+const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff',scale:1.3},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0',scale:1.3},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.5},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff',scale:1.3},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff',scale:1.2}};
 
 // Angels: a robed figure hovering on feathered wings, with a halo and a sword. The wings
 // are pivots at the shoulder blades, so the default wing beat in live.js flexes them.
