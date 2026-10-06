@@ -85,8 +85,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 
 **UI and controls**
 
-- **Message history:** Ctrl-P must work in some capacity so the player can see messages that have scrolled by.
-- **Naming prompt:** when asked to name a scroll or potion, show the last message so the player can see what they are naming.
 - **Search tooltip:** next to the `s` (search) tooltip, also tell the player about `v` (explore).
 - **Object detection:** the potion of object detection should show objects across the whole level, but it only highlights objects the hero can already see. Find out whether the bridge sends the detected objects and whether the client culls or dims cells beyond what is in view, then make detected objects appear and stay shown across the level. If the fix needs `bridge.c` or `server.js`, say so in the PR body. Check monster detection for the same problem.
 - **Zoom and map:** allow zooming in further, keep the zoom when changing dungeon level (do not reset it), and add a small minimap. Shift-`>` points toward stairs down and it is hard to tell which of several staircases is being pointed at; the minimap should help.
@@ -95,7 +93,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Inventory panel:** show the pack as the actual item models in a grid, keeping the letter keys, with hover details and enchantment and blessed/cursed hints once known.
 - **Targeting previews:** when zapping, throwing or firing, show the ray or trajectory, its range, and what it would hit. The ray code (`rays.js`) already exists, so connect it to the direction prompt.
 - **Farlook on hover:** pointing at a monster or item shows its name, whether it is peaceful or hostile, asleep, and anything known about it, as the 3D version of `;`.
-- **Message log colours:** colour-code messages (damage, magic, pickups, warnings) and emphasise the important ones. It pairs with the Ctrl-P message history item.
 - **Level title cards:** a brief, silent visual card (a quiet text fade) when the hero first enters a special level such as the Oracle, Bigroom, Medusa, the Castle or the Valley.
 
 ### Magic items

@@ -82,3 +82,12 @@ dialog button{font:600 12px 'Cinzel',Georgia,serif;letter-spacing:1.5px}
 .engine-ext-list li{font-size:16px;font-family:'IM Fell English',Georgia,serif}
 .engine-ext-list li b{font:600 13px 'Cinzel',Georgia,serif;letter-spacing:1px}
 .engine-menu-groups{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.engine-menu-groups button{margin:0;font:13px/1.2 Inter,sans-serif;padding:5px 9px}.engine-menu-groups kbd{margin-left:4px}
+
+.msg-damage::before,.msg-magic::before,.msg-pickup::before,.msg-warning::before{display:inline-block;width:1.1em;margin-right:.15em;font-style:normal;text-align:center}
+.msg-damage::before{content:'\2716'}.msg-magic::before{content:'\2726'}.msg-pickup::before{content:'+'}.msg-warning::before{content:'!';font-weight:700}
+.msg-damage{color:#d9a095}.msg-magic{color:#aebcf0}.msg-pickup{color:#c7d3a0}.msg-warning{color:#f0c27a;font-weight:600}
+#message-history{position:fixed;left:24px;bottom:24px;z-index:30;width:min(560px,calc(100vw - 48px));max-height:60vh;overflow-y:auto;padding:14px 18px;background:rgba(8,16,22,.92);border:1px solid #3a4b57;border-radius:10px;font:italic 17px/1.35 'Cormorant Garamond',Georgia,serif;color:#cfd6da;scrollbar-width:thin}
+#message-history[hidden]{display:none}
+#message-history>small{display:block;margin-bottom:8px;font:11px Inter,system-ui,sans-serif;letter-spacing:.12em;color:#8e9fac}
+#message-history .msg{margin-top:5px}
+.engine-recent{margin:6px 0 10px;font:italic 16px/1.35 'Cormorant Garamond',Georgia,serif;color:#9fb0bb}
