@@ -990,7 +990,7 @@ const UNICORNS={
  'white unicorn':{...UNICORN_BASE,scale:1.05,coat:'#ece9e2',hair:'#f8f6f0',feather:'#fbfaf6',hoof:'#c8a860',horn:'#f6f0de'},
  'gray unicorn':{...UNICORN_BASE,scale:1.05,coat:'#8f8f8c',points:'#6a6a68',hair:'#d4d4d0',feather:'#c8c8c4',hoof:'#9a9ca0'},
  'black unicorn':{...UNICORN_BASE,scale:1.05,coat:'#262428',points:'#1b1a1d',hair:'#0f0e11',feather:'#18171a',hoof:'#2e2c30',horn:'#e2d6b8'},
- 'ki-rin':{...UNICORN_BASE,scale:1.12,coat:'#c99a36',points:'#a87a26',hair:'#d8602a',feather:'#e07a34',hoof:'#e0c060',horn:'#f4dc90',stock:1},
+ 'ki-rin':{...UNICORN_BASE,scale:1.2,coat:'#c99a36',points:'#a87a26',hair:'#d8602a',feather:'#e07a34',hoof:'#e0c060',horn:'#f4dc90',stock:1},
 };
 // Bakes static pieces into one mesh per (parent, material), so a big beast costs a
 // handful of draw calls instead of dozens. Pieces are posed with a matrix before merging.
