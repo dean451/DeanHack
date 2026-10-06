@@ -475,7 +475,7 @@ function cockatrice(o){
  for(let i=0;i<3;i++){const plume=cone(tail,.025,.1,comb,0,-.06-i*.02,pz-.03-i*.05,4);plume.rotation.x=1.7;}
  return {...actor(g,body,legs,tail,[],'cockatrice'),head,wingParts};
 }
-const COCKATRICES={chickatrice:{skin:'#8a6a3a',comb:'#a8382a',beak:'#d99a3a',scale:.65},cockatrice:{skin:'#c9a83a',comb:'#c8262a',beak:'#e0b23a',scale:.9},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9}};
+const COCKATRICES={chickatrice:{skin:'#8a6a3a',comb:'#a8382a',beak:'#d99a3a',scale:.65},cockatrice:{skin:'#c9a83a',comb:'#c8262a',beak:'#e0b23a',scale:1.1},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9}};
 
 // Other F: a stationary mound. Lichens are in lichen.js, molds in mold.js, shriekers and violet fungi in mushroom.js.
 function fungus(o){
@@ -2652,7 +2652,7 @@ export function createCreature(cell={}){
  if(name==='shrieker'||name==='violet fungus')return createMushroom(name);
  if(name==='cave spider'||name==='giant spider')return createSpider(name);
  if(isScorpion(name))return createScorpion(name);
- if(name==='gelatinous cube')return cube({color:color||'#8ad0c0'});
+ if(name==='gelatinous cube'){const c=cube({color:color||'#8ad0c0'});c.g.scale.setScalar(1.3);return c;}
  if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name),scale:name==='black pudding'?1.5:1});
  if(name==='centipede')return centipede({color:'#c9a03a'});
  if(name==='raven')return createRaven();
