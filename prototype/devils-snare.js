@@ -211,7 +211,7 @@ function shared(){
 export const isDevilsSnare=name=>name==="devil's snare";
 
 export function createDevilsSnare(){
- const s=shared(),g=new THREE.Group(),body=new THREE.Group();g.name="Devil's Snare";g.add(body);
+ const s=shared(),g=new THREE.Group(),body=new THREE.Group();g.name="Devil's Snare";g.scale.setScalar(1.3);g.add(body);
  let vines;
  for(const [geo,m,part] of [[s.plant,s.plantMat,'vines'],[s.accent,s.accentMat,'thorns']]){
   const mesh=new THREE.Mesh(geo,m);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.part=part;body.add(mesh);

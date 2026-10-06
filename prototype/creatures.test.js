@@ -709,8 +709,8 @@ test("Devil's Snare is a nest of thorned, hook-tipped vines instead of the xorn"
  for(const p of parts){const a=p.geometry.attributes;for(const key of ['position','normal','color'])for(const v of a[key].array)assert(Number.isFinite(v),`${p.userData.part} ${key}`);for(const v of a.color.array)assert(v>=0&&v<=1,'colour');}
  snare.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(snare.g);
  assert(b.min.y>-.001&&b.min.y<.01,`sits on the floor at ${b.min.y}`);
- assert(b.max.y>.6&&b.max.y<1,`vines reach ${b.max.y}`);
- const reach=Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z);assert(reach>.3&&reach<.5,`reach ${reach}`);
+ assert(b.max.y>.6&&b.max.y<1.4,`vines reach ${b.max.y}`);
+ const reach=Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z);assert(reach>.3&&reach<.7,`reach ${reach}`);
  assert(parts[1].material.roughness<parts[0].material.roughness,'thorns and sap are glossier than the vines');
  const again=meshes(createCreature({name:"Devil's Snare",symbol:88}));
  parts.forEach((p,i)=>{assert.equal(p.geometry,again[i].geometry);assert.equal(p.material,again[i].material);});
