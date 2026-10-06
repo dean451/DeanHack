@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {RING_DASHES,ringArcs} from './ring-shape.js';
 
 // Readability staging for creatures at gameplay zoom: an ink outline of constant screen
 // width, a disposition ring on the floor, and a minimum on-screen size.
@@ -10,15 +11,19 @@ const outlineMaterial=new THREE.ShaderMaterial({
  side:THREE.BackSide,
 });
 
-function ringMaterial(color){
+function ringMaterial(color,dashes){
  const c=document.createElement('canvas');c.width=c.height=128;const ctx=c.getContext('2d');
- const g=ctx.createRadialGradient(64,64,34,64,64,62);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.55,'rgba(255,255,255,.95)');g.addColorStop(.75,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');
- ctx.fillStyle=g;ctx.fillRect(0,0,128,128);
+ // a stroked ring (solid or dashed) with a soft halo, so the shape survives without colour
+ ctx.lineCap='butt';
+ for(const [w,a] of [[14,.35],[7,.95]]){
+  ctx.strokeStyle=`rgba(255,255,255,${a})`;ctx.lineWidth=w;
+  for(const [s,e] of ringArcs(dashes)){ctx.beginPath();ctx.arc(64,64,48,s,e);ctx.stroke();}
+ }
  const texture=new THREE.CanvasTexture(c);
  return new THREE.MeshBasicMaterial({map:texture,color,transparent:true,depthWrite:false,toneMapped:false,opacity:.85});
 }
 // Hostile monsters get no ring: most monsters are enemies and the ring states the obvious.
-const RINGS={pet:ringMaterial(0x4fe08a),peaceful:ringMaterial(0xe8c860)};
+const RINGS={pet:ringMaterial(0x4fe08a,RING_DASHES.pet),peaceful:ringMaterial(0xe8c860,RING_DASHES.peaceful)};
 const ringGeo=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
 
 const MIN_SIZE=.72,MAX_FOOTPRINT=.98,MAX_SCALE=1.8;
