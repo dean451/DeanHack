@@ -26,10 +26,15 @@ export function hoverOffset(t) {
 
 export const holeMessage = text => typeof text === 'string' && /^You dig a hole through the /.test(text);
 
+// A trap door gives no warning: the floor is simply gone (the message text is from NetHack
+// source and unconfirmed against a live engine). The hero only lurches a beat before dropping.
+export const TRAPDOOR_HANG = .12;
+export const trapdoorMessage = text => typeof text === 'string' && /^(?:A trap door opens up under you|There's a gaping hole under you)!/.test(text);
+
 // How far under the floor the hero is t seconds after the hole breaks.
-export function sinkOffset(t) {
-  if (!(t > HANG)) return 0;
-  const k = clamp01((t - HANG) / SINK);
+export function sinkOffset(t, hang = HANG) {
+  if (!(t > hang)) return 0;
+  const k = clamp01((t - hang) / SINK);
   const down = -SINK_DEPTH * k * k;
   if (t < GIVE_UP) return down;
   const r = clamp01((t - GIVE_UP) / RISE);
@@ -48,12 +53,13 @@ export const ARRIVE_TIME = Math.sqrt(2 * ARRIVE_HEIGHT / ARRIVE_GRAVITY) +
   2 * Math.sqrt(2 * ARRIVE_GRAVITY * ARRIVE_HEIGHT) * BOUNCE / ARRIVE_GRAVITY;
 
 export function createDigDrop() {
-  let mode = null, age = 0;
+  let mode = null, age = 0, hang = HANG;
   return {
     // `airborne` (see airborneStatus): the hero floats over the hole rather than dropping through it.
     message(text, airborne = false) {
-      if (!holeMessage(text)) return false;
-      mode = airborne ? 'hover' : 'sink'; age = 0; return true;
+      const trapdoor = trapdoorMessage(text);
+      if (!trapdoor && !holeMessage(text)) return false;
+      mode = airborne ? 'hover' : 'sink'; age = 0; hang = trapdoor ? TRAPDOOR_HANG : HANG; return true;
     },
     // Call when a new level arrives. True (and the fall-in begins) only if the hero was dropping.
     arrive() {
@@ -69,12 +75,12 @@ export function createDigDrop() {
       }
       if (mode === 'sink') {
         if (age >= GIVE_UP + RISE) { mode = null; return 0; }
-        return sinkOffset(age);
+        return sinkOffset(age, hang);
       }
       if (age >= ARRIVE_TIME) { mode = null; return 0; }
       return arriveOffset(age);
     },
-    clear() { mode = null; age = 0; },
+    clear() { mode = null; age = 0; hang = HANG; },
     get active() { return mode !== null; },
   };
 }

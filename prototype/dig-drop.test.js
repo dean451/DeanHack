@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {holeMessage, sinkOffset, arriveOffset, createDigDrop, HANG, SINK, SINK_DEPTH, GIVE_UP, RISE, ARRIVE_HEIGHT, ARRIVE_GRAVITY, ARRIVE_TIME, airborneStatus, hoverOffset, HOVER_TIME, HOVER_LIFT} from './dig-drop.js';
+import {holeMessage, sinkOffset, arriveOffset, createDigDrop, HANG, SINK, SINK_DEPTH, GIVE_UP, RISE, ARRIVE_HEIGHT, ARRIVE_GRAVITY, ARRIVE_TIME, airborneStatus, hoverOffset, trapdoorMessage, TRAPDOOR_HANG, HOVER_TIME, HOVER_LIFT} from './dig-drop.js';
 
 test('only the hole message starts a drop', () => {
   assert.ok(holeMessage('You dig a hole through the floor.'));
@@ -74,4 +74,18 @@ test('a levitating or flying hero hovers over the hole instead of dropping', () 
   assert.equal(hoverOffset(0), 0);
   assert.equal(hoverOffset(HOVER_TIME), 0);
   assert.ok(!d.arrive(), 'no fall-in after hovering');
+});
+
+test('a trap door drops the hero almost at once, and returns exactly to rest', () => {
+  assert.ok(trapdoorMessage('A trap door opens up under you!') && trapdoorMessage("There's a gaping hole under you!"));
+  for (const t of ['You dig a hole through the floor.', 'You escape a trap door.', null]) assert.ok(!trapdoorMessage(t), String(t));
+  assert.ok(sinkOffset(TRAPDOOR_HANG + .1, TRAPDOOR_HANG) < sinkOffset(TRAPDOOR_HANG + .1), 'earlier than a dug hole');
+  const d = createDigDrop();
+  assert.ok(d.message('A trap door opens up under you!'));
+  assert.equal(d.update(TRAPDOOR_HANG * .5), 0);
+  let low = 0;
+  for (let i = 0; i < 80; i++) { const v = d.update(.05); assert.ok(v <= 0 && v >= -SINK_DEPTH - 1e-9); low = Math.min(low, v); }
+  assert.ok(low < -.5);
+  assert.equal(d.update(.05), 0); assert.ok(!d.active);
+  assert.ok(d.message('You dig a hole through the floor.') && d.update(TRAPDOOR_HANG + .1) === 0, 'a dug hole still hangs');
 });
