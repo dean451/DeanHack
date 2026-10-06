@@ -172,7 +172,7 @@ function geometry(){
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=false;m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
 export function createShade(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.25);
  mesh(body,S.body,S.shadow,'body');mesh(body,S.bones,S.bone,'bones');
  const head=new THREE.Group();head.position.set(0,.94,.13);head.rotation.x=.2;body.add(head);
  mesh(head,S.cowl,S.shadow,'cowl');mesh(head,S.skull,S.bone,'skull');mesh(head,S.eyes,S.eye,'eyes');
