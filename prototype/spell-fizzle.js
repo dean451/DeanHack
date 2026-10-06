@@ -33,7 +33,9 @@ export function sparkPose(i, t) {
   if (s <= 0 || t >= FIZZLE.total) return {x: 0, y: 0, z: 0, alpha: 0};
   const u = s / (FIZZLE.total - .38), a = i * 2.1, r = .1 + .3 * u * (.7 + .1 * (i % 4));
   const flick = .6 + .4 * Math.sin(s * 60 + i * 3);
-  return {x: Math.cos(a) * r, y: .15 + .5 * 4 * u * (1 - u) * (.6 + .1 * (i % 3)) * (1 - .6 * u), z: Math.sin(a) * r, alpha: Math.max(0, .85 * (1 - u) * flick)};
+  // The last spark has slumped dead, then twitches up once more and drops again.
+  const twitch = i === FIZZLE.sparks - 1 && u > .72 && u < .92 ? .07 * Math.sin((u - .72) / .2 * Math.PI) : 0;
+  return {x: Math.cos(a) * r, y: .15 + .5 * 4 * u * (1 - u) * (.6 + .1 * (i % 3)) * (1 - .6 * u) + twitch, z: Math.sin(a) * r, alpha: Math.max(0, .85 * (1 - u) * flick)};
 }
 
 export function createSpellFizzle(THREE, parent) {

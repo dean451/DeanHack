@@ -54,3 +54,12 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('the last mote stalls mid-air, trembling, while the rest fall', () => {
+  const stray = MAGIC.grit - 1, y = (i, t) => gritPose(i, t).y;
+  assert.ok(Math.abs(y(stray, .62 * MAGIC.total) - y(stray, .4 * MAGIC.total)) < .05 && y(stray, .5 * MAGIC.total) > .4, 'hangs');
+  assert.ok(y(0, .9 * MAGIC.total) < .5 * y(0, .5 * MAGIC.total) && y(stray, .9 * MAGIC.total) > y(0, .9 * MAGIC.total) + .1, 'the others have fallen first');
+  let xs = new Set();
+  for (let t = .45; t < .6; t += .003) xs.add(gritPose(stray, t).x.toFixed(4));
+  assert.ok(xs.size > 5, 'it trembles');
+});

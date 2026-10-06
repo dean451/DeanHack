@@ -20,11 +20,15 @@ export function ringPose(i, t) {
   return {scale: .1 + .9 * (1 - (1 - u) ** 3) * (1 - .12 * i), y: .05 + .1 * u, alpha: (.85 - .2 * i) * (1 - u) * clamp01(s / .02)};
 }
 
-// Grit i: thrown up on the first slam, hangs, falls back to the floor.
+// Grit i: thrown up on the first slam, hangs, falls back to the floor. The last mote is the odd
+// one out: it stalls on the way up and hangs there, trembling, as if it were listening, before
+// it drops with the rest.
 export function gritPose(i, t) {
   if (t <= 0 || t >= MAGIC.total) return {x: 0, y: 0, z: 0, alpha: 0};
   const u = t / MAGIC.total, a = i * 2.4, r = .15 + .35 * (1 - (1 - u) ** 2) * (.6 + .1 * (i % 4));
-  return {x: Math.cos(a) * r, y: Math.max(0, 1.1 * (.5 + .08 * (i % 3)) * 4 * u * (1 - u)), z: Math.sin(a) * r, alpha: .8 * (1 - u) * clamp01(t / .03)};
+  const stray = i === MAGIC.grit - 1, w = !stray ? u : u < .4 ? u * .75 : u < .62 ? .3 + (u - .4) * .1 : .322 + (u - .62) * (.678 / .38);
+  const shake = stray && u > .4 && u < .62 ? .012 * Math.sin(t * 90) : 0;
+  return {x: Math.cos(a) * r + shake, y: Math.max(0, 1.1 * (.5 + .08 * (i % 3)) * 4 * w * (1 - w)), z: Math.sin(a) * r, alpha: .8 * (1 - u) * clamp01(t / .03)};
 }
 
 export function createMagicTrap(THREE, parent) {
