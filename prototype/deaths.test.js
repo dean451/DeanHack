@@ -71,6 +71,14 @@ test('a crumbling corpse lets its hand loll and its tail slump after the arm', (
   for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).wrist) < 1 && Math.abs(p(u).tail) < 1);
 });
 
+test('a toppled body gives one last dead twitch of the arm once it has landed, then rests', () => {
+  const p = u => deathPose('topple', u);
+  assert.ok(Math.abs(p(0).arm) < 1e-9 && Math.abs(p(.7).arm) < 1e-9);
+  assert.ok(Math.max(...Array.from({length: 40}, (_, i) => Math.abs(p(.8 + i * .005).arm))) > .05, 'it twitches');
+  assert.ok(Math.abs(p(1).arm) < 1e-9, 'and ends still');
+  for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).arm) <= .25 + 1e-9);
+});
+
 test('every style starts at rest, stays finite and bounded, and ends held', () => {
   for (const style of DEATH_STYLES) {
     const p0 = deathPose(style, 0, [1, 0]);

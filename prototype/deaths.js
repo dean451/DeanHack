@@ -158,6 +158,8 @@ export function deathPose(style, u, dir = null) {
       p.dy = -.12 * f;
       p.head = -.4 * f;
       p.scale = 1 - .12 * f;
+      // A last dead twitch of the limb, after it has landed, then still.
+      p.arm = .25 * Math.sin(Math.PI * clamp01((u - .8) / .15)) * Math.sin((u - .8) * 90);
     }
   }
   return p;
