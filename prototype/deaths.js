@@ -65,6 +65,8 @@ export function deathPose(style, u, dir = null) {
       p.sy = 1 - .72 * sag;
       p.sx = 1 + .18 * sag;
       p.arm = .6 * smooth((u - .35) / .3);
+      // The knees go before the rest of it notices: the leg gives in a short jerk early on.
+      p.leg = .5 * smooth((u - .15) / .2);
       p.fade = 1 - smooth((u - .6) / .4);
       push(.04 * sag);
       break;
@@ -86,6 +88,9 @@ export function deathPose(style, u, dir = null) {
       // after it, as if the hand had already stopped being a part of it.
       p.arm = .95 * smooth((u - .08) / .22) + .12 * Math.sin(u * 40) * smooth((u - .3) / .1) * (1 - smooth((u - .6) / .2));
       p.wrist = .8 * smooth((u - .18) / .25);
+      // Whatever it held slips: the weapon socket tips over with a late catch, a half-grip that
+      // fails, before the frame has collapsed around it.
+      p.socket = .9 * smooth((u - .2) / .3) - .12 * Math.sin(Math.PI * clamp01((u - .32) / .1));
       // Then the lower frame gives way piece by piece: the leg buckles with a jerk before the
       // robe's hem (tail) slumps after it, each coming apart on its own beat.
       p.leg = .7 * smooth((u - .22) / .2) + .06 * Math.sin(u * 60) * smooth((u - .4) / .1) * (1 - smooth((u - .6) / .2));
