@@ -9,7 +9,7 @@ const meshes = g => { const list = []; g.traverse(o => { if (o.isMesh) list.push
 const bounds = g => { g.updateMatrixWorld(true); return new THREE.Box3().setFromObject(g); };
 
 test('every wand appearance builds a finite wand of at most three meshes, held and on the floor', () => {
-  assert.equal(WAND_APPEARANCES.length, 43);
+  assert.equal(WAND_APPEARANCES.length, 46);
   for (const look of [...WAND_APPEARANCES, null, 'unknown']) for (const floor of [false, true]) {
     const t0 = performance.now(), wand = createWand(look, {floor}), ms = performance.now() - t0, parts = meshes(wand);
     const name = `${look} ${floor ? 'floor' : 'held'}`;
@@ -84,4 +84,14 @@ test('titanium, electrum, plastic and bone wands each look like their material',
   assert(shaft('plastic').metalness === 0 && shaft('plastic').roughness < .4 && shaft('plastic').color.r < .1);
   assert(shaft('bone').metalness === 0 && shaft('bone').color.r > .6);
   assert(wandAppearance('a bone wand') === 'bone' && wandAppearance('2 plastic wands') === 'plastic');
+});
+
+test('nickel, mithril and orichalcum wands are metals of their own', () => {
+  const shaft = look => meshes(createWand(look)).find(m => m.userData.part === 'shaft').material;
+  const hexes = ['nickel', 'mithril', 'orichalcum', 'iron', 'steel', 'copper'].map(l => shaft(l).color.getHex());
+  assert.equal(new Set(hexes).size, hexes.length, 'no shared shaft colour');
+  for (const l of ['nickel', 'mithril', 'orichalcum']) assert(shaft(l).metalness > .75, l);
+  assert(shaft('mithril').roughness < .2 && shaft('mithril').color.b > shaft('mithril').color.r, 'bright cold mithril');
+  assert(shaft('orichalcum').color.r > shaft('orichalcum').color.b + .15, 'red-gold orichalcum');
+  assert(wandAppearance('a mithril wand') === 'mithril' && wandAppearance('3 nickel wands') === 'nickel');
 });

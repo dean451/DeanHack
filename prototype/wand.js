@@ -18,7 +18,8 @@ const METALS = {tin: [0xb2b7b5, .7, .42], brass: [0xc39a48, .85, .3], copper: [0
   zinc: [0x9ca6aa, .7, .46], aluminum: [0xc8ccd0, .8, .3], uranium: [0x6d7a58, .6, .5],
   iron: [0x55595e, .75, .55], steel: [0x98a3aa, .9, .24], bronze: [0x9a7738, .85, .36],
   rusty: [0x7b3f24, .35, .88], chrome: [0xeef1f3, 1, .06],
-  titanium: [0x80878d, .85, .5], electrum: [0xd9c88e, .92, .2]};
+  titanium: [0x80878d, .85, .5], electrum: [0xd9c88e, .92, .2],
+  nickel: [0x9a9a90, .8, .4], mithril: [0xa9bccb, .97, .12], orichalcum: [0xb5694a, .9, .28]};
 // Shape-only appearances are iron in objects.c (jeweled is gemstone, forked is wood).
 const SHAPES = new Set(['hexagonal', 'octagonal', 'short', 'long', 'curved', 'runed', 'spiked', 'forked', 'jeweled']);
 const STONES = {marble: 0xe6e2da, ceramic: 0xd8c3a0, porcelain: 0xf3f2ee, black: 0x151515};
@@ -53,8 +54,9 @@ function wandLook(look) {
   } else if (look in METALS) {
     const [c, m, r] = METALS[look];
     L.shaft = std(c, m, r, look === 'uranium' ? {emissive: 0x3c6a1a, emissiveIntensity: .35} : {});
-    L.fit = look === 'rusty' ? std(0x4a2a1c, .4, .9) : look === 'brass' || look === 'bronze' || look === 'copper' ? std(0x3a2a20, .6, .5) : brass();
+    L.fit = look === 'rusty' ? std(0x4a2a1c, .4, .9) : look === 'brass' || look === 'bronze' || look === 'copper' || look === 'orichalcum' ? std(0x3a2a20, .6, .5) : brass();
     L.taper = .9; L.radius = .018;
+    if (look === 'mithril') { L.fit = silver(); L.taper = .8; L.radius = .016; }
     if (look === 'rusty') L.extras.push('pits');
   } else if (look in STONES) {
     L.shaft = std(STONES[look], 0, look === 'porcelain' ? .22 : look === 'black' ? .32 : .5);
