@@ -68,7 +68,7 @@ test('little dog, dog and large dog are grounded canines that grow with the bree
 });
 
 test('hell hounds burn: flickering flame tongues on the spine, head, tail and paws, and ember eyes',()=>{
- for(const [name,scale] of [['hell hound',1.3],['hell hound pup',.85]]){
+ for(const [name,scale] of [['hell hound',1.38],['hell hound pup',.85]]){
   const hound=createCreature({name,symbol:100,color:1});
   assert.equal(hound.quirk,'canine');assert.equal(hound.g.scale.x,scale);
   const flames=[];hound.g.traverse(o=>{if(o.isMesh&&o.userData.part==='flame')flames.push(o);});
