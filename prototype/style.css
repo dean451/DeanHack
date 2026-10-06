@@ -83,6 +83,9 @@ dialog button{font:600 12px 'Cinzel',Georgia,serif;letter-spacing:1.5px}
 .engine-ext-list li b{font:600 13px 'Cinzel',Georgia,serif;letter-spacing:1px}
 .engine-menu-groups{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.engine-menu-groups button{margin:0;font:13px/1.2 Inter,sans-serif;padding:5px 9px}.engine-menu-groups kbd{margin-left:4px}
 
+#minimap{position:fixed;right:28px;bottom:144px;z-index:4;width:320px;height:84px;border:1px solid #3a4b57;border-radius:6px;image-rendering:pixelated;pointer-events:none}
+#minimap[hidden]{display:none}
+@media(max-width:1000px){#minimap{width:240px;height:63px;right:12px;bottom:92px}}
 .msg-damage::before,.msg-magic::before,.msg-pickup::before,.msg-warning::before{display:inline-block;width:1.1em;margin-right:.15em;font-style:normal;text-align:center}
 .msg-damage::before{content:'\2716'}.msg-magic::before{content:'\2726'}.msg-pickup::before{content:'+'}.msg-warning::before{content:'!';font-weight:700}
 .msg-damage{color:#d9a095}.msg-magic{color:#aebcf0}.msg-pickup{color:#c7d3a0}.msg-warning{color:#f0c27a;font-weight:600}

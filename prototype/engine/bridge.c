@@ -93,6 +93,10 @@ static const char *object_name(int glyph) {
         return (o >= 0 && o < NUMMONS) ? mons[o].mname : "corpse";
     }
     o = glyph_to_obj(glyph);
+    /* The game rewrites the slime mold's own name to whatever fruit the player chose
+       ("fruit" by default, "kiwi" if renamed), so the client could not tell it from any
+       other food. The model belongs to the object type, not to what the player calls it. */
+    if (o == SLIME_MOLD) return "slime mold";
     return (o >= 0 && o < NUM_OBJECTS) ? OBJ_NAME(objects[o]) : "item";
 }
 /* The name as the hero knows it ("ruby potion" until identified), so the client can
@@ -404,6 +408,16 @@ static void frame_body(void) {
         if (glyph_is_monster(g) && !glyph_is_pet(g)) {
             struct monst *mtmp = m_at(x,y);
             printf(",\"peaceful\":%s",(mtmp && mtmp->mpeaceful && canspotmon(mtmp))?"true":"false");
+        }
+        /* A wounded monster the hero can see: how much of its health is left, as a percentage
+           (1 to 99). A monster at full health sends nothing, so the client shows a bar only once
+           there is something to show. */
+        if (glyph_is_monster(g)) {
+            struct monst *wm = m_at(x,y);
+            if (wm && canspotmon(wm) && wm->mhpmax > 0 && wm->mhp < wm->mhpmax && !Hallucination) {
+                int pct = (int)((100L*(wm->mhp>0?wm->mhp:0))/wm->mhpmax);
+                printf(",\"health\":%d",pct<1?1:pct>99?99:pct);
+            }
         }
         printf(",\"name\":");m=glyph_to_mon(g);quoted(glyph_is_monster(g)&&m>=0?mons[m].mname:glyph_is_object(g)?object_name(g):"");
         if (glyph_is_object(g)) {
