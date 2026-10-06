@@ -10,7 +10,7 @@
 
 import {clamp01, smooth} from './fx-textures.js';
 
-export const JET = {flash: .12, rise: .18, gutter: 1.0, tongues: 3, embers: 8, total: 1.6};
+export const JET = {flash: .12, rise: .18, gutter: 1.0, tongues: 3, embers: 8, ash: 6, total: 1.6};
 export const PENDING_WAIT = .3;
 export const isFireTrapMessage = text => /a tower of flame (bursts|erupts) (from|out of)/i.test(text || '');
 
@@ -48,6 +48,14 @@ export function emberPose(i, t) {
   return {x: Math.cos(a) * (.1 + .12 * u) + Math.sin(u * 14 + i) * .03, y: .1 + (1.1 + (i % 3) * .3) * u, z: Math.sin(a) * (.1 + .12 * u), alpha: u <= 0 || u >= 1 ? 0 : .9 * (1 - u), heat: 1 - u};
 }
 
+// Ash flake i: once the column gutters, grey flakes of what burned drift down in a lazy,
+// lopsided spin and are gone before the jet ends.
+export function ashPose(i, t) {
+  const start = 1.0 + (i % 3) * .08, u = clamp01((t - start) / (JET.total - start - .02));
+  const a = i * 1.9;
+  return {x: Math.cos(a) * (.1 + .06 * i / JET.ash) + Math.sin(u * 7 + i) * .05, y: .9 - .8 * u * (.8 + .2 * (i % 2)), z: Math.sin(a) * (.12 + .05 * i / JET.ash), alpha: u <= 0 || u >= 1 ? 0 : .6 * smooth(u / .2) * (1 - smooth((u - .7) / .3))};
+}
+
 export function createFireTrapJet(THREE, parent) {
   const live = []; let pending = null;
   function add(x, z) {
@@ -59,8 +67,9 @@ export function createFireTrapJet(THREE, parent) {
     const flash = new THREE.Mesh(sph, mk(0xfff0c0)); flash.position.y = .2; g.add(flash);
     const scorch = new THREE.Mesh(ringGeo, mk(0x1a0a04)); scorch.rotation.x = -Math.PI / 2; scorch.position.y = .02; g.add(scorch);
     const embers = Array.from({length: JET.embers}, () => { const m = new THREE.Mesh(sph, mk(0xffb040)); m.scale.setScalar(.018); g.add(m); return m; });
+    const ash = Array.from({length: JET.ash}, () => { const m = new THREE.Mesh(sph, mk(0x6a625a)); m.scale.set(.03, .008, .03); g.add(m); return m; });
     const light = new THREE.PointLight(0xff7a20, 0, 5); light.position.y = .6; g.add(light);
-    live.push({g, geos: [geo, sph, ringGeo], mats, column, core, tongues, flash, scorch, embers, light, t: 0});
+    live.push({g, geos: [geo, sph, ringGeo], mats, column, core, tongues, flash, scorch, embers, ash, light, t: 0});
   }
   const cone = (m, h, w, a, x = 0, z = 0) => { m.visible = a > .01; m.scale.set(w, Math.max(h, .001), w); m.position.set(x, h / 2, z); m.material.opacity = a; };
   function step(e, dt) {
@@ -71,6 +80,7 @@ export function createFireTrapJet(THREE, parent) {
     const f = flashPose(e.t); e.flash.visible = f.alpha > .01; e.flash.scale.setScalar(f.size); e.flash.material.opacity = f.alpha;
     const s = scorchPose(e.t); e.scorch.visible = s.alpha > .01; e.scorch.scale.setScalar(s.radius); e.scorch.material.opacity = s.alpha;
     e.embers.forEach((m, i) => { const p = emberPose(i, e.t); m.visible = p.alpha > .01; m.position.set(p.x, p.y, p.z); m.material.opacity = p.alpha; });
+    e.ash.forEach((m, i) => { const p = ashPose(i, e.t); m.visible = p.alpha > .01; m.position.set(p.x, p.y, p.z); m.rotation.x = e.t * 3 + i; m.rotation.z = e.t * 2; m.material.opacity = p.alpha; });
     e.light.intensity = (c.alpha * 3 + f.alpha * 4);
     return e.t < JET.total;
   }
