@@ -2602,7 +2602,7 @@ export function createCreature(cell={}){
  if(PROBOSCIDEANS[name])return proboscidean(PROBOSCIDEANS[name]);
  if(MEGA_RHINOS[name])return megaRhino(MEGA_RHINOS[name]);
  if(name==='rothe')return rothe(ROTHE);
- if(name==='wumpus')return wumpus({scale:1,hide:'#3f8f94',fur:'#27595c',belly:'#8ec2b6'});
+ if(name==='wumpus')return wumpus({scale:1.08,hide:'#3f8f94',fur:'#27595c',belly:'#8ec2b6'});
  if(name==='leocrotta')return leocrotta({scale:1.05,coat:'#a8865a',dark:'#6e5436',mane:'#4a3420',belly:'#cdb48c'});
  if(name==='minotaur')return createMinotaur();
  if(GIANTS[name])return giant(GIANTS[name]);
