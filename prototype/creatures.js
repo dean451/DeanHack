@@ -2632,7 +2632,7 @@ export function createCreature(cell={}){
  if(JABBERWOCK_KINDS.includes(name))return createJabberwock(name);
  if(TRAPPERS[name])return trapper(TRAPPERS[name]);
  if(SEA_MONSTERS[name])return seaMonster(SEA_MONSTERS[name]);
- if(name==='hezrou')return createHezrou();
+ if(name==='hezrou'){const h=createHezrou();h.g.scale.setScalar(1.3);return h;}
  if(DEMONS[name])return demon(DEMONS[name]);
  if(RIDERS[name])return wraith({...RIDERS[name],kind:name});
  if(name==='juiblex')return createJuiblex();
