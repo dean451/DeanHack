@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {drawPose, tonguePose, scorchPose, sacrificeKind, SACRIFICE} from './altar-sacrifice.js';
+import {corpsePose, drawPose, tonguePose, scorchPose, sacrificeKind, SACRIFICE} from './altar-sacrifice.js';
 
 test('only the consumed messages trigger it', () => {
   assert.equal(sacrificeKind('Your sacrifice is consumed in a flash of light!'), 'light');
@@ -46,5 +46,19 @@ test('the hunger ring draws inward before the lunge and is gone by it', () => {
       peak = Math.max(peak, d.alpha);
     }
     assert.ok(peak > .4 && last < first - .2, k);
+  }
+});
+
+test('the offering sags into the stone before the lunge and is gone by it', () => {
+  for (const k of Object.keys(SACRIFICE)) {
+    for (const t of [0, SACRIFICE[k] * .22, SACRIFICE[k]]) assert.deepEqual(corpsePose(k, t), {sink: 0, width: 0, alpha: 0}, `${k} ${t}`);
+    let first = null, last = null, peak = 0;
+    for (let t = .001; t < SACRIFICE[k] * .22; t += .005) {
+      const c = corpsePose(k, t);
+      assert.ok(c.alpha >= 0 && c.alpha <= .6 + 1e-9 && c.sink >= 0 && c.sink <= 1 && c.width > 0 && c.width < .6, `${k} ${t}`);
+      if (c.alpha > .05) { first ??= c.width; last = c.width; }
+      peak = Math.max(peak, c.alpha);
+    }
+    assert.ok(peak > .4 && last < first - .15, k);
   }
 });
