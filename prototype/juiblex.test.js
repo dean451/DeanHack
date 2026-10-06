@@ -26,9 +26,9 @@ test('Juiblex rises as a many-eyed column of slime instead of the plain blob',()
  assert(eyes.material.emissiveIntensity>0);
  juiblex.g.updateMatrixWorld(true);
  const b=box(juiblex.g),column=box(parts.find(m=>m.userData.part==='body'));
- assert(b.min.y>-.05&&column.min.y>=-.001,`sits on the floor: ${b.min.y}, ${column.min.y}`);
- assert(column.max.y>.7&&column.max.y<.95,`towers to ${column.max.y}`);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'fits the tile');
+ assert(b.min.y>-.08&&column.min.y>=-.001,`sits on the floor: ${b.min.y}, ${column.min.y}`);
+ assert(column.max.y>1.05&&column.max.y<1.4,`towers to ${column.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.75,'fits the tile');
  // taller and wider than a plain blob
  const plain=box(createCreature({name:'green slime'}).g);
  assert(column.max.y>plain.max.y*1.5);

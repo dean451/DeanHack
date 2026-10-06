@@ -173,7 +173,7 @@ function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.c
 
 export function createJuiblex(){
  const S=geometry();
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.5);
  mesh(g,S.pool,S.material,'pool').castShadow=false;
  mesh(body,S.body,S.material,'body');mesh(body,S.eyes,S.eye,'eyes');
  return {g,body,legs:[],tail:null,wings:[],quirk:'blob'};

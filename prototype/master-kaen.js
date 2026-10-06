@@ -221,7 +221,7 @@ function geometry(){
 function mesh(parent,geo,name,m){const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=m===S.hide;o.userData.part=name;parent.add(o);return o;}
 
 export function createMasterKaen(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.1);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.25);
  mesh(body,S.body,'body',S.hide);
  const head=new THREE.Group();head.position.set(0,NECK_Y,.015);head.rotation.x=.08;body.add(head);// chin lowered, staring out
  mesh(head,S.head,'head',S.hide);const eyes=mesh(head,S.eyes,'eyes',S.glow);
