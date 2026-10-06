@@ -43,3 +43,8 @@ test('it plays on the hero\'s square and cleans up', () => {
   fx.update(STUDY.total + .1); assert.equal(fx.active, 0);
   fx.message('You begin to memorize the runes.', 0, 0); fx.clear(); assert.equal(fx.active, 0);
 });
+
+test('one rune loses its nerve and bolts for the floor before the pull', () => {
+  const pull = .7 + 2 * .12;
+  assert.ok(runePose(2, pull - .11).y < runePose(2, pull - .3).y - .05);
+});
