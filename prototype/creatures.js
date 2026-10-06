@@ -1795,7 +1795,7 @@ function umberHulk(o){
   const antenna=cone(head,.012,.12,dark,side*.07,.12,.02,4);antenna.rotation.set(-.6,0,-side*.5);}
  return trimDraws(actor(g,body,legs,head,[],'orc'));
 }
-const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.05}};
+const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.25}};
 
 // Shambling horror (U): a thing that should not have been made. A lopsided, lurching mound of pallid, wet
 // flesh swollen with tumorous lumps and split by bone spurs; one leg a thick club, the other a thin
@@ -1902,7 +1902,7 @@ function zruty(o){
  head.rotation.x=.1;
  return trimDraws(actor(g,body,legs,head,[],'orc'));
 }
-const ZRUTIES={'zruty':{fur:'#6a4a2c',hide:'#a07a58',eye:'#e8a030',scale:1.18}};
+const ZRUTIES={'zruty':{fur:'#6a4a2c',hide:'#a07a58',eye:'#e8a030',scale:1.35}};
 
 // Rust monsters and disenchanters: a low, armadillo-like bug with overlapping carapace plates, four stubby legs,
 // two long feathery antennae (the rust-touch feelers) and a tail ending in a flat, two-bladed propeller vane.
