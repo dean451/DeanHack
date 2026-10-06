@@ -19,3 +19,12 @@ test('the footer buttons are only Save & exit, Demo room and the demo reset', ()
   assert.match(live, /<button data-key="83">Save & exit<\/button>/);
   assert.doesNotMatch(read('main.js'), /#camera/);
 });
+
+test('the page carries no badge, brand block or footer blurb', () => {
+  const html = read('index.html'), css = read('style.css'), live = read('live.js');
+  assert.doesNotMatch(html, /VISUAL PROTOTYPE|class="brand"|class="badge"|Standalone scene|Drag to orbit/);
+  assert.doesNotMatch(css, /\.brand|\.badge|footer>small/);
+  assert.doesNotMatch(live, /Real UnNetHack rules|footer>small/);
+  // the branch heading only shows for real named levels
+  assert.match(live, /h1'\)\.hidden=!where\.named/);
+});
