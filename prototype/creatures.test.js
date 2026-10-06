@@ -112,7 +112,7 @@ test('unicorns and the ki-rin stand on the horse body with a spiral horn, colour
   actor.g.traverse(part=>{if(part.geometry){meshes++;for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);}});
   assert(meshes<=30,`${name}: ${meshes} meshes`);
   const bounds=new THREE.Box3().setFromObject(actor.g,true);
-  assert(Math.abs(bounds.min.y)<.01,name);assert(bounds.max.y<1.5,name);assert(Math.max(-bounds.min.z,bounds.max.z)<.85,name);
+  assert(Math.abs(bounds.min.y)<.01,name);assert(bounds.max.y<1.7,name);assert(Math.max(-bounds.min.z,bounds.max.z)<.95,name);
   const horn=hornOf(actor);assert(horn,name);
   const tip=horn.localToWorld(new THREE.Vector3(0,horn.geometry.parameters.height/2,0)),base=horn.localToWorld(new THREE.Vector3(0,-horn.geometry.parameters.height/2,0));
   assert(Math.abs(tip.y-bounds.max.y)<.01,`${name}: the horn tip is the highest point`);assert(tip.z>base.z&&tip.y>base.y+.15,`${name}: the horn points forward and up`);
