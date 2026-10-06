@@ -37,3 +37,8 @@ test('poses stay in bounds, the blessing rises, the curse closes, flecks fall', 
     assert.ok(top > .3 && fleckPose(i, BLESS.total * .9).y < top);
   }
 });
+
+test('the curse snaps back out once as it closes', () => {
+  const at = u => ringPose('cursed', u * BLESS.total).radius;
+  assert.ok(at(.7) > at(.62) - .001 && at(.7) - at(.62) > -.02, 'the closing pauses and rebounds');
+});
