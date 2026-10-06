@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {holeMessage, sinkOffset, arriveOffset, createDigDrop, HANG, SINK, SINK_DEPTH, GIVE_UP, RISE, ARRIVE_HEIGHT, ARRIVE_GRAVITY, ARRIVE_TIME} from './dig-drop.js';
+import {holeMessage, sinkOffset, arriveOffset, createDigDrop, HANG, SINK, SINK_DEPTH, GIVE_UP, RISE, ARRIVE_HEIGHT, ARRIVE_GRAVITY, ARRIVE_TIME, airborneStatus, hoverOffset, HOVER_TIME, HOVER_LIFT} from './dig-drop.js';
 
 test('only the hole message starts a drop', () => {
   assert.ok(holeMessage('You dig a hole through the floor.'));
@@ -56,4 +56,22 @@ test('with no new level the controller gives up and clear cancels at once', () =
   d.clear();
   assert.equal(d.update(1 / 60), 0);
   assert.ok(!d.arrive());
+});
+
+test('a levitating or flying hero hovers over the hole instead of dropping', () => {
+  assert.ok(airborneStatus('Dlvl:3 $:0 HP:12(12) Pw:2(2) AC:7 Exp:1 T:40 Lev'));
+  assert.ok(airborneStatus('Dlvl:3 $:0 HP:12(12) Pw:2(2) AC:7 Exp:1 T:40 Burdened Fly'));
+  assert.ok(!airborneStatus('Dlvl:3 $:0 HP:12(12) Pw:2(2) AC:7 Exp:1 T:40 Hungry'));
+  assert.ok(!airborneStatus(null));
+  const d = createDigDrop();
+  assert.ok(d.message('You dig a hole through the floor.', true));
+  let peak = 0;
+  for (let i = 0; i < 40; i++) { const v = d.update(.05); assert.ok(v >= 0 && v <= HOVER_LIFT + 1e-9); peak = Math.max(peak, v); }
+  assert.ok(peak > 0, 'lifts');
+  for (let i = 0; i < 20; i++) d.update(.05);
+  assert.equal(d.update(.05), 0);
+  assert.ok(!d.active);
+  assert.equal(hoverOffset(0), 0);
+  assert.equal(hoverOffset(HOVER_TIME), 0);
+  assert.ok(!d.arrive(), 'no fall-in after hovering');
 });
