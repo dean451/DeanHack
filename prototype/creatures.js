@@ -1680,7 +1680,7 @@ function wraith(o){
   if(o.sword){const e=rounded(body,.012,.46,.008,edge,.3,.74,.21,.004);e.rotation.x=.9;e.castShadow=false;}}
  return trimDraws(Object.assign(actor(g,body,[],null,[],'hover'),{head,arms,arm:arms[1],claws},o.kind?{wraith:o.kind}:{}));
 }
-const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff'},'barrow wight':{robe:'#4a4a3a',glow:'#e0c040',bone:'#a89878',solid:true,circlet:true,sword:true},nazgul:{robe:'#141218',glow:'#ff3a2a',crown:true,sword:true,evil:true,scale:1.3}};
+const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff',scale:1.2},'barrow wight':{robe:'#4a4a3a',glow:'#e0c040',bone:'#a89878',solid:true,circlet:true,sword:true,scale:1.1},nazgul:{robe:'#141218',glow:'#ff3a2a',crown:true,sword:true,evil:true,scale:1.3}};
 
 // Vampires: a tall, pale aristocrat in a high-collared cape with a red lining, slicked hair with a widow's peak,
 // fangs and red eyes. Lords wear a gold medallion, mages a violet cape and a glowing hand orb,
