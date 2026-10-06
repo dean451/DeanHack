@@ -80,6 +80,14 @@ test('a crumbling corpse lets its hand loll and its tail slump after the arm', (
   for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).wrist) < 1 && Math.abs(p(u).tail) < 1);
 });
 
+test('a crumbling corpse lets go of what it holds after its hand goes slack', () => {
+  const p = u => deathPose('crumble', u);
+  assert.equal(p(0).socket, 0);
+  assert.ok(p(.35).socket < .05 && p(.5).wrist > 0 && p(.8).socket > .6);
+  for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).socket) < 1, `socket in bounds at ${u}`);
+  assert.equal(deathPose('splat', 1).socket, 0);
+});
+
 test('a toppled body gives one last dead twitch of the arm once it has landed, then rests', () => {
   const p = u => deathPose('topple', u);
   assert.ok(Math.abs(p(0).arm) < 1e-9 && Math.abs(p(.7).arm) < 1e-9);
