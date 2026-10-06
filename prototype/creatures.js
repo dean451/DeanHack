@@ -1647,7 +1647,7 @@ function lich(o){
   for(const [x,y,z,h,r] of [[-.25,1.0,-.05,.2,.3],[.25,1.0,-.05,.24,-.3],[0,1.0,-.2,.28,0]]){const f=cone(body,.035,h,flame,x,y+h/2,z,5);f.rotation.z=r;f.castShadow=false;}}
  return trimDraws(Object.assign(actor(g,body,[],null,[],'idle'),{jaw,lichHands,orb}));
 }
-const LICHES={lich:{robe:'#5a4430',glow:'#8ad060'},demilich:{robe:'#6a2a24',glow:'#ff5a3a',evil:true,bone:'#c8bc98',tattered:true},'master lich':{robe:'#4a1f52',glow:'#c070ff',evil:true,crown:'bone',scale:1.12},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',evil:true,crown:'tall',mantle:true,scale:1.25}};
+const LICHES={lich:{robe:'#5a4430',glow:'#8ad060',scale:1.08},demilich:{robe:'#6a2a24',glow:'#ff5a3a',evil:true,bone:'#c8bc98',tattered:true,scale:1.1},'master lich':{robe:'#4a1f52',glow:'#c070ff',evil:true,crown:'bone',scale:1.12},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',evil:true,crown:'tall',mantle:true,scale:1.25}};
 
 // Wraiths: a floating, translucent shroud that trails off into wisps, a hood with only a void and two burning eyes inside,
 // and long sleeves reaching forward with bony claws. Barrow wights are solid, with a rusty circlet and a sword;
