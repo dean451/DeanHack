@@ -12,10 +12,14 @@ import {clamp01} from './fx-textures.js';
 export const FIZZLE = {sparks: 6, total: 1.0};
 export const isSpellFailMessage = text => /you fail to cast the spell correctly/i.test(text || '');
 
-// The ring draws in until .35s, hitches, then bursts out and thins.
+// The ring draws in until .35s, stuttering, then bursts out and thins.
 export function ringPose(t) {
   if (t <= 0 || t >= FIZZLE.total) return {scale: .6, alpha: 0};
-  if (t < .35) return {scale: .6 - .45 * (t / .35) ** 2, alpha: .7 * clamp01(t / .08)};
+  if (t < .35) {
+    // The draw-in catches: it advances in jerks and every third beat the ring gutters.
+    const k = Math.floor(t / .05), j = (k + clamp01((t - k * .05) / .012)) * .05 / .35;
+    return {scale: .6 - .45 * Math.min(j, 1) ** 2, alpha: .7 * clamp01(t / .08) * (k % 3 === 2 ? .4 : 1)};
+  }
   const u = clamp01((t - .4) / .6);
   return {scale: .15 + .65 * (1 - (1 - u) ** 3), alpha: t < .4 ? .7 : .7 * (1 - u)};
 }
