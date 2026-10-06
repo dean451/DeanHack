@@ -13,3 +13,9 @@ test('the Wizard of Yendor, Croesus and the Dark One loom over a plain human', (
   const human = size('human').y;
   for (const name of ['Wizard of Yendor', 'Croesus', 'Dark One']) assert(size(name).y > human * 1.2, name);
 });
+
+test('Charon, Thoth Amon and One-eyed Sam loom over a plain human', () => {
+  const human = size('human').y;
+  assert(size('Charon').y > human * 1.3);
+  for (const name of ['Thoth Amon', 'One-eyed Sam']) assert(size(name).y > human * 1.15, name);
+});
