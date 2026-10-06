@@ -8,3 +8,8 @@ const size = (name, symbol = 64) => { const a = createCreature({name, symbol, co
 test('Ashikaga Takauji looms over a plain human', () => {
   assert(size('Ashikaga Takauji').y > size('human').y * 1.1);
 });
+
+test('the Minion of Huhetotl towers over a plain demon', () => {
+  assert(size('Minion of Huhetotl', 38).y > size('imp', 38).y * 1.5);
+  assert(size('Minion of Huhetotl', 38).y > size('human').y);
+});
