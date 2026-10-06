@@ -385,3 +385,17 @@ test('a flinch waits for its blow: the prey jerks when the pounce lands, the jac
   queueCombat({attack: 'bite', result: 'hit', dir: [1, 0], attacker: {seen: false}, defender: side(lone, 1)}, {hero: null, find: () => lone});
   assert.equal(lone.actions.queue[0].wait, undefined);
 });
+
+test('a dying lich buckles its leg, slumps its hem and drops its weapon, and clearing restores them', () => {
+  const a = hero(), q = createActionQueue(), before = snap(a);
+  enqueueAction(q, {kind: 'die', style: 'lichdust'});
+  const seen = {leg: 0, tail: 0, socket: 0};
+  run(a, q, 1.7, 1 / 60, x => {
+    seen.leg = Math.max(seen.leg, x.legs[0].rotation.x);
+    seen.tail = Math.max(seen.tail, x.tail.rotation.x);
+    seen.socket = Math.max(seen.socket, x.weaponSocket.rotation.z);
+  });
+  assert.ok(seen.leg > .4 && seen.tail > .3 && seen.socket > .5, JSON.stringify(seen));
+  clearActionPose(a, q);
+  assert.equal(snap(a), before);
+});
