@@ -21,6 +21,13 @@ test('the ring draws in, then bursts out and thins, in bounds', () => {
   assert.ok(ringPose(.5).alpha > ringPose(.95).alpha);
 });
 
+test('the draw-in stutters: the ring gutters on some beats and never reverses', () => {
+  let dips = 0, last = .6;
+  for (let t = .09; t < .35; t += .005) { const p = ringPose(t); if (p.alpha < .4) dips++; assert.ok(p.scale <= last + 1e-9, String(t)); last = p.scale; }
+  assert.ok(dips > 10);
+  assert.ok(ringPose(.349).scale < .2);
+});
+
 test('sparks arc up and slump back, in bounds', () => {
   for (let i = 0; i < FIZZLE.sparks; i++) {
     let peak = 0;

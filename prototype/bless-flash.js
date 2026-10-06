@@ -20,7 +20,7 @@ export function blessKind(text) {
 export function ringPose(kind, t) {
   if (!BLESS_COLORS[kind] || t <= 0 || t >= BLESS.total) return {radius: 0, lift: 0, alpha: 0};
   const u = t / BLESS.total, fade = 1 - smooth((u - .6) / .4);
-  if (kind === 'blessed') return {radius: .3 + .2 * smooth(u / .7), lift: .5 * smooth(u / .8), alpha: .55 * smooth(u / .2) * fade};
+  if (kind === 'blessed') return {radius: .3 + .2 * smooth(u / .7), lift: .5 * smooth(u / .8) - .08 * smooth((u - .75) / .25), alpha: .55 * smooth(u / .2) * fade};
   if (kind === 'cursed') {
     const stutter = Math.floor(u * 9) % 2 ? .04 : 0;
     return {radius: .55 - .3 * smooth(u / .8) + stutter, lift: 0, alpha: .7 * smooth(u / .15) * fade};
