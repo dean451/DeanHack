@@ -437,13 +437,27 @@ test('the blindfold is a padded silk band tied in a loop with frayed trailing ti
 
 test('a bag of tricks bares a ring of teeth, with a tongue and eyes in the dark',()=>{
  const plain=createGroundModel({name:'bag of holding',class:6}),toothy=createGroundModel({name:'bag of tricks',class:6});
- const verts=m=>m.children.reduce((n,part)=>n+part.geometry.attributes.position.count,0);
+ const meshes=m=>{const out=[];m.traverse(o=>o.isMesh&&out.push(o));return out;};
+ const verts=m=>meshes(m).reduce((n,part)=>n+part.geometry.attributes.position.count,0);
  assert(verts(toothy)>verts(plain)+14*10,'teeth, tongue and eyes add geometry');
- assert(toothy.children.some(part=>part.material.emissiveIntensity>1),'eyes glint');
- assert.equal(toothy.children.length,new Set(toothy.children.map(part=>part.material)).size,'one draw per material');
+ assert(meshes(toothy).some(part=>part.material.emissiveIntensity>1),'eyes glint');
+ assert(meshes(toothy).length<=plain.children.length+3,'the mouth bakes to a few draws');
  const bounds=new THREE.Box3().setFromObject(toothy);
  assert(bounds.max.y>.35&&bounds.max.y<.45,`height ${bounds.max.y}`);
  plain.userData.dispose();toothy.userData.dispose();
+});
+
+test('the mouth of a bag of tricks twitches and snaps shut; a bag of holding has no mouth to move',()=>{
+ const toothy=createGroundModel({name:'bag of tricks',class:6}),plain=createGroundModel({name:'bag of holding',class:6});
+ const maw=toothy.userData.bagMaw;
+ assert(maw&&maw.parent===toothy,'the mouth is its own part');
+ assert.equal(plain.userData.bagMaw,undefined);
+ let squashed=1,open=0;
+ for(let t=0;t<20;t+=.01){maw.userData.update(t);squashed=Math.min(squashed,maw.scale.y);open=Math.max(open,maw.scale.y);
+  assert(Number.isFinite(maw.rotation.x+maw.rotation.z)&&Math.abs(maw.rotation.z)<.3,'twitch stays small');}
+ assert(squashed<.6,`the jaws clap shut (${squashed})`);
+ assert(open>=.99,'and spring open again');
+ maw.userData.update(100.5);toothy.userData.dispose();plain.userData.dispose();
 });
 
 test('every other bag shares one cinched drawstring sack, so the kind never shows',()=>{

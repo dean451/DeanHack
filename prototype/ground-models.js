@@ -6171,7 +6171,9 @@ export function createGroundModel(item={}){
   for(let y=.035;y<.28;y+=.024)patchAt(-1.75,y,.003,.012,thread);
   // A bag of tricks (leaked by its true name) bares a ring of sharp, yellowed teeth round the mouth, a
   // red tongue and two eyes glinting in the dark; a bag of holding keeps the plain dark mouth.
+  let maw=null;
   if(/tricks/.test(name)){
+   const first=g.children.length;
    const fang=mat(0xd6c9a0),gum=mat(0x5a1414),eye=new THREE.MeshStandardMaterial({color:0x1a1a08,emissive:0xc8d020,emissiveIntensity:1.4,roughness:.5});materials.push(eye);
    for(let i=0;i<14;i++){
     const a=i/14*Math.PI*2,long=i%3===0,h=long?.036:.025;
@@ -6180,10 +6182,25 @@ export function createGroundModel(item={}){
    }
    ball(.03,gum,lean(.31)+.008,.3,.012,[1.2,.3,1]);
    for(const s of [-1,1])ball(.006,eye,lean(.31)+s*.022,.305,-.018);
+   // The mouth is its own part so it can twitch and snap; it bakes to one mesh per material.
+   maw=new THREE.Group();for(const part of g.children.slice(first))maw.add(part);
   }
-  // Nothing on a sack moves, so body, mouth, drawstring, bow, patch and stitches bake to one mesh
-  // per material: 5 draws where there were 30.
+  // Body, drawstring, bow, patch and stitches never move, so they bake to one mesh per material.
   mergeByMaterial(g);
+  if(maw){
+   mergeByMaterial(maw);
+   const MX=lean(.31),MY=.31;
+   for(const part of maw.children)part.geometry.translate(-MX,-MY,0);
+   maw.position.set(MX,MY,0);g.add(maw);
+   const phase=hashLook(name)%997/997;
+   // Mostly still and twitching; every few seconds the jaws clap shut and spring open again.
+   maw.userData.update=t=>{
+    const c=((t*.3+phase)%1+1)%1,snap=c<.07?Math.sin(c/.07*Math.PI):0,twitch=Math.sin(t*23+phase*40)*Math.max(0,Math.sin(t*1.7+phase*9)-.8);
+    maw.scale.set(1+.12*snap,1-.55*snap,1+.12*snap);
+    maw.rotation.set(.1*twitch,0,.12*twitch+.05*snap);
+   };
+   g.userData.bagMaw=maw;
+  }
  }else if(/ration/.test(name)){
   if(/tripe/.test(name)){
    // Tripe and paper share one wet-looking vertex-coloured material.
