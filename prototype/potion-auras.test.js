@@ -19,6 +19,12 @@ test('paralysis, invisibility, detection, polymorph, oil and the bloods have eff
  assert.equal(POTION_AURAS.paralysis.count,1,'paralysis stays nearly still');
 });
 
+test('booze fumes and holy and unholy water have effects, plain water none',()=>{
+ for(const kind of ['booze','holy water','unholy water'])
+  assert.equal(potionAuraKind({class:8,name:`potion of ${kind}`}),kind);
+ assert.equal(potionAuraKind({class:8,name:'potion of water'}),null);
+});
+
 test('every potion effect stays finite and over its bottle, and frees itself',()=>{
  for(const kind of Object.keys(POTION_AURAS)){
   const item=new THREE.Group(),aura=syncPotionAura(item,{class:8,name:kind},'3,4');

@@ -2,7 +2,7 @@
 // glow up from the cork, gain level streams gold light skyward, sleeping lets dim motes drift
 // down, blindness swallows light, acid spits green sparks. Unlike potion-fx.js (which keys on the
 // shuffled appearance and tells you nothing), these key on the bridge's true `name`, so a
-// sharp-eyed player is rewarded; anything unknown, water, booze and juice get nothing.
+// sharp-eyed player is rewarded; anything unknown, plain water and juice get nothing.
 //
 // Positions are in item space above the first bottle (necks top out at y .17 to .29).
 // Every effect is a pure function of time.
@@ -42,6 +42,9 @@ export const POTION_AURAS = {
   oil: {color: 0xd08030, blend: 'add', motion: 'column', count: 2, size: .018, period: 3.2, alpha: .4},
   blood: {color: 0x7a0c14, blend: 'normal', motion: 'drift', count: 2, size: .024, period: 7, alpha: .55},
   'vampire blood': {color: 0xb01020, blend: 'normal', motion: 'gnaw', count: 3, size: .04, period: 2.6, alpha: .65},
+  booze: {color: 0xc89040, blend: 'add', motion: 'drift', count: 2, size: .03, period: 5, alpha: .3},
+  'holy water': {color: 0xfff4c8, blend: 'add', motion: 'column', count: 3, size: .014, period: 3.4, alpha: .6},
+  'unholy water': {color: 0x0c0608, blend: 'normal', motion: 'gnaw', count: 3, size: .04, period: 3.2, alpha: .6},
 };
 
 // The potion type from a floor object, or null for unknown potions, water and other classes.
