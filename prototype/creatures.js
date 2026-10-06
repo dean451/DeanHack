@@ -1595,7 +1595,7 @@ function ogre(o){
  for(let i=0;i<(o.bigClub?5:3);i++){const a=i*2.1,nail=cone(body,.016,.05,metal||M.darkSteel,.33+Math.cos(a)*.07,.56+(i%2)*.04,.29+Math.sin(a)*.03,4);nail.rotation.set(.55+Math.sin(a),0,Math.cos(a));}
  return trimDraws(actor(g,body,legs,null,[],'orc'));
 }
-const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#8a6a48',hide:'#4a3a2a',metal:'#a0703a',scale:1.05},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.1}};
+const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#8a6a48',hide:'#4a3a2a',metal:'#a0703a',scale:1.15},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.32}};
 
 // Generic guardian, kept as the last resort but tinted by the monster's glyph colour.
 // Liches: a gaunt, robed skeleton with a bare skull, burning eye sockets and a staff topped by a glowing orb.
@@ -1795,7 +1795,7 @@ function umberHulk(o){
   const antenna=cone(head,.012,.12,dark,side*.07,.12,.02,4);antenna.rotation.set(-.6,0,-side*.5);}
  return trimDraws(actor(g,body,legs,head,[],'orc'));
 }
-const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.05}};
+const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.25}};
 
 // Shambling horror (U): a thing that should not have been made. A lopsided, lurching mound of pallid, wet
 // flesh swollen with tumorous lumps and split by bone spurs; one leg a thick club, the other a thin
@@ -1902,7 +1902,7 @@ function zruty(o){
  head.rotation.x=.1;
  return trimDraws(actor(g,body,legs,head,[],'orc'));
 }
-const ZRUTIES={'zruty':{fur:'#6a4a2c',hide:'#a07a58',eye:'#e8a030',scale:1.18}};
+const ZRUTIES={'zruty':{fur:'#6a4a2c',hide:'#a07a58',eye:'#e8a030',scale:1.35}};
 
 // Rust monsters and disenchanters: a low, armadillo-like bug with overlapping carapace plates, four stubby legs,
 // two long feathery antennae (the rust-touch feelers) and a tail ending in a flat, two-bladed propeller vane.

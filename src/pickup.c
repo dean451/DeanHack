@@ -1600,6 +1600,7 @@ pickup_object(
     boolean telekinesis) /**< not picking it up directly by hand */
 {
     int res, nearload;
+    coordxy pickup_x, pickup_y;
 
     if (obj->quan < count) {
         impossible("pickup_object: count %ld > quan %ld?",
@@ -1667,7 +1668,10 @@ pickup_object(
         obj = splitobj(obj, count);
     }
 
+    pickup_x = obj->where == OBJ_FLOOR ? obj->ox : u.ux;
+    pickup_y = obj->where == OBJ_FLOOR ? obj->oy : u.uy;
     obj = pick_obj(obj);
+    PICKUP_HOOK(obj, pickup_x, pickup_y, count);
 
     if (uwep && uwep == obj) {
         mrg_to_wielded = TRUE;
