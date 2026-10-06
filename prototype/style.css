@@ -94,3 +94,4 @@ dialog button{font:600 12px 'Cinzel',Georgia,serif;letter-spacing:1.5px}
 #message-history>small{display:block;margin-bottom:8px;font:11px Inter,system-ui,sans-serif;letter-spacing:.12em;color:#8e9fac}
 #message-history .msg{margin-top:5px}
 .engine-recent{margin:6px 0 10px;font:italic 16px/1.35 'Cormorant Garamond',Georgia,serif;color:#9fb0bb}
+#minimap.aiming{pointer-events:auto;cursor:crosshair;border-color:#fff0b8}

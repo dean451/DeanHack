@@ -82,11 +82,10 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 **UI and controls**
 
 - **Search tooltip:** next to the `s` (search) tooltip, also tell the player about `v` (explore).
-- **Object detection:** the potion of object detection should show objects across the whole level, but it only highlights objects the hero can already see. Find out whether the bridge sends the detected objects and whether the client culls or dims cells beyond what is in view, then make detected objects appear and stay shown across the level. If the fix needs `bridge.c` or `server.js`, say so in the PR body. Check monster detection for the same problem.
 - **Zoom and map:** done so far: zooming in further (minimum distance 10 to 5, `main.js`) and the zoom and angle are kept across dungeon levels (`camera-view.js`). The minimap is done (`minimap.js`, stairs drawn as triangles). Remaining: Shift-`>` points toward stairs down and it is hard to tell which of several staircases is being pointed at; make the pointer show on the minimap or in the world which staircase it means.
 - **Colour-blind safety:** make sure no cue relies on colour alone. Pair the yellow and green friendly circles, the element colours and the status effects with a shape or motion cue as well.
 - **Inventory panel:** show the pack as the actual item models in a grid, keeping the letter keys, with hover details and enchantment and blessed/cursed hints once known.
-- **Targeting previews:** when zapping, throwing or firing, show the ray or trajectory, its range, and what it would hit. The ray code (`rays.js`) already exists, so connect it to the direction prompt.
+- **Targeting previews:** done so far: choosing a spot (a scroll of stinking cloud, travel, any "Move cursor to" prompt) now shows the cursor in the world and on the minimap, and clicking the minimap walks the cursor there and picks it (`aim-cursor.js`). Remaining: when zapping, throwing or firing, show the ray or trajectory, its range, and what it would hit. The ray code (`rays.js`) already exists, so connect it to the direction prompt.
 - **Farlook on hover:** pointing at a monster or item shows its name, whether it is peaceful or hostile, asleep, and anything known about it, as the 3D version of `;`.
 - **Level title cards:** a brief, silent visual card (a quiet text fade) when the hero first enters a special level such as the Oracle, Bigroom, Medusa, the Castle or the Valley.
 
