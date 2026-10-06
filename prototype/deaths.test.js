@@ -42,6 +42,15 @@ test('a dying lich lets its arm and wrist go limp before the frame collapses', (
   assert.ok(deathPose('crumble', 1).arm > .5 && deathPose('crumble', 0).arm === 0, 'a crumbling corpse lets its arm hang slack');
 });
 
+test('a dying lich\'s skull is jolted on each drop of the frame, then rests', () => {
+  const head = u => deathPose('lichdust', u).head, base = u => -.7 * ((u - .3) / .5) ** 2 * (3 - 2 * (u - .3) / .5);
+  assert.equal(head(0), 0);
+  assert.ok(head(.3) - base(.3) > .09, 'the first jolt snaps the skull forward');
+  assert.ok(head(.5) - base(.5) > .08 && head(.7) - base(.7) > .08, 'later jolts show too');
+  for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(head(u)) < .85, `head in bounds at ${u}`);
+  assert.ok(Math.abs(head(1) + .7) < 1e-9, 'it ends where it did before');
+});
+
 test('a dying lich buckles its leg and slumps its hem on separate beats', () => {
   const p = u => deathPose('lichdust', u);
   assert.equal(p(0).leg, 0);
@@ -69,6 +78,14 @@ test('a crumbling corpse lets its hand loll and its tail slump after the arm', (
   assert.ok(p(.35).wrist < .05 && p(.9).wrist > .5);
   assert.ok(p(.45).tail < .1 && p(1).tail > .45);
   for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).wrist) < 1 && Math.abs(p(u).tail) < 1);
+});
+
+test('a crumbling corpse lets go of what it holds after its hand goes slack', () => {
+  const p = u => deathPose('crumble', u);
+  assert.equal(p(0).socket, 0);
+  assert.ok(p(.35).socket < .05 && p(.5).wrist > 0 && p(.8).socket > .6);
+  for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).socket) < 1, `socket in bounds at ${u}`);
+  assert.equal(deathPose('splat', 1).socket, 0);
 });
 
 test('a toppled body gives one last dead twitch of the arm once it has landed, then rests', () => {
