@@ -2069,7 +2069,7 @@ function gremlin(o){
  tube(tail,[[0,0,0],[.04,-.08,-.1],[.12,-.1,-.18],[.2,-.04,-.22]],.012,skin,12);cone(tail,.022,.05,dark,.21,-.03,-.22,4).rotation.z=-1.2;
  return trimDraws(actor(g,body,legs,tail,[],'idle'));
 }
-const GARGOYLES={gargoyle:{stone:'#8a8478',eye:'#ff7a2a'},'winged gargoyle':{stone:'#6f6a74',eye:'#ffb030',winged:true,scale:1.12}};
+const GARGOYLES={gargoyle:{stone:'#8a8478',eye:'#ff7a2a',scale:1.12},'winged gargoyle':{stone:'#6f6a74',eye:'#ffb030',winged:true,scale:1.3}};
 const GREMLINS={gremlin:{skin:'#4f8a3a',eye:'#ffd23a'}};
 // Keystone Kops: silent-film bobbies in tall custodian helmets and long double-breasted tunics, with a walrus
 // moustache and splayed flat boots, waving a truncheon overhead. Rank shows as sleeve chevrons (sergeant),

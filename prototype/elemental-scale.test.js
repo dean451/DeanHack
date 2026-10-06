@@ -9,3 +9,9 @@ test('elementals loom over a man, the earth elemental most of all', () => {
   assert(scale('earth elemental') >= 1.5);
   assert(scale('stalker') >= 1.2);
 });
+
+test('gargoyles are hulking, the winged one larger still', () => {
+  const g = createCreature({name: 'gargoyle', symbol: 'g'.charCodeAt(0), color: 7}).g.scale.y;
+  const w = createCreature({name: 'winged gargoyle', symbol: 'g'.charCodeAt(0), color: 7}).g.scale.y;
+  assert(g >= 1.1 && w >= 1.3 && w > g);
+});
