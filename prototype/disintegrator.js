@@ -20,7 +20,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 const SHELL=rgb('#16241a'),SHELL_HI=rgb('#36583e'),SHELL_EDGE=rgb('#5e8a5a'),HIDE=rgb('#0c140f'),HIDE_HI=rgb('#22342a');
 const BLADE=rgb('#070a08'),BLADE_HI=rgb('#4a6650'),GLOW=rgb('#c8ff9a'),MOTE=rgb('#7cff5a');
-const SCALE=1.25,Y=.3;
+const SCALE=1.35,Y=.3;
 
 const hash=(a,b=0)=>{const h=Math.sin(a*12.9898+b*78.233)*43758.5453;return h-Math.floor(h);};
 const V=p=>new THREE.Vector3(...p);
