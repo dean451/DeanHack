@@ -386,6 +386,9 @@ static void frame_body(void) {
         else if(glyph_is_cmap(terrain_glyph)&&glyph_to_cmap(terrain_glyph)==S_ndoor&&IS_DOOR(levl[x][y].typ)&&
                 (levl[x][y].doormask&~D_TRAPPED)==D_BROKEN&&is_drawbridge_wall(x,y)<0)printf(",\"door\":\"broken\"");
         printf(",\"invisible\":%s",glyph_is_invisible(g)?"true":"false");
+        /* An object the hero knows of without ever having seen its square (object detection,
+           a crystal ball): the cell was never "remembered" in the seen sense, so say so. */
+        if(glyph_is_object(g)&&!cansee(x,y)&&!levl[x][y].seenv)printf(",\"sensed\":true");
         printf(",\"kind\":");quoted(glyph_is_pet(g)?"pet":glyph_is_monster(g)?"monster":glyph_is_object(g)?"object":"terrain");
         /* A trap by the name the hero sees for it (a vibrating square isn't a teleport trap). */
         if (glyph_is_trap(g)) {
@@ -502,11 +505,16 @@ static void default_autodig(void) {
     if((f=fopen(path,"w"))){fputs("1\n",f);fclose(f);}
 }
 /* Input is one decimal keycode or a UTF-8 line, only after a request. */
+/* Where getpos() has the cursor (a scroll of stinking cloud, travel, a spell aimed at a spot).
+   The map window's cursor is the only thing that says; a position request carries it. */
+static int cursor_x=-1,cursor_y=-1;
 static void read_request(const char *kind,const char *prompt,char *buf,int size) {
     /* Before a level exists (getlock's "Destroy old game?" comes before the dungeon is set up)
        there is no map to describe, so send the prompt alone. */
     if(u.uz.dlevel)default_autodig();
-    fx_flush();if(u.uz.dlevel)frame();printf("{\"type\":\"request\",\"id\":%ld,\"kind\":",++request_id);quoted(kind);printf(",\"prompt\":");quoted(prompt);puts("}");fflush(stdout);
+    fx_flush();if(u.uz.dlevel)frame();printf("{\"type\":\"request\",\"id\":%ld,\"kind\":",++request_id);quoted(kind);printf(",\"prompt\":");quoted(prompt);
+    if(!strcmp(kind,"position")&&cursor_x>0)printf(",\"cursor\":{\"x\":%d,\"z\":%d}",cursor_x,cursor_y);
+    puts("}");fflush(stdout);
     catch_signals();
     if(signalled||!fgets(buf,size,stdin)) { hangup(0);exit(0); }
     buf[strcspn(buf,"\r\n")]=0;
@@ -526,7 +534,7 @@ static void finish(const char *s){tmp_at_hook=0;combat_hook=0;death_hook=0;reviv
 static winid create(int type){for(int i=1;i<BW;i++)if(!wins[i].type){wins[i].type=type;return i;}panic("bridge windows exhausted");return WIN_ERR;}
 static void clear(winid w){if(w<1||w>=BW)return;for(int i=0;i<wins[w].n;i++)free(wins[w].items[i].text);wins[w].n=0;wins[w].prompt[0]=0;if(wins[w].type==NHW_MAP)for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;}
 static void destroy(winid w){clear(w);if(w>0&&w<BW)wins[w].type=0;}
-static void bridge_curs(winid w UNUSED,int x UNUSED,int y UNUSED){}
+static void bridge_curs(winid w,int x,int y){if(w==WIN_MAP){cursor_x=x;cursor_y=y;}}
 static void put(winid w,int attr UNUSED,const char *s){if(w>0&&w<BW&&(wins[w].type==NHW_TEXT||wins[w].type==NHW_MENU)){if(wins[w].n<BM){struct entry *e=&wins[w].items[wins[w].n++];e->text=strdup(s);e->selectable=FALSE;}}else event(w>0&&w<BW&&wins[w].type==NHW_STATUS?"status":"message",s);}
 static void raw(const char *s){event("message",s);}
 static void display(winid w,boolean block){if(w>0&&w<BW&&wins[w].n){printf("{\"type\":\"text\",\"lines\":[");for(int i=0;i<wins[w].n;i++){if(i)putchar(',');quoted(wins[w].items[i].text);}puts("]}");}if(block)key("more","Continue");}

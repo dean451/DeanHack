@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cellStyle, drawMinimap, WIDTH, HEIGHT, SCALE} from './minimap.js';
+import {cellStyle, drawMinimap, cellAtPixel, WIDTH, HEIGHT, SCALE} from './minimap.js';
 
 const hero = {x: 10, z: 5};
 
@@ -45,4 +45,24 @@ test('drawMinimap draws each cell once inside the canvas and skips out-of-range 
   assert.ok(calls.some(([x, y, w, h]) => x === 0 && y === 0 && w === SCALE && h === SCALE), 'cell (1,0) is the top-left square');
   assert.ok(calls.every(([x, y]) => x >= -1 && y >= -1 && x <= WIDTH && y <= HEIGHT));
   assert.equal(drawMinimap(ctx, null), 0, 'no frame, nothing drawn');
+});
+
+test('the square being aimed at gets a bracket, and only when it is on the map', () => {
+  const strokes = [];
+  const ctx = {clearRect() {}, fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, fill() {}, strokeRect: (...a) => strokes.push(a), set fillStyle(v) {}, set strokeStyle(v) {}, set lineWidth(v) {}};
+  drawMinimap(ctx, {player: {x: 1, z: 1}, cells: []}, {x: 10, z: 5});
+  assert.equal(strokes.length, 1);
+  assert.deepEqual(strokes[0], [(10 - 1) * SCALE - 1.5, 5 * SCALE - 1.5, SCALE + 3, SCALE + 3]);
+  drawMinimap(ctx, {player: {x: 1, z: 1}, cells: []}, {x: 200, z: 5});
+  drawMinimap(ctx, {player: {x: 1, z: 1}, cells: []}, null);
+  assert.equal(strokes.length, 1);
+});
+
+test('a click on the minimap names the map square under it, whatever size the canvas is shown at', () => {
+  assert.deepEqual(cellAtPixel(0, 0), {x: 1, z: 0});
+  assert.deepEqual(cellAtPixel(WIDTH - 1, HEIGHT - 1), {x: 80, z: 20});
+  assert.deepEqual(cellAtPixel(SCALE * 9 + 1, SCALE * 5 + 1), {x: 10, z: 5});
+  assert.deepEqual(cellAtPixel(240 / 2, 63 / 2, 240, 63), {x: 41, z: 10}, 'scaled canvas');
+  assert.equal(cellAtPixel(-1, 5), null);
+  assert.equal(cellAtPixel(WIDTH, 5), null);
 });

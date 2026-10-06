@@ -45,7 +45,7 @@ function drawMark(ctx, mark, px, py) {
   }
 }
 
-export function drawMinimap(ctx, frame) {
+export function drawMinimap(ctx, frame, cursor = null) {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
   ctx.fillStyle = 'rgba(8,14,18,.78)';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -61,7 +61,20 @@ export function drawMinimap(ctx, frame) {
     if (style.mark) drawMark(ctx, style.mark, px, py);
     drawn++;
   }
+  if (cursor && cursor.x >= 1 && cursor.x <= COLS && cursor.z >= 0 && cursor.z < ROWS) {
+    // a bracket around the square being aimed at, bright against any terrain
+    const px = (cursor.x - 1) * SCALE, py = cursor.z * SCALE;
+    ctx.strokeStyle = '#fff0b8';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px - 1.5, py - 1.5, SCALE + 3, SCALE + 3);
+  }
   return drawn;
+}
+
+// Which map square a pixel of the minimap is, for aiming by clicking it (null outside the map).
+export function cellAtPixel(px, py, width = WIDTH, height = HEIGHT) {
+  const x = Math.floor((px / width) * COLS) + 1, z = Math.floor((py / height) * ROWS);
+  return x >= 1 && x <= COLS && z >= 0 && z < ROWS ? {x, z} : null;
 }
 
 export function createMinimap(doc) {
@@ -73,9 +86,17 @@ export function createMinimap(doc) {
   el.setAttribute('aria-label', 'Map of the level');
   el.setAttribute('role', 'img');
   const ctx = el.getContext?.('2d');
+  let lastFrame = null, cursor = null;
+  const redraw = () => (ctx ? drawMinimap(ctx, lastFrame, cursor) : 0);
   return {
     el,
-    update(frame) { return ctx ? drawMinimap(ctx, frame) : 0; },
+    update(frame) { lastFrame = frame; return redraw(); },
+    // Aiming: a bracket on the chosen square, and the map takes clicks while a spot is being picked.
+    setCursor(c) { cursor = c; el.classList?.toggle('aiming', !!c); redraw(); },
+    cellAt(clientX, clientY) {
+      const r = el.getBoundingClientRect();
+      return cellAtPixel(clientX - r.left, clientY - r.top, r.width, r.height);
+    },
     setVisible(on) { el.hidden = !on; },
   };
 }
