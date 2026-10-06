@@ -5,7 +5,7 @@ import {scoopSwell} from './step-over.js';
 
 export const PICKUP_DURATION = .35;
 export const PICKUP_RISE = .45;
-const AURA_KEYS = ['wandAura', 'scrollAura', 'potionFx', 'ringAura', 'amuletAura', 'weaponAura', 'artifactGleam'];
+const AURA_KEYS = ['wandAura', 'scrollAura', 'potionFx', 'ringAura', 'amuletAura', 'toolAura', 'weaponAura', 'artifactGleam'];
 
 export const hasMagicLook = item => AURA_KEYS.some(key => item.userData[key]);
 
