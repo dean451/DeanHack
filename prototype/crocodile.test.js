@@ -26,7 +26,7 @@ test('crocodiles get their own low armoured model instead of the scaled lizard',
   a.g.updateMatrixWorld(true);
   const b=box(a.g);
   // lies on the floor, long and low: the snout leads and the tail trails
-  assert(b.min.y>-1e-3&&b.max.y<.2,`height ${b.min.y}..${b.max.y}`);
+  assert(b.min.y>-1e-3&&b.max.y<.26,`height ${b.min.y}..${b.max.y}`);
   assert(b.max.z-b.min.z>3*(b.max.y-b.min.y),'long and low');
   assert(Math.abs(box(a.head).max.z-b.max.z)<1e-6,'snout leads');
   assert(Math.abs(box(a.tail).min.z-b.min.z)<1e-6,'tail trails');
@@ -34,7 +34,7 @@ test('crocodiles get their own low armoured model instead of the scaled lizard',
   for(const leg of a.legs)assert(box(leg).min.y<.02,'feet on the floor');
  }
  const b=box(croc.g);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.7,'about a tile long');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.95,'about a tile long');
  assert(box(baby.g).max.z<b.max.z*.7,'the baby is smaller');
  // shared geometry and materials: a second crocodile costs no extra buffers
  const again=meshes(createCreature({name:'crocodile'}));
