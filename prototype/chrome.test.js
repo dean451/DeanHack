@@ -28,3 +28,13 @@ test('the page carries no badge, brand block or footer blurb', () => {
   // the branch heading only shows for real named levels
   assert.match(live, /h1'\)\.hidden=!where\.named/);
 });
+
+test('the creatures in view sit in the upper right, clear of the live panel', () => {
+  const css = read('style.css');
+  const rule = [...css.matchAll(/\.live-engine #engine-seen\{([^}]*)\}/g)].map(m => m[1]).find(r => r.includes('position')) || '';
+  assert.match(rule, /position:fixed/);
+  assert.match(rule, /top:26px/);
+  assert.match(rule, /right:40px/);
+  assert.match(rule, /pointer-events:none/);
+  assert.doesNotMatch(rule, /bottom:/);
+});
