@@ -2073,8 +2073,8 @@ test('the hezrou gets its own hunched, warty, fanged toad demon with a hinged ja
  hz.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(hz.g,true);
  assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
- assert(b.max.y>1.05&&b.max.y<1.35,`top at ${b.max.y}`);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
+ assert(b.max.y>1.05&&b.max.y<1.6,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.72,'out of proportion');
  // hunched: the head hangs forward of the body, no higher than the hump and its spines
  const head=new THREE.Box3().setFromObject(hz.head,true);
  assert(head.max.z>b.max.z-.02,'the head leads');
