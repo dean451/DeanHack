@@ -66,6 +66,15 @@ const TWISTS = {
     liquid.material.emissiveIntensity = .7;
     glass.material.color.lerp(new THREE.Color(0x607020), .3);
   },
+  sickness(parts) {
+    const {liquid, glass} = parts;
+    liquid.material.color.lerp(new THREE.Color(0x707a20), .65);
+    liquid.material.roughness = .9;
+    liquid.material.emissiveIntensity = 0;
+    liquid.material.transparent = false;
+    liquid.material.opacity = 1;
+    glass.material.color.lerp(new THREE.Color(0x4a5018), .3);
+  },
 };
 
 // Applies the twist for this floor object to the potion meshes in `group`. Returns the twist name

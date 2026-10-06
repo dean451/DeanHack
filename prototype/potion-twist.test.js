@@ -50,3 +50,12 @@ test('acid burns green inside the glass',()=>{
  assert(part(acid,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
  plain.userData.dispose();acid.userData.dispose();
 });
+
+test('sickness turns the liquid to a murky, opaque sludge',()=>{
+ const plain=make('healing'),sick=make('potion of sickness');
+ const l=part(sick,'liquid').material;
+ assert.equal(sick.userData.twist,'sickness');
+ assert.equal(l.transparent,false);
+ assert(l.roughness>part(plain,'liquid').material.roughness);
+ plain.userData.dispose();sick.userData.dispose();
+});
