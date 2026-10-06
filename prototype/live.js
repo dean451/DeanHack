@@ -177,7 +177,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  const $=s=>document.querySelector(s);
  const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
  const button=document.createElement('button');button.textContent='Live UnNetHack';button.id='live-mode';$('.buttons').prepend(button);
- const panel=document.createElement('section');panel.id='engine-panel';panel.hidden=true;panel.innerHTML='<small>UNNETHACK · LIVE ENGINE</small><p id="engine-line" aria-live="polite"></p><div id="engine-messages" role="log"></div><div id="engine-status"></div><div id="engine-seen"></div><div id="engine-prompt"></div>';document.body.append(panel);
+ const panel=document.createElement('section');panel.id='engine-panel';panel.hidden=true;panel.innerHTML='<p id="engine-line" aria-live="polite"></p><div id="engine-messages" role="log"></div><div id="engine-status"></div><div id="engine-seen"></div><div id="engine-prompt"></div>';document.body.append(panel);
  const minimap=createMinimap(document);document.body.append(minimap.el);
  const historyPanel=createHistoryPanel(document,()=>allRows(messageLog));document.body.append(historyPanel.el);
  const aim=createAimCursor();group.add(aim.g);let aimQueue=[];

@@ -46,3 +46,8 @@ test('the minimap sits in the bottom-right corner and the live key legend stops 
   assert.match(map, /bottom:25px/);
   assert.match(css, /body\.live-engine footer\{right:384px\}/);
 });
+
+test('the live panel carries no engine caption', () => {
+  assert.doesNotMatch(read('live.js'), /UNNETHACK · LIVE ENGINE/);
+  assert.doesNotMatch(read('style.css'), /#engine-panel>small/);
+});
