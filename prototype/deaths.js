@@ -124,10 +124,11 @@ export function deathPose(style, u, dir = null) {
       break;
     }
     case 'dissipate': {
-      // Spin faster and faster, swell, lift and thin out.
+      // Spin faster and faster, swell, lift and thin out. It draws in on itself first, as if
+      // sucking in a last breath, so the swell reads as a release.
       const s = smooth(u);
       p.spin = 9 * u * u;
-      p.scale = 1 + .6 * s;
+      p.scale = 1 + .6 * s - .14 * Math.sin(Math.PI * clamp01(u / .15));
       p.sy = 1 - .25 * s;
       p.dy = .25 * s;
       p.fade = 1 - smooth((u - .15) / .85);
