@@ -33,3 +33,22 @@ test('the flash comes first and the embers rise and stay bounded', () => {
     for (let t = 0; t <= JET.total; t += .01) { const p = emberPose(i, t); assert.ok(p.y >= prev - 1e-9 && p.y <= 1.85 && Math.hypot(p.x, p.z) < .4 && p.alpha <= .9 + 1e-9, `${i} ${t}`); prev = p.y; }
   }
 });
+
+test('the jet waits for the next frame and lands on the trap square, not the square the hero left', async () => {
+  const {createFireTrapJet, PENDING_WAIT} = await import('./fire-trap-jet.js');
+  const added = [];
+  const THREE = new Proxy({}, {get: () => class { constructor() { this.position = {set: (x, y, z) => added.push([x, z]), y: 0}; this.rotation = {}; this.scale = {setScalar() {}, set() {}}; this.material = {}; } add() {} dispose() {} }});
+  const jet = createFireTrapJet(THREE, {add() {}, remove() {}});
+  jet.message('A tower of flame bursts from the floor!', 1, 1);
+  assert.equal(jet.active, 0);
+  jet.settle(2, 1);
+  assert.equal(jet.active, 1);
+  assert.deepEqual(added[0], [2, 1]);
+  jet.clear();
+  added.length = 0;
+  jet.message('A tower of flame bursts from the floor!', 5, 5);
+  jet.update(PENDING_WAIT + .01);
+  assert.equal(jet.active, 1);
+  assert.deepEqual(added[0], [5, 5]);
+  jet.clear();
+});
