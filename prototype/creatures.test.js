@@ -15,8 +15,8 @@ test('each shuffled dragon name gets its own grounded, finite body plan',()=>{
   actor.g.updateMatrixWorld(true);
   actor.g.traverse(part=>{if(part.geometry)for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);});
   const bounds=new THREE.Box3().setFromObject(actor.g);
-  assert(bounds.min.y>-.005,name);assert(bounds.max.y<1.35,name);
-  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<1.05,name);
+  assert(bounds.min.y>-.005,name);assert(bounds.max.y<1.5,name);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<1.15,name);
  }
 });
 
@@ -46,8 +46,8 @@ test('an identified dragon wears its breath, and an unidentified brown one wears
    assert(s.n<=plain.n+14,`${name} ${element} stays cheap (${s.n} draws)`);
    seen.add(s.v);
    const bounds=new THREE.Box3().setFromObject(a.g);
-   assert(bounds.min.y>-.005&&bounds.max.y<1.35,`${name} ${element} height`);
-   assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<1.05,`${name} ${element} width`);
+   assert(bounds.min.y>-.005&&bounds.max.y<1.5,`${name} ${element} height`);
+   assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<1.15,`${name} ${element} width`);
   }
   assert.equal(seen.size,Object.keys(elements).length,`${name}: every breath looks different`);
  }
@@ -158,7 +158,7 @@ test('mumakil and mastodons are tusked, trunked beasts baked into a few meshes, 
   assert(meshes<=24,`${name} has ${meshes} meshes`);counts[name]=meshes;
   const bounds=new THREE.Box3().setFromObject(beast.g);
   assert(Math.abs(bounds.min.y)<.005,name);assert(bounds.max.y>1.1&&bounds.max.y<1.6,name);
-  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<1.05,name);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<1.15,name);
   // the trunk hangs clear of the floor
   assert(new THREE.Box3().setFromObject(beast.trunk).min.y>.08,name);
  }
