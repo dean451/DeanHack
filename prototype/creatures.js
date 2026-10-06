@@ -2690,6 +2690,8 @@ export function createCreature(cell={}){
  if(name==='norn')return createNorn();
  if(name==='warrior')return createWarrior();
  if(name==='samurai')return createSamurai();
+ // Ashikaga Takauji, the Samurai quest nemesis: a warlord, so the samurai build stands a fifth larger
+ if(name==='ashikaga takauji'){const a=createSamurai();a.g.scale.multiplyScalar(1.2);return a}
  if(name==='knight')return createKnight();
  if(name==='wizard')return createWizard();
  if(name==='wizard of yendor')return createWizardOfYendor();
