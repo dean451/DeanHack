@@ -20,6 +20,8 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 //   skull, held upright.
 // - orc-captain: mail, iron pauldrons on both shoulders, a purple cape, a horned iron helm, a
 //   skull on the belt, and a great notched scimitar. Stands taller.
+// - goblin king: a captain's kit in blood red and black, a pitted gold crown of bent spikes set on
+//   the horned helm, and a larger frame. The unique nemesis of the goblin quest.
 // - deep orc: pale grey-blue from life underground, bald and scarred, with big pale eyes, in a
 //   mail shirt, carrying a hand axe.
 // Each moving part (body, head, each leg and arm, the weapon) is one merged vertex-coloured mesh
@@ -41,6 +43,8 @@ const LOOKS={
   armour:'robe',helm:'bone',weapon:'staff',feet:'wrapped',scale:.97},
  'orc-captain':{skin:'#5e6a3e',shade:'#3c4426',eye:'#ff2a10',cloth:'#7a2a6a',clothDark:'#4a1440',leather:'#3a2618',metal:'#60666c',hair:'#141210',
   armour:'captain',helm:'horned',weapon:'great',feet:'boots',scale:1.1},
+ 'goblin king':{skin:'#4a5a34',shade:'#2e3a1e',eye:'#ff1a0a',cloth:'#5a1a1a',clothDark:'#340c0c',leather:'#2e1e12',metal:'#585c58',hair:'#0e0c0a',
+  armour:'captain',helm:'horned',crown:true,weapon:'great',feet:'boots',scale:1.14},
  'deep orc':{skin:'#7e8e8e',shade:'#56646a',eye:'#e8f0b0',cloth:'#2a4a2a',clothDark:'#1a2e1a',leather:'#3e3024',metal:'#5e6266',hair:'#2a2a2a',
   armour:'mail',helm:'bald',weapon:'axe',feet:'wrapped',bigEyes:true,scale:1.06},
 };
@@ -188,6 +192,11 @@ function buildHead(L,C){
    }
    if(L.helm==='horned')for(const s of [-1,1])
     P.add(taper([V(s*.12,.08,-.01),V(s*.2,.13,.0),V(s*.23,.22,.02),V(s*.2,.3,.04)],.03,8,12),null,(x,y)=>mix(BONE,rgb('#3a3028'),(y-.08)*4));
+   if(L.crown){
+    // a pitted, dented gold crown of bent spikes round the helm
+    P.add(new THREE.TorusGeometry(r+.02,.014,6,26),at(0,.085,-.016,[Math.PI/2-.12,0,0],[1.02,1.1,1]),mix(GOLD,[0,0,0],.35));
+    for(let i=0;i<7;i++){const a=i/7*Math.PI*2,x=Math.sin(a)*(r+.02),z=Math.cos(a)*(r+.02)*1.1-.016;P.add(new THREE.ConeGeometry(.016,.07+hash(i+3)*.04,5),at(x,.13,z,[(hash(i)-.5)*.5,0,(hash(i+9)-.5)*.5]),mix(GOLD,[0,0,0],.3+hash(i)*.2));}
+   }
    break;}
   case 'bone':{
    // a beast's skull worn as a headdress, with its horns, and feathers behind
