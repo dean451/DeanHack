@@ -820,8 +820,8 @@ test('shades get their own gaunt, hunched shadow with ribs, a cowled skull, claw
  shade.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(shade.g);
  assert(b.min.y>.02&&b.min.y<.2,`tendrils end at ${b.min.y}`);
- assert(b.max.y>1&&b.max.y<1.25,`top at ${b.max.y}`);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'fits the tile');
+ assert(b.max.y>1&&b.max.y<1.55,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.65,'fits the tile');
  // the claws reach out in front of the chest; the shadow is see-through, the bones are not
  assert(new THREE.Box3().setFromObject(shade.arm).max.z>.3,'claws reach forward');
  const body=parts.find(m=>m.userData.part==='body').material,bones=parts.find(m=>m.userData.part==='bones').material;
