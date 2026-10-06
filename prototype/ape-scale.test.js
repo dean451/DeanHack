@@ -9,3 +9,11 @@ test('the sasquatch and yeti stand over a plain ape', () => {
   assert(height('sasquatch') > height('ape') * 1.4);
   assert(height('yeti') > height('ape') * 1.3);
 });
+
+test('the owlbear towers over a plain ape', () => {
+  assert(height('owlbear') > height('ape') * 1.3);
+});
+
+test('the carnivorous ape outsizes a plain ape', () => {
+  assert(height('carnivorous ape') > height('ape') * 1.15);
+});

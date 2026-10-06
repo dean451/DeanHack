@@ -801,7 +801,7 @@ function ape(o){
  let tail=null;if(o.tail){tail=new THREE.Group();tail.position.set(0,.4,-.2);body.add(tail);tube(tail,[[0,0,0],[0,-.08,-.14],[0,.02,-.28],[0,.2,-.3],[0,.26,-.2],[0,.18,-.16]],.022,fur,20);}
  return actor(g,body,legs,tail,[],'idle');
 }
-const APES={monkey:{fur:'#8a6440',face:'#d6b08a',tail:true,scale:.7},ape:{fur:'#5a4030',face:'#a88a70'},owlbear:{fur:'#7a5a38',face:'#c8a878',beak:true,scale:1.2},yeti:{fur:'#e4e2da',face:'#8aa0b0',shaggy:true,glare:true,scale:1.4},'carnivorous ape':{fur:'#2e2622',face:'#7a5a50',fangs:true,glare:true,scale:1.1},sasquatch:{fur:'#4a3424',face:'#8a6a58',shaggy:true,scale:1.5}};
+const APES={monkey:{fur:'#8a6440',face:'#d6b08a',tail:true,scale:.7},ape:{fur:'#5a4030',face:'#a88a70'},owlbear:{fur:'#7a5a38',face:'#c8a878',beak:true,scale:1.4},yeti:{fur:'#e4e2da',face:'#8aa0b0',shaggy:true,glare:true,scale:1.4},'carnivorous ape':{fur:'#2e2622',face:'#7a5a50',fangs:true,glare:true,scale:1.25},sasquatch:{fur:'#4a3424',face:'#8a6a58',shaggy:true,scale:1.5}};
 // mimics (m): a banded wooden treasure chest whose lid has cracked open on a row of fangs and a lolling tongue,
 // with a single eye peering out of the lid and stubby pseudopods where its feet should be
 function mimic(o){
