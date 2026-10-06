@@ -31,6 +31,10 @@ export const holeMessage = text => typeof text === 'string' && /^You dig a hole 
 export const TRAPDOOR_HANG = .12;
 export const trapdoorMessage = text => typeof text === 'string' && /^(?:A trap door opens up under you|There's a gaping hole under you)!/.test(text);
 
+// The trap door (or hole) did not take the hero: they stay on the floor. Text from NetHack source,
+// unconfirmed against a live engine.
+export const escapeMessage = text => typeof text === 'string' && /^(?:You don't fall in\.|You escape a (?:trap door|hole)\.|You (?:float|fly) (?:over|across) (?:a|the) (?:trap door|hole))/.test(text);
+
 // How far under the floor the hero is t seconds after the hole breaks.
 export function sinkOffset(t, hang = HANG) {
   if (!(t > hang)) return 0;
@@ -53,10 +57,16 @@ export const ARRIVE_TIME = Math.sqrt(2 * ARRIVE_HEIGHT / ARRIVE_GRAVITY) +
   2 * Math.sqrt(2 * ARRIVE_GRAVITY * ARRIVE_HEIGHT) * BOUNCE / ARRIVE_GRAVITY;
 
 export function createDigDrop() {
-  let mode = null, age = 0, hang = HANG;
+  let mode = null, age = 0, hang = HANG, from = 0;
   return {
     // `airborne` (see airborneStatus): the hero floats over the hole rather than dropping through it.
     message(text, airborne = false) {
+      if (escapeMessage(text)) {
+        // Hauled back to the floor from wherever the lurch had got to, never left sunk.
+        if (mode === 'sink') { from = sinkOffset(age, hang); mode = 'recover'; age = 0; return true; }
+        if (mode === 'hover' || mode === 'recover') return false;
+        mode = 'hover'; age = 0; return true;
+      }
       const trapdoor = trapdoorMessage(text);
       if (!trapdoor && !holeMessage(text)) return false;
       mode = airborne ? 'hover' : 'sink'; age = 0; hang = trapdoor ? TRAPDOOR_HANG : HANG; return true;
@@ -73,6 +83,11 @@ export function createDigDrop() {
         if (age >= HOVER_TIME) { mode = null; return 0; }
         return hoverOffset(age);
       }
+      if (mode === 'recover') {
+        if (age >= RISE) { mode = null; return 0; }
+        const r = age / RISE;
+        return from * (1 - r * r * (3 - 2 * r));
+      }
       if (mode === 'sink') {
         if (age >= GIVE_UP + RISE) { mode = null; return 0; }
         return sinkOffset(age, hang);
@@ -80,7 +95,7 @@ export function createDigDrop() {
       if (age >= ARRIVE_TIME) { mode = null; return 0; }
       return arriveOffset(age);
     },
-    clear() { mode = null; age = 0; hang = HANG; },
+    clear() { mode = null; age = 0; hang = HANG; from = 0; },
     get active() { return mode !== null; },
   };
 }
