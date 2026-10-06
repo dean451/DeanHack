@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createHealthBar, setHealth, placeAbove, healthFraction, BAR_WIDTH} from './health-bar.js';
+import {createHealthBar, setHealth, placeAbove, healthFraction, BAR_WIDTH, BAR_HEIGHT} from './health-bar.js';
 
 test('only a wounded monster has a health fraction', () => {
   assert.equal(healthFraction(undefined), null);
@@ -27,6 +27,9 @@ test('the bar starts hidden, grows with health, and hides again when the monster
 test('the bar is small, quiet and cleans up after itself', () => {
   const bar = createHealthBar();
   assert.ok(BAR_WIDTH <= 0.8);
+  assert.ok(BAR_HEIGHT <= 0.03, 'hairline thin');
+  const thin = createHealthBar();
+  assert.ok(thin.children[0].scale.y < BAR_HEIGHT * 1.6, 'the dark backing hugs the fill');
   let disposed = 0;
   for (const s of bar.children) { const d = s.material.dispose.bind(s.material); s.material.dispose = () => { disposed++; d(); }; }
   bar.userData.dispose();
