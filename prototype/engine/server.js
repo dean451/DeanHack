@@ -17,20 +17,40 @@ export function encodeReply(request, body) {
   if(!Number.isInteger(body.value)||body.value<1||body.value>255)throw new Error('Invalid key');
   return body.value+'\n';
 }
+export const DEFAULT_PLAYER_NAME = 'Wanderer';
+// The character's name, typed by the player. It goes to the engine as `-u` and in NETHACKOPTIONS
+// (comma separated), and it names the save file, so keep it short and plain: letters, digits,
+// spaces, underscores and apostrophes, starting with a letter or digit so it can never read as a
+// command-line option. No hyphens: NetHack reads "name-role-race-gender-alignment" suffixes, so
+// "Mary-Jane" would become the name "Mary" with a bad role. Anything else, or nothing, is the default.
+export function cleanPlayerName(raw) {
+  if (typeof raw !== 'string') return DEFAULT_PLAYER_NAME;
+  const name = raw.replace(/[^A-Za-z0-9 _']/g, '').replace(/\s+/g, ' ').trim().slice(0, 24).trim();
+  return /^[A-Za-z0-9]/.test(name) ? name : DEFAULT_PLAYER_NAME;
+}
+// The engine's command line and options for a character of this name.
+export function engineLaunch(rawName, manifest) {
+  const name = cleanPlayerName(rawName);
+  return {
+    name,
+    args: ['-d', manifest.cwd, '-u', name, '-p', 'Valkyrie', '-r', 'human'],
+    options: `windowtype:bridge,name:${name},role:Valkyrie,race:human,gender:female,align:lawful,pettype:cat,!news,autodig,autopickup,pickup_types:/!?="`,
+  };
+}
 export default function enginePlugin(){
  const root=fileURLToPath(new URL('../.engine/',import.meta.url));
  const token=randomBytes(24).toString('hex');
- let child=null,pending=null,frame=null,menu=null,text=null,ended=null,commands=null,buffer='',seq=0;const clients=new Set();const history=[];const log=[];
+ let playerName=DEFAULT_PLAYER_NAME,child=null,pending=null,frame=null,menu=null,text=null,ended=null,commands=null,buffer='',seq=0;const clients=new Set();const history=[];const log=[];
  // A monotonic, capped event log backs GET /engine/poll: some hosting paths (a proxy or
  // tunnel that buffers/holds back streaming responses) never deliver anything over the
  // SSE endpoint below, so the client can fall back to polling this instead.
  function send(event){if(event.type==='frame')frame=event;else if(event.type==='request')pending=event;else if(event.type==='menu')menu=event;else if(event.type==='commands')commands=event;else if(event.type==='text')text=event;else if(event.type==='ended')ended=event;else if(event.type==='message'||event.type==='status'){history.push(event);if(history.length>40)history.shift();}log.push({seq:++seq,event});if(log.length>500)log.shift();for(const res of clients)res.write(`data: ${JSON.stringify(event)}\n\n`);}
- function start(){
+ function start(rawName){
    if(child)return;
    const manifest=JSON.parse(readFileSync(resolve(root,'manifest.json'),'utf8'));
    for(const p of [manifest.binary,manifest.cwd,manifest.home,manifest.prefix])if(!realpathSync(p).startsWith(realpathSync(root)+sep))throw new Error('Engine path is outside isolated runtime');
    pending=frame=menu=text=ended=commands=null;history.length=0;buffer='';
-   child=spawn(manifest.binary,['-d',manifest.cwd,'-u','Wanderer','-p','Valkyrie','-r','human'],{cwd:manifest.cwd,env:{PATH:process.env.PATH,HOME:manifest.home,USER:process.env.USER,LOGNAME:process.env.LOGNAME,TERM:'dumb',NETHACKOPTIONS:'windowtype:bridge,name:Wanderer,role:Valkyrie,race:human,gender:female,align:lawful,pettype:cat,!news,autodig,autopickup,pickup_types:/!?="'},stdio:['pipe','pipe','pipe']});
+   const launch=engineLaunch(rawName,manifest);playerName=launch.name;child=spawn(manifest.binary,launch.args,{cwd:manifest.cwd,env:{PATH:process.env.PATH,HOME:manifest.home,USER:process.env.USER,LOGNAME:process.env.LOGNAME,TERM:'dumb',NETHACKOPTIONS:launch.options},stdio:['pipe','pipe','pipe']});
    child.stdout.setEncoding('utf8');child.stdout.on('data',chunk=>{buffer+=chunk;if(buffer.length>2000000){send({type:'message',text:'Engine output exceeded protocol limit.'});child.stdin.end();buffer='';return;}let i;while((i=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,i);buffer=buffer.slice(i+1);if(!line.trim())continue;try{const data=JSON.parse(line);if(['frame','request','menu','commands','text','message','status','ended','fx','combat','death','revive','pickup'].includes(data.type))send(data);}catch{send({type:'message',text:line.slice(0,500)});}}});
    child.stderr.on('data',b=>send({type:'message',text:String(b).slice(0,1000)}));
    child.on('error',e=>send({type:'message',text:e.message}));
@@ -69,7 +89,7 @@ export default function enginePlugin(){
      if(req.method!=='POST'||req.headers['x-engine-token']!==token)return json(403,{error:'Invalid local session token'});
      try{
        let body='';for await(const b of req){body+=b;if(body.length>4096)throw new Error('Request too large');}
-       if(path==='/engine/start'){start();return json(200,{ok:true});}
+       if(path==='/engine/start'){let name;try{name=body?JSON.parse(body).name:undefined;}catch{name=undefined;}start(name);return json(200,{ok:true,name:playerName});}
        if(path==='/engine/input'){
          if(!child)throw new Error('Start the engine first');
          const reply=encodeReply(pending,JSON.parse(body));pending=null;menu=null;text=null;child.stdin.write(reply);return json(200,{ok:true});
