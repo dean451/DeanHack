@@ -36,6 +36,16 @@ export function drawPose(kind, t) {
   return {radius: .6 - .45 * smooth(u) + .03 * hitch, alpha: .55 * smooth(u / .2) * (1 - smooth((u - .7) / .3))};
 }
 
+// The offering itself: a dark, corpse-sized smear lying on the stone that sags and is drawn
+// down into it, twitching once as if it had noticed, while the hunger ring closes (first fifth).
+export function corpsePose(kind, t) {
+  const total = SACRIFICE[kind];
+  if (!total || t <= 0 || t >= total * .22) return {sink: 0, width: 0, alpha: 0};
+  const u = t / (total * .22), sink = smooth((u - .15) / .8);
+  const twitch = .04 * Math.sin(Math.PI * clamp01((u - .3) / .12));
+  return {sink, width: .5 * (1 - .75 * sink) + twitch, alpha: .6 * smooth(u / .1) * (1 - smooth((u - .75) / .25))};
+}
+
 // The scorch ring left on the stone: appears as the tongue peaks and fades slowly after.
 export function scorchPose(kind, t) {
   const total = SACRIFICE[kind];
@@ -57,7 +67,9 @@ export function createAltarSacrifice(THREE, parent) {
     const ring = new THREE.Mesh(ringGeo, ringMat); ring.position.y = -.3; g.add(ring);
     const drawMat = new THREE.MeshBasicMaterial({map: softRing(THREE), color: 0x120806, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, toneMapped: false});
     const draw = new THREE.Mesh(ringGeo, drawMat); draw.position.y = -.28; g.add(draw);
-    live.push({g, kind, tongue, ring, draw, mats: [tongueMat, ringMat, drawMat], t: 0});
+    const corpseMat = new THREE.MeshBasicMaterial({color: 0x0a0504, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false, toneMapped: false});
+    const corpse = new THREE.Mesh(ringGeo, corpseMat); corpse.position.y = -.3; corpse.rotation.y = .6; g.add(corpse);
+    live.push({g, kind, tongue, ring, draw, corpse, mats: [tongueMat, ringMat, drawMat, corpseMat], t: 0});
     return g;
   }
   function drop(e) { e.mats.forEach(m => m.dispose()); parent.remove(e.g); }
@@ -67,6 +79,7 @@ export function createAltarSacrifice(THREE, parent) {
     e.tongue.scale.set(p.width, Math.max(p.height * 1.8, .001), p.width); e.tongue.material.opacity = p.alpha * .8;
     e.ring.scale.setScalar(r.radius * 2); e.ring.material.opacity = r.alpha;
     const d = drawPose(e.kind, e.t); e.draw.scale.setScalar(Math.max(d.radius * 2, .001)); e.draw.material.opacity = d.alpha;
+    const c = corpsePose(e.kind, e.t); e.corpse.scale.set(Math.max(c.width, .001), 1, Math.max(c.width * .55, .001)); e.corpse.position.y = -.3 - .06 * c.sink; e.corpse.material.opacity = c.alpha;
     return e.t < SACRIFICE[e.kind];
   };
   return {
