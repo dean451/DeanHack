@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {fleckPose, isCrumbleMessage, createSpellCrumble, CRUMBLE} from './spell-crumble.js';
+
+test('only the crumbling message triggers it', () => {
+  assert.ok(isCrumbleMessage('The spellbook crumbles to dust!'));
+  for (const t of ['You begin to memorize the runes.', 'The spellbook is too faded to read.', null]) assert.ok(!isCrumbleMessage(t), String(t));
+});
+
+test('everything starts and ends invisible', () => {
+  for (const t of [0, CRUMBLE.total]) for (let i = 0; i < CRUMBLE.flecks; i++) assert.equal(fleckPose(i, t).alpha, 0);
+});
+
+test('flecks stay in bounds and sag to the floor', () => {
+  for (let i = 0; i < CRUMBLE.flecks; i++) {
+    let first = null, lastY = null;
+    for (let t = .001; t < CRUMBLE.total; t += .005) {
+      const p = fleckPose(i, t);
+      if (p.alpha <= 0) continue;
+      assert.ok(p.y >= .03 && p.y <= .5 + 1e-9 && Math.hypot(p.x, p.z) <= .4 && p.alpha <= .7 + 1e-9, `${i} ${t}`);
+      first ??= p.y; lastY = p.y;
+    }
+    assert.ok(first > .4 && lastY < .2, `fleck ${i} falls`);
+  }
+});
+
+test('the last fleck lingers well after the rest have settled', () => {
+  const end = i => { let e = 0; for (let t = 0; t < CRUMBLE.total; t += .005) if (fleckPose(i, t).alpha > 0) e = t; return e; };
+  const others = Math.max(...Array.from({length: CRUMBLE.flecks - 1}, (_, i) => end(i)));
+  assert.ok(end(CRUMBLE.flecks - 1) > others + .5);
+  assert.ok(Math.abs(fleckPose(CRUMBLE.flecks - 1, 1.2).spin) > Math.abs(fleckPose(0, .5).spin));
+});
+
+test('it plays on the hero\'s square and cleans up', () => {
+  const added = [];
+  const THREE = new Proxy({}, {get: () => class { constructor() { this.position = {set: (x, y, z) => added.push([x, z])}; this.rotation = {set() {}}; this.scale = {set() {}}; this.material = {}; } add() {} dispose() {} }});
+  const fx = createSpellCrumble(THREE, {add() {}, remove() {}});
+  fx.message('The spellbook crumbles to dust!', 3, 4);
+  assert.equal(fx.active, 1); assert.deepEqual(added[0], [3, 4]);
+  fx.update(CRUMBLE.total + .1); assert.equal(fx.active, 0);
+  fx.message('The spellbook crumbles to dust!', 0, 0); fx.clear(); assert.equal(fx.active, 0);
+});
