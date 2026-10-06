@@ -180,7 +180,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function syncAim(){if(active&&origin&&pending?.kind==='position'&&pending.cursor){aim.show(pending.cursor.x-origin.x,pending.cursor.z-origin.z);minimap.setCursor(pending.cursor);}else{aim.hide();minimap.setCursor(null);}}
  minimap.el.addEventListener('click',e=>{if(pending?.kind!=='position'||!pending.cursor)return;const spot=minimap.cellAt(e.clientX,e.clientY);if(!spot)return;aimQueue=aimKeys(pending.cursor,spot);void reply(aimQueue.shift());});
  // Engine commands live in the footer next to the demo's buttons, so both modes share one control row.
- const actions=document.createElement('div');actions.className='engine-actions';actions.hidden=true;actions.innerHTML='<button data-key="105">Inventory</button><button data-key="44">Pick up</button><button data-key="111">Open door</button><button data-key="113">Quaff</button><button data-key="83">Save & exit</button>';$('.buttons').prepend(actions);
+ const actions=document.createElement('div');actions.className='engine-actions';actions.hidden=true;actions.innerHTML='<button data-key="83">Save & exit</button>';$('.buttons').prepend(actions);
  const esc=text=>String(text).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
  function setPrompt(text){$('#engine-prompt').innerHTML=text?`<span class="dot"></span>${esc(text)}`:'';}
  const attributesEl=document.createElement('div');attributesEl.className='attributes';$('.stats').after(attributesEl);
