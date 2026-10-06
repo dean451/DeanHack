@@ -95,3 +95,7 @@ footer .buttons,.engine-actions{gap:2px}
 footer .buttons button,.engine-actions button{padding:2px 7px;font-size:10px;letter-spacing:1px;text-transform:uppercase;background:transparent;border-color:transparent;color:#7f909a}
 footer .buttons button:hover,footer .buttons button:focus-visible,.engine-actions button:hover,.engine-actions button:focus-visible{background:transparent;border-color:#c4b68355;color:#cbd8df}
 .engine-actions{padding-right:6px;margin-right:0;border-right:0}
+/* Key legend: every entry stays on one line and the keys sit tight, so nothing wraps or overlaps. */
+.keys{gap:6px 12px;flex-wrap:wrap}
+.keys span{white-space:nowrap}
+.keys kbd{min-width:0;padding:2px 4px;font-size:10px;margin-right:3px}
