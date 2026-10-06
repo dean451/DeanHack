@@ -11,17 +11,18 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 const BUTT = .08;
 const WOODS = {balsa: 0xd8c49c, maple: 0xbf8a55, pine: 0xd0a468, oak: 0x86603a, ebony: 0x2a201c,
-  bamboo: 0xc8b25e, walnut: 0x5e3e27, mahogany: 0x6c3022, cedar: 0xa35e3b, forked: 0x735234};
+  bamboo: 0xc8b25e, walnut: 0x5e3e27, mahogany: 0x6c3022, cedar: 0xa35e3b, forked: 0x735234, grooved: 0x7a5c3a};
 // [colour, metalness, roughness]
 const METALS = {tin: [0xb2b7b5, .7, .42], brass: [0xc39a48, .85, .3], copper: [0xb86a3c, .85, .32],
   silver: [0xd8dde2, .95, .18], platinum: [0xe4e4de, .95, .14], iridium: [0xaec4d2, .95, .2],
   zinc: [0x9ca6aa, .7, .46], aluminum: [0xc8ccd0, .8, .3], uranium: [0x6d7a58, .6, .5],
   iron: [0x55595e, .75, .55], steel: [0x98a3aa, .9, .24], bronze: [0x9a7738, .85, .36],
   rusty: [0x7b3f24, .35, .88], chrome: [0xeef1f3, 1, .06],
-  titanium: [0x80878d, .85, .5], electrum: [0xd9c88e, .92, .2]};
+  titanium: [0x80878d, .85, .5], electrum: [0xd9c88e, .92, .2],
+  nickel: [0x9a9a90, .8, .4], mithril: [0xa9bccb, .97, .12], orichalcum: [0xb5694a, .9, .28]};
 // Shape-only appearances are iron in objects.c (jeweled is gemstone, forked is wood).
-const SHAPES = new Set(['hexagonal', 'octagonal', 'short', 'long', 'curved', 'runed', 'spiked', 'forked', 'jeweled']);
-const STONES = {marble: 0xe6e2da, ceramic: 0xd8c3a0, porcelain: 0xf3f2ee, black: 0x151515};
+const SHAPES = new Set(['hexagonal', 'octagonal', 'short', 'long', 'curved', 'runed', 'spiked', 'forked', 'jeweled', 'bent']);
+const STONES = {marble: 0xe6e2da, ceramic: 0xd8c3a0, porcelain: 0xf3f2ee, black: 0x151515, alabaster: 0xcdbf9f};
 // Moulded plastic (a dull black rod) and bone (yellowed, with a knuckled grip): neither is stone or wood.
 const ODD = {plastic: 0x1d1f22, bone: 0xcfc3a2};
 const GLASSES = {glass: [0xbfe4ea, .5], crystal: [0xe6f3ff, .45], quartz: [0xf1ece6, .7]};
@@ -49,18 +50,20 @@ function wandLook(look) {
     L.fit = look === 'ebony' ? silver() : brass();
     if (look === 'bamboo') L.extras.push('nodes');
     if (look === 'forked') { L.tip = 'fork'; L.fit = std(0x5a3f27, 0, .9); L.extras.push('knots'); }
+    if (look === 'grooved') { L.fit = std(0x3b281a, 0, .9); L.extras.push('bands'); }
     if (look === 'balsa') { L.radius = .023; L.fit = std(0xc9b58c, 0, .9); }
   } else if (look in METALS) {
     const [c, m, r] = METALS[look];
     L.shaft = std(c, m, r, look === 'uranium' ? {emissive: 0x3c6a1a, emissiveIntensity: .35} : {});
-    L.fit = look === 'rusty' ? std(0x4a2a1c, .4, .9) : look === 'brass' || look === 'bronze' || look === 'copper' ? std(0x3a2a20, .6, .5) : brass();
+    L.fit = look === 'rusty' ? std(0x4a2a1c, .4, .9) : look === 'brass' || look === 'bronze' || look === 'copper' || look === 'orichalcum' ? std(0x3a2a20, .6, .5) : brass();
     L.taper = .9; L.radius = .018;
+    if (look === 'mithril') { L.fit = silver(); L.taper = .8; L.radius = .016; }
     if (look === 'rusty') L.extras.push('pits');
   } else if (look in STONES) {
     L.shaft = std(STONES[look], 0, look === 'porcelain' ? .22 : look === 'black' ? .32 : .5);
     L.fit = look === 'porcelain' ? std(0x2f4f9e, .1, .3) : look === 'marble' ? std(0x8d8a86, .1, .45) : look === 'black' ? silver() : std(0x7b5236, 0, .6);
     L.radius = .021; L.taper = .85;
-    if (look === 'marble') L.extras.push('veins');
+    if (look === 'marble' || look === 'alabaster') L.extras.push('veins');
     if (look === 'porcelain') L.extras.push('bands');
   } else if (look in ODD) {
     if (look === 'plastic') { L.shaft = std(ODD.plastic, 0, .3); L.fit = std(0x34373b, 0, .38); L.radius = .019; }
@@ -76,6 +79,7 @@ function wandLook(look) {
     if (look === 'short') { L.length = .3; L.radius = .022; }
     if (look === 'long') { L.length = .66; L.radius = .017; }
     if (look === 'curved') L.curve = .07;
+    if (look === 'bent') { L.curve = .1; L.shaft = std(0x4a4d52, .7, .62); }
     if (look === 'spiked') L.extras.push('spikes');
     if (look === 'runed') { L.accent = std(0x9fc6ff, .2, .4, {emissive: 0x2d5cff, emissiveIntensity: .55}); L.extras.push('runes'); }
     if (look === 'jeweled') {

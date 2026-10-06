@@ -4,13 +4,14 @@
 // into the floor and embers lift off it. The column gutters (it stutters, not fades) and is
 // gone in about a second and a half. Nothing here is gentle.
 //
-// live.js calls message(text, x, z) with every engine message (x, z the hero's square, which
-// is the trap's), update(dt) every frame and clear() on a level change. Poses are functions of
+// live.js calls message(text, x, z) with every engine message (x, z the hero's last known
+// square) and settle(x, z) from each frame with the hero's new square, which is the trap's, update(dt) every frame and clear() on a level change. Poses are functions of
 // t and return exactly to rest (nothing showing) at the end.
 
 import {clamp01, smooth} from './fx-textures.js';
 
 export const JET = {flash: .12, rise: .18, gutter: 1.0, tongues: 3, embers: 8, total: 1.6};
+export const PENDING_WAIT = .3;
 export const isFireTrapMessage = text => /a tower of flame (bursts|erupts) (from|out of)/i.test(text || '');
 
 // The column: height (past head height at the peak), width and alpha. It shoots up fast,
@@ -48,7 +49,7 @@ export function emberPose(i, t) {
 }
 
 export function createFireTrapJet(THREE, parent) {
-  const live = [];
+  const live = []; let pending = null;
   function add(x, z) {
     const g = new THREE.Group(); g.name = 'FireTrapJet'; g.position.set(x, 0, z); parent.add(g);
     const geo = new THREE.ConeGeometry(1, 1, 7, 1, true), sph = new THREE.SphereGeometry(1, 6, 4), ringGeo = new THREE.RingGeometry(.8, 1, 20), mats = [];
@@ -76,9 +77,15 @@ export function createFireTrapJet(THREE, parent) {
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); e.light.dispose?.(); parent.remove(e.g); }
   return {
     add,
-    message(text, x, z) { if (isFireTrapMessage(text)) add(x, z); },
-    update(dt) { for (let i = live.length - 1; i >= 0; i--) if (!step(live[i], dt)) { drop(live[i]); live.splice(i, 1); } },
-    clear() { live.forEach(drop); live.length = 0; },
+    // The message arrives before the frame that carries the hero's new square, so the x, z
+    // given here are where the hero stood BEFORE stepping on the trap. Hold the jet and let the
+    // next frame (settle) say where the hero, and so the trap, really is; if no frame comes
+    // within PENDING_WAIT, fall back to the square given.
+    message(text, x, z) { if (isFireTrapMessage(text)) { if (pending) add(pending.x, pending.z); pending = {x, z, wait: 0}; } },
+    settle(x, z) { if (pending) { add(x, z); pending = null; } },
+    update(dt) {
+      if (pending && (pending.wait += dt) >= PENDING_WAIT) { add(pending.x, pending.z); pending = null; } for (let i = live.length - 1; i >= 0; i--) if (!step(live[i], dt)) { drop(live[i]); live.splice(i, 1); } },
+    clear() { pending = null; live.forEach(drop); live.length = 0; },
     get active() { return live.length; },
   };
 }
