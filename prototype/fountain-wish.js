@@ -10,7 +10,9 @@
 import {clamp01, smooth} from './fx-textures.js';
 
 export const WISH = {motes: 16, pull: 1.6, flare: .35, settle: .6, total: 3.2};
-export const isWishMessage = text => /grateful for his release, he grants you a wish/i.test(text || '');
+// The fountain demon's line, or the prompt every wish ends in (a wand, a throne, a lamp), so a
+// wish by any means plays on the hero's square.
+export const isWishMessage = text => /grateful for his release, he grants you a wish|for what do you wish\?/i.test(text || '');
 
 // Mote i at time t: radius from the middle, spiral angle, height and alpha. Each starts at its
 // own distance, accelerates inward and vanishes into the point.
@@ -71,7 +73,7 @@ export function createFountainWish(THREE, parent) {
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); parent.remove(e.g); }
   return {
     add,
-    message(text, x, z) { if (isWishMessage(text)) add(x, z); },
+    message(text, x, z) { if (isWishMessage(text) && !live.length) add(x, z); },
     update(dt) { for (let i = live.length - 1; i >= 0; i--) if (!step(live[i], dt)) { drop(live[i]); live.splice(i, 1); } },
     clear() { live.forEach(drop); live.length = 0; },
     get active() { return live.length; },
