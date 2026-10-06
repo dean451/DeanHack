@@ -251,8 +251,10 @@ function mesh(parent,geo,name){const m=new THREE.Mesh(geo,material);m.castShadow
 
 export const SOLDIERS=Object.keys(KINDS);
 
+const SOLDIER_SCALE={sergeant:1.04,lieutenant:1.1,captain:1.18};
+
 export function createSoldier(name){
- const S=geometry(KINDS[name]?name:'soldier'),g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const S=geometry(KINDS[name]?name:'soldier'),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(SOLDIER_SCALE[name]||1);// officers stand over the rank and file
  mesh(body,S.body,'body');
  const head=new THREE.Group();head.position.set(0,.955,0);body.add(head);
  mesh(head,S.head,'head');

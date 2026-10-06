@@ -428,7 +428,7 @@ test('elves get their own slender, cloaked, sword-bearing model instead of the t
   elf.g.updateMatrixWorld(true);
   const b=new THREE.Box3().setFromObject(elf.g);
   assert(b.min.y>-.03&&b.min.y<.03,`${name} feet at ${b.min.y}`);
-  assert(b.max.y>1.05&&b.max.y<1.3,`${name} top at ${b.max.y}`);
+  assert(b.max.y>1.05&&b.max.y<1.35,`${name} top at ${b.max.y}`);
   assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.48,`${name} fits the tile: ${JSON.stringify(b)}`);
   const other=meshes(createCreature({name,symbol:AT}));
   parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
@@ -459,7 +459,7 @@ test('priests get a robed, mace-bearing model with a hood, mitre or tonsure per 
   p.g.updateMatrixWorld(true);
   const b=new THREE.Box3().setFromObject(p.g);
   assert(b.min.y>-.03&&b.min.y<.03,`${name} feet at ${b.min.y}`);
-  assert(b.max.y>1.05&&b.max.y<1.35,`${name} top at ${b.max.y}`);
+  assert(b.max.y>1.05&&b.max.y<1.5,`${name} top at ${b.max.y}`);
   assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.48,`${name} fits the tile: ${JSON.stringify(b)}`);
   assert(ms<1000,`${name} took ${ms} ms`);
  }

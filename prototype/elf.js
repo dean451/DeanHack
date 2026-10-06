@@ -154,9 +154,11 @@ function geometry(kind){
 }
 function mesh(parent,geo,mat,name){const m=new THREE.Mesh(geo,mat);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
+const ELF_SCALE={'elf-lord':1.07,elvenking:1.12,'high-elf':1.04};
+
 export function createElf(name){
  const kind=ELVES[name]?name:'elf',S=geometry(kind);
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(ELF_SCALE[kind]||1);// lords and kings loom over the woodland rank and file
  mesh(body,S.body,material,'body');
  const head=new THREE.Group();head.position.set(0,.93,.005);body.add(head);
  mesh(head,S.head,material,'head');mesh(head,eyes,eyeMaterial,'eyes');
