@@ -2572,6 +2572,7 @@ function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(b
 
 const SKIN={homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
 
+const NEMESIS_HUMANS={'warden arianna':1.18,'anaraxis the black':1.2,schliemann:1.15};
 export function createCreature(cell={}){
  const name=(cell.name||'').toLowerCase(),letter=Number.isInteger(cell.symbol)?String.fromCharCode(cell.symbol):'',color=nhColor(cell);
  if(letter==='@'&&isWereMan(name))return createWereMan(name);// a were in human form
@@ -2707,6 +2708,7 @@ export function createCreature(cell={}){
  if(name==='hippocrates')return createHippocrates();
  if(name==='master kaen')return createMasterKaen();
  if(name==='dark one')return createDarkOne();
+ if(letter==='@'&&NEMESIS_HUMANS[name]){const a=humanoid('human',{cloth:mat(shade(color||'#8a8a80',.8))});a.g.scale.setScalar(NEMESIS_HUMANS[name]);return a;}// quest nemeses without a model of their own still loom over a plain human
  if(name==='lord carnarvon')return createCarnarvon();
  if(name==='pelias')return createPelias();
  if(name==='black marketeer')return createBlackMarketeer();
