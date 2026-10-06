@@ -9,3 +9,7 @@ test('the plain troll stands larger than it did and no smaller than the ice trol
   assert(height('troll', 84) >= height('water troll', 84));
   assert(height('troll', 84) >= height('ice troll', 84));
 });
+
+test('the vampire stands a little taller than a plain human', () => {
+  assert(height('vampire', 86) > height('human', 64) * 1.0);
+});
