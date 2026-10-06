@@ -203,6 +203,7 @@
 #define COMBAT_HOOK(agr, def, at, res)
 #define DEATH_HOOK(mon, ptr)
 #define REVIVE_HOOK(mon, corpse)
+#define PICKUP_HOOK(obj, x, y, cnt)
 #endif
 
 /*
