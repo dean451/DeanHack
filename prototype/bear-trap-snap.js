@@ -20,7 +20,17 @@ export function jawAngle(t) {
   if (t <= .09) return SNAP.open * (1 - smooth(clamp01((t - .06) / .03)));
   if (t <= .17) return .4 * smooth(clamp01((t - .09) / .08));
   if (t <= .27) return .4 * (1 - smooth(clamp01((t - .17) / .1)));
-  return .035 * Math.sin((t - .27) * 60) * Math.exp(-(t - .27) * 8);
+  return .035 * Math.sin((t - .27) * 60) * Math.exp(-(t - .27) * 8) + creak(t);
+}
+
+// Two slow creaks as the iron settles on the bone: the jaws ease open a hair, then jerk shut.
+export function creak(t) {
+  let a = 0;
+  for (const [at, size] of [[.55, .05], [.85, .03]]) {
+    const u = (t - at) / .16;
+    if (u > 0 && u < 1) a += size * Math.sin(Math.PI * u) ** 2 * (u < .7 ? 1 : 1 + .4 * Math.sin(u * 40));
+  }
+  return a;
 }
 
 // Both jaws and the sparks are visible only while alive; they fade over the last third.
