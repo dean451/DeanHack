@@ -87,7 +87,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 - **Inventory panel:** show the pack as the actual item models in a grid, keeping the letter keys, with hover details and enchantment and blessed/cursed hints once known.
 - **Targeting previews:** done so far: choosing a spot (a scroll of stinking cloud, travel, any "Move cursor to" prompt) now shows the cursor in the world and on the minimap, and clicking the minimap walks the cursor there and picks it (`aim-cursor.js`). Remaining: when zapping, throwing or firing, show the ray or trajectory, its range, and what it would hit. The ray code (`rays.js`) already exists, so connect it to the direction prompt.
 - **Farlook on hover:** pointing at a monster or item shows its name, whether it is peaceful or hostile, asleep, and anything known about it, as the 3D version of `;`.
-- **Level title cards:** a brief, silent visual card (a quiet text fade) when the hero first enters a special level such as the Oracle, Bigroom, Medusa, the Castle or the Valley.
 
 ### Magic items
 
