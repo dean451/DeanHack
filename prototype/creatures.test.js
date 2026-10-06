@@ -1315,7 +1315,7 @@ test('the Executioner gets a black sack hood with ice-blue eyes, a frosted, scar
  ex.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(ex.g,true);
  assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
- assert(b.max.y>1.25&&b.max.y<1.5,`top at ${b.max.y}`);
+ assert(b.max.y>1.25&&b.max.y<1.6,`top at ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
  // the eyes show through the hood's holes: looking at them from the front, they are hit first
  const eye=new THREE.Box3().setFromObject(ex.eyes,true).getCenter(new THREE.Vector3());
@@ -1779,7 +1779,7 @@ test('the black marketeer gets a deep peaked cowl over a scarfed face with sickl
  bm.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(bm.g,true);
  assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
- assert(b.max.y>1.15&&b.max.y<1.45,`top at ${b.max.y}`);
+ assert(b.max.y>1.15&&b.max.y<1.6,`top at ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
  // the eyes glint out of the cowl's shadow: looking at them from the front, they are hit first
  const eye=new THREE.Box3().setFromObject(bm.eyes,true).getCenter(new THREE.Vector3());

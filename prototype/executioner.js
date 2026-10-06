@@ -208,7 +208,7 @@ function geometry(){
 function mesh(parent,geo,name,m){const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=m===S.hide;o.userData.part=name;parent.add(o);return o;}
 
 export function createExecutioner(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.15);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.22);
  mesh(body,S.body,'body',S.hide);
  const head=new THREE.Group();head.position.set(0,NECK_Y,.012);head.rotation.x=.08;body.add(head);// head low, glowering
  mesh(head,S.head,'head',S.hide);const eyes=mesh(head,S.eyes,'eyes',S.glow);
