@@ -1869,7 +1869,7 @@ function shamblingHorror(o){
  // the arms are kept as their own groups (digArm, limpArm) so shambler-lurch.js can swing them
  return trimDraws(Object.assign(actor(g,body,legs,head,[],'orc'),{kind:'shambling horror',digArm,limpArm}));
 }
-const HORRORS={'shambling horror':{color:'#9aa8a4',raw:'#8a2a3a',eye:'#7affe8',scale:1.08}};
+const HORRORS={'shambling horror':{color:'#9aa8a4',raw:'#8a2a3a',eye:'#7affe8',scale:1.2}};
 
 // Zruty: the huge, primeval wild man of Czech legend. A hunched, shaggy bear-ape with a broad back mane,
 // knuckle-dragging arms ending in hooked claws, a heavy underslung jaw with upthrust tusks and small, deep-set eyes.
