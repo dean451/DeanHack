@@ -820,7 +820,7 @@ function mimic(o){
  return actor(g,body,[],tail,[],'idle');
 }
 // A mimic that is mimicking an object the hero cannot yet see through is reported as a "strange object"; it is a mimic underneath.
-const MIMICS={'strange object':{color:'#7a4a2a',glare:true},'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true},'giant mimic':{color:'#6a3a22',glare:true,scale:1.25}};
+const MIMICS={'strange object':{color:'#7a4a2a',glare:true},'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true},'giant mimic':{color:'#6a3a22',glare:true,scale:1.5}};
 // centaurs (C): the horse body (croup, barrel, jointed legs with hooves, flowing tail; see horse())
 // with a man's torso rising from the withers where the horse's neck would be: a belt hides the
 // seam, bare arms bend at the elbow, and the head has a face, ears and a mop of hair.
@@ -1734,7 +1734,7 @@ function xorn(o){
   for(const f of [-.025,0,.025])cone(arm,.012,.06,claw,f,.08,.24,4).rotation.x=Math.PI/2-.4;}
  return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
-const XORNS={xorn:{}};
+const XORNS={xorn:{scale:1.25}};
 
 // Nagas: a thick serpent coil on the floor whose front rises into an upright neck with a human face,
 // scaled belly plates and slit-pupil eyes. The raised half is the swaying 'tail' group so it weaves.
