@@ -2684,6 +2684,7 @@ export function createCreature(cell={}){
  if(ELVES[name])return createElf(name);
  if(PRIESTS[name])return createPriest(name);
  if(name==='medusa')return createMedusa();
+ if(name==='punisher')return createGolem('punisher');
  if(name==='cthulhu')return createCthulhu();
  if(name==='nurse')return createNurse();
  if(name==='doppelganger')return createDoppelganger();
