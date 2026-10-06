@@ -14,3 +14,10 @@ test('the xorn stands larger than its plain build', () => {
   const a = createCreature({name: 'xorn', symbol: 88, color: 0});
   assert.equal(a.g.scale.x, 1.25);
 });
+
+test('the large mimic stands larger than a plain build, below the giant mimic', () => {
+  const scale = name => createCreature({name, symbol: 109, color: 0}).g.scale.x;
+  assert(scale('large mimic') >= 1.25 - 1e-6);
+  assert(scale('large mimic') > scale('small mimic') * 1.4);
+  assert(scale('large mimic') < scale('giant mimic'));
+});
