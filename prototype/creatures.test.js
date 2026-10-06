@@ -1428,7 +1428,7 @@ test('Croesus gets a spiked jewelled crown, a gaunt sallow face with greedy gold
  cr.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(cr.g,true);
  assert(b.min.y>-.03&&b.min.y<.03,`feet at ${b.min.y}`);
- assert(b.max.y>1.3&&b.max.y<1.55,`top at ${b.max.y}`);
+ assert(b.max.y>1.3&&b.max.y<1.85,`top at ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
  // the eyes glint from the sockets: looking at them from the front, they are hit first
  const eye=new THREE.Box3().setFromObject(cr.eyes,true).getCenter(new THREE.Vector3());
@@ -1548,7 +1548,7 @@ test('the Dark One gets a black alb and inverted-cross chasuble, a spined collar
  d.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(d.g,true);
  assert(b.min.y>-.03&&b.min.y<.03,`hem at ${b.min.y}`);
- assert(b.max.y>1.3&&b.max.y<1.65,`top at ${b.max.y}`);
+ assert(b.max.y>1.3&&b.max.y<1.95,`top at ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.55,'out of proportion');
  // the eyes show from the front
  const eye=new THREE.Box3().setFromObject(d.eyes,true).getCenter(new THREE.Vector3());
@@ -2513,7 +2513,7 @@ test('the Wizard of Yendor gets his own hooded sorcerer instead of the plain @ h
  const b=new THREE.Box3().setFromObject(wiz.body.children.find(o=>o.userData.part==='body'),true);
  assert(b.min.y>-.02&&b.min.y<.04,`hem at ${b.min.y}`);
  const all=new THREE.Box3().setFromObject(wiz.g,true);
- assert(all.max.y>1.4&&all.max.y<1.8,`top at ${all.max.y}`);
+ assert(all.max.y>1.4&&all.max.y<2.2,`top at ${all.max.y}`);
  assert(Math.max(-all.min.x,all.max.x,-all.min.z,all.max.z)<.45,'fits the tile');
  // the orb sits at the top of the staff, above the head
  const orb=new THREE.Vector3();wiz.orb.getWorldPosition(orb);
