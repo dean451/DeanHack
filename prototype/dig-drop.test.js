@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {holeMessage, sinkOffset, arriveOffset, createDigDrop, HANG, SINK, SINK_DEPTH, GIVE_UP, RISE, ARRIVE_HEIGHT, ARRIVE_GRAVITY, ARRIVE_TIME, airborneStatus, hoverOffset, trapdoorMessage, TRAPDOOR_HANG, HOVER_TIME, HOVER_LIFT} from './dig-drop.js';
+import {holeMessage, sinkOffset, arriveOffset, createDigDrop, HANG, SINK, SINK_DEPTH, GIVE_UP, RISE, ARRIVE_HEIGHT, ARRIVE_GRAVITY, ARRIVE_TIME, airborneStatus, hoverOffset, trapdoorMessage, escapeMessage, TRAPDOOR_HANG, HOVER_TIME, HOVER_LIFT} from './dig-drop.js';
 
 test('only the hole message starts a drop', () => {
   assert.ok(holeMessage('You dig a hole through the floor.'));
@@ -88,4 +88,25 @@ test('a trap door drops the hero almost at once, and returns exactly to rest', (
   assert.ok(low < -.5);
   assert.equal(d.update(.05), 0); assert.ok(!d.active);
   assert.ok(d.message('You dig a hole through the floor.') && d.update(TRAPDOOR_HANG + .1) === 0, 'a dug hole still hangs');
+});
+
+test('a trap door the hero escapes (levitating, or "You don\'t fall in.") never drops them', () => {
+  assert.ok(escapeMessage("You don't fall in."));
+  assert.ok(escapeMessage('You escape a trap door.'));
+  assert.ok(!escapeMessage('You fall through...'));
+  const d = createDigDrop();
+  assert.ok(d.message('A trap door opens up under you!'));
+  let y = 0, low = 0;
+  for (let i = 0; i < 10; i++) { y = d.update(.05); low = Math.min(low, y); }
+  assert.ok(low < 0, 'the lurch had begun');
+  assert.ok(d.message("You don't fall in."));
+  for (let i = 0; i < 60; i++) { y = d.update(.05); assert.ok(y <= 0 && y >= low - 1e-9); }
+  assert.equal(y, 0);
+  assert.equal(d.active, false);
+  assert.equal(d.arrive(), false, 'no level change plays no fall-in');
+  // escape with no preceding lurch: nothing moves, and it ends exactly at rest
+  assert.ok(d.message('You escape a trap door.'));
+  for (let i = 0; i < 60; i++) y = d.update(.05);
+  assert.equal(y, 0);
+  assert.equal(d.arrive(), false);
 });
