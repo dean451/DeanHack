@@ -30,9 +30,9 @@ function taper(pts,r0,r1,segments=18,radial=7){
 
 export const MIND_FLAYER_KINDS={
  'mind flayer':{skin:'#a07aa8',skinDark:'#6a4a78',vein:'#4e3a86',robe:'#3a2a52',robeDark:'#1e1630',lining:'#6a1f2e',trim:'#a498bc',boot:'#241c2c',
-  eye:{color:0xcfe8c0,emissive:0x6fa860,emissiveIntensity:1.2}},
+  eye:{color:0xcfe8c0,emissive:0x6fa860,emissiveIntensity:1.2},scale:1.1},
  'master mind flayer':{skin:'#b088c0',skinDark:'#74508a',vein:'#5a2a7a',robe:'#4a1f4a',robeDark:'#260c26',lining:'#1f2a52',trim:'#d0a848',boot:'#2a1420',
-  eye:{color:0xffb66b,emissive:0xd95b1e,emissiveIntensity:2.5},circlet:'#d8b050',scale:1.1},
+  eye:{color:0xffb66b,emissive:0xd95b1e,emissiveIntensity:2.5},circlet:'#d8b050',scale:1.18},
 };
 
 // the head's big cranium: an ellipsoid swept up and back

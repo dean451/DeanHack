@@ -29,9 +29,9 @@ const vhash=(x,y,z,seed)=>hash(Math.round(x*997)*.013+Math.round(y*991)*.071+Mat
 const blot=(x,y,z,f=1)=>Math.sin(x*31*f+Math.sin(z*23*f)*2)*Math.sin(y*27*f+z*13*f)*.5+.5;
 
 const LOOKS={
- stone:{base:'#6e6c62',dark:'#34332e',light:'#9a978a',glow:'#ff6420',jag:.2,scale:1.12,spikes:'stone',paint:'stone'},
+ stone:{base:'#6e6c62',dark:'#34332e',light:'#9a978a',glow:'#ff6420',jag:.2,scale:1.22,spikes:'stone',paint:'stone'},
  clay:{base:'#8a4e34',dark:'#4a2618',light:'#b2745a',glow:'#ff3420',jag:.12,scale:1.08,sigil:true,paint:'clay'},
- iron:{base:'#3a3f44',dark:'#16191c',light:'#6a737a',glow:'#ff5a14',jag:.1,scale:1.18,spikes:'iron',rivets:true,grille:true,paint:'iron'},
+ iron:{base:'#3a3f44',dark:'#16191c',light:'#6a737a',glow:'#ff5a14',jag:.1,scale:1.28,spikes:'iron',rivets:true,grille:true,paint:'iron'},
  glass:{base:'#a8d8d6',dark:'#4a7a7c',light:'#e8ffff',glow:'#8ff4ff',jag:.24,scale:1.1,spikes:'shard',paint:'clear'},
  ice:{base:'#a6d4e6',dark:'#4a86a0',light:'#eaf8ff',glow:'#6fd0ff',jag:.22,scale:1.08,spikes:'shard',paint:'clear'},
  'crystal ice':{base:'#c4ecff',dark:'#5a9ec0',light:'#ffffff',glow:'#a8f0ff',jag:.26,scale:1.18,spikes:'shard',paint:'clear'},
