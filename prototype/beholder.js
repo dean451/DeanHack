@@ -12,6 +12,8 @@ import {pieces,rgb,mix} from './homunculus.js';
 // one glossy vertex-coloured material); the great iris (1 emissive mesh).
 // Handles: body, head (the great eyeball and iris, pivoting at the eyeball's centre, so a head
 // pitch rolls the eye inside its lids). Quirk 'hover'.
+// a tyrant of the deep dark, it floats a third larger than a plain orb
+const SCALE=1.3;
 const LIFT=.62,R=.25,EYE_UP=.45,EYE_R=.085,EYE_D=.2;
 
 const smooth=(a,b,x)=>{const t=THREE.MathUtils.clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
@@ -207,7 +209,7 @@ function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.c
 export function createBeholder(){
  shared||=build();
  const g=new THREE.Group(),body=new THREE.Group(),lift=new THREE.Group(),head=new THREE.Group(),gaze=new THREE.Group();
- g.add(body);body.add(lift);lift.add(head);head.add(gaze);lift.position.y=LIFT;
+ g.add(body);body.add(lift);lift.add(head);head.add(gaze);lift.position.y=LIFT;g.scale.setScalar(SCALE);
  // the head sits unturned at the eyeball's centre; the eye inside it is tipped up to its rest gaze
  head.position.copy(eyeDir).multiplyScalar(EYE_D);gaze.rotation.x=-EYE_UP;
  mesh(lift,shared.flesh,shared.fleshMat,'hide');mesh(lift,shared.small,shared.ballMat,'stalk eyes');

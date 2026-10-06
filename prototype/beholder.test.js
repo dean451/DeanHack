@@ -23,8 +23,8 @@ test('the beholder is a fanged orb with a great eye and ten eyestalks in 4 share
  assert(byPart.iris.material.emissiveIntensity>0);
  actor.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(actor.g);
- assert(b.min.y>.3&&b.max.y<1.35,`height ${b.min.y}..${b.max.y}`);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.35,'too wide');
+ assert(b.min.y>.3&&b.max.y<1.7,`height ${b.min.y}..${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'too wide');
  // ten stalk eyes, all above the crown
  const s=byPart['stalk eyes'],sb=new THREE.Box3().setFromObject(s),hb=new THREE.Box3().setFromObject(byPart.hide);
  assert(sb.min.y>.62+.25,'stalk eyes above the body');assert(sb.max.y<=hb.max.y+.06);
@@ -34,7 +34,7 @@ test('the beholder is a fanged orb with a great eye and ten eyestalks in 4 share
  assert.equal(hit(0,centre.y).object.userData.part,'iris');
  assert.equal(hit(0,centre.y+.12).object.userData.part,'hide');
  let dark=0,bright=0;
- for(let y=.5;y<.6;y+=.005)for(let x=-.08;x<=.08;x+=.005){const h=hit(x,y);if(h?.object.userData.part!=='hide')continue;
+ for(let y=.65;y<.78;y+=.0065)for(let x=-.104;x<=.104;x+=.0065){const h=hit(x,y);if(h?.object.userData.part!=='hide')continue;
   const c=h.object.geometry.attributes.color,l=[h.face.a,h.face.b,h.face.c].map(i=>c.getX(i)+c.getY(i)+c.getZ(i));
   if(Math.max(...l)<.03)dark++;if(Math.max(...l)>1.2)bright++;}
  assert(dark>20,`maw ${dark}`);assert(bright>5,`teeth ${bright}`);
