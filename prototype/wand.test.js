@@ -9,7 +9,7 @@ const meshes = g => { const list = []; g.traverse(o => { if (o.isMesh) list.push
 const bounds = g => { g.updateMatrixWorld(true); return new THREE.Box3().setFromObject(g); };
 
 test('every wand appearance builds a finite wand of at most three meshes, held and on the floor', () => {
-  assert.equal(WAND_APPEARANCES.length, 46);
+  assert.equal(WAND_APPEARANCES.length, 49);
   for (const look of [...WAND_APPEARANCES, null, 'unknown']) for (const floor of [false, true]) {
     const t0 = performance.now(), wand = createWand(look, {floor}), ms = performance.now() - t0, parts = meshes(wand);
     const name = `${look} ${floor ? 'floor' : 'held'}`;
@@ -94,4 +94,13 @@ test('nickel, mithril and orichalcum wands are metals of their own', () => {
   assert(shaft('mithril').roughness < .2 && shaft('mithril').color.b > shaft('mithril').color.r, 'bright cold mithril');
   assert(shaft('orichalcum').color.r > shaft('orichalcum').color.b + .15, 'red-gold orichalcum');
   assert(wandAppearance('a mithril wand') === 'mithril' && wandAppearance('3 nickel wands') === 'nickel');
+});
+
+test('alabaster, grooved and bent wands each have a look of their own', () => {
+  const shaft = look => meshes(createWand(look)).find(m => m.userData.part === 'shaft').material;
+  assert(shaft('alabaster').metalness === 0 && shaft('alabaster').color.getHex() !== shaft('marble').color.getHex(), 'a yellowed stone, not marble');
+  assert(shaft('grooved').color.getHex() !== shaft('walnut').color.getHex() && shaft('grooved').metalness === 0);
+  const bow = look => { const b = bounds(createWand(look)); return b.max.x - b.min.x; };
+  assert(bow('bent') > bow('curved') && bow('curved') > bow('iron'), 'bent bows further than curved');
+  assert(wandAppearance('a bent wand') === 'bent' && wandAppearance('an alabaster wand') === 'alabaster' && wandAppearance('2 grooved wands') === 'grooved');
 });
