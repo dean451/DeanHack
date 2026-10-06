@@ -52,6 +52,14 @@ test('a dying lich buckles its leg and slumps its hem on separate beats', () => 
   assert.equal(deathPose('topple', 1).leg, 0);
 });
 
+test('a dying lich lets go of what it holds', () => {
+  const p = u => deathPose('lichdust', u);
+  assert.equal(p(0).socket, 0);
+  assert.ok(p(.55).socket > .5 && p(.1).socket < .05);
+  for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).socket) < 1.1, `socket in bounds at ${u}`);
+  assert.equal(deathPose('topple', 1).socket, 0);
+});
+
 test('every style starts at rest, stays finite and bounded, and ends held', () => {
   for (const style of DEATH_STYLES) {
     const p0 = deathPose(style, 0, [1, 0]);
