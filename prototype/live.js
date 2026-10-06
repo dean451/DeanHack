@@ -37,7 +37,8 @@ import {createMessageLog,addMessage,panelView,allRows} from './message-log.js';
 import {createHistoryPanel} from './message-history.js';
 import {levelTitle,lowHealth,parseAttributes} from './hud.js';
 import {syncWandAura,syncHeldWandAura,updateHeldWandAura} from './wand-auras.js';
-import {updatePickupLift,hasMagicLook,PICKUP_RADIUS} from './pickup-lift.js';
+import {updatePickupLift,hasMagicLook} from './pickup-lift.js';
+import {createPickupNotes,squareOfKey} from './pickup-events.js';
 import {syncArtifactGleam,syncHeldGleam,updateHeldGleam} from './artifact-gleam.js';
 import {syncHeldMagic,syncFloorMagic} from './weapon-magic.js';
 import {syncScrollAura} from './scroll-auras.js';
@@ -143,7 +144,7 @@ import {createActionQueue,enqueueAction,clearActionPose,updateActions,holdBackMs
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
  const group=new THREE.Group();scene.add(group);group.visible=false;
- const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map(),liftingItems=new Set();let active=false,pending=null,latest=null,token='',menu=null,commands=null,lines=[],origin=null,lastLevel='',source,pollNow=null;
+ const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map(),liftingItems=new Set(),pickupNotes=createPickupNotes();let active=false,pending=null,latest=null,token='',menu=null,commands=null,lines=[],origin=null,lastLevel='',source,pollNow=null;
  const $=s=>document.querySelector(s);
  const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
  const button=document.createElement('button');button.textContent='Live UnNetHack';button.id='live-mode';$('.buttons').prepend(button);
@@ -222,7 +223,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function box(geo,mat,parent,x,y,z){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;parent.add(m);return m;}
  function label(text,color='#f0d9b0'){const c=document.createElement('canvas');c.width=512;c.height=96;const ctx=c.getContext('2d');ctx.fillStyle='rgba(10,20,20,.68)';ctx.beginPath();ctx.roundRect(54,16,404,64,12);ctx.fill();ctx.font='30px system-ui';ctx.textAlign='center';ctx.fillStyle=color;ctx.fillText(text,256,61);const texture=new THREE.CanvasTexture(c),material=new THREE.SpriteMaterial({map:texture,depthTest:false});const s=new THREE.Sprite(material);s.scale.set(1.3,.25,1);s.position.y=1.7;s.userData.dispose=()=>{texture.dispose();material.dispose();};return s;}
  function release(object){object.traverse(o=>o.userData.dispose?.());group.remove(object);}
- function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();for(const w of wells.values())release(w);tiles.clear();actors.clear();groundItems.clear();wells.clear();}
+ function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();pickupNotes.clear();for(const w of wells.values())release(w);tiles.clear();actors.clear();groundItems.clear();wells.clear();}
  function pickupIcon(cell){
    const icon=new THREE.Group(), kind=cell.object?.kind||'item', cls=cell.object?.class||0, itemName=(cell.object?.name||cell.name||'').toLowerCase();
    // Older bridge processes expose statues as generic objects. Keep the visual path
@@ -390,7 +391,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    for(const [id,t] of tiles)if(!seen.has(id)){release(t);tiles.delete(id);}
    cavern.rebuild(tiles,origin,newLevel);
    for(const [id,a] of actors)if(!seenActors.has(id)){restoreFade(a);release(a.g);actors.delete(id);}
-   for(const [id,item] of groundItems)if(!seenActors.has(id)){if(hasMagicLook(item)&&item.visible&&Math.hypot(item.position.x-hero.g.position.x,item.position.z-hero.g.position.z)<PICKUP_RADIUS)liftingItems.add(item);else release(item);groundItems.delete(id);}
+   for(const [id,item] of groundItems)if(!seenActors.has(id)){if(hasMagicLook(item)&&item.visible&&pickupNotes.take(...squareOfKey(id).split(',').map(Number),performance.now()))liftingItems.add(item);else release(item);groundItems.delete(id);}
    for(const [id,w] of wells)if(!seenWells.has(id)){release(w);wells.delete(id);}
    hero.target=new THREE.Vector3(frame.player.x-origin.x,perchHeight(frame.cells.find(c=>c.x===frame.player.x&&c.z===frame.player.z)?.terrain),frame.player.z-origin.z);renderSurroundings(frame);
    $('#hp').textContent=`${frame.player.hp} / ${frame.player.maxhp}`;$('.character').classList.toggle('low-hp',lowHealth(frame.player.hp,frame.player.maxhp));$('#healthbar').style.width=`${100*frame.player.hp/Math.max(1,frame.player.maxhp)}%`;$('#turn').textContent=frame.turn;$('.stats').innerHTML=`<span>AC <b>${frame.player.ac}</b></span><span>LVL <b>${frame.player.level}</b></span><span>TURN <b id="turn">${frame.turn}</b></span>`;
@@ -467,7 +468,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function connect(){
    meleeIntent=null;source?.close?.();
    let usingPolling=false,pollTimer=null,stopped=false,since=0;
-   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='commands')commands=v.items;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='revive'){if(active)rises.add(reviveAction(v),performance.now());}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];const tl=fxTimeline(v);fx.push(tl);if(active){const heroZap=zapFlash.play(tl,latest?.player,hero,latest,{windup:ZAP_WINDUP_MS});const shown=heroZap?delayTimeline(tl,ZAP_WINDUP_MS):delayTimeline(tl,queueThrows(tl,findThrower));rays.play(shown,{reflectorAt:(x,z)=>reflectorAt(latest,x,z),solidAt:(x,z)=>solidAt(latest,x,z)});rayMarks.add(shown);explosions.add(shown);flights.play(shown);splash.fromFx(shown,latest);breath.fromFx(shown,latest,{always:heroZap==='breath'});fxHoldUntil=Math.max(fxHoldUntil,performance.now()+fxHoldMs(shown));}if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
+   const handle=v=>{if(v.type==='frame')applySoon(v);else if(v.type==='request'){meleeIntent=null;pending=v;prompt();if(v.kind==='command'&&queuedCommand!==null){const command=queuedCommand;queuedCommand=null;void reply(command);}}else if(v.type==='message'){if(active)message(v.text);}else if(v.type==='status')renderStatus(v.text);else if(v.type==='menu')menu=v;else if(v.type==='commands')commands=v.items;else if(v.type==='text')lines=v.lines;else if(v.type==='combat'||v.type==='death'){if(active)combatEvent(v);}else if(v.type==='pickup'){if(active)pickupNotes.note(v.x,v.z,performance.now());}else if(v.type==='revive'){if(active)rises.add(reviveAction(v),performance.now());}else if(v.type==='fx'){const fx=globalThis.deanhackFx??=[];const tl=fxTimeline(v);fx.push(tl);if(active){const heroZap=zapFlash.play(tl,latest?.player,hero,latest,{windup:ZAP_WINDUP_MS});const shown=heroZap?delayTimeline(tl,ZAP_WINDUP_MS):delayTimeline(tl,queueThrows(tl,findThrower));rays.play(shown,{reflectorAt:(x,z)=>reflectorAt(latest,x,z),solidAt:(x,z)=>solidAt(latest,x,z)});rayMarks.add(shown);explosions.add(shown);flights.play(shown);splash.fromFx(shown,latest);breath.fromFx(shown,latest,{always:heroZap==='breath'});fxHoldUntil=Math.max(fxHoldUntil,performance.now()+fxHoldMs(shown));}if(fx.length>8)fx.shift();}else if(v.type==='ended'){pending=null;queuedCommand=null;if(active){dialog.close();message(v.text);setPrompt('Session ended. Use Demo room, then Live UnNetHack to resume.');}}};
    async function pollLoop(){
      if(stopped)return;
      try{const r=await fetch(`/engine/poll?since=${since}`);const {events,seq}=await r.json();since=seq;for(const event of events)handle(event);}

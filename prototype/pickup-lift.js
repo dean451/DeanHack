@@ -5,8 +5,6 @@ import {scoopSwell} from './step-over.js';
 
 export const PICKUP_DURATION = .35;
 export const PICKUP_RISE = .45;
-// How close (world units) the hero must be for a vanished item to count as picked up.
-export const PICKUP_RADIUS = 1.2;
 const AURA_KEYS = ['wandAura', 'scrollAura', 'potionFx', 'ringAura', 'amuletAura', 'weaponAura', 'artifactGleam'];
 
 export const hasMagicLook = item => AURA_KEYS.some(key => item.userData[key]);
