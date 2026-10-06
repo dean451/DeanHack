@@ -45,3 +45,12 @@ test('it plays on the hero\'s square and cleans up', () => {
   fx.update(FIZZLE.total + .1); assert.equal(fx.active, 0);
   fx.message('You fail to cast the spell correctly.', 0, 0); fx.clear(); assert.equal(fx.active, 0);
 });
+
+test('the thinning ring coughs once, blinking out and returning', () => {
+  const a = t => ringPose(t).alpha;
+  assert.ok(a(.63) < .35 * a(.58) && a(.7) > .6 * a(.58) * .5, 'dim for a beat');
+  assert.ok(a(.68) > 2 * a(.63), 'then back');
+  let dips = 0;
+  for (let t = .4; t < .95; t += .005) if (a(t + .005) > a(t) + .02) dips++;
+  assert.ok(dips >= 1 && dips <= 2, 'one return only');
+});

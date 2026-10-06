@@ -21,7 +21,10 @@ export function ringPose(t) {
     return {scale: .6 - .45 * Math.min(j, 1) ** 2, alpha: .7 * clamp01(t / .08) * (k % 3 === 2 ? .4 : 1)};
   }
   const u = clamp01((t - .4) / .6);
-  return {scale: .15 + .65 * (1 - (1 - u) ** 3), alpha: t < .4 ? .7 : .7 * (1 - u)};
+  // One last cough: the thinning ring blinks out for a beat mid-way and comes back, as if the spell
+  // had tried again and failed again.
+  const cough = t > .6 && t < .67 ? .25 : 1;
+  return {scale: .15 + .65 * (1 - (1 - u) ** 3), alpha: (t < .4 ? .7 : .7 * (1 - u)) * cough};
 }
 
 // Spark i: spat out at the snap, arcs up and slumps back down, flickering.

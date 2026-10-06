@@ -219,3 +219,12 @@ test('a dying lich\'s frame creaks round to look at its killer, then jerks back'
   for (let u = 0; u <= 1; u += .01) assert.ok(spin(u) >= 0 && spin(u) < .45, `spin in bounds at ${u}`);
   assert.equal(deathPose('crumble', .65).spin, 0);
 });
+
+test('a dissipating death draws in on itself before it swells', () => {
+  const sc = u => deathPose('dissipate', u).scale;
+  assert.equal(sc(0), 1);
+  assert.ok(sc(.075) < .9, 'it shrinks first');
+  for (let u = .2; u < 1; u += .01) assert.ok(sc(u + .01) >= sc(u), `then only swells at ${u}`);
+  for (let u = 0; u <= 1; u += .01) assert.ok(sc(u) > .8 && sc(u) < 1.7, `in bounds at ${u}`);
+  assert.ok(Math.abs(sc(1) - 1.6) < 1e-9);
+});
