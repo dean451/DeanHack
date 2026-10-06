@@ -29,7 +29,7 @@ test('jabberwocks are bladed predators with a hinged jaw, scythe arms and glowin
   assert(b.min.y>-.04&&b.min.y<.03,`${name}: feet at ${b.min.y}`);
   const head=new THREE.Box3().setFromObject(j.head);
   assert(head.max.y>1.4,`${name}: head tops out at ${head.max.y}`);
-  assert(Math.max(-b.min.x,b.max.x)<1.2&&-b.min.z<1.5,`${name}: too sprawling`);
+  assert(Math.max(-b.min.x,b.max.x)<1.35&&-b.min.z<1.65,`${name}: too sprawling`);
   const arm=new THREE.Box3().setFromObject(j.arm);
   assert(arm.max.z>.55,`${name}: talons reach z ${arm.max.z}`);
   assert(ms<1500,`${name} took ${ms} ms`);

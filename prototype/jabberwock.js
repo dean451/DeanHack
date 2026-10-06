@@ -23,9 +23,9 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // Handles: body, head, jaw (for jaw.js), arms/arm, legs, wings, tail. The quirk stays 'dragon'.
 
 const KINDS={
- 'vorpal jabberwock':{scale:1.25,hide:'#2b1a3a',dark:'#120a1a',belly:'#4a3a56',horn:'#1a1420',tooth:'#ece4cc',mouth:'#5a0a1e',
+ 'vorpal jabberwock':{scale:1.35,hide:'#2b1a3a',dark:'#120a1a',belly:'#4a3a56',horn:'#1a1420',tooth:'#ece4cc',mouth:'#5a0a1e',
   steel:'#d4dbe6',steelBase:'#2a2436',glow:'#7ff6ff',wing:'#22132e'},
- jabberwock:{scale:1.12,hide:'#7a3418',dark:'#3a160a',belly:'#a07048',horn:'#2a1a10',tooth:'#ece4cc',mouth:'#4a0c10',
+ jabberwock:{scale:1.22,hide:'#7a3418',dark:'#3a160a',belly:'#a07048',horn:'#2a1a10',tooth:'#ece4cc',mouth:'#4a0c10',
   steel:'#dccfb0',steelBase:'#4a3020',glow:'#ffb040',wing:'#3e1a10'},
 };
 export const JABBERWOCK_KINDS=Object.keys(KINDS);
