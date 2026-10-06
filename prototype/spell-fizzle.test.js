@@ -54,3 +54,14 @@ test('the thinning ring coughs once, blinking out and returning', () => {
   for (let t = .4; t < .95; t += .005) if (a(t + .005) > a(t) + .02) dips++;
   assert.ok(dips >= 1 && dips <= 2, 'one return only');
 });
+
+test('the last spark twitches up once after it has slumped', () => {
+  const y = (i, t) => sparkPose(i, .38 + u2(t)).y, u2 = u => u * (FIZZLE.total - .38);
+  const last = FIZZLE.sparks - 1;
+  let rises = 0;
+  for (let u = .72; u < .93; u += .005) if (y(last, u + .005) > y(last, u) + 1e-4) rises++;
+  assert.ok(rises > 5, 'rises again');
+  let others = 0;
+  for (let u = .72; u < .93; u += .005) if (y(0, u + .005) > y(0, u) + 1e-4) others++;
+  assert.equal(others, 0, 'the rest only fall');
+});
