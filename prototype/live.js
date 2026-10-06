@@ -31,6 +31,7 @@ import {createCavern} from './cavern.js';
 import {attachModelAsset} from './model-assets.js';
 import {MODEL_URLS} from './asset-urls.js';
 import {potionLook} from './item-looks.js';
+import {captureView,restoreView} from './camera-view.js';
 import {createHealthBar,setHealth,placeAbove,healthFraction} from './health-bar.js';
 import {createMinimap} from './minimap.js';
 import {createMessageLog,addMessage,panelView,allRows} from './message-log.js';
