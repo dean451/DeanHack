@@ -233,7 +233,7 @@ function geometry(){
 function mesh(parent,geo,name,m=material){const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=m===material;o.userData.part=name;parent.add(o);return o;}
 
 export function createMedusa(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.25);
  mesh(body,S.body,'body');
  const head=new THREE.Group();head.position.set(0,.955,0);body.add(head);
  mesh(head,S.head,'head');mesh(head,S.glow,'eyes',glowMaterial);
