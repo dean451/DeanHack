@@ -204,3 +204,9 @@ test('a splatted body quivers as it settles, and the ripples die away', () => {
   assert.equal(deathPose('splat', 1).sx, 1.7);
   assert.ok(Math.abs(sx(.4) - deathPose('splat', .4).sx) < 1e-12);
 });
+
+test('a bursting body flinches in before it swells, and still pops at the same size', () => {
+  assert.ok(deathPose('burst', .06).scale < .95, 'draws in first');
+  assert.equal(deathPose('burst', 0).scale, 1);
+  assert.ok(Math.abs(deathPose('burst', .33).scale - 1.55) < 1e-9);
+});
