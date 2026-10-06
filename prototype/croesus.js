@@ -210,7 +210,7 @@ function geometry(){
 function mesh(parent,geo,name,m){const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=m===S.hide;o.userData.part=name;parent.add(o);return o;}
 
 export function createCroesus(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.05);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.25);
  body.rotation.x=.06;// stooped over his hoard
  mesh(body,S.body,'body',S.hide);
  const head=new THREE.Group();head.position.set(0,NECK_Y,.03);head.rotation.x=.12;body.add(head);// head thrust forward

@@ -213,7 +213,7 @@ function geometry(){
 function mesh(parent,geo,name,m){const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=m===S.cloth;o.userData.part=name;parent.add(o);return o;}
 
 export function createWizardOfYendor(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.12);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.3);
  mesh(body,S.body,'body',S.cloth);
  const head=new THREE.Group();head.position.set(0,NECK_Y,.01);head.rotation.x=.12;body.add(head);// head lowered, glaring out from the hood
  mesh(head,S.head,'head',S.cloth);mesh(head,S.eyes,'eyes',S.glow);
