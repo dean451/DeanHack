@@ -90,3 +90,8 @@ dialog button{font:600 12px 'Cinzel',Georgia,serif;letter-spacing:1.5px}
 .engine-recent{margin:6px 0 10px;font:italic 16px/1.35 'Cormorant Garamond',Georgia,serif;color:#9fb0bb}
 body.live-engine footer{right:384px}@media(max-width:1000px){body.live-engine footer{right:288px}}
 #minimap.aiming{pointer-events:auto;cursor:crosshair;border-color:#fff0b8}
+/* Footer buttons (Save & exit, Demo room, Reset room): small quiet text, out of the way at the edge. */
+footer .buttons,.engine-actions{gap:2px}
+footer .buttons button,.engine-actions button{padding:2px 7px;font-size:10px;letter-spacing:1px;text-transform:uppercase;background:transparent;border-color:transparent;color:#7f909a}
+footer .buttons button:hover,footer .buttons button:focus-visible,.engine-actions button:hover,.engine-actions button:focus-visible{background:transparent;border-color:#c4b68355;color:#cbd8df}
+.engine-actions{padding-right:6px;margin-right:0;border-right:0}
