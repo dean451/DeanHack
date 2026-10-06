@@ -30,7 +30,8 @@ import {stageCreature,addOutlines} from './readability.js';
 import {createCavern} from './cavern.js';
 import {attachModelAsset} from './model-assets.js';
 import {MODEL_URLS} from './asset-urls.js';
-import {potionLook,groundItemCaption} from './item-looks.js';
+import {potionLook} from './item-looks.js';
+import {createMessageLog,addMessage,panelView} from './message-log.js';
 import {levelTitle,lowHealth,parseAttributes} from './hud.js';
 import {syncWandAura,syncHeldWandAura,updateHeldWandAura} from './wand-auras.js';
 import {updatePickupLift,hasMagicLook,PICKUP_RADIUS} from './pickup-lift.js';
@@ -219,9 +220,9 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    // Older bridge processes expose statues as generic objects. Keep the visual path
    // usable while they are being replaced; the current bridge supplies creature directly.
    const statueCreature=cell.object?.creature||({6746:'gecko'}[cell.glyph]);
-   if((kind==='statue'||itemName==='statue')&&/centaur/i.test(statueCreature||'')){const statue=createCentaurStatue(statueCreature);const caption=label(statueCreature,'#d7c8a7');caption.position.y=1.55;statue.add(caption);return statue;}
-   const lightItem=createLightItem(cell.object?.lit?`${itemName} (lit)`:itemName);if(lightItem){const caption=label(groundItemCaption(cell),'#d7c8a7');caption.position.y=.9;lightItem.add(caption);return lightItem;}
-   const shopItem=createShopItem(itemName);if(shopItem){const caption=label(groundItemCaption(cell),'#d7c8a7');caption.position.y=.82;shopItem.add(caption);return shopItem;}
+   if((kind==='statue'||itemName==='statue')&&/centaur/i.test(statueCreature||'')){const statue=createCentaurStatue(statueCreature);return statue;}
+   const lightItem=createLightItem(cell.object?.lit?`${itemName} (lit)`:itemName);if(lightItem){return lightItem;}
+   const shopItem=createShopItem(itemName);if(shopItem){return shopItem;}
    const warm=new THREE.MeshStandardMaterial({color:kind==='corpse'?0x72534a:cls===POTION_CLASS?0x5bd0c7:cls===WEAPON_CLASS?0xd9b15e:0xc9a86b,emissive:kind==='corpse'?0x241314:0x362718,roughness:.42,metalness:cls===WEAPON_CLASS?.65:.18});
    const edge=new THREE.MeshStandardMaterial({color:kind==='corpse'?0xb9a189:0xe8d8aa,roughness:.55,metalness:cls===WEAPON_CLASS?.7:.25});
    const add=(geometry,material=warm,x=0,y=.34,z=0)=>{const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=true;icon.add(m);return m;};
@@ -274,7 +275,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    } else {
      add(new THREE.OctahedronGeometry(.2),warm,0,.38,0);
    }
-   const caption=label(kind==='corpse'?`corpse of ${cell.name||'creature'}`:groundItemCaption(cell),'#d7c8a7');caption.scale.set(1.2,.22,1);caption.position.y=1.05;icon.add(caption);const extraDispose=icon.userData.dispose;icon.userData.dispose=()=>{warm.dispose();edge.dispose();extraDispose?.();};return icon;
+   const extraDispose=icon.userData.dispose;icon.userData.dispose=()=>{warm.dispose();edge.dispose();extraDispose?.();};return icon;
  }
  // Traps and the other known features (ice, bog, drawbridges, ice walls, clouds, air) get a
  // model once their own symbol is showing (a monster or item on top hides it);
@@ -299,8 +300,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
   if(key===tile.userData.stairsKey)return;
   for(const o of tile.userData.stairs||[]){o.traverse(c=>c.userData.dispose?.());tile.remove(o);}
   const seed=cell.x*131+cell.z,model=(ladder?createLadder:createStairs)(cell.terrain,seed);
-  const caption=label(`${cell.terrain==='up'?'↑':'↓'} ${ladder?'ladder':'stone stairs'}`);
-  tile.add(model,caption);tile.userData.stairs=[model,caption];tile.userData.stairsKey=key;tile.userData.ladder=ladder;
+  tile.add(model);tile.userData.stairs=[model];tile.userData.stairsKey=key;tile.userData.ladder=ladder;
  }
  // Dead trees share the tree terrain; the glyph's colour tells them apart while nothing
  // covers it (dead-tree.js), and a tree withered by a death ray swaps in place.
@@ -368,13 +368,13 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
        if(cell.kind==='monster'||cell.kind==='pet'){
        const key=`${id}:${cell.glyph}`;seenActors.add(key);let a=actors.get(key);const fresh=!a;
        if(!a){for(const [previous,candidate] of actors){if(!seenActors.has(previous)&&!candidate.actions?.dead&&candidate.glyph===cell.glyph&&Math.hypot(candidate.g.position.x-x,candidate.g.position.z-z)<2.1){a=candidate;actors.delete(previous);actors.set(key,a);break;}}}
-       if(!a){const disposition=cell.kind==='pet'?'pet':cell.peaceful?'peaceful':'hostile';if(cell.kind==='pet'&&/cat|kitten/.test(cell.name)){a=catFactory();stageCreature(a.g,{disposition});a.g.add(label(cell.name,'#b8ead3'));}else{const made=/^shopkeeper$/i.test(cell.name||'')?createShopkeeper():/^watchman$/i.test(cell.name||'')?createWatchman():/^grid bug$/i.test(cell.name||'')?createGridBug():/^oracle$/i.test(cell.name||'')?createOracle():creatureFactory?creatureFactory(cell):monsterFactory();a=made.g?made:{g:made};stageCreature(a.g,{disposition});a.g.add(label(cell.name||'creature',cell.kind==='pet'?'#b8ead3':cell.peaceful?'#e8dfb0':'#e9c8ad'));attachModelAsset(a,cell.name,MODEL_URLS);}a.flap=flapStyle(cell.name);a.g.position.set(x,0,z);group.add(a.g);actors.set(key,a);}
+       if(!a){const disposition=cell.kind==='pet'?'pet':cell.peaceful?'peaceful':'hostile';if(cell.kind==='pet'&&/cat|kitten/.test(cell.name)){a=catFactory();stageCreature(a.g,{disposition});}else{const made=/^shopkeeper$/i.test(cell.name||'')?createShopkeeper():/^watchman$/i.test(cell.name||'')?createWatchman():/^grid bug$/i.test(cell.name||'')?createGridBug():/^oracle$/i.test(cell.name||'')?createOracle():creatureFactory?creatureFactory(cell):monsterFactory();a=made.g?made:{g:made};stageCreature(a.g,{disposition});attachModelAsset(a,cell.name,MODEL_URLS);}a.flap=flapStyle(cell.name);a.g.position.set(x,0,z);group.add(a.g);actors.set(key,a);}
        if(a.actions?.finished){clearActionPose(a,a.actions);restoreFade(a);restoreStone(a);a.actions=createActionQueue();}
        a.glyph=cell.glyph;a.species=(cell.name||'').toLowerCase();a.target=new THREE.Vector3(x,perchHeight(cell.terrain),z);a.cell=`${cell.x},${cell.z}`;
        // A monster that just rose from its corpse gets up off the floor instead of popping in (rise.js).
        if(fresh){const risen=rises.claim(cell.x,cell.z,cell.name||null,performance.now());if(risen){a.actions??=createActionQueue();enqueueAction(a.actions,riseActionFor(risen));}}
        // Invisible-and-sensed monsters (telepathy, warning) still send a cell, but the model,
-       // its label and its disposition ring — all children of a.g — should stay hidden.
+       // its disposition ring — all children of a.g — should stay hidden.
        a.g.visible=!cell.invisible;
      }
    }
@@ -395,7 +395,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(v.type!=='combat'){grab.death(c);queueDeath(c,findSide);return;}grab.combat(c);brainSuck.combat(c);combatStream=true;if(c.heroAttacks){meleeIntent=null;swingTarget=c.defender?.name??null;}queueCombat(c,{hero,find:findSide});}
  // Map frames wait for queued deaths to play, so the corpse appears after the fall; a newer frame replaces a held one.
  function applySoon(frame){heldFrame=frame;if(heldTimer)return;const wait=active?Math.max(holdBackMs([hero.actions,...[...actors.values()].map(a=>a.actions)]),Math.ceil(fxHoldUntil-performance.now())):0;const go=()=>{heldTimer=null;const f=heldFrame;heldFrame=null;if(f)apply(f);};if(wait>0)heldTimer=setTimeout(go,wait);else go();}
- function message(text){splash.queueMessage(text);if(latest?.player){digChips.message(text,latest.player.x-origin.x,latest.player.z-origin.z,hero.g.rotation.y);digCracks.message(text,latest.player.x-origin.x,latest.player.z-origin.z,hero.g.rotation.y);digSwing.message(text);prayerKneel.message(text);digDrop.message(text);levelUp.message(text,latest.player.x-origin.x,latest.player.z-origin.z);prayerLight.message(text,latest.player.x-origin.x,latest.player.z-origin.z);}if(isThronePuff(text)&&latest?.player)throneVanish.add(latest.player.x-origin.x,latest.player.z-origin.z,latest.player.x*7+latest.player.z);if(isLadyMessage(text)&&latest?.player)fountainLady.add(latest.player.x-origin.x,latest.player.z-origin.z);if(latest?.player){fountainLady.message(text,latest.player.x-origin.x,latest.player.z-origin.z);fountainSnakes.message(text,latest.player.x-origin.x,latest.player.z-origin.z);fountainGush.message(text,latest.player.x-origin.x,latest.player.z-origin.z);altarSacrifice.message(text,latest.player.x-origin.x,latest.player.z-origin.z);altarClover.message(text,latest.player.x-origin.x,latest.player.z-origin.z);fountainNymph.message(text,latest.player.x-origin.x,latest.player.z-origin.z,hero.g.rotation.y);fountainDemon.message(text,latest.player.x-origin.x,latest.player.z-origin.z);fountainWish.message(text,latest.player.x-origin.x,latest.player.z-origin.z);fireTrapJet.message(text,latest.player.x-origin.x,latest.player.z-origin.z);}grab.message(text,latest);brainSuck.message(text,latest);poly.message(text);barsMelt.message(text);breath.message(text);if(!combatStream&&meleeIntent&&confirmsPlayerMelee(text)){enqueueAction(hero.actions,{kind:'attack',attack:'weapon',result:'hit',dir:meleeIntent});meleeIntent=null;}const line=$('#engine-line'),log=$('#engine-messages');if(line.textContent){const p=document.createElement('div');p.textContent=line.textContent;log.prepend(p);while(log.children.length>3)log.lastChild.remove();}line.textContent=text;$('#message').textContent=text;}
+ const messageLog=createMessageLog();
+ function message(text){splash.queueMessage(text);if(latest?.player){digChips.message(text,latest.player.x-origin.x,latest.player.z-origin.z,hero.g.rotation.y);digCracks.message(text,latest.player.x-origin.x,latest.player.z-origin.z,hero.g.rotation.y);digSwing.message(text);prayerKneel.message(text);digDrop.message(text);levelUp.message(text,latest.player.x-origin.x,latest.player.z-origin.z);prayerLight.message(text,latest.player.x-origin.x,latest.player.z-origin.z);}if(isThronePuff(text)&&latest?.player)throneVanish.add(latest.player.x-origin.x,latest.player.z-origin.z,latest.player.x*7+latest.player.z);if(isLadyMessage(text)&&latest?.player)fountainLady.add(latest.player.x-origin.x,latest.player.z-origin.z);if(latest?.player){fountainLady.message(text,latest.player.x-origin.x,latest.player.z-origin.z);fountainSnakes.message(text,latest.player.x-origin.x,latest.player.z-origin.z);fountainGush.message(text,latest.player.x-origin.x,latest.player.z-origin.z);altarSacrifice.message(text,latest.player.x-origin.x,latest.player.z-origin.z);altarClover.message(text,latest.player.x-origin.x,latest.player.z-origin.z);fountainNymph.message(text,latest.player.x-origin.x,latest.player.z-origin.z,hero.g.rotation.y);fountainDemon.message(text,latest.player.x-origin.x,latest.player.z-origin.z);fountainWish.message(text,latest.player.x-origin.x,latest.player.z-origin.z);fireTrapJet.message(text,latest.player.x-origin.x,latest.player.z-origin.z);}grab.message(text,latest);brainSuck.message(text,latest);poly.message(text);barsMelt.message(text);breath.message(text);if(!combatStream&&meleeIntent&&confirmsPlayerMelee(text)){enqueueAction(hero.actions,{kind:'attack',attack:'weapon',result:'hit',dir:meleeIntent});meleeIntent=null;}const line=$('#engine-line'),log=$('#engine-messages');addMessage(messageLog,text);const view=panelView(messageLog);log.replaceChildren(...view.earlier.map(t=>{const p=document.createElement('div');p.textContent=t;return p;}));log.scrollTop=0;line.textContent=view.line;$('#message').textContent=text;}
  async function post(path,body={}){if(!token)token=(await fetch('/engine/token').then(r=>r.json())).token;const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Engine-Token':token},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw new Error(data.error);return data;}
  async function reply(value){if(!pending)return;const req=pending;meleeIntent=req.kind==='command'?meleeDirection(value):null;pending=null;lines=[];menu=null;dialog.close();setPrompt('Engine is resolving your action…');try{await post('/engine/input',{id:req.id,value});pollNow?.();}catch(e){meleeIntent=null;message(e.message);setPrompt('Input was not accepted. Reconnect Live mode to refresh the prompt.');}}
  function showGround(items){
