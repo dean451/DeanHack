@@ -6,7 +6,7 @@ import {createCandelabrum} from './candelabrum.js';
 import {createWatch} from './watch.js';
 import {createFlameFlicker, flameState, flameLightPosition, FLAME_SCAN_EVERY, FLAME_LIGHTS, FLAME_LIGHT_INTENSITY, FLAME_LIGHT_LANTERN} from './flame-flicker.js';
 import {createThrone} from './throne.js';
-import {createThroneGleam, gleamState, glint, GLEAM_BREATHE, GLEAM_SMOULDER, GLEAM_GLINT, GLEAM_SAPPHIRE_EVERY, GLEAM_RUBY_EVERY} from './throne-gleam.js';
+import {createThroneGleam, gleamState, glint, GLEAM_BREATHE, GLEAM_SMOULDER, GLEAM_GLINT, GLEAM_SAPPHIRE_EVERY, GLEAM_RUBY_EVERY, GLEAM_TIC, GLEAM_TIC_DELAY, sapphireTic} from './throne-gleam.js';
 
 // The world position of the bottom centre of a flame's geometry (its root on the wick).
 function root(mesh) {
@@ -151,6 +151,22 @@ test('gleamState stays finite and bounded, and each stone glints about once per 
   assert(Math.abs(rubyGlints - 140 / GLEAM_RUBY_EVERY) <= 1, `ruby glints ${rubyGlints}`);
   // A glint is continuous across slot boundaries: it's ~0 there.
   for (let k = 1; k < 20; k++) assert(glint(k * GLEAM_SAPPHIRE_EVERY - 1e-6, GLEAM_SAPPHIRE_EVERY) < 1e-6);
+});
+
+test('the sapphire sometimes twitches once more, late and small, and never counts as a glint', () => {
+  let tics = 0, was = false, lateGap = [];
+  for (let t = 0; t < 280; t += 1 / 60) {
+    const k = sapphireTic(t, .9);
+    assert(k >= 0 && k <= GLEAM_TIC + 1e-9, `tic ${k}`);
+    assert(GLEAM_TIC < .5, 'a tic stays under the glint threshold the glint count uses');
+    const on = k > GLEAM_TIC * .5;
+    if (on && !was) { tics++; lateGap.push(t); }
+    was = on;
+  }
+  const slots = 280 / GLEAM_SAPPHIRE_EVERY;
+  assert(tics > slots * .15 && tics < slots * .6, `tics ${tics} of ${slots} slots`);
+  // Each tic follows its glint by about the delay.
+  for (const t of lateGap) assert(glint(t - GLEAM_TIC_DELAY, GLEAM_SAPPHIRE_EVERY, .9) > .5, `tic at ${t} has no glint ${GLEAM_TIC_DELAY}s before`);
 });
 
 test('throne jewels breathe and glint smoothly, out of step between thrones, and restore exactly', () => {

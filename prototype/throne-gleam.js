@@ -15,6 +15,8 @@ export const GLEAM_GLINT = .75; // extra glow at the top of a glint (fraction)
 export const GLEAM_GLINT_WIDTH = .09; // seconds; the glint's gaussian width
 export const GLEAM_SAPPHIRE_EVERY = 7; // seconds between sapphire glints
 export const GLEAM_RUBY_EVERY = 13; // seconds between ruby glints
+export const GLEAM_TIC = .4; // peak of the sapphire's late second twitch (fraction)
+export const GLEAM_TIC_DELAY = .32; // seconds after the glint that the twitch comes
 
 function phaseOf(obj) {
   const x = Math.sin(obj.id * 12.9898 + 78.233) * 43758.5453;
@@ -28,10 +30,18 @@ function hash(n) {
 
 // A glint once per `every` seconds, at a random point in the middle of each slot, so the
 // gaussian's tails never reach the slot's edges. Returns 0..1.
-export function glint(t, every, phase = 0) {
+export function glint(t, every, phase = 0, delay = 0) {
   const u = t + phase / (Math.PI * 2) * every, slot = Math.floor(u / every);
-  const d = (u - (slot + .2 + hash(slot + phase * 7.1) * .6) * every) / GLEAM_GLINT_WIDTH;
+  const d = (u - delay - (slot + .2 + hash(slot + phase * 7.1) * .6) * every) / GLEAM_GLINT_WIDTH;
   return Math.exp(-d * d);
+}
+
+// The sapphire's tic: after about every third glint it twitches once more, a smaller second
+// glint a beat late, like an eye that did not quite close. Never as bright as a real glint, so
+// it is not counted as one. Returns 0..GLEAM_TIC.
+export function sapphireTic(t, phase = 0) {
+  const u = t + phase / (Math.PI * 2) * GLEAM_SAPPHIRE_EVERY, slot = Math.floor(u / GLEAM_SAPPHIRE_EVERY);
+  return hash(slot * 3.7 + phase) < .35 ? GLEAM_TIC * glint(t, GLEAM_SAPPHIRE_EVERY, phase, GLEAM_TIC_DELAY) : 0;
 }
 
 // Glow multipliers for a throne's stones at time t.
@@ -40,7 +50,7 @@ export function gleamState(t, phase = 0) {
   const smoulder = Math.sin(t * .83 + phase * 2.3 + 2) * .65 + Math.sin(t * 2.1 + phase * .6) * .35;
   const sapphireGlint = glint(t, GLEAM_SAPPHIRE_EVERY, phase), rubyGlint = glint(t, GLEAM_RUBY_EVERY, phase * 1.9 + 1);
   return {
-    sapphire: 1 + breathe * GLEAM_BREATHE + sapphireGlint * GLEAM_GLINT,
+    sapphire: 1 + breathe * GLEAM_BREATHE + sapphireGlint * GLEAM_GLINT + sapphireTic(t, phase),
     ruby: 1 + smoulder * GLEAM_SMOULDER + rubyGlint * GLEAM_GLINT * .8,
     sapphireGlint, rubyGlint,
   };
