@@ -80,7 +80,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 
 **UI and controls**
 
-- **Minimap to the bottom-right corner:** with the footer text and buttons gone, put the minimap in the bottom-right corner of the screen, flush to the margin, clear of the live panel and the key legend.
 - **Key legend and controls:** keep `h j k l` / arrows, `y u b n`, `s` search, `SPACE` wait and `i` inventory. Done so far: the legend lists `v`, `,`, `@`, Ctrl-`d`, `#` and `O` (`live-keys.js`); the client sends every single key raw and Ctrl-`d` as key 4 (read from `live.js`, not play-tested). Remaining: check against a live engine that the `O` options menu and the `@` toggle reach the player and that their menus render in the dialog.
 - **Zoom and map:** done so far: zooming in further (minimum distance 10 to 5, `main.js`) and the zoom and angle are kept across dungeon levels (`camera-view.js`). The minimap is done (`minimap.js`, stairs drawn as triangles). Remaining: Shift-`>` points toward stairs down and it is hard to tell which of several staircases is being pointed at; make the pointer show on the minimap or in the world which staircase it means.
 - **Colour-blind safety:** make sure no cue relies on colour alone. Pair the yellow and green friendly circles, the element colours and the status effects with a shape or motion cue as well.
