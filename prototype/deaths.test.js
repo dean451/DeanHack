@@ -42,6 +42,16 @@ test('a dying lich lets its arm and wrist go limp before the frame collapses', (
   assert.ok(deathPose('crumble', 1).arm > .5 && deathPose('crumble', 0).arm === 0, 'a crumbling corpse lets its arm hang slack');
 });
 
+test('a dying lich buckles its leg and slumps its hem on separate beats', () => {
+  const p = u => deathPose('lichdust', u);
+  assert.equal(p(0).leg, 0);
+  assert.equal(p(0).tail, 0);
+  assert.ok(p(.4).leg > .4 && p(.4).tail < .05, 'the leg goes first');
+  assert.ok(p(.8).tail > .5);
+  for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).leg) < 1 && Math.abs(p(u).tail) < 1, `in bounds at ${u}`);
+  assert.equal(deathPose('topple', 1).leg, 0);
+});
+
 test('every style starts at rest, stays finite and bounded, and ends held', () => {
   for (const style of DEATH_STYLES) {
     const p0 = deathPose(style, 0, [1, 0]);

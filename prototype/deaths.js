@@ -86,6 +86,10 @@ export function deathPose(style, u, dir = null) {
       // after it, as if the hand had already stopped being a part of it.
       p.arm = .95 * smooth((u - .08) / .22) + .12 * Math.sin(u * 40) * smooth((u - .3) / .1) * (1 - smooth((u - .6) / .2));
       p.wrist = .8 * smooth((u - .18) / .25);
+      // Then the lower frame gives way piece by piece: the leg buckles with a jerk before the
+      // robe's hem (tail) slumps after it, each coming apart on its own beat.
+      p.leg = .7 * smooth((u - .22) / .2) + .06 * Math.sin(u * 60) * smooth((u - .4) / .1) * (1 - smooth((u - .6) / .2));
+      p.tail = .6 * smooth((u - .4) / .3);
       p.fade = 1 - smooth((u - .6) / .4);
       push(.03 * sag);
       break;
