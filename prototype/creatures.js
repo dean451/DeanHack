@@ -2480,7 +2480,7 @@ function trapper(o){
  legs.push(back);
  return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
-const TRAPPERS={'lurker above':{hide:'#4a4452',eye:'#c8e040',scale:.9},trapper:{hide:'#6a6f5e',eye:'#ff8a3a',scale:1}};
+const TRAPPERS={'lurker above':{hide:'#4a4452',eye:'#c8e040',scale:1.1},trapper:{hide:'#6a6f5e',eye:'#ff8a3a',scale:1.3}};
 
 // Sea monsters (;): wet, glossy swimmers. Fish and eels hang their back half on the actor tail. That group is tipped
 // over (rotation.x=-PI/2) so that live.js's tail swing (rotation.z) becomes a side-to-side sweep. Inside it, local +y points
