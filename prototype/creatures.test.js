@@ -157,8 +157,8 @@ test('mumakil and mastodons are tusked, trunked beasts baked into a few meshes, 
   beast.g.traverse(part=>{if(!part.isMesh)return;meshes++;for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);});
   assert(meshes<=24,`${name} has ${meshes} meshes`);counts[name]=meshes;
   const bounds=new THREE.Box3().setFromObject(beast.g);
-  assert(Math.abs(bounds.min.y)<.005,name);assert(bounds.max.y>1.1&&bounds.max.y<1.45,name);
-  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.95,name);
+  assert(Math.abs(bounds.min.y)<.005,name);assert(bounds.max.y>1.1&&bounds.max.y<1.6,name);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<1.05,name);
   // the trunk hangs clear of the floor
   assert(new THREE.Box3().setFromObject(beast.trunk).min.y>.08,name);
  }
@@ -176,11 +176,11 @@ test('titanotheres and baluchitheria are giant rhinos baked into a few meshes, n
   assert(meshes<=22,`${name} has ${meshes} meshes`);
   const bounds=new THREE.Box3().setFromObject(beast.g);
   assert(Math.abs(bounds.min.y)<.005,`${name} floor ${bounds.min.y}`);
-  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.9,name);
+  assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.95,name);
   heights[name]=bounds.max.y;
  }
- assert(heights.titanothere>.9&&heights.titanothere<1.15,'the titanothere is low and massive');
- assert(heights.baluchitherium>1.25&&heights.baluchitherium<1.45,'the baluchitherium towers');
+ assert(heights.titanothere>.9&&heights.titanothere<1.25,'the titanothere is low and massive');
+ assert(heights.baluchitherium>1.25&&heights.baluchitherium<1.6,'the baluchitherium towers');
  assert.notEqual(createCreature({name:'leocrotta',symbol:113}).g.name,'titanothere');
 });
 

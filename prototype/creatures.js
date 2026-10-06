@@ -1069,8 +1069,8 @@ function proboscidean(o){
  return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,trunk});
 }
 const PROBOSCIDEANS={
- mumak:{name:'mumak',scale:1.1,skin:'#7c7872',dark:'#56524d',ear:.2,crown:0,minorTusks:true},
- mastodon:{name:'mastodon',scale:1.15,skin:'#4a3b30',dark:'#2f251e',hair:'#6b4526',ear:.09,crown:.07,spiral:true},
+ mumak:{name:'mumak',scale:1.25,skin:'#7c7872',dark:'#56524d',ear:.2,crown:0,minorTusks:true},
+ mastodon:{name:'mastodon',scale:1.25,skin:'#4a3b30',dark:'#2f251e',hair:'#6b4526',ear:.09,crown:.07,spiral:true},
 };
 // Titanotheres and baluchitheria (q): giant rhinos that used to borrow the rothe.
 // Both stand on columnar legs with three-toed feet, have folds of thick hide at the neck and
@@ -1130,8 +1130,8 @@ function megaRhino(o){
  return Object.assign(actor(g,body,legs,tail,[],'idle'),{head});
 }
 const MEGA_RHINOS={
- titanothere:{name:'titanothere',scale:1.05,skin:'#6e6254',dark:'#4a4036',legH:.34,girth:.3,length:1.45,hump:.16,neck:0,headTilt:.32,headSize:1.35,horn:'fork',stance:.17,legR:.085,setBack:-.15},
- baluchitherium:{name:'baluchitherium',scale:1,skin:'#9a8c78',dark:'#6a5e50',legH:.58,girth:.26,length:1.45,hump:.08,neck:.34,headTilt:.55,headSize:1.1,lip:true,stance:.15,legR:.068,setBack:-.2},
+ titanothere:{name:'titanothere',scale:1.15,skin:'#6e6254',dark:'#4a4036',legH:.34,girth:.3,length:1.45,hump:.16,neck:0,headTilt:.32,headSize:1.35,horn:'fork',stance:.17,legR:.085,setBack:-.15},
+ baluchitherium:{name:'baluchitherium',scale:1.12,skin:'#9a8c78',dark:'#6a5e50',legH:.58,girth:.26,length:1.45,hump:.08,neck:.34,headTilt:.55,headSize:1.1,lip:true,stance:.15,legR:.068,setBack:-.2},
 };
 // Leocrottas (q): used to borrow the rothe. A tawny stag's body on long slender legs with cloven
 // hooves, a lion's thick maned neck, and a badger's striped head whose mouth splits back to the
