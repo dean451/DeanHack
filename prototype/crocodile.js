@@ -17,7 +17,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // Handles: body, head, jaw, tail, legs. It keeps the 'lizard' quirk.
 
 const LOOKS={
- crocodile:{scale:.9,back:'#394325',flank:'#58623a',belly:'#cfc592',band:'#252c16',bands:.35},
+ crocodile:{scale:1.2,back:'#394325',flank:'#58623a',belly:'#cfc592',band:'#252c16',bands:.35},
  'baby crocodile':{scale:.5,back:'#4b5a2f',flank:'#6f7b43',belly:'#e2d9a8',band:'#1c2210',bands:.8},
 };
 const clamp01=v=>THREE.MathUtils.clamp(v,0,1);
