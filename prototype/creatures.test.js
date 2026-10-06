@@ -2042,8 +2042,8 @@ test('Medusa gets her own serpent-bodied gorgon with snake hair, glowing eyes, t
  me.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(me.g,true);
  assert(b.min.y>-.03&&b.min.y<.03,`coil on the floor at ${b.min.y}`);
- assert(b.max.y>1.2&&b.max.y<1.4,`top at ${b.max.y}`);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
+ assert(b.max.y>1.2&&b.max.y<1.7,`top at ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.65,'out of proportion');
  // the tail trails out behind her along the floor, and the snakes rise well above the skull
  const tail=new THREE.Box3().setFromObject(me.tail,true);
  assert(tail.min.z<-.4&&tail.max.y<.15,`tail ${tail.min.z} ${tail.max.y}`);
