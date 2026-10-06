@@ -26,7 +26,8 @@ test('the swirl and crown groups did not move the model', () => {
     const a = mon(name, 'E');
     a.g.updateMatrixWorld(true);
     const b = new THREE.Box3().setFromObject(a.g);
-    assert.ok(b.max.y > .9 && b.max.y < 1.5 && b.min.y > -.05, `${name} ${b.min.y} ${b.max.y}`);
+    const k = a.g.scale.y;
+    assert.ok(b.max.y > .9 * k && b.max.y < 1.5 * k && b.min.y > -.05, `${name} ${b.min.y} ${b.max.y}`);
     if (name.startsWith('fire') || name.startsWith('water')) assert.equal(a.crown.parent, a.body, name);
     else assert.equal(a.crown, undefined, name);
   }
