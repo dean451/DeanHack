@@ -67,6 +67,9 @@ export function deathPose(style, u, dir = null) {
       p.arm = .6 * smooth((u - .35) / .3);
       // The knees go before the rest of it notices: the leg gives in a short jerk early on.
       p.leg = .5 * smooth((u - .15) / .2);
+      // The hand lolls after the arm and whatever trailed behind it slumps last.
+      p.wrist = .6 * smooth((u - .4) / .25);
+      p.tail = .5 * smooth((u - .5) / .3);
       p.fade = 1 - smooth((u - .6) / .4);
       push(.04 * sag);
       break;
