@@ -23,6 +23,21 @@ test('invisibility fades the liquid and the glass',()=>{
  plain.userData.dispose();faint.userData.dispose();
 });
 
+test('blood, vampire blood, oil and blindness change the liquid',()=>{
+ const plain=make('healing');
+ const base=part(plain,'liquid').material;
+ for(const [name,kind] of [['potion of blood','blood'],['potion of vampire blood','vampire blood'],['potion of oil','oil'],['potion of blindness','blindness']]){
+  const m=make(name);
+  assert.equal(m.userData.twist,kind);
+  const l=part(m,'liquid').material;
+  assert.equal(l.transparent,false);
+  assert(l.emissiveIntensity<=Math.max(base.emissiveIntensity,.35));
+  assert.notEqual(l.color.getHex(),base.color.getHex());
+  m.userData.dispose();
+ }
+ plain.userData.dispose();
+});
+
 test('other potions are left alone',()=>{
  const m=make('gain level');
  assert.equal(m.userData.twist,undefined);

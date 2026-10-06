@@ -23,6 +23,42 @@ const TWISTS = {
     liquid.material.emissiveIntensity *= .4;
     glass.material.opacity *= .45;
   },
+  // Blood clots dark and thick; vampire blood is darker still and keeps a hungry red under the skin.
+  blood(parts) {
+    const {liquid} = parts;
+    liquid.material.color.set(0x3a0509);
+    liquid.material.roughness = .9;
+    liquid.material.transparent = false;
+    liquid.material.opacity = 1;
+    liquid.material.emissiveIntensity *= .3;
+  },
+  'vampire blood'(parts) {
+    const {liquid} = parts;
+    liquid.material.color.set(0x1c0306);
+    liquid.material.roughness = .85;
+    liquid.material.transparent = false;
+    liquid.material.opacity = 1;
+    liquid.material.emissive.set(0x901018);
+    liquid.material.emissiveIntensity = .35;
+  },
+  // Oil is a black slick that swallows the glow.
+  oil(parts) {
+    const {liquid} = parts;
+    liquid.material.color.set(0x14100a);
+    liquid.material.roughness = .15;
+    liquid.material.transparent = false;
+    liquid.material.opacity = 1;
+    liquid.material.emissiveIntensity *= .2;
+  },
+  // Blindness: a milky film, flat and pale, that gives no light back.
+  blindness(parts) {
+    const {liquid} = parts;
+    liquid.material.color.set(0xd8d8cc);
+    liquid.material.roughness = 1;
+    liquid.material.transparent = false;
+    liquid.material.opacity = 1;
+    liquid.material.emissiveIntensity = 0;
+  },
 };
 
 // Applies the twist for this floor object to the potion meshes in `group`. Returns the twist name
