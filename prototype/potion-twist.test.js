@@ -43,3 +43,10 @@ test('other potions are left alone',()=>{
  assert.equal(m.userData.twist,undefined);
  m.userData.dispose();
 });
+
+test('acid burns green inside the glass',()=>{
+ const plain=make('healing'),acid=make('potion of acid');
+ assert.equal(acid.userData.twist,'acid');
+ assert(part(acid,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
+ plain.userData.dispose();acid.userData.dispose();
+});
