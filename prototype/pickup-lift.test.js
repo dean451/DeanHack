@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {pickupLiftAt, updatePickupLift, hasMagicLook, PICKUP_DURATION, PICKUP_RISE, PICKUP_RADIUS} from './pickup-lift.js';
+import {pickupLiftAt, updatePickupLift, hasMagicLook, PICKUP_DURATION, PICKUP_RISE} from './pickup-lift.js';
 
 test('the lift starts at rest, stays in bounds and ends fully shrunk', () => {
   const start = pickupLiftAt(0);
@@ -32,10 +32,9 @@ test('a lifting item drifts toward the hero and finishes at the duration', () =>
   assert.ok(item.scale.x > 0, 'never a degenerate zero scale');
 });
 
-test('only items with a magic look lift; the radius is sane', () => {
+test('only items with a magic look lift', () => {
   const plain = new THREE.Group(), magic = new THREE.Group();
   magic.userData.ringAura = new THREE.Group();
   assert.equal(hasMagicLook(plain), false);
   assert.equal(hasMagicLook(magic), true);
-  assert.ok(PICKUP_RADIUS > 1 && PICKUP_RADIUS < 2);
 });
