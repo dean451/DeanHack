@@ -5,7 +5,7 @@ import * as THREE from 'three';
 // health, so a bar appearing is itself the news. How much is left is the bar's length, never its
 // colour, so it reads the same to everyone; the fill is a dull red that stays out of the way.
 export const BAR_WIDTH = 0.7;
-export const BAR_HEIGHT = 0.055;
+export const BAR_HEIGHT = 0.024;
 
 export function healthFraction(health) {
   return typeof health === 'number' && health > 0 && health < 100 ? health / 100 : null;
@@ -22,7 +22,7 @@ export function createHealthBar() {
     s.position.x = -BAR_WIDTH / 2;
     s.renderOrder = 20;
   }
-  back.scale.set(BAR_WIDTH + 0.03, BAR_HEIGHT + 0.03, 1);
+  back.scale.set(BAR_WIDTH + 0.03, BAR_HEIGHT + 0.012, 1);
   back.position.x -= 0.015;
   fill.scale.set(BAR_WIDTH, BAR_HEIGHT, 1);
   fill.position.z = 0.001;
