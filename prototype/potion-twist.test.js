@@ -59,3 +59,10 @@ test('sickness turns the liquid to a murky, opaque sludge',()=>{
  assert(l.roughness>part(plain,'liquid').material.roughness);
  plain.userData.dispose();sick.userData.dispose();
 });
+
+test('full healing glows pale gold',()=>{
+ const plain=make('healing'),full=make('potion of full healing');
+ assert.equal(full.userData.twist,'full healing');
+ assert(part(full,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
+ plain.userData.dispose();full.userData.dispose();
+});
