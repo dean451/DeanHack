@@ -87,7 +87,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 
 **UI and controls**
 
-- **Remove the name labels (visuals only):** drop the floating text labels over monsters, pets, ground items, corpses, statues and stairs (the `label()` sprites in `live.js`). From here the game is shown by its visuals alone. Keep the tooltip/farlook path and the message log. This makes the message log carry more: make the message scroller more robust so nothing important is lost (a long history, new messages never pushed out of view, readable when many arrive at once). Check that every model is distinguishable without its label and list any that are not under open concerns. Remove the dead label helper code and fix any tests that expected labels.
 - **Message history:** Ctrl-P must work in some capacity so the player can see messages that have scrolled by.
 - **Naming prompt:** when asked to name a scroll or potion, show the last message so the player can see what they are naming.
 - **Search tooltip:** next to the `s` (search) tooltip, also tell the player about `v` (explore).
