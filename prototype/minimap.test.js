@@ -1,0 +1,48 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {cellStyle, drawMinimap, WIDTH, HEIGHT, SCALE} from './minimap.js';
+
+const hero = {x: 10, z: 5};
+
+test('the hero, monsters, pets and features each look different, and stairs differ by shape not just colour', () => {
+  const marks = new Map();
+  for (const [name, cell] of Object.entries({
+    hero: {x: 10, z: 5, terrain: 'floor'},
+    pet: {x: 1, z: 1, kind: 'pet', terrain: 'floor'},
+    monster: {x: 2, z: 1, kind: 'monster', visible: true, terrain: 'floor'},
+    trap: {x: 3, z: 1, trap: 'arrow trap', terrain: 'floor'},
+    up: {x: 4, z: 1, terrain: 'up'}, down: {x: 5, z: 1, terrain: 'down'},
+    door: {x: 6, z: 1, terrain: 'door'},
+  })) marks.set(name, cellStyle(cell, hero).mark);
+  assert.equal(marks.get('hero'), 'hero');
+  assert.equal(marks.get('up'), 'up');
+  assert.equal(marks.get('down'), 'down');
+  assert.notEqual(marks.get('up'), marks.get('down'));
+  assert.equal(marks.get('trap'), 'x');
+  assert.equal(marks.get('door'), 'bar');
+});
+
+test('a remembered monster is not drawn (only ones in sight), unknown terrain draws nothing', () => {
+  assert.equal(cellStyle({x: 1, z: 1, kind: 'monster', visible: false, terrain: 'floor'}, hero).mark, undefined);
+  assert.equal(cellStyle({x: 1, z: 1, terrain: 'unknown'}, hero), null);
+  assert.equal(cellStyle({x: 1, z: 1, terrain: 'unknown', object: {name: 'dagger'}}, hero).mark, 'dot');
+});
+
+test('lit floor is brighter than remembered floor and walls differ from both', () => {
+  const lit = cellStyle({terrain: 'floor', visible: true}, hero).fill;
+  const dark = cellStyle({terrain: 'floor', visible: false}, hero).fill;
+  const wall = cellStyle({terrain: 'wall'}, hero).fill;
+  assert.ok(new Set([lit, dark, wall]).size === 3);
+});
+
+test('drawMinimap draws each cell once inside the canvas and skips out-of-range cells', () => {
+  const calls = [];
+  const ctx = {clearRect() {}, fillRect: (...a) => calls.push(a), beginPath() {}, moveTo() {}, lineTo() {}, fill() {}, set fillStyle(v) {}};
+  const frame = {player: {x: 10, z: 5}, cells: [
+    {x: 1, z: 0, terrain: 'wall'}, {x: 80, z: 20, terrain: 'floor', visible: true},
+    {x: 200, z: 3, terrain: 'wall'}, {x: 5, z: 99, terrain: 'wall'}, {x: 7, z: 7, terrain: 'unknown'}]};
+  assert.equal(drawMinimap(ctx, frame), 2);
+  assert.ok(calls.some(([x, y, w, h]) => x === 0 && y === 0 && w === SCALE && h === SCALE), 'cell (1,0) is the top-left square');
+  assert.ok(calls.every(([x, y]) => x >= -1 && y >= -1 && x <= WIDTH && y <= HEIGHT));
+  assert.equal(drawMinimap(ctx, null), 0, 'no frame, nothing drawn');
+});
