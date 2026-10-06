@@ -83,9 +83,9 @@ dialog button{font:600 12px 'Cinzel',Georgia,serif;letter-spacing:1.5px}
 .engine-ext-list li b{font:600 13px 'Cinzel',Georgia,serif;letter-spacing:1px}
 .engine-menu-groups{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.engine-menu-groups button{margin:0;font:13px/1.2 Inter,sans-serif;padding:5px 9px}.engine-menu-groups kbd{margin-left:4px}
 
-#minimap{position:fixed;right:28px;bottom:144px;z-index:4;width:320px;height:84px;border:1px solid #3a4b57;border-radius:6px;image-rendering:pixelated;pointer-events:none}
+#minimap{position:fixed;right:40px;bottom:25px;z-index:4;width:320px;height:84px;border:1px solid #3a4b57;border-radius:6px;image-rendering:pixelated;pointer-events:none}
 #minimap[hidden]{display:none}
-@media(max-width:1000px){#minimap{width:240px;height:63px;right:12px;bottom:92px}}
+@media(max-width:1000px){#minimap{width:240px;height:63px;right:24px;bottom:25px}}
 .msg-damage::before,.msg-magic::before,.msg-pickup::before,.msg-warning::before{display:inline-block;width:1.1em;margin-right:.15em;font-style:normal;text-align:center}
 .msg-damage::before{content:'\2716'}.msg-magic::before{content:'\2726'}.msg-pickup::before{content:'+'}.msg-warning::before{content:'!';font-weight:700}
 .msg-damage{color:#d9a095}.msg-magic{color:#aebcf0}.msg-pickup{color:#c7d3a0}.msg-warning{color:#f0c27a;font-weight:600}
@@ -94,6 +94,7 @@ dialog button{font:600 12px 'Cinzel',Georgia,serif;letter-spacing:1.5px}
 #message-history>small{display:block;margin-bottom:8px;font:11px Inter,system-ui,sans-serif;letter-spacing:.12em;color:#8e9fac}
 #message-history .msg{margin-top:5px}
 .engine-recent{margin:6px 0 10px;font:italic 16px/1.35 'Cormorant Garamond',Georgia,serif;color:#9fb0bb}
+body.live-engine footer{right:384px}@media(max-width:1000px){body.live-engine footer{right:288px}}
 #minimap.aiming{pointer-events:auto;cursor:crosshair;border-color:#fff0b8}
 /* creatures in view: a compact, quiet list in the upper right, clear of the live panel */
 .live-engine #engine-seen{position:fixed;top:26px;right:40px;width:190px;margin:0;text-align:right;pointer-events:none;z-index:3}

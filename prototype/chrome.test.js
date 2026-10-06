@@ -38,3 +38,11 @@ test('the creatures in view sit in the upper right, clear of the live panel', ()
   assert.match(rule, /pointer-events:none/);
   assert.doesNotMatch(rule, /bottom:/);
 });
+
+test('the minimap sits in the bottom-right corner and the live key legend stops short of it', () => {
+  const css = read('style.css');
+  const map = css.match(/#minimap\{[^}]*\}/)[0];
+  assert.match(map, /right:40px/);
+  assert.match(map, /bottom:25px/);
+  assert.match(css, /body\.live-engine footer\{right:384px\}/);
+});
