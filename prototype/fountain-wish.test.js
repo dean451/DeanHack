@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {motePose, flarePose, afterPose, isWishMessage, WISH} from './fountain-wish.js';
+import {motePose, flarePose, afterPose, formPose, isWishMessage, WISH} from './fountain-wish.js';
 
 test('only the wish message triggers it', () => {
   assert.ok(isWishMessage('Grateful for his release, he grants you a wish!'));
@@ -33,6 +33,17 @@ test('the afterglow comes only after the flare, stays in bounds and returns to r
     const a = afterPose(t);
     assert.ok(a.ring > 0 && a.ring <= 1 && a.column > 0 && a.column <= .6 && a.ringAlpha >= 0 && a.ringAlpha <= .5 && a.columnAlpha >= 0 && a.columnAlpha <= .55, String(t));
     if (a.columnAlpha > 0) { seen = true; assert.ok(t > WISH.pull + .5 + WISH.flare - 1e-9, String(t)); }
+  }
+  assert.ok(seen);
+});
+
+test('the wished-for shard forms after the flare begins, stays in bounds and returns to rest', () => {
+  for (const t of [0, WISH.total]) assert.equal(formPose(t).alpha, 0);
+  let seen = false;
+  for (let t = 0; t <= WISH.total; t += .005) {
+    const f = formPose(t);
+    assert.ok(f.alpha >= 0 && f.alpha <= .95 + 1e-9 && f.size > 0 && f.size <= .1 + 1e-9 && f.y > .2 && f.y <= .6 && Math.abs(f.tilt) < 1, String(t));
+    if (f.alpha > 0) { seen = true; assert.ok(t > WISH.pull + .5, String(t)); }
   }
   assert.ok(seen);
 });

@@ -35,6 +35,16 @@ export function afterPose(t) {
   return {ring: .2 + .7 * smooth(u), ringAlpha: .5 * (1 - u) * (1 - u), column: .02 + .5 * rise * (1 - .8 * u), columnAlpha: .55 * fade * Math.min(1, u * 6)};
 }
 
+// The wish takes form: a small gold shard condenses out of the point of light, turns over
+// twice as if being inspected, gives one wrong-footed twitch and then sinks into the water
+// as the column thins. Nothing before the flare and nothing at the end.
+export function formPose(t) {
+  const u = clamp01((t - WISH.pull - .5 - WISH.flare * .6) / (WISH.settle + .2));
+  if (u <= 0 || u >= 1) return {size: .001, y: .6, spin: 0, tilt: 0, alpha: 0};
+  const twitch = u > .62 && u < .7 ? Math.sin((u - .62) / .08 * Math.PI) * .5 : 0;
+  return {size: .03 + .07 * smooth(u * 4) * (1 - smooth(clamp01((u - .8) / .2))), y: .6 - .05 * u - .35 * smooth(clamp01((u - .8) / .2)), spin: u * Math.PI * 4, tilt: .3 + twitch, alpha: .95 * Math.min(1, u * 8) * (1 - smooth(clamp01((u - .85) / .15)))};
+}
+
 export function createFountainWish(THREE, parent) {
   const live = [];
   function add(x, z) {
@@ -45,7 +55,8 @@ export function createFountainWish(THREE, parent) {
     const point = new THREE.Mesh(geo, mk(0xfff0b0)); point.position.y = .6; g.add(point);
     const ringGeo = new THREE.RingGeometry(.85, 1, 24), ring = new THREE.Mesh(ringGeo, mk(0xe0b040)); ring.rotation.x = -Math.PI / 2; ring.position.y = .03; g.add(ring);
     const column = new THREE.Mesh(geo, mk(0xfff0b0)); column.position.y = .6; g.add(column);
-    live.push({g, geos: [geo, ringGeo], mats, motes, point, ring, column, t: 0});
+    const shardGeo = new THREE.OctahedronGeometry(1), shard = new THREE.Mesh(shardGeo, mk(0xe0b040)); g.add(shard);
+    live.push({g, geos: [geo, ringGeo, shardGeo], mats, motes, point, ring, column, shard, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
@@ -54,6 +65,7 @@ export function createFountainWish(THREE, parent) {
     const a = afterPose(e.t);
     e.ring.visible = a.ringAlpha > .01; e.ring.scale.setScalar(a.ring); e.ring.material.opacity = a.ringAlpha;
     e.column.visible = a.columnAlpha > .01; e.column.scale.set(.035, a.column, .035); e.column.material.opacity = a.columnAlpha;
+    const s = formPose(e.t); e.shard.visible = s.alpha > .01; e.shard.position.y = s.y; e.shard.rotation.set(s.tilt, s.spin, 0); e.shard.scale.set(s.size * .6, s.size, s.size * .6); e.shard.material.opacity = s.alpha;
     return e.t < WISH.total;
   }
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); parent.remove(e.g); }

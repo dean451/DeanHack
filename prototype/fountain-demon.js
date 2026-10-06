@@ -29,6 +29,18 @@ export function eyePose(t) {
   return {alpha: open * flick};
 }
 
+// The water takes the slump badly: a dark ring spreads from the basin as the column drops,
+// and then, after the surface has gone still, a second small ring comes up from the middle
+// as if something below had turned over. Both are nothing at the start and the end.
+export function ripplePose(t) {
+  const ring = (start, len, reach, peak) => {
+    const u = clamp01((t - start) / len);
+    return u <= 0 || u >= 1 ? {radius: .001, alpha: 0} : {radius: .1 + reach * (1 - (1 - u) ** 2), alpha: peak * Math.sin(Math.PI * Math.min(1, u * 1.4) / 1) * (1 - u)};
+  };
+  const first = ring(DEMON.rise + DEMON.hold + .15, .6, .8, .5), second = ring(DEMON.rise + DEMON.hold + .75, .25, .3, .35);
+  return {first, second};
+}
+
 export function createFountainDemon(THREE, parent) {
   const live = [];
   function add(x, z) {
@@ -38,7 +50,8 @@ export function createFountainDemon(THREE, parent) {
     const col = new THREE.Mesh(colGeo, mk(0x0b1c24, THREE.DoubleSide)), head = new THREE.Mesh(headGeo, mk(0x0b1c24, THREE.FrontSide));
     const eyeMat = mk(0xff3a1a, THREE.FrontSide), eyes = [-1, 1].map(s => { const m = new THREE.Mesh(eyeGeo, eyeMat); m.position.x = s * .05; head.add(m); return m; });
     g.add(col, head);
-    live.push({g, geos: [colGeo, headGeo, eyeGeo], mats, col, head, eyeMat, eyes, t: 0});
+    const ringGeo = new THREE.RingGeometry(.85, 1, 24), rings = [0, 1].map(() => { const m = new THREE.Mesh(ringGeo, mk(0x0b1c24, THREE.DoubleSide)); m.rotation.x = -Math.PI / 2; m.position.y = .52; g.add(m); return m; });
+    live.push({g, geos: [colGeo, headGeo, eyeGeo, ringGeo], mats, col, head, eyeMat, eyes, rings, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
@@ -48,6 +61,8 @@ export function createFountainDemon(THREE, parent) {
     e.head.scale.setScalar(.04 + .17 * p.shoulders); e.head.position.set(p.sway, .5 + p.height, 0);
     e.col.material.opacity = e.head.material.opacity = p.alpha; e.eyeMat.opacity = eyePose(e.t).alpha;
     e.eyes.forEach(m => { m.position.set(m.position.x, .02, .17); });
+    const r = ripplePose(e.t);
+    [r.first, r.second].forEach((q, i) => { const m = e.rings[i]; m.visible = q.alpha > .01; m.scale.setScalar(q.radius); m.material.opacity = q.alpha; });
     return e.t < DEMON.total;
   }
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); parent.remove(e.g); }
