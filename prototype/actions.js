@@ -143,7 +143,7 @@ export function actionPose(action, u, face) {
   } else if (action.kind === 'die') {
     // Per class (deaths.js): topple, crumble, splat, dissipate or burst; held at the end.
     const m = deathPose(action.style, u, d);
-    for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'arm', 'wrist', 'wing', 'scale', 'sx', 'sy', 'fade', 'stone']) p[k] = m[k];
+    for (const k of ['dx', 'dy', 'dz', 'pitch', 'roll', 'head', 'arm', 'wrist', 'socket', 'leg', 'tail', 'wing', 'scale', 'sx', 'sy', 'fade', 'stone']) p[k] = m[k];
     p.yaw = m.spin;
   } else if (action.kind === 'throw') {
     // Turn to the throw; the arm and lean come from throw-motion.js in updateActions.
