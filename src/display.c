@@ -1034,6 +1034,9 @@ void (*combat_hook)(struct monst *, struct monst *, int, int) = 0;
 void (*death_hook)(struct monst *, struct permonst *) = 0;
 /* A corpse coming back to life (the new monster, the corpse it rose from). */
 void (*revive_hook)(struct monst *, struct obj *) = 0;
+/* The hero picking an object up (the object now in inventory, the square it
+   lay on, how many were taken). */
+void (*pickup_hook)(struct obj *, coordxy, coordxy, long) = 0;
 #define TMP_AT_HOOK(op, x, y, g) \
     do { if (tmp_at_hook) (*tmp_at_hook)(op, x, y, g); } while (0)
 #else
