@@ -66,10 +66,10 @@ const LOOKS={
  dingo:{scale:1,coat:'#c98a46',saddle:'#a86a30',belly:'#f0e2c4',tip:'#f4ead8',socks:'#eee0c4',eye:'#b07a28',ears:.15,snout:.19,legH:.31,bushy:.04,pattern:'plain',grizzle:.06},
  werewolf:{scale:1.25,coat:'#6e5c48',saddle:'#2a211a',belly:'#a08c72',tip:'#1c1612',eye:'#ffaa18',glow:1.4,ears:.15,snout:.21,legH:.34,bushy:.055,heavy:1.15,ruff:1.25,hackles:true,fangs:1.45,mask:true,pattern:'grizzle',grizzle:.36},
  'winter wolf cub':{scale:.88,coat:'#dbe4ea',saddle:'#94abbc',belly:'#f5f9fc',tip:'#a6c6dc',eye:'#8adcff',glow:1.2,ears:.15,snout:.17,legH:.27,bushy:.05,ruff:.9,mask:true,pattern:'frost',grizzle:.1,frost:.6},
- 'winter wolf':{scale:1.35,coat:'#d4dee5',saddle:'#86a0b3',belly:'#f3f8fb',tip:'#98bed8',eye:'#7fd8ff',glow:1.8,ears:.14,snout:.21,legH:.35,bushy:.06,heavy:1.12,ruff:1.4,hackles:true,fangs:1.4,mask:true,pattern:'frost',grizzle:.12,frost:1},
+ 'winter wolf':{scale:1.42,coat:'#d4dee5',saddle:'#86a0b3',belly:'#f3f8fb',tip:'#98bed8',eye:'#7fd8ff',glow:1.8,ears:.14,snout:.21,legH:.35,bushy:.06,heavy:1.12,ruff:1.4,hackles:true,fangs:1.4,mask:true,pattern:'frost',grizzle:.12,frost:1},
  cerberus:{scale:1.7,coat:'#1e1614',saddle:'#0a0706',belly:'#4a2418',tip:'#1e2a16',ember:'#ff4a12',eye:'#ff3010',glow:2.6,ears:.13,snout:.21,legH:.36,heavy:1.3,ruff:1.1,fangs:1.7,tail:'serpent',pattern:'char',heads:3,vipers:true},
  'hell hound pup':{scale:.85,coat:'#2a120e',saddle:'#120605',belly:'#e0602a',tip:'#ff7a2a',ember:'#ff5a14',eye:'#ffc050',ears:.13,snout:.17,legH:.26,hackles:true,fangs:1.2,tail:'raised',pattern:'char',fire:true},
- 'hell hound':{scale:1.3,coat:'#2a120e',saddle:'#120605',belly:'#e0602a',tip:'#ff7a2a',ember:'#ff5a14',eye:'#ffc050',ears:.14,snout:.2,legH:.34,heavy:1.1,hackles:true,fangs:1.4,tail:'raised',pattern:'char',fire:true},
+ 'hell hound':{scale:1.38,coat:'#2a120e',saddle:'#120605',belly:'#e0602a',tip:'#ff7a2a',ember:'#ff5a14',eye:'#ffc050',ears:.14,snout:.2,legH:.34,heavy:1.1,hackles:true,fangs:1.4,tail:'raised',pattern:'char',fire:true},
 };
 
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
