@@ -104,6 +104,9 @@ export function deathPose(style, u, dir = null) {
       // robe's hem (tail) slumps after it, each coming apart on its own beat.
       p.leg = .7 * smooth((u - .22) / .2) + .06 * Math.sin(u * 60) * smooth((u - .4) / .1) * (1 - smooth((u - .6) / .2));
       p.tail = .6 * smooth((u - .4) / .3);
+      // Midway through the collapse the whole frame creaks round a quarter-turn, as if it meant
+      // to look at whoever did this, then jerks back before the dust takes it.
+      p.spin = .4 * Math.sin(Math.PI * clamp01((u - .5) / .3)) ** 2;
       p.fade = 1 - smooth((u - .6) / .4);
       push(.03 * sag);
       break;

@@ -210,3 +210,12 @@ test('a bursting body flinches in before it swells, and still pops at the same s
   assert.equal(deathPose('burst', 0).scale, 1);
   assert.ok(Math.abs(deathPose('burst', .33).scale - 1.55) < 1e-9);
 });
+
+test('a dying lich\'s frame creaks round to look at its killer, then jerks back', () => {
+  const spin = u => deathPose('lichdust', u).spin;
+  assert.equal(spin(0), 0);
+  assert.ok(spin(.65) > .35 && spin(.65) <= .4 + 1e-9, 'the turn peaks mid-collapse');
+  assert.ok(Math.abs(spin(.8)) < 1e-9 && Math.abs(spin(1)) < 1e-9, 'it ends facing as it began');
+  for (let u = 0; u <= 1; u += .01) assert.ok(spin(u) >= 0 && spin(u) < .45, `spin in bounds at ${u}`);
+  assert.equal(deathPose('crumble', .65).spin, 0);
+});
