@@ -435,9 +435,20 @@ test('the blindfold is a padded silk band tied in a loop with frayed trailing ti
  model.userData.dispose();
 });
 
-test('every bag shares one cinched drawstring sack, so the kind never shows',()=>{
+test('a bag of tricks bares a ring of teeth, with a tongue and eyes in the dark',()=>{
+ const plain=createGroundModel({name:'bag of holding',class:6}),toothy=createGroundModel({name:'bag of tricks',class:6});
+ const verts=m=>m.children.reduce((n,part)=>n+part.geometry.attributes.position.count,0);
+ assert(verts(toothy)>verts(plain)+14*10,'teeth, tongue and eyes add geometry');
+ assert(toothy.children.some(part=>part.material.emissiveIntensity>1),'eyes glint');
+ assert.equal(toothy.children.length,new Set(toothy.children.map(part=>part.material)).size,'one draw per material');
+ const bounds=new THREE.Box3().setFromObject(toothy);
+ assert(bounds.max.y>.35&&bounds.max.y<.45,`height ${bounds.max.y}`);
+ plain.userData.dispose();toothy.userData.dispose();
+});
+
+test('every other bag shares one cinched drawstring sack, so the kind never shows',()=>{
  const signature=model=>model.children.map(part=>[part.geometry.attributes.position.count,part.material.color.getHex()]);
- const models=['bag','sack','oilskin sack','bag of holding','bag of tricks','an uncursed bag'].map(name=>createGroundModel({name,class:6}));
+ const models=['bag','sack','oilskin sack','bag of holding','an uncursed bag'].map(name=>createGroundModel({name,class:6}));
  for(const model of models){
   assert(model,'bags have a ground model');
   assert.deepEqual(signature(model),signature(models[0]),'the true bag must not show');
