@@ -143,9 +143,9 @@ function gridBug(){
 // unidentified dragon is brown with an ember glow, which gives nothing away.
 const DRAGON_FORMS={
  draken:{legs:4,wings:.9},wyvern:{legs:2,wings:1.05},sarkany:{legs:4,wings:.9,heads:3},
- amphitere:{serpent:'coil',wings:.85,feathered:true},lindworm:{serpent:'coil',legs:2},
- tatzelworm:{serpent:'short',legs:2,cat:true},guivre:{serpent:'coil',beard:true,horns:1.5},
- leviathan:{serpent:'humps',fins:true},sirrush:{legs:4,sirrush:true},
+ amphitere:{serpent:'coil',wings:.85,feathered:true,scale:1.12},lindworm:{serpent:'coil',legs:2,scale:1.12},
+ tatzelworm:{serpent:'short',legs:2,cat:true,scale:1.12},guivre:{serpent:'coil',beard:true,horns:1.5,scale:1.12},
+ leviathan:{serpent:'humps',fins:true,scale:1.12},sirrush:{legs:4,sirrush:true},
  tiamat:{legs:4,wings:.95,heads:5,scale:1.1},ixoth:{legs:4,wings:.95,scale:1.08},
 };
 const DRAGON_BREATH=['#9a4aff','#ff5a1a','#8aee3a','#ff8a3a','#5ab8ff','#e060ff','#6fe0e0','#d8d0ff',null,'#ffb050','#a0ff50','#ecff40','#70a0ff','#ff4a20','#c8f8ff','#c0e8ff'];
