@@ -43,3 +43,26 @@ test('other potions are left alone',()=>{
  assert.equal(m.userData.twist,undefined);
  m.userData.dispose();
 });
+
+test('acid burns green inside the glass',()=>{
+ const plain=make('healing'),acid=make('potion of acid');
+ assert.equal(acid.userData.twist,'acid');
+ assert(part(acid,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
+ plain.userData.dispose();acid.userData.dispose();
+});
+
+test('sickness turns the liquid to a murky, opaque sludge',()=>{
+ const plain=make('healing'),sick=make('potion of sickness');
+ const l=part(sick,'liquid').material;
+ assert.equal(sick.userData.twist,'sickness');
+ assert.equal(l.transparent,false);
+ assert(l.roughness>part(plain,'liquid').material.roughness);
+ plain.userData.dispose();sick.userData.dispose();
+});
+
+test('full healing glows pale gold',()=>{
+ const plain=make('healing'),full=make('potion of full healing');
+ assert.equal(full.userData.twist,'full healing');
+ assert(part(full,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
+ plain.userData.dispose();full.userData.dispose();
+});
