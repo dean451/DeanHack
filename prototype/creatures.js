@@ -146,7 +146,7 @@ const DRAGON_FORMS={
  amphitere:{serpent:'coil',wings:.85,feathered:true,scale:1.12},lindworm:{serpent:'coil',legs:2,scale:1.12},
  tatzelworm:{serpent:'short',legs:2,cat:true,scale:1.12},guivre:{serpent:'coil',beard:true,horns:1.5,scale:1.12},
  leviathan:{serpent:'humps',fins:true,scale:1.12},sirrush:{legs:4,sirrush:true,scale:1.1},
- tiamat:{legs:4,wings:.95,heads:5,scale:1.1},ixoth:{legs:4,wings:.95,scale:1.08},
+ tiamat:{legs:4,wings:.95,heads:5,scale:1.2},ixoth:{legs:4,wings:.95,scale:1.18},
 };
 const DRAGON_BREATH=['#9a4aff','#ff5a1a','#8aee3a','#ff8a3a','#5ab8ff','#e060ff','#6fe0e0','#d8d0ff',null,'#ffb050','#a0ff50','#ecff40','#70a0ff','#ff4a20','#c8f8ff','#c0e8ff'];
 const DRAGON_WORD_COLOR={black:0,red:1,green:2,blue:4,gray:7,orange:9,yellow:11,silver:14,white:15};

@@ -23,3 +23,10 @@ test('the wyvern and the sirrush stand larger than a fresh dragon body plan', ()
   assert(adultScale('sirrush') >= 1.1 - 1e-6);
   for (const name of ['wyvern', 'sirrush']) assert(height(name) > height('baby ' + name) * 1.4, name);
 });
+
+test('Tiamat and Ixoth tower over the plain dragon body plans', () => {
+  const adultScale = name => createCreature({name, symbol: 68, color: 3}).g.scale.x;
+  assert(adultScale('tiamat') >= 1.2 - 1e-6);
+  assert(adultScale('ixoth') >= 1.18 - 1e-6);
+  for (const name of ['tiamat', 'ixoth']) assert(height(name) > height('draken'), name);
+});
