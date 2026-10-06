@@ -820,7 +820,7 @@ function mimic(o){
  return actor(g,body,[],tail,[],'idle');
 }
 // A mimic that is mimicking an object the hero cannot yet see through is reported as a "strange object"; it is a mimic underneath.
-const MIMICS={'strange object':{color:'#7a4a2a',glare:true},'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true},'giant mimic':{color:'#6a3a22',glare:true,scale:1.25}};
+const MIMICS={'strange object':{color:'#7a4a2a',glare:true},'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true},'giant mimic':{color:'#6a3a22',glare:true,scale:1.5}};
 // centaurs (C): the horse body (croup, barrel, jointed legs with hooves, flowing tail; see horse())
 // with a man's torso rising from the withers where the horse's neck would be: a belt hides the
 // seam, bare arms bend at the elbow, and the head has a face, ears and a mop of hair.
@@ -1734,7 +1734,7 @@ function xorn(o){
   for(const f of [-.025,0,.025])cone(arm,.012,.06,claw,f,.08,.24,4).rotation.x=Math.PI/2-.4;}
  return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
-const XORNS={xorn:{}};
+const XORNS={xorn:{scale:1.25}};
 
 // Nagas: a thick serpent coil on the floor whose front rises into an upright neck with a human face,
 // scaled belly plates and slit-pupil eyes. The raised half is the swaying 'tail' group so it weaves.
@@ -1769,7 +1769,7 @@ function naga(o){
  if(o.crest==='hood'){const hood=sphere(neck,r*3.2,scales,0,.43,-.035,1,1.25,.18);hood.rotation.x=.12;sphere(neck,r*2.6,belly,0,.42,-.022,1,1.2,.12).rotation.x=.12;for(const side of [-1,1])sphere(neck,r*.45,mat(shade(o.color,.45)),side*r*1.7,.47,-.04,1,1.4,.3);}
  return trimDraws(actor(g,body,[],neck,[],'snake'));
 }
-const NAGAS={'red naga':{color:'#b0321e',belly:'#e0a040',eye:'#ffcc40',crest:'flame'},'black naga':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',crest:'spines'},'golden naga':{color:'#c8a032',belly:'#f0dc8a',eye:'#ff5a3a',crest:'circlet',scale:1.05},'guardian naga':{color:'#3a8a3a',belly:'#c0d880',eye:'#ffe040',crest:'hood',scale:1.1},'white naga':{color:'#d8d8d0',belly:'#a8c4d4',face:'#c4c8c6',eye:'#6ad4ff',crest:'frost',scale:1.15},
+const NAGAS={'red naga':{color:'#b0321e',belly:'#e0a040',eye:'#ffcc40',crest:'flame',scale:1.1},'black naga':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',crest:'spines',scale:1.1},'golden naga':{color:'#c8a032',belly:'#f0dc8a',eye:'#ff5a3a',crest:'circlet',scale:1.2},'guardian naga':{color:'#3a8a3a',belly:'#c0d880',eye:'#ffe040',crest:'hood',scale:1.25},'white naga':{color:'#d8d8d0',belly:'#a8c4d4',face:'#c4c8c6',eye:'#6ad4ff',crest:'frost',scale:1.3},
  'red naga hatchling':{color:'#b0321e',belly:'#e0a040',baby:true,scale:.8},'black naga hatchling':{color:'#26242a',belly:'#4a4852',face:'#5a5660',eye:'#8aff4a',baby:true,scale:.8},'golden naga hatchling':{color:'#c8a032',belly:'#f0dc8a',baby:true,scale:.8},'guardian naga hatchling':{color:'#3a8a3a',belly:'#c0d880',baby:true,scale:.8},'white naga hatchling':{color:'#d8d8d0',belly:'#a8c4d4',face:'#c4c8c6',eye:'#6ad4ff',baby:true,scale:.8}};
 
 // Umber hulks (U): a hunched, beetle-backed burrower with a domed carapace of overlapping chitin plates,
@@ -2480,7 +2480,7 @@ function trapper(o){
  legs.push(back);
  return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
-const TRAPPERS={'lurker above':{hide:'#4a4452',eye:'#c8e040',scale:.9},trapper:{hide:'#6a6f5e',eye:'#ff8a3a',scale:1}};
+const TRAPPERS={'lurker above':{hide:'#4a4452',eye:'#c8e040',scale:1.1},trapper:{hide:'#6a6f5e',eye:'#ff8a3a',scale:1.3}};
 
 // Sea monsters (;): wet, glossy swimmers. Fish and eels hang their back half on the actor tail. That group is tipped
 // over (rotation.x=-PI/2) so that live.js's tail swing (rotation.z) becomes a side-to-side sweep. Inside it, local +y points
