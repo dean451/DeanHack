@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {columnPose, tonguePose, flashPose, scorchPose, emberPose, isFireTrapMessage, JET} from './fire-trap-jet.js';
+import {columnPose, tonguePose, flashPose, scorchPose, emberPose, ashPose, isFireTrapMessage, JET} from './fire-trap-jet.js';
 
 test('only the tower of flame message triggers it', () => {
   assert.ok(isFireTrapMessage('A tower of flame bursts from the floor!'));
@@ -51,4 +51,18 @@ test('the jet waits for the next frame and lands on the trap square, not the squ
   assert.equal(jet.active, 1);
   assert.deepEqual(added[0], [5, 5]);
   jet.clear();
+});
+
+test('ash flakes fall late, stay low and in bounds, and are gone at the end', () => {
+  for (let i = 0; i < JET.ash; i++) {
+    assert.equal(ashPose(i, 0).alpha, 0); assert.equal(ashPose(i, .9).alpha, 0); assert.equal(ashPose(i, JET.total).alpha, 0);
+    let top = null, bottom = null, peak = 0;
+    for (let t = 0; t <= JET.total; t += .005) {
+      const p = ashPose(i, t);
+      assert.ok(p.alpha >= 0 && p.alpha <= .6 + 1e-9 && p.y >= .05 && p.y <= .95 && Math.hypot(p.x, p.z) <= .3, `${i} ${t}`);
+      if (p.alpha > .05) { top ??= p.y; bottom = p.y; }
+      peak = Math.max(peak, p.alpha);
+    }
+    assert.ok(peak > .4 && bottom < top - .3, String(i));
+  }
 });
