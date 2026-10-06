@@ -29,14 +29,9 @@ test('the page carries no badge, brand block or footer blurb', () => {
   assert.match(live, /h1'\)\.hidden=!where\.named/);
 });
 
-test('the creatures in view sit in the upper right, clear of the live panel', () => {
-  const css = read('style.css');
-  const rule = [...css.matchAll(/\.live-engine #engine-seen\{([^}]*)\}/g)].map(m => m[1]).find(r => r.includes('position')) || '';
-  assert.match(rule, /position:fixed/);
-  assert.match(rule, /top:26px/);
-  assert.match(rule, /right:40px/);
-  assert.match(rule, /pointer-events:none/);
-  assert.doesNotMatch(rule, /bottom:/);
+test('the creatures-in-view list is gone', () => {
+  assert.doesNotMatch(read('live.js'), /engine-seen|Nothing stirs/);
+  assert.doesNotMatch(read('style.css'), /engine-seen/);
 });
 
 test('the minimap sits in the bottom-right corner and the live key legend stops short of it', () => {
@@ -45,4 +40,9 @@ test('the minimap sits in the bottom-right corner and the live key legend stops 
   assert.match(map, /right:40px/);
   assert.match(map, /bottom:25px/);
   assert.match(css, /body\.live-engine footer\{right:384px\}/);
+});
+
+test('the live panel carries no engine caption', () => {
+  assert.doesNotMatch(read('live.js'), /UNNETHACK · LIVE ENGINE/);
+  assert.doesNotMatch(read('style.css'), /#engine-panel>small/);
 });
