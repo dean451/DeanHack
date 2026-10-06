@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {tonguePose, scorchPose, sacrificeKind, SACRIFICE} from './altar-sacrifice.js';
+import {drawPose, tonguePose, scorchPose, sacrificeKind, SACRIFICE} from './altar-sacrifice.js';
 
 test('only the consumed messages trigger it', () => {
   assert.equal(sacrificeKind('Your sacrifice is consumed in a flash of light!'), 'light');
@@ -31,4 +31,20 @@ test('poses stay in bounds, the tongue lunges then shuts, flame gutters', () => 
   let dips = 0, prev = 1;
   for (let t = .5; t < 1.4; t += .005) { const a = tonguePose('flame', t).alpha; if (a < .5 && prev >= .5) dips++; prev = a; }
   assert.ok(dips >= 2);
+});
+
+test('the hunger ring draws inward before the lunge and is gone by it', () => {
+  for (const k of Object.keys(SACRIFICE)) {
+    assert.equal(drawPose(k, 0).alpha, 0);
+    assert.equal(drawPose(k, SACRIFICE[k] * .22).alpha, 0);
+    assert.equal(drawPose(k, SACRIFICE[k]).alpha, 0);
+    let first = null, last = null, peak = 0;
+    for (let t = .001; t < SACRIFICE[k] * .22; t += .005) {
+      const d = drawPose(k, t);
+      assert.ok(d.alpha >= 0 && d.alpha <= .55 + 1e-9 && d.radius > 0 && d.radius < .7, `${k} ${t}`);
+      if (d.alpha > .05) { first ??= d.radius; last = d.radius; }
+      peak = Math.max(peak, d.alpha);
+    }
+    assert.ok(peak > .4 && last < first - .2, k);
+  }
 });
