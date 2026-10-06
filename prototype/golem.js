@@ -30,7 +30,7 @@ const blot=(x,y,z,f=1)=>Math.sin(x*31*f+Math.sin(z*23*f)*2)*Math.sin(y*27*f+z*13
 
 const LOOKS={
  stone:{base:'#6e6c62',dark:'#34332e',light:'#9a978a',glow:'#ff6420',jag:.2,scale:1.22,spikes:'stone',paint:'stone'},
- clay:{base:'#8a4e34',dark:'#4a2618',light:'#b2745a',glow:'#ff3420',jag:.12,scale:1.08,sigil:true,paint:'clay'},
+ clay:{base:'#8a4e34',dark:'#4a2618',light:'#b2745a',glow:'#ff3420',jag:.12,scale:1.17,sigil:true,paint:'clay'},
  iron:{base:'#3a3f44',dark:'#16191c',light:'#6a737a',glow:'#ff5a14',jag:.1,scale:1.28,spikes:'iron',rivets:true,grille:true,paint:'iron'},
  glass:{base:'#a8d8d6',dark:'#4a7a7c',light:'#e8ffff',glow:'#8ff4ff',jag:.24,scale:1.24,spikes:'shard',paint:'clear'},
  ice:{base:'#a6d4e6',dark:'#4a86a0',light:'#eaf8ff',glow:'#6fd0ff',jag:.22,scale:1.28,spikes:'shard',paint:'clear'},
@@ -38,7 +38,7 @@ const LOOKS={
  gold:{base:'#c89a2a',dark:'#5a3e10',light:'#f4d466',glow:'#9aff3a',jag:.12,scale:1.02,spikes:'crown',paint:'metal'},
  wood:{base:'#5e4028',dark:'#2a1a0e',light:'#8a6440',glow:'#8aff3a',jag:.16,scale:1.04,thorns:true,paint:'bark'},
  leather:{base:'#5a3a24',dark:'#2a1a10',light:'#7e5638',glow:'#ff3a2a',jag:.1,scale:1,stitches:true,paint:'hide'},
- flesh:{base:'#a07868',dark:'#5a3434',light:'#c49a88',glow:'#ff2a1a',jag:.12,scale:1.06,stitches:true,spurs:true,paint:'flesh'},
+ flesh:{base:'#a07868',dark:'#5a3434',light:'#c49a88',glow:'#ff2a1a',jag:.12,scale:1.15,stitches:true,spurs:true,paint:'flesh'},
  wax:{base:'#d8b870',dark:'#8a6a30',light:'#f4e2a8',glow:'#ffb040',jag:.08,scale:.96,drips:true,wicks:true,paint:'wax'},
  rope:{base:'#8a6a3a',dark:'#4a3418',light:'#b8965a',glow:'#ffa040',jag:.1,scale:.98,paint:'rope'},
 };

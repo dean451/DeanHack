@@ -15,3 +15,12 @@ test('the glass, ice and crystal ice golems stand taller than a stone golem, the
   const stone = size('stone golem').y, glass = size('glass golem').y, ice = size('ice golem').y, crystal = size('crystal ice golem').y;
   assert(glass > stone && ice > glass && crystal > ice);
 });
+
+test('the clay and flesh golems loom larger than the wax and rope golems but stay under the stone golem', () => {
+  const stone = size('stone golem').y;
+  for (const big of ['clay golem', 'flesh golem']) {
+    const h = size(big).y;
+    assert(h > size('wax golem').y * 1.1 && h > size('rope golem').y * 1.1, big);
+    assert(h < stone, big);
+  }
+});
