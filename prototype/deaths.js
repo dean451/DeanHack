@@ -83,7 +83,10 @@ export function deathPose(style, u, dir = null) {
       const sag = (step(.25) + step(.45) + step(.65)) / 3;
       p.roll = shake + .05 * sag;
       p.pitch = .22 * sag;
-      p.head = -.7 * smooth((u - .3) / .5);
+      // The skull is jolted on each drop, snapping forward as the frame beneath it gives, then
+      // lolling back into its slump.
+      const jolt = a => Math.sin(Math.PI * clamp01((u - a) / .1));
+      p.head = -.7 * smooth((u - .3) / .5) + .1 * (jolt(.25) + jolt(.45) + jolt(.65)) * (1 - smooth((u - .7) / .25));
       p.sy = 1 - .8 * sag;
       p.sx = 1 + .22 * sag;
       p.dy = -.02 * sag;
