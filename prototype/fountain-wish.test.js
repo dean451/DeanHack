@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {motePose, flarePose, afterPose, formPose, isWishMessage, WISH} from './fountain-wish.js';
+import {motePose, flarePose, afterPose, formPose, isWishMessage, createFountainWish, WISH} from './fountain-wish.js';
 
 test('only the wish message triggers it', () => {
   assert.ok(isWishMessage('Grateful for his release, he grants you a wish!'));
@@ -46,4 +46,17 @@ test('the wished-for shard forms after the flare begins, stays in bounds and ret
     if (f.alpha > 0) { seen = true; assert.ok(t > WISH.pull + .5, String(t)); }
   }
   assert.ok(seen);
+});
+
+test('a wish by any means plays once, not twice, when both lines arrive', () => {
+  assert.ok(isWishMessage('For what do you wish?'));
+  assert.ok(!isWishMessage('For what do you pray?'));
+  let made = 0;
+  const THREE = new Proxy({}, {get: () => class { constructor() { this.position = {set: () => { made++; }, y: 0}; this.rotation = {set() {}}; this.scale = {setScalar() {}, set() {}}; this.material = {}; } add() {} dispose() {} }});
+  const fx = createFountainWish(THREE, {add() {}, remove() {}});
+  fx.message('Grateful for his release, he grants you a wish!', 1, 1);
+  fx.message('For what do you wish?', 1, 1);
+  assert.equal(fx.active, 1);
+  fx.update(WISH.total + .1); fx.message('For what do you wish?', 1, 1);
+  assert.equal(fx.active, 1);
 });
