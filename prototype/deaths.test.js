@@ -38,7 +38,7 @@ test('a dying lich lets its arm and wrist go limp before the frame collapses', (
   assert.ok(p(.3).arm > .6 && p(.3).arm > 3 * (1 - p(.3).sy), 'the arm falls before the frame sags');
   assert.ok(p(.5).wrist > .4);
   for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).arm) < 1.3 && Math.abs(p(u).wrist) < 1, `arm in bounds at ${u}`);
-  assert.equal(deathPose('topple', 1).arm, 0, 'other deaths leave the arm alone');
+  assert.equal(deathPose('splat', 1).arm, 0, 'other deaths leave the arm alone');
   assert.ok(deathPose('crumble', 1).arm > .5 && deathPose('crumble', 0).arm === 0, 'a crumbling corpse lets its arm hang slack');
 });
 
@@ -60,6 +60,23 @@ test('a dying lich lets go of what it holds, and a crumbling corpse buckles at t
   assert.equal(deathPose('topple', 1).socket, 0);
   assert.equal(deathPose('crumble', 0).leg, 0);
   assert.ok(deathPose('crumble', .4).leg > .25 && deathPose('crumble', .4).leg < .6);
+});
+
+test('a crumbling corpse lets its hand loll and its tail slump after the arm', () => {
+  const p = u => deathPose('crumble', u);
+  assert.equal(p(0).wrist, 0);
+  assert.equal(p(0).tail, 0);
+  assert.ok(p(.35).wrist < .05 && p(.9).wrist > .5);
+  assert.ok(p(.45).tail < .1 && p(1).tail > .45);
+  for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).wrist) < 1 && Math.abs(p(u).tail) < 1);
+});
+
+test('a toppled body gives one last dead twitch of the arm once it has landed, then rests', () => {
+  const p = u => deathPose('topple', u);
+  assert.ok(Math.abs(p(0).arm) < 1e-9 && Math.abs(p(.7).arm) < 1e-9);
+  assert.ok(Math.max(...Array.from({length: 40}, (_, i) => Math.abs(p(.8 + i * .005).arm))) > .05, 'it twitches');
+  assert.ok(Math.abs(p(1).arm) < 1e-9, 'and ends still');
+  for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).arm) <= .25 + 1e-9);
 });
 
 test('every style starts at rest, stays finite and bounded, and ends held', () => {
