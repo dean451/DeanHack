@@ -142,7 +142,7 @@ function gridBug(){
 // from the legend it comes from, and the glyph colour picks the hide and the breath glow. An
 // unidentified dragon is brown with an ember glow, which gives nothing away.
 const DRAGON_FORMS={
- draken:{legs:4,wings:.9},wyvern:{legs:2,wings:1.05},sarkany:{legs:4,wings:.9,heads:3},
+ draken:{legs:4,wings:.9,scale:1.1},wyvern:{legs:2,wings:1.05},sarkany:{legs:4,wings:.9,heads:3,scale:1.1},
  amphitere:{serpent:'coil',wings:.85,feathered:true,scale:1.12},lindworm:{serpent:'coil',legs:2,scale:1.12},
  tatzelworm:{serpent:'short',legs:2,cat:true,scale:1.12},guivre:{serpent:'coil',beard:true,horns:1.5,scale:1.12},
  leviathan:{serpent:'humps',fins:true,scale:1.12},sirrush:{legs:4,sirrush:true},
