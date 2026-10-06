@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
-import {updateCubeDrift, driftPose, drifts, YAW, TILT, BOB, DRAG_TIP} from './cube-drift.js';
+import {updateCubeDrift, driftPose, drifts, stepDrag, YAW, TILT, BOB, DRAG_TIP, OVERSHOOT} from './cube-drift.js';
 
 const cube = () => createCreature({name: 'gelatinous cube', symbol: 98, color: 6});
 const remains = a => { let r; a.g.traverse(o => { if (o.userData.part === 'remains') r = o; }); return r; };
@@ -68,4 +68,17 @@ test('a dead cube lets the remains settle', () => {
   a.actions = {dead: true};
   for (let i = 60; i < 180; i++) updateCubeDrift(a, 1 / 30, i / 30, true);
   assert.ok(a.cubeDrift.drag < 1e-3);
+});
+
+test('when the cube stops, the remains swing forward past rest and wobble back', () => {
+  const st = {drag: 0, vel: 0};
+  for (let i = 0; i < 120; i++) stepDrag(st, 1, 1 / 60);
+  assert.ok(st.drag > .9 && st.drag < 1.2, 'builds to full drag');
+  let low = 0, max = 0;
+  for (let i = 0; i < 240; i++) { stepDrag(st, 0, 1 / 60); low = Math.min(low, st.drag); max = Math.max(max, st.drag); assert.ok(Number.isFinite(st.drag)); }
+  assert.ok(low < -.05, `overshoots forward (${low})`);
+  assert.ok(driftPose(1, 0, low).tx > driftPose(1, 0, 0).tx, 'the tip leans forward');
+  assert.ok(Math.abs(driftPose(1, 0, -9).tx - driftPose(1, 0, -OVERSHOOT).tx) < 1e-12, 'the swing is capped');
+  assert.equal(st.drag, 0);
+  assert.equal(st.vel, 0);
 });
