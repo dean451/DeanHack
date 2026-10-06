@@ -145,9 +145,11 @@ function geometry(kind){
 }
 function mesh(parent,geo,mat,name){const m=new THREE.Mesh(geo,mat);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
+const PRIEST_SCALE={'high priest':1.06,'arch priest':1.08};
+
 export function createPriest(name){
  const key=(name||'').toLowerCase(),kind=PRIESTS[key]?key:'aligned priest',S=geometry(kind);
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(PRIEST_SCALE[kind]||1);// the high clergy tower in their vestments
  mesh(body,S.body,material,'body');
  const head=new THREE.Group();head.position.set(0,.93,.005);body.add(head);
  mesh(head,S.head,material,'head');
