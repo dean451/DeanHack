@@ -152,3 +152,14 @@ test('dragon heads carry a scar mark on the snout', () => {
   a.heads[0].traverse(o => { if (o.isMesh && o.material.color && o.material.color.getHexString() === '3a0e0c') scar = true; });
   assert(scar, 'scar material present on the head');
 });
+
+test('every dragon hide carries a scale bump map, shared between dragons', () => {
+  const hides = new Set();
+  for (const name of ['draken', 'wyvern', 'tiamat', 'baby draken']) {
+    const a = dragon(name);
+    a.g.traverse(o => { if (o.material?.bumpMap) hides.add(o.material.bumpMap); });
+  }
+  assert.equal(hides.size, 1, 'one shared texture');
+  const [tex] = hides, d = tex.image.data;
+  assert(new Set(Array.from({length: 32 * 32}, (_, i) => d[i * 4])).size > 4, 'real relief, not flat');
+});

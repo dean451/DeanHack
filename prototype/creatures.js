@@ -158,12 +158,27 @@ function dragonLook(name,index){
  const i=Number.isInteger(index)&&NH_COLORS[index]?index:DRAGON_WORD_COLOR[species.split(' ')[0]]??3;
  return {form,baby,color:i,heads:species==='tiamat'?TIAMAT_HEADS:null};
 }
+// a bump map of overlapping scales, made once and shared by every dragon's hide
+let scaleBump=null;
+function dragonScaleBump(){
+ if(scaleBump)return scaleBump;
+ const n=32,d=new Uint8Array(n*n*4);
+ for(let j=0;j<n;j++)for(let i=0;i<n;i++){
+  // rows of scales, every other row shifted half a scale: each is a dome, sharp where the next one overlaps it
+  const row=Math.floor(j/8),u=((i+(row%2)*4)%8)/8-.5,v=(j%8)/8,h=Math.max(0,1-Math.hypot(u*1.6,v-.35)*1.7)*(1-v*.5),k=(i+j*n)*4;
+  d[k]=d[k+1]=d[k+2]=Math.round(255*Math.min(1,h));d[k+3]=255;
+ }
+ scaleBump=new THREE.DataTexture(d,n,n);scaleBump.wrapS=scaleBump.wrapT=THREE.RepeatWrapping;scaleBump.repeat.set(2,2);scaleBump.needsUpdate=true;
+ return scaleBump;
+}
+const dragonHides=new Map();
+function dragonHide(hex,opts){const key=hex+JSON.stringify(opts);if(!dragonHides.has(key))dragonHides.set(key,new THREE.MeshStandardMaterial({color:hex,roughness:.88,...opts,bumpMap:dragonScaleBump(),bumpScale:1.4}));return dragonHides.get(key);}
 function dragonMats(i){
  const silver=i===14,hex=silver?'#b9c4c8':NH_COLORS[i]||'#8a6440',breath=DRAGON_BREATH[i]||'#ff8a3a';
  const belly='#'+new THREE.Color(hex).lerp(new THREE.Color('#e8d6a4'),.45).getHexString();
  const fin=HIDE_FINISH[dragonElement(i)]||{},hideOpts={roughness:fin.roughness??(silver?.3:.62),metalness:fin.metalness??(silver?.7:.08)};
  if(fin.emissiveK)Object.assign(hideOpts,{emissive:shade(breath,fin.emissiveK*4),emissiveIntensity:.25});
- return {hide:mat(hex,hideOpts),dark:mat(shade(hex,.5),{roughness:.7,metalness:silver?.6:0}),belly:mat(belly,{roughness:.78}),
+ return {hide:dragonHide(hex,hideOpts),dark:mat(shade(hex,.5),{roughness:.7,metalness:silver?.6:0}),belly:mat(belly,{roughness:.78}),
   membrane:mat(shade(hex,.72),{side:THREE.DoubleSide,roughness:.82}),feather:mat(belly,{side:THREE.DoubleSide,roughness:.9}),ivory:mat('#e6dcc0',{roughness:.45}),scar:mat('#3a0e0c',{roughness:.9}),
   glow:new THREE.MeshStandardMaterial({color:breath,emissive:breath,emissiveIntensity:4.5,roughness:.3})};
 }
