@@ -6169,6 +6169,18 @@ export function createGroundModel(item={}){
    const st=patchAt(2.15+dx/.21,.12+dy,dy?.01:.003,dy?.003:.01,thread);st.position.addScaledVector(new THREE.Vector3(Math.sin(2.15),0,Math.cos(2.15)),.002);
   }
   for(let y=.035;y<.28;y+=.024)patchAt(-1.75,y,.003,.012,thread);
+  // A bag of tricks (leaked by its true name) bares a ring of sharp, yellowed teeth round the mouth, a
+  // red tongue and two eyes glinting in the dark; a bag of holding keeps the plain dark mouth.
+  if(/tricks/.test(name)){
+   const fang=mat(0xd6c9a0),gum=mat(0x5a1414),eye=new THREE.MeshStandardMaterial({color:0x1a1a08,emissive:0xc8d020,emissiveIntensity:1.4,roughness:.5});materials.push(eye);
+   for(let i=0;i<14;i++){
+    const a=i/14*Math.PI*2,long=i%3===0,h=long?.036:.025;
+    const tooth=add(new THREE.ConeGeometry(.0075,h,5),fang,lean(.31)+Math.sin(a)*.05,.31+h/2,Math.cos(a)*.05);
+    tooth.rotation.set(Math.cos(a)*.35,0,-Math.sin(a)*.35);
+   }
+   ball(.03,gum,lean(.31)+.008,.3,.012,[1.2,.3,1]);
+   for(const s of [-1,1])ball(.006,eye,lean(.31)+s*.022,.305,-.018);
+  }
   // Nothing on a sack moves, so body, mouth, drawstring, bow, patch and stitches bake to one mesh
   // per material: 5 draws where there were 30.
   mergeByMaterial(g);
