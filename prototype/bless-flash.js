@@ -23,7 +23,9 @@ export function ringPose(kind, t) {
   if (kind === 'blessed') return {radius: .3 + .2 * smooth(u / .7), lift: .5 * smooth(u / .8) - .08 * smooth((u - .75) / .25), alpha: .55 * smooth(u / .2) * fade};
   if (kind === 'cursed') {
     const stutter = Math.floor(u * 9) % 2 ? .04 : 0;
-    return {radius: .55 - .3 * smooth(u / .8) + stutter, lift: 0, alpha: .7 * smooth(u / .15) * fade};
+    // Near the end the closing ring snaps back out once, as if the curse had pulled and been pulled back.
+    const snap = .07 * Math.sin(clamp01((u - .62) / .16) * Math.PI);
+    return {radius: .55 - .3 * smooth(u / .8) + stutter + snap, lift: 0, alpha: .7 * smooth(u / .15) * fade};
   }
   return {radius: .25 + .2 * smooth(u / .5), lift: 0, alpha: .3 * smooth(u / .1) * (1 - smooth((u - .3) / .4))};
 }
