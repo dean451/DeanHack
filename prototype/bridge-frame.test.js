@@ -24,3 +24,14 @@ test('the slime mold keeps its own name whatever fruit the player calls it', () 
  // The game rewrites the object type\'s name to the chosen fruit, so the client saw "fruit" or "kiwi".
  assert.match(bridge,/if \(o == SLIME_MOLD\) return "slime mold";/);
 });
+
+test('the hero picking something up is reported as a pickup event, and only that',()=>{
+ assert.match(bridge,/static void pickup_hook_bridge\(struct obj \*o,coordxy x,coordxy y,long cnt\)/);
+ assert.match(bridge,/\\"type\\":\\"pickup\\"[^;]*otyp[^;]*class[^;]*count/);
+ assert.match(bridge,/pickup_hook=pickup_hook_bridge;/,'installed with the other hooks');
+ assert.match(bridge,/pickup_hook=0;/,'and removed when the window closes');
+ const server=readFileSync(new URL('./engine/server.js',import.meta.url),'utf8');
+ assert.match(server,/'revive','pickup'/,'the server passes the event through');
+ const pickup=readFileSync(new URL('../src/pickup.c',import.meta.url),'utf8');
+ assert.match(pickup,/PICKUP_HOOK\(obj, pickup_x, pickup_y, count\)/,'fired from pickup_object, the hero-only path');
+});

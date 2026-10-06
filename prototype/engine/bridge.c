@@ -277,6 +277,11 @@ static void held(struct obj *o) {
    digging out): where the monster now stands, where the corpse was and what held it, so
    the client can raise the body off the floor instead of popping a monster in. Only sent
    when the hero can spot the risen monster. */
+/* The hero picked something up: where it lay, what it was, how many. A thing that leaves the
+   map any other way (a monster takes it, it burns, a trap eats it) sends no such event. */
+static void pickup_hook_bridge(struct obj *o,coordxy x,coordxy y,long cnt) {
+    printf("{\"type\":\"pickup\",\"x\":%d,\"z\":%d,\"otyp\":%d,\"class\":%d,\"count\":%ld}\n",x,y,o->otyp,o->oclass,cnt);fflush(stdout);
+}
 static void revive_hook_bridge(struct monst *m,struct obj *corpse) {
     const char *where;coordxy fx,fy;
     if(m->mx<=0||!canspotmon(m))return;
@@ -515,9 +520,9 @@ static void init(int *a UNUSED,char **v UNUSED) {setvbuf(stdout,NULL,_IOLBF,0);s
 #if defined(TTY_GRAPHICS) && defined(TEXTCOLOR)
     for(int i=0;i<CLR_MAX;i++)if(!hilites[i])hilites[i]=no_escape;
 #endif
-    tmp_at_hook=fx_hook;combat_hook=combat_hook_bridge;death_hook=death_hook_bridge;revive_hook=revive_hook_bridge;}
+    tmp_at_hook=fx_hook;combat_hook=combat_hook_bridge;death_hook=death_hook_bridge;revive_hook=revive_hook_bridge;pickup_hook=pickup_hook_bridge;}
 static void name(void){Strcpy(plname,"Wanderer");}
-static void finish(const char *s){tmp_at_hook=0;combat_hook=0;death_hook=0;revive_hook=0;fxdepth=0;fx_flush();event("ended",s);iflags.window_inited=FALSE;}
+static void finish(const char *s){tmp_at_hook=0;combat_hook=0;death_hook=0;revive_hook=0;pickup_hook=0;fxdepth=0;fx_flush();event("ended",s);iflags.window_inited=FALSE;}
 static winid create(int type){for(int i=1;i<BW;i++)if(!wins[i].type){wins[i].type=type;return i;}panic("bridge windows exhausted");return WIN_ERR;}
 static void clear(winid w){if(w<1||w>=BW)return;for(int i=0;i<wins[w].n;i++)free(wins[w].items[i].text);wins[w].n=0;wins[w].prompt[0]=0;if(wins[w].type==NHW_MAP)for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;}
 static void destroy(winid w){clear(w);if(w>0&&w<BW)wins[w].type=0;}

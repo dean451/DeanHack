@@ -12,6 +12,18 @@ export const HANG = .7, SINK = .45, SINK_DEPTH = 1.1, GIVE_UP = 3, RISE = .45;
 export const ARRIVE_HEIGHT = 1.8, ARRIVE_GRAVITY = 9, BOUNCE = .22;
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 
+export const HOVER_TIME = 2.2, HOVER_LIFT = .12;
+
+// True when the status line shows the hero is levitating or flying, so the hole cannot take them.
+export const airborneStatus = text => typeof text === 'string' && /(?:^|\s)(?:Lev|Fly)(?:\s|$)/.test((text.split(/T:\d+/)[1] || ''));
+
+// A wary hover over the open hole: lifts a hair, drifts a little, settles. Zero at both ends.
+export function hoverOffset(t) {
+  if (!(t > 0) || t >= HOVER_TIME) return 0;
+  const k = t / HOVER_TIME, env = Math.sin(Math.PI * k);
+  return HOVER_LIFT * env * (.75 + .25 * Math.sin(t * 9));
+}
+
 export const holeMessage = text => typeof text === 'string' && /^You dig a hole through the /.test(text);
 
 // How far under the floor the hero is t seconds after the hole breaks.
@@ -38,7 +50,11 @@ export const ARRIVE_TIME = Math.sqrt(2 * ARRIVE_HEIGHT / ARRIVE_GRAVITY) +
 export function createDigDrop() {
   let mode = null, age = 0;
   return {
-    message(text) { if (holeMessage(text)) { mode = 'sink'; age = 0; return true; } return false; },
+    // `airborne` (see airborneStatus): the hero floats over the hole rather than dropping through it.
+    message(text, airborne = false) {
+      if (!holeMessage(text)) return false;
+      mode = airborne ? 'hover' : 'sink'; age = 0; return true;
+    },
     // Call when a new level arrives. True (and the fall-in begins) only if the hero was dropping.
     arrive() {
       if (mode !== 'sink') { mode = null; return false; }
@@ -47,6 +63,10 @@ export function createDigDrop() {
     update(dt) {
       if (!mode) return 0;
       age += Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
+      if (mode === 'hover') {
+        if (age >= HOVER_TIME) { mode = null; return 0; }
+        return hoverOffset(age);
+      }
       if (mode === 'sink') {
         if (age >= GIVE_UP + RISE) { mode = null; return 0; }
         return sinkOffset(age);
