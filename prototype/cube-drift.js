@@ -12,8 +12,11 @@ import * as THREE from 'three';
 export const CENTER = .25;
 // Yaw sway (radians) from two slow waves, tilt (radians) and bob (world units).
 export const YAW = .45, TILT = .06, BOB = .012;
-// Backward tip and sideways slip while the cube moves; how fast the drag builds and settles.
-export const DRAG_TIP = .1, DRAG_SLIP = .015, DRAG_RATE = 3;
+// Backward tip and sideways slip while the cube moves. The drag is a loose spring (stiffness in
+// rad/s, damping ratio under 1), so when the cube stops the remains swing on past rest, forward,
+// and wobble back, as if the jelly had held on to them a moment too long. OVERSHOOT caps how far
+// forward the swing may go (as a fraction of full drag).
+export const DRAG_TIP = .1, DRAG_SLIP = .015, DRAG_FREQ = 6, DRAG_DAMP = .5, OVERSHOOT = .5;
 
 const Y = new THREE.Vector3(0, 1, 0), C = new THREE.Vector3(0, CENTER, 0);
 const qYaw = new THREE.Quaternion(), qTilt = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3();
@@ -30,7 +33,7 @@ function remainsOf(a) {
 // The drift pose at time t for phase ph, with drag d (0 still, 1 moving): yaw, tilt x/z, bob.
 export function driftPose(t, ph = 0, d = 0) {
   t = Number.isFinite(t) ? t : 0;
-  d = d > 0 ? Math.min(d, 1) : 0;
+  d = Number.isFinite(d) ? Math.min(Math.max(d, -OVERSHOOT), 1) : 0;
   return {
     yaw: YAW * (.7 * Math.sin(t * .31 + ph) + .3 * Math.sin(t * .83 + ph * 2.3)),
     tx: TILT * Math.sin(t * .47 + ph * 1.7) - DRAG_TIP * d,
@@ -39,13 +42,24 @@ export function driftPose(t, ph = 0, d = 0) {
   };
 }
 
+// One step of the drag spring toward `target` (0 or 1), in small steps so it stays stable.
+export function stepDrag(st, target, dt) {
+  const k = DRAG_FREQ * DRAG_FREQ, c = 2 * DRAG_DAMP * DRAG_FREQ;
+  for (let left = Math.min(dt, .1); left > 1e-6; left -= 1 / 120) {
+    const h = Math.min(1 / 120, left);
+    st.vel += (k * (target - st.drag) - c * st.vel) * h;
+    st.drag += st.vel * h;
+  }
+  if (target === 0 && Math.abs(st.drag) < 1e-4 && Math.abs(st.vel) < 1e-3) st.drag = st.vel = 0;
+}
+
 // Call once per frame. `walking` is true while the cube slides toward a new cell.
 export function updateCubeDrift(a, dt, t, walking) {
   if (!drifts(a)) return null;
   const r = remainsOf(a);
-  const st = a.cubeDrift || (a.cubeDrift = {ph: ((a.g.id ?? 1) * 2.399) % (Math.PI * 2), drag: 0});
+  const st = a.cubeDrift || (a.cubeDrift = {ph: ((a.g.id ?? 1) * 2.399) % (Math.PI * 2), drag: 0, vel: 0});
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
-  st.drag += ((walking && !a.actions?.dead ? 1 : 0) - st.drag) * (1 - Math.exp(-DRAG_RATE * dt));
+  stepDrag(st, walking && !a.actions?.dead ? 1 : 0, dt);
   const p = driftPose(t, st.ph, st.drag);
   qYaw.setFromAxisAngle(Y, p.yaw);
   qTilt.setFromEuler(e.set(p.tx, 0, p.tz));
