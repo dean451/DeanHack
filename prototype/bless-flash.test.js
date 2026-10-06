@@ -14,6 +14,11 @@ test('everything returns exactly to rest', () => {
   for (let i = 0; i < BLESS.flecks; i++) for (const t of [0, BLESS.total]) assert.equal(fleckPose(i, t).alpha, 0);
 });
 
+test('the blessing lets go: the ring sags a little as it fades', () => {
+  const peak = Math.max(...Array.from({length: 180}, (_, i) => ringPose('blessed', i * .01).lift));
+  assert.ok(ringPose('blessed', BLESS.total - .01).lift < peak - .03);
+});
+
 test('poses stay in bounds, the blessing rises, the curse closes, flecks fall', () => {
   for (const k of Object.keys(BLESS_COLORS)) {
     let peak = 0;
