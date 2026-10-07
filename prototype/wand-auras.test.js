@@ -275,3 +275,28 @@ test('only the identified real Amulet of Yendor glows, never a fake that reads t
   assert.equal(item.children.length, 0);
   aura.userData.dispose();
 });
+
+test('a bag of holding shows stars at its mouth only once the hero knows it for one', () => {
+  const bag = (label, name = 'bag of holding') => ({class: TOOL_CLASS, name, appearance: 'bag', label});
+  assert.equal(magicAuraKind(bag('bag of holding')), 'bag of holding');
+  assert.equal(magicAuraKind(bag('bag of holding named stash')), 'bag of holding');
+  assert.equal(magicAuraKind(bag('bag')), null);
+  assert.equal(magicAuraKind(bag('bag called holding')), null);
+  assert.equal(magicAuraKind(bag('bag of tricks')), null);
+  assert.equal(magicAuraKind(bag('sack')), null);
+  const item = new THREE.Group();
+  assert.equal(syncWandAura(item, bag('bag'), 'k'), null);
+  const stars = syncWandAura(item, bag('bag of holding'), 'k');
+  assert.equal(stars.userData.kind, 'bag of holding');
+  for (let t = 0; t < 12; t += .17) {
+    stars.userData.update(t);
+    const l = stars.children[0].geometry.attributes;
+    for (let i = 0; i < l.position.count; i++) {
+      const [x, y, z] = [l.position.getX(i), l.position.getY(i), l.position.getZ(i)];
+      assert.ok(Math.hypot(x - .03, z) < .06 && y > .37 && y < .53, `off the mouth ${x},${y},${z}`);
+      assert.ok(Number.isFinite(l.aAlpha.getX(i)) && l.aAlpha.getX(i) >= 0 && l.aSize.getX(i) > 0);
+    }
+  }
+  assert.equal(syncWandAura(item, bag('bag')), null);
+  assert.equal(item.children.length, 0);
+});

@@ -62,6 +62,9 @@ export const MAGIC_AURAS = {
   // then. Unidentified it's a "glass orb" and stays still.
   'crystal ball': {color: 0x9fc4ff, blend: 'add', motion: 'swirl', count: 18, size: .04, period: 4.8, alpha: .75, rainbow: 'mist',
     core: {color: 0xf2f6ff, blend: 'add', motion: 'vision', count: 4, size: .05, period: 3.3, alpha: .9}},
+  // Faint stars wheeling in the mouth of the bag, a few slipping up out of it and going out: a
+  // mouth too dark for its size. Unidentified it is just a "bag" (or a sack) and stays dark.
+  'bag of holding': {color: 0xc8b8ff, blend: 'add', motion: 'stars', count: 12, size: .04, period: 5, alpha: .7},
   // The Amulet of Yendor: gold motes drawn up round the medallion in a slow spiral, over a
   // crimson heartbeat in the stone. Keyed on the bridge's `identified` flag as well as the
   // name, because the real Amulet and the fakes all read "Amulet of Yendor" until each is
@@ -99,6 +102,7 @@ export function magicAuraKind(object) {
   const seen = object.label.toLowerCase().trim().replace(/ named .*$/, '').replace(/(?: \([^)]*\))+$/, '');
   if (/^(?:\d+ )?magic lamps?$/.test(seen)) return 'magic lamp';
   if (/^(?:\d+ )?crystal balls?$/.test(seen)) return 'crystal ball';
+  if (/^(?:\d+ )?bags? of holding$/.test(seen)) return 'bag of holding';
   return null;
 }
 
@@ -168,6 +172,11 @@ export function particleAt(motion, seed, p) {
       const x = Math.cos(ang) * r, z = Math.sin(ang) * r, h = (c - .5) * .03 + Math.sin(p * TAU * 2 + d * TAU) * .008;
       return {x: x * .95 + h * .31, y: .14 + h * .95 - x * .31, z,
         alpha: fade * (.5 + .5 * Math.sin(p * TAU * 2 + c * TAU) ** 2), size: .6 + .4 * (1 - b)};
+    }
+    case 'stars': { // stars wheel round inside the bag's mouth (y .39, lean .03), then a few rise and wink out
+      const ang = d * TAU + p * TAU * (a < .5 ? 1 : -1), r = (.012 + b * .04) * (1 - p * .5);
+      return {x: .03 + Math.cos(ang) * r, y: .38 + p * (c < .4 ? .14 : .02), z: Math.sin(ang) * r,
+        alpha: Math.sin(Math.PI * p) * (.5 + .5 * Math.sin(p * 24 + a * TAU) ** 2), size: .5 + .5 * (1 - p)};
     }
     case 'vision': // a brief glint wells up at the heart of the ball and fades
       return {x: (a - .5) * .05, y: .14 + (b - .5) * .04, z: (c - .5) * .05,
