@@ -97,3 +97,12 @@ test('the sun-, moon- and earthstones each wear one extra lit mesh', () => {
     plain.userData.dispose(); art.userData.dispose();
   }
 });
+
+test('the Eyes of the Overworld wear a lit ring and slit over each lens as one extra mesh', () => {
+  const count = m => { let n = 0; m.traverse(o => { if (o.isMesh) n++; }); return n; };
+  const plain = createGroundModel({name: 'lenses', label: 'lenses', class: 6}), art = createGroundModel({name: 'lenses', label: 'the Eyes of the Overworld', class: 6});
+  assert.equal(art.userData.artifact, 'eyes of the overworld');
+  assert.equal(count(art), count(plain) + 1);
+  assert(art.children.at(-1).userData.magicShell);
+  plain.userData.dispose(); art.userData.dispose();
+});
