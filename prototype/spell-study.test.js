@@ -64,3 +64,9 @@ test('the last rune sags as it gutters, then is gone', () => {
   assert.ok(runePose(n, end + .2).y < runePose(n, end + .01).y - .04, 'sags');
   assert.ok(runePose(n, end + .2).y >= 0);
 });
+
+test('rune 3 blinks out mid-orbit and comes back, staying in bounds', () => {
+  assert.ok(runePose(3, .46).alpha < runePose(3, .38).alpha * .3, 'dims');
+  assert.ok(runePose(3, .56).alpha > runePose(3, .46).alpha * 2, 'returns');
+  assert.equal(runePose(3, STUDY.total).alpha, 0);
+});
