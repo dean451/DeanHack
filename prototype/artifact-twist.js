@@ -180,6 +180,34 @@ const SHAPES = {
       return shard;
     });
   },
+  // Fire Brand burns: five lit tongues of flame stand up off the blade, taller toward the middle and
+  // leaning back from the point. The blade spans x .04 to .46, top at y .012.
+  'fire brand'() {
+    return [0, 1, 2, 3, 4].map(i => {
+      const tongue = new THREE.ConeGeometry(.01, .045 + (i % 3) * .015, 4);
+      tongue.rotateZ(.25); tongue.translate(.1 + i * .075, .012 + .026 + (i % 3) * .008, i % 2 ? .008 : -.008);
+      return tongue;
+    });
+  },
+  // The Sunsword is a dawn laid on the steel: a lit disc on the blade with six flat rays spread round
+  // it, laid down so the whole thing stays low. Disc centred at x .25.
+  sunsword() {
+    const parts = [new THREE.CylinderGeometry(.022, .022, .004, 10).translate(.25, .0145, 0)];
+    for (let i = 0; i < 6; i++) {
+      const ray = new THREE.ConeGeometry(.007, .05, 4);
+      ray.rotateZ(-Math.PI / 2); ray.translate(.05, 0, 0); ray.rotateY(-(i / 6 * Math.PI * 2 + .3)); ray.translate(.25, .0145, 0);
+      parts.push(ray);
+    }
+    return parts;
+  },
+  // The Vorpal Blade is all edge: a thin lit line runs down both edges of the blade and four lit nicks
+  // bite across it, the cuts of a blade that goes snicker-snack. Blade z -.025 to .025.
+  'vorpal blade'() {
+    const parts = [];
+    for (const side of [-1, 1]) parts.push(new THREE.BoxGeometry(.38, .003, .004).translate(.25, .0135, side * .026));
+    for (let i = 0; i < 4; i++) parts.push(new THREE.BoxGeometry(.006, .003, .03).rotateY(i % 2 ? .5 : -.5).translate(.14 + i * .07, .0135, 0));
+    return parts;
+  },
   // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
   // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
   itlachiayaque(group) {
