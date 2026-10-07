@@ -18,7 +18,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // not `wings`, so the generic wing flutter in live.js leaves them still.
 
 const KINDS={
- 'weeping angel':{stone:'#9a978e',dark:'#3e3c38',hi:'#c8c4b8',moss:'#5a6a3a',scale:1.05,wing:1},
+ 'weeping angel':{stone:'#9a978e',dark:'#3e3c38',hi:'#c8c4b8',moss:'#5a6a3a',scale:1.2,wing:1},
  'weeping archangel':{stone:'#77767a',dark:'#26262c',hi:'#a8a8ae',moss:'#3e5236',scale:1.3,wing:1.18,circlet:true},
 };
 const CRACK=rgb('#1e1d1b'),STAIN=rgb('#151413'),MAW=rgb('#0c0a0a');
