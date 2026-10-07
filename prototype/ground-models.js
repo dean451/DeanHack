@@ -11,6 +11,7 @@ import {createVenom} from './venom.js';
 import {createPotion} from './potion.js';
 import {applyPotionTwist} from './potion-twist.js';
 import {applyToolTwist} from './tool-twist.js';
+import {applyArtifactTwist} from './artifact-twist.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
@@ -6474,5 +6475,6 @@ export function createGroundModel(item={}){
   applyToolTwist(g,item);
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else{materials.forEach(m=>m.dispose());return null;}
+ applyArtifactTwist(g,item);
  g.userData.dispose=()=>{g.traverse(o=>o.geometry?.dispose());materials.forEach(m=>m.dispose());};return g;
 }
