@@ -50,3 +50,10 @@ test('the last shaken-off fleck is tugged back toward the item before it falls',
   assert.ok(r(last, .7 * BLESS.total) > r(last, t), 'then let go');
   for (let tt = 0; tt <= BLESS.total; tt += .01) assert.ok(r(last, tt) < .35);
 });
+
+test('the blessing ring trembles at the top of its rise before letting go', () => {
+  const u = x => ringPose('blessed', x * BLESS.total).lift;
+  let dips = 0;
+  for (let x = .64; x < .8; x += .004) if (u(x) < .5 * 1 - .004 && u(x + .004) > u(x) + 1e-4) dips++;
+  assert.ok(dips > 3, 'the lift shivers rather than gliding');
+});

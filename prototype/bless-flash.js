@@ -20,7 +20,11 @@ export function blessKind(text) {
 export function ringPose(kind, t) {
   if (!BLESS_COLORS[kind] || t <= 0 || t >= BLESS.total) return {radius: 0, lift: 0, alpha: 0};
   const u = t / BLESS.total, fade = 1 - smooth((u - .6) / .4);
-  if (kind === 'blessed') return {radius: .3 + .2 * smooth(u / .7), lift: .5 * smooth(u / .8) - .08 * smooth((u - .75) / .25), alpha: .55 * smooth(u / .2) * fade};
+  // A held breath: at the top the ring hangs and trembles, dipping a hair on each shiver, before it lets go.
+  if (kind === 'blessed') {
+    const hang = Math.sin(Math.PI * clamp01((u - .62) / .2)), tremble = .012 * hang * (1 + Math.sin(u * 140)) / 2;
+    return {radius: .3 + .2 * smooth(u / .7), lift: .5 * smooth(u / .8) - .08 * smooth((u - .75) / .25) - tremble, alpha: .55 * smooth(u / .2) * fade};
+  }
   if (kind === 'cursed') {
     const stutter = Math.floor(u * 9) % 2 ? .04 : 0;
     // Near the end the closing ring snaps back out once, as if the curse had pulled and been pulled back.
