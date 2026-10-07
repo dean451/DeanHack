@@ -65,6 +65,29 @@ const SHAPES = {
     }
     return parts;
   },
+  // The sunstone throws eight thin cruel rays flat across the floor, like a black sun's corona.
+  sunstone() {
+    return Array.from({length: 8}, (_, i) => {
+      const a = i / 8 * Math.PI * 2, ray = new THREE.ConeGeometry(.007, .09 + (i % 2) * .04, 4);
+      ray.rotateZ(-Math.PI / 2); ray.translate(.1 + (i % 2) * .02, .008, 0); ray.rotateY(-a);
+      return ray;
+    });
+  },
+  // The moonstone lies in a thin lit crescent, an open arc round the gem like a waning moon.
+  moonstone() {
+    const arc = new THREE.TorusGeometry(.085, .005, 5, 24, Math.PI * 1.15);
+    arc.rotateX(Math.PI / 2); arc.rotateY(.6); arc.translate(0, .008, 0);
+    return [arc];
+  },
+  // The earthstone is walled by four squat jagged slabs, a cairn leaning in round the gem.
+  earthstone() {
+    return Array.from({length: 4}, (_, i) => {
+      const a = i / 4 * Math.PI * 2 + .4, slab = new THREE.BoxGeometry(.03, .05 + (i % 2) * .02, .012);
+      slab.translate(0, .03 + (i % 2) * .01, 0); slab.rotateX(-.25); slab.rotateY(-a + Math.PI / 2);
+      slab.translate(Math.cos(a) * .09, 0, Math.sin(a) * .09);
+      return slab;
+    });
+  },
   // A thin hard edge of light round the card, like a razor ground into its rim.
   'platinum yendorian express card'() {
     const w = .114, d = .09, t = .004;

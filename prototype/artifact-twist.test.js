@@ -86,3 +86,14 @@ test('the Eye of the Aethiopica wears a lit lid and the Heart of Ahriman a ring 
     plain.userData.dispose(); art.userData.dispose();
   }
 });
+
+test('the sun-, moon- and earthstones each wear one extra lit mesh', () => {
+  const count = m => { let n = 0; m.traverse(o => { if (o.isMesh) n++; }); return n; };
+  for (const [name, label] of [['diamond', 'the sunstone'], ['black opal', 'the moonstone'], ['sapphire', 'the earthstone']]) {
+    const plain = createGroundModel({name, label: name, class: 13}), art = createGroundModel({name, label, class: 13});
+    assert(art.userData.artifact, label);
+    assert.equal(count(art), count(plain) + 1, label);
+    assert(art.children.at(-1).userData.magicShell, label);
+    plain.userData.dispose(); art.userData.dispose();
+  }
+});
