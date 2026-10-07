@@ -99,6 +99,14 @@ const TWISTS = {
     liquid.material.emissiveIntensity = .3;
     glass.material.color.lerp(new THREE.Color(0x5a4a68), .25);
   },
+  // Levitation: a pale, weightless liquid with a lifting glow, the glass thinned.
+  levitation(parts) {
+    const {liquid, glass} = parts;
+    liquid.material.color.lerp(new THREE.Color(0xc8e0f4), .55);
+    liquid.material.emissive.set(0xb0d4ff);
+    liquid.material.emissiveIntensity = .4;
+    glass.material.opacity *= .8;
+  },
 };
 
 // Applies the twist for this floor object to the potion meshes in `group`. Returns the twist name

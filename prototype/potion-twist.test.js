@@ -84,3 +84,10 @@ test('confusion muddies the liquid violet-grey',()=>{
  assert(l.roughness>part(plain,'liquid').material.roughness);
  plain.userData.dispose();mud.userData.dispose();
 });
+
+test('levitation turns the liquid pale and glowing',()=>{
+ const plain=make('healing'),light=make('potion of levitation');
+ assert.equal(light.userData.twist,'levitation');
+ assert(part(light,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
+ plain.userData.dispose();light.userData.dispose();
+});
