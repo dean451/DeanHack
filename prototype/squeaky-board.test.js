@@ -60,3 +60,10 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('the last mote hangs on, trembling, after the others have settled', () => {
+  const last = SQUEAK.motes - 1;
+  assert.equal(motePose(0, .65).alpha, 0);
+  assert.ok(motePose(last, .65).alpha > .01);
+  assert.equal(motePose(last, SQUEAK.total).alpha, 0);
+});
