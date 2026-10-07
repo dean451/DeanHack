@@ -49,3 +49,14 @@ test('the last fleck stalls mid-fall, then drops and never rises', () => {
   let last = Infinity;
   for (let u = .02; u < .98; u += .01) { const v = y(u); assert.ok(v <= last + 1e-9, String(u)); last = v; }
 });
+
+test('plain flecks flutter as they sag, still falling overall and in bounds', () => {
+  const i = 3;
+  let flips = 0, last = 0, prevY = Infinity;
+  for (let t = .3; t < 1.1; t += .004) {
+    const a = fleckPose(i, t), b = fleckPose(i, t + .004);
+    if (a.alpha > .01 && b.alpha > .01) { const d = b.x - a.x; if (last && Math.sign(d) !== Math.sign(last)) flips++; last = d; assert.ok(b.y <= a.y + 1e-9); }
+    assert.ok(Math.hypot(a.x, a.z) <= .4);
+  }
+  assert.ok(flips >= 1, 'sways');
+});
