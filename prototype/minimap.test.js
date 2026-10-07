@@ -66,3 +66,11 @@ test('a click on the minimap names the map square under it, whatever size the ca
   assert.equal(cellAtPixel(-1, 5), null);
   assert.equal(cellAtPixel(WIDTH, 5), null);
 });
+
+test('pets and hostiles, water and lava differ in mark shape, not only colour', () => {
+  const mark = (cell) => cellStyle(cell, hero).mark;
+  assert.notEqual(mark({x: 1, z: 1, kind: 'pet', terrain: 'floor'}), mark({x: 2, z: 1, kind: 'monster', visible: true, terrain: 'floor'}));
+  assert.ok(mark({x: 1, z: 1, terrain: 'water'}));
+  assert.ok(mark({x: 1, z: 1, terrain: 'lava'}));
+  assert.notEqual(mark({x: 1, z: 1, terrain: 'water'}), mark({x: 1, z: 1, terrain: 'lava'}));
+});
