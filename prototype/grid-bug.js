@@ -29,6 +29,11 @@ export function createGridBug(){
   rod(head,[side*.13,.19,.12],[side*.18,.235,.22],.008,plate);
   ellipsoid(head,.019,cyan,[side*.18,.235,.22],[.7,1,.7]);
  }
+ // Two hooked mandibles, sharp and dark, crossing in front of the mouth.
+ for(const side of [-1,1]){
+  const jaw=mesh(new THREE.ConeGeometry(.016,.11,6),dark,head,side*.03,-.045,.2);
+  jaw.rotation.set(Math.PI/2+.25,0,side*-.5);
+ }
  const legs=[];
  for(const side of [-1,1])for(let i=0;i<3;i++){
   const z=-.19+i*.19,leg=new THREE.Group();leg.position.set(side*.12,.25,z);body.add(leg);
