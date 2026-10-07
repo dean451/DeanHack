@@ -34,11 +34,11 @@ export const FLASH_MS = 130;
 // curl off as long thin wisps with a wide twist, the rest stay round; wobble {amp, hz} is how far and how fast it swirls sideways
 // and up and down as it ages (fire licks fast, gas rolls slow, frost hangs nearly still). Death (disintegration) throws violet sparks, not a dark cone.
 export const BREATH_LOOKS = {
-  'magic missile': {end: 0x2a3a90, rise: .05, puff: .8, wobble: {amp: 0.03, hz: 0.01}},
+  'magic missile': {end: 0x2a3a90, rise: .05, puff: .8, shape: {len: 2.6, thin: .3, spin: 0}, wobble: {amp: 0.03, hz: 0.01}},
   fire: {end: 0x3a1208, rise: .38, puff: 1.2, shape: {len: 2.1, thin: .55, spin: .25, tilt: .9}, wobble: {amp: 0.11, hz: 0.02}},
   cold: {end: 0xbfe8ff, rise: -.08, puff: 1, shape: {len: 2, thin: .4, spin: 1.1}, wobble: {amp: 0.03, hz: 0.006}},
   sleep: {end: 0x5a3a8a, rise: .06, puff: 1.1, shape: {len: 2.3, thin: .5, spin: 1.5}, wobble: {amp: 0.07, hz: 0.005}},
-  death: {end: 0x2a0a3a, rise: .02, puff: .55, sparks: true, wobble: {amp: 0, hz: 0}},
+  death: {end: 0x2a0a3a, rise: .02, puff: .55, sparks: true, shape: {len: 1.5, thin: .5, spin: .2, tilt: -.7}, wobble: {amp: 0.04, hz: 0.004}},
   lightning: {end: 0x6a90ff, rise: 0, puff: .5, sparks: true, wobble: {amp: 0, hz: 0}},
   'poison gas': {end: 0x2f5a12, rise: .1, puff: 1.4, shape: {len: 1.7, thin: .7, spin: 1.7}, wobble: {amp: 0.12, hz: 0.007}},
   lava: {end: 0x301008, rise: .15, puff: 1, shape: {len: 1.5, thin: .7, spin: .3, tilt: .5}, wobble: {amp: 0.06, hz: 0.009}},
