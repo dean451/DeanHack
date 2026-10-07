@@ -73,3 +73,14 @@ test('the cursed ring twitches off the floor on each stutter beat, and rests fla
   assert.equal(ringPose('cursed', 0).lift, 0);
   assert.equal(ringPose('cursed', BLESS.total).lift, 0);
 });
+
+test('shaken-off flecks gutter as they fall, each at its own pitch, never leaving bounds', () => {
+  const a = i => Array.from({length: 100}, (_, k) => fleckPose(i, k * .018).alpha);
+  for (let i = 0; i < BLESS.flecks; i++) assert.ok(a(i).every(x => x >= 0 && x <= 1), String(i));
+  assert.notDeepEqual(a(0), a(1));
+  const early = fleckPose(0, .2 * BLESS.total).alpha;
+  assert.ok(Math.abs(early - 1) < .05, 'steady at first');
+  const dips = Array.from({length: 40}, (_, k) => fleckPose(2, (.45 + k * .005) * BLESS.total).alpha), up = dips.filter((x, k) => k && x > dips[k - 1]).length;
+  assert.ok(up > 0, 'catches again');
+  assert.equal(fleckPose(0, BLESS.total).alpha, 0);
+});
