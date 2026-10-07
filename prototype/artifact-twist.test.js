@@ -47,3 +47,12 @@ test('a wielded artifact takes its glint in its own steel, not the shared materi
   assert.ok(wield({name: 'long sword', class: 2}) === null);
   assert.equal(lit(), 0, 'a plain long sword stays dull');
 });
+
+test('the great non-weapon artifacts smoulder harder than a lesser one', () => {
+  const heart = createGroundModel({name: 'luckstone', label: 'the Heart of Ahriman', class: 13});
+  const eye = createGroundModel({name: 'amulet of life saving', label: 'the Eye of the Aethiopica', class: AMULET});
+  assert(heart && eye);
+  assert(glow(heart) >= .38, 'the Heart burns hardest');
+  assert(glow(eye) >= .32);
+  heart.userData.dispose(); eye.userData.dispose();
+});
