@@ -120,6 +120,8 @@ export function deathPose(style, u, dir = null) {
       // the puddle quivers as it settles, a few shrinking ripples, before it soaks away
       const quiver = Math.sin((u - .4) * 55) * .05 * (1 - smooth((u - .4) / .3)) * smooth((u - .4) / .04);
       p.sx = (1 - .1 * bulge) * (1 + .7 * flat) * (1 + (u > .4 ? quiver : 0));
+      // Any eye or head it had slides down the slump and is swallowed last.
+      p.head = -.5 * flat;
       p.fade = 1 - smooth((u - .65) / .35);
       push(.08 * flat);
       break;
@@ -173,6 +175,9 @@ export function deathPose(style, u, dir = null) {
       // A last dead twitch of the limb, after it has landed, then still.
       p.arm = .25 * Math.sin(Math.PI * clamp01((u - .8) / .15)) * Math.sin((u - .8) * 90);
       // Then, when it seems finished, one leg kicks out alone, a dead reflex, and drops back.
+      // Whatever it held skips out of the slack grip as it lands, and lies still.
+      const skip = clamp01((u - .55) / .25);
+      p.socket = .3 * (4 * skip * (1 - skip)) ** 2;
       p.leg = .35 * (4 * clamp01((u - .86) / .08) * (1 - clamp01((u - .86) / .08))) ** 2;
     }
   }
