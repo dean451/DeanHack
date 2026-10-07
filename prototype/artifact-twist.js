@@ -88,6 +88,18 @@ const SHAPES = {
       return slab;
     });
   },
+  // The Eyes of the Overworld see too much: a lit ring hugs each lens and a slit pupil, narrow as a
+  // cat's in the dark, lies across it. The lenses sit .058 either side of centre, .043 across.
+  'eyes of the overworld'() {
+    const parts = [];
+    for (const s of [-1, 1]) {
+      const ring = new THREE.TorusGeometry(.049, .003, 5, 28), slit = new THREE.BoxGeometry(.006, .004, .05);
+      ring.rotateX(Math.PI / 2); ring.translate(s * .058, .012, 0);
+      slit.translate(s * .058, .014, 0);
+      parts.push(ring, slit);
+    }
+    return parts;
+  },
   // A thin hard edge of light round the card, like a razor ground into its rim.
   'platinum yendorian express card'() {
     const w = .114, d = .09, t = .004;
