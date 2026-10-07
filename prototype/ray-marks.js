@@ -17,7 +17,8 @@ export const MARK_Y = .012;
 // A lightning flash rises over 25 ms, then fades over this long (ms).
 export const FLASH_MS = 220;
 
-// Each part of a mark: shape 0 is a ragged blot, 1 a ring spreading out, 2 soft haze.
+// Each part of a mark: shape 0 is a ragged blot, 1 a ring spreading out, 2 soft haze, 3 a
+// four-point frost star, 4 a pitted blot (so cold and acid read apart from fire without colour).
 // ms is how long it lasts (it holds, then fades over the last `fadeMs`); size is its
 // radius at full size in tiles; grow is how long it takes to reach that size (ms).
 // add: true draws it additively (glows); otherwise it darkens/tints the floor.
@@ -31,7 +32,7 @@ export const MARK_LOOKS = {
     {shape: 0, color: 0xff3a0a, alpha: 1, size: .4, ms: 2600, fadeMs: 2200, grow: 60, add: true},
   ],
   cold: [
-    {shape: 0, color: 0xdff6ff, alpha: .55, size: .46, ms: 6000, fadeMs: 2500, grow: 160},
+    {shape: 3, color: 0xdff6ff, alpha: .55, size: .46, ms: 6000, fadeMs: 2500, grow: 160},
     {shape: 1, color: 0xbfeaff, alpha: .8, size: .5, ms: 420, fadeMs: 360, grow: 300, add: true},
   ],
   lightning: [
@@ -39,7 +40,7 @@ export const MARK_LOOKS = {
     {shape: 2, color: 0xd8ecff, alpha: .9, size: .6, ms: 260, fadeMs: 240, grow: 20, add: true},
   ],
   acid: [
-    {shape: 0, color: 0x3c4a10, alpha: .5, size: .38, ms: 5000, fadeMs: 2000, grow: 200},
+    {shape: 4, color: 0x3c4a10, alpha: .5, size: .38, ms: 5000, fadeMs: 2000, grow: 200},
     {shape: 2, color: 0x9ad61a, alpha: .5, size: .4, ms: 900, fadeMs: 800, grow: 100, add: true},
   ],
   'poison gas': [
@@ -117,7 +118,7 @@ void main() {
   vUv = uv * 2.0 - 1.0; vColor = aColor; vAlpha = aAlpha; vShape = aShape;
   gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
 }`;
-// aShape.x: 0 blot, 1 ring, 2 haze; aShape.y: per-mark seed for the ragged edge.
+// aShape.x: 0 blot, 1 ring, 2 haze, 3 frost star, 4 pitted blot; aShape.y: per-mark seed for the ragged edge.
 const FRAG = `
 varying vec2 vUv; varying vec3 vColor; varying float vAlpha; varying vec2 vShape;
 void main() {
@@ -131,8 +132,15 @@ void main() {
     k = (1.0 - smoothstep(edge - 0.25, edge, r)) * speck;
   } else if (vShape.x < 1.5) {
     k = smoothstep(0.62, 0.84, r) * (1.0 - smoothstep(0.86, 1.0, r));
-  } else {
+  } else if (vShape.x < 2.5) {
     k = pow(clamp(1.0 - r, 0.0, 1.0), 1.6);
+  } else if (vShape.x < 3.5) {
+    float arm = 0.35 + 0.65 * pow(abs(cos(2.0 * a)), 6.0);
+    k = 1.0 - smoothstep(arm * 0.8 - 0.2, arm * 0.8, r);
+  } else {
+    float edge = 0.78 + 0.12 * sin(a * 5.0 + s);
+    float pits = smoothstep(0.55, 0.7, sin(vUv.x * 17.0 + s) * sin(vUv.y * 15.0 - s * 1.7) + 0.35);
+    k = (1.0 - smoothstep(edge - 0.25, edge, r)) * (1.0 - 0.85 * pits);
   }
   if (k * vAlpha < 0.004) discard;
   gl_FragColor = vec4(vColor, k * vAlpha);
