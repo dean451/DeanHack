@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ringPose, gritPose, isMagicTrapMessage, createMagicTrap, PENDING_WAIT, MAGIC} from './magic-trap.js';
+import {ringPose, gritPose, isMagicTrapMessage, isPackShakeMessage, createMagicTrap, PENDING_WAIT, MAGIC} from './magic-trap.js';
 
 test('only the roar triggers it', () => {
   assert.ok(isMagicTrapMessage('You hear a deafening roar!'));
@@ -62,4 +62,14 @@ test('the last mote stalls mid-air, trembling, while the rest fall', () => {
   let xs = new Set();
   for (let t = .45; t < .6; t += .003) xs.add(gritPose(stray, t).x.toFixed(4));
   assert.ok(xs.size > 5, 'it trembles');
+});
+
+test('a shaking pack plays a quieter version at once, on the hero\'s square', () => {
+  assert.ok(isPackShakeMessage('Your pack shakes violently!') && !isPackShakeMessage('You hear a deafening roar!') && !isMagicTrapMessage('Your pack shakes violently!'));
+  const added = [];
+  const THREE = new Proxy({}, {get: () => class { constructor() { this.position = {set: (x, y, z) => added.push([x, z]), y: 0}; this.rotation = {}; this.scale = {setScalar() {}, set() {}}; this.material = {}; } add() {} dispose() {} }});
+  const fx = createMagicTrap(THREE, {add() {}, remove() {}});
+  fx.message('Your pack shakes violently!', 5, 6);
+  assert.equal(fx.active, 1); assert.deepEqual(added[0], [5, 6]);
+  fx.update(.5); fx.update(MAGIC.total); assert.equal(fx.active, 0);
 });
