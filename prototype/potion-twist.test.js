@@ -66,3 +66,28 @@ test('full healing glows pale gold',()=>{
  assert(part(full,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
  plain.userData.dispose();full.userData.dispose();
 });
+
+test('sleeping goes dim and heavy',()=>{
+ const plain=make('healing'),sleepy=make('potion of sleeping');
+ assert.equal(sleepy.userData.twist,'sleeping');
+ const l=part(sleepy,'liquid').material;
+ assert(l.emissiveIntensity<=part(plain,'liquid').material.emissiveIntensity);
+ assert(l.roughness>part(plain,'liquid').material.roughness);
+ plain.userData.dispose();sleepy.userData.dispose();
+});
+
+test('confusion muddies the liquid violet-grey',()=>{
+ const plain=make('healing'),mud=make('potion of confusion');
+ assert.equal(mud.userData.twist,'confusion');
+ const l=part(mud,'liquid').material;
+ assert.notEqual(l.color.getHex(),part(plain,'liquid').material.color.getHex());
+ assert(l.roughness>part(plain,'liquid').material.roughness);
+ plain.userData.dispose();mud.userData.dispose();
+});
+
+test('levitation turns the liquid pale and glowing',()=>{
+ const plain=make('healing'),light=make('potion of levitation');
+ assert.equal(light.userData.twist,'levitation');
+ assert(part(light,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
+ plain.userData.dispose();light.userData.dispose();
+});
