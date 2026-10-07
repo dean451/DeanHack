@@ -169,7 +169,7 @@ function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.c
 
 export function createTurtle(){
  const S=geometry();
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.2);
  mesh(body,S.body,S.material,'body');
  const head=new THREE.Group();head.position.set(0,SHELL.y+.03,.27);body.add(head);mesh(head,S.head,S.material,'head');
  const tail=new THREE.Group();tail.position.set(0,SHELL.y+.01,-.31);body.add(tail);mesh(tail,S.tail,S.material,'tail');

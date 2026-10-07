@@ -31,7 +31,7 @@ test('the giant turtle gets its own tortoise with a scuted shell instead of the 
  assert(Math.abs(shell.max.y-b.max.y)<1e-6,'the shell is the highest point');
  assert(Math.abs(box(a.head).max.z-b.max.z)<1e-6,'head leads');
  assert(Math.abs(box(a.tail).min.z-b.min.z)<1e-6,'tail trails');
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.6,'about a tile');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.68,'about a tile');
  // the scutes show: the top of the shell has both pale areolae and dark seams
  const col=parts.find(m=>m.userData.part==='body').geometry.attributes.color.array;
  let dark=0,pale=0;for(let i=0;i<col.length;i+=3){if(col[i]<.03)dark++;if(col[i]>.25)pale++;}
