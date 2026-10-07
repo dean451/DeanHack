@@ -171,6 +171,15 @@ const SHAPES = {
   stormbringer() {
     return [0, 1, 2, 3, 4].map(i => new THREE.BoxGeometry(.075, .003, .005).rotateY(i % 2 ? .6 : -.6).translate(.1 + i * .075, .0135, i % 2 ? .006 : -.006));
   },
+  // Frost Brand is rimed: six thin lit shards of ice stand out of the edge along its length, leaning
+  // outward, longer toward the point. The blade spans x .04 to .46 and z -.025 to .025.
+  'frost brand'() {
+    return Array.from({length: 6}, (_, i) => {
+      const side = i % 2 ? -1 : 1, shard = new THREE.ConeGeometry(.006, .03 + i * .004, 4);
+      shard.rotateX(side * Math.PI / 2); shard.translate(.1 + i * .06, .013, side * (.03 + i * .002));
+      return shard;
+    });
+  },
   // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
   // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
   itlachiayaque(group) {
