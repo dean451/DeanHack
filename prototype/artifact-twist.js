@@ -22,6 +22,7 @@ const shapeMaterial = hex => {
   if (!SHAPE_MATERIALS.has(hex)) SHAPE_MATERIALS.set(hex, new THREE.MeshStandardMaterial({color: hex, emissive: hex, emissiveIntensity: .5, metalness: .6, roughness: .35}));
   return SHAPE_MATERIALS.get(hex);
 };
+// Shapes take the model's group so ones that sit on a base item of varying size can measure it.
 const SHAPES = {
   // A crown of seven sharp thorns round the frame, leaning outward like a broken halo.
   'magic mirror of merlin'() {
@@ -105,6 +106,27 @@ const SHAPES = {
     const w = .114, d = .09, t = .004;
     return [[0, -d, w, t], [0, d, w, t], [-w, 0, t, d], [w, 0, t, d]].map(([x, z, hx, hz]) => new THREE.BoxGeometry(hx * 2, .006, hz * 2).translate(x, .008, z));
   },
+  // The mitre's brim is ringed in lit gilt and a black-hot cleft runs up its front, like a split
+  // judgement. Every mitre base is about .26 wide and .125 tall, so it is fixed to that.
+  'mitre of holiness'() {
+    const band = new THREE.TorusGeometry(.128, .005, 5, 32), cleft = new THREE.BoxGeometry(.008, .08, .006);
+    band.rotateX(Math.PI / 2); band.translate(0, .03, 0);
+    cleft.translate(0, .08, .1);
+    return [band, cleft];
+  },
+  // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
+  // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
+  itlachiayaque(group) {
+    const box = new THREE.Box3().setFromObject(group), R = (box.max.x - box.min.x) / 2, y = box.max.y + .004;
+    const ring = new THREE.TorusGeometry(R * .62, .005, 5, 32), parts = [ring];
+    ring.rotateX(Math.PI / 2); ring.translate(0, y, 0);
+    for (let i = 0; i < 6; i++) {
+      const spike = new THREE.ConeGeometry(.012, R * .35, 4);
+      spike.rotateZ(-Math.PI / 2); spike.translate(R * .95, y, 0); spike.rotateY(-(i / 6 * Math.PI * 2 + .2));
+      parts.push(spike);
+    }
+    return parts;
+  },
 };
 
 // Tints the item's own materials in `group` (disposal is unchanged). Returns the artifact key or null.
@@ -126,7 +148,7 @@ export function applyArtifactTwist(group, object, {clone = false} = {}) {
     m.emissive.copy(color);
     m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, POWER_BY_KIND[kind] ?? POWER);
   });
-  const shape = SHAPES[kind]?.();
+  const shape = SHAPES[kind]?.(group);
   if (shape) {
     const mesh = new THREE.Mesh(mergeGeometries(shape), shapeMaterial(ARTIFACTS[kind].color));
     mesh.userData.magicShell = true; mesh.castShadow = true;

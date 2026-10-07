@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGroundModel} from './ground-models.js';
+import * as THREE from 'three';
 
 const AMULET = 5;
 const glow = m => { let e = 0; m.traverse(o => { if (o.material?.emissiveIntensity > e) e = o.material.emissiveIntensity; }); return e; };
@@ -105,4 +106,17 @@ test('the Eyes of the Overworld wear a lit ring and slit over each lens as one e
   assert.equal(count(art), count(plain) + 1);
   assert(art.children.at(-1).userData.magicShell);
   plain.userData.dispose(); art.userData.dispose();
+});
+
+test('the Mitre of Holiness and Itlachiayaque wear a lit shape as one extra mesh, sized to the base', () => {
+  const count = m => { let n = 0; m.traverse(o => { if (o.isMesh) n++; }); return n; };
+  for (const [plain, label, kind] of [['helmet', 'the Mitre of Holiness', 'mitre of holiness'], ['small shield', 'Itlachiayaque', 'itlachiayaque'], ['dwarvish roundshield', 'Itlachiayaque', 'itlachiayaque']]) {
+    const base = createGroundModel({name: plain, label: plain, class: 3}), art = createGroundModel({name: plain, label, class: 3});
+    assert.equal(art.userData.artifact, kind, label);
+    assert.equal(count(art), count(base) + 1, label);
+    assert(art.children.at(-1).userData.magicShell, label);
+    const w = b => new THREE.Box3().setFromObject(b).getSize(new THREE.Vector3());
+    assert(w(art).x < w(base).x * 1.15, `${plain} shape stays near the base`);
+    base.userData.dispose(); art.userData.dispose();
+  }
 });
