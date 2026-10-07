@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {ARTIFACTS, artifactFromName} from './artifact-gleam.js';
 
 // Floor artifacts take their power in the material: the base item's shape stays, its metal is
@@ -11,6 +12,33 @@ const POWER_BY_KIND = {
   // The great non-weapon artifacts burn hardest: they are the strongest magic on the floor.
   'heart of ahriman': .38, 'orb of fate': .32, 'palantir of westernesse': .32, 'eye of the aethiopica': .32,
   'magic mirror of merlin': .28, 'eyes of the overworld': .28, mjollnir: .28, 'vorpal blade': .28,
+};
+
+// Shape twists: a few artifacts add one merged mesh in their glint colour, so the silhouette says
+// what they are. The mirror lies flat (glass centred at x -.075, oval 1.18 wide), the card flat.
+// The material is shared per colour and lives for the session, so no model has to free it.
+const SHAPE_MATERIALS = new Map();
+const shapeMaterial = hex => {
+  if (!SHAPE_MATERIALS.has(hex)) SHAPE_MATERIALS.set(hex, new THREE.MeshStandardMaterial({color: hex, emissive: hex, emissiveIntensity: .5, metalness: .6, roughness: .35}));
+  return SHAPE_MATERIALS.get(hex);
+};
+const SHAPES = {
+  // A crown of seven sharp thorns round the frame, leaning outward like a broken halo.
+  'magic mirror of merlin'() {
+    const parts = [];
+    for (let i = 0; i < 7; i++) {
+      const a = i / 7 * Math.PI * 2, thorn = new THREE.ConeGeometry(.008, .05 + (i % 3) * .012, 4);
+      thorn.rotateZ(-Math.cos(a) * .35); thorn.rotateX(Math.sin(a) * .35);
+      thorn.translate(-.075 + Math.cos(a) * .118 * 1.18, .05, Math.sin(a) * .118);
+      parts.push(thorn);
+    }
+    return parts;
+  },
+  // A thin hard edge of light round the card, like a razor ground into its rim.
+  'platinum yendorian express card'() {
+    const w = .114, d = .09, t = .004;
+    return [[0, -d, w, t], [0, d, w, t], [-w, 0, t, d], [w, 0, t, d]].map(([x, z, hx, hz]) => new THREE.BoxGeometry(hx * 2, .006, hz * 2).translate(x, .008, z));
+  },
 };
 
 // Tints the item's own materials in `group` (disposal is unchanged). Returns the artifact key or null.
@@ -32,6 +60,12 @@ export function applyArtifactTwist(group, object, {clone = false} = {}) {
     m.emissive.copy(color);
     m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, POWER_BY_KIND[kind] ?? POWER);
   });
+  const shape = SHAPES[kind]?.();
+  if (shape) {
+    const mesh = new THREE.Mesh(mergeGeometries(shape), shapeMaterial(ARTIFACTS[kind].color));
+    mesh.userData.magicShell = true; mesh.castShadow = true;
+    group.add(mesh);
+  }
   group.userData.artifact = kind;
   return kind;
 }
