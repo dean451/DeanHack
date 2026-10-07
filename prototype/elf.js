@@ -24,6 +24,8 @@ export const ELVES={
  'elvenking':{cloak:'#5a2468',tunic:'#8e4aa4',hair:'#ece4cc',trim:'#d8b04a',crown:true,train:true},
  'elf':{cloak:'#cfc8b4',tunic:'#eee6d4',hair:'#dcbc6c',trim:'#d8b04a',bow:true},
  'high-elf':{cloak:'#d8d2c0',tunic:'#f2ecde',hair:'#e8d08a',trim:'#d8b04a',circlet:true},
+ earendil:{cloak:'#3a4a62',tunic:'#7a8aa2',hair:'#d8d4c4',trim:'#c8d0d8',circlet:true},// the elven quest leaders: silver-haired, in storm-grey rather than white
+ elwing:{cloak:'#4a3a62',tunic:'#8a7aa2',hair:'#d8d4c4',trim:'#c8d0d8',circlet:true},
 };
 
 const lathe=(profile,segments=20,phiStart=0,phiLength=Math.PI*2)=>new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),segments,phiStart,phiLength);
@@ -154,7 +156,7 @@ function geometry(kind){
 }
 function mesh(parent,geo,mat,name){const m=new THREE.Mesh(geo,mat);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
-const ELF_SCALE={'elf-lord':1.07,elvenking:1.12,'high-elf':1.04};
+const ELF_SCALE={'elf-lord':1.07,elvenking:1.12,'high-elf':1.04,earendil:1.12,elwing:1.12};
 
 export function createElf(name){
  const kind=ELVES[name]?name:'elf',S=geometry(kind);
