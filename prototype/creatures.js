@@ -1657,7 +1657,12 @@ function lich(o){
  const orb=sphere(sk,.026,glow,0,.1,.02);
  // a plain lich and a demilich wear a thin circlet with a glowing stone; higher tiers wear the crowns below
  if(!o.crown){cylinder(body,.152,.152,.018,o.evil?M.gold:M.darkSteel,0,1.2,.02,12);cone(body,.016,.06,o.evil?M.gold:M.darkSteel,0,1.24,.17,4);sphere(body,.02,glow,0,1.2,.17);}
- if(o.crown){const n=o.crown==='tall'?7:5,h=o.crown==='tall'?.14:.09;cylinder(body,.155,.165,.05,o.crown==='tall'?M.gold:bone,0,1.21,.02,12);for(let i=0;i<n;i++){const a=(i/n-.5)*Math.PI*1.3;cone(body,.02,h,o.crown==='tall'?M.gold:bone,Math.sin(a)*.155,1.26+h/2-.02,.02+Math.cos(a)*.155,4);}sphere(body,.026,glow,0,1.22,.18);}
+ // master and arch-lich crowns: a band of upswept points alternating tall and short and raked back like thorns, a glowing gem on each tall tip;
+ // the arch-lich's is gilt with more points, a high central spire and a hanging brow stone
+ if(o.crown){const arch=o.crown==='tall',n=arch?9:5,metal=arch?M.gold:bone,jewel=mat(o.glow,{emissive:o.glow,emissiveIntensity:3,roughness:.2});cylinder(body,.155,.165,.05,metal,0,1.21,.02,12);
+  for(let i=0;i<n;i++){const a=(i/(n-1)-.5)*Math.PI*1.3,tall=i%2===0,h=(arch?.12:.08)+(tall?(arch?.08:.06):0),mid=i===(n-1)/2&&arch,H=mid?.3:h,k=cone(body,.02,H,metal,Math.sin(a)*.155,1.26+H/2-.02,.02+Math.cos(a)*.155-.02,4);k.rotation.x=-.25;k.rotation.z=-Math.sin(a)*.2;
+   if(tall){const gem=sphere(body,.011,jewel,Math.sin(a)*.155,1.26+H-.01,.02+Math.cos(a)*.155-.07);gem.castShadow=false;}}
+  sphere(body,.026,glow,0,1.22,.18);if(arch)cone(body,.014,.05,M.gold,0,1.17,.19,4).rotation.x=Math.PI;}
  // master and arch-lich: a broken ring of cold light stands behind the skull, the arch-lich's doubled
  if(o.finery>1){for(let i=0;i<o.finery-1;i++){const ring=part(body,new THREE.TorusGeometry(.27+i*.07,.01,5,20,Math.PI*1.7),glow,0,1.13,-.2-i*.02);ring.rotation.z=.5+i;ring.castShadow=false;}}
  if(o.mantle){for(const side of [-1,1]){const spike=cone(body,.05,.22,bone,side*.24,1.02,-.04,5);spike.rotation.z=-side*.9;}rounded(body,.46,.08,.3,trim,0,.97,-.02,.03);}
