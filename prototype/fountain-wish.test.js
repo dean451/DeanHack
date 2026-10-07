@@ -66,3 +66,10 @@ test('the last mote lands after all the others', () => {
   const last = landed(WISH.motes - 1);
   for (let i = 0; i < WISH.motes - 1; i++) assert.ok(landed(i) < last - .2, String(i));
 });
+
+test('the point of light gutters once before the flare, then still flares and rests', () => {
+  const a = t => flarePose(t).alpha, before = WISH.pull + .3;
+  assert.ok(a(before + .075) < a(before - .02) * .6, 'it dips');
+  assert.ok(a(WISH.pull + .5 + WISH.flare / 2) > .9);
+  assert.equal(a(WISH.total), 0);
+});
