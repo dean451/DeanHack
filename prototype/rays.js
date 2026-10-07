@@ -26,7 +26,7 @@ export const MIRROR_MS = 280;
 // core: the bright centre, drawn solid; glow: the additive halo round it.
 // Death is the odd one out, a dark core in a dim violet haze.
 export const RAY_LOOKS = {
-  'magic missile': {core: 0xe8f0ff, glow: 0x6d8cff, width: .05, glowWidth: .2, flicker: .15, spark: 0xaec4ff},
+  'magic missile': {core: 0xe8f0ff, glow: 0x6d8cff, width: .05, glowWidth: .2, flicker: .15, spark: 0xaec4ff, dash: {period: 5, on: 2, speed: 9}},
   fire: {core: 0xfff2c0, glow: 0xff5a14, width: .07, glowWidth: .26, flicker: .3, spark: 0xffa040},
   cold: {core: 0xf2fdff, glow: 0x7fd8ff, width: .05, glowWidth: .22, flicker: .08, spark: 0xd8f6ff},
   sleep: {core: 0xf0e0ff, glow: 0x9a5cff, width: .045, glowWidth: .22, flicker: .1, spark: 0xc9a8ff, dash: {period: 2, on: 1, speed: 5}},
@@ -37,7 +37,7 @@ export const RAY_LOOKS = {
   acid: {core: 0xf4ffb0, glow: 0x9ad61a, width: .05, glowWidth: .22, flicker: .15, spark: 0xd6ff5a, dash: {period: 3, on: 1, speed: 0}},
 };
 // Colour alone must not tell the rays apart: a look with `dash` breaks its beam into marching
-// dashes along its cells (sleep: short, quick ticks; poison gas: long, slow, drifting back; acid: fixed dots),
+// dashes along its cells (magic missile: fast darts, two cells in five; sleep: short, quick ticks; poison gas: long, slow, drifting back; acid: fixed dots),
 // while the rest stay solid (lightning jags, fire ragged, death dark). `period` and `on` are in cells, `speed` in
 // cells per second (negative drifts back towards the caster). A cell in a gap is cut to GAP_LEN of its length.
 export const GAP_LEN = .3;
