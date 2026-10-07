@@ -282,6 +282,18 @@ static void held(struct obj *o) {
 static void pickup_hook_bridge(struct obj *o,coordxy x,coordxy y,long cnt) {
     printf("{\"type\":\"pickup\",\"x\":%d,\"z\":%d,\"otyp\":%d,\"class\":%d,\"count\":%ld}\n",x,y,o->otyp,o->oclass,cnt);fflush(stdout);
 }
+/* The hero teleported within the level: where from, where to, and whether a trap did it. */
+static void teleport_hook_bridge(coordxy fx,coordxy fy,coordxy tx,coordxy ty,int trap) {
+    if(fx==tx&&fy==ty)return;
+    printf("{\"type\":\"teleport\",\"from\":{\"x\":%d,\"z\":%d},\"to\":{\"x\":%d,\"z\":%d},\"trap\":%s}\n",fx,fy,tx,ty,trap?"true":"false");fflush(stdout);
+}
+/* A wish was granted: what came of it, and what granted it. The player typed the name, so
+   sending the real one gives nothing away. */
+static void wish_hook_bridge(struct obj *o,int source) {
+    static const char *const from[]={"other","wand","bottle","demon"};
+    printf("{\"type\":\"wish\",\"source\":\"%s\",\"x\":%d,\"z\":%d,\"otyp\":%d,\"class\":%d,\"name\":",from[source>=0&&source<4?source:0],u.ux,u.uy,o->otyp,o->oclass);
+    quoted(simple_typename(o->otyp));puts("}");fflush(stdout);
+}
 static void revive_hook_bridge(struct monst *m,struct obj *corpse) {
     const char *where;coordxy fx,fy;
     if(m->mx<=0||!canspotmon(m))return;
@@ -528,9 +540,9 @@ static void init(int *a UNUSED,char **v UNUSED) {setvbuf(stdout,NULL,_IOLBF,0);s
 #if defined(TTY_GRAPHICS) && defined(TEXTCOLOR)
     for(int i=0;i<CLR_MAX;i++)if(!hilites[i])hilites[i]=no_escape;
 #endif
-    tmp_at_hook=fx_hook;combat_hook=combat_hook_bridge;death_hook=death_hook_bridge;revive_hook=revive_hook_bridge;pickup_hook=pickup_hook_bridge;}
+    tmp_at_hook=fx_hook;combat_hook=combat_hook_bridge;death_hook=death_hook_bridge;revive_hook=revive_hook_bridge;pickup_hook=pickup_hook_bridge;teleport_hook=teleport_hook_bridge;wish_hook=wish_hook_bridge;}
 static void name(void){Strcpy(plname,"Wanderer");}
-static void finish(const char *s){tmp_at_hook=0;combat_hook=0;death_hook=0;revive_hook=0;pickup_hook=0;fxdepth=0;fx_flush();event("ended",s);iflags.window_inited=FALSE;}
+static void finish(const char *s){tmp_at_hook=0;combat_hook=0;death_hook=0;revive_hook=0;pickup_hook=0;teleport_hook=0;wish_hook=0;fxdepth=0;fx_flush();event("ended",s);iflags.window_inited=FALSE;}
 static winid create(int type){for(int i=1;i<BW;i++)if(!wins[i].type){wins[i].type=type;return i;}panic("bridge windows exhausted");return WIN_ERR;}
 static void clear(winid w){if(w<1||w>=BW)return;for(int i=0;i<wins[w].n;i++)free(wins[w].items[i].text);wins[w].n=0;wins[w].prompt[0]=0;if(wins[w].type==NHW_MAP)for(int x=0;x<COLNO;x++)for(int y=0;y<ROWNO;y++)glyphs[x][y]=backgrounds[x][y]=-1;}
 static void destroy(winid w){clear(w);if(w>0&&w<BW)wins[w].type=0;}

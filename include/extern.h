@@ -379,6 +379,8 @@ extern void (*combat_hook)(struct monst *, struct monst *, int, int);
 extern void (*death_hook)(struct monst *, struct permonst *);
 extern void (*revive_hook)(struct monst *, struct obj *);
 extern void (*pickup_hook)(struct obj *, coordxy, coordxy, long);
+extern void (*teleport_hook)(coordxy, coordxy, coordxy, coordxy, int);
+extern void (*wish_hook)(struct obj *, int);
 #endif
 extern void flash_glyph_at(coordxy, coordxy, int, int);
 extern void swallowed(int);
@@ -3266,6 +3268,11 @@ extern void destroy_item(int, int);
 extern int destroy_mitem(struct monst *, int, int);
 extern int resist(struct monst *, char, int, int);
 extern void makewish(boolean);
+#define WISH_FROM_OTHER  0 /* the wizard-mode wish command, anything unnamed */
+#define WISH_FROM_WAND   1 /* a wand of wishing */
+#define WISH_FROM_BOTTLE 2 /* a djinni from a bottle or a magic lamp */
+#define WISH_FROM_DEMON  3 /* a water demon (a fountain), or any monster granting a wish */
+extern int wish_source;
 extern void remove_corpse(struct obj *);
 
 /* ### livelog.c ### */

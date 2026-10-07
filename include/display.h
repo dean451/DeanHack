@@ -199,11 +199,17 @@
     do { if (revive_hook) (*revive_hook)(mon, corpse); } while (0)
 #define PICKUP_HOOK(obj, x, y, cnt) \
     do { if (pickup_hook) (*pickup_hook)(obj, x, y, cnt); } while (0)
+#define TELEPORT_HOOK(fx, fy, tx, ty, trap) \
+    do { if (teleport_hook) (*teleport_hook)(fx, fy, tx, ty, trap); } while (0)
+#define WISH_HOOK(obj, source) \
+    do { if (wish_hook) (*wish_hook)(obj, source); } while (0)
 #else
 #define COMBAT_HOOK(agr, def, at, res)
 #define DEATH_HOOK(mon, ptr)
 #define REVIVE_HOOK(mon, corpse)
 #define PICKUP_HOOK(obj, x, y, cnt)
+#define TELEPORT_HOOK(fx, fy, tx, ty, trap)
+#define WISH_HOOK(obj, source)
 #endif
 
 /*

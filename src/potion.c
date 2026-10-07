@@ -3102,6 +3102,7 @@ mongrantswish(struct monst **monp)
     tmp_at(DISP_ALWAYS, glyph);
     tmp_at(mx, my);
     /* grant the wish */
+    wish_source = WISH_FROM_DEMON;
     makewish(FALSE);
     /* clean up */
     tmp_at(DISP_END, 0);
@@ -3137,6 +3138,7 @@ djinni_from_bottle(struct obj *obj)
 
     switch (chance) {
     case 0: verbalize("I am in your debt.  I will grant one wish!");
+        wish_source = WISH_FROM_BOTTLE;
         makewish(FALSE);
         mongone(mtmp);
         break;

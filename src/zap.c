@@ -3,6 +3,10 @@
 
 #include "hack.h"
 
+/* Who is granting the wish being made: set by the caller just before makewish(). */
+int wish_source = WISH_FROM_OTHER;
+
+
 /* Disintegration rays have special treatment; corpses are never left.
  * But the routine which calculates the damage is separate from the routine
  * which kills the monster.  The damage routine returns this cookie to
@@ -2450,6 +2454,7 @@ zapnodir(struct obj *obj)
             pline("Unfortunately, nothing happens.");
             break;
         }
+        wish_source = WISH_FROM_WAND;
         makewish(TRUE);
         break;
     case WAN_ENLIGHTENMENT:
@@ -5887,6 +5892,8 @@ wishcmdassist(int triesleft)
 void
 makewish(boolean magical) /**< if wishing for magical items is allowed */
 {
+    int source = wish_source; /* what is granting this wish, see wish_source */
+    wish_source = WISH_FROM_OTHER;
     char buf[BUFSZ];
 #ifdef LIVELOGFILE
     char rawbuf[BUFSZ]; /* for exact livelog reporting */
@@ -5987,6 +5994,7 @@ retry:
 #endif
 
     if (otmp != &zeroobj) {
+        WISH_HOOK(otmp, source);
         /* The(aobjnam()) is safe since otmp is unidentified -dlc */
         int x = u.ux;
         int y = u.uy;

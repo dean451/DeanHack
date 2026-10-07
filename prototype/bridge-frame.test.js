@@ -35,3 +35,23 @@ test('the hero picking something up is reported as a pickup event, and only that
  const pickup=readFileSync(new URL('../src/pickup.c',import.meta.url),'utf8');
  assert.match(pickup,/PICKUP_HOOK\(obj, pickup_x, pickup_y, count\)/,'fired from pickup_object, the hero-only path');
 });
+
+test('the hero teleporting and a wish being granted are reported, from hooks in the game itself', () => {
+ assert.match(bridge,/static void teleport_hook_bridge\(coordxy fx,coordxy fy,coordxy tx,coordxy ty,int trap\)/);
+ assert.match(bridge,/\\"type\\":\\"teleport\\"[^;]*from[^;]*to[^;]*trap/);
+ assert.match(bridge,/static void wish_hook_bridge\(struct obj \*o,int source\)/);
+ assert.match(bridge,/\\"type\\":\\"wish\\"[^;]*source[^;]*otyp[^;]*name/);
+ assert.match(bridge,/teleport_hook=teleport_hook_bridge;wish_hook=wish_hook_bridge;/,'installed with the other hooks');
+ assert.match(bridge,/teleport_hook=0;wish_hook=0;/,'and removed when the window closes');
+ const server=readFileSync(new URL('./engine/server.js',import.meta.url),'utf8');
+ assert.match(server,/'pickup','teleport','wish'/,'the server passes both through');
+ const tele=readFileSync(new URL('../src/teleport.c',import.meta.url),'utf8');
+ assert.match(tele,/TELEPORT_HOOK\(u\.ux, u\.uy, nux, nuy, tele_by_trap\)/,'fired from teleds, every hero teleport');
+ assert.match(tele,/tele_by_trap = 1;\s*tele_trap_inner\(trap\);\s*tele_by_trap = 0;/,'a teleportation trap marks itself');
+ const zap=readFileSync(new URL('../src/zap.c',import.meta.url),'utf8');
+ assert.match(zap,/WISH_HOOK\(otmp, source\)/);
+ assert.match(zap,/wish_source = WISH_FROM_WAND;\s*makewish\(TRUE\)/,'a wand of wishing names itself');
+ const potion=readFileSync(new URL('../src/potion.c',import.meta.url),'utf8');
+ assert.match(potion,/wish_source = WISH_FROM_DEMON;/);
+ assert.match(potion,/wish_source = WISH_FROM_BOTTLE;/);
+});
