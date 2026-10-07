@@ -187,11 +187,17 @@ export function deathPose(style, u, dir = null) {
 // When (u) each style throws off its particles.
 export const DEATH_BURST_U = {topple: .8, crumble: .55, lichdust: .5, splat: .25, dissipate: .2, burst: .33, petrify: .62};
 
+// A lich also sheds a small puff of dust at each of its three jolts (see 'lichdust' above), before
+// the main cloud: it comes apart piece by piece, not in one puff.
+export const DEATH_SHED_U = {lichdust: [.27, .47, .67]};
+
 // Particle looks. Splats take the creature's own colour when one is given.
 const LOOKS = {
   topple: {count: 10, speed: .5, up: .5, life: .6, gravity: 1.5, drag: 4, color: [.42, .38, .32], spread: 'ring', size: .04},
   crumble: {count: 44, speed: .35, up: .2, life: 1.1, gravity: 1.2, drag: 2.5, color: [.62, .58, .5], spread: 'column', size: .035},
   lichdust: {count: 70, speed: .3, up: .3, life: 1.6, gravity: .5, drag: 2, color: [.5, .49, .47], spread: 'column', size: .04},
+  // Flakes shaken loose at one jolt of a lich's collapse: few, slow, falling straight down.
+  lichshed: {count: 16, speed: .15, up: .1, life: 1, gravity: .9, drag: 2.5, color: [.5, .49, .47], spread: 'column', size: .035},
   splat: {count: 34, speed: 1.3, up: 1.1, life: .9, gravity: 5, drag: 1.2, color: [.55, .75, .25], spread: 'ring', size: .05},
   dissipate: {count: 40, speed: .45, up: .6, life: 1.3, gravity: -.25, drag: 1.5, color: [.75, .78, .82], spread: 'swirl', size: .07},
   // Grit shed as the stone sets, sifting down the body.

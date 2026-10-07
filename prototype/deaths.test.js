@@ -259,3 +259,20 @@ test('a splatting body lets its head slide down the slump, within bounds', () =>
   assert.ok(h(.6) < -.45 && h(1) >= -.5 - 1e-9);
   for (let u = 0; u < .99; u += .01) assert.ok(h(u + .01) <= h(u) + 1e-9, `only slides down at ${u}`);
 });
+
+test('a collapsing lich sheds flakes at each of its three jolts before the main dust cloud', async () => {
+  const {DEATH_SHED_U} = await import('./deaths.js');
+  const sheds = DEATH_SHED_U.lichdust;
+  assert.equal(sheds.length, 3);
+  for (let i = 0; i < 3; i++) {
+    assert.ok(sheds[i] < DEATH_BURST_U.lichdust === (i < 2), 'two before the main cloud, one after');
+    if (i) assert.ok(sheds[i] > sheds[i - 1]);
+  }
+  assert.equal(DEATH_SHED_U.crumble, undefined);
+  const fx = createDeathBurst(THREE);
+  const shed = fx.burst('lichshed', {x: 0, y: 0, z: 0}, {height: 1});
+  const main = createDeathBurst(THREE).burst('lichdust', {x: 0, y: 0, z: 0}, {height: 1});
+  assert.ok(shed > 0 && shed < main / 2, 'a shed is a small puff beside the cloud');
+  for (let t = 0; t < 3; t += .05) fx.update(.05);
+  assert.equal(fx.alive, 0, 'the flakes are gone');
+});

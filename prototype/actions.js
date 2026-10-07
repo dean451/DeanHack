@@ -11,7 +11,7 @@
 // its blow type instead of the generic arm wave, with its hitstop and longer length.
 
 import {monsterAttackPose, foreLegs, wingSide} from './monster-attacks.js';
-import {deathStyle, deathPose, DEATH_TIME, DEATH_BURST_U} from './deaths.js';
+import {deathStyle, deathPose, DEATH_TIME, DEATH_BURST_U, DEATH_SHED_U} from './deaths.js';
 import {swingPose, dualSwingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
 import {hitStyle, hitReactionPose, HIT_TIME} from './hit-fx.js';
 import {catMove, catSize, catLength, catAttackPose} from './cats.js';
@@ -292,6 +292,8 @@ export function updateActions(actor, q, dt) {
     // Turned to stone: the stone creeps up it and holds its wings and bob still (petrify.js).
     if (a.style === 'petrify') applyStone(actor, pose.stone);
     const bu = (DEATH_BURST_U[a.style] ?? .8) * len;
+    // Small flakes at each jolt of a collapsing lich (consumed by the renderer like deathBurst).
+    for (const su of DEATH_SHED_U[a.style] ?? []) if (before < su * len && q.age >= su * len) q.deathShed = {style: 'lichshed', dir: a.dir};
     if (before < bu && q.age >= bu) q.deathBurst = {style: a.style ?? 'topple', dir: a.dir};
   }
   // The grave dust as a risen corpse starts to push itself up.
