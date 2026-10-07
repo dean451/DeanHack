@@ -40,3 +40,12 @@ test('it plays on the hero\'s square and cleans up', () => {
   fx.update(CRUMBLE.total + .1); assert.equal(fx.active, 0);
   fx.message('The spellbook crumbles to dust!', 0, 0); fx.clear(); assert.equal(fx.active, 0);
 });
+
+test('the last fleck stalls mid-fall, then drops and never rises', () => {
+  const n = CRUMBLE.flecks - 1, born = .15, life = CRUMBLE.total - born;
+  const y = u => fleckPose(n, born + u * life).y;
+  assert.ok(y(.5) - y(.62) < .02, 'hangs');
+  assert.ok(y(.62) - y(.8) > .05, 'then falls');
+  let last = Infinity;
+  for (let u = .02; u < .98; u += .01) { const v = y(u); assert.ok(v <= last + 1e-9, String(u)); last = v; }
+});
