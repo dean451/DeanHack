@@ -171,6 +171,7 @@ import {updateSerpentStaff} from './serpent-staff.js';
 import {updateFlap} from './puggaree-flap.js';
 import {findPrey,updateStalk,clearStalk} from './stalk.js';
 import {createActionQueue,enqueueAction,clearActionPose,updateActions,holdBackMs,findActor,queueCombat,queueDeath,queueThrows} from './actions.js';
+import {conditionGlyph} from './condition-glyph.js';
 
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
@@ -210,7 +211,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    const gold=num(/\$:(\d+)/),power=num(/Pw:(\d+)\((\d+)\)/),exp=num(/Exp:(\d+)/);
    if(!gold&&!power&&!exp){el.textContent=text;return;}
    const conditions=(text.split(/T:\d+/)[1]||'').trim().split(/\s+/).filter(Boolean);
-   el.innerHTML=[gold&&`<span>GOLD <b>${gold[1]}</b></span>`,power&&`<span>POWER <b>${power[1]} / ${power[2]}</b></span>`,exp&&`<span>EXP <b>${exp[1]}</b></span>`,...conditions.map(c=>`<span class="condition">${esc(c)}</span>`)].filter(Boolean).join('');
+   el.innerHTML=[gold&&`<span>GOLD <b>${gold[1]}</b></span>`,power&&`<span>POWER <b>${power[1]} / ${power[2]}</b></span>`,exp&&`<span>EXP <b>${exp[1]}</b></span>`,...conditions.map(c=>`<span class="condition"><i aria-hidden="true">${conditionGlyph(c)}</i> ${esc(c)}</span>`)].filter(Boolean).join('');
  }
  // Mirror the demo legend: what is in view, as dot bullets; pets go to the companion slot.
  function renderSurroundings(frame){
