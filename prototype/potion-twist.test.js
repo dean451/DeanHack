@@ -66,3 +66,12 @@ test('full healing glows pale gold',()=>{
  assert(part(full,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
  plain.userData.dispose();full.userData.dispose();
 });
+
+test('sleeping goes dim and heavy',()=>{
+ const plain=make('healing'),sleepy=make('potion of sleeping');
+ assert.equal(sleepy.userData.twist,'sleeping');
+ const l=part(sleepy,'liquid').material;
+ assert(l.emissiveIntensity<=part(plain,'liquid').material.emissiveIntensity);
+ assert(l.roughness>part(plain,'liquid').material.roughness);
+ plain.userData.dispose();sleepy.userData.dispose();
+});

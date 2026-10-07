@@ -82,6 +82,14 @@ const TWISTS = {
     liquid.material.emissiveIntensity = .6;
     glass.material.color.lerp(new THREE.Color(0xfff4d8), .25);
   },
+  // Sleeping: a deep, dim blue gone heavy and drowsy, the glow nearly out.
+  sleeping(parts) {
+    const {liquid, glass} = parts;
+    liquid.material.color.lerp(new THREE.Color(0x1c2850), .6);
+    liquid.material.roughness = .8;
+    liquid.material.emissiveIntensity *= .25;
+    glass.material.color.lerp(new THREE.Color(0x303a60), .25);
+  },
 };
 
 // Applies the twist for this floor object to the potion meshes in `group`. Returns the twist name
