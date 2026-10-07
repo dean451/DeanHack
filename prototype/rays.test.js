@@ -280,9 +280,9 @@ test('createRays draws a dig with grit and rubble, then ends empty', () => {
   assert.equal(parent.children.length, 0);
 });
 
-test('rays differ in shape, not colour alone: sleep, poison gas and acid break into dashes, the rest stay solid', () => {
+test('rays differ in shape, not colour alone: magic missile, sleep, poison gas and acid break into dashes, the rest stay solid', () => {
   const dashed = Object.keys(RAY_LOOKS).filter(k => RAY_LOOKS[k].dash).sort();
-  assert.deepEqual(dashed, ['acid', 'poison gas', 'sleep']);
+  assert.deepEqual(dashed, ['acid', 'magic missile', 'poison gas', 'sleep']);
   const shapes = new Set();
   for (const k of dashed) {
     const L = RAY_LOOKS[k], row = [...Array(12).keys()].map(i => dashLen(L, i, 0));
