@@ -24,6 +24,12 @@ test('motes are drawn inward, stutter on the way and stay in bounds', () => {
   }
 });
 
+test('one mote balks and flinches back out just before the crush', () => {
+  const r = t => { const p = motePose(3, t); return Math.hypot(p.x, p.z); };
+  assert.ok(r(.5) > r(.4) + .05, 'it backs away late');
+  assert.ok(motePose(3, .59).alpha < .3);
+});
+
 test('the ring snaps outward after the crush and fades', () => {
   assert.equal(ringPose(POLY.crush - .01).alpha, 0);
   let last = 0, top = 0;

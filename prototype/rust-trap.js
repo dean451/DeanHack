@@ -22,7 +22,13 @@ export function dropPose(i, t) {
   const t0 = i * .02, h = t - t0;
   if (h <= 0 || t >= RUST.total) return {x: 0, y: .9, z: 0, alpha: 0};
   if (h < RUST.flight) { const u = h / RUST.flight; return {x: -RUST.from * (1 - u), y: .9 - .15 * u, z: Math.sin(i * 1.7) * .04 * u, alpha: .8}; }
-  const s = h - RUST.flight, a = i * 2.4, r = .35 * Math.sqrt(clamp01(s / .4)) * (.5 + .1 * (i % 5));
+  const s = h - RUST.flight, a = i * 2.4;
+  // The last droplet never splashes: it clings at the strike point, trembling, then lets go late.
+  if (i === RUST.drops - 1) {
+    const fall = clamp01((s - .6) / .3);
+    return {x: .06 * Math.cos(a), y: Math.max(.03, .6 - .57 * fall * fall) + (fall ? 0 : .01 * Math.sin(s * 40)), z: .06 * Math.sin(a), alpha: .8 * (1 - clamp01((s - .85) / .1))};
+  }
+  const r = .35 * Math.sqrt(clamp01(s / .4)) * (.5 + .1 * (i % 5));
   const y = Math.max(.03, .75 - 3.2 * s * s + .9 * s);
   return {x: Math.cos(a) * r, y, z: Math.sin(a) * r, alpha: .8 * (1 - clamp01((s - .35) / .25))};
 }
