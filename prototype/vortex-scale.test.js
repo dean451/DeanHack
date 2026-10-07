@@ -15,3 +15,7 @@ test('energy, steam and fire vortices are taller than the dust vortex', () => {
   const dust = width('dust vortex');
   for (const name of ['energy vortex', 'steam vortex', 'fire vortex']) assert.ok(width(name) > dust * 1.1, `${name} is taller`);
 });
+
+test('the ice vortex towers over the dust vortex', () => {
+  assert.ok(width('ice vortex') > width('dust vortex') * 1.1);
+});
