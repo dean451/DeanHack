@@ -228,3 +228,12 @@ test('a dissipating death draws in on itself before it swells', () => {
   for (let u = 0; u <= 1; u += .01) assert.ok(sc(u) > .8 && sc(u) < 1.7, `in bounds at ${u}`);
   assert.ok(Math.abs(sc(1) - 1.6) < 1e-9);
 });
+
+test('a dying lich\'s fingers twitch once more while the heap fades, within bounds', () => {
+  const w = u => deathPose('lichdust', u).wrist, base = u => .8 * smooth01((u - .18) / .25);
+  function smooth01(v) { v = Math.min(Math.max(v, 0), 1); return v * v * (3 - 2 * v); }
+  let max = 0;
+  for (let u = 0; u <= 1; u += .005) { assert.ok(Math.abs(w(u)) < 1, `wrist in bounds at ${u}`); max = Math.max(max, Math.abs(w(u) - base(u))); }
+  assert.ok(max > .05, 'a visible twitch');
+  assert.ok(Math.abs(w(.6) - base(.6)) < 1e-9 && Math.abs(w(.9) - base(.9)) < 1e-9, 'quiet before and after');
+});
