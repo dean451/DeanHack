@@ -64,7 +64,8 @@ export function deathPose(style, u, dir = null) {
       p.head = -.5 * sag + .45 * Math.sin(Math.PI * clamp01((u - .3) / .14));
       p.sy = 1 - .72 * sag;
       p.sx = 1 + .18 * sag;
-      p.arm = .6 * smooth((u - .35) / .3);
+      // A dead twitch of the arm as the dust starts to go, one that is not quite finished with it.
+      p.arm = .6 * smooth((u - .35) / .3) + .1 * Math.sin(Math.PI * clamp01((u - .62) / .12)) * Math.sin((u - .62) * 100);
       // The knees go before the rest of it notices: the leg gives in a short jerk early on.
       p.leg = .5 * smooth((u - .15) / .2);
       // The hand lolls after the arm and whatever trailed behind it slumps last.
@@ -170,7 +171,8 @@ export function deathPose(style, u, dir = null) {
       p.pitch = -.2 * s * (1 - f);
       p.roll = 1.45 * drop - rebound;
       p.dy = -.12 * f;
-      p.head = -.4 * f;
+      // The skull knocks the floor on landing and lolls back, once.
+      p.head = -.4 * f + .12 * Math.sin(Math.PI * clamp01((u - .88) / .1));
       p.scale = 1 - .12 * f;
       // A last dead twitch of the limb, after it has landed, then still.
       p.arm = .25 * Math.sin(Math.PI * clamp01((u - .8) / .15)) * Math.sin((u - .8) * 90);
