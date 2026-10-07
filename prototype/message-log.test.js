@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMessageLog, addMessage, entryText, panelView, allLines, allRows, messageTone, HISTORY_LIMIT, VISIBLE} from './message-log.js';
+import {createMessageLog, addMessage, entryText, panelView, allLines, allRows, messageTone, markTurn, sinceMark, HISTORY_LIMIT, VISIBLE} from './message-log.js';
 
 test('messages come back newest first, and the panel shows the newest apart from the earlier ones', () => {
   const log = createMessageLog();
@@ -66,4 +66,28 @@ test('rows and the panel view carry each message\'s tone', () => {
   assert.deepEqual(allRows(log), [{text: 'The newt bites!', tone: 'damage'}, {text: 'You see here a dagger.', tone: 'pickup'}]);
   const view = panelView(log);
   assert.equal(view.lineTone, 'damage'); assert.deepEqual(view.earlierTones, ['pickup']);
+});
+
+test('everything since the last command is available oldest first, for a dialog that follows a turn', () => {
+  const log = createMessageLog();
+  addMessage(log, 'You walk.');
+  const mark = markTurn(log);
+  addMessage(log, 'The vial crashes on your head and breaks into shards.');
+  addMessage(log, 'Your vision quickly clears.');
+  addMessage(log, 'Your vision quickly clears.');
+  assert.deepEqual(sinceMark(log, mark).map(r => r.text), [
+    'The vial crashes on your head and breaks into shards.', 'Your vision quickly clears. (x2)']);
+  assert.deepEqual(sinceMark(log, markTurn(log)), [], 'nothing new after a fresh mark');
+  assert.equal(sinceMark(log, 0).length, 3, 'a mark of 0 gives everything');
+});
+
+test('a long turn shows only its latest messages, and the tones travel with them', () => {
+  const log = createMessageLog();
+  const mark = markTurn(log);
+  for (let i = 0; i < 20; i++) addMessage(log, `The jackal bites! ${i}`);
+  const rows = sinceMark(log, mark, 5);
+  assert.equal(rows.length, 5);
+  assert.equal(rows.at(-1).text, 'The jackal bites! 19');
+  assert.equal(rows[0].text, 'The jackal bites! 15');
+  assert.equal(rows[0].tone, 'damage');
 });

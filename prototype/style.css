@@ -99,3 +99,7 @@ footer .buttons button:hover,footer .buttons button:focus-visible,.engine-action
 .keys{gap:6px 12px;flex-wrap:wrap}
 .keys span{white-space:nowrap}
 .keys kbd{min-width:0;padding:2px 4px;font-size:10px;margin-right:3px}
+
+/* the messages that led up to a text prompt, shown above its input */
+.engine-recent-box{margin:6px 0 12px;max-height:40vh;overflow-y:auto}
+.engine-recent-box .engine-recent{margin:0 0 5px}
