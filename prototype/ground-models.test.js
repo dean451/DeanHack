@@ -221,7 +221,7 @@ test('common food gets grounded, finite models and unknown food falls back',()=>
 
 test('scrolls lie on the floor and show only their shuffled label',()=>{
  const scroll=(name,appearance)=>createGroundModel({name,class:9,appearance});
- const signature=model=>model.children.map(part=>[part.geometry.attributes.position.count,...part.position.toArray().map(n=>n.toFixed(5)),[...part.geometry.attributes.color.array].map(n=>n.toFixed(3)).join()]);
+ const signature=(model,paint=true)=>model.children.map(part=>[part.geometry.attributes.position.count,...part.position.toArray().map(n=>n.toFixed(5)),paint?[...part.geometry.attributes.color.array].map(n=>n.toFixed(3)).join():'']);
  const models={labelled:scroll('scroll of identify','ZELGO MER'),blank:scroll('scroll of blank paper','unlabeled'),mail:scroll('scroll of mail','stamped'),bare:scroll('scroll',undefined)};
  for(const [kind,model] of Object.entries(models)){
   assert(model,kind);
@@ -239,7 +239,7 @@ test('scrolls lie on the floor and show only their shuffled label',()=>{
   model.userData.dispose();
   assert.equal(geometries,model.children.length);
  }
- assert.deepEqual(signature(scroll('scroll of genocide','ZELGO MER')),signature(scroll('scroll of identify','ZELGO MER')),'the true scroll name must not show');
+ assert.deepEqual(signature(scroll('scroll of genocide','ZELGO MER'),false),signature(scroll('scroll of identify','ZELGO MER'),false),'the true scroll name must not change the shape (scroll-twist.js tints the paper)');
  assert.notDeepEqual(signature(scroll('scroll of identify','ELBIB YLOH')),signature(scroll('scroll of identify','ZELGO MER')));
  const verts=model=>model.children[0].geometry.attributes.position.count;
  assert(verts(models.blank)<verts(models.labelled),'unlabeled paper has no ribbon, seal or script');

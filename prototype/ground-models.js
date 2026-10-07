@@ -11,6 +11,7 @@ import {createVenom} from './venom.js';
 import {createPotion} from './potion.js';
 import {applyPotionTwist} from './potion-twist.js';
 import {applyToolTwist} from './tool-twist.js';
+import {applyScrollTwist} from './scroll-twist.js';
 import {applyArtifactTwist} from './artifact-twist.js';
 import {artifactFromName} from './artifact-gleam.js';
 
@@ -5502,6 +5503,7 @@ export function createGroundModel(item={}){
    g.rotation.y=.35;
   }
   bakeMeshes([...g.children]).userData.part='scroll';
+  applyScrollTwist(g,item);
   // The ribbon lifts the roll a little; settle whatever is lowest onto the floor.
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===4){
