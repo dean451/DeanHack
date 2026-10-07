@@ -52,3 +52,7 @@ test('a text prompt shows everything that happened since the last command, not o
   assert.match(live, /if\(v\.kind==='command'\)turnMark=markTurn\(messageLog\)/, 'the mark is taken when the game asks for a command');
   assert.match(live, /sinceMark\(messageLog,turnMark\)/, 'the line prompt reads the turn\'s messages');
 });
+
+test('low vitality is marked with a warning triangle, not by red and a flash alone', () => {
+  assert.match(read('style.css'), /\.character\.low-hp #hp::before\{content:"\\25B2/);
+});
