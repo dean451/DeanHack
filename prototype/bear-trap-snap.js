@@ -41,6 +41,11 @@ export function jawAlpha(t) {
 
 // Spark i: jumps out of the bite on the clamp and drops back.
 export function sparkPose(i, t) {
+  // The last spark lands, then skips once more along the planks, a stubborn little ember.
+  if (i === SNAP.sparks - 1 && t > .59) {
+    const v = clamp01((t - .59) / .3), a = i * 2.4 + 1;
+    return {x: Math.cos(a) * .32, y: .02 + .07 * Math.sin(v * Math.PI), z: Math.sin(a) * .32, alpha: v >= 1 ? 0 : .6 * (1 - v) * Math.min(1, v * 12)};
+  }
   const u = clamp01((t - .09 - (i % 3) * .02) / .5), a = i * 2.4 + 1;
   return {x: Math.cos(a) * .32 * u, y: .06 + .3 * Math.sin(u * Math.PI) * (.7 + .1 * (i % 4)) - .18 * u * u, z: Math.sin(a) * .32 * u, alpha: u <= 0 || u >= 1 ? 0 : .9 * (1 - u)};
 }
