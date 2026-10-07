@@ -35,6 +35,8 @@ const LOOKS={
  glass:{base:'#a8d8d6',dark:'#4a7a7c',light:'#e8ffff',glow:'#8ff4ff',jag:.24,scale:1.24,spikes:'shard',paint:'clear'},
  ice:{base:'#a6d4e6',dark:'#4a86a0',light:'#eaf8ff',glow:'#6fd0ff',jag:.22,scale:1.28,spikes:'shard',paint:'clear'},
  'crystal ice':{base:'#c4ecff',dark:'#5a9ec0',light:'#ffffff',glow:'#a8f0ff',jag:.26,scale:1.32,spikes:'shard',paint:'clear'},
+ // the Punisher, a stationary colossus of black iron-stone: not a golem, but the same hulking build
+ punisher:{base:'#26282c',dark:'#0c0d0f',light:'#4a4e56',glow:'#d01830',jag:.2,scale:1.55,spikes:'iron',rivets:true,paint:'iron'},
  gold:{base:'#c89a2a',dark:'#5a3e10',light:'#f4d466',glow:'#9aff3a',jag:.12,scale:1.02,spikes:'crown',paint:'metal'},
  wood:{base:'#5e4028',dark:'#2a1a0e',light:'#8a6440',glow:'#8aff3a',jag:.16,scale:1.04,thorns:true,paint:'bark'},
  leather:{base:'#5a3a24',dark:'#2a1a10',light:'#7e5638',glow:'#ff3a2a',jag:.1,scale:1,stitches:true,paint:'hide'},

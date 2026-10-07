@@ -38,3 +38,12 @@ test('a flourish plays, expires and leaves nothing in the scene', () => {
   assert.equal(parent.children.length, 0);
   fx.dispose();
 });
+
+test('the last mote is tugged back down mid-flight, then climbs on', () => {
+  const last = LEVEL.motes - 1, start = LEVEL.ring * .7 + (last / LEVEL.motes) * .5, life = LEVEL.total - start - .1;
+  const y = u => moteFlight(last, start + u * life).y;
+  assert.ok(y(.5) < y(.35), 'it sinks back');
+  assert.ok(y(.8) > y(.35), 'then lets go');
+  const other = moteFlight(0, LEVEL.ring * .7 + .5 * .45).y;
+  assert.ok(other > 0);
+});

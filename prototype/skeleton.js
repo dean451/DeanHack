@@ -249,5 +249,6 @@ export function createSkeleton(){
  }
  const weaponSocket=new THREE.Group();weaponSocket.position.set(...GRIP);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.sword,S.bone,'sword');
+ g.scale.setScalar(1.12);// the tough lich-grade undead stands over the zombies
  return {g,body,legs,tail:null,wings:[],quirk:'zombie',arms,arm:arms[1],weaponSocket,head,heads:[head],jaw,hat:null,beard:null,pick:null};
 }

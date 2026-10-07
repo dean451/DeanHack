@@ -10,6 +10,10 @@ import {createIronBall,createIronChain} from './iron-ball.js';
 import {createVenom} from './venom.js';
 import {createPotion} from './potion.js';
 import {applyPotionTwist} from './potion-twist.js';
+import {applyToolTwist} from './tool-twist.js';
+import {applyScrollTwist} from './scroll-twist.js';
+import {applyArtifactTwist} from './artifact-twist.js';
+import {artifactFromName} from './artifact-gleam.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
@@ -296,7 +300,7 @@ const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune
 
 // Tool kinds with their own model. Each word is the shared appearance, so a tin and a
 // magic whistle, or a tooled and a frost horn, look alike on the floor.
-const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box|iron safe|tinning kit|expensive camera|lenses|credit card|beartrap|land mine|hook)\b/;
+const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box|iron safe|tinning kit|expensive camera|lenses|credit card|beartrap|land mine|hook|key)\b/;
 
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
 // Gloves are keyed only by their appearance (old, padded, riding, fencing), which the bridge
@@ -5499,6 +5503,7 @@ export function createGroundModel(item={}){
    g.rotation.y=.35;
   }
   bakeMeshes([...g.children]).userData.part='scroll';
+  applyScrollTwist(g,item);
   // The ribbon lifts the roll a little; settle whatever is lowest onto the floor.
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===4){
@@ -6201,6 +6206,7 @@ export function createGroundModel(item={}){
    };
    g.userData.bagMaw=maw;
   }
+  applyToolTwist(g,item);
  }else if(/ration/.test(name)){
   if(/tripe/.test(name)){
    // Tripe and paper share one wet-looking vertex-coloured material.
@@ -6290,15 +6296,41 @@ export function createGroundModel(item={}){
   }
   // Drop the whole model onto the floor.
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
+ }else if(cls===2&&artifactFromName(item.label,2)){
+  // Artifact weapons lie as one dark weapon on the floor, in the shape of their kind: a hammer
+  // for Mjollnir, a staff or sceptre for the two staves, a short blade for the knives and a
+  // long notched blade for the rest. artifact-twist.js then pulls the metal toward its glint.
+  const kind=artifactFromName(item.label,2);
+  const tube=(r1,r2,len,m,x,y,z)=>{const p=add(new THREE.CylinderGeometry(r1,r2,len,8),m,x,y,z);p.rotation.z=Math.PI/2;return p;};
+  if(kind==='mjollnir'){
+   tube(.012,.012,.3,leather,0,.012,0);
+   box(.09,.07,.07,metal,.17,.035,0);box(.02,.075,.075,gold,.125,.036,0);box(.02,.075,.075,gold,.215,.036,0);
+  }else if(kind==='staff of aesculapius'||kind==='sceptre of might'){
+   tube(.011,.011,.46,leather,0,.011,0);
+   ball(.028,gold,.25,.028,0);box(.012,.05,.012,metal,.28,.03,0);
+   for(const x of [-.2,0,.2])tube(.014,.014,.018,gold,x,.011,0);
+  }else{
+   const len=/^(sting|grimtooth|thiefbane)$/.test(kind)?.2:.42;
+   box(len,.008,.05,metal,len/2+.04,.008,0);
+   box(len*.1,.008,.03,metal,len+.065,.008,0);
+   box(.02,.016,.15,gold,.04,.012,0);
+   tube(.012,.012,.1,leather,-.03,.012,0);ball(.02,gold,-.09,.014,0);
+   // Nicks in the edge, and a dark stain along the fuller.
+   for(const x of [.35,.62])box(.018,.01,.012,leather,len*x+.04,.009,.026);
+   box(len*.7,.002,.008,leather,len*.45+.04,.0135,0);
+  }
+  g.rotation.y=-.5;
  }else if(/unicorn horn/.test(name)){
   // One merged mesh, lifted out of its own group so it sits among g's children like any other part.
   const [horn]=createUnicornHorn().children;g.add(horn);materials.push(horn.material);
+  applyToolTwist(g,item);
  }else if(/candelabrum/.test(name)){
   // Merged gold, wax and (when lit) flame meshes, moved into g like the unicorn horn.
   for(const part of [...createCandelabrum(candelabrumState(item.name)).children]){g.add(part);materials.push(part.material);}
  }else if(/marker/.test(name)){
   // One merged mesh: the pen with its cap pulled off beside it; a dry nib at 0 charges.
   const [pen]=createMagicMarker({dry:markerCharges(item.name)===0}).children;g.add(pen);materials.push(pen.material);
+  applyToolTwist(g,item);
  }else if(cls===15||/heavy iron ball/.test(name)){
   // One merged mesh: the pitted ball with its shackle and a stub of chain trailing off.
   const [ball]=createIronBall().children;g.add(ball);materials.push(ball.material);
@@ -6456,6 +6488,16 @@ export function createGroundModel(item={}){
    buildBearTrap({g,materials});
   }else if(kind==='land mine'){
    buildLandMine({g,materials});
+  }else if(kind==='key'){
+   // A black wrought-iron key lying flat: a pitted trefoil bow, a long shaft with two collars and a
+   // bit cut into hard, crooked teeth, like the key to something that should stay locked.
+   const iron=mat(0x2c2a2a,.8),rust=mat(0x6a3a22,.5);
+   const bow=add(new THREE.TorusGeometry(.045,.011,6,20),iron,-.1,.011,0);bow.rotation.x=Math.PI/2;
+   for(const a of [Math.PI/2,Math.PI/2+2.1,Math.PI/2-2.1])ball(.019,iron,-.1+Math.cos(a)*.052,.011,Math.sin(a)*.052,[1,.6,1]);
+   lie(.011,.009,.2,iron,.03,.011,0);
+   for(const x of [-.045,.0])lie(.015,.015,.014,rust,x,.011,0);
+   for(const [x,w,d] of [[.095,.016,.05],[.12,.016,.034],[.14,.014,.058]])box(w,.012,d,iron,x,.011,d/2-.004);
+   box(.05,.012,.012,iron,.115,.011,.002);
   }else if(kind==='hook'){
    buildGrapplingHook({g,materials});
   }else if(kind==='iron safe'){
@@ -6467,7 +6509,9 @@ export function createGroundModel(item={}){
   }else{
    buildIceBox({g,materials});
   }
+  applyToolTwist(g,item);
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else{materials.forEach(m=>m.dispose());return null;}
+ applyArtifactTwist(g,item);
  g.userData.dispose=()=>{g.traverse(o=>o.geometry?.dispose());materials.forEach(m=>m.dispose());};return g;
 }

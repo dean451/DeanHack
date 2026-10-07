@@ -445,6 +445,12 @@ function lizard(o){
  for(const side of [-1,1])for(const z of [-.12,.13]){const leg=new THREE.Group();leg.position.set(side*.1,.13,z);body.add(leg);const upper=rounded(leg,.13,.035,.04,skin,side*.07,-.03,0,.012);upper.rotation.z=side*-.5;rounded(leg,.05,.02,.07,skin,side*.13,-.1,.02,.008);legs.push(leg);}
  const tail=new THREE.Group();tail.position.set(0,.13,-.2);body.add(tail);
  let px=0,pz=0;for(let i=0;i<6;i++){const r=.055*(1-i/7),len=.09;const seg=cylinder(tail,r*.8,r,len,skin,px,-.012*i,pz-len/2,8);seg.rotation.x=Math.PI/2;px+=Math.sin(i*.6)*.012;pz-=len*.95;}
+ // Basilisks: a ridge of black spines down the back, and eyes that burn sickly yellow-green (the petrifying gaze).
+ if(o.gaze){
+  const spine=mat('#1a1a14',{roughness:1,flatShading:true}),eye=mat(o.gaze,{emissive:o.gaze,emissiveIntensity:3,roughness:.3});
+  for(let i=0;i<5;i++)cone(body,.022-i*.002,.09,spine,0,.2,.16-i*.08,5);
+  for(const side of [-1,1])sphere(head,.03,eye,side*.066,.045,.04);
+ }
  // Salamanders burn like hell hounds: tongues of flame (tagged part 'flame', so flame-flicker.js
  // flickers and lights them) licking along the spine, on the brow and from the tail's tip.
  if(o.fire){
@@ -454,7 +460,7 @@ function lizard(o){
  }
  return actor(g,body,legs,tail,[],'lizard');
 }
-const LIZARDS={newt:{skin:'#d69a38',belly:'#e9763a',spot:'#5a3a1a',scale:.8},gecko:{skin:'#6f9a45',scale:.8},iguana:{skin:'#7a6a42',scale:1},'baby crocodile':{skin:'#5f6a3a',scale:1},lizard:{skin:'#4f8a3a',scale:1},chameleon:{skin:'#6aa08a',scale:1},crocodile:{skin:'#4f5a32',scale:1.6},salamander:{skin:'#d9582a',belly:'#ffb040',scale:1.4,fire:true}};
+const LIZARDS={newt:{skin:'#d69a38',belly:'#e9763a',spot:'#5a3a1a',scale:.8},gecko:{skin:'#6f9a45',scale:.8},iguana:{skin:'#7a6a42',scale:1},'baby crocodile':{skin:'#5f6a3a',scale:1},lizard:{skin:'#4f8a3a',scale:1},chameleon:{skin:'#6aa08a',scale:1},crocodile:{skin:'#4f5a32',scale:1.6},salamander:{skin:'#d9582a',belly:'#ffb040',scale:1.4,fire:true},basilisk:{skin:'#3a3a28',belly:'#6a5c2a',spot:'#8a8a20',scale:1.5,gaze:'#d8ff30'}};
 
 // Cockatrices: a rooster head (comb, wattle, beak) on the same low scaled body and
 // tapering tail as lizard() — reads as "petrifying bird-lizard", not another lizard.
@@ -742,7 +748,7 @@ function cobraHood(head,o){
  part(pivot,geo,mat('#ffffff',{vertexColors:true,roughness:.5}));
  return pivot;
 }
-const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75,wedge:.1,round:true},snake:{color:'#7a5a34',fangs:.012},'water moccasin':{color:'#5a3228',wedge:1,fangs:.022,pits:true},'pit viper':{color:'#3a5a8a',wedge:1,fangs:.024,pits:true},python:{color:'#7a5a7a',scale:1.4,wedge:.4},cobra:{color:'#3a4a7a',hood:true,wedge:.25,fangs:.012,round:true}};
+const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75,wedge:.1,round:true},snake:{color:'#7a5a34',fangs:.012},'water moccasin':{color:'#5a3228',wedge:1,fangs:.022,pits:true},'pit viper':{color:'#3a5a8a',wedge:1,fangs:.024,pits:true},python:{color:'#7a5a7a',scale:1.4,wedge:.4},cobra:{color:'#3a4a7a',scale:1.2,hood:true,wedge:.25,fangs:.012,round:true}};
 
 // Long worms and purple worms: a ringed body that surfaces from the floor in an arch,
 // with the forward half as a swaying 'tail' group (live.js already sways actor.tail)
@@ -1391,7 +1397,7 @@ function giant(o){
  if(o.hair==='fire'&&!core){core=sphere(body,.05,new THREE.MeshStandardMaterial({color:'#ffb060',emissive:'#f05010',emissiveIntensity:4.5,roughness:.3}),0,1.08,.13);g.userData.core=core;}
  return trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),core?{core}:{}));
 }
-const GIANTS={giant:{skin:'#b08a6a',cloth:'#6a5a40',weapon:'club',scale:1.1},'stone giant':{skin:'#8a867c',cloth:'#5a5650',hair:'#4a4642',weapon:'boulder',scale:1.05},'hill giant':{skin:'#a88060',cloth:'#5a6a3a',hair:'#5a3a22',beard:true,weapon:'club',skulls:true,scale:1.12},'fire giant':{skin:'#6a4234',cloth:'#3a2a24',hair:'fire',beard:true,armor:'#3a3436',boot:'#2a2424',weapon:'sword',glare:M.fire,cracked:true,scale:1.18},'frost giant':{skin:'#a8c0d0',cloth:'#4a5a6a',hair:'#eef2f4',beard:true,mantle:'#e2e2dc',ice:true,weapon:'axe',icicles:true,scale:1.18},ettin:{skin:'#8a7a6a',cloth:'#4a3a2a',hair:'#2a2420',twoHeads:true,weapon:'club',scale:1.18},'storm giant':{skin:'#9aa4b4',cloth:'#2e4a78',tunic:'#3d5f9a',hair:'#1e2230',beard:true,weapon:'spear',glare:M.electric,storm:true,scale:1.2},titan:{skin:'#d8b890',cloth:'#e8e0cc',hair:'#c9a23a',armor:'#a8883a',circlet:true,glare:M.eye,weapon:'spear',scars:true,scale:1.5},cyclops:{skin:'#9a7e62',cloth:'#4a3a2a',hair:'#2a221c',cyclops:true,weapon:'club',scale:1.3},'lord surtur':{skin:'#4a2e26',cloth:'#2a1e1c',hair:'fire',beard:true,armor:'#2a2426',boot:'#1e1a1a',weapon:'sword',blade:1.5,crown:true,glare:M.fire,scale:1.34}};
+const GIANTS={giant:{skin:'#b08a6a',cloth:'#6a5a40',weapon:'club',scale:1.1},'stone giant':{skin:'#8a867c',cloth:'#5a5650',hair:'#4a4642',weapon:'boulder',scale:1.14},'hill giant':{skin:'#a88060',cloth:'#5a6a3a',hair:'#5a3a22',beard:true,weapon:'club',skulls:true,scale:1.12},'fire giant':{skin:'#6a4234',cloth:'#3a2a24',hair:'fire',beard:true,armor:'#3a3436',boot:'#2a2424',weapon:'sword',glare:M.fire,cracked:true,scale:1.18},'frost giant':{skin:'#a8c0d0',cloth:'#4a5a6a',hair:'#eef2f4',beard:true,mantle:'#e2e2dc',ice:true,weapon:'axe',icicles:true,scale:1.18},ettin:{skin:'#8a7a6a',cloth:'#4a3a2a',hair:'#2a2420',twoHeads:true,weapon:'club',scale:1.18},'storm giant':{skin:'#9aa4b4',cloth:'#2e4a78',tunic:'#3d5f9a',hair:'#1e2230',beard:true,weapon:'spear',glare:M.electric,storm:true,scale:1.2},titan:{skin:'#d8b890',cloth:'#e8e0cc',hair:'#c9a23a',armor:'#a8883a',circlet:true,glare:M.eye,weapon:'spear',scars:true,scale:1.5},cyclops:{skin:'#9a7e62',cloth:'#4a3a2a',hair:'#2a221c',cyclops:true,weapon:'club',scale:1.3},'lord surtur':{skin:'#4a2e26',cloth:'#2a1e1c',hair:'fire',beard:true,armor:'#2a2426',boot:'#1e1a1a',weapon:'sword',blade:1.5,crown:true,glare:M.fire,scale:1.34}};
 // vortices (v): a tapering funnel of tilted, offset swirl rings over a scuffed ground patch, with debris caught in the spiral; fog clouds are a low puffy bank instead
 function vortex(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const s=o.scale||1;
@@ -1404,7 +1410,7 @@ function vortex(o){
  let core=null;if(glow){core=sphere(body,.07*s,new THREE.MeshStandardMaterial({color:o.debris||o.color,emissive:o.debris||o.color,emissiveIntensity:4.5,roughness:.2}),0,.32*s,0,.8,1.6,.8);g.userData.core=core;}
  return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});
 }
-const VORTICES={'fog cloud':{color:'#b4b8bc',cloud:true,opacity:.6},'dust vortex':{color:'#9a7a52',debris:'#6a5038'},'ice vortex':{color:'#bfe6f4',debris:'#e8f8ff',shard:true},'energy vortex':{color:'#4f8cff',debris:'#d8f0ff',glow:true,scale:1.1},'steam vortex':{color:'#d4dce4',opacity:.42,scale:1.1},'fire vortex':{color:'#ff7a28',debris:'#ffd24a',glow:true,scale:1.1}};
+const VORTICES={'fog cloud':{color:'#b4b8bc',cloud:true,opacity:.6},'dust vortex':{color:'#9a7a52',debris:'#6a5038'},'ice vortex':{color:'#bfe6f4',debris:'#e8f8ff',shard:true,scale:1.2},'energy vortex':{color:'#4f8cff',debris:'#d8f0ff',glow:true,scale:1.25},'steam vortex':{color:'#d4dce4',opacity:.42,scale:1.25},'fire vortex':{color:'#ff7a28',debris:'#ffd24a',glow:true,scale:1.25}};
 const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.9,venom:true}};
 
 // Smooth-body helpers: a lathed profile, and a tapered limb between two joint points
@@ -1584,7 +1590,7 @@ function troll(o){
  // handles for troll-knit.js: the head and both arms, and which troll it is
  return trimDraws({...actor(g,body,legs,null,[],'orc'),head,arms,arm:arms[1],troll:o.kind||'troll'});
 }
-const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020',trophy:true,scale:1.1},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,rime:true,eye:'#8ad8ff',scale:1.05},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.1},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.05},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,helm:true,scale:1.15}};
+const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020',trophy:true,scale:1.1},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,rime:true,eye:'#8ad8ff',scale:1.1},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.1},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.05},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,helm:true,scale:1.15}};
 
 // Ogres (O): a squat, pot-bellied brute with a heavy underbite, a greasy topknot, a hide loincloth and a nail-studded club;
 // ogre lords add a bronze helm and pauldrons, ogre kings a spiked crown, a fur mantle and a bigger club.
@@ -1622,24 +1628,49 @@ function lich(o){
  // ragged hem: alternating dark tatters hang below the robe
  for(let i=0;i<(o.tattered?10:7);i++){const a=i/(o.tattered?10:7)*Math.PI*2,t=cone(body,.05,.14+(i%2)*.06,trim,Math.sin(a)*.31,.1,Math.cos(a)*.31,4);t.rotation.x=Math.PI;}
  rounded(body,.34,.32,.24,robe,0,.82,0,.06);
+ // layered regal robes: an open overrobe panel down the front edged in dark trim, and a long ragged train trailing behind
+ rounded(body,.16,.62,.03,trim,0,.38,.3,.01);
+ for(const x of [-1,1])rounded(body,.02,.6,.035,mat(o.glow,{emissive:o.glow,emissiveIntensity:.6,roughness:.5}),x*.085,.38,.31,.005);
+ const train=cone(body,.2,.55,robe,0,.12,-.42,5);train.rotation.x=-1.45;
+ for(const x of [-.09,.09]){const t=cone(body,.04,.2,trim,x,.04,-.62,4);t.rotation.x=-1.5;}
  const hood=sphere(body,.24,trim,0,1.1,-.06,1,1.05,1);hood.scale.z=1.05;
+ // finer robes per tier (finery 1 demilich, 2 master lich, 3 arch-lich): a gilt hem band, a gorget at the neck, glowing runes down the overrobe
+ if(o.finery){const gilt=o.finery>2?M.gold:M.darkSteel;cylinder(body,.318,.325,.03,gilt,0,.2,0,14);
+  if(o.finery>1){cylinder(body,.2,.24,.04,gilt,0,.97,0,12);for(const x of [-.1,0,.1])cone(body,.018,.06,gilt,x,.99,.2,4).rotation.x=Math.PI/2;}
+  const rune=mat(o.glow,{emissive:o.glow,emissiveIntensity:2,roughness:.4});for(let i=0;i<o.finery+1;i++){const r=sphere(body,.014,rune,0,.6-i*.12,.318);r.castShadow=false;}}
  // skull: cranium, cheekbones, dark sockets with a glow deep inside, a toothed jaw
- sphere(body,.16,bone,0,1.1,.04,.95,1,1);
+ sphere(body,.15,bone,0,1.11,.04,.82,1.08,.98);
+ // elven cast: high cheekbones, a narrow brow ridge and long swept-back pointed ears
+ for(const x of [-1,1]){sphere(body,.032,bone,x*.088,1.075,.14,1,.7,.8);const ear=cone(body,.022,.15,bone,x*.135,1.15,.01,4);ear.rotation.z=-x*1.15;ear.rotation.x=-.25;}
+ rounded(body,.15,.02,.05,bone,0,1.15,.17,.01);
  for(const x of [-.06,.06]){sphere(body,.042,socket,x,1.11,.165,1,1,.5);sphere(body,.02,glow,x,1.11,.18);}
  cone(body,.02,.04,socket,0,1.05,.19,3).rotation.x=Math.PI;
  // the jaw and its teeth hinge under the ears, so it chatters like the skeleton's (jaw.js)
  const jaw=new THREE.Group();jaw.position.set(0,1.04,.03);body.add(jaw);jaw.userData.chatter=true;jaw.userData.reach=.45;
- rounded(jaw,.16,.07,.1,bone,0,-.05,.07,.03);
+ rounded(jaw,.12,.06,.1,bone,0,-.05,.07,.03);
+ cone(jaw,.03,.07,bone,0,-.085,.11,4).rotation.x=Math.PI*.9;
  for(let i=0;i<5;i++)rounded(jaw,.018,.025,.015,bone,(i-2)*.024,-.065,.125,.004);
  // skeletal arms: thin bone forearms and claw fingers poking out of wide sleeves
  // Each claw finger hangs from its own knuckle, so lich-chill.js can flex it (handles: lichHands, orb).
  const lichHands=[];
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.93,0);body.add(arm);cylinder(arm,.06,.1,.3,robe,0,-.14,0,8);cylinder(arm,.018,.018,.16,bone,0,-.34,.02,6);const fingers=[];for(const f of [-.025,0,.025]){const k=new THREE.Group();k.position.set(f,-.405,.03);arm.add(k);cone(k,.01,.09,bone,0,-.045,0,4).rotation.x=Math.PI;fingers.push(k);}arm.rotation.z=side*.16;arm.rotation.x=side<0?-.55:-.2;lichHands.push({side,arm,fingers});}
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.93,0);body.add(arm);cylinder(arm,.06,.1,.3,robe,0,-.14,0,8);cylinder(arm,.018,.018,.16,bone,0,-.34,.02,6);const fingers=[];for(const f of [-.025,0,.025]){const k=new THREE.Group();k.position.set(f,-.405,.03);arm.add(k);cone(k,.008,.15,bone,0,-.075,0,4).rotation.x=Math.PI;sphere(k,.011,bone,0,-.04,0);fingers.push(k);}arm.rotation.z=side*.16;arm.rotation.x=side<0?-.55:-.2;lichHands.push({side,arm,fingers});}
  // staff held out on the right, orb glowing in the lich's colour
  const staff=rounded(body,.035,1.15,.035,M.leather,.34,.66,.16,.01);staff.rotation.z=-.06;
- for(const side of [-1,1]){const prong=cone(body,.018,.14,bone,.37+side*.035,1.27,.16,4);prong.rotation.z=-side*.35;}
- const orb=sphere(body,.055,glow,.37,1.3,.16);
- if(o.crown){const n=o.crown==='tall'?7:5,h=o.crown==='tall'?.14:.09;cylinder(body,.155,.165,.05,o.crown==='tall'?M.gold:bone,0,1.21,.02,12);for(let i=0;i<n;i++){const a=(i/n-.5)*Math.PI*1.3;cone(body,.02,h,o.crown==='tall'?M.gold:bone,Math.sin(a)*.155,1.26+h/2-.02,.02+Math.cos(a)*.155,4);}sphere(body,.026,glow,0,1.22,.18);}
+ // the staff is topped with a small skull whose sockets glow in the lich's colour; the orb rides in its brow (lich-chill.js flexes it)
+ const sk=new THREE.Group();sk.position.set(.37,1.27,.16);body.add(sk);sk.rotation.z=-.06;
+ sphere(sk,.05,bone,0,.03,0,.85,1,.95);rounded(sk,.04,.03,.045,bone,0,-.03,.015,.01);
+ for(const x of [-.02,.02])sphere(sk,.014,glow,x,.03,.042,1,1,.6);
+ const orb=sphere(sk,.026,glow,0,.1,.02);
+ // a plain lich and a demilich wear a thin circlet with a glowing stone; higher tiers wear the crowns below
+ if(!o.crown){cylinder(body,.152,.152,.018,o.evil?M.gold:M.darkSteel,0,1.2,.02,12);cone(body,.016,.06,o.evil?M.gold:M.darkSteel,0,1.24,.17,4);sphere(body,.02,glow,0,1.2,.17);}
+ // master and arch-lich crowns: a band of upswept points alternating tall and short and raked back like thorns, a glowing gem on each tall tip;
+ // the arch-lich's is gilt with more points, a high central spire and a hanging brow stone
+ if(o.crown){const arch=o.crown==='tall',n=arch?9:5,metal=arch?M.gold:bone,jewel=mat(o.glow,{emissive:o.glow,emissiveIntensity:3,roughness:.2});cylinder(body,.155,.165,.05,metal,0,1.21,.02,12);
+  for(let i=0;i<n;i++){const a=(i/(n-1)-.5)*Math.PI*1.3,tall=i%2===0,h=(arch?.12:.08)+(tall?(arch?.08:.06):0),mid=i===(n-1)/2&&arch,H=mid?.3:h,k=cone(body,.02,H,metal,Math.sin(a)*.155,1.26+H/2-.02,.02+Math.cos(a)*.155-.02,4);k.rotation.x=-.25;k.rotation.z=-Math.sin(a)*.2;
+   if(tall){const gem=sphere(body,.011,jewel,Math.sin(a)*.155,1.26+H-.01,.02+Math.cos(a)*.155-.07);gem.castShadow=false;}}
+  sphere(body,.026,glow,0,1.22,.18);if(arch)cone(body,.014,.05,M.gold,0,1.17,.19,4).rotation.x=Math.PI;}
+ // master and arch-lich: a broken ring of cold light stands behind the skull, the arch-lich's doubled
+ if(o.finery>1){for(let i=0;i<o.finery-1;i++){const ring=part(body,new THREE.TorusGeometry(.27+i*.07,.01,5,20,Math.PI*1.7),glow,0,1.13,-.2-i*.02);ring.rotation.z=.5+i;ring.castShadow=false;}}
  if(o.mantle){for(const side of [-1,1]){const spike=cone(body,.05,.22,bone,side*.24,1.02,-.04,5);spike.rotation.z=-side*.9;}rounded(body,.46,.08,.3,trim,0,.97,-.02,.03);}
  // evil glow (demiliches and above): a pool of necrotic light under the hem, and cold soul-flames licking up off the shoulders
  if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.2,transparent:true,opacity:.15,depthWrite:false}),flame=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=flame.name='evil-glow';
@@ -1647,7 +1678,7 @@ function lich(o){
   for(const [x,y,z,h,r] of [[-.25,1.0,-.05,.2,.3],[.25,1.0,-.05,.24,-.3],[0,1.0,-.2,.28,0]]){const f=cone(body,.035,h,flame,x,y+h/2,z,5);f.rotation.z=r;f.castShadow=false;}}
  return trimDraws(Object.assign(actor(g,body,[],null,[],'idle'),{jaw,lichHands,orb}));
 }
-const LICHES={lich:{robe:'#5a4430',glow:'#8ad060',scale:1.08},demilich:{robe:'#6a2a24',glow:'#ff5a3a',evil:true,bone:'#c8bc98',tattered:true,scale:1.1},'master lich':{robe:'#4a1f52',glow:'#c070ff',evil:true,crown:'bone',scale:1.12},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',evil:true,crown:'tall',mantle:true,scale:1.25}};
+const LICHES={lich:{robe:'#5a4430',glow:'#8ad060',scale:1.08},demilich:{robe:'#6a2a24',glow:'#ff5a3a',evil:true,bone:'#c8bc98',tattered:true,finery:1,scale:1.1},'master lich':{robe:'#4a1f52',glow:'#c070ff',evil:true,crown:'bone',finery:2,scale:1.12},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',evil:true,crown:'tall',mantle:true,finery:3,scale:1.25}};
 
 // Wraiths: a floating, translucent shroud that trails off into wisps, a hood with only a void and two burning eyes inside,
 // and long sleeves reaching forward with bony claws. Barrow wights are solid, with a rusty circlet and a sword;
@@ -1951,7 +1982,7 @@ function rustMonster(o){
  for(const a of [0,Math.PI]){const blade=rounded(vane,.16,.018,.06,shell,Math.cos(a)*.09,Math.sin(a)*.09,0,.008);blade.rotation.set(.35,0,a);}
  return trimDraws({...actor(g,body,legs,tail,[],'lizard'),feelers,vane,feelHead:head,rustFeel:o.kind||'rust monster'});
 }
-const RUST_MONSTERS={'rust monster':{color:'#8a5a34',belly:'#c08a5a',fleck:'#c0602a',feeler:'#d0a070'},disenchanter:{color:'#3d5fb0',belly:'#8aa0d8',fleck:'#6a3aa0',feeler:'#b0c0f0',eye:'#c080ff',scale:1.05}};
+const RUST_MONSTERS={'rust monster':{color:'#8a5a34',belly:'#c08a5a',fleck:'#c0602a',feeler:'#d0a070'},disenchanter:{color:'#3d5fb0',belly:'#8aa0d8',fleck:'#6a3aa0',feeler:'#b0c0f0',eye:'#c080ff',scale:1.3}};
 
 // Leprechaun: a small, portly trickster in a green frock coat and buckled top hat,
 // leaning on a knobbly shillelagh with a swinging sack of stolen gold in his other hand.
@@ -2428,7 +2459,7 @@ function demon(o){
   if(o.spikes)for(const [x,y,z] of [[0,-.14,-.12],[.06,-.3,-.24],[.14,-.36,-.36]])cone(tail,.012,.06,horn,x,y+.03,z,4);}
  return trimDraws(actor(g,body,legs,tail,wings,o.smoke?'hover':'orc'));
 }
-const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,evil:true,scale:1.15},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,evil:true,scale:1.1},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,evil:true,scale:1.1},war:{robe:'#3a1414',glow:'#ff3a2a',bone:'#a89080',solid:true,sword:true,evil:true,scale:1.15}};
+const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,evil:true,scale:1.35},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,evil:true,scale:1.25},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,evil:true,scale:1.25},war:{robe:'#3a1414',glow:'#ff3a2a',bone:'#a89080',solid:true,sword:true,evil:true,scale:1.3}};
 const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',evil:'#40d8c0',horns:'short',head:'toad',tail:true,bulk:1.1,scale:1.1},'lava demon':{skin:'#5a2418',eye:'#ffdd40',horns:'short',flame:'#ff6a20',evil:'#ff6a20',tail:true,bulk:1.15,scale:1.15},
  'horned devil':{skin:'#8a3a24',mark:'iron',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident',scale:1.1},succubus:{skin:'#d8a090',eye:'#ff60a0',evil:'#d0306a',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true,scale:1.1},
  // the Minion of Huhetotl (the Archeologist quest nemesis): a black-skinned, long-horned winged fiend with a sword
@@ -2437,7 +2468,7 @@ const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',evil:'#40d8c0',horns:'
  'barbed devil':{skin:'#9a2e20',evil:'#ff2a28',horns:'short',spikes:true,tail:true,scale:1.1},marilith:{skin:'#7a3a5a',mark:'gilt',evil:'#c04a8a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true,scale:1.1},
  vrock:{skin:'#6a5a48',mark:'ruff',evil:'#a8b030',head:'beak',horn:'#3a3028',wings:.9,scale:1.1},'bone devil':{skin:'#9a9078',mark:'ribs',evil:'#c8e04a',head:'skull',spikes:'bone',tail:true,scale:1.1},
  'ice devil':{skin:'#b8d0e0',mark:'frost',evil:'#50b8ff',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true,scale:1.15},nalfeshnee:{skin:'#5a4a3a',mark:'boils',evil:'#e07a20',head:'boar',spikes:'bone',wings:.5,bulk:1.3,scale:1.15},
- 'pit fiend':{skin:'#7a1a18',evil:'#ff3a1a',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.1},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.35},
+ 'pit fiend':{skin:'#7a1a18',evil:'#ff3a1a',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.3},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.35},
  "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',evil:'#ff3a08',weapon:'whip',bulk:1.2,scale:1.45},
  yeenoghu:{skin:'#8a7040',evil:'#e0a020',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',evil:'#8aff6a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
  geryon:{skin:'#6a4a2a',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
@@ -2572,7 +2603,7 @@ function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(b
 
 const SKIN={homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
 
-const NEMESIS_HUMANS={'warden arianna':1.18,'anaraxis the black':1.2,schliemann:1.15};
+const NEMESIS_HUMANS={'warden arianna':1.18,'anaraxis the black':1.2,schliemann:1.15,'king arthur':1.12,'lord sato':1.12,'shan lai ching':1.12,'grand master':1.15,'master kung':1.12,'neferet the green':1.12,'master of thieves':1.12,orion:1.12,'shaman karnov':1.12,'robert the lifer':1.12,twoflower:1.12};
 export function createCreature(cell={}){
  const name=(cell.name||'').toLowerCase(),letter=Number.isInteger(cell.symbol)?String.fromCharCode(cell.symbol):'',color=nhColor(cell);
  if(letter==='@'&&isWereMan(name))return createWereMan(name);// a were in human form
@@ -2654,7 +2685,7 @@ export function createCreature(cell={}){
  if(name==='cave spider'||name==='giant spider')return createSpider(name);
  if(isScorpion(name))return createScorpion(name);
  if(name==='gelatinous cube'){const c=cube({color:color||'#8ad0c0'});c.g.scale.setScalar(1.3);return c;}
- if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name),scale:name==='black pudding'?1.5:1});
+ if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name),scale:name==='black pudding'?1.5:/^(green slime|ochre jelly|blue slime)$/.test(name)?1.25:name==='brown pudding'?1.1:1});
  if(name==='centipede')return centipede({color:'#c9a03a'});
  if(name==='raven')return createRaven();
  if(/^(bat|giant bat|vampire bat)$/.test(name))return bat({color:name==='bat'?'#5a4636':name==='giant bat'?'#7a3a32':'#28242a',scale:name==='giant bat'?1.25:1,kind:name});
@@ -2684,6 +2715,7 @@ export function createCreature(cell={}){
  if(ELVES[name])return createElf(name);
  if(PRIESTS[name])return createPriest(name);
  if(name==='medusa')return createMedusa();
+ if(name==='punisher')return createGolem('punisher');
  if(name==='cthulhu')return createCthulhu();
  if(name==='nurse')return createNurse();
  if(name==='doppelganger')return createDoppelganger();

@@ -18,7 +18,11 @@ export function leafPose(i, t) {
   if (t < born || t >= CLOVER.total) return {open: 0, shake: 0, alpha: 0, wither: 0};
   const wither = smooth((t - die) / .8);
   const tw = t - 1.15, shake = tw > 0 && tw < .35 ? Math.sin(tw / .35 * Math.PI * 6) * .25 * (1 - tw / .35) : 0;
-  return {open: (1 - (1 - u) ** 3) * (1 - .6 * wither), shake, alpha: smooth(u * 3) * (1 - smooth((t - die - .3) / .6)), wither};
+  // Leaf 1 is not quite dead: it flinches once more, late, while it is already withering.
+  const tl = t - 2.45, flinch = i === 1 && tl > 0 && tl < .2 ? Math.sin(tl / .2 * Math.PI) * .2 : 0;
+  // The last leaf to come up flinches shut for a beat once it is fully open, then reopens.
+  const td = t - .9, recoil = i === CLOVER.leaves - 1 && td > 0 && td < .2 ? .3 * Math.sin(td / .2 * Math.PI) : 0;
+  return {open: (1 - (1 - u) ** 3) * (1 - .6 * wither) * (1 - recoil), shake: shake + flinch, alpha: smooth(u * 3) * (1 - smooth((t - die - .3) / .6)), wither};
 }
 
 export function createAltarClover(THREE, parent) {

@@ -20,12 +20,20 @@ export function blessKind(text) {
 export function ringPose(kind, t) {
   if (!BLESS_COLORS[kind] || t <= 0 || t >= BLESS.total) return {radius: 0, lift: 0, alpha: 0};
   const u = t / BLESS.total, fade = 1 - smooth((u - .6) / .4);
-  if (kind === 'blessed') return {radius: .3 + .2 * smooth(u / .7), lift: .5 * smooth(u / .8) - .08 * smooth((u - .75) / .25), alpha: .55 * smooth(u / .2) * fade};
+  // A held breath: at the top the ring hangs and trembles, dipping a hair on each shiver, before it lets go.
+  if (kind === 'blessed') {
+    const hang = Math.sin(Math.PI * clamp01((u - .62) / .2)), tremble = .012 * hang * (1 + Math.sin(u * 140)) / 2;
+    return {radius: .3 + .2 * smooth(u / .7), lift: .5 * smooth(u / .8) - .08 * smooth((u - .75) / .25) - tremble, alpha: .55 * smooth(u / .2) * fade};
+  }
   if (kind === 'cursed') {
     const stutter = Math.floor(u * 9) % 2 ? .04 : 0;
-    return {radius: .55 - .3 * smooth(u / .8) + stutter, lift: 0, alpha: .7 * smooth(u / .15) * fade};
+    // Near the end the closing ring snaps back out once, as if the curse had pulled and been pulled back.
+    const snap = .07 * Math.sin(clamp01((u - .62) / .16) * Math.PI);
+    // Each stutter beat also twitches the ring a finger's width off the floor, as if something tugged at it from below.
+    return {radius: .55 - .3 * smooth(u / .8) + stutter + snap, lift: stutter ? .03 * smooth(u / .15) * (1 - smooth((u - .7) / .3)) : 0, alpha: .7 * smooth(u / .15) * fade};
   }
-  return {radius: .25 + .2 * smooth(u / .5), lift: 0, alpha: .3 * smooth(u / .1) * (1 - smooth((u - .3) / .4))};
+  // The lifted ring is shaken, not eased: it shudders as the curse is wrung out, the tremor dying by a third.
+  return {radius: .25 + .2 * smooth(u / .5) + .025 * Math.sin(u * 70) * (1 - smooth(u / .3)), lift: 0, alpha: .3 * smooth(u / .1) * (1 - smooth((u - .3) / .4)) * (1 - .6 * Math.sin(Math.PI * clamp01((u - .38) / .1)) ** 2)};  // it gutters once as the curse tries to creep back
 }
 
 // Fleck i of a lifted curse: shaken out sideways, then pulled down to the floor.
@@ -33,8 +41,13 @@ export function fleckPose(i, t) {
   if (t <= 0 || t >= BLESS.total) return {x: 0, y: 0, z: 0, alpha: 0};
   const u = clamp01(t / BLESS.total), a = i / BLESS.flecks * Math.PI * 2 + i * .7, out = (.25 + .05 * (i % 3)) * (1 - (1 - clamp01(u / .6)) ** 2);
   const y = .45 * Math.sin(Math.min(u / .6, 1) * Math.PI * .5) - .45 * (u > .3 ? ((u - .3) / .7) ** 2 : 0);
-  return {x: Math.cos(a) * out, y: Math.max(y, 0), z: Math.sin(a) * out, alpha: smooth(u / .08) * (1 - smooth((u - .7) / .3))};
+  // The last fleck is reluctant: midway it is tugged back toward the item, then lets go and falls with the rest.
+  const k = i === BLESS.flecks - 1 ? 1 - .7 * Math.sin(Math.PI * clamp01((u - .35) / .2)) : 1;
+  return {x: Math.cos(a) * out * k, y: Math.max(y, 0), z: Math.sin(a) * out * k, alpha: smooth(u / .08) * (1 - smooth((u - .7) / .3)) * ember(i, u)};
 }
+
+// Wrung-out flecks gutter like dying embers: each dims and catches again at its own pitch while it falls.
+const ember = (i, u) => 1 - .45 * clamp01((u - .25) / .2) * (1 + Math.sin(u * (60 + i * 9) + i)) / 2;
 
 export function createBlessFlash(THREE, parent) {
   const live = [];

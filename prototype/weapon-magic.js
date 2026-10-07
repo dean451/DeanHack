@@ -22,6 +22,7 @@
 // call it each frame, and hidden items cost nothing. Particles are a pure function of time.
 import * as THREE from 'three';
 import {ARTIFACTS, artifactFromName, heldArtifactKind} from './artifact-gleam.js';
+import {applyArtifactTwist} from './artifact-twist.js';
 
 const TAU = Math.PI * 2;
 const WEAPON_CLASS = 2, TOOL_CLASS = 6;
@@ -55,6 +56,28 @@ export const THEMES = {
   'tsurugi of muramasa': {shell: 0xeaf6ff, glow: .6, trail: 0xf4fbff, layers: [L('edge', 0xffffff, 0xd0e8ff, 8, .07, 1, 1, {shape: 1}), L('motes', 0xffd0d8, 0xff8090, 6, .04, 2.6, .6)]},
   sunsword: {shell: 0xffd35a, glow: 1, trail: 0xffe08a, layers: [L('rays', 0xfff8d0, 0xffb020, 18, .06, 1.4, .95, {shape: 1})]},
   demonbane: {shell: 0xfff0d0, glow: .7, trail: 0xfff4e0, layers: [L('rise', 0xffffff, 0xffd890, 16, .07, 1.2, .8)]},
+  // heavy axe, blood-red edge, rage heat rising off it
+  cleaver: {shell: 0xc01010, glow: .6, flicker: true, trail: 0xa01010, layers: [L('rise', 0xff8060, 0x600808, 12, .08, 1, .8), L('embers', 0xff4020, 0x500400, 6, .03, 1.7, 1)]},
+  // thin, alert, cold steel: a quick glint on the edge
+  thiefbane: {shell: 0xb8c4d8, glow: .4, trail: 0xc8d4e8, layers: [L('edge', 0xffffff, 0xaab8d0, 6, .05, .9, 1, {shape: 1})]},
+  // lucky glints, four-pointed like a clover
+  'luck blade': {shell: 0x90e090, glow: .5, trail: 0xa8f0a0, layers: [L('motes', 0xe8ffe0, 0x50c050, 10, .05, 2.2, .85, {shape: 1}), L('edge', 0xffffff, 0xb8ffb0, 3, .07, 1.6, 1, {shape: 1})]},
+  // scale-green sheen, scorched by the dragons it killed
+  dragonbane: {shell: 0x58a040, glow: .5, trail: 0x70b850, layers: [L('embers', 0xffa040, 0x401000, 7, .03, 1.8, 1), L('mist', 0x2a2018, 0x100c08, 4, .12, 3, .35, {add: false})]},
+  // silver moonlight sheen
+  werebane: {shell: 0xd8e4f8, glow: .5, trail: 0xe8f0ff, layers: [L('motes', 0xffffff, 0xaec0e0, 9, .045, 2.6, .8), L('edge', 0xffffff, 0xd8e4f8, 3, .06, 1.6, 1, {shape: 1})]},
+  // flawless silver-white, balanced: a slow even gleam
+  grayswandir: {shell: 0xf0f6ff, glow: .55, trail: 0xf4f8ff, layers: [L('edge', 0xffffff, 0xe0ecff, 5, .06, 1.8, 1, {shape: 1})]},
+  // broad blade, bold mountain-grey light
+  giantslayer: {shell: 0x9aa0aa, glow: .5, trail: 0xb0b6c0, layers: [L('orbit', 0xe0e4ea, 0x808890, 5, .07, 8, .9, {shape: 2})]},
+  // heavy, shedding stone dust
+  ogresmasher: {shell: 0x8a8070, glow: .35, trail: 0xa09888, layers: [L('fall', 0xc8c0b0, 0x686050, 10, .05, 2.4, .8), L('mist', 0xa09888, 0x605848, 4, .12, 3, .3, {add: false})]},
+  // the same stone dust, with a green ward flickering on the edge
+  trollsbane: {shell: 0x70a050, glow: .45, flicker: true, trail: 0x88b868, layers: [L('fall', 0xc8c0b0, 0x686050, 8, .05, 2.4, .8), L('motes', 0xb0f080, 0x306018, 6, .04, 1.6, .8)]},
+  // pale moonlit silver, a faint silver arrow shimmer drifting off the bow
+  'longbow of diana': {shell: 0xdce8ff, glow: .5, trail: 0xe8f0ff, layers: [L('motes', 0xffffff, 0xb0c4e8, 9, .045, 2.6, .8), L('edge', 0xffffff, 0xdce8ff, 3, .06, 1.6, 1, {shape: 1})]},
+  // heavy gold, a slow commanding pulse and motes sinking under its weight
+  'sceptre of might': {shell: 0xffc84a, glow: .7, beat: true, trail: 0xffd98a, layers: [L('fall', 0xffe9a8, 0xb07818, 10, .055, 2.2, .85), L('edge', 0xffffff, 0xffd98a, 3, .08, 1.8, 1, {shape: 1})]},
 };
 function themeForArtifact(key) {
   if (THEMES[key]) return THEMES[key];
@@ -323,6 +346,8 @@ export function syncHeldMagic(hero, item, opts = {}) {
   if (!magic || !weapon) return null;
   const blade = bladeOf(socket, weapon);
   if (!blade) return null;
+  // the held artifact's own steel takes its glint, as on the floor (artifact-twist.js)
+  if (magic.kind === 'artifact') applyArtifactTwist(weapon, {label: item.name, class: item.class}, {clone: true});
   const fx = createMagicFx(magic, weapon, blade, {seedText: 'held', ...opts});
   socket.add(fx);
   // swing-fx.js reads `tint` to colour the swing trail: the theme's trail colour, pushed bright

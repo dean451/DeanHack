@@ -41,3 +41,10 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('the last puff jerks awake once before it slumps', () => {
+  const y = t => puffPose(GAS.puffs - 1, t).y, start = (GAS.puffs - 1) % 3 * .08 + Math.floor((GAS.puffs - 1) / 3) * .05;
+  const rises = []; for (let u = .6; u < .8; u += .005) rises.push(y(start + u * 1.6));
+  assert.ok(rises.some((v, k) => k && v > rises[k - 1] + 1e-9), 'a rise during the droop');
+  for (let t = 0; t < GAS.total; t += .01) assert.ok(puffPose(GAS.puffs - 1, t).y >= .05);
+});

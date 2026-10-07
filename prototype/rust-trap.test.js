@@ -24,8 +24,16 @@ test('droplets stream in from the side, then splash low and stay in bounds', () 
       if (p.alpha > 0) seen = true;
     }
     assert.ok(seen);
-    assert.equal(dropPose(i, i * .02 + RUST.flight + .6).alpha, 0);
+    if (i < RUST.drops - 1) assert.equal(dropPose(i, i * .02 + RUST.flight + .6).alpha, 0);
   }
+});
+
+test('the last droplet hangs, then falls late and is gone before the end', () => {
+  const i = RUST.drops - 1, t0 = i * .02 + RUST.flight;
+  assert.ok(dropPose(i, t0 + .5).alpha > .7 && dropPose(i, t0 + .5).y > .55);
+  assert.ok(dropPose(i, t0 + .75).y < dropPose(i, t0 + .5).y);
+  assert.equal(dropPose(i, t0 + .96).alpha, 0);
+  assert.ok(t0 + .96 < RUST.total);
 });
 
 test('rust flecks bloom after the strike, sink and stay low', () => {

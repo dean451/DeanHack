@@ -7,7 +7,7 @@ export const HISTORY_LIMIT = 200;   // entries kept, newest first
 export const VISIBLE = 6;           // earlier messages drawn under the newest in the panel
 
 export function createMessageLog(limit = HISTORY_LIMIT) {
-  return {limit, entries: []};
+  return {limit, entries: [], seq: 0};
 }
 
 // Add a message. Returns the entry it landed in (a repeat bumps the existing newest entry).
@@ -15,11 +15,13 @@ export function addMessage(log, text) {
   const t = String(text ?? '').trim();
   if (!t) return null;
   const newest = log.entries[0];
+  log.seq += 1;
   if (newest && newest.text === t) {
     newest.count += 1;
+    newest.seq = log.seq;
     return newest;
   }
-  const entry = {text: t, count: 1};
+  const entry = {text: t, count: 1, seq: log.seq};
   log.entries.unshift(entry);
   if (log.entries.length > log.limit) log.entries.length = log.limit;
   return entry;
@@ -61,4 +63,20 @@ export function allLines(log) {
 // The same, with each line's tone.
 export function allRows(log) {
   return log.entries.map(e => ({text: entryText(e), tone: messageTone(e.text)}));
+}
+
+// A prompt can arrive after several messages that explain it ("The vial crashes on your head...
+// You can't see... What do you want to call the fizzy potion?"). The mark is taken when the
+// game last asked for a command; `sinceMark` gives everything that came in after it, oldest
+// first, so a dialog can show the whole story and not just the last line.
+export function markTurn(log) {
+  return log.seq;
+}
+
+export function sinceMark(log, mark, max = 8) {
+  return log.entries
+    .filter(e => e.seq > mark)
+    .reverse()
+    .slice(-max)
+    .map(e => ({text: entryText(e), tone: messageTone(e.text)}));
 }

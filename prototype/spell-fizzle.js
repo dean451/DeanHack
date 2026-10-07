@@ -21,7 +21,10 @@ export function ringPose(t) {
     return {scale: .6 - .45 * Math.min(j, 1) ** 2, alpha: .7 * clamp01(t / .08) * (k % 3 === 2 ? .4 : 1)};
   }
   const u = clamp01((t - .4) / .6);
-  return {scale: .15 + .65 * (1 - (1 - u) ** 3), alpha: t < .4 ? .7 : .7 * (1 - u)};
+  // One last cough: the thinning ring blinks out for a beat mid-way and comes back, as if the spell
+  // had tried again and failed again.
+  const cough = t > .6 && t < .67 ? .25 : 1;
+  return {scale: .15 + .65 * (1 - (1 - u) ** 3), alpha: (t < .4 ? .7 : .7 * (1 - u)) * cough};
 }
 
 // Spark i: spat out at the snap, arcs up and slumps back down, flickering.
@@ -30,7 +33,13 @@ export function sparkPose(i, t) {
   if (s <= 0 || t >= FIZZLE.total) return {x: 0, y: 0, z: 0, alpha: 0};
   const u = s / (FIZZLE.total - .38), a = i * 2.1, r = .1 + .3 * u * (.7 + .1 * (i % 4));
   const flick = .6 + .4 * Math.sin(s * 60 + i * 3);
-  return {x: Math.cos(a) * r, y: .15 + .5 * 4 * u * (1 - u) * (.6 + .1 * (i % 3)) * (1 - .6 * u), z: Math.sin(a) * r, alpha: Math.max(0, .85 * (1 - u) * flick)};
+  // The last spark has slumped dead, then twitches up once more and drops again.
+  const twitch = i === FIZZLE.sparks - 1 && u > .72 && u < .92 ? .07 * Math.sin((u - .72) / .2 * Math.PI) : 0;
+  // The first spark is slow to die: it lands, skips once more on the floor, and only then goes out.
+  const skip = i === 0 && u > .6 ? .06 * Math.abs(Math.sin((u - .6) / .4 * Math.PI)) : 0;
+  // The third spark flares white-hot for a blink at the snap before it slumps like the rest.
+  const flare = i === 2 && s < .08 ? 1 + .5 * Math.sin(Math.PI * s / .08) : 1;
+  return {x: Math.cos(a) * r, y: .15 + .5 * 4 * u * (1 - u) * (.6 + .1 * (i % 3)) * (1 - .6 * u) + twitch + skip, z: Math.sin(a) * r, alpha: Math.min(.85, Math.max(0, .85 * (1 - u) * flick * flare))};
 }
 
 export function createSpellFizzle(THREE, parent) {

@@ -43,3 +43,30 @@ test('it plays on the hero\'s square and cleans up', () => {
   fx.update(STUDY.total + .1); assert.equal(fx.active, 0);
   fx.message('You begin to memorize the runes.', 0, 0); fx.clear(); assert.equal(fx.active, 0);
 });
+
+test('one rune loses its nerve and bolts for the floor before the pull', () => {
+  const pull = .7 + 2 * .12;
+  assert.ok(runePose(2, pull - .11).y < runePose(2, pull - .3).y - .05);
+});
+
+test('a rune flinches outward as the one before it is dragged in, staying in bounds', () => {
+  for (let i = 1; i < STUDY.runes; i++) {
+    const r = t => Math.hypot(runePose(i, t).x, runePose(i, t).z);
+    let rose = 0;
+    for (let t = .7 + i * .12; t < STUDY.total; t += .01) if (r(t + .01) > r(t) + 1e-6) rose++;
+    assert.ok(rose > 0, `rune ${i} lurches back out mid-pull`);
+    for (let t = 0; t < STUDY.total; t += .005) assert.ok(r(t) <= .38 * 1.22 + 1e-9, `${i}@${t}`);
+  }
+});
+
+test('the last rune sags as it gutters, then is gone', () => {
+  const n = STUDY.runes - 1, end = .7 + n * .12 + .35;
+  assert.ok(runePose(n, end + .2).y < runePose(n, end + .01).y - .04, 'sags');
+  assert.ok(runePose(n, end + .2).y >= 0);
+});
+
+test('rune 3 blinks out mid-orbit and comes back, staying in bounds', () => {
+  assert.ok(runePose(3, .46).alpha < runePose(3, .38).alpha * .3, 'dims');
+  assert.ok(runePose(3, .56).alpha > runePose(3, .46).alpha * 2, 'returns');
+  assert.equal(runePose(3, STUDY.total).alpha, 0);
+});

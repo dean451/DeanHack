@@ -96,7 +96,8 @@ export function deathPose(style, u, dir = null) {
       // The extremities give out first: the arm drops limp with a dead twitch, the wrist lolls
       // after it, as if the hand had already stopped being a part of it.
       p.arm = .95 * smooth((u - .08) / .22) + .12 * Math.sin(u * 40) * smooth((u - .3) / .1) * (1 - smooth((u - .6) / .2));
-      p.wrist = .8 * smooth((u - .18) / .25);
+      // The hand is not quite finished: one dead twitch of the fingers while the heap is already fading.
+      p.wrist = .8 * smooth((u - .18) / .25) + .1 * Math.sin(Math.PI * clamp01((u - .66) / .1)) * Math.sin((u - .66) * 120);
       // Whatever it held slips: the weapon socket tips over with a late catch, a half-grip that
       // fails, before the frame has collapsed around it.
       p.socket = .9 * smooth((u - .2) / .3) - .12 * Math.sin(Math.PI * clamp01((u - .32) / .1));
@@ -119,15 +120,18 @@ export function deathPose(style, u, dir = null) {
       // the puddle quivers as it settles, a few shrinking ripples, before it soaks away
       const quiver = Math.sin((u - .4) * 55) * .05 * (1 - smooth((u - .4) / .3)) * smooth((u - .4) / .04);
       p.sx = (1 - .1 * bulge) * (1 + .7 * flat) * (1 + (u > .4 ? quiver : 0));
+      // Any eye or head it had slides down the slump and is swallowed last.
+      p.head = -.5 * flat;
       p.fade = 1 - smooth((u - .65) / .35);
       push(.08 * flat);
       break;
     }
     case 'dissipate': {
-      // Spin faster and faster, swell, lift and thin out.
+      // Spin faster and faster, swell, lift and thin out. It draws in on itself first, as if
+      // sucking in a last breath, so the swell reads as a release.
       const s = smooth(u);
       p.spin = 9 * u * u;
-      p.scale = 1 + .6 * s;
+      p.scale = 1 + .6 * s - .14 * Math.sin(Math.PI * clamp01(u / .15));
       p.sy = 1 - .25 * s;
       p.dy = .25 * s;
       p.fade = 1 - smooth((u - .15) / .85);
@@ -170,6 +174,11 @@ export function deathPose(style, u, dir = null) {
       p.scale = 1 - .12 * f;
       // A last dead twitch of the limb, after it has landed, then still.
       p.arm = .25 * Math.sin(Math.PI * clamp01((u - .8) / .15)) * Math.sin((u - .8) * 90);
+      // Then, when it seems finished, one leg kicks out alone, a dead reflex, and drops back.
+      // Whatever it held skips out of the slack grip as it lands, and lies still.
+      const skip = clamp01((u - .55) / .25);
+      p.socket = .3 * (4 * skip * (1 - skip)) ** 2;
+      p.leg = .35 * (4 * clamp01((u - .86) / .08) * (1 - clamp01((u - .86) / .08))) ** 2;
     }
   }
   return p;
@@ -178,11 +187,17 @@ export function deathPose(style, u, dir = null) {
 // When (u) each style throws off its particles.
 export const DEATH_BURST_U = {topple: .8, crumble: .55, lichdust: .5, splat: .25, dissipate: .2, burst: .33, petrify: .62};
 
+// A lich also sheds a small puff of dust at each of its three jolts (see 'lichdust' above), before
+// the main cloud: it comes apart piece by piece, not in one puff.
+export const DEATH_SHED_U = {lichdust: [.27, .47, .67]};
+
 // Particle looks. Splats take the creature's own colour when one is given.
 const LOOKS = {
   topple: {count: 10, speed: .5, up: .5, life: .6, gravity: 1.5, drag: 4, color: [.42, .38, .32], spread: 'ring', size: .04},
   crumble: {count: 44, speed: .35, up: .2, life: 1.1, gravity: 1.2, drag: 2.5, color: [.62, .58, .5], spread: 'column', size: .035},
   lichdust: {count: 70, speed: .3, up: .3, life: 1.6, gravity: .5, drag: 2, color: [.5, .49, .47], spread: 'column', size: .04},
+  // Flakes shaken loose at one jolt of a lich's collapse: few, slow, falling straight down.
+  lichshed: {count: 16, speed: .15, up: .1, life: 1, gravity: .9, drag: 2.5, color: [.5, .49, .47], spread: 'column', size: .035},
   splat: {count: 34, speed: 1.3, up: 1.1, life: .9, gravity: 5, drag: 1.2, color: [.55, .75, .25], spread: 'ring', size: .05},
   dissipate: {count: 40, speed: .45, up: .6, life: 1.3, gravity: -.25, drag: 1.5, color: [.75, .78, .82], spread: 'swirl', size: .07},
   // Grit shed as the stone sets, sifting down the body.

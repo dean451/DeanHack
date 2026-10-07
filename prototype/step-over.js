@@ -16,7 +16,7 @@ export function stepPulseAt(age) {
 // what swells (lamps, crystal balls and the Amulet keep their own looks).
 export function swellAura(item) {
   const data = item.userData, wand = data.wandAura;
-  return wand && Object.hasOwn(WAND_AURAS, wand.userData.kind) ? wand : data.scrollAura ?? data.potionFx ?? data.ringAura ?? data.amuletAura ?? data.weaponAura ?? data.artifactGleam ?? null;
+  return wand && Object.hasOwn(WAND_AURAS, wand.userData.kind) ? wand : data.scrollAura ?? data.potionFx ?? data.ringAura ?? data.amuletAura ?? data.toolAura ?? data.weaponAura ?? data.artifactGleam ?? null;
 }
 
 // Swells an item's aura for the pickup scoop. `u` is how far through the scoop it is (0 to 1); the

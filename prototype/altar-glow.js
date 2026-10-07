@@ -16,11 +16,21 @@ export function glowAlignment(text) {
   return m ? m[1].toLowerCase() : null;
 }
 
+// Four steps from 0 to 1, each a quick smooth rise followed by a hold; exactly 0 at 0 and 1 from 1 on.
+const ratchet = x => { const s = clamp01(x) * 4, i = Math.min(Math.floor(s), 3); return (i + smooth(Math.min(1, (s - i) * 3))) / 4; };
+
 // The glow at age t: ring radius and alpha. It swells, hitches (a short dip and surge) and sinks.
-export function glowPose(t) {
+// A chaotic altar gutters like a bad flame, and a godless one sinks early, as if the stone gave up.
+export function glowPose(t, kind) {
   if (t <= 0 || t >= GLOW.total) return {radius: 0, alpha: 0};
-  const u = t / GLOW.total, hitch = 1 - .45 * Math.exp(-(((u - .5) / .05) ** 2));
-  return {radius: .3 + .25 * smooth(u / .6) - .12 * smooth((u - .7) / .3), alpha: .6 * smooth(u / .25) * (1 - smooth((u - .65) / .35)) * hitch};
+  // A neutral altar barely notices the hitch: its god is indifferent, and the ring simply endures.
+  const u = t / GLOW.total, hitch = 1 - (kind === 'neutral' ? .15 : .45) * Math.exp(-(((u - .5) / .05) ** 2));
+  const gutter = kind === 'chaotic' && u > .2 && u < .8 ? .8 + .2 * Math.sin(u * 95) * Math.sin(u * 37) : 1;
+  const sink = kind === 'unaligned' ? .08 * smooth((u - .45) / .3) : 0;
+  // A lawful altar answers like a judge counting: the swell climbs in four hard steps, each one settling
+  // into place, rather than easing out in one breath.
+  const swell = kind === 'lawful' ? ratchet(u / .6) : smooth(u / .6);
+  return {radius: .3 + .25 * swell - .12 * smooth((u - .7) / .3) - sink, alpha: .6 * smooth(u / .25) * (1 - smooth((u - .65) / .35)) * hitch * gutter};
 }
 
 export function createAltarGlow(THREE, parent) {
@@ -32,13 +42,13 @@ export function createAltarGlow(THREE, parent) {
     const mat = new THREE.MeshBasicMaterial({map: softRing(THREE), color: GLOW_COLORS[kind], transparent: true, opacity: 0, side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false});
     const ring = new THREE.Mesh(ringGeo, mat); g.add(ring);
-    live.push({g, ring, mat, t: 0});
+    live.push({g, kind, ring, mat, t: 0});
     return g;
   }
   function drop(e) { e.mat.dispose(); parent.remove(e.g); }
   const frame = (e, dt) => {
     e.t += Math.min(Math.max(dt || 0, 0), .1);
-    const p = glowPose(e.t);
+    const p = glowPose(e.t, e.kind);
     e.ring.scale.setScalar(Math.max(p.radius * 2, .001)); e.mat.opacity = p.alpha;
     return e.t < GLOW.total;
   };

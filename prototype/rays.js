@@ -26,16 +26,27 @@ export const MIRROR_MS = 280;
 // core: the bright centre, drawn solid; glow: the additive halo round it.
 // Death is the odd one out, a dark core in a dim violet haze.
 export const RAY_LOOKS = {
-  'magic missile': {core: 0xe8f0ff, glow: 0x6d8cff, width: .05, glowWidth: .2, flicker: .15, spark: 0xaec4ff},
+  'magic missile': {core: 0xe8f0ff, glow: 0x6d8cff, width: .05, glowWidth: .2, flicker: .15, spark: 0xaec4ff, dash: {period: 5, on: 2, speed: 9}},
   fire: {core: 0xfff2c0, glow: 0xff5a14, width: .07, glowWidth: .26, flicker: .3, spark: 0xffa040},
   cold: {core: 0xf2fdff, glow: 0x7fd8ff, width: .05, glowWidth: .22, flicker: .08, spark: 0xd8f6ff},
-  sleep: {core: 0xf0e0ff, glow: 0x9a5cff, width: .045, glowWidth: .22, flicker: .1, spark: 0xc9a8ff},
+  sleep: {core: 0xf0e0ff, glow: 0x9a5cff, width: .045, glowWidth: .22, flicker: .1, spark: 0xc9a8ff, dash: {period: 2, on: 1, speed: 5}},
   death: {core: 0x06020a, glow: 0x3b1450, width: .08, glowWidth: .3, flicker: .12, spark: 0x7a4a96, dark: true},
   lightning: {core: 0xffffff, glow: 0xa8d4ff, width: .04, glowWidth: .18, flicker: .6, spark: 0xffffff, jag: .09},
-  'poison gas': {core: 0xd8ff9a, glow: 0x5fae22, width: .06, glowWidth: .3, flicker: .1, spark: 0xa6e05a},
+  'poison gas': {core: 0xd8ff9a, glow: 0x5fae22, width: .06, glowWidth: .3, flicker: .1, spark: 0xa6e05a, dash: {period: 4, on: 3, speed: -2}},
   lava: {core: 0xffd070, glow: 0xd8340c, width: .08, glowWidth: .26, flicker: .25, spark: 0xff7a20},
-  acid: {core: 0xf4ffb0, glow: 0x9ad61a, width: .05, glowWidth: .22, flicker: .15, spark: 0xd6ff5a},
+  acid: {core: 0xf4ffb0, glow: 0x9ad61a, width: .05, glowWidth: .22, flicker: .15, spark: 0xd6ff5a, dash: {period: 3, on: 1, speed: 0}},
 };
+// Colour alone must not tell the rays apart: a look with `dash` breaks its beam into marching
+// dashes along its cells (magic missile: fast darts, two cells in five; sleep: short, quick ticks; poison gas: long, slow, drifting back; acid: fixed dots),
+// while the rest stay solid (lightning jags, fire ragged, death dark). `period` and `on` are in cells, `speed` in
+// cells per second (negative drifts back towards the caster). A cell in a gap is cut to GAP_LEN of its length.
+export const GAP_LEN = .3;
+export function dashLen(look, i, t) {
+  const d = look?.dash;
+  if (!d) return 1;
+  const phase = (((i - d.speed * t / 1000) % d.period) + d.period) % d.period;
+  return phase < d.on ? 1 : GAP_LEN;
+}
 
 // The digging beam: a tan core in a dusty brown haze that sputters. It has no ray type,
 // so it isn't in RAY_LOOKS (breath and ray marks only look there).
@@ -172,7 +183,7 @@ export function rayFrame(timeline, t) {
       const shimmer = 1 - look.flicker * hash(s.x, s.z, tick);
       const offset = look.jag ? (hash(s.x + 3, s.z, tick) * 2 - 1) * look.jag : 0;
       const yaw = look.dig ? stepYaw(run, i) : DIR_YAW[s.effect.dir] ?? 0;
-      segs.push({x: s.x, z: s.z, yaw, look, head: i === head && t < s.until,
+      segs.push({x: s.x, z: s.z, yaw, look, len: dashLen(look, i, t), head: i === head && t < s.until,
         intensity: clamp01(fade * settle * shimmer), offset});
     }
   }
@@ -351,11 +362,11 @@ export function createRays(THREE, parent) {
         const diag = s.yaw % (Math.PI / 2) ? Math.SQRT2 : 1;
         // The perpendicular jag (lightning) shifts the cell sideways, across its own run.
         pos.set(s.x - ox - Math.sin(s.yaw) * s.offset, RAY_Y, s.z - oz + Math.cos(s.yaw) * s.offset);
-        matrix.compose(pos, q, scale.set(diag * 1.02, L.width, L.width));
+        matrix.compose(pos, q, scale.set(diag * 1.02 * s.len, L.width, L.width));
         core.setMatrixAt(n, matrix);
         color.setHex(L.core).multiplyScalar(L.dark ? 1 : Math.min(1.4, k));
         core.setColorAt(n, color);
-        matrix.compose(pos, q, scale.set(diag * 1.08, L.glowWidth * (.8 + .4 * k), L.glowWidth * (.8 + .4 * k)));
+        matrix.compose(pos, q, scale.set(diag * 1.08 * s.len, L.glowWidth * (.8 + .4 * k), L.glowWidth * (.8 + .4 * k)));
         glow.setMatrixAt(n, matrix);
         glow.setColorAt(n, color.setHex(L.glow).multiplyScalar(k));
         n++;

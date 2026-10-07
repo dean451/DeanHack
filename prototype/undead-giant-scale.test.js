@@ -12,3 +12,14 @@ test('giant and ettin undead tower over a human one', () => {
     assert(height(`giant ${kind}`) > human * 1.7, `giant ${kind}`);
   }
 });
+
+test('ogre and troll undead loom over a human one, under the ettin', () => {
+  for (const kind of ['zombie', 'mummy']) {
+    const human = height(`human ${kind}`);
+    for (const big of ['ogre', 'troll']) {
+      const h = height(`${big} ${kind}`);
+      assert(h > human * 1.25, `${big} ${kind}`);
+      assert(h < height(`ettin ${kind}`), `${big} ${kind} under ettin`);
+    }
+  }
+});

@@ -12,12 +12,12 @@
 /* Live panel speaks the demo's language: no box, tracked kicker, serif lines, hairline rules, dot bullets. */
 #engine-panel{right:40px;top:26%;width:250px;background:none;border:0;border-radius:0;padding:0;max-height:none;overflow:visible;font-size:12px;pointer-events:none}
 #engine-panel::before{content:"";position:absolute;inset:-48px -40px -48px -70px;background:radial-gradient(ellipse at 58% 46%,#04070acc 0,#04070a80 48%,transparent 74%);z-index:-1;pointer-events:none}
-#engine-panel>small{display:block;font-size:10px;line-height:1.8;letter-spacing:2px;color:#aab9c5}
 #engine-line{font:italic 24px/1.2 'Cormorant Garamond',Georgia,serif;color:#d6ddd6;margin:12px 0 0;min-height:1.2em;text-shadow:0 2px 10px #000}
 #engine-messages{margin-top:8px;font:italic 16px/1.3 'Cormorant Garamond',Georgia,serif;color:#8e9fac}
 #engine-messages{max-height:9.5em;overflow-y:auto;scrollbar-width:thin}#engine-messages div{margin-top:4px}#engine-messages div:nth-child(2){opacity:.7}#engine-messages div:nth-child(3){opacity:.45}#engine-messages div:nth-child(n+4){opacity:.35}
 #engine-status{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:22px;padding-top:16px;border-top:1px solid #829c8e22;color:#9aaab7;font:12px Inter,sans-serif}
 #engine-status b{color:#e4d8c2;font-weight:400;margin-left:6px}
+#engine-status .condition i{font-style:normal;margin-right:3px}
 #engine-status .condition{color:#e9a36b;font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
 .gold{background:#e8c860;box-shadow:0 0 9px #e8c860}
 #engine-prompt{margin-top:22px;padding-top:16px;border-top:1px solid #829c8e22;font-size:12px;color:#d6d9c9}
@@ -43,14 +43,13 @@ dialog button{margin:18px 8px 0 0;font-size:12px}
 .engine-menu-row input[type="checkbox"]:checked+kbd::before{border-color:#f5e8b9}
 .engine-menu-row input:focus-visible+kbd{outline:2px solid #a9e1d5;outline-offset:3px}
 @media(max-width:1000px){.live-engine #engine-panel{top:auto;bottom:140px;left:auto;right:24px;width:230px;max-height:none}.live-engine #engine-line{font-size:20px}.live-engine #engine-messages{max-height:none}.engine-actions{flex-wrap:wrap;border-right:0;padding-right:0}}
-@media(max-width:650px){.live-engine #engine-panel{left:24px;right:24px;width:auto;bottom:175px}}
 .live-engine #ground-notice:not([hidden]){display:block}
 #ground-notice{display:none;position:absolute;z-index:4;left:24px;bottom:145px;width:220px;max-height:32vh;overflow:auto;padding:14px 16px;background:#0c181bed;border:1px solid #64797266;border-radius:5px;color:#dedfce;font:13px/1.5 Inter,sans-serif;pointer-events:none}
 #ground-notice strong{font-size:14px;color:#f0e5cc}#ground-notice ul{padding:0;margin:8px 0;list-style:none}#ground-notice li+li{margin-top:4px}#ground-notice small{color:#9fb5b0}
 @media(max-width:650px){#ground-notice{left:12px;bottom:155px;width:175px;max-height:22vh}}
 /* live character panel: attributes, low vitality, and the level name on arrival */
 .attributes{display:none;grid-template-columns:repeat(3,1fr);gap:6px 10px;margin-top:12px;color:#9aaab7;font-size:11px;letter-spacing:1px}.live-engine .attributes:not(:empty){display:grid}.attributes b{color:#e4d8c2;font-weight:400;margin-left:5px}.attributes .alignment{grid-column:1/-1;font-size:10px;letter-spacing:2px;color:#b6c4ce}
-.character.low-hp #hp{color:#ff6a5a}.character.low-hp .bar{background:#ff4a3a22}.character.low-hp .bar i{background:#e0402f;box-shadow:0 0 10px #ff4a3a;animation:hp-flash 1s ease-in-out infinite}.character.low-hp .health{animation:hp-flash 1s ease-in-out infinite}
+.character.low-hp #hp{color:#ff6a5a}.character.low-hp #hp::before{content:"\25B2  ";font-size:.8em}.character.low-hp .bar{background:#ff4a3a22}.character.low-hp .bar i{background:#e0402f;box-shadow:0 0 10px #ff4a3a;animation:hp-flash 1s ease-in-out infinite}.character.low-hp .health{animation:hp-flash 1s ease-in-out infinite}
 @keyframes hp-flash{0%,100%{opacity:1}50%{opacity:.35}}
 @media(prefers-reduced-motion:reduce){.character.low-hp .bar i,.character.low-hp .health{animation:none}}
 #level-banner{position:fixed;left:50%;top:26%;transform:translateX(-50%);z-index:4;text-align:center;pointer-events:none;opacity:0;text-shadow:0 2px 14px #000}#level-banner small{display:block;letter-spacing:4px;color:#c4b683}#level-banner strong{display:block;margin-top:6px;font:500 46px 'Cormorant Garamond',Georgia,serif;color:#f0e6d4;white-space:nowrap}#level-banner.show{animation:level-banner 4.5s ease forwards}
@@ -92,6 +91,20 @@ dialog button{font:600 12px 'Cinzel',Georgia,serif;letter-spacing:1.5px}
 .engine-recent{margin:6px 0 10px;font:italic 16px/1.35 'Cormorant Garamond',Georgia,serif;color:#9fb0bb}
 body.live-engine footer{right:384px}@media(max-width:1000px){body.live-engine footer{right:288px}}
 #minimap.aiming{pointer-events:auto;cursor:crosshair;border-color:#fff0b8}
+/* Footer buttons (Save & exit, Demo room, Reset room): small quiet text, out of the way at the edge. */
+footer .buttons,.engine-actions{gap:2px}
+footer .buttons button,.engine-actions button{padding:2px 7px;font-size:10px;letter-spacing:1px;text-transform:uppercase;background:transparent;border-color:transparent;color:#7f909a}
+footer .buttons button:hover,footer .buttons button:focus-visible,.engine-actions button:hover,.engine-actions button:focus-visible{background:transparent;border-color:#c4b68355;color:#cbd8df}
+.engine-actions{padding-right:6px;margin-right:0;border-right:0}
+/* Key legend: every entry stays on one line and the keys sit tight, so nothing wraps or overlaps. */
+.keys{gap:6px 12px;flex-wrap:wrap}
+.keys span{white-space:nowrap}
+.keys kbd{min-width:0;padding:2px 4px;font-size:10px;margin-right:3px}
+
+/* the messages that led up to a text prompt, shown above its input */
+.engine-recent-box{margin:6px 0 12px;max-height:40vh;overflow-y:auto}
+.engine-recent-box .engine-recent{margin:0 0 5px}
+#farlook{position:fixed;z-index:5;pointer-events:none;padding:2px 7px;font:12px/1.4 monospace;color:#d8d2c2;background:#05080acc;border-left:2px solid #6b2a24;letter-spacing:.04em}#farlook[hidden]{display:none}
 
 /* Live layout: a small character panel in the top-left corner (vitality, stats, gold, power, experience),
    the messages in the top-right corner, nothing else floating over the map. */

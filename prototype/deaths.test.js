@@ -219,3 +219,60 @@ test('a dying lich\'s frame creaks round to look at its killer, then jerks back'
   for (let u = 0; u <= 1; u += .01) assert.ok(spin(u) >= 0 && spin(u) < .45, `spin in bounds at ${u}`);
   assert.equal(deathPose('crumble', .65).spin, 0);
 });
+
+test('a dissipating death draws in on itself before it swells', () => {
+  const sc = u => deathPose('dissipate', u).scale;
+  assert.equal(sc(0), 1);
+  assert.ok(sc(.075) < .9, 'it shrinks first');
+  for (let u = .2; u < 1; u += .01) assert.ok(sc(u + .01) >= sc(u), `then only swells at ${u}`);
+  for (let u = 0; u <= 1; u += .01) assert.ok(sc(u) > .8 && sc(u) < 1.7, `in bounds at ${u}`);
+  assert.ok(Math.abs(sc(1) - 1.6) < 1e-9);
+});
+
+test('a dying lich\'s fingers twitch once more while the heap fades, within bounds', () => {
+  const w = u => deathPose('lichdust', u).wrist, base = u => .8 * smooth01((u - .18) / .25);
+  function smooth01(v) { v = Math.min(Math.max(v, 0), 1); return v * v * (3 - 2 * v); }
+  let max = 0;
+  for (let u = 0; u <= 1; u += .005) { assert.ok(Math.abs(w(u)) < 1, `wrist in bounds at ${u}`); max = Math.max(max, Math.abs(w(u) - base(u))); }
+  assert.ok(max > .05, 'a visible twitch');
+  assert.ok(Math.abs(w(.6) - base(.6)) < 1e-9 && Math.abs(w(.9) - base(.9)) < 1e-9, 'quiet before and after');
+});
+
+test('a toppled body kicks one leg once, late, after it has landed, and ends at rest', () => {
+  const leg = u => deathPose('topple', u).leg;
+  assert.equal(leg(.5), 0); assert.ok(leg(.9) > .3 && leg(.9) <= .35); assert.equal(leg(1), 0);
+  for (let u = 0; u <= 1; u += .01) assert.ok(leg(u) >= 0 && leg(u) <= .35);
+});
+
+test('a toppled body lets its weapon skip from the grip on landing, then lies still', () => {
+  const s = u => deathPose('topple', u).socket;
+  assert.equal(s(0), 0);
+  assert.ok(s(.675) > .25 && s(.675) <= .3 + 1e-9);
+  assert.equal(s(1), 0);
+  assert.equal(s(.5), 0);
+  for (let u = 0; u <= 1; u += .01) assert.ok(s(u) >= 0 && s(u) <= .3 + 1e-9, `socket in bounds at ${u}`);
+});
+
+test('a splatting body lets its head slide down the slump, within bounds', () => {
+  const h = u => deathPose('splat', u).head;
+  assert.ok(Math.abs(h(0)) === 0);
+  assert.ok(h(.6) < -.45 && h(1) >= -.5 - 1e-9);
+  for (let u = 0; u < .99; u += .01) assert.ok(h(u + .01) <= h(u) + 1e-9, `only slides down at ${u}`);
+});
+
+test('a collapsing lich sheds flakes at each of its three jolts before the main dust cloud', async () => {
+  const {DEATH_SHED_U} = await import('./deaths.js');
+  const sheds = DEATH_SHED_U.lichdust;
+  assert.equal(sheds.length, 3);
+  for (let i = 0; i < 3; i++) {
+    assert.ok(sheds[i] < DEATH_BURST_U.lichdust === (i < 2), 'two before the main cloud, one after');
+    if (i) assert.ok(sheds[i] > sheds[i - 1]);
+  }
+  assert.equal(DEATH_SHED_U.crumble, undefined);
+  const fx = createDeathBurst(THREE);
+  const shed = fx.burst('lichshed', {x: 0, y: 0, z: 0}, {height: 1});
+  const main = createDeathBurst(THREE).burst('lichdust', {x: 0, y: 0, z: 0}, {height: 1});
+  assert.ok(shed > 0 && shed < main / 2, 'a shed is a small puff beside the cloud');
+  for (let t = 0; t < 3; t += .05) fx.update(.05);
+  assert.equal(fx.alive, 0, 'the flakes are gone');
+});

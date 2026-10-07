@@ -16,7 +16,7 @@ const longest = type => Math.max(...MARK_LOOKS[type].map(L => L.ms));
 test('every mark look is finite and bounded', () => {
   for (const [type, parts] of Object.entries(MARK_LOOKS)) {
     for (const L of parts) {
-      assert.ok([0, 1, 2].includes(L.shape), type);
+      assert.ok([0, 1, 2, 3, 4].includes(L.shape), type);
       assert.ok(L.alpha > 0 && L.alpha <= 1, `${type} alpha`);
       assert.ok(L.size > 0 && L.size <= .8, `${type} size`);
       assert.ok(L.fadeMs > 0 && L.fadeMs <= L.ms && L.grow > 0, `${type} timing`);
@@ -107,4 +107,9 @@ test('the renderer lays marks flat on the floor and clears them', () => {
   assert.equal(marks.active, 0); assert.equal(dark.count + glow.count, 0);
   marks.dispose();
   assert.equal(parent.children.length, 0);
+});
+
+test('cold and acid leave marks shaped apart from fire, not only coloured apart', () => {
+  const lead = t => MARK_LOOKS[t][0].shape;
+  assert.equal(new Set([lead('fire'), lead('cold'), lead('acid')]).size, 3);
 });

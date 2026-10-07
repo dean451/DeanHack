@@ -69,3 +69,18 @@ test('the minimap sits in the bottom-right corner and the live key legend stops 
   assert.match(map, /bottom:25px/);
   assert.match(css, /body\.live-engine footer\{right:384px\}/);
 });
+
+test('the live panel carries no engine caption', () => {
+  assert.doesNotMatch(read('live.js'), /UNNETHACK · LIVE ENGINE/);
+  assert.doesNotMatch(read('style.css'), /#engine-panel>small/);
+});
+
+test('a text prompt shows everything that happened since the last command, not only the last line', () => {
+  const live = read('live.js');
+  assert.match(live, /if\(v\.kind==='command'\)turnMark=markTurn\(messageLog\)/, 'the mark is taken when the game asks for a command');
+  assert.match(live, /sinceMark\(messageLog,turnMark\)/, 'the line prompt reads the turn\'s messages');
+});
+
+test('low vitality is marked with a warning triangle, not by red and a flash alone', () => {
+  assert.match(read('style.css'), /\.character\.low-hp #hp::before\{content:"\\25B2/);
+});
