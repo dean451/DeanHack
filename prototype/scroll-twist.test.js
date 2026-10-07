@@ -36,3 +36,15 @@ test('the scroll stays one draw',()=>{
  assert.equal(m.children.length,1);
  m.userData.dispose();
 });
+
+test('every twisted scroll type shifts the paper and keeps one draw',()=>{
+ const plain=make('scroll of identify'),base=mean(plain);
+ for(const name of ['create monster','stinking cloud','punishment','amnesia','enchant weapon','enchant armor','remove curse','fire','flood','light','teleportation','destroy armor']){
+  const m=make(`scroll of ${name}`);
+  assert.equal(m.userData.twist,name);
+  assert(Math.abs(mean(m)-base)>.03,name);
+  assert.equal(m.children.length,1);
+  m.userData.dispose();
+ }
+ plain.userData.dispose();
+});
