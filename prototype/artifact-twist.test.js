@@ -190,3 +190,30 @@ test('Frost Brand wears lit shards of rime along its edge as the last mesh on th
   assert(w.y < .1 && w.x < .62 && w.z < .45);
   art.userData.dispose();
 });
+
+test('Fire Brand wears lit flame tongues as the last mesh on the blade', () => {
+  const art = createGroundModel({name: 'long sword', label: 'Fire Brand', class: 2});
+  assert.equal(art.userData.artifact, 'fire brand');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .12 && w.x < .62 && w.z < .45);
+  art.userData.dispose();
+});
+
+test('Sunsword wears lit disc and rays as the last mesh on the blade', () => {
+  const art = createGroundModel({name: 'long sword', label: 'Sunsword', class: 2});
+  assert.equal(art.userData.artifact, 'sunsword');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .12 && w.x < .62 && w.z < .45);
+  art.userData.dispose();
+});
+
+test('Vorpal Blade wears lit edge lines and nicks as the last mesh on the blade', () => {
+  const art = createGroundModel({name: 'long sword', label: 'Vorpal Blade', class: 2});
+  assert.equal(art.userData.artifact, 'vorpal blade');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .12 && w.x < .62 && w.z < .45);
+  art.userData.dispose();
+});
