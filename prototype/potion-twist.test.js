@@ -91,3 +91,29 @@ test('levitation turns the liquid pale and glowing',()=>{
  assert(part(light,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
  plain.userData.dispose();light.userData.dispose();
 });
+
+test('holy water glows gold and unholy water goes black and dead',()=>{
+ const plain=make('healing'),holy=make('potion of holy water'),foul=make('potion of unholy water');
+ assert.equal(holy.userData.twist,'holy water');
+ assert.equal(foul.userData.twist,'unholy water');
+ assert(part(holy,'liquid').material.emissiveIntensity>part(plain,'liquid').material.emissiveIntensity);
+ const f=part(foul,'liquid').material;
+ assert.equal(f.emissiveIntensity,0);
+ assert.equal(f.transparent,false);
+ assert(f.color.r<.1&&f.color.g<.1);
+ for(const m of [plain,holy,foul])m.userData.dispose();
+});
+
+test('monster detection, polymorph and hallucination tint and light the liquid',()=>{
+ const plain=make('healing');
+ const base=part(plain,'liquid').material;
+ for(const [name,kind] of [['potion of monster detection','monster detection'],['potion of polymorph','polymorph'],['2 potions of hallucination','hallucination']]){
+  const m=make(name);
+  assert.equal(m.userData.twist,kind);
+  const l=part(m,'liquid').material;
+  assert.notEqual(l.color.getHex(),base.color.getHex());
+  assert(l.emissiveIntensity>=.3);
+  m.userData.dispose();
+ }
+ plain.userData.dispose();
+});
