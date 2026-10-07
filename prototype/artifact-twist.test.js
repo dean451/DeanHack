@@ -34,3 +34,16 @@ test('artifact weapons lie on the floor as a weapon, tinted by their glint', () 
   }
   assert.equal(createGroundModel({name: 'long sword', label: 'long sword', class: WEAPON}), null);
 });
+
+test('a wielded artifact takes its glint in its own steel, not the shared material', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {syncHeldMagic} = await import('./weapon-magic.js');
+  const THREE = await import('three');
+  const socket = new THREE.Group(), hero = {weaponSocket: socket};
+  const wield = item => { socket.children.slice().forEach(c => socket.remove(c)); socket.add(createHeldWeapon(item)); return syncHeldMagic(hero, item, {clock: () => 0}); };
+  const lit = () => { let e = 0; socket.traverse(o => { if (!o.userData.magicShell && o.material?.emissive?.getHex() === 0xffe7a1) e = Math.max(e, o.material.emissiveIntensity); }); return e; };
+  assert.ok(wield({name: 'Excalibur', base: 'long sword', class: 2}));
+  assert.ok(lit() >= .3, 'Excalibur smoulders gold');
+  assert.ok(wield({name: 'long sword', class: 2}) === null);
+  assert.equal(lit(), 0, 'a plain long sword stays dull');
+});
