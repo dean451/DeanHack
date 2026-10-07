@@ -43,8 +43,11 @@ export function fleckPose(i, t) {
   const y = .45 * Math.sin(Math.min(u / .6, 1) * Math.PI * .5) - .45 * (u > .3 ? ((u - .3) / .7) ** 2 : 0);
   // The last fleck is reluctant: midway it is tugged back toward the item, then lets go and falls with the rest.
   const k = i === BLESS.flecks - 1 ? 1 - .7 * Math.sin(Math.PI * clamp01((u - .35) / .2)) : 1;
-  return {x: Math.cos(a) * out * k, y: Math.max(y, 0), z: Math.sin(a) * out * k, alpha: smooth(u / .08) * (1 - smooth((u - .7) / .3))};
+  return {x: Math.cos(a) * out * k, y: Math.max(y, 0), z: Math.sin(a) * out * k, alpha: smooth(u / .08) * (1 - smooth((u - .7) / .3)) * ember(i, u)};
 }
+
+// Wrung-out flecks gutter like dying embers: each dims and catches again at its own pitch while it falls.
+const ember = (i, u) => 1 - .45 * clamp01((u - .25) / .2) * (1 + Math.sin(u * (60 + i * 9) + i)) / 2;
 
 export function createBlessFlash(THREE, parent) {
   const live = [];
