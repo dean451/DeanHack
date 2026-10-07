@@ -25,9 +25,11 @@ export function rockPose(t) {
 
 // Grit i: thrown out flat from the impact, arcing low and dropping back.
 export function gritPose(i, t) {
-  const u = clamp01((t - .08 - ROCK.drop) / .5);
+  // The last pebble is slow to settle: it trickles on across the stone, long after the rest lie still.
+  const last = i === ROCK.grit - 1, u = clamp01((t - .08 - ROCK.drop) / (last ? .62 : .5));
   if (u <= 0 || u >= 1) return {x: 0, y: .03, z: 0, alpha: 0};
-  const a = i * 2.4, r = .1 + .3 * u;
+  const a = i * 2.4, r = .1 + (last ? .34 : .3) * u;
+  if (last) return {x: Math.cos(a) * r, y: .03 + .14 * Math.abs(Math.sin(u * 11)) * (1 - u), z: Math.sin(a) * r, alpha: .6 * (1 - u * u)};
   return {x: Math.cos(a) * r, y: .03 + .22 * Math.sin(u * Math.PI) * (.6 + .1 * (i % 4)), z: Math.sin(a) * r, alpha: .6 * (1 - u)};
 }
 
