@@ -39,6 +39,7 @@ import {createMessageLog,addMessage,panelView,allRows,markTurn,sinceMark} from '
 import {createHistoryPanel} from './message-history.js';
 import {syncDetectedMark} from './detected-mark.js';
 import {aimKeys,createAimCursor} from './aim-cursor.js';
+import {squareAt,farlookText,createFarlook} from './farlook.js';
 import {levelTitle,lowHealth,parseAttributes} from './hud.js';
 import {syncWandAura,syncHeldWandAura,updateHeldWandAura} from './wand-auras.js';
 import {updatePickupLift,hasMagicLook} from './pickup-lift.js';
@@ -183,6 +184,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  const panel=document.createElement('section');panel.id='engine-panel';panel.hidden=true;panel.innerHTML='<p id="engine-line" aria-live="polite"></p><div id="engine-messages" role="log"></div><div id="engine-status"></div><div id="engine-prompt"></div>';document.body.append(panel);
  const minimap=createMinimap(document);document.body.append(minimap.el);
  const historyPanel=createHistoryPanel(document,()=>allRows(messageLog));document.body.append(historyPanel.el);
+ const farlook=createFarlook(document);document.body.append(farlook.el);{const ray=new THREE.Raycaster(),floor=new THREE.Plane(new THREE.Vector3(0,1,0),0),spot=new THREE.Vector3(),ndc=new THREE.Vector2(),dom=controls.domElement;dom.addEventListener('pointermove',e=>{if(!active||!latest||!origin||e.buttons){farlook.hide();return;}const r=dom.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);if(!ray.ray.intersectPlane(floor,spot)){farlook.hide();return;}const sq=squareAt(spot,origin);farlook.show(farlookText(latest.cells.find(c=>c.x===sq.x&&c.z===sq.z)),e.clientX,e.clientY);});dom.addEventListener('pointerleave',()=>farlook.hide());}
  const aim=createAimCursor();group.add(aim.g);let aimQueue=[];
  function syncAim(){if(active&&origin&&pending?.kind==='position'&&pending.cursor){aim.show(pending.cursor.x-origin.x,pending.cursor.z-origin.z,latest?.player?{x:latest.player.x-origin.x,z:latest.player.z-origin.z}:null);minimap.setCursor(pending.cursor);}else{aim.hide();minimap.setCursor(null);}}
  minimap.el.addEventListener('click',e=>{if(pending?.kind!=='position'||!pending.cursor)return;const spot=minimap.cellAt(e.clientX,e.clientY);if(!spot)return;aimQueue=aimKeys(pending.cursor,spot);void reply(aimQueue.shift());});

@@ -104,3 +104,4 @@ footer .buttons button:hover,footer .buttons button:focus-visible,.engine-action
 /* the messages that led up to a text prompt, shown above its input */
 .engine-recent-box{margin:6px 0 12px;max-height:40vh;overflow-y:auto}
 .engine-recent-box .engine-recent{margin:0 0 5px}
+#farlook{position:fixed;z-index:5;pointer-events:none;padding:2px 7px;font:12px/1.4 monospace;color:#d8d2c2;background:#05080acc;border-left:2px solid #6b2a24;letter-spacing:.04em}#farlook[hidden]{display:none}
