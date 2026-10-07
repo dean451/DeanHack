@@ -34,6 +34,14 @@ const SHAPES = {
     }
     return parts;
   },
+  // The ball is a freed prisoner's: a lit seam splits it round its belly and a broken shackle ring
+  // hangs open above it. The ball rests on y=0, radius .16, centred a hair under .16.
+  'iron ball of liberation'() {
+    const R = .16, seam = new THREE.TorusGeometry(R * 1.012, .005, 6, 40), shackle = new THREE.TorusGeometry(.046, .004, 6, 18, Math.PI * 1.7);
+    seam.rotateX(Math.PI / 2); seam.rotateZ(.3); seam.translate(0, R * .97, 0);
+    shackle.rotateX(Math.PI / 2 - .35); shackle.translate(0, R * 1.97 + .075, 0);
+    return [seam, shackle];
+  },
   // A thin hard edge of light round the card, like a razor ground into its rim.
   'platinum yendorian express card'() {
     const w = .114, d = .09, t = .004;
