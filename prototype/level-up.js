@@ -23,7 +23,9 @@ export function moteFlight(i, t, n = LEVEL.motes) {
   const u = clamp01((t - start) / life);
   if (u <= 0 || u >= 1) return {x: 0, y: 0, z: 0, alpha: 0, size: 0};
   const a = i * 2.4 + u * 5, r = .22 * (1 - u * .6);
-  return {x: Math.cos(a) * r, y: .05 + LEVEL.rise * u ** 1.3, z: Math.sin(a) * r,
+  // The last mote is reluctant: halfway up it is tugged back toward the floor, then lets go and climbs on.
+  const tug = i === n - 1 ? .3 * Math.sin(Math.PI * clamp01((u - .35) / .3)) : 0;
+  return {x: Math.cos(a) * r, y: .05 + LEVEL.rise * u ** 1.3 - tug, z: Math.sin(a) * r,
     alpha: smooth(u / .15) * (1 - smooth((u - .6) / .4)) * (.7 + .3 * Math.sin(u * 30 + i)), size: .07 * (1 - u * .5)};
 }
 
