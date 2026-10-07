@@ -74,6 +74,10 @@ export const THEMES = {
   ogresmasher: {shell: 0x8a8070, glow: .35, trail: 0xa09888, layers: [L('fall', 0xc8c0b0, 0x686050, 10, .05, 2.4, .8), L('mist', 0xa09888, 0x605848, 4, .12, 3, .3, {add: false})]},
   // the same stone dust, with a green ward flickering on the edge
   trollsbane: {shell: 0x70a050, glow: .45, flicker: true, trail: 0x88b868, layers: [L('fall', 0xc8c0b0, 0x686050, 8, .05, 2.4, .8), L('motes', 0xb0f080, 0x306018, 6, .04, 1.6, .8)]},
+  // pale moonlight shed from the bow, silver motes drifting down like falling stars
+  'longbow of diana': {shell: 0xdcecff, glow: .55, trail: 0xe8f4ff, layers: [L('fall', 0xffffff, 0xa8c8f0, 10, .05, 2.4, .9, {shape: 1}), L('motes', 0xe8f4ff, 0x8098c8, 6, .035, 2.8, .7)]},
+  // heavy gold of command: a slow crown of runes about the head, embers of authority rising
+  'sceptre of might': {shell: 0xe8b030, glow: .65, trail: 0xf0c050, layers: [L('orbit', 0xfff0c0, 0xd09018, 6, .07, 7, .9, {shape: 2}), L('rise', 0xffe08a, 0x805008, 8, .06, 1.8, .75)]},
 };
 function themeForArtifact(key) {
   if (THEMES[key]) return THEMES[key];
