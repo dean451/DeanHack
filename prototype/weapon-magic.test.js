@@ -99,3 +99,10 @@ test('the Longbow of Diana has its own moonlit signature', () => {
   assert.ok(others.every(([, t]) => t.shell !== THEMES['longbow of diana'].shell));
   assert.equal(weaponMagic({name: 'Longbow of Diana', class: W}).theme, THEMES['longbow of diana']);
 });
+
+test('the Sceptre of Might pulses in heavy gold', () => {
+  const t = THEMES['sceptre of might'];
+  assert.ok(t && t.beat);
+  assert.ok(Object.entries(THEMES).every(([k, o]) => k === 'sceptre of might' || o.shell !== t.shell));
+  assert.equal(weaponMagic({name: 'Sceptre of Might', class: W}).theme, t);
+});
