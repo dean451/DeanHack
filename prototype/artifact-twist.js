@@ -166,6 +166,11 @@ const SHAPES = {
     ring.rotateY(Math.PI / 2); ring.translate(.1, .012, 0);
     return [stroke(.185, -.022, .035, .005, .5), stroke(.165, 0, .04, .005, -.6), stroke(.18, .024, .03, .005, .4), ring];
   },
+  // Stormbringer bleeds: a jagged lit crack runs down the blade in five slanted strokes, like a
+  // wound that never closes. The blade lies along x from .04 to .46, .05 wide, top at y .012.
+  stormbringer() {
+    return [0, 1, 2, 3, 4].map(i => new THREE.BoxGeometry(.075, .003, .005).rotateY(i % 2 ? .6 : -.6).translate(.1 + i * .075, .0135, i % 2 ? .006 : -.006));
+  },
   // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
   // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
   itlachiayaque(group) {
