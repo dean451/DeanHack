@@ -163,3 +163,30 @@ test('the Sceptre of Might wears a lit crown of spikes as the last mesh on the s
   assert(w.y < .15 && Math.hypot(w.x, w.z) < .6);
   art.userData.dispose();
 });
+
+test('Mjollnir wears a lit bolt and binding ring as the last mesh on the hammer', () => {
+  const art = createGroundModel({name: 'war hammer', label: 'Mjollnir', class: 2});
+  assert.equal(art.userData.artifact, 'mjollnir');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .15 && Math.hypot(w.x, w.z) < .6);
+  art.userData.dispose();
+});
+
+test('Stormbringer wears a lit jagged crack as the last mesh on the blade', () => {
+  const art = createGroundModel({name: 'runesword', label: 'Stormbringer', class: 2});
+  assert.equal(art.userData.artifact, 'stormbringer');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .1 && w.x < .62 && w.z < .4);
+  art.userData.dispose();
+});
+
+test('Frost Brand wears lit shards of rime along its edge as the last mesh on the blade', () => {
+  const art = createGroundModel({name: 'runesword', label: 'Frost Brand', class: 2});
+  assert.equal(art.userData.artifact, 'frost brand');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .1 && w.x < .62 && w.z < .45);
+  art.userData.dispose();
+});
