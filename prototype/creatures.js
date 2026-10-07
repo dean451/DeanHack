@@ -1638,7 +1638,7 @@ function lich(o){
  // skeletal arms: thin bone forearms and claw fingers poking out of wide sleeves
  // Each claw finger hangs from its own knuckle, so lich-chill.js can flex it (handles: lichHands, orb).
  const lichHands=[];
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.93,0);body.add(arm);cylinder(arm,.06,.1,.3,robe,0,-.14,0,8);cylinder(arm,.018,.018,.16,bone,0,-.34,.02,6);const fingers=[];for(const f of [-.025,0,.025]){const k=new THREE.Group();k.position.set(f,-.405,.03);arm.add(k);cone(k,.01,.09,bone,0,-.045,0,4).rotation.x=Math.PI;fingers.push(k);}arm.rotation.z=side*.16;arm.rotation.x=side<0?-.55:-.2;lichHands.push({side,arm,fingers});}
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.93,0);body.add(arm);cylinder(arm,.06,.1,.3,robe,0,-.14,0,8);cylinder(arm,.018,.018,.16,bone,0,-.34,.02,6);const fingers=[];for(const f of [-.025,0,.025]){const k=new THREE.Group();k.position.set(f,-.405,.03);arm.add(k);cone(k,.008,.15,bone,0,-.075,0,4).rotation.x=Math.PI;sphere(k,.011,bone,0,-.04,0);fingers.push(k);}arm.rotation.z=side*.16;arm.rotation.x=side<0?-.55:-.2;lichHands.push({side,arm,fingers});}
  // staff held out on the right, orb glowing in the lich's colour
  const staff=rounded(body,.035,1.15,.035,M.leather,.34,.66,.16,.01);staff.rotation.z=-.06;
  // the staff is topped with a small skull whose sockets glow in the lich's colour; the orb rides in its brow (lich-chill.js flexes it)
