@@ -12,6 +12,7 @@ import {createPotion} from './potion.js';
 import {applyPotionTwist} from './potion-twist.js';
 import {applyToolTwist} from './tool-twist.js';
 import {applyArtifactTwist} from './artifact-twist.js';
+import {artifactFromName} from './artifact-gleam.js';
 
 // Spellbook cover tints by glyph colour (CLR_BLACK..CLR_WHITE), kept dark enough to read as leather.
 const SPELLBOOK_COVERS=[0x2b2626,0x8a2320,0x2f5e34,0x6b4527,0x2a3f7a,0x7a2a6e,0x2a7278,0x6f6c66,undefined,
@@ -6293,6 +6294,30 @@ export function createGroundModel(item={}){
   }
   // Drop the whole model onto the floor.
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
+ }else if(cls===2&&artifactFromName(item.label,2)){
+  // Artifact weapons lie as one dark weapon on the floor, in the shape of their kind: a hammer
+  // for Mjollnir, a staff or sceptre for the two staves, a short blade for the knives and a
+  // long notched blade for the rest. artifact-twist.js then pulls the metal toward its glint.
+  const kind=artifactFromName(item.label,2);
+  const tube=(r1,r2,len,m,x,y,z)=>{const p=add(new THREE.CylinderGeometry(r1,r2,len,8),m,x,y,z);p.rotation.z=Math.PI/2;return p;};
+  if(kind==='mjollnir'){
+   tube(.012,.012,.3,leather,0,.012,0);
+   box(.09,.07,.07,metal,.17,.035,0);box(.02,.075,.075,gold,.125,.036,0);box(.02,.075,.075,gold,.215,.036,0);
+  }else if(kind==='staff of aesculapius'||kind==='sceptre of might'){
+   tube(.011,.011,.46,leather,0,.011,0);
+   ball(.028,gold,.25,.028,0);box(.012,.05,.012,metal,.28,.03,0);
+   for(const x of [-.2,0,.2])tube(.014,.014,.018,gold,x,.011,0);
+  }else{
+   const len=/^(sting|grimtooth|thiefbane)$/.test(kind)?.2:.42;
+   box(len,.008,.05,metal,len/2+.04,.008,0);
+   box(len*.1,.008,.03,metal,len+.065,.008,0);
+   box(.02,.016,.15,gold,.04,.012,0);
+   tube(.012,.012,.1,leather,-.03,.012,0);ball(.02,gold,-.09,.014,0);
+   // Nicks in the edge, and a dark stain along the fuller.
+   for(const x of [.35,.62])box(.018,.01,.012,leather,len*x+.04,.009,.026);
+   box(len*.7,.002,.008,leather,len*.45+.04,.0135,0);
+  }
+  g.rotation.y=-.5;
  }else if(/unicorn horn/.test(name)){
   // One merged mesh, lifted out of its own group so it sits among g's children like any other part.
   const [horn]=createUnicornHorn().children;g.add(horn);materials.push(horn.material);

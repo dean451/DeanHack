@@ -21,3 +21,16 @@ test('plain and forged names are left alone', () => {
     m.userData.dispose();
   }
 });
+
+test('artifact weapons lie on the floor as a weapon, tinted by their glint', () => {
+  const WEAPON = 2;
+  for (const [label, hex] of [['Excalibur', 0xffe7a1], ['Mjollnir', 0xa8d4ff], ['the Staff of Aesculapius', 0xb8ffcf], ['Sting', null]]) {
+    const m = createGroundModel({name: 'long sword', label: label === 'Sting' ? 'elven dagger named Sting' : label, class: WEAPON});
+    assert(m, label);
+    assert(m.userData.artifact, label);
+    assert(glow(m) > 0, label);
+    if (hex) assert.equal(hexOf(m), hex, label);
+    m.userData.dispose();
+  }
+  assert.equal(createGroundModel({name: 'long sword', label: 'long sword', class: WEAPON}), null);
+});
