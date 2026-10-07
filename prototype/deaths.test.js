@@ -237,3 +237,9 @@ test('a dying lich\'s fingers twitch once more while the heap fades, within boun
   assert.ok(max > .05, 'a visible twitch');
   assert.ok(Math.abs(w(.6) - base(.6)) < 1e-9 && Math.abs(w(.9) - base(.9)) < 1e-9, 'quiet before and after');
 });
+
+test('a toppled body kicks one leg once, late, after it has landed, and ends at rest', () => {
+  const leg = u => deathPose('topple', u).leg;
+  assert.equal(leg(.5), 0); assert.ok(leg(.9) > .3 && leg(.9) <= .35); assert.equal(leg(1), 0);
+  for (let u = 0; u <= 1; u += .01) assert.ok(leg(u) >= 0 && leg(u) <= .35);
+});

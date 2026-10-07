@@ -26,7 +26,9 @@ export function motePose(i, t) {
 // The point of light: it swells as the motes land, flares once and is gone.
 export function flarePose(t) {
   const u = clamp01((t - WISH.pull - .5) / WISH.flare), grow = smooth(t / (WISH.pull + .5));
-  return {size: u > 0 && u < 1 ? .08 + .5 * Math.sin(Math.PI * u) : .06 * grow * (t < WISH.pull + .5 ? 1 : 0), alpha: t <= 0 || u >= 1 ? 0 : u > 0 ? Math.sin(Math.PI * u) : .5 * grow};
+  // Just before the flare the point gutters once, as if the demon thought better of it.
+  const w = clamp01((t - WISH.pull - .3) / .15), gutter = 1 - .7 * Math.sin(Math.PI * w) ** 2;
+  return {size: u > 0 && u < 1 ? .08 + .5 * Math.sin(Math.PI * u) : .06 * grow * gutter * (t < WISH.pull + .5 ? 1 : 0), alpha: t <= 0 || u >= 1 ? 0 : u > 0 ? Math.sin(Math.PI * u) : .5 * grow * gutter};
 }
 
 // After the flare something is left behind: a thin gold column of light stands up from the
