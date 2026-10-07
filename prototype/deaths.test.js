@@ -252,3 +252,10 @@ test('a toppled body lets its weapon skip from the grip on landing, then lies st
   assert.equal(s(.5), 0);
   for (let u = 0; u <= 1; u += .01) assert.ok(s(u) >= 0 && s(u) <= .3 + 1e-9, `socket in bounds at ${u}`);
 });
+
+test('a splatting body lets its head slide down the slump, within bounds', () => {
+  const h = u => deathPose('splat', u).head;
+  assert.ok(Math.abs(h(0)) === 0);
+  assert.ok(h(.6) < -.45 && h(1) >= -.5 - 1e-9);
+  for (let u = 0; u < .99; u += .01) assert.ok(h(u + .01) <= h(u) + 1e-9, `only slides down at ${u}`);
+});

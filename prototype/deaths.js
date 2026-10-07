@@ -120,6 +120,8 @@ export function deathPose(style, u, dir = null) {
       // the puddle quivers as it settles, a few shrinking ripples, before it soaks away
       const quiver = Math.sin((u - .4) * 55) * .05 * (1 - smooth((u - .4) / .3)) * smooth((u - .4) / .04);
       p.sx = (1 - .1 * bulge) * (1 + .7 * flat) * (1 + (u > .4 ? quiver : 0));
+      // Any eye or head it had slides down the slump and is swallowed last.
+      p.head = -.5 * flat;
       p.fade = 1 - smooth((u - .65) / .35);
       push(.08 * flat);
       break;
