@@ -58,3 +58,9 @@ test('a rune flinches outward as the one before it is dragged in, staying in bou
     for (let t = 0; t < STUDY.total; t += .005) assert.ok(r(t) <= .38 * 1.22 + 1e-9, `${i}@${t}`);
   }
 });
+
+test('the last rune sags as it gutters, then is gone', () => {
+  const n = STUDY.runes - 1, end = .7 + n * .12 + .35;
+  assert.ok(runePose(n, end + .2).y < runePose(n, end + .01).y - .04, 'sags');
+  assert.ok(runePose(n, end + .2).y >= 0);
+});
