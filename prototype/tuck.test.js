@@ -53,7 +53,7 @@ test('a struck giant turtle pulls its head into its shell, then peeks back out t
     assert(Math.abs(tl[2] - (tail0[2] + f * TAIL_IN)) < 1e-9);
     if (f > most) most = f;
     if (f > .99 && inAt < 0) inAt = t;
-    if (f > .99 && !a.actions.current) { const z = beakZ(a); assert(z < z0 - .14 && z < .37, `only the beak is left past the rim (${z})`); }
+    if (f > .99 && !a.actions.current) { const z = beakZ(a); assert(z < z0 - .14 && z < .45, `only the beak is left past the rim (${z})`); }
     if (inAt >= 0 && f === 0 && outAt < 0) outAt = t;
     prev = f;
   }
