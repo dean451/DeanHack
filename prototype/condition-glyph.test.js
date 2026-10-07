@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {conditionGlyph} from './condition-glyph.js';
 
-const WORDS = ['Satiated', 'Hungry', 'Weak', 'Fainting', 'Starved', 'Blind', 'Deaf', 'Conf', 'Stun', 'Hallu', 'FoodPois', 'Ill', 'Slime', 'Burdened', 'Stressed', 'Strained', 'Overtaxed', 'Overloaded', 'Lev', 'Fly', 'Ride'];
+const WORDS = ['Satiated', 'Hungry', 'Weak', 'Fainting', 'Starved', 'Blind', 'Deaf', 'Conf', 'Stun', 'Hallu', 'FoodPois', 'Ill', 'Slime', 'Stone', 'Strngl', 'Burdened', 'Stressed', 'Strained', 'Overtaxed', 'Overloaded', 'Lev', 'Fly', 'Ride'];
 
 test('every known condition has a shape of its own cue, ignoring case', () => {
   assert.equal(conditionGlyph('HUNGRY'), conditionGlyph('hungry'));
