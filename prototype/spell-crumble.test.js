@@ -69,3 +69,9 @@ test('the first flake clings to the hand before it gives way', () => {
   assert.equal(fleckPose(0, 0).alpha, 0);
   assert.equal(fleckPose(0, CRUMBLE.total).alpha, 0);
 });
+
+test('a settled flake skids sideways before it fades', () => {
+  // Fleck 5 sits at 12 rad: its outward drift and the skid both push +x, so the skid shows as extra travel after the sag.
+  const born = 5 * .06, life = .9 + .04 * 2, x = u => fleckPose(5, born + u * life).x;
+  assert.ok(x(.9) - x(.6) > .05);
+});
