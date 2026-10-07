@@ -38,7 +38,7 @@ export function afterPose(t) {
   const u = clamp01((t - WISH.pull - .5 - WISH.flare) / WISH.settle);
   if (u <= 0 || u >= 1) return {ring: .001, ringAlpha: 0, column: .001, columnAlpha: 0};
   const rise = smooth(Math.min(1, u * 3)), fade = 1 - smooth(clamp01((u - .45) / .55));
-  return {ring: .2 + .7 * smooth(u), ringAlpha: .5 * (1 - u) * (1 - u), column: .02 + .5 * rise * (1 - .8 * u), columnAlpha: .55 * fade * Math.min(1, u * 6)};
+  return {ring: .2 + .7 * smooth(u), ringAlpha: .5 * (1 - u) * (1 - u), column: .02 + .5 * rise * (1 - .8 * u), columnAlpha: .55 * fade * Math.min(1, u * 6) * (1 - .6 * Math.sin(Math.PI * clamp01((u - .3) / .1)) ** 2)};  // the column stutters once, as if the wish were being weighed and found wanting
 }
 
 // The wish takes form: a small gold shard condenses out of the point of light, turns over

@@ -84,3 +84,11 @@ test('shaken-off flecks gutter as they fall, each at its own pitch, never leavin
   assert.ok(up > 0, 'catches again');
   assert.equal(fleckPose(0, BLESS.total).alpha, 0);
 });
+
+test('the lifted ring gutters once mid-fade then rests', async () => {
+  const {ringPose, BLESS} = await import('./bless-flash.js');
+  const a = u => ringPose('lifted', u * BLESS.total).alpha;
+  assert.ok(a(.43) < a(.34) * .6);
+  assert.equal(ringPose('lifted', BLESS.total).alpha, 0);
+  for (let u = 0; u < 1; u += .005) assert.ok(a(u) >= 0 && a(u) <= .3 + 1e-9);
+});

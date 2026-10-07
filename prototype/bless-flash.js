@@ -33,7 +33,7 @@ export function ringPose(kind, t) {
     return {radius: .55 - .3 * smooth(u / .8) + stutter + snap, lift: stutter ? .03 * smooth(u / .15) * (1 - smooth((u - .7) / .3)) : 0, alpha: .7 * smooth(u / .15) * fade};
   }
   // The lifted ring is shaken, not eased: it shudders as the curse is wrung out, the tremor dying by a third.
-  return {radius: .25 + .2 * smooth(u / .5) + .025 * Math.sin(u * 70) * (1 - smooth(u / .3)), lift: 0, alpha: .3 * smooth(u / .1) * (1 - smooth((u - .3) / .4))};
+  return {radius: .25 + .2 * smooth(u / .5) + .025 * Math.sin(u * 70) * (1 - smooth(u / .3)), lift: 0, alpha: .3 * smooth(u / .1) * (1 - smooth((u - .3) / .4)) * (1 - .6 * Math.sin(Math.PI * clamp01((u - .38) / .1)) ** 2)};  // it gutters once as the curse tries to creep back
 }
 
 // Fleck i of a lifted curse: shaken out sideways, then pulled down to the floor.
