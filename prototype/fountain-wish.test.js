@@ -60,3 +60,9 @@ test('a wish by any means plays once, not twice, when both lines arrive', () => 
   fx.update(WISH.total + .1); fx.message('For what do you wish?', 1, 1);
   assert.equal(fx.active, 1);
 });
+
+test('the last mote lands after all the others', () => {
+  const landed = i => { let t = 0; while (t < WISH.total && motePose(i, t + .005).r > 0) t += .005; return t; };
+  const last = landed(WISH.motes - 1);
+  for (let i = 0; i < WISH.motes - 1; i++) assert.ok(landed(i) < last - .2, String(i));
+});
