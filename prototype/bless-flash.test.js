@@ -57,3 +57,11 @@ test('the blessing ring trembles at the top of its rise before letting go', () =
   for (let x = .64; x < .8; x += .004) if (u(x) < .5 * 1 - .004 && u(x + .004) > u(x) + 1e-4) dips++;
   assert.ok(dips > 3, 'the lift shivers rather than gliding');
 });
+
+test('a lifted curse is shaken: the ring shudders early, then settles, never leaving bounds', () => {
+  let flips = 0, last = 0;
+  for (let t = .02; t < BLESS.total * .3; t += .004) { const d = ringPose('lifted', t + .004).radius - ringPose('lifted', t).radius; if (last && Math.sign(d) !== Math.sign(last)) flips++; last = d; }
+  assert.ok(flips >= 4, `shudders (${flips})`);
+  for (let t = BLESS.total * .5; t < BLESS.total - .02; t += .01) assert.ok(ringPose('lifted', t + .01).radius >= ringPose('lifted', t).radius - 1e-9, 'smooth once calm');
+  for (let t = .01; t < BLESS.total; t += .01) { const p = ringPose('lifted', t); assert.ok(p.radius >= .2 && p.radius <= .5 && p.alpha >= 0 && p.alpha <= .3 + 1e-9); }
+});
