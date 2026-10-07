@@ -9,3 +9,9 @@ test('quest leaders of level 20 stand over a plain human', () => {
     assert(scale(n) >= scale('human') * 1.1, n);
   }
 });
+
+test('the elven quest leaders have their own elf model, larger than the high-elf', () => {
+  for(const n of ['earendil', 'elwing']){
+    assert(scale(n) > scale('high-elf'), n);
+  }
+});
