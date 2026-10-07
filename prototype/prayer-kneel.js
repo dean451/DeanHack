@@ -18,7 +18,7 @@ const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
 export const kneelMessage = text => typeof text === 'string' && /^You begin praying to /.test(text);
 
-// Offsets at normalised time u: a quick fold down, a held bow that shivers, one flinch at about
+// Offsets at normalised time u: a quick fold down, a held bow that shivers, a sneaked look up that ducks back lower, one flinch at about
 // two thirds, then a slow rise.
 export function kneelPose(u) {
   u = clamp01(Number.isFinite(u) ? u : 1);
@@ -28,6 +28,10 @@ export function kneelPose(u) {
   p.lean += .015 * Math.sin(u * 60) * hold;
   const flinch = Math.sin(clamp01((u - .62) / .07) * Math.PI) * (1 - clamp01((u - .69) / .03)) * hold;
   p.lean -= .12 * flinch; p.twist += .1 * flinch;
+  // Early in the hold the hero sneaks a look up, then ducks a little lower than before, as if
+  // the sky had been looking too.
+  const peek = Math.sin(clamp01((u - .28) / .08) * Math.PI) * hold, duck = smooth((u - .37) / .05) * (1 - smooth((u - .6) / .1)) * hold;
+  p.lean += .05 * duck - .1 * peek; p.wrist -= .15 * peek; p.socket -= .06 * peek;
   return p;
 }
 

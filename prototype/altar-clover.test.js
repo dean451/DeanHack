@@ -38,3 +38,10 @@ test('leaf 1 flinches late, in bounds, and no other leaf does', () => {
   for (const i of [0, 2, 3]) for (let t = 2.45; t < 2.65; t += .005) assert.equal(sh(i, t), 0);
   assert.equal(sh(1, CLOVER.total), 0);
 });
+
+test('the last leaf flinches shut for a beat once open, then reopens; the others stay open', () => {
+  const last = CLOVER.leaves - 1, o = (i, t) => leafPose(i, t).open;
+  assert.ok(o(last, 1.0) < o(last, .88) - .15);
+  assert.ok(o(last, 1.2) > o(last, 1.0) + .15);
+  for (let i = 0; i < last; i++) assert.ok(o(i, 1.0) >= o(i, .88) - 1e-9, String(i));
+});
