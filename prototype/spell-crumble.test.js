@@ -49,3 +49,37 @@ test('the last fleck stalls mid-fall, then drops and never rises', () => {
   let last = Infinity;
   for (let u = .02; u < .98; u += .01) { const v = y(u); assert.ok(v <= last + 1e-9, String(u)); last = v; }
 });
+
+test('plain flecks flutter as they sag, still falling overall and in bounds', () => {
+  const i = 3;
+  let flips = 0, last = 0, prevY = Infinity;
+  for (let t = .3; t < 1.1; t += .004) {
+    const a = fleckPose(i, t), b = fleckPose(i, t + .004);
+    if (a.alpha > .01 && b.alpha > .01) { const d = b.x - a.x; if (last && Math.sign(d) !== Math.sign(last)) flips++; last = d; assert.ok(b.y <= a.y + 1e-9); }
+    assert.ok(Math.hypot(a.x, a.z) <= .4);
+  }
+  assert.ok(flips >= 1, 'sways');
+});
+
+test('the first flake clings to the hand before it gives way', () => {
+  const born = 0, life = .9;
+  assert.equal(fleckPose(0, born + .2 * life).y, .5);
+  assert.ok(fleckPose(0, born + .5 * life).y < .5);
+  assert.ok(fleckPose(0, born + .9 * life).y >= .03);
+  assert.equal(fleckPose(0, 0).alpha, 0);
+  assert.equal(fleckPose(0, CRUMBLE.total).alpha, 0);
+});
+
+test('a settled flake skids sideways before it fades', () => {
+  // Fleck 5 sits at 12 rad: its outward drift and the skid both push +x, so the skid shows as extra travel after the sag.
+  const born = 5 * .06, life = .9 + .04 * 2, x = u => fleckPose(5, born + u * life).x;
+  assert.ok(x(.9) - x(.6) > .05);
+});
+
+test('one flake is lifted just after it is born, then falls like the rest, in bounds', () => {
+  const born = 5 * .06, life = .9 + .04 * (5 % 3), y = u => fleckPose(5, born + u * life).y;
+  assert.ok(y(.15) > y(.01) + .04, 'it rises first');
+  for (let u = .3; u < .98; u += .02) assert.ok(y(u + .02) <= y(u) + 1e-9, `falls only at ${u}`);
+  for (let u = .01; u < 1; u += .01) assert.ok(y(u) >= .03 && y(u) <= .5 + 1e-9, `in bounds at ${u}`);
+  assert.equal(fleckPose(5, 5).alpha, 0);
+});

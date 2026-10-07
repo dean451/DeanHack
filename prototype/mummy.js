@@ -23,6 +23,8 @@ export const MUMMIES={
  'dwarf mummy':{scale:.78,wide:1.18,tint:'#b04030'},
  'elf mummy':{scale:1.04,wide:.9,tint:'#3a9a3a'},
  'human mummy':{scale:1,wide:1,tint:'#8a8a80'},
+ 'ogre mummy':{scale:1.3,wide:1.2,tint:'#8a6a40'},
+ 'troll mummy':{scale:1.38,wide:1.1,tint:'#3a8a50'},
  'ettin mummy':{scale:1.55,wide:1.12,tint:'#3a5ab0',heads:2},
  'giant mummy':{scale:1.85,wide:1.05,tint:'#3aa0a8'},
 };

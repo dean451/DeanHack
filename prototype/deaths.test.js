@@ -237,3 +237,42 @@ test('a dying lich\'s fingers twitch once more while the heap fades, within boun
   assert.ok(max > .05, 'a visible twitch');
   assert.ok(Math.abs(w(.6) - base(.6)) < 1e-9 && Math.abs(w(.9) - base(.9)) < 1e-9, 'quiet before and after');
 });
+
+test('a toppled body kicks one leg once, late, after it has landed, and ends at rest', () => {
+  const leg = u => deathPose('topple', u).leg;
+  assert.equal(leg(.5), 0); assert.ok(leg(.9) > .3 && leg(.9) <= .35); assert.equal(leg(1), 0);
+  for (let u = 0; u <= 1; u += .01) assert.ok(leg(u) >= 0 && leg(u) <= .35);
+});
+
+test('a toppled body lets its weapon skip from the grip on landing, then lies still', () => {
+  const s = u => deathPose('topple', u).socket;
+  assert.equal(s(0), 0);
+  assert.ok(s(.675) > .25 && s(.675) <= .3 + 1e-9);
+  assert.equal(s(1), 0);
+  assert.equal(s(.5), 0);
+  for (let u = 0; u <= 1; u += .01) assert.ok(s(u) >= 0 && s(u) <= .3 + 1e-9, `socket in bounds at ${u}`);
+});
+
+test('a splatting body lets its head slide down the slump, within bounds', () => {
+  const h = u => deathPose('splat', u).head;
+  assert.ok(Math.abs(h(0)) === 0);
+  assert.ok(h(.6) < -.45 && h(1) >= -.5 - 1e-9);
+  for (let u = 0; u < .99; u += .01) assert.ok(h(u + .01) <= h(u) + 1e-9, `only slides down at ${u}`);
+});
+
+test('a collapsing lich sheds flakes at each of its three jolts before the main dust cloud', async () => {
+  const {DEATH_SHED_U} = await import('./deaths.js');
+  const sheds = DEATH_SHED_U.lichdust;
+  assert.equal(sheds.length, 3);
+  for (let i = 0; i < 3; i++) {
+    assert.ok(sheds[i] < DEATH_BURST_U.lichdust === (i < 2), 'two before the main cloud, one after');
+    if (i) assert.ok(sheds[i] > sheds[i - 1]);
+  }
+  assert.equal(DEATH_SHED_U.crumble, undefined);
+  const fx = createDeathBurst(THREE);
+  const shed = fx.burst('lichshed', {x: 0, y: 0, z: 0}, {height: 1});
+  const main = createDeathBurst(THREE).burst('lichdust', {x: 0, y: 0, z: 0}, {height: 1});
+  assert.ok(shed > 0 && shed < main / 2, 'a shed is a small puff beside the cloud');
+  for (let t = 0; t < 3; t += .05) fx.update(.05);
+  assert.equal(fx.alive, 0, 'the flakes are gone');
+});

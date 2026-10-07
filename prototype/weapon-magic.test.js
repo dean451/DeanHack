@@ -77,3 +77,32 @@ test('the hero and floor sync follow the wielded weapon and the seen label', () 
   assert.equal(item.children.length, 1);
   assert.ok(syncFloorMagic(item, {class: W, label: 'long sword', spe: 2}));
 });
+
+test('Cleaver, Thiefbane, Luck Blade and Dragonbane each have their own signature', () => {
+  const keys = ['cleaver', 'thiefbane', 'luck blade', 'dragonbane'];
+  for (const k of keys) assert.ok(THEMES[k], k);
+  assert.equal(new Set(keys.map(k => THEMES[k].shell)).size, keys.length);
+  assert.ok(THEMES.cleaver.shell >> 16 > 0xa0 && (THEMES.cleaver.shell & 0xff) < 0x30, 'Cleaver burns blood red');
+  assert.equal(weaponMagic({name: 'Cleaver', class: W}).theme, THEMES.cleaver);
+});
+
+test('the bane and slayer blades each have their own signature', () => {
+  const keys = ['werebane', 'grayswandir', 'giantslayer', 'ogresmasher', 'trollsbane'];
+  for (const k of keys) assert.ok(THEMES[k], k);
+  assert.equal(new Set(keys.map(k => THEMES[k].shell)).size, keys.length);
+  assert.equal(weaponMagic({name: 'Trollsbane', class: W}).theme, THEMES.trollsbane);
+});
+
+test('the Longbow of Diana has its own moonlit signature', () => {
+  assert.ok(THEMES['longbow of diana']);
+  const others = Object.entries(THEMES).filter(([k]) => k !== 'longbow of diana');
+  assert.ok(others.every(([, t]) => t.shell !== THEMES['longbow of diana'].shell));
+  assert.equal(weaponMagic({name: 'Longbow of Diana', class: W}).theme, THEMES['longbow of diana']);
+});
+
+test('the Sceptre of Might pulses in heavy gold', () => {
+  const t = THEMES['sceptre of might'];
+  assert.ok(t && t.beat);
+  assert.ok(Object.entries(THEMES).every(([k, o]) => k === 'sceptre of might' || o.shell !== t.shell));
+  assert.equal(weaponMagic({name: 'Sceptre of Might', class: W}).theme, t);
+});

@@ -65,3 +65,18 @@ test('the last spark twitches up once after it has slumped', () => {
   for (let u = .72; u < .93; u += .005) if (y(0, u + .005) > y(0, u) + 1e-4) others++;
   assert.equal(others, 0, 'the rest only fall');
 });
+
+test('the first spark skips once more on the floor late on, staying in bounds and ending dark', () => {
+  const base = t => sparkPose(0, t).y;
+  let bump = 0;
+  for (let t = .38 + .62 * .6; t < FIZZLE.total; t += .005) { const p = sparkPose(0, t); assert.ok(p.y >= 0 && p.y <= .8, String(t)); bump = Math.max(bump, p.y); }
+  assert.ok(bump > .04, 'it hops again');
+  assert.equal(sparkPose(0, FIZZLE.total).alpha, 0); assert.ok(base(.5) > 0);
+});
+
+test('the third spark flares at the snap and still stays in bounds', async () => {
+  const {sparkPose, FIZZLE} = await import('./spell-fizzle.js');
+  assert.ok(sparkPose(2, .38 + .04).alpha > sparkPose(2, .38 + .1).alpha);
+  for (let t = 0; t <= FIZZLE.total; t += .005) for (let i = 0; i < FIZZLE.sparks; i++) { const a = sparkPose(i, t).alpha; assert.ok(a >= 0 && a <= .85 + 1e-9); }
+  assert.equal(sparkPose(2, FIZZLE.total).alpha, 0);
+});

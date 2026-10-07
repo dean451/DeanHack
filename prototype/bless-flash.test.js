@@ -57,3 +57,38 @@ test('the blessing ring trembles at the top of its rise before letting go', () =
   for (let x = .64; x < .8; x += .004) if (u(x) < .5 * 1 - .004 && u(x + .004) > u(x) + 1e-4) dips++;
   assert.ok(dips > 3, 'the lift shivers rather than gliding');
 });
+
+test('a lifted curse is shaken: the ring shudders early, then settles, never leaving bounds', () => {
+  let flips = 0, last = 0;
+  for (let t = .02; t < BLESS.total * .3; t += .004) { const d = ringPose('lifted', t + .004).radius - ringPose('lifted', t).radius; if (last && Math.sign(d) !== Math.sign(last)) flips++; last = d; }
+  assert.ok(flips >= 4, `shudders (${flips})`);
+  for (let t = BLESS.total * .5; t < BLESS.total - .02; t += .01) assert.ok(ringPose('lifted', t + .01).radius >= ringPose('lifted', t).radius - 1e-9, 'smooth once calm');
+  for (let t = .01; t < BLESS.total; t += .01) { const p = ringPose('lifted', t); assert.ok(p.radius >= .2 && p.radius <= .5 && p.alpha >= 0 && p.alpha <= .3 + 1e-9); }
+});
+
+test('the cursed ring twitches off the floor on each stutter beat, and rests flat at the ends', () => {
+  const lifts = Array.from({length: 180}, (_, i) => ringPose('cursed', i * .01).lift);
+  assert.ok(Math.max(...lifts) > .015 && Math.max(...lifts) < .05, 'a finger-width twitch');
+  assert.ok(lifts.some(l => l === 0), 'and flat between beats');
+  assert.equal(ringPose('cursed', 0).lift, 0);
+  assert.equal(ringPose('cursed', BLESS.total).lift, 0);
+});
+
+test('shaken-off flecks gutter as they fall, each at its own pitch, never leaving bounds', () => {
+  const a = i => Array.from({length: 100}, (_, k) => fleckPose(i, k * .018).alpha);
+  for (let i = 0; i < BLESS.flecks; i++) assert.ok(a(i).every(x => x >= 0 && x <= 1), String(i));
+  assert.notDeepEqual(a(0), a(1));
+  const early = fleckPose(0, .2 * BLESS.total).alpha;
+  assert.ok(Math.abs(early - 1) < .05, 'steady at first');
+  const dips = Array.from({length: 40}, (_, k) => fleckPose(2, (.45 + k * .005) * BLESS.total).alpha), up = dips.filter((x, k) => k && x > dips[k - 1]).length;
+  assert.ok(up > 0, 'catches again');
+  assert.equal(fleckPose(0, BLESS.total).alpha, 0);
+});
+
+test('the lifted ring gutters once mid-fade then rests', async () => {
+  const {ringPose, BLESS} = await import('./bless-flash.js');
+  const a = u => ringPose('lifted', u * BLESS.total).alpha;
+  assert.ok(a(.43) < a(.34) * .6);
+  assert.equal(ringPose('lifted', BLESS.total).alpha, 0);
+  for (let u = 0; u < 1; u += .005) assert.ok(a(u) >= 0 && a(u) <= .3 + 1e-9);
+});

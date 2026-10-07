@@ -87,7 +87,7 @@ function geometry(){
 function mesh(parent,geo,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
 export function createNorn(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.12);
  mesh(body,S.body,'body');
  const head=new THREE.Group();head.position.set(0,.955,0);body.add(head);
  mesh(head,S.head,'head');

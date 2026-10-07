@@ -13,3 +13,8 @@ test('the plain troll stands larger than it did and no smaller than the ice trol
 test('the vampire stands a little taller than a plain human', () => {
   assert(height('vampire', 86) > height('human', 64) * 1.0);
 });
+
+test('the ice troll stands as large as a rock troll', () => {
+  const s = name => createCreature({name, symbol: 84, color: 7}).g.scale.y;
+  assert(s('ice troll') >= s('rock troll'));
+});

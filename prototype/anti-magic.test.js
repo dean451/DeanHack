@@ -51,3 +51,14 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('the ring closes in hitching steps and never opens back up', () => {
+  let last = Infinity, stalls = 0;
+  for (let t = .102; t <= ANTI.drain; t += .002) {
+    const {scale} = ringPose(t);
+    assert.ok(scale <= last + 1e-9, `${t} opened`);
+    if (last - scale < .0009) stalls++;
+    last = scale;
+  }
+  assert.ok(stalls > 5, 'it stalls at least once on the way in');
+});

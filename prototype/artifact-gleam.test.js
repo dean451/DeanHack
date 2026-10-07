@@ -117,3 +117,10 @@ test('a wielded artifact gleams up its whole blade and follows the swing', () =>
   // No socket (a GLB hero): nothing.
   assert.equal(syncHeldGleam({g: new THREE.Group()}, sword), null);
 });
+
+test('the great non-weapon artifacts glint in the grand style', () => {
+  for (const k of ['heart of ahriman', 'orb of fate', 'palantir of westernesse', 'eye of the aethiopica']) {
+    assert.equal(ARTIFACTS[k].style, 'grand', k);
+    assert(GLEAM_STYLES.grand.motes > GLEAM_STYLES.artifact.motes);
+  }
+});

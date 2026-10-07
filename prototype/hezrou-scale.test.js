@@ -8,3 +8,7 @@ test('the hezrou looms over an ordinary demon-sized foe', () => {
   assert(scale('hezrou') >= 1.25);
   assert(scale('hezrou') > scale('vrock'));
 });
+
+test('the pit fiend towers over the lesser devils', () => {
+  for (const lesser of ['horned devil', 'barbed devil', 'bone devil', 'ice devil']) assert(scale('pit fiend') > scale(lesser) + 0.1, lesser);
+});

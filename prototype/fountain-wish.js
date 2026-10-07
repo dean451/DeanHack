@@ -17,14 +17,18 @@ export const isWishMessage = text => /grateful for his release, he grants you a 
 // Mote i at time t: radius from the middle, spiral angle, height and alpha. Each starts at its
 // own distance, accelerates inward and vanishes into the point.
 export function motePose(i, t) {
-  const u = clamp01((t - i * .04) / WISH.pull), r0 = .7 + (i % 4) * .12, pull = u * u;
+  // The last mote hangs back in the dark and comes in late, after the others have landed, as if it
+  // were unsure about the bargain.
+  const u = clamp01((t - i * .04 - (i === WISH.motes - 1 ? .35 : 0)) / WISH.pull), r0 = .7 + (i % 4) * .12, pull = u * u;
   return {r: r0 * (1 - pull), angle: i * 2.4 + u * 7 + pull * 4, y: .35 + .45 * Math.sin(Math.PI * Math.min(1, u * 1.2)) * .5 + (i % 3) * .05, alpha: u <= 0 || u >= 1 ? 0 : .9 * Math.min(1, u * 5)};
 }
 
 // The point of light: it swells as the motes land, flares once and is gone.
 export function flarePose(t) {
   const u = clamp01((t - WISH.pull - .5) / WISH.flare), grow = smooth(t / (WISH.pull + .5));
-  return {size: u > 0 && u < 1 ? .08 + .5 * Math.sin(Math.PI * u) : .06 * grow * (t < WISH.pull + .5 ? 1 : 0), alpha: t <= 0 || u >= 1 ? 0 : u > 0 ? Math.sin(Math.PI * u) : .5 * grow};
+  // Just before the flare the point gutters once, as if the demon thought better of it.
+  const w = clamp01((t - WISH.pull - .3) / .15), gutter = 1 - .7 * Math.sin(Math.PI * w) ** 2;
+  return {size: u > 0 && u < 1 ? .08 + .5 * Math.sin(Math.PI * u) : .06 * grow * gutter * (t < WISH.pull + .5 ? 1 : 0), alpha: t <= 0 || u >= 1 ? 0 : u > 0 ? Math.sin(Math.PI * u) : .5 * grow * gutter};
 }
 
 // After the flare something is left behind: a thin gold column of light stands up from the
@@ -34,7 +38,7 @@ export function afterPose(t) {
   const u = clamp01((t - WISH.pull - .5 - WISH.flare) / WISH.settle);
   if (u <= 0 || u >= 1) return {ring: .001, ringAlpha: 0, column: .001, columnAlpha: 0};
   const rise = smooth(Math.min(1, u * 3)), fade = 1 - smooth(clamp01((u - .45) / .55));
-  return {ring: .2 + .7 * smooth(u), ringAlpha: .5 * (1 - u) * (1 - u), column: .02 + .5 * rise * (1 - .8 * u), columnAlpha: .55 * fade * Math.min(1, u * 6)};
+  return {ring: .2 + .7 * smooth(u), ringAlpha: .5 * (1 - u) * (1 - u), column: .02 + .5 * rise * (1 - .8 * u), columnAlpha: .55 * fade * Math.min(1, u * 6) * (1 - .6 * Math.sin(Math.PI * clamp01((u - .3) / .1)) ** 2)};  // the column stutters once, as if the wish were being weighed and found wanting
 }
 
 // The wish takes form: a small gold shard condenses out of the point of light, turns over

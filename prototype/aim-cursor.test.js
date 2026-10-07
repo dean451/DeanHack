@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {aimKeys, walkCursor, createAimCursor} from './aim-cursor.js';
+import {aimKeys, walkCursor, aimLine, createAimCursor} from './aim-cursor.js';
 
 test('the keys walk the cursor exactly to the square and then select it', () => {
   const from = {x: 20, z: 10};
@@ -32,4 +32,29 @@ test('the aim cursor starts hidden, sits on the square it is given, and cleans u
   let n = 0; aim.g.traverse(o => { if (o.geometry) { const d = o.geometry.dispose.bind(o.geometry); o.geometry.dispose = () => { n++; d(); }; } });
   aim.dispose();
   assert.equal(n, 2);
+});
+
+test('the aim line crosses the squares between hero and cursor, ends left out and capped', () => {
+  assert.deepEqual(aimLine({x: 0, z: 0}, {x: 4, z: 0}), [{x: 1, z: 0}, {x: 2, z: 0}, {x: 3, z: 0}]);
+  assert.deepEqual(aimLine({x: 0, z: 0}, {x: 3, z: 3}), [{x: 1, z: 1}, {x: 2, z: 2}]);
+  assert.deepEqual(aimLine({x: 2, z: 2}, {x: 2, z: 2}), []);
+  assert.deepEqual(aimLine({x: 2, z: 2}, {x: 3, z: 2}), []);
+  assert.equal(aimLine({x: 0, z: 0}, {x: 90, z: 7}).length, 24);
+  for (const p of aimLine({x: 0, z: 0}, {x: -9, z: 4}, 99)) assert.ok(Math.abs(p.z - (p.x * -4 / 9)) <= .6);
+});
+
+test('the cursor draws a dotted trail from the hero and hides it with the cursor', () => {
+  const root = new THREE.Group(), aim = createAimCursor();
+  root.add(aim.g);
+  aim.show(5, 0, {x: 0, z: 0});
+  const shown = () => root.children.filter(c => c !== aim.g && c.visible).length;
+  assert.equal(shown(), 4);
+  aim.show(2, 0, {x: 0, z: 0});
+  assert.equal(shown(), 1);
+  aim.show(2, 0);
+  assert.equal(shown(), 0);
+  aim.show(5, 0, {x: 0, z: 0});
+  aim.hide();
+  assert.equal(shown(), 0);
+  aim.dispose();
 });

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline, FX_TICK_MS} from './fx.js';
-import {RAY_LOOKS, DIG_LOOK, RAY_FADE_MS, SPARK_MS, MIRROR_MS, GRIT_MS, PUFF_MS, GRIT_PER_CELL, PUFFS_PER_CELL, CHIPS_PER_CELL, RAY_Y, rayLook, rayBounces, rayFrame, raySparks, markMirrors, mirrorFlash, reflectorAt, digCells, solidAt, digGrit, rubble, createRays} from './rays.js';
+import {RAY_LOOKS, DIG_LOOK, RAY_FADE_MS, SPARK_MS, MIRROR_MS, GRIT_MS, PUFF_MS, GRIT_PER_CELL, PUFFS_PER_CELL, CHIPS_PER_CELL, RAY_Y, rayLook, GAP_LEN, dashLen, rayBounces, rayFrame, raySparks, markMirrors, mirrorFlash, reflectorAt, digCells, solidAt, digGrit, rubble, createRays} from './rays.js';
 
 const zap = (type, dir) => ({kind: 'zap', zap: type, dir});
 // A fire bolt going east from x=3, hitting a wall past x=6 and coming back to x=4.
@@ -278,4 +278,30 @@ test('createRays draws a dig with grit and rubble, then ends empty', () => {
   assert.equal(rays.sparks.geometry.drawRange.count, 0);
   rays.dispose();
   assert.equal(parent.children.length, 0);
+});
+
+test('rays differ in shape, not colour alone: magic missile, sleep, poison gas and acid break into dashes, the rest stay solid', () => {
+  const dashed = Object.keys(RAY_LOOKS).filter(k => RAY_LOOKS[k].dash).sort();
+  assert.deepEqual(dashed, ['acid', 'magic missile', 'poison gas', 'sleep']);
+  const shapes = new Set();
+  for (const k of dashed) {
+    const L = RAY_LOOKS[k], row = [...Array(12).keys()].map(i => dashLen(L, i, 0));
+    assert.ok(row.every(v => v === 1 || v === GAP_LEN), `${k} cells are whole or gapped`);
+    assert.ok(row.includes(1) && row.includes(GAP_LEN), `${k} has both dashes and gaps`);
+    shapes.add(row.join());
+  }
+  assert.equal(shapes.size, dashed.length, 'each dashed ray has its own rhythm');
+  assert.equal(dashLen(RAY_LOOKS.fire, 3, 500), 1);
+  assert.equal(dashLen(DIG_LOOK, 3, 500), 1);
+});
+
+test('dashes march with time and a beam frame carries each cell\'s length', () => {
+  const L = RAY_LOOKS.sleep;
+  assert.notEqual([0, 1, 2, 3].map(i => dashLen(L, i, 0)).join(), [0, 1, 2, 3].map(i => dashLen(L, i, 200)).join());
+  assert.equal(dashLen(RAY_LOOKS['poison gas'], 0, 1e7 + 123) <= 1, true, 'phase stays in range for negative speeds and long times');
+  const segs = rayFrame(bolt('sleep'), 400);
+  assert.ok(segs.length > 2);
+  for (const s of segs) assert.ok(s.len === 1 || s.len === GAP_LEN);
+  assert.ok(segs.some(s => s.len === GAP_LEN) && segs.some(s => s.len === 1));
+  assert.ok(rayFrame(bolt('fire'), 400).every(s => s.len === 1));
 });

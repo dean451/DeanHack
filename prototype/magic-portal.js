@@ -17,7 +17,8 @@ export const isPortalMessage = text => /^You activated a magic portal/.test(text
 export function ringPose(i, t, dir) {
   const life = dir < 0 ? PORTAL.out : PORTAL.arrive;
   if (t <= 0 || t >= life) return {radius: 1.2, spin: 0, alpha: 0};
-  const u = t / life, v = dir < 0 ? u * u : 1 - (1 - u) * (1 - u);
+  // The last ring on the arrival hangs back a beat, stuck at the centre, then tears loose.
+  const lag = dir > 0 && i === PORTAL.rings - 1 ? .08 : 0, u = clamp01((t - lag) / (life - lag)), v = dir < 0 ? u * u : 1 - (1 - u) * (1 - u);
   const radius = dir < 0 ? 1.2 - (1.1 - .1 * i) * v : .1 + (1.1 - .1 * i) * v;
   const stutter = dir > 0 ? .75 + .25 * Math.sin(u * 41 + i * 2) : 1;
   return {radius, spin: (i % 2 ? -1 : 1) * (u * 9 + i) * dir * -1, alpha: .7 * stutter * Math.min(1, t * 12) * (1 - smooth(clamp01((u - .7) / .3)))};

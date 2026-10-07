@@ -399,3 +399,21 @@ test('a dying lich buckles its leg, slumps its hem and drops its weapon, and cle
   clearActionPose(a, q);
   assert.equal(snap(a), before);
 });
+
+test('a dying lich queues a shed of flakes at each jolt, and other deaths queue none', () => {
+  for (const [name, sheds] of [['lich', 3], ['kobold zombie', 0]]) {
+    const c = createCreature({name});
+    c.g.userData.height = .9; c.species = name; c.g.position.set(1, 0, 0); c.target = c.g.position.clone();
+    const actors = new Map([['11,10:1', c]]);
+    assert.ok(queueDeath({x: 11, z: 10, name}, s => findActor(actors, s.x, s.z, {origin: {x: 10, z: 10}})));
+    const q = c.actions;
+    let got = 0;
+    for (let t = 0; t < 3; t += 1 / 60) {
+      clearActionPose(c, q);
+      updateActions(c, q, 1 / 60);
+      if (q.deathShed) { got++; assert.equal(q.deathShed.style, 'lichshed'); q.deathShed = null; }
+      q.deathBurst = null;
+    }
+    assert.equal(got, sheds, name);
+  }
+});

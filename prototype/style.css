@@ -17,6 +17,7 @@
 #engine-messages{max-height:9.5em;overflow-y:auto;scrollbar-width:thin}#engine-messages div{margin-top:4px}#engine-messages div:nth-child(2){opacity:.7}#engine-messages div:nth-child(3){opacity:.45}#engine-messages div:nth-child(n+4){opacity:.35}
 #engine-status{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:22px;padding-top:16px;border-top:1px solid #829c8e22;color:#9aaab7;font:12px Inter,sans-serif}
 #engine-status b{color:#e4d8c2;font-weight:400;margin-left:6px}
+#engine-status .condition i{font-style:normal;margin-right:3px}
 #engine-status .condition{color:#e9a36b;font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
 .gold{background:#e8c860;box-shadow:0 0 9px #e8c860}
 #engine-prompt{margin-top:22px;padding-top:16px;border-top:1px solid #829c8e22;font-size:12px;color:#d6d9c9}
@@ -103,3 +104,4 @@ footer .buttons button:hover,footer .buttons button:focus-visible,.engine-action
 /* the messages that led up to a text prompt, shown above its input */
 .engine-recent-box{margin:6px 0 12px;max-height:40vh;overflow-y:auto}
 .engine-recent-box .engine-recent{margin:0 0 5px}
+#farlook{position:fixed;z-index:5;pointer-events:none;padding:2px 7px;font:12px/1.4 monospace;color:#d8d2c2;background:#05080acc;border-left:2px solid #6b2a24;letter-spacing:.04em}#farlook[hidden]{display:none}

@@ -60,3 +60,21 @@ test('a wish by any means plays once, not twice, when both lines arrive', () => 
   fx.update(WISH.total + .1); fx.message('For what do you wish?', 1, 1);
   assert.equal(fx.active, 1);
 });
+
+test('the last mote lands after all the others', () => {
+  const landed = i => { let t = 0; while (t < WISH.total && motePose(i, t + .005).r > 0) t += .005; return t; };
+  const last = landed(WISH.motes - 1);
+  for (let i = 0; i < WISH.motes - 1; i++) assert.ok(landed(i) < last - .2, String(i));
+});
+
+test('the point of light gutters once before the flare, then still flares and rests', () => {
+  const a = t => flarePose(t).alpha, before = WISH.pull + .3;
+  assert.ok(a(before + .075) < a(before - .02) * .6, 'it dips');
+  assert.ok(a(WISH.pull + .5 + WISH.flare / 2) > .9);
+  assert.equal(a(WISH.total), 0);
+});
+
+test('the afterglow column stutters once while it stands', () => {
+  const t0 = WISH.pull + .5 + WISH.flare, at = u => afterPose(t0 + u * WISH.settle).columnAlpha;
+  assert.ok(at(.35) < at(.25) * .6 && at(.35) < at(.45) * .6);
+});

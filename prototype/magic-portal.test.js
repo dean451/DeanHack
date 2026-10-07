@@ -27,6 +27,14 @@ test('rings wind inward on departure and outward on arrival', () => {
   assert.notEqual(ringPose(0, .3, -1).spin, ringPose(1, .3, -1).spin);
 });
 
+test('the last ring on the arrival hangs back at the centre, then tears loose', () => {
+  const last = PORTAL.rings - 1;
+  assert.equal(ringPose(last, .06, 1).radius, .1);
+  assert.ok(ringPose(0, .06, 1).radius > .1 + .05, 'the others are already moving');
+  assert.ok(ringPose(last, .06, 1).alpha > 0);
+  assert.ok(ringPose(last, .4, 1).radius > ringPose(last, .2, 1).radius);
+});
+
 function fakeThree() {
   class V { constructor() { this.position = {set() {}, y: 0}; this.rotation = {}; this.scale = {setScalar() {}}; this.material = {color: new C()}; this.color = new C(); } add() {} dispose() {} }
   class C { copy() { return this; } lerp() { return this; } }
