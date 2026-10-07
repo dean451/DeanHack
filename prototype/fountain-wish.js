@@ -19,10 +19,14 @@ export function motePose(i, t) {
   return {r: r0 * (1 - pull), angle: i * 2.4 + u * 7 + pull * 4, y: .35 + .45 * Math.sin(Math.PI * Math.min(1, u * 1.2)) * .5 + (i % 3) * .05, alpha: u <= 0 || u >= 1 ? 0 : .9 * Math.min(1, u * 5)};
 }
 
+// While it gathers the point of light falters: it gutters to nearly nothing twice, as if the
+// wish might be refused, and only then steadies for the flare. Always 1 at the flare itself.
+const hesitate = t => { const u = (t - WISH.pull * .55) / (WISH.pull * .45 + .5); return u <= 0 || u >= 1 ? 1 : 1 - .85 * Math.max(0, Math.sin(u * Math.PI * 4)) * (1 - u); };
+
 // The point of light: it swells as the motes land, flares once and is gone.
 export function flarePose(t) {
   const u = clamp01((t - WISH.pull - .5) / WISH.flare), grow = smooth(t / (WISH.pull + .5));
-  return {size: u > 0 && u < 1 ? .08 + .5 * Math.sin(Math.PI * u) : .06 * grow * (t < WISH.pull + .5 ? 1 : 0), alpha: t <= 0 || u >= 1 ? 0 : u > 0 ? Math.sin(Math.PI * u) : .5 * grow};
+  return {size: u > 0 && u < 1 ? .08 + .5 * Math.sin(Math.PI * u) : .06 * grow * (t < WISH.pull + .5 ? 1 : 0), alpha: t <= 0 || u >= 1 ? 0 : u > 0 ? Math.sin(Math.PI * u) : .5 * grow * hesitate(t)};
 }
 
 // After the flare something is left behind: a thin gold column of light stands up from the

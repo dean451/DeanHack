@@ -36,3 +36,11 @@ test('the afterglow comes only after the flare, stays in bounds and returns to r
   }
   assert.ok(seen);
 });
+
+test('the point of light falters while gathering, then steadies before the flare', () => {
+  const steady = t => .5 * (t / (WISH.pull + .5)) ** 1;
+  let dips = 0, prev = flarePose(.01).alpha;
+  for (let t = .02; t < WISH.pull + .5; t += .01) { const a = flarePose(t).alpha; if (a < prev - .002) dips++; prev = a; }
+  assert.ok(dips > 3 && steady(1) > 0);
+  assert.ok(flarePose(WISH.pull + .5 + WISH.flare / 2).alpha > .95);
+});
