@@ -56,6 +56,14 @@ export const THEMES = {
   'tsurugi of muramasa': {shell: 0xeaf6ff, glow: .6, trail: 0xf4fbff, layers: [L('edge', 0xffffff, 0xd0e8ff, 8, .07, 1, 1, {shape: 1}), L('motes', 0xffd0d8, 0xff8090, 6, .04, 2.6, .6)]},
   sunsword: {shell: 0xffd35a, glow: 1, trail: 0xffe08a, layers: [L('rays', 0xfff8d0, 0xffb020, 18, .06, 1.4, .95, {shape: 1})]},
   demonbane: {shell: 0xfff0d0, glow: .7, trail: 0xfff4e0, layers: [L('rise', 0xffffff, 0xffd890, 16, .07, 1.2, .8)]},
+  // heavy axe, blood-red edge, rage heat rising off it
+  cleaver: {shell: 0xc01010, glow: .6, flicker: true, trail: 0xa01010, layers: [L('rise', 0xff8060, 0x600808, 12, .08, 1, .8), L('embers', 0xff4020, 0x500400, 6, .03, 1.7, 1)]},
+  // thin, alert, cold steel: a quick glint on the edge
+  thiefbane: {shell: 0xb8c4d8, glow: .4, trail: 0xc8d4e8, layers: [L('edge', 0xffffff, 0xaab8d0, 6, .05, .9, 1, {shape: 1})]},
+  // lucky glints, four-pointed like a clover
+  'luck blade': {shell: 0x90e090, glow: .5, trail: 0xa8f0a0, layers: [L('motes', 0xe8ffe0, 0x50c050, 10, .05, 2.2, .85, {shape: 1}), L('edge', 0xffffff, 0xb8ffb0, 3, .07, 1.6, 1, {shape: 1})]},
+  // scale-green sheen, scorched by the dragons it killed
+  dragonbane: {shell: 0x58a040, glow: .5, trail: 0x70b850, layers: [L('embers', 0xffa040, 0x401000, 7, .03, 1.8, 1), L('mist', 0x2a2018, 0x100c08, 4, .12, 3, .35, {add: false})]},
 };
 function themeForArtifact(key) {
   if (THEMES[key]) return THEMES[key];
