@@ -6,7 +6,8 @@ import {scrollAuraKind} from './scroll-auras.js';
 // takes on the effect: fire scorches, flood sodden grey-blue, genocide a black sheet with a
 // dull red under-glow, scare monster ashen and dead, destroy armor rust-eaten, create monster blood-stained, stinking cloud sickly green, punishment
 // iron-grey, amnesia washed out, the enchant scrolls and remove curse faintly lit, taming a leashed
-// sage green, charging crackling blue-white and identify a clear pale blue.
+// sage green, charging crackling blue-white and identify a clear pale blue; earth is gritty brown, confuse monster muddy magenta, magic mapping
+// chart-blue, gold detection gilt and food detection stained dark.
 // tint: the colour the paper is pulled toward; mix: how far; glow: emissive colour and strength.
 const TWISTS = {
   fire: {tint: 0x2a1a12, mix: .45, glow: 0xff4a10, power: .2},
@@ -25,6 +26,11 @@ const TWISTS = {
   'remove curse': {tint: 0xf8faff, mix: .35, glow: 0xf0f4ff, power: .18},
   taming: {tint: 0x4a7a40, mix: .4, glow: 0xb8f0a8, power: .12},
   charging: {tint: 0x3a4a8a, mix: .4, glow: 0xcfe0ff, power: .25},
+  earth: {tint: 0x4a3c2c, mix: .5},
+  'confuse monster': {tint: 0x9a5090, mix: .4, glow: 0xe07ad0, power: .12},
+  'magic mapping': {tint: 0x4a7a9a, mix: .4, glow: 0x7fd8ff, power: .14},
+  'gold detection': {tint: 0xb89030, mix: .4, glow: 0xffd25a, power: .1},
+  'food detection': {tint: 0x3a3226, mix: .45},
   identify: {tint: 0x9ab8d8, mix: .4, glow: 0xd8ecff, power: .14},
 };
 
