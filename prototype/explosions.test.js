@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline, FX_TICK_MS} from './fx.js';
-import {EXPLOSION_LOOKS, BURST_MS, BALL_R, RING_R, EMBERS_PER_BURST, explosionBursts, explosionFrame, createExplosions} from './explosions.js';
+import {EXPLOSION_LOOKS, RING_SIDES, BURST_MS, BALL_R, RING_R, EMBERS_PER_BURST, explosionBursts, explosionFrame, createExplosions} from './explosions.js';
 
 const expl = (type, part) => ({kind: 'explosion', explosion: type, part});
 // explode() at (cx, cz): one beam sequence, a change + draw for each visible cell (x outer,
@@ -109,4 +109,13 @@ test('the renderer shows a burst, returns its light, and goes back to nothing', 
   assert.equal(ex.active, 0);
   ex.dispose();
   assert.equal(scene.children.length, 0);
+});
+
+test('every explosion look has its own ring outline, so kinds differ without colour', () => {
+  assert.deepEqual(Object.keys(RING_SIDES).sort(), Object.keys(EXPLOSION_LOOKS).sort());
+  assert.equal(new Set(Object.values(RING_SIDES)).size, Object.keys(EXPLOSION_LOOKS).length);
+  for (const type of Object.keys(EXPLOSION_LOOKS)) {
+    const f = explosionFrame({type, seed: .3}, 100);
+    assert.equal(f.ring.sides, RING_SIDES[type]);
+  }
 });
