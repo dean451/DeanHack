@@ -21,7 +21,9 @@ export function runePose(i, t) {
   const rise = smooth((t - born) / .3), draw = smooth((t - pull) / .35);
   // The orbit stalls twice, then lurches on.
   const stalled = t - born - .12 * Math.sin((t - born) * 9) ** 2;
-  const a = i / n * Math.PI * 2 + stalled * 3.2, r = (.38 - .06 * i / n) * (1 - draw) * rise;
+  // Each rune flinches outward as the one before it is dragged in, as if it had seen what is coming.
+  const flinch = i > 0 ? .22 * Math.sin(clamp01((t - (.7 + (i - 1) * .12 + .15)) / .14) * Math.PI) : 0;
+  const a = i / n * Math.PI * 2 + stalled * 3.2, r = (.38 - .06 * i / n) * (1 - draw) * rise * (1 + flinch);
   const last = i === n - 1 && t > end, gutter = last ? .5 + .5 * Math.sin(t * 70) : 1;
   // Rune 2 loses its nerve: it bolts for the floor just before the pull, then is hauled back up.
   const bolt = i === 2 ? .14 * Math.sin(clamp01((t - (pull - .22)) / .22) * Math.PI) : 0;

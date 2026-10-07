@@ -48,3 +48,13 @@ test('one rune loses its nerve and bolts for the floor before the pull', () => {
   const pull = .7 + 2 * .12;
   assert.ok(runePose(2, pull - .11).y < runePose(2, pull - .3).y - .05);
 });
+
+test('a rune flinches outward as the one before it is dragged in, staying in bounds', () => {
+  for (let i = 1; i < STUDY.runes; i++) {
+    const r = t => Math.hypot(runePose(i, t).x, runePose(i, t).z);
+    let rose = 0;
+    for (let t = .7 + i * .12; t < STUDY.total; t += .01) if (r(t + .01) > r(t) + 1e-6) rose++;
+    assert.ok(rose > 0, `rune ${i} lurches back out mid-pull`);
+    for (let t = 0; t < STUDY.total; t += .005) assert.ok(r(t) <= .38 * 1.22 + 1e-9, `${i}@${t}`);
+  }
+});
