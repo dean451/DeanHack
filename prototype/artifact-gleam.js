@@ -41,10 +41,10 @@ export const ARTIFACTS = {
   snickersnee: {cls: WEAPON_CLASS, color: 0xf4fbff},
   sunsword: {cls: WEAPON_CLASS, color: 0xffd35a},
   itlachiayaque: {cls: ARMOR_CLASS, color: 0xf0f4ff},
-  'heart of ahriman': {cls: GEM_CLASS, color: 0xd8dde8},
+  'heart of ahriman': {cls: GEM_CLASS, color: 0xd8dde8, style: 'grand'},
   'sceptre of might': {cls: WEAPON_CLASS, color: 0xffd98a},
   'iron ball of liberation': {cls: BALL_CLASS, color: 0xe0e6f0},
-  'palantir of westernesse': {cls: TOOL_CLASS, color: 0xc8b8ff},
+  'palantir of westernesse': {cls: TOOL_CLASS, color: 0xc8b8ff, style: 'grand'},
   'staff of aesculapius': {cls: WEAPON_CLASS, color: 0xb8ffcf},
   'magic mirror of merlin': {cls: TOOL_CLASS, color: 0xf0f4ff},
   'eyes of the overworld': {cls: TOOL_CLASS, color: 0xd0f0ff},
@@ -53,8 +53,8 @@ export const ARTIFACTS = {
   'master key of thievery': {cls: TOOL_CLASS, color: 0xffe0a0},
   'tsurugi of muramasa': {cls: WEAPON_CLASS, color: 0xf4fbff},
   'platinum yendorian express card': {cls: TOOL_CLASS, color: 0xf0f4ff},
-  'orb of fate': {cls: TOOL_CLASS, color: 0xc8b8ff},
-  'eye of the aethiopica': {cls: AMULET_CLASS, color: 0xd0e8ff},
+  'orb of fate': {cls: TOOL_CLASS, color: 0xc8b8ff, style: 'grand'},
+  'eye of the aethiopica': {cls: AMULET_CLASS, color: 0xd0e8ff, style: 'grand'},
   earthstone: {cls: GEM_CLASS, color: 0x7fa8ff, bases: ['sapphire']},
   moonstone: {cls: GEM_CLASS, color: 0xd8d0ff, bases: ['black opal']},
   sunstone: {cls: GEM_CLASS, color: 0xfff0c0, bases: ['diamond']},
@@ -64,6 +64,8 @@ export const ARTIFACTS = {
 export const GLEAM_STYLES = {
   artifact: {period: 3.4, flash: .45, size: .16, motes: 4, moteAlpha: .35},
   excalibur: {period: 2.2, flash: .5, size: .2, motes: 7, moteAlpha: .55},
+  // The great non-weapon artifacts: a slow, heavy glint over a thick ring of motes.
+  grand: {period: 2.8, flash: .6, size: .19, motes: 6, moteAlpha: .5},
 };
 
 const stripThe = s => s.replace(/^the /, '');
