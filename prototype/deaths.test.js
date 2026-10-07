@@ -288,3 +288,15 @@ test('a crumbling body\'s arm twitches once as the dust starts to go, within bou
   assert.ok(max > .03, 'a visible twitch');
   assert.equal(a(0), 0); assert.equal(a(1), .6);
 });
+
+test('a toppled body\'s head knocks the floor once on landing, then lies as before', () => {
+  const h = u => deathPose('topple', u).head, base = u => -.4 * Math.min(Math.max((u - .15) / .75, 0), 1) ** 2 * (3 - 2 * Math.min(Math.max((u - .15) / .75, 0), 1));
+  let max = 0;
+  for (let u = 0; u <= 1; u += .005) {
+    if (u < .88 || u > .98) assert.ok(Math.abs(h(u) - base(u)) < 1e-9, `untouched at ${u}`);
+    max = Math.max(max, h(u) - base(u));
+    assert.ok(h(u) > -.5 && h(u) < .2, `head in bounds at ${u}`);
+  }
+  assert.ok(max > .1 && max <= .12 + 1e-9);
+  assert.ok(Math.abs(h(1) - -.4) < 1e-9, 'returns to the old rest');
+});

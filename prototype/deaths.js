@@ -171,7 +171,8 @@ export function deathPose(style, u, dir = null) {
       p.pitch = -.2 * s * (1 - f);
       p.roll = 1.45 * drop - rebound;
       p.dy = -.12 * f;
-      p.head = -.4 * f;
+      // The skull knocks the floor on landing and lolls back, once.
+      p.head = -.4 * f + .12 * Math.sin(Math.PI * clamp01((u - .88) / .1));
       p.scale = 1 - .12 * f;
       // A last dead twitch of the limb, after it has landed, then still.
       p.arm = .25 * Math.sin(Math.PI * clamp01((u - .8) / .15)) * Math.sin((u - .8) * 90);
