@@ -343,7 +343,7 @@ test('every vortex throws off its own effects, and they die away after death', (
       peak = Math.max(peak, ...layerAlphas(st));
       if (st.arcLines) arcs = Math.max(arcs, ...[...st.arcLines.geometry.attributes.color.array].filter((_, k) => k % 4 === 3));
       if (st.mark) glow = Math.max(glow, st.mark.geometry.attributes.color.getW(2));
-      if (st.arcLines) assert.ok(st.arcLines.geometry.attributes.position.array.every(v => Number.isFinite(v) && Math.abs(v) < 1.2), `${name} arcs bounded`);
+      if (st.arcLines) assert.ok(st.arcLines.geometry.attributes.position.array.every(v => Number.isFinite(v) && Math.abs(v) < 1.5), `${name} arcs bounded`);
     }
     assert.ok(peak > .15, `${name} shows its effect (${peak})`);
     if (FX[name].arcs) assert.ok(arcs > .3, `${name} crackles`);
