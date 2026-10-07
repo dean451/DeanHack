@@ -3,7 +3,7 @@
 
 const GLYPHS = {
   satiated: '●', hungry: '◔', weak: '◑', fainting: '◕', fainted: '◕', starved: '○',
-  blind: '▬', deaf: '≈', conf: '✱', stun: '✦', hallu: '❖', foodpois: '☠', ill: '☠', termill: '☠', slime: '≋',
+  blind: '▬', deaf: '≈', conf: '✱', stun: '✦', hallu: '❖', foodpois: '☠', ill: '☠', termill: '☠', slime: '≋', stone: '▣', strngl: '⊗',
   burdened: '▼', stressed: '▼▼', strained: '▼▼▼', overtaxed: '▼▼▼▼', overloaded: '▼▼▼▼▼',
   lev: '△', fly: '△', ride: '◆',
 };
