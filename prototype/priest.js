@@ -145,7 +145,7 @@ function geometry(kind){
 }
 function mesh(parent,geo,mat,name){const m=new THREE.Mesh(geo,mat);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
-const PRIEST_SCALE={'high priest':1.06,'arch priest':1.08};
+const PRIEST_SCALE={'aligned priest':1.04,'high priest':1.06,'arch priest':1.08};
 
 export function createPriest(name){
  const key=(name||'').toLowerCase(),kind=PRIESTS[key]?key:'aligned priest',S=geometry(kind);
