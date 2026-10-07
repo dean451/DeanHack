@@ -1624,12 +1624,16 @@ function lich(o){
  rounded(body,.34,.32,.24,robe,0,.82,0,.06);
  const hood=sphere(body,.24,trim,0,1.1,-.06,1,1.05,1);hood.scale.z=1.05;
  // skull: cranium, cheekbones, dark sockets with a glow deep inside, a toothed jaw
- sphere(body,.16,bone,0,1.1,.04,.95,1,1);
+ sphere(body,.15,bone,0,1.11,.04,.82,1.08,.98);
+ // elven cast: high cheekbones, a narrow brow ridge and long swept-back pointed ears
+ for(const x of [-1,1]){sphere(body,.032,bone,x*.088,1.075,.14,1,.7,.8);const ear=cone(body,.022,.15,bone,x*.135,1.15,.01,4);ear.rotation.z=-x*1.15;ear.rotation.x=-.25;}
+ rounded(body,.15,.02,.05,bone,0,1.15,.17,.01);
  for(const x of [-.06,.06]){sphere(body,.042,socket,x,1.11,.165,1,1,.5);sphere(body,.02,glow,x,1.11,.18);}
  cone(body,.02,.04,socket,0,1.05,.19,3).rotation.x=Math.PI;
  // the jaw and its teeth hinge under the ears, so it chatters like the skeleton's (jaw.js)
  const jaw=new THREE.Group();jaw.position.set(0,1.04,.03);body.add(jaw);jaw.userData.chatter=true;jaw.userData.reach=.45;
- rounded(jaw,.16,.07,.1,bone,0,-.05,.07,.03);
+ rounded(jaw,.12,.06,.1,bone,0,-.05,.07,.03);
+ cone(jaw,.03,.07,bone,0,-.085,.11,4).rotation.x=Math.PI*.9;
  for(let i=0;i<5;i++)rounded(jaw,.018,.025,.015,bone,(i-2)*.024,-.065,.125,.004);
  // skeletal arms: thin bone forearms and claw fingers poking out of wide sleeves
  // Each claw finger hangs from its own knuckle, so lich-chill.js can flex it (handles: lichHands, orb).
