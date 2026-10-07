@@ -12,12 +12,15 @@ import {softRing, smooth, clamp01} from './fx-textures.js';
 export const GIFT = {total: 2.0, drop: .22, sparks: 8};
 export const isGiftMessage = text => /Use my gift wisely/i.test(text || '');
 
+// Just before it is cut the shaft stammers: two quick dips, as if the hand were unsure.
+const stutter = t => { const u = (t - .45) / .15; return u <= 0 || u >= 1 ? 0 : Math.max(0, Math.sin(u * Math.PI * 2)) ** 2; };
+
 // The shaft at age t: height above the stone (0 to 1 of full), width and alpha. It falls fast,
 // hangs, then is cut off from the top down (the base outlasts the head).
 export function shaftPose(t) {
   if (t <= 0 || t >= GIFT.total) return {height: 0, width: 0, alpha: 0};
   const fall = 1 - (1 - clamp01(t / GIFT.drop)) ** 2, cut = smooth((t - .6) / .35);
-  return {height: fall * (1 - cut), width: .12 * (1 - .6 * cut) * (.92 + .08 * Math.sin(t * 40)), alpha: smooth(t / .04) * (1 - cut)};
+  return {height: fall * (1 - cut), width: .12 * (1 - .6 * cut) * (.92 + .08 * Math.sin(t * 40)), alpha: smooth(t / .04) * (1 - cut) * (1 - .6 * stutter(t))};
 }
 
 // The flash on the stone: it lands as the shaft arrives, then dies back to a glint that lingers.

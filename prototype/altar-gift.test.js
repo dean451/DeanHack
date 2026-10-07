@@ -27,3 +27,11 @@ test('poses stay in bounds; the shaft stabs down fast, hangs, then is cut off', 
   assert.ok(shaftPose(.3).height > .99 && shaftPose(.9).height < .3);
   assert.ok(flashPose(GIFT.drop + .05).alpha > .5 && flashPose(GIFT.total - .05).alpha < flashPose(GIFT.drop + .05).alpha);
 });
+
+test('the shaft stammers before it is cut, and stays in bounds', async () => {
+  const {shaftPose} = await import('./altar-gift.js');
+  let dips = 0, prev = shaftPose(.3).alpha;
+  for (let t = .31; t < .6; t += .005) { const a = shaftPose(t).alpha; assert.ok(a >= 0 && a <= 1); if (a < prev - 1e-6) dips++; prev = a; }
+  assert.ok(dips > 0);
+  assert.equal(shaftPose(0).alpha, 0); assert.equal(shaftPose(2).alpha, 0);
+});
