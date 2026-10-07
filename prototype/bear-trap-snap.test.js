@@ -58,3 +58,10 @@ test('the jaws creak open a hair twice after the clamp, and the creak dies away'
   assert.equal(creak(SNAP.total), 0);
   for (let t = 0; t <= SNAP.total; t += .002) assert.ok(creak(t) >= -1e-9 && creak(t) < .08, String(t));
 });
+
+test('the last spark skips once more after landing, then dies', () => {
+  const i = SNAP.sparks - 1;
+  assert.ok(sparkPose(i, .74).alpha > 0 && sparkPose(i, .74).y > .05, 'the second hop');
+  assert.ok(sparkPose(i, .74).alpha > sparkPose(0, .74).alpha, 'the others have gone');
+  assert.equal(sparkPose(i, .9).alpha, 0);
+});
