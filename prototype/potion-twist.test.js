@@ -75,3 +75,12 @@ test('sleeping goes dim and heavy',()=>{
  assert(l.roughness>part(plain,'liquid').material.roughness);
  plain.userData.dispose();sleepy.userData.dispose();
 });
+
+test('confusion muddies the liquid violet-grey',()=>{
+ const plain=make('healing'),mud=make('potion of confusion');
+ assert.equal(mud.userData.twist,'confusion');
+ const l=part(mud,'liquid').material;
+ assert.notEqual(l.color.getHex(),part(plain,'liquid').material.color.getHex());
+ assert(l.roughness>part(plain,'liquid').material.roughness);
+ plain.userData.dispose();mud.userData.dispose();
+});
