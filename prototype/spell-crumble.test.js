@@ -75,3 +75,11 @@ test('a settled flake skids sideways before it fades', () => {
   const born = 5 * .06, life = .9 + .04 * 2, x = u => fleckPose(5, born + u * life).x;
   assert.ok(x(.9) - x(.6) > .05);
 });
+
+test('one flake is lifted just after it is born, then falls like the rest, in bounds', () => {
+  const born = 5 * .06, life = .9 + .04 * (5 % 3), y = u => fleckPose(5, born + u * life).y;
+  assert.ok(y(.15) > y(.01) + .04, 'it rises first');
+  for (let u = .3; u < .98; u += .02) assert.ok(y(u + .02) <= y(u) + 1e-9, `falls only at ${u}`);
+  for (let u = .01; u < 1; u += .01) assert.ok(y(u) >= .03 && y(u) <= .5 + 1e-9, `in bounds at ${u}`);
+  assert.equal(fleckPose(5, 5).alpha, 0);
+});

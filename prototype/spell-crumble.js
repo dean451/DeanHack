@@ -26,7 +26,9 @@ export function fleckPose(i, t) {
   const fall = last ? (u < .5 ? u ** 2.6 : u < .62 ? .5 ** 2.6 + (u - .5) * .08 : .5 ** 2.6 + .0096 + (u - .62) / .38 * (1 - .5 ** 2.6 - .0096)) : i === 0 ? clamp0((u - .25) / .75) ** 1.7 : u ** 1.7, sway = last ? .06 * Math.sin(u * 14) : .012 * Math.sin(u * 22 + i * 1.7);
   // A settled flake skids a finger's width across the floor, as if something breathed on it.
   const skid = !last && i % 4 === 1 && u > .6 ? .05 * Math.sin(clamp01((u - .6) / .25) * Math.PI / 2) : 0;
-  return {x: Math.cos(a) * r + sway + skid, y: Math.max(.5 - .47 * fall, .03), z: Math.sin(a) * r,
+  // One flake is lifted at birth, as if something drew breath over the book, before it gives in and falls.
+  const top = i === 5 ? .43 : .5, lift = i === 5 ? .07 * Math.sin(Math.PI * clamp01(u / .3)) : 0;
+  return {x: Math.cos(a) * r + sway + skid, y: Math.max(top - (top - .03) * fall + lift, .03), z: Math.sin(a) * r,
     alpha: .7 * Math.min(u / .08, 1) * (u > .75 ? (1 - u) / .25 : 1), spin: last ? u * 18 : u * 4 * (i % 2 ? 1 : -1)};
 }
 
