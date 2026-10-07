@@ -29,3 +29,12 @@ test('leaves unfurl in order, stay in bounds, tremble, then wither', () => {
   }
   assert.ok(leafPose(0, .1).open > leafPose(3, .1).open);
 });
+
+test('leaf 1 flinches late, in bounds, and no other leaf does', () => {
+  const sh = (i, t) => Math.abs(leafPose(i, t).shake);
+  let peak = 0;
+  for (let t = 2.45; t < 2.65; t += .005) peak = Math.max(peak, sh(1, t));
+  assert.ok(peak > .15 && peak <= .2 + 1e-9);
+  for (const i of [0, 2, 3]) for (let t = 2.45; t < 2.65; t += .005) assert.equal(sh(i, t), 0);
+  assert.equal(sh(1, CLOVER.total), 0);
+});
