@@ -6,7 +6,12 @@ import {ARTIFACTS, artifactFromName} from './artifact-gleam.js';
 // bleeds red, Frost Brand frosts, Fire Brand embers). Like artifact-gleam.js the look keys on
 // the name as the hero sees it (`label`), never the true type. Excalibur burns brightest.
 const MIX = .3, POWER = .2;
-const POWER_BY_KIND = {excalibur: .32, stormbringer: .3, 'fire brand': .3, 'frost brand': .26};
+const POWER_BY_KIND = {
+  excalibur: .32, stormbringer: .3, 'fire brand': .3, 'frost brand': .26,
+  // The great non-weapon artifacts burn hardest: they are the strongest magic on the floor.
+  'heart of ahriman': .38, 'orb of fate': .32, 'palantir of westernesse': .32, 'eye of the aethiopica': .32,
+  'magic mirror of merlin': .28, 'eyes of the overworld': .28, mjollnir: .28, 'vorpal blade': .28,
+};
 
 // Tints the item's own materials in `group` (disposal is unchanged). Returns the artifact key or null.
 // `clone`: give each mesh its own copy of the material first, for models whose materials may be shared.
