@@ -35,7 +35,9 @@ export function fleckPose(i, t) {
   if (t <= 0 || t >= BLESS.total) return {x: 0, y: 0, z: 0, alpha: 0};
   const u = clamp01(t / BLESS.total), a = i / BLESS.flecks * Math.PI * 2 + i * .7, out = (.25 + .05 * (i % 3)) * (1 - (1 - clamp01(u / .6)) ** 2);
   const y = .45 * Math.sin(Math.min(u / .6, 1) * Math.PI * .5) - .45 * (u > .3 ? ((u - .3) / .7) ** 2 : 0);
-  return {x: Math.cos(a) * out, y: Math.max(y, 0), z: Math.sin(a) * out, alpha: smooth(u / .08) * (1 - smooth((u - .7) / .3))};
+  // The last fleck is reluctant: midway it is tugged back toward the item, then lets go and falls with the rest.
+  const k = i === BLESS.flecks - 1 ? 1 - .7 * Math.sin(Math.PI * clamp01((u - .35) / .2)) : 1;
+  return {x: Math.cos(a) * out * k, y: Math.max(y, 0), z: Math.sin(a) * out * k, alpha: smooth(u / .08) * (1 - smooth((u - .7) / .3))};
 }
 
 export function createBlessFlash(THREE, parent) {
