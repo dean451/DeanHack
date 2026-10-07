@@ -1628,6 +1628,10 @@ function lich(o){
  const train=cone(body,.2,.55,robe,0,.12,-.42,5);train.rotation.x=-1.45;
  for(const x of [-.09,.09]){const t=cone(body,.04,.2,trim,x,.04,-.62,4);t.rotation.x=-1.5;}
  const hood=sphere(body,.24,trim,0,1.1,-.06,1,1.05,1);hood.scale.z=1.05;
+ // finer robes per tier (finery 1 demilich, 2 master lich, 3 arch-lich): a gilt hem band, a gorget at the neck, glowing runes down the overrobe
+ if(o.finery){const gilt=o.finery>2?M.gold:M.darkSteel;cylinder(body,.318,.325,.03,gilt,0,.2,0,14);
+  if(o.finery>1){cylinder(body,.2,.24,.04,gilt,0,.97,0,12);for(const x of [-.1,0,.1])cone(body,.018,.06,gilt,x,.99,.2,4).rotation.x=Math.PI/2;}
+  const rune=mat(o.glow,{emissive:o.glow,emissiveIntensity:2,roughness:.4});for(let i=0;i<o.finery+1;i++){const r=sphere(body,.014,rune,0,.6-i*.12,.318);r.castShadow=false;}}
  // skull: cranium, cheekbones, dark sockets with a glow deep inside, a toothed jaw
  sphere(body,.15,bone,0,1.11,.04,.82,1.08,.98);
  // elven cast: high cheekbones, a narrow brow ridge and long swept-back pointed ears
@@ -1661,7 +1665,7 @@ function lich(o){
   for(const [x,y,z,h,r] of [[-.25,1.0,-.05,.2,.3],[.25,1.0,-.05,.24,-.3],[0,1.0,-.2,.28,0]]){const f=cone(body,.035,h,flame,x,y+h/2,z,5);f.rotation.z=r;f.castShadow=false;}}
  return trimDraws(Object.assign(actor(g,body,[],null,[],'idle'),{jaw,lichHands,orb}));
 }
-const LICHES={lich:{robe:'#5a4430',glow:'#8ad060',scale:1.08},demilich:{robe:'#6a2a24',glow:'#ff5a3a',evil:true,bone:'#c8bc98',tattered:true,scale:1.1},'master lich':{robe:'#4a1f52',glow:'#c070ff',evil:true,crown:'bone',scale:1.12},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',evil:true,crown:'tall',mantle:true,scale:1.25}};
+const LICHES={lich:{robe:'#5a4430',glow:'#8ad060',scale:1.08},demilich:{robe:'#6a2a24',glow:'#ff5a3a',evil:true,bone:'#c8bc98',tattered:true,finery:1,scale:1.1},'master lich':{robe:'#4a1f52',glow:'#c070ff',evil:true,crown:'bone',finery:2,scale:1.12},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',evil:true,crown:'tall',mantle:true,finery:3,scale:1.25}};
 
 // Wraiths: a floating, translucent shroud that trails off into wisps, a hood with only a void and two burning eyes inside,
 // and long sleeves reaching forward with bony claws. Barrow wights are solid, with a rusty circlet and a sword;
