@@ -42,3 +42,11 @@ test('the curse snaps back out once as it closes', () => {
   const at = u => ringPose('cursed', u * BLESS.total).radius;
   assert.ok(at(.7) > at(.62) - .001 && at(.7) - at(.62) > -.02, 'the closing pauses and rebounds');
 });
+
+test('the last shaken-off fleck is tugged back toward the item before it falls', () => {
+  const last = BLESS.flecks - 1, r = (i, t) => Math.hypot(fleckPose(i, t).x, fleckPose(i, t).z);
+  const t = .45 * BLESS.total;
+  assert.ok(r(last, t) < r(last, .3 * BLESS.total) * .9, 'pulled inward');
+  assert.ok(r(last, .7 * BLESS.total) > r(last, t), 'then let go');
+  for (let tt = 0; tt <= BLESS.total; tt += .01) assert.ok(r(last, tt) < .35);
+});
