@@ -74,6 +74,8 @@ export const THEMES = {
   ogresmasher: {shell: 0x8a8070, glow: .35, trail: 0xa09888, layers: [L('fall', 0xc8c0b0, 0x686050, 10, .05, 2.4, .8), L('mist', 0xa09888, 0x605848, 4, .12, 3, .3, {add: false})]},
   // the same stone dust, with a green ward flickering on the edge
   trollsbane: {shell: 0x70a050, glow: .45, flicker: true, trail: 0x88b868, layers: [L('fall', 0xc8c0b0, 0x686050, 8, .05, 2.4, .8), L('motes', 0xb0f080, 0x306018, 6, .04, 1.6, .8)]},
+  // pale moonlit silver, a faint silver arrow shimmer drifting off the bow
+  'longbow of diana': {shell: 0xdce8ff, glow: .5, trail: 0xe8f0ff, layers: [L('motes', 0xffffff, 0xb0c4e8, 9, .045, 2.6, .8), L('edge', 0xffffff, 0xdce8ff, 3, .06, 1.6, 1, {shape: 1})]},
 };
 function themeForArtifact(key) {
   if (THEMES[key]) return THEMES[key];

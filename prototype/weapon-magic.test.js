@@ -92,3 +92,10 @@ test('the bane and slayer blades each have their own signature', () => {
   assert.equal(new Set(keys.map(k => THEMES[k].shell)).size, keys.length);
   assert.equal(weaponMagic({name: 'Trollsbane', class: W}).theme, THEMES.trollsbane);
 });
+
+test('the Longbow of Diana has its own moonlit signature', () => {
+  assert.ok(THEMES['longbow of diana']);
+  const others = Object.entries(THEMES).filter(([k]) => k !== 'longbow of diana');
+  assert.ok(others.every(([, t]) => t.shell !== THEMES['longbow of diana'].shell));
+  assert.equal(weaponMagic({name: 'Longbow of Diana', class: W}).theme, THEMES['longbow of diana']);
+});
