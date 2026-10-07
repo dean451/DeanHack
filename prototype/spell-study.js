@@ -27,8 +27,10 @@ export function runePose(i, t) {
   const last = i === n - 1 && t > end, gutter = last ? .5 + .5 * Math.sin(t * 70) : 1;
   // Rune 2 loses its nerve: it bolts for the floor just before the pull, then is hauled back up.
   const bolt = i === 2 ? .14 * Math.sin(clamp01((t - (pull - .22)) / .22) * Math.PI) : 0;
+  // Rune 3 blinks out for a beat while circling, as if it had thought better of staying, then returns.
+  const blink = i === 3 && t > .42 && t < .5 ? .15 : 1;
   return {x: Math.cos(a) * r, y: Math.max(.2 + .75 * rise + .1 * draw - bolt - (last ? .08 * clamp01((t - end) / .25) : 0), 0), z: Math.sin(a) * r,
-    alpha: .8 * clamp01((t - born) / .12) * (1 - (last ? clamp01((t - end) / .25) : draw ** 2)) * gutter, spin: a * .5};
+    alpha: .8 * clamp01((t - born) / .12) * (1 - (last ? clamp01((t - end) / .25) : draw ** 2)) * gutter * blink, spin: a * .5};
 }
 
 export function createSpellStudy(THREE, parent) {
