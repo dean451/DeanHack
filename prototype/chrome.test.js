@@ -46,3 +46,9 @@ test('the live panel carries no engine caption', () => {
   assert.doesNotMatch(read('live.js'), /UNNETHACK · LIVE ENGINE/);
   assert.doesNotMatch(read('style.css'), /#engine-panel>small/);
 });
+
+test('a text prompt shows everything that happened since the last command, not only the last line', () => {
+  const live = read('live.js');
+  assert.match(live, /if\(v\.kind==='command'\)turnMark=markTurn\(messageLog\)/, 'the mark is taken when the game asks for a command');
+  assert.match(live, /sinceMark\(messageLog,turnMark\)/, 'the line prompt reads the turn\'s messages');
+});
