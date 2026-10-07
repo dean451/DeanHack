@@ -1622,6 +1622,11 @@ function lich(o){
  // ragged hem: alternating dark tatters hang below the robe
  for(let i=0;i<(o.tattered?10:7);i++){const a=i/(o.tattered?10:7)*Math.PI*2,t=cone(body,.05,.14+(i%2)*.06,trim,Math.sin(a)*.31,.1,Math.cos(a)*.31,4);t.rotation.x=Math.PI;}
  rounded(body,.34,.32,.24,robe,0,.82,0,.06);
+ // layered regal robes: an open overrobe panel down the front edged in dark trim, and a long ragged train trailing behind
+ rounded(body,.16,.62,.03,trim,0,.38,.3,.01);
+ for(const x of [-1,1])rounded(body,.02,.6,.035,mat(o.glow,{emissive:o.glow,emissiveIntensity:.6,roughness:.5}),x*.085,.38,.31,.005);
+ const train=cone(body,.2,.55,robe,0,.12,-.42,5);train.rotation.x=-1.45;
+ for(const x of [-.09,.09]){const t=cone(body,.04,.2,trim,x,.04,-.62,4);t.rotation.x=-1.5;}
  const hood=sphere(body,.24,trim,0,1.1,-.06,1,1.05,1);hood.scale.z=1.05;
  // skull: cranium, cheekbones, dark sockets with a glow deep inside, a toothed jaw
  sphere(body,.15,bone,0,1.11,.04,.82,1.08,.98);
