@@ -7,7 +7,7 @@ const make = name => createGroundModel({name, class: 6, color: 1});
 const emissive = m => { let e = 0; m.traverse(o => { if (o.material?.emissiveIntensity > e) e = o.material.emissiveIntensity; }); return e; };
 
 test('magic tools take their effect in the material', () => {
-  for (const name of ['frost horn', 'fire horn', 'horn of plenty', 'magic harp', 'magic flute', 'magic whistle']) {
+  for (const name of ['frost horn', 'fire horn', 'horn of plenty', 'magic harp', 'magic flute', 'magic whistle', 'bag of tricks', 'drum of earthquake', 'magic marker', 'unicorn horn']) {
     const m = make(name);
     assert.equal(m.userData.twist, name);
     assert(emissive(m) > 0, name);

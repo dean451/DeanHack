@@ -6202,6 +6202,7 @@ export function createGroundModel(item={}){
    };
    g.userData.bagMaw=maw;
   }
+  applyToolTwist(g,item);
  }else if(/ration/.test(name)){
   if(/tripe/.test(name)){
    // Tripe and paper share one wet-looking vertex-coloured material.
@@ -6294,12 +6295,14 @@ export function createGroundModel(item={}){
  }else if(/unicorn horn/.test(name)){
   // One merged mesh, lifted out of its own group so it sits among g's children like any other part.
   const [horn]=createUnicornHorn().children;g.add(horn);materials.push(horn.material);
+  applyToolTwist(g,item);
  }else if(/candelabrum/.test(name)){
   // Merged gold, wax and (when lit) flame meshes, moved into g like the unicorn horn.
   for(const part of [...createCandelabrum(candelabrumState(item.name)).children]){g.add(part);materials.push(part.material);}
  }else if(/marker/.test(name)){
   // One merged mesh: the pen with its cap pulled off beside it; a dry nib at 0 charges.
   const [pen]=createMagicMarker({dry:markerCharges(item.name)===0}).children;g.add(pen);materials.push(pen.material);
+  applyToolTwist(g,item);
  }else if(cls===15||/heavy iron ball/.test(name)){
   // One merged mesh: the pitted ball with its shackle and a stub of chain trailing off.
   const [ball]=createIronBall().children;g.add(ball);materials.push(ball.material);
@@ -6468,7 +6471,7 @@ export function createGroundModel(item={}){
   }else{
    buildIceBox({g,materials});
   }
-  applyToolTwist(g,{name});
+  applyToolTwist(g,item);
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else{materials.forEach(m=>m.dispose());return null;}
  g.userData.dispose=()=>{g.traverse(o=>o.geometry?.dispose());materials.forEach(m=>m.dispose());};return g;
