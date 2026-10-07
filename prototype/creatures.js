@@ -1976,7 +1976,7 @@ function rustMonster(o){
  for(const a of [0,Math.PI]){const blade=rounded(vane,.16,.018,.06,shell,Math.cos(a)*.09,Math.sin(a)*.09,0,.008);blade.rotation.set(.35,0,a);}
  return trimDraws({...actor(g,body,legs,tail,[],'lizard'),feelers,vane,feelHead:head,rustFeel:o.kind||'rust monster'});
 }
-const RUST_MONSTERS={'rust monster':{color:'#8a5a34',belly:'#c08a5a',fleck:'#c0602a',feeler:'#d0a070'},disenchanter:{color:'#3d5fb0',belly:'#8aa0d8',fleck:'#6a3aa0',feeler:'#b0c0f0',eye:'#c080ff',scale:1.05}};
+const RUST_MONSTERS={'rust monster':{color:'#8a5a34',belly:'#c08a5a',fleck:'#c0602a',feeler:'#d0a070'},disenchanter:{color:'#3d5fb0',belly:'#8aa0d8',fleck:'#6a3aa0',feeler:'#b0c0f0',eye:'#c080ff',scale:1.3}};
 
 // Leprechaun: a small, portly trickster in a green frock coat and buckled top hat,
 // leaning on a knobbly shillelagh with a swinging sack of stolen gold in his other hand.
