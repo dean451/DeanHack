@@ -40,6 +40,22 @@ export function walkCursor(from, codes) {
   return {x, z};
 }
 
+// The squares a straight line from `from` to `to` crosses, both ends left out (Bresenham), capped
+// at `max` squares so a far cursor does not draw a long trail.
+export function aimLine(from, to, max = 24) {
+  const out = [];
+  let x = from.x, z = from.z;
+  const dx = Math.abs(to.x - x), dz = Math.abs(to.z - z), sx = Math.sign(to.x - x), sz = Math.sign(to.z - z);
+  let err = dx - dz;
+  while (!(x === to.x && z === to.z) && out.length <= max) {
+    const e2 = 2 * err;
+    if (e2 > -dz) { err -= dz; x += sx; }
+    if (e2 < dx) { err += dx; z += sz; }
+    if (!(x === to.x && z === to.z)) out.push({x, z});
+  }
+  return out.slice(0, max);
+}
+
 export function createAimCursor() {
   const g = new THREE.Group();
   g.name = 'aim-cursor';
@@ -54,11 +70,23 @@ export function createAimCursor() {
   tick.position.y = 0.051;
   tick.renderOrder = 30;
   g.add(ring, tick);
+  // A trail of small dots from the hero to the cursor, so the path to the chosen square reads at a glance.
+  const dotGeo = new THREE.CircleGeometry(0.05, 8), dots = [];
+  const dot = i => {
+    if (!dots[i]) { const d = new THREE.Mesh(dotGeo, material); d.rotation.x = -Math.PI / 2; d.renderOrder = 30; g.parent?.add(d); dots[i] = d; }
+    return dots[i];
+  };
+  const hideDots = () => dots.forEach(d => { d.visible = false; });
   return {
     g,
-    show(x, z) { g.position.set(x, 0, z); g.visible = true; },
-    hide() { g.visible = false; },
+    show(x, z, from) {
+      g.position.set(x, 0, z); g.visible = true;
+      hideDots();
+      if (!from) return;
+      aimLine({x: Math.round(from.x), z: Math.round(from.z)}, {x: Math.round(x), z: Math.round(z)}).forEach((p, i) => { const d = dot(i); d.position.set(p.x, 0.05, p.z); d.visible = true; });
+    },
+    hide() { g.visible = false; hideDots(); },
     update(t) { if (g.visible) { const s = 1 + 0.07 * Math.sin(t * 5); ring.scale.set(s, s, 1); material.opacity = 0.7 + 0.2 * Math.sin(t * 5); } },
-    dispose() { ring.geometry.dispose(); tick.geometry.dispose(); material.dispose(); },
+    dispose() { ring.geometry.dispose(); tick.geometry.dispose(); dotGeo.dispose(); material.dispose(); dots.forEach(d => d.parent?.remove(d)); },
   };
 }

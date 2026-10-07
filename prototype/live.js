@@ -184,7 +184,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  const minimap=createMinimap(document);document.body.append(minimap.el);
  const historyPanel=createHistoryPanel(document,()=>allRows(messageLog));document.body.append(historyPanel.el);
  const aim=createAimCursor();group.add(aim.g);let aimQueue=[];
- function syncAim(){if(active&&origin&&pending?.kind==='position'&&pending.cursor){aim.show(pending.cursor.x-origin.x,pending.cursor.z-origin.z);minimap.setCursor(pending.cursor);}else{aim.hide();minimap.setCursor(null);}}
+ function syncAim(){if(active&&origin&&pending?.kind==='position'&&pending.cursor){aim.show(pending.cursor.x-origin.x,pending.cursor.z-origin.z,latest?.player?{x:latest.player.x-origin.x,z:latest.player.z-origin.z}:null);minimap.setCursor(pending.cursor);}else{aim.hide();minimap.setCursor(null);}}
  minimap.el.addEventListener('click',e=>{if(pending?.kind!=='position'||!pending.cursor)return;const spot=minimap.cellAt(e.clientX,e.clientY);if(!spot)return;aimQueue=aimKeys(pending.cursor,spot);void reply(aimQueue.shift());});
  // Engine commands live in the footer next to the demo's buttons, so both modes share one control row.
  const actions=document.createElement('div');actions.className='engine-actions';actions.hidden=true;actions.innerHTML='<button data-key="83">Save & exit</button>';$('.buttons').prepend(actions);
