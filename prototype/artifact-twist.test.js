@@ -66,3 +66,12 @@ test('the Magic Mirror wears a crown of thorns and the Express Card a lit edge, 
     plain.userData.dispose(); art.userData.dispose();
   }
 });
+
+test('the Iron Ball of Liberation wears a lit seam and a broken shackle as one extra mesh', () => {
+  const plain = createGroundModel({name: 'heavy iron ball', label: 'heavy iron ball', class: 15}), art = createGroundModel({name: 'heavy iron ball', label: 'the Iron Ball of Liberation', class: 15});
+  const count = m => { let n = 0; m.traverse(o => { if (o.isMesh) n++; }); return n; };
+  assert.equal(art.userData.artifact, 'iron ball of liberation');
+  assert.equal(count(art), count(plain) + 1);
+  assert(art.children.at(-1).userData.magicShell);
+  plain.userData.dispose(); art.userData.dispose();
+});
