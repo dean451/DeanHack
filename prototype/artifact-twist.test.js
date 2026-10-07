@@ -56,3 +56,13 @@ test('the great non-weapon artifacts smoulder harder than a lesser one', () => {
   assert(glow(eye) >= .32);
   heart.userData.dispose(); eye.userData.dispose();
 });
+
+test('the Magic Mirror wears a crown of thorns and the Express Card a lit edge, each as one mesh', () => {
+  for (const [name, label] of [['magic mirror', 'the Magic Mirror of Merlin'], ['credit card', 'the Platinum Yendorian Express Card']]) {
+    const plain = createGroundModel({name, label: name, class: 6}), art = createGroundModel({name, label, class: 6});
+    let count = m => { let n = 0; m.traverse(o => { if (o.isMesh) n++; }); return n; };
+    assert.equal(count(art), count(plain) + 1, label);
+    assert(art.children.at(-1).userData.magicShell, label);
+    plain.userData.dispose(); art.userData.dispose();
+  }
+});
