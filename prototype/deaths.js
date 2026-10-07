@@ -173,6 +173,9 @@ export function deathPose(style, u, dir = null) {
       // A last dead twitch of the limb, after it has landed, then still.
       p.arm = .25 * Math.sin(Math.PI * clamp01((u - .8) / .15)) * Math.sin((u - .8) * 90);
       // Then, when it seems finished, one leg kicks out alone, a dead reflex, and drops back.
+      // Whatever it held skips out of the slack grip as it lands, and lies still.
+      const skip = clamp01((u - .55) / .25);
+      p.socket = .3 * (4 * skip * (1 - skip)) ** 2;
       p.leg = .35 * (4 * clamp01((u - .86) / .08) * (1 - clamp01((u - .86) / .08))) ** 2;
     }
   }

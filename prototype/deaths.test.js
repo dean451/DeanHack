@@ -243,3 +243,12 @@ test('a toppled body kicks one leg once, late, after it has landed, and ends at 
   assert.equal(leg(.5), 0); assert.ok(leg(.9) > .3 && leg(.9) <= .35); assert.equal(leg(1), 0);
   for (let u = 0; u <= 1; u += .01) assert.ok(leg(u) >= 0 && leg(u) <= .35);
 });
+
+test('a toppled body lets its weapon skip from the grip on landing, then lies still', () => {
+  const s = u => deathPose('topple', u).socket;
+  assert.equal(s(0), 0);
+  assert.ok(s(.675) > .25 && s(.675) <= .3 + 1e-9);
+  assert.equal(s(1), 0);
+  assert.equal(s(.5), 0);
+  for (let u = 0; u <= 1; u += .01) assert.ok(s(u) >= 0 && s(u) <= .3 + 1e-9, `socket in bounds at ${u}`);
+});
