@@ -73,3 +73,8 @@ test('the point of light gutters once before the flare, then still flares and re
   assert.ok(a(WISH.pull + .5 + WISH.flare / 2) > .9);
   assert.equal(a(WISH.total), 0);
 });
+
+test('the afterglow column stutters once while it stands', () => {
+  const t0 = WISH.pull + .5 + WISH.flare, at = u => afterPose(t0 + u * WISH.settle).columnAlpha;
+  assert.ok(at(.35) < at(.25) * .6 && at(.35) < at(.45) * .6);
+});
