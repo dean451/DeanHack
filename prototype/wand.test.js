@@ -104,3 +104,9 @@ test('alabaster, grooved and bent wands each have a look of their own', () => {
   assert(bow('bent') > bow('curved') && bow('curved') > bow('iron'), 'bent bows further than curved');
   assert(wandAppearance('a bent wand') === 'bent' && wandAppearance('an alabaster wand') === 'alabaster' && wandAppearance('2 grooved wands') === 'grooved');
 });
+
+test('oak, cedar and walnut wands carry scars of their own, apart from the plain woods', () => {
+  const verts = look => meshes(createWand(look)).reduce((n, m) => n + m.geometry.attributes.position.count, 0);
+  for (const look of ['oak', 'cedar', 'walnut']) assert(verts(look) > verts('maple'), `${look} is more than a bare rod`);
+  assert(verts('oak') !== verts('cedar') && verts('cedar') !== verts('walnut') && verts('oak') !== verts('walnut'));
+});

@@ -51,6 +51,9 @@ function wandLook(look) {
     if (look === 'bamboo') L.extras.push('nodes');
     if (look === 'forked') { L.tip = 'fork'; L.fit = std(0x5a3f27, 0, .9); L.extras.push('knots'); }
     if (look === 'grooved') { L.fit = std(0x3b281a, 0, .9); L.extras.push('bands'); }
+    if (look === 'oak') L.extras.push('knots');
+    if (look === 'cedar') L.extras.push('pits');
+    if (look === 'walnut') L.extras.push('bands');
     if (look === 'balsa') { L.radius = .023; L.fit = std(0xc9b58c, 0, .9); }
   } else if (look in METALS) {
     const [c, m, r] = METALS[look];
