@@ -1,7 +1,7 @@
 // A small map of the whole level, redrawn from each frame. It shows what the hero knows (every
 // remembered cell) and, in live sight, the monsters; the hero is the bright square. Stairs are
 // drawn as triangles (up points up, down points down) so they read without colour, and traps,
-// water and lava differ in shape or brightness as well as hue.
+// water and lava differ in shape or brightness as well as hue; a pet is a diamond, a hostile a dot.
 
 export const COLS = 80;
 export const ROWS = 21;
@@ -12,7 +12,7 @@ export const HEIGHT = ROWS * SCALE;
 // What one cell looks like on the minimap: a fill colour and an optional mark shape.
 export function cellStyle(cell, hero) {
   if (hero && cell.x === hero.x && cell.z === hero.z) return {fill: '#fff6d8', mark: 'hero'};
-  if (cell.kind === 'pet') return {fill: '#79d8a5', mark: 'dot'};
+  if (cell.kind === 'pet') return {fill: '#79d8a5', mark: 'diamond'};
   if (cell.kind === 'monster' && cell.visible) return {fill: '#e0705c', mark: 'dot'};
   if (cell.trap) return {fill: '#b25bd6', mark: 'x'};
   switch (cell.terrain) {
@@ -20,8 +20,8 @@ export function cellStyle(cell, hero) {
     case 'door': return {fill: '#b8864e', mark: 'bar'};
     case 'up': return {fill: '#e6edf2', mark: 'up'};
     case 'down': return {fill: '#f0c35c', mark: 'down'};
-    case 'water': return {fill: '#3f7fb5'};
-    case 'lava': return {fill: '#d4572b'};
+    case 'water': return {fill: '#3f7fb5', mark: 'wave'};
+    case 'lava': return {fill: '#d4572b', mark: 'spark'};
     case 'fountain': case 'altar': case 'throne': case 'sink': case 'grave':
       return {fill: '#9fd0d9', mark: 'dot'};
     case 'tree': return {fill: '#4e7d4a'};
@@ -39,6 +39,9 @@ function drawMark(ctx, mark, px, py) {
     case 'down': ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + s, py); ctx.lineTo(px + s / 2, py + s); ctx.fill(); break;
     case 'x': ctx.fillRect(px + 1, py, 1, s); ctx.fillRect(px, py + 1, s, 1); break;
     case 'bar': ctx.fillRect(px, py + 1, s, 2); break;
+    case 'diamond': ctx.fillRect(px + 1, py, 2, 1); ctx.fillRect(px, py + 1, 4, 2); ctx.fillRect(px + 1, py + 3, 2, 1); break;
+    case 'wave': ctx.fillRect(px, py + 1, 2, 1); ctx.fillRect(px + 2, py + 2, 2, 1); break;
+    case 'spark': ctx.fillRect(px, py, 1, 1); ctx.fillRect(px + 2, py, 1, 1); ctx.fillRect(px + 1, py + 2, 1, 1); ctx.fillRect(px + 3, py + 2, 1, 1); break;
     case 'dot': ctx.fillRect(px + 1, py + 1, 2, 2); break;
     case 'hero': ctx.fillStyle = '#fff6d8'; ctx.fillRect(px - 1, py - 1, s + 2, s + 2); ctx.fillStyle = '#10161b'; ctx.fillRect(px + 1, py + 1, 2, 2); break;
     default: break;
