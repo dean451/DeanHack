@@ -181,7 +181,16 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  const $=s=>document.querySelector(s);
  const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
  const button=document.createElement('button');button.textContent='Live UnNetHack';button.id='live-mode';$('.buttons').prepend(button);
- const panel=document.createElement('section');panel.id='engine-panel';panel.hidden=true;panel.innerHTML='<p id="engine-line" aria-live="polite"></p><div id="engine-messages" role="log"></div><div id="engine-status"></div><div id="engine-prompt"></div>';document.body.append(panel);
+ // The character's name: typed before starting, kept in localStorage (sent with /engine/start), and shown in the character panel.
+ const nameInput=document.createElement('input');nameInput.id='player-name';nameInput.type='text';nameInput.placeholder='Wanderer';nameInput.maxLength=24;nameInput.autocomplete='off';nameInput.spellcheck=false;nameInput.setAttribute('aria-label','Character name');
+ try{nameInput.value=localStorage.getItem('deanhack.playerName')||'';}catch{}
+ nameInput.addEventListener('input',()=>{try{localStorage.setItem('deanhack.playerName',nameInput.value);}catch{}setCharacterName(nameInput.value);});
+ $('.buttons').prepend(nameInput);
+ function setCharacterName(name){const el=$('.character>small');if(el)el.textContent=(String(name||'').trim()||'Wanderer');}
+ setCharacterName(nameInput.value);
+ const panel=document.createElement('section');panel.id='engine-panel';panel.hidden=true;panel.innerHTML='<p id="engine-line" aria-live="polite"></p><div id="engine-messages" role="log"></div><div id="engine-prompt"></div>';document.body.append(panel);
+ // Gold, power, experience and conditions live in the character panel, not under the messages.
+ const statusLine=document.createElement('div');statusLine.id='engine-status';$('.character').append(statusLine);
  const minimap=createMinimap(document);document.body.append(minimap.el);
  const historyPanel=createHistoryPanel(document,()=>allRows(messageLog));document.body.append(historyPanel.el);
  const farlook=createFarlook(document);document.body.append(farlook.el);{const ray=new THREE.Raycaster(),floor=new THREE.Plane(new THREE.Vector3(0,1,0),0),spot=new THREE.Vector3(),ndc=new THREE.Vector2(),dom=controls.domElement;dom.addEventListener('pointermove',e=>{if(!active||!latest||!origin||e.buttons){farlook.hide();return;}const r=dom.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);if(!ray.ray.intersectPlane(floor,spot)){farlook.hide();return;}const sq=squareAt(spot,origin);farlook.show(farlookText(latest.cells.find(c=>c.x===sq.x&&c.z===sq.z)),e.clientX,e.clientY);});dom.addEventListener('pointerleave',()=>farlook.hide());}
@@ -215,7 +224,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    const conditions=(text.split(/T:\d+/)[1]||'').trim().split(/\s+/).filter(Boolean);
    el.innerHTML=[gold&&`<span>GOLD <b>${gold[1]}</b></span>`,power&&`<span>POWER <b>${power[1]} / ${power[2]}</b></span>`,exp&&`<span>EXP <b>${exp[1]}</b></span>`,...conditions.map(c=>`<span class="condition"><i aria-hidden="true">${conditionGlyph(c)}</i> ${esc(c)}</span>`)].filter(Boolean).join('');
  }
- // Mirror the demo legend: what is in view, as dot bullets; pets go to the companion slot.
+ // The pet in view goes to the companion slot (the creatures-in-view list is gone: the game is shown by its visuals).
  function renderSurroundings(frame){
    const pets=[];
    for(const cell of frame.cells){
@@ -223,7 +232,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    }
    // With no pet in view the companion slot is left out rather than saying so.
    $('.companion').hidden=!pets.length;
-   $('.companion').innerHTML=pets.length?`<span class="dot"></span> ${esc(pets[0])}${pets.length>1?` +${pets.length-1}`:''}<small>YOUR COMPANION · UNNETHACK</small>`:'';
+   $('.companion').innerHTML=pets.length?`<span class="dot"></span> ${esc(pets[0])}${pets.length>1?` +${pets.length-1}`:''}`:'';
  }
  const dialog=document.createElement('dialog');dialog.id='engine-dialog';document.body.append(dialog);
  const groundPanel=document.createElement('aside');groundPanel.id='ground-notice';groundPanel.hidden=true;groundPanel.setAttribute('aria-live','polite');groundPanel.setAttribute('aria-label','Items on this tile');document.body.append(groundPanel);let groundPanelTile=null;
@@ -517,8 +526,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    source={close:()=>{stopped=true;pollNow=null;clearTimeout(fallback);clearTimeout(pollTimer);es.close();}};
  }
  const saved={banner:$('.location small').textContent,heading:$('.location h1').textContent,keys:$('.keys').innerHTML,companion:$('.companion').innerHTML};
- function setMode(value){active=value;minimap.setVisible(value);if(!value)syncAim();if(!active)$('.location small').textContent=saved.banner;cavern.setActive(active);for(const {light,base} of ambientLights)light.intensity=active?base*LIVE_AMBIENT:base;document.body.classList.toggle('live-engine',active);group.visible=active;for(const o of demoObjects)o.visible=!active;panel.hidden=!active;actions.hidden=!active;$('#reset').hidden=active;$('.legend').hidden=active;$('.character h2').hidden=active;button.textContent=active?'Demo room':'Live UnNetHack';if(!active){$('.companion').innerHTML=saved.companion;$('.companion').hidden=false;$('.character').classList.remove('low-hp');levelBanner.classList.remove('show');shownTitle=null;}$('.keys').innerHTML=active?LIVE_KEYS_HTML:saved.keys;if(active){if(latest)apply(latest);prompt();}else{dialog.close();onDemo();$('.location h1').textContent=saved.heading;$('.location h1').hidden=false;dropEngulfCamera(camera,controls);controls.target.set(0,.1,0);camera.position.set(11,13,16);}onMode?.(active);}
- button.onclick=async()=>{if(active){setMode(false);return;}setMode(true);setPrompt('Starting isolated UnNetHack…');try{await post('/engine/start',{name:savedPlayerName()});connect();}catch(e){message(`Could not start engine: ${e.message}. Run npm run engine:build first.`);}};
+ function setMode(value){active=value;nameInput.hidden=value;minimap.setVisible(value);if(!value)syncAim();if(!active)$('.location small').textContent=saved.banner;cavern.setActive(active);for(const {light,base} of ambientLights)light.intensity=active?base*LIVE_AMBIENT:base;document.body.classList.toggle('live-engine',active);group.visible=active;for(const o of demoObjects)o.visible=!active;panel.hidden=!active;actions.hidden=!active;$('#reset').hidden=active;$('.legend').hidden=active;$('.character h2').hidden=active;button.textContent=active?'Demo room':'Live UnNetHack';if(!active){$('.companion').innerHTML=saved.companion;$('.companion').hidden=false;$('.character').classList.remove('low-hp');levelBanner.classList.remove('show');shownTitle=null;}$('.keys').innerHTML=active?LIVE_KEYS_HTML:saved.keys;if(active){if(latest)apply(latest);prompt();}else{dialog.close();onDemo();$('.location h1').textContent=saved.heading;$('.location h1').hidden=false;dropEngulfCamera(camera,controls);controls.target.set(0,.1,0);camera.position.set(11,13,16);}onMode?.(active);}
+ button.onclick=async()=>{if(active){setMode(false);return;}setMode(true);setPrompt('Starting isolated UnNetHack…');try{const started=await post('/engine/start',{name:savedPlayerName()});if(started?.name)setCharacterName(started.name);connect();}catch(e){message(`Could not start engine: ${e.message}. Run npm run engine:build first.`);}};
  actions.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{if(pending?.kind==='command')reply(Number(b.dataset.key));});
  addEventListener('keydown',e=>{if(!active||e.altKey||e.metaKey)return;if(e.ctrlKey&&e.key.toLowerCase()==='p'){e.preventDefault();e.stopImmediatePropagation();historyPanel.toggle();}else if(e.key==='Escape'&&historyPanel.isOpen()){e.preventDefault();e.stopImmediatePropagation();historyPanel.hide();}},true);
  addEventListener('keydown',e=>{if(!active||e.metaKey||e.altKey)return;if(e.target instanceof HTMLInputElement)return;
