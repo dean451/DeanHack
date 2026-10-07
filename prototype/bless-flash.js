@@ -29,7 +29,8 @@ export function ringPose(kind, t) {
     const stutter = Math.floor(u * 9) % 2 ? .04 : 0;
     // Near the end the closing ring snaps back out once, as if the curse had pulled and been pulled back.
     const snap = .07 * Math.sin(clamp01((u - .62) / .16) * Math.PI);
-    return {radius: .55 - .3 * smooth(u / .8) + stutter + snap, lift: 0, alpha: .7 * smooth(u / .15) * fade};
+    // Each stutter beat also twitches the ring a finger's width off the floor, as if something tugged at it from below.
+    return {radius: .55 - .3 * smooth(u / .8) + stutter + snap, lift: stutter ? .03 * smooth(u / .15) * (1 - smooth((u - .7) / .3)) : 0, alpha: .7 * smooth(u / .15) * fade};
   }
   // The lifted ring is shaken, not eased: it shudders as the curse is wrung out, the tremor dying by a third.
   return {radius: .25 + .2 * smooth(u / .5) + .025 * Math.sin(u * 70) * (1 - smooth(u / .3)), lift: 0, alpha: .3 * smooth(u / .1) * (1 - smooth((u - .3) / .4))};
