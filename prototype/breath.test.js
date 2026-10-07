@@ -165,7 +165,8 @@ test('fire streams as flame tongues and frost as shards; gas and sleep as curlin
     }
     assert.ok(ps.some(p => Math.abs(p.yaw) > .3), `${zap} wisps curl off the flow`);
   }
-  assert.deepEqual([stretch('magic missile')[0].len, stretch('magic missile')[0].thin], [1, 1]);
+  const dart = stretch('magic missile')[0];
+  assert.ok(dart.len > 2 && dart.thin < .4, 'magic missile breath streams as thin darts');
   const group = new THREE.Group(), br = createBreath(THREE, group);
   br.add(breathsFromFx(beam('fire', 5, 5, 1, 0), null)[0]);
   br.update(.3, null);
@@ -173,4 +174,16 @@ test('fire streams as flame tongues and frost as shards; gas and sleep as curlin
   br.mesh.getMatrixAt(0, m); sc.setFromMatrixScale(m);
   assert.ok(sc.x > sc.y * 1.5, 'drawn elongated');
   br.dispose();
+});
+
+test('no two breath types share a silhouette and motion, so none relies on colour alone', () => {
+  const sig = l => JSON.stringify([l.shape ?? null, !!l.sparks, l.wobble.amp > 0, l.rise < 0]);
+  const seen = new Map();
+  for (const [zap, look] of Object.entries(BREATH_LOOKS)) {
+    const s = sig(look);
+    assert.ok(!seen.has(s), `${zap} looks like ${seen.get(s)}`);
+    seen.set(s, zap);
+  }
+  assert.ok(BREATH_LOOKS['magic missile'].shape.len > 2 && BREATH_LOOKS['magic missile'].shape.thin < .4);
+  assert.ok(BREATH_LOOKS.death.shape.tilt < 0 && !BREATH_LOOKS.lightning.shape);
 });
