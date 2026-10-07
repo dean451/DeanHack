@@ -21,3 +21,7 @@ test('the skeleton stands over the plain zombie, and the aligned priest over the
   assert(scale('skeleton') >= 1.1);
   assert(scale('aligned priest') > 1);
 });
+
+test('the brown pudding spreads wider than a plain ooze', () => {
+  assert(scale('brown pudding') >= scale('gray ooze') * 1.1);
+});
