@@ -122,6 +122,14 @@ const SHAPES = {
     const w = .114, d = .09, t = .004;
     return [[0, -d, w, t], [0, d, w, t], [-w, 0, t, d], [w, 0, t, d]].map(([x, z, hx, hz]) => new THREE.BoxGeometry(hx * 2, .006, hz * 2).translate(x, .008, z));
   },
+  // The Master Key of Thievery is the key to every lock: a lit halo ring floats round its bow and a
+  // thin lit line runs down the shaft to the bit. The black iron key lies flat, bow at x -.1.
+  'master key of thievery'() {
+    const halo = new THREE.TorusGeometry(.068, .003, 5, 28), line = new THREE.BoxGeometry(.2, .004, .004);
+    halo.rotateX(Math.PI / 2); halo.translate(-.1, .02, 0);
+    line.translate(.03, .026, 0);
+    return [halo, line];
+  },
   // The mitre's brim is ringed in lit gilt and a black-hot cleft runs up its front, like a split
   // judgement. Every mitre base is about .26 wide and .125 tall, so it is fixed to that.
   'mitre of holiness'() {

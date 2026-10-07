@@ -133,3 +133,15 @@ test('the Orb of Fate and the palantir wear a lit shape as one extra mesh on the
   }
   plain.userData.dispose();
 });
+
+test('the Master Key of Thievery wears a lit halo and shaft line as one extra mesh on the iron key', () => {
+  const count = m => { let n = 0; m.traverse(o => { if (o.isMesh) n++; }); return n; };
+  const plain = createGroundModel({name: 'skeleton key', label: 'skeleton key', class: 6});
+  const art = createGroundModel({name: 'skeleton key', label: 'the Master Key of Thievery', class: 6});
+  assert.equal(art.userData.artifact, 'master key of thievery');
+  assert.equal(count(art), count(plain) + 1);
+  assert(art.children.at(-1).userData.magicShell);
+  const w = b => new THREE.Box3().setFromObject(b).getSize(new THREE.Vector3());
+  assert(w(art).x < w(plain).x * 1.4 && w(art).y < .1);
+  plain.userData.dispose(); art.userData.dispose();
+});
