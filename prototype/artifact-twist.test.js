@@ -120,3 +120,16 @@ test('the Mitre of Holiness and Itlachiayaque wear a lit shape as one extra mesh
     base.userData.dispose(); art.userData.dispose();
   }
 });
+
+test('the Orb of Fate and the palantir wear a lit shape as one extra mesh on the crystal ball', () => {
+  const count = m => { let n = 0; m.traverse(o => { if (o.isMesh) n++; }); return n; };
+  const plain = createGroundModel({name: 'crystal ball', label: 'crystal ball', class: 6});
+  for (const [label, kind] of [['the Orb of Fate', 'orb of fate'], ['the Palantir of Westernesse', 'palantir of westernesse']]) {
+    const art = createGroundModel({name: 'crystal ball', label, class: 6});
+    assert.equal(art.userData.artifact, kind, label);
+    assert.equal(count(art), count(plain) + 1, label);
+    assert(art.children.at(-1).userData.magicShell, label);
+    art.userData.dispose();
+  }
+  plain.userData.dispose();
+});

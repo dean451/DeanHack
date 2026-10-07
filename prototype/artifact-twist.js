@@ -66,6 +66,22 @@ const SHAPES = {
     }
     return parts;
   },
+  // The Orb of Fate is bound by its own destiny: two thin lit rings cross round the glass at a slant,
+  // like an armillary sphere. The orb is centred at y .14 with radius .105.
+  'orb of fate'() {
+    const a = new THREE.TorusGeometry(.122, .004, 5, 40), b = new THREE.TorusGeometry(.122, .004, 5, 40);
+    a.rotateX(.55); a.translate(0, .14, 0);
+    b.rotateY(Math.PI / 2); b.rotateX(-.55); b.translate(0, .14, 0);
+    return [a, b];
+  },
+  // The palantir is a seeing-stone that stares back: a lit slit pupil stands on the front of the
+  // glass, narrow as a cat's, with a tilted lit ring round its middle. Same orb, centred at y .14.
+  'palantir of westernesse'() {
+    const slit = new THREE.BoxGeometry(.008, .07, .006), ring = new THREE.TorusGeometry(.11, .003, 5, 40);
+    slit.translate(0, .14, .105);
+    ring.rotateX(Math.PI / 2 + .3); ring.translate(0, .14, 0);
+    return [slit, ring];
+  },
   // The sunstone throws eight thin cruel rays flat across the floor, like a black sun's corona.
   sunstone() {
     return Array.from({length: 8}, (_, i) => {
