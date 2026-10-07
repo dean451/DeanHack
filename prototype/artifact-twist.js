@@ -158,6 +158,14 @@ const SHAPES = {
       return spike;
     });
   },
+  // Mjollnir carries the storm: a lit bolt forks across the top of the hammer head in three jagged
+  // strokes, and a thin lit ring binds the haft below it. The head is .09 wide at x .17, top y .07.
+  mjollnir() {
+    const stroke = (x, z, w, d, r) => new THREE.BoxGeometry(w, .004, d).rotateY(r).translate(x, .073, z);
+    const ring = new THREE.TorusGeometry(.016, .003, 5, 14);
+    ring.rotateY(Math.PI / 2); ring.translate(.1, .012, 0);
+    return [stroke(.185, -.022, .035, .005, .5), stroke(.165, 0, .04, .005, -.6), stroke(.18, .024, .03, .005, .4), ring];
+  },
   // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
   // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
   itlachiayaque(group) {
