@@ -300,7 +300,7 @@ const FOOD_KIND=/\b(apple|orange|pear|melon|banana|carrot|egg|tin|lembas|fortune
 
 // Tool kinds with their own model. Each word is the shared appearance, so a tin and a
 // magic whistle, or a tooled and a frost horn, look alike on the floor.
-const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box|iron safe|tinning kit|expensive camera|lenses|credit card|beartrap|land mine|hook)\b/;
+const TOOL_KIND=/\b(whistle|mirror|crystal ball|horn|bugle|flute|harp|drum|bell|stethoscope|tin opener|leash|saddle|chest|large box|ice box|iron safe|tinning kit|expensive camera|lenses|credit card|beartrap|land mine|hook|key)\b/;
 
 // Ground-only geometry: every model sits on y=0, without inventory-state mutation.
 // Gloves are keyed only by their appearance (old, padded, riding, fencing), which the bridge
@@ -6488,6 +6488,16 @@ export function createGroundModel(item={}){
    buildBearTrap({g,materials});
   }else if(kind==='land mine'){
    buildLandMine({g,materials});
+  }else if(kind==='key'){
+   // A black wrought-iron key lying flat: a pitted trefoil bow, a long shaft with two collars and a
+   // bit cut into hard, crooked teeth, like the key to something that should stay locked.
+   const iron=mat(0x2c2a2a,.8),rust=mat(0x6a3a22,.5);
+   const bow=add(new THREE.TorusGeometry(.045,.011,6,20),iron,-.1,.011,0);bow.rotation.x=Math.PI/2;
+   for(const a of [Math.PI/2,Math.PI/2+2.1,Math.PI/2-2.1])ball(.019,iron,-.1+Math.cos(a)*.052,.011,Math.sin(a)*.052,[1,.6,1]);
+   lie(.011,.009,.2,iron,.03,.011,0);
+   for(const x of [-.045,.0])lie(.015,.015,.014,rust,x,.011,0);
+   for(const [x,w,d] of [[.095,.016,.05],[.12,.016,.034],[.14,.014,.058]])box(w,.012,d,iron,x,.011,d/2-.004);
+   box(.05,.012,.012,iron,.115,.011,.002);
   }else if(kind==='hook'){
    buildGrapplingHook({g,materials});
   }else if(kind==='iron safe'){
