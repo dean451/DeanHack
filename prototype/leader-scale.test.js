@@ -15,3 +15,9 @@ test('the elven quest leaders have their own elf model, larger than the high-elf
     assert(scale(n) > scale('high-elf'), n);
   }
 });
+
+test('Norn and Pelias, with their own models, also stand over a plain human', () => {
+  for(const n of ['norn', 'pelias']){
+    assert(scale(n) >= scale('human') * 1.1, n);
+  }
+});
