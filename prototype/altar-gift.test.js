@@ -32,3 +32,10 @@ test('the hanging shaft recoils once, then stabs back to full height', () => {
   assert.ok(shaftPose(.46).height < .8, 'it flinches');
   assert.ok(shaftPose(.3).height > .99 && shaftPose(.56).height > .99);
 });
+
+test('one spark lingers low after the rest are gone, then goes out', () => {
+  const t = GIFT.drop + 1.1;
+  assert.ok(sparkPose(3, t).alpha > .3 && sparkPose(3, t).y < .1);
+  for (const i of [0, 1, 2, 4, 5, 6, 7]) assert.equal(sparkPose(i, t).alpha, 0);
+  assert.equal(sparkPose(3, GIFT.drop + 1.5).alpha, 0);
+});
