@@ -9,13 +9,19 @@ const MIX = .3, POWER = .2;
 const POWER_BY_KIND = {excalibur: .32, stormbringer: .3, 'fire brand': .3, 'frost brand': .26};
 
 // Tints the item's own materials in `group` (disposal is unchanged). Returns the artifact key or null.
-export function applyArtifactTwist(group, object) {
+// `clone`: give each mesh its own copy of the material first, for models whose materials may be shared.
+export function applyArtifactTwist(group, object, {clone = false} = {}) {
   const kind = object ? artifactFromName(object.label, object.class) : null;
-  if (!kind) return null;
-  const color = new THREE.Color(ARTIFACTS[kind].color), seen = new Set();
+  if (!kind || group.userData.artifact === kind) return kind && group.userData.artifact;
+  const color = new THREE.Color(ARTIFACTS[kind].color), seen = new Set(), copies = new Map();
   group.traverse(o => {
-    const m = o.material;
-    if (!m?.color || !m.emissive || seen.has(m)) return;
+    let m = o.material;
+    if (!m?.color || !m.emissive || o.userData.magicShell) return;
+    if (clone) {
+      if (!copies.has(m)) copies.set(m, m.clone());
+      m = o.material = copies.get(m);
+    }
+    if (seen.has(m)) return;
     seen.add(m);
     if (!m.vertexColors) m.color.lerp(color, MIX);
     m.emissive.copy(color);

@@ -22,6 +22,7 @@
 // call it each frame, and hidden items cost nothing. Particles are a pure function of time.
 import * as THREE from 'three';
 import {ARTIFACTS, artifactFromName, heldArtifactKind} from './artifact-gleam.js';
+import {applyArtifactTwist} from './artifact-twist.js';
 
 const TAU = Math.PI * 2;
 const WEAPON_CLASS = 2, TOOL_CLASS = 6;
@@ -323,6 +324,8 @@ export function syncHeldMagic(hero, item, opts = {}) {
   if (!magic || !weapon) return null;
   const blade = bladeOf(socket, weapon);
   if (!blade) return null;
+  // the held artifact's own steel takes its glint, as on the floor (artifact-twist.js)
+  if (magic.kind === 'artifact') applyArtifactTwist(weapon, {label: item.name, class: item.class}, {clone: true});
   const fx = createMagicFx(magic, weapon, blade, {seedText: 'held', ...opts});
   socket.add(fx);
   // swing-fx.js reads `tint` to colour the swing trail: the theme's trail colour, pushed bright
