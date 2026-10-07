@@ -85,3 +85,10 @@ test('Cleaver, Thiefbane, Luck Blade and Dragonbane each have their own signatur
   assert.ok(THEMES.cleaver.shell >> 16 > 0xa0 && (THEMES.cleaver.shell & 0xff) < 0x30, 'Cleaver burns blood red');
   assert.equal(weaponMagic({name: 'Cleaver', class: W}).theme, THEMES.cleaver);
 });
+
+test('the bane and slayer blades each have their own signature', () => {
+  const keys = ['werebane', 'grayswandir', 'giantslayer', 'ogresmasher', 'trollsbane'];
+  for (const k of keys) assert.ok(THEMES[k], k);
+  assert.equal(new Set(keys.map(k => THEMES[k].shell)).size, keys.length);
+  assert.equal(weaponMagic({name: 'Trollsbane', class: W}).theme, THEMES.trollsbane);
+});

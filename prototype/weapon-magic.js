@@ -64,6 +64,16 @@ export const THEMES = {
   'luck blade': {shell: 0x90e090, glow: .5, trail: 0xa8f0a0, layers: [L('motes', 0xe8ffe0, 0x50c050, 10, .05, 2.2, .85, {shape: 1}), L('edge', 0xffffff, 0xb8ffb0, 3, .07, 1.6, 1, {shape: 1})]},
   // scale-green sheen, scorched by the dragons it killed
   dragonbane: {shell: 0x58a040, glow: .5, trail: 0x70b850, layers: [L('embers', 0xffa040, 0x401000, 7, .03, 1.8, 1), L('mist', 0x2a2018, 0x100c08, 4, .12, 3, .35, {add: false})]},
+  // silver moonlight sheen
+  werebane: {shell: 0xd8e4f8, glow: .5, trail: 0xe8f0ff, layers: [L('motes', 0xffffff, 0xaec0e0, 9, .045, 2.6, .8), L('edge', 0xffffff, 0xd8e4f8, 3, .06, 1.6, 1, {shape: 1})]},
+  // flawless silver-white, balanced: a slow even gleam
+  grayswandir: {shell: 0xf0f6ff, glow: .55, trail: 0xf4f8ff, layers: [L('edge', 0xffffff, 0xe0ecff, 5, .06, 1.8, 1, {shape: 1})]},
+  // broad blade, bold mountain-grey light
+  giantslayer: {shell: 0x9aa0aa, glow: .5, trail: 0xb0b6c0, layers: [L('orbit', 0xe0e4ea, 0x808890, 5, .07, 8, .9, {shape: 2})]},
+  // heavy, shedding stone dust
+  ogresmasher: {shell: 0x8a8070, glow: .35, trail: 0xa09888, layers: [L('fall', 0xc8c0b0, 0x686050, 10, .05, 2.4, .8), L('mist', 0xa09888, 0x605848, 4, .12, 3, .3, {add: false})]},
+  // the same stone dust, with a green ward flickering on the edge
+  trollsbane: {shell: 0x70a050, glow: .45, flicker: true, trail: 0x88b868, layers: [L('fall', 0xc8c0b0, 0x686050, 8, .05, 2.4, .8), L('motes', 0xb0f080, 0x306018, 6, .04, 1.6, .8)]},
 };
 function themeForArtifact(key) {
   if (THEMES[key]) return THEMES[key];
