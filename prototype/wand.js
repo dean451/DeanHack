@@ -80,10 +80,12 @@ function wandLook(look) {
     L.shaft = std(0x5b6066, .8, .4); L.fit = std(0x2e3236, .7, .5);
     if (look === 'hexagonal' || look === 'octagonal') { L.sides = look === 'hexagonal' ? 6 : 8; L.faceted = true; L.taper = .92; L.radius = .022; }
     if (look === 'short') { L.length = .3; L.radius = .022; }
-    if (look === 'long') { L.length = .66; L.radius = .017; }
+    if (look === 'long') { L.length = .66; L.radius = .017; L.extras.push('bands'); }
+    if (look === 'octagonal') L.extras.push('pits');
     if (look === 'curved') L.curve = .07;
     if (look === 'bent') { L.curve = .1; L.shaft = std(0x4a4d52, .7, .62); }
     if (look === 'spiked') L.extras.push('spikes');
+    if (look === 'hexagonal') L.extras.push('bands');
     if (look === 'runed') { L.accent = std(0x9fc6ff, .2, .4, {emissive: 0x2d5cff, emissiveIntensity: .55}); L.extras.push('runes'); }
     if (look === 'jeweled') {
       L.shaft = std(0x2a2266, .3, .18); L.fit = brass();
