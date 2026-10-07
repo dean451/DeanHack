@@ -43,9 +43,10 @@ export function scorchPose(t) {
 
 // Ember i: a spark lifted off the base, jagged sideways drift, cooling as it climbs.
 export function emberPose(i, t) {
-  const start = .1 + (i % 4) * .12, u = clamp01((t - start) / .9);
+  // The last ember will not go out: it climbs slower and higher, a sullen red spark hanging on.
+  const stubborn = i === JET.embers - 1, start = .1 + (i % 4) * .12, u = clamp01((t - start) / (stubborn ? 1.1 : .9));
   const a = i * 2.4;
-  return {x: Math.cos(a) * (.1 + .12 * u) + Math.sin(u * 14 + i) * .03, y: .1 + (1.1 + (i % 3) * .3) * u, z: Math.sin(a) * (.1 + .12 * u), alpha: u <= 0 || u >= 1 ? 0 : .9 * (1 - u), heat: 1 - u};
+  return {x: Math.cos(a) * (.1 + .12 * u) + Math.sin(u * 14 + i) * .03, y: .1 + (1.1 + (i % 3) * .3 + (stubborn ? .3 : 0)) * u, z: Math.sin(a) * (.1 + .12 * u), alpha: u <= 0 || u >= 1 ? 0 : .9 * (1 - u), heat: 1 - u};
 }
 
 // Ash flake i: once the column gutters, grey flakes of what burned drift down in a lazy,
