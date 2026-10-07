@@ -97,3 +97,21 @@ test('a hovering bee now and then scrapes its front legs together; in flight or 
   front(start).concat(front(start + D.rubFor)).forEach(v => assert.ok(Math.abs(v - base) < .12));
   assert.ok(front(start + D.rubEvery + D.rubFor / 2)[0] > base + D.rub - D.rubShake - .12);
 });
+
+test('the legs swing past their new pose when flight starts and stops, then settle', () => {
+  const a = createCreature({name: 'killer bee'});
+  let t = 0;
+  const hind = () => a.legs[2].rotation.x;
+  const run = (secs, walking) => { let lo = Infinity, hi = -Infinity; for (let k = 0; k < secs * 60; k++, t += 1 / 60) { frame(a, t, 1 / 60, walking); lo = Math.min(lo, hind()); hi = Math.max(hi, hind()); } return {lo, hi}; };
+  run(1, false);
+  const hover = hind();
+  const up = run(2, true), flying = hind();
+  assert.ok(up.hi > flying + .01, 'trails past the cruising pose as it sets off');
+  const down = run(2, false);
+  assert.ok(down.lo < hover - .02, 'swings forward past the hover pose as it stops');
+  const st = a.dangle;
+  assert.ok(Math.abs(hind() - danglePose(st.layout, st.t, 0, 1, st.seed).pitch[2]) < 1e-9, 'and settles back');
+  const d = createCreature({name: 'killer bee'});
+  const pose = danglePose(dangleLayout(d.legs), 1, .5, 1, 0, .5);
+  assert.deepEqual(pose.pitch, danglePose(dangleLayout(d.legs), 1, .5, 1, 0).pitch);
+});
