@@ -99,6 +99,24 @@ const TWISTS = {
     liquid.material.emissiveIntensity = .3;
     glass.material.color.lerp(new THREE.Color(0x5a4a68), .25);
   },
+  // Holy water: clear and faintly gold, lit from within, the glass kept pale and clean.
+  'holy water'(parts) {
+    const {liquid, glass} = parts;
+    liquid.material.color.lerp(new THREE.Color(0xfff0c8), .6);
+    liquid.material.emissive.set(0xffe8a0);
+    liquid.material.emissiveIntensity = .5;
+    glass.material.color.lerp(new THREE.Color(0xfff8e0), .2);
+  },
+  // Unholy water: a black, oily murk that gives nothing back, the glass gone dark and sooty.
+  'unholy water'(parts) {
+    const {liquid, glass} = parts;
+    liquid.material.color.set(0x0c0a0c);
+    liquid.material.roughness = .2;
+    liquid.material.transparent = false;
+    liquid.material.opacity = 1;
+    liquid.material.emissiveIntensity = 0;
+    glass.material.color.lerp(new THREE.Color(0x201a20), .4);
+  },
   // Levitation: a pale, weightless liquid with a lifting glow, the glass thinned.
   levitation(parts) {
     const {liquid, glass} = parts;
