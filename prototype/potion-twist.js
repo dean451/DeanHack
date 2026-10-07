@@ -117,6 +117,32 @@ const TWISTS = {
     liquid.material.emissiveIntensity = 0;
     glass.material.color.lerp(new THREE.Color(0x201a20), .4);
   },
+  // Monster detection: a bloodshot red murk that pulses faintly, as if something looks back.
+  'monster detection'(parts) {
+    const {liquid, glass} = parts;
+    liquid.material.color.lerp(new THREE.Color(0x7a1810), .6);
+    liquid.material.roughness = .75;
+    liquid.material.emissive.set(0xc03020);
+    liquid.material.emissiveIntensity = .35;
+    glass.material.color.lerp(new THREE.Color(0x502018), .25);
+  },
+  // Polymorph: a sickly green-grey slurry that never looks the same twice.
+  polymorph(parts) {
+    const {liquid, glass} = parts;
+    liquid.material.color.lerp(new THREE.Color(0x5a7a48), .6);
+    liquid.material.roughness = .6;
+    liquid.material.emissive.set(0x80c060);
+    liquid.material.emissiveIntensity = .4;
+    glass.material.color.lerp(new THREE.Color(0x384830), .25);
+  },
+  // Hallucination: a garish, feverish magenta that is too bright to be wholesome.
+  hallucination(parts) {
+    const {liquid, glass} = parts;
+    liquid.material.color.lerp(new THREE.Color(0xa02880), .6);
+    liquid.material.emissive.set(0xe040b0);
+    liquid.material.emissiveIntensity = .5;
+    glass.material.color.lerp(new THREE.Color(0x601850), .25);
+  },
   // Levitation: a pale, weightless liquid with a lifting glow, the glass thinned.
   levitation(parts) {
     const {liquid, glass} = parts;
