@@ -17,7 +17,9 @@ export const isGiftMessage = text => /Use my gift wisely/i.test(text || '');
 export function shaftPose(t) {
   if (t <= 0 || t >= GIFT.total) return {height: 0, width: 0, alpha: 0};
   const fall = 1 - (1 - clamp01(t / GIFT.drop)) ** 2, cut = smooth((t - .6) / .35);
-  return {height: fall * (1 - cut), width: .12 * (1 - .6 * cut) * (.92 + .08 * Math.sin(t * 40)), alpha: smooth(t / .04) * (1 - cut)};
+  // Hanging there it second-guesses: one quick recoil upward, then it stabs back down.
+  const w = clamp01((t - .38) / .16), recoil = 1 - .3 * Math.sin(Math.PI * w) ** 2;
+  return {height: fall * (1 - cut) * recoil, width: .12 * (1 - .6 * cut) * (.92 + .08 * Math.sin(t * 40)), alpha: smooth(t / .04) * (1 - cut)};
 }
 
 // The flash on the stone: it lands as the shaft arrives, then dies back to a glint that lingers.

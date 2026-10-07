@@ -27,3 +27,8 @@ test('poses stay in bounds; the shaft stabs down fast, hangs, then is cut off', 
   assert.ok(shaftPose(.3).height > .99 && shaftPose(.9).height < .3);
   assert.ok(flashPose(GIFT.drop + .05).alpha > .5 && flashPose(GIFT.total - .05).alpha < flashPose(GIFT.drop + .05).alpha);
 });
+
+test('the hanging shaft recoils once, then stabs back to full height', () => {
+  assert.ok(shaftPose(.46).height < .8, 'it flinches');
+  assert.ok(shaftPose(.3).height > .99 && shaftPose(.56).height > .99);
+});
