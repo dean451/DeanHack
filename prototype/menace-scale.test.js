@@ -12,3 +12,7 @@ test('the green slime and ochre jelly spread wider than a plain ooze', () => {
 test('the cobra rears larger than the common snake', () => {
   assert(scale('cobra') >= scale('snake') * 1.15);
 });
+
+test('the blue slime spreads like the green slime', () => {
+  assert(scale('blue slime') >= scale('gray ooze') * 1.2);
+});
