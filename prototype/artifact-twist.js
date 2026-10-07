@@ -42,6 +42,29 @@ const SHAPES = {
     shackle.rotateX(Math.PI / 2 - .35); shackle.translate(0, R * 1.97 + .075, 0);
     return [seam, shackle];
   },
+  // The Eye of the Aethiopica is an eye that never shuts: a lit almond lid round the pendant with a
+  // vertical slit pupil, lying just above the pendant (centred on the origin, lid 1.9 times as wide).
+  'eye of the aethiopica'() {
+    const lid = new THREE.TorusGeometry(.05, .004, 5, 28), slit = new THREE.BoxGeometry(.008, .004, .06);
+    lid.rotateX(Math.PI / 2); lid.scale(1.9, 1, .55); lid.translate(0, .038, 0);
+    slit.translate(0, .04, 0);
+    return [lid, slit];
+  },
+  // The Heart of Ahriman beats: a thin lit ring on the floor round the stone, and five black-hot
+  // shards standing round it, leaning in like the ribs of a cage. The stone spans about .34 wide.
+  'heart of ahriman'() {
+    const parts = [], ring = new THREE.TorusGeometry(.2, .004, 5, 36);
+    ring.rotateX(Math.PI / 2); ring.translate(0, .006, 0);
+    parts.push(ring);
+    for (let i = 0; i < 5; i++) {
+      const a = i / 5 * Math.PI * 2 + .3, shard = new THREE.ConeGeometry(.012, .09 + (i % 2) * .03, 4);
+      shard.translate(0, .05 + (i % 2) * .015, 0);
+      shard.rotateZ(Math.cos(a) * .3); shard.rotateX(-Math.sin(a) * .3);
+      shard.translate(Math.cos(a) * .21, 0, Math.sin(a) * .21);
+      parts.push(shard);
+    }
+    return parts;
+  },
   // A thin hard edge of light round the card, like a razor ground into its rim.
   'platinum yendorian express card'() {
     const w = .114, d = .09, t = .004;

@@ -75,3 +75,14 @@ test('the Iron Ball of Liberation wears a lit seam and a broken shackle as one e
   assert(art.children.at(-1).userData.magicShell);
   plain.userData.dispose(); art.userData.dispose();
 });
+
+test('the Eye of the Aethiopica wears a lit lid and the Heart of Ahriman a ring of shards, each as one extra mesh', () => {
+  const count = m => { let n = 0; m.traverse(o => { if (o.isMesh) n++; }); return n; };
+  for (const [name, label, cls] of [['amulet of life saving', 'the Eye of the Aethiopica', AMULET], ['luckstone', 'the Heart of Ahriman', 13]]) {
+    const plain = createGroundModel({name, label: name, class: cls}), art = createGroundModel({name, label, class: cls});
+    assert(art.userData.artifact, label);
+    assert.equal(count(art), count(plain) + 1, label);
+    assert(art.children.at(-1).userData.magicShell, label);
+    plain.userData.dispose(); art.userData.dispose();
+  }
+});
