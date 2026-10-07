@@ -25,6 +25,12 @@ test('it flinches once: the lean eases back for a beat mid-hold', () => {
   assert.ok(kneelPose(.655).lean < kneelPose(.55).lean - .05);
 });
 
+test('it sneaks a look up early in the hold, then ducks lower than the bow it started from', () => {
+  assert.ok(kneelPose(.32).lean < kneelPose(.24).lean - .05);
+  const top = (a, b) => { let m = -1; for (let u = a; u <= b; u += .005) m = Math.max(m, kneelPose(u).lean); return m; };
+  assert.ok(top(.42, .58) > top(.18, .26) + .03);
+});
+
 test('playing layers on the rig, restores it and yields to actions', () => {
   const a = rig(), k = createPrayerKneel();
   assert.ok(!k.message('You hit the newt.'));
