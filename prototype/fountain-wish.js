@@ -17,7 +17,9 @@ export const isWishMessage = text => /grateful for his release, he grants you a 
 // Mote i at time t: radius from the middle, spiral angle, height and alpha. Each starts at its
 // own distance, accelerates inward and vanishes into the point.
 export function motePose(i, t) {
-  const u = clamp01((t - i * .04) / WISH.pull), r0 = .7 + (i % 4) * .12, pull = u * u;
+  // The last mote hangs back in the dark and comes in late, after the others have landed, as if it
+  // were unsure about the bargain.
+  const u = clamp01((t - i * .04 - (i === WISH.motes - 1 ? .35 : 0)) / WISH.pull), r0 = .7 + (i % 4) * .12, pull = u * u;
   return {r: r0 * (1 - pull), angle: i * 2.4 + u * 7 + pull * 4, y: .35 + .45 * Math.sin(Math.PI * Math.min(1, u * 1.2)) * .5 + (i % 3) * .05, alpha: u <= 0 || u >= 1 ? 0 : .9 * Math.min(1, u * 5)};
 }
 
