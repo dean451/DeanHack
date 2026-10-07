@@ -65,3 +65,11 @@ test('a lifted curse is shaken: the ring shudders early, then settles, never lea
   for (let t = BLESS.total * .5; t < BLESS.total - .02; t += .01) assert.ok(ringPose('lifted', t + .01).radius >= ringPose('lifted', t).radius - 1e-9, 'smooth once calm');
   for (let t = .01; t < BLESS.total; t += .01) { const p = ringPose('lifted', t); assert.ok(p.radius >= .2 && p.radius <= .5 && p.alpha >= 0 && p.alpha <= .3 + 1e-9); }
 });
+
+test('the cursed ring twitches off the floor on each stutter beat, and rests flat at the ends', () => {
+  const lifts = Array.from({length: 180}, (_, i) => ringPose('cursed', i * .01).lift);
+  assert.ok(Math.max(...lifts) > .015 && Math.max(...lifts) < .05, 'a finger-width twitch');
+  assert.ok(lifts.some(l => l === 0), 'and flat between beats');
+  assert.equal(ringPose('cursed', 0).lift, 0);
+  assert.equal(ringPose('cursed', BLESS.total).lift, 0);
+});

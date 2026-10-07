@@ -7,6 +7,7 @@
 // update(dt) every frame and clear() on a level change. Poses are functions of t and return
 // exactly to rest (nothing showing) at the end.
 
+const clamp0 = x => Math.max(x, 0);
 export const CRUMBLE = {flecks: 9, total: 1.9};
 export const isCrumbleMessage = text => /the spellbook crumbles to dust/i.test(text || '');
 
@@ -18,8 +19,9 @@ export function fleckPose(i, t) {
   if (u <= 0 || u >= 1) return {x: 0, y: 0, z: 0, alpha: 0, spin: 0};
   const a = i * 2.4, r = (.05 + .22 * Math.sqrt(u)) * (.7 + .1 * (i % 4));
   // Sags in an accelerating fall; the last one falls late, on a long sway.
+  // The first flake clings to the hand a quarter of its life before it gives way.
   // The stubborn flake catches on nothing mid-fall: it stalls a beat, then drops the rest of the way.
-  const fall = last ? (u < .5 ? u ** 2.6 : u < .62 ? .5 ** 2.6 + (u - .5) * .08 : .5 ** 2.6 + .0096 + (u - .62) / .38 * (1 - .5 ** 2.6 - .0096)) : u ** 1.7, sway = last ? .06 * Math.sin(u * 14) : .012 * Math.sin(u * 22 + i * 1.7);
+  const fall = last ? (u < .5 ? u ** 2.6 : u < .62 ? .5 ** 2.6 + (u - .5) * .08 : .5 ** 2.6 + .0096 + (u - .62) / .38 * (1 - .5 ** 2.6 - .0096)) : i === 0 ? clamp0((u - .25) / .75) ** 1.7 : u ** 1.7, sway = last ? .06 * Math.sin(u * 14) : .012 * Math.sin(u * 22 + i * 1.7);
   return {x: Math.cos(a) * r + sway, y: Math.max(.5 - .47 * fall, .03), z: Math.sin(a) * r,
     alpha: .7 * Math.min(u / .08, 1) * (u > .75 ? (1 - u) / .25 : 1), spin: last ? u * 18 : u * 4 * (i % 2 ? 1 : -1)};
 }

@@ -20,7 +20,8 @@ export function glowAlignment(text) {
 // A chaotic altar gutters like a bad flame, and a godless one sinks early, as if the stone gave up.
 export function glowPose(t, kind) {
   if (t <= 0 || t >= GLOW.total) return {radius: 0, alpha: 0};
-  const u = t / GLOW.total, hitch = 1 - .45 * Math.exp(-(((u - .5) / .05) ** 2));
+  // A neutral altar barely notices the hitch: its god is indifferent, and the ring simply endures.
+  const u = t / GLOW.total, hitch = 1 - (kind === 'neutral' ? .15 : .45) * Math.exp(-(((u - .5) / .05) ** 2));
   const gutter = kind === 'chaotic' && u > .2 && u < .8 ? .8 + .2 * Math.sin(u * 95) * Math.sin(u * 37) : 1;
   const sink = kind === 'unaligned' ? .08 * smooth((u - .45) / .3) : 0;
   return {radius: .3 + .25 * smooth(u / .6) - .12 * smooth((u - .7) / .3) - sink, alpha: .6 * smooth(u / .25) * (1 - smooth((u - .65) / .35)) * hitch * gutter};

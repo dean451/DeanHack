@@ -60,3 +60,12 @@ test('plain flecks flutter as they sag, still falling overall and in bounds', ()
   }
   assert.ok(flips >= 1, 'sways');
 });
+
+test('the first flake clings to the hand before it gives way', () => {
+  const born = 0, life = .9;
+  assert.equal(fleckPose(0, born + .2 * life).y, .5);
+  assert.ok(fleckPose(0, born + .5 * life).y < .5);
+  assert.ok(fleckPose(0, born + .9 * life).y >= .03);
+  assert.equal(fleckPose(0, 0).alpha, 0);
+  assert.equal(fleckPose(0, CRUMBLE.total).alpha, 0);
+});

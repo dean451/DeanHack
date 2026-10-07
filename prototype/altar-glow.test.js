@@ -36,3 +36,9 @@ test('a chaotic altar gutters and a godless one sinks early; the rest are untouc
   assert.ok(flick('chaotic') > flick('lawful'), 'the flame stutters');
   assert.ok(glowPose(GLOW.total * .75, 'unaligned').radius < glowPose(GLOW.total * .75, 'neutral').radius);
 });
+
+test('a neutral altar hardly hitches: its dip is shallower than a lawful one', () => {
+  const dip = k => 1 - glowPose(.5 * GLOW.total, k).alpha / glowPose(.4 * GLOW.total, k).alpha;
+  assert.ok(glowPose(.5 * GLOW.total, 'neutral').alpha > 0);
+  assert.ok(dip('neutral') < dip('lawful'), 'shallower');
+});
