@@ -22,6 +22,8 @@ export const ZOMBIES={
  'dwarf zombie':{skin:'#7a5a4a',scale:.78,wide:1.18,feature:'dwarf'},
  'elf zombie':{skin:'#8a9a7a',scale:1.04,wide:.9,feature:'elf'},
  'human zombie':{skin:'#a3a792',scale:1,wide:1},
+ 'ogre zombie':{skin:'#6a6a54',scale:1.3,wide:1.2},
+ 'troll zombie':{skin:'#5a6a4e',scale:1.38,wide:1.1},
  'ettin zombie':{skin:'#6a6f80',scale:1.55,wide:1.12,heads:2},
  'giant zombie':{skin:'#7a7a6a',scale:1.85,wide:1.05,feature:'giant'},
 };
