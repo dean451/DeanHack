@@ -35,7 +35,9 @@ export function sparkPose(i, t) {
   const flick = .6 + .4 * Math.sin(s * 60 + i * 3);
   // The last spark has slumped dead, then twitches up once more and drops again.
   const twitch = i === FIZZLE.sparks - 1 && u > .72 && u < .92 ? .07 * Math.sin((u - .72) / .2 * Math.PI) : 0;
-  return {x: Math.cos(a) * r, y: .15 + .5 * 4 * u * (1 - u) * (.6 + .1 * (i % 3)) * (1 - .6 * u) + twitch, z: Math.sin(a) * r, alpha: Math.max(0, .85 * (1 - u) * flick)};
+  // The first spark is slow to die: it lands, skips once more on the floor, and only then goes out.
+  const skip = i === 0 && u > .6 ? .06 * Math.abs(Math.sin((u - .6) / .4 * Math.PI)) : 0;
+  return {x: Math.cos(a) * r, y: .15 + .5 * 4 * u * (1 - u) * (.6 + .1 * (i % 3)) * (1 - .6 * u) + twitch + skip, z: Math.sin(a) * r, alpha: Math.max(0, .85 * (1 - u) * flick)};
 }
 
 export function createSpellFizzle(THREE, parent) {
