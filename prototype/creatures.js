@@ -1622,6 +1622,11 @@ function lich(o){
  // ragged hem: alternating dark tatters hang below the robe
  for(let i=0;i<(o.tattered?10:7);i++){const a=i/(o.tattered?10:7)*Math.PI*2,t=cone(body,.05,.14+(i%2)*.06,trim,Math.sin(a)*.31,.1,Math.cos(a)*.31,4);t.rotation.x=Math.PI;}
  rounded(body,.34,.32,.24,robe,0,.82,0,.06);
+ // layered regal robes: an open overrobe panel down the front edged in dark trim, and a long ragged train trailing behind
+ rounded(body,.16,.62,.03,trim,0,.38,.3,.01);
+ for(const x of [-1,1])rounded(body,.02,.6,.035,mat(o.glow,{emissive:o.glow,emissiveIntensity:.6,roughness:.5}),x*.085,.38,.31,.005);
+ const train=cone(body,.2,.55,robe,0,.12,-.42,5);train.rotation.x=-1.45;
+ for(const x of [-.09,.09]){const t=cone(body,.04,.2,trim,x,.04,-.62,4);t.rotation.x=-1.5;}
  const hood=sphere(body,.24,trim,0,1.1,-.06,1,1.05,1);hood.scale.z=1.05;
  // skull: cranium, cheekbones, dark sockets with a glow deep inside, a toothed jaw
  sphere(body,.15,bone,0,1.11,.04,.82,1.08,.98);
@@ -1638,7 +1643,7 @@ function lich(o){
  // skeletal arms: thin bone forearms and claw fingers poking out of wide sleeves
  // Each claw finger hangs from its own knuckle, so lich-chill.js can flex it (handles: lichHands, orb).
  const lichHands=[];
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.93,0);body.add(arm);cylinder(arm,.06,.1,.3,robe,0,-.14,0,8);cylinder(arm,.018,.018,.16,bone,0,-.34,.02,6);const fingers=[];for(const f of [-.025,0,.025]){const k=new THREE.Group();k.position.set(f,-.405,.03);arm.add(k);cone(k,.01,.09,bone,0,-.045,0,4).rotation.x=Math.PI;fingers.push(k);}arm.rotation.z=side*.16;arm.rotation.x=side<0?-.55:-.2;lichHands.push({side,arm,fingers});}
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.93,0);body.add(arm);cylinder(arm,.06,.1,.3,robe,0,-.14,0,8);cylinder(arm,.018,.018,.16,bone,0,-.34,.02,6);const fingers=[];for(const f of [-.025,0,.025]){const k=new THREE.Group();k.position.set(f,-.405,.03);arm.add(k);cone(k,.008,.15,bone,0,-.075,0,4).rotation.x=Math.PI;sphere(k,.011,bone,0,-.04,0);fingers.push(k);}arm.rotation.z=side*.16;arm.rotation.x=side<0?-.55:-.2;lichHands.push({side,arm,fingers});}
  // staff held out on the right, orb glowing in the lich's colour
  const staff=rounded(body,.035,1.15,.035,M.leather,.34,.66,.16,.01);staff.rotation.z=-.06;
  // the staff is topped with a small skull whose sockets glow in the lich's colour; the orb rides in its brow (lich-chill.js flexes it)
@@ -1646,6 +1651,8 @@ function lich(o){
  sphere(sk,.05,bone,0,.03,0,.85,1,.95);rounded(sk,.04,.03,.045,bone,0,-.03,.015,.01);
  for(const x of [-.02,.02])sphere(sk,.014,glow,x,.03,.042,1,1,.6);
  const orb=sphere(sk,.026,glow,0,.1,.02);
+ // a plain lich and a demilich wear a thin circlet with a glowing stone; higher tiers wear the crowns below
+ if(!o.crown){cylinder(body,.152,.152,.018,o.evil?M.gold:M.darkSteel,0,1.2,.02,12);cone(body,.016,.06,o.evil?M.gold:M.darkSteel,0,1.24,.17,4);sphere(body,.02,glow,0,1.2,.17);}
  if(o.crown){const n=o.crown==='tall'?7:5,h=o.crown==='tall'?.14:.09;cylinder(body,.155,.165,.05,o.crown==='tall'?M.gold:bone,0,1.21,.02,12);for(let i=0;i<n;i++){const a=(i/n-.5)*Math.PI*1.3;cone(body,.02,h,o.crown==='tall'?M.gold:bone,Math.sin(a)*.155,1.26+h/2-.02,.02+Math.cos(a)*.155,4);}sphere(body,.026,glow,0,1.22,.18);}
  if(o.mantle){for(const side of [-1,1]){const spike=cone(body,.05,.22,bone,side*.24,1.02,-.04,5);spike.rotation.z=-side*.9;}rounded(body,.46,.08,.3,trim,0,.97,-.02,.03);}
  // evil glow (demiliches and above): a pool of necrotic light under the hem, and cold soul-flames licking up off the shoulders
