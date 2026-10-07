@@ -22,10 +22,12 @@ export function motePose(i, t) {
   return {x: Math.cos(a) * r, y: 1.0 * (1 - s) ** 1.5 + .02, z: Math.sin(a) * r, alpha: .85 * clamp01((t - start) / .06) * (1 - clamp01((u - .8) / .2))};
 }
 
-// The ring closes in around the feet, then jerks once and goes out.
+// The ring closes in around the feet in hitching steps, like a held breath being dragged out of
+// the hero (monotonic: it stalls but never opens), then jerks once and goes out.
+export const RING_HITCH = .08;
 export function ringPose(t) {
   if (t <= .1 || t >= ANTI.total) return {scale: .05, alpha: 0};
-  const u = clamp01((t - .1) / (ANTI.drain - .1));
+  const u0 = clamp01((t - .1) / (ANTI.drain - .1)), u = clamp01(u0 + RING_HITCH * Math.sin(u0 * Math.PI * 3) * (1 - u0));
   const twitch = t > ANTI.drain ? .08 * Math.sin((t - ANTI.drain) / (ANTI.total - ANTI.drain) * Math.PI) : 0;
   return {scale: .6 * (1 - u) + .08 + twitch, alpha: .75 * (t > ANTI.drain ? 1 - (t - ANTI.drain) / (ANTI.total - ANTI.drain) : clamp01((t - .1) / .08))};
 }
