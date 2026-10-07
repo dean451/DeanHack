@@ -5,7 +5,7 @@ import {createCreature} from './creatures.js';
 const scale = name => createCreature({name, symbol: 64, color: 7}).g.scale.y;
 
 test('quest leaders of level 20 stand over a plain human', () => {
-  for(const n of ['king arthur', 'lord sato', 'shan lai ching', 'grand master', 'master kung', 'neferet the green', 'master of thieves']){
+  for(const n of ['king arthur', 'lord sato', 'shan lai ching', 'grand master', 'master kung', 'neferet the green', 'master of thieves', 'orion', 'shaman karnov', 'robert the lifer', 'twoflower']){
     assert(scale(n) >= scale('human') * 1.1, n);
   }
 });
@@ -13,5 +13,11 @@ test('quest leaders of level 20 stand over a plain human', () => {
 test('the elven quest leaders have their own elf model, larger than the high-elf', () => {
   for(const n of ['earendil', 'elwing']){
     assert(scale(n) > scale('high-elf'), n);
+  }
+});
+
+test('Norn and Pelias, with their own models, also stand over a plain human', () => {
+  for(const n of ['norn', 'pelias']){
+    assert(scale(n) >= scale('human') * 1.1, n);
   }
 });
