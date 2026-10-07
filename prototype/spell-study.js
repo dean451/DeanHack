@@ -27,7 +27,7 @@ export function runePose(i, t) {
   const last = i === n - 1 && t > end, gutter = last ? .5 + .5 * Math.sin(t * 70) : 1;
   // Rune 2 loses its nerve: it bolts for the floor just before the pull, then is hauled back up.
   const bolt = i === 2 ? .14 * Math.sin(clamp01((t - (pull - .22)) / .22) * Math.PI) : 0;
-  return {x: Math.cos(a) * r, y: Math.max(.2 + .75 * rise + .1 * draw - bolt, 0), z: Math.sin(a) * r,
+  return {x: Math.cos(a) * r, y: Math.max(.2 + .75 * rise + .1 * draw - bolt - (last ? .08 * clamp01((t - end) / .25) : 0), 0), z: Math.sin(a) * r,
     alpha: .8 * clamp01((t - born) / .12) * (1 - (last ? clamp01((t - end) / .25) : draw ** 2)) * gutter, spin: a * .5};
 }
 
