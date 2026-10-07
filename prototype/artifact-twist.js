@@ -138,6 +138,26 @@ const SHAPES = {
     cleft.translate(0, .08, .1);
     return [band, cleft];
   },
+  // The staff of Aesculapius is wound by its serpent: a lit snake coils three turns down the shaft
+  // from the head, ending in a flat wedge of head. The staff lies along x from -.23 to .23, y .011.
+  'staff of aesculapius'() {
+    const pts = Array.from({length: 49}, (_, i) => {
+      const t = i / 48, a = t * Math.PI * 6;
+      return new THREE.Vector3(.2 - t * .4, .011 + Math.sin(a) * .022, Math.cos(a) * .022);
+    });
+    const body = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 72, .0045, 5), head = new THREE.ConeGeometry(.009, .03, 4);
+    head.rotateZ(Math.PI / 2); head.scale(1, .5, 1.2); head.translate(.21, .035, .01);
+    return [body, head];
+  },
+  // The Sceptre of Might is crowned in lit spikes: five thin cruel points fan up and out round the
+  // orb on its head, like a tyrant's crown. The head ball sits at x .25, y .028, radius .028.
+  'sceptre of might'() {
+    return [-1.2, -.6, 0, .6, 1.2].map((a, i) => {
+      const spike = new THREE.ConeGeometry(.008, .05 + (i % 2 ? 0 : .015), 4), r = .045;
+      spike.rotateX(-a); spike.translate(.25, .028 + Math.cos(a) * r, Math.sin(a) * r);
+      return spike;
+    });
+  },
   // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
   // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
   itlachiayaque(group) {

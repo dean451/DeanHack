@@ -145,3 +145,21 @@ test('the Master Key of Thievery wears a lit halo and shaft line as one extra me
   assert(w(art).x < w(plain).x * 1.4 && w(art).y < .1);
   plain.userData.dispose(); art.userData.dispose();
 });
+
+test('the Staff of Aesculapius wears a lit serpent as the last mesh on the staff', () => {
+  const art = createGroundModel({name: 'quarterstaff', label: 'the Staff of Aesculapius', class: 2});
+  assert.equal(art.userData.artifact, 'staff of aesculapius');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .1 && Math.hypot(w.x, w.z) < .6);
+  art.userData.dispose();
+});
+
+test('the Sceptre of Might wears a lit crown of spikes as the last mesh on the sceptre', () => {
+  const art = createGroundModel({name: 'mace', label: 'the Sceptre of Might', class: 2});
+  assert.equal(art.userData.artifact, 'sceptre of might');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .15 && Math.hypot(w.x, w.z) < .6);
+  art.userData.dispose();
+});
