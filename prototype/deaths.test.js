@@ -276,3 +276,15 @@ test('a collapsing lich sheds flakes at each of its three jolts before the main 
   for (let t = 0; t < 3; t += .05) fx.update(.05);
   assert.equal(fx.alive, 0, 'the flakes are gone');
 });
+
+test('a crumbling body\'s arm twitches once as the dust starts to go, within bounds', () => {
+  const a = u => deathPose('crumble', u).arm, base = u => { const v = Math.min(Math.max((u - .35) / .3, 0), 1); return .6 * v * v * (3 - 2 * v); };
+  let max = 0;
+  for (let u = 0; u <= 1; u += .005) {
+    assert.ok(a(u) >= 0 && a(u) < .75, `arm in bounds at ${u}`);
+    if (u < .62 || u > .74) assert.ok(Math.abs(a(u) - base(u)) < 1e-9, `quiet outside the twitch at ${u}`);
+    max = Math.max(max, Math.abs(a(u) - base(u)));
+  }
+  assert.ok(max > .03, 'a visible twitch');
+  assert.equal(a(0), 0); assert.equal(a(1), .6);
+});
