@@ -169,6 +169,8 @@ function buildBody(L,C){
  return P.merge();
 }
 
+const SCAR=rgb('#e8c8b8');
+
 // Head, in head space: the origin is the neck pivot.
 function buildHead(L,C){
  const P=pieces(),inner=rgb(L.pattern==='ghost'||L.pattern==='shimmer'?'#4a3a40':'#5a2a28');
@@ -183,6 +185,8 @@ function buildHead(L,C){
   }
   const muzzle=smooth((-.022-y)/.02)+smooth((z-.115)/.02)*smooth((.0-y)/.02);
   c=mix(c,C.belly,clamp01(muzzle)*(L.pattern==='ghost'||L.pattern==='shimmer'?.5:1));
+  // scruffy pets: an old pale scar slashed across the bridge of the nose and the brow
+  if(L.scruffy&&x>0){const d=Math.abs((y-.02)-(z-.1)*1.6+(x-.03)*1.2);if(d<.006&&z>.06&&x<.07)c=mix(c,SCAR,.85*(1-d/.006));}
   if(L.brows)for(const s of [-1,1])if(Math.hypot(x-s*.04,y-.055,z-.12)<.02)c=mix(c,C.belly,.9);
   return c;
  };
