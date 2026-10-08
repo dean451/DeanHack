@@ -19,8 +19,8 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // head at .955).
 
 const SKIN=rgb('#ecc4a6'),SKIN_SHADE=rgb('#c8977a'),CHEEK=rgb('#e2988a'),LIPS=rgb('#b86a62');
-const SKIN_LIGHT=rgb('#f6d8bc'),SOCKET=rgb('#7a4e46'),LIPS_DARK=rgb('#7a3e3a');
-const EYE=rgb('#3a6aa8'),EYE_WHITE=rgb('#f2ece4'),BROW=rgb('#b08840');
+const SKIN_LIGHT=rgb('#f6d8bc'),SOCKET=rgb('#583028'),LIPS_DARK=rgb('#7a3e3a');
+const EYE=rgb('#3a6aa8'),EYE_WHITE=rgb('#f2ece4'),BROW=rgb('#7e5a26');
 const HAIR=rgb('#e0bc6a'),HAIR_LIGHT=rgb('#f4dc98'),HAIR_DARK=rgb('#a8803a');
 const IRON=rgb('#4e545a'),STEEL=rgb('#a2a9b0'),STEEL_HI=rgb('#dde2e6'),STEEL_DARK=rgb('#33373c');
 const BRONZE=rgb('#c08a3a'),BRONZE_DARK=rgb('#7a5420'),BRONZE_HI=rgb('#e8b860');

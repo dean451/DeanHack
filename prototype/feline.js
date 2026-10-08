@@ -106,6 +106,7 @@ function torsoAt(L,C){
   let c=mix(C.coat,C.back,top*.5);
   c=markings(L,C,x,y,z,c);
   if(L.scruffy&&x>.05)for(let k=0;k<2;k++){const d=Math.abs((y-L.Y-.03-k*.025)-(z+.02)*.5);if(d<.006&&z>-.15&&z<.1)c=mix(c,C.belly,.8*(1-d/.006));}
+  if(L.scruffy)c=mix(c,C.stripe,.2*smooth((hash(Math.floor(x*90)*7.3+Math.floor(y*90)*3.1+Math.floor(z*90))-.55)/.2));
   const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.16)/.08)*smooth((L.Y+.06-y)/.08);
   return mix(c,C.belly,Math.max(belly,chest)*(L.pattern==='ghost'||L.pattern==='shimmer'?.6:1));
  };
@@ -201,6 +202,8 @@ function buildHead(L,C){
    if(L.tufts)segment(P,[s*.068,.14,.03],[s*.078,.2,.025],.008,.001,C.stripe,4);
   }
  }
+ // scruffy pets: ragged tufts of cheek fur flaring out under the ears
+ if(L.scruffy)for(const s of [-1,1])for(let k=0;k<3;k++)P.add(new THREE.ConeGeometry(.012,.04,4),at(s*(.08+.004*k),-.03-.012*k,.05+.012*k,[Math.PI/2-.2*k,0,s*(1.1+.2*k)]),(x,y,z)=>mix(C.coat,C.stripe,smooth((.04-Math.abs(x))/.04)*.4));
  // whiskers
  const whisker=rgb(L.whisker||'#f0ece0');
  for(const s of [-1,1])for(let k=0;k<4;k++)segment(P,[s*.03,-.036+k*.006,.13],[s*.14,-.05+k*.02,.1+k*.008],.0022,.0006,whisker,3);
@@ -300,7 +303,7 @@ function build(key,look){
  C.back=mix(C.coat,C.stripe,.35);
  const S={L,
   fur:new THREE.MeshStandardMaterial({vertexColors:true,roughness:L.gloss??.82,metalness:0}),
-  eye:new THREE.MeshStandardMaterial({color:L.eye,emissive:L.eye,emissiveIntensity:.6,roughness:.2}),
+  eye:new THREE.MeshStandardMaterial({color:L.eye,emissive:L.eye,emissiveIntensity:L.scruffy?.95:.6,roughness:.2}),
   body:buildBody(L,C),head:buildHead(L,C),eyes:buildEyes(),fore:buildLeg(L,C,true),hind:buildLeg(L,C,false),tail:buildTail(L,C),
  };
  cache.set(key,S);return S;
