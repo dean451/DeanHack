@@ -13,9 +13,10 @@ export const PENDING_WAIT = .3;
 export const isMagicTrapMessage = text => /you hear a deafening roar/i.test(text || '');
 // "Your pack shakes violently!": the same trap, a quieter outcome: one tight ring and a few rattling motes.
 export const isPackShakeMessage = text => /your pack shakes violently/i.test(text || '');
-// "A shiver runs up and down your spine!" and "You smell charred flesh.": the same trap's omens. Nothing but a
-// chill and a wrong smell comes of them, so they show the same quiet ring.
-export const isOmenMessage = text => /a shiver runs up and down your spine|you smell charred flesh/i.test(text || '');
+// "A shiver runs up and down your spine!", "You smell charred flesh.", "You hear distant howling." and "You suddenly
+// yearn for your distant homeland.": the same trap's omens. Nothing but a chill, a wrong smell or a far-off cry comes
+// of them, so they show the same quiet ring.
+export const isOmenMessage = text => /a shiver runs up and down your spine|you smell charred flesh|you hear distant howling|you suddenly yearn for/i.test(text || '');
 
 // Ring i leaves the floor at i * gap, expanding fast then dragging; later rings are weaker.
 export function ringPose(i, t) {
