@@ -11,6 +11,8 @@
 import {clamp01, smooth} from './fx-textures.js';
 
 export const BLINK = {flash: .14, streak: .5, arrive: .55, armed: 3};
+// A teleport trap is no polite hop: its arrival ring is wider, slower and the landing flash harder.
+export const GRAND = {size: 1.5, time: 1.4, light: 1.8};
 export const isTeleportMessage = text => /^You are momentarily blinded by a flash of light/.test(text || '');
 
 // The hard flash at the departure square.
@@ -36,7 +38,7 @@ export function arrivePose(t) {
 
 export function createTeleportBlink(THREE, parent) {
   const live = [], pending = []; let armed = 0;
-  function build(x, z, kind) {
+  function build(x, z, kind, grand = false) {
     const g = new THREE.Group(); g.name = 'TeleportBlink'; g.position.set(x, 0, z); parent.add(g);
     const cone = new THREE.ConeGeometry(1, 1, 8, 1, true), sph = new THREE.SphereGeometry(1, 8, 6), ringGeo = new THREE.RingGeometry(.85, 1, 24), mats = [];
     const mk = c => { const m = new THREE.MeshBasicMaterial({color: c, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, toneMapped: false}); mats.push(m); return m; };
@@ -44,30 +46,30 @@ export function createTeleportBlink(THREE, parent) {
     const streak = new THREE.Mesh(cone, mk(0xcfe0ff)); g.add(streak);
     const ring = new THREE.Mesh(ringGeo, mk(0x9ab4ff)); ring.rotation.x = -Math.PI / 2; ring.position.y = .03; g.add(ring);
     const light = new THREE.PointLight(0xbcd0ff, 0, 6); light.position.y = .8; g.add(light);
-    live.push({g, geos: [cone, sph, ringGeo], mats, flash, streak, ring, light, kind, t: 0});
+    live.push({g, geos: [cone, sph, ringGeo], mats, flash, streak, ring, light, kind, grand, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
-    const out = e.kind === 'out', f = out ? flashPose(e.t) : null, s = out ? streakPose(e.t) : null, a = out ? null : arrivePose(e.t);
-    const fa = out ? f.alpha : a.flashAlpha, fs = out ? f.size : a.flash;
+    const out = e.kind === 'out', gs = e.grand ? GRAND.size : 1, gt = e.grand ? GRAND.time : 1, f = out ? flashPose(e.t) : null, s = out ? streakPose(e.t) : null, a = out ? null : arrivePose(e.t / gt);
+    const fa = out ? f.alpha : a.flashAlpha, fs = out ? f.size : a.flash * gs;
     e.flash.visible = fa > .01; e.flash.scale.setScalar(fs); e.flash.material.opacity = fa;
     e.streak.visible = out && s.alpha > .01;
     if (out) { e.streak.scale.set(s.width, s.height, s.width); e.streak.position.y = s.height / 2; e.streak.material.opacity = s.alpha; }
     e.ring.visible = !out && a.ringAlpha > .01;
-    if (!out) { e.ring.scale.setScalar(a.ring); e.ring.material.opacity = a.ringAlpha; }
-    e.light.intensity = fa * 5 + (out ? s.alpha * 2 : a.ringAlpha * 2);
-    return e.t < (out ? BLINK.streak : BLINK.arrive);
+    if (!out) { e.ring.scale.setScalar(a.ring * gs); e.ring.material.opacity = a.ringAlpha; }
+    e.light.intensity = (fa * 5 + (out ? s.alpha * 2 : a.ringAlpha * 2)) * (e.grand ? GRAND.light : 1);
+    return e.t < (out ? BLINK.streak : BLINK.arrive * gt);
   }
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); e.light.dispose?.(); parent.remove(e.g); }
   return {
     message(text, x, z) { if (isTeleportMessage(text)) { build(x, z, 'out'); armed = BLINK.armed; } },
     // A new level arrived: drop the old level's effects and, if the blink was ours, light the arrival.
     // A same-level teleport (the bridge's `teleport` event): blink out at `from`, and a beat later arrive at `to`.
-    hop(from, to) { build(from.x, from.z, 'out'); pending.push({x: to.x, z: to.z, wait: BLINK.flash * 2}); },
+    hop(from, to, trap = false) { build(from.x, from.z, 'out'); pending.push({x: to.x, z: to.z, wait: BLINK.flash * 2, grand: !!trap}); },
     levelChanged(x, z) { live.forEach(drop); live.length = 0; pending.length = 0; if (armed > 0) build(x, z, 'in'); armed = 0; },
     update(dt) {
       if (armed > 0) armed = Math.max(0, armed - dt);
-      for (let i = pending.length - 1; i >= 0; i--) if ((pending[i].wait -= dt) <= 0) { build(pending[i].x, pending[i].z, 'in'); pending.splice(i, 1); }
+      for (let i = pending.length - 1; i >= 0; i--) if ((pending[i].wait -= dt) <= 0) { build(pending[i].x, pending[i].z, 'in', pending[i].grand); pending.splice(i, 1); }
       for (let i = live.length - 1; i >= 0; i--) if (!step(live[i], dt)) { drop(live[i]); live.splice(i, 1); }
     },
     clear() { armed = 0; pending.length = 0; live.forEach(drop); live.length = 0; },
