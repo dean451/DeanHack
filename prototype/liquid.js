@@ -57,11 +57,11 @@ function surfaceMaterial(kind){
   const lava=`
    vec2 lqFlow=vLiquidWorld.xz*1.7+vec2(liquidTime*.05,liquidTime*.03);
    float lqN=lqFbm(lqFlow+lqFbm(lqFlow*1.3-liquidTime*.04)*1.2);
-   float lqMolten=smoothstep(.44,.6,lqN);
+   float lqMolten=smoothstep(.3,.42,lqN);
    float lqVein=pow(1.-abs(lqFbm(vLiquidWorld.xz*5.-liquidTime*.12)*2.-1.),10.)*(1.-lqMolten);
    float lqPulse=.85+.15*sin(liquidTime*1.7+lqN*9.);
    diffuseColor.rgb*=1.-lqMolten*.7;
-   totalEmissiveRadiance=(vec3(.9,.13,.01)*lqMolten+vec3(1.7,.62,.08)*pow(lqMolten,4.)+vec3(1.3,.32,.03)*lqVein)*lqPulse+vec3(.05,.008,0.);`;
+   totalEmissiveRadiance=(vec3(.9,.13,.01)*lqMolten+vec3(1.7,.62,.08)*pow(lqMolten,4.)+vec3(1.3,.32,.03)*lqVein)*lqPulse+vec3(.32,.07,.005);`;
   shader.fragmentShader=shader.fragmentShader
    .replace('#include <common>',`#include <common>\nuniform float liquidTime;varying vec3 vLiquidWorld;\n${NOISE_GLSL}`)
    .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>\n${kind==='water'?water:lava}`);
