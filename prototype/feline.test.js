@@ -69,3 +69,10 @@ test('the pet cats are scruffy: more geometry than a wild cat of the same build,
  const ear=name=>{const h=meshes(createCreature({name})).find(m=>m.userData.part==='head').geometry;h.computeBoundingBox();return h.boundingBox;};
  for(const name of ['kitten','housecat','large cat']){const b=ear(name);assert(b.max.y>.1&&b.max.y<.2,`${name} head height ${b.max.y}`);}
 });
+
+test('the pet cats have bright curious eyes and ragged cheek fur',()=>{
+ const eyes=name=>meshes(createCreature({name})).find(m=>m.userData.part==='eyes')?.material??meshes(createCreature({name}))[2].material;
+ for(const name of ['kitten','housecat','large cat'])assert(eyes(name).emissiveIntensity>eyes('lynx').emissiveIntensity,`${name} eyes burn brighter`);
+ const head=name=>meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry.attributes.position.count;
+ for(const name of ['kitten','housecat','large cat'])assert(head(name)>head('wildcat'),`${name} has cheek tufts`);
+});
