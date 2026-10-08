@@ -38,7 +38,9 @@ export function fleckPose(i, t) {
   const s = t - RUST.flight - .08;
   if (s <= 0 || t >= RUST.total) return {x: 0, y: .5, z: 0, alpha: 0};
   const u = s / (RUST.total - RUST.flight - .08), a = i * 2.4 + 1;
-  return {x: Math.cos(a) * (.1 + .14 * u + .02 * (i % 3)), y: Math.max(.04, .85 - .8 * u * (.7 + .1 * (i % 4))), z: Math.sin(a) * (.1 + .14 * u), alpha: .85 * clamp01(s / .1) * (1 - clamp01((u - .6) / .4))};
+  // Each fleck also sways on its own slow beat as it sinks, like rust ash that cannot decide which way to fall.
+  const sway = .025 * Math.sin(u * 11 + i * 1.9) * clamp01(u / .15);
+  return {x: Math.cos(a) * (.1 + .14 * u + .02 * (i % 3)) + sway, y: Math.max(.04, .85 - .8 * u * (.7 + .1 * (i % 4))), z: Math.sin(a) * (.1 + .14 * u) - sway * .6, alpha: .85 * clamp01(s / .1) * (1 - clamp01((u - .6) / .4))};
 }
 
 export function createRustTrap(THREE, parent) {

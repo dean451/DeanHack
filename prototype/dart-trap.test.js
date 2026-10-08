@@ -55,3 +55,10 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('a dart shivers faster than an arrow, and the arrow sags as it settles', () => {
+  const crossings = k => { let n = 0, prev = 0; for (let h = .002; h < .3; h += .002) { const v = shaftPose(k, SHOT.flight + h).tilt; if (prev * v < 0) n++; prev = v; } return n; };
+  assert.ok(crossings('dart') > crossings('arrow'));
+  let sum = 0, n = 0; for (let h = .1; h < .5; h += .001) { sum += shaftPose('arrow', SHOT.flight + h).tilt; n++; }
+  assert.ok(sum / n < 0, 'the shiver settles below level');
+});
