@@ -94,3 +94,12 @@ test('food poisoning and deadly illness share a colour-draining sweat class, onc
   applyStatusScreen(el, []);
   assert.equal(set.size, 0);
 });
+
+test('the stoning grey climbs with the countdown and covers the view at full progress', async () => {
+  const {readFileSync} = await import('node:fs');
+  const css = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
+  const creep = css.slice(css.indexOf('@keyframes status-stoned-creep'));
+  const frames = creep.slice(0, creep.indexOf('}}') + 2);
+  assert.ok(frames.includes('var(--status-progress-left,1)'), 'the creep scales by the remaining progress');
+  assert.ok(css.includes('--status-progress-left:calc(1 - var(--status-progress))'), 'remaining is one minus progress');
+});
