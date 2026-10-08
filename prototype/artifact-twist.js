@@ -286,6 +286,33 @@ const SHAPES = {
     for (let i = 0; i < 5; i++) parts.push(new THREE.SphereGeometry(.005, 4, 2).translate(.1 + i * .075, .0135, i % 2 ? .035 : -.035));
     return parts;
   },
+  // Ogresmasher is a crusher: a lit cracked-skull ring is struck on the blade, with three lit fracture
+  // lines splitting out of it, the way a club breaks bone.
+  ogresmasher() {
+    const ring = new THREE.TorusGeometry(.02, .004, 5, 14).rotateX(Math.PI / 2).translate(.3, .0135, 0);
+    const parts = [ring];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.BoxGeometry(.05, .003, .004).rotateY(i * 1.05 - 1.05 + .3).translate(.3, .0135, 0));
+    return parts;
+  },
+  // Thiefbane is a snare for light fingers: a lit hook-and-eye pair sits on the blade, a barb curling
+  // back over a small ring, the way a thief's wrist is caught.
+  thiefbane() {
+    const ring = new THREE.TorusGeometry(.012, .0025, 4, 12).rotateX(Math.PI / 2).translate(.18, .0135, 0);
+    const barb = new THREE.ConeGeometry(.007, .05, 4).rotateZ(-Math.PI / 2).translate(.3, .0135, .012);
+    return [ring, barb];
+  },
+  // Grimtooth is a vicious little fang: a row of four lit teeth is set along the edge of the dagger,
+  // each leaning toward the point. The dagger's blade ends at x .25.
+  grimtooth() {
+    return [0, 1, 2, 3].map(i => new THREE.ConeGeometry(.006, .03 - i * .003, 4).rotateX(Math.PI / 2).rotateY(.5).translate(.1 + i * .035, .0135, .016));
+  },
+  // Snickersnee is a slicer: a single long lit hairline runs the length of the blade and two short lit
+  // nicks cut across the edge near the point, a keen edge that has seen use.
+  snickersnee() {
+    const parts = [new THREE.BoxGeometry(.34, .003, .003).translate(.26, .0135, .012)];
+    for (let i = 0; i < 2; i++) parts.push(new THREE.BoxGeometry(.004, .003, .02).translate(.36 + i * .05, .0135, .02));
+    return parts;
+  },
   // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
   // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
   itlachiayaque(group) {
