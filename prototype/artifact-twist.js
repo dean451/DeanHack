@@ -379,6 +379,16 @@ const heldKatanaMatrix = new THREE.Matrix4().set(0, .35, 0, 0,  2, 0, 0, -.04,  
 // (x = -.075 y + .0136, centred on the blade), so it follows the steel over the part of the blade the shapes cover.
 const HELD_SABER_SHAPES = new Set(['grayswandir', 'werebane']);
 const heldSaberMatrix = new THREE.Matrix4().set(-.10875, 0, 1.5, .0111,  1.45, 0, 0, .1,  0, 1, 0, -.0065,  0, 0, 0, 1);
+// A wielded Ogresmasher is the war hammer (equipment.js): its square striking face is the flat cap at x -.1875 on
+// the head, which sits at y .48. The floor skull-ring and fracture lines are stood onto that cap, looking out
+// toward -x, with the floor x running up the face about its centre.
+const HELD_HAMMER_SHAPES = new Set(['ogresmasher']);
+const heldHammerMatrix = new THREE.Matrix4().set(0, -1, 0, -.176,  1, 0, 0, .18,  0, 0, 1, 0,  0, 0, 0, 1);
+// A wielded Cleaver is the battle-axe: its blade is a flat plate x .02 to .29, y .29 to .63, faces at z +-.0175, edge
+// out at x about .24. The floor chop line runs up that edge and the back notches bite in across the plate, so the
+// floor x becomes the height and the floor z (widened fourfold) the reach out from the haft, on the +z face.
+const HELD_AXE_SHAPES = new Set(['cleaver']);
+const heldAxeMatrix = new THREE.Matrix4().set(0, 0, 4, .16,  1, 0, 0, .19,  0, 1, 0, .005,  0, 0, 0, 1);
 const heldTsurugiMatrix = new THREE.Matrix4().set(0, .5, 0, .0005,  2.4, 0, 0, -.1,  0, 0, -.6, 0,  0, 0, 0, 1);
 
 export function applyArtifactTwist(group, object, {clone = false, held = false} = {}) {
@@ -398,9 +408,9 @@ export function applyArtifactTwist(group, object, {clone = false, held = false} 
     m.emissive.copy(color);
     m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, POWER_BY_KIND[kind] ?? POWER);
   });
-  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_MAGICBANE_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind) || HELD_KATANA_SHAPES.has(kind) || HELD_SABER_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
+  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_MAGICBANE_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind) || HELD_KATANA_SHAPES.has(kind) || HELD_SABER_SHAPES.has(kind) || HELD_HAMMER_SHAPES.has(kind) || HELD_AXE_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
   if (shape && held) {
-    const m = HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : HELD_MAGICBANE_SHAPES.has(kind) ? heldMagicbaneMatrix : HELD_TSURUGI_SHAPES.has(kind) ? heldTsurugiMatrix : HELD_KATANA_SHAPES.has(kind) ? heldKatanaMatrix : HELD_SABER_SHAPES.has(kind) ? heldSaberMatrix : heldMatrix;
+    const m = HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : HELD_MAGICBANE_SHAPES.has(kind) ? heldMagicbaneMatrix : HELD_TSURUGI_SHAPES.has(kind) ? heldTsurugiMatrix : HELD_KATANA_SHAPES.has(kind) ? heldKatanaMatrix : HELD_SABER_SHAPES.has(kind) ? heldSaberMatrix : HELD_HAMMER_SHAPES.has(kind) ? heldHammerMatrix : HELD_AXE_SHAPES.has(kind) ? heldAxeMatrix : heldMatrix;
     shape.forEach(g => {
       g.applyMatrix4(m);
       if (m.determinant() < 0 && g.index) { const a = g.index.array; for (let i = 0; i < a.length; i += 3) { const t = a[i + 1]; a[i + 1] = a[i + 2]; a[i + 2] = t; } }

@@ -507,3 +507,30 @@ test('a wielded Grayswandir and Werebane carry their lit shapes on the +z flat o
     assert(b.min.x > -.07 && b.max.x < .04, `${label} x ${b.min.x}..${b.max.x}`);
   }
 });
+
+test('a wielded Ogresmasher carries its lit skull-ring on the striking face of the war hammer', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {applyArtifactTwist} = await import('./artifact-twist.js');
+  const hammer = createHeldWeapon({name: 'war hammer', class: 2});
+  applyArtifactTwist(hammer, {label: 'Ogresmasher', class: 2}, {clone: true, held: true});
+  const shell = hammer.children.at(-1);
+  assert.equal(hammer.userData.artifact, 'ogresmasher');
+  assert(shell.userData.magicShell);
+  const b = new THREE.Box3().setFromObject(shell);
+  assert(b.max.x < -.18 && b.min.x > -.2, `sits on the face cap ${b.min.x}..${b.max.x}`);
+  assert(b.min.y > .4 && b.max.y < .56 && b.min.z > -.06 && b.max.z < .06, `y ${b.min.y}..${b.max.y} z ${b.min.z}..${b.max.z}`);
+});
+
+test('a wielded Cleaver carries its lit chop line along the edge of the battle-axe blade', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {applyArtifactTwist} = await import('./artifact-twist.js');
+  const axe = createHeldWeapon({name: 'battle-axe', class: 2});
+  applyArtifactTwist(axe, {label: 'Cleaver', class: 2}, {clone: true, held: true});
+  const shell = axe.children.at(-1);
+  assert.equal(axe.userData.artifact, 'cleaver');
+  assert(shell.userData.magicShell);
+  const b = new THREE.Box3().setFromObject(shell);
+  assert(b.min.y > .29 && b.max.y < .63, `y ${b.min.y}..${b.max.y}`);
+  assert(b.min.x > .02 && b.max.x < .29, `x ${b.min.x}..${b.max.x}`);
+  assert(b.min.z > .015 && b.max.z < .024, `sits on the +z face ${b.min.z}..${b.max.z}`);
+});
