@@ -574,3 +574,16 @@ test('a wielded Longbow of Diana carries its lit crescent and string in the plan
   assert(b.min.y > -.06 && b.max.y < .06, `y ${b.min.y}..${b.max.y}`);
   assert(b.min.z > 0 && b.max.z < .03, `z ${b.min.z}..${b.max.z}`);
 });
+
+test('a wielded Staff of Aesculapius winds its lit serpent up the shaft of the quarterstaff', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {applyArtifactTwist} = await import('./artifact-twist.js');
+  const staff = createHeldWeapon({name: 'quarterstaff', class: 2});
+  applyArtifactTwist(staff, {label: 'Staff of Aesculapius', class: 2}, {clone: true, held: true});
+  const shell = staff.children.at(-1);
+  assert.equal(staff.userData.artifact, 'staff of aesculapius');
+  assert(shell.userData.magicShell);
+  const b = new THREE.Box3().setFromObject(shell);
+  assert(b.min.y > .25 && b.max.y < .85, `y ${b.min.y}..${b.max.y}`);
+  assert(b.min.x > -.04 && b.max.x < .04 && b.min.z > -.04 && b.max.z < .04, `x ${b.min.x}..${b.max.x} z ${b.min.z}..${b.max.z}`);
+});
