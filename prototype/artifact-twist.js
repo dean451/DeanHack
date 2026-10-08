@@ -353,7 +353,7 @@ const SHAPES = {
 // A wielded long sword stands along +y with its broad faces toward +z (equipment.js), so a floor shape,
 // which runs along +x on the flat at y .0135, is stood up onto the +z face and stretched to the longer
 // blade. Only the long-sword artifacts are held this way (Excalibur, Vorpal Blade, Frost Brand, Fire Brand, Stormbringer, Dragonbane, Orcrist, Demonbane, Giantslayer, Thiefbane).
-const HELD_SHAPES = new Set(['excalibur', 'vorpal blade', 'frost brand', 'fire brand', 'stormbringer', 'dragonbane', 'orcrist', 'demonbane', 'giantslayer', 'thiefbane']);
+const HELD_SHAPES = new Set(['excalibur', 'vorpal blade', 'frost brand', 'fire brand', 'stormbringer', 'dragonbane', 'orcrist', 'demonbane', 'giantslayer', 'thiefbane', 'sunsword']);
 const heldMatrix = new THREE.Matrix4().set(0, 0, 2, 0,  1.45, 0, 0, .1,  0, 1, 0, .017,  0, 0, 0, 1);
 
 export function applyArtifactTwist(group, object, {clone = false, held = false} = {}) {

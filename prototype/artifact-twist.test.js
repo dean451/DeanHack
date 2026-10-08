@@ -100,6 +100,21 @@ test('wielded Stormbringer, Dragonbane, Orcrist, Demonbane, Giantslayer and Thie
   }
 });
 
+test('a wielded Sunsword carries its lit sun disc on the long-sword blade', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {syncHeldMagic} = await import('./weapon-magic.js');
+  const THREE = await import('three');
+  const socket = new THREE.Group(), hero = {weaponSocket: socket};
+  const item = {name: 'Sunsword', base: 'long sword', class: 2};
+  socket.add(createHeldWeapon(item)); syncHeldMagic(hero, item, {clock: () => 0});
+  const shape = socket.children[0].children.find(o => o.userData.magicShell && o.isMesh);
+  assert.ok(shape, 'Sunsword has a lit shape');
+  shape.geometry.computeBoundingBox();
+  const b = shape.geometry.boundingBox;
+  assert.ok(b.min.y > .1 && b.max.y < .85, 'runs along the blade');
+  assert.ok(b.min.z > .02, 'sits on the +z face');
+});
+
 test('the great non-weapon artifacts smoulder harder than a lesser one', () => {
   const heart = createGroundModel({name: 'luckstone', label: 'the Heart of Ahriman', class: 13});
   const eye = createGroundModel({name: 'amulet of life saving', label: 'the Eye of the Aethiopica', class: AMULET});
