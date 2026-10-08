@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ringPose, motePose, isSqueakMessage, createSqueakyBoard, PENDING_WAIT, SQUEAK} from './squeaky-board.js';
+import {ringStart, ringPose, motePose, isSqueakMessage, createSqueakyBoard, PENDING_WAIT, SQUEAK} from './squeaky-board.js';
 
 test('only the squeak message triggers it', () => {
   assert.ok(isSqueakMessage('A board beneath you squeaks loudly.'));
@@ -66,4 +66,11 @@ test('the last mote hangs on, trembling, after the others have settled', () => {
   assert.equal(motePose(0, .65).alpha, 0);
   assert.ok(motePose(last, .65).alpha > .01);
   assert.equal(motePose(last, SQUEAK.total).alpha, 0);
+});
+
+test('each squeak comes sooner after the last', () => {
+  assert.equal(ringStart(0), 0);
+  for (let i = 2; i < SQUEAK.rings; i++) assert.ok(ringStart(i) - ringStart(i - 1) < ringStart(i - 1) - ringStart(i - 2), String(i));
+  assert.ok(ringStart(SQUEAK.rings - 1) + SQUEAK.ringLife <= SQUEAK.total);
+  assert.ok(ringPose(SQUEAK.rings - 1, ringStart(SQUEAK.rings - 1) + .02).alpha > 0);
 });
