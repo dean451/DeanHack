@@ -350,7 +350,13 @@ const SHAPES = {
 
 // Tints the item's own materials in `group` (disposal is unchanged). Returns the artifact key or null.
 // `clone`: give each mesh its own copy of the material first, for models whose materials may be shared.
-export function applyArtifactTwist(group, object, {clone = false} = {}) {
+// A wielded long sword stands along +y with its broad faces toward +z (equipment.js), so a floor shape,
+// which runs along +x on the flat at y .0135, is stood up onto the +z face and stretched to the longer
+// blade. Only the long-sword artifacts are held this way.
+const HELD_SHAPES = new Set(['excalibur', 'vorpal blade']);
+const heldMatrix = new THREE.Matrix4().set(0, 0, 2, 0,  1.45, 0, 0, .1,  0, 1, 0, .017,  0, 0, 0, 1);
+
+export function applyArtifactTwist(group, object, {clone = false, held = false} = {}) {
   const kind = object ? artifactFromName(object.label, object.class) : null;
   if (!kind || group.userData.artifact === kind) return kind && group.userData.artifact;
   const color = new THREE.Color(ARTIFACTS[kind].color), seen = new Set(), copies = new Map();
@@ -367,7 +373,8 @@ export function applyArtifactTwist(group, object, {clone = false} = {}) {
     m.emissive.copy(color);
     m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, POWER_BY_KIND[kind] ?? POWER);
   });
-  const shape = SHAPES[kind]?.(group);
+  const shape = (!held || HELD_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
+  if (shape && held) shape.forEach(g => g.applyMatrix4(heldMatrix));
   if (shape) {
     const mesh = new THREE.Mesh(mergeGeometries(shape), shapeMaterial(ARTIFACTS[kind].color));
     mesh.userData.magicShell = true; mesh.castShadow = true;
