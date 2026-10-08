@@ -878,6 +878,7 @@ test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model inste
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const valk=createCreature({name:'valkyrie',symbol:64,color:7});
  assert.equal(valk.kind,'valkyrie');assert.equal(valk.quirk,'human');
+ assert.ok(valk.head.rotation.x>0.1,"head pitched down so the top-down camera sees the face");
  for(const key of ['body','head','arm','weaponSocket','shieldArm','shield'])assert(valk[key]?.isObject3D,key);
  assert.equal(valk.legs.length,2);assert.equal(valk.arms.length,2);assert.equal(valk.arm,valk.arms[1]);assert.equal(valk.shieldArm,valk.arms[0]);
  assert(valk.shieldArm.children.includes(valk.shield),'the shield rides the off arm');
