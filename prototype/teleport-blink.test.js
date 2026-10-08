@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {flashPose, streakPose, arrivePose, isTeleportMessage, createTeleportBlink, BLINK} from './teleport-blink.js';
+import {flashPose, streakPose, arrivePose, isTeleportMessage, createTeleportBlink, BLINK, GRAND} from './teleport-blink.js';
 
 test('only the level teleporter flash message triggers it', () => {
   assert.ok(isTeleportMessage('You are momentarily blinded by a flash of light.'));
@@ -65,5 +65,16 @@ test('a same-level teleport blinks out, then arrives a beat later, and leaves no
   assert.equal(fx.active, 2);
   for (let i = 0; i < 100; i++) fx.update(.05);
   assert.equal(fx.active, 0);
+  assert.equal(made.length, 0);
+});
+
+test('a teleport trap arrives grander and slower than a plain hop, and still leaves nothing behind', () => {
+  const made = [];
+  const THREE = new Proxy({}, {get: (_, k) => k === 'DoubleSide' ? 2 : class { constructor() { this.position = {set() {}}; this.scale = {set() {}, setScalar() {}}; this.rotation = {}; this.material = {}; this.visible = true; this.children = []; } add(c) { this.children.push(c); } dispose() {} }});
+  const parent = {add: g => made.push(g), remove: g => made.splice(made.indexOf(g), 1)};
+  const run = trap => { const fx = createTeleportBlink(THREE, parent); fx.hop({x: 0, z: 0}, {x: 5, z: 5}, trap); let t = 0; while (fx.active && t < 5) { fx.update(.01); t += .01; } return t; };
+  const plain = run(false), grand = run(true);
+  assert.ok(grand > plain + .1, 'longer');
+  assert.ok(GRAND.size > 1 && GRAND.time > 1 && grand < 5);
   assert.equal(made.length, 0);
 });
