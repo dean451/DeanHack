@@ -55,3 +55,14 @@ test('the hero teleporting and a wish being granted are reported, from hooks in 
  assert.match(potion,/wish_source = WISH_FROM_DEMON;/);
  assert.match(potion,/wish_source = WISH_FROM_BOTTLE;/);
 });
+
+test('the end-of-game text says what killed the hero, and a tombstone event carries it too', () => {
+ assert.match(bridge,/static void rip\(winid w,int how\)/,'rip() is no longer empty');
+ assert.match(bridge,/killed_by_prefix\[how\]/,'the same "killed by" wording the game uses');
+ assert.match(bridge,/case KILLED_BY_AN:Sprintf\(buf,"%s%s",killed_by_prefix\[how\],an\(killer\.name\)\)/);
+ assert.match(bridge,/put\(w,0,buf\)/,'the cause goes into the text the player reads');
+ assert.match(bridge,/\\"type\\":\\"tombstone\\",\\"name\\":/);
+ assert.match(bridge,/\\"killer\\":"\);quoted\(buf\)/);
+ const server=readFileSync(new URL('./engine/server.js',import.meta.url),'utf8');
+ assert.match(server,/'wish','tombstone'/,'the server passes it through');
+});
