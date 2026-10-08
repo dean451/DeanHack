@@ -891,6 +891,20 @@ test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model inste
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
 });
 
+test('the valkyrie\'s hands are gauntlets closed round the grip, joined to the arm at the wrist',()=>{
+ const valk=createCreature({name:'valkyrie',symbol:64,color:7});
+ const geo=valk.arm.children.find(c=>c.userData.part==='arm').geometry;
+ geo.computeBoundingBox();
+ const b=geo.boundingBox;
+ assert(b.min.y>-.43&&b.min.y<-.4,`fingers end at ${b.min.y}`);
+ assert(b.max.x<.07&&b.min.x>-.07,'the gauntlet stays within the sleeve width');
+ assert(geo.attributes.position.count>1000&&geo.attributes.position.count<6000,`${geo.attributes.position.count} arm vertices`);
+ // finger bands wrap the grip: front of the fist sits ahead of the weapon socket, the palm behind it
+ assert(b.max.z>valk.weaponSocket.position.z+.02,'fingers curl in front of the grip');
+ assert(b.min.z<valk.weaponSocket.position.z-.01,'the palm sits behind the grip');
+ assert(Math.abs(valk.weaponSocket.position.y+.37)<1e-6&&valk.shield.parent===valk.shieldArm);
+});
+
 test('the Norn gets a hooded, grey seeress model with a threaded staff instead of the plain @ humanoid',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const norn=createCreature({name:'norn',symbol:64,color:5});

@@ -163,7 +163,7 @@ function buildLeg(){
  return P.merge();
 }
 
-// a mail sleeve to the elbow over linen, a studded leather bracer and a bare hand
+// a mail sleeve to the elbow over linen, a studded leather bracer and a gauntlet
 function buildArm(){
  const P=pieces();
  P.add(new THREE.SphereGeometry(.062,16,8,0,Math.PI*2,0,Math.PI*.5),at(0,-.01,0,[0,0,0],[1.05,.8,1]),mail(-.05,.05));
@@ -172,8 +172,20 @@ function buildArm(){
  P.add(new THREE.CylinderGeometry(.04,.037,.08,12),at(0,-.195,0),ramp(LINEN_SHADE,LINEN,-.235,-.16));
  P.add(new THREE.CylinderGeometry(.039,.034,.12,12),at(0,-.285,0),(x,y)=>ramp(LEATHER_DARK,LEATHER,-.345,-.225)(y));
  for(const y of [-.25,-.29,-.33])for(let i=0;i<5;i++){const a=(i/4-.5)*1.6;P.add(new THREE.OctahedronGeometry(.006),at(Math.sin(a)*.038,y,Math.cos(a)*.038),BRONZE_HI);}
- P.add(new THREE.SphereGeometry(.031,10,8),at(0,-.37,.005,[0,0,0],[.85,1.15,.95]),SKIN);
- P.add(new THREE.SphereGeometry(.013,6,4),at(0,-.355,.03,[0,0,0],[1,1.4,1]),SKIN_SHADE);
+ // a gauntlet closed round the grip (the weapon socket and the shield strap both sit at its
+ // centre, y -.37, z .012): a flared steel cuff over the bracer, a plated back of the hand with
+ // bronze-studded knuckles, four finger bands curled round the grip and a thumb folded over them
+ P.add(new THREE.CylinderGeometry(.047,.038,.04,12),at(0,-.338,0),(x,y)=>y>-.325?BRONZE:ramp(STEEL_DARK,STEEL,-.36,-.32)(y));
+ P.add(new THREE.BoxGeometry(.046,.062,.018),at(0,-.378,-.008,[.08,0,0]),(x,y)=>ramp(STEEL_DARK,STEEL,-.41,-.345)(y));
+ for(let i=0;i<4;i++){
+  const y=-.4+i*.0145;
+  P.add(new THREE.BoxGeometry(.011,.0125,.05),at(-.0175,y,.014),STEEL_DARK);
+  P.add(new THREE.BoxGeometry(.011,.0125,.05),at(.0175,y,.014),STEEL_DARK);
+  P.add(new THREE.BoxGeometry(.04,.0125,.012),at(0,y,.037),i%2?STEEL:STEEL_HI);
+  P.add(new THREE.OctahedronGeometry(.0058),at(0,y,-.02),BRONZE_HI);
+ }
+ P.add(new THREE.BoxGeometry(.036,.014,.013),at(.004,-.341,.036,[0,0,-.14]),STEEL_HI);
+ P.add(new THREE.BoxGeometry(.016,.022,.024),at(.02,-.348,.02,[0,0,.2]),STEEL);
  return P.merge();
 }
 
