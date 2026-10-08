@@ -22,6 +22,7 @@ import {buildDart} from './dart.js';
 import {buildBoomerang} from './boomerang.js';
 import {buildArrow} from './arrow.js';
 import {buildAklys} from './aklys.js';
+import {createBoulder, BOULDER_SEED} from './boulder.js';
 
 // Object classes and materials from include/objclass.h.
 const WEAPON_CLASS = 2, POTION_CLASS = 8, COIN_CLASS = 12, GEM_CLASS = 13, ROCK_CLASS = 14, BALL_CLASS = 15,
@@ -56,7 +57,7 @@ export const STYLES = {
   flask: {spin: 'tumble', rate: 8, arc: .14, perCell: .06, maxArc: .7},
   ball: {spin: 'tumble', rate: 5, arc: .1, perCell: .04, maxArc: .45},
   lump: {spin: 'tumble', rate: 8, arc: .12, perCell: .05, maxArc: .6},
-  boulder: {spin: 'roll', radius: .36},
+  boulder: {spin: 'roll', radius: .46},
 };
 // The arrow.js name an arrow or bolt flies as, from what the glyph shows: the appearance
 // ("crude arrow") if the type has one, else the bolt shape or the silver of a silver arrow.
@@ -259,6 +260,7 @@ export function createFlights(THREE, parent) {
     bone: new THREE.MeshStandardMaterial({color: 0xe6dcc0, roughness: .7}),
     leather: new THREE.MeshStandardMaterial({color: 0x4a3024, roughness: .9}),
     stone: new THREE.MeshStandardMaterial({color: 0x8a8580, roughness: .95, flatShading: true}),
+    boulder: new THREE.MeshStandardMaterial({vertexColors: true, roughness: .94, flatShading: true}),
     glass: new THREE.MeshStandardMaterial({color: 0xcfe4ee, metalness: .1, roughness: .08, transparent: true, opacity: .75}),
     iron: new THREE.MeshStandardMaterial({color: 0x45484c, metalness: .7, roughness: .45}),
     lump: new THREE.MeshStandardMaterial({color: 0xb09a74, roughness: .7}),
@@ -365,7 +367,18 @@ export function createFlights(THREE, parent) {
       r.add(new THREE.Mesh(geo(new THREE.CylinderGeometry(.016, .018, .05, 8).translate(0, .06, 0)), mats.glass));
     },
     ball: r => r.add(new THREE.Mesh(geo(new THREE.SphereGeometry(.12, 12, 10)), mats.iron)),
-    boulder: r => r.add(new THREE.Mesh(geo(new THREE.IcosahedronGeometry(STYLES.boulder.radius, 1)), mats.stone)),
+    // The same weathered granite as the one on the floor, re-centred so it tumbles about its
+    // middle: a lumpy rock lurching over its own corners, not a smooth ball.
+    boulder(r) {
+      const src = createBoulder(BOULDER_SEED), mass = src.children.find(c => c.userData.part === 'mass');
+      const c = mass.geometry.boundingSphere.center;
+      const rock = new THREE.Mesh(geo(mass.geometry.clone().translate(-c.x, -c.y, -c.z)), mats.boulder);
+      // Its farthest corner just grazes the floor, so no tumble digs it in.
+      rock.scale.setScalar(STYLES.boulder.radius / mass.geometry.boundingSphere.radius);
+      rock.castShadow = true;
+      r.add(rock);
+      src.userData.dispose();
+    },
     lump: r => r.add(new THREE.Mesh(geo(new THREE.BoxGeometry(.09, .07, .11)), mats.lump)),
   };
   // One thong link: a unit-long cord from the origin up +y, stretched and turned per frame.

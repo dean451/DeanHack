@@ -362,3 +362,16 @@ test('a thrown aklys tumbles with its thong trailing, sagging and whipping behin
   assert.equal(scene.children.length, 0);
   fl.dispose();
 });
+
+test('a rolling boulder is the real granite mesh, centred so it tumbles about its middle', () => {
+  const scene = new THREE.Scene(), fl = createFlights(THREE, scene);
+  fl.play(throwTo(6, {kind: 'object', class: 14, material: 21}));
+  fl.update(.05);
+  const rock = scene.children[0].children[0].children[0];
+  assert.ok(rock.geometry.attributes.color, 'carries the baked vertex colours of the floor boulder');
+  rock.geometry.computeBoundingSphere();
+  const c = rock.geometry.boundingSphere.center;
+  assert.ok(Math.hypot(c.x, c.y, c.z) < 1e-6, 'centred on its pivot');
+  assert.ok(rock.geometry.boundingSphere.radius * rock.scale.x <= STYLES.boulder.radius + 1e-6, 'no corner digs into the floor');
+  fl.dispose();
+});
