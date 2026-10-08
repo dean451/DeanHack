@@ -93,18 +93,18 @@ const flames=[];for(const x of [-3,3]){
  const f=createFire(x+3);f.position.set(x,1.52,-3.4);f.scale.setScalar(1.5);scene.add(f);
  const light=new THREE.PointLight(0xffa450,13,8,2);light.position.set(x,1.9,-3);scene.add(light);flames.push({f,light,phase:rand()*5});
 }
-function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(body);const armor=mat('#58727b',{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.1,metalness:.82,roughness:.26}),armorLight=mat('#a7c2c5',{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.08,metalness:.76,roughness:.22}),boots=mat('#20292c',{roughness:.72}),leather=mat('#533c2f',{roughness:.9}),visor=mat('#101c20',{metalness:.5,roughness:.32}),accent=mat('#c8a45a',{metalness:.78,roughness:.26});const legs=[];for(const x of [-.14,.14]){const pivot=new THREE.Group();pivot.position.set(x,.49,0);body.add(pivot);sphere(.085,armor,pivot,0,-.14,0,.91,2,1);cylinder(.068,.072,.22,leather,pivot,0,-.30,0,16);
- roundedBox(.21,.065,.22,boots,pivot,0,-.205,0,.02);
+function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(body);const armor=mat('#58727b',{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.1,metalness:.82,roughness:.26}),armorLight=mat('#a7c2c5',{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.08,metalness:.76,roughness:.22}),boots=mat('#20292c',{roughness:.72}),leather=mat('#533c2f',{roughness:.9}),visor=mat('#101c20',{metalness:.5,roughness:.32}),accent=mat('#c8a45a',{metalness:.78,roughness:.26});const legs=[];for(const x of [-.122,.122]){const pivot=new THREE.Group();pivot.position.set(x,.49,0);body.add(pivot);sphere(.074,armor,pivot,0,-.14,0,.91,2,1);cylinder(.056,.062,.22,leather,pivot,0,-.30,0,16);
+ roundedBox(.185,.065,.22,boots,pivot,0,-.205,0,.02);
  sphere(.115,leather,pivot,0,-.405,.074,.86,.58,1.48);
  sphere(.112,boots,pivot,0,-.455,.071,.89,.16,1.5);
  for(let i=0;i<3;i++){const crease=roundedBox(.15-i*.012,.009,.012,boots,pivot,0,-.345-i*.027,.099+i*.016,.004);crease.rotation.z=(i-1)*.06;}
- for(const side of [-1,1]){roundedBox(.014,.12,.014,accent,pivot,side*.074,-.287,.102,.004);}
+ for(const side of [-1,1]){roundedBox(.014,.12,.014,accent,pivot,side*.064,-.287,.102,.004);}
  roundedBox(.16,.026,.013,boots,pivot,0,-.248,.112,.006);
  roundedBox(.036,.036,.018,accent,pivot,.05,-.248,.123,.006);
  const scuff=roundedBox(.068,.008,.015,accent,pivot,-.026,-.411,.228,.004);scuff.rotation.z=.13;legs.push(pivot);}
- const cuirass=new THREE.LatheGeometry([new THREE.Vector2(.1,.56),new THREE.Vector2(.122,.63),new THREE.Vector2(.168,.82),new THREE.Vector2(.158,.91),new THREE.Vector2(.105,.99)],24);
+ const cuirass=new THREE.LatheGeometry([new THREE.Vector2(.088,.56),new THREE.Vector2(.11,.63),new THREE.Vector2(.168,.82),new THREE.Vector2(.158,.91),new THREE.Vector2(.105,.99)],24);
  const chest=mesh(cuirass,armor,body);chest.scale.z=.76;
- const belt=cylinder(.134,.123,.05,leather,body,0,.605,0,24);belt.scale.z=.78;
+ const belt=cylinder(.118,.108,.05,leather,body,0,.605,0,24);belt.scale.z=.78;
  roundedBox(.04,.04,.015,accent,body,0,.605,.108,.006);
  const skin=mat('#c3977e',{roughness:.86}),eyeWhite=mat('#ded8ca',{roughness:.7}),iris=mat('#384a42',{roughness:.6});
  cylinder(.11,.13,.14,skin,body,0,1.04,.02,12);

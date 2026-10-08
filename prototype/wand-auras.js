@@ -34,7 +34,10 @@ export const WAND_AURAS = {
   'magic missile': {color: 0x8fb4ff, blend: 'add', motion: 'orbit', count: 10, size: .06, period: 1.4, alpha: .9},
   striking: {color: 0xe6dcc0, blend: 'add', motion: 'orbit', count: 6, size: .05, period: 1.1, alpha: .6},
   light: {color: 0xfff1c4, blend: 'add', motion: 'sparkle', count: 12, size: .07, period: 2.2, alpha: .8},
-  wishing: {color: 0xffd35a, blend: 'add', motion: 'sparkle', count: 16, size: .06, period: 1.5, alpha: .95},
+  // The rarest wand: a slow ring of wish-lights circles it, with a shimmering rim of white-gold sparks
+  // twinkling along the rod. No other wand has a halo.
+  wishing: {color: 0xffd35a, blend: 'add', motion: 'halo', count: 14, size: .075, period: 6, alpha: .9,
+    core: {color: 0xfff3c8, blend: 'add', motion: 'sparkle', count: 14, size: .05, period: 1.3, alpha: .95}},
   teleportation: {color: 0xc56bff, blend: 'add', motion: 'orbit', count: 12, size: .06, period: 2, alpha: .8},
   polymorph: {color: 0x7cffb0, blend: 'add', motion: 'drift', count: 12, size: .07, period: 2.6, alpha: .75, rainbow: true},
   cancellation: {color: 0x8c8aa0, blend: 'normal', motion: 'fall', count: 10, size: .08, period: 3, alpha: .5},
@@ -72,7 +75,7 @@ export const MAGIC_AURAS = {
 const AURAS = {...WAND_AURAS, ...MAGIC_AURAS};
 
 // The big wands, whose aura shows from their true type before they are identified.
-export const TELLS = new Set(['death', 'fire', 'cold', 'lightning', 'striking', 'cancellation', 'digging']);
+export const TELLS = new Set(['death', 'fire', 'cold', 'lightning', 'striking', 'cancellation', 'digging', 'wishing']);
 
 // The kind from the hero's name for the item ("wand(s) of X"), or for a big wand its true type
 // (`name`: "fire" or "wand of fire"), or null.

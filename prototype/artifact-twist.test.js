@@ -49,6 +49,24 @@ test('a wielded artifact takes its glint in its own steel, not the shared materi
   assert.equal(lit(), 0, 'a plain long sword stays dull');
 });
 
+test('a wielded Excalibur carries its lit shape on the blade face; a plain sword and a dagger artifact do not', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {syncHeldMagic} = await import('./weapon-magic.js');
+  const THREE = await import('three');
+  const socket = new THREE.Group(), hero = {weaponSocket: socket};
+  const wield = item => { socket.children.slice().forEach(c => socket.remove(c)); socket.add(createHeldWeapon(item)); syncHeldMagic(hero, item, {clock: () => 0}); };
+  wield({name: 'Excalibur', base: 'long sword', class: 2});
+  const shape = socket.children[0].children.find(o => o.userData.magicShell && o.isMesh);
+  assert.ok(shape, 'Excalibur has a lit shape');
+  shape.geometry.computeBoundingBox();
+  const b = shape.geometry.boundingBox;
+  assert.ok(b.min.y > .1 && b.max.y < .8, 'it runs along the blade');
+  assert.ok(b.min.z > .02 && b.max.z < .04, 'it sits on the +z face');
+  assert.ok(Math.abs(b.min.x) < .08 && Math.abs(b.max.x) < .08, 'it stays inside the blade width');
+  wield({name: 'long sword', class: 2});
+  assert.equal(socket.children[0].children.filter(o => o.userData.magicShell && o.isMesh).length, 0);
+});
+
 test('the great non-weapon artifacts smoulder harder than a lesser one', () => {
   const heart = createGroundModel({name: 'luckstone', label: 'the Heart of Ahriman', class: 13});
   const eye = createGroundModel({name: 'amulet of life saving', label: 'the Eye of the Aethiopica', class: AMULET});

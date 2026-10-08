@@ -9,7 +9,7 @@ test('the hero-known name picks an aura; a big wand shows its true type unidenti
   assert.equal(wandAuraKind(wand('wand of death')), 'death');
   assert.equal(wandAuraKind(wand('wand of sleep')), 'sleep');
   // The big wands: their true type shows through, whatever the hero calls them.
-  for (const type of ['death', 'fire', 'cold', 'lightning', 'striking', 'cancellation', 'digging']) {
+  for (const type of ['death', 'fire', 'cold', 'lightning', 'striking', 'cancellation', 'digging', 'wishing']) {
     assert.equal(wandAuraKind(wand('oak wand', {name: type})), type);
     assert.equal(wandAuraKind(wand('wand called sleep', {name: type})), type);
   }
@@ -274,4 +274,11 @@ test('only the identified real Amulet of Yendor glows, never a fake that reads t
   assert.equal(syncWandAura(item, amulet('Amulet of Yendor')), null);
   assert.equal(item.children.length, 0);
   aura.userData.dispose();
+});
+
+test('the wand of wishing alone has a halo of wish-lights with a shimmering rim', () => {
+  assert.equal(WAND_AURAS.wishing.motion, 'halo');
+  assert.equal(WAND_AURAS.wishing.core.motion, 'sparkle');
+  assert.ok(WAND_AURAS.wishing.period >= 5, 'the halo turns slowly');
+  for (const [kind, style] of Object.entries(WAND_AURAS)) if (kind !== 'wishing') assert.notEqual(style.motion, 'halo', kind);
 });

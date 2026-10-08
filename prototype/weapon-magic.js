@@ -347,7 +347,7 @@ export function syncHeldMagic(hero, item, opts = {}) {
   const blade = bladeOf(socket, weapon);
   if (!blade) return null;
   // the held artifact's own steel takes its glint, as on the floor (artifact-twist.js)
-  if (magic.kind === 'artifact') applyArtifactTwist(weapon, {label: item.name, class: item.class}, {clone: true});
+  if (magic.kind === 'artifact') applyArtifactTwist(weapon, {label: item.name, class: item.class}, {clone: true, held: true});
   const fx = createMagicFx(magic, weapon, blade, {seedText: 'held', ...opts});
   socket.add(fx);
   // swing-fx.js reads `tint` to colour the swing trail: the theme's trail colour, pushed bright
