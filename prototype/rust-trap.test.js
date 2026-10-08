@@ -66,3 +66,14 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('rust flecks sway off a straight drift as they sink', () => {
+  for (let i = 0; i < RUST.flecks; i++) {
+    let off = 0;
+    for (let t = RUST.flight + .2; t < RUST.total - .1; t += .01) {
+      const p = fleckPose(i, t), u = (t - RUST.flight - .08) / (RUST.total - RUST.flight - .08), a = i * 2.4 + 1;
+      off = Math.max(off, Math.abs(p.x - Math.cos(a) * (.1 + .14 * u + .02 * (i % 3))));
+    }
+    assert.ok(off > .005 && off <= .026, String(i));
+  }
+});
