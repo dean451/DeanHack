@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {tumbleMessage, tumbleOffset, createStairTumble, TUMBLE_HEIGHT, TUMBLE_TIME, ARM_TIME} from './stair-tumble.js';
+import {tumbleMessage, tumbleOffset, createStairTumble, TUMBLE_HEIGHT, TUMBLE_TIME, ARM_TIME, TWITCH_GAP, TWITCH_LEN, TWITCH_HEIGHT} from './stair-tumble.js';
 
 test('only the fall message arms a tumble', () => {
   assert.ok(tumbleMessage('You fall down the stairs.'));
@@ -45,4 +45,12 @@ test('an arming that never gets a level lapses, and clear resets', () => {
   assert.ok(!d.active && !d.arrive());
   d.message('You fall down the stairs.'); d.clear();
   assert.ok(!d.active);
+});
+
+test('after the last bounce the hero lies still, then twitches once', () => {
+  const end = TUMBLE_TIME - TWITCH_GAP - TWITCH_LEN;
+  assert.ok(Math.abs(tumbleOffset(end + TWITCH_GAP / 2)) < 1e-9, 'still beat');
+  const mid = tumbleOffset(end + TWITCH_GAP + TWITCH_LEN / 2);
+  assert.ok(mid > 0 && mid <= TWITCH_HEIGHT + 1e-9, String(mid));
+  assert.ok(tumbleOffset(TUMBLE_TIME) < 1e-9);
 });
