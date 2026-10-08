@@ -14,9 +14,12 @@ export const SQUEAK = {rings: 3, gap: .13, ringLife: .45, motes: 7, total: 1.0};
 export const PENDING_WAIT = .3;
 export const isSqueakMessage = text => /a board beneath you squeaks/i.test(text || '');
 
+// Each squeak comes sooner than the last, like a held note being squeezed: gaps of .13s, then .10s.
+export const ringStart = i => i * SQUEAK.gap - .03 * i * (i - 1) / 2;
+
 // Ring i: starts on the beat i * gap, snaps outward fast then slows, stuttering as it thins.
 export function ringPose(i, t) {
-  const u = clamp01((t - i * SQUEAK.gap) / SQUEAK.ringLife);
+  const u = clamp01((t - ringStart(i)) / SQUEAK.ringLife);
   if (u <= 0 || u >= 1) return {radius: .1, alpha: 0};
   const stutter = .7 + .3 * Math.sin(u * 37 + i * 2) * Math.sin(u * 17);
   return {radius: .1 + (.75 - .12 * i) * (1 - (1 - u) * (1 - u) * (1 - u)), alpha: .75 * (1 - smooth(u)) * stutter * Math.min(1, u * 14)};

@@ -80,3 +80,9 @@ test('the third spark flares at the snap and still stays in bounds', async () =>
   for (let t = 0; t <= FIZZLE.total; t += .005) for (let i = 0; i < FIZZLE.sparks; i++) { const a = sparkPose(i, t).alpha; assert.ok(a >= 0 && a <= .85 + 1e-9); }
   assert.equal(sparkPose(2, FIZZLE.total).alpha, 0);
 });
+
+test('the second spark is a dud that dies before the others', () => {
+  const t = .38 + (FIZZLE.total - .38) * .6;
+  assert.equal(sparkPose(1, t).alpha, 0);
+  assert.ok(sparkPose(1, .38 + .05).alpha > 0);
+});
