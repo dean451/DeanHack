@@ -90,3 +90,15 @@ test('the pet cats carry an old pale scar across the face; wild cats do not',()=
  };
  for(const name of ['kitten','housecat','large cat'])assert(scar(name)>scar('wildcat')+3,`${name} scar ${scar(name)} vs ${scar('wildcat')}`);
 });
+
+test('the pet cats\' eyes sit in dark hollows: the fur round each eye is far darker than the fur beyond',()=>{
+ for(const name of ['kitten','housecat','large cat']){
+  const m=meshes(createCreature({name})).find(o=>o.userData.part==='head').geometry;
+  const col=m.attributes.color,pos=m.attributes.position;let lo=9,hi=0;
+  for(let i=0;i<col.count;i++){
+   const d=Math.hypot(Math.abs(pos.getX(i))-.041,pos.getY(i)-.026,pos.getZ(i)-.128),v=col.getX(i)+col.getY(i)+col.getZ(i);
+   if(v>.1&&d>.024&&d<.034){lo=Math.min(lo,v);hi=Math.max(hi,v);}
+  }
+  assert(lo<hi*.4,`${name} eye ring ${lo} vs ${hi}`);
+ }
+});
