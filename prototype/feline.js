@@ -11,6 +11,8 @@ import {segment,chain} from './ant.js';
 //   (round on the big cats) with pale insides, slit pupils (round on the big cats), whiskers.
 // - Legs: shoulder, elbow and forearm down to a padded paw with four toes, each tipped with a dark hooked claw, in front; the hind
 //   legs have a muscled thigh, a knee, a raised hock and a long foot.
+// - The kitten, housecat and large cat are scruffy strays: matted tufts along the spine, proud hip
+//   bones, healed scratches across the right flank and a torn left ear.
 // - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
 // Coats are painted per vertex from the body position:
@@ -31,9 +33,9 @@ import {segment,chain} from './ant.js';
 // quirk 'feline'.
 
 const LOOKS={
- kitten:{scale:.7,coat:'#9a9690',stripe:'#4a4640',belly:'#b8b4a8',nose:'#6a3a38',eye:'#6aa8e0',pattern:'tabby',headSize:1.22,legH:.19,tail:'up',tailLen:.8},
- housecat:{scale:1,coat:'#cf9050',stripe:'#8a4e22',belly:'#c8b898',nose:'#6a3838',eye:'#d6b640',pattern:'tabby',socks:true},
- 'large cat':{scale:1.15,coat:'#8a7050',stripe:'#2e241a',belly:'#dccab0',nose:'#5a3630',eye:'#c8b030',pattern:'tabby'},
+ kitten:{scruffy:true,scale:.7,coat:'#9a9690',stripe:'#4a4640',belly:'#b8b4a8',nose:'#6a3a38',eye:'#6aa8e0',pattern:'tabby',headSize:1.22,legH:.19,tail:'up',tailLen:.8},
+ housecat:{scruffy:true,scale:1,coat:'#cf9050',stripe:'#8a4e22',belly:'#c8b898',nose:'#6a3838',eye:'#d6b640',pattern:'tabby',socks:true},
+ 'large cat':{scruffy:true,scale:1.15,coat:'#8a7050',stripe:'#2e241a',belly:'#dccab0',nose:'#5a3630',eye:'#c8b030',pattern:'tabby'},
  jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#c4b497',nose:'#5e3630',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
  lynx:{scale:1.1,coat:'#a88f70',stripe:'#5a4630',belly:'#b8ac98',nose:'#5a3a30',eye:'#c8b040',pattern:'spots',tufts:true,ruff:true,legH:.26,tail:'bob'},
  panther:{scale:1.45,coat:'#232226',stripe:'#121114',belly:'#2e2c32',nose:'#141214',eye:'#9ad04a',pattern:'ghost',ears:'round',round:true,heavy:1.1,headSize:.95,tail:'low',gloss:.45,whisker:'#8a8a8a'},
@@ -103,6 +105,7 @@ function torsoAt(L,C){
   const top=smooth((y-L.Y)/.12);
   let c=mix(C.coat,C.back,top*.5);
   c=markings(L,C,x,y,z,c);
+  if(L.scruffy&&x>.05)for(let k=0;k<2;k++){const d=Math.abs((y-L.Y-.03-k*.025)-(z+.02)*.5);if(d<.006&&z>-.15&&z<.1)c=mix(c,C.belly,.8*(1-d/.006));}
   const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.16)/.08)*smooth((L.Y+.06-y)/.08);
   return mix(c,C.belly,Math.max(belly,chest)*(L.pattern==='ghost'||L.pattern==='shimmer'?.6:1));
  };
@@ -133,6 +136,14 @@ function buildBody(L,C){
  const [nx,ny,nz]=L.neck;
  segment(P,[0,L.Y+.03,.19],[nx,ny-.02,nz-.01],.075*bw,.06*bw,paint,14);
  P.add(new THREE.SphereGeometry(.066*bw,16,10),at(0,L.Y+.09,.235),paint);
+ // scruffy pets: matted tufts bristling along the spine, the hip bones standing proud
+ if(L.scruffy){
+  for(let k=0;k<9;k++){
+   const z=-.22+k*.045,lean=.35+.05*(k%3),h=.032+.012*hash(k+L.Y*10);
+   P.add(new THREE.ConeGeometry(.011,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,smooth((y-L.Y-.1)/.04)));
+  }
+  for(const s of [-1,1])P.add(new THREE.ConeGeometry(.016,.03,4),at(s*.058*bw,L.Y+.085,-.15,[-.2,0,-s*.5],[1,1,.8]),paint);
+ }
  if(L.tentacles){
   const pad=rgb(L.tentacles),spike=rgb('#d8d4f0');
   for(const s of [-1,1]){
@@ -183,9 +194,10 @@ function buildHead(L,C){
    P.add(new THREE.SphereGeometry(.035,12,10),at(ex,ey,ez,[0,0,-s*.25],[1,1.05,.4]),(x,y,z)=>L.earSpots&&z<ez-.004?(Math.hypot(x-ex,y-ey)<.014?C.belly:C.stripe):C.coat);
    P.add(new THREE.SphereGeometry(.024,10,8),at(ex,ey-.004,ez+.008,[0,0,-s*.25],[1,1,.3]),mix(C.belly,inner,.4));
   }else{
-   const e=L.tufts?1.25:1,rot=[-.15,0,-s*.3];
+   const torn=L.scruffy&&s<0,e=(L.tufts?1.25:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
    P.add(new THREE.ConeGeometry(.038*e,.075*e,4),at(s*.055,.095+.01*(e-1),.03,rot,[1,1,.45]),(x,y)=>mix(C.coat,C.back,smooth((y-.1)/.04)));
    P.add(new THREE.ConeGeometry(.026*e,.055*e,4),at(s*.055,.09+.01*(e-1),.042,rot,[1,1,.3]),inner);
+   if(torn)P.add(new THREE.ConeGeometry(.01,.03,3),at(s*.072,.098,.03,[-.15,0,-s*.7],[1,1,.45]),C.coat);
    if(L.tufts)segment(P,[s*.068,.14,.03],[s*.078,.2,.025],.008,.001,C.stripe,4);
   }
  }
@@ -276,7 +288,7 @@ function buildTail(L,C){
 function lookFor(name,colour){
  if(LOOKS[name])return LOOKS[name];
  const c=new THREE.Color(colour||LOOKS.housecat.coat);
- return {...LOOKS.housecat,socks:false,coat:c.getStyle(),stripe:c.clone().multiplyScalar(.5).getStyle(),belly:c.clone().lerp(new THREE.Color('#ffffff'),.55).getStyle()};
+ return {...LOOKS.housecat,socks:false,scruffy:false,coat:c.getStyle(),stripe:c.clone().multiplyScalar(.5).getStyle(),belly:c.clone().lerp(new THREE.Color('#ffffff'),.55).getStyle()};
 }
 
 const cache=new Map();

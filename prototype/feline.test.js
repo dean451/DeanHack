@@ -62,3 +62,10 @@ test('every paw carries dark hooked claws: four per foot, in the same single leg
   }
  }
 });
+
+test('the pet cats are scruffy: more geometry than a wild cat of the same build, a shorter torn left ear',()=>{
+ const tri=name=>meshes(createCreature({name,symbol:102,color:3})).reduce((n,m)=>n+m.geometry.attributes.position.count,0);
+ for(const name of ['kitten','housecat','large cat'])assert(tri(name)>tri('wildcat'),`${name} has tufts and a torn ear`);
+ const ear=name=>{const h=meshes(createCreature({name})).find(m=>m.userData.part==='head').geometry;h.computeBoundingBox();return h.boundingBox;};
+ for(const name of ['kitten','housecat','large cat']){const b=ear(name);assert(b.max.y>.1&&b.max.y<.2,`${name} head height ${b.max.y}`);}
+});
