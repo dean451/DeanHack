@@ -300,3 +300,14 @@ test('a toppled body\'s head knocks the floor once on landing, then lies as befo
   assert.ok(max > .1 && max <= .12 + 1e-9);
   assert.ok(Math.abs(h(1) - -.4) < 1e-9, 'returns to the old rest');
 });
+
+test('a toppled body lets its tail go slack, and flicks it once after landing', () => {
+  const p = u => deathPose('topple', u);
+  assert.ok(p(0).tail === 0);
+  assert.ok(p(.8).tail > .15);
+  const flick = Array.from({length: 20}, (_, i) => p(.9 + i * .005).tail);
+  assert.ok(Math.max(...flick) - Math.min(...flick) > .02, 'the flick moves it');
+  for (let u = 0; u <= 1.001; u += .01) {
+    assert.ok(Math.abs(p(u).tail) <= .45, `in bounds at ${u}`);
+  }
+});
