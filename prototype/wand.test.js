@@ -117,3 +117,15 @@ test('long, hexagonal and octagonal iron wands are banded or pitted, apart from 
   for (const look of ['hexagonal', 'octagonal']) assert(verts(look) !== plain, look);
   assert(verts('long') > plain, 'a long wand carries bands');
 });
+
+test('a wand of wishing is dull tin on the floor and in hand, whatever its shuffled appearance', () => {
+  const shaft = g => meshes(g).find(m => m.userData.part === 'shaft').material;
+  const dull = shaft(createWand('wishing'));
+  assert(dull.roughness > .7 && dull.metalness < .5);
+  assert.equal(wandAppearance('wand of wishing (0:1)'), 'wishing');
+  assert.equal(wandAppearance('oak wand'), 'oak');
+  const held = createHeldWeapon({class: 11, name: 'wand of wishing (0:2)'});
+  assert.equal(shaft(held).color.getHex(), dull.color.getHex());
+  const floor = createGroundModel({class: 11, name: 'wand of wishing', appearance: 'oak', glyph: 0});
+  assert(meshes(floor).some(m => m.material.color.getHex() === dull.color.getHex()));
+});
