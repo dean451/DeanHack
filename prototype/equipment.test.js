@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createHeldWeapon} from './equipment.js';
+import {createHeldWeapon,turnHeld,HELD_TURN} from './equipment.js';
 
 const size=g=>{g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(g).getSize(new THREE.Vector3());};
 
@@ -731,4 +731,12 @@ test('a wielded unicorn horn is the spiral ivory horn standing on its root, not 
  const box=new THREE.Box3().setFromObject(w);
  assert.ok(box.max.y>.35&&box.min.y<-.05&&box.min.y>-.2,`horn spans ${box.min.y}..${box.max.y}`);
  assert.ok(w.children[0].geometry.attributes.color,'ivory is baked into vertex colours');
+});
+
+test('turnHeld spins a weapon a quarter about its own long axis',()=>{
+ const sword=turnHeld(createHeldWeapon({name:'long sword',class:2}));
+ sword.updateMatrixWorld(true);
+ const up=new THREE.Vector3(0,1,0).applyQuaternion(sword.quaternion);
+ assert.ok(up.distanceTo(new THREE.Vector3(0,1,0))<1e-6,'the long axis stays put');
+ assert.ok(Math.abs(sword.rotation.y-HELD_TURN)<1e-6);
 });
