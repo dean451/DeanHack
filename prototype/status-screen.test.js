@@ -61,3 +61,14 @@ test('strangulation gets its own cinching class, once, beside the others', () =>
   applyStatusScreen(el, []);
   assert.equal(set.size, 0);
 });
+
+test('stoning gets its own creeping-grey class, once, beside the others', () => {
+  assert.deepEqual(statusScreenClasses(['Stone']), ['status-stoned']);
+  assert.deepEqual(statusScreenClasses(['Stoned', 'Stone', 'Strngl']), ['status-stoned', 'status-strangled']);
+  const set = new Set();
+  const el = {classList: {toggle: (c, on) => (on ? set.add(c) : set.delete(c))}};
+  applyStatusScreen(el, ['Stone']);
+  assert.ok(set.has('status-stoned') && !set.has('status-blind'));
+  applyStatusScreen(el, []);
+  assert.equal(set.size, 0);
+});

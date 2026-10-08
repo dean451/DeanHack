@@ -3,9 +3,10 @@
 // sways the view and smears it with a drifting sick violet; stunned jolts the whole view off its footing in
 // sharp, uneven lurches; hallucination slides the colours of the whole view round the wheel, in slow
 // sickly surges; strangulation cinches a dark cord of vignette in round the view, tightening in hard
-// gasps with a slack beat between. STATE_CLASSES is where further states join.
+// gasps with a slack beat between; stoning creeps a cold grey up from the bottom of the view in stiff
+// lurches, desaturating what it covers. STATE_CLASSES is where further states join.
 
-const STATE_CLASSES = {blind: 'status-blind', conf: 'status-confused', confused: 'status-confused', stun: 'status-stunned', stunned: 'status-stunned', hallu: 'status-hallu', hallucinating: 'status-hallu', strngl: 'status-strangled', strangled: 'status-strangled'};
+const STATE_CLASSES = {blind: 'status-blind', conf: 'status-confused', confused: 'status-confused', stun: 'status-stunned', stunned: 'status-stunned', hallu: 'status-hallu', hallucinating: 'status-hallu', strngl: 'status-strangled', strangled: 'status-strangled', stone: 'status-stoned', stoned: 'status-stoned'};
 
 // The screen classes for the conditions on the engine's status line ('Blind', 'Hungry'...), in a fixed order.
 export function statusScreenClasses(conditions) {
