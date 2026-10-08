@@ -355,6 +355,10 @@ const SHAPES = {
 // blade. Only the long-sword artifacts are held this way (Excalibur, Vorpal Blade, Frost Brand, Fire Brand, Stormbringer, Dragonbane, Orcrist, Demonbane, Giantslayer, Thiefbane).
 const HELD_SHAPES = new Set(['excalibur', 'vorpal blade', 'frost brand', 'fire brand', 'stormbringer', 'dragonbane', 'orcrist', 'demonbane', 'giantslayer', 'thiefbane', 'sunsword']);
 const heldMatrix = new THREE.Matrix4().set(0, 0, 2, 0,  1.45, 0, 0, .1,  0, 1, 0, .017,  0, 0, 0, 1);
+// A wielded dagger (Sting, Grimtooth) is the short blade: it runs .13 to .34 along +y, so the floor shape is
+// carried up without stretching and widened across the flat, and laid on the +z face at its tapering thickness.
+const HELD_DAGGER_SHAPES = new Set(['sting', 'grimtooth']);
+const heldDaggerMatrix = new THREE.Matrix4().set(0, 0, 1.6, 0,  1, 0, 0, .1,  0, 1, 0, .008,  0, 0, 0, 1);
 
 export function applyArtifactTwist(group, object, {clone = false, held = false} = {}) {
   const kind = object ? artifactFromName(object.label, object.class) : null;
@@ -373,8 +377,8 @@ export function applyArtifactTwist(group, object, {clone = false, held = false} 
     m.emissive.copy(color);
     m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, POWER_BY_KIND[kind] ?? POWER);
   });
-  const shape = (!held || HELD_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
-  if (shape && held) shape.forEach(g => g.applyMatrix4(heldMatrix));
+  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
+  if (shape && held) shape.forEach(g => g.applyMatrix4(HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : heldMatrix));
   if (shape) {
     const mesh = new THREE.Mesh(mergeGeometries(shape), shapeMaterial(ARTIFACTS[kind].color));
     mesh.userData.magicShell = true; mesh.castShadow = true;

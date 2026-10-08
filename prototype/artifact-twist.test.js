@@ -429,3 +429,19 @@ for (const [name, label, key] of [['short sword', 'Luck Blade', 'luck blade'], [
     art.userData.dispose();
   });
 }
+
+test('a wielded Sting and Grimtooth carry their lit shapes on the dagger blade', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  for (const [name, label, kind] of [['elven dagger', 'Sting', 'sting'], ['orcish dagger', 'Grimtooth', 'grimtooth']]) {
+    const {applyArtifactTwist} = await import('./artifact-twist.js');
+    const dagger = createHeldWeapon({name, class: 2});
+    applyArtifactTwist(dagger, {label, class: 2}, {clone: true, held: true});
+    const shell = dagger.children.at(-1);
+    assert.equal(dagger.userData.artifact, kind);
+    assert(shell.userData.magicShell, kind);
+    const b = new THREE.Box3().setFromObject(shell);
+    assert(b.min.y > .1 && b.max.y < .36, `${kind} y ${b.min.y}..${b.max.y}`);
+    assert(b.max.z < .08 && b.min.z > -.08 && b.max.x - b.min.x < .12, kind);
+    assert(b.min.z > -.01, `${kind} sits on the +z face`);
+  }
+});
