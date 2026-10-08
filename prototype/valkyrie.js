@@ -130,7 +130,7 @@ function buildHead(){
  P.add(new THREE.ConeGeometry(.014,.032,4),at(0,.075,.097,[Math.PI/2-.2,Math.PI/4,0]),SKIN);
  P.add(new THREE.BoxGeometry(.034,.0045,.01),at(0,.052,.081),LIPS_DARK);
  for(const s of [-1,1]){
-  P.add(new THREE.OctahedronGeometry(.024),at(s*.052,.078,.066,[0,.3*s,0],[1.15,.7,.7]),SKIN_LIGHT);
+  P.add(new THREE.OctahedronGeometry(.02),at(s*.05,.08,.064,[0,.3*s,0],[1.1,.65,.65]),SKIN);
   P.add(new THREE.SphereGeometry(.017,6,5),at(s*.034,.112,.074,[0,0,0],[1.35,.8,.55]),SOCKET);
   P.add(new THREE.SphereGeometry(.0085,6,5),at(s*.034,.111,.083,[0,0,0],[1.3,.7,.5]),EYE_WHITE);
   P.add(new THREE.SphereGeometry(.0052,6,5),at(s*.034,.111,.0885),EYE);
@@ -139,7 +139,7 @@ function buildHead(){
   P.add(new THREE.SphereGeometry(.018,6,5),at(s*.085,.098,-.004,[0,0,0],[.45,1,.75]),SKIN_SHADE);
  }
  // hair: swept back under the helm, gathered at the nape, and the two long braids
- P.add(new THREE.SphereGeometry(.1,18,12,0,Math.PI*2,Math.PI*.3,Math.PI*.45),at(0,.1,-.012,[0,0,0],[.95,1.05,1]),(x,y,z)=>z>0?HAIR_DARK:mix(HAIR_DARK,HAIR,THREE.MathUtils.clamp(-z*14,0,1)));
+ P.add(new THREE.SphereGeometry(.1,18,12,Math.PI*.9,Math.PI*1.2,Math.PI*.3,Math.PI*.45),at(0,.1,-.012,[0,0,0],[.95,1.05,1]),(x,y,z)=>mix(HAIR_DARK,HAIR,THREE.MathUtils.clamp(-z*14,0,1)));
  P.add(new THREE.SphereGeometry(.04,10,8),at(0,.03,-.075,[0,0,0],[1.3,1,.8]),HAIR);
  for(const s of [-1,1])braid(P,[[s*.078,.08,-.02],[s*.104,.015,.06],[s*.122,-.035,.152],[s*.128,-.1,.184],[s*.13,-.22,.186]]);
  // the spangenhelm: an iron dome on bronze ribs and brow band, rivets, a nasal and a top knob
