@@ -83,6 +83,23 @@ test('a wielded Frost Brand and Fire Brand carry their lit shapes on the long-sw
   }
 });
 
+test('wielded Stormbringer, Dragonbane, Orcrist, Demonbane, Giantslayer and Thiefbane carry their lit shapes on the broad blade', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {syncHeldMagic} = await import('./weapon-magic.js');
+  const THREE = await import('three');
+  const socket = new THREE.Group(), hero = {weaponSocket: socket};
+  for (const [name, base] of [['Stormbringer', 'runesword'], ['Dragonbane', 'broadsword'], ['Orcrist', 'elven broadsword'], ['Demonbane', 'long sword'], ['Giantslayer', 'long sword'], ['Thiefbane', 'long sword']]) {
+    const item = {name, base, class: 2};
+    socket.children.slice().forEach(c => socket.remove(c)); socket.add(createHeldWeapon(item)); syncHeldMagic(hero, item, {clock: () => 0});
+    const shape = socket.children[0].children.find(o => o.userData.magicShell && o.isMesh);
+    assert.ok(shape, name + ' has a lit shape');
+    shape.geometry.computeBoundingBox();
+    const b = shape.geometry.boundingBox;
+    assert.ok(b.min.y > .1 && b.max.y < .85, name + ' runs along the blade');
+    assert.ok(b.min.z > .02, name + ' sits on the +z face');
+  }
+});
+
 test('the great non-weapon artifacts smoulder harder than a lesser one', () => {
   const heart = createGroundModel({name: 'luckstone', label: 'the Heart of Ahriman', class: 13});
   const eye = createGroundModel({name: 'amulet of life saving', label: 'the Eye of the Aethiopica', class: AMULET});
