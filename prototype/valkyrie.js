@@ -148,6 +148,8 @@ function buildHead(){
  P.add(new THREE.CylinderGeometry(.116,.116,.022,26,1,true),at(0,.137,0,[0,0,0],[1,1,1.08]),(x,y)=>y>.14?BRONZE_HI:BRONZE);
  for(let i=0;i<12;i++){const a=i/12*Math.PI*2;P.add(new THREE.OctahedronGeometry(.0055),at(Math.sin(a)*.119,.137,Math.cos(a)*.128),BRONZE_DARK);}
  P.add(new THREE.BoxGeometry(.016,.066,.007),at(0,.1,.118,[-.08,0,0]),(x,y)=>ramp(IRON,STEEL_HI,.07,.13)(y));
+ // a lowered brim over the brow: its shadow falls across the eyes seen from above
+ P.add(new THREE.BoxGeometry(.15,.007,.045),at(0,.152,.122,[.3,0,0]),(x,y,z)=>z>0?mix(IRON,STEEL,.3):IRON);
  P.add(new THREE.SphereGeometry(.012,8,6),at(0,.252,0),BRONZE_HI);
  // white feathered wings at the temples, swept up and back from bronze mounts
  for(const s of [-1,1]){
