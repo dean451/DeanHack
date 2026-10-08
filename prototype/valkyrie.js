@@ -19,6 +19,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // head at .955).
 
 const SKIN=rgb('#ecc4a6'),SKIN_SHADE=rgb('#c8977a'),CHEEK=rgb('#e2988a'),LIPS=rgb('#b86a62');
+const SKIN_LIGHT=rgb('#f6d8bc'),SOCKET=rgb('#7a4e46'),LIPS_DARK=rgb('#7a3e3a');
 const EYE=rgb('#3a6aa8'),EYE_WHITE=rgb('#f2ece4'),BROW=rgb('#b08840');
 const HAIR=rgb('#e0bc6a'),HAIR_LIGHT=rgb('#f4dc98'),HAIR_DARK=rgb('#a8803a');
 const IRON=rgb('#4e545a'),STEEL=rgb('#a2a9b0'),STEEL_HI=rgb('#dde2e6'),STEEL_DARK=rgb('#33373c');
@@ -120,16 +121,22 @@ function braid(P,points){
 
 function buildHead(){
  const P=pieces();
- // an oval face with high cheekbones and a firm chin; head centre at y .1 in the head group
- P.add(new THREE.SphereGeometry(.095,18,14),at(0,.1,0,[0,0,0],[.88,1.06,.94]),(x,y,z)=>z<-.03?SKIN_SHADE:SKIN);
- P.add(new THREE.ConeGeometry(.013,.036,5),at(0,.09,.093,[Math.PI/2-.35,0,0]),SKIN_SHADE);
- P.add(new THREE.SphereGeometry(.013,8,6),at(0,.052,.083,[0,0,0],[1.4,.45,.6]),LIPS);
+ // a faceted face read from above: a narrow skull, high cheekbones, a hard wedge jaw and chin;
+ // sockets sit dark under a brow ridge, the eyes are small and bright, the nose bridge catches light
+ P.add(new THREE.SphereGeometry(.095,10,8),at(0,.105,0,[0,0,0],[.86,1.04,.92]),(x,y,z)=>z<-.03?SKIN_SHADE:y<.09?mix(SKIN,SKIN_SHADE,.35):SKIN);
+ P.add(new THREE.ConeGeometry(.06,.085,5),at(0,.045,.012,[Math.PI,Math.PI/5,0],[.9,1,.95]),(x,y,z)=>z<-.02?SKIN_SHADE:mix(SKIN_SHADE,SKIN,.55));
+ P.add(new THREE.BoxGeometry(.03,.02,.024),at(0,.0,.058,[.2,0,0]),SKIN);
+ P.add(new THREE.BoxGeometry(.012,.05,.02),at(0,.1,.086,[-.28,0,0]),SKIN_LIGHT);
+ P.add(new THREE.ConeGeometry(.014,.032,4),at(0,.075,.097,[Math.PI/2-.2,Math.PI/4,0]),SKIN);
+ P.add(new THREE.BoxGeometry(.034,.0045,.01),at(0,.052,.081),LIPS_DARK);
  for(const s of [-1,1]){
-  P.add(new THREE.SphereGeometry(.022,8,6),at(s*.05,.074,.07,[0,0,0],[1,.7,.5]),mix(SKIN,CHEEK,.45));
-  P.add(new THREE.SphereGeometry(.013,8,6),at(s*.033,.108,.08,[0,0,0],[1.3,.8,.5]),EYE_WHITE);
-  P.add(new THREE.SphereGeometry(.0075,8,6),at(s*.033,.108,.086),EYE);
-  P.add(new THREE.BoxGeometry(.036,.007,.01),at(s*.034,.126,.084,[0,0,s*.12]),BROW);
-  P.add(new THREE.SphereGeometry(.018,8,6),at(s*.085,.098,-.004,[0,0,0],[.45,1,.75]),SKIN_SHADE);
+  P.add(new THREE.OctahedronGeometry(.024),at(s*.052,.078,.066,[0,.3*s,0],[1.15,.7,.7]),SKIN_LIGHT);
+  P.add(new THREE.SphereGeometry(.017,6,5),at(s*.034,.112,.074,[0,0,0],[1.35,.8,.55]),SOCKET);
+  P.add(new THREE.SphereGeometry(.0085,6,5),at(s*.034,.111,.083,[0,0,0],[1.3,.7,.5]),EYE_WHITE);
+  P.add(new THREE.SphereGeometry(.0052,6,5),at(s*.034,.111,.0885),EYE);
+  P.add(new THREE.BoxGeometry(.044,.011,.016),at(s*.036,.127,.082,[-.15,0,s*.2]),BROW);
+  P.add(new THREE.BoxGeometry(.01,.04,.02),at(s*.067,.045,.03,[0,0,s*.4]),SKIN_SHADE);
+  P.add(new THREE.SphereGeometry(.018,6,5),at(s*.085,.098,-.004,[0,0,0],[.45,1,.75]),SKIN_SHADE);
  }
  // hair: swept back under the helm, gathered at the nape, and the two long braids
  P.add(new THREE.SphereGeometry(.1,18,12,0,Math.PI*2,Math.PI*.3,Math.PI*.45),at(0,.1,-.012,[0,0,0],[.95,1.05,1]),(x,y,z)=>z>0?HAIR_DARK:mix(HAIR_DARK,HAIR,THREE.MathUtils.clamp(-z*14,0,1)));
