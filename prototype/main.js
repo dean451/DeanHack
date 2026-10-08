@@ -1,3 +1,5 @@
+import {buildFace,faceMaterials} from './hero-face.js';
+import {createGauntletHand} from './hero-hand.js';
 import {createFountain} from './fountain.js';
 import {installLive} from './live.js';
 import * as THREE from 'three';
@@ -106,18 +108,19 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const chest=mesh(cuirass,armor,body);chest.scale.z=.76;
  const belt=cylinder(.118,.108,.05,leather,body,0,.605,0,24);belt.scale.z=.78;
  roundedBox(.04,.04,.015,accent,body,0,.605,.108,.006);
- const skin=mat('#c3977e',{roughness:.86}),eyeWhite=mat('#ded8ca',{roughness:.7}),iris=mat('#384a42',{roughness:.6});
- cylinder(.11,.13,.14,skin,body,0,1.04,.02,12);
+ const skin=mat('#d6a88c',{roughness:.8}),eyeWhite=mat('#ded8ca',{roughness:.7}),iris=mat('#384a42',{roughness:.6});
+ const neckSkin=new THREE.MeshStandardMaterial({color:'#d2a083',emissive:'#4a2818',emissiveIntensity:.4,roughness:.75});
+ cylinder(.11,.13,.14,neckSkin,body,0,1.04,.02,12);
  const head=new THREE.Group();head.position.set(0,1.23,.02);body.add(head);
- sphere(.19,skin,head,0,0,.015,.88,1.13,.91);
+ buildFace(head,faceMaterials());
  const helmet=new THREE.Group();head.add(helmet);helmet.visible=false;
  mesh(new THREE.SphereGeometry(.222,24,12,0,Math.PI*2,0,Math.PI*.48),armorLight,helmet,0,.035,-.015);
  const hair=new THREE.Group();head.add(hair);
- const hairDark=mat('#35251e',{roughness:1}),hairMid=mat('#493127',{roughness:.98}),hairLight=mat('#604132',{roughness:.97});
+ const hairDark=mat('#4a3226',{roughness:1}),hairMid=mat('#684632',{roughness:.98}),hairLight=mat('#8a6448',{roughness:.97});
  // An uneven swept hairline, with fine raised strands following the same flow.
- const hairGeo=new THREE.SphereGeometry(.196,32,18,0,Math.PI*2,0,Math.PI*.61);
+ const hairGeo=new THREE.SphereGeometry(.196,32,18,0,Math.PI*2,0,Math.PI*.54);
  const hp=hairGeo.attributes.position;
- for(let i=0;i<hp.count;i++){let x=hp.getX(i),y=hp.getY(i),z=hp.getZ(i);const front=Math.max(0,z/.196);y+=front*.045+Math.sin(x*17)*front*.014;hp.setXYZ(i,x*.91,y*1.04+.01,z*.94-.018);}hairGeo.computeVertexNormals();mesh(hairGeo,hairDark,hair);
+ for(let i=0;i<hp.count;i++){let x=hp.getX(i),y=hp.getY(i),z=hp.getZ(i);const front=Math.max(0,z/.196);y+=front*(.07+.05*Math.min(1,Math.abs(x)/.11)-.034*Math.exp(-((x/.055)**2)))+Math.sin(x*17)*front*.012;hp.setXYZ(i,x*.91,y*1.04+.01,z*.94-.018);}hairGeo.computeVertexNormals();mesh(hairGeo,hairDark,hair);
  for(let i=0;i<19;i++){
   const a=(i/18-.5)*2.35;
   const path=new THREE.CatmullRomCurve3([
@@ -130,17 +133,10 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const tiedHair=new THREE.CatmullRomCurve3([new THREE.Vector3(0,.035,-.193),new THREE.Vector3(.012,-.035,-.23),new THREE.Vector3(.022,-.14,-.24),new THREE.Vector3(.04,-.225,-.21)]);
  mesh(new THREE.TubeGeometry(tiedHair,16,.035,8,false),hairMid,hair);
  const hairTie=torus(.039,.007,leather,hair,0,.02,-.202);hairTie.rotation.x=.2;
- for(const side of [-1,1]){roundedBox(.052,.2,.12,armorLight,helmet,side*.175,-.025,-.03,.018);sphere(.024,eyeWhite,head,side*.067,.018,.166,1,.52,.45);sphere(.012,iris,head,side*.067,.018,.177,1,.85,.45);const brow=roundedBox(.063,.018,.017,leather,head,side*.068,.049,.164,.006);brow.rotation.z=-side*.12;}
- sphere(.032,skin,head,.008,-.024,.183,.7,1.3,.85);sphere(.066,skin,head,0,-.115,.11,1,.62,.8);
- const lips=mat('#895b50',{roughness:.94}),scar=mat('#dab19a',{roughness:1});
- const mouthCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-.04,-.085,.16),new THREE.Vector3(0,-.088,.17),new THREE.Vector3(.04,-.075,.16)]);mesh(new THREE.TubeGeometry(mouthCurve,12,.005,5,false),lips,head);
- for(const side of [-1,1]){const lid=roundedBox(.046,.008,.013,skin,head,side*.067,.03+(side<0?.006:0),.178,.004);lid.rotation.z=side*.08;}
- const nick=roundedBox(.005,.049,.006,scar,head,-.095,.045,.166,.002);nick.rotation.z=-.25;
+ // Two braids from the temples fall forward over the shoulders, bound with a bronze-dark tie.
+ for(const side of [-1,1]){const braid=new THREE.CatmullRomCurve3([new THREE.Vector3(side*.15,.03,.02),new THREE.Vector3(side*.172,-.07,.05),new THREE.Vector3(side*.17,-.19,.075),new THREE.Vector3(side*.165,-.3,.07)]);mesh(new THREE.TubeGeometry(braid,16,.022,6,false),hairMid,hair);torus(.023,.006,accent,hair,side*.165,-.3,.07).rotation.x=.3;}
+ for(const side of [-1,1]){roundedBox(.052,.2,.12,armorLight,helmet,side*.175,-.025,-.03,.018);}
  // Finer features: high cheekbones, a darker lower lip, long lower lashes and a narrow nose bridge between the brows.
- const lash=mat('#2a1d18',{roughness:1});
- for(const side of [-1,1]){const cheek=sphere(.03,skin,head,side*.098,-.03,.15,1,.55,.5);cheek.rotation.z=side*.35;roundedBox(.044,.006,.01,lash,head,side*.067,.005,.176,.003).rotation.z=-side*.1;}
- sphere(.015,lips,head,0,-.102,.168,1.7,.45,.5);
- roundedBox(.014,.05,.014,skin,head,.004,.01,.176,.005);
  const plume=new THREE.Group();head.add(plume); // Stable legacy animation anchor, no spike.
  const browBand=mesh(new THREE.TorusGeometry(.215,.012,6,32,Math.PI),accent,helmet,0,.044,-.015);browBand.rotation.x=Math.PI/2;
  const ridge=new THREE.CatmullRomCurve3([new THREE.Vector3(0,.05,.205),new THREE.Vector3(0,.2,.1),new THREE.Vector3(0,.259,-.015),new THREE.Vector3(0,.2,-.13),new THREE.Vector3(0,.05,-.23)]);mesh(new THREE.TubeGeometry(ridge,20,.009,6,false),accent,helmet);
@@ -169,7 +165,8 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const elbow=new THREE.Group();elbow.position.set(0,-.25,0);elbow.rotation.x=-.65;arm.add(elbow);sphere(.062,leather,elbow);cylinder(.048,.036,.22,armorLight,elbow,0,-.12,0,16);
  const wrist=new THREE.Group();wrist.position.set(0,-.25,0);elbow.add(wrist);
  const weaponSocket=new THREE.Group();weaponSocket.rotation.x=Math.PI/4+.65;wrist.add(weaponSocket);
- function grippingHand(parent){roundedBox(.105,.1,.072,skin,parent,0,0,-.03,.025);for(let i=0;i<4;i++)roundedBox(.082,.018,.056,skin,parent,.014,.032-i*.022,.012,.008);const thumb=roundedBox(.034,.065,.055,skin,parent,-.047,.018,.013,.012);thumb.rotation.z=-.35;}
+ const handMats={glove:new THREE.MeshStandardMaterial({color:'#7a5238',roughness:.85,emissive:'#2a160c',emissiveIntensity:.6}),plate:armorLight};
+ function grippingHand(parent){parent.add(createGauntletHand(handMats));}
  grippingHand(weaponSocket);
  let heldWeapon=null,heldKey;
  function setWeapon(item){const key=JSON.stringify(item??null);if(key===heldKey)return;heldKey=key;if(heldWeapon){heldWeapon.userData.dispose?.();weaponSocket.remove(heldWeapon);}heldWeapon=turnHeld(createHeldWeapon(item));weaponSocket.add(heldWeapon);}
@@ -211,6 +208,7 @@ let state=createState(),lastTime=0,attackTime=-10,moveTime=-10,lockedUntil=0;
 function updateHUD(){$('#hp').textContent=`${state.hp} / 24`;$('#healthbar').style.width=`${state.hp/24*100}%`;$('#turn').textContent=state.turn;$('#message').textContent=state.message;}
 function reset(){state=createState();player.g.position.set(state.player.x,0,state.player.z);pet.g.position.set(state.cat.x,0,state.cat.z);enemy.position.set(state.enemy.x,0,state.enemy.z);enemy.scale.setScalar(1);enemy.visible=true;attackTime=-10;lockedUntil=0;updateHUD();}reset();
 function action(a){const now=performance.now()/1000;if(now<lockedUntil)return;const result=act(state,a);if(result.type!=='blocked')lockedUntil=now+.18;if(result.type==='attack'){attackTime=now;player.g.rotation.y=Math.atan2(state.enemy.x-state.player.x,state.enemy.z-state.player.z);}if(result.type==='move'){moveTime=now;player.g.rotation.y=Math.atan2(a.dx,a.dz);}updateHUD();}
+if(new URLSearchParams(location.search).has('debug'))window.__dh={camera,controls,player,scene,renderer};
 const live=installLive({scene,camera,controls,playerFactory:knight,catFactory:cat,monsterFactory:sentinel,creatureFactory:createCreature,wellTemplate:well,onDemo:()=>{$('.stats').innerHTML='<span>AC <b>−2</b></span><span>LVL <b>1</b></span><span>TURN <b id="turn">0</b></span>';updateHUD();},onMode:active=>{galleryButton.hidden=active;setGallery(false);if(active)for(const object of [player.g,pet.g,enemy,marker])object.visible=false;},demoObjects:scene.children.filter(o=>!o.isHemisphereLight&&!o.isDirectionalLight)});
 const keys={k:[0,-1],ArrowUp:[0,-1],j:[0,1],ArrowDown:[0,1],h:[-1,0],ArrowLeft:[-1,0],l:[1,0],ArrowRight:[1,0],y:[-1,-1],u:[1,-1],b:[-1,1],n:[1,1]};
 addEventListener('keydown',e=>{if(live.active || e.target instanceof HTMLButtonElement || e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey)return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(keys[key]){e.preventDefault();action({type:'move',dx:keys[key][0],dz:keys[key][1]});}else if(key===' '){e.preventDefault();action({type:'wait'});}else if(key==='e')action({type:'drink'});});
