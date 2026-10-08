@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {wallYaw,yawToward} from './orientation.js';
 import {createDrawbridge} from './drawbridge.js';
 import {createBog} from './bog.js';
 import {createIceWall} from './ice-wall.js';
@@ -41,9 +42,9 @@ export function bridgeYaw(kind,terrainAt){
  const SIDES=[[1,0],[-1,0],[0,1],[0,-1]];
  if(kind==='bridge-up'){
   const water=SIDES.filter(([dx,dz])=>wet(dx,dz)&&!wet(-dx,-dz));
-  if(water.length===1){const [dx,dz]=water[0];return Math.atan2(dx,dz);}
+  if(water.length===1){const [dx,dz]=water[0];return yawToward(dx,dz);}
   const alongX=wall(-1,0)+wall(1,0),alongZ=wall(0,-1)+wall(0,1);
-  return alongX===alongZ?null:alongX>alongZ?0:Math.PI/2;
+  return wallYaw(alongX,alongZ);
  }
  if(kind==='bridge-down'){
   const alongX=Number(wet(-1,0))+Number(wet(1,0)),alongZ=Number(wet(0,-1))+Number(wet(0,1));
