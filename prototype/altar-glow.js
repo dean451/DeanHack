@@ -29,8 +29,10 @@ export function glowPose(t, kind) {
   const sink = kind === 'unaligned' ? .08 * smooth((u - .45) / .3) : 0;
   // A lawful altar answers like a judge counting: the swell climbs in four hard steps, each one settling
   // into place, rather than easing out in one breath.
+  // A godless altar flinches once as it gives up: the glow blinks out for an instant and comes back weaker.
+  const flinch = kind === 'unaligned' ? 1 - .8 * Math.exp(-(((u - .42) / .015) ** 2)) : 1;
   const swell = kind === 'lawful' ? ratchet(u / .6) : smooth(u / .6);
-  return {radius: .3 + .25 * swell - .12 * smooth((u - .7) / .3) - sink, alpha: .6 * smooth(u / .25) * (1 - smooth((u - .65) / .35)) * hitch * gutter};
+  return {radius: .3 + .25 * swell - .12 * smooth((u - .7) / .3) - sink, alpha: .6 * smooth(u / .25) * (1 - smooth((u - .65) / .35)) * hitch * gutter * flinch};
 }
 
 export function createAltarGlow(THREE, parent) {
