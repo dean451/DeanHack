@@ -20,6 +20,10 @@ import {buildMattock,MATTOCK_NAME} from './mattock.js';
 import {createUnicornHorn} from './unicorn-horn.js';
 import {buildPickAxe,PICK_AXE_NAME} from './pick-axe.js';
 
+// A held weapon is turned a quarter about its own long axis, so the edge leads the swing
+// instead of the flat; the hero's sockets apply it to whatever they hold.
+export const HELD_TURN=Math.PI/2;
+export function turnHeld(weapon){weapon.rotateY(HELD_TURN);return weapon;}
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
  // A wielded wand is held by its grip like the floor wand's model; its look comes from the

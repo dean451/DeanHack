@@ -22,7 +22,7 @@ import {updateDangle} from './dangle.js';
 import {stageCreature} from './readability.js';
 import {createAltar} from './altar.js';
 import {createFire} from './fire.js';
-import {createHeldWeapon} from './equipment.js';
+import {createHeldWeapon,turnHeld} from './equipment.js';
 import {createRenderStats} from './render-stats.js';
 import {createFlameFlicker} from './flame-flicker.js';
 import {createSinkDrip} from './sink-drip.js';
@@ -172,7 +172,7 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  function grippingHand(parent){roundedBox(.105,.1,.072,skin,parent,0,0,-.03,.025);for(let i=0;i<4;i++)roundedBox(.082,.018,.056,skin,parent,.014,.032-i*.022,.012,.008);const thumb=roundedBox(.034,.065,.055,skin,parent,-.047,.018,.013,.012);thumb.rotation.z=-.35;}
  grippingHand(weaponSocket);
  let heldWeapon=null,heldKey;
- function setWeapon(item){const key=JSON.stringify(item??null);if(key===heldKey)return;heldKey=key;if(heldWeapon){heldWeapon.userData.dispose?.();weaponSocket.remove(heldWeapon);}heldWeapon=createHeldWeapon(item);weaponSocket.add(heldWeapon);}
+ function setWeapon(item){const key=JSON.stringify(item??null);if(key===heldKey)return;heldKey=key;if(heldWeapon){heldWeapon.userData.dispose?.();weaponSocket.remove(heldWeapon);}heldWeapon=turnHeld(createHeldWeapon(item));weaponSocket.add(heldWeapon);}
  setWeapon({name:'long sword'});
  const shieldArm=new THREE.Group();shieldArm.position.set(-.3,.91,0);body.add(shieldArm);cylinder(.056,.044,.25,armor,shieldArm,0,-.13,0,16);
  const shieldElbow=new THREE.Group();shieldElbow.position.y=-.25;shieldElbow.rotation.x=-.9;shieldArm.add(shieldElbow);cylinder(.048,.036,.22,armorLight,shieldElbow,0,-.1,0,16);
@@ -190,7 +190,7 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  let shieldWorn=true,offhandWeapon=null,offhandKey;
  function showShield(){shieldRoot.visible=shieldWorn&&!offhandWeapon;}
  function setShield(item){shieldWorn=!!item;shieldRoot.name=item?.name||'Unequipped shield';showShield();}
- function setOffhand(item){const key=JSON.stringify(item??null);if(key===offhandKey)return;offhandKey=key;if(offhandWeapon){offhandWeapon.userData.dispose?.();offhandSocket.remove(offhandWeapon);offhandWeapon=null;}if(item){offhandWeapon=createHeldWeapon(item);offhandSocket.add(offhandWeapon);}showShield();}
+ function setOffhand(item){const key=JSON.stringify(item??null);if(key===offhandKey)return;offhandKey=key;if(offhandWeapon){offhandWeapon.userData.dispose?.();offhandSocket.remove(offhandWeapon);offhandWeapon=null;}if(item){offhandWeapon=turnHeld(createHeldWeapon(item));offhandSocket.add(offhandWeapon);}showShield();}
  return {g,body,legs,arm,elbow,wrist,weaponSocket,offhandSocket,get dual(){return !!offhandWeapon;},head,shieldArm,shieldElbow,cape,plume,setWeapon,setOffhand,setShield,setHelmet};}
 const glow=mat('#97ffed',{emissive:'#46e9ce',emissiveIntensity:3,roughness:.2});
 function cat(){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const fur=mat('#bd9361',{roughness:.94}),furLight=mat('#d3ad79',{roughness:.9}),paws=mat('#e1ca9e',{roughness:.88}),collar=mat('#ad7744',{metalness:.42,roughness:.44});sphere(.24,fur,body,0,.27,0,.75,.8,1.5);const head=sphere(.19,furLight,body,0,.46,.28);for(const x of [-.11,.11]){const e=mesh(new THREE.ConeGeometry(.085,.18,4),furLight,head,x,.16,0);e.rotation.z=x>0?-.2:.2;sphere(.025,glow,head,x*.65,.02,.16);}
