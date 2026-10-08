@@ -72,3 +72,14 @@ test('stoning gets its own creeping-grey class, once, beside the others', () => 
   applyStatusScreen(el, []);
   assert.equal(set.size, 0);
 });
+
+test('sliming gets its own oozing-green class, once, beside the others', () => {
+  assert.deepEqual(statusScreenClasses(['Slime']), ['status-slimed']);
+  assert.deepEqual(statusScreenClasses(['Slimed', 'Slime', 'Stone']), ['status-slimed', 'status-stoned']);
+  const set = new Set();
+  const el = {classList: {toggle: (c, on) => (on ? set.add(c) : set.delete(c))}};
+  applyStatusScreen(el, ['Slime']);
+  assert.ok(set.has('status-slimed') && !set.has('status-stoned'));
+  applyStatusScreen(el, []);
+  assert.equal(set.size, 0);
+});
