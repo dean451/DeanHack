@@ -50,3 +50,14 @@ test('hallucination gets its own colour-shifting class, once, beside the others'
   applyStatusScreen(el, []);
   assert.equal(set.size, 0);
 });
+
+test('strangulation gets its own cinching class, once, beside the others', () => {
+  assert.deepEqual(statusScreenClasses(['Strngl']), ['status-strangled']);
+  assert.deepEqual(statusScreenClasses(['Strangled', 'Strngl', 'Hallu']), ['status-strangled', 'status-hallu']);
+  const set = new Set();
+  const el = {classList: {toggle: (c, on) => (on ? set.add(c) : set.delete(c))}};
+  applyStatusScreen(el, ['Strngl']);
+  assert.ok(set.has('status-strangled') && !set.has('status-blind'));
+  applyStatusScreen(el, []);
+  assert.equal(set.size, 0);
+});
