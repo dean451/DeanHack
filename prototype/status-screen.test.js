@@ -103,3 +103,10 @@ test('the stoning grey climbs with the countdown and covers the view at full pro
   assert.ok(frames.includes('var(--status-progress-left,1)'), 'the creep scales by the remaining progress');
   assert.ok(css.includes('--status-progress-left:calc(1 - var(--status-progress))'), 'remaining is one minus progress');
 });
+
+test('the slime spreads inward as the countdown advances', async () => {
+  const {readFileSync} = await import('node:fs');
+  const css = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
+  const rule = css.slice(css.indexOf('#status-screen.status-slimed{'));
+  assert.ok(rule.slice(0, rule.indexOf('animation:')).includes('transparent calc(30% - var(--status-progress)*26%)'));
+});
