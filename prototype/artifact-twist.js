@@ -367,6 +367,12 @@ const heldDaggerMatrix = new THREE.Matrix4().set(0, 0, 1.6, 0,  1, 0, 0, .1,  0,
 const HELD_MAGICBANE_SHAPES = new Set(['magicbane']);
 const heldMagicbaneMatrix = new THREE.Matrix4().set(0, 0, 1.2, 0,  .6, 0, 0, .08,  0, 1, 0, .008,  0, 0, 0, 1);
 const HELD_TSURUGI_SHAPES = new Set(['tsurugi of muramasa']);
+// A wielded Snickersnee is the katana (katana.js): point up +y from .078 to .86, edge toward +z, flats facing +x, and
+// the blade bends back toward -z (sori) by .03 at the point. The floor hairline and nicks are stood onto the +x flat,
+// stretched up the blade, drawn in across it, and sheared back along the curve so they follow the steel. This matrix
+// mirrors z (negative determinant), so the geometry's winding is flipped after it is applied.
+const HELD_KATANA_SHAPES = new Set(['snickersnee']);
+const heldKatanaMatrix = new THREE.Matrix4().set(0, .35, 0, 0,  2, 0, 0, -.04,  -.0767, 0, .5, .0095,  0, 0, 0, 1);
 const heldTsurugiMatrix = new THREE.Matrix4().set(0, .5, 0, .0005,  2.4, 0, 0, -.1,  0, 0, -.6, 0,  0, 0, 0, 1);
 
 export function applyArtifactTwist(group, object, {clone = false, held = false} = {}) {
@@ -386,8 +392,14 @@ export function applyArtifactTwist(group, object, {clone = false, held = false} 
     m.emissive.copy(color);
     m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, POWER_BY_KIND[kind] ?? POWER);
   });
-  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_MAGICBANE_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
-  if (shape && held) shape.forEach(g => g.applyMatrix4(HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : HELD_MAGICBANE_SHAPES.has(kind) ? heldMagicbaneMatrix : HELD_TSURUGI_SHAPES.has(kind) ? heldTsurugiMatrix : heldMatrix));
+  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_MAGICBANE_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind) || HELD_KATANA_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
+  if (shape && held) {
+    const m = HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : HELD_MAGICBANE_SHAPES.has(kind) ? heldMagicbaneMatrix : HELD_TSURUGI_SHAPES.has(kind) ? heldTsurugiMatrix : HELD_KATANA_SHAPES.has(kind) ? heldKatanaMatrix : heldMatrix;
+    shape.forEach(g => {
+      g.applyMatrix4(m);
+      if (m.determinant() < 0 && g.index) { const a = g.index.array; for (let i = 0; i < a.length; i += 3) { const t = a[i + 1]; a[i + 1] = a[i + 2]; a[i + 2] = t; } }
+    });
+  }
   if (shape) {
     const mesh = new THREE.Mesh(mergeGeometries(shape), shapeMaterial(ARTIFACTS[kind].color));
     mesh.userData.magicShell = true; mesh.castShadow = true;
