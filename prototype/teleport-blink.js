@@ -35,7 +35,7 @@ export function arrivePose(t) {
 }
 
 export function createTeleportBlink(THREE, parent) {
-  const live = []; let armed = 0;
+  const live = [], pending = []; let armed = 0;
   function build(x, z, kind) {
     const g = new THREE.Group(); g.name = 'TeleportBlink'; g.position.set(x, 0, z); parent.add(g);
     const cone = new THREE.ConeGeometry(1, 1, 8, 1, true), sph = new THREE.SphereGeometry(1, 8, 6), ringGeo = new THREE.RingGeometry(.85, 1, 24), mats = [];
@@ -62,12 +62,15 @@ export function createTeleportBlink(THREE, parent) {
   return {
     message(text, x, z) { if (isTeleportMessage(text)) { build(x, z, 'out'); armed = BLINK.armed; } },
     // A new level arrived: drop the old level's effects and, if the blink was ours, light the arrival.
-    levelChanged(x, z) { live.forEach(drop); live.length = 0; if (armed > 0) build(x, z, 'in'); armed = 0; },
+    // A same-level teleport (the bridge's `teleport` event): blink out at `from`, and a beat later arrive at `to`.
+    hop(from, to) { build(from.x, from.z, 'out'); pending.push({x: to.x, z: to.z, wait: BLINK.flash * 2}); },
+    levelChanged(x, z) { live.forEach(drop); live.length = 0; pending.length = 0; if (armed > 0) build(x, z, 'in'); armed = 0; },
     update(dt) {
       if (armed > 0) armed = Math.max(0, armed - dt);
+      for (let i = pending.length - 1; i >= 0; i--) if ((pending[i].wait -= dt) <= 0) { build(pending[i].x, pending[i].z, 'in'); pending.splice(i, 1); }
       for (let i = live.length - 1; i >= 0; i--) if (!step(live[i], dt)) { drop(live[i]); live.splice(i, 1); }
     },
-    clear() { armed = 0; live.forEach(drop); live.length = 0; },
+    clear() { armed = 0; pending.length = 0; live.forEach(drop); live.length = 0; },
     get active() { return live.length; },
   };
 }
