@@ -39,3 +39,14 @@ test('stunned gets its own jolting class, once, beside the others', () => {
   applyStatusScreen(el, []);
   assert.equal(set.size, 0);
 });
+
+test('hallucination gets its own colour-shifting class, once, beside the others', () => {
+  assert.deepEqual(statusScreenClasses(['Hallu']), ['status-hallu']);
+  assert.deepEqual(statusScreenClasses(['Hallucinating', 'Hallu', 'Stun']), ['status-hallu', 'status-stunned']);
+  const set = new Set();
+  const el = {classList: {toggle: (c, on) => (on ? set.add(c) : set.delete(c))}};
+  applyStatusScreen(el, ['Hallu']);
+  assert.ok(set.has('status-hallu') && !set.has('status-confused'));
+  applyStatusScreen(el, []);
+  assert.equal(set.size, 0);
+});
