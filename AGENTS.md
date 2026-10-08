@@ -49,7 +49,6 @@ Work queues for the scheduled routines. Each routine takes the first item on its
 **Models**
 
 - **Hero model refinement (priority):** the hero is a Valkyrie in end-game gear. Make her slimmer everywhere, with ornate layered armor, fine features, and a helmet that is not a smooth round dome (winged, crested or horned, something creative). Held weapons rotate 90 degrees from how they sit now. Keep it readable from the top-down camera.
-- **Gold coins (priority):** gold on the floor reads far too dark when no light hits it. Give coins a warm emissive glint and a little metalness so they always look shiny.
 - **Wielded artifacts (priority):** a wielded Excalibur looks like a plain long sword. Wielded artifact weapons must show the same signature look as on the floor (Excalibur: pale blue blade, runes, gold hilt).
 - **Lava:** remove the large black spots from the lava texture, so it is all molten orange and yellow with small dark crust flecks at most.
 - **Tin wand of wishing (priority):** the rarest, best object in the game; it marks the shift from mid game to end game. It must look like dull tin, and carry a grand, distinctive effect that no other wand has (a slow halo of wish-lights, a shimmering rim, a bright flare when zapped).
