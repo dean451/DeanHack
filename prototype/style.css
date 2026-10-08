@@ -130,3 +130,7 @@ body.live-engine #engine-prompt{margin-top:10px;padding-top:8px;font-size:11px}
 #player-name{height:34px;width:150px;padding:0 10px;background:#0c181bcc;border:1px solid #64797288;border-radius:4px;color:#e4d8c2;font:13px Inter,system-ui,sans-serif}
 #player-name::placeholder{color:#7d8f9a}
 #player-name[hidden]{display:none}
+/* message text must never be clipped: wrap long words, keep the panel inside the viewport */
+body.live-engine #engine-panel{box-sizing:border-box;max-width:calc(100vw - 32px)}
+body.live-engine #engine-line,body.live-engine #engine-messages,body.live-engine #engine-messages div,.engine-recent,#message-history .msg{overflow-wrap:anywhere;word-break:normal;min-width:0}
+body.live-engine #engine-messages{overflow-x:hidden}
