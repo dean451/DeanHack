@@ -775,6 +775,7 @@ test('piercers are twisted, eyeless stalactites with a toothed gash, and the roc
   tops[name]=b.max.y;
  }
  assert(tops['glass piercer']>tops['iron piercer']&&tops['iron piercer']>tops.piercer);
+ assert(meshes(createCreature({name:'piercer',symbol:112}))[0].geometry.attributes.position.count>11800,'long bones lie among the shards round the base');
  assert(meshes(createCreature({name:'glass piercer',symbol:112}))[0].material.transparent,'glass is see-through');
  assert(meshes(createCreature({name:'iron piercer',symbol:112}))[0].material.metalness>.5,'iron is metal');
  const a=meshes(createCreature({name:'rock piercer',symbol:112})),b=meshes(createCreature({name:'rock piercer',symbol:112}));
@@ -2170,6 +2171,8 @@ test('the gelatinous cube holds skulls, bones and a rusted dagger, not coloured 
  const c=remains.geometry.attributes.color;let bone=0,dark=0;
  for(let i=0;i<c.count;i++){const r=c.getX(i),g=c.getY(i),b=c.getZ(i);if(r>.5&&g>.45&&b>.3&&r-b<.35)bone++;if(r<.05&&g<.05)dark++;}
  assert(bone>1500&&dark>100,`bone ${bone}, sockets ${dark}`);
+ let rust=0;for(let i=0;i<c.count;i++){const r=c.getX(i),g=c.getY(i),b=c.getZ(i);if(r>g*1.3&&g>b&&r<.6)rust++;}
+ assert(rust>200,`a half-eaten iron helm and a rusted dagger show rust, got ${rust}`);
 });
 
 test('mind flayers get a merged robed illithid model with a ridged cranium, glowing eyes and swaying face tentacles',()=>{
