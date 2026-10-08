@@ -13,6 +13,9 @@ export const PENDING_WAIT = .3;
 export const isMagicTrapMessage = text => /you hear a deafening roar/i.test(text || '');
 // "Your pack shakes violently!": the same trap, a quieter outcome: one tight ring and a few rattling motes.
 export const isPackShakeMessage = text => /your pack shakes violently/i.test(text || '');
+// "A shiver runs up and down your spine!" and "You smell charred flesh.": the same trap's omens. Nothing but a
+// chill and a wrong smell comes of them, so they show the same quiet ring.
+export const isOmenMessage = text => /a shiver runs up and down your spine|you smell charred flesh/i.test(text || '');
 
 // Ring i leaves the floor at i * gap, expanding fast then dragging; later rings are weaker.
 export function ringPose(i, t) {
@@ -52,7 +55,7 @@ export function createMagicTrap(THREE, parent) {
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); parent.remove(e.g); }
   return {
     add,
-    message(text, x, z) { if (isPackShakeMessage(text)) add(x, z, true); else if (isMagicTrapMessage(text)) { if (pending) add(pending.x, pending.z); pending = {x, z, wait: 0}; } },
+    message(text, x, z) { if (isPackShakeMessage(text) || isOmenMessage(text)) add(x, z, true); else if (isMagicTrapMessage(text)) { if (pending) add(pending.x, pending.z); pending = {x, z, wait: 0}; } },
     settle(x, z) { if (pending) { add(x, z); pending = null; } },
     update(dt) {
       if (pending && (pending.wait += dt) >= PENDING_WAIT) { add(pending.x, pending.z); pending = null; }

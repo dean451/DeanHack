@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ringPose, gritPose, isMagicTrapMessage, isPackShakeMessage, createMagicTrap, PENDING_WAIT, MAGIC} from './magic-trap.js';
+import {ringPose, gritPose, isMagicTrapMessage, isPackShakeMessage, isOmenMessage, createMagicTrap, PENDING_WAIT, MAGIC} from './magic-trap.js';
 
 test('only the roar triggers it', () => {
   assert.ok(isMagicTrapMessage('You hear a deafening roar!'));
@@ -72,4 +72,14 @@ test('a shaking pack plays a quieter version at once, on the hero\'s square', ()
   fx.message('Your pack shakes violently!', 5, 6);
   assert.equal(fx.active, 1); assert.deepEqual(added[0], [5, 6]);
   fx.update(.5); fx.update(MAGIC.total); assert.equal(fx.active, 0);
+});
+
+test('the trap\'s omens play the quiet version at once, and only they do', () => {
+  for (const t of ['A shiver runs up and down your spine!', 'You smell charred flesh.']) assert.ok(isOmenMessage(t) && !isMagicTrapMessage(t) && !isPackShakeMessage(t), t);
+  for (const t of ['You smell hamburgers.', 'You hear a deafening roar!', null]) assert.ok(!isOmenMessage(t), String(t));
+  const THREE = new Proxy({}, {get: () => class { constructor() { this.position = {set() {}, y: 0}; this.rotation = {}; this.scale = {setScalar() {}, set() {}}; this.material = {}; } add() {} dispose() {} }});
+  const fx = createMagicTrap(THREE, {add() {}, remove() {}});
+  fx.message('A shiver runs up and down your spine!', 3, 4);
+  assert.equal(fx.active, 1);
+  fx.update(MAGIC.total + .1); assert.equal(fx.active, 0);
 });
