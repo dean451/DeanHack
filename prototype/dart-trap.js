@@ -15,6 +15,10 @@ export const SHOT = {flight: .09, total: .9, arrow: {len: .55, thick: .016, from
 export const PENDING_WAIT = .3;
 export const shotKind = text => /an arrow shoots out at you/i.test(text || '') ? 'arrow' : /a little dart shoots out at you/i.test(text || '') ? 'dart' : null;
 
+// A buried dart is light and shivers fast and thin; an arrow is heavy, shivers slow and its tail sags
+// a little under its own weight as the shiver dies. Always within +-.35.
+const quiver = (kind, h) => kind === 'dart' ? Math.sin(h * 120) * .3 * Math.exp(-h * 9) : Math.sin(h * 70) * .3 * Math.exp(-h * 7) - .05 * (1 - Math.exp(-h * 4)) * Math.exp(-h * 2);
+
 // The shaft's pose along its line: x runs from the far side into the square, then it quivers
 // (a damped wobble in pitch) and fades out over the last quarter.
 export function shaftPose(kind, t) {
@@ -22,7 +26,7 @@ export function shaftPose(kind, t) {
   if (t <= 0 || t >= SHOT.total) return {x: 0, tilt: 0, alpha: 0};
   const u = clamp01(t / SHOT.flight), h = Math.max(0, t - SHOT.flight);
   const x = -from * (1 - u * u);
-  return {x: u < 1 ? x : -.04 * Math.exp(-h * 30), tilt: u < 1 ? 0 : Math.sin(h * 70) * .35 * Math.exp(-h * 7), alpha: 1 - smooth(clamp01((t - .6) / .3))};
+  return {x: u < 1 ? x : -.04 * Math.exp(-h * 30), tilt: u < 1 ? 0 : quiver(kind, h), alpha: 1 - smooth(clamp01((t - .6) / .3))};
 }
 
 // The streak hanging in the air behind the flight: bright at the strike, gone as the shaft lands.
