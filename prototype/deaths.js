@@ -181,6 +181,9 @@ export function deathPose(style, u, dir = null) {
       const skip = clamp01((u - .55) / .25);
       p.socket = .3 * (4 * skip * (1 - skip)) ** 2;
       p.leg = .35 * (4 * clamp01((u - .86) / .08) * (1 - clamp01((u - .86) / .08))) ** 2;
+      // A tail goes slack as it falls and gives one lazy flick after it has landed, as if the
+      // owner were not quite informed.
+      p.tail = .3 * f + .12 * Math.sin(Math.PI * clamp01((u - .9) / .08)) * Math.sin((u - .9) * 140);
     }
   }
   return p;
