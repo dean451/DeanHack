@@ -70,3 +70,11 @@ test('rune 3 blinks out mid-orbit and comes back, staying in bounds', () => {
   assert.ok(runePose(3, .56).alpha > runePose(3, .46).alpha * 2, 'returns');
   assert.equal(runePose(3, STUDY.total).alpha, 0);
 });
+
+test('rune 1 shivers while circling, in bounds, and is still again before the pull', () => {
+  let flips = 0, last = 0;
+  for (let t = .3; t < .55; t += .002) { const d = runePose(1, t + .002).y - runePose(1, t).y; if (last && Math.sign(d) !== Math.sign(last)) flips++; last = d; }
+  assert.ok(flips >= 6, String(flips));
+  for (let t = 0; t < STUDY.total; t += .01) { const p = runePose(1, t); assert.ok(p.y >= 0 && p.y <= 1.1); }
+  assert.equal(runePose(1, STUDY.total).alpha, 0);
+});

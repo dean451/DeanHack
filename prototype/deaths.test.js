@@ -276,3 +276,27 @@ test('a collapsing lich sheds flakes at each of its three jolts before the main 
   for (let t = 0; t < 3; t += .05) fx.update(.05);
   assert.equal(fx.alive, 0, 'the flakes are gone');
 });
+
+test('a crumbling body\'s arm twitches once as the dust starts to go, within bounds', () => {
+  const a = u => deathPose('crumble', u).arm, base = u => { const v = Math.min(Math.max((u - .35) / .3, 0), 1); return .6 * v * v * (3 - 2 * v); };
+  let max = 0;
+  for (let u = 0; u <= 1; u += .005) {
+    assert.ok(a(u) >= 0 && a(u) < .75, `arm in bounds at ${u}`);
+    if (u < .62 || u > .74) assert.ok(Math.abs(a(u) - base(u)) < 1e-9, `quiet outside the twitch at ${u}`);
+    max = Math.max(max, Math.abs(a(u) - base(u)));
+  }
+  assert.ok(max > .03, 'a visible twitch');
+  assert.equal(a(0), 0); assert.equal(a(1), .6);
+});
+
+test('a toppled body\'s head knocks the floor once on landing, then lies as before', () => {
+  const h = u => deathPose('topple', u).head, base = u => -.4 * Math.min(Math.max((u - .15) / .75, 0), 1) ** 2 * (3 - 2 * Math.min(Math.max((u - .15) / .75, 0), 1));
+  let max = 0;
+  for (let u = 0; u <= 1; u += .005) {
+    if (u < .88 || u > .98) assert.ok(Math.abs(h(u) - base(u)) < 1e-9, `untouched at ${u}`);
+    max = Math.max(max, h(u) - base(u));
+    assert.ok(h(u) > -.5 && h(u) < .2, `head in bounds at ${u}`);
+  }
+  assert.ok(max > .1 && max <= .12 + 1e-9);
+  assert.ok(Math.abs(h(1) - -.4) < 1e-9, 'returns to the old rest');
+});

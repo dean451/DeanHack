@@ -2672,7 +2672,7 @@ export function createCreature(cell={}){
  if(name==='couatl')return createCouatl();
  if(UNICORNS[name])return horse(UNICORNS[name]);
  if(name==='floating eye')return floatingEye({});
- if(name==='evil eye')return createEvilEye();
+ if(name==='evil eye'){const a=createEvilEye();a.g.scale.setScalar(1.15);return a;}// a deadlier eye hangs larger than the floating eye
  if(name==='beholder')return createBeholder();
  if(name==='shocking sphere')return shockingSphere();
  if(SPHERE_KINDS.includes(name)){const {g,body,core,orb,sphere}=createSphereCreature(name);return Object.assign(actor(g,body,[],null,[],'hover'),{orb,sphere},core?{core}:{});}
@@ -2709,7 +2709,7 @@ export function createCreature(cell={}){
  if(name==='lemure')return createLemure();
  if(name==='quasit')return createQuasit();
  if(name==='imp')return createImp();
- if(name==='uranium imp')return createImp('uranium');
+ if(name==='uranium imp'){const a=createImp('uranium');a.g.scale.setScalar(1.1);return a;}
  if(isKobold(name))return createKobold(name);
  if(SKIN[name])return humanoid('imp',{skin:mat(SKIN[name]),cloth:mat(shade(SKIN[name],.55))});
  if(ELVES[name])return createElf(name);

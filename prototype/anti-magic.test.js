@@ -62,3 +62,9 @@ test('the ring closes in hitching steps and never opens back up', () => {
   }
   assert.ok(stalls > 5, 'it stalls at least once on the way in');
 });
+
+test('the ring stutters once as it goes out, then comes back', () => {
+  assert.ok(ringPose(.92).alpha < ringPose(.88).alpha * .5);
+  assert.ok(ringPose(.97).alpha > ringPose(.92).alpha * 2);
+  assert.equal(ringPose(ANTI.total).alpha, 0);
+});

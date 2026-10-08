@@ -180,6 +180,159 @@ const SHAPES = {
       return shard;
     });
   },
+  // Fire Brand burns: five lit tongues of flame stand up off the blade, taller toward the middle and
+  // leaning back from the point. The blade spans x .04 to .46, top at y .012.
+  'fire brand'() {
+    return [0, 1, 2, 3, 4].map(i => {
+      const tongue = new THREE.ConeGeometry(.01, .045 + (i % 3) * .015, 4);
+      tongue.rotateZ(.25); tongue.translate(.1 + i * .075, .012 + .026 + (i % 3) * .008, i % 2 ? .008 : -.008);
+      return tongue;
+    });
+  },
+  // The Sunsword is a dawn laid on the steel: a lit disc on the blade with six flat rays spread round
+  // it, laid down so the whole thing stays low. Disc centred at x .25.
+  sunsword() {
+    const parts = [new THREE.CylinderGeometry(.022, .022, .004, 10).translate(.25, .0145, 0)];
+    for (let i = 0; i < 6; i++) {
+      const ray = new THREE.ConeGeometry(.007, .05, 4);
+      ray.rotateZ(-Math.PI / 2); ray.translate(.05, 0, 0); ray.rotateY(-(i / 6 * Math.PI * 2 + .3)); ray.translate(.25, .0145, 0);
+      parts.push(ray);
+    }
+    return parts;
+  },
+  // The Vorpal Blade is all edge: a thin lit line runs down both edges of the blade and four lit nicks
+  // bite across it, the cuts of a blade that goes snicker-snack. Blade z -.025 to .025.
+  'vorpal blade'() {
+    const parts = [];
+    for (const side of [-1, 1]) parts.push(new THREE.BoxGeometry(.38, .003, .004).translate(.25, .0135, side * .026));
+    for (let i = 0; i < 4; i++) parts.push(new THREE.BoxGeometry(.006, .003, .03).rotateY(i % 2 ? .5 : -.5).translate(.14 + i * .07, .0135, 0));
+    return parts;
+  },
+  // Excalibur is the king's blade: a lit fuller runs down the middle of the steel and five lit rune
+  // ticks cross it, spaced out like an inscription. Blade x .04 to .46, top at y .012.
+  excalibur() {
+    const parts = [new THREE.BoxGeometry(.34, .003, .006).translate(.25, .0135, 0)];
+    for (let i = 0; i < 5; i++) parts.push(new THREE.BoxGeometry(.004, .003, .022).translate(.12 + i * .068, .0135, 0));
+    return parts;
+  },
+  // Grayswandir is moonlit silver: five small lit diamonds are set down the flat of the blade, each a
+  // little larger than the last toward the point, like studs of cold light.
+  grayswandir() {
+    return [0, 1, 2, 3, 4].map(i => new THREE.SphereGeometry(.008 + i * .0015, 4, 2).scale(1.4, .4, 1).translate(.12 + i * .07, .0135, 0));
+  },
+  // Orcrist is an orc-cleaver: three lit hooked barbs stand out of the back edge, bent toward the
+  // point as if to catch and tear. Blade x .04 to .46, z -.025 to .025.
+  orcrist() {
+    return [0, 1, 2].map(i => {
+      const hook = new THREE.ConeGeometry(.007, .04, 4);
+      hook.rotateX(Math.PI / 2); hook.rotateY(.7); hook.translate(.17 + i * .09, .012, -.04);
+      return hook;
+    });
+  },
+  // Sting is a small cold blade: a thin lit line runs down the dagger and a lit spark sits on its
+  // point. The dagger's blade ends at x .25.
+  sting() {
+    return [new THREE.BoxGeometry(.12, .003, .004).translate(.17, .0135, 0), new THREE.SphereGeometry(.008, 4, 2).translate(.235, .0135, 0)];
+  },
+  // Dragonbane is scaled with its quarry: a row of five lit overlapping scale-plates is laid down
+  // the blade, each a flat diamond, getting smaller toward the point.
+  dragonbane() {
+    return [0, 1, 2, 3, 4].map(i => new THREE.CylinderGeometry(.016 - i * .002, .016 - i * .002, .003, 4).translate(.1 + i * .075, .0135, 0));
+  },
+  // Demonbane is a ward: a lit circle is sealed on the blade with a lit bar through it, the mark that
+  // holds a devil back. Disc ring centred at x .25.
+  demonbane() {
+    const ring = new THREE.TorusGeometry(.024, .003, 5, 18), bar = new THREE.BoxGeometry(.07, .003, .004);
+    ring.rotateX(Math.PI / 2); ring.translate(.25, .0135, 0);
+    bar.translate(.25, .0135, 0);
+    return [ring, bar];
+  },
+  // Werebane is a hunter's blade of the full moon: a lit crescent on the steel and three lit claw
+  // gashes slashed across the blade behind it.
+  werebane() {
+    const moon = new THREE.TorusGeometry(.02, .004, 5, 14, Math.PI * 1.3);
+    moon.rotateX(Math.PI / 2); moon.translate(.34, .0135, 0);
+    const parts = [moon];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.BoxGeometry(.05, .003, .004).rotateY(.5).translate(.12 + i * .03, .0135, (i - 1) * .012));
+    return parts;
+  },
+  // Cleaver is a butcher's blade: a lit heavy chop line runs along the edge and three lit notches
+  // are bitten into the back, like a blade that has been used on bone.
+  cleaver() {
+    const parts = [new THREE.BoxGeometry(.3, .003, .005).translate(.27, .0135, .02)];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.BoxGeometry(.012, .003, .012).rotateY(.6).translate(.18 + i * .09, .0135, -.022));
+    return parts;
+  },
+  // Giantslayer is a blade for felling the huge: a lit tall arrow-mark points toward the tip with two
+  // lit bars across it, a tally of kills.
+  giantslayer() {
+    const shaft = new THREE.BoxGeometry(.2, .003, .005).translate(.24, .0135, 0);
+    const head = new THREE.ConeGeometry(.012, .035, 4).rotateZ(-Math.PI / 2).scale(1, .3, 1).translate(.358, .0135, 0);
+    return [shaft, head, new THREE.BoxGeometry(.004, .003, .026).translate(.17, .0135, 0), new THREE.BoxGeometry(.004, .003, .026).translate(.2, .0135, 0)];
+  },
+  // Trollsbane is a mark against regrowth: four lit parallel cuts are scored across the blade, and
+  // a lit burn-ring sits near the hilt, the way a troll is cauterised so it cannot rise.
+  trollsbane() {
+    const ring = new THREE.TorusGeometry(.016, .003, 5, 14).rotateX(Math.PI / 2).translate(.1, .0135, 0);
+    const parts = [ring];
+    for (let i = 0; i < 4; i++) parts.push(new THREE.BoxGeometry(.004, .003, .04).rotateY(.5).translate(.2 + i * .065, .0135, 0));
+    return parts;
+  },
+  // Magicbane is thick with stolen sorcery: a lit spiral of three loops coils around the blade and
+  // five lit motes drift off its flat in a scatter.
+  magicbane() {
+    const parts = [];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.TorusGeometry(.016, .0025, 4, 12).rotateX(Math.PI / 2).translate(.15 + i * .09, .0135, 0));
+    for (let i = 0; i < 5; i++) parts.push(new THREE.SphereGeometry(.005, 4, 2).translate(.1 + i * .075, .0135, i % 2 ? .035 : -.035));
+    return parts;
+  },
+  // Ogresmasher is a crusher: a lit cracked-skull ring is struck on the blade, with three lit fracture
+  // lines splitting out of it, the way a club breaks bone.
+  ogresmasher() {
+    const ring = new THREE.TorusGeometry(.02, .004, 5, 14).rotateX(Math.PI / 2).translate(.3, .0135, 0);
+    const parts = [ring];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.BoxGeometry(.05, .003, .004).rotateY(i * 1.05 - 1.05 + .3).translate(.3, .0135, 0));
+    return parts;
+  },
+  // Thiefbane is a snare for light fingers: a lit hook-and-eye pair sits on the blade, a barb curling
+  // back over a small ring, the way a thief's wrist is caught.
+  thiefbane() {
+    const ring = new THREE.TorusGeometry(.012, .0025, 4, 12).rotateX(Math.PI / 2).translate(.18, .0135, 0);
+    const barb = new THREE.ConeGeometry(.007, .05, 4).rotateZ(-Math.PI / 2).translate(.3, .0135, .012);
+    return [ring, barb];
+  },
+  // Grimtooth is a vicious little fang: a row of four lit teeth is set along the edge of the dagger,
+  // each leaning toward the point. The dagger's blade ends at x .25.
+  grimtooth() {
+    return [0, 1, 2, 3].map(i => new THREE.ConeGeometry(.006, .03 - i * .003, 4).rotateX(Math.PI / 2).rotateY(.5).translate(.1 + i * .035, .0135, .016));
+  },
+  // Snickersnee is a slicer: a single long lit hairline runs the length of the blade and two short lit
+  // nicks cut across the edge near the point, a keen edge that has seen use.
+  snickersnee() {
+    const parts = [new THREE.BoxGeometry(.34, .003, .003).translate(.26, .0135, .012)];
+    for (let i = 0; i < 2; i++) parts.push(new THREE.BoxGeometry(.004, .003, .02).translate(.36 + i * .05, .0135, .02));
+    return parts;
+  },
+  // The Luck Blade is a gambler's edge: a lit die turned on its corner sits on the blade with three lit
+  // pips, the way a throw lands.
+  'luck blade'() {
+    const parts = [new THREE.BoxGeometry(.05, .003, .05).rotateY(Math.PI / 4).translate(.24, .0135, 0)];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.CylinderGeometry(.005, .005, .004, 6).translate(.24 + (i - 1) * .018, .0145, (i - 1) * .018));
+    return parts;
+  },
+  // The Tsurugi of Muramasa thirsts: a lit ridge line runs down the blade and three lit blood drops hang
+  // off its edge, longer toward the point.
+  'tsurugi of muramasa'() {
+    const parts = [new THREE.BoxGeometry(.36, .003, .003).translate(.26, .0135, 0)];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.ConeGeometry(.006, .02 + i * .006, 4).rotateX(-Math.PI / 2).translate(.18 + i * .09, .0135, .03 + i * .004));
+    return parts;
+  },
+  // The Longbow of Diana keeps a hunter's moon: a lit crescent lies on the blade with a taut lit string
+  // across its horns.
+  'longbow of diana'() {
+    const arc = new THREE.TorusGeometry(.05, .004, 4, 14, Math.PI).rotateX(Math.PI / 2).rotateY(Math.PI / 2).translate(.25, .0135, 0);
+    return [arc, new THREE.BoxGeometry(.003, .003, .1).translate(.25, .0135, 0)];
+  },
   // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
   // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
   itlachiayaque(group) {

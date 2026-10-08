@@ -66,3 +66,10 @@ test('ash flakes fall late, stay low and in bounds, and are gone at the end', ()
     assert.ok(peak > .4 && bottom < top - .3, String(i));
   }
 });
+
+test('the last ember hangs on longer and climbs higher than the rest', () => {
+  const i = JET.embers - 1;
+  assert.ok(emberPose(i, 1.4).alpha > 0 && emberPose(0, 1.4).alpha === 0);
+  assert.ok(emberPose(i, 1.4).y > emberPose(i - 3, .9 + .46).y);
+  assert.equal(emberPose(i, JET.total).alpha, 0);
+});

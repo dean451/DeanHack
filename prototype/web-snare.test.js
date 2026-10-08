@@ -46,3 +46,9 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('the stray strand gives one late extra snap, in bounds', () => {
+  const n = WEB.strands - 1, base = t => strandPose(n, t).lift;
+  assert.ok(base(1.225) > base(1.1) && base(1.225) > base(1.35), 'bump');
+  for (let t = 0; t < WEB.total; t += .01) { const p = strandPose(n, t); assert.ok(p.lift >= 0 && p.lift <= .36); }
+});

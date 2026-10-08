@@ -60,3 +60,9 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('the last pebble trickles on after the others have settled', () => {
+  const i = ROCK.grit - 1, t = .08 + ROCK.drop + .55;
+  assert.ok(gritPose(i, t).alpha > 0 && gritPose(0, t).alpha === 0);
+  assert.equal(gritPose(i, ROCK.total).alpha, 0);
+});

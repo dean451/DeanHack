@@ -105,3 +105,28 @@ footer .buttons button:hover,footer .buttons button:focus-visible,.engine-action
 .engine-recent-box{margin:6px 0 12px;max-height:40vh;overflow-y:auto}
 .engine-recent-box .engine-recent{margin:0 0 5px}
 #farlook{position:fixed;z-index:5;pointer-events:none;padding:2px 7px;font:12px/1.4 monospace;color:#d8d2c2;background:#05080acc;border-left:2px solid #6b2a24;letter-spacing:.04em}#farlook[hidden]{display:none}
+
+/* Live layout: a small character panel in the top-left corner (vitality, stats, gold, power, experience),
+   the messages in the top-right corner, nothing else floating over the map. */
+body.live-engine .character{top:14px;left:16px;width:200px;z-index:3}
+body.live-engine .character>small{display:block;margin:0 0 8px;font-size:11px;letter-spacing:2.5px;color:#cfd6da;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.live-engine .character h2{display:none}
+body.live-engine .health{font-size:10px;letter-spacing:1.5px}
+body.live-engine .bar{height:2px;margin:5px 0 8px}
+body.live-engine .stats{font-size:10px;letter-spacing:.5px;gap:6px}
+body.live-engine .attributes{font-size:10px;letter-spacing:.5px;gap:3px 8px;margin-top:6px}
+body.live-engine .attributes .alignment{font-size:9px;letter-spacing:2px}
+body.live-engine #engine-status{display:flex;flex-wrap:wrap;gap:3px 10px;margin-top:6px;padding-top:6px;border-top:1px solid #829c8e22;font:10px Inter,system-ui,sans-serif;letter-spacing:.5px;color:#9aaab7}
+body.live-engine #engine-status b{margin-left:4px}
+body.live-engine #engine-status .condition{font-size:9px}
+body.live-engine .companion{margin-top:8px;padding-top:8px;font:13px Georgia,serif}
+body.live-engine #engine-panel{position:fixed;top:14px;right:16px;bottom:auto;left:auto;width:min(320px,38vw);max-height:none;padding:0;text-align:right;z-index:3}
+body.live-engine #engine-panel::before{inset:-24px -24px -24px -48px}
+body.live-engine #engine-line{font-size:20px;margin:0}
+body.live-engine #engine-messages{margin-top:6px;font-size:15px;max-height:8.5em;overflow-y:auto}
+body.live-engine #engine-messages div{margin-top:3px}
+body.live-engine #engine-prompt{margin-top:10px;padding-top:8px;font-size:11px}
+/* the character name field next to the Live button, before a game starts */
+#player-name{height:34px;width:150px;padding:0 10px;background:#0c181bcc;border:1px solid #64797288;border-radius:4px;color:#e4d8c2;font:13px Inter,system-ui,sans-serif}
+#player-name::placeholder{color:#7d8f9a}
+#player-name[hidden]{display:none}

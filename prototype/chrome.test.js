@@ -29,9 +29,37 @@ test('the page carries no badge, brand block or footer blurb', () => {
   assert.match(live, /h1'\)\.hidden=!where\.named/);
 });
 
-test('the creatures-in-view list is gone', () => {
-  assert.doesNotMatch(read('live.js'), /engine-seen|Nothing stirs/);
-  assert.doesNotMatch(read('style.css'), /engine-seen/);
+test('the creatures-in-view list and the live engine caption are gone', () => {
+  const live = read('live.js'), css = read('style.css');
+  assert.doesNotMatch(live, /engine-seen|UNNETHACK · LIVE ENGINE|Nothing stirs in view/);
+  assert.doesNotMatch(css, /engine-seen/);
+});
+
+test('the messages sit in the upper-right corner and the character panel in the upper-left', () => {
+  const css = read('style.css');
+  const panel = [...css.matchAll(/body\.live-engine #engine-panel\{([^}]*)\}/g)].map(m => m[1]).find(r => r.includes('position')) || '';
+  assert.match(panel, /position:fixed/);
+  assert.match(panel, /top:14px/);
+  assert.match(panel, /right:16px/);
+  assert.doesNotMatch(panel, /bottom:\d/);
+  const character = css.match(/body\.live-engine \.character\{([^}]*)\}/)[1];
+  assert.match(character, /top:14px/);
+  assert.match(character, /left:16px/);
+});
+
+test('gold, power, experience and conditions live in the character panel, not under the messages', () => {
+  const live = read('live.js');
+  assert.match(live, /statusLine\.id='engine-status';\$\('\.character'\)\.append\(statusLine\)/);
+  assert.doesNotMatch(live, /<div id="engine-messages" role="log"><\/div><div id="engine-status">/);
+});
+
+test('the character name is typed before starting, saved, sent with the start request and shown in the panel', () => {
+  const live = read('live.js'), main = read('main.js');
+  assert.match(live, /nameInput\.placeholder='Wanderer'/);
+  assert.match(live, /localStorage\.setItem\('deanhack\.playerName'/);
+  assert.match(live, /post\('\/engine\/start',\{name:savedPlayerName\(\)\}\)/);
+  assert.match(live, /setCharacterName\(started\.name\)/);
+  assert.match(main, /e\.target instanceof HTMLInputElement/, 'typing a name does not move the demo hero');
 });
 
 test('the minimap sits in the bottom-right corner and the live key legend stops short of it', () => {

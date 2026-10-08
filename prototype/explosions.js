@@ -32,6 +32,11 @@ export const EXPLOSION_LOOKS = {
   dark: {core: 0x100418, color: 0x2a0c3a, ember: 0x6a3a86, smoke: 0x0a0610, light: 0x000000, flash: 0, gravity: .5, dark: true},
 };
 
+// The shockwave ring's outline per look, so the kinds differ by shape and not colour alone:
+// fiery is round, frost a hexagon, magic a pentagon, noxious a triangle, mud a square,
+// spray an octagon, darkness a heptagon. Values are the ring's segment counts.
+export const RING_SIDES = {fiery: 40, frosty: 6, magical: 5, noxious: 3, muddy: 4, wet: 8, dark: 7};
+
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 // Deterministic 0..1 noise, so embers replay the same way.
 const hash = (a, b = 0, c = 0) => {
@@ -84,7 +89,7 @@ export function explosionFrame(burst, age) {
   };
   // The ring runs out along the floor ahead of the ball and thins as it goes.
   const rk = clamp01(k / .5);
-  const ring = {r: RING_R * (1 - (1 - rk) ** 2), alpha: rk >= 1 ? 0 : .8 * (1 - rk) ** 1.5, color: look.core};
+  const ring = {sides: RING_SIDES[burst.type] ?? 40, r: RING_R * (1 - (1 - rk) ** 2), alpha: rk >= 1 ? 0 : .8 * (1 - rk) ** 1.5, color: look.core};
   // Smoke gathers as the ball burns down, then rises and thins.
   const sk = clamp01((k - .3) / .7);
   const smoke = look.smoke == null ? null : {
@@ -120,7 +125,8 @@ const MAX_EMBERS = MAX_BURSTS * EMBERS_PER_BURST;
 // light there if it wants one.
 export function createExplosions(THREE, parent) {
   const ballGeo = new THREE.SphereGeometry(1, 20, 14);
-  const ringGeo = new THREE.RingGeometry(.82, 1, 40, 1).rotateX(-Math.PI / 2);
+  const ringGeos = new Map([...new Set(Object.values(RING_SIDES))].map(n => [n, new THREE.RingGeometry(.82, 1, n, 1).rotateX(-Math.PI / 2)]));
+  const ringGeo = ringGeos.get(40);
   const pool = (geo, make) => Array.from({length: MAX_BURSTS}, () => {
     const mesh = new THREE.Mesh(geo, make());
     mesh.visible = false; mesh.frustumCulled = false; mesh.renderOrder = 2; mesh.userData.part = 'explosion';
@@ -169,6 +175,7 @@ export function createExplosions(THREE, parent) {
       ball.position.set(bx, f.ball.y, bz); ball.scale.setScalar(f.ball.r);
       ball.material.color.setHex(f.ball.color); ball.material.opacity = f.ball.alpha;
       const ring = rings[i];
+      ring.geometry = ringGeos.get(f.ring.sides) ?? ringGeo;
       ring.visible = f.ring.alpha > .002;
       ring.position.set(bx, .02, bz); ring.scale.set(f.ring.r, 1, f.ring.r);
       ring.material.color.setHex(f.ring.color); ring.material.opacity = f.ring.alpha;
@@ -197,7 +204,7 @@ export function createExplosions(THREE, parent) {
   const clear = () => { bursts.length = 0; update(0); };
   const dispose = () => {
     for (const m of [...balls, ...darkBalls, ...smokes, ...rings]) { parent.remove(m); m.material.dispose(); }
-    parent.remove(embers); emberGeo.dispose(); embers.material.dispose(); ballGeo.dispose(); ringGeo.dispose();
+    parent.remove(embers); emberGeo.dispose(); embers.material.dispose(); ballGeo.dispose(); for (const g of ringGeos.values()) g.dispose();
   };
   return {add, update, clear, dispose, get active() { return bursts.length; }};
 }

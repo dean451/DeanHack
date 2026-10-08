@@ -51,3 +51,11 @@ test('a lawful swell climbs in held steps, and never overshoots the eased one by
   assert.ok(Math.abs(r(.6, 'lawful') - r(.6, 'neutral')) < 1e-9, 'same crest');
   assert.ok(Math.abs(r(.3, 'lawful') - r(.3, 'neutral')) < .13);
 });
+
+test('a godless altar flinches once mid-glow, and it still returns to rest', () => {
+  const at = u => glowPose(u * GLOW.total, 'unaligned').alpha;
+  assert.ok(at(.42) < at(.38) * .6, 'a blink');
+  assert.ok(at(.5) > at(.42), 'it comes back');
+  for (let t = 0; t <= GLOW.total + .1; t += .01) { const p = glowPose(t, 'unaligned'); assert.ok(p.alpha >= 0 && p.alpha <= .6 && p.radius >= 0, `t=${t}`); }
+  assert.equal(glowPose(GLOW.total, 'unaligned').alpha, 0);
+});
