@@ -92,3 +92,16 @@ test('the lifted ring gutters once mid-fade then rests', async () => {
   assert.equal(ringPose('lifted', BLESS.total).alpha, 0);
   for (let u = 0; u < 1; u += .005) assert.ok(a(u) >= 0 && a(u) <= .3 + 1e-9);
 });
+
+test('the cursed ring dims on its stutter beats and stays within bounds', () => {
+  let dim = 0, lit = 0;
+  for (let t = 0.2; t < BLESS.total * .6; t += .004) {
+    const a = ringPose('cursed', t).alpha, u = t / BLESS.total;
+    assert.ok(a >= 0 && a <= .7 + 1e-9, `t=${t}`);
+    if (Math.floor(u * 9) % 2) dim++; else lit++;
+  }
+  assert.ok(dim > 0 && lit > 0);
+  const u = .3 / BLESS.total, on = ringPose('cursed', BLESS.total * (Math.floor(u * 9) + .5) / 9);
+  assert.ok(on.alpha > 0);
+  assert.equal(ringPose('cursed', BLESS.total).alpha, 0);
+});
