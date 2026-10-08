@@ -560,3 +560,17 @@ test('a wielded Trollsbane carries its lit burn-ring on the haft and its cuts on
   assert(b.min.y > .25 && b.max.y < .7, `y ${b.min.y}..${b.max.y}`);
   assert(b.min.x > -.045 && b.max.x < .045 && b.min.z > -.045 && b.max.z < .1, `x ${b.min.x}..${b.max.x} z ${b.min.z}..${b.max.z}`);
 });
+
+test('a wielded Longbow of Diana carries its lit crescent and string in the plane of the bow', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {applyArtifactTwist} = await import('./artifact-twist.js');
+  const bow = createHeldWeapon({name: 'long bow', class: 2});
+  applyArtifactTwist(bow, {label: 'Longbow of Diana', class: 2}, {clone: true, held: true});
+  const shell = bow.children.at(-1);
+  assert.equal(bow.userData.artifact, 'longbow of diana');
+  assert(shell.userData.magicShell);
+  const b = new THREE.Box3().setFromObject(shell);
+  assert(b.min.x > .05 && b.max.x < .14, `x ${b.min.x}..${b.max.x}`);
+  assert(b.min.y > -.06 && b.max.y < .06, `y ${b.min.y}..${b.max.y}`);
+  assert(b.min.z > 0 && b.max.z < .03, `z ${b.min.z}..${b.max.z}`);
+});
