@@ -29,7 +29,9 @@ export function runePose(i, t) {
   const bolt = i === 2 ? .14 * Math.sin(clamp01((t - (pull - .22)) / .22) * Math.PI) : 0;
   // Rune 3 blinks out for a beat while circling, as if it had thought better of staying, then returns.
   const blink = i === 3 && t > .42 && t < .5 ? .15 : 1;
-  return {x: Math.cos(a) * r, y: Math.max(.2 + .75 * rise + .1 * draw - bolt - (last ? .08 * clamp01((t - end) / .25) : 0), 0), z: Math.sin(a) * r,
+  // Rune 1 shivers while it circles, a fast tremor that dies away before it is dragged in.
+  const shiver = i === 1 ? .018 * Math.sin(t * 80) * clamp01((t - .25) / .1) * (1 - clamp01((t - .6) / .1)) : 0;
+  return {x: Math.cos(a) * r, y: Math.max(.2 + .75 * rise + .1 * draw + shiver - bolt - (last ? .08 * clamp01((t - end) / .25) : 0), 0), z: Math.sin(a) * r,
     alpha: .8 * clamp01((t - born) / .12) * (1 - (last ? clamp01((t - end) / .25) : draw ** 2)) * gutter * blink, spin: a * .5};
 }
 
