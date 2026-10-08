@@ -587,3 +587,16 @@ test('a wielded Staff of Aesculapius winds its lit serpent up the shaft of the q
   assert(b.min.y > .25 && b.max.y < .85, `y ${b.min.y}..${b.max.y}`);
   assert(b.min.x > -.04 && b.max.x < .04 && b.min.z > -.04 && b.max.z < .04, `x ${b.min.x}..${b.max.x} z ${b.min.z}..${b.max.z}`);
 });
+
+test('a wielded Sceptre of Might crowns the head of the mace with its lit spikes', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {applyArtifactTwist} = await import('./artifact-twist.js');
+  const mace = createHeldWeapon({name: 'mace', class: 2});
+  applyArtifactTwist(mace, {label: 'Sceptre of Might', class: 2}, {clone: true, held: true});
+  const shell = mace.children.at(-1);
+  assert.equal(mace.userData.artifact, 'sceptre of might');
+  assert(shell.userData.magicShell);
+  const b = new THREE.Box3().setFromObject(shell);
+  assert(b.min.y > .5 && b.max.y < .75, `y ${b.min.y}..${b.max.y}`);
+  assert(b.min.x > -.03 && b.max.x < .03 && b.min.z > -.1 && b.max.z < .1, `x ${b.min.x}..${b.max.x} z ${b.min.z}..${b.max.z}`);
+});
