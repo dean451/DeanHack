@@ -41,7 +41,7 @@ import {createMessageLog,addMessage,panelView,allRows,markTurn,sinceMark} from '
 import {createHistoryPanel} from './message-history.js';
 import {syncDetectedMark} from './detected-mark.js';
 import {aimKeys,createAimCursor} from './aim-cursor.js';
-import {itemBuc,bucMark} from './item-buc.js';
+import {itemBuc,bucMark,itemEnchant,enchantMark} from './item-buc.js';
 import {squareAt,farlookText,createFarlook} from './farlook.js';
 import {levelTitle,lowHealth,parseAttributes} from './hud.js';
 import {syncWandAura,syncHeldWandAura,updateHeldWandAura} from './wand-auras.js';
@@ -488,6 +488,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      if(item.selectable&&menu.how!==0){const input=document.createElement('input');input.type=menu.how===1?'radio':'checkbox';input.name='selection';input.value=item.id;input.dataset.accelerator=item.key;row.append(input);const accel=document.createElement('kbd');accel.textContent=item.key?`[${item.key}]`:'';row.append(accel);}
      else if(!item.selectable&&item.text.trim())row.classList.add('engine-menu-heading');
      const buc=item.selectable?itemBuc(item.text):null;if(buc){row.classList.add('buc-'+buc);const mark=document.createElement('span');mark.className='buc-mark';mark.textContent=bucMark(buc)+' ';mark.setAttribute('aria-hidden','true');row.append(mark);}
+     const ench=item.selectable?itemEnchant(item.text):null;if(ench){row.classList.add('ench-'+ench);const em=document.createElement('span');em.className='ench-mark';em.textContent=enchantMark(ench);em.setAttribute('aria-hidden','true');row.append(em);}
      row.append(document.createTextNode(item.text));form.append(row);}
     const boxes=()=>[...form.querySelectorAll('input')];
     // One button per class in the list (Potions !, Scrolls ?...), the same toggle as typing its symbol.
