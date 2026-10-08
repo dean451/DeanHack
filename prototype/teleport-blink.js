@@ -26,11 +26,12 @@ export function streakPose(t) {
   return {height: .1 + 2.6 * up, width: .22 * (1 - u) * (1 - u * .5) + .01, alpha: .9 * (1 - u) * Math.min(1, t * 25)};
 }
 
-// The ring that collapses onto the arrival square, then the flash on top of it.
+// The ring that collapses onto the arrival square, then the flash on top of it. The ring gutters
+// out for an instant a third of the way in, as if the place nearly refused the arrival.
 export function arrivePose(t) {
   if (t <= 0 || t >= BLINK.arrive) return {ring: 1.4, ringAlpha: 0, flash: 0, flashAlpha: 0};
   const k = t / BLINK.arrive, c = clamp01(k / .6), f = clamp01((k - .6) / .4);
-  return {ring: 1.4 - 1.25 * c * c, ringAlpha: k < .6 ? .8 * c : 0, flash: .2 + .9 * f, flashAlpha: k < .6 ? 0 : (1 - f) * (1 - f)};
+  return {ring: 1.4 - 1.25 * c * c, ringAlpha: k < .6 ? .8 * c * (k > .28 && k < .35 ? .2 : 1) : 0, flash: .2 + .9 * f, flashAlpha: k < .6 ? 0 : (1 - f) * (1 - f)};
 }
 
 export function createTeleportBlink(THREE, parent) {
