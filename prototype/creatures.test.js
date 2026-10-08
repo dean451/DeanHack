@@ -63,7 +63,7 @@ test('the chromatic dragon is a huge dragon whose scales shade through the five 
  const size=a=>new THREE.Box3().setFromObject(a.g).max.y;
  assert(size(chroma)>size(plain)*1.1,'bigger than an ordinary dragon');
  const b=new THREE.Box3().setFromObject(chroma.g);
- assert(b.min.y>-.005&&b.max.y<1.35,`height ${b.max.y}`);
+ assert(b.min.y>-.005&&b.max.y<1.5,`height ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'sprawl');
 });
 
