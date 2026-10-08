@@ -27,6 +27,14 @@ export function ringPose(t) {
   return {radius: .15 + 1.6 * (1 - (1 - u) ** 3), alpha: .8 * (1 - u) ** 2};
 }
 
+// The wand's last gasp: a second, fainter ring crawls out late and stalls short, flickering,
+// like something small that came through after the rest and found nobody left to impress.
+export function echoPose(t) {
+  const u = clamp01((t - .3) / (FLARE.total - .3));
+  if (u <= 0 || u >= 1) return {radius: .001, alpha: 0};
+  return {radius: .1 + .9 * (1 - (1 - u) ** 2), alpha: .35 * Math.sin(Math.PI * u) * (.65 + .35 * Math.sin(u * 45))};
+}
+
 // The spike stands up tall in an instant, then snaps off from the top down.
 export function spikePose(t) {
   const u = clamp01(t / FLARE.total);
@@ -43,13 +51,15 @@ export function createWandWishFlare(THREE, parent) {
     const mk = c => { const m = new THREE.MeshBasicMaterial({color: c, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending}); mats.push(m); return m; };
     const flash = new THREE.Mesh(geo, mk(0xfff6d0)); flash.position.y = .6; g.add(flash);
     const ring = new THREE.Mesh(ringGeo, mk(0xffd35a)); ring.rotation.x = -Math.PI / 2; ring.position.y = .03; g.add(ring);
+    const echo = new THREE.Mesh(ringGeo, mk(0xb8892a)); echo.rotation.x = -Math.PI / 2; echo.position.y = .03; g.add(echo);
     const spike = new THREE.Mesh(geo, mk(0xffffff)); g.add(spike);
-    live.push({g, geos: [geo, ringGeo], mats, flash, ring, spike, t: 0});
+    live.push({g, geos: [geo, ringGeo], mats, flash, ring, echo, spike, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
     const f = flashPose(e.t); e.flash.visible = f.alpha > .01; e.flash.scale.setScalar(f.size); e.flash.material.opacity = f.alpha;
     const r = ringPose(e.t); e.ring.visible = r.alpha > .01; e.ring.scale.setScalar(r.radius); e.ring.material.opacity = r.alpha;
+    const c = echoPose(e.t); e.echo.visible = c.alpha > .01; e.echo.scale.setScalar(c.radius); e.echo.material.opacity = c.alpha;
     const s = spikePose(e.t); e.spike.visible = s.alpha > .01; e.spike.position.y = s.y; e.spike.scale.set(.03, s.height, .03); e.spike.material.opacity = s.alpha;
     return e.t < FLARE.total;
   }
