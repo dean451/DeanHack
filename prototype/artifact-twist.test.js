@@ -491,3 +491,19 @@ test('a wielded Snickersnee carries its lit hairline and nicks on the +x flat of
   for (let i = 0; i < ix.length; i += 3) vol += v(i).dot(new THREE.Vector3().crossVectors(v(i + 1), v(i + 2)));
   assert(vol > 0, `faces look outward (${vol})`);
 });
+
+test('a wielded Grayswandir and Werebane carry their lit shapes on the +z flat of the curved silver saber', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {applyArtifactTwist} = await import('./artifact-twist.js');
+  for (const label of ['Grayswandir', 'Werebane']) {
+    const sword = createHeldWeapon({name: 'silver saber', class: 2});
+    applyArtifactTwist(sword, {label, class: 2}, {clone: true, held: true});
+    const shell = sword.children.at(-1);
+    assert.equal(sword.userData.artifact, label.toLowerCase());
+    assert(shell.userData.magicShell);
+    const b = new THREE.Box3().setFromObject(shell);
+    assert(b.min.y > .115 && b.max.y < .915, `${label} y ${b.min.y}..${b.max.y}`);
+    assert(b.min.z > .0 && b.max.z < .013, `${label} sits on the +z flat ${b.min.z}..${b.max.z}`);
+    assert(b.min.x > -.07 && b.max.x < .04, `${label} x ${b.min.x}..${b.max.x}`);
+  }
+});
