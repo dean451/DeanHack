@@ -313,6 +313,26 @@ const SHAPES = {
     for (let i = 0; i < 2; i++) parts.push(new THREE.BoxGeometry(.004, .003, .02).translate(.36 + i * .05, .0135, .02));
     return parts;
   },
+  // The Luck Blade is a gambler's edge: a lit die turned on its corner sits on the blade with three lit
+  // pips, the way a throw lands.
+  'luck blade'() {
+    const parts = [new THREE.BoxGeometry(.05, .003, .05).rotateY(Math.PI / 4).translate(.24, .0135, 0)];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.CylinderGeometry(.005, .005, .004, 6).translate(.24 + (i - 1) * .018, .0145, (i - 1) * .018));
+    return parts;
+  },
+  // The Tsurugi of Muramasa thirsts: a lit ridge line runs down the blade and three lit blood drops hang
+  // off its edge, longer toward the point.
+  'tsurugi of muramasa'() {
+    const parts = [new THREE.BoxGeometry(.36, .003, .003).translate(.26, .0135, 0)];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.ConeGeometry(.006, .02 + i * .006, 4).rotateX(-Math.PI / 2).translate(.18 + i * .09, .0135, .03 + i * .004));
+    return parts;
+  },
+  // The Longbow of Diana keeps a hunter's moon: a lit crescent lies on the blade with a taut lit string
+  // across its horns.
+  'longbow of diana'() {
+    const arc = new THREE.TorusGeometry(.05, .004, 4, 14, Math.PI).rotateX(Math.PI / 2).rotateY(Math.PI / 2).translate(.25, .0135, 0);
+    return [arc, new THREE.BoxGeometry(.003, .003, .1).translate(.25, .0135, 0)];
+  },
   // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
   // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
   itlachiayaque(group) {
