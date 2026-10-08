@@ -151,6 +151,8 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
   const plate=roundedBox(.16-i*.013,.04,.2-i*.016,i?armor:armorLight,body,side*(.25+i*.035),.995-i*.059,0,.018);plate.rotation.z=-side*(.18+i*.16);
   for(const z of [-.09,.09])sphere(.011,accent,body,side*(.27+i*.035),.998-i*.059,z*.8);
  }
+ // Tassets: three overlapping plates hang from the belt over each hip, each longer and flared outward.
+ for(const side of [-1,1])for(let i=0;i<3;i++){const t=roundedBox(.11-i*.008,.075,.016,i%2?armor:armorLight,body,side*(.105+i*.012),.56-i*.05,.1+i*.012,.008);t.rotation.z=side*(.12+i*.07);t.rotation.x=-.18;sphere(.008,accent,body,side*(.105+i*.012),.585-i*.05,.112+i*.012);}
  // Cloth starts at the collar and widens into folds below the shoulder blades.
  const cape=new THREE.Group();cape.position.set(0,1.045,-.13);body.add(cape);
  const capeGeo=new THREE.PlaneGeometry(1,1,16,18),cp=capeGeo.attributes.position;
