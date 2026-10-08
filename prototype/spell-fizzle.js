@@ -39,7 +39,9 @@ export function sparkPose(i, t) {
   const skip = i === 0 && u > .6 ? .06 * Math.abs(Math.sin((u - .6) / .4 * Math.PI)) : 0;
   // The third spark flares white-hot for a blink at the snap before it slumps like the rest.
   const flare = i === 2 && s < .08 ? 1 + .5 * Math.sin(Math.PI * s / .08) : 1;
-  return {x: Math.cos(a) * r, y: .15 + .5 * 4 * u * (1 - u) * (.6 + .1 * (i % 3)) * (1 - .6 * u) + twitch + skip, z: Math.sin(a) * r, alpha: Math.min(.85, Math.max(0, .85 * (1 - u) * flick * flare))};
+  // The second spark is a dud: it gutters out halfway up its arc, long before the rest.
+  const dud = i === 1 ? 1 - clamp01((u - .35) / .15) : 1;
+  return {x: Math.cos(a) * r, y: .15 + .5 * 4 * u * (1 - u) * (.6 + .1 * (i % 3)) * (1 - .6 * u) + twitch + skip, z: Math.sin(a) * r, alpha: Math.min(.85, Math.max(0, .85 * (1 - u) * flick * flare * dud))};
 }
 
 export function createSpellFizzle(THREE, parent) {
