@@ -146,10 +146,10 @@ const DRAGON_FORMS={
  amphitere:{serpent:'coil',wings:.85,feathered:true,scale:1.12},lindworm:{serpent:'coil',legs:2,scale:1.12},
  tatzelworm:{serpent:'short',legs:2,cat:true,scale:1.12},guivre:{serpent:'coil',beard:true,horns:1.5,scale:1.12},
  leviathan:{serpent:'humps',fins:true,scale:1.12},sirrush:{legs:4,sirrush:true,scale:1.1},
- tiamat:{legs:4,wings:.95,heads:5,scale:1.2},ixoth:{legs:4,wings:.95,scale:1.18},
+ tiamat:{legs:4,wings:.95,heads:5,scale:1.2},'chromatic dragon':{legs:4,wings:1,scale:1.25,chromatic:true},ixoth:{legs:4,wings:.95,scale:1.18},
 };
 const DRAGON_BREATH=['#9a4aff','#ff5a1a','#8aee3a','#ff8a3a','#5ab8ff','#e060ff','#6fe0e0','#d8d0ff',null,'#ffb050','#a0ff50','#ecff40','#70a0ff','#ff4a20','#c8f8ff','#c0e8ff'];
-const DRAGON_WORD_COLOR={black:0,red:1,green:2,blue:4,gray:7,orange:9,yellow:11,silver:14,white:15};
+const DRAGON_WORD_COLOR={chromatic:5,black:0,red:1,green:2,blue:4,gray:7,orange:9,yellow:11,silver:14,white:15};
 // Tiamat's five heads: white, black, red, blue and green, each with its own breath
 const TIAMAT_HEADS=[15,0,1,4,2];
 function dragonLook(name,index){
@@ -173,12 +173,13 @@ function dragonScaleBump(){
 }
 const dragonHides=new Map();
 function dragonHide(hex,opts){const key=hex+JSON.stringify(opts);if(!dragonHides.has(key))dragonHides.set(key,new THREE.MeshStandardMaterial({color:hex,roughness:.88,...opts,bumpMap:dragonScaleBump(),bumpScale:1.4}));return dragonHides.get(key);}
-function dragonMats(i){
+function dragonMats(i,chromatic){
  const silver=i===14,hex=silver?'#b9c4c8':NH_COLORS[i]||'#8a6440',breath=DRAGON_BREATH[i]||'#ff8a3a';
  const belly='#'+new THREE.Color(hex).lerp(new THREE.Color('#e8d6a4'),.45).getHexString();
  const fin=HIDE_FINISH[dragonElement(i)]||{},hideOpts={roughness:fin.roughness??(silver?.3:.62),metalness:fin.metalness??(silver?.7:.08)};
  if(fin.emissiveK)Object.assign(hideOpts,{emissive:shade(breath,fin.emissiveK*4),emissiveIntensity:.25});
- return {hide:dragonHide(hex,hideOpts),dark:mat(shade(hex,.5),{roughness:.7,metalness:silver?.6:0}),belly:mat(belly,{roughness:.78}),
+ const scales=chromatic?TIAMAT_HEADS.map(c=>dragonHide(shade(NH_COLORS[c],.8),hideOpts)):null;
+ return {scales,hide:dragonHide(hex,hideOpts),dark:mat(shade(hex,.5),{roughness:.7,metalness:silver?.6:0}),belly:mat(belly,{roughness:.78}),
   membrane:mat(shade(hex,.72),{side:THREE.DoubleSide,roughness:.82}),feather:mat(belly,{side:THREE.DoubleSide,roughness:.9}),ivory:mat('#e6dcc0',{roughness:.45}),scar:mat('#3a0e0c',{roughness:.9}),
   glow:new THREE.MeshStandardMaterial({color:breath,emissive:breath,emissiveIntensity:4.5,roughness:.3})};
 }
@@ -192,7 +193,7 @@ const DRAGON_SCUTE=new THREE.BoxGeometry(.1,.012,.07);
 function dragonChain(parent,curve,n,r0,r1,m){
  const Z=new THREE.Vector3(0,0,1);
  for(let i=0;i<=n;i++){const t=i/n,p=curve.getPoint(t),r=r0+(r1-r0)*t,q=new THREE.Quaternion().setFromUnitVectors(Z,curve.getTangent(t).negate());
-  dragonSegment(parent,r,m.hide,p,q,1,.9,1.3);dragonSegment(parent,r*.8,m.belly,p.clone().setY(p.y-r*.32),q,1.08,.7,1.3);}
+  dragonSegment(parent,r,m.scales?m.scales[Math.min(4,Math.floor(t*5))]:m.hide,p,q,1,.9,1.3);dragonSegment(parent,r*.8,m.belly,p.clone().setY(p.y-r*.32),q,1.08,.7,1.3);}
 }
 // dorsal spikes riding the top of a chain, shrinking toward its end
 function dragonRidge(parent,curve,n,r0,r1,size,material,t0=0,t1=1){
@@ -265,7 +266,7 @@ function dragonLegs(body,legs,m,o){
 function dragon(o={}){
  const f=o.form||DRAGON_FORMS.draken,baby=!!o.baby;
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar((baby?.62:1.05)*(f.scale||1));
- const m=dragonMats(o.color??3),headScale=(baby?1.3:1)*(f.heads>1?.8:1);
+ const m=dragonMats(o.color??3,f.chromatic),headScale=(baby?1.3:1)*(f.heads>1?.8:1);
  let core=null,tail,tailCurve,trunk;const dressHeads=[];
  const addHead=(parent,points,mats,a=0)=>{
   const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));dragonChain(parent,neck,6,.085,.065,mats);dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9);

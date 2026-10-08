@@ -53,6 +53,20 @@ test('an identified dragon wears its breath, and an unidentified brown one wears
  }
 });
 
+test('the chromatic dragon is a huge dragon whose scales shade through the five colours of Tiamat\'s heads',()=>{
+ const D=68,hues=a=>{const set=new Set();a.g.traverse(o=>{if(o.isMesh)set.add(o.material.color.getHexString());});return set;};
+ const chroma=createCreature({name:'chromatic dragon',symbol:D,color:5}),plain=createCreature({name:'draken',symbol:D,color:5});
+ assert.equal(chroma.element,'chromatic');
+ assert(hues(chroma).size>=hues(plain).size+4,'five scale colours run through the hide');
+ // a name with no glyph colour still resolves to the chromatic look, not the brown generic one
+ assert.equal(createCreature({name:'chromatic dragon',symbol:D}).element,'chromatic');
+ const size=a=>new THREE.Box3().setFromObject(a.g).max.y;
+ assert(size(chroma)>size(plain)*1.1,'bigger than an ordinary dragon');
+ const b=new THREE.Box3().setFromObject(chroma.g);
+ assert(b.min.y>-.005&&b.max.y<1.5,`height ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'sprawl');
+});
+
 test('little dog, dog and large dog are grounded canines that grow with the breed',()=>{
  let last=0;
  for(const name of ['little dog','dog','large dog']){
@@ -889,6 +903,20 @@ test('valkyries get a winged-helmed, braided, mail-clad shieldmaiden model inste
  assert.equal(createCreature({name:'human',symbol:64,color:7}).kind,undefined);
  const again=meshes(createCreature({name:'valkyrie'}));
  parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry));
+});
+
+test('the valkyrie\'s hands are gauntlets closed round the grip, joined to the arm at the wrist',()=>{
+ const valk=createCreature({name:'valkyrie',symbol:64,color:7});
+ const geo=valk.arm.children.find(c=>c.userData.part==='arm').geometry;
+ geo.computeBoundingBox();
+ const b=geo.boundingBox;
+ assert(b.min.y>-.43&&b.min.y<-.4,`fingers end at ${b.min.y}`);
+ assert(b.max.x<.07&&b.min.x>-.07,'the gauntlet stays within the sleeve width');
+ assert(geo.attributes.position.count>1000&&geo.attributes.position.count<6000,`${geo.attributes.position.count} arm vertices`);
+ // finger bands wrap the grip: front of the fist sits ahead of the weapon socket, the palm behind it
+ assert(b.max.z>valk.weaponSocket.position.z+.02,'fingers curl in front of the grip');
+ assert(b.min.z<valk.weaponSocket.position.z-.01,'the palm sits behind the grip');
+ assert(Math.abs(valk.weaponSocket.position.y+.37)<1e-6&&valk.shield.parent===valk.shieldArm);
 });
 
 test('the Norn gets a hooded, grey seeress model with a threaded staff instead of the plain @ humanoid',()=>{
