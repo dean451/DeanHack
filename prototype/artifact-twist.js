@@ -404,6 +404,12 @@ const heldMorningStarCutMatrix = new THREE.Matrix4().set(0, 0, 1, 0,  .3, 0, 0, 
 // winding is flipped after it is applied.
 const HELD_BOW_SHAPES = new Set(['longbow of diana']);
 const heldBowMatrix = new THREE.Matrix4().set(1, 0, 0, -.17,  0, 0, 1, 0,  0, 1, 0, 0,  0, 0, 0, 1);
+// A wielded Staff of Aesculapius is the quarterstaff (equipment.js): a shaft along y, radius about .026, with the leather
+// grip below y .13. The floor serpent, which winds a staff lying along x, is stood up it, stretched to the longer shaft
+// and slid up above the grip (y .3 to .8), and widened a little so its coils clear the wood. The swap mirrors, so the
+// winding is flipped after it is applied.
+const HELD_STAFF_SHAPES = new Set(['staff of aesculapius']);
+const heldStaffMatrix = new THREE.Matrix4().set(0, 1.15, 0, -.01265,  1.25, 0, 0, .55,  0, 0, 1.15, 0,  0, 0, 0, 1);
 const heldTsurugiMatrix = new THREE.Matrix4().set(0, .5, 0, .0005,  2.4, 0, 0, -.1,  0, 0, -.6, 0,  0, 0, 0, 1);
 
 export function applyArtifactTwist(group, object, {clone = false, held = false} = {}) {
@@ -423,9 +429,9 @@ export function applyArtifactTwist(group, object, {clone = false, held = false} 
     m.emissive.copy(color);
     m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, POWER_BY_KIND[kind] ?? POWER);
   });
-  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_MAGICBANE_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind) || HELD_KATANA_SHAPES.has(kind) || HELD_SABER_SHAPES.has(kind) || HELD_HAMMER_SHAPES.has(kind) || HELD_AXE_SHAPES.has(kind) || HELD_MORNING_STAR_SHAPES.has(kind) || HELD_BOW_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
+  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_MAGICBANE_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind) || HELD_KATANA_SHAPES.has(kind) || HELD_SABER_SHAPES.has(kind) || HELD_HAMMER_SHAPES.has(kind) || HELD_AXE_SHAPES.has(kind) || HELD_MORNING_STAR_SHAPES.has(kind) || HELD_BOW_SHAPES.has(kind) || HELD_STAFF_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
   if (shape && held) {
-    const m = HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : HELD_MAGICBANE_SHAPES.has(kind) ? heldMagicbaneMatrix : HELD_TSURUGI_SHAPES.has(kind) ? heldTsurugiMatrix : HELD_KATANA_SHAPES.has(kind) ? heldKatanaMatrix : HELD_SABER_SHAPES.has(kind) ? heldSaberMatrix : HELD_HAMMER_SHAPES.has(kind) ? (kind === 'mjollnir' ? heldMjollnirMatrix : heldHammerMatrix) : HELD_AXE_SHAPES.has(kind) ? heldAxeMatrix : HELD_BOW_SHAPES.has(kind) ? heldBowMatrix : heldMatrix;
+    const m = HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : HELD_MAGICBANE_SHAPES.has(kind) ? heldMagicbaneMatrix : HELD_TSURUGI_SHAPES.has(kind) ? heldTsurugiMatrix : HELD_KATANA_SHAPES.has(kind) ? heldKatanaMatrix : HELD_SABER_SHAPES.has(kind) ? heldSaberMatrix : HELD_HAMMER_SHAPES.has(kind) ? (kind === 'mjollnir' ? heldMjollnirMatrix : heldHammerMatrix) : HELD_AXE_SHAPES.has(kind) ? heldAxeMatrix : HELD_BOW_SHAPES.has(kind) ? heldBowMatrix : HELD_STAFF_SHAPES.has(kind) ? heldStaffMatrix : heldMatrix;
     if (kind === 'mjollnir') shape.pop();
     shape.forEach((g, i) => {
       g.applyMatrix4(HELD_MORNING_STAR_SHAPES.has(kind) ? (i ? heldMorningStarCutMatrix : heldMorningStarRingMatrix) : m);
