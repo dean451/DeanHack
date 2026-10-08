@@ -25,6 +25,15 @@ export function ringPose(i, t) {
   return {radius: .1 + (.75 - .12 * i) * (1 - (1 - u) * (1 - u) * (1 - u)), alpha: .75 * (1 - smooth(u)) * stutter * Math.min(1, u * 14)};
 }
 
+// The hush: once the shrieks are spent, one dull dark ring creeps back in toward the plank, as
+// if the whole room had flinched and gone quiet to listen.
+export const HUSH_AT = .5;
+export function hushPose(t) {
+  const u = clamp01((t - HUSH_AT) / (SQUEAK.total - HUSH_AT));
+  if (u <= 0 || u >= 1) return {radius: .1, alpha: 0};
+  return {radius: .1 + .55 * (1 - smooth(u)), alpha: .3 * Math.sin(Math.PI * u)};
+}
+
 // Dust mote i: jolts up off the plank in a twitch, hangs a moment, then settles back.
 export function motePose(i, t) {
   // The last mote is the nervous one: it hangs longer, trembling, after the rest have settled.
@@ -40,12 +49,14 @@ export function createSqueakyBoard(THREE, parent) {
     const ringGeo = new THREE.RingGeometry(.9, 1, 24), sph = new THREE.SphereGeometry(1, 6, 4), mats = [];
     const mk = c => { const m = new THREE.MeshBasicMaterial({color: c, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, toneMapped: false}); mats.push(m); return m; };
     const rings = Array.from({length: SQUEAK.rings}, () => { const m = new THREE.Mesh(ringGeo, mk(0xc9b79a)); m.rotation.x = -Math.PI / 2; m.position.y = .03; g.add(m); return m; });
+    const hush = new THREE.Mesh(ringGeo, mk(0x2a2118)); hush.rotation.x = -Math.PI / 2; hush.position.y = .025; g.add(hush);
     const motes = Array.from({length: SQUEAK.motes}, () => { const m = new THREE.Mesh(sph, mk(0x8a7a62)); m.scale.setScalar(.014); g.add(m); return m; });
-    live.push({g, geos: [ringGeo, sph], mats, rings, motes, t: 0});
+    live.push({g, geos: [ringGeo, sph], mats, rings, hush, motes, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
     e.rings.forEach((m, i) => { const p = ringPose(i, e.t); m.visible = p.alpha > .01; m.scale.setScalar(p.radius); m.material.opacity = p.alpha; });
+    const h = hushPose(e.t); e.hush.visible = h.alpha > .01; e.hush.scale.setScalar(h.radius); e.hush.material.opacity = h.alpha;
     e.motes.forEach((m, i) => { const p = motePose(i, e.t); m.visible = p.alpha > .01; m.position.set(p.x, p.y, p.z); m.material.opacity = p.alpha; });
     return e.t < SQUEAK.total;
   }
