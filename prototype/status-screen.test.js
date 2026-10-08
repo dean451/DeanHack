@@ -110,3 +110,10 @@ test('the slime spreads inward as the countdown advances', async () => {
   const rule = css.slice(css.indexOf('#status-screen.status-slimed{'));
   assert.ok(rule.slice(0, rule.indexOf('animation:')).includes('transparent calc(30% - var(--status-progress)*26%)'));
 });
+
+test('the strangling cord tightens inward as the countdown advances', async () => {
+  const {readFileSync} = await import('node:fs');
+  const css = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
+  const rule = css.slice(css.indexOf('#status-screen.status-strangled{'));
+  assert.ok(rule.slice(0, rule.indexOf('animation:')).includes('transparent calc(34% - var(--status-progress)*30%)'));
+});
