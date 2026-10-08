@@ -83,3 +83,14 @@ test('sliming gets its own oozing-green class, once, beside the others', () => {
   applyStatusScreen(el, []);
   assert.equal(set.size, 0);
 });
+
+test('food poisoning and deadly illness share a colour-draining sweat class, once, beside the others', () => {
+  assert.deepEqual(statusScreenClasses(['FoodPois']), ['status-poisoned']);
+  assert.deepEqual(statusScreenClasses(['Ill', 'FoodPois', 'Slime']), ['status-poisoned', 'status-slimed']);
+  const set = new Set();
+  const el = {classList: {toggle: (c, on) => (on ? set.add(c) : set.delete(c))}};
+  applyStatusScreen(el, ['FoodPois']);
+  assert.ok(set.has('status-poisoned') && !set.has('status-slimed'));
+  applyStatusScreen(el, []);
+  assert.equal(set.size, 0);
+});

@@ -5,9 +5,10 @@
 // sickly surges; strangulation cinches a dark cord of vignette in round the view, tightening in hard
 // gasps with a slack beat between; stoning creeps a cold grey up from the bottom of the view in stiff
 // lurches, desaturating what it covers; sliming oozes a sick green in from the edges of the view in slow, wet
-// surges that never quite drain back. STATE_CLASSES is where further states join.
+// surges that never quite drain back; food poisoning and deadly illness drain the colour from the whole view and
+// close a clammy, bile-yellow sweat in from the edges, heaving in slow queasy swells. STATE_CLASSES is where further states join.
 
-const STATE_CLASSES = {blind: 'status-blind', conf: 'status-confused', confused: 'status-confused', stun: 'status-stunned', stunned: 'status-stunned', hallu: 'status-hallu', hallucinating: 'status-hallu', strngl: 'status-strangled', strangled: 'status-strangled', stone: 'status-stoned', stoned: 'status-stoned', slime: 'status-slimed', slimed: 'status-slimed'};
+const STATE_CLASSES = {blind: 'status-blind', conf: 'status-confused', confused: 'status-confused', stun: 'status-stunned', stunned: 'status-stunned', hallu: 'status-hallu', hallucinating: 'status-hallu', strngl: 'status-strangled', strangled: 'status-strangled', stone: 'status-stoned', stoned: 'status-stoned', slime: 'status-slimed', slimed: 'status-slimed', foodpois: 'status-poisoned', ill: 'status-poisoned', termill: 'status-poisoned'};
 
 // The screen classes for the conditions on the engine's status line ('Blind', 'Hungry'...), in a fixed order.
 export function statusScreenClasses(conditions) {
