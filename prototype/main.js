@@ -136,6 +136,11 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const mouthCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-.04,-.085,.16),new THREE.Vector3(0,-.088,.17),new THREE.Vector3(.04,-.075,.16)]);mesh(new THREE.TubeGeometry(mouthCurve,12,.005,5,false),lips,head);
  for(const side of [-1,1]){const lid=roundedBox(.046,.008,.013,skin,head,side*.067,.03+(side<0?.006:0),.178,.004);lid.rotation.z=side*.08;}
  const nick=roundedBox(.005,.049,.006,scar,head,-.095,.045,.166,.002);nick.rotation.z=-.25;
+ // Finer features: high cheekbones, a darker lower lip, long lower lashes and a narrow nose bridge between the brows.
+ const lash=mat('#2a1d18',{roughness:1});
+ for(const side of [-1,1]){const cheek=sphere(.03,skin,head,side*.098,-.03,.15,1,.55,.5);cheek.rotation.z=side*.35;roundedBox(.044,.006,.01,lash,head,side*.067,.005,.176,.003).rotation.z=-side*.1;}
+ sphere(.015,lips,head,0,-.102,.168,1.7,.45,.5);
+ roundedBox(.014,.05,.014,skin,head,.004,.01,.176,.005);
  const plume=new THREE.Group();head.add(plume); // Stable legacy animation anchor, no spike.
  const browBand=mesh(new THREE.TorusGeometry(.215,.012,6,32,Math.PI),accent,helmet,0,.044,-.015);browBand.rotation.x=Math.PI/2;
  const ridge=new THREE.CatmullRomCurve3([new THREE.Vector3(0,.05,.205),new THREE.Vector3(0,.2,.1),new THREE.Vector3(0,.259,-.015),new THREE.Vector3(0,.2,-.13),new THREE.Vector3(0,.05,-.23)]);mesh(new THREE.TubeGeometry(ridge,20,.009,6,false),accent,helmet);
