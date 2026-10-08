@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ringStart, ringPose, motePose, isSqueakMessage, createSqueakyBoard, PENDING_WAIT, SQUEAK} from './squeaky-board.js';
+import {ringStart, hushPose, HUSH_AT, ringPose, motePose, isSqueakMessage, createSqueakyBoard, PENDING_WAIT, SQUEAK} from './squeaky-board.js';
 
 test('only the squeak message triggers it', () => {
   assert.ok(isSqueakMessage('A board beneath you squeaks loudly.'));
@@ -73,4 +73,13 @@ test('each squeak comes sooner after the last', () => {
   for (let i = 2; i < SQUEAK.rings; i++) assert.ok(ringStart(i) - ringStart(i - 1) < ringStart(i - 1) - ringStart(i - 2), String(i));
   assert.ok(ringStart(SQUEAK.rings - 1) + SQUEAK.ringLife <= SQUEAK.total);
   assert.ok(ringPose(SQUEAK.rings - 1, ringStart(SQUEAK.rings - 1) + .02).alpha > 0);
+});
+
+test('the hush ring creeps inward after the last squeak and leaves nothing behind', () => {
+  const last = ringStart(SQUEAK.rings - 1) + SQUEAK.ringLife;
+  assert.ok(HUSH_AT < last + .1);
+  for (const t of [0, HUSH_AT, SQUEAK.total, SQUEAK.total + 1]) assert.equal(hushPose(t).alpha, 0, String(t));
+  let prev = Infinity, peak = 0;
+  for (let t = HUSH_AT + .001; t < SQUEAK.total; t += .01) { const h = hushPose(t); assert.ok(h.radius <= prev + 1e-9 && h.alpha >= 0 && h.alpha <= .3 + 1e-9, String(t)); prev = h.radius; peak = Math.max(peak, h.alpha); }
+  assert.ok(peak > .2);
 });
