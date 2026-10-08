@@ -50,3 +50,15 @@ test('cats get a shaped torso, a turning head with ears and whiskers, jointed le
  x.forEach((m,i)=>{assert.equal(m.geometry,y[i].geometry);assert.equal(m.material,y[i].material);});
  assert.notEqual(meshes(createCreature({name:'panther'}))[0].geometry,x[0].geometry);
 });
+
+test('every paw carries dark hooked claws: four per foot, in the same single leg mesh',()=>{
+ for(const name of ['kitten','housecat','tiger']){
+  const a=createCreature({name});
+  for(const leg of a.legs){
+   const m=leg.children.find(o=>o.isMesh),col=m.geometry.attributes.color,pos=m.geometry.attributes.position;
+   let dark=0;
+   for(let i=0;i<col.count;i++)if(col.getX(i)<.13&&col.getY(i)<.12&&col.getZ(i)<.12&&pos.getY(i)<.06-leg.position.y+.03)dark++;
+   assert(dark>=4*12,`${name}: claw vertices ${dark}`);
+  }
+ }
+});

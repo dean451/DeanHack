@@ -9,7 +9,7 @@ import {segment,chain} from './ant.js';
 // - Torso: one sphere pulled into a cat's barrel: deep chest, tucked flank, rounded haunch.
 // - Head: a round skull, full cheeks, whisker pads, a chin and a nose leather, triangular ears
 //   (round on the big cats) with pale insides, slit pupils (round on the big cats), whiskers.
-// - Legs: shoulder, elbow and forearm down to a padded paw with four toes in front; the hind
+// - Legs: shoulder, elbow and forearm down to a padded paw with four toes, each tipped with a dark hooked claw, in front; the hind
 //   legs have a muscled thigh, a knee, a raised hock and a long foot.
 // - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
@@ -206,6 +206,12 @@ function buildEyes(){
  return P.merge();
 }
 
+// A small dark hooked claw at a toe tip, curving forward and down.
+const CLAW=rgb('#1a1512');
+function claw(P,x,y,z,k){
+ P.add(new THREE.ConeGeometry(.0055*k,.026*k,4),at(x,y,z+.012*k,[Math.PI/2+.5,0,0]),CLAW);
+}
+
 // One right-hand leg, hip or shoulder at the origin, the floor at y=-top.
 function buildLeg(L,C,fore){
  const P=pieces(),k=L.heavy||1,[px,py,pz]=fore?L.shoulder:L.hip,fy=-py;
@@ -223,7 +229,10 @@ function buildLeg(L,C,fore){
   segment(P,[0,-.11,-.02],[0,fy+.035,.01],.03*k,.024*k,skin,10);
   P.add(new THREE.SphereGeometry(.025*k,10,6),at(0,fy+.035,.01),skin);
   P.add(new THREE.SphereGeometry(.036*k,14,8),at(0,fy+.016,.025,[0,0,0],[1,.46,1.2]),paw);
-  for(const [tx,tz] of [[-.024,.048],[-.008,.056],[.008,.056],[.024,.048]])P.add(new THREE.SphereGeometry(.013*k,6,4),at(tx*k,fy+.011,tz*k,[0,0,0],[1,.8,1]),paw);
+  for(const [tx,tz] of [[-.024,.048],[-.008,.056],[.008,.056],[.024,.048]]){
+   P.add(new THREE.SphereGeometry(.013*k,6,4),at(tx*k,fy+.011,tz*k,[0,0,0],[1,.8,1]),paw);
+   claw(P,tx*k,fy+.009,tz*k+.01,k);
+  }
  }else{
   P.add(new THREE.SphereGeometry(.06*k,14,10),at(0,-.04,.005,[0,0,0],[.62,1.15,1]),skin);
   segment(P,[0,0,0],[0,-.12,.045],.05*k,.032*k,skin,12);
@@ -232,7 +241,10 @@ function buildLeg(L,C,fore){
   P.add(new THREE.SphereGeometry(.023*k,10,6),at(0,fy+.1,-.04),skin);
   segment(P,[0,fy+.1,-.04],[0,fy+.03,-.015],.022*k,.02*k,skin,10);
   P.add(new THREE.SphereGeometry(.033*k,14,8),at(0,fy+.014,.0,[0,0,0],[1,.46,1.25]),paw);
-  for(const [tx,tz] of [[-.022,.022],[-.007,.03],[.007,.03],[.022,.022]])P.add(new THREE.SphereGeometry(.012*k,6,4),at(tx*k,fy+.01,tz*k,[0,0,0],[1,.8,1]),paw);
+  for(const [tx,tz] of [[-.022,.022],[-.007,.03],[.007,.03],[.022,.022]]){
+   P.add(new THREE.SphereGeometry(.012*k,6,4),at(tx*k,fy+.01,tz*k,[0,0,0],[1,.8,1]),paw);
+   claw(P,tx*k,fy+.008,tz*k+.01,k);
+  }
  }
  return P.merge();
 }
