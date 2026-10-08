@@ -81,3 +81,12 @@ test('the pet cats show a knuckled spine and a tucked flank',()=>{
  const body=name=>meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='body').geometry.attributes.position.count;
  for(const name of ['kitten','housecat','large cat'])assert(body(name)>=body('wildcat')+7*30,`${name} body ${body(name)}`);
 });
+
+test('the pet cats carry an old pale scar across the face; wild cats do not',()=>{
+ const scar=name=>{
+  const col=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry.attributes.color;
+  let n=0;for(let i=0;i<col.count;i++)if(col.getX(i)>.7&&col.getY(i)>.5&&col.getZ(i)>.42)n++;
+  return n;
+ };
+ for(const name of ['kitten','housecat','large cat'])assert(scar(name)>scar('wildcat')+3,`${name} scar ${scar(name)} vs ${scar('wildcat')}`);
+});

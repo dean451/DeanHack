@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {flashPose, ringPose, spikePose, isWandWish, createWandWishFlare, FLARE} from './wand-wish-flare.js';
+import {flashPose, ringPose, echoPose, spikePose, isWandWish, createWandWishFlare, FLARE} from './wand-wish-flare.js';
 
 test('only a wand wish triggers it', () => {
   assert.ok(isWandWish({type: 'wish', source: 'wand'}));
@@ -8,7 +8,7 @@ test('only a wand wish triggers it', () => {
 });
 
 test('every part starts and ends invisible', () => {
-  for (const t of [0, FLARE.total, FLARE.total + 1]) for (const p of [flashPose(t), ringPose(t), spikePose(t)]) assert.equal(p.alpha, 0, String(t));
+  for (const t of [0, FLARE.total, FLARE.total + 1]) for (const p of [flashPose(t), ringPose(t), echoPose(t), spikePose(t)]) assert.equal(p.alpha, 0, String(t));
 });
 
 test('the flash hits hard and early, and everything stays in bounds', () => {
@@ -35,4 +35,11 @@ test('the effect plays once per wand wish and cleans up', () => {
   fx.update(.5); assert.equal(fx.active, 1);
   fx.update(.5); assert.equal(fx.active, 0);
   fx.wish({type: 'wish', source: 'wand'}, 1, 1); fx.clear(); assert.equal(fx.active, 0);
+});
+
+test('the echo ring comes late, stays faint and stalls short of the main ring', () => {
+  assert.equal(echoPose(.2).alpha, 0);
+  let peak = 0, rmax = 0;
+  for (let t = 0; t <= FLARE.total; t += .005) { const e = echoPose(t); assert.ok(e.alpha >= 0 && e.alpha <= .35 + 1e-9, String(t)); peak = Math.max(peak, e.alpha); rmax = Math.max(rmax, e.radius); }
+  assert.ok(peak > .1 && rmax <= 1.0 + 1e-9 && rmax < 1.75);
 });

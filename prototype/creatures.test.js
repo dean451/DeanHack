@@ -802,8 +802,8 @@ test('ghosts get their own sheeted, floating model instead of the guardian box',
  ghost.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(ghost.g);
  assert(b.min.y>.02&&b.min.y<.15,`hem at ${b.min.y}`);
- assert(b.max.y>1&&b.max.y<1.2,`top at ${b.max.y}`);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'fits the tile');
+ assert(b.max.y>1.1&&b.max.y<1.35,`top at ${b.max.y}`); // scaled 1.05: a ghost looms over a man
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.56,'fits the tile');
  // the sleeves reach out in front of the chest
  const sleeve=new THREE.Box3().setFromObject(ghost.arm);
  assert(sleeve.max.z>.25,`sleeve reaches ${sleeve.max.z}`);
