@@ -1,0 +1,37 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as THREE from 'three';
+import {airFor, createBranchAir, PARTICLES, HALF, TOP} from './branch-air.js';
+
+test('only the Gnomish Mines have air of their own so far', () => {
+  assert(airFor('The Gnomish Mines'));
+  assert.equal(airFor('The Dungeons of Doom'), null);
+  assert.equal(airFor(undefined), null);
+});
+
+test('mine air sifts grit and drips water, within the particle cap', () => {
+  const a = airFor('The Gnomish Mines');
+  assert(a.grit.count + a.drip.count <= PARTICLES);
+  assert(a.drip.fall > a.grit.fall * 10);
+});
+
+test('the cloud shows only in the Mines, stays in its box around the hero and never leaks below the floor', () => {
+  const group = new THREE.Group(), air = createBranchAir({group});
+  assert.equal(air.points.visible, false);
+  air.setBranch('The Gnomish Mines', new THREE.Vector3(3, 0, 4));
+  assert.equal(air.points.visible, true);
+  const hero = new THREE.Vector3(3, 0, 4);
+  for (let f = 0; f < 600; f++) {
+    hero.x += .05;
+    air.update(f / 60, 1 / 60, hero);
+    const p = air.points.geometry.attributes.position;
+    for (let i = 0; i < PARTICLES; i++) {
+      if (p.getY(i) < -1) continue; // unused slot parked out of sight
+      assert(p.getY(i) >= 0 && p.getY(i) <= TOP, 'y');
+      assert(Math.abs(p.getX(i) - hero.x) <= HALF + 1e-6 && Math.abs(p.getZ(i) - hero.z) <= HALF + 1e-6, 'box');
+    }
+  }
+  air.setBranch('The Dungeons of Doom');
+  assert.equal(air.points.visible, false);
+  air.dispose();
+});
