@@ -316,3 +316,39 @@ test('Magicbane wears its lit shape as the last mesh on the blade', () => {
   assert(w.y < .12 && w.x < .62 && w.z < .45);
   art.userData.dispose();
 });
+
+test('Ogresmasher wears its lit shape as the last mesh on the blade', () => {
+  const art = createGroundModel({name: 'war hammer', label: 'Ogresmasher', class: 2});
+  assert.equal(art.userData.artifact, 'ogresmasher');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .12 && w.x < .62 && w.z < .45);
+  art.userData.dispose();
+});
+
+test('Thiefbane wears its lit shape as the last mesh on the blade', () => {
+  const art = createGroundModel({name: 'long sword', label: 'Thiefbane', class: 2});
+  assert.equal(art.userData.artifact, 'thiefbane');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .12 && w.x < .62 && w.z < .45);
+  art.userData.dispose();
+});
+
+test('Grimtooth wears its lit shape as the last mesh on the blade', () => {
+  const art = createGroundModel({name: 'orcish dagger', label: 'Grimtooth', class: 2});
+  assert.equal(art.userData.artifact, 'grimtooth');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .12 && w.x < .62 && w.z < .45);
+  art.userData.dispose();
+});
+
+test('Snickersnee wears its lit shape as the last mesh on the blade', () => {
+  const art = createGroundModel({name: 'katana', label: 'Snickersnee', class: 2});
+  assert.equal(art.userData.artifact, 'snickersnee');
+  assert(art.children.at(-1).userData.magicShell);
+  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+  assert(w.y < .12 && w.x < .62 && w.z < .45);
+  art.userData.dispose();
+});
