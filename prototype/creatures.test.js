@@ -775,6 +775,7 @@ test('piercers are twisted, eyeless stalactites with a toothed gash, and the roc
   tops[name]=b.max.y;
  }
  assert(tops['glass piercer']>tops['iron piercer']&&tops['iron piercer']>tops.piercer);
+ assert(meshes(createCreature({name:'piercer',symbol:112}))[0].geometry.attributes.position.count>11800,'long bones lie among the shards round the base');
  assert(meshes(createCreature({name:'glass piercer',symbol:112}))[0].material.transparent,'glass is see-through');
  assert(meshes(createCreature({name:'iron piercer',symbol:112}))[0].material.metalness>.5,'iron is metal');
  const a=meshes(createCreature({name:'rock piercer',symbol:112})),b=meshes(createCreature({name:'rock piercer',symbol:112}));

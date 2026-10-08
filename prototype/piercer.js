@@ -149,6 +149,12 @@ function build(c,seed){
   const scl=V(s*(1+r()),s*(.35+.4*r()),s*(.6+r())),q=new THREE.Quaternion().setFromEuler(new THREE.Euler(r()*.6,r()*6.3,r()*.6));
   B.geo(shard,place(V(Math.cos(a)*d,s*.25,Math.sin(a)*d),scl,q),mix(c.stone,c.groove,.2+.4*r()));
  }
+ // What it has dropped on: three picked-clean long bones among the shards, off to the sides.
+ for(const [a,len,tilt] of [[2.5,.13,.2],[3.9,.1,-.3],[5.4,.09,.5]]){
+  const d=.3+r()*.06,bone=mix(c.tooth,c.groove,.3+.2*r());
+  B.geo(new THREE.CylinderGeometry(.007,.009,len,5).rotateZ(Math.PI/2),place(V(Math.cos(a)*d,.01,Math.sin(a)*d),1,new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt*.3,a*2.1+tilt,0))),bone);
+  for(const e of [-1,1])B.geo(new THREE.SphereGeometry(.0125,5,4),place(V(Math.cos(a)*d+Math.cos(a*2.1+tilt)*e*len/2,.012,Math.sin(a)*d-Math.sin(a*2.1+tilt)*e*len/2),1),bone);
+ }
  return {hide:B.done(),accent:A.done()};
 }
 
