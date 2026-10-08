@@ -83,12 +83,12 @@ test('a wielded Frost Brand and Fire Brand carry their lit shapes on the long-sw
   }
 });
 
-test('wielded Stormbringer, Dragonbane and Orcrist carry their lit shapes on the broad blade', async () => {
+test('wielded Stormbringer, Dragonbane, Orcrist, Demonbane, Giantslayer and Thiefbane carry their lit shapes on the broad blade', async () => {
   const {createHeldWeapon} = await import('./equipment.js');
   const {syncHeldMagic} = await import('./weapon-magic.js');
   const THREE = await import('three');
   const socket = new THREE.Group(), hero = {weaponSocket: socket};
-  for (const [name, base] of [['Stormbringer', 'runesword'], ['Dragonbane', 'broadsword'], ['Orcrist', 'elven broadsword']]) {
+  for (const [name, base] of [['Stormbringer', 'runesword'], ['Dragonbane', 'broadsword'], ['Orcrist', 'elven broadsword'], ['Demonbane', 'long sword'], ['Giantslayer', 'long sword'], ['Thiefbane', 'long sword']]) {
     const item = {name, base, class: 2};
     socket.children.slice().forEach(c => socket.remove(c)); socket.add(createHeldWeapon(item)); syncHeldMagic(hero, item, {clock: () => 0});
     const shape = socket.children[0].children.find(o => o.userData.magicShell && o.isMesh);
