@@ -53,3 +53,17 @@ test('the arrival ring gutters for an instant before it recovers', () => {
   assert.ok(at(.31) < at(.25) * .5, 'dip');
   assert.ok(at(.45) > at(.25), 'recovers');
 });
+
+test('a same-level teleport blinks out, then arrives a beat later, and leaves nothing behind', () => {
+  const made = [];
+  const THREE = new Proxy({}, {get: (_, k) => k === 'DoubleSide' ? 2 : class { constructor() { this.position = {set() {}}; this.scale = {set() {}, setScalar() {}}; this.rotation = {}; this.material = {}; this.visible = true; this.children = []; } add(c) { this.children.push(c); } dispose() {} }});
+  const parent = {add: g => made.push(g), remove: g => made.splice(made.indexOf(g), 1)};
+  const fx = createTeleportBlink(THREE, parent);
+  fx.hop({x: 1, z: 2}, {x: 8, z: 9});
+  assert.equal(fx.active, 1);
+  fx.update(BLINK.flash * 2 + .01);
+  assert.equal(fx.active, 2);
+  for (let i = 0; i < 100; i++) fx.update(.05);
+  assert.equal(fx.active, 0);
+  assert.equal(made.length, 0);
+});
