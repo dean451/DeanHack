@@ -643,6 +643,9 @@ function centipede(o){
  const shell=mat(o.color,{roughness:.5}),dark=mat(shade(o.color,.4));
  for(let i=0;i<8;i++){const z=.3-i*.085,x=Math.sin(i*.7)*.05;sphere(body,.055-(i>5?(i-5)*.008:0),i%2?shell:mat(shade(o.color,.8)),x,.09,z,1.1,.7,1);for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(x+side*.04,.09,z);body.add(leg);tube(leg,[[0,0,0],[side*.08,.03,0],[side*.13,-.08,.02]],.008,dark,6);legs.push(leg);}}
  for(const side of [-1,1])tube(body,[[side*.02,.12,.34],[side*.08,.2,.44],[side*.14,.2,.5]],.007,dark,6);
+ // A flat, armoured head with two hooked venom claws (forcipules) and red pinprick eyes, and two stiff spines at the tail.
+ sphere(body,.06,dark,0,.1,.37,1.15,.6,1);
+ for(const side of [-1,1]){const fang=tube(body,[[side*.03,.075,.4],[side*.065,.05,.45],[side*.03,.04,.5]],.011,mat('#1c1410',{roughness:.35}),8);fang.castShadow=true;sphere(body,.012,mat('#ff3a1a',{emissive:'#ff2a10',emissiveIntensity:1.6}),side*.035,.12,.41);tube(body,[[side*.015,.09,-.36],[side*.05,.1,-.46],[side*.07,.09,-.54]],.008,dark,6);}
  return actor(g,body,legs,null,[],'insect');
 }
 
