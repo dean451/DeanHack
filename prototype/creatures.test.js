@@ -53,6 +53,20 @@ test('an identified dragon wears its breath, and an unidentified brown one wears
  }
 });
 
+test('the chromatic dragon is a huge dragon whose scales shade through the five colours of Tiamat\'s heads',()=>{
+ const D=68,hues=a=>{const set=new Set();a.g.traverse(o=>{if(o.isMesh)set.add(o.material.color.getHexString());});return set;};
+ const chroma=createCreature({name:'chromatic dragon',symbol:D,color:5}),plain=createCreature({name:'draken',symbol:D,color:5});
+ assert.equal(chroma.element,'chromatic');
+ assert(hues(chroma).size>=hues(plain).size+4,'five scale colours run through the hide');
+ // a name with no glyph colour still resolves to the chromatic look, not the brown generic one
+ assert.equal(createCreature({name:'chromatic dragon',symbol:D}).element,'chromatic');
+ const size=a=>new THREE.Box3().setFromObject(a.g).max.y;
+ assert(size(chroma)>size(plain)*1.1,'bigger than an ordinary dragon');
+ const b=new THREE.Box3().setFromObject(chroma.g);
+ assert(b.min.y>-.005&&b.max.y<1.35,`height ${b.max.y}`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'sprawl');
+});
+
 test('little dog, dog and large dog are grounded canines that grow with the breed',()=>{
  let last=0;
  for(const name of ['little dog','dog','large dog']){
