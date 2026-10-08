@@ -11,7 +11,7 @@ import {segment,chain} from './ant.js';
 //   (round on the big cats) with pale insides, slit pupils (round on the big cats), whiskers.
 // - Legs: shoulder, elbow and forearm down to a padded paw with four toes, each tipped with a dark hooked claw, in front; the hind
 //   legs have a muscled thigh, a knee, a raised hock and a long foot.
-// - The kitten, housecat and large cat are scruffy strays: matted tufts along the spine, proud hip
+// - The kitten, housecat and large cat are scruffy strays with eyes set in dark hollows: matted tufts along the spine, proud hip
 //   bones, healed scratches across the right flank and a torn left ear.
 // - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
@@ -187,6 +187,8 @@ function buildHead(L,C){
   c=mix(c,C.belly,clamp01(muzzle)*(L.pattern==='ghost'||L.pattern==='shimmer'?.5:1));
   // scruffy pets: an old pale scar slashed across the bridge of the nose and the brow
   if(L.scruffy&&x>0){const d=Math.abs((y-.02)-(z-.1)*1.6+(x-.03)*1.2);if(d<.006&&z>.06&&x<.07)c=mix(c,SCAR,.85*(1-d/.006));}
+  // scruffy pets: eyes sit in dark hollows, so the bright eye reads against shadow
+  if(L.scruffy){const e=Math.hypot(ax-.041,y-.026,z-.128);if(e<.034)c=mix(c,C.stripe,.75*smooth((.034-e)/.02));}
   if(L.brows)for(const s of [-1,1])if(Math.hypot(x-s*.04,y-.055,z-.12)<.02)c=mix(c,C.belly,.9);
   return c;
  };
