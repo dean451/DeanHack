@@ -76,3 +76,8 @@ test('the pet cats have bright curious eyes and ragged cheek fur',()=>{
  const head=name=>meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry.attributes.position.count;
  for(const name of ['kitten','housecat','large cat'])assert(head(name)>head('wildcat'),`${name} has cheek tufts`);
 });
+
+test('the pet cats show a knuckled spine and a tucked flank',()=>{
+ const body=name=>meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='body').geometry.attributes.position.count;
+ for(const name of ['kitten','housecat','large cat'])assert(body(name)>=body('wildcat')+7*30,`${name} body ${body(name)}`);
+});
