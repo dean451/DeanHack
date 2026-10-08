@@ -2170,6 +2170,8 @@ test('the gelatinous cube holds skulls, bones and a rusted dagger, not coloured 
  const c=remains.geometry.attributes.color;let bone=0,dark=0;
  for(let i=0;i<c.count;i++){const r=c.getX(i),g=c.getY(i),b=c.getZ(i);if(r>.5&&g>.45&&b>.3&&r-b<.35)bone++;if(r<.05&&g<.05)dark++;}
  assert(bone>1500&&dark>100,`bone ${bone}, sockets ${dark}`);
+ let rust=0;for(let i=0;i<c.count;i++){const r=c.getX(i),g=c.getY(i),b=c.getZ(i);if(r>g*1.3&&g>b&&r<.6)rust++;}
+ assert(rust>200,`a half-eaten iron helm and a rusted dagger show rust, got ${rust}`);
 });
 
 test('mind flayers get a merged robed illithid model with a ridged cranium, glowing eyes and swaying face tentacles',()=>{

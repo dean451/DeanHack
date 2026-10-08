@@ -538,6 +538,14 @@ function cubeRemainsGeometry(){
  {const m=at(.13,.3,.1,[.3,.4,2.7]),add=(geo,local,c)=>P.add(geo,new THREE.Matrix4().multiplyMatrices(m,local),c);
   add(new THREE.CylinderGeometry(.002,.016,.14,4),at(0,.08,0,[0,0,0],[1,1,.25]),(x,y)=>mix(STEEL,RUST,.5+Math.sin(y*90)*.3));
   add(new THREE.BoxGeometry(.06,.01,.014),at(0,.005,0),RUST);add(new THREE.CylinderGeometry(.007,.007,.05,6),at(0,-.025,0),rgb('#3a2414'));}
+ // a half-digested iron helm, dented and eaten through on one side, and a ribcage fragment curling out of the jelly
+ {const m=at(-.14,.24,-.1,[.5,.3,.9]),add=(geo,local,c)=>P.add(geo,new THREE.Matrix4().multiplyMatrices(m,local),c);
+  add(new THREE.SphereGeometry(.058,10,7,0,Math.PI*2,0,Math.PI*.62),at(0,0,0,[0,0,0],[1,.9,1.05]),(x,y)=>mix(RUST,STEEL,.35+Math.sin(y*70)*.25));
+  add(new THREE.BoxGeometry(.012,.05,.012),at(0,-.004,.054),RUST);
+  add(new THREE.SphereGeometry(.02,6,4),at(.036,.012,.01,[0,0,0],[.8,1,1]),HOLE);}
+ {const m=at(.1,.16,.08,[.2,-.6,.3]),add=(geo,local,c)=>P.add(geo,new THREE.Matrix4().multiplyMatrices(m,local),c);
+  add(new THREE.CylinderGeometry(.007,.009,.14,5),at(0,0,0),bone);
+  for(let i=0;i<4;i++)add(new THREE.TorusGeometry(.05-i*.006,.004,4,8,Math.PI*1.1),at(.012,-.05+i*.032,0,[Math.PI/2,0,.4]),i%2?BONE_DARK:BONE);}
  cubeRemains=P.merge();
  return cubeRemains;
 }
