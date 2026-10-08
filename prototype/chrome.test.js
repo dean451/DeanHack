@@ -84,3 +84,9 @@ test('a text prompt shows everything that happened since the last command, not o
 test('low vitality is marked with a warning triangle, not by red and a flash alone', () => {
   assert.match(read('style.css'), /\.character\.low-hp #hp::before\{content:"\\25B2/);
 });
+
+test('message text wraps instead of clipping', () => {
+  const css = read('./style.css')
+  assert.match(css, /#engine-line[^{]*#engine-messages div[^{]*\{[^}]*overflow-wrap:anywhere/)
+  assert.match(css, /#engine-panel\{[^}]*max-width:calc\(100vw - 32px\)/)
+})
