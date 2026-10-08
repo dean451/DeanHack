@@ -102,7 +102,7 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  roundedBox(.16,.026,.013,boots,pivot,0,-.248,.112,.006);
  roundedBox(.036,.036,.018,accent,pivot,.05,-.248,.123,.006);
  const scuff=roundedBox(.068,.008,.015,accent,pivot,-.026,-.411,.228,.004);scuff.rotation.z=.13;legs.push(pivot);}
- const cuirass=new THREE.LatheGeometry([new THREE.Vector2(.115,.56),new THREE.Vector2(.14,.63),new THREE.Vector2(.19,.82),new THREE.Vector2(.18,.91),new THREE.Vector2(.115,.99)],24);
+ const cuirass=new THREE.LatheGeometry([new THREE.Vector2(.1,.56),new THREE.Vector2(.122,.63),new THREE.Vector2(.168,.82),new THREE.Vector2(.158,.91),new THREE.Vector2(.105,.99)],24);
  const chest=mesh(cuirass,armor,body);chest.scale.z=.76;
  const belt=cylinder(.134,.123,.05,leather,body,0,.605,0,24);belt.scale.z=.78;
  roundedBox(.04,.04,.015,accent,body,0,.605,.108,.006);
@@ -140,6 +140,12 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const browBand=mesh(new THREE.TorusGeometry(.215,.012,6,32,Math.PI),accent,helmet,0,.044,-.015);browBand.rotation.x=Math.PI/2;
  const ridge=new THREE.CatmullRomCurve3([new THREE.Vector3(0,.05,.205),new THREE.Vector3(0,.2,.1),new THREE.Vector3(0,.259,-.015),new THREE.Vector3(0,.2,-.13),new THREE.Vector3(0,.05,-.23)]);mesh(new THREE.TubeGeometry(ridge,20,.009,6,false),accent,helmet);
  for(let i=0;i<9;i++){const a=i*Math.PI/8;sphere(.009,accent,helmet,Math.cos(a)*.215,.055,Math.sin(a)*.215-.015);}
+ // Swept-back raven wings of dark iron fan from each temple, ragged blades with a nasal guard down the brow, so the helm reads as a winged valkyrie war-helm from above.
+ for(const side of [-1,1])for(let i=0;i<4;i++){
+  const blade=mesh(new THREE.ConeGeometry(.034-i*.003,.34-i*.045,4),i%2?armor:armorLight,helmet,side*.2,.115-i*.03,-.02-i*.05);
+  blade.scale.z=.28;blade.rotation.set(-.95-i*.2,0,-side*(.62+i*.14),'YXZ');
+ }
+ roundedBox(.026,.15,.016,armorLight,helmet,0,-.03,.222,.006);
  function setHelmet(item){helmet.visible=!!item;hair.visible=!item;helmet.name=item?.name||'Unequipped helmet';}
  for(const side of [-1,1])for(let i=0;i<3;i++){
   const plate=roundedBox(.16-i*.013,.04,.2-i*.016,i?armor:armorLight,body,side*(.25+i*.035),.995-i*.059,0,.018);plate.rotation.z=-side*(.18+i*.16);
@@ -152,8 +158,8 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const capeCloth=cloth.clone();capeCloth.side=THREE.DoubleSide;mesh(capeGeo,capeCloth,cape);
  for(const side of [-1,1]){const mantle=roundedBox(.18,.06,.29,capeCloth,body,side*.15,1.02,0,.025);mantle.rotation.z=side*.1;sphere(.026,accent,body,side*.16,1.02,.15,1,1,.45);}
  const clasp=new THREE.CatmullRomCurve3([new THREE.Vector3(-.16,1.02,.15),new THREE.Vector3(0,.99,.19),new THREE.Vector3(.16,1.02,.15)]);mesh(new THREE.TubeGeometry(clasp,12,.008,5,false),accent,body);
- const arm=new THREE.Group();arm.position.set(.3,.92,0);body.add(arm);cylinder(.066,.052,.25,armor,arm,0,-.12,0,16);
- const elbow=new THREE.Group();elbow.position.set(0,-.25,0);elbow.rotation.x=-.65;arm.add(elbow);sphere(.062,leather,elbow);cylinder(.058,.042,.22,armorLight,elbow,0,-.12,0,16);
+ const arm=new THREE.Group();arm.position.set(.3,.92,0);body.add(arm);cylinder(.056,.044,.25,armor,arm,0,-.12,0,16);
+ const elbow=new THREE.Group();elbow.position.set(0,-.25,0);elbow.rotation.x=-.65;arm.add(elbow);sphere(.062,leather,elbow);cylinder(.048,.036,.22,armorLight,elbow,0,-.12,0,16);
  const wrist=new THREE.Group();wrist.position.set(0,-.25,0);elbow.add(wrist);
  const weaponSocket=new THREE.Group();weaponSocket.rotation.x=Math.PI/4+.65;wrist.add(weaponSocket);
  function grippingHand(parent){roundedBox(.105,.1,.072,skin,parent,0,0,-.03,.025);for(let i=0;i<4;i++)roundedBox(.082,.018,.056,skin,parent,.014,.032-i*.022,.012,.008);const thumb=roundedBox(.034,.065,.055,skin,parent,-.047,.018,.013,.012);thumb.rotation.z=-.35;}
@@ -161,8 +167,8 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  let heldWeapon=null,heldKey;
  function setWeapon(item){const key=JSON.stringify(item??null);if(key===heldKey)return;heldKey=key;if(heldWeapon){heldWeapon.userData.dispose?.();weaponSocket.remove(heldWeapon);}heldWeapon=createHeldWeapon(item);weaponSocket.add(heldWeapon);}
  setWeapon({name:'long sword'});
- const shieldArm=new THREE.Group();shieldArm.position.set(-.3,.91,0);body.add(shieldArm);cylinder(.066,.052,.25,armor,shieldArm,0,-.13,0,16);
- const shieldElbow=new THREE.Group();shieldElbow.position.y=-.25;shieldElbow.rotation.x=-.9;shieldArm.add(shieldElbow);cylinder(.058,.042,.22,armorLight,shieldElbow,0,-.1,0,16);
+ const shieldArm=new THREE.Group();shieldArm.position.set(-.3,.91,0);body.add(shieldArm);cylinder(.056,.044,.25,armor,shieldArm,0,-.13,0,16);
+ const shieldElbow=new THREE.Group();shieldElbow.position.y=-.25;shieldElbow.rotation.x=-.9;shieldArm.add(shieldElbow);cylinder(.048,.036,.22,armorLight,shieldElbow,0,-.1,0,16);
  const shieldHand=new THREE.Group();shieldHand.position.set(0,-.23,0);shieldHand.rotation.set(.35,-.2,-.12);shieldElbow.add(shieldHand);grippingHand(shieldHand);
  const shieldRoot=new THREE.Group();shieldRoot.position.set(0,0,.085);shieldHand.add(shieldRoot);
  const shield=cylinder(.29,.29,.065,leather,shieldRoot,0,0,0,32);shield.rotation.x=Math.PI/2;
