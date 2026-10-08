@@ -472,3 +472,22 @@ test('a wielded Tsurugi of Muramasa carries its lit shape on the +x flat of the 
   assert(b.min.x > .004 && b.max.x < .012, `sits on the +x flat ${b.min.x}..${b.max.x}`);
   assert(b.max.z < .05 && b.min.z > -.05);
 });
+
+test('a wielded Snickersnee carries its lit hairline and nicks on the +x flat of the curved katana blade', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {applyArtifactTwist} = await import('./artifact-twist.js');
+  const sword = createHeldWeapon({name: 'katana', class: 2});
+  applyArtifactTwist(sword, {label: 'Snickersnee', class: 2}, {clone: true, held: true});
+  const shell = sword.children.at(-1);
+  assert.equal(sword.userData.artifact, 'snickersnee');
+  assert(shell.userData.magicShell);
+  const b = new THREE.Box3().setFromObject(shell);
+  assert(b.min.y > .078 && b.max.y < .86, `y ${b.min.y}..${b.max.y}`);
+  assert(b.min.x > .002 && b.max.x < .01, `sits on the +x flat ${b.min.x}..${b.max.x}`);
+  assert(b.max.z < .02 && b.min.z > -.03, `z ${b.min.z}..${b.max.z}`);
+  // the winding is flipped with the mirrored z, so the closed shapes keep a positive signed volume (faces look outward)
+  const g = shell.geometry, p = g.attributes.position, ix = g.index.array, v = i => new THREE.Vector3().fromBufferAttribute(p, ix[i]);
+  let vol = 0;
+  for (let i = 0; i < ix.length; i += 3) vol += v(i).dot(new THREE.Vector3().crossVectors(v(i + 1), v(i + 2)));
+  assert(vol > 0, `faces look outward (${vol})`);
+});
