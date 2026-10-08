@@ -125,7 +125,7 @@ function buildHead(){
  // sockets sit dark under a brow ridge, the eyes are small and bright, the nose bridge catches light
  P.add(new THREE.SphereGeometry(.095,10,8),at(0,.105,0,[0,0,0],[.86,1.04,.92]),(x,y,z)=>z<-.03?SKIN_SHADE:y<.09?mix(SKIN,SKIN_SHADE,.35):SKIN);
  P.add(new THREE.ConeGeometry(.06,.085,5),at(0,.045,.012,[Math.PI,Math.PI/5,0],[.9,1,.95]),(x,y,z)=>z<-.02?SKIN_SHADE:mix(SKIN_SHADE,SKIN,.55));
- P.add(new THREE.BoxGeometry(.03,.02,.024),at(0,.0,.058,[.2,0,0]),SKIN);
+ P.add(new THREE.ConeGeometry(.017,.04,4),at(0,.003,.057,[-Math.PI/2+.45,Math.PI/4,0],[1,1,.8]),(x,y,z)=>y<0?mix(SKIN,SKIN_SHADE,.5):SKIN);
  P.add(new THREE.BoxGeometry(.012,.05,.02),at(0,.1,.086,[-.28,0,0]),SKIN_LIGHT);
  P.add(new THREE.ConeGeometry(.014,.032,4),at(0,.075,.097,[Math.PI/2-.2,Math.PI/4,0]),SKIN);
  P.add(new THREE.BoxGeometry(.034,.0045,.01),at(0,.052,.081),LIPS_DARK);
