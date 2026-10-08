@@ -4,6 +4,9 @@
 #include "hack.h"
 
 static boolean tele_jump_ok(coordxy, coordxy, coordxy, coordxy);
+static void tele_trap_inner(struct trap *);
+/* set while a teleportation trap is the cause, so the window port can tell a trap from a scroll */
+static int tele_by_trap = 0;
 static boolean teleok(coordxy, coordxy, boolean);
 static void vault_tele(void);
 static boolean rloc_pos_ok(coordxy, coordxy, struct monst *);
@@ -555,6 +558,8 @@ void
 teleds(coordxy nux, coordxy nuy, boolean allow_drag)
 {
     unsigned was_swallowed;
+
+    TELEPORT_HOOK(u.ux, u.uy, nux, nuy, tele_by_trap);
 
     if (u.utraptype == TT_BURIEDBALL) {
         /* unearth it */
@@ -1439,6 +1444,14 @@ domagicportal(struct trap *ttmp)
 
 void
 tele_trap(struct trap *trap)
+{
+    tele_by_trap = 1;
+    tele_trap_inner(trap);
+    tele_by_trap = 0;
+}
+
+static void
+tele_trap_inner(struct trap *trap)
 {
     if (In_endgame(&u.uz) || Antimagic) {
         if (Antimagic) {

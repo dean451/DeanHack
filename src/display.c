@@ -1037,6 +1037,10 @@ void (*revive_hook)(struct monst *, struct obj *) = 0;
 /* The hero picking an object up (the object now in inventory, the square it
    lay on, how many were taken). */
 void (*pickup_hook)(struct obj *, coordxy, coordxy, long) = 0;
+/* The hero teleporting on the same level (from, to, whether a trap did it), and a wish being
+   granted (the object, and what granted it: see wish_source in zap.c). */
+void (*teleport_hook)(coordxy, coordxy, coordxy, coordxy, int) = 0;
+void (*wish_hook)(struct obj *, int) = 0;
 #define TMP_AT_HOOK(op, x, y, g) \
     do { if (tmp_at_hook) (*tmp_at_hook)(op, x, y, g); } while (0)
 #else
