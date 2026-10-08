@@ -24,6 +24,22 @@ The player trudges through a dark, barren, hostile fantasy world full of monster
 - **Unseen monster marker:** a creature the hero cannot see (invisible, without see invisible) shows in the ASCII game as a grey capital I, so you know something is there. The bridge already sends `invisible` on the cell. Draw a clear marker for it: a grey capital I with a faint shimmering distortion of the air, readable at a glance and plainly not a real monster.
 - **Animations** lead into whimsy: personality, odd tics and surprise in how things move. The whimsy lives in the motion, not the look, so keep it dark-humoured and a little uncanny, never cute or bouncy.
 
+### Model quality bar
+
+The user judges models at the game camera (top-down, a few tiles across), and has rejected faces and hands that were round, flat or toy-like. Hold every model to this bar, and check your work against it before you open a PR.
+
+- **Benchmarks:** the enormous rat, the weeping angels and the High-threat monsters are the quality to match. Before changing a model, open one benchmark and one comparable model in `item-review.html`, and say in the PR body what you matched.
+- **Silhouette first.** The outline must read at game-camera size: distinct shapes for head, shoulders, hands, weapon and tail, with gaps between them. If you cannot tell what it is from a black silhouette, adding detail will not save it.
+- **Angular, not blobby.** Build heads, hands, limbs and bodies from faceted, tapered, slightly asymmetric forms (low-sided cylinders and cones, wedge cheeks and jaws, stepped plates), not smooth spheres, capsules and ellipsoids stacked together. A sphere is for an eyeball or a pearl, nothing else.
+- **Proportion is realistic, not chibi.** No oversized heads, stubby limbs or mitten hands, no cartoon eyes. A humanoid head is about one seventh of the height; hands are fingers and a thumb, not paddles; wrists and ankles are thin. Anything cute gets grimmer.
+- **Faces:** the features sit in shadow and light, not in outline. Deep-set eyes under a brow ridge, a nose bridge that catches light, cheekbones, a hard jaw, a small mouth. Eyes are small and bright against a darkened socket. Use value contrast (darker sockets, lighter ridges), not just a different colour. A face that reads as a flat disc, a mask or a doll is a failure.
+- **Hands and held things:** every hand shows a thumb and at least four fingers (or claws) wrapped believably around what it holds, with knuckles, wrists and cuffs. Weapons and shields are held at the right point, not floating.
+- **Detail hierarchy:** big shapes first, then medium (plates, straps, folds), then small (rivets, scratches, wear). Put the detail where the eye lands (head, hands, weapon, chest). Wear every surface: scuffs, dents, grime, rust, stains. Nothing is factory clean.
+- **Material and value range:** use at least three tones per model (dark recesses, a mid body, a few bright accents such as metal edges, eyes or a glow). Avoid one flat colour and avoid pastel. Metals get roughness variation, cloth and leather look worn.
+- **Asymmetry and character:** one chipped horn, a torn cloak, a mismatched pauldron, a scar. Perfect symmetry looks like a toy.
+- **Cost:** merge geometry and reuse materials (see Performance). Do not buy detail with draw calls.
+- **Verify by looking:** `item-review.html` and the demo scene render in Chromium through Playwright (`render-smoke.test.js` shows how); render the model at the game camera distance and at close range, and look at it before declaring it done. If it would look at home on a toy shelf, redo it.
+
 ### No audio
 
 This game has no sound and will not get any. Do not add audio, sound effects, music or audio libraries, and do not propose them. Every cue (a step-over, a pickup, a hit, a status effect, a high-threat monster coming into view) must work visually.
