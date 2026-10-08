@@ -66,3 +66,8 @@ test('the end-of-game text says what killed the hero, and a tombstone event carr
  const server=readFileSync(new URL('./engine/server.js',import.meta.url),'utf8');
  assert.match(server,/'wish','tombstone'/,'the server passes it through');
 });
+
+test('the frame says what form the hero has polymorphed into', () => {
+  const c = readFileSync(new URL('./engine/bridge.c', import.meta.url), 'utf8');
+  assert.match(c, /\\"form\\":"\);quoted\(Upolyd\?mons\[u\.umonnum\]\.mname:""\)/);
+});
