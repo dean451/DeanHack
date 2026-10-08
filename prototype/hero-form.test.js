@@ -34,3 +34,22 @@ test('a form that cannot be built leaves the Valkyrie alone', () => {
   assert.equal(form.current, '');
   assert.ok(hero.g.children.every(c => c.visible));
 });
+
+test('the stand-in walks, bobs and sways while the hero moves', () => {
+  const hero = createValkyrie();
+  const leg = new THREE.Object3D(), body = new THREE.Object3D(), tail = new THREE.Object3D();
+  const g = new THREE.Group(); g.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1)));
+  const form = createHeroForm(hero, () => ({ g, legs: [leg], body, tail }));
+  form.animate(1, true);
+  form.sync('ogre');
+  form.animate(0.3, true);
+  assert.notEqual(leg.rotation.x, 0);
+  assert.notEqual(body.position.y, 0);
+  assert.notEqual(tail.rotation.z, 0);
+  form.animate(0.3, false);
+  assert.equal(leg.rotation.x, 0, 'standing still stills the legs');
+  form.sync('');
+  leg.rotation.x = 1;
+  form.animate(0.3, true);
+  assert.equal(leg.rotation.x, 1, 'no stand-in, no animation');
+});
