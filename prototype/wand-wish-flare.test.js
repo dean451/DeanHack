@@ -1,0 +1,38 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {flashPose, ringPose, spikePose, isWandWish, createWandWishFlare, FLARE} from './wand-wish-flare.js';
+
+test('only a wand wish triggers it', () => {
+  assert.ok(isWandWish({type: 'wish', source: 'wand'}));
+  for (const v of [{type: 'wish', source: 'bottle'}, {type: 'wish', source: 'demon'}, {type: 'pickup', source: 'wand'}, null]) assert.ok(!isWandWish(v), JSON.stringify(v));
+});
+
+test('every part starts and ends invisible', () => {
+  for (const t of [0, FLARE.total, FLARE.total + 1]) for (const p of [flashPose(t), ringPose(t), spikePose(t)]) assert.equal(p.alpha, 0, String(t));
+});
+
+test('the flash hits hard and early, and everything stays in bounds', () => {
+  let peak = 0, at = 0;
+  for (let t = 0; t <= FLARE.total; t += .005) {
+    const f = flashPose(t), r = ringPose(t), s = spikePose(t);
+    for (const a of [f.alpha, r.alpha, s.alpha]) assert.ok(a >= 0 && a <= 1, String(t));
+    assert.ok(f.size <= .7 + 1e-9 && r.radius <= 1.75 + 1e-9 && s.height <= 1.61 && s.y >= 0, String(t));
+    if (f.alpha > peak) { peak = f.alpha; at = t; }
+  }
+  assert.ok(peak > .8 && at < .1);
+});
+
+test('the ring only spreads outward', () => {
+  let prev = 0;
+  for (let t = .001; t < FLARE.total; t += .01) { const r = ringPose(t).radius; assert.ok(r >= prev, String(t)); prev = r; }
+});
+
+test('the effect plays once per wand wish and cleans up', () => {
+  const made = [], THREE = new Proxy({}, {get: (_, k) => k === 'AdditiveBlending' ? 2 : class { constructor() { this.position = {set() {}, y: 0}; this.scale = {set() {}, setScalar() {}}; this.rotation = {}; this.material = {}; made.push(this); } add() {} dispose() {} }});
+  const parent = {add() {}, remove() {}}, fx = createWandWishFlare(THREE, parent);
+  fx.wish({type: 'wish', source: 'bottle'}, 1, 1); assert.equal(fx.active, 0);
+  fx.wish({type: 'wish', source: 'wand'}, 1, 1); assert.equal(fx.active, 1);
+  fx.update(.5); assert.equal(fx.active, 1);
+  fx.update(.5); assert.equal(fx.active, 0);
+  fx.wish({type: 'wish', source: 'wand'}, 1, 1); fx.clear(); assert.equal(fx.active, 0);
+});
