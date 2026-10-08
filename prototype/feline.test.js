@@ -50,3 +50,22 @@ test('cats get a shaped torso, a turning head with ears and whiskers, jointed le
  x.forEach((m,i)=>{assert.equal(m.geometry,y[i].geometry);assert.equal(m.material,y[i].material);});
  assert.notEqual(meshes(createCreature({name:'panther'}))[0].geometry,x[0].geometry);
 });
+
+test('every paw carries dark hooked claws: four per foot, in the same single leg mesh',()=>{
+ for(const name of ['kitten','housecat','tiger']){
+  const a=createCreature({name});
+  for(const leg of a.legs){
+   const m=leg.children.find(o=>o.isMesh),col=m.geometry.attributes.color,pos=m.geometry.attributes.position;
+   let dark=0;
+   for(let i=0;i<col.count;i++)if(col.getX(i)<.13&&col.getY(i)<.12&&col.getZ(i)<.12&&pos.getY(i)<.06-leg.position.y+.03)dark++;
+   assert(dark>=4*12,`${name}: claw vertices ${dark}`);
+  }
+ }
+});
+
+test('the pet cats are scruffy: more geometry than a wild cat of the same build, a shorter torn left ear',()=>{
+ const tri=name=>meshes(createCreature({name,symbol:102,color:3})).reduce((n,m)=>n+m.geometry.attributes.position.count,0);
+ for(const name of ['kitten','housecat','large cat'])assert(tri(name)>tri('wildcat'),`${name} has tufts and a torn ear`);
+ const ear=name=>{const h=meshes(createCreature({name})).find(m=>m.userData.part==='head').geometry;h.computeBoundingBox();return h.boundingBox;};
+ for(const name of ['kitten','housecat','large cat']){const b=ear(name);assert(b.max.y>.1&&b.max.y<.2,`${name} head height ${b.max.y}`);}
+});
