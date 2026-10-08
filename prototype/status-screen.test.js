@@ -28,3 +28,14 @@ test('confusion gets its own swaying class, once, beside blindness', () => {
   applyStatusScreen(el, []);
   assert.equal(set.size, 0);
 });
+
+test('stunned gets its own jolting class, once, beside the others', () => {
+  assert.deepEqual(statusScreenClasses(['Stun']), ['status-stunned']);
+  assert.deepEqual(statusScreenClasses(['Stunned', 'Stun', 'Blind']), ['status-stunned', 'status-blind']);
+  const set = new Set();
+  const el = {classList: {toggle: (c, on) => (on ? set.add(c) : set.delete(c))}};
+  applyStatusScreen(el, ['Stun']);
+  assert.ok(set.has('status-stunned') && !set.has('status-confused'));
+  applyStatusScreen(el, []);
+  assert.equal(set.size, 0);
+});

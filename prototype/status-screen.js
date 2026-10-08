@@ -1,9 +1,9 @@
 // Whole-screen treatment for the hero's status conditions, so the player feels a state and not only reads
 // its word. Blindness closes the edges of the view in on a dark that breathes; confusion
-// sways the view and smears it with a drifting sick violet. The other states (stunned, hallucinating) still
-// wait; STATE_CLASSES is where they join.
+// sways the view and smears it with a drifting sick violet; stunned jolts the whole view off its footing in
+// sharp, uneven lurches. The other state (hallucinating) still waits; STATE_CLASSES is where they join.
 
-const STATE_CLASSES = {blind: 'status-blind', conf: 'status-confused', confused: 'status-confused'};
+const STATE_CLASSES = {blind: 'status-blind', conf: 'status-confused', confused: 'status-confused', stun: 'status-stunned', stunned: 'status-stunned'};
 
 // The screen classes for the conditions on the engine's status line ('Blind', 'Hungry'...), in a fixed order.
 export function statusScreenClasses(conditions) {
