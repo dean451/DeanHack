@@ -429,6 +429,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
     for(const item of items){const row=document.createElement('label');row.className='engine-menu-row';
      if(item.selectable&&menu.how!==0){const input=document.createElement('input');input.type=menu.how===1?'radio':'checkbox';input.name='selection';input.value=item.id;input.dataset.accelerator=item.key;row.append(input);const accel=document.createElement('kbd');accel.textContent=item.key?`[${item.key}]`:'';row.append(accel);}
      else if(!item.selectable&&item.text.trim())row.classList.add('engine-menu-heading');
+     const buc=item.selectable?itemBuc(item.text):null;if(buc){row.classList.add('buc-'+buc);const mark=document.createElement('span');mark.className='buc-mark';mark.textContent=bucMark(buc)+' ';mark.setAttribute('aria-hidden','true');row.append(mark);}
      row.append(document.createTextNode(item.text));form.append(row);}
     const boxes=()=>[...form.querySelectorAll('input')];
     // One button per class in the list (Potions !, Scrolls ?...), the same toggle as typing its symbol.
