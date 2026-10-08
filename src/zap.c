@@ -5894,6 +5894,7 @@ makewish(boolean magical) /**< if wishing for magical items is allowed */
 {
     int source = wish_source; /* what is granting this wish, see wish_source */
     wish_source = WISH_FROM_OTHER;
+    (void) source; /* only the window port's hook reads it (empty in other builds) */
     char buf[BUFSZ];
 #ifdef LIVELOGFILE
     char rawbuf[BUFSZ]; /* for exact livelog reporting */
