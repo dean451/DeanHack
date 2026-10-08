@@ -25,11 +25,13 @@ export function motePose(i, t) {
 // The ring closes in around the feet in hitching steps, like a held breath being dragged out of
 // the hero (monotonic: it stalls but never opens), then jerks once and goes out.
 export const RING_HITCH = .08;
+// As it goes out the ring stutters once, dropping nearly dark before it comes back for its last breath.
+const RING_DIM = t => t > .9 && t < .94 ? .25 : 1;
 export function ringPose(t) {
   if (t <= .1 || t >= ANTI.total) return {scale: .05, alpha: 0};
   const u0 = clamp01((t - .1) / (ANTI.drain - .1)), u = clamp01(u0 + RING_HITCH * Math.sin(u0 * Math.PI * 3) * (1 - u0));
   const twitch = t > ANTI.drain ? .08 * Math.sin((t - ANTI.drain) / (ANTI.total - ANTI.drain) * Math.PI) : 0;
-  return {scale: .6 * (1 - u) + .08 + twitch, alpha: .75 * (t > ANTI.drain ? 1 - (t - ANTI.drain) / (ANTI.total - ANTI.drain) : clamp01((t - .1) / .08))};
+  return {scale: .6 * (1 - u) + .08 + twitch, alpha: .75 * (t > ANTI.drain ? RING_DIM(t) *  1 - (t - ANTI.drain) / (ANTI.total - ANTI.drain) : clamp01((t - .1) / .08))};
 }
 
 export function createAntiMagic(THREE, parent) {
