@@ -17,3 +17,14 @@ test('the overlay gains the class while blind and loses it on recovery', () => {
   applyStatusScreen(el, []);
   assert.equal(set.size, 0);
 });
+
+test('confusion gets its own swaying class, once, beside blindness', () => {
+  assert.deepEqual(statusScreenClasses(['Conf']), ['status-confused']);
+  assert.deepEqual(statusScreenClasses(['Blind', 'Conf', 'Confused']), ['status-blind', 'status-confused']);
+  const set = new Set();
+  const el = {classList: {toggle: (c, on) => (on ? set.add(c) : set.delete(c))}};
+  applyStatusScreen(el, ['Conf']);
+  assert.ok(set.has('status-confused') && !set.has('status-blind'));
+  applyStatusScreen(el, []);
+  assert.equal(set.size, 0);
+});
