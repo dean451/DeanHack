@@ -239,7 +239,7 @@ function mesh(parent,geo,name){const m=new THREE.Mesh(geo,material);m.castShadow
 export function createValkyrie(){
  const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.add(body);
  mesh(body,S.body,'body');
- const head=new THREE.Group();head.position.set(0,.955,0);body.add(head);
+ const head=new THREE.Group();head.position.set(0,.955,0);head.rotation.x=.18;body.add(head);// chin tucked so the top-down camera sees the face under the brim
  mesh(head,S.head,'head');
  const legs=[],arms=[];
  for(const s of [-1,1]){
