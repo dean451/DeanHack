@@ -327,7 +327,10 @@ static void frame_body(void) {
     quoted(dungeons[u.uz.dnum].dname);
     /* the special level's prototype name ("medusa", "orcus", "tower1"...), or "" */
     {s_level *sp=Is_special(&u.uz);printf(",\"special\":");quoted(sp?sp->proto:"");}
-    printf(",\"player\":{\"x\":%d,\"z\":%d,\"hp\":%d,\"maxhp\":%d,\"ac\":%d,\"level\":%d,\"weapon\":",u.ux,u.uy,Upolyd?u.mh:u.uhp,Upolyd?u.mhmax:u.uhpmax,u.uac,u.ulevel);
+    printf(",\"player\":{\"x\":%d,\"z\":%d,\"hp\":%d,\"maxhp\":%d,\"ac\":%d,\"level\":%d",u.ux,u.uy,Upolyd?u.mh:u.uhp,Upolyd?u.mhmax:u.uhpmax,u.uac,u.ulevel);
+    /* what the hero has polymorphed into ("" when in normal form), so the client can swap the model */
+    printf(",\"form\":");quoted(Upolyd?mons[u.umonnum].mname:"");
+    printf(",\"weapon\":");
     held(uwep);
     /* Two-weaponing: the other hand holds the alternate weapon. */
     printf(",\"offhand\":");held(u.twoweap?uswapwep:0);
