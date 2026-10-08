@@ -140,6 +140,12 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const browBand=mesh(new THREE.TorusGeometry(.215,.012,6,32,Math.PI),accent,helmet,0,.044,-.015);browBand.rotation.x=Math.PI/2;
  const ridge=new THREE.CatmullRomCurve3([new THREE.Vector3(0,.05,.205),new THREE.Vector3(0,.2,.1),new THREE.Vector3(0,.259,-.015),new THREE.Vector3(0,.2,-.13),new THREE.Vector3(0,.05,-.23)]);mesh(new THREE.TubeGeometry(ridge,20,.009,6,false),accent,helmet);
  for(let i=0;i<9;i++){const a=i*Math.PI/8;sphere(.009,accent,helmet,Math.cos(a)*.215,.055,Math.sin(a)*.215-.015);}
+ // Swept-back raven wings of dark iron fan from each temple, ragged blades with a nasal guard down the brow, so the helm reads as a winged valkyrie war-helm from above.
+ for(const side of [-1,1])for(let i=0;i<4;i++){
+  const blade=mesh(new THREE.ConeGeometry(.034-i*.003,.34-i*.045,4),i%2?armor:armorLight,helmet,side*.2,.115-i*.03,-.02-i*.05);
+  blade.scale.z=.28;blade.rotation.set(-.95-i*.2,0,-side*(.62+i*.14),'YXZ');
+ }
+ roundedBox(.026,.15,.016,armorLight,helmet,0,-.03,.222,.006);
  function setHelmet(item){helmet.visible=!!item;hair.visible=!item;helmet.name=item?.name||'Unequipped helmet';}
  for(const side of [-1,1])for(let i=0;i<3;i++){
   const plate=roundedBox(.16-i*.013,.04,.2-i*.016,i?armor:armorLight,body,side*(.25+i*.035),.995-i*.059,0,.018);plate.rotation.z=-side*(.18+i*.16);
