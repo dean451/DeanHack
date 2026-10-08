@@ -362,6 +362,10 @@ const heldDaggerMatrix = new THREE.Matrix4().set(0, 0, 1.6, 0,  1, 0, 0, .1,  0,
 // A wielded Tsurugi of Muramasa is the straight diamond-section blade (tsurugi.js): point up +y from .078 to 1,
 // flats facing +x, only about .008 thick. The floor shape is stood onto the +x flat, stretched up the longer
 // blade and drawn in across it so the blood drops hang just off the edge.
+// Magicbane's floor shape (loops and motes) runs to x .4, past the dagger blade, so held it is also squeezed
+// to 0.6 along the blade: y .16 to .32.
+const HELD_MAGICBANE_SHAPES = new Set(['magicbane']);
+const heldMagicbaneMatrix = new THREE.Matrix4().set(0, 0, 1.2, 0,  .6, 0, 0, .08,  0, 1, 0, .008,  0, 0, 0, 1);
 const HELD_TSURUGI_SHAPES = new Set(['tsurugi of muramasa']);
 const heldTsurugiMatrix = new THREE.Matrix4().set(0, .5, 0, .0005,  2.4, 0, 0, -.1,  0, 0, -.6, 0,  0, 0, 0, 1);
 
@@ -382,8 +386,8 @@ export function applyArtifactTwist(group, object, {clone = false, held = false} 
     m.emissive.copy(color);
     m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, POWER_BY_KIND[kind] ?? POWER);
   });
-  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
-  if (shape && held) shape.forEach(g => g.applyMatrix4(HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : HELD_TSURUGI_SHAPES.has(kind) ? heldTsurugiMatrix : heldMatrix));
+  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_MAGICBANE_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
+  if (shape && held) shape.forEach(g => g.applyMatrix4(HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : HELD_MAGICBANE_SHAPES.has(kind) ? heldMagicbaneMatrix : HELD_TSURUGI_SHAPES.has(kind) ? heldTsurugiMatrix : heldMatrix));
   if (shape) {
     const mesh = new THREE.Mesh(mergeGeometries(shape), shapeMaterial(ARTIFACTS[kind].color));
     mesh.userData.magicShell = true; mesh.castShadow = true;

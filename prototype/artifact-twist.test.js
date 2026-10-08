@@ -446,6 +446,19 @@ test('a wielded Sting and Grimtooth carry their lit shapes on the dagger blade',
   }
 });
 
+test('a wielded Magicbane carries its lit loops and motes squeezed onto the dagger blade', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {applyArtifactTwist} = await import('./artifact-twist.js');
+  const dagger = createHeldWeapon({name: 'athame', class: 2});
+  applyArtifactTwist(dagger, {label: 'Magicbane', class: 2}, {clone: true, held: true});
+  const shell = dagger.children.at(-1);
+  assert.equal(dagger.userData.artifact, 'magicbane');
+  assert(shell.userData.magicShell);
+  const b = new THREE.Box3().setFromObject(shell);
+  assert(b.min.y > .13 && b.max.y < .34, `y ${b.min.y}..${b.max.y}`);
+  assert(b.max.z < .08 && b.min.z > -.01 && b.max.x - b.min.x < .12);
+});
+
 test('a wielded Tsurugi of Muramasa carries its lit shape on the +x flat of the straight blade', async () => {
   const {createHeldWeapon} = await import('./equipment.js');
   const {applyArtifactTwist} = await import('./artifact-twist.js');
