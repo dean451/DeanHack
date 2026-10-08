@@ -47,3 +47,9 @@ test('the arrival flash only follows a blink, and everything finishes', () => {
   b.message('You are momentarily blinded by a flash of light.', 0, 0); b.clear();
   b.levelChanged(0, 0); assert.equal(b.active, 0, 'clear disarms');
 });
+
+test('the arrival ring gutters for an instant before it recovers', () => {
+  const at = k => arrivePose(BLINK.arrive * k).ringAlpha;
+  assert.ok(at(.31) < at(.25) * .5, 'dip');
+  assert.ok(at(.45) > at(.25), 'recovers');
+});
