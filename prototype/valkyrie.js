@@ -125,7 +125,7 @@ function buildHead(){
  // sockets sit dark under a brow ridge, the eyes are small and bright, the nose bridge catches light
  P.add(new THREE.SphereGeometry(.095,10,8),at(0,.105,0,[0,0,0],[.86,1.04,.92]),(x,y,z)=>z<-.03?SKIN_SHADE:y<.09?mix(SKIN,SKIN_SHADE,.35):SKIN);
  P.add(new THREE.ConeGeometry(.06,.085,5),at(0,.045,.012,[Math.PI,Math.PI/5,0],[.9,1,.95]),(x,y,z)=>z<-.02?SKIN_SHADE:mix(SKIN_SHADE,SKIN,.55));
- P.add(new THREE.BoxGeometry(.03,.02,.024),at(0,.0,.058,[.2,0,0]),SKIN);
+ P.add(new THREE.ConeGeometry(.017,.04,4),at(0,.003,.057,[-Math.PI/2+.45,Math.PI/4,0],[1,1,.8]),(x,y,z)=>y<0?mix(SKIN,SKIN_SHADE,.5):SKIN);
  P.add(new THREE.BoxGeometry(.012,.05,.02),at(0,.1,.086,[-.28,0,0]),SKIN_LIGHT);
  P.add(new THREE.ConeGeometry(.014,.032,4),at(0,.075,.097,[Math.PI/2-.2,Math.PI/4,0]),SKIN);
  P.add(new THREE.BoxGeometry(.034,.0045,.01),at(0,.052,.081),LIPS_DARK);
@@ -148,6 +148,8 @@ function buildHead(){
  P.add(new THREE.CylinderGeometry(.116,.116,.022,26,1,true),at(0,.137,0,[0,0,0],[1,1,1.08]),(x,y)=>y>.14?BRONZE_HI:BRONZE);
  for(let i=0;i<12;i++){const a=i/12*Math.PI*2;P.add(new THREE.OctahedronGeometry(.0055),at(Math.sin(a)*.119,.137,Math.cos(a)*.128),BRONZE_DARK);}
  P.add(new THREE.BoxGeometry(.016,.066,.007),at(0,.1,.118,[-.08,0,0]),(x,y)=>ramp(IRON,STEEL_HI,.07,.13)(y));
+ // a lowered brim over the brow: its shadow falls across the eyes seen from above
+ P.add(new THREE.BoxGeometry(.15,.007,.045),at(0,.152,.122,[.3,0,0]),(x,y,z)=>z>0?mix(IRON,STEEL,.3):IRON);
  P.add(new THREE.SphereGeometry(.012,8,6),at(0,.252,0),BRONZE_HI);
  // white feathered wings at the temples, swept up and back from bronze mounts
  for(const s of [-1,1]){
