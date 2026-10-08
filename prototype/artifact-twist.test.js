@@ -534,3 +534,16 @@ test('a wielded Cleaver carries its lit chop line along the edge of the battle-a
   assert(b.min.x > .02 && b.max.x < .29, `x ${b.min.x}..${b.max.x}`);
   assert(b.min.z > .015 && b.max.z < .024, `sits on the +z face ${b.min.z}..${b.max.z}`);
 });
+
+test('a wielded Trollsbane carries its lit burn-ring on the haft and its cuts on the ball of the morning star', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {applyArtifactTwist} = await import('./artifact-twist.js');
+  const star = createHeldWeapon({name: 'morning star', class: 2});
+  applyArtifactTwist(star, {label: 'Trollsbane', class: 2}, {clone: true, held: true});
+  const shell = star.children.at(-1);
+  assert.equal(star.userData.artifact, 'trollsbane');
+  assert(shell.userData.magicShell);
+  const b = new THREE.Box3().setFromObject(shell);
+  assert(b.min.y > .25 && b.max.y < .7, `y ${b.min.y}..${b.max.y}`);
+  assert(b.min.x > -.045 && b.max.x < .045 && b.min.z > -.045 && b.max.z < .1, `x ${b.min.x}..${b.max.x} z ${b.min.z}..${b.max.z}`);
+});

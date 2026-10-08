@@ -389,6 +389,12 @@ const heldHammerMatrix = new THREE.Matrix4().set(0, -1, 0, -.176,  1, 0, 0, .18,
 // floor x becomes the height and the floor z (widened fourfold) the reach out from the haft, on the +z face.
 const HELD_AXE_SHAPES = new Set(['cleaver']);
 const heldAxeMatrix = new THREE.Matrix4().set(0, 0, 4, .16,  1, 0, 0, .19,  0, 1, 0, .005,  0, 0, 0, 1);
+// A wielded Trollsbane is the morning star (buildMorningStar in equipment.js): the haft stands on y with a spiked iron
+// ball of radius .088 at y .63. The floor burn-ring is widened to clear the haft and slid down to y .3, where no band
+// or strap sits; the four cuts are shrunk along the haft and laid on the +z shoulder of the ball, scored across it.
+const HELD_MORNING_STAR_SHAPES = new Set(['trollsbane']);
+const heldMorningStarRingMatrix = new THREE.Matrix4().set(2.3, 0, 0, -.23,  0, 1, 0, .2865,  0, 0, 2.3, 0,  0, 0, 0, 1);
+const heldMorningStarCutMatrix = new THREE.Matrix4().set(0, 0, 1, 0,  .3, 0, 0, .54075,  0, 1, 0, .0765,  0, 0, 0, 1);
 const heldTsurugiMatrix = new THREE.Matrix4().set(0, .5, 0, .0005,  2.4, 0, 0, -.1,  0, 0, -.6, 0,  0, 0, 0, 1);
 
 export function applyArtifactTwist(group, object, {clone = false, held = false} = {}) {
@@ -408,11 +414,11 @@ export function applyArtifactTwist(group, object, {clone = false, held = false} 
     m.emissive.copy(color);
     m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, POWER_BY_KIND[kind] ?? POWER);
   });
-  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_MAGICBANE_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind) || HELD_KATANA_SHAPES.has(kind) || HELD_SABER_SHAPES.has(kind) || HELD_HAMMER_SHAPES.has(kind) || HELD_AXE_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
+  const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_MAGICBANE_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind) || HELD_KATANA_SHAPES.has(kind) || HELD_SABER_SHAPES.has(kind) || HELD_HAMMER_SHAPES.has(kind) || HELD_AXE_SHAPES.has(kind) || HELD_MORNING_STAR_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
   if (shape && held) {
     const m = HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : HELD_MAGICBANE_SHAPES.has(kind) ? heldMagicbaneMatrix : HELD_TSURUGI_SHAPES.has(kind) ? heldTsurugiMatrix : HELD_KATANA_SHAPES.has(kind) ? heldKatanaMatrix : HELD_SABER_SHAPES.has(kind) ? heldSaberMatrix : HELD_HAMMER_SHAPES.has(kind) ? heldHammerMatrix : HELD_AXE_SHAPES.has(kind) ? heldAxeMatrix : heldMatrix;
-    shape.forEach(g => {
-      g.applyMatrix4(m);
+    shape.forEach((g, i) => {
+      g.applyMatrix4(HELD_MORNING_STAR_SHAPES.has(kind) ? (i ? heldMorningStarCutMatrix : heldMorningStarRingMatrix) : m);
       if (m.determinant() < 0 && g.index) { const a = g.index.array; for (let i = 0; i < a.length; i += 3) { const t = a[i + 1]; a[i + 1] = a[i + 2]; a[i + 2] = t; } }
     });
   }
