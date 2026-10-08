@@ -590,7 +590,25 @@ static int ext(void){char buf[BUFSZ];
  return hit>=0?hit:-1;}
 static void clip(int x UNUSED,int y UNUSED){}
 static int prev(void){return 0;}
-static void rip(winid w UNUSED,int how UNUSED){}
+/* The end-of-game window never said what killed the hero: the tombstone it would have drawn is
+   turned off for a window port with no tombstone, and the death line only appears on the high score
+   list. Say it here, in the same text the player reads after dying, and as an event the client can
+   use for a proper end screen. */
+extern const char * const killed_by_prefix[];
+static void rip(winid w,int how){
+    char buf[BUFSZ];
+    switch(killer.format){
+    case KILLED_BY_AN:Sprintf(buf,"%s%s",killed_by_prefix[how],an(killer.name));break;
+    case KILLED_BY:Sprintf(buf,"%s%s",killed_by_prefix[how],killer.name);break;
+    default:Strcpy(buf,killer.name);break;
+    }
+    put(w,0,"Rest in peace.");
+    put(w,0,plname);
+    put(w,0,buf);
+    put(w,0,"");
+    printf("{\"type\":\"tombstone\",\"name\":");quoted(plname);printf(",\"killer\":");quoted(buf);
+    printf(",\"depth\":%d,\"dungeon\":",depth(&u.uz));quoted(dungeons[u.uz.dnum].dname);puts("}");fflush(stdout);
+}
 struct window_procs bridge_procs={
  .name="bridge",.wincap=WC_COLOR,.win_init_nhwindows=init,.win_player_selection=noop,.win_askname=name,.win_get_nh_event=noop,.win_exit_nhwindows=finish,.win_suspend_nhwindows=strnoop,.win_resume_nhwindows=noop,
  .win_create_nhwindow=create,.win_clear_nhwindow=clear,.win_display_nhwindow=display,.win_destroy_nhwindow=destroy,.win_curs=bridge_curs,.win_putstr=put,.win_display_file=file,.win_start_menu=clear,.win_add_menu=add,.win_end_menu=end,.win_select_menu=bridge_select,.win_message_menu=genl_message_menu,.win_update_inventory=noop,.win_mark_synch=noop,.win_wait_synch=noop,
