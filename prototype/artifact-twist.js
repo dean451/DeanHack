@@ -256,6 +256,36 @@ const SHAPES = {
     for (let i = 0; i < 3; i++) parts.push(new THREE.BoxGeometry(.05, .003, .004).rotateY(.5).translate(.12 + i * .03, .0135, (i - 1) * .012));
     return parts;
   },
+  // Cleaver is a butcher's blade: a lit heavy chop line runs along the edge and three lit notches
+  // are bitten into the back, like a blade that has been used on bone.
+  cleaver() {
+    const parts = [new THREE.BoxGeometry(.3, .003, .005).translate(.27, .0135, .02)];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.BoxGeometry(.012, .003, .012).rotateY(.6).translate(.18 + i * .09, .0135, -.022));
+    return parts;
+  },
+  // Giantslayer is a blade for felling the huge: a lit tall arrow-mark points toward the tip with two
+  // lit bars across it, a tally of kills.
+  giantslayer() {
+    const shaft = new THREE.BoxGeometry(.2, .003, .005).translate(.24, .0135, 0);
+    const head = new THREE.ConeGeometry(.012, .035, 4).rotateZ(-Math.PI / 2).scale(1, .3, 1).translate(.358, .0135, 0);
+    return [shaft, head, new THREE.BoxGeometry(.004, .003, .026).translate(.17, .0135, 0), new THREE.BoxGeometry(.004, .003, .026).translate(.2, .0135, 0)];
+  },
+  // Trollsbane is a mark against regrowth: four lit parallel cuts are scored across the blade, and
+  // a lit burn-ring sits near the hilt, the way a troll is cauterised so it cannot rise.
+  trollsbane() {
+    const ring = new THREE.TorusGeometry(.016, .003, 5, 14).rotateX(Math.PI / 2).translate(.1, .0135, 0);
+    const parts = [ring];
+    for (let i = 0; i < 4; i++) parts.push(new THREE.BoxGeometry(.004, .003, .04).rotateY(.5).translate(.2 + i * .065, .0135, 0));
+    return parts;
+  },
+  // Magicbane is thick with stolen sorcery: a lit spiral of three loops coils around the blade and
+  // five lit motes drift off its flat in a scatter.
+  magicbane() {
+    const parts = [];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.TorusGeometry(.016, .0025, 4, 12).rotateX(Math.PI / 2).translate(.15 + i * .09, .0135, 0));
+    for (let i = 0; i < 5; i++) parts.push(new THREE.SphereGeometry(.005, 4, 2).translate(.1 + i * .075, .0135, i % 2 ? .035 : -.035));
+    return parts;
+  },
   // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
   // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
   itlachiayaque(group) {
