@@ -352,3 +352,14 @@ test('Snickersnee wears its lit shape as the last mesh on the blade', () => {
   assert(w.y < .12 && w.x < .62 && w.z < .45);
   art.userData.dispose();
 });
+
+for (const [name, label, key] of [['short sword', 'Luck Blade', 'luck blade'], ['tsurugi', 'Tsurugi of Muramasa', 'tsurugi of muramasa'], ['bow', 'Longbow of Diana', 'longbow of diana']]) {
+  test(`${label} wears its lit shape as the last mesh on the blade`, () => {
+    const art = createGroundModel({name, label, class: 2});
+    assert.equal(art.userData.artifact, key);
+    assert(art.children.at(-1).userData.magicShell);
+    const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
+    assert(w.y < .12 && w.x < .62 && w.z < .45);
+    art.userData.dispose();
+  });
+}
