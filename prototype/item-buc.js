@@ -16,3 +16,19 @@ export function itemBuc(text) {
 export function bucMark(kind) {
   return MARKS[kind] || '';
 }
+
+// A known enchantment shows in the name as "+2" or "-1" ("a blessed +2 dagger"). 'plus' or 'minus'
+// for a non-zero one, else null; +0 stays bare. Only the first signed number counts, and only
+// before a parenthesis, so "(0:3)" charges and "(weapon in hand)" never match.
+export function itemEnchant(text) {
+  const m = /(?:^|\s)([+-])(\d+)(?=\s)/.exec(String(text).split('(')[0]);
+  if (!m || Number(m[2]) === 0) return null;
+  return m[1] === '+' ? 'plus' : 'minus';
+}
+
+const ENCHANT_MARKS = {plus: '▲', minus: '▼'};
+
+// The shape for an enchantment, or '' for none.
+export function enchantMark(kind) {
+  return ENCHANT_MARKS[kind] || '';
+}

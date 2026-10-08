@@ -21,3 +21,20 @@ test('each state has its own shape, and none has none', () => {
   assert.ok(bucMark('blessed') && bucMark('cursed'));
   assert.equal(bucMark(null), '');
 });
+
+test('a known non-zero enchantment is told from the name', async () => {
+  const {itemEnchant} = await import('./item-buc.js');
+  assert.equal(itemEnchant('a blessed +2 dagger (weapon in hand)'), 'plus');
+  assert.equal(itemEnchant('a rusty cursed -1 long sword'), 'minus');
+  assert.equal(itemEnchant('an uncursed +0 ring mail'), null);
+  assert.equal(itemEnchant('a wand of striking (0:5)'), null);
+  assert.equal(itemEnchant('a dagger (weapon in hand +2)'), null);
+  assert.equal(itemEnchant(''), null);
+});
+
+test('each enchantment has its own shape, and none has none', async () => {
+  const {enchantMark} = await import('./item-buc.js');
+  assert.notEqual(enchantMark('plus'), enchantMark('minus'));
+  assert.ok(enchantMark('plus') && enchantMark('minus'));
+  assert.equal(enchantMark(null), '');
+});
