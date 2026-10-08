@@ -445,3 +445,17 @@ test('a wielded Sting and Grimtooth carry their lit shapes on the dagger blade',
     assert(b.min.z > -.01, `${kind} sits on the +z face`);
   }
 });
+
+test('a wielded Tsurugi of Muramasa carries its lit shape on the +x flat of the straight blade', async () => {
+  const {createHeldWeapon} = await import('./equipment.js');
+  const {applyArtifactTwist} = await import('./artifact-twist.js');
+  const sword = createHeldWeapon({name: 'tsurugi', class: 2});
+  applyArtifactTwist(sword, {label: 'Tsurugi of Muramasa', class: 2}, {clone: true, held: true});
+  const shell = sword.children.at(-1);
+  assert.equal(sword.userData.artifact, 'tsurugi of muramasa');
+  assert(shell.userData.magicShell);
+  const b = new THREE.Box3().setFromObject(shell);
+  assert(b.min.y > .078 && b.max.y < 1, `y ${b.min.y}..${b.max.y}`);
+  assert(b.min.x > .004 && b.max.x < .012, `sits on the +x flat ${b.min.x}..${b.max.x}`);
+  assert(b.max.z < .05 && b.min.z > -.05);
+});
