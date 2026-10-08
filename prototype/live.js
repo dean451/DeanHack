@@ -173,6 +173,7 @@ import {updateFlap} from './puggaree-flap.js';
 import {findPrey,updateStalk,clearStalk} from './stalk.js';
 import {createActionQueue,enqueueAction,clearActionPose,updateActions,holdBackMs,findActor,queueCombat,queueDeath,queueThrows} from './actions.js';
 import {conditionGlyph} from './condition-glyph.js';
+import {applyStatusScreen} from './status-screen.js';
 
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
@@ -222,8 +223,10 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    const gold=num(/\$:(\d+)/),power=num(/Pw:(\d+)\((\d+)\)/),exp=num(/Exp:(\d+)/);
    if(!gold&&!power&&!exp){el.textContent=text;return;}
    const conditions=(text.split(/T:\d+/)[1]||'').trim().split(/\s+/).filter(Boolean);
+   applyStatusScreen(statusScreenEl(),conditions);
    el.innerHTML=[gold&&`<span>GOLD <b>${gold[1]}</b></span>`,power&&`<span>POWER <b>${power[1]} / ${power[2]}</b></span>`,exp&&`<span>EXP <b>${exp[1]}</b></span>`,...conditions.map(c=>`<span class="condition"><i aria-hidden="true">${conditionGlyph(c)}</i> ${esc(c)}</span>`)].filter(Boolean).join('');
  }
+ function statusScreenEl(){let el=document.getElementById('status-screen');if(!el){el=document.createElement('div');el.id='status-screen';document.body.appendChild(el);}return el;}
  // The pet in view goes to the companion slot (the creatures-in-view list is gone: the game is shown by its visuals).
  function renderSurroundings(frame){
    const pets=[];

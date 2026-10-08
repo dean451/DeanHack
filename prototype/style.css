@@ -134,3 +134,4 @@ body.live-engine #engine-prompt{margin-top:10px;padding-top:8px;font-size:11px}
 body.live-engine #engine-panel{box-sizing:border-box;max-width:calc(100vw - 32px)}
 body.live-engine #engine-line,body.live-engine #engine-messages,body.live-engine #engine-messages div,.engine-recent,#message-history .msg{overflow-wrap:anywhere;word-break:normal;min-width:0}
 body.live-engine #engine-messages{overflow-x:hidden}
+#status-screen{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;transition:opacity 1.2s ease;background:radial-gradient(ellipse at 50% 50%,transparent 18%,#02030485 52%,#010102f2 82%)}#status-screen.status-blind{opacity:1;animation:status-blind-breathe 5.5s ease-in-out infinite}@keyframes status-blind-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
