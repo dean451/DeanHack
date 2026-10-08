@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {createWand} from './wand.js';
+import {createWand,isWishingWand} from './wand.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeVertices,mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {createUnicornHorn} from './unicorn-horn.js';
@@ -5837,7 +5837,7 @@ export function createGroundModel(item={}){
   }
  }else if(cls===11){
   // Wands look like their shuffled appearance: wood, metal, stone, glass or a shape (wand.js).
-  const wand=createWand(item.appearance,{floor:true});g.add(wand);materials.push(...wand.userData.materials);
+  const wand=createWand(isWishingWand(item.name)?'wishing':item.appearance,{floor:true});g.add(wand);materials.push(...wand.userData.materials);
  }else if(/boots|shoes/.test(name)){
   buildBoots((item.appearance||'').toLowerCase(),{g,materials});
  }else if(cls===3&&/cloak|\brobe\b|mummy wrapping/.test(name)){

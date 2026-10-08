@@ -31,7 +31,10 @@ export const WAND_APPEARANCES = [...Object.keys(WOODS), ...Object.keys(METALS), 
 
 // The appearance from a hero-view name: "oak wand", "2 oak wands", "oak wand named x".
 // "wand of fire" and "wand called fire" carry none, so they get the plain wand.
+// A wand of wishing is always dull tin, whatever shuffled appearance the engine gave it.
+export const isWishingWand = name => /\bwand of wishing\b/i.test(name || '');
 export function wandAppearance(name) {
+  if (isWishingWand(name)) return 'wishing';
   const m = /(?:^|\s)([a-z]+) wands?\b/.exec((name || '').toLowerCase());
   return m && WAND_APPEARANCES.includes(m[1]) ? m[1] : null;
 }
@@ -76,6 +79,9 @@ function wandLook(look) {
     L.shaft = std(c, .05, .06, {transparent: true, opacity, emissive: c, emissiveIntensity: .08});
     L.fit = silver(); L.tip = 'crystal';
     if (look !== 'glass') { L.sides = 6; L.faceted = true; L.taper = .6; }
+  } else if (look === 'wishing') {
+    // Dull grey tin, scuffed and unpolished with tarnished fittings: nothing shines but its aura.
+    L.shaft = std(0x8a8f8c, .35, .78); L.fit = std(0x4d504e, .4, .75); L.taper = .9; L.radius = .019;
   } else if (SHAPES.has(look)) {
     L.shaft = std(0x5b6066, .8, .4); L.fit = std(0x2e3236, .7, .5);
     if (look === 'hexagonal' || look === 'octagonal') { L.sides = look === 'hexagonal' ? 6 : 8; L.faceted = true; L.taper = .92; L.radius = .022; }
