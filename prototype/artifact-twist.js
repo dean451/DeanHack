@@ -208,6 +208,54 @@ const SHAPES = {
     for (let i = 0; i < 4; i++) parts.push(new THREE.BoxGeometry(.006, .003, .03).rotateY(i % 2 ? .5 : -.5).translate(.14 + i * .07, .0135, 0));
     return parts;
   },
+  // Excalibur is the king's blade: a lit fuller runs down the middle of the steel and five lit rune
+  // ticks cross it, spaced out like an inscription. Blade x .04 to .46, top at y .012.
+  excalibur() {
+    const parts = [new THREE.BoxGeometry(.34, .003, .006).translate(.25, .0135, 0)];
+    for (let i = 0; i < 5; i++) parts.push(new THREE.BoxGeometry(.004, .003, .022).translate(.12 + i * .068, .0135, 0));
+    return parts;
+  },
+  // Grayswandir is moonlit silver: five small lit diamonds are set down the flat of the blade, each a
+  // little larger than the last toward the point, like studs of cold light.
+  grayswandir() {
+    return [0, 1, 2, 3, 4].map(i => new THREE.SphereGeometry(.008 + i * .0015, 4, 2).scale(1.4, .4, 1).translate(.12 + i * .07, .0135, 0));
+  },
+  // Orcrist is an orc-cleaver: three lit hooked barbs stand out of the back edge, bent toward the
+  // point as if to catch and tear. Blade x .04 to .46, z -.025 to .025.
+  orcrist() {
+    return [0, 1, 2].map(i => {
+      const hook = new THREE.ConeGeometry(.007, .04, 4);
+      hook.rotateX(Math.PI / 2); hook.rotateY(.7); hook.translate(.17 + i * .09, .012, -.04);
+      return hook;
+    });
+  },
+  // Sting is a small cold blade: a thin lit line runs down the dagger and a lit spark sits on its
+  // point. The dagger's blade ends at x .25.
+  sting() {
+    return [new THREE.BoxGeometry(.12, .003, .004).translate(.17, .0135, 0), new THREE.SphereGeometry(.008, 4, 2).translate(.235, .0135, 0)];
+  },
+  // Dragonbane is scaled with its quarry: a row of five lit overlapping scale-plates is laid down
+  // the blade, each a flat diamond, getting smaller toward the point.
+  dragonbane() {
+    return [0, 1, 2, 3, 4].map(i => new THREE.CylinderGeometry(.016 - i * .002, .016 - i * .002, .003, 4).translate(.1 + i * .075, .0135, 0));
+  },
+  // Demonbane is a ward: a lit circle is sealed on the blade with a lit bar through it, the mark that
+  // holds a devil back. Disc ring centred at x .25.
+  demonbane() {
+    const ring = new THREE.TorusGeometry(.024, .003, 5, 18), bar = new THREE.BoxGeometry(.07, .003, .004);
+    ring.rotateX(Math.PI / 2); ring.translate(.25, .0135, 0);
+    bar.translate(.25, .0135, 0);
+    return [ring, bar];
+  },
+  // Werebane is a hunter's blade of the full moon: a lit crescent on the steel and three lit claw
+  // gashes slashed across the blade behind it.
+  werebane() {
+    const moon = new THREE.TorusGeometry(.02, .004, 5, 14, Math.PI * 1.3);
+    moon.rotateX(Math.PI / 2); moon.translate(.34, .0135, 0);
+    const parts = [moon];
+    for (let i = 0; i < 3; i++) parts.push(new THREE.BoxGeometry(.05, .003, .004).rotateY(.5).translate(.12 + i * .03, .0135, (i - 1) * .012));
+    return parts;
+  },
   // Itlachiayaque is a shield that watches: a lit ring on its face and six spikes of obsidian light
   // laid flat round the rim. Shield bases differ in size, so both are measured from the model.
   itlachiayaque(group) {
