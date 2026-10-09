@@ -62,3 +62,13 @@ test('a dart shivers faster than an arrow, and the arrow sags as it settles', ()
   let sum = 0, n = 0; for (let h = .1; h < .5; h += .001) { sum += shaftPose('arrow', SHOT.flight + h).tilt; n++; }
   assert.ok(sum / n < 0, 'the shiver settles below level');
 });
+
+test('the buried shaft gives one late jerk after the shiver has died', () => {
+  for (const k of ['arrow', 'dart']) {
+    const peak = (a, b) => { let m = 0; for (let h = a; h < b; h += .002) m = Math.max(m, Math.abs(shaftPose(k, SHOT.flight + h).tilt)); return m; };
+    assert.ok(peak(.31, .37) > .03, k + ' jerks late');
+    assert.ok(peak(.5, .52) < .03, k + ' is still again');
+    for (let t = 0; t < SHOT.total; t += .005) assert.ok(Math.abs(shaftPose(k, t).tilt) <= .35);
+  }
+  assert.equal(shaftPose('arrow', SHOT.total).alpha, 0);
+});
