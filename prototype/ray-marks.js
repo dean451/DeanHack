@@ -2,7 +2,7 @@
 // floor it crossed: fire and lava scorch it with embers that cool, cold rimes it with
 // frost that crackles then melts, lightning leaves faint burn streaks and a blinding
 // flash, acid etches it, poison gas hangs in a low haze, and a death ray sends a black
-// ripple out from every cell it touched. Magic missile and sleep leave nothing.
+// ripple out from every cell it touched. Magic missile pings one small ring that is gone in half a second, and sleep hangs a violet haze that settles slowly.
 //
 // The marks come from the same fx timelines as rays.js, one per cell (a beam that bounces
 // back over a cell marks it once, when it first got there). Terrain changes NetHack makes
@@ -45,6 +45,12 @@ export const MARK_LOOKS = {
   ],
   'poison gas': [
     {shape: 2, color: 0x5fae22, alpha: .45, size: .62, ms: 2400, fadeMs: 1600, grow: 500, add: true},
+  ],
+  'magic missile': [
+    {shape: 1, color: 0x8aa4ff, alpha: .8, size: .3, ms: 520, fadeMs: 400, grow: 260, add: true},
+  ],
+  sleep: [
+    {shape: 2, color: 0x5a3a9a, alpha: .55, size: .55, ms: 3600, fadeMs: 2000, grow: 1100, add: true},
   ],
   death: [
     {shape: 1, color: 0x06020a, alpha: .85, size: .75, ms: 700, fadeMs: 600, grow: 700},

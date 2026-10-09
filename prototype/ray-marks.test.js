@@ -29,9 +29,9 @@ test('a bouncing bolt marks each cell once, when the beam first got there', () =
   assert.deepEqual(m.map(k => k.x), [3, 4, 5, 6]);
   assert.deepEqual(m.map(k => k.t), [0, 1, 2, 3].map(i => i * FX_TICK_MS));
   for (const k of m) { assert.equal(k.z, 2); assert.ok(k.seed >= 0 && k.seed < 1); }
-  // Magic missile and sleep leave nothing; nor do thrown objects.
-  assert.equal(rayMarks(bolt('magic missile')).length, 0);
-  assert.equal(rayMarks(bolt('sleep')).length, 0);
+  // Magic missile and sleep leave a faint mark too; thrown objects leave nothing.
+  assert.equal(rayMarks(bolt('magic missile')).length, 4);
+  assert.equal(rayMarks(bolt('sleep')).length, 4);
   assert.equal(rayMarks(fxTimeline({steps: [{op: 'start', mode: 'flash', glyph: 1, effect: {kind: 'object', otyp: 3}},
     {op: 'draw', x: 1, z: 1}, {op: 'tick'}, {op: 'end'}]})).length, 0);
   assert.equal(rayMarks(null).length, 0);
@@ -81,8 +81,7 @@ test('the renderer lays marks flat on the floor and clears them', () => {
   const marks = createRayMarks(THREE, parent);
   assert.equal(parent.children.length, 2);
   assert.equal(marks.add(bolt('fire')), 4);
-  assert.equal(marks.add(bolt('magic missile')), 0);
-  let r = marks.update(.4, {x: 1, z: 0});
+    let r = marks.update(.4, {x: 1, z: 0});
   assert.ok(r.count >= 4 && r.flash === 0);
   const [dark, glow] = marks.layers;
   assert.equal(dark.count, 4); assert.equal(glow.count, 4);
@@ -99,6 +98,8 @@ test('the renderer lays marks flat on the floor and clears them', () => {
   marks.update(longest('fire') / 1000);
   assert.equal(dark.count, 0); assert.equal(marks.active, 0);
 
+  assert.equal(marks.add(bolt('magic missile')), 4);
+  marks.clear();
   marks.add(bolt('lightning'));
   let flash = 0;
   for (let i = 0; i < 10; i++) flash = Math.max(flash, marks.update(.01).flash);
@@ -112,4 +113,10 @@ test('the renderer lays marks flat on the floor and clears them', () => {
 test('cold and acid leave marks shaped apart from fire, not only coloured apart', () => {
   const lead = t => MARK_LOOKS[t][0].shape;
   assert.equal(new Set([lead('fire'), lead('cold'), lead('acid')]).size, 3);
+});
+
+test('magic missile and sleep marks differ in shape and tempo from the rest', () => {
+  assert.equal(MARK_LOOKS['magic missile'][0].shape, 1);
+  assert.equal(MARK_LOOKS.sleep[0].shape, 2);
+  assert.ok(longest('magic missile') < 1000 && longest('sleep') > 3000);
 });
