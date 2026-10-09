@@ -100,6 +100,7 @@ const TINTS=[[1,1,1],[.9,.92,.91],[1.07,1.05,1],[.83,.87,.88]];
 
 export function createFloorKit(){
  const textures=[],materials=new Map();
+ let branch={tint:[1,1,1],roughness:.9};
  const texture=i=>{
   if(!textures[i]){
    const mc=document.createElement('canvas'),bc=document.createElement('canvas');mc.width=mc.height=bc.width=bc.height=SIZE;
@@ -110,11 +111,14 @@ export function createFloorKit(){
   return textures[i];
  };
  const pebbleGeo=new THREE.DodecahedronGeometry(1,0),pebbleMat=new THREE.MeshStandardMaterial({color:'#4f5753',roughness:.95});
+ const paint=m=>{m.color.setRGB(...m.userData.base.map((c,i)=>c*branch.tint[i]));m.roughness=branch.roughness;};
+ // Branch finish (see `floorTint` in branch-air.js): re-colours every floor material, present and future.
+ function setBranch(tint=[1,1,1],roughness=.9){branch={tint,roughness};for(const m of materials.values())paint(m);}
  function material(x,z){
   let pick=cellHash(x,z,1)/4294967296*TOTAL_WEIGHT,variant=0;
   while(pick>=VARIANTS[variant].weight){pick-=VARIANTS[variant].weight;variant++;}
   const tint=cellHash(x,z,2)%TINTS.length,key=variant*16+tint;
-  if(!materials.has(key)){const {map,bump}=texture(variant);materials.set(key,new THREE.MeshStandardMaterial({color:new THREE.Color(...TINTS[tint]),map,bumpMap:bump,bumpScale:1.6,roughness:.9}));}
+  if(!materials.has(key)){const {map,bump}=texture(variant);const m=new THREE.MeshStandardMaterial({color:new THREE.Color(...TINTS[tint]),map,bumpMap:bump,bumpScale:1.6,roughness:.9});m.userData.base=TINTS[tint];paint(m);materials.set(key,m);}
   return materials.get(key);
  }
  // Orient, settle and scatter debris on the floor slab of one map square.
@@ -126,5 +130,5 @@ export function createFloorKit(){
   const r=rng(cellHash(x,z,5)),count=1+Math.floor(r()*4);
   for(let i=0;i<count;i++){const p=new THREE.Mesh(pebbleGeo,pebbleMat),s=.022+r()*.03;p.scale.set(s*(1+r()*.5),s*.55,s);p.position.set((r()-.5)*.7,-.03+s*.4,(r()-.5)*.7);p.rotation.set(r()*3,r()*3,r()*3);p.receiveShadow=true;tile.add(p);}
  }
- return {material,dress};
+ return {material,dress,setBranch};
 }
