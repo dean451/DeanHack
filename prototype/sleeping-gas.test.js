@@ -54,3 +54,10 @@ test('drooping puffs breathe slowly, swelling and slackening within bounds', () 
   assert.ok(Math.max(...sizes) - Math.min(...sizes) > .01);
   for (let t = 0; t < GAS.total; t += .01) { const s = puffPose(0, t).size; assert.ok(s >= .01 && s <= .26, String(t)); }
 });
+
+test('the middle puff snores once: a single swell, then back to its slow breath', () => {
+  const start = 4 % 3 * .08 + Math.floor(4 / 3) * .05, at = u => puffPose(4, start + u * 1.6).size, base = u => (.09 + .14 * (u * u * (3 - 2 * u)));
+  assert.ok(at(.65) > base(.65) * 1.08, 'swollen mid-snore');
+  assert.ok(Math.abs(at(.5) / base(.5) - 1) <= .1 + 1e-9 && Math.abs(at(.9) / base(.9) - 1) <= .1 + 1e-9, 'normal either side');
+  for (let t = 0; t < GAS.total; t += .01) assert.ok(puffPose(4, t).size <= .24, String(t));
+});

@@ -9,12 +9,15 @@
 import {softDot, softRing, rng, smooth, clamp01} from './fx-textures.js';
 
 export const LEVEL = {total: 1.8, ring: .55, motes: 12, rise: 1.7};
+export const RING_CATCH = .12;
 export const isLevelUp = text => /^Welcome to experience level \d+\.$/.test(text || '');
 
 // The ring at age t: radius draws in from wide to tight, brightest as it closes.
 export function ringPose(t) {
   const k = clamp01(t / LEVEL.ring);
-  return {radius: .15 + .75 * (1 - smooth(k)) ** 1.5, alpha: t < 0 || t >= LEVEL.ring + .25 ? 0 : (k < 1 ? .9 * k : .9 * (1 - (t - LEVEL.ring) / .25))};
+  // The ring catches twice on the way in, as if the power resisted being pulled: it stalls but never opens back out.
+  const kk = clamp01(k - RING_CATCH * Math.sin(k * Math.PI * 2) * (1 - k));
+  return {radius: .15 + .75 * (1 - smooth(kk)) ** 1.5, alpha: t < 0 || t >= LEVEL.ring + .25 ? 0 : (k < 1 ? .9 * k : .9 * (1 - (t - LEVEL.ring) / .25))};
 }
 
 // Mote i at age t: a thin spiral up the hero's height, starting once the ring has closed.

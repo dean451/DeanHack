@@ -47,3 +47,9 @@ test('playing layers on the rig, restores it and yields to actions', () => {
   k.message('You begin praying to Anhur.'); k.update(a, .6); k.clear(a);
   assert.ok(Math.abs(a.body.rotation.x) < 1e-9 && !k.playing);
 });
+
+test('rising, the hero glances once over the shoulder, then faces front', () => {
+  let min = 0; for (let u = .8; u <= 1; u += .002) min = Math.min(min, kneelPose(u).twist);
+  assert.ok(min < -.15, String(min));
+  assert.ok(Math.abs(kneelPose(.85).twist) < 1e-9 && Math.abs(kneelPose(.97).twist) < 1e-9);
+});
