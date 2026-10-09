@@ -52,3 +52,10 @@ test('the stray strand gives one late extra snap, in bounds', () => {
   assert.ok(base(1.225) > base(1.1) && base(1.225) > base(1.35), 'bump');
   for (let t = 0; t < WEB.total; t += .01) { const p = strandPose(n, t); assert.ok(p.lift >= 0 && p.lift <= .36); }
 });
+
+test('settled strands drift a little in a draught, and stay still at rest', () => {
+  const swing = []; for (let t = .8; t < 1.3; t += .01) swing.push(strandPose(0, t).angle);
+  assert.ok(Math.max(...swing) - Math.min(...swing) > .03);
+  for (let i = 0; i < WEB.strands; i++) for (let t = .8; t < WEB.total; t += .01) assert.ok(Math.abs(strandPose(i, t).angle - i * 2.4) < .2);
+  assert.equal(strandPose(0, WEB.total).angle, 0);
+});

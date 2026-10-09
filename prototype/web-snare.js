@@ -21,7 +21,7 @@ export function strandPose(i, t) {
   const age = t - start - .12, twang = age > 0 ? Math.sin(age * (38 + 7 * i)) * .05 * Math.exp(-age * (stray ? 1.2 : 4)) : 0;
   const sag = smooth(clamp01((t - start - .3) / (end - start - .3))) * .1;
   const fade = 1 - smooth(clamp01((t - (end - .5)) / .5));
-  return {len: Math.max(.01, WEB.reach * (.8 + .06 * (i % 3)) * shot), lift: .18 + .05 * (i % 3) + twang - sag + (stray ? .04 * Math.sin(clamp01((t - 1.15) / .15) * Math.PI) : 0), alpha: .8 * clamp01(u * 4) * fade, angle: i * 2.4 + .1 * twang};
+  return {len: Math.max(.01, WEB.reach * (.8 + .06 * (i % 3)) * shot), lift: .18 + .05 * (i % 3) + twang - sag + (stray ? .04 * Math.sin(clamp01((t - 1.15) / .15) * Math.PI) : 0), alpha: .8 * clamp01(u * 4) * fade, angle: i * 2.4 + .1 * twang + .05 * Math.sin(t * 3.1 + i) * smooth(clamp01((t - start - .5) / .4)) * fade};
 }
 
 export function createWebSnare(THREE, parent) {
