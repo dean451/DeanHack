@@ -50,3 +50,13 @@ test('the stare slides off the hero between the blinks and returns', () => {
   assert.equal(eyePose(DJINNI.total * .4).glance, 0);
   assert.equal(eyePose(DJINNI.total * .6).glance, 0);
 });
+
+test('the column shudders once as the eyes go out, then settles exactly', () => {
+  const w = u => smokePose(u * DJINNI.total).width, base = u => w(u);
+  let flips = 0, prev = 0;
+  for (let u = .64; u < .7; u += .002) { const d = w(u + .002) - w(u); if (prev && Math.sign(d) !== Math.sign(prev)) flips++; prev = d; }
+  assert.ok(flips >= 2, `width wobbles, flips=${flips}`);
+  for (let u = 0; u <= 1; u += .005) { const p = smokePose(u * DJINNI.total); assert.ok(p.width > 0 && p.width < 1.3 && p.alpha >= 0 && p.alpha <= .6 + 1e-9, String(u)); }
+  assert.equal(smokePose(DJINNI.total).alpha, 0);
+  assert.ok(base(.5) > 0);
+});
