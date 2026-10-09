@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {aimKeys, walkCursor, aimLine, createAimCursor, directionLanes, isDirectionPrompt} from './aim-cursor.js';
+import {aimKeys, walkCursor, aimLine, createAimCursor, directionLanes, isDirectionPrompt, laneHits} from './aim-cursor.js';
 
 test('the keys walk the cursor exactly to the square and then select it', () => {
   const from = {x: 20, z: 10};
@@ -78,4 +78,18 @@ test('the cursor shows lane dots without the cursor ring', () => {
   assert.equal(scene.children.filter(o => o !== c.g && o.visible).length, 2);
   c.hide();
   assert.equal(scene.children.filter(o => o !== c.g && o.visible).length, 0);
+});
+
+test('each lane marks the first monster in it, and the cursor shows those marks', () => {
+  const lanes = directionLanes({x: 0, z: 0}, (x, z) => Math.abs(x) > 5 || Math.abs(z) > 5);
+  const hits = laneHits(lanes, (x, z) => z === 0 && x >= 2);
+  assert.deepEqual(hits, [{x: 2, z: 0}]);
+  assert.deepEqual(laneHits(lanes, () => false), []);
+  const scene = new THREE.Group(), c = createAimCursor();
+  scene.add(c.g);
+  c.lanes([{x: 1, z: 0}, {x: 2, z: 0}], hits);
+  assert.equal(scene.children.filter(o => o !== c.g && o.visible).length, 3);
+  c.lanes([{x: 1, z: 0}]);
+  assert.equal(scene.children.filter(o => o !== c.g && o.visible).length, 1);
+  c.dispose();
 });
