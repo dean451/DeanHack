@@ -11,7 +11,7 @@ import {segment,chain} from './ant.js';
 //   (round on the big cats) with pale insides, slit pupils (round on the big cats), whiskers.
 // - Legs: shoulder, elbow and forearm down to a padded paw with four toes, each tipped with a dark hooked claw, in front; the hind
 //   legs have a muscled thigh, a knee, a raised hock and a long foot.
-// - The kitten, housecat and large cat are scruffy strays with eyes set in dark hollows: matted tufts along the spine, proud hip
+// - The kitten, housecat and large cat wear a frayed leather cord collar and are scruffy strays with eyes set in dark hollows: matted tufts along the spine, proud hip
 //   bones, healed scratches across the right flank, ribs showing through the flank fur and a torn left ear.
 // - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
@@ -233,6 +233,13 @@ function buildHead(L,C){
  }
  // scruffy pets: ragged tufts of cheek fur flaring out under the ears
  if(L.scruffy)for(const s of [-1,1])for(let k=0;k<3;k++)P.add(new THREE.ConeGeometry(.012,.04,4),at(s*(.08+.004*k),-.03-.012*k,.05+.012*k,[Math.PI/2-.2*k,0,s*(1.1+.2*k)]),(x,y,z)=>mix(C.coat,C.stripe,smooth((.04-Math.abs(x))/.04)*.4));
+ // scruffy pets: a frayed leather cord collar, the one mark of an owner, with a snapped knot and a loose end hanging
+ if(L.scruffy){
+  const cord=rgb('#4a3020');
+  P.add(new THREE.TorusGeometry(.078,.008,6,18),at(0,-.005,-.03),cord);
+  P.add(new THREE.SphereGeometry(.014,6,5),at(0,-.082,-.03,[0,0,0],[1,1,.8]),rgb('#2e1c12'));
+  segment(P,[.004,-.088,-.03],[.012,-.125,-.026],.004,.001,cord,4);
+ }
  // the wild cats bare a pair of yellowed fangs hanging past the lip
  if(!L.scruffy&&!L.tentacles)for(const s of [-1,1])P.add(new THREE.ConeGeometry(.0075,.034,4),at(s*.02,-.062,.128,[Math.PI,0,0]),rgb('#a89c78'));
  // whiskers

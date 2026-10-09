@@ -185,3 +185,12 @@ test('the pet cats carry a bald mangy patch on the haunch; the wild cats do not'
  };
  for(const name of ['kitten','housecat','large cat'])assert(patch(name)>patch('wildcat'),`${name} ${patch(name)} vs ${patch('wildcat')}`);
 });
+
+test('the pet cats wear a frayed leather cord collar behind the skull; the wild cats go bare',()=>{
+ const back=name=>{
+  const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry,pos=g.attributes.position;
+  let n=0;for(let i=0;i<pos.count;i++)if(pos.getZ(i)<-.03&&pos.getZ(i)>-.05&&Math.hypot(pos.getX(i),pos.getY(i)+.005)>.07)n++;
+  return n;
+ };
+ for(const name of ['kitten','housecat','large cat'])assert(back(name)>back('wildcat')+20,`${name} ${back(name)} vs ${back('wildcat')}`);
+});
