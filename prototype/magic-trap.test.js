@@ -96,3 +96,9 @@ test('"You feel tired." plays the quiet ring drowsily: slower, and it ends later
   const quick = run('You smell charred flesh.'), slow = run('You feel tired.');
   assert.ok(slow > quick * 1.3 && slow < quick / TIRED_SLOW + 3, `${quick} vs ${slow}`);
 });
+
+test('the last ring gutters while the first holds steady', () => {
+  const wob = i => { let up = 0, last = null; for (let s = .1; s < .4; s += .004) { const a = ringPose(i, i * MAGIC.gap + s).alpha, d = last === null ? 0 : a - last; if (d > 0) up++; last = a; } return up; };
+  assert.equal(wob(0), 0);
+  assert.ok(wob(MAGIC.rings - 1) > 5);
+});
