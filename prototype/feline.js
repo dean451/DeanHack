@@ -12,7 +12,7 @@ import {segment,chain} from './ant.js';
 // - Legs: shoulder, elbow and forearm down to a padded paw with four toes, each tipped with a dark hooked claw, in front; the hind
 //   legs have a muscled thigh, a knee, a raised hock and a long foot.
 // - The kitten, housecat and large cat are scruffy strays with eyes set in dark hollows: matted tufts along the spine, proud hip
-//   bones, healed scratches across the right flank and a torn left ear.
+//   bones, healed scratches across the right flank, ribs showing through the flank fur and a torn left ear.
 // - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
 // Coats are painted per vertex from the body position:
@@ -99,6 +99,14 @@ function markings(L,C,x,y,z,base,limb=false){
  return c;
 }
 
+// How much a stray's flank darkens over a rib: ridges at a steady pitch behind the shoulder, gone on the back,
+// the belly and off the ribcage.
+export function ribShade(x,y,z,Y){
+ if(Math.abs(x)<.07||z<-.06||z>.16)return 0;
+ const r=Math.sin(z*105),band=smooth((y-(Y-.06))/.03)*smooth((Y+.07-y)/.03);
+ return r>.55?.4*smooth((r-.55)/.25)*band:0;
+}
+
 // Coat colour on the torso and neck: darker along the back, pale underneath and on the chest.
 function torsoAt(L,C){
  return (x,y,z)=>{
@@ -107,6 +115,7 @@ function torsoAt(L,C){
   c=markings(L,C,x,y,z,c);
   if(L.scruffy&&x>.05)for(let k=0;k<2;k++){const d=Math.abs((y-L.Y-.03-k*.025)-(z+.02)*.5);if(d<.006&&z>-.15&&z<.1)c=mix(c,C.belly,.8*(1-d/.006));}
   if(L.scruffy)c=mix(c,C.stripe,.2*smooth((hash(Math.floor(x*90)*7.3+Math.floor(y*90)*3.1+Math.floor(z*90))-.55)/.2));
+  if(L.scruffy)c=mix(c,C.stripe,ribShade(x,y,z,L.Y));
   const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.16)/.08)*smooth((L.Y+.06-y)/.08);
   return mix(c,C.belly,Math.max(belly,chest)*(L.pattern==='ghost'||L.pattern==='shimmer'?.6:1));
  };

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
+import {ribShade} from './feline.js';
 import {foreLegs} from './monster-attacks.js';
 
 const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
@@ -128,4 +129,18 @@ test('the big cats\' left ear is bitten: a dark notch the right ear lacks',()=>{
   const dark=side=>{let n=0;for(let i=0;i<col.count;i++)if(pos.getX(i)*side>.04&&pos.getY(i)>.1&&col.getX(i)+col.getY(i)+col.getZ(i)<.3)n++;return n;};
   assert(dark(-1)>dark(1)+5,`${name} notch ${dark(-1)} vs ${dark(1)}`);
  }
+});
+
+test('a stray\'s ribs show through the flank fur: ridges along the side, none on the back, belly or off the ribcage',()=>{
+ const Y=.32;
+ let lit=0,bare=0;
+ for(let k=0;k<200;k++){const z=-.06+k*.22/200;if(ribShade(.1,Y,z,Y)>.1)lit++;else bare++;}
+ assert(lit>20&&bare>20,`ridges and gaps along the flank: ${lit} lit, ${bare} bare`);
+ for(let k=0;k<200;k++){
+  const z=-.06+k*.22/200;
+  assert.equal(ribShade(0,Y,z,Y),0,'nothing on the spine line');
+  assert.equal(ribShade(.1,Y+.12,z,Y),0,'nothing on the back');
+  assert.equal(ribShade(.1,Y-.12,z,Y),0,'nothing on the belly');
+ }
+ assert.equal(ribShade(.1,Y,.3,Y),0,'nothing over the chest or neck');
 });
