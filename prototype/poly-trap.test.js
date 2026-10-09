@@ -54,3 +54,9 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('the ring gutters once as it wrenches out', () => {
+  const at = u => ringPose(POLY.crush + u * (POLY.total - POLY.crush)).alpha;
+  assert.ok(at(.3) < at(.1) * .6, 'dips mid-wrench');
+  assert.ok(at(.45) > at(.3), 'recovers');
+});
