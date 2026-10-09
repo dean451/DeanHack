@@ -87,3 +87,10 @@ test('a hostile and a floor object no longer share a mark', () => {
   assert.equal(hostile.mark, 'slash');
   assert.notEqual(hostile.mark, object.mark);
 });
+
+test('bars, doors, altars and graves each carry a different mark', () => {
+  const m = t => cellStyle({x: 1, z: 1, terrain: t}, hero).mark;
+  assert.notEqual(m('bars'), m('door'));
+  assert.notEqual(m('grave'), m('altar'));
+  assert.equal(new Set(['fountain', 'altar', 'throne', 'sink', 'grave'].map(m)).size, 5);
+});
