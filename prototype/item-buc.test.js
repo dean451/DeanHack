@@ -67,3 +67,11 @@ test('hover hints name lit light sources, the alternate weapon, partly eaten foo
   assert.equal(itemHint('a diluted potion of healing'), 'diluted');
   assert.equal(itemHint('an unlit brass lantern'), '');
 });
+
+test('hover hints give shop prices and chained or embedded items', async () => {
+  const {itemHint} = await import('./item-buc.js');
+  assert.equal(itemHint('a cursed dagger (unpaid, 4 zorkmids)'), 'cursed, unpaid 4zm');
+  assert.equal(itemHint('a dagger (for sale, 1 zorkmid)'), 'for sale 1zm');
+  assert.equal(itemHint('a heavy iron ball (chained to you)'), 'chained to you');
+  assert.equal(itemHint('a dagger'), '');
+});
