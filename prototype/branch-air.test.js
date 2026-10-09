@@ -90,3 +90,14 @@ test('Sokoban and Mines floors take a branch finish; other branches stay plain',
   assert(floorFinish('The Gnomish Mines').tint[0] > floorFinish('The Gnomish Mines').tint[2], 'grimy warm');
   assert.deepEqual(floorFinish('The Dungeons of Doom'), {tint: [1, 1, 1], roughness: .9});
 });
+
+test('wall blocks take a branch finish; other branches keep the plain wall', async () => {
+  const {wallFinish, WALL_BASE} = await import('./branch-air.js');
+  const rgb = h => new THREE.Color(h);
+  const m = rgb(wallFinish('The Gnomish Mines').color), s = rgb(wallFinish('Sokoban').color);
+  assert(m.r > m.b, 'grimy warm');
+  assert(s.b > s.r, 'cold');
+  assert(wallFinish('The Gnomish Mines').roughness < WALL_BASE.roughness, 'damp sheen');
+  assert(wallFinish('Sokoban').roughness < WALL_BASE.roughness, 'smooth');
+  assert.equal(wallFinish('The Dungeons of Doom'), WALL_BASE);
+});
