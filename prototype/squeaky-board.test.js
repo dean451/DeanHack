@@ -91,3 +91,11 @@ test('the hush drops one beat mid-creep and stays in bounds', async () => {
   assert.ok(at(.3) > .2 && at(.7) > .2);
   assert.equal(at(1), 0);
 });
+
+test('the first mote hops once more after it has settled, and lands', () => {
+  const p = t => motePose(0, t);
+  const u = k => k * .6;
+  assert.ok(p(u(.86)).y > p(u(.78)).y + .03, 'rehop');
+  assert.ok(Math.abs(p(u(.95)).y - .03) < 1e-9 && p(u(.95)).alpha > 0, 'down again');
+  assert.equal(motePose(0, SQUEAK.total).alpha, 0);
+});
