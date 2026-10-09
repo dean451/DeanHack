@@ -43,7 +43,9 @@ export function fleckPose(i, t) {
   const y = .45 * Math.sin(Math.min(u / .6, 1) * Math.PI * .5) - .45 * (u > .3 ? ((u - .3) / .7) ** 2 : 0);
   // The last fleck is reluctant: midway it is tugged back toward the item, then lets go and falls with the rest.
   const k = i === BLESS.flecks - 1 ? 1 - .7 * Math.sin(Math.PI * clamp01((u - .35) / .2)) : 1;
-  return {x: Math.cos(a) * out * k, y: Math.max(y, 0), z: Math.sin(a) * out * k, alpha: smooth(u / .08) * (1 - smooth((u - .7) / .3)) * ember(i, u)};
+  // The first fleck will not lie still: once down it twitches sideways, as if something under it were still alive.
+  const twitch = i === 0 ? .03 * Math.sin(u * 50) * smooth((u - .6) / .1) * (1 - smooth((u - .85) / .15)) : 0;
+  return {x: Math.cos(a) * (out * k + twitch), y: Math.max(y, 0), z: Math.sin(a) * (out * k + twitch), alpha: smooth(u / .08) * (1 - smooth((u - .7) / .3)) * ember(i, u)};
 }
 
 // Wrung-out flecks gutter like dying embers: each dims and catches again at its own pitch while it falls.

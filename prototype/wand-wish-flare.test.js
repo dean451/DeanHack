@@ -51,3 +51,10 @@ test('the spike stutters dark once as it snaps off, then returns to rest', () =>
   for (let u = 0; u <= 1; u += .005) assert.ok(a(u) >= 0 && a(u) <= .9 + 1e-9);
   assert.equal(spikePose(FLARE.total).alpha, 0);
 });
+
+test('the flash flickers back once as it dies', () => {
+  const a = u => flashPose(u * FLARE.total).alpha;
+  assert.ok(a(.46) > a(.4), 'jerks back in');
+  for (let t = 0; t <= FLARE.total; t += .005) assert.ok(flashPose(t).alpha >= 0 && flashPose(t).alpha <= 1);
+  assert.equal(flashPose(FLARE.total).alpha, 0);
+});
