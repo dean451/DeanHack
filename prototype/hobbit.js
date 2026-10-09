@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 
 // The hobbit used to be the generic short humanoid: a teal box for a body and a brown lump of
-// hair. It now stands as a plump little halfling: a round, sallow, weathered face with a bruised button nose, a smile
+// hair. It now stands as a plump, hard-bitten halfling: a round, sallow, weathered face with a bruised nose, a scowl, a scarred brow
 // and pointed ears under a mop of brown curls; a cream shirt with the sleeves rolled to the elbow,
 // a red neckerchief, and a green waistcoat left open over the belly, with brass buttons and a
 // watch chain looped from the pocket. Brown knee breeches are buttoned at the knee, and a leather
@@ -14,13 +14,13 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // match the old humanoid('hobbit') (shoulders at ±.28, .7; hand .3 down the arm; head centre
 // .87), which gait.js and fidget.js's head scratch are tuned to. hat, beard and pick are null.
 
-const SKIN=rgb('#b89a78'),SKIN_SHADE=rgb('#8a6e52'),CHEEK=rgb('#8a6a5a'),LIPS=rgb('#6e4a40');
+const SKIN=rgb('#a48c6c'),SKIN_SHADE=rgb('#7a6248'),CHEEK=rgb('#8a6a5a'),LIPS=rgb('#6e4a40');
 const EYE=rgb('#2a1a10'),EYE_GLINT=rgb('#f4efe6');
 const HAIR=rgb('#7a4a24'),HAIR_DARK=rgb('#3e2412'),HAIR_LIGHT=rgb('#9a6434');
 const SHIRT=rgb('#efe6cf'),SHIRT_SHADE=rgb('#c8bc9c');
-const VEST=rgb('#5f7d34'),VEST_DARK=rgb('#3a4e1e'),VEST_TRIM=rgb('#c8a040');
+const VEST=rgb('#4a5a2c'),VEST_DARK=rgb('#2c3818'),VEST_TRIM=rgb('#c8a040');
 const BREECH=rgb('#7a5634'),BREECH_DARK=rgb('#4e3620'),LEATHER=rgb('#4a3020'),LEATHER_DARK=rgb('#2c1c12');
-const BRASS=rgb('#d0a848'),BRASS_DARK=rgb('#8a6a28'),SCARF=rgb('#b8402a'),SCARF_DARK=rgb('#7a2618');
+const BRASS=rgb('#d0a848'),BRASS_DARK=rgb('#8a6a28'),SCARF=rgb('#8a3426'),SCARF_DARK=rgb('#561c12');
 const STEEL=rgb('#b8c0c4');
 
 const lathe=(profile,segments=24,phiStart=0,phiLength=Math.PI*2)=>new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),segments,phiStart,phiLength);
@@ -79,13 +79,14 @@ function buildHead(){
   // eyes: dark, with a glint, under soft brows
   P.add(new THREE.SphereGeometry(.018,10,8),at(s*.048,.108,.124,[0,0,0],[1,1.1,.6]),EYE);
   P.add(new THREE.SphereGeometry(.005,6,4),at(s*.048+.006,.116,.134),EYE_GLINT);
-  P.add(new THREE.BoxGeometry(.046,.01,.014),at(s*.05,.138,.124,[0,0,s*-.18]),HAIR_DARK);
+  P.add(new THREE.BoxGeometry(.046,.01,.014),at(s*.05,.138,.126,[0,0,s*.3],[1,1.3,1]),HAIR_DARK);
   // pointed ears, leaf-shaped, swept up and back
   P.add(new THREE.ConeGeometry(.034,.12,6),at(s*.14,.12,-.01,[-.35,0,s*-.95],[1,1,.4]),(x,y,z)=>mix(SKIN,CHEEK,.25));
  }
- // button nose and a smile
+ // a bruised nose, a scowling mouth and an old scar slashed across the left brow
  P.add(new THREE.SphereGeometry(.024,10,8),at(0,.08,.142,[0,0,0],[1.05,.9,.9]),mix(SKIN,CHEEK,.3));
- P.add(new THREE.TorusGeometry(.032,.006,4,12,Math.PI*.8),at(0,.05,.128,[-.25,0,Math.PI+Math.PI*.1]),LIPS);
+ P.add(new THREE.TorusGeometry(.032,.006,4,12,Math.PI*.8),at(0,.04,.128,[-.25,0,Math.PI*.1]),LIPS);
+ P.add(new THREE.BoxGeometry(.012,.09,.006),at(-.05,.12,.132,[0,0,.5]),LIPS);
  // a mop of brown curls: a close cap, then a scatter of little balls over the crown and nape,
  // stopping above the brow and behind the ears
  P.add(new THREE.SphereGeometry(.148,18,10,0,Math.PI*2,0,Math.PI*.5),at(0,.1,-.01,[-.3,0,0]),(x,y)=>mix(HAIR_DARK,HAIR,THREE.MathUtils.clamp((y-.1)/.08,0,1)));
