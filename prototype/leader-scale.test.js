@@ -21,3 +21,9 @@ test('Norn and Pelias, with their own models, also stand over a plain human', ()
     assert(scale(n) >= scale('human') * 1.1, n);
   }
 });
+
+test('Lord Carnarvon and Hippocrates, with their own models, also stand over a plain human', () => {
+  for(const n of ['lord carnarvon', 'hippocrates']){
+    assert(scale(n) >= scale('human') * 1.1, n);
+  }
+});
