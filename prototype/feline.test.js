@@ -153,3 +153,12 @@ test('the pet cats\' tails end in a pale bare scar-knot; the wild cats\' do not'
  };
  for(const name of ['kitten','housecat','large cat'])assert(pale(name)>pale('wildcat')+5,`${name} tail scar ${pale(name)}`);
 });
+
+test('the pet cats\' lowest whiskers are snapped short; the wild cats keep full ones',()=>{
+ const reach=name=>{
+  const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry,pos=g.attributes.position;
+  let n=0;for(let i=0;i<pos.count;i++)if(pos.getX(i)>.11&&pos.getY(i)<-.04&&pos.getZ(i)>.08)n++;
+  return n;
+ };
+ for(const name of ['kitten','housecat','large cat'])assert(reach(name)<reach('wildcat'),`${name} ${reach(name)} vs ${reach('wildcat')}`);
+});
