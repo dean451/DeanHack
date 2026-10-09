@@ -32,6 +32,8 @@ export function kneelPose(u) {
   // the sky had been looking too.
   const peek = Math.sin(clamp01((u - .28) / .08) * Math.PI) * hold, duck = smooth((u - .37) / .05) * (1 - smooth((u - .6) / .1)) * hold;
   p.lean += .05 * duck - .1 * peek; p.wrist -= .15 * peek; p.socket -= .06 * peek;
+  // Rising, the hero flicks one wary glance over the shoulder, at whatever was behind the sky, before facing front again.
+  p.twist -= .22 * Math.sin(clamp01((u - .86) / .1) * Math.PI);
   return p;
 }
 
