@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {aimKeys, walkCursor, aimLine, createAimCursor} from './aim-cursor.js';
+import {aimKeys, walkCursor, aimLine, createAimCursor, directionLanes, isDirectionPrompt} from './aim-cursor.js';
 
 test('the keys walk the cursor exactly to the square and then select it', () => {
   const from = {x: 20, z: 10};
@@ -57,4 +57,25 @@ test('the cursor draws a dotted trail from the hero and hides it with the cursor
   aim.hide();
   assert.equal(shown(), 0);
   aim.dispose();
+});
+
+test('a direction prompt is recognised, and its lanes stop at the first solid square', () => {
+  assert.ok(isDirectionPrompt('In what direction?'));
+  assert.ok(!isDirectionPrompt('Where do you want to be teleported?'));
+  assert.ok(!isDirectionPrompt(undefined));
+  const lanes = directionLanes({x: 0, z: 0}, (x, z) => x === 3 && z === 0 || Math.abs(x) > 5 || Math.abs(z) > 5, 8);
+  assert.equal(lanes.length, 8);
+  assert.deepEqual(lanes[3].map(p => p.x), [1, 2]);   // 'l' runs east and is stopped by the wall at x=3
+  assert.equal(lanes[0].length, 5);                   // 'h' runs west until the edge
+  assert.deepEqual(directionLanes({x: 0, z: 0}, () => true), Array.from({length: 8}, () => []));
+});
+
+test('the cursor shows lane dots without the cursor ring', () => {
+  const scene = new THREE.Group(), c = createAimCursor();
+  scene.add(c.g);
+  c.lanes([{x: 1, z: 0}, {x: 2, z: 0}]);
+  assert.equal(c.g.visible, false);
+  assert.equal(scene.children.filter(o => o !== c.g && o.visible).length, 2);
+  c.hide();
+  assert.equal(scene.children.filter(o => o !== c.g && o.visible).length, 0);
 });

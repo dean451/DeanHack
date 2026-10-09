@@ -40,7 +40,7 @@ import {createMinimap} from './minimap.js';
 import {createMessageLog,addMessage,panelView,allRows,markTurn,sinceMark} from './message-log.js';
 import {createHistoryPanel} from './message-history.js';
 import {syncDetectedMark} from './detected-mark.js';
-import {aimKeys,createAimCursor} from './aim-cursor.js';
+import {aimKeys,createAimCursor,directionLanes,isDirectionPrompt} from './aim-cursor.js';
 import {itemBuc,bucMark,itemEnchant,enchantMark,itemHint} from './item-buc.js';
 import {squareAt,farlookText,createFarlook} from './farlook.js';
 import {levelTitle,lowHealth,parseAttributes} from './hud.js';
@@ -204,7 +204,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  const historyPanel=createHistoryPanel(document,()=>allRows(messageLog));document.body.append(historyPanel.el);
  const farlook=createFarlook(document);document.body.append(farlook.el);{const ray=new THREE.Raycaster(),floor=new THREE.Plane(new THREE.Vector3(0,1,0),0),spot=new THREE.Vector3(),ndc=new THREE.Vector2(),dom=controls.domElement;dom.addEventListener('pointermove',e=>{if(!active||!latest||!origin||e.buttons){farlook.hide();return;}const r=dom.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);if(!ray.ray.intersectPlane(floor,spot)){farlook.hide();return;}const sq=squareAt(spot,origin);farlook.show(farlookText(latest.cells.find(c=>c.x===sq.x&&c.z===sq.z)),e.clientX,e.clientY);});dom.addEventListener('pointerleave',()=>farlook.hide());}
  const aim=createAimCursor();group.add(aim.g);let aimQueue=[];
- function syncAim(){if(active&&origin&&pending?.kind==='position'&&pending.cursor){aim.show(pending.cursor.x-origin.x,pending.cursor.z-origin.z,latest?.player?{x:latest.player.x-origin.x,z:latest.player.z-origin.z}:null);minimap.setCursor(pending.cursor);}else{aim.hide();minimap.setCursor(null);}}
+ function syncAim(){if(active&&origin&&pending?.kind==='position'&&pending.cursor){aim.show(pending.cursor.x-origin.x,pending.cursor.z-origin.z,latest?.player?{x:latest.player.x-origin.x,z:latest.player.z-origin.z}:null);minimap.setCursor(pending.cursor);}else if(active&&origin&&latest?.player&&pending&&pending.kind!=='command'&&pending.kind!=='menu'&&isDirectionPrompt(pending.prompt)){const p=latest.player;aim.lanes(directionLanes(p,(x,z)=>solidAt(latest,x,z)).flat().map(c=>({x:c.x-origin.x,z:c.z-origin.z})));minimap.setCursor(null);}else{aim.hide();minimap.setCursor(null);}}
  minimap.el.addEventListener('click',e=>{if(pending?.kind!=='position'||!pending.cursor)return;const spot=minimap.cellAt(e.clientX,e.clientY);if(!spot)return;aimQueue=aimKeys(pending.cursor,spot);void reply(aimQueue.shift());});
  // Engine commands live in the footer next to the demo's buttons, so both modes share one control row.
  const actions=document.createElement('div');actions.className='engine-actions';actions.hidden=true;actions.innerHTML='<button data-key="83">Save & exit</button>';$('.buttons').prepend(actions);

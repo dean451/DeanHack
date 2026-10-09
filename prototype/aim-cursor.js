@@ -56,6 +56,24 @@ export function aimLine(from, to, max = 24) {
   return out.slice(0, max);
 }
 
+// "In what direction?" (zap, throw, fire, kick, apply a digger...): the eight lanes the choice
+// can take, each a run of squares from the hero up to `range`, stopped short at the first solid
+// square. `solid(x, z)` says whether a square blocks.
+export const isDirectionPrompt = text => /direction/i.test(text ?? '');
+export function directionLanes(from, solid, range = 8) {
+  const lanes = [];
+  for (const [dx, dz] of Object.values(STEP)) {
+    const lane = [];
+    for (let i = 1; i <= range; i++) {
+      const x = from.x + dx * i, z = from.z + dz * i;
+      if (solid(x, z)) break;
+      lane.push({x, z});
+    }
+    lanes.push(lane);
+  }
+  return lanes;
+}
+
 export function createAimCursor() {
   const g = new THREE.Group();
   g.name = 'aim-cursor';
@@ -84,6 +102,11 @@ export function createAimCursor() {
       hideDots();
       if (!from) return;
       aimLine({x: Math.round(from.x), z: Math.round(from.z)}, {x: Math.round(x), z: Math.round(z)}).forEach((p, i) => { const d = dot(i); d.position.set(p.x, 0.05, p.z); d.visible = true; });
+    },
+    // Dim dots along every lane of a direction prompt (world squares, already relative to the scene).
+    lanes(points) {
+      g.visible = false; hideDots();
+      points.forEach((p, i) => { const d = dot(i); d.position.set(p.x, 0.05, p.z); d.visible = true; });
     },
     hide() { g.visible = false; hideDots(); },
     update(t) { if (g.visible) { const s = 1 + 0.07 * Math.sin(t * 5); ring.scale.set(s, s, 1); material.opacity = 0.7 + 0.2 * Math.sin(t * 5); } },
