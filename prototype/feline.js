@@ -313,6 +313,8 @@ function buildTail(L,C){
  P.add(new THREE.SphereGeometry(r1*1.05,8,6),at(...pts[n]),colour(n-1));
  // scruffy pets: the tail is matted, with burrs of fur bristling off it
  if(L.scruffy)for(let i=2;i<n;i+=2)P.add(new THREE.ConeGeometry(.008*k,.03,4),at(pts[i][0]+.012,pts[i][1]+.01,pts[i][2],[0,0,-1.2]),mix(C.coat,C.stripe,.5));
+ // scruffy pets: the last of the tail was lost in some fight, a bare pale scar-knot where the fur stops
+ if(L.scruffy)P.add(new THREE.ConeGeometry(r1*1.3,.03,5),at(pts[n][0],pts[n][1]+.005,pts[n][2]-.012,[-Math.PI/2+.5,0,0]),SCAR);
  P.add(new THREE.SphereGeometry(r0*1.1,8,6),at(0,0,0),mix(C.coat,C.back,.3));
  return P.merge();
 }
