@@ -25,7 +25,9 @@ export function puffPose(i, t) {
   const jerk = i === GAS.puffs - 1 ? .09 * Math.sin(clamp01((u - .62) / .12) * Math.PI) : 0;
   // The middle puff snores once as it sags: a single fat swell, then it deflates.
   const snore = i === 4 ? 1 + .14 * Math.sin(clamp01((u - .55) / .2) * Math.PI) : 1;
-  return {x: Math.cos(a) * spread, y: Math.max(.08 + (.5 + .06 * (i % 3)) * rise - .52 * droop + jerk, .05), z: Math.sin(a) * spread, size: (.09 + .14 * smooth(u)) * (1 + .1 * droop * (Math.sin(t * 5.5 + i * 1.7) - 1) / 2) * snore, alpha: .5 * Math.min(1, u * 8) * (1 - smooth(clamp01((u - .7) / .3)))};
+  // The second puff rolls over in its sleep: a slow slide sideways that settles back.
+  const roll = i === 1 ? .08 * Math.sin(clamp01((u - .5) / .3) * Math.PI) : 0;
+  return {x: Math.cos(a) * spread + roll, y: Math.max(.08 + (.5 + .06 * (i % 3)) * rise - .52 * droop + jerk, .05), z: Math.sin(a) * spread, size: (.09 + .14 * smooth(u)) * (1 + .1 * droop * (Math.sin(t * 5.5 + i * 1.7) - 1) / 2) * snore, alpha: .5 * Math.min(1, u * 8) * (1 - smooth(clamp01((u - .7) / .3)))};
 }
 
 export function createSleepingGas(THREE, parent) {
