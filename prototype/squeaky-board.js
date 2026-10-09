@@ -31,7 +31,7 @@ export const HUSH_AT = .5;
 export function hushPose(t) {
   const u = clamp01((t - HUSH_AT) / (SQUEAK.total - HUSH_AT));
   if (u <= 0 || u >= 1) return {radius: .1, alpha: 0};
-  return {radius: .1 + .55 * (1 - smooth(u)), alpha: .3 * Math.sin(Math.PI * u)};
+  return {radius: .1 + .55 * (1 - smooth(u)), alpha: .3 * Math.sin(Math.PI * u) * (u > .45 && u < .55 ? .3 : 1)};   // the held breath: one dropped beat
 }
 
 // Dust mote i: jolts up off the plank in a twitch, hangs a moment, then settles back.
