@@ -85,3 +85,9 @@ test('the first rust fleck flinches once mid-fall and stays in bounds', () => {
   assert.ok(Math.abs(at(.7).z - base(.7)) < 1e-9 && Math.abs(at(.3).z - base(.3)) < 1e-9, 'only once');
   for (let t = 0; t <= RUST.total; t += .005) assert.ok(Math.hypot(fleckPose(0, t).x, fleckPose(0, t).z) <= .45, String(t));
 });
+
+test('one droplet ricochets back toward the wall instead of splashing out', () => {
+  const p = dropPose(4, 4 * .02 + RUST.flight + .3);
+  assert.ok(p.x < -.2 && Math.abs(p.z) < .05 && p.alpha > 0);
+  assert.ok(dropPose(0, 0 * .02 + RUST.flight + .3).x > -1);
+});
