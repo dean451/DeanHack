@@ -84,3 +84,9 @@ test('the scorch catches again once as it thins, and the first tongue snaps side
   assert.ok(snap > .08, `snap ${snap}`);
   assert.equal(tonguePose(0, JET.total + .1).alpha, 0);
 });
+
+test('the third ember chokes out mid-climb and catches again', () => {
+  const start = .1 + (2 % 4) * .12, a = u => emberPose(2, start + u * .9).alpha;
+  assert.ok(a(.45) < a(.38) * .3 && a(.55) > a(.45) * 3, 'choke');
+  assert.ok(Math.abs(a(.2) / a(.3) - (1 - .2) / (1 - .3)) < 1e-9, 'others burn on');
+});
