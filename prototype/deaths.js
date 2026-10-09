@@ -136,6 +136,11 @@ export function deathPose(style, u, dir = null) {
       p.sy = 1 - .25 * s;
       p.dy = .25 * s;
       p.fade = 1 - smooth((u - .15) / .85);
+      // The head tips back in a long sigh as it thins, the wings spread slack and a trailing
+      // end streams out behind it, each easing back to nothing before it is gone.
+      p.head = -.4 * Math.sin(Math.PI * clamp01((u - .1) / .7));
+      p.wing = .5 * Math.sin(Math.PI * clamp01((u - .05) / .8));
+      p.tail = .35 * Math.sin(Math.PI * clamp01((u - .2) / .75));
       break;
     }
     case 'burst': {
@@ -144,6 +149,8 @@ export function deathPose(style, u, dir = null) {
       const s = smooth(u / .33);
       p.scale = 1 + .55 * s - .1 * Math.sin(Math.PI * clamp01(u / .12));
       p.fade = u < .33 ? 1 : 0;
+      // Before it goes it trembles, a fine fast shiver that tightens as the swell peaks.
+      p.roll = .05 * Math.sin(u * 220) * smooth(u / .1) * (1 - smooth((u - .2) / .13));
       break;
     }
     case 'petrify': {

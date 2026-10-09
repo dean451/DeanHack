@@ -311,3 +311,22 @@ test('a toppled body lets its tail go slack, and flicks it once after landing', 
     assert.ok(Math.abs(p(u).tail) <= .45, `in bounds at ${u}`);
   }
 });
+
+test('a dissipating death sighs its head back and trails wings and tail, easing to nothing', () => {
+  const p = u => deathPose('dissipate', u);
+  assert.ok(p(0).head === 0 && p(0).wing === 0 && p(0).tail === 0);
+  assert.ok(p(.45).head < -.3 && p(.5).wing > .4 && p(.6).tail > .25);
+  for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).head) <= .4 + 1e-9 && p(u).wing <= .5 + 1e-9 && p(u).tail <= .35 + 1e-9, `in bounds at ${u}`);
+  assert.ok(Math.abs(p(1).head) < 1e-9 && Math.abs(p(1).wing) < 1e-9 && Math.abs(p(1).tail) < 1e-9);
+  assert.equal(deathPose('burst', .2).wing, 0);
+});
+
+test('a bursting body trembles as it swells, then is still at the pop', () => {
+  const r = u => deathPose('burst', u).roll;
+  assert.ok(Math.abs(r(0)) < 1e-12);
+  let max = 0;
+  for (let u = 0; u <= 1; u += .002) { assert.ok(Math.abs(r(u)) <= .05 + 1e-9, `roll in bounds at ${u}`); max = Math.max(max, Math.abs(r(u))); }
+  assert.ok(max > .03, 'a visible shiver');
+  assert.ok(Math.abs(r(.33)) < 1e-9 && Math.abs(r(1)) < 1e-12);
+  assert.equal(deathPose('dissipate', .5).roll, 0);
+});
