@@ -59,3 +59,11 @@ test('the first shard rocks back once long after it has come to rest', () => {
   assert.equal(shardPose(0, STATUE.total).alpha, 0);
   assert.equal(shardPose(1, air + .575).spin, shardPose(1, air + .75).spin);
 });
+
+test('the cold eye opens once more, dim, after the first flash has gone', () => {
+  assert.equal(glintPose(.45).alpha, 0);
+  let peak = 0;
+  for (let t = .6; t < .85; t += .002) { const p = glintPose(t); assert.ok(p.alpha <= .45 + 1e-9 && p.scale <= .09, String(t)); peak = Math.max(peak, p.alpha); }
+  assert.ok(peak > .35 && peak < .9);
+  assert.equal(glintPose(.85).alpha, 0);
+});
