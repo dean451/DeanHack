@@ -105,3 +105,11 @@ test('the cursed ring dims on its stutter beats and stays within bounds', () => 
   assert.ok(on.alpha > 0);
   assert.equal(ringPose('cursed', BLESS.total).alpha, 0);
 });
+
+test('the first shaken-off fleck twitches after it lands and the others do not', () => {
+  const x = (i, t) => fleckPose(i, t * BLESS.total).x;
+  let moves = 0;
+  for (let u = .62; u < .84; u += .004) if (Math.abs(x(0, u + .004) - x(0, u)) > 1e-4) moves++;
+  assert.ok(moves > 20, 'twitching');
+  for (let u = .6; u <= 1; u += .01) assert.ok(Math.hypot(fleckPose(0, u * BLESS.total).x, fleckPose(0, u * BLESS.total).z) < .35);
+});
