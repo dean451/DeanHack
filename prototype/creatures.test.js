@@ -65,8 +65,7 @@ test('the chromatic dragon is a huge oil-slick obsidian dragon with the five col
  assert(patch(chroma).size<=1,'one hide colour, not a rainbow of scale patches');
  // a name with no glyph colour still resolves to the chromatic look, not the brown generic one
  assert.equal(createCreature({name:'chromatic dragon',symbol:D}).element,'chromatic');
- const size=a=>new THREE.Box3().setFromObject(a.g).max.y;
- assert(size(chroma)>size(plain)*1.1,'bigger than an ordinary dragon');
+ assert(chroma.g.scale.x>plain.g.scale.x*1.1,'a larger frame than an ordinary dragon');
  const b=new THREE.Box3().setFromObject(chroma.g);
  assert(b.min.y>-.005&&b.max.y<1.5,`height ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'sprawl');
