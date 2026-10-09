@@ -44,6 +44,12 @@ export function speckPose(i, t) {
   const s = t - i * .03;
   if (s <= 0 || t >= PIT.speckTotal) return {x: 0, y: 0, z: 0, alpha: 0};
   const a = i * 2.4 + .7, r = .18 * Math.sqrt(clamp01(s / .4));
+  // The last fleck does not vanish in the air: it lands on the iron, hops once and skitters to a stop.
+  if (i === PIT.specks - 1) {
+    const land = .55, hop = clamp01((s - land) / .14), skid = clamp01((s - land) / .3);
+    const y = s < land ? Math.max(.02, .1 + 1.9 * s - 3.8 * s * s) : .02 + .05 * Math.sin(hop * Math.PI);
+    return {x: Math.cos(a) * (r + .015 * skid), y, z: Math.sin(a) * (r + .015 * skid), alpha: .9 * (1 - clamp01((t - .62) / (PIT.speckTotal - .62)))};
+  }
   return {x: Math.cos(a) * r, y: Math.max(.02, .1 + 1.9 * s - 3.8 * s * s), z: Math.sin(a) * r, alpha: .9 * (1 - clamp01((s - .4) / .25))};
 }
 

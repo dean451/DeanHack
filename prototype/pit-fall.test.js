@@ -68,3 +68,11 @@ test('the last dust puff is a late second cough', () => {
   assert.ok(first(0) < COUGH_DELAY);
   assert.equal(dustPose(PIT.dust - 1, PIT.total).alpha, 0);
 });
+
+test('the last spike fleck lands, hops once and is still visible after the others are gone', () => {
+  const n = PIT.specks - 1, t0 = n * .03 + .55;
+  assert.equal(speckPose(0, .7).alpha, 0);
+  assert.ok(speckPose(n, .7).alpha > .1);
+  assert.ok(speckPose(n, t0 + .07).y > speckPose(n, t0 + .01).y + .02, 'hop');
+  assert.ok(speckPose(n, t0 + .12).y < speckPose(n, t0 + .07).y, 'settling');
+});
