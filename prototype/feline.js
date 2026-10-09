@@ -187,6 +187,8 @@ function buildHead(L,C){
   c=mix(c,C.belly,clamp01(muzzle)*(L.pattern==='ghost'||L.pattern==='shimmer'?.5:1));
   // scruffy pets: an old pale scar slashed across the bridge of the nose and the brow
   if(L.scruffy&&x>0){const d=Math.abs((y-.02)-(z-.1)*1.6+(x-.03)*1.2);if(d<.006&&z>.06&&x<.07)c=mix(c,SCAR,.85*(1-d/.006));}
+  // the wild cats carry an old gouge down the left cheek, a rival's work
+  if(!L.scruffy&&x<-.03&&x>-.1){const d=Math.abs((z-.09)+(y+.01)*.8-(-x-.06)*1.4);if(d<.005&&y<.03&&y>-.05&&z>.04)c=mix(c,SCAR,.7*(1-d/.005));}
   // scruffy pets: eyes sit in dark hollows, so the bright eye reads against shadow
   if(L.scruffy){const e=Math.hypot(ax-.041,y-.026,z-.128);if(e<.034)c=mix(c,C.stripe,.75*smooth((.034-e)/.02));}
   if(L.brows)for(const s of [-1,1])if(Math.hypot(x-s*.04,y-.055,z-.12)<.02)c=mix(c,C.belly,.9);
