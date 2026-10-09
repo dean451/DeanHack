@@ -501,6 +501,9 @@ function blob(o){
  sphere(body,.28,skin,0,o.flat?.12:.2,0,1,o.flat?.45:.72,1);sphere(body,.09,mat(shade(o.color,.4)),0,o.flat?.12:.2,0,1,.8,1);
  if(o.flat)for(let i=0;i<6;i++){const a=i*Math.PI/3;tube(body,[[Math.cos(a)*.2,.08,Math.sin(a)*.2],[Math.cos(a)*.34,.03,Math.sin(a)*.34],[Math.cos(a)*.4,.01,Math.sin(a)*.4]],.022,skin,8);}
  else for(let i=0;i<5;i++){const a=i*1.3;sphere(body,.07,skin,Math.cos(a)*.24,.07,Math.sin(a)*.24,1,.6,1);}
+ // half-digested remains hang in the mass: three bone splinters, so it reads as something that eats
+ const bone=mat('#cfc3a4',{roughness:.9}),cy=o.flat?.12:.2;
+ for(const [x,z,len,tilt,turn] of [[.1,.05,.2,.5,.4],[-.12,-.04,.15,-.6,2.2],[.02,-.13,.12,.9,4.1]]){const s=cone(body,.014,len,bone,x,cy,z,4);s.rotation.set(tilt,turn,.3);}
  return actor(g,body,[],null,[],'blob');
 }
 
@@ -1991,6 +1994,8 @@ function rustMonster(o){
  if(o.kind==='rust monster'){
   const pit=mat('#1c1008',{roughness:1}),claw=mat('#15110e',{roughness:.5,metalness:.4});
   for(const [px,pz,pr] of [[-.07,.15,.026],[.09,.08,.02],[-.1,-.02,.022],[.05,-.06,.028],[-.04,-.16,.02],[.1,-.14,.024]])sphere(body,pr,pit,px,y+.1,pz,1,.3,1);
+  // a ridge of eaten, jagged spines down the back
+  for(let i=0;i<5;i++){const sp=cone(body,.016,.09-Math.abs(i-2)*.012,claw,0,y+.14-Math.abs(i-1.5)*.012,.18-i*.09,4);sp.rotation.x=-.5;}
   for(const side of [-1,1])for(const z of [-.12,.13])for(const k of [-1,0,1]){const c=cone(body,.012,.07,claw,side*.18+side*.01*Math.abs(k),y-.22,z+k*.025+.04,4);c.rotation.x=Math.PI/2-.5;}
  }
  // tail: a tapering segmented stalk out the back ending in a crossed propeller vane
