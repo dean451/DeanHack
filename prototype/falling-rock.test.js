@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {rockPose, gritPose, isFallingRockMessage, createFallingRock, PENDING_WAIT, ROCK} from './falling-rock.js';
+import {rockPose, gritPose, isFallingRockMessage, createFallingRock, PENDING_WAIT, ROCK, LATE_PEBBLE} from './falling-rock.js';
 
 test('only the falling rock message triggers it', () => {
   assert.ok(isFallingRockMessage('A trap door in the ceiling opens and a rock falls on your head!'));
@@ -83,4 +83,11 @@ test('the settled rock tips once more, then lies exactly still', () => {
   const spin = h => rockPose(.08 + ROCK.drop + h).spin;
   assert.ok(Math.abs(spin(.7) - spin(.3)) < 1e-9, 'still before and after the tip');
   assert.ok(spin(.475) - spin(.3) > .1, 'the tip');
+});
+
+test('one pebble ticks down late, after the rest have started', () => {
+  const t = .08 + ROCK.drop + LATE_PEBBLE * .5;
+  assert.equal(gritPose(1, t).alpha, 0);
+  assert.ok(gritPose(0, t).alpha > 0);
+  assert.ok(gritPose(1, t + LATE_PEBBLE).alpha > 0);
 });

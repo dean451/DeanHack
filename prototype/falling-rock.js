@@ -12,6 +12,7 @@ import {clamp01} from './fx-textures.js';
 
 export const ROCK = {grit: 8, drop: .3, total: 1.1, height: 2.2};
 export const PENDING_WAIT = .3;
+export const LATE_PEBBLE = .18;
 export const isFallingRockMessage = text => /trap door in the ceiling opens and a rock falls/i.test(text || '');
 
 // Height of the rock: waits in the dark, falls on an accelerating curve, hops once, rests.
@@ -30,7 +31,8 @@ export function rockPose(t) {
 // Grit i: thrown out flat from the impact, arcing low and dropping back.
 export function gritPose(i, t) {
   // The last pebble is slow to settle: it trickles on across the stone, long after the rest lie still.
-  const last = i === ROCK.grit - 1, u = clamp01((t - .08 - ROCK.drop) / (last ? .62 : .5));
+  // One pebble comes loose from the slot a beat after the rock, and ticks down late.
+  const last = i === ROCK.grit - 1, u = clamp01((t - .08 - ROCK.drop - (i === 1 ? LATE_PEBBLE : 0)) / (last ? .62 : .5));
   if (u <= 0 || u >= 1) return {x: 0, y: .03, z: 0, alpha: 0};
   const a = i * 2.4, r = .1 + (last ? .34 : .3) * u;
   if (last) return {x: Math.cos(a) * r, y: .03 + .14 * Math.abs(Math.sin(u * 11)) * (1 - u), z: Math.sin(a) * r, alpha: .6 * (1 - u * u)};
