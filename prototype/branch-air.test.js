@@ -3,7 +3,22 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {airFor, createBranchAir, PARTICLES, HALF, TOP} from './branch-air.js';
 
-test('only the Gnomish Mines have air of their own so far', () => {
+test('Gehennom lifts embers and ash, within the particle cap', () => {
+  const a = airFor('Gehennom');
+  assert(a.ember.count + a.ash.count <= PARTICLES);
+  assert(a.ember.fall < 0 && a.ash.fall < 0);
+  const group = new THREE.Group(), air = createBranchAir({group});
+  air.setBranch('Gehennom', new THREE.Vector3());
+  const hero = new THREE.Vector3();
+  for (let f = 0; f < 600; f++) {
+    air.update(f / 60, 1 / 60, hero);
+    const p = air.points.geometry.attributes.position;
+    for (let i = 0; i < PARTICLES; i++) if (p.getY(i) > -1) assert(p.getY(i) >= 0 && p.getY(i) <= TOP, 'y');
+  }
+  air.dispose();
+});
+
+test('only the Gnomish Mines and Gehennom have air of their own so far', () => {
   assert(airFor('The Gnomish Mines'));
   assert.equal(airFor('The Dungeons of Doom'), null);
   assert.equal(airFor(undefined), null);

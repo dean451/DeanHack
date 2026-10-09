@@ -2074,6 +2074,8 @@ function gargoyle(o){
  for(let i=0;i<4;i++){const s=cone(body,.024,.08,dark,0,.38+i*.08,-.12-i*.01,4);s.rotation.x=-1.1;}
  for(const [x,y,z,rz] of [[.1,.56,.16,.6],[-.13,.44,.13,-.3],[.05,.36,.15,1.2]]){const c=rounded(body,.07,.008,.01,crack,x,y,z,.003);c.rotation.z=rz;}
  for(const [x,y,z,s] of [[-.12,.64,-.06,1],[.15,.3,-.08,.8],[.08,.62,-.1,.7]])sphere(body,.045*s,moss,x,y,z,1.2,.5,1);
+ // ember seams: thin cracks in the chest and back burn with the same fire as the eyes, as if something inside were awake
+ for(const [x,y,z,rz,l] of [[.04,.52,.245,.5,.11],[-.07,.44,.24,-.7,.08],[.02,.6,-.12,.3,.1]]){const m=rounded(body,l,.007,.006,glow,x,y,z,.002);m.rotation.z=rz;m.castShadow=false;}
  // arms: heavy shoulders, long forearms reaching down so the knuckles rest on the floor
  for(const side of [-1,1]){const sh=[side*.22,.6,.08],el=[side*.28,.36,.16],wr=[side*.22,.08,.24];
   sphere(body,.08,stone,...sh);segment(body,sh,el,.065,.05,stone);sphere(body,.05,stone,...el);segment(body,el,wr,.05,.04,dark);
