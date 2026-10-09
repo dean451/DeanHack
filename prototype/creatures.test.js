@@ -2730,6 +2730,24 @@ test('the rust monster is pitted by corrosion and its feet end in hooked claws; 
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
 });
 
+test('rust monsters bear flank barbs and bared fangs the disenchanter lacks',()=>{
+ const verts=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n+=o.geometry.attributes.position.count;});return n;};
+ const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
+ const lit=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh&&o.material.color&&['3a2412','c9b48a'].includes(o.material.color.getHexString()))n++;});return n;};
+ assert(lit(rust)>=1&&lit(dis)===0,'barb and fang materials only on the rust monster');
+ assert(verts(rust)>verts(dis));
+ rust.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(rust.g,true);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
+});
+
+test('disenchanters leak violet light through cracked plates',()=>{
+ const lit=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh&&o.material.emissiveIntensity>2)n++;});return n;};
+ const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
+ assert(lit(dis)>=1&&lit(rust)===0,'cracks glow only on the disenchanter');
+ dis.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(dis.g,true);
+ assert(b.min.y>-.05,'stays on the floor');assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
+});
+
 test('gargoyles burn with ember seams in the stone of their chest and back',()=>{
  const lit=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh&&o.material.emissiveIntensity>2)n+=o.geometry.attributes.position.count;});return n;};
  const g=createCreature({name:'gargoyle',symbol:89,color:3}),w=createCreature({name:'winged gargoyle',symbol:89,color:4});

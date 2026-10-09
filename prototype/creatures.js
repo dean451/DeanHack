@@ -2000,6 +2000,18 @@ function rustMonster(o){
   for(let i=0;i<5;i++){const sp=cone(body,.016,.09-Math.abs(i-2)*.012,claw,0,y+.14-Math.abs(i-1.5)*.012,.18-i*.09,4);sp.rotation.x=-.5;}
   for(const side of [-1,1])for(const z of [-.12,.13])for(const k of [-1,0,1]){const c=cone(body,.012,.07,claw,side*.18+side*.01*Math.abs(k),y-.22,z+k*.025+.04,4);c.rotation.x=Math.PI/2-.5;}
  }
+ // rust monsters only: a row of rust-black barbs along each flank and a pair of bared, hooked fangs in the jaw
+ if(o.kind==='rust monster'){
+  const barb=mat('#3a2412',{roughness:.9,metalness:.3}),fang=mat('#c9b48a',{roughness:.6});
+  for(const side of [-1,1])for(let i=0;i<4;i++){const b=cone(body,.02,.1-i*.01,barb,side*(.2-Math.abs(i-1.5)*.01),y+.01,.14-i*.09,4);b.rotation.z=-side*1.25;b.rotation.x=.15*(i-1.5);}
+  for(const side of [-1,1]){const f=cone(head,.014,.07,fang,side*.045,-.075,.12,4);f.rotation.x=Math.PI-.5;f.rotation.z=side*.15;}
+ }
+ // disenchanters only: hairline cracks in the carapace leak violet light, and the jaw hooks in sharp dark mandibles
+ if(o.kind==='disenchanter'){
+  const crack=mat('#c080ff',{emissive:'#a050ff',emissiveIntensity:2.2,roughness:.4});
+  for(const [px,pz,r] of [[-.06,.16,.3],[.08,.07,-.4],[-.09,-.04,.5],[.05,-.12,-.2]]){const c=cone(body,.008,.1,crack,px,y+.115,pz,3);c.rotation.set(Math.PI/2,0,r);}
+  for(const side of [-1,1]){const m=cone(head,.016,.08,hide,side*.05,-.06,.12,4);m.rotation.x=Math.PI/2+.3;m.rotation.z=-side*.5;}
+ }
  // tail: a tapering segmented stalk out the back ending in a crossed propeller vane
  const tail=new THREE.Group();tail.position.set(0,y,-.27);body.add(tail);
  for(let i=0;i<4;i++){const r=.045-i*.008,seg=cylinder(tail,r*.85,r,.06,i%2?shell:hide,0,0,-.03-i*.055,8);seg.rotation.x=Math.PI/2;}
