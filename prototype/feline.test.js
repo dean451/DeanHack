@@ -102,3 +102,8 @@ test('the pet cats\' eyes sit in dark hollows: the fur round each eye is far dar
   assert(lo<hi*.4,`${name} eye ring ${lo} vs ${hi}`);
  }
 });
+
+test('the wild cats bare fangs past the lip',()=>{
+ const head=name=>meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry.attributes.position.count;
+ for(const name of ['jaguar','lynx','panther','tiger'])assert(head(name)>=head('wildcat')+2*10,`${name} fangs`);
+});
