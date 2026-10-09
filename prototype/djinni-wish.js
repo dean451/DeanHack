@@ -19,7 +19,9 @@ export function smokePose(t) {
   const rise = smooth(clamp01(u / .25)), fade = smooth(clamp01((u - .7) / .3));
   // The lean: it stoops over the hero, then a slow bow before it goes.
   const lean = .5 * smooth(clamp01((u - .3) / .15)) * (1 - smooth(clamp01((u - .5) / .1))) + .35 * Math.sin(Math.PI * clamp01((u - .55) / .2));
-  return {height: 2.6 * rise * (1 - .6 * fade) + .001, width: (.25 + .35 * rise) * (1 + .8 * fade), alpha: .6 * rise * (1 - fade), lean};
+  // The moment the eyes go out the column shudders once, like something clenching its jaw.
+  const su = clamp01((u - .64) / .06), shiver = su > 0 && su < 1 ? .12 * Math.sin(Math.PI * su) * Math.sin(su * 40) : 0;
+  return {height: 2.6 * rise * (1 - .6 * fade) + .001, width: (.25 + .35 * rise) * (1 + .8 * fade) * (1 + shiver), alpha: .6 * rise * (1 - fade), lean};
 }
 
 // The eyes open late, stare, and are the first thing to go out.

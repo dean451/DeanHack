@@ -40,8 +40,10 @@ export function spikePose(t) {
   const u = clamp01(t / FLARE.total);
   if (u <= 0 || u >= 1) return {height: .001, y: 0, alpha: 0};
   const rise = smooth(clamp01(u / .12)), fall = smooth(clamp01((u - .25) / .5));
-  return {height: 1.6 * rise * (1 - fall) + .001, y: .8 * rise * (1 - fall) + 1.6 * fall * .3, alpha: .9 * (1 - u)};
+  return {height: 1.6 * rise * (1 - fall) + .001, y: .8 * rise * (1 - fall) + 1.6 * fall * .3, alpha: .9 * (1 - u) * strike(u)};
 }
+// The spike does not die cleanly: as it snaps off it stutters, blinking dark and striking once more.
+const strike = u => 1 - .75 * Math.sin(Math.PI * clamp01((u - .32) / .1)) ** 2;
 
 export function createWandWishFlare(THREE, parent) {
   const live = [];
