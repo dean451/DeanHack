@@ -12,13 +12,13 @@ export const POLY = {motes: 10, total: 1.0, crush: .6};
 export const PENDING_WAIT = .3;
 export const isPolyTrapMessage = text => /you feel a change coming over you/i.test(text || '');
 
-// Mote i: pulled in along a spiral from a wide ring, stuttering (it stalls twice on the way),
+// Mote i: pulled in along a spiral (mote 7 winds the wrong way round, against the others) from a wide ring, stuttering (it stalls twice on the way),
 // then gone in the crush. Alpha is zero before and after.
 export function motePose(i, t) {
   if (t <= 0 || t >= POLY.crush) return {x: 0, y: .9, z: 0, alpha: 0};
   const u = t / POLY.crush, hitch = u - .08 * Math.sin(u * Math.PI * 6) * (1 - u);
   // Mote 3 balks at the very end: it flinches back out a little before the crush takes it too.
-  const k = 1 - clamp01(hitch) + (i === 3 ? .3 * Math.sin(clamp01((u - .7) / .3) * Math.PI) : 0), a = i * 2.4 + 3 * (1 - k), r = .7 * k + .05;
+  const k = 1 - clamp01(hitch) + (i === 3 ? .3 * Math.sin(clamp01((u - .7) / .3) * Math.PI) : 0), a = i * 2.4 + (i === 7 ? -3 : 3) * (1 - k), r = .7 * k + .05;
   return {x: Math.cos(a) * r, y: .55 + .06 * (i % 5) + .35 * (1 - k), z: Math.sin(a) * r, alpha: .85 * clamp01(t / .08) * (1 - clamp01((u - .85) / .15))};
 }
 

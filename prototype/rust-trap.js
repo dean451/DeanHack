@@ -28,6 +28,8 @@ export function dropPose(i, t) {
     const fall = clamp01((s - .6) / .3);
     return {x: .06 * Math.cos(a), y: Math.max(.03, .6 - .57 * fall * fall) + (fall ? 0 : .01 * Math.sin(s * 40)), z: .06 * Math.sin(a), alpha: .8 * (1 - clamp01((s - .85) / .1))};
   }
+  // Droplet 4 ricochets: it glances off and skips back up the jet toward the wall it came from.
+  if (i === 4) { const k = Math.sqrt(clamp01(s / .4)); return {x: -.32 * k, y: Math.max(.03, .75 - 3.2 * s * s + .9 * s), z: .03 * Math.sin(a), alpha: .8 * (1 - clamp01((s - .35) / .25))}; }
   const r = .35 * Math.sqrt(clamp01(s / .4)) * (.5 + .1 * (i % 5));
   const y = Math.max(.03, .75 - 3.2 * s * s + .9 * s);
   return {x: Math.cos(a) * r, y, z: Math.sin(a) * r, alpha: .8 * (1 - clamp01((s - .35) / .25))};
