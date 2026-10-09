@@ -83,3 +83,11 @@ test('the hush ring creeps inward after the last squeak and leaves nothing behin
   for (let t = HUSH_AT + .001; t < SQUEAK.total; t += .01) { const h = hushPose(t); assert.ok(h.radius <= prev + 1e-9 && h.alpha >= 0 && h.alpha <= .3 + 1e-9, String(t)); prev = h.radius; peak = Math.max(peak, h.alpha); }
   assert.ok(peak > .2);
 });
+
+test('the hush drops one beat mid-creep and stays in bounds', async () => {
+  const {hushPose, HUSH_AT, SQUEAK} = await import('./squeaky-board.js');
+  const at = u => hushPose(HUSH_AT + u * (SQUEAK.total - HUSH_AT)).alpha;
+  assert.ok(at(.5) < .3 * Math.sin(Math.PI * .5) * .31, 'dropped beat');
+  assert.ok(at(.3) > .2 && at(.7) > .2);
+  assert.equal(at(1), 0);
+});

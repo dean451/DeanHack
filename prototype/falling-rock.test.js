@@ -78,3 +78,9 @@ test('after landing the rock rolls a short way and slows', () => {
   }
   assert.ok(prev > .1);
 });
+
+test('the settled rock tips once more, then lies exactly still', () => {
+  const spin = h => rockPose(.08 + ROCK.drop + h).spin;
+  assert.ok(Math.abs(spin(.7) - spin(.3)) < 1e-9, 'still before and after the tip');
+  assert.ok(spin(.475) - spin(.3) > .1, 'the tip');
+});

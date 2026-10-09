@@ -23,7 +23,8 @@ export function chunkPose(i, t) {
   const hang = .04 * i + (i === PIT.chunks - 1 ? .18 : 0), s = t - hang;
   const a = i * 2.4, r0 = .42 + .05 * (i % 3);
   if (t >= PIT.total) return {x: 0, y: 0, z: 0, alpha: 0};
-  if (s <= 0) return {x: Math.cos(a) * r0, y: .03, z: Math.sin(a) * r0, alpha: t > 0 ? .9 : 0};
+  // The stubborn last chunk shivers sideways on the lip (its radius never changes) before it goes.
+  if (s <= 0) { const aa = a + (i === PIT.chunks - 1 ? .05 * Math.sin(t * 45) * clamp01(-s / .1) : 0); return {x: Math.cos(aa) * r0, y: .03, z: Math.sin(aa) * r0, alpha: t > 0 ? .9 : 0}; }
   const r = Math.max(0, r0 - 1.1 * s), y = .03 - 2.4 * s * s;
   return {x: Math.cos(a) * r, y, z: Math.sin(a) * r, alpha: .9 * (1 - clamp01((-y - .15) / .25))};
 }
