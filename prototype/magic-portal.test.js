@@ -51,3 +51,12 @@ test('the arrival only follows a portal, and everything finishes', () => {
   b.message('You activated a magic portal!', 0, 0); b.clear();
   b.levelChanged(0, 0); assert.equal(b.active, 0, 'clear disarms');
 });
+
+test('the middle ring hitches once on the way down and nowhere else', () => {
+  const plain = (i, t) => { const u = t / PORTAL.out; return (i % 2 ? -1 : 1) * (u * 9 + i) * -1 * -1; };
+  assert.ok(Math.abs(ringPose(1, .55 * PORTAL.out, -1).spin - plain(1, .55 * PORTAL.out)) > .3, 'hitch moves the spin');
+  assert.ok(Math.abs(ringPose(1, .3 * PORTAL.out, -1).spin - plain(1, .3 * PORTAL.out)) < 1e-9);
+  assert.ok(Math.abs(ringPose(1, .9 * PORTAL.out - 1e-6, -1).spin - plain(1, .9 * PORTAL.out - 1e-6)) < 1e-9);
+  assert.ok(Math.abs(ringPose(0, .6 * PORTAL.out, -1).spin - plain(0, .6 * PORTAL.out)) < 1e-9);
+  assert.equal(ringPose(1, PORTAL.out, -1).alpha, 0);
+});
