@@ -118,3 +118,9 @@ test('long, hexagonal and octagonal iron wands are banded or pitted, apart from 
   assert(verts('long') > plain, 'a long wand carries bands');
 });
 
+
+test('the short iron wand is a chipped stub, apart from plain iron', () => {
+  const verts = look => meshes(createWand(look)).reduce((n, m) => n + m.geometry.attributes.position.count, 0);
+  assert(verts('short') >= verts('iron') + 3 * 24, 'three chips bitten from its side');
+  assert(verts('short') !== verts('spiked'));
+});
