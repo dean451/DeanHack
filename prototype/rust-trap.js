@@ -40,7 +40,9 @@ export function fleckPose(i, t) {
   const u = s / (RUST.total - RUST.flight - .08), a = i * 2.4 + 1;
   // Each fleck also sways on its own slow beat as it sinks, like rust ash that cannot decide which way to fall.
   const sway = .025 * Math.sin(u * 11 + i * 1.9) * clamp01(u / .15);
-  return {x: Math.cos(a) * (.1 + .14 * u + .02 * (i % 3)) + sway, y: Math.max(.04, .85 - .8 * u * (.7 + .1 * (i % 4))), z: Math.sin(a) * (.1 + .14 * u) - sway * .6, alpha: .85 * clamp01(s / .1) * (1 - clamp01((u - .6) / .4))};
+  // The first fleck flinches once mid-fall: a sudden jerk across the line of sight, as if something unseen flicked it.
+  const flinch = i === 0 ? .07 * Math.sin(clamp01((u - .45) / .1) * Math.PI) : 0;
+  return {x: Math.cos(a) * (.1 + .14 * u + .02 * (i % 3)) + sway, y: Math.max(.04, .85 - .8 * u * (.7 + .1 * (i % 4))), z: Math.sin(a) * (.1 + .14 * u) - sway * .6 + flinch, alpha: .85 * clamp01(s / .1) * (1 - clamp01((u - .6) / .4))};
 }
 
 export function createRustTrap(THREE, parent) {

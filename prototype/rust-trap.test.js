@@ -77,3 +77,11 @@ test('rust flecks sway off a straight drift as they sink', () => {
     assert.ok(off > .005 && off <= .026, String(i));
   }
 });
+
+test('the first rust fleck flinches once mid-fall and stays in bounds', () => {
+  const at = u => fleckPose(0, RUST.flight + .08 + u * (RUST.total - RUST.flight - .08));
+  const base = u => Math.sin(1) * (.1 + .14 * u) - .025 * Math.sin(u * 11 + 0) * Math.min(1, u / .15) * .6;
+  assert.ok(at(.5).z - base(.5) > .06, 'the jerk');
+  assert.ok(Math.abs(at(.7).z - base(.7)) < 1e-9 && Math.abs(at(.3).z - base(.3)) < 1e-9, 'only once');
+  for (let t = 0; t <= RUST.total; t += .005) assert.ok(Math.hypot(fleckPose(0, t).x, fleckPose(0, t).z) <= .45, String(t));
+});
