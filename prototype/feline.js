@@ -12,7 +12,7 @@ import {segment,chain} from './ant.js';
 // - Legs: shoulder, elbow and forearm down to a padded paw with four toes, each tipped with a dark hooked claw, in front; the hind
 //   legs have a muscled thigh, a knee, a raised hock and a long foot.
 // - The kitten, housecat and large cat wear a frayed leather cord collar and are scruffy strays with eyes set in dark hollows: matted tufts along the spine, proud hip
-//   bones, healed scratches across the right flank, ribs showing through the flank fur and a torn left ear. Their coats are
+//   bones, healed scratches across the right flank, ribs showing through the flank fur and upright ears. Their coats are
 //   clean enough for a pet that is fed: no mange, no face scar, full whiskers and bright open eyes.
 // - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
@@ -218,7 +218,7 @@ function buildHead(L,C){
    // the big cats' left ear is bitten: a dark wedge missing from the rim
    if(s<0)P.add(new THREE.ConeGeometry(.012,.03,4),at(ex-.012,ey+.03,ez+.012,[0,0,.5],[1,1,.5]),C.stripe);
   }else{
-   const torn=L.scruffy&&s<0,e=(L.tufts?1.25:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
+   const torn=false,e=(L.tufts?1.25:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
    P.add(new THREE.ConeGeometry(.038*e,.075*e,4),at(s*.055,.095+.01*(e-1),.03,rot,[1,1,.45]),(x,y)=>mix(C.coat,C.back,smooth((y-.1)/.04)));
    P.add(new THREE.ConeGeometry(.026*e,.055*e,4),at(s*.055,.09+.01*(e-1),.042,rot,[1,1,.3]),inner);
    if(torn)P.add(new THREE.ConeGeometry(.01,.03,3),at(s*.072,.098,.03,[-.15,0,-s*.7],[1,1,.45]),C.coat);
@@ -324,8 +324,6 @@ function buildTail(L,C){
  P.add(new THREE.SphereGeometry(r1*1.05,8,6),at(...pts[n]),colour(n-1));
  // scruffy pets: the tail is matted, with burrs of fur bristling off it
  if(L.scruffy)for(let i=2;i<n;i+=2)P.add(new THREE.ConeGeometry(.008*k,.03,4),at(pts[i][0]+.012,pts[i][1]+.01,pts[i][2],[0,0,-1.2]),mix(C.coat,C.stripe,.5));
- // scruffy pets: the last of the tail was lost in some fight, a bare pale scar-knot where the fur stops
- if(L.scruffy)P.add(new THREE.ConeGeometry(r1*1.3,.03,5),at(pts[n][0],pts[n][1]+.005,pts[n][2]-.012,[-Math.PI/2+.5,0,0]),SCAR);
  P.add(new THREE.SphereGeometry(r0*1.1,8,6),at(0,0,0),mix(C.coat,C.back,.3));
  return P.merge();
 }

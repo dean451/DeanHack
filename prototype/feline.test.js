@@ -124,15 +124,6 @@ test('a stray\'s ribs show through the flank fur: ridges along the side, none on
  assert.equal(ribShade(.1,Y,.3,Y),0,'nothing over the chest or neck');
 });
 
-test('the pet cats\' tails end in a pale bare scar-knot; the wild cats\' do not',()=>{
- const pale=name=>{
-  const col=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='tail').geometry.attributes.color;
-  let n=0;for(let i=0;i<col.count;i++)if(col.getX(i)>.7&&col.getY(i)>.5&&col.getZ(i)>.42)n++;
-  return n;
- };
- for(const name of ['kitten','housecat','large cat'])assert(pale(name)>pale('wildcat')+5,`${name} tail scar ${pale(name)}`);
-});
-
 test('the pet cats\' paws are caked in grime; the wild cats\' are clean',()=>{
  const bright=name=>{
   const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='foreleg').geometry,pos=g.attributes.position,col=g.attributes.color;
@@ -160,4 +151,13 @@ test('the pet cats are friendly: full whiskers',()=>{
  for(const name of ['kitten','housecat','large cat']){
   assert.equal(reach(head(name)),reach(head('wildcat')),`${name} whiskers are full`);
  }
+});
+
+test('the pet cats keep their whole tail: the tip is not a pale scar-knot',()=>{
+ const pale=name=>{
+  const col=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='tail').geometry.attributes.color;
+  let n=0;for(let i=0;i<col.count;i++)if(col.getX(i)>.7&&col.getY(i)>.5&&col.getZ(i)>.42)n++;
+  return n;
+ };
+ for(const name of ['kitten','housecat','large cat'])assert(pale(name)<=pale('wildcat')+2,`${name} tail ${pale(name)}`);
 });
