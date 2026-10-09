@@ -2737,3 +2737,14 @@ test('gargoyles burn with ember seams in the stone of their chest and back',()=>
  g.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(g.g,true);
  assert(b.min.y>-.05&&b.max.y<1.5,'stays in bounds');
 });
+
+test('rust monsters bristle with a jagged spine ridge; acid blobs carry bone splinters',()=>{
+ const count=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n+=o.geometry.attributes.position.count;});return n;};
+ const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
+ rust.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(rust.g,true);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
+ assert(count(rust)>count(dis)+150,'spine and pit geometry');
+ const blob=createCreature({name:'acid blob',symbol:98,color:10}),jelly=createCreature({name:'blue jelly',symbol:106,color:4});
+ const meshes=x=>{let n=0;x.g.traverse(o=>{if(o.isMesh)n++;});return n;};
+ assert.equal(meshes(blob),10,'body, nucleus, five lobes and three bone splinters');assert.equal(meshes(jelly),11);
+});
