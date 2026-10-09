@@ -1,6 +1,6 @@
 // Branch atmosphere: the air of each part of the dungeon. The Gnomish Mines are cold, grimy and
 // wet: grey grit sifts down out of the dark ceiling, and now and then a bead of water falls fast and
-// is gone. Gehennom lifts embers and ash on the heat. Other branches have no air of their own yet (`airFor` returns null).
+// is gone. Gehennom lifts embers and ash on the heat. Sokoban holds a few still flecks of cold stone dust. Other branches have no air of their own yet (`airFor` returns null).
 //
 // One Points cloud of PARTICLES around the hero in a box that wraps as the hero moves: one draw
 // call, no lights, no per-tile cost. Plain alpha blending (not additive) so grit stays dull.
@@ -22,8 +22,15 @@ export const GEHENNOM = {
   ash: {count: 24, fall: -.08, sway: .12, color: [.18, .14, .13], alpha: .6},
 };
 
+// Sokoban: stark and still. A few cold, pale flecks of cut-stone dust hang almost motionless in the
+// dead air of the puzzle rooms; nothing drips, nothing burns.
+export const SOKOBAN = {
+  dust: {count: 14, fall: .03, sway: .02, color: [.74, .78, .84], alpha: .4},
+};
+
 export function airFor(dungeon = '') {
   if (/gnomish mines/i.test(dungeon)) return MINES;
+  if (/sokoban/i.test(dungeon)) return SOKOBAN;
   return /gehennom/i.test(dungeon) ? GEHENNOM : null;
 }
 

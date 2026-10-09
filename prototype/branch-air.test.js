@@ -18,7 +18,7 @@ test('Gehennom lifts embers and ash, within the particle cap', () => {
   air.dispose();
 });
 
-test('only the Gnomish Mines and Gehennom have air of their own so far', () => {
+test('only the Gnomish Mines, Sokoban and Gehennom have air of their own so far', () => {
   assert(airFor('The Gnomish Mines'));
   assert.equal(airFor('The Dungeons of Doom'), null);
   assert.equal(airFor(undefined), null);
@@ -49,4 +49,11 @@ test('the cloud shows only in the Mines, stays in its box around the hero and ne
   air.setBranch('The Dungeons of Doom');
   assert.equal(air.points.visible, false);
   air.dispose();
+});
+
+test('Sokoban holds a few still flecks of cold dust, far calmer than the Mines', () => {
+  const a = airFor('Sokoban');
+  assert(a.dust.count <= PARTICLES && a.dust.count < airFor('The Gnomish Mines').grit.count);
+  assert(a.dust.fall <= .05 && a.dust.sway <= .05);
+  assert.equal(Object.keys(a).length, 1);
 });
