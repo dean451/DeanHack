@@ -36,3 +36,9 @@ test('the effect plays once per bottle wish and cleans up', () => {
   fx.update(1.7); assert.equal(fx.active, 0);
   fx.wish({type: 'wish', source: 'bottle'}, 1, 1); fx.clear(); assert.equal(fx.active, 0);
 });
+
+test('the djinni blinks a second, quicker time after the first', () => {
+  const size = u => eyePose(DJINNI.total * u).size;
+  assert.ok(size(.465) < size(.4) * .5 && size(.52) < size(.4) * .5, 'two blinks');
+  assert.ok(size(.5) > size(.52) * 2, 'eyes reopen between them');
+});

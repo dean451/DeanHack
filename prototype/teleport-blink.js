@@ -25,7 +25,7 @@ export function flashPose(t) {
 export function streakPose(t) {
   if (t <= 0 || t >= BLINK.streak) return {height: .001, width: .001, alpha: 0};
   const u = t / BLINK.streak, up = smooth(Math.min(1, u * 2.5));
-  return {height: .1 + 2.6 * up, width: .22 * (1 - u) * (1 - u * .5) + .01, alpha: .9 * (1 - u) * Math.min(1, t * 25)};
+  return {height: .1 + 2.6 * up, width: .22 * (1 - u) * (1 - u * .5) + .01, alpha: .9 * (1 - u) * Math.min(1, t * 25) * (u > .12 && u < .5 && Math.floor(t * 70) % 3 === 0 ? .35 : 1)};  // the column stutters as it tears free, like a bad connection
 }
 
 // The ring that collapses onto the arrival square, then the flash on top of it. The ring gutters

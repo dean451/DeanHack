@@ -28,7 +28,8 @@ export function eyePose(t) {
   if (u <= .3 || u >= .65) return {alpha: 0, size: .001};
   const open = smooth(clamp01((u - .3) / .04)), shut = smooth(clamp01((u - .6) / .05));
   // One slow blink in the middle of the stare.
-  const blink = u > .45 && u < .48 ? .15 : 1;
+  // Then, as if unsure it was seen, a second quicker blink.
+  const blink = (u > .45 && u < .48) || (u > .515 && u < .53) ? .15 : 1;
   return {alpha: open * (1 - shut), size: .06 * blink + .001};
 }
 
