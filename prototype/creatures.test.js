@@ -2748,3 +2748,11 @@ test('rust monsters bristle with a jagged spine ridge; acid blobs carry bone spl
  const meshes=x=>{let n=0;x.g.traverse(o=>{if(o.isMesh)n++;});return n;};
  assert.equal(meshes(blob),10,'body, nucleus, five lobes and three bone splinters');assert.equal(meshes(jelly),11);
 });
+
+test('a wyvern tail stinger keeps it inside its tile',()=>{
+ const count=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n++;});return n;};
+ const wy=createCreature({name:'wyvern',symbol:68,color:3}),dr=createCreature({name:'draken',symbol:68,color:3});
+ assert(count(wy)>0&&count(dr)>0);
+ wy.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(wy.g,true);
+ assert(b.min.y>-.05,'stays on the floor');assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits round its tile');
+});
