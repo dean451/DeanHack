@@ -149,10 +149,10 @@ function buildBody(L,C){
  const [nx,ny,nz]=L.neck;
  segment(P,[0,L.Y+.03,.19],[nx,ny-.02,nz-.01],.075*bw,.06*bw,paint,14);
  P.add(new THREE.SphereGeometry(.066*bw,16,10),at(0,L.Y+.09,.235),paint);
- // scruffy pets: matted tufts bristling along the spine, the hip bones standing proud
+ // pets: a few short tufts along the spine, the hip bones just showing
  if(L.scruffy){
-  for(let k=0;k<9;k++){
-   const z=-.22+k*.045,lean=.35+.05*(k%3),h=.032+.012*hash(k+L.Y*10);
+  for(let k=0;k<6;k++){
+   const z=-.2+k*.06,lean=.35+.05*(k%3),h=.02+.008*hash(k+L.Y*10);
    P.add(new THREE.ConeGeometry(.011,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,smooth((y-L.Y-.1)/.04)));
   }
   for(const s of [-1,1])P.add(new THREE.ConeGeometry(.016,.03,4),at(s*.058*bw,L.Y+.085,-.15,[-.2,0,-s*.5],[1,1,.8]),paint);
