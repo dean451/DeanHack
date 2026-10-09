@@ -48,3 +48,9 @@ test('the last puff jerks awake once before it slumps', () => {
   assert.ok(rises.some((v, k) => k && v > rises[k - 1] + 1e-9), 'a rise during the droop');
   for (let t = 0; t < GAS.total; t += .01) assert.ok(puffPose(GAS.puffs - 1, t).y >= .05);
 });
+
+test('drooping puffs breathe slowly, swelling and slackening within bounds', () => {
+  const sizes = []; for (let t = .9; t < 1.5; t += .01) sizes.push(puffPose(0, t).size);
+  assert.ok(Math.max(...sizes) - Math.min(...sizes) > .01);
+  for (let t = 0; t < GAS.total; t += .01) { const s = puffPose(0, t).size; assert.ok(s >= .01 && s <= .26, String(t)); }
+});
