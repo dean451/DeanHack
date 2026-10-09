@@ -16,7 +16,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 const C={
  flesh:rgb('#8a6a55'),dark:rgb('#4a3428'),pale:rgb('#b89478'),wet:rgb('#3a2820'),boil:rgb('#a86a58'),
- socket:rgb('#140c08'),mouth:rgb('#1c0c08'),tooth:rgb('#c8b890'),nail:rgb('#2a1c14'),
+ sore:rgb('#5a1210'),socket:rgb('#140c08'),mouth:rgb('#1c0c08'),tooth:rgb('#c8b890'),nail:rgb('#2a1c14'),
 };
 // mottled flesh: darker toward the ground, blotched by a cheap interference pattern
 const mottle=(lo,hi)=>(x,y,z)=>{
@@ -47,6 +47,12 @@ function buildBody(){
   const r=.17,x=Math.sin(a)*Math.cos(e)*r*1.1,y=.19+Math.sin(e)*r*.95,z=Math.cos(a)*Math.cos(e)*r*1.05;
   P.add(new THREE.IcosahedronGeometry(.014+s*.03,1),at(x,y,z),C.boil);
  }
+ // raw weeping sores where the skin has split, with a splinter of yellowed bone through one
+ for(const [a,e] of [[.9,.35],[-1.7,.2],[2.3,.45]]){
+  const r=.17,x=Math.sin(a)*Math.cos(e)*r*1.12,y=.19+Math.sin(e)*r*.95,z=Math.cos(a)*Math.cos(e)*r*1.07;
+  P.add(new THREE.SphereGeometry(.026,8,6),at(x,y,z,[0,0,0],[1.2,.45,1.2]),C.sore);
+ }
+ P.add(new THREE.ConeGeometry(.009,.07,5),at(.1,.3,.12,[.6,0,-.5]),C.tooth);
  // shoulder stubs where the arms push out of the mass
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.045,10,8),at(s*.14,.38,.05,[0,0,0],[1,.8,1]),mottle(.32,.44));
  return P.merge();

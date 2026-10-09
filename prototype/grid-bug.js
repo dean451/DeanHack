@@ -34,6 +34,12 @@ export function createGridBug(){
   const jaw=mesh(new THREE.ConeGeometry(.016,.11,6),dark,head,side*.03,-.045,.2);
   jaw.rotation.set(Math.PI/2+.25,0,side*-.5);
  }
+ // A ridge of razor spines down the carapace, tallest over the thorax, the ends alternating plate and dark.
+ for(let i=0;i<5;i++){
+  const z=-.27+i*.1,h=.07+Math.sin(i/4*Math.PI)*.05;
+  const spine=mesh(new THREE.ConeGeometry(.014,h,5),i%2?dark:plate,body,0,.3+h/2-.01,z);
+  spine.rotation.x=-.35;
+ }
  const legs=[];
  for(const side of [-1,1])for(let i=0;i<3;i++){
   const z=-.19+i*.19,leg=new THREE.Group();leg.position.set(side*.12,.25,z);body.add(leg);

@@ -2712,3 +2712,11 @@ test('War, the fourth Rider, wears a dark red robe and carries a sword like his 
  const meshes=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n++;});return n;};
  assert(meshes(w)>meshes(d),'War carries a blade Death does not');
 });
+
+test('lemures weep raw red sores and a bone splinter breaks through the mass',()=>{
+ const lemure=createCreature({name:'lemure',symbol:105,color:3});
+ const col=lemure.body.children.find(o=>o.isMesh).geometry.attributes.color.array;
+ const want=new THREE.Color('#5a1210');let sore=0;
+ for(let i=0;i<col.length;i+=3)if(Math.abs(col[i]-want.r)<.01&&Math.abs(col[i+1]-want.g)<.01&&Math.abs(col[i+2]-want.b)<.01)sore++;
+ assert(sore>20,`sore vertices: ${sore}`);
+});
