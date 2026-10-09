@@ -23,9 +23,17 @@ function terrainText(cell) {
   return FEATURES[cell.terrain] || '';
 }
 
-// The one quiet line for a square, or '' when there is nothing to name.
+// The one quiet line for a square, or '' when there is nothing to name. A square out of sight
+// still names what detection or telepathy sensed there, marked as sensed.
 export function farlookText(cell) {
-  if (!cell || !cell.visible) return '';
+  if (!cell) return '';
+  if (cell.visible) return seenText(cell);
+  if (!cell.sensed || !(cell.name || cell.object?.name)) return '';
+  const text = seenText({...cell, visible: true, health: undefined});
+  return text ? `${text} (sensed)` : '';
+}
+
+function seenText(cell) {
   const name = String(cell.name || cell.object?.name || '').trim();
   if (!name) return cell.kind === 'terrain' || !cell.kind ? terrainText(cell) : '';
   const hurt = cell.health < 25 ? ', near death' : cell.health < 60 ? ', badly wounded' : cell.health < 100 ? ', wounded' : '';

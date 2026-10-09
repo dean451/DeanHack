@@ -60,3 +60,10 @@ test('a wounded monster says how badly', () => {
   assert.equal(farlookText({visible: true, kind: 'pet', name: 'kitten', health: 10}), 'kitten (pet, near death)');
   assert.equal(farlookText({visible: true, kind: 'monster', name: 'orc'}), 'orc (hostile)');
 });
+
+test('detected things out of sight are named as sensed, with no health detail', () => {
+  assert.equal(farlookText({visible: false, sensed: true, object: {name: 'wand of digging'}}), 'wand of digging (sensed)');
+  assert.equal(farlookText({visible: false, sensed: true, kind: 'monster', name: 'newt', health: 10}), 'newt (hostile) (sensed)');
+  assert.equal(farlookText({visible: false, sensed: true, terrain: 'altar'}), '');
+  assert.equal(farlookText({visible: false, remembered: true, object: {name: 'dagger'}}), '');
+});
