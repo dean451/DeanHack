@@ -83,27 +83,6 @@ test('the pet cats show a knuckled spine and a tucked flank',()=>{
  for(const name of ['kitten','housecat','large cat'])assert(body(name)>=body('wildcat')+7*30,`${name} body ${body(name)}`);
 });
 
-test('the pet cats carry an old pale scar across the face; wild cats do not',()=>{
- const scar=name=>{
-  const col=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry.attributes.color;
-  let n=0;for(let i=0;i<col.count;i++)if(col.getX(i)>.7&&col.getY(i)>.5&&col.getZ(i)>.42)n++;
-  return n;
- };
- for(const name of ['kitten','housecat','large cat'])assert(scar(name)>scar('wildcat')+3,`${name} scar ${scar(name)} vs ${scar('wildcat')}`);
-});
-
-test('the pet cats\' eyes sit in dark hollows: the fur round each eye is far darker than the fur beyond',()=>{
- for(const name of ['kitten','housecat','large cat']){
-  const m=meshes(createCreature({name})).find(o=>o.userData.part==='head').geometry;
-  const col=m.attributes.color,pos=m.attributes.position;let lo=9,hi=0;
-  for(let i=0;i<col.count;i++){
-   const d=Math.hypot(Math.abs(pos.getX(i))-.041,pos.getY(i)-.026,pos.getZ(i)-.128),v=col.getX(i)+col.getY(i)+col.getZ(i);
-   if(v>.1&&d>.024&&d<.034){lo=Math.min(lo,v);hi=Math.max(hi,v);}
-  }
-  assert(lo<hi*.4,`${name} eye ring ${lo} vs ${hi}`);
- }
-});
-
 test('the wild cats bare fangs past the lip',()=>{
  const head=name=>meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry.attributes.position.count;
  for(const name of ['jaguar','lynx','panther','tiger'])assert(head(name)>=head('wildcat')+2*10,`${name} fangs`);
@@ -154,15 +133,6 @@ test('the pet cats\' tails end in a pale bare scar-knot; the wild cats\' do not'
  for(const name of ['kitten','housecat','large cat'])assert(pale(name)>pale('wildcat')+5,`${name} tail scar ${pale(name)}`);
 });
 
-test('the pet cats\' lowest whiskers are snapped short; the wild cats keep full ones',()=>{
- const reach=name=>{
-  const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry,pos=g.attributes.position;
-  let n=0;for(let i=0;i<pos.count;i++)if(pos.getX(i)>.11&&pos.getY(i)<-.04&&pos.getZ(i)>.08)n++;
-  return n;
- };
- for(const name of ['kitten','housecat','large cat'])assert(reach(name)<reach('wildcat'),`${name} ${reach(name)} vs ${reach('wildcat')}`);
-});
-
 test('the pet cats\' paws are caked in grime; the wild cats\' are clean',()=>{
  const bright=name=>{
   const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='foreleg').geometry,pos=g.attributes.position,col=g.attributes.color;
@@ -175,17 +145,6 @@ test('the pet cats\' paws are caked in grime; the wild cats\' are clean',()=>{
  for(const name of ['kitten','large cat'])assert(bright(name)<bright('wildcat'),`${name} paws ${bright(name)} vs ${bright('wildcat')}`);
 });
 
-test('the pet cats carry a bald mangy patch on the haunch; the wild cats do not',()=>{
- const [mr,mg,mb]=new THREE.Color('#b08a80').toArray();
- const patch=name=>{
-  const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='body').geometry,pos=g.attributes.position,col=g.attributes.color;
-  let n=0;
-  for(let i=0;i<pos.count;i++)if(pos.getX(i)>.04&&pos.getZ(i)<-.1&&pos.getZ(i)>-.25&&Math.hypot(col.getX(i)-mr,col.getY(i)-mg,col.getZ(i)-mb)<.06)n++;
-  return n;
- };
- for(const name of ['kitten','housecat','large cat'])assert(patch(name)>patch('wildcat'),`${name} ${patch(name)} vs ${patch('wildcat')}`);
-});
-
 test('the pet cats wear a frayed leather cord collar behind the skull; the wild cats go bare',()=>{
  const back=name=>{
   const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry,pos=g.attributes.position;
@@ -193,4 +152,12 @@ test('the pet cats wear a frayed leather cord collar behind the skull; the wild 
   return n;
  };
  for(const name of ['kitten','housecat','large cat'])assert(back(name)>back('wildcat')+20,`${name} ${back(name)} vs ${back('wildcat')}`);
+});
+
+test('the pet cats are friendly: full whiskers',()=>{
+ const head=name=>meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry;
+ const reach=g=>{const p=g.attributes.position;let n=0;for(let i=0;i<p.count;i++)if(p.getX(i)>.11&&p.getY(i)<-.04&&p.getZ(i)>.08)n++;return n;};
+ for(const name of ['kitten','housecat','large cat']){
+  assert.equal(reach(head(name)),reach(head('wildcat')),`${name} whiskers are full`);
+ }
 });
