@@ -17,7 +17,9 @@ export const isWandWish = v => v?.type === 'wish' && v.source === 'wand';
 export function flashPose(t) {
   if (t <= 0 || t >= FLARE.total) return {size: .001, alpha: 0};
   const u = t / FLARE.total, hit = smooth(clamp01(t / .05));
-  return {size: .15 + .55 * Math.sqrt(u), alpha: hit * (1 - u) * (1 - u)};
+  // It does not bleed out cleanly: a second, smaller flicker of white jerks back in as it dies.
+  const flicker = .25 * Math.sin(Math.PI * clamp01((u - .4) / .12)) ** 2 * (1 - u);
+  return {size: .15 + .55 * Math.sqrt(u), alpha: Math.min(1, hit * (1 - u) * (1 - u) + flicker)};
 }
 
 // The ring races out over the floor, thinning as it goes.
