@@ -162,3 +162,26 @@ test('the pet cats\' lowest whiskers are snapped short; the wild cats keep full 
  };
  for(const name of ['kitten','housecat','large cat'])assert(reach(name)<reach('wildcat'),`${name} ${reach(name)} vs ${reach('wildcat')}`);
 });
+
+test('the pet cats\' paws are caked in grime; the wild cats\' are clean',()=>{
+ const bright=name=>{
+  const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='foreleg').geometry,pos=g.attributes.position,col=g.attributes.color;
+  let low=1e9;for(let i=0;i<pos.count;i++)low=Math.min(low,pos.getY(i));
+  let sum=0,n=0;
+  for(let i=0;i<pos.count;i++)if(pos.getY(i)<low+.02){sum+=col.getX(i)+col.getY(i)+col.getZ(i);n++;}
+  return sum/n;
+ };
+ // the housecat's white socks keep its paws pale against the ginger wild cat, so it is left out
+ for(const name of ['kitten','large cat'])assert(bright(name)<bright('wildcat'),`${name} paws ${bright(name)} vs ${bright('wildcat')}`);
+});
+
+test('the pet cats carry a bald mangy patch on the haunch; the wild cats do not',()=>{
+ const [mr,mg,mb]=new THREE.Color('#b08a80').toArray();
+ const patch=name=>{
+  const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='body').geometry,pos=g.attributes.position,col=g.attributes.color;
+  let n=0;
+  for(let i=0;i<pos.count;i++)if(pos.getX(i)>.04&&pos.getZ(i)<-.1&&pos.getZ(i)>-.25&&Math.hypot(col.getX(i)-mr,col.getY(i)-mg,col.getZ(i)-mb)<.06)n++;
+  return n;
+ };
+ for(const name of ['kitten','housecat','large cat'])assert(patch(name)>patch('wildcat'),`${name} ${patch(name)} vs ${patch('wildcat')}`);
+});
