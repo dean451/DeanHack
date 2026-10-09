@@ -34,6 +34,17 @@ export function airFor(dungeon = '') {
   return /gehennom/i.test(dungeon) ? GEHENNOM : null;
 }
 
+// The rock mass round the level (`cavern.js`) multiplies its stone texture by this colour: the Mines
+// are grimy brown-grey, Sokoban a stark cold blue-grey. Other branches keep the plain stone.
+export const ROCK_TINTS = {
+  mines: [1.12, .98, .8],
+  sokoban: [.82, .94, 1.14],
+};
+export function rockTint(dungeon = '') {
+  if (/gnomish mines/i.test(dungeon)) return ROCK_TINTS.mines;
+  return /sokoban/i.test(dungeon) ? ROCK_TINTS.sokoban : [1, 1, 1];
+}
+
 function rand(st) { st.seed = (st.seed * 16807) % 2147483647; return (st.seed - 1) / 2147483646; }
 
 function texture() {
