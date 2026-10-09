@@ -338,6 +338,9 @@ function dragon(o={}){
   // ribs show through the flanks as dark curved bars, and the spine as a row of knuckles
   for(let i=0;i<5;i++)for(const s of [-1,1]){const rib=lowBlob(body,1,m.dark,s*(.235-i*.012)*lean,.42,.2-i*.065,.008,.08-i*.008,.014,DRAGON_BONE);rib.rotation.z=s*.28;}
   for(let i=0;i<7;i++)lowBlob(body,.022,m.dark,0,.7-Math.abs(i-3)*.012,.3-i*.1,1,1,1.2,DRAGON_BONE);
+  // angular bone breaks the soft torso: a shoulder blade ridge each side, a jutting hip bone, and a keel of the breastbone
+  for(const s of [-1,1]){dragonLimb(body,[s*.2*lean,.7,.28],[s*.23*lean,.5,.12],.08,m.dark,.4);dragonLimb(body,[s*.17*lean,.66,-.12],[s*.22*lean,.46,-.24],.075,m.dark,.4);}
+  dragonLimb(body,[0,.34,.3],[0,.3,.12],.07,m.dark,.3);
   // three claw rakes score the left flank, the old wounds of a long life of killing
   for(let i=0;i<3;i++){const rake=dragonBox(body,.012,.2,.02,m.scar,-.27+i*.0,.5-i*.0,.0,.004);rake.position.set(-.275+i*.0,.5,-.08+i*.055);rake.rotation.set(0,0,.35);rake.scale.set(1,1-i*.12,1);}
   // overlapping armour scutes crust the back and flanks: dark, sharp-edged plates over the hide

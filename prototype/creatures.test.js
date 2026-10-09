@@ -2785,3 +2785,8 @@ test('dragon wings have jagged torn trailing edges, not smooth scallops',()=>{
  const wing=src.slice(src.indexOf('function dragonWing'),src.indexOf('function dragonLimb'));
  assert(/ragged/.test(wing)&&(wing.match(/shape\.lineTo\(\.\.\.pt\(/g)||[]).length>=4,'trailing edge is built from straight tears');
 });
+
+test('four-legged dragons carry angular shoulder, hip and keel prisms on the torso',()=>{
+ const src=fs.readFileSync(new URL('./creatures.js',import.meta.url),'utf8');
+ assert(/shoulder blade ridge[^\n]*\n[^\n]*dragonLimb\(body,[^\n]*dragonLimb\(body,[^\n]*\n[^\n]*dragonLimb\(body,\[0,/.test(src),'scapula, hip and keel built from tapered prisms');
+});
