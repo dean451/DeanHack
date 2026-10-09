@@ -90,3 +90,8 @@ test('message text wraps instead of clipping', () => {
   assert.match(css, /#engine-line[^{]*#engine-messages div[^{]*\{[^}]*overflow-wrap:anywhere/)
   assert.match(css, /#engine-panel\{[^}]*max-width:calc\(100vw - 32px\)/)
 })
+
+test('the live pet cat is built from the feline model, not the old demo cat', () => {
+  const live = read('./live.js');
+  assert.match(live, /cell\.kind==='pet'&&\/cat\|kitten\/\.test\(cell\.name\)\)\{a=creatureFactory\?creatureFactory\(cell\):catFactory\(\)/);
+});
