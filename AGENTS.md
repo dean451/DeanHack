@@ -59,6 +59,16 @@ Anything with a warning level of 4 or above, and every demon, demon lord, demon 
 
 Many routines add glows, motes, decals and effects, so keep a busy level smooth. Reuse geometry and materials, cap particle and decal counts, prefer cheap emissive materials to extra lights, and never add a per-frame cost that scales with everything on the map. Stay inside the budget checked by the performance budget test once it exists.
 
+### Roadmap (for Claude sessions; the routines do not take items from here)
+
+Agreed with the user on 2026-10-09. Order matters, because every later step inherits the quality of the earlier ones.
+
+1. **Look review and play-test.** Art PRs should be judged by how they look (render with `tools/hero-shot.mjs` and `tools/creature-shot.mjs`), not only by tests. Then a real play session to depth five or more, writing down what feels wrong in lighting, readability, camera and UI.
+2. **Hero polish.** The helm (still a round dome), dark armour in the teal light, ornate end-game gear.
+3. **Cleanup.** Retire duplicate models and old demo code (the old `cat()` and `knight()` in `main.js` versus `feline.js` and the sculpted hero parts); one real model per thing.
+4. **First impressions.** Title or start screen, intro dialog and the death screen as designed moments.
+5. **Classes.** Not started yet. Plan: (a) a one-page class design sheet (silhouette, palette, signature gear, feel) so the classes read as one family; (b) split `knight()` into a shared hero rig (skeleton, face, hands, walk, held weapon) plus per-class kits, with the Valkyrie as the first kit and no visible change; (c) engine: launch options for role, race, gender and alignment, and the bridge sends role, race and gender in the frame; (d) one class per PR, starting with a very different silhouette (a Wizard or Tourist) to test the rig; (e) a class-select screen in the game's visual style (a row of figures in the dark, not a form); (f) races later (proportions, ears, skin). Each character keeps its own save.
+
 ### Known art fixes
 
 Work queues for the scheduled routines. Each routine takes the first item on its own list, does one small step per run, and **deletes the item in the same PR once it is fully done** (or edits it to say what remains). When your own list is empty, take the next item from **UI and controls**, and when that is empty too, make an ordinary improvement.
