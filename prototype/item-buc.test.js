@@ -38,3 +38,11 @@ test('each enchantment has its own shape, and none has none', async () => {
   assert.ok(enchantMark('plus') && enchantMark('minus'));
   assert.equal(enchantMark(null), '');
 });
+
+test('hover hints spell out the marks', async () => {
+  const {itemHint} = await import('./item-buc.js');
+  assert.equal(itemHint('a blessed +2 dagger'), 'blessed, enchanted up');
+  assert.equal(itemHint('a cursed -1 long sword'), 'cursed, enchanted down');
+  assert.equal(itemHint('a cursed scroll of light'), 'cursed');
+  assert.equal(itemHint('an uncursed +0 ring mail'), '');
+});
