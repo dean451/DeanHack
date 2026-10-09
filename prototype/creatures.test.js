@@ -2729,3 +2729,11 @@ test('the rust monster is pitted by corrosion and its feet end in hooked claws; 
  assert(b.min.y>-.05&&b.min.y<.05,`claws stay on the floor (${b.min.y.toFixed(3)})`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
 });
+
+test('gargoyles burn with ember seams in the stone of their chest and back',()=>{
+ const lit=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh&&o.material.emissiveIntensity>2)n+=o.geometry.attributes.position.count;});return n;};
+ const g=createCreature({name:'gargoyle',symbol:89,color:3}),w=createCreature({name:'winged gargoyle',symbol:89,color:4});
+ assert(lit(g)>2000,`lit vertices ${lit(g)}`);assert(lit(w)>2000);
+ g.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(g.g,true);
+ assert(b.min.y>-.05&&b.max.y<1.5,'stays in bounds');
+});
