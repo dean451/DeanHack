@@ -84,3 +84,11 @@ test('the smoke column belches: it swells and darkens for a beat mid-rise, withi
   for (let t = 0; t <= MINE.total + .1; t += .005) { const p = smokePose(t); assert.ok(p.alpha >= 0 && p.alpha <= .6 + 1e-9, String(t)); }
   assert.equal(smokePose(MINE.total).alpha, 0);
 });
+
+test('the flash gives a small dim second pop after it has gone', () => {
+  assert.equal(flashPose(.28).alpha, 0);
+  const pop = flashPose(.33);
+  assert.ok(pop.alpha > 0 && pop.alpha < .35 && pop.scale < .5);
+  assert.equal(flashPose(.4).alpha, 0);
+  assert.ok(flashPose(.01).alpha > pop.alpha * 2);
+});

@@ -17,6 +17,9 @@ export const isLandMineMessage = text => /kaablamm/i.test(text || '');
 // The flash: biggest and brightest in the first instant, gone by a quarter second.
 export function flashPose(t) {
   const u = clamp01(t / .25);
+  // A dud half of the charge goes off a hair late: a small second pop, dimmer, off to the same spot.
+  const v = clamp01((t - .3) / .08);
+  if (v > 0 && v < 1) return {scale: .2 + .2 * v, alpha: .3 * (1 - v)};
   if (t <= 0 || u >= 1) return {scale: 0, alpha: 0};
   return {scale: .25 + .55 * Math.sqrt(u), alpha: (1 - u) * (1 - u)};
 }
