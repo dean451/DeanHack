@@ -74,3 +74,9 @@ test('pets and hostiles, water and lava differ in mark shape, not only colour', 
   assert.ok(mark({x: 1, z: 1, terrain: 'lava'}));
   assert.notEqual(mark({x: 1, z: 1, terrain: 'water'}), mark({x: 1, z: 1, terrain: 'lava'}));
 });
+
+test('each piece of furniture and the trees carry their own mark, so none relies on colour alone', () => {
+  const marks = ['fountain', 'altar', 'throne', 'sink', 'grave', 'tree'].map(terrain => cellStyle({x: 1, z: 1, terrain}, hero).mark);
+  assert.ok(marks.every(Boolean));
+  assert.equal(new Set(marks).size, marks.length, 'six features, six different marks');
+});
