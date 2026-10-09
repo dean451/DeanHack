@@ -29,6 +29,12 @@ export function createGridBug(){
   rod(head,[side*.13,.19,.12],[side*.18,.235,.22],.008,plate);
   ellipsoid(head,.019,cyan,[side*.18,.235,.22],[.7,1,.7]);
  }
+ // scorched pits where its own current has eaten through the shell, glowing at the bottom
+ const scorch=new THREE.MeshStandardMaterial({color:0x0a0d10,roughness:.9});
+ for(const [x,z] of [[-.1,-.12],[.09,.0],[-.06,.14]]){
+  const pit=ellipsoid(body,1,scorch,[x,.33,z],[.03,.012,.024]);pit.name='scorch-pit';
+  ellipsoid(body,1,cyan,[x,.335,z],[.012,.006,.01]);
+ }
  const legs=[];
  for(const side of [-1,1])for(let i=0;i<3;i++){
   const z=-.19+i*.19,leg=new THREE.Group();leg.position.set(side*.12,.25,z);body.add(leg);
@@ -42,6 +48,6 @@ export function createGridBug(){
  const arcGeo=new THREE.BufferGeometry().setFromPoints([[-.18,.235,.22],[-.1,.265,.23],[-.05,.21,.23],[.04,.27,.22],[.1,.225,.22],[.18,.235,.22]].map(p=>new THREE.Vector3(...p)));geos.add(arcGeo);
  const arc=new THREE.Line(arcGeo,arcMaterial);head.add(arc);arc.visible=false;
  g.userData.updateGridBug=t=>{arc.visible=(t%3.7)>.0&&(t%3.7)<.13;cyan.emissiveIntensity=1+Math.sin(t*3)*.15;};
- g.userData.dispose=()=>{geos.forEach(o=>o.dispose());[shell,plate,dark,cyan,arcMaterial].forEach(o=>o.dispose());};
+ g.userData.dispose=()=>{geos.forEach(o=>o.dispose());[shell,plate,dark,cyan,arcMaterial,scorch].forEach(o=>o.dispose());};
  return {g,body,legs,quirk:'gridbug'};
 }
