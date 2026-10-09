@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>creature shot</title>
+<style>html,body{margin:0;background:#233138}canvas{display:block}</style>
+<script type="module">
+// Renders one creature at a 3/4 view and at the game camera: /tools/creature-shot.html?name=chromatic%20dragon&view=game
+import * as THREE from 'three';
+import {createCreature} from '../creatures.js';
+const q=new URLSearchParams(location.search),name=q.get('name')||'chromatic dragon',view=q.get('view')||'three';
+const W=900,H=700,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(36,W/H,.05,60);
+scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const key=new THREE.DirectionalLight(0xffe1b6,3);key.position.set(-3,5,4);scene.add(key);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshStandardMaterial({color:0x4a5550,roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const c=createCreature({name,symbol:q.get('letter')?q.get('letter').charCodeAt(0):68,color:q.get('color')?+q.get('color'):5});scene.add(c.g);
+const box=new THREE.Box3().setFromObject(c.g),size=box.getSize(new THREE.Vector3()),r=Math.max(size.x,size.y,size.z);
+const d=r*(view==='game'?3.4:2.4),look=new THREE.Vector3(0,size.y*.4,0);
+if(view==='game')camera.position.set(.3,d*1.1,d*.55);else if(view==='side')camera.position.set(d,size.y*.5,0);else if(view==='head')camera.position.set(r*.6,size.y*.8,r*1.0);else camera.position.set(d*.8,size.y*.9+r*.3,d*.8);
+camera.lookAt(view==='head'?new THREE.Vector3(0,size.y*.6,r*.3):look);
+renderer.render(scene,camera);window.__done=true;
+</script>

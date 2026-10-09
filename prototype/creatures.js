@@ -173,13 +173,16 @@ function dragonScaleBump(){
 }
 const dragonHides=new Map();
 function dragonHide(hex,opts){const key=hex+JSON.stringify(opts);if(!dragonHides.has(key))dragonHides.set(key,new THREE.MeshStandardMaterial({color:hex,roughness:.88,...opts,bumpMap:dragonScaleBump(),bumpScale:1.4}));return dragonHides.get(key);}
+let chromaticHideMat=null;
+function chromaticHide(){return chromaticHideMat||=new THREE.MeshPhysicalMaterial({color:'#54407c',roughness:.45,metalness:.2,emissive:'#150a28',emissiveIntensity:.8,iridescence:1,iridescenceIOR:1.9,iridescenceThicknessRange:[300,800],clearcoat:.7,clearcoatRoughness:.25,bumpMap:dragonScaleBump(),bumpScale:1.4});}
 function dragonMats(i,chromatic){
- const silver=i===14,hex=silver?'#b9c4c8':NH_COLORS[i]||'#8a6440',breath=DRAGON_BREATH[i]||'#ff8a3a';
+ const silver=i===14,hex=chromatic?'#3a2c52':silver?'#b9c4c8':NH_COLORS[i]||'#8a6440',breath=DRAGON_BREATH[i]||'#ff8a3a';
  const belly='#'+new THREE.Color(hex).lerp(new THREE.Color('#e8d6a4'),.45).getHexString();
  const fin=HIDE_FINISH[dragonElement(i)]||{},hideOpts={roughness:fin.roughness??(silver?.3:.62),metalness:fin.metalness??(silver?.7:.08)};
  if(fin.emissiveK)Object.assign(hideOpts,{emissive:shade(breath,fin.emissiveK*4),emissiveIntensity:.25});
- const scales=chromatic?TIAMAT_HEADS.map(c=>dragonHide(shade(NH_COLORS[c],.8),hideOpts)):null;
- return {scales,hide:dragonHide(hex,hideOpts),dark:mat(shade(hex,.5),{roughness:.7,metalness:silver?.6:0}),belly:mat(belly,{roughness:.78}),
+ // The chromatic dragon is oil-slick obsidian: a dark violet hide whose sheen shifts through every colour as it
+ // turns, not patches of five paints. The five colours live in its glowing spine and eyes (dragon-breeds.js).
+ return {scales:null,hide:chromatic?chromaticHide():dragonHide(hex,hideOpts),dark:mat(shade(hex,.5),{roughness:.7,metalness:silver?.6:0}),belly:mat(belly,{roughness:.78}),
   membrane:mat(shade(hex,.72),{side:THREE.DoubleSide,roughness:.82}),feather:mat(belly,{side:THREE.DoubleSide,roughness:.9}),ivory:mat('#e6dcc0',{roughness:.45}),scar:mat('#3a0e0c',{roughness:.9}),
   glow:new THREE.MeshStandardMaterial({color:breath,emissive:breath,emissiveIntensity:4.5,roughness:.3})};
 }

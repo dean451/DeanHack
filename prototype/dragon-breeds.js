@@ -211,6 +211,18 @@ const DRESS = {
   },
   chromatic(o) {
     const {k} = o;
-    ridge(o, 10, (p, n, i) => spike(o.trunk.group, p, n.clone().add(v3(0, 0, -.35)), .022 * k, .09 * k, glowMat(TIAMAT_GLOWS[i % 5], 1.2), 4));
+    // obsidian spines, each tipped with one of the five colours of Tiamat's heads
+    const obsidian = mat('#15101e', {roughness: .3, metalness: .5});
+    ridge(o, 10, (p, n, i) => {
+      const dir = n.clone().add(v3(0, 0, -.35)).normalize(), h = .1 * k;
+      spike(o.trunk.group, p, dir, .024 * k, h, obsidian, 4);
+      ball(o.trunk.group, p.clone().addScaledVector(dir, h * .95), .008 * k, glowMat(TIAMAT_GLOWS[i % 5], 2.4));
+    });
+    // a crown of five swept-back horns on a single-headed one (Tiamat's five heads would cost too many draws)
+    if (o.heads.length === 1) for (const h of o.heads) for (let i = -2; i <= 2; i++) {
+      const dir = v3(i * .28, .28, -.95).normalize(), len = (.17 - Math.abs(i) * .025) * k, base = v3(i * .034, .1, -.02 - Math.abs(i) * .012);
+      spike(h.head, base, dir, .017 * k, len, obsidian, 4);
+      ball(h.head, base.clone().addScaledVector(dir, len * .95), .0075 * k, glowMat(TIAMAT_GLOWS[(i + 2) % 5], 2.4));
+    }
   },
 };
