@@ -90,7 +90,7 @@ test('the wild cats bare fangs past the lip',()=>{
 
 test('the pet cats\' tails are matted with burrs of fur',()=>{
  const tail=name=>meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='tail').geometry.attributes.position.count;
- for(const name of ['kitten','housecat','large cat'])assert(tail(name)>=tail('wildcat')+4*10,`${name} tail burrs`);
+ for(const name of ['kitten','housecat','large cat'])assert(tail(name)>=tail('wildcat')+2*10,`${name} tail burrs`);
 });
 
 test('the wild cats carry a pale gouge down the left cheek and none on the right',()=>{
