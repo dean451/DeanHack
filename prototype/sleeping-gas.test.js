@@ -61,3 +61,12 @@ test('the middle puff snores once: a single swell, then back to its slow breath'
   assert.ok(Math.abs(at(.5) / base(.5) - 1) <= .1 + 1e-9 && Math.abs(at(.9) / base(.9) - 1) <= .1 + 1e-9, 'normal either side');
   for (let t = 0; t < GAS.total; t += .01) assert.ok(puffPose(4, t).size <= .24, String(t));
 });
+
+test('the second puff rolls over sideways mid-sag and comes back', () => {
+  const at = u => puffPose(1, .08 + u * 1.6).x;
+  const spread = u => .12 + .3 * (x => x * x * (3 - 2 * x))(Math.min(1, u * 1.4));
+  const roll = u => at(u) - Math.cos(2.4) * spread(u);
+  assert.ok(roll(.65) > .07, 'the roll');
+  assert.ok(Math.abs(roll(.4)) < 1e-9 && Math.abs(roll(.9)) < 1e-9, 'only mid-sag');
+  for (let t = 0; t <= GAS.total; t += .01) assert.ok(Math.hypot(puffPose(1, t).x, puffPose(1, t).z) < .6, String(t));
+});
