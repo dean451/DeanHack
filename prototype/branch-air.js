@@ -45,6 +45,14 @@ export function rockTint(dungeon = '') {
   return /sokoban/i.test(dungeon) ? ROCK_TINTS.sokoban : [1, 1, 1];
 }
 
+// How rough the rock is. The Mines seep: wet stone catches the torchlight in a dull sheen. Sokoban's
+// cut stone is a little smoother and cleaner than the open cave. Other branches keep full roughness.
+export const ROCK_ROUGHNESS = {mines: .62, sokoban: .85};
+export function rockRoughness(dungeon = '') {
+  if (/gnomish mines/i.test(dungeon)) return ROCK_ROUGHNESS.mines;
+  return /sokoban/i.test(dungeon) ? ROCK_ROUGHNESS.sokoban : 1;
+}
+
 function rand(st) { st.seed = (st.seed * 16807) % 2147483647; return (st.seed - 1) / 2147483646; }
 
 function texture() {
