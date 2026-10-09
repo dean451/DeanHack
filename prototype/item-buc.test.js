@@ -57,3 +57,13 @@ test('hover hints also name wear, wield, charges and erosion', async () => {
   assert.equal(itemHint('a ring of free action (on left hand)'), 'worn');
   assert.deepEqual(itemFacts('a plain dagger'), []);
 });
+
+test('hover hints name lit light sources, the alternate weapon, partly eaten food and diluted potions', async () => {
+  const {itemHint} = await import('./item-buc.js');
+  assert.equal(itemHint('a brass lantern (lit)'), 'lit');
+  assert.equal(itemHint('3 wax candles (lit)'), 'lit');
+  assert.equal(itemHint('a dagger (alternate weapon; not wielded)'), 'alternate weapon');
+  assert.equal(itemHint('a partly eaten food ration'), 'partly eaten');
+  assert.equal(itemHint('a diluted potion of healing'), 'diluted');
+  assert.equal(itemHint('an unlit brass lantern'), '');
+});

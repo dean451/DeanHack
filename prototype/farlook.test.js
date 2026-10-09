@@ -14,6 +14,8 @@ test('monsters say hostile or peaceful, pets say pet', () => {
 
 test('items are named, bare floor and unseen squares say nothing', () => {
   assert.equal(farlookText({visible: true, object: {name: 'rusty dagger'}}), 'rusty dagger');
+  assert.equal(farlookText({visible: true, object: {name: 'a cursed dagger'}}), '✖ a cursed dagger');
+  assert.equal(farlookText({visible: true, object: {name: 'an uncursed dagger'}}), 'an uncursed dagger');
   assert.equal(farlookText({visible: true, terrain: 'floor'}), '');
   assert.equal(farlookText({visible: false, kind: 'monster', name: 'jackal'}), '');
   assert.equal(farlookText(undefined), '');

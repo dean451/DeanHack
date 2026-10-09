@@ -1,6 +1,8 @@
 // Farlook on hover: the 3D version of `;`. Pointing at a monster or item names it and says whether
 // it is a pet, peaceful or hostile. The engine reports no sleep state, so none is shown.
 
+import {itemBuc, bucMark} from './item-buc.js';
+
 // The map square under a ground point (world x/z, with the origin offset the scene uses).
 export function squareAt(point, origin) {
   return {x: Math.round(point.x) + origin.x, z: Math.round(point.z) + origin.z};
@@ -13,7 +15,7 @@ export function farlookText(cell) {
   if (!name) return '';
   if (cell.kind === 'pet') return `${name} (pet)`;
   if (cell.kind === 'monster') return `${name} (${cell.peaceful ? 'peaceful' : 'hostile'})`;
-  if (cell.object) return name;
+  if (cell.object) { const buc = itemBuc(name); return buc ? `${bucMark(buc)} ${name}` : name; }
   return '';
 }
 
