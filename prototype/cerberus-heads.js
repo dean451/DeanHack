@@ -106,7 +106,12 @@ export function updateCerberusHeads(a, dt, t, busy, look = null, walking = false
   // a blow: each head jerks its own way, one after another
   if (!dead && cur?.kind === 'hit' && cur !== st.lastHit) {
     st.lastHit = cur; st.jerk = 1; st.jerkT = 0;
-    for (const s of st.heads) s.jerk = {y: (rand(st) * 2 - 1) * JERK, x: (rand(st) - .65) * JERK, z: (rand(st) * 2 - 1) * JERK * .6};
+    for (const s of st.heads) {
+      s.jerk = {y: (rand(st) * 2 - 1) * JERK, x: (rand(st) - .65) * JERK, z: (rand(st) * 2 - 1) * JERK * .6};
+      // a lucky roll must never leave a head standing still under a blow
+      const big = Math.max(Math.abs(s.jerk.y), Math.abs(s.jerk.x), Math.abs(s.jerk.z)), k = big < JERK * .6 ? JERK * .6 / Math.max(big, 1e-6) : 1;
+      s.jerk.y *= k; s.jerk.x *= k; s.jerk.z *= k;
+    }
   }
   st.jerkT += dt;
   st.jerk = st.jerk > EPS ? st.jerk * Math.exp(-JERK_DECAY * dt) : 0;
