@@ -258,6 +258,9 @@ function dragonWing(parent,side,span,m,feathered){
  tube(inner,[[0,0,0],[...elbow,0],[...tip,0]],.014*span,m.dark,8);
  for(const q of fingers.slice(0,3))tube(inner,[[...elbow,0],[(elbow[0]+q[0])/2,(elbow[1]+q[1])/2+.02*span,0],[...q,0]],.007*span,m.dark,6);
  const claw=cone(inner,.014*span,.05*span,m.ivory,elbow[0],elbow[1]+.03*span,0,4);claw.rotation.z=-side*.3;
+ // bone fingers: a knuckle knot halfway down each finger and a hooked ivory claw where it pierces the trailing edge
+ if(!feathered)for(const q of fingers.slice(0,3)){const kx=(elbow[0]+q[0])/2,ky=(elbow[1]+q[1])/2+.02*span;cone(inner,.011*span,.03*span,m.ivory,kx,ky+.008*span,0,4);
+  const hook=cone(inner,.007*span,.035*span,m.ivory,q[0],q[1]-.012*span,0,4);hook.rotation.z=side*.5;}
  // amphiteres have feathered wings: a fringe of long primaries along the trailing edge
  if(feathered)for(let i=0;i<7;i++){const t=i/6,x=tip[0]*(1-t),y=tip[1]*(1-t)-.05*span*Math.sin(t*Math.PI),feather=sphere(inner,.035*span,m.hide,x,y-.03*span,.004,.45,1.6,.25);feather.rotation.z=side*(.2+t*.6);}
  return pivot;
