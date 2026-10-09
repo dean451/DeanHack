@@ -267,8 +267,10 @@ function dragonWing(parent,side,span,m,feathered){
  return pivot;
 }
 // a limb segment between two points in leg space
-function dragonLimb(parent,a,b,w,material){
- const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),mesh=part(parent,new THREE.BoxGeometry(w,A.distanceTo(B),w*.9),material,(A.x+B.x)/2,(A.y+B.y)/2,(A.z+B.z)/2);
+function dragonLimb(parent,a,b,w,material,taper=.55){
+ // a six-sided tapered prism (wide at the top, narrow at the bottom) reads as sinew and bone, not a plank
+ const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),geo=new THREE.CylinderGeometry(w*.5,w*.5*taper,A.distanceTo(B),6,1);geo.scale(1,1,.9);
+ const mesh=part(parent,geo,material,(A.x+B.x)/2,(A.y+B.y)/2,(A.z+B.z)/2);
  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),B.clone().sub(A).normalize());return mesh;
 }
 function dragonLegs(body,legs,m,o){
@@ -279,7 +281,7 @@ function dragonLegs(body,legs,m,o){
   else if(!o.sirrush){
    // thigh forward to the knee, shin back to the hock, then a long pastern down to splayed, clawed toes
    const knee=[0,-.42*y,.09*k],hock=[0,-.74*y,-.035*k],foot=[0,-y+.02,.03*k];
-   dragonLimb(leg,[0,-.04,0],knee,.095*k,m.hide);dragonLimb(leg,knee,hock,.065*k,m.hide);dragonLimb(leg,hock,foot,.04*k,m.dark);
+   dragonLimb(leg,[0,-.04,0],knee,.095*k,m.hide);dragonLimb(leg,knee,hock,.085*k,m.hide,.4);dragonLimb(leg,hock,foot,.04*k,m.dark);
    sphere(leg,.04*k,m.dark,hock[0],hock[1],hock[2]-.02,.9,1,1.1);cone(leg,.012*k,.05*k,m.ivory,0,hock[1]+.02,hock[2]-.05*k,4).rotation.x=-Math.PI/2.4;
    part(leg,new THREE.BoxGeometry(.07*k,.025,.06),m.dark,0,-y+.015,.04);
    for(const [cx,ang] of [[-.04,.45],[0,0],[.04,-.45]]){const toe=part(leg,new THREE.BoxGeometry(.022*k,.022,.09*k),m.dark,cx*k,-y+.015,.1*k);toe.rotation.y=ang;
