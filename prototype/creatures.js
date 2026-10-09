@@ -252,7 +252,9 @@ function dragonWing(parent,side,span,m,feathered){
  pivot.userData.inner=inner;inner.userData.edge=[[0,0],elbow,tip];
  // leading edge out to the tip, then a scalloped trailing edge between the finger bones
  const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(...elbow);shape.lineTo(...tip);
- let prev=tip;for(const q of fingers){const mx=(prev[0]+q[0])/2,my=(prev[1]+q[1])/2;shape.quadraticCurveTo(mx+(elbow[0]-mx)*.28,my+(elbow[1]-my)*.28,...q);prev=q;}
+ let prev=tip;for(const q of fingers){const pt=(t,k)=>{const x=prev[0]+(q[0]-prev[0])*t,y=prev[1]+(q[1]-prev[1])*t;return [x+(elbow[0]-x)*k,y+(elbow[1]-y)*k];};
+  // ragged: a deep tear, a hanging tooth of membrane, then a small snag, never a smooth scallop
+  if(feathered)shape.quadraticCurveTo(...pt(.5,.28),...q);else{shape.lineTo(...pt(.28,.12));shape.lineTo(...pt(.42,.4));shape.lineTo(...pt(.58,.04));shape.lineTo(...pt(.8,.2));shape.lineTo(...q);}prev=q;}
  // torn holes between the finger bones: a dragon's membrane is old, scarred and ragged (feathered wings are spared)
  if(!feathered)for(const [hx,hy,hr,ha] of [[.3,.1,.05,.2],[.44,.15,.035,1.1],[.2,.04,.035,2.3]]){const hole=new THREE.Path();for(let k=0;k<3;k++){const an=ha+k*2.1,rr=hr*(k===1?1.5:1);hole[k?'lineTo':'moveTo'](side*(hx+Math.cos(an)*rr)*span,(hy+Math.sin(an)*rr)*span);}hole.closePath();shape.holes.push(hole);}
  part(inner,new THREE.ShapeGeometry(shape,6),feathered?m.feather:m.membrane);

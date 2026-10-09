@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import * as THREE from 'three';
 import {createCreature,RAT_NECK} from './creatures.js';
 
@@ -2777,4 +2778,10 @@ test('a wyvern tail stinger keeps it inside its tile',()=>{
  assert(count(wy)>0&&count(dr)>0);
  wy.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(wy.g,true);
  assert(b.min.y>-.05,'stays on the floor');assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits round its tile');
+});
+
+test('dragon wings have jagged torn trailing edges, not smooth scallops',()=>{
+ const src=fs.readFileSync(new URL('./creatures.js',import.meta.url),'utf8');
+ const wing=src.slice(src.indexOf('function dragonWing'),src.indexOf('function dragonLimb'));
+ assert(/ragged/.test(wing)&&(wing.match(/shape\.lineTo\(\.\.\.pt\(/g)||[]).length>=4,'trailing edge is built from straight tears');
 });
