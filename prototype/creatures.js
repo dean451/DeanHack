@@ -1607,7 +1607,7 @@ function troll(o){
  // handles for troll-knit.js: the head and both arms, and which troll it is
  return trimDraws({...actor(g,body,legs,null,[],'orc'),head,arms,arm:arms[1],troll:o.kind||'troll'});
 }
-const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020',trophy:true,scale:1.1},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,rime:true,eye:'#8ad8ff',scale:1.1},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.1},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.05},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,helm:true,scale:1.15}};
+const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020',trophy:true,scale:1.35},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,rime:true,eye:'#8ad8ff',scale:1.35},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.35},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.22},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,helm:true,scale:1.4}};
 
 // Ogres (O): a squat, pot-bellied brute with a heavy underbite, a greasy topknot, a hide loincloth and a nail-studded club;
 // ogre lords add a bronze helm and pauldrons, ogre kings a spiked crown, a fur mantle and a bigger club.
@@ -2375,11 +2375,11 @@ function angel(o){
   pivot.userData.side=side;wings.push(pivot);}
  return trimDraws(actor(g,body,[],null,wings,'hover'));
 }
-const ANGELS={angel:{robe:'#eeeae0',sword:true,flame:'#ff9a3a',scale:1.15},
+const ANGELS={angel:{robe:'#eeeae0',sword:true,flame:'#ff9a3a',scale:1.28},
  // the dark Angel (UnNetHack, Gehennom only): a fallen angel in torn black, ashen-skinned, horned,
  // with a broken ember halo, ragged black wings, a serrated burning blade and a broken manacle
  'dark angel':{fallen:true,robe:'#1d1a21',trim:'#3c3638',skin:'#8c8690',hair:'#141116',wing:'#18151b',wingTip:'#3a1714',glow:'#ff3a1e',sword:true,flame:'#c4261a',span:.82,scale:1.25},
- aleax:{robe:'#b8b0a0',trim:'#9aa4aa',hair:'#6a4a2a',wing:'#dcd6ca',glow:'#fff4d0',sword:true,span:.65,scale:1.1},archon:{robe:'#f6f2ea',trim:'#e0b83a',armor:true,rays:true,sword:true,flame:'#bfe4ff',glow:'#fff2b0',scale:1.3,span:.85}};
+ aleax:{robe:'#b8b0a0',trim:'#9aa4aa',hair:'#6a4a2a',wing:'#dcd6ca',glow:'#fff4d0',sword:true,span:.65,scale:1.2},archon:{robe:'#f6f2ea',trim:'#e0b83a',armor:true,rays:true,sword:true,flame:'#bfe4ff',glow:'#fff2b0',scale:1.3,span:.85}};
 
 const VAMPIRES={vampire:{scale:1.05},'vampire lord':{suit:'#2a1420',lining:'#b01828',collar:.3,medallion:true,evil:'#c01828',scale:1.18},'vampire mage':{suit:'#221a30',cape:'#2a1440',lining:'#6a2a9a',eye:'#d06aff',orb:'#b070ff',evil:'#8a30d0',scale:1.15},'vlad the impaler':{suit:'#3a1418',cape:'#1a0c10',lining:'#c8a040',vlad:true,evil:'#d02030',scale:1.3}};
 
