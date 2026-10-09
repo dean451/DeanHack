@@ -12,7 +12,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // Handles: body, head, arms, arm, ghost (the kind, for ghost-drift.js). No legs, wings or tail. Quirk 'hover', so it bobs like a wraith.
 
 const C={
- sheet:rgb('#ffffff'),fold:rgb('#a8b0c4'),hem:rgb('#c4cad8'),
+ sheet:rgb('#c2c6c0'),fold:rgb('#5e6674'),hem:rgb('#7e848a'),stain:rgb('#3a3d38'),bone:rgb('#b9b49c'),
  socket:rgb('#0a0b12'),socketRim:rgb('#3a3e50'),mouth:rgb('#06070c'),
 };
 const ARM_PITCH=-1.2;// sleeves reach forward and a little down
@@ -107,6 +107,10 @@ function buildArm(){
   const geo=new THREE.ConeGeometry(.03,len,5,2,true);
   geo.translate(0,len/2,0);
   P.add(geo,at(x,-.3,z,[hang,0,0]),C.hem);
+ }
+ // bare, bony fingers crooked out of the cuff
+ for(const [x,bend] of [[-.03,.5],[0,.7],[.03,.4]]){
+  P.add(new THREE.ConeGeometry(.009,.1,5),at(x,-.33,.045,[-1.5+bend*.4,0,0]),C.bone);
  }
  return P.merge();
 }
