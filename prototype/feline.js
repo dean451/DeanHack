@@ -267,7 +267,10 @@ function buildLeg(L,C,fore){
   if(L.socks&&y<fy+.07)c=C.belly;
   return c;
  };
- const paw=L.socks?C.belly:mix(C.coat,C.belly,.25),skin=(x,y,z)=>y<fy+.03?paw:paint(x,y,z);
+ let paw=L.socks?C.belly:mix(C.coat,C.belly,.25);
+ // scruffy pets walk dirty: the paws are caked in grime
+ if(L.scruffy)paw=mix(paw,C.stripe,.45);
+ const skin=(x,y,z)=>y<fy+.03?paw:paint(x,y,z);
  if(fore){
   segment(P,[0,.02,0],[0,-.11,-.02],.048*k,.033*k,skin,12);
   P.add(new THREE.SphereGeometry(.05*k,12,8),at(0,-.02,0,[0,0,0],[.7,1.2,1]),skin);
