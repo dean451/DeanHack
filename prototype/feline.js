@@ -12,7 +12,8 @@ import {segment,chain} from './ant.js';
 // - Legs: shoulder, elbow and forearm down to a padded paw with four toes, each tipped with a dark hooked claw, in front; the hind
 //   legs have a muscled thigh, a knee, a raised hock and a long foot.
 // - The kitten, housecat and large cat wear a frayed leather cord collar and are scruffy strays with eyes set in dark hollows: matted tufts along the spine, proud hip
-//   bones, healed scratches across the right flank, ribs showing through the flank fur and a torn left ear.
+//   bones, healed scratches across the right flank, ribs showing through the flank fur and upright ears. Their coats are
+//   clean enough for a pet that is fed: no mange, no face scar, full whiskers and bright open eyes.
 // - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
 // Coats are painted per vertex from the body position:
@@ -100,7 +101,6 @@ function markings(L,C,x,y,z,base,limb=false){
 }
 
 const SCAR=rgb('#e8c8b8');
-const MANGE=rgb('#b08a80');
 
 // How much a stray's flank darkens over a rib: ridges at a steady pitch behind the shoulder, gone on the back,
 // the belly and off the ribcage.
@@ -119,8 +119,6 @@ function torsoAt(L,C){
   if(L.scruffy&&x>.05)for(let k=0;k<2;k++){const d=Math.abs((y-L.Y-.03-k*.025)-(z+.02)*.5);if(d<.006&&z>-.15&&z<.1)c=mix(c,C.belly,.8*(1-d/.006));}
   if(L.scruffy)c=mix(c,C.stripe,.2*smooth((hash(Math.floor(x*90)*7.3+Math.floor(y*90)*3.1+Math.floor(z*90))-.55)/.2));
   if(L.scruffy)c=mix(c,C.stripe,ribShade(x,y,z,L.Y));
-  // scruffy pets: a bald mangy patch on the right haunch, pink skin showing through the thinned coat
-  if(L.scruffy&&x>.04){const m=Math.hypot(y-L.Y-.01,(z+.17)*1.2);if(m<.04)c=mix(c,MANGE,.8*smooth((.04-m)/.015));}
   const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.16)/.08)*smooth((L.Y+.06-y)/.08);
   return mix(c,C.belly,Math.max(belly,chest)*(L.pattern==='ghost'||L.pattern==='shimmer'?.6:1));
  };
@@ -198,12 +196,8 @@ function buildHead(L,C){
   }
   const muzzle=smooth((-.022-y)/.02)+smooth((z-.115)/.02)*smooth((.0-y)/.02);
   c=mix(c,C.belly,clamp01(muzzle)*(L.pattern==='ghost'||L.pattern==='shimmer'?.5:1));
-  // scruffy pets: an old pale scar slashed across the bridge of the nose and the brow
-  if(L.scruffy&&x>0){const d=Math.abs((y-.02)-(z-.1)*1.6+(x-.03)*1.2);if(d<.006&&z>.06&&x<.07)c=mix(c,SCAR,.85*(1-d/.006));}
   // the wild cats carry an old gouge down the left cheek, a rival's work
   if(!L.scruffy&&x<-.03&&x>-.1){const d=Math.abs((z-.09)+(y+.01)*.8-(-x-.06)*1.4);if(d<.005&&y<.03&&y>-.05&&z>.04)c=mix(c,SCAR,.7*(1-d/.005));}
-  // scruffy pets: eyes sit in dark hollows, so the bright eye reads against shadow
-  if(L.scruffy){const e=Math.hypot(ax-.041,y-.026,z-.128);if(e<.034)c=mix(c,C.stripe,.75*smooth((.034-e)/.02));}
   if(L.brows)for(const s of [-1,1])if(Math.hypot(x-s*.04,y-.055,z-.12)<.02)c=mix(c,C.belly,.9);
   return c;
  };
@@ -224,7 +218,7 @@ function buildHead(L,C){
    // the big cats' left ear is bitten: a dark wedge missing from the rim
    if(s<0)P.add(new THREE.ConeGeometry(.012,.03,4),at(ex-.012,ey+.03,ez+.012,[0,0,.5],[1,1,.5]),C.stripe);
   }else{
-   const torn=L.scruffy&&s<0,e=(L.tufts?1.25:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
+   const torn=false,e=(L.tufts?1.25:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
    P.add(new THREE.ConeGeometry(.038*e,.075*e,4),at(s*.055,.095+.01*(e-1),.03,rot,[1,1,.45]),(x,y)=>mix(C.coat,C.back,smooth((y-.1)/.04)));
    P.add(new THREE.ConeGeometry(.026*e,.055*e,4),at(s*.055,.09+.01*(e-1),.042,rot,[1,1,.3]),inner);
    if(torn)P.add(new THREE.ConeGeometry(.01,.03,3),at(s*.072,.098,.03,[-.15,0,-s*.7],[1,1,.45]),C.coat);
@@ -245,8 +239,7 @@ function buildHead(L,C){
  // whiskers
  const whisker=rgb(L.whisker||'#f0ece0');
  for(const s of [-1,1])for(let k=0;k<4;k++){
-  // scruffy pets: the two lowest whiskers on each side are snapped off short
-  const len=L.scruffy&&k<2?.4:1;
+  const len=1;
   segment(P,[s*.03,-.036+k*.006,.13],[s*(.03+.11*len),-.036+k*.006+(-.014+.014*k)*len,.13+(-.03+.008*k)*len],.0022,.0006,whisker,3);
  }
  // the lynx's ruff: barred tufts hanging from the cheeks
@@ -331,8 +324,6 @@ function buildTail(L,C){
  P.add(new THREE.SphereGeometry(r1*1.05,8,6),at(...pts[n]),colour(n-1));
  // scruffy pets: the tail is matted, with burrs of fur bristling off it
  if(L.scruffy)for(let i=2;i<n;i+=2)P.add(new THREE.ConeGeometry(.008*k,.03,4),at(pts[i][0]+.012,pts[i][1]+.01,pts[i][2],[0,0,-1.2]),mix(C.coat,C.stripe,.5));
- // scruffy pets: the last of the tail was lost in some fight, a bare pale scar-knot where the fur stops
- if(L.scruffy)P.add(new THREE.ConeGeometry(r1*1.3,.03,5),at(pts[n][0],pts[n][1]+.005,pts[n][2]-.012,[-Math.PI/2+.5,0,0]),SCAR);
  P.add(new THREE.SphereGeometry(r0*1.1,8,6),at(0,0,0),mix(C.coat,C.back,.3));
  return P.merge();
 }
