@@ -99,6 +99,9 @@ function markings(L,C,x,y,z,base,limb=false){
  return c;
 }
 
+const SCAR=rgb('#e8c8b8');
+const MANGE=rgb('#b08a80');
+
 // How much a stray's flank darkens over a rib: ridges at a steady pitch behind the shoulder, gone on the back,
 // the belly and off the ribcage.
 export function ribShade(x,y,z,Y){
@@ -116,6 +119,8 @@ function torsoAt(L,C){
   if(L.scruffy&&x>.05)for(let k=0;k<2;k++){const d=Math.abs((y-L.Y-.03-k*.025)-(z+.02)*.5);if(d<.006&&z>-.15&&z<.1)c=mix(c,C.belly,.8*(1-d/.006));}
   if(L.scruffy)c=mix(c,C.stripe,.2*smooth((hash(Math.floor(x*90)*7.3+Math.floor(y*90)*3.1+Math.floor(z*90))-.55)/.2));
   if(L.scruffy)c=mix(c,C.stripe,ribShade(x,y,z,L.Y));
+  // scruffy pets: a bald mangy patch on the right haunch, pink skin showing through the thinned coat
+  if(L.scruffy&&x>.04){const m=Math.hypot(y-L.Y-.01,(z+.17)*1.2);if(m<.04)c=mix(c,MANGE,.8*smooth((.04-m)/.015));}
   const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.16)/.08)*smooth((L.Y+.06-y)/.08);
   return mix(c,C.belly,Math.max(belly,chest)*(L.pattern==='ghost'||L.pattern==='shimmer'?.6:1));
  };
@@ -178,7 +183,6 @@ function buildBody(L,C){
  return P.merge();
 }
 
-const SCAR=rgb('#e8c8b8');
 
 // Head, in head space: the origin is the neck pivot.
 function buildHead(L,C){
