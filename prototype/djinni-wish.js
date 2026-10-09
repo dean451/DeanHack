@@ -25,12 +25,14 @@ export function smokePose(t) {
 // The eyes open late, stare, and are the first thing to go out.
 export function eyePose(t) {
   const u = clamp01(t / DJINNI.total);
-  if (u <= .3 || u >= .65) return {alpha: 0, size: .001};
+  if (u <= .3 || u >= .65) return {alpha: 0, size: .001, glance: 0};
   const open = smooth(clamp01((u - .3) / .04)), shut = smooth(clamp01((u - .6) / .05));
   // One slow blink in the middle of the stare.
   // Then, as if unsure it was seen, a second quicker blink.
   const blink = (u > .45 && u < .48) || (u > .515 && u < .53) ? .15 : 1;
-  return {alpha: open * (1 - shut), size: .06 * blink + .001};
+  // Between the blinks the stare slides off the hero to something behind them, lingers, and snaps back.
+  const gu = clamp01((u - .485) / .03), glance = gu > 0 && gu < 1 ? .1 * Math.sin(Math.PI * gu) ** 2 : 0;
+  return {alpha: open * (1 - shut), size: .06 * blink + .001, glance};
 }
 
 // The curl of smoke at the foot: a ring that thickens and drifts out.
@@ -58,7 +60,7 @@ export function createDjinniWish(THREE, parent) {
     e.smoke.rotation.z = -s.lean; e.smoke.material.opacity = s.alpha;
     const y = e.smoke.position.y + s.height * .3, x = e.smoke.position.x + s.lean * .25;
     const p = eyePose(e.t);
-    for (const eye of e.eyes) { eye.visible = p.alpha > .01; eye.scale.setScalar(p.size); eye.position.set(x + .25, y, eye.userData.side * .12); eye.material.opacity = p.alpha; }
+    for (const eye of e.eyes) { eye.visible = p.alpha > .01; eye.scale.setScalar(p.size); eye.position.set(x + .25, y, eye.userData.side * .12 + p.glance); eye.material.opacity = p.alpha; }
     const c = curlPose(e.t); e.curl.visible = c.alpha > .01; e.curl.scale.setScalar(c.radius); e.curl.material.opacity = c.alpha;
     return e.t < DJINNI.total;
   }

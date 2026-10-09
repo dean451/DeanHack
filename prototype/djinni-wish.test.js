@@ -42,3 +42,11 @@ test('the djinni blinks a second, quicker time after the first', () => {
   assert.ok(size(.465) < size(.4) * .5 && size(.52) < size(.4) * .5, 'two blinks');
   assert.ok(size(.5) > size(.52) * 2, 'eyes reopen between them');
 });
+
+test('the stare slides off the hero between the blinks and returns', () => {
+  let max = 0;
+  for (let t = 0; t <= DJINNI.total; t += .005) { const g = eyePose(t).glance; assert.ok(g >= 0 && g <= .1 + 1e-9, String(t)); max = Math.max(max, g); }
+  assert.ok(max > .09);
+  assert.equal(eyePose(DJINNI.total * .4).glance, 0);
+  assert.equal(eyePose(DJINNI.total * .6).glance, 0);
+});
