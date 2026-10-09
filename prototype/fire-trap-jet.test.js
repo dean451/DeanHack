@@ -73,3 +73,14 @@ test('the last ember hangs on longer and climbs higher than the rest', () => {
   assert.ok(emberPose(i, 1.4).y > emberPose(i - 3, .9 + .46).y);
   assert.equal(emberPose(i, JET.total).alpha, 0);
 });
+
+test('the scorch catches again once as it thins, and the first tongue snaps sideways', () => {
+  const mid = scorchPose(.92).alpha, before = scorchPose(.8).alpha, after = scorchPose(1.0).alpha;
+  assert.ok(mid > before * .9 + 1e-9 || mid > after, 'flare lifts the alpha above the steady fade');
+  for (let t = 0; t <= JET.total + .1; t += .01) { const a = scorchPose(t).alpha; assert.ok(a >= 0 && a <= .9, `t=${t}`); }
+  const base = tonguePose(1, .54).x - Math.cos(1 * 2.1 + .54 * 4) * columnPose(.54).width * .8;
+  assert.ok(Math.abs(base) < 1e-9, 'other tongues do not snap');
+  const snap = tonguePose(0, .54).x - Math.cos(.54 * 3) * columnPose(.54).width * .8;
+  assert.ok(snap > .08, `snap ${snap}`);
+  assert.equal(tonguePose(0, JET.total + .1).alpha, 0);
+});

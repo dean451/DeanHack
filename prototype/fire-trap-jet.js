@@ -26,7 +26,9 @@ export function columnPose(t) {
 // Tongue i: a thinner, taller lick that leans and flickers around the column.
 export function tonguePose(i, t) {
   const c = columnPose(t), a = i * 2.1 + t * (3 + i), flick = .8 + .2 * Math.sin(t * (17 + i * 5) + i);
-  return {x: Math.cos(a) * c.width * .8, z: Math.sin(a) * c.width * .8, height: c.height * (.55 + .12 * i) * flick, width: c.width * .45, alpha: c.alpha * .8};
+  // The first tongue snaps sideways once, a lick at something that is not there, then settles back.
+  const snap = i === 0 ? .09 * Math.sin(clamp01((t - .5) / .08) * Math.PI) : 0;
+  return {x: Math.cos(a) * c.width * .8 + snap, z: Math.sin(a) * c.width * .8, height: c.height * (.55 + .12 * i) * flick, width: c.width * .45, alpha: c.alpha * .8};
 }
 
 // The hot flash at the base: one hard pulse in the first instants.
@@ -38,7 +40,9 @@ export function flashPose(t) {
 // The ring of scorch: spreads over the floor and lingers, thinning to nothing.
 export function scorchPose(t) {
   const u = clamp01(t / JET.total);
-  return {radius: .15 + .5 * smooth(Math.min(1, u * 3)), alpha: t <= 0 || u >= 1 ? 0 : .6 * (1 - u) * Math.min(1, t * 12)};
+  // Once, as it thins, the scorch catches again: a brief red flare, as if the floor were not done burning.
+  const relit = .22 * Math.sin(clamp01((t - .85) / .14) * Math.PI);
+  return {radius: .15 + .5 * smooth(Math.min(1, u * 3)), alpha: t <= 0 || u >= 1 ? 0 : .6 * (1 - u) * Math.min(1, t * 12) + relit * (1 - u)};
 }
 
 // Ember i: a spark lifted off the base, jagged sideways drift, cooling as it climbs.

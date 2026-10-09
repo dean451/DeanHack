@@ -21,7 +21,9 @@ export function ringPose(i, t, dir) {
   const lag = dir > 0 && i === PORTAL.rings - 1 ? .08 : 0, u = clamp01((t - lag) / (life - lag)), v = dir < 0 ? u * u : 1 - (1 - u) * (1 - u);
   const radius = dir < 0 ? 1.2 - (1.1 - .1 * i) * v : .1 + (1.1 - .1 * i) * v;
   const stutter = dir > 0 ? .75 + .25 * Math.sin(u * 41 + i * 2) : 1;
-  return {radius, spin: (i % 2 ? -1 : 1) * (u * 9 + i) * dir * -1, alpha: .7 * stutter * Math.min(1, t * 12) * (1 - smooth(clamp01((u - .7) / .3)))};
+  // On the way down the middle ring hitches once, jerking back against its own spin as if it caught on something.
+  const hitch = dir < 0 && i === 1 ? -.6 * Math.sin(clamp01((u - .5) / .1) * Math.PI) : 0;
+  return {radius, spin: (i % 2 ? -1 : 1) * (u * 9 + i + hitch) * dir * -1, alpha: .7 * stutter * Math.min(1, t * 12) * (1 - smooth(clamp01((u - .7) / .3)))};
 }
 
 // The light's colour mix, 0 violet to 1 sick green-black.
