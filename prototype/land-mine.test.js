@@ -76,3 +76,11 @@ test('the ground rings once more: a faint echo of the shockwave returns after it
   assert.ok(ringPose(.85).alpha < 1e-9);
   assert.equal(ringPose(.9).alpha, 0);
 });
+
+test('the smoke column belches: it swells and darkens for a beat mid-rise, within bounds', () => {
+  const u = f => .05 + f * (MINE.total - .05);
+  assert.ok(smokePose(u(.55)).alpha > .55 * (1 - .55 ** 2) * 1.1, 'denser than the plain curve');
+  assert.ok(smokePose(u(.55)).scale > (.15 + .35 * Math.sqrt(.55)) * 1.1);
+  for (let t = 0; t <= MINE.total + .1; t += .005) { const p = smokePose(t); assert.ok(p.alpha >= 0 && p.alpha <= .6 + 1e-9, String(t)); }
+  assert.equal(smokePose(MINE.total).alpha, 0);
+});
