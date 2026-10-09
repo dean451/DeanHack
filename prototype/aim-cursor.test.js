@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {aimKeys, walkCursor, aimLine, createAimCursor, directionLanes, isDirectionPrompt, laneHits} from './aim-cursor.js';
+import {aimKeys, walkCursor, aimLine, createAimCursor, directionLanes, isDirectionPrompt, laneHits, laneRange} from './aim-cursor.js';
 
 test('the keys walk the cursor exactly to the square and then select it', () => {
   const from = {x: 20, z: 10};
@@ -92,4 +92,16 @@ test('each lane marks the first monster in it, and the cursor shows those marks'
   c.lanes([{x: 1, z: 0}]);
   assert.equal(scene.children.filter(o => o !== c.g && o.visible).length, 1);
   c.dispose();
+});
+
+test('the lanes are sized to the command that asked for a direction', () => {
+  assert.equal(laneRange(4), 1);
+  assert.equal(laneRange(70), 1);
+  assert.equal(laneRange(122), 13);
+  assert.equal(laneRange('Z'), 13);
+  assert.equal(laneRange(116), 8);
+  assert.equal(laneRange(null), 8);
+  const open = () => false;
+  assert.equal(directionLanes({x: 0, z: 0}, open, laneRange(4))[3].length, 1);
+  assert.equal(directionLanes({x: 0, z: 0}, open, laneRange(122))[3].length, 13);
 });
