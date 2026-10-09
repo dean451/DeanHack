@@ -78,3 +78,10 @@ test('a teleport trap arrives grander and slower than a plain hop, and still lea
   assert.ok(GRAND.size > 1 && GRAND.time > 1 && grand < 5);
   assert.equal(made.length, 0);
 });
+
+test('the departing column stutters as it tears free, and never exceeds its peak', () => {
+  let dips = 0, prev = streakPose(.1).alpha;
+  for (let t = .07; t < .24; t += .002) { const a = streakPose(t).alpha; if (a < prev * .6) dips++; prev = a; assert.ok(a <= .9 + 1e-9); }
+  assert.ok(dips >= 2, 'flickers');
+  assert.equal(streakPose(.02).alpha, streakPose(.02).alpha);
+});
