@@ -70,3 +70,12 @@ test('the second puff rolls over sideways mid-sag and comes back', () => {
   assert.ok(Math.abs(roll(.4)) < 1e-9 && Math.abs(roll(.9)) < 1e-9, 'only mid-sag');
   for (let t = 0; t <= GAS.total; t += .01) assert.ok(Math.hypot(puffPose(1, t).x, puffPose(1, t).z) < .6, String(t));
 });
+
+test('the sixth puff sighs sideways once it has sunk, and only then', () => {
+  const at = u => puffPose(6, .1 + u * 1.6).x;
+  const spread = u => .12 + .3 * (x => x * x * (3 - 2 * x))(Math.min(1, u * 1.4));
+  const sigh = u => at(u) - Math.cos(6 * 2.4) * spread(u);
+  assert.ok(sigh(.79) > .06, 'the sigh');
+  assert.ok(Math.abs(sigh(.5)) < 1e-9 && Math.abs(sigh(.95)) < 1e-9, 'only late');
+  for (let t = 0; t <= GAS.total; t += .01) assert.ok(Math.hypot(puffPose(6, t).x, puffPose(6, t).z) < .6, String(t));
+});
