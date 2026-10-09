@@ -58,3 +58,11 @@ test('the flash flickers back once as it dies', () => {
   for (let t = 0; t <= FLARE.total; t += .005) assert.ok(flashPose(t).alpha >= 0 && flashPose(t).alpha <= 1);
   assert.equal(flashPose(FLARE.total).alpha, 0);
 });
+
+test('the ring hitches half way across the floor, then still ends in bounds', () => {
+  const r = u => ringPose(u * FLARE.total).radius;
+  assert.ok(r(.425) < .15 + 1.6 * (1 - (1 - .425) ** 3) - .05, 'dragged back');
+  assert.equal(r(.3), .15 + 1.6 * (1 - (1 - .3) ** 3));
+  for (let t = 0; t <= FLARE.total; t += .005) { const p = ringPose(t); assert.ok(p.radius > 0 && p.radius <= 1.75 && p.alpha >= 0 && p.alpha <= .8); }
+  assert.equal(ringPose(FLARE.total).alpha, 0);
+});

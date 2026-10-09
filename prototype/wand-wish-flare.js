@@ -26,7 +26,9 @@ export function flashPose(t) {
 export function ringPose(t) {
   const u = clamp01(t / FLARE.total);
   if (u <= 0 || u >= 1) return {radius: .001, alpha: 0};
-  return {radius: .15 + 1.6 * (1 - (1 - u) ** 3), alpha: .8 * (1 - u) ** 2};
+  // It catches on something half way across the floor, hangs, then tears on.
+  const hitch = .06 * Math.sin(Math.PI * clamp01((u - .35) / .15)) ** 2;
+  return {radius: .15 + 1.6 * (1 - (1 - u) ** 3) - hitch, alpha: .8 * (1 - u) ** 2};
 }
 
 // The wand's last gasp: a second, fainter ring crawls out late and stalls short, flickering,
