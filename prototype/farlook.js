@@ -15,18 +15,26 @@ export function squareAt(point, origin) {
   return {x: Math.round(point.x) + origin.x, z: Math.round(point.z) + origin.z};
 }
 
+// A bare square: a seen trap by its name, an open or smashed door, else the furniture or hazard.
+function terrainText(cell) {
+  if (cell.trap) return String(cell.trap).toLowerCase();
+  if (cell.terrain === 'door' && cell.door === 'open') return 'open door';
+  if (cell.door === 'broken') return 'broken door';
+  return FEATURES[cell.terrain] || '';
+}
+
 // The one quiet line for a square, or '' when there is nothing to name.
 export function farlookText(cell) {
   if (!cell || !cell.visible) return '';
   const name = String(cell.name || cell.object?.name || '').trim();
-  if (!name) return cell.kind === 'terrain' || !cell.kind ? (FEATURES[cell.terrain] || '') : '';
+  if (!name) return cell.kind === 'terrain' || !cell.kind ? terrainText(cell) : '';
   if (cell.kind === 'pet') return `${name} (pet)`;
   if (cell.kind === 'monster') return `${name} (${cell.peaceful ? 'peaceful' : 'hostile'})`;
   if (cell.object) {
     const marks = [bucMark(itemBuc(name)), enchantMark(itemEnchant(name))].filter(Boolean).join('');
     return marks ? `${marks} ${name}` : name;
   }
-  return FEATURES[cell.terrain] || '';
+  return terrainText(cell);
 }
 
 export function createFarlook(doc) {
