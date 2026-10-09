@@ -222,7 +222,7 @@ function dragonHead(head,m,f,baby){
   const brow=dragonBox(head,.05,.02,.07,m.dark,s*.055,.075,.07,.008);brow.rotation.z=s*.3;
   for(let i=0;i<3;i++)cone(head,.008,.03,m.ivory,s*.045,-.03,.12+i*.045,4).rotation.x=Math.PI;
   // two long curved fangs hang from the upper jaw past the lower teeth,
-  cone(head,.011,.07,m.ivory,s*.055,-.045,.2,4).rotation.x=Math.PI-.15;
+  cone(head,.012,.1,m.ivory,s*.055,-.05,.2,4).rotation.x=Math.PI-.2;
   const frill=cone(head,.035,.1,m.dark,s*.11,-.01,-.05,3);frill.rotation.z=-s*1.3;frill.rotation.y=s*.4;
   if(f.sirrush){const horn=cone(head,.018,.22,m.ivory,s*.03,.1,.02,6);horn.rotation.x=-.35;horn.rotation.z=-s*.12;}
   else{
