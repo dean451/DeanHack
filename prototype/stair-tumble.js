@@ -9,7 +9,7 @@
 
 export const TUMBLE_HEIGHT = .55, TUMBLE_GRAVITY = 9, TUMBLE_BOUNCES = [.5, .28], ARM_TIME = 3;
 // After the last bounce the hero lies still a beat, then one small involuntary jerk of the body.
-export const TWITCH_GAP = .3, TWITCH_LEN = .14, TWITCH_HEIGHT = .009;
+export const TWITCH_GAP = .3, TWITCH_LEN = .14, TWITCH_HEIGHT = .009, TWITCH_GAP2 = .22;
 
 export const tumbleMessage = text => typeof text === 'string' && /^You fall down the (?:stairs|ladder)\b/.test(text);
 
@@ -25,10 +25,12 @@ export function tumbleOffset(t) {
     if (hop < air) return v * hop - .5 * TUMBLE_GRAVITY * hop * hop;
     hop -= air;
   }
-  const j = (hop - TWITCH_GAP) / TWITCH_LEN;
-  return j > 0 && j < 1 ? TWITCH_HEIGHT * Math.sin(j * Math.PI) : 0;
+  const j = (hop - TWITCH_GAP) / TWITCH_LEN, k = (hop - TWITCH_GAP - TWITCH_LEN - TWITCH_GAP2) / TWITCH_LEN;
+  if (j > 0 && j < 1) return TWITCH_HEIGHT * Math.sin(j * Math.PI);
+  // A second, fainter jerk, as if the body had not quite finished being dropped.
+  return k > 0 && k < 1 ? TWITCH_HEIGHT * .5 * Math.sin(k * Math.PI) : 0;
 }
-export const TUMBLE_TIME = TWITCH_GAP + TWITCH_LEN + Math.sqrt(2 * TUMBLE_HEIGHT / TUMBLE_GRAVITY) +
+export const TUMBLE_TIME = TWITCH_GAP + TWITCH_LEN + TWITCH_GAP2 + TWITCH_LEN + Math.sqrt(2 * TUMBLE_HEIGHT / TUMBLE_GRAVITY) +
   TUMBLE_BOUNCES.reduce((s, _, i) => s + 2 * Math.sqrt(2 * TUMBLE_GRAVITY * TUMBLE_HEIGHT) * TUMBLE_BOUNCES.slice(0, i + 1).reduce((a, b) => a * b, 1) / TUMBLE_GRAVITY, 0);
 
 export function createStairTumble() {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {tumbleMessage, tumbleOffset, createStairTumble, TUMBLE_HEIGHT, TUMBLE_TIME, ARM_TIME, TWITCH_GAP, TWITCH_LEN, TWITCH_HEIGHT} from './stair-tumble.js';
+import {tumbleMessage, tumbleOffset, createStairTumble, TUMBLE_HEIGHT, TUMBLE_TIME, ARM_TIME, TWITCH_GAP, TWITCH_LEN, TWITCH_HEIGHT, TWITCH_GAP2} from './stair-tumble.js';
 
 test('only the fall message arms a tumble', () => {
   assert.ok(tumbleMessage('You fall down the stairs.'));
@@ -48,9 +48,18 @@ test('an arming that never gets a level lapses, and clear resets', () => {
 });
 
 test('after the last bounce the hero lies still, then twitches once', () => {
-  const end = TUMBLE_TIME - TWITCH_GAP - TWITCH_LEN;
+  const end = TUMBLE_TIME - TWITCH_GAP - TWITCH_LEN - TWITCH_GAP2 - TWITCH_LEN;
   assert.ok(Math.abs(tumbleOffset(end + TWITCH_GAP / 2)) < 1e-9, 'still beat');
   const mid = tumbleOffset(end + TWITCH_GAP + TWITCH_LEN / 2);
   assert.ok(mid > 0 && mid <= TWITCH_HEIGHT + 1e-9, String(mid));
   assert.ok(tumbleOffset(TUMBLE_TIME) < 1e-9);
+});
+
+test('a second, fainter twitch follows the first, then the hero is exactly still', () => {
+  const end = TUMBLE_TIME - 2 * TWITCH_LEN - TWITCH_GAP - TWITCH_GAP2;
+  const first = tumbleOffset(end + TWITCH_GAP + TWITCH_LEN / 2);
+  const second = tumbleOffset(end + TWITCH_GAP + TWITCH_LEN + TWITCH_GAP2 + TWITCH_LEN / 2);
+  assert.ok(second > 0 && second < first, `${second} < ${first}`);
+  assert.ok(Math.abs(tumbleOffset(end + TWITCH_GAP + TWITCH_LEN + TWITCH_GAP2 / 2)) < 1e-9, 'rests between');
+  assert.ok(Math.abs(tumbleOffset(TUMBLE_TIME)) < 1e-9);
 });
