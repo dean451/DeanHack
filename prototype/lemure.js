@@ -16,7 +16,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 const C={
  flesh:rgb('#8a6a55'),dark:rgb('#4a3428'),pale:rgb('#b89478'),wet:rgb('#3a2820'),boil:rgb('#a86a58'),
- socket:rgb('#140c08'),mouth:rgb('#1c0c08'),tooth:rgb('#c8b890'),nail:rgb('#2a1c14'),
+ sore:rgb('#6a1c14'),bone:rgb('#b8ab8c'),socket:rgb('#140c08'),mouth:rgb('#1c0c08'),tooth:rgb('#c8b890'),nail:rgb('#2a1c14'),
 };
 // mottled flesh: darker toward the ground, blotched by a cheap interference pattern
 const mottle=(lo,hi)=>(x,y,z)=>{
@@ -46,6 +46,12 @@ function buildBody(){
  for(const [a,e,s] of boils){
   const r=.17,x=Math.sin(a)*Math.cos(e)*r*1.1,y=.19+Math.sin(e)*r*.95,z=Math.cos(a)*Math.cos(e)*r*1.05;
   P.add(new THREE.IcosahedronGeometry(.014+s*.03,1),at(x,y,z),C.boil);
+ }
+ // the melting flesh has sloughed off in places, leaving raw weeping sores and bare ribs
+ for(const [a,y] of [[.9,.17],[-1.5,.27],[2.4,.12]]){
+  const r=.17,x=Math.sin(a)*r*1.06,z=Math.cos(a)*r*1.02;
+  P.add(new THREE.SphereGeometry(.036,10,6),at(x,y,z,[0,a,0],[1,1.3,.35]),C.sore);
+  for(const k of [-1,0,1])P.add(new THREE.CylinderGeometry(.004,.005,.05,4),at(x*1.03,y+k*.016,z*1.03,[0,a,Math.PI/2+.1*k]),C.bone);
  }
  // shoulder stubs where the arms push out of the mass
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.045,10,8),at(s*.14,.38,.05,[0,0,0],[1,.8,1]),mottle(.32,.44));
