@@ -2720,3 +2720,12 @@ test('lemures weep raw red sores and a bone splinter breaks through the mass',()
  for(let i=0;i<col.length;i+=3)if(Math.abs(col[i]-want.r)<.01&&Math.abs(col[i+1]-want.g)<.01&&Math.abs(col[i+2]-want.b)<.01)sore++;
  assert(sore>20,`sore vertices: ${sore}`);
 });
+
+test('the rust monster is pitted by corrosion and its feet end in hooked claws; the disenchanter stays smooth',()=>{
+ const count=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n++;});return n;};
+ const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
+ assert(count(rust)>count(dis),'extra pit and claw meshes');
+ rust.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(rust.g,true);
+ assert(b.min.y>-.05&&b.min.y<.05,`claws stay on the floor (${b.min.y.toFixed(3)})`);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
+});
