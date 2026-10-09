@@ -87,7 +87,8 @@ export function pullPose(u) {
   const out = 1 - smooth((u - .85) / .15);
   z.turn = smooth(u / .2) * out;
   z.rear = smooth(u / .15) * (1 - smooth((u - .25) / .15));
-  z.fling = smooth((u - .1) / .2) * (1 - smooth((u - .6) / .25));
+  // The outflung claw snatches twice at the air before it closes, as if the thread kept slipping the fingers.
+  z.fling = smooth((u - .1) / .2) * (1 - smooth((u - .6) / .25)) * (1 - .14 * Math.sin(Math.PI * clamp01((u - .32) / .08)) ** 2 - .1 * Math.sin(Math.PI * clamp01((u - .43) / .06)) ** 2);
   z.clench = smooth((u - .3) / .08) * (1 - smooth((u - .86) / .1));
   z.drag = smooth((u - .6) / .25) * (1 - smooth((u - .87) / .13));
   z.draw = smooth((u - .35) / .05) * (1 - smooth((u - .8) / .06));
