@@ -149,10 +149,10 @@ function buildBody(L,C){
  const [nx,ny,nz]=L.neck;
  segment(P,[0,L.Y+.03,.19],[nx,ny-.02,nz-.01],.075*bw,.06*bw,paint,14);
  P.add(new THREE.SphereGeometry(.066*bw,16,10),at(0,L.Y+.09,.235),paint);
- // scruffy pets: matted tufts bristling along the spine, the hip bones standing proud
+ // pets: a few short tufts along the spine, the hip bones just showing
  if(L.scruffy){
-  for(let k=0;k<9;k++){
-   const z=-.22+k*.045,lean=.35+.05*(k%3),h=.032+.012*hash(k+L.Y*10);
+  for(let k=0;k<6;k++){
+   const z=-.2+k*.06,lean=.35+.05*(k%3),h=.02+.008*hash(k+L.Y*10);
    P.add(new THREE.ConeGeometry(.011,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,smooth((y-L.Y-.1)/.04)));
   }
   for(const s of [-1,1])P.add(new THREE.ConeGeometry(.016,.03,4),at(s*.058*bw,L.Y+.085,-.15,[-.2,0,-s*.5],[1,1,.8]),paint);
@@ -322,8 +322,8 @@ function buildTail(L,C){
  };
  chain(P,pts,pts.map((_,i)=>r0+(r1-r0)*i/n),colour,8);
  P.add(new THREE.SphereGeometry(r1*1.05,8,6),at(...pts[n]),colour(n-1));
- // scruffy pets: the tail is matted, with burrs of fur bristling off it
- if(L.scruffy)for(let i=2;i<n;i+=2)P.add(new THREE.ConeGeometry(.008*k,.03,4),at(pts[i][0]+.012,pts[i][1]+.01,pts[i][2],[0,0,-1.2]),mix(C.coat,C.stripe,.5));
+ // pets: the tail keeps just a couple of burrs of fur, a little wear
+ if(L.scruffy)for(let i=4;i<n;i+=4)P.add(new THREE.ConeGeometry(.006*k,.02,4),at(pts[i][0]+.01,pts[i][1]+.008,pts[i][2],[0,0,-1.2]),mix(C.coat,C.stripe,.25));
  P.add(new THREE.SphereGeometry(r0*1.1,8,6),at(0,0,0),mix(C.coat,C.back,.3));
  return P.merge();
 }
