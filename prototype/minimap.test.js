@@ -80,3 +80,10 @@ test('each piece of furniture and the trees carry their own mark, so none relies
   assert.ok(marks.every(Boolean));
   assert.equal(new Set(marks).size, marks.length, 'six features, six different marks');
 });
+
+test('a hostile and a floor object no longer share a mark', () => {
+  const hostile = cellStyle({x: 2, z: 1, kind: 'monster', visible: true, terrain: 'floor'}, hero);
+  const object = cellStyle({x: 3, z: 1, terrain: 'unknown', object: {name: 'dagger'}}, hero);
+  assert.equal(hostile.mark, 'slash');
+  assert.notEqual(hostile.mark, object.mark);
+});
