@@ -44,6 +44,10 @@ export function itemFacts(text) {
   if (/\bgreased\b/i.test(t.split('(')[0])) out.push('greased');
   const charges = /\((-?\d+):(-?\d+)\)/.exec(t);
   if (charges) out.push(`${charges[2]} charges`);
+  if (/\((?:[^)]*, )?lit\)/i.test(t)) out.push('lit');
+  if (/\((?:alternate weapon|off[- ]hand)[^)]*\)/i.test(t)) out.push('alternate weapon');
+  if (/\bpartly eaten\b/i.test(t.split('(')[0])) out.push('partly eaten');
+  if (/\bdiluted\b/i.test(t.split('(')[0])) out.push('diluted');
   if (/\((?:weapon|wielded)[^)]*\)/i.test(t)) out.push('wielded');
   else if (/\((?:being worn|worn|on (?:left|right) (?:hand|finger))[^)]*\)/i.test(t)) out.push('worn');
   else if (/\(in quiver[^)]*\)/i.test(t)) out.push('quivered');
