@@ -237,7 +237,11 @@ function dragonHead(head,m,f,baby){
  dragonBox(head,.05,.006,.01,m.scar,.03,.052,.2,.002).rotation.y=.8;
  if(f.sirrush)tube(head,[[0,-.05,.2],[0,-.07,.28],[.015,-.075,.33]],.005,mat('#b03040'),5);
  if(f.beard)for(let i=0;i<5;i++)cone(head,.014,.09,m.dark,(i-2)*.018,-.1,.1-Math.abs(i-2)*.02,4).rotation.x=Math.PI+.3;
- eyes(head,m.glow,.045,.085,.066);
+ // narrow slanted eyes with a vertical slit pupil, under the heavy brow ridge
+ for(const s of [-1,1]){
+  const eye=sphere(head,.024,m.glow,s*.066,.045,.085,.8,.5,1.25);eye.rotation.z=-s*.35;
+  sphere(head,.0075,m.dark,s*.0695,.046,.1,.35,1.35,.3).rotation.z=-s*.35;
+ }
  return throat;
 }
 function dragonWing(parent,side,span,m,feathered){
