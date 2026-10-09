@@ -79,7 +79,7 @@ function wandLook(look) {
   } else if (SHAPES.has(look)) {
     L.shaft = std(0x5b6066, .8, .4); L.fit = std(0x2e3236, .7, .5);
     if (look === 'hexagonal' || look === 'octagonal') { L.sides = look === 'hexagonal' ? 6 : 8; L.faceted = true; L.taper = .92; L.radius = .022; }
-    if (look === 'short') { L.length = .3; L.radius = .022; }
+    if (look === 'short') { L.length = .3; L.radius = .022; L.extras.push('nicks'); }
     if (look === 'long') { L.length = .66; L.radius = .017; L.extras.push('bands'); }
     if (look === 'octagonal') L.extras.push('pits');
     if (look === 'curved') L.curve = .07;
@@ -146,6 +146,11 @@ function buildParts(L) {
     }
     if (extra === 'knots') for (const [y, a] of L.tip === 'fork' ? [[.08, 0], [.2, 2.4]] : [[.06, 0], [.14, 2.1], [.22, 4.2], [.3, 1]]) put('shaft', new THREE.SphereGeometry(.011, 6, 5), Math.cos(a) * rAt(y), y, Math.sin(a) * rAt(y));
     if (extra === 'pits') for (let i = 0; i < 6; i++) { const y = span(i, 6), a = around(i, 6, i * 1.7); put('fit', new THREE.SphereGeometry(.006, 5, 4), Math.cos(a) * rAt(y), y, Math.sin(a) * rAt(y)); }
+    // The short wand is a snapped-off stub: slanting chips bitten out of its side.
+    if (extra === 'nicks') for (let i = 0; i < 3; i++) {
+      const y = .05 + i * .08, a = around(i, 3, .7), chip = new THREE.BoxGeometry(.012, .02, .007);
+      chip.rotateZ(.7); chip.translate(rAt(y), 0, 0); chip.rotateY(-a); chip.translate(0, y, 0); parts.fit.push(chip);
+    }
     if (extra === 'spikes') for (let i = 0; i < 3; i++) for (let k = 0; k < 4; k++) {
       const y = .08 + i * .09, a = around(k, 4, i * .8), cone = new THREE.ConeGeometry(.007, .03, 5);
       cone.translate(0, .015 + rAt(y) * .8, 0); cone.rotateZ(-Math.PI / 2); cone.rotateY(-a); cone.translate(0, y, 0); parts.fit.push(cone);
