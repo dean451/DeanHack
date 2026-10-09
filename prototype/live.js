@@ -30,7 +30,7 @@ import {createFloorKit,cellHash} from './floor.js';
 import {createCorpse} from './corpse.js';
 import {stageCreature,addOutlines} from './readability.js';
 import {createCavern} from './cavern.js';
-import {createBranchAir,rockTint,rockRoughness} from './branch-air.js';
+import {createBranchAir,rockTint,rockRoughness,rockVein} from './branch-air.js';
 import {attachModelAsset} from './model-assets.js';
 import {MODEL_URLS} from './asset-urls.js';
 import {potionLook} from './item-looks.js';
@@ -444,7 +444,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
      }
    }
    for(const [id,t] of tiles)if(!seen.has(id)){release(t);tiles.delete(id);}
-   cavern.rebuild(tiles,origin,newLevel);branchAir.setBranch(frame.dungeon,hero.g.position);cavern.setTint(rockTint(frame.dungeon),rockRoughness(frame.dungeon));
+   cavern.rebuild(tiles,origin,newLevel);branchAir.setBranch(frame.dungeon,hero.g.position);cavern.setTint(rockTint(frame.dungeon),rockRoughness(frame.dungeon),h=>rockVein(frame.dungeon,h));
    for(const [id,a] of actors)if(!seenActors.has(id)){restoreFade(a);release(a.g);actors.delete(id);}
    for(const [id,item] of groundItems)if(!seenActors.has(id)){if(hasMagicLook(item)&&item.visible&&pickupNotes.take(...squareOfKey(id).split(',').map(Number),performance.now()))liftingItems.add(item);else release(item);groundItems.delete(id);}
    for(const [id,w] of wells)if(!seenWells.has(id)){release(w);wells.delete(id);}
