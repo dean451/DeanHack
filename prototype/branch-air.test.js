@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {airFor, rockTint, rockRoughness, createBranchAir, PARTICLES, HALF, TOP} from './branch-air.js';
+import {airFor, rockTint, rockRoughness, rockVein, MINES_VEIN, createBranchAir, PARTICLES, HALF, TOP} from './branch-air.js';
 
 test('Gehennom lifts embers and ash, within the particle cap', () => {
   const a = airFor('Gehennom');
@@ -72,4 +72,13 @@ test('the Mines rock is wet and glossy, Sokoban smoother, other branches fully r
   assert(rockRoughness('Sokoban') < 1);
   assert.equal(rockRoughness('The Dungeons of Doom'), 1);
   assert.equal(rockRoughness(), 1);
+});
+
+test('only the Mines rock carries mineral veins, one rock in nine', () => {
+  assert.equal(rockVein('The Gnomish Mines', 18), MINES_VEIN);
+  assert.equal(rockVein('The Gnomish Mines', 19), null);
+  assert.equal(rockVein('Sokoban', 18), null);
+  assert.equal(rockVein('The Dungeons of Doom', 0), null);
+  assert.equal(rockVein(), null);
+  for (const c of MINES_VEIN) assert(c > 1 && c < 2.2);
 });

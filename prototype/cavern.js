@@ -24,7 +24,7 @@ export function createCavern({group,scene,camera,controls}){
  const {map,bump}=rockTextures();
  const mesh=new THREE.InstancedMesh(new RoundedBoxGeometry(1,1,1,2,.09),new THREE.MeshStandardMaterial({map,bumpMap:bump,bumpScale:3,roughness:1}),count);
  mesh.receiveShadow=true;mesh.frustumCulled=false;group.add(mesh);
- const current=new Float32Array(count).fill(BASE),target=new Float32Array(count).fill(BASE),color=new THREE.Color();
+ const current=new Float32Array(count).fill(BASE),target=new Float32Array(count).fill(BASE),color=new THREE.Color(),tmp=new THREE.Color();
  for(let i=0;i<count;i++){const h=cellHash(i,1,9);mesh.setColorAt(i,color.setRGB(.12,.13,.135).multiplyScalar(.7+(h%100)/200));}
  let originX=0,originZ=0,animating=false;
  const matrix=new THREE.Matrix4(),position=new THREE.Vector3(),quaternion=new THREE.Quaternion(),scale=new THREE.Vector3(),euler=new THREE.Euler();
@@ -84,6 +84,10 @@ export function createCavern({group,scene,camera,controls}){
   moteGeo.attributes.position.needsUpdate=true;
  }
  // Branch tint: a colour the stone texture is multiplied by (see `rockTint` in branch-air.js).
- function setTint([r,g,b],roughness=1){mesh.material.color.setRGB(r,g,b);mesh.material.roughness=roughness;}
+ // `vein(h)` may return a colour multiplier for the rocks it picks out (mineral veins, see `rockVein`).
+function setTint([r,g,b],roughness=1,vein=null){mesh.material.color.setRGB(r,g,b);mesh.material.roughness=roughness;
+ for(let i=0;i<count;i++){const h=cellHash(i,1,9),v=vein&&vein(cellHash(i,2,9));
+  mesh.setColorAt(i,color.setRGB(.12,.13,.135).multiplyScalar(.7+(h%100)/200));if(v)color.multiply(tmp.setRGB(v[0],v[1],v[2]));mesh.setColorAt(i,color);}
+ mesh.instanceColor.needsUpdate=true;}
  return {rebuild,update,setActive,setTint};
 }

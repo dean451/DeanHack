@@ -53,6 +53,13 @@ export function rockRoughness(dungeon = '') {
   return /sokoban/i.test(dungeon) ? ROCK_ROUGHNESS.sokoban : 1;
 }
 
+// Mineral veins: one Mines rock in nine is shot through with a dull copper-green ore that picks up the
+// torchlight. `h` is the rock's hash; returns an instance colour multiplier, or null for plain stone.
+export const MINES_VEIN = [1.9, 1.6, 1.2];
+export function rockVein(dungeon = '', h = 0) {
+  return /gnomish mines/i.test(dungeon) && h % 9 === 0 ? MINES_VEIN : null;
+}
+
 function rand(st) { st.seed = (st.seed * 16807) % 2147483647; return (st.seed - 1) / 2147483646; }
 
 function texture() {
