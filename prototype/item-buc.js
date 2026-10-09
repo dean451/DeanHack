@@ -33,8 +33,25 @@ export function enchantMark(kind) {
   return ENCHANT_MARKS[kind] || '';
 }
 
-// Hover text that spells the marks out, or '' for a bare item: "blessed, enchanted up".
+// Other facts the item name carries, spelled out for the hover: erosion words, poison, grease, a
+// wand's "(0:3)" charges and where the item is held or worn. Each appears once, in this order.
+export function itemFacts(text) {
+  const t = String(text), out = [];
+  const state = /\b(very |thoroughly )?(rusty|corroded|burnt|rotted)\b/i.exec(t.split('(')[0]);
+  if (state) out.push(state[0].toLowerCase());
+  if (/\b(rustproof|fireproof|rotproof|corrodeproof|erodeproof)\b/i.test(t.split('(')[0])) out.push('proofed');
+  if (/\bpoisoned\b/i.test(t.split('(')[0])) out.push('poisoned');
+  if (/\bgreased\b/i.test(t.split('(')[0])) out.push('greased');
+  const charges = /\((-?\d+):(-?\d+)\)/.exec(t);
+  if (charges) out.push(`${charges[2]} charges`);
+  if (/\((?:weapon|wielded)[^)]*\)/i.test(t)) out.push('wielded');
+  else if (/\((?:being worn|worn|on (?:left|right) (?:hand|finger))[^)]*\)/i.test(t)) out.push('worn');
+  else if (/\(in quiver[^)]*\)/i.test(t)) out.push('quivered');
+  return out;
+}
+
+// Hover text that spells the marks out, or '' for a bare item: "blessed, enchanted up, worn".
 export function itemHint(text) {
-  const parts = [itemBuc(text), {plus: 'enchanted up', minus: 'enchanted down'}[itemEnchant(text)]];
+  const parts = [itemBuc(text), {plus: 'enchanted up', minus: 'enchanted down'}[itemEnchant(text)], ...itemFacts(text)];
   return parts.filter(Boolean).join(', ');
 }
