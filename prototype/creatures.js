@@ -191,6 +191,8 @@ function dragonMats(i,chromatic){
 const DRAGON_SEGMENT=new THREE.SphereGeometry(1,10,8);
 function dragonSegment(parent,r,material,p,q,sx,sy,sz){const mesh=part(parent,DRAGON_SEGMENT,material,p.x,p.y,p.z);mesh.quaternion.copy(q);mesh.scale.set(r*sx,r*sy,r*sz);return mesh;}
 // small rounded boxes with a single bevel step; the default three-step bevel costs 1.7k vertices each
+const DRAGON_BONE=new THREE.SphereGeometry(1,6,4);
+function lowBlob(parent,r,material,x,y,z,sx,sy,sz,geo=DRAGON_SEGMENT){const mesh=part(parent,geo,material,x,y,z);mesh.scale.set(r*sx,r*sy,r*sz);return mesh;}
 function dragonBox(parent,w,h,d,material,x=0,y=0,z=0,r=.02){return part(parent,new RoundedBoxGeometry(w,h,d,1,Math.min(r,w/2,h/2,d/2)*.9),material,x,y,z);}
 const DRAGON_SCUTE=new THREE.BoxGeometry(.1,.012,.07);
 function dragonChain(parent,curve,n,r0,r1,m){
@@ -302,8 +304,14 @@ function dragon(o={}){
  }else{
   // four-legged dragons stand square; wyverns rear up on two legs and wings; sirrush are lean and long-necked
   const lean=f.sirrush?.82:1;
-  const torso=sphere(body,.26,m.hide,0,.46,0,1.1*lean,.85,1.45);const under=sphere(body,.22,m.belly,0,.38,.03,1.02*lean,.6,1.35);
-  if(f.legs===2){torso.rotation.x=under.rotation.x=-.3;}
+  // a lean frame: a deep keel of a chest, a tucked waist and heavy hip and shoulder masses
+  const torso=sphere(body,.26,m.hide,0,.47,0,.92*lean,.9,1.45);const under=sphere(body,.2,m.belly,0,.36,.04,.9*lean,.55,1.3);
+  const chest=lowBlob(body,.2,m.hide,0,.45,.16,1.05*lean,1.12,1.05),hips=lowBlob(body,.18,m.hide,0,.47,-.18,1.05*lean,.95,1);
+  if(f.legs===2){torso.rotation.x=under.rotation.x=chest.rotation.x=hips.rotation.x=-.3;}
+  else{for(const s of [-1,1]){lowBlob(body,.1,m.hide,s*.17*lean,.55,.2,.9,1.1,1.2);lowBlob(body,.1,m.hide,s*.16*lean,.5,-.2,.9,1,1.2);}}
+  // ribs show through the flanks as dark curved bars, and the spine as a row of knuckles
+  for(let i=0;i<5;i++)for(const s of [-1,1]){const rib=lowBlob(body,1,m.dark,s*(.235-i*.012)*lean,.42,.2-i*.065,.008,.08-i*.008,.014,DRAGON_BONE);rib.rotation.z=s*.28;}
+  for(let i=0;i<7;i++)lowBlob(body,.022,m.dark,0,.7-Math.abs(i-3)*.012,.3-i*.1,1,1,1.2,DRAGON_BONE);
   // three claw rakes score the left flank, the old wounds of a long life of killing
   for(let i=0;i<3;i++){const rake=dragonBox(body,.012,.2,.02,m.scar,-.27+i*.0,.5-i*.0,.0,.004);rake.position.set(-.275+i*.0,.5,-.08+i*.055);rake.rotation.set(0,0,.35);rake.scale.set(1,1-i*.12,1);}
   // overlapping armour scutes crust the back and flanks: dark, sharp-edged plates over the hide
