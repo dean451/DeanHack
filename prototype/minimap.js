@@ -10,7 +10,7 @@ export const WIDTH = COLS * SCALE;
 export const HEIGHT = ROWS * SCALE;
 
 // Each piece of furniture has its own mark, so none is told apart by colour alone.
-export const FEATURE_MARKS = {fountain: 'ring', altar: 'plus', throne: 'crown', sink: 'tee', grave: 'cross'};
+export const FEATURE_MARKS = {fountain: 'ring', altar: 'plus', throne: 'crown', sink: 'tee', grave: 'stone'};
 
 // What one cell looks like on the minimap: a fill colour and an optional mark shape.
 export function cellStyle(cell, hero) {
@@ -28,7 +28,7 @@ export function cellStyle(cell, hero) {
     case 'fountain': case 'altar': case 'throne': case 'sink': case 'grave':
       return {fill: '#9fd0d9', mark: FEATURE_MARKS[cell.terrain]};
     case 'tree': return {fill: '#4e7d4a', mark: 'tree'};
-    case 'bars': return {fill: '#7f8a93', mark: 'bar'};
+    case 'bars': return {fill: '#7f8a93', mark: 'grate'};
     case 'floor': return {fill: cell.visible ? '#3c4a54' : '#27323a'};
     default: return cell.object ? {fill: '#c9a86b', mark: 'dot'} : null;   // unknown terrain draws nothing
   }
@@ -49,7 +49,8 @@ function drawMark(ctx, mark, px, py) {
     case 'plus': ctx.fillRect(px + 1, py, 2, s); ctx.fillRect(px, py + 1, s, 2); break;
     case 'crown': ctx.fillRect(px, py, 1, 2); ctx.fillRect(px + 3, py, 1, 2); ctx.fillRect(px + 1, py + 1, 2, 1); ctx.fillRect(px, py + 2, s, 2); break;
     case 'tee': ctx.fillRect(px, py, s, 1); ctx.fillRect(px + 1, py + 1, 2, 3); break;
-    case 'cross': ctx.fillRect(px + 1, py, 2, s); ctx.fillRect(px, py + 1, s, 1); break;
+    case 'stone': ctx.fillRect(px + 1, py, 2, 1); ctx.fillRect(px, py + 1, s, 3); break;
+    case 'grate': ctx.fillRect(px, py, 1, s); ctx.fillRect(px + 2, py, 1, s); break;
     case 'tree': ctx.fillRect(px + 1, py, 2, 2); ctx.fillRect(px + 1, py + 2, 1, 2); break;
     case 'slash': ctx.fillRect(px + 3, py, 1, 1); ctx.fillRect(px + 2, py + 1, 1, 1); ctx.fillRect(px + 1, py + 2, 1, 1); ctx.fillRect(px, py + 3, 1, 1); break;
     case 'dot': ctx.fillRect(px + 1, py + 1, 2, 2); break;
