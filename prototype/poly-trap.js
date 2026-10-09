@@ -27,7 +27,9 @@ export function ringPose(t) {
   const s = t - POLY.crush;
   if (s <= 0 || t >= POLY.total) return {scale: .05, y: .85, alpha: 0};
   const u = s / (POLY.total - POLY.crush);
-  return {scale: .1 + .55 * (1 - (1 - u) ** 3), y: .85, alpha: .8 * (1 - u)};
+  // The wrench catches: the ring gutters out and back once early on, like the body refusing for a heartbeat.
+  const catchDip = 1 - .6 * Math.sin(clamp01((u - .2) / .2) * Math.PI);
+  return {scale: .1 + .55 * (1 - (1 - u) ** 3), y: .85, alpha: .8 * (1 - u) * catchDip};
 }
 
 export function createPolyTrap(THREE, parent) {
