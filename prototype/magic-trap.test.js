@@ -102,3 +102,10 @@ test('the last ring gutters while the first holds steady', () => {
   assert.equal(wob(0), 0);
   assert.ok(wob(MAGIC.rings - 1) > 5);
 });
+
+test('the first ring stalls once mid-spread, then carries on to rest', () => {
+  const s = t => ringPose(0, t).scale;
+  const u = x => s(x * MAGIC.life);
+  assert.ok(u(.36) < (u(.3) + u(.42)) / 2 - .005, 'lags the smooth curve');
+  assert.equal(ringPose(0, MAGIC.life + .01).alpha, 0);
+});

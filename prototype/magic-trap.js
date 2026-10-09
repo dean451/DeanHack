@@ -30,7 +30,9 @@ export function ringPose(i, t) {
   const u = s / MAGIC.life;
   // The last ring is the least sure: it gutters on and off as it spreads.
   const gutter = i === MAGIC.rings - 1 ? .65 + .35 * Math.abs(Math.sin(u * 14)) : 1;
-  return {scale: .1 + .9 * (1 - (1 - u) ** 3) * (1 - .12 * i), y: .05 + .1 * u, alpha: (.85 - .2 * i) * (1 - u) * clamp01(s / .02) * gutter};
+  // The first ring hitches once mid-spread, as if the floor had caught it.
+  const w = i === 0 ? u - .03 * Math.sin(Math.PI * clamp01((u - .3) / .12)) ** 2 : u;
+  return {scale: .1 + .9 * (1 - (1 - w) ** 3) * (1 - .12 * i), y: .05 + .1 * u, alpha: (.85 - .2 * i) * (1 - u) * clamp01(s / .02) * gutter};
 }
 
 // Grit i: thrown up on the first slam, hangs, falls back to the floor. The last mote is the odd
