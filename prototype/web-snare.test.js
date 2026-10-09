@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TUG, strandPose, isWebMessage, createWebSnare, PENDING_WAIT, WEB, SNAPPED, SNAP_AT} from './web-snare.js';
+import {TUG, strandPose, isWebMessage, createWebSnare, PENDING_WAIT, WEB, SNAPPED, SNAP_AT, TUG2, TUG2_AT} from './web-snare.js';
 
 test('stumbling into a web triggers it', () => {
   assert.ok(isWebMessage('You stumble into a spider web!'));
@@ -81,4 +81,12 @@ test('the strand about to part trembles, then is gone', () => {
   for (let t = end - .2; t < end - .1; t += .002) wob = Math.max(wob, Math.abs(strandPose(SNAPPED, t).len - strandPose(SNAPPED, t + .0005).len));
   assert.ok(wob > .0005);
   assert.equal(strandPose(SNAPPED, SNAP_AT).alpha, 0);
+});
+
+test('a second, smaller tug comes late and lets go', () => {
+  for (const i of [0, 1, 2, 4, 5]) {
+    const before = strandPose(i, TUG2_AT - .03).len, mid = strandPose(i, TUG2_AT + .05).len;
+    assert.ok(mid < before, String(i));
+    assert.ok(mid > before * (1 - TUG2 * 1.5) - .05, String(i));
+  }
 });
