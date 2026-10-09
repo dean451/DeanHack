@@ -216,6 +216,8 @@ function buildHead(L,C){
  }
  // scruffy pets: ragged tufts of cheek fur flaring out under the ears
  if(L.scruffy)for(const s of [-1,1])for(let k=0;k<3;k++)P.add(new THREE.ConeGeometry(.012,.04,4),at(s*(.08+.004*k),-.03-.012*k,.05+.012*k,[Math.PI/2-.2*k,0,s*(1.1+.2*k)]),(x,y,z)=>mix(C.coat,C.stripe,smooth((.04-Math.abs(x))/.04)*.4));
+ // the wild cats bare a pair of yellowed fangs hanging past the lip
+ if(!L.scruffy&&!L.tentacles)for(const s of [-1,1])P.add(new THREE.ConeGeometry(.0075,.034,4),at(s*.02,-.062,.128,[Math.PI,0,0]),rgb('#a89c78'));
  // whiskers
  const whisker=rgb(L.whisker||'#f0ece0');
  for(const s of [-1,1])for(let k=0;k<4;k++)segment(P,[s*.03,-.036+k*.006,.13],[s*.14,-.05+k*.02,.1+k*.008],.0022,.0006,whisker,3);
@@ -296,6 +298,8 @@ function buildTail(L,C){
  };
  chain(P,pts,pts.map((_,i)=>r0+(r1-r0)*i/n),colour,8);
  P.add(new THREE.SphereGeometry(r1*1.05,8,6),at(...pts[n]),colour(n-1));
+ // scruffy pets: the tail is matted, with burrs of fur bristling off it
+ if(L.scruffy)for(let i=2;i<n;i+=2)P.add(new THREE.ConeGeometry(.008*k,.03,4),at(pts[i][0]+.012,pts[i][1]+.01,pts[i][2],[0,0,-1.2]),mix(C.coat,C.stripe,.5));
  P.add(new THREE.SphereGeometry(r0*1.1,8,6),at(0,0,0),mix(C.coat,C.back,.3));
  return P.merge();
 }
