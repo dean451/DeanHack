@@ -18,6 +18,11 @@ export const isPackShakeMessage = text => /your pack shakes violently/i.test(tex
 // of them, so they show the same quiet ring.
 export const isOmenMessage = text => /a shiver runs up and down your spine|you smell charred flesh|you hear distant howling|you suddenly yearn for/i.test(text || '');
 
+// "You feel tired.": another of the trap's non-outcomes. The same quiet ring, but drowsy: it plays at
+// two thirds speed and its grit stays low, hardly leaving the floor.
+export const isTiredMessage = text => /^\s*you feel tired\./i.test(text || '');
+export const TIRED_SLOW = .65;
+
 // Ring i leaves the floor at i * gap, expanding fast then dragging; later rings are weaker.
 export function ringPose(i, t) {
   const s = t - i * MAGIC.gap;
@@ -39,24 +44,24 @@ export function gritPose(i, t) {
 
 export function createMagicTrap(THREE, parent) {
   const live = []; let pending = null;
-  function add(x, z, quiet) {
+  function add(x, z, quiet, tired = false) {
     const g = new THREE.Group(); g.name = 'MagicTrap'; g.position.set(x, 0, z); parent.add(g);
     const sph = new THREE.SphereGeometry(1, 5, 3), tor = new THREE.TorusGeometry(1, .035, 4, 18), mats = [];
     const mk = (c, o) => { const m = new THREE.MeshBasicMaterial({color: c, transparent: true, opacity: o, depthWrite: false, toneMapped: false}); mats.push(m); return m; };
     const rings = Array.from({length: MAGIC.rings}, (_, i) => { const m = new THREE.Mesh(tor, mk(i ? 0xa070ff : 0xe8e0ff, 0)); m.rotation.x = Math.PI / 2; g.add(m); return m; });
     const grit = Array.from({length: MAGIC.grit}, () => { const m = new THREE.Mesh(sph, mk(0x6a5a78, 0)); m.scale.setScalar(.025); g.add(m); return m; });
-    live.push({g, geos: [sph, tor], mats, rings, grit, t: 0, quiet});
+    live.push({g, geos: [sph, tor], mats, rings, grit, t: 0, quiet, tired});
   }
   function step(e, dt) {
-    e.t += dt;
+    e.t += dt * (e.tired ? TIRED_SLOW : 1);
     e.rings.forEach((m, i) => { const p = ringPose(i, e.t); if (e.quiet) { p.alpha = i ? 0 : p.alpha * .6; p.scale *= .45; } m.visible = p.alpha > .01; m.position.y = p.y; m.scale.setScalar(p.scale); m.material.opacity = p.alpha; });
-    e.grit.forEach((m, i) => { const p = gritPose(i, e.t); if (e.quiet) { p.y *= .35; p.x += .02 * Math.sin(e.t * 70 + i * 2); p.alpha *= i < 4 ? 1 : 0; } m.visible = p.alpha > .01; m.position.set(p.x, p.y, p.z); m.material.opacity = p.alpha; });
+    e.grit.forEach((m, i) => { const p = gritPose(i, e.t); if (e.quiet) { p.y *= e.tired ? .12 : .35; p.x += .02 * Math.sin(e.t * 70 + i * 2); p.alpha *= i < 4 ? 1 : 0; } m.visible = p.alpha > .01; m.position.set(p.x, p.y, p.z); m.material.opacity = p.alpha; });
     return e.t < MAGIC.total;
   }
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); parent.remove(e.g); }
   return {
     add,
-    message(text, x, z) { if (isPackShakeMessage(text) || isOmenMessage(text)) add(x, z, true); else if (isMagicTrapMessage(text)) { if (pending) add(pending.x, pending.z); pending = {x, z, wait: 0}; } },
+    message(text, x, z) { if (isTiredMessage(text)) add(x, z, true, true); else if (isPackShakeMessage(text) || isOmenMessage(text)) add(x, z, true); else if (isMagicTrapMessage(text)) { if (pending) add(pending.x, pending.z); pending = {x, z, wait: 0}; } },
     settle(x, z) { if (pending) { add(x, z); pending = null; } },
     update(dt) {
       if (pending && (pending.wait += dt) >= PENDING_WAIT) { add(pending.x, pending.z); pending = null; }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ringPose, gritPose, isMagicTrapMessage, isPackShakeMessage, isOmenMessage, createMagicTrap, PENDING_WAIT, MAGIC} from './magic-trap.js';
+import {ringPose, gritPose, isMagicTrapMessage, isPackShakeMessage, isOmenMessage, isTiredMessage, TIRED_SLOW, createMagicTrap, PENDING_WAIT, MAGIC} from './magic-trap.js';
 
 test('only the roar triggers it', () => {
   assert.ok(isMagicTrapMessage('You hear a deafening roar!'));
@@ -82,4 +82,17 @@ test('the trap\'s omens play the quiet version at once, and only they do', () =>
   fx.message('A shiver runs up and down your spine!', 3, 4);
   assert.equal(fx.active, 1);
   fx.update(MAGIC.total + .1); assert.equal(fx.active, 0);
+});
+
+test('"You feel tired." plays the quiet ring drowsily: slower, and it ends later', () => {
+  assert.ok(isTiredMessage('You feel tired.') && !isTiredMessage('You feel tired of waiting') && !isTiredMessage(null));
+  const run = text => {
+    const THREE = new Proxy({}, {get: () => class { constructor() { this.position = {set() {}, y: 0}; this.rotation = {}; this.scale = {setScalar() {}, set() {}}; this.material = {}; } add() {} dispose() {} }});
+    const m = createMagicTrap(THREE, {add() {}, remove() {}});
+    m.message(text, 3, 4); let n = 0;
+    while (m.active && n < 400) { m.update(.01); n++; }
+    return n;
+  };
+  const quick = run('You smell charred flesh.'), slow = run('You feel tired.');
+  assert.ok(slow > quick * 1.3 && slow < quick / TIRED_SLOW + 3, `${quick} vs ${slow}`);
 });
