@@ -160,3 +160,10 @@ test('after the shudder the pull cocks the head over to savour it, then lets it 
   }
   assert.ok(tilt > W.SAVOR_TILT * .8, `${tilt}`);
 });
+
+test('the flung claw snatches at the air twice before it closes, within bounds', () => {
+  const f = u => W.pullPose(u).fling;
+  assert.ok(f(.36) < f(.3) - .05 && f(.36) < f(.4) - .05, 'first snatch');
+  assert.ok(f(.46) < f(.4) - .05 && f(.46) < f(.5) - .05, 'second snatch');
+  assert.equal(W.pullPose(1).fling, 0);
+});
