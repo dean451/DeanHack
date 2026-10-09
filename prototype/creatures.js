@@ -291,8 +291,8 @@ function dragon(o={}){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar((baby?.62:1.05)*(f.scale||1));
  const m=dragonMats(o.color??3,f.chromatic),headScale=(baby?1.3:1)*(f.heads>1?.8:1);
  let core=null,tail,tailCurve,trunk;const dressHeads=[];
- const addHead=(parent,points,mats,a=0)=>{
-  const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));dragonChain(parent,neck,6,.085,.065,mats);dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9);
+ const addHead=(parent,points,mats,a=0,taper=null)=>{
+  const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));dragonChain(parent,neck,6,taper?taper[0]:.085,taper?taper[1]:.065,mats);dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9);
   const end=points[points.length-1],head=new THREE.Group();head.position.set(end[0],end[1]+.04,end[2]+.06);head.rotation.y=a*.5;head.rotation.x=.12;head.scale.setScalar(headScale);parent.add(head);
   const throat=dragonHead(head,mats,f,baby);core=core||throat;dressHeads.push({head,m:mats,cat:!!f.cat});
  };
@@ -340,7 +340,8 @@ function dragon(o={}){
   dragonRidge(body,spine,6,.02,.02,baby?.05:.1,m.dark);
   const heads=o.heads||Array(f.heads||1).fill(null);
   heads.forEach((hi,k)=>{const a=(k-(heads.length-1)/2)*.5,x=Math.sin(a)*.3,lift=f.sirrush?.12:f.legs===2?.08:0,mats=hi===null?m:dragonMats(hi);
-   addHead(body,[[x*.2,.55,.26],[x*.6,.72+lift*.5,.36],[x,.86+lift,.44-Math.abs(x)*.25]],mats,a);});
+   // a longer neck that tapers from thick shoulders to a narrow throat, rising in an S and reaching forward
+   addHead(body,[[x*.15,.55,.24],[x*.4,.64+lift*.3,.34],[x*.7,.78+lift*.6,.42],[x,.88+lift,.54-Math.abs(x)*.3]],mats,a,[.115,.05]);});
   const hindY=f.legs===2?.38:.34;
   dragonLegs(body,legs,m,{spots:f.legs===2?[[-.17,hindY,-.1,1],[.17,hindY,-.1,1]]:[[-.2,.34,.2,0],[.2,.34,.2,0],[-.21,.34,-.2,1],[.21,.34,-.2,1]],thick:f.legs===2?1.25:1,sirrush:f.sirrush});
   if(f.wings)for(const side of [-1,1]){const w=dragonWing(body,side,f.wings*(baby?.6:1),m,false);w.position.set(side*.14,.64,.08);wings.push(w);}
