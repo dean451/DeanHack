@@ -46,3 +46,14 @@ test('hover hints spell out the marks', async () => {
   assert.equal(itemHint('a cursed scroll of light'), 'cursed');
   assert.equal(itemHint('an uncursed +0 ring mail'), '');
 });
+
+test('hover hints also name wear, wield, charges and erosion', async () => {
+  const {itemHint, itemFacts} = await import('./item-buc.js');
+  assert.equal(itemHint('a blessed +1 long sword (weapon in hand)'), 'blessed, enchanted up, wielded');
+  assert.equal(itemHint('an uncursed +0 ring mail (being worn)'), 'worn');
+  assert.equal(itemHint('a wand of striking (0:5)'), '5 charges');
+  assert.equal(itemHint('a rusty dagger'), 'rusty');
+  assert.equal(itemHint('a very corroded poisoned dart (in quiver)'), 'very corroded, poisoned, quivered');
+  assert.equal(itemHint('a ring of free action (on left hand)'), 'worn');
+  assert.deepEqual(itemFacts('a plain dagger'), []);
+});
