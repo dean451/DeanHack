@@ -40,7 +40,7 @@ import {createMinimap} from './minimap.js';
 import {createMessageLog,addMessage,panelView,allRows,markTurn,sinceMark} from './message-log.js';
 import {createHistoryPanel} from './message-history.js';
 import {syncDetectedMark} from './detected-mark.js';
-import {aimKeys,createAimCursor,directionLanes,isDirectionPrompt,laneHits} from './aim-cursor.js';
+import {aimKeys,createAimCursor,directionLanes,isDirectionPrompt,laneHits,laneRange} from './aim-cursor.js';
 import {itemBuc,bucMark,itemEnchant,enchantMark,itemHint} from './item-buc.js';
 import {squareAt,farlookText,createFarlook} from './farlook.js';
 import {levelTitle,lowHealth,parseAttributes} from './hud.js';
@@ -186,7 +186,7 @@ const statusProgress=createStatusProgress();
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
  const group=new THREE.Group();scene.add(group);group.visible=false;
- const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map(),liftingItems=new Set(),pickupNotes=createPickupNotes();let active=false,pending=null,latest=null,token='',menu=null,commands=null,lines=[],origin=null,lastLevel='',source,pollNow=null;
+ const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map(),liftingItems=new Set(),pickupNotes=createPickupNotes();let active=false,lastCommand=null,pending=null,latest=null,token='',menu=null,commands=null,lines=[],origin=null,lastLevel='',source,pollNow=null;
  const $=s=>document.querySelector(s);
  const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
  const button=document.createElement('button');button.textContent='Live UnNetHack';button.id='live-mode';$('.buttons').prepend(button);
@@ -204,7 +204,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  const historyPanel=createHistoryPanel(document,()=>allRows(messageLog));document.body.append(historyPanel.el);
  const farlook=createFarlook(document);document.body.append(farlook.el);{const ray=new THREE.Raycaster(),floor=new THREE.Plane(new THREE.Vector3(0,1,0),0),spot=new THREE.Vector3(),ndc=new THREE.Vector2(),dom=controls.domElement;dom.addEventListener('pointermove',e=>{if(!active||!latest||!origin||e.buttons){farlook.hide();return;}const r=dom.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);if(!ray.ray.intersectPlane(floor,spot)){farlook.hide();return;}const sq=squareAt(spot,origin);farlook.show(farlookText(latest.cells.find(c=>c.x===sq.x&&c.z===sq.z)),e.clientX,e.clientY);});dom.addEventListener('pointerleave',()=>farlook.hide());}
  const aim=createAimCursor();group.add(aim.g);let aimQueue=[];
- function syncAim(){if(active&&origin&&pending?.kind==='position'&&pending.cursor){aim.show(pending.cursor.x-origin.x,pending.cursor.z-origin.z,latest?.player?{x:latest.player.x-origin.x,z:latest.player.z-origin.z}:null);minimap.setCursor(pending.cursor);}else if(active&&origin&&latest?.player&&pending&&pending.kind!=='command'&&pending.kind!=='menu'&&isDirectionPrompt(pending.prompt)){const p=latest.player;const lanes=directionLanes(p,(x,z)=>solidAt(latest,x,z)),rel=c=>({x:c.x-origin.x,z:c.z-origin.z});aim.lanes(lanes.flat().map(rel),laneHits(lanes,(x,z)=>latest.cells?.find(c=>c.x===x&&c.z===z)?.kind==='monster').map(rel));minimap.setCursor(null);}else{aim.hide();minimap.setCursor(null);}}
+ function syncAim(){if(active&&origin&&pending?.kind==='position'&&pending.cursor){aim.show(pending.cursor.x-origin.x,pending.cursor.z-origin.z,latest?.player?{x:latest.player.x-origin.x,z:latest.player.z-origin.z}:null);minimap.setCursor(pending.cursor);}else if(active&&origin&&latest?.player&&pending&&pending.kind!=='command'&&pending.kind!=='menu'&&isDirectionPrompt(pending.prompt)){const p=latest.player;const lanes=directionLanes(p,(x,z)=>solidAt(latest,x,z),laneRange(lastCommand)),rel=c=>({x:c.x-origin.x,z:c.z-origin.z});aim.lanes(lanes.flat().map(rel),laneHits(lanes,(x,z)=>latest.cells?.find(c=>c.x===x&&c.z===z)?.kind==='monster').map(rel));minimap.setCursor(null);}else{aim.hide();minimap.setCursor(null);}}
  minimap.el.addEventListener('click',e=>{if(pending?.kind!=='position'||!pending.cursor)return;const spot=minimap.cellAt(e.clientX,e.clientY);if(!spot)return;aimQueue=aimKeys(pending.cursor,spot);void reply(aimQueue.shift());});
  // Engine commands live in the footer next to the demo's buttons, so both modes share one control row.
  const actions=document.createElement('div');actions.className='engine-actions';actions.hidden=true;actions.innerHTML='<button data-key="83">Save & exit</button>';$('.buttons').prepend(actions);
@@ -465,7 +465,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  // The name the player typed for their character; the start screen saves it here. Without one the engine uses its default.
  function savedPlayerName(){try{return localStorage.getItem('deanhack.playerName')||undefined;}catch{return undefined;}}
  async function post(path,body={}){if(!token)token=(await fetch('/engine/token').then(r=>r.json())).token;const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Engine-Token':token},body:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw new Error(data.error);return data;}
- async function reply(value){if(!pending)return;const req=pending;meleeIntent=req.kind==='command'?meleeDirection(value):null;pending=null;lines=[];menu=null;dialog.close();setPrompt('Engine is resolving your action…');try{await post('/engine/input',{id:req.id,value});pollNow?.();}catch(e){meleeIntent=null;message(e.message);setPrompt('Input was not accepted. Reconnect Live mode to refresh the prompt.');}}
+ async function reply(value){if(!pending)return;const req=pending;if(req.kind==='command')lastCommand=value;meleeIntent=req.kind==='command'?meleeDirection(value):null;pending=null;lines=[];menu=null;dialog.close();setPrompt('Engine is resolving your action…');try{await post('/engine/input',{id:req.id,value});pollNow?.();}catch(e){meleeIntent=null;message(e.message);setPrompt('Input was not accepted. Reconnect Live mode to refresh the prompt.');}}
  function showGround(items){
   groundPanel.replaceChildren();groundPanelTile=groundTile(latest);groundPanel.hidden=!items.length;
   const heading=document.createElement('strong');heading.textContent='On the ground';groundPanel.append(heading);

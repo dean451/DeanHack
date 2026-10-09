@@ -60,6 +60,13 @@ export function aimLine(from, to, max = 24) {
 // can take, each a run of squares from the hero up to `range`, stopped short at the first solid
 // square. `solid(x, z)` says whether a square blocks.
 export const isDirectionPrompt = text => /direction/i.test(text ?? '');
+// How far a direction choice reaches, from the command that asked for it: a kick or a fight
+// strikes the next square only, a zap or a spell flies up to a ray's longest run, the rest default.
+export function laneRange(command) {
+  if (command === 4 || command === 70 || command === 'F') return 1;
+  if (command === 122 || command === 90 || command === 'z' || command === 'Z') return 13;
+  return 8;
+}
 export function directionLanes(from, solid, range = 8) {
   const lanes = [];
   for (const [dx, dz] of Object.values(STEP)) {
