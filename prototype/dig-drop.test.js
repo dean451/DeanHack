@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {holeMessage, sinkOffset, arriveOffset, createDigDrop, HANG, SINK, SINK_DEPTH, GIVE_UP, RISE, ARRIVE_HEIGHT, ARRIVE_GRAVITY, ARRIVE_TIME, airborneStatus, hoverOffset, trapdoorMessage, escapeMessage, TRAPDOOR_HANG, HOVER_TIME, HOVER_LIFT} from './dig-drop.js';
+import {holeMessage, sinkOffset, arriveOffset, createDigDrop, HANG, SINK, SINK_DEPTH, GIVE_UP, RISE, ARRIVE_HEIGHT, ARRIVE_GRAVITY, ARRIVE_TIME, SETTLE_GAP, SETTLE_LEN, SETTLE_HEIGHT, airborneStatus, hoverOffset, trapdoorMessage, escapeMessage, TRAPDOOR_HANG, HOVER_TIME, HOVER_LIFT} from './dig-drop.js';
 
 test('only the hole message starts a drop', () => {
   assert.ok(holeMessage('You dig a hole through the floor.'));
@@ -109,4 +109,12 @@ test('a trap door the hero escapes (levitating, or "You don\'t fall in.") never 
   for (let i = 0; i < 60; i++) y = d.update(.05);
   assert.equal(y, 0);
   assert.equal(d.arrive(), false);
+});
+
+test('after the dead bounce the hero lies still, then jerks once and is at rest', () => {
+  const end = ARRIVE_TIME - SETTLE_GAP - SETTLE_LEN;
+  assert.ok(Math.abs(arriveOffset(end + SETTLE_GAP / 2)) < 1e-9);
+  const mid = arriveOffset(end + SETTLE_GAP + SETTLE_LEN / 2);
+  assert.ok(mid > 0 && mid <= SETTLE_HEIGHT + 1e-9, String(mid));
+  assert.ok(Math.abs(arriveOffset(ARRIVE_TIME)) < 1e-9);
 });
