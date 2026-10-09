@@ -65,3 +65,8 @@ test('the last spark skips once more after landing, then dies', () => {
   assert.ok(sparkPose(i, .74).alpha > sparkPose(0, .74).alpha, 'the others have gone');
   assert.equal(sparkPose(i, .9).alpha, 0);
 });
+
+test('a faint third creak ticks late, after the second has died', () => {
+  assert.ok(creak(1.1) > .005 && creak(1.1) < .03);
+  assert.equal(creak(1.03), 0);
+});

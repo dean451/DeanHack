@@ -67,3 +67,9 @@ test('the cold eye opens once more, dim, after the first flash has gone', () => 
   assert.ok(peak > .35 && peak < .9);
   assert.equal(glintPose(.85).alpha, 0);
 });
+
+test('the dust ring lurches outward mid-roll without leaving its bounds', () => {
+  const calm = .15 + .6 * Math.sqrt(.575);
+  assert.ok(dustPose(.9 * .575).scale > calm * 1.05);
+  assert.equal(dustPose(.9 * .4).scale, .15 + .6 * Math.sqrt(.4));
+});

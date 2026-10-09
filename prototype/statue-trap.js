@@ -30,7 +30,9 @@ export function shardPose(i, t) {
 export function dustPose(t) {
   if (t <= 0 || t >= .9) return {scale: .1, alpha: 0};
   const u = t / .9;
-  return {scale: .15 + .6 * Math.sqrt(u), alpha: .5 * clamp01(t / .05) * (1 - smooth(u))};
+  // The ring does not roll out evenly: it checks, then lurches on, as if something stepped through it.
+  const lurch = Math.sin(Math.PI * clamp01((u - .5) / .15)) ** 2;
+  return {scale: (.15 + .6 * Math.sqrt(u)) * (1 + .1 * lurch), alpha: .5 * clamp01(t / .05) * (1 - smooth(u))};
 }
 export function glintPose(t) {
   // Once the dust has thinned the cold eye opens once more, dim and slow, as if the thing were looking about.
