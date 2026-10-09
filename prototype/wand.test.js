@@ -46,6 +46,14 @@ test('looks differ by appearance and never need the true name', () => {
   assert(b.max.z - b.min.z > .08, 'a curved wand bows along the floor');
 });
 
+test('bone wands are chipped and black stone wands carry ember seams', () => {
+  const fit = look => meshes(createWand(look)).find(m => m.userData.part === 'fit').geometry.attributes.position.count;
+  assert(fit('bone') > fit('plastic'), 'bone has chips and knuckles that plastic lacks');
+  const accent = meshes(createWand('black')).find(m => m.userData.part === 'accent');
+  assert(accent && accent.material.emissiveIntensity > 0, 'black wand has glowing seams');
+  assert(!meshes(createWand('marble')).some(m => m.userData.part === 'accent'));
+});
+
 test('the held wand reads its look from the hero-view name only', () => {
   assert.equal(wandAppearance('oak wand'), 'oak');
   assert.equal(wandAppearance('2 runed wands'), 'runed');

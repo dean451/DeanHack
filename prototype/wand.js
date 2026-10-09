@@ -66,11 +66,13 @@ function wandLook(look) {
     L.shaft = std(STONES[look], 0, look === 'porcelain' ? .22 : look === 'black' ? .32 : .5);
     L.fit = look === 'porcelain' ? std(0x2f4f9e, .1, .3) : look === 'marble' ? std(0x8d8a86, .1, .45) : look === 'black' ? silver() : std(0x7b5236, 0, .6);
     L.radius = .021; L.taper = .85;
+    // Black stone is cold obsidian with dull ember seams running deep in it.
+    if (look === 'black') { L.accent = std(0xff5a1a, .1, .5, {emissive: 0xb02a08, emissiveIntensity: .6}); L.extras.push('cracks'); }
     if (look === 'marble' || look === 'alabaster') L.extras.push('veins');
     if (look === 'porcelain') L.extras.push('bands');
   } else if (look in ODD) {
     if (look === 'plastic') { L.shaft = std(ODD.plastic, 0, .3); L.fit = std(0x34373b, 0, .38); L.radius = .019; }
-    else { L.shaft = std(ODD.bone, 0, .66); L.fit = std(0x8b7c5a, 0, .8); L.radius = .021; L.taper = .8; L.extras.push('knots'); }
+    else { L.shaft = std(ODD.bone, 0, .66); L.fit = std(0x8b7c5a, 0, .8); L.radius = .021; L.taper = .8; L.extras.push('knots', 'nicks'); }
   } else if (look in GLASSES) {
     const [c, opacity] = GLASSES[look];
     L.shaft = std(c, .05, .06, {transparent: true, opacity, emissive: c, emissiveIntensity: .08});
@@ -150,6 +152,11 @@ function buildParts(L) {
     if (extra === 'nicks') for (let i = 0; i < 3; i++) {
       const y = .05 + i * .08, a = around(i, 3, .7), chip = new THREE.BoxGeometry(.012, .02, .007);
       chip.rotateZ(.7); chip.translate(rAt(y), 0, 0); chip.rotateY(-a); chip.translate(0, y, 0); parts.fit.push(chip);
+    }
+    // Ember seams: thin slanting slivers of glow sunk in the black stone.
+    if (extra === 'cracks') for (let i = 0; i < 4; i++) {
+      const y = .06 + i * .075, a = around(i, 4, .4) * .7, seam = new THREE.BoxGeometry(.003, .034, .006);
+      seam.rotateZ(i % 2 ? -.5 : .45); seam.translate(rAt(y) * .98, 0, 0); seam.rotateY(-a); seam.translate(0, y, 0); parts.accent.push(seam);
     }
     if (extra === 'spikes') for (let i = 0; i < 3; i++) for (let k = 0; k < 4; k++) {
       const y = .08 + i * .09, a = around(k, 4, i * .8), cone = new THREE.ConeGeometry(.007, .03, 5);
