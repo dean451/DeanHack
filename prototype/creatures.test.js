@@ -53,11 +53,16 @@ test('an identified dragon wears its breath, and an unidentified brown one wears
  }
 });
 
-test('the chromatic dragon is a huge dragon whose scales shade through the five colours of Tiamat\'s heads',()=>{
- const D=68,hues=a=>{const set=new Set();a.g.traverse(o=>{if(o.isMesh)set.add(o.material.color.getHexString());});return set;};
+test('the chromatic dragon is a huge oil-slick obsidian dragon with the five colours in its spines, not patches of paint',()=>{
+ const D=68;
  const chroma=createCreature({name:'chromatic dragon',symbol:D,color:5}),plain=createCreature({name:'draken',symbol:D,color:5});
  assert.equal(chroma.element,'chromatic');
- assert(hues(chroma).size>=hues(plain).size+4,'five scale colours run through the hide');
+ const glows=new Set(),iridescent=[];
+ chroma.g.traverse(o=>{if(o.isMesh){if(o.material.emissiveIntensity>2)glows.add(o.material.emissive.getHexString());if(o.material.iridescence)iridescent.push(o);}});
+ assert(glows.size>=5,`five glowing colours in the spines (${glows.size})`);
+ assert(iridescent.length>=5,'the hide is an iridescent sheen, so its colour shifts as it turns');
+ const patch=a=>{const set=new Set();a.g.traverse(o=>{if(o.isMesh&&o.material.bumpMap)set.add(o.material.color.getHexString());});return set;};
+ assert(patch(chroma).size<=1,'one hide colour, not a rainbow of scale patches');
  // a name with no glyph colour still resolves to the chromatic look, not the brown generic one
  assert.equal(createCreature({name:'chromatic dragon',symbol:D}).element,'chromatic');
  const size=a=>new THREE.Box3().setFromObject(a.g).max.y;
