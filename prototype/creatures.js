@@ -240,8 +240,8 @@ function dragonHead(head,m,f,baby){
  if(f.beard)for(let i=0;i<5;i++)cone(head,.014,.09,m.dark,(i-2)*.018,-.1,.1-Math.abs(i-2)*.02,4).rotation.x=Math.PI+.3;
  // narrow slanted eyes with a vertical slit pupil, under the heavy brow ridge
  for(const s of [-1,1]){
-  const eye=sphere(head,.024,m.glow,s*.066,.045,.085,.8,.5,1.25);eye.rotation.z=-s*.35;
-  sphere(head,.0075,m.dark,s*.0695,.046,.1,.35,1.35,.3).rotation.z=-s*.35;
+  const eye=sphere(head,.017,m.glow,s*.066,.045,.085,.8,.5,1.25);eye.rotation.z=-s*.35;
+  sphere(head,.0065,m.dark,s*.0675,.046,.104,.22,2,.3).rotation.z=-s*.35;
  }
  return throat;
 }
