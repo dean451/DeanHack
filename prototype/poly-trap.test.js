@@ -60,3 +60,9 @@ test('the ring gutters once as it wrenches out', () => {
   assert.ok(at(.3) < at(.1) * .6, 'dips mid-wrench');
   assert.ok(at(.45) > at(.3), 'recovers');
 });
+
+test('one mote winds the wrong way round while the rest spiral together', () => {
+  const ang = (i, t) => { const p = motePose(i, t); return Math.atan2(p.z, p.x); };
+  const turn = i => { let d = 0; for (let t = .1; t < .5; t += .01) { let e = ang(i, t + .01) - ang(i, t); e -= Math.round(e / (2 * Math.PI)) * 2 * Math.PI; d += e; } return d; };
+  assert.ok(turn(7) * turn(6) < 0, 'opposite sense');
+});
