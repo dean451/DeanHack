@@ -1,7 +1,14 @@
 // Farlook on hover: the 3D version of `;`. Pointing at a monster or item names it and says whether
 // it is a pet, peaceful or hostile. The engine reports no sleep state, so none is shown.
 
-import {itemBuc, bucMark} from './item-buc.js';
+import {itemBuc, bucMark, itemEnchant, enchantMark} from './item-buc.js';
+
+// Bare furniture and hazards the hero can point at, by the bridge's terrain word. Floor, wall and
+// unknown stone stay unnamed so the tooltip stays quiet.
+const FEATURES = {
+  altar: 'altar', fountain: 'fountain', throne: 'throne', sink: 'sink', grave: 'grave', tree: 'tree',
+  up: 'stairs up', down: 'stairs down', door: 'closed door', bars: 'iron bars', water: 'water', lava: 'lava',
+};
 
 // The map square under a ground point (world x/z, with the origin offset the scene uses).
 export function squareAt(point, origin) {
@@ -12,11 +19,14 @@ export function squareAt(point, origin) {
 export function farlookText(cell) {
   if (!cell || !cell.visible) return '';
   const name = String(cell.name || cell.object?.name || '').trim();
-  if (!name) return '';
+  if (!name) return cell.kind === 'terrain' || !cell.kind ? (FEATURES[cell.terrain] || '') : '';
   if (cell.kind === 'pet') return `${name} (pet)`;
   if (cell.kind === 'monster') return `${name} (${cell.peaceful ? 'peaceful' : 'hostile'})`;
-  if (cell.object) { const buc = itemBuc(name); return buc ? `${bucMark(buc)} ${name}` : name; }
-  return '';
+  if (cell.object) {
+    const marks = [bucMark(itemBuc(name)), enchantMark(itemEnchant(name))].filter(Boolean).join('');
+    return marks ? `${marks} ${name}` : name;
+  }
+  return FEATURES[cell.terrain] || '';
 }
 
 export function createFarlook(doc) {

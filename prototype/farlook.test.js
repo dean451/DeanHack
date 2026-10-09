@@ -32,3 +32,17 @@ test('the tooltip shows, moves and hides', () => {
   farlook.show('', 0, 0);
   assert.equal(el.hidden, true);
 });
+
+test('furniture and hazards are named, plain floor and walls are not', () => {
+  assert.equal(farlookText({visible: true, terrain: 'altar'}), 'altar');
+  assert.equal(farlookText({visible: true, terrain: 'down'}), 'stairs down');
+  assert.equal(farlookText({visible: true, terrain: 'lava'}), 'lava');
+  assert.equal(farlookText({visible: true, terrain: 'wall'}), '');
+  assert.equal(farlookText({visible: true, terrain: 'unknown'}), '');
+});
+
+test('floor items show a known enchantment shape after the blessed or cursed one', () => {
+  assert.equal(farlookText({visible: true, object: {name: 'a +2 dagger'}}), '▲ a +2 dagger');
+  assert.equal(farlookText({visible: true, object: {name: 'a cursed -1 dagger'}}), '✖▼ a cursed -1 dagger');
+  assert.equal(farlookText({visible: true, object: {name: 'a +0 dagger'}}), 'a +0 dagger');
+});
