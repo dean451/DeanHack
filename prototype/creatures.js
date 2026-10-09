@@ -172,9 +172,9 @@ function dragonScaleBump(){
  return scaleBump;
 }
 const dragonHides=new Map();
-function dragonHide(hex,opts){const key=hex+JSON.stringify(opts);if(!dragonHides.has(key))dragonHides.set(key,new THREE.MeshStandardMaterial({color:hex,roughness:.88,...opts,bumpMap:dragonScaleBump(),bumpScale:1.4}));return dragonHides.get(key);}
+function dragonHide(hex,opts){const key=hex+JSON.stringify(opts);if(!dragonHides.has(key))dragonHides.set(key,new THREE.MeshStandardMaterial({color:hex,roughness:.88,flatShading:true,...opts,bumpMap:dragonScaleBump(),bumpScale:1.4}));return dragonHides.get(key);}
 let chromaticHideMat=null;
-function chromaticHide(){return chromaticHideMat||=new THREE.MeshPhysicalMaterial({color:'#54407c',roughness:.45,metalness:.2,emissive:'#150a28',emissiveIntensity:.8,iridescence:1,iridescenceIOR:1.9,iridescenceThicknessRange:[300,800],clearcoat:.7,clearcoatRoughness:.25,bumpMap:dragonScaleBump(),bumpScale:1.4});}
+function chromaticHide(){return chromaticHideMat||=new THREE.MeshPhysicalMaterial({color:'#54407c',roughness:.45,metalness:.2,emissive:'#150a28',emissiveIntensity:.8,iridescence:1,iridescenceIOR:1.9,iridescenceThicknessRange:[300,800],clearcoat:.7,clearcoatRoughness:.25,flatShading:true,bumpMap:dragonScaleBump(),bumpScale:1.4});}
 function dragonMats(i,chromatic){
  const silver=i===14,hex=chromatic?'#3a2c52':silver?'#b9c4c8':NH_COLORS[i]||'#8a6440',breath=DRAGON_BREATH[i]||'#ff8a3a';
  const belly='#'+new THREE.Color(hex).lerp(new THREE.Color('#e8d6a4'),.45).getHexString();
@@ -348,7 +348,7 @@ function dragon(o={}){
    addHead(body,[[x*.15,.55,.24],[x*.4,.64+lift*.3,.34],[x*.7,.78+lift*.6,.42],[x,.88+lift,.54-Math.abs(x)*.3]],mats,a,[.115,.05]);});
   const hindY=f.legs===2?.38:.34;
   dragonLegs(body,legs,m,{spots:f.legs===2?[[-.17,hindY,-.1,1],[.17,hindY,-.1,1]]:[[-.2,.34,.2,0],[.2,.34,.2,0],[-.21,.34,-.2,1],[.21,.34,-.2,1]],thick:f.legs===2?1.25:1,sirrush:f.sirrush});
-  if(f.wings)for(const side of [-1,1]){const w=dragonWing(body,side,f.wings*(baby?.6:1),m,false);w.position.set(side*.14,.64,.08);wings.push(w);}
+  if(f.wings)for(const side of [-1,1]){const w=dragonWing(body,side,f.wings*(baby?.6:1)*(f.chromatic||f.heads>1?1.06:1.3),m,false);w.position.set(side*.14,.64,.08);wings.push(w);}
   tail=new THREE.Group();tail.position.set(0,.44,-.34);body.add(tail);
   const tip=f.sirrush?[[0,0,0],[0,-.1,-.15],[.06,-.19,-.28],[.1,-.1,-.39],[.1,.05,-.39]]:[[0,0,0],[0,-.1,-.16],[.1,-.19,-.3],[.19,-.25,-.4]];
   const curve=new THREE.CatmullRomCurve3(tip.map(p=>new THREE.Vector3(...p)));
