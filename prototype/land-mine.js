@@ -46,7 +46,9 @@ export function debrisPose(i, t) {
 export function smokePose(t) {
   const u = clamp01((t - .05) / (MINE.total - .05));
   if (t <= .05 || u >= 1) return {y: .1, scale: .1, alpha: 0};
-  return {y: .15 + .9 * Math.sqrt(u), scale: .15 + .35 * Math.sqrt(u), alpha: .55 * Math.sin(Math.min(1, u * 6) * Math.PI / 2) * (1 - u * u)};
+  // The column does not thin evenly: a late belch of black wells up out of the crater and the smoke swells for a beat.
+  const belch = Math.sin(Math.PI * clamp01((u - .45) / .2)) ** 2;
+  return {y: .15 + .9 * Math.sqrt(u), scale: (.15 + .35 * Math.sqrt(u)) * (1 + .18 * belch), alpha: Math.min(.6, .55 * Math.sin(Math.min(1, u * 6) * Math.PI / 2) * (1 - u * u) * (1 + .25 * belch))};
 }
 
 export function createLandMine(THREE, parent) {
