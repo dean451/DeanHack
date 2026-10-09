@@ -71,6 +71,19 @@ export function floorFinish(dungeon = '') {
   return /sokoban/i.test(dungeon) ? FLOOR_FINISH.sokoban : {tint: [1, 1, 1], roughness: .9};
 }
 
+// The wall blocks (`wall` material in `live.js`) take a branch finish as well: the Mines walls are
+// grimy brown-grey and damp, Sokoban's cut blocks cold, clean and a little polished. Other branches
+// keep the plain wall (colour and roughness of the base material).
+export const WALL_BASE = {color: '#52605f', roughness: .88};
+export const WALL_FINISH = {
+  mines: {color: '#5e5a4c', roughness: .7},
+  sokoban: {color: '#566a7c', roughness: .66},
+};
+export function wallFinish(dungeon = '') {
+  if (/gnomish mines/i.test(dungeon)) return WALL_FINISH.mines;
+  return /sokoban/i.test(dungeon) ? WALL_FINISH.sokoban : WALL_BASE;
+}
+
 function rand(st) { st.seed = (st.seed * 16807) % 2147483647; return (st.seed - 1) / 2147483646; }
 
 function texture() {
