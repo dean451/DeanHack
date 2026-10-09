@@ -43,3 +43,11 @@ test('the echo ring comes late, stays faint and stalls short of the main ring', 
   for (let t = 0; t <= FLARE.total; t += .005) { const e = echoPose(t); assert.ok(e.alpha >= 0 && e.alpha <= .35 + 1e-9, String(t)); peak = Math.max(peak, e.alpha); rmax = Math.max(rmax, e.radius); }
   assert.ok(peak > .1 && rmax <= 1.0 + 1e-9 && rmax < 1.75);
 });
+
+test('the spike stutters dark once as it snaps off, then returns to rest', () => {
+  const a = u => spikePose(u * FLARE.total).alpha;
+  assert.ok(a(.37) < a(.3) * .5, 'blinks dark');
+  assert.ok(a(.5) > a(.37), 'strikes again');
+  for (let u = 0; u <= 1; u += .005) assert.ok(a(u) >= 0 && a(u) <= .9 + 1e-9);
+  assert.equal(spikePose(FLARE.total).alpha, 0);
+});
