@@ -187,6 +187,8 @@ function buildHead(L,C){
   c=mix(c,C.belly,clamp01(muzzle)*(L.pattern==='ghost'||L.pattern==='shimmer'?.5:1));
   // scruffy pets: an old pale scar slashed across the bridge of the nose and the brow
   if(L.scruffy&&x>0){const d=Math.abs((y-.02)-(z-.1)*1.6+(x-.03)*1.2);if(d<.006&&z>.06&&x<.07)c=mix(c,SCAR,.85*(1-d/.006));}
+  // the wild cats carry an old gouge down the left cheek, a rival's work
+  if(!L.scruffy&&x<-.03&&x>-.1){const d=Math.abs((z-.09)+(y+.01)*.8-(-x-.06)*1.4);if(d<.005&&y<.03&&y>-.05&&z>.04)c=mix(c,SCAR,.7*(1-d/.005));}
   // scruffy pets: eyes sit in dark hollows, so the bright eye reads against shadow
   if(L.scruffy){const e=Math.hypot(ax-.041,y-.026,z-.128);if(e<.034)c=mix(c,C.stripe,.75*smooth((.034-e)/.02));}
   if(L.brows)for(const s of [-1,1])if(Math.hypot(x-s*.04,y-.055,z-.12)<.02)c=mix(c,C.belly,.9);
@@ -206,6 +208,8 @@ function buildHead(L,C){
    const ex=s*.066,ey=.085,ez=.01;
    P.add(new THREE.SphereGeometry(.035,12,10),at(ex,ey,ez,[0,0,-s*.25],[1,1.05,.4]),(x,y,z)=>L.earSpots&&z<ez-.004?(Math.hypot(x-ex,y-ey)<.014?C.belly:C.stripe):C.coat);
    P.add(new THREE.SphereGeometry(.024,10,8),at(ex,ey-.004,ez+.008,[0,0,-s*.25],[1,1,.3]),mix(C.belly,inner,.4));
+   // the big cats' left ear is bitten: a dark wedge missing from the rim
+   if(s<0)P.add(new THREE.ConeGeometry(.012,.03,4),at(ex-.012,ey+.03,ez+.012,[0,0,.5],[1,1,.5]),C.stripe);
   }else{
    const torn=L.scruffy&&s<0,e=(L.tufts?1.25:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
    P.add(new THREE.ConeGeometry(.038*e,.075*e,4),at(s*.055,.095+.01*(e-1),.03,rot,[1,1,.45]),(x,y)=>mix(C.coat,C.back,smooth((y-.1)/.04)));
