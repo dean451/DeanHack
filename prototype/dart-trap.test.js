@@ -72,3 +72,10 @@ test('the buried shaft gives one late jerk after the shiver has died', () => {
   }
   assert.equal(shaftPose('arrow', SHOT.total).alpha, 0);
 });
+
+test('the streak flickers as it fades but stays within its envelope', () => {
+  const end = SHOT.flight * 2.5; let min = 1, max = 0;
+  for (let t = .001; t < end; t += .001) { const env = .35 * (1 - t / end), a = streakPose('dart', t).alpha; assert.ok(a <= env + 1e-9 && a >= env * .75 - 1e-9, String(t)); if (t < end / 2) { min = Math.min(min, a / env); max = Math.max(max, a / env); } }
+  assert.ok(max - min > .1);
+  assert.equal(streakPose('dart', end).alpha, 0);
+});

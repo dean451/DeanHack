@@ -24,6 +24,9 @@ export function flashPose(t) {
 // The shockwave: a flat ring tearing outward and fading as it goes.
 export function ringPose(t) {
   const u = clamp01(t / .5);
+  // The ground rings like a struck bell: a faint echo of the wave comes shuddering back in after it has gone.
+  const e = clamp01((t - .55) / .3);
+  if (e > 0 && e < 1) return {radius: 1.2 - .7 * e, alpha: .18 * Math.sin(e * Math.PI) * (.6 + .4 * Math.sin(e * 40) ** 2)};
   if (t <= 0 || u >= 1) return {radius: .1, alpha: 0};
   return {radius: .1 + 1.1 * Math.sqrt(u), alpha: .7 * (1 - u)};
 }

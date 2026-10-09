@@ -66,3 +66,13 @@ test('the last debris chunk kicks up once more after it lands', () => {
   assert.equal(debrisPose(i, MINE.total).alpha, 0);
   assert.equal(debrisPose(0, flight + .1).y, .03);
 });
+
+test('the ground rings once more: a faint echo of the shockwave returns after it has gone', () => {
+  assert.equal(ringPose(.5).alpha, 0);
+  let peak = 0;
+  for (let t = .56; t < .85; t += .002) { const p = ringPose(t); assert.ok(p.alpha <= .18 + 1e-9 && p.radius <= 1.2 + 1e-9 && p.radius >= .5 - 1e-9, String(t)); peak = Math.max(peak, p.alpha); }
+  assert.ok(peak > .1);
+  assert.ok(ringPose(.8).radius < ringPose(.6).radius);
+  assert.ok(ringPose(.85).alpha < 1e-9);
+  assert.equal(ringPose(.9).alpha, 0);
+});

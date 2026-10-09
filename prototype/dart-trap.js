@@ -36,7 +36,7 @@ export function streakPose(kind, t) {
   const u = clamp01(t / (SHOT.flight * 2.5));
   if (t <= 0 || u >= 1) return {x: 0, len: 0, alpha: 0};
   const s = SHOT[kind];
-  return {x: -s.from * .5 * (1 - u), len: s.from * (1 - u * .4), alpha: .35 * (1 - u)};
+  return {x: -s.from * .5 * (1 - u), len: s.from * (1 - u * .4), alpha: .35 * (1 - u) * (.75 + .25 * Math.sin(u * 50) ** 2)};
 }
 
 export function createDartTrap(THREE, parent) {
