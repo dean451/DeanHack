@@ -74,6 +74,12 @@ export function directionLanes(from, solid, range = 8) {
   return lanes;
 }
 
+// The first monster square on each lane (a pet is skipped: you rarely mean to hit it), so the
+// prompt can mark what each direction would strike. `isMonster(x, z)` says whether one stands there.
+export function laneHits(lanes, isMonster) {
+  return lanes.map(lane => lane.find(p => isMonster(p.x, p.z))).filter(Boolean);
+}
+
 export function createAimCursor() {
   const g = new THREE.Group();
   g.name = 'aim-cursor';
@@ -94,7 +100,13 @@ export function createAimCursor() {
     if (!dots[i]) { const d = new THREE.Mesh(dotGeo, material); d.rotation.x = -Math.PI / 2; d.renderOrder = 30; g.parent?.add(d); dots[i] = d; }
     return dots[i];
   };
-  const hideDots = () => dots.forEach(d => { d.visible = false; });
+  // Square brackets round whatever a direction lane would hit (kept apart from the cursor ring).
+  const marks = [];
+  const mark = i => {
+    if (!marks[i]) { const m = new THREE.Mesh(ring.geometry, material); m.rotation.x = -Math.PI / 2; m.renderOrder = 30; g.parent?.add(m); marks[i] = m; }
+    return marks[i];
+  };
+  const hideDots = () => { dots.forEach(d => { d.visible = false; }); marks.forEach(m => { m.visible = false; }); };
   return {
     g,
     show(x, z, from) {
@@ -104,12 +116,13 @@ export function createAimCursor() {
       aimLine({x: Math.round(from.x), z: Math.round(from.z)}, {x: Math.round(x), z: Math.round(z)}).forEach((p, i) => { const d = dot(i); d.position.set(p.x, 0.05, p.z); d.visible = true; });
     },
     // Dim dots along every lane of a direction prompt (world squares, already relative to the scene).
-    lanes(points) {
+    lanes(points, hits = []) {
       g.visible = false; hideDots();
       points.forEach((p, i) => { const d = dot(i); d.position.set(p.x, 0.05, p.z); d.visible = true; });
+      hits.forEach((p, i) => { const m = mark(i); m.position.set(p.x, 0.052, p.z); m.visible = true; });
     },
     hide() { g.visible = false; hideDots(); },
     update(t) { if (g.visible) { const s = 1 + 0.07 * Math.sin(t * 5); ring.scale.set(s, s, 1); material.opacity = 0.7 + 0.2 * Math.sin(t * 5); } },
-    dispose() { ring.geometry.dispose(); tick.geometry.dispose(); dotGeo.dispose(); material.dispose(); dots.forEach(d => d.parent?.remove(d)); },
+    dispose() { ring.geometry.dispose(); tick.geometry.dispose(); dotGeo.dispose(); material.dispose(); [...dots, ...marks].forEach(d => d.parent?.remove(d)); },
   };
 }
