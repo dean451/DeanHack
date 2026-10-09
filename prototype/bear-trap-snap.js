@@ -23,10 +23,10 @@ export function jawAngle(t) {
   return .035 * Math.sin((t - .27) * 60) * Math.exp(-(t - .27) * 8) + creak(t);
 }
 
-// Two slow creaks as the iron settles on the bone: the jaws ease open a hair, then jerk shut.
+// Three slow creaks as the iron settles on the bone: the jaws ease open a hair, then jerk shut. The last is a faint late tick.
 export function creak(t) {
   let a = 0;
-  for (const [at, size] of [[.55, .05], [.85, .03]]) {
+  for (const [at, size] of [[.55, .05], [.85, .03], [1.05, .015]]) {
     const u = (t - at) / .16;
     if (u > 0 && u < 1) a += size * Math.sin(Math.PI * u) ** 2 * (u < .7 ? 1 : 1 + .4 * Math.sin(u * 40));
   }

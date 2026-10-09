@@ -75,3 +75,10 @@ test('the web tugs inward once at about .6s, then lets go', () => {
     assert.ok(mid <= WEB.reach * 1.1);
   }
 });
+
+test('the strand about to part trembles, then is gone', () => {
+  const end = SNAP_AT; let wob = 0;
+  for (let t = end - .2; t < end - .1; t += .002) wob = Math.max(wob, Math.abs(strandPose(SNAPPED, t).len - strandPose(SNAPPED, t + .0005).len));
+  assert.ok(wob > .0005);
+  assert.equal(strandPose(SNAPPED, SNAP_AT).alpha, 0);
+});
