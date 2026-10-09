@@ -60,6 +60,17 @@ export function rockVein(dungeon = '', h = 0) {
   return /gnomish mines/i.test(dungeon) && h % 9 === 0 ? MINES_VEIN : null;
 }
 
+// The floor slabs and wall blocks take a branch finish too. Sokoban's cut flagstones are clean, cold
+// and polished; the Mines floor is grimy and damp. Other branches keep the plain floor.
+export const FLOOR_FINISH = {
+  mines: {tint: [1.1, .98, .82], roughness: .72},
+  sokoban: {tint: [.86, .95, 1.12], roughness: .6},
+};
+export function floorFinish(dungeon = '') {
+  if (/gnomish mines/i.test(dungeon)) return FLOOR_FINISH.mines;
+  return /sokoban/i.test(dungeon) ? FLOOR_FINISH.sokoban : {tint: [1, 1, 1], roughness: .9};
+}
+
 function rand(st) { st.seed = (st.seed * 16807) % 2147483647; return (st.seed - 1) / 2147483646; }
 
 function texture() {

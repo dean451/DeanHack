@@ -82,3 +82,11 @@ test('only the Mines rock carries mineral veins, one rock in nine', () => {
   assert.equal(rockVein(), null);
   for (const c of MINES_VEIN) assert(c > 1 && c < 2.2);
 });
+
+test('Sokoban and Mines floors take a branch finish; other branches stay plain', async () => {
+  const {floorFinish} = await import('./branch-air.js');
+  assert(floorFinish('Sokoban').tint[2] > floorFinish('Sokoban').tint[0], 'cold');
+  assert(floorFinish('Sokoban').roughness < .9, 'polished');
+  assert(floorFinish('The Gnomish Mines').tint[0] > floorFinish('The Gnomish Mines').tint[2], 'grimy warm');
+  assert.deepEqual(floorFinish('The Dungeons of Doom'), {tint: [1, 1, 1], roughness: .9});
+});
