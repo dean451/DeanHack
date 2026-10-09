@@ -83,5 +83,7 @@ export function createCavern({group,scene,camera,controls}){
   for(let i=0;i<MOTES;i++){const s=moteSeed[i];let y=motePos[i*3+1]+dt*(.04+(s%1)*.05);if(y>2.6)y-=2.6;motePos[i*3+1]=y;motePos[i*3]+=Math.sin(t*.3+s)*dt*.06;motePos[i*3+2]+=Math.cos(t*.27+s*1.3)*dt*.06;}
   moteGeo.attributes.position.needsUpdate=true;
  }
- return {rebuild,update,setActive};
+ // Branch tint: a colour the stone texture is multiplied by (see `rockTint` in branch-air.js).
+ function setTint([r,g,b]){mesh.material.color.setRGB(r,g,b);}
+ return {rebuild,update,setActive,setTint};
 }

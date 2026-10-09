@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {airFor, createBranchAir, PARTICLES, HALF, TOP} from './branch-air.js';
+import {airFor, rockTint, createBranchAir, PARTICLES, HALF, TOP} from './branch-air.js';
 
 test('Gehennom lifts embers and ash, within the particle cap', () => {
   const a = airFor('Gehennom');
@@ -56,4 +56,13 @@ test('Sokoban holds a few still flecks of cold dust, far calmer than the Mines',
   assert(a.dust.count <= PARTICLES && a.dust.count < airFor('The Gnomish Mines').grit.count);
   assert(a.dust.fall <= .05 && a.dust.sway <= .05);
   assert.equal(Object.keys(a).length, 1);
+});
+
+test('the Mines rock is tinted grimy warm and Sokoban cold, other branches plain', () => {
+  const [mr, , mb] = rockTint('The Gnomish Mines'), [sr, , sb] = rockTint('Sokoban');
+  assert(mr > mb, 'Mines lean warm');
+  assert(sb > sr, 'Sokoban leans cold');
+  assert.deepEqual(rockTint('The Dungeons of Doom'), [1, 1, 1]);
+  assert.deepEqual(rockTint(), [1, 1, 1]);
+  for (const t of [rockTint('Sokoban'), rockTint('The Gnomish Mines')]) for (const c of t) assert(c > .7 && c < 1.3);
 });
