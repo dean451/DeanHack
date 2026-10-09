@@ -78,3 +78,12 @@ test('the afterglow column stutters once while it stands', () => {
   const t0 = WISH.pull + .5 + WISH.flare, at = u => afterPose(t0 + u * WISH.settle).columnAlpha;
   assert.ok(at(.35) < at(.25) * .6 && at(.35) < at(.45) * .6);
 });
+
+test('motes gutter like embers on the way in, never leaving bounds, and still vanish into the point', () => {
+  for (let i = 0; i < WISH.motes; i++) {
+    const a = Array.from({length: 200}, (_, k) => motePose(i, k * .012).alpha);
+    assert.ok(a.every(x => x >= 0 && x <= .9 + 1e-9), String(i));
+    assert.ok(a.some((x, k) => k && x > a[k - 1] && a[k - 1] > .1 && x < .9), `catches ${i}`);
+  }
+  assert.equal(motePose(0, WISH.pull + .5).alpha, 0);
+});
