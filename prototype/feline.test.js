@@ -121,3 +121,11 @@ test('the wild cats carry a pale gouge down the left cheek and none on the right
  };
  for(const name of ['jaguar','lynx','panther','tiger'])assert(scar(name,-1)>scar(name,1)+2,`${name} cheek scar ${scar(name,-1)} vs ${scar(name,1)}`);
 });
+
+test('the big cats\' left ear is bitten: a dark notch the right ear lacks',()=>{
+ for(const name of ['jaguar','panther','tiger']){
+  const g=meshes(createCreature({name})).find(m=>m.userData.part==='head').geometry,col=g.attributes.color,pos=g.attributes.position;
+  const dark=side=>{let n=0;for(let i=0;i<col.count;i++)if(pos.getX(i)*side>.04&&pos.getY(i)>.1&&col.getX(i)+col.getY(i)+col.getZ(i)<.3)n++;return n;};
+  assert(dark(-1)>dark(1)+5,`${name} notch ${dark(-1)} vs ${dark(1)}`);
+ }
+});

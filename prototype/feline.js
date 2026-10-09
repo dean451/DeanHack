@@ -208,6 +208,8 @@ function buildHead(L,C){
    const ex=s*.066,ey=.085,ez=.01;
    P.add(new THREE.SphereGeometry(.035,12,10),at(ex,ey,ez,[0,0,-s*.25],[1,1.05,.4]),(x,y,z)=>L.earSpots&&z<ez-.004?(Math.hypot(x-ex,y-ey)<.014?C.belly:C.stripe):C.coat);
    P.add(new THREE.SphereGeometry(.024,10,8),at(ex,ey-.004,ez+.008,[0,0,-s*.25],[1,1,.3]),mix(C.belly,inner,.4));
+   // the big cats' left ear is bitten: a dark wedge missing from the rim
+   if(s<0)P.add(new THREE.ConeGeometry(.012,.03,4),at(ex-.012,ey+.03,ez+.012,[0,0,.5],[1,1,.5]),C.stripe);
   }else{
    const torn=L.scruffy&&s<0,e=(L.tufts?1.25:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
    P.add(new THREE.ConeGeometry(.038*e,.075*e,4),at(s*.055,.095+.01*(e-1),.03,rot,[1,1,.45]),(x,y)=>mix(C.coat,C.back,smooth((y-.1)/.04)));
