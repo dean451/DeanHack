@@ -33,6 +33,8 @@ export function dustPose(t) {
   return {scale: .15 + .6 * Math.sqrt(u), alpha: .5 * clamp01(t / .05) * (1 - smooth(u))};
 }
 export function glintPose(t) {
+  // Once the dust has thinned the cold eye opens once more, dim and slow, as if the thing were looking about.
+  if (t > .6 && t < .85) { const v = (t - .6) / .25; return {scale: .05 + .03 * Math.sin(v * Math.PI), alpha: .45 * Math.sin(v * Math.PI) ** 2}; }
   if (t <= 0 || t >= .35) return {scale: .01, alpha: 0};
   const u = t / .35;
   return {scale: .06 + .12 * Math.sin(u * Math.PI), alpha: .9 * (u < .5 ? 1 : .5 * Math.sin(u * 30) ** 2) * (1 - smooth(u))};

@@ -12,6 +12,8 @@ export const WEB = {strands: 7, total: 1.8, reach: .62};
 export const PENDING_WAIT = .3;
 // One strand cannot take the strain: it parts early, whips back toward the middle and is gone.
 export const SNAPPED = 3, SNAP_AT = .95;
+// The whole web gives one hard tug inward about half a second in, as if the silk were hauling on its prey.
+export const TUG = .14;
 export const isWebMessage = text => /you stumble into a spider web/i.test(text || '');
 
 // Strand i: shoots out to its reach by about .12s (overshooting a hair), twangs while it fades.
@@ -24,7 +26,7 @@ export function strandPose(i, t) {
   const sag = smooth(clamp01((t - start - .3) / (end - start - .3))) * .1;
   const fade = 1 - smooth(clamp01((t - (end - .5)) / .5));
   const recoil = snapped ? smooth(clamp01((t - (end - .1)) / .1)) : 0;
-  return {len: Math.max(.01, WEB.reach * (.8 + .06 * (i % 3)) * shot * (1 - .85 * recoil)), lift: .18 + .05 * (i % 3) + twang - sag + .1 * Math.sin(recoil * Math.PI) + (stray ? .04 * Math.sin(clamp01((t - 1.15) / .15) * Math.PI) : 0), alpha: .8 * clamp01(u * 4) * fade, angle: i * 2.4 + .1 * twang + .05 * Math.sin(t * 3.1 + i) * smooth(clamp01((t - start - .5) / .4)) * fade};
+  return {len: Math.max(.01, WEB.reach * (.8 + .06 * (i % 3)) * shot * (1 - .85 * recoil) * (1 - TUG * Math.sin(clamp01((t - .55) / .12) * Math.PI))), lift: .18 + .05 * (i % 3) + twang - sag + .1 * Math.sin(recoil * Math.PI) + (stray ? .04 * Math.sin(clamp01((t - 1.15) / .15) * Math.PI) : 0), alpha: .8 * clamp01(u * 4) * fade, angle: i * 2.4 + .1 * twang + .05 * Math.sin(t * 3.1 + i) * smooth(clamp01((t - start - .5) / .4)) * fade};
 }
 
 export function createWebSnare(THREE, parent) {
