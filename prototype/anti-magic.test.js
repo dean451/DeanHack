@@ -68,3 +68,10 @@ test('the ring stutters once as it goes out, then comes back', () => {
   assert.ok(ringPose(.97).alpha > ringPose(.92).alpha * 2);
   assert.equal(ringPose(ANTI.total).alpha, 0);
 });
+
+test('every fourth mote gutters dark mid-drain, then comes back', async () => {
+  const {motePose, ANTI} = await import('./anti-magic.js');
+  const at = (i, u) => { const start = .04 * i; return motePose(i, start + u * (ANTI.drain - start)).alpha; };
+  assert.ok(at(3, .5) < at(3, .4) * .5 && at(3, .6) > at(3, .5) * 2, 'gutter');
+  assert.ok(Math.abs(at(2, .5) - .85) < 1e-9, 'others burn steady');
+});

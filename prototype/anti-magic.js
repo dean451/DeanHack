@@ -19,7 +19,9 @@ export function motePose(i, t) {
   if (t <= start || t >= ANTI.drain) return {x: 0, y: 0, z: 0, alpha: 0};
   const u = (t - start) / (ANTI.drain - start), s = clamp01(u + .06 * Math.sin(u * Math.PI * 5) * (1 - u));
   const a = i * 2.4 + 2 * s, r = .12 + .3 * (1 - s) ** .5;
-  return {x: Math.cos(a) * r, y: 1.0 * (1 - s) ** 1.5 + .02, z: Math.sin(a) * r, alpha: .85 * clamp01((t - start) / .06) * (1 - clamp01((u - .8) / .2))};
+  // Every fourth mote gutters dark for a beat mid-drain, as if the siphon had caught on it.
+  const gutter = i % 4 === 3 && u > .45 && u < .55 ? .3 : 1;
+  return {x: Math.cos(a) * r, y: 1.0 * (1 - s) ** 1.5 + .02, z: Math.sin(a) * r, alpha: gutter * .85 * clamp01((t - start) / .06) * (1 - clamp01((u - .8) / .2))};
 }
 
 // The ring closes in around the feet in hitching steps, like a held breath being dragged out of
