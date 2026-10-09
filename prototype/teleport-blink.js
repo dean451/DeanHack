@@ -33,7 +33,7 @@ export function streakPose(t) {
 export function arrivePose(t) {
   if (t <= 0 || t >= BLINK.arrive) return {ring: 1.4, ringAlpha: 0, flash: 0, flashAlpha: 0};
   const k = t / BLINK.arrive, c = clamp01(k / .6), f = clamp01((k - .6) / .4);
-  return {ring: 1.4 - 1.25 * c * c, ringAlpha: k < .6 ? .8 * c * (k > .28 && k < .35 ? .2 : 1) : 0, flash: .2 + .9 * f, flashAlpha: k < .6 ? 0 : (1 - f) * (1 - f)};
+  return {ring: 1.4 - 1.25 * c * c, ringAlpha: k < .6 ? .8 * c * (k > .28 && k < .35 ? .2 : 1) : 0, flash: .2 + .9 * f, flashAlpha: k < .6 ? 0 : (1 - f) * (1 - f) * (f > .3 && f < .45 ? .4 : 1)};  // the landing flash stutters once, as if the place flinched
 }
 
 export function createTeleportBlink(THREE, parent) {

@@ -85,3 +85,10 @@ test('the departing column stutters as it tears free, and never exceeds its peak
   assert.ok(dips >= 2, 'flickers');
   assert.equal(streakPose(.02).alpha, streakPose(.02).alpha);
 });
+
+test('the landing flash stutters once as it dies', () => {
+  const at = f => arrivePose(BLINK.arrive * (.6 + .4 * f)).flashAlpha;
+  assert.ok(at(.38) < at(.25) * .5, 'dip');
+  assert.ok(at(.38) < at(.5) * 1.5 + 1e-9 || at(.5) > 0);
+  assert.ok(at(.2) > at(.5), 'still dying overall');
+});
