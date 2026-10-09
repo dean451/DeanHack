@@ -142,7 +142,7 @@ function gridBug(){
 // from the legend it comes from, and the glyph colour picks the hide and the breath glow. An
 // unidentified dragon is brown with an ember glow, which gives nothing away.
 const DRAGON_FORMS={
- draken:{legs:4,wings:.9,scale:1.1},wyvern:{legs:2,wings:1.05,scale:1.1},sarkany:{legs:4,wings:.9,heads:3,scale:1.1},
+ draken:{legs:4,wings:.9,scale:1.1},wyvern:{legs:2,wings:1.05,scale:1.1,sting:true},sarkany:{legs:4,wings:.9,heads:3,scale:1.1},
  amphitere:{serpent:'coil',wings:.85,feathered:true,scale:1.12},lindworm:{serpent:'coil',legs:2,scale:1.12},
  tatzelworm:{serpent:'short',legs:2,cat:true,scale:1.12},guivre:{serpent:'coil',beard:true,horns:1.5,scale:1.12},
  leviathan:{serpent:'humps',fins:true,scale:1.12},sirrush:{legs:4,sirrush:true,scale:1.1},
@@ -322,6 +322,8 @@ function dragon(o={}){
   const end=curve.getPoint(1),dir=curve.getTangent(1);
   // an arrowhead spade on the tail tip; a sirrush curls a scorpion's sting over its back instead
   const barb=cone(tail,f.sirrush?.025:.06,f.sirrush?.09:.12,f.sirrush?m.ivory:m.dark,end.x+dir.x*.04,end.y+dir.y*.04,end.z+dir.z*.04,f.sirrush?5:4);barb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);if(!f.sirrush)barb.scale.set(1,1,.3);
+  // a wyvern's tail ends in a venom stinger: a long ivory hook past the spade, bent upward, with a dark gland at its root
+  if(f.sting){const hook=cone(tail,.03,.2,m.ivory,end.x+dir.x*.14,end.y+dir.y*.14+.03,end.z+dir.z*.14,5);hook.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(dir.x,dir.y+.7,dir.z).normalize());sphere(tail,.045,m.dark,end.x+dir.x*.07,end.y+dir.y*.07,end.z+dir.z*.07,1,.8,1.3);}
  }
  const element=dragonElement(o.color??3);
  if(element)dressDragon({element,m,trunk,heads:dressHeads,tail,tailCurve,wings:wings.map(w=>({inner:w.userData.inner,edge:w.userData.inner.userData.edge})),baby});
