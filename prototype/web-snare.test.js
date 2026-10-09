@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {strandPose, isWebMessage, createWebSnare, PENDING_WAIT, WEB} from './web-snare.js';
+import {strandPose, isWebMessage, createWebSnare, PENDING_WAIT, WEB, SNAPPED, SNAP_AT} from './web-snare.js';
 
 test('stumbling into a web triggers it', () => {
   assert.ok(isWebMessage('You stumble into a spider web!'));
@@ -58,4 +58,11 @@ test('settled strands drift a little in a draught, and stay still at rest', () =
   assert.ok(Math.max(...swing) - Math.min(...swing) > .03);
   for (let i = 0; i < WEB.strands; i++) for (let t = .8; t < WEB.total; t += .01) assert.ok(Math.abs(strandPose(i, t).angle - i * 2.4) < .2);
   assert.equal(strandPose(0, WEB.total).angle, 0);
+});
+
+test('one strand parts early and whips back, while its neighbours still hang', () => {
+  assert.equal(strandPose(SNAPPED, SNAP_AT + .01).alpha, 0);
+  assert.ok(strandPose(SNAPPED + 1, SNAP_AT + .01).alpha > .1);
+  assert.ok(strandPose(SNAPPED, SNAP_AT - .02).len < strandPose(SNAPPED, SNAP_AT - .15).len * .5, 'recoil');
+  for (let t = 0; t < WEB.total; t += .005) { const p = strandPose(SNAPPED, t); assert.ok(p.lift >= 0 && p.lift <= .36 && p.len <= WEB.reach * 1.2, String(t)); }
 });
