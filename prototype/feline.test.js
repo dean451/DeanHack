@@ -124,7 +124,7 @@ test('a stray\'s ribs show through the flank fur: ridges along the side, none on
  assert.equal(ribShade(.1,Y,.3,Y),0,'nothing over the chest or neck');
 });
 
-test('the pet cats\' paws are caked in grime; the wild cats\' are clean',()=>{
+test('the pet cats\' paws carry a light dusting of grime; the wild cats\' are clean',()=>{
  const bright=name=>{
   const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='foreleg').geometry,pos=g.attributes.position,col=g.attributes.color;
   let low=1e9;for(let i=0;i<pos.count;i++)low=Math.min(low,pos.getY(i));
@@ -132,8 +132,13 @@ test('the pet cats\' paws are caked in grime; the wild cats\' are clean',()=>{
   for(let i=0;i<pos.count;i++)if(pos.getY(i)<low+.02){sum+=col.getX(i)+col.getY(i)+col.getZ(i);n++;}
   return sum/n;
  };
- // the housecat's white socks keep its paws pale against the ginger wild cat, so it is left out
- for(const name of ['kitten','large cat'])assert(bright(name)<bright('wildcat'),`${name} paws ${bright(name)} vs ${bright('wildcat')}`);
+ // each pet is judged against its own clean paw colour (coat mixed a quarter toward the belly), so the baseline is fair
+ const clean={kitten:['#9a9690','#b8b4a8'],'large cat':['#8a7050','#dccab0']};
+ for(const name of Object.keys(clean)){
+  const c=new THREE.Color(clean[name][0]).lerp(new THREE.Color(clean[name][1]),.25),own=c.r+c.g+c.b;
+  assert(bright(name)<own,`${name} paws ${bright(name)} vs its clean ${own}`);
+  assert(bright(name)>own*.7,`${name} paws ${bright(name)} are no longer a light dusting against ${own}`);
+ }
 });
 
 test('the pet cats wear a frayed leather cord collar behind the skull; the wild cats go bare',()=>{
