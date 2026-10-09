@@ -46,3 +46,17 @@ test('floor items show a known enchantment shape after the blessed or cursed one
   assert.equal(farlookText({visible: true, object: {name: 'a cursed -1 dagger'}}), '✖▼ a cursed -1 dagger');
   assert.equal(farlookText({visible: true, object: {name: 'a +0 dagger'}}), 'a +0 dagger');
 });
+
+test('traps and doors are named by their state', () => {
+  assert.equal(farlookText({visible: true, kind: 'terrain', terrain: 'floor', trap: 'Bear trap'}), 'bear trap');
+  assert.equal(farlookText({visible: true, terrain: 'door', door: 'open'}), 'open door');
+  assert.equal(farlookText({visible: true, terrain: 'floor', door: 'broken'}), 'broken door');
+  assert.equal(farlookText({visible: true, terrain: 'door'}), 'closed door');
+});
+
+test('a wounded monster says how badly', () => {
+  assert.equal(farlookText({visible: true, kind: 'monster', name: 'orc', health: 80}), 'orc (hostile, wounded)');
+  assert.equal(farlookText({visible: true, kind: 'monster', name: 'orc', health: 40}), 'orc (hostile, badly wounded)');
+  assert.equal(farlookText({visible: true, kind: 'pet', name: 'kitten', health: 10}), 'kitten (pet, near death)');
+  assert.equal(farlookText({visible: true, kind: 'monster', name: 'orc'}), 'orc (hostile)');
+});
