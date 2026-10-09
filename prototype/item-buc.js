@@ -32,3 +32,9 @@ const ENCHANT_MARKS = {plus: '▲', minus: '▼'};
 export function enchantMark(kind) {
   return ENCHANT_MARKS[kind] || '';
 }
+
+// Hover text that spells the marks out, or '' for a bare item: "blessed, enchanted up".
+export function itemHint(text) {
+  const parts = [itemBuc(text), {plus: 'enchanted up', minus: 'enchanted down'}[itemEnchant(text)]];
+  return parts.filter(Boolean).join(', ');
+}
