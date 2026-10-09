@@ -10,18 +10,21 @@ import {clamp01, smooth} from './fx-textures.js';
 
 export const WEB = {strands: 7, total: 1.8, reach: .62};
 export const PENDING_WAIT = .3;
+// One strand cannot take the strain: it parts early, whips back toward the middle and is gone.
+export const SNAPPED = 3, SNAP_AT = .95;
 export const isWebMessage = text => /you stumble into a spider web/i.test(text || '');
 
 // Strand i: shoots out to its reach by about .12s (overshooting a hair), twangs while it fades.
 // The last strand is the stray: it twitches on into the tail of the effect.
 export function strandPose(i, t) {
-  const start = .025 * i, stray = i === WEB.strands - 1, end = stray ? WEB.total : WEB.total - .35;
+  const start = .025 * i, stray = i === WEB.strands - 1, snapped = i === SNAPPED, end = stray ? WEB.total : snapped ? SNAP_AT : WEB.total - .35;
   if (t <= start || t >= end) return {len: .01, lift: 0, alpha: 0, angle: i * 2.4};
   const u = clamp01((t - start) / .12), shot = smooth(u) + .08 * Math.sin(u * Math.PI) * (1 - u);
   const age = t - start - .12, twang = age > 0 ? Math.sin(age * (38 + 7 * i)) * .05 * Math.exp(-age * (stray ? 1.2 : 4)) : 0;
   const sag = smooth(clamp01((t - start - .3) / (end - start - .3))) * .1;
   const fade = 1 - smooth(clamp01((t - (end - .5)) / .5));
-  return {len: Math.max(.01, WEB.reach * (.8 + .06 * (i % 3)) * shot), lift: .18 + .05 * (i % 3) + twang - sag + (stray ? .04 * Math.sin(clamp01((t - 1.15) / .15) * Math.PI) : 0), alpha: .8 * clamp01(u * 4) * fade, angle: i * 2.4 + .1 * twang + .05 * Math.sin(t * 3.1 + i) * smooth(clamp01((t - start - .5) / .4)) * fade};
+  const recoil = snapped ? smooth(clamp01((t - (end - .1)) / .1)) : 0;
+  return {len: Math.max(.01, WEB.reach * (.8 + .06 * (i % 3)) * shot * (1 - .85 * recoil)), lift: .18 + .05 * (i % 3) + twang - sag + .1 * Math.sin(recoil * Math.PI) + (stray ? .04 * Math.sin(clamp01((t - 1.15) / .15) * Math.PI) : 0), alpha: .8 * clamp01(u * 4) * fade, angle: i * 2.4 + .1 * twang + .05 * Math.sin(t * 3.1 + i) * smooth(clamp01((t - start - .5) / .4)) * fade};
 }
 
 export function createWebSnare(THREE, parent) {
