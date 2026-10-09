@@ -51,3 +51,11 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('the first shard rocks back once long after it has come to rest', () => {
+  const air = STATUE.flight, rest = shardPose(0, air + .4).spin;
+  assert.ok(Math.abs(shardPose(0, air + .575).spin - rest) > .2, 'it rocks');
+  assert.ok(Math.abs(shardPose(0, air + .75).spin - rest) < 1e-6, 'it lies still again');
+  assert.equal(shardPose(0, STATUE.total).alpha, 0);
+  assert.equal(shardPose(1, air + .575).spin, shardPose(1, air + .75).spin);
+});

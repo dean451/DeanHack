@@ -26,7 +26,9 @@ export function shaftPose(kind, t) {
   if (t <= 0 || t >= SHOT.total) return {x: 0, tilt: 0, alpha: 0};
   const u = clamp01(t / SHOT.flight), h = Math.max(0, t - SHOT.flight);
   const x = -from * (1 - u * u);
-  return {x: u < 1 ? x : -.04 * Math.exp(-h * 30), tilt: u < 1 ? 0 : quiver(kind, h), alpha: 1 - smooth(clamp01((t - .6) / .3))};
+  // Long after it looks still, the buried shaft gives one last late jerk, as if something pulled it.
+  const late = .09 * Math.sin(clamp01((h - .3) / .07) * Math.PI) * Math.sin(h * 90);
+  return {x: u < 1 ? x : -.04 * Math.exp(-h * 30), tilt: u < 1 ? 0 : quiver(kind, h) + late, alpha: 1 - smooth(clamp01((t - .6) / .3))};
 }
 
 // The streak hanging in the air behind the flight: bright at the strike, gone as the shaft lands.

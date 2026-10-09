@@ -57,3 +57,12 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('the last debris chunk kicks up once more after it lands', () => {
+  const i = MINE.debris - 1, v = 3.2 + (i % 3) * .5, flight = v / 7;
+  let hop = 0; for (let t = flight; t < flight + .2; t += .005) hop = Math.max(hop, debrisPose(i, t).y);
+  assert.ok(hop > .08, 'it hops');
+  assert.equal(debrisPose(i, flight + .25).y, .03);
+  assert.equal(debrisPose(i, MINE.total).alpha, 0);
+  assert.equal(debrisPose(0, flight + .1).y, .03);
+});

@@ -33,7 +33,9 @@ export function ringPose(t) {
 export function debrisPose(i, t) {
   if (t <= 0 || t >= MINE.total) return {x: 0, y: .03, z: 0, spin: 0, alpha: 0};
   const a = i * 2.4 + .5, v = 3.2 + (i % 3) * .5, r = .25 + .12 * (i % 4);
-  const y = Math.max(.03, v * t - 7 * t * t), flight = v / 7, f = Math.min(t, flight) / flight;
+  const flight = v / 7, f = Math.min(t, flight) / flight;
+  // The last chunk does not stay down: it lands on a corner and kicks up once more before it rests.
+  const y = Math.max(.03, v * t - 7 * t * t) + (i === MINE.debris - 1 && t > flight && t < flight + .2 ? .09 * Math.sin((t - flight) / .2 * Math.PI) : 0);
   return {x: Math.cos(a) * r * f * 2, y, z: Math.sin(a) * r * f * 2, spin: t * (5 + i), alpha: .9 * (1 - clamp01((t - .8) / .5))};
 }
 
