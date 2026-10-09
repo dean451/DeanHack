@@ -142,7 +142,7 @@ export function createGhost(name='ghost'){
  const kind='ghost',S=geometry(),Mt=materials(kind);
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
  // a ghost is a warning-level killer: it stands taller than a man, not the size of a sheet on a line
- g.scale.setScalar(1.05);
+ g.scale.setScalar(1.1);
  mesh(body,S.body,Mt.sheet,'body',false);
  const head=new THREE.Group();head.position.set(0,.96,.015);head.rotation.x=.12;body.add(head);
  mesh(head,S.head,Mt.sheet,'head',false);mesh(head,S.face,Mt.face,'face',false);mesh(head,S.eyes,Mt.eye,'eyes',false);
