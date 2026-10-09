@@ -29,10 +29,12 @@ export function chunkPose(i, t) {
 }
 
 // Dust puff i: a grey ring coughed up out of the hole, rising, spreading and fading.
+// The last puff is a second, late cough: it comes up out of the hole well after the rest have gone.
+export const COUGH_DELAY = .3;
 export function dustPose(i, t) {
-  const s = t - .06;
+  const d = .06 + (i === PIT.dust - 1 ? COUGH_DELAY : 0), s = t - d;
   if (s <= 0 || t >= PIT.total) return {x: 0, y: 0, z: 0, scale: .1, alpha: 0};
-  const u = s / (PIT.total - .06), a = i * 1.05 + .3;
+  const u = s / (PIT.total - d), a = i * 1.05 + .3;
   const r = .12 + .3 * Math.sqrt(u);
   return {x: Math.cos(a) * r, y: .08 + .45 * u, z: Math.sin(a) * r, scale: .08 + .1 * u, alpha: .5 * clamp01(s / .08) * (1 - clamp01((u - .5) / .5))};
 }

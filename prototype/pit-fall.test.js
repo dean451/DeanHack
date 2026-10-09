@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {chunkPose, dustPose, speckPose, isPitFallMessage, isPitSpikeMessage, createPitFall, PENDING_WAIT, PIT} from './pit-fall.js';
+import {chunkPose, dustPose, speckPose, isPitFallMessage, isPitSpikeMessage, createPitFall, PENDING_WAIT, PIT, COUGH_DELAY} from './pit-fall.js';
 
 test('only the hero falling in triggers it', () => {
   assert.ok(isPitFallMessage('You fall into a pit!'));
@@ -60,4 +60,11 @@ test('the effect waits for the next frame and lands on the trap square', () => {
   assert.equal(fx.active, 1);
   fx.clear();
   assert.equal(fx.active, 0);
+});
+
+test('the last dust puff is a late second cough', () => {
+  const first = i => { for (let t = 0; t < PIT.total; t += .005) if (dustPose(i, t).alpha > .01) return t; return PIT.total; };
+  assert.ok(first(PIT.dust - 1) >= COUGH_DELAY);
+  assert.ok(first(0) < COUGH_DELAY);
+  assert.equal(dustPose(PIT.dust - 1, PIT.total).alpha, 0);
 });

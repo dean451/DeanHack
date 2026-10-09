@@ -66,3 +66,15 @@ test('the last pebble trickles on after the others have settled', () => {
   assert.ok(gritPose(i, t).alpha > 0 && gritPose(0, t).alpha === 0);
   assert.equal(gritPose(i, ROCK.total).alpha, 0);
 });
+
+test('after landing the rock rolls a short way and slows', () => {
+  const land = .08 + ROCK.drop;
+  assert.equal(rockPose(land).x, 0);
+  let prev = 0, prevStep = Infinity;
+  for (let t = land + .05; t <= land + .5; t += .05) {
+    const x = rockPose(t).x, step = x - prev;
+    assert.ok(x >= prev && x <= .12 + 1e-9 && step <= prevStep + 1e-9, String(t));
+    prev = x; prevStep = step;
+  }
+  assert.ok(prev > .1);
+});

@@ -16,11 +16,13 @@ export const isFallingRockMessage = text => /trap door in the ceiling opens and 
 
 // Height of the rock: waits in the dark, falls on an accelerating curve, hops once, rests.
 export function rockPose(t) {
-  if (t <= .08) return {y: ROCK.height, alpha: 0, spin: 0};
-  if (t <= .08 + ROCK.drop) { const u = (t - .08) / ROCK.drop; return {y: .06 + (ROCK.height - .06) * (1 - u * u), alpha: 1, spin: u * 4}; }
+  if (t <= .08) return {x: 0, y: ROCK.height, alpha: 0, spin: 0};
+  if (t <= .08 + ROCK.drop) { const u = (t - .08) / ROCK.drop; return {x: 0, y: .06 + (ROCK.height - .06) * (1 - u * u), alpha: 1, spin: u * 4}; }
   const h = t - .08 - ROCK.drop;
   const hop = h < .22 ? Math.sin(h / .22 * Math.PI) * .14 : 0;
-  return {y: .06 + hop, alpha: t >= ROCK.total ? 0 : 1 - clamp01((t - .8) / .3), spin: 4 + (h < .22 ? h * 6 : 1.3)};
+  // After the hop it lurches a short way across the stone, slowing, like it means to keep going.
+  const roll = .12 * (1 - (1 - clamp01(h / .5)) ** 2);
+  return {x: roll, y: .06 + hop, alpha: t >= ROCK.total ? 0 : 1 - clamp01((t - .8) / .3), spin: 4 + (h < .22 ? h * 6 : 1.3)};
 }
 
 // Grit i: thrown out flat from the impact, arcing low and dropping back.
@@ -46,7 +48,7 @@ export function createFallingRock(THREE, parent) {
   function step(e, dt) {
     e.t += dt;
     const r = rockPose(e.t);
-    e.rock.visible = r.alpha > .01; e.rock.position.y = r.y; e.rock.rotation.set(r.spin, r.spin * .6, 0); e.rock.material.opacity = r.alpha;
+    e.rock.visible = r.alpha > .01; e.rock.position.set(r.x, r.y, 0); e.rock.rotation.set(r.spin, r.spin * .6, 0); e.rock.material.opacity = r.alpha;
     e.grit.forEach((m, i) => { const p = gritPose(i, e.t); m.visible = p.alpha > .01; m.position.set(p.x, p.y, p.z); m.material.opacity = p.alpha; });
     return e.t < ROCK.total;
   }
