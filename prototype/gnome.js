@@ -22,9 +22,9 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 const LOOKS={
  gnome:{cap:'#7a4a26',capDark:'#4e2c16',tunic:'#4f6a3a',tunicDark:'#34482a',breeches:'#6a5238',beard:'#9a7458',weapon:'aklys',scale:1},
- 'gnome lord':{cap:'#2f4f9a',capDark:'#1c3066',tunic:'#3a5a8a',tunicDark:'#263e62',breeches:'#5a4a3a',beard:'#bcb4a4',weapon:'dagger',feather:true,scale:1.03},
- 'gnome king':{cap:'#8a2a7a',capDark:'#561650',tunic:'#6a2a6a',tunicDark:'#461a48',breeches:'#4a3a4a',beard:'#f0ece2',weapon:'sceptre',crown:true,cape:true,scale:1.08},
- 'gnomish wizard':{cap:'#3a6ad8',capDark:'#20408e',tunic:'#3458b0',tunicDark:'#223a78',breeches:'#4a4a5a',beard:'#e4e0d6',weapon:'staff',robe:true,stars:true,tall:true,scale:1.02},
+ 'gnome lord':{cap:'#2a3a62',capDark:'#18223e',tunic:'#34445e',tunicDark:'#222c40',breeches:'#4a3e34',beard:'#a8a092',weapon:'dagger',feather:true,scale:1.03},
+ 'gnome king':{cap:'#5e2a52',capDark:'#3a1834',tunic:'#4e2a4e',tunicDark:'#321c34',breeches:'#403440',beard:'#d0ccc0',weapon:'sceptre',crown:true,cape:true,scale:1.08},
+ 'gnomish wizard':{cap:'#2c4478',capDark:'#18264a',tunic:'#2a3e6e',tunicDark:'#1a2848',breeches:'#444450',beard:'#c4c0b6',weapon:'staff',robe:true,stars:true,tall:true,scale:1.02},
 };
 export const GNOMES=Object.keys(LOOKS);
 export const isGnome=name=>Object.hasOwn(LOOKS,name);
@@ -72,7 +72,7 @@ function buildBody(L,C){
  if(L.cape){
   // a cape hanging from the shoulders, curved round the back, over an ermine collar
   const cape=new THREE.CylinderGeometry(.22,.28,.46,20,4,true,Math.PI*.55,Math.PI*.9);
-  P.add(cape,at(0,.37,-.005,[0,0,0],[1,1,.85]),(x,y)=>mix(C.capDark,rgb('#5a1a58'),(y-.14)*2));
+  P.add(cape,at(0,.37,-.005,[0,0,0],[1,1,.85]),(x,y)=>mix(C.capDark,rgb('#3c1438'),(y-.14)*2));
   P.add(new THREE.TorusGeometry(.13,.04,8,20),at(0,.6,-.01,[Math.PI/2,0,0],[1.2,1,1]),ERMINE);
   for(let i=0;i<9;i++){const a=i/9*Math.PI*2;P.add(new THREE.SphereGeometry(.007,4,3),at(Math.sin(a)*.16,.61,Math.cos(a)*.13-.01,[0,0,0],[1,1.8,1]),SPOT);}
   P.add(new THREE.SphereGeometry(.018,8,6),at(0,.58,.14),GOLD);
