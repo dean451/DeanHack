@@ -214,11 +214,12 @@ function dragonHead(head,m,f,baby){
  }
  sphere(head,.12,m.hide,0,0,0,.95,.82,1.05);
  dragonBox(head,.13,.07,.2,m.hide,0,.005,.14,.03);
- const jaw=dragonBox(head,.11,.035,.18,m.belly,0,-.065,.12,.015);jaw.rotation.x=.24;
+ const jaw=dragonBox(head,.095,.045,.2,m.dark,0,-.066,.125,.01);jaw.rotation.x=.24;
  // the breath gathers in the open mouth and glows from the nostrils
  const throat=sphere(head,.04,m.glow,0,-.035,.14,1,.55,1.6);
  for(const s of [-1,1]){
-  sphere(head,.012,m.glow,s*.03,.04,.24);
+  // nostrils are dark slits in the snout, not glowing beads
+  sphere(head,.011,m.dark,s*.03,.04,.24,.4,.3,1.3).rotation.z=-s*.5;
   const brow=dragonBox(head,.05,.02,.07,m.dark,s*.055,.075,.07,.008);brow.rotation.z=s*.3;
   for(let i=0;i<3;i++)cone(head,.008,.03,m.ivory,s*.045,-.03,.12+i*.045,4).rotation.x=Math.PI;
   // two long curved fangs hang from the upper jaw past the lower teeth,
