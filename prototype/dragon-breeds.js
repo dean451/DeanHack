@@ -123,7 +123,11 @@ const DRESS = {
       const a = o.trunk.at(.15 + .65 * i / 3 + .04, s * (1.05 + .3 * rand()), 1.01).p, b = o.trunk.at(.15 + .65 * i / 3 - .03, s * (1.45 + .2 * rand()), 1.01).p;
       streak(o.trunk.group, [p.clone().addScaledVector(n, .004), a, b], .006 * k, m.glow);
     });
-    for (const h of o.heads) { const A = headAnchors(h.cat); if (!h.cat) for (const hp of A.horns) spike(h.head, hp.clone().add(v3(Math.sign(hp.x) * .04, .1, -.09)), v3(Math.sign(hp.x) * .3, 1, -.9), .012, .05, soot, 5); }
+    for (const h of o.heads) { const A = headAnchors(h.cat); if (!h.cat) for (const hp of A.horns) {
+      // the soot caps the tip of the horn, which sweeps back and out along (s * .25, .44, -.86); the left one is snapped short
+      const sg = Math.sign(hp.x), dir = v3(sg * .25, .44, -.86), len = o.baby ? .08 : sg < 0 ? .0935 : .17;
+      spike(h.head, hp.clone().addScaledVector(dir, len * .5 - .045), dir, .011, .05, soot, 5);
+    } }
     // the tail burns: three flame tongues around the tip
     const {p, d} = tailTip(o);
     for (let i = 0; i < 3; i++) { const sway = v3(Math.cos(i * 2.1) * .5, .6 + .3 * i, Math.sin(i * 2.1) * .5).add(d); spike(o.tail, p.clone().addScaledVector(d, .02), sway, .03 * k * (1 - i * .2), .13 * k * (1 - i * .15), i ? glowMat('#ffb040', 3.5) : m.glow, 5); }
