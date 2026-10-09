@@ -1987,6 +1987,12 @@ function rustMonster(o){
   const tip=curve.getPoint(1);sphere(f,.022,glow,tip.x,tip.y,tip.z);}
  // legs: four short armoured stumps splayed outward
  for(const side of [-1,1])for(const z of [-.12,.13]){const leg=new THREE.Group();leg.position.set(side*.13,y-.08,z);body.add(leg);const upper=rounded(leg,.06,.16,.06,hide,side*.03,-.06,0,.02);upper.rotation.z=side*.3;sphere(leg,.035,shell,side*.05,-.15,.015,1.1,.6,1.3);legs.push(leg);}
+ // rust monsters only: the carapace is eaten through with dark corrosion pits, and each foot ends in three hooked black claws
+ if(o.kind==='rust monster'){
+  const pit=mat('#1c1008',{roughness:1}),claw=mat('#15110e',{roughness:.5,metalness:.4});
+  for(const [px,pz,pr] of [[-.07,.15,.026],[.09,.08,.02],[-.1,-.02,.022],[.05,-.06,.028],[-.04,-.16,.02],[.1,-.14,.024]])sphere(body,pr,pit,px,y+.1,pz,1,.3,1);
+  for(const side of [-1,1])for(const z of [-.12,.13])for(const k of [-1,0,1]){const c=cone(body,.012,.07,claw,side*.18+side*.01*Math.abs(k),y-.22,z+k*.025+.04,4);c.rotation.x=Math.PI/2-.5;}
+ }
  // tail: a tapering segmented stalk out the back ending in a crossed propeller vane
  const tail=new THREE.Group();tail.position.set(0,y,-.27);body.add(tail);
  for(let i=0;i<4;i++){const r=.045-i*.008,seg=cylinder(tail,r*.85,r,.06,i%2?shell:hide,0,0,-.03-i*.055,8);seg.rotation.x=Math.PI/2;}
