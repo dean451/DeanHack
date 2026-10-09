@@ -22,7 +22,9 @@ export function rockPose(t) {
   const hop = h < .22 ? Math.sin(h / .22 * Math.PI) * .14 : 0;
   // After the hop it lurches a short way across the stone, slowing, like it means to keep going.
   const roll = .12 * (1 - (1 - clamp01(h / .5)) ** 2);
-  return {x: roll, y: .06 + hop, alpha: t >= ROCK.total ? 0 : 1 - clamp01((t - .8) / .3), spin: 4 + (h < .22 ? h * 6 : 1.3)};
+  // Once it lies still it gives one last small tip, as if it had not quite finished falling.
+  const tick = .14 * Math.sin(clamp01((h - .4) / .15) * Math.PI);
+  return {x: roll, y: .06 + hop, alpha: t >= ROCK.total ? 0 : 1 - clamp01((t - .8) / .3), spin: 4 + (h < .22 ? h * 6 : 1.3) + tick};
 }
 
 // Grit i: thrown out flat from the impact, arcing low and dropping back.
