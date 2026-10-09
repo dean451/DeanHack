@@ -47,3 +47,16 @@ test('the last mote is tugged back down mid-flight, then climbs on', () => {
   const other = moteFlight(0, LEVEL.ring * .7 + .5 * .45).y;
   assert.ok(other > 0);
 });
+
+test('the ring catches on its way in but never opens back out', () => {
+  let last = Infinity, slowed;
+  for (let t = 0; t <= LEVEL.ring + 1e-9; t += .002) {
+    const r = ringPose(t).radius;
+    assert.ok(r <= last + 1e-9 && r >= .15 - 1e-9 && r <= .9 + 1e-9, String(t)); last = r;
+  }
+  const slope = t => ringPose(t - .005).radius - ringPose(t + .005).radius;
+  let fast = 0; slowed = Infinity;
+  for (let t = .03; t < LEVEL.ring - .03; t += .01) { const v = slope(t); slowed = Math.min(slowed, v); fast = Math.max(fast, v); }
+  assert.ok(slowed < fast * .5, `catches: ${slowed} vs ${fast}`);
+  assert.ok(Math.abs(ringPose(0).radius - .9) < 1e-9 && Math.abs(ringPose(LEVEL.ring).radius - .15) < 1e-9);
+});
