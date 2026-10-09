@@ -1,7 +1,7 @@
 // A small map of the whole level, redrawn from each frame. It shows what the hero knows (every
 // remembered cell) and, in live sight, the monsters; the hero is the bright square. Stairs are
 // drawn as triangles (up points up, down points down) so they read without colour, and traps,
-// water and lava differ in shape or brightness as well as hue; a pet is a diamond, a hostile a dot.
+// water and lava differ in shape or brightness as well as hue; a pet is a diamond, a hostile a slash.
 
 export const COLS = 80;
 export const ROWS = 21;
@@ -16,7 +16,7 @@ export const FEATURE_MARKS = {fountain: 'ring', altar: 'plus', throne: 'crown', 
 export function cellStyle(cell, hero) {
   if (hero && cell.x === hero.x && cell.z === hero.z) return {fill: '#fff6d8', mark: 'hero'};
   if (cell.kind === 'pet') return {fill: '#79d8a5', mark: 'diamond'};
-  if (cell.kind === 'monster' && cell.visible) return {fill: '#e0705c', mark: 'dot'};
+  if (cell.kind === 'monster' && cell.visible) return {fill: '#e0705c', mark: 'slash'};
   if (cell.trap) return {fill: '#b25bd6', mark: 'x'};
   switch (cell.terrain) {
     case 'wall': return {fill: '#6c7a86'};
@@ -51,6 +51,7 @@ function drawMark(ctx, mark, px, py) {
     case 'tee': ctx.fillRect(px, py, s, 1); ctx.fillRect(px + 1, py + 1, 2, 3); break;
     case 'cross': ctx.fillRect(px + 1, py, 2, s); ctx.fillRect(px, py + 1, s, 1); break;
     case 'tree': ctx.fillRect(px + 1, py, 2, 2); ctx.fillRect(px + 1, py + 2, 1, 2); break;
+    case 'slash': ctx.fillRect(px + 3, py, 1, 1); ctx.fillRect(px + 2, py + 1, 1, 1); ctx.fillRect(px + 1, py + 2, 1, 1); ctx.fillRect(px, py + 3, 1, 1); break;
     case 'dot': ctx.fillRect(px + 1, py + 1, 2, 2); break;
     case 'hero': ctx.fillStyle = '#fff6d8'; ctx.fillRect(px - 1, py - 1, s + 2, s + 2); ctx.fillStyle = '#10161b'; ctx.fillRect(px + 1, py + 1, 2, 2); break;
     default: break;
