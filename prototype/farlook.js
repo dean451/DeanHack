@@ -28,8 +28,9 @@ export function farlookText(cell) {
   if (!cell || !cell.visible) return '';
   const name = String(cell.name || cell.object?.name || '').trim();
   if (!name) return cell.kind === 'terrain' || !cell.kind ? terrainText(cell) : '';
-  if (cell.kind === 'pet') return `${name} (pet)`;
-  if (cell.kind === 'monster') return `${name} (${cell.peaceful ? 'peaceful' : 'hostile'})`;
+  const hurt = cell.health < 25 ? ', near death' : cell.health < 60 ? ', badly wounded' : cell.health < 100 ? ', wounded' : '';
+  if (cell.kind === 'pet') return `${name} (pet${hurt})`;
+  if (cell.kind === 'monster') return `${name} (${cell.peaceful ? 'peaceful' : 'hostile'}${hurt})`;
   if (cell.object) {
     const marks = [bucMark(itemBuc(name)), enchantMark(itemEnchant(name))].filter(Boolean).join('');
     return marks ? `${marks} ${name}` : name;

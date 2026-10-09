@@ -53,3 +53,10 @@ test('traps and doors are named by their state', () => {
   assert.equal(farlookText({visible: true, terrain: 'floor', door: 'broken'}), 'broken door');
   assert.equal(farlookText({visible: true, terrain: 'door'}), 'closed door');
 });
+
+test('a wounded monster says how badly', () => {
+  assert.equal(farlookText({visible: true, kind: 'monster', name: 'orc', health: 80}), 'orc (hostile, wounded)');
+  assert.equal(farlookText({visible: true, kind: 'monster', name: 'orc', health: 40}), 'orc (hostile, badly wounded)');
+  assert.equal(farlookText({visible: true, kind: 'pet', name: 'kitten', health: 10}), 'kitten (pet, near death)');
+  assert.equal(farlookText({visible: true, kind: 'monster', name: 'orc'}), 'orc (hostile)');
+});
