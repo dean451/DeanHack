@@ -62,9 +62,18 @@ export function aimLine(from, to, max = 24) {
 export const isDirectionPrompt = text => /direction/i.test(text ?? '');
 // How far a direction choice reaches, from the command that asked for it: a kick or a fight
 // strikes the next square only, a zap or a spell flies up to a ray's longest run, the rest default.
-export function laneRange(command) {
+// A thrown light item flies about half the hero's strength in squares (NetHack: St/2 less weight/40),
+// so a weak hero sees short lanes. `value` is the St text ("16", "18/50", "18/**").
+export function throwRange(value) {
+  const m = String(value ?? '').match(/^(\d+)(?:\/(\d+|\*\*))?$/);
+  if (!m) return 8;
+  const st = m[2] === undefined ? +m[1] : m[2] === '**' ? 25 : 18 + Math.ceil(+m[2] / 50);
+  return Math.max(1, Math.min(13, Math.floor(st / 2)));
+}
+export function laneRange(command, strength) {
   if (command === 4 || command === 70 || command === 'F') return 1;
   if (command === 122 || command === 90 || command === 'z' || command === 'Z') return 13;
+  if (command === 116 || command === 't') return throwRange(strength);
   return 8;
 }
 export function directionLanes(from, solid, range = 8) {

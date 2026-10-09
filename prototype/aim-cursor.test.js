@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {aimKeys, walkCursor, aimLine, createAimCursor, directionLanes, isDirectionPrompt, laneHits, laneRange} from './aim-cursor.js';
+import {aimKeys, walkCursor, aimLine, createAimCursor, directionLanes, isDirectionPrompt, laneHits, laneRange, throwRange} from './aim-cursor.js';
 
 test('the keys walk the cursor exactly to the square and then select it', () => {
   const from = {x: 20, z: 10};
@@ -104,4 +104,17 @@ test('the lanes are sized to the command that asked for a direction', () => {
   const open = () => false;
   assert.equal(directionLanes({x: 0, z: 0}, open, laneRange(4))[3].length, 1);
   assert.equal(directionLanes({x: 0, z: 0}, open, laneRange(122))[3].length, 13);
+});
+
+test('thrown items reach about half the strength in squares', () => {
+  assert.equal(throwRange('16'), 8);
+  assert.equal(throwRange('6'), 3);
+  assert.equal(throwRange('3'), 1);
+  assert.equal(throwRange('18/50'), 9);
+  assert.equal(throwRange('18/**'), 12);
+  assert.equal(throwRange(undefined), 8);
+  assert.equal(laneRange(116, '10'), 5);
+  assert.equal(laneRange('t', '10'), 5);
+  assert.equal(laneRange(116), 8);
+  assert.equal(laneRange(122, '10'), 13);
 });
