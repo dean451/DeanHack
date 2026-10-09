@@ -233,7 +233,11 @@ function buildHead(L,C){
  if(!L.scruffy&&!L.tentacles)for(const s of [-1,1])P.add(new THREE.ConeGeometry(.0075,.034,4),at(s*.02,-.062,.128,[Math.PI,0,0]),rgb('#a89c78'));
  // whiskers
  const whisker=rgb(L.whisker||'#f0ece0');
- for(const s of [-1,1])for(let k=0;k<4;k++)segment(P,[s*.03,-.036+k*.006,.13],[s*.14,-.05+k*.02,.1+k*.008],.0022,.0006,whisker,3);
+ for(const s of [-1,1])for(let k=0;k<4;k++){
+  // scruffy pets: the two lowest whiskers on each side are snapped off short
+  const len=L.scruffy&&k<2?.4:1;
+  segment(P,[s*.03,-.036+k*.006,.13],[s*(.03+.11*len),-.036+k*.006+(-.014+.014*k)*len,.13+(-.03+.008*k)*len],.0022,.0006,whisker,3);
+ }
  // the lynx's ruff: barred tufts hanging from the cheeks
  if(L.ruff)for(const s of [-1,1])for(let k=0;k<4;k++){
   const a=.2+k*.28;
