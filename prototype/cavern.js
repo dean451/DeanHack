@@ -84,6 +84,6 @@ export function createCavern({group,scene,camera,controls}){
   moteGeo.attributes.position.needsUpdate=true;
  }
  // Branch tint: a colour the stone texture is multiplied by (see `rockTint` in branch-air.js).
- function setTint([r,g,b]){mesh.material.color.setRGB(r,g,b);}
+ function setTint([r,g,b],roughness=1){mesh.material.color.setRGB(r,g,b);mesh.material.roughness=roughness;}
  return {rebuild,update,setActive,setTint};
 }
