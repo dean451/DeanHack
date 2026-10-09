@@ -272,8 +272,8 @@ function buildLeg(L,C,fore){
   return c;
  };
  let paw=L.socks?C.belly:mix(C.coat,C.belly,.25);
- // scruffy pets walk dirty: the paws are caked in grime
- if(L.scruffy)paw=mix(paw,C.stripe,.45);
+ // pets walk a little dirty: the paws carry a light dusting of grime, not a cake of it
+ if(L.scruffy)paw=mix(paw,C.stripe,.2);
  const skin=(x,y,z)=>y<fy+.03?paw:paint(x,y,z);
  if(fore){
   segment(P,[0,.02,0],[0,-.11,-.02],.048*k,.033*k,skin,12);
