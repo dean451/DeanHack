@@ -18,7 +18,7 @@ export const isTeleportMessage = text => /^You are momentarily blinded by a flas
 // The hard flash at the departure square.
 export function flashPose(t) {
   const u = clamp01(t / BLINK.flash);
-  return {size: .25 + 1.1 * u, alpha: t <= 0 || u >= 1 ? 0 : (1 - u) * (1 - u)};
+  return {size: .25 + 1.1 * u, alpha: t <= 0 || u >= 1 ? 0 : (1 - u) * (1 - u) * (u > .4 && u < .55 ? .3 : 1)};  // the departure flash gutters mid-fade, as if the light were being pulled out through a straw
 }
 
 // The column that snaps upward: it shoots high and thins to a wire as it goes.

@@ -92,3 +92,9 @@ test('the landing flash stutters once as it dies', () => {
   assert.ok(at(.38) < at(.5) * 1.5 + 1e-9 || at(.5) > 0);
   assert.ok(at(.2) > at(.5), 'still dying overall');
 });
+
+test('the departure flash gutters mid-fade, then still ends at nothing', () => {
+  assert.ok(flashPose(BLINK.flash * .47).alpha < flashPose(BLINK.flash * .35).alpha * .5);
+  assert.ok(flashPose(BLINK.flash * .6).alpha > 0);
+  assert.equal(flashPose(BLINK.flash).alpha, 0);
+});

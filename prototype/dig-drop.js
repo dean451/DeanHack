@@ -51,10 +51,14 @@ export function arriveOffset(t) {
   const fall = Math.sqrt(2 * ARRIVE_HEIGHT / ARRIVE_GRAVITY);
   if (t < fall) return ARRIVE_HEIGHT - .5 * ARRIVE_GRAVITY * t * t;
   const v = Math.sqrt(2 * ARRIVE_GRAVITY * ARRIVE_HEIGHT) * BOUNCE, hop = t - fall, air = 2 * v / ARRIVE_GRAVITY;
-  return hop < air ? v * hop - .5 * ARRIVE_GRAVITY * hop * hop : 0;
+  if (hop < air) return v * hop - .5 * ARRIVE_GRAVITY * hop * hop;
+  // Dead still a beat, then a single small jerk, as if the body had to be reminded it landed.
+  const j = (hop - air - SETTLE_GAP) / SETTLE_LEN;
+  return j > 0 && j < 1 ? SETTLE_HEIGHT * Math.sin(j * Math.PI) : 0;
 }
+export const SETTLE_GAP = .25, SETTLE_LEN = .12, SETTLE_HEIGHT = .01;
 export const ARRIVE_TIME = Math.sqrt(2 * ARRIVE_HEIGHT / ARRIVE_GRAVITY) +
-  2 * Math.sqrt(2 * ARRIVE_GRAVITY * ARRIVE_HEIGHT) * BOUNCE / ARRIVE_GRAVITY;
+  2 * Math.sqrt(2 * ARRIVE_GRAVITY * ARRIVE_HEIGHT) * BOUNCE / ARRIVE_GRAVITY + SETTLE_GAP + SETTLE_LEN;
 
 export function createDigDrop() {
   let mode = null, age = 0, hang = HANG, from = 0;
