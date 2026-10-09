@@ -76,3 +76,12 @@ test('the last spike fleck lands, hops once and is still visible after the other
   assert.ok(speckPose(n, t0 + .07).y > speckPose(n, t0 + .01).y + .02, 'hop');
   assert.ok(speckPose(n, t0 + .12).y < speckPose(n, t0 + .07).y, 'settling');
 });
+
+test('the last chunk shivers sideways on the lip, the others hang still', async () => {
+  const {chunkPose, PIT} = await import('./pit-fall.js');
+  const last = PIT.chunks - 1, hang = .04 * last + .18, r0 = .42 + .05 * (last % 3);
+  const angs = []; for (let t = .01; t < hang; t += .005) { const p = chunkPose(last, t); angs.push(Math.atan2(p.z, p.x)); assert.ok(Math.abs(Math.hypot(p.x, p.z) - r0) < 1e-9); }
+  assert.ok(Math.max(...angs) - Math.min(...angs) > .02, 'shiver');
+  const q = t => chunkPose(2, t);
+  assert.ok(Math.abs(q(.01).x - q(.05).x) < 1e-9 && Math.abs(q(.01).z - q(.05).z) < 1e-9, 'others still');
+});
