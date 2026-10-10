@@ -59,6 +59,7 @@ import {MIND_FLAYER_KINDS,createMindFlayer} from './mind-flayer.js';
 import {createGoblin,isGoblin} from './goblin.js';
 import {createBugbear} from './bugbear.js';
 import {createOwlbear} from './owlbear.js';
+import {createWarhorse} from './warhorse.js';
 import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
 import {createBeholder} from './beholder.js';
@@ -2706,6 +2707,8 @@ export function createCreature(cell={}){
  if(APES[name])return ape(APES[name]);
  if(MIMICS[name])return mimic(MIMICS[name]);
  if(CENTAURS[name])return centaur(CENTAURS[name]);
+ // the warhorse is a destrier of its own (warhorse.js), not the generic horse
+ if(name==='warhorse')return createWarhorse();
  if(HORSES[name])return horseFor(name,color);
  if(PROBOSCIDEANS[name])return proboscidean(PROBOSCIDEANS[name]);
  if(MEGA_RHINOS[name])return megaRhino(MEGA_RHINOS[name]);
