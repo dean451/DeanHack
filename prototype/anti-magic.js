@@ -17,11 +17,15 @@ export const isAntiMagicMessage = text => /you feel your magical energy drain aw
 export function motePose(i, t) {
   const start = .04 * i;
   if (t <= start || t >= ANTI.drain) return {x: 0, y: 0, z: 0, alpha: 0};
-  const u = (t - start) / (ANTI.drain - start), s = clamp01(u + .06 * Math.sin(u * Math.PI * 5) * (1 - u));
+  const u = (t - start) / (ANTI.drain - start);
+  // The last mote clings to the hero: its fall all but stalls for a beat, trembling, before the siphon wins.
+  const cling = i === ANTI.motes - 1, w = !cling ? u : u < .3 ? u : u < .55 ? .3 + (u - .3) * .08 : .32 + (u - .55) * (.68 / .45);
+  const shake = cling && u > .3 && u < .55 ? .014 * Math.sin(t * 80) : 0;
+  const s = clamp01(w + .06 * Math.sin(w * Math.PI * 5) * (1 - w));
   const a = i * 2.4 + 2 * s, r = .12 + .3 * (1 - s) ** .5;
   // Every fourth mote gutters dark for a beat mid-drain, as if the siphon had caught on it.
   const gutter = i % 4 === 3 && u > .45 && u < .55 ? .3 : 1;
-  return {x: Math.cos(a) * r, y: 1.0 * (1 - s) ** 1.5 + .02, z: Math.sin(a) * r, alpha: gutter * .85 * clamp01((t - start) / .06) * (1 - clamp01((u - .8) / .2))};
+  return {x: Math.cos(a) * r + shake, y: 1.0 * (1 - s) ** 1.5 + .02, z: Math.sin(a) * r, alpha: gutter * .85 * clamp01((t - start) / .06) * (1 - clamp01((u - .8) / .2))};
 }
 
 // The ring closes in around the feet in hitching steps, like a held breath being dragged out of
