@@ -6349,7 +6349,11 @@ export function createGroundModel(item={}){
   applyToolTwist(g,item);
  }else if(/candelabrum/.test(name)){
   // Merged gold, wax and (when lit) flame meshes, moved into g like the unicorn horn.
-  for(const part of [...createCandelabrum(candelabrumState(item.name)).children]){g.add(part);materials.push(part.material);}
+  // The floor item's name is only the type, so the candle count comes from the label when it has
+  // one, and lit from the bridge's `lit` flag (the same one the lamps and candles use).
+  const state=candelabrumState(/candles?\b/.test(item.label||'')?item.label:item.name);
+  if(item.lit)state.lit=state.candles>0;
+  for(const part of [...createCandelabrum(state).children]){g.add(part);materials.push(part.material);}
  }else if(/marker/.test(name)){
   // One merged mesh: the pen with its cap pulled off beside it; a dry nib at 0 charges.
   const [pen]=createMagicMarker({dry:markerCharges(item.name)===0}).children;g.add(pen);materials.push(pen.material);
