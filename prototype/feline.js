@@ -201,7 +201,7 @@ function buildHead(L,C){
  P.add(new THREE.SphereGeometry(.09,22,16),at(0,.02,.05,[0,0,0],[1.1,.95,1]),paint);
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.05,12,10),at(s*.045,-.02,.08,[0,0,0],[1,.85,1]),paint);
  P.add(new THREE.SphereGeometry(.03,10,8),at(0,0,.115,[0,0,0],[.8,.7,1.2]),paint);
- for(const s of [-1,1])P.add(new THREE.SphereGeometry(.03,10,8),at(s*.022,-.03,.125,[0,0,0],[1,.8,.9]),paint);
+ for(const s of [-1,1])P.add(new THREE.SphereGeometry(.026,10,8),at(s*.019,-.03,.123,[0,0,0],[.9,.7,1.15]),paint);
  P.add(new THREE.SphereGeometry(.018,12,8),at(0,-.052,.1,[0,0,0],[1,.7,1.1]),paint);
  // pets: a low brow ridge over each eye and a flat bridge, so the skull has bone under it instead of a smooth ball
  if(L.scruffy)for(const s of [-1,1])P.add(new THREE.SphereGeometry(.03,10,8),at(s*.04,.043,.112,[-.3,0,s*.25],[1.15,.26,.6]),paint);
