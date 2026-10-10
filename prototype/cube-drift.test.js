@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
-import {updateCubeDrift, driftPose, drifts, stepDrag, YAW, TILT, BOB, DRAG_TIP, OVERSHOOT} from './cube-drift.js';
+import {updateCubeDrift, driftPose, joltPose, JOLT, JOLT_EVERY, JOLT_FOR, drifts, stepDrag, YAW, TILT, BOB, DRAG_TIP, OVERSHOOT} from './cube-drift.js';
 
 const cube = () => createCreature({name: 'gelatinous cube', symbol: 98, color: 6});
 const remains = a => { let r; a.g.traverse(o => { if (o.userData.part === 'remains') r = o; }); return r; };
@@ -81,4 +81,20 @@ test('when the cube stops, the remains swing forward past rest and wobble back',
   assert.ok(Math.abs(driftPose(1, 0, -9).tx - driftPose(1, 0, -OVERSHOOT).tx) < 1e-12, 'the swing is capped');
   assert.equal(st.drag, 0);
   assert.equal(st.vel, 0);
+});
+
+test('now and then the remains convulse, then hang still again', () => {
+  let peak = 0, still = 0, n = 0;
+  for (let t = 0; t < JOLT_EVERY * 4; t += .01) {
+    const j = joltPose(t, 1.3);
+    assert.ok(Number.isFinite(j) && Math.abs(j) <= JOLT + 1e-9, `${t}`);
+    peak = Math.max(peak, Math.abs(j));
+    if (j === 0) still++;
+    n++;
+  }
+  assert.ok(peak > JOLT * .4, `a visible jerk (${peak})`);
+  assert.ok(still / n > 1 - 2 * JOLT_FOR / JOLT_EVERY, 'mostly still');
+  assert.equal(joltPose(NaN, 0), 0);
+  assert.equal(driftPose(2, 0).jolt, joltPose(2, 0));
+  assert.equal(joltPose(0, 0), 0, 'none at the start');
 });
