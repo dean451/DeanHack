@@ -38,7 +38,7 @@ const VARIANTS={
   palette:{back:'#4a9a76',dark:'#2a5a6a',belly:'#a8d09a',line:'#d8e07a',wart:'#7ac0a0',toe:'#3a7a6a',spot:'#c8c040'}},
  salamander:{scale:1.4,bulk:1.1,head:1.1,snout:1,fin:.6,fire:true,mottle:1,eye:'#ff8a20',glow:2,emissive:'#ff4a10',emissiveIntensity:.3,
   palette:{back:'#34201a',dark:'#160c08',belly:'#e8641c',line:'#ff8a30',wart:'#4a2a1c',toe:'#1e120c',spot:'#ffb040',lip:'#ff6a20',finDark:'#2a140c',finLight:'#e8641c'}},
- basilisk:{scale:1.5,bulk:1.3,head:1.2,snout:1.1,fin:0,crest:{n:9,h:.04,col:'#14140e'},gaze:true,bands:true,mottle:1,eye:'#d8ff30',glow:3,
+ basilisk:{scale:1.7,bulk:1.3,head:1.2,snout:1.1,fin:0,crest:{n:9,h:.04,col:'#14140e'},gaze:true,bands:true,mottle:1,eye:'#d8ff30',glow:3,
   palette:{back:'#3e3e2a',dark:'#1e1e14',belly:'#6e6030',line:'#8a8a24',wart:'#52523a',toe:'#26261a',spot:'#8a8a20',lip:'#14100a'}},
 };
 let V=VARIANTS.newt,C=BASE;
