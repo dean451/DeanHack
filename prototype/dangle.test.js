@@ -115,3 +115,16 @@ test('the legs swing past their new pose when flight starts and stops, then sett
   const pose = danglePose(dangleLayout(d.legs), 1, .5, 1, 0, .5);
   assert.deepEqual(pose.pitch, danglePose(dangleLayout(d.legs), 1, .5, 1, 0).pitch);
 });
+
+test('a hovering bee now and then flicks one hind leg out and back', () => {
+  const a = createCreature({name: 'killer bee', symbol: 97, color: 3}), lay = dangleLayout(a.legs);
+  const range = (w, i) => {
+    let lo = Infinity, hi = -Infinity;
+    for (let t = 0; t < 40; t += .01) { const v = danglePose(lay, t, w, 1, 0).pitch[i]; assert.ok(Number.isFinite(v)); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    return hi - lo;
+  };
+  const hind = lay.rank.map((r, i) => r === 2 ? i : -1).filter(i => i >= 0);
+  assert.ok(hind.some(i => range(0, i) > DANGLE.flick * .7), 'a visible flick');
+  assert.ok(hind.every(i => range(1, i) < DANGLE.flick * .5), 'none in flight');
+  assert.deepEqual(danglePose(lay, 7, 0, 0, 0).pitch, lay.rank.map(() => 0), 'slack in death');
+});
