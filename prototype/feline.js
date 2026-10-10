@@ -224,10 +224,10 @@ function buildHead(L,C){
   }
  }
  // scruffy pets: ragged tufts of cheek fur flaring out under the ears
- if(L.scruffy)for(const s of [-1,1])for(let k=0;k<3;k++)P.add(new THREE.ConeGeometry(.006,.027,4),at(s*(.08+.004*k),-.03-.012*k,.05+.012*k,[Math.PI/2-.2*k,0,s*(1.1+.2*k)],[1,1,.4]),(x,y,z)=>mix(C.coat,C.stripe,smooth((.04-Math.abs(x))/.04)*.4));
+ if(L.scruffy)for(const s of [-1,1])for(let k=0;k<3;k++)P.add(new THREE.ConeGeometry(.005,.02,4),at(s*(.08+.004*k),-.03-.012*k,.05+.012*k,[Math.PI/2-.2*k,0,s*(1.1+.2*k)],[1,1,.4]),(x,y,z)=>mix(C.coat,C.stripe,smooth((.04-Math.abs(x))/.04)*.4));
  // pets: a plain leather collar, the one mark of an owner, with a small brass tag hanging at the throat
  if(L.scruffy){
-  P.add(new THREE.TorusGeometry(.07,.011,6,18),at(0,-.03,-.075),rgb('#5a3a22'));
+  P.add(new THREE.TorusGeometry(.068,.011,6,18),at(0,-.045,-.075),rgb('#5a3a22'));
   P.add(new THREE.CylinderGeometry(.013,.013,.004,10),at(0,-.098,-.065,[Math.PI/2,0,0]),rgb('#b8963c'));
  }
  // the wild cats bare a pair of yellowed fangs hanging past the lip
@@ -236,7 +236,7 @@ function buildHead(L,C){
  const whisker=rgb(L.whisker||'#f0ece0');
  for(const s of [-1,1])for(let k=0;k<4;k++){
   const len=1;
-  segment(P,[s*.03,-.036+k*.006,.13],[s*(.03+.11*len),-.036+k*.006+(-.014+.014*k)*len,.13+(-.03+.008*k)*len],.0022*(L.scruffy?.6:1),.0006,whisker,3);
+  segment(P,[s*.03,-.036+k*.006,.13],[s*(.03+.11*len),-.036+k*.006+(-.014+.014*k)*len,.13+(-.004+.006*k)*len],.0022*(L.scruffy?.6:1),.0006,whisker,3);
  }
  // the lynx's ruff: barred tufts hanging from the cheeks
  if(L.ruff)for(const s of [-1,1])for(let k=0;k<4;k++){
