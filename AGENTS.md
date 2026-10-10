@@ -56,6 +56,32 @@ The user judges models at the game camera (top-down, a few tiles across), and ha
 - **Verify by looking:** `item-review.html` and the demo scene render in Chromium through Playwright (`render-smoke.test.js` shows how); render the model at the game camera distance and at close range, and look at it before declaring it done. If it would look at home on a toy shelf, redo it.
 - **Which model is the hero?** The live hero is `knight()` in `prototype/main.js`, with her face in `hero-face.js` (a sculpted, vertex-painted skull plus nose, eyes and brows) and her gauntlet hands in `hero-hand.js`. `valkyrie.js` is the Valkyrie *monster* (player-monster) model, not the hero: edits there do not change the hero. To see the hero, run the dev server and `OUT=/dir/ node prototype/tools/hero-shot.mjs name` (uses the `?debug` hook), then look at the images. The hero's face and hands were rebuilt this way and set the bar for heads and hands.
 
+### Feedback loop and lessons
+
+Every run both reads and feeds this section, so quality compounds instead of resetting each hour.
+
+**Before you start (2 minutes):** read "Lessons so far" below, then list the last ten merged PRs. Any later commit or PR from a non-routine branch (`claude/*` that is not `claude/routine-*`) that touches the same file is a *correction*: the user or a Claude session found something wrong. Read its diff and message, and do not repeat the mistake it fixed.
+
+**In your PR body, add a "Lessons" section** with two short parts: *Matched* (which benchmark you compared to, per the quality bar) and *Next run should know* (one sentence, or "nothing new").
+
+**Add a line to "Lessons so far" only when** you hit a reusable pitfall you verified (a failed test that taught you something, a model that looked wrong in the render, a convention you had to look up). One line, imperative, under 25 words, no duplicates, and delete or merge lines that overlap. Keep the list under 25 lines; if it is full, replace the weakest line. Do not record one-off facts about a single model.
+
+Claude sessions with the user add lines here from the user's direct feedback (marked *user*) and prune lines that stopped mattering.
+
+#### Lessons so far
+
+- *user* Judge models by their render at the game camera, not by tests passing. Tests that pass on a lump still ship a lump.
+- *user* The enormous rat and the weeping angels are the benchmark: faceted, worn, asymmetric, with a clear silhouette. Match them.
+- *user* Faces and hands must be sculpted (brow ridge, cheekbones, thumb plus four fingers); round, flat or toy-like ones get rejected.
+- *user* Magic items must be loud: saturated, self-lit, with a floor glow. Potions, wands, spellbooks and scrolls on the floor were "SUPER underwhelming" when plain.
+- *user* Blessed is green, cursed is red, everywhere (inventory rows, auras). Follow roguelike habits.
+- *user* A pet or monster that is round, soft or pastel is wrong. Make it grim, then check it is still readable.
+- Held weapons point forward (+z) at the hand unless deliberately shouldered; assert the tip is ahead of the butt in a test (see `kobold.test.js`).
+- The live hero is `knight()` in `main.js`; `valkyrie.js` is a monster. Find which factory the live game actually calls (`creatureFactory`, `live.js`) before editing a model.
+- Colours passed to sculpt helpers must be hex, not arrays, or the result renders white.
+- Adding glow, rune or skull meshes changes draw counts and bounds; update the draw-count and bounds tests on purpose, never loosen them.
+- `prototype/package.json` lists tests explicitly. On conflict keep every test file from both sides.
+
 ### No audio
 
 This game has no sound and will not get any. Do not add audio, sound effects, music or audio libraries, and do not propose them. Every cue (a step-over, a pickup, a hit, a status effect, a high-threat monster coming into view) must work visually.
