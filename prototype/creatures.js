@@ -343,6 +343,8 @@ function dragon(o={}){
   dragonLimb(body,[0,.34,.3],[0,.3,.12],.07,m.dark,.3);
   // the haunches are slabs of cut muscle: a thick faceted wedge from each hip down the outer thigh, not a round ham
   if(f.legs!==2)for(const s of [-1,1])dragonLimb(body,[s*.2*lean,.58,-.17],[s*.24*lean,.36,-.13],.15,m.hide,.35);
+  // wyverns carry the same cut slab on their two big thighs, leaning with the reared torso
+  else for(const s of [-1,1])dragonLimb(body,[s*.17,.56,-.13],[s*.22,.38,-.08],.14,m.hide,.35);
   // three claw rakes score the left flank, the old wounds of a long life of killing
   for(let i=0;i<3;i++){const rake=dragonBox(body,.012,.2,.02,m.scar,-.27+i*.0,.5-i*.0,.0,.004);rake.position.set(-.275+i*.0,.5,-.08+i*.055);rake.rotation.set(0,0,.35);rake.scale.set(1,1-i*.12,1);}
   // overlapping armour scutes crust the back and flanks: dark, sharp-edged plates over the hide
