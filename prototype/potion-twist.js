@@ -39,7 +39,7 @@ const TWISTS = {
     liquid.material.transparent = false;
     liquid.material.opacity = 1;
     liquid.material.emissive.set(0x901018);
-    liquid.material.emissiveIntensity = .35;
+    liquid.material.emissiveIntensity = .5;
   },
   // Oil is a black slick that swallows the glow.
   oil(parts) {
@@ -63,7 +63,7 @@ const TWISTS = {
     const {liquid, glass} = parts;
     liquid.material.color.lerp(new THREE.Color(0x70e020), .6);
     liquid.material.emissive.set(0x50c010);
-    liquid.material.emissiveIntensity = .7;
+    liquid.material.emissiveIntensity = 2.1;
     glass.material.color.lerp(new THREE.Color(0x607020), .3);
   },
   sickness(parts) {
@@ -79,7 +79,7 @@ const TWISTS = {
     const {liquid, glass} = parts;
     liquid.material.color.lerp(new THREE.Color(0xfff0c0), .5);
     liquid.material.emissive.set(0xffe090);
-    liquid.material.emissiveIntensity = .6;
+    liquid.material.emissiveIntensity = 1.8;
     glass.material.color.lerp(new THREE.Color(0xfff4d8), .25);
   },
   // Sleeping: a deep, dim blue gone heavy and drowsy, the glow nearly out.
@@ -96,7 +96,7 @@ const TWISTS = {
     liquid.material.color.lerp(new THREE.Color(0x6a5a78), .6);
     liquid.material.roughness = .7;
     liquid.material.emissive.set(0x7a5a98);
-    liquid.material.emissiveIntensity = .3;
+    liquid.material.emissiveIntensity = 0.9;
     glass.material.color.lerp(new THREE.Color(0x5a4a68), .25);
   },
   // Holy water: clear and faintly gold, lit from within, the glass kept pale and clean.
@@ -104,7 +104,7 @@ const TWISTS = {
     const {liquid, glass} = parts;
     liquid.material.color.lerp(new THREE.Color(0xfff0c8), .6);
     liquid.material.emissive.set(0xffe8a0);
-    liquid.material.emissiveIntensity = .5;
+    liquid.material.emissiveIntensity = 1.5;
     glass.material.color.lerp(new THREE.Color(0xfff8e0), .2);
   },
   // Unholy water: a black, oily murk that gives nothing back, the glass gone dark and sooty.
@@ -123,7 +123,7 @@ const TWISTS = {
     liquid.material.color.lerp(new THREE.Color(0x7a1810), .6);
     liquid.material.roughness = .75;
     liquid.material.emissive.set(0xc03020);
-    liquid.material.emissiveIntensity = .35;
+    liquid.material.emissiveIntensity = 1;
     glass.material.color.lerp(new THREE.Color(0x502018), .25);
   },
   // Polymorph: a sickly green-grey slurry that never looks the same twice.
@@ -132,7 +132,7 @@ const TWISTS = {
     liquid.material.color.lerp(new THREE.Color(0x5a7a48), .6);
     liquid.material.roughness = .6;
     liquid.material.emissive.set(0x80c060);
-    liquid.material.emissiveIntensity = .4;
+    liquid.material.emissiveIntensity = 1.2;
     glass.material.color.lerp(new THREE.Color(0x384830), .25);
   },
   // Hallucination: a garish, feverish magenta that is too bright to be wholesome.
@@ -140,7 +140,7 @@ const TWISTS = {
     const {liquid, glass} = parts;
     liquid.material.color.lerp(new THREE.Color(0xa02880), .6);
     liquid.material.emissive.set(0xe040b0);
-    liquid.material.emissiveIntensity = .5;
+    liquid.material.emissiveIntensity = 1.5;
     glass.material.color.lerp(new THREE.Color(0x601850), .25);
   },
   // Levitation: a pale, weightless liquid with a lifting glow, the glass thinned.
@@ -148,7 +148,7 @@ const TWISTS = {
     const {liquid, glass} = parts;
     liquid.material.color.lerp(new THREE.Color(0xc8e0f4), .55);
     liquid.material.emissive.set(0xb0d4ff);
-    liquid.material.emissiveIntensity = .4;
+    liquid.material.emissiveIntensity = 1.2;
     glass.material.opacity *= .8;
   },
 };
