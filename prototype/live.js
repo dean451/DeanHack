@@ -42,6 +42,7 @@ import {createHistoryPanel} from './message-history.js';
 import {syncDetectedMark} from './detected-mark.js';
 import {aimKeys,createAimCursor,directionLanes,isDirectionPrompt,laneHits,laneRange} from './aim-cursor.js';
 import {itemBuc,bucMark,itemEnchant,enchantMark,itemHint} from './item-buc.js';
+import {itemClassMark} from './item-class.js';
 import {squareAt,farlookText,createFarlook} from './farlook.js';
 import {levelTitle,lowHealth,parseAttributes} from './hud.js';
 import {syncWandAura,syncHeldWandAura,updateHeldWandAura} from './wand-auras.js';
@@ -485,10 +486,12 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    if(pending.kind==='menu'&&menu){
     // "Take out / pick up what type of objects?" is answered with All types, so the full list opens at once.
     const skip=autoCategory(menu,pending.prompt);if(skip!==null){void reply(String(skip));return;}
-    const items=menuKeys(menu.items),form=document.createElement('form'),pickAny=menu.how===2;
+    const items=menuKeys(menu.items),form=document.createElement('form'),pickAny=menu.how===2;let classHead='';
     for(const item of items){const row=document.createElement('label');row.className='engine-menu-row';
      if(item.selectable&&menu.how!==0){const input=document.createElement('input');input.type=menu.how===1?'radio':'checkbox';input.name='selection';input.value=item.id;input.dataset.accelerator=item.key;row.append(input);const accel=document.createElement('kbd');accel.textContent=item.key?`[${item.key}]`:'';row.append(accel);}
      else if(!item.selectable&&item.text.trim())row.classList.add('engine-menu-heading');
+     if(!item.selectable&&item.text.trim())classHead=item.text;
+     const cls=item.selectable?itemClassMark(classHead):'';if(cls){const cm=document.createElement('span');cm.className='class-mark';cm.textContent=cls;cm.setAttribute('aria-hidden','true');row.append(cm);}
      const buc=item.selectable?itemBuc(item.text):null;if(buc){row.classList.add('buc-'+buc);const mark=document.createElement('span');mark.className='buc-mark';mark.textContent=bucMark(buc)+' ';mark.setAttribute('aria-hidden','true');row.append(mark);}
      const ench=item.selectable?itemEnchant(item.text):null;if(ench){row.classList.add('ench-'+ench);const em=document.createElement('span');em.className='ench-mark';em.textContent=enchantMark(ench);em.setAttribute('aria-hidden','true');row.append(em);}
      const hint=item.selectable?itemHint(item.text):'';if(hint)row.title=hint;
