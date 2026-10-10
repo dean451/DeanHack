@@ -130,3 +130,9 @@ test('Cerberus is a three-headed hound with spiked collars, a viper mane and a s
  assert(a.tail.children[0].geometry.attributes.position.count>3000,'a scaled serpent tail with a head');
  assert.equal(createCreature({name:'jackal'}).heads,undefined,'one head on other dogs');
 });
+
+test('wild jackals, werejackals and coyotes wear a bitten right ear',()=>{
+ const earTop=(name,s)=>{const a=createCreature({name});a.g.updateMatrixWorld(true);let top=-1;a.head.traverse(o=>{if(o.isMesh&&o.userData.part==='head'){const p=o.geometry.attributes.position;const w=new THREE.Vector3();for(let i=0;i<p.count;i++){w.fromBufferAttribute(p,i);if(w.x*s>.03)top=Math.max(top,w.y);}}});return top;};
+ assert(earTop('jackal',1)<earTop('jackal',-1)-.01,'the right ear is shorter than the left');
+ assert(Math.abs(earTop('wolf',1)-earTop('wolf',-1))<1e-6,'a wolf keeps matched ears');
+});

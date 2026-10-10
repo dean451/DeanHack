@@ -54,9 +54,9 @@ import {segment,chain} from './ant.js';
 // tail, quirk 'canine' ('dog' for pets, which live.js wags faster).
 
 const LOOKS={
- jackal:{scale:1,coat:'#b98b55',saddle:'#2e2a26',belly:'#e4d2ab',tip:'#2a2522',eye:'#7a5220',ears:.18,snout:.2,legH:.31,pattern:'saddle',grizzle:.18},
- werejackal:{scale:1,coat:'#8a6a4a',saddle:'#221c18',belly:'#b9a58a',tip:'#1f1a18',eye:'#e0a030',glow:.8,ears:.18,snout:.2,legH:.31,pattern:'saddle',grizzle:.32},
- coyote:{scale:1.08,coat:'#94806a',saddle:'#5a4c3e',belly:'#dccfb8',tip:'#2c2825',eye:'#c8a040',ears:.16,snout:.2,pattern:'grizzle',grizzle:.3},
+ jackal:{scale:1,coat:'#b98b55',saddle:'#2e2a26',belly:'#e4d2ab',tip:'#2a2522',eye:'#7a5220',ears:.18,snout:.2,legH:.31,pattern:'saddle',grizzle:.18,torn:1,scar:1},
+ werejackal:{scale:1,coat:'#8a6a4a',saddle:'#221c18',belly:'#b9a58a',tip:'#1f1a18',eye:'#e0a030',glow:.8,ears:.18,snout:.2,legH:.31,pattern:'saddle',grizzle:.32,torn:1,scar:1},
+ coyote:{scale:1.08,coat:'#94806a',saddle:'#5a4c3e',belly:'#dccfb8',tip:'#2c2825',eye:'#c8a040',ears:.16,snout:.2,pattern:'grizzle',grizzle:.3,torn:1},
  fox:{scale:.85,coat:'#c9652b',saddle:'#b0531f',belly:'#f4ece0',tip:'#f5f0e8',socks:'#1e1a18',earBack:'#1e1a18',eye:'#d09a30',ears:.17,snout:.18,legH:.22,bushy:.062,tail:'brush',tailLen:1.1,pattern:'fox',grizzle:.06},
  wolf:{scale:1.2,coat:'#8a8a86',saddle:'#42423f',belly:'#dcdad2',tip:'#262626',eye:'#d8a838',glow:.3,ears:.14,snout:.2,legH:.34,bushy:.05,heavy:1.08,ruff:1,mask:true,pattern:'grizzle',grizzle:.3},
  warg:{scale:1.4,coat:'#5a524a',saddle:'#241f1c',belly:'#8a8176',tip:'#1a1716',eye:'#ff4a20',glow:1.6,ears:.13,snout:.21,legH:.36,bushy:.055,heavy:1.2,ruff:1.35,hackles:true,fangs:1.5,pattern:'grizzle',grizzle:.28},
@@ -275,6 +275,8 @@ function buildHead(L,C){
   if(L.muzzle)c=mix(c,rgb(L.muzzle),smooth((z-.1)/.04)*.85);
   // the terrier's tan patch over one eye
   if(L.eyePatch&&Math.hypot(x-.045,y-.035,(z-.1)*.8)<.042)c=mix(c,C.mark,.9);
+  // a pale old scar raked across the muzzle and brow
+  if(L.scar&&x<0){const d=Math.abs((y-.02)-(z-.09)*.9+x*1.4);if(d<.006&&z>.06&&z<.15)c=mix(c,rgb('#d8c4a8'),.75);}
   return c;
  };
  // skull, brow stop and cheeks
@@ -319,9 +321,10 @@ function buildHead(L,C){
    P.add(new THREE.ConeGeometry(.042,e*.75,4),at(s*.07,.078,.036,[1.95,0,-s*.25],[1,1,.35]),earFur);
    continue;
   }
-  const ex=s*.048,ey=.09+e*.42,ez=-.005,rot=[-.18,0,-s*.3];
-  P.add(new THREE.ConeGeometry(.042,e,4),at(ex,ey,ez,rot,[1,1,.42]),(x,y,z)=>z<ez-.002?mix(earBack,C.coat,L.earBack?0:.4):mix(C.coat,C.saddle,smooth((y-ey-e*.25)/.04)*.5));
-  P.add(new THREE.ConeGeometry(.028,e*.74,4),at(ex,ey-e*.08,ez+.008,rot,[1,1,.3]),mix(C.belly,inner,.45));
+  // a torn ear: the right one is bitten short and cants over
+  const tn=L.torn&&s>0,ee=tn?e*.7:e,ex=s*.048,ey=.09+ee*.42,ez=-.005,rot=[-.18,0,-s*(tn?.55:.3)];
+  P.add(new THREE.ConeGeometry(.042,ee,4),at(ex,ey,ez,rot,[1,1,.42]),(x,y,z)=>z<ez-.002?mix(earBack,C.coat,L.earBack?0:.4):mix(C.coat,C.saddle,smooth((y-ey-e*.25)/.04)*.5));
+  P.add(new THREE.ConeGeometry(.028,ee*.74,4),at(ex,ey-ee*.08,ez+.008,rot,[1,1,.3]),mix(C.belly,inner,.45));
  }
  return P.merge();
 }
