@@ -34,7 +34,7 @@ import {segment,chain} from './ant.js';
 // quirk 'feline'.
 
 const LOOKS={
- kitten:{scruffy:true,scale:.7,coat:'#9a9690',stripe:'#4a4640',belly:'#b8b4a8',nose:'#6a3a38',eye:'#6aa8e0',pattern:'tabby',headSize:1.12,legH:.16,tail:'up',tailLen:.8},
+ kitten:{scruffy:true,scale:.7,coat:'#9a9690',stripe:'#4a4640',belly:'#b8b4a8',nose:'#6a3a38',eye:'#3f86c4',pattern:'tabby',headSize:1.12,legH:.16,tail:'up',tailLen:.8},
  housecat:{scruffy:true,scale:1,legH:.19,coat:'#cf9050',stripe:'#8a4e22',belly:'#c8b898',nose:'#6a3838',eye:'#c88a18',pattern:'tabby',socks:true},
  'large cat':{scruffy:true,scale:1.15,legH:.2,coat:'#8a7050',stripe:'#2e241a',belly:'#dccab0',nose:'#5a3630',eye:'#b88a20',pattern:'tabby'},
  jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#c4b497',nose:'#5e3630',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
@@ -185,7 +185,7 @@ function buildHead(L,C){
   let c=mix(C.coat,C.back,smooth((y-.04)/.06)*.4);
   const ax=Math.abs(x);
   if(L.pattern==='tabby'||L.pattern==='tiger'){
-   if(y>.035&&z>.06&&ax<.05&&Math.sin(ax*120+1)>.35)c=mix(c,C.stripe,.8);
+   if(y>.035&&z>.06&&ax<.05&&Math.sin(ax*120+1)>.35)c=mix(c,C.stripe,L.scruffy?.45:.8);
    if(ax>.055&&y<.035&&y>-.035&&Math.sin((y+ax*.6)*120)>.55)c=mix(c,C.stripe,.8);
   }else if(L.pattern!=='shimmer'){
    const k=cell(x,y,z,.028);if(k.d<.24)c=mix(c,C.stripe,L.pattern==='ghost'?.5:.65);
