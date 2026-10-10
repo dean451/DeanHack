@@ -266,10 +266,10 @@ function buildLeg(L,C,fore){
   if(x<-.008)c=mix(c,C.belly,.45);
   // pets without socks: the leg carries the coat down to the paw instead of fading to belly cream
   if(L.scruffy&&!L.socks)c=mix(c,C.coat,.65);
-  if(L.socks&&y<fy+.07)c=C.belly;
+  if(L.socks)c=mix(c,C.belly,.75*smooth((fy+.07-y)/.03));
   return c;
  };
- let paw=L.socks?C.belly:mix(C.coat,C.belly,.25);
+ let paw=L.socks?mix(C.belly,C.coat,.2):mix(C.coat,C.belly,.25);
  // pets walk a little dirty: the paws carry a light dusting of grime, not a cake of it
  if(L.scruffy)paw=mix(paw,C.stripe,.2);
  const skin=(x,y,z)=>y<fy+.03?paw:paint(x,y,z);
