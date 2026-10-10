@@ -19,7 +19,9 @@ export function ringPose(i, t, dir) {
   if (t <= 0 || t >= life) return {radius: 1.2, spin: 0, alpha: 0};
   // The last ring on the arrival hangs back a beat, stuck at the centre, then tears loose.
   const lag = dir > 0 && i === PORTAL.rings - 1 ? .08 : 0, u = clamp01((t - lag) / (life - lag)), v = dir < 0 ? u * u : 1 - (1 - u) * (1 - u);
-  const radius = dir < 0 ? 1.2 - (1.1 - .1 * i) * v : .1 + (1.1 - .1 * i) * v;
+  // The last tug: just before they snap shut the departing rings recoil outward, as if the portal had bitten on nothing.
+  const recoil = dir < 0 ? .07 * Math.sin(clamp01((u - .78) / .14) * Math.PI) : 0;
+  const radius = dir < 0 ? 1.2 - (1.1 - .1 * i) * v + recoil : .1 + (1.1 - .1 * i) * v;
   const stutter = dir > 0 ? .75 + .25 * Math.sin(u * 41 + i * 2) : 1;
   // On the way down the middle ring hitches once, jerking back against its own spin as if it caught on something.
   const hitch = dir < 0 && i === 1 ? -.6 * Math.sin(clamp01((u - .5) / .1) * Math.PI) : 0;

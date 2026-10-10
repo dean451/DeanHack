@@ -60,3 +60,12 @@ test('the middle ring hitches once on the way down and nowhere else', () => {
   assert.ok(Math.abs(ringPose(0, .6 * PORTAL.out, -1).spin - plain(0, .6 * PORTAL.out)) < 1e-9);
   assert.equal(ringPose(1, PORTAL.out, -1).alpha, 0);
 });
+
+test('the departing rings recoil outward once before they snap shut', () => {
+  const plain = (i, u) => 1.2 - (1.1 - .1 * i) * u * u;
+  for (let i = 0; i < PORTAL.rings; i++) {
+    assert.ok(ringPose(i, .85 * PORTAL.out, -1).radius > plain(i, .85) + .03, `ring ${i} recoils`);
+    assert.ok(Math.abs(ringPose(i, .5 * PORTAL.out, -1).radius - plain(i, .5)) < 1e-9, 'not before');
+    assert.ok(Math.abs(ringPose(i, .95 * PORTAL.out, -1).radius - plain(i, .95)) < 1e-9, 'not after');
+  }
+});
