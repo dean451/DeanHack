@@ -236,7 +236,7 @@ function buildHead(L,C){
  const whisker=rgb(L.whisker||'#f0ece0');
  for(const s of [-1,1])for(let k=0;k<4;k++){
   const len=1;
-  segment(P,[s*.03,-.036+k*.006,.13],[s*(.03+.11*len),-.036+k*.006+(-.014+.014*k)*len,.13+(-.03+.008*k)*len],.0022,.0006,whisker,3);
+  segment(P,[s*.03,-.036+k*.006,.13],[s*(.03+.11*len),-.036+k*.006+(-.014+.014*k)*len,.13+(-.03+.008*k)*len],.0022*(L.scruffy?.6:1),.0006,whisker,3);
  }
  // the lynx's ruff: barred tufts hanging from the cheeks
  if(L.ruff)for(const s of [-1,1])for(let k=0;k<4;k++){
