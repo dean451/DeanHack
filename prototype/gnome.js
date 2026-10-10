@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {sculptSkull} from './hero-face.js';
 
 // Gnomes used to be the generic box humanoid with a cone for a cap and a ball for a beard. They
 // now have their own model: a stumpy, pot-bellied little fellow with a big round head, a bulbous
@@ -21,7 +23,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // beard about the chin .19 above its origin, as gait.js expects). quirk 'gnome'. pick is null.
 
 const LOOKS={
- gnome:{cap:'#7a4a26',capDark:'#4e2c16',tunic:'#4f6a3a',tunicDark:'#34482a',breeches:'#6a5238',beard:'#9a7458',weapon:'aklys',scale:1},
+ gnome:{cap:'#5e3c22',capDark:'#3a2212',tunic:'#4a5538',tunicDark:'#2e382a',breeches:'#52422e',beard:'#9a7458',weapon:'aklys',scale:1},
  'gnome lord':{cap:'#2a3a62',capDark:'#18223e',tunic:'#34445e',tunicDark:'#222c40',breeches:'#4a3e34',beard:'#a8a092',weapon:'dagger',feather:true,scale:1.03},
  'gnome king':{cap:'#5e2a52',capDark:'#3a1834',tunic:'#4e2a4e',tunicDark:'#321c34',breeches:'#403440',beard:'#d0ccc0',weapon:'sceptre',crown:true,cape:true,scale:1.08},
  'gnomish wizard':{cap:'#2c4478',capDark:'#18264a',tunic:'#2a3e6e',tunicDark:'#1a2848',breeches:'#444450',beard:'#c4c0b6',weapon:'staff',robe:true,stars:true,tall:true,scale:1.02},
@@ -29,7 +31,7 @@ const LOOKS={
 export const GNOMES=Object.keys(LOOKS);
 export const isGnome=name=>Object.hasOwn(LOOKS,name);
 
-const SKIN=rgb('#a58a6a'),SKIN_SHADE=rgb('#6e5840'),ROSE=rgb('#7a4a40'),EYE=rgb('#1a1210'),GLINT=rgb('#f4f0e8'),
+const SKIN=rgb('#8e7c5c'),SKIN_SHADE=rgb('#5a4a34'),ROSE=rgb('#7a4a40'),EYE=rgb('#1a1210'),GLINT=rgb('#f4f0e8'),
  LEATHER=rgb('#5a3a24'),LEATHER_DARK=rgb('#36220f'),BRASS=rgb('#c8a04a'),GOLD=rgb('#e0b440'),GOLD_DARK=rgb('#9a7420'),
  WOOD=rgb('#7a5434'),WOOD_DARK=rgb('#4a3020'),STEEL=rgb('#b4bcc0'),ERMINE=rgb('#f2eee4'),SPOT=rgb('#1a1616'),
  RUBY=rgb('#c0182a'),SAPPHIRE=rgb('#2a4ad0'),EMERALD=rgb('#1a9a4a'),CRYSTAL=rgb('#bff4ff'),ROPE=rgb('#b09a6a');
@@ -83,7 +85,7 @@ function buildBody(L,C){
 function buildHead(L,C){
  const P=pieces(),r=HEAD_R;
  // a big round head, fuller in the cheeks
- P.add(new THREE.SphereGeometry(r,20,16),at(0,0,0,[0,0,0],[1.02,1,1]),(x,y,z)=>mix(SKIN,SKIN_SHADE,THREE.MathUtils.clamp(-z*6,0,.45)));
+ const skull=sculptSkull(r*.95,[0,0,0],{skin:SKIN,shadow:SKIN_SHADE,light:mix(SKIN,[1,1,1],.15),lips:ROSE},{brow:.034,socket:.03,socketShade:.6,hollow:-.008,bone:.016,jaw:.28,chin:.012,forehead:.02,mouth:.3});
  for(const s of [-1,1]){
   // gaunt, bruised cheeks
   P.add(new THREE.SphereGeometry(.036,10,8),at(s*.06,-.035,.085,[0,0,0],[1,.7,.6]),mix(SKIN,ROSE,.55));
@@ -100,13 +102,13 @@ function buildHead(L,C){
  // a big bulbous nose, raw and bruised at the tip
  P.add(new THREE.SphereGeometry(.048,14,12),at(0,-.01,.13,[0,0,0],[1,.95,1]),(x,y,z)=>mix(SKIN,ROSE,(z-.12)*14));
  P.add(new THREE.SphereGeometry(.02,8,6),at(0,.02,.115),SKIN);
- return P.merge();
+ return mergeGeometries([P.merge(),skull]);
 }
 
 // The cap, in its own frame: the brim at y=-.18 (gait.js turns it about there), rising to a
 // tip that flops over backwards. The lathe is bent along its height, not just rotated.
 function buildHat(L,C){
- const P=pieces(),B=-.18,H=L.tall?.5:.4,R=.14;
+ const P=pieces(),B=-.18,H=L.tall?.5:.27,R=.14;
  const prof=[[R,0],[R*.98,.06],[R*.86,H*.25],[R*.66,H*.5],[R*.42,H*.72],[R*.2,H*.9],[R*.08,H*.98],[0,H]];
  const cap=lathe(prof,28);
  const bend=L.tall?-1.6:-2.3,h0=H*.35,p=cap.attributes.position,steps=24;
