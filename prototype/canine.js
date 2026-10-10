@@ -54,8 +54,8 @@ import {segment,chain} from './ant.js';
 // tail, quirk 'canine' ('dog' for pets, which live.js wags faster).
 
 const LOOKS={
- jackal:{scale:1,coat:'#b98b55',saddle:'#2e2a26',belly:'#e4d2ab',tip:'#2a2522',eye:'#7a5220',ears:.18,snout:.2,legH:.31,pattern:'saddle',grizzle:.18,torn:1,scar:1},
- werejackal:{scale:1,coat:'#8a6a4a',saddle:'#221c18',belly:'#b9a58a',tip:'#1f1a18',eye:'#e0a030',glow:.8,ears:.18,snout:.2,legH:.31,pattern:'saddle',grizzle:.32,torn:1,scar:1},
+ jackal:{scale:1,coat:'#b98b55',saddle:'#2e2a26',belly:'#e4d2ab',tip:'#2a2522',eye:'#7a5220',ears:.18,snout:.2,legH:.27,heavy:1.22,pattern:'saddle',grizzle:.18,torn:1,scar:1},
+ werejackal:{scale:1,coat:'#8a6a4a',saddle:'#221c18',belly:'#b9a58a',tip:'#1f1a18',eye:'#e0a030',glow:.8,ears:.18,snout:.2,legH:.27,heavy:1.22,pattern:'saddle',grizzle:.32,torn:1,scar:1},
  coyote:{scale:1.08,coat:'#94806a',saddle:'#5a4c3e',belly:'#dccfb8',tip:'#2c2825',eye:'#c8a040',ears:.16,snout:.2,pattern:'grizzle',grizzle:.3,torn:1},
  fox:{scale:.85,coat:'#c9652b',saddle:'#b0531f',belly:'#f4ece0',tip:'#f5f0e8',socks:'#1e1a18',earBack:'#1e1a18',eye:'#d09a30',ears:.17,snout:.18,legH:.22,bushy:.062,tail:'brush',tailLen:1.1,pattern:'fox',grizzle:.06},
  wolf:{scale:1.2,coat:'#8a8a86',saddle:'#42423f',belly:'#dcdad2',tip:'#262626',eye:'#d8a838',glow:.3,ears:.14,snout:.2,legH:.34,bushy:.05,heavy:1.08,ruff:1,mask:true,pattern:'grizzle',grizzle:.3},

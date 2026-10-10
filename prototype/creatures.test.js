@@ -2763,7 +2763,7 @@ test('gargoyles burn with ember seams in the stone of their chest and back',()=>
  assert(b.min.y>-.05&&b.max.y<1.5,'stays in bounds');
 });
 
-test('rust monsters bristle with a jagged spine ridge; acid blobs carry bone splinters',()=>{
+test('rust monsters bristle with a jagged spine ridge; acid blobs sit in a burnt pool',()=>{
  const count=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n+=o.geometry.attributes.position.count;});return n;};
  const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
  rust.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(rust.g,true);
@@ -2771,7 +2771,9 @@ test('rust monsters bristle with a jagged spine ridge; acid blobs carry bone spl
  assert(count(rust)>count(dis)+150,'spine and pit geometry');
  const blob=createCreature({name:'acid blob',symbol:98,color:10}),jelly=createCreature({name:'blue jelly',symbol:106,color:4});
  const meshes=x=>{let n=0;x.g.traverse(o=>{if(o.isMesh)n++;});return n;};
- assert.equal(meshes(blob),10,'body, nucleus, five lobes and three bone splinters');assert.equal(meshes(jelly),11);
+ const parts=[];blob.g.traverse(o=>{if(o.isMesh)parts.push(o.userData.part);});
+ for(const need of ['mass','inside','drips','pool'])assert(parts.includes(need),`acid blob ${need}`);
+ assert(meshes(blob)<=6,'a sagging acid blob in its burnt pool: mass, inside, drips, pool and a glow');assert.equal(meshes(jelly),11);
 });
 
 test('a wyvern tail stinger keeps it inside its tile',()=>{
