@@ -79,3 +79,13 @@ test('the sixth puff sighs sideways once it has sunk, and only then', () => {
   assert.ok(Math.abs(sigh(.5)) < 1e-9 && Math.abs(sigh(.95)) < 1e-9, 'only late');
   for (let t = 0; t <= GAS.total; t += .01) assert.ok(Math.hypot(puffPose(6, t).x, puffPose(6, t).z) < .6, String(t));
 });
+
+test('the fourth puff shudders once in its sleep, and only then', () => {
+  const at = u => puffPose(3, .05 + u * 1.6).x;
+  const spread = u => .12 + .3 * (x => x * x * (3 - 2 * x))(Math.min(1, u * 1.4));
+  const dream = u => at(u) - Math.cos(3 * 2.4) * spread(u);
+  let top = 0; for (let u = .6; u < .75; u += .002) top = Math.max(top, Math.abs(dream(u)));
+  assert.ok(top > .01, 'the shudder');
+  assert.ok(Math.abs(dream(.4)) < 1e-9 && Math.abs(dream(.9)) < 1e-9, 'only mid-sag');
+  for (let t = 0; t <= GAS.total; t += .01) assert.ok(Math.hypot(puffPose(3, t).x, puffPose(3, t).z) < .6, String(t));
+});

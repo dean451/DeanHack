@@ -66,3 +66,12 @@ test('one mote winds the wrong way round while the rest spiral together', () => 
   const turn = i => { let d = 0; for (let t = .1; t < .5; t += .01) { let e = ang(i, t + .01) - ang(i, t); e -= Math.round(e / (2 * Math.PI)) * 2 * Math.PI; d += e; } return d; };
   assert.ok(turn(7) * turn(6) < 0, 'opposite sense');
 });
+
+test('the last mote survives the crush and is flung out behind the ring', () => {
+  const last = POLY.motes - 1, r = t => { const p = motePose(last, t); return Math.hypot(p.x, p.z); };
+  assert.ok(motePose(last, POLY.crush + .05).alpha > .5, 'still there after the crush');
+  assert.ok(r(POLY.total - .05) > r(POLY.crush + .02) + .3, 'flung outward');
+  for (let t = POLY.crush; t < POLY.total; t += .005) { const p = motePose(last, t); assert.ok(p.alpha >= 0 && p.alpha <= .85 && p.y >= .5 && p.y <= .9 && Math.hypot(p.x, p.z) < .7, String(t)); }
+  assert.equal(motePose(last, POLY.total).alpha, 0);
+  assert.equal(motePose(0, POLY.crush + .05).alpha, 0, 'the others are gone');
+});
