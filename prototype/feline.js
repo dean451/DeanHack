@@ -276,7 +276,7 @@ function buildLeg(L,C,fore){
  if(L.scruffy)paw=mix(paw,C.stripe,.2);
  const skin=(x,y,z)=>y<fy+.03?paw:paint(x,y,z);
  if(fore){
-  segment(P,[0,.02,0],[0,-.11,-.045],.048*k,.033*k,skin,12);
+  segment(P,[0,-.035,0],[0,-.11,-.045],.044*k,.033*k,skin,12);
   P.add(new THREE.SphereGeometry(.05*k,12,8),at(0,-.02,0,[0,0,0],[.7,1.2,1]),skin);
   P.add(new THREE.SphereGeometry(.034*k,10,8),at(0,-.11,-.045),skin);
   segment(P,[0,-.11,-.045],[0,fy+.035,.01],.03*k,.024*k,skin,10);
