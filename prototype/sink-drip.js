@@ -16,6 +16,7 @@ export const DRIP_RIPPLE = .75; // seconds a ring takes to spread and fade
 export const DRIP_RING_DELAY = .16; // the second, smaller ring follows this much later
 export const DRIP_RING_RADIUS = .065; // how far the first ring spreads
 export const DRIP_TREMBLE = .0025; // sideways shiver of a drop about to let go
+export const DRIP_THROB = .12; // deepest dip of the swelling drop's throb, as a fraction of its size
 export const DRIP_RADIUS = .008; // the drop, the same size as the one hanging in the model
 
 const DROP_GEO = new THREE.SphereGeometry(DRIP_RADIUS, 10, 8);
@@ -54,6 +55,8 @@ export function dripState(t, period, offset, height) {
     // Swells from nothing, and sags into a teardrop just before it lets go.
     const k = u / DRIP_SWELL;
     out.drop = true;out.size = .25 + .75 * k * k * (3 - 2 * k);out.stretch = 1 + .45 * k * k * k;
+    // A slow uneasy throb, like something swallowing; it only ever shrinks the drop and dies at both ends.
+    out.size *= 1 - DRIP_THROB * 4 * k * (1 - k) * (.5 + .5 * Math.sin(u * 9));
     out.fall = DRIP_RADIUS * .6 * k * k; // it sags a little as it grows
     // In the last third it starts to shiver, nervous, faster and wider as it gives way.
     const n = Math.max(0, (k - .65) / .35);
