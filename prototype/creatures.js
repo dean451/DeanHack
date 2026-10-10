@@ -58,6 +58,9 @@ import {createHobbit} from './hobbit.js';
 import {MIND_FLAYER_KINDS,createMindFlayer} from './mind-flayer.js';
 import {createGoblin,isGoblin} from './goblin.js';
 import {createBugbear} from './bugbear.js';
+import {createOwlbear} from './owlbear.js';
+import {createWarhorse} from './warhorse.js';
+import {createBaluchitherium} from './baluchitherium.js';
 import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
 import {createBeholder} from './beholder.js';
@@ -2700,11 +2703,17 @@ export function createCreature(cell={}){
  if(name==='long worm tail')return wormTail({color:color||WORMS['long worm'].color});
  if(VORTICES[name])return vortex(VORTICES[name]);
  if(isPiercer(name))return createPiercer(name);
+ // the owlbear has its own model (owlbear.js), not the generic ape
+ if(name==='owlbear')return createOwlbear();
  if(APES[name])return ape(APES[name]);
  if(MIMICS[name])return mimic(MIMICS[name]);
  if(CENTAURS[name])return centaur(CENTAURS[name]);
+ // the warhorse is a destrier of its own (warhorse.js), not the generic horse
+ if(name==='warhorse')return createWarhorse();
  if(HORSES[name])return horseFor(name,color);
  if(PROBOSCIDEANS[name])return proboscidean(PROBOSCIDEANS[name]);
+ // the baluchitherium has its own towering model (baluchitherium.js), not the giant-rhino builder
+ if(name==='baluchitherium')return createBaluchitherium();
  if(MEGA_RHINOS[name])return megaRhino(MEGA_RHINOS[name]);
  if(name==='rothe')return rothe(ROTHE);
  if(name==='wumpus')return wumpus({scale:1.08,hide:'#3f8f94',fur:'#27595c',belly:'#8ec2b6'});
