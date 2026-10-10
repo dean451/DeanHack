@@ -22,6 +22,7 @@ export const DANGLE = {
   jitter: .1, jitterRate: 1.7, // slow splay drift, as a fraction of the splay
   tremble: .012, trembleRate: 60, // wingbeat buzz
   rub: .3, rubShake: .07, rubRate: 26, rubEvery: 7, rubFor: .8, // now and then, hovering, the front legs scrape together like a fly's
+  flick: .5, flickEvery: 11, flickFor: .35, // now and then, hovering, one hind leg kicks out and back, as if shaking off something
 };
 // Flight blend in over ~.3 s, out over ~.35 s; the legs go slack over ~.3 s on death.
 const EASE_IN = 7, EASE_OUT = 6, LAG = 5, SLACK = 7, SNAP = 1e-3;
@@ -43,9 +44,14 @@ export function danglePose(layout, t, w = 0, a = 1, seed = 0, lag = w) {
   // the rub: a smooth lift of the front pair that trembles fast, only when the bee is hovering
   const ru = ((t + 1 + seed * .5) % D.rubEvery) / D.rubFor; // the first one comes no sooner than 3 s in
   const rub = ru < 1 ? Math.sin(Math.PI * ru) ** 2 * (1 - w) : 0;
+  // the flick: one hind leg (the side alternates) snaps up and back; none while flying
+  const fc = (t + 5 + seed * .9) / D.flickEvery, fu = (fc % 1) * D.flickEvery / D.flickFor;
+  const flickSide = Math.floor(fc) % 2 ? 1 : -1;
+  const flick = fu < 1 ? Math.sin(Math.PI * fu) ** 2 * (1 - w) : 0;
   return {
     pitch: rank.map((r, i) => a * (D.pitch[r] + D.trail[r] * (w + D.kick * (w - lag)) + swing * (1 + .3 * r)
       + D.tremble * Math.sin(t * D.trembleRate + i * 1.9)
+      + (r === 2 && side[i] === flickSide ? flick * D.flick : 0)
       + (r === 0 ? rub * (D.rub + D.rubShake * Math.sin(t * D.rubRate + i * 2.4)) : 0))),
     splay: rank.map((r, i) => a * side[i] * D.splay[r] * (1 - D.tuck * w)
       * (1 + D.jitter * Math.sin(t * D.jitterRate + i * 1.1 + seed))),
