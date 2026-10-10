@@ -18,7 +18,9 @@ export const isGushMessage = text => /water gushes forth from the overflowing fo
 export function jetPose(t) {
   const up = 1 - (1 - clamp01(t / GUSH.jet)) ** 3;
   const fall = smooth((t - GUSH.jet - .25) / .4);
-  return {height: up * (1 - fall), width: .06 + .05 * up * (1 - fall), alpha: (1 - fall) * Math.min(1, t * 8)};
+  // At the top the column coughs: two quick sputters, as if something below choked on it.
+  const ts = t - GUSH.jet, cough = ts > 0 && ts < .25 ? Math.abs(Math.sin(ts / .25 * Math.PI * 2)) * .12 : 0;
+  return {height: up * (1 - fall) * (1 - cough), width: .06 + .05 * up * (1 - fall), alpha: (1 - fall) * Math.min(1, t * 8)};
 }
 
 // Drop i at time t: a ballistic arc out from the top of the jet; it vanishes where it lands.

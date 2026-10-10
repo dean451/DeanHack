@@ -24,7 +24,9 @@ export function ringPose(t) {
 export function columnPose(t) {
   if (t <= .1 || t >= .8) return {height: 0, alpha: 0};
   const u = (t - .1) / .7;
-  return {height: 1.1 * (1 - (1 - Math.min(u * 4, 1)) ** 2), alpha: .5 * (1 - u)};
+  // The shaft gutters like a bad flame: it blinks out for two beats mid-stand, then returns.
+  const blink = (t > .4 && t < .46) || (t > .52 && t < .55) ? .25 : 1;
+  return {height: 1.1 * (1 - (1 - Math.min(u * 4, 1)) ** 2), alpha: .5 * (1 - u) * blink};
 }
 
 // Fleck i: driven up from the floor at the strike, arcs and falls back.

@@ -37,3 +37,8 @@ test('the film spreads, never shrinks while visible, and stays modest', () => {
   for (let t = 0; t <= GUSH.total; t += .01) { const p = filmPose(t); assert.ok(p.radius < .9 && p.alpha <= .55 + 1e-9); if (p.alpha > .3) { assert.ok(p.radius >= prev - .035); prev = p.radius; } }
   assert.ok(prev > .6);
 });
+
+test('the jet coughs at the top: it dips twice before it collapses', () => {
+  const h = t => jetPose(t).height;
+  assert.ok(h(GUSH.jet + .0625) < h(GUSH.jet) - .05 && h(GUSH.jet + .125) > h(GUSH.jet + .0625) && h(GUSH.jet + .1875) < h(GUSH.jet + .125));
+});
