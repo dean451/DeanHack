@@ -54,8 +54,8 @@ import {segment,chain} from './ant.js';
 // tail, quirk 'canine' ('dog' for pets, which live.js wags faster).
 
 const LOOKS={
- jackal:{scale:1,coat:'#b98b55',saddle:'#2e2a26',belly:'#e4d2ab',tip:'#2a2522',eye:'#7a5220',ears:.18,snout:.2,legH:.27,heavy:1.22,pattern:'saddle',grizzle:.18,torn:1,scar:1},
- werejackal:{scale:1,coat:'#8a6a4a',saddle:'#221c18',belly:'#b9a58a',tip:'#1f1a18',eye:'#e0a030',glow:.8,ears:.18,snout:.2,legH:.27,heavy:1.22,pattern:'saddle',grizzle:.32,torn:1,scar:1},
+ jackal:{scale:1,coat:'#b98b55',saddle:'#2e2a26',belly:'#e4d2ab',tip:'#2a2522',eye:'#7a5220',ears:.18,snout:.2,legH:.27,heavy:1.22,neckLift:.12,neckK:1.3,deep:.03,pattern:'saddle',grizzle:.18,torn:1,scar:1},
+ werejackal:{scale:1,coat:'#8a6a4a',saddle:'#221c18',belly:'#b9a58a',tip:'#1f1a18',eye:'#e0a030',glow:.8,ears:.18,snout:.2,legH:.27,heavy:1.22,neckLift:.12,neckK:1.3,deep:.03,pattern:'saddle',grizzle:.32,torn:1,scar:1},
  coyote:{scale:1.08,coat:'#94806a',saddle:'#5a4c3e',belly:'#dccfb8',tip:'#2c2825',eye:'#c8a040',ears:.16,snout:.2,pattern:'grizzle',grizzle:.3,torn:1},
  fox:{scale:.85,coat:'#c9652b',saddle:'#b0531f',belly:'#f4ece0',tip:'#f5f0e8',socks:'#1e1a18',earBack:'#1e1a18',eye:'#d09a30',ears:.17,snout:.18,legH:.22,bushy:.062,tail:'brush',tailLen:1.1,pattern:'fox',grizzle:.06},
  wolf:{scale:1.2,coat:'#8a8a86',saddle:'#42423f',belly:'#dcdad2',tip:'#262626',eye:'#d8a838',glow:.3,ears:.14,snout:.2,legH:.34,bushy:.05,heavy:1.08,ruff:1,mask:true,pattern:'grizzle',grizzle:.3},
@@ -135,7 +135,7 @@ function torso(L){
   const x=p.getX(i),y=p.getY(i),u=p.getZ(i);
   // narrow at the loin, broad through the ribs; a level back over a deep chest and tucked waist
   const w=.1*bw*(1+.1*u)*(1-.12*Math.exp(-(((u+.3)/.3)**2)));
-  const ht=.095+.012*u,hb=.11+.055*Math.max(0,u)-.05*Math.exp(-(((u+.28)/.26)**2));
+  const ht=.095+.012*u,hb=.11+(L.deep||0)*Math.max(0,u)+.055*Math.max(0,u)-.05*Math.exp(-(((u+.28)/.26)**2));
   p.setXYZ(i,x*w,L.Y+(y>0?y*ht:y*hb),u*.3);
  }
  geo.deleteAttribute('uv');const merged=mergeVertices(geo);geo.dispose();merged.computeVertexNormals();
@@ -203,8 +203,9 @@ function buildBody(L,C){
  }
  // the neck, rising forward to the head pivot
  const [nx,ny,nz]=L.neck;
- segment(P,[0,L.Y+.02,.2],[nx,ny-.02,nz-.01],.072*bw,.056*bw,paint,14);
- P.add(new THREE.SphereGeometry(.064*bw,16,10),at(0,L.Y+.09,.25),paint);
+ const nk=L.neckK||1;
+ segment(P,[0,L.Y+.02,.2],[nx,ny-.02,nz-.01],.072*bw*nk,.056*bw*nk,paint,14);
+ P.add(new THREE.SphereGeometry(.064*bw*(1+(nk-1)*.3),16,10),at(0,L.Y+.09,.25),paint);
  if(L.heads===3){
   // two more necks splaying out from the shoulders to the side heads, and iron collars on all three
   for(const s of [-1,1]){
@@ -447,7 +448,7 @@ const cache=new Map();
 function build(key,look){
  if(cache.has(key))return cache.get(key);
  const legH=look.legH||.3,Y=legH+.1,bw=look.heavy||1;
- const L={...look,legH,Y,neck:[0,Y+.2,.32],shoulder:[.068*bw,Y-.02,.17],hip:[.062*bw,Y+.01,-.2]};
+ const L={...look,legH,Y,neck:[0,Y+(look.neckLift??.2),.32+(look.neckFwd||0)],shoulder:[.068*bw,Y-.02,.17],hip:[.062*bw,Y+.01,-.2]};
  const C={coat:rgb(L.coat),saddle:rgb(L.saddle),belly:rgb(L.belly),tip:rgb(L.tip),ember:rgb(L.ember||'#ff5a14'),mark:L.mark?rgb(L.mark):null};
  const tail=buildTail(L,C);
  const S={L,tailPts:tail.pts,
