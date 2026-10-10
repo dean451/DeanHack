@@ -28,7 +28,8 @@ import {createLichen} from './lichen.js';
 import {createFern,isFern} from './fern.js';
 import {createDevilsSnare,isDevilsSnare} from './devils-snare.js';
 import {createPiercer,isPiercer} from './piercer.js';
-import {createEnormousRat,isEnormousRat} from './enormous-rat.js';
+import {createRat,isRat,RAT_NECK} from './enormous-rat.js';
+import {createNewt,isNewt} from './newt.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
@@ -380,35 +381,7 @@ function dragon(o={}){
  return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element,heads:dressHeads.map(h=>h.head)}));
 }
 // The plain rat's neck pivot, where its head handle turns (body space).
-export const RAT_NECK=[0,.28,.24];
-function rat(giant=false,rabid=false){
- const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(giant?1.25:.85);
- sphere(body,.22,M.graySkin,0,.24,-.04,1,.85,1.45);
- sphere(body,.16,M.leather,0,.28,.2,.85,.8,1.2);
- // the head turns about the neck; an inner group undoes the pivot so the parts keep their places
- const head=new THREE.Group(),face=new THREE.Group();head.position.set(...RAT_NECK);face.position.set(-RAT_NECK[0],-RAT_NECK[1],-RAT_NECK[2]);body.add(head);head.add(face);
- sphere(face,.09,M.graySkin,0,.24,.35,.85,.7,1.25);
- sphere(face,.035,M.skin,0,.25,.445,1,.7,.65);
- for(const side of [-1,1]){
-  sphere(face,.095,M.graySkin,side*.115,.405,.17,1,1,.38);
-  sphere(face,.065,M.skin,side*.115,.41,.201,1,1,.18);
-  sphere(face,.023,rabid?M.fire:M.leather,side*.101,.31,.3);
-  sphere(face,.009,M.whiteFur,side*.106,.319,.316);
-  rounded(face,.024,.05,.022,M.whiteFur,side*.018,.192,.416,.006);
-  for(const offset of [-1,0,1]){
-   const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(side*.06,.24,.37),new THREE.Vector3(side*.17,.25+offset*.02,.38),new THREE.Vector3(side*.26,.25+offset*.03,.36+offset*.04)]);
-   part(face,new THREE.TubeGeometry(curve,5,.003,3,false),M.whiteFur);
-  }
-  for(const z of [-.19,.17]){const leg=new THREE.Group();leg.position.set(side*.15,.13,z);body.add(leg);sphere(leg,.065,M.graySkin,0,-.02,0,.7,1,.9);rounded(leg,.075,.035,.12,M.skin,0,-.09,.04,.012);legs.push(leg);}
- }
- const tail=new THREE.Group();tail.position.set(0,.22,-.31);body.add(tail);
- const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(),new THREE.Vector3(.08,-.12,-.16),new THREE.Vector3(.25,-.17,-.28),new THREE.Vector3(.33,-.16,-.46)]);
- for(let i=0;i<14;i++){const start=curve.getPoint(i/14),end=curve.getPoint((i+1)/14),direction=end.clone().sub(start),radius=.027*(1-i/15);const segment=part(tail,new THREE.CylinderGeometry(radius*.86,radius,direction.length(),8),i%2?M.skin:M.beard);segment.position.copy(start.add(end).multiplyScalar(.5));segment.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());}
- // rabid rats: flecks of froth at the jaw and hackles of mangy fur raised along the spine
- if(rabid){const froth=mat('#f2f0e6',{roughness:.35});for(const [x,y,z,r] of [[0,.19,.43,.022],[-.03,.18,.41,.017],[.035,.185,.415,.015],[.012,.16,.42,.012]])sphere(face,r,froth,x,y,z);
-  const mange=mat('#5e564c',{roughness:1});for(let i=0;i<7;i++){const spike=cone(body,.024,.09,mange,(i%2?.025:-.025),.43-Math.abs(i-2)*.018,.14-i*.07,4);spike.rotation.x=-.5;}}
- return Object.assign(actor(g,body,legs,tail,[],'rat'),{head});
-}
+export {RAT_NECK};
 // Rock moles: a squat velvet-grey digger with no ear flaps, pin-prick eyes, a bare scarred mauve
 // snout and oversized spade forepaws tipped with pale claws. Chewed pebbles cling to its coat.
 function rockMole(){
@@ -2707,8 +2680,8 @@ const NEMESIS_HUMANS={'warden arianna':1.18,'anaraxis the black':1.2,schliemann:
 export function createCreature(cell={}){
  const name=(cell.name||'').toLowerCase(),letter=Number.isInteger(cell.symbol)?String.fromCharCode(cell.symbol):'',color=nhColor(cell);
  if(letter==='@'&&isWereMan(name))return createWereMan(name);// a were in human form
- if(/^(sewer rat|giant rat|rabid rat|rat)$/.test(name))return rat(name==='giant rat',name==='rabid rat');
- if(isEnormousRat(name))return createEnormousRat();
+ if(isRat(name))return createRat(name);
+ if(isNewt(name))return createNewt();
  if(name==='rock mole')return rockMole();
  if(name==='woodchuck')return woodchuck();
  if(/grid ?bug/.test(name))return gridBug();
@@ -2902,7 +2875,7 @@ export function createCreature(cell={}){
   case 'q':return rothe({...ROTHE,coat:c,saddle:shade(c,1.6)});
   case 'u':return horseFor(name,color);
   case '@':return humanoid('human',{cloth:mat(shade(c,.8))});
-  case 'r':return rat(false);
+  case 'r':return createRat('sewer rat');
   case 'x':return !name||/bug$/.test(name)?gridBug():xan({color:c,eye:'#ffcf40',stinger:true});
   case 'R':return rustMonster({color:c});
   case 'U':return umberHulk({color:shade(c,.7),eye:'#d8a040'});
