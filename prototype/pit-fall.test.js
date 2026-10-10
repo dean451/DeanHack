@@ -21,8 +21,8 @@ test('chunks slide inward and drop out of sight, the last one hanging longest', 
     let last = Infinity;
     for (let t = .005; t < PIT.total; t += .005) {
       const p = chunkPose(i, t);
-      assert.ok(Math.hypot(p.x, p.z) <= .6 && p.y <= .03 + 1e-9 && p.alpha >= 0 && p.alpha <= .9 + 1e-9, `${i} ${t}`);
-      assert.ok(Math.hypot(p.x, p.z) <= last + 1e-9, `${i} ${t}`); last = Math.hypot(p.x, p.z);
+      assert.ok(Math.hypot(p.x, p.z) <= .6 && p.y <= .08 + 1e-9 && p.alpha >= 0 && p.alpha <= .9 + 1e-9, `${i} ${t}`);
+      if (i !== 2 || t > .08) { assert.ok(Math.hypot(p.x, p.z) <= last + 1e-9, `${i} ${t}`); } last = Math.hypot(p.x, p.z);
     }
     assert.ok(chunkPose(i, .02).y > -.01);
   }
@@ -84,4 +84,10 @@ test('the last chunk shivers sideways on the lip, the others hang still', async 
   assert.ok(Math.max(...angs) - Math.min(...angs) > .02, 'shiver');
   const q = t => chunkPose(2, t);
   assert.ok(Math.abs(q(.01).x - q(.05).x) < 1e-9 && Math.abs(q(.01).z - q(.05).z) < 1e-9, 'others still');
+});
+
+test('chunk 2 teeters up on the rim before it slides', () => {
+  assert.ok(chunkPose(2, .04).y > chunkPose(2, 0.001).y + .03, 'tips up');
+  assert.ok(Math.abs(chunkPose(2, .08).y - .03) < 1e-6, 'level again');
+  assert.equal(chunkPose(1, .02).y, .03, 'others stay flat');
 });
