@@ -156,11 +156,7 @@ function buildBody(L,C){
    P.add(new THREE.ConeGeometry(.011,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,smooth((y-L.Y-.1)/.04)));
   }
   for(const s of [-1,1])P.add(new THREE.ConeGeometry(.016,.03,4),at(s*.058*bw,L.Y+.085,-.15,[-.2,0,-s*.5],[1,1,.8]),paint);
-  // a lean strays' spine: a ridge of knuckled vertebrae, and a dark hollow where the flank tucks in
-  for(let k=0;k<7;k++){
-   const z=-.2+k*.05;
-   P.add(new THREE.SphereGeometry(.012,6,5),at(0,L.Y+.113+.01*(z+.01),z,[0,0,0],[1,.8,1.3]),(x,y)=>mix(C.back,C.stripe,.35));
-  }
+  // the dark hollow where the flank tucks in
   for(const s of [-1,1])P.add(new THREE.SphereGeometry(.03,8,6),at(s*.1*bw,L.Y-.01,-.04,[0,0,0],[.5,1,1.5]),(x,y)=>mix(C.coat,C.stripe,.3));
  }
  if(L.tentacles){
@@ -218,7 +214,7 @@ function buildHead(L,C){
    // the big cats' left ear is bitten: a dark wedge missing from the rim
    if(s<0)P.add(new THREE.ConeGeometry(.012,.03,4),at(ex-.012,ey+.03,ez+.012,[0,0,.5],[1,1,.5]),C.stripe);
   }else{
-   const torn=false,e=(L.tufts?1.25:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
+   const torn=false,e=(L.tufts?1.25:L.scruffy?1.3:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
    P.add(new THREE.ConeGeometry(.038*e,.075*e,4),at(s*.055,.095+.01*(e-1),.03,rot,[1,1,.45]),(x,y)=>mix(C.coat,C.back,smooth((y-.1)/.04)));
    P.add(new THREE.ConeGeometry(.026*e,.055*e,4),at(s*.055,.09+.01*(e-1),.042,rot,[1,1,.3]),inner);
    if(torn)P.add(new THREE.ConeGeometry(.01,.03,3),at(s*.072,.098,.03,[-.15,0,-s*.7],[1,1,.45]),C.coat);
