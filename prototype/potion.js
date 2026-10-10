@@ -108,6 +108,10 @@ const STACK=[[0,0,0],[-1.05,-.85,.9],[1.1,-.95,-.6]];
 // Coloured liquids are pushed to full saturation and a mid lightness; milky, smoky, white, clear and
 // black ones keep their character. Returns a copy of the look with a stronger glow.
 export function punch(tint){
+ // Metal (golden, silver) keeps its own colour: saturating gold only makes it orange.
+ if(tint.metallic)return {...tint,emissiveIntensity:Math.max(.18,tint.emissiveIntensity*.6),colored:true};
+ // A deep hue given to a colourless look (item-looks.js) stays deep: glowing, but not brightened.
+ if(tint.deep)return {...tint,emissiveIntensity:Math.max(.55,tint.emissiveIntensity*1.8),colored:true};
  const c=new THREE.Color(tint.liquid),hsl={};c.getHSL(hsl);
  if(hsl.s>.25&&hsl.l>.12){c.setHSL(hsl.h,Math.min(1,hsl.s*1.2+.12),THREE.MathUtils.clamp(hsl.l,.46,.58));}
  return {...tint,liquid:'#'+c.getHexString(),emissiveIntensity:Math.max(.55,tint.emissiveIntensity*1.8),colored:hsl.s>.25&&hsl.l>.12};
@@ -123,8 +127,8 @@ export function glowDisc(colour,radius){
  geo.setAttribute('color',new THREE.BufferAttribute(col,3));geo.translate(0,.003,0);
  return geo;
 }
-export function createPotion({appearance='',color,count=1}={}){
- const look=(appearance||'').toLowerCase(),tint=punch(potionLook(look,color)),kind=potionShape(look,color),shape=SHAPES[kind];
+export function createPotion({appearance='',color,count=1,seed}={}){
+ const look=(appearance||'').toLowerCase(),tint=punch(potionLook(look,color,seed)),kind=potionShape(look,color),shape=SHAPES[kind];
  const g=new THREE.Group();g.name='potion';g.userData.shape=kind;
  const parts={glass:[],liquid:[],stopper:[]};
  const n=Math.max(1,Math.min(3,count|0||1));
@@ -136,7 +140,8 @@ export function createPotion({appearance='',color,count=1}={}){
  const merge=list=>{const geo=mergeGeometries(list,false);list.forEach(x=>x.dispose());geo.computeBoundingBox();geo.computeBoundingSphere();return geo;};
  const glassMat=new THREE.MeshPhysicalMaterial({color:new THREE.Color(tint.glass).lerp(new THREE.Color(0xffffff),.35),roughness:.06,metalness:0,
   transmission:tint.transmission,transparent:true,opacity:Math.min(.5,tint.opacity*.7),clearcoat:1,clearcoatRoughness:.04,ior:1.5,depthWrite:false});
- const liquidMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.22,emissive:tint.liquid,emissiveIntensity:tint.emissiveIntensity,
+ // Golden and silver liquid is metal: mirror-bright, not a glowing dye.
+ const liquidMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:tint.metallic?.16:.22,metalness:tint.metallic?.9:0,emissive:tint.liquid,emissiveIntensity:tint.emissiveIntensity,
   transparent:tint.opacity<.6,opacity:tint.opacity<.6?Math.max(.55,tint.opacity+.2):1});
  const stopperMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92});
  const mesh=(geo,m,name,order)=>{const o=new THREE.Mesh(geo,m);o.name=name;o.renderOrder=order;o.castShadow=name!=='glass';o.receiveShadow=true;g.add(o);return o;};

@@ -3,7 +3,7 @@ import {potionAuraKind} from './potion-auras.js';
 
 // Bottle-model twists for potions whose true type the name gives away (the aura already keys on
 // the same name). The bottle's shape and colour still follow the shuffled look; only the stuff
-// inside changes. Paralysis sets the liquid solid: dull, grey, set like old tallow, with its glow
+// inside changes, never its colour (applyPotionTwist puts the look's hue back). Paralysis sets the liquid solid: dull, grey, set like old tallow, with its glow
 // put out. Invisibility fades the liquid and the glass until the bottle is barely there.
 const TWISTS = {
   paralysis(parts) {
@@ -160,7 +160,17 @@ export function applyPotionTwist(group, object) {
   if (!kind || !Object.hasOwn(TWISTS, kind)) return null;
   const parts = Object.fromEntries(group.children.map(o => [o.name, o]));
   if (!parts.liquid || !parts.glass) return null;
+  // The colour belongs to the shuffled look ("ruby potion"), never the true type: a twist may set
+  // the liquid thick, dull, bright or faint, but its hue and the glass's come back to the look's.
+  // Water is the exception: every water looks "clear", so holy and unholy water keep their tint.
+  const keepHue = !/water$/.test(kind);
+  const saved = keepHue ? {liquid: parts.liquid.material.color.clone(), glow: parts.liquid.material.emissive?.clone(), glass: parts.glass.material.color.clone()} : null;
   TWISTS[kind](parts);
+  if (saved) {
+    parts.liquid.material.color.copy(saved.liquid);
+    if (saved.glow) parts.liquid.material.emissive.copy(saved.glow);
+    parts.glass.material.color.copy(saved.glass);
+  }
   group.userData.twist = kind;
   return kind;
 }
