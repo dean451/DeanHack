@@ -185,7 +185,7 @@ function buildHead(L,C){
   let c=mix(C.coat,C.back,smooth((y-.04)/.06)*.4);
   const ax=Math.abs(x);
   if(L.pattern==='tabby'||L.pattern==='tiger'){
-   if(y>.035&&z>.06&&ax<.05&&Math.sin(ax*120+1)>.35)c=mix(c,C.stripe,.8);
+   if(y>.035&&z>.06&&ax<.05&&Math.sin(ax*120+1)>.35)c=mix(c,C.stripe,L.scruffy?.45:.8);
    if(ax>.055&&y<.035&&y>-.035&&Math.sin((y+ax*.6)*120)>.55)c=mix(c,C.stripe,.8);
   }else if(L.pattern!=='shimmer'){
    const k=cell(x,y,z,.028);if(k.d<.24)c=mix(c,C.stripe,L.pattern==='ghost'?.5:.65);
