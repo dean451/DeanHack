@@ -29,7 +29,7 @@ import {createFern,isFern} from './fern.js';
 import {createDevilsSnare,isDevilsSnare} from './devils-snare.js';
 import {createPiercer,isPiercer} from './piercer.js';
 import {createRat,isRat,RAT_NECK} from './enormous-rat.js';
-import {createNewt,isNewt} from './newt.js';
+import {createLizard,isLizard} from './lizard.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
@@ -2682,7 +2682,7 @@ export function createCreature(cell={}){
  const name=(cell.name||'').toLowerCase(),letter=Number.isInteger(cell.symbol)?String.fromCharCode(cell.symbol):'',color=nhColor(cell);
  if(letter==='@'&&isWereMan(name))return createWereMan(name);// a were in human form
  if(isRat(name))return createRat(name);
- if(isNewt(name))return createNewt();
+ if(isLizard(name))return createLizard(name);
  if(name==='rock mole')return rockMole();
  if(name==='woodchuck')return woodchuck();
  if(/grid ?bug/.test(name))return gridBug();
