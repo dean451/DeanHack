@@ -83,3 +83,10 @@ test('mote 5 is dragged back a little mid-spiral', () => {
   assert.ok(r(5, v) < r(5, u), 'still closing in');
   for (let t = 0; t < POLY.crush; t += .005) { const p = motePose(5, t); assert.ok(p.alpha >= 0 && p.alpha <= .85 && Math.hypot(p.x, p.z) < .85, String(t)); }
 });
+
+test('mote 1 blinks out mid-spiral and returns', () => {
+  const a = u => motePose(1, u * POLY.crush).alpha;
+  assert.ok(a(.54) < .1, 'gone');
+  assert.ok(a(.45) > .3 && a(.65) > .3, 'back');
+  assert.equal(motePose(1, POLY.total).alpha, 0);
+});
