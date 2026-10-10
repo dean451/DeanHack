@@ -17,7 +17,8 @@ export const isFallingRockMessage = text => /trap door in the ceiling opens and 
 
 // Height of the rock: waits in the dark, falls on an accelerating curve, hops once, rests.
 export function rockPose(t) {
-  if (t <= .08) return {x: 0, y: ROCK.height, alpha: 0, spin: 0};
+  // Anticipation: in the last instant before it drops, the rock shows in the slot and trembles, as if it were deciding.
+  if (t <= .08) { const u = clamp01((t - .03) / .05); return {x: .012 * Math.sin(t * 400) * u, y: ROCK.height, alpha: u, spin: 0}; }
   if (t <= .08 + ROCK.drop) { const u = (t - .08) / ROCK.drop; // It does not fall true: it swings a little off the vertical, as if it had caught the slot's edge, and is back on the mark by the floor.
     return {x: .035 * Math.sin(u * 9) * (1 - u), y: .06 + (ROCK.height - .06) * (1 - u * u), alpha: 1, spin: u * 4}; }
   const h = t - .08 - ROCK.drop;
