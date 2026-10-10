@@ -105,3 +105,22 @@ test('a bite ends with a head-shake that stays in bounds and returns to rest', (
   B.updateBatJitter(a, dt, 1, true);
   assert.ok(Number.isFinite(a.batLift.rotation.y));
 });
+
+test('a bat far from the hero now and then startles: a hard roll and a shiver, then it rights itself', () => {
+  for (let u = -.1; u <= 1.1; u += .005) assert.ok(Math.abs(B.startlePose(u)) <= 1, `${u}`);
+  assert.equal(B.startlePose(0), 0);
+  assert.equal(B.startlePose(1), 0);
+  assert.ok(B.startlePose(.175) > .95, 'a sharp kick');
+  let flips = 0, last = 0;
+  for (let u = .4; u < 1; u += .002) { const s = Math.sign(B.startlePose(u)); if (s && last && s !== last) flips++; if (s) last = s; }
+  assert.ok(flips >= 4, `shivers ${flips}`);
+  for (let u = 0; u < 1; u += .002) assert.ok(Math.abs(B.startlePose(u + .002) - B.startlePose(u)) < .08, `${u}`);
+  const a = mon('bat');
+  let seen = false;
+  for (let t = 0; t < 60; t += dt) {
+    const st = B.updateBatJitter(a, dt, t, false);
+    if (st.startle != null) seen = true;
+    assert.ok(Number.isFinite(a.batLift.rotation.z) && Math.abs(a.batLift.rotation.z) < B.BANK_MAX + B.KICK + B.TUMBLE + .1);
+  }
+  assert.ok(seen, 'it startled');
+});

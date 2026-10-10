@@ -29,6 +29,9 @@ export const SPLAY = .5, SPLAY_DECAY = 3;
 // The jaws never close more than SHUT past rest, nor open past the look's max.
 export const SHUT = .14;
 export const REST_RATE = 3;
+// A nod (hero out of range): the head dips twice, quick and heavy, as if the ant were tasting the
+// ground, then lifts. First after NOD_MIN..+NOD_SPAN s, NOD_LEN s long, NOD_DIP rad.
+export const NOD_MIN = 3, NOD_SPAN = 5, NOD_LEN = 1.2, NOD_DIP = .32;
 const SNAP = 1e-3;
 // Per kind: the resting gape (rad), how wide they open to clack, gape at the hero and threaten
 // (rad), the most they open; clack gap (s) and span, how many clacks in a burst (most), the
@@ -86,13 +89,20 @@ export function bitePose(u) {
     worry: Math.sin(w * Math.PI * 6) * Math.sin(w * Math.PI)};
 }
 
+// The nod at progress u (0..1): two dips of the head (0..1), exactly zero at both ends.
+export function nodPose(u) {
+  if (!(u > 0) || !(u < 1)) return 0;
+  return Math.sin(Math.PI * u * 2) ** 2 * (1 - .35 * smooth((u - .5) / .5)) * Math.sin(Math.PI * u) ** 2;
+}
+
 function setup(a) {
   const st = {seed: ((a.g?.id ?? 1) * 69621) % 2147483647 || 1, life: 1, look: LOOKS[a.antJaws] || LOOKS['giant ant'],
     rest: a.jaws.map(j => j.rotation.y), applied: {pitch: 0, yaw: 0},
     near: 0, face: 0, wait: 0, clack: null, n: 1, threat: null, tWait: 0, splay: 0, lastHit: null,
-    tickWait: 0, tick: 0, tickTo: 0, gape: 0, stride: 0, act: 1, T: 0};
+    nod: null, nodWait: 0, tickWait: 0, tick: 0, tickTo: 0, gape: 0, stride: 0, act: 1, T: 0};
   st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
   st.tWait = THREAT_FIRST + st.look.tSpan * .5 * rand(st);
+  st.nodWait = NOD_MIN + NOD_SPAN * (st.seed % 997) / 997; // its own clock: the shared random stream is left alone
   st.tickWait = rand(st) / st.look.tick;
   st.ph = rand(st) * Math.PI * 2;
   return st;
@@ -152,6 +162,8 @@ export function updateAntJaws(a, dt, t, busy, look = null, walking = false) {
     st.tWait -= dt;
     if (st.tWait <= 0 && !busy) { st.threat = 0; st.tWait = L.tGap + L.tSpan * rand(st); }
   }
+  if (st.nod != null) { st.nod += dt / NOD_LEN; if (st.nod >= 1) st.nod = null; }
+  else if (!dead && !h && st.clack == null && st.threat == null) { st.nodWait -= dt; if (st.nodWait <= 0 && !busy) { st.nod = 0; st.nodWait = NOD_MIN + NOD_SPAN * (.5 + .5 * Math.sin(st.T * 7.3 + st.ph)); } }
   // a bite or a blow eases a clack or threat out (never a jump)
   st.act = approach(st.act, atk || sp > .2 ? 0 : 1, 12, dt);
   const k = st.act, cl = burstPose(st.clack ?? 0, st.n) * k, th0 = threatPose(st.threat ?? 0);
@@ -178,7 +190,7 @@ export function updateAntJaws(a, dt, t, busy, look = null, walking = false) {
   });
 
   // the head: the tick and the turn to the hero, rearing in a threat, dropping into a bite, a flinch
-  const pitch = (-.38 * th.rear + .28 * bite.lunge - .25 * sp * (1 + .3 * Math.sin(st.T * 23))) * w;
+  const pitch = (-.38 * th.rear + .28 * bite.lunge + NOD_DIP * nodPose(st.nod ?? 0) * k - .25 * sp * (1 + .3 * Math.sin(st.T * 23))) * w;
   const yaw = (st.tick + st.face * (.4 + .6 * st.near) + .3 * bite.worry) * w;
   const hd = a.head, o = st.applied;
   hd.rotation.x += pitch - o.pitch; hd.rotation.y += yaw - o.yaw;
