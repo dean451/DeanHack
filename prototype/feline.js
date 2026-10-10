@@ -216,7 +216,7 @@ function buildHead(L,C){
    // the big cats' left ear is bitten: a dark wedge missing from the rim
    if(s<0)P.add(new THREE.ConeGeometry(.012,.03,4),at(ex-.012,ey+.03,ez+.012,[0,0,.5],[1,1,.5]),C.stripe);
   }else{
-   const torn=false,e=(L.tufts?1.25:L.scruffy?1.3:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
+   const torn=false,e=(L.tufts?1.25:L.scruffy?1.5:1)*(torn?.8:1),rot=[-.15,0,-s*.3];
    P.add(new THREE.ConeGeometry(.038*e,.075*e,4),at(s*.055,.095+.01*(e-1),.03,rot,[1,1,.45]),(x,y)=>mix(C.coat,C.back,smooth((y-.1)/.04)));
    P.add(new THREE.ConeGeometry(.026*e,.055*e,4),at(s*.055,.09+.01*(e-1),.042,rot,[1,1,.3]),inner);
    if(torn)P.add(new THREE.ConeGeometry(.01,.03,3),at(s*.072,.098,.03,[-.15,0,-s*.7],[1,1,.45]),C.coat);
