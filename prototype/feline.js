@@ -157,7 +157,7 @@ function buildBody(L,C){
   }
   for(const s of [-1,1])P.add(new THREE.ConeGeometry(.016,.022,4),at(s*.058*bw,L.Y+.085,-.15,[-.2,0,-s*.5],[1,1,.8]),paint);
   // the dark hollow where the flank tucks in
-  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.03,8,6),at(s*.1*bw,L.Y-.01,-.04,[0,0,0],[.5,1,1.5]),(x,y)=>mix(C.coat,C.stripe,.3));
+  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.03,8,6),at(s*.095*bw,L.Y-.01,-.04,[0,0,0],[.25,.8,1.5]),(x,y)=>mix(C.coat,C.stripe,.3));
  }
  if(L.tentacles){
   const pad=rgb(L.tentacles),spike=rgb('#d8d4f0');
