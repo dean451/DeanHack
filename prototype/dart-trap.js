@@ -30,7 +30,7 @@ export function shaftPose(kind, t) {
   const late = .09 * Math.sin(clamp01((h - .3) / .07) * Math.PI) * Math.sin(h * 90);
   // A heavy arrow is driven a hair deeper by its own weight a moment after it lands, then rocks back.
   const drive = kind === 'arrow' ? .015 * Math.sin(clamp01(h / .05) * Math.PI) : 0;
-  return {x: u < 1 ? x : -.04 * Math.exp(-h * 30) + drive, tilt: u < 1 ? 0 : quiver(kind, h) + late, alpha: 1 - smooth(clamp01((t - .6) / .3))};
+  return {x: u < 1 ? x : -.04 * Math.exp(-h * 30) + drive, tilt: u < 1 ? (kind === 'dart' ? .12 * Math.sin(u * Math.PI * 5) * (1 - u) : 0) : quiver(kind, h) + late, alpha: 1 - smooth(clamp01((t - .6) / .3))};
 }
 
 // The streak hanging in the air behind the flight: bright at the strike, gone as the shaft lands.
