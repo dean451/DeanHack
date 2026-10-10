@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {tailSway, dogFreeze, unicornLash, UNI_PERIOD, UNI_LEN, UNI_FLICK, DOG_PERIOD, DOG_HOLD, DOG_STILL, FLAYER_SWING, FLAYER_SWING2} from './tail-sway.js';
+import {tailSway, dogFreeze, unicornLash, UNI_PERIOD, UNI_LEN, UNI_FLICK, scorpionStab, SCORP_PERIOD, SCORP_LEN, SCORP_DRAW, SCORP_STAB, SCORP_SWING, DOG_PERIOD, DOG_HOLD, DOG_STILL, FLAYER_SWING, FLAYER_SWING2} from './tail-sway.js';
 
 const actor = (extra = {}) => ({g: {position: {x: 0, z: 0}}, ...extra});
 
@@ -72,4 +72,24 @@ test('a unicorn\'s tail lashes twice now and then, smoothly, and is the plain sw
   assert.ok(maxStep < .08, `step ${maxStep}`);
   assert.equal(unicornLash(0, 0), 0);
   assert.ok(Math.abs(unicornLash(UNI_LEN - 1e-9, 0)) < 1e-6);
+});
+
+test('a scorpion\'s sting trembles cocked, then draws back and stabs now and then, smoothly and back to rest', () => {
+  const a = actor({quirk: 'spider', species: 'giant scorpion', claws: []});
+  let stabs = 0, was = false, lo = 0, hi = 0, maxStep = 0, prev = tailSway(a, 0);
+  for (let t = 1 / 60; t < SCORP_PERIOD * 4; t += 1 / 60) {
+    const v = tailSway(a, t), s = scorpionStab(t, 0);
+    assert.ok(Number.isFinite(v) && s >= -SCORP_DRAW - 1e-9 && s <= SCORP_STAB * 1.05);
+    const on = s > SCORP_STAB * .5; if (on && !was) stabs++; was = on;
+    lo = Math.min(lo, s); hi = Math.max(hi, s); maxStep = Math.max(maxStep, Math.abs(v - prev)); prev = v;
+  }
+  assert.equal(stabs, 4, 'one stab per period');
+  assert.ok(lo < -SCORP_DRAW * .9 && hi > SCORP_STAB * .5, `draw ${lo} stab ${hi}`);
+  assert.ok(maxStep < .1, `step ${maxStep}`);
+  assert.equal(Math.abs(scorpionStab(0, 0)), 0);
+  assert.ok(Math.abs(scorpionStab(SCORP_LEN - 1e-9, 0)) < 1e-6);
+  assert.ok(Math.abs(scorpionStab(SCORP_LEN + .1, 0)) === 0);
+  // a spider without claws keeps the old sway
+  const sp = actor({quirk: 'spider', species: 'cave spider'});
+  assert.equal(tailSway(sp, 3), Math.sin(9) * .24);
 });

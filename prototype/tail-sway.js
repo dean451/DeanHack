@@ -31,6 +31,20 @@ export function unicornLash(t, ph) {
   return UNI_FLICK * Math.sin(Math.PI * u) ** 2 * Math.sin(Math.PI * 4 * u);
 }
 
+// A scorpion's sting is held cocked over its back and only trembles, slowly, instead of wagging
+// like a dog's. Every SCORP_PERIOD s it stabs: the tail draws back SCORP_DRAW rad over the first
+// quarter of SCORP_LEN s, then snaps through SCORP_STAB rad the other way and rebounds. Zero at both
+// ends. Each scorpion has its own timing.
+export const SCORP_RATE = 1.7, SCORP_SWING = .06, SCORP_PERIOD = 6.1, SCORP_LEN = .7, SCORP_DRAW = .12, SCORP_STAB = .3;
+export function scorpionStab(t, ph) {
+  const w = (((t + ph * 2.3) % SCORP_PERIOD) + SCORP_PERIOD) % SCORP_PERIOD;
+  if (w >= SCORP_LEN) return 0;
+  const u = w / SCORP_LEN;
+  if (u < .25) return -SCORP_DRAW * Math.sin(Math.PI * u / .25) ** 2;
+  const x = (u - .25) / .75;
+  return 1.4 * SCORP_STAB * Math.sin(2 * Math.PI * x) * (1 - x) ** 1.5;
+}
+
 // A stable phase for an actor, from where it was first seen, so it doesn't jump as it walks.
 const phaseOf = a => a.tailPhase ??= ((a.g?.position.x || 0) * 1.7 + (a.g?.position.z || 0) * 2.3) % (Math.PI * 2);
 
@@ -54,6 +68,7 @@ export function tailSway(a, t, phase = 0) {
     const ph = phaseOf(a);
     return Math.sin(t * FLAYER_RATE + ph) * FLAYER_SWING + Math.sin(t * FLAYER_RATE2 + ph * 1.7) * FLAYER_SWING2;
   }
+  if (a.quirk === 'spider' && a.claws) return Math.sin(t * SCORP_RATE + phase) * SCORP_SWING + scorpionStab(t, phaseOf(a));
   const [rate, swing] = QUIRKS[a.quirk] || DEFAULT;
   if (a.quirk === 'dog') return Math.sin(t * rate + phase) * swing * dogFreeze(t, phaseOf(a));
   if (a.quirk === 'unicorn') return Math.sin(t * rate + phase) * swing + unicornLash(t, phaseOf(a));
