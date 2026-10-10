@@ -20,6 +20,7 @@ import {buildMattock,MATTOCK_NAME} from './mattock.js';
 import {createUnicornHorn} from './unicorn-horn.js';
 import {buildPickAxe,PICK_AXE_NAME} from './pick-axe.js';
 import {buildMjollnir} from './mjollnir.js';
+import {buildExcalibur} from './excalibur.js';
 import {artifactFromName} from './artifact-gleam.js';
 
 // A held weapon is turned a quarter about its own long axis, so the edge leads the swing
@@ -39,7 +40,10 @@ export function createHeldWeapon(item){
  // An artifact ("Excalibur") takes the model of its base type, which the bridge sends as `base`.
  const name=(item.base||item.name||'').toLowerCase();
  const blade=/sword|dagger|knife|athame|saber|scimitar|katana|tsurugi|wakizashi/.test(name);
- if(artifactFromName(item.name,item.class)==='mjollnir'){
+ if(artifactFromName(item.name,item.class)==='excalibur'){
+  // Excalibur wears its own blade, guard, grip and pommel, not the plain long sword (excalibur.js).
+  buildExcalibur(g);
+ }else if(artifactFromName(item.name,item.class)==='mjollnir'){
   // Mjollnir wears its own head, haft and runes, not the plain war hammer (mjollnir.js).
   buildMjollnir(g);
  }else if(/\bsilver saber\b/.test(name)){

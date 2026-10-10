@@ -66,6 +66,7 @@ export function createCavern({group,scene,camera,controls}){
  }
 
  // Dust hanging in the air around the hero, catching the lantern and torchlight.
+ const MOTE_FIELD=12,wrapAround=(v,c)=>v-c>MOTE_FIELD/2?v-MOTE_FIELD:v-c<-MOTE_FIELD/2?v+MOTE_FIELD:v;
  const MOTES=180,moteGeo=new THREE.BufferGeometry(),motePos=new Float32Array(MOTES*3),moteSeed=new Float32Array(MOTES);
  for(let i=0;i<MOTES;i++){motePos[i*3]=(Math.random()-.5)*12;motePos[i*3+1]=Math.random()*2.6;motePos[i*3+2]=(Math.random()-.5)*12;moteSeed[i]=Math.random()*100;}
  moteGeo.setAttribute('position',new THREE.BufferAttribute(motePos,3));
@@ -79,8 +80,10 @@ export function createCavern({group,scene,camera,controls}){
    for(let i=0;i<count;i++){const delta=target[i]-current[i];if(delta){current[i]=Math.abs(delta)<.003?target[i]:current[i]+delta*ease;if(current[i]!==target[i])animating=true;}compose(i);}
    mesh.instanceMatrix.needsUpdate=true;
   }
-  motes.position.set(hero.x,0,hero.z);
-  for(let i=0;i<MOTES;i++){const s=moteSeed[i];let y=motePos[i*3+1]+dt*(.04+(s%1)*.05);if(y>2.6)y-=2.6;motePos[i*3+1]=y;motePos[i*3]+=Math.sin(t*.3+s)*dt*.06;motePos[i*3+2]+=Math.cos(t*.27+s*1.3)*dt*.06;}
+  // The dust hangs in the world, not on the hero: a swing's lunge or a step never drags it along.
+  // Motes that fall more than half the field behind wrap round to the far side, so the hero is
+  // always inside it.
+  for(let i=0;i<MOTES;i++){const s=moteSeed[i];let y=motePos[i*3+1]+dt*(.04+(s%1)*.05);if(y>2.6)y-=2.6;motePos[i*3+1]=y;motePos[i*3]=wrapAround(motePos[i*3]+Math.sin(t*.3+s)*dt*.06,hero.x);motePos[i*3+2]=wrapAround(motePos[i*3+2]+Math.cos(t*.27+s*1.3)*dt*.06,hero.z);}
   moteGeo.attributes.position.needsUpdate=true;
  }
  // Branch tint: a colour the stone texture is multiplied by (see `rockTint` in branch-air.js).
