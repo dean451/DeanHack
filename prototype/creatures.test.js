@@ -2771,7 +2771,7 @@ test('rust monsters bristle with a jagged spine ridge; acid blobs carry bone spl
  assert(count(rust)>count(dis)+150,'spine and pit geometry');
  const blob=createCreature({name:'acid blob',symbol:98,color:10}),jelly=createCreature({name:'blue jelly',symbol:106,color:4});
  const meshes=x=>{let n=0;x.g.traverse(o=>{if(o.isMesh)n++;});return n;};
- assert.equal(meshes(blob),10,'body, nucleus, five lobes and three bone splinters');assert.equal(meshes(jelly),11);
+ assert.equal(meshes(blob),17,'body, nucleus, five lobes, three bone splinters, four corroded pits and three drips');assert.equal(meshes(jelly),11);
 });
 
 test('a wyvern tail stinger keeps it inside its tile',()=>{
