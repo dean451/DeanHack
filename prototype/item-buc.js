@@ -51,7 +51,7 @@ export function itemFacts(text) {
   if (/\bempty tins?\b/i.test(t.split('(')[0])) out.push('empty');
   if (/\(laid by you\)/i.test(t)) out.push('laid by you');
   if (/\bdiluted\b/i.test(t.split('(')[0])) out.push('diluted');
-  if (/\((?:weapon|wielded)[^)]*\)/i.test(t)) out.push('wielded');
+  if (/\((?:tethered weapon|weapon|wielded)[^)]*\)/i.test(t)) out.push(/\(tethered weapon\b/i.test(t) ? 'wielded, tethered' : 'wielded');
   else if (/\((?:being worn|worn|on (?:left|right) (?:hand|finger))[^)]*\)/i.test(t)) out.push('worn');
   else if (/\(in quiver[^)]*\)/i.test(t)) out.push('quivered');
   const shop = /\((unpaid|for sale), (\d+) zorkmids?\)/i.exec(t);

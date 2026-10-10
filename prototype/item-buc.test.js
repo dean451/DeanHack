@@ -93,3 +93,8 @@ test('an empty tin and an egg you laid say so in the hover', () => {
   assert.deepEqual(itemFacts('an egg (laid by you)'), ['laid by you']);
   assert.deepEqual(itemFacts('a tin of spinach'), []);
 });
+
+test('a tethered aklys says it is wielded and tethered in the hover', () => {
+  assert.deepEqual(itemFacts('an aklys (tethered weapon in hand)'), ['wielded, tethered']);
+  assert.deepEqual(itemFacts('an aklys'), []);
+});
