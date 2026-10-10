@@ -16,7 +16,9 @@ export const isPackShakeMessage = text => /your pack shakes violently/i.test(tex
 // "A shiver runs up and down your spine!", "You smell charred flesh.", "You hear distant howling." and "You suddenly
 // yearn for your distant homeland.": the same trap's omens. Nothing but a chill, a wrong smell or a far-off cry comes
 // of them, so they show the same quiet ring.
-export const isOmenMessage = text => /a shiver runs up and down your spine|you smell charred flesh|you hear distant howling|you suddenly yearn for/i.test(text || '');
+// A hallucinating hero gets the same omens in other words ("the moon howling at you", hamburgers, Cleveland), and the
+// quest home gets "You feel like the prodigal son."; they are the same trap, so they show the same ring.
+export const isOmenMessage = text => /a shiver runs up and down your spine|you smell (charred flesh|hamburgers)|you hear (distant howling|the moon howling at you)|you suddenly yearn for|you feel (oddly )?like the prodigal son/i.test(text || '');
 
 // "You feel tired.": another of the trap's non-outcomes. The same quiet ring, but drowsy: it plays at
 // two thirds speed and its grit stays low, hardly leaving the floor.
