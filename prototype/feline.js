@@ -203,7 +203,7 @@ function buildHead(L,C){
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.026,10,8),at(s*.019,-.03,.123,[0,0,0],[.9,.7,1.15]),paint);
  P.add(new THREE.SphereGeometry(.018,12,8),at(0,-.052,.1,[0,0,0],[1,.7,1.1]),paint);
  // pets: a low brow ridge over each eye and a flat bridge, so the skull has bone under it instead of a smooth ball
- if(L.scruffy)for(const s of [-1,1])P.add(new THREE.SphereGeometry(.03,10,8),at(s*.04,.043,.112,[-.3,0,s*.25],[1.05,.2,.55]),paint);
+ if(L.scruffy)for(const s of [-1,1])P.add(new THREE.SphereGeometry(.03,10,8),at(s*.04,.043,.112,[-.3,0,s*.25],[.9,.15,.5]),paint);
  P.add(new THREE.SphereGeometry(.014,10,6),at(0,-.006,.146,[0,0,0],[1.3,.8,.7]),C.nose);
  // pupils in front of the glowing eyes: slits, or round on the big cats
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(L.scruffy?.015:.018,10,8),at(s*.041,.026,.139,[0,0,0],L.round?[.5,.5,.22]:[.22,.85,.22]),rgb('#080606'));
@@ -268,7 +268,7 @@ function buildLeg(L,C,fore){
   if(L.scruffy&&!L.socks)c=mix(c,C.coat,.65);
   // pets: the shoulder takes no dark stripe or shading, so it reads as part of the body and not a floating plate
   if(L.scruffy&&fore)c=mix(c,C.coat,.7*smooth((y+.02)/.05));
-  if(L.socks)c=mix(c,C.belly,.75*smooth((fy+.07-y)/.03));
+  if(L.socks)c=mix(c,C.belly,.5*smooth((fy+.07-y)/.03));
   return c;
  };
  let paw=L.socks?mix(C.belly,C.coat,.2):mix(C.coat,C.belly,.25);
