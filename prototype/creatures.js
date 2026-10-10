@@ -319,6 +319,8 @@ function dragon(o={}){
   const top=pts[0];addHead(body,[[top[0],top[1]-.04,top[2]-.04],[top[0],top[1]+.08,top[2]+.04],[top[0],top[1]+.14,top[2]+.1]],m);
   // a serpent rears behind two angular dark blades flaring from the base of its neck, a cobra's cut hood
   for(const s of [-1,1])dragonLimb(body,[s*.04,pts[0][1]-.06,pts[0][2]],[s*.17,pts[0][1]+.1,pts[0][2]-.03],.07,m.dark,.3);
+  // legged serpents carry a cut slab of muscle over each shoulder, like the four-legged breeds, not a bare stub
+  if(f.legs)for(const s of [-1,1])dragonLimb(body,[s*.12,.3,.15],[s*.17,.18,.14],.11,m.hide,.35);
   if(f.legs)dragonLegs(body,legs,m,{spots:[[-.13,.2,.14],[.13,.2,.14]],thick:.9});
   if(f.wings)for(const side of [-1,1]){const w=dragonWing(body,side,f.wings*(baby?.6:1),m,f.feathered);w.position.set(side*.08,.4,.2);wings.push(w);}
   if(f.fins){
