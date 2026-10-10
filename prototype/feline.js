@@ -265,6 +265,8 @@ function buildLeg(L,C,fore){
  const paint=(x,y,z)=>{
   let c=markings(L,C,px+x,py+y,pz+z,C.coat,true);
   if(x<-.008)c=mix(c,C.belly,.45);
+  // pets without socks: the leg carries the coat down to the paw instead of fading to belly cream
+  if(L.scruffy&&!L.socks)c=mix(c,C.coat,.65);
   if(L.socks&&y<fy+.07)c=C.belly;
   return c;
  };
