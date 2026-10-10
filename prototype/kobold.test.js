@@ -45,3 +45,9 @@ test('kobolds get their own scaly, tailed model instead of the short humanoid',(
  const a=meshes(createCreature({name:'kobold lord'})),again=meshes(createCreature({name:'kobold lord'}));
  a.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry,'geometry shared'));
 });
+
+test('plain and large kobolds have snapped their left horn; the lord and shaman keep both',()=>{
+ const top=(name,side)=>{const a=createCreature({name});let m=-1;a.head.traverse(o=>{if(o.isMesh&&o.userData.part==='head'){const p=o.geometry.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i);if(x*side>.03&&p.getZ(i)<.02)m=Math.max(m,y);}}});return m;};
+ for(const n of ['kobold','large kobold'])assert(top(n,-1)<top(n,1)-.02,`${n}: left horn is a stub`);
+ for(const n of ['kobold lord','kobold shaman'])assert(Math.abs(top(n,-1)-top(n,1))<1e-6,`${n}: matched horns`);
+});
