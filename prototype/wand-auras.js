@@ -50,9 +50,51 @@ export const WAND_AURAS = {
   locking: {color: 0xa8b4c8, blend: 'add', motion: 'orbit', count: 6, size: .05, period: 2.2, alpha: .6},
   probing: {color: 0x7fe3e8, blend: 'add', motion: 'sparkle', count: 8, size: .05, period: 1.8, alpha: .6},
   enlightenment: {color: 0xfff7e0, blend: 'add', motion: 'rise', count: 12, size: .06, period: 2.8, alpha: .75},
+  detection: {color: 0xd0c09a, blend: 'add', motion: 'sparkle', count: 8, size: .05, period: 2.4, alpha: .55},
   'secret door detection': {color: 0xd0c09a, blend: 'add', motion: 'sparkle', count: 8, size: .05, period: 2.4, alpha: .55},
   // A wand of nothing, once known, shows nothing.
 };
+
+
+// The loud beat (subtle always, loud on a beat): every few seconds each wand throws one bright, short flash on
+// the floor round it, in its own shape. shape: 'flash' (a glow pool that blooms and decays), 'ring' (a ring
+// racing outward), 'dark' (a darkening, normal-blended pool: death, cancellation, create monster), 'slow'
+// (a long, soft swell). The wand of nothing has none, and neither does lightning (its arcs are the beat).
+export const WAND_BEATS = {
+  fire: {shape: 'flash', color: 0xff6a1a, period: 3.1, size: .52, alpha: .85},
+  cold: {shape: 'flash', color: 0xaadfff, period: 3.6, size: .46, alpha: .8},
+  sleep: {shape: 'slow', color: 0x9a6bff, period: 5, size: .58, alpha: .6},
+  death: {shape: 'dark', color: 0x020205, period: 4.5, size: .5, alpha: .7},
+  'magic missile': {shape: 'ring', color: 0x8fb4ff, period: 2.6, size: .42, alpha: .9},
+  digging: {shape: 'ring', color: 0xb89a6a, period: 3.4, size: .46, alpha: .8},
+  polymorph: {shape: 'flash', color: 0x7cffb0, period: 3.3, size: .5, alpha: .8, rainbow: true},
+  teleportation: {shape: 'ring', color: 0xc56bff, period: 3, size: .52, alpha: .9},
+  cancellation: {shape: 'dark', color: 0x161422, period: 4, size: .42, alpha: .6},
+  'make invisible': {shape: 'ring', color: 0xe8f8ff, period: 4.2, size: .36, alpha: .35},
+  'speed monster': {shape: 'ring', color: 0x9dff7a, period: 1.8, size: .5, alpha: .8},
+  'slow monster': {shape: 'slow', color: 0xe0a050, period: 7, size: .5, alpha: .55},
+  striking: {shape: 'ring', color: 0xf2e8cc, period: 2.9, size: .5, alpha: .95},
+  'undead turning': {shape: 'flash', color: 0xffe8a0, period: 3.8, size: .46, alpha: .75},
+  light: {shape: 'flash', color: 0xfff0c0, period: 3.4, size: .72, alpha: .9},
+  detection: {shape: 'ring', color: 0xdcd0aa, period: 3.8, size: .72, alpha: .6},
+  'secret door detection': {shape: 'ring', color: 0xdcd0aa, period: 3.8, size: .72, alpha: .6},
+  enlightenment: {shape: 'flash', color: 0xfff8e0, period: 3.2, size: .46, alpha: .85},
+  probing: {shape: 'ring', color: 0x7fe3e8, period: 3, size: .36, alpha: .75},
+  opening: {shape: 'flash', color: 0xffe08a, period: 4, size: .32, alpha: .7},
+  locking: {shape: 'flash', color: 0xb4c0d4, period: 4, size: .32, alpha: .7},
+  'create monster': {shape: 'dark', color: 0x4a0a14, period: 4.2, size: .5, alpha: .65},
+  wishing: {shape: 'flash', color: 0xffd35a, period: 5, size: .62, alpha: .85},
+};
+// Where in its life (0..1) a beat is at time t, and how strong: pure, so a frame can land anywhere.
+export function beatAt(shape, t, period, phase = 0) {
+  const u = (((t / period + phase) % 1) + 1) % 1, attack = Math.min(1, u / .03);
+  switch (shape) {
+    case 'ring': return {u, level: Math.max(0, (1 - u) ** 1.6) * attack, grow: .2 + u * .95};
+    case 'dark': return {u, level: Math.sin(Math.PI * Math.min(1, u / .8)) ** .8 * (u < .8 ? 1 : 0), grow: 1};
+    case 'slow': return {u, level: Math.sin(Math.PI * u) ** 2, grow: .8 + .2 * u};
+    default: return {u, level: Math.exp(-u * 5.5) * attack, grow: .75 + .3 * Math.min(1, u * 3)};
+  }
+}
 
 // Other identified magic (item 10). Same rule: the look comes only from the hero's name for the
 // item. An unidentified magic lamp is "lamp", like an oil lamp, and stays dark.
@@ -260,6 +302,28 @@ function makeCrackle(seed) {
   return {points: lines, update, dispose() { geometry.dispose(); material.dispose(); }};
 }
 
+function makeBeat(style, random) {
+  const geo = style.shape === 'ring' ? new THREE.RingGeometry(.86, 1, 40) : new THREE.RingGeometry(.001, 1, 36, 6);
+  geo.rotateX(-Math.PI / 2);
+  if (style.shape !== 'ring') {
+    const p = geo.attributes.position, col = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) { const k = Math.pow(1 - Math.hypot(p.getX(i), p.getZ(i)), 2); col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k; }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  }
+  const dark = style.shape === 'dark';
+  const material = new THREE.MeshBasicMaterial({color: style.color, vertexColors: style.shape !== 'ring', transparent: true, opacity: 0, depthWrite: false,
+    blending: dark ? THREE.NormalBlending : THREE.AdditiveBlending, side: THREE.DoubleSide});
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.name = 'beat'; mesh.position.y = .028; mesh.frustumCulled = false; mesh.renderOrder = 1;
+  const phase = random(), hsl = {};
+  function update(t) {
+    const {level, grow} = beatAt(style.shape, t, style.period, phase);
+    material.opacity = level * style.alpha; mesh.visible = level > .01; mesh.scale.setScalar(style.size * grow);
+    if (style.rainbow) material.color.setHSL((t * .2) % 1, .8, .62);
+  }
+  return {points: mesh, update, dispose() { geo.dispose(); material.dispose(); }};
+}
+
 // A Group holding the aura for `kind` (a WAND_AURAS key). userData.update(t) animates it and
 // userData.dispose() frees it. `seedText` keeps each wand's particles its own.
 export function createWandAura(kind, seedText = '') {
@@ -270,6 +334,8 @@ export function createWandAura(kind, seedText = '') {
   const layers = [makeLayer(style, random)];
   if (style.core) layers.push(makeLayer(style.core, random));
   if (style.crackle) layers.push(makeCrackle(seed));
+  // the loud beat lies on the floor round a wand there; a held wand has none (it would float in the air)
+  if (WAND_BEATS[kind] && seedText !== 'held') layers.push(makeBeat(WAND_BEATS[kind], random));
   for (const layer of layers) g.add(layer.points);
   g.userData.kind = kind;
   g.userData.update = t => { for (const layer of layers) layer.update(t); };

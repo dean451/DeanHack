@@ -282,3 +282,24 @@ test('the wand of wishing alone has a halo of wish-lights with a shimmering rim'
   assert.ok(WAND_AURAS.wishing.period >= 5, 'the halo turns slowly');
   for (const [kind, style] of Object.entries(WAND_AURAS)) if (kind !== 'wishing') assert.notEqual(style.motion, 'halo', kind);
 });
+
+test('every wand except nothing glows and throws a loud beat, lightning excepted (its arcs are the beat)', async () => {
+  const {WAND_AURAS, WAND_BEATS, createWandAura, beatAt} = await import('./wand-auras.js');
+  const types = ['light', 'detection', 'enlightenment', 'create monster', 'wishing', 'striking', 'make invisible', 'slow monster', 'speed monster',
+    'undead turning', 'polymorph', 'cancellation', 'teleportation', 'opening', 'locking', 'probing', 'digging', 'magic missile', 'fire', 'cold', 'sleep', 'death', 'lightning'];
+  for (const type of types) {
+    assert(WAND_AURAS[type], `${type} has an aura`);
+    const g = createWandAura(type, 'floor');
+    assert(g, type);
+    if (type !== 'lightning') assert(g.getObjectByName('beat'), `${type} has a beat`);
+    g.userData.dispose();
+  }
+  assert.equal(WAND_AURAS.nothing, undefined, 'the wand of nothing never glows');
+  assert.equal(createWandAura('nothing', 'floor'), null);
+  assert.equal(WAND_BEATS.nothing, undefined);
+  assert(!createWandAura('fire', 'held').getObjectByName('beat'), 'a held wand has no floor beat');
+  for (const shape of ['flash', 'ring', 'dark', 'slow']) for (let t = 0; t < 12; t += .13) {
+    const b = beatAt(shape, t, 3.1, .4);
+    assert(b.level >= 0 && b.level <= 1 && Number.isFinite(b.grow), `${shape} ${t}`);
+  }
+});
