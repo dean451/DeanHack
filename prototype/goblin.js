@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {sculptSkull} from './hero-face.js';
 
 // Goblins and hobgoblins used to fall through to the class-letter fallback and stand as the plain
 // orc humanoid in a grey or brown box. They now have their own models:
@@ -24,7 +26,7 @@ const LOOKS={
  goblin:{
   skin:'#7f8c5a',shade:'#56613a',inner:'#5a3028',eye:'#ffd23a',teeth:'#e6dcb4',claw:'#2e281c',
   cloth:'#6a5638',clothDark:'#3e3020',rope:'#a08a5c',leather:'#4a3222',metal:'#6e706a',
-  hip:.34,shoulderY:.62,shoulderX:.2,headY:.66,headZ:.07,head:.13,arm:.34,
+  hip:.34,shoulderY:.62,shoulderX:.2,headY:.7,headZ:.08,head:.13,arm:.34,
  },
  hobgoblin:{
   skin:'#b0643a',shade:'#7a3e22',inner:'#5e2c22',eye:'#ff8a2a',teeth:'#ece2c0',claw:'#2a1e16',
@@ -45,7 +47,7 @@ function buildBody(kind,L,C){
  const P=pieces(),h=L.hip;
  if(kind==='goblin'){
   // a narrow, bony trunk with a little pot belly, and a hump over the shoulders from the hunch
-  P.add(lathe([[0,.29],[.1,.29],[.13,.33],[.135,.4],[.15,.45],[.14,.5],[.12,.55],[.13,.6],[.1,.65],[.05,.67],[0,.675]],22),at(0,0,.01,[.18,0,0],[1.05,1,.85]),(x,y,z)=>mix(ramp(C.shade,C.skin,.3,.5)(y),C.shade,z<-.04?.35:0));
+  P.add(lathe([[0,.29],[.1,.29],[.13,.33],[.135,.4],[.15,.45],[.14,.5],[.12,.55],[.13,.6],[.1,.65],[.05,.67],[0,.675]],22),at(0,0,.01,[.18,0,0],[.86,1,.8]),(x,y,z)=>mix(ramp(C.shade,C.skin,.3,.5)(y),C.shade,z<-.04?.35:0));
   P.add(new THREE.SphereGeometry(.1,12,8),at(0,.58,-.07,[0,0,0],[1.3,.8,.8]),C.skin);
   // ribs down each flank
   for(const s of [-1,1])for(let i=0;i<3;i++)P.add(new THREE.SphereGeometry(.03,8,4),at(s*.125,.49+i*.04,.045,[0,s*.5,0],[.5,.25,1.4]),C.shade);
@@ -92,21 +94,19 @@ function buildBody(kind,L,C){
 }
 
 function buildHead(kind,L,C){
- const P=pieces(),r=L.head;
+ const P=pieces(),r=L.head;let skull=null;
  if(kind==='goblin'){
   // a big bald dome with a jutting brow, sunken cheeks and a narrow pointed chin
-  P.add(new THREE.SphereGeometry(r,18,14),at(0,.02,-.01,[0,0,0],[1.05,.98,1.05]),(x,y,z)=>mix(C.skin,C.shade,THREE.MathUtils.clamp(-y*6,0,.5)+(z<-.05?.2:0)));
+  skull=sculptSkull(r*1.02,[0,.02,-.01],{skin:C.skin,shadow:C.shade,light:mix(C.skin,[1,1,1],.18),lips:C.inner},{brow:.04,socket:.034,socketShade:.7,hollow:.03,bone:.02,jaw:.5,chin:.0,forehead:.03,mouth:.2});
   P.add(new THREE.SphereGeometry(.075,12,10),at(0,-.06,.05,[0,0,0],[1,.9,1.1]),C.skin);
   P.add(new THREE.ConeGeometry(.035,.06,8),at(0,-.12,.08,[Math.PI+.4,0,0]),C.skin);
   P.add(new THREE.CylinderGeometry(.018,.02,.16,8),at(0,.045,.1,[0,0,Math.PI/2],[1,1,1]),C.shade);
   for(const s of [-1,1]){
    // brow ridges over deep sockets
-   P.add(new THREE.SphereGeometry(.036,10,8),at(s*.045,.05,.118,[0,0,s*.3],[1.3,.55,.8]),C.shade);
    // huge bat ears flaring out sideways, with a dried-blood inner and a nick out of the rim
    P.add(new THREE.ConeGeometry(.058,.21,6),at(s*.185,.04,-.02,[0,s*.25,s*-1.3],[1,1,.28]),ramp(C.skin,C.shade,-.02,.1));
    P.add(new THREE.ConeGeometry(.038,.155,6),at(s*.176,.042,-.005,[0,s*.25,s*-1.3],[1,1,.16]),C.inner);
    // hollow cheeks
-   P.add(new THREE.SphereGeometry(.03,8,6),at(s*.07,-.04,.085,[0,0,0],[1,1.3,.5]),C.shade);
   }
   // a long hooked nose curving down over the grin
   const nose=[];for(let i=0;i<=8;i++){const t=i/8;nose.push(new THREE.Vector3(0,.02-t*.07-t*t*.03,.12+t*.08-t*t*.02));}
@@ -150,14 +150,14 @@ function buildHead(kind,L,C){
   // hair at the nape under the rim
   P.add(new THREE.SphereGeometry(r*.96,14,6,0,Math.PI*2,Math.PI*.5,Math.PI*.2),at(0,.08,-.02,[-.9,0,0]),C.hair);
  }
- return P.merge();
+ const head=P.merge();return skull?mergeGeometries([head,skull]):head;
 }
 
 // The eyes, on their own glowing material, in head space.
 function buildEyes(kind){
  const P=pieces(),Y=[1,1,1];
  for(const s of [-1,1]){
-  if(kind==='goblin')P.add(new THREE.SphereGeometry(.024,10,8),at(s*.047,.022,.124,[0,0,s*-.3],[1.25,.8,.6]),Y);
+  if(kind==='goblin')P.add(new THREE.SphereGeometry(.015,10,8),at(s*.045,.02,.112,[0,0,s*-.5],[1.6,.5,.5]),Y);
   else P.add(new THREE.SphereGeometry(.016,8,6),at(s*.045,.03,.121,[0,0,s*.15],[1.3,.7,.6]),Y);
  }
  return P.merge();

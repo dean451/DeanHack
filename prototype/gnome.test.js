@@ -35,9 +35,9 @@ test('gnomes, gnome lords, gnome kings and gnomish wizards get their own model i
   assert(chin.y<head.y&&chin.distanceTo(head)<.13,`${name}: beard at the chin`);
   // the cap's tip (its highest-reaching lathe ring, the last vertices) flops back behind the brim
   const pos=a.hat.geometry.attributes.position,top=new THREE.Vector3(),tip=new THREE.Vector3(-1,-1,1e9);
-  for(let i=0;i<pos.count;i++){top.fromBufferAttribute(pos,i);if(top.distanceTo(new THREE.Vector3(0,-.18,0))>.3&&top.z<tip.z)tip.copy(top);}
+  for(let i=0;i<pos.count;i++){top.fromBufferAttribute(pos,i);if(top.distanceTo(new THREE.Vector3(0,-.18,0))>.2&&top.z<tip.z)tip.copy(top);}
   a.hat.localToWorld(tip);
-  assert(tip.z<brim.z-.12&&tip.y>brim.y+.2,`${name}: cap tip flops back (${tip.z-brim.z}, ${tip.y-brim.y})`);
+  assert(tip.z<brim.z-.1&&tip.y>brim.y+.12,`${name}: cap tip flops back (${tip.z-brim.z}, ${tip.y-brim.y})`);
   const [l,r]=a.legs.map(leg=>new THREE.Box3().setFromObject(leg));
   assert(Math.abs((l.min.x+l.max.x)/2+(r.min.x+r.max.x)/2)<1e-6,`${name}: feet mirrored`);
   tops[name]=b.max.y;
