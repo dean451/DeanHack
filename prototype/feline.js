@@ -249,7 +249,7 @@ function buildHead(L,C){
 
 function buildEyes(L){
  const P=pieces();
- for(const s of [-1,1])P.add(new THREE.SphereGeometry(.021,10,8),at(s*.041,.026,.128,[0,0,-s*(L.scruffy?.25:0)],L.scruffy?[.85,.55,.6]:[1,.8,.6]),[1,1,1]);
+ for(const s of [-1,1])P.add(new THREE.SphereGeometry(.021,10,8),at(s*.041,.026,.128,[0,0,-s*(L.scruffy?.25:0)],L.scruffy?[.95,.42,.6]:[1,.8,.6]),[1,1,1]);
  return P.merge();
 }
 
@@ -273,10 +273,10 @@ function buildLeg(L,C,fore){
  if(L.scruffy)paw=mix(paw,C.stripe,.2);
  const skin=(x,y,z)=>y<fy+.03?paw:paint(x,y,z);
  if(fore){
-  segment(P,[0,.02,0],[0,-.11,-.02],.048*k,.033*k,skin,12);
+  segment(P,[0,.02,0],[0,-.11,-.045],.048*k,.033*k,skin,12);
   P.add(new THREE.SphereGeometry(.05*k,12,8),at(0,-.02,0,[0,0,0],[.7,1.2,1]),skin);
-  P.add(new THREE.SphereGeometry(.034*k,10,8),at(0,-.11,-.02),skin);
-  segment(P,[0,-.11,-.02],[0,fy+.035,.01],.03*k,.024*k,skin,10);
+  P.add(new THREE.SphereGeometry(.034*k,10,8),at(0,-.11,-.045),skin);
+  segment(P,[0,-.11,-.045],[0,fy+.035,.01],.03*k,.024*k,skin,10);
   P.add(new THREE.SphereGeometry(.025*k,10,6),at(0,fy+.035,.01),skin);
   P.add(new THREE.SphereGeometry(.036*k,14,8),at(0,fy+.016,.025,[0,0,0],[1,.46,1.2]),paw);
   for(const [tx,tz] of [[-.024,.048],[-.008,.056],[.008,.056],[.024,.048]]){
