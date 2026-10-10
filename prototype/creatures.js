@@ -30,6 +30,7 @@ import {createDevilsSnare,isDevilsSnare} from './devils-snare.js';
 import {createPiercer,isPiercer} from './piercer.js';
 import {createRat,isRat,RAT_NECK} from './enormous-rat.js';
 import {createLizard,isLizard} from './lizard.js';
+import {createFloatingEye} from './floating-eye.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
@@ -601,18 +602,7 @@ function cube(o){
 }
 
 // Floating eyes: a big eyeball hovering at head height. Easily the most recognisable shape.
-function floatingEye(o){
- const g=new THREE.Group(),body=new THREE.Group(),lift=new THREE.Group();g.add(body);body.add(lift);lift.position.y=.58;
- sphere(lift,.24,mat('#b8a47a',{roughness:.4}));
- // The iris and pupil sit in their own group pivoting at the eyeball's centre (its `head`), so
- // glance.js can roll the gaze across the ball; the pupil is its own handle so it can dilate.
- const eye=new THREE.Group();lift.add(eye);
- sphere(eye,.115,mat(o.iris||'#2f6ad0',{roughness:.2,emissive:o.iris||'#2f6ad0',emissiveIntensity:.25}),0,0,.2,1,1,.38);
- const pupil=sphere(eye,.05,mat('#050505',{roughness:.1}),0,0,.24,1,1,.35);
- for(let i=0;i<6;i++){const a=i*1.05;tube(lift,[[Math.cos(a)*.12,-.18,Math.sin(a)*.12],[Math.cos(a)*.16,-.32,Math.sin(a)*.16],[Math.cos(a)*.12,-.44,Math.sin(a)*.12]],.012,mat('#b98a7a'),8);}
- for(let i=0;i<5;i++){const a=i*1.3-2.6;const vein=rounded(lift,.006,.12,.006,mat('#b8453a'),Math.sin(a)*.2,Math.cos(a)*.08,.1,.002);vein.rotation.z=a;}
- return {...actor(g,body,[],null,[],'hover'),head:eye,pupil};
-}
+function floatingEye(o){const e=createFloatingEye(o);return {...actor(e.g,e.body,[],null,[],'hover'),head:e.eye,pupil:e.pupil};}
 
 // Shocking spheres: a metallic orb crackling with jagged spikes of electricity,
 // deliberately unlike the floating eye's soft iris-and-tendrils look.
