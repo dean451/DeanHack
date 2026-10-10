@@ -87,3 +87,11 @@ test('a landed arrow is driven a hair deeper, a dart is not, and both settle whe
   assert.ok(most > .01 && most <= .015 + 1e-9);
   assert.ok(Math.abs(x('arrow', .06) - tail('arrow', .06)) < 1e-9);
 });
+
+test('a dart wobbles in flight, an arrow flies true, both land level', () => {
+  const t = SHOT.flight * .5;
+  assert.ok(Math.abs(shaftPose('dart', t).tilt) > .03, 'wobble');
+  assert.equal(shaftPose('arrow', t).tilt, 0);
+  for (let s = 0; s < SHOT.flight; s += .002) assert.ok(Math.abs(shaftPose('dart', s).tilt) <= .12 + 1e-9);
+  assert.equal(shaftPose('dart', SHOT.total).tilt, 0);
+});

@@ -97,3 +97,9 @@ test('droplet 6 hangs back in the jet and catches up', () => {
   assert.ok(x(6, RUST.flight * .5 + .12) < x(5, RUST.flight * .5 + .1), 'behind its neighbour mid-flight');
   assert.ok(Math.abs(x(6, .12 + RUST.flight) - x(6, .12 + RUST.flight - 1e-9)) < 1e-3, 'caught up at the strike');
 });
+
+test('droplet 3 slews sideways in the jet and still splashes normally', () => {
+  const t = 3 * .02 + RUST.flight * .25;
+  assert.ok(Math.abs(dropPose(3, t).z - Math.sin(3 * 1.7) * .04 * .25 - .05) < 1e-9, 'the slew');
+  assert.equal(dropPose(3, RUST.total).alpha, 0);
+});
