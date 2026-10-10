@@ -29,7 +29,9 @@ export function puffPose(i, t) {
   const roll = i === 1 ? .08 * Math.sin(clamp01((u - .5) / .3) * Math.PI) : 0;
   // The sixth puff sighs out sideways once it has sunk, a slow slip of breath that stops short.
   const sigh = i === 6 ? .07 * Math.sin(clamp01((u - .68) / .22) * Math.PI) : 0;
-  return {x: Math.cos(a) * spread + roll + sigh, y: Math.max(.08 + (.5 + .06 * (i % 3)) * rise - .52 * droop + jerk, .05), z: Math.sin(a) * spread, size: (.09 + .14 * smooth(u)) * (1 + .1 * droop * (Math.sin(t * 5.5 + i * 1.7) - 1) / 2) * snore, alpha: .5 * Math.min(1, u * 8) * (1 - smooth(clamp01((u - .7) / .3)))};
+  // The fourth puff dreams: a short, fast shudder as it sinks, then still again.
+  const dream = i === 3 ? .018 * Math.sin(u * 150) * Math.sin(clamp01((u - .6) / .15) * Math.PI) : 0;
+  return {x: Math.cos(a) * spread + roll + sigh + dream, y: Math.max(.08 + (.5 + .06 * (i % 3)) * rise - .52 * droop + jerk, .05), z: Math.sin(a) * spread, size: (.09 + .14 * smooth(u)) * (1 + .1 * droop * (Math.sin(t * 5.5 + i * 1.7) - 1) / 2) * snore, alpha: .5 * Math.min(1, u * 8) * (1 - smooth(clamp01((u - .7) / .3)))};
 }
 
 export function createSleepingGas(THREE, parent) {
