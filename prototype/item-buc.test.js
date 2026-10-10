@@ -87,3 +87,9 @@ test('a partly used candle or lamp says so in the hover', () => {
   assert.deepEqual(itemFacts('a partly used tallow candle (lit)'), ['lit', 'partly used']);
   assert.equal(itemHint('a tallow candle'), '');
 });
+
+test('an empty tin and an egg you laid say so in the hover', () => {
+  assert.deepEqual(itemFacts('an empty tin'), ['empty']);
+  assert.deepEqual(itemFacts('an egg (laid by you)'), ['laid by you']);
+  assert.deepEqual(itemFacts('a tin of spinach'), []);
+});
