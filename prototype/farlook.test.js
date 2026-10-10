@@ -74,3 +74,8 @@ test('an engraving the hero has read is named, with Elbereth called out', () => 
   assert.equal(farlookText({visible: true, terrain: 'altar', engraving: {type: 'dust'}}), 'altar (dust engraving)');
   assert.equal(farlookText({visible: true, terrain: 'floor'}), '');
 });
+
+test('the remembered mark of an unseen monster is named, not left blank', () => {
+  assert.equal(farlookText({visible: true, kind: 'terrain', terrain: 'floor', invisible: true}), 'something unseen');
+  assert.equal(farlookText({visible: true, kind: 'terrain', terrain: 'floor', invisible: false}), '');
+});

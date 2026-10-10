@@ -47,6 +47,7 @@ export function itemFacts(text) {
   if (/\((?:[^)]*, )?lit\)/i.test(t)) out.push('lit');
   if (/\((?:alternate weapon|off[- ]hand)[^)]*\)/i.test(t)) out.push('alternate weapon');
   if (/\bpartly eaten\b/i.test(t.split('(')[0])) out.push('partly eaten');
+  if (/\bpartly used\b/i.test(t.split('(')[0])) out.push('partly used');
   if (/\bdiluted\b/i.test(t.split('(')[0])) out.push('diluted');
   if (/\((?:weapon|wielded)[^)]*\)/i.test(t)) out.push('wielded');
   else if (/\((?:being worn|worn|on (?:left|right) (?:hand|finger))[^)]*\)/i.test(t)) out.push('worn');
