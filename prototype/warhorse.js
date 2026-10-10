@@ -128,7 +128,7 @@ function geometry(){
 function mesh(parent,geo,mat,name){if(!geo)return null;const m=new THREE.Mesh(geo,mat);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
 export function createWarhorse(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.name='warhorse';g.add(body);g.scale.setScalar(.95);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.name='warhorse';g.add(body);g.scale.setScalar(.95);body.position.z=-.16; // centred on its tile, head and tail alike
  mesh(body,S.body.matte,S.matte,'body');mesh(body,S.body.steel,S.steel,'barding');
  const head=new THREE.Group();head.position.set(0,L.Y+.6,.6);head.rotation.x=.78;body.add(head);
  mesh(head,S.head.matte,S.matte,'head');mesh(head,S.head.steel,S.steel,'chanfron');

@@ -103,7 +103,7 @@ function geometry(){
 function mesh(parent,geo,name){const m=new THREE.Mesh(geo,shared.material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
 export function createBaluchitherium(){
- const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.name='baluchitherium';g.add(body);g.scale.setScalar(.8);
+ const S=geometry(),g=new THREE.Group(),body=new THREE.Group();g.name='baluchitherium';g.add(body);g.scale.setScalar(.78);body.position.z=-.25; // the long neck reaches forward, so the body sits back on its tile
  mesh(body,S.body,'body');
  const wither=L.frontLeg+.22;
  const neck=new THREE.Group();neck.position.set(0,wither+.4,L.frontZ+.32);body.add(neck);mesh(neck,S.neck,'neck');
