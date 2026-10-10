@@ -4,11 +4,11 @@
 const POTION_LOOKS={
  ruby:['#e06a80','#c81e3a'],pink:['#e6a8c4','#c9668f'],red:['#d96060','#b31f1f'],
  orange:['#e0955a','#c65a1a'],yellow:['#e0d05a','#c4ac1e'],
- emerald:['#5ac48a','#1f8a4a'],'dark green':['#3a6b4a','#123d24'],green:['#6ac47a','#2a8a3a'],
+ emerald:['#5ac48a','#1f8a4a'],'dark green':['#3f8a5a','#16683a'],green:['#6ac47a','#2a8a3a'],
  cyan:['#5bd0c7','#1f9d9d'],'sky blue':['#8fc0ea','#3f7fc2'],'brilliant blue':['#6a85ea','#2043c2'],blue:['#7a9dea','#2a5fc2'],
  magenta:['#d060c0','#a02090'],purple:['#9a60c0','#5a2090'],violet:['#a67fea','#6a3fc7'],
  puce:['#a67a72','#7a4a4a'],lavender:['#bcaeea','#8a7ac0'],
- white:['#f2f2ea','#dcdcd0'],silver:['#dadee0','#a6acb0'],golden:['#e0bf5a','#b8892a'],brown:['#8a6238','#5a3a1e'],
+ white:['#f2f2ea','#dcdcd0'],silver:['#dadee0','#b4bac0',{metallic:true}],golden:['#e8cf7a','#c9a227',{metallic:true}],brown:['#8a6238','#5a3a1e'],
  black:['#2a2a2a','#0a0a0a'],dark:['#3a3440','#141018',{opacity:.8}],'blood-red':['#7a1010','#3a0404',{opacity:.96,transmission:.02,emissiveIntensity:.12}],
  amber:['#e8b04a','#b8741a'],indigo:['#6a5ad0','#34208a'],ochre:['#c89a4a','#8a5e1e'],
  viscous:['#a6a08a','#6e6850',{opacity:.8,transmission:.06}],
@@ -26,9 +26,27 @@ const DEFAULT_POTION_LOOK=['#8fd0c8','#3aa8a6',{}];
 // the word lookup above rarely matches. The glyph colour is shuffled together with the
 // appearance, so it tells potions apart and stays the same after identification.
 const POTION_GLYPH_LOOKS=['black','ruby','dark green','brown','blue','magenta','cyan','smoky',null,'orange','emerald','yellow','brilliant blue','pink','sky blue','milky'];
-export function potionLook(name,color){
+// Looks that are only a texture or a behaviour ("soapy", "gooey", "bubbly") say nothing about colour,
+// so they get a deep jewel-tone hue instead of a washed-out default. The hue is seeded by the potion's
+// object type: the type behind a look is reshuffled every game, so a soapy potion is a new colour each
+// game, the same colour for every soapy potion within one, and it tells nothing the look doesn't.
+const NO_COLOUR=new Set(['soapy','gooey','viscous','squishy','greasy','slimy','swirly','bubbly','effervescent','fizzy','steamy','sparkling','glowing','luminescent']);
+export const isColourless=key=>NO_COLOUR.has(key);
+export function deepHue(key,seed){
+ let h=2166136261;for(const ch of `${key}|${seed}`){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
+ // finalise (murmur3 fmix32) so neighbouring type numbers land on unrelated hues
+ h^=h>>>16;h=Math.imul(h,0x85ebca6b);h^=h>>>13;h=Math.imul(h,0xc2b2ae35);h^=h>>>16;
+ const u=(h>>>0)/4294967296,v=((Math.imul(h^0x9e3779b9,0x27d4eb2d)>>>0)/4294967296);
+ const hsl=(hh,ss,ll)=>{const k=n=>(n+hh*12)%12,a=ss*Math.min(ll,1-ll),f=n=>ll-a*Math.max(-1,Math.min(k(n)-3,9-k(n),1));return '#'+[f(0),f(8),f(4)].map(x=>Math.round(x*255).toString(16).padStart(2,'0')).join('');};
+ return [hsl(u,.55+.2*v,.55),hsl(u,.78+.17*v,.3+.06*v)];
+}
+export function potionLook(name,color,seed){
  const look=([glass,liquid,extra])=>({glass,liquid,opacity:.58,transmission:.2,emissiveIntensity:.35,...extra});
- for(const key of Object.keys(POTION_LOOKS).sort((a,b)=>b.length-a.length))if(name.includes(key))return look(POTION_LOOKS[key]);
+ for(const key of Object.keys(POTION_LOOKS).sort((a,b)=>b.length-a.length))if(name.includes(key)){
+  const entry=POTION_LOOKS[key];
+  if(NO_COLOUR.has(key)&&seed!=null){const [glass,liquid]=deepHue(key,seed);return look([glass,liquid,{...entry[2],deep:true}]);}
+  return look(entry);
+ }
  const byColor=POTION_GLYPH_LOOKS[color];if(byColor)return look(POTION_LOOKS[byColor]);
  return look(DEFAULT_POTION_LOOK);
 }
