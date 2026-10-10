@@ -49,7 +49,7 @@ export function sparkPose(i, t) {
     return {x: Math.cos(a) * .32, y: .02 + .07 * Math.sin(v * Math.PI), z: Math.sin(a) * .32, alpha: v >= 1 ? 0 : .6 * (1 - v) * Math.min(1, v * 12)};
   }
   const u = clamp01((t - .09 - (i % 3) * .02) / .5), a = i * 2.4 + 1;
-  return {x: Math.cos(a) * .32 * u, y: .06 + .3 * Math.sin(u * Math.PI) * (.7 + .1 * (i % 4)) - .18 * u * u, z: Math.sin(a) * .32 * u, alpha: u <= 0 || u >= 1 ? 0 : .9 * (1 - u)};
+  return {x: Math.cos(a) * .32 * u, y: .06 + .3 * Math.sin(u * Math.PI) * (.7 + .1 * (i % 4)) - .18 * u * u, z: Math.sin(a) * .32 * u, alpha: u <= 0 || u >= 1 ? 0 : .9 * (1 - u) * (i === 2 ? 1 - .85 * Math.sin(clamp01((u - .35) / .15) * Math.PI) : 1)};   // spark 2 sputters out and relights
 }
 
 export function createBearTrapSnap(THREE, parent) {

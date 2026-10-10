@@ -76,3 +76,10 @@ test('the far jaw trails the near one by a hair on the slam, so it clacks twice'
   assert.ok(jawAngle(.075) < jawAngle(.075 - JAW_LAG), 'the far jaw is still further open mid-slam');
   assert.ok(Math.abs(jawAngle(.4 - JAW_LAG) - jawAngle(.4)) < .05);
 });
+
+test('spark 2 sputters out mid-flight and relights, still dying at the end', () => {
+  const a = u => sparkPose(2, .09 + .04 + u * .5).alpha;
+  assert.ok(a(.42) < a(.3) * .3, 'the sputter');
+  assert.ok(a(.6) > 0, 'relit');
+  assert.equal(sparkPose(2, SNAP.total).alpha, 0);
+});
