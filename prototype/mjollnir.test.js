@@ -81,3 +81,13 @@ test('strikes clean up after themselves', () => {
   assert.equal(strikes.count, 0);
   assert.equal(parent.children.length, 0);
 });
+
+test('the crackle survives strike after strike without overflowing its buffer', () => {
+  const g = buildMjollnir(new THREE.Group()), c = createCrackle(g, {seed: 9});
+  for (let k = 0; k < 40; k++) {
+    c.surge();
+    for (let i = 0; i < 6; i++) assert.doesNotThrow(() => c.update(1 / 60, k + i / 60));
+    assert(c.arcs <= 6, `at most six arcs (${c.arcs})`);
+  }
+  c.dispose();
+});
