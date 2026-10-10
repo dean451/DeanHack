@@ -748,3 +748,8 @@ Checks: `npm test` 13/13; `npm run build` passed (only the existing chunk-size w
 Commit: `88940f3a`. PR https://github.com/dean451/DeanHack/pull/41 is open with squash auto-merge on (confirmed `mergeMethod: SQUASH`).
 Open concerns: not checked visually. There are no legs, so the walk swing does nothing and the lich just glides. The parts most likely to look off are the socket glow depth and the crown spikes on the arch-lich. The leprechaun branch (`claude/leprechaun-model`) still has no PR.
 Claude candidates remaining: leprechaun PR; `N` nagas, `V` vampires, `W` wraiths, `X` xorn, `R` rust monsters, `U` umber hulks; sink/throne/grave once the bridge reports them.
+
+## 2026-10-10 — Claude — finished (kobold spear; routine feedback loop)
+Did: kobold spear now leans forward, head ahead of the butt (`kobold.js`, test in `kobold.test.js`), PR https://github.com/dean451/DeanHack/pull/1185. Added the "Feedback loop and lessons" section to `AGENTS.md` so routines read lessons, report them in the PR body and may add verified lines, PR https://github.com/dean451/DeanHack/pull/1187.
+Checks: `npm test` 1910/1912 pass, `npm run build` ok. Spear checked in a side render only, not the live game.
+Open concerns: other humanoid weapons (goblin, gnome, hobgoblin) not audited for tilt. Next: early-game monster pass (gnome, jackal, kobold arms), then a play-test to depth 5+.
