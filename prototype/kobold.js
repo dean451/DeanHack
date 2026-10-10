@@ -28,8 +28,8 @@ const BASE={
  bone:'#e0d4b4',gold:'#d8a93a',paint:'#eeeae0',
 };
 const LOOKS={
- kobold:{skin:'#8a5a3a',belly:'#c4a070',dark:'#553520',eye:'#ff4a2a',scale:1,weapon:'spear'},
- 'large kobold':{skin:'#9a3f2f',belly:'#cc8a5c',dark:'#5a2216',eye:'#ff8a2a',scale:1.18,weapon:'club',jerkin:true,horns:1.35},
+ kobold:{skin:'#8a5a3a',belly:'#c4a070',dark:'#553520',eye:'#ff4a2a',scale:1,weapon:'spear',chipped:true},
+ 'large kobold':{skin:'#9a3f2f',belly:'#cc8a5c',dark:'#5a2216',eye:'#ff8a2a',scale:1.18,weapon:'club',jerkin:true,horns:1.35,chipped:true},
  'kobold lord':{skin:'#7a3f70',belly:'#b890a4',dark:'#44203e',eye:'#ffd23a',scale:1.22,weapon:'sword',crown:true,cape:true,cloth:'#5a1a28',clothDark:'#34101a'},
  'kobold shaman':{skin:'#5070a8',belly:'#a0b4d4',dark:'#2c4270',eye:'#a8f0ff',scale:1.02,weapon:'staff',shaman:true},
 };
@@ -118,7 +118,9 @@ function buildHead(L,C){
  // two backswept horns, and swept-back ear frills
  const hl=.08*(L.horns||1),hr=.016*(L.horns||1);
  for(const s of [-1,1]){
-  horn(P,s*.045,.07,-.01,[s*.25,.7,-1],hl,hr,(x,y,z)=>mix(C.horn,C.dark,THREE.MathUtils.clamp(1-(z+.01)/-.05,0,1)*.6));
+  // the left horn of the rank and file is snapped off to a jagged stub
+  const stub=L.chipped&&s<0?.45:1;
+  horn(P,s*.045,.07,-.01,[s*.25,.7,-1],hl*stub,hr*(stub<1?1.4:1),(x,y,z)=>mix(C.horn,C.dark,THREE.MathUtils.clamp(1-(z+.01)/-.05,0,1)*.6));
   P.add(new THREE.ConeGeometry(.035,.11,4),spike(s*.1,.015,-.035,[s*1,.35,-.7],.25),(x,y,z)=>Math.abs(x)<.12?C.dark:hide(x,y,z));
  }
  if(L.crown){
