@@ -98,3 +98,8 @@ test('the departure flash gutters mid-fade, then still ends at nothing', () => {
   assert.ok(flashPose(BLINK.flash * .6).alpha > 0);
   assert.equal(flashPose(BLINK.flash).alpha, 0);
 });
+
+test('the departure flash draws in a breath before it punches out', () => {
+  assert.ok(flashPose(BLINK.flash * .075).size < .25, 'smaller than where it started');
+  assert.ok(Math.abs(flashPose(BLINK.flash * .999).size - 1.35) < .01, 'still ends full size');
+});
