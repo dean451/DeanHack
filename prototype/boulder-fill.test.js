@@ -48,3 +48,9 @@ test('it lands one square ahead of the hero on the next frame', () => {
   fx.clear();
   assert.equal(fx.active, 0);
 });
+
+test('chunk 2 creeps back toward the hole once it lies down; the rest stay put', () => {
+  const r = (i, t) => Math.hypot(chunkPose(i, t).x, chunkPose(i, t).z);
+  assert.ok(r(2, 1.15) < r(2, .8) * .6);
+  assert.ok(r(1, 1.15) > r(1, .8) * .95);
+});
