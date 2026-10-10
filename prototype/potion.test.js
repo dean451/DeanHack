@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createPotion,potionShape} from './potion.js';
+import {createPotion,potionShape,glowDisc} from './potion.js';
 import {createGroundModel} from './ground-models.js';
 
 const finite=model=>model.traverse(o=>{if(o.geometry)for(const v of o.geometry.attributes.position.array)assert(Number.isFinite(v));});
@@ -50,4 +50,11 @@ test('ground potions release every geometry and material',()=>{
  for(const m of mats)m.addEventListener('dispose',()=>materials++);
  model.userData.dispose();
  assert(geometries>=3&&geometries<=4);assert.equal(geometries,materials);
+});
+
+test('floor glows have finite colours right out to the rim (NaN there turned the bloom into black blocks)',()=>{
+ for(const radius of [.3,.5,.85*.37,.1*2.6,.13*4.2,1/3,.7])for(const colour of ['#ff3030','#30ff60',0x8844ff]){
+  const c=glowDisc(colour,radius).attributes.color.array;
+  for(let i=0;i<c.length;i++)assert(Number.isFinite(c[i])&&c[i]>=0,`radius ${radius}: colour ${i} is ${c[i]}`);
+ }
 });
