@@ -91,3 +91,10 @@ test('one pebble ticks down late, after the rest have started', () => {
   assert.ok(gritPose(0, t).alpha > 0);
   assert.ok(gritPose(1, t + LATE_PEBBLE).alpha > 0);
 });
+
+test('the falling rock swings off the vertical and is back on the mark at the floor', () => {
+  let swing = 0;
+  for (let t = .09; t < .08 + ROCK.drop; t += .005) swing = Math.max(swing, Math.abs(rockPose(t).x));
+  assert.ok(swing > .015 && swing <= .04);
+  assert.equal(rockPose(.08 + ROCK.drop).x, 0);
+});
