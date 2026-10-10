@@ -107,7 +107,7 @@ const SCAR=rgb('#e8c8b8');
 export function ribShade(x,y,z,Y){
  if(Math.abs(x)<.07||z<-.06||z>.16)return 0;
  const r=Math.sin(z*105),band=smooth((y-(Y-.06))/.03)*smooth((Y+.07-y)/.03);
- return r>.55?.4*smooth((r-.55)/.25)*band:0;
+ return r>.55?.28*smooth((r-.55)/.25)*band:0;
 }
 
 // Coat colour on the torso and neck: darker along the back, pale underneath and on the chest.
@@ -117,7 +117,7 @@ function torsoAt(L,C){
   let c=mix(C.coat,C.back,top*.5);
   c=markings(L,C,x,y,z,c);
   if(L.scruffy&&x>.05)for(let k=0;k<2;k++){const d=Math.abs((y-L.Y-.03-k*.025)-(z+.02)*.5);if(d<.006&&z>-.15&&z<.1)c=mix(c,C.belly,.8*(1-d/.006));}
-  if(L.scruffy)c=mix(c,C.stripe,.2*smooth((hash(Math.floor(x*90)*7.3+Math.floor(y*90)*3.1+Math.floor(z*90))-.55)/.2));
+  if(L.scruffy)c=mix(c,C.stripe,.1*smooth((hash(Math.floor(x*90)*7.3+Math.floor(y*90)*3.1+Math.floor(z*90))-.55)/.2));
   if(L.scruffy)c=mix(c,C.stripe,ribShade(x,y,z,L.Y));
   const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.16)/.08)*smooth((L.Y+.06-y)/.08);
   return mix(c,C.belly,Math.max(belly,chest)*(L.pattern==='ghost'||L.pattern==='shimmer'?.6:1));
