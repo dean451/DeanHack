@@ -25,7 +25,8 @@ export function kneelPose(u) {
   const hold = smooth(u / .16) * (1 - smooth((u - .82) / .18));
   const p = {...REST};
   for (const f of FIELDS) p[f] = BOWED[f] * hold;
-  p.lean += .015 * Math.sin(u * 60) * hold;
+  // the shiver builds toward the flinch, as if something were drawing near
+  p.lean += .015 * (1 + 1.5 * smooth((u - .35) / .25) * (1 - clamp01((u - .62) / .04))) * Math.sin(u * 60) * hold;
   const flinch = Math.sin(clamp01((u - .62) / .07) * Math.PI) * (1 - clamp01((u - .69) / .03)) * hold;
   p.lean -= .12 * flinch; p.twist += .1 * flinch;
   // Early in the hold the hero sneaks a look up, then ducks a little lower than before, as if
