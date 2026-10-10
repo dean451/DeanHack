@@ -338,3 +338,19 @@ test('a splatting body lashes its tail in the puddle, then the tail settles to n
   assert.ok(Math.abs(deathPose('splat', 0).tail) < 1e-9);
   assert.ok(Math.abs(deathPose('splat', 1).tail) < 1e-9);
 });
+
+test('a bursting body flings its arm wide and snaps its head back, both home again by the pop', () => {
+  const p = u => deathPose('burst', u);
+  assert.ok(p(0).arm === 0 && p(0).head === 0);
+  assert.ok(p(.165).arm > .75 && p(.165).head < -.25);
+  for (let u = 0; u <= 1; u += .01) assert.ok(p(u).arm >= 0 && p(u).arm <= .8 + 1e-9 && Math.abs(p(u).head) <= .3 + 1e-9, `in bounds at ${u}`);
+  assert.ok(Math.abs(p(.33).arm) < 1e-9 && Math.abs(p(1).arm) < 1e-9 && Math.abs(p(1).head) < 1e-9);
+});
+
+test('a petrified body is caught with its arm snatched up, and the stone holds it there', () => {
+  const p = u => deathPose('petrify', u);
+  assert.equal(p(0).arm, 0);
+  assert.ok(p(.12).arm > .45, 'snatched up at the gasp');
+  for (let u = 0; u <= 1; u += .01) assert.ok(p(u).arm >= 0 && p(u).arm <= .5 + 1e-9, `in bounds at ${u}`);
+  assert.ok(p(1).arm > .2 && p(1).arm === p(1.5).arm, 'held in stone');
+});
