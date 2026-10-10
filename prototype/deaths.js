@@ -123,6 +123,9 @@ export function deathPose(style, u, dir = null) {
       p.sx = (1 - .1 * bulge) * (1 + .7 * flat) * (1 + (u > .4 ? quiver : 0));
       // Any eye or head it had slides down the slump and is swallowed last.
       p.head = -.5 * flat;
+      // Whatever tail it had keeps lashing in the puddle a moment after the rest has stopped
+      // caring, a few dying flicks that settle to nothing.
+      p.tail = .3 * Math.sin(Math.PI * clamp01((u - .3) / .4)) * Math.sin((u - .3) * 70);
       p.fade = 1 - smooth((u - .65) / .35);
       push(.08 * flat);
       break;
