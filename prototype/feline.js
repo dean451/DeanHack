@@ -156,11 +156,7 @@ function buildBody(L,C){
    P.add(new THREE.ConeGeometry(.011,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,smooth((y-L.Y-.1)/.04)));
   }
   for(const s of [-1,1])P.add(new THREE.ConeGeometry(.016,.03,4),at(s*.058*bw,L.Y+.085,-.15,[-.2,0,-s*.5],[1,1,.8]),paint);
-  // a lean strays' spine: a ridge of knuckled vertebrae, and a dark hollow where the flank tucks in
-  for(let k=0;k<7;k++){
-   const z=-.2+k*.05;
-   P.add(new THREE.SphereGeometry(.012,6,5),at(0,L.Y+.113+.01*(z+.01),z,[0,0,0],[1,.8,1.3]),(x,y)=>mix(C.back,C.stripe,.35));
-  }
+  // the dark hollow where the flank tucks in
   for(const s of [-1,1])P.add(new THREE.SphereGeometry(.03,8,6),at(s*.1*bw,L.Y-.01,-.04,[0,0,0],[.5,1,1.5]),(x,y)=>mix(C.coat,C.stripe,.3));
  }
  if(L.tentacles){
