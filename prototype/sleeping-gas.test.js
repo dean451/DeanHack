@@ -89,3 +89,9 @@ test('the fourth puff shudders once in its sleep, and only then', () => {
   assert.ok(Math.abs(dream(.4)) < 1e-9 && Math.abs(dream(.9)) < 1e-9, 'only mid-sag');
   for (let t = 0; t <= GAS.total; t += .01) assert.ok(Math.hypot(puffPose(3, t).x, puffPose(3, t).z) < .6, String(t));
 });
+
+test('the eighth puff yawns wide and tall mid-sag, then settles', () => {
+  const start = 7 % 3 * .08 + Math.floor(7 / 3) * .05, at = u => puffPose(7, start + u * 1.6);
+  assert.ok(at(.59).size > at(.5).size * 1.05 && at(.59).y > at(.5).y - .03, 'the yawn');
+  assert.ok(at(.59).size <= .26);
+});
