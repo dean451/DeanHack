@@ -60,6 +60,7 @@ import {createGoblin,isGoblin} from './goblin.js';
 import {createBugbear} from './bugbear.js';
 import {createOwlbear} from './owlbear.js';
 import {createWarhorse} from './warhorse.js';
+import {createBaluchitherium} from './baluchitherium.js';
 import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
 import {createBeholder} from './beholder.js';
@@ -2711,6 +2712,8 @@ export function createCreature(cell={}){
  if(name==='warhorse')return createWarhorse();
  if(HORSES[name])return horseFor(name,color);
  if(PROBOSCIDEANS[name])return proboscidean(PROBOSCIDEANS[name]);
+ // the baluchitherium has its own towering model (baluchitherium.js), not the giant-rhino builder
+ if(name==='baluchitherium')return createBaluchitherium();
  if(MEGA_RHINOS[name])return megaRhino(MEGA_RHINOS[name]);
  if(name==='rothe')return rothe(ROTHE);
  if(name==='wumpus')return wumpus({scale:1.08,hide:'#3f8f94',fur:'#27595c',belly:'#8ec2b6'});
