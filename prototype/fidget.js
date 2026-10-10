@@ -37,6 +37,7 @@ import {updateShamblerLurch} from './shambler-lurch.js';
 import {updateNinjaTails} from './ninja-tails.js';
 import {updateZombieLull} from './zombie-lull.js';
 import {updateMummyGrope} from './mummy-grope.js';
+import {updateKoboldCringe} from './kobold-cringe.js';
 import {updateEyeFlare} from './eye-flare.js';
 import {updateSamHover} from './sam-hover.js';
 
@@ -209,6 +210,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateZombieLull(actor, dt, t, busy);
   // And the mummies' grope: the head creaks round each way, the arms sweep wide feeling the dark, then clutch at nothing (mummy-grope.js).
   updateMummyGrope(actor, dt, t, busy);
+  // And the kobolds' cringe: the head darts left and right at a sound, ducks low and the tail flicks (kobold-cringe.js).
+  updateKoboldCringe(actor, dt, t, busy);
   // And the Executioner's, Croesus', One-eyed Sam's, the miner's, the black marketeer's, the mugger's, the convict's, Thoth Amon's, Charon's, the prisoner's, the abbot's, the neanderthal's, Master Kaen's and the Dark One's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
   updateEyeFlare(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
