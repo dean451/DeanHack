@@ -118,7 +118,7 @@ function torsoAt(L,C){
   c=markings(L,C,x,y,z,c);
   if(L.scruffy)c=mix(c,C.stripe,.1*smooth((hash(Math.floor(x*90)*7.3+Math.floor(y*90)*3.1+Math.floor(z*90))-.55)/.2));
   if(L.scruffy)c=mix(c,C.stripe,ribShade(x,y,z,L.Y));
-  const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.16)/.08)*smooth((L.Y+.06-y)/.08);
+  const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.13)/.16)*smooth((L.Y+.06-y)/.12)*(L.scruffy?.75:1);
   return mix(c,C.belly,Math.max(belly,chest)*(L.pattern==='ghost'||L.pattern==='shimmer'?.6:1));
  };
 }
@@ -153,7 +153,7 @@ function buildBody(L,C){
   for(let k=0;k<5;k++){
    // short, broad and laid flat along the coat, so they read as fur and not as a row of spikes
    const z=-.18+k*.07,lean=.95+.05*(k%3),h=.011+.004*hash(k+L.Y*10);
-   P.add(new THREE.ConeGeometry(.018,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,smooth((y-L.Y-.1)/.04)));
+   P.add(new THREE.ConeGeometry(.018,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,.45*smooth((y-L.Y-.1)/.04)));
   }
   for(const s of [-1,1])P.add(new THREE.ConeGeometry(.016,.022,4),at(s*.058*bw,L.Y+.085,-.15,[-.2,0,-s*.5],[1,1,.8]),paint);
   // the dark hollow where the flank tucks in
