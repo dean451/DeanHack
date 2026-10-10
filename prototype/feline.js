@@ -153,10 +153,10 @@ function buildBody(L,C){
  if(L.scruffy){
   for(let k=0;k<5;k++){
    // short, broad and laid flat along the coat, so they read as fur and not as a row of spikes
-   const z=-.18+k*.07,lean=.7+.05*(k%3),h=.014+.006*hash(k+L.Y*10);
-   P.add(new THREE.ConeGeometry(.016,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,smooth((y-L.Y-.1)/.04)));
+   const z=-.18+k*.07,lean=.95+.05*(k%3),h=.011+.004*hash(k+L.Y*10);
+   P.add(new THREE.ConeGeometry(.018,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,smooth((y-L.Y-.1)/.04)));
   }
-  for(const s of [-1,1])P.add(new THREE.ConeGeometry(.016,.03,4),at(s*.058*bw,L.Y+.085,-.15,[-.2,0,-s*.5],[1,1,.8]),paint);
+  for(const s of [-1,1])P.add(new THREE.ConeGeometry(.016,.022,4),at(s*.058*bw,L.Y+.085,-.15,[-.2,0,-s*.5],[1,1,.8]),paint);
   // the dark hollow where the flank tucks in
   for(const s of [-1,1])P.add(new THREE.SphereGeometry(.03,8,6),at(s*.1*bw,L.Y-.01,-.04,[0,0,0],[.5,1,1.5]),(x,y)=>mix(C.coat,C.stripe,.3));
  }
