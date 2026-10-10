@@ -15,6 +15,7 @@
 // Each aura is one THREE.Points (death and lightning add a second layer) whose particles are
 // a pure function of time, so a frame can land at any moment without state to catch up.
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 const TAU = Math.PI * 2;
 export const WAND_CLASS = 11;
@@ -61,38 +62,38 @@ export const WAND_AURAS = {
 // racing outward), 'dark' (a darkening, normal-blended pool: death, cancellation, create monster), 'slow'
 // (a long, soft swell). The wand of nothing has none, and neither does lightning (its arcs are the beat).
 export const WAND_BEATS = {
-  fire: {shape: 'flash', color: 0xff6a1a, period: 3.1, size: .52, alpha: .85},
-  cold: {shape: 'flash', color: 0xaadfff, period: 3.6, size: .46, alpha: .8},
-  sleep: {shape: 'slow', color: 0x9a6bff, period: 5, size: .58, alpha: .6},
-  death: {shape: 'dark', color: 0x020205, period: 4.5, size: .5, alpha: .7},
-  'magic missile': {shape: 'ring', color: 0x8fb4ff, period: 2.6, size: .42, alpha: .9},
-  digging: {shape: 'ring', color: 0xb89a6a, period: 3.4, size: .46, alpha: .8},
-  polymorph: {shape: 'flash', color: 0x7cffb0, period: 3.3, size: .5, alpha: .8, rainbow: true},
-  teleportation: {shape: 'ring', color: 0xc56bff, period: 3, size: .52, alpha: .9},
-  cancellation: {shape: 'dark', color: 0x161422, period: 4, size: .42, alpha: .6},
-  'make invisible': {shape: 'ring', color: 0xe8f8ff, period: 4.2, size: .36, alpha: .35},
-  'speed monster': {shape: 'ring', color: 0x9dff7a, period: 1.8, size: .5, alpha: .8},
-  'slow monster': {shape: 'slow', color: 0xe0a050, period: 7, size: .5, alpha: .55},
-  striking: {shape: 'ring', color: 0xf2e8cc, period: 2.9, size: .5, alpha: .95},
-  'undead turning': {shape: 'flash', color: 0xffe8a0, period: 3.8, size: .46, alpha: .75},
-  light: {shape: 'flash', color: 0xfff0c0, period: 3.4, size: .72, alpha: .9},
-  detection: {shape: 'ring', color: 0xdcd0aa, period: 3.8, size: .72, alpha: .6},
-  'secret door detection': {shape: 'ring', color: 0xdcd0aa, period: 3.8, size: .72, alpha: .6},
-  enlightenment: {shape: 'flash', color: 0xfff8e0, period: 3.2, size: .46, alpha: .85},
-  probing: {shape: 'ring', color: 0x7fe3e8, period: 3, size: .36, alpha: .75},
-  opening: {shape: 'flash', color: 0xffe08a, period: 4, size: .32, alpha: .7},
-  locking: {shape: 'flash', color: 0xb4c0d4, period: 4, size: .32, alpha: .7},
-  'create monster': {shape: 'dark', color: 0x4a0a14, period: 4.2, size: .5, alpha: .65},
-  wishing: {shape: 'flash', color: 0xffd35a, period: 5, size: .62, alpha: .85},
+  fire: {shape: 'flash', color: 0xff6a1a, period: 6.8, size: .52, alpha: .85},
+  cold: {shape: 'flash', color: 0xaadfff, period: 7.9, size: .46, alpha: .8},
+  sleep: {shape: 'slow', color: 0x9a6bff, period: 11, size: .58, alpha: .6},
+  death: {shape: 'dark', color: 0x020205, period: 9.9, size: .5, alpha: .7},
+  'magic missile': {shape: 'ring', color: 0x8fb4ff, period: 5.7, size: .42, alpha: .9},
+  digging: {shape: 'ring', color: 0xb89a6a, period: 7.5, size: .46, alpha: .8},
+  polymorph: {shape: 'flash', color: 0x7cffb0, period: 7.3, size: .5, alpha: .8, rainbow: true},
+  teleportation: {shape: 'ring', color: 0xc56bff, period: 6.6, size: .52, alpha: .9},
+  cancellation: {shape: 'dark', color: 0x161422, period: 8.8, size: .42, alpha: .6},
+  'make invisible': {shape: 'ring', color: 0xe8f8ff, period: 9.2, size: .36, alpha: .35},
+  'speed monster': {shape: 'ring', color: 0x9dff7a, period: 4, size: .5, alpha: .8},
+  'slow monster': {shape: 'slow', color: 0xe0a050, period: 15.4, size: .5, alpha: .55},
+  striking: {shape: 'ring', color: 0xf2e8cc, period: 6.4, size: .5, alpha: .95},
+  'undead turning': {shape: 'flash', color: 0xffe8a0, period: 8.4, size: .46, alpha: .75},
+  light: {shape: 'flash', color: 0xfff0c0, period: 7.5, size: .72, alpha: .9},
+  detection: {shape: 'ring', color: 0xdcd0aa, period: 8.4, size: .72, alpha: .6},
+  'secret door detection': {shape: 'ring', color: 0xdcd0aa, period: 8.4, size: .72, alpha: .6},
+  enlightenment: {shape: 'flash', color: 0xfff8e0, period: 7, size: .46, alpha: .85},
+  probing: {shape: 'ring', color: 0x7fe3e8, period: 6.6, size: .36, alpha: .75},
+  opening: {shape: 'flash', color: 0xffe08a, period: 8.8, size: .32, alpha: .7},
+  locking: {shape: 'flash', color: 0xb4c0d4, period: 8.8, size: .32, alpha: .7},
+  'create monster': {shape: 'dark', color: 0x4a0a14, period: 9.2, size: .5, alpha: .65},
+  wishing: {shape: 'flash', color: 0xffd35a, period: 11, size: .62, alpha: .85},
 };
 // Where in its life (0..1) a beat is at time t, and how strong: pure, so a frame can land anywhere.
 export function beatAt(shape, t, period, phase = 0) {
-  const u = (((t / period + phase) % 1) + 1) % 1, attack = Math.min(1, u / .03);
+  const u = (((t / period + phase) % 1) + 1) % 1, attack = Math.min(1, u / .12);
   switch (shape) {
-    case 'ring': return {u, level: Math.max(0, (1 - u) ** 1.6) * attack, grow: .2 + u * .95};
+    case 'ring': return {u, level: Math.max(0, (1 - u) ** 1.4) * attack, grow: .2 + u * .95};
     case 'dark': return {u, level: Math.sin(Math.PI * Math.min(1, u / .8)) ** .8 * (u < .8 ? 1 : 0), grow: 1};
     case 'slow': return {u, level: Math.sin(Math.PI * u) ** 2, grow: .8 + .2 * u};
-    default: return {u, level: Math.exp(-u * 5.5) * attack, grow: .75 + .3 * Math.min(1, u * 3)};
+    default: return {u, level: Math.exp(-u * 3.4) * attack, grow: .75 + .3 * Math.min(1, u * 2)};
   }
 }
 
@@ -302,6 +303,30 @@ function makeCrackle(seed) {
   return {points: lines, update, dispose() { geometry.dispose(); material.dispose(); }};
 }
 
+// The wand of death is rare enough that being literal is right: at each beat a pale skull rises out of the smoke,
+// grins for a moment and fades. Built from a handful of primitives, one draw each, so it works anywhere.
+function makeSkull(period, phase) {
+  const g = new THREE.Group(), mats = [];
+  const bone = new THREE.MeshBasicMaterial({color: 0xa8c4e8, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
+  const hole = new THREE.MeshBasicMaterial({color: 0x000000, transparent: true, opacity: 0, depthWrite: false});
+  mats.push(bone, hole);
+  const part = (geo, x, y, z, sx = 1, sy = 1, sz = 1) => { geo.scale(sx, sy, sz); geo.translate(x, y, z); return geo.index ? geo.toNonIndexed() : geo; };
+  const bones = [part(new THREE.SphereGeometry(.04, 12, 8), 0, .02, 0, 1, .92, .95), part(new THREE.BoxGeometry(.05, .02, .034), 0, -.028, .004)];
+  const holes = [part(new THREE.ConeGeometry(.006, .014, 3), 0, 0, .04, 1, 1, .5)];
+  for (const s of [-1, 1]) {
+    holes.push(part(new THREE.SphereGeometry(.012, 8, 6), s * .017, .018, .034, 1, 1.2, .5)); // eye sockets
+    bones.push(part(new THREE.BoxGeometry(.004, .014, .01), s * .014, -.03, .02));            // teeth
+  }
+  for (const [list, m] of [[bones, bone], [holes, hole]]) { const o = new THREE.Mesh(mergeGeometries(list), m); o.renderOrder = 3; g.add(o); }
+  g.name = 'skull'; g.visible = false; g.frustumCulled = false;
+  function update(t) {
+    // rises through the smoke on the beat, brightest at the top of its swell
+    const u = (((t / period + phase) % 1) + 1) % 1, k = Math.sin(Math.PI * Math.min(1, u / .45)) ** 2 * (u < .45 ? 1 : 0);
+    g.visible = k > .02; g.position.set(0, .16 + u * .22, 0); g.scale.setScalar(.8 + .5 * k);
+    bone.opacity = k * .75; hole.opacity = k * .9;
+  }
+  return {points: g, update, dispose() { g.traverse(o => o.geometry?.dispose()); mats.forEach(m => m.dispose()); }};
+}
 function makeBeat(style, random) {
   const geo = style.shape === 'ring' ? new THREE.RingGeometry(.86, 1, 40) : new THREE.RingGeometry(.001, 1, 36, 6);
   geo.rotateX(-Math.PI / 2);
@@ -321,7 +346,7 @@ function makeBeat(style, random) {
     material.opacity = level * style.alpha; mesh.visible = level > .01; mesh.scale.setScalar(style.size * grow);
     if (style.rainbow) material.color.setHSL((t * .2) % 1, .8, .62);
   }
-  return {points: mesh, update, dispose() { geo.dispose(); material.dispose(); }};
+  return {points: mesh, update, phase, dispose() { geo.dispose(); material.dispose(); }};
 }
 
 // A Group holding the aura for `kind` (a WAND_AURAS key). userData.update(t) animates it and
@@ -335,7 +360,7 @@ export function createWandAura(kind, seedText = '') {
   if (style.core) layers.push(makeLayer(style.core, random));
   if (style.crackle) layers.push(makeCrackle(seed));
   // the loud beat lies on the floor round a wand there; a held wand has none (it would float in the air)
-  if (WAND_BEATS[kind] && seedText !== 'held') layers.push(makeBeat(WAND_BEATS[kind], random));
+  if (WAND_BEATS[kind] && seedText !== 'held') { const beat = makeBeat(WAND_BEATS[kind], random); layers.push(beat); if (kind === 'death') layers.push(makeSkull(WAND_BEATS.death.period, beat.phase)); }
   for (const layer of layers) g.add(layer.points);
   g.userData.kind = kind;
   g.userData.update = t => { for (const layer of layers) layer.update(t); };
