@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // A magic marker dropped on the floor with its cap pulled off beside it. The pen is a
-// turned charcoal barrel with a red butt plug, a parchment label band ringed in gold and
+// turned charcoal barrel with a red butt plug, an aged vellum label band ringed in gold and
 // scratched with red runes, a ribbed grip, a silver ferrule and a chisel felt nib soaked
 // in red ink (grey and dry when the marker has no charges left). The cap lies next to it,
 // clip up, with a red crown and a gold ring. Colour is baked into vertex colours and the
@@ -38,7 +38,7 @@ function clean(geo){
 export function createMagicMarker({dry=false}={}){
  const g=new THREE.Group();g.name='Magic marker';
  const barrel=new THREE.Color(0x2b2830),ink=new THREE.Color(dry?DRY:INK),inkDark=new THREE.Color(dry?0x6b6762:0x5e0d12);
- const label=new THREE.Color(0xe8dcb6),gold=new THREE.Color(0xc99a3a),silver=new THREE.Color(0xc4c8cc),felt=new THREE.Color(dry?0x9d9892:0xc52632);
+ const label=new THREE.Color(0x9c8662),gold=new THREE.Color(0xc99a3a),silver=new THREE.Color(0xc4c8cc),felt=new THREE.Color(dry?0x9d9892:0xc52632);
 
  // The pen, butt at y=0, nib at y=.3. The grip is ribbed by a ripple in the radius.
  const R=.03,profile=[[0,0],[.018,.001],[.026,.004],[.03,.01],[.031,.018],[.028,.021],[R,.024]];
