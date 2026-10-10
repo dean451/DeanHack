@@ -543,6 +543,12 @@ function blob(o){
   for(const [x,z,h,lean] of [[.12,.06,.34,.16],[-.1,.1,.28,-.14],[.02,-.14,.31,.1]]){tube(body,[[x,.22,z],[x*1.1,.22+h*.6,z*1.1],[x+lean,.22+h,z+lean*.6]],.03,skin,8);sphere(body,.032,strand,x+lean,.22+h,z+lean*.6,1,1.2,1);}
   for(const [x,z,len] of [[.26,.1,.14],[-.24,-.12,.1],[.08,.26,.12],[-.16,.22,.09]])cone(body,.018,len,strand,x,.05+len/2,z,5).rotation.x=Math.PI;
  }
+ // acid blob: it eats through things, so its skin is pitted with dark corroded craters and it sheds hissing drips
+ if(o.acid){
+  const pit=mat('#1c2a14',{roughness:1}),drip=mat(shade(o.color,.8),{roughness:.1,emissive:o.color,emissiveIntensity:.3});
+  for(const [x,z,r] of [[.12,.1,.05],[-.14,.04,.04],[.02,-.16,.045],[-.05,.15,.035]]){const c=sphere(body,r,pit,x,.3-Math.hypot(x,z)*.35,z,1,.3,1);c.rotation.set(z*2,0,-x*2);}
+  for(const [x,z,len] of [[.25,.08,.16],[-.22,-.14,.12],[.06,.25,.1]])cone(body,.016,len,drip,x,.05+len/2,z,5).rotation.x=Math.PI;
+ }
  return actor(g,body,[],null,[],'blob');
 }
 
@@ -2751,7 +2757,7 @@ export function createCreature(cell={}){
  if(isScorpion(name))return createScorpion(name);
  if(name==='gelatinous cube'){const c=cube({color:color||'#8ad0c0'});c.g.scale.setScalar(1.3);return c;}
  if(name==='acid blob'){const a=createAcidBlob({color:'#7ed23a'});return actor(a.g,a.body,[],null,[],'blob');}
- if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name),slime:name==='green slime',scale:name==='black pudding'?1.5:/^(green slime|ochre jelly|blue slime)$/.test(name)?1.25:name==='brown pudding'?1.1:1});
+ if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name),slime:name==='green slime',acid:name==='acid blob',scale:name==='black pudding'?1.5:/^(green slime|ochre jelly|blue slime)$/.test(name)?1.25:name==='brown pudding'?1.1:1});
  if(name==='centipede')return centipede({color:'#c9a03a'});
  if(name==='raven')return createRaven();
  if(/^(bat|giant bat|vampire bat)$/.test(name))return bat({color:name==='bat'?'#5a4636':name==='giant bat'?'#7a3a32':'#28242a',scale:name==='giant bat'?1.25:1,kind:name});
