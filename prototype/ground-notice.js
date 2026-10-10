@@ -1,7 +1,9 @@
 export function groundNotice(request,lines){
  if(request?.kind!=='more'||!Array.isArray(lines))return null;
  const content=lines.map(line=>String(line).trim()).filter(Boolean);
- const header=content.findIndex(line=>/^Things that are here:$/.test(line));
+ // look_here (invent.c): "Things that are here:", "Other things that are here:" after picking some
+ // up, "Things that you feel here:" when blind. All go to the ground panel, never a dialog.
+ const header=content.findIndex(line=>/^(?:Other t|T)hings that (?:are|you feel) here:$/.test(line));
  if(header<0)return null;
  return content.slice(header+1);
 }
