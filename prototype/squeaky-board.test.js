@@ -106,3 +106,10 @@ test('the nervous mote blinks out while it hangs, and still ends invisible', () 
   for (let t = 0; t <= SQUEAK.total; t += .01) assert.ok(motePose(last, t).alpha <= .55 + 1e-9);
   assert.equal(motePose(last, SQUEAK.total).alpha, 0);
 });
+
+test('the middle shriek chokes off for a beat and still ends invisible', () => {
+  const at = u => ringPose(1, ringStart(1) + u * SQUEAK.ringLife).alpha;
+  assert.ok(at(.36) < at(.2) * .5, 'the choke');
+  for (let t = 0; t <= SQUEAK.total; t += .005) assert.ok(ringPose(1, t).alpha >= 0 && ringPose(1, t).alpha <= .75);
+  assert.equal(ringPose(1, SQUEAK.total).alpha, 0);
+});

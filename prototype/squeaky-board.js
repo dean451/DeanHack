@@ -22,7 +22,7 @@ export function ringPose(i, t) {
   const u = clamp01((t - ringStart(i)) / SQUEAK.ringLife);
   if (u <= 0 || u >= 1) return {radius: .1, alpha: 0};
   const stutter = .7 + .3 * Math.sin(u * 37 + i * 2) * Math.sin(u * 17);
-  return {radius: .1 + (.75 - .12 * i) * (1 - (1 - u) * (1 - u) * (1 - u)), alpha: .75 * (1 - smooth(u)) * stutter * Math.min(1, u * 14)};
+  return {radius: .1 + (.75 - .12 * i) * (1 - (1 - u) * (1 - u) * (1 - u)), alpha: .75 * (1 - smooth(u)) * stutter * Math.min(1, u * 14) * (i === 1 ? 1 - .85 * Math.sin(clamp01((u - .3) / .12) * Math.PI) : 1)};   // the middle shriek chokes off for a beat
 }
 
 // The hush: once the shrieks are spent, one dull dark ring creeps back in toward the plank, as
