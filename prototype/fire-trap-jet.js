@@ -28,7 +28,9 @@ export function tonguePose(i, t) {
   const c = columnPose(t), a = i * 2.1 + t * (3 + i), flick = .8 + .2 * Math.sin(t * (17 + i * 5) + i);
   // The first tongue snaps sideways once, a lick at something that is not there, then settles back.
   const snap = i === 0 ? .09 * Math.sin(clamp01((t - .5) / .08) * Math.PI) : 0;
-  return {x: Math.cos(a) * c.width * .8 + snap, z: Math.sin(a) * c.width * .8, height: c.height * (.55 + .12 * i) * flick, width: c.width * .45, alpha: c.alpha * .8};
+  // The second tongue goes dark for a heartbeat mid-hold, as if something had passed in front of it.
+  const dark = i === 1 && t > .62 && t < .7 ? .08 : 1;
+  return {x: Math.cos(a) * c.width * .8 + snap, z: Math.sin(a) * c.width * .8, height: c.height * (.55 + .12 * i) * flick, width: c.width * .45, alpha: c.alpha * .8 * dark};
 }
 
 // The hot flash at the base: one hard pulse in the first instants.

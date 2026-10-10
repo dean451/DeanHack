@@ -90,3 +90,9 @@ test('the third ember chokes out mid-climb and catches again', () => {
   assert.ok(a(.45) < a(.38) * .3 && a(.55) > a(.45) * 3, 'choke');
   assert.ok(Math.abs(a(.2) / a(.3) - (1 - .2) / (1 - .3)) < 1e-9, 'others burn on');
 });
+
+test('the second tongue goes dark for a heartbeat mid-hold and comes back', () => {
+  const lit = tonguePose(1, .58).alpha, dark = tonguePose(1, .66).alpha, back = tonguePose(1, .74).alpha;
+  assert.ok(dark < lit * .2 && back > dark * 4, `${lit} ${dark} ${back}`);
+  assert.ok(tonguePose(0, .66).alpha > dark * 4, 'the others burn on');
+});
