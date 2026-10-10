@@ -79,3 +79,14 @@ test('the remembered mark of an unseen monster is named, not left blank', () => 
   assert.equal(farlookText({visible: true, kind: 'terrain', terrain: 'floor', invisible: true}), 'something unseen');
   assert.equal(farlookText({visible: true, kind: 'terrain', terrain: 'floor', invisible: false}), '');
 });
+
+test('farlook names ice, bog, drawbridges, clouds and open air by their map symbol', () => {
+  const at = (symbol, color) => farlookText({visible: true, terrain: 'feature', symbol, color});
+  assert.equal(at(46, 6), 'ice');
+  assert.equal(at(125, 2), 'bog');
+  assert.equal(at(46, 3), 'lowered drawbridge');
+  assert.equal(at(35, 3), 'raised drawbridge');
+  assert.equal(at(35, 10), 'poison gas');
+  assert.equal(at(32, 6), 'open air');
+  assert.equal(at(99, 1), '');
+});
