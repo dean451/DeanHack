@@ -73,6 +73,9 @@ static int under_glyph(int x,int y,int b) {
     int m=levl[x][y].glyph,c;
     if (b!=cmap_to_glyph(S_room)) return b;
     if (x==u.ux && y==u.uy && !Blind && !u.uswallow && !Underwater) m=back_to_glyph(x,y);
+    /* An item on furniture in plain view: the tty map shows only the item, but in 3D a shuriken
+       can't hide an altar, so the furniture the hero can see stays drawn under it. */
+    else if (!glyph_is_cmap(m) && cansee(x,y) && !Blind && !u.uswallow && !Underwater) m=back_to_glyph(x,y);
     if (!glyph_is_cmap(m)) return b;
     c=glyph_to_cmap(m);
     if (c==S_fountain || c==S_altar || c==S_throne || c==S_sink || c==S_grave ||

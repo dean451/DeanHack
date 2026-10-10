@@ -9,6 +9,7 @@ import {createMagicMarker,markerCharges} from './marker.js';
 import {createIronBall,createIronChain} from './iron-ball.js';
 import {createVenom} from './venom.js';
 import {createPotion,glowDisc} from './potion.js';
+import {mjollnirMaterials,mjollnirFloorParts} from './mjollnir.js';
 import {applyPotionTwist} from './potion-twist.js';
 import {applyToolTwist} from './tool-twist.js';
 import {applyScrollTwist} from './scroll-twist.js';
@@ -6323,8 +6324,10 @@ export function createGroundModel(item={}){
   const kind=artifactFromName(item.label,2);
   const tube=(r1,r2,len,m,x,y,z)=>{const p=add(new THREE.CylinderGeometry(r1,r2,len,8),m,x,y,z);p.rotation.z=Math.PI/2;return p;};
   if(kind==='mjollnir'){
-   tube(.012,.012,.3,leather,0,.012,0);
-   box(.09,.07,.07,metal,.17,.035,0);box(.02,.075,.075,gold,.125,.036,0);box(.02,.075,.075,gold,.215,.036,0);
+   // Mjollnir has its own model (mjollnir.js): stood upright on its head, haft straight up.
+   const mats=mjollnirMaterials();
+   for(const [geo,key] of mjollnirFloorParts()){const m=new THREE.Mesh(geo,mats[key]);m.castShadow=true;g.add(m);materials.push(mats[key]);}
+   const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);g.userData.floorLift=-low;
   }else if(kind==='staff of aesculapius'||kind==='sceptre of might'){
    tube(.011,.011,.46,leather,0,.011,0);
    ball(.028,gold,.25,.028,0);box(.012,.05,.012,metal,.28,.03,0);
