@@ -183,6 +183,7 @@ import {updateFlap} from './puggaree-flap.js';
 import {findPrey,updateStalk,clearStalk} from './stalk.js';
 import {createActionQueue,enqueueAction,clearActionPose,updateActions,holdBackMs,findActor,queueCombat,queueDeath,queueThrows,ACTION_TIME,STRIKE_U} from './actions.js';
 import {conditionGlyph} from './condition-glyph.js';
+import {heroConditions,conditionTags,conditionTagsHtml} from './hud-conditions.js';
 import {applyStatusScreen} from './status-screen.js';
 import {createStatusProgress,worstProgress} from './status-progress.js';
 const statusProgress=createStatusProgress();
@@ -236,10 +237,11 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    const el=$('#engine-status'),num=re=>text.match(re);el.title=text;if(/T:\d+/.test(text))airborne=airborneStatus(text);
    const gold=num(/\$:(\d+)/),power=num(/Pw:(\d+)\((\d+)\)/),exp=num(/Exp:(\d+)/);
    if(!gold&&!power&&!exp){el.textContent=text;return;}
-   const conditions=(text.split(/T:\d+/)[1]||'').trim().split(/\s+/).filter(Boolean);
+   // The frame's own condition list (bridge) wins; the status line's words are the fallback.
+   const conditions=heroConditions(frameConditions,text),others=conditions.filter(c=>!conditionTags([c]).length);
    applyStatusScreen(statusScreenEl(),conditions);
    {const turn=num(/T:(\d+)/);statusScreenEl().style.setProperty('--status-progress',worstProgress(statusProgress.update(conditions,turn?+turn[1]:0)).toFixed(2));}
-   el.innerHTML=[gold&&`<span>GOLD <b>${gold[1]}</b></span>`,power&&`<span>POWER <b>${power[1]} / ${power[2]}</b></span>`,exp&&`<span>EXP <b>${exp[1]}</b></span>`,...conditions.map(c=>`<span class="condition"><i aria-hidden="true">${conditionGlyph(c)}</i> ${esc(c)}</span>`)].filter(Boolean).join('');
+   el.innerHTML=[gold&&`<span>GOLD <b>${gold[1]}</b></span>`,power&&`<span>POWER <b>${power[1]} / ${power[2]}</b></span>`,exp&&`<span>EXP <b>${exp[1]}</b></span>`,`<span id="hero-conditions">${conditionTagsHtml(conditions)}</span>`,...others.map(c=>`<span class="condition"><i aria-hidden="true">${conditionGlyph(c)}</i> ${esc(c)}</span>`)].filter(Boolean).join('');
  }
  function statusScreenEl(){let el=document.getElementById('status-screen');if(!el){el=document.createElement('div');el.id='status-screen';document.body.appendChild(el);}return el;}
  // The pet in view goes to the companion slot (the creatures-in-view list is gone: the game is shown by its visuals).
@@ -387,7 +389,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  let coughHunch=0,coughApplied=0;const hero=playerFactory();hero.setWeapon?.(null);hero.actions=createActionQueue();group.add(hero.g);const heroForm=createHeroForm(hero,creatureFactory,shape=>addOutlines(shape));
  const swingFx=createSwingFx(THREE,group);const hitFx=createHitFx(THREE,group);const rays=createRays(THREE,group);const zapFlash=createZapFlash(THREE,group);const rayMarks=createRayMarks(THREE,group);const rayFlashLight=new THREE.PointLight(0xdce6ff,0,18,1.2);group.add(rayFlashLight);const explosions=createExplosions(THREE,group);const blastLight=new THREE.PointLight(0xffa050,0,9,1.4);group.add(blastLight);const flood=createFlood(THREE,group);let flooding=false;const splash=createSplash(THREE,group);const flights=createFlights(THREE,group);const grab=createGrab(THREE,group,{onSplash:s=>splash.add(s)});const brainSuck=createBrainSuck(THREE,group);const hold=createHold(THREE,group);const poly=createPolymorph(THREE,group);const barsMelt=createBarsMelt(THREE,group);const doorBreak=createDoorBreak(THREE,group);const breath=createBreath(THREE,group);const engulf=createEngulf(THREE,group);let swingTarget=null;
  const deathFx=createDeathBurst(THREE);group.add(deathFx.points);const petrify=createPetrify({onBurst:(b,at,a)=>deathFx.burst(b.style,at,{dir:b.dir,...deathLook(a)})});const throneVanish=createThroneVanish(THREE,group);const fountainLady=createFountainLady(THREE,group);const fountainSnakes=createFountainSnakes(THREE,group);const fountainGush=createFountainGush(THREE,group);const altarSacrifice=createAltarSacrifice(THREE,group);const altarClover=createAltarClover(THREE,group);const altarGlow=createAltarGlow(THREE,group);const mjollnirStrikes=createLightningStrikes(group);const altarFlashes=createAltarFlashes(group,{top:ALTAR_TOP});const altarGift=createAltarGift(THREE,group);const blessFlash=createBlessFlash(THREE,group);const fountainNymph=createFountainNymph(THREE,group);const fountainDemon=createFountainDemon(THREE,group);const fountainWish=createFountainWish(THREE,group);const wandWishFlare=createWandWishFlare(THREE,group);const djinniWish=createDjinniWish(THREE,group);const fireTrapJet=createFireTrapJet(THREE,group);const squeakyBoard=createSqueakyBoard(THREE,group);const rollingTrap=createRollingTrap(THREE,group);const fallingRock=createFallingRock(THREE,group);const dartTrap=createDartTrap(THREE,group);const landMine=createLandMine(THREE,group);const rustTrap=createRustTrap(THREE,group);const pitFall=createPitFall(THREE,group);const polyTrap=createPolyTrap(THREE,group);const magicTrap=createMagicTrap(THREE,group);const boulderFill=createBoulderFill(THREE,group);const spellFizzle=createSpellFizzle(THREE,group);const throneSit=createThroneSit(THREE,group);const throneCurse=createThroneCurse(THREE,group);const throneInsight=createThroneInsight(THREE,group);const throneWrench=createThroneWrench(THREE,group);const throneGift=createThroneGift(THREE,group);const spellStudy=createSpellStudy(THREE,group);const spellCrumble=createSpellCrumble(THREE,group);const antiMagic=createAntiMagic(THREE,group);const webSnare=createWebSnare(THREE,group);const statueTrap=createStatueTrap(THREE,group);const bearTrapSnap=createBearTrapSnap(THREE,group);const sleepingGas=createSleepingGas(THREE,group);const teleportBlink=createTeleportBlink(THREE,group);const magicPortal=createMagicPortal(THREE,group);const digChips=createDigChips(THREE,group);const digCracks=createDigCracks(THREE,group);const digSwing=createDigSwing();const digDrop=createDigDrop();const stairTumble=createStairTumble();const levelUp=createLevelUp(THREE,group);const prayerLight=createPrayerLight(THREE,group);const prayerKneel=createPrayerKneel();
- function apply(frame){const prevFrame=latest;latest=frame;if(!active)return;minimap.update(frame);
+ function apply(frame){const prevFrame=latest;latest=frame;if(!active)return;
+   if(Array.isArray(frame.player?.conditions)){frameConditions=frame.player.conditions;const tags=document.getElementById('hero-conditions');if(tags)tags.innerHTML=conditionTagsHtml(frameConditions);applyStatusScreen(statusScreenEl(),frameConditions);statusScreenEl().style.setProperty('--status-progress',worstProgress(statusProgress.update(frameConditions,frame.turn||0)).toFixed(2));}minimap.update(frame);
    const where=levelTitle(frame);$('.location small').textContent=where.place;$('.location h1').textContent=where.title;$('.location h1').hidden=!where.named;announceLevel(where);
    if(groundPanelTile!==groundTile(frame)){groundPanel.hidden=true;groundPanelTile=null;}
    if(Array.isArray(frame.ground))showGround(frame.ground);
@@ -466,6 +469,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  // "There is an altar to … here." arrives just before the frame that puts the hero on the altar, so
  // the glow waits for that frame instead of landing on the square the hero stepped off.
  let pendingAltarGlow=null;
+ // The hero's conditions from the latest frame (hud-conditions.js), or null before the first one.
+ let frameConditions=null;
  // Mjollnir: "Lightning strikes the jackal!" brings a bolt down on the monster the hero just hit.
  // The message and the hero's combat event can come in either order, so whichever comes second
  // pairs them; the bolt lands at the swing's impact, not the moment the news arrives.
