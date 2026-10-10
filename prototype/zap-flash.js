@@ -42,6 +42,9 @@ export const ZAP_SHAKE = .09;
 // recoil kick on release.
 export const ZAP_ARM = -1.15;
 export const ZAP_KICK = .16;
+// The flinch: the hero's whole body jerks back from the hand on release, as if the wand
+// bit them, then settles.
+export const ZAP_FLINCH = .06;
 // Breath: the chin juts up and out while the body leans into it; the kick snaps the head
 // down a little as the breath leaves.
 export const BREATH_HEAD = -.3;
@@ -140,7 +143,7 @@ export function zapPose(src, t, face = 0) {
     return {arm: 0, head: BREATH_HEAD * up + BREATH_KICK * kick * up, body: BREATH_LEAN * up, yaw: face * turn, flash};
   }
   const shake = age >= hold ? ZAP_SHAKE * 4 * up * (1 - up) * Math.sin((age - hold) / 14) : 0;
-  return {arm: ZAP_ARM * up + ZAP_KICK * kick * up + shake, head: 0, body: 0, yaw: face * turn, flash};
+  return {arm: ZAP_ARM * up + ZAP_KICK * kick * up + shake, head: 0, body: -ZAP_FLINCH * kick * up, yaw: face * turn, flash};
 }
 
 // Poses the hero and draws the hand flash. In the frame loop, call unpose(hero) right after
