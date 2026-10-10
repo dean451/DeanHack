@@ -12,6 +12,8 @@ import {clamp01, smooth} from './fx-textures.js';
 
 export const SNAP = {teeth: 5, sparks: 8, total: 1.25, open: 1.25};
 export const PENDING_WAIT = .3;
+// The far jaw is a hair slower than the near one, so the slam lands in two clacks, not one.
+export const JAW_LAG = .014;
 export const isBearTrapMessage = text => /a bear trap closes on your foot/i.test(text || '');
 
 // Jaw opening in radians: held open, slams shut by .09, rebounds to .4 by .17, clamps by .27, then a shiver.
@@ -69,7 +71,7 @@ export function createBearTrapSnap(THREE, parent) {
   function step(e, dt) {
     e.t += dt;
     const a = jawAngle(e.t), al = jawAlpha(e.t);
-    e.jaws.forEach(({j, side}) => { j.rotation.x = -side * a; j.visible = al > .01; });
+    e.jaws.forEach(({j, side}) => { j.rotation.x = -side * (side > 0 ? jawAngle(e.t - JAW_LAG) : a); j.visible = al > .01; });
     e.iron.opacity = al; e.edge.opacity = al;
     e.sparks.forEach((m, i) => { const p = sparkPose(i, e.t); m.visible = p.alpha > .01; m.position.set(p.x, p.y, p.z); });
     return e.t < SNAP.total;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {jawAngle, creak, jawAlpha, sparkPose, isBearTrapMessage, createBearTrapSnap, PENDING_WAIT, SNAP} from './bear-trap-snap.js';
+import {jawAngle, creak, jawAlpha, sparkPose, isBearTrapMessage, createBearTrapSnap, PENDING_WAIT, SNAP, JAW_LAG} from './bear-trap-snap.js';
 
 test('only the bear trap message triggers it', () => {
   assert.ok(isBearTrapMessage('A bear trap closes on your foot!'));
@@ -69,4 +69,10 @@ test('the last spark skips once more after landing, then dies', () => {
 test('a faint third creak ticks late, after the second has died', () => {
   assert.ok(creak(1.1) > .005 && creak(1.1) < .03);
   assert.equal(creak(1.03), 0);
+});
+
+test('the far jaw trails the near one by a hair on the slam, so it clacks twice', () => {
+  assert.ok(JAW_LAG > 0 && JAW_LAG < .03);
+  assert.ok(jawAngle(.075) < jawAngle(.075 - JAW_LAG), 'the far jaw is still further open mid-slam');
+  assert.ok(Math.abs(jawAngle(.4 - JAW_LAG) - jawAngle(.4)) < .05);
 });
