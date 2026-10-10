@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createSink} from './sink.js';
-import {createSinkDrip, dripPoints, dripState, DRIP_SWELL, DRIP_GRAVITY, DRIP_RING_RADIUS,DRIP_TREMBLE} from './sink-drip.js';
+import {createSinkDrip, dripPoints, dripState, DRIP_SWELL, DRIP_GRAVITY, DRIP_RING_RADIUS,DRIP_TREMBLE,DRIP_THROB} from './sink-drip.js';
 
 test('the drip is read off the sink model: the tip under the spout, the pool below it',()=>{
  const sink=createSink(),water=sink.children.find(o=>o.userData.part==='water');
@@ -83,4 +83,15 @@ test('the drop shivers just before it lets go, and is steady otherwise',()=>{
  }
  assert.equal(early,0);
  assert(late>DRIP_TREMBLE*.5,`only shivered ${late}`);
+});
+
+test('the swelling drop throbs, only ever shrinking, and is whole again when it lets go',()=>{
+ const period=3,sizes=[];
+ for(let t=.05;t<DRIP_SWELL-.05;t+=1/120){
+  const s=dripState(t,period,0,.25),k=t/DRIP_SWELL,base=.25+.75*k*k*(3-2*k);
+  assert(s.size<=base+1e-9&&s.size>=base*(1-DRIP_THROB)-1e-9,`throb out of bounds at ${t}`);
+  sizes.push(s.size/base);
+ }
+ assert(Math.min(...sizes)<.95,'it visibly throbs');
+ assert(Math.abs(dripState(DRIP_SWELL-1e-4,period,0,.25).size-1)<.01,'no pop at release');
 });
