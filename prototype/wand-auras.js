@@ -118,7 +118,7 @@ export const MAGIC_AURAS = {
 const AURAS = {...WAND_AURAS, ...MAGIC_AURAS};
 
 // The big wands, whose aura shows from their true type before they are identified.
-export const TELLS = new Set(['death', 'fire', 'cold', 'lightning', 'striking', 'cancellation', 'digging', 'wishing']);
+export const TELLS = new Set(['death', 'fire', 'cold', 'lightning', 'striking', 'cancellation', 'digging', 'wishing', 'make invisible']);
 
 // The kind from the hero's name for the item ("wand(s) of X"), or for a big wand its true type
 // (`name`: "fire" or "wand of fire"), or null.
@@ -351,6 +351,43 @@ function makeBeat(style, random) {
 
 // A Group holding the aura for `kind` (a WAND_AURAS key). userData.update(t) animates it and
 // userData.dispose() frees it. `seedText` keeps each wand's particles its own.
+// Make invisible: the wand on the floor fades out of view, hangs there all but gone with a faint
+// flicker, then shimmers back, on a slow loop. vanishAlpha is the wand's opacity at time t.
+export const VANISH = {period: 5.6, low: .06};
+export function vanishAlpha(t, phase = 0) {
+  const u = ((t / VANISH.period + phase) % 1 + 1) % 1, ease = x => x * x * (3 - 2 * x);
+  if (u < .45) return 1;
+  if (u < .6) return 1 - (1 - VANISH.low) * ease((u - .45) / .15);
+  if (u < .8) return VANISH.low + .04 * Math.max(0, Math.sin(t * 23));
+  if (u < .95) { const k = ease((u - .8) / .15); return VANISH.low + (1 - VANISH.low) * k * (.75 + .25 * Math.sin(t * 31)); }
+  return 1;
+}
+// The layer fades the wand it lies with (the aura's parent item), on its own copies of the
+// wand's materials so other wands of the same look stay solid, and puts them back on dispose.
+function makeVanish(phase) {
+  const holder = new THREE.Group(); holder.name = 'vanish';
+  let swapped = null;
+  const take = item => {
+    swapped = [];
+    item.traverse(o => {
+      if (!o.isMesh || !o.material || Array.isArray(o.material)) return;
+      for (let p = o; p && p !== item; p = p.parent) if (p === holder.parent) return; // not the aura's own points
+      const copy = o.material.clone(); copy.transparent = true; copy.depthWrite = true;
+      swapped.push({mesh: o, original: o.material, copy, base: o.material.opacity ?? 1}); o.material = copy;
+    });
+  };
+  return {points: holder, update(t) {
+    const item = holder.parent?.parent;
+    if (!item) return;
+    if (!swapped) take(item);
+    const a = vanishAlpha(t, phase);
+    for (const s of swapped) { s.copy.opacity = s.base * a; s.copy.depthWrite = a > .5; }
+  }, dispose() {
+    if (swapped) for (const s of swapped) { s.mesh.material = s.original; s.copy.dispose(); }
+    swapped = null;
+  }};
+}
+
 export function createWandAura(kind, seedText = '') {
   const style = Object.hasOwn(AURAS, kind) ? AURAS[kind] : null;
   if (!style) return null;
@@ -361,6 +398,8 @@ export function createWandAura(kind, seedText = '') {
   if (style.crackle) layers.push(makeCrackle(seed));
   // the loud beat lies on the floor round a wand there; a held wand has none (it would float in the air)
   if (WAND_BEATS[kind] && seedText !== 'held') { const beat = makeBeat(WAND_BEATS[kind], random); layers.push(beat); if (kind === 'death') layers.push(makeSkull(WAND_BEATS.death.period, beat.phase)); }
+  // the wand itself fades; not when held (the aura then hangs from the hero, who must not vanish)
+  if (kind === 'make invisible' && seedText !== 'held') layers.push(makeVanish(random()));
   for (const layer of layers) g.add(layer.points);
   g.userData.kind = kind;
   g.userData.update = t => { for (const layer of layers) layer.update(t); };
