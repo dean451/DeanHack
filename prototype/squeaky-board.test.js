@@ -99,3 +99,10 @@ test('the first mote hops once more after it has settled, and lands', () => {
   assert.ok(Math.abs(p(u(.95)).y - .03) < 1e-9 && p(u(.95)).alpha > 0, 'down again');
   assert.equal(motePose(0, SQUEAK.total).alpha, 0);
 });
+
+test('the nervous mote blinks out while it hangs, and still ends invisible', () => {
+  const last = SQUEAK.motes - 1, a = []; for (let t = .35; t < .75; t += .005) a.push(motePose(last, t).alpha);
+  assert.ok(Math.min(...a) < .1 && Math.max(...a) > .1);
+  for (let t = 0; t <= SQUEAK.total; t += .01) assert.ok(motePose(last, t).alpha <= .55 + 1e-9);
+  assert.equal(motePose(last, SQUEAK.total).alpha, 0);
+});
