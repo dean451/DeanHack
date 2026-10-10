@@ -20,6 +20,17 @@ export const HORROR_LOLL = .32, HORROR_DRIFT = .07;
 // Each dog has its own timing. The tail stays inside its usual reach and eases in and out (DOG_IN, DOG_OUT).
 export const DOG_PERIOD = 7.3, DOG_HOLD = .9, DOG_IN = .12, DOG_OUT = .3, DOG_STILL = .08;
 
+// A unicorn's slow swish now and then turns irritated: every UNI_PERIOD s the tail lashes twice
+// (UNI_FLICK rad on top of the swish, over UNI_LEN s), as if it had felt something on its flank that
+// was not there. The lash is zero at both ends, so the tail never jumps. Each unicorn has its own timing.
+export const UNI_PERIOD = 9.7, UNI_LEN = .8, UNI_FLICK = .22;
+export function unicornLash(t, ph) {
+  const w = (((t + ph * 1.9) % UNI_PERIOD) + UNI_PERIOD) % UNI_PERIOD;
+  if (w >= UNI_LEN) return 0;
+  const u = w / UNI_LEN;
+  return UNI_FLICK * Math.sin(Math.PI * u) ** 2 * Math.sin(Math.PI * 4 * u);
+}
+
 // A stable phase for an actor, from where it was first seen, so it doesn't jump as it walks.
 const phaseOf = a => a.tailPhase ??= ((a.g?.position.x || 0) * 1.7 + (a.g?.position.z || 0) * 2.3) % (Math.PI * 2);
 
@@ -45,5 +56,6 @@ export function tailSway(a, t, phase = 0) {
   }
   const [rate, swing] = QUIRKS[a.quirk] || DEFAULT;
   if (a.quirk === 'dog') return Math.sin(t * rate + phase) * swing * dogFreeze(t, phaseOf(a));
+  if (a.quirk === 'unicorn') return Math.sin(t * rate + phase) * swing + unicornLash(t, phaseOf(a));
   return Math.sin(t * rate + phase) * swing;
 }

@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {tailSway, dogFreeze, DOG_PERIOD, DOG_HOLD, DOG_STILL, FLAYER_SWING, FLAYER_SWING2} from './tail-sway.js';
+import {tailSway, dogFreeze, unicornLash, UNI_PERIOD, UNI_LEN, UNI_FLICK, DOG_PERIOD, DOG_HOLD, DOG_STILL, FLAYER_SWING, FLAYER_SWING2} from './tail-sway.js';
 
 const actor = (extra = {}) => ({g: {position: {x: 0, z: 0}}, ...extra});
 
 test('other tails keep their old per-quirk sway', () => {
   const old = (q, t) => Math.sin(t * (q === 'dog' ? 7 : q === 'turtle' ? 1.1 : q === 'unicorn' ? 2.6 : q === 'nymph' ? 1.4 : 3)) * (q === 'dog' ? .34 : q === 'turtle' ? .06 : q === 'unicorn' ? .16 : q === 'nymph' ? .07 : .24);
-  for (const quirk of ['turtle', 'unicorn', 'nymph', 'idle', 'human', undefined])
+  for (const quirk of ['turtle', 'nymph', 'idle', 'human', undefined])
     for (let t = 0; t < 10; t += .37) assert.equal(tailSway(actor({quirk, species: 'jackal'}), t), old(quirk, t));
 });
 
@@ -51,8 +51,25 @@ test('each flayer keeps its own phase, fixed from where it was first seen', () =
 
 test('a phase shifts the quirk sway exactly as the gallery used to, and leaves flayers alone', () => {
   const old = (q, t, ph) => Math.sin(t * (q === 'dog' ? 7 : q === 'turtle' ? 1.1 : q === 'unicorn' ? 2.6 : q === 'nymph' ? 1.4 : 3) + ph) * (q === 'dog' ? .34 : q === 'turtle' ? .06 : q === 'unicorn' ? .16 : q === 'nymph' ? .07 : .24);
-  for (const quirk of ['turtle', 'unicorn', 'nymph', 'idle'])
+  for (const quirk of ['turtle', 'nymph', 'idle'])
     for (let t = 0; t < 10; t += .37) assert.equal(tailSway(actor({quirk, species: 'fox'}), t, 2.19), old(quirk, t, 2.19));
   const f = actor({species: 'mind flayer'});
   assert.equal(tailSway(f, 4, 1.5), tailSway(f, 4));
+});
+
+test('a unicorn\'s tail lashes twice now and then, smoothly, and is the plain swish between lashes', () => {
+  const a = actor({quirk: 'unicorn', species: 'white unicorn'});
+  let max = 0, lashed = 0, maxStep = 0, prev = tailSway(a, 0);
+  for (let t = 1 / 60; t < UNI_PERIOD * 4; t += 1 / 60) {
+    const v = tailSway(a, t), l = unicornLash(t, 0);
+    assert.ok(Number.isFinite(v) && Math.abs(l) <= UNI_FLICK + 1e-9);
+    if (l !== 0) lashed += 1 / 60;
+    else assert.equal(v, Math.sin(t * 2.6) * .16);
+    max = Math.max(max, Math.abs(v)); maxStep = Math.max(maxStep, Math.abs(v - prev)); prev = v;
+  }
+  assert.ok(Math.abs(lashed - 4 * UNI_LEN) < .5, `lashed ${lashed}`);
+  assert.ok(max > .16 && max <= .16 + UNI_FLICK + 1e-9, `reach ${max}`);
+  assert.ok(maxStep < .08, `step ${maxStep}`);
+  assert.equal(unicornLash(0, 0), 0);
+  assert.ok(Math.abs(unicornLash(UNI_LEN - 1e-9, 0)) < 1e-6);
 });
