@@ -330,3 +330,11 @@ test('a bursting body trembles as it swells, then is still at the pop', () => {
   assert.ok(Math.abs(r(.33)) < 1e-9 && Math.abs(r(1)) < 1e-12);
   assert.equal(deathPose('dissipate', .5).roll, 0);
 });
+
+test('a splatting body lashes its tail in the puddle, then the tail settles to nothing', () => {
+  let peak = 0;
+  for (let u = 0; u <= 1; u += .01) { const t = deathPose('splat', u).tail; peak = Math.max(peak, Math.abs(t)); assert.ok(Math.abs(t) <= .3 + 1e-9, String(u)); }
+  assert.ok(peak > .05);
+  assert.ok(Math.abs(deathPose('splat', 0).tail) < 1e-9);
+  assert.ok(Math.abs(deathPose('splat', 1).tail) < 1e-9);
+});
