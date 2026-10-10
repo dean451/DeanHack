@@ -12,7 +12,7 @@ import {segment,chain} from './ant.js';
 // - Legs: shoulder, elbow and forearm down to a padded paw with four toes, each tipped with a dark hooked claw, in front; the hind
 //   legs have a muscled thigh, a knee, a raised hock and a long foot.
 // - The kitten, housecat and large cat wear a leather collar with a brass tag and are lean, lived-in cats: matted tufts along the spine, proud hip
-//   bones, healed scratches across the right flank, ribs showing through the flank fur and upright ears. Their coats are
+//   bones, ribs showing through the flank fur and upright ears. Their coats are
 //   clean enough for a pet that is fed: no mange, no face scar, full whiskers and bright open eyes.
 // - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
@@ -116,7 +116,6 @@ function torsoAt(L,C){
   const top=smooth((y-L.Y)/.12);
   let c=mix(C.coat,C.back,top*.5);
   c=markings(L,C,x,y,z,c);
-  if(L.scruffy&&x>.05)for(let k=0;k<2;k++){const d=Math.abs((y-L.Y-.03-k*.025)-(z+.02)*.5);if(d<.006&&z>-.15&&z<.1)c=mix(c,C.belly,.8*(1-d/.006));}
   if(L.scruffy)c=mix(c,C.stripe,.1*smooth((hash(Math.floor(x*90)*7.3+Math.floor(y*90)*3.1+Math.floor(z*90))-.55)/.2));
   if(L.scruffy)c=mix(c,C.stripe,ribShade(x,y,z,L.Y));
   const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.16)/.08)*smooth((L.Y+.06-y)/.08);
