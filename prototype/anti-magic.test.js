@@ -75,3 +75,12 @@ test('every fourth mote gutters dark mid-drain, then comes back', async () => {
   assert.ok(at(3, .5) < at(3, .4) * .5 && at(3, .6) > at(3, .5) * 2, 'gutter');
   assert.ok(Math.abs(at(2, .5) - .85) < 1e-9, 'others burn steady');
 });
+
+test('the last mote clings, trembling, while the others are dragged down', async () => {
+  const {motePose, ANTI} = await import('./anti-magic.js');
+  const last = ANTI.motes - 1, start = .04 * last, at = u => motePose(last, start + u * (ANTI.drain - start));
+  assert.ok(Math.abs(at(.55).y - at(.3).y) < .08 && at(.45).y > .5, 'hangs');
+  assert.ok(motePose(0, .8 * .72).y < .3 && at(.72).y > motePose(0, .72 * ANTI.drain).y, 'the others are lower');
+  const xs = new Set(); for (let u = .32; u < .53; u += .01) xs.add(at(u).x.toFixed(4));
+  assert.ok(xs.size > 5, 'trembles');
+});
