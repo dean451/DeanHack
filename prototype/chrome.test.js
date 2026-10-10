@@ -95,3 +95,14 @@ test('the live pet cat is built from the feline model, not the old demo cat', ()
   const live = read('./live.js');
   assert.match(live, /cell\.kind==='pet'&&\/cat\|kitten\/\.test\(cell\.name\)\)\{a=creatureFactory\?creatureFactory\(cell\):catFactory\(\)/);
 });
+
+test('blessed items read green in the pack, the sun mark stays, and cursed stays red (the convention)', () => {
+  const css = read('./style.css');
+  const blessed = /\.engine-menu-row\.buc-blessed\{color:(#[0-9a-f]{6})\}/i.exec(css)?.[1], cursed = /\.engine-menu-row\.buc-cursed\{color:(#[0-9a-f]{6})\}/i.exec(css)?.[1];
+  assert(blessed && cursed);
+  const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const [br, bg, bb] = rgb(blessed), [cr, cg, cb] = rgb(cursed);
+  assert(bg > br + 30 && bg > bb + 30, `blessed ${blessed} is green`);
+  assert(cr > cg + 30 && cr > cb + 30, `cursed ${cursed} is red`);
+  assert.match(read('./item-buc.js'), /blessed: '☼'/);
+});
