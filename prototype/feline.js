@@ -205,7 +205,7 @@ function buildHead(L,C){
  P.add(new THREE.SphereGeometry(.022,12,8),at(0,-.058,.11),paint);
  P.add(new THREE.SphereGeometry(.014,10,6),at(0,-.006,.146,[0,0,0],[1.3,.8,.7]),C.nose);
  // pupils in front of the glowing eyes: slits, or round on the big cats
- for(const s of [-1,1])P.add(new THREE.SphereGeometry(.018,10,8),at(s*.041,.026,.139,[0,0,0],L.round?[.5,.5,.22]:[.22,.85,.22]),rgb('#080606'));
+ for(const s of [-1,1])P.add(new THREE.SphereGeometry(L.scruffy?.015:.018,10,8),at(s*.041,.026,.139,[0,0,0],L.round?[.5,.5,.22]:[.22,.85,.22]),rgb('#080606'));
  // ears
  for(const s of [-1,1]){
   if(L.ears==='round'){
@@ -223,7 +223,7 @@ function buildHead(L,C){
   }
  }
  // scruffy pets: ragged tufts of cheek fur flaring out under the ears
- if(L.scruffy)for(const s of [-1,1])for(let k=0;k<3;k++)P.add(new THREE.ConeGeometry(.012,.04,4),at(s*(.08+.004*k),-.03-.012*k,.05+.012*k,[Math.PI/2-.2*k,0,s*(1.1+.2*k)]),(x,y,z)=>mix(C.coat,C.stripe,smooth((.04-Math.abs(x))/.04)*.4));
+ if(L.scruffy)for(const s of [-1,1])for(let k=0;k<3;k++)P.add(new THREE.ConeGeometry(.007,.036,4),at(s*(.08+.004*k),-.03-.012*k,.05+.012*k,[Math.PI/2-.2*k,0,s*(1.1+.2*k)],[1,1,.4]),(x,y,z)=>mix(C.coat,C.stripe,smooth((.04-Math.abs(x))/.04)*.4));
  // pets: a plain leather collar, the one mark of an owner, with a small brass tag hanging at the throat
  if(L.scruffy){
   P.add(new THREE.TorusGeometry(.078,.011,6,18),at(0,-.005,-.03),rgb('#5a3a22'));
@@ -245,9 +245,9 @@ function buildHead(L,C){
  return P.merge();
 }
 
-function buildEyes(){
+function buildEyes(L){
  const P=pieces();
- for(const s of [-1,1])P.add(new THREE.SphereGeometry(.021,10,8),at(s*.041,.026,.128,[0,0,0],[1,.8,.6]),[1,1,1]);
+ for(const s of [-1,1])P.add(new THREE.SphereGeometry(.021,10,8),at(s*.041,.026,.128,[0,0,-s*(L.scruffy?.25:0)],L.scruffy?[.85,.55,.6]:[1,.8,.6]),[1,1,1]);
  return P.merge();
 }
 
@@ -339,7 +339,7 @@ function build(key,look){
  const S={L,
   fur:new THREE.MeshStandardMaterial({vertexColors:true,roughness:L.gloss??.82,metalness:0}),
   eye:new THREE.MeshStandardMaterial({color:L.eye,emissive:L.eye,emissiveIntensity:L.scruffy?.95:.6,roughness:.2}),
-  body:buildBody(L,C),head:buildHead(L,C),eyes:buildEyes(),fore:buildLeg(L,C,true),hind:buildLeg(L,C,false),tail:buildTail(L,C),
+  body:buildBody(L,C),head:buildHead(L,C),eyes:buildEyes(L),fore:buildLeg(L,C,true),hind:buildLeg(L,C,false),tail:buildTail(L,C),
  };
  cache.set(key,S);return S;
 }
