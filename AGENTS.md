@@ -24,6 +24,21 @@ The player trudges through a dark, barren, hostile fantasy world full of monster
 - **Unseen monster marker:** a creature the hero cannot see (invisible, without see invisible) shows in the ASCII game as a grey capital I, so you know something is there. The bridge already sends `invisible` on the cell. Draw a clear marker for it: a grey capital I with a faint shimmering distortion of the air, readable at a glance and plainly not a real monster.
 - **Animations** lead into whimsy: personality, odd tics and surprise in how things move. The whimsy lives in the motion, not the look, so keep it dark-humoured and a little uncanny, never cute or bouncy.
 
+### The style in ten lines
+
+Our roguelike in short. When in doubt, check a change against these.
+
+1. **Dark, barren and hostile.** The dungeon wants you dead. Rust, ash, bone, rot, grime; never cute, bubbly, pastel or fairy-tale.
+2. **Fantasy tropes, honestly drawn.** A dragon looks like a dragon and an altar like an altar. Things look like what a player expects, then a little worse.
+3. **The game is shown, not told.** Visuals carry the meaning; text and chrome stay minimal. No audio, ever.
+4. **Silhouette first.** Readable from the top-down camera at a few tiles across. Angular, faceted, tapered; never smooth balls, capsules or toys.
+5. **Magic is loud against the dark.** Magic items are the player's lifeline and the strongest things in the world: saturated, self-lit, punchy colour and a clear effect. Mundane things stay dull. Rarer and stronger means grander.
+6. **Leaks are welcome.** A sharp-eyed player may read an item's true nature from its look. A little hint is a reward.
+7. **Threat has presence.** The more dangerous a thing is, the bigger, richer and more menacing it is: glow, size, detail, wrongness. Bosses and killers are never plain.
+8. **Everything is worn.** Scuffs, dents, stains, asymmetry, a torn ear or chipped horn. Nothing is factory clean, nothing is perfectly symmetrical, except the sacred and the strange.
+9. **Motion has dark whimsy.** Animations carry personality, odd tics and surprise, dark-humoured and a little uncanny; never bouncy or sugary. Every state (blind, stunned, burning, dying) is unmistakable on screen.
+10. **Convention for the player.** Follow roguelike habits so veterans feel at home: blessed is green, cursed is red, the hero is a Valkyrie in end-game steel. Judge by looking at the render at the game camera, against the benchmarks (the enormous rat, the weeping angels).
+
 ### Model quality bar
 
 The user judges models at the game camera (top-down, a few tiles across), and has rejected faces and hands that were round, flat or toy-like. Hold every model to this bar, and check your work against it before you open a PR.
