@@ -2796,3 +2796,9 @@ test('woodchucks dig with long hooked claws on both forepaws',()=>{
  c.g.traverse(o=>{if(o.geometry&&o.geometry.type==='ConeGeometry')claws++;});
  assert(claws>=6,'three claws a forepaw, '+claws);
 });
+
+test('woodchucks snarl: yellowed fangs bare beside the incisors and red-rimmed eyes',()=>{
+ const c=createCreature({name:'woodchuck'});const cols=new Set();
+ c.g.traverse(o=>{if(o.isMesh)cols.add('#'+o.material.color.getHexString());});
+ assert(cols.has('#b89a3c')&&cols.has('#7a1d18'),'fang and eye-rim colours');
+});
