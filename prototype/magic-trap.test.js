@@ -75,8 +75,8 @@ test('a shaking pack plays a quieter version at once, on the hero\'s square', ()
 });
 
 test('the trap\'s omens play the quiet version at once, and only they do', () => {
-  for (const t of ['A shiver runs up and down your spine!', 'You smell charred flesh.', 'You hear distant howling.', 'You suddenly yearn for your distant homeland.']) assert.ok(isOmenMessage(t) && !isMagicTrapMessage(t) && !isPackShakeMessage(t), t);
-  for (const t of ['You smell hamburgers.', 'You hear a deafening roar!', null]) assert.ok(!isOmenMessage(t), String(t));
+  for (const t of ['A shiver runs up and down your spine!', 'You smell charred flesh.', 'You hear distant howling.', 'You suddenly yearn for your distant homeland.', 'You smell hamburgers.', 'You hear the moon howling at you.', 'You suddenly yearn for Cleveland.', 'You feel like the prodigal son.', 'You feel oddly like the prodigal son.']) assert.ok(isOmenMessage(t) && !isMagicTrapMessage(t) && !isPackShakeMessage(t), t);
+  for (const t of ['You feel like a million bucks.', 'You hear a deafening roar!', null]) assert.ok(!isOmenMessage(t), String(t));
   const THREE = new Proxy({}, {get: () => class { constructor() { this.position = {set() {}, y: 0}; this.rotation = {}; this.scale = {setScalar() {}, set() {}}; this.material = {}; } add() {} dispose() {} }});
   const fx = createMagicTrap(THREE, {add() {}, remove() {}});
   fx.message('A shiver runs up and down your spine!', 3, 4);
