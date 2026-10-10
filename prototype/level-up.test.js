@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {isLevelUp, ringPose, moteFlight, createLevelUp, LEVEL} from './level-up.js';
+import {FLICKER_AT, FLICKER_LEN, FLICKER_ALPHA, isLevelUp, ringPose, moteFlight, createLevelUp, LEVEL} from './level-up.js';
 
 test('only the level message counts', () => {
   assert.ok(isLevelUp('Welcome to experience level 5.'));
@@ -59,4 +59,12 @@ test('the ring catches on its way in but never opens back out', () => {
   for (let t = .03; t < LEVEL.ring - .03; t += .01) { const v = slope(t); slowed = Math.min(slowed, v); fast = Math.max(fast, v); }
   assert.ok(slowed < fast * .5, `catches: ${slowed} vs ${fast}`);
   assert.ok(Math.abs(ringPose(0).radius - .9) < 1e-9 && Math.abs(ringPose(LEVEL.ring).radius - .15) < 1e-9);
+});
+
+test('a last cold flicker of the tight ring blinks after it has gone out, then nothing', () => {
+  assert.equal(ringPose(FLICKER_AT - .02).alpha, 0);
+  const mid = ringPose(FLICKER_AT + FLICKER_LEN / 2);
+  assert.ok(mid.alpha > .1 && mid.alpha <= FLICKER_ALPHA + 1e-9 && Math.abs(mid.radius - .15) < 1e-9, JSON.stringify(mid));
+  assert.equal(ringPose(FLICKER_AT + FLICKER_LEN + .02).alpha, 0);
+  assert.ok(FLICKER_AT + FLICKER_LEN < LEVEL.total);
 });

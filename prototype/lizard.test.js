@@ -23,3 +23,20 @@ test('plain rats are the enormous rat\'s sculpt at smaller sizes, each a differe
   const [sewer, rabid, giant, enormous] = ['sewer rat', 'rabid rat', 'giant rat', 'enormous rat'].map(size);
   assert(sewer < rabid && rabid <= giant && giant < enormous, [sewer, rabid, giant, enormous].join());
 });
+
+test('every lizard kind is sculpted, grounded, finite, and distinct from the others', () => {
+  const sigs = new Set();
+  for (const name of ['newt', 'gecko', 'lizard', 'iguana', 'chameleon', 'salamander', 'basilisk']) {
+    const c = createCreature({name, symbol: 58, color: 2});
+    assert.equal(c.quirk, 'lizard', name);
+    assert.equal(c.legs.length, 4, name);
+    assert(c.head && c.tail, name);
+    const box = new THREE.Box3().setFromObject(c.g);
+    for (const v of [...box.min.toArray(), ...box.max.toArray()]) assert(Number.isFinite(v), name);
+    assert(box.min.y > -.01 && box.max.y < 1.2, `${name} height ${box.max.y}`);
+    let tris = 0, meshes = 0; c.g.traverse(o => { if (o.isMesh) { meshes++; tris += o.geometry.attributes.position.count; } });
+    assert(meshes <= 20, `${name} ${meshes} meshes`);
+    sigs.add(`${tris}`);
+  }
+  assert(sigs.size >= 6, 'each kind has its own build');
+});
