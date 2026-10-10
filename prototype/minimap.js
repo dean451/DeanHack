@@ -16,6 +16,7 @@ export const FEATURE_MARKS = {fountain: 'ring', altar: 'plus', throne: 'crown', 
 export function cellStyle(cell, hero) {
   if (hero && cell.x === hero.x && cell.z === hero.z) return {fill: '#fff6d8', mark: 'hero'};
   if (cell.kind === 'pet') return {fill: '#79d8a5', mark: 'diamond'};
+  if (cell.kind === 'monster' && cell.visible && cell.peaceful) return {fill: '#c9b27a', mark: 'ring'};   // a peaceful one is a hollow ring, not a hostile slash
   if (cell.kind === 'monster' && cell.visible) return {fill: '#e0705c', mark: 'slash'};
   if (cell.trap) return {fill: '#b25bd6', mark: 'x'};
   switch (cell.terrain) {

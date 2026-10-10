@@ -94,3 +94,11 @@ test('bars, doors, altars and graves each carry a different mark', () => {
   assert.notEqual(m('grave'), m('altar'));
   assert.equal(new Set(['fountain', 'altar', 'throne', 'sink', 'grave'].map(m)).size, 5);
 });
+
+test('a peaceful monster is a ring, not the hostile slash, so disposition does not rely on colour', () => {
+  const peaceful = cellStyle({x: 2, z: 1, kind: 'monster', visible: true, peaceful: true, terrain: 'floor'}, null);
+  const hostile = cellStyle({x: 2, z: 1, kind: 'monster', visible: true, terrain: 'floor'}, null);
+  assert.equal(peaceful.mark, 'ring');
+  assert.notEqual(peaceful.mark, hostile.mark);
+  assert.notEqual(peaceful.fill, hostile.fill);
+});
