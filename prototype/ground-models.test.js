@@ -52,6 +52,7 @@ test('oil and magic lamps share a grounded, disposable model',()=>{
  assert.equal(createGroundModel({name:'lamp',class:7}),null);
 });
 
+const boxOf=model=>{model.updateMatrixWorld(true);const b=new THREE.Box3();for(const o of model.children)if(o.name!=='glow')b.union(new THREE.Box3().setFromObject(o));return b;};
 test('spellbooks are grounded, tinted by glyph colour only, and release resources',()=>{
  const book=(name,color)=>createGroundModel({name,class:10,color});
  const signature=model=>model.children.map(part=>[part.geometry.type,...part.position.toArray(),part.material.color.getHex()]);
@@ -60,7 +61,7 @@ test('spellbooks are grounded, tinted by glyph colour only, and release resource
  assert.deepEqual(signature(book('spellbook of wishing',1)),signature(red),'the true spell name must not show');
  assert.notDeepEqual(signature(book('spellbook of force bolt',4)),signature(red));
  assert(book('spellbook of sleep'),'an uncoloured book still gets a cover');
- const bounds=new THREE.Box3().setFromObject(red);
+ const bounds=boxOf(red);
  assert(bounds.min.y>=-1e-7);assert(bounds.max.y<.15);
  assert(bounds.max.x-bounds.min.x<.6&&bounds.max.z-bounds.min.z<.7);
  let disposed=0;
@@ -221,13 +222,13 @@ test('common food gets grounded, finite models and unknown food falls back',()=>
 
 test('scrolls lie on the floor and show only their shuffled label',()=>{
  const scroll=(name,appearance)=>createGroundModel({name,class:9,appearance});
- const signature=(model,paint=true)=>model.children.map(part=>[part.geometry.attributes.position.count,...part.position.toArray().map(n=>n.toFixed(5)),paint?[...part.geometry.attributes.color.array].map(n=>n.toFixed(3)).join():'']);
+ const signature=(model,paint=true)=>model.children.filter(o=>o.geometry).map(part=>[part.geometry.attributes.position.count,...part.position.toArray().map(n=>n.toFixed(5)),paint?[...part.geometry.attributes.color.array].map(n=>n.toFixed(3)).join():'']);
  const models={labelled:scroll('scroll of identify','ZELGO MER'),blank:scroll('scroll of blank paper','unlabeled'),mail:scroll('scroll of mail','stamped'),bare:scroll('scroll',undefined)};
  for(const [kind,model] of Object.entries(models)){
   assert(model,kind);
-  assert.equal(model.children.length,1,`${kind} bakes into one draw`);
+  assert.equal(model.children.filter(o=>o.name!=='magic').length,1,`${kind} bakes into one draw`);
   assert(model.children[0].material.vertexColors,`${kind} is painted with vertex colours`);
-  const bounds=new THREE.Box3().setFromObject(model);
+  const bounds=new THREE.Box3();for(const o of model.children)if(o.name!=='magic')bounds.union(new THREE.Box3().setFromObject(o));
   assert(bounds.min.y>-1e-6&&bounds.min.y<1e-6,`${kind} rests on the floor`);
   assert(bounds.max.y<.12,`${kind} lies flat`);
   assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.3,`${kind} fits its tile`);
@@ -236,8 +237,9 @@ test('scrolls lie on the floor and show only their shuffled label',()=>{
    for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value));
    part.geometry.addEventListener('dispose',()=>geometries++);
   }});
+  let meshes=0;model.traverse(part=>{if(part.geometry)meshes++;});
   model.userData.dispose();
-  assert.equal(geometries,model.children.length);
+  assert.equal(geometries,meshes);
  }
  assert.deepEqual(signature(scroll('scroll of genocide','ZELGO MER'),false),signature(scroll('scroll of identify','ZELGO MER'),false),'the true scroll name must not change the shape (scroll-twist.js tints the paper)');
  assert.notDeepEqual(signature(scroll('scroll of identify','ELBIB YLOH')),signature(scroll('scroll of identify','ZELGO MER')));
@@ -385,11 +387,12 @@ test('spellbook covers follow the shuffled appearance and stay grounded',()=>{
  for(const look of looks){
   const model=book('spellbook of force bolt',look);
   // Nothing on a book moves, so each material is one baked draw.
-  assert.equal(model.children.length,new Set(model.children.map(part=>part.material)).size,`${look}: one draw per material`);
-  assert(model.children.length<=4,`${look}: the plain parts share one matte paint: ${model.children.length} draws`);
+  const solid=model.children.filter(part=>part.name!=='glow');
+  assert.equal(solid.length,new Set(solid.map(part=>part.material)).size,`${look}: one draw per material`);
+  assert(solid.length<=4,`${look}: the plain parts share one matte paint: ${solid.length} draws`);
   assert.deepEqual(signature(book('spellbook of wishing',look)),signature(model),`${look}: the true spell must not show`);
   seen.add(JSON.stringify(signature(model)));
-  const bounds=new THREE.Box3().setFromObject(model);
+  const bounds=boxOf(model);
   assert(bounds.min.y>=-1e-6,`${look} rests on the floor: ${bounds.min.y}`);
   assert(bounds.max.y<.17,`${look} lies low: ${bounds.max.y}`);
   assert(Math.max(-bounds.min.x,bounds.max.x,-bounds.min.z,bounds.max.z)<.42,`${look} fits its tile`);

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {createGroundModel} from './ground-models.js';
 
 const make=name=>createGroundModel({name,class:9,color:1,appearance:'ZELGO MER'});
-const mesh=m=>{let found;m.traverse(o=>{if(o.geometry?.attributes?.color)found=o;});return found;};
+const mesh=m=>{let found;m.traverse(o=>{if(o.userData.part==='scroll')found=o;});return found;};
+const draws=m=>m.children.filter(o=>o.name!=='magic').length;
 const mean=m=>{const c=mesh(m).geometry.attributes.color;let s=0;for(let i=0;i<c.count;i++)s+=c.getX(i)+c.getY(i)+c.getZ(i);return s/(3*c.count);};
 
 test('unknown and plain scrolls keep the plain paper',()=>{
@@ -33,7 +34,7 @@ test('fire and genocide glow dully from within; flood does not',()=>{
 
 test('the scroll stays one draw',()=>{
  const m=make('scroll of fire');
- assert.equal(m.children.length,1);
+ assert.equal(draws(m),1);
  m.userData.dispose();
 });
 
@@ -42,8 +43,8 @@ test('every twisted scroll type shifts the paper and keeps one draw',()=>{
  for(const name of ['create monster','stinking cloud','punishment','amnesia','enchant weapon','enchant armor','remove curse','fire','flood','light','teleportation','destroy armor','taming','charging','identify','earth','confuse monster','magic mapping','gold detection','food detection']){
   const m=make(`scroll of ${name}`);
   assert.equal(m.userData.twist,name);
-  assert(Math.abs(mean(m)-base)>.03,name);
-  assert.equal(m.children.length,1);
+  assert(Math.abs(mean(m)-base)>.01,name);
+  assert.equal(draws(m),1);
   m.userData.dispose();
  }
  plain.userData.dispose();

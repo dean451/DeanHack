@@ -5472,7 +5472,10 @@ export function createGroundModel(item={}){
   };
   const box=(w,h,d,c,x,y,z=0)=>add(new THREE.BoxGeometry(w,h,d),c,x,y,z);
   const ball=(r,c,x,y,z,s=[1,1,1])=>{const p=add(new THREE.SphereGeometry(r,16,10),c,x,y,z);p.scale.set(...s);return p;};
-  const seal=mat([0x8c1f24,0x2f4f8a,0x2f6b3a,0x6a2f7a,0xa8741e,0x1f2a2a][[...look].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0,7)%6]);
+  // Each label gets its own loud rune colour: wax, ribbon and the glow of its script all take it.
+  const RUNES=[0xff3a4a,0x3a86ff,0x3aea6a,0xb858ff,0xffa426,0x3ae6e6];
+  const runeColour=RUNES[[...look].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0,7)%6],seal=mat(runeColour);
+  const runeGeos=[];
   if(/stamped/.test(look)){
    const paper=mat(0xe6dcc4),fold=mat(0xb9ad92),stamp=mat(0x3b6fa8);
    add(new RoundedBoxGeometry(.3,.018,.2,2,.004),paper,0,.009);
@@ -5504,7 +5507,7 @@ export function createGroundModel(item={}){
    if(!blank){
     // Faint lines of script on the tongue; no readable lettering at game zoom.
     const ink=mat(0x3a2c22);
-    for(let i=0;i<4;i++)box(W*(.72-(i%3)*.12),.0012,.007,ink,-W*(i%2?.04:.08),.0032,.04+i*.028);
+    for(let i=0;i<4;i++){const rg=new THREE.BoxGeometry(W*(.72-(i%3)*.12),.0016,.007);rg.translate(-W*(i%2?.04:.08),.0036,.04+i*.028);runeGeos.push(rg);}
     // A ribbon around the middle of the roll, fastened with a wax seal.
     const ribbon=add(new THREE.TorusGeometry(R+.002,.006,6,24),seal,.04,R);ribbon.rotation.y=Math.PI/2;
     ball(.022,seal,.04,R,R+.004,[1,1,.35]);
@@ -5513,6 +5516,14 @@ export function createGroundModel(item={}){
   }
   bakeMeshes([...g.children]).userData.part='scroll';
   applyScrollTwist(g,item);
+  // the script glows in the label's colour, and a soft pool of it lies on the floor round the scroll
+  if(runeGeos.length){
+   const runeMat=new THREE.MeshStandardMaterial({color:runeColour,emissive:runeColour,emissiveIntensity:1.6,roughness:.5});materials.push(runeMat);
+   const magic=new THREE.Group();magic.name='magic';g.add(magic);
+   const rm=new THREE.Mesh(mergeGeometries(runeGeos),runeMat);rm.name='runes';rm.castShadow=false;magic.add(rm);
+   const pool=new THREE.MeshBasicMaterial({vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false});materials.push(pool);
+   const poolDisc=new THREE.Mesh(glowDisc(runeColour,.3),pool);poolDisc.name='glow';poolDisc.renderOrder=-1;magic.add(poolDisc);
+  }
   // The ribbon lifts the roll a little; settle whatever is lowest onto the floor.
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===4){
