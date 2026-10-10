@@ -17,6 +17,14 @@ export function squareAt(point, origin) {
 
 // A bare square: a seen trap by its name, an open or smashed door, else the furniture or hazard.
 function terrainText(cell) {
+  const base = bareText(cell);
+  const e = cell.engraving;
+  if (!e) return base;
+  const mark = e.elbereth ? `Elbereth, ${e.type}` : `${e.type} engraving`;
+  return base ? `${base} (${mark})` : mark;
+}
+
+function bareText(cell) {
   if (cell.trap) return String(cell.trap).toLowerCase();
   if (cell.terrain === 'door' && cell.door === 'open') return 'open door';
   if (cell.door === 'broken') return 'broken door';

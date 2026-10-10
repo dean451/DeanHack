@@ -67,3 +67,10 @@ test('detected things out of sight are named as sensed, with no health detail', 
   assert.equal(farlookText({visible: false, sensed: true, terrain: 'altar'}), '');
   assert.equal(farlookText({visible: false, remembered: true, object: {name: 'dagger'}}), '');
 });
+
+test('an engraving the hero has read is named, with Elbereth called out', () => {
+  assert.equal(farlookText({visible: true, terrain: 'floor', engraving: {type: 'dust', elbereth: false}}), 'dust engraving');
+  assert.equal(farlookText({visible: true, terrain: 'floor', engraving: {type: 'burn', elbereth: true}}), 'Elbereth, burn');
+  assert.equal(farlookText({visible: true, terrain: 'altar', engraving: {type: 'dust'}}), 'altar (dust engraving)');
+  assert.equal(farlookText({visible: true, terrain: 'floor'}), '');
+});
