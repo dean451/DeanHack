@@ -193,6 +193,7 @@ const DRAGON_SEGMENT=new THREE.SphereGeometry(1,10,8);
 function dragonSegment(parent,r,material,p,q,sx,sy,sz){const mesh=part(parent,DRAGON_SEGMENT,material,p.x,p.y,p.z);mesh.quaternion.copy(q);mesh.scale.set(r*sx,r*sy,r*sz);return mesh;}
 // small rounded boxes with a single bevel step; the default three-step bevel costs 1.7k vertices each
 const DRAGON_BONE=new THREE.SphereGeometry(1,6,4);
+const DRAGON_TORSO=new THREE.SphereGeometry(1,9,6);
 function lowBlob(parent,r,material,x,y,z,sx,sy,sz,geo=DRAGON_SEGMENT){const mesh=part(parent,geo,material,x,y,z);mesh.scale.set(r*sx,r*sy,r*sz);return mesh;}
 function dragonBox(parent,w,h,d,material,x=0,y=0,z=0,r=.02){return part(parent,new RoundedBoxGeometry(w,h,d,1,Math.min(r,w/2,h/2,d/2)*.9),material,x,y,z);}
 const DRAGON_SCUTE=new THREE.BoxGeometry(.1,.012,.07);
@@ -334,7 +335,7 @@ function dragon(o={}){
   // four-legged dragons stand square; wyverns rear up on two legs and wings; sirrush are lean and long-necked
   const lean=f.sirrush?.82:1;
   // a lean frame: a deep keel of a chest, a tucked waist and heavy hip and shoulder masses
-  const torso=sphere(body,.26,m.hide,0,.47,0,.92*lean,.9,1.45);const under=sphere(body,.2,m.belly,0,.36,.04,.9*lean,.55,1.3);
+  const torso=lowBlob(body,.26,m.hide,0,.47,0,.92*lean,.9,1.45,DRAGON_TORSO);const under=lowBlob(body,.2,m.belly,0,.36,.04,.9*lean,.55,1.3,DRAGON_TORSO);
   const chest=lowBlob(body,.2,m.hide,0,.45,.16,1.05*lean,1.12,1.05),hips=lowBlob(body,.18,m.hide,0,.47,-.18,1.05*lean,.95,1);
   if(f.legs===2){torso.rotation.x=under.rotation.x=chest.rotation.x=hips.rotation.x=-.3;}
   else{for(const s of [-1,1]){lowBlob(body,.1,m.hide,s*.17*lean,.55,.2,.9,1.1,1.2);lowBlob(body,.1,m.hide,s*.16*lean,.5,-.2,.9,1,1.2);}}
