@@ -10,6 +10,9 @@ import {createFire} from './fire.js';
 // candles, a chalice and a few coins. Stone weathering is baked into vertex colours.
 // Static parts are merged into one mesh per material; only the candle flames are
 // separate (they animate through `updateFire`). It faces +z and stays in its tile.
+// Height of the slab's top face, so live.js can rest items lying on the altar on it.
+export const ALTAR_TOP=.345;
+
 export function createAltar(){
  const g=new THREE.Group();g.name='Altar of the Last Ember';
  const materials=[],geometries=[];
@@ -62,7 +65,7 @@ export function createAltar(){
  }
  // Mensa: the overhanging top slab.
  block(.84,.06,.68,0,.315,0,{r:.016,tint:1.02});
- const top=.345;
+ const top=ALTAR_TOP;
 
  // Blood: a dried crust and a fresh pool on the slab, runs down the front and a
  // spreading stain on the floor. Bones: a skull on the slab, long bones and ribs

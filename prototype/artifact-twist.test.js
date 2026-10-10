@@ -230,12 +230,14 @@ test('the Sceptre of Might wears a lit crown of spikes as the last mesh on the s
   art.userData.dispose();
 });
 
-test('Mjollnir wears a lit bolt and binding ring as the last mesh on the hammer', () => {
+test('Mjollnir stands upright on its head on the floor, its runes lit as the last mesh', () => {
   const art = createGroundModel({name: 'war hammer', label: 'Mjollnir', class: 2});
   assert.equal(art.userData.artifact, 'mjollnir');
   assert(art.children.at(-1).userData.magicShell);
-  const w = new THREE.Box3().setFromObject(art).getSize(new THREE.Vector3());
-  assert(w.y < .15 && Math.hypot(w.x, w.z) < .6);
+  const b = new THREE.Box3().setFromObject(art), w = b.getSize(new THREE.Vector3());
+  assert(b.min.y > -1e-6, `rests on the floor, not in it (${b.min.y})`);
+  assert(w.y > .55 && w.y < .8, `haft stands up (${w.y})`);
+  assert(Math.hypot(w.x, w.z) < .6, 'the head fits its tile');
   art.userData.dispose();
 });
 
@@ -521,17 +523,19 @@ test('a wielded Ogresmasher carries its lit skull-ring on the striking face of t
   assert(b.min.y > .4 && b.max.y < .56 && b.min.z > -.06 && b.max.z < .06, `y ${b.min.y}..${b.max.y} z ${b.min.z}..${b.max.z}`);
 });
 
-test('a wielded Mjollnir carries its lit bolt on the striking face of the war hammer', async () => {
+test('a wielded Mjollnir is its own hammer, with its own lit runes and no war-hammer shell', async () => {
   const {createHeldWeapon} = await import('./equipment.js');
   const {applyArtifactTwist} = await import('./artifact-twist.js');
-  const hammer = createHeldWeapon({name: 'war hammer', class: 2});
+  const hammer = createHeldWeapon({name: 'Mjollnir', base: 'war hammer', class: 2});
+  assert(hammer.userData.mjollnir, 'built by mjollnir.js');
+  const before = hammer.children.length;
   applyArtifactTwist(hammer, {label: 'Mjollnir', class: 2}, {clone: true, held: true});
-  const shell = hammer.children.at(-1);
   assert.equal(hammer.userData.artifact, 'mjollnir');
-  assert(shell.userData.magicShell);
-  const b = new THREE.Box3().setFromObject(shell);
-  assert(b.max.x < -.18 && b.min.x > -.2, `sits on the face cap ${b.min.x}..${b.max.x}`);
-  assert(b.min.y > .4 && b.max.y < .56 && b.min.z > -.06 && b.max.z < .06, `y ${b.min.y}..${b.max.y} z ${b.min.z}..${b.max.z}`);
+  assert.equal(hammer.children.length, before, 'no floor shape bolted on');
+  assert(hammer.children.some(m => m.userData.mjollnirRunes), 'lit runes');
+  const b = new THREE.Box3().setFromObject(hammer);
+  assert(b.max.y > .55 && b.min.y < -.15 && b.max.x - b.min.x > .4, `broad head over a haft ${b.min.toArray()} ${b.max.toArray()}`);
+  assert.equal(createHeldWeapon({name: 'war hammer', class: 2}).userData.mjollnir, undefined, 'a plain war hammer stays plain');
 });
 
 test('a wielded Cleaver carries its lit chop line along the edge of the battle-axe blade', async () => {

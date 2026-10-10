@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import {mjollnirFloorRunes} from './mjollnir.js';
 import {ARTIFACTS, artifactFromName} from './artifact-gleam.js';
 
 // Floor artifacts take their power in the material: the base item's shape stays, its metal is
@@ -158,13 +159,11 @@ const SHAPES = {
       return spike;
     });
   },
-  // Mjollnir carries the storm: a lit bolt forks across the top of the hammer head in three jagged
-  // strokes, and a thin lit ring binds the haft below it. The head is .09 wide at x .17, top y .07.
-  mjollnir() {
-    const stroke = (x, z, w, d, r) => new THREE.BoxGeometry(w, .004, d).rotateY(r).translate(x, .073, z);
-    const ring = new THREE.TorusGeometry(.016, .003, 5, 14);
-    ring.rotateY(Math.PI / 2); ring.translate(.1, .012, 0);
-    return [stroke(.185, -.022, .035, .005, .5), stroke(.165, 0, .04, .005, -.6), stroke(.18, .024, .03, .005, .4), ring];
+  // Mjollnir's runes (mjollnir.js) burn in its glint: crosses and rings on the striking faces,
+  // strokes on the collar and rings round the haft bands. The floor model stands on its head.
+  mjollnir(group) {
+    const lift = group?.userData?.floorLift ?? 0;
+    return mjollnirFloorRunes().map(g => g.translate(0, lift, 0));
   },
   // Stormbringer bleeds: a jagged lit crack runs down the blade in five slanted strokes, like a
   // wound that never closes. The blade lies along x from .04 to .46, .05 wide, top at y .012.
@@ -382,11 +381,9 @@ const heldSaberMatrix = new THREE.Matrix4().set(-.10875, 0, 1.5, .0111,  1.45, 0
 // A wielded Ogresmasher is the war hammer (equipment.js): its square striking face is the flat cap at x -.1875 on
 // the head, which sits at y .48. The floor skull-ring and fracture lines are stood onto that cap, looking out
 // toward -x, with the floor x running up the face about its centre.
-const HELD_HAMMER_SHAPES = new Set(['ogresmasher', 'mjollnir']);
+// Mjollnir is not here: wielded, it is its own model with its own runes (mjollnir.js).
+const HELD_HAMMER_SHAPES = new Set(['ogresmasher']);
 const heldHammerMatrix = new THREE.Matrix4().set(0, -1, 0, -.176,  1, 0, 0, .18,  0, 0, 1, 0,  0, 0, 0, 1);
-// Mjollnir is a war hammer too, but its floor bolt lies on the top of the head (y .073, x about .17), so it is lowered onto
-// the cap by its own height and raised to the head's centre. Its floor haft ring (the last piece) is left off when held.
-const heldMjollnirMatrix = new THREE.Matrix4().set(0, -1, 0, -.1145,  1, 0, 0, .31,  0, 0, 1, 0,  0, 0, 0, 1);
 // A wielded Cleaver is the battle-axe: its blade is a flat plate x .02 to .29, y .29 to .63, faces at z +-.0175, edge
 // out at x about .24. The floor chop line runs up that edge and the back notches bite in across the plate, so the
 // floor x becomes the height and the floor z (widened fourfold) the reach out from the haft, on the +z face.
@@ -437,7 +434,6 @@ export function applyArtifactTwist(group, object, {clone = false, held = false} 
   const shape = (!held || HELD_SHAPES.has(kind) || HELD_DAGGER_SHAPES.has(kind) || HELD_MAGICBANE_SHAPES.has(kind) || HELD_TSURUGI_SHAPES.has(kind) || HELD_KATANA_SHAPES.has(kind) || HELD_SABER_SHAPES.has(kind) || HELD_HAMMER_SHAPES.has(kind) || HELD_AXE_SHAPES.has(kind) || HELD_MORNING_STAR_SHAPES.has(kind) || HELD_BOW_SHAPES.has(kind) || HELD_STAFF_SHAPES.has(kind) || HELD_SCEPTRE_SHAPES.has(kind)) ? SHAPES[kind]?.(group) : null;
   if (shape && held) {
     const m = HELD_DAGGER_SHAPES.has(kind) ? heldDaggerMatrix : HELD_MAGICBANE_SHAPES.has(kind) ? heldMagicbaneMatrix : HELD_TSURUGI_SHAPES.has(kind) ? heldTsurugiMatrix : HELD_KATANA_SHAPES.has(kind) ? heldKatanaMatrix : HELD_SABER_SHAPES.has(kind) ? heldSaberMatrix : HELD_HAMMER_SHAPES.has(kind) ? (kind === 'mjollnir' ? heldMjollnirMatrix : heldHammerMatrix) : HELD_AXE_SHAPES.has(kind) ? heldAxeMatrix : HELD_BOW_SHAPES.has(kind) ? heldBowMatrix : HELD_STAFF_SHAPES.has(kind) ? heldStaffMatrix : HELD_SCEPTRE_SHAPES.has(kind) ? heldSceptreMatrix : heldMatrix;
-    if (kind === 'mjollnir') shape.pop();
     shape.forEach((g, i) => {
       g.applyMatrix4(HELD_MORNING_STAR_SHAPES.has(kind) ? (i ? heldMorningStarCutMatrix : heldMorningStarRingMatrix) : m);
       if (m.determinant() < 0 && g.index) { const a = g.index.array; for (let i = 0; i < a.length; i += 3) { const t = a[i + 1]; a[i + 1] = a[i + 2]; a[i + 2] = t; } }
