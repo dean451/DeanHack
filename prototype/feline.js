@@ -322,7 +322,7 @@ function buildTail(L,C){
  chain(P,pts,pts.map((_,i)=>r0+(r1-r0)*i/n),colour,8);
  P.add(new THREE.SphereGeometry(r1*1.05,8,6),at(...pts[n]),colour(n-1));
  // pets: the tail keeps just a couple of burrs of fur, a little wear
- if(L.scruffy)for(let i=4;i<n;i+=4)P.add(new THREE.ConeGeometry(.006*k,.02,4),at(pts[i][0]+.01,pts[i][1]+.008,pts[i][2],[0,0,-1.2]),mix(C.coat,C.stripe,.25));
+ if(L.scruffy)for(let i=4;i<n;i+=4)P.add(new THREE.ConeGeometry(.0045*k,.013,4),at(pts[i][0]+.008,pts[i][1]+.005,pts[i][2],[0,0,-1.4]),mix(C.coat,C.stripe,.25));
  P.add(new THREE.SphereGeometry(r0*1.1,8,6),at(0,0,0),mix(C.coat,C.back,.3));
  return P.merge();
 }
