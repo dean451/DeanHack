@@ -10,6 +10,8 @@ import {softDot, softRing, rng, smooth, clamp01} from './fx-textures.js';
 
 export const LEVEL = {total: 1.8, ring: .55, motes: 12, rise: 1.7};
 export const RING_CATCH = .12;
+// The promised last cold flicker: long after the ring has gone out, the tight ring blinks once more, faintly.
+export const FLICKER_AT = 1.35, FLICKER_LEN = .1, FLICKER_ALPHA = .3;
 export const isLevelUp = text => /^Welcome to experience level \d+\.$/.test(text || '');
 
 // The ring at age t: radius draws in from wide to tight, brightest as it closes.
@@ -17,6 +19,8 @@ export function ringPose(t) {
   const k = clamp01(t / LEVEL.ring);
   // The ring catches twice on the way in, as if the power resisted being pulled: it stalls but never opens back out.
   const kk = clamp01(k - RING_CATCH * Math.sin(k * Math.PI * 2) * (1 - k));
+  const j = (t - FLICKER_AT) / FLICKER_LEN;
+  if (j > 0 && j < 1) return {radius: .15, alpha: FLICKER_ALPHA * Math.sin(j * Math.PI)};
   return {radius: .15 + .75 * (1 - smooth(kk)) ** 1.5, alpha: t < 0 || t >= LEVEL.ring + .25 ? 0 : (k < 1 ? .9 * k : .9 * (1 - (t - LEVEL.ring) / .25))};
 }
 
