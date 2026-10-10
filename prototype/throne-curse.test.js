@@ -48,3 +48,8 @@ test('it plays on the hero\'s square and cleans up', () => {
   fx.update(CURSE.total + .1); assert.equal(fx.active, 0);
   fx.message('A curse upon thee for sitting upon this most holy throne!', 0, 0); fx.clear(); assert.equal(fx.active, 0);
 });
+
+test('the column gutters: it dims twice mid-stand and comes back', () => {
+  const a = t => columnPose(t).alpha;
+  assert.ok(a(.43) < a(.38) * .5 && a(.485) > a(.43) && a(.535) < a(.485) * .5 && a(.6) > a(.535));
+});
