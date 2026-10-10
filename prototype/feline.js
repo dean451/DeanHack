@@ -142,7 +142,7 @@ function buildBody(L,C){
  P.add(torso(L),null,paint);
  // shoulder blades and haunches under the skin
  for(const s of [-1,1]){
-  P.add(new THREE.SphereGeometry(.05,12,8),at(s*.05*bw,L.Y+.075,.14,[0,0,0],[.8*bw,.6,1.2]),paint);
+  P.add(new THREE.SphereGeometry(.05,12,8),at(s*.045*bw,L.Y+.055,.14,[0,0,0],[.75*bw,.45,1.25]),paint);
   P.add(new THREE.SphereGeometry(.07,14,10),at(s*.06*bw,L.Y+.01,-.17,[0,0,0],[.75*bw,1,1.05]),paint);
  }
  // neck up to the head pivot
