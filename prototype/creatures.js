@@ -446,10 +446,15 @@ function woodchuck(){
  sphere(head,.14,coat,0,0,0,1.05,.9,1);
  sphere(head,.08,cream,0,-.04,.1,1.1,.8,.8);
  sphere(head,.025,nose,0,-.01,.175,1.2,.8,.8);
+ const rim=mat('#7a1d18',{roughness:.7}),fang=mat('#b89a3c',{roughness:.5});
+ for(const side of [-1,1]){const lid=sphere(head,.03,rim,side*.075,.035,.1,1,.9,.8);lid.scale.z=.5;cone(head,.01,.05,fang,side*.03,-.13,.15,4).rotation.x=Math.PI;}
  for(const side of [-1,1]){rounded(head,.022,.045,.012,tooth,side*.012,-.1,.145,.004);sphere(head,.02,darkEye,side*.075,.035,.105);sphere(head,.042,dark,side*.1,.11,-.02,1,1,.45);sphere(head,.022,cream,side*.1,.11,-.004,1,1,.2);}
  for(const side of [-1,1]){
   const arm=new THREE.Group();arm.position.set(side*.12,.4,.17);body.add(arm);
-  rounded(arm,.06,.14,.06,coat,0,-.06,.02,.025);sphere(arm,.035,dark,0,-.14,.04,1,.7,1.1);legs.push(arm);
+  rounded(arm,.06,.14,.06,coat,0,-.06,.02,.025);sphere(arm,.035,dark,0,-.14,.04,1,.7,1.1);
+  // long black digging claws hook from each forepaw: a burrower's tools, and a killer's
+  for(const c of [-1,0,1]){const claw=cone(arm,.008,.07,nose,c*.022,-.17,.085,4);claw.rotation.x=Math.PI/2+.5;}
+  legs.push(arm);
   const leg=new THREE.Group();leg.position.set(side*.16,.14,-.02);body.add(leg);
   sphere(leg,.1,coat,0,0,0,.8,1,1.1);rounded(leg,.08,.04,.14,dark,0,-.11,.07,.015);legs.push(leg);
  }
