@@ -20,7 +20,9 @@ export function shardPose(i, t) {
   const a = i * 2.4 + .3, reach = .3 + .08 * (i % 3), air = STATUE.flight + .04 * (i % 3);
   const u = clamp01(t / air), skip = t > air ? clamp01((t - air) / .25) : 0;
   const y = .02 + (t > air ? .09 * Math.sin(skip * Math.PI) : (.55 + .1 * (i % 2)) * 4 * u * (1 - u) + .3 * (1 - u) * (1 - u) * u);
-  const r = reach * Math.sqrt(u) + (t > air ? .06 * smooth(skip) : 0);
+  // The last shard does not stop where it lands: it skitters on across the floor, slowly, as if dragged.
+  const skitter = i === STATUE.shards - 1 ? .05 * smooth(clamp01((t - air - .3) / .4)) : 0;
+  const r = reach * Math.sqrt(u) + (t > air ? .06 * smooth(skip) : 0) + skitter;
   // The first shard has not finished: long after it lies still it rocks back once, as if something under it stirred.
   const rock = i === 0 ? .35 * Math.sin(clamp01((t - air - .45) / .25) * Math.PI) : 0;
   return {x: Math.cos(a) * r, y, z: Math.sin(a) * r, spin: 9 * smooth(Math.min(1, t / (air + .25))) * (i % 2 ? 1 : -1) - rock, alpha: .9 * (1 - smooth(clamp01((t - (life - .4)) / .4)))};

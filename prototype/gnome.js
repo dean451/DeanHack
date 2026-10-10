@@ -46,10 +46,10 @@ function buildBody(L,C){
  const P=pieces();
  // A pot-bellied tunic: flared at the hem, swelling round the belly, narrowing to the shoulders.
  const hem=L.robe?.16:.24;
- P.add(lathe([[0,hem],[.17,hem],[.19,hem+.03],[.185,.3],[.2,.36],[.205,.42],[.19,.49],[.16,.55],[.1,.595],[.05,.61],[0,.612]],28),
+ P.add(lathe([[0,hem],[.17,hem],[.19,hem+.03],[.185,.3],[.2,.36],[.205,.42],[.19,.49],[.16,.55],[.1,.595],[.05,.61],[0,.612]],10),
   at(0,0,.01,[0,0,0],[1,1,.9]),(x,y,z)=>mix(ramp(C.tunicDark,C.tunic,hem,.45)(y),C.tunicDark,z<-.05?.25:0));
  // the belly pushes out in front
- P.add(new THREE.SphereGeometry(.15,16,12),at(0,.39,.045,[0,0,0],[1.15,1,.9]),ramp(C.tunicDark,C.tunic,.28,.46));
+ P.add(new THREE.SphereGeometry(.15,9,6),at(0,.39,.045,[0,0,0],[1.15,1,.9]),ramp(C.tunicDark,C.tunic,.28,.46));
  // the hem, turned up
  P.add(new THREE.TorusGeometry(.18,.013,5,28),at(0,hem+.01,.01,[Math.PI/2,0,0],[1.02,.9,1]),C.tunicDark);
  if(L.robe){
@@ -100,7 +100,7 @@ function buildHead(L,C){
   for(let i=0;i<3;i++)P.add(new THREE.SphereGeometry(.03,8,6),at(s*(.11-i*.01),.0-i*.025,-.05-i*.02,[0,0,0],[.8,1,1.1]),C.beard);
  }
  // a big bulbous nose, raw and bruised at the tip
- P.add(new THREE.SphereGeometry(.048,14,12),at(0,-.01,.13,[0,0,0],[1,.95,1]),(x,y,z)=>mix(SKIN,ROSE,(z-.12)*14));
+ P.add(new THREE.SphereGeometry(.048,8,6),at(0,-.01,.13,[0,0,0],[1,.95,1]),(x,y,z)=>mix(SKIN,ROSE,(z-.12)*14));
  P.add(new THREE.SphereGeometry(.02,8,6),at(0,.02,.115),SKIN);
  return mergeGeometries([P.merge(),skull]);
 }
@@ -176,9 +176,9 @@ function buildBeard(L,C){
 function buildLeg(L,C){
  const P=pieces(),h=HIP;
  // stubby breeches with a patch on the knee, into boots with a turned cuff
- P.add(new THREE.CylinderGeometry(.07,.058,.15,12),at(0,-.075,0),ramp(mix(C.breeches,[0,0,0],.3),C.breeches,-.15,0));
+ P.add(new THREE.CylinderGeometry(.07,.058,.15,7),at(0,-.075,0),ramp(mix(C.breeches,[0,0,0],.3),C.breeches,-.15,0));
  P.add(new THREE.BoxGeometry(.05,.045,.012),at(-.01,-.12,.058,[0,0,.2]),mix(C.breeches,C.cap,.4));
- P.add(new THREE.CylinderGeometry(.06,.056,.13,12),at(0,-.2,.0),ramp(LEATHER_DARK,LEATHER,-.27,-.14));
+ P.add(new THREE.CylinderGeometry(.06,.056,.13,7),at(0,-.2,.0),ramp(LEATHER_DARK,LEATHER,-.27,-.14));
  P.add(new THREE.TorusGeometry(.064,.016,6,14),at(0,-.14,0,[Math.PI/2,0,0]),LEATHER);
  // the foot, long and pointed, curling up at the toe
  P.add(new THREE.SphereGeometry(.06,12,8),at(0,-h+.035,.03,[0,0,0],[.95,.6,1.4]),(x,y)=>y<-h+.02?LEATHER_DARK:LEATHER);
@@ -202,8 +202,8 @@ const toeTip=toe=>at(toe[8].x,toe[8].y,toe[8].z);
 function buildArm(L,C){
  const P=pieces(),a=ARM,sleeve=L.robe?C.tunic:C.tunicDark;
  // a puffed sleeve with a turned cuff, and a stubby four-fingered hand
- P.add(new THREE.SphereGeometry(.06,12,10),at(0,-.01,0),C.tunic);
- P.add(new THREE.CylinderGeometry(.052,.058,.18,12),at(0,-.1,0),ramp(C.tunicDark,C.tunic,-.2,0));
+ P.add(new THREE.SphereGeometry(.06,7,5),at(0,-.01,0),C.tunic);
+ P.add(new THREE.CylinderGeometry(.052,.058,.18,6),at(0,-.1,0),ramp(C.tunicDark,C.tunic,-.2,0));
  P.add(new THREE.TorusGeometry(.056,.016,6,14),at(0,-.19,0,[Math.PI/2,0,0]),sleeve);
  P.add(new THREE.SphereGeometry(.042,10,8),at(0,-a+.015,.01,[0,0,0],[.95,1.05,.9]),SKIN);
  for(let i=0;i<4;i++)P.add(new THREE.SphereGeometry(.013,6,4),at((i-1.5)*.018,-a-.016,.035),SKIN_SHADE);
@@ -255,7 +255,7 @@ function mirrored(geo){
 const cache={};let material=null;
 function geometry(kind){
  if(cache[kind])return cache[kind];
- material??=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.8,metalness:.05,side:THREE.DoubleSide});
+ material??=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,metalness:.05,flatShading:true,side:THREE.DoubleSide});
  const L=LOOKS[kind],C=colours(L),leg=buildLeg(L,C);
  cache[kind]={body:buildBody(L,C),head:buildHead(L,C),hat:buildHat(L,C),beard:buildBeard(L,C),legs:[mirrored(leg),leg],arm:buildArm(L,C),weapon:buildWeapon(L)};
  return cache[kind];

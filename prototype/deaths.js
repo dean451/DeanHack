@@ -123,6 +123,9 @@ export function deathPose(style, u, dir = null) {
       p.sx = (1 - .1 * bulge) * (1 + .7 * flat) * (1 + (u > .4 ? quiver : 0));
       // Any eye or head it had slides down the slump and is swallowed last.
       p.head = -.5 * flat;
+      // Whatever tail it had keeps lashing in the puddle a moment after the rest has stopped
+      // caring, a few dying flicks that settle to nothing.
+      p.tail = .3 * Math.sin(Math.PI * clamp01((u - .3) / .4)) * Math.sin((u - .3) * 70);
       p.fade = 1 - smooth((u - .65) / .35);
       push(.08 * flat);
       break;
@@ -151,6 +154,10 @@ export function deathPose(style, u, dir = null) {
       p.fade = u < .33 ? 1 : 0;
       // Before it goes it trembles, a fine fast shiver that tightens as the swell peaks.
       p.roll = .05 * Math.sin(u * 220) * smooth(u / .1) * (1 - smooth((u - .2) / .13));
+      // Whatever it has for an arm is flung wide with the swell, and the head snaps back, both
+      // gone again by the pop.
+      const fling = Math.sin(Math.PI * clamp01(u / .33));
+      p.arm = .8 * fling; p.head = -.3 * fling;
       break;
     }
     case 'petrify': {
@@ -162,6 +169,8 @@ export function deathPose(style, u, dir = null) {
       p.dy = .035 * gasp;
       p.head = -.35 * gasp;
       p.wing = .55 * gasp;
+      // The arm snatches up at the gasp and the stone takes it there, a hand caught reaching.
+      p.arm = .5 * gasp;
       p.scale = 1 + .035 * gasp;
       p.roll = .022 * Math.sin(u * 140) * smooth(u / .1) * (1 - stone);
       p.stone = stone;

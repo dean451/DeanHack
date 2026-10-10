@@ -90,3 +90,11 @@ test('a second, smaller tug comes late and lets go', () => {
     assert.ok(mid > before * (1 - TUG2 * 1.5) - .05, String(i));
   }
 });
+
+test('the second strand spasms once, mid-web, and is steady either side', () => {
+  const calm = t => Math.abs(strandPose(1, t).lift - strandPose(1, t + .005).lift);
+  let spasm = 0; for (let t = .75; t < .87; t += .001) spasm = Math.max(spasm, calm(t));
+  assert.ok(spasm > .006, String(spasm));
+  assert.ok(calm(.7) < spasm / 4 && calm(.95) < spasm / 4);
+  for (let t = 0; t <= WEB.total; t += .005) assert.ok(strandPose(1, t).lift < .4 && strandPose(1, t).lift > -.2, String(t));
+});

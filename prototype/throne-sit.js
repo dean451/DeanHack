@@ -19,7 +19,9 @@ export function ringPose(t) {
   const u = clamp01(t / .45), fall = 1 - (1 - u) ** 3;
   const weigh = t > .45 && t < SIT.hold ? Math.sin(t * 70) * .015 : 0;
   const end = clamp01((t - SIT.hold) / (SIT.total - SIT.hold));
-  return {y: 1 - .85 * fall + weigh, scale: 1 - .25 * fall + end * .2, alpha: .65 * clamp01(t / .1) * (1 - end)};
+  // As it lets go the ring snatches up a finger's width, as if the throne had changed its mind, then goes.
+  const snatch = .05 * Math.sin(clamp01((t - SIT.hold) / .14) * Math.PI);
+  return {y: 1 - .85 * fall + weigh + snatch, scale: 1 - .25 * fall + end * .2, alpha: .65 * clamp01(t / .1) * (1 - end)};
 }
 
 // Dust fleck i: shaken loose at the settle, drifts down and sideways, fading.

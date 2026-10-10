@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {itemBuc, bucMark} from './item-buc.js';
+import {itemBuc, bucMark, itemFacts, itemHint} from './item-buc.js';
 
 test('blessed and cursed items are told from the name', () => {
   assert.equal(itemBuc('a blessed +1 dagger (weapon in hand)'), 'blessed');
@@ -81,4 +81,20 @@ test('hover hints count a candelabrum\'s candles', async () => {
   assert.equal(itemHint('a candelabrum (no candles attached)'), 'no candles');
   assert.equal(itemHint('the Candelabrum of Invocation (7 candles attached, lit)'), 'lit, 7 candles');
   assert.equal(itemHint('a candelabrum (1 candle attached)'), '1 candle');
+});
+
+test('a partly used candle or lamp says so in the hover', () => {
+  assert.deepEqual(itemFacts('a partly used tallow candle (lit)'), ['lit', 'partly used']);
+  assert.equal(itemHint('a tallow candle'), '');
+});
+
+test('an empty tin and an egg you laid say so in the hover', () => {
+  assert.deepEqual(itemFacts('an empty tin'), ['empty']);
+  assert.deepEqual(itemFacts('an egg (laid by you)'), ['laid by you']);
+  assert.deepEqual(itemFacts('a tin of spinach'), []);
+});
+
+test('a tethered aklys says it is wielded and tethered in the hover', () => {
+  assert.deepEqual(itemFacts('an aklys (tethered weapon in hand)'), ['wielded, tethered']);
+  assert.deepEqual(itemFacts('an aklys'), []);
 });

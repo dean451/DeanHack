@@ -73,3 +73,10 @@ test('the dust ring lurches outward mid-roll without leaving its bounds', () => 
   assert.ok(dustPose(.9 * .575).scale > calm * 1.05);
   assert.equal(dustPose(.9 * .4).scale, .15 + .6 * Math.sqrt(.4));
 });
+
+test('the last shard skitters on after it has landed', () => {
+  const i = STATUE.shards - 1, air = STATUE.flight + .04 * (i % 3), r = t => Math.hypot(shardPose(i, t).x, shardPose(i, t).z);
+  assert.ok(r(air + .75) > r(air + .25) + .04, 'it keeps sliding');
+  assert.ok(r(air + .75) <= .3 + .08 * (i % 3) + .06 + .05 + 1e-9);
+  assert.ok(Math.abs(r(air + .5) - r(air + .25)) < .05);
+});

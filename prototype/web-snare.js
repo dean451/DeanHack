@@ -30,7 +30,7 @@ export function strandPose(i, t) {
   const recoil = snapped ? smooth(clamp01((t - (end - .1)) / .1)) : 0;
   // The strand about to part trembles hard for a heartbeat before it goes.
   const strain = snapped ? 1 + .06 * Math.sin(t * 90) * Math.sin(clamp01((t - (end - .25)) / .15) * Math.PI) : 1;
-  return {len: Math.max(.01, WEB.reach * (.8 + .06 * (i % 3)) * strain * shot * (1 - .85 * recoil) * (1 - TUG * Math.sin(clamp01((t - .55) / .12) * Math.PI)) * (1 - TUG2 * Math.sin(clamp01((t - TUG2_AT) / .1) * Math.PI))), lift: .18 + .05 * (i % 3) + twang - sag + .1 * Math.sin(recoil * Math.PI) + (stray ? .04 * Math.sin(clamp01((t - 1.15) / .15) * Math.PI) : 0), alpha: .8 * clamp01(u * 4) * fade, angle: i * 2.4 + .1 * twang + .05 * Math.sin(t * 3.1 + i) * smooth(clamp01((t - start - .5) / .4)) * fade};
+  return {len: Math.max(.01, WEB.reach * (.8 + .06 * (i % 3)) * strain * shot * (1 - .85 * recoil) * (1 - TUG * Math.sin(clamp01((t - .55) / .12) * Math.PI)) * (1 - TUG2 * Math.sin(clamp01((t - TUG2_AT) / .1) * Math.PI))), lift: .18 + .05 * (i % 3) + twang - sag + (i === 1 ? .03 * Math.sin(t * 70) * Math.sin(clamp01((t - .75) / .12) * Math.PI) : 0) + .1 * Math.sin(recoil * Math.PI) + (stray ? .04 * Math.sin(clamp01((t - 1.15) / .15) * Math.PI) : 0), alpha: .8 * clamp01(u * 4) * fade, angle: i * 2.4 + .1 * twang + .05 * Math.sin(t * 3.1 + i) * smooth(clamp01((t - start - .5) / .4)) * fade};
 }
 
 export function createWebSnare(THREE, parent) {

@@ -12,6 +12,8 @@ import {clamp01, smooth} from './fx-textures.js';
 
 export const SNAP = {teeth: 5, sparks: 8, total: 1.25, open: 1.25};
 export const PENDING_WAIT = .3;
+// The far jaw is a hair slower than the near one, so the slam lands in two clacks, not one.
+export const JAW_LAG = .014;
 export const isBearTrapMessage = text => /a bear trap closes on your foot/i.test(text || '');
 
 // Jaw opening in radians: held open, slams shut by .09, rebounds to .4 by .17, clamps by .27, then a shiver.
@@ -47,7 +49,7 @@ export function sparkPose(i, t) {
     return {x: Math.cos(a) * .32, y: .02 + .07 * Math.sin(v * Math.PI), z: Math.sin(a) * .32, alpha: v >= 1 ? 0 : .6 * (1 - v) * Math.min(1, v * 12)};
   }
   const u = clamp01((t - .09 - (i % 3) * .02) / .5), a = i * 2.4 + 1;
-  return {x: Math.cos(a) * .32 * u, y: .06 + .3 * Math.sin(u * Math.PI) * (.7 + .1 * (i % 4)) - .18 * u * u, z: Math.sin(a) * .32 * u, alpha: u <= 0 || u >= 1 ? 0 : .9 * (1 - u)};
+  return {x: Math.cos(a) * .32 * u, y: .06 + .3 * Math.sin(u * Math.PI) * (.7 + .1 * (i % 4)) - .18 * u * u, z: Math.sin(a) * .32 * u, alpha: u <= 0 || u >= 1 ? 0 : .9 * (1 - u) * (i === 2 ? 1 - .85 * Math.sin(clamp01((u - .35) / .15) * Math.PI) : 1)};   // spark 2 sputters out and relights
 }
 
 export function createBearTrapSnap(THREE, parent) {
@@ -69,7 +71,7 @@ export function createBearTrapSnap(THREE, parent) {
   function step(e, dt) {
     e.t += dt;
     const a = jawAngle(e.t), al = jawAlpha(e.t);
-    e.jaws.forEach(({j, side}) => { j.rotation.x = -side * a; j.visible = al > .01; });
+    e.jaws.forEach(({j, side}) => { j.rotation.x = -side * (side > 0 ? jawAngle(e.t - JAW_LAG) : a); j.visible = al > .01; });
     e.iron.opacity = al; e.edge.opacity = al;
     e.sparks.forEach((m, i) => { const p = sparkPose(i, e.t); m.visible = p.alpha > .01; m.position.set(p.x, p.y, p.z); });
     return e.t < SNAP.total;

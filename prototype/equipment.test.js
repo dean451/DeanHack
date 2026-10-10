@@ -7,12 +7,18 @@ const size=g=>{g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(g
 
 test('a wielded artifact takes the model of its base type',()=>{
  const sword=createHeldWeapon({name:'long sword',class:2});
- const excalibur=createHeldWeapon({name:'Excalibur',class:2,base:'long sword'});
- assert.equal(excalibur.name,'Excalibur');
- assert.equal(excalibur.children.length,sword.children.length);
- assert(Math.abs(size(excalibur).y-size(sword).y)<1e-9,'same blade length');
+ const vorpal=createHeldWeapon({name:'Vorpal Blade',class:2,base:'long sword'});
+ assert.equal(vorpal.name,'Vorpal Blade');
+ assert.equal(vorpal.children.length,sword.children.length);
+ assert(Math.abs(size(vorpal).y-size(sword).y)<1e-9,'same blade length');
  // without a base (an older bridge) it keeps the fallback
- assert.notEqual(createHeldWeapon({name:'Excalibur',class:2}).children.length,sword.children.length);
+ assert.notEqual(createHeldWeapon({name:'Vorpal Blade',class:2}).children.length,sword.children.length);
+ // Excalibur is the exception: it has its own sword (excalibur.js)
+ const excalibur=createHeldWeapon({name:'Excalibur',class:2,base:'long sword'});
+ assert(excalibur.userData.excalibur);
+ const e=size(excalibur),l=size(sword);
+ assert(e.y>l.y&&e.y<l.y+.3,'a little longer than a long sword');
+ assert(e.x>l.x,'a broader guard');
 });
 
 test('a morning star has its own spiked head, merged to one mesh per material',()=>{

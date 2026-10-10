@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline, delayTimeline} from './fx.js';
-import {zapSource, zapPose, createZapFlash, heroBreathes, BREATH_HEAD, BREATH_LEAN, ZAP_ARM, ZAP_RAISE_MS, ZAP_LOWER_MS, ZAP_HOLD_MAX_MS, ZAP_WINDUP_MS, ZAP_WINDUP_UP, ZAP_STRAIN, ZAP_SHAKE, ZAP_KICK} from './zap-flash.js';
+import {zapSource, zapPose, createZapFlash, heroBreathes, BREATH_HEAD, BREATH_LEAN, ZAP_ARM, ZAP_RAISE_MS, ZAP_LOWER_MS, ZAP_HOLD_MAX_MS, ZAP_WINDUP_MS, ZAP_WINDUP_UP, ZAP_STRAIN, ZAP_SHAKE, ZAP_KICK, ZAP_FLINCH} from './zap-flash.js';
 
 const zap = (zapType, cells, dir = 'horizontal') => fxTimeline({steps: [
   {op: 'start', mode: 'beam', glyph: 1, effect: {kind: 'zap', zap: zapType, dir}},
@@ -248,4 +248,18 @@ test('the hand shakes itself loose as the arm lowers, then settles exactly at re
   }
   assert.ok(maxDev > ZAP_SHAKE * .3 && maxDev <= ZAP_SHAKE + 1e-9, `shake ${maxDev}`);
   assert.ok(Math.abs(zapPose(src, hold + ZAP_LOWER_MS - 1).arm) < .01);
+});
+
+test('a wand zap flinches the body back on release, within bounds, and settles to rest', () => {
+  const look = {glow: 0xff8040, spark: 0xffd080};
+  const src = {dir: [1, 0], look, from: 0, until: 400, breath: false};
+  let min = 0;
+  for (let t = 0; t < 400 + ZAP_LOWER_MS + 50; t += 5) {
+    const p = zapPose(src, t, 0);
+    if (!p) continue;
+    assert.ok(p.body <= 0 && p.body >= -ZAP_FLINCH - 1e-9, `body at ${t}`);
+    min = Math.min(min, p.body);
+  }
+  assert.ok(min < -ZAP_FLINCH * .5, 'visibly flinches');
+  assert.equal(zapPose(src, 400 + ZAP_LOWER_MS + 1, 0), null);
 });

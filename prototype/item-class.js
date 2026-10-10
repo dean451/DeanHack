@@ -11,3 +11,9 @@ export function itemClassMark(heading){
  for(const [re,mark] of MARKS)if(re.test(text))return mark;
  return '';
 }
+
+// Long pack lists lay out in two columns so the whole pack is seen at once; short ones stay a single list.
+export const GRID_FROM=12;
+export function menuColumns(selectableCount){
+ return Number(selectableCount)>=GRID_FROM?2:1;
+}

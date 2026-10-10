@@ -73,6 +73,9 @@ static int under_glyph(int x,int y,int b) {
     int m=levl[x][y].glyph,c;
     if (b!=cmap_to_glyph(S_room)) return b;
     if (x==u.ux && y==u.uy && !Blind && !u.uswallow && !Underwater) m=back_to_glyph(x,y);
+    /* An item on furniture in plain view: the tty map shows only the item, but in 3D a shuriken
+       can't hide an altar, so the furniture the hero can see stays drawn under it. */
+    else if (!glyph_is_cmap(m) && cansee(x,y) && !Blind && !u.uswallow && !Underwater) m=back_to_glyph(x,y);
     if (!glyph_is_cmap(m)) return b;
     c=glyph_to_cmap(m);
     if (c==S_fountain || c==S_altar || c==S_throne || c==S_sink || c==S_grave ||
@@ -342,6 +345,32 @@ static void frame_body(void) {
     /* Invisible to the eye: exactly when the map hides the hero's own glyph (canseeself()),
        so it tells the player nothing the tty display doesn't. Blind heroes still show. */
     printf(",\"invisible\":%s",(!Blind && !u.uswallow && Invisible)?"true":"false");
+    /* The conditions that change how the hero plays or say they are about to die, straight from
+       the game state, so the client never depends on the status line's layout or width (which
+       could drop them). The words are the status line's own. */
+    {
+        extern const char *const enc_stat[];
+        int cap = near_capacity(), first = 1;
+        const char *on[24]; int n = 0;
+        if (Stoned) on[n++] = "Stone";
+        if (Slimed) on[n++] = "Slime";
+        if (Strangled) on[n++] = "Strngl";
+        if (Sick && (u.usick_type & SICK_VOMITABLE)) on[n++] = "FoodPois";
+        if (Sick && (u.usick_type & SICK_NONVOMITABLE)) on[n++] = "Ill";
+        if (u.uhs >= WEAK) on[n++] = u.uhs == WEAK ? "Weak" : u.uhs == FAINTING ? "Fainting" : "Fainted";
+        if (Stunned) on[n++] = "Stun";
+        if (Confusion) on[n++] = "Conf";
+        if (Blind) on[n++] = "Blind";
+        if (Hallucination) on[n++] = "Hallu";
+        if (Levitation) on[n++] = "Lev";
+        if (Wounded_legs) on[n++] = "Legs";
+        if (u.utrap) on[n++] = "Trap";
+        if (u.ustuck && !u.uswallow && !sticks(youmonst.data)) on[n++] = "Held";
+        if (cap > UNENCUMBERED) on[n++] = enc_stat[cap];
+        printf(",\"conditions\":[");
+        for (int i = 0; i < n; i++) { if (!first) putchar(','); first = 0; quoted(on[i]); }
+        putchar(']');
+    }
     printf(",\"helmet\":");
     if (uarmh) {
         printf("{\"name\":");quoted(xname(uarmh));

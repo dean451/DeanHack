@@ -179,3 +179,22 @@ test('a blow startles the locust; on death it eases to exact rest and stays; sto
   [...a.body.rotation.toArray().slice(0, 3), ...a.head.rotation.toArray().slice(0, 2)].forEach((v, i) => assert.ok(Math.abs(v - [...rest.body.rotation.toArray().slice(0, 3), ...rest.head.rotation.toArray().slice(0, 2)][i]) < 1e-9, `rot ${i} ${v}`));
   a.legs.forEach(l => assert.ok(Math.abs(l.rotation.x) < 1e-9));
 });
+
+test('an ant far from the hero now and then nods its head twice, then lifts it', () => {
+  let peak = 0;
+  for (let u = -.1; u <= 1.1; u += .002) { const v = J.nodPose(u); assert.ok(v >= 0 && v <= 1 + 1e-9, `${u}`); peak = Math.max(peak, v); }
+  assert.equal(J.nodPose(0), 0);
+  assert.equal(J.nodPose(1), 0);
+  assert.ok(peak > .5, `a real dip (${peak})`);
+  let dips = 0, up = true;
+  for (let u = .001; u < 1; u += .001) { const v = J.nodPose(u); if (up && v > .4) { dips++; up = false; } else if (v < .2) up = true; }
+  assert.equal(dips, 2, 'two dips');
+  const a = mon('soldier ant');
+  let seen = false;
+  for (let t = 0; t < 60; t += dt) {
+    const st = J.updateAntJaws(a, dt, t, false);
+    if (st.nod != null) seen = true;
+    assert.ok(Number.isFinite(a.head.rotation.x));
+  }
+  assert.ok(seen, 'it nodded');
+});

@@ -41,3 +41,11 @@ test('it plays on the hero\'s square and cleans up', () => {
   fx.update(SIT.total + .1); assert.equal(fx.active, 0);
   fx.message('You sit on the throne.', 0, 0); fx.clear(); assert.equal(fx.active, 0);
 });
+
+test('the ring snatches up once as it lets go, then falls away', () => {
+  const base = t => ringPose(t).y;
+  const mid = SIT.hold + .07;
+  assert.ok(base(mid) > base(SIT.hold - .01) + .03);
+  assert.ok(base(SIT.hold + .14) < base(mid));
+  assert.equal(ringPose(SIT.total).alpha, 0);
+});

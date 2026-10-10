@@ -48,10 +48,11 @@ export function debrisPose(i, t) {
 // The smoke column: swells and climbs, thinning to nothing at the end.
 export function smokePose(t) {
   const u = clamp01((t - .05) / (MINE.total - .05));
-  if (t <= .05 || u >= 1) return {y: .1, scale: .1, alpha: 0};
+  if (t <= .05 || u >= 1) return {x: 0, y: .1, scale: .1, alpha: 0};
   // The column does not thin evenly: a late belch of black wells up out of the crater and the smoke swells for a beat.
   const belch = Math.sin(Math.PI * clamp01((u - .45) / .2)) ** 2;
-  return {y: .15 + .9 * Math.sqrt(u), scale: (.15 + .35 * Math.sqrt(u)) * (1 + .18 * belch), alpha: Math.min(.6, .55 * Math.sin(Math.min(1, u * 6) * Math.PI / 2) * (1 - u * u) * (1 + .25 * belch))};
+  // The column leans as it climbs, bending slowly toward one side like something looking over its shoulder.
+  return {x: .16 * u * u, y: .15 + .9 * Math.sqrt(u), scale: (.15 + .35 * Math.sqrt(u)) * (1 + .18 * belch), alpha: Math.min(.6, .55 * Math.sin(Math.min(1, u * 6) * Math.PI / 2) * (1 - u * u) * (1 + .25 * belch))};
 }
 
 export function createLandMine(THREE, parent) {
@@ -72,7 +73,7 @@ export function createLandMine(THREE, parent) {
     const f = flashPose(e.t), r = ringPose(e.t), s = smokePose(e.t);
     e.flash.visible = f.alpha > .01; e.flash.scale.setScalar(Math.max(.001, f.scale)); e.flash.material.opacity = f.alpha;
     e.ring.visible = r.alpha > .01; e.ring.scale.setScalar(r.radius); e.ring.material.opacity = r.alpha;
-    e.smoke.visible = s.alpha > .01; e.smoke.position.y = s.y; e.smoke.scale.setScalar(s.scale); e.smoke.material.opacity = s.alpha;
+    e.smoke.visible = s.alpha > .01; e.smoke.position.set(s.x, s.y, 0); e.smoke.scale.setScalar(s.scale); e.smoke.material.opacity = s.alpha;
     e.debris.forEach((m, i) => { const p = debrisPose(i, e.t); m.visible = p.alpha > .01; m.position.set(p.x, p.y, p.z); m.rotation.set(p.spin, p.spin * .7, 0); m.material.opacity = p.alpha; });
     return e.t < MINE.total;
   }

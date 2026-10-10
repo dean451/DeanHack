@@ -30,6 +30,9 @@ export const TUMBLE = .7, TUMBLE_DECAY = 3.5;
 export const BANK = 1.6, BANK_MAX = .55, PITCH = 1.2, PITCH_MAX = .4;
 // The lift never drops below MIN_LIFT (the rest height is .62), so the bat stays off the floor.
 export const MIN_LIFT = .3;
+// Startles (hero out of range): now and then it flinches at nothing, a hard roll one way with a
+// fast shiver, then rights itself. First after START_MIN..+START_SPAN s, START_LEN s long, KICK rad.
+export const START_MIN = 4, START_SPAN = 6, START_LEN = .45, KICK = .6;
 export const REST_RATE = 3;
 const SNAP = 1e-3;
 // Per kind: flit reach (x, y, z), the dart rate (1/s), the hold between darts (s); wing beat
@@ -84,16 +87,26 @@ export function biteShake(u) {
   return Math.sin(Math.PI * v) * Math.sin(v * TAU * 3);
 }
 
+// The startle at progress u (0..1): a sharp roll (0..1) in the first third, then a shiver that
+// swings both ways and fades. Bounded by 1, exactly zero at both ends and continuous between.
+export function startlePose(u) {
+  if (!(u > 0) || !(u < 1)) return 0;
+  if (u < .35) return Math.sin(Math.PI * u / .35);
+  const v = (u - .35) / .65;
+  return .6 * Math.sin(v * TAU * 3) * Math.sin(Math.PI * v) ** 2;
+}
+
 const rot = o => ({x: o.rotation.x, y: o.rotation.y, z: o.rotation.z});
 function setup(a) {
   const L = a.batLift;
   const st = {seed: ((a.g?.id ?? 1) * 48271) % 2147483647 || 1, life: 1, look: LOOKS[a.batJitter] || LOOKS.bat,
     pos: L.position.clone(), rot: rot(L), at: {x: 0, y: 0, z: 0}, to: {x: 0, y: 0, z: 0}, vel: {x: 0, y: 0, z: 0},
     yaw: 0, yawTo: 0, face: 0, near: 0, wait: 0, hold: 0, swoop: null, feint: null, feintWait: 0,
-    tumble: 0, act: 1, lastHit: null, phase: 0, T: 0};
+    tumble: 0, startle: null, startleWait: 0, act: 1, lastHit: null, phase: 0, T: 0};
   st.hold = st.look.gap * rand(st);
   st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
   st.feintWait = FEINT_MIN * .5 + FEINT_SPAN * rand(st);
+  st.startleWait = START_MIN + START_SPAN * (st.seed % 997) / 997; // its own clock: the shared random stream is left alone
   st.phase = rand(st) * TAU;
   st.ph = rand(st) * TAU;
   return st;
@@ -147,6 +160,8 @@ export function updateBatJitter(a, dt, t, busy, look = null) {
   else if (!dead && !h) { st.wait -= dt; if (st.wait <= 0 && !busy) { st.swoop = 0; st.wait = GAP_MIN + GAP_SPAN * rand(st); } }
   if (st.feint != null) { st.feint += dt / FEINT_LEN; if (st.feint >= 1) st.feint = null; }
   else if (!dead && h && st.swoop == null) { st.feintWait -= dt; if (st.feintWait <= 0 && !busy) { st.feint = 0; st.feintWait = FEINT_MIN + FEINT_SPAN * rand(st); } }
+  if (st.startle != null) { st.startle += dt / START_LEN; if (st.startle >= 1) st.startle = null; }
+  else if (!dead && !h && st.swoop == null) { st.startleWait -= dt; if (st.startleWait <= 0 && !busy) { st.startle = 0; st.startleWait = START_MIN + START_SPAN * (.5 + .5 * Math.sin(st.T * 7.3 + st.ph)); } }
   // a bite or a blow eases a swoop or feint out (never a jump)
   st.act = approach(st.act, atk || tb > .2 ? 0 : 1, 12, dt);
   const s0 = swoopPose(st.swoop ?? 0), k = st.act;
@@ -172,7 +187,7 @@ export function updateBatJitter(a, dt, t, busy, look = null) {
   const fx = Math.sin(st.face) * L.feint * fe, fz = Math.cos(st.face) * L.feint * fe;
   const y = Math.max(MIN_LIFT, p.y + (st.at.y - L.drop * sw.drop - .12 * tb) * w);
   lift.position.set(p.x + (st.at.x + fx) * w, y, p.z + (st.at.z + fz) * w);
-  const roll = clamp(-st.vel.x * BANK, BANK_MAX) + TUMBLE * tb * Math.sin(st.T * 19 + ph);
+  const roll = clamp(-st.vel.x * BANK, BANK_MAX) + TUMBLE * tb * Math.sin(st.T * 19 + ph) + KICK * startlePose(st.startle ?? 0) * st.act;
   const pitch = clamp(st.vel.z * PITCH, PITCH_MAX) + .3 * fe + .4 * bite + .25 * sw.drop - .2 * sw.climb + .35 * tb * Math.sin(st.T * 13);
   lift.rotation.x = r.x + pitch * w;
   lift.rotation.y = r.y + (st.yaw + st.face * ex + .03 * Math.sin(st.T * 1.3 + ph) + BITE_SHAKE * shake) * w;

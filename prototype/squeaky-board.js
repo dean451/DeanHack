@@ -22,7 +22,7 @@ export function ringPose(i, t) {
   const u = clamp01((t - ringStart(i)) / SQUEAK.ringLife);
   if (u <= 0 || u >= 1) return {radius: .1, alpha: 0};
   const stutter = .7 + .3 * Math.sin(u * 37 + i * 2) * Math.sin(u * 17);
-  return {radius: .1 + (.75 - .12 * i) * (1 - (1 - u) * (1 - u) * (1 - u)), alpha: .75 * (1 - smooth(u)) * stutter * Math.min(1, u * 14)};
+  return {radius: .1 + (.75 - .12 * i) * (1 - (1 - u) * (1 - u) * (1 - u)), alpha: .75 * (1 - smooth(u)) * stutter * Math.min(1, u * 14) * (i === 1 ? 1 - .85 * Math.sin(clamp01((u - .3) / .12) * Math.PI) : 1)};   // the middle shriek chokes off for a beat
 }
 
 // The hush: once the shrieks are spent, one dull dark ring creeps back in toward the plank, as
@@ -41,7 +41,7 @@ export function motePose(i, t) {
   const a = i * 2.3;
   // The first mote has not finished: it settles, then hops once more off the plank and drops dead.
   const rehop = i === 0 ? .06 * Math.sin(clamp01((u - .8) / .12) * Math.PI) : 0;
-  return {x: Math.cos(a) * (.08 + .22 * u) + Math.sin(u * 19 + i) * (nervous ? .035 : .02), y: rehop + .03 + .32 * Math.sin(Math.min(1, u * 1.3) * Math.PI) * (.7 + .1 * (i % 4)), z: Math.sin(a) * (.08 + .22 * u), alpha: u <= 0 || u >= 1 ? 0 : .55 * (1 - u) * Math.min(1, u * 10)};
+  return {x: Math.cos(a) * (.08 + .22 * u) + Math.sin(u * 19 + i) * (nervous ? .035 : .02), y: rehop + .03 + .32 * Math.sin(Math.min(1, u * 1.3) * Math.PI) * (.7 + .1 * (i % 4)), z: Math.sin(a) * (.08 + .22 * u), alpha: u <= 0 || u >= 1 ? 0 : .55 * (1 - u) * Math.min(1, u * 10) * (nervous && u > .35 && u < .85 && Math.sin(u * 70) > .8 ? .15 : 1)};   // the nervous mote blinks out, as if something passed in front of it
 }
 
 export function createSqueakyBoard(THREE, parent) {

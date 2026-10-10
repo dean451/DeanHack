@@ -144,3 +144,17 @@ body.live-engine #engine-messages{overflow-x:hidden}
 
 .engine-menu-row.buc-blessed{color:#9ee8a0}.engine-menu-row.buc-cursed{color:#c58a7e}.engine-menu-row .buc-mark{display:inline-block;width:1.1em;text-align:center}.engine-menu-row .ench-mark{display:inline-block;width:1.1em;text-align:center;opacity:.75}.engine-menu-row.ench-minus .ench-mark{color:#c58a7e}.engine-menu-row.ench-plus .ench-mark{color:#d8c98a}
 .engine-menu-row .class-mark{display:inline-block;width:1.2em;text-align:center;opacity:.55;color:#a9b3a6}
+dialog.wide{max-width:960px}
+form.engine-menu-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:28px}
+form.engine-menu-grid>*{grid-column:1/-1}
+form.engine-menu-grid>.engine-menu-row:not(.engine-menu-heading){grid-column:auto}
+@media(max-width:650px){form.engine-menu-grid{grid-template-columns:1fr}}
+#engine-status #hero-conditions{display:contents}#engine-status .hero-condition{color:#ff3b30;font-weight:700;font-size:12px;letter-spacing:1.5px;text-shadow:0 0 6px #ff3b3066}
+/* Never cut a line in half: the message log shows whole messages (the latest six) instead of
+   clipping at a height, and the ground list grows up the screen to fit, in two columns when long. */
+body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visible}
+#engine-messages div:nth-child(n+7){display:none}
+#ground-notice{max-height:calc(100vh - 230px);overflow-y:auto;pointer-events:auto;width:auto;min-width:175px;max-width:min(460px,40vw)}
+#ground-notice ul{columns:1}
+#ground-notice ul:has(li:nth-child(9)){columns:2;column-gap:22px}
+#ground-notice li{break-inside:avoid}

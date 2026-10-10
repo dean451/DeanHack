@@ -17,6 +17,14 @@ export function squareAt(point, origin) {
 
 // A bare square: a seen trap by its name, an open or smashed door, else the furniture or hazard.
 function terrainText(cell) {
+  const base = bareText(cell);
+  const e = cell.engraving;
+  if (!e) return base;
+  const mark = e.elbereth ? `Elbereth, ${e.type}` : `${e.type} engraving`;
+  return base ? `${base} (${mark})` : mark;
+}
+
+function bareText(cell) {
   if (cell.trap) return String(cell.trap).toLowerCase();
   if (cell.terrain === 'door' && cell.door === 'open') return 'open door';
   if (cell.door === 'broken') return 'broken door';
@@ -35,7 +43,10 @@ export function farlookText(cell) {
 
 function seenText(cell) {
   const name = String(cell.name || cell.object?.name || '').trim();
-  if (!name) return cell.kind === 'terrain' || !cell.kind ? terrainText(cell) : '';
+  if (!name) {
+    if (cell.invisible) return 'something unseen';
+    return cell.kind === 'terrain' || !cell.kind ? terrainText(cell) : '';
+  }
   const hurt = cell.health < 25 ? ', near death' : cell.health < 60 ? ', badly wounded' : cell.health < 100 ? ', wounded' : '';
   if (cell.kind === 'pet') return `${name} (pet${hurt})`;
   if (cell.kind === 'monster') return `${name} (${cell.peaceful ? 'peaceful' : 'hostile'}${hurt})`;

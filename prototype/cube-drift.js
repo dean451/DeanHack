@@ -18,6 +18,11 @@ export const YAW = .45, TILT = .06, BOB = .012;
 // forward the swing may go (as a fraction of full drag).
 export const DRAG_TIP = .1, DRAG_SLIP = .015, DRAG_FREQ = 6, DRAG_DAMP = .5, OVERSHOOT = .5;
 
+// Now and then, every JOLT_EVERY s, the remains jerk sideways for JOLT_FOR s, as if the dead thing
+// inside had briefly convulsed, then hang still again. JOLT is the peak lean (rad); the shake
+// on top of it is fast and dies away with the jerk.
+export const JOLT = .09, JOLT_EVERY = 13, JOLT_FOR = .5, JOLT_RATE = 31;
+
 const Y = new THREE.Vector3(0, 1, 0), C = new THREE.Vector3(0, CENTER, 0);
 const qYaw = new THREE.Quaternion(), qTilt = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3();
 
@@ -39,7 +44,17 @@ export function driftPose(t, ph = 0, d = 0) {
     tx: TILT * Math.sin(t * .47 + ph * 1.7) - DRAG_TIP * d,
     tz: TILT * .8 * Math.sin(t * .37 + ph * .6),
     bob: BOB * Math.sin(t * .58 + ph * 3.1) - DRAG_SLIP * d,
+    jolt: joltPose(t, ph),
   };
+}
+
+// The convulsion at time t: a sharp lean sideways with a fast shake, zero outside its window.
+// The first one comes no sooner than a few seconds in, and each phase staggers its cubes.
+export function joltPose(t, ph = 0) {
+  t = Number.isFinite(t) ? t : 0;
+  const u = (((t + 3 + ph * 1.3) % JOLT_EVERY) + JOLT_EVERY) % JOLT_EVERY / JOLT_FOR;
+  if (!(u < 1)) return 0;
+  return JOLT * Math.sin(Math.PI * u) ** 2 * Math.sin(u * JOLT_RATE);
 }
 
 // One step of the drag spring toward `target` (0 or 1), in small steps so it stays stable.
@@ -62,7 +77,7 @@ export function updateCubeDrift(a, dt, t, walking) {
   stepDrag(st, walking && !a.actions?.dead ? 1 : 0, dt);
   const p = driftPose(t, st.ph, st.drag);
   qYaw.setFromAxisAngle(Y, p.yaw);
-  qTilt.setFromEuler(e.set(p.tx, 0, p.tz));
+  qTilt.setFromEuler(e.set(p.tx, 0, p.tz + p.jolt));
   r.quaternion.multiplyQuaternions(qTilt, qYaw);
   // turn about the centre: position = C - R·C, then the bob
   r.position.copy(C).sub(v.copy(C).applyQuaternion(r.quaternion));

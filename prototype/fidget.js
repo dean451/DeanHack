@@ -20,6 +20,7 @@ import {updateLightFlare} from './light-flare.js';
 import {updateRustFeel} from './rust-feel.js';
 import {updateBatJitter} from './bat-jitter.js';
 import {updateAntJaws} from './ant-jaws.js';
+import {updateSpiderProbe} from './spider-probe.js';
 import {updateEelCharge} from './eel-charge.js';
 import {updateCobraRear} from './cobra-rear.js';
 import {updateBeholderWrithe} from './beholder-writhe.js';
@@ -34,6 +35,8 @@ import {updateYendorHover} from './yendor-hover.js';
 import {updateMinotaurCharge} from './minotaur-charge.js';
 import {updateShamblerLurch} from './shambler-lurch.js';
 import {updateNinjaTails} from './ninja-tails.js';
+import {updateZombieLull} from './zombie-lull.js';
+import {updateMummyGrope} from './mummy-grope.js';
 import {updateEyeFlare} from './eye-flare.js';
 import {updateSamHover} from './sam-hover.js';
 
@@ -170,6 +173,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateBatJitter(actor, dt, t, busy, look);
   // And the ants' jaws: trembling, clacking mandibles, a head that ticks round, a threat gape at the hero and a snapping bite (ant-jaws.js).
   updateAntJaws(actor, dt, t, busy, look, walking);
+  // And the spiders' probe: the front legs rise to feel the air, one jabbing three times, the other answering once, slowly (spider-probe.js).
+  updateSpiderProbe(actor, dt, t, busy);
   // And the eels: a gliding weave and a head that tracks the hero; the electric eel's charge wave, crackling arcs and shock bite (eel-charge.js).
   updateEelCharge(actor, dt, t, busy, look, walking);
   // And the cobra: it rears and spreads its hood at the hero, sways as if charmed, flicks its tongue, hisses, strikes and spits (cobra-rear.js).
@@ -200,6 +205,10 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateNinjaTails(actor, dt, t, busy);
   // And One-eyed Sam: she hovers off the floor, legs dangling, glides between tiles, looms at the hero and swoops into her cuts (sam-hover.js).
   updateSamHover(actor, dt, t, busy, look);
+  // And the zombies' lull: the lolling head sags further over, holds, then jerks up in two snaps as the arm spasms (zombie-lull.js).
+  updateZombieLull(actor, dt, t, busy);
+  // And the mummies' grope: the head creaks round each way, the arms sweep wide feeling the dark, then clutch at nothing (mummy-grope.js).
+  updateMummyGrope(actor, dt, t, busy);
   // And the Executioner's, Croesus', One-eyed Sam's, the miner's, the black marketeer's, the mugger's, the convict's, Thoth Amon's, Charon's, the prisoner's, the abbot's, the neanderthal's, Master Kaen's and the Dark One's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
   updateEyeFlare(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);

@@ -32,7 +32,9 @@ export function gritRingPose(t) {
 export function chunkPose(i, t) {
   const s = t - .16;
   if (s <= 0 || t >= FILL.total) return {x: 0, y: 0, z: 0, alpha: 0};
-  const a = i * 1.9, r = .12 + .22 * (1 - Math.exp(-s * 5)) * (.7 + .1 * (i % 4));
+  // Chunk 2 has not finished: once down it creeps back toward the plugged hole, as if the pit were pulling it in.
+  const a = i * 1.9, creep = i === 2 ? 1 - .7 * smooth(clamp01((s - .7) / .3)) : 1;
+  const r = (.12 + .22 * (1 - Math.exp(-s * 5)) * (.7 + .1 * (i % 4))) * creep;
   const hop = .5 + .06 * (i % 3), p = s / hop;
   const y = p < 1 ? .5 * hop * 4 * p * (1 - p) : p < 1.6 ? .08 * 4 * (p - 1) / .6 * (1 - (p - 1) / .6) : 0;
   return {x: Math.cos(a) * r, y: Math.max(0, y), z: Math.sin(a) * r, alpha: .85 * (1 - clamp01((t - .8) / .4))};

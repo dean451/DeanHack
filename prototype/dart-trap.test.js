@@ -79,3 +79,19 @@ test('the streak flickers as it fades but stays within its envelope', () => {
   assert.ok(max - min > .1);
   assert.equal(streakPose('dart', end).alpha, 0);
 });
+
+test('a landed arrow is driven a hair deeper, a dart is not, and both settle where they were', () => {
+  const x = (k, h) => shaftPose(k, SHOT.flight + h).x, tail = (k, h) => -.04 * Math.exp(-h * 30);
+  let most = 0;
+  for (let h = 0; h <= .1; h += .002) { most = Math.max(most, x('arrow', h) - tail('arrow', h)); assert.ok(Math.abs(x('dart', h) - tail('dart', h)) < 1e-12); }
+  assert.ok(most > .01 && most <= .015 + 1e-9);
+  assert.ok(Math.abs(x('arrow', .06) - tail('arrow', .06)) < 1e-9);
+});
+
+test('a dart wobbles in flight, an arrow flies true, both land level', () => {
+  const t = SHOT.flight * .5;
+  assert.ok(Math.abs(shaftPose('dart', t).tilt) > .03, 'wobble');
+  assert.equal(shaftPose('arrow', t).tilt, 0);
+  for (let s = 0; s < SHOT.flight; s += .002) assert.ok(Math.abs(shaftPose('dart', s).tilt) <= .12 + 1e-9);
+  assert.equal(shaftPose('dart', SHOT.total).tilt, 0);
+});

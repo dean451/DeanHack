@@ -192,7 +192,7 @@ function buildTail(L,C){
 function buildWeapon(L,C){
  const P=pieces(),grain=(x,y,z)=>mix(C.wood,rgb('#3e2a18'),hash(Math.round((x+y+z)*80))*.5);
  if(L.weapon==='spear'){
-  const up=at(0,0,0,[-.35,0,0]),Q=pieces();
+  const up=at(0,0,0,[.35,0,0]),Q=pieces(); // the spear leans forward (+z), tip first (ORIENTATION.md)
   Q.add(new THREE.CylinderGeometry(.012,.014,.5,7),at(0,.14,0),grain);
   for(const y of [.02,.12,.25])Q.add(new THREE.SphereGeometry(.016,6,4),at(0,y,0,[0,0,0],[1,.6,1]),C.wood);
   Q.add(new THREE.OctahedronGeometry(.035),at(0,.43,0,[0,.4,0],[.8,2,.35]),(x,y,z)=>mix(C.stone,rgb('#5a564e'),hash(Math.round(y*90)+Math.round(x*90))*.6));

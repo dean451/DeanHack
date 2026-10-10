@@ -104,3 +104,4 @@ tools/.venv/
 /tmp/
 /.claude/settings.local.json
 /.claude/launch.json
+/deanhack-handoff.md

@@ -113,11 +113,13 @@ export function punch(tint){
  return {...tint,liquid:'#'+c.getHexString(),emissiveIntensity:Math.max(.55,tint.emissiveIntensity*1.8),colored:hsl.s>.25&&hsl.l>.12};
 }
 export const POTION_SCALE=1.4;
-// a soft additive pool of the liquid's colour on the floor: the potion catches the eye from across a room
+// a soft additive pool of the liquid's colour on the floor: the potion catches the eye from across a room.
+// t is clamped: rim vertices round to a hair past the radius, and a negative base to the 2.2 is NaN,
+// which the bloom pass smears into big black blocks over the view.
 export function glowDisc(colour,radius){
  const geo=new THREE.RingGeometry(.001,radius,28,7);geo.rotateX(-Math.PI/2);
  const p=geo.attributes.position,col=new Float32Array(p.count*3),base=new THREE.Color(colour);
- for(let i=0;i<p.count;i++){const t=Math.hypot(p.getX(i),p.getZ(i))/radius,k=Math.pow(1-t,2.2)*.75;col[i*3]=base.r*k;col[i*3+1]=base.g*k;col[i*3+2]=base.b*k;}
+ for(let i=0;i<p.count;i++){const t=Math.min(1,Math.hypot(p.getX(i),p.getZ(i))/radius),k=Math.pow(1-t,2.2)*.75;col[i*3]=base.r*k;col[i*3+1]=base.g*k;col[i*3+2]=base.b*k;}
  geo.setAttribute('color',new THREE.BufferAttribute(col,3));geo.translate(0,.003,0);
  return geo;
 }

@@ -282,13 +282,13 @@ function dragonLimb(parent,a,b,w,material,taper=.55){
 function dragonLegs(body,legs,m,o){
  for(const [x,y,z,hind] of o.spots){
   const leg=new THREE.Group();leg.position.set(x,y,z);body.add(leg);const k=o.thick||1;
-  sphere(leg,.08*k,m.hide,0,-.02,0,.9,1.3,1.1);if(o.sirrush)dragonBox(leg,.075*k,y-.14,.085*k,m.hide,0,-(y-.1)/2-.04,.02,.03);
+  lowBlob(leg,.08*k,m.hide,0,-.02,0,.9,1.3,1.1,DRAGON_BONE);if(o.sirrush)dragonBox(leg,.075*k,y-.14,.085*k,m.hide,0,-(y-.1)/2-.04,.02,.03);
   if(o.sirrush&&!hind){sphere(leg,.055,m.hide,0,-y+.04,.05,1,.7,1.2);for(const cx of [-.025,0,.025])cone(leg,.008,.025,m.ivory,cx,-y+.03,.1,4).rotation.x=Math.PI/2;}
   else if(!o.sirrush){
    // thigh forward to the knee, shin back to the hock, then a long pastern down to splayed, clawed toes
    const knee=[0,-.42*y,.09*k],hock=[0,-.74*y,-.035*k],foot=[0,-y+.02,.03*k];
    dragonLimb(leg,[0,-.04,0],knee,.095*k,m.hide);dragonLimb(leg,knee,hock,.085*k,m.hide,.4);dragonLimb(leg,hock,foot,.04*k,m.dark);
-   sphere(leg,.04*k,m.dark,hock[0],hock[1],hock[2]-.02,.9,1,1.1);cone(leg,.012*k,.05*k,m.ivory,0,hock[1]+.02,hock[2]-.05*k,4).rotation.x=-Math.PI/2.4;
+   lowBlob(leg,.04*k,m.dark,hock[0],hock[1],hock[2]-.02,.9,1,1.1,DRAGON_BONE);cone(leg,.012*k,.05*k,m.ivory,0,hock[1]+.02,hock[2]-.05*k,4).rotation.x=-Math.PI/2.4;
    part(leg,new THREE.BoxGeometry(.07*k,.025,.06),m.dark,0,-y+.015,.04);
    for(const [cx,ang] of [[-.04,.45],[0,0],[.04,-.45]]){const toe=part(leg,new THREE.BoxGeometry(.022*k,.022,.09*k),m.dark,cx*k,-y+.015,.1*k);toe.rotation.y=ang;
     const claw=cone(leg,.011,.05*k,m.ivory,cx*k+Math.sin(ang)*.07*k,-y+.02,.1*k+Math.cos(ang)*.075*k,4);claw.rotation.x=Math.PI/2;claw.rotation.z=-ang;}
@@ -319,6 +319,8 @@ function dragon(o={}){
   const top=pts[0];addHead(body,[[top[0],top[1]-.04,top[2]-.04],[top[0],top[1]+.08,top[2]+.04],[top[0],top[1]+.14,top[2]+.1]],m);
   // a serpent rears behind two angular dark blades flaring from the base of its neck, a cobra's cut hood
   for(const s of [-1,1])dragonLimb(body,[s*.04,pts[0][1]-.06,pts[0][2]],[s*.17,pts[0][1]+.1,pts[0][2]-.03],.07,m.dark,.3);
+  // legged serpents carry a cut slab of muscle over each shoulder, like the four-legged breeds, not a bare stub
+  if(f.legs)for(const s of [-1,1])dragonLimb(body,[s*.12,.3,.15],[s*.17,.18,.14],.11,m.hide,.35);
   if(f.legs)dragonLegs(body,legs,m,{spots:[[-.13,.2,.14],[.13,.2,.14]],thick:.9});
   if(f.wings)for(const side of [-1,1]){const w=dragonWing(body,side,f.wings*(baby?.6:1),m,f.feathered);w.position.set(side*.08,.4,.2);wings.push(w);}
   if(f.fins){

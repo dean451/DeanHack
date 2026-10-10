@@ -18,3 +18,11 @@ test('the burden levels grow one mark at a time, and hunger worsens from a slive
 test('an unknown word still gets a neutral mark', () => {
   assert.equal(conditionGlyph('Zorp'), '·');
 });
+
+test('levitation and flight carry different shapes', () => {
+  assert.notEqual(conditionGlyph('Lev'), conditionGlyph('Fly'));
+});
+
+test('food poisoning carries a different shape from deadly illness', () => {
+  assert.notEqual(conditionGlyph('FoodPois'), conditionGlyph('Ill'));
+});
