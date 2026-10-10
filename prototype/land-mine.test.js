@@ -92,3 +92,10 @@ test('the flash gives a small dim second pop after it has gone', () => {
   assert.equal(flashPose(.4).alpha, 0);
   assert.ok(flashPose(.01).alpha > pop.alpha * 2);
 });
+
+test('the smoke column leans as it climbs and is upright at rest', () => {
+  assert.equal(smokePose(0).x, 0);
+  assert.equal(smokePose(MINE.total).x, 0);
+  assert.ok(smokePose(.2).x < smokePose(.6).x && smokePose(.6).x < smokePose(1.1).x && smokePose(1.1).x > .05);
+  for (let t = 0; t <= MINE.total + .1; t += .005) assert.ok(Math.abs(smokePose(t).x) <= .16 + 1e-9, String(t));
+});
