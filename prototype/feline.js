@@ -118,7 +118,7 @@ function torsoAt(L,C){
   c=markings(L,C,x,y,z,c);
   if(L.scruffy)c=mix(c,C.stripe,.1*smooth((hash(Math.floor(x*90)*7.3+Math.floor(y*90)*3.1+Math.floor(z*90))-.55)/.2));
   if(L.scruffy)c=mix(c,C.stripe,ribShade(x,y,z,L.Y));
-  const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.16)/.08)*smooth((L.Y+.06-y)/.08);
+  const belly=smooth((L.Y-.03-y)/.06),chest=smooth((z-.13)/.16)*smooth((L.Y+.06-y)/.12)*(L.scruffy?.75:1);
   return mix(c,C.belly,Math.max(belly,chest)*(L.pattern==='ghost'||L.pattern==='shimmer'?.6:1));
  };
 }
