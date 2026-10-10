@@ -30,7 +30,7 @@ const VARIANTS={
  newt:{scale:.8,bulk:1,head:1,snout:1,fin:1,spots:true,mottle:.8,eye:'#e6b030',glow:.25,palette:{}},
  gecko:{scale:.62,bulk:.8,head:1.3,snout:.8,fin:0,pads:true,slit:true,mottle:.5,eye:'#e0a830',glow:.3,eyeSize:1.12,
   palette:{back:'#9ab068',dark:'#566a30',belly:'#d8d0a0',line:'#c0cc88',wart:'#b4c47c',toe:'#b8b078',spot:'#3a4a22'}},
- lizard:{scale:.85,bulk:.9,head:1,snout:1.35,fin:0,mottle:.55,eye:'#c8a030',glow:.2,
+ lizard:{scale:1.12,bulk:.9,head:1,snout:1.35,fin:0,mottle:.55,eye:'#c8a030',glow:.2,
   palette:{back:'#5c7c36',dark:'#2e4420',belly:'#cbc48c',line:'#9ab860',wart:'#7a9a48',toe:'#4a5a30',spot:'#2a3a18'}},
  iguana:{scale:1.1,bulk:1.28,head:1.15,snout:1.1,fin:0,crest:{n:12,h:.026,col:'#5a5a38'},dewlap:true,bands:true,mottle:.6,eye:'#d8a030',glow:.2,
   palette:{back:'#76764c',dark:'#3e3e26',belly:'#aaa27a',line:'#9a9a66',wart:'#8a8a58',toe:'#5a5a3a',spot:'#2a2a18'}},
