@@ -75,3 +75,10 @@ test('hover hints give shop prices and chained or embedded items', async () => {
   assert.equal(itemHint('a heavy iron ball (chained to you)'), 'chained to you');
   assert.equal(itemHint('a dagger'), '');
 });
+
+test('hover hints count a candelabrum\'s candles', async () => {
+  const {itemHint} = await import('./item-buc.js');
+  assert.equal(itemHint('a candelabrum (no candles attached)'), 'no candles');
+  assert.equal(itemHint('the Candelabrum of Invocation (7 candles attached, lit)'), 'lit, 7 candles');
+  assert.equal(itemHint('a candelabrum (1 candle attached)'), '1 candle');
+});

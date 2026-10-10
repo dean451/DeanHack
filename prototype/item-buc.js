@@ -34,7 +34,7 @@ export function enchantMark(kind) {
 }
 
 // Other facts the item name carries, spelled out for the hover: erosion words, poison, grease, a
-// wand's "(0:3)" charges and where the item is held or worn, a shop price ("unpaid 40zm") and a ball chained to you. Each appears once, in this order.
+// wand's "(0:3)" charges and where the item is held or worn, a shop price ("unpaid 40zm") and a ball chained to you, and a candelabrum's candles. Each appears once, in this order.
 export function itemFacts(text) {
   const t = String(text), out = [];
   const state = /\b(very |thoroughly )?(rusty|corroded|burnt|rotted)\b/i.exec(t.split('(')[0]);
@@ -53,6 +53,8 @@ export function itemFacts(text) {
   else if (/\(in quiver[^)]*\)/i.test(t)) out.push('quivered');
   const shop = /\((unpaid|for sale), (\d+) zorkmids?\)/i.exec(t);
   if (shop) out.push(`${shop[1].toLowerCase()} ${shop[2]}zm`);
+  const candles = /\((\d+|no) candles? attached\b[^)]*\)/i.exec(t);
+  if (candles) out.push(candles[1] === 'no' ? 'no candles' : `${candles[1]} candle${candles[1] === '1' ? '' : 's'}`);
   if (/\((?:chained to you|embedded in your skin)\)/i.test(t)) out.push(/chained/i.test(t) ? 'chained to you' : 'embedded');
   return out;
 }
