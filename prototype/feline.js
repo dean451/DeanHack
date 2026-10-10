@@ -315,7 +315,7 @@ function buildTail(L,C){
  const ringed=L.pattern==='tabby'||L.pattern==='tiger'||L.pattern==='rosette';
  const colour=j=>{
   if(j>=n-2&&L.pattern!=='shimmer')return L.pattern==='ghost'?C.stripe:mix(C.stripe,C.coat,.1);
-  if(ringed&&j>n*.35&&j%3===0)return mix(C.coat,C.stripe,.85);
+  if(ringed&&j>n*.35&&j%(L.scruffy?4:3)===0)return mix(C.coat,C.stripe,L.scruffy?.55:.85);
   if(L.pattern==='rosette'&&j<=n*.35&&j%2)return mix(C.coat,C.stripe,.5);
   return mix(C.coat,C.back,.3);
  };
