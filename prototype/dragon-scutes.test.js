@@ -17,3 +17,10 @@ test('the tail spade is barbed with two backswept hooks on dragons and wyverns; 
   assert.equal(tailVerts('wyvern'), 2662);
   assert.equal(tailVerts('sirrush'), 2384);
 });
+
+test('serpent dragons rear behind a hood of two dark angular blades at the neck base', () => {
+  // the two six-sided prisms add 80 vertices: guivre 11063 -> 11143, leviathan 11040 -> 11120
+  const verts = name => { let n = 0; createCreature({name, symbol: D, color: 1}).g.traverse(o => { if (o.isMesh) n += o.geometry.attributes.position.count; }); return n; };
+  assert.equal(verts('guivre'), 11143);
+  assert.equal(verts('leviathan'), 11120);
+});
