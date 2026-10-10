@@ -114,7 +114,7 @@ export function punch(tint){
 }
 export const POTION_SCALE=1.4;
 // a soft additive pool of the liquid's colour on the floor: the potion catches the eye from across a room
-function glowDisc(colour,radius){
+export function glowDisc(colour,radius){
  const geo=new THREE.RingGeometry(.001,radius,28,7);geo.rotateX(-Math.PI/2);
  const p=geo.attributes.position,col=new Float32Array(p.count*3),base=new THREE.Color(colour);
  for(let i=0;i<p.count;i++){const t=Math.hypot(p.getX(i),p.getZ(i))/radius,k=Math.pow(1-t,2.2)*.75;col[i*3]=base.r*k;col[i*3+1]=base.g*k;col[i*3+2]=base.b*k;}

@@ -8,7 +8,7 @@ import {createSlimeMold} from './slime-mold.js';
 import {createMagicMarker,markerCharges} from './marker.js';
 import {createIronBall,createIronChain} from './iron-ball.js';
 import {createVenom} from './venom.js';
-import {createPotion} from './potion.js';
+import {createPotion,glowDisc} from './potion.js';
 import {applyPotionTwist} from './potion-twist.js';
 import {applyToolTwist} from './tool-twist.js';
 import {applyScrollTwist} from './scroll-twist.js';
@@ -26,6 +26,11 @@ const BOOK_PAPERS={parchment:0xd6bf8a,vellum:0xe8ddc2,papyrus:0xc5a96c,plain:0xd
 const BOOK_TINTS={leather:0x6b4527,canvas:0xa89a78,cloth:0x7d7a6a,plaid:0x2f5e34,tartan:0x8a2320,velvet:0x6a1f5e,fuzzy:0x7a5a3a,
  dark:0x221e24,black:0x141214,charcoal:0x2f2d2c,crimson:0x8c1424,ochre:0xa4782a,chartreuse:0x7fa82a,dull:0x6d6a60,tan:0xa48458,
  'light brown':0x8f6a44,'dark brown':0x4a2e1c};
+// The glow of a spellbook's sigil by glyph colour: loud, saturated, one per colour, so a book catches the eye on a dark floor.
+const SPELLBOOK_GLOWS=[0x8a7aff,0xff3a3a,0x4aff6a,0xffa030,0x4a8aff,0xff4aee,0x3affee,0xd8e0ff,undefined,
+ 0xff8a2a,0x8aff4a,0xffe83a,0x6aa0ff,0xff7ab0,0x7affff,0xffffff];
+// Cover tint pushed toward a richer, more saturated leather
+const richer=hex=>{const c=new THREE.Color(hex),h={};c.getHSL(h);return c.setHSL(h.h,Math.min(1,h.s*1.3+(h.s>.15?.08:0)),Math.min(.5,h.l+.04)).getHex();};
 const hashLook=look=>{let h=2166136261;for(const c of look)h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return h;};
 
 function buildSpellbook(item,{g,add:place,materials,metal}){
@@ -51,12 +56,13 @@ function buildSpellbook(item,{g,add:place,materials,metal}){
  const paper=look in BOOK_PAPERS,soft=has(/^(paperback|stapled|spiral-bound)$/),scroll=has(/^(parchment|vellum|papyrus)$/);
  const plush=has(/^(velvet|fuzzy)$/);
  let tint=BOOK_METALS[metalKind]??BOOK_PAPERS[look]??BOOK_TINTS[look]??SPELLBOOK_COVERS[item.color]??0x6b4527;
+ if(!paper&&!metalKind&&!has(/^(dusty|faded|decrepit)$/))tint=richer(tint);
  if(has(/^(dusty|faded|decrepit)$/))tint=new THREE.Color(tint).lerp(new THREE.Color(has(/dusty/)?0x9c978a:0xcfc8b6),.45).getHex();
  const cover=metalKind?shine(tint,{metalness:.85,roughness:.3}):plush?shine(tint,{roughness:1,sheen:1,sheenRoughness:.4,sheenColor:new THREE.Color(tint).lerp(new THREE.Color(0xffffff),.5)}):
   has(/^shining$/)?shine(tint,{metalness:.3,roughness:.25,emissive:tint,emissiveIntensity:.35}):shine(tint,{roughness:paper?.95:.8});
  const trim=mat(metalKind?0x3a3530:0x3a2a1c),pages=mat(has(/decrepit|dusty|ragged|tattered/)?0xc9b98e:0xe2d6b4),edge=mat(0xa8987a);
- const ink=has(/^(dark|black|charcoal)$/)?0xc9d0d8:0xd9b25a;
- const sigil=scroll?shine(0x3a2418,{roughness:.9}):shine(ink,{metalness:.7,roughness:.35,emissive:ink===0xd9b25a?0x6a4a12:0x3a4452,emissiveIntensity:.5});
+ const glow=SPELLBOOK_GLOWS[item.color]??0xffc040;
+ const sigil=shine(glow,{metalness:.2,roughness:.4,emissive:glow,emissiveIntensity:1.8});
  // Proportions: thin and thick change the page block; big, wide and long the footprint.
  const T=soft?.006:.018,P=has(/^thin$/)?.034:has(/^(thick|big)$/)?.11:.07,H=P+2*T;
  const W=has(/^(wide|big)$/)?.42:.34,D=has(/^(long|big)$/)?.52:.44,top=H+.002;
@@ -178,6 +184,9 @@ function buildSpellbook(item,{g,add:place,materials,metal}){
   for(let i=0;i<ix.length;i+=3){const t=ix[i+1];ix[i+1]=ix[i+2];ix[i+2]=t;}
  }
  const turn=.3+(rnd()-.5)*.3;for(const p of g.children)p.geometry.rotateY(turn);
+ // a soft pool of the sigil's light on the floor round the book
+ const pool=new THREE.MeshBasicMaterial({vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false});materials.push(pool);
+ const poolDisc=new THREE.Mesh(glowDisc(glow,Math.max(W,D)*.85),pool);poolDisc.name='glow';poolDisc.renderOrder=-1;g.add(poolDisc);
 }
 
 // Gem tints by glyph colour; the appearance is shared by the real stone and its glass.
@@ -5463,7 +5472,10 @@ export function createGroundModel(item={}){
   };
   const box=(w,h,d,c,x,y,z=0)=>add(new THREE.BoxGeometry(w,h,d),c,x,y,z);
   const ball=(r,c,x,y,z,s=[1,1,1])=>{const p=add(new THREE.SphereGeometry(r,16,10),c,x,y,z);p.scale.set(...s);return p;};
-  const seal=mat([0x8c1f24,0x2f4f8a,0x2f6b3a,0x6a2f7a,0xa8741e,0x1f2a2a][[...look].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0,7)%6]);
+  // Each label gets its own loud rune colour: wax, ribbon and the glow of its script all take it.
+  const RUNES=[0xff3a4a,0x3a86ff,0x3aea6a,0xb858ff,0xffa426,0x3ae6e6];
+  const runeColour=RUNES[[...look].reduce((a,c)=>a*31+c.charCodeAt(0)>>>0,7)%6],seal=mat(runeColour);
+  const runeGeos=[];
   if(/stamped/.test(look)){
    const paper=mat(0xe6dcc4),fold=mat(0xb9ad92),stamp=mat(0x3b6fa8);
    add(new RoundedBoxGeometry(.3,.018,.2,2,.004),paper,0,.009);
@@ -5495,7 +5507,7 @@ export function createGroundModel(item={}){
    if(!blank){
     // Faint lines of script on the tongue; no readable lettering at game zoom.
     const ink=mat(0x3a2c22);
-    for(let i=0;i<4;i++)box(W*(.72-(i%3)*.12),.0012,.007,ink,-W*(i%2?.04:.08),.0032,.04+i*.028);
+    for(let i=0;i<4;i++){const rg=new THREE.BoxGeometry(W*(.72-(i%3)*.12),.0016,.007);rg.translate(-W*(i%2?.04:.08),.0036,.04+i*.028);runeGeos.push(rg);}
     // A ribbon around the middle of the roll, fastened with a wax seal.
     const ribbon=add(new THREE.TorusGeometry(R+.002,.006,6,24),seal,.04,R);ribbon.rotation.y=Math.PI/2;
     ball(.022,seal,.04,R,R+.004,[1,1,.35]);
@@ -5504,6 +5516,14 @@ export function createGroundModel(item={}){
   }
   bakeMeshes([...g.children]).userData.part='scroll';
   applyScrollTwist(g,item);
+  // the script glows in the label's colour, and a soft pool of it lies on the floor round the scroll
+  if(runeGeos.length){
+   const runeMat=new THREE.MeshStandardMaterial({color:runeColour,emissive:runeColour,emissiveIntensity:1.6,roughness:.5});materials.push(runeMat);
+   const magic=new THREE.Group();magic.name='magic';g.add(magic);
+   const rm=new THREE.Mesh(mergeGeometries(runeGeos),runeMat);rm.name='runes';rm.castShadow=false;magic.add(rm);
+   const pool=new THREE.MeshBasicMaterial({vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false});materials.push(pool);
+   const poolDisc=new THREE.Mesh(glowDisc(runeColour,.3),pool);poolDisc.name='glow';poolDisc.renderOrder=-1;magic.add(poolDisc);
+  }
   // The ribbon lifts the roll a little; settle whatever is lowest onto the floor.
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===4){
