@@ -22,16 +22,25 @@ import {segment,chain} from './ant.js';
 // glossy mesh and the eyes in one glowing one. Geometry and materials are built once and shared.
 // Handles: body, head, legs (four groups), tail; quirk 'rat'.
 
-const SCALE=1.4;
+// One builder, four rats: the enormous rat is the benchmark; the sewer, giant and rabid rats are the same
+// sculpt at smaller sizes with less ruin (cleaner coat, little mange, fewer bristles, no torn ear) and their own eyes.
+const VARIANTS={
+ enormous:{scale:1.4,mange:1,scar:true,bristle:1,torn:true,nick:true,eye:'#ff2a12',glow:.9,palette:{}},
+ giant:{scale:.86,mange:.35,scar:true,bristle:.7,torn:true,nick:false,eye:'#d8301a',glow:.8,palette:{coat:'#4a382a',spine:'#20170f',belly:'#76664f',grizzle:'#94846c'}},
+ rabid:{scale:.8,mange:.6,scar:false,bristle:1.1,torn:false,nick:true,eye:'#ff4a26',glow:1.4,palette:{coat:'#463a30',spine:'#1e1710',belly:'#6e6252',skin:'#8a6a6a',tail:'#85666a'}},
+ sewer:{scale:.62,mange:0,scar:false,bristle:.45,torn:false,nick:false,eye:'#a82414',glow:.6,palette:{coat:'#5a4a3c',spine:'#2a2018',belly:'#8a7a66',grizzle:'#a69884',tail:'#a07a72'}},
+};
+let V=VARIANTS.enormous;
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
 const smooth=v=>{const t=THREE.MathUtils.clamp(v,0,1);return t*t*(3-2*t);};
-const C={
+const BASE={
  coat:rgb('#4e3c2c'),spine:rgb('#231a13'),belly:rgb('#7c6c58'),grizzle:rgb('#9a8a72'),
  skin:rgb('#8a6c66'),scab:rgb('#3e1610'),scar:rgb('#b49a8c'),pink:rgb('#7a5650'),
  ear:rgb('#92605e'),gum:rgb('#3a1214'),tooth:rgb('#d49a3c'),toothRoot:rgb('#7a4a1a'),
  claw:rgb('#16110d'),nose:rgb('#b0706e'),nostril:rgb('#2a0e0e'),whisker:rgb('#c8bfae'),
- tail:rgb('#8c6e66'),tailDark:rgb('#5e4440'),eye:'#ff2a12',
+ tail:rgb('#8c6e66'),tailDark:rgb('#5e4440'),
 };
+let C=BASE;
 const NECK=[0,.235,.22],SHOULDER=[.082,.15,.13],HIP=[.092,.18,-.17],TAIL_ROOT=[0,.2,-.32];
 
 // a cone from `base` pointing along `dir`: tufts, claws, teeth
@@ -41,7 +50,7 @@ function spike(P,base,dir,r,h,colour,radial=4){
 }
 
 // Mange: bald patches on the flanks and haunch, from a few crossed waves; 0 = furred, 1 = bald.
-const mange=(x,y,z)=>smooth((Math.sin(x*31+z*17+1)*Math.sin(y*29-z*23)*Math.sin(z*41+x*13+.5)-.18)*5)*smooth((Math.abs(x)-.05)*20);
+const mange=(x,y,z)=>V.mange*smooth((Math.sin(x*31+z*17+1)*Math.sin(y*29-z*23)*Math.sin(z*41+x*13+.5)-.18)*5)*smooth((Math.abs(x)-.05)*20);
 // Fur: the coat (darker up the spine, grizzled), mangy skin and scabs, and the flank scar.
 function coatAt(x,y,z,spineY){
  let c=mix(C.coat,C.spine,smooth((y-spineY+.06)/.06)*.85);
@@ -50,7 +59,7 @@ function coatAt(x,y,z,spineY){
  const bald=mange(x,y,z);
  if(bald>0){c=mix(c,C.skin,bald);if(bald>.6&&hash(Math.round(x*140)*7+Math.round(y*140)*3+Math.round(z*140))>.82)c=mix(c,C.scab,.85);}
  // three parallel rake marks across the right flank, healed pale and hairless
- if(x>.06)for(let k=0;k<3;k++){const d=Math.abs((y-.22-k*.022)-(z+.04)*.55);if(d<.005&&z>-.2&&z<.08)c=mix(c,C.scar,.8*(1-d/.005));}
+ if(V.scar&&x>.06)for(let k=0;k<3;k++){const d=Math.abs((y-.22-k*.022)-(z+.04)*.55);if(d<.005&&z>-.2&&z<.08)c=mix(c,C.scar,.8*(1-d/.005));}
  return c;
 }
 
@@ -79,13 +88,13 @@ function buildBody(){
  segment(P,[0,.21,.14],NECK,.09,.07,paint,14);
  P.add(new THREE.SphereGeometry(.075,14,10),at(...NECK,[0,0,0],[1,.95,1.05]),paint);
  // greasy bristles: a ragged crest down the spine, swept back and to alternate sides
- for(let i=0;i<18;i++){
-  const z=.16-i*.026,j=hash(i*3.7),y=spineY(z)-.012,side=i%2?1:-1;
+ for(let i=0;i<Math.round(18*V.bristle);i++){
+  const z=.16-i*.026*(18/Math.round(18*V.bristle)),j=hash(i*3.7),y=spineY(z)-.012,side=i%2?1:-1;
   const len=.035+.05*j*(1-Math.abs(i-7)/14);
   spike(P,[side*.012*j,y,z],[side*.35*j,.75,-.9],.011+.006*j,len,mix(C.spine,C.coat,j*.4),4);
  }
  // matted clumps poking out of the flanks and haunches
- for(let i=0;i<16;i++){
+ for(let i=0;i<Math.round(16*V.bristle);i++){
   const side=i%2?1:-1,z=.1-(i>>1)*.05,y=.2+.06*hash(i*5.1),x=side*(.115+.01*hash(i*1.3));
   if(mange(x,y,z)>.3)continue;
   spike(P,[x,y,z],[side*.6,.2+hash(i*2.9)*.3,-.8],.008,.03+.02*hash(i*7.7),coatAt(x,y,z,spineY(z)),4);
@@ -112,7 +121,7 @@ function buildHead(){
  for(const s of [-1,1])for(let k=0;k<3;k++)spike(P,[s*.058,-.012+k*.016,.04-k*.012],[s*.5,-.1,-1],.009,.035,mix(Y,C.spine,.3),4);
  // thin round ears; the left one torn, a ragged wedge bitten out of it
  for(const s of [-1,1]){
-  const torn=s<0,ear=new THREE.CylinderGeometry(.042,.04,.006,18,1,false,torn?.9:0,torn?Math.PI*1.55:Math.PI*2);
+  const torn=V.torn&&s<0,ear=new THREE.CylinderGeometry(.042,.04,.006,18,1,false,torn?.9:0,torn?Math.PI*1.55:Math.PI*2);
   P.add(ear,at(s*.058,.072,-.002,[Math.PI/2-.35,s*.6,0],[1,1,1.1]),(x,y,z)=>{
    const r=Math.hypot(x-s*.058,y-.072,z+.002);return r<.03?mix(C.ear,C.skin,.3):mix(C.coat,C.spine,.4);});
  }
@@ -185,7 +194,7 @@ function buildTail(){
   if(j<2)return coatAt(x+TAIL_ROOT[0],y+TAIL_ROOT[1],z+TAIL_ROOT[2],TAIL_ROOT[1]);
   let c=j%2?C.tail:mix(C.tail,C.tailDark,.55);
   c=mix(c,C.tailDark,smooth((y-pts[j][1])/radii[j])*.4);
-  if(j===9)c=mix(c,C.scab,.8);// a scabbed nick
+  if(V.nick&&j===9)c=mix(c,C.scab,.8);// a scabbed nick
   return c;
  };
  chain(P,pts,radii,colour,8);
@@ -194,21 +203,26 @@ function buildTail(){
  return P.merge();
 }
 
-let shared=null;
-function build(){
- if(shared)return shared;
+const shared={};
+function build(kind='enormous'){
+ if(shared[kind])return shared[kind];
+ V=VARIANTS[kind];C={...BASE};for(const [k,v] of Object.entries(V.palette))C[k]=rgb(v);
  const fur=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.93,metalness:0});
  const gloss=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.28,metalness:0});
- const eye=new THREE.MeshStandardMaterial({color:C.eye,emissive:C.eye,emissiveIntensity:.9,roughness:.15});
- shared={fur,gloss,eye,body:buildBody(),head:buildHead(),teeth:buildTeeth(),eyes:buildEyes(),fore:buildLeg(true),hind:buildLeg(false),tail:buildTail()};
- return shared;
+ const eye=new THREE.MeshStandardMaterial({color:V.eye,emissive:V.eye,emissiveIntensity:V.glow,roughness:.15});
+ shared[kind]={fur,gloss,eye,body:buildBody(),head:buildHead(),teeth:buildTeeth(),eyes:buildEyes(),fore:buildLeg(true),hind:buildLeg(false),tail:buildTail()};
+ return shared[kind];
 }
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
 export const isEnormousRat=name=>name==='enormous rat';
+export const RAT_KINDS={'enormous rat':'enormous','giant rat':'giant','rabid rat':'rabid','sewer rat':'sewer',rat:'sewer'};
+export const isRat=name=>name in RAT_KINDS;
+export const RAT_NECK=NECK;
 
-export function createEnormousRat(){
- const S=build(),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(SCALE);
+export function createEnormousRat(){return createRat('enormous rat');}
+export function createRat(name='enormous rat'){
+ const kind=RAT_KINDS[name]||'sewer',S=build(kind),g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(VARIANTS[kind].scale);
  mesh(body,S.body,S.fur,'body');
  // the head hangs low and thrust forward
  const head=new THREE.Group();head.position.set(...NECK);head.rotation.x=.12;body.add(head);

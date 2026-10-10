@@ -2497,17 +2497,19 @@ test('plain rats carry a head handle that turns the face about the neck and leav
   assert.equal(m.quirk,'rat',name);assert.ok(m.head,name);
   assert.equal(m.head.parent,m.body,name);
   assert.deepEqual(m.head.position.toArray(),RAT_NECK,name);
-  // at rest the face sits exactly where it did before the handle: the snout ball at (0,.24,.35)
   m.g.updateMatrixWorld(true);
   const local=o=>m.body.worldToLocal(o.getWorldPosition(new THREE.Vector3()));
-  const snout=m.head.children[0].children[0],trunk=m.body.children[0];
-  assert.ok(local(snout).distanceTo(new THREE.Vector3(0,.24,.35))<1e-9,name);
-  const meshes=[];m.head.traverse(o=>{if(o.isMesh)meshes.push(o);});
-  assert.ok(meshes.length>=15,`${name}: ${meshes.length}`);
-  const before=local(snout),body=local(trunk);
+  const face=m.head.children.find(o=>o.userData.part==='head'),trunk=m.body.children.find(o=>o.userData.part==='body');
+  assert.ok(face&&trunk,name);
+  // the sculpt is the enormous rat's: five vertex-coloured meshes plus teeth and eyes
+  const meshes=[];m.g.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.ok(meshes.length>=8&&meshes.length<=12,`${name}: ${meshes.length}`);
+  const tip=new THREE.Vector3(0,0,.2).applyMatrix4(face.matrixWorld);
+  const before=m.body.worldToLocal(tip.clone()),trunkBefore=local(trunk);
   m.head.rotation.y=.6;m.g.updateMatrixWorld(true);
-  assert.ok(local(snout).x>before.x+.05,name);
-  assert.ok(local(trunk).distanceTo(body)<1e-12,name);
+  const after=m.body.worldToLocal(new THREE.Vector3(0,0,.2).applyMatrix4(face.matrixWorld));
+  assert.ok(Math.abs(after.x-before.x)>.02,name);
+  assert.ok(local(trunk).distanceTo(trunkBefore)<1e-12,name);
  }
 });
 
