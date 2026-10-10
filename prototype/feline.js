@@ -153,7 +153,7 @@ function buildBody(L,C){
   for(let k=0;k<5;k++){
    // short, broad and laid flat along the coat, so they read as fur and not as a row of spikes
    const z=-.18+k*.07,lean=.95+.05*(k%3),h=.011+.004*hash(k+L.Y*10);
-   P.add(new THREE.ConeGeometry(.018,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,.45*smooth((y-L.Y-.1)/.04)));
+   P.add(new THREE.ConeGeometry(.018,h,4),at((hash(k+3)-.5)*.014,L.Y+.108+.01*(z+.01),z,[-lean,0,(hash(k)-.5)*.3]),(x,y)=>mix(C.back,C.stripe,.25*smooth((y-L.Y-.1)/.04)));
   }
   for(const s of [-1,1])P.add(new THREE.ConeGeometry(.016,.022,4),at(s*.058*bw,L.Y+.085,-.15,[-.2,0,-s*.5],[1,1,.8]),paint);
   // the dark hollow where the flank tucks in
@@ -180,7 +180,7 @@ function buildBody(L,C){
 
 // Head, in head space: the origin is the neck pivot.
 function buildHead(L,C){
- const P=pieces(),inner=rgb(L.pattern==='ghost'||L.pattern==='shimmer'?'#4a3a40':L.scruffy?'#8a5650':'#5a2a28');
+ const P=pieces(),inner=rgb(L.pattern==='ghost'||L.pattern==='shimmer'?'#4a3a40':L.scruffy?'#a07068':'#5a2a28');
  const paint=(x,y,z)=>{
   let c=mix(C.coat,C.back,smooth((y-.04)/.06)*.4);
   const ax=Math.abs(x);
