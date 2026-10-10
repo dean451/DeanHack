@@ -266,6 +266,8 @@ function buildLeg(L,C,fore){
   if(x<-.008)c=mix(c,C.belly,.45);
   // pets without socks: the leg carries the coat down to the paw instead of fading to belly cream
   if(L.scruffy&&!L.socks)c=mix(c,C.coat,.65);
+  // pets: the shoulder takes no dark stripe or shading, so it reads as part of the body and not a floating plate
+  if(L.scruffy&&fore)c=mix(c,C.coat,.7*smooth((y+.02)/.05));
   if(L.socks)c=mix(c,C.belly,.75*smooth((fy+.07-y)/.03));
   return c;
  };
