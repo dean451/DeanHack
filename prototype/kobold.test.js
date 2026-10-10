@@ -51,3 +51,15 @@ test('plain and large kobolds have snapped their left horn; the lord and shaman 
  for(const n of ['kobold','large kobold'])assert(top(n,-1)<top(n,1)-.02,`${n}: left horn is a stub`);
  for(const n of ['kobold lord','kobold shaman'])assert(Math.abs(top(n,-1)-top(n,1))<1e-6,`${n}: matched horns`);
 });
+
+test('the kobold spear points its head forward, not back (forward is +z, see ORIENTATION.md)', async () => {
+  const THREE = await import('three');
+  const {createCreature} = await import('./creatures.js');
+  const k = createCreature({name: 'kobold', symbol: 107, color: 3});
+  const weapon = k.weaponSocket.children.find(o => o.userData.part === 'weapon');
+  const pos = weapon.geometry.attributes.position;
+  let tip = new THREE.Vector3(0, -1, 0), tail = new THREE.Vector3(0, 1, 0);
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i); if (v.y > tip.y) tip.copy(v); if (v.y < tail.y) tail.copy(v); }
+  assert(tip.z > tail.z + .1, `the spearhead (${tip.z.toFixed(3)}) is ahead of the butt (${tail.z.toFixed(3)})`);
+});
