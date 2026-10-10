@@ -797,6 +797,12 @@ test('the candelabrum is merged gold, wax and flame meshes showing its candles',
  for(const mesh of lit.children){mesh.geometry.addEventListener('dispose',()=>geometries++);mesh.material.addEventListener('dispose',()=>materials++);}
  lit.userData.dispose();assert.equal(geometries,3);assert.equal(materials,3);
  bare.userData.dispose();few.userData.dispose();
+ // On the floor the bridge sends only the type as the name and says lit in its own flag.
+ const floorLit=createGroundModel({name:'candelabrum of invocation',label:'Candelabrum of Invocation',class:6,lit:true});
+ assert.deepEqual(floorLit.children.map(c=>c.userData.part),['gold','wax','flame'],'a lit candelabrum on the floor burns');
+ const floorDark=createGroundModel({name:'candelabrum of invocation',label:'Candelabrum of Invocation',class:6});
+ assert.deepEqual(floorDark.children.map(c=>c.userData.part),['gold','wax']);
+ floorLit.userData.dispose();floorDark.userData.dispose();
 });
 
 test('the magic marker is one merged pen-and-cap mesh, dry at zero charges',()=>{
