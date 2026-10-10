@@ -15,6 +15,11 @@ export const isPolyTrapMessage = text => /you feel a change coming over you/i.te
 // Mote i: pulled in along a spiral (mote 7 winds the wrong way round, against the others) from a wide ring, stuttering (it stalls twice on the way),
 // then gone in the crush. Alpha is zero before and after.
 export function motePose(i, t) {
+  // The last mote refuses the crush: it hangs where the body was, then is flung out behind the ring, wrong-coloured and late.
+  if (i === POLY.motes - 1 && t >= POLY.crush && t < POLY.total) {
+    const u = (t - POLY.crush) / (POLY.total - POLY.crush), a = 1.3;
+    return {x: Math.cos(a) * (.05 + .6 * u * u), y: .85 - .3 * u, z: Math.sin(a) * (.05 + .6 * u * u), alpha: .85 * (1 - u) * clamp01((t - POLY.crush) / .04)};
+  }
   if (t <= 0 || t >= POLY.crush) return {x: 0, y: .9, z: 0, alpha: 0};
   const u = t / POLY.crush, hitch = u - .08 * Math.sin(u * Math.PI * 6) * (1 - u);
   // Mote 3 balks at the very end: it flinches back out a little before the crush takes it too.
