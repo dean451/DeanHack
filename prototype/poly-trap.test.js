@@ -75,3 +75,11 @@ test('the last mote survives the crush and is flung out behind the ring', () => 
   assert.equal(motePose(last, POLY.total).alpha, 0);
   assert.equal(motePose(0, POLY.crush + .05).alpha, 0, 'the others are gone');
 });
+
+test('mote 5 is dragged back a little mid-spiral', () => {
+  const r = (i, t) => Math.hypot(motePose(i, t).x, motePose(i, t).z);
+  const u = .4 * POLY.crush, v = .6 * POLY.crush;
+  assert.ok(r(5, u) > r(4, u) + .05, 'hangs further out than its neighbour');
+  assert.ok(r(5, v) < r(5, u), 'still closing in');
+  for (let t = 0; t < POLY.crush; t += .005) { const p = motePose(5, t); assert.ok(p.alpha >= 0 && p.alpha <= .85 && Math.hypot(p.x, p.z) < .85, String(t)); }
+});
