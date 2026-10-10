@@ -68,7 +68,7 @@ function markings(L,C,x,y,z,base,limb=false){
  switch(L.pattern){
   case 'tabby':{
    const t=limb?Math.sin(y*70+z*8):Math.sin(z*48+Math.sin(y*25+x*10)*1.1+Math.abs(x)*6);
-   if(t>.45)c=mix(c,C.stripe,.75*smooth((t-.45)/.2));
+   if(t>.45)c=mix(c,C.stripe,(L.scruffy?.58:.75)*smooth((t-.45)/.2));
    if(!limb&&Math.abs(x)<.018&&y>L.Y+.09)c=mix(c,C.stripe,.6);
    break;
   }
