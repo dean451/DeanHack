@@ -181,7 +181,7 @@ function buildBody(L,C){
 
 // Head, in head space: the origin is the neck pivot.
 function buildHead(L,C){
- const P=pieces(),inner=rgb(L.pattern==='ghost'||L.pattern==='shimmer'?'#4a3a40':'#5a2a28');
+ const P=pieces(),inner=rgb(L.pattern==='ghost'||L.pattern==='shimmer'?'#4a3a40':L.scruffy?'#8a5650':'#5a2a28');
  const paint=(x,y,z)=>{
   let c=mix(C.coat,C.back,smooth((y-.04)/.06)*.4);
   const ax=Math.abs(x);
