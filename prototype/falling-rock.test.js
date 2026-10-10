@@ -98,3 +98,12 @@ test('the falling rock swings off the vertical and is back on the mark at the fl
   assert.ok(swing > .015 && swing <= .04);
   assert.equal(rockPose(.08 + ROCK.drop).x, 0);
 });
+
+test('the rock shows and trembles in the slot just before it drops', () => {
+  assert.equal(rockPose(.03).alpha, 0);
+  assert.ok(rockPose(.06).alpha > 0 && rockPose(.06).alpha < 1);
+  let shake = 0;
+  for (let t = .03; t <= .08; t += .002) { const p = rockPose(t); assert.equal(p.y, ROCK.height); shake = Math.max(shake, Math.abs(p.x)); }
+  assert.ok(shake > .005 && shake <= .012 + 1e-9);
+  assert.ok(Math.abs(rockPose(.081).x) < .04 && rockPose(.081).alpha === 1);
+});
