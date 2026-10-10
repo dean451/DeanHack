@@ -58,6 +58,7 @@ import {createHobbit} from './hobbit.js';
 import {MIND_FLAYER_KINDS,createMindFlayer} from './mind-flayer.js';
 import {createGoblin,isGoblin} from './goblin.js';
 import {createBugbear} from './bugbear.js';
+import {createOwlbear} from './owlbear.js';
 import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
 import {createBeholder} from './beholder.js';
@@ -2700,6 +2701,8 @@ export function createCreature(cell={}){
  if(name==='long worm tail')return wormTail({color:color||WORMS['long worm'].color});
  if(VORTICES[name])return vortex(VORTICES[name]);
  if(isPiercer(name))return createPiercer(name);
+ // the owlbear has its own model (owlbear.js), not the generic ape
+ if(name==='owlbear')return createOwlbear();
  if(APES[name])return ape(APES[name]);
  if(MIMICS[name])return mimic(MIMICS[name]);
  if(CENTAURS[name])return centaur(CENTAURS[name]);
