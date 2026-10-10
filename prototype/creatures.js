@@ -2492,15 +2492,22 @@ function demon(o){
   for(let i=0;i<3;i++){const f=cone(head,.025,.1,fire,(i-1)*.04,.14,-.04,5);f.castShadow=false;}}
  // evil glow (balrogs): molten cracks split the hide of chest and belly, and a pool of hellglow lies under the hooves
  if(o.evil){const ember=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.4,roughness:.5}),pool=mat(o.evil,{emissive:o.evil,emissiveIntensity:1.2,transparent:true,opacity:.17,depthWrite:false});ember.name=pool.name='evil-glow';
-  for(const [x,y,z,rz] of [[-.07,chestY+.06,.15,.35],[.06,chestY,.16,-.5],[-.03,chestY-.08,.17,-.2],[.02,.55,.14,.45],[-.07,.5,.13,-.55]]){const c=rounded(body,.012,.08,.008,ember,x*bulk,y,z*bulk,.004);c.rotation.z=rz;c.castShadow=false;}
-  for(const side of [-1,1]){const c=rounded(body,.01,.07,.008,ember,side*.12*bulk,chestY+.05,.1,.004);c.rotation.z=side*.7;c.castShadow=false;}
+  // One jagged fissure splits the chest from collarbone to belly, thinner cracks branching off it, all laid
+  // flush on the chest's surface so it reads as broken hide with fire under it (it used to be loose
+  // glowing capsules, which looked like sprinkles).
+  {const r=(slim?.14:.19)*bulk,ax=r*1.15,ay=r*1.05,az=r*.85,seed=[...(o.skin||'')].reduce((h,c)=>(h*31+c.charCodeAt(0))%997,7);
+   const on=(x,y)=>{const u=(x/ax)**2+((y-chestY)/ay)**2;return u<.8?[x,y,az*Math.sqrt(1-u)+.003]:null;};
+   const crack=(pts,w)=>{for(let i=0;i<pts.length-1;i++){const a=on(...pts[i]),b=on(...pts[i+1]);if(a&&b){const c=segment(body,a,b,w,w*.8,ember);c.castShadow=false;}}};
+   const main=[];for(let i=0;i<=8;i++){const t=i/8;main.push([ax*(.07*Math.sin(i*2.3+seed)+(i%2?.045:-.045)),chestY+ay*(.72-1.5*t)]);}
+   crack(main,.0065*bulk);
+   for(const [k,side] of [[2,1],[4,-1],[6,1],[5,1]]){const [x0,y0]=main[k],br=[[x0,y0]];for(let j=1;j<=4;j++)br.push([x0+side*ax*.13*j,y0-ay*(.07*j+.04*Math.sin(j*3.1+seed+k))]);crack(br,.0042*bulk);}}
   const p=cylinder(g,.4,.46,.004,pool,0,.004,0,24);p.userData.ring=true;p.castShadow=false;p.receiveShadow=false;
-  // presence: dark smoke trails off the shoulders and horns, and embers hang in the air around the fiend (static, no per-frame cost)
+  // presence: dark smoke trails off the shoulders and horns (the static floating ember cubes are gone: they read as sprinkles too)
   const smoke=mat('#1a1210',{roughness:1,transparent:true,opacity:.38,depthWrite:false}),trail=new THREE.Group();smoke.name='evil-smoke';
   // the trails are transparent, so mergeStatic leaves them alone: bake the six cones into one mesh here
   for(const side of [-1,1])for(let i=0;i<3;i++){const c=cone(trail,.07-i*.012,.4+i*.12,smoke,side*(.2+i*.05)*bulk,chestY+.3+i*.1,-.1-i*.03,6);c.rotation.z=-side*(.15+i*.12);c.updateMatrix();}
   const trails=part(body,mergeGeometries(trail.children.map(c=>c.geometry.clone().applyMatrix4(c.matrix))),smoke);trails.castShadow=false;
-  for(let i=0;i<7;i++){const a=i*2.4,r=.3+.06*(i%3),e=rounded(body,.02,.02,.02,ember,Math.sin(a)*r*bulk,.3+i*.13,Math.cos(a)*r*bulk,.006);e.castShadow=false;}}
+  }
  // signature detail for the lesser devils: each carries the mark of its own torment
  if(o.mark==='ribs'){const bone=mat('#d8cfb4',{roughness:.6});bone.name='devil-ribs';for(let i=0;i<4;i++){const y=chestY-.06+i*.05;for(const side of [-1,1])tube(body,[[side*.02,y,.15*bulk],[side*.11,y-.01,.13*bulk],[side*.17,y-.04,.05*bulk]],.009,bone,6).castShadow=false;}}
  if(o.mark==='frost'){const ice=mat('#cfeaff',{emissive:'#50b8ff',emissiveIntensity:.9,roughness:.2,transparent:true,opacity:.8});ice.name='devil-rime';
