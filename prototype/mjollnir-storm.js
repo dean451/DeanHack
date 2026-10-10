@@ -80,6 +80,8 @@ export function createCrackle(hammer, {seed = 7} = {}) {
       jag = .3;
     }
     if (a === b) b = HEAD_POINTS[(HEAD_POINTS.indexOf(a) + 3) % HEAD_POINTS.length];
+    // The line buffer holds MAX_ARCS arcs: a new one (a strike's leaps) replaces the oldest.
+    if (arcs.length >= MAX_ARCS) arcs.shift();
     arcs.push({pts: jaggedPath(a, b, ARC_STEPS, jag, rand), life: .05 + rand() * .09, flick: rand() * 6});
     if (kind === 'leap') for (let i = 0; i < 4; i++) spark(b);
   }
@@ -102,7 +104,7 @@ export function createCrackle(hammer, {seed = 7} = {}) {
     let n = 0;
     for (const a of arcs) {
       if (Math.sin(t * 90 + a.flick) < -.6) continue; // the arcs stutter
-      for (let i = 0; i < a.pts.length - 1; i++) { pos.set(a.pts[i], n * 3); pos.set(a.pts[i + 1], n * 3 + 3); n += 2; }
+      for (let i = 0; i < a.pts.length - 1 && n * 3 + 6 <= pos.length; i++) { pos.set(a.pts[i], n * 3); pos.set(a.pts[i + 1], n * 3 + 3); n += 2; }
     }
     geo.setDrawRange(0, n); geo.attributes.position.needsUpdate = true;
     mat.opacity = .75 + .25 * Math.sin(t * 53) * Math.sin(t * 31) + surge * .3;
