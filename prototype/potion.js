@@ -104,8 +104,25 @@ function buildBottle(shape,look,{bubbles}){
 // Places for up to three bottles: the first in front, the others behind it, clear of its belly.
 const STACK=[[0,0,0],[-1.05,-.85,.9],[1.1,-.95,-.6]];
 
+// Potions are the loudest small things on the floor: saturated, self-lit liquid, never a dull tint.
+// Coloured liquids are pushed to full saturation and a mid lightness; milky, smoky, white, clear and
+// black ones keep their character. Returns a copy of the look with a stronger glow.
+export function punch(tint){
+ const c=new THREE.Color(tint.liquid),hsl={};c.getHSL(hsl);
+ if(hsl.s>.25&&hsl.l>.12){c.setHSL(hsl.h,Math.min(1,hsl.s*1.2+.12),THREE.MathUtils.clamp(hsl.l,.46,.58));}
+ return {...tint,liquid:'#'+c.getHexString(),emissiveIntensity:Math.max(.55,tint.emissiveIntensity*1.8),colored:hsl.s>.25&&hsl.l>.12};
+}
+export const POTION_SCALE=1.4;
+// a soft additive pool of the liquid's colour on the floor: the potion catches the eye from across a room
+function glowDisc(colour,radius){
+ const geo=new THREE.RingGeometry(.001,radius,28,7);geo.rotateX(-Math.PI/2);
+ const p=geo.attributes.position,col=new Float32Array(p.count*3),base=new THREE.Color(colour);
+ for(let i=0;i<p.count;i++){const t=Math.hypot(p.getX(i),p.getZ(i))/radius,k=Math.pow(1-t,2.2)*.75;col[i*3]=base.r*k;col[i*3+1]=base.g*k;col[i*3+2]=base.b*k;}
+ geo.setAttribute('color',new THREE.BufferAttribute(col,3));geo.translate(0,.003,0);
+ return geo;
+}
 export function createPotion({appearance='',color,count=1}={}){
- const look=(appearance||'').toLowerCase(),tint=potionLook(look,color),kind=potionShape(look,color),shape=SHAPES[kind];
+ const look=(appearance||'').toLowerCase(),tint=punch(potionLook(look,color)),kind=potionShape(look,color),shape=SHAPES[kind];
  const g=new THREE.Group();g.name='potion';g.userData.shape=kind;
  const parts={glass:[],liquid:[],stopper:[]};
  const n=Math.max(1,Math.min(3,count|0||1));
@@ -117,7 +134,7 @@ export function createPotion({appearance='',color,count=1}={}){
  const merge=list=>{const geo=mergeGeometries(list,false);list.forEach(x=>x.dispose());geo.computeBoundingBox();geo.computeBoundingSphere();return geo;};
  const glassMat=new THREE.MeshPhysicalMaterial({color:new THREE.Color(tint.glass).lerp(new THREE.Color(0xffffff),.35),roughness:.06,metalness:0,
   transmission:tint.transmission,transparent:true,opacity:Math.min(.5,tint.opacity*.7),clearcoat:1,clearcoatRoughness:.04,ior:1.5,depthWrite:false});
- const liquidMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.22,emissive:tint.liquid,emissiveIntensity:tint.emissiveIntensity*.5,
+ const liquidMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.22,emissive:tint.liquid,emissiveIntensity:tint.emissiveIntensity,
   transparent:tint.opacity<.6,opacity:tint.opacity<.6?Math.max(.55,tint.opacity+.2):1});
  const stopperMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92});
  const mesh=(geo,m,name,order)=>{const o=new THREE.Mesh(geo,m);o.name=name;o.renderOrder=order;o.castShadow=name!=='glass';o.receiveShadow=true;g.add(o);return o;};
@@ -125,11 +142,15 @@ export function createPotion({appearance='',color,count=1}={}){
  mesh(merge(parts.liquid),liquidMat,'liquid',0);
  mesh(merge(parts.stopper),stopperMat,'stopper',0);
  mesh(merge(parts.glass),glassMat,'glass',1);
- g.rotation.y=.4;
+ g.rotation.y=.4;g.scale.setScalar(POTION_SCALE);
+ if(tint.colored){
+  const discMat=new THREE.MeshBasicMaterial({vertexColors:true,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false});
+  const disc=new THREE.Mesh(glowDisc(tint.liquid,shape.belly*(n>1?4.2:2.6)),discMat);disc.name='glow';disc.renderOrder=-1;g.add(disc);g.userData.glowMat=discMat;
+ }
  // Where each bottle stands and how it's shaped, for potion-fx.js.
  g.userData.layout={look,shape:kind,profile:shape.profile,fill:shape.fill,top:shape.top,neck:shape.neck,
   bottles:STACK.slice(0,n).map(([sx,sz])=>({x:sx*shape.belly*2,z:sz*shape.belly*2}))};
- g.userData.materials=[glassMat,liquidMat,stopperMat];
+ g.userData.materials=[glassMat,liquidMat,stopperMat,...(g.userData.glowMat?[g.userData.glowMat]:[])];
  g.userData.dispose=()=>{g.children.forEach(o=>o.geometry.dispose());g.userData.materials.forEach(m=>m.dispose());};
  return g;
 }

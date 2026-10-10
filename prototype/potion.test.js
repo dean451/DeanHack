@@ -6,17 +6,18 @@ import {createGroundModel} from './ground-models.js';
 
 const finite=model=>model.traverse(o=>{if(o.geometry)for(const v of o.geometry.attributes.position.array)assert(Number.isFinite(v));});
 
-test('every potion look gets a grounded, finite bottle in three draws',()=>{
+test('every potion look gets a grounded, finite bottle in three draws, plus a floor glow when it is coloured',()=>{
  const looks=['ruby','milky','bubbly','clear','dark','smoky','icy','sparkling','',undefined];
  const shapes=new Set();
  for(const appearance of looks)for(const color of [1,8,15]){
   const model=createPotion({appearance,color});finite(model);
   shapes.add(model.userData.shape);
-  assert.deepEqual(model.children.map(o=>o.name),['liquid','stopper','glass']);
-  const b=new THREE.Box3().setFromObject(model);
+  assert.deepEqual(model.children.map(o=>o.name).filter(n=>n!=='glow'),['liquid','stopper','glass']);
+  assert(model.children.length<=4);
+  model.updateMatrixWorld(true);const b=new THREE.Box3();for(const o of model.children)if(o.name!=='glow')b.union(new THREE.Box3().setFromObject(o));
   assert(Math.abs(b.min.y)<1e-6,`${appearance} rests on the floor`);
-  assert(b.max.y>.15&&b.max.y<.34,`${appearance} height ${b.max.y}`);
-  assert(Math.max(b.max.x,-b.min.x,b.max.z,-b.min.z)<.3);
+  assert(b.max.y>.2&&b.max.y<.5,`${appearance} height ${b.max.y}`);
+  assert(Math.max(b.max.x,-b.min.x,b.max.z,-b.min.z)<.45);
   model.userData.dispose();
  }
  assert.equal(shapes.size,4,'the shuffled looks use every bottle shape');
@@ -48,5 +49,5 @@ test('ground potions release every geometry and material',()=>{
  model.traverse(o=>{if(o.geometry){o.geometry.addEventListener('dispose',()=>geometries++);mats.add(o.material);}});
  for(const m of mats)m.addEventListener('dispose',()=>materials++);
  model.userData.dispose();
- assert.equal(geometries,3);assert.equal(materials,3);
+ assert(geometries>=3&&geometries<=4);assert.equal(geometries,materials);
 });
