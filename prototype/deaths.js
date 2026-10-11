@@ -158,6 +158,8 @@ export function deathPose(style, u, dir = null) {
       // gone again by the pop.
       const fling = Math.sin(Math.PI * clamp01(u / .33));
       p.arm = .8 * fling; p.head = -.3 * fling;
+      // A tail whips out the other way with the swell and is gone with the pop.
+      p.tail = -.4 * fling;
       break;
     }
     case 'petrify': {

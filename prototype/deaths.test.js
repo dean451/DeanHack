@@ -354,3 +354,11 @@ test('a petrified body is caught with its arm snatched up, and the stone holds i
   for (let u = 0; u <= 1; u += .01) assert.ok(p(u).arm >= 0 && p(u).arm <= .5 + 1e-9, `in bounds at ${u}`);
   assert.ok(p(1).arm > .2 && p(1).arm === p(1.5).arm, 'held in stone');
 });
+
+test('a bursting body whips its tail out with the swell, home again by the pop', () => {
+  const p = u => deathPose('burst', u);
+  assert.ok(Math.abs(p(0).tail) < 1e-12);
+  assert.ok(p(.165).tail < -.35, 'whipped out at the swell');
+  for (let u = 0; u <= 1; u += .01) assert.ok(Math.abs(p(u).tail) <= .4 + 1e-9, `in bounds at ${u}`);
+  assert.ok(Math.abs(p(.33).tail) < 1e-9 && Math.abs(p(1).tail) < 1e-9);
+});
