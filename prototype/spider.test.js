@@ -35,3 +35,13 @@ test('cave and giant spiders get a jointed eight-legged body with fangs and eyes
  const [a,b]=[createCreature({name:'cave spider'}),createCreature({name:'cave spider'})].map(meshes);
  a.forEach((m,i)=>{assert.equal(m.geometry,b[i].geometry);assert.equal(m.material,b[i].material);});
 });
+
+test('the giant spider carries a raked abdomen and bloodied fangs, the cave spider does not',()=>{
+ const g=createCreature({name:'giant spider',symbol:115,color:5});
+ assert(g.g.userData.scarred,'worn');
+ assert(!createCreature({name:'cave spider',symbol:115,color:5}).g.userData.scarred,'cave spider plain');
+ g.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(g.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
+});
