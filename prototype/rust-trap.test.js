@@ -1,105 +1,72 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {dropPose, fleckPose, isRustTrapMessage, createRustTrap, PENDING_WAIT, RUST} from './rust-trap.js';
+import * as THREE from 'three';
+import {jetPose, dropPose, puddlePose, fleckPose, strikePoint, isRustTrapMessage, createRustTrap, PENDING_WAIT, RUST} from './rust-trap.js';
 
 test('only the hero being soaked triggers it', () => {
-  for (const t of ['A gush of water hits you!', 'A gush of water hits your head!', 'A gush of water hits your left arm!']) assert.ok(isRustTrapMessage(t), t);
-  for (const t of ['A gush of water hits the newt!', 'A board beneath you squeaks loudly.', null]) assert.ok(!isRustTrapMessage(t), String(t));
+  assert(isRustTrapMessage('A gush of water hits you on the head!'));
+  assert(isRustTrapMessage('A gush of water hits your left arm!'));
+  assert(isRustTrapMessage('A gush of water hits you!'));
+  assert(!isRustTrapMessage('A gush of water hits the jackal!'));
 });
 
-test('everything starts and ends invisible', () => {
-  for (const t of [0, RUST.total]) {
-    for (let i = 0; i < RUST.drops; i++) assert.equal(dropPose(i, t).alpha, 0);
-    for (let i = 0; i < RUST.flecks; i++) assert.equal(fleckPose(i, t).alpha, 0);
-  }
+test('the jet strikes where the message says: head, either arm or the body', () => {
+  assert.equal(strikePoint('A gush of water hits you on the head!').part, 'head');
+  const l = strikePoint('A gush of water hits your left arm!'), r = strikePoint('A gush of water hits your right arm!');
+  assert(l.x < 0 && r.x > 0 && l.y === r.y, 'arms either side, at arm height');
+  assert(strikePoint('A gush of water hits you on the head!').y > strikePoint('A gush of water hits you!').y, 'the head is higher');
 });
 
-test('droplets stream in from the side, then splash low and stay in bounds', () => {
+test('everything starts and ends at rest', () => {
+  assert.equal(jetPose(0).alpha, 0); assert.equal(jetPose(RUST.jet).alpha, 0);
+  for (let i = 0; i < RUST.drops; i++) { assert.equal(dropPose(i, 0).alpha, 0); assert.equal(dropPose(i, RUST.total).alpha, 0); }
+  for (let i = 0; i < RUST.flecks; i++) assert.equal(fleckPose(i, RUST.total).alpha, 0);
+  assert.equal(puddlePose(0).alpha, 0); assert.equal(puddlePose(RUST.total).alpha, 0);
+});
+
+test('the jet shoots up from the vent to the strike fast, then thins away', () => {
+  assert(jetPose(.08).reach > .99, 'reaches the strike in under a tenth of a second');
+  assert(jetPose(.12).alpha > jetPose(.27).alpha);
+});
+
+test('the spray bursts from the strike point, arcs out, falls and never goes below the floor', () => {
+  const strike = strikePoint('A gush of water hits you on the head!');
+  let spread = 0, landed = 0;
   for (let i = 0; i < RUST.drops; i++) {
-    assert.ok(dropPose(i, i * .02 + .01).x < -1, String(i));
+    const first = dropPose(i, .12, strike);
+    if (first.alpha) assert(Math.abs(first.y - strike.y) < .2, 'starts at the strike');
     let seen = false;
-    for (let t = 0; t <= RUST.total; t += .005) {
-      const p = dropPose(i, t);
-      assert.ok(p.y >= .03 - 1e-9 && p.y <= .95 && p.x >= -RUST.from - 1e-9 && Math.hypot(p.x, p.z) <= RUST.from && p.alpha >= 0 && p.alpha <= .8 + 1e-9, `${i} ${t}`);
-      if (p.alpha > 0) seen = true;
+    for (let t = 0; t < RUST.total; t += 1 / 60) {
+      const p = dropPose(i, t, strike);
+      if (!p.alpha) { if (seen) { landed++; break; } continue; }
+      seen = true; assert(p.y > 0 && Number.isFinite(p.x) && Number.isFinite(p.z));
+      spread = Math.max(spread, Math.hypot(p.x - strike.x, p.z - strike.z));
     }
-    assert.ok(seen);
-    if (i < RUST.drops - 1) assert.equal(dropPose(i, i * .02 + RUST.flight + .6).alpha, 0);
   }
+  assert(spread > .3, `the spray spreads out (${spread})`);
+  assert(landed >= RUST.drops * .8, 'and nearly all of it falls to the floor in time');
 });
 
-test('the last droplet hangs, then falls late and is gone before the end', () => {
-  const i = RUST.drops - 1, t0 = i * .02 + RUST.flight;
-  assert.ok(dropPose(i, t0 + .5).alpha > .7 && dropPose(i, t0 + .5).y > .55);
-  assert.ok(dropPose(i, t0 + .75).y < dropPose(i, t0 + .5).y);
-  assert.equal(dropPose(i, t0 + .96).alpha, 0);
-  assert.ok(t0 + .96 < RUST.total);
+test('a wet patch spreads under the hero and dries; rust flecks drift down after the hit', () => {
+  assert(puddlePose(.7).radius > puddlePose(.3).radius);
+  assert(puddlePose(.7).alpha > puddlePose(1.6).alpha, 'drying');
+  assert.equal(fleckPose(0, .2).alpha, 0, 'not before the hit');
+  assert(fleckPose(0, 1).alpha > 0 && fleckPose(0, 1).y < fleckPose(0, .5).y, 'sinking');
 });
 
-test('rust flecks bloom after the strike, sink and stay low', () => {
-  for (let i = 0; i < RUST.flecks; i++) {
-    assert.equal(fleckPose(i, .1).alpha, 0);
-    let top = 0, last = 1;
-    for (let t = RUST.flight + .1; t <= RUST.total; t += .01) {
-      const p = fleckPose(i, t);
-      assert.ok(p.y >= .04 - 1e-9 && p.y <= .86 && Math.hypot(p.x, p.z) <= .45 && p.alpha >= 0 && p.alpha <= .85 + 1e-9, `${i} ${t}`);
-      assert.ok(p.y <= last + 1e-9, `${i} ${t}`); last = p.y; top = Math.max(top, p.alpha);
-    }
-    assert.ok(top > .5, String(i));
-  }
-});
-
-test('the effect waits for the next frame and lands on the trap square', () => {
-  const added = [];
-  const THREE = new Proxy({}, {get: () => class { constructor() { this.position = {set: (x, y, z) => added.push([x, z]), y: 0}; this.rotation = {set() {}}; this.scale = {setScalar() {}, set() {}}; this.material = {}; } add() {} dispose() {} }});
-  const fx = createRustTrap(THREE, {add() {}, remove() {}});
-  fx.message('A gush of water hits you!', 1, 1);
+test('the effect waits for the next frame, lands on the trap square and cleans up', () => {
+  const parent = new THREE.Group(), fx = createRustTrap(THREE, parent);
+  fx.message('A gush of water hits your right arm!', 1, 1, 0);
   assert.equal(fx.active, 0);
-  fx.settle(2, 1);
+  fx.settle(4, 6);
   assert.equal(fx.active, 1);
-  assert.deepEqual(added[0], [2, 1]);
-  fx.update(RUST.total + .1);
-  assert.equal(fx.active, 0);
-  fx.message('A gush of water hits your head!', 5, 5);
-  fx.update(PENDING_WAIT + .01);
-  assert.equal(fx.active, 1);
-  fx.clear();
-  assert.equal(fx.active, 0);
-});
-
-test('rust flecks sway off a straight drift as they sink', () => {
-  for (let i = 0; i < RUST.flecks; i++) {
-    let off = 0;
-    for (let t = RUST.flight + .2; t < RUST.total - .1; t += .01) {
-      const p = fleckPose(i, t), u = (t - RUST.flight - .08) / (RUST.total - RUST.flight - .08), a = i * 2.4 + 1;
-      off = Math.max(off, Math.abs(p.x - Math.cos(a) * (.1 + .14 * u + .02 * (i % 3))));
-    }
-    assert.ok(off > .005 && off <= .026, String(i));
-  }
-});
-
-test('the first rust fleck flinches once mid-fall and stays in bounds', () => {
-  const at = u => fleckPose(0, RUST.flight + .08 + u * (RUST.total - RUST.flight - .08));
-  const base = u => Math.sin(1) * (.1 + .14 * u) - .025 * Math.sin(u * 11 + 0) * Math.min(1, u / .15) * .6;
-  assert.ok(at(.5).z - base(.5) > .06, 'the jerk');
-  assert.ok(Math.abs(at(.7).z - base(.7)) < 1e-9 && Math.abs(at(.3).z - base(.3)) < 1e-9, 'only once');
-  for (let t = 0; t <= RUST.total; t += .005) assert.ok(Math.hypot(fleckPose(0, t).x, fleckPose(0, t).z) <= .45, String(t));
-});
-
-test('one droplet ricochets back toward the wall instead of splashing out', () => {
-  const p = dropPose(4, 4 * .02 + RUST.flight + .3);
-  assert.ok(p.x < -.2 && Math.abs(p.z) < .05 && p.alpha > 0);
-  assert.ok(dropPose(0, 0 * .02 + RUST.flight + .3).x > -1);
-});
-
-test('droplet 6 hangs back in the jet and catches up', () => {
-  const x = (i, t) => dropPose(i, t).x;
-  assert.ok(x(6, RUST.flight * .5 + .12) < x(5, RUST.flight * .5 + .1), 'behind its neighbour mid-flight');
-  assert.ok(Math.abs(x(6, .12 + RUST.flight) - x(6, .12 + RUST.flight - 1e-9)) < 1e-3, 'caught up at the strike');
-});
-
-test('droplet 3 slews sideways in the jet and still splashes normally', () => {
-  const t = 3 * .02 + RUST.flight * .25;
-  assert.ok(Math.abs(dropPose(3, t).z - Math.sin(3 * 1.7) * .04 * .25 - .05) < 1e-9, 'the slew');
-  assert.equal(dropPose(3, RUST.total).alpha, 0);
+  assert.deepEqual([parent.children[0].position.x, parent.children[0].position.z], [4, 6]);
+  for (let i = 0; i < 30; i++) fx.update(1 / 60);
+  const visible = []; parent.children[0].traverse(o => { if (o.isMesh && o.visible) visible.push(o); });
+  assert(visible.length > 3, 'jet, spray and patch showing mid-effect');
+  for (let i = 0; i < 200; i++) fx.update(1 / 60);
+  assert.equal(fx.active, 0); assert.equal(parent.children.length, 0);
+  fx.message('A gush of water hits you!', 2, 2, 0);
+  for (let i = 0; i < Math.ceil(PENDING_WAIT * 60) + 2; i++) fx.update(1 / 60);
+  assert.equal(fx.active, 1, 'starts on its own if no frame comes');
 });
