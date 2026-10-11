@@ -9,7 +9,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // ragged its foot is, where the jamb joints fall and how the grime and rust spread.
 // Weathering is baked into vertex colours: vertical grain and knots, damp and rot low
 // down, a dark polished patch round the ring, rust weeping under the ironwork, and
-// soot on the lintel. The door runs along x and is thin in z; the caller turns it to
+// soot on the jamb tops. The door runs along x and is thin in z; the caller turns it to
 // follow the wall. Static parts merge into one mesh per material (`userData.part` is
 // wood, iron or stone). The frame (stone, plus the iron pintles it carries) sits on the
 // group itself; the leaf (wood and iron) hangs in its own child group, `userData.leaf`,
@@ -51,8 +51,8 @@ export function createDoor(seed=0,{broken=false}={}){
  };
  const rbox=(w,h,d,r,segs=2)=>new RoundedBoxGeometry(w,h,d,segs,Math.min(r,w/2-1e-4,h/2-1e-4,d/2-1e-4));
 
- // Frame: each jamb is three or four stacked blocks with seeded joints, under a lintel
- // that overhangs them, on a worn threshold slab.
+ // Frame: each jamb is three or four stacked blocks with seeded joints, open at the top (no
+ // lintel for tall monsters to clip through), on a worn threshold slab.
  const {width:W,height:H,bottom:B}=DOOR_LEAF,JAMB=.084,JX=W/2+JAMB/2+.003,TOP=B+H+.006,DEPTH=.22;
  for(const side of [-1,1]){
   const count=3+Math.floor(rand(side+3)*2);let y=0;
@@ -63,8 +63,8 @@ export function createDoor(seed=0,{broken=false}={}){
    y+=h;
   }
  }
- const LINTEL=.11;
- put(roughen(place(rbox(.98,LINTEL,DEPTH+.03,.014),0,TOP+LINTEL/2,0),.0035),stone,.96);
+ // No lintel: anything taller than the door standing in the doorway pushed up through it, so the
+ // jambs stand open at the top.
  put(roughen(place(rbox(W+.02,.024,DEPTH-.02,.008),0,.012,0),.002),stone,.88);
 
  const T=.07,plankCount=5+Math.floor(rand(5)*2);
@@ -309,8 +309,8 @@ function ironColour(x,y,z,n,c){
  return [r,g,b];
 }
 
-// Dressed stone: mottled grey matching the walls, grimy at the foot, sooted under
-// the lintel's front edge, and a worn, paler dip in the middle of the threshold.
+// Dressed stone: mottled grey matching the walls, grimy at the foot, sooted at the
+// tops of the jambs, and a worn, paler dip in the middle of the threshold.
 function stoneColour(x,y,z,n,c){
  const {off,TOP}=c;
  let k=.8+noise3(x*16+off,y*16,z*16)*.28+(noise3(x*90,y*90+off,z*90)-.5)*.12;
