@@ -82,12 +82,12 @@ test('a trap door drops the hero almost at once, and returns exactly to rest', (
   assert.ok(sinkOffset(TRAPDOOR_HANG + .1, TRAPDOOR_HANG) < sinkOffset(TRAPDOOR_HANG + .1), 'earlier than a dug hole');
   const d = createDigDrop();
   assert.ok(d.message('A trap door opens up under you!'));
-  assert.equal(d.update(TRAPDOOR_HANG * .5), 0);
+  assert.ok(d.update(TRAPDOOR_HANG * .5) <= 0, 'only a hair of shudder before it drops');
   let low = 0;
   for (let i = 0; i < 80; i++) { const v = d.update(.05); assert.ok(v <= 0 && v >= -SINK_DEPTH - 1e-9); low = Math.min(low, v); }
   assert.ok(low < -.5);
   assert.equal(d.update(.05), 0); assert.ok(!d.active);
-  assert.ok(d.message('You dig a hole through the floor.') && d.update(TRAPDOOR_HANG + .1) === 0, 'a dug hole still hangs');
+  assert.ok(d.message('You dig a hole through the floor.') && d.update(TRAPDOOR_HANG + .1) > -.05, 'a dug hole still hangs (a shudder at most)');
 });
 
 test('a trap door the hero escapes (levitating, or "You don\'t fall in.") never drops them', () => {
@@ -124,4 +124,13 @@ test('the hover sags once when the hole tugs, never below the floor, and still e
   assert.ok(at(.6) < at(.45) * .5, 'sags at the tug');
   assert.ok(at(.72) > at(.6), 'catches itself after');
   for (let i = 0; i <= 100; i++) assert.ok(at(i / 100) >= 0 && at(i / 100) <= HOVER_LIFT + 1e-9);
+});
+
+test('the edge shudders under the hero before the floor goes, and is back at zero when it does', async () => {
+  const {SHUDDER} = await import('./dig-drop.js');
+  let low = 0;
+  for (let t = 0; t <= HANG; t += .005) { const v = sinkOffset(t); assert.ok(v <= 0 && v >= -SHUDDER - 1e-9, `t=${t}`); low = Math.min(low, v); }
+  assert.ok(low < -SHUDDER * .3, 'it visibly dips');
+  assert.equal(sinkOffset(0), 0); assert.ok(Math.abs(sinkOffset(HANG)) < 1e-9);
+  assert.ok(sinkOffset(TRAPDOOR_HANG * .5, TRAPDOOR_HANG) <= 0);
 });

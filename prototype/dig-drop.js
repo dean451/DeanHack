@@ -12,6 +12,7 @@ export const HANG = .7, SINK = .45, SINK_DEPTH = 1.1, GIVE_UP = 3, RISE = .45;
 export const ARRIVE_HEIGHT = 1.8, ARRIVE_GRAVITY = 9, BOUNCE = .22;
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 
+export const SHUDDER = .03;
 export const HOVER_TIME = 2.2, HOVER_LIFT = .12;
 
 // True when the status line shows the hero is levitating or flying, so the hole cannot take them.
@@ -39,7 +40,7 @@ export const escapeMessage = text => typeof text === 'string' && /^(?:You don't 
 
 // How far under the floor the hero is t seconds after the hole breaks.
 export function sinkOffset(t, hang = HANG) {
-  if (!(t > hang)) return 0;
+  if (!(t > hang)) return t > 0 && t < hang ? -SHUDDER * Math.sin(Math.PI * t / hang) * (.6 + .4 * Math.sin(t * 40)) : 0;  // the edge gives under the hero's weight in a few sick shudders before it goes
   const k = clamp01((t - hang) / SINK);
   const down = -SINK_DEPTH * k * k;
   if (t < GIVE_UP) return down;
