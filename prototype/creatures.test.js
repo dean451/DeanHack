@@ -2742,33 +2742,6 @@ test('lemures weep raw red sores and a bone splinter breaks through the mass',()
  assert(sore>20,`sore vertices: ${sore}`);
 });
 
-test('the rust monster is pitted by corrosion and its feet end in hooked claws; the disenchanter stays smooth',()=>{
- const count=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n++;});return n;};
- const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
- assert(count(rust)>count(dis),'extra pit and claw meshes');
- rust.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(rust.g,true);
- assert(b.min.y>-.05&&b.min.y<.05,`claws stay on the floor (${b.min.y.toFixed(3)})`);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
-});
-
-test('rust monsters bear flank barbs and bared fangs the disenchanter lacks',()=>{
- const verts=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n+=o.geometry.attributes.position.count;});return n;};
- const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
- const lit=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh&&o.material.color&&['3a2412','c9b48a'].includes(o.material.color.getHexString()))n++;});return n;};
- assert(lit(rust)>=1&&lit(dis)===0,'barb and fang materials only on the rust monster');
- assert(verts(rust)>verts(dis));
- rust.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(rust.g,true);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
-});
-
-test('disenchanters leak violet light through cracked plates',()=>{
- const lit=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh&&o.material.emissiveIntensity>2)n++;});return n;};
- const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
- assert(lit(dis)>=1&&lit(rust)===0,'cracks glow only on the disenchanter');
- dis.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(dis.g,true);
- assert(b.min.y>-.05,'stays on the floor');assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
-});
-
 test('gargoyles burn with ember seams in the stone of their chest and back',()=>{
  const lit=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh&&o.material.emissiveIntensity>2)n+=o.geometry.attributes.position.count;});return n;};
  const g=createCreature({name:'gargoyle',symbol:89,color:3}),w=createCreature({name:'winged gargoyle',symbol:89,color:4});
@@ -2777,12 +2750,8 @@ test('gargoyles burn with ember seams in the stone of their chest and back',()=>
  assert(b.min.y>-.05&&b.max.y<1.5,'stays in bounds');
 });
 
-test('rust monsters bristle with a jagged spine ridge; acid blobs sit in a burnt pool',()=>{
- const count=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n+=o.geometry.attributes.position.count;});return n;};
- const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
- rust.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(rust.g,true);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
- assert(count(rust)>count(dis)+150,'spine and pit geometry');
+// The rust monster and disenchanter have their own tests (rust-monster.test.js).
+test('acid blobs sit in a burnt pool',()=>{
  const blob=createCreature({name:'acid blob',symbol:98,color:10}),jelly=createCreature({name:'blue jelly',symbol:106,color:4});
  const meshes=x=>{let n=0;x.g.traverse(o=>{if(o.isMesh)n++;});return n;};
  const parts=[];blob.g.traverse(o=>{if(o.isMesh)parts.push(o.userData.part);});

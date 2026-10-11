@@ -61,6 +61,7 @@ import {createBugbear} from './bugbear.js';
 import {createOwlbear} from './owlbear.js';
 import {createWarhorse} from './warhorse.js';
 import {createBaluchitherium} from './baluchitherium.js';
+import {createRustMonster} from './rust-monster.js';
 import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
 import {createBeholder} from './beholder.js';
@@ -2868,6 +2869,8 @@ export function createCreature(cell={}){
  if(XORNS[name])return xorn(XORNS[name]);
  if(NAGAS[name])return naga(NAGAS[name]);
  if(name==='disintegrator')return createDisintegrator();
+ // rust monsters and disenchanters have their own models (rust-monster.js)
+ if(name==='rust monster'||name==='disenchanter')return createRustMonster(name);
  if(RUST_MONSTERS[name])return rustMonster({...RUST_MONSTERS[name],kind:name});
  if(UMBER_HULKS[name])return umberHulk(UMBER_HULKS[name]);
  if(HORRORS[name])return shamblingHorror(HORRORS[name]);
