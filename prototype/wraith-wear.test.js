@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createCreature} from './creatures.js';
+
+const meshes = name => {
+  let n = 0;
+  createCreature({name, symbol: 87, color: 1}).g.traverse(o => { if (o.isMesh) n++; });
+  return n;
+};
+
+test('a barrow wight blade is chipped bright where the rust flaked off', () => {
+  let bright = 0;
+  createCreature({name: 'barrow wight', symbol: 87, color: 1}).g.traverse(o => {
+    if (o.isMesh && o.material.color && o.material.color.getHexString() === 'b8b4a4') bright++;
+  });
+  assert(bright >= 1);
+});
