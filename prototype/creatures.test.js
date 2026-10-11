@@ -2940,3 +2940,11 @@ test('the winged gargoyle has a torn left wing membrane; the plain gargoyle and 
  const b=new THREE.Box3().setFromObject(w.g,true);
  assert(b.min.y>-.05&&Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.9,'fits');
 });
+
+test('the xorn has a snapped tooth in its maw and still fits its tile',()=>{
+ const r=createCreature({name:'xorn',symbol:88,color:3});
+ assert(r.g.userData.snappedTooth,'xorn tooth');
+ r.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(r.g,true);
+ assert(b.min.y>-.05&&Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits');
+});
