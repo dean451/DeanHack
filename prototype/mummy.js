@@ -124,6 +124,9 @@ function buildHead(){
  P.add(new THREE.TorusGeometry(hr+.008,.011,4,18),at(0,.005,0,[0,Math.PI/2,0],[1.02,1.07,.8]),linen(pick(),-.12,.12));
  // a loose end hanging from the side of the head
  strip(P,[[.085,-.03,.04],[.105,-.1,.05],[.11,-.17,.07]],.035,[1,0,0]);
+ // the wrappings rotted away over the left cheek: a dark sunken socket-gap and a bared jaw tooth-row
+ P.add(new THREE.SphereGeometry(.03,8,6),at(-.062,-.04,.088,[0,0,0],[1,1.2,.5]),C.nail);
+ for(const x of [-.05,-.036,-.022])P.add(new THREE.ConeGeometry(.005,.018,4),at(x,-.098,.1,[Math.PI,0,0]),C.rib);
  return P.merge();
 }
 function buildEyes(){
@@ -163,6 +166,8 @@ function buildArm(side){
   P.add(new THREE.ConeGeometry(.009,.022,5),at(x,-.448-len,-.02,[Math.PI+.3,0,0]),C.nail);
  }
  P.add(new THREE.CylinderGeometry(.01,.012,.05,6),at(-side*.042,-.41,-.004,[.2,0,side*.6]),linen(pick(),-.45,-.38));
+ // the left forearm's wrappings are split and a snapped bone splinter juts through
+ if(side<0){P.add(new THREE.ConeGeometry(.012,.07,5),at(side*.03,-.3,.02,[.2,0,side*.9]),C.rib);P.add(new THREE.SphereGeometry(.02,6,5),at(side*.02,-.3,.015,[0,0,0],[1,1.3,.8]),C.nail);}
  if(side>0)strip(P,[[0,-.29,-.03],[.005,-.31,-.11],[.01,-.33,-.19],[.02,-.35,-.26]],.035,[0,1,0]);
  return P.merge();
 }
