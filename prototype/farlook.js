@@ -44,13 +44,15 @@ function bareText(cell) {
 export function farlookText(cell) {
   if (!cell) return '';
   if (cell.visible) return seenText(cell);
-  if (!cell.sensed || !(cell.name || cell.object?.name)) return '';
+  if (!cell.sensed || !(cell.name || cell.object?.label || cell.object?.name)) return '';
   const text = seenText({...cell, visible: true, health: undefined});
   return text ? `${text} (sensed)` : '';
 }
 
 function seenText(cell) {
-  const name = String(cell.name || cell.object?.name || '').trim();
+  // An item's `name` is its true name (the bridge sends it to pick the model); what the hero
+  // may read is `label`, the name as they know it ("balsa wand" until identified).
+  const name = String(cell.object ? (cell.object.label || cell.object.name || cell.name) : cell.name || '').trim();
   if (!name) {
     if (cell.invisible) return 'something unseen';
     return cell.kind === 'terrain' || !cell.kind ? terrainText(cell) : '';

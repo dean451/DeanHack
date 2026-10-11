@@ -90,3 +90,18 @@ test('farlook names ice, bog, drawbridges, clouds and open air by their map symb
   assert.equal(at(32, 6), 'open air');
   assert.equal(at(99, 1), '');
 });
+
+test('the hover never names an unidentified item by its true type', () => {
+  const wand = {visible: true, kind: 'object', name: 'wand of digging', object: {kind: 'wand', name: 'wand of digging', label: 'balsa wand'}};
+  assert.match(farlookText(wand), /balsa wand/);
+  assert.doesNotMatch(farlookText(wand), /digging/);
+  const ring = {visible: true, kind: 'object', name: 'ring of free action', object: {kind: 'ring', name: 'ring of free action', label: 'pearl ring'}};
+  assert.doesNotMatch(farlookText(ring), /free action/);
+  // identified: the label is the real name, so it shows
+  const known = {visible: true, kind: 'object', name: 'wand of digging', object: {kind: 'wand', name: 'wand of digging', label: 'wand of digging', identified: true}};
+  assert.match(farlookText(known), /wand of digging/);
+  // sensed out of sight: still only the label
+  const sensed = {visible: false, sensed: true, kind: 'object', name: 'potion of healing', object: {kind: 'potion', name: 'potion of healing', label: 'ruby potion'}};
+  assert.match(farlookText(sensed), /ruby potion.*\(sensed\)/);
+  assert.doesNotMatch(farlookText(sensed), /healing/);
+});
