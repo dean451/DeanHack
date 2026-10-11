@@ -115,13 +115,18 @@ test('alabaster, grooved and bent wands each have a look of their own', () => {
 
 test('oak, cedar and walnut wands carry scars of their own, apart from the plain woods', () => {
   const verts = look => meshes(createWand(look)).reduce((n, m) => n + m.geometry.attributes.position.count, 0);
-  for (const look of ['oak', 'cedar', 'walnut']) assert(verts(look) > verts('maple'), `${look} is more than a bare rod`);
+  for (const look of ['oak', 'cedar', 'walnut']) assert(verts(look) > verts('ebony'), `${look} is more than a bare rod`);
   assert(verts('oak') !== verts('cedar') && verts('cedar') !== verts('walnut') && verts('oak') !== verts('walnut'));
+});
+
+test('maple is grain-veined and balsa chipped, so neither is a bare rod', () => {
+  const verts = look => meshes(createWand(look)).reduce((n, m) => n + m.geometry.attributes.position.count, 0);
+  for (const look of ['maple', 'balsa']) assert(verts(look) > verts('ebony'), `${look} has a tell`);
 });
 
 test('pine and mahogany wands are knotted and pitted, apart from maple and balsa', () => {
   const verts = look => meshes(createWand(look)).reduce((n, m) => n + m.geometry.attributes.position.count, 0);
-  for (const look of ['pine', 'mahogany']) assert(verts(look) > verts('maple'), `${look} is more than a bare rod`);
+  for (const look of ['pine', 'mahogany']) assert(verts(look) > verts('ebony'), `${look} is more than a bare rod`);
   assert(verts('pine') !== verts('mahogany'));
 });
 
