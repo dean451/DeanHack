@@ -88,6 +88,10 @@ function buildBody(B){
  for(const s of [-1,1])P.add('hide',new THREE.SphereGeometry(.08,12,10),at(s*.17,.9,.12),hide);
  // armoured plates down the chest and belly
  for(let i=0;i<7;i++){const y=.5+i*.065;P.add('hide',new THREE.SphereGeometry(.1-i*.004,14,8),at(0,y,.1+(y-.5)*.62,[-.5,0,0],[1.15,.3,.55]),mix(C.belly,C.dark,i%2?.25:0));}
+ // old healed gashes raked slantwise across the chest plates: pale ridged scar tissue
+ for(const [dx,dy,rz] of [[-.07,.62,.5],[.0,.6,.55],[.08,.64,.45]]){
+  P.add('hide',new THREE.BoxGeometry(.012,.17,.012),at(dx,dy,.2+(dy-.5)*.62,[-.5,0,rz]),mix(C.belly,C.hide,.2));
+ }
  // the neck: rising from the chest and thrusting forward
  P.add('hide',taper([[0,.9,.12],[0,1.04,.15],[0,1.14,.26],[0,1.16,.4]],.08,.05,16,10),null,hide);
  for(let i=0;i<4;i++)P.add('hide',new THREE.SphereGeometry(.045,10,6),at(0,.96+i*.05,.2+i*.05,[-.8,0,0],[1.05,.3,.7]),C.belly);
