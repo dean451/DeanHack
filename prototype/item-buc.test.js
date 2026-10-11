@@ -128,3 +128,10 @@ test('a container says how many items it holds, and weights show in the hover', 
   assert.deepEqual(itemFacts('a dagger (10 aum)'), ['10 aum']);
   assert.deepEqual(itemFacts('a sack'), []);
 });
+
+test('a container says whether it is locked or trapped in the hover', () => {
+  assert.deepEqual(itemFacts('a large box (locked)'), ['locked']);
+  assert.deepEqual(itemFacts('a chest (unlocked)'), ['unlocked']);
+  assert.deepEqual(itemFacts('a chest (locked, trapped)'), ['locked', 'trapped']);
+  assert.deepEqual(itemFacts('a chest (containing 2 items)'), ['holds 2 items']);
+});
