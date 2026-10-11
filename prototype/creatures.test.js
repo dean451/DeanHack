@@ -2845,3 +2845,13 @@ test('the ghost is bound in a rusted chain without growing a new part',()=>{
  for(let i=0;i<col.count;i++)if(col.getX(i)>col.getZ(i)*1.3&&col.getX(i)<.2)rust++;
  assert(rust>100,`${rust} rusted vertices`);
 });
+
+test('the disenchanter bristles with a spined back and barbed flanks and still fits its tile',()=>{
+ const THREE_=THREE;
+ const a=createCreature({name:'disenchanter',symbol:82,color:4});let verts=0;a.g.traverse(o=>{if(o.isMesh)verts+=o.geometry.attributes.position.count;});
+ assert(verts>17700,`${verts} vertices: the spines are missing`);
+ a.g.updateMatrixWorld(true);
+ const b=new THREE_.Box3().setFromObject(a.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
+});
