@@ -1845,6 +1845,9 @@ function xorn(o){
   const arm=new THREE.Group();arm.position.set(Math.sin(a+Math.PI/3)*.2,.52,Math.cos(a+Math.PI/3)*.2);arm.rotation.set(-.35,a+Math.PI/3,0,'YXZ');body.add(arm);
   rounded(arm,.075,.075,.14,stone,0,0,.06,.03);const fore=rounded(arm,.065,.065,.12,stone,0,.04,.16,.025);fore.rotation.x=-.5;
   for(const f of [-.025,0,.025])cone(arm,.012,.06,claw,f,.08,.24,4).rotation.x=Math.PI/2-.4;}
+ // jagged stone spurs thrust up from the shoulders between the arms, so the xorn reads as a rockfall that hunts
+ const spur=mat(shade(o.stone||'#8a7f6a',.5),{roughness:1,flatShading:true});spur.name='xorn-spurs';
+ for(let i=0;i<6;i++){const b=i*Math.PI/3+.3;cone(body,.035,.1+(i%2)*.06,spur,Math.sin(b)*.2,.68,Math.cos(b)*.2,4).rotation.set(Math.cos(b)*.35,i,-Math.sin(b)*.35);}
  return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
 const XORNS={xorn:{scale:1.25}};

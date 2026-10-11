@@ -2690,6 +2690,11 @@ test('only the purple worm bears a ridge of horn spikes down its back',()=>{
  assert.equal(count('baby purple worm'),0);
 });
 
+test('xorns thrust stone spurs from the shoulders',()=>{
+ const count=(name,symbol,mn)=>{let n=0;createCreature({name,symbol,color:5}).g.traverse(o=>{if(o.isMesh&&o.material.name===mn)n++;});return n;};
+ assert(count('xorn',88,'xorn-spurs')>0);
+});
+
 test('the titan is a scarred colossus, taller than any ordinary giant',()=>{
  const t=createCreature({name:'titan',symbol:72,color:5}),f=createCreature({name:'fire giant',symbol:72,color:1});
  assert(t.g.userData.scarred&&!f.g.userData.scarred,'war-scars on the breastplate');
