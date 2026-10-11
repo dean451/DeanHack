@@ -2665,6 +2665,9 @@ function trapper(o){
  const bone=mat('#cfc4a4',{roughness:.7});
  sphere(body,.032,bone,.1,.1,-.05,1,.8,1.1);sphere(body,.012,mouth,.1,.118,-.035,1.2,.6,1);
  for(let i=0;i<3;i++){const rib=part(body,new THREE.BoxGeometry(.05,.008,.008),bone,-.1+i*.01,.1-i*.01,.02+i*.05);rib.rotation.set(0,.4+i*.2,.25);}
+ // an old rusted sword blade snapped off and left lodged in the hide, with a dark crust round the wound
+ const blade=mat('#6a5a4c',{roughness:.7,metalness:.4});
+ {const sw=part(body,new THREE.BoxGeometry(.04,.2,.012),blade,-.14,.17,-.1);sw.rotation.set(.3,.5,.45);sphere(body,.045,mottle,-.14,.09,-.1,1,.3,1);g.userData.impaled=true;}
  // front lip: a separate flap carrying the maw and eyes, so it can rear up
  const lip=new THREE.Group();lip.position.set(0,.02,.2);body.add(lip);
  mantle(lip,[[0,.08],[.1,.07],[.16,.045],[.2,.012]],.04,hide,-Math.PI/2,Math.PI,.02);
