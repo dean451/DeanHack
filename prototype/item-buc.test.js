@@ -142,3 +142,9 @@ test('a container known to be empty says so in the hover, once', () => {
   assert.deepEqual(itemFacts('an empty tin (empty)'), ['empty']);
   assert.deepEqual(itemFacts('a sack'), []);
 });
+
+test('a wet towel says so in the hover', () => {
+  assert.deepEqual(itemFacts('a wet towel'), ['wet']);
+  assert.deepEqual(itemFacts('a blessed wet towel (in use)'), ['wet', 'in use']);
+  assert.deepEqual(itemFacts('a towel'), []);
+});
