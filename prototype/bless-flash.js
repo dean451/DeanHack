@@ -23,7 +23,7 @@ export function ringPose(kind, t) {
   // A held breath: at the top the ring hangs and trembles, dipping a hair on each shiver, before it lets go.
   if (kind === 'blessed') {
     const hang = Math.sin(Math.PI * clamp01((u - .62) / .2)), tremble = .012 * hang * (1 + Math.sin(u * 140)) / 2;
-    return {radius: .3 + .2 * smooth(u / .7), lift: .5 * smooth(u / .8) - .08 * smooth((u - .75) / .25) - tremble, alpha: .55 * smooth(u / .2) * fade};
+    return {radius: .3 + .2 * smooth(u / .7) - .04 * smooth((u - .82) / .18), lift: .5 * smooth(u / .8) - .08 * smooth((u - .75) / .25) - tremble, alpha: .55 * smooth(u / .2) * fade};
   }
   if (kind === 'cursed') {
     const stutter = Math.floor(u * 9) % 2 ? .04 : 0;

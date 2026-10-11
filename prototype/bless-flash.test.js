@@ -113,3 +113,9 @@ test('the first shaken-off fleck twitches after it lands and the others do not',
   assert.ok(moves > 20, 'twitching');
   for (let u = .6; u <= 1; u += .01) assert.ok(Math.hypot(fleckPose(0, u * BLESS.total).x, fleckPose(0, u * BLESS.total).z) < .35);
 });
+
+test('a blessed ring sighs inward as it lets go', () => {
+  const r = u => ringPose('blessed', BLESS.total * u).radius;
+  assert.ok(r(.99) < r(.8) - .02);
+  assert.ok(r(.99) > .3);
+});
