@@ -51,9 +51,12 @@ export function itemFacts(text) {
   if (/\bempty tins?\b/i.test(t.split('(')[0])) out.push('empty');
   if (/\(laid by you\)/i.test(t)) out.push('laid by you');
   if (/\bdiluted\b/i.test(t.split('(')[0])) out.push('diluted');
-  if (/\((?:tethered weapon|weapon|wielded)[^)]*\)/i.test(t)) out.push(/\(tethered weapon\b/i.test(t) ? 'wielded, tethered' : 'wielded');
+  if (/\((?:tethered weapon|weapon|wielded)[^)]*\)/i.test(t)) {
+    out.push(/\(tethered weapon\b/i.test(t) ? 'wielded, tethered' : /\(wielded in other hand\)/i.test(t) ? 'wielded, off hand' : /\(weapon in hands\)/i.test(t) ? 'wielded, two hands' : 'wielded');
+  }
   else if (/\((?:being worn|worn|on (?:left|right) (?:hand|finger))[^)]*\)/i.test(t)) out.push('worn');
   else if (/\(in quiver[^)]*\)/i.test(t)) out.push('quivered');
+  if (/\(no charge\)/i.test(t)) out.push('no charge');
   const shop = /\((unpaid|for sale), (\d+) zorkmids?\)/i.exec(t);
   if (shop) out.push(`${shop[1].toLowerCase()} ${shop[2]}zm`);
   const candles = /\((\d+|no) candles? attached\b[^)]*\)/i.exec(t);
