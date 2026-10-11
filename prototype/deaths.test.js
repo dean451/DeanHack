@@ -378,3 +378,11 @@ test('a dissipating body lets one arm drift up and open, then fall back to nothi
   for (let u = 0; u <= 1; u += .01) assert.ok(p(u).arm >= 0 && p(u).arm <= .5 + 1e-9, `in bounds at ${u}`);
   assert.ok(Math.abs(p(1).arm) < 1e-9);
 });
+
+test('a petrifying body freezes a leg and its tail mid-motion as the stone takes them', () => {
+  const p = u => deathPose('petrify', u);
+  assert.ok(p(0).leg === 0 && p(0).tail === 0);
+  for (let u = 0; u <= 1; u += .01) assert.ok(p(u).leg >= 0 && p(u).leg <= .3 + 1e-9 && p(u).tail >= 0 && p(u).tail <= .35 + 1e-9, `in bounds at ${u}`);
+  assert.ok(p(.12).leg > .29 && p(.12).tail > .34, 'caught at the gasp');
+  assert.ok(p(1).leg > .1 && p(1).tail > .1, 'set in stone partway');
+});
