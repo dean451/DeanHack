@@ -2940,3 +2940,23 @@ test('the yeti and sasquatch wear dried blood and still fit their tile',()=>{
   assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
  }
 });
+
+test('the mastodon has one snapped tusk and still fits its tile',()=>{
+ const m=createCreature({name:'mastodon',symbol:113,color:7});
+ assert(m.head.userData.snappedTusk,'snapped tusk');
+ assert(!createCreature({name:'mumak',symbol:113,color:7}).head.userData.snappedTusk,'mumak keeps both');
+ m.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(m.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.15,'fits its tile');
+});
+
+test('the titanothere has one sharpened prong and one broken one and still fits its tile',()=>{
+ const t=createCreature({name:'titanothere',symbol:113,color:7});
+ let broken=false;t.g.traverse(o=>{if(o.userData&&o.userData.brokenHorn)broken=true;});
+ assert(broken,'broken prong');
+ t.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(t.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
+});

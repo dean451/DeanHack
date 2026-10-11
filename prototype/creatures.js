@@ -1124,7 +1124,10 @@ function proboscidean(o){
   B.put(head,dark,S(o.ear*.8,12,8),[side*(.172+o.ear*.2),-.03,-.06],[0,side*.55,0],[.1,1,.8]);
   // tusks sweep forward and up from the lip; the mastodon's flare out and curl back in
   const tip=o.spiral?[[0,0,0],[side*.05,-.12,.08],[side*.14,-.2,.22],[side*.14,-.14,.36],[side*.04,-.02,.42]]:[[0,0,0],[side*.02,-.12,.1],[side*.05,-.18,.24],[side*.07,-.12,.36],[side*.06,.0,.42]];
-  B.put(head,ivory,taperedTube(tip,.032,.005,18,8),[side*.085,-.12,.12]);
+  // the mastodon's left tusk was snapped off long ago, leaving a short splintered stump
+  const snapped=o.snapTusk&&side<0;
+  B.put(head,ivory,taperedTube(snapped?tip.slice(0,3):tip,.032,snapped?.024:.005,18,8),[side*.085,-.12,.12]);
+  if(snapped){B.put(head,ivory,new THREE.ConeGeometry(.026,.05,4),[side*.085+tip[2][0],-.12+tip[2][1]-.005,.12+tip[2][2]+.02],[1.2,0,0]);head.userData.snappedTusk=true;}
   if(o.minorTusks)B.put(head,ivory,taperedTube([[0,0,0],[side*.03,-.08,.06],[side*.07,-.1,.14],[side*.09,-.05,.2]],.02,.004,10,6),[side*.12,-.1,.08]);
  }
  // trunk: its own group so it can be animated, wrinkled, curling forward at the tip
@@ -1154,7 +1157,7 @@ function proboscidean(o){
 }
 const PROBOSCIDEANS={
  mumak:{name:'mumak',scale:1.25,skin:'#7c7872',dark:'#56524d',ear:.2,crown:0,minorTusks:true,warScars:true},
- mastodon:{name:'mastodon',scale:1.25,skin:'#4a3b30',dark:'#2f251e',hair:'#6b4526',ear:.09,crown:.07,spiral:true},
+ mastodon:{name:'mastodon',scale:1.25,skin:'#4a3b30',dark:'#2f251e',hair:'#6b4526',ear:.09,crown:.07,spiral:true,snapTusk:true},
 };
 // Titanotheres and baluchitheria (q): giant rhinos that used to borrow the rothe.
 // Both stand on columnar legs with three-toed feet, have folds of thick hide at the neck and
@@ -1192,7 +1195,9 @@ function megaRhino(o){
   B.put(head,horn,S(.06*hs,12,8),[0,.07*hs,.2*hs],[0,0,0],[1.4,.9,1.3]);
   for(const side of [-1,1]){
    B.put(head,horn,taperedTube([[0,0,0],[side*.02,.08,.03],[side*.06,.15,.05]].map(p=>p.map(v=>v*hs)),.035*hs,.022*hs,10,8),[side*.02*hs,.08*hs,.22*hs],[0,0,0],[1,1,.7]);
-   B.put(head,horn,S(.024*hs,8,6),[side*.08*hs,.23*hs,.27*hs]);
+   // the right prong ends in a sharpened point; the left was broken off, its tip a ragged splinter
+   if(side>0)B.put(head,horn,new THREE.ConeGeometry(.026*hs,.12*hs,5),[side*.08*hs,.25*hs,.27*hs],[.35,0,-.3]);
+   else{B.put(head,horn,new THREE.ConeGeometry(.03*hs,.045*hs,4),[side*.075*hs,.2*hs,.27*hs],[.5,0,.5]);head.userData.brokenHorn=true;}
   }
  }
  if(o.lip)B.put(head,skin,S(.06*hs,12,8),[0,-.06*hs,.34*hs],[0,0,0],[1,.7,1.1]);
