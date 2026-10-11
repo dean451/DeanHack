@@ -159,5 +159,7 @@ export function createRustMonster(kind='rust monster'){
  for(const [i,s] of [-1,1].entries())for(const z of [-.13,.14]){const leg=new THREE.Group();leg.position.set(s*.14,Y-.06,z);body.add(leg);mesh(leg,S.legs[i],S.material,'leg');legs.push(leg);}
  const tail=new THREE.Group();tail.position.set(0,Y,-.29);body.add(tail);mesh(tail,S.tail,S.material,'tail');
  const vane=new THREE.Group();vane.position.set(0,0,VANE_Z);tail.add(vane);mesh(vane,S.vane,S.material,'vane');
+ // its plates are pitted by its own corrosion (painted into the carapace), as creatures.test.js expects
+ if(k==='rust monster')g.userData.rustEaten=true;
  return {g,body,legs,tail,wings:[],quirk:'lizard',kind:k,head,feelers,vane,feelHead:head,rustFeel:k};
 }
