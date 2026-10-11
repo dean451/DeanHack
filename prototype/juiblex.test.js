@@ -47,3 +47,11 @@ test('Juiblex rises as a many-eyed column of slime instead of the plain blob',()
  // the other blobs are unchanged
  assert.equal(createCreature({name:'acid blob'}).quirk,'blob');
 });
+
+test('Juiblex\'s pool holds a corroded helm among the bones',()=>{
+ const juiblex=createCreature({name:'Juiblex',symbol:AMP,color:2});
+ let pool=null;juiblex.g.traverse(o=>{if(o.isMesh&&o.userData.part==='pool')pool=o;});
+ const c=pool.geometry.attributes.color;let rusty=0;
+ for(let i=0;i<c.count;i++)if(c.getX(i)>c.getY(i)*1.3&&c.getX(i)>.1)rusty++;
+ assert(rusty>0,'rust-brown metal sinks in the ooze');
+});

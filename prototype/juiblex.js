@@ -18,7 +18,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 const C={
  deep:rgb('#142a0e'),slime:rgb('#3f7a22'),bright:rgb('#9cc43a'),sheen:rgb('#d4e27a'),black:rgb('#0e140a'),
  pool:rgb('#1a3010'),poolLit:rgb('#4a7a24'),socket:rgb('#1a0806'),pupil:rgb('#050302'),
- bone:rgb('#c8c29a'),boneDark:rgb('#7a7a4a'),
+ bone:rgb('#c8c29a'),boneDark:rgb('#7a7a4a'),rust:rgb('#6a3a1e'),rustDark:rgb('#2a1608'),
 };
 const H=.66;
 // a cheap smooth interference pattern, periodic in the angle because it takes cos/sin of it
@@ -158,6 +158,10 @@ function buildPool(){
   P.add(new THREE.CylinderGeometry(.011,.011,l,8),m,C.bone);
   for(const e of [-1,1])for(const k of [-1,1])P.add(new THREE.SphereGeometry(.014,8,6),m.clone().multiply(at(k*.009,e*l/2,0)),C.bone);
  }
+ // a corroded helm, slumped on its side and half eaten away, and the arch of a rib cage under the slime
+ P.add(new THREE.SphereGeometry(.055,12,8,0,Math.PI*2,0,Math.PI/2),at(-.2,.03,-.24,[1.2,.4,0],[1,1.1,1]),C.rust);
+ P.add(new THREE.BoxGeometry(.012,.05,.012),at(-.2,.026,-.205,[1.2,0,0]),C.rustDark);
+ for(let k=0;k<3;k++)P.add(new THREE.TorusGeometry(.04,.005,5,10,Math.PI),at(.18+k*.03,.012,-.28+k*.012,[0,.5,0]),C.boneDark);
  return P.merge();
 }
 
