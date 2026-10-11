@@ -2717,8 +2717,8 @@ test('War, the fourth Rider, wears a dark red robe and carries a sword like his 
  assert.equal(w.wraith,'war');
  const hh=a=>new THREE.Box3().setFromObject(a.g).getSize(new THREE.Vector3()).y;
  assert(hh(w)>1.2,'War towers over a man');
- const meshes=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n++;});return n;};
- assert(meshes(w)>meshes(d),'War carries a blade Death does not');
+ const verts=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n+=o.geometry.attributes.position.count;});return n;};
+ assert(verts(w)>verts(d),'War carries a blade and more iron than Death, who has only a scythe');
 });
 
 test('lemures weep raw red sores and a bone splinter breaks through the mass',()=>{
