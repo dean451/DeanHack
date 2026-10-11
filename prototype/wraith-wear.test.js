@@ -15,3 +15,9 @@ test('a barrow wight blade is chipped bright where the rust flaked off', () => {
   });
   assert(bright >= 1);
 });
+
+test('a plain wraith hangs three torn shreds from its cowl', () => {
+  const kids = name => createCreature({name, symbol: 87, color: 1}).head.children.length;
+  // hood shell, rim, void and eyes make four children; the shreds are the extra three
+  assert.equal(kids('wraith'), 7);
+});
