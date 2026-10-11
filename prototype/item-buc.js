@@ -37,8 +37,7 @@ export function enchantMark(kind) {
 // wand's "(0:3)" charges and where the item is held or worn, a shop price ("unpaid 40zm") and a ball chained to you, and a candelabrum's candles. Each appears once, in this order.
 export function itemFacts(text) {
   const t = String(text), out = [];
-  const state = /\b(very |thoroughly )?(rusty|corroded|burnt|rotted)\b/i.exec(t.split('(')[0]);
-  if (state) out.push(state[0].toLowerCase());
+  for (const state of t.split('(')[0].matchAll(/\b(?:(?:very|thoroughly) )?(?:rusty|corroded|burnt|rotted)\b/gi)) out.push(state[0].toLowerCase());
   if (/\b(rustproof|fireproof|rotproof|corrodeproof|erodeproof)\b/i.test(t.split('(')[0])) out.push('proofed');
   if (/\bpoisoned\b/i.test(t.split('(')[0])) out.push('poisoned');
   if (/\bgreased\b/i.test(t.split('(')[0])) out.push('greased');
