@@ -9,7 +9,7 @@ FROM node:22-bookworm-slim AS node
 FROM ubuntu:24.04 AS build
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      build-essential bison flex pkg-config python3 libncurses-dev liblua5.4-dev ca-certificates \
+      build-essential bison flex pkg-config python3 libncurses-dev liblua5.4-dev lua5.4 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=node /usr/local /usr/local
 WORKDIR /app
