@@ -19,7 +19,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 const L={
  fur:'#5a3e26',dark:'#2e1f14',pale:'#b49a72',bar:'#3a2818',disc:'#cdb88e',rim:'#3a2618',
- beak:'#2a2420',beakTip:'#8a7a62',claw:'#141010',eye:'#ff8a1a',pupil:'#050403',
+ beak:'#2a2420',beakTip:'#8a7a62',claw:'#141010',scar:'#8a2e24',eye:'#ff8a1a',pupil:'#050403',
  hip:.56,shoulderY:1,shoulderX:.32,headY:1.16,headZ:.16,arm:.5,
 };
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
@@ -65,6 +65,8 @@ function buildBody(C){
   const x=Math.sin(a)*.29,z=Math.cos(a)*.22,y=h+.08+up*.38;
   P.add(new THREE.ConeGeometry(.03,.1+hash(i*4.3)*.06,4),pointed(x,y,z,[Math.sin(a)*.5,-.9,Math.cos(a)*.4],[1,1,.55]),mix(C.fur,C.dark,hash(i*5.1)*.7));
  }
+ // three old claw scars raked across the left breast, where something fought back and lost
+ for(let i=0;i<3;i++)P.add(new THREE.BoxGeometry(.012,.2,.01),at(.1+i*.035,h+.28,.235-i*.012,[.1,-.2,.5]),C.scar);
  // a stub of a feathered tail
  for(let i=0;i<5;i++)P.add(new THREE.ConeGeometry(.04,.16,3),pointed((i-2)*.045,h-.02,-.24,[ (i-2)*.15,-.5,-1],[1,1,.3]),mix(C.bar,C.pale,i%2?.5:0));
  return P.merge();
@@ -88,6 +90,8 @@ function buildHead(C){
  // the upper beak: a big hooked bill, dark horn with a pale tip, curving down
  P.add(new THREE.ConeGeometry(.045,.13,8),pointed(0,-.02,.2,[0,-.35,1],[1,1,.8]),C.beak);
  P.add(new THREE.ConeGeometry(.025,.08,6),pointed(0,-.07,.26,[0,-1,.25],[1,1,.8]),C.beakTip);
+ // the bill is chipped: a dark notch bitten out of the pale tip
+ P.add(new THREE.BoxGeometry(.016,.02,.016),at(.012,-.095,.275,[.3,0,.4]),C.pupil);
  // the lower beak (the jaw), hinged under the bill
  Q.add(new THREE.ConeGeometry(.034,.1,6),pointed(0,-.012,.05,[0,-.25,1],[1,1,.7]),C.beak);
  return {head:P.merge(),jaw:Q.merge(),eyes:E.merge()};
