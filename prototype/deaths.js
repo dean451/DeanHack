@@ -146,6 +146,8 @@ export function deathPose(style, u, dir = null) {
       p.tail = .35 * Math.sin(Math.PI * clamp01((u - .2) / .75));
       // One arm drifts up and open as if reaching for something it can no longer hold.
       p.arm = .5 * Math.sin(Math.PI * clamp01((u - .1) / .8));
+      // Its lower end trails limp behind the spin, like something hung up to dry, and thins away.
+      p.leg = -.3 * Math.sin(Math.PI * clamp01((u - .15) / .7));
       break;
     }
     case 'burst': {

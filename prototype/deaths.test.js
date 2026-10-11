@@ -386,3 +386,10 @@ test('a petrifying body freezes a leg and its tail mid-motion as the stone takes
   assert.ok(p(.12).leg > .29 && p(.12).tail > .34, 'caught at the gasp');
   assert.ok(p(1).leg > .1 && p(1).tail > .1, 'set in stone partway');
 });
+
+test('a dissipating body lets a leg trail limp behind it, easing to nothing', () => {
+  const l = u => deathPose('dissipate', u).leg;
+  assert.ok(l(0) === 0 && Math.abs(l(1)) < 1e-9);
+  assert.ok(l(.5) < -.29, 'trails');
+  for (let u = 0; u <= 1; u += .01) assert.ok(l(u) <= 0 && l(u) >= -.3 - 1e-9, `in bounds at ${u}`);
+});
