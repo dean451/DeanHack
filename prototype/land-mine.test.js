@@ -99,3 +99,12 @@ test('the smoke column leans as it climbs and is upright at rest', () => {
   assert.ok(smokePose(.2).x < smokePose(.6).x && smokePose(.6).x < smokePose(1.1).x && smokePose(1.1).x > .05);
   for (let t = 0; t <= MINE.total + .1; t += .005) assert.ok(Math.abs(smokePose(t).x) <= .16 + 1e-9, String(t));
 });
+
+test('the smoke column flinches back near the top, then resumes its lean, in bounds', () => {
+  const x = t => smokePose(t).x;
+  const lean = u => .16 * u * u;
+  const u = t => (t - .05) / (MINE.total - .05);
+  assert.ok(x(.83) < lean(u(.83)) - .02, 'flinched');
+  assert.ok(Math.abs(x(.4) - lean(u(.4))) < 1e-9 && Math.abs(x(1.25) - lean(u(1.25))) < 1e-9);
+  for (let t = 0; t <= MINE.total + .1; t += .005) assert.ok(x(t) >= -1e-9 && x(t) <= .16 + 1e-9, String(t));
+});
