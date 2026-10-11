@@ -149,3 +149,9 @@ test('a wet towel says so in the hover', () => {
   assert.deepEqual(itemFacts('a blessed wet towel (in use)'), ['wet', 'in use']);
   assert.deepEqual(itemFacts('a towel'), []);
 });
+
+test('a shop stack priced each says so in the hover', () => {
+  assert.deepEqual(itemFacts('3 daggers (for sale, 4 zorkmids each)'), ['for sale 4zm each']);
+  assert.deepEqual(itemFacts('2 apples (unpaid, 7 zorkmids each)'), ['unpaid 7zm each']);
+  assert.deepEqual(itemFacts('a dagger (for sale, 4 zorkmids)'), ['for sale 4zm']);
+});
