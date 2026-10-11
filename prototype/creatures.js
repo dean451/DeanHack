@@ -2254,7 +2254,10 @@ function gargoyle(o){
  for(const side of [-1,1]){const pivot=new THREE.Group();pivot.position.set(side*.12,.66,-.12);pivot.rotation.x=-.25;body.add(pivot);
   const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.2*span,.28*span);shape.lineTo(side*.58*span,.36*span);
   shape.quadraticCurveTo(side*.5*span,.12*span,side*.5*span,-.02*span);shape.quadraticCurveTo(side*.38*span,.06*span,side*.3*span,-.1*span);
-  shape.quadraticCurveTo(side*.18*span,-.02*span,0,-.12);part(pivot,new THREE.ShapeGeometry(shape),web);
+  shape.quadraticCurveTo(side*.18*span,-.02*span,0,-.12);
+  // the winged kind's left membrane is torn through: a ragged triangular hole between the finger bones
+  if(o.winged&&side<0){const hole=new THREE.Path();hole.moveTo(side*.36*span,.12*span);hole.lineTo(side*.46*span,.04*span);hole.lineTo(side*.39*span,.15*span);hole.lineTo(side*.3*span,.05*span);shape.holes.push(hole);pivot.userData.tornWing=true;g.userData.tornWing=true;}
+  part(pivot,new THREE.ShapeGeometry(shape),web);
   segment(pivot,[0,0,0],[side*.2*span,.28*span,0],.022,.018,dark);segment(pivot,[side*.2*span,.28*span,0],[side*.58*span,.36*span,0],.018,.01,dark);
   for(const [x,y] of [[.5,-.02],[.3,-.1]])segment(pivot,[side*.2*span,.28*span,0],[side*x*span,y*span,0],.01,.006,dark);
   cone(pivot,.016,.06,crack,side*.2*span,.31*span,0,4);pivot.userData.side=side;wings.push(pivot);}
