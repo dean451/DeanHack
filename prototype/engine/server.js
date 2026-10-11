@@ -63,7 +63,10 @@ export default function enginePlugin(){
    child.on('error',e=>send({type:'message',text:e.message}));
    child.on('close',code=>{child=null;pending=null;send({type:'ended',text:`Engine session closed (${code}). Start again to resume any saved character.`});});
  }
- return {name:'deanhack-engine',configureServer(server){
+ // Ask a running engine to save and exit, and wait for it (up to `ms`); a server that is stopping
+ // (a redeploy, `docker stop`) calls this so the character is saved instead of killed.
+ const stop=(ms=8000)=>new Promise(done=>{if(!child)return done();const t=setTimeout(done,ms);child.once('close',()=>{clearTimeout(t);done();});child.stdin.end();});
+ return {name:'deanhack-engine',stop,configureServer(server){
    server.httpServer?.on('close',()=>{child?.stdin.end();for(const c of clients)c.end();});
    server.middlewares.use(async(req,res,next)=>{
      const path=req.url?.split('?')[0];if(!path?.startsWith('/engine/'))return next();

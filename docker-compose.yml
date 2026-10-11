@@ -4,6 +4,8 @@ services:
   app:
     build: .
     restart: unless-stopped
+    # Time to save the character on a redeploy before Docker kills the process.
+    stop_grace_period: 30s
     environment:
       DEANHACK_HOSTS: ${DEANHACK_DOMAIN:-deanhack.online}
     volumes:

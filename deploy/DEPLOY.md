@@ -42,13 +42,53 @@ scene only, because Live mode needs the engine process on the server.
 
 ## Updating
 
+Merging to `master` does not change the server by itself. To update it, on the server run:
+
 ```
-git pull
-docker compose up -d --build
+~/DeanHack/deploy/update.sh
 ```
 
-The engine is rebuilt only when its sources change, thanks to Docker layer caching. Changes to
-`prototype/engine/bridge.c` always need the rebuild above. Saves are kept.
+It fetches `master`, and rebuilds and restarts only if something changed (`--force` rebuilds anyway).
+Stopping the container saves the running character first (the server handles SIGTERM and gives the
+engine up to 30 seconds), and saves live in a volume, so a redeploy keeps your game. You will be
+sent back to the start screen and can press Live to resume.
+
+Changes to `prototype/engine/bridge.c` always need this rebuild. The first build compiles the
+engine and takes several minutes; later ones reuse Docker's cache for the unchanged steps, but any
+source change currently re-runs the engine compile too, so expect a few minutes each time.
+
+### Automatic updates (optional)
+
+The scheduled routines merge to `master` about every hour. Redeploying on every merge would restart
+the game that often, so prefer one of these:
+
+- **Nightly**, at a quiet hour: `crontab -e` and add
+  `0 4 * * * /root/DeanHack/deploy/update.sh >> /var/log/deanhack-update.log 2>&1`
+- **On demand, from GitHub** (a "Run workflow" button): add `.github/workflows/deploy.yml` yourself
+  (Claude sessions and routines do not edit `.github/`) and store three repository secrets:
+  `DEPLOY_HOST` (the server IP), `DEPLOY_USER` (`root`) and `DEPLOY_KEY` (a private key whose public
+  half is in the server's `~/.ssh/authorized_keys`; use a new key, not your personal one).
+
+  ```yaml
+  name: Deploy
+  on:
+    workflow_dispatch:
+  jobs:
+    deploy:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Update the server
+          env:
+            KEY: ${{ secrets.DEPLOY_KEY }}
+            HOST: ${{ secrets.DEPLOY_HOST }}
+            USER_NAME: ${{ secrets.DEPLOY_USER }}
+          run: |
+            install -m 600 /dev/null key
+            printf '%s\n' "$KEY" > key
+            ssh -i key -o StrictHostKeyChecking=accept-new "$USER_NAME@$HOST" '~/DeanHack/deploy/update.sh'
+  ```
+
+  To deploy on every merge instead, change the trigger to `push: branches: [master]`.
 
 ## Operating it
 
@@ -77,7 +117,7 @@ live stream is held back by some other proxy, the client falls back to polling `
 
 ## Not done yet
 
-- A GitHub Actions workflow that builds the image and deploys on merge (it needs a change under
-  `.github/`, which routines and Claude sessions do not edit: add it by hand).
+- Deploying on merge without a manual step (see the optional section above).
+- A Docker build that reuses the engine compile when only client code changed.
 - Per-player characters and engines, which would also allow more than one person at a time.
 - Backups on a schedule.
