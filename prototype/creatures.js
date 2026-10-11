@@ -2605,7 +2605,7 @@ function finShape(parent,pts,material,x=0,y=0,z=0){const s=new THREE.Shape();s.m
 function seaMonster(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
  const skin=mat(o.color,{roughness:.35,metalness:.05}),belly=mat(o.belly||shade(o.color,1.6),{roughness:.4}),dark=mat(shade(o.color,.55),{roughness:.4}),
-  fin=mat(o.fin||shade(o.color,.8),{roughness:.45,side:THREE.DoubleSide}),eye=mat(o.eye||'#e8d860',{emissive:o.eye||'#e8d860',emissiveIntensity:.9,roughness:.2}),
+  fin=mat(o.fin||shade(o.color,.8),{roughness:.45,side:THREE.DoubleSide}),eye=mat(o.eye||'#e8d860',{emissive:o.eye||'#e8d860',emissiveIntensity:o.eyeGlow||.9,roughness:.2}),
   pupil=mat('#0a0a0c',{roughness:.2}),tooth=mat('#ece6d2',{roughness:.35}),mouth=mat('#2a0c10',{roughness:1});
  const swingTail=(z,y)=>{const t=new THREE.Group();t.position.set(0,y,z);t.rotation.x=-Math.PI/2;body.add(t);return t;};
  if(o.form==='jelly'){
@@ -2678,7 +2678,7 @@ function seaMonster(o){
 const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{form:'fish',color:'#8a8a94',belly:'#c83a2a',fin:'#6a5a5a',length:.26,depth:.13,underbite:true,dorsal:1,scale:.8},
  shark:{form:'fish',color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
  'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff',scale:1.25},kraken:{form:'kraken',color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
- 'watcher in the water':{form:'kraken',color:'#4a5a52',belly:'#9aa89a',eye:'#b8ff90',arms:16,scale:1.9}};
+ 'watcher in the water':{form:'kraken',color:'#4a5a52',belly:'#9aa89a',eye:'#b8ff90',arms:16,eyeGlow:2.8,scale:1.9}};
 
 // In development the default shape is bright magenta so a missing model cannot hide.
 const LOUD_FALLBACK=new THREE.MeshBasicMaterial({color:0xff00ff});
