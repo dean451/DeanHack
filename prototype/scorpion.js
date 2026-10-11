@@ -18,7 +18,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // tail, claws (right, left), quirk 'spider'.
 
 const LOOKS={
- scorpion:{scale:1.15,shell:'#7e2a1a',dark:'#2e0e08',pale:'#c46a3c',tip:'#140806',bulb:'#9a3a1e',eye:'#ffb040',glow:0},
+ scorpion:{scale:1.15,shell:'#7e2a1a',dark:'#2e0e08',pale:'#c46a3c',tip:'#140806',bulb:'#9a3a1e',eye:'#ffb040',glow:0,cracked:1},
  scorpius:{scale:1.85,shell:'#262032',dark:'#0c0a12',pale:'#7a4c94',tip:'#08060c',bulb:'#b048e0',eye:'#ff2a1a',glow:1},
 };
 export const isScorpion=name=>Object.hasOwn(LOOKS,(name||'').toLowerCase());
@@ -65,6 +65,8 @@ function buildBody(L){
    return c;
   });
  }
+ // an old blow has split the carapace: a dark crack runs back from the left eye with pale chipped edges
+ if(L.cracked){const ck=rgb('#120604');segment(P,[-.03,Y+.03,.15],[-.012,Y+.034,.1],.0035,.0025,ck,4);segment(P,[-.012,Y+.034,.1],[-.03,Y+.03,.062],.0028,.0018,ck,4);segment(P,[-.02,Y+.032,.12],[-.045,Y+.025,.11],.0018,.001,ck,4);P.add(new THREE.SphereGeometry(.004,5,4),at(-.036,Y+.026,.062),pale);}
  // the belly under the plates
  P.add(new THREE.SphereGeometry(.5,14,6),at(0,Y-.008,-.065,[0,0,0],[.12,.03,.25]),dark);
  // mouthparts: two stubby chelicerae in front of the carapace
@@ -183,5 +185,6 @@ export function createScorpion(name){
   const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
   legs.push(leg);
  });
+ if(L.cracked)g.userData.scarred=true;
  return {g,body,legs,tail,wings:[],quirk:'spider',head,claws};
 }

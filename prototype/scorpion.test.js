@@ -42,3 +42,13 @@ test('scorpions get pincers, a curled stinger tail and eight skittering legs ins
  const [a,b]=[createCreature({name:'scorpion'}),createCreature({name:'scorpion'})].map(meshes);
  a.forEach((m,i)=>{assert.equal(m.geometry,b[i].geometry);assert.equal(m.material,b[i].material);});
 });
+
+test('the plain scorpion carries a cracked carapace and still fits its tile',()=>{
+ const s=createCreature({name:'scorpion',symbol:115,color:1});
+ assert(s.g.userData.scarred,'cracked');
+ assert.equal(meshes(s).length,13,'same draws');
+ s.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(s.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.95,'fits its tile');
+});
