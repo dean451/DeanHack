@@ -62,7 +62,7 @@ function buildBody(L,C){
  // a thin neck thrust forward to the head
  P.add(new THREE.CylinderGeometry(.036,.048,.1,10),at(0,h+.29,.085,[.55,0,0]),(x,y,z)=>z>.1?C.belly:hide(x,y,z));
  // a ridge of little spines from the nape down the back
- for(let i=0;i<7;i++){const t=i/6,y=h+.3-t*.26,z=-.02-.05*Math.sin(t*2.2)+(1-t)*.03;horn(P,0,y,z-.055,[0,.55,-1],.045-t*.015,.012,mix(C.dark,C.horn,.2),4);}
+ for(let i=0;i<7;i++){const t=i/6,y=h+.3-t*.26,z=-.075-.035*Math.sin(t*2.2)+(1-t)*.105;horn(P,0,y,z,[0,.45,-1],.045-t*.015,.012,mix(C.dark,C.horn,.2),4);}
  // rope belt with a knot and a little pouch
  P.add(new THREE.TorusGeometry(.108,.012,5,24),at(0,h,.0,[Math.PI/2,0,0],[1,.86,1]),C.rope);
  P.add(new THREE.SphereGeometry(.018,6,5),at(.04,h,.095),C.rope);
