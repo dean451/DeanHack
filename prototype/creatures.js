@@ -1913,6 +1913,10 @@ function naga(o){
   for(let i=0;i<5;i++)cone(neck,r*(.18+(i%2)*.08),r*(.65+(i%3)*.3),ice,(i%2?1:-1)*r*.12,.08+i*.085,-r*.9,4).rotation.set(-1.25+(i%2)*.25,i,0);
   for(const side of [-1,1]){const f=cone(head,r*.08,r*.55,ice,side*r*.22,-r*.75,r*1,4);f.rotation.x=Math.PI+.2;}
   for(let i=0;i<6;i++){const t=.12+i*.14,a=Math.PI*.5+t*Math.PI*3.2,rad=.3-t*.18,c=cone(body,r*.14,r*(.5+(i%2)*.3),ice,Math.cos(a)*rad,r*1.9+t*.04,-Math.sin(a)*rad*.9-.02,4);c.rotation.set(Math.sin(a)*.5,i,Math.cos(a)*.5);}}
+ // grown nagas are old fighters: pale scar tissue raked across the neck, and a gash cutting the coil (the white naga is at its mesh cap and wears rime instead)
+ if(!o.baby&&o.crest!=='frost'){const scar=mat(shade(o.color,1.6),{roughness:.9});g.userData.scarred=true;
+  for(const [y,rz] of [[.12,.7],[.2,-.55],[.27,.6]]){const sc=rounded(neck,r*.1,r*.5,r*.05,scar,(y*7%2?1:-1)*r*.55,y,r*.8,.004);sc.rotation.z=rz;}
+  rounded(body,r*.1,r*.1,r*.7,scar,.18,r*1.55,.1,.004).rotation.y=.5;}
  if(o.crest==='hood'){const hood=sphere(neck,r*3.2,scales,0,.43,-.035,1,1.25,.18);hood.rotation.x=.12;sphere(neck,r*2.6,belly,0,.42,-.022,1,1.2,.12).rotation.x=.12;for(const side of [-1,1])sphere(neck,r*.45,mat(shade(o.color,.45)),side*r*1.7,.47,-.04,1,1.4,.3);}
  return trimDraws(actor(g,body,[],neck,[],'snake'));
 }
