@@ -122,6 +122,7 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const hairGeo=new THREE.SphereGeometry(.196,32,18,0,Math.PI*2,0,Math.PI*.54);
  const hp=hairGeo.attributes.position;
  for(let i=0;i<hp.count;i++){let x=hp.getX(i),y=hp.getY(i),z=hp.getZ(i);const front=Math.max(0,z/.196);y+=front*(.07+.05*Math.min(1,Math.abs(x)/.11)-.034*Math.exp(-((x/.055)**2)))+Math.sin(x*17)*front*.012;hp.setXYZ(i,x*.91,y*1.04+.01,z*.94-.018);}hairGeo.computeVertexNormals();mesh(hairGeo,hairDark,hair);
+ const hairCap=hair.children.slice();
  for(let i=0;i<19;i++){
   const a=(i/18-.5)*2.35;
   const path=new THREE.CatmullRomCurve3([
@@ -131,27 +132,35 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
    new THREE.Vector3(Math.sin(a)*.033,.036,-.197)]);
   mesh(new THREE.TubeGeometry(path,18,i%3===0?.008:.0045,5,false),i%3===0?hairMid:hairLight,hair);
  }
+ const hairStrands=hair.children.slice(hairCap.length),hairTailStart=hair.children.length;
  const tiedHair=new THREE.CatmullRomCurve3([new THREE.Vector3(0,.035,-.193),new THREE.Vector3(.012,-.035,-.23),new THREE.Vector3(.022,-.14,-.24),new THREE.Vector3(.04,-.225,-.21)]);
  mesh(new THREE.TubeGeometry(tiedHair,16,.035,8,false),hairMid,hair);
  const hairTie=torus(.039,.007,leather,hair,0,.02,-.202);hairTie.rotation.x=.2;
+ const hairTail=hair.children.slice(hairTailStart),hairBraidStart=hair.children.length;
  // Two braids from the temples fall forward over the shoulders, bound with a bronze-dark tie.
  for(const side of [-1,1]){const braid=new THREE.CatmullRomCurve3([new THREE.Vector3(side*.15,.03,.02),new THREE.Vector3(side*.172,-.07,.05),new THREE.Vector3(side*.17,-.19,.075),new THREE.Vector3(side*.165,-.3,.07)]);mesh(new THREE.TubeGeometry(braid,16,.022,6,false),hairMid,hair);torus(.023,.006,accent,hair,side*.165,-.3,.07).rotation.x=.3;}
+ const hairBraids=hair.children.slice(hairBraidStart);
  // Finer features: high cheekbones, a darker lower lip, long lower lashes and a narrow nose bridge between the brows.
  const plume=new THREE.Group();head.add(plume); // Stable legacy animation anchor, no spike.
  function setHelmet(item){helmet.visible=!!item;hair.visible=!item;helmet.name=item?.name||'Unequipped helmet';}
+ const pauldronStart=body.children.length;
  for(const side of [-1,1])for(let i=0;i<3;i++){
   const plate=roundedBox(.16-i*.013,.04,.2-i*.016,i?armor:armorLight,body,side*(.25+i*.035),.995-i*.059,0,.018);plate.rotation.z=-side*(.18+i*.16);
   for(const z of [-.09,.09])sphere(.011,accent,body,side*(.27+i*.035),.998-i*.059,z*.8);
  }
+ const pauldrons=body.children.slice(pauldronStart),tassetStart=body.children.length;
  // Tassets: three overlapping plates hang from the belt over each hip, each longer and flared outward.
  for(const side of [-1,1])for(let i=0;i<3;i++){const t=roundedBox(.11-i*.008,.075,.016,i%2?armor:armorLight,body,side*(.105+i*.012),.56-i*.05,.1+i*.012,.008);t.rotation.z=side*(.12+i*.07);t.rotation.x=-.18;sphere(.008,accent,body,side*(.105+i*.012),.585-i*.05,.112+i*.012);}
+ const tassets=body.children.slice(tassetStart);
  // Cloth starts at the collar and widens into folds below the shoulder blades.
  const cape=new THREE.Group();cape.position.set(0,1.045,-.13);body.add(cape);
  const capeGeo=new THREE.PlaneGeometry(1,1,16,18),cp=capeGeo.attributes.position;
  for(let i=0;i<cp.count;i++){const u=cp.getX(i),v=.5-cp.getY(i);cp.setXYZ(i,u*(.34+v*.4),-v*.86,-v*.13+Math.sin(u*30)*(.006+v*.024));}capeGeo.computeVertexNormals();
  const capeCloth=cloth.clone();capeCloth.side=THREE.DoubleSide;mesh(capeGeo,capeCloth,cape);
+ const mantleStart=body.children.length;
  for(const side of [-1,1]){const mantle=roundedBox(.18,.06,.29,capeCloth,body,side*.15,1.02,0,.025);mantle.rotation.z=side*.1;sphere(.026,accent,body,side*.16,1.02,.15,1,1,.45);}
  const clasp=new THREE.CatmullRomCurve3([new THREE.Vector3(-.16,1.02,.15),new THREE.Vector3(0,.99,.19),new THREE.Vector3(.16,1.02,.15)]);mesh(new THREE.TubeGeometry(clasp,12,.008,5,false),accent,body);
+ const mantles=body.children.slice(mantleStart);
  const arm=new THREE.Group();arm.position.set(.3,.92,0);body.add(arm);cylinder(.056,.044,.25,armor,arm,0,-.12,0,16);
  const elbow=new THREE.Group();elbow.position.set(0,-.25,0);elbow.rotation.x=-.65;arm.add(elbow);sphere(.062,leather,elbow);cylinder(.048,.036,.22,armorLight,elbow,0,-.12,0,16);
  const wrist=new THREE.Group();wrist.position.set(0,-.25,0);elbow.add(wrist);
@@ -179,7 +188,9 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  function showShield(){shieldRoot.visible=shieldWorn&&!offhandWeapon;}
  function setShield(item){shieldWorn=!!item;shieldRoot.name=item?.name||'Unequipped shield';showShield();}
  function setOffhand(item){const key=JSON.stringify(item??null);if(key===offhandKey)return;offhandKey=key;if(offhandWeapon){offhandWeapon.userData.dispose?.();offhandSocket.remove(offhandWeapon);offhandWeapon=null;}if(item){offhandWeapon=turnHeld(createHeldWeapon(item));offhandSocket.add(offhandWeapon);}showShield();}
- return {g,body,legs,arm,elbow,wrist,weaponSocket,offhandSocket,get dual(){return !!offhandWeapon;},head,shieldArm,shieldElbow,cape,plume,setWeapon,setOffhand,setShield,setHelmet};}
+ // What a class kit (hero-kits.js) restyles: the armour pieces, the cloth, the hair and the materials they share.
+ const parts={chest,belt,pauldrons,tassets,mantles,cape,hair,hairParts:{cap:hairCap,strands:hairStrands,tail:hairTail,braids:hairBraids},helmet,legs,arm,elbow,shieldArm,shieldElbow,head,body,mats:{armor,armorLight,leather,accent,boots,capeCloth,hairDark,hairMid,hairLight,skin}};
+ return {g,body,legs,arm,elbow,wrist,weaponSocket,offhandSocket,get dual(){return !!offhandWeapon;},head,shieldArm,shieldElbow,cape,plume,parts,setWeapon,setOffhand,setShield,setHelmet};}
 const glow=mat('#97ffed',{emissive:'#46e9ce',emissiveIntensity:3,roughness:.2});
 function cat(){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const fur=mat('#bd9361',{roughness:.94}),furLight=mat('#d3ad79',{roughness:.9}),paws=mat('#e1ca9e',{roughness:.88}),collar=mat('#ad7744',{metalness:.42,roughness:.44});sphere(.24,fur,body,0,.27,0,.75,.8,1.5);const head=sphere(.19,furLight,body,0,.46,.28);for(const x of [-.11,.11]){const e=mesh(new THREE.ConeGeometry(.085,.18,4),furLight,head,x,.16,0);e.rotation.z=x>0?-.2:.2;sphere(.025,glow,head,x*.65,.02,.16);}
  sphere(.035,mat('#d28c78',{roughness:.55}),head,0,-.015,.2);const collarRing=torus(.145,.018,collar,body,0,.34,.01);collarRing.scale.set(.9,1,1);const charm=sphere(.028,glow,body,0,.3,.16);const legs=[];for(const x of [-.12,.12])for(const z of [-.2,.2]){const leg=new THREE.Group();leg.position.set(x,.18,z);body.add(leg);roundedBox(.085,.2,.09,paws,leg,0,-.07,0,.025);legs.push(leg);}
