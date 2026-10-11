@@ -1791,6 +1791,8 @@ function wraith(o){
  if(o.kind==='war'){const iron=mat('#2c2a2e',{roughness:.5,metalness:.8});
   for(const side of [-1,1]){const plate=rounded(body,.2,.07,.24,iron,side*.26,.99,0,.02);plate.rotation.z=side*-.3;
    for(const f of [-.07,.07])cone(body,.025,.13,iron,side*.3,1.08,f,4).rotation.z=side*-.35;}}
+ // the Nazgul's blade is a wicked, notched thing: dark bites chewed out of its edge and a hooked tip
+ if(o.crown&&o.sword){const nick=mat('#101014',{roughness:.5,metalness:.6});for(const [dy,dx] of [[-.12,1],[0,-1],[.12,1]]){const n=rounded(body,.02,.04,.016,nick,.3+dx*.02,.74+dy*Math.cos(.9)+.02,.2+dy*Math.sin(.9)*-1,.004);n.rotation.x=.9;}}
  // evil glow (Nazgul): a pool of cold dread under the hem and a morgul-lit edge along the blade
  if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.2,transparent:true,opacity:.15,depthWrite:false}),edge=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=edge.name='evil-glow';
   const p=cylinder(g,.36,.42,.004,pool,0,.004,0,24);p.userData.ring=true;p.castShadow=false;p.receiveShadow=false;
