@@ -1883,7 +1883,7 @@ function xorn(o){
  for(let i=0;i<7;i++){const a=i*2.4+.5,y=.3+(i%4)*.1,r=.245-(y-.2)*.1,n=part(body,new THREE.DodecahedronGeometry(.035,0),dark,Math.sin(a)*r,y,Math.cos(a)*r);n.rotation.set(i,i*.7,0);}
  // mouth on top: dark maw, lip ring, teeth leaning inward
  cylinder(body,.15,.15,.02,maw,0,.705,0,12);part(body,new THREE.TorusGeometry(.155,.025,6,12),dark,0,.71,0).rotation.x=Math.PI/2;
- for(let i=0;i<10;i++){const b=i/10*Math.PI*2,t=cone(body,.016,.06,tooth,Math.sin(b)*.135,.74,Math.cos(b)*.135,4);t.rotation.set(-Math.cos(b)*.5,0,Math.sin(b)*.5);}
+ for(let i=0;i<10;i++){const b=i/10*Math.PI*2,t=cone(body,.016,i===3?.02:.06,tooth,Math.sin(b)*.135,.74,Math.cos(b)*.135,4);t.rotation.set(-Math.cos(b)*.5,0,Math.sin(b)*.5);}
  // three eyes (one facing forward) and three arms between them, each ending in three claws
  for(let i=0;i<3;i++){const a=i*third,x=Math.sin(a),z=Math.cos(a);sphere(body,.045,maw,x*.215,.58,z*.215);sphere(body,.03,glow,x*.24,.58,z*.24);
   const arm=new THREE.Group();arm.position.set(Math.sin(a+Math.PI/3)*.2,.52,Math.cos(a+Math.PI/3)*.2);arm.rotation.set(-.35,a+Math.PI/3,0,'YXZ');body.add(arm);
@@ -1895,7 +1895,8 @@ function xorn(o){
  // wear: old fractures split the barrel
  const fissure=mat('#14100c',{roughness:1});
  for(const [a,y,rz] of [[.9,.4,.4],[3.2,.55,-.5],[5.1,.35,.2]]){const c=rounded(body,.02,.16,.008,fissure,Math.sin(a)*.252,y,Math.cos(a)*.252,.003);c.rotation.set(0,a,rz);}
- g.userData.fractured=true;
+ // wear: one tooth of the maw has snapped to a stub
+ g.userData.fractured=true;g.userData.snappedTooth=true;
  return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
 const XORNS={xorn:{scale:1.25}};
@@ -2254,7 +2255,10 @@ function gargoyle(o){
  for(const side of [-1,1]){const pivot=new THREE.Group();pivot.position.set(side*.12,.66,-.12);pivot.rotation.x=-.25;body.add(pivot);
   const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.2*span,.28*span);shape.lineTo(side*.58*span,.36*span);
   shape.quadraticCurveTo(side*.5*span,.12*span,side*.5*span,-.02*span);shape.quadraticCurveTo(side*.38*span,.06*span,side*.3*span,-.1*span);
-  shape.quadraticCurveTo(side*.18*span,-.02*span,0,-.12);part(pivot,new THREE.ShapeGeometry(shape),web);
+  shape.quadraticCurveTo(side*.18*span,-.02*span,0,-.12);
+  // the winged kind's left membrane is torn through: a ragged triangular hole between the finger bones
+  if(o.winged&&side<0){const hole=new THREE.Path();hole.moveTo(side*.36*span,.12*span);hole.lineTo(side*.46*span,.04*span);hole.lineTo(side*.39*span,.15*span);hole.lineTo(side*.3*span,.05*span);shape.holes.push(hole);pivot.userData.tornWing=true;g.userData.tornWing=true;}
+  part(pivot,new THREE.ShapeGeometry(shape),web);
   segment(pivot,[0,0,0],[side*.2*span,.28*span,0],.022,.018,dark);segment(pivot,[side*.2*span,.28*span,0],[side*.58*span,.36*span,0],.018,.01,dark);
   for(const [x,y] of [[.5,-.02],[.3,-.1]])segment(pivot,[side*.2*span,.28*span,0],[side*x*span,y*span,0],.01,.006,dark);
   cone(pivot,.016,.06,crack,side*.2*span,.31*span,0,4);pivot.userData.side=side;wings.push(pivot);}

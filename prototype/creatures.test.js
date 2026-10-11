@@ -2929,3 +2929,22 @@ test('the titanothere has one sharpened prong and one broken one and still fits 
  assert(b.min.y>-.05,'stands on the floor');
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
 });
+
+test('the winged gargoyle has a torn left wing membrane; the plain gargoyle and the other wing are whole',()=>{
+ const w=createCreature({name:'winged gargoyle',symbol:89,color:4}),p=createCreature({name:'gargoyle',symbol:89,color:3});
+ assert(w.g.userData.tornWing,'torn wing');
+ assert(!p.g.userData.tornWing,'plain gargoyle whole');
+ assert.equal(w.wings.filter(x=>x.userData.tornWing).length,1);
+ const holes=x=>{let n=0;x.traverse(o=>{if(o.geometry&&o.geometry.type==='ShapeGeometry')n++;});return n;};
+ assert.equal(holes(w.g),2,'both wings still drawn');
+ const b=new THREE.Box3().setFromObject(w.g,true);
+ assert(b.min.y>-.05&&Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.9,'fits');
+});
+
+test('the xorn has a snapped tooth in its maw and still fits its tile',()=>{
+ const r=createCreature({name:'xorn',symbol:88,color:3});
+ assert(r.g.userData.snappedTooth,'xorn tooth');
+ r.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(r.g,true);
+ assert(b.min.y>-.05&&Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits');
+});
