@@ -2109,7 +2109,10 @@ function rustMonster(o){
  if(o.kind==='disenchanter'){
   const crack=mat('#c080ff',{emissive:'#a050ff',emissiveIntensity:2.2,roughness:.4});
   for(const [px,pz,r] of [[-.06,.16,.3],[.08,.07,-.4],[-.09,-.04,.5],[.05,-.12,-.2]]){const c=cone(body,.008,.1,crack,px,y+.115,pz,3);c.rotation.set(Math.PI/2,0,r);}
-  for(const side of [-1,1]){const m=cone(head,.016,.08,hide,side*.05,-.06,.12,4);m.rotation.x=Math.PI/2+.3;m.rotation.z=-side*.5;}
+  for(const side of [-1,1]){const m=cone(head,.016,.08,hide,side*.05,-.06,.12,4);m.rotation.x=Math.PI/2+.3;m.rotation.z=-side*.5;}  // a ridge of dark, hooked spines runs down the back, and each flank bristles with a row of barbs
+  const spine=mat('#1c1030',{roughness:.7,metalness:.3});
+  for(let i=0;i<5;i++){const sp=cone(body,.016,.09-Math.abs(i-2)*.012,spine,0,y+.14-Math.abs(i-1.5)*.012,.18-i*.09,4);sp.rotation.x=-.5;}
+  for(const side of [-1,1])for(let i=0;i<3;i++){const b=cone(body,.018,.08-i*.01,spine,side*.2,y+.01,.12-i*.1,4);b.rotation.z=-side*1.25;}
  }
  // tail: a tapering segmented stalk out the back ending in a crossed propeller vane
  const tail=new THREE.Group();tail.position.set(0,y,-.27);body.add(tail);
