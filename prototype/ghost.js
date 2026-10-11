@@ -12,7 +12,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // Handles: body, head, arms, arm, ghost (the kind, for ghost-drift.js). No legs, wings or tail. Quirk 'hover', so it bobs like a wraith.
 
 const C={
- sheet:rgb('#c2c6c0'),fold:rgb('#5e6674'),hem:rgb('#7e848a'),stain:rgb('#3a3d38'),bone:rgb('#b9b49c'),
+ sheet:rgb('#a4a99f'),fold:rgb('#3e4650'),hem:rgb('#585e56'),stain:rgb('#2e2a22'),bone:rgb('#b9b49c'),
  socket:rgb('#0a0b12'),socketRim:rgb('#3a3e50'),mouth:rgb('#06070c'),
 };
 const ARM_PITCH=-1.2;// sleeves reach forward and a little down
@@ -36,7 +36,9 @@ function drape(geo,top,bottom,{folds=7,tongues=.13,trail=.1}={}){
 const foldShade=(top,bottom,folds=7)=>(x,y,z)=>{
  const a=Math.atan2(x,z),low=clamp((top-y)/(top-bottom),0,1);
  const crease=.5-.5*Math.sin(folds*a+.6);
- return mix(mix(C.sheet,C.hem,low*.8),C.fold,crease*low*.7+.08*(1-low));
+ // the lower sheet is stained with grave-mud, darkest in the creases and at the hem
+ const base=mix(mix(C.sheet,C.hem,low*.8),C.stain,clamp((low-.45)*1.1,0,1)*(.35+.3*crease));
+ return mix(base,C.fold,crease*low*.7+.08*(1-low));
 };
 
 function smooth(points,n){
@@ -110,13 +112,13 @@ function buildArm(){
  }
  // bare, bony fingers crooked out of the cuff
  for(const [x,bend] of [[-.03,.5],[0,.7],[.03,.4]]){
-  P.add(new THREE.ConeGeometry(.009,.1,5),at(x,-.33,.045,[-1.5+bend*.4,0,0]),C.bone);
+  P.add(new THREE.ConeGeometry(.008,.15,5),at(x,-.34,.05,[-1.5+bend*.4,0,0]),C.bone);
  }
  return P.merge();
 }
 
 const LOOKS={
- ghost:{tint:'#e6eaf2',emissive:'#7888aa',glow:.35,opacity:.78,eye:'#d8f0ff',eyeGlow:2.2},
+ ghost:{tint:'#c4cad0',emissive:'#4a5a6c',glow:.3,opacity:.8,eye:'#c4f0d4',eyeGlow:2.4},
 };
 
 let shared=null;
