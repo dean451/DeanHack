@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {mkdtempSync,mkdirSync,writeFileSync,readFileSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {allocateUid,playerIdOf,createSession,FIRST_PLAYER_UID} from './server.js';
+import {allocateUid,playerIdOf,createSession,forgetCharacter,FIRST_PLAYER_UID} from './server.js';
 import {createApp} from './serve.js';
 
 // A stand-in engine: records how it was launched and answers like the real one, without a build.
@@ -24,7 +24,7 @@ function fakeEngines(){
 function fakeRoot(){
   const root=mkdtempSync(join(tmpdir(),'dh-engine-'));
   const prefix=join(root,'runtime'),cwd=join(prefix,'share'),home=join(prefix,'home');
-  for(const d of [cwd,home,join(prefix,'var','unnethack','saves')])mkdirSync(d,{recursive:true});
+  for(const d of [cwd,home,join(prefix,'var','unnethack','saves'),join(prefix,'var','unnethack','level')])mkdirSync(d,{recursive:true});
   writeFileSync(join(prefix,'unnethack'),'');
   writeFileSync(join(root,'manifest.json'),JSON.stringify({binary:join(prefix,'unnethack'),prefix,cwd,home}));
   return root;
@@ -141,5 +141,45 @@ test('the class a character was started as is remembered, but a resumed save kee
     // starting under a name that already has a save resumes it and records nothing new
     await call(port,'/engine/start',{player:'alice',method:'POST',token:t,body:{name:'Old',role:'Barbarian'}});
     assert.equal((await call(port,'/engine/saves',{player:'alice'})).json.saves.find(s=>s.name==='Old').role,undefined);
+  }finally{await app.stopEngine();app.closeAllConnections?.();await new Promise(r=>app.close(r));}
+});
+
+test('an ended event says why: the idle sweep, a server shutdown, a normal exit or a crash',async()=>{
+  const {spawned,spawnEngine}=fakeEngines(),root=fakeRoot();
+  const last=s=>s.poll(0).events.filter(e=>e.type==='ended').at(-1);
+  const a=createSession({root,id:'a',uid:2001,spawnEngine});a.start('A');await a.stop(100,'idle');assert.equal(last(a).reason,'idle');
+  const b=createSession({root,id:'b',uid:2002,spawnEngine});b.start('B');await b.stop(100,'shutdown');assert.equal(last(b).reason,'shutdown');
+  const c=createSession({root,id:'c',uid:2003,spawnEngine});c.start('C');spawned[2].emit('close',0);assert.equal(last(c).reason,'exit','the player quit or died: the engine exited on its own');
+  const d=createSession({root,id:'d',uid:2004,spawnEngine});d.start('D');spawned[3].emit('close',1);assert.equal(last(d).reason,'crash');assert.equal(last(d).code,1);
+  a.start('A again');spawned[4].emit('close',0);assert.equal(last(a).reason,'exit','a stop reason does not leak into the next game');
+});
+
+test('forgetting a character deletes its save, levels and class note, and only its own',()=>{
+  const root=fakeRoot(),dir=join(root,'runtime','var','unnethack');
+  for(const f of ['saves/2001Mira.bz2','level/2001Mira.0','level/2001Mira.3','saves/2002Mira.bz2','level/2001Mirabel.0','saves/2001Old.bz2'])writeFileSync(join(dir,f),'x');
+  writeFileSync(join(dir,'characters.json'),JSON.stringify({'2001:Mira':{role:'Wizard'},'2001:Old':{role:'Knight'}}));
+  assert.equal(forgetCharacter(dir,2001,'Mira'),3);
+  assert.deepEqual(readdirSync(join(dir,'saves')).sort(),['2001Old.bz2','2002Mira.bz2'],"another player's Mira and alice's other character stay");
+  assert.deepEqual(readdirSync(join(dir,'level')).sort(),['2001Mirabel.0'],'a longer name that starts the same is not touched');
+  assert.deepEqual(JSON.parse(readFileSync(join(dir,'characters.json'),'utf8')),{'2001:Old':{role:'Knight'}});
+  assert.equal(forgetCharacter(dir,2001,'Mira'),0,'forgetting twice is harmless');
+});
+
+test('the forget route is for the player\'s own saved characters, never one that is playing',async()=>{
+  const {spawned,spawnEngine}=fakeEngines(),root=fakeRoot(),dir=join(root,'runtime','var','unnethack');
+  writeFileSync(join(dir,'saves','2001Mira.bz2'),'x');writeFileSync(join(dir,'saves','2001Old.bz2'),'x');
+  const app=createApp({dist:mkdtempSync(join(tmpdir(),'dh-dist-')),engine:{trustProxy:true,spawnEngine,root}});
+  await new Promise(r=>app.listen(0,'127.0.0.1',r));const {port}=app.address();
+  try{
+    const t=(await call(port,'/engine/token',{player:'alice'})).json.token;
+    assert.equal((await call(port,'/engine/forget',{player:'alice',method:'POST',body:{name:'Old'}})).status,403,'needs the session token');
+    await call(port,'/engine/start',{player:'alice',method:'POST',token:t,body:{name:'Mira'}});
+    const busy=await call(port,'/engine/forget',{player:'alice',method:'POST',token:t,body:{name:'Mira'}});
+    assert.equal(busy.status,400);assert.match(busy.json.error,/playing right now/);
+    const ok=await call(port,'/engine/forget',{player:'alice',method:'POST',token:t,body:{name:'Old'}});
+    assert.deepEqual(ok.json,{ok:true,removed:1});
+    assert.deepEqual(readdirSync(join(dir,'saves')),['2001Mira.bz2']);
+    const other=(await call(port,'/engine/token',{player:'bob'})).json.token;
+    assert.equal((await call(port,'/engine/forget',{player:'bob',method:'POST',token:other,body:{name:'Mira'}})).json.removed,0,"bob cannot delete alice's Mira");
   }finally{await app.stopEngine();app.closeAllConnections?.();await new Promise(r=>app.close(r));}
 });

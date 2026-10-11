@@ -11,12 +11,12 @@ test('there is no audio anywhere in the client', () => {
   }
 });
 
-test('the footer buttons are only Save & exit, Demo room and the demo reset', () => {
+test('the footer buttons are only Save & quit, Demo room and the demo reset', () => {
   const html = read('index.html'), live = read('live.js');
   for (const label of ['Rotate view', 'Quaff', 'Pick up', 'Inventory</button>', 'Open door']) {
     assert.ok(!html.includes(label) && !live.includes(`>${label}`), `${label} button is gone`);
   }
-  assert.match(live, /<button data-key="83">Save & exit<\/button>/);
+  assert.match(live, /<button data-key="83">Save & quit<\/button>/);
   assert.doesNotMatch(read('main.js'), /#camera/);
 });
 
