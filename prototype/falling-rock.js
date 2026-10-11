@@ -36,7 +36,8 @@ export function gritPose(i, t) {
   // One pebble comes loose from the slot a beat after the rock, and ticks down late.
   const last = i === ROCK.grit - 1, u = clamp01((t - .08 - ROCK.drop - (i === 1 ? LATE_PEBBLE : 0)) / (last ? .62 : .5));
   if (u <= 0 || u >= 1) return {x: 0, y: .03, z: 0, alpha: 0};
-  const a = i * 2.4, r = .1 + (last ? .34 : .3) * u;
+  // The fourth pebble loses its nerve: it rolls back toward the rock as it dies.
+  const a = i * 2.4, r = (.1 + (last ? .34 : .3) * u) * (i === 3 ? 1 - .45 * clamp01((u - .55) / .45) : 1);
   if (last) return {x: Math.cos(a) * r, y: .03 + .14 * Math.abs(Math.sin(u * 11)) * (1 - u), z: Math.sin(a) * r, alpha: .6 * (1 - u * u)};
   return {x: Math.cos(a) * r, y: .03 + .22 * Math.sin(u * Math.PI) * (.6 + .1 * (i % 4)), z: Math.sin(a) * r, alpha: .6 * (1 - u)};
 }
