@@ -31,7 +31,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 const LOOKS={
  'giant ant':{scale:1,shell:'#7a4424',dark:'#2c170c',gaster:'#6a3a20',sheen:'#c08058',nodes:1,sting:false,jaw:1,headSize:1},
- 'soldier ant':{scale:1.08,shell:'#3a4f8a',dark:'#141a30',gaster:'#2e3f72',sheen:'#8aa0d8',nodes:2,sting:true,jaw:1.35,headSize:1.18},
+ 'soldier ant':{scale:1.08,shell:'#3a4f8a',dark:'#141a30',gaster:'#2e3f72',sheen:'#8aa0d8',nodes:2,sting:true,jaw:1.35,headSize:1.18,scarred:1},
  'fire ant':{scale:.9,shell:'#c0441e',dark:'#4a140a',gaster:'#5a1e14',sheen:'#ff9a60',nodes:2,sting:true,jaw:.9,headSize:.95},
  'snow ant':{scale:.94,shell:'#9cc4d6',dark:'#1a3446',gaster:'#78a4be',sheen:'#eef9ff',nodes:1,sting:false,jaw:1.1,headSize:1.02,frost:true,glint:'#a8e4ff',rough:.24},
 };
@@ -152,6 +152,9 @@ function buildBody(L){
   const band=(u*4.2+.15)%1;
   if(u>.1&&u<.95&&band<.12)c=mix(c,dark,.6);
   if(t>.78&&Math.abs(x)<.03+t*.01&&band>.2&&band<.7)c=mix(c,sheen,.4);
+  // a healed gash slants across the gaster's flank, a pale seam with a dark edge
+  if(L.scarred&&x>0&&Math.abs(z+.2-x*.9+.02)<.006&&y>Y-.03){c=mix(c,rgb('#c8b8a0'),.7);}
+  else if(L.scarred&&x>0&&Math.abs(z+.2-x*.9+.02)<.011&&y>Y-.03)c=mix(c,dark,.8);
   if(hash(Math.floor(x*140)*7.3+Math.floor(y*140)*3.1+Math.floor(z*140))>.965)c=mix(c,rgb('#d8c8b0'),.35);
   return L.frost?hoar(c,x,y,z,t):c;
  });
@@ -217,5 +220,6 @@ export function createAnt(name,colour){
   const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
   legs.push(leg);
  });
+ if(L.scarred)g.userData.scarred=true;
  return {g,body,legs,tail:null,wings:[],quirk:'insect',head,jaws,antJaws:known?name:'giant ant'};
 }

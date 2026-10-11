@@ -91,3 +91,12 @@ test('the locust has its own build: folded wings, jumping hind legs and a hooded
  const [x,y]=[a,createCreature({name:'locust'})].map(meshes);
  x.forEach((m,i)=>{assert.equal(m.geometry,y[i].geometry);assert.equal(m.material,y[i].material);});
 });
+
+test('the soldier ant bears a healed gash across its gaster; the fire ant does not',()=>{
+ const sol=createCreature({name:'soldier ant',symbol:97,color:4}),fire=createCreature({name:'fire ant',symbol:97,color:1});
+ assert(sol.g.userData.scarred,'scarred');
+ assert(!fire.g.userData.scarred,'fire ant plain');
+ sol.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(sol.g);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.95,'fits the tile');
+});
