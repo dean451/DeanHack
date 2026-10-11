@@ -2686,6 +2686,20 @@ function guardian(o={}){const g=new THREE.Group(),body=new THREE.Group();g.add(b
 
 const SKIN={homunculus:'#5f8a3f',imp:'#a53a2a',manes:'#8a2f2a',lemure:'#6a5040',quasit:'#3f5fa0',tengu:'#3f9a9a'};
 
+// quest leaders and nemeses without a model of their own: a tattered black mantle hanging off two
+// spiked iron pauldrons and a notched iron circlet, so a level-20 war leader reads as a threat, not a clerk
+function warlordRegalia(a){
+ const b=a.body;
+ rounded(b,.5,.62,.05,M.leather,0,.66,-.2,.02);
+ for(const x of [-.2,-.07,.07,.2]){const t=cone(b,.05,.16,M.leather,x,.3,-.2,4);t.rotation.x=Math.PI;}
+ for(const side of [-1,1]){
+  rounded(b,.2,.07,.2,M.darkSteel,side*.27,.87,0,.02);
+  for(const dz of [-.05,.05]){const sp=cone(b,.03,.18,M.darkSteel,side*.29,.97,dz,4);sp.rotation.z=-side*.25;}
+ }
+ cylinder(b,.225,.225,.05,M.darkSteel,0,1.12,.01,10);
+ for(const x of [-.1,0,.1])cone(b,.025,.08,M.darkSteel,x,1.18,.02,4);
+ return a;
+}
 const NEMESIS_HUMANS={'warden arianna':1.18,'anaraxis the black':1.2,schliemann:1.15,'king arthur':1.12,'lord sato':1.12,'shan lai ching':1.12,'grand master':1.15,'master kung':1.12,'neferet the green':1.12,'master of thieves':1.12,orion:1.12,'shaman karnov':1.12,'robert the lifer':1.12,twoflower:1.12};
 export function createCreature(cell={}){
  const name=(cell.name||'').toLowerCase(),letter=Number.isInteger(cell.symbol)?String.fromCharCode(cell.symbol):'',color=nhColor(cell);
@@ -2830,7 +2844,8 @@ export function createCreature(cell={}){
  if(name==='hippocrates')return createHippocrates();
  if(name==='master kaen')return createMasterKaen();
  if(name==='dark one')return createDarkOne();
- if(letter==='@'&&NEMESIS_HUMANS[name]){const a=humanoid('human',{cloth:mat(shade(color||'#8a8a80',.8))});a.g.scale.setScalar(NEMESIS_HUMANS[name]);return a;}// quest nemeses without a model of their own still loom over a plain human
+ if(letter==='@'&&NEMESIS_HUMANS[name]){const a=humanoid('human',{cloth:mat(shade(color||'#8a8a80',.8))});if(name!=='twoflower')warlordRegalia(a);// the meek tourist leader keeps his plain coat
+  a.g.scale.setScalar(NEMESIS_HUMANS[name]);return a;}// quest nemeses without a model of their own still loom over a plain human
  if(name==='lord carnarvon')return createCarnarvon();
  if(name==='pelias')return createPelias();
  if(name==='black marketeer')return createBlackMarketeer();
