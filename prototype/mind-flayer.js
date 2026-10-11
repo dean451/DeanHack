@@ -60,6 +60,13 @@ function buildBody(C){
   const edge=skirt.map(([r,y])=>[s*r*Math.sin(gap)*1.01,y,r*Math.cos(gap)*.8*1.01]);
   P.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge.map(V)),10,.009,5),null,C.trim);
  }
+ // the hem is torn: ragged strips of robe hang below it at uneven lengths, and a dark old
+ // stain creeps up the front from the lowest rip
+ for(let i=0;i<9;i++){
+  const phi=gap+.25+i*(Math.PI*2-2*gap-.5)/8,len=.05+hash(i*3.1)*.09,w=.025+hash(i*7.3)*.02,r=.3;
+  P.add(new THREE.BoxGeometry(w,len,.006),at(Math.sin(phi)*r,.2-len/2+.01,Math.cos(phi)*r*.8,[.1*hash(i),phi,.15*(hash(i*2)-.5)]),ramp(C.robeDark,C.robe,.1,.2));
+ }
+ P.add(new THREE.SphereGeometry(.09,10,8),at(.04,.27,.235,[0,0,0],[1,1.4,.12]),C.robeDark);
  // chest and shoulders
  P.add(lathe([[.2,.58],[.205,.66],[.22,.76],[.235,.86],[.23,.92],[.19,.97],[.11,1.0],[.05,1.01]],28),at(0,0,0,[0,0,0],[1,1,.78]),(x,y,z)=>mix(ramp(C.robeDark,C.robe,.58,.9)(y),C.robeDark,z<-.05?.25:0));
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.085,12,8),at(s*.2,.93,-.01,[0,0,s*.3],[1.1,.7,1]),C.robe);
