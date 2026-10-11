@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 
-test('Lord Surtur carries old war-scars and still fit their tile', () => {
-  for (const name of ['lord surtur']) {
+test('Lord Surtur, storm giants and cyclopes carry old war-scars and still fit their tile', () => {
+  for (const name of ['lord surtur', 'storm giant', 'cyclops']) {
     const c = createCreature({name, symbol: 72, color: 1});
     assert.equal(c.g.userData.scarred, true, name + ' is scarred');
     c.g.updateMatrixWorld(true);
