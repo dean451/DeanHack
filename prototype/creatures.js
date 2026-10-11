@@ -1124,7 +1124,10 @@ function proboscidean(o){
   B.put(head,dark,S(o.ear*.8,12,8),[side*(.172+o.ear*.2),-.03,-.06],[0,side*.55,0],[.1,1,.8]);
   // tusks sweep forward and up from the lip; the mastodon's flare out and curl back in
   const tip=o.spiral?[[0,0,0],[side*.05,-.12,.08],[side*.14,-.2,.22],[side*.14,-.14,.36],[side*.04,-.02,.42]]:[[0,0,0],[side*.02,-.12,.1],[side*.05,-.18,.24],[side*.07,-.12,.36],[side*.06,.0,.42]];
-  B.put(head,ivory,taperedTube(tip,.032,.005,18,8),[side*.085,-.12,.12]);
+  // the mastodon's left tusk was snapped off long ago, leaving a short splintered stump
+  const snapped=o.snapTusk&&side<0;
+  B.put(head,ivory,taperedTube(snapped?tip.slice(0,3):tip,.032,snapped?.024:.005,18,8),[side*.085,-.12,.12]);
+  if(snapped){B.put(head,ivory,new THREE.ConeGeometry(.026,.05,4),[side*.085+tip[2][0],-.12+tip[2][1]-.005,.12+tip[2][2]+.02],[1.2,0,0]);head.userData.snappedTusk=true;}
   if(o.minorTusks)B.put(head,ivory,taperedTube([[0,0,0],[side*.03,-.08,.06],[side*.07,-.1,.14],[side*.09,-.05,.2]],.02,.004,10,6),[side*.12,-.1,.08]);
  }
  // trunk: its own group so it can be animated, wrinkled, curling forward at the tip
@@ -1154,7 +1157,7 @@ function proboscidean(o){
 }
 const PROBOSCIDEANS={
  mumak:{name:'mumak',scale:1.25,skin:'#7c7872',dark:'#56524d',ear:.2,crown:0,minorTusks:true,warScars:true},
- mastodon:{name:'mastodon',scale:1.25,skin:'#4a3b30',dark:'#2f251e',hair:'#6b4526',ear:.09,crown:.07,spiral:true},
+ mastodon:{name:'mastodon',scale:1.25,skin:'#4a3b30',dark:'#2f251e',hair:'#6b4526',ear:.09,crown:.07,spiral:true,snapTusk:true},
 };
 // Titanotheres and baluchitheria (q): giant rhinos that used to borrow the rothe.
 // Both stand on columnar legs with three-toed feet, have folds of thick hide at the neck and
