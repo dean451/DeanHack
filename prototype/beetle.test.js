@@ -36,3 +36,12 @@ test('the giant beetle gets domed wing cases, a shield, toothed jaws, a turning 
  const [x,y]=[a,createCreature({name:'giant beetle'})].map(meshes);
  x.forEach((m,i)=>{assert.equal(m.geometry,y[i].geometry);assert.equal(m.material,y[i].material);});
 });
+
+test('the giant beetle has a split wing case and a snapped mandible and still fits its tile',()=>{
+ const a=createCreature({name:'giant beetle',symbol:'a'.charCodeAt(0),color:0});
+ assert(a.g.userData.scarred,'scarred');
+ assert.equal(meshes(a).length,8,'same draws');
+ a.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(a.g);
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.48,'fits the tile');
+});

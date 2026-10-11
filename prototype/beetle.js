@@ -70,6 +70,8 @@ function buildBody(L){
    // the sutural edge along the seam and the rim at the foot are darker
    if(Math.abs(x)<.012)c=mix(c,black,.6);
    if(y<C[1]-.02)c=mix(c,black,.5);
+   // an old blow has split the right wing case: a jagged dark crack runs back from the shoulder
+   if(s>0&&z<-.02&&z>-.17&&Math.abs(x-(.035+(z+.09)*.4+Math.sin(z*160)*.006))<.0045)c=rgb('#0a0406');
    return c;
   });
  }
@@ -106,7 +108,9 @@ function buildHead(L){
  // mandibles: curved blades crossing in front, toothed along the inside edge
  for(const s of [-1,1]){
   const pts=[[s*.03,Y-.016,HZ+.045],[s*.058,Y-.014,HZ+.08],[s*.052,Y-.012,HZ+.112],[s*.012,Y-.016,HZ+.132],[-s*.012,Y-.02,HZ+.128]];
-  chain(P,pts,[.013,.011,.009,.005,.0015],j=>mix(black,joint,.5-j*.1),7);
+  // the right mandible was snapped off short, leaving a blunt stump
+  const cut=s>0?4:5;
+  chain(P,pts.slice(0,cut),[.013,.011,.009,.005,.0015].slice(0,cut),j=>mix(black,joint,.5-j*.1),7);
   for(let k=0;k<3;k++){
    const a=new THREE.Vector3(...pts[1]).lerp(new THREE.Vector3(...pts[2]),.15+k*.35);
    segment(P,a.toArray(),[a.x-s*.016,a.y-.001,a.z+.005],.0045,.0008,joint,4);
@@ -184,5 +188,6 @@ export function createBeetle(name){
   const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
   legs.push(leg);
  });
+ g.userData.scarred=true;
  return {g,body,legs,tail:null,wings:[],quirk:'insect',head,beetle:true};
 }
