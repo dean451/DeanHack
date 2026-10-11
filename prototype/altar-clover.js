@@ -22,7 +22,9 @@ export function leafPose(i, t) {
   const tl = t - 2.45, flinch = i === 1 && tl > 0 && tl < .2 ? Math.sin(tl / .2 * Math.PI) * .2 : 0;
   // The last leaf to come up flinches shut for a beat once it is fully open, then reopens.
   const td = t - .9, recoil = i === CLOVER.leaves - 1 && td > 0 && td < .2 ? .3 * Math.sin(td / .2 * Math.PI) : 0;
-  return {open: (1 - (1 - u) ** 3) * (1 - .6 * wither) * (1 - recoil), shake: shake + flinch, alpha: smooth(u * 3) * (1 - smooth((t - die - .3) / .6)), wither};
+  // Leaf 2 ticks twice, fast, as if something small were walking under it.
+  const tk = t - 1.6, tick = i === 2 && tk > 0 && tk < .14 ? Math.sin(tk / .14 * Math.PI * 4) * .18 : 0;
+  return {open: (1 - (1 - u) ** 3) * (1 - .6 * wither) * (1 - recoil), shake: shake + flinch + tick, alpha: smooth(u * 3) * (1 - smooth((t - die - .3) / .6)), wither};
 }
 
 export function createAltarClover(THREE, parent) {
