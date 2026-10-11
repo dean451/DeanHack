@@ -1316,6 +1316,9 @@ function wumpus(o){
   put(head,belly,S(.026,10,8),[side*.152,.1,-.018],[0,0,side*.4],[1,1,.3]);
   put(head,(x,py)=>mix(mix(horn,dark,.5),horn,(py-.12)/.1),taperedTube([[0,0,0],[side*.05,.03,0],[side*.075,.08,-.01],[side*.065,.12,-.025]],.028,.008,12,8),[side*.1,.12,.01]);
  }
+ // wear: an old claw-rake splits the right brow and cheek, ragged and dark
+ for(let i=0;i<3;i++)put(head,cup,new THREE.BoxGeometry(.008,.1,.012),[.07+i*.022,.07-i*.006,.125-i*.012],[0,0,.45]);
+ g.userData.scarred=true;
  part(head,mergeGeometries(eyes),mat('#ffd24a',{emissive:'#d08a10',emissiveIntensity:2.2,roughness:.3})).userData.part='eyes';
  eyes.forEach(geo=>geo.dispose());
  // the maw: a wide dark slit wrapping round the muzzle, blunt teeth along the upper lip

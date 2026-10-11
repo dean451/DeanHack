@@ -2911,3 +2911,12 @@ test('the leocrotta carries claw-rakes and a bitten rump and still fits its tile
  assert(b.min.y>-.05,'stands on the floor');
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
 });
+
+test('the wumpus has a clawed brow and still fits its tile',()=>{
+ const r=createCreature({name:'wumpus',symbol:113,color:6});
+ assert(r.g.userData.scarred,'wumpus wear');
+ r.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(r.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
+});
