@@ -70,6 +70,8 @@ export function itemFacts(text) {
   if (candles) out.push(candles[1] === 'no' ? 'no candles' : `${candles[1]} candle${candles[1] === '1' ? '' : 's'}`);
   const held = /\(containing (\d+) items?\)/i.exec(t);
   if (held) out.push(`holds ${held[1]} item${held[1] === '1' ? '' : 's'}`);
+  if (/\((?:[^)]*, )?(un)?locked(?:,[^)]*)?\)/i.test(t)) out.push(/\bunlocked\b/i.test(t) ? 'unlocked' : 'locked');
+  if (/\((?:[^)]*, )?trapped\)/i.test(t)) out.push('trapped');
   const weight = /\((\d+) aum\)/i.exec(t);
   if (weight) out.push(`${weight[1]} aum`);
   if (/\((?:chained to you|embedded in your skin)\)/i.test(t)) out.push(/chained/i.test(t) ? 'chained to you' : 'embedded');
