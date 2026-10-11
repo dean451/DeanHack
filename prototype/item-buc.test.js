@@ -98,3 +98,10 @@ test('a tethered aklys says it is wielded and tethered in the hover', () => {
   assert.deepEqual(itemFacts('an aklys (tethered weapon in hand)'), ['wielded, tethered']);
   assert.deepEqual(itemFacts('an aklys'), []);
 });
+
+test('hover hints tell off-hand and two-handed wielding and free shop items', () => {
+  assert.deepEqual(itemFacts('a dagger (wielded in other hand)'), ['wielded, off hand']);
+  assert.deepEqual(itemFacts('a two-handed sword (weapon in hands)'), ['wielded, two hands']);
+  assert.deepEqual(itemFacts('a pick-axe (weapon in hand)'), ['wielded']);
+  assert.deepEqual(itemFacts('a magic lamp (no charge)'), ['no charge']);
+});
