@@ -79,7 +79,7 @@ function buildFace(){
   P.add(new THREE.SphereGeometry(.036,10,8),at(s*.047,.02,.112,[0,0,s*.3],[.85,1.3,.45]),C.socketRim);
   P.add(new THREE.SphereGeometry(.03,10,8),at(s*.047,.02,.117,[0,0,s*.3],[.8,1.25,.4]),C.socket);
  }
- P.add(new THREE.SphereGeometry(.03,10,8),at(0,-.058,.11,[-.2,0,0],[.85,1.5,.45]),C.mouth);
+ P.add(new THREE.SphereGeometry(.03,10,8),at(0,-.075,.11,[-.2,0,0],[.85,2.6,.45]),C.mouth); // dragged open into a long black wail
  return P.merge();
 }
 function buildEyes(){
