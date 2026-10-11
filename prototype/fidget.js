@@ -46,6 +46,7 @@ import {updateLizardPushup} from './lizard-pushup.js';
 import {updateSnakeTaste} from './snake-taste.js';
 import {updateEyeFlare} from './eye-flare.js';
 import {updateSamHover} from './sam-hover.js';
+import {updateHorsePaw} from './horse-paw.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -230,6 +231,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateLizardPushup(actor, dt, t, busy);
   // And the plain snakes' taste of the air: the head cocks aside, the jaw sags open, then both snap shut (snake-taste.js).
   updateSnakeTaste(actor, dt, t, busy);
+  // And the horses' and unicorns' paw: a foreleg lifts and rakes the floor three times, then stamps, the body dipping and the tail lashing (horse-paw.js).
+  updateHorsePaw(actor, dt, t, busy);
   // And the Executioner's, Croesus', One-eyed Sam's, the miner's, the black marketeer's, the mugger's, the convict's, Thoth Amon's, Charon's, the prisoner's, the abbot's, the neanderthal's, Master Kaen's and the Dark One's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
   updateEyeFlare(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
