@@ -2490,6 +2490,12 @@ function demon(o){
  if(!slim)for(const side of [-1,1])sphere(body,.09*bulk,skin,side*.07*bulk,chestY+.04,.1*bulk,1,.8,.6);
  for(let i=0;i<3;i++)rounded(body,.1*bulk,.04,.03,dark,0,.5+i*.06,.12*bulk-i*.005,.012);
  if(o.spikes)for(let i=0;i<5;i++){const s=cone(body,.022,.1,o.spikes==='bone'?tooth:horn,0,.52+i*.09,-.14*bulk+i*.005,4);s.rotation.x=-1.2;}
+ // old claw gashes raked slantwise down one flank: pale puckered scar tissue (seeded by the skin so each kind scars differently)
+ if(!o.arms){const scar=mat(shade(o.skin,1.5),{roughness:.9});scar.name='demon-scar';const side=[...(o.skin||'')].reduce((h,c)=>h+c.charCodeAt(0),0)%2?1:-1,r=(slim?.12:.15)*bulk;
+  // the three gashes are baked into one mesh (the many-armed marilith sits at the mesh cap, so it goes without)
+  const gashes=new THREE.Group();
+  for(let i=0;i<3;i++){const x=side*(r*.95+.004),y0=.6+i*.02,z=.03-i*.035;segment(gashes,[x,y0+.1,z+.05],[x+side*.004,y0-.07,z-.06],.0075,.0045,scar).updateMatrix();}
+  part(body,mergeGeometries(gashes.children.map(c=>c.geometry.clone().applyMatrix4(c.matrix))),scar).castShadow=false;}
  // arms: shoulder, elbow, wrist and three hooked claws; extra pairs sit lower on the flanks
  const pairs=o.arms||1;
  for(let p=0;p<pairs;p++)for(const side of [-1,1]){const dy=p*-.11,sc=1-p*.15,sh=[side*shoulderX,chestY+.12+dy,0],el=[side*(shoulderX+.1*sc),chestY-.04+dy,.04+p*.02],wr=[side*(shoulderX+.08*sc),chestY-.18+dy,.14];
