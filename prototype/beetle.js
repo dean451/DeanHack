@@ -184,5 +184,5 @@ export function createBeetle(name){
   const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
   legs.push(leg);
  });
- return {g,body,legs,tail:null,wings:[],quirk:'insect',head};
+ return {g,body,legs,tail:null,wings:[],quirk:'insect',head,beetle:true};
 }
