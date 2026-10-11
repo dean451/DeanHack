@@ -126,7 +126,9 @@ export function deathPose(style, u, dir = null) {
     case 'burst': {
       // Swell and pop: gone at the flash, a third of the way in.
       const s = smooth(u / .33);
-      p.scale = 1 + .55 * s;
+      // It flinches in on itself first, as if it had felt the blow coming, then over-swells.
+      const flinch = .07 * Math.sin(Math.PI * clamp01(u / .1));
+      p.scale = 1 - flinch + .55 * s;
       p.fade = u < .33 ? 1 : 0;
       break;
     }

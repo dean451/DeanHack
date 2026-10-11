@@ -104,6 +104,14 @@ test('a crumbling body gives its arm one dead twitch after it drops', () => {
   assert.ok(Math.abs(arm(1) - .6) < 1e-9, 'ends where it did');
 });
 
+test('a bursting body flinches in before it swells and pops', () => {
+  const sc = u => deathPose('burst', u).scale;
+  assert.equal(sc(0), 1);
+  assert.ok(sc(.05) < 1, 'draws in first');
+  assert.ok(sc(.3) > 1.3, 'then swells');
+  assert.equal(deathPose('burst', .5).fade, 0);
+});
+
 test('death particles stay finite, land on or above the floor and all expire', () => {
   const fx = createDeathBurst(THREE);
   for (const style of DEATH_STYLES) {
