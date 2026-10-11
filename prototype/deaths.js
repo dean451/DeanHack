@@ -146,6 +146,8 @@ export function deathPose(style, u, dir = null) {
       p.tail = .35 * Math.sin(Math.PI * clamp01((u - .2) / .75));
       // One arm drifts up and open as if reaching for something it can no longer hold.
       p.arm = .5 * Math.sin(Math.PI * clamp01((u - .1) / .8));
+      // Its lower end trails limp behind the spin, like something hung up to dry, and thins away.
+      p.leg = -.3 * Math.sin(Math.PI * clamp01((u - .15) / .7));
       break;
     }
     case 'burst': {
@@ -177,6 +179,10 @@ export function deathPose(style, u, dir = null) {
       p.arm = .5 * gasp;
       // The wrist is caught mid-curl, fingers still clawing at the air.
       p.wrist = .45 * gasp + .06 * Math.sin(u * 160) * gasp * (1 - stone);
+      // One leg is caught mid-stride, half lifted, and a tail is frozen mid-lash; the stone
+      // takes them where they were.
+      p.leg = .3 * gasp;
+      p.tail = .35 * gasp;
       p.scale = 1 + .035 * gasp;
       p.roll = .022 * Math.sin(u * 140) * smooth(u / .1) * (1 - stone);
       p.stone = stone;
