@@ -11,14 +11,19 @@ scene only, because Live mode needs the engine process on the server.
 
 ## What you must know first
 
-- **One game per server.** The engine API has one engine process, one character and one token, so
-  everyone who is let in shares the same game. The password gate in `deploy/Caddyfile` is the
-  access control. Do not remove it. A second player would need per-player engines and saves,
-  which is not built yet.
-- **The password protects the engine.** The engine API has no login of its own, and the allowed
-  host list (`DEANHACK_HOSTS`) is a safety net, not authentication.
-- **Saves live in a Docker volume** (`game`, plus `home`). They survive `docker compose up --build`.
-  They are lost if you run `docker compose down -v`.
+- **One game per login.** Each login (yours in `.env`, plus one per friend in `deploy/users/`) gets
+  its own engine, character list and saves. Two friends can both play a character called "Frodo"
+  without touching each other's game, and nobody can see another login's saved characters. The
+  server runs at most `DEANHACK_MAX_ENGINES` games at once (default 8; set it in `.env`), and a game
+  nobody has touched for 20 minutes is saved and stopped. Two tabs on the same login share that
+  login's game.
+- **The login is the access control.** The game server trusts the login name Caddy passes along,
+  and is only reachable through Caddy (its port is not published). Never publish port 8080.
+  The allowed host list (`DEANHACK_HOSTS`) is a safety net, not authentication.
+- **Bones are shared.** When a character dies the ghost can show up in a friend's game, which is
+  part of the game and not a leak of anything private.
+- **Saves live in a Docker volume** (`game`, plus `home`) and survive
+  `docker compose up --build`. They are lost if you run `docker compose down -v`.
 
 ## One-time setup
 
@@ -39,6 +44,21 @@ scene only, because Live mode needs the engine process on the server.
    Single quotes matter: the hash contains `$` characters. `.env` is git-ignored; never commit it.
 5. Build and start: `docker compose up -d --build`
 6. Open https://deanhack.online, enter the user and password, and press Live.
+
+## Adding a friend
+
+```
+docker run --rm -it caddy caddy hash-password          # you type THEIR password; copy the hash
+echo 'alice $2a$14$...paste the hash...' >> deploy/users/friends.caddy
+docker compose restart caddy
+```
+
+Use single quotes so the `$` characters survive. Give them the address, their name and the
+password. Names are letters, digits and `_.@-`. More detail in `deploy/users/README.md`. To remove
+someone, delete their line and restart Caddy; their saves stay on disk.
+
+The first deploy after this was added gives every login a fresh set of saves: games started before
+it were saved under the server's own uid and no longer show up.
 
 ## Updating
 

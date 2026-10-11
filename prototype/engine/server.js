@@ -1,7 +1,7 @@
 import {spawn} from 'node:child_process';
-import {readFileSync,realpathSync,readdirSync,statSync} from 'node:fs';
+import {readFileSync,writeFileSync,renameSync,mkdirSync,realpathSync,readdirSync,statSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {resolve,sep} from 'node:path';
+import {resolve,sep,dirname} from 'node:path';
 import {randomBytes} from 'node:crypto';
 
 export function encodeReply(request, body) {
@@ -59,73 +59,177 @@ export function hostAllowed(host, extra = process.env.DEANHACK_HOSTS || '') {
   if (/^(?:127\.0\.0\.1|localhost):\d+$/.test(host) || /^[a-z0-9-]+\.trycloudflare\.com$/i.test(host)) return true;
   return extra.split(',').map(h => h.trim().toLowerCase()).filter(Boolean).includes(host.toLowerCase());
 }
-export default function enginePlugin(){
- const root=fileURLToPath(new URL('../.engine/',import.meta.url));
- const token=randomBytes(24).toString('hex');
- let playerName=DEFAULT_PLAYER_NAME,child=null,pending=null,frame=null,menu=null,text=null,ended=null,commands=null,buffer='',seq=0;const clients=new Set();const history=[];const log=[];
- // A monotonic, capped event log backs GET /engine/poll: some hosting paths (a proxy or
- // tunnel that buffers/holds back streaming responses) never deliver anything over the
- // SSE endpoint below, so the client can fall back to polling this instead.
- function send(event){if(event.type==='frame')frame=event;else if(event.type==='request')pending=event;else if(event.type==='menu')menu=event;else if(event.type==='commands')commands=event;else if(event.type==='text')text=event;else if(event.type==='ended')ended=event;else if(event.type==='message'||event.type==='status'){history.push(event);if(history.length>40)history.shift();}log.push({seq:++seq,event});if(log.length>500)log.shift();for(const res of clients)res.write(`data: ${JSON.stringify(event)}\n\n`);}
- function start(rawName){
-   if(child)return;
-   const manifest=JSON.parse(readFileSync(resolve(root,'manifest.json'),'utf8'));
-   for(const p of [manifest.binary,manifest.cwd,manifest.home,manifest.prefix])if(!realpathSync(p).startsWith(realpathSync(root)+sep))throw new Error('Engine path is outside isolated runtime');
-   pending=frame=menu=text=ended=commands=null;history.length=0;buffer='';
-   const launch=engineLaunch(rawName,manifest);playerName=launch.name;child=spawn(manifest.binary,launch.args,{cwd:manifest.cwd,env:{PATH:process.env.PATH,HOME:manifest.home,USER:process.env.USER,LOGNAME:process.env.LOGNAME,TERM:'dumb',NETHACKOPTIONS:launch.options},stdio:['pipe','pipe','pipe']});
-   child.stdout.setEncoding('utf8');child.stdout.on('data',chunk=>{buffer+=chunk;if(buffer.length>2000000){send({type:'message',text:'Engine output exceeded protocol limit.'});child.stdin.end();buffer='';return;}let i;while((i=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,i);buffer=buffer.slice(i+1);if(!line.trim())continue;try{const data=JSON.parse(line);if(['frame','request','menu','commands','text','message','status','ended','fx','combat','death','revive','pickup','teleport','wish','tombstone'].includes(data.type))send(data);}catch{send({type:'message',text:line.slice(0,500)});}}});
-   child.stderr.on('data',b=>send({type:'message',text:String(b).slice(0,1000)}));
-   child.on('error',e=>send({type:'message',text:e.message}));
-   child.on('close',code=>{child=null;pending=null;send({type:'ended',text:`Engine session closed (${code}). Start again to resume any saved character.`});});
- }
- // Ask a running engine to save and exit, and wait for it (up to `ms`); a server that is stopping
- // (a redeploy, `docker stop`) calls this so the character is saved instead of killed.
- const stop=(ms=8000)=>new Promise(done=>{if(!child)return done();const t=setTimeout(done,ms);child.once('close',()=>{clearTimeout(t);done();});child.stdin.end();});
- return {name:'deanhack-engine',stop,configureServer(server){
-   server.httpServer?.on('close',()=>{child?.stdin.end();for(const c of clients)c.end();});
-   server.middlewares.use(async(req,res,next)=>{
-     const path=req.url?.split('?')[0];if(!path?.startsWith('/engine/'))return next();
-     const host=req.headers.host;
-     // Vite may be opened as either localhost or 127.0.0.1 (both the local machine),
-     // or through a Cloudflare quick tunnel (random *.trycloudflare.com host, HTTPS,
-     // no port) for sharing a running instance with someone off-machine. Reject
-     // anything else; same-origin still required either way.
-     const allowedHost=hostAllowed(host);
-     const originHost=req.headers.origin?req.headers.origin.replace(/^https?:\/\//,''):null;
-     if(!host||!allowedHost||(originHost&&originHost!==host)){res.writeHead(403);res.end('Local or tunnel same-origin requests only');return;}
-     const json=(code,data)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
-     if(req.method==='GET'&&path==='/engine/token')return json(200,{token});
-     if(req.method==='GET'&&path==='/engine/saves'){
-       let saves=[];
-       try{const m=JSON.parse(readFileSync(resolve(root,'manifest.json'),'utf8')),dir=resolve(m.prefix,'var/unnethack/saves');if(realpathSync(dir).startsWith(realpathSync(root)+sep))saves=listSaves(dir,process.getuid?.()??0);}catch{}
-       return json(200,{saves});
-     }
-     if(req.method==='GET'&&path==='/engine/events'){
-       // Disable Nagle's algorithm: SSE is many small writes, and a proxy hop (e.g. a
-       // Cloudflare tunnel) can otherwise coalesce/delay them long enough to look hung.
-       req.socket?.setNoDelay(true);
-       res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});clients.add(res);
-       // A proxy hop (Cloudflare's edge, for a tunnel) can hold back the first chunk of a
-       // streaming response until enough bytes accumulate. Padding past that threshold
-       // forces an immediate flush instead of leaving the client waiting on nothing.
-       res.write(': connected\n\n');
-       for(const event of [...history,frame,commands,menu,text,ended,pending].filter(Boolean))res.write(`data: ${JSON.stringify(event)}\n\n`);
-       const timer=setInterval(()=>res.write(': alive\n\n'),15000);req.on('close',()=>{clearInterval(timer);clients.delete(res);});return;
-     }
-     if(req.method==='GET'&&path==='/engine/poll'){
-       const since=Number(new URL(req.url,'http://engine').searchParams.get('since'))||0;
-       return json(200,{events:log.filter(e=>e.seq>since).map(e=>e.event),seq});
-     }
-     if(req.method!=='POST'||req.headers['x-engine-token']!==token)return json(403,{error:'Invalid local session token'});
-     try{
-       let body='';for await(const b of req){body+=b;if(body.length>4096)throw new Error('Request too large');}
-       if(path==='/engine/start'){let name;try{name=body?JSON.parse(body).name:undefined;}catch{name=undefined;}start(name);return json(200,{ok:true,name:playerName});}
-       if(path==='/engine/input'){
-         if(!child)throw new Error('Start the engine first');
-         const reply=encodeReply(pending,JSON.parse(body));pending=null;menu=null;text=null;child.stdin.write(reply);return json(200,{ok:true});
-       }
-       return json(404,{error:'Unknown action'});
-     }catch(e){return json(400,{error:e.message});}
-   });
- }};
+// Each player gets a number, kept in <var>/players.json, that the engine uses as its uid
+// (DEANHACK_UID, see bridge_uid in bridge.c), so saves of the same character name never collide.
+// Four digits always, so <number><name> in a save file name can be split without guessing.
+export const FIRST_PLAYER_UID = 2001;
+export function allocateUid(file, playerId, first = FIRST_PLAYER_UID) {
+  let data = { next: first, players: {} };
+  try { const read = JSON.parse(readFileSync(file, 'utf8')); if (read && typeof read.players === 'object') data = { next: Math.max(first, Number(read.next) || first), players: read.players }; } catch {}
+  if (Object.hasOwn(data.players, playerId)) return data.players[playerId];
+  if (data.next > 9999) throw new Error('No player numbers left');
+  const uid = data.next++;
+  data.players[playerId] = uid;
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file + '.tmp', JSON.stringify(data));
+  renameSync(file + '.tmp', file);
+  return uid;
+}
+
+// Who is asking. Behind the production proxy every request carries the logged-in name in
+// X-Player-Id (the proxy sets it, overwriting anything the browser sent) and the server trusts it;
+// without that (local development) everyone is one player. A trusted deployment with no usable
+// name fails closed rather than falling back to a shared game.
+export function playerIdOf(headers, trustProxy) {
+  if (!trustProxy) return 'local';
+  const raw = headers['x-player-id'];
+  const id = typeof raw === 'string' ? raw.trim() : '';
+  return /^[A-Za-z0-9][A-Za-z0-9_.@-]{0,63}$/.test(id) ? id : null;
+}
+
+// One player's engine and everything the browser sees of it: the process, the latest frame and
+// prompt, a recent message history, an event log for polling, and the open event streams.
+export function createSession({ root, id, uid = null, spawnEngine = spawn, now = Date.now }) {
+  const token = randomBytes(24).toString('hex');
+  let playerName = DEFAULT_PLAYER_NAME, child = null, pending = null, frame = null, menu = null, text = null, ended = null, commands = null, buffer = '', seq = 0, lastActive = now();
+  const clients = new Set(), history = [], log = [];
+  // A monotonic, capped event log backs GET /engine/poll: some hosting paths (a proxy or
+  // tunnel that buffers/holds back streaming responses) never deliver anything over the
+  // SSE endpoint, so the client can fall back to polling this instead.
+  function send(event) {
+    if (event.type === 'frame') frame = event; else if (event.type === 'request') pending = event; else if (event.type === 'menu') menu = event;
+    else if (event.type === 'commands') commands = event; else if (event.type === 'text') text = event; else if (event.type === 'ended') ended = event;
+    else if (event.type === 'message' || event.type === 'status') { history.push(event); if (history.length > 40) history.shift(); }
+    log.push({ seq: ++seq, event }); if (log.length > 500) log.shift();
+    for (const res of clients) res.write(`data: ${JSON.stringify(event)}\n\n`);
+  }
+  const KINDS=['frame','request','menu','commands','text','message','status','ended','fx','combat','death','revive','pickup','teleport','wish','tombstone']; // kept compact: bridge-frame.test.js reads this line
+  function start(rawName) {
+    if (child) return;
+    const manifest = JSON.parse(readFileSync(resolve(root, 'manifest.json'), 'utf8'));
+    for (const p of [manifest.binary, manifest.cwd, manifest.home, manifest.prefix]) if (!realpathSync(p).startsWith(realpathSync(root) + sep)) throw new Error('Engine path is outside isolated runtime');
+    pending = frame = menu = text = ended = commands = null; history.length = 0; buffer = '';
+    const launch = engineLaunch(rawName, manifest); playerName = launch.name;
+    const env = { PATH: process.env.PATH, HOME: manifest.home, USER: process.env.USER, LOGNAME: process.env.LOGNAME, TERM: 'dumb', NETHACKOPTIONS: launch.options, MAIL: '/dev/null' }; // MAIL: with a made-up uid the engine's mail setup looks up a passwd entry that does not exist and crashes
+    if (uid !== null) env.DEANHACK_UID = String(uid);
+    const proc = child = spawnEngine(manifest.binary, launch.args, { cwd: manifest.cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
+    proc.stdout.setEncoding('utf8');
+    proc.stdout.on('data', chunk => {
+      buffer += chunk;
+      if (buffer.length > 2000000) { send({ type: 'message', text: 'Engine output exceeded protocol limit.' }); proc.stdin.end(); buffer = ''; return; }
+      let i;
+      while ((i = buffer.indexOf('\n')) >= 0) {
+        const line = buffer.slice(0, i); buffer = buffer.slice(i + 1);
+        if (!line.trim()) continue;
+        try { const data = JSON.parse(line); if (KINDS.includes(data.type)) send(data); } catch { send({ type: 'message', text: line.slice(0, 500) }); }
+      }
+    });
+    proc.stderr.on('data', b => send({ type: 'message', text: String(b).slice(0, 1000) }));
+    proc.on('error', e => send({ type: 'message', text: e.message }));
+    proc.on('close', code => { if (child === proc) { child = null; pending = null; } send({ type: 'ended', text: `Engine session closed (${code}). Start again to resume any saved character.` }); });
+  }
+  // Ask a running engine to save and exit, and wait for it (up to `ms`); a server that is stopping
+  // (a redeploy, `docker stop`) or an idle player calls this so the character is saved, not killed.
+  const stop = (ms = 8000) => new Promise(done => {
+    if (!child) return done();
+    const t = setTimeout(done, ms); child.once('close', () => { clearTimeout(t); done(); }); child.stdin.end();
+  });
+  return {
+    id, uid, token,
+    get running() { return !!child; },
+    get name() { return playerName; },
+    get idleMs() { return now() - lastActive; },
+    get clientCount() { return clients.size; },
+    touch() { lastActive = now(); },
+    start, stop,
+    input(body) {
+      if (!child) throw new Error('Start the engine first');
+      const reply = encodeReply(pending, JSON.parse(body)); pending = null; menu = null; text = null; child.stdin.write(reply);
+    },
+    // what a newly opened event stream needs to catch up
+    replay() { return [...history, frame, commands, menu, text, ended, pending].filter(Boolean); },
+    addClient(res) { clients.add(res); }, removeClient(res) { clients.delete(res); },
+    poll(since) { return { events: log.filter(e => e.seq > since).map(e => e.event), seq }; },
+    closeClients() { for (const c of clients) c.end(); clients.clear(); },
+    // closing the engine's input makes it save and exit
+    hangup() { child?.stdin.end(); },
+  };
+}
+
+export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_PROXY === '1', maxEngines = Number(process.env.DEANHACK_MAX_ENGINES) || 8, idleMs = Number(process.env.DEANHACK_IDLE_MS) || 20 * 60 * 1000, spawnEngine = spawn, root = fileURLToPath(new URL('../.engine/', import.meta.url)), sweepMs = Math.min(60000, Math.max(1000, idleMs / 4)) } = {}) {
+  const sessions = new Map();
+  // The folder that holds saves and the player numbers, if the engine has been built.
+  function varDir() {
+    try { const m = JSON.parse(readFileSync(resolve(root, 'manifest.json'), 'utf8')), dir = resolve(m.prefix, 'var/unnethack'); return realpathSync(dir).startsWith(realpathSync(root) + sep) ? dir : null; } catch { return null; }
+  }
+  function sessionFor(playerId) {
+    let session = sessions.get(playerId);
+    if (session) return session;
+    // Local development (one player) keeps the engine's own uid, so existing saves stay readable.
+    const uid = trustProxy ? allocateUid(resolve(varDir() ?? root, 'players.json'), playerId) : null;
+    session = createSession({ root, id: playerId, uid, spawnEngine });
+    sessions.set(playerId, session);
+    return session;
+  }
+  const running = () => [...sessions.values()].filter(s => s.running).length;
+  const stopAll = (ms = 8000) => Promise.all([...sessions.values()].map(s => s.stop(ms)));
+  // An engine nobody is talking to for a while is saved and stopped, so a closed tab does not hold a slot.
+  const sweep = setInterval(() => { for (const s of sessions.values()) if (s.running && s.idleMs > idleMs) { s.touch(); void s.stop(); } }, sweepMs);
+  sweep.unref?.();
+  return {
+    name: 'deanhack-engine', stop: stopAll, sessions, sessionFor,
+    configureServer(server) {
+      server.httpServer?.on('close', () => { clearInterval(sweep); for (const s of sessions.values()) { s.hangup(); s.closeClients(); } });
+      server.middlewares.use(async (req, res, next) => {
+        const path = req.url?.split('?')[0]; if (!path?.startsWith('/engine/')) return next();
+        const host = req.headers.host;
+        // Vite may be opened as either localhost or 127.0.0.1 (both the local machine),
+        // or through a Cloudflare quick tunnel (random *.trycloudflare.com host, HTTPS,
+        // no port) for sharing a running instance with someone off-machine. Reject
+        // anything else; same-origin still required either way.
+        const originHost = req.headers.origin ? req.headers.origin.replace(/^https?:\/\//, '') : null;
+        if (!host || !hostAllowed(host) || (originHost && originHost !== host)) { res.writeHead(403); res.end('Local or tunnel same-origin requests only'); return; }
+        const json = (code, data) => { res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
+        const playerId = playerIdOf(req.headers, trustProxy);
+        if (!playerId) return json(403, { error: 'Not signed in' });
+        let session;
+        try { session = sessionFor(playerId); } catch (e) { return json(503, { error: e.message }); }
+        session.touch();
+        if (req.method === 'GET' && path === '/engine/token') return json(200, { token: session.token });
+        if (req.method === 'GET' && path === '/engine/saves') {
+          const dir = varDir();
+          return json(200, { saves: dir ? listSaves(resolve(dir, 'saves'), session.uid ?? process.getuid?.() ?? 0) : [] });
+        }
+        if (req.method === 'GET' && path === '/engine/events') {
+          // Disable Nagle's algorithm: SSE is many small writes, and a proxy hop (e.g. a
+          // Cloudflare tunnel) can otherwise coalesce/delay them long enough to look hung.
+          req.socket?.setNoDelay(true);
+          res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' }); session.addClient(res);
+          // A proxy hop (Cloudflare's edge, for a tunnel) can hold back the first chunk of a
+          // streaming response until enough bytes accumulate. Padding past that threshold
+          // forces an immediate flush instead of leaving the client waiting on nothing.
+          res.write(': connected\n\n');
+          for (const event of session.replay()) res.write(`data: ${JSON.stringify(event)}\n\n`);
+          const timer = setInterval(() => { session.touch(); res.write(': alive\n\n'); }, 15000);
+          req.on('close', () => { clearInterval(timer); session.removeClient(res); });
+          return;
+        }
+        if (req.method === 'GET' && path === '/engine/poll') {
+          const since = Number(new URL(req.url, 'http://engine').searchParams.get('since')) || 0;
+          return json(200, session.poll(since));
+        }
+        if (req.method !== 'POST' || req.headers['x-engine-token'] !== session.token) return json(403, { error: 'Invalid local session token' });
+        try {
+          let body = ''; for await (const b of req) { body += b; if (body.length > 4096) throw new Error('Request too large'); }
+          if (path === '/engine/start') {
+            let name; try { name = body ? JSON.parse(body).name : undefined; } catch { name = undefined; }
+            if (!session.running && running() >= maxEngines) return json(503, { error: 'The dungeon is full right now. Try again in a few minutes.' });
+            session.start(name); return json(200, { ok: true, name: session.name });
+          }
+          if (path === '/engine/input') { session.input(body); return json(200, { ok: true }); }
+          return json(404, { error: 'Unknown action' });
+        } catch (e) { return json(400, { error: e.message }); }
+      });
+    },
+  };
 }

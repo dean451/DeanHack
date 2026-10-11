@@ -30,19 +30,22 @@
 
 	handle /og.png {
 		reverse_proxy app:8080 {
-			flush_interval -1
+			header_up -X-Player-Id
 		}
 	}
 
-	# Everything else needs the password. The game has one engine and one character per server, and
-	# the engine API has no login of its own, so everyone who gets past this gate shares one game.
+	# Everything else needs a login. Each friend has their own (see deploy/users/README.md), and the
+	# game gives every login its own engine and saves: the server learns who is playing from
+	# X-Player-Id, which is set here from the login and replaces anything the browser sent.
 	handle {
 		basic_auth {
 			{$DEANHACK_USER:dean} {$DEANHACK_PASSWORD_HASH}
+			import /etc/caddy/users/*.caddy
 		}
 		# flush_interval -1 sends the /engine/events stream straight through instead of buffering it.
 		reverse_proxy app:8080 {
 			flush_interval -1
+			header_up X-Player-Id {http.auth.user.id}
 		}
 	}
 }
