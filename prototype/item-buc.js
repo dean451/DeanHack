@@ -58,6 +58,8 @@ export function itemFacts(text) {
   if (/\((?:tethered weapon|weapon|wielded)[^)]*\)/i.test(t)) {
     out.push(/\(tethered weapon\b/i.test(t) ? 'wielded, tethered' : /\(wielded in other hand\)/i.test(t) ? 'wielded, off hand' : /\(weapon in hands\)/i.test(t) ? 'wielded, two hands' : 'wielded');
   }
+  else if (/\(being donned\)/i.test(t)) out.push('putting on');
+  else if (/\(being doffed\)/i.test(t)) out.push('taking off');
   else if (/\((?:being worn|worn|on (?:left|right) (?:hand|finger))[^)]*\)/i.test(t)) out.push('worn');
   else if (/\((?:in quiver|at the ready)[^)]*\)/i.test(t)) out.push('quivered');
   if (/\((?:[^)]*, )?in use\)/i.test(t)) out.push('in use');
