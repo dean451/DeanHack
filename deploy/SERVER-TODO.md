@@ -1,0 +1,64 @@
+# Server to-do (Dean's list)
+
+Things only the server owner can do. Claude sessions keep this current: when something is finished,
+tick it; when a PR needs a step on the server, add it here. Last updated 2026-10-11.
+
+## Next time you're at the server (in this order)
+
+- [ ] **1. Make sure the code is merged.** On GitHub, these should show as merged:
+  [#1284](https://github.com/dean451/DeanHack/pull/1284) one game per player (merged),
+  [#1286](https://github.com/dean451/DeanHack/pull/1286) class selection (merged),
+  [#1288](https://github.com/dean451/DeanHack/pull/1288) class outfits (was still running its checks).
+- [ ] **2. Get onto `master` on the server.** `ssh root@46.225.130.193`, then
+  `cd ~/DeanHack && git checkout master && git pull`. (If you built the server from one of my
+  branches earlier, such as `claude/deploy-tools`, this is the step that moves it back to `master`.)
+- [ ] **3. Update.** `./deploy/update.sh`. This rebuilds the game engine (the engine changed three
+  times: per-player saves, class fields, shared roles file), so expect **5 to 10 minutes**. It then
+  reloads Caddy. At the end `docker compose ps` should show `app` and `caddy` running.
+  *If the build fails, paste the last 30 lines to Claude. Don't paste `.env` or password hashes.*
+- [ ] **4. Check it as yourself.** Open https://deanhack.online, log in as `dean`, type a new name,
+  press Begin, pick a class, and Descend. You should land in the game as that class. Your old test
+  characters will not be listed: the per-player change gave every login fresh saves.
+- [ ] **5. Add your friends' logins** (one per person; this is what keeps their games apart):
+  ```
+  docker run --rm -it caddy caddy hash-password       # type THEIR password, copy the hash
+  echo 'alice $2a$14$...paste the hash...' >> deploy/users/friends.caddy
+  docker compose restart caddy
+  ```
+  Use single quotes. Names: letters, digits and `_.@-`. Repeat for each friend. Tell them the
+  address, their name and their password.
+- [ ] **6. Try two logins at once.** Open a private window, log in as a friend, and start a
+  character with the same name as yours. The two games must be separate.
+- [ ] **7. Link preview.** Send https://deanhack.online/?v=2 to yourself in iMessage. The `?v=2`
+  gets past the old cached empty preview. You should see the dragon banner.
+
+## Soon
+
+- [ ] **Nightly auto-update.** `crontab -e` and add
+  `0 4 * * * /root/DeanHack/deploy/update.sh >> /var/log/deanhack-update.log 2>&1`
+  (4am; the hourly routines merge to `master` all day, so deploying on every merge would restart
+  the game constantly).
+- [ ] **Turn on 2FA** on Hetzner, Namecheap and GitHub.
+- [ ] **Back up the saves** now and then:
+  `docker run --rm -v deanhack_game:/v -v "$PWD":/b ubuntu tar czf /b/game-backup.tgz -C /v .`
+  (copy the file off the server).
+- [ ] **Namecheap:** decide whether you want `www.deanhack.online` to work. It does not yet; say so
+  and Claude will add the redirect.
+- [ ] **Hetzner:** check the server has automatic security updates (`apt list --upgradable`
+  occasionally, or `unattended-upgrades`), and consider turning on Hetzner backups (a few dollars).
+
+## Good to know
+
+- Every login gets its own game, saves and class. At most 8 games run at once
+  (`DEANHACK_MAX_ENGINES` in `.env`); a game nobody has touched for 20 minutes is saved and stopped.
+- To remove a friend, delete their line in `deploy/users/friends.caddy` and
+  `docker compose restart caddy`. Their saves stay on disk.
+- Bones (dead characters' ghosts) are shared between everyone's games. That is part of the game.
+- Full instructions: `deploy/DEPLOY.md`.
+
+## Not built yet (so don't expect it)
+
+- The death screen with the cause, a short intro of the keys, and clear messages when a game drops
+  or is stopped for being idle (next up).
+- Per-class polish: faces still look female on men, and several classes are only a first pass.
+- A "Saved" confirmation, deleting a character, rate limits per player.
