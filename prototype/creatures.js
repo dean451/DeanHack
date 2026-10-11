@@ -1991,7 +1991,7 @@ const HORRORS={'shambling horror':{color:'#9aa8a4',raw:'#8a2a3a',eye:'#7affe8',s
 function zruty(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1.18);const legs=[];
  const fur=mat(o.fur,{roughness:1}),shag=mat(shade(o.fur,.62),{roughness:1}),hide=mat(o.hide||shade(o.fur,1.35),{roughness:.9}),
-  claw=mat('#e2d6b8',{roughness:.4}),tusk=mat('#efe4c4',{roughness:.35}),mouth=mat('#3a1210',{roughness:1}),
+  claw=mat('#e2d6b8',{roughness:.4}),tusk=mat('#efe4c4',{roughness:.35}),mouth=mat('#3a1210',{roughness:1}),gore=mat('#3c0e0c',{roughness:.5}),
   eye=mat(o.eye,{emissive:o.eye,emissiveIntensity:1.1,roughness:.25});
  // legs: short, bowed and thick, with broad padded feet and three toe claws
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.16,.36,-.04);body.add(leg);
@@ -2013,7 +2013,11 @@ function zruty(o){
   segment(arm,[side*.08,-.3,.08],[side*.1,-.66,.16],.095,.07,shag);
   for(let k=0;k<3;k++){const t=cone(arm,.04,.12,shag,side*(.13+k*.012),-.36-k*.1,.07+k*.02,5);t.rotation.z=side*(Math.PI/2+.3);}
   sphere(arm,.085,hide,side*.1,-.72,.18,1.1,.75,1.05);
-  for(let k=-1;k<=1;k++){const c=cone(arm,.02,.1,claw,side*.1+k*.045,-.78,.25,5);c.rotation.x=Math.PI/2+.5;}}
+  for(let k=-1;k<=1;k++){const c=cone(arm,.02,.1,claw,side*.1+k*.045,-.78,.25,5);c.rotation.x=Math.PI/2+.5;
+   cone(arm,.021,.045,gore,side*.1+k*.045,-.74,.22,5).rotation.x=Math.PI/2+.5;}}
+ // old wounds: three raking scars across the flank and a clotted gash on the shoulder hump
+ for(let k=0;k<3;k++){const sc=rounded(body,.02,.2,.012,gore,-.2+k*.035,.66+k*.01,.19,.006);sc.rotation.set(.3,0,.5);}
+ rounded(body,.1,.02,.02,gore,.12,.93,-.04,.008).rotation.z=-.4;
  // head: slung low and forward under the hump, a bony brow, flat nose, underslung jaw with upthrust tusks
  const head=new THREE.Group();head.position.set(0,.95,.26);body.add(head);
  sphere(head,.17,fur,0,.02,-.02,1.1,.95,1);
@@ -2031,7 +2035,7 @@ function zruty(o){
  head.rotation.x=.1;
  return trimDraws(actor(g,body,legs,head,[],'orc'));
 }
-const ZRUTIES={'zruty':{fur:'#6a4a2c',hide:'#a07a58',eye:'#e8a030',scale:1.35}};
+const ZRUTIES={'zruty':{fur:'#6a4a2c',hide:'#a07a58',eye:'#e8a030',scale:1.5}};
 
 // Rust monsters and disenchanters: a low, armadillo-like bug with overlapping carapace plates, four stubby legs,
 // two long feathery antennae (the rust-touch feelers) and a tail ending in a flat, two-bladed propeller vane.
