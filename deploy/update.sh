@@ -13,6 +13,14 @@ git checkout -q master
 before=$(git rev-parse HEAD)
 git merge -q --ff-only origin/master
 after=$(git rev-parse HEAD)
+# A server whose master has a commit GitHub does not (a stray local merge, say) would "fast-forward"
+# to itself and never pick anything up. Say so instead of pretending to be current.
+if [ "$after" != "$(git rev-parse origin/master)" ]; then
+  echo "this server's master ($after) is not GitHub's master ($(git rev-parse --short origin/master))."
+  echo "it has local commits. If you did not mean to keep them, run:"
+  echo "    git reset --hard origin/master && ./deploy/update.sh --force"
+  exit 1
+fi
 if [ "$before" = "$after" ] && [ "${1:-}" != "--force" ]; then
   echo "already up to date ($after)"
   exit 0

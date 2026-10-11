@@ -1,7 +1,7 @@
 # Server to-do (Dean's list)
 
 Things only the server owner can do. Claude sessions keep this current: when something is finished,
-tick it; when a PR needs a step on the server, add it here. Last updated 2026-10-11.
+tick it; when a PR needs a step on the server, add it here. Last updated 2026-10-11 (late).
 
 ## Next time you're at the server (in this order)
 
@@ -9,13 +9,21 @@ tick it; when a PR needs a step on the server, add it here. Last updated 2026-10
   [#1284](https://github.com/dean451/DeanHack/pull/1284) one game per player (merged),
   [#1286](https://github.com/dean451/DeanHack/pull/1286) class selection (merged),
   [#1288](https://github.com/dean451/DeanHack/pull/1288) class outfits (was still running its checks).
-- [ ] **2. Get onto `master` on the server.** `ssh root@46.225.130.193`, then
-  `cd ~/DeanHack && git checkout master && git pull`. (If you built the server from one of my
-  branches earlier, such as `claude/deploy-tools`, this is the step that moves it back to `master`.)
-- [ ] **3. Update.** `./deploy/update.sh`. This rebuilds the game engine (the engine changed three
-  times: per-player saves, class fields, shared roles file), so expect **5 to 10 minutes**. It then
-  reloads Caddy. At the end `docker compose ps` should show `app` and `caddy` running.
+- [ ] **2. Put the server back on GitHub's `master`.** On 2026-10-11 `update.sh` said
+  "already up to date (836f4897)", but that commit does not exist on GitHub: the server's `master`
+  has a stray local commit, so nothing new was pulled. Fix (safe: `.env` and `deploy/users/` are
+  untracked and are not touched):
+  ```
+  ssh root@46.225.130.193
+  cd ~/DeanHack && git fetch origin && git checkout master && git reset --hard origin/master
+  ```
+  If you want to know what happened first, run `git log --oneline -3` before the reset and paste it
+  to Claude.
+- [ ] **3. Update.** `./deploy/update.sh --force`. This rebuilds the game engine (the engine changed
+  three times: per-player saves, class fields, shared roles file), so expect **5 to 10 minutes**.
+  It then reloads Caddy. At the end `docker compose ps` should show `app` and `caddy` running.
   *If the build fails, paste the last 30 lines to Claude. Don't paste `.env` or password hashes.*
+  (`update.sh` now refuses to run when the server's `master` is not GitHub's, and prints the fix.)
 - [ ] **4. Check it as yourself.** Open https://deanhack.online, log in as `dean`, type a new name,
   press Begin, pick a class, and Descend. You should land in the game as that class. Your old test
   characters will not be listed: the per-player change gave every login fresh saves.
