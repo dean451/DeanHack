@@ -39,6 +39,7 @@ import {updateZombieLull} from './zombie-lull.js';
 import {updateMummyGrope} from './mummy-grope.js';
 import {updateKoboldCringe} from './kobold-cringe.js';
 import {updateOrcCrack} from './orc-crack.js';
+import {updateImpLeer} from './imp-leer.js';
 import {updateRatSniff} from './rat-sniff.js';
 import {updateCanineWatch} from './canine-watch.js';
 import {updateLizardPushup} from './lizard-pushup.js';
@@ -219,6 +220,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateKoboldCringe(actor, dt, t, busy);
   // And the orcs' neck-crack: the head rolls slowly aside, glowering, then snaps hard the other way with a jolt of the shoulders (orc-crack.js).
   updateOrcCrack(actor, dt, t, busy);
+  // And the imps' leer: the head jerks round to stare, tilts, jerks back, and the tail lashes with each jerk (imp-leer.js).
+  updateImpLeer(actor, dt, t, busy);
   // And the rats' sniff: quick dips of the head, a slow hunt side to side and a tail whip (rat-sniff.js).
   updateRatSniff(actor, dt, t, busy);
   // And the wild canines' watch: the head sinks low and creeps aside, stalking, then twitches up (canine-watch.js).
