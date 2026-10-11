@@ -8,6 +8,9 @@ services:
     stop_grace_period: 30s
     environment:
       DEANHACK_HOSTS: ${DEANHACK_DOMAIN:-deanhack.online}
+      # Players are told apart by the login Caddy forwards; the app is only reachable through Caddy.
+      DEANHACK_TRUST_PROXY: "1"
+      DEANHACK_MAX_ENGINES: ${DEANHACK_MAX_ENGINES:-8}
     volumes:
       - game:/app/prototype/.engine/runtime/var
       - home:/app/prototype/.engine/runtime/home
@@ -27,6 +30,7 @@ services:
       DEANHACK_PASSWORD_HASH: ${DEANHACK_PASSWORD_HASH:?set DEANHACK_PASSWORD_HASH in .env (docker run --rm caddy caddy hash-password)}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/users:/etc/caddy/users:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

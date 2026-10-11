@@ -19,5 +19,7 @@ if [ "$before" = "$after" ] && [ "${1:-}" != "--force" ]; then
 fi
 echo "updating $before -> $after"
 docker compose up -d --build
+# the Caddyfile and users folder are mounted, so a changed one needs a reload (no downtime)
+docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1 || docker compose restart caddy
 docker image prune -f >/dev/null
 docker compose ps

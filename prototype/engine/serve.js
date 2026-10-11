@@ -25,14 +25,14 @@ export function staticPath(root,urlPath){
   return file===root||file.startsWith(root+sep)?file:null;
 }
 
-export function createApp({dist=fileURLToPath(new URL('../dist/',import.meta.url))}={}){
+export function createApp({dist=fileURLToPath(new URL('../dist/',import.meta.url)),engine={}}={}){
   const root=resolve(dist);
   const server=createServer();
   const stack=[];
   // enginePlugin was written for Vite's connect middleware stack; give it the same two hooks.
-  const plugin=enginePlugin();
+  const plugin=enginePlugin(engine);
   plugin.configureServer({httpServer:server,middlewares:{use:fn=>stack.push(fn)}});
-  server.stopEngine=plugin.stop;
+  server.stopEngine=plugin.stop;server.engine=plugin;
   stack.push(async(req,res,next)=>{
     if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405,{Allow:'GET, HEAD'});res.end();return;}
     const file=staticPath(root,req.url.split('?')[0]);

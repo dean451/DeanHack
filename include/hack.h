@@ -700,6 +700,15 @@ enum optset_restrictions {
 /* negative armor class is randomly weakened to prevent invulnerability */
 #define AC_VALUE(AC)    ((AC) >= 0 ? (AC) : -rnd(-(AC)))
 
+#ifdef BRIDGE_GRAPHICS
+/* The web server runs one engine per player and gives each a number (DEANHACK_UID), so two players
+ * who pick the same character name get separate save, level and lock files (<number><name>). With
+ * no number set this is the real uid, so existing saves keep working. See bridge_uid() in bridge.c. */
+extern unsigned int bridge_uid(void);
+# undef getuid
+# define getuid() ((uid_t) bridge_uid())
+#endif
+
 #if defined(MICRO) && !defined(__DJGPP__)
 #define getuid() 1
 #define getlogin() ((char *)0)

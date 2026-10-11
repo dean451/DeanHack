@@ -5,6 +5,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <unistd.h>
+/* hack.h routes getuid() here (see the comment there): the player's number from the web server, or
+ * the real uid when it is not set. The macro must not apply to the call below. */
+#undef getuid
+unsigned int bridge_uid(void) {
+    const char *e = getenv("DEANHACK_UID");
+    if (e && *e) return (unsigned int) strtoul(e, (char **) 0, 10);
+    return (unsigned int) getuid();
+}
 #if defined(TTY_GRAPHICS) && defined(TEXTCOLOR)
 /* With tty compiled in, mapglyph() asks the tty's has_color(), which only says yes for colours
    the tty terminal set up an escape for. The bridge never starts the tty, so every glyph came out

@@ -108,3 +108,6 @@ tools/.venv/
 
 # deploy secrets
 /.env
+
+# friends' logins (deploy/users/README.md)
+/deploy/users/*.caddy
