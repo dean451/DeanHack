@@ -2929,3 +2929,14 @@ test('the carnivorous ape carries claw-rakes across its flank and still fits its
  assert(b.min.y>-.05,'stands on the floor');
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
 });
+
+test('the yeti and sasquatch wear dried blood and still fit their tile',()=>{
+ for(const name of ['yeti','sasquatch']){
+  const r=createCreature({name,symbol:89,color:7});
+  assert(r.g.userData.bloodied,name+' blood');
+  r.g.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(r.g,true);
+  assert(b.min.y>-.05,'stands on the floor');
+  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
+ }
+});
