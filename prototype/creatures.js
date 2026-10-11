@@ -1262,6 +1262,10 @@ function leocrotta(o){
   B.put(leg,dark,S(.024,8,6),[0,-legH*.9,.012]);
   for(const toe of [-1,1])B.put(leg,dark,new THREE.ConeGeometry(.018,.06,6),[toe*.014,-legH+.034,.022],[.35,0,0]);
  }
+ // wear: three old claw-rakes score the left flank, dark and slightly raised, and a bite has notched the rump
+ for(let i=0;i<3;i++)B.put(body,black,new THREE.BoxGeometry(.008,.015,.17),[-.158-i*.002,y+.02-i*.035,.02+i*.03],[.0,0,.5]);
+ B.put(body,gum,S(.03,8,6),[.1,y+.03,-.3],[0,0,0],[.6,.9,.9]);
+ g.userData.scarred=true;
  // a lion's tail with a dark tuft
  const tail=new THREE.Group();tail.position.set(0,y+.06,-.34);body.add(tail);
  B.put(tail,coat,taperedTube([[0,0,0],[0,-.08,-.08],[0,-.26,-.12],[0,-.4,-.08]],.024,.014,14,6));
@@ -1312,6 +1316,9 @@ function wumpus(o){
   put(head,belly,S(.026,10,8),[side*.152,.1,-.018],[0,0,side*.4],[1,1,.3]);
   put(head,(x,py)=>mix(mix(horn,dark,.5),horn,(py-.12)/.1),taperedTube([[0,0,0],[side*.05,.03,0],[side*.075,.08,-.01],[side*.065,.12,-.025]],.028,.008,12,8),[side*.1,.12,.01]);
  }
+ // wear: an old claw-rake splits the right brow and cheek, ragged and dark
+ for(let i=0;i<3;i++)put(head,cup,new THREE.BoxGeometry(.008,.1,.012),[.07+i*.022,.07-i*.006,.125-i*.012],[0,0,.45]);
+ g.userData.scarred=true;
  part(head,mergeGeometries(eyes),mat('#ffd24a',{emissive:'#d08a10',emissiveIntensity:2.2,roughness:.3})).userData.part='eyes';
  eyes.forEach(geo=>geo.dispose());
  // the maw: a wide dark slit wrapping round the muzzle, blunt teeth along the upper lip
