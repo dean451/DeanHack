@@ -496,7 +496,7 @@ test('a wielded Snickersnee carries its lit hairline and nicks on the +x flat of
   assert(vol > 0, `faces look outward (${vol})`);
 });
 
-test('a wielded Grayswandir and Werebane carry their lit shapes on the +z flat of the curved silver saber', async () => {
+test('a wielded Grayswandir and Werebane carry their lit shapes on a flat of the curved silver saber, turned with it', async () => {
   const {createHeldWeapon} = await import('./equipment.js');
   const {applyArtifactTwist} = await import('./artifact-twist.js');
   for (const label of ['Grayswandir', 'Werebane']) {
@@ -507,8 +507,9 @@ test('a wielded Grayswandir and Werebane carry their lit shapes on the +z flat o
     assert(shell.userData.magicShell);
     const b = new THREE.Box3().setFromObject(shell);
     assert(b.min.y > .115 && b.max.y < .915, `${label} y ${b.min.y}..${b.max.y}`);
-    assert(b.min.z > .0 && b.max.z < .013, `${label} sits on the +z flat ${b.min.z}..${b.max.z}`);
-    assert(b.min.x > -.07 && b.max.x < .04, `${label} x ${b.min.x}..${b.max.x}`);
+    // the held saber is turned half round its length (edge leading), so its marks sit on the -z flat, x mirrored
+    assert(b.max.z < 0 && b.min.z > -.013, `${label} sits on the turned flat ${b.min.z}..${b.max.z}`);
+    assert(b.min.x > -.04 && b.max.x < .07, `${label} x ${b.min.x}..${b.max.x}`);
   }
 });
 

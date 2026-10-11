@@ -378,7 +378,8 @@ const heldKatanaMatrix = new THREE.Matrix4().set(0, .35, 0, 0,  2, 0, 0, -.04,  
 // stood onto the +z flat, stretched up the blade, widened across it and sheared back along a straight fit of that curve
 // (x = -.075 y + .0136, centred on the blade), so it follows the steel over the part of the blade the shapes cover.
 const HELD_SABER_SHAPES = new Set(['grayswandir', 'werebane']);
-const heldSaberMatrix = new THREE.Matrix4().set(-.10875, 0, 1.5, .0111,  1.45, 0, 0, .1,  0, 1, 0, -.0065,  0, 0, 0, 1);
+// The held saber is turned half round its length (equipment.js), so its marks turn with it.
+const heldSaberMatrix = new THREE.Matrix4().makeRotationY(Math.PI).multiply(new THREE.Matrix4().set(-.10875, 0, 1.5, .0111,  1.45, 0, 0, .1,  0, 1, 0, -.0065,  0, 0, 0, 1));
 // A wielded Ogresmasher is the war hammer (equipment.js): its square striking face is the flat cap at x -.1875 on
 // the head, which sits at y .48. The floor skull-ring and fracture lines are stood onto that cap, looking out
 // toward -x, with the floor x running up the face about its centre.

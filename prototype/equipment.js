@@ -48,6 +48,8 @@ export function createHeldWeapon(item){
   buildMjollnir(g);
  }else if(/\bsilver saber\b/.test(name)){
   buildSilverSaber(g);
+  // Turned half round its own length so the curved edge leads the swing, not the spine.
+  for(const c of g.children)c.applyMatrix4(new THREE.Matrix4().makeRotationY(Math.PI));
  }else if(ARROW_NAME.test(name)){
   // Before the crossbow, which a "crossbow bolt" would otherwise match.
   buildArrow(g,item.name||name);
