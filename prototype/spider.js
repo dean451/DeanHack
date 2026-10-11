@@ -22,7 +22,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 const LOOKS={
  'cave spider':{scale:.65,shell:'#7a7a74',dark:'#3e3c38',mark:'#2e2c2a',pale:'#b8b2a4',band:'#c8c0ae',eye:'#ffb040',hair:0,chevrons:false},
- 'giant spider':{scale:1.5,shell:'#4a2a5a',dark:'#1e1224',mark:'#c0602a',pale:'#7a5a86',band:'#d07a34',eye:'#ff2a1a',hair:1,chevrons:true},
+ 'giant spider':{scale:1.5,shell:'#4a2a5a',dark:'#1e1224',mark:'#c0602a',pale:'#7a5a86',band:'#d07a34',eye:'#ff2a1a',hair:1,chevrons:true,worn:1},
 };
 const Y=.24;// body height above the floor, before scaling
 
@@ -81,6 +81,8 @@ function buildBody(L){
   segment(P,[s*.045,Y-.01,.16],[s*.075,Y+.02,.22],.012,.01,shell,6);
   segment(P,[s*.075,Y+.02,.22],[s*.07,Y-.04,.26],.01,.012,dark,6);
  }
+ // the giant spider has been cut at before: a raw slash rakes the abdomen and blood has dried on its fangs
+ if(L.worn){const raw=rgb('#4a0e0c');for(let i=0;i<3;i++)segment(P,[-ar*.55+i*.012,Y+.06+ar*.8,az-.02-i*.03],[-ar*.9+i*.012,Y+.06+ar*.45,az+.04-i*.03],.006,.003,raw,4);for(const s of [-1,1])segment(P,[s*.021,Y-.05,.182],[s*.012,Y-.064,.162],.008,.003,raw,5);}
  // bristles on the giant spider: short dark hairs over the abdomen and the carapace
  if(L.hair){
   const n=90;
@@ -160,5 +162,6 @@ export function createSpider(name,colour){
   const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
   legs.push(leg);
  });
+ if(L.worn)g.userData.scarred=true;
  return {g,body,legs,tail:null,wings:[],quirk:'spider',head};
 }
