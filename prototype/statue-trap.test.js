@@ -80,3 +80,10 @@ test('the last shard skitters on after it has landed', () => {
   assert.ok(r(air + .75) <= .3 + .08 * (i % 3) + .06 + .05 + 1e-9);
   assert.ok(Math.abs(r(air + .5) - r(air + .25)) < .05);
 });
+
+test('the sixth shard hops once, long after it lies still, and is flat either side', () => {
+  const air = STATUE.flight + .04 * 2, flat = shardPose(5, air + .5).y;
+  assert.ok(shardPose(5, air + .65).y - flat > .015, 'it hops');
+  assert.ok(Math.abs(shardPose(5, air + .8).y - flat) < 1e-9, 'it lies still again');
+  assert.equal(shardPose(4, air + .65).y, shardPose(4, air + .5).y);
+});

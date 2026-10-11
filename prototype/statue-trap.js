@@ -25,7 +25,9 @@ export function shardPose(i, t) {
   const r = reach * Math.sqrt(u) + (t > air ? .06 * smooth(skip) : 0) + skitter;
   // The first shard has not finished: long after it lies still it rocks back once, as if something under it stirred.
   const rock = i === 0 ? .35 * Math.sin(clamp01((t - air - .45) / .25) * Math.PI) : 0;
-  return {x: Math.cos(a) * r, y, z: Math.sin(a) * r, spin: 9 * smooth(Math.min(1, t / (air + .25))) * (i % 2 ? 1 : -1) - rock, alpha: .9 * (1 - smooth(clamp01((t - (life - .4)) / .4)))};
+  // The sixth shard has one last twitch: long after it lies still it hops a finger's width, as if kicked from beneath.
+  const kick = i === 5 ? .025 * Math.sin(clamp01((t - air - .55) / .2) * Math.PI) : 0;
+  return {x: Math.cos(a) * r, y: y + kick, z: Math.sin(a) * r, spin: 9 * smooth(Math.min(1, t / (air + .25))) * (i % 2 ? 1 : -1) - rock, alpha: .9 * (1 - smooth(clamp01((t - (life - .4)) / .4)))};
 }
 
 // The dust ring rolls out and thins; the glint is a two-beat flash.

@@ -83,3 +83,10 @@ test('spark 2 sputters out mid-flight and relights, still dying at the end', () 
   assert.ok(a(.6) > 0, 'relit');
   assert.equal(sparkPose(2, SNAP.total).alpha, 0);
 });
+
+test('spark 4 bounces on the planks as it lands, in bounds, and still dies', () => {
+  const lift = t => sparkPose(4, t).y - (.06 + .3 * Math.sin(((t - .09 - .02) / .5) * Math.PI) * .7 - .18 * ((t - .11) / .5) ** 2);
+  assert.ok(lift(.09 + .02 + .5 * .78) > .01, 'it bounces');
+  assert.ok(Math.abs(lift(.3)) < 1e-9, 'not before landing');
+  assert.equal(sparkPose(4, SNAP.total).alpha, 0);
+});
