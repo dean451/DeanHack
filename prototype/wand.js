@@ -54,6 +54,8 @@ function wandLook(look) {
     if (look === 'oak') L.extras.push('knots');
     if (look === 'cedar') L.extras.push('pits');
     if (look === 'walnut') L.extras.push('bands');
+    if (look === 'pine') L.extras.push('knots');
+    if (look === 'mahogany') L.extras.push('pits');
     if (look === 'balsa') { L.radius = .023; L.fit = std(0xc9b58c, 0, .9); }
   } else if (look in METALS) {
     const [c, m, r] = METALS[look];
