@@ -2830,3 +2830,10 @@ test('cockatrices carry black hooked spurs and a gaping lower beak spike',()=>{
   assert(b.min.y>-.005,`${name} stays above the floor (${b.min.y})`);
  }
 });
+
+test('plain, hill and stone giants and ettins carry old claw-gash scars on the chest',()=>{
+ for(const name of ['giant','hill giant','stone giant','ettin']){
+  const c=createCreature({name,symbol:72,color:3});
+  assert(c.g.userData.scarred,`${name} is scarred`);}
+ assert(!createCreature({name:'frost giant',symbol:72,color:3}).g.userData.scarred,'frost giants stay clean');
+});
