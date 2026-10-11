@@ -1,0 +1,49 @@
+<!doctype html><meta charset="utf-8"><title>banner</title>
+<style>
+html,body{margin:0;background:#05080a;width:1200px;height:630px;overflow:hidden}
+canvas{display:block;position:absolute;inset:0}
+.shade{position:absolute;inset:0;background:radial-gradient(120% 90% at 70% 45%,transparent 35%,rgba(2,4,5,.55) 75%,rgba(2,4,5,.92) 100%),linear-gradient(90deg,rgba(3,6,8,.88) 0%,rgba(3,6,8,.55) 34%,transparent 62%)}
+.title{position:absolute;left:70px;bottom:96px;color:#e9e2cf;font-family:'Palatino Linotype','Book Antiqua',Palatino,Georgia,'Times New Roman',serif}
+.title small{display:block;font:600 17px/1 'Courier New',monospace;letter-spacing:.42em;color:#6fb7b4;margin:0 0 18px 4px;text-shadow:0 0 14px rgba(70,190,190,.5)}
+.title h1{margin:0;font-size:104px;line-height:.9;font-weight:700;letter-spacing:.06em;text-shadow:0 0 38px rgba(255,150,60,.28),0 4px 0 #0a0d0e,0 0 3px #000}
+.title h1 b{color:#c9552e;font-weight:700}
+.title p{margin:22px 0 0 6px;font-size:27px;font-style:italic;color:#a9a392;letter-spacing:.04em}
+.rule{position:absolute;left:76px;bottom:72px;width:420px;height:2px;background:linear-gradient(90deg,#c9552e,rgba(201,85,46,0))}
+</style>
+<script type="module">
+// Renders the link-preview banner (1200x630): prototype/public/og.png.
+//   npm run dev -- --port 5174 &  then  OUT=/dir/ node tools/banner-shot.mjs
+// A chromatic dragon in torchlight and cold rim light, small monsters in the dark ahead of it.
+import * as THREE from 'three';
+import {createCreature} from '../creatures.js';
+const W=1200,H=630;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(+(new URLSearchParams(location.search).get('ratio')||1));renderer.setSize(W,H);renderer.setClearColor(0x05080a);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;document.body.prepend(renderer.domElement);
+const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x070d10,.085);
+const camera=new THREE.PerspectiveCamera(34,W/H,.05,80);
+scene.add(new THREE.HemisphereLight(0x34606a,0x1a120a,1.1));
+const torch=new THREE.PointLight(0xff8a3c,150,18,1.5);torch.position.set(1.8,2.8,3.6);torch.castShadow=true;scene.add(torch);
+const rim=new THREE.PointLight(0x4fd0d0,110,16,1.4);rim.position.set(7.2,3.8,-3.2);scene.add(rim);
+const under=new THREE.PointLight(0xc23a1c,20,7,2);under.position.set(1.2,.2,1.8);scene.add(under);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0x2a302e,roughness:.95}));
+floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+// scattered flagstones so the floor is not a flat sheet
+const stone=new THREE.MeshStandardMaterial({color:0x1b201f,roughness:1});
+for(let i=0;i<46;i++){const w=.5+((i*37)%7)/9,m=new THREE.Mesh(new THREE.BoxGeometry(w,.03,.5+((i*53)%5)/8),stone);
+ m.position.set(-6+((i*29)%13)*1.0,.012,-4+((i*17)%11)*.9);m.rotation.y=((i*13)%10)/6;m.receiveShadow=true;scene.add(m);}
+function place(name,x,z,yaw,height,extra={}){
+ const c=createCreature({name,symbol:extra.symbol||68,color:extra.color??5});
+ const box=new THREE.Box3().setFromObject(c.g),h=box.getSize(new THREE.Vector3()).y,s=height/h;
+ c.g.scale.setScalar(s);c.g.position.set(x,0,z);c.g.rotation.y=yaw;
+ c.g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});scene.add(c.g);return c;
+}
+place('chromatic dragon',4.9,-1.4,-.75,4.7);
+place('jackal',2.9,2.5,-.5,.5,{symbol:100,color:3});
+place('kobold',4.5,3.0,-.9,.7,{symbol:107,color:2});
+camera.position.set(-.2,1.2,7.6);camera.lookAt(3.1,1.9,0);
+renderer.render(scene,camera);window.__done=true;
+</script>
+<div class="shade"></div>
+<div class="title"><small>A DARK, BARREN, HOSTILE DUNGEON</small><h1>DEAN<b>HACK</b></h1><p>A little light. A long way down.</p></div>
+<div class="rule"></div>
