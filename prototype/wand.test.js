@@ -119,6 +119,17 @@ test('oak, cedar and walnut wands carry scars of their own, apart from the plain
   assert(verts('oak') !== verts('cedar') && verts('cedar') !== verts('walnut') && verts('oak') !== verts('walnut'));
 });
 
+test('pine and mahogany wands are knotted and pitted, apart from maple and balsa', () => {
+  const verts = look => meshes(createWand(look)).reduce((n, m) => n + m.geometry.attributes.position.count, 0);
+  for (const look of ['pine', 'mahogany']) assert(verts(look) > verts('maple'), `${look} is more than a bare rod`);
+  assert(verts('pine') !== verts('mahogany'));
+});
+
+test('the curved wand is blackened iron, darker than the plain iron wand', () => {
+  const shaft = look => meshes(createWand(look)).find(m => m.userData.part === 'shaft').material;
+  assert(shaft('curved').color.r < shaft('iron').color.r && shaft('curved').color.r < shaft('hexagonal').color.r);
+});
+
 test('long, hexagonal and octagonal iron wands are banded or pitted, apart from plain iron', () => {
   const verts = look => meshes(createWand(look)).reduce((n, m) => n + m.geometry.attributes.position.count, 0);
   const plain = verts('curved');
