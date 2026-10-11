@@ -173,6 +173,8 @@ export function deathPose(style, u, dir = null) {
       p.wing = .55 * gasp;
       // The arm snatches up at the gasp and the stone takes it there, a hand caught reaching.
       p.arm = .5 * gasp;
+      // The wrist is caught mid-curl, fingers still clawing at the air.
+      p.wrist = .45 * gasp + .06 * Math.sin(u * 160) * gasp * (1 - stone);
       p.scale = 1 + .035 * gasp;
       p.roll = .022 * Math.sin(u * 140) * smooth(u / .1) * (1 - stone);
       p.stone = stone;
