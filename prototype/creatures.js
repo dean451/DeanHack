@@ -838,6 +838,9 @@ function worm(o){
  if(o.venom){const spike=mat('#2a1430',{roughness:.5});spike.name='worm-spikes';
   for(const [i,[x,y,z]] of rear.entries())cone(body,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=-.3;
   for(const [i,[x,y,z]] of fore.entries())cone(neck,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=.2;}
+ // purple worms: old spear-gouges raked across the hide, pale healed tissue between the rings
+ if(o.venom){const gash=mat('#c9a8b8',{roughness:.9});gash.name='worm-gouges';g.userData.gouged=true;
+  for(const [x,y,z,rz] of [[r*.9,.17,-.12,.6],[r*.95,.12,-.22,-.5],[-r*.9,.19,-.08,-.6],[-r*.92,.14,-.2,.5]]){const sc=rounded(body,.014,r*1.1,.012,gash,x,y,z,.004);sc.rotation.z=rz;}}
  return actor(g,body,[],neck,[],'worm');
 }
 // Long worm tail segments arrive as their own monster cells ("long worm tail", glyph ~).
