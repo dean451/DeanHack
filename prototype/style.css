@@ -209,3 +209,5 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 .start-back:hover,.start-back:focus-visible{color:#aeb9bf;outline:none}
 #start-screen{overflow:auto}
 @media (max-height:760px){#start-screen{place-items:start center}#start-screen h1{font-size:clamp(44px,9vw,68px)}}
+
+.hero-condition.mild{color:#e0b060;border-color:#e0b06066}

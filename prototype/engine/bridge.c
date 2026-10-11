@@ -370,6 +370,7 @@ static void frame_body(void) {
         if (Strangled) on[n++] = "Strngl";
         if (Sick && (u.usick_type & SICK_VOMITABLE)) on[n++] = "FoodPois";
         if (Sick && (u.usick_type & SICK_NONVOMITABLE)) on[n++] = "Ill";
+        if (u.uhs == HUNGRY) on[n++] = "Hungry";
         if (u.uhs >= WEAK) on[n++] = u.uhs == WEAK ? "Weak" : u.uhs == FAINTING ? "Fainting" : "Fainted";
         if (Stunned) on[n++] = "Stun";
         if (Confusion) on[n++] = "Conf";
