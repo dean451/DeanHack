@@ -43,7 +43,11 @@ export function itemFacts(text) {
   if (/\bpoisoned\b/i.test(t.split('(')[0])) out.push('poisoned');
   if (/\bgreased\b/i.test(t.split('(')[0])) out.push('greased');
   const charges = /\((-?\d+):(-?\d+)\)/.exec(t);
-  if (charges) out.push(`${charges[2]} charges`);
+  if (charges) {
+    const left = Number(charges[2]);
+    out.push(left < 0 ? 'cancelled' : `${left} charge${left === 1 ? '' : 's'}`);
+    if (Number(charges[1]) > 0) out.push('recharged');
+  }
   if (/\((?:[^)]*, )?lit\)/i.test(t)) out.push('lit');
   if (/\((?:alternate weapon|off[- ]hand)[^)]*\)/i.test(t)) out.push('alternate weapon');
   if (/\bpartly eaten\b/i.test(t.split('(')[0])) out.push('partly eaten');
