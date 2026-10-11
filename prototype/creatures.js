@@ -1262,6 +1262,10 @@ function leocrotta(o){
   B.put(leg,dark,S(.024,8,6),[0,-legH*.9,.012]);
   for(const toe of [-1,1])B.put(leg,dark,new THREE.ConeGeometry(.018,.06,6),[toe*.014,-legH+.034,.022],[.35,0,0]);
  }
+ // wear: three old claw-rakes score the left flank, dark and slightly raised, and a bite has notched the rump
+ for(let i=0;i<3;i++)B.put(body,black,new THREE.BoxGeometry(.008,.015,.17),[-.158-i*.002,y+.02-i*.035,.02+i*.03],[.0,0,.5]);
+ B.put(body,gum,S(.03,8,6),[.1,y+.03,-.3],[0,0,0],[.6,.9,.9]);
+ g.userData.scarred=true;
  // a lion's tail with a dark tuft
  const tail=new THREE.Group();tail.position.set(0,y+.06,-.34);body.add(tail);
  B.put(tail,coat,taperedTube([[0,0,0],[0,-.08,-.08],[0,-.26,-.12],[0,-.4,-.08]],.024,.014,14,6));
