@@ -37,6 +37,13 @@ export function engineLaunch(rawName, manifest) {
     options: `windowtype:bridge,name:${name},role:Valkyrie,race:human,gender:female,align:lawful,pettype:cat,!news,autodig,autopickup,pickup_types:/!?="`,
   };
 }
+// Hosts the engine API answers to: this machine, a Cloudflare quick tunnel, and any host named in
+// DEANHACK_HOSTS (comma separated, no port), which is how a real domain behind HTTPS is allowed.
+export function hostAllowed(host, extra = process.env.DEANHACK_HOSTS || '') {
+  if (!host) return false;
+  if (/^(?:127\.0\.0\.1|localhost):\d+$/.test(host) || /^[a-z0-9-]+\.trycloudflare\.com$/i.test(host)) return true;
+  return extra.split(',').map(h => h.trim().toLowerCase()).filter(Boolean).includes(host.toLowerCase());
+}
 export default function enginePlugin(){
  const root=fileURLToPath(new URL('../.engine/',import.meta.url));
  const token=randomBytes(24).toString('hex');
@@ -65,7 +72,7 @@ export default function enginePlugin(){
      // or through a Cloudflare quick tunnel (random *.trycloudflare.com host, HTTPS,
      // no port) for sharing a running instance with someone off-machine. Reject
      // anything else; same-origin still required either way.
-     const allowedHost=/^(?:127\.0\.0\.1|localhost):\d+$/.test(host||'')||/^[a-z0-9-]+\.trycloudflare\.com$/i.test(host||'');
+     const allowedHost=hostAllowed(host);
      const originHost=req.headers.origin?req.headers.origin.replace(/^https?:\/\//,''):null;
      if(!host||!allowedHost||(originHost&&originHost!==host)){res.writeHead(403);res.end('Local or tunnel same-origin requests only');return;}
      const json=(code,data)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
