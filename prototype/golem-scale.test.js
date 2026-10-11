@@ -36,3 +36,13 @@ test('the iron golem vents poison gas through two lit exhaust stacks on its back
   const iron = back('iron golem'), stone = back('stone golem');
   assert(iron.litBack < stone.litBack - 0.1, 'the stack mouths glow behind the chest');
 });
+
+test('ice and crystal ice golems hang icicle fangs from the belly; the stone golem does not', () => {
+  const low = name => {
+    const a = createCreature({ name, symbol: 39, color: 7 });
+    a.body.updateMatrixWorld(true);
+    return new THREE.Box3().setFromObject(a.body.children.find(m => m.userData.part === 'body'), true).min.y / a.g.scale.y;
+  };
+  assert(low('ice golem') < low('stone golem') - 0.05);
+  assert(low('crystal ice golem') < low('stone golem') - 0.05);
+});

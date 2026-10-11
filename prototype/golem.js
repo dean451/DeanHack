@@ -13,7 +13,8 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // - clay: gouged red-brown clay, and the glowing sigil that animates it on the brow;
 // - iron: riveted dark plates streaked with rust, shoulder spikes, a furnace grille and two soot-black
 //   exhaust stacks on the back, their mouths glowing where the poison gas vents;
-// - glass, ice, crystal ice: see-through shards, a crest of spikes, a cold inner light;
+// - glass, ice, crystal ice: see-through shards, a crest of spikes, a cold inner light; ice and crystal ice
+//   also hang long icicle fangs from the belly, the forearms and the fists;
 // - gold: tarnished in the crevices, a jagged crown of spikes;
 // - wood: split bark, thorns, twig claws, a sickly green light;
 // - leather and flesh: stitched patchwork with sutures; flesh adds bone spurs and bruises;
@@ -34,8 +35,8 @@ const LOOKS={
  clay:{base:'#8a4e34',dark:'#4a2618',light:'#b2745a',glow:'#ff3420',jag:.12,scale:1.17,sigil:true,paint:'clay'},
  iron:{base:'#3a3f44',dark:'#16191c',light:'#6a737a',glow:'#ff5a14',jag:.1,scale:1.28,spikes:'iron',rivets:true,grille:true,stacks:true,paint:'iron'},
  glass:{base:'#a8d8d6',dark:'#4a7a7c',light:'#e8ffff',glow:'#8ff4ff',jag:.24,scale:1.24,spikes:'shard',paint:'clear'},
- ice:{base:'#a6d4e6',dark:'#4a86a0',light:'#eaf8ff',glow:'#6fd0ff',jag:.22,scale:1.28,spikes:'shard',paint:'clear'},
- 'crystal ice':{base:'#c4ecff',dark:'#5a9ec0',light:'#ffffff',glow:'#a8f0ff',jag:.26,scale:1.32,spikes:'shard',paint:'clear'},
+ ice:{base:'#a6d4e6',dark:'#4a86a0',light:'#eaf8ff',glow:'#6fd0ff',jag:.22,scale:1.28,spikes:'shard',icicles:true,paint:'clear'},
+ 'crystal ice':{base:'#c4ecff',dark:'#5a9ec0',light:'#ffffff',glow:'#a8f0ff',jag:.26,scale:1.32,spikes:'shard',icicles:true,paint:'clear'},
  // the Punisher, a stationary colossus of black iron-stone: not a golem, but the same hulking build
  punisher:{base:'#26282c',dark:'#0c0d0f',light:'#4a4e56',glow:'#d01830',jag:.2,scale:1.55,spikes:'iron',rivets:true,paint:'iron'},
  gold:{base:'#c89a2a',dark:'#5a3e10',light:'#f4d466',glow:'#9aff3a',jag:.12,scale:1.02,spikes:'crown',paint:'metal'},
@@ -131,6 +132,7 @@ function build(kind){
  if(look.stitches){stitches(body,.72,.2,7,STITCH,.02);stitches(body,.95,.26,9,STITCH,-.02);}
  if(look.spurs)for(const s of [-1,1])shard(body,[s*.3,1.1,-.08],[s*.3,1,-.5],.02,.1,BONE,5);
  if(look.drips){drips(body,[-.2,-.08,.1,.22],.64,.16,L,1);drips(body,[-.3,.32],.86,.12,L,2);}
+ if(look.icicles)for(let k=0;k<6;k++)shard(body,[(k-2.5)*.08,.46,.04+(k%2)*.05],[(k-2.5)*.05,-1,.1],.015,.12+hash(k+40)*.12,L,4);
  if(look.wicks)for(const s of [-1,1]){body.add(new THREE.CylinderGeometry(.006,.006,.05,5),at(s*.32,1.16,0),WICK);glow.add(new THREE.ConeGeometry(.02,.07,6),at(s*.32,1.22,0),GLOW);}
 
  // head: small, low and thrust forward, a heavy brow over an eye slit
@@ -156,6 +158,7 @@ function build(kind){
  if(look.stitches)stitches(arm,-.32,.1,5,STITCH);
  if(look.drips)drips(arm,[-.05,.06],-.6,.1,L,3);
  if(look.spikes==='shard')shard(arm,[0,-.36,-.08],[0,.2,-1],.025,.12,spikeCol);
+ if(look.icicles)for(const [x,y,l] of [[-.07,-.5,.17],[.02,-.52,.24],[.08,-.48,.13]])shard(arm,[x,y,.04],[x*.5,-1,.1],.014,l,L,4);
 
  // legs: short, thick and braced, on broad splayed feet
  const leg=pieces();
