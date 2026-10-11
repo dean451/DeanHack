@@ -9,3 +9,7 @@ test('sharks and eels loom larger than a piranha', () => {
   const piranha = size('piranha');
   for (const name of ['shark', 'giant eel', 'electric eel']) assert(size(name) > piranha * 1.5, name);
 });
+
+test('the Watcher in the Water looms over the kraken with a thicker crown of arms', () => {
+  assert(size('watcher in the water') > size('kraken') * 1.2);
+});
