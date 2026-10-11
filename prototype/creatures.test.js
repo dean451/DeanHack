@@ -2920,3 +2920,12 @@ test('the wumpus has a clawed brow and still fits its tile',()=>{
  assert(b.min.y>-.05,'stands on the floor');
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
 });
+
+test('the carnivorous ape carries claw-rakes across its flank and still fits its tile',()=>{
+ const r=createCreature({name:'carnivorous ape',symbol:89,color:0});
+ assert(r.g.userData.scarred,'ape wear');
+ r.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(r.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
+});
