@@ -16,7 +16,7 @@ test('rust monsters and disenchanters feel; their feelers are pivots at the head
     const a = mon(name);
     assert.equal(a.rustFeel, name);
     assert.equal(a.feelers.length, 2);
-    for (const f of a.feelers) { assert.ok(f.isGroup && f.parent === a.feelHead); assert.ok(f.children.length >= 2, 'feeler meshes live in its group'); }
+    for (const f of a.feelers) { assert.ok(f.isGroup && f.parent === a.feelHead); assert.ok(f.children.length >= 1 && f.children.every(c => c.isMesh), 'feeler meshes live in its group'); }
     assert.ok(a.vane?.isGroup && a.vane.parent === a.tail);
     assert.ok(R.updateRustFeel(a, dt, 0, false), name);
   }
