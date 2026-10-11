@@ -60,3 +60,10 @@ test('the column shudders once as the eyes go out, then settles exactly', () => 
   assert.equal(smokePose(DJINNI.total).alpha, 0);
   assert.ok(base(.5) > 0);
 });
+
+test('the curl flinches back when the eyes go out, then creeps on', () => {
+  const at = u => curlPose(u * DJINNI.total).radius, plain = u => .2 + 1.1 * (1 - (1 - u) ** 2);
+  assert.ok(at(.69) < plain(.69) - .05);
+  assert.ok(Math.abs(at(.6) - plain(.6)) < 1e-9);
+  assert.ok(Math.abs(at(.8) - plain(.8)) < 1e-9);
+});
