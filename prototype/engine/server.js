@@ -1,5 +1,5 @@
 import {spawn} from 'node:child_process';
-import {readFileSync,realpathSync} from 'node:fs';
+import {readFileSync,realpathSync,readdirSync,statSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {resolve,sep} from 'node:path';
 import {randomBytes} from 'node:crypto';
@@ -27,6 +27,21 @@ export function cleanPlayerName(raw) {
   if (typeof raw !== 'string') return DEFAULT_PLAYER_NAME;
   const name = raw.replace(/[^A-Za-z0-9 _']/g, '').replace(/\s+/g, ' ').trim().slice(0, 24).trim();
   return /^[A-Za-z0-9]/.test(name) ? name : DEFAULT_PLAYER_NAME;
+}
+// The characters saved on this server, newest first. NetHack names a save file <uid><name>.bz2, so
+// the owner's uid is the prefix to strip; level snapshots (<uid><name>.0) and anything whose name
+// the launcher would not accept are ignored.
+export function listSaves(dir, uid) {
+  let files;
+  try { files = readdirSync(dir); } catch { return []; }
+  const prefix = String(uid), saves = [];
+  for (const file of files) {
+    if (!file.startsWith(prefix) || !file.endsWith('.bz2')) continue;
+    const name = file.slice(prefix.length, -4);
+    if (!/^[A-Za-z0-9][A-Za-z0-9_']{0,23}$/.test(name)) continue;
+    try { saves.push({ name, savedAt: Math.round(statSync(resolve(dir, file)).mtimeMs) }); } catch {}
+  }
+  return saves.sort((a, b) => b.savedAt - a.savedAt);
 }
 // The engine's command line and options for a character of this name.
 export function engineLaunch(rawName, manifest) {
@@ -80,6 +95,11 @@ export default function enginePlugin(){
      if(!host||!allowedHost||(originHost&&originHost!==host)){res.writeHead(403);res.end('Local or tunnel same-origin requests only');return;}
      const json=(code,data)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
      if(req.method==='GET'&&path==='/engine/token')return json(200,{token});
+     if(req.method==='GET'&&path==='/engine/saves'){
+       let saves=[];
+       try{const m=JSON.parse(readFileSync(resolve(root,'manifest.json'),'utf8')),dir=resolve(m.prefix,'var/unnethack/saves');if(realpathSync(dir).startsWith(realpathSync(root)+sep))saves=listSaves(dir,process.getuid?.()??0);}catch{}
+       return json(200,{saves});
+     }
      if(req.method==='GET'&&path==='/engine/events'){
        // Disable Nagle's algorithm: SSE is many small writes, and a proxy hop (e.g. a
        // Cloudflare tunnel) can otherwise coalesce/delay them long enough to look hung.
