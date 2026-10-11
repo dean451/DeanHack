@@ -33,7 +33,9 @@ export function puffPose(i, t) {
   const dream = i === 3 ? .018 * Math.sin(u * 150) * Math.sin(clamp01((u - .6) / .15) * Math.PI) : 0;
   // The eighth puff yawns: it stretches up and wide for a beat, then collapses in on itself.
   const yawn = i === 7 ? Math.sin(clamp01((u - .5) / .18) * Math.PI) : 0;
-  return {x: Math.cos(a) * spread + roll + sigh + dream, y: Math.max(.08 + (.5 + .06 * (i % 3)) * rise - .52 * droop + jerk + .05 * yawn, .05), z: Math.sin(a) * spread, size: (.09 + .14 * smooth(u)) * (1 + .1 * droop * (Math.sin(t * 5.5 + i * 1.7) - 1) / 2) * snore * (1 + .1 * yawn), alpha: .5 * Math.min(1, u * 8) * (1 - smooth(clamp01((u - .7) / .3)))};
+  // The fifth puff starts awake from a bad dream: one quick lift, then it sinks back, slower.
+  const start5 = i === 5 ? .06 * Math.sin(clamp01((u - .4) / .08) * Math.PI) : 0;
+  return {x: Math.cos(a) * spread + roll + sigh + dream, y: Math.max(.08 + (.5 + .06 * (i % 3)) * rise - .52 * droop + jerk + .05 * yawn + start5, .05), z: Math.sin(a) * spread, size: (.09 + .14 * smooth(u)) * (1 + .1 * droop * (Math.sin(t * 5.5 + i * 1.7) - 1) / 2) * snore * (1 + .1 * yawn), alpha: .5 * Math.min(1, u * 8) * (1 - smooth(clamp01((u - .7) / .3)))};
 }
 
 export function createSleepingGas(THREE, parent) {
