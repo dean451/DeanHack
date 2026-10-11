@@ -58,6 +58,8 @@ export function itemFacts(text) {
   if (/\((?:tethered weapon|weapon|wielded)[^)]*\)/i.test(t)) {
     out.push(/\(tethered weapon\b/i.test(t) ? 'wielded, tethered' : /\(wielded in other hand\)/i.test(t) ? 'wielded, off hand' : /\(weapon in hands\)/i.test(t) ? 'wielded, two hands' : 'wielded');
   }
+  else if (/\(being donned\)/i.test(t)) out.push('putting on');
+  else if (/\(being doffed\)/i.test(t)) out.push('taking off');
   else if (/\((?:being worn|worn|on (?:left|right) (?:hand|finger))[^)]*\)/i.test(t)) out.push('worn');
   else if (/\((?:in quiver|at the ready)[^)]*\)/i.test(t)) out.push('quivered');
   if (/\((?:[^)]*, )?in use\)/i.test(t)) out.push('in use');
@@ -66,6 +68,10 @@ export function itemFacts(text) {
   if (shop) out.push(`${shop[1].toLowerCase()} ${shop[2]}zm`);
   const candles = /\((\d+|no) candles? attached\b[^)]*\)/i.exec(t);
   if (candles) out.push(candles[1] === 'no' ? 'no candles' : `${candles[1]} candle${candles[1] === '1' ? '' : 's'}`);
+  const held = /\(containing (\d+) items?\)/i.exec(t);
+  if (held) out.push(`holds ${held[1]} item${held[1] === '1' ? '' : 's'}`);
+  const weight = /\((\d+) aum\)/i.exec(t);
+  if (weight) out.push(`${weight[1]} aum`);
   if (/\((?:chained to you|embedded in your skin)\)/i.test(t)) out.push(/chained/i.test(t) ? 'chained to you' : 'embedded');
   return out;
 }

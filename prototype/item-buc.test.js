@@ -115,3 +115,16 @@ test('an applied leash or similar tool reads "in use" in the hover', () => {
   assert.equal(itemHint('a blessed leash (in use)'), 'blessed, in use');
   assert.equal(itemHint('a leash'), '');
 });
+
+test('armour being put on or taken off says so in the hover', () => {
+  assert.deepEqual(itemFacts('a +1 plate mail (being donned)'), ['putting on']);
+  assert.deepEqual(itemFacts('a +1 plate mail (being doffed)'), ['taking off']);
+  assert.deepEqual(itemFacts('a +1 plate mail (being worn)'), ['worn']);
+});
+
+test('a container says how many items it holds, and weights show in the hover', () => {
+  assert.deepEqual(itemFacts('a large box (containing 3 items)'), ['holds 3 items']);
+  assert.deepEqual(itemFacts('a sack (containing 1 item)'), ['holds 1 item']);
+  assert.deepEqual(itemFacts('a dagger (10 aum)'), ['10 aum']);
+  assert.deepEqual(itemFacts('a sack'), []);
+});
