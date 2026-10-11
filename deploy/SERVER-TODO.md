@@ -40,6 +40,13 @@ tick it; when a PR needs a step on the server, add it here. Last updated 2026-10
 - [ ] **7. Link preview.** Send https://deanhack.online/?v=2 to yourself in iMessage. The `?v=2`
   gets past the old cached empty preview. You should see the dragon banner.
 
+## Bug fix to deploy: saves were being lost (found 2026-10-11 evening)
+
+- [ ] **Saves on the server were deleted on resume** because the image had no `bzip2` (the engine's
+  save compressor). Fixed in the Dockerfile. Once that PR has merged: `./deploy/update.sh`
+  (or wait for the 4am run). Characters saved before this fix are gone; new ones will resume.
+  Check after the update: `docker compose exec app /usr/bin/bzip2 --version` prints a version.
+
 ## Soon
 
 - [ ] **Nightly auto-update.** `crontab -e` and add
