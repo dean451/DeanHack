@@ -1707,7 +1707,9 @@ function lich(o){
  // skull: cranium, cheekbones, dark sockets with a glow deep inside, a toothed jaw
  sphere(body,.15,bone,0,1.11,.04,.82,1.08,.98);
  // elven cast: high cheekbones, a narrow brow ridge and long swept-back pointed ears
- for(const x of [-1,1]){sphere(body,.032,bone,x*.088,1.075,.14,1,.7,.8);const ear=cone(body,.022,.15,bone,x*.135,1.15,.01,4);ear.rotation.z=-x*1.15;ear.rotation.x=-.25;}
+ for(const x of [-1,1]){sphere(body,.032,bone,x*.088,1.075,.14,1,.7,.8);const ear=cone(body,.022,x>0?.09:.15,bone,x*.135,1.15,.01,4);ear.rotation.z=-x*1.15;ear.rotation.x=-.25;}
+ // old wear: the right ear snapped short, and a black crack split across the left of the cranium
+ for(let i=0;i<3;i++){const k=rounded(body,.012,.07,.008,socket,-.07-i*.016,1.2-i*.035,.1-i*.025,.003);k.rotation.z=.5-i*.35;k.castShadow=false;}
  rounded(body,.15,.02,.05,bone,0,1.15,.17,.01);
  for(const x of [-.06,.06]){sphere(body,.042,socket,x,1.11,.165,1,1,.5);sphere(body,.02,glow,x,1.11,.18);}
  cone(body,.02,.04,socket,0,1.05,.19,3).rotation.x=Math.PI;
