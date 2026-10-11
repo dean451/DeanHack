@@ -1799,6 +1799,10 @@ function wraith(o){
   for(const side of [-1,1]){const plate=rounded(body,.2,.07,.24,iron,side*.26,.99,0,.02);plate.rotation.z=side*-.3;
    for(const f of [-.07,.07])cone(body,.025,.13,iron,side*.3,1.08,f,4).rotation.z=side*-.35;}}
  // the Nazgul's blade is a wicked, notched thing: dark bites chewed out of its edge and a hooked tip
+ // the barrow wight's grave-rusted blade is chipped too: pale bright bites where the rust has flaked off the edge
+ if(o.kind==='barrow wight'&&o.sword){const bite=mat('#b8b4a4',{roughness:.4,metalness:.7});for(const [dy,dx] of [[-.14,-1],[.02,1],[.15,-1]]){const n=rounded(body,.018,.035,.014,bite,.3+dx*.02,.74+dy*Math.cos(.9)+.02,.2+dy*Math.sin(.9)*-1,.004);n.rotation.x=.9;}}
+ // a wraith's cowl is torn: ragged shreds of shroud hang from the hood rim, drifting like smoke
+ if(o.kind==='wraith'){for(const [sx,sz,len] of [[-.15,.1,.2],[.13,.12,.15],[.0,.17,.11]]){const t=cone(head,.03,len,robe,sx,1.0-H,sz,3);t.rotation.x=Math.PI;t.rotation.z=sx*1.2;}}
  if(o.crown&&o.sword){const nick=mat('#101014',{roughness:.5,metalness:.6});for(const [dy,dx] of [[-.12,1],[0,-1],[.12,1]]){const n=rounded(body,.02,.04,.016,nick,.3+dx*.02,.74+dy*Math.cos(.9)+.02,.2+dy*Math.sin(.9)*-1,.004);n.rotation.x=.9;}}
  // evil glow (Nazgul): a pool of cold dread under the hem and a morgul-lit edge along the blade
  if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.2,transparent:true,opacity:.15,depthWrite:false}),edge=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=edge.name='evil-glow';
