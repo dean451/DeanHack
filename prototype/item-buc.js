@@ -64,8 +64,8 @@ export function itemFacts(text) {
   else if (/\((?:in quiver|at the ready)[^)]*\)/i.test(t)) out.push('quivered');
   if (/\((?:[^)]*, )?in use\)/i.test(t)) out.push('in use');
   if (/\(no charge\)/i.test(t)) out.push('no charge');
-  const shop = /\((unpaid|for sale), (\d+) zorkmids?\)/i.exec(t);
-  if (shop) out.push(`${shop[1].toLowerCase()} ${shop[2]}zm`);
+  const shop = /\((unpaid|for sale), (\d+) zorkmids?( each)?\)/i.exec(t);
+  if (shop) out.push(`${shop[1].toLowerCase()} ${shop[2]}zm${shop[3] ? ' each' : ''}`);
   const candles = /\((\d+|no) candles? attached\b[^)]*\)/i.exec(t);
   if (candles) out.push(candles[1] === 'no' ? 'no candles' : `${candles[1]} candle${candles[1] === '1' ? '' : 's'}`);
   const held = /\(containing (\d+) items?\)/i.exec(t);
