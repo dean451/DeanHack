@@ -20,6 +20,7 @@ const SCALE=rgb('#3a5232'),SCALE_HI=rgb('#6a7e3e'),SCALE_DARK=rgb('#18241a'),BEL
 const SKIN=rgb('#8a9a7e'),SKIN_DARK=rgb('#4e5e4a'),SKIN_HI=rgb('#b0b89a'),LIP=rgb('#2a1a1e'),MOUTH=rgb('#140808');
 const BRONZE=rgb('#8a6a2e'),BRONZE_HI=rgb('#d0a858'),BRONZE_DARK=rgb('#3a2a12'),VERDIGRIS=rgb('#4a8a72');
 const SHAWL=rgb('#1e3430'),SHAWL_HI=rgb('#3a5a4e'),SHAWL_DARK=rgb('#0a1412');
+const SCAR=rgb('#d8d4bc');
 const TALON=rgb('#141010'),FANG=rgb('#ece4c8'),LEATHER=rgb('#3a2418'),LEATHER_HI=rgb('#5e3e28');
 const GLOW=rgb('#e8ff4a'),GLOW_HOT=rgb('#fff8c0'),SNAKE_GLOW=rgb('#ff8a2a');
 
@@ -150,7 +151,10 @@ function buildHead(){
  P.add(new THREE.ConeGeometry(.011,.04,5),at(0,.096,.078,[1.9,0,0]),SKIN);
  P.add(new THREE.BoxGeometry(.05,.012,.012),at(0,.053,.068,[-.1,0,0]),MOUTH);
  P.add(new THREE.TorusGeometry(.026,.004,5,16,Math.PI),at(0,.058,.066,[0,0,Math.PI],[1,.45,1]),LIP);
- for(let k=0;k<6;k++){const x=-.02+k*.008;P.add(new THREE.ConeGeometry(.0024,.016+(k===1||k===4?.01:0),4),at(x,.05,.072,[Math.PI,0,0]),FANG);}
+ for(let k=0;k<6;k++){if(k===3)continue;// one fang snapped off long ago
+  const x=-.02+k*.008;P.add(new THREE.ConeGeometry(.0024,.016+(k===1||k===4?.01:0),4),at(x,.05,.072,[Math.PI,0,0]),FANG);}
+ // an old pale scar raked from the brow down across the cheek, where something once fought back
+ P.add(new THREE.BoxGeometry(.006,.075,.004),at(-.034,.1,.068,[0,0,.45]),SCAR);
  // the snakes: a nest springing from the crown and back of the skull, each arching out and
  // curling, its head raised, tongue out and eyes glinting
  for(let i=0;i<SNAKES;i++){
