@@ -1195,7 +1195,9 @@ function megaRhino(o){
   B.put(head,horn,S(.06*hs,12,8),[0,.07*hs,.2*hs],[0,0,0],[1.4,.9,1.3]);
   for(const side of [-1,1]){
    B.put(head,horn,taperedTube([[0,0,0],[side*.02,.08,.03],[side*.06,.15,.05]].map(p=>p.map(v=>v*hs)),.035*hs,.022*hs,10,8),[side*.02*hs,.08*hs,.22*hs],[0,0,0],[1,1,.7]);
-   B.put(head,horn,S(.024*hs,8,6),[side*.08*hs,.23*hs,.27*hs]);
+   // the right prong ends in a sharpened point; the left was broken off, its tip a ragged splinter
+   if(side>0)B.put(head,horn,new THREE.ConeGeometry(.026*hs,.12*hs,5),[side*.08*hs,.25*hs,.27*hs],[.35,0,-.3]);
+   else{B.put(head,horn,new THREE.ConeGeometry(.03*hs,.045*hs,4),[side*.075*hs,.2*hs,.27*hs],[.5,0,.5]);head.userData.brokenHorn=true;}
   }
  }
  if(o.lip)B.put(head,skin,S(.06*hs,12,8),[0,-.06*hs,.34*hs],[0,0,0],[1,.7,1.1]);
