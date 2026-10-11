@@ -2225,8 +2225,13 @@ function gargoyle(o){
  sphere(head,.07,stone,0,-.05,.1,1.1,.75,1);sphere(head,.02,crack,-.025,-.03,.165);sphere(head,.02,crack,.025,-.03,.165);
  for(const side of [-1,1]){sphere(head,.022,glow,side*.05,.015,.11).castShadow=false;
   const f=cone(head,.013,.05,fang,side*.035,-.1,.13,4);f.rotation.x=Math.PI;
-  const ear=cone(head,.03,.1,stone,side*.11,.04,-.02,4);ear.rotation.z=-side*1.1;
+  if(side>0){const ear=cone(head,.03,.1,stone,side*.11,.04,-.02,4);ear.rotation.z=-side*1.1;}
   tube(head,[[side*.07,.08,0],[side*.14,.15,-.04],[side*.17,.13,-.12],[side*.14,.06,-.14]],.022,dark,12);}
+ // wear: the left ear has been knocked off at the root, leaving a pale fresh-broken stump and a spill of rubble
+ {const raw=mat(shade(o.stone,1.25),{roughness:1});
+  cone(head,.032,.04,raw,-.11,.03,-.02,4).rotation.z=1.4;
+  for(const [x,y,z,r] of [[-.12,.0,.06,.02],[-.1,-.02,.09,.014],[-.14,.04,.03,.012]])sphere(head,r,raw,x,y,z,1,.8,1);
+  g.userData.brokenEar=true;}
  // wings: small folded stubs, or great spread stone bat wings for the winged kind
  const span=o.winged?1:.42;
  for(const side of [-1,1]){const pivot=new THREE.Group();pivot.position.set(side*.12,.66,-.12);pivot.rotation.x=-.25;body.add(pivot);

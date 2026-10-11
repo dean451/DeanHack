@@ -2891,3 +2891,12 @@ test('the trapper carries a snapped blade in its hide and still fits its tile',(
  assert(b.min.y>-.05,'stands on the floor');
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.7,'fits its tile');
 });
+
+test('the gargoyle has lost an ear and still fits its tile',()=>{
+ const r=createCreature({name:'gargoyle',symbol:89,color:3});
+ assert(r.g.userData.brokenEar,'gargoyle wear');
+ r.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(r.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
+});
