@@ -56,6 +56,7 @@ export function itemFacts(text) {
   }
   else if (/\((?:being worn|worn|on (?:left|right) (?:hand|finger))[^)]*\)/i.test(t)) out.push('worn');
   else if (/\((?:in quiver|at the ready)[^)]*\)/i.test(t)) out.push('quivered');
+  if (/\((?:[^)]*, )?in use\)/i.test(t)) out.push('in use');
   if (/\(no charge\)/i.test(t)) out.push('no charge');
   const shop = /\((unpaid|for sale), (\d+) zorkmids?\)/i.exec(t);
   if (shop) out.push(`${shop[1].toLowerCase()} ${shop[2]}zm`);

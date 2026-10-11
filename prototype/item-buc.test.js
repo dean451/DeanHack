@@ -106,3 +106,9 @@ test('hover hints tell off-hand and two-handed wielding and free shop items', ()
   assert.deepEqual(itemFacts('a pick-axe (weapon in hand)'), ['wielded']);
   assert.deepEqual(itemFacts('a magic lamp (no charge)'), ['no charge']);
 });
+
+test('an applied leash or similar tool reads "in use" in the hover', () => {
+  assert.deepEqual(itemFacts('a leash (in use)'), ['in use']);
+  assert.equal(itemHint('a blessed leash (in use)'), 'blessed, in use');
+  assert.equal(itemHint('a leash'), '');
+});
