@@ -2873,3 +2873,21 @@ test('the xorn is split by old fractures and still fits its tile',()=>{
  assert(b.min.y>-.05,'stands on the floor');
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
 });
+
+test('the rust monster is pitted by its own rust and still fits its tile',()=>{
+ const r=createCreature({name:'rust monster',symbol:82,color:3});
+ assert(r.g.userData.rustEaten,'rust-eaten pits');
+ r.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(r.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
+});
+
+test('the trapper carries a snapped blade in its hide and still fits its tile',()=>{
+ const r=createCreature({name:'trapper',symbol:116,color:10});
+ assert(r.g.userData.impaled,'lodged blade');
+ r.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(r.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.7,'fits its tile');
+});
