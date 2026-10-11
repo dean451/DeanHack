@@ -100,7 +100,8 @@ function buildHead(){
   P.add(new THREE.BoxGeometry(.006,.02,.01),at(s*.008,-.018,.105,[.3,0,s*.3]),C.cavity);
  }
  // pointed ears swept back along the skull
- for(const s of [-1,1])P.add(new THREE.ConeGeometry(.026,.12,6),at(s*.08,.035,-.05,[-1.15,0,-s*.55],[1,1,.4]),face);
+ // the left ear is chewed down to a ragged stub
+ for(const s of [-1,1])P.add(new THREE.ConeGeometry(.026,s<0?.06:.12,6),at(s*(s<0?.074:.08),.035,s<0?-.035:-.05,[-1.15,0,-s*.55],[1,1,.4]),face);
  // the lipless mouth dropped open: dark gums and throat, a hanging jaw, needle teeth
  P.add(new THREE.SphereGeometry(.05,12,8),at(0,-.055,.07,[0,0,0],[1.05,.6,.55]),C.cavity);
  P.add(new THREE.TorusGeometry(.042,.008,5,14,Math.PI),at(0,-.035,.08,[.2,0,Math.PI],[1,.7,1]),C.gum);
