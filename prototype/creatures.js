@@ -1906,6 +1906,11 @@ function umberHulk(o){
   segment(arm,[side*.05,-.3,.05],[side*.04,-.58,.14],.085,.075,shell);rounded(arm,.15,.1,.14,dark,side*.04,-.62,.15,.035);
   for(let k=-1;k<=1;k++){const c=cone(arm,.026,.16,claw,side*.04+k*.05,-.72,.2,5);c.rotation.x=Math.PI-.5;c.rotation.z=k*.15;}
   arm.rotation.x=-.2;arm.rotation.z=side*.08;}
+ // battle wear: a crack across the carapace glows with the heat of the rock it tunnels, and a row of
+ // blunt horn spurs rides each shoulder
+ const rift=mat('#c0501c',{emissive:'#e0601c',emissiveIntensity:.8,roughness:.5,flatShading:true});
+ for(let i=0;i<3;i++){const r=rounded(body,.03,.012,.12,rift,.05-i*.07,.8+i*.1,-.19-i*.03,.004);r.rotation.set(-.7,0,.5-i*.35);}
+ for(const side of [-1,1])for(let i=0;i<3;i++){const sp=cone(body,.03-i*.005,.15-i*.025,dark,side*(.3-i*.04),1.08+i*.01,-.02-i*.07,4);sp.rotation.z=-side*(.6+i*.1);}
  // head: set low and forward between the shoulders
  const head=new THREE.Group();head.position.set(0,1.02,.2);body.add(head);
  sphere(head,.16,shell,0,.02,0,1.2,.85,1);rounded(head,.3,.05,.1,dark,0,.1,.06,.02).rotation.x=-.3;
@@ -1919,7 +1924,7 @@ function umberHulk(o){
   const antenna=cone(head,.012,.12,dark,side*.07,.12,.02,4);antenna.rotation.set(-.6,0,-side*.5);}
  return trimDraws(actor(g,body,legs,head,[],'orc'));
 }
-const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.25}};
+const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.45}};
 
 // Shambling horror (U): a thing that should not have been made. A lopsided, lurching mound of pallid, wet
 // flesh swollen with tumorous lumps and split by bone spurs; one leg a thick club, the other a thin
