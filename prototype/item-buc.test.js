@@ -56,6 +56,7 @@ test('hover hints also name wear, wield, charges and erosion', async () => {
   assert.equal(itemHint('a wand of digging (0:-1)'), 'cancelled');
   assert.equal(itemHint('a wand of fire (1:4)'), '4 charges, recharged');
   assert.equal(itemHint('a rusty dagger'), 'rusty');
+  assert.equal(itemHint('a very rusty thoroughly corroded long sword'), 'very rusty, thoroughly corroded');
   assert.equal(itemHint('a very corroded poisoned dart (in quiver)'), 'very corroded, poisoned, quivered');
   assert.equal(itemHint('20 darts (at the ready)'), 'quivered');
   assert.equal(itemHint('a ring of free action (on left hand)'), 'worn');
