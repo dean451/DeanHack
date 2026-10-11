@@ -116,10 +116,15 @@ function buildHead(){
  for(const s of [-1,1])P.add(new THREE.ConeGeometry(.035,.11,6),at(s*.14,.05,-.01,[0,.3*s,-s*(Math.PI/2+.25)],[1,1,.4]),(x,y,z)=>Math.abs(z+.01)<.004?C.belly:hide(x,y,z));
  // the horns: thick aurochs horns sweeping out, then forward and up to points, ridged at the root
  for(const s of [-1,1]){
-  const {geo,curve}=taper([[s*.07,.13,-.01],[s*.17,.15,-.03],[s*.27,.17,.03],[s*.31,.22,.14],[s*.27,.3,.24]],.045,.004,24,10);
+  // the left horn was snapped off short: a blunt stump with a jagged, pale break
+  const snapped=s<0,pts=[[s*.07,.13,-.01],[s*.17,.15,-.03],[s*.27,.17,.03],[s*.31,.22,.14]];
+  if(!snapped)pts.push([s*.27,.3,.24]);
+  const {geo,curve}=taper(pts,.045,snapped?.026:.004,24,10);
   P.add(geo,null,(x,y,z)=>{const t=THREE.MathUtils.clamp((Math.abs(x)-.07)/.28+(z>.1?(z-.1)*1.2:0),0,1);return t<.5?mix(C.hornRoot,C.horn,t*2):mix(C.horn,C.hornTip,(t-.5)*2);});
   for(let i=0;i<4;i++){const u=.06+i*.06,p=curve.getPointAt(u),tan=curve.getTangentAt(u);
    P.add(new THREE.TorusGeometry(.043-i*.004,.005,4,12),new THREE.Matrix4().compose(p,new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),tan),new THREE.Vector3(1,1,1)),C.hornRoot);}
+  if(snapped){const e=curve.getPointAt(1),tan=curve.getTangentAt(1);
+   P.add(new THREE.ConeGeometry(.03,.05,5),new THREE.Matrix4().compose(e,new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),tan),new THREE.Vector3(1,1,.6)),C.hornTip);}
  }
  // a shaggy dewlap and a fringe under the jaw
  for(let i=0;i<10;i++){const x=(i-4.5)*.016;tuft(P,[x,-.09,.06-Math.abs(x)*.5],[x*3,-1,-.25],.05+R()*.04,.012);}
