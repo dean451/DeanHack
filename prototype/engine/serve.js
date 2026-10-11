@@ -30,7 +30,9 @@ export function createApp({dist=fileURLToPath(new URL('../dist/',import.meta.url
   const server=createServer();
   const stack=[];
   // enginePlugin was written for Vite's connect middleware stack; give it the same two hooks.
-  enginePlugin().configureServer({httpServer:server,middlewares:{use:fn=>stack.push(fn)}});
+  const plugin=enginePlugin();
+  plugin.configureServer({httpServer:server,middlewares:{use:fn=>stack.push(fn)}});
+  server.stopEngine=plugin.stop;
   stack.push(async(req,res,next)=>{
     if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405,{Allow:'GET, HEAD'});res.end();return;}
     const file=staticPath(root,req.url.split('?')[0]);
@@ -57,5 +59,15 @@ export function createApp({dist=fileURLToPath(new URL('../dist/',import.meta.url
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   const port=Number(process.env.PORT)||8080,host=process.env.HOST||'127.0.0.1';
-  createApp().listen(port,host,()=>console.log(`DeanHack listening on http://${host}:${port}`));
+  const app=createApp();
+  app.listen(port,host,()=>console.log(`DeanHack listening on http://${host}:${port}`));
+  // As PID 1 in Docker, node ignores SIGTERM unless it handles it: save the character, then exit.
+  let stopping=false;
+  for(const signal of ['SIGTERM','SIGINT'])process.on(signal,async()=>{
+    if(stopping)return;stopping=true;
+    console.log(`${signal}: saving the game and shutting down`);
+    app.closeAllConnections?.();
+    await app.stopEngine();
+    process.exit(0);
+  });
 }

@@ -59,3 +59,10 @@ test('the production server serves the client and guards the engine API',async()
     assert.equal((await get(port,'/engine/token',{Host:'deanhack.online',Origin:'https://evil.example'})).status,403);
   }finally{server.closeAllConnections?.();await new Promise(r=>server.close(r));delete process.env.DEANHACK_HOSTS;}
 });
+
+test('stopping with no engine running returns at once',async()=>{
+  const server=createApp({dist:mkdtempSync(join(tmpdir(),'dh-dist-'))});
+  const t=Date.now();
+  await server.stopEngine();
+  assert.ok(Date.now()-t<1000);
+});
