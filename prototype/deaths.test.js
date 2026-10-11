@@ -370,3 +370,11 @@ test('a petrified hand is caught mid-curl, and the stone holds the wrist there',
   for (let u = 0; u <= 1; u += .01) assert.ok(p(u).wrist >= 0 && p(u).wrist <= .51 + 1e-9, `in bounds at ${u}`);
   assert.ok(p(1).wrist > .15 && p(1).wrist === p(1.5).wrist, 'held in stone');
 });
+
+test('a dissipating body lets one arm drift up and open, then fall back to nothing', () => {
+  const p = u => deathPose('dissipate', u);
+  assert.equal(p(0).arm, 0);
+  assert.ok(p(.5).arm > .45, 'reaching at the middle');
+  for (let u = 0; u <= 1; u += .01) assert.ok(p(u).arm >= 0 && p(u).arm <= .5 + 1e-9, `in bounds at ${u}`);
+  assert.ok(Math.abs(p(1).arm) < 1e-9);
+});
