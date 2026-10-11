@@ -45,7 +45,8 @@ test('doors are finite, stay in their tile, merge into wood, iron and stone and 
   }
   const bounds=new THREE.Box3().setFromObject(door);
   assert(bounds.min.y>=-.01,`sinks to ${bounds.min.y}`);
-  assert(bounds.max.y>1&&bounds.max.y<1.15,`top at ${bounds.max.y}`);
+  // no lintel: the frame tops out at its jambs, just above the leaf, so tall monsters don't clip through it
+  assert(bounds.max.y>.95&&bounds.max.y<1.05,`top at ${bounds.max.y}`);
   assert(bounds.min.x>=-.5&&bounds.max.x<=.5,'leaves its tile on x');
   assert(bounds.min.z>=-.14&&bounds.max.z<=.14,'too deep for a door frame');
   planks.add(door.userData.planks);
