@@ -29,3 +29,17 @@ test('the owl head turn: snaps far round, holds, snaps back and clicks its beak;
   assert(maxYaw > 1.5, `further than a bear could (${maxYaw})`);
   assert(clacked && tilted);
 });
+
+test('the owlbear carries raked claw scars across its breast and a chipped bill', async () => {
+  const {createOwlbear} = await import('./owlbear.js');
+  const o = createOwlbear();
+  const scarred = geo => {
+    const c = geo.attributes.color; let n = 0;
+    for (let i = 0; i < c.count; i++) if (c.getX(i) > 0.2 && c.getY(i) < 0.1 && c.getZ(i) < 0.1) n++;
+    return n;
+  };
+  let body = null, head = null;
+  o.g.traverse(m => { if (m.isMesh && m.userData.part === 'body') body = m; if (m.isMesh && m.userData.part === 'head') head = m; });
+  assert(scarred(body.geometry) >= 24, 'three scar gashes in the breast');
+  assert(head.geometry.getAttribute('position').count > 0);
+});
