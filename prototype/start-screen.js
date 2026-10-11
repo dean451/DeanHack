@@ -69,6 +69,14 @@ export function endedNote(reason,death){
   return 'Saved.';
 }
 
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// The tombstone on the splash after a death: the name, the cause in the game's own words, and where.
+export function deathCard(tomb){
+  if(!tomb||!tomb.killer)return '';
+  const where=tomb.depth?` on level ${tomb.depth}${tomb.dungeon?` of ${tomb.dungeon}`:''}`:'';
+  return `<div class="tomb"><small>REST IN PEACE</small><b>${esc(tomb.name||'')}</b><span>${esc(tomb.killer+where)}</span><em>The dungeon keeps what it takes. Begin again, or choose a new character.</em></div>`;
+}
+
 export async function forgetSave(name,fetchImpl=fetch){
   const {token}=await (await fetchImpl('/engine/token')).json();
   const r=await fetchImpl('/engine/forget',{method:'POST',headers:{'Content-Type':'application/json','X-Engine-Token':token},body:JSON.stringify({name})});
@@ -103,9 +111,10 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
     if(!input.value&&saves[0])input.value=saves[0].name.replace(/_/g,' ');
     refresh();
   });
-  const open=({note:line='',focus=true}={})=>{
+  const open=({note:line='',death=null,focus=true}={})=>{
     el.hidden=false;doc.body.classList.add('start-open');
-    status.textContent=line;status.hidden=!line;
+    const card=deathCard(death);
+    if(card){status.innerHTML=card;status.classList.add('dead');status.hidden=false;}else{status.textContent=line;status.classList.remove('dead');status.hidden=!line;}
     stepClass.hidden=true;stepName.hidden=false;
     input.value=nameInput?.value||remembered();refresh();
     if(focus){input.focus();input.select();}

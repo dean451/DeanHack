@@ -214,3 +214,15 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 @media (max-height:760px){#start-screen{place-items:start center}#start-screen h1{font-size:clamp(44px,9vw,68px)}}
 
 .hero-condition.mild{color:#e0b060;border-color:#e0b06066}
+
+/* Lost link or restarted server: one line and the one button that fixes it. */
+#link-banner{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:70;display:flex;gap:16px;align-items:center;padding:10px 12px 10px 16px;background:#2a1710f2;border:1px solid #c9552e;border-radius:4px;color:#fff1de;font:14px Inter,system-ui,sans-serif;box-shadow:0 6px 24px #000a}
+#link-banner[hidden]{display:none}
+#link-banner button{padding:6px 12px;background:#c9552e;border:1px solid #c9552e;border-radius:3px;color:#fff6e6;font:700 12px Inter,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+#link-banner button:hover,#link-banner button:focus-visible{background:#dc6338;outline:none}
+/* The tombstone on the splash. */
+#start-status.dead{border-left-color:#c9552e;background:#120b09e6;padding:14px 16px 12px}
+.tomb small{display:block;font:600 10px/1 'Courier New',monospace;letter-spacing:.42em;color:#c9684a;margin-bottom:8px}
+.tomb b{display:block;font:700 24px/1.1 'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;color:#f1e8d4;letter-spacing:.04em}
+.tomb span{display:block;margin-top:6px;font:italic 16px/1.35 'Palatino Linotype',Palatino,Georgia,serif;color:#d8cfbb}
+.tomb em{display:block;margin-top:10px;font:13px/1.4 Inter,system-ui,sans-serif;font-style:normal;color:#8d9aa1}

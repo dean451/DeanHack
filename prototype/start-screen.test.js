@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtempSync,writeFileSync,utimesSync,readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {cleanName,startPlan,ago,wantsStartScreen,fetchSaves,DEFAULT_NAME,classView,pick,readChoice,saveChoice,endedNote,forgetSave} from './start-screen.js';
+import {cleanName,startPlan,ago,wantsStartScreen,fetchSaves,DEFAULT_NAME,classView,pick,readChoice,saveChoice,endedNote,forgetSave,deathCard} from './start-screen.js';
 import {listSaves,cleanPlayerName} from './engine/server.js';
 
 test('the name is cleaned exactly as the engine launcher cleans it',()=>{
@@ -106,8 +106,26 @@ test('the player flow has no demo-room toggle, no name box, and comes back to th
   const live=readFileSync(new URL('./live.js',import.meta.url),'utf8'),screen=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
   assert.match(live,/startScreen=installStartScreen\(/);
   assert.match(live,/if\(startScreen\)\{nameInput\.hidden=true;button\.hidden=true;\}/,'the footer hides the Live/Demo toggle and the name box');
-  assert.match(live,/endedNote\(v\.reason,lastDeath\)/,'a session end reopens the splash with a note');
+  assert.match(live,/endedNote\(v\.reason,death\?\.killer\)/,'a session end reopens the splash with a note');
   assert.match(live,/Save & quit/);
   assert.doesNotMatch(screen,/start-demo|Look around/,'no demo-room link on the splash');
   assert.match(screen,/start-new/);assert.match(screen,/start-forget/);
+});
+
+test('the tombstone card says who, what and where, in the game\'s words, with nothing unescaped',()=>{
+  const html=deathCard({name:'Mira',killer:'killed by a jackal',depth:2,dungeon:'The Dungeons of Doom'});
+  assert.match(html,/REST IN PEACE/);assert.match(html,/<b>Mira<\/b>/);assert.match(html,/killed by a jackal on level 2 of The Dungeons of Doom/);
+  assert.equal(deathCard(null),'');assert.equal(deathCard({name:'X'}),'','no cause, no card');
+  assert.match(deathCard({name:'<b>x</b>',killer:'killed by a "jackal"',depth:1}),/&lt;b&gt;x&lt;\/b&gt;.*killed by a &quot;jackal&quot; on level 1</);
+  assert.doesNotMatch(deathCard({name:'A',killer:'quit'}),/level/,'no depth, no where');
+});
+
+test('the live game wires the link watch and the tombstone into the splash',()=>{
+  const live=readFileSync(new URL('./live.js',import.meta.url),'utf8');
+  assert.match(live,/createLinkWatch\(\{onLost:/);
+  assert.match(live,/es\.onerror=\(\)=>\{[^}]*link\.lost\(\)/,'a stream error starts the grace period');
+  assert.match(live,/es\.onopen=async\(\)=>/,'a reopened stream checks the session token');
+  assert.match(live,/if\(seq<since\)\{link\.restart\(\);/,'polling notices a server restart');
+  assert.match(live,/startScreen\.open\(\{note,death\}\)/,'the tombstone reaches the splash');
+  assert.match(live,/id='link-banner'/);
 });
