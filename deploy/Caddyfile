@@ -1,0 +1,22 @@
+# TLS, access control and the proxy to the game server. Caddy gets and renews the HTTPS
+# certificate for the domain by itself; the domain's DNS must already point at this machine.
+{$DEANHACK_DOMAIN:deanhack.online} {
+	encode zstd gzip
+
+	# The game has one engine and one character per server, and the engine API has no login of its
+	# own, so everyone who gets past this gate shares one game. Keep it private.
+	basic_auth {
+		{$DEANHACK_USER:dean} {$DEANHACK_PASSWORD_HASH}
+	}
+
+	# flush_interval -1 sends the /engine/events stream straight through instead of buffering it.
+	reverse_proxy app:8080 {
+		flush_interval -1
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+	}
+}

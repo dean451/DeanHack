@@ -1,0 +1,36 @@
+# docker compose up -d --build
+# Needs a .env file next to this one; see deploy/DEPLOY.md.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      DEANHACK_HOSTS: ${DEANHACK_DOMAIN:-deanhack.online}
+    volumes:
+      - game:/app/prototype/.engine/runtime/var
+      - home:/app/prototype/.engine/runtime/home
+    # No published ports: only Caddy can reach the game server.
+    expose:
+      - "8080"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DEANHACK_DOMAIN: ${DEANHACK_DOMAIN:-deanhack.online}
+      DEANHACK_USER: ${DEANHACK_USER:-dean}
+      DEANHACK_PASSWORD_HASH: ${DEANHACK_PASSWORD_HASH:?set DEANHACK_PASSWORD_HASH in .env (docker run --rm caddy caddy hash-password)}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+volumes:
+  game:
+  home:
+  caddy_data:
+  caddy_config:
