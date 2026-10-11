@@ -69,6 +69,12 @@ function buildBody(){
   const t=i/6,y=1.0-t*.4,z=-.17-Math.sin(t*Math.PI)*.08+t*.02,len=.12-Math.abs(t-.3)*.1;
   P.add(new THREE.ConeGeometry(.026-t*.008,len,6),at(0,y,z,[-1.1-t*.4,0,0]),(x,yy)=>mix(BONE_DARK,BONE,(yy-y+len/2)/len*1.4));
  }
+ // old claw gashes raked slantwise down the flank: pale puckered scar tissue
+ for(const [dx,dy,rz] of [[.17,.7,.5],[.22,.66,.45],[.12,.74,.55]]){
+  add(P,new THREE.BoxGeometry(.014,.2,.014),at(dx,dy,.2,[-.2,0,rz]),()=>BELLY_SHADE);
+ }
+ // one spine on the hump is snapped off to a jagged stub
+ P.add(new THREE.ConeGeometry(.03,.04,5),at(0,.9,-.19,[-1.4,0,0]),()=>BONE_DARK);
  return P.merge();
 }
 
