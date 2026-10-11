@@ -110,6 +110,19 @@ Agreed with the user on 2026-10-09. Order matters, because every later step inhe
 4. **First impressions.** Title or start screen, intro dialog and the death screen as designed moments.
 5. **Classes.** Not started yet. Plan: (a) a one-page class design sheet (silhouette, palette, signature gear, feel) so the classes read as one family; (b) split `knight()` into a shared hero rig (skeleton, face, hands, walk, held weapon) plus per-class kits, with the Valkyrie as the first kit and no visible change; (c) engine: launch options for role, race, gender and alignment, and the bridge sends role, race and gender in the frame; (d) one class per PR, starting with a very different silhouette (a Wizard or Tourist) to test the rig; (e) a class-select screen in the game's visual style (a row of figures in the dark, not a form); (f) races later (proportions, ears, skin). Each character keeps its own save.
 
+### Tester readiness (friends playing on deanhack.online)
+
+Agreed with the user on 2026-10-11. For Claude sessions; the routines do not take items from here. Today the server has one engine, one character and one token, behind one shared password, and the page opens on the demo scene with Live as a button. In order:
+
+1. **One game per player (blocker).** A second friend currently joins and fights over the first one's game. Needs a session per player: a login or invite code that maps to a player id, an engine process per player (capped, with an idle timeout), the token and event stream scoped to that session, and saves under that player's own name. Shared code (`engine/server.js`, `serve.js`, the client's `/engine/*` calls), so it goes alone.
+2. **Per-friend access.** Replace the single Caddy password with a code or account per friend (so one can be revoked), or put the player id in the session.
+3. **Straight into the game.** Skip the demo scene: the page opens on a start screen (title banner, name, Continue or New game), and Live starts without the extra click. Keep the demo scene reachable at `?demo` for development.
+4. **Saved games the player can see.** The save is already keyed by character name (`-u name`) and the client remembers the name. Add: Continue resumes the last character, a list of saved characters, a clear "this will start over" warning, and a visible "Saved" confirmation when the engine saves.
+5. **Class selection.** The engine is hard-wired to Valkyrie (`engineLaunch`). First the launch options and bridge frame fields (role, race, gender, alignment), then the class-select screen, then one class model per PR (see Roadmap step 5).
+6. **First impressions.** Intro text that says what the keys do, a death screen with the cause and a New game button, and a "game ended" state that does not leave a dead page.
+7. **Failure states.** If the engine dies or the stream drops, say so plainly and offer Reconnect; do not leave a silent frozen screen. Also mobile and small windows: at minimum, a clear "needs a keyboard" message.
+8. **Operations.** Nightly deploy (`deploy/update.sh` in cron), saves backup, and a way to see who is playing (a log line per session start).
+
 ### Known art fixes
 
 Work queues for the scheduled routines. Each routine takes the first item on its own list, does one small step per run, and **deletes the item in the same PR once it is fully done** (or edits it to say what remains). When your own list is empty, take the next item from **UI and controls**, and when that is empty too, make an ordinary improvement.
