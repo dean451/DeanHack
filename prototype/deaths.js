@@ -64,7 +64,9 @@ export function deathPose(style, u, dir = null) {
       p.head = -.5 * sag + .45 * Math.sin(Math.PI * clamp01((u - .3) / .14));
       p.sy = 1 - .72 * sag;
       p.sx = 1 + .18 * sag;
-      p.arm = .6 * smooth((u - .35) / .3);
+      // The arm drops, then gives one dead twitch once it has stopped, as if the hand were
+      // the last part of it to notice.
+      p.arm = .6 * smooth((u - .35) / .3) + .1 * Math.sin(u * 45) * smooth((u - .55) / .05) * (1 - smooth((u - .75) / .15));
       // The knees go before the rest of it notices: the leg gives in a short jerk early on.
       p.leg = .5 * smooth((u - .15) / .2);
       p.fade = 1 - smooth((u - .6) / .4);

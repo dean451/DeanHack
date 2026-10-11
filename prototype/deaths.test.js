@@ -95,6 +95,15 @@ test('a crumbling body jerks its head up in a last double take before it sags', 
   assert.ok(Math.abs(head(1) + .5) < 1e-9, 'still ends sagged');
 });
 
+test('a crumbling body gives its arm one dead twitch after it drops', () => {
+  const arm = u => deathPose('crumble', u).arm;
+  assert.equal(arm(0), 0);
+  let peak = 0;
+  for (let u = .6; u <= .8; u += .005) peak = Math.max(peak, arm(u));
+  assert.ok(peak > arm(1) + .04 && peak < .8, 'twitches past the settled arm');
+  assert.ok(Math.abs(arm(1) - .6) < 1e-9, 'ends where it did');
+});
+
 test('death particles stay finite, land on or above the floor and all expire', () => {
   const fx = createDeathBurst(THREE);
   for (const style of DEATH_STYLES) {
