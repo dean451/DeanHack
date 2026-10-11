@@ -12,6 +12,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // Handles: body, head, arms, arm, ghost (the kind, for ghost-drift.js). No legs, wings or tail. Quirk 'hover', so it bobs like a wraith.
 
 const C={
+ iron:rgb('#4a3426'),
  sheet:rgb('#a4a99f'),fold:rgb('#3e4650'),hem:rgb('#585e56'),stain:rgb('#2e2a22'),bone:rgb('#b9b49c'),
  socket:rgb('#0a0b12'),socketRim:rgb('#3a3e50'),mouth:rgb('#06070c'),
 };
@@ -57,6 +58,12 @@ function buildBody(){
   geo.translate(0,len/2,0);
   P.add(geo,at(x,y,-.15,[-1.95,0,yaw]),(px,py)=>mix(C.hem,C.fold,clamp((.2-py)/.2,0,1)));
  }
+ // a rusted chain wound round the waist, one loose end hanging: the dead are bound as well as buried
+ for(let i=0;i<14;i++){
+  const a=i*.46+.3,r=.2+(i%2)*.012;
+  P.add(new THREE.TorusGeometry(.021,.0065,5,8),at(Math.sin(a)*r,.49+i*.0045,Math.cos(a)*r,[0,a+(i%2?Math.PI/2:0),(i%2?0:Math.PI/2)]),C.iron);
+ }
+ for(let i=0;i<4;i++)P.add(new THREE.TorusGeometry(.021,.0065,5,8),at(.06+i*.004,.46-i*.045,.215-i*.01,[0,i%2?Math.PI/2:0,i%2?0:Math.PI/2]),C.iron);
  return P.merge();
 }
 

@@ -2837,3 +2837,11 @@ test('plain, hill and stone giants and ettins carry old claw-gash scars on the c
   assert(c.g.userData.scarred,`${name} is scarred`);}
  assert(!createCreature({name:'frost giant',symbol:72,color:3}).g.userData.scarred,'frost giants stay clean');
 });
+
+test('the ghost is bound in a rusted chain without growing a new part',()=>{
+ const ghost=createCreature({name:'ghost',symbol:32,color:7});
+ const body=ghost.body.children.find(c=>c.userData.part==='body');
+ const col=body.geometry.attributes.color;let rust=0;
+ for(let i=0;i<col.count;i++)if(col.getX(i)>col.getZ(i)*1.3&&col.getX(i)<.2)rust++;
+ assert(rust>100,`${rust} rusted vertices`);
+});
