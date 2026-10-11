@@ -20,7 +20,9 @@ RUN cd prototype && USER=root npm run engine:build
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive NODE_ENV=production
-RUN apt-get update && apt-get install -y --no-install-recommends libncurses6 liblua5.4-0 ca-certificates \
+# bzip2: the engine was configured with /usr/bin/bzip2 as its save compressor. Without it a save
+# leaves a broken .bz2 behind and the next start deletes the real save ("new game" on resume).
+RUN apt-get update && apt-get install -y --no-install-recommends libncurses6 liblua5.4-0 bzip2 ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /usr/sbin/nologin deanhack
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
