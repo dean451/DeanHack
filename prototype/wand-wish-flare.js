@@ -36,7 +36,9 @@ export function ringPose(t) {
 export function echoPose(t) {
   const u = clamp01((t - .3) / (FLARE.total - .3));
   if (u <= 0 || u >= 1) return {radius: .001, alpha: 0};
-  return {radius: .1 + .9 * (1 - (1 - u) ** 2), alpha: .35 * Math.sin(Math.PI * u) * (.65 + .35 * Math.sin(u * 45))};
+  // Halfway it stalls, as if checking whether anyone is looking, then drags on.
+  const stall = .05 * Math.sin(Math.PI * clamp01((u - .45) / .15)) ** 2;
+  return {radius: .1 + .9 * (1 - (1 - u) ** 2) - stall, alpha: .35 * Math.sin(Math.PI * u) * (.65 + .35 * Math.sin(u * 45))};
 }
 
 // The spike stands up tall in an instant, then snaps off from the top down.

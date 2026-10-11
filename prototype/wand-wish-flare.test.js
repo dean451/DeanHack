@@ -66,3 +66,10 @@ test('the ring hitches half way across the floor, then still ends in bounds', ()
   for (let t = 0; t <= FLARE.total; t += .005) { const p = ringPose(t); assert.ok(p.radius > 0 && p.radius <= 1.75 && p.alpha >= 0 && p.alpha <= .8); }
   assert.equal(ringPose(FLARE.total).alpha, 0);
 });
+
+test('the echo ring stalls halfway, then drags on', () => {
+  const T = FLARE.total, at = u => echoPose(.3 + u * (T - .3)).radius, plain = u => .1 + .9 * (1 - (1 - u) ** 2);
+  assert.ok(at(.52) < plain(.52) - .03);
+  assert.ok(Math.abs(at(.4) - plain(.4)) < 1e-9);
+  assert.ok(Math.abs(at(.7) - plain(.7)) < 1e-9);
+});
