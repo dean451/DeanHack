@@ -1759,6 +1759,18 @@ function wraith(o){
  if(o.circlet){cylinder(head,.17,.18,.04,mat('#7a5a34',{roughness:.6,metalness:.5}),0,1.2-H,-.01,12);sphere(head,.022,glow,0,1.2-H,.17);}
  if(o.crown){const silver=mat('#c8ccd4',{roughness:.25,metalness:.9});cylinder(head,.16,.17,.05,silver,0,1.26-H,-.01,12);for(let i=0;i<7;i++){const a=(i/7-.5)*Math.PI*1.4;cone(head,.018,.1,silver,Math.sin(a)*.16,1.32-H,-.01+Math.cos(a)*.16,4);}}
  if(o.sword){const blade=rounded(body,.04,.5,.012,o.crown?mat('#9aa0ac',{roughness:.3,metalness:.85}):mat('#8a7a64',{roughness:.6,metalness:.5}),.3,.74,.2,.008);blade.rotation.x=.9;rounded(body,.13,.025,.035,trim,.3,.62,.08,.008).rotation.x=.9;}
+ // Death leans on a long black scythe, its notched blade hooked forward over his shoulder; Famine hangs a pair of rusted
+ // scales from a crook, one pan sunk low and empty
+ if(o.kind==='death'){const iron=mat('#2a2a30',{roughness:.45,metalness:.8}),haft=mat('#17141a',{roughness:.9});
+  cylinder(body,.017,.021,1.55,haft,-.3,.77,.12,6);
+  const blade=rounded(body,.46,.035,.012,iron,-.1,1.52,.12,.006);blade.rotation.z=-.16;
+  cone(body,.022,.14,iron,.13,1.43,.12,4).rotation.z=Math.PI;
+  for(let i=0;i<3;i++)cone(body,.012,.05,iron,-.2+i*.12,1.5-i*.015,.12,3).rotation.z=Math.PI;}
+ if(o.kind==='famine'){const rust=mat('#3a2a1c',{roughness:.85,metalness:.6}),pan=mat('#4a3c2c',{roughness:.8,metalness:.5});
+  cylinder(body,.014,.018,1.3,rust,.26,.65,.1,6);
+  const beam=rounded(body,.3,.025,.025,rust,.26,1.3,.1,.008);beam.rotation.z=.14;
+  for(const side of [-1,1]){const low=side>0,y=low?1.14:1.34-0.1,px=.26+side*.13;
+   cylinder(body,.006,.006,.2,rust,px,y+.1,.1,4);cylinder(body,.075,.05,.018,pan,px,y-.01,.1,10);}}
  // evil glow (Nazgul): a pool of cold dread under the hem and a morgul-lit edge along the blade
  if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.2,transparent:true,opacity:.15,depthWrite:false}),edge=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=edge.name='evil-glow';
   const p=cylinder(g,.36,.42,.004,pool,0,.004,0,24);p.userData.ring=true;p.castShadow=false;p.receiveShadow=false;
