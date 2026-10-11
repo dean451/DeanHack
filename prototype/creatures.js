@@ -1120,6 +1120,10 @@ function proboscidean(o){
  const path=[[0,0,0],[0,-.12,.06],[0,-.3,.07],[0,-.46,.05],[0,-.56,.1],[0,-.57,.17]];
  B.put(trunk,skin,taperedTube(path,.075,.03,24,10,.05));
  B.put(trunk,dark,S(.032,10,8),path[5]);
+ // mumakil are war beasts: old rusted iron bands bind the tusks and dark gouges are raked across the flank
+ if(o.warScars){const iron=mat('#4a2e22',{roughness:.9,metalness:.4});iron.name='mumak-bands';const gouge=mat(o.dark,{roughness:1});gouge.name='mumak-gouge';
+  for(const side of [-1,1]){B.put(head,iron,new THREE.TorusGeometry(.04,.012,5,10),[side*.1,-.17,.22],[0,Math.PI/2,0]);B.put(head,iron,new THREE.TorusGeometry(.033,.012,5,10),[side*.115,-.19,.3],[0,Math.PI/2,0]);
+   for(let k=0;k<3;k++)B.put(body,gouge,new THREE.BoxGeometry(.01,.02,.2),[side*(.285-k*.01),y+.02-k*.05,.05-k*.04],[.2,0,side*(.15+k*.05)]);}}
  // pillar legs with a wide round foot and three toenails; the mastodon's are shaggy to the knee
  for(const side of [-1,1])for(const z of [.24,-.25]){
   const leg=new THREE.Group();leg.position.set(side*.17,legH,z);body.add(leg);legs.push(leg);
@@ -1137,7 +1141,7 @@ function proboscidean(o){
  return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,trunk});
 }
 const PROBOSCIDEANS={
- mumak:{name:'mumak',scale:1.25,skin:'#7c7872',dark:'#56524d',ear:.2,crown:0,minorTusks:true},
+ mumak:{name:'mumak',scale:1.25,skin:'#7c7872',dark:'#56524d',ear:.2,crown:0,minorTusks:true,warScars:true},
  mastodon:{name:'mastodon',scale:1.25,skin:'#4a3b30',dark:'#2f251e',hair:'#6b4526',ear:.09,crown:.07,spiral:true},
 };
 // Titanotheres and baluchitheria (q): giant rhinos that used to borrow the rothe.

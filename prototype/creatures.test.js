@@ -2690,9 +2690,10 @@ test('only the purple worm bears a ridge of horn spikes down its back',()=>{
  assert.equal(count('baby purple worm'),0);
 });
 
-test('xorns thrust stone spurs from the shoulders',()=>{
+test('mumakil wear rusted tusk bands and flank gouges',()=>{
  const count=(name,symbol,mn)=>{let n=0;createCreature({name,symbol,color:5}).g.traverse(o=>{if(o.isMesh&&o.material.name===mn)n++;});return n;};
- assert(count('xorn',88,'xorn-spurs')>0);
+ assert(count('mumak',113,'mumak-bands')>0&&count('mumak',113,'mumak-gouge')>0);
+ assert.equal(count('mastodon',113,'mumak-bands'),0);
 });
 
 test('the titan is a scarred colossus, taller than any ordinary giant',()=>{
