@@ -2683,6 +2683,13 @@ test('the purple worm has a venom-lit gullet and long fangs; the long worm does 
  assert(!has('long worm','worm-venom')&&!has('baby purple worm','worm-fangs'));
 });
 
+test('only the purple worm bears a ridge of horn spikes down its back',()=>{
+ const count=name=>{let n=0;createCreature({name,symbol:87,color:5}).g.traverse(o=>{if(o.isMesh&&o.material.name==='worm-spikes')n++;});return n;};
+ assert.equal(count('purple worm'),7);
+ assert.equal(count('long worm'),0);
+ assert.equal(count('baby purple worm'),0);
+});
+
 test('the titan is a scarred colossus, taller than any ordinary giant',()=>{
  const t=createCreature({name:'titan',symbol:72,color:5}),f=createCreature({name:'fire giant',symbol:72,color:1});
  assert(t.g.userData.scarred&&!f.g.userData.scarred,'war-scars on the breastplate');
