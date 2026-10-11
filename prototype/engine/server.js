@@ -1,5 +1,5 @@
 import {spawn} from 'node:child_process';
-import {readFileSync,writeFileSync,renameSync,mkdirSync,realpathSync,readdirSync,statSync} from 'node:fs';
+import {readFileSync,writeFileSync,renameSync,mkdirSync,realpathSync,readdirSync,statSync,unlinkSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {resolve,sep,dirname} from 'node:path';
 import {randomBytes} from 'node:crypto';
@@ -59,6 +59,20 @@ export function rememberCharacter(file, key, choice) {
 // A save file name has no spaces: "Mary Jane" is saved as "Mary_Jane".
 export const saveKey = name => cleanPlayerName(name).replace(/ /g, '_');
 
+// Delete a character: its save (compressed or not), its level files and its class note. Returns
+// how many files went. Only this player's number, only this name, only inside the var folder.
+export function forgetCharacter(dir, uid, key) {
+  const stem = `${uid}${key}`, tryUnlink = f => { try { unlinkSync(f); return 1; } catch { return 0; } };
+  let n = tryUnlink(resolve(dir, 'saves', stem + '.bz2')) + tryUnlink(resolve(dir, 'saves', stem));
+  let levels = [];
+  try { levels = readdirSync(resolve(dir, 'level')); } catch {}
+  const mine = new RegExp('^' + stem.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.\\d+$');
+  for (const f of levels) if (mine.test(f)) n += tryUnlink(resolve(dir, 'level', f));
+  const file = resolve(dir, 'characters.json'), all = readCharacters(file);
+  if (Object.hasOwn(all, `${uid}:${key}`)) { delete all[`${uid}:${key}`]; writeFileSync(file + '.tmp', JSON.stringify(all)); renameSync(file + '.tmp', file); }
+  return n;
+}
+
 // The engine's command line and options for a character of this name.
 export function engineLaunch(rawName, manifest, rawChoice) {
   const name = cleanPlayerName(rawName);
@@ -109,7 +123,7 @@ export function playerIdOf(headers, trustProxy) {
 // prompt, a recent message history, an event log for polling, and the open event streams.
 export function createSession({ root, id, uid = null, spawnEngine = spawn, now = Date.now }) {
   const token = randomBytes(24).toString('hex');
-  let playerName = DEFAULT_PLAYER_NAME, playerChoice = null, child = null, pending = null, frame = null, menu = null, text = null, ended = null, commands = null, buffer = '', seq = 0, lastActive = now();
+  let playerName = DEFAULT_PLAYER_NAME, playerChoice = null, stopReason = null, child = null, pending = null, frame = null, menu = null, text = null, ended = null, commands = null, buffer = '', seq = 0, lastActive = now();
   const clients = new Set(), history = [], log = [];
   // A monotonic, capped event log backs GET /engine/poll: some hosting paths (a proxy or
   // tunnel that buffers/holds back streaming responses) never deliver anything over the
@@ -144,12 +158,18 @@ export function createSession({ root, id, uid = null, spawnEngine = spawn, now =
     });
     proc.stderr.on('data', b => send({ type: 'message', text: String(b).slice(0, 1000) }));
     proc.on('error', e => send({ type: 'message', text: e.message }));
-    proc.on('close', code => { if (child === proc) { child = null; pending = null; } send({ type: 'ended', text: `Engine session closed (${code}). Start again to resume any saved character.` }); });
+    proc.on('close', code => {
+      if (child === proc) { child = null; pending = null; }
+      // why it ended, for the splash: the player's own quit or death ('exit'), the idle sweep, a server restart, or a crash
+      const reason = stopReason || (code === 0 ? 'exit' : 'crash'); stopReason = null;
+      send({ type: 'ended', reason, code, text: `Engine session closed (${code}). Start again to resume any saved character.` });
+    });
   }
   // Ask a running engine to save and exit, and wait for it (up to `ms`); a server that is stopping
   // (a redeploy, `docker stop`) or an idle player calls this so the character is saved, not killed.
-  const stop = (ms = 8000) => new Promise(done => {
+  const stop = (ms = 8000, reason = 'idle') => new Promise(done => {
     if (!child) return done();
+    stopReason = reason;
     const t = setTimeout(done, ms); child.once('close', () => { clearTimeout(t); done(); }); child.stdin.end();
   });
   return {
@@ -191,7 +211,7 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
     return session;
   }
   const running = () => [...sessions.values()].filter(s => s.running).length;
-  const stopAll = (ms = 8000) => Promise.all([...sessions.values()].map(s => s.stop(ms)));
+  const stopAll = (ms = 8000) => Promise.all([...sessions.values()].map(s => s.stop(ms, 'shutdown')));
   // An engine nobody is talking to for a while is saved and stopped, so a closed tab does not hold a slot.
   const sweep = setInterval(() => { for (const s of sessions.values()) if (s.running && s.idleMs > idleMs) { s.touch(); void s.stop(); } }, sweepMs);
   sweep.unref?.();
@@ -253,6 +273,13 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
             return json(200, { ok: true, name: session.name, choice: session.choice });
           }
           if (path === '/engine/input') { session.input(body); return json(200, { ok: true }); }
+          if (path === '/engine/forget') {
+            let name; try { name = JSON.parse(body).name; } catch { name = undefined; }
+            const key = saveKey(name), dir = varDir(), uid = session.uid ?? process.getuid?.() ?? 0;
+            if (session.running && saveKey(session.name) === key) throw new Error('That character is playing right now. Save and quit first.');
+            if (!dir) throw new Error('The engine is not built');
+            return json(200, { ok: true, removed: forgetCharacter(dir, uid, key) });
+          }
           return json(404, { error: 'Unknown action' });
         } catch (e) { return json(400, { error: e.message }); }
       });

@@ -174,6 +174,9 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 #start-go.resume{background:#1d3b3d;border-color:#6fb7b4}
 #start-go.resume:hover,#start-go.resume:focus-visible{background:#26494b}
 #start-note{min-height:20px;margin:10px 2px 0;font-size:13px;color:#8d9aa1}
+#start-status{margin:-14px 0 22px 3px;padding:8px 12px;border-left:2px solid #6fb7b4;background:#0f1d20cc;color:#dfe8e6;font:14px/1.4 Inter,system-ui,sans-serif}#start-status[hidden]{display:none}
+.start-row{display:flex;gap:14px;margin:12px 2px 0}.start-row button{padding:4px 2px;background:none;border:0;color:#8aa0a8;font:12px Inter,system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.start-row button:hover,.start-row button:focus-visible{color:#dfe8e6;outline:none}.start-row button[hidden]{display:none}.start-forget{color:#c9684a!important}
+#start-screen[hidden]{display:none}
 .start-saves{margin-top:22px}.start-saves[hidden]{display:none}
 .start-saves>span{display:block;font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#7f909a;margin:0 0 8px 2px}
 .start-list{display:flex;flex-wrap:wrap;gap:8px}
