@@ -11,6 +11,10 @@ export const TUMBLE_HEIGHT = .55, TUMBLE_GRAVITY = 9, TUMBLE_BOUNCES = [.5, .28]
 // After the last bounce the hero lies still a beat, then one small involuntary jerk of the body.
 export const TWITCH_GAP = .3, TWITCH_LEN = .14, TWITCH_HEIGHT = .009, TWITCH_GAP2 = .22;
 
+// The step goes from under the hero before the new level arrives: a short lurch down, then nothing.
+export const TEETER_LEN = .18, TEETER_DIP = .035;
+export const teeterOffset = t => t > 0 && t < TEETER_LEN ? -TEETER_DIP * Math.sin(Math.PI * t / TEETER_LEN) : 0;
+
 export const tumbleMessage = text => typeof text === 'string' && /^You fall down the (?:stairs|ladder)\b/.test(text);
 
 // Height above the floor t seconds after arriving: a short fall, then diminishing hops, then rest.
@@ -45,7 +49,7 @@ export function createStairTumble() {
     update(dt) {
       if (!mode) return 0;
       age += Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
-      if (mode === 'armed') { if (age >= ARM_TIME) mode = null; return 0; }
+      if (mode === 'armed') { if (age >= ARM_TIME) mode = null; return teeterOffset(age); }
       if (age >= TUMBLE_TIME) { mode = null; return 0; }
       return tumbleOffset(age);
     },

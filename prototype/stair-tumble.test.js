@@ -29,7 +29,8 @@ test('the controller tumbles on arrival and finishes at exactly zero', () => {
   assert.equal(d.update(.016), 0);
   assert.ok(!d.arrive(), 'not armed, no tumble');
   assert.ok(d.message('You fall down the stairs.'));
-  assert.equal(d.update(.5), 0, 'armed hero stays level');
+  for (let i = 0; i < 5; i++) d.update(.1);
+  assert.equal(d.update(.1), 0, 'armed hero stays level once the lurch is over');
   assert.ok(d.arrive());
   let high = 0;
   for (let t = 0; t < TUMBLE_TIME + .2; t += 1 / 60) high = Math.max(high, d.update(1 / 60));
@@ -62,4 +63,13 @@ test('a second, fainter twitch follows the first, then the hero is exactly still
   assert.ok(second > 0 && second < first, `${second} < ${first}`);
   assert.ok(Math.abs(tumbleOffset(end + TWITCH_GAP + TWITCH_LEN + TWITCH_GAP2 / 2)) < 1e-9, 'rests between');
   assert.ok(Math.abs(tumbleOffset(TUMBLE_TIME)) < 1e-9);
+});
+
+test('the armed hero lurches down a hair before the level arrives, then holds still', async () => {
+  const {teeterOffset, TEETER_LEN, TEETER_DIP, createStairTumble: mk} = await import('./stair-tumble.js');
+  assert.equal(teeterOffset(0), 0); assert.equal(teeterOffset(TEETER_LEN), 0); assert.equal(teeterOffset(1), 0);
+  assert.ok(teeterOffset(TEETER_LEN / 2) < 0 && teeterOffset(TEETER_LEN / 2) >= -TEETER_DIP - 1e-9);
+  const s = mk(); s.message('You fall down the stairs.');
+  let low = 0; for (let t = 0; t < .5; t += 1 / 60) low = Math.min(low, s.update(1 / 60));
+  assert.ok(low < 0); assert.equal(s.update(.016), 0);
 });
