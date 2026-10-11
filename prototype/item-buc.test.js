@@ -59,7 +59,7 @@ test('hover hints also name wear, wield, charges and erosion', async () => {
   assert.equal(itemHint('a very rusty thoroughly corroded long sword'), 'very rusty, thoroughly corroded');
   assert.equal(itemHint('a very corroded poisoned dart (in quiver)'), 'very corroded, poisoned, quivered');
   assert.equal(itemHint('20 darts (at the ready)'), 'quivered');
-  assert.equal(itemHint('a ring of free action (on left hand)'), 'worn');
+  assert.equal(itemHint('a ring of free action (on left hand)'), 'worn, left hand');
   assert.deepEqual(itemFacts('a plain dagger'), []);
 });
 
@@ -154,4 +154,9 @@ test('a shop stack priced each says so in the hover', () => {
   assert.deepEqual(itemFacts('3 daggers (for sale, 4 zorkmids each)'), ['for sale 4zm each']);
   assert.deepEqual(itemFacts('2 apples (unpaid, 7 zorkmids each)'), ['unpaid 7zm each']);
   assert.deepEqual(itemFacts('a dagger (for sale, 4 zorkmids)'), ['for sale 4zm']);
+});
+
+test('itemFacts says which hand a ring is on', () => {
+  assert.deepEqual(itemFacts('a ring of regeneration (on right hand)'), ['worn, right hand']);
+  assert.deepEqual(itemFacts('a ring of regeneration (on left finger)'), ['worn, left hand']);
 });
