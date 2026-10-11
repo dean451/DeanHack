@@ -221,6 +221,15 @@ static const char *shktins[] = {
 NEARDATA boolean mkshop_curated_loot = FALSE;
 NEARDATA boolean mkshop_no_mimics = FALSE;
 
+/* The guaranteed level-2 general store comes in two stockings.
+ * DEANHACK_ASCENSION_SHOP=1 is the old curated ascension kit (+7 armor,
+ * Excalibur, wands of death...), kept here for when it is wanted again.
+ * Off (the default) it is a regular general store, random stock and all,
+ * plus a few likely pieces of ordinary early kit (essential_items[]). */
+#ifndef DEANHACK_ASCENSION_SHOP
+#define DEANHACK_ASCENSION_SHOP 0
+#endif
+
 /* tools allowed in the curated level-2 general store; every other tool
  * is considered junk for this shop */
 static const short curated_loot_allowed_tools[] = {
@@ -257,6 +266,7 @@ curated_loot_rejected(struct obj *otmp)
     return FALSE;
 }
 
+#if DEANHACK_ASCENSION_SHOP
 /* one guaranteed copy of each of these is placed in the curated
  * level-2 general store, on top of its normal (filtered) assortment */
 static const struct {
@@ -352,6 +362,65 @@ place_curated_guaranteed_items(struct mkroom *sroom, int rmno, int sh)
         if (otmp && otmp->oclass == ARMOR_CLASS) {
             otmp->spe = 7;
         }
+    }
+}
+#endif /* DEANHACK_ASCENSION_SHOP */
+
+/* The regular level-2 store's extra stock: ordinary early kit, each entry
+ * with the given percent chance, so the shop is reliably useful without
+ * being the same every game. Nothing is forced blessed or enchanted; a
+ * guaranteed shop should not sell a cursed "essential", so cursed is cleared. */
+static const struct {
+    short otyp;
+    short quan;     /* 0 or 1 means a single item */
+    short odds;     /* percent chance the shop has it */
+} essential_items[] = {
+    { FOOD_RATION,   3, 100 },
+    { CRAM_RATION,   2,  75 },
+    { OIL_LAMP,      1,  75 },
+    { SACK,          1,  75 },
+    { HELMET,        1,  75 },
+    { SCR_IDENTIFY,  2,  75 },
+    { PICK_AXE,      1,  50 },
+    { UNICORN_HORN,  1,  50 },
+    { HIGH_BOOTS,    1,  50 },
+    { SMALL_SHIELD,  1,  50 },
+    { POT_HEALING,   2,  50 },
+    { TOWEL,         1,  50 },
+    { BLINDFOLD,     1,  50 },
+    { TIN_OPENER,    1,  50 },
+    { TINNING_KIT,   1,  33 },
+};
+
+static void
+place_essential_items(struct mkroom *sroom, int rmno, int sh)
+{
+    int i, sx, sy, tries;
+    struct obj *otmp;
+
+    for (i = 0; i < SIZE(essential_items); i++) {
+        if (rn2(100) >= essential_items[i].odds) {
+            continue;
+        }
+        tries = 0;
+        do {
+            sx = sroom->lx + rn2(sroom->hx - sroom->lx + 1);
+            sy = sroom->ly + rn2(sroom->hy - sroom->ly + 1);
+            tries++;
+        } while (tries < 50 &&
+                 (!stock_room_goodpos(sroom, rmno, sh, sx, sy) ||
+                  !IS_ROOM(levl[sx][sy].typ)));
+        if (tries >= 50) {
+            continue;
+        }
+        otmp = mksobj_at(essential_items[i].otyp, sx, sy, TRUE, FALSE);
+        if (!otmp) {
+            continue;
+        }
+        if (essential_items[i].quan > 1) {
+            otmp->quan = essential_items[i].quan;
+        }
+        otmp->cursed = 0;
     }
 }
 
@@ -478,7 +547,8 @@ mkshobj_at(const struct shclass *shp, int sx, int sy, int color)
 redo:
         otmp = mkobj_at(atype, sx, sy, TRUE);
 
-        if (mkshop_curated_loot && curated_loot_rejected(otmp)) {
+        if (DEANHACK_ASCENSION_SHOP && mkshop_curated_loot
+            && curated_loot_rejected(otmp)) {
             obj_extract_self(otmp);
             obfree(otmp, NULL);
             goto redo;
@@ -945,7 +1015,11 @@ stock_room(int shp_indx, struct mkroom *sroom)
     }
 
     if (curated_loot) {
+#if DEANHACK_ASCENSION_SHOP
         place_curated_guaranteed_items(sroom, rmno, sh);
+#else
+        place_essential_items(sroom, rmno, sh);
+#endif
     }
 
     /*
