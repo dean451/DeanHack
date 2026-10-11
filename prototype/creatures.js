@@ -1771,6 +1771,14 @@ function wraith(o){
   const beam=rounded(body,.3,.025,.025,rust,.26,1.3,.1,.008);beam.rotation.z=.14;
   for(const side of [-1,1]){const low=side>0,y=low?1.14:1.34-0.1,px=.26+side*.13;
    cylinder(body,.006,.006,.2,rust,px,y+.1,.1,4);cylinder(body,.075,.05,.018,pan,px,y-.01,.1,10);}}
+ // Pestilence bears a warped bow and festers with lit green boils on his shoulders and hood; War wears spiked iron pauldrons
+ if(o.kind==='pestilence'){const wood=mat('#2a2214',{roughness:.9}),boil=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.6,roughness:.4});
+  for(const [bx,by,bz,br] of [[-.22,.95,.02,.045],[.2,.93,-.04,.05],[.08,1.12,-.1,.04],[-.1,.72,.12,.035]])sphere(body,br,boil,bx,by,bz);
+  for(const k of [-1,1]){const limb=rounded(body,.025,.42,.025,wood,-.32,.9+k*.2,.1,.008);limb.rotation.z=k*.22;}
+  cylinder(body,.004,.004,.74,mat('#8a8470',{roughness:.8}),-.28,.9,.1,4);}
+ if(o.kind==='war'){const iron=mat('#2c2a2e',{roughness:.5,metalness:.8});
+  for(const side of [-1,1]){const plate=rounded(body,.2,.07,.24,iron,side*.26,.99,0,.02);plate.rotation.z=side*-.3;
+   for(const f of [-.07,.07])cone(body,.025,.13,iron,side*.3,1.08,f,4).rotation.z=side*-.35;}}
  // evil glow (Nazgul): a pool of cold dread under the hem and a morgul-lit edge along the blade
  if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.2,transparent:true,opacity:.15,depthWrite:false}),edge=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=edge.name='evil-glow';
   const p=cylinder(g,.36,.42,.004,pool,0,.004,0,24);p.userData.ring=true;p.castShadow=false;p.receiveShadow=false;
