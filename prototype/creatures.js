@@ -1811,15 +1811,20 @@ function vampire(o){
  // the back panel hangs from a pivot at the shoulders (`cape`), and each side flap from its own (`flaps`), so they can sweep
  const capeG=new THREE.Group();capeG.position.set(0,.95,-.14);body.add(capeG);const flaps=[];
  const back=rounded(capeG,.46,.86,.03,cape,0,-.43,0,.015);back.rotation.x=-.08;rounded(capeG,.43,.82,.012,lining,0,-.42,.02,.006).rotation.x=-.08;
+ // the hem is ragged: dark jagged tatters hang off the bottom of the cape, and the lining shows through one torn gap
+ for(let i=0;i<6;i++){const t=cone(capeG,.032,.08+(i*5%3)*.03,cape,-.19+i*.076,-.80-(i*5%3)*.01,-.005,3);t.rotation.set(Math.PI,0,(i%2?.2:-.15));}
  for(const side of [-1,1]){const fg=new THREE.Group();fg.position.set(side*.24,.89,-.03);body.add(fg);flaps.push(fg);const flap=rounded(fg,.05,.74,.2,cape,0,-.37,0,.015);flap.rotation.z=side*.1;
   const collar=rounded(body,.16,o.collar||.24,.015,lining,side*.12,1.02,-.06,.006);collar.rotation.set(-.25,side*.55,side*-.25);
   const outer=rounded(body,.17,(o.collar||.24)+.02,.012,cape,side*.125,1.02,-.075,.006);outer.rotation.copy(collar.rotation);}
+ // dried blood: a dark stain down the shirt front and a crusted streak from the corner of the mouth
+ rounded(body,.07,.14,.012,mat('#4a0c12',{roughness:.5}),.025,.72,.118,.006).rotation.z=.15;
  // head: gaunt face, pointed ears, widow's peak, fangs and red eyes
  const head=new THREE.Group();head.position.set(0,1.06,.02);body.add(head);
  sphere(head,.13,skin,0,0,0,.9,1.08,1);rounded(head,.08,.05,.06,skin,0,-.1,.06,.02);
  const cap=sphere(head,.135,hair,0,.04,-.015,.93,.95,1.02);cap.scale.y=.85;cone(head,.035,.07,hair,0,.075,.105,4).rotation.x=Math.PI+.35;
  for(const side of [-1,1]){const ear=cone(head,.025,.09,skin,side*.115,.01,-.01,4);ear.rotation.z=-side*1.1;cone(head,.008,.035,fang,side*.022,-.09,.108,4).rotation.x=Math.PI;}
  const eyeG=new THREE.Group();eyeG.position.set(0,.01,.11);eyeG.userData.part='eyes';head.add(eyeG);eyes(eyeG,glow,0,0,.045);
+ rounded(head,.012,.07,.012,mat('#4a0c12',{roughness:.5}),.03,-.125,.105,.005);
  const arms=[];for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.86,0);body.add(arm);arms.push(arm);rounded(arm,.1,.4,.11,suit,0,-.18,0,.03);sphere(arm,.05,skin,0,-.4,.01,.9,1.2,.9);for(const f of [-.02,0,.02])cone(arm,.008,.05,skin,f,-.46,.02,4).rotation.x=Math.PI;arm.rotation.z=side*.1;arm.rotation.x=side>0?-.35:-.1;}
  // evil glow (vampire lords, mages and Vlad): a pool of blood-dark light under the cape hem
  if(o.evil){const pool=mat(o.evil,{emissive:o.evil,emissiveIntensity:1.2,transparent:true,opacity:.15,depthWrite:false});pool.name='evil-glow';
