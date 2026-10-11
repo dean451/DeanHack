@@ -107,3 +107,9 @@ test('the rock shows and trembles in the slot just before it drops', () => {
   assert.ok(shake > .005 && shake <= .012 + 1e-9);
   assert.ok(Math.abs(rockPose(.081).x) < .04 && rockPose(.081).alpha === 1);
 });
+
+test('the fourth pebble rolls back toward the rock as it dies', () => {
+  const t = u => .08 + ROCK.drop + .5 * u, r = u => Math.hypot(gritPose(3, t(u)).x, gritPose(3, t(u)).z);
+  assert.ok(r(.95) < r(.55));
+  assert.ok(r(.5) > .15);
+});

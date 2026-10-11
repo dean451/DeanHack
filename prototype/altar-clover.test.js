@@ -45,3 +45,12 @@ test('the last leaf flinches shut for a beat once open, then reopens; the others
   assert.ok(o(last, 1.2) > o(last, 1.0) + .15);
   for (let i = 0; i < last; i++) assert.ok(o(i, 1.0) >= o(i, .88) - 1e-9, String(i));
 });
+
+test('the third leaf ticks twice, fast, then holds still', () => {
+  const sh = t => leafPose(2, t).shake;
+  let flips = 0, prev = 0;
+  for (let t = 1.6; t < 1.74; t += .002) { const s = sh(t); if (prev && s && Math.sign(s) !== Math.sign(prev)) flips++; if (s) prev = s; }
+  assert.ok(flips >= 3);
+  assert.equal(sh(1.8), 0);
+  assert.equal(leafPose(0, 1.65).shake, 0);
+});

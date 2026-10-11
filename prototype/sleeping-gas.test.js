@@ -95,3 +95,9 @@ test('the eighth puff yawns wide and tall mid-sag, then settles', () => {
   assert.ok(at(.59).size > at(.5).size * 1.05 && at(.59).y > at(.5).y - .03, 'the yawn');
   assert.ok(at(.59).size <= .26);
 });
+
+test('the fifth puff jerks up once on a bad dream, then sinks back', () => {
+  const t = u => .21 + 1.6 * u, y = u => puffPose(5, t(u)).y;
+  assert.ok(y(.44) - (y(.40) + y(.48)) / 2 > .03);
+  assert.ok(y(.9) < y(.3));
+});
