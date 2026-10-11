@@ -2864,3 +2864,12 @@ test('the cockatrice is torn and grey-patched and still fits its tile',()=>{
  assert(b.min.y>-.05,'stands on the floor');
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
 });
+
+test('the xorn is split by old fractures and still fits its tile',()=>{
+ const x=createCreature({name:'xorn',symbol:88,color:3});
+ assert(x.g.userData.fractured,'fractured barrel');
+ x.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(x.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
+});

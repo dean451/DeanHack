@@ -1875,6 +1875,10 @@ function xorn(o){
  // jagged stone spurs thrust up from the shoulders between the arms, so the xorn reads as a rockfall that hunts
  const spur=mat(shade(o.stone||'#8a7f6a',.5),{roughness:1,flatShading:true});spur.name='xorn-spurs';
  for(let i=0;i<6;i++){const b=i*Math.PI/3+.3;cone(body,.035,.1+(i%2)*.06,spur,Math.sin(b)*.2,.68,Math.cos(b)*.2,4).rotation.set(Math.cos(b)*.35,i,-Math.sin(b)*.35);}
+ // wear: old fractures split the barrel
+ const fissure=mat('#14100c',{roughness:1});
+ for(const [a,y,rz] of [[.9,.4,.4],[3.2,.55,-.5],[5.1,.35,.2]]){const c=rounded(body,.02,.16,.008,fissure,Math.sin(a)*.252,y,Math.cos(a)*.252,.003);c.rotation.set(0,a,rz);}
+ g.userData.fractured=true;
  return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
 const XORNS={xorn:{scale:1.25}};
