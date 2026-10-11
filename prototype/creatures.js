@@ -834,6 +834,10 @@ function worm(o){
  part(head,new THREE.TorusGeometry(r*.66,r*.12,6,18),mat(o.lip||'#8a3a3a',{roughness:.5}),0,0,r*.74);
  const toothMat=mat('#e8e0c8',{roughness:.35});const teeth=o.baby?6:10;
  for(let i=0;i<teeth;i++){const a=i/teeth*Math.PI*2;cone(head,r*.08,r*.3,toothMat,Math.cos(a)*r*.52,Math.sin(a)*r*.52,r*.76,4).rotation.z=a+Math.PI/2;}
+ // purple worms: a ridge of dark horn spikes down the arched back, so the great worm reads as a predator
+ if(o.venom){const spike=mat('#2a1430',{roughness:.5});spike.name='worm-spikes';
+  for(const [i,[x,y,z]] of rear.entries())cone(body,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=-.3;
+  for(const [i,[x,y,z]] of fore.entries())cone(neck,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=.2;}
  return actor(g,body,[],neck,[],'worm');
 }
 // Long worm tail segments arrive as their own monster cells ("long worm tail", glyph ~).
