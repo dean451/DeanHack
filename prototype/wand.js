@@ -56,7 +56,8 @@ function wandLook(look) {
     if (look === 'walnut') L.extras.push('bands');
     if (look === 'pine') L.extras.push('knots');
     if (look === 'mahogany') L.extras.push('pits');
-    if (look === 'balsa') { L.radius = .023; L.fit = std(0xc9b58c, 0, .9); }
+    if (look === 'maple') L.extras.push('veins');
+    if (look === 'balsa') { L.radius = .023; L.fit = std(0xc9b58c, 0, .9); L.extras.push('nicks'); }
   } else if (look in METALS) {
     const [c, m, r] = METALS[look];
     L.shaft = std(c, m, r, look === 'uranium' ? {emissive: 0x3c6a1a, emissiveIntensity: .35} : {});
