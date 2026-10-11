@@ -86,7 +86,7 @@ function wandLook(look) {
     if (look === 'short') { L.length = .3; L.radius = .022; L.extras.push('nicks'); }
     if (look === 'long') { L.length = .66; L.radius = .017; L.extras.push('bands'); }
     if (look === 'octagonal') L.extras.push('pits');
-    if (look === 'curved') L.curve = .07;
+    if (look === 'curved') { L.curve = .07; L.shaft = std(0x2c2e31, .85, .38); }
     if (look === 'bent') { L.curve = .1; L.shaft = std(0x4a4d52, .7, .62); }
     if (look === 'spiked') L.extras.push('spikes');
     if (look === 'hexagonal') L.extras.push('bands');
