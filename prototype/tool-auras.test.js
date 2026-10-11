@@ -7,6 +7,8 @@ test('tool effects key on the true name; mundane tools, lamps and other classes 
  assert.equal(toolAuraKind({class:6,name:'bag of holding'}),'bag of holding');
  assert.equal(toolAuraKind({class:6,name:'a unicorn horn'}),'unicorn horn');
  assert.equal(toolAuraKind({class:6,name:'magic marker (0:42)'}),'magic marker');
+ assert.equal(toolAuraKind({class:6,name:'the Bell of Opening'}),'bell of opening');
+ assert.equal(toolAuraKind({class:6,name:'Candelabrum of Invocation (7:0)'}),'candelabrum of invocation');
  assert.equal(toolAuraKind({class:6,name:'sack'}),null);
  assert.equal(toolAuraKind({class:6,name:'magic lamp'}),null);
  assert.equal(toolAuraKind({class:4,name:'bag of holding'}),null);

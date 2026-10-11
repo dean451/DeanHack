@@ -22,6 +22,10 @@ export const TOOL_AURAS = {
   'horn of plenty': {color: 0xe0a030, blend: 'add', motion: 'pulse', count: 2, size: .08, period: 4.2, alpha: .24},
   'drum of earthquake': {color: 0x8a7458, blend: 'normal', motion: 'gnaw', count: 4, size: .045, period: 1.4, alpha: .5},
   'unicorn horn': {color: 0xf4f8ff, blend: 'add', motion: 'spark', count: 4, size: .014, period: 2.2, alpha: .9},
+  // The invocation tools are the strongest tools in the game: a silver bell that tolls out a cold ring, a
+  // candelabrum whose seven sockets throw a few pale-violet sparks.
+  'bell of opening': {color: 0xcfd8e8, blend: 'add', motion: 'pulse', count: 2, size: .1, period: 3.4, alpha: .26},
+  'candelabrum of invocation': {color: 0xb890ff, blend: 'add', motion: 'spark', count: 5, size: .014, period: 1.6, alpha: .85},
   'expensive camera': {color: 0xe8f0ff, blend: 'add', motion: 'blink', count: 1, size: .024, period: 4.4, alpha: .85},
 };
 
