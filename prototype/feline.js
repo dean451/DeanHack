@@ -34,9 +34,9 @@ import {segment,chain} from './ant.js';
 // quirk 'feline'.
 
 const LOOKS={
- kitten:{scruffy:true,scale:.7,coat:'#9a9690',stripe:'#4a4640',belly:'#b8b4a8',nose:'#6a3a38',eye:'#6aa8e0',pattern:'tabby',headSize:1.12,legH:.16,tail:'up',tailLen:.8},
- housecat:{scruffy:true,scale:1,legH:.19,coat:'#cf9050',stripe:'#8a4e22',belly:'#c8b898',nose:'#6a3838',eye:'#d6b640',pattern:'tabby',socks:true},
- 'large cat':{scruffy:true,scale:1.15,legH:.2,coat:'#8a7050',stripe:'#2e241a',belly:'#dccab0',nose:'#5a3630',eye:'#c8b030',pattern:'tabby'},
+ kitten:{scruffy:true,scale:.7,coat:'#9a9690',stripe:'#4a4640',belly:'#b8b4a8',nose:'#6a3a38',eye:'#3f86c4',pattern:'tabby',headSize:1.12,legH:.16,tail:'up',tailLen:.8},
+ housecat:{scruffy:true,scale:1,legH:.19,coat:'#cf9050',stripe:'#8a4e22',belly:'#c8b898',nose:'#6a3838',eye:'#c88a18',pattern:'tabby',socks:true},
+ 'large cat':{scruffy:true,scale:1.15,legH:.2,coat:'#8a7050',stripe:'#2e241a',belly:'#dccab0',nose:'#5a3630',eye:'#b88a20',pattern:'tabby'},
  jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#c4b497',nose:'#5e3630',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
  lynx:{scale:1.1,coat:'#a88f70',stripe:'#5a4630',belly:'#b8ac98',nose:'#5a3a30',eye:'#c8b040',pattern:'spots',tufts:true,ruff:true,legH:.26,tail:'bob'},
  panther:{scale:1.45,coat:'#232226',stripe:'#121114',belly:'#2e2c32',nose:'#141214',eye:'#9ad04a',pattern:'ghost',ears:'round',round:true,heavy:1.1,headSize:.95,tail:'low',gloss:.45,whisker:'#8a8a8a'},
@@ -185,7 +185,7 @@ function buildHead(L,C){
   let c=mix(C.coat,C.back,smooth((y-.04)/.06)*.4);
   const ax=Math.abs(x);
   if(L.pattern==='tabby'||L.pattern==='tiger'){
-   if(y>.035&&z>.06&&ax<.05&&Math.sin(ax*120+1)>.35)c=mix(c,C.stripe,.8);
+   if(y>.035&&z>.06&&ax<.05&&Math.sin(ax*120+1)>.35)c=mix(c,C.stripe,L.scruffy?.45:.8);
    if(ax>.055&&y<.035&&y>-.035&&Math.sin((y+ax*.6)*120)>.55)c=mix(c,C.stripe,.8);
   }else if(L.pattern!=='shimmer'){
    const k=cell(x,y,z,.028);if(k.d<.24)c=mix(c,C.stripe,L.pattern==='ghost'?.5:.65);
@@ -227,7 +227,7 @@ function buildHead(L,C){
  if(L.scruffy)for(const s of [-1,1])for(let k=0;k<3;k++)P.add(new THREE.ConeGeometry(.005,.02,4),at(s*(.08+.004*k),-.03-.012*k,.05+.012*k,[Math.PI/2-.2*k,0,s*(1.1+.2*k)],[1,1,.4]),(x,y,z)=>mix(C.coat,C.stripe,smooth((.04-Math.abs(x))/.04)*.4));
  // pets: a plain leather collar, the one mark of an owner, with a small brass tag hanging at the throat
  if(L.scruffy){
-  P.add(new THREE.TorusGeometry(.066,.009,6,18),at(0,-.07,-.07,[.5,0,0]),rgb('#6a4a2e'));
+  P.add(new THREE.TorusGeometry(.066,.009,6,18),at(0,-.07,-.07,[.5,0,0]),rgb('#8a5a34'));
   P.add(new THREE.CylinderGeometry(.013,.013,.004,10),at(0,-.098,-.065,[Math.PI/2,0,0]),rgb('#b8963c'));
  }
  // the wild cats bare a pair of yellowed fangs hanging past the lip

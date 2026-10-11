@@ -21,7 +21,9 @@ export const airborneStatus = text => typeof text === 'string' && /(?:^|\s)(?:Le
 export function hoverOffset(t) {
   if (!(t > 0) || t >= HOVER_TIME) return 0;
   const k = t / HOVER_TIME, env = Math.sin(Math.PI * k);
-  return HOVER_LIFT * env * (.75 + .25 * Math.sin(t * 9));
+  // Past the middle the hole tugs once: the hero sags nearly to the floor, then catches themselves.
+  const tug = Math.exp(-(((k - .6) / .05) ** 2));
+  return HOVER_LIFT * env * (.75 + .25 * Math.sin(t * 9)) * (1 - .85 * tug);
 }
 
 export const holeMessage = text => typeof text === 'string' && /^You dig a hole through the /.test(text);

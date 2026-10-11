@@ -1,10 +1,17 @@
 // Farlook on hover: the 3D version of `;`. Pointing at a monster or item names it and says whether
 // it is a pet, peaceful or hostile. The engine reports no sleep state, so none is shown.
 
+import {featureKind} from './terrain-feature.js';
 import {itemBuc, bucMark, itemEnchant, enchantMark} from './item-buc.js';
 
 // Bare furniture and hazards the hero can point at, by the bridge's terrain word. Floor, wall and
 // unknown stone stay unnamed so the tooltip stays quiet.
+const FEATURE_NAMES = {
+  ice: 'ice', bog: 'bog', 'bridge-down': 'lowered drawbridge', 'bridge-up': 'raised drawbridge',
+  'ice-wall': 'ice wall', 'crystal-wall': 'crystal wall', cloud: 'cloud', 'poison-cloud': 'poison gas',
+  air: 'open air', 'magic-platform': 'magic platform',
+};
+
 const FEATURES = {
   altar: 'altar', fountain: 'fountain', throne: 'throne', sink: 'sink', grave: 'grave', tree: 'tree',
   up: 'stairs up', down: 'stairs down', door: 'closed door', bars: 'iron bars', water: 'water', lava: 'lava',
@@ -28,6 +35,7 @@ function bareText(cell) {
   if (cell.trap) return String(cell.trap).toLowerCase();
   if (cell.terrain === 'door' && cell.door === 'open') return 'open door';
   if (cell.door === 'broken') return 'broken door';
+  if (cell.terrain === 'feature') return FEATURE_NAMES[featureKind(cell.symbol, cell.color)] || '';
   return FEATURES[cell.terrain] || '';
 }
 

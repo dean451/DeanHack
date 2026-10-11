@@ -805,27 +805,24 @@ test('the candelabrum is merged gold, wax and flame meshes showing its candles',
  floorLit.userData.dispose();floorDark.userData.dispose();
 });
 
-test('the magic marker is one merged pen-and-cap mesh, dry at zero charges',()=>{
+test('the magic marker is a scribe\'s stylus: a bone shaft and its glowing ink, the ink dead at zero charges',()=>{
  assert.equal(markerCharges('magic marker (0:12)'),12);
  assert.equal(markerCharges('cursed magic marker (0:0)'),0);
  assert.equal(markerCharges('magic marker'),null);
- const model=createGroundModel({name:'magic marker (0:12)',class:6});
- assert(model);assert.equal(model.children.length,1);
- const [pen]=model.children,geo=pen.geometry;
- assert.equal(pen.userData.part,'marker');assert(pen.material.vertexColors);
- for(const k of ['position','normal','color'])for(const v of geo.attributes[k].array)assert(Number.isFinite(v),k);
+ const model=createGroundModel({name:'magic marker',label:'magic marker (0:12)',class:6});
+ assert(model);assert.deepEqual(model.children.map(c=>c.userData.part),['marker','ink']);
+ const [stylus,ink]=model.children;
+ assert(stylus.material.vertexColors);assert(ink.userData.magicShell,'the tool tint leaves the ink alone');
+ for(const m of model.children)for(const k of ['position','normal'])for(const v of m.geometry.attributes[k].array)assert(Number.isFinite(v),k);
  const bounds=new THREE.Box3().setFromObject(model);
  assert(Math.abs(bounds.min.y)<1e-6);assert(bounds.max.y<.12);
  assert(bounds.max.x<.49&&bounds.min.x>-.49&&bounds.max.z<.49&&bounds.min.z>-.49);
  assert(bounds.max.x-bounds.min.x>.25,'long across the tile');
- // Red ink shows while it has charges; a dry marker has no strongly red vertex.
- const reddest=m=>{const c=m.children[0].geometry.attributes.color.array;let best=0;for(let i=0;i<c.length;i+=3)best=Math.max(best,c[i]-(c[i+1]+c[i+2])/2);return best;};
- const dry=createGroundModel({name:'magic marker (0:0)',class:6});
- assert(reddest(model)>.4);assert(reddest(dry)>.4,'the cap and butt stay red');
- const nibRed=m=>{const g=m.children[0].geometry,p=g.attributes.position,c=g.attributes.color;let x=-1,i0=0;for(let i=0;i<p.count;i++)if(p.getX(i)>x){x=p.getX(i);i0=i;}return c.getX(i0)-(c.getY(i0)+c.getZ(i0))/2;};
- assert(nibRed(model)>.2);assert(nibRed(dry)<.1,'dry nib');
- let geometries=0,materials=0;geo.addEventListener('dispose',()=>geometries++);pen.material.addEventListener('dispose',()=>materials++);
- model.userData.dispose();assert.equal(geometries,1);assert.equal(materials,1);
+ assert(ink.material.emissiveIntensity>2,'the ink burns');
+ const dry=createGroundModel({name:'magic marker',label:'magic marker (0:0)',class:6});
+ assert.equal(dry.children[1].material.emissiveIntensity,0,'a dry marker\'s ink is dead');
+ let geometries=0,materials=0;for(const m of model.children){m.geometry.addEventListener('dispose',()=>geometries++);m.material.addEventListener('dispose',()=>materials++);}
+ model.userData.dispose();assert.equal(geometries,2);assert.equal(materials,2);
  dry.userData.dispose();
 });
 

@@ -1,6 +1,7 @@
 // Floor potions come alive a little. Every bottle catches a glint of light that slides up the
 // glass now and then, and the liquid moves the way its look suggests:
-//  - bubbly, effervescent, fizzy, sparkling, soapy: bubbles rise from the bottom, wobbling, and pop at the top
+//  - bubbly, effervescent, fizzy, sparkling: bubbles rise from the bottom, wobbling, and pop at the top
+//  - soapy: bigger, slower soap-film suds that show against the pale liquid
 //  - smoky: a slow grey smoke coils in the air above the liquid, inside the glass
 //  - steamy: vapour seeps out round the cork and rises
 //  - swirly: pale streaks spiral round inside the liquid
@@ -22,7 +23,10 @@ export const POTION_CLASS = 8;
 // Each style: a regex on the look, and the point layer (motion, colour, per-bottle count, ...).
 // colour 'liquid' or 'light' takes the liquid's own colour, or a paler version of it.
 export const POTION_STYLES = [
-  {name: 'bubbles', test: /bubbly|effervescent|fizzy|sparkling|soapy/, motion: 'bubbles', color: 'light', blend: 'add', count: 7, size: .012, period: 1.8, alpha: .6},
+  // Soap suds: bigger, lazier bubbles in a blue-grey soap film, drawn (not added as light) so they
+  // show against a soapy potion's pale liquid, where light bubbles vanished.
+  {name: 'suds', test: /soapy/, motion: 'bubbles', color: 0x5d88a6, blend: 'normal', count: 10, size: .021, period: 2.8, alpha: .8},
+  {name: 'bubbles', test: /bubbly|effervescent|fizzy|sparkling/, motion: 'bubbles', color: 'light', blend: 'add', count: 11, size: .015, period: 1.4, alpha: .85},
   {name: 'smoke', test: /smoky/, motion: 'smoke', color: 0x4a4a48, blend: 'normal', count: 8, size: .05, period: 5, alpha: .45},
   {name: 'steam', test: /steamy/, motion: 'steam', color: 0xdfe6e6, blend: 'normal', count: 5, size: .06, period: 3.2, alpha: .18},
   {name: 'swirl', test: /swirly/, motion: 'swirl', color: 'light', blend: 'add', count: 9, size: .014, period: 4.2, alpha: .5},

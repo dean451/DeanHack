@@ -12,7 +12,8 @@ export const TOOL_CLASS = 6;
 export const TOOL_AURAS = {
   'bag of holding': {color: 0x050406, blend: 'normal', motion: 'gnaw', count: 5, size: .05, period: 3, alpha: .6},
   'bag of tricks': {color: 0xc02a20, blend: 'add', motion: 'blink', count: 2, size: .02, period: 2.2, alpha: .85},
-  'magic marker': {color: 0x4a2a90, blend: 'add', motion: 'rise', count: 3, size: .013, period: 2.6, alpha: .7},
+  // A slow thread of dark-red ink vapour, not sparkles.
+  'magic marker': {color: 0x6e0c14, blend: 'add', motion: 'rise', count: 2, size: .011, period: 3.4, alpha: .45},
   'magic whistle': {color: 0xdce8f4, blend: 'add', motion: 'pulse', count: 2, size: .09, period: 1.6, alpha: .2},
   'magic flute': {color: 0x7a90e0, blend: 'add', motion: 'rise', count: 3, size: .014, period: 3.6, alpha: .55},
   'magic harp': {color: 0xf0d890, blend: 'add', motion: 'spark', count: 4, size: .014, period: 1.8, alpha: .8},
@@ -21,6 +22,10 @@ export const TOOL_AURAS = {
   'horn of plenty': {color: 0xe0a030, blend: 'add', motion: 'pulse', count: 2, size: .08, period: 4.2, alpha: .24},
   'drum of earthquake': {color: 0x8a7458, blend: 'normal', motion: 'gnaw', count: 4, size: .045, period: 1.4, alpha: .5},
   'unicorn horn': {color: 0xf4f8ff, blend: 'add', motion: 'spark', count: 4, size: .014, period: 2.2, alpha: .9},
+  // The invocation tools are the strongest tools in the game: a silver bell that tolls out a cold ring, a
+  // candelabrum whose seven sockets throw a few pale-violet sparks.
+  'bell of opening': {color: 0xcfd8e8, blend: 'add', motion: 'pulse', count: 2, size: .1, period: 3.4, alpha: .26},
+  'candelabrum of invocation': {color: 0xb890ff, blend: 'add', motion: 'spark', count: 5, size: .014, period: 1.6, alpha: .85},
   'expensive camera': {color: 0xe8f0ff, blend: 'add', motion: 'blink', count: 1, size: .024, period: 4.4, alpha: .85},
 };
 

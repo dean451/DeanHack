@@ -5450,7 +5450,7 @@ export function createGroundModel(item={}){
  }else if(cls===8){
   // Potions: a corked bottle whose shape and colour come from the shuffled look (potion.js).
   // Its three merged meshes move into g like the unicorn horn.
-  const potion=createPotion({appearance:/\bblood\b/.test(name)?'blood-red':item.appearance,color:item.color,count:item.quantity??Number(/^\s*(\d+)/.exec(name)?.[1]??1)});
+  const potion=createPotion({appearance:/\bblood\b/.test(name)?'blood-red':item.appearance,color:item.color,seed:item.otyp,count:item.quantity??Number(/^\s*(\d+)/.exec(name)?.[1]??1)});
   for(const part of [...potion.children]){g.add(part);}materials.push(...potion.userData.materials);g.rotation.y=potion.rotation.y;
   g.userData.potion=potion.userData.layout;
   applyPotionTwist(g,{...item,class:8});
@@ -6355,8 +6355,8 @@ export function createGroundModel(item={}){
   if(item.lit)state.lit=state.candles>0;
   for(const part of [...createCandelabrum(state).children]){g.add(part);materials.push(part.material);}
  }else if(/marker/.test(name)){
-  // One merged mesh: the pen with its cap pulled off beside it; a dry nib at 0 charges.
-  const [pen]=createMagicMarker({dry:markerCharges(item.name)===0}).children;g.add(pen);materials.push(pen.material);
+  // The scribe's stylus and its glowing ink (marker.js); the ink is dried and dark at 0 charges.
+  for(const part of [...createMagicMarker({dry:markerCharges(item.label||item.name)===0}).children]){g.add(part);materials.push(part.material);}
   applyToolTwist(g,item);
  }else if(cls===15||/heavy iron ball/.test(name)){
   // One merged mesh: the pitted ball with its shackle and a stub of chain trailing off.

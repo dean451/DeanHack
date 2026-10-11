@@ -118,3 +118,10 @@ test('after the dead bounce the hero lies still, then jerks once and is at rest'
   assert.ok(mid > 0 && mid <= SETTLE_HEIGHT + 1e-9, String(mid));
   assert.ok(Math.abs(arriveOffset(ARRIVE_TIME)) < 1e-9);
 });
+
+test('the hover sags once when the hole tugs, never below the floor, and still ends at rest', () => {
+  const at = k => hoverOffset(k * HOVER_TIME);
+  assert.ok(at(.6) < at(.45) * .5, 'sags at the tug');
+  assert.ok(at(.72) > at(.6), 'catches itself after');
+  for (let i = 0; i <= 100; i++) assert.ok(at(i / 100) >= 0 && at(i / 100) <= HOVER_LIFT + 1e-9);
+});

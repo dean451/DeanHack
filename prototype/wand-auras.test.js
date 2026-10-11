@@ -318,3 +318,26 @@ test('beats are a slow hum, and the wand of death raises a skull in step with it
   assert(!createWandAura('death', 'held').getObjectByName('skull'));
   g.userData.dispose();
 });
+
+test('a wand of make invisible on the floor fades out, hangs all but gone, and shimmers back', async () => {
+  const THREE = await import('three');
+  const {createWandAura, vanishAlpha, VANISH, wandAuraKind} = await import('./wand-auras.js');
+  for (let t = 0; t < VANISH.period * 2; t += .05) { const a = vanishAlpha(t); assert(a >= VANISH.low - 1e-9 && a <= 1 + 1e-9, `${t}: ${a}`); }
+  assert.equal(vanishAlpha(0), 1);
+  assert(vanishAlpha(VANISH.period * .7) < .15, 'all but gone');
+  assert.equal(wandAuraKind({class: 11, name: 'make invisible', label: 'oak wand'}), 'make invisible', 'a tell, like the big wands');
+  const shared = new THREE.MeshStandardMaterial(), item = new THREE.Group(), other = new THREE.Mesh(new THREE.BoxGeometry(), shared);
+  item.add(new THREE.Mesh(new THREE.BoxGeometry(), shared));
+  const aura = createWandAura('make invisible', 'floor'); item.add(aura);
+  let lo = 1, hi = 0;
+  for (let t = 0; t < VANISH.period; t += .05) { aura.userData.update(t); const o = item.children[0].material.opacity; lo = Math.min(lo, o); hi = Math.max(hi, o); }
+  const wandMat = item.children[0].material;
+  assert.notEqual(wandMat, shared, 'its own copy');
+  assert(lo < .15 && hi > .99 && wandMat.transparent, `fades ${lo}..${hi}`);
+  assert.equal(other.material.opacity, 1, 'other wands of the same look stay solid');
+  aura.userData.dispose();
+  assert.equal(item.children[0].material, shared, 'put back on dispose');
+  const held = createWandAura('make invisible', 'held'), hero = new THREE.Group(), body = new THREE.Mesh(new THREE.BoxGeometry(), shared);
+  hero.add(body, held); held.userData.update(VANISH.period * .7);
+  assert.equal(body.material, shared, 'a held wand never fades the hero');
+});

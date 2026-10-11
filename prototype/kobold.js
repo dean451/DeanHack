@@ -28,8 +28,8 @@ const BASE={
  bone:'#e0d4b4',gold:'#d8a93a',paint:'#eeeae0',
 };
 const LOOKS={
- kobold:{skin:'#8a5a3a',belly:'#c4a070',dark:'#553520',eye:'#ff4a2a',scale:1,weapon:'spear',chipped:true},
- 'large kobold':{skin:'#9a3f2f',belly:'#cc8a5c',dark:'#5a2216',eye:'#ff8a2a',scale:1.18,weapon:'club',jerkin:true,horns:1.35,chipped:true},
+ kobold:{skin:'#8a5a3a',belly:'#94784c',dark:'#44281a',eye:'#ff4a2a',scale:1,weapon:'spear',chipped:true},
+ 'large kobold':{skin:'#9a3f2f',belly:'#a8704a',dark:'#44180e',eye:'#ff8a2a',scale:1.18,weapon:'club',jerkin:true,horns:1.35,chipped:true},
  'kobold lord':{skin:'#7a3f70',belly:'#b890a4',dark:'#44203e',eye:'#ffd23a',scale:1.22,weapon:'sword',crown:true,cape:true,cloth:'#5a1a28',clothDark:'#34101a'},
  'kobold shaman':{skin:'#5070a8',belly:'#a0b4d4',dark:'#2c4270',eye:'#a8f0ff',scale:1.02,weapon:'staff',shaman:true},
 };
@@ -56,7 +56,9 @@ function buildBody(L,C){
  const P=pieces(),h=P0.hip,hide=scaly(C,C.skin);
  // a small pot-bellied trunk, hunched forward, with a pale scaly belly
  const trunk=(x,y,z)=>z>.03&&Math.abs(x)<.07?mix(C.belly,C.skin,hash(Math.round(y*40))*.25):hide(x,y,z);
- P.add(lathe([[0,h-.04],[.085,h-.04],[.108,h],[.122,h+.06],[.118,h+.12],[.104,h+.18],[.082,h+.23],[.052,h+.26],[0,h+.265]],20),at(0,0,0,[.16,0,0],[1,1,.86]),trunk);
+ P.add(lathe([[0,h-.04],[.085,h-.04],[.108,h],[.122,h+.06],[.118,h+.12],[.104,h+.18],[.082,h+.23],[.052,h+.26],[0,h+.265]],20),at(0,0,0,[.16,0,0],[.82,1,.8]),trunk);
+ // ribs standing out through the lean, scaly hide
+ for(const sd of [-1,1])for(let i=0;i<4;i++)P.add(new THREE.CylinderGeometry(.004,.004,.1,4),at(sd*.1,h+.06+i*.04,.045,[0,sd*.5,sd*.9+.15*i]),mix(C.skin,C.dark,.5));
  // a thin neck thrust forward to the head
  P.add(new THREE.CylinderGeometry(.036,.048,.1,10),at(0,h+.29,.085,[.55,0,0]),(x,y,z)=>z>.1?C.belly:hide(x,y,z));
  // a ridge of little spines from the nape down the back

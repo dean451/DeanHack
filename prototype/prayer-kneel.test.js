@@ -53,3 +53,10 @@ test('rising, the hero glances once over the shoulder, then faces front', () => 
   assert.ok(min < -.15, String(min));
   assert.ok(Math.abs(kneelPose(.85).twist) < 1e-9 && Math.abs(kneelPose(.97).twist) < 1e-9);
 });
+
+test('the shiver builds toward the flinch, then is back to the old tremor', () => {
+  const wob = u => Math.abs(kneelPose(u + .003).lean - kneelPose(u - .003).lean);
+  let early = 0, late = 0;
+  for (let i = 0; i < 60; i++) { early = Math.max(early, wob(.2 + i * .001)); late = Math.max(late, wob(.5 + i * .001)); }
+  assert.ok(late > early, 'tremor grows before the flinch');
+});

@@ -23,7 +23,7 @@ test('invisibility fades the liquid and the glass',()=>{
  plain.userData.dispose();faint.userData.dispose();
 });
 
-test('blood, vampire blood, oil and blindness change the liquid',()=>{
+test('blood, vampire blood, oil and blindness thicken the liquid but keep the look\'s colour',()=>{
  const plain=make('healing');
  const base=part(plain,'liquid').material;
  for(const [name,kind] of [['potion of blood','blood'],['potion of vampire blood','vampire blood'],['potion of oil','oil'],['potion of blindness','blindness']]){
@@ -32,7 +32,7 @@ test('blood, vampire blood, oil and blindness change the liquid',()=>{
   const l=part(m,'liquid').material;
   assert.equal(l.transparent,false);
   assert(l.emissiveIntensity<=Math.max(base.emissiveIntensity,.35));
-  assert.notEqual(l.color.getHex(),base.color.getHex());
+  assert.equal(l.color.getHex(),base.color.getHex(),`${name} stays ruby`);
   m.userData.dispose();
  }
  plain.userData.dispose();
@@ -76,11 +76,11 @@ test('sleeping goes dim and heavy',()=>{
  plain.userData.dispose();sleepy.userData.dispose();
 });
 
-test('confusion muddies the liquid violet-grey',()=>{
+test('confusion muddies the liquid, still in the look\'s colour',()=>{
  const plain=make('healing'),mud=make('potion of confusion');
  assert.equal(mud.userData.twist,'confusion');
  const l=part(mud,'liquid').material;
- assert.notEqual(l.color.getHex(),part(plain,'liquid').material.color.getHex());
+ assert.equal(l.color.getHex(),part(plain,'liquid').material.color.getHex());
  assert(l.roughness>part(plain,'liquid').material.roughness);
  plain.userData.dispose();mud.userData.dispose();
 });
@@ -104,16 +104,29 @@ test('holy water glows gold and unholy water goes black and dead',()=>{
  for(const m of [plain,holy,foul])m.userData.dispose();
 });
 
-test('monster detection, polymorph and hallucination tint and light the liquid',()=>{
+test('monster detection, polymorph and hallucination light the liquid in the look\'s own colour',()=>{
  const plain=make('healing');
  const base=part(plain,'liquid').material;
  for(const [name,kind] of [['potion of monster detection','monster detection'],['potion of polymorph','polymorph'],['2 potions of hallucination','hallucination']]){
   const m=make(name);
   assert.equal(m.userData.twist,kind);
   const l=part(m,'liquid').material;
-  assert.notEqual(l.color.getHex(),base.color.getHex());
+  assert.equal(l.color.getHex(),base.color.getHex());
   assert(l.emissiveIntensity>=.3);
   m.userData.dispose();
  }
  plain.userData.dispose();
+});
+
+test('a ruby potion stays ruby red whatever it really is: the true type never repaints the look',()=>{
+ const red=c=>c.r>c.g*2&&c.r>c.b*1.5;
+ const ref=make('healing'),glass=part(ref,'glass').material.color.getHex();ref.userData.dispose();
+ for(const kind of ['levitation','paralysis','sleeping','full healing','acid','sickness','confusion','monster detection','polymorph','hallucination','blindness']){
+  const m=make('potion of '+kind),l=part(m,'liquid').material;
+  // the liquid is vertex-coloured from the look; the material colour must not wash it out
+  assert(l.color.r>.9&&l.color.g>.9&&l.color.b>.9||red(l.color),`${kind}: ${l.color.getHexString()}`);
+  assert.equal(part(m,'glass').material.color.getHex(),glass,`${kind} glass is the ruby bottle's`);
+  assert(red(l.emissive),`${kind} glows red, not ${l.emissive.getHexString()}`);
+  m.userData.dispose();
+ }
 });

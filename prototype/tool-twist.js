@@ -5,7 +5,7 @@ import * as THREE from 'three';
 // frosts over and glows cold, the fire horn smoulders with an ember glow, the horn of plenty
 // warms to old gold, the magic harp gleams
 // like tarnished gilt, the magic flute and whistle take a cold, hollow sheen, the bag of tricks stains blood-dark,
-// the drum of earthquake dulls to dusty brown, the marker bleeds violet ink and the unicorn horn pales to ivory.
+// the drum of earthquake dulls to dusty brown, the marker darkens to oxblood and smoulders crimson and the unicorn horn pales to ivory.
 // tint: the colour the materials are pulled toward; mix: how far; glow: the emissive colour and strength.
 const TWISTS = {
   'frost horn': {tint: 0xb4d8ee, mix: .45, glow: 0x6aa8d8, power: .3},
@@ -16,7 +16,9 @@ const TWISTS = {
   'magic whistle': {tint: 0xc4d0dc, mix: .3, glow: 0xdce8f4, power: .14},
   'bag of tricks': {tint: 0x4a1410, mix: .4, glow: 0xc02a20, power: .22},
   'drum of earthquake': {tint: 0x6a5238, mix: .4, glow: 0x8a5a2a, power: .16},
-  'magic marker': {tint: 0x2a1860, mix: .35, glow: 0x4a2a90, power: .2},
+  // One of the most powerful things in the game, so not a toy: blood-black, smouldering crimson.
+  // the stylus's magic is its own glowing ink (marker.js, left alone as a magicShell); the bone only smoulders faintly
+  'magic marker': {tint: 0x241c20, mix: .1, glow: 0x2a0610, power: .08},
   'unicorn horn': {tint: 0xf0ece0, mix: .4, glow: 0xf4f8ff, power: .2},
 };
 
@@ -32,7 +34,7 @@ export function applyToolTwist(group, object) {
   const {tint, mix, glow, power} = TWISTS[kind], seen = new Set();
   group.traverse(o => {
     const m = o.material;
-    if (!m?.color || !m.emissive || seen.has(m)) return;
+    if (!m?.color || !m.emissive || seen.has(m) || o.userData.magicShell) return;
     seen.add(m);
     if (!m.vertexColors) m.color.lerp(new THREE.Color(tint), mix);
     m.emissive.set(glow);

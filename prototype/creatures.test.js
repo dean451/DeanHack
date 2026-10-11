@@ -108,7 +108,8 @@ test('pony, horse and warhorse are grounded, hornless horses that grow with the 
  let last=0;
  for(const name of ['pony','horse','warhorse']){
   const actor=createCreature({name,symbol:117,color:3});
-  assert.equal(actor.g.name,'horse',name);assert.equal(actor.legs.length,4,name);assert(actor.tail,name);
+  // the warhorse is a barded destrier of its own (warhorse.js); ponies and horses share the horse body
+  assert.equal(actor.g.name,name==='warhorse'?'warhorse':'horse',name);assert.equal(actor.legs.length,4,name);assert(actor.tail,name);
   actor.g.updateMatrixWorld(true);
   actor.g.traverse(part=>{if(part.geometry)for(const value of part.geometry.attributes.position.array)assert(Number.isFinite(value),name);});
   const bounds=new THREE.Box3().setFromObject(actor.g),size=bounds.getSize(new THREE.Vector3());
@@ -199,7 +200,7 @@ test('titanotheres and baluchitheria are giant rhinos baked into a few meshes, n
   heights[name]=bounds.max.y;
  }
  assert(heights.titanothere>.9&&heights.titanothere<1.25,'the titanothere is low and massive');
- assert(heights.baluchitherium>1.25&&heights.baluchitherium<1.6,'the baluchitherium towers');
+ assert(heights.baluchitherium>1.5&&heights.baluchitherium<1.9,'the baluchitherium towers (its own model, baluchitherium.js)');
  assert.notEqual(createCreature({name:'leocrotta',symbol:113}).g.name,'titanothere');
 });
 
