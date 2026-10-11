@@ -2807,3 +2807,13 @@ test('woodchucks snarl: yellowed fangs bare beside the incisors and red-rimmed e
  c.g.traverse(o=>{if(o.isMesh)cols.add('#'+o.material.color.getHexString());});
  assert(cols.has('#b89a3c')&&cols.has('#7a1d18'),'fang and eye-rim colours');
 });
+
+test('cockatrices carry black hooked spurs and a gaping lower beak spike',()=>{
+ for(const name of ['chickatrice','cockatrice','pyrolisk']){
+  const c=createCreature({name});let spurs=0;
+  c.g.traverse(o=>{if(o.isMesh&&'#'+o.material.color.getHexString()==='#1a1814')spurs++;});
+  assert.equal(spurs,4,`${name} spurs`);
+  c.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(c.g);
+  assert(b.min.y>-.005,`${name} stays above the floor (${b.min.y})`);
+ }
+});
