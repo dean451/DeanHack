@@ -2844,7 +2844,8 @@ export function createCreature(cell={}){
  if(name==='hippocrates')return createHippocrates();
  if(name==='master kaen')return createMasterKaen();
  if(name==='dark one')return createDarkOne();
- if(letter==='@'&&NEMESIS_HUMANS[name]){const a=warlordRegalia(humanoid('human',{cloth:mat(shade(color||'#8a8a80',.8))}));a.g.scale.setScalar(NEMESIS_HUMANS[name]);return a;}// quest nemeses without a model of their own still loom over a plain human
+ if(letter==='@'&&NEMESIS_HUMANS[name]){const a=humanoid('human',{cloth:mat(shade(color||'#8a8a80',.8))});if(name!=='twoflower')warlordRegalia(a);// the meek tourist leader keeps his plain coat
+  a.g.scale.setScalar(NEMESIS_HUMANS[name]);return a;}// quest nemeses without a model of their own still loom over a plain human
  if(name==='lord carnarvon')return createCarnarvon();
  if(name==='pelias')return createPelias();
  if(name==='black marketeer')return createBlackMarketeer();

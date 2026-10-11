@@ -7,11 +7,15 @@ const make = name => createCreature({name, symbol: 64, color: 7});
 
 test('quest leaders without their own model wear a mantle, spiked pauldrons and a circlet', () => {
   const plain = meshes(make('human').g);
-  for(const n of ['king arthur', 'lord sato', 'grand master', 'master of thieves', 'orion', 'shaman karnov', 'twoflower', 'schliemann']){
+  for(const n of ['king arthur', 'lord sato', 'grand master', 'master of thieves', 'orion', 'shaman karnov', 'schliemann']){
     assert(meshes(make(n).g) >= plain + 14, n);
   }
 });
 
 test('the regalia stays under the per-model mesh budget', () => {
   assert(meshes(make('king arthur').g) < 70);
+});
+
+test('Twoflower, a meek tourist, keeps his plain coat', () => {
+  assert.equal(meshes(make('twoflower').g), meshes(make('human').g));
 });
