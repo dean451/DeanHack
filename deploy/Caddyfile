@@ -3,20 +3,46 @@
 {$DEANHACK_DOMAIN:deanhack.online} {
 	encode zstd gzip
 
-	# The game has one engine and one character per server, and the engine API has no login of its
-	# own, so everyone who gets past this gate shares one game. Keep it private.
-	basic_auth {
-		{$DEANHACK_USER:dean} {$DEANHACK_PASSWORD_HASH}
-	}
-
-	# flush_interval -1 sends the /engine/events stream straight through instead of buffering it.
-	reverse_proxy app:8080 {
-		flush_interval -1
-	}
-
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
+	}
+
+	# Link previews (iMessage, Slack, Discord, X, WhatsApp...): the bots that build the preview card
+	# cannot type a password, so they get a bare page with only the title, description and banner.
+	# Nothing of the game is on it, and the banner image below is the only other public file.
+	@preview header_regexp ua User-Agent (?i)(facebookexternalhit|twitterbot|slackbot|discordbot|whatsapp|telegrambot|linkedinbot|applebot|skypeuripreview)
+	handle @preview {
+		header Content-Type "text/html; charset=utf-8"
+		respond <<HTML
+			<!doctype html><html lang="en"><head><meta charset="utf-8"><title>DeanHack</title>
+			<meta name="description" content="A little light. A long way down.">
+			<meta property="og:type" content="website"><meta property="og:site_name" content="DeanHack">
+			<meta property="og:title" content="DeanHack"><meta property="og:description" content="A little light. A long way down.">
+			<meta property="og:url" content="https://{$DEANHACK_DOMAIN:deanhack.online}/">
+			<meta property="og:image" content="https://{$DEANHACK_DOMAIN:deanhack.online}/og.png">
+			<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+			<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#070d10">
+			</head><body>DeanHack</body></html>
+			HTML 200
+	}
+
+	handle /og.png {
+		reverse_proxy app:8080 {
+			flush_interval -1
+		}
+	}
+
+	# Everything else needs the password. The game has one engine and one character per server, and
+	# the engine API has no login of its own, so everyone who gets past this gate shares one game.
+	handle {
+		basic_auth {
+			{$DEANHACK_USER:dean} {$DEANHACK_PASSWORD_HASH}
+		}
+		# flush_interval -1 sends the /engine/events stream straight through instead of buffering it.
+		reverse_proxy app:8080 {
+			flush_interval -1
+		}
 	}
 }

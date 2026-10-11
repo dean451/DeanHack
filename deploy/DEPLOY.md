@@ -90,6 +90,17 @@ the game that often, so prefer one of these:
 
   To deploy on every merge instead, change the trigger to `push: branches: [master]`.
 
+## Link previews
+
+Pasting https://deanhack.online into iMessage, Slack, Discord or X shows a banner card
+(`prototype/public/og.png`, 1200x630). The preview bots cannot type a password, so Caddy answers
+them with a bare page holding only the title, description and image, and serves `/og.png` to anyone.
+Everything else, including the game and its API, stays behind the password. Phones cache previews:
+if you change the banner and an old one shows, send the link with a trailing `?v=2`.
+
+To redraw the banner, run the dev server and `SCALE=2 OUT=/some/dir/ node prototype/tools/banner-shot.mjs`
+(see the comments at the top of `prototype/tools/banner.html`), then copy `banner.png` to `prototype/public/og.png`.
+
 ## Operating it
 
 - Logs: `docker compose logs -f app` (and `caddy`).
