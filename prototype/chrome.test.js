@@ -57,7 +57,7 @@ test('the character name is typed before starting, saved, sent with the start re
   const live = read('live.js'), main = read('main.js');
   assert.match(live, /nameInput\.placeholder='Wanderer'/);
   assert.match(live, /localStorage\.setItem\('deanhack\.playerName'/);
-  assert.match(live, /post\('\/engine\/start',\{name:savedPlayerName\(\)\}\)/);
+  assert.match(live, /post\('\/engine\/start',\{name:savedPlayerName\(\),\.\.\.readChoice\(\)\}\)/, 'the start request carries the name and the chosen class');
   assert.match(live, /setCharacterName\(started\.name\)/);
   assert.match(main, /e\.target instanceof HTMLInputElement/, 'typing a name does not move the demo hero');
 });

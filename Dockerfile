@@ -28,6 +28,8 @@ WORKDIR /app/prototype
 COPY --from=build /app/prototype/dist ./dist
 COPY --from=build /app/prototype/engine ./engine
 COPY --from=build /app/prototype/package.json ./package.json
+# engine/server.js imports it (the class rules are shared with the browser)
+COPY --from=build /app/prototype/roles.js ./roles.js
 # Only the built runtime and manifest: not the engine source tree or its build logs.
 COPY --from=build /app/prototype/.engine/runtime ./.engine/runtime
 COPY --from=build /app/prototype/.engine/manifest.json ./.engine/manifest.json

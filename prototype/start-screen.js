@@ -2,6 +2,8 @@
 // or begins a new one, then goes straight into Live. `?demo` skips it and shows the demo room.
 // The engine keys a save by character name (-u name), so typing a saved name resumes that game.
 
+import {ROLES,ROLE_NAMES,RACES,DEFAULT_CHOICE,alignsFor,optionsFor,resolveChoice} from './roles.js';
+
 export const DEFAULT_NAME='Wanderer';
 
 // The name as the engine will see it (same rules as cleanPlayerName in engine/server.js).
@@ -35,34 +37,82 @@ export async function fetchSaves(fetchImpl=fetch){
   try{const r=await fetchImpl('/engine/saves');if(!r.ok)return [];const data=await r.json();return Array.isArray(data.saves)?data.saves:[];}catch{return [];}
 }
 
+// The class chosen last time (always a valid character), kept in the browser.
+const CHOICE_KEY='deanhack.class';
+export function readChoice(storage){
+  try{return resolveChoice(JSON.parse((storage??localStorage).getItem(CHOICE_KEY)||'null'));}catch{return {...DEFAULT_CHOICE};}
+}
+export function saveChoice(choice,storage){try{(storage??localStorage).setItem(CHOICE_KEY,JSON.stringify(resolveChoice(choice)));}catch{}}
+
+const label=word=>word[0].toUpperCase()+word.slice(1);
+// What the class screen shows for a choice: the role's blurb and only the options that are valid.
+export function classView(rawChoice){
+  const choice=resolveChoice(rawChoice),role=ROLES[choice.role],opts=optionsFor(choice.role,choice.race);
+  return {
+    choice,blurb:role.blurb,difficulty:role.difficulty,
+    races:opts.races.map(id=>({id,label:RACES[id].label,on:id===choice.race})),
+    genders:opts.genders.map(id=>({id,label:label(id),on:id===choice.gender})),
+    aligns:opts.aligns.map(id=>({id,label:label(id),on:id===choice.align})),
+  };
+}
+// The choice after the player picks one part; the rest is corrected so it stays a valid character.
+export function pick(choice,part,value){return resolveChoice({...choice,[part]:value});}
+
 // Builds the overlay and wires it to the existing Live button and name field.
 export function installStartScreen({doc=document,button,nameInput,search=location.search,getSaves=fetchSaves,storage}={}){
   if(!wantsStartScreen(search))return null;
   const el=doc.createElement('div');el.id='start-screen';
   el.innerHTML=`<div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>DEAN<b>HACK</b></h1><p class="start-tag">A little light. A long way down.</p>
-<form autocomplete="off"><label for="start-name">Your name</label><input id="start-name" type="text" maxlength="24" spellcheck="false" placeholder="${DEFAULT_NAME}" aria-describedby="start-note"><button type="submit" id="start-go"></button><p id="start-note" aria-live="polite"></p></form>
+<form class="step-name" autocomplete="off"><label for="start-name">Your name</label><input id="start-name" type="text" maxlength="24" spellcheck="false" placeholder="${DEFAULT_NAME}" aria-describedby="start-note"><button type="submit" id="start-go"></button><p id="start-note" aria-live="polite"></p>
 <div class="start-saves" hidden><span>Saved characters</span><div class="start-list"></div></div>
-<button type="button" class="start-demo">Look around the demo room</button></div>`;
+<button type="button" class="start-demo">Look around the demo room</button></form>
+<div class="step-class" hidden><label>Choose your class</label><div class="class-grid" role="radiogroup" aria-label="Class"></div>
+<div class="class-detail"><p class="class-blurb"></p><div class="class-opts"></div></div>
+<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div>`;
   doc.body.append(el);doc.body.classList.add('start-open');
-  const input=el.querySelector('#start-name'),go=el.querySelector('#start-go'),note=el.querySelector('#start-note'),list=el.querySelector('.start-list'),box=el.querySelector('.start-saves');
-  let saves=[];
+  const $=s=>el.querySelector(s);
+  const input=$('#start-name'),go=$('#start-go'),note=$('#start-note'),list=$('.start-list'),box=$('.start-saves'),stepName=$('.step-name'),stepClass=$('.step-class');
+  let saves=[],choice=readChoice(storage),pendingName=DEFAULT_NAME;
   const remembered=()=>{try{return(storage??localStorage).getItem('deanhack.playerName')||'';}catch{return '';}};
   input.value=nameInput?.value||remembered();
   const refresh=()=>{const plan=startPlan(input.value,saves);go.textContent=plan.label;note.textContent=plan.note;go.classList.toggle('resume',!!plan.resume);for(const chip of list.children)chip.classList.toggle('current',chip.dataset.name===fileKey(input.value));};
   const close=()=>{el.remove();doc.body.classList.remove('start-open');};
-  el.querySelector('form').addEventListener('submit',e=>{
-    e.preventDefault();
-    const {name}=startPlan(input.value,saves);
-    // the existing name field remembers it and shows it in the character panel
+  const launch=name=>{
+    // the existing name field remembers the name and shows it in the character panel
     if(nameInput){nameInput.value=name;nameInput.dispatchEvent(new Event('input'));}
     close();button.click();
+  };
+  const renderClass=()=>{
+    const view=classView(choice);
+    const grid=$('.class-grid');
+    grid.replaceChildren(...ROLE_NAMES.map(role=>{const b=doc.createElement('button');b.type='button';b.setAttribute('role','radio');b.setAttribute('aria-checked',String(role===choice.role));b.dataset.role=role;b.dataset.level=ROLES[role].difficulty;b.className=role===choice.role?'on':'';
+      b.innerHTML='<b></b><i></i>';b.firstChild.textContent=role;b.lastChild.textContent=ROLES[role].difficulty;
+      b.addEventListener('click',()=>{choice=pick(choice,'role',role);renderClass();});return b;}));
+    $('.class-blurb').textContent=view.blurb;
+    const opts=$('.class-opts');opts.replaceChildren();
+    for(const [part,title,items] of [['race','Race',view.races],['gender','Gender',view.genders],['align','Alignment',view.aligns]]){
+      const row=doc.createElement('div');row.className='opt';const t=doc.createElement('span');t.textContent=title;row.append(t);
+      const seg=doc.createElement('div');seg.className='seg';
+      for(const item of items){const b=doc.createElement('button');b.type='button';b.textContent=item.label;b.className=item.on?'on':'';b.disabled=items.length===1;b.setAttribute('aria-pressed',String(item.on));b.addEventListener('click',()=>{choice=pick(choice,part,item.id);renderClass();});seg.append(b);}
+      row.append(seg);opts.append(row);
+    }
+    $('#class-go').textContent=`Descend as ${pendingName} the ${choice.role}`;
+  };
+  stepName.addEventListener('submit',e=>{
+    e.preventDefault();
+    const plan=startPlan(input.value,saves);pendingName=plan.name;
+    // a saved character already has its class: resume it. A new one chooses first.
+    if(plan.resume){launch(plan.name);return;}
+    stepName.hidden=true;stepClass.hidden=false;renderClass();$('.class-grid .on')?.focus();
   });
+  $('#class-go').addEventListener('click',()=>{saveChoice(choice,storage);launch(pendingName);});
+  $('.start-back').addEventListener('click',()=>{stepClass.hidden=true;stepName.hidden=false;input.focus();});
   input.addEventListener('input',refresh);
-  el.querySelector('.start-demo').addEventListener('click',close);
+  $('.start-demo').addEventListener('click',close);
   refresh();input.focus();input.select();
   getSaves().then(found=>{
     saves=found;
-    list.replaceChildren(...saves.slice(0,6).map(s=>{const b=doc.createElement('button');b.type='button';b.dataset.name=s.name;b.innerHTML=`<b></b><i></i>`;b.firstChild.textContent=s.name.replace(/_/g,' ');b.lastChild.textContent=ago(s.savedAt);
+    list.replaceChildren(...saves.slice(0,6).map(s=>{const b=doc.createElement('button');b.type='button';b.dataset.name=s.name;b.innerHTML=`<b></b><i></i>`;b.firstChild.textContent=s.name.replace(/_/g,' ');b.lastChild.textContent=(s.role?s.role+' · ':'')+ago(s.savedAt);
       b.addEventListener('click',()=>{input.value=s.name.replace(/_/g,' ');refresh();go.focus();});return b;}));
     box.hidden=!saves.length;
     // the most recent character is the likeliest one, so offer it first when nothing was typed before
