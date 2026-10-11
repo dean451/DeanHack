@@ -103,3 +103,10 @@ test('the departure flash draws in a breath before it punches out', () => {
   assert.ok(flashPose(BLINK.flash * .075).size < .25, 'smaller than where it started');
   assert.ok(Math.abs(flashPose(BLINK.flash * .999).size - 1.35) < .01, 'still ends full size');
 });
+
+test('the arrival ring shivers as it closes but ends where it did and stays in bounds', () => {
+  let bumps = 0, prev = arrivePose(.01).ring;
+  for (let k = .02; k < .6; k += .004) { const r = arrivePose(BLINK.arrive * k).ring; if (r > prev + 1e-9) bumps++; prev = r; assert.ok(r >= .14 && r <= 1.45); }
+  assert.ok(bumps > 3, 'the ring jitters outward at least a few times while collapsing');
+  assert.ok(Math.abs(arrivePose(BLINK.arrive * .6).ring - .15) < .01, 'still lands on the square');
+});
