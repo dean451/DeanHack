@@ -2090,6 +2090,10 @@ function rustMonster(o){
  const head=new THREE.Group();head.position.set(0,y-.02,.28);body.add(head);
  sphere(head,.1,shell,0,0,0,1,.8,1.05);sphere(head,.07,belly,0,-.04,.05,.9,.55,1);
  for(const side of [-1,1]){sphere(head,.022,glow,side*.055,.035,.075);const jaw=cone(head,.018,.06,hide,side*.03,-.05,.1,4);jaw.rotation.x=Math.PI/2+.4;jaw.rotation.z=side*.3;}
+ // wear: its own rust has eaten pits into the carapace,
+ const pit=mat('#1a0e08',{roughness:1}),eaten=mat('#8a4a22',{roughness:1});
+ for(const [x,z,r] of [[-.1,.1,.03],[.08,.0,.026],[-.05,-.12,.034],[.12,-.14,.022]]){sphere(body,r*1.5,eaten,x,y+.045,z,1,.15,1);sphere(body,r,pit,x,y+.05,z,1,.2,1);}
+ g.userData.rustEaten=true;
  // antennae: long arcs up and forward, each fringed with short bristles and a knob at the tip.
  // Each hangs in its own group pivoted at its root, so rust-feel.js can sweep and lash it.
  const feelers=[];
