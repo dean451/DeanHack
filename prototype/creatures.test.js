@@ -2855,3 +2855,12 @@ test('the disenchanter bristles with a spined back and barbed flanks and still f
  assert(b.min.y>-.05,'stands on the floor');
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
 });
+
+test('the cockatrice is torn and grey-patched and still fits its tile',()=>{
+ const c=createCreature({name:'cockatrice',symbol:99,color:11});
+ assert(c.g.userData.petrifying,'petrified patches');
+ c.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(c.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
+});

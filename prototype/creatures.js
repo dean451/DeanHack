@@ -517,6 +517,11 @@ function cockatrice(o){
  const spurMat=mat('#1a1814',{roughness:.7,flatShading:true});
  for(const leg of legs){const spur=cone(leg,.014,.07,spurMat,leg.position.x>0?.05:-.05,-.09,-.05,4);spur.rotation.x=-2.2;}
  const jaw=cone(head,.03,.09,foot,0,-.055,.1,4);jaw.rotation.x=Math.PI/2+.25;
+ // wear: a comb spike snapped to a bloody stub, and the scales have gone grey and dead where the petrifying venom pools
+ const stone=mat('#6c6a64',{roughness:1,flatShading:true}),raw=mat('#5a1410',{roughness:.5});
+ cone(head,.012,.03,raw,.0,.1,.0,4);
+ for(const [x,y,z,r] of [[-.06,.2,.04,.05],[.07,.19,-.06,.045],[.0,.22,-.12,.04]])sphere(body,r,stone,x,y,z,1.2,.35,1.3);
+ g.userData.petrifying=true;
  const wingParts=[];for(const side of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.17,.06);shape.lineTo(side*.12,.0);shape.lineTo(side*.15,-.05);shape.lineTo(0,-.02);const wing=part(body,new THREE.ShapeGeometry(shape),skin,side*.1,.2,-.02);wing.rotation.y=side*.35;wing.userData.side=side;wingParts.push(wing);}
  const tail=new THREE.Group();tail.position.set(0,.15,-.2);body.add(tail);
  let px=0,pz=0;for(let i=0;i<6;i++){const r=.05*(1-i/7),len=.09;const seg=cylinder(tail,r*.8,r,len,skin,px,-.012*i,pz-len/2,8);seg.rotation.x=Math.PI/2;px+=Math.sin(i*.6)*.012;pz-=len*.95;}
