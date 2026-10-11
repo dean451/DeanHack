@@ -41,7 +41,9 @@ export function eyePose(t) {
 export function curlPose(t) {
   const u = clamp01(t / DJINNI.total);
   if (u <= 0 || u >= 1) return {radius: .001, alpha: 0};
-  return {radius: .2 + 1.1 * (1 - (1 - u) ** 2), alpha: .45 * Math.sin(Math.PI * u) ** 2};
+  // When the eyes go out the curl flinches back a hand's width, then creeps on as if nothing happened.
+  const flinch = .08 * Math.sin(Math.PI * clamp01((u - .64) / .1)) ** 2;
+  return {radius: .2 + 1.1 * (1 - (1 - u) ** 2) - flinch, alpha: .45 * Math.sin(Math.PI * u) ** 2};
 }
 
 export function createDjinniWish(THREE, parent) {
