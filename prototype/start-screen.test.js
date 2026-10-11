@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtempSync,writeFileSync,utimesSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {cleanName,startPlan,ago,wantsStartScreen,fetchSaves,DEFAULT_NAME} from './start-screen.js';
+import {cleanName,startPlan,ago,wantsStartScreen,fetchSaves,DEFAULT_NAME,classView,pick,readChoice,saveChoice} from './start-screen.js';
 import {listSaves,cleanPlayerName} from './engine/server.js';
 
 test('the name is cleaned exactly as the engine launcher cleans it',()=>{
@@ -54,4 +54,32 @@ test('saved characters are read from the save folder, newest first, ignoring lev
   at('1000.bz2',9000);at('1000-bad.bz2',9000);at("1000"+'x'.repeat(40)+'.bz2',9000);
   assert.deepEqual(listSaves(dir,1000).map(s=>s.name),['New','Mary_Jane','Old']);
   assert.deepEqual(listSaves(join(dir,'missing'),1000),[]);
+});
+
+test('the class screen offers only valid options and keeps the character valid as parts change',()=>{
+  const v=classView({role:'Valkyrie'});
+  assert.deepEqual(v.genders.map(g=>g.label),['Female'],'Valkyries are women');
+  assert.deepEqual(v.races.map(r=>r.id),['human','dwarf']);
+  assert.match(v.blurb,/long sword/);
+  // choosing an elf Wizard fixes the alignment to chaotic, the only one an elf can be
+  let c=pick({role:'Wizard',race:'human',gender:'male',align:'neutral'},'race','elf');
+  assert.deepEqual(c,{role:'Wizard',race:'elf',gender:'male',align:'chaotic'});
+  // switching the class corrects what no longer fits: a Knight is a lawful human
+  c=pick(c,'role','Knight');
+  assert.deepEqual(c,{role:'Knight',race:'human',gender:'male',align:'lawful'});
+  assert.deepEqual(classView(c).aligns.map(a=>a.id),['lawful']);
+  assert.equal(classView(c).aligns[0].on,true);
+  c=pick(c,'role','Valkyrie');
+  assert.equal(c.gender,'female');
+});
+
+test('the last class chosen is remembered, and nonsense in storage falls back to the Valkyrie',()=>{
+  const store=new Map(),storage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)};
+  assert.equal(readChoice(storage).role,'Valkyrie');
+  saveChoice({role:'Wizard',race:'elf',gender:'female',align:'chaotic'},storage);
+  assert.deepEqual(readChoice(storage),{role:'Wizard',race:'elf',gender:'female',align:'chaotic'});
+  store.set('deanhack.class','{"role":"Wizard","race":"dwarf"}');
+  assert.equal(readChoice(storage).race,'human','an impossible race is corrected');
+  store.set('deanhack.class','not json');
+  assert.equal(readChoice(storage).role,'Valkyrie');
 });

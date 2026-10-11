@@ -3,6 +3,7 @@ import {readFileSync,writeFileSync,renameSync,mkdirSync,realpathSync,readdirSync
 import {fileURLToPath} from 'node:url';
 import {resolve,sep,dirname} from 'node:path';
 import {randomBytes} from 'node:crypto';
+import {resolveChoice} from '../roles.js';
 
 export function encodeReply(request, body) {
   if(!request || body.id!==request.id) throw new Error('Stale input; wait for the next engine prompt.');
@@ -43,15 +44,32 @@ export function listSaves(dir, uid) {
   }
   return saves.sort((a, b) => b.savedAt - a.savedAt);
 }
+// Which class each character was started as, so the saved-characters list can say "Wizard" without
+// loading the save. Keyed "<player number>:<save name>" in <var>/characters.json.
+export function readCharacters(file) {
+  try { const data = JSON.parse(readFileSync(file, 'utf8')); return data && typeof data === 'object' ? data : {}; } catch { return {}; }
+}
+export function rememberCharacter(file, key, choice) {
+  const all = readCharacters(file);
+  all[key] = { role: choice.role, race: choice.race, gender: choice.gender, align: choice.align };
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file + '.tmp', JSON.stringify(all));
+  renameSync(file + '.tmp', file);
+}
+// A save file name has no spaces: "Mary Jane" is saved as "Mary_Jane".
+export const saveKey = name => cleanPlayerName(name).replace(/ /g, '_');
+
 // The engine's command line and options for a character of this name.
-export function engineLaunch(rawName, manifest) {
+export function engineLaunch(rawName, manifest, rawChoice) {
   const name = cleanPlayerName(rawName);
+  const { role, race, gender, align } = resolveChoice(rawChoice);
   return {
-    name,
-    args: ['-d', manifest.cwd, '-u', name, '-p', 'Valkyrie', '-r', 'human'],
-    options: `windowtype:bridge,name:${name},role:Valkyrie,race:human,gender:female,align:lawful,pettype:cat,!news,autodig,autopickup,pickup_types:/!?="`,
+    name, choice: { role, race, gender, align },
+    args: ['-d', manifest.cwd, '-u', name, '-p', role, '-r', race],
+    options: `windowtype:bridge,name:${name},role:${role},race:${race},gender:${gender},align:${align},pettype:cat,!news,autodig,autopickup,pickup_types:/!?="`,
   };
 }
+
 // Hosts the engine API answers to: this machine, a Cloudflare quick tunnel, and any host named in
 // DEANHACK_HOSTS (comma separated, no port), which is how a real domain behind HTTPS is allowed.
 export function hostAllowed(host, extra = process.env.DEANHACK_HOSTS || '') {
@@ -91,7 +109,7 @@ export function playerIdOf(headers, trustProxy) {
 // prompt, a recent message history, an event log for polling, and the open event streams.
 export function createSession({ root, id, uid = null, spawnEngine = spawn, now = Date.now }) {
   const token = randomBytes(24).toString('hex');
-  let playerName = DEFAULT_PLAYER_NAME, child = null, pending = null, frame = null, menu = null, text = null, ended = null, commands = null, buffer = '', seq = 0, lastActive = now();
+  let playerName = DEFAULT_PLAYER_NAME, playerChoice = null, child = null, pending = null, frame = null, menu = null, text = null, ended = null, commands = null, buffer = '', seq = 0, lastActive = now();
   const clients = new Set(), history = [], log = [];
   // A monotonic, capped event log backs GET /engine/poll: some hosting paths (a proxy or
   // tunnel that buffers/holds back streaming responses) never deliver anything over the
@@ -104,12 +122,12 @@ export function createSession({ root, id, uid = null, spawnEngine = spawn, now =
     for (const res of clients) res.write(`data: ${JSON.stringify(event)}\n\n`);
   }
   const KINDS=['frame','request','menu','commands','text','message','status','ended','fx','combat','death','revive','pickup','teleport','wish','tombstone']; // kept compact: bridge-frame.test.js reads this line
-  function start(rawName) {
+  function start(rawName, rawChoice) {
     if (child) return;
     const manifest = JSON.parse(readFileSync(resolve(root, 'manifest.json'), 'utf8'));
     for (const p of [manifest.binary, manifest.cwd, manifest.home, manifest.prefix]) if (!realpathSync(p).startsWith(realpathSync(root) + sep)) throw new Error('Engine path is outside isolated runtime');
     pending = frame = menu = text = ended = commands = null; history.length = 0; buffer = '';
-    const launch = engineLaunch(rawName, manifest); playerName = launch.name;
+    const launch = engineLaunch(rawName, manifest, rawChoice); playerName = launch.name; playerChoice = launch.choice;
     const env = { PATH: process.env.PATH, HOME: manifest.home, USER: process.env.USER, LOGNAME: process.env.LOGNAME, TERM: 'dumb', NETHACKOPTIONS: launch.options, MAIL: '/dev/null' }; // MAIL: with a made-up uid the engine's mail setup looks up a passwd entry that does not exist and crashes
     if (uid !== null) env.DEANHACK_UID = String(uid);
     const proc = child = spawnEngine(manifest.binary, launch.args, { cwd: manifest.cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
@@ -138,6 +156,7 @@ export function createSession({ root, id, uid = null, spawnEngine = spawn, now =
     id, uid, token,
     get running() { return !!child; },
     get name() { return playerName; },
+    get choice() { return playerChoice; },
     get idleMs() { return now() - lastActive; },
     get clientCount() { return clients.size; },
     touch() { lastActive = now(); },
@@ -198,7 +217,8 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
         if (req.method === 'GET' && path === '/engine/token') return json(200, { token: session.token });
         if (req.method === 'GET' && path === '/engine/saves') {
           const dir = varDir();
-          return json(200, { saves: dir ? listSaves(resolve(dir, 'saves'), session.uid ?? process.getuid?.() ?? 0) : [] });
+          const uid = session.uid ?? process.getuid?.() ?? 0, meta = dir ? readCharacters(resolve(dir, 'characters.json')) : {};
+          return json(200, { saves: dir ? listSaves(resolve(dir, 'saves'), uid).map(save => ({ ...save, ...(meta[`${uid}:${save.name}`] || {}) })) : [] });
         }
         if (req.method === 'GET' && path === '/engine/events') {
           // Disable Nagle's algorithm: SSE is many small writes, and a proxy hop (e.g. a
@@ -224,7 +244,13 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
           if (path === '/engine/start') {
             let name; try { name = body ? JSON.parse(body).name : undefined; } catch { name = undefined; }
             if (!session.running && running() >= maxEngines) return json(503, { error: 'The dungeon is full right now. Try again in a few minutes.' });
-            session.start(name); return json(200, { ok: true, name: session.name });
+            let choice; try { choice = body ? JSON.parse(body) : undefined; } catch { choice = undefined; }
+            const dir = varDir(), uid = session.uid ?? process.getuid?.() ?? 0, key = saveKey(name);
+            // a name that already has a save resumes it: the class comes from the save, not from this request
+            const resumes = !!dir && listSaves(resolve(dir, 'saves'), uid).some(save => save.name === key);
+            session.start(name, choice);
+            if (dir && !resumes) { try { rememberCharacter(resolve(dir, 'characters.json'), `${uid}:${key}`, session.choice); } catch {} }
+            return json(200, { ok: true, name: session.name, choice: session.choice });
           }
           if (path === '/engine/input') { session.input(body); return json(200, { ok: true }); }
           return json(404, { error: 'Unknown action' });

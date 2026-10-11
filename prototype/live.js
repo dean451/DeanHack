@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import {createGroundModel} from './ground-models.js';
 import {bareMore,groundNotice,groundTile} from './ground-notice.js';
 import {menuKeys,autoCategory,menuCommand,menuGroups,EXT_FALLBACK,matchCommands,resolveCommand,completePrefix} from './engine-menus.js';
-import {installStartScreen} from './start-screen.js';
+import {installStartScreen,readChoice} from './start-screen.js';
 import {meleeDirection,confirmsPlayerMelee} from './combat-visuals.js';
 import {createHeldWeapon} from './equipment.js';
 import {createCentaurStatue,createOracle,createLiveFountain} from './oracle-visuals.js';
@@ -581,7 +581,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  }
  const saved={banner:$('.location small').textContent,heading:$('.location h1').textContent,keys:$('.keys').innerHTML,companion:$('.companion').innerHTML};
  function setMode(value){active=value;nameInput.hidden=value;minimap.setVisible(value);if(!value)syncAim();if(!active)$('.location small').textContent=saved.banner;cavern.setActive(active);for(const {light,base} of ambientLights)light.intensity=active?base*LIVE_AMBIENT:base;document.body.classList.toggle('live-engine',active);group.visible=active;for(const o of demoObjects)o.visible=!active;panel.hidden=!active;actions.hidden=!active;$('#reset').hidden=active;$('.legend').hidden=active;$('.character h2').hidden=active;button.textContent=active?'Demo room':'Live UnNetHack';if(!active){$('.companion').innerHTML=saved.companion;$('.companion').hidden=false;$('.character').classList.remove('low-hp');levelBanner.classList.remove('show');shownTitle=null;}$('.keys').innerHTML=active?LIVE_KEYS_HTML:saved.keys;if(active){if(latest)apply(latest);prompt();}else{dialog.close();onDemo();$('.location h1').textContent=saved.heading;$('.location h1').hidden=false;dropEngulfCamera(camera,controls);controls.target.set(0,.1,0);camera.position.set(11,13,16);}onMode?.(active);}
- button.onclick=async()=>{if(active){setMode(false);return;}setMode(true);setPrompt('Starting isolated UnNetHack…');try{const started=await post('/engine/start',{name:savedPlayerName()});if(started?.name)setCharacterName(started.name);connect();}catch(e){message(`Could not start engine: ${e.message}. Run npm run engine:build first.`);}};
+ button.onclick=async()=>{if(active){setMode(false);return;}setMode(true);setPrompt('Starting isolated UnNetHack…');try{const started=await post('/engine/start',{name:savedPlayerName(),...readChoice()});if(started?.name)setCharacterName(started.name);connect();}catch(e){message(`Could not start engine: ${e.message}. Run npm run engine:build first.`);}};
  // The first thing a visitor sees: a name and one button that resumes or begins a game and goes straight to Live (?demo skips it).
  installStartScreen({button,nameInput});
  actions.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{if(pending?.kind==='command')reply(Number(b.dataset.key));});

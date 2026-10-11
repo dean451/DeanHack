@@ -122,3 +122,24 @@ test('an engine nobody has talked to for a while is saved and stopped',async()=>
     assert.equal(spawned[0].stdin.ended,true,'the idle engine was told to save and exit');
   }finally{await app.stopEngine();app.closeAllConnections?.();await new Promise(r=>app.close(r));}
 });
+
+test('the class a character was started as is remembered, but a resumed save keeps its own',async()=>{
+  const {spawned,spawnEngine}=fakeEngines(),root=fakeRoot();
+  const saves=join(root,'runtime','var','unnethack','saves');
+  writeFileSync(join(saves,'2001Old.bz2'),'x');                          // alice already has a save called Old
+  const app=createApp({dist:mkdtempSync(join(tmpdir(),'dh-dist-')),engine:{trustProxy:true,spawnEngine,root}});
+  await new Promise(r=>app.listen(0,'127.0.0.1',r));const {port}=app.address();
+  try{
+    const t=(await call(port,'/engine/token',{player:'alice'})).json.token;
+    const started=await call(port,'/engine/start',{player:'alice',method:'POST',token:t,body:{name:'Mira',role:'Wizard',race:'elf',gender:'female',align:'lawful'}});
+    assert.deepEqual(started.json.choice,{role:'Wizard',race:'elf',gender:'female',align:'chaotic'},'the answer says what was really started');
+    assert.ok(spawned[0].args.includes('Wizard')&&spawned[0].args.includes('elf'));
+    await app.stopEngine();
+    writeFileSync(join(saves,'2001Mira.bz2'),'x');
+    const list=(await call(port,'/engine/saves',{player:'alice'})).json.saves;
+    assert.equal(list.find(s=>s.name==='Mira').role,'Wizard','the saved-characters list knows the class');
+    // starting under a name that already has a save resumes it and records nothing new
+    await call(port,'/engine/start',{player:'alice',method:'POST',token:t,body:{name:'Old',role:'Barbarian'}});
+    assert.equal((await call(port,'/engine/saves',{player:'alice'})).json.saves.find(s=>s.name==='Old').role,undefined);
+  }finally{await app.stopEngine();app.closeAllConnections?.();await new Promise(r=>app.close(r));}
+});

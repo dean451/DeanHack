@@ -342,6 +342,10 @@ static void frame_body(void) {
     printf(",\"player\":{\"x\":%d,\"z\":%d,\"hp\":%d,\"maxhp\":%d,\"ac\":%d,\"level\":%d",u.ux,u.uy,Upolyd?u.mh:u.uhp,Upolyd?u.mhmax:u.uhpmax,u.uac,u.ulevel);
     /* what the hero has polymorphed into ("" when in normal form), so the client can swap the model */
     printf(",\"form\":");quoted(Upolyd?mons[u.umonnum].mname:"");
+    /* who the hero is, so the client can dress the model for the class */
+    printf(",\"role\":");quoted(urole.name.m);printf(",\"race\":");quoted(urace.noun);
+    printf(",\"gender\":");quoted(flags.female?"female":"male");
+    printf(",\"align\":");quoted(u.ualign.type==A_LAWFUL?"lawful":u.ualign.type==A_CHAOTIC?"chaotic":"neutral");
     printf(",\"weapon\":");
     held(uwep);
     /* Two-weaponing: the other hand holds the alternate weapon. */
