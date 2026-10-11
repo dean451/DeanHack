@@ -59,12 +59,12 @@ const LOOKS={
  coyote:{scale:1.08,coat:'#94806a',saddle:'#5a4c3e',belly:'#dccfb8',tip:'#2c2825',eye:'#c8a040',ears:.16,snout:.2,pattern:'grizzle',grizzle:.3,torn:1},
  fox:{scale:.85,coat:'#c9652b',saddle:'#b0531f',belly:'#f4ece0',tip:'#f5f0e8',socks:'#1e1a18',earBack:'#1e1a18',eye:'#d09a30',ears:.17,snout:.18,legH:.22,bushy:.062,tail:'brush',tailLen:1.1,pattern:'fox',grizzle:.06},
  wolf:{scale:1.2,coat:'#8a8a86',saddle:'#42423f',belly:'#dcdad2',tip:'#262626',eye:'#d8a838',glow:.3,ears:.14,snout:.2,legH:.34,bushy:.05,heavy:1.08,ruff:1,mask:true,pattern:'grizzle',grizzle:.3},
- warg:{scale:1.4,coat:'#5a524a',saddle:'#241f1c',belly:'#8a8176',tip:'#1a1716',eye:'#ff4a20',glow:1.6,ears:.13,snout:.21,legH:.36,bushy:.055,heavy:1.2,ruff:1.35,hackles:true,fangs:1.5,pattern:'grizzle',grizzle:.28},
+ warg:{scale:1.4,coat:'#5a524a',saddle:'#241f1c',belly:'#8a8176',tip:'#1a1716',eye:'#ff4a20',glow:1.6,ears:.13,snout:.21,legH:.36,bushy:.055,heavy:1.2,ruff:1.35,hackles:true,fangs:1.5,pattern:'grizzle',grizzle:.28,torn:1,scar:1},
  'little dog':{pet:true,scale:.72,coat:'#9c9482',saddle:'#847a68',belly:'#b0a590',tip:'#a89e8a',mark:'#5e3c24',eye:'#2a1a10',ears:.12,earStyle:'floppy',snout:.13,legH:.22,bushy:.018,tail:'up',tailLen:.8,pattern:'patches',eyePatch:true,collar:'#4a1a14',grizzle:.03},
  dog:{pet:true,scale:.95,coat:'#c8914f',saddle:'#9a6a36',belly:'#f0dcb8',tip:'#d9ae72',socks:'#e8cfa4',eye:'#3a2414',ears:.12,earStyle:'folded',snout:.16,legH:.28,bushy:.026,tail:'up',pattern:'plain',collar:'#33271c',grizzle:.04},
  'large dog':{pet:true,scale:1.18,coat:'#b27a3e',saddle:'#2a2320',belly:'#d9b27a',tip:'#2a2320',socks:'#c89660',muzzle:'#2a2320',eye:'#3a2414',ears:.16,snout:.19,legH:.32,bushy:.034,tail:'up',tailLen:1.1,pattern:'saddle',fleck:false,collar:'#2a1e16',grizzle:.05},
  dingo:{scale:1,coat:'#c98a46',saddle:'#a86a30',belly:'#f0e2c4',tip:'#f4ead8',socks:'#eee0c4',eye:'#b07a28',ears:.15,snout:.19,legH:.31,bushy:.04,pattern:'plain',grizzle:.06},
- werewolf:{scale:1.25,coat:'#6e5c48',saddle:'#2a211a',belly:'#a08c72',tip:'#1c1612',eye:'#ffaa18',glow:1.4,ears:.15,snout:.21,legH:.34,bushy:.055,heavy:1.15,ruff:1.25,hackles:true,fangs:1.45,mask:true,pattern:'grizzle',grizzle:.36},
+ werewolf:{scale:1.25,coat:'#6e5c48',saddle:'#2a211a',belly:'#a08c72',tip:'#1c1612',eye:'#ffaa18',glow:1.4,ears:.15,snout:.21,legH:.34,bushy:.055,heavy:1.15,ruff:1.25,hackles:true,fangs:1.45,mask:true,pattern:'grizzle',grizzle:.36,torn:1,scar:1},
  'winter wolf cub':{scale:.88,coat:'#dbe4ea',saddle:'#94abbc',belly:'#f5f9fc',tip:'#a6c6dc',eye:'#8adcff',glow:1.2,ears:.15,snout:.17,legH:.27,bushy:.05,ruff:.9,mask:true,pattern:'frost',grizzle:.1,frost:.6},
  'winter wolf':{scale:1.42,coat:'#d4dee5',saddle:'#86a0b3',belly:'#f3f8fb',tip:'#98bed8',eye:'#7fd8ff',glow:1.8,ears:.14,snout:.21,legH:.35,bushy:.06,heavy:1.12,ruff:1.4,hackles:true,fangs:1.4,mask:true,pattern:'frost',grizzle:.12,frost:1},
  cerberus:{scale:1.7,coat:'#1e1614',saddle:'#0a0706',belly:'#4a2418',tip:'#1e2a16',ember:'#ff4a12',eye:'#ff3010',glow:2.6,ears:.13,snout:.21,legH:.36,heavy:1.3,ruff:1.1,fangs:1.7,tail:'serpent',pattern:'char',heads:3,vipers:true},
@@ -461,6 +461,8 @@ function build(key,look){
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
 export function isCanine(name){return !!LOOKS[name];}
+// which old wounds a canine carries: a bitten right ear and a scar across the muzzle
+export function canineWear(name){return {torn:!!LOOKS[name]?.torn,scar:!!LOOKS[name]?.scar};}
 
 export function createCanine(name,colour){
  const look=lookFor(name,colour),S=build(LOOKS[name]?name:'d:'+look.coat,look),L=S.L;
