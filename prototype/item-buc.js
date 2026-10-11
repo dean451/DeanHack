@@ -55,6 +55,7 @@ export function itemFacts(text) {
   if (/\bempty tins?\b/i.test(t.split('(')[0])) out.push('empty');
   if (/\(laid by you\)/i.test(t)) out.push('laid by you');
   if (/\bdiluted\b/i.test(t.split('(')[0])) out.push('diluted');
+  if (/\bwet towels?\b/i.test(t.split('(')[0])) out.push('wet');
   if (/\((?:tethered weapon|weapon|wielded)[^)]*\)/i.test(t)) {
     out.push(/\(tethered weapon\b/i.test(t) ? 'wielded, tethered' : /\(wielded in other hand\)/i.test(t) ? 'wielded, off hand' : /\(weapon in hands\)/i.test(t) ? 'wielded, two hands' : 'wielded');
   }
