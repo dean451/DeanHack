@@ -81,7 +81,11 @@ function buildHead(k){
  for(const s of [-1,1])for(let i=0;i<5;i++)G.add(new THREE.SphereGeometry(.012,8,6),at(s*(.06+(i%2)*.012),.03+Math.floor(i/2)*.012,.06+(i%3)*.008),[1,1,1]);
  if(k==='rust monster'){
   // heavy hooked mandibles, gnawing, with a chewed iron burr caught in them
-  for(const s of [-1,1]){P.add(along([s*.04,-.04,.08],[s*.055,-.06,.15],.018,.012),null,C.pit);P.add(new THREE.ConeGeometry(.012,.05,5),at(s*.035,-.065,.17,[Math.PI/2+.3,0,-s*.9]),C.pit);}
+  // the left one was snapped off short on something too hard: a blunt stump with a bright break
+  for(const s of [-1,1]){
+   if(s<0){P.add(along([s*.04,-.04,.08],[s*.048,-.05,.115],.018,.015),null,C.pit);P.add(new THREE.ConeGeometry(.012,.02,4),at(s*.048,-.052,.125,[Math.PI/2,0,0]),C.edge);continue;}
+   P.add(along([s*.04,-.04,.08],[s*.055,-.06,.15],.018,.012),null,C.pit);P.add(new THREE.ConeGeometry(.012,.05,5),at(s*.035,-.065,.17,[Math.PI/2+.3,0,-s*.9]),C.pit);
+  }
   P.add(new THREE.CylinderGeometry(.006,.008,.05,6),at(0,-.065,.15,[0,0,Math.PI/2.3]),rgb('#4a4a4e'));
  }else{
   // a slender feeding tube for a mouth, its tip glowing with what it last drank

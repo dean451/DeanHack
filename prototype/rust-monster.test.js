@@ -29,3 +29,18 @@ test('the disenchanter is the bigger one and glows with drained magic; the rust 
   assert.deepEqual(glowing(rust), ['eyes']);
   for (const part of ['seams', 'eyes', 'orb']) assert(glowing(dis).includes(part), part);
 });
+
+test('the rust monster\'s left mandible is snapped short beside the whole right one', async () => {
+  const {createRustMonster} = await import('./rust-monster.js');
+  const m = createRustMonster('rust monster');
+  let head = null;
+  m.g.traverse(o => { if (o.isMesh && o.userData.part === 'head') head = o; });
+  const p = head.geometry.attributes.position;
+  let left = -Infinity, right = -Infinity;
+  for (let i = 0; i < p.count; i++) {
+    if (p.getY(i) > -0.03 || Math.abs(p.getX(i)) < 0.03) continue;
+    if (p.getX(i) < 0) left = Math.max(left, p.getZ(i));
+    else right = Math.max(right, p.getZ(i));
+  }
+  assert(right - left > 0.04, `right reaches ${right}, left ${left}`);
+});
