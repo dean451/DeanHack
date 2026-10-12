@@ -160,3 +160,9 @@ test('itemFacts says which hand a ring is on', () => {
   assert.deepEqual(itemFacts('a ring of regeneration (on right hand)'), ['worn, right hand']);
   assert.deepEqual(itemFacts('a ring of regeneration (on left finger)'), ['worn, left hand']);
 });
+
+test('a proofed item says which proofing it has in the hover', () => {
+  assert.deepEqual(itemFacts('a rustproof +1 dagger'), ['rustproof']);
+  assert.deepEqual(itemFacts('a fireproof cloak (being worn)'), ['fireproof', 'worn']);
+  assert.deepEqual(itemFacts('a dagger'), []);
+});
