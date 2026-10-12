@@ -74,6 +74,8 @@ export function deathPose(style, u, dir = null) {
       // Whatever it held goes slack with the hand: the grip tips over and slips once the
       // wrist has loosened.
       p.socket = .7 * smooth((u - .35) / .3);
+      // Any wings hang off it in tatters and sag away from the frame as it sifts down.
+      p.wing = .45 * smooth((u - .3) / .35);
       p.fade = 1 - smooth((u - .6) / .4);
       push(.04 * sag);
       break;

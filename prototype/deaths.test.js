@@ -402,3 +402,11 @@ test('a toppling body lets its wings fall slack and twitch once after landing', 
   assert.ok(w(.95) > w(.89) + .03 || w(.95) > .35, 'the late twitch');
   assert.ok(Math.abs(w(1) - .35) < 1e-9 && w(1) === w(2), 'held slack');
 });
+
+test('a crumbling body lets its wings sag away from the frame as it sifts down', () => {
+  const w = u => deathPose('crumble', u).wing;
+  assert.equal(w(0), 0);
+  assert.ok(w(.5) > .1 && w(.8) > .4);
+  for (let u = 0; u < .99; u += .01) assert.ok(w(u) >= 0 && w(u) <= .45 + 1e-9 && w(u + .01) >= w(u) - 1e-9, `in bounds, no rebound at ${u}`);
+  assert.ok(Math.abs(w(1) - .45) < 1e-9 && w(1) === w(2), 'held');
+});
