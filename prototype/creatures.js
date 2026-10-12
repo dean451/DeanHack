@@ -2669,6 +2669,14 @@ function demon(o){
   const band=part(head,new THREE.TorusGeometry(.098,.014,6,18),iron,0,.1,-.01);band.rotation.x=Math.PI/2;band.castShadow=false;
   const rim=part(head,new THREE.TorusGeometry(.099,.005,5,18),hot,0,.088,-.01);rim.rotation.x=Math.PI/2;rim.castShadow=false;
   for(let i=0;i<7;i++){const a=(i/7)*Math.PI*2,c=cone(head,.014,.11+(i%2)*.05,iron,Math.sin(a)*.098,.15+(i%2)*.02,Math.cos(a)*.098-.01,4);c.castShadow=false;}}
+ // Yeenoghu, lord of gnolls: a ridge of coarse dark bristles down the spine and a bone-studded collar of gnawed fangs
+ if(o.mark==='gnoll'){const bris=mat('#1e1812',{roughness:.95}),fang=mat('#d8cfb4',{roughness:.5});bris.name='gnoll-mane';fang.name='gnoll-fangs';
+  for(let i=0;i<7;i++){const c=cone(body,.02,.12,bris,0,chestY+.2-i*.075,-.13*bulk-i*.004,4);c.rotation.x=-.9;c.castShadow=false;}
+  for(let i=0;i<6;i++){const a=(i/5-.5)*2.4,c=cone(body,.012,.06,fang,Math.sin(a)*.11*bulk,chestY+.1,Math.cos(a)*.1*bulk,4);c.rotation.set(Math.cos(a)*1.3,0,-Math.sin(a)*1.3);c.castShadow=false;}}
+ // Orcus, lord of the undead: a chain of tiny skulls hung across the chest, their sockets burning with his own glow
+ if(o.mark==='skulls'){const bone=mat('#cfc7ae',{roughness:.6}),fire=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.2,roughness:.4});bone.name='orcus-skull';fire.name='orcus-skull-glow';
+  for(let i=0;i<5;i++){const a=(i/4-.5)*2.2,x=Math.sin(a)*.12*bulk,y=chestY+.08-Math.abs(a)*.04,z=Math.cos(a)*.11*bulk;
+   sphere(body,.026,bone,x,y,z).castShadow=false;for(const e of [-1,1])sphere(body,.006,fire,x+e*.011,y+.004,z+.02).castShadow=false;}}
  // a second head (Demogorgon): the first is shifted aside and a twin snarls beside it, turned slightly away
  if(o.heads===2){head.position.x=-.12;head.rotation.y=.25;const twin=head.clone();twin.position.set(.12,headY-.01,.02);twin.rotation.y=-.3;body.add(twin);}
  // bat wings on finger bones
@@ -2699,7 +2707,7 @@ const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',evil:'#40d8c0',horns:'
  'ice devil':{skin:'#b8d0e0',mark:'frost',evil:'#50b8ff',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true,scale:1.15},nalfeshnee:{skin:'#5a4a3a',mark:'boils',evil:'#e07a20',head:'boar',spikes:'bone',wings:.5,bulk:1.3,scale:1.15},
  'pit fiend':{skin:'#7a1a18',evil:'#ff3a1a',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.3},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.35},
  "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',evil:'#ff3a08',weapon:'whip',bulk:1.2,scale:1.45},
- yeenoghu:{skin:'#8a7040',evil:'#e0a020',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',evil:'#8aff6a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
+ yeenoghu:{skin:'#8a7040',mark:'gnoll',evil:'#e0a020',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',mark:'skulls',evil:'#8aff6a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
  geryon:{skin:'#6a4a2a',mark:'crown',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',mark:'crown',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
  baalzebub:{skin:'#3a4a2a',mark:'crown',evil:'#b8ff30',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',mark:'crown',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
  demogorgon:{skin:'#5a6a4a',evil:'#40ffa0',heads:2,eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
