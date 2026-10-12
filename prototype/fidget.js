@@ -44,6 +44,7 @@ import {updateRatSniff} from './rat-sniff.js';
 import {updateCanineWatch} from './canine-watch.js';
 import {updatePetTic} from './pet-tic.js';
 import {updatePetCatTic} from './pet-cat-tic.js';
+import {updatePetWatch} from './pet-watch.js';
 import {updateGridBugSnap} from './grid-bug-snap.js';
 import {updateNurseTap} from './nurse-tap.js';
 import {updateLizardPushup} from './lizard-pushup.js';
@@ -235,6 +236,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateCanineWatch(actor, dt, t, busy);
   // A pet dog's tic: the head cocked too long, the tail jerking in threes (pet-tic.js).
   updatePetTic(actor, dt, t, busy);
+  // And a pet's fixed stare: the head swings to the hero on a loose spring and never looks away (pet-watch.js).
+  updatePetWatch(actor, dt, t, busy, look);
   // And a pet cat's kneading: the head sinks, the forelegs tread the air in turn, the last paw held up too long (pet-cat-tic.js).
   updatePetCatTic(actor, dt, t, busy);
   // And the grid bug's stepped turn: the body swings aside in hard right-angle snaps, the legs chattering at each (grid-bug-snap.js).
