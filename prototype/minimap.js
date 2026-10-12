@@ -21,7 +21,7 @@ export function cellStyle(cell, hero) {
   if (cell.trap) return {fill: '#b25bd6', mark: 'x'};
   switch (cell.terrain) {
     case 'wall': return {fill: '#6c7a86'};
-    case 'door': return {fill: '#b8864e', mark: 'bar'};
+    case 'door': return {fill: '#b8864e', mark: cell.door === 'open' ? 'jamb' : 'bar'};   // an open door is two posts with a gap, a closed one a solid bar
     case 'up': return {fill: '#e6edf2', mark: 'up'};
     case 'down': return {fill: '#f0c35c', mark: 'down'};
     case 'water': return {fill: '#3f7fb5', mark: 'wave'};
@@ -43,6 +43,7 @@ function drawMark(ctx, mark, px, py) {
     case 'down': ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + s, py); ctx.lineTo(px + s / 2, py + s); ctx.fill(); break;
     case 'x': ctx.fillRect(px + 1, py, 1, s); ctx.fillRect(px, py + 1, s, 1); break;
     case 'bar': ctx.fillRect(px, py + 1, s, 2); break;
+    case 'jamb': ctx.fillRect(px, py + 1, 1, 2); ctx.fillRect(px + 3, py + 1, 1, 2); break;
     case 'diamond': ctx.fillRect(px + 1, py, 2, 1); ctx.fillRect(px, py + 1, 4, 2); ctx.fillRect(px + 1, py + 3, 2, 1); break;
     case 'wave': ctx.fillRect(px, py + 1, 2, 1); ctx.fillRect(px + 2, py + 2, 2, 1); break;
     case 'spark': ctx.fillRect(px, py, 1, 1); ctx.fillRect(px + 2, py, 1, 1); ctx.fillRect(px + 1, py + 2, 1, 1); ctx.fillRect(px + 3, py + 2, 1, 1); break;
