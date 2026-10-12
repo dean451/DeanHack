@@ -51,6 +51,8 @@ export function itemFacts(text) {
   if (/\((?:[^)]*, )?lit\)/i.test(t)) out.push('lit');
   if (/\((?:alternate weapon|off[- ]hand)[^)]*\)/i.test(t)) out.push('alternate weapon');
   if (/\bpartly eaten\b/i.test(t.split('(')[0])) out.push('partly eaten');
+  const drained = /\b(partly )?drained\b/i.exec(t.split('(')[0]);
+  if (drained) out.push(drained[1] ? 'partly drained' : 'drained');
   if (/\bpartly used\b/i.test(t.split('(')[0])) out.push('partly used');
   if (/\bempty tins?\b/i.test(t.split('(')[0])) out.push('empty');
   if (/\(laid by you\)/i.test(t)) out.push('laid by you');
