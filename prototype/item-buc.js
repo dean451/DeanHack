@@ -54,7 +54,7 @@ export function itemFacts(text) {
   const drained = /\b(partly )?drained\b/i.exec(t.split('(')[0]);
   if (drained) out.push(drained[1] ? 'partly drained' : 'drained');
   if (/\bpartly used\b/i.test(t.split('(')[0])) out.push('partly used');
-  if (/\bempty tins?\b/i.test(t.split('(')[0])) out.push('empty');
+  if (/\bempty\b/i.test(t.split('(')[0])) out.push('empty');
   if (/\(laid by you\)/i.test(t)) out.push('laid by you');
   if (/\bdiluted\b/i.test(t.split('(')[0])) out.push('diluted');
   if (/\bwet towels?\b/i.test(t.split('(')[0])) out.push('wet');

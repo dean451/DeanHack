@@ -177,3 +177,10 @@ test('a corpse drained by a vampire says so in the hover', () => {
   assert.deepEqual(itemFacts('a partly drained human corpse'), ['partly drained']);
   assert.deepEqual(itemFacts('a newt corpse'), []);
 });
+
+test('an "empty" prefix reads empty for containers and spent lamps, not only tins', () => {
+  assert.deepEqual(itemFacts('an empty chest'), ['empty']);
+  assert.deepEqual(itemFacts('an empty brass lantern'), ['empty']);
+  assert.deepEqual(itemFacts('an empty oil lamp (lit)'), ['lit', 'empty']);
+  assert.deepEqual(itemFacts('a chest'), []);
+});
