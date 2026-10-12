@@ -384,6 +384,16 @@ static void frame_body(void) {
         printf(",\"conditions\":[");
         for (int i = 0; i < n; i++) { if (!first) putchar(','); first = 0; quoted(on[i]); }
         putchar(']');
+        /* The deadly countdowns' turns left (the property timeouts), so the client can show how far
+           along each is instead of counting turns since the word appeared: stoning starts at 5,
+           sliming at 10, strangling at 6, sickness at a Con-based roll the client remembers. */
+        printf(",\"countdowns\":{");
+        first = 1;
+        if (Stoned) { printf("\"stone\":%ld", (long)(Stoned & TIMEOUT)); first = 0; }
+        if (Slimed) { printf("%s\"slime\":%ld", first ? "" : ",", (long)(Slimed & TIMEOUT)); first = 0; }
+        if (Strangled) { printf("%s\"strngl\":%ld", first ? "" : ",", (long)(Strangled & TIMEOUT)); first = 0; }
+        if (Sick) { printf("%s\"sick\":%ld", first ? "" : ",", (long)(Sick & TIMEOUT)); first = 0; }
+        putchar('}');
     }
     printf(",\"helmet\":");
     if (uarmh) {
