@@ -2965,3 +2965,10 @@ test('the xan drips venom from its barb and still fits its tile', () => {
  const b = new THREE.Box3().setFromObject(r.g, true);
  assert(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < 1, 'fits its tile');
 });
+
+test('the ki-rin\'s horn is chipped short with a dark break, unlike the unicorns\'',()=>{
+ const tip=name=>{const c=createCreature({name,symbol:'u'.charCodeAt(0),color:3});c.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(c.g,true).max.y/c.g.scale.y;};
+ let kirinMeshes=0;createCreature({name:'ki-rin',symbol:'u'.charCodeAt(0),color:3}).g.traverse(o=>{if(o.isMesh)kirinMeshes++;});
+ assert(kirinMeshes>0&&kirinMeshes<=40,`ki-rin draws ${kirinMeshes}`);
+ assert(tip('ki-rin')>0);
+});

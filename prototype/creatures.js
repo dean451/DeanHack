@@ -1003,7 +1003,9 @@ function horse(o){
  else if(!o.horn)sphere(head,.022,sock,0,.068,.07,1,.3,1.2);
  if(o.horn){
   // the horn leans a little back from the head's up axis, so it juts forward and up off the brow
-  const h=.27,lean=-.1,horn=part(head,spiralHorn(.026,h),mat(o.horn,{roughness:.35,metalness:.08}),0,.075+Math.cos(lean)*h/2,.06+Math.sin(lean)*h/2);horn.rotation.x=lean;
+  const h=o.chipped?.22:.27,lean=-.1,horn=part(head,spiralHorn(.026,h),mat(o.horn,{roughness:.35,metalness:.08}),0,.075+Math.cos(lean)*h/2,.06+Math.sin(lean)*h/2);horn.rotation.x=lean;
+  // a chipped horn: the tip is gone, leaving a blunt dark break (the ki-rin)
+  if(o.chipped){const brk=cone(head,.012,.03,mat('#3a2a1c',{roughness:.9}),0,.075+Math.cos(lean)*h-.02,.06+Math.sin(lean)*h,5);brk.rotation.x=lean+Math.PI;}
   const burr=part(head,new THREE.TorusGeometry(.024,.007,5,12),hair,0,.078,.058);burr.rotation.x=Math.PI/2+lean;
   // chin tuft, hanging straight down in world space (the head is pitched .85 forward)
   const beard=cone(head,.016,.08,hair,0,-.075-Math.cos(.85)*.035,.15+Math.sin(.85)*.035,5);beard.rotation.x=Math.PI+.85;
@@ -1081,7 +1083,7 @@ const UNICORNS={
  'white unicorn':{...UNICORN_BASE,scale:1.05,coat:'#ece9e2',hair:'#f8f6f0',feather:'#fbfaf6',hoof:'#c8a860',horn:'#f6f0de'},
  'gray unicorn':{...UNICORN_BASE,scale:1.05,coat:'#8f8f8c',points:'#6a6a68',hair:'#d4d4d0',feather:'#c8c8c4',hoof:'#9a9ca0'},
  'black unicorn':{...UNICORN_BASE,scale:1.05,coat:'#262428',points:'#1b1a1d',hair:'#0f0e11',feather:'#18171a',hoof:'#2e2c30',horn:'#e2d6b8'},
- 'ki-rin':{...UNICORN_BASE,scale:1.2,coat:'#c99a36',points:'#a87a26',hair:'#d8602a',feather:'#e07a34',hoof:'#e0c060',horn:'#f4dc90',stock:1},
+ 'ki-rin':{...UNICORN_BASE,scale:1.2,chipped:true,coat:'#c99a36',points:'#a87a26',hair:'#d8602a',feather:'#e07a34',hoof:'#e0c060',horn:'#f4dc90',stock:1},
 };
 // Bakes static pieces into one mesh per (parent, material), so a big beast costs a
 // handful of draw calls instead of dozens. Pieces are posed with a matrix before merging.
