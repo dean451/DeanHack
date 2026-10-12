@@ -12,6 +12,8 @@ import {clamp01, smooth} from './fx-textures.js';
 
 export const GOLD = {coins: 5, glint: .22, total: .7};
 export const PENDING_WAIT = .3;
+// A fat purse flicks more coins than a few pieces: under 10 gold 2, under 100 gold 3, under 500 gold 4, else 5.
+export const coinCount = text => { const n = +/^\$ - (\d+)/i.exec(text || '')?.[1]; return n >= 500 ? 5 : n >= 100 ? 4 : n >= 10 ? 3 : 2; };
 export const isGoldMessage = text => /^\$ - \d+ gold pieces?\b/i.test(text || '');
 
 // Coin i: flicked up on its own delay, spinning, then dropping dull. Coin 0 lingers at the top.
@@ -31,11 +33,11 @@ export function glintPose(t) {
 
 export function createGoldGlint(THREE, parent) {
   const live = []; let pending = null;
-  function add(x, z) {
+  function add(x, z, n = GOLD.coins) {
     const g = new THREE.Group(); g.name = 'GoldGlint'; g.position.set(x, 0, z); parent.add(g);
     const disc = new THREE.CylinderGeometry(1, 1, .25, 8), bar = new THREE.PlaneGeometry(1, .06), mats = [];
     const mk = c => { const m = new THREE.MeshBasicMaterial({color: c, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, toneMapped: false}); mats.push(m); return m; };
-    const coins = Array.from({length: GOLD.coins}, () => { const m = new THREE.Mesh(disc, mk(0xd9a520)); m.scale.set(.05, .05, .05); g.add(m); return m; });
+    const coins = Array.from({length: n}, () => { const m = new THREE.Mesh(disc, mk(0xd9a520)); m.scale.set(.05, .05, .05); g.add(m); return m; });
     const bars = [0, Math.PI / 2].map(r => { const m = new THREE.Mesh(bar, mk(0xfff2b0)); m.position.y = .12; m.rotation.z = r + .4; g.add(m); return m; });
     live.push({g, geos: [disc, bar], mats, coins, bars, t: 0});
   }
@@ -50,10 +52,10 @@ export function createGoldGlint(THREE, parent) {
     add,
     // The message arrives before the frame that carries the hero's new square: hold it for the
     // next frame (settle), or fall back to the square given after PENDING_WAIT.
-    message(text, x, z) { if (isGoldMessage(text)) { if (pending) add(pending.x, pending.z); pending = {x, z, wait: 0}; } },
-    settle(x, z) { if (pending) { add(x, z); pending = null; } },
+    message(text, x, z) { if (isGoldMessage(text)) { if (pending) add(pending.x, pending.z, pending.n); pending = {x, z, n: coinCount(text), wait: 0}; } },
+    settle(x, z) { if (pending) { add(x, z, pending.n); pending = null; } },
     update(dt) {
-      if (pending && (pending.wait += dt) >= PENDING_WAIT) { add(pending.x, pending.z); pending = null; }
+      if (pending && (pending.wait += dt) >= PENDING_WAIT) { add(pending.x, pending.z, pending.n); pending = null; }
       for (let i = live.length - 1; i >= 0; i--) if (!step(live[i], dt)) { drop(live[i]); live.splice(i, 1); }
     },
     clear() { pending = null; live.forEach(drop); live.length = 0; },
