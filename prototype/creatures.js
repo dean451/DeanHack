@@ -512,7 +512,7 @@ const LIZARDS={newt:{skin:'#d69a38',belly:'#e9763a',spot:'#5a3a1a',scale:.8},gec
 // tapering tail as lizard() — reads as "petrifying bird-lizard", not another lizard.
 function cockatrice(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
- const skin=mat(o.skin),belly=mat(o.belly||shade(o.skin,1.3)),comb=mat(o.comb),foot=mat(o.beak);
+ const skin=mat(o.skin),belly=mat(o.belly||shade(o.skin,1.3)),comb=o.fire?mat(o.comb,{emissive:o.comb,emissiveIntensity:2.5}):mat(o.comb),foot=mat(o.beak);
  sphere(body,.12,skin,0,.15,0,.95,.55,1.75);sphere(body,.08,belly,0,.11,.02,.9,.4,1.6);
  const head=new THREE.Group();head.position.set(0,.2,.26);body.add(head);
  sphere(head,.09,skin,0,0,0,1,.95,1.05);
@@ -530,13 +530,19 @@ function cockatrice(o){
  cone(head,.012,.03,raw,.0,.1,.0,4);
  for(const [x,y,z,r] of [[-.06,.2,.04,.05],[.07,.19,-.06,.045],[.0,.22,-.12,.04]])sphere(body,r,stone,x,y,z,1.2,.35,1.3);
  g.userData.petrifying=true;
+ // a pyrolisk is burning from within: its eyes are live coals and its back is charred black under cracks of ember
+ if(o.fire){const char=mat('#14100e',{roughness:1,flatShading:true}),ember=mat('#ff7a24',{emissive:'#ff5a10',emissiveIntensity:3,roughness:.4});
+  for(const side of [-1,1])sphere(head,.02,ember,side*.063,.02,.065);
+  sphere(body,.07,char,0,.25,-.04,1.3,.3,1.5);
+  for(const [x,z] of [[-.03,-.02],[.03,-.09]])sphere(body,.012,ember,x,.265,z,1.6,.4,.6);
+  g.userData.burning=true;}
  const wingParts=[];for(const side of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.17,.06);shape.lineTo(side*.12,.0);shape.lineTo(side*.15,-.05);shape.lineTo(0,-.02);const wing=part(body,new THREE.ShapeGeometry(shape),skin,side*.1,.2,-.02);wing.rotation.y=side*.35;wing.userData.side=side;wingParts.push(wing);}
  const tail=new THREE.Group();tail.position.set(0,.15,-.2);body.add(tail);
  let px=0,pz=0;for(let i=0;i<6;i++){const r=.05*(1-i/7),len=.09;const seg=cylinder(tail,r*.8,r,len,skin,px,-.012*i,pz-len/2,8);seg.rotation.x=Math.PI/2;px+=Math.sin(i*.6)*.012;pz-=len*.95;}
  for(let i=0;i<3;i++){const plume=cone(tail,.025,.1,comb,0,-.06-i*.02,pz-.03-i*.05,4);plume.rotation.x=1.7;}
  return {...actor(g,body,legs,tail,[],'cockatrice'),head,wingParts};
 }
-const COCKATRICES={chickatrice:{skin:'#8a6a3a',comb:'#a8382a',beak:'#d99a3a',scale:.65},cockatrice:{skin:'#c9a83a',comb:'#c8262a',beak:'#e0b23a',scale:1.1},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9}};
+const COCKATRICES={chickatrice:{skin:'#8a6a3a',comb:'#a8382a',beak:'#d99a3a',scale:.65},cockatrice:{skin:'#c9a83a',comb:'#c8262a',beak:'#e0b23a',scale:1.1},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9,fire:true}};
 
 // Other F: a stationary mound. Lichens are in lichen.js, molds in mold.js, shriekers and violet fungi in mushroom.js.
 function fungus(o){
