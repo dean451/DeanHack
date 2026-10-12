@@ -103,8 +103,12 @@ function buildFeeler(k,s){
  for(let i=2;i<18;i++){const p=curve.getPoint(i/18),t=curve.getTangent(i/18);for(const side of [-1,1]){const d=new THREE.Vector3(side,0,0).cross(t).normalize().multiplyScalar(.5).add(new THREE.Vector3(side*.5,-.2,0)).normalize();P.add(new THREE.ConeGeometry(.004,.045,3),new THREE.Matrix4().compose(p.clone().addScaledVector(d,.02),new THREE.Quaternion().setFromUnitVectors(UP,d),new THREE.Vector3(1,1,1)),C.feeler);}}
  const tip=curve.getPoint(1);
  if(k==='rust monster')P.add(new THREE.SphereGeometry(.03,10,6),at(tip.x,tip.y,tip.z,[0,0,s*.4],[1,.3,1.4]),C.tip); // a flat rust-orange paddle
+ else if(s<0){                                                                                                // the left orb burst: a dark cracked husk, a few shards, no light
+  P.add(new THREE.SphereGeometry(.02,6,4,0,Math.PI*2,0,Math.PI*.55),at(tip.x,tip.y-.004,tip.z,[Math.PI,0,0],[1,.8,1]),C.pit);
+  for(let i=0;i<3;i++)P.add(new THREE.ConeGeometry(.005,.026,3),at(tip.x+(i-1)*.012,tip.y+.01,tip.z+(i%2)*.008,[(i-1)*.5,0,(1-i)*.6]),C.tip);
+ }
  else G.add(new THREE.SphereGeometry(.024,12,8),at(tip.x,tip.y,tip.z),[1,1,1]);                               // a glowing violet orb
- return {feeler:P.merge(),glow:k==='disenchanter'?G.merge():null};
+ return {feeler:P.merge(),glow:k==='disenchanter'&&s>0?G.merge():null};
 }
 
 function buildLeg(k,s){
