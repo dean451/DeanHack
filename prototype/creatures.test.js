@@ -2972,3 +2972,9 @@ test('the ki-rin\'s horn is chipped short with a dark break, unlike the unicorns
  assert(kirinMeshes>0&&kirinMeshes<=40,`ki-rin draws ${kirinMeshes}`);
  assert(tip('ki-rin')>0);
 });
+
+test('Cthulhu\'s left hand has an outer claw broken to a stub, the right hand all four hooked',()=>{
+ const c=createCreature({name:'Cthulhu'});
+ const verts=a=>{let n=0;a.traverse(o=>{if(o.isMesh)n=o.geometry.attributes.position.count;});return n;};
+ assert(verts(c.arms[0])<verts(c.arms[1]),'left arm has less claw');
+});
