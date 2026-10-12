@@ -283,7 +283,7 @@ test('the wand of wishing alone has a halo of wish-lights with a shimmering rim'
   for (const [kind, style] of Object.entries(WAND_AURAS)) if (kind !== 'wishing') assert.notEqual(style.motion, 'halo', kind);
 });
 
-test('every wand except nothing glows and throws a loud beat, lightning excepted (its arcs are the beat)', async () => {
+test('every wand except nothing glows; only soft floor pools remain, no rings, no dark pools, none on death', async () => {
   const {WAND_AURAS, WAND_BEATS, createWandAura, beatAt} = await import('./wand-auras.js');
   const types = ['light', 'detection', 'enlightenment', 'create monster', 'wishing', 'striking', 'make invisible', 'slow monster', 'speed monster',
     'undead turning', 'polymorph', 'cancellation', 'teleportation', 'opening', 'locking', 'probing', 'digging', 'magic missile', 'fire', 'cold', 'sleep', 'death', 'lightning'];
@@ -291,31 +291,33 @@ test('every wand except nothing glows and throws a loud beat, lightning excepted
     assert(WAND_AURAS[type], `${type} has an aura`);
     const g = createWandAura(type, 'floor');
     assert(g, type);
-    if (type !== 'lightning') assert(g.getObjectByName('beat'), `${type} has a beat`);
+    assert.equal(!!g.getObjectByName('beat'), !!WAND_BEATS[type], `${type} has a floor beat only if listed`);
     g.userData.dispose();
   }
+  for (const [type, b] of Object.entries(WAND_BEATS)) assert(['flash', 'slow'].includes(b.shape), `${type}: no expanding circle, no dark pool`);
+  for (const type of ['death', 'cancellation', 'create monster', 'magic missile', 'digging', 'teleportation', 'make invisible', 'speed monster', 'striking', 'detection', 'secret door detection', 'probing', 'lightning', 'nothing'])
+    assert.equal(WAND_BEATS[type], undefined, `${type} throws nothing on the floor`);
   assert.equal(WAND_AURAS.nothing, undefined, 'the wand of nothing never glows');
   assert.equal(createWandAura('nothing', 'floor'), null);
-  assert.equal(WAND_BEATS.nothing, undefined);
   assert(!createWandAura('fire', 'held').getObjectByName('beat'), 'a held wand has no floor beat');
-  for (const shape of ['flash', 'ring', 'dark', 'slow']) for (let t = 0; t < 12; t += .13) {
+  for (const shape of ['flash', 'slow']) for (let t = 0; t < 12; t += .13) {
     const b = beatAt(shape, t, 3.1, .4);
-    assert(b.level >= 0 && b.level <= 1 && Number.isFinite(b.grow), `${shape} ${t}`);
+    assert(b.level >= 0 && b.level <= 1 && Number.isFinite(b.grow) && b.grow >= .75 && b.grow <= 1.05, `${shape} ${t}: a pool, not a racing ring`);
   }
 });
 
-test('beats are a slow hum, and the wand of death raises a skull in step with its beat', async () => {
-  const {WAND_BEATS, beatAt, createWandAura} = await import('./wand-auras.js');
+test('beats are a slow hum, and the wand of death is just a black glow: smoke, no core, no pool, no skull', async () => {
+  const {WAND_AURAS, WAND_BEATS, beatAt, createWandAura} = await import('./wand-auras.js');
   for (const [type, b] of Object.entries(WAND_BEATS)) assert(b.period >= 3.5, `${type} beats no faster than every ${b.period} s`);
-  assert(WAND_BEATS.death.period >= 9);
   // a beat swells in over a moment (no instant flicker)
   assert(beatAt('flash', .02, 8, 0).level < beatAt('flash', .6, 8, 0).level);
-  const g = createWandAura('death', 'floor'), skull = g.getObjectByName('skull');
-  assert(skull, 'a skull in the smoke');
-  let seen = false;
-  for (let t = 0; t < 12; t += .05) { g.userData.update(t); if (skull.visible) seen = true; }
-  assert(seen, 'the skull appears on the beat');
-  assert(!createWandAura('death', 'held').getObjectByName('skull'));
+  assert.equal(WAND_AURAS.death.motion, 'smoke');
+  assert.equal(WAND_AURAS.death.blend, 'normal', 'black smoke, not light');
+  assert.equal(WAND_AURAS.death.core, undefined, 'no sparkle core');
+  const g = createWandAura('death', 'floor');
+  assert(!g.getObjectByName('skull'), 'no skull');
+  assert(!g.getObjectByName('beat'), 'no floor pool');
+  assert.equal(g.children.length, 1, 'one layer: the smoke');
   g.userData.dispose();
 });
 

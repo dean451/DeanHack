@@ -1,5 +1,5 @@
 // Wand auras once identified (motion queue item 9, part 1). A floor wand whose name, as the
-// hero knows it, reads "wand of death" gets smoky black wisps round a cold dark core; fire
+// hero knows it, reads "wand of death" gets smoky black wisps and nothing louder; fire
 // sheds embers, cold frost motes, lightning crackles, sleep drifts violet motes, digging
 // puffs dust, and so on.
 //
@@ -12,10 +12,9 @@
 // engrave to identify a wand anyway, so learning the glows is one more way in, in the spirit
 // of the game.
 //
-// Each aura is one THREE.Points (death and lightning add a second layer) whose particles are
+// Each aura is one THREE.Points (some add a second layer) whose particles are
 // a pure function of time, so a frame can land at any moment without state to catch up.
 import * as THREE from 'three';
-import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 const TAU = Math.PI * 2;
 export const WAND_CLASS = 11;
@@ -23,8 +22,9 @@ export const WAND_CLASS = 11;
 // motion: how particles move over one life (p runs 0→1). blend: additive light or normal
 // smoke. size in world units at the particle's peak; period in seconds per life.
 export const WAND_AURAS = {
-  death: {color: 0x07060a, blend: 'normal', motion: 'smoke', count: 16, size: .2, period: 3.2, alpha: .75,
-    core: {color: 0x5a7fa8, blend: 'add', motion: 'sparkle', count: 6, size: .07, period: 2.4, alpha: .45}},
+  // Just a black glow: smoky wisps round the rod and nothing else. It had a sparkle core, a dark floor
+  // pool and a rising skull; the user pulled it back on 2026-10-12 (it had "got away from us").
+  death: {color: 0x07060a, blend: 'normal', motion: 'smoke', count: 16, size: .2, period: 3.2, alpha: .75},
   fire: {color: 0xff7a26, blend: 'add', motion: 'rise', count: 14, size: .07, period: 1.6, alpha: .95},
   cold: {color: 0xbfe6ff, blend: 'add', motion: 'fall', count: 14, size: .06, period: 2.6, alpha: .85},
   lightning: {color: 0xcfe2ff, blend: 'add', motion: 'sparkle', count: 8, size: .05, period: .9, alpha: .9, crackle: true},
@@ -57,41 +57,28 @@ export const WAND_AURAS = {
 };
 
 
-// The loud beat (subtle always, loud on a beat): every few seconds each wand throws one bright, short flash on
-// the floor round it, in its own shape. shape: 'flash' (a glow pool that blooms and decays), 'ring' (a ring
-// racing outward), 'dark' (a darkening, normal-blended pool: death, cancellation, create monster), 'slow'
-// (a long, soft swell). The wand of nothing has none, and neither does lightning (its arcs are the beat).
+// The loud beat (subtle always, loud on a beat): every few seconds some wands throw one bright, short flash on
+// the floor round them. shape: 'flash' (a glow pool that blooms and decays) or 'slow' (a long, soft swell).
+// There used to be 'ring' (a ring racing outward) and 'dark' (a darkening pool) shapes; the user had the
+// expanding circles taken off every wand on 2026-10-12, so those wands (and death, cancellation, create
+// monster) now have no floor beat at all. Lightning's arcs are its beat; the wand of nothing has none.
 export const WAND_BEATS = {
   fire: {shape: 'flash', color: 0xff6a1a, period: 6.8, size: .52, alpha: .85},
   cold: {shape: 'flash', color: 0xaadfff, period: 7.9, size: .46, alpha: .8},
   sleep: {shape: 'slow', color: 0x9a6bff, period: 11, size: .58, alpha: .6},
-  death: {shape: 'dark', color: 0x020205, period: 9.9, size: .5, alpha: .7},
-  'magic missile': {shape: 'ring', color: 0x8fb4ff, period: 5.7, size: .42, alpha: .9},
-  digging: {shape: 'ring', color: 0xb89a6a, period: 7.5, size: .46, alpha: .8},
   polymorph: {shape: 'flash', color: 0x7cffb0, period: 7.3, size: .5, alpha: .8, rainbow: true},
-  teleportation: {shape: 'ring', color: 0xc56bff, period: 6.6, size: .52, alpha: .9},
-  cancellation: {shape: 'dark', color: 0x161422, period: 8.8, size: .42, alpha: .6},
-  'make invisible': {shape: 'ring', color: 0xe8f8ff, period: 9.2, size: .36, alpha: .35},
-  'speed monster': {shape: 'ring', color: 0x9dff7a, period: 4, size: .5, alpha: .8},
   'slow monster': {shape: 'slow', color: 0xe0a050, period: 15.4, size: .5, alpha: .55},
-  striking: {shape: 'ring', color: 0xf2e8cc, period: 6.4, size: .5, alpha: .95},
   'undead turning': {shape: 'flash', color: 0xffe8a0, period: 8.4, size: .46, alpha: .75},
   light: {shape: 'flash', color: 0xfff0c0, period: 7.5, size: .72, alpha: .9},
-  detection: {shape: 'ring', color: 0xdcd0aa, period: 8.4, size: .72, alpha: .6},
-  'secret door detection': {shape: 'ring', color: 0xdcd0aa, period: 8.4, size: .72, alpha: .6},
   enlightenment: {shape: 'flash', color: 0xfff8e0, period: 7, size: .46, alpha: .85},
-  probing: {shape: 'ring', color: 0x7fe3e8, period: 6.6, size: .36, alpha: .75},
   opening: {shape: 'flash', color: 0xffe08a, period: 8.8, size: .32, alpha: .7},
   locking: {shape: 'flash', color: 0xb4c0d4, period: 8.8, size: .32, alpha: .7},
-  'create monster': {shape: 'dark', color: 0x4a0a14, period: 9.2, size: .5, alpha: .65},
   wishing: {shape: 'flash', color: 0xffd35a, period: 11, size: .62, alpha: .85},
 };
 // Where in its life (0..1) a beat is at time t, and how strong: pure, so a frame can land anywhere.
 export function beatAt(shape, t, period, phase = 0) {
   const u = (((t / period + phase) % 1) + 1) % 1, attack = Math.min(1, u / .12);
   switch (shape) {
-    case 'ring': return {u, level: Math.max(0, (1 - u) ** 1.4) * attack, grow: .2 + u * .95};
-    case 'dark': return {u, level: Math.sin(Math.PI * Math.min(1, u / .8)) ** .8 * (u < .8 ? 1 : 0), grow: 1};
     case 'slow': return {u, level: Math.sin(Math.PI * u) ** 2, grow: .8 + .2 * u};
     default: return {u, level: Math.exp(-u * 3.4) * attack, grow: .75 + .3 * Math.min(1, u * 2)};
   }
@@ -303,41 +290,14 @@ function makeCrackle(seed) {
   return {points: lines, update, dispose() { geometry.dispose(); material.dispose(); }};
 }
 
-// The wand of death is rare enough that being literal is right: at each beat a pale skull rises out of the smoke,
-// grins for a moment and fades. Built from a handful of primitives, one draw each, so it works anywhere.
-function makeSkull(period, phase) {
-  const g = new THREE.Group(), mats = [];
-  const bone = new THREE.MeshBasicMaterial({color: 0xa8c4e8, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
-  const hole = new THREE.MeshBasicMaterial({color: 0x000000, transparent: true, opacity: 0, depthWrite: false});
-  mats.push(bone, hole);
-  const part = (geo, x, y, z, sx = 1, sy = 1, sz = 1) => { geo.scale(sx, sy, sz); geo.translate(x, y, z); return geo.index ? geo.toNonIndexed() : geo; };
-  const bones = [part(new THREE.SphereGeometry(.04, 12, 8), 0, .02, 0, 1, .92, .95), part(new THREE.BoxGeometry(.05, .02, .034), 0, -.028, .004)];
-  const holes = [part(new THREE.ConeGeometry(.006, .014, 3), 0, 0, .04, 1, 1, .5)];
-  for (const s of [-1, 1]) {
-    holes.push(part(new THREE.SphereGeometry(.012, 8, 6), s * .017, .018, .034, 1, 1.2, .5)); // eye sockets
-    bones.push(part(new THREE.BoxGeometry(.004, .014, .01), s * .014, -.03, .02));            // teeth
-  }
-  for (const [list, m] of [[bones, bone], [holes, hole]]) { const o = new THREE.Mesh(mergeGeometries(list), m); o.renderOrder = 3; g.add(o); }
-  g.name = 'skull'; g.visible = false; g.frustumCulled = false;
-  function update(t) {
-    // rises through the smoke on the beat, brightest at the top of its swell
-    const u = (((t / period + phase) % 1) + 1) % 1, k = Math.sin(Math.PI * Math.min(1, u / .45)) ** 2 * (u < .45 ? 1 : 0);
-    g.visible = k > .02; g.position.set(0, .16 + u * .22, 0); g.scale.setScalar(.8 + .5 * k);
-    bone.opacity = k * .75; hole.opacity = k * .9;
-  }
-  return {points: g, update, dispose() { g.traverse(o => o.geometry?.dispose()); mats.forEach(m => m.dispose()); }};
-}
 function makeBeat(style, random) {
-  const geo = style.shape === 'ring' ? new THREE.RingGeometry(.86, 1, 40) : new THREE.RingGeometry(.001, 1, 36, 6);
+  const geo = new THREE.RingGeometry(.001, 1, 36, 6);
   geo.rotateX(-Math.PI / 2);
-  if (style.shape !== 'ring') {
-    const p = geo.attributes.position, col = new Float32Array(p.count * 3);
-    for (let i = 0; i < p.count; i++) { const k = Math.pow(1 - Math.hypot(p.getX(i), p.getZ(i)), 2); col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k; }
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  }
-  const dark = style.shape === 'dark';
-  const material = new THREE.MeshBasicMaterial({color: style.color, vertexColors: style.shape !== 'ring', transparent: true, opacity: 0, depthWrite: false,
-    blending: dark ? THREE.NormalBlending : THREE.AdditiveBlending, side: THREE.DoubleSide});
+  const p = geo.attributes.position, col = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) { const k = Math.pow(1 - Math.hypot(p.getX(i), p.getZ(i)), 2); col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k; }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const material = new THREE.MeshBasicMaterial({color: style.color, vertexColors: true, transparent: true, opacity: 0, depthWrite: false,
+    blending: THREE.AdditiveBlending, side: THREE.DoubleSide});
   const mesh = new THREE.Mesh(geo, material);
   mesh.name = 'beat'; mesh.position.y = .028; mesh.frustumCulled = false; mesh.renderOrder = 1;
   const phase = random(), hsl = {};
@@ -397,7 +357,7 @@ export function createWandAura(kind, seedText = '') {
   if (style.core) layers.push(makeLayer(style.core, random));
   if (style.crackle) layers.push(makeCrackle(seed));
   // the loud beat lies on the floor round a wand there; a held wand has none (it would float in the air)
-  if (WAND_BEATS[kind] && seedText !== 'held') { const beat = makeBeat(WAND_BEATS[kind], random); layers.push(beat); if (kind === 'death') layers.push(makeSkull(WAND_BEATS.death.period, beat.phase)); }
+  if (WAND_BEATS[kind] && seedText !== 'held') layers.push(makeBeat(WAND_BEATS[kind], random));
   // the wand itself fades; not when held (the aura then hangs from the hero, who must not vanish)
   if (kind === 'make invisible' && seedText !== 'held') layers.push(makeVanish(random()));
   for (const layer of layers) g.add(layer.points);
