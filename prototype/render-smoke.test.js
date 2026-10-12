@@ -52,6 +52,20 @@ test('item review gallery renders every card with no errors', {skip, timeout: 12
   assert.deepEqual(problems, []);
 }));
 
+test('orientation review gallery draws every monster, trap and door card with its arrow', {skip, timeout: 120000}, () => withPage(async (page, base, problems) => {
+  await page.goto(`${base}orientation-review.html`, {waitUntil: 'load'});
+  await page.waitForSelector('figure canvas');
+  const cards = await page.$$eval('figure', figures => figures.map(figure => {
+    const canvas = figure.querySelector('canvas'), data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    let lit = 0;
+    for (let i = 0; i < data.length; i += 4) if (data[i] + data[i + 1] + data[i + 2] > 0) lit++;
+    return {name: figure.querySelector('figcaption').textContent, lit};
+  }));
+  assert.ok(cards.length >= 30, `expected monsters, traps and a door, got ${cards.length}`);
+  for (const card of cards) assert.ok(card.lit > 500, `${card.name} drew almost nothing (${card.lit} lit pixels)`);
+  assert.deepEqual(problems, []);
+}));
+
 test('demo scene boots, draws a frame and logs no errors', {skip, timeout: 120000}, () => withPage(async (page, base, problems) => {
   await page.goto(`${base}?demo`, {waitUntil: 'load'});
   await page.waitForSelector('canvas');

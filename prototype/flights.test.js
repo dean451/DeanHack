@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {fxTimeline} from './fx.js';
 import {flightShape, flightMetal, flightLook, flightsFromFx, flightFrame, createFlights, STYLES, LAUNCH_Y, LAND_Y, thongTrail, THONG_LEN, THONG_SEGS} from './flights.js';
+import {yawToward} from './orientation.js';
+import {forwardOf} from './orientation-overlay.js';
 
 // A flash-mode throw from the hero at (2, 2) towards +x, one cell per tick.
 const throwTo = (endX, effect, dz = 0) => {
@@ -374,4 +376,38 @@ test('a rolling boulder is the real granite mesh, centred so it tumbles about it
   assert.ok(Math.hypot(c.x, c.y, c.z) < 1e-6, 'centred on its pivot');
   assert.ok(rock.geometry.boundingSphere.radius * rock.scale.x <= STYLES.boulder.radius + 1e-6, 'no corner digs into the floor');
   fl.dispose();
+});
+
+// ORIENTATION.md: a rolling boulder rolls along its travel step, yaw from yawToward, tumbling about its
+// local x axis, sitting on the floor. Checked in every direction and on the real objects a flight moves.
+test('a rolling boulder faces and rolls along its travel step in every direction, on the floor', () => {
+  const BOULDER = {kind: 'object', class: 14, material: 21};
+  const roll = (dx, dz) => {
+    const steps = [{op: 'start', mode: 'flash', effect: BOULDER}];
+    for (let i = 1, x = 2, z = 2; i <= 4; i++) { x += dx; z += dz; steps.push({op: 'draw', x, z}, {op: 'tick'}); }
+    steps.push({op: 'end'});
+    return fxTimeline({type: 'fx', steps});
+  };
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1]]) {
+    const [b] = flightsFromFx(roll(dx, dz));
+    const want = yawToward(dx, dz);
+    for (let t = 20; t < b.end; t += 25) {
+      const fr = flightFrame(b, t);
+      assert.ok(Math.abs(Math.atan2(Math.sin(fr.yaw - want), Math.cos(fr.yaw - want))) < 1e-6, `yaw follows the step (${dx},${dz}) at ${t}ms`);
+      assert.equal(fr.pitch, 0); assert.equal(fr.y, STYLES.boulder.radius);
+    }
+    assert.ok(flightFrame(b, 150).spin > flightFrame(b, 60).spin, 'it keeps rolling forward');
+  }
+  // the moved objects: the outer group faces the step (its forward is the travel direction) and the rock inside turns about x
+  const parent = new THREE.Group(), flights = createFlights(THREE, parent);
+  flights.play(roll(1, 0));
+  flights.update(.12, {x: 0, z: 0});
+  const [{outer, shape}] = flights.active;
+  assert.equal(shape, 'boulder');
+  const f = forwardOf(outer);
+  assert.ok(Math.abs(f.x - 1) < 1e-6 && Math.abs(f.z) < 1e-6, 'the boulder faces east while rolling east');
+  assert.ok(Math.abs(outer.position.y - STYLES.boulder.radius) < 1e-9, 'it rides on the floor, not in the air');
+  const inner = outer.children.find(c => c !== outer.children.thong);
+  assert.ok(inner.rotation.x > 0 && Math.abs(inner.rotation.z) < 1e-9, 'rolling about the local x axis only');
+  flights.dispose();
 });

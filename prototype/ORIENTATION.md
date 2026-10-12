@@ -22,3 +22,6 @@ Flat things need no facing. A rolling boulder rolls along its travel step: yaw f
 
 ## Adoption
 Done: the helper, and doors, grates and drawbridges via `wallYaw`/`yawToward`. Next, one category per PR: doors that look 90 degrees off in a doorway (check against a live game), then monster facing, then held weapon angle.
+
+## Checking
+Turn on the overlay: `?orient` on the live URL (or `window.__dh.live.orient(true)` under `?debug`) draws an arrow along every facing: hero (yellow), monsters (cyan), pets (green), doors (orange), drawbridges (purple), held weapons (red, along the blade) and rolling boulders (grey). `orientation-review.html` shows monsters, traps and a door at yaw 0 with their arrows: the face, snout or door front must sit under the arrow.
