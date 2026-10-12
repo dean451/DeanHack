@@ -23,6 +23,7 @@ import {buildBoomerang} from './boomerang.js';
 import {buildArrow} from './arrow.js';
 import {buildAklys} from './aklys.js';
 import {createBoulder, BOULDER_SEED} from './boulder.js';
+import {yawToward} from './orientation.js';
 
 // Object classes and materials from include/objclass.h.
 const WEAPON_CLASS = 2, POTION_CLASS = 8, COIN_CLASS = 12, GEM_CLASS = 13, ROCK_CLASS = 14, BALL_CLASS = 15,
@@ -189,7 +190,8 @@ export function flightFrame(flight, t) {
     if (tx || tz) { dx = tx; dz = tz; }
   }
   if (!dx && !dz) { const f = k[0], l = k[k.length - 1]; dx = l.x - f.x; dz = l.z - f.z; }
-  let yaw = dx || dz ? Math.atan2(dx, dz) : 0;
+  // the convention's facing for the travel step (ORIENTATION.md): a boulder rolls along it, an arrow points along it
+  let yaw = yawToward(dx, dz, 0);
   const L = pathLength(k);
   const sec = (t - flight.start) / 1000;
   if (S.wag) yaw += S.wag * Math.exp(-S.wagDamp * sec) * Math.sin(S.wagRate * sec);
