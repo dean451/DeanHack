@@ -166,3 +166,8 @@ test('a proofed item says which proofing it has in the hover', () => {
   assert.deepEqual(itemFacts('a fireproof cloak (being worn)'), ['fireproof', 'worn']);
   assert.deepEqual(itemFacts('a dagger'), []);
 });
+
+test('a thrown-weapon quiver and an attached leash read plainly in the hover', () => {
+  assert.equal(itemHint('3 daggers (quivered)'), 'quivered');
+  assert.equal(itemHint('a leash (attached to the little dog)'), 'leashed to the little dog');
+});
