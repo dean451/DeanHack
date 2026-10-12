@@ -1,4 +1,4 @@
-// Idle spasm for the zombie (and ghoul; the skeleton, which shares the rig, has twitch.js). A zombie that has stood still for a few seconds now and then
+// Idle spasm for the zombie (and ghoul, and, stiffly, the mummy; the skeleton, which shares the rig, has twitch.js). A zombie that has stood still for a few seconds now and then
 // remembers it is meant to be hungry: the lolling head hauls itself up and round with a wet
 // jerk, the nearer arm lifts and claws twice at nothing, and then everything gives out at once
 // and the head drops back to its slump. Walking, an action or death fades it out within ~0.1 s.
@@ -14,6 +14,8 @@
 export const LIFT = .3, CRANE = .35, REACH = .5, CLAW = .18, DROP = .12;
 export const SPASM_LEN = 2.4, HAUL_T = .12, CLAW_AT = .55, CLAW_GAP = .32, GIVE_AT = 1.5, GIVE_T = .08;
 export const FIRST_MIN = 2, FIRST_SPAN = 4, GAP_MIN = 5, GAP_SPAN = 8;
+// A mummy's wrappings are stiff: it spasms at this fraction of a zombie's size.
+export const MUMMY_STIFF = .55;
 const TAIL = .15, FADE_OUT = 14, SNAP = 1e-3;
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
@@ -21,7 +23,7 @@ const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 // A snatch: a quick close and a slower open, 0..1..0 over .28 s.
 const snatch = x => x <= 0 || x >= .28 ? 0 : x < .08 ? smooth(x / .08) : 1 - smooth((x - .08) / .2);
 
-export const zombieTwitches = a => !!(a && !a.asset && a.quirk === 'zombie' && a.species !== 'skeleton' && a.head && Array.isArray(a.arms) && a.arms.length === 2);
+export const zombieTwitches = a => !!(a && !a.asset && (a.quirk === 'mummy' || a.quirk === 'zombie' && a.species !== 'skeleton') && a.head && Array.isArray(a.arms) && a.arms.length === 2);
 
 const ZERO = () => ({lift: 0, crane: 0, reach: 0, claw: 0, drop: 0});
 
@@ -69,7 +71,7 @@ export function updateZombieTwitch(actor, dt, t, busy) {
   } else st.wait = Math.max(st.wait, FIRST_MIN);
 
   if (!st.cur) return null;
-  const p = zombieTwitchPose(st.cur.s, st.cur.side, st.f);
+  const p = zombieTwitchPose(st.cur.s, st.cur.side, st.f * (actor.quirk === 'mummy' ? MUMMY_STIFF : 1));
   h.rotation.x -= p.lift - p.drop; h.rotation.z += p.crane;
   actor.arms[st.arm].rotation.x -= p.reach + p.claw;
   st.applied = p;

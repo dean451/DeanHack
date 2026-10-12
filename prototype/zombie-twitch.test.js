@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createCreature} from './creatures.js';
 import {createActionQueue, updateActions, clearActionPose} from './actions.js';
 import {updateTrudge} from './trudge.js';
-import {updateZombieTwitch, zombieTwitchPose, zombieTwitches, LIFT, CRANE, REACH, CLAW, DROP, SPASM_LEN, FIRST_MIN, FIRST_SPAN} from './zombie-twitch.js';
+import {updateZombieTwitch, zombieTwitchPose, zombieTwitches, LIFT, CRANE, REACH, CLAW, DROP, SPASM_LEN, FIRST_MIN, FIRST_SPAN, MUMMY_STIFF} from './zombie-twitch.js';
 
 const make = (name = 'human zombie') => {
   const a = createCreature({name, symbol: 'Z'.charCodeAt(0), color: 7});
@@ -63,4 +63,17 @@ test('a still zombie spasms, returns exactly to rest, and walking or death cuts 
   const c = make();
   c.actions.dead = true;
   for (let i = 0; i < 60 * 20; i++, t += dt) assert.equal(frame(c, dt, t), null);
+});
+
+test('a mummy spasms too, but stiffly, and returns exactly to rest', () => {
+  const m = make('mummy'), dt = 1 / 60;
+  assert(m.quirk === 'mummy' && zombieTwitches(m));
+  const rest = snap(m);
+  let peak = 0, t = 0;
+  for (; t < FIRST_MIN + FIRST_SPAN + SPASM_LEN + 1; t += dt) {
+    frame(m, dt, t);
+    peak = Math.max(peak, rest[0] - m.head.rotation.x);
+  }
+  assert(peak > LIFT * MUMMY_STIFF * .8 && peak <= LIFT * MUMMY_STIFF + 1e-9, `mummy lift ${peak}`);
+  snap(m).forEach((v, i) => assert(Math.abs(v - rest[i]) < 1e-9, `part ${i} back to rest`));
 });
