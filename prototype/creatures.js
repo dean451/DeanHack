@@ -2664,6 +2664,11 @@ function demon(o){
  if(o.mark==='boils'){const tusk=mat('#d8cfb4',{roughness:.5}),boil=mat('#e07a20',{emissive:'#e07a20',emissiveIntensity:1.6,roughness:.4});tusk.name='devil-tusks';boil.name='devil-boils';
   for(const side of [-1,1]){const t=cone(head,.016,.11,tusk,side*.05,-.06,.1,5);t.rotation.x=-.5;t.castShadow=false;}
   for(const [x,y,z,r] of [[-.12,chestY-.1,.15,.03],[.1,chestY-.16,.17,.025],[.03,chestY-.04,.18,.02],[-.05,chestY-.2,.18,.022]])sphere(body,r,boil,x*bulk,y,z*bulk).castShadow=false;}
+ // the princes of hell wear a spiked iron crown, its band hot with their own glow, so they read as rulers and not as big devils
+ if(o.mark==='crown'){const iron=mat('#1c1a1c',{roughness:.45,metalness:.7}),hot=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.2,roughness:.4});iron.name='prince-crown';hot.name='prince-crown-glow';
+  const band=part(head,new THREE.TorusGeometry(.098,.014,6,18),iron,0,.1,-.01);band.rotation.x=Math.PI/2;band.castShadow=false;
+  const rim=part(head,new THREE.TorusGeometry(.099,.005,5,18),hot,0,.088,-.01);rim.rotation.x=Math.PI/2;rim.castShadow=false;
+  for(let i=0;i<7;i++){const a=(i/7)*Math.PI*2,c=cone(head,.014,.11+(i%2)*.05,iron,Math.sin(a)*.098,.15+(i%2)*.02,Math.cos(a)*.098-.01,4);c.castShadow=false;}}
  // a second head (Demogorgon): the first is shifted aside and a twin snarls beside it, turned slightly away
  if(o.heads===2){head.position.x=-.12;head.rotation.y=.25;const twin=head.clone();twin.position.set(.12,headY-.01,.02);twin.rotation.y=-.3;body.add(twin);}
  // bat wings on finger bones
@@ -2695,8 +2700,8 @@ const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',evil:'#40d8c0',horns:'
  'pit fiend':{skin:'#7a1a18',evil:'#ff3a1a',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.3},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.35},
  "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',evil:'#ff3a08',weapon:'whip',bulk:1.2,scale:1.45},
  yeenoghu:{skin:'#8a7040',evil:'#e0a020',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',evil:'#8aff6a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
- geryon:{skin:'#6a4a2a',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
- baalzebub:{skin:'#3a4a2a',evil:'#b8ff30',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
+ geryon:{skin:'#6a4a2a',mark:'crown',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',mark:'crown',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
+ baalzebub:{skin:'#3a4a2a',mark:'crown',evil:'#b8ff30',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',mark:'crown',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
  demogorgon:{skin:'#5a6a4a',evil:'#40ffa0',heads:2,eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
  'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
 
