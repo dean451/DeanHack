@@ -49,6 +49,13 @@ tick it; when a PR needs a step on the server, add it here. Last updated 2026-10
   (or wait for the 4am run). Characters saved before this fix are gone; new ones will resume.
   Check after the update: `docker compose exec app /usr/bin/bzip2 --version` prints a version.
 
+## Coming through the nightly update (nothing to do, just so you know)
+
+- Hunger is back (#1351) and the level-2 shop is a regular general store with likely essentials
+  (the ascension kit is kept in source, switched off). Both change the engine, so the 4am run will
+  rebuild it (5 to 10 minutes). Or run `./deploy/update.sh` by hand once they have merged.
+- Far look no longer names unidentified items by type (#1352); kobold spines fixed.
+
 ## Soon
 
 - [ ] **Nightly auto-update.** `crontab -e` and add
