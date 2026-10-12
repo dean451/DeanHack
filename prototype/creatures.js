@@ -2510,6 +2510,12 @@ function elemental(o){
   for(let i=0;i<8;i++){const a=i*.8;const leaf=part(swirl,new THREE.PlaneGeometry(.04,.02),mat(i%2?'#8a7a4a':'#6a8a3a',{side:THREE.DoubleSide}),Math.cos(a)*.34,.3+i*.09,Math.sin(a)*.34);leaf.rotation.set(a,a*2,a*.5);}}
  if(k==='water'){const foam=mat('#eef8ff',{roughness:.4});crown=new THREE.Group();crown.position.set(0,headY+.1,-.05);body.add(crown);for(let i=0;i<7;i++){const a=(i-3)*.4;sphere(crown,.04-Math.abs(i-3)*.004,foam,Math.sin(a)*.1,Math.cos(a)*.03,-Math.abs(i-3)*.015).castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.2;sphere(swirl,.018,dark,Math.cos(a)*.32,.3+i*.1,Math.sin(a)*.28,1,1.4,1).castShadow=false;}}
+ // stalkers only: not a gale but a hunter. Long hooked claws hang off both fists and a mouthful of needle fangs
+ // gapes in the pale face, under black pits for eyes
+ if(o.stalker){const claw=mat('#2a2a34',{roughness:.4,metalness:.3}),fang=mat('#e8e8f0',{roughness:.35});g.userData.stalker=true;
+  for(const side of [-1,1])for(let i=0;i<3;i++){const c=cone(body,.012,.16,claw,side*.3+(i-1)*.03,chestY-.36,.12,4);c.rotation.set(-.3,0,(i-1)*.25);}
+  sphere(body,.045,mat('#06060a',{roughness:1}),0,headY-.06,.1,1.3,.7,.6);
+  for(let i=0;i<6;i++){const x=(i-2.5)*.016,f=cone(body,.006,.03+(i%2)*.012,fang,x,headY-.06+(i%2?.02:-.02),.135,4);f.rotation.x=Math.PI*(i%2?1:0);}}
  // earth elementals only: a jagged fissure splits the chest, glowing like a banked forge
  if(k==='earth'){const vein=glow(o.eye,1.6);g.userData.cracked=true;for(const [x,y,rz] of [[-.05,.1,.5],[.02,.02,-.6],[-.02,-.08,.4]])part(body,new THREE.BoxGeometry(.018,.13,.012),vein,x,chestY+y,.16).rotation.z=rz;}
  // water elementals only: a drowned skull hangs in the dark of the chest, jaw agape, bones pale through the water
@@ -2523,7 +2529,7 @@ function elemental(o){
  if(core)g.userData.core=core;
  return trimDraws(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),{element:k,swirl},crown?{crown}:{},core?{core}:{}));
 }
-const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff',scale:1.3},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0',scale:1.3},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.5},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff',scale:1.3},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff',scale:1.2}};
+const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff',scale:1.3},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0',scale:1.3},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.5},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff',scale:1.3},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff',stalker:true,scale:1.2}};
 
 // Angels: a robed figure hovering on feathered wings, with a halo and a sword. The wings
 // are pivots at the shoulder blades, so the default wing beat in live.js flexes them.
