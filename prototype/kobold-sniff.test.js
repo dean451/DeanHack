@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
-import {updateKoboldSniff, sniffPose, sniffs, SNIFF, STARE, LASH, FIRST_MIN, FIRST_SPAN} from './kobold-sniff.js';
+import {updateKoboldSniff, sniffPose, sniffs, SNIFF, STARE, LASH, CHECK, FIRST_MIN, FIRST_SPAN} from './kobold-sniff.js';
 
 const make = (name, symbol) => {
   const a = createCreature({name, symbol: symbol.charCodeAt(0), color: 2});
@@ -22,7 +22,7 @@ test('the sniff pose stays in bounds, moves smoothly and starts and ends at rest
   for (let i = 0; i <= n; i++) {
     const u = i / n, p = sniffPose(u);
     for (const v of Object.values(p)) assert(Number.isFinite(v));
-    assert(p.sniff >= 0 && p.sniff <= SNIFF + 1e-12 && p.stare >= 0 && p.stare <= STARE + 1e-12 && Math.abs(p.lash) <= LASH + 1e-12);
+    assert(p.sniff >= 0 && p.sniff <= SNIFF + 1e-12 && p.stare >= -CHECK - 1e-12 && p.stare <= STARE + 1e-12 && Math.abs(p.lash) <= LASH + 1e-12);
     for (const k of Object.keys(p)) assert(Math.abs(p[k] - prev[k]) < (k === 'stare' ? .2 : .06), `${k} jumps at ${u}`);
     prev = p; stare = Math.max(stare, p.stare); lash = Math.max(lash, p.lash); back = Math.min(back, p.lash);
   }
@@ -67,4 +67,11 @@ test('walking fades a sniff out and an attack blocks one', () => {
 
 test('other monsters do not sniff', () => {
   for (const [n, s] of [['dwarf', 'h'], ['gnome', 'G'], ['hill orc', 'o'], ['troll', 'T']]) assert(!sniffs(make(n, s)), n);
+});
+
+test('when the stare breaks the head flicks the other way past rest, then settles exactly', () => {
+  assert(sniffPose(.8).stare > STARE * .9, 'staring first');
+  assert(sniffPose(.895).stare < -CHECK * .9, 'then checked behind');
+  assert(Math.abs(sniffPose(.96).stare) < 1e-9, 'back at rest by .95');
+  assert.equal(sniffPose(1).stare, 0);
 });

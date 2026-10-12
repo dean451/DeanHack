@@ -9,6 +9,8 @@
 // SNIFF: snout thrown up on each sniff (negative x); STARE: the snap round to the unseen thing (y);
 // LASH: the tail thrown sideways (z).
 export const SNIFF = .22, STARE = .75, LASH = .7;
+// CHECK: when the stare breaks the head flicks the other way past rest, to see what is behind it.
+export const CHECK = .3;
 // Seconds for one sniff.
 export const SNIFF_LEN = 2.4;
 // First sniff after FIRST_MIN..+FIRST_SPAN s of standing still, then GAP_MIN..+GAP_SPAN apart.
@@ -24,13 +26,13 @@ export const sniffs = a => !!(a && !a.asset && a.quirk === 'kobold' && a.head &&
 
 const ZERO = () => ({sniff: 0, stare: 0, lash: 0});
 
-// Phases in u: four sniffs .08-.42, the stare snaps round .46-.5 and is held to .82, the tail
+// Phases in u: four sniffs .08-.42, the stare snaps round .46-.5 and is held to .82 and breaks in a flick the other way .84-.95, the tail
 // lashes .5-.6 and rebounds (a small kick back) .6-.7.
 export function sniffPose(u, f = 1) {
   const p = ZERO();
   if (!(f > 0) || !(u > 0) || !(u < 1)) return p;
   p.sniff = SNIFF * (hump(u, .08, .17) + hump(u, .17, .26) + hump(u, .26, .34) + hump(u, .34, .42)) * f;
-  p.stare = STARE * win(u, .46, .82, .04) * f;
+  p.stare = (STARE * win(u, .46, .82, .04) - CHECK * hump(u, .84, .95)) * f;
   p.lash = LASH * (hump(u, .5, .6) - .3 * hump(u, .6, .7)) * f;
   return p;
 }
