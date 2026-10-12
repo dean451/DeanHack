@@ -25,3 +25,13 @@ test('the earth elemental has a glowing fissure split across its chest and still
   assert(b.min.y > -0.05, 'stands on the floor');
   assert(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < 1.5, 'fits its tile');
 });
+
+test('the water elemental carries a drowned skull in its chest and still fits its tile', async () => {
+  const THREE = await import('three');
+  const e = createCreature({name: 'water elemental', symbol: 'E'.charCodeAt(0), color: 4});
+  assert(e.g.userData.drowned);
+  e.g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(e.g, true);
+  assert(b.min.y > -0.05, 'stands on the floor');
+  assert(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < 1.5, 'fits its tile');
+});

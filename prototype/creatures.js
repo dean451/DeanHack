@@ -2462,6 +2462,11 @@ function elemental(o){
   for(let i=0;i<6;i++){const a=i*1.2;sphere(swirl,.018,dark,Math.cos(a)*.32,.3+i*.1,Math.sin(a)*.28,1,1.4,1).castShadow=false;}}
  // earth elementals only: a jagged fissure splits the chest, glowing like a banked forge
  if(k==='earth'){const vein=glow(o.eye,1.6);g.userData.cracked=true;for(const [x,y,rz] of [[-.05,.1,.5],[.02,.02,-.6],[-.02,-.08,.4]])part(body,new THREE.BoxGeometry(.018,.13,.012),vein,x,chestY+y,.16).rotation.z=rz;}
+ // water elementals only: a drowned skull hangs in the dark of the chest, jaw agape, bones pale through the water
+ if(k==='water'){const bone=mat('#d8d4bc',{roughness:.6}),hollow=mat('#06121c',{roughness:1});g.userData.drowned=true;
+  sphere(body,.06,bone,0,chestY+.04,.04,1,1.1,.9);sphere(body,.04,bone,0,chestY-.03,.07,1,.7,1);
+  for(const side of [-1,1])sphere(body,.017,hollow,side*.027,chestY+.05,.09,1,1.2,.6);
+  for(let i=0;i<3;i++)part(body,new THREE.BoxGeometry(.1-i*.015,.008,.008),bone,0,chestY-.1-i*.035,.03);}
  //WEAR
  if(core)g.userData.core=core;
  return trimDraws(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),{element:k,swirl},crown?{crown}:{},core?{core}:{}));
