@@ -2984,3 +2984,14 @@ test('a wyvern stinger drips green venom, a draken does not',()=>{
  assert(cols(createCreature({name:'wyvern',symbol:68,color:3})).has('#7fd23a'),'venom bead');
  assert(!cols(createCreature({name:'draken',symbol:68,color:3})).has('#7fd23a'));
 });
+
+test('the pyrolisk burns from within: glowing comb, coal eyes, charred back, still fits its tile',()=>{
+ const p=createCreature({name:'pyrolisk',symbol:99,color:1}),c=createCreature({name:'cockatrice',symbol:99,color:11});
+ assert(p.g.userData.burning,'burning');assert(!c.g.userData.burning,'only the pyrolisk');
+ let glow=0,meshes=0;p.g.traverse(o=>{if(o.isMesh){meshes++;if(o.material.emissiveIntensity>=2.5)glow++;}});
+ assert(glow>=4,`${glow} glowing meshes`);assert(meshes<=80,`${meshes} meshes`);
+ p.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(p.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
+});
