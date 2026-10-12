@@ -111,3 +111,6 @@ tools/.venv/
 
 # friends' logins (deploy/users/README.md)
 /deploy/users/*.caddy
+
+# testers' emails (deploy/users/testers.sh)
+/deploy/users/testers.txt
