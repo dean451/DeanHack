@@ -153,7 +153,7 @@ const DRAGON_FORMS={
  amphitere:{serpent:'coil',wings:.85,feathered:true,scale:1.12},lindworm:{serpent:'coil',legs:2,scale:1.12},
  tatzelworm:{serpent:'short',legs:2,cat:true,scale:1.12},guivre:{serpent:'coil',beard:true,horns:1.5,scale:1.12},
  leviathan:{serpent:'humps',fins:true,scale:1.12},sirrush:{legs:4,sirrush:true,scale:1.1},
- tiamat:{legs:4,wings:.95,heads:5,scale:1.2},'chromatic dragon':{legs:4,wings:1,scale:1.25,chromatic:true},ixoth:{legs:4,wings:.95,scale:1.18},
+ tiamat:{legs:4,wings:.95,heads:5,scale:1.2},'chromatic dragon':{legs:4,wings:1,scale:1.25,chromatic:true},ixoth:{legs:4,wings:.95,scale:1.18,lance:true},
 };
 const DRAGON_BREATH=['#9a4aff','#ff5a1a','#8aee3a','#ff8a3a','#5ab8ff','#e060ff','#6fe0e0','#d8d0ff',null,'#ffb050','#a0ff50','#ecff40','#70a0ff','#ff4a20','#c8f8ff','#c0e8ff'];
 const DRAGON_WORD_COLOR={chromatic:5,black:0,red:1,green:2,blue:4,gray:7,orange:9,yellow:11,silver:14,white:15};
@@ -359,6 +359,11 @@ function dragon(o={}){
   else for(const s of [-1,1])dragonLimb(body,[s*.17,.56,-.13],[s*.22,.38,-.08],.14,m.hide,.35);
   // three claw rakes score the left flank, the old wounds of a long life of killing
   for(let i=0;i<3;i++){const rake=dragonBox(body,.012,.2,.02,m.scar,-.27+i*.0,.5-i*.0,.0,.004);rake.position.set(-.275+i*.0,.5,-.08+i*.055);rake.rotation.set(0,0,.35);rake.scale.set(1,1-i*.12,1);}
+  // Ixoth has killed Knights before: the snapped shaft and rusted head of a lance stand out of the right flank, a rag of pennon on it
+  if(f.lance){const wood=mat('#3a2a1c',{roughness:.9}),rust=mat('#5a3a2a',{roughness:.6,metalness:.5}),rag=mat('#6a1c1c',{roughness:1,side:THREE.DoubleSide});
+   const shaft=cylinder(body,.012,.018,.34,wood,.27,.54,-.02,6);shaft.rotation.set(.1,0,-1.05);
+   const head=cone(body,.03,.1,rust,.2,.48,-.02,4);head.rotation.set(.1,0,1.1);
+   const flag=part(body,new THREE.PlaneGeometry(.1,.05),rag,.36,.62,-.04);flag.rotation.set(0,.3,-.4);g.userData.scarred=true;}
   // overlapping armour scutes crust the back and flanks: dark, sharp-edged plates over the hide
   {const geos=[];for(let i=0;i<5;i++)for(const s of [-1,0,1]){const plate=new THREE.Mesh(DRAGON_SCUTE);plate.position.set(s*.13,.7-Math.abs(s)*.1,.3-i*.15);plate.scale.set(1-Math.abs(s)*.2,1,1);plate.rotation.set(-.2,0,s*.55);plate.updateMatrix();geos.push(DRAGON_SCUTE.clone().applyMatrix4(plate.matrix));}
    part(body,mergeGeometries(geos),m.dark);geos.forEach(g=>g.dispose());}
