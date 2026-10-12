@@ -54,6 +54,7 @@ import {updateSamHover} from './sam-hover.js';
 import {updateHorsePaw} from './horse-paw.js';
 import {updatePriestVigil} from './priest-vigil.js';
 import {updateGuardSweep} from './guard-sweep.js';
+import {updateShopkeeperTally} from './shopkeeper-tally.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
 // has stood still for a few seconds now and then does something in character: gnomes look
@@ -254,6 +255,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updatePriestVigil(actor, dt, t, busy);
   // And the soldiers' and watchmen's sweep: the head snaps one way, then the other, and the grip hitches (guard-sweep.js).
   updateGuardSweep(actor, dt, t, busy);
+  // And the shopkeepers' tally: the ledger rises, three sharp jabs, then a stare at the door while the balance arm sags (shopkeeper-tally.js).
+  updateShopkeeperTally(actor, dt, t, busy);
   // And the Executioner's, Croesus', One-eyed Sam's, the miner's, the black marketeer's, the mugger's, the convict's, Thoth Amon's, Charon's, the prisoner's, the abbot's, the neanderthal's, Master Kaen's and the Dark One's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
   updateEyeFlare(actor, dt, t, busy, look);
   const list = fidgetsFor(actor);
