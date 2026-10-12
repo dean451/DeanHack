@@ -63,6 +63,7 @@ import {updateCavemanThump} from './caveman-thump.js';
 import {updateSkeletonTap} from './skeleton-tap.js';
 import {updateKnightRing} from './knight-ring.js';
 import {updateWizardTremor} from './wizard-tremor.js';
+import {updateSamuraiDraw} from './samurai-draw.js';
 import {updateBeePreen} from './bee-preen.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
@@ -282,6 +283,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateKnightRing(actor, dt, t, busy);
   // And the wizards' spell-tremor: the free hand lifts and its fingers shake, the head squints, then a spark bites and both flinch (wizard-tremor.js).
   updateWizardTremor(actor, dt, t, busy);
+  // And the samurai's half-draw: the sword hand rises slow and patient, snaps back hard, the head turning to look at nothing (samurai-draw.js).
+  updateSamuraiDraw(actor, dt, t, busy);
   // And the bees' preen: the forelegs scrub over the face in opposed strokes and hang up by the mouth a beat too long (bee-preen.js).
   updateBeePreen(actor, dt, t, busy);
   // And the Executioner's, Croesus', One-eyed Sam's, the miner's, the black marketeer's, the mugger's, the convict's, Thoth Amon's, Charon's, the prisoner's, the abbot's, the neanderthal's, Master Kaen's and the Dark One's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
