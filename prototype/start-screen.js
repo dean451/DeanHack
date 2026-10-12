@@ -4,7 +4,7 @@
 // happened. `?demo` skips it and shows the demo room (a development view).
 // The engine keys a save by character name (-u name), so typing a saved name resumes that game.
 
-import {DRAGON,DRAGON_ARTIST} from './dragon-art.js';
+import {pickDragon} from './dragon-art.js';
 import {ROLES,ROLE_NAMES,RACES,DEFAULT_CHOICE,alignsFor,optionsFor,resolveChoice} from './roles.js';
 
 export const DEFAULT_NAME='Wanderer';
@@ -89,15 +89,18 @@ export async function forgetSave(name,fetchImpl=fetch){
 export function installStartScreen({doc=document,button,nameInput,search=location.search,getSaves=fetchSaves,forget=forgetSave,confirmFn=(m)=>confirm(m),storage}={}){
   if(!wantsStartScreen(search))return null;
   const el=doc.createElement('div');el.id='start-screen';
-  el.innerHTML=`<pre class="start-dragon" aria-hidden="true">${DRAGON}</pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>DEAN<b>HACK</b></h1><p class="start-tag">A little light. A long way down.</p><p id="start-status" role="status" hidden></p>
+  el.innerHTML=`<pre class="start-dragon" aria-hidden="true"></pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>DEAN<b>HACK</b></h1><p class="start-tag">A little light. A long way down.</p><p id="start-status" role="status" hidden></p>
 <form class="step-name" autocomplete="off"><label for="start-name">Your name</label><input id="start-name" type="text" maxlength="24" spellcheck="false" placeholder="${DEFAULT_NAME}" aria-describedby="start-note"><button type="submit" id="start-go"></button><p id="start-note" aria-live="polite"></p>
 <div class="start-row"><button type="button" class="start-new">New character</button><button type="button" class="start-forget" hidden>Start over (delete this save)</button></div>
 <div class="start-saves" hidden><span>Your characters</span><div class="start-list"></div></div></form>
 <div class="step-class" hidden><label>Choose your class</label><div class="class-grid" role="radiogroup" aria-label="Class"></div>
 <div class="class-detail"><p class="class-blurb"></p><div class="class-opts"></div></div>
-<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div><p class="start-credit">Dragon by ${DRAGON_ARTIST}</p></div>`;
+<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div><p class="start-credit"></p></div>`;
   doc.body.append(el);
   const $=s=>el.querySelector(s);
+  const dragon=$('.start-dragon'),credit=$('.start-credit');
+  const showDragon=()=>{const d=pickDragon();dragon.textContent=d.art;credit.textContent=`Dragon by ${d.credit}`;};
+  showDragon();
   const input=$('#start-name'),go=$('#start-go'),note=$('#start-note'),status=$('#start-status'),list=$('.start-list'),box=$('.start-saves'),stepName=$('.step-name'),stepClass=$('.step-class'),forgetBtn=$('.start-forget');
   let saves=[],choice=readChoice(storage),pendingName=DEFAULT_NAME;
   const remembered=()=>{try{return(storage??localStorage).getItem('deanhack.playerName')||'';}catch{return '';}};
@@ -113,7 +116,7 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
     refresh();
   });
   const open=({note:line='',death=null,focus=true}={})=>{
-    el.hidden=false;doc.body.classList.add('start-open');
+    el.hidden=false;doc.body.classList.add('start-open');showDragon();
     const card=deathCard(death);
     if(card){status.innerHTML=card;status.classList.add('dead');status.hidden=false;}else{status.textContent=line;status.classList.remove('dead');status.hidden=!line;}
     stepClass.hidden=true;stepName.hidden=false;

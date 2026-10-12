@@ -130,17 +130,24 @@ test('the live game wires the link watch and the tombstone into the splash',()=>
   assert.match(live,/id='link-banner'/);
 });
 
-test('the splash carries Tua Xiong\'s dragon whole, credited, and out of the way of screen readers',async()=>{
-  const {DRAGON,DRAGON_ARTIST}=await import('./dragon-art.js');
-  const lines=DRAGON.split('\n');
-  assert.equal(lines.length,43);
-  assert.ok(lines.every(l=>l.length<=80),'fits an 80-column terminal');
-  assert.match(DRAGON,/Tua Xiong/,'the signature stays in the art');
-  assert.doesNotMatch(DRAGON,/[<>&]/,'nothing that innerHTML would misread');
+test('the splash draws one of three dragons at random, credited, out of the way of screen readers',async()=>{
+  const {DRAGONS,pickDragon}=await import('./dragon-art.js');
+  assert.equal(DRAGONS.length,3);
+  for(const d of DRAGONS){
+    const lines=d.art.split('\n');
+    assert.ok(lines.every(l=>l.length<=84),`${d.name} fits beside the card`);
+    assert.ok(lines.length>=40&&lines.length<=60,`${d.name} is splash sized`);
+    assert.doesNotMatch(d.art,/[<>&]/,`${d.name}: nothing that innerHTML would misread`);
+    assert.ok(d.credit,`${d.name} is credited`);
+  }
+  const tua=DRAGONS.find(d=>d.name==='Tua Xiong');
+  assert.match(tua.art,/Tua Xiong/,'the signature stays in the art');
+  assert.equal(tua.art.split('\n').length,43);
+  assert.equal(pickDragon(()=>0),DRAGONS[0]);assert.equal(pickDragon(()=>.999),DRAGONS[2]);assert.equal(pickDragon(()=>1),DRAGONS[2]);
   const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
-  assert.match(src,/<pre class="start-dragon" aria-hidden="true">\$\{DRAGON\}<\/pre>/);
-  assert.match(src,/Dragon by \$\{DRAGON_ARTIST\}/);
-  assert.equal(DRAGON_ARTIST,'Tua Xiong');
+  assert.match(src,/<pre class="start-dragon" aria-hidden="true"><\/pre>/);
+  assert.match(src,/const showDragon=\(\)=>\{const d=pickDragon\(\);dragon.textContent=d.art;credit.textContent=`Dragon by \$\{d.credit\}`;\};/);
+  assert.match(src,/doc.body.classList.add\('start-open'\);showDragon\(\);/,'a fresh dragon each time the splash opens');
   const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
   assert.match(css,/@media\(max-width:1000px\),\(max-height:560px\)\{\.start-dragon,\.start-credit\{display:none\}\}/,'narrow and short screens keep the card alone');
 });
