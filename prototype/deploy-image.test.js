@@ -25,3 +25,15 @@ test('testers.sh turns an email list into logins and keeps the list out of git',
   assert.match(ignore, /^\/deploy\/users\/testers\.txt$/m);
   assert.ok((statSync(new URL('../deploy/users/testers.sh', import.meta.url)).mode & 0o111) !== 0, 'executable');
 });
+
+test('backup.sh writes dated tarballs of the game volume and keeps the newest, with restore steps', () => {
+  const sh = readFileSync(new URL('../deploy/backup.sh', import.meta.url), 'utf8');
+  assert.match(sh, /volume="\$\{project\}_game"/, 'the compose project volume');
+  assert.match(sh, /tar czf/);
+  assert.match(sh, /deanhack-saves-\$\(date \+%Y%m%d-%H%M\)\.tgz/, 'dated files');
+  assert.match(sh, /tail -n \+"\$\(\(keep \+ 1\)\)"/, 'keeps the newest N');
+  assert.match(sh, /^# Restore/m, 'restore steps in the script');
+  assert.ok((statSync(new URL('../deploy/backup.sh', import.meta.url)).mode & 0o111) !== 0, 'executable');
+  const todo = readFileSync(new URL('../deploy/SERVER-TODO.md', import.meta.url), 'utf8');
+  assert.match(todo, /30 3 \* \* \* \/root\/DeanHack\/deploy\/backup\.sh/, 'the cron line to add');
+});

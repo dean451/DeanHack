@@ -183,3 +183,24 @@ test('the forget route is for the player\'s own saved characters, never one that
     assert.equal((await call(port,'/engine/forget',{player:'bob',method:'POST',token:other,body:{name:'Mira'}})).json.removed,0,"bob cannot delete alice's Mira");
   }finally{await app.stopEngine();app.closeAllConnections?.();await new Promise(r=>app.close(r));}
 });
+
+test('the operator gets one log line per session start, death and end, with no token in it',async()=>{
+  const {spawned,spawnEngine}=fakeEngines(),root=fakeRoot(),lines=[];
+  const app=createApp({dist:mkdtempSync(join(tmpdir(),'dh-dist-')),engine:{trustProxy:true,spawnEngine,root,maxEngines:1,idleMs:10*60e3,log:l=>lines.push(l)}});
+  await new Promise(r=>app.listen(0,'127.0.0.1',r));const {port}=app.address();
+  try{
+    const a=(await call(port,'/engine/token',{player:'alice@example.com'})).json.token;
+    assert.equal((await call(port,'/engine/start',{player:'alice@example.com',method:'POST',token:a,body:{name:'Mary Jane',role:'Wizard',race:'elf',gender:'female',align:'chaotic'}})).status,200);
+    assert.equal(lines.length,1);
+    assert.match(lines[0],/^deanhack session start player=alice@example\.com name="Mary Jane" role=Wizard race=elf gender=female align=chaotic resume=false running=1$/);
+    const b=(await call(port,'/engine/token',{player:'bob'})).json.token;
+    assert.equal((await call(port,'/engine/start',{player:'bob',method:'POST',token:b,body:{name:'Bob'}})).status,503);
+    assert.match(lines[1],/^deanhack dungeon full player=bob running=1 max=1$/);
+    spawned[0].say({type:'tombstone',name:'Mary_Jane',killer:'killed by a jackal, while helpless',depth:2,dungeon:'The Dungeons of Doom'});
+    spawned[0].emit('close',0);
+    await new Promise(r=>setTimeout(r,20));
+    assert.match(lines[2],/^deanhack death player=alice@example\.com name=Mary_Jane killer="killed by a jackal, while helpless" depth=2 dungeon="The Dungeons of Doom"$/);
+    assert.match(lines[3],/^deanhack session end player=alice@example\.com name="Mary Jane" reason=exit code=0 running=0$/);
+    assert.ok(lines.every(l=>!l.includes(a)&&!l.includes(b)),'tokens never reach the log');
+  }finally{await app.stopEngine();app.closeAllConnections?.();await new Promise(r=>app.close(r));}
+});
