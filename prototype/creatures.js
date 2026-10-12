@@ -2460,6 +2460,16 @@ function elemental(o){
   for(let i=0;i<8;i++){const a=i*.8;const leaf=part(swirl,new THREE.PlaneGeometry(.04,.02),mat(i%2?'#8a7a4a':'#6a8a3a',{side:THREE.DoubleSide}),Math.cos(a)*.34,.3+i*.09,Math.sin(a)*.34);leaf.rotation.set(a,a*2,a*.5);}}
  if(k==='water'){const foam=mat('#eef8ff',{roughness:.4});crown=new THREE.Group();crown.position.set(0,headY+.1,-.05);body.add(crown);for(let i=0;i<7;i++){const a=(i-3)*.4;sphere(crown,.04-Math.abs(i-3)*.004,foam,Math.sin(a)*.1,Math.cos(a)*.03,-Math.abs(i-3)*.015).castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.2;sphere(swirl,.018,dark,Math.cos(a)*.32,.3+i*.1,Math.sin(a)*.28,1,1.4,1).castShadow=false;}}
+ // earth elementals only: a jagged fissure splits the chest, glowing like a banked forge
+ if(k==='earth'){const vein=glow(o.eye,1.6);g.userData.cracked=true;for(const [x,y,rz] of [[-.05,.1,.5],[.02,.02,-.6],[-.02,-.08,.4]])part(body,new THREE.BoxGeometry(.018,.13,.012),vein,x,chestY+y,.16).rotation.z=rz;}
+ // water elementals only: a drowned skull hangs in the dark of the chest, jaw agape, bones pale through the water
+ if(k==='water'){const bone=mat('#d8d4bc',{roughness:.6}),hollow=mat('#06121c',{roughness:1});g.userData.drowned=true;
+  sphere(body,.06,bone,0,chestY+.04,.04,1,1.1,.9);sphere(body,.04,bone,0,chestY-.03,.07,1,.7,1);
+  for(const side of [-1,1])sphere(body,.017,hollow,side*.027,chestY+.05,.09,1,1.2,.6);
+  for(let i=0;i<3;i++)part(body,new THREE.BoxGeometry(.1-i*.015,.008,.008),bone,0,chestY-.1-i*.035,.03);}
+ // fire elementals only: black cooled clinker crusts the shoulders and brow, the fire burning through the gaps
+ if(k==='fire'){const clinker=mat('#17110e',{roughness:1,flatShading:true});g.userData.clinkered=true;
+  for(const [x,y,z,r] of [[-.2,chestY+.2,0,.07],[.19,chestY+.19,.02,.06],[-.08,chestY+.02,.15,.05],[.1,headY+.08,.06,.045]])part(body,new THREE.DodecahedronGeometry(r,0),clinker,x,y,z).rotation.set(x*9,y*5,z*3);}
  if(core)g.userData.core=core;
  return trimDraws(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),{element:k,swirl},crown?{crown}:{},core?{core}:{}));
 }
