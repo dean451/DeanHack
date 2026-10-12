@@ -65,8 +65,10 @@ export function itemFacts(text) {
     const hand = /\(on (left|right) (?:hand|finger)/i.exec(t);
     out.push(hand ? `worn, ${hand[1].toLowerCase()} hand` : 'worn');
   }
-  else if (/\((?:in quiver|at the ready)[^)]*\)/i.test(t)) out.push('quivered');
+  else if (/\((?:in quiver|at the ready|quivered)[^)]*\)/i.test(t)) out.push('quivered');
   if (/\((?:[^)]*, )?in use\)/i.test(t)) out.push('in use');
+  const leash = /\(attached to ([^)]+)\)/i.exec(t);
+  if (leash) out.push(`leashed to ${leash[1]}`);
   if (/\(no charge\)/i.test(t)) out.push('no charge');
   const shop = /\((unpaid|for sale), (\d+) zorkmids?( each)?\)/i.exec(t);
   if (shop) out.push(`${shop[1].toLowerCase()} ${shop[2]}zm${shop[3] ? ' each' : ''}`);
