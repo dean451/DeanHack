@@ -42,6 +42,7 @@ import {updateOrcCrack} from './orc-crack.js';
 import {updateImpLeer} from './imp-leer.js';
 import {updateRatSniff} from './rat-sniff.js';
 import {updateCanineWatch} from './canine-watch.js';
+import {updatePetTic} from './pet-tic.js';
 import {updateLizardPushup} from './lizard-pushup.js';
 import {updateSnakeTaste} from './snake-taste.js';
 import {updateEyeFlare} from './eye-flare.js';
@@ -229,6 +230,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateRatSniff(actor, dt, t, busy);
   // And the wild canines' watch: the head sinks low and creeps aside, stalking, then twitches up (canine-watch.js).
   updateCanineWatch(actor, dt, t, busy);
+  // A pet dog's tic: the head cocked too long, the tail jerking in threes (pet-tic.js).
+  updatePetTic(actor, dt, t, busy);
   // And the small lizards' push-ups: the head lifts and drops twice, hard, then freezes while the tail twitches (lizard-pushup.js).
   updateLizardPushup(actor, dt, t, busy);
   // And the plain snakes' taste of the air: the head cocks aside, the jaw sags open, then both snap shut (snake-taste.js).
