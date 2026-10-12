@@ -45,6 +45,7 @@ import {updateCanineWatch} from './canine-watch.js';
 import {updatePetTic} from './pet-tic.js';
 import {updatePetCatTic} from './pet-cat-tic.js';
 import {updateGridBugSnap} from './grid-bug-snap.js';
+import {updateNurseTap} from './nurse-tap.js';
 import {updateLizardPushup} from './lizard-pushup.js';
 import {updateSnakeTaste} from './snake-taste.js';
 import {updateEyeFlare} from './eye-flare.js';
@@ -238,6 +239,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updatePetCatTic(actor, dt, t, busy);
   // And the grid bug's stepped turn: the body swings aside in hard right-angle snaps, the legs chattering at each (grid-bug-snap.js).
   updateGridBugSnap(actor, dt, t, busy);
+  // And the nurse's tap: the syringe lifted and flicked three times, the head tilted a beat too long (nurse-tap.js).
+  updateNurseTap(actor, dt, t, busy);
   // And the small lizards' push-ups: the head lifts and drops twice, hard, then freezes while the tail twitches (lizard-pushup.js).
   updateLizardPushup(actor, dt, t, busy);
   // And the plain snakes' taste of the air: the head cocks aside, the jaw sags open, then both snap shut (snake-taste.js).
