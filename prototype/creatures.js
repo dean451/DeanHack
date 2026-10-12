@@ -2732,6 +2732,12 @@ function demon(o){
   const ring=part(body,new THREE.TorusGeometry(.07*bulk,.008,5,14),hot,0,chestY+.02,.15*bulk);ring.castShadow=false;
   for(let i=0;i<3;i++){const a=i*Math.PI*2/3+.5,c=cone(body,.008,.07*bulk,hot,Math.sin(a)*.04*bulk,chestY+.02+Math.cos(a)*.04*bulk,.155*bulk,4);c.rotation.x=Math.PI/2;c.castShadow=false;}
   for(const side of [-1,1]){const c=cone(body,.028,.17,iron,side*shoulderX*1.1,chestY+.14,-.02,5);c.rotation.z=-side*.7;c.castShadow=false;}}
+ if(o.mark==='slag'){const crust=mat('#14100e',{roughness:.95}),vein=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.4,roughness:.4});crust.name='demon-slag';vein.name='demon-slag-glow';
+  for(const side of [-1,1]){const c=sphere(body,.07*bulk,crust,side*shoulderX*1.15,chestY+.12,-.01,1.2,.7,1);c.castShadow=false;}
+  for(const [x,y] of [[-.07,.04],[.02,.1],[.08,-.02]]){const t=tube(body,[[x*bulk,chestY+y,.16*bulk],[(x+.03)*bulk,chestY+y-.05,.17*bulk],[(x-.02)*bulk,chestY+y-.1,.15*bulk]],.007,vein,5);t.castShadow=false;}}
+ if(o.mark==='drowned'){const barn=mat('#9a9886',{roughness:.9}),weed=mat('#1c2a1e',{roughness:.9});barn.name='demon-barnacle';weed.name='demon-weed';
+  for(let i=0;i<5;i++){const a=i*1.3;const c=cone(body,.022,.045,barn,Math.sin(a)*.12*bulk,chestY+.08-i*.03,Math.cos(a)*.12*bulk,5);c.rotation.x=Math.PI/2*Math.cos(a);c.rotation.z=-Math.PI/2*Math.sin(a);c.castShadow=false;}
+  for(const side of [-1,1]){const t=tube(body,[[side*shoulderX*1.1,chestY+.12,-.02],[side*shoulderX*1.5,chestY-.05,.0],[side*shoulderX*1.4,chestY-.3,.02],[side*shoulderX*1.6,chestY-.5,.0]],.012,weed,8);t.castShadow=false;}}
  if(o.mark==='tentacles'){const flesh=mat('#3a4a34',{roughness:.5}),fin=mat('#2a3422',{roughness:.8});flesh.name='demon-tentacle';fin.name='demon-frill';
   for(const side of [-1,1]){tube(body,[[side*shoulderX*1.1,chestY+.08,-.04],[side*(shoulderX+.12),chestY-.1,-.1],[side*(shoulderX+.2),chestY-.3,.02],[side*(shoulderX+.1),chestY-.5,.14],[side*(shoulderX+.2),chestY-.62,.26]],.03,flesh,14);}
   for(let i=0;i<5;i++){const x=(i-2)*.05,f=cone(body,.02,.16-Math.abs(i-2)*.025,fin,x,headY-.08,-.06,4);f.rotation.x=-.5;f.castShadow=false;}}
@@ -2755,7 +2761,7 @@ function demon(o){
  return trimDraws(actor(g,body,legs,tail,wings,o.smoke?'hover':'orc'));
 }
 const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,evil:true,scale:1.35},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,evil:true,scale:1.25},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,evil:true,scale:1.25},war:{robe:'#3a1414',glow:'#ff3a2a',bone:'#a89080',solid:true,sword:true,evil:true,scale:1.3}};
-const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',evil:'#40d8c0',horns:'short',head:'toad',tail:true,bulk:1.1,scale:1.1},'lava demon':{skin:'#5a2418',eye:'#ffdd40',horns:'short',flame:'#ff6a20',evil:'#ff6a20',tail:true,bulk:1.15,scale:1.15},
+const DEMONS={'water demon':{skin:'#2f5a8a',mark:'drowned',eye:'#80f0ff',evil:'#40d8c0',horns:'short',head:'toad',tail:true,bulk:1.1,scale:1.1},'lava demon':{skin:'#5a2418',mark:'slag',eye:'#ffdd40',horns:'short',flame:'#ff6a20',evil:'#ff6a20',tail:true,bulk:1.15,scale:1.15},
  'horned devil':{skin:'#8a3a24',mark:'iron',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident',scale:1.1},succubus:{skin:'#d8a090',eye:'#ff60a0',evil:'#d0306a',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true,scale:1.1},
  // the Minion of Huhetotl (the Archeologist quest nemesis): a black-skinned, long-horned winged fiend with a sword
  'minion of huhetotl':{skin:'#2a2224',eye:'#ff4030',evil:'#a01820',horns:'long',wings:.8,tail:true,weapon:'sword',bulk:1.1,scale:1.3},
