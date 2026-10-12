@@ -382,7 +382,9 @@ function dragon(o={}){
   // the spade is barbed: two backswept ivory hooks flank its root so it tears as it pulls free
   if(!f.sirrush)for(const sd of [-1,1]){const hk=cone(tail,.018,.09,m.ivory,end.x+sd*.04,end.y,end.z,4);hk.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(sd*.8,dir.y-.2,dir.z-.6).normalize());}
   // a wyvern's tail ends in a venom stinger: a long ivory hook past the spade, bent upward, with a dark gland at its root
-  if(f.sting){const hook=cone(tail,.03,.2,m.ivory,end.x+dir.x*.14,end.y+dir.y*.14+.03,end.z+dir.z*.14,5);hook.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(dir.x,dir.y+.7,dir.z).normalize());sphere(tail,.045,m.dark,end.x+dir.x*.07,end.y+dir.y*.07,end.z+dir.z*.07,1,.8,1.3);}
+  if(f.sting){const hook=cone(tail,.03,.2,m.ivory,end.x+dir.x*.14,end.y+dir.y*.14+.03,end.z+dir.z*.14,5);hook.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(dir.x,dir.y+.7,dir.z).normalize());sphere(tail,.045,m.dark,end.x+dir.x*.07,end.y+dir.y*.07,end.z+dir.z*.07,1,.8,1.3);
+  // a long bead of green venom hangs from the stinger's point
+  const vm=mat('#7fd23a',{roughness:.2,emissive:'#3f8a14',emissiveIntensity:.9});sphere(tail,.022,vm,end.x+dir.x*.3,end.y+dir.y*.3+.1,end.z+dir.z*.3,1,2.2,1);}
  }
  const element=dragonElement(o.color??3);
  if(element)dressDragon({element,m,trunk,heads:dressHeads,tail,tailCurve,wings:wings.map(w=>({inner:w.userData.inner,edge:w.userData.inner.userData.edge})),baby});
