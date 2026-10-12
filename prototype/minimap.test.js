@@ -102,3 +102,9 @@ test('a peaceful monster is a ring, not the hostile slash, so disposition does n
   assert.notEqual(peaceful.mark, hostile.mark);
   assert.notEqual(peaceful.fill, hostile.fill);
 });
+
+test('an open door is two posts, apart from the closed door bar', () => {
+  const door = d => cellStyle({x: 1, z: 1, terrain: 'door', door: d}, hero).mark;
+  assert.equal(door('open'), 'jamb');
+  assert.notEqual(door('open'), door(undefined));
+});
