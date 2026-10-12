@@ -18,3 +18,9 @@ test('the Watcher in the Water stares with eyes that burn brighter than any othe
   const glow = name => { const a = createCreature({name, symbol: 59, color: 7}); let m = 0; a.g.traverse(o => { const x = o.material; if (x && x.emissiveIntensity > m) m = x.emissiveIntensity; }); return m; };
   assert(glow('watcher in the water') > Math.max(glow('kraken'), glow('shark')) * 1.5);
 });
+
+test('the shark carries pale scars raked across its flank; the piranha is unmarked', () => {
+  const pale = name => { const a = createCreature({name, symbol: 59, color: 7}); let n = 0; a.g.traverse(o => { const c = o.material && o.material.color; if (c && c.getHexString() === 'c8c4b4') n++; }); return n; };
+  assert(pale('shark') > 0);
+  assert.equal(pale('piranha'), 0);
+});
