@@ -2890,6 +2890,8 @@ function seaMonster(o){
   part(head,new THREE.CircleGeometry(.035,12),mouth,0,-.02,.135).scale.set(1,.6,1);
   for(let k=0;k<6;k++){const x=(k-2.5)*.012;cone(head,.005,.018,tooth,x,-.005,.125,4).rotation.x=Math.PI;cone(head,.005,.016,tooth,x,-.04,.12,4);}
   for(const side of [-1,1]){sphere(head,.015,eye,side*.045,.03,.09);sphere(head,.007,pupil,side*.055,.035,.1);}
+  // giant eels: old pale scars raked across the reared neck, and two long hooked fangs hang from the upper jaw
+  if(o.scars){const sc=mat('#c8c4b4',{roughness:.7});for(let k=0;k<3;k++){const s=part(body,new THREE.BoxGeometry(.004,.07,.008),sc,.045,.2+k*.07,.07+k*.015);s.rotation.set(.1,0,-.5+k*.15);}for(const side of [-1,1])cone(head,.007,.04,tooth,side*.02,-.025,.13,4).rotation.x=Math.PI;}
   if(o.spark){const glow=mat(o.spark,{emissive:o.spark,emissiveIntensity:2.4,roughness:.3});for(const p of rear.slice(1))sphere(tail,.014,glow,p[0]+.03,p[1],p[2]+.03);for(const p of front.slice(1,4))sphere(body,.014,glow,p[0]+.035,p[1],p[2]+.02);}
   return trimDraws(actor(g,body,[],tail,[],'snake'));
  }
@@ -2915,7 +2917,7 @@ function seaMonster(o){
  return trimDraws(actor(g,body,[],tail,[],'hover'));
 }
 const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{form:'fish',color:'#8a8a94',belly:'#c83a2a',fin:'#6a5a5a',length:.26,depth:.13,underbite:true,dorsal:1,scale:.8},
- shark:{form:'fish',scars:true,color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
+ shark:{form:'fish',scars:true,color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',scars:true,color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
  'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff',scale:1.25},kraken:{form:'kraken',color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
  'watcher in the water':{form:'kraken',color:'#4a5a52',belly:'#9aa89a',eye:'#b8ff90',arms:16,eyeGlow:2.8,scale:1.9}};
 
