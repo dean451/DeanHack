@@ -14,7 +14,7 @@ test('the tail spade is barbed with two backswept hooks on dragons and wyverns; 
   const tailVerts = name => { let n = 0; createCreature({name, symbol: D, color: 1}).tail.traverse(o => { if (o.isMesh) n += o.geometry.attributes.position.count; }); return n; };
   // two 4-sided cones (19 vertices each) join the spade; the sirrush tail is left at its old count
   assert.equal(tailVerts('draken'), 2418);
-  assert.equal(tailVerts('wyvern'), 2662);
+  assert.equal(tailVerts('wyvern'), 2883); // plus a venom bead on the stinger
   assert.equal(tailVerts('sirrush'), 2384);
 });
 
