@@ -393,3 +393,20 @@ test('a dissipating body lets a leg trail limp behind it, easing to nothing', ()
   assert.ok(l(.5) < -.29, 'trails');
   for (let u = 0; u <= 1; u += .01) assert.ok(l(u) <= 0 && l(u) >= -.3 - 1e-9, `in bounds at ${u}`);
 });
+
+test('a toppling body lets its wings fall slack and twitch once after landing', () => {
+  const w = u => deathPose('topple', u).wing;
+  assert.equal(w(0), 0);
+  assert.ok(w(.6) > .1 && w(.6) < .35 + 1e-9);
+  for (let u = 0; u <= 1; u += .01) assert.ok(w(u) >= 0 && w(u) <= .43 + 1e-9, `in bounds at ${u}`);
+  assert.ok(w(.95) > w(.89) + .03 || w(.95) > .35, 'the late twitch');
+  assert.ok(Math.abs(w(1) - .35) < 1e-9 && w(1) === w(2), 'held slack');
+});
+
+test('a crumbling body lets its wings sag away from the frame as it sifts down', () => {
+  const w = u => deathPose('crumble', u).wing;
+  assert.equal(w(0), 0);
+  assert.ok(w(.5) > .1 && w(.8) > .4);
+  for (let u = 0; u < .99; u += .01) assert.ok(w(u) >= 0 && w(u) <= .45 + 1e-9 && w(u + .01) >= w(u) - 1e-9, `in bounds, no rebound at ${u}`);
+  assert.ok(Math.abs(w(1) - .45) < 1e-9 && w(1) === w(2), 'held');
+});

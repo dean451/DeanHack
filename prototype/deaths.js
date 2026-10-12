@@ -74,6 +74,8 @@ export function deathPose(style, u, dir = null) {
       // Whatever it held goes slack with the hand: the grip tips over and slips once the
       // wrist has loosened.
       p.socket = .7 * smooth((u - .35) / .3);
+      // Any wings hang off it in tatters and sag away from the frame as it sifts down.
+      p.wing = .45 * smooth((u - .3) / .35);
       p.fade = 1 - smooth((u - .6) / .4);
       push(.04 * sag);
       break;
@@ -212,6 +214,8 @@ export function deathPose(style, u, dir = null) {
       // A tail goes slack as it falls and gives one lazy flick after it has landed, as if the
       // owner were not quite informed.
       p.tail = .3 * f + .12 * Math.sin(Math.PI * clamp01((u - .9) / .08)) * Math.sin((u - .9) * 140);
+      // Wings fall open and slack as it goes over, and one gives a single limp twitch after the landing.
+      p.wing = .35 * f + .08 * Math.sin(Math.PI * clamp01((u - .92) / .06));
     }
   }
   return p;
