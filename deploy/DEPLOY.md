@@ -125,11 +125,15 @@ To redraw the banner, run the dev server and `SCALE=2 OUT=/some/dir/ node protot
 
 ## Operating it
 
-- Logs: `docker compose logs -f app` (and `caddy`).
+- Logs: `docker compose logs -f app` (and `caddy`); `-t` adds timestamps.
 - Restart the game: `docker compose restart app`. A running character is saved by the engine on
   exit; the client offers to resume.
-- Back up saves: `docker run --rm -v deanhack_game:/v -v "$PWD":/b ubuntu tar czf /b/game-backup.tgz -C /v .`
-  (the volume name is the compose project folder plus `_game`).
+- Who is playing: `docker compose logs -t app | grep 'deanhack session'`. The server writes one line per
+  session start (login, character, class, resumed or new), death (what, where) and session end (why:
+  exit, idle, shutdown, crash), with the number of games running. `grep 'deanhack death'` lists the deaths.
+- Back up saves: `./deploy/backup.sh` writes a dated tarball of the game volume to `/root/backups` and
+  keeps the last 14. Nightly: `30 3 * * * /root/DeanHack/deploy/backup.sh >> /var/log/deanhack-backup.log 2>&1`
+  (half an hour before the update). Restore steps are at the top of the script.
 - Change the password: edit `.env`, then `docker compose up -d caddy`.
 - Check the build without a server: `docker build -t deanhack .` then
   `docker run --rm -p 8080:8080 -e DEANHACK_HOSTS=localhost:8080 deanhack`

@@ -121,7 +121,7 @@ export function playerIdOf(headers, trustProxy) {
 
 // One player's engine and everything the browser sees of it: the process, the latest frame and
 // prompt, a recent message history, an event log for polling, and the open event streams.
-export function createSession({ root, id, uid = null, spawnEngine = spawn, now = Date.now }) {
+export function createSession({ root, id, uid = null, spawnEngine = spawn, now = Date.now, onEvent = null }) {
   const token = randomBytes(24).toString('hex');
   let playerName = DEFAULT_PLAYER_NAME, playerChoice = null, stopReason = null, child = null, pending = null, frame = null, menu = null, text = null, ended = null, commands = null, buffer = '', seq = 0, lastActive = now();
   const clients = new Set(), history = [], log = [];
@@ -133,6 +133,8 @@ export function createSession({ root, id, uid = null, spawnEngine = spawn, now =
     else if (event.type === 'commands') commands = event; else if (event.type === 'text') text = event; else if (event.type === 'ended') ended = event;
     else if (event.type === 'message' || event.type === 'status') { history.push(event); if (history.length > 40) history.shift(); }
     log.push({ seq: ++seq, event }); if (log.length > 500) log.shift();
+    // the operator's log line: who started, who died of what, who ended and why (see the plugin)
+    if (onEvent && (event.type === 'ended' || event.type === 'tombstone')) onEvent(event);
     for (const res of clients) res.write(`data: ${JSON.stringify(event)}\n\n`);
   }
   const KINDS=['frame','request','menu','commands','text','message','status','ended','fx','combat','death','revive','pickup','teleport','wish','tombstone']; // kept compact: bridge-frame.test.js reads this line
@@ -195,8 +197,13 @@ export function createSession({ root, id, uid = null, spawnEngine = spawn, now =
   };
 }
 
-export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_PROXY === '1', maxEngines = Number(process.env.DEANHACK_MAX_ENGINES) || 8, idleMs = Number(process.env.DEANHACK_IDLE_MS) || 20 * 60 * 1000, spawnEngine = spawn, root = fileURLToPath(new URL('../.engine/', import.meta.url)), sweepMs = Math.min(60000, Math.max(1000, idleMs / 4)) } = {}) {
+export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_PROXY === '1', maxEngines = Number(process.env.DEANHACK_MAX_ENGINES) || 8, idleMs = Number(process.env.DEANHACK_IDLE_MS) || 20 * 60 * 1000, spawnEngine = spawn, root = fileURLToPath(new URL('../.engine/', import.meta.url)), sweepMs = Math.min(60000, Math.max(1000, idleMs / 4)), log = console.log } = {}) {
   const sessions = new Map();
+  // One line per thing an operator wants to know, so `docker compose logs app | grep session` says who is
+  // playing: session start (login, character, class, resumed or new), death (what, where) and session end
+  // (why). Values are key=value, quoted when they have spaces; no secrets (never the token).
+  const q = v => /[\s"]/.test(String(v)) ? JSON.stringify(String(v)) : String(v);
+  const line = (what, fields) => log(`deanhack ${what} ${Object.entries(fields).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => `${k}=${q(v)}`).join(' ')}`);
   // The folder that holds saves and the player numbers, if the engine has been built.
   function varDir() {
     try { const m = JSON.parse(readFileSync(resolve(root, 'manifest.json'), 'utf8')), dir = resolve(m.prefix, 'var/unnethack'); return realpathSync(dir).startsWith(realpathSync(root) + sep) ? dir : null; } catch { return null; }
@@ -206,7 +213,10 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
     if (session) return session;
     // Local development (one player) keeps the engine's own uid, so existing saves stay readable.
     const uid = trustProxy ? allocateUid(resolve(varDir() ?? root, 'players.json'), playerId) : null;
-    session = createSession({ root, id: playerId, uid, spawnEngine });
+    session = createSession({ root, id: playerId, uid, spawnEngine, onEvent: event => {
+      if (event.type === 'tombstone') line('death', { player: playerId, name: event.name, killer: event.killer, depth: event.depth, dungeon: event.dungeon });
+      else line('session end', { player: playerId, name: session.name, reason: event.reason, code: event.code, running: running() });
+    } });
     sessions.set(playerId, session);
     return session;
   }
@@ -263,12 +273,14 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
           let body = ''; for await (const b of req) { body += b; if (body.length > 4096) throw new Error('Request too large'); }
           if (path === '/engine/start') {
             let name; try { name = body ? JSON.parse(body).name : undefined; } catch { name = undefined; }
-            if (!session.running && running() >= maxEngines) return json(503, { error: 'The dungeon is full right now. Try again in a few minutes.' });
+            if (!session.running && running() >= maxEngines) { line('dungeon full', { player: playerId, running: running(), max: maxEngines }); return json(503, { error: 'The dungeon is full right now. Try again in a few minutes.' }); }
             let choice; try { choice = body ? JSON.parse(body) : undefined; } catch { choice = undefined; }
             const dir = varDir(), uid = session.uid ?? process.getuid?.() ?? 0, key = saveKey(name);
             // a name that already has a save resumes it: the class comes from the save, not from this request
             const resumes = !!dir && listSaves(resolve(dir, 'saves'), uid).some(save => save.name === key);
             session.start(name, choice);
+            const c = session.choice || {};
+            line('session start', { player: playerId, name: session.name, role: c.role, race: c.race, gender: c.gender, align: c.align, resume: resumes, running: running() });
             if (dir && !resumes) { try { rememberCharacter(resolve(dir, 'characters.json'), `${uid}:${key}`, session.choice); } catch {} }
             return json(200, { ok: true, name: session.name, choice: session.choice });
           }
