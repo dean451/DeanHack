@@ -148,6 +148,7 @@ import {createRayMarks} from './ray-marks.js';
 import {createDeathBurst,deathLook,applyFade,restoreFade,hideDeathRing} from './deaths.js';
 import {createPetrify,restoreStone} from './petrify.js';
 import {combatAction,deathAction} from './combat-events.js';
+import {createMarks} from './marks.js';
 import {reviveAction,riseActionFor,createRiseWatch} from './rise.js';
 import {updateGait,flapStyle,wingFlap,flightBob} from './gait.js';
 import {updateWereShudder} from './were-shudder.js';
@@ -225,7 +226,7 @@ const statusProgress=createStatusProgress();
 
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode}) {
- const group=new THREE.Group();scene.add(group);group.visible=false;
+ const group=new THREE.Group();scene.add(group);group.visible=false;const marks=createMarks(THREE,group);
  const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map(),liftingItems=new Set(),pickupNotes=createPickupNotes();let active=false,lastCommand=null,pending=null,latest=null,token='',menu=null,commands=null,lines=[],origin=null,lastLevel='',lastBranch=null,lastDepth=NaN,source,pollNow=null;
  const $=s=>document.querySelector(s);
  const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
@@ -327,7 +328,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function label(text,color='#f0d9b0'){const c=document.createElement('canvas');c.width=512;c.height=96;const ctx=c.getContext('2d');ctx.fillStyle='rgba(10,20,20,.68)';ctx.beginPath();ctx.roundRect(54,16,404,64,12);ctx.fill();ctx.font='30px system-ui';ctx.textAlign='center';ctx.fillStyle=color;ctx.fillText(text,256,61);const texture=new THREE.CanvasTexture(c),material=new THREE.SpriteMaterial({map:texture,depthTest:false});const s=new THREE.Sprite(material);s.scale.set(1.3,.25,1);s.position.y=1.7;s.userData.dispose=()=>{texture.dispose();material.dispose();};return s;}
  function release(object){object.traverse(o=>o.userData.dispose?.());group.remove(object);}
  const ghosts=new Map();function dropGhost(gh){gh.mats.forEach(m=>m.dispose());release(gh.g);}
- function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();pickupNotes.clear();for(const w of wells.values())release(w);for(const gh of ghosts.values())dropGhost(gh);ghosts.clear();tiles.clear();actors.clear();groundItems.clear();wells.clear();}
+ function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();pickupNotes.clear();for(const w of wells.values())release(w);for(const gh of ghosts.values())dropGhost(gh);ghosts.clear();marks.clear();tiles.clear();actors.clear();groundItems.clear();wells.clear();}
  function pickupIcon(cell){
    const icon=new THREE.Group(), kind=cell.object?.kind||'item', cls=cell.object?.class||0, itemName=(cell.object?.name||cell.name||'').toLowerCase();
    // Older bridge processes expose statues as generic objects. Keep the visual path
@@ -536,7 +537,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  const findSide=s=>findActor(actors,s.x,s.z,{name:s.name,origin});
  // Whoever stands where a thrown object starts (throw-motion.js): the hero or a seen monster.
  const findThrower=(x,z)=>latest?.player&&x===latest.player.x&&z===latest.player.z?hero:findActor(actors,x,z,{exact:true});
- function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(v.type!=='combat'){grab.death(c);queueDeath(c,findSide);return;}grab.combat(c);brainSuck.combat(c);combatStream=true;if(c.heroAttacks){meleeIntent=null;swingTarget=c.defender?.name??null;if(c.result==='hit'&&c.defender?.seen){const hit={x:c.defender.x,z:c.defender.z,t:performance.now()};if(pendingStrike&&hit.t-pendingStrike.t<STRIKE_PAIR_MS){queueStrike(hit);pendingStrike=null;}else lastHeroHit=hit;}}queueCombat(c,{hero,find:findSide});}
+ function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(origin){if(v.type!=='combat')marks.add({type:'death',x:c.x-origin.x,z:c.z-origin.z,pet:c.pet});else if(c.result==='hit'&&c.defender?.seen&&!c.defender.pet)marks.add({type:'combat',x:c.defender.x-origin.x,z:c.defender.z-origin.z});}if(v.type!=='combat'){grab.death(c);queueDeath(c,findSide);return;}grab.combat(c);brainSuck.combat(c);combatStream=true;if(c.heroAttacks){meleeIntent=null;swingTarget=c.defender?.name??null;if(c.result==='hit'&&c.defender?.seen){const hit={x:c.defender.x,z:c.defender.z,t:performance.now()};if(pendingStrike&&hit.t-pendingStrike.t<STRIKE_PAIR_MS){queueStrike(hit);pendingStrike=null;}else lastHeroHit=hit;}}queueCombat(c,{hero,find:findSide});}
  // Map frames wait for queued deaths to play, so the corpse appears after the fall; a newer frame replaces a held one.
  function applySoon(frame){heldFrame=frame;if(heldTimer)return;const wait=active?Math.max(holdBackMs([hero.actions,...[...actors.values()].map(a=>a.actions)]),Math.ceil(fxHoldUntil-performance.now())):0;const go=()=>{heldTimer=null;const f=heldFrame;heldFrame=null;if(f)apply(f);};if(wait>0)heldTimer=setTimeout(go,wait);else go();}
  const messageLog=createMessageLog();let turnMark=0;
@@ -659,7 +660,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    for(const item of liftingItems)if(updatePickupLift(item,hero.g.position,dt)){release(item);liftingItems.delete(item);}
    updateHeldWandAura(hero,t);heldCrackle=updateHeldMjollnir(hero,dt,t);updateHeldExcalibur(hero,dt,t);updateHeldGleam(hero,t);
    for(const item of groundItems.values()){if(!item.userData.coinPile)continue;item.userData.coinAge=(item.userData.coinAge||0)+dt;for(const coin of item.userData.coinPile){if(coin.settled||item.userData.coinAge<coin.delay)continue;coin.velocity-=9.8*dt;coin.disk.position.y+=coin.velocity*dt;coin.stamp.position.y+=coin.velocity*dt;if(coin.disk.position.y<=coin.target){coin.disk.position.y=coin.target;coin.stamp.position.y=coin.target+.0115;coin.velocity*=-.16;if(Math.abs(coin.velocity)<.35)coin.settled=true;}}}
-   if(flooding)flooding=flood.update(dt,origin).count>0;splash.update(dt,origin);flights.update(dt,origin);const grabbed=grab.update(dt,origin);poseBrainSuck(hero,brainSuck.update(dt,origin).shake);const holding=hold.update(dt,origin,{skip:grabbed.held});poseHeld(hero,holding.squeeze);hero.g.position.y=(hero.hopAt?.y??0)+grabbed.sink+digDrop.update(dt)+stairTumble.update(dt)+(hero.actions.applied?.dy??0);
+   marks.update(dt);if(flooding)flooding=flood.update(dt,origin).count>0;splash.update(dt,origin);flights.update(dt,origin);const grabbed=grab.update(dt,origin);poseBrainSuck(hero,brainSuck.update(dt,origin).shake);const holding=hold.update(dt,origin,{skip:grabbed.held});poseHeld(hero,holding.squeeze);hero.g.position.y=(hero.hopAt?.y??0)+grabbed.sink+digDrop.update(dt)+stairTumble.update(dt)+(hero.actions.applied?.dy??0);
    const {poses:polyPoses}=poly.update(dt,origin);poseActor(hero,latest?.player&&polyPoses.get(`${latest.player.x},${latest.player.z}`));for(const a of actors.values())poseActor(a,polyPoses.get(a.cell));barsMelt.update(dt,origin);doorBreak.update(dt,origin);const br=breath.update(dt,origin);if(br.glow*BREATH_LIGHT_INTENSITY>blastLight.intensity){blastLight.intensity=br.glow*BREATH_LIGHT_INTENSITY;blastLight.color.setHex(br.color);blastLight.position.set(br.x-origin.x,1.2,br.z-origin.z);}const eng=engulf.update(dt,origin);engulfCamera(camera,controls,eng);poseEngulfed(hero,eng.hero);
    for(const tile of tiles.values()){const liquid=tile.userData.liquid;if(!liquid)continue;liquid.visible=!(flooding&&flood.pending(tile.position.x+origin.x,tile.position.z+origin.z));if(tile.visible&&liquid.visible)liquid.userData.updateLiquid(t);}
    for(const w of wells.values())w.userData.updateFountain?.(t);
