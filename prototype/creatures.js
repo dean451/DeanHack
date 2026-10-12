@@ -1866,20 +1866,49 @@ const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff',scale:1.2},'barrow wight':{
 // Vampires: a tall, pale aristocrat in a high-collared cape with a red lining, slicked hair with a widow's peak,
 // fangs and red eyes. Lords wear a gold medallion, mages a violet cape and a glowing hand orb,
 // and Vlad a jewelled red cap, a moustache and a long impaling spear.
+// Cloth for a cloak: a sector of an open cone (radius r0 at the top, r1 at the hem, h tall, top at y 0)
+// falling in `folds` vertical folds that deepen toward the hem, the hem torn into jagged points.
+// `inset` pulls it inward (a lining under the outer cloth). Angles: 0 faces +z (front), PI the back.
+function drape({from,len,h,r0,r1,folds=8,amp=.03,tatter=.08,seed=0,inset=0}){
+ const geo=new THREE.CylinderGeometry(r0,r1,h,Math.max(12,Math.round(len*14)),14,true,from,len).translate(0,-h/2,0);
+ const p=geo.attributes.position,v=new THREE.Vector3();
+ // t is clamped: the top row rounds a hair above 0, and a negative base to the 1.1 is NaN
+ for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const t=Math.min(1,Math.max(0,-v.y/h)),a=Math.atan2(v.x,v.z),r=Math.hypot(v.x,v.z);
+  const fold=amp*Math.pow(t,1.1)*Math.sin(a*folds*2+seed);const nr=Math.max(.01,r+fold-inset*(.6+.4*t));
+  let y=v.y;if(t>.96){const jag=Math.abs(Math.sin(a*folds*3.1+seed*2.3))*.7+.3*Math.abs(Math.sin(a*23+seed));y-=tatter*jag;}
+  p.setXYZ(i,Math.sin(a)*nr,y,Math.cos(a)*nr);}
+ geo.computeVertexNormals();return geo;
+}
+// A tall standing collar behind the head: flared outward toward its top, its points rising at the sides.
+function collarSheet({h,r0,r1,inset=0}){
+ const span=1.25,geo=new THREE.CylinderGeometry(r1,r0,h,24,4,true,Math.PI-span,span*2).translate(0,h/2,0);
+ const p=geo.attributes.position,v=new THREE.Vector3();
+ for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const a=Math.atan2(v.x,v.z),t=v.y/h,side=Math.abs(Math.abs(a)-Math.PI)/span;
+  const r=Math.hypot(v.x,v.z)-inset;p.setXYZ(i,Math.sin(a)*r,v.y+t*.09*side*side,Math.cos(a)*r);}
+ geo.computeVertexNormals();return geo;
+}
 function vampire(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
  const skin=mat(o.skin||'#d8d0cc',{roughness:.6}),suit=mat(o.suit||'#1c1a22',{roughness:.8}),cape=mat(o.cape||'#141218',{roughness:.85,side:THREE.DoubleSide}),lining=mat(o.lining||'#8a1420',{roughness:.7,side:THREE.DoubleSide}),hair=mat(o.hair||'#141214',{roughness:.5}),boot=mat('#101012',{roughness:.5}),fang=mat('#f4f0e6',{roughness:.3}),glow=mat(o.eye||'#ff2a2a',{emissive:o.eye||'#ff2a2a',emissiveIntensity:2.4,roughness:.3});
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.1,.44,0);body.add(leg);rounded(leg,.12,.42,.13,suit,0,-.18,0,.035);rounded(leg,.13,.1,.24,boot,0,-.39,.04,.03);legs.push(leg);}
  rounded(body,.34,.44,.22,suit,0,.68,0,.05);rounded(body,.08,.3,.02,mat('#e8e4dc',{roughness:.6}),0,.74,.11,.01);
- // cape: a back panel flaring toward the hem, red-lined, with a tall two-piece collar framing the head
- // the back panel hangs from a pivot at the shoulders (`cape`), and each side flap from its own (`flaps`), so they can sweep
+ // cape: real cloth, not a board. A curved drape hangs round the back from the shoulders, falling in
+ // deep folds that flare wider toward a torn, jagged hem; a blood-red lining shows on the inside; side
+ // panels carry the drape round the arms; and a tall flared collar stands up behind the head, its
+ // points raised at the sides. The back drape hangs from a pivot at the shoulders (`cape`) and each
+ // side panel from its own (`flaps`), so vampire-sweep.js can still sweep and flare them.
  const capeG=new THREE.Group();capeG.position.set(0,.95,-.14);body.add(capeG);const flaps=[];
- const back=rounded(capeG,.46,.86,.03,cape,0,-.43,0,.015);back.rotation.x=-.08;rounded(capeG,.43,.82,.012,lining,0,-.42,.02,.006).rotation.x=-.08;
- // the hem is ragged: dark jagged tatters hang off the bottom of the cape, and the lining shows through one torn gap
- for(let i=0;i<6;i++){const t=cone(capeG,.032,.08+(i*5%3)*.03,cape,-.19+i*.076,-.80-(i*5%3)*.01,-.005,3);t.rotation.set(Math.PI,0,(i%2?.2:-.15));}
- for(const side of [-1,1]){const fg=new THREE.Group();fg.position.set(side*.24,.89,-.03);body.add(fg);flaps.push(fg);const flap=rounded(fg,.05,.74,.2,cape,0,-.37,0,.015);flap.rotation.z=side*.1;
-  const collar=rounded(body,.16,o.collar||.24,.015,lining,side*.12,1.02,-.06,.006);collar.rotation.set(-.25,side*.55,side*-.25);
-  const outer=rounded(body,.17,(o.collar||.24)+.02,.012,cape,side*.125,1.02,-.075,.006);outer.rotation.copy(collar.rotation);}
+ const BACK=Math.PI,SPAN=1.45,FLAP=.6;
+ const back=part(capeG,drape({from:BACK-SPAN,len:SPAN*2,h:.78,r0:.21,r1:.4,folds:9,amp:.03,tatter:.08,seed:1}).translate(0,-.022,.14),cape);back.rotation.x=.07; // the hem trails back behind the legs
+ part(capeG,drape({from:BACK-SPAN,len:SPAN*2,h:.76,r0:.205,r1:.39,folds:9,amp:.03,tatter:.06,seed:1,inset:.012}).translate(0,-.022,.14),lining).rotation.x=.07;
+ for(const side of [-1,1]){const fg=new THREE.Group();fg.position.set(side*.24,.89,-.03);body.add(fg);flaps.push(fg);
+  const from=side>0?BACK-SPAN-FLAP:BACK+SPAN;
+  part(fg,drape({from,len:FLAP,h:.78,r0:.21,r1:.39,folds:3,amp:.025,tatter:.07,seed:side+3}).translate(-side*.24,.06,.03),cape);
+  part(fg,drape({from,len:FLAP,h:.76,r0:.205,r1:.38,folds:3,amp:.025,tatter:.05,seed:side+3,inset:.012}).translate(-side*.24,.06,.03),lining);}
+ // the tall collar: flared outward toward its top, red inside, its points standing up at the sides
+ const collarH=(o.collar||.24)+.06;
+ part(body,collarSheet({h:collarH,r0:.135,r1:.21}),cape,0,1.0,-.01);
+ part(body,collarSheet({h:collarH-.01,r0:.128,r1:.2,inset:.008}),lining,0,1.0,-.01);
  // dried blood: a dark stain down the shirt front and a crusted streak from the corner of the mouth
  rounded(body,.07,.14,.012,mat('#4a0c12',{roughness:.5}),.025,.72,.118,.006).rotation.z=.15;
  // head: gaunt face, pointed ears, widow's peak, fangs and red eyes
