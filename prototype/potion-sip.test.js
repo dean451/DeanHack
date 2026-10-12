@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {dropPose, ringPose, isHealMessage, createPotionSip, SIP} from './potion-sip.js';
+import {dropPose, ringPose, isHealMessage, dropCount, createPotionSip, SIP} from './potion-sip.js';
 
 test('only the healing messages trigger it', () => {
   for (const t of ['You feel better.', 'You feel much better.', 'You feel completely healed.']) assert.ok(isHealMessage(t), t);
@@ -37,4 +37,9 @@ test('a heal starts an effect that is cleaned up', () => {
   assert.equal(fx.active, 1);
   fx.update(SIP.total + .1);
   assert.equal(fx.active, 0);
+});
+
+test('a deeper heal sheds more drops, all inside the effect time', () => {
+  assert.deepEqual(['You feel better.', 'You feel much better.', 'You feel completely healed.'].map(dropCount), [3, 5, SIP.drops]);
+  for (let i = 0; i < SIP.drops; i++) assert.equal(dropPose(i, SIP.total).alpha, 0, `drop ${i} gone by the end`);
 });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {coinPose, glintPose, isGoldMessage, createGoldGlint, GOLD, PENDING_WAIT} from './gold-glint.js';
+import {coinCount, coinPose, glintPose, isGoldMessage, createGoldGlint, GOLD, PENDING_WAIT} from './gold-glint.js';
 
 test('only the gold pickup message triggers it', () => {
   assert.ok(isGoldMessage('$ - 12 gold pieces.'));
@@ -49,4 +49,9 @@ test('the sparkle waits for the next frame and lands on the hero\'s new square',
   assert.deepEqual(added[0], [5, 5]);
   fx.update(GOLD.total + .1);
   assert.equal(fx.active, 0);
+});
+
+test('a fatter purse flicks more coins', () => {
+  assert.deepEqual(['$ - 3 gold pieces.', '$ - 12 gold pieces.', '$ - 150 gold pieces.', '$ - 900 gold pieces.'].map(coinCount), [2, 3, 4, GOLD.coins]);
+  assert.equal(coinCount(null), 2);
 });
