@@ -2679,6 +2679,11 @@ function demon(o){
  if(o.mark==='skulls'){const bone=mat('#cfc7ae',{roughness:.6}),fire=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.2,roughness:.4});bone.name='orcus-skull';fire.name='orcus-skull-glow';
   for(let i=0;i<5;i++){const a=(i/4-.5)*2.2,x=Math.sin(a)*.12*bulk,y=chestY+.08-Math.abs(a)*.04,z=Math.cos(a)*.11*bulk;
    sphere(body,.026,bone,x,y,z).castShadow=false;for(const e of [-1,1])sphere(body,.006,fire,x+e*.011,y+.004,z+.02).castShadow=false;}}
+ // the pit fiend and Nalzok are branded: a hot sigil ring burned into the chest and iron spurs bolted through the shoulders
+ if(o.mark==='brand'){const iron=mat('#1c1a1c',{roughness:.45,metalness:.7}),hot=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.2,roughness:.4});iron.name='demon-spur';hot.name='demon-brand';
+  const ring=part(body,new THREE.TorusGeometry(.07*bulk,.008,5,14),hot,0,chestY+.02,.15*bulk);ring.castShadow=false;
+  for(let i=0;i<3;i++){const a=i*Math.PI*2/3+.5,c=cone(body,.008,.07*bulk,hot,Math.sin(a)*.04*bulk,chestY+.02+Math.cos(a)*.04*bulk,.155*bulk,4);c.rotation.x=Math.PI/2;c.castShadow=false;}
+  for(const side of [-1,1]){const c=cone(body,.028,.17,iron,side*shoulderX*1.1,chestY+.14,-.02,5);c.rotation.z=-side*.7;c.castShadow=false;}}
  if(o.mark==='tentacles'){const flesh=mat('#3a4a34',{roughness:.5}),fin=mat('#2a3422',{roughness:.8});flesh.name='demon-tentacle';fin.name='demon-frill';
   for(const side of [-1,1]){tube(body,[[side*shoulderX*1.1,chestY+.08,-.04],[side*(shoulderX+.12),chestY-.1,-.1],[side*(shoulderX+.2),chestY-.3,.02],[side*(shoulderX+.1),chestY-.5,.14],[side*(shoulderX+.2),chestY-.62,.26]],.03,flesh,14);}
   for(let i=0;i<5;i++){const x=(i-2)*.05,f=cone(body,.02,.16-Math.abs(i-2)*.025,fin,x,headY-.08,-.06,4);f.rotation.x=-.5;f.castShadow=false;}}
@@ -2710,12 +2715,12 @@ const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',evil:'#40d8c0',horns:'
  'barbed devil':{skin:'#9a2e20',evil:'#ff2a28',horns:'short',spikes:true,tail:true,scale:1.1},marilith:{skin:'#7a3a5a',mark:'gilt',evil:'#c04a8a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true,scale:1.1},
  vrock:{skin:'#6a5a48',mark:'ruff',evil:'#a8b030',head:'beak',horn:'#3a3028',wings:.9,scale:1.1},'bone devil':{skin:'#9a9078',mark:'ribs',evil:'#c8e04a',head:'skull',spikes:'bone',tail:true,scale:1.1},
  'ice devil':{skin:'#b8d0e0',mark:'frost',evil:'#50b8ff',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true,scale:1.15},nalfeshnee:{skin:'#5a4a3a',mark:'boils',evil:'#e07a20',head:'boar',spikes:'bone',wings:.5,bulk:1.3,scale:1.15},
- 'pit fiend':{skin:'#7a1a18',evil:'#ff3a1a',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.3},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.35},
+ 'pit fiend':{skin:'#7a1a18',mark:'brand',evil:'#ff3a1a',horns:'long',wings:1,tail:true,weapon:'trident',scale:1.3},balrog:{skin:'#3a1a14',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff5a1a',evil:'#ff4a10',weapon:'whip',bulk:1.2,scale:1.35},
  "durin's bane":{skin:'#2a1410',eye:'#ffcc40',horns:'long',wings:1.1,flame:'#ff4a10',evil:'#ff3a08',weapon:'whip',bulk:1.2,scale:1.45},
  yeenoghu:{skin:'#8a7040',mark:'gnoll',evil:'#e0a020',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',mark:'skulls',evil:'#8aff6a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
  geryon:{skin:'#6a4a2a',mark:'crown',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',mark:'crown',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
  baalzebub:{skin:'#3a4a2a',mark:'crown',evil:'#b8ff30',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',mark:'crown',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
- demogorgon:{skin:'#5a6a4a',mark:'tentacles',evil:'#40ffa0',heads:2,eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
+ demogorgon:{skin:'#5a6a4a',mark:'tentacles',evil:'#40ffa0',heads:2,eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',mark:'brand',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
  'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
 
 // trappers (t): a broad, ragged mantle flattened against the floor like a dropped cloak, mottled to match the stone,
