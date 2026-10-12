@@ -60,6 +60,7 @@ export function stageCreature(g,{disposition=null,normalize=true}={}){
  }
  g.userData.height=world.y;
  addOutlines(g);
+ if(disposition)g.userData.disposition=disposition;
  if(disposition&&RINGS[disposition]){
   const ring=new THREE.Mesh(ringGeo,RINGS[disposition]);const d=Math.min(1,Math.max(.62,Math.max(world.x,world.z)*1.15));
   ring.scale.set(d/gs,1,d/gs);ring.position.set((box.min.x+box.max.x)/2,.02/gs,(box.min.z+box.max.z)/2);ring.renderOrder=-1;ring.userData.ring=true;g.add(ring);

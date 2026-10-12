@@ -480,5 +480,6 @@ export function createFlights(THREE, parent) {
     for (const g of geos) g.dispose();
     for (const m of [...Object.values(mats), ...extraMats]) m.dispose();
   }
-  return {play, update, clear, dispose, get count() { return flights.length; }};
+  // what is in the air right now, for the orientation overlay: the moving group and its shape
+  return {play, update, clear, dispose, get count() { return flights.length; }, get active() { return flights.map(x => ({outer: x.outer, shape: x.f.shape})); }};
 }
