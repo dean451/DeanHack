@@ -117,3 +117,28 @@ test('the strangling cord tightens inward as the countdown advances', async () =
   const rule = css.slice(css.indexOf('#status-screen.status-strangled{'));
   assert.ok(rule.slice(0, rule.indexOf('animation:')).includes('transparent calc(34% - var(--status-progress)*30%)'));
 });
+
+test('held, trapped, levitating, wounded legs, weak and fainting each get a screen cue, once, beside the others', async () => {
+  assert.deepEqual(statusScreenClasses(['Held']), ['status-held']);
+  assert.deepEqual(statusScreenClasses(['Trap', 'Trapped']), ['status-trapped']);
+  assert.deepEqual(statusScreenClasses(['Lev']), ['status-lev']);
+  assert.deepEqual(statusScreenClasses(['Legs']), ['status-legs']);
+  assert.deepEqual(statusScreenClasses(['Weak']), ['status-weak']);
+  assert.deepEqual(statusScreenClasses(['Fainting', 'Fainted']), ['status-fainting']);
+  assert.deepEqual(statusScreenClasses(['Hungry', 'Burdened', 'Stressed']), [], 'hunger and a heavy pack are HUD tags, not screen states');
+  assert.deepEqual(statusScreenClasses(['Blind', 'Held', 'Trap']), ['status-blind', 'status-held', 'status-trapped']);
+  const set = new Set();
+  const el = {classList: {toggle: (c, on) => (on ? set.add(c) : set.delete(c))}};
+  applyStatusScreen(el, ['Held', 'Weak']);
+  assert.ok(set.has('status-held') && set.has('status-weak') && !set.has('status-fainting'));
+  applyStatusScreen(el, []);
+  assert.equal(set.size, 0);
+  const {readFileSync} = await import('node:fs');
+  const css = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
+  for (const cls of ['status-held', 'status-trapped', 'status-lev', 'status-legs', 'status-weak', 'status-fainting']) {
+    const rule = css.slice(css.indexOf(`#status-screen.${cls}{`));
+    assert.ok(rule.startsWith(`#status-screen.${cls}{opacity:1`), `${cls} shows itself`);
+    assert.ok(rule.slice(0, rule.indexOf('}')).includes('animation:'), `${cls} moves`);
+  }
+  assert.ok(css.includes('@keyframes status-held-grip') && css.includes('@keyframes status-trapped-tug') && css.includes('@keyframes status-fainting-blackout'));
+});
