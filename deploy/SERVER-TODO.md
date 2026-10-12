@@ -27,7 +27,9 @@ tick it; when a PR needs a step on the server, add it here. Last updated 2026-10
 - [ ] **4. Check it as yourself.** Open https://deanhack.online, log in as `dean`, type a new name,
   press Begin, pick a class, and Descend. You should land in the game as that class. Your old test
   characters will not be listed: the per-player change gave every login fresh saves.
-- [ ] **5. Add your friends' logins** (one per person; this is what keeps their games apart):
+- [ ] **5. Add your friends' logins** (one per person; this is what keeps their games apart).
+  Quickest: `nano deploy/users/testers.txt` (one email per line), then `deploy/users/testers.sh`.
+  Each email is then both user name and password. Or one at a time:
   ```
   docker run --rm -it caddy caddy hash-password       # type THEIR password, copy the hash
   echo 'alice $2a$14$...paste the hash...' >> deploy/users/friends.caddy

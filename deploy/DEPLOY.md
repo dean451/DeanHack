@@ -54,7 +54,9 @@ docker compose restart caddy
 ```
 
 Use single quotes so the `$` characters survive. Give them the address, their name and the
-password. Names are letters, digits and `_.@-`. More detail in `deploy/users/README.md`. To remove
+password. Names are letters, digits and `_.@-`. For a batch of testers, list their emails in
+`deploy/users/testers.txt` and run `deploy/users/testers.sh`: each email becomes its own login with the
+email as the password (`deploy/users/README.md`). To remove
 someone, delete their line and restart Caddy; their saves stay on disk.
 
 The first deploy after this was added gives every login a fresh set of saves: games started before
