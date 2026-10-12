@@ -2948,3 +2948,20 @@ test('the xorn has a snapped tooth in its maw and still fits its tile',()=>{
  const b=new THREE.Box3().setFromObject(r.g,true);
  assert(b.min.y>-.05&&Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits');
 });
+
+test('the yeti and sasquatch also carry claw-rakes across the flank', () => {
+ for (const name of ['yeti', 'sasquatch']) {
+  const r = createCreature({name, symbol: 89, color: 7});
+  assert(r.g.userData.scarred, name + ' wear');
+  assert(r.g.userData.bloodied, name + ' keeps its dried blood');
+ }
+});
+
+test('the xan drips venom from its barb and still fits its tile', () => {
+ const r = createCreature({name: 'xan', symbol: 120, color: 1});
+ assert(r.g.userData.venomed, 'xan venom');
+ assert(!createCreature({name: 'chillbug', symbol: 120, color: 4}).g.userData.venomed, 'chillbug has no barb');
+ r.g.updateMatrixWorld(true);
+ const b = new THREE.Box3().setFromObject(r.g, true);
+ assert(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < 1, 'fits its tile');
+});
