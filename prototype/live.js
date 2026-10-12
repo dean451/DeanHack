@@ -1,4 +1,4 @@
-import {DIM_COLOR,DIM_OPACITY} from './remembered.js';
+import {DIM_COLOR,DIM_OPACITY,GHOST_MAX,shouldGhost,ghostGone,ghostize} from './remembered.js';
 import {wallYaw,yawToward} from './orientation.js';
 import {LIVE_KEYS_HTML} from './live-keys.js';
 import {createShopkeeper,createWatchman,createLightItem,createShopItem} from './shop-visuals.js';
@@ -321,7 +321,8 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  function box(geo,mat,parent,x,y,z){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;parent.add(m);return m;}
  function label(text,color='#f0d9b0'){const c=document.createElement('canvas');c.width=512;c.height=96;const ctx=c.getContext('2d');ctx.fillStyle='rgba(10,20,20,.68)';ctx.beginPath();ctx.roundRect(54,16,404,64,12);ctx.fill();ctx.font='30px system-ui';ctx.textAlign='center';ctx.fillStyle=color;ctx.fillText(text,256,61);const texture=new THREE.CanvasTexture(c),material=new THREE.SpriteMaterial({map:texture,depthTest:false});const s=new THREE.Sprite(material);s.scale.set(1.3,.25,1);s.position.y=1.7;s.userData.dispose=()=>{texture.dispose();material.dispose();};return s;}
  function release(object){object.traverse(o=>o.userData.dispose?.());group.remove(object);}
- function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();pickupNotes.clear();for(const w of wells.values())release(w);tiles.clear();actors.clear();groundItems.clear();wells.clear();}
+ const ghosts=new Map();function dropGhost(gh){gh.mats.forEach(m=>m.dispose());release(gh.g);}
+ function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();pickupNotes.clear();for(const w of wells.values())release(w);for(const gh of ghosts.values())dropGhost(gh);ghosts.clear();tiles.clear();actors.clear();groundItems.clear();wells.clear();}
  function pickupIcon(cell){
    const icon=new THREE.Group(), kind=cell.object?.kind||'item', cls=cell.object?.class||0, itemName=(cell.object?.name||cell.name||'').toLowerCase();
    // Older bridge processes expose statues as generic objects. Keep the visual path
@@ -495,7 +496,13 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    }
    for(const [id,t] of tiles)if(!seen.has(id)){release(t);tiles.delete(id);}
    cavern.rebuild(tiles,origin,newLevel);branchAir.setBranch(frame.dungeon,hero.g.position);{const f=floorFinish(frame.dungeon);floorKit.setBranch(f.tint,f.roughness);}{const w=wallFinish(frame.dungeon);wall.color.set(w.color);wall.roughness=w.roughness;}cavern.setTint(rockTint(frame.dungeon),rockRoughness(frame.dungeon),h=>rockVein(frame.dungeon,h));
-   for(const [id,a] of actors)if(!seenActors.has(id)){restoreFade(a);release(a.g);actors.delete(id);}
+   {const byId=new Map();for(const c of frame.cells)byId.set(`${c.x},${c.z}`,c);
+    for(const [id,gh] of ghosts)if(ghostGone(byId.get(id))||seenActors.has(gh.key)||[...seenActors].some(k=>k.startsWith(id+':'))){dropGhost(gh);ghosts.delete(id);}
+    for(const [id,a] of actors)if(!seenActors.has(id)){
+     const at=a.cell,cell=at&&byId.get(at);
+     if(at&&!ghosts.has(at)&&shouldGhost(cell,a.actions?.dead)){restoreFade(a);if(a.hpBar)a.hpBar.visible=false;const mats=ghostize(a.g,THREE);a.g.position.copy(a.target||a.g.position);ghosts.set(at,{g:a.g,mats,key:id});while(ghosts.size>GHOST_MAX){const [oldId,old]=ghosts.entries().next().value;dropGhost(old);ghosts.delete(oldId);}}
+     else{restoreFade(a);release(a.g);}
+     actors.delete(id);}}
    for(const [id,item] of groundItems)if(!seenActors.has(id)){if(hasMagicLook(item)&&item.visible&&pickupNotes.take(...squareOfKey(id).split(',').map(Number),performance.now()))liftingItems.add(item);else release(item);groundItems.delete(id);}
    for(const [id,w] of wells)if(!seenWells.has(id)){release(w);wells.delete(id);}
    hero.target=new THREE.Vector3(frame.player.x-origin.x,perchHeight(frame.cells.find(c=>c.x===frame.player.x&&c.z===frame.player.z)?.terrain),frame.player.z-origin.z);renderSurroundings(frame);
