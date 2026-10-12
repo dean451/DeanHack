@@ -7,7 +7,7 @@ test('dangerous conditions become red capital tags, in order, without repeats', 
     ['STUN', 'CONF', 'ILL', 'STONE', 'SLIME', 'STRANGLED', 'WEAK']);
   assert.deepEqual(conditionTags(['Fainting', 'Fainted', 'Blind', 'Hallu', 'Lev', 'Legs', 'Trap', 'Held', 'Stressed']),
     ['FAINTING', 'FAINTED', 'BLIND', 'HALLU', 'LEV', 'LEGS', 'TRAPPED', 'HELD', 'STRESSED']);
-  assert.deepEqual(conditionTags(['Hungry', 'Satiated', 'Elbereth']), [], 'harmless words are not alarms');
+  assert.deepEqual(conditionTags(['Hungry', 'Satiated', 'Elbereth']), ['HUNGRY'], 'Hungry is a warning tag; satiated and Elbereth are not alarms');
   assert.deepEqual(conditionTags(undefined), []);
 });
 

@@ -98,3 +98,11 @@ test('the second strand spasms once, mid-web, and is steady either side', () => 
   assert.ok(calm(.7) < spasm / 4 && calm(.95) < spasm / 4);
   for (let t = 0; t <= WEB.total; t += .005) assert.ok(strandPose(1, t).lift < .4 && strandPose(1, t).lift > -.2, String(t));
 });
+
+test('the first strand gives one faint late pluck, then is still', () => {
+  const calm = t => Math.abs(strandPose(0, t).lift - strandPose(0, t + .005).lift);
+  let pluck = 0; for (let t = 1.4; t < 1.49; t += .001) pluck = Math.max(pluck, calm(t));
+  assert.ok(pluck > .003, String(pluck));
+  assert.ok(calm(1.53) < pluck, 'settles');
+  for (let t = 0; t <= WEB.total; t += .005) assert.ok(strandPose(0, t).lift < .4 && strandPose(0, t).lift > -.2, String(t));
+});

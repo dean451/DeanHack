@@ -166,3 +166,11 @@ test('the pet cats keep their whole tail: the tip is not a pale scar-knot',()=>{
  };
  for(const name of ['kitten','housecat','large cat'])assert(pale(name)<=pale('wildcat')+2,`${name} tail ${pale(name)}`);
 });
+
+test('the lynx and displacer beast have a split left ear: extra tip geometry the right ear lacks',()=>{
+ for(const name of ['lynx','displacer beast']){
+  const pos=meshes(createCreature({name})).find(m=>m.userData.part==='head').geometry.attributes.position;
+  const tip=side=>{let n=0;for(let i=0;i<pos.count;i++)if(pos.getX(i)*side>.03&&pos.getY(i)>.115&&pos.getY(i)<.14)n++;return n;};
+  assert(tip(-1)>tip(1),`${name} ear tip ${tip(-1)} vs ${tip(1)}`);
+ }
+});

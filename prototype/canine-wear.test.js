@@ -11,3 +11,8 @@ test('wargs and werewolves carry a bitten ear and a muzzle scar; the plain wolf 
     assert.equal(a.legs.length, 4, n);
   }
 });
+
+test('Cerberus and the hell hound are bitten and scarred too', () => {
+  for (const n of ['cerberus', 'hell hound']) assert.deepEqual(canineWear(n), {torn: true, scar: true}, n);
+  assert.deepEqual(canineWear('hell hound pup'), {torn: false, scar: false});
+});

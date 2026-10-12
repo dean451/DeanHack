@@ -32,8 +32,10 @@ export function moteFlight(i, t, n = LEVEL.motes) {
   const a = i * 2.4 + u * 5, r = .22 * (1 - u * .6);
   // The last mote is reluctant: halfway up it is tugged back toward the floor, then lets go and climbs on.
   const tug = i === n - 1 ? .3 * Math.sin(Math.PI * clamp01((u - .35) / .3)) : 0;
+  // The fourth mote gutters out mid-climb as if snuffed, then catches again a few beats later.
+  const gutter = i === 3 ? .9 * Math.sin(Math.PI * clamp01((u - .4) / .18)) ** 2 : 0;
   return {x: Math.cos(a) * r, y: .05 + LEVEL.rise * u ** 1.3 - tug, z: Math.sin(a) * r,
-    alpha: smooth(u / .15) * (1 - smooth((u - .6) / .4)) * (.7 + .3 * Math.sin(u * 30 + i)), size: .07 * (1 - u * .5)};
+    alpha: smooth(u / .15) * (1 - smooth((u - .6) / .4)) * (.7 + .3 * Math.sin(u * 30 + i)) * (1 - gutter), size: .07 * (1 - u * .5)};
 }
 
 export function createLevelUp(THREE, parent) {

@@ -60,7 +60,10 @@ export function itemFacts(text) {
   }
   else if (/\(being donned\)/i.test(t)) out.push('putting on');
   else if (/\(being doffed\)/i.test(t)) out.push('taking off');
-  else if (/\((?:being worn|worn|on (?:left|right) (?:hand|finger))[^)]*\)/i.test(t)) out.push('worn');
+  else if (/\((?:being worn|worn|on (?:left|right) (?:hand|finger))[^)]*\)/i.test(t)) {
+    const hand = /\(on (left|right) (?:hand|finger)/i.exec(t);
+    out.push(hand ? `worn, ${hand[1].toLowerCase()} hand` : 'worn');
+  }
   else if (/\((?:in quiver|at the ready)[^)]*\)/i.test(t)) out.push('quivered');
   if (/\((?:[^)]*, )?in use\)/i.test(t)) out.push('in use');
   if (/\(no charge\)/i.test(t)) out.push('no charge');

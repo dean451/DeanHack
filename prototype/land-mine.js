@@ -52,7 +52,9 @@ export function smokePose(t) {
   // The column does not thin evenly: a late belch of black wells up out of the crater and the smoke swells for a beat.
   const belch = Math.sin(Math.PI * clamp01((u - .45) / .2)) ** 2;
   // The column leans as it climbs, bending slowly toward one side like something looking over its shoulder.
-  return {x: .16 * u * u, y: .15 + .9 * Math.sqrt(u), scale: (.15 + .35 * Math.sqrt(u)) * (1 + .18 * belch), alpha: Math.min(.6, .55 * Math.sin(Math.min(1, u * 6) * Math.PI / 2) * (1 - u * u) * (1 + .25 * belch))};
+  // Near the top it flinches back the way it came, a short shiver, then resumes its lean.
+  const flinch = .03 * Math.sin(Math.PI * clamp01((u - .55) / .15)) ** 2;
+  return {x: .16 * u * u - flinch, y: .15 + .9 * Math.sqrt(u), scale: (.15 + .35 * Math.sqrt(u)) * (1 + .18 * belch), alpha: Math.min(.6, .55 * Math.sin(Math.min(1, u * 6) * Math.PI / 2) * (1 - u * u) * (1 + .25 * belch))};
 }
 
 export function createLandMine(THREE, parent) {

@@ -27,7 +27,9 @@ tick it; when a PR needs a step on the server, add it here. Last updated 2026-10
 - [ ] **4. Check it as yourself.** Open https://deanhack.online, log in as `dean`, type a new name,
   press Begin, pick a class, and Descend. You should land in the game as that class. Your old test
   characters will not be listed: the per-player change gave every login fresh saves.
-- [ ] **5. Add your friends' logins** (one per person; this is what keeps their games apart):
+- [ ] **5. Add your friends' logins** (one per person; this is what keeps their games apart).
+  Quickest: `nano deploy/users/testers.txt` (one email per line), then `deploy/users/testers.sh`.
+  Each email is then both user name and password. Or one at a time:
   ```
   docker run --rm -it caddy caddy hash-password       # type THEIR password, copy the hash
   echo 'alice $2a$14$...paste the hash...' >> deploy/users/friends.caddy
@@ -61,9 +63,12 @@ tick it; when a PR needs a step on the server, add it here. Last updated 2026-10
   (4am; the hourly routines merge to `master` all day, so deploying on every merge would restart
   the game constantly).
 - [ ] **Turn on 2FA** on Hetzner, Namecheap and GitHub.
-- [ ] **Back up the saves** now and then:
-  `docker run --rm -v deanhack_game:/v -v "$PWD":/b ubuntu tar czf /b/game-backup.tgz -C /v .`
-  (copy the file off the server).
+- [ ] **Back up the saves nightly.** `crontab -e` and add
+  `30 3 * * * /root/DeanHack/deploy/backup.sh >> /var/log/deanhack-backup.log 2>&1`
+  (dated tarballs in `/root/backups`, last 14 kept; run `./deploy/backup.sh` once by hand to see it work).
+  Copy one off the server now and then; the restore steps are at the top of the script.
+- [ ] **After the playtest:** `docker compose logs -t app | grep 'deanhack session'` shows who got in, what
+  they played and how each game ended; `grep 'deanhack death'` the deaths.
 - [ ] **Namecheap:** decide whether you want `www.deanhack.online` to work. It does not yet; say so
   and Claude will add the redirect.
 - [ ] **Hetzner:** check the server has automatic security updates (`apt list --upgradable`

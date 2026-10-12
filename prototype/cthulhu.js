@@ -146,7 +146,8 @@ function buildArm(s){
   P.add(geo,null,hide);
   const tip=curve.getPointAt(1),dir=curve.getTangentAt(1);
   // the claw hooks on past the fingertip, curling back toward the palm
-  const claw=new THREE.ConeGeometry(.009,.06,6).translate(0,.03,0);
+  // the outer claw of the left hand is broken off to a blunt stub
+  const stub=s<0&&k===0,claw=new THREE.ConeGeometry(stub?.011:.009,stub?.02:.06,stub?4:6).translate(0,stub?.01:.03,0);
   claw.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().add(new THREE.Vector3(0,0,-.6)).normalize()));
   P.add(claw,at(tip.x,tip.y,tip.z),(x,y)=>y<tip.y-.025?CLAW:CLAW_HI);
  }

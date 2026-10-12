@@ -13,6 +13,8 @@
 // rayFrame(), raySparks(), digGrit() and rubble() are pure, so they can be tested
 // without a renderer; createRays() draws them with instanced meshes and one point cloud.
 
+import {softGlowMaterial, beamGeometry} from './soft-glow.js';
+
 // Ray cells are 1 tile long; they sit at chest height.
 export const RAY_Y = .5;
 // A lit cell fades out over this long once its beam ends (ms).
@@ -308,10 +310,11 @@ const MAX_SEGS = 96, MAX_SPARKS = 192, MAX_MIRRORS = 8, MAX_PUFFS = 48, MAX_CHIP
 // (reflectorAt, if given, is markMirrors()'s lookup and solidAt digCells()'s, in map cells); update(dt, origin) advances
 // them and positions everything relative to the level origin, as live.js places tiles.
 export function createRays(THREE, parent) {
-  const box = new THREE.BoxGeometry(1, 1, 1);
-  const coreMat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, depthWrite: false, toneMapped: false});
-  const glowMat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: .55, depthWrite: false,
-    blending: THREE.AdditiveBlending, toneMapped: false});
+  // Round, soft-edged beams (soft-glow.js): a core that fades at its sides inside a wide halo that
+  // fades out to nothing, so a ray reads as a shaft of light, not a chain of glowing boxes.
+  const box = beamGeometry(THREE);
+  const coreMat = softGlowMaterial(THREE, {power: 1.2, floor: .2, additive: false});
+  const glowMat = softGlowMaterial(THREE, {power: 2.6, opacity: .7});
   const core = new THREE.InstancedMesh(box, coreMat, MAX_SEGS);
   const glow = new THREE.InstancedMesh(box, glowMat, MAX_SEGS);
   const sparkGeo = new THREE.BufferGeometry();
@@ -362,11 +365,11 @@ export function createRays(THREE, parent) {
         const diag = s.yaw % (Math.PI / 2) ? Math.SQRT2 : 1;
         // The perpendicular jag (lightning) shifts the cell sideways, across its own run.
         pos.set(s.x - ox - Math.sin(s.yaw) * s.offset, RAY_Y, s.z - oz + Math.cos(s.yaw) * s.offset);
-        matrix.compose(pos, q, scale.set(diag * 1.02 * s.len, L.width, L.width));
+        matrix.compose(pos, q, scale.set(diag * s.len, L.width * 1.6, L.width * 1.6));
         core.setMatrixAt(n, matrix);
         color.setHex(L.core).multiplyScalar(L.dark ? 1 : Math.min(1.4, k));
         core.setColorAt(n, color);
-        matrix.compose(pos, q, scale.set(diag * 1.08 * s.len, L.glowWidth * (.8 + .4 * k), L.glowWidth * (.8 + .4 * k)));
+        matrix.compose(pos, q, scale.set(diag * s.len, L.glowWidth * (1.3 + .6 * k), L.glowWidth * (1.3 + .6 * k)));
         glow.setMatrixAt(n, matrix);
         glow.setColorAt(n, color.setHex(L.glow).multiplyScalar(k));
         n++;

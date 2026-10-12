@@ -61,6 +61,7 @@ import {createBugbear} from './bugbear.js';
 import {createOwlbear} from './owlbear.js';
 import {createWarhorse} from './warhorse.js';
 import {createBaluchitherium} from './baluchitherium.js';
+import {createRustMonster} from './rust-monster.js';
 import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
 import {createBeholder} from './beholder.js';
@@ -676,6 +677,8 @@ function xan(o){
   const pts=[[0,y,-.06],[0,y-.02,-.2],[0,y-.1,-.3],[0,y-.22,-.28],[0,y-.3,-.16],[0,y-.3,-.04]].map(p=>new THREE.Vector3(...p)),curve=new THREE.CatmullRomCurve3(pts);
   for(let i=0;i<9;i++){const t=i/8,p=curve.getPoint(t),r=.075-t*.045;const seg=sphere(body,r,i%2?shell:dark,p.x,p.y,p.z);seg.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),curve.getTangent(t));seg.scale.set(1,.8,1);}
   const barb=cone(body,.022,.12,mat('#e8dcc0',{roughness:.3}),0,y-.28,.03,6);barb.rotation.x=Math.PI/2+.5;
+  // venom beads on the barb: a sickly green drop hangs from the point and a dark crust stains its base
+  {const venom=mat('#9ad23a',{emissive:'#6ab01a',emissiveIntensity:.9,roughness:.2});sphere(body,.011,venom,0,y-.31,.1,.8,1.5,.8);sphere(body,.007,venom,.012,y-.34,.1);sphere(body,.03,mat('#2a1a12',{roughness:.95}),0,y-.28,.015,1,.8,1);g.userData.venomed=true;}
  }
  for(const side of [-1,1]){
   const pair=new THREE.Group();pair.position.set(side*.03,y+.1,.05);body.add(pair);pair.rotation.x=-Math.PI/2+.25;
@@ -881,7 +884,7 @@ function ape(o){
  let tail=null;if(o.tail){tail=new THREE.Group();tail.position.set(0,.4,-.2);body.add(tail);tube(tail,[[0,0,0],[0,-.08,-.14],[0,.02,-.28],[0,.2,-.3],[0,.26,-.2],[0,.18,-.16]],.022,fur,20);}
  return actor(g,body,legs,tail,[],'idle');
 }
-const APES={monkey:{fur:'#8a6440',face:'#d6b08a',tail:true,scale:.7},ape:{fur:'#5a4030',face:'#a88a70'},owlbear:{fur:'#7a5a38',face:'#c8a878',beak:true,scale:1.4},yeti:{fur:'#e4e2da',face:'#8aa0b0',shaggy:true,glare:true,scale:1.4},'carnivorous ape':{fur:'#2e2622',face:'#7a5a50',fangs:true,glare:true,scars:true,scale:1.25},sasquatch:{fur:'#4a3424',face:'#8a6a58',shaggy:true,scale:1.5}};
+const APES={monkey:{fur:'#8a6440',face:'#d6b08a',tail:true,scale:.7},ape:{fur:'#5a4030',face:'#a88a70'},owlbear:{fur:'#7a5a38',face:'#c8a878',beak:true,scale:1.4},yeti:{fur:'#e4e2da',face:'#8aa0b0',shaggy:true,glare:true,scars:true,scale:1.4},'carnivorous ape':{fur:'#2e2622',face:'#7a5a50',fangs:true,glare:true,scars:true,scale:1.25},sasquatch:{fur:'#4a3424',face:'#8a6a58',shaggy:true,scars:true,scale:1.5}};
 // mimics (m): a banded wooden treasure chest whose lid has cracked open on a row of fangs and a lolling tongue,
 // with a single eye peering out of the lid and stubby pseudopods where its feet should be
 function mimic(o){
@@ -895,12 +898,20 @@ function mimic(o){
  for(let i=0;i<7;i++){const x=-.2+i*.066;cone(lid,.022,.07,tooth,x,-.03,.34,4).rotation.x=Math.PI;cone(body,.02,.06,tooth,x+.033*(i<6?1:-1),.36,.16,4);}
  const lock=rounded(body,.07,.08,.03,mat('#c9a23a',{roughness:.3,metalness:.8}),0,.26,.19,.01);lock.castShadow=false;
  sphere(lid,.06,mat('#e8e0c8',{roughness:.3}),0,.08,.3,1,1,.6);sphere(lid,.03,o.glare?M.eye:mat('#1a1410'),0,.08,.33,1,1,.5);
+ // the giant mimic has been fought before: three black gouges split the lid planks, and the front iron band has
+ // snapped at the lock and hangs by one end, bent out from the wood
+ if(o.scarred){
+  const gash=mat('#140c08',{roughness:1});
+  for(const [x,z,r] of [[-.08,.12,.35],[0,.2,.2],[.09,.14,-.3]]){const c=part(lid,new THREE.BoxGeometry(.012,.012,.15),gash,x,.15,z);c.rotation.set(-.2,r,0);}
+  const strap=part(body,new THREE.BoxGeometry(.05,.17,.012),band,.17,.1,.215);strap.rotation.set(-.5,0,.18);
+ }
  const tail=new THREE.Group();tail.position.set(0,.33,.12);body.add(tail);tube(tail,[[0,0,0],[0,.01,.08],[.02,-.03,.15],[.03,-.12,.19],[.02,-.2,.2]],.035,flesh,14);
  for(const [x,z] of [[-.19,.12],[.19,.12],[-.19,-.12],[.19,-.12]])sphere(body,.05,mat(shade(o.color,.7),{roughness:.8}),x,.05,z,1.2,.8,1.2);
+ if(o.scarred)g.userData.scarred=true;
  return actor(g,body,[],tail,[],'idle');
 }
 // A mimic that is mimicking an object the hero cannot yet see through is reported as a "strange object"; it is a mimic underneath.
-const MIMICS={'strange object':{color:'#7a4a2a',glare:true},'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true,scale:1.25},'giant mimic':{color:'#6a3a22',glare:true,scale:1.5}};
+const MIMICS={'strange object':{color:'#7a4a2a',glare:true},'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true,scale:1.25},'giant mimic':{color:'#6a3a22',glare:true,scarred:true,scale:1.5}};
 // centaurs (C): the horse body (croup, barrel, jointed legs with hooves, flowing tail; see horse())
 // with a man's torso rising from the withers where the horse's neck would be: a belt hides the
 // seam, bare arms bend at the elbow, and the head has a face, ears and a mop of hair.
@@ -992,7 +1003,9 @@ function horse(o){
  else if(!o.horn)sphere(head,.022,sock,0,.068,.07,1,.3,1.2);
  if(o.horn){
   // the horn leans a little back from the head's up axis, so it juts forward and up off the brow
-  const h=.27,lean=-.1,horn=part(head,spiralHorn(.026,h),mat(o.horn,{roughness:.35,metalness:.08}),0,.075+Math.cos(lean)*h/2,.06+Math.sin(lean)*h/2);horn.rotation.x=lean;
+  const h=o.chipped?.22:.27,lean=-.1,horn=part(head,spiralHorn(.026,h),mat(o.horn,{roughness:.35,metalness:.08}),0,.075+Math.cos(lean)*h/2,.06+Math.sin(lean)*h/2);horn.rotation.x=lean;
+  // a chipped horn: the tip is gone, leaving a blunt dark break (the ki-rin)
+  if(o.chipped){const brk=cone(head,.012,.03,mat('#3a2a1c',{roughness:.9}),0,.075+Math.cos(lean)*h-.02,.06+Math.sin(lean)*h,5);brk.rotation.x=lean+Math.PI;}
   const burr=part(head,new THREE.TorusGeometry(.024,.007,5,12),hair,0,.078,.058);burr.rotation.x=Math.PI/2+lean;
   // chin tuft, hanging straight down in world space (the head is pitched .85 forward)
   const beard=cone(head,.016,.08,hair,0,-.075-Math.cos(.85)*.035,.15+Math.sin(.85)*.035,5);beard.rotation.x=Math.PI+.85;
@@ -1070,7 +1083,7 @@ const UNICORNS={
  'white unicorn':{...UNICORN_BASE,scale:1.05,coat:'#ece9e2',hair:'#f8f6f0',feather:'#fbfaf6',hoof:'#c8a860',horn:'#f6f0de'},
  'gray unicorn':{...UNICORN_BASE,scale:1.05,coat:'#8f8f8c',points:'#6a6a68',hair:'#d4d4d0',feather:'#c8c8c4',hoof:'#9a9ca0'},
  'black unicorn':{...UNICORN_BASE,scale:1.05,coat:'#262428',points:'#1b1a1d',hair:'#0f0e11',feather:'#18171a',hoof:'#2e2c30',horn:'#e2d6b8'},
- 'ki-rin':{...UNICORN_BASE,scale:1.2,coat:'#c99a36',points:'#a87a26',hair:'#d8602a',feather:'#e07a34',hoof:'#e0c060',horn:'#f4dc90',stock:1},
+ 'ki-rin':{...UNICORN_BASE,scale:1.2,chipped:true,coat:'#c99a36',points:'#a87a26',hair:'#d8602a',feather:'#e07a34',hoof:'#e0c060',horn:'#f4dc90',stock:1},
 };
 // Bakes static pieces into one mesh per (parent, material), so a big beast costs a
 // handful of draw calls instead of dozens. Pieces are posed with a matrix before merging.
@@ -1882,7 +1895,7 @@ function xorn(o){
  for(let i=0;i<7;i++){const a=i*2.4+.5,y=.3+(i%4)*.1,r=.245-(y-.2)*.1,n=part(body,new THREE.DodecahedronGeometry(.035,0),dark,Math.sin(a)*r,y,Math.cos(a)*r);n.rotation.set(i,i*.7,0);}
  // mouth on top: dark maw, lip ring, teeth leaning inward
  cylinder(body,.15,.15,.02,maw,0,.705,0,12);part(body,new THREE.TorusGeometry(.155,.025,6,12),dark,0,.71,0).rotation.x=Math.PI/2;
- for(let i=0;i<10;i++){const b=i/10*Math.PI*2,t=cone(body,.016,.06,tooth,Math.sin(b)*.135,.74,Math.cos(b)*.135,4);t.rotation.set(-Math.cos(b)*.5,0,Math.sin(b)*.5);}
+ for(let i=0;i<10;i++){const b=i/10*Math.PI*2,t=cone(body,.016,i===3?.02:.06,tooth,Math.sin(b)*.135,.74,Math.cos(b)*.135,4);t.rotation.set(-Math.cos(b)*.5,0,Math.sin(b)*.5);}
  // three eyes (one facing forward) and three arms between them, each ending in three claws
  for(let i=0;i<3;i++){const a=i*third,x=Math.sin(a),z=Math.cos(a);sphere(body,.045,maw,x*.215,.58,z*.215);sphere(body,.03,glow,x*.24,.58,z*.24);
   const arm=new THREE.Group();arm.position.set(Math.sin(a+Math.PI/3)*.2,.52,Math.cos(a+Math.PI/3)*.2);arm.rotation.set(-.35,a+Math.PI/3,0,'YXZ');body.add(arm);
@@ -1894,7 +1907,8 @@ function xorn(o){
  // wear: old fractures split the barrel
  const fissure=mat('#14100c',{roughness:1});
  for(const [a,y,rz] of [[.9,.4,.4],[3.2,.55,-.5],[5.1,.35,.2]]){const c=rounded(body,.02,.16,.008,fissure,Math.sin(a)*.252,y,Math.cos(a)*.252,.003);c.rotation.set(0,a,rz);}
- g.userData.fractured=true;
+ // wear: one tooth of the maw has snapped to a stub
+ g.userData.fractured=true;g.userData.snappedTooth=true;
  return trimDraws(actor(g,body,legs,null,[],'idle'));
 }
 const XORNS={xorn:{scale:1.25}};
@@ -2253,7 +2267,10 @@ function gargoyle(o){
  for(const side of [-1,1]){const pivot=new THREE.Group();pivot.position.set(side*.12,.66,-.12);pivot.rotation.x=-.25;body.add(pivot);
   const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.2*span,.28*span);shape.lineTo(side*.58*span,.36*span);
   shape.quadraticCurveTo(side*.5*span,.12*span,side*.5*span,-.02*span);shape.quadraticCurveTo(side*.38*span,.06*span,side*.3*span,-.1*span);
-  shape.quadraticCurveTo(side*.18*span,-.02*span,0,-.12);part(pivot,new THREE.ShapeGeometry(shape),web);
+  shape.quadraticCurveTo(side*.18*span,-.02*span,0,-.12);
+  // the winged kind's left membrane is torn through: a ragged triangular hole between the finger bones
+  if(o.winged&&side<0){const hole=new THREE.Path();hole.moveTo(side*.36*span,.12*span);hole.lineTo(side*.46*span,.04*span);hole.lineTo(side*.39*span,.15*span);hole.lineTo(side*.3*span,.05*span);shape.holes.push(hole);pivot.userData.tornWing=true;g.userData.tornWing=true;}
+  part(pivot,new THREE.ShapeGeometry(shape),web);
   segment(pivot,[0,0,0],[side*.2*span,.28*span,0],.022,.018,dark);segment(pivot,[side*.2*span,.28*span,0],[side*.58*span,.36*span,0],.018,.01,dark);
   for(const [x,y] of [[.5,-.02],[.3,-.1]])segment(pivot,[side*.2*span,.28*span,0],[side*x*span,y*span,0],.01,.006,dark);
   cone(pivot,.016,.06,crack,side*.2*span,.31*span,0,4);pivot.userData.side=side;wings.push(pivot);}
@@ -2698,6 +2715,9 @@ function trapper(o){
  // an old rusted sword blade snapped off and left lodged in the hide, with a dark crust round the wound
  const blade=mat('#6a5a4c',{roughness:.7,metalness:.4});
  {const sw=part(body,new THREE.BoxGeometry(.04,.2,.012),blade,-.14,.17,-.1);sw.rotation.set(.3,.5,.45);sphere(body,.045,mottle,-.14,.09,-.1,1,.3,1);g.userData.impaled=true;}
+ // old claw gouges raked across the mantle: pale scar ridges where earlier prey fought back
+ {const scarM=wart;
+  for(let i=0;i<3;i++)tube(body,[[.1+i*.025,.118-i*.004,-.04+i*.02],[.17+i*.025,.1-i*.004,.02+i*.02],[.23+i*.025,.07-i*.004,.1+i*.02]],.0045,scarM,5);}
  // front lip: a separate flap carrying the maw and eyes, so it can rear up
  const lip=new THREE.Group();lip.position.set(0,.02,.2);body.add(lip);
  mantle(lip,[[0,.08],[.1,.07],[.16,.045],[.2,.012]],.04,hide,-Math.PI/2,Math.PI,.02);
@@ -2868,6 +2888,8 @@ export function createCreature(cell={}){
  if(XORNS[name])return xorn(XORNS[name]);
  if(NAGAS[name])return naga(NAGAS[name]);
  if(name==='disintegrator')return createDisintegrator();
+ // rust monsters and disenchanters have their own models (rust-monster.js)
+ if(name==='rust monster'||name==='disenchanter')return createRustMonster(name);
  if(RUST_MONSTERS[name])return rustMonster({...RUST_MONSTERS[name],kind:name});
  if(UMBER_HULKS[name])return umberHulk(UMBER_HULKS[name]);
  if(HORRORS[name])return shamblingHorror(HORRORS[name]);

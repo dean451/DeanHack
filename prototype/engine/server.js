@@ -1,5 +1,5 @@
 import {spawn} from 'node:child_process';
-import {readFileSync,writeFileSync,renameSync,mkdirSync,realpathSync,readdirSync,statSync} from 'node:fs';
+import {readFileSync,writeFileSync,renameSync,mkdirSync,realpathSync,readdirSync,statSync,unlinkSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {resolve,sep,dirname} from 'node:path';
 import {randomBytes} from 'node:crypto';
@@ -59,6 +59,20 @@ export function rememberCharacter(file, key, choice) {
 // A save file name has no spaces: "Mary Jane" is saved as "Mary_Jane".
 export const saveKey = name => cleanPlayerName(name).replace(/ /g, '_');
 
+// Delete a character: its save (compressed or not), its level files and its class note. Returns
+// how many files went. Only this player's number, only this name, only inside the var folder.
+export function forgetCharacter(dir, uid, key) {
+  const stem = `${uid}${key}`, tryUnlink = f => { try { unlinkSync(f); return 1; } catch { return 0; } };
+  let n = tryUnlink(resolve(dir, 'saves', stem + '.bz2')) + tryUnlink(resolve(dir, 'saves', stem));
+  let levels = [];
+  try { levels = readdirSync(resolve(dir, 'level')); } catch {}
+  const mine = new RegExp('^' + stem.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.\\d+$');
+  for (const f of levels) if (mine.test(f)) n += tryUnlink(resolve(dir, 'level', f));
+  const file = resolve(dir, 'characters.json'), all = readCharacters(file);
+  if (Object.hasOwn(all, `${uid}:${key}`)) { delete all[`${uid}:${key}`]; writeFileSync(file + '.tmp', JSON.stringify(all)); renameSync(file + '.tmp', file); }
+  return n;
+}
+
 // The engine's command line and options for a character of this name.
 export function engineLaunch(rawName, manifest, rawChoice) {
   const name = cleanPlayerName(rawName);
@@ -107,9 +121,9 @@ export function playerIdOf(headers, trustProxy) {
 
 // One player's engine and everything the browser sees of it: the process, the latest frame and
 // prompt, a recent message history, an event log for polling, and the open event streams.
-export function createSession({ root, id, uid = null, spawnEngine = spawn, now = Date.now }) {
+export function createSession({ root, id, uid = null, spawnEngine = spawn, now = Date.now, onEvent = null }) {
   const token = randomBytes(24).toString('hex');
-  let playerName = DEFAULT_PLAYER_NAME, playerChoice = null, child = null, pending = null, frame = null, menu = null, text = null, ended = null, commands = null, buffer = '', seq = 0, lastActive = now();
+  let playerName = DEFAULT_PLAYER_NAME, playerChoice = null, stopReason = null, child = null, pending = null, frame = null, menu = null, text = null, ended = null, commands = null, buffer = '', seq = 0, lastActive = now();
   const clients = new Set(), history = [], log = [];
   // A monotonic, capped event log backs GET /engine/poll: some hosting paths (a proxy or
   // tunnel that buffers/holds back streaming responses) never deliver anything over the
@@ -119,6 +133,8 @@ export function createSession({ root, id, uid = null, spawnEngine = spawn, now =
     else if (event.type === 'commands') commands = event; else if (event.type === 'text') text = event; else if (event.type === 'ended') ended = event;
     else if (event.type === 'message' || event.type === 'status') { history.push(event); if (history.length > 40) history.shift(); }
     log.push({ seq: ++seq, event }); if (log.length > 500) log.shift();
+    // the operator's log line: who started, who died of what, who ended and why (see the plugin)
+    if (onEvent && (event.type === 'ended' || event.type === 'tombstone')) onEvent(event);
     for (const res of clients) res.write(`data: ${JSON.stringify(event)}\n\n`);
   }
   const KINDS=['frame','request','menu','commands','text','message','status','ended','fx','combat','death','revive','pickup','teleport','wish','tombstone']; // kept compact: bridge-frame.test.js reads this line
@@ -144,12 +160,18 @@ export function createSession({ root, id, uid = null, spawnEngine = spawn, now =
     });
     proc.stderr.on('data', b => send({ type: 'message', text: String(b).slice(0, 1000) }));
     proc.on('error', e => send({ type: 'message', text: e.message }));
-    proc.on('close', code => { if (child === proc) { child = null; pending = null; } send({ type: 'ended', text: `Engine session closed (${code}). Start again to resume any saved character.` }); });
+    proc.on('close', code => {
+      if (child === proc) { child = null; pending = null; }
+      // why it ended, for the splash: the player's own quit or death ('exit'), the idle sweep, a server restart, or a crash
+      const reason = stopReason || (code === 0 ? 'exit' : 'crash'); stopReason = null;
+      send({ type: 'ended', reason, code, text: `Engine session closed (${code}). Start again to resume any saved character.` });
+    });
   }
   // Ask a running engine to save and exit, and wait for it (up to `ms`); a server that is stopping
   // (a redeploy, `docker stop`) or an idle player calls this so the character is saved, not killed.
-  const stop = (ms = 8000) => new Promise(done => {
+  const stop = (ms = 8000, reason = 'idle') => new Promise(done => {
     if (!child) return done();
+    stopReason = reason;
     const t = setTimeout(done, ms); child.once('close', () => { clearTimeout(t); done(); }); child.stdin.end();
   });
   return {
@@ -175,8 +197,13 @@ export function createSession({ root, id, uid = null, spawnEngine = spawn, now =
   };
 }
 
-export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_PROXY === '1', maxEngines = Number(process.env.DEANHACK_MAX_ENGINES) || 8, idleMs = Number(process.env.DEANHACK_IDLE_MS) || 20 * 60 * 1000, spawnEngine = spawn, root = fileURLToPath(new URL('../.engine/', import.meta.url)), sweepMs = Math.min(60000, Math.max(1000, idleMs / 4)) } = {}) {
+export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_PROXY === '1', maxEngines = Number(process.env.DEANHACK_MAX_ENGINES) || 8, idleMs = Number(process.env.DEANHACK_IDLE_MS) || 20 * 60 * 1000, spawnEngine = spawn, root = fileURLToPath(new URL('../.engine/', import.meta.url)), sweepMs = Math.min(60000, Math.max(1000, idleMs / 4)), log = console.log } = {}) {
   const sessions = new Map();
+  // One line per thing an operator wants to know, so `docker compose logs app | grep session` says who is
+  // playing: session start (login, character, class, resumed or new), death (what, where) and session end
+  // (why). Values are key=value, quoted when they have spaces; no secrets (never the token).
+  const q = v => /[\s"]/.test(String(v)) ? JSON.stringify(String(v)) : String(v);
+  const line = (what, fields) => log(`deanhack ${what} ${Object.entries(fields).filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => `${k}=${q(v)}`).join(' ')}`);
   // The folder that holds saves and the player numbers, if the engine has been built.
   function varDir() {
     try { const m = JSON.parse(readFileSync(resolve(root, 'manifest.json'), 'utf8')), dir = resolve(m.prefix, 'var/unnethack'); return realpathSync(dir).startsWith(realpathSync(root) + sep) ? dir : null; } catch { return null; }
@@ -186,12 +213,15 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
     if (session) return session;
     // Local development (one player) keeps the engine's own uid, so existing saves stay readable.
     const uid = trustProxy ? allocateUid(resolve(varDir() ?? root, 'players.json'), playerId) : null;
-    session = createSession({ root, id: playerId, uid, spawnEngine });
+    session = createSession({ root, id: playerId, uid, spawnEngine, onEvent: event => {
+      if (event.type === 'tombstone') line('death', { player: playerId, name: event.name, killer: event.killer, depth: event.depth, dungeon: event.dungeon });
+      else line('session end', { player: playerId, name: session.name, reason: event.reason, code: event.code, running: running() });
+    } });
     sessions.set(playerId, session);
     return session;
   }
   const running = () => [...sessions.values()].filter(s => s.running).length;
-  const stopAll = (ms = 8000) => Promise.all([...sessions.values()].map(s => s.stop(ms)));
+  const stopAll = (ms = 8000) => Promise.all([...sessions.values()].map(s => s.stop(ms, 'shutdown')));
   // An engine nobody is talking to for a while is saved and stopped, so a closed tab does not hold a slot.
   const sweep = setInterval(() => { for (const s of sessions.values()) if (s.running && s.idleMs > idleMs) { s.touch(); void s.stop(); } }, sweepMs);
   sweep.unref?.();
@@ -243,16 +273,25 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
           let body = ''; for await (const b of req) { body += b; if (body.length > 4096) throw new Error('Request too large'); }
           if (path === '/engine/start') {
             let name; try { name = body ? JSON.parse(body).name : undefined; } catch { name = undefined; }
-            if (!session.running && running() >= maxEngines) return json(503, { error: 'The dungeon is full right now. Try again in a few minutes.' });
+            if (!session.running && running() >= maxEngines) { line('dungeon full', { player: playerId, running: running(), max: maxEngines }); return json(503, { error: 'The dungeon is full right now. Try again in a few minutes.' }); }
             let choice; try { choice = body ? JSON.parse(body) : undefined; } catch { choice = undefined; }
             const dir = varDir(), uid = session.uid ?? process.getuid?.() ?? 0, key = saveKey(name);
             // a name that already has a save resumes it: the class comes from the save, not from this request
             const resumes = !!dir && listSaves(resolve(dir, 'saves'), uid).some(save => save.name === key);
             session.start(name, choice);
+            const c = session.choice || {};
+            line('session start', { player: playerId, name: session.name, role: c.role, race: c.race, gender: c.gender, align: c.align, resume: resumes, running: running() });
             if (dir && !resumes) { try { rememberCharacter(resolve(dir, 'characters.json'), `${uid}:${key}`, session.choice); } catch {} }
             return json(200, { ok: true, name: session.name, choice: session.choice });
           }
           if (path === '/engine/input') { session.input(body); return json(200, { ok: true }); }
+          if (path === '/engine/forget') {
+            let name; try { name = JSON.parse(body).name; } catch { name = undefined; }
+            const key = saveKey(name), dir = varDir(), uid = session.uid ?? process.getuid?.() ?? 0;
+            if (session.running && saveKey(session.name) === key) throw new Error('That character is playing right now. Save and quit first.');
+            if (!dir) throw new Error('The engine is not built');
+            return json(200, { ok: true, removed: forgetCharacter(dir, uid, key) });
+          }
           return json(404, { error: 'Unknown action' });
         } catch (e) { return json(400, { error: e.message }); }
       });

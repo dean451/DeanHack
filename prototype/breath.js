@@ -12,6 +12,7 @@
 // particles with one instanced mesh.
 
 import {RAY_LOOKS} from './rays.js';
+import {softGlowMaterial} from './soft-glow.js';
 
 // Mouth height and how far the cone reaches (tiles, from the mouth).
 export const MOUTH_Y = .45;
@@ -157,9 +158,10 @@ const MAX_PARTICLES = 192;
 // it (only while armed, unless {always:true}); update(dt, origin) advances and draws them,
 // returning {count, particles, glow, color, x, z} (the brightest mouth, for a light).
 export function createBreath(THREE, parent) {
-  const geo = new THREE.IcosahedronGeometry(1, 1);
-  const mat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, depthWrite: false,
-    blending: THREE.AdditiveBlending, toneMapped: false});
+  // Smooth puffs with soft edges (soft-glow.js): each billows as a soft volume of fire, frost or gas
+  // instead of a faceted, hard-edged shell.
+  const geo = new THREE.SphereGeometry(1, 18, 12);
+  const mat = softGlowMaterial(THREE, {power: 1.6});
   const mesh = new THREE.InstancedMesh(geo, mat, MAX_PARTICLES);
   mesh.frustumCulled = false; mesh.renderOrder = 5; mesh.userData.part = 'breath'; mesh.count = 0;
   parent.add(mesh);

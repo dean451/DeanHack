@@ -55,3 +55,16 @@ test('Juiblex\'s pool holds a corroded helm among the bones',()=>{
  for(let i=0;i<c.count;i++)if(c.getX(i)>c.getY(i)*1.3&&c.getX(i)>.1)rusty++;
  assert(rusty>0,'rust-brown metal sinks in the ooze');
 });
+
+test('Juiblex has swallowed a skeletal hand and a rusted blade that jut out of his flank',()=>{
+ const juiblex=createCreature({name:'Juiblex',symbol:AMP,color:2});
+ let body=null;juiblex.g.traverse(o=>{if(o.isMesh&&o.userData.part==='body')body=o;});
+ const c=body.geometry.attributes.color;let bone=0,rust=0;
+ for(let i=0;i<c.count;i++){
+  const r=c.getX(i),g=c.getY(i),b=c.getZ(i);
+  if(r>g&&r>.3&&b>.1)bone++;
+  if(r>g*1.4&&r>.05&&b<r)rust++;
+ }
+ assert(bone>20,`pale bone in the slime: ${bone}`);
+ assert(rust>8,`rust in the slime: ${rust}`);
+});

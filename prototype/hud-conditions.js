@@ -1,12 +1,12 @@
 // The hero's dangerous conditions as red capital tags in the character panel, right after EXP:
-// STUN, CONF, BLIND, HALLU, ILL, STONE, SLIME, STRANGLED, WEAK, FAINTING... Anything that changes how
+// STUN, CONF, BLIND, HALLU, ILL, STONE, SLIME, STRANGLED, HUNGRY, WEAK, FAINTING... Anything that changes how
 // the hero plays or moves, or says they are about to die. The bridge sends them on every frame as
 // `player.conditions`, in the status line's own words; the status line text is only a fallback for
 // an engine built before that field existed.
 
 const LABELS = {
   stone: 'STONE', slime: 'SLIME', strngl: 'STRANGLED', foodpois: 'ILL', ill: 'ILL', termill: 'ILL',
-  weak: 'WEAK', fainting: 'FAINTING', fainted: 'FAINTED',
+  hungry: 'HUNGRY', weak: 'WEAK', fainting: 'FAINTING', fainted: 'FAINTED',
   stun: 'STUN', conf: 'CONF', blind: 'BLIND', hallu: 'HALLU',
   lev: 'LEV', legs: 'LEGS', trap: 'TRAPPED', held: 'HELD',
   burdened: 'BURDENED', stressed: 'STRESSED', strained: 'STRAINED', overtaxed: 'OVERTAXED', overloaded: 'OVERLOADED',
@@ -31,5 +31,6 @@ export function heroConditions(frameConditions, statusText = '') {
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 export function conditionTagsHtml(conditions) {
-  return conditionTags(conditions).map(t => `<span class="hero-condition">${esc(t)}</span>`).join('');
+  // Hungry is a warning, not yet a danger: the same tag, but amber instead of red.
+  return conditionTags(conditions).map(t => `<span class="hero-condition${t === 'HUNGRY' ? ' mild' : ''}">${esc(t)}</span>`).join('');
 }

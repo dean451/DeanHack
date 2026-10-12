@@ -158,7 +158,8 @@ function buildWing(side){
  for(let k=0;k<7;k++){const u=k/6;f(.02+u*.17,0,.1*u,-1,.11+.02*u,.042,{root:C.teal,tip:C.blue});}
  // primaries fanned from the hand, banded crimson and tipped gold
  const lens=[.13,.145,.155,.15,.13],angles=[.6,.82,1.04,1.26,1.46];
- for(let k=0;k<5;k++)f(.19+k*.008,-.004+k*.004,Math.sin(angles[k]),-Math.cos(angles[k]),lens[k],.036,{root:C.teal,band:C.red,tip:C.gold});
+ // the left wing is ragged: one primary torn out, the next snapped short
+ for(let k=0;k<5;k++){if(side<0&&k===2)continue;f(.19+k*.008,-.004+k*.004,Math.sin(angles[k]),-Math.cos(angles[k]),side<0&&k===3?lens[k]*.55:lens[k],.036,{root:C.teal,band:C.red,tip:C.gold});}
  // emerald coverts over the bases of the flight feathers
  for(let k=0;k<8;k++){const u=k/7;f(.015+u*.2,.012,.2*u,-1,.06,.045,{root:C.emerald,tip:C.teal});}
  const geo=P.merge();

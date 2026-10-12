@@ -68,3 +68,10 @@ test('a last cold flicker of the tight ring blinks after it has gone out, then n
   assert.equal(ringPose(FLICKER_AT + FLICKER_LEN + .02).alpha, 0);
   assert.ok(FLICKER_AT + FLICKER_LEN < LEVEL.total);
 });
+
+test('the fourth mote gutters out mid-climb and catches again, the rest stay lit', () => {
+  const a = (i, u) => moteFlight(i, LEVEL.ring * .7 + (i / LEVEL.motes) * .5 + u * (LEVEL.total - (LEVEL.ring * .7 + (i / LEVEL.motes) * .5) - .1)).alpha;
+  assert.ok(a(3, .49) < a(3, .35) * .3, 'snuffed');
+  assert.ok(a(3, .7) > a(3, .49) * 2, 'relit');
+  assert.ok(a(4, .49) > a(4, .35) * .6, 'others steady');
+});

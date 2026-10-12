@@ -2742,33 +2742,6 @@ test('lemures weep raw red sores and a bone splinter breaks through the mass',()
  assert(sore>20,`sore vertices: ${sore}`);
 });
 
-test('the rust monster is pitted by corrosion and its feet end in hooked claws; the disenchanter stays smooth',()=>{
- const count=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n++;});return n;};
- const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
- assert(count(rust)>count(dis),'extra pit and claw meshes');
- rust.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(rust.g,true);
- assert(b.min.y>-.05&&b.min.y<.05,`claws stay on the floor (${b.min.y.toFixed(3)})`);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
-});
-
-test('rust monsters bear flank barbs and bared fangs the disenchanter lacks',()=>{
- const verts=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n+=o.geometry.attributes.position.count;});return n;};
- const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
- const lit=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh&&o.material.color&&['3a2412','c9b48a'].includes(o.material.color.getHexString()))n++;});return n;};
- assert(lit(rust)>=1&&lit(dis)===0,'barb and fang materials only on the rust monster');
- assert(verts(rust)>verts(dis));
- rust.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(rust.g,true);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
-});
-
-test('disenchanters leak violet light through cracked plates',()=>{
- const lit=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh&&o.material.emissiveIntensity>2)n++;});return n;};
- const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
- assert(lit(dis)>=1&&lit(rust)===0,'cracks glow only on the disenchanter');
- dis.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(dis.g,true);
- assert(b.min.y>-.05,'stays on the floor');assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
-});
-
 test('gargoyles burn with ember seams in the stone of their chest and back',()=>{
  const lit=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh&&o.material.emissiveIntensity>2)n+=o.geometry.attributes.position.count;});return n;};
  const g=createCreature({name:'gargoyle',symbol:89,color:3}),w=createCreature({name:'winged gargoyle',symbol:89,color:4});
@@ -2777,12 +2750,8 @@ test('gargoyles burn with ember seams in the stone of their chest and back',()=>
  assert(b.min.y>-.05&&b.max.y<1.5,'stays in bounds');
 });
 
-test('rust monsters bristle with a jagged spine ridge; acid blobs sit in a burnt pool',()=>{
- const count=a=>{let n=0;a.g.traverse(o=>{if(o.isMesh)n+=o.geometry.attributes.position.count;});return n;};
- const rust=createCreature({name:'rust monster',symbol:82,color:3}),dis=createCreature({name:'disenchanter',symbol:82,color:4});
- rust.g.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(rust.g,true);
- assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8,'fits round its tile');
- assert(count(rust)>count(dis)+150,'spine and pit geometry');
+// The rust monster and disenchanter have their own tests (rust-monster.test.js).
+test('acid blobs sit in a burnt pool',()=>{
  const blob=createCreature({name:'acid blob',symbol:98,color:10}),jelly=createCreature({name:'blue jelly',symbol:106,color:4});
  const meshes=x=>{let n=0;x.g.traverse(o=>{if(o.isMesh)n++;});return n;};
  const parts=[];blob.g.traverse(o=>{if(o.isMesh)parts.push(o.userData.part);});
@@ -2959,4 +2928,53 @@ test('the titanothere has one sharpened prong and one broken one and still fits 
  const b=new THREE.Box3().setFromObject(t.g,true);
  assert(b.min.y>-.05,'stands on the floor');
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits its tile');
+});
+
+test('the winged gargoyle has a torn left wing membrane; the plain gargoyle and the other wing are whole',()=>{
+ const w=createCreature({name:'winged gargoyle',symbol:89,color:4}),p=createCreature({name:'gargoyle',symbol:89,color:3});
+ assert(w.g.userData.tornWing,'torn wing');
+ assert(!p.g.userData.tornWing,'plain gargoyle whole');
+ assert.equal(w.wings.filter(x=>x.userData.tornWing).length,1);
+ const holes=x=>{let n=0;x.traverse(o=>{if(o.geometry&&o.geometry.type==='ShapeGeometry')n++;});return n;};
+ assert.equal(holes(w.g),2,'both wings still drawn');
+ const b=new THREE.Box3().setFromObject(w.g,true);
+ assert(b.min.y>-.05&&Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.9,'fits');
+});
+
+test('the xorn has a snapped tooth in its maw and still fits its tile',()=>{
+ const r=createCreature({name:'xorn',symbol:88,color:3});
+ assert(r.g.userData.snappedTooth,'xorn tooth');
+ r.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(r.g,true);
+ assert(b.min.y>-.05&&Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.6,'fits');
+});
+
+test('the yeti and sasquatch also carry claw-rakes across the flank', () => {
+ for (const name of ['yeti', 'sasquatch']) {
+  const r = createCreature({name, symbol: 89, color: 7});
+  assert(r.g.userData.scarred, name + ' wear');
+  assert(r.g.userData.bloodied, name + ' keeps its dried blood');
+ }
+});
+
+test('the xan drips venom from its barb and still fits its tile', () => {
+ const r = createCreature({name: 'xan', symbol: 120, color: 1});
+ assert(r.g.userData.venomed, 'xan venom');
+ assert(!createCreature({name: 'chillbug', symbol: 120, color: 4}).g.userData.venomed, 'chillbug has no barb');
+ r.g.updateMatrixWorld(true);
+ const b = new THREE.Box3().setFromObject(r.g, true);
+ assert(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < 1, 'fits its tile');
+});
+
+test('the ki-rin\'s horn is chipped short with a dark break, unlike the unicorns\'',()=>{
+ const tip=name=>{const c=createCreature({name,symbol:'u'.charCodeAt(0),color:3});c.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(c.g,true).max.y/c.g.scale.y;};
+ let kirinMeshes=0;createCreature({name:'ki-rin',symbol:'u'.charCodeAt(0),color:3}).g.traverse(o=>{if(o.isMesh)kirinMeshes++;});
+ assert(kirinMeshes>0&&kirinMeshes<=40,`ki-rin draws ${kirinMeshes}`);
+ assert(tip('ki-rin')>0);
+});
+
+test('Cthulhu\'s left hand has an outer claw broken to a stub, the right hand all four hooked',()=>{
+ const c=createCreature({name:'Cthulhu'});
+ const verts=a=>{let n=0;a.traverse(o=>{if(o.isMesh)n=o.geometry.attributes.position.count;});return n;};
+ assert(verts(c.arms[0])<verts(c.arms[1]),'left arm has less claw');
 });

@@ -113,6 +113,18 @@ function buildBody(){
  for(const [phi,v,r] of [[.2,.8,.02],[2,.3,.024],[3.6,.7,.018],[5,.25,.022],[1.2,.88,.016],[4.4,.82,.02]]){
   const {p}=surface(phi,v);P.add(new THREE.SphereGeometry(r,10,8),at(p.x,p.y,p.z),C.sheen);
  }
+ // a skeletal hand clawing out of the flank, and a rusted sword stump jutting from the ooze:
+ // what he swallowed and has not yet finished
+ {
+  const {p}=surface(2.05,.42),out=normalAt(2.05,.42),root=p.clone().addScaledVector(out,-.01);
+  P.add(new THREE.BoxGeometry(.05,.012,.045),facing(root.clone().addScaledVector(out,.05),out,[1,1,1]),C.bone);
+  for(const [dx,l] of [[-.02,.05],[-.007,.062],[.007,.058],[.02,.044]]){
+   const base=root.clone().addScaledVector(out,.07).add(new THREE.Vector3(dx,0,0));
+   P.add(new THREE.ConeGeometry(.0065,l,4),facing(base.addScaledVector(out,l/2),out,[1,1,1]).multiply(new THREE.Matrix4().makeRotationX(Math.PI/2)),C.boneDark);
+  }
+  const {p:q}=surface(4.2,.5),o2=normalAt(4.2,.5);
+  P.add(new THREE.BoxGeometry(.03,.012,.2),facing(q.clone().addScaledVector(o2,.06),o2.clone().add(new THREE.Vector3(0,.8,0)),[1,1,1]),(x,y,z)=>z>.07?C.rustDark:C.rust);
+ }
  // eye sockets, slime lids and slit pupils; the eyes themselves are their own emissive mesh
  for(const [phi,v,r] of EYES){
   const {p}=surface(phi,v),out=normalAt(phi,v);
