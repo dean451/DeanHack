@@ -58,6 +58,8 @@ import {updateGuardSweep} from './guard-sweep.js';
 import {updateShopkeeperTally} from './shopkeeper-tally.js';
 import {updatePiercerLurch} from './piercer-lurch.js';
 import {updateGhoulRake} from './ghoul-rake.js';
+import {updateArcheologistDust} from './archeologist-dust.js';
+import {updateCavemanThump} from './caveman-thump.js';
 import {updateSkeletonTap} from './skeleton-tap.js';
 import {updateBeePreen} from './bee-preen.js';
 
@@ -270,6 +272,10 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updateGhoulRake(actor, dt, t, busy);
   // And the skeletons' skull-tap: the free hand raps the cranium three times, the last harder, then the head cocks to listen (skeleton-tap.js).
   updateSkeletonTap(actor, dt, t, busy);
+  // And the archeologists' dust-off: the free hand brushes the chest twice, the head dips to blow, then two coughs jerk it back (archeologist-dust.js).
+  updateArcheologistDust(actor, dt, t, busy);
+  // And the cavemen's club-thump: the club slaps into the free palm twice, the head watching, the third time late and the head jerking up (caveman-thump.js).
+  updateCavemanThump(actor, dt, t, busy);
   // And the bees' preen: the forelegs scrub over the face in opposed strokes and hang up by the mouth a beat too long (bee-preen.js).
   updateBeePreen(actor, dt, t, busy);
   // And the Executioner's, Croesus', One-eyed Sam's, the miner's, the black marketeer's, the mugger's, the convict's, Thoth Amon's, Charon's, the prisoner's, the abbot's, the neanderthal's, Master Kaen's and the Dark One's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
