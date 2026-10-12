@@ -2758,6 +2758,12 @@ function demon(o){
   part(wing,new THREE.ShapeGeometry(shape,6),web);
   segment(wing,[0,0,0],[side*.12*sp,.22*sp,.005],.02,.014,dark);for(const [x,y] of tips.slice(0,3))segment(wing,[side*.12*sp,.22*sp,.005],[x,y,.005],.01,.005,dark);
   cone(wing,.012,.05,claw,side*.12*sp,.25*sp,.005,4);wing.rotation.y=side*-.4;wings.push(wing);}
+ // sandestins only: the body is held together sand. Pale grains stream off the shoulders and the arms bleed
+ // grit, with dark fissures cracked across the face
+ if(o.sand){const grit=mat('#d8c48a',{roughness:1}),crack=mat('#14141c',{roughness:1});g.userData.sand=true;
+  for(let i=0;i<8;i++){const a=i*2.4,r=.17+(i%3)*.05;sphere(body,.011,grit,Math.cos(a)*r,hipY+.1+i*.1,Math.sin(a)*r*.8).castShadow=false;}
+  for(const side of [-1,1])for(let i=0;i<3;i++)cone(body,.01,.07,grit,side*(shoulderX+.05)+(i-1)*.02,chestY-.1-i*.1,.02,4).rotation.x=Math.PI;
+  for(const [x,rz] of [[-.025,.5],[.03,-.4]])part(body,new THREE.BoxGeometry(.008,.06,.01),crack,x,headY+.01,.095).rotation.z=rz;}
  // tail: a thin whip curling behind, ending in a spade
  let tail=null;
  if(o.tail&&!o.smoke){tail=new THREE.Group();tail.position.set(0,.5,-.1*bulk);tail.scale.setScalar(.75);body.add(tail);
@@ -2781,7 +2787,7 @@ const DEMONS={'water demon':{skin:'#2f5a8a',mark:'drowned',eye:'#80f0ff',evil:'#
  geryon:{skin:'#6a4a2a',mark:'crown',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',mark:'crown',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
  baalzebub:{skin:'#3a4a2a',mark:'crown',evil:'#b8ff30',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',mark:'crown',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
  demogorgon:{skin:'#5a6a4a',mark:'tentacles',evil:'#40ffa0',heads:2,eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',mark:'brand',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
- 'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
+ 'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',sand:true,eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
 
 // trappers (t): a broad, ragged mantle flattened against the floor like a dropped cloak, mottled to match the stone,
 // with warty ridges, a fringed dark hem, and a wide toothed maw with stalked eyes along the front edge;
