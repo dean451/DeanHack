@@ -665,6 +665,10 @@ function wisp(o){
  // the motes circle on their own group so light-flare.js can swirl them
  const ring=new THREE.Group();lift.add(ring);
  for(let i=0;i<6;i++){const a=i*1.05;sphere(ring,.03,core.material,Math.cos(a)*.3,Math.sin(a*2)*.08,Math.sin(a)*.3);}
+ // a black light is a hole in the room, not a cousin of the yellow one: jagged obsidian barbs
+ // bristle out of the core, never two the same length, so it reads as something that will burst
+ if(o.black||o.color==='#4a2a8a'){const barb=mat('#0a0610',{roughness:.3,metalness:.5,emissive:'#2a1458',emissiveIntensity:.5});
+  for(let i=0;i<7;i++){const a=i*2.4,e=(i%3-1)*.7,len=.16+(i*37%5)*.03,c=cone(lift,.025,len,barb,Math.cos(a)*Math.cos(e)*.2,Math.sin(e)*.2,Math.sin(a)*Math.cos(e)*.2,4);c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(Math.cos(a)*Math.cos(e),Math.sin(e),Math.sin(a)*Math.cos(e)));}}
  g.userData.core=core;return Object.assign(actor(g,body,[],null,[],'hover'),{core,lift,halo,ring,light:o.color==='#4a2a8a'||o.black?'black':'yellow'});
 }
 
