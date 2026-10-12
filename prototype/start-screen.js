@@ -4,6 +4,7 @@
 // happened. `?demo` skips it and shows the demo room (a development view).
 // The engine keys a save by character name (-u name), so typing a saved name resumes that game.
 
+import {pickDragon} from './dragon-art.js';
 import {ROLES,ROLE_NAMES,RACES,DEFAULT_CHOICE,alignsFor,optionsFor,resolveChoice} from './roles.js';
 
 export const DEFAULT_NAME='Wanderer';
@@ -69,6 +70,14 @@ export function endedNote(reason,death){
   return 'Saved.';
 }
 
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// The tombstone on the splash after a death: the name, the cause in the game's own words, and where.
+export function deathCard(tomb){
+  if(!tomb||!tomb.killer)return '';
+  const where=tomb.depth?` on level ${tomb.depth}${tomb.dungeon?` of ${tomb.dungeon}`:''}`:'';
+  return `<div class="tomb"><small>REST IN PEACE</small><b>${esc(tomb.name||'')}</b><span>${esc(tomb.killer+where)}</span><em>The dungeon keeps what it takes. Begin again, or choose a new character.</em></div>`;
+}
+
 export async function forgetSave(name,fetchImpl=fetch){
   const {token}=await (await fetchImpl('/engine/token')).json();
   const r=await fetchImpl('/engine/forget',{method:'POST',headers:{'Content-Type':'application/json','X-Engine-Token':token},body:JSON.stringify({name})});
@@ -80,15 +89,18 @@ export async function forgetSave(name,fetchImpl=fetch){
 export function installStartScreen({doc=document,button,nameInput,search=location.search,getSaves=fetchSaves,forget=forgetSave,confirmFn=(m)=>confirm(m),storage}={}){
   if(!wantsStartScreen(search))return null;
   const el=doc.createElement('div');el.id='start-screen';
-  el.innerHTML=`<div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>DEAN<b>HACK</b></h1><p class="start-tag">A little light. A long way down.</p><p id="start-status" role="status" hidden></p>
+  el.innerHTML=`<pre class="start-dragon" aria-hidden="true"></pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>DEAN<b>HACK</b></h1><p class="start-tag">A little light. A long way down.</p><p id="start-status" role="status" hidden></p>
 <form class="step-name" autocomplete="off"><label for="start-name">Your name</label><input id="start-name" type="text" maxlength="24" spellcheck="false" placeholder="${DEFAULT_NAME}" aria-describedby="start-note"><button type="submit" id="start-go"></button><p id="start-note" aria-live="polite"></p>
 <div class="start-row"><button type="button" class="start-new">New character</button><button type="button" class="start-forget" hidden>Start over (delete this save)</button></div>
 <div class="start-saves" hidden><span>Your characters</span><div class="start-list"></div></div></form>
 <div class="step-class" hidden><label>Choose your class</label><div class="class-grid" role="radiogroup" aria-label="Class"></div>
 <div class="class-detail"><p class="class-blurb"></p><div class="class-opts"></div></div>
-<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div>`;
+<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div><p class="start-credit"></p></div>`;
   doc.body.append(el);
   const $=s=>el.querySelector(s);
+  const dragon=$('.start-dragon'),credit=$('.start-credit');
+  const showDragon=()=>{const d=pickDragon();dragon.textContent=d.art;credit.textContent=`Dragon by ${d.credit}`;};
+  showDragon();
   const input=$('#start-name'),go=$('#start-go'),note=$('#start-note'),status=$('#start-status'),list=$('.start-list'),box=$('.start-saves'),stepName=$('.step-name'),stepClass=$('.step-class'),forgetBtn=$('.start-forget');
   let saves=[],choice=readChoice(storage),pendingName=DEFAULT_NAME;
   const remembered=()=>{try{return(storage??localStorage).getItem('deanhack.playerName')||'';}catch{return '';}};
@@ -103,9 +115,10 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
     if(!input.value&&saves[0])input.value=saves[0].name.replace(/_/g,' ');
     refresh();
   });
-  const open=({note:line='',focus=true}={})=>{
-    el.hidden=false;doc.body.classList.add('start-open');
-    status.textContent=line;status.hidden=!line;
+  const open=({note:line='',death=null,focus=true}={})=>{
+    el.hidden=false;doc.body.classList.add('start-open');showDragon();
+    const card=deathCard(death);
+    if(card){status.innerHTML=card;status.classList.add('dead');status.hidden=false;}else{status.textContent=line;status.classList.remove('dead');status.hidden=!line;}
     stepClass.hidden=true;stepName.hidden=false;
     input.value=nameInput?.value||remembered();refresh();
     if(focus){input.focus();input.select();}
