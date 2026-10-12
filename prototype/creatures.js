@@ -896,12 +896,20 @@ function mimic(o){
  for(let i=0;i<7;i++){const x=-.2+i*.066;cone(lid,.022,.07,tooth,x,-.03,.34,4).rotation.x=Math.PI;cone(body,.02,.06,tooth,x+.033*(i<6?1:-1),.36,.16,4);}
  const lock=rounded(body,.07,.08,.03,mat('#c9a23a',{roughness:.3,metalness:.8}),0,.26,.19,.01);lock.castShadow=false;
  sphere(lid,.06,mat('#e8e0c8',{roughness:.3}),0,.08,.3,1,1,.6);sphere(lid,.03,o.glare?M.eye:mat('#1a1410'),0,.08,.33,1,1,.5);
+ // the giant mimic has been fought before: three black gouges split the lid planks, and the front iron band has
+ // snapped at the lock and hangs by one end, bent out from the wood
+ if(o.scarred){
+  const gash=mat('#140c08',{roughness:1});
+  for(const [x,z,r] of [[-.08,.12,.35],[0,.2,.2],[.09,.14,-.3]]){const c=part(lid,new THREE.BoxGeometry(.012,.012,.15),gash,x,.15,z);c.rotation.set(-.2,r,0);}
+  const strap=part(body,new THREE.BoxGeometry(.05,.17,.012),band,.17,.1,.215);strap.rotation.set(-.5,0,.18);
+ }
  const tail=new THREE.Group();tail.position.set(0,.33,.12);body.add(tail);tube(tail,[[0,0,0],[0,.01,.08],[.02,-.03,.15],[.03,-.12,.19],[.02,-.2,.2]],.035,flesh,14);
  for(const [x,z] of [[-.19,.12],[.19,.12],[-.19,-.12],[.19,-.12]])sphere(body,.05,mat(shade(o.color,.7),{roughness:.8}),x,.05,z,1.2,.8,1.2);
+ if(o.scarred)g.userData.scarred=true;
  return actor(g,body,[],tail,[],'idle');
 }
 // A mimic that is mimicking an object the hero cannot yet see through is reported as a "strange object"; it is a mimic underneath.
-const MIMICS={'strange object':{color:'#7a4a2a',glare:true},'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true,scale:1.25},'giant mimic':{color:'#6a3a22',glare:true,scale:1.5}};
+const MIMICS={'strange object':{color:'#7a4a2a',glare:true},'small mimic':{color:'#8a5a32',scale:.8},'large mimic':{color:'#7a4a2a',glare:true,scale:1.25},'giant mimic':{color:'#6a3a22',glare:true,scarred:true,scale:1.5}};
 // centaurs (C): the horse body (croup, barrel, jointed legs with hooves, flowing tail; see horse())
 // with a man's torso rising from the withers where the horse's neck would be: a belt hides the
 // seam, bare arms bend at the elbow, and the head has a face, ears and a mop of hair.
