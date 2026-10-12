@@ -13,7 +13,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // Each moving part is one merged vertex-coloured mesh on one material.
 // Handles: body, head, neck (the neck pivot the head hangs from), lip, jaw, ears, legs, tail.
 
-const L={hide:'#8a7e6c',dark:'#5e5446',fold:'#4a4238',scar:'#b8ac96',mud:'#5a4a34',hoof:'#2e2822',eye:'#120e0a',lip:'#6a5848',
+const L={hide:'#8a7e6c',dark:'#5e5446',fold:'#4a4238',scar:'#b8ac96',mud:'#5a4a34',wound:'#4a1812',hoof:'#2e2822',eye:'#120e0a',lip:'#6a5848',
  frontLeg:1.0,hindLeg:.88,frontZ:.42,hindZ:-.5,legX:.2};
 const C=Object.fromEntries(Object.entries(L).filter(([,v])=>typeof v==='string').map(([k,v])=>[k,rgb(v)]));
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
@@ -42,6 +42,8 @@ function buildBody(){
  // the base of the neck: a thick, wrinkled column rising forward from the shoulders
  P.add(along([0,wither+.05,L.frontZ+.05],[0,wither+.4,L.frontZ+.32],.22,.17,16),null,hidePaint);
  for(let i=0;i<3;i++)P.add(new THREE.TorusGeometry(.2-i*.015,.02,5,20),at(0,wither+.12+i*.1,L.frontZ+.11+i*.08,[-.9,0,0]),C.fold);
+ // a deep healing gash raked down the right flank: three dark crusted furrows through the folds
+ for(let i=0;i<3;i++)P.add(new THREE.BoxGeometry(.02,.2,.014),at(.29,(wither+hip)/2+.02,-.12+i*.05,[.35,0,0]),C.wound);
  return P.merge();
 }
 function buildNeck(){

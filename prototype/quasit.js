@@ -16,7 +16,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 const C={
  skin:rgb('#3f5fa0'),skinDark:rgb('#1c2a52'),belly:rgb('#8ea4cc'),wart:rgb('#5a7ab8'),
  spine:rgb('#1a1c30'),spineTip:rgb('#b8b0a0'),mouth:rgb('#140a18'),tooth:rgb('#e8e2cc'),
- claw:rgb('#141018'),ear:rgb('#6a4a7a'),socket:rgb('#0e1224'),
+ claw:rgb('#141018'),ear:rgb('#6a4a7a'),socket:rgb('#0e1224'),wound:rgb('#4a1218'),
 };
 const skinShade=(lo,hi)=>(x,y)=>mix(C.skinDark,C.skin,(y-lo)/(hi-lo));
 const UP=new THREE.Vector3(0,1,0);
@@ -45,6 +45,8 @@ function buildBody(){
  }
  // a thin neck thrust forward
  P.add(new THREE.CylinderGeometry(.026,.036,.09,8),at(0,.56,.1,[.75,0,0]),C.skin);
+ // three crusted claw wounds raked across the belly, where something with claws got in a blow
+ for(let i=0;i<3;i++)P.add(new THREE.BoxGeometry(.045,.004,.004),at(-.03+i*.03,.4+i*.012,.075,[.3,0,-.7]),C.wound);
  return P.merge();
 }
 
