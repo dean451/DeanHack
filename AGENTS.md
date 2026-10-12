@@ -12,7 +12,7 @@ Do not retune `LIVE_AMBIENT`, `TORCH_INTENSITY`, or lantern lighting without doc
 
 The user's Live game runs from the play copy. Never send input to it for testing. Use the worktree's own engine, or `prototype/engine/smoke.py` and its separate character.
 
-Merge one branch at a time. After a merge, update the working branch from `origin/master` before beginning another task. Before a session ends, list its open `claude/*` PRs and confirm each is still mergeable: the routines squash-merge to `master` every hour and every merge touches `prototype/package.json`, so a PR left waiting conflicts within the hour and auto-merge gives up without a word (the level-2 shop PR sat six hours this way on 2026-10-11).
+Merge one branch at a time. After a merge, update the working branch from `origin/master` before beginning another task. Before a session ends, list its open `claude/*` PRs and confirm each is still mergeable: the routines squash-merge to `master` every hour and every merge touches `prototype/package.json`, so a PR left waiting conflicts within the hour and auto-merge gives up without a word (the level-2 shop PR sat six hours this way on 2026-10-11). Merged branches are swept with `prototype/tools/sweep-branches.sh --delete` (run locally with `gh`; a cloud session cannot delete refs), and the repository setting "Automatically delete head branches" keeps new ones from piling up.
 
 **Cloud sessions** (claude.ai/code) run in their own checkout with no access to the play copy, so they cannot read or append the handoff log and have no `gh`: for them the PR body is the handoff entry (files changed, checks run, open concerns), and auto-merge is set through the GitHub tools. Say in the PR body that it was a cloud session.
 
