@@ -13,3 +13,8 @@ test('purple worms carry raked spear-gouges; the baby and the long worm stay cle
     assert(!createCreature({name, symbol: 87, color: 5}).g.userData.gouged, name + ' stays clean');
   }
 });
+
+test('the long worm has a ridge of blackened horn knobs; the baby long worm stays smooth', () => {
+  assert.equal(createCreature({name: 'long worm', symbol: 87, color: 3}).g.userData.ridged, true);
+  assert(!createCreature({name: 'baby long worm', symbol: 87, color: 3}).g.userData.ridged);
+});
