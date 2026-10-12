@@ -884,7 +884,7 @@ function wormTail(o){
 // a heavy brow over a pale muzzle; monkeys get a curled tail, owlbears a hooked beak and ear tufts, yeti and sasquatch shaggy shoulders
 function ape(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
- const fur=mat(o.fur,{roughness:.97}),dark=mat(shade(o.fur,.6),{roughness:.97}),face=mat(o.face||shade(o.fur,1.35),{roughness:.8});
+ const clawDark=mat('#2a1c16',{roughness:.5}),fur=mat(o.fur,{roughness:.97}),dark=mat(shade(o.fur,.6),{roughness:.97}),face=mat(o.face||shade(o.fur,1.35),{roughness:.8});
  const torso=sphere(body,.24,fur,0,.55,-.02,1.05,1.05,.9);torso.rotation.x=.35;sphere(body,.15,face,0,.56,.13,1.05,1.1,.45);
  for(const side of [-1,1])sphere(body,.13,o.shaggy?mat(shade(o.fur,1.12),{roughness:1}):fur,side*.17,.7,.04,1,.8,1);
  const head=new THREE.Group();head.position.set(0,.82,.17);body.add(head);
@@ -896,12 +896,12 @@ function ape(o){
  if(o.shaggy){sphere(head,.07,mat('#4a1612',{roughness:.95}),0,-.11,.1,1.3,.8,.7);sphere(body,.1,mat('#3e1410',{roughness:.95}),0,.62,.2,1,1.4,.5);g.userData.bloodied=true;}
  // wear: old claw-rakes score the left flank, dark and raw
  if(o.scars){for(let i=0;i<3;i++)part(body,new THREE.BoxGeometry(.012,.17,.01),mat('#5a1e1c',{roughness:.9}),-.21+i*.02,.5-i*.015,.12-i*.03).rotation.set(.1,-.4,.45);g.userData.scarred=true;}
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.25,.68,.06);body.add(arm);rounded(arm,.1,.3,.11,fur,0,-.14,0,.04);rounded(arm,.09,.3,.1,fur,0,-.4,.05,.035).rotation.x=-.2;sphere(arm,.065,o.beak?dark:face,0,-.57,.08,1,.8,1.1);if(o.beak)for(let k=-1;k<=1;k++)cone(arm,.012,.05,M.whiteFur,k*.03,-.6,.15,4).rotation.x=Math.PI/2;arm.rotation.x=-.18;arm.rotation.z=side*.06;}
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.25,.68,.06);body.add(arm);rounded(arm,.1,.3,.11,fur,0,-.14,0,.04);rounded(arm,.09,.3,.1,fur,0,-.4,.05,.035).rotation.x=-.2;sphere(arm,.065,o.beak?dark:face,0,-.57,.08,1,.8,1.1);if(o.beak)for(let k=-1;k<=1;k++)cone(arm,.014,.12,clawDark,k*.03,-.62,.19,4).rotation.x=Math.PI/2;arm.rotation.x=-.18;arm.rotation.z=side*.06;}
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.32,-.1);body.add(leg);const thigh=rounded(leg,.12,.24,.13,fur,0,-.1,0,.045);thigh.rotation.z=side*.12;rounded(leg,.12,.06,.18,o.beak?dark:face,side*.02,-.26,.04,.025);legs.push(leg);}
  let tail=null;if(o.tail){tail=new THREE.Group();tail.position.set(0,.4,-.2);body.add(tail);tube(tail,[[0,0,0],[0,-.08,-.14],[0,.02,-.28],[0,.2,-.3],[0,.26,-.2],[0,.18,-.16]],.022,fur,20);}
  return actor(g,body,legs,tail,[],'idle');
 }
-const APES={monkey:{fur:'#8a6440',face:'#d6b08a',tail:true,scale:.7},ape:{fur:'#5a4030',face:'#a88a70'},owlbear:{fur:'#7a5a38',face:'#c8a878',beak:true,scale:1.4},yeti:{fur:'#e4e2da',face:'#8aa0b0',shaggy:true,glare:true,scars:true,scale:1.4},'carnivorous ape':{fur:'#2e2622',face:'#7a5a50',fangs:true,glare:true,scars:true,scale:1.25},sasquatch:{fur:'#4a3424',face:'#8a6a58',shaggy:true,scars:true,scale:1.5}};
+const APES={monkey:{fur:'#8a6440',face:'#d6b08a',tail:true,scale:.7},ape:{fur:'#5a4030',face:'#a88a70'},owlbear:{fur:'#7a5a38',face:'#c8a878',beak:true,glare:true,scale:1.4},yeti:{fur:'#e4e2da',face:'#8aa0b0',shaggy:true,glare:true,scars:true,scale:1.4},'carnivorous ape':{fur:'#2e2622',face:'#7a5a50',fangs:true,glare:true,scars:true,scale:1.25},sasquatch:{fur:'#4a3424',face:'#8a6a58',shaggy:true,scars:true,scale:1.5}};
 // mimics (m): a banded wooden treasure chest whose lid has cracked open on a row of fangs and a lolling tongue,
 // with a single eye peering out of the lid and stubby pseudopods where its feet should be
 function mimic(o){
