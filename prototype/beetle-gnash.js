@@ -9,6 +9,8 @@
 // REAR: head thrown back (negative x); STAB: the head driven down into the bites (positive x);
 // CANT: the held bite's slant (z).
 export const REAR = .3, STAB = .38, CANT = .3;
+// RECOIL: after the held bite lets go the head snaps back past rest, as if spitting out the mouthful.
+export const RECOIL = .14;
 // Seconds for one gnash.
 export const GNASH_LEN = 3;
 // First gnash after FIRST_MIN..+FIRST_SPAN s of standing still, then GAP_MIN..+GAP_SPAN apart.
@@ -25,13 +27,14 @@ export const gnashes = a => !!(a && !a.asset && a.beetle && a.head);
 const ZERO = () => ({rear: 0, stab: 0, cant: 0});
 
 // Phases in u: the head rears back .04-.34 with a fast tremble, then three stabs at .4, .52 and .64
-// (each a hump .08 wide) and the last bite is held .66-.84 with the head canted and shuddering.
+// (each a hump .08 wide) and the last bite is held .66-.84 with the head canted and shuddering, then flung back .86-.97.
 export function gnashPose(u, f = 1) {
   const p = ZERO();
   if (!(f > 0) || !(u > 0) || !(u < 1)) return p;
   const shake = Math.sin(u * 150);
   p.rear = REAR * (win(u, .04, .36, .12) * (1 + .12 * shake) - win(u, .36, .4, .02) * .1) * f;
   p.stab = STAB * (hump(u, .38, .46) + hump(u, .5, .58) + .6 * hump(u, .62, .7) + .5 * win(u, .64, .84, .04) * (1 + .15 * shake)) * f;
+  p.rear += RECOIL * hump(u, .86, .97) * f;
   p.cant = CANT * win(u, .66, .86, .06) * (1 + .3 * shake) * f;
   return p;
 }

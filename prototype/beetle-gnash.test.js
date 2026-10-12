@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCreature} from './creatures.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
-import {updateBeetleGnash, gnashPose, gnashes, REAR, STAB, CANT, FIRST_MIN, FIRST_SPAN} from './beetle-gnash.js';
+import {updateBeetleGnash, gnashPose, gnashes, REAR, STAB, CANT, RECOIL, FIRST_MIN, FIRST_SPAN} from './beetle-gnash.js';
 
 const make = (name, symbol) => {
   const a = createCreature({name, symbol: symbol.charCodeAt(0), color: 2});
@@ -68,4 +68,11 @@ test('walking fades a gnash out and an attack blocks one', () => {
 
 test('ants and other monsters do not gnash', () => {
   for (const [n, s] of [['giant ant', 'a'], ['jackal', 'd'], ['dwarf', 'h']]) assert(!gnashes(make(n, s)), n);
+});
+
+test('after the held bite lets go the head flings back, then settles exactly at rest', () => {
+  const held = gnashPose(.8), flung = gnashPose(.915);
+  assert(held.stab > STAB * .4 && held.rear < 1e-9, 'held down first');
+  assert(flung.rear > RECOIL * .95 && flung.stab === 0, 'then thrown back with the bite gone');
+  assert(gnashPose(.86).rear < 1e-9 && gnashPose(.97).rear < 1e-9 && gnashPose(.99).rear === 0);
 });
