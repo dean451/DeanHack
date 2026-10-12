@@ -171,3 +171,9 @@ test('a thrown-weapon quiver and an attached leash read plainly in the hover', (
   assert.equal(itemHint('3 daggers (quivered)'), 'quivered');
   assert.equal(itemHint('a leash (attached to the little dog)'), 'leashed to the little dog');
 });
+
+test('a corpse drained by a vampire says so in the hover', () => {
+  assert.deepEqual(itemFacts('a drained newt corpse'), ['drained']);
+  assert.deepEqual(itemFacts('a partly drained human corpse'), ['partly drained']);
+  assert.deepEqual(itemFacts('a newt corpse'), []);
+});
