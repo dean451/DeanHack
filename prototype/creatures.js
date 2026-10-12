@@ -867,6 +867,9 @@ function worm(o){
  if(o.venom){const spike=mat('#2a1430',{roughness:.5});spike.name='worm-spikes';
   for(const [i,[x,y,z]] of rear.entries())cone(body,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=-.3;
   for(const [i,[x,y,z]] of fore.entries())cone(neck,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=.2;}
+ // long worms: a ridge of short blackened horn knobs down the back, fewer and blunter than the purple worm's spikes
+ if(o.ridge&&!o.baby){const knob=mat('#2e2218',{roughness:.6});knob.name='worm-ridge';g.userData.ridged=true;
+  for(const [x,y,z] of rear)cone(body,r*.1,r*.35,knob,x,y+r*.9,z,4).rotation.x=-.3;}
  // purple worms: old spear-gouges raked across the hide, pale healed tissue between the rings
  if(o.venom){const gash=mat('#c9a8b8',{roughness:.9});gash.name='worm-gouges';g.userData.gouged=true;
   for(const [x,y,z,rz] of [[r*.9,.17,-.12,.6],[r*.95,.12,-.22,-.5],[-r*.9,.19,-.08,-.6],[-r*.92,.14,-.2,.5]]){const sc=rounded(body,.014,r*1.1,.012,gash,x,y,z,.004);sc.rotation.z=rz;}}
@@ -1536,7 +1539,7 @@ function vortex(o){
  return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});
 }
 const VORTICES={'fog cloud':{color:'#b4b8bc',cloud:true,opacity:.6},'dust vortex':{color:'#9a7a52',debris:'#6a5038'},'ice vortex':{color:'#bfe6f4',debris:'#e8f8ff',shard:true,scale:1.2},'energy vortex':{color:'#4f8cff',debris:'#d8f0ff',glow:true,scale:1.25},'steam vortex':{color:'#d4dce4',opacity:.42,scale:1.25},'fire vortex':{color:'#ff7a28',debris:'#ffd24a',glow:true,scale:1.25}};
-const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.9,venom:true}};
+const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',ridge:true,scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.9,venom:true}};
 
 // Smooth-body helpers: a lathed profile, and a tapered limb between two joint points
 // (so arms and legs read as one body rather than a jointed mannequin).
@@ -2890,6 +2893,8 @@ function seaMonster(o){
   part(head,new THREE.CircleGeometry(.035,12),mouth,0,-.02,.135).scale.set(1,.6,1);
   for(let k=0;k<6;k++){const x=(k-2.5)*.012;cone(head,.005,.018,tooth,x,-.005,.125,4).rotation.x=Math.PI;cone(head,.005,.016,tooth,x,-.04,.12,4);}
   for(const side of [-1,1]){sphere(head,.015,eye,side*.045,.03,.09);sphere(head,.007,pupil,side*.055,.035,.1);}
+  // giant eels: old pale scars raked across the reared neck, and two long hooked fangs hang from the upper jaw
+  if(o.scars){const sc=mat('#c8c4b4',{roughness:.7});for(let k=0;k<3;k++){const s=part(body,new THREE.BoxGeometry(.004,.07,.008),sc,.045,.2+k*.07,.07+k*.015);s.rotation.set(.1,0,-.5+k*.15);}for(const side of [-1,1])cone(head,.007,.04,tooth,side*.02,-.025,.13,4).rotation.x=Math.PI;}
   if(o.spark){const glow=mat(o.spark,{emissive:o.spark,emissiveIntensity:2.4,roughness:.3});for(const p of rear.slice(1))sphere(tail,.014,glow,p[0]+.03,p[1],p[2]+.03);for(const p of front.slice(1,4))sphere(body,.014,glow,p[0]+.035,p[1],p[2]+.02);}
   return trimDraws(actor(g,body,[],tail,[],'snake'));
  }
@@ -2915,7 +2920,7 @@ function seaMonster(o){
  return trimDraws(actor(g,body,[],tail,[],'hover'));
 }
 const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{form:'fish',color:'#8a8a94',belly:'#c83a2a',fin:'#6a5a5a',length:.26,depth:.13,underbite:true,dorsal:1,scale:.8},
- shark:{form:'fish',scars:true,color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
+ shark:{form:'fish',scars:true,color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',scars:true,color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
  'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff',scale:1.25},kraken:{form:'kraken',color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
  'watcher in the water':{form:'kraken',color:'#4a5a52',belly:'#9aa89a',eye:'#b8ff90',arms:16,eyeGlow:2.8,scale:1.9}};
 
