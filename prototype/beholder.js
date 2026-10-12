@@ -153,17 +153,21 @@ function spines(P){
 }
 
 // The small eyes: a ball at each stalk tip with a green iris and a pinprick pupil facing `look`.
+const BLIND_STALK=2;
 function smallEyes(P,tips){
  const z=new THREE.Vector3(0,0,1);
- for(const {tip,look} of tips){
-  const r=.026,c=tip.clone().addScaledVector(look,r*.6),m=new THREE.Matrix4().compose(c,new THREE.Quaternion().setFromUnitVectors(z,look),new THREE.Vector3(1,1,1));
+ tips.forEach(({tip,look},i)=>{
+  // one eye on the left has been put out: shrunk, clouded and dull, with no iris or pupil
+  const dead=i===BLIND_STALK;
+  const r=dead?.02:.026,c=tip.clone().addScaledVector(look,r*.6),m=new THREE.Matrix4().compose(c,new THREE.Quaternion().setFromUnitVectors(z,look),new THREE.Vector3(1,1,1));
   P.add(new THREE.SphereGeometry(r,14,10),m,(x,y,zz)=>{
    const d=new THREE.Vector3(x,y,zz).sub(c).normalize(),f=d.dot(look);
    let col=mix(C.small,C.vein,.5*smooth(.2,-.8,f));
+   if(dead)return mix(C.smallDark,C.vein,.35*smooth(.2,-.8,f));
    if(f>.8)col=mix(C.smallIris,C.smallDark,smooth(.93,.86,f));
    return f>.97?C.pupil:col;
   });
- }
+ });
 }
 
 // The great eyeball, centred on the head's origin and looking down +z: a yellowing sclera with
