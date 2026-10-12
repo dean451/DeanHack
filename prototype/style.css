@@ -160,8 +160,14 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 #ground-notice li{break-inside:avoid}
 
 /* Start screen: a name and one button over the dimmed demo room. */
-#start-screen{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 50% 42%,#050a0ce0 0%,#030609f2 62%,#020405 100%);backdrop-filter:blur(3px);color:#e9e2cf}
+#start-screen{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;gap:64px;padding:24px;background:radial-gradient(ellipse at 50% 42%,#050a0ce0 0%,#030609f2 62%,#020405 100%);backdrop-filter:blur(3px);color:#e9e2cf}
 #start-screen .start-card{width:min(440px,100%);text-align:left}
+/* Tua Xiong's dragon keeps the card company on wide screens and steps aside on narrow ones. */
+.start-dragon{margin:0;flex:none;font:9.5px/1.08 'Courier New',Courier,monospace;white-space:pre;color:#6fb7b4;text-shadow:0 0 14px #46bebe70,0 0 2px #9fe3df60;user-select:none;animation:dragon-breathe 9s ease-in-out infinite alternate}
+@keyframes dragon-breathe{from{opacity:.84}to{opacity:1}}
+.start-credit{margin:34px 0 0 3px;font:11px Inter,system-ui,sans-serif;letter-spacing:.08em;color:#5f6f76}
+@media(max-width:1000px),(max-height:560px){.start-dragon,.start-credit{display:none}}
+@media(prefers-reduced-motion:reduce){.start-dragon{animation:none}}
 #start-screen small{display:block;font:600 11px/1 'Courier New',monospace;letter-spacing:.42em;color:#6fb7b4;text-shadow:0 0 14px #46bebe80;margin:0 0 16px 3px}
 #start-screen h1{margin:0;font:700 clamp(54px,12vw,92px)/.9 'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;letter-spacing:.06em;text-shadow:0 0 38px #ff963c47,0 3px 0 #0a0d0e}
 #start-screen h1 b{color:#c9552e}
