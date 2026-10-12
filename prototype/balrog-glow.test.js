@@ -180,3 +180,10 @@ test('the four Riders glow with their own dread: a pool under the hem, and a lit
   assert.equal(parts.some(m=>!m.material.transparent),name==='war',name+' blade edge');
  }
 });
+
+test('Demogorgon lashes two tentacle arms and a frill spreads between his heads',()=>{
+ const names=n=>{const out=new Set();createCreature({name:n,symbol:38,color:1}).g.traverse(o=>{if(o.isMesh&&o.material)out.add(o.material.name);});return out;};
+ const d=names('demogorgon');
+ assert(d.has('demon-tentacle'));assert(d.has('demon-frill'));
+ assert(!names('orcus').has('demon-tentacle'));
+});

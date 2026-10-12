@@ -2679,6 +2679,9 @@ function demon(o){
  if(o.mark==='skulls'){const bone=mat('#cfc7ae',{roughness:.6}),fire=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.2,roughness:.4});bone.name='orcus-skull';fire.name='orcus-skull-glow';
   for(let i=0;i<5;i++){const a=(i/4-.5)*2.2,x=Math.sin(a)*.12*bulk,y=chestY+.08-Math.abs(a)*.04,z=Math.cos(a)*.11*bulk;
    sphere(body,.026,bone,x,y,z).castShadow=false;for(const e of [-1,1])sphere(body,.006,fire,x+e*.011,y+.004,z+.02).castShadow=false;}}
+ if(o.mark==='tentacles'){const flesh=mat('#3a4a34',{roughness:.5}),fin=mat('#2a3422',{roughness:.8});flesh.name='demon-tentacle';fin.name='demon-frill';
+  for(const side of [-1,1]){tube(body,[[side*shoulderX*1.1,chestY+.08,-.04],[side*(shoulderX+.12),chestY-.1,-.1],[side*(shoulderX+.2),chestY-.3,.02],[side*(shoulderX+.1),chestY-.5,.14],[side*(shoulderX+.2),chestY-.62,.26]],.03,flesh,14);}
+  for(let i=0;i<5;i++){const x=(i-2)*.05,f=cone(body,.02,.16-Math.abs(i-2)*.025,fin,x,headY-.08,-.06,4);f.rotation.x=-.5;f.castShadow=false;}}
  // a second head (Demogorgon): the first is shifted aside and a twin snarls beside it, turned slightly away
  if(o.heads===2){head.position.x=-.12;head.rotation.y=.25;const twin=head.clone();twin.position.set(.12,headY-.01,.02);twin.rotation.y=-.3;body.add(twin);}
  // bat wings on finger bones
@@ -2712,7 +2715,7 @@ const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',evil:'#40d8c0',horns:'
  yeenoghu:{skin:'#8a7040',mark:'gnoll',evil:'#e0a020',eye:'#ffdd40',horns:'short',weapon:'whip',scale:1.2},orcus:{skin:'#4a4a3a',mark:'skulls',evil:'#8aff6a',horns:'ram',wings:.8,tail:true,weapon:'trident',bulk:1.15,scale:1.25},
  geryon:{skin:'#6a4a2a',mark:'crown',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',mark:'crown',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
  baalzebub:{skin:'#3a4a2a',mark:'crown',evil:'#b8ff30',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',mark:'crown',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
- demogorgon:{skin:'#5a6a4a',evil:'#40ffa0',heads:2,eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
+ demogorgon:{skin:'#5a6a4a',mark:'tentacles',evil:'#40ffa0',heads:2,eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
  'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
 
 // trappers (t): a broad, ragged mantle flattened against the floor like a dropped cloak, mottled to match the stone,
