@@ -212,6 +212,8 @@ export function deathPose(style, u, dir = null) {
       // A tail goes slack as it falls and gives one lazy flick after it has landed, as if the
       // owner were not quite informed.
       p.tail = .3 * f + .12 * Math.sin(Math.PI * clamp01((u - .9) / .08)) * Math.sin((u - .9) * 140);
+      // Wings fall open and slack as it goes over, and one gives a single limp twitch after the landing.
+      p.wing = .35 * f + .08 * Math.sin(Math.PI * clamp01((u - .92) / .06));
     }
   }
   return p;
