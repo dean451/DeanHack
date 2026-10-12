@@ -44,3 +44,9 @@ test('the couatl gets its own feathered, winged serpent instead of the plain sna
  const snake=createCreature({name:'snake',symbol:S});
  assert.equal(snake.quirk,'snake');assert.equal(snake.wings.length,0);
 });
+
+test('the couatl\'s left wing is ragged: a primary torn out and another snapped short',()=>{
+ const couatl=createCreature({name:'couatl',symbol:S,color:2});
+ const [left,right]=couatl.wings.map(w=>w.children[0].geometry.attributes.position.count);
+ assert(left<right,`left wing ${left} vertices vs right ${right}`);
+});
