@@ -108,3 +108,10 @@ test('an open door is two posts, apart from the closed door bar', () => {
   assert.equal(door('open'), 'jamb');
   assert.notEqual(door('open'), door(undefined));
 });
+
+test('a sensed monster out of sight gets its own faint mark, apart from the hostile slash', () => {
+  const sensed = cellStyle({x: 1, z: 1, kind: 'monster', visible: false, sensed: true, terrain: 'floor'}, hero);
+  const seen = cellStyle({x: 1, z: 1, kind: 'monster', visible: true, terrain: 'floor'}, hero);
+  assert.equal(sensed.mark, 'faint');
+  assert.notEqual(sensed.mark, seen.mark);
+});
