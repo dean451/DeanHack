@@ -2978,3 +2978,9 @@ test('Cthulhu\'s left hand has an outer claw broken to a stub, the right hand al
  const verts=a=>{let n=0;a.traverse(o=>{if(o.isMesh)n=o.geometry.attributes.position.count;});return n;};
  assert(verts(c.arms[0])<verts(c.arms[1]),'left arm has less claw');
 });
+
+test('a wyvern stinger drips green venom, a draken does not',()=>{
+ const cols=a=>{const s=new Set();a.g.traverse(o=>{if(o.isMesh)s.add('#'+o.material.color.getHexString());});return s;};
+ assert(cols(createCreature({name:'wyvern',symbol:68,color:3})).has('#7fd23a'),'venom bead');
+ assert(!cols(createCreature({name:'draken',symbol:68,color:3})).has('#7fd23a'));
+});
