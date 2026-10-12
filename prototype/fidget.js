@@ -58,6 +58,7 @@ import {updateGuardSweep} from './guard-sweep.js';
 import {updateShopkeeperTally} from './shopkeeper-tally.js';
 import {updatePiercerLurch} from './piercer-lurch.js';
 import {updateGhoulRake} from './ghoul-rake.js';
+import {updateSkeletonTap} from './skeleton-tap.js';
 import {updateBeePreen} from './bee-preen.js';
 
 // Idle fidgets for the small folk (motion queue item 8, part 2). A gnome, hobbit or dwarf that
@@ -267,6 +268,8 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   updatePiercerLurch(actor, dt, t, busy);
   // And the ghouls' rake: the head dips low while the claws drag in twice, then jerks up with one claw left curled (ghoul-rake.js).
   updateGhoulRake(actor, dt, t, busy);
+  // And the skeletons' skull-tap: the free hand raps the cranium three times, the last harder, then the head cocks to listen (skeleton-tap.js).
+  updateSkeletonTap(actor, dt, t, busy);
   // And the bees' preen: the forelegs scrub over the face in opposed strokes and hang up by the mouth a beat too long (bee-preen.js).
   updateBeePreen(actor, dt, t, busy);
   // And the Executioner's, Croesus', One-eyed Sam's, the miner's, the black marketeer's, the mugger's, the convict's, Thoth Amon's, Charon's, the prisoner's, the abbot's, the neanderthal's, Master Kaen's and the Dark One's glowing eyes: they smoulder, glare or glint, blaze in an attack, blink at a blow and gutter out (eye-flare.js).
