@@ -41,3 +41,12 @@ test('the beholder is a fanged orb with a great eye and ten eyestalks in 4 share
  // shared between instances
  assert.equal(parts(createCreature({name:'beholder'}))[0].geometry,meshes[0].geometry);
 });
+
+test('one stalk eye has been put out: dull and clouded with no pupil, the other nine still stare',()=>{
+ const actor=createCreature({name:'beholder',symbol:E,color:3});
+ const eyes=parts(actor).find(m=>m.userData.part==='stalk eyes'),c=eyes.geometry.attributes.color;
+ let pupils=0;
+ for(let i=0;i<c.count;i++)if(c.getX(i)<.01&&c.getY(i)<.01&&c.getZ(i)<.01)pupils++;
+ assert(pupils>0,'the rest still have pupils');
+ assert.equal(pupils%9,0,'nine pupils, not ten');
+});
