@@ -575,6 +575,12 @@ function blob(o){
   cone(skull,.011,.03,hole,0,-.03,.06,3).rotation.x=Math.PI;
   for(const [x,z,r] of [[-.17,.12,.06],[.2,-.06,.05],[-.06,-.2,.055],[.14,.17,.045]])sphere(body,r,pitch,x,.34-Math.hypot(x,z)*.4,z,1,.55,1);
  }
+ // brown pudding: it rots what it touches, so grey mould blooms in patches on its back and slack rotten strands sag off its skirt
+ if(o.brown){
+  const mould=mat('#8f9a7a',{roughness:1}),rot=mat(shade(o.color,.6),{roughness:.2});
+  for(const [x,z,r] of [[-.1,.08,.045],[.13,.02,.035],[.02,-.14,.04],[-.04,.17,.03]])sphere(body,r,mould,x,.3-Math.hypot(x,z)*.35,z,1,.35,1);
+  for(const [x,z,len] of [[.25,.06,.15],[-.23,-.1,.12],[.05,.26,.1]])cone(body,.018,len,rot,x,.05+len/2,z,5).rotation.x=Math.PI;
+ }
  return actor(g,body,[],null,[],'blob');
 }
 
@@ -2970,7 +2976,7 @@ export function createCreature(cell={}){
  if(isScorpion(name))return createScorpion(name);
  if(name==='gelatinous cube'){const c=cube({color:color||'#8ad0c0'});c.g.scale.setScalar(1.3);return c;}
  if(name==='acid blob'){const a=createAcidBlob({color:'#7ed23a'});return actor(a.g,a.body,[],null,[],'blob');}
- if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name),slime:name==='green slime',acid:name==='acid blob',black:name==='black pudding',scale:name==='black pudding'?1.5:/^(green slime|ochre jelly|blue slime)$/.test(name)?1.25:name==='brown pudding'?1.1:1});
+ if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name),slime:name==='green slime',acid:name==='acid blob',black:name==='black pudding',brown:name==='brown pudding',scale:name==='black pudding'?1.5:/^(green slime|ochre jelly|blue slime)$/.test(name)?1.25:name==='brown pudding'?1.1:1});
  if(name==='centipede')return centipede({color:'#c9a03a'});
  if(name==='raven')return createRaven();
  if(/^(bat|giant bat|vampire bat)$/.test(name))return bat({color:name==='bat'?'#5a4636':name==='giant bat'?'#7a3a32':'#28242a',scale:name==='giant bat'?1.25:1,kind:name});
