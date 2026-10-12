@@ -118,6 +118,7 @@ test('the tombstone card says who, what and where, in the game\'s words, with no
   assert.equal(deathCard(null),'');assert.equal(deathCard({name:'X'}),'','no cause, no card');
   assert.match(deathCard({name:'<b>x</b>',killer:'killed by a "jackal"',depth:1}),/&lt;b&gt;x&lt;\/b&gt;.*killed by a &quot;jackal&quot; on level 1</);
   assert.doesNotMatch(deathCard({name:'A',killer:'quit'}),/level/,'no depth, no where');
+  assert.match(deathCard({name:'Mira',killer:'died of starvation',depth:3}),/<i>Ate well\. Slept badly\. Died quickly\.<\/i>/,'an epitaph under the cause');
 });
 
 test('the live game wires the link watch and the tombstone into the splash',()=>{

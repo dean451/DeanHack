@@ -5,6 +5,7 @@
 // The engine keys a save by character name (-u name), so typing a saved name resumes that game.
 
 import {pickDragon} from './dragon-art.js';
+import {epitaph} from './death-beat.js';
 import {ROLES,ROLE_NAMES,RACES,DEFAULT_CHOICE,alignsFor,optionsFor,resolveChoice} from './roles.js';
 
 export const DEFAULT_NAME='Wanderer';
@@ -75,7 +76,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 export function deathCard(tomb){
   if(!tomb||!tomb.killer)return '';
   const where=tomb.depth?` on level ${tomb.depth}${tomb.dungeon?` of ${tomb.dungeon}`:''}`:'';
-  return `<div class="tomb"><small>REST IN PEACE</small><b>${esc(tomb.name||'')}</b><span>${esc(tomb.killer+where)}</span><em>The dungeon keeps what it takes. Begin again, or choose a new character.</em></div>`;
+  return `<div class="tomb"><small>REST IN PEACE</small><b>${esc(tomb.name||'')}</b><span>${esc(tomb.killer+where)}</span><i>${esc(epitaph(tomb))}</i><em>The dungeon keeps what it takes. Begin again, or choose a new character.</em></div>`;
 }
 
 export async function forgetSave(name,fetchImpl=fetch){

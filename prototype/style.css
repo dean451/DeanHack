@@ -232,3 +232,4 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 .tomb b{display:block;font:700 24px/1.1 'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;color:#f1e8d4;letter-spacing:.04em}
 .tomb span{display:block;margin-top:6px;font:italic 16px/1.35 'Palatino Linotype',Palatino,Georgia,serif;color:#d8cfbb}
 .tomb em{display:block;margin-top:10px;font:13px/1.4 Inter,system-ui,sans-serif;font-style:normal;color:#8d9aa1}
+.tomb i{display:block;margin-top:12px;font:italic 13px/1.4 'Palatino Linotype',Palatino,Georgia,serif;color:#b9ab8f;letter-spacing:.03em}
