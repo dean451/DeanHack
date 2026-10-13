@@ -42,3 +42,13 @@ test('marks are flat, low, shared in geometry, and clear() removes everything', 
   marks.clear();
   assert.equal(marks.count(), 0); assert.equal(parent.children.length, 0);
 });
+
+test('over the cap the stains fade before the bones, and the total stays capped', () => {
+  const parent = new THREE.Group(), marks = createMarks(THREE, parent, {cap: 12});
+  for (let i = 0; i < 3; i++) marks.add({type: 'death', x: i, z: 1});
+  const bones = marks.bones();
+  assert.ok(bones >= 6);
+  for (let i = 0; i < 30; i++) marks.add({type: 'combat', x: i, z: 9});
+  assert.equal(marks.solid(), 12);
+  assert.equal(marks.bones(), bones);
+});
