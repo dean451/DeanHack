@@ -31,8 +31,14 @@ function terrainText(cell) {
   return base ? `${base} (${mark})` : mark;
 }
 
+// Where a seen magic portal leads, by the bridge's portal style; 'other' stays a plain portal.
+const PORTAL_TO = {sheol: 'to Sheol', quest: 'to the quest', ludios: 'to Fort Ludios', planes: 'to the Planes'};
+
 function bareText(cell) {
-  if (cell.trap) return String(cell.trap).toLowerCase();
+  if (cell.trap) {
+    const trap = String(cell.trap).toLowerCase();
+    return PORTAL_TO[cell.portal] ? `${trap} ${PORTAL_TO[cell.portal]}` : trap;
+  }
   if (cell.terrain === 'door' && cell.door === 'open') return 'open door';
   if (cell.door === 'broken') return 'broken door';
   if (cell.terrain === 'feature') return FEATURE_NAMES[featureKind(cell.symbol, cell.color)] || '';

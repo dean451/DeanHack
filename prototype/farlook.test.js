@@ -113,3 +113,11 @@ test('the monster that has the hero in its grip says so', () => {
   assert.equal(farlookText(owlbear, {x: 5, z: 7, holding: false}), 'owlbear (hostile)');
   assert.equal(farlookText(owlbear), 'owlbear (hostile)');
 });
+
+test('a seen magic portal says where it leads', () => {
+  const portal = {visible: true, terrain: 'floor', trap: 'magic portal'};
+  assert.equal(farlookText({...portal, portal: 'sheol'}), 'magic portal to Sheol');
+  assert.equal(farlookText({...portal, portal: 'ludios'}), 'magic portal to Fort Ludios');
+  assert.equal(farlookText({...portal, portal: 'other'}), 'magic portal');
+  assert.equal(farlookText(portal), 'magic portal');
+});
