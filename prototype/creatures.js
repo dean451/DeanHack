@@ -421,6 +421,10 @@ function rockMole(){
   sphere(hind,.065,coat,0,-.03,0,.8,1,.9);rounded(hind,.07,.03,.11,pink,0,-.11,.03,.012);legs.push(hind);
  }
  for(const [x,y,z,r] of [[.12,.36,-.08,.028],[-.09,.39,.02,.022],[.02,.37,-.2,.03],[-.16,.3,-.12,.02]])sphere(body,r,pebble,x,y,z,1,.7,1);
+ // wear: a torn-open scar across the snout, and a pair of dull ember eyes set deep in the face
+ const gash=mat('#3a1614',{roughness:.9}),ember=mat('#c0501c',{roughness:.4,emissive:'#c0501c',emissiveIntensity:1.6});ember.name='mole-eyes';
+ part(head,new THREE.BoxGeometry(.012,.07,.012),gash,.02,.02,.2).rotation.set(.9,0,.5);g.userData.scarred=true;
+ for(const side of [-1,1])sphere(head,.007,ember,side*.07,.045,.093);
  const tail=new THREE.Group();tail.position.set(0,.2,-.3);body.add(tail);
  const stub=cone(tail,.028,.1,pink,0,-.01,-.04,6);stub.rotation.x=-Math.PI/2-.3;
  return actor(g,body,legs,tail,[],'rat');
@@ -918,6 +922,9 @@ function wormTail(o){
  tube(body,arch,r,skin,24);
  for(let i=1;i<8;i+=1.5){const a=i/8*Math.PI;const band=part(body,new THREE.TorusGeometry(r*1.02,r*.13,6,16),ring,0,Math.sin(a)*.2-.03,-Math.cos(a)*.3);band.rotation.x=a-Math.PI/2;}
  for(const z of [-.3,.3])for(const [dx,dz,s] of [[-.07,-.04,1],[.07,.03,.8],[0,.06,.6]])sphere(body,.07*s,mound,dx,.01,z+dz,1.4,.35,1.2);
+ // a ridge of dark hooked horn spines along the crest of the arch
+ for(let i=1;i<8;i+=2){const a=i/8*Math.PI;const sp=cone(body,r*.22,r*1.1,ring,0,Math.sin(a)*.2-.03+r*1.05,-Math.cos(a)*.3,4);sp.rotation.x=-.35;}
+ g.userData.spined=true;
  return actor(g,body,[],null,[],'worm');
 }
 // apelike creatures (Y): a hunched, barrel-chested body on short bowed legs, with long arms knuckling the floor in front,
