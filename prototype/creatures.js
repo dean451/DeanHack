@@ -2815,6 +2815,11 @@ function demon(o){
   const ring=part(body,new THREE.TorusGeometry(.07*bulk,.008,5,14),hot,0,chestY+.02,.15*bulk);ring.castShadow=false;
   for(let i=0;i<3;i++){const a=i*Math.PI*2/3+.5,c=cone(body,.008,.07*bulk,hot,Math.sin(a)*.04*bulk,chestY+.02+Math.cos(a)*.04*bulk,.155*bulk,4);c.rotation.x=Math.PI/2;c.castShadow=false;}
   for(const side of [-1,1]){const c=cone(body,.028,.17,iron,side*shoulderX*1.1,chestY+.14,-.02,5);c.rotation.z=-side*.7;c.castShadow=false;}}
+ // the erinys is a fury in iron: a spiked collar riveted round the neck and a snapped chain trailing down her back
+ if(o.mark==='fury'){const iron=mat('#1c1a1c',{roughness:.45,metalness:.7}),rust=mat('#5a3424',{roughness:.8,metalness:.4});iron.name='fury-collar';rust.name='fury-chain';
+  const ring=part(body,new THREE.TorusGeometry(.075,.014,5,12),iron,0,headY-.1,-.01);ring.rotation.x=Math.PI/2;ring.castShadow=false;
+  for(let i=0;i<6;i++){const a=i*1.05+.3,c=cone(body,.012,.06,iron,Math.sin(a)*.085,headY-.1,Math.cos(a)*.085-.01,4);c.rotation.z=-Math.sin(a)*Math.PI/2;c.rotation.x=Math.cos(a)*Math.PI/2;c.castShadow=false;}
+  const t=tube(body,[[.03,headY-.1,-.08],[.07,chestY+.1,-.15],[.03,chestY-.1,-.17],[.1,chestY-.3,-.15]],.01,rust,8);t.castShadow=false;}
  if(o.mark==='slag'){const crust=mat('#14100e',{roughness:.95}),vein=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.4,roughness:.4});crust.name='demon-slag';vein.name='demon-slag-glow';
   for(const side of [-1,1]){const c=sphere(body,.07*bulk,crust,side*shoulderX*1.15,chestY+.12,-.01,1.2,.7,1);c.castShadow=false;}
   for(const [x,y] of [[-.07,.04],[.02,.1],[.08,-.02]]){const t=tube(body,[[x*bulk,chestY+y,.16*bulk],[(x+.03)*bulk,chestY+y-.05,.17*bulk],[(x-.02)*bulk,chestY+y-.1,.15*bulk]],.007,vein,5);t.castShadow=false;}}
@@ -2854,7 +2859,7 @@ const DEMONS={'water demon':{skin:'#2f5a8a',mark:'drowned',eye:'#80f0ff',evil:'#
  'horned devil':{skin:'#8a3a24',mark:'iron',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident',scale:1.1},succubus:{skin:'#d8a090',eye:'#ff60a0',evil:'#d0306a',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true,scale:1.1},
  // the Minion of Huhetotl (the Archeologist quest nemesis): a black-skinned, long-horned winged fiend with a sword
  'minion of huhetotl':{skin:'#2a2224',eye:'#ff4030',evil:'#a01820',horns:'long',wings:.8,tail:true,weapon:'sword',bulk:1.1,scale:1.3},
- incubus:{skin:'#b07a60',eye:'#ff60a0',evil:'#c0561c',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true,scale:1.1},erinys:{skin:'#a86a58',eye:'#ff4030',evil:'#ff4030',slim:true,hair:'#3a2418',wings:.8,weapon:'sword',scale:1.05},
+ incubus:{skin:'#b07a60',eye:'#ff60a0',evil:'#c0561c',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true,scale:1.1},erinys:{skin:'#a86a58',eye:'#ff4030',evil:'#ff4030',mark:'fury',slim:true,hair:'#3a2418',wings:.8,weapon:'sword',scale:1.05},
  'barbed devil':{skin:'#9a2e20',evil:'#ff2a28',horns:'short',spikes:true,tail:true,scale:1.1},marilith:{skin:'#7a3a5a',mark:'gilt',evil:'#c04a8a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true,scale:1.1},
  vrock:{skin:'#6a5a48',mark:'ruff',evil:'#a8b030',head:'beak',horn:'#3a3028',wings:.9,scale:1.1},'bone devil':{skin:'#9a9078',mark:'ribs',evil:'#c8e04a',head:'skull',spikes:'bone',tail:true,scale:1.1},
  'ice devil':{skin:'#b8d0e0',mark:'frost',evil:'#50b8ff',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true,scale:1.15},nalfeshnee:{skin:'#5a4a3a',mark:'boils',evil:'#e07a20',head:'boar',spikes:'bone',wings:.5,bulk:1.3,scale:1.15},
