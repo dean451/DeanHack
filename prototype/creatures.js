@@ -1007,6 +1007,9 @@ function centaur(o){
   // held upright beside the flank, butt near the ground
   cylinder(weaponSocket,.016,.016,1.08,wood,0,.1,0,6);
   const tip=cone(weaponSocket,.034,.15,M.steel,0,.715,0,4);tip.scale.z=.4;
+  // barbs flaring below the blade, and old blood dried black on its edge
+  for(const side of [-1,1]){const barb=cone(weaponSocket,.012,.06,M.steel,side*.03,.62,0,3);barb.rotation.z=side*-2.5;}
+  sphere(weaponSocket,.02,mat('#2a0c0a',{roughness:.9}),0,.68,.006,.7,2.2,.5);
   cylinder(weaponSocket,.02,.02,.06,leather,0,.6,0,6);
  }
  if(o.weapon==='club'){
@@ -1014,6 +1017,9 @@ function centaur(o){
   const club=new THREE.Group();club.rotation.x=2.45;weaponSocket.add(club);
   cylinder(club,.022,.026,.14,leather,0,-.02,0,7);cylinder(club,.028,.06,.36,wood,0,.22,0,8);sphere(club,.062,wood,0,.4,0,1,.8,1);
   for(const [a,h] of [[0,.26],[2.1,.33],[4.2,.38],[1,.42]])sphere(club,.022,wood,Math.cos(a)*.05,h,Math.sin(a)*.05);
+  // rusted nails driven through the head, points out
+  const nail=mat('#4a3426',{roughness:.9});
+  for(const [a,h] of [[.9,.34],[2.8,.4],[4.9,.3],[5.7,.44]]){const n=cone(club,.012,.07,nail,Math.cos(a)*.075,h,Math.sin(a)*.075,4);n.rotation.z=-Math.cos(a)*1.3;n.rotation.x=Math.sin(a)*1.3;}
  }
  if(o.weapon==='bow'){
   // a tall longbow held in the left fist with its string, and a quiver of fletched arrows on the back
