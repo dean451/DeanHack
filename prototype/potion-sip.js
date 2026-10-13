@@ -26,7 +26,9 @@ export function stainPose(i, t) {
   const start = i * .06 + (i === 0 ? .18 : 0), land = start + .34, u = clamp01((t - land) / .25);
   if (t < land || u >= 1) return {x: 0, z: 0, scale: .001, alpha: 0};
   const a = i * 2.1;
-  return {x: Math.cos(a) * .06, z: Math.sin(a) * .06, scale: .04 + .03 * smooth(u * 4 > 1 ? 1 : u * 4), alpha: .5 * (1 - smooth(u))};
+  // Stain 1 creeps back toward the hero's feet as it fades, as if it were being drawn home.
+  const creep = i === 1 ? 1 - .5 * smooth(u) : 1;
+  return {x: Math.cos(a) * .06 * creep, z: Math.sin(a) * .06 * creep, scale: .04 + .03 * smooth(u * 4 > 1 ? 1 : u * 4), alpha: .5 * (1 - smooth(u))};
 }
 
 export function ringPose(t) {
