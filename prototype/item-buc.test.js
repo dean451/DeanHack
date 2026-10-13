@@ -184,3 +184,10 @@ test('an "empty" prefix reads empty for containers and spent lamps, not only tin
   assert.deepEqual(itemFacts('an empty oil lamp (lit)'), ['lit', 'empty']);
   assert.deepEqual(itemFacts('a chest'), []);
 });
+
+test('armour in the pack reads its armour class in the hover', () => {
+  assert.deepEqual(itemFacts('a +1 plate mail [8] (being worn)'), ['worn', 'AC 8']);
+  assert.deepEqual(itemFacts('an elven mithril-coat [5]'), ['AC 5']);
+  assert.deepEqual(itemFacts('a cloak [0]'), ['AC 0']);
+  assert.deepEqual(itemFacts('a dagger'), []);
+});
