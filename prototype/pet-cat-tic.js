@@ -23,7 +23,8 @@ export function kneadPose(u) {
   if (!(u > 0) || !(u < 1)) return {sink: 0, l: 0, r: 0, stiff: 0};
   const sink = smooth(u / .12) * (1 - smooth((u - .9) / .08));
   const beat = (a, b) => { const w = (u - a) / (b - a); return w > 0 && w < 1 ? Math.sin(Math.PI * w) : 0; };
-  const l = beat(.14, .27) + beat(.4, .53);
+  // Once the right paw drops, the left gives one small twitch, as if it had a mind of its own.
+  const l = beat(.14, .27) + beat(.4, .53) + .35 * beat(.88, .96);
   const held = smooth((u - .66) / .04) * (1 - smooth((u - .86) / .02));
   const r = beat(.27, .4) + beat(.53, .66) + held;
   const stiff = smooth((u - .64) / .05) * (1 - smooth((u - .87) / .03));
