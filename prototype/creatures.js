@@ -2737,6 +2737,10 @@ function demon(o){
   sphere(body,.06*sc*bulk,skin,...sh);segment(body,sh,el,.05*sc*bulk,.04*sc,skin);segment(body,el,wr,.04*sc,.03*sc,skin);
   if(o.spikes)cone(body,.015,.06,horn,el[0]+side*.03,el[1],el[2]-.02,4).rotation.z=-side*1.3;
   for(let k=-1;k<=1;k++){const c=cone(body,.01,.06,claw,wr[0]+k*.015,wr[1]-.04,wr[2]+.01,4);c.rotation.x=Math.PI+.3;c.rotation.z=k*.2;}}
+ // a bound spirit: an iron shackle still locked on the left wrist, its chain snapped after a few links
+ if(o.bound){const iron=mat('#1c1a1c',{roughness:.5,metalness:.7}),wx=-(shoulderX+.08),wy=chestY-.18;iron.name='djinni-shackle';
+  const cuff=part(body,new THREE.TorusGeometry(.036,.011,6,16),iron,wx,wy,.14);cuff.rotation.x=Math.PI/2;
+  for(let k=0;k<3;k++){const l=part(body,new THREE.TorusGeometry(.015,.0045,5,10,k===2?Math.PI*1.4:Math.PI*2),iron,wx-.01,wy-.06-k*.026,.14);l.rotation.set(0,k%2?Math.PI/2:0,Math.PI/2);l.scale.y=1.35;}}
  // weapon in the right hand
  const grip=[shoulderX+.08,chestY-.2,.16];
  if(o.weapon==='whip'){const pts=[grip,[grip[0]+.1,grip[1]-.12,.3],[grip[0]+.05,.1,.42],[grip[0]-.12,.02,.38],[grip[0]-.24,.01,.22]];const lash=tube(body,pts,.012,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.4}):M.leather,20);lash.castShadow=false;if(o.flame){lash.userData.part='whip';lash.userData.path=pts;}}
@@ -2880,7 +2884,7 @@ const DEMONS={'water demon':{skin:'#2f5a8a',mark:'drowned',eye:'#80f0ff',evil:'#
  geryon:{skin:'#6a4a2a',mark:'crown',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',mark:'crown',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
  baalzebub:{skin:'#3a4a2a',mark:'crown',evil:'#b8ff30',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',mark:'crown',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
  demogorgon:{skin:'#5a6a4a',mark:'tentacles',evil:'#40ffa0',heads:2,eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',mark:'brand',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
- 'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',evil:'#5aa0ff',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',sand:true,eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
+ 'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',evil:'#5aa0ff',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{bound:true,skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',sand:true,eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
 
 // trappers (t): a broad, ragged mantle flattened against the floor like a dropped cloak, mottled to match the stone,
 // with warty ridges, a fringed dark hem, and a wide toothed maw with stalked eyes along the front edge;
