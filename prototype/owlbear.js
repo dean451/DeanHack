@@ -19,7 +19,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 
 const L={
  fur:'#5a3e26',dark:'#2e1f14',pale:'#b49a72',bar:'#3a2818',disc:'#cdb88e',rim:'#3a2618',
- beak:'#2a2420',beakTip:'#8a7a62',claw:'#141010',scar:'#8a2e24',eye:'#ff8a1a',pupil:'#050403',
+ beak:'#2a2420',beakTip:'#8a7a62',claw:'#141010',shaft:'#6a5436',scar:'#8a2e24',eye:'#ff8a1a',pupil:'#050403',
  hip:.56,shoulderY:1,shoulderX:.32,headY:1.16,headZ:.16,arm:.5,
 };
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
@@ -67,6 +67,9 @@ function buildBody(C){
  }
  // three old claw scars raked across the left breast, where something fought back and lost
  for(let i=0;i<3;i++)P.add(new THREE.BoxGeometry(.012,.2,.01),at(.1+i*.035,h+.28,.235-i*.012,[.1,-.2,.5]),C.scar);
+ // a broken arrow shaft still stands out of the shoulder hump, its fletching gone, dried blood crusted round the entry
+ P.add(new THREE.CylinderGeometry(.009,.009,.16,5),pointed(-.14,h+.5,-.1,[-.35,1,-.5]),C.shaft);
+ P.add(new THREE.CylinderGeometry(.03,.04,.012,8),at(-.12,h+.45,-.09,[-.5,0,.4]),C.scar);
  // a stub of a feathered tail
  for(let i=0;i<5;i++)P.add(new THREE.ConeGeometry(.04,.16,3),pointed((i-2)*.045,h-.02,-.24,[ (i-2)*.15,-.5,-1],[1,1,.3]),mix(C.bar,C.pale,i%2?.5:0));
  return P.merge();
@@ -105,7 +108,11 @@ function buildArm(C,s){
  for(let i=0;i<14;i++){const y=-len*(.45+i*.035),a=(hash(i+s)-.5)*1.6;P.add(new THREE.ConeGeometry(.04,.12,3),pointed(Math.sin(a)*.1,y,Math.cos(a)*-.09+.04,[Math.sin(a)*.3,-1,-.3],[1,1,.3]),mix(C.pale,C.bar,i%2?.7:.2));}
  // broad paw with four long hooked talons
  P.add(new THREE.SphereGeometry(.1,14,10),at(0,-len-.02,.08,[0,0,0],[1.1,.75,1.15]),C.dark);
- for(let k=0;k<4;k++)talon(P,(k-1.5)*.045,-len-.04,.17,[(k-1.5)*.15,-.2,1],.16,.022,C);
+ // the right paw's outer talon was torn off at the root: a short dark stub is all that is left
+ for(let k=0;k<4;k++){
+  if(s===1&&k===3)P.add(new THREE.ConeGeometry(.02,.04,5),pointed((k-1.5)*.045,-len-.04,.17,[.2,-.3,1]),C.scar);
+  else talon(P,(k-1.5)*.045,-len-.04,.17,[(k-1.5)*.15,-.2,1],.16,.022,C);
+ }
  return P.merge();
 }
 
