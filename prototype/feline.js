@@ -11,7 +11,7 @@ import {segment,chain} from './ant.js';
 //   (round on the big cats) with pale insides, slit pupils (round on the big cats), whiskers.
 // - Legs: shoulder, elbow and forearm down to a padded paw with four toes, each tipped with a dark hooked claw, in front; the hind
 //   legs have a muscled thigh, a knee, a raised hock and a long foot.
-// - The kitten, housecat and large cat wear a leather collar with a brass tag and are lean, lived-in cats: matted tufts along the spine, proud hip
+// - The kitten, housecat and large cat go without a collar (a rigid hoop never sat on the neck) and are lean, lived-in cats: matted tufts along the spine, proud hip
 //   bones, ribs showing through the flank fur and upright ears. Their coats are
 //   clean enough for a pet that is fed: no mange, no face scar, full whiskers and bright open eyes.
 // - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
@@ -226,11 +226,6 @@ function buildHead(L,C){
  }
  // scruffy pets: ragged tufts of cheek fur flaring out under the ears
  if(L.scruffy)for(const s of [-1,1])for(let k=0;k<3;k++)P.add(new THREE.ConeGeometry(.005,.02,4),at(s*(.08+.004*k),-.03-.012*k,.05+.012*k,[Math.PI/2-.2*k,0,s*(1.1+.2*k)],[1,1,.4]),(x,y,z)=>mix(C.coat,C.stripe,smooth((.04-Math.abs(x))/.04)*.4));
- // pets: a plain leather collar, the one mark of an owner, with a small brass tag hanging at the throat
- if(L.scruffy){
-  P.add(new THREE.TorusGeometry(.066,.009,6,18),at(0,-.07,-.07,[.5,0,0]),rgb('#8a5a34'));
-  P.add(new THREE.CylinderGeometry(.013,.013,.004,10),at(0,-.098,-.065,[Math.PI/2,0,0]),rgb('#b8963c'));
- }
  // the wild cats bare a pair of yellowed fangs hanging past the lip
  if(!L.scruffy&&!L.tentacles)for(const s of [-1,1])P.add(new THREE.ConeGeometry(.0075,.034,4),at(s*.02,-.062,.128,[Math.PI,0,0]),rgb('#a89c78'));
  // whiskers

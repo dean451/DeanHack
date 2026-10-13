@@ -141,13 +141,13 @@ test('the pet cats\' paws carry a light dusting of grime; the wild cats\' are cl
  }
 });
 
-test('the pet cats wear a leather collar on the neck; the wild cats go bare',()=>{
+test('the pet cats wear no collar: a rigid hoop never sat on the neck (user, 2026-10-13)',()=>{
  const back=name=>{
   const g=meshes(createCreature({name,symbol:102,color:3})).find(m=>m.userData.part==='head').geometry,pos=g.attributes.position;
   let n=0;for(let i=0;i<pos.count;i++)if(pos.getZ(i)<-.06&&pos.getZ(i)>-.09&&Math.hypot(pos.getX(i),pos.getY(i)+.03)>.062)n++;
   return n;
  };
- for(const name of ['kitten','housecat','large cat'])assert(back(name)>back('wildcat')+20,`${name} ${back(name)} vs ${back('wildcat')}`);
+ for(const name of ['kitten','housecat','large cat'])assert(back(name)<=back('wildcat')+4,`${name} ${back(name)} vs ${back('wildcat')}`);
 });
 
 test('the pet cats are friendly: full whiskers',()=>{
