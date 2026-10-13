@@ -20,7 +20,7 @@ const C={
  hide:rgb('#2e2018'),hideDark:rgb('#160e0a'),hideLit:rgb('#4a3324'),belly:rgb('#5a4232'),scar:rgb('#8a6a58'),
  muzzle:rgb('#4e423a'),muzzleDark:rgb('#241c18'),nostril:rgb('#0c0606'),wet:rgb('#1e1414'),
  hornRoot:rgb('#2a241c'),horn:rgb('#8a7c62'),hornTip:rgb('#e6dcc2'),
- hoof:rgb('#121010'),iron:rgb('#3a3634'),rust:rgb('#5a3424'),
+ blood:rgb('#4a0e0c'),hoof:rgb('#121010'),iron:rgb('#3a3634'),rust:rgb('#5a3424'),
  leather:rgb('#3a261a'),leatherDark:rgb('#1e140e'),bronze:rgb('#8a6a34'),
 };
 const noise=(x,y,z)=>Math.sin(x*53+z*37+y*29)*Math.sin(y*71-x*43+z*19);
@@ -79,6 +79,13 @@ function buildBody(){
  P.add(new THREE.TorusGeometry(.165,.022,6,26),at(0,.72,0,[Math.PI/2,0,0],[1.05,.82,1]),C.leatherDark);
  for(let i=0;i<9;i++){const a=(i-4)*.36;P.add(new THREE.SphereGeometry(.012,6,5),at(Math.sin(a)*.175,.72,Math.cos(a)*.142),C.bronze);}
  P.add(new THREE.CylinderGeometry(.04,.04,.012,10),at(0,.72,.148,[Math.PI/2,0,0]),C.bronze);
+ // trophies: three small skulls of its victims hang off the belt on cords, jaws slack
+ for(const [x,z,r] of [[-.12,.1,.028],[.05,.152,.024],[.13,.07,.026]]){
+  limb(P,[x,.72,z],[x,.66,z],.004,.004,C.leatherDark,4);
+  P.add(new THREE.SphereGeometry(r,8,6),at(x,.64,z,[0,0,0],[1,1.1,.95]),C.hornTip);
+  P.add(new THREE.BoxGeometry(r*1.1,r*.45,r*.6),at(x,.64-r*.95,z+r*.15),C.horn);
+  for(const s of [-1,1])P.add(new THREE.SphereGeometry(r*.28,5,4),at(x+s*r*.38,.645,z+r*.8),C.nostril);
+ }
  const cloth=(x,y)=>mix(C.leatherDark,C.leather,THREE.MathUtils.clamp((y-.45)/.25,0,1));
  P.add(new THREE.BoxGeometry(.18,.22,.012),at(0,.6,.14,[-.12,0,0]),cloth);
  P.add(new THREE.BoxGeometry(.22,.16,.012),at(0,.63,-.14,[.15,0,0]),cloth);
@@ -120,7 +127,7 @@ function buildHead(){
   const snapped=s<0,pts=[[s*.07,.13,-.01],[s*.17,.15,-.03],[s*.27,.17,.03],[s*.31,.22,.14]];
   if(!snapped)pts.push([s*.27,.3,.24]);
   const {geo,curve}=taper(pts,.045,snapped?.026:.004,24,10);
-  P.add(geo,null,(x,y,z)=>{const t=THREE.MathUtils.clamp((Math.abs(x)-.07)/.28+(z>.1?(z-.1)*1.2:0),0,1);return t<.5?mix(C.hornRoot,C.horn,t*2):mix(C.horn,C.hornTip,(t-.5)*2);});
+  P.add(geo,null,(x,y,z)=>{const t=THREE.MathUtils.clamp((Math.abs(x)-.07)/.28+(z>.1?(z-.1)*1.2:0),0,1);const c=t<.5?mix(C.hornRoot,C.horn,t*2):mix(C.horn,C.hornTip,(t-.5)*2);return !snapped&&t>.75?mix(c,C.blood,THREE.MathUtils.clamp((t-.75)*4,0,.85)):c;});
   for(let i=0;i<4;i++){const u=.06+i*.06,p=curve.getPointAt(u),tan=curve.getTangentAt(u);
    P.add(new THREE.TorusGeometry(.043-i*.004,.005,4,12),new THREE.Matrix4().compose(p,new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),tan),new THREE.Vector3(1,1,1)),C.hornRoot);}
   if(snapped){const e=curve.getPointAt(1),tan=curve.getTangentAt(1);
