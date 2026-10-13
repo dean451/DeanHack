@@ -6,7 +6,7 @@
 //
 // live.js calls message(text, x, z) with every engine message (x, z the hero's square; a
 // search does not move her), update(dt) every frame and clear() on a level change.
-// Remaining: the ring is centred on the hero; it does not yet point at the cell that was found.
+// A fainter echo ring trails it by a beat. Remaining: the ring is centred on the hero; it does not yet point at the cell that was found.
 
 import {clamp01, smooth} from './fx-textures.js';
 
@@ -19,6 +19,14 @@ export function ringPose(t) {
   const u = t / SEARCH.total, h = SEARCH.hesitate / SEARCH.total;
   const r = u < h ? .45 * smooth(u / h) : .45 + .75 * smooth((u - h - .08) / (1 - h - .08));
   return {radius: .2 + r, alpha: .7 * (1 - smooth((u - .6) / .4)) * Math.min(1, t * 14)};
+}
+
+// A second, fainter ring trails the first by a beat, as if the stone answered late. Same path,
+// delayed; it ends a little after the lead ring and is invisible at both ends.
+export const ECHO_LAG = .14;
+export function echoPose(t) {
+  const r = ringPose(t - ECHO_LAG);
+  return {radius: r.radius, alpha: r.alpha * .4};
 }
 
 // Grit i: a fleck shaken off above, falling in a dead straight drop with a little tremor.
@@ -37,14 +45,16 @@ export function createSearchReveal(THREE, parent) {
     const ringGeo = new THREE.RingGeometry(.92, 1, 24), sph = new THREE.SphereGeometry(1, 5, 4), mats = [];
     const mk = c => { const m = new THREE.MeshBasicMaterial({color: c, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, toneMapped: false}); mats.push(m); return m; };
     const ring = new THREE.Mesh(ringGeo, mk(0xaecbd8)); ring.rotation.x = -Math.PI / 2; ring.position.y = .03; g.add(ring);
+    const echo = new THREE.Mesh(ringGeo, mk(0x7f98a6)); echo.rotation.x = -Math.PI / 2; echo.position.y = .025; g.add(echo);
     const grit = Array.from({length: SEARCH.grit}, () => { const m = new THREE.Mesh(sph, mk(0x6b6258)); m.scale.setScalar(.02); g.add(m); return m; });
-    live.push({g, geos: [ringGeo, sph], mats, ring, grit, t: 0});
+    live.push({g, geos: [ringGeo, sph], mats, ring, echo, grit, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
     const r = ringPose(e.t); e.ring.visible = r.alpha > .01; e.ring.scale.setScalar(r.radius); e.ring.material.opacity = r.alpha;
+    const ec = echoPose(e.t); e.echo.visible = ec.alpha > .01; e.echo.scale.setScalar(ec.radius); e.echo.material.opacity = ec.alpha;
     e.grit.forEach((m, i) => { const p = gritPose(i, e.t); m.visible = p.alpha > .01; m.position.set(p.x, p.y, p.z); m.material.opacity = p.alpha; });
-    return e.t < SEARCH.total;
+    return e.t < SEARCH.total + ECHO_LAG;
   }
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); parent.remove(e.g); }
   return {
