@@ -79,6 +79,13 @@ function buildBody(){
  P.add(new THREE.TorusGeometry(.165,.022,6,26),at(0,.72,0,[Math.PI/2,0,0],[1.05,.82,1]),C.leatherDark);
  for(let i=0;i<9;i++){const a=(i-4)*.36;P.add(new THREE.SphereGeometry(.012,6,5),at(Math.sin(a)*.175,.72,Math.cos(a)*.142),C.bronze);}
  P.add(new THREE.CylinderGeometry(.04,.04,.012,10),at(0,.72,.148,[Math.PI/2,0,0]),C.bronze);
+ // trophies: three small skulls of its victims hang off the belt on cords, jaws slack
+ for(const [x,z,r] of [[-.12,.1,.028],[.05,.152,.024],[.13,.07,.026]]){
+  limb(P,[x,.72,z],[x,.66,z],.004,.004,C.leatherDark,4);
+  P.add(new THREE.SphereGeometry(r,8,6),at(x,.64,z,[0,0,0],[1,1.1,.95]),C.hornTip);
+  P.add(new THREE.BoxGeometry(r*1.1,r*.45,r*.6),at(x,.64-r*.95,z+r*.15),C.horn);
+  for(const s of [-1,1])P.add(new THREE.SphereGeometry(r*.28,5,4),at(x+s*r*.38,.645,z+r*.8),C.nostril);
+ }
  const cloth=(x,y)=>mix(C.leatherDark,C.leather,THREE.MathUtils.clamp((y-.45)/.25,0,1));
  P.add(new THREE.BoxGeometry(.18,.22,.012),at(0,.6,.14,[-.12,0,0]),cloth);
  P.add(new THREE.BoxGeometry(.22,.16,.012),at(0,.63,-.14,[.15,0,0]),cloth);
