@@ -1344,6 +1344,10 @@ function leocrotta(o){
  // wear: three old claw-rakes score the left flank, dark and slightly raised, and a bite has notched the rump
  for(let i=0;i<3;i++)B.put(body,black,new THREE.BoxGeometry(.008,.015,.17),[-.158-i*.002,y+.02-i*.035,.02+i*.03],[.0,0,.5]);
  B.put(body,gum,S(.03,8,6),[.1,y+.03,-.3],[0,0,0],[.6,.9,.9]);
+ // a hunter's broken spear-head is still lodged in the shoulder: a dark iron blade, its haft snapped off, and a crust of dried blood round it
+ B.put(body,black,new THREE.ConeGeometry(.028,.12,4),[.12,y+.12,.2],[0,0,-1.1]);
+ B.put(body,gum,S(.035,8,6),[.115,y+.09,.2],[0,0,0],[.8,.4,1]);
+ g.userData.speared=true;
  g.userData.scarred=true;
  // a lion's tail with a dark tuft
  const tail=new THREE.Group();tail.position.set(0,y+.06,-.34);body.add(tail);
