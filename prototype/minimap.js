@@ -31,6 +31,7 @@ export function cellStyle(cell, hero) {
       return {fill: '#9fd0d9', mark: FEATURE_MARKS[cell.terrain]};
     case 'tree': return {fill: '#4e7d4a', mark: 'tree'};
     case 'bars': return {fill: '#7f8a93', mark: 'grate'};
+    case 'feature': return {fill: cell.visible ? '#4a6068' : '#2f3f46', mark: cell.object ? 'dot' : 'hatch'};   // ice, cloud, drawbridge and the rest: a hatched cell, not a hole in the map
     case 'floor': return {fill: cell.visible ? '#3c4a54' : '#27323a'};
     default: return cell.object ? {fill: '#c9a86b', mark: 'dot'} : null;   // unknown terrain draws nothing
   }
@@ -57,6 +58,7 @@ function drawMark(ctx, mark, px, py) {
     case 'tree': ctx.fillRect(px + 1, py, 2, 2); ctx.fillRect(px + 1, py + 2, 1, 2); break;
     case 'slash': ctx.fillRect(px + 3, py, 1, 1); ctx.fillRect(px + 2, py + 1, 1, 1); ctx.fillRect(px + 1, py + 2, 1, 1); ctx.fillRect(px, py + 3, 1, 1); break;
     case 'faint': ctx.fillRect(px + 2, py + 1, 1, 1); ctx.fillRect(px + 1, py + 2, 1, 1); break;
+    case 'hatch': ctx.fillRect(px, py + 1, 1, 1); ctx.fillRect(px + 2, py + 1, 1, 1); ctx.fillRect(px + 1, py + 3, 1, 1); ctx.fillRect(px + 3, py + 3, 1, 1); break;
     case 'dot': ctx.fillRect(px + 1, py + 1, 2, 2); break;
     case 'hero': ctx.fillStyle = '#fff6d8'; ctx.fillRect(px - 1, py - 1, s + 2, s + 2); ctx.fillStyle = '#10161b'; ctx.fillRect(px + 1, py + 1, 2, 2); break;
     default: break;
