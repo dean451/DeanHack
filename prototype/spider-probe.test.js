@@ -42,3 +42,10 @@ test('only true spiders probe, not scorpions or other walkers', () => {
   assert.equal(S.updateSpiderProbe(mon('jackal', 'd'), dt, 0, false), null);
   assert.ok(S.probes(mon('cave spider')));
 });
+
+test('a late stray tap follows the settle, small and lifted, ending exactly at rest', () => {
+  const p = S.probePose(.93);
+  assert.ok(p.a > .45 && p.ta > .3 && p.ta < .5, 'the first leg lifts and taps softly');
+  assert.ok(S.probePose(.8).a < .01 && S.probePose(.8).ta < .01, 'quiet before it');
+  assert.ok(S.probePose(.9999).a < 1e-3 && Math.abs(S.probePose(.9999).ta) < 1e-3);
+});
