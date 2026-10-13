@@ -30,7 +30,8 @@ const ZERO = () => ({turn: 0, lift: 0, bite: 0});
 export function glarePose(u, f = 1) {
   const p = ZERO();
   if (!(f > 0) || !(u > 0) || !(u < 1)) return p;
-  p.turn = TURN * win(u, .06, .34, .64, .34) * f;
+  // the bite missed; the head gives one short, sour jerk aside, as if the air had been at fault
+  p.turn = (TURN * win(u, .06, .34, .64, .34) - .3 * TURN * hump(u, .74, .8)) * f;
   p.lift = LIFT * win(u, .14, .36, .56, .4) * f;
   p.bite = BITE * (hump(u, .62, .68) + .25 * hump(u, .68, .72)) * f;
   return p;

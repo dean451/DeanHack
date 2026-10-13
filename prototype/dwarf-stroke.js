@@ -37,7 +37,7 @@ export function strokePose(u, f = 1) {
   // two slow draws down the beard: the hand sinks a little, then comes back up
   p.draw = STROKE * (hump(u, .27, .47) + hump(u, .5, .7)) * f;
   // the head tips down over the hand and nods once, grudgingly, at each stroke
-  p.nod = NOD * (.6 * held + .4 * (hump(u, .27, .47) + hump(u, .5, .7))) * f;
+  p.nod = NOD * (.6 * held + .4 * (hump(u, .27, .47) + hump(u, .5, .7)) + .5 * hump(u, .9, .98)) * f;
   // the jerk aside: sharp out, slower back
   p.glare = GLARE * (smooth((u - .78) / .04) - smooth((u - .88) / .09)) * f;
   return p;

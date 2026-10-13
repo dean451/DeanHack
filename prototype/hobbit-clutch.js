@@ -15,6 +15,7 @@ const SNAP = 1e-3, FADE_OUT = 14;
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
+const hump = (u, a, b) => { const w = (u - a) / (b - a); return w > 0 && w < 1 ? Math.sin(Math.PI * w) : 0; };
 const win = (u, a, ea, b, eb) => smooth((u - a) / ea) - smooth((u - b) / eb);
 
 export const clutches = a => !!(a && !a.asset && a.quirk === 'hobbit' && a.head && a.arms?.length === 2);
@@ -28,7 +29,8 @@ const ZERO = () => ({glance: 0, clutch: 0, shake: 0});
 export function clutchPose(u, f = 1) {
   const p = ZERO();
   if (!(f > 0) || !(u > 0) || !(u < 1)) return p;
-  p.glance = -Math.sin(u * Math.PI * 7) * win(u, .04, .08, .5, .12) * f;
+  // the hand let go, he darts one last look back over his shoulder, to check he was not seen
+  p.glance = (-Math.sin(u * Math.PI * 7) * win(u, .04, .08, .5, .12) + .5 * hump(u, .86, .94)) * f;
   p.clutch = win(u, .42, .08, .82, .15) * f;
   p.shake = Math.sin(u * 110) * p.clutch * p.clutch;
   return p;

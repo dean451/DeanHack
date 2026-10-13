@@ -71,3 +71,10 @@ test('other creatures do not clutch', () => {
   assert(!clutches(createCreature({name: 'gnome', symbol: 'G'.charCodeAt(0), color: 1})));
   assert(!clutches(createCreature({name: 'giant spider', symbol: 's'.charCodeAt(0), color: 5})));
 });
+
+test('after letting go he darts one last look over his shoulder, then rests exactly', () => {
+  assert.ok(clutchPose(.9).glance > .4 && clutchPose(.9).glance <= 1, 'last glance');
+  assert.ok(Math.abs(clutchPose(.8).glance) < .2 && clutchPose(.96).glance === 0);
+  for (let u = 0; u <= 1; u += .005) assert.ok(Math.abs(clutchPose(u).glance) <= 1 + 1e-9);
+  assert.equal(clutchPose(1).glance, 0);
+});
