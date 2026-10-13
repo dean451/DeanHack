@@ -42,3 +42,9 @@ test('only skeletons do it', () => {
   assert.equal(M.taps(o), false);
   assert.equal(M.updateSkeletonTap(o, dt, 0, false), null);
 });
+
+test('a faint fourth rap lands while the head is cocked', () => {
+  const k = M.tapPose(.64).knock;
+  assert.ok(k > .2 && k < .4, `faint: ${k}`);
+  assert.ok(M.tapPose(.64).listen > .95 && M.tapPose(.58).knock < .05);
+});
