@@ -18,7 +18,9 @@ export function ringPose(t) {
   if (t <= 0 || t >= SEARCH.total) return {radius: .001, alpha: 0};
   const u = t / SEARCH.total, h = SEARCH.hesitate / SEARCH.total;
   const r = u < h ? .45 * smooth(u / h) : .45 + .75 * smooth((u - h - .08) / (1 - h - .08));
-  return {radius: .2 + r, alpha: .7 * (1 - smooth((u - .6) / .4)) * Math.min(1, t * 14)};
+  // Just before the lunge the ring flinches: its light gutters out for a blink, as if the stone bit back.
+  const flinch = 1 - .7 * Math.sin(Math.PI * clamp01((u - h) / .1)) ** 2;
+  return {radius: .2 + r, alpha: .7 * (1 - smooth((u - .6) / .4)) * Math.min(1, t * 14) * flinch};
 }
 
 // A second, fainter ring trails the first by a beat, as if the stone answered late. Same path,
