@@ -25,7 +25,9 @@ export function sniffPose(u) {
   const sink = .3 * Math.sin(Math.PI * clamp01((u - .92) / .08)) ** 2;
   const dip = Math.max(-1, Math.min(1, env * Math.sin(u * Math.PI * 2 * 7) - .7 * stare + sink));
   const hunt = env * Math.sin(u * Math.PI * 2 * 1.5);
-  const whip = Math.exp(-(((u - .88) / .04) ** 2)) * Math.sin((u - .88) * 120);
+  // the tail gives one small, late twitch of its own once the nose has sunk, after everything else is done
+  const whip = Math.exp(-(((u - .88) / .04) ** 2)) * Math.sin((u - .88) * 120)
+    + .3 * Math.exp(-(((u - .95) / .012) ** 2)) * Math.sin((u - .95) * 260);
   return {dip, hunt, whip: Math.max(-1, Math.min(1, whip))};
 }
 
