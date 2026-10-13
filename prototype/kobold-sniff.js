@@ -33,7 +33,8 @@ export function sniffPose(u, f = 1) {
   if (!(f > 0) || !(u > 0) || !(u < 1)) return p;
   p.sniff = SNIFF * (hump(u, .08, .17) + hump(u, .17, .26) + hump(u, .26, .34) + hump(u, .34, .42)) * f;
   p.stare = (STARE * win(u, .46, .82, .04) - CHECK * hump(u, .84, .95)) * f;
-  p.lash = LASH * (hump(u, .5, .6) - .3 * hump(u, .6, .7)) * f;
+  // the tip twitches once more as the head flicks back, too late to be of use
+  p.lash = LASH * (hump(u, .5, .6) - .3 * hump(u, .6, .7) + .25 * hump(u, .86, .92)) * f;
   return p;
 }
 
