@@ -179,6 +179,9 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 /* the DeanHack wordmark, small, in the bottom-right corner of the splash */
 #start-screen .start-mark{position:absolute;right:28px;bottom:22px;margin:0;font:700 20px/1 'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;letter-spacing:.14em;color:#d8cfbc;text-shadow:0 0 18px #ff963c38}
 #start-screen .start-mark b{color:#c9552e;font-weight:700}
+/* Hidden links: they look like the text round them, only the cursor gives them away. */
+#start-screen a.start-link{color:inherit;text-decoration:none;cursor:pointer}
+#start-screen a.start-link:focus-visible{outline:1px dotted currentColor;outline-offset:3px}
 #start-screen .start-tag{margin:14px 0 30px 3px;font:italic 19px/1.3 'Palatino Linotype',Palatino,Georgia,serif;color:#a9a392}
 #start-screen label{display:block;font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#7f909a;margin:0 0 8px 2px}
 #start-screen input{width:100%;height:46px;padding:0 14px;background:#0a1417d9;border:1px solid #64797299;border-radius:4px;color:#f1e8d4;font:18px Inter,system-ui,sans-serif}

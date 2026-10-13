@@ -75,7 +75,15 @@ function buildBottle(shape,look,{bubbles}){
  glass.push(base);
  // The liquid darkens toward the bottom and brightens at the surface.
  const fill=clean(liquidGeometry(shape,wall));
- paint(fill,(x,y,z,c)=>{const t=Math.min(1,y/shape.fill);c.copy(deep).lerp(liquidTone,t);if(y>=shape.fill-.0005)c.copy(surface);});
+ if(look.metallic){
+  // Metal has no colour of its own to glow: it is what it mirrors. With no environment to reflect,
+  // paint the reflection in: hard bright and dark bands round the bottle, like a polished blade,
+  // between the deep tone (liquid) and the highlight (glass colour).
+  const hi=new THREE.Color(look.glass),mid=new THREE.Color(look.liquid),lo=new THREE.Color(look.liquid).multiplyScalar(.3);
+  paint(fill,(x,y,z,c)=>{const a=Math.atan2(z,x),b=Math.sin(a*2+y*28)+.55*Math.sin(a*5-y*61);
+   if(b>.9)c.copy(mid).lerp(hi,Math.min(1,(b-.9)*2.2));else if(b<-.5)c.copy(mid).lerp(lo,Math.min(1,(-.5-b)*1.6));else c.copy(mid);
+   if(y>=shape.fill-.0005)c.copy(hi);});
+ }else paint(fill,(x,y,z,c)=>{const t=Math.min(1,y/shape.fill);c.copy(deep).lerp(liquidTone,t);if(y>=shape.fill-.0005)c.copy(surface);});
  liquid.push(fill);
  if(bubbles){
   // Bubbles clinging to the glass and rising through the liquid, brightest near the top.
@@ -140,9 +148,12 @@ export function createPotion({appearance='',color,count=1,seed}={}){
  const merge=list=>{const geo=mergeGeometries(list,false);list.forEach(x=>x.dispose());geo.computeBoundingBox();geo.computeBoundingSphere();return geo;};
  const glassMat=new THREE.MeshPhysicalMaterial({color:new THREE.Color(tint.glass).lerp(new THREE.Color(0xffffff),.35),roughness:.06,metalness:0,
   transmission:tint.transmission,transparent:true,opacity:Math.min(.5,tint.opacity*.7),clearcoat:1,clearcoatRoughness:.04,ior:1.5,depthWrite:false});
- // Golden and silver liquid is metal: mirror-bright, not a glowing dye.
- const liquidMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:tint.metallic?.16:.22,metalness:tint.metallic?.9:0,emissive:tint.liquid,emissiveIntensity:tint.emissiveIntensity,
+ // Golden and silver liquid is metal: mirror-bright, not a glowing dye. Its self-light follows the
+ // painted reflection bands (emissive times vertex colour), so it reads as polished metal in the dark.
+ const liquidMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:tint.metallic?.2:.22,metalness:tint.metallic?.55:0,
+  emissive:tint.metallic?0xffffff:tint.liquid,emissiveIntensity:tint.metallic?.5:tint.emissiveIntensity,
   transparent:tint.opacity<.6,opacity:tint.opacity<.6?Math.max(.55,tint.opacity+.2):1});
+ if(tint.metallic)liquidMat.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n\ttotalEmissiveRadiance *= vColor.rgb;');};
  const stopperMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92});
  const mesh=(geo,m,name,order)=>{const o=new THREE.Mesh(geo,m);o.name=name;o.renderOrder=order;o.castShadow=name!=='glass';o.receiveShadow=true;g.add(o);return o;};
  // The liquid draws before the glass round it, so it shows through.

@@ -161,9 +161,11 @@ test('the splash draws one of three dragon heads at random, uncredited, out of t
 
 test('the card says An UnNetHack Fork, with a small DeanHack wordmark bottom right and no tagline',()=>{
   const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
-  assert.match(src,/<h1>An UnNetHack Fork<\/h1>/);
-  assert.match(src,/class="start-mark"[^>]*>DEAN<b>HACK<\/b>/);
+  assert.match(src,/<h1>An <a class="start-link" href="https:\/\/github\.com\/UnNetHack\/UnNetHack"[^>]*>UnNetHack<\/a> Fork<\/h1>/);
+  assert.match(src,/class="start-mark"><a class="start-link" href="https:\/\/github\.com\/dean451\/deanhack"[^>]*>DEAN<b>HACK<\/b><\/a>/);
   assert.doesNotMatch(src,/A little light/);
   const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
   assert.match(css,/\.start-mark\{position:absolute;right:28px;bottom:22px/);
+  assert.match(css,/a\.start-link\{color:inherit;text-decoration:none/);
+
 });

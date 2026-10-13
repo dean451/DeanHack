@@ -58,3 +58,29 @@ test('floor glows have finite colours right out to the rim (NaN there turned the
   for(let i=0;i<c.length;i++)assert(Number.isFinite(c[i])&&c[i]>=0,`radius ${radius}: colour ${i} is ${c[i]}`);
  }
 });
+
+test('silver and golden potions read as polished metal: hard reflection bands, self-lit through them',()=>{
+ const lum=c=>.3*c.r+.59*c.g+.11*c.b;
+ for(const appearance of ['silver','golden']){
+  const p=createPotion({appearance}),liquid=p.getObjectByName('liquid'),col=liquid.geometry.attributes.color;
+  let lo=1,hi=0;for(let i=0;i<col.count;i++){const l=lum({r:col.getX(i),g:col.getY(i),b:col.getZ(i)});lo=Math.min(lo,l);hi=Math.max(hi,l);}
+  assert(hi-lo>.5,`${appearance} has bright and dark bands (${lo.toFixed(2)}..${hi.toFixed(2)})`);
+  assert(liquid.material.metalness>0&&liquid.material.emissive.getHex()===0xffffff,appearance);
+  const sh={fragmentShader:'#include <emissivemap_fragment>'};liquid.material.onBeforeCompile(sh);
+  assert.match(sh.fragmentShader,/totalEmissiveRadiance \*= vColor\.rgb/);
+  p.userData.dispose();
+ }
+ const silver=createPotion({appearance:'silver'}).getObjectByName('liquid').geometry.attributes.color;
+ let warm=0;for(let i=0;i<silver.count;i++)warm=Math.max(warm,silver.getX(i)-silver.getZ(i));
+ assert(warm<.05,'silver stays cool grey, never gold');
+});
+
+test('muddy is a near-black goo, apart from brown; amber is a warm, glowing resin',async()=>{
+ const {potionLook}=await import('./item-looks.js'),{potionStyle,GLOW_STYLE}=await import('./potion-fx.js');
+ const L=hex=>{const hsl={};new THREE.Color(hex).getHSL(hsl);return hsl.l;};
+ const muddy=potionLook('muddy'),brown=potionLook('brown');
+ assert(L(muddy.liquid)*4<L(brown.liquid)&&L(muddy.glass)*4<L(brown.glass),'muddy is far darker than brown');
+ assert.equal(muddy.opacity,1);
+ assert.equal(potionStyle('muddy').name,'ooze');
+ const amber=potionLook('amber');assert(amber.emissiveIntensity>=.6);assert(GLOW_STYLE.test('amber'));
+});

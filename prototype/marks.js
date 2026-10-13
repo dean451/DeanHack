@@ -1,11 +1,11 @@
-// Persistent combat marks: a fight leaves a dark stain where it happened. A hit spatters a small
-// ragged splat on the floor, a kill leaves a wider pool with a few bone shards beside it. Flat,
-// angular shapes (never round blobs), shared geometry, a hard cap, and the oldest mark fades out
-// first when the cap is reached. Positions come from combat events (combat-events.js).
-export const MARK_MAX = 40, FADE_S = 1.2, SPLAT_SIDES = 9;
+// Persistent combat marks: a fight leaves a dark stain where it happened. A hit leaves a small
+// puddle on the floor, a kill a wider pool with a few bone shards beside it. Puddles are smooth,
+// gently lobed outlines (never spiky stars), quiet in colour, with shared geometry, a hard cap, and
+// the oldest mark fading out first when the cap is reached. Positions come from combat events (combat-events.js).
+export const MARK_MAX = 40, FADE_S = 1.2, SPLAT_SIDES = 40;
 export const KINDS = {
-  splat: {color: 0x4a0c0c, opacity: .78, r: .2},
-  pool: {color: 0x2e0707, opacity: .86, r: .36},
+  splat: {color: 0x3a0909, opacity: .55, r: .13},
+  pool: {color: 0x2a0606, opacity: .68, r: .3},
   bone: {color: 0xb8ae94, opacity: .9, r: .07},
 };
 
@@ -28,11 +28,16 @@ export function marksFor(ev) {
   return out;
 }
 
-// A jagged flat polygon: alternating long and short radii give a spiky, angular stain.
+// A flat puddle: a smooth outline whose radius swells in two or three slow lobes, so it reads
+// as liquid that ran and settled, not a spiky star.
+export function puddleRadius(seed, a) {
+  const p1 = hash(seed, 1) * 6.283, p2 = hash(seed, 2) * 6.283, p3 = hash(seed, 3) * 6.283;
+  return .78 + .14 * Math.sin(2 * a + p1) + .09 * Math.sin(3 * a + p2) + .04 * Math.sin(5 * a + p3);
+}
 function splatGeometry(THREE, seed) {
   const pts = [];
-  for (let i = 0; i < SPLAT_SIDES * 2; i++) {
-    const a = i / (SPLAT_SIDES * 2) * Math.PI * 2, r = (i % 2 ? .45 : .75) + hash(seed, i) * .25;
+  for (let i = 0; i < SPLAT_SIDES; i++) {
+    const a = i / SPLAT_SIDES * Math.PI * 2, r = puddleRadius(seed, a);
     pts.push(new THREE.Vector2(Math.cos(a) * r, Math.sin(a) * r));
   }
   const g = new THREE.ShapeGeometry(new THREE.Shape(pts));
