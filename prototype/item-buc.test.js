@@ -204,3 +204,10 @@ test('known holy and unholy water carry their state in the name', () => {
   assert.equal(itemBuc('a potion of water'), null);
   assert.equal(itemHint('a potion of holy water'), 'blessed');
 });
+
+test('a shop price with no label is a for-sale price', () => {
+  assert.deepEqual(itemFacts('a dagger (4 zorkmids)'), ['for sale 4zm']);
+  assert.deepEqual(itemFacts('a dagger (1 zorkmid)'), ['for sale 1zm']);
+  assert.deepEqual(itemFacts('an apple (unpaid, 7 zorkmids)'), ['unpaid 7zm']);
+  assert.equal(itemHint('a blessed +1 dagger (40 zorkmids)'), 'blessed, enchanted up, for sale 40zm');
+});
