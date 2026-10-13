@@ -3007,6 +3007,11 @@ function seaMonster(o){
  if(o.gills)for(const side of [-1,1])for(let k=0;k<5;k++){const s=part(body,new THREE.BoxGeometry(.004,H*.7,.01),dark,side*H*.79,y,L*.36-k*.035);s.rotation.z=side*.1;}
  // old battle scars: three pale slashes raked across the right flank
  if(o.scars){const sc=mat('#c8c4b4',{roughness:.7});for(let k=0;k<3;k++){const s=part(body,new THREE.BoxGeometry(.004,H*.9,.01),sc,H*.8,y+H*.08-k*H*.02,L*.1-k*L*.07);s.rotation.set(.2,0,-.35+k*.1);}}
+ // a snapped harpoon head still buried in the right flank behind the dorsal: rust-black shaft stub, two barbs and a frayed line
+ if(o.harpoon){const iron=mat('#2a2022',{roughness:.5,metalness:.6});iron.name='shark-harpoon';
+  const hx=H*.74,hy=y+H*.3,hz=-L*.04,shaft=cone(body,H*.07,H*.5,iron,hx+H*.1,hy+H*.12,hz,5);shaft.rotation.set(.15,0,-1.1);
+  for(const k of [-1,1]){const b=cone(body,H*.05,H*.22,iron,hx+H*.02,hy,hz+k*H*.12,4);b.rotation.set(k*.9,0,-.5);}
+  segment(body,[hx+H*.38,hy+H*.3,hz],[hx+H*.5,hy+H*.12,hz-H*.3],H*.018,H*.008,dark);segment(body,[hx+H*.5,hy+H*.12,hz-H*.3],[hx+H*.46,hy-H*.1,hz-H*.5],H*.008,H*.004,dark);}
  // mouth: a dark slit under the snout lined with teeth; a piranha's jaw juts forward
  const jawZ=L*(o.underbite?.8:.66),jawY=y-H*(o.underbite?.35:.5);
  const slit=part(body,new THREE.TorusGeometry(H*.42,H*.1,6,14,Math.PI),mouth,0,jawY,jawZ-H*.25);slit.rotation.x=Math.PI/2;slit.rotation.z=Math.PI;
@@ -3015,7 +3020,7 @@ function seaMonster(o){
  return trimDraws(actor(g,body,[],tail,[],'hover'));
 }
 const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{form:'fish',color:'#8a8a94',belly:'#c83a2a',fin:'#6a5a5a',length:.26,depth:.13,underbite:true,dorsal:1,scale:.8},
- shark:{form:'fish',scars:true,color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',scars:true,color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
+ shark:{form:'fish',scars:true,harpoon:true,color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',scars:true,color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
  'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff',scale:1.25},kraken:{form:'kraken',color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
  'watcher in the water':{form:'kraken',color:'#4a5a52',belly:'#9aa89a',eye:'#b8ff90',arms:16,eyeGlow:2.8,scale:1.9}};
 

@@ -30,3 +30,9 @@ test('the giant eel carries pale scars on its neck and two long fangs; the elect
   assert(pale('giant eel') > 0);
   assert.equal(pale('electric eel'), 0);
 });
+
+test('the shark carries a snapped harpoon head in its flank; the piranha does not', () => {
+  const names = name => { const a = createCreature({name, symbol: 59, color: 7}); const s = new Set(); a.g.traverse(o => { if (o.isMesh) s.add(o.material.name); }); return s; };
+  assert(names('shark').has('shark-harpoon'));
+  assert(!names('piranha').has('shark-harpoon'));
+});
