@@ -197,3 +197,10 @@ test('invisible, broken and fixed items say so in the hover', () => {
   assert.deepEqual(itemFacts('a broken large box'), ['broken']);
   assert.deepEqual(itemFacts('a fixed +0 crysknife'), ['fixed']);
 });
+
+test('known holy and unholy water carry their state in the name', () => {
+  assert.equal(itemBuc('a potion of holy water'), 'blessed');
+  assert.equal(itemBuc('2 potions of unholy water'), 'cursed');
+  assert.equal(itemBuc('a potion of water'), null);
+  assert.equal(itemHint('a potion of holy water'), 'blessed');
+});
