@@ -84,3 +84,18 @@ test('muddy is a near-black goo, apart from brown; amber is a warm, glowing resi
  assert.equal(potionStyle('muddy').name,'ooze');
  const amber=potionLook('amber');assert(amber.emissiveIntensity>=.6);assert(GLOW_STYLE.test('amber'));
 });
+
+test('metal potions are not veiled: clear glass, opaque liquid shaded like armour, no bright surface disc',()=>{
+ for(const appearance of ['silver','golden']){
+  const p=createPotion({appearance}),glass=p.getObjectByName('glass').material,liquid=p.getObjectByName('liquid');
+  assert(glass.opacity<=.12&&glass.transmission===0,`${appearance} glass is a bare skin, not a milky veil`);
+  assert.equal(liquid.material.transparent,false,`${appearance} liquid is opaque`);
+  assert(liquid.material.metalness>=.8&&liquid.material.emissiveIntensity<=.3,`${appearance} is shaded like metal, not a glowing dye`);
+  // the top surface (seen from the camera above) carries dark bands as well as bright ones
+  const pos=liquid.geometry.attributes.position,col=liquid.geometry.attributes.color;let top=0,dark=0,maxY=0;
+  for(let i=0;i<pos.count;i++)maxY=Math.max(maxY,pos.getY(i));
+  for(let i=0;i<pos.count;i++)if(pos.getY(i)>maxY-.006){top++;if(col.getX(i)+col.getY(i)+col.getZ(i)<.3)dark++;}
+  assert(dark>top*.15,`${appearance} surface has dark reflection bands (${dark}/${top})`);
+  p.userData.dispose();
+ }
+});
