@@ -1007,6 +1007,9 @@ function centaur(o){
   // held upright beside the flank, butt near the ground
   cylinder(weaponSocket,.016,.016,1.08,wood,0,.1,0,6);
   const tip=cone(weaponSocket,.034,.15,M.steel,0,.715,0,4);tip.scale.z=.4;
+  // barbs flaring below the blade, and old blood dried black on its edge
+  for(const side of [-1,1]){const barb=cone(weaponSocket,.012,.06,M.steel,side*.03,.62,0,3);barb.rotation.z=side*-2.5;}
+  sphere(weaponSocket,.02,mat('#2a0c0a',{roughness:.9}),0,.68,.006,.7,2.2,.5);
   cylinder(weaponSocket,.02,.02,.06,leather,0,.6,0,6);
  }
  if(o.weapon==='club'){

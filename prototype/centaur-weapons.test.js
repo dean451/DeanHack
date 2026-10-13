@@ -16,3 +16,8 @@ test('the mountain centaur club has rusted nails driven out through its head',()
  assert(club,'a club hangs from the fist');
  assert(reach(club)>.1,`nail points stand proud of the club head (${reach(club).toFixed(3)})`);
 });
+
+test('the plains centaur spear has barbs flaring below the blade',()=>{
+ const spear=make('plains centaur').weaponSocket;
+ assert(reach(spear)>.045,`barbs flare out past the blade (${reach(spear).toFixed(3)})`);
+});
