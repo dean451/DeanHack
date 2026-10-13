@@ -115,3 +115,12 @@ test('a sensed monster out of sight gets its own faint mark, apart from the host
   assert.equal(sensed.mark, 'faint');
   assert.notEqual(sensed.mark, seen.mark);
 });
+
+test('other terrain features (ice, cloud, drawbridge) draw a hatched cell instead of a hole', () => {
+  const f = cellStyle({x: 1, z: 1, terrain: 'feature', visible: true}, hero);
+  assert.equal(f.mark, 'hatch');
+  assert.notEqual(f.fill, cellStyle({x: 1, z: 1, terrain: 'floor', visible: true}, hero).fill);
+  assert.notEqual(f.fill, cellStyle({x: 1, z: 1, terrain: 'wall'}, hero).fill);
+  assert.notEqual(cellStyle({x: 1, z: 1, terrain: 'feature', visible: false}, hero).fill, f.fill);
+  assert.equal(cellStyle({x: 1, z: 1, terrain: 'feature', object: {name: 'dagger'}}, hero).mark, 'dot');
+});
