@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Almendra:wght@400;700&family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:wght@400;500;600&family=IM+Fell+English:ital@0;1&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Almendra:wght@400;700&family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:wght@400;500;600&family=IM+Fell+English:ital@0;1&family=Inter:wght@400;500;600&family=Pirata+One&display=swap');
 :root{font-family:Inter,system-ui,sans-serif;color:#ebe5d6;background:#081326;font-synthesis:none}*{box-sizing:border-box}body{margin:0;overflow:hidden;background:radial-gradient(ellipse at 50% 38%,#294b68 0%,#142d50 36%,#081326 74%)}body::before,body::after{content:"";position:fixed;inset:-16%;pointer-events:none;z-index:2;mix-blend-mode:screen}.canvas{position:relative}body::before{background:radial-gradient(ellipse at 22% 68%,#528da044 0 14%,transparent 38%),radial-gradient(ellipse at 78% 25%,#718fca30 0 12%,transparent 36%);filter:blur(38px);animation:smoke-drift 28s ease-in-out infinite alternate}body::after{background:radial-gradient(ellipse at 42% 86%,#9b9b5d22 0 10%,transparent 28%),radial-gradient(ellipse at 65% 58%,#4b83a830 0 11%,transparent 34%);filter:blur(65px);animation:smoke-drift 37s ease-in-out -8s infinite alternate-reverse}@keyframes smoke-drift{from{transform:translate3d(-2%,1%,0) scale(1)}to{transform:translate3d(3%,-2%,0) scale(1.08)}}#scene{position:fixed;inset:0;z-index:1}canvas{display:block}header{position:absolute;top:34px;left:40px;right:40px;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3}.location{text-align:center}small{font-size:10px;letter-spacing:2px;color:#aab9c5}.location h1{font:500 38px 'Cormorant Garamond',Georgia,serif;margin:8px 0;color:#f0e6d4}.character{position:absolute;top:25%;left:40px;width:215px;pointer-events:none;z-index:3}.character h2{font:400 32px/1.15 'Cormorant Garamond',Georgia,serif;margin:13px 0 28px}.health{display:flex;justify-content:space-between;font-size:9px;letter-spacing:2px;color:#b6c4ce}.health strong{font-weight:400;letter-spacing:1px}.bar{height:3px;background:#ffffff14;margin:12px 0 18px}.bar i{display:block;height:100%;width:100%;background:#b3b86f;transition:width .3s}.stats{display:flex;justify-content:space-between;color:#9aaab7;font-size:10px}.stats b{color:#e4d8c2;font-weight:400;margin-left:6px}.companion{margin-top:28px;padding-top:20px;border-top:1px solid #829c8e22;font:20px Georgia,serif}.companion small{display:block;font:8px Inter,sans-serif;letter-spacing:1.5px;margin:9px 0 0 15px}.dot{display:inline-block;background:#bfc79a;width:5px;height:5px;border-radius:50%;vertical-align:middle;margin-right:8px}.legend{position:absolute;right:40px;top:31%;width:180px;pointer-events:none;z-index:3}.legend>small{font-size:8px;line-height:1.8}.legend p{font:italic 24px/1.2 'Cormorant Garamond',Georgia,serif;color:#c7d3d4}.legend div{font-size:10px;margin-top:16px;color:#aabac2}.legend i{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:10px}.cyan{background:#6edddd;box-shadow:0 0 9px #6edddd}.orange{background:#e9a36b;box-shadow:0 0 9px #e9a36b}.log{position:absolute;bottom:145px;left:25%;right:25%;text-align:center;font:italic 21px 'Cormorant Garamond',Georgia,serif;color:#d6d9c9;text-shadow:0 2px 10px #000;pointer-events:none;z-index:3}footer{position:absolute;bottom:25px;left:40px;right:40px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:18px;border-top:1px solid #b2c2b322;padding-top:20px;z-index:3}.keys{display:flex;gap:20px;color:#aab8c0;font-size:10px;align-items:center}kbd{font:9px Inter,sans-serif;border:1px solid #7489a266;padding:5px;border-radius:3px;color:#d1d9df;margin-right:4px}.buttons{display:flex;gap:8px}button{cursor:pointer;border:1px solid #738ba050;background:#12233bbb;color:#cbd8df;border-radius:3px;padding:9px 12px;font:10px Inter,sans-serif}button:hover,button:focus-visible{background:#294660;border-color:#c4b683}@media(max-width:1000px){.legend{display:none}.character{width:160px;left:24px} .character h2{font-size:26px}header{left:24px;right:24px}.keys{gap:10px;flex-wrap:wrap}footer{left:24px;right:24px;gap:12px}.log{bottom:170px}}@media(max-width:650px){.character{top:120px;width:125px}.character h2{display:none}.character>small{display:block;margin-bottom:15px}.companion{margin-top:15px}.location h1{font-size:27px}.location small{font-size:7px}.keys{font-size:9px}.log{left:12%;right:12%;font-size:18px;bottom:195px}}
 /* Functional text stays readable independently of the 3D camera. */
 .health,.stats,.legend div,.keys,button{font-size:12px}.health{letter-spacing:1px}kbd{font-size:11px}.companion small{font-size:10px}.legend>small{font-size:10px}.keys{gap:14px}footer{gap:12px}@media(max-width:1000px){.keys{gap:10px}.log{bottom:180px}}@media(max-width:650px){.keys{font-size:11px}.log{bottom:210px}}
@@ -160,17 +160,25 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 #ground-notice li{break-inside:avoid}
 
 /* Start screen: a name and one button over the dimmed demo room. */
-#start-screen{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;gap:64px;padding:24px;background:radial-gradient(ellipse at 50% 42%,#050a0ce0 0%,#030609f2 62%,#020405 100%);backdrop-filter:blur(3px);color:#e9e2cf}
+#start-screen{position:fixed;inset:0;z-index:60;padding:0;background:radial-gradient(ellipse at 50% 42%,#050a0ce0 0%,#030609f2 62%,#020405 100%);backdrop-filter:blur(3px);color:#e9e2cf}
+/* the dragon sits at the stage's top, offset by start-screen.js to centre it in the window, so a taller
+   card (the class list) never drags it down. The stage holds the dragon, the card and the wordmark: at least a screen tall, and taller when the
+   card is (the class list), so the wordmark in its bottom-right corner is pushed down, never covered */
+#start-screen .start-stage{position:relative;box-sizing:border-box;min-height:100%;display:flex;align-items:center;justify-content:center;gap:64px;padding:24px 24px 72px}
 #start-screen .start-card{width:min(440px,100%);text-align:left}
 /* Tua Xiong's dragon keeps the card company on wide screens and steps aside on narrow ones. */
-.start-dragon{margin:0;flex:none;font:9.5px/1.08 'Courier New',Courier,monospace;white-space:pre;color:#6fb7b4;text-shadow:0 0 14px #46bebe70,0 0 2px #9fe3df60;user-select:none;animation:dragon-breathe 9s ease-in-out infinite alternate}
+.start-dragon{margin:0;flex:none;align-self:flex-start;font:max(4.5px,min(12px,calc((100vw - 600px) / (var(--cols,84) * .62)),calc((100vh - 60px) / (var(--lines,58) * 1.08))))/1.08 'Courier New',Courier,monospace;white-space:pre;color:#6fb7b4;text-shadow:0 0 14px #46bebe70,0 0 2px #9fe3df60;user-select:none;animation:dragon-breathe 9s ease-in-out infinite alternate}
 @keyframes dragon-breathe{from{opacity:.84}to{opacity:1}}
-.start-credit{margin:34px 0 0 3px;font:11px Inter,system-ui,sans-serif;letter-spacing:.08em;color:#5f6f76}
-@media(max-width:1000px),(max-height:560px){.start-dragon,.start-credit{display:none}}
+/* the dragon shrinks to fit beside the card, and only gives way on really small screens */
+@media(max-width:760px),(max-height:400px){.start-dragon{display:none}}
 @media(prefers-reduced-motion:reduce){.start-dragon{animation:none}}
 #start-screen small{display:block;font:600 11px/1 'Courier New',monospace;letter-spacing:.42em;color:#6fb7b4;text-shadow:0 0 14px #46bebe80;margin:0 0 16px 3px}
-#start-screen h1{margin:0;font:700 clamp(54px,12vw,92px)/.9 'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;letter-spacing:.06em;text-shadow:0 0 38px #ff963c47,0 3px 0 #0a0d0e}
-#start-screen h1 b{color:#c9552e}
+#start-screen h1{margin:0 0 26px;text-align:center;font:400 clamp(28px,5vw,38px)/1.15 'Pirata One','Old English Text MT',serif;letter-spacing:.02em;color:#9c978b;text-shadow:0 2px 0 #0a0d0e}
+/* the kicker sits centred over the card with the heading */
+#start-screen .start-card>small{text-align:center}
+/* the DeanHack wordmark, small, in the bottom-right corner of the splash */
+#start-screen .start-mark{position:absolute;right:28px;bottom:22px;margin:0;font:700 20px/1 'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;letter-spacing:.14em;color:#d8cfbc;text-shadow:0 0 18px #ff963c38}
+#start-screen .start-mark b{color:#c9552e;font-weight:700}
 #start-screen .start-tag{margin:14px 0 30px 3px;font:italic 19px/1.3 'Palatino Linotype',Palatino,Georgia,serif;color:#a9a392}
 #start-screen label{display:block;font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#7f909a;margin:0 0 8px 2px}
 #start-screen input{width:100%;height:46px;padding:0 14px;background:#0a1417d9;border:1px solid #64797299;border-radius:4px;color:#f1e8d4;font:18px Inter,system-ui,sans-serif}
@@ -195,20 +203,22 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 /* Class screen: the second step for a new character. */
 #start-screen .start-card:has(.step-class:not([hidden])){width:min(640px,100%)}
 #start-screen .step-class[hidden],#start-screen .step-name[hidden]{display:none}
-.class-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px;margin:2px 0 18px}
-.class-grid button{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:11px 13px;background:#0a1417b3;border:1px solid #64797266;border-radius:4px;color:#d8cfbb;cursor:pointer;text-align:left}
-.class-grid button b{font:600 15px Inter,system-ui,sans-serif}
-.class-grid button i{font:normal 10px Inter,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7f909a}
+.class-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:5px;margin:2px 0 12px}
+.class-grid button{display:flex;justify-content:space-between;align-items:baseline;gap:6px;padding:6px 9px;background:#0a1417b3;border:1px solid #64797266;border-radius:4px;color:#d8cfbb;cursor:pointer;text-align:left}
+.class-grid button b{font:600 13px Inter,system-ui,sans-serif}
+.class-grid button i{font:normal 9px Inter,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7f909a}
 .class-grid button[data-level=easy] i{color:#7fb98a}.class-grid button[data-level=hard] i{color:#c9684a}
 .class-grid button:hover,.class-grid button:focus-visible{border-color:#6fb7b4;outline:none}
 .class-grid button.on{border-color:#c9552e;background:#2a1710;color:#fff1de}
-.class-detail{min-height:132px;padding:14px 16px;background:#0a1417a6;border:1px solid #64797244;border-radius:4px}
-.class-blurb{margin:0 0 14px;font:italic 17px/1.35 'Palatino Linotype',Palatino,Georgia,serif;color:#cfc6b2}
+.class-detail{min-height:0;padding:10px 14px;background:#0a1417a6;border:1px solid #64797244;border-radius:4px}
+.class-blurb{margin:0 0 9px;font:italic 15px/1.3 'Palatino Linotype',Palatino,Georgia,serif;color:#cfc6b2}
 .class-opts{display:grid;gap:9px}
-.class-opts .opt{display:flex;align-items:center;gap:12px}
-.class-opts .opt>span{flex:0 0 74px;font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#7f909a}
+/* race, gender and alignment sit side by side on one row, wrapping only if they must */
+.class-opts{display:flex;flex-wrap:wrap;gap:6px 22px}
+.class-opts .opt{display:flex;align-items:center;gap:8px}
+.class-opts .opt>span{flex:none;font:600 9px/1 Inter,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#7f909a}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
-.seg button{padding:5px 11px;background:transparent;border:1px solid #64797266;border-radius:3px;color:#aeb9bf;font:13px Inter,system-ui,sans-serif;cursor:pointer}
+.seg button{padding:3px 9px;background:transparent;border:1px solid #64797266;border-radius:3px;color:#aeb9bf;font:13px Inter,system-ui,sans-serif;cursor:pointer}
 .seg button.on{border-color:#6fb7b4;background:#10282a;color:#e6f0ee}
 .seg button:disabled{cursor:default}.seg button:not(.on):disabled{display:none}
 .seg button:not(:disabled):hover,.seg button:not(:disabled):focus-visible{border-color:#6fb7b4;outline:none}
@@ -217,7 +227,7 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 .start-back{margin-top:14px;padding:4px 2px;background:none;border:0;color:#6f7f88;font:12px Inter,system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .start-back:hover,.start-back:focus-visible{color:#aeb9bf;outline:none}
 #start-screen{overflow:auto}
-@media (max-height:760px){#start-screen{place-items:start center}#start-screen h1{font-size:clamp(44px,9vw,68px)}}
+@media (max-height:760px){#start-screen .start-stage{align-items:flex-start}#start-screen h1{font-size:clamp(26px,4.5vw,32px);margin-bottom:14px}#start-screen small{margin-bottom:10px}#start-screen .start-stage{padding-top:16px}}
 
 .hero-condition.mild{color:#e0b060;border-color:#e0b06066}
 

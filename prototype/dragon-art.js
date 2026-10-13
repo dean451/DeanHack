@@ -1,58 +1,12 @@
 // The splash dragons. One is drawn at random each time the start screen shows.
 // Each is at most 84 columns so it sits beside the card at 1366 wide.
-// - Tua Xiong's ASCII dragon, a classic of the form, reproduced whole with the signature as it
-//   has always circulated.
 // - Two tone-mapped conversions (brightness to glyph) of dragon-head illustrations, made with
-//   the converter in tools/ascii-art.mjs from stock art the user supplied; ink lines map to the
-//   dense glyphs.
+//   the converter in tools/ascii-art.mjs; ink lines map to the dense glyphs.
+// - A third head derived from those two: the red head mirrored to face the other way and inked one
+//   tone darker, a heavier cousin. The glyphs (. : o 8 @) are all symmetric, so mirroring is clean.
 // Stored line by line because the art uses backticks and backslashes.
 export const DRAGONS=[
- {name:'Tua Xiong',credit:'Tua Xiong',art:[
-    "                                        ,   ,",
-    "                                        $,  $,     ,",
-    "                                        \"ss.$ss. .s'",
-    "                                ,     .ss$$$$$$$$$$s,",
-    "                                $. s$$$$$$$$$$$$$$`$$Ss",
-    "                                \"$$$$$$$$$$$$$$$$$$o$$$       ,",
-    "                               s$$$$$$$$$$$$$$$$$$$$$$$$s,  ,s",
-    "                              s$$$$$$$$$\"$$$$$$\"\"\"\"$$$$$$\"$$$$$,",
-    "                              s$$$$$$$$$$s\"\"$$$$ssssss\"$$$$$$$$\"",
-    "                             s$$$$$$$$$$'         `\"\"\"ss\"$\"$s\"\"",
-    "                             s$$$$$$$$$$,              `\"\"\"\"\"$  .s$$s",
-    "                             s$$$$$$$$$$$$s,...               `s$$'  `",
-    "                         `ssss$$$$$$$$$$$$$$$$$$$$####s.     .$$\"$.   , s-",
-    "                           `\"\"\"\"$$$$$$$$$$$$$$$$$$$$#####$$$$$$\"     $.$'",
-    " Posable artist:                 \"$$$$$$$$$$$$$$$$$$$$$####s\"\"     .$$$|",
-    "   -Tua Xiong                      \"$$$$$$$$$$$$$$$$$$$$$$$$##s    .$$\" $",
-    "                                   $$\"\"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\"   `",
-    "                                  $$\"  \"$\"$$$$$$$$$$$$$$$$$$$$S\"\"\"\"'",
-    "                             ,   ,\"     '  $$$$$$$$$$$$$$$$####s",
-    "                             $.          .s$$$$$$$$$$$$$$$$$####\"",
-    "                 ,           \"$s.   ..ssS$$$$$$$$$$$$$$$$$$$####\"",
-    "                 $           .$$$S$$$$$$$$$$$$$$$$$$$$$$$$#####\"",
-    "                 Ss     ..sS$$$$$$$$$$$$$$$$$$$$$$$$$$$######\"\"",
-    "                  \"$$sS$$$$$$$$$$$$$$$$$$$$$$$$$$$########\"",
-    "           ,      s$$$$$$$$$$$$$$$$$$$$$$$$#########\"\"'",
-    "           $    s$$$$$$$$$$$$$$$$$$$$$#######\"\"'      s'         ,",
-    "           $$..$$$$$$$$$$$$$$$$$$######\"'       ....,$$....    ,$",
-    "            \"$$$$$$$$$$$$$$$######\"' ,     .sS$$$$$$$$$$$$$$$$s$$",
-    "              $$$$$$$$$$$$#####\"     $, .s$$$$$$$$$$$$$$$$$$$$$$$$s.",
-    "   )          $$$$$$$$$$$#####'      `$$$$$$$$$###########$$$$$$$$$$$.",
-    "  ((          $$$$$$$$$$$#####       $$$$$$$$###\"       \"####$$$$$$$$$$",
-    "  ) \\         $$$$$$$$$$$$####.     $$$$$$###\"             \"###$$$$$$$$$   s'",
-    " (   )        $$$$$$$$$$$$$####.   $$$$$###\"                ####$$$$$$$$s$$'",
-    " )  ( (       $$\"$$$$$$$$$$$#####.$$$$$###'                .###$$$$$$$$$$\"",
-    " (  )  )   _,$\"   $$$$$$$$$$$$######.$$##'                .###$$$$$$$$$$",
-    " ) (  ( \\.         \"$$$$$$$$$$$$$#######,,,.          ..####$$$$$$$$$$$\"",
-    "(   )$ )  )        ,$$$$$$$$$$$$$$$$$$####################$$$$$$$$$$$\"",
-    "(   ($$  ( \\     _sS\"  `\"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$S$$,",
-    " )  )$$$s ) )  .      .   `$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\"'  `$$",
-    "  (   $$$Ss/  .$,    .$,,s$$$$$$##S$$$$$$$$$$$$$$$$$$$$$$$$S\"\"        '",
-    "    \\)_$$$$$$$$$$$$$$$$$$$$$$$##\"  $$        `$$.        `$$.",
-    "        `\"S$$$$$$$$$$$$$$$$$#\"      $          `$          `$",
-    "            `\"\"\"\"\"\"\"\"\"\"\"\"\"'",
-  ].join('\n')},
- {name:'red',credit:'a stock illustration',art:[
+ {name:'red',art:[
     "                                     .                    ..",
     "                                   :                   ..:        ..",
     "                                ..8             :8   ..o    ...:",
@@ -95,7 +49,7 @@ export const DRAGONS=[
     "                                   .:o@@8@@@oo       :       .",
     "                                  8o8@8@",
   ].join('\n')},
- {name:'ink',credit:'a stock illustration',art:[
+ {name:'ink',art:[
     "                  .o.                                          8:",
     "                 .8:.                    .                     oo.",
     "        .o.      :oo.                   ::.                   .oo:      oo",
@@ -151,5 +105,13 @@ export const DRAGONS=[
     "                                         ..",
   ].join('\n')},
 ];
+// Mirror a head left to right (padding every line to the same width first) and push each glyph one
+// step denser, so the third dragon is drawn from the other two rather than copied.
+const DENSER={' ':' ','.':':',':':'o','o':'8','8':'@','@':'@'};
+export function deriveHead(art){
+ const lines=art.split('\n'),w=Math.max(...lines.map(l=>l.length));
+ return lines.map(l=>[...l.padEnd(w)].reverse().map(c=>DENSER[c]??c).join('').replace(/\s+$/,'')).join('\n');
+}
+DRAGONS.push({name:'shadow',art:deriveHead(DRAGONS.find(d=>d.name==='red').art)});
 // Picks one for this showing. rand is injectable for tests.
 export function pickDragon(rand=Math.random){return DRAGONS[Math.min(DRAGONS.length-1,Math.floor(rand()*DRAGONS.length))];}
