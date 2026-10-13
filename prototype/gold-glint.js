@@ -21,7 +21,9 @@ export function coinPose(i, t) {
   const start = i * .045, life = i === 0 ? .5 : .36, u = clamp01((t - start) / life);
   if (u <= 0 || u >= 1) return {x: 0, y: 0, z: 0, spin: 0, alpha: 0, shine: 0};
   const hang = i === 0 ? smooth(u * 1.4) * (1 - smooth(Math.max(0, u - .6) / .4)) : 4 * u * (1 - u), a = i * 2.4 + 1;
-  return {x: Math.cos(a) * (.05 + .1 * u), y: .05 + .38 * hang, z: Math.sin(a) * (.05 + .1 * u), spin: u * (14 + i * 3), alpha: Math.min(1, u * 12) * (1 - smooth((u - .7) / .3)), shine: 1 - u};
+  // The reluctant coin shivers at the top of its climb, as if the air under it were not quite solid.
+  const shiver = i === 0 ? .012 * Math.sin(u * 110) * Math.sin(Math.PI * clamp01((u - .3) / .3)) : 0;
+  return {x: Math.cos(a) * (.05 + .1 * u), y: .05 + .38 * hang + shiver, z: Math.sin(a) * (.05 + .1 * u), spin: u * (14 + i * 3), alpha: Math.min(1, u * 12) * (1 - smooth((u - .7) / .3)), shine: 1 - u};
 }
 
 // The glint: a thin four-point cross that snaps open and shut once.
