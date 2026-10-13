@@ -1,12 +1,12 @@
 // A kobold's idle cringe (kobold.js). A kobold that stands still now and then goes jumpy, as if
 // it had heard the boot of something bigger: the head darts to one side, snaps to the other, ducks
-// low, and the tail flicks nervously with each start. Walking, an action or death takes it back
+// low, and the tail flicks nervously with each start, and the whole back hunches down with the duck. Walking, an action or death takes it back
 // within a moment.
 //
 // Offsets only: the head's pitch (rotation.x) and yaw (rotation.y) and the tail's swing (rotation.z)
 // are added on top of whatever gait.js and the action layer wrote, and taken back first next frame,
 // so nothing drifts.
-export const DART = .55, DUCK = .3, FLICK = .5;
+export const DART = .55, DUCK = .3, FLICK = .5, HUNCH = .14;
 export const FIRST_MIN = 2, FIRST_SPAN = 4, GAP_MIN = 4, GAP_SPAN = 8, LEN = 2.4;
 const SNAP = 1e-3, FADE_OUT = 14;
 
@@ -31,11 +31,12 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 // Call once per frame after the gait layer. `busy` is true while the actor walks or acts.
 export function updateKoboldCringe(actor, dt, t, busy) {
   if (!cringes(actor)) return null;
-  const st = actor.koboldCringe || (actor.koboldCringe = {seed: ((actor.g?.id ?? 1) * 4421) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {x: 0, y: 0, z: 0}});
+  const st = actor.koboldCringe || (actor.koboldCringe = {seed: ((actor.g?.id ?? 1) * 4421) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {x: 0, y: 0, z: 0, b: 0}});
   const o = st.o, head = actor.head, tail = actor.tail;
+  actor.body.rotation.x -= o.b;
   head.rotation.x -= o.x; head.rotation.y -= o.y;
   if (tail) tail.rotation.z -= o.z;
-  st.o = {x: 0, y: 0, z: 0};
+  st.o = {x: 0, y: 0, z: 0, b: 0};
   if (!st.wait && st.s == null) st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
   const still = !busy && !actor.actions?.dead;
@@ -49,7 +50,8 @@ export function updateKoboldCringe(actor, dt, t, busy) {
   }
   if (st.s == null) return null;
   const p = cringePose(st.s), f = st.f;
-  st.o = {x: DUCK * p.duck * f, y: DART * p.dart * f, z: FLICK * p.flick * f};
+  st.o = {x: DUCK * p.duck * f, y: DART * p.dart * f, z: FLICK * p.flick * f, b: HUNCH * p.duck * f};
+  actor.body.rotation.x += st.o.b;
   head.rotation.x += st.o.x; head.rotation.y += st.o.y;
   if (tail) tail.rotation.z += st.o.z;
   return p;

@@ -23,18 +23,19 @@ test('the turn is stepped: it jumps in hard snaps and swings past the start', ()
 
 test('a standing grid bug snaps, stays in bounds and ends exactly at rest', () => {
   const bug = createGridBug(), a = bug;
-  const y = a.body.rotation.y, lx = a.legs.map(l => l.rotation.x);
+  const y = a.body.rotation.y, py = a.body.position.y, lx = a.legs.map(l => l.rotation.x);
   assert.ok(M.snaps(a));
   let seen = 0;
   for (let i = 0; i < 60 * 40; i++) {
     updateFidget(a, dt, i * dt, false, null);
     if (a.gridBugSnap?.s != null) seen++;
     assert.ok(Math.abs(a.body.rotation.y - y) <= M.SNAP_YAW + 1e-9);
+    assert.ok(a.body.position.y - py >= -1e-9 && a.body.position.y - py <= M.JOLT + 1e-9);
     a.legs.forEach((l, k) => assert.ok(Math.abs(l.rotation.x - lx[k]) <= M.BUZZ + 1e-9));
   }
   assert.ok(seen > 60, 'it moved');
   for (let i = 0; i < 120; i++) updateFidget(a, dt, i * dt, true, null);
-  assert.ok(Math.abs(a.body.rotation.y - y) < 1e-9);
+  assert.ok(Math.abs(a.body.rotation.y - y) < 1e-9 && Math.abs(a.body.position.y - py) < 1e-9);
   a.legs.forEach((l, k) => assert.ok(Math.abs(l.rotation.x - lx[k]) < 1e-9));
   a.g.userData.dispose();
 });

@@ -16,17 +16,19 @@ test('poses stay in bounds and end at zero', () => {
 });
 
 test('a standing large kobold does it now and then, stays in bounds and ends exactly at rest', () => {
-  const a = mon('large kobold'), x = a.head.rotation.x, y = a.head.rotation.y, z = a.tail?.rotation.z ?? 0;
+  const a = mon('large kobold'), x = a.head.rotation.x, y = a.head.rotation.y, z = a.tail?.rotation.z ?? 0, bx = a.body.rotation.x;
   assert.ok(M.cringes(a));
   let seen = 0;
   for (let i = 0; i < 60 * 40; i++) {
     updateFidget(a, dt, i * dt, false, null);
     if (a.koboldCringe?.s != null) seen++;
     assert.ok(Math.abs(a.head.rotation.x - x) <= M.DUCK + 1e-9 && Math.abs(a.head.rotation.y - y) <= M.DART + 1e-9);
+    assert.ok(Math.abs(a.body.rotation.x - bx) <= M.HUNCH + 1e-9);
   }
   assert.ok(seen > 60, 'it moved');
   for (let i = 0; i < 120; i++) updateFidget(a, dt, i * dt, true, null);
   assert.ok(Math.abs(a.head.rotation.x - x) < 1e-9 && Math.abs(a.head.rotation.y - y) < 1e-9);
+  assert.ok(Math.abs(a.body.rotation.x - bx) < 1e-9, 'hunch returns exactly');
   if (a.tail) assert.ok(Math.abs(a.tail.rotation.z - z) < 1e-9);
 });
 
