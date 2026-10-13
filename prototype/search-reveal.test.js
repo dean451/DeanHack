@@ -46,3 +46,16 @@ test('it plays on the hero\'s square and clears itself', () => {
   assert.deepEqual(added[0], [3, 4]);
   fx.update(SEARCH.total + .1); assert.equal(fx.active, 0);
 });
+
+test('the last flake hangs mid-fall, then drops, never rising', () => {
+  const i = SEARCH.grit - 1, start = .12 + (i % 4) * .07;
+  let prev = 9, slow = 0;
+  for (let t = start + .01; t < SEARCH.total; t += .005) {
+    const p = gritPose(i, t);
+    if (p.alpha === 0) continue;
+    assert.ok(p.y <= prev + 1e-9, String(t));
+    if (prev - p.y < .002) slow++;
+    prev = p.y;
+  }
+  assert.ok(slow > 3, 'it hangs');
+});

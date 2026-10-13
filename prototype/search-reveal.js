@@ -23,8 +23,10 @@ export function ringPose(t) {
 
 // Grit i: a fleck shaken off above, falling in a dead straight drop with a little tremor.
 export function gritPose(i, t) {
-  const start = .12 + (i % 4) * .07, u = clamp01((t - start) / .4), a = i * 2.4 + .5, r = .35 + (i % 3) * .22;
-  if (u <= 0 || u >= 1) return {x: 0, y: 0, z: 0, alpha: 0};
+  const start = .12 + (i % 4) * .07, a = i * 2.4 + .5, r = .35 + (i % 3) * .22;
+  // The last flake will not fall with the rest: halfway down it hangs a beat, then drops.
+  const u = clamp01((t - start) / .4 - (i === SEARCH.grit - 1 ? .1 * Math.sin(Math.PI * clamp01((t - start - .12) / .16)) : 0));
+  if (t <= start || u >= 1) return {x: 0, y: 0, z: 0, alpha: 0};
   return {x: Math.cos(a) * r + Math.sin(t * 40 + i) * .008, y: 1.1 * (1 - u * u) + .02, z: Math.sin(a) * r, alpha: .8 * (1 - smooth((u - .75) / .25))};
 }
 
