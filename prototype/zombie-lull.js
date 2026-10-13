@@ -25,7 +25,9 @@ export function lullPose(u) {
   if (!(u > 0) || !(u < 1)) return {sag: 0, spasm: 0};
   const sag = smooth(u / .5) * (1 - .55 * smooth((u - .62) / .03) - .45 * smooth((u - .7) / .03)) * (1 - smooth((u - .9) / .1));
   const jerk = c => Math.exp(-(((u - c) / .018) ** 2));
-  return {sag, spasm: Math.min(1, jerk(.64) + .8 * jerk(.72))};
+  // having snapped up it forgets again: the head lolls back over for a beat before the end
+  const forget = .3 * Math.sin(Math.PI * clamp01((u - .78) / .12)) ** 2;
+  return {sag: Math.min(1, sag + forget), spasm: Math.min(1, jerk(.64) + .8 * jerk(.72))};
 }
 
 function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; return st.seed / 2147483648; }

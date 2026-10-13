@@ -36,3 +36,9 @@ test('only zombies lull', () => {
   assert.equal(Z.updateZombieLull(mon('jackal'), dt, 0, false), null);
   assert.ok(Z.lulls(mon('ettin zombie')));
 });
+
+test('having snapped up, the head forgets itself and lolls back over before the end', () => {
+  assert.ok(Z.lullPose(.84).sag > .25, 'lolls back');
+  assert.ok(Z.lullPose(.84).sag > Z.lullPose(.76).sag);
+  assert.equal(Z.lullPose(.9).sag < .02, true);
+});

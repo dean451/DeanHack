@@ -34,3 +34,8 @@ test('only the right species does it', () => {
   assert.equal(M.updateRatSniff(mon('newt'), dt, 0, false), null);
   assert.equal(M.sniffs(mon('newt')), false);
 });
+
+test('the sniffing stops dead and the nose holds up in a stare before the whip', () => {
+  for (const u of [.82, .85, .87]) assert.ok(M.sniffPose(u).dip < -.5 + 1e-9, `held at ${u}`);
+  assert.ok(Math.abs(M.sniffPose(.5).dip) <= 1);
+});

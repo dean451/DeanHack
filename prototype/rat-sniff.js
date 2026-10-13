@@ -19,7 +19,9 @@ export const sniffs = a => !!(a && !a.asset && a.quirk === 'rat' && a.head && a.
 export function sniffPose(u) {
   if (!(u > 0) || !(u < 1)) return {dip: 0, hunt: 0, whip: 0};
   const env = smooth(u / .1) * (1 - smooth((u - .75) / .1));
-  const dip = env * Math.sin(u * Math.PI * 2 * 7);
+  // the sniffing stops dead and the nose snaps up into a held stare just before the tail whips
+  const stare = smooth((u - .78) / .025) * (1 - smooth((u - .9) / .04));
+  const dip = Math.max(-1, Math.min(1, env * Math.sin(u * Math.PI * 2 * 7) - .7 * stare));
   const hunt = env * Math.sin(u * Math.PI * 2 * 1.5);
   const whip = Math.exp(-(((u - .88) / .04) ** 2)) * Math.sin((u - .88) * 120);
   return {dip, hunt, whip: Math.max(-1, Math.min(1, whip))};
