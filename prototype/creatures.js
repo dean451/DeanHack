@@ -702,8 +702,10 @@ function xan(o){
   sphere(body,.16,shell,0,y-.01,-.14,1.05,.75,1.25);
   for(const side of [-1,1]){const elytron=part(body,new THREE.SphereGeometry(.15,14,8,0,Math.PI,0,Math.PI/2),shell,side*.035,y+.03,-.12);elytron.scale.set(.62,.55,1.3);elytron.rotation.set(-.35,side*Math.PI/2,side*.5);}
   const ice=mat('#e2f6ff',{roughness:.08,metalness:.1,emissive:'#6fc8ff',emissiveIntensity:.35,transparent:true,opacity:.85});
-  for(let i=0;i<5;i++){const spike=cone(body,.022,.09-Math.abs(i-2)*.012,ice,Math.sin(i*2.1)*.02,y+.11-i*.01,.06-i*.075,5);spike.rotation.x=-.35-i*.12;}
-  for(const side of [-1,1])for(const z of [-.08,-.2]){const shard=cone(body,.016,.07,ice,side*.14,y-.02,z,4);shard.rotation.z=-side*1.2;}
+  for(let i=0;i<5;i++){const spike=cone(body,.022,(.09-Math.abs(i-2)*.012)*(i===4?.4:1),ice,Math.sin(i*2.1)*.02,y+.11-i*.01,.06-i*.075,5);spike.rotation.x=-.35-i*.12;}
+  for(const side of [-1,1])for(const z of [-.08,-.2]){if(side<0&&z<-.1)continue;const shard=cone(body,.016,.07,ice,side*.14,y-.02,z,4);shard.rotation.z=-side*1.2;}
+  // the hindmost dorsal spike is snapped to a stub and the left rear shard is gone: it has been fighting
+  g.userData.chipped=true;
  }else{
   // long segmented abdomen that curls down and forward into a hooked stinger
   const pts=[[0,y,-.06],[0,y-.02,-.2],[0,y-.1,-.3],[0,y-.22,-.28],[0,y-.3,-.16],[0,y-.3,-.04]].map(p=>new THREE.Vector3(...p)),curve=new THREE.CatmullRomCurve3(pts);
@@ -712,6 +714,10 @@ function xan(o){
   // venom beads on the barb: a sickly green drop hangs from the point and a dark crust stains its base
   {const venom=mat('#9ad23a',{emissive:'#6ab01a',emissiveIntensity:.9,roughness:.2});sphere(body,.011,venom,0,y-.31,.1,.8,1.5,.8);sphere(body,.007,venom,.012,y-.34,.1);sphere(body,.03,mat('#2a1a12',{roughness:.95}),0,y-.28,.015,1,.8,1);g.userData.venomed=true;}
  }
+ // xans only: a comb of three bone-white thorns stands off the thorax, uneven and the hindmost snapped short
+ if(o.stinger){const thorn=mat('#d8ccb0',{roughness:.45});
+  for(const [z,len] of [[.12,.07],[.04,.085],[-.04,.035]]){const t=cone(body,.014,len,thorn,0,y+.1+len/2-.01,z,4);t.rotation.x=-.25;}
+  g.userData.thorned=true;}
  for(const side of [-1,1]){
   const pair=new THREE.Group();pair.position.set(side*.03,y+.1,.05);body.add(pair);pair.rotation.x=-Math.PI/2+.25;
   for(const [len,width,tilt] of [[.34,.11,.15],[.26,.08,-.35]]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.quadraticCurveTo(side*len*.5,width*1.6,side*len,width*.3);shape.quadraticCurveTo(side*len*.6,-width*.6,0,0);const wing=part(pair,new THREE.ShapeGeometry(shape),membrane);wing.rotation.z=tilt*side;wing.castShadow=false;
