@@ -81,6 +81,8 @@ export function itemFacts(text) {
   if (/\((?:[^)]*, )?empty(?:,[^)]*)?\)/i.test(t) && !out.includes('empty')) out.push('empty');
   if (/\((?:[^)]*, )?(un)?locked(?:,[^)]*)?\)/i.test(t)) out.push(/\bunlocked\b/i.test(t) ? 'unlocked' : 'locked');
   if (/\((?:[^)]*, )?trapped\)/i.test(t)) out.push('trapped');
+  const armour = /\[(-?\d+)\]\s*(?:\(|$)/.exec(t);
+  if (armour) out.push(`AC ${armour[1]}`);
   const weight = /\((\d+) aum\)/i.exec(t);
   if (weight) out.push(`${weight[1]} aum`);
   if (/\((?:chained to you|embedded in your skin)\)/i.test(t)) out.push(/chained/i.test(t) ? 'chained to you' : 'embedded');
