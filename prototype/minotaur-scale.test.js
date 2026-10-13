@@ -22,3 +22,13 @@ test('the minotaur wears skull trophies on its belt without adding draws', () =>
   m.g.traverse(o => { if (o.isMesh) meshes++; });
   assert.equal(meshes, 9, 'still nine draws');
 });
+
+test('the sound horn tip is stained with dried blood', () => {
+  const m = createCreature({name: 'minotaur', symbol: 72, color: 1});
+  let head = null;
+  m.g.traverse(o => { if (o.userData.part === 'head') head = o; });
+  const pos = head.geometry.attributes.position, col = head.geometry.attributes.color;
+  let dark = 0;
+  for (let i = 0; i < pos.count; i++) if (pos.getX(i) > 0.25 && col.getX(i) < 0.2) dark++;
+  assert(dark > 0, 'reddish-dark vertices on the right horn tip');
+});
