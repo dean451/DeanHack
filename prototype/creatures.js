@@ -870,7 +870,8 @@ const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75,wedge:.1
 // so the head weaves without any renderer changes. The mouth is a round lamprey maw.
 function worm(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);
- const skin=mat(o.color,{roughness:.62}),ring=mat(shade(o.color,.62),{roughness:.7}),belly=mat(shade(o.color,1.35),{roughness:.7});
+ const skin=mat(o.color,{roughness:.62}),ring=o.heat?mat('#ff7a1a',{emissive:'#e04a08',emissiveIntensity:2.2,roughness:.5}):mat(shade(o.color,.62),{roughness:.7}),belly=mat(shade(o.color,1.35),{roughness:.7});
+ if(o.heat){ring.name='worm-heat';g.userData.molten=true;}
  const r=o.baby?.07:.1,mound=mat('#3a3128',{roughness:1});
  // loose soil where the rear of the worm dives under the floor
  for(const [x,z,s] of [[-.08,-.34,1],[.07,-.38,.8],[0,-.3,.7]])sphere(body,.08*s,mound,x,.01,z,1.4,.35,1.2);
@@ -895,6 +896,10 @@ function worm(o){
  if(o.venom){const spike=mat('#2a1430',{roughness:.5});spike.name='worm-spikes';
   for(const [i,[x,y,z]] of rear.entries())cone(body,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=-.3;
   for(const [i,[x,y,z]] of fore.entries())cone(neck,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=.2;}
+ // remorhaz: the seams between its rings run white-hot and a ridge of cooled, blackened plates stands along the back
+ if(o.heat){const plate=mat('#1e1410',{roughness:.6});plate.name='worm-plates';
+  for(const [x,y,z] of rear)cone(body,r*.16,r*.5,plate,x,y+r*.9,z,4).rotation.x=-.3;
+  for(const [x,y,z] of fore)cone(neck,r*.16,r*.5,plate,x,y+r*.9,z,4).rotation.x=.2;}
  // long worms: a ridge of short blackened horn knobs down the back, fewer and blunter than the purple worm's spikes
  if(o.ridge&&!o.baby){const knob=mat('#2e2218',{roughness:.6});knob.name='worm-ridge';g.userData.ridged=true;
   for(const [x,y,z] of rear)cone(body,r*.1,r*.35,knob,x,y+r*.9,z,4).rotation.x=-.3;}
@@ -1577,7 +1582,7 @@ function vortex(o){
  return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});
 }
 const VORTICES={'fog cloud':{color:'#b4b8bc',cloud:true,opacity:.6},'dust vortex':{color:'#9a7a52',debris:'#6a5038'},'ice vortex':{color:'#bfe6f4',debris:'#e8f8ff',shard:true,scale:1.2},'energy vortex':{color:'#4f8cff',debris:'#d8f0ff',glow:true,arcs:true,scale:1.25},'steam vortex':{color:'#d4dce4',opacity:.42,scale:1.25},'fire vortex':{color:'#ff7a28',debris:'#ffd24a',glow:true,embers:true,scale:1.25}};
-const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',ridge:true,scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.9,venom:true}};
+const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',ridge:true,scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.9,venom:true},remorhaz:{color:'#6a2a1a',lip:'#ff7a1a',scale:1.7,heat:true}};
 
 // Smooth-body helpers: a lathed profile, and a tapered limb between two joint points
 // (so arms and legs read as one body rather than a jointed mannequin).
