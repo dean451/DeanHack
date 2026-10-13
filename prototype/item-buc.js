@@ -15,6 +15,11 @@ export function itemBuc(text) {
   return kind === 'blessed' || kind === 'cursed' ? kind : null;
 }
 
+// True when the name says the item is known to be uncursed. The list stays bare for it; only the hover says so.
+export function itemUncursed(text) {
+  return /^\s*(?:(?:a|an|the|\d+)\s+)?(?:(?:greased|poisoned|rustproof|fireproof|rotproof|corrodeproof|erodeproof|burnt|rusty|corroded|rotted|very|thoroughly)\s+)*uncursed\b/i.test(String(text));
+}
+
 // The shape for a state, or '' for none.
 export function bucMark(kind) {
   return MARKS[kind] || '';
@@ -101,6 +106,6 @@ export function itemFacts(text) {
 
 // Hover text that spells the marks out, or '' for a bare item: "blessed, enchanted up, worn".
 export function itemHint(text) {
-  const parts = [itemBuc(text), {plus: 'enchanted up', minus: 'enchanted down'}[itemEnchant(text)], ...itemFacts(text)];
+  const parts = [itemBuc(text) || (itemUncursed(text) ? 'uncursed' : null), {plus: 'enchanted up', minus: 'enchanted down'}[itemEnchant(text)], ...itemFacts(text)];
   return parts.filter(Boolean).join(', ');
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {itemBuc, bucMark, itemFacts, itemHint} from './item-buc.js';
+import {itemBuc, bucMark, itemFacts, itemHint, itemUncursed} from './item-buc.js';
 
 test('blessed and cursed items are told from the name', () => {
   assert.equal(itemBuc('a blessed +1 dagger (weapon in hand)'), 'blessed');
@@ -44,13 +44,13 @@ test('hover hints spell out the marks', async () => {
   assert.equal(itemHint('a blessed +2 dagger'), 'blessed, enchanted up');
   assert.equal(itemHint('a cursed -1 long sword'), 'cursed, enchanted down');
   assert.equal(itemHint('a cursed scroll of light'), 'cursed');
-  assert.equal(itemHint('an uncursed +0 ring mail'), '');
+  assert.equal(itemHint('an uncursed +0 ring mail'), 'uncursed');
 });
 
 test('hover hints also name wear, wield, charges and erosion', async () => {
   const {itemHint, itemFacts} = await import('./item-buc.js');
   assert.equal(itemHint('a blessed +1 long sword (weapon in hand)'), 'blessed, enchanted up, wielded');
-  assert.equal(itemHint('an uncursed +0 ring mail (being worn)'), 'worn');
+  assert.equal(itemHint('an uncursed +0 ring mail (being worn)'), 'uncursed, worn');
   assert.equal(itemHint('a wand of striking (0:5)'), '5 charges');
   assert.equal(itemHint('a wand of sleep (0:1)'), '1 charge');
   assert.equal(itemHint('a wand of digging (0:-1)'), 'cancelled');
@@ -228,4 +228,13 @@ test('a tin says how it was prepared in the hover', () => {
 test('an unlabeled scroll reads blank in the hover', () => {
   assert.deepEqual(itemFacts('an unlabeled scroll'), ['blank']);
   assert.deepEqual(itemFacts('a scroll labeled FOOBIE'), []);
+});
+
+test('a known uncursed item says so in the hover only', () => {
+  assert.equal(itemUncursed('an uncursed +1 dagger'), true);
+  assert.equal(itemUncursed('a +1 dagger'), false);
+  assert.equal(itemUncursed('a cursed dagger'), false);
+  assert.equal(itemBuc('an uncursed +1 dagger'), null);
+  assert.equal(itemHint('an uncursed +1 dagger (weapon in hand)'), 'uncursed, enchanted up, wielded');
+  assert.equal(itemHint('a dagger'), '');
 });
