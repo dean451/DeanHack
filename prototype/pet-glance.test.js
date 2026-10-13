@@ -37,3 +37,9 @@ test('no hero or a hero out of range gives no glance', () => {
   for (let i = 0; i < 60 * 10; i++) M.updatePetGlance(a, dt, i * dt, true, true, null);
   assert.equal(a.head.rotation.y, y0);
 });
+
+test('the stare dips once mid-hold and recovers', () => {
+  const mid = M.glanceCurve(M.SNAP_IN + M.HOLD * .55);
+  assert.ok(mid < 1 && mid > .8);
+  assert.equal(M.glanceCurve(M.SNAP_IN + M.HOLD * .2), 1);
+});

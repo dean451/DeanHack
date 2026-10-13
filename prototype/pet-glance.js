@@ -16,7 +16,8 @@ const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 export function glanceCurve(s) {
   if (!(s > 0)) return 0;
   if (s < SNAP_IN) return smooth(s / SNAP_IN);
-  if (s < SNAP_IN + HOLD) return 1;
+  // Mid-stare the head dips a hair and comes back, as if the pet had checked it was really you.
+  if (s < SNAP_IN + HOLD) return 1 - .12 * Math.sin(Math.PI * clamp01((s - SNAP_IN - HOLD * .45) / (HOLD * .2))) ** 2;
   return 1 - smooth((s - SNAP_IN - HOLD) / EASE_OUT);
 }
 export const glanceLen = () => SNAP_IN + HOLD + EASE_OUT;
