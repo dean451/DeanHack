@@ -90,13 +90,13 @@ export async function forgetSave(name,fetchImpl=fetch){
 export function installStartScreen({doc=document,button,nameInput,search=location.search,getSaves=fetchSaves,forget=forgetSave,confirmFn=(m)=>confirm(m),storage}={}){
   if(!wantsStartScreen(search))return null;
   const el=doc.createElement('div');el.id='start-screen';
-  el.innerHTML=`<div class="start-stage"><pre class="start-dragon" aria-hidden="true"></pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>An UnNetHack Fork</h1><p id="start-status" role="status" hidden></p>
+  el.innerHTML=`<div class="start-stage"><pre class="start-dragon" aria-hidden="true"></pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>An <a class="start-link" href="https://github.com/UnNetHack/UnNetHack" target="_blank" rel="noopener">UnNetHack</a> Fork</h1><p id="start-status" role="status" hidden></p>
 <form class="step-name" autocomplete="off"><label for="start-name">Your name</label><input id="start-name" type="text" maxlength="24" spellcheck="false" placeholder="${DEFAULT_NAME}" aria-describedby="start-note"><button type="submit" id="start-go"></button><p id="start-note" aria-live="polite"></p>
 <div class="start-row"><button type="button" class="start-new">New character</button><button type="button" class="start-forget" hidden>Start over (delete this save)</button></div>
 <div class="start-saves" hidden><span>Your characters</span><div class="start-list"></div></div></form>
 <div class="step-class" hidden><label>Choose your class</label><div class="class-grid" role="radiogroup" aria-label="Class"></div>
 <div class="class-detail"><p class="class-blurb"></p><div class="class-opts"></div></div>
-<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div><p class="start-mark" aria-label="DeanHack">DEAN<b>HACK</b></p></div>`;
+<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div><p class="start-mark"><a class="start-link" href="https://github.com/dean451/deanhack" target="_blank" rel="noopener" aria-label="DeanHack on GitHub">DEAN<b>HACK</b></a></p></div>`;
   doc.body.append(el);
   const $=s=>el.querySelector(s);
   const dragon=$('.start-dragon');

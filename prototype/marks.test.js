@@ -52,3 +52,13 @@ test('over the cap the stains fade before the bones, and the total stays capped'
   assert.equal(marks.solid(), 12);
   assert.equal(marks.bones(), bones);
 });
+
+test('blood settles in smooth puddles, never spiky stars', async () => {
+  const {puddleRadius, SPLAT_SIDES} = await import('./marks.js');
+  for (const seed of [1, 2, 3]) {
+    const r = [...Array(SPLAT_SIDES)].map((_, i) => puddleRadius(seed, i / SPLAT_SIDES * Math.PI * 2));
+    for (let i = 0; i < r.length; i++) assert(Math.abs(r[i] - r[(i + 1) % r.length]) < .12, `seed ${seed} step ${i}`);
+    assert(Math.min(...r) > .45 && Math.max(...r) < 1.1);
+  }
+  assert(KINDS.splat.r < .15 && KINDS.splat.opacity < .6, 'a hit leaves only a small, quiet puddle');
+});
