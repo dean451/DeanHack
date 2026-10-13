@@ -1809,6 +1809,8 @@ function ogre(o){
  if(o.scars){const gash=mat('#2a1410',{roughness:1});g.userData.scarred=true;for(const [x,y,rz] of [[-.12,.86,.7],[.06,.8,-.6],[.14,.9,.5]]){const sc=rounded(body,.016,.16,.01,gash,x,y,.15,.004);sc.rotation.z=rz;}}
  eyes(head,o.glare?M.eye:mat('#d8c048',{emissive:'#7a6010',emissiveIntensity:.7,roughness:.3}),.015,.115,.05);
  const clubL=o.bigClub?.55:.46,club=cylinder(body,o.bigClub?.085:.07,.03,clubL,wood,.33,.4,.2,7);club.rotation.x=.55;
+ // lords and kings have used the club: the nailed head is crusted with old dried blood
+ if(o.scars){const dry=mat('#3a1210',{roughness:1});const st=sphere(body,.07,dry,.33,o.bigClub?.55:.52,.28,1.1,1.5,1);st.castShadow=false;g.userData.bloodyClub=true;}
  for(let i=0;i<(o.bigClub?5:3);i++){const a=i*2.1,nail=cone(body,.016,.05,metal||M.darkSteel,.33+Math.cos(a)*.07,.56+(i%2)*.04,.29+Math.sin(a)*.03,4);nail.rotation.set(.55+Math.sin(a),0,Math.cos(a));}
  return trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head}));
 }
