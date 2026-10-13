@@ -2573,6 +2573,10 @@ function elemental(o){
   sphere(body,.06,bone,0,chestY+.04,.04,1,1.1,.9);sphere(body,.04,bone,0,chestY-.03,.07,1,.7,1);
   for(const side of [-1,1])sphere(body,.017,hollow,side*.027,chestY+.05,.09,1,1.2,.6);
   for(let i=0;i<3;i++)part(body,new THREE.BoxGeometry(.1-i*.015,.008,.008),bone,0,chestY-.1-i*.035,.03);}
+ // air elementals only: not a breeze but a storm. Jagged shards of dark glass-wind whirl in the gale and a forked bolt crackles in the chest
+ if(k==='air'&&!o.stalker){const shard=glow('#6a7a96',.9),bolt=glow(o.eye,3);g.userData.storm=true;
+  for(let i=0;i<5;i++){const a=i*1.3,f=cone(swirl,.03,.2+(i%2)*.08,shard,Math.cos(a)*.38,.35+i*.13,Math.sin(a)*.34,4);f.rotation.set(a,0,Math.PI/2+i*.4);f.castShadow=false;}
+  for(const [x,y,rz] of [[-.03,.08,.5],[.03,0,-.6],[-.01,-.08,.4]])part(body,new THREE.BoxGeometry(.016,.12,.012),bolt,x,chestY+y,.16).rotation.z=rz;}
  // fire elementals only: black cooled clinker crusts the shoulders and brow, the fire burning through the gaps
  if(k==='fire'){const clinker=mat('#17110e',{roughness:1,flatShading:true});g.userData.clinkered=true;
   for(const [x,y,z,r] of [[-.2,chestY+.2,0,.07],[.19,chestY+.19,.02,.06],[-.08,chestY+.02,.15,.05],[.1,headY+.08,.06,.045]])part(body,new THREE.DodecahedronGeometry(r,0),clinker,x,y,z).rotation.set(x*9,y*5,z*3);}
