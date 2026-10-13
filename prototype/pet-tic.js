@@ -21,11 +21,13 @@ export const tics = a => !!(a && !a.asset && a.quirk === 'dog' && a.head && a.bo
 // three times while it holds and once more, late. All zero at both ends.
 export function ticPose(u) {
   if (!(u > 0) || !(u < 1)) return {cock: 0, tilt: 0, wag: 0};
-  const cock = smooth(u / .08) * (1 - smooth((u - .82) / .05));
+  // Straightened, it shakes its head twice, quick and embarrassed, as if it had not been caught.
+  const shake = u > .88 ? .3 * Math.sin(Math.PI * clamp01((u - .88) / .1)) * Math.sin((u - .88) * 125) : 0;
+  const cock = smooth(u / .08) * (1 - smooth((u - .82) / .05)) + shake;
   const tilt = smooth((u - .1) / .12) * (1 - smooth((u - .8) / .06));
   const bump = c => Math.exp(-(((u - c) / .035) ** 2));
   const wag = bump(.3) - bump(.4) + bump(.5) - .7 * bump(.7);
-  return {cock, tilt, wag: Math.max(-1, Math.min(1, wag))};
+  return {cock: Math.max(-1, Math.min(1, cock)), tilt, wag: Math.max(-1, Math.min(1, wag))};
 }
 
 function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; return st.seed / 2147483648; }

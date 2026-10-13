@@ -75,3 +75,9 @@ test('other monsters do not tug', () => {
   for (const [n, s] of [['dwarf', 'h'], ['bugbear', 'h'], ['kobold', 'k']]) assert(!tugs(make(n, s)), n);
   assert(tugs(make('gnome lord', 'G')));
 });
+
+test('the cap shivers on the brow while the hand holds it, without ever exceeding its crumple', () => {
+  const vals = [];
+  for (let u = .25; u <= .6; u += .005) { const s = tugPose(u).skew; assert.ok(s <= SKEW + 1e-12); vals.push(s); }
+  assert.ok(Math.max(...vals) - Math.min(...vals) > SKEW * .05, 'it moves');
+});

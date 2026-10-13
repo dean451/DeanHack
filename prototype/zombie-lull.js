@@ -18,14 +18,18 @@ const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
 export const lulls = a => !!(a && !a.asset && a.quirk === 'zombie' && a.head && a.arms?.length > 1 && a.body);
 
-// The lull at progress u (0..1): {sag} 0..1 of the head's slump, {spasm} 0..1 of the arm jerk.
+// The lull at progress u (0..1): {sag} 0..1 of the head's slump, {spasm} -.25..1 of the arm jerk (below zero is the drop after).
 // The head sinks over the first half, holds, then comes up in two snaps at .62 and .7; the arm
 // jerks with each snap. Both exactly zero at both ends.
 export function lullPose(u) {
   if (!(u > 0) || !(u < 1)) return {sag: 0, spasm: 0};
   const sag = smooth(u / .5) * (1 - .55 * smooth((u - .62) / .03) - .45 * smooth((u - .7) / .03)) * (1 - smooth((u - .9) / .1));
   const jerk = c => Math.exp(-(((u - c) / .018) ** 2));
-  return {sag, spasm: Math.min(1, jerk(.64) + .8 * jerk(.72))};
+  // having snapped up it forgets again: the head lolls back over for a beat before the end
+  const forget = .3 * Math.sin(Math.PI * clamp01((u - .78) / .12)) ** 2;
+  // the arm that spasmed does not come home: it drops past rest like dead weight and creeps back
+  const drop = -.25 * Math.sin(Math.PI * clamp01((u - .74) / .2)) ** 2;
+  return {sag: Math.min(1, sag + forget), spasm: Math.min(1, jerk(.64) + .8 * jerk(.72)) + drop};
 }
 
 function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; return st.seed / 2147483648; }

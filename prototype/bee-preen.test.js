@@ -42,3 +42,12 @@ for (const kind of ['killer bee', 'queen bee']) test(`a standing ${kind} preens,
 test('only bees do it', () => {
   assert.equal(M.updateBeePreen({quirk: 'idle', kind: 'newt', body: {}, legs: []}, dt, 0, false), null);
 });
+
+test('a stray rub follows the head jerking clear, small, and rests exactly', () => {
+  const q = M.preenPose(.95);
+  assert.ok(q.lift > .3 && q.lift < .4 && q.dip < .01, 'forelegs up, head clear');
+  let moved = false;
+  for (let u = .93; u < .98; u += .002) if (Math.abs(M.preenPose(u).scrub) > .1) moved = true;
+  assert.ok(moved, 'it rubs');
+  assert.ok(M.preenPose(.9999).lift < 1e-3 && Math.abs(M.preenPose(.9999).scrub) < 1e-3);
+});

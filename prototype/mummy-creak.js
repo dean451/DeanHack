@@ -29,6 +29,8 @@ export function creakPose(u, f = 1) {
   if (!(f > 0) || !(u > 0) || !(u < 1)) return p;
   const turn = win(u, .06, .34, .74, .06);
   p.grind = clamp01(turn + Math.sin(u * 140) * .06 * win(u, .1, .1, .7, .05)) * f;
+  // The head has locked square; late, it grinds a little way round again and drops back, unlatched.
+  p.grind = clamp01(p.grind / f + .3 * Math.exp(-(((u - .9) / .018) ** 2))) * f;
   p.cant = win(u, .1, .3, .74, .06) * f;
   p.point = win(u, .3, .3, .74, .08) * f;
   return p;

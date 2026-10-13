@@ -166,6 +166,7 @@ function buildHead(){
  P.add(new THREE.TorusGeometry(.082,.004,4,28),at(0,.15,-.004,[Math.PI/2-.12,0,0],[.9,1.02,1]),C.laurelDark);
  for(let k=0;k<22;k++){
   const a=(k/22)*Math.PI*2+.14;if(Math.cos(a)>.86)continue;// open over the brow
+  if(k>=14&&k<=16)continue;// a stretch of the wreath stripped bare, only the dry twig left
   for(const s of [-1,1]){
    const x=Math.sin(a)*.082*.9,z=Math.cos(a)*.082*1.02-.004,y=.15-z*.12;
    P.add(new THREE.SphereGeometry(.013,6,4),at(x+Math.cos(a)*s*.008,y+.008,z-Math.sin(a)*s*.008,[0,a+s*.6,s*.5],[.35,.12,1]),(px,py,pz)=>mix(C.laurelDark,hash(k*2+s)>.6?C.laurelHi:C.laurel,clamp01((py-y)*120+.5)));
@@ -242,6 +243,9 @@ function buildStaff(){
  const hx=neck[0],hy=neck[1]+.012,hz=neck[2]+.02;
  P.add(new THREE.ConeGeometry(.016,.045,4),at(hx,hy,hz,[Math.PI/2+.25,Math.PI/4,0],[1,1,.55]),(x,y,z)=>y>hy?C.snake:C.snakeDark);
  for(const s of [-1,1])P.add(new THREE.SphereGeometry(.004,5,4),at(hx+s*.009,hy+.005,hz-.005),C.snakeEye);
+ // two pale fangs under the snout, one beading a drop of venom
+ for(const s of [-1,1])P.add(new THREE.ConeGeometry(.0018,.012,4),at(hx+s*.005,hy-.014,hz+.03,[Math.PI,0,0]),C.snakeBelly);
+ P.add(new THREE.SphereGeometry(.0022,5,4),at(hx+.005,hy-.025,hz+.03,[0,0,0],[1,1.4,1]),C.snakeEye);
  for(const s of [-1,1])limb(P,[hx,hy-.004,hz+.02],[hx+s*.006,hy-.01,hz+.045],.0012,.0008,C.tongue,3);
  const geo=P.merge();
  // stood upright against the arm's forward lift (.25) and its outward hang (.08), the top a little forward

@@ -3007,3 +3007,15 @@ test('the pyrolisk burns from within: glowing comb, coal eyes, charred back, sti
  assert(b.min.y>-.05,'stands on the floor');
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
 });
+
+test('the gelatinous cube holds a skeletal hand against its front wall without extra draws', async () => {
+  const THREE = await import('three');
+  const c = createCreature({name: 'gelatinous cube', symbol: 98, color: 6});
+  c.g.updateMatrixWorld(true);
+  let remains = null;
+  c.g.traverse(o => { if (o.userData.part === 'remains') remains = o; });
+  assert(remains, 'remains mesh exists');
+  const b = new THREE.Box3().setFromObject(remains, true);
+  assert(b.max.z > 0.2 * 1.3, 'the hand reaches the front wall');
+  assert(b.max.z < 0.26 * 1.3, 'and stays inside the jelly');
+});

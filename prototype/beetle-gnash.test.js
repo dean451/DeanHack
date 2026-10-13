@@ -76,3 +76,10 @@ test('after the held bite lets go the head flings back, then settles exactly at 
   assert(flung.rear > RECOIL * .95 && flung.stab === 0, 'then thrown back with the bite gone');
   assert(gnashPose(.86).rear < 1e-9 && gnashPose(.97).rear < 1e-9 && gnashPose(.99).rear === 0);
 });
+
+test('one small late nibble follows the recoil, then rest exactly', () => {
+  const n = gnashPose(.985);
+  assert(n.stab > STAB * .25 && n.stab < STAB * .35 && n.rear === 0, 'a small dip once the head is clear');
+  assert.equal(gnashPose(.9999).stab, 0);
+  for (let u = .97; u < 1; u += .001) assert(gnashPose(u).stab <= STAB * .31, `${u}`);
+});

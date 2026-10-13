@@ -35,6 +35,8 @@ export function gnashPose(u, f = 1) {
   p.rear = REAR * (win(u, .04, .36, .12) * (1 + .12 * shake) - win(u, .36, .4, .02) * .1) * f;
   p.stab = STAB * (hump(u, .38, .46) + hump(u, .5, .58) + .6 * hump(u, .62, .7) + .5 * win(u, .64, .84, .04) * (1 + .15 * shake)) * f;
   p.rear += RECOIL * hump(u, .86, .97) * f;
+  // The head has let go, and then it dips once more, small and late, at nothing: one last nibble.
+  p.stab += STAB * .3 * hump(u, .975, .995) * f;
   p.cant = CANT * win(u, .66, .86, .06) * (1 + .3 * shake) * f;
   return p;
 }

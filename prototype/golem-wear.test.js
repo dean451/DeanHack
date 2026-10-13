@@ -21,3 +21,18 @@ test('the new golem details add no meshes', () => {
   assert.equal(meshes('stone golem'), meshes('clay golem'));
   assert.equal(meshes('glass golem'), meshes('clay golem'));
 });
+
+const bodyVerts = name => createCreature({ name, symbol: 39, color: 7 }).g.children[0].children.find(m => m.userData.part === 'body').geometry.attributes.position.count;
+
+test('the clay golem glows through cracked seams down its left chest', () => {
+  const clay = createCreature({ name: 'clay golem', symbol: 39, color: 7 });
+  const core = clay.g.children[0].children.find(m => m.userData.part === 'core').geometry;
+  core.computeBoundingBox();
+  assert(core.boundingBox.min.x < -0.1, 'seams run down the left side');
+  assert.equal(meshes('clay golem'), meshes('wax golem'));
+});
+
+test('the flesh golem has three ribs showing through a torn flank, adding no meshes', () => {
+  assert(bodyVerts('flesh golem') > bodyVerts('leather golem') + 4 * 24 - 1);
+  assert.equal(meshes('flesh golem'), meshes('leather golem'));
+});

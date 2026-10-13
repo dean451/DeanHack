@@ -191,3 +191,23 @@ test('armour in the pack reads its armour class in the hover', () => {
   assert.deepEqual(itemFacts('a cloak [0]'), ['AC 0']);
   assert.deepEqual(itemFacts('a dagger'), []);
 });
+
+test('invisible, broken and fixed items say so in the hover', () => {
+  assert.deepEqual(itemFacts('an invisible +0 dagger'), ['invisible']);
+  assert.deepEqual(itemFacts('a broken large box'), ['broken']);
+  assert.deepEqual(itemFacts('a fixed +0 crysknife'), ['fixed']);
+});
+
+test('known holy and unholy water carry their state in the name', () => {
+  assert.equal(itemBuc('a potion of holy water'), 'blessed');
+  assert.equal(itemBuc('2 potions of unholy water'), 'cursed');
+  assert.equal(itemBuc('a potion of water'), null);
+  assert.equal(itemHint('a potion of holy water'), 'blessed');
+});
+
+test('a shop price with no label is a for-sale price', () => {
+  assert.deepEqual(itemFacts('a dagger (4 zorkmids)'), ['for sale 4zm']);
+  assert.deepEqual(itemFacts('a dagger (1 zorkmid)'), ['for sale 1zm']);
+  assert.deepEqual(itemFacts('an apple (unpaid, 7 zorkmids)'), ['unpaid 7zm']);
+  assert.equal(itemHint('a blessed +1 dagger (40 zorkmids)'), 'blessed, enchanted up, for sale 40zm');
+});

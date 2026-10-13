@@ -62,6 +62,9 @@ function buildBody(){
   if(Math.abs(x)>.18&&((r>.065&&r<.085)||(Math.abs(dz)<.012&&dy<.06&&dy>-.09)))return mix(C.sigil,C.cloth,.25+hash(Math.round(y*90)+Math.round(z*90))*.35);
   return mix(C.cloth,C.clothDark,y<Y-.05?.6:.15+hash(Math.round(x*30)+Math.round(z*30))*.15);
  });
+ // a broken arrow still stuck in the right flank: a bone-grey shaft snapped short, a few ragged fletching vanes
+ P.add(along([.19,Y+.04,-.04],[.37,Y+.12,-.08],.007,.006,5),null,C.sigil);
+ for(const k of [-1,0,1])P.add(new THREE.ConeGeometry(.012,.07,3),at(.37,Y+.12+k*.012,-.08-k*.02,[0,0,-Math.PI/2+k*.5],[1,1,.3]),C.rust);
  // the war saddle: a high cantle and pommel, girth and hanging stirrups
  P.add(new THREE.BoxGeometry(.3,.05,.32),at(0,Y+.33,-.04,[0,0,0]),C.leather);
  P.add(new THREE.CylinderGeometry(.07,.08,.12,12,1,false,0,Math.PI),at(0,Y+.38,-.19,[0,Math.PI/2,Math.PI/2],[1,1,1.6]),C.leather);
