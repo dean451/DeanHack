@@ -45,3 +45,10 @@ test('the nose sinks after the whip and is back at rest at the end', () => {
   assert.equal(M.sniffPose(1).dip, 0);
   assert.ok(Math.abs(M.sniffPose(.999).dip) < .01);
 });
+
+test('the tail twitches once more, small and late, after the nose has sunk', () => {
+  let peak = 0;
+  for (let u = .93; u < .97; u += .001) peak = Math.max(peak, Math.abs(M.sniffPose(u).whip));
+  assert.ok(peak > .1 && peak <= .3 + 1e-9, `late twitch ${peak}`);
+  assert.ok(Math.abs(M.sniffPose(.99).whip) < 1e-3);
+});
