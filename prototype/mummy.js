@@ -31,7 +31,7 @@ export const MUMMIES={
 
 const C={
  fresh:rgb('#ddd0ae'),linen:rgb('#c9bb98'),yellow:rgb('#b8a474'),grime:rgb('#6e5e40'),resin:rgb('#5a4028'),
- gold:rgb('#8a6a28'),goldDark:rgb('#4a3a1a'),blood:rgb('#5a1410'),
+ gold:rgb('#c29a3a'),goldDark:rgb('#6a5224'),blood:rgb('#5a1410'),
  under:rgb('#3a2e22'),rib:rgb('#8a7a5c'),nail:rgb('#241a12'),
 };
 // deterministic scatter, so every build is the same
@@ -133,7 +133,7 @@ function buildHead(crowned=false){
  if(crowned){
   P.add(new THREE.TorusGeometry(.09,.011,5,18),at(0,.088,.004,[Math.PI/2+.08,0,.06],[1,1.06,1]),(x,y,z)=>mix(C.gold,C.goldDark,Math.abs(Math.sin(x*70+z*50))*.6));
   for(const [i,a] of [-1.2,-.6,0,.6,1.2].entries()){
-   const h=i===3?.03:.07+(i%2)*.02;
+   const h=i===3?.04:.1+(i%2)*.03;
    P.add(new THREE.ConeGeometry(.012,h,4),at(Math.sin(a)*.09,.088+h/2+.006+a*.012,Math.cos(a)*.09*1.06+.004,[Math.cos(a)*.2,0,-Math.sin(a)*.2]),i===3?C.goldDark:C.gold);
   }
   P.add(new THREE.SphereGeometry(.011,6,5),at(0,.1,.1,[0,0,0],[1,1,.6]),C.blood);
