@@ -20,6 +20,15 @@ test('the frame list wins; the status line is only the fallback', () => {
 });
 
 test('tags render as escaped spans', () => {
-  assert.equal(conditionTagsHtml(['Stun', 'Conf']), '<span class="hero-condition">STUN</span><span class="hero-condition">CONF</span>');
+  assert.equal(conditionTagsHtml(['Stun', 'Conf']), '<span class="hero-condition"><i aria-hidden="true">✦</i> STUN</span><span class="hero-condition"><i aria-hidden="true">✱</i> CONF</span>');
   assert.equal(conditionTagsHtml([]), '');
+});
+
+test('each hero tag leads with its condition shape, so colour is never the only cue', async () => {
+  const {conditionTagsHtml} = await import('./hud-conditions.js');
+  const html = conditionTagsHtml(['Hungry', 'Stun', 'Held']);
+  assert.match(html, /<i aria-hidden="true">◔<\/i> HUNGRY/);
+  assert.match(html, /<i aria-hidden="true">✦<\/i> STUN/);
+  assert.match(html, /<i aria-hidden="true">⊂⊃<\/i> HELD/);
+  assert.doesNotMatch(html, /·/);
 });
