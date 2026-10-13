@@ -228,6 +228,9 @@ test('a tin says how it was prepared in the hover', () => {
 test('an unlabeled scroll reads blank in the hover', () => {
   assert.deepEqual(itemFacts('an unlabeled scroll'), ['blank']);
   assert.deepEqual(itemFacts('a scroll labeled FOOBIE'), []);
+  assert.deepEqual(itemFacts('2 scrolls of blank paper'), ['blank']);
+  assert.deepEqual(itemFacts('a spellbook of blank paper'), ['blank']);
+  assert.deepEqual(itemFacts('a scroll of light'), []);
 });
 
 test('a known uncursed item says so in the hover only', () => {
