@@ -65,6 +65,10 @@ function buildBody(k){
  }
  if(k==='rust monster'){
   // flakes of rust curling up off the plates' edges
+  // the fourth plate is eaten clean through on one side: a dark hollow ringed by jagged, rust-lit teeth
+  const hp=PLATES[3],hx=hp.w*.45,hy=Y+.04+hp.h*.2;
+  P.add(new THREE.SphereGeometry(.03,10,6,0,Math.PI*2,0,Math.PI*.5),at(hx,hy+.012,hp.z,[0,0,0],[1,.35,1]),C.pit);
+  for(let i=0;i<7;i++){const a=i*Math.PI*2/7;P.add(new THREE.ConeGeometry(.007,.028,3),at(hx+Math.cos(a)*.032,hy+.022,hp.z+Math.sin(a)*.032,[Math.sin(a)*.7,0,-Math.cos(a)*.7]),C.edge);}
   for(let i=0;i<14;i++){const p=PLATES[i%6],a=(hash(i*3.1)-.5)*2.6;P.add(new THREE.BoxGeometry(.03,.004,.02),at(Math.sin(a)*p.w*.85,Y+.06+p.h*.3,p.z-.03+Math.cos(a)*.02,[hash(i)*.8,a,hash(i*2)*.6]),C.edge);}
  }else{
   // faint stolen runes glowing on the back plates
