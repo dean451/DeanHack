@@ -217,3 +217,10 @@ test('a named or called item reads its label in the hover', () => {
   assert.deepEqual(itemFacts('a ruby potion called healing'), ['called healing']);
   assert.deepEqual(itemFacts('a dagger'), []);
 });
+
+test('a tin says how it was prepared in the hover', () => {
+  assert.deepEqual(itemFacts('a tin of rotten newt meat'), ['rotten']);
+  assert.deepEqual(itemFacts('2 tins of deep fried lichen meat'), ['deep fried']);
+  assert.deepEqual(itemFacts('a tin of soup made from jackal meat'), ['soup']);
+  assert.deepEqual(itemFacts('a tin of spinach'), []);
+});
