@@ -20,11 +20,13 @@ export function motePose(i, t) {
   return {x: Math.cos(a) * r, y, z: Math.sin(a) * r, alpha: Math.min(1, u * 10) * (1 - smooth((u - .75) / .25))};
 }
 
-// The ring tightens, stalls once near the end, then snaps shut.
+// The ring tightens, stalls once near the end (shuddering open a hair), then snaps shut.
 export function ringPose(t) {
   const u = clamp01(t / KILL.total);
   if (u <= 0 || u >= 1) return {scale: .001, alpha: 0};
-  const k = u < .6 ? smooth(u / .6) * .8 : u < .75 ? .8 : .8 + .2 * smooth((u - .75) / .25);
+  // In the stall the ring shudders back open once, as if the dead thing pulled against it.
+  const shudder = .03 * Math.sin(Math.PI * clamp01((u - .64) / .07)) ** 2;
+  const k = u < .6 ? smooth(u / .6) * .8 : u < .75 ? .8 - shudder : .8 + .2 * smooth((u - .75) / .25);
   return {scale: .6 - .55 * k, alpha: .6 * Math.min(1, u * 8) * (1 - smooth((u - .8) / .2))};
 }
 
