@@ -11,6 +11,11 @@ test('dangerous conditions become red capital tags, in order, without repeats', 
   assert.deepEqual(conditionTags(undefined), []);
 });
 
+test('deafness is an amber warning tag with its own shape', () => {
+  assert.deepEqual(conditionTags(['Deaf', 'Stun']), ['DEAF', 'STUN']);
+  assert.match(conditionTagsHtml(['Deaf']), /class="hero-condition mild"><i aria-hidden="true">≈<\/i> DEAF/);
+});
+
 test('the frame list wins; the status line is only the fallback', () => {
   const line = 'The Dungeons of Doom:25 $:1540 HP:43(80) Pw:29(29) AC:-31 Exp:12 T:10355 Stun';
   assert.deepEqual(heroConditions(['Conf'], line), ['Conf']);
