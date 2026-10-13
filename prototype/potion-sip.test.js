@@ -57,3 +57,10 @@ test('each drop leaves a small stain that lands after it and fades out', () => {
     }
   }
 });
+
+test('the second stain creeps back toward the hero as it fades', () => {
+  const land = .06 + .34, start = stainPose(1, land + .001), end = stainPose(1, land + .2);
+  assert.ok(Math.hypot(end.x, end.z) < Math.hypot(start.x, start.z) - .01);
+  const a = stainPose(2, .06 * 2 + .34 + .001), b = stainPose(2, .06 * 2 + .34 + .2);
+  assert.ok(Math.abs(Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z)) < 1e-9, 'others stay put');
+});
