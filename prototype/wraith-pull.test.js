@@ -28,10 +28,11 @@ test('wraiths, barrow wights, Nazgul and the Riders pull; ghosts and liches do n
 test('poses stay in bounds and end at zero', () => {
   for (let u = -.1; u <= 1.1; u += .005) {
     const p = W.pullPose(u), r = W.rakePose(u);
-    for (const v of [...Object.values(p), r.right, r.left]) assert.ok(v >= 0 && v <= 1, `${u}`);
+    for (const v of [...Object.values(p), r.right, r.left, r.gather]) assert.ok(v >= 0 && v <= 1, `${u}`);
   }
   for (const v of Object.values(W.pullPose(1))) assert.equal(v, 0);
-  assert.deepEqual(W.rakePose(1), {right: 0, left: 0});
+  assert.deepEqual(W.rakePose(1), {right: 0, left: 0, gather: 0});
+  assert.ok(W.rakePose(.1).gather > .9 && W.rakePose(.3).gather === 0, 'the claws coil before they bite');
   assert.ok(W.pullPose(.45).clench > .99 && W.pullPose(.45).draw > .99);
 });
 
