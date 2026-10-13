@@ -31,3 +31,8 @@ test('the clay golem glows through cracked seams down its left chest', () => {
   assert(core.boundingBox.min.x < -0.1, 'seams run down the left side');
   assert.equal(meshes('clay golem'), meshes('wax golem'));
 });
+
+test('the flesh golem has three ribs showing through a torn flank, adding no meshes', () => {
+  assert(bodyVerts('flesh golem') > bodyVerts('leather golem') + 4 * 24 - 1);
+  assert.equal(meshes('flesh golem'), meshes('leather golem'));
+});

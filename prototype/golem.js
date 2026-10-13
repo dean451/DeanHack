@@ -42,7 +42,7 @@ const LOOKS={
  gold:{base:'#c89a2a',dark:'#5a3e10',light:'#f4d466',glow:'#9aff3a',jag:.12,scale:1.02,spikes:'crown',paint:'metal'},
  wood:{base:'#5e4028',dark:'#2a1a0e',light:'#8a6440',glow:'#8aff3a',jag:.16,scale:1.04,thorns:true,paint:'bark'},
  leather:{base:'#5a3a24',dark:'#2a1a10',light:'#7e5638',glow:'#ff3a2a',jag:.1,scale:1,stitches:true,paint:'hide'},
- flesh:{base:'#a07868',dark:'#5a3434',light:'#c49a88',glow:'#ff2a1a',jag:.12,scale:1.15,stitches:true,spurs:true,paint:'flesh'},
+ flesh:{base:'#a07868',dark:'#5a3434',light:'#c49a88',glow:'#ff2a1a',jag:.12,scale:1.15,stitches:true,spurs:true,ribs:true,paint:'flesh'},
  wax:{base:'#d8b870',dark:'#8a6a30',light:'#f4e2a8',glow:'#ffb040',jag:.08,scale:.96,drips:true,wicks:true,paint:'wax'},
  rope:{base:'#8a6a3a',dark:'#4a3418',light:'#b8965a',glow:'#ffa040',jag:.1,scale:.98,paint:'rope'},
 };
@@ -135,6 +135,8 @@ function build(kind){
   for(let k=0;k<4;k++)shard(body,[0,1.02-k*.13,-.22+k*.01],[0,.5,-1],.03,.12-k*.015,spikeCol);
  }
  if(look.thorns)for(let k=0;k<14;k++){const a=hash(k)*Math.PI*2,y=.55+hash(k+20)*.55;shard(body,[Math.sin(a)*.24,y,Math.cos(a)*.2-.02],[Math.sin(a),.3,Math.cos(a)],.012,.06,D,4);}
+ // flesh golems: the right flank is torn open on a dark wound, three ribs showing bare through it
+ if(look.ribs){body.add(new THREE.BoxGeometry(.13,.2,.02),at(.2,.78,.2,[0,.25,.1]),D);for(let k=0;k<3;k++)body.add(new THREE.BoxGeometry(.11,.016,.016),at(.2,.71+k*.075,.213,[0,.25,-.18+k*.05]),BONE);}
  if(look.stitches){stitches(body,.72,.2,7,STITCH,.02);stitches(body,.95,.26,9,STITCH,-.02);}
  if(look.spurs)for(const s of [-1,1])shard(body,[s*.3,1.1,-.08],[s*.3,1,-.5],.02,.1,BONE,5);
  if(look.drips){drips(body,[-.2,-.08,.1,.22],.64,.16,L,1);drips(body,[-.3,.32],.86,.12,L,2);}
