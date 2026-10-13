@@ -7,6 +7,9 @@ const MARKS = {blessed: '☼', cursed: '✖'};
 // 'blessed', 'cursed' or null for an item line. Only the words before the item's own name count, and
 // "uncursed" is not "cursed".
 export function itemBuc(text) {
+  // Known holy and unholy water drop the word: the name itself says it ("2 potions of holy water").
+  const water = /\b(un)?holy water\b/i.exec(String(text));
+  if (water) return water[1] ? 'cursed' : 'blessed';
   const m = /^\s*(?:(?:a|an|the|\d+)\s+)?(?:(?:greased|poisoned|rustproof|fireproof|rotproof|corrodeproof|erodeproof|burnt|rusty|corroded|rotted|very|thoroughly)\s+)*(blessed|cursed|uncursed)\b/i.exec(String(text));
   const kind = m?.[1].toLowerCase();
   return kind === 'blessed' || kind === 'cursed' ? kind : null;
