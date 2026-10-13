@@ -26,3 +26,7 @@ test('levitation and flight carry different shapes', () => {
 test('food poisoning carries a different shape from deadly illness', () => {
   assert.notEqual(conditionGlyph('FoodPois'), conditionGlyph('Ill'));
 });
+
+test('being stuck in the legs, a trap or a grip carries a shape too', () => {
+  for (const w of ['Legs', 'Trap', 'Held']) assert.notEqual(conditionGlyph(w), '·', w);
+});

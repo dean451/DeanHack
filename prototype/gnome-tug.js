@@ -36,7 +36,9 @@ export function tugPose(u, f = 1) {
   p.across = IN * held * f;
   // the hard pull down on the cap, then it stays pulled
   p.yank = YANK * (smooth((u - .12) / .06) - smooth((u - .62) / .06)) * f;
-  p.skew = SKEW * (smooth((u - .14) / .07) - smooth((u - .7) / .15)) * f;
+  // the crumpled cap will not stay put: it shivers on his brow while the hand holds it down
+  const shiver = 1 - .14 * win(u, .2, .62, .05) * (1 + Math.sin(u * 90)) / 2;
+  p.skew = SKEW * (smooth((u - .14) / .07) - smooth((u - .7) / .15)) * shiver * f;
   p.duck = DUCK * held * f;
   // left, right, left: three short sharp jerks of the head, shrinking
   p.glance = GLANCE * (hump(u, .35, .47) - .8 * hump(u, .47, .6) + .6 * hump(u, .6, .72)) * f;

@@ -39,3 +39,10 @@ test('a standing nurse taps, stays in bounds and ends exactly at rest', () => {
 test('only nurses do it', () => {
   assert.equal(M.updateNurseTap({quirk: 'priest', head: {}, arms: [{}, {}]}, dt, 0, false), null);
 });
+
+test('a stray flick follows the head snapping upright', () => {
+  let peak = 0;
+  for (let u = .88; u < .92; u += .001) peak = Math.max(peak, Math.abs(M.tapPose(u).flick));
+  assert.ok(peak > .15, `stray flick peaks at ${peak}`);
+  assert.ok(M.tapPose(.9).tilt < .01 && M.tapPose(.9).raise > .1);
+});

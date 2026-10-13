@@ -31,7 +31,8 @@ export function slumpPose(u, f = 1) {
   if (!(f > 0) || !(u > 0) || !(u < 1)) return p;
   p.sag = win(u, .04, .26, .8, .18) * f;
   p.loll = win(u, .1, .35, .75, .22) * f;
-  p.reach = win(u, .3, .25, .74, .16) * f;
+  // once the arm has dropped it jerks up a little again, as if the mass had forgotten something
+  p.reach = (win(u, .3, .25, .74, .16) + .25 * Math.exp(-(((u - .93) / .015) ** 2))) * f;
   p.shake = Math.sin(u * 95) * p.reach * p.reach;
   return p;
 }

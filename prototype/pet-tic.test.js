@@ -35,3 +35,12 @@ test('only pet dogs do it', () => {
   assert.equal(M.updatePetTic(j, dt, 0, false), null);
   assert.equal(M.tics(j), false);
 });
+
+test('after straightening the head shakes twice and settles', () => {
+  const at = u => M.ticPose(u).cock;
+  assert.equal(at(.9) !== 0 || at(.92) !== 0 || at(.94) !== 0, true);
+  let flips = 0, prev = 0;
+  for (let u = .88; u < 1; u += .001) { const c = at(u); if (prev && c && Math.sign(c) !== Math.sign(prev)) flips++; if (c) prev = c; }
+  assert.ok(flips >= 3 && flips <= 5, `flips ${flips}`);
+  assert.equal(at(1), 0);
+});

@@ -69,3 +69,9 @@ test('other minor demons do not slump', () => {
   assert(!slumps(createCreature({name: 'imp', symbol: 'i'.charCodeAt(0), color: 1})));
   assert(!slumps(createCreature({name: 'giant spider', symbol: 's'.charCodeAt(0), color: 5})));
 });
+
+test('the arm jerks up a little again after it has dropped, then rests exactly', () => {
+  assert.ok(slumpPose(.9).reach < .05, 'dropped');
+  assert.ok(slumpPose(.93).reach > .2 && slumpPose(.93).reach <= .3, 'the late jerk');
+  assert.ok(slumpPose(.99).reach < 1e-3);
+});

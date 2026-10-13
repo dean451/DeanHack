@@ -38,3 +38,11 @@ test('only pet cats do it', () => {
   assert.equal(M.updatePetCatTic(w, dt, 0, false), null);
   assert.equal(M.kneads(w), false);
 });
+
+test('the left paw twitches once after the right drops', () => {
+  const l = u => M.kneadPose(u).l;
+  assert.equal(l(.8), 0);
+  assert.ok(l(.92) > .2 && l(.92) <= .35 + 1e-9);
+  assert.equal(l(.98), 0);
+  for (let u = 0; u <= 1; u += .002) assert.ok(M.kneadPose(u).l <= 1);
+});

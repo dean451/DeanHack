@@ -71,3 +71,8 @@ test('other creatures do not creak', () => {
   assert(!creaks(createCreature({name: 'human zombie', symbol: 'Z'.charCodeAt(0), color: 1})));
   assert(!creaks(createCreature({name: 'giant spider', symbol: 's'.charCodeAt(0), color: 5})));
 });
+
+test('the head grinds a little way round again after it locks square', () => {
+  assert(creakPose(.9).grind > .25 && creakPose(.9).grind > creakPose(.82).grind + .2);
+  assert(creakPose(.99).grind < 1e-6);
+});

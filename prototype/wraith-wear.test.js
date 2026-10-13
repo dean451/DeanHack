@@ -21,3 +21,10 @@ test('a plain wraith hangs three torn shreds from its cowl', () => {
   // hood shell, rim, void and eyes make four children; the shreds are the extra three
   assert.equal(kids('wraith'), 7);
 });
+
+test('barrow wights wear grave earth and a burial rag; wraiths and Nazgul do not', () => {
+  const make = n => createCreature({name: n, symbol: 87, color: 1});
+  assert.equal(make('barrow wight').g.userData.graveEarth, true);
+  for (const n of ['wraith', 'Nazgul']) assert(!make(n).g.userData.graveEarth, n);
+  assert(meshes('barrow wight') - meshes('wraith') < 60);
+});

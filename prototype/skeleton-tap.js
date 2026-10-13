@@ -22,7 +22,8 @@ export function tapPose(u) {
   if (!(u > 0) || !(u < 1)) return {lift: 0, knock: 0, listen: 0};
   const lift = smooth(u / .15) * (1 - smooth((u - .72) / .12));
   const bump = (c, w = .015) => Math.exp(-(((u - c) / w) ** 2));
-  const knock = Math.min(1, .6 * bump(.3) + .6 * bump(.4) + bump(.5, .02));
+  const knock = Math.min(1, .6 * bump(.3) + .6 * bump(.4) + bump(.5, .02) + .3 * bump(.64, .012));
+  // a fourth rap, faint and late, while the head is already cocked: it checked, and heard it again
   const listen = smooth((u - .55) / .06) * (1 - smooth((u - .9) / .08));
   return {lift, knock, listen};
 }

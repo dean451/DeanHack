@@ -75,3 +75,8 @@ test('when the stare breaks the head flicks the other way past rest, then settle
   assert(Math.abs(sniffPose(.96).stare) < 1e-9, 'back at rest by .95');
   assert.equal(sniffPose(1).stare, 0);
 });
+
+test('the tail twitches once more as the head flicks back', () => {
+  assert.ok(sniffPose(.89).lash > .1 && sniffPose(.89).lash < LASH * .3);
+  assert.ok(Math.abs(sniffPose(.8).lash) < 1e-9 && Math.abs(sniffPose(.95).lash) < 1e-9);
+});

@@ -21,14 +21,16 @@ export const probes = a => !!(a && !a.asset && a.quirk === 'spider' && !a.claws 
 
 // The probe at progress u (0..1): {a, b} lift of the first and second front leg (0..1) and
 // {ta, tb} their taps (-1..1). The first leg rises, jabs three times at uneven gaps and settles;
-// the second rises late, taps once, slowly, and settles. All exactly zero at both ends.
+// the second rises late, taps once, slowly, and settles; the first lifts once more at the very end for a stray tap. All exactly zero at both ends.
 export function probePose(u) {
   const z = {a: 0, b: 0, ta: 0, tb: 0};
   if (!(u > 0) || !(u < 1)) return z;
   const a = smooth(u / .12) * (1 - smooth((u - .5) / .12));
   const b = smooth((u - .4) / .12) * (1 - smooth((u - .88) / .12));
   const jab = (c, w) => Math.exp(-(((u - c) / w) ** 2));
-  return {a, b, ta: a * Math.min(1, jab(.2, .02) + jab(.27, .02) + jab(.41, .025)), tb: -b * jab(.66, .05)};
+  // Both legs have settled; the first one lifts again, late, and taps once more, as if unconvinced.
+  const late = jab(.93, .02);
+  return {a: Math.max(a, .5 * late), b, ta: a * Math.min(1, jab(.2, .02) + jab(.27, .02) + jab(.41, .025)) + .35 * late, tb: -b * jab(.66, .05)};
 }
 
 function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; return st.seed / 2147483648; }
