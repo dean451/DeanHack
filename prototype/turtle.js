@@ -21,7 +21,7 @@ const C={
  horn:rgb('#4f4d2a'),areola:rgb('#a8944e'),ring:rgb('#2c2a16'),seam:rgb('#15130a'),rimUnder:rgb('#2a2616'),
  plastron:rgb('#c9b67a'),plastronSeam:rgb('#4a3a1e'),
  skin:rgb('#6d6a4c'),skinDark:rgb('#4a4832'),scale:rgb('#8a8458'),belly:rgb('#a79e70'),
- beak:rgb('#2a2418'),nail:rgb('#1e1a12'),eye:rgb('#120c06'),glint:rgb('#e8e4d0'),
+ beak:rgb('#2a2418'),crack:rgb('#0a0806'),nail:rgb('#1e1a12'),eye:rgb('#120c06'),glint:rgb('#e8e4d0'),
 };
 
 // Carapace: a half-ellipsoid with its rim at SHELL.y.
@@ -59,6 +59,9 @@ function shellColour(x,y,z){
  c=mix(c,C.ring,(.5+.5*Math.sin(edge*70))*.35*smooth(.02,.08,edge)*(1-smooth(.22,.34,edge)));
  if(kind==='marginal')c=mix(c,C.horn,.25);
  c=mix(c,C.seam,1-smooth(.008,.03,edge));
+ // an old fracture split across the right shoulder of the shell, black in its depths
+ const fx=d.x-.34-.16*Math.sin(d.z*8);
+ if(d.y>.25&&d.z>-.3&&d.z<.7&&Math.abs(fx)<.014*(1+hash(Math.round(d.z*40))))c=C.crack;
  // the underside of the rim, where it tucks in
  return mix(c,C.rimUnder,1-smooth(.02,.12,d.y));
 }
