@@ -105,3 +105,11 @@ test('the hover never names an unidentified item by its true type', () => {
   assert.match(farlookText(sensed), /ruby potion.*\(sensed\)/);
   assert.doesNotMatch(farlookText(sensed), /healing/);
 });
+
+test('the monster that has the hero in its grip says so', () => {
+  const owlbear = {visible: true, kind: 'monster', name: 'owlbear', x: 4, z: 7};
+  assert.equal(farlookText(owlbear, {x: 4, z: 7, holding: false}), 'owlbear (hostile, holding you)');
+  assert.equal(farlookText(owlbear, {x: 4, z: 7, holding: true}), 'owlbear (hostile, held by you)');
+  assert.equal(farlookText(owlbear, {x: 5, z: 7, holding: false}), 'owlbear (hostile)');
+  assert.equal(farlookText(owlbear), 'owlbear (hostile)');
+});

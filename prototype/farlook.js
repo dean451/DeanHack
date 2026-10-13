@@ -41,15 +41,15 @@ function bareText(cell) {
 
 // The one quiet line for a square, or '' when there is nothing to name. A square out of sight
 // still names what detection or telepathy sensed there, marked as sensed.
-export function farlookText(cell) {
+export function farlookText(cell, stuck) {
   if (!cell) return '';
-  if (cell.visible) return seenText(cell);
+  if (cell.visible) return seenText(cell, stuck);
   if (!cell.sensed || !(cell.name || cell.object?.label || cell.object?.name)) return '';
   const text = seenText({...cell, visible: true, health: undefined});
   return text ? `${text} (sensed)` : '';
 }
 
-function seenText(cell) {
+function seenText(cell, stuck) {
   // An item's `name` is its true name (the bridge sends it to pick the model); what the hero
   // may read is `label`, the name as they know it ("balsa wand" until identified).
   const name = String(cell.object ? (cell.object.label || cell.object.name || cell.name) : cell.name || '').trim();
@@ -59,7 +59,9 @@ function seenText(cell) {
   }
   const hurt = cell.health < 25 ? ', near death' : cell.health < 60 ? ', badly wounded' : cell.health < 100 ? ', wounded' : '';
   if (cell.kind === 'pet') return `${name} (pet${hurt})`;
-  if (cell.kind === 'monster') return `${name} (${cell.peaceful ? 'peaceful' : 'hostile'}${hurt})`;
+  // player.stuck is the tile of whatever has the hero (or, with holding, whatever the hero holds).
+  const grip = stuck && cell.x === stuck.x && cell.z === stuck.z ? (stuck.holding ? ', held by you' : ', holding you') : '';
+  if (cell.kind === 'monster') return `${name} (${cell.peaceful ? 'peaceful' : 'hostile'}${hurt}${grip})`;
   if (cell.object) {
     const marks = [bucMark(itemBuc(name)), enchantMark(itemEnchant(name))].filter(Boolean).join('');
     return marks ? `${marks} ${name}` : name;
