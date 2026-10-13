@@ -68,3 +68,10 @@ test('walking fades a snuffle out and an attack blocks one', () => {
 test('pets and other monsters do not snuffle', () => {
   for (const [n, s] of [['little dog', 'd'], ['kobold', 'k'], ['gnome', 'G'], ['troll', 'T']]) assert(!snuffles(make(n, s)), n);
 });
+
+test('a small doubtful dip follows the held cock, then rest exactly', () => {
+  const d = snufflePose(.95);
+  assert(d.dip > DIP * .25 && d.dip < DIP * .35 && d.cock < 1e-9, 'nose down a little, head no longer cocked');
+  assert.equal(snufflePose(.9999).dip < 1e-6, true);
+  assert.equal(snufflePose(1).dip, 0);
+});

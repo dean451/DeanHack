@@ -33,6 +33,8 @@ export function snufflePose(u, f = 1) {
   p.dip = DIP * win(u, .06, .56, .08) * f;
   p.sweep = SWEEP * Math.sin((u - .14) / .42 * Math.PI * 5) * trail * f;
   p.cock = COCK * win(u, .6, .88, .05) * f;
+  // The head drops, the stare ends, and the nose dips once more, small and doubtful, at the same spot.
+  p.dip += DIP * .3 * Math.sin(Math.PI * clamp01((u - .92) / .06)) ** 2 * f;
   return p;
 }
 
