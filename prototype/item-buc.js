@@ -47,6 +47,8 @@ export function itemFacts(text) {
   if (/\binvisible\b/i.test(t.split('(')[0])) out.push('invisible');
   if (/\bbroken\b/i.test(t.split('(')[0])) out.push('broken');
   if (/\bgreased\b/i.test(t.split('(')[0])) out.push('greased');
+  const label = /\b(named|called) ([^(\[]*?)\s*(?:[(\[]|$)/i.exec(t);
+  if (label && label[2]) out.push(`${label[1].toLowerCase()} ${label[2].replace(/\s+(?:of|on|in)\s+.*$/i, '')}`);
   const charges = /\((-?\d+):(-?\d+)\)/.exec(t);
   if (charges) {
     const left = Number(charges[2]);
