@@ -538,7 +538,9 @@ function cockatrice(o){
   sphere(body,.07,char,0,.25,-.04,1.3,.3,1.5);
   for(const [x,z] of [[-.03,-.02],[.03,-.09]])sphere(body,.012,ember,x,.265,z,1.6,.4,.6);
   g.userData.burning=true;}
- const wingParts=[];for(const side of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.17,.06);shape.lineTo(side*.12,.0);shape.lineTo(side*.15,-.05);shape.lineTo(0,-.02);const wing=part(body,new THREE.ShapeGeometry(shape),skin,side*.1,.2,-.02);wing.rotation.y=side*.35;wing.userData.side=side;wingParts.push(wing);}
+ const wingParts=[];for(const side of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.17,.06);shape.lineTo(side*.12,.0);shape.lineTo(side*.15,-.05);shape.lineTo(0,-.02);const wing=part(body,new THREE.ShapeGeometry(shape),skin,side*.1,.2,-.02);wing.rotation.y=side*.35;wing.userData.side=side;wingParts.push(wing);
+  // a bare bone claw hooked off the leading edge, so the wing reads as a leathery bat's, not a feather
+  const claw=cone(wing,.01,.07,mat('#8a8272',{roughness:.8,flatShading:true}),side*.16,.06,0,4);claw.rotation.z=-side*1.1;}
  const tail=new THREE.Group();tail.position.set(0,.15,-.2);body.add(tail);
  let px=0,pz=0;for(let i=0;i<6;i++){const r=.05*(1-i/7),len=.09;const seg=cylinder(tail,r*.8,r,len,skin,px,-.012*i,pz-len/2,8);seg.rotation.x=Math.PI/2;px+=Math.sin(i*.6)*.012;pz-=len*.95;}
  for(let i=0;i<3;i++){const plume=cone(tail,.025,.1,comb,0,-.06-i*.02,pz-.03-i*.05,4);plume.rotation.x=1.7;}

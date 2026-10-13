@@ -16,3 +16,8 @@ test('cockatrice and chickatrice stare with two self-lit sickly eyes', () => {
 test('the pyrolisk keeps its coal eyes, not the stone gaze', () => {
   assert.equal(eyes('pyrolisk').length, 0);
 });
+
+test('each cockatrice wing carries a hooked bone claw on its leading edge', () => {
+  const c = createCreature({name: 'cockatrice', symbol: 99, color: 11});
+  for (const w of c.wingParts) assert(w.children.some(k => k.isMesh && k.geometry.type === 'ConeGeometry'), 'wing claw');
+});
