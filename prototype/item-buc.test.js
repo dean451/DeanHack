@@ -191,3 +191,9 @@ test('armour in the pack reads its armour class in the hover', () => {
   assert.deepEqual(itemFacts('a cloak [0]'), ['AC 0']);
   assert.deepEqual(itemFacts('a dagger'), []);
 });
+
+test('invisible, broken and fixed items say so in the hover', () => {
+  assert.deepEqual(itemFacts('an invisible +0 dagger'), ['invisible']);
+  assert.deepEqual(itemFacts('a broken large box'), ['broken']);
+  assert.deepEqual(itemFacts('a fixed +0 crysknife'), ['fixed']);
+});
