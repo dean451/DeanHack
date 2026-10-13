@@ -32,7 +32,7 @@ const blot=(x,y,z,f=1)=>Math.sin(x*31*f+Math.sin(z*23*f)*2)*Math.sin(y*27*f+z*13
 
 const LOOKS={
  stone:{base:'#6e6c62',dark:'#34332e',light:'#9a978a',glow:'#ff6420',jag:.2,scale:1.22,spikes:'stone',runes:true,paint:'stone'},
- clay:{base:'#8a4e34',dark:'#4a2618',light:'#b2745a',glow:'#ff3420',jag:.12,scale:1.17,sigil:true,paint:'clay'},
+ clay:{base:'#8a4e34',dark:'#4a2618',light:'#b2745a',glow:'#ff3420',jag:.12,scale:1.17,sigil:true,cracks:true,paint:'clay'},
  iron:{base:'#3a3f44',dark:'#16191c',light:'#6a737a',glow:'#ff5a14',jag:.1,scale:1.28,spikes:'iron',rivets:true,grille:true,stacks:true,paint:'iron'},
  glass:{base:'#a8d8d6',dark:'#4a7a7c',light:'#e8ffff',glow:'#8ff4ff',jag:.24,scale:1.24,spikes:'shard',fractures:true,paint:'clear'},
  ice:{base:'#a6d4e6',dark:'#4a86a0',light:'#eaf8ff',glow:'#6fd0ff',jag:.22,scale:1.28,spikes:'shard',icicles:true,paint:'clear'},
@@ -118,6 +118,8 @@ function build(kind){
  if(look.runes)for(let i=0;i<5;i++){const x=(i-2)*.07,h=.05+hash(i+60)*.05;glow.add(new THREE.BoxGeometry(.012,h,.01),at(x,.62+(i%2)*.05,.205-Math.abs(x)*.3,[0,0,(hash(i+70)-.5)*.6]),GLOW);glow.add(new THREE.BoxGeometry(.04,.01,.01),at(x,.6+(i%2)*.05,.205-Math.abs(x)*.3),GLOW);}
  // glass golems: the light shows through old fractures, jagged seams running down the right shoulder and flank
  if(look.fractures){let x=.2,y=1.06;for(let k=0;k<6;k++){const nx=x+(hash(k+80)-.5)*.1,ny=y-.07-hash(k+90)*.04;glow.add(new THREE.BoxGeometry(Math.hypot(nx-x,ny-y)+.006,.008,.01),at((x+nx)/2,(y+ny)/2,.12,[0,0,Math.atan2(ny-y,nx-x)]),GLOW);x=nx;y=ny;}}
+ // clay golems: the kiln-fired shell has cracked, dull embers showing through jagged seams down the left chest and flank
+ if(look.cracks){let x=-.2,y=1.08;for(let k=0;k<3;k++){const nx=x-(hash(k+110)-.5)*.1,ny=y-.07-hash(k+120)*.04;glow.add(new THREE.BoxGeometry(Math.hypot(nx-x,ny-y)+.006,.008,.01),at((x+nx)/2,(y+ny)/2,.12,[0,0,Math.atan2(ny-y,nx-x)]),GLOW);x=nx;y=ny;}}
  if(look.grille)for(let i=0;i<4;i++)glow.add(new THREE.BoxGeometry(.012,.12,.012),at(-.045+i*.03,.7,.19),GLOW);
  if(look.rivets)for(const [x,y] of [[-.2,.98],[.2,.98],[-.24,.8],[.24,.8],[-.14,.64],[.14,.64]])body.add(new THREE.SphereGeometry(.014,6,4),at(x,y,.2-Math.abs(x)*.3),L);
  // iron golems vent their poison gas through two tilted stacks on the back, each with a lit mouth and a flared rim
