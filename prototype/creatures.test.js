@@ -3019,3 +3019,13 @@ test('the gelatinous cube holds a skeletal hand against its front wall without e
   assert(b.max.z > 0.2 * 1.3, 'the hand reaches the front wall');
   assert(b.max.z < 0.26 * 1.3, 'and stays inside the jelly');
 });
+
+test('the shrieker has fangs set in its lip and the violet fungus hooked barbs on its tendrils',()=>{
+ const F=70,box=n=>{const g=createCreature({name:n,symbol:F}).g;g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(g);};
+ const sh=box('shrieker'),vf=box('violet fungus');
+ assert(sh.max.y<.7&&vf.max.y<.7,'both stay small and inside their tile');
+ // the fangs hang below the rim (y .54) so some geometry sits in the throat band; barbs sit above the tendril tops
+ const geos=n=>{let c=0;createCreature({name:n,symbol:F}).g.traverse(o=>{if(o.isMesh)c+=o.geometry.attributes.position.count;});return c;};
+ assert(geos('shrieker')>12500,'fang ring is merged into the shrieker');
+ assert(geos('violet fungus')>26000,'barbs are merged into the violet fungus tendrils');
+});
