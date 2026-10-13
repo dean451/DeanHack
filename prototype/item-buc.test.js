@@ -224,3 +224,8 @@ test('a tin says how it was prepared in the hover', () => {
   assert.deepEqual(itemFacts('a tin of soup made from jackal meat'), ['soup']);
   assert.deepEqual(itemFacts('a tin of spinach'), []);
 });
+
+test('an unlabeled scroll reads blank in the hover', () => {
+  assert.deepEqual(itemFacts('an unlabeled scroll'), ['blank']);
+  assert.deepEqual(itemFacts('a scroll labeled FOOBIE'), []);
+});
