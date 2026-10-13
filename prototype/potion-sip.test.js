@@ -64,3 +64,10 @@ test('the second stain creeps back toward the hero as it fades', () => {
   const a = stainPose(2, .06 * 2 + .34 + .001), b = stainPose(2, .06 * 2 + .34 + .2);
   assert.ok(Math.abs(Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z)) < 1e-9, 'others stay put');
 });
+
+test('the floor ring shudders as it spreads and still ends hidden', () => {
+  let back = 0, prev = 0;
+  for (let t = .2; t < .65; t += .002) { const s = ringPose(t).scale; if (s < prev - 1e-6) back++; prev = s; assert.ok(s <= .5); }
+  assert.ok(back > 0, 'scale judders');
+  assert.equal(ringPose(.65).alpha, 0);
+});

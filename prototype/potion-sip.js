@@ -34,7 +34,8 @@ export function stainPose(i, t) {
 export function ringPose(t) {
   const u = clamp01((t - .2) / .45);
   if (u <= 0 || u >= 1) return {scale: .001, alpha: 0};
-  return {scale: .1 + .4 * smooth(u), alpha: .45 * (1 - u) * Math.min(1, u * 8)};
+  // The ring shudders as it spreads, as if something under the floor were sucking at it.
+  return {scale: .1 + .37 * smooth(u) + .025 * Math.sin(u * 60) * Math.sin(Math.PI * u), alpha: .45 * (1 - u) * Math.min(1, u * 8)};
 }
 
 export function createPotionSip(THREE, parent) {
