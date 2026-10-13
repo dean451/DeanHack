@@ -641,6 +641,13 @@ function cubeRemainsGeometry(){
  {const m=at(.1,.16,.08,[.2,-.6,.3]),add=(geo,local,c)=>P.add(geo,new THREE.Matrix4().multiplyMatrices(m,local),c);
   add(new THREE.CylinderGeometry(.007,.009,.14,5),at(0,0,0),bone);
   for(let i=0;i<4;i++)add(new THREE.TorusGeometry(.05-i*.006,.004,4,8,Math.PI*1.1),at(.012,-.05+i*.032,0,[Math.PI/2,0,.4]),i%2?BONE_DARK:BONE);}
+ // a skeletal hand pressed flat against the front wall of the cube, three finger bones splayed and one snapped short
+ {const m=at(.06,.2,.215,[0,0,.2]),add=(geo,local,c)=>P.add(geo,new THREE.Matrix4().multiplyMatrices(m,local),c);
+  add(new THREE.BoxGeometry(.05,.04,.012),at(0,0,0),bone);
+  for(let i=0;i<4;i++){const a=-.45+i*.3,len=i===2?.03:.075;
+   add(new THREE.CylinderGeometry(.004,.006,len,5),at(Math.sin(a)*(len/2+.02),Math.cos(a)*(len/2+.02),0,[0,0,-a]),bone);
+   add(new THREE.SphereGeometry(.006,5,4),at(Math.sin(a)*(len+.02),Math.cos(a)*(len+.02),0),BONE);}
+  add(new THREE.CylinderGeometry(.005,.007,.06,5),at(-.04,-.01,0,[0,0,1.2]),bone);}
  cubeRemains=P.merge();
  return cubeRemains;
 }
