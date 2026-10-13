@@ -211,3 +211,9 @@ test('a shop price with no label is a for-sale price', () => {
   assert.deepEqual(itemFacts('an apple (unpaid, 7 zorkmids)'), ['unpaid 7zm']);
   assert.equal(itemHint('a blessed +1 dagger (40 zorkmids)'), 'blessed, enchanted up, for sale 40zm');
 });
+
+test('a named or called item reads its label in the hover', () => {
+  assert.deepEqual(itemFacts('a blessed +2 long sword named Sting (weapon in hand)'), ['named Sting', 'wielded']);
+  assert.deepEqual(itemFacts('a ruby potion called healing'), ['called healing']);
+  assert.deepEqual(itemFacts('a dagger'), []);
+});
