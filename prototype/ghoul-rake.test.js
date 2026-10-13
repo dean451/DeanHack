@@ -42,3 +42,9 @@ test('only ghouls do it', () => {
   assert.equal(M.rakes(o), false);
   assert.equal(M.updateGhoulRake(o, dt, 0, false), null);
 });
+
+test('the head comes up in two short sniffs, the second smaller', () => {
+  assert.ok(M.rakePose(.72).sniff > .99 && M.rakePose(.83).sniff > .55 && M.rakePose(.83).sniff < .65);
+  assert.ok(M.rakePose(.78).sniff < 1e-9);
+  assert.equal(M.rakePose(.5).sniff, 0);
+});
