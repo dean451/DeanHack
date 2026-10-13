@@ -19,17 +19,18 @@ test('lull poses stay in bounds, end at zero and the head snaps up in two stages
 });
 
 test('a standing zombie lulls now and then, stays in bounds and ends exactly at rest', () => {
-  const a = mon('human zombie'), z = a.head.rotation.z, x = a.head.rotation.x, ax = a.arms[1].rotation.x;
+  const a = mon('human zombie'), z = a.head.rotation.z, x = a.head.rotation.x, ax = a.arms[1].rotation.x, bx = a.body.rotation.x;
   let seen = 0;
   for (let i = 0; i < 60 * 40; i++) {
     updateFidget(a, dt, i * dt, false, null);
     if (a.zombieLull?.s != null) seen++;
     assert.ok(a.head.rotation.z - z <= Z.SAG + 1e-9 && a.head.rotation.z - z >= -1e-9);
     assert.ok(a.head.rotation.x - x <= Z.NOD + 1e-9 && Math.abs(a.arms[1].rotation.x - ax) <= Z.SPASM + 1e-9);
+    assert.ok(a.body.rotation.x - bx >= -1e-9 && a.body.rotation.x - bx <= Z.STOOP + 1e-9);
   }
   assert.ok(seen > 60, 'it lulled');
   for (let i = 0; i < 120; i++) updateFidget(a, dt, i * dt, true, null);
-  assert.ok(Math.abs(a.head.rotation.z - z) < 1e-9 && Math.abs(a.head.rotation.x - x) < 1e-9 && Math.abs(a.arms[1].rotation.x - ax) < 1e-9);
+  assert.ok(Math.abs(a.head.rotation.z - z) < 1e-9 && Math.abs(a.head.rotation.x - x) < 1e-9 && Math.abs(a.arms[1].rotation.x - ax) < 1e-9 && Math.abs(a.body.rotation.x - bx) < 1e-9);
 });
 
 test('only zombies lull', () => {
