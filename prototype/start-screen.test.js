@@ -131,24 +131,39 @@ test('the live game wires the link watch and the tombstone into the splash',()=>
   assert.match(live,/id='link-banner'/);
 });
 
-test('the splash draws one of three dragons at random, credited, out of the way of screen readers',async()=>{
-  const {DRAGONS,pickDragon}=await import('./dragon-art.js');
+test('the splash draws one of three dragon heads at random, uncredited, out of the way of screen readers',async()=>{
+  const {DRAGONS,pickDragon,deriveHead}=await import('./dragon-art.js');
   assert.equal(DRAGONS.length,3);
   for(const d of DRAGONS){
     const lines=d.art.split('\n');
     assert.ok(lines.every(l=>l.length<=84),`${d.name} fits beside the card`);
     assert.ok(lines.length>=40&&lines.length<=60,`${d.name} is splash sized`);
     assert.doesNotMatch(d.art,/[<>&]/,`${d.name}: nothing that innerHTML would misread`);
-    assert.ok(d.credit,`${d.name} is credited`);
+    assert.equal(d.credit,undefined,`${d.name}: no credit line`);
   }
-  const tua=DRAGONS.find(d=>d.name==='Tua Xiong');
-  assert.match(tua.art,/Tua Xiong/,'the signature stays in the art');
-  assert.equal(tua.art.split('\n').length,43);
+  assert.ok(!DRAGONS.some(d=>/Tua Xiong/.test(d.name+d.art)),'the Tua Xiong dragon is gone');
+  // the third head is derived from the red one: mirrored, one tone darker
+  const red=DRAGONS.find(d=>d.name==='red'),shadow=DRAGONS.find(d=>d.name==='shadow');
+  assert.equal(shadow.art,deriveHead(red.art));
+  assert.equal(shadow.art.split('\n').length,red.art.split('\n').length);
+  assert.notEqual(shadow.art,red.art);
   assert.equal(pickDragon(()=>0),DRAGONS[0]);assert.equal(pickDragon(()=>.999),DRAGONS[2]);assert.equal(pickDragon(()=>1),DRAGONS[2]);
   const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
   assert.match(src,/<pre class="start-dragon" aria-hidden="true"><\/pre>/);
-  assert.match(src,/const showDragon=\(\)=>\{const d=pickDragon\(\);dragon.textContent=d.art;credit.textContent=`Dragon by \$\{d.credit\}`;\};/);
+  assert.doesNotMatch(src,/Dragon by|start-credit/);
   assert.match(src,/doc.body.classList.add\('start-open'\);showDragon\(\);/,'a fresh dragon each time the splash opens');
   const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
-  assert.match(css,/@media\(max-width:1000px\),\(max-height:560px\)\{\.start-dragon,\.start-credit\{display:none\}\}/,'narrow and short screens keep the card alone');
+  assert.match(css,/@media\(max-width:760px\),\(max-height:400px\)\{\.start-dragon\{display:none\}\}/,'only really small screens keep the card alone');
+  assert.match(css,/\.start-dragon\{[^}]*align-self:flex-start;font:max\(4\.5px,min\(12px,[^}]*var\(--cols,84\)[^}]*var\(--lines,58\)/,'each dragon is sized to its own art to fill the space, held centred in the window');
+  assert.match(src,/dragon\.style\.setProperty\('--lines',lines\.length\)/);
+  assert.match(src,/const placeDragon=\(\)=>/,'the dragon is centred in the window, not against the card');
+});
+
+test('the card says An UnNetHack Fork, with a small DeanHack wordmark bottom right and no tagline',()=>{
+  const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
+  assert.match(src,/<h1>An UnNetHack Fork<\/h1>/);
+  assert.match(src,/class="start-mark"[^>]*>DEAN<b>HACK<\/b>/);
+  assert.doesNotMatch(src,/A little light/);
+  const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+  assert.match(css,/\.start-mark\{position:absolute;right:28px;bottom:22px/);
 });
