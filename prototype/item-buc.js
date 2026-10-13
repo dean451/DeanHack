@@ -77,8 +77,8 @@ export function itemFacts(text) {
   const leash = /\(attached to ([^)]+)\)/i.exec(t);
   if (leash) out.push(`leashed to ${leash[1]}`);
   if (/\(no charge\)/i.test(t)) out.push('no charge');
-  const shop = /\((unpaid|for sale), (\d+) zorkmids?( each)?\)/i.exec(t);
-  if (shop) out.push(`${shop[1].toLowerCase()} ${shop[2]}zm${shop[3] ? ' each' : ''}`);
+  const shop = /\((?:(unpaid|for sale), )?(\d+) zorkmids?( each)?\)/i.exec(t);
+  if (shop) out.push(`${shop[1] ? shop[1].toLowerCase() : 'for sale'} ${shop[2]}zm${shop[3] ? ' each' : ''}`);
   const candles = /\((\d+|no) candles? attached\b[^)]*\)/i.exec(t);
   if (candles) out.push(candles[1] === 'no' ? 'no candles' : `${candles[1]} candle${candles[1] === '1' ? '' : 's'}`);
   const held = /\(containing (\d+) items?\)/i.exec(t);
