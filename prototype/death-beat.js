@@ -3,11 +3,15 @@
 // where she stands (the die action, the same topple a monster plays), her bones are left on
 // that cell once the fall has finished, and the REST IN PEACE card waits a moment on the body
 // before it takes the screen. The card gets an epitaph, a line picked by the name and cause
-// so the same character always gets the same one.
+// so the same character always gets the same one. The body dissolves into the bones rather
+// than cutting to them (BONES_FADE_MS).
 import {DEATH_TIME} from './deaths.js';
 
 // Milliseconds the camera rests on the body after the fall, before the splash.
 export const DEATH_PAUSE_MS = 1800;
+// Milliseconds the fallen hero takes to dissolve into her bones once the fall has ended: the
+// body fades out as the corpse fades in on the same cell, instead of a cut from one to the other.
+export const BONES_FADE_MS = 700;
 
 // How long the whole beat lasts for a death style: the fall, then the pause.
 export function deathBeatMs(style = 'topple') {
@@ -17,22 +21,25 @@ export function deathBeatMs(style = 'topple') {
 // Tracks one death from the tombstone to the splash. `begin(now)` marks the fall's start,
 // `remainingMs(now)` is how long the splash still has to wait, and `corpseDue(finished)` is
 // true once, when the fall has played out and the bones should be laid (`finished` is the
-// action queue's flag). `clear()` forgets it all for the next game.
-export function createDeathBeat({pause = DEATH_PAUSE_MS} = {}) {
-  let startedAt = null, fallMs = 0, laid = false;
+// action queue's flag). `crossfade(now)` then runs 0..1 over BONES_FADE_MS from that moment
+// (0 before the bones are laid): how far the body has gone and the bones have come.
+// `clear()` forgets it all for the next game.
+export function createDeathBeat({pause = DEATH_PAUSE_MS, fade = BONES_FADE_MS} = {}) {
+  let startedAt = null, fallMs = 0, laid = false, laidAt = null;
   return {
     begin(now, style = 'topple') {
       if (startedAt !== null) return false;
-      startedAt = now; fallMs = Math.round((DEATH_TIME[style] ?? DEATH_TIME.topple) * 1000); laid = false;
+      startedAt = now; fallMs = Math.round((DEATH_TIME[style] ?? DEATH_TIME.topple) * 1000); laid = false; laidAt = null;
       return true;
     },
     get active() { return startedAt !== null; },
     remainingMs(now) { return startedAt === null ? 0 : Math.max(0, startedAt + fallMs + pause - now); },
-    corpseDue(finished) {
+    corpseDue(finished, now = startedAt + fallMs) {
       if (startedAt === null || laid || !finished) return false;
-      laid = true; return true;
+      laid = true; laidAt = now; return true;
     },
-    clear() { startedAt = null; fallMs = 0; laid = false; },
+    crossfade(now) { return laidAt === null ? 0 : fade <= 0 ? 1 : Math.min(1, Math.max(0, (now - laidAt) / fade)); },
+    clear() { startedAt = null; fallMs = 0; laid = false; laidAt = null; },
   };
 }
 
