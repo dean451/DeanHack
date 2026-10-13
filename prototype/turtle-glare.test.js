@@ -72,3 +72,10 @@ test('walking fades a glare out and an attack blocks one', () => {
 test('other lizards do not glare', () => {
   for (const [n, s] of [['crocodile', ':'], ['newt', ':'], ['jackal', 'd']]) assert(!glares(make(n, s.charCodeAt(0))), n);
 });
+
+test('after the missed bite the head jerks sharply aside, then rests exactly', () => {
+  const dip = glarePose(.77).turn - glarePose(.7).turn;
+  assert.ok(glarePose(.77).turn < TURN * .6 && dip < -.05, `jerk ${dip}`);
+  for (let u = 0; u <= 1; u += .005) assert.ok(Math.abs(glarePose(u).turn) <= TURN + 1e-9, `bound at ${u}`);
+  assert.equal(glarePose(1).turn, 0);
+});
