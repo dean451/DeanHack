@@ -30,7 +30,8 @@ export function listenPose(u, f = 1) {
   if (!(f > 0) || !(u > 0) || !(u < 1)) return p;
   p.grind = (win(u, .05, .08, .4, .1) - .8 * win(u, .5, .06, .85, .08)) * f;
   p.cant = win(u, .06, .12, .5, .08) * f;
-  p.point = win(u, .15, .2, .6, .1) * f;
+  // at the ear, the hand rubs once, as if the sound were a thread to pull loose
+  p.point = Math.max(0, win(u, .15, .2, .6, .1) - .22 * Math.sin(Math.PI * clamp01((u - .36) / .1)) ** 2) * f;
   return p;
 }
 
