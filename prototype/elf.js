@@ -52,6 +52,12 @@ function buildBody(o){
   P.add(new THREE.SphereGeometry(.022,8,6),at(s*.1,.83,.075,[0,0,s*.6],[.6,1.3,.45]),C.trim);
   P.add(new THREE.SphereGeometry(.03,8,6),at(s*.145,.8,0),C.tunic);
  }
+ if(o.crown){
+  // the king's tunic is stiff with old blood: dark flat splashes across the chest and down the skirt front
+  const blood=rgb('#3a0e10');
+  for(const [x,y,z,r] of [[-.05,.78,.1,.03],[.04,.7,.115,.04],[-.02,.55,.15,.035],[.08,.46,.16,.03],[-.09,.42,.165,.028]])
+   P.add(new THREE.SphereGeometry(r,8,6),at(x,y,z,[0,0,0],[1.2,1,.18]),blood);
+ }
  if(o.bow){
   // longbow slung across the back, with its string
   const bow=new THREE.CatmullRomCurve3([[-.2,.3,-.19],[-.1,.48,-.26],[.02,.64,-.28],[.13,.8,-.26],[.22,.97,-.19]].map(p=>new THREE.Vector3(...p)));
