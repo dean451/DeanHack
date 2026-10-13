@@ -39,3 +39,9 @@ test('the sniffing stops dead and the nose holds up in a stare before the whip',
   for (const u of [.82, .85, .87]) assert.ok(M.sniffPose(u).dip < -.5 + 1e-9, `held at ${u}`);
   assert.ok(Math.abs(M.sniffPose(.5).dip) <= 1);
 });
+
+test('the nose sinks after the whip and is back at rest at the end', () => {
+  assert.ok(M.sniffPose(.96).dip > .25);
+  assert.equal(M.sniffPose(1).dip, 0);
+  assert.ok(Math.abs(M.sniffPose(.999).dip) < .01);
+});

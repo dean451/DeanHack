@@ -21,7 +21,9 @@ export function sniffPose(u) {
   const env = smooth(u / .1) * (1 - smooth((u - .75) / .1));
   // the sniffing stops dead and the nose snaps up into a held stare just before the tail whips
   const stare = smooth((u - .78) / .025) * (1 - smooth((u - .9) / .04));
-  const dip = Math.max(-1, Math.min(1, env * Math.sin(u * Math.PI * 2 * 7) - .7 * stare));
+  // finding nothing, the nose sinks a little and hangs there before it comes back
+  const sink = .3 * Math.sin(Math.PI * clamp01((u - .92) / .08)) ** 2;
+  const dip = Math.max(-1, Math.min(1, env * Math.sin(u * Math.PI * 2 * 7) - .7 * stare + sink));
   const hunt = env * Math.sin(u * Math.PI * 2 * 1.5);
   const whip = Math.exp(-(((u - .88) / .04) ** 2)) * Math.sin((u - .88) * 120);
   return {dip, hunt, whip: Math.max(-1, Math.min(1, whip))};

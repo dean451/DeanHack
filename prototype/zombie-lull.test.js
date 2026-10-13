@@ -10,7 +10,7 @@ const mon = name => { const a = createCreature({name, symbol: 'Z'.charCodeAt(0),
 test('lull poses stay in bounds, end at zero and the head snaps up in two stages', () => {
   for (let u = -.1; u <= 1.1; u += .002) {
     const p = Z.lullPose(u);
-    assert.ok(p.sag >= -1e-9 && p.sag <= 1 && p.spasm >= 0 && p.spasm <= 1, `${u}`);
+    assert.ok(p.sag >= -1e-9 && p.sag <= 1 && p.spasm >= -.25 - 1e-9 && p.spasm <= 1, `${u}`);
   }
   assert.deepEqual(Z.lullPose(0), {sag: 0, spasm: 0});
   assert.deepEqual(Z.lullPose(1), {sag: 0, spasm: 0});
@@ -41,4 +41,11 @@ test('having snapped up, the head forgets itself and lolls back over before the 
   assert.ok(Z.lullPose(.84).sag > .25, 'lolls back');
   assert.ok(Z.lullPose(.84).sag > Z.lullPose(.76).sag);
   assert.equal(Z.lullPose(.9).sag < .02, true);
+});
+
+test('the spasming arm drops past rest after the snaps, then comes home', () => {
+  let low = 0;
+  for (let i = 0; i <= 2000; i++) low = Math.min(low, Z.lullPose(i / 2000).spasm);
+  assert.ok(low < -.2, 'the arm hangs below rest');
+  assert.ok(Z.lullPose(.84).spasm < -.2 && Z.lullPose(.99).spasm > -.01);
 });
