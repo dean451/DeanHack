@@ -19,9 +19,11 @@ export const preens = a => !!(a && !a.asset && a.quirk === 'bee' && a.head && a.
 // .7, hangs raised (too long) until .88 and drops; the head stays bowed until .9 and jerks up.
 export function preenPose(u) {
   if (!(u > 0) || !(u < 1)) return {lift: 0, scrub: 0, dip: 0};
-  const lift = smooth(u / .2) * (1 - smooth((u - .88) / .06));
+  // Head clear, the forelegs rise once more for a single stray rub, then fall.
+  const stray = Math.exp(-(((u - .95) / .015) ** 2));
+  const lift = Math.max(smooth(u / .2) * (1 - smooth((u - .88) / .06)), .35 * stray);
   const scrubbing = smooth((u - .2) / .03) * (1 - smooth((u - .7) / .03));
-  const scrub = Math.max(-1, Math.min(1, Math.sin((u - .2) * Math.PI * 2 * 7) * scrubbing));
+  const scrub = Math.max(-1, Math.min(1, Math.sin((u - .2) * Math.PI * 2 * 7) * scrubbing + .5 * stray * Math.sin((u - .95) * 150)));
   const dip = smooth((u - .1) / .1) * (1 - smooth((u - .9) / .015));
   return {lift, scrub, dip};
 }
