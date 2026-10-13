@@ -47,3 +47,10 @@ test('it ends, cleans up, and ignores a bad direction', () => {
   assert.equal(fx.active, 0); assert.equal(removed.length, 1);
   fx.arrive(-1); fx.clear(); assert.equal(fx.active, 0);
 });
+
+test('the ring catches once mid-close, never reversing past its start, and ends at rest', () => {
+  let slow = Infinity, max = 0;
+  for (let t = .05; t < .55; t += .01) { const d = ringPose(t, 1).scale - ringPose(t + .01, 1).scale; slow = Math.min(slow, d); max = Math.max(max, d); }
+  assert.ok(slow < max / 2, 'a hitch in the close');
+  for (const dir of [1, -1]) { const s = ringPose(0, dir).scale, e = ringPose(STEP.total, dir).scale; assert.ok(s <= .6 && e <= .6 && ringPose(STEP.total, dir).alpha === 0); }
+});
