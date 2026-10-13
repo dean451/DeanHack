@@ -1552,10 +1552,17 @@ function vortex(o){
  else for(let i=0;i<7;i++){const t=i/6,ring=part(body,new THREE.TorusGeometry((.07+t*.22)*s,(.028+t*.02)*s,6,20),swirl,Math.sin(i*1.3)*.04*s,(.08+t*.72)*s,Math.cos(i*1.3)*.04*s);ring.rotation.x=Math.PI/2+Math.sin(i*1.9)*.22;ring.rotation.y=i*.7;ring.castShadow=false;}
  const debris=o.debris?mat(o.debris,glow?{emissive:o.debris,emissiveIntensity:3}:{}):null;
  if(debris)for(let i=0;i<8;i++){const t=i/7,a=i*2.2,r=(.1+t*.24)*s;const bit=o.shard?cone(body,.025*s,.08*s,debris,Math.cos(a)*r,(.12+t*.66)*s,Math.sin(a)*r,4):sphere(body,.022*s,debris,Math.cos(a)*r,(.12+t*.66)*s,Math.sin(a)*r);bit.rotation.set(a,a*.5,0);}
+ // energy vortices only: jagged forks of lightning leap out of the spiral, each a bent pair of glowing spikes
+ if(o.arcs){const bolt=new THREE.MeshStandardMaterial({color:'#e8f4ff',emissive:'#8ac0ff',emissiveIntensity:4,roughness:.2});
+  for(let i=0;i<5;i++){const a=i*1.26+.4,y=(.2+i*.12)*s,r0=.2*s,r1=.31*s,k=cone(body,.012*s,.16*s,bolt,Math.cos(a)*r0,y,Math.sin(a)*r0,3);k.rotation.set(0,-a,Math.PI/2-.5);k.castShadow=false;g.userData.arcs=(g.userData.arcs||0)+1;
+   const t=cone(body,.009*s,.12*s,bolt,Math.cos(a+.1)*r1,y+.06*s,Math.sin(a+.1)*r1,3);t.rotation.set(0,-a,Math.PI/2+.6);t.castShadow=false;}}
+ // fire vortices only: embers glow on the scorched ground around the foot
+ if(o.embers){const em=new THREE.MeshStandardMaterial({color:'#ffb040',emissive:'#ff5a10',emissiveIntensity:3,roughness:.5});
+  for(let i=0;i<6;i++){const a=i*1.05,r=(.2+(i%2)*.1)*s,e=part(g,new THREE.CircleGeometry(.025*s,5),em,Math.cos(a)*r,.016,Math.sin(a)*r);e.rotation.x=-Math.PI/2;e.castShadow=false;g.userData.embers=(g.userData.embers||0)+1;}}
  let core=null;if(glow){core=sphere(body,.07*s,new THREE.MeshStandardMaterial({color:o.debris||o.color,emissive:o.debris||o.color,emissiveIntensity:4.5,roughness:.2}),0,.32*s,0,.8,1.6,.8);g.userData.core=core;}
  return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});
 }
-const VORTICES={'fog cloud':{color:'#b4b8bc',cloud:true,opacity:.6},'dust vortex':{color:'#9a7a52',debris:'#6a5038'},'ice vortex':{color:'#bfe6f4',debris:'#e8f8ff',shard:true,scale:1.2},'energy vortex':{color:'#4f8cff',debris:'#d8f0ff',glow:true,scale:1.25},'steam vortex':{color:'#d4dce4',opacity:.42,scale:1.25},'fire vortex':{color:'#ff7a28',debris:'#ffd24a',glow:true,scale:1.25}};
+const VORTICES={'fog cloud':{color:'#b4b8bc',cloud:true,opacity:.6},'dust vortex':{color:'#9a7a52',debris:'#6a5038'},'ice vortex':{color:'#bfe6f4',debris:'#e8f8ff',shard:true,scale:1.2},'energy vortex':{color:'#4f8cff',debris:'#d8f0ff',glow:true,arcs:true,scale:1.25},'steam vortex':{color:'#d4dce4',opacity:.42,scale:1.25},'fire vortex':{color:'#ff7a28',debris:'#ffd24a',glow:true,embers:true,scale:1.25}};
 const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',ridge:true,scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.9,venom:true}};
 
 // Smooth-body helpers: a lathed profile, and a tapered limb between two joint points
