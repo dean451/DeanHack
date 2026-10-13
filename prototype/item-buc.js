@@ -66,6 +66,7 @@ export function itemFacts(text) {
   if (/\bdiluted\b/i.test(t.split('(')[0])) out.push('diluted');
   const tin = /\btins? of (homemade|rotten|pickled|smoked|candied|dried|boiled|broiled|sauteed|deep fried|stir fried|szechuan|french fried|soup made from)\b/i.exec(t.split('(')[0]);
   if (tin) out.push(tin[1].toLowerCase() === 'soup made from' ? 'soup' : tin[1].toLowerCase());
+  if (/\bunlabeled scrolls?\b/i.test(t.split('(')[0])) out.push('blank');
   if (/\bwet towels?\b/i.test(t.split('(')[0])) out.push('wet');
   if (/\((?:tethered weapon|weapon|wielded)[^)]*\)/i.test(t)) {
     out.push(/\(tethered weapon\b/i.test(t) ? 'wielded, tethered' : /\(wielded in other hand\)/i.test(t) ? 'wielded, off hand' : /\(weapon in hands\)/i.test(t) ? 'wielded, two hands' : 'wielded');
