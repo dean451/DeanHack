@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {dropPose, ringPose, isHealMessage, dropCount, createPotionSip, SIP} from './potion-sip.js';
+import {stainPose, dropPose, ringPose, isHealMessage, dropCount, createPotionSip, SIP} from './potion-sip.js';
 
 test('only the healing messages trigger it', () => {
   for (const t of ['You feel better.', 'You feel much better.', 'You feel completely healed.']) assert.ok(isHealMessage(t), t);
@@ -42,4 +42,18 @@ test('a heal starts an effect that is cleaned up', () => {
 test('a deeper heal sheds more drops, all inside the effect time', () => {
   assert.deepEqual(['You feel better.', 'You feel much better.', 'You feel completely healed.'].map(dropCount), [3, 5, SIP.drops]);
   for (let i = 0; i < SIP.drops; i++) assert.equal(dropPose(i, SIP.total).alpha, 0, `drop ${i} gone by the end`);
+});
+
+test('each drop leaves a small stain that lands after it and fades out', () => {
+  for (let i = 0; i < SIP.drops; i++) {
+    assert.equal(stainPose(i, 0).alpha, 0);
+    assert.equal(stainPose(i, SIP.total).alpha, 0, `stain ${i} gone by the end`);
+    const landed = [...Array(200)].map((_, k) => k * .005).find(t => dropPose(i, t - .005).alpha > 0 && dropPose(i, t).alpha === 0 && t > .3);
+    assert.ok(landed !== undefined, `drop ${i} lands`);
+    assert.ok(stainPose(i, landed + .05).alpha > .2, `stain ${i} shows after the drop`);
+    for (let t = 0; t <= SIP.total; t += .005) {
+      const p = stainPose(i, t);
+      assert.ok(p.alpha >= 0 && p.alpha <= .5 && p.scale > 0 && p.scale <= .07 && Math.hypot(p.x, p.z) <= .07, `${i} ${t}`);
+    }
+  }
 });
