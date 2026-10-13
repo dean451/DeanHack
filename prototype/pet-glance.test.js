@@ -43,3 +43,12 @@ test('the stare dips once mid-hold and recovers', () => {
   assert.ok(mid < 1 && mid > .8);
   assert.equal(M.glanceCurve(M.SNAP_IN + M.HOLD * .2), 1);
 });
+
+test('a double-take dips, snaps back and still returns exactly to zero', () => {
+  const e0 = M.SNAP_IN + M.HOLD;
+  assert.ok(M.glanceCurve(e0 + M.DIP, true) <= M.DIP_TO + 1e-9);
+  assert.equal(M.glanceCurve(e0 + M.DIP + M.RESNAP + .01, true), 1);
+  assert.equal(M.glanceCurve(M.glanceLen(true), true), 0);
+  assert.ok(M.glanceLen(true) > M.glanceLen());
+  for (let s = 0; s < M.glanceLen(true); s += .005) { const v = M.glanceCurve(s, true); assert.ok(v >= 0 && v <= 1); }
+});
