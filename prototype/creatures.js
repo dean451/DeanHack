@@ -1403,7 +1403,9 @@ function wumpus(o){
   eyes.push(S(.018,10,8).applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(side*.066,.075,.126),new THREE.Quaternion(),new THREE.Vector3(1,.8,.7))));
   put(head,hide,S(.04,10,8),[side*.15,.1,-.03],[0,0,side*.4],[1,1,.4]);
   put(head,belly,S(.026,10,8),[side*.152,.1,-.018],[0,0,side*.4],[1,1,.3]);
-  put(head,(x,py)=>mix(mix(horn,dark,.5),horn,(py-.12)/.1),taperedTube([[0,0,0],[side*.05,.03,0],[side*.075,.08,-.01],[side*.065,.12,-.025]],.028,.008,12,8),[side*.1,.12,.01]);
+  // the left horn is snapped off short, its break dark and splintered
+  put(head,(x,py)=>mix(mix(horn,dark,.5),horn,(py-.12)/.1),side<0?taperedTube([[0,0,0],[side*.05,.03,0],[side*.065,.06,-.006]],.028,.017,12,8):taperedTube([[0,0,0],[side*.05,.03,0],[side*.075,.08,-.01],[side*.065,.12,-.025]],.028,.008,12,8),[side*.1,.12,.01]);
+  if(side<0)put(head,cup,S(.017,8,6),[side*.1+side*.065,.12+.06,.01-.006],[0,0,0],[1,.55,1]);
  }
  // wear: an old claw-rake splits the right brow and cheek, ragged and dark
  for(let i=0;i<3;i++)put(head,cup,new THREE.BoxGeometry(.008,.1,.012),[.07+i*.022,.07-i*.006,.125-i*.012],[0,0,.45]);
