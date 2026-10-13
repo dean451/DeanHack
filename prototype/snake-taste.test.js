@@ -40,3 +40,10 @@ test('cobras and other species are left alone', () => {
   assert.equal(M.tastes(mon('cobra')), false);
   assert.equal(M.updateSnakeTaste(mon('jackal'), dt, 0, false), null);
 });
+
+test('after the snap the jaw flicks half open once more, then rests exactly', () => {
+  assert.ok(M.tastePose(.8).gape < .01, 'shut after the snap');
+  assert.ok(M.tastePose(.9).gape > .45 && M.tastePose(.9).gape < .6, 'the flick');
+  assert.ok(M.tastePose(.9).cock < .01, 'the head stays straight for it');
+  assert.ok(M.tastePose(.9999).gape < 1e-3);
+});

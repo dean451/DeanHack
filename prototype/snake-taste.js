@@ -16,11 +16,13 @@ const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 export const tastes = a => !!(a && !a.asset && a.quirk === 'snake' && !a.hood && a.jaw?.parent && a.body);
 
 // The taste at progress u (0..1): {cock} 0..1 head turned and tilted aside, {gape} 0..1 jaw open.
-// The head cocks over slowly, the jaw sags open, then both snap shut in a few frames. Zero at both ends.
+// The head cocks over slowly, the jaw sags open, then both snap shut in a few frames, and the jaw flicks open once more. Zero at both ends.
 export function tastePose(u) {
   if (!(u > 0) || !(u < 1)) return {cock: 0, gape: 0};
   const cock = smooth(u / .3) * (1 - smooth((u - .78) / .05));
-  const gape = smooth((u - .35) / .35) * (1 - smooth((u - .74) / .03));
+  // After the snap it tastes once more, a quick half-open flick, as if the first told it nothing.
+  const flick = .5 * Math.exp(-(((u - .9) / .018) ** 2));
+  const gape = smooth((u - .35) / .35) * (1 - smooth((u - .74) / .03)) + flick;
   return {cock, gape};
 }
 
