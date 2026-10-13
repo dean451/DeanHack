@@ -702,8 +702,10 @@ function xan(o){
   sphere(body,.16,shell,0,y-.01,-.14,1.05,.75,1.25);
   for(const side of [-1,1]){const elytron=part(body,new THREE.SphereGeometry(.15,14,8,0,Math.PI,0,Math.PI/2),shell,side*.035,y+.03,-.12);elytron.scale.set(.62,.55,1.3);elytron.rotation.set(-.35,side*Math.PI/2,side*.5);}
   const ice=mat('#e2f6ff',{roughness:.08,metalness:.1,emissive:'#6fc8ff',emissiveIntensity:.35,transparent:true,opacity:.85});
-  for(let i=0;i<5;i++){const spike=cone(body,.022,.09-Math.abs(i-2)*.012,ice,Math.sin(i*2.1)*.02,y+.11-i*.01,.06-i*.075,5);spike.rotation.x=-.35-i*.12;}
-  for(const side of [-1,1])for(const z of [-.08,-.2]){const shard=cone(body,.016,.07,ice,side*.14,y-.02,z,4);shard.rotation.z=-side*1.2;}
+  for(let i=0;i<5;i++){const spike=cone(body,.022,(.09-Math.abs(i-2)*.012)*(i===4?.4:1),ice,Math.sin(i*2.1)*.02,y+.11-i*.01,.06-i*.075,5);spike.rotation.x=-.35-i*.12;}
+  for(const side of [-1,1])for(const z of [-.08,-.2]){if(side<0&&z<-.1)continue;const shard=cone(body,.016,.07,ice,side*.14,y-.02,z,4);shard.rotation.z=-side*1.2;}
+  // the hindmost dorsal spike is snapped to a stub and the left rear shard is gone: it has been fighting
+  g.userData.chipped=true;
  }else{
   // long segmented abdomen that curls down and forward into a hooked stinger
   const pts=[[0,y,-.06],[0,y-.02,-.2],[0,y-.1,-.3],[0,y-.22,-.28],[0,y-.3,-.16],[0,y-.3,-.04]].map(p=>new THREE.Vector3(...p)),curve=new THREE.CatmullRomCurve3(pts);

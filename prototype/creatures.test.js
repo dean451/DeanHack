@@ -2971,6 +2971,13 @@ test('the xan bristles with a comb of thorns on the thorax, the chillbug does no
  assert(!createCreature({name: 'chillbug', symbol: 120, color: 4}).g.userData.thorned, 'chillbug is smooth');
 });
 
+test('the chillbug has a snapped hind spine and a missing rear shard, the xan is untouched', () => {
+ const count = name => { let n = 0; createCreature({name, symbol: 120, color: 4}).g.traverse(o => { if (o.isMesh) n++; }); return n; };
+ assert(createCreature({name: 'chillbug', symbol: 120, color: 4}).g.userData.chipped, 'chillbug chipped');
+ assert(!createCreature({name: 'xan', symbol: 120, color: 1}).g.userData.chipped, 'xan is not chipped');
+ assert(count('chillbug') <= 60, 'chillbug stays cheap');
+});
+
 test('the ki-rin\'s horn is chipped short with a dark break, unlike the unicorns\'',()=>{
  const tip=name=>{const c=createCreature({name,symbol:'u'.charCodeAt(0),color:3});c.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(c.g,true).max.y/c.g.scale.y;};
  let kirinMeshes=0;createCreature({name:'ki-rin',symbol:'u'.charCodeAt(0),color:3}).g.traverse(o=>{if(o.isMesh)kirinMeshes++;});
