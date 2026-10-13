@@ -519,7 +519,9 @@ function cockatrice(o){
  const beak=cone(head,.045,.12,foot,0,-.02,.11,5);beak.rotation.x=Math.PI/2;
  for(let i=0;i<3;i++){const wave=cone(head,.02,.1-i*.018,comb,(i-1)*.035,.1,-.02+i*.012,4);wave.rotation.z=(i-1)*.3;}
  sphere(head,.022,comb,0,-.09,.09,1,1.3,.8);
- for(const side of [-1,1])sphere(head,.018,darkEye,side*.06,.02,.06);
+ // the gaze that turns men to stone: sickly self-lit slit eyes (the pyrolisk keeps its coals, set below)
+ const gaze=o.fire?darkEye:mat('#d8e84a',{emissive:'#a8c820',emissiveIntensity:2.2,roughness:.3});
+ for(const side of [-1,1])sphere(head,.018,gaze,side*.06,.02,.06,o.fire?1:.8,o.fire?1:1.1,o.fire?1:.7);
  for(const side of [-1,1])for(const z of [-.12,.13]){const leg=new THREE.Group();leg.position.set(side*.1,.15,z);body.add(leg);const upper=rounded(leg,.13,.035,.04,skin,side*.07,-.03,0,.012);upper.rotation.z=side*-.5;rounded(leg,.05,.02,.08,foot,side*.13,-.11,.02,.008);legs.push(leg);}
  // menace: a hooked black spur above each foot, and a lower beak spike so the beak gapes like a bared bite
  const spurMat=mat('#1a1814',{roughness:.7,flatShading:true});
