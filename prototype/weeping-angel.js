@@ -139,9 +139,10 @@ function buildArm(k,stone,s){
  for(let f=0;f<4;f++){
   const off=(f-1.5)*.012*s,spread=(f-1.5)*.18*s;
   const base=palm.clone().addScaledVector(up,.026).addScaledVector(across,-off);
-  const dir=up.clone().addScaledVector(across,-spread).normalize(),len=.06+(f===1||f===2?.012:0);
+  const snapped=s>0&&f===3,dir=up.clone().addScaledVector(across,-spread).normalize(),len=snapped?.03:.06+(f===1||f===2?.012:0);// the right little finger is broken off to a stub
   const pts=[base,base.clone().addScaledVector(dir,len*.5).addScaledVector(n,.004),base.clone().addScaledVector(dir,len).addScaledVector(n,-.008)];
   const {geo,curve}=taper(pts.map(L),.0078,.005,8,6);P.add(geo,null,st);
+  if(snapped)continue;
   const tip=curve.getPointAt(1),t=curve.getTangentAt(1);
   P.add(new THREE.ConeGeometry(.005,.02,5).translate(0,.01,0),new THREE.Matrix4().compose(tip,new THREE.Quaternion().setFromUnitVectors(V([0,1,0]),t),V([1,1,1])),st);
  }
