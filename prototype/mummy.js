@@ -25,12 +25,13 @@ export const MUMMIES={
  'human mummy':{scale:1,wide:1,tint:'#8a8a80'},
  'ogre mummy':{scale:1.3,wide:1.2,tint:'#8a6a40'},
  'troll mummy':{scale:1.38,wide:1.1,tint:'#3a8a50'},
- 'ettin mummy':{scale:1.55,wide:1.12,tint:'#3a5ab0',heads:2},
- 'giant mummy':{scale:1.85,wide:1.05,tint:'#3aa0a8'},
+ 'ettin mummy':{scale:1.55,wide:1.12,tint:'#3a5ab0',heads:2,crown:true},
+ 'giant mummy':{scale:1.85,wide:1.05,tint:'#3aa0a8',crown:true},
 };
 
 const C={
  fresh:rgb('#ddd0ae'),linen:rgb('#c9bb98'),yellow:rgb('#b8a474'),grime:rgb('#6e5e40'),resin:rgb('#5a4028'),
+ gold:rgb('#c29a3a'),goldDark:rgb('#6a5224'),blood:rgb('#5a1410'),
  under:rgb('#3a2e22'),rib:rgb('#8a7a5c'),nail:rgb('#241a12'),
 };
 // deterministic scatter, so every build is the same
@@ -109,7 +110,7 @@ function buildBody(){
  return P.merge();
 }
 
-function buildHead(){
+function buildHead(crowned=false){
  const P=pieces(),hr=.115;
  // the skull and jaw under the wrappings
  P.add(new THREE.SphereGeometry(hr,16,12),at(0,0,0,[0,0,0],[.92,1.05,1]),C.under);
@@ -127,6 +128,16 @@ function buildHead(){
  // the wrappings rotted away over the left cheek: a dark sunken socket-gap and a bared jaw tooth-row
  P.add(new THREE.SphereGeometry(.03,8,6),at(-.062,-.04,.088,[0,0,0],[1,1.2,.5]),C.nail);
  for(const x of [-.05,-.036,-.022])P.add(new THREE.ConeGeometry(.005,.018,4),at(x,-.098,.1,[Math.PI,0,0]),C.rib);
+ // the giant and the ettin were buried kings: a tarnished gold circlet over the wrappings, five
+ // spikes round it, one snapped short, the whole band cocked a little to one side
+ if(crowned){
+  P.add(new THREE.TorusGeometry(.09,.011,5,18),at(0,.088,.004,[Math.PI/2+.08,0,.06],[1,1.06,1]),(x,y,z)=>mix(C.gold,C.goldDark,Math.abs(Math.sin(x*70+z*50))*.6));
+  for(const [i,a] of [-1.2,-.6,0,.6,1.2].entries()){
+   const h=i===3?.04:.1+(i%2)*.03;
+   P.add(new THREE.ConeGeometry(.012,h,4),at(Math.sin(a)*.09,.088+h/2+.006+a*.012,Math.cos(a)*.09*1.06+.004,[Math.cos(a)*.2,0,-Math.sin(a)*.2]),i===3?C.goldDark:C.gold);
+  }
+  P.add(new THREE.SphereGeometry(.011,6,5),at(0,.1,.1,[0,0,0],[1,1,.6]),C.blood);
+ }
  return P.merge();
 }
 function buildEyes(){
@@ -176,7 +187,7 @@ let shared=null;
 function geometry(){
  if(shared)return shared;
  const eye=new THREE.MeshStandardMaterial({color:0xe8e0b0,emissive:0x8a7a30,emissiveIntensity:1.5,roughness:.3});
- shared={eye,materials:new Map(),body:buildBody(),head:buildHead(),eyes:buildEyes(),leg:{'-1':buildLeg(-1),'1':buildLeg(1)},arm:{'-1':buildArm(-1),'1':buildArm(1)}};
+ shared={eye,materials:new Map(),body:buildBody(),head:buildHead(),headCrowned:buildHead(true),eyes:buildEyes(),leg:{'-1':buildLeg(-1),'1':buildLeg(1)},arm:{'-1':buildArm(-1),'1':buildArm(1)}};
  return shared;
 }
 // linen takes a faint cast of the species' glyph colour
@@ -195,7 +206,7 @@ export function createMummy(name){
  const heads=[];
  for(const x of o.heads===2?[-.12,.12]:[0]){
   const head=new THREE.Group();head.position.set(x,1.03,.02);head.rotation.z=-x*1.2;if(o.heads===2)head.scale.setScalar(.88);body.add(head);
-  mesh(head,S.head,linenMat,'head');mesh(head,S.eyes,S.eye,'eyes');heads.push(head);
+  mesh(head,o.crown?S.headCrowned:S.head,linenMat,'head');mesh(head,S.eyes,S.eye,'eyes');heads.push(head);
  }
  const legs=[],arms=[];
  for(const s of [-1,1]){
