@@ -1924,6 +1924,9 @@ function wraith(o){
  // the Nazgul's blade is a wicked, notched thing: dark bites chewed out of its edge and a hooked tip
  // the barrow wight's grave-rusted blade is chipped too: pale bright bites where the rust has flaked off the edge
  if(o.kind==='barrow wight'&&o.sword){const bite=mat('#b8b4a4',{roughness:.4,metalness:.7});for(const [dy,dx] of [[-.14,-1],[.02,1],[.15,-1]]){const n=rounded(body,.018,.035,.014,bite,.3+dx*.02,.74+dy*Math.cos(.9)+.02,.2+dy*Math.sin(.9)*-1,.004);n.rotation.x=.9;}}
+ // barrow wights wear their grave: clods of black earth caked on the shoulders and a rotted burial-cloth strip hanging from the sword arm
+ if(o.kind==='barrow wight'){const earth=mat('#2a2218',{roughness:1}),rag=mat('#7a7458',{roughness:1});g.userData.graveEarth=true;for(const [x,y,z,r] of [[-.2,1.0,-.04,.05],[.17,1.02,.02,.04],[-.08,1.04,-.1,.035]])sphere(body,r,earth,x,y,z,1.3,.6,1.1);
+  const strip=rounded(arms[1],.04,.22,.008,rag,.02,-.3,.06,.003);strip.rotation.z=.12;}
  // a wraith's cowl is torn: ragged shreds of shroud hang from the hood rim, drifting like smoke
  if(o.kind==='wraith'){for(const [sx,sz,len] of [[-.15,.1,.2],[.13,.12,.15],[.0,.17,.11]]){const t=cone(head,.03,len,robe,sx,1.0-H,sz,3);t.rotation.x=Math.PI;t.rotation.z=sx*1.2;}}
  if(o.crown&&o.sword){const nick=mat('#101014',{roughness:.5,metalness:.6});for(const [dy,dx] of [[-.12,1],[0,-1],[.12,1]]){const n=rounded(body,.02,.04,.016,nick,.3+dx*.02,.74+dy*Math.cos(.9)+.02,.2+dy*Math.sin(.9)*-1,.004);n.rotation.x=.9;}}
