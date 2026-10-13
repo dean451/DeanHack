@@ -1,5 +1,5 @@
 // A zombie's idle lull (zombie.js). A zombie that stands still now and then slumps: the lolling
-// head sags further over onto its shoulder, slowly, as if the thing had forgotten it was upright,
+// head sags further over onto its shoulder, slowly, as if the thing had forgotten it was upright (the whole stoop deepens with it),
 // holds, and then jerks up in two stuttering snaps with the nearer arm spasming forward, as if
 // something dead had remembered hunger. Walking, an action or death takes it back within a moment.
 //
@@ -8,7 +8,7 @@
 // first next frame, so nothing drifts. Two-headed zombies sag both heads together.
 
 // SAG: extra roll of the head (rad); NOD: extra pitch with it; SPASM: the arm's jerk (rad).
-export const SAG = .35, NOD = .12, SPASM = .4;
+export const SAG = .35, NOD = .12, SPASM = .4, STOOP = .08;
 // First lull after FIRST_MIN..+FIRST_SPAN s standing still, then GAP_MIN..+GAP_SPAN apart.
 export const FIRST_MIN = 2, FIRST_SPAN = 4, GAP_MIN = 5, GAP_SPAN = 8, LULL_LEN = 3;
 const SNAP = 1e-3, FADE_OUT = 14;
@@ -37,11 +37,11 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 // Call once per frame after the trudge layer. `busy` is true while the actor walks or acts.
 export function updateZombieLull(actor, dt, t, busy) {
   if (!lulls(actor)) return null;
-  const st = actor.zombieLull || (actor.zombieLull = {seed: ((actor.g?.id ?? 1) * 22937) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {z: 0, x: 0, a: 0}});
+  const st = actor.zombieLull || (actor.zombieLull = {seed: ((actor.g?.id ?? 1) * 22937) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {z: 0, x: 0, a: 0, b: 0}});
   const o = st.o, arm = actor.arms[1], heads = actor.heads || [actor.head];
   for (const h of heads) { h.rotation.z -= o.z; h.rotation.x -= o.x; }
-  arm.rotation.x -= o.a;
-  st.o = {z: 0, x: 0, a: 0};
+  arm.rotation.x -= o.a; actor.body.rotation.x -= o.b;
+  st.o = {z: 0, x: 0, a: 0, b: 0};
   if (!st.wait && st.s == null) st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
   const still = !busy && !actor.actions?.dead;
@@ -55,8 +55,8 @@ export function updateZombieLull(actor, dt, t, busy) {
   }
   if (st.s == null) return null;
   const p = lullPose(st.s), f = st.f;
-  st.o = {z: SAG * p.sag * f, x: NOD * p.sag * f, a: -SPASM * p.spasm * f};
+  st.o = {z: SAG * p.sag * f, x: NOD * p.sag * f, a: -SPASM * p.spasm * f, b: STOOP * p.sag * f};
   for (const h of heads) { h.rotation.z += st.o.z; h.rotation.x += st.o.x; }
-  arm.rotation.x += st.o.a;
+  arm.rotation.x += st.o.a; actor.body.rotation.x += st.o.b;
   return p;
 }
