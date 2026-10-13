@@ -2966,6 +2966,11 @@ test('the xan drips venom from its barb and still fits its tile', () => {
  assert(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < 1, 'fits its tile');
 });
 
+test('the xan bristles with a comb of thorns on the thorax, the chillbug does not', () => {
+ assert(createCreature({name: 'xan', symbol: 120, color: 1}).g.userData.thorned, 'xan thorns');
+ assert(!createCreature({name: 'chillbug', symbol: 120, color: 4}).g.userData.thorned, 'chillbug is smooth');
+});
+
 test('the ki-rin\'s horn is chipped short with a dark break, unlike the unicorns\'',()=>{
  const tip=name=>{const c=createCreature({name,symbol:'u'.charCodeAt(0),color:3});c.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(c.g,true).max.y/c.g.scale.y;};
  let kirinMeshes=0;createCreature({name:'ki-rin',symbol:'u'.charCodeAt(0),color:3}).g.traverse(o=>{if(o.isMesh)kirinMeshes++;});

@@ -712,6 +712,10 @@ function xan(o){
   // venom beads on the barb: a sickly green drop hangs from the point and a dark crust stains its base
   {const venom=mat('#9ad23a',{emissive:'#6ab01a',emissiveIntensity:.9,roughness:.2});sphere(body,.011,venom,0,y-.31,.1,.8,1.5,.8);sphere(body,.007,venom,.012,y-.34,.1);sphere(body,.03,mat('#2a1a12',{roughness:.95}),0,y-.28,.015,1,.8,1);g.userData.venomed=true;}
  }
+ // xans only: a comb of three bone-white thorns stands off the thorax, uneven and the hindmost snapped short
+ if(o.stinger){const thorn=mat('#d8ccb0',{roughness:.45});
+  for(const [z,len] of [[.12,.07],[.04,.085],[-.04,.035]]){const t=cone(body,.014,len,thorn,0,y+.1+len/2-.01,z,4);t.rotation.x=-.25;}
+  g.userData.thorned=true;}
  for(const side of [-1,1]){
   const pair=new THREE.Group();pair.position.set(side*.03,y+.1,.05);body.add(pair);pair.rotation.x=-Math.PI/2+.25;
   for(const [len,width,tilt] of [[.34,.11,.15],[.26,.08,-.35]]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.quadraticCurveTo(side*len*.5,width*1.6,side*len,width*.3);shape.quadraticCurveTo(side*len*.6,-width*.6,0,0);const wing=part(pair,new THREE.ShapeGeometry(shape),membrane);wing.rotation.z=tilt*side;wing.castShadow=false;
