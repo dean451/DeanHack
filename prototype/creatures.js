@@ -1014,6 +1014,9 @@ function centaur(o){
   const club=new THREE.Group();club.rotation.x=2.45;weaponSocket.add(club);
   cylinder(club,.022,.026,.14,leather,0,-.02,0,7);cylinder(club,.028,.06,.36,wood,0,.22,0,8);sphere(club,.062,wood,0,.4,0,1,.8,1);
   for(const [a,h] of [[0,.26],[2.1,.33],[4.2,.38],[1,.42]])sphere(club,.022,wood,Math.cos(a)*.05,h,Math.sin(a)*.05);
+  // rusted nails driven through the head, points out
+  const nail=mat('#4a3426',{roughness:.9});
+  for(const [a,h] of [[.9,.34],[2.8,.4],[4.9,.3],[5.7,.44]]){const n=cone(club,.012,.07,nail,Math.cos(a)*.075,h,Math.sin(a)*.075,4);n.rotation.z=-Math.cos(a)*1.3;n.rotation.x=Math.sin(a)*1.3;}
  }
  if(o.weapon==='bow'){
   // a tall longbow held in the left fist with its string, and a quiver of fletched arrows on the back
