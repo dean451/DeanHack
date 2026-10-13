@@ -71,6 +71,9 @@ function buildBody(){
   if(y>.6&&z>0)c=mix(c,C.robeHi,.3);
   const seg=Math.floor((a+Math.PI)/(Math.PI*2)*36);
   if(y>.15&&y<.23&&Math.abs(y-.19)<.035&&hash(seg*7+Math.floor(y*90))>.45)c=mix(C.crimsonDark,C.crimson,.6);
+  // an old blade-cut slashed across the chest, its lips singed black
+  const cut=y-(.5+x*1.3);
+  if(z>0&&x>-.12&&x<.1&&y>.38&&y<.7){if(Math.abs(cut)<.006)c=C.crimsonDark;else if(Math.abs(cut)<.016)c=mix(c,C.shadow,.7);}
   return c;
  });
  P.add(new THREE.CircleGeometry(.215,28),at(0,.1,0,[Math.PI/2,0,0],[1,.8,1]),C.shadow);
@@ -129,7 +132,7 @@ function buildHead(){
  // a spiked iron circlet riding on the hood, a blood-red stone at the front
  P.add(new THREE.TorusGeometry(.123,.007,5,30),at(0,.19,-.01,[Math.PI/2-.12,0,0],[1,1.1,1]),C.iron);
  for(let i=0;i<7;i++){
-  const u=(i-3)/3,a=u*1.35,h=.035+(i%2?0:.03)+(i===3?.025:0);
+  const u=(i-3)/3,a=u*1.35,h=(.035+(i%2?0:.03)+(i===3?.025:0))*(i===5?.4:1); // the fifth spike is snapped to a stub
   const m=at(Math.sin(a)*.123,.195+Math.cos(a)*.016,Math.cos(a)*.135-.01,[0,a,0]).multiply(at(0,0,0,[.25,0,0])).multiply(at(0,h/2,0,[0,0,0],[1,1,.5]));
   P.add(new THREE.ConeGeometry(.011,h,4),m,(x,y)=>mix(C.iron,C.ironHi,.5));
  }

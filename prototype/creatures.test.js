@@ -3029,3 +3029,10 @@ test('the shrieker has fangs set in its lip and the violet fungus hooked barbs o
  assert(geos('shrieker')>12500,'fang ring is merged into the shrieker');
  assert(geos('violet fungus')>26000,'barbs are merged into the violet fungus tendrils');
 });
+test('the Wizard of Yendor wears a snapped circlet spike and a singed blade-cut across his robe',()=>{
+ const wiz=createCreature({name:'Wizard of Yendor',symbol:64,color:5});
+ let body=null;wiz.g.traverse(o=>{if(o.userData.part==='body')body=o;});
+ const col=body.geometry.attributes.color,pos=body.geometry.attributes.position;
+ let cut=0;for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i);if(pos.getZ(i)>0&&y>.38&&y<.7&&Math.abs(y-(.5+x*1.3))<.016&&col.getX(i)<.08)cut++;}
+ assert(cut>0,'dark cut vertices on the chest');
+});
