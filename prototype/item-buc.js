@@ -38,9 +38,11 @@ export function enchantMark(kind) {
 export function itemFacts(text) {
   const t = String(text), out = [];
   for (const state of t.split('(')[0].matchAll(/\b(?:(?:very|thoroughly) )?(?:rusty|corroded|burnt|rotted)\b/gi)) out.push(state[0].toLowerCase());
-  const proof = /\b(rustproof|fireproof|rotproof|corrodeproof|erodeproof)\b/i.exec(t.split('(')[0]);
+  const proof = /\b(rustproof|fireproof|rotproof|corrodeproof|erodeproof|fixed)\b/i.exec(t.split('(')[0]);
   if (proof) out.push(proof[1].toLowerCase());
   if (/\bpoisoned\b/i.test(t.split('(')[0])) out.push('poisoned');
+  if (/\binvisible\b/i.test(t.split('(')[0])) out.push('invisible');
+  if (/\bbroken\b/i.test(t.split('(')[0])) out.push('broken');
   if (/\bgreased\b/i.test(t.split('(')[0])) out.push('greased');
   const charges = /\((-?\d+):(-?\d+)\)/.exec(t);
   if (charges) {
