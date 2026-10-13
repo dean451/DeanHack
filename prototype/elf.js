@@ -52,6 +52,12 @@ function buildBody(o){
   P.add(new THREE.SphereGeometry(.022,8,6),at(s*.1,.83,.075,[0,0,s*.6],[.6,1.3,.45]),C.trim);
   P.add(new THREE.SphereGeometry(.03,8,6),at(s*.145,.8,0),C.tunic);
  }
+ if(o.crown){
+  // the king's tunic is stiff with old blood: dark flat splashes across the chest and down the skirt front
+  const blood=rgb('#3a0e10');
+  for(const [x,y,z,r] of [[-.05,.78,.1,.03],[.04,.7,.115,.04],[-.02,.55,.15,.035],[.08,.46,.16,.03],[-.09,.42,.165,.028]])
+   P.add(new THREE.SphereGeometry(r,8,6),at(x,y,z,[0,0,0],[1.2,1,.18]),blood);
+ }
  if(o.bow){
   // longbow slung across the back, with its string
   const bow=new THREE.CatmullRomCurve3([[-.2,.3,-.19],[-.1,.48,-.26],[.02,.64,-.28],[.13,.8,-.26],[.22,.97,-.19]].map(p=>new THREE.Vector3(...p)));
@@ -87,11 +93,11 @@ function buildHead(o){
   P.add(new THREE.OctahedronGeometry(.016,0),at(0,.13,.1,[0,0,0],[1,1.3,.6]),C.gem);
  }
  if(o.crown){
-  // a gold band set with upright leaves
+  // a gold band set with a ring of barbed thorns, tall and short in turn, the tips leaning out
   P.add(new THREE.CylinderGeometry(.1,.096,.028,20,1,true),at(0,.18,-.005),GOLD);
   for(let i=0;i<9;i++){
-   const a=i/9*Math.PI*2,r=.098;
-   P.add(new THREE.SphereGeometry(.022,6,6),at(Math.sin(a)*r,.215,Math.cos(a)*r-.005,[0,a,0],[.55,1.5,.25]),GOLD);
+   const a=i/9*Math.PI*2,r=.098,h=i%2?.035:.065;
+   P.add(new THREE.ConeGeometry(.013,h,4),at(Math.sin(a)*r,.194+h/2,Math.cos(a)*r-.005,[Math.cos(a)*.22,0,-Math.sin(a)*.22]),GOLD);
   }
   P.add(new THREE.OctahedronGeometry(.016,0),at(0,.18,.1,[0,0,0],[1,1.3,.6]),C.gem);
  }
