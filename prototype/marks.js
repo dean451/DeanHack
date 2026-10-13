@@ -54,11 +54,13 @@ export function createMarks(THREE, parent, {cap = MARK_MAX} = {}) {
       mesh.position.set(m.x, .035 + live.length % 8 * .001, m.z);
       mesh.rotation.y = m.rot; mesh.scale.setScalar(k.r * m.s); mesh.renderOrder = 1;
       parent.add(mesh);
-      live.push({mesh, base: k.opacity, fade: 0});
+      live.push({mesh, base: k.opacity, fade: 0, bone: m.kind === 'bone'});
     }
-    // Over the cap: start the oldest not-yet-fading marks fading.
+    // Over the cap: start the oldest not-yet-fading marks fading, stains before bones, so a
+    // fight's bones stay on the floor after its blood has faded. The total cap is unchanged.
     let over = live.filter(m => !m.fade).length - cap;
-    for (const m of live) if (over > 0 && !m.fade) { m.fade = 1; over--; }
+    for (const bone of [false, true])
+      for (const m of live) if (over > 0 && !m.fade && m.bone === bone) { m.fade = 1; over--; }
   }
   function update(dt) {
     dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
@@ -70,5 +72,5 @@ export function createMarks(THREE, parent, {cap = MARK_MAX} = {}) {
     }
   }
   function clear() { live.forEach(drop); live.length = 0; }
-  return {add, update, clear, count: () => live.length, solid: () => live.filter(m => !m.fade).length};
+  return {add, update, clear, count: () => live.length, solid: () => live.filter(m => !m.fade).length, bones: () => live.filter(m => !m.fade && m.bone).length};
 }
