@@ -29,7 +29,8 @@ export function fleckPose(i, t, dir) {
 export function ringPose(t, dir) {
   const u = clamp01((t - .05) / .5);
   if (u <= 0 || u >= 1) return {scale: .001, alpha: 0};
-  const e = smooth(u), scale = dir > 0 ? .55 - .4 * e : .15 + .4 * e;
+  // The ring catches once halfway, as if the stair held on to the hero's feet, then lets go.
+  const e = smooth(u) - .05 * Math.sin(Math.PI * clamp01((u - .45) / .15)) ** 2, scale = dir > 0 ? .55 - .4 * e : .15 + .4 * e;
   return {scale, alpha: .5 * (dir > 0 ? u : 1 - u) * Math.min(1, u * 8) * (dir > 0 ? 1 - smooth((u - .8) / .2) : 1)};
 }
 

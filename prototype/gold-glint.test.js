@@ -55,3 +55,10 @@ test('a fatter purse flicks more coins', () => {
   assert.deepEqual(['$ - 3 gold pieces.', '$ - 12 gold pieces.', '$ - 150 gold pieces.', '$ - 900 gold pieces.'].map(coinCount), [2, 3, 4, GOLD.coins]);
   assert.equal(coinCount(null), 2);
 });
+
+test('the reluctant coin shivers at the top of its climb and stays in bounds', () => {
+  let wobble = 0, prev = null;
+  for (let t = .2; t < .4; t += .002) { const y = coinPose(0, t).y; if (prev !== null) wobble = Math.max(wobble, Math.abs(y - prev)); prev = y; assert.ok(y <= .45); }
+  assert.ok(wobble > 0);
+  for (let t = 0; t <= GOLD.total; t += .005) assert.ok(coinPose(1, t).y <= .43);
+});
