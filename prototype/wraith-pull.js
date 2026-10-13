@@ -43,6 +43,8 @@ export const REAR = -.14, FLING = -.75, FLING_OUT = .35, DRAG = .25, PULL_HUNCH 
 export const SAVOR_TILT = .32, SAVOR_NOD = .08;
 // The attack: the rake of each arm and the head's jut.
 export const RAKE = -.7, JUT = .25, RAKE_LEAN = .16;
+// The gather before a rake: the head and shoulders draw back and hold a beat, coiling, before the strike.
+export const GATHER_HEAD = -.2, GATHER_LEAN = -.1;
 // Smoke and motes.
 export const SMOKE = 24, SMOKE_LEN = 2.4, MOTES = 18, MOTE_ALPHA = .9, PUFF = 10, PUFF_LIFE = .7;
 // Where the thread starts, in body space (ahead of it, toward the hero once it has turned).
@@ -100,9 +102,11 @@ export function pullPose(u) {
 
 // The attack at action phase u (0..1): the right claw rakes, the left a beat behind.
 export function rakePose(u) {
-  if (!(u > 0) || !(u < 1)) return {right: 0, left: 0};
+  if (!(u > 0) || !(u < 1)) return {right: 0, left: 0, gather: 0};
   const hit = v => v <= 0 || v >= 1 ? 0 : v < .3 ? smooth(v / .3) : 1 - smooth((v - .45) / .55);
-  return {right: hit(u / .8), left: hit((u - .2) / .8)};
+  // the coil: drawn back over the first fifth, let go as the right claw starts to bite
+  const gather = smooth(u / .12) * (1 - smooth((u - .16) / .1));
+  return {right: hit(u / .8), left: hit((u - .2) / .8), gather};
 }
 
 // ---- shared resources (built once) ----
@@ -200,7 +204,7 @@ export function updateWraithPull(a, dt, t, busy, look = null) {
 
   // an attack: the claws rake, the head juts, smoke gusts ahead
   const atk = dead ? null : current(a, 'attack');
-  const rk = atk ? rakePose(a.actions.u ?? 0) : {right: 0, left: 0};
+  const rk = atk ? rakePose(a.actions.u ?? 0) : {right: 0, left: 0, gather: 0};
   const lu = Math.max(rk.right, rk.left) * w;
   if (atk && atk !== st.lastAttack) {
     st.lastAttack = atk;
@@ -225,8 +229,8 @@ export function updateWraithPull(a, dt, t, busy, look = null) {
   a.body.rotation.y = st.body.y + turn + SWAY * Math.sin(T * hz * TAU * .6 + ph + 2) * w * (1 - pp.turn);
   a.body.rotation.z = st.body.z + (ROLL * (L.roll ?? 1) * Math.sin(T * hz * TAU + ph) + shud) * w;
   a.body.rotation.x = st.body.x + (HUNCH * (L.hunch ?? 1) * (.7 + .3 * Math.sin(T * hz * TAU * .8 + ph + 1)) + REAR * pp.rear
-    + PULL_HUNCH * pp.drag + RAKE_LEAN * lu) * w;
-  a.head.rotation.x = st.head.x + (-.1 * pp.rear + .1 * pp.drag + JUT * lu + SAVOR_NOD * pp.savor) * w;
+    + PULL_HUNCH * pp.drag + RAKE_LEAN * lu + GATHER_LEAN * rk.gather) * w;
+  a.head.rotation.x = st.head.x + (-.1 * pp.rear + .1 * pp.drag + JUT * lu + GATHER_HEAD * rk.gather + SAVOR_NOD * pp.savor) * w;
   a.head.rotation.y = st.head.y + headYaw;
   a.head.rotation.z = st.head.z + (.05 * Math.sin(T * .7 + ph) + shud * 1.5 + SAVOR_TILT * pp.savor) * w;
 
