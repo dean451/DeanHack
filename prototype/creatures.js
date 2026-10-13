@@ -2971,6 +2971,8 @@ function seaMonster(o){
    tube(arm,pts,.028,skin,20);for(let k=2;k<8;k+=2){const p=pts[k];sphere(arm,.012,belly,p[0],p[1]-.02,p[2],1,.5,1);}
    legs.push(arm);}
   for(const side of [-1,1]){const pts=[[side*.04,.2,.12],[side*.12,.3,.3],[side*.2,.42,.38],[side*.24,.5,.34]];tube(body,pts,.016,skin,16);sphere(body,.045,belly,side*.25,.52,.33,1,1.6,1);}
+  // the great clubs bristle with a ring of hooked black claws, as a drowner's grip should
+  if(o.hooks){const claw=mat('#1e1612',{roughness:.3});claw.name='kraken-hook';for(const side of [-1,1])for(let k=0;k<5;k++){const a=k/5*Math.PI*2,c=cone(body,.009,.05,claw,side*.25+Math.cos(a)*.045,.52+Math.sin(a)*.07,.33+Math.cos(a)*.03,4);c.rotation.set(Math.sin(a)*1.2,0,-Math.cos(a)*1.2);}}
   return trimDraws(actor(g,body,legs,null,[],'idle'));
  }
  if(o.form==='eel'){
@@ -3021,7 +3023,7 @@ function seaMonster(o){
 }
 const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{form:'fish',color:'#8a8a94',belly:'#c83a2a',fin:'#6a5a5a',length:.26,depth:.13,underbite:true,dorsal:1,scale:.8},
  shark:{form:'fish',scars:true,harpoon:true,color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',scars:true,color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
- 'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff',scale:1.25},kraken:{form:'kraken',color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
+ 'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff',scale:1.25},kraken:{form:'kraken',hooks:true,color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
  'watcher in the water':{form:'kraken',color:'#4a5a52',belly:'#9aa89a',eye:'#b8ff90',arms:16,eyeGlow:2.8,scale:1.9}};
 
 // In development the default shape is bright magenta so a missing model cannot hide.

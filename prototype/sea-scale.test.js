@@ -36,3 +36,9 @@ test('the shark carries a snapped harpoon head in its flank; the piranha does no
   assert(names('shark').has('shark-harpoon'));
   assert(!names('piranha').has('shark-harpoon'));
 });
+
+test('the kraken\'s clubs bristle with hooked claws that the watcher in the water lacks', () => {
+  const names = name => { const a = createCreature({name, symbol: 59, color: 7}); const s = new Set(); a.g.traverse(o => { if (o.isMesh) s.add(o.material.name); }); return s; };
+  assert(names('kraken').has('kraken-hook'));
+  assert(!names('watcher in the water').has('kraken-hook'));
+});
