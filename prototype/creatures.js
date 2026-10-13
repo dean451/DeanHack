@@ -922,6 +922,9 @@ function wormTail(o){
  tube(body,arch,r,skin,24);
  for(let i=1;i<8;i+=1.5){const a=i/8*Math.PI;const band=part(body,new THREE.TorusGeometry(r*1.02,r*.13,6,16),ring,0,Math.sin(a)*.2-.03,-Math.cos(a)*.3);band.rotation.x=a-Math.PI/2;}
  for(const z of [-.3,.3])for(const [dx,dz,s] of [[-.07,-.04,1],[.07,.03,.8],[0,.06,.6]])sphere(body,.07*s,mound,dx,.01,z+dz,1.4,.35,1.2);
+ // a ridge of dark hooked horn spines along the crest of the arch
+ for(let i=1;i<8;i+=2){const a=i/8*Math.PI;const sp=cone(body,r*.22,r*1.1,ring,0,Math.sin(a)*.2-.03+r*1.05,-Math.cos(a)*.3,4);sp.rotation.x=-.35;}
+ g.userData.spined=true;
  return actor(g,body,[],null,[],'worm');
 }
 // apelike creatures (Y): a hunched, barrel-chested body on short bowed legs, with long arms knuckling the floor in front,
