@@ -84,6 +84,8 @@ function buildBones(){
  }
  P.add(new THREE.BoxGeometry(.016,.15,.01),at(0,.715,hunch(.715)+.104,[-.25,0,0]),bone);
  for(const s of [-1,1])P.add(new THREE.CylinderGeometry(.007,.006,.13,5),at(s*.06,.83,hunch(.83)+.07,[0,0,s*(Math.PI/2-.2)]),bone);
+ // the lowest right rib is snapped, its splintered end thrust out through the smoke
+ P.add(new THREE.ConeGeometry(.009,.07,4),at(-.09,.605,hunch(.605)+.095,[1.3,0,.5]),C.bone);
  for(let i=0;i<7;i++){const y=.5+i*.055;P.add(new THREE.SphereGeometry(.013,6,4),at(0,y,hunch(y)-.1+i*.004,[0,0,0],[1.1,.7,1]),bone);}
  return P.merge();
 }
