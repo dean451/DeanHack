@@ -69,8 +69,12 @@ export const KITS={
     props:['camera','moneyPouch','dartSheath','mapTube'],hat:'straw',hair:{male:'short',female:'short'},
   },
   Rogue:{
-    palette:{armor:'#2c2c30',armorLight:'#4a4a52',leather:'#26221e',accent:'#7a6a4a',boots:'#161616',capeCloth:'#26262a',hair:['#1a1a1a','#2a2a2a','#3c3c3c']},
-    show:{chest:false,pauldrons:false,tassets:false,mantles:false},outfit:{kind:'tunic',color:'#2c2c30',trim:'#554a3a',length:.4,sleeves:true,sleeveWide:.065},hat:'hood',hair:{male:'short',female:'short'},
+    // Black tunic and pants under the hood; a dagger sheath strapped to the right thigh and a
+    // lockpick roll at the belt say "rogue".
+    palette:{armor:'#1e1e22',armorLight:'#3a3a42',leather:'#26221e',accent:'#6a5a3a',boots:'#121212',capeCloth:'#1e1e22',hair:['#1a1a1a','#2a2a2a','#3c3c3c']},
+    show:{chest:false,pauldrons:false,tassets:false,mantles:false},
+    outfit:{kind:'tunic',color:'#232326',trim:'#3a332a',length:.4,sleeves:true,sleeveWide:.07},
+    props:['thighSheath','lockpickRoll'],hat:'hood',hair:{male:'short',female:'short'},
   },
   Ranger:{
     palette:{armor:'#3f5238',armorLight:'#667a58',leather:'#4a3626',accent:'#9a8a5a',boots:'#2a2216',capeCloth:'#41563a',hair:['#3a2c1c','#52402a','#6a5436']},
@@ -395,6 +399,22 @@ const PROPS={
     const wood=cloth('#3a2618',{roughness:.6}),g=new THREE.Group();g.position.set(-.13,.58,.11);g.rotation.y=.4;add(parts.body,g);
     for(let i=0;i<9;i++){const a=i/9*Math.PI*2,b=new THREE.Mesh(new THREE.SphereGeometry(.011,6,5),wood);b.position.set(Math.sin(a)*.04,-.06+Math.cos(a)*.06,0);g.add(b);}
     const tassel=new THREE.Mesh(new THREE.ConeGeometry(.012,.04,6),cloth('#8a2a22'));tassel.position.set(0,-.14,0);tassel.rotation.x=Math.PI;g.add(tassel);
+  },
+  thighSheath(add,parts){ // a dagger sheath strapped to the right thigh, the wrapped hilt showing
+    const hide=cloth('#2e2016',{roughness:.9}),strap=cloth('#3a2a1e'),steel=new THREE.MeshStandardMaterial({color:'#9aa2a6',metalness:.8,roughness:.3});
+    const g=new THREE.Group();g.position.set(.13,.36,.13);g.rotation.z=-.1;g.rotation.y=.3;add(parts.body,g);
+    const sheath=new THREE.Mesh(new THREE.BoxGeometry(.03,.16,.045),hide);g.add(sheath);
+    for(const y of [.05,-.05]){const b=new THREE.Mesh(new THREE.TorusGeometry(.07,.006,5,14),strap);b.position.set(-.06,y,-.02);b.rotation.x=Math.PI/2;b.scale.set(1,.8,1);g.add(b);}
+    const hilt=new THREE.Mesh(new THREE.CylinderGeometry(.008,.01,.07,8),hide);hilt.position.y=.11;g.add(hilt);
+    const guard=new THREE.Mesh(new THREE.BoxGeometry(.04,.008,.012),steel);guard.position.y=.08;g.add(guard);
+    const pommel=new THREE.Mesh(new THREE.SphereGeometry(.011,8,6),steel);pommel.position.y=.15;g.add(pommel);
+  },
+  lockpickRoll(add,parts){ // a leather roll of picks tied at the back of the belt on the left, two picks showing
+    const hide=cloth('#3a2a1e',{roughness:.9}),cord=cloth('#241709'),steel=new THREE.MeshStandardMaterial({color:'#b8c0c4',metalness:.8,roughness:.3});
+    const g=new THREE.Group();g.position.set(-.14,.58,-.13);g.rotation.y=-.6;add(parts.body,g);
+    const roll=new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,.09,10),hide);roll.rotation.z=Math.PI/2;g.add(roll);
+    const tie=new THREE.Mesh(new THREE.TorusGeometry(.024,.004,5,10),cord);tie.rotation.y=Math.PI/2;g.add(tie);
+    for(const [z,rz] of [[.012,.1],[-.01,-.15]]){const pick=new THREE.Mesh(new THREE.CylinderGeometry(.002,.002,.06,4),steel);pick.position.set(.05,.015,z);pick.rotation.z=Math.PI/2+rz;g.add(pick);}
   },
   bandageRoll(add,parts){ // a roll of linen tucked under the sash on the right, one end hanging loose
     const linen=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.12,.6,.15);g.rotation.z=.3;add(parts.body,g);
