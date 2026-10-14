@@ -11,9 +11,11 @@ import {DOOR_LEAF} from './door.js';
 // starts opening from shut (or is first seen open) turns half round first if the hero is
 // on that side: doors swing away from the hero instead of through them. The door is
 // symmetric apart from its front ironwork, which changes face while the door is shut.
+// A door that slams shut rattles in its frame: the leaf judders about its long axis for a
+// quarter second, as if something behind it had flinched, then hangs dead still.
 // A door forced open from shut catches once on its rusted pintles a third of the way out: the
 // leaf lurches almost to a stop, then the spring wrenches it free and it carries on.
-export const SWING={k:60,c:11,slam:5,rebound:.3,settle:.002,maxStep:1/30,stickAt:.33,stickKeep:.1};
+export const SWING={k:60,c:11,slam:5,rebound:.3,settle:.002,maxStep:1/30,stickAt:.33,stickKeep:.1,rattle:.28,rattleAmp:.025};
 // Opening overshoots by a few percent; stop it short of the jamb's front face (-π/2).
 const LIMIT=Math.max(DOOR_LEAF.open-.05,-Math.PI/2+.01);
 const moving=new Set();
@@ -53,12 +55,16 @@ export function stepDoor(door,dt){
   const h=Math.min(left,SWING.maxStep);left-=h;
   const c=s.target===0?SWING.slam:SWING.c;
   s.vel+=(SWING.k*(s.target-s.angle)-c*s.vel)*h;s.angle+=s.vel*h;
-  if(s.angle>0){s.angle=0;s.vel=-s.vel*SWING.rebound;}
+  if(s.angle>0){if(s.target===0&&s.vel>1.5&&!(s.rattle>0))s.rattle=SWING.rattle;s.angle=0;s.vel=-s.vel*SWING.rebound;}
   if(s.angle<LIMIT){s.angle=LIMIT;s.vel=0;}
   if(s.stick&&s.target<0&&s.angle<DOOR_LEAF.open*SWING.stickAt){s.stick=false;s.vel*=SWING.stickKeep;}
  }
- const done=Math.abs(s.target-s.angle)<SWING.settle&&Math.abs(s.vel)<SWING.settle*10;
- if(done){s.angle=s.target;s.vel=0;}
+ if(s.rattle>0){
+  const u=s.rattle/SWING.rattle;s.rattle=Math.max(0,s.rattle-Math.max(0,dt));
+  leaf.rotation.x=s.rattle>0?SWING.rattleAmp*u*u*Math.sin((1-u)*SWING.rattle*70):0;
+ }
+ const done=Math.abs(s.target-s.angle)<SWING.settle&&Math.abs(s.vel)<SWING.settle*10&&!(s.rattle>0);
+ if(done){s.angle=s.target;s.vel=0;leaf.rotation.x=0;}
  leaf.rotation.y=s.angle;
  return !done;
 }
