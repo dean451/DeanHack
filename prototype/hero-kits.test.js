@@ -85,7 +85,7 @@ test('the Healer is told by what she carries: stethoscope, satchel, scalpel shea
   assert.ok(colours.size>=6,`a healer is not one flat colour: ${colours.size} tones`);
   assert.equal(h.parts.mats.armor.color.getHexString(),'b8a276','warm bone linen, not mint');
   const bodyKids=h.parts.body.children.length;
-  const c=fakeRig();dressHero(c,{role:'Convict',gender:'female'});
+  const c=fakeRig();dressHero(c,{role:'Monk',gender:'female'});
   assert.ok(bodyKids>c.parts.body.children.length+8,'the Healer carries far more than a plain tunic class');
   // props hang off one side: something sits left of the body's axis and something right
   const xs=added.filter(o=>o.parent===h.parts.body).map(o=>o.position.x);
@@ -136,4 +136,14 @@ test('the Archeologist wears a worn open jacket over a dusty shirt and carries t
   assert.ok(xs.some(x=>x>.2)&&xs.some(x=>x<-.2),'whip on the right hip, field bag on the left');
   assert.ok(added.filter(o=>o.parent===a.parts.body).some(o=>o.position.z<-.1&&o.position.y>.5),'the touchstone pouch rides at the back of the belt');
   dressHero(a,{role:'Valkyrie',gender:'female'});assert.equal(a.parts.body.children.length,0);assert.equal(a.parts.elbow.children.length,0);
+});
+
+test('the Convict is bald, in stripes, with a shackle on the wrist',()=>{
+  const c=fakeRig();dressHero(c,{role:'Convict',gender:'female'});
+  for(const part of ['cap','strands','tail','braids'])assert.ok(c.parts.hairParts[part].every(m=>!m.visible),part+' hidden: bald');
+  let bands=0,links=0;for(const {obj} of c.kitAdded)obj.traverse(x=>{if(x.material?.color?.getHexString()==='2e2d2a')bands++;if(x.geometry?.type==='TorusGeometry'&&x.geometry.parameters.radius<.02)links++;});
+  assert.ok(bands>=10,`stripes round the body and both sleeves: ${bands}`);
+  assert.equal(links,3,'three chain links hang from the shackle');
+  assert.ok(c.parts.elbow.children.length>c.parts.shieldElbow.children.length,'the shackle is on one wrist only');
+  dressHero(c,{role:'Valkyrie',gender:'female'});assert.equal(c.parts.elbow.children.length,0);
 });
