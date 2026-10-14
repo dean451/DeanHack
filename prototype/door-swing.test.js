@@ -65,6 +65,18 @@ test('closing swings shut, rebounds off the jamb and returns exactly to rest',()
  assert.equal(swingingDoors(),0);
 });
 
+test('a slammed door rattles in its frame, bounded, then hangs dead still',()=>{
+ clearDoorSwings();
+ const door=createDoor(11);setDoorOpen(door,true);setDoorOpen(door,false);
+ let peak=0,sign=0,flips=0;
+ for(let i=0;i<240;i++){updateDoorSwings(1/60);const x=door.userData.leaf.rotation.x;assert.ok(Number.isFinite(x));peak=Math.max(peak,Math.abs(x));const sg=Math.sign(x);if(sg&&sign&&sg!==sign)flips++;if(sg)sign=sg;}
+ assert.ok(peak>.003&&peak<=.03,`rattle ${peak}`);
+ assert.ok(flips>=2,'it judders back and forth');
+ assert.equal(door.userData.leaf.rotation.x,0);assert.equal(door.userData.leaf.rotation.y,0);assert.equal(swingingDoors(),0);
+ // Opening never rattles.
+ setDoorOpen(door,true);for(let i=0;i<240;i++){updateDoorSwings(1/60);assert.equal(door.userData.leaf.rotation.x,0);}
+});
+
 test('a long frame is sub-stepped and stays stable',()=>{
  clearDoorSwings();
  const door=createDoor(5);setDoorOpen(door,false);setDoorOpen(door,true);
