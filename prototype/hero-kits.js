@@ -116,8 +116,12 @@ export const KITS={
     props:['holySymbol','prayerBeads'],hair:{male:'short',female:'tied'},
   },
   Wizard:{
-    palette:{armor:'#2b3560',armorLight:'#5a6aa0',leather:'#3a2c20',accent:'#d8c27a',boots:'#201a14',capeCloth:'#2b3560',hair:['#8a8a84','#b4b3aa','#d8d6cc']},
-    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'robe',color:'#2b3560',trim:'#9fb4c8',length:1,sleeves:true,sleeveWide:.13,sash:'#8a2f2a',stars:'#d8c27a'},hat:'wizard',hair:{male:'long',female:'long'},beard:{male:'#c9c7bd'},
+    // The hat stays; the costume stars go. A deep-blue robe with a few embroidered marks round the
+    // hem, a spellbook on a strap at the hip, and the long hair and beard.
+    palette:{armor:'#262f58',armorLight:'#4a5a90',leather:'#3a2c20',accent:'#d8c27a',boots:'#201a14',capeCloth:'#262f58',hair:['#8a8a84','#b4b3aa','#d8d6cc']},
+    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},
+    outfit:{kind:'robe',color:'#262f58',trim:'#9fb4c8',length:1,sleeves:true,sleeveWide:.13,sash:'#8a2f2a',marks:'#d8c27a'},
+    props:['spellbook'],hat:'wizard',hair:{male:'long',female:'long'},beard:{male:'#c9c7bd'},
   },
 };
 export const KIT_ROLES=Object.keys(KITS);
@@ -151,6 +155,9 @@ function robe(add,parts,o){
   }
   if(o.stole){ // a stole over the shoulders, two strips down the front, a brass cross on each end
     const st=cloth(o.stole,{polygonOffset:true,polygonOffsetFactor:-2});for(const side of [-1,1]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.055,.62,.01),st);strip.position.set(side*.075,.68,.21);strip.rotation.x=.14;strip.rotation.z=side*.03;add(parts.body,strip);const top=new THREE.Mesh(new THREE.BoxGeometry(.055,.16,.01),st);top.position.set(side*.1,.99,.2);top.rotation.x=-.5;add(parts.body,top);const cross=new THREE.Mesh(new THREE.BoxGeometry(.03,.03,.012),trimMat('#c8a45a'));cross.position.set(side*.075,.5,.218);add(parts.body,cross);}}
+  if(o.marks){ // a band of embroidered marks round the hem: short strokes and rings in thread
+    const th=trimMat(o.marks);for(let i=0;i<10;i++){const a=i/10*Math.PI*2+.15,r=prof[0][0]+.004,x=Math.sin(a)*r,z=Math.cos(a)*r*.8,m2=new THREE.Mesh(i%3?new THREE.BoxGeometry(.006,.05,.004):new THREE.TorusGeometry(.016,.004,4,10),th);m2.position.set(x,hemY+.19,z);m2.lookAt(x*3,hemY+.19,z*3);m2.rotation.z+=(i%2?.5:-.3);add(parts.body,m2);}
+  }
   sleeves(add,parts,o,m,t);
 }
 
@@ -257,8 +264,7 @@ const HATS={
     const band=ring(.178,.014,trimMat('#8a2f2a'),g,0,.03,0,1,1);band.scale.set(1,1,1);
     let base=g,y=.01;const seg=[[.178,.125,.2,.0],[.125,.075,.18,.28],[.075,.03,.16,.42],[.03,0.002,.1,.5]];
     for(const [r0,r1,h,tilt] of seg){const pivot=new THREE.Group();pivot.position.set(0,y,0);pivot.rotation.x=-tilt*.5;base.add(pivot);const c=new THREE.Mesh(new THREE.CylinderGeometry(r1,r0,h,18),m);c.position.y=h/2;pivot.add(c);base=pivot;y=h-.005;}
-    const star=new THREE.Mesh(new THREE.OctahedronGeometry(.02),t);star.position.set(0,.2,.155);star.scale.z=.4;g.add(star);
-    const star2=new THREE.Mesh(new THREE.OctahedronGeometry(.013),t);star2.position.set(.06,.1,.17);star2.scale.z=.4;g.add(star2);
+    const patch=new THREE.Mesh(new THREE.CircleGeometry(.03,6),cloth('#1c2444',{polygonOffset:true,polygonOffsetFactor:-1}));patch.position.set(.05,.12,.17);patch.lookAt(.2,.12,.6);patch.scale.set(1.3,.8,1);g.add(patch); // a darker patch sewn on where the felt wore through
   },
   hood(add,parts,o){ // a cowl with the front left open for the face, and a drape on the shoulders
     const m=cloth(o.color),cap=new THREE.Mesh(new THREE.SphereGeometry(.235,22,14,Math.PI/2+.62,Math.PI*2-1.24,0,Math.PI*.66),m);cap.position.set(0,.02,-.012);cap.scale.set(1,1.04,1.08);add(parts.head,cap);
@@ -456,6 +462,16 @@ const PROPS={
     const loop=new THREE.Mesh(new THREE.TorusGeometry(.125,.006,5,24,Math.PI*1.4),thong);loop.rotation.x=Math.PI/2+.5;loop.rotation.z=Math.PI/2-.7;loop.position.set(0,1.03,-.005);add(parts.body,loop);
     const b=new THREE.Mesh(new THREE.CylinderGeometry(.009,.011,.07,6),bone);b.position.set(0,.86,.21);b.rotation.z=.25;add(parts.body,b);
     for(const y of [.895,.825]){const k=new THREE.Mesh(new THREE.SphereGeometry(.013,6,5),bone);k.position.set((y-.86)*-.55,y,.21);add(parts.body,k);}
+  },
+  spellbook(add,parts){ // a thick leather-bound book on a strap at the right hip, the page edges showing
+    const hide=cloth('#3a2618',{roughness:.85}),pages=cloth('#d6cdb8',{roughness:1}),brass=trimMat('#c8a45a'),strap=cloth('#241709');
+    const band=new THREE.Mesh(new THREE.BoxGeometry(.03,.64,.012),strap);band.position.set(-.02,.78,.19);band.rotation.z=-.58;band.rotation.x=-.1;add(parts.body,band);
+    const bandBack=new THREE.Mesh(new THREE.BoxGeometry(.03,.6,.012),strap);bandBack.position.set(-.02,.78,-.17);bandBack.rotation.z=.58;bandBack.rotation.x=.1;add(parts.body,bandBack);
+    const g=new THREE.Group();g.position.set(.235,.5,.03);g.rotation.z=-.1;g.rotation.y=-.2;add(parts.body,g);
+    const cover=new THREE.Mesh(new THREE.BoxGeometry(.06,.19,.15),hide);g.add(cover);
+    const block=new THREE.Mesh(new THREE.BoxGeometry(.046,.17,.14),pages);block.position.x=.004;g.add(block);
+    const clasp=new THREE.Mesh(new THREE.BoxGeometry(.012,.04,.02),brass);clasp.position.set(.03,0,.07);g.add(clasp);
+    for(const y of [.07,-.07]){const corner=new THREE.Mesh(new THREE.BoxGeometry(.064,.022,.022),brass);corner.position.set(0,y,.07);g.add(corner);}
   },
   bandageRoll(add,parts){ // a roll of linen tucked under the sash on the right, one end hanging loose
     const linen=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.12,.6,.15);g.rotation.z=.3;add(parts.body,g);

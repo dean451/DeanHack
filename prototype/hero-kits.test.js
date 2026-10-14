@@ -48,7 +48,7 @@ test('a robe class hides the plate, wears a hat, and a man gets a beard',()=>{
   const women=count(w.parts.head);
   const m=fakeRig();dressHero(m,{role:'Wizard',gender:'male'});
   assert.ok(count(m.parts.head)>women,'the male Wizard has a beard on top of the hat');
-  assert.equal(w.parts.mats.armor.color.getHexString(),'2b3560','the robe takes the class colour');
+  assert.equal(w.parts.mats.armor.color.getHexString(),'262f58','the robe takes the class colour');
 });
 
 test('changing class restores the Valkyrie exactly',()=>{
@@ -199,4 +199,13 @@ test('the Caveman is bare skin and a fur loincloth, a hide strap and a bone at t
   assert.equal(c.parts.mats.armor.metalness,0,'skin is not metal');
   dressHero(c,{role:'Valkyrie',gender:'male'});assert.equal(c.parts.body.children.length,0);
   assert.ok(c.parts.mats.armor.metalness>0||c.parts.mats.armor.metalness===c.parts.baseFinish.armor.metalness,'the plate finish comes back');
+});
+
+test('the Wizard keeps the hat, loses the costume stars, and carries a spellbook with marks round the hem',()=>{
+  const w=fakeRig();dressHero(w,{role:'Wizard',gender:'male'});
+  let octa=0,marks=0,pages=0;for(const {obj} of w.kitAdded)obj.traverse(x=>{if(x.geometry?.type==='OctahedronGeometry')octa++;if(x.material?.color?.getHexString()==='d8c27a'&&x.parent===w.parts.body)marks++;if(x.material?.color?.getHexString()==='d6cdb8')pages++;});
+  assert.equal(octa,0,'no stars anywhere');assert.equal(marks,10,'ten embroidered marks round the hem');assert.equal(pages,1,'the page block');
+  assert.ok(w.kitAdded.some(({obj})=>obj.parent===w.parts.body&&obj.position.x>.2&&obj.position.y<.6),'the book on the right hip');
+  assert.ok(w.parts.head.children.length>=2,'hat and beard');
+  dressHero(w,{role:'Valkyrie',gender:'male'});assert.equal(w.parts.body.children.length,0);
 });
