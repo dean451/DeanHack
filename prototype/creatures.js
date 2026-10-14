@@ -2966,23 +2966,28 @@ function seaMonster(o){
  }
  if(o.form==='kraken'){
   // a tall, backward-tilted squid mantle with a lateral fin, great round eyes, a ring of curling arms and two long clubbed tentacles
-  const mantle=lathe(body,[[0,0],[.14,.03],[.2,.14],[.19,.3],[.14,.44],[.06,.54],[0,.57]],skin,0,.22,-.08);mantle.rotation.x=-.45;
+  // a faceted seven-sided mantle in flat-shaded, dried-blood hide, so it reads as plates and not as an egg
+  const kskin=mat(shade(o.color,.72),{roughness:.92,flatShading:true}),kdark=mat(shade(o.color,.42),{roughness:.95,flatShading:true});
+  const mantle=part(body,new THREE.LatheGeometry([[0,0],[.14,.03],[.2,.14],[.19,.3],[.14,.44],[.06,.54],[0,.57]].map(([r,h])=>new THREE.Vector2(r,h)),7),kskin,0,.22,-.08);mantle.rotation.set(-.45,.2,0);
   for(const side of [-1,1]){const f=finShape(body,[[0,0],[.16,.1],[.02,.2]],fin,side*.12,.62,-.28);f.rotation.y=side>0?0:Math.PI;f.rotation.x=-.45;}
-  for(let i=0;i<7;i++){const a=i*2.3,r=.1+(i%3)*.04;sphere(body,.028,dark,Math.sin(a)*r*.9,.36+i*.035,.02-i*.035+Math.cos(a)*.05,1,.4,1);}
-  for(const side of [-1,1]){sphere(body,.07,eye,side*.14,.3,.1);sphere(body,.036,pupil,side*.175,.3,.14,.35,1.5,.6);}
+  for(let i=0;i<7;i++){const a=i*2.3,r=.1+(i%3)*.04;cone(body,.026,.06,kdark,Math.sin(a)*r*.9,.36+i*.035,.02-i*.035+Math.cos(a)*.05,4).rotation.x=-.9;}
+  // small deep-set eyes under a hard brow wedge: dim lamps in the dark, not saucers
+  for(const side of [-1,1]){sphere(body,.04,eye,side*.13,.3,.11);sphere(body,.02,pupil,side*.16,.3,.14,.35,1.5,.6);const brow=cone(body,.035,.1,kdark,side*.13,.35,.12,4);brow.rotation.set(0,0,side*Math.PI/2+side*.35);}
   sphere(body,.06,dark,0,.2,.14,1.2,.8,1);
   // a horny parrot beak hooked down over the mouth, and old scars raked across the mantle: a kraken is a drowner, not a pet
   const beak=mat('#1a1410',{roughness:.3});
   cone(body,.04,.12,beak,0,.17,.2,5).rotation.x=Math.PI*.78;cone(body,.03,.08,beak,0,.12,.19,5).rotation.x=Math.PI*.2;
   for(let i=0;i<3;i++){const sc=part(body,new THREE.BoxGeometry(.01,.16,.012),dark,.06-i*.04,.34+i*.015,-.1-i*.01);sc.rotation.set(-.45,0,.5);}
-  const n=o.arms||8;
+  // arms taper to a point in four stages and carry a row of black barbs down the underside
+  const n=o.arms||8,barb=mat('#1e1612',{roughness:.3,flatShading:true});
   for(let i=0;i<n;i++){const a=i/n*Math.PI*2,arm=new THREE.Group();arm.position.set(Math.sin(a)*.08,.18,Math.cos(a)*.08+.04);arm.rotation.y=a;body.add(arm);
    const pts=[];for(let k=0;k<=8;k++){const t=k/8,r=.02+t*.4,curl=t*t*2.2*(i%2?1:-1);pts.push([Math.sin(curl)*r*.4,.02-t*.17+Math.max(0,t-.75)*.5,r*Math.cos(curl*.4)]);}
-   tube(arm,pts,.028,skin,20);for(let k=2;k<8;k+=2){const p=pts[k];sphere(arm,.012,belly,p[0],p[1]-.02,p[2],1,.5,1);}
+   for(let k=0;k<8;k+=2){const q=k/8;segment(arm,pts[k],pts[k+2],.032*(1-q*.85),.032*(1-(q+.25)*.85),kskin);}
+   for(let k=2;k<8;k+=2){const p=pts[k];cone(arm,.011,.045,barb,p[0],p[1]-.03,p[2],4).rotation.x=Math.PI;}
    legs.push(arm);}
-  for(const side of [-1,1]){const pts=[[side*.04,.2,.12],[side*.12,.3,.3],[side*.2,.42,.38],[side*.24,.5,.34]];tube(body,pts,.016,skin,16);sphere(body,.045,belly,side*.25,.52,.33,1,1.6,1);}
-  // the great clubs bristle with a ring of hooked black claws, as a drowner's grip should
-  if(o.hooks){const claw=mat('#1e1612',{roughness:.3});claw.name='kraken-hook';for(const side of [-1,1])for(let k=0;k<5;k++){const a=k/5*Math.PI*2,c=cone(body,.009,.05,claw,side*.25+Math.cos(a)*.045,.52+Math.sin(a)*.07,.33+Math.cos(a)*.03,4);c.rotation.set(Math.sin(a)*1.2,0,-Math.cos(a)*1.2);}}
+  for(const side of [-1,1]){const pts=[[side*.04,.2,.12],[side*.12,.3,.3],[side*.2,.42,.38],[side*.24,.5,.34]];tube(body,pts,.016,kskin,16);cone(body,.05,.14,belly,side*.25,.52,.33,5).rotation.x=Math.PI/2-.3;}
+  // the great clubs bristle with a ring of long hooked black claws, large enough to read from the game camera
+  if(o.hooks){const claw=mat('#1e1612',{roughness:.3});claw.name='kraken-hook';for(const side of [-1,1])for(let k=0;k<6;k++){const a=k/6*Math.PI*2,c=cone(body,.016,.1,claw,side*.25+Math.cos(a)*.06,.52+Math.sin(a)*.09,.33+Math.cos(a)*.05,4);c.rotation.set(Math.sin(a)*1.2,0,-Math.cos(a)*1.2);}}
   return trimDraws(actor(g,body,legs,null,[],'idle'));
  }
  if(o.form==='eel'){
