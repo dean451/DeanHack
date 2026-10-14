@@ -36,8 +36,32 @@ export function arrivePose(t) {
   return {ring: Math.min(1.4, Math.max(.15, 1.4 - 1.25 * c * c + .06 * Math.sin(k * 150) * c * (1 - c))), ringAlpha: k < .6 ? .8 * c * (k > .28 && k < .35 ? .2 : 1) : 0, flash: .2 + .9 * f, flashAlpha: k < .6 ? 0 : (1 - f) * (1 - f) * (f > .3 && f < .45 ? .4 : 1)};  // the landing flash stutters once, as if the place flinched
 }
 
+// The hero herself goes with the blink. She is dragged up into the departing column and pulled
+// to a wire on her own tile, vanishes, and is already on the destination tile when the arrival
+// ring is collapsing; she re-forms under the landing flash, stuttering once as the flash does.
+// t is seconds since the blink began. Returns null once she is whole and at rest again.
+export const HERO_PULL = .3;
+export function heroBlinkLength(grand = false) { return BLINK.flash * 2 + BLINK.arrive * (grand ? GRAND.time : 1); }
+export function heroBlinkPose(t, grand = false) {
+  const gt = grand ? GRAND.time : 1, land = BLINK.flash * 2 + BLINK.arrive * gt * .6, end = heroBlinkLength(grand);
+  if (t < 0 || t >= end) return null;
+  if (t < HERO_PULL) { const u = smooth(t / HERO_PULL); return {at: 'from', sx: 1 - .97 * u, sy: 1 + .6 * u}; }
+  if (t < land) return {at: 'to', sx: .03, sy: .03};
+  const u = clamp01((t - land) / (end - land)), w = smooth(u) * (u > .4 && u < .55 ? .5 : 1);
+  const sx = .03 + .97 * w;
+  return {at: 'to', sx, sy: sx * (1 + .4 * (1 - u))};
+}
+// Puts a pose on the hero's group: x and z from the pose's tile, scale from sx and sy. With no pose it
+// restores her scale once and leaves her position to the normal walk.
+export function poseHeroBlink(hero, pose, from, to) {
+  const s = hero.g.scale;
+  if (!pose) { if (s.x !== 1 || s.y !== 1 || s.z !== 1) s.set(1, 1, 1); return; }
+  const p = pose.at === 'from' ? from : to;
+  hero.g.position.x = p.x; hero.g.position.z = p.z; s.set(pose.sx, pose.sy, pose.sx);
+}
+
 export function createTeleportBlink(THREE, parent) {
-  const live = [], pending = []; let armed = 0;
+  const live = [], pending = []; let armed = 0, track = null;
   function build(x, z, kind, grand = false) {
     const g = new THREE.Group(); g.name = 'TeleportBlink'; g.position.set(x, 0, z); parent.add(g);
     const cone = new THREE.ConeGeometry(1, 1, 8, 1, true), sph = new THREE.SphereGeometry(1, 8, 6), ringGeo = new THREE.RingGeometry(.85, 1, 24), mats = [];
@@ -65,14 +89,17 @@ export function createTeleportBlink(THREE, parent) {
     message(text, x, z) { if (isTeleportMessage(text)) { build(x, z, 'out'); armed = BLINK.armed; } },
     // A new level arrived: drop the old level's effects and, if the blink was ours, light the arrival.
     // A same-level teleport (the bridge's `teleport` event): blink out at `from`, and a beat later arrive at `to`.
-    hop(from, to, trap = false) { build(from.x, from.z, 'out'); pending.push({x: to.x, z: to.z, wait: BLINK.flash * 2, grand: !!trap}); },
-    levelChanged(x, z) { live.forEach(drop); live.length = 0; pending.length = 0; if (armed > 0) build(x, z, 'in'); armed = 0; },
+    hop(from, to, trap = false) { track = {from, to, grand: !!trap, t: 0}; build(from.x, from.z, 'out'); pending.push({x: to.x, z: to.z, wait: BLINK.flash * 2, grand: !!trap}); },
+    levelChanged(x, z) { track = null; live.forEach(drop); live.length = 0; pending.length = 0; if (armed > 0) build(x, z, 'in'); armed = 0; },
     update(dt) {
+      if (track && (track.t += dt) >= heroBlinkLength(track.grand)) track = null;
       if (armed > 0) armed = Math.max(0, armed - dt);
       for (let i = pending.length - 1; i >= 0; i--) if ((pending[i].wait -= dt) <= 0) { build(pending[i].x, pending[i].z, 'in', pending[i].grand); pending.splice(i, 1); }
       for (let i = live.length - 1; i >= 0; i--) if (!step(live[i], dt)) { drop(live[i]); live.splice(i, 1); }
     },
-    clear() { armed = 0; pending.length = 0; live.forEach(drop); live.length = 0; },
+    clear() { track = null; armed = 0; pending.length = 0; live.forEach(drop); live.length = 0; },
+    // The hero's pose for this frame (see heroBlinkPose) with the two tiles she moves between, or null.
+    heroPose() { const p = track && heroBlinkPose(track.t, track.grand); return p ? {pose: p, from: track.from, to: track.to} : null; },
     get active() { return live.length; },
   };
 }
