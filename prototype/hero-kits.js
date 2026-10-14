@@ -46,8 +46,13 @@ export const KITS={
     show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'tunic',color:'#6b6a63',trim:'#3c3a35',length:.42,sleeves:true,sleeveWide:.07},hair:{male:'bald',female:'bald'},
   },
   Archeologist:{
-    palette:{armor:'#8a7a52',armorLight:'#b0a074',leather:'#4a3626',accent:'#b49a52',boots:'#3a2c1e',capeCloth:'#6f6240',hair:['#3a2a1c','#52402c','#6a5238']},
-    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'tunic',color:'#a58f62',trim:'#6a5a38',length:.4,sleeves:true,sleeveWide:.075},hat:'fedora',hair:{male:'short',female:'tied'},
+    // A field worker, not a khaki blob: a worn open leather jacket with scuffed elbows over a dusty
+    // khaki shirt, dust on the hem and the knees, a fedora with a sweat-dark band and a bent brim.
+    // The bullwhip coiled on the belt, the canvas field bag and the touchstone pouch name the class.
+    palette:{armor:'#8a7a52',armorLight:'#b0a074',leather:'#4a3626',accent:'#8a6a3a',boots:'#3a2c1e',capeCloth:'#6f6240',hair:['#3a2a1c','#52402c','#6a5238']},
+    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},
+    outfit:{kind:'tunic',color:'#9c8a5e',trim:'#5a4a30',length:.4,sleeves:true,sleeveWide:.078,jacket:{color:'#4a3626',collar:'#352417',scuff:'#7a6244'},dust:'#c2b088'},
+    props:['whipCoil','fieldBag','touchstonePouch'],hat:'fedora',hair:{male:'short',female:'tied'},
   },
   Tourist:{
     // The one loud thing in the dungeon: a burnt-red shirt with a bone-and-ochre flower print, worn
@@ -147,6 +152,23 @@ function tunic(add,parts,o){
     const sw=cloth(o.sweat,{polygonOffset:true,polygonOffsetFactor:-2});
     for(const [x,y,z,sx,sy] of [[0,.96,.172,1.5,1.3],[-.21,.85,.08,.8,1.5],[.21,.85,.08,.8,1.5]]){const d=new THREE.Mesh(new THREE.CircleGeometry(.03,12),sw);d.position.set(x,y,z);d.scale.set(sx,sy,1);d.lookAt(x*3,y,z*3+(x?0:.5));add(parts.body,d);}
   }
+  if(o.jacket){ // an open leather jacket over the shirt: two front panels hanging apart, a back, a turned collar, scuffed elbows
+    const j=cloth(o.jacket.color,{roughness:.8}),c=cloth(o.jacket.collar||o.jacket.color,{roughness:.85}),sc=cloth(o.jacket.scuff||'#7a6244',{roughness:1,polygonOffset:true,polygonOffsetFactor:-1});
+    // the shirt's yoke reaches z .24 at the shoulders, so the panels and lapels sit outside it and lean in toward the hem
+    for(const side of [-1,1]){const panel=new THREE.Mesh(new THREE.BoxGeometry(.11,.36,.016),j);panel.position.set(side*.13,.74,.225);panel.rotation.x=.22;panel.rotation.y=side*.3;panel.rotation.z=side*.04;add(parts.body,panel);
+      const lapel=new THREE.Mesh(new THREE.BoxGeometry(.07,.13,.02),c);lapel.position.set(side*.085,.95,.27);lapel.rotation.x=.2;lapel.rotation.z=side*.55;lapel.rotation.y=side*.25;add(parts.body,lapel);}
+    const back=new THREE.Mesh(new THREE.CylinderGeometry(.32,.21,.42,20,1,true,Math.PI*.58,Math.PI*.84),j);back.position.set(0,.8,0);back.scale.z=.8;add(parts.body,back);
+    const collar=new THREE.Mesh(new THREE.TorusGeometry(.13,.022,6,18,Math.PI*1.3),c);collar.position.set(0,1.06,-.02);collar.rotation.x=Math.PI/2;collar.rotation.z=Math.PI*.35;add(parts.body,collar);
+    for(const [arm,elbow] of [[parts.arm,parts.elbow],[parts.shieldArm,parts.shieldElbow]]){
+      const upper=new THREE.Mesh(new THREE.CylinderGeometry(.078,.088,.26,14,1,true),j);upper.position.set(0,-.12,0);add(arm,upper);
+      const cuff=new THREE.Mesh(new THREE.CylinderGeometry(.086,.09,.1,14,1,true),j);cuff.position.set(0,-.03,0);add(elbow,cuff);
+      const patch=new THREE.Mesh(new THREE.CircleGeometry(.03,8),sc);patch.position.set(0,-.01,-.09);patch.rotation.y=Math.PI;patch.scale.set(1,1.4,1);add(elbow,patch);
+    }
+  }
+  if(o.dust){ // dust from the dig on the hem and the knees
+    const d=cloth(o.dust,{polygonOffset:true,polygonOffsetFactor:-2});
+    for(let i=0;i<7;i++){const a=i/7*Math.PI*1.4-.7,r=prof[0][0]+.004,m2=new THREE.Mesh(new THREE.CircleGeometry(.022+(i%2)*.01,7),d);m2.position.set(Math.sin(a)*r,hemY+.03+(i%3)*.015,Math.cos(a)*r*.8);m2.lookAt(Math.sin(a)*3,hemY,Math.cos(a)*3);m2.scale.set(1.4,.7,1);add(parts.body,m2);}
+  }
   if(o.flap){ // untucked on the left: a tail of shirt hangs below the belt
     const tail=new THREE.Mesh(new THREE.BoxGeometry(.11,.1,.012),m);tail.position.set(-.13,hemY-.04,.14);tail.rotation.z=.18;tail.rotation.y=.35;add(parts.body,tail);
   }
@@ -205,9 +227,16 @@ const HATS={
     for(const [x,len] of [[.17,.07],[.19,.05]]){const end=new THREE.Mesh(new THREE.BoxGeometry(.018,len,.006),cloth('#3a2a1e'));end.position.set(x,.03-len/2,.05);end.rotation.z=.4;g.add(end);}
     for(let i=0;i<5;i++){const a=i/5*Math.PI*2+.7;const fray=new THREE.Mesh(new THREE.CircleGeometry(.014,5),worn);fray.position.set(Math.cos(a)*.33,.0,Math.sin(a)*.33);fray.rotation.x=-Math.PI/2;fray.scale.set(1.8,.7,1);fray.rotation.z=a;g.add(fray);}
   },
-  fedora(add,parts){ const m=cloth('#6a4a2e',{roughness:.95}),g=new THREE.Group();g.position.set(0,.12,0);g.rotation.z=.05;add(parts.head,g);
-    const brim=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.014,30),m);brim.scale.z=1.05;g.add(brim);const crown=new THREE.Mesh(new THREE.CylinderGeometry(.14,.18,.15,22),m);crown.position.y=.075;g.add(crown);
-    const dent=new THREE.Mesh(new THREE.BoxGeometry(.12,.03,.1),m);dent.position.set(0,.15,0);g.add(dent);ring(.178,.012,trimMat('#2a1e14'),g,0,.03,0,1,1);},
+  fedora(add,parts){ // a felt fedora the colour of dried mud, the brim bent down in front and nicked at one side, the band dark with sweat
+    const m=cloth('#5a3e28',{roughness:.95}),dark=cloth('#3a2818',{roughness:1}),g=new THREE.Group();g.position.set(0,.12,0);g.rotation.z=.06;g.rotation.x=.08;add(parts.head,g);
+    const brim=new THREE.Mesh(new THREE.CylinderGeometry(.28,.27,.014,30),m);brim.scale.z=1.05;const pos=brim.geometry.attributes.position;
+    for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i),r=Math.hypot(x,z);if(r>.2){const a=Math.atan2(z,x);pos.setY(i,pos.getY(i)-Math.max(0,Math.sin(a))*.045*(r-.2)/.08+Math.max(0,-Math.sin(a))*.02*(r-.2)/.08);if(Math.abs(a-2.4)<.25){pos.setX(i,x*.9);pos.setZ(i,z*.9);}}}
+    pos.needsUpdate=true;brim.geometry.computeVertexNormals();g.add(brim);
+    const crown=new THREE.Mesh(new THREE.CylinderGeometry(.14,.18,.15,22),m);crown.position.y=.075;g.add(crown);
+    const dent=new THREE.Mesh(new THREE.BoxGeometry(.12,.03,.1),m);dent.position.set(0,.15,0);g.add(dent);
+    const pinch=new THREE.Mesh(new THREE.BoxGeometry(.05,.08,.06),dark);pinch.position.set(0,.13,.12);g.add(pinch);
+    ring(.178,.016,dark,g,0,.03,0,1,1);
+    const sweat=new THREE.Mesh(new THREE.CylinderGeometry(.181,.182,.03,22,1,true),cloth('#2a1c10',{polygonOffset:true,polygonOffsetFactor:-1}));sweat.position.y=.055;g.add(sweat);},
   kabuto(add,parts){ // a lacquered dome tilted back off the brow, a flared neck guard, and a crescent crest
     const m=new THREE.MeshStandardMaterial({color:'#2a2220',roughness:.45,metalness:.6,side:THREE.DoubleSide}),r=new THREE.MeshStandardMaterial({color:'#9a2a22',roughness:.5,metalness:.4,side:THREE.DoubleSide}),g=new THREE.Group();g.position.set(0,.07,-.02);g.rotation.x=-.25;add(parts.head,g);
     g.add(new THREE.Mesh(new THREE.SphereGeometry(.205,24,14,0,Math.PI*2,0,Math.PI*.42),m));
@@ -289,6 +318,30 @@ const PROPS={
     for(const y of [-.17,.17]){const cap=new THREE.Mesh(new THREE.TorusGeometry(.03,.006,5,12),trimMat('#c9a24a'));cap.position.y=y;cap.rotation.x=Math.PI/2;g.add(cap);}
     const scroll=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.06,10),paper);scroll.position.y=.24;g.add(scroll);
     const strap=new THREE.Mesh(new THREE.BoxGeometry(.028,.5,.01),hide);strap.position.set(-.06,.85,-.16);strap.rotation.z=.5;strap.rotation.x=.15;add(parts.body,strap);
+  },
+  whipCoil(add,parts){ // a bullwhip coiled three times and hung from the right of the belt, the handle up, the fall hanging
+    const hide=cloth('#3a2616',{roughness:.85}),dark=cloth('#241709',{roughness:.9}),g=new THREE.Group();g.position.set(.215,.5,.0);g.rotation.y=Math.PI/2;g.rotation.z=.15;add(parts.body,g);
+    for(let i=0;i<3;i++){const c=new THREE.Mesh(new THREE.TorusGeometry(.055-i*.004,.009,6,18),i%2?hide:dark);c.position.set(0,-i*.012,i*.008);c.rotation.z=i*.4;g.add(c);}
+    const handle=new THREE.Mesh(new THREE.CylinderGeometry(.011,.013,.1,8),dark);handle.position.set(.02,.07,0);handle.rotation.z=-.35;g.add(handle);
+    const knot=new THREE.Mesh(new THREE.SphereGeometry(.014,8,6),hide);knot.position.set(.04,.11,0);g.add(knot);
+    const fall=new THREE.Mesh(new THREE.CylinderGeometry(.004,.006,.14,6),hide);fall.position.set(-.03,-.1,.01);fall.rotation.z=.2;g.add(fall);
+  },
+  fieldBag(add,parts){ // a square canvas field bag on the left hip on a wide strap, a brass buckle, a trowel handle out of the flap
+    const canvas=cloth('#8a7a52',{roughness:1}),worn=cloth('#6a5c3c',{roughness:1}),strap=cloth('#4a3626',{roughness:.85}),brass=trimMat('#8a6a3a'),wood=cloth('#5a3e28',{roughness:.9});
+    const band=new THREE.Mesh(new THREE.BoxGeometry(.04,.64,.012),strap);band.position.set(-.02,.78,.19);band.rotation.z=-.58;band.rotation.x=-.1;add(parts.body,band);
+    const bandBack=new THREE.Mesh(new THREE.BoxGeometry(.04,.62,.012),strap);bandBack.position.set(-.02,.78,-.17);bandBack.rotation.z=.58;bandBack.rotation.x=.1;add(parts.body,bandBack);
+    const bag=new THREE.Group();bag.position.set(-.24,.48,.02);bag.rotation.z=.1;bag.rotation.y=.15;add(parts.body,bag);
+    const body=new THREE.Mesh(new THREE.BoxGeometry(.09,.2,.2),canvas);bag.add(body);
+    const flap=new THREE.Mesh(new THREE.BoxGeometry(.1,.09,.21),worn);flap.position.set(-.006,.07,0);bag.add(flap);
+    const buckle=new THREE.Mesh(new THREE.BoxGeometry(.012,.034,.03),brass);buckle.position.set(-.056,.0,.0);bag.add(buckle);
+    const trowel=new THREE.Mesh(new THREE.CylinderGeometry(.009,.011,.1,8),wood);trowel.position.set(0,.15,-.06);trowel.rotation.z=.2;bag.add(trowel);
+    const stain=new THREE.Mesh(new THREE.CircleGeometry(.03,7),cloth('#5a4a2c',{polygonOffset:true,polygonOffsetFactor:-1}));stain.position.set(-.046,-.06,.05);stain.rotation.y=-Math.PI/2;stain.scale.set(1.3,.8,1);bag.add(stain);
+  },
+  touchstonePouch(add,parts){ // a small drawstring pouch at the back of the belt, the grey stone's edge at its mouth
+    const hide=cloth('#4a3626',{roughness:.9}),cord=cloth('#241709'),stone=cloth('#5a5a58',{roughness:.6}),g=new THREE.Group();g.position.set(.12,.56,-.15);g.rotation.z=-.1;add(parts.body,g);
+    const bag=new THREE.Mesh(new THREE.SphereGeometry(.036,10,8),hide);bag.scale.set(1,1.2,.8);g.add(bag);
+    const tie=new THREE.Mesh(new THREE.TorusGeometry(.018,.005,5,10),cord);tie.position.y=.038;tie.rotation.x=Math.PI/2;g.add(tie);
+    const s2=new THREE.Mesh(new THREE.BoxGeometry(.02,.012,.02),stone);s2.position.y=.05;s2.rotation.y=.4;g.add(s2);
   },
   bandageRoll(add,parts){ // a roll of linen tucked under the sash on the right, one end hanging loose
     const linen=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.12,.6,.15);g.rotation.z=.3;add(parts.body,g);
