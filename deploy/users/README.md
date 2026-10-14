@@ -20,6 +20,6 @@ Put one email per line in `deploy/users/testers.txt` (git-ignored) and run
 
 on the server. Each email becomes a login whose password is the email itself, lower-cased, and
 Caddy restarts. Tell each friend: user name and password are both your email, all lower case.
-Re-run after editing the list; a removed email stops working at once. This is a door, not a
+Re-run after editing the list; a removed email stops working at once. A plain word works too: a line reading `play` makes a shared login with user name play and password play. This is a door, not a
 lock: anyone who knows a tester's email can play as them, which is fine for friends and not for
 the open internet.

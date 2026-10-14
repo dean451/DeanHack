@@ -156,3 +156,12 @@ test('the Monk is brown robes, a rope belt and wrapped forearms, bald',()=>{
   assert.ok(m.kitAdded.some(({obj})=>obj.material?.color?.getHexString()==='b8a06a'),'the rope belt');
   dressHero(m,{role:'Valkyrie',gender:'female'});assert.equal(m.parts.elbow.children.length,0);
 });
+
+test('the Priest is white robes with a dark stole, a holy symbol at the chest and beads at the sash',()=>{
+  const r=fakeRig();dressHero(r,{role:'Priest',gender:'male'});
+  assert.equal(r.parts.mats.armor.color.getHexString(),'cfc8b4','bone white');
+  let beads=0,stole=0;for(const {obj} of r.kitAdded)obj.traverse(x=>{if(x.geometry?.type==='SphereGeometry'&&x.material?.color?.getHexString()==='3a2618')beads++;if(x.material?.color?.getHexString()==='3a2a40')stole++;});
+  assert.equal(beads,9,'nine prayer beads');assert.ok(stole>=4,'the stole strips');
+  assert.ok(r.kitAdded.some(({obj})=>obj.parent===r.parts.body&&Math.abs(obj.position.y-.84)<.01&&obj.position.z>.2),'the holy symbol hangs at the chest');
+  dressHero(r,{role:'Valkyrie',gender:'male'});assert.equal(r.parts.body.children.length,0);
+});
