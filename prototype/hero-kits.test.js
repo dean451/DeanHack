@@ -185,3 +185,18 @@ test('the Ranger is green tunic and pants under a hood, with a quiver on the bac
   assert.ok(r.parts.shieldElbow.children.length>r.parts.elbow.children.length,'the bracer is on the bow arm only');
   dressHero(r,{role:'Valkyrie',gender:'female'});assert.equal(r.parts.shieldElbow.children.length,0);
 });
+
+test('the Caveman is bare skin and a fur loincloth, a hide strap and a bone at the neck',()=>{
+  const c=fakeRig();dressHero(c,{role:'Caveman',gender:'male'});
+  assert.equal(c.parts.mats.armor.color.getHexString(),'c48f6e','the arms are skin');
+  const added=c.kitAdded.map(a=>a.obj);
+  const lathes=added.filter(o=>o.parent===c.parts.body&&o.geometry?.type==='LatheGeometry');
+  assert.equal(lathes.length,2,'a skin torso and a fur wrap');
+  lathes[0].geometry.computeBoundingBox();assert.ok(lathes[0].geometry.boundingBox.max.x>=.29,'the torso has shoulders');
+  assert.ok(added.filter(o=>o.parent===c.parts.body&&o.geometry?.type==='ConeGeometry').length>=12,'a ragged fur hem');
+  assert.ok(added.some(o=>o.material?.color?.getHexString()==='d9d0b8'),'the bone');
+  assert.equal(c.parts.elbow.children.length,0,'no sleeves: bare arms');
+  assert.equal(c.parts.mats.armor.metalness,0,'skin is not metal');
+  dressHero(c,{role:'Valkyrie',gender:'male'});assert.equal(c.parts.body.children.length,0);
+  assert.ok(c.parts.mats.armor.metalness>0||c.parts.mats.armor.metalness===c.parts.baseFinish.armor.metalness,'the plate finish comes back');
+});

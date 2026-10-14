@@ -38,8 +38,13 @@ export const KITS={
     show:{chest:false,pauldrons:false,tassets:false},outfit:{kind:'tunic',color:'#5b4636',trim:'#a89478',length:.36,sleeves:false,fur:true},hat:'horned',hair:{male:'wild',female:'wild'},
   },
   Caveman:{
-    palette:{armor:'#6a5438',armorLight:'#907a54',leather:'#4b3a26',accent:'#a89870',boots:'#3a2c1e',capeCloth:'#6a5438',hair:['#2c2018','#43301f','#5c4430']},
-    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'tunic',color:'#8a6a46',trim:'#6a5030',length:.4,sleeves:false,fur:true},hair:{male:'wild',female:'wild'},
+    // Just a loincloth: bare skin (the arm cylinders take the skin colour, a skin torso stands in
+    // for the hidden plate), a ragged fur wrap at the hips, a hide strap across the chest and a
+    // bone on a thong at the neck. Wild hair.
+    palette:{armor:'#c48f6e',armorLight:'#d4a081',leather:'#4b3a26',accent:'#a89870',boots:'#3a2c1e',capeCloth:'#6a5438',hair:['#2c2018','#43301f','#5c4430']},
+    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},
+    outfit:{kind:'loincloth',color:'#6a5034',trim:'#4a3622',skin:'#c48f6e'},matte:true,
+    props:['boneThong'],hair:{male:'wild',female:'wild'},
   },
   Convict:{
     // Bald, in prison stripes: the Valkyrie rig under a striped tunic (grey bands round the body
@@ -147,6 +152,18 @@ function robe(add,parts,o){
   if(o.stole){ // a stole over the shoulders, two strips down the front, a brass cross on each end
     const st=cloth(o.stole,{polygonOffset:true,polygonOffsetFactor:-2});for(const side of [-1,1]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.055,.62,.01),st);strip.position.set(side*.075,.68,.21);strip.rotation.x=.14;strip.rotation.z=side*.03;add(parts.body,strip);const top=new THREE.Mesh(new THREE.BoxGeometry(.055,.16,.01),st);top.position.set(side*.1,.99,.2);top.rotation.x=-.5;add(parts.body,top);const cross=new THREE.Mesh(new THREE.BoxGeometry(.03,.03,.012),trimMat('#c8a45a'));cross.position.set(side*.075,.5,.218);add(parts.body,cross);}}
   sleeves(add,parts,o,m,t);
+}
+
+// Just a loincloth: a bare torso of skin (the rig has no body under the plate), a ragged fur wrap
+// at the hips and a hide strap across the chest.
+function loincloth(add,parts,o){
+  const skin=cloth(o.skin||'#c48f6e',{roughness:.8}),fur=cloth(o.color,{roughness:1}),hide=cloth(o.trim,{roughness:.9});
+  const torso=new THREE.Mesh(new THREE.LatheGeometry([[.15,.58],[.17,.66],[.165,.8],[.24,.88],[.3,.93],[.26,.99],[.165,1.03],[.118,1.07]].map(([r,y])=>new THREE.Vector2(r,y)),28),skin);torso.scale.z=.78;add(parts.body,torso);
+  const wrap=new THREE.Mesh(fold(new THREE.LatheGeometry([[.2,.36],[.21,.46],[.2,.56],[.19,.64]].map(([r,y])=>new THREE.Vector2(r,y)),28),8,.04),fur);wrap.scale.z=.82;add(parts.body,wrap);
+  for(let i=0;i<12;i++){const a=i/12*Math.PI*2,c=new THREE.Mesh(new THREE.ConeGeometry(.03,.08+((i*5)%4)*.015,5),fur);c.position.set(Math.sin(a)*.2,.33,Math.cos(a)*.2*.82);c.rotation.x=Math.PI;add(parts.body,c);}
+  ring(.2,.02,hide,parts.body,0,.62,0,1,.82);
+  const strap=new THREE.Mesh(new THREE.BoxGeometry(.05,.66,.012),hide);strap.position.set(.03,.8,.2);strap.rotation.z=.6;strap.rotation.x=-.12;add(parts.body,strap);
+  const strapBack=new THREE.Mesh(new THREE.BoxGeometry(.05,.62,.012),hide);strapBack.position.set(.03,.8,-.17);strapBack.rotation.z=-.6;strapBack.rotation.x=.12;add(parts.body,strapBack);
 }
 
 // A tunic: shorter than a robe, over visible legs, with a belt.
@@ -434,6 +451,12 @@ const PROPS={
     const b=new THREE.Mesh(new THREE.CylinderGeometry(.088,.096,.16,14,1,true),hide);b.position.set(0,-.13,0);add(parts.shieldElbow,b);
     for(let i=0;i<3;i++){const l=new THREE.Mesh(new THREE.TorusGeometry(.09,.004,4,12),lace);l.position.set(0,-.08-i*.045,0);l.rotation.x=Math.PI/2;add(parts.shieldElbow,l);}
   },
+  boneThong(add,parts){ // a bone on a hide thong at the neck
+    const thong=cloth('#3a2a1e'),bone=cloth('#d9d0b8',{roughness:.8});
+    const loop=new THREE.Mesh(new THREE.TorusGeometry(.125,.006,5,24,Math.PI*1.4),thong);loop.rotation.x=Math.PI/2+.5;loop.rotation.z=Math.PI/2-.7;loop.position.set(0,1.03,-.005);add(parts.body,loop);
+    const b=new THREE.Mesh(new THREE.CylinderGeometry(.009,.011,.07,6),bone);b.position.set(0,.86,.21);b.rotation.z=.25;add(parts.body,b);
+    for(const y of [.895,.825]){const k=new THREE.Mesh(new THREE.SphereGeometry(.013,6,5),bone);k.position.set((y-.86)*-.55,y,.21);add(parts.body,k);}
+  },
   bandageRoll(add,parts){ // a roll of linen tucked under the sash on the right, one end hanging loose
     const linen=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.12,.6,.15);g.rotation.z=.3;add(parts.body,g);
     const roll=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.07,12),linen);roll.rotation.x=Math.PI/2;g.add(roll);
@@ -463,6 +486,9 @@ export function dressHero(hero,{role='Valkyrie',gender='female'}={}){
   for(const k of BASE_KEYS)parts.mats[k].color.copy(parts.base[k]);
   for(const k of BASE_KEYS)if(pal[k]&&!k.startsWith('hair'))parts.mats[k].color.set(pal[k]);
   if(pal.hair)['hairDark','hairMid','hairLight'].forEach((k,i)=>parts.mats[k].color.set(pal.hair[i]));
+  // bare skin: the arm materials are plate (metal map, metalness .82), and a skin colour on metal renders black
+  parts.baseFinish??=Object.fromEntries(['armor','armorLight'].map(k=>[k,{metalness:parts.mats[k].metalness,roughness:parts.mats[k].roughness}]));
+  for(const k of ['armor','armorLight']){const m=parts.mats[k],f=parts.baseFinish[k];m.metalness=kit.matte?0:f.metalness;m.roughness=kit.matte?.85:f.roughness;}
   // which armour shows
   const show={...SHOW_DEFAULT,...(kit.show||{})};
   parts.chest.visible=show.chest;parts.belt.visible=show.belt&&show.chest;setVisible(parts.pauldrons,show.pauldrons);setVisible(parts.tassets,show.tassets);setVisible(parts.mantles,show.mantles);parts.cape.visible=show.cape;
@@ -471,7 +497,7 @@ export function dressHero(hero,{role='Valkyrie',gender='female'}={}){
   const styles={valkyrie:{cap:1,strands:1,tail:1,braids:1},long:{cap:1,strands:1,tail:1,braids:0},tied:{cap:1,strands:1,tail:1,braids:0},short:{cap:1,strands:0,tail:0,braids:0},topknot:{cap:1,strands:0,tail:1,braids:0},wild:{cap:1,strands:1,tail:0,braids:0},bald:{cap:0,strands:0,tail:0,braids:0}};
   const st=styles[style]||styles.valkyrie;for(const part of ['cap','strands','tail','braids'])setVisible(h[part],!!st[part]);
   // what a class wears over the rig
-  if(kit.outfit){const o={...kit.outfit};if(o.kind==='robe')robe(add,parts,o);else if(o.kind==='tabard')tabard(add,parts,o);else tunic(add,parts,o);}
+  if(kit.outfit){const o={...kit.outfit};if(o.kind==='robe')robe(add,parts,o);else if(o.kind==='tabard')tabard(add,parts,o);else if(o.kind==='loincloth')loincloth(add,parts,o);else tunic(add,parts,o);}
   if(kit.hat)HATS[kit.hat]?.(add,parts,{color:kit.outfit?.color||'#333',hatColor:pal.capeCloth,trim:kit.outfit?.trim||'#999'});
   if(kit.beard?.[gender])beard(add,parts,kit.beard[gender]);
   for(const prop of kit.props||[])PROPS[prop]?.(add,parts);
