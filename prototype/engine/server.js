@@ -18,7 +18,7 @@ export function encodeReply(request, body) {
   if(!Number.isInteger(body.value)||body.value<1||body.value>255)throw new Error('Invalid key');
   return body.value+'\n';
 }
-export const DEFAULT_PLAYER_NAME = 'Wanderer';
+export const DEFAULT_PLAYER_NAME = 'Adventurer';
 // The character's name, typed by the player. It goes to the engine as `-u` and in NETHACKOPTIONS
 // (comma separated), and it names the save file, so keep it short and plain: letters, digits,
 // spaces, underscores and apostrophes, starting with a letter or digit so it can never read as a

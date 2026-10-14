@@ -8,7 +8,7 @@ import {pickDragon} from './dragon-art.js';
 import {epitaph} from './death-beat.js';
 import {ROLES,ROLE_NAMES,RACES,DEFAULT_CHOICE,alignsFor,optionsFor,resolveChoice} from './roles.js';
 
-export const DEFAULT_NAME='Wanderer';
+export const DEFAULT_NAME='Adventurer';
 
 // The name as the engine will see it (same rules as cleanPlayerName in engine/server.js).
 export function cleanName(raw){
@@ -88,7 +88,8 @@ export async function forgetSave(name,fetchImpl=fetch){
 // Builds the splash once and wires it to the Live button and name field. Returns {open, close}:
 // the live game calls open({note}) when a session ends, so the player always lands back here.
 export function installStartScreen({doc=document,button,nameInput,search=location.search,getSaves=fetchSaves,forget=forgetSave,confirmFn=(m)=>confirm(m),storage}={}){
-  if(!wantsStartScreen(search))return null;
+  const cover=doc.getElementById?.('start-cover');
+  if(!wantsStartScreen(search)){cover?.remove();return null;}
   const el=doc.createElement('div');el.id='start-screen';
   el.innerHTML=`<div class="start-stage"><pre class="start-dragon" aria-hidden="true"></pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>An <a class="start-link" href="https://github.com/UnNetHack/UnNetHack" target="_blank" rel="noopener">UnNetHack</a> Fork</h1><p id="start-status" role="status" hidden></p>
 <form class="step-name" autocomplete="off"><label for="start-name">Your name</label><input id="start-name" type="text" maxlength="24" spellcheck="false" placeholder="${DEFAULT_NAME}" aria-describedby="start-note"><button type="submit" id="start-go"></button><p id="start-note" aria-live="polite"></p>
@@ -99,6 +100,10 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
 <button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div><p class="start-mark"><a class="start-link" href="https://github.com/dean451/deanhack" target="_blank" rel="noopener" aria-label="DeanHack on GitHub">DEAN<b>HACK</b></a></p></div>`;
   doc.body.append(el);
   const $=s=>el.querySelector(s);
+  // The cover (start-cover.js) already shows a head: take that very element so nothing swaps.
+  const coverDragon=cover?.querySelector?.('.start-dragon');const adopted=!!coverDragon?.textContent;
+  if(adopted)$('.start-dragon').replaceWith(coverDragon);
+  cover?.remove();
   const dragon=$('.start-dragon');
   // each head is sized to its own art (style.css), so a short one grows to match the card
   // The dragon is centred in the window, not against the card, so the class list growing the card
@@ -106,7 +111,7 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
   const placeDragon=()=>{const win=doc.defaultView;if(!win||!dragon.getBoundingClientRect)return;const h=dragon.getBoundingClientRect().height,pad=parseFloat(win.getComputedStyle?.(dragon.parentElement)?.paddingTop)||0;dragon.style.marginTop=`${Math.max(0,(win.innerHeight-h)/2-pad)}px`;};
   doc.defaultView?.addEventListener?.('resize',placeDragon);
   const showDragon=()=>{const art=pickDragon().art,lines=art.split('\n');dragon.textContent=art;dragon.style.setProperty('--lines',lines.length);dragon.style.setProperty('--cols',Math.max(...lines.map(l=>l.length)));placeDragon();};
-  showDragon();
+  if(adopted)placeDragon();else showDragon();
   const input=$('#start-name'),go=$('#start-go'),note=$('#start-note'),status=$('#start-status'),list=$('.start-list'),box=$('.start-saves'),stepName=$('.step-name'),stepClass=$('.step-class'),forgetBtn=$('.start-forget');
   let saves=[],choice=readChoice(storage),pendingName=DEFAULT_NAME;
   const remembered=()=>{try{return(storage??localStorage).getItem('deanhack.playerName')||'';}catch{return '';}};
