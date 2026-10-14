@@ -98,7 +98,8 @@ function buildBody(){
 function buildHead(){
  const P=pieces(),R=rand(331);
  const face=(x,y,z)=>{
-  if(z>.1)return mix(C.muzzle,C.muzzleDark,THREE.MathUtils.clamp((.02-y)*8,0,1));
+  // the muzzle and lower jaw are matted with the dried blood of its last meal
+  if(z>.1)return mix(mix(C.muzzle,C.muzzleDark,THREE.MathUtils.clamp((.02-y)*8,0,1)),C.blood,THREE.MathUtils.clamp((-.03-y)*14,0,.8));
   return hide(x,y,z);
  };
  // a long, heavy wedge of a skull, and the curly boss between the horns
