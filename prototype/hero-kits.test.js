@@ -124,3 +124,16 @@ test('the Tourist is the one loud thing in the dungeon, and is named by the came
   assert.ok(added.filter(o=>o.parent===t.parts.body).some(o=>o.position.z<-.15),'the map tube rides on the back');
   dressHero(t,{role:'Valkyrie',gender:'male'});assert.equal(t.parts.body.children.length,0);
 });
+
+test('the Archeologist wears a worn open jacket over a dusty shirt and carries the whip, field bag and touchstone',()=>{
+  const a=fakeRig();dressHero(a,{role:'Archeologist',gender:'female'});
+  const added=a.kitAdded.map(o=>o.obj);
+  const colours=new Set();let tori=0;for(const o of added)o.traverse(x=>{if(x.material?.color)colours.add(x.material.color.getHexString());if(x.geometry?.type==='TorusGeometry')tori++;});
+  assert.ok(tori>=6,`whip coils, collar, pouch tie and hat band: ${tori} tori`);
+  assert.ok(colours.size>=8,`tones: ${colours.size}`);
+  const onElbow=a.parts.elbow.children.length;assert.ok(onElbow>=4,'the jacket sleeve, cuff and scuffed elbow patch sit on the arm');
+  const xs=added.filter(o=>o.parent===a.parts.body).map(o=>o.position.x);
+  assert.ok(xs.some(x=>x>.2)&&xs.some(x=>x<-.2),'whip on the right hip, field bag on the left');
+  assert.ok(added.filter(o=>o.parent===a.parts.body).some(o=>o.position.z<-.1&&o.position.y>.5),'the touchstone pouch rides at the back of the belt');
+  dressHero(a,{role:'Valkyrie',gender:'female'});assert.equal(a.parts.body.children.length,0);assert.equal(a.parts.elbow.children.length,0);
+});
