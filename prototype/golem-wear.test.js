@@ -36,3 +36,9 @@ test('the flesh golem has three ribs showing through a torn flank, adding no mes
   assert(bodyVerts('flesh golem') > bodyVerts('leather golem') + 4 * 24 - 1);
   assert.equal(meshes('flesh golem'), meshes('leather golem'));
 });
+
+test('the gold golem has three axe-chops hacked across its chest, adding no meshes', () => {
+  const gold = bodyVerts('gold golem');
+  assert.equal(gold - bodyVerts('rope golem'), 240 + 3 * 36);
+  assert.equal(meshes('gold golem'), meshes('rope golem'));
+});

@@ -23,6 +23,9 @@ function buildBody(){
  P.add(lathe([[.25,.0],[.22,.15],[.17,.45],[.17,.7],[.19,.82],[.1,.9]],28),at(0,0,0,[0,0,0],[1,1,.85]),(x,y,z)=>mix(ROBE_DARK,mix(ROBE,ROBE_PALE,hash(Math.round(x*40)+Math.round(z*40)*7)),(y-.0)/.4));
  // a ragged hem of torn tails
  for(let i=0;i<14;i++){const a=i/14*Math.PI*2;P.add(new THREE.ConeGeometry(.04,.1+hash(i)*.08,4),at(Math.sin(a)*.245,.1,Math.cos(a)*.21,[Math.PI,a,0],[1,1,.4]),ROBE_DARK);}
+ // the left side of the hem has been cut away in one long diagonal slash, one rag trailing far lower than the rest
+ P.add(new THREE.ConeGeometry(.03,.3,4),at(-.2,.13,.1,[Math.PI,.4,.12],[1,1,.35]),ROBE_DARK);
+ P.add(new THREE.BoxGeometry(.012,.3,.006),at(-.15,.28,.17,[.05,0,-.35]),SKIN_DARK);
  // a knotted cord at the waist and the shroud over the shoulders
  P.add(new THREE.TorusGeometry(.172,.01,5,28),at(0,.55,0,[Math.PI/2,0,0],[1,.85,1]),THREAD);
  P.add(lathe([[.2,.76],[.23,.8],[.19,.9],[.07,.95]],28),at(0,0,-.005,[0,0,0],[1,1,.85]),ROBE_PALE);
@@ -74,6 +77,10 @@ function buildStaff(){
  for(const [y,s] of [[.15,1],[.4,-1],[.62,1]])P.add(new THREE.SphereGeometry(.026,6,5),at(s*.014,y,0,[0,0,0],[1,1.3,1]),WOOD_DARK);
  for(let i=0;i<3;i++)P.add(new THREE.TorusGeometry(.05+i*.012,.004,4,14),at(0,.74+i*.02,0,[1.1+i*.5,i*1.2,i*.7]),THREAD);
  for(let i=0;i<5;i++){const a=i*1.3;P.add(new THREE.SphereGeometry(.009,6,4),at(Math.sin(a)*.06,.7-i*.03,Math.cos(a)*.06),BONE);}
+ // one thread of fate has been cut: a red cord with two bone beads hangs down the staff and ends in a frayed stub
+ P.add(new THREE.CylinderGeometry(.003,.003,.34,4),at(.045,.55,.02,[0,0,.05]),THREAD);
+ for(const y of [.5,.38])P.add(new THREE.SphereGeometry(.01,6,4),at(.046,y,.02),BONE);
+ P.add(new THREE.ConeGeometry(.007,.04,4),at(.047,.36,.02,[Math.PI,0,0]),THREAD);
  return P.merge();
 }
 

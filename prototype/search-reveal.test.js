@@ -70,3 +70,10 @@ test('the echo ring trails the lead ring, fainter, and returns to rest', () => {
   }
   assert.ok(echoPose(.5).radius < ringPose(.5).radius);
 });
+
+test('the ring flinches before the lunge: its light dips, then recovers', () => {
+  const at = SEARCH.hesitate + .04, before = ringPose(SEARCH.hesitate - .03).alpha, dip = ringPose(at).alpha;
+  assert.ok(dip < before * .6, 'alpha dips');
+  assert.ok(ringPose(SEARCH.hesitate + .12).alpha > dip, 'recovers');
+  assert.equal(ringPose(SEARCH.total).alpha, 0);
+});

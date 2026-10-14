@@ -30,7 +30,9 @@ export function coinPose(i, t) {
 export function glintPose(t) {
   const u = clamp01(t / GOLD.glint);
   if (u <= 0 || u >= 1) return {size: .001, alpha: 0};
-  return {size: .12 + .42 * Math.sin(Math.PI * u) ** 2, alpha: (1 - u) * Math.min(1, u * 10)};
+  // The cross does not die cleanly: it flares a second time, fainter, as the first fades.
+  const twitch = .12 * Math.sin(Math.PI * clamp01((u - .5) / .35)) ** 2;
+  return {size: .12 + .42 * Math.sin(Math.PI * u) ** 2, alpha: Math.min(1, (1 - u) * Math.min(1, u * 10) + 2 * twitch)};
 }
 
 export function createGoldGlint(THREE, parent) {

@@ -39,7 +39,7 @@ const LOOKS={
  'crystal ice':{base:'#c4ecff',dark:'#5a9ec0',light:'#ffffff',glow:'#a8f0ff',jag:.26,scale:1.32,spikes:'shard',icicles:true,paint:'clear'},
  // the Punisher, a stationary colossus of black iron-stone: not a golem, but the same hulking build
  punisher:{base:'#26282c',dark:'#0c0d0f',light:'#4a4e56',glow:'#d01830',jag:.2,scale:1.55,spikes:'iron',rivets:true,paint:'iron'},
- gold:{base:'#c89a2a',dark:'#5a3e10',light:'#f4d466',glow:'#9aff3a',jag:.12,scale:1.02,spikes:'crown',paint:'metal'},
+ gold:{base:'#c89a2a',dark:'#5a3e10',light:'#f4d466',glow:'#9aff3a',jag:.12,scale:1.02,spikes:'crown',hacked:true,paint:'metal'},
  wood:{base:'#5e4028',dark:'#2a1a0e',light:'#8a6440',glow:'#8aff3a',jag:.16,scale:1.04,thorns:true,paint:'bark'},
  leather:{base:'#5a3a24',dark:'#2a1a10',light:'#7e5638',glow:'#ff3a2a',jag:.1,scale:1,stitches:true,paint:'hide'},
  flesh:{base:'#a07868',dark:'#5a3434',light:'#c49a88',glow:'#ff2a1a',jag:.12,scale:1.15,stitches:true,spurs:true,ribs:true,paint:'flesh'},
@@ -137,6 +137,8 @@ function build(kind){
  if(look.thorns)for(let k=0;k<14;k++){const a=hash(k)*Math.PI*2,y=.55+hash(k+20)*.55;shard(body,[Math.sin(a)*.24,y,Math.cos(a)*.2-.02],[Math.sin(a),.3,Math.cos(a)],.012,.06,D,4);}
  // flesh golems: the right flank is torn open on a dark wound, three ribs showing bare through it
  if(look.ribs){body.add(new THREE.BoxGeometry(.13,.2,.02),at(.2,.78,.2,[0,.25,.1]),D);for(let k=0;k<3;k++)body.add(new THREE.BoxGeometry(.11,.016,.016),at(.2,.71+k*.075,.213,[0,.25,-.18+k*.05]),BONE);}
+ // gold golems: three axe-chops hacked across the chest, deep and dark where the gilt is split
+ if(look.hacked)for(let k=0;k<3;k++)body.add(new THREE.BoxGeometry(.02,.2,.012),at(-.12+k*.07,.88-k*.02,.2-Math.abs(-.12+k*.07)*.3,[0,0,.7-k*.08]),D);
  if(look.stitches){stitches(body,.72,.2,7,STITCH,.02);stitches(body,.95,.26,9,STITCH,-.02);}
  if(look.spurs)for(const s of [-1,1])shard(body,[s*.3,1.1,-.08],[s*.3,1,-.5],.02,.1,BONE,5);
  if(look.drips){drips(body,[-.2,-.08,.1,.22],.64,.16,L,1);drips(body,[-.3,.32],.86,.12,L,2);}

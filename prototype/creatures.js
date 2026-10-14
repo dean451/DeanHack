@@ -818,7 +818,9 @@ function snakeHead(head,o){
   eyes.push(new THREE.SphereGeometry(.0155,12,8).applyMatrix4(at(side*ex,ey,ez)));
   // fangs: curved needles hanging from the front of the upper lip, outside the lower jaw
   if(o.fangs){const len=o.fangs,fz=.058,fx=side*Math.max(.022,width((fz-Z0)/LEN)*.6);
-   skull.add(new THREE.ConeGeometry(.0042,len,6),at(fx,-.004-len/2,fz,[Math.PI+.35,0,0]),fang);}}
+   skull.add(new THREE.ConeGeometry(.0042,len,6),at(fx,-.004-len/2,fz,[Math.PI+.35,0,0]),fang);
+   // the vipers and the cobra: a bead of venom hangs from the right fang tip
+   if(o.venom&&side>0)skull.add(new THREE.SphereGeometry(.0034,6,4),at(fx,-.004-len-.004,fz-len*.2,[0,0,0],[1,1.5,1]),rgb('#9ad23a'));}}
  const jaw=new THREE.Group();jaw.position.set(0,-.012,-.045);head.add(jaw);
  // the lower jaw: a flat-topped scoop, narrower than the skull, its inside the dark of the mouth
  const jg=new THREE.SphereGeometry(1,20,12),q=jg.attributes.position,J0=-.02,JL=.135;
@@ -867,7 +869,7 @@ function cobraHood(head,o){
  part(pivot,geo,mat('#ffffff',{vertexColors:true,roughness:.5}));
  return pivot;
 }
-const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75,wedge:.1,round:true},snake:{color:'#7a5a34',fangs:.012},'water moccasin':{color:'#5a3228',wedge:1,fangs:.022,pits:true},'pit viper':{color:'#3a5a8a',wedge:1,fangs:.024,pits:true},python:{color:'#7a5a7a',scale:1.4,wedge:.4},cobra:{color:'#3a4a7a',scale:1.2,hood:true,wedge:.25,fangs:.012,round:true}};
+const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75,wedge:.1,round:true},snake:{color:'#7a5a34',fangs:.012},'water moccasin':{color:'#5a3228',wedge:1,fangs:.022,pits:true,venom:true},'pit viper':{color:'#3a5a8a',wedge:1,fangs:.024,pits:true,venom:true},python:{color:'#7a5a7a',scale:1.4,wedge:.4},cobra:{color:'#3a4a7a',scale:1.2,hood:true,wedge:.25,fangs:.012,round:true,venom:true}};
 
 // Long worms and purple worms: a ringed body that surfaces from the floor in an arch,
 // with the forward half as a swaying 'tail' group (live.js already sways actor.tail)
@@ -2737,6 +2739,10 @@ function demon(o){
   sphere(body,.06*sc*bulk,skin,...sh);segment(body,sh,el,.05*sc*bulk,.04*sc,skin);segment(body,el,wr,.04*sc,.03*sc,skin);
   if(o.spikes)cone(body,.015,.06,horn,el[0]+side*.03,el[1],el[2]-.02,4).rotation.z=-side*1.3;
   for(let k=-1;k<=1;k++){const c=cone(body,.01,.06,claw,wr[0]+k*.015,wr[1]-.04,wr[2]+.01,4);c.rotation.x=Math.PI+.3;c.rotation.z=k*.2;}}
+ // a bound spirit: an iron shackle still locked on the left wrist, its chain snapped after a few links
+ if(o.bound){const iron=mat('#1c1a1c',{roughness:.5,metalness:.7}),wx=-(shoulderX+.08),wy=chestY-.18;iron.name='djinni-shackle';
+  const cuff=part(body,new THREE.TorusGeometry(.036,.011,6,16),iron,wx,wy,.14);cuff.rotation.x=Math.PI/2;
+  for(let k=0;k<3;k++){const l=part(body,new THREE.TorusGeometry(.015,.0045,5,10,k===2?Math.PI*1.4:Math.PI*2),iron,wx-.01,wy-.06-k*.026,.14);l.rotation.set(0,k%2?Math.PI/2:0,Math.PI/2);l.scale.y=1.35;}}
  // weapon in the right hand
  const grip=[shoulderX+.08,chestY-.2,.16];
  if(o.weapon==='whip'){const pts=[grip,[grip[0]+.1,grip[1]-.12,.3],[grip[0]+.05,.1,.42],[grip[0]-.12,.02,.38],[grip[0]-.24,.01,.22]];const lash=tube(body,pts,.012,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.4}):M.leather,20);lash.castShadow=false;if(o.flame){lash.userData.part='whip';lash.userData.path=pts;}}
@@ -2880,7 +2886,7 @@ const DEMONS={'water demon':{skin:'#2f5a8a',mark:'drowned',eye:'#80f0ff',evil:'#
  geryon:{skin:'#6a4a2a',mark:'crown',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',mark:'crown',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
  baalzebub:{skin:'#3a4a2a',mark:'crown',evil:'#b8ff30',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',mark:'crown',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
  demogorgon:{skin:'#5a6a4a',mark:'tentacles',evil:'#40ffa0',heads:2,eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',mark:'brand',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
- 'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',evil:'#5aa0ff',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',sand:true,eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
+ 'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',evil:'#5aa0ff',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{bound:true,skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',sand:true,eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
 
 // trappers (t): a broad, ragged mantle flattened against the floor like a dropped cloak, mottled to match the stone,
 // with warty ridges, a fringed dark hem, and a wide toothed maw with stalked eyes along the front edge;
@@ -2965,6 +2971,8 @@ function seaMonster(o){
    tube(arm,pts,.028,skin,20);for(let k=2;k<8;k+=2){const p=pts[k];sphere(arm,.012,belly,p[0],p[1]-.02,p[2],1,.5,1);}
    legs.push(arm);}
   for(const side of [-1,1]){const pts=[[side*.04,.2,.12],[side*.12,.3,.3],[side*.2,.42,.38],[side*.24,.5,.34]];tube(body,pts,.016,skin,16);sphere(body,.045,belly,side*.25,.52,.33,1,1.6,1);}
+  // the great clubs bristle with a ring of hooked black claws, as a drowner's grip should
+  if(o.hooks){const claw=mat('#1e1612',{roughness:.3});claw.name='kraken-hook';for(const side of [-1,1])for(let k=0;k<5;k++){const a=k/5*Math.PI*2,c=cone(body,.009,.05,claw,side*.25+Math.cos(a)*.045,.52+Math.sin(a)*.07,.33+Math.cos(a)*.03,4);c.rotation.set(Math.sin(a)*1.2,0,-Math.cos(a)*1.2);}}
   return trimDraws(actor(g,body,legs,null,[],'idle'));
  }
  if(o.form==='eel'){
@@ -3001,6 +3009,11 @@ function seaMonster(o){
  if(o.gills)for(const side of [-1,1])for(let k=0;k<5;k++){const s=part(body,new THREE.BoxGeometry(.004,H*.7,.01),dark,side*H*.79,y,L*.36-k*.035);s.rotation.z=side*.1;}
  // old battle scars: three pale slashes raked across the right flank
  if(o.scars){const sc=mat('#c8c4b4',{roughness:.7});for(let k=0;k<3;k++){const s=part(body,new THREE.BoxGeometry(.004,H*.9,.01),sc,H*.8,y+H*.08-k*H*.02,L*.1-k*L*.07);s.rotation.set(.2,0,-.35+k*.1);}}
+ // a snapped harpoon head still buried in the right flank behind the dorsal: rust-black shaft stub, two barbs and a frayed line
+ if(o.harpoon){const iron=mat('#2a2022',{roughness:.5,metalness:.6});iron.name='shark-harpoon';
+  const hx=H*.74,hy=y+H*.3,hz=-L*.04,shaft=cone(body,H*.07,H*.5,iron,hx+H*.1,hy+H*.12,hz,5);shaft.rotation.set(.15,0,-1.1);
+  for(const k of [-1,1]){const b=cone(body,H*.05,H*.22,iron,hx+H*.02,hy,hz+k*H*.12,4);b.rotation.set(k*.9,0,-.5);}
+  segment(body,[hx+H*.38,hy+H*.3,hz],[hx+H*.5,hy+H*.12,hz-H*.3],H*.018,H*.008,dark);segment(body,[hx+H*.5,hy+H*.12,hz-H*.3],[hx+H*.46,hy-H*.1,hz-H*.5],H*.008,H*.004,dark);}
  // mouth: a dark slit under the snout lined with teeth; a piranha's jaw juts forward
  const jawZ=L*(o.underbite?.8:.66),jawY=y-H*(o.underbite?.35:.5);
  const slit=part(body,new THREE.TorusGeometry(H*.42,H*.1,6,14,Math.PI),mouth,0,jawY,jawZ-H*.25);slit.rotation.x=Math.PI/2;slit.rotation.z=Math.PI;
@@ -3009,8 +3022,8 @@ function seaMonster(o){
  return trimDraws(actor(g,body,[],tail,[],'hover'));
 }
 const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{form:'fish',color:'#8a8a94',belly:'#c83a2a',fin:'#6a5a5a',length:.26,depth:.13,underbite:true,dorsal:1,scale:.8},
- shark:{form:'fish',scars:true,color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',scars:true,color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
- 'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff',scale:1.25},kraken:{form:'kraken',color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
+ shark:{form:'fish',scars:true,harpoon:true,color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',scars:true,color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
+ 'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff',scale:1.25},kraken:{form:'kraken',hooks:true,color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
  'watcher in the water':{form:'kraken',color:'#4a5a52',belly:'#9aa89a',eye:'#b8ff90',arms:16,eyeGlow:2.8,scale:1.9}};
 
 // In development the default shape is bright magenta so a missing model cannot hide.

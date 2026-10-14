@@ -62,3 +62,10 @@ test('the reluctant coin shivers at the top of its climb and stays in bounds', (
   assert.ok(wobble > 0);
   for (let t = 0; t <= GOLD.total; t += .005) assert.ok(coinPose(1, t).y <= .43);
 });
+
+test('the glint flares a second time as it fades, in bounds and back to rest', () => {
+  let rises = 0, prev = glintPose(.5 * GOLD.glint).alpha;
+  for (let t = .5 * GOLD.glint; t < GOLD.glint; t += .002) { const p = glintPose(t); if (p.alpha > prev + 1e-6) rises++; prev = p.alpha; assert.ok(p.size <= .55 && p.alpha <= 1 && p.alpha >= 0); }
+  assert.ok(rises > 0, 'alpha re-flares late');
+  assert.equal(glintPose(GOLD.glint).alpha, 0);
+});

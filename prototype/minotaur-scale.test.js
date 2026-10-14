@@ -32,3 +32,13 @@ test('the sound horn tip is stained with dried blood', () => {
   for (let i = 0; i < pos.count; i++) if (pos.getX(i) > 0.25 && col.getX(i) < 0.2) dark++;
   assert(dark > 0, 'reddish-dark vertices on the right horn tip');
 });
+
+test('the minotaur muzzle is matted with dried blood', () => {
+  const m = createCreature({name: 'minotaur', symbol: 72, color: 1});
+  let head = null;
+  m.g.traverse(o => { if (o.userData.part === 'head') head = o; });
+  const pos = head.geometry.attributes.position, col = head.geometry.attributes.color;
+  let red = 0;
+  for (let i = 0; i < pos.count; i++) if (pos.getZ(i) > 0.15 && pos.getY(i) < -0.03 && col.getX(i) > col.getY(i) * 2) red++;
+  assert(red > 0, 'reddish vertices on the lower muzzle');
+});
