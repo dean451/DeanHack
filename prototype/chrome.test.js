@@ -55,7 +55,7 @@ test('gold, power, experience and conditions live in the character panel, not un
 
 test('the character name is typed before starting, saved, sent with the start request and shown in the panel', () => {
   const live = read('live.js'), main = read('main.js');
-  assert.match(live, /nameInput\.placeholder='Wanderer'/);
+  assert.match(live, /nameInput\.placeholder='Adventurer'/);
   assert.match(live, /localStorage\.setItem\('deanhack\.playerName'/);
   assert.match(live, /post\('\/engine\/start',\{name:savedPlayerName\(\),\.\.\.readChoice\(\)\}\)/, 'the start request carries the name and the chosen class');
   assert.match(live, /setCharacterName\(started\.name\)/);

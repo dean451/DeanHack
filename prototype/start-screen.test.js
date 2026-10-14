@@ -8,7 +8,7 @@ import {listSaves,cleanPlayerName} from './engine/server.js';
 
 test('the name is cleaned exactly as the engine launcher cleans it',()=>{
   for(const raw of ['Dean',"  Mary Jane O'Neil  ",'Mary-Jane','a,b;c','-x','---','','x'.repeat(100),'Ünïcode'])assert.equal(cleanName(raw),cleanPlayerName(raw),JSON.stringify(raw));
-  assert.equal(cleanName(undefined),DEFAULT_NAME);
+  assert.equal(cleanName(undefined),DEFAULT_NAME);assert.equal(DEFAULT_NAME,'Adventurer');
 });
 
 test('the button resumes a saved character and begins a new one',()=>{
@@ -168,4 +168,24 @@ test('the card says An UnNetHack Fork, with a small DeanHack wordmark bottom rig
   assert.match(css,/\.start-mark\{position:absolute;right:28px;bottom:22px/);
   assert.match(css,/a\.start-link\{color:inherit;text-decoration:none/);
 
+});
+
+test('the splash is on screen before the app loads: a static cover with the dragon, adopted by the start screen',()=>{
+  const html=readFileSync(new URL('./index.html',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8'),screen=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
+  assert.ok(html.indexOf('id="start-cover"')<html.indexOf('<script type="module" src="/main.js">'),'the cover is in the HTML before the app script');
+  assert.ok(html.indexOf('src="/start-cover.js"')<html.indexOf('src="/main.js"'),'the cover script loads before the app');
+  assert.match(css,/#start-screen,#start-cover\{position:fixed;inset:0/);
+  assert.match(css,/#start-cover\{z-index:61;background:#030609\}/,'opaque: no demo room shows through');
+  assert.match(screen,/replaceWith\(coverDragon\)/,'the start screen adopts the cover\'s dragon element');
+  assert.match(screen,/cover\?\.remove\(\)/);
+});
+
+test('the cover picks a head, sizes it, and goes away for ?demo',async()=>{
+  const {fillCover}=await import('./start-cover.js');
+  const mk=()=>{const pre={textContent:'',dataset:{},style:{vars:{},setProperty(k,v){this.vars[k]=v;}}};const cover={removed:false,remove(){this.removed=true;},querySelector:s=>s==='.start-dragon'?pre:null};return {cover,pre};};
+  let {cover,pre}=mk();const d=fillCover(cover,{rand:()=>0});
+  assert.equal(d.name,'red');assert.equal(pre.dataset.dragon,'red');assert.ok(pre.textContent.length>1000);
+  assert.equal(pre.style.vars['--lines'],pre.textContent.split('\n').length);
+  ({cover,pre}=mk());assert.equal(fillCover(cover,{search:'?demo'}),null);assert.equal(cover.removed,true);
+  assert.equal(fillCover(null),null);
 });

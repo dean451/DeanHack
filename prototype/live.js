@@ -236,11 +236,11 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
  const button=document.createElement('button');button.textContent='Live UnNetHack';button.id='live-mode';$('.buttons').prepend(button);
  // The character's name: typed before starting, kept in localStorage (sent with /engine/start), and shown in the character panel.
- const nameInput=document.createElement('input');nameInput.id='player-name';nameInput.type='text';nameInput.placeholder='Wanderer';nameInput.maxLength=24;nameInput.autocomplete='off';nameInput.spellcheck=false;nameInput.setAttribute('aria-label','Character name');
+ const nameInput=document.createElement('input');nameInput.id='player-name';nameInput.type='text';nameInput.placeholder='Adventurer';nameInput.maxLength=24;nameInput.autocomplete='off';nameInput.spellcheck=false;nameInput.setAttribute('aria-label','Character name');
  try{nameInput.value=localStorage.getItem('deanhack.playerName')||'';}catch{}
  nameInput.addEventListener('input',()=>{try{localStorage.setItem('deanhack.playerName',nameInput.value);}catch{}setCharacterName(nameInput.value);});
  $('.buttons').prepend(nameInput);
- function setCharacterName(name){const el=$('.character>small');if(el)el.textContent=(String(name||'').trim()||'Wanderer');}
+ function setCharacterName(name){const el=$('.character>small');if(el)el.textContent=(String(name||'').trim()||'Adventurer');}
  setCharacterName(nameInput.value);
  const panel=document.createElement('section');panel.id='engine-panel';panel.hidden=true;panel.innerHTML='<p id="engine-line" aria-live="polite"></p><div id="engine-messages" role="log"></div><div id="engine-prompt"></div>';document.body.append(panel);
  // Gold, power, experience and conditions live in the character panel, not under the messages.
