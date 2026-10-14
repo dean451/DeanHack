@@ -185,7 +185,8 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  // The shield shows only while one is worn; two-weaponing puts the other weapon in that hand instead.
  const offhandSocket=new THREE.Group();offhandSocket.rotation.x=Math.PI/4+.55;shieldHand.add(offhandSocket);
  let shieldWorn=true,offhandWeapon=null,offhandKey;
- function showShield(){shieldRoot.visible=shieldWorn&&!offhandWeapon;}
+ // The shield hand grips the shield's bar when one is worn; empty, it hangs as a fist turned the same way as the weapon hand, knuckles forward, instead of holding an invisible shield.
+ function showShield(){shieldRoot.visible=shieldWorn&&!offhandWeapon;if(shieldRoot.visible||offhandWeapon)shieldHand.rotation.set(.35,-.2,-.12);else shieldHand.rotation.set(Math.PI/4+.65,.2,.12);}
  function setShield(item){shieldWorn=!!item;shieldRoot.name=item?.name||'Unequipped shield';showShield();}
  function setOffhand(item){const key=JSON.stringify(item??null);if(key===offhandKey)return;offhandKey=key;if(offhandWeapon){offhandWeapon.userData.dispose?.();offhandSocket.remove(offhandWeapon);offhandWeapon=null;}if(item){offhandWeapon=turnHeld(createHeldWeapon(item));offhandSocket.add(offhandWeapon);}showShield();}
  // What a class kit (hero-kits.js) restyles: the armour pieces, the cloth, the hair and the materials they share.
