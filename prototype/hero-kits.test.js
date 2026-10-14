@@ -165,3 +165,13 @@ test('the Priest is white robes with a dark stole, a holy symbol at the chest an
   assert.ok(r.kitAdded.some(({obj})=>obj.parent===r.parts.body&&Math.abs(obj.position.y-.84)<.01&&obj.position.z>.2),'the holy symbol hangs at the chest');
   dressHero(r,{role:'Valkyrie',gender:'male'});assert.equal(r.parts.body.children.length,0);
 });
+
+test('the Rogue is black tunic and pants under a hood, with a thigh sheath and a lockpick roll',()=>{
+  const r=fakeRig();dressHero(r,{role:'Rogue',gender:'male'});
+  assert.equal(r.parts.mats.armor.color.getHexString(),'1e1e22','black');assert.equal(r.parts.mats.boots.color.getHexString(),'121212');
+  const body=r.kitAdded.filter(({obj})=>obj.parent===r.parts.body).map(({obj})=>obj);
+  assert.ok(body.some(o=>o.position.x>.1&&o.position.y<.4),'the sheath sits on the right thigh');
+  assert.ok(body.some(o=>o.position.x<-.1&&o.position.z<-.1),'the pick roll at the back of the belt');
+  assert.ok(r.parts.head.children.length>=2,'the hood');
+  dressHero(r,{role:'Valkyrie',gender:'male'});assert.equal(r.parts.body.children.length,0);
+});
