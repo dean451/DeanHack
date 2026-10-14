@@ -164,7 +164,7 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 #ground-notice li{break-inside:avoid}
 
 /* Start screen: a name and one button over the dimmed demo room. */
-#start-screen,#start-cover{position:fixed;inset:0;z-index:60;padding:0;background:radial-gradient(ellipse at 50% 42%,#050a0ce0 0%,#030609f2 62%,#020405 100%);backdrop-filter:blur(3px);color:#e9e2cf}
+#start-screen,#start-cover{position:fixed;inset:0;z-index:60;padding:0;background:radial-gradient(ellipse at 50% 42%,#050a0ce0 0%,#030609f2 62%,#020405 100%);color:#e9e2cf}
 /* the dragon sits at the stage's top, offset by start-screen.js to centre it in the window, so a taller
    card (the class list) never drags it down. The stage holds the dragon, the card and the wordmark: at least a screen tall, and taller when the
    card is (the class list), so the wordmark in its bottom-right corner is pushed down, never covered */
