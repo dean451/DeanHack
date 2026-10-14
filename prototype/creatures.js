@@ -1532,14 +1532,18 @@ function giant(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[],arms=[];
  const skin=mat(o.skin,{roughness:.85}),cloth=mat(o.cloth||'#6a5a40',{roughness:.95}),hair=o.hair==='fire'?mat('#ff7a2a',{emissive:'#e0400e',emissiveIntensity:2.2,roughness:.5}):mat(o.hair||'#3a2a1c',{roughness:.95}),wood=mat('#5a3e24',{roughness:.85}),boot=mat(o.boot||'#3a2a20',{roughness:.9});
  const armor=o.armor?mat(o.armor,{roughness:.35,metalness:.7}):null;
- for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.11,.48,0);body.add(leg);rounded(leg,.14,.3,.15,skin,0,-.13,0,.05);rounded(leg,.17,.14,.22,boot,0,-.41,.03,.04);legs.push(leg);}
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.11,.48,0);body.add(leg);if(o.frostbite){cylinder(leg,.085,.055,.32,skin,0,-.14,0,7);rounded(leg,.16,.13,.22,boot,0,-.41,.03,.03);}else{rounded(leg,.14,.3,.15,skin,0,-.13,0,.05);rounded(leg,.17,.14,.22,boot,0,-.41,.03,.04);}legs.push(leg);}
  cylinder(body,.2,.25,.22,cloth,0,.5,0,9);rounded(body,.42,.06,.28,M.leather,0,.62,0,.02);rounded(body,.07,.06,.03,M.gold,0,.62,.145,.01).castShadow=false;
  rounded(body,.44,.4,.28,armor||(o.tunic?mat(o.tunic,{roughness:.9}):skin),0,.83,0,.1);sphere(body,.12,skin,0,.9,.1,1.5,.9,.5);
  for(const side of [-1,1])sphere(body,.1,armor||skin,side*.2,1.0,0,1,.8,1);
  if(o.spiked)for(const side of [-1,1]){const sp=cone(body,.035,.14,armor,side*.24,1.08,-.02,4);sp.rotation.z=-side*.7;}
  if(o.mantle)sphere(body,.2,mat(o.mantle,{roughness:1}),0,1.02,-.02,1.35,.45,1);
  if(o.ice)for(const side of [-1,1])for(const k of [0,1]){const shard=cone(body,.035,.16,mat('#cfeaf6',{roughness:.15,transparent:true,opacity:.85}),side*(.18+k*.06),1.1-k*.03,-.04,4);shard.rotation.z=-side*(.35+k*.3);}
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.26,.98,.01);body.add(arm);rounded(arm,.12,.28,.13,skin,0,-.14,0,.045);rounded(arm,.11,.26,.12,armor||skin,0,-.39,.02,.04);sphere(arm,.07,skin,0,-.56,.03);arm.rotation.z=side*.05;arm.rotation.x=side>0&&o.weapon?-.35:-.08;arms.push(arm);}
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.26,.98,.01);body.add(arm);if(o.frostbite){// frost giants: tapered faceted limbs ending in a clawed hand, a thumb and four knuckled fingers
+   cylinder(arm,.085,.062,.28,skin,0,-.14,0,7);cylinder(arm,.065,.045,.27,skin,0,-.39,.02,7);rounded(arm,.085,.07,.05,skin,0,-.56,.03,.012);
+   const dead=mat('#26222a',{roughness:1});for(const k of [-1.5,-.5,.5,1.5]){const f=rounded(arm,.017,.07,.019,skin,k*.021,-.62,.065,.005);f.rotation.x=-.5;if(side>0){const t=rounded(arm,.016,.03,.018,dead,k*.021,-.665,.088,.004);t.rotation.x=-.9;}}
+   const th=rounded(arm,.02,.06,.022,skin,-side*.05,-.57,.05,.006);th.rotation.set(-.4,0,-side*.7);}
+  else{rounded(arm,.12,.28,.13,skin,0,-.14,0,.045);rounded(arm,.11,.26,.12,armor||skin,0,-.39,.02,.04);sphere(arm,.07,skin,0,-.56,.03);}arm.rotation.z=side*.05;arm.rotation.x=side>0&&o.weapon?-.35:-.08;arms.push(arm);}
  const heads=o.twoHeads?[-.11,.11]:[0];
  let leadHead=null;
  for(const hx of heads){const head=new THREE.Group();if(!leadHead)leadHead=head;head.position.set(hx,1.16,.03);head.rotation.z=-hx*1.2;body.add(head);
@@ -1577,7 +1581,7 @@ function giant(o){
  // fire giants: the skin has cracked like cooling slag, glowing seams across the chest and shoulders
  if(o.cracked){const seam=mat('#ffb060',{emissive:'#e0400e',emissiveIntensity:2.4,roughness:.5});g.userData.cracked=true;for(const [x,y,z,rz] of [[-.1,.86,.145,.6],[.07,.8,.147,-.5],[.13,.95,.14,.3],[-.02,.74,.148,-.1]]){const v=rounded(body,.014,.13,.01,seam,x,y,z,.004);v.rotation.z=rz;}}
  // frost giants: frostbite has blackened the fingertips of the right hand to dead stubs
- if(o.frostbite){const dead=mat('#26222a',{roughness:1});g.userData.frostbitten=true;for(const k of [-1,0,1])sphere(arms[1],.02,dead,k*.035,-.7,.06-Math.abs(k)*.015,1,1.3,1);}
+ if(o.frostbite)g.userData.frostbitten=true;
  // fire giants: a black iron belt cinches the waist, its heavy buckle still glowing from the forge
  if(o.buckle){const iron=mat('#1e1a1a',{roughness:.5,metalness:.7}),glow=mat('#ffb060',{emissive:'#e0400e',emissiveIntensity:2.4,roughness:.5});g.userData.buckled=true;part(body,new THREE.TorusGeometry(.17,.02,4,14),iron,0,.5,0).rotation.x=Math.PI/2;rounded(body,.07,.06,.03,glow,0,.5,.16,.01);}
  // titans: old war-scars slash the gilded breastplate
@@ -1596,7 +1600,7 @@ function giant(o){
  if(o.hair==='fire'&&!core){core=sphere(body,.05,new THREE.MeshStandardMaterial({color:'#ffb060',emissive:'#f05010',emissiveIntensity:4.5,roughness:.3}),0,1.08,.13);g.userData.core=core;}
  return trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head:leadHead},core?{core}:{}));
 }
-const GIANTS={giant:{skin:'#b08a6a',cloth:'#6a5a40',weapon:'club',scars:true,knuckles:true,scale:1.1},'stone giant':{skin:'#8a867c',cloth:'#5a5650',hair:'#4a4642',weapon:'boulder',scars:true,lichen:true,scale:1.14},'hill giant':{skin:'#a88060',cloth:'#5a6a3a',hair:'#5a3a22',beard:true,weapon:'club',skulls:true,scars:true,scale:1.12},'fire giant':{skin:'#6a4234',cloth:'#3a2a24',hair:'fire',beard:true,buckle:true,armor:'#3a3436',boot:'#2a2424',weapon:'sword',glare:M.fire,cracked:true,scale:1.18},'frost giant':{skin:'#a8c0d0',cloth:'#4a5a6a',hair:'#eef2f4',beard:true,frostbite:true,mantle:'#e2e2dc',ice:true,weapon:'axe',icicles:true,scale:1.18},ettin:{skin:'#8a7a6a',cloth:'#4a3a2a',hair:'#2a2420',twoHeads:true,weapon:'club',scars:true,scale:1.18},'storm giant':{skin:'#9aa4b4',cloth:'#2e4a78',tunic:'#3d5f9a',hair:'#1e2230',beard:true,weapon:'spear',glare:M.electric,storm:true,scars:true,scale:1.2},titan:{skin:'#a07c5a',cloth:'#4a4438',hair:'#6a5a34',armor:'#7a5e28',circlet:true,spiked:true,glare:M.eye,weapon:'spear',scars:true,scale:1.5},cyclops:{skin:'#9a7e62',cloth:'#4a3a2a',hair:'#2a221c',cyclops:true,weapon:'club',scars:true,scale:1.3},'lord surtur':{skin:'#4a2e26',cloth:'#2a1e1c',hair:'fire',beard:true,armor:'#2a2426',boot:'#1e1a1a',weapon:'sword',blade:1.5,crown:true,scars:true,glare:M.fire,scale:1.34}};
+const GIANTS={giant:{skin:'#b08a6a',cloth:'#6a5a40',weapon:'club',scars:true,knuckles:true,scale:1.1},'stone giant':{skin:'#8a867c',cloth:'#5a5650',hair:'#4a4642',weapon:'boulder',scars:true,lichen:true,scale:1.14},'hill giant':{skin:'#a88060',cloth:'#5a6a3a',hair:'#5a3a22',beard:true,weapon:'club',skulls:true,scars:true,scale:1.12},'fire giant':{skin:'#6a4234',cloth:'#3a2a24',hair:'fire',beard:true,buckle:true,armor:'#3a3436',boot:'#2a2424',weapon:'sword',glare:M.fire,cracked:true,scale:1.18},'frost giant':{skin:'#6a7c88',cloth:'#2c343c',hair:'#b8c4c8',beard:true,frostbite:true,mantle:'#6e6c66',boot:'#241c18',ice:true,weapon:'axe',icicles:true,scale:1.18},ettin:{skin:'#8a7a6a',cloth:'#4a3a2a',hair:'#2a2420',twoHeads:true,weapon:'club',scars:true,scale:1.18},'storm giant':{skin:'#9aa4b4',cloth:'#2e4a78',tunic:'#3d5f9a',hair:'#1e2230',beard:true,weapon:'spear',glare:M.electric,storm:true,scars:true,scale:1.2},titan:{skin:'#a07c5a',cloth:'#4a4438',hair:'#6a5a34',armor:'#7a5e28',circlet:true,spiked:true,glare:M.eye,weapon:'spear',scars:true,scale:1.5},cyclops:{skin:'#9a7e62',cloth:'#4a3a2a',hair:'#2a221c',cyclops:true,weapon:'club',scars:true,scale:1.3},'lord surtur':{skin:'#4a2e26',cloth:'#2a1e1c',hair:'fire',beard:true,armor:'#2a2426',boot:'#1e1a1a',weapon:'sword',blade:1.5,crown:true,scars:true,glare:M.fire,scale:1.34}};
 // vortices (v): a tapering funnel of tilted, offset swirl rings over a scuffed ground patch, with debris caught in the spiral; fog clouds are a low puffy bank instead
 function vortex(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const s=o.scale||1;
