@@ -64,6 +64,9 @@ function buildBody(){
   P.add(new THREE.TorusGeometry(.021,.0065,5,8),at(Math.sin(a)*r,.49+i*.0045,Math.cos(a)*r,[0,a+(i%2?Math.PI/2:0),(i%2?0:Math.PI/2)]),C.iron);
  }
  for(let i=0;i<4;i++)P.add(new THREE.TorusGeometry(.021,.0065,5,8),at(.06+i*.004,.46-i*.045,.215-i*.01,[0,i%2?Math.PI/2:0,i%2?0:Math.PI/2]),C.iron);
+ // the sheet is cut open across the left breast, a black rent with two ribs showing through: this one did not die in bed
+ P.add(new THREE.SphereGeometry(.05,10,8),at(-.07,.69,.172,[0,0,.7],[.4,1.5,.3]),C.socket);
+ for(const dy of [-.03,.03])P.add(new THREE.CylinderGeometry(.005,.005,.075,5),at(-.07-dy*.5,.69+dy,.19,[0,0,1.2]),C.bone);
  return P.merge();
 }
 
