@@ -85,8 +85,7 @@ test('the Healer is told by what she carries: stethoscope, satchel, scalpel shea
   assert.ok(colours.size>=6,`a healer is not one flat colour: ${colours.size} tones`);
   assert.equal(h.parts.mats.armor.color.getHexString(),'b8a276','warm bone linen, not mint');
   const bodyKids=h.parts.body.children.length;
-  const c=fakeRig();dressHero(c,{role:'Monk',gender:'female'});
-  assert.ok(bodyKids>c.parts.body.children.length+8,'the Healer carries far more than a plain tunic class');
+  assert.ok(bodyKids>=14,'the Healer carries a robe, an apron, stains and four props on the body: '+bodyKids);
   // props hang off one side: something sits left of the body's axis and something right
   const xs=added.filter(o=>o.parent===h.parts.body).map(o=>o.position.x);
   assert.ok(xs.some(x=>x<-.2)&&xs.some(x=>x>.1),'satchel on one hip, sheath on the other');
@@ -146,4 +145,14 @@ test('the Convict is bald, in stripes, with a shackle on the wrist',()=>{
   assert.equal(links,3,'three chain links hang from the shackle');
   assert.ok(c.parts.elbow.children.length>c.parts.shieldElbow.children.length,'the shackle is on one wrist only');
   dressHero(c,{role:'Valkyrie',gender:'female'});assert.equal(c.parts.elbow.children.length,0);
+});
+
+test('the Monk is brown robes, a rope belt and wrapped forearms, bald',()=>{
+  const m=fakeRig();dressHero(m,{role:'Monk',gender:'female'});
+  for(const part of ['cap','strands','tail','braids'])assert.ok(m.parts.hairParts[part].every(x=>!x.visible),'bald');
+  assert.equal(m.parts.mats.armor.color.getHexString(),'5a4330','brown');
+  let wraps=0;for(const elbow of [m.parts.elbow,m.parts.shieldElbow])elbow.traverse(x=>{if(x.material?.color?.getHexString()==='c9bda0')wraps++;});
+  assert.equal(wraps,8,'four wraps on each forearm');
+  assert.ok(m.kitAdded.some(({obj})=>obj.material?.color?.getHexString()==='b8a06a'),'the rope belt');
+  dressHero(m,{role:'Valkyrie',gender:'female'});assert.equal(m.parts.elbow.children.length,0);
 });
