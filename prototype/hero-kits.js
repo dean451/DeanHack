@@ -87,8 +87,12 @@ export const KITS={
     props:['stethoscope','satchel','scalpelSheath','bandageRoll'],hat:'mirror',hair:{male:'short',female:'tied'},
   },
   Monk:{
-    palette:{armor:'#b79b62',armorLight:'#d4be86',leather:'#3a2c20',accent:'#8a2a22',boots:'#2c2218',capeCloth:'#b79b62',hair:['#222','#333','#444']},
-    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'robe',color:'#b79b62',trim:'#5a4630',length:.62,sleeves:true,sleeveWide:.09,sash:'#2a2420'},hair:{male:'bald',female:'tied'},
+    // Brown robes, easy: a plain dark-brown robe with a lighter hood-cloth collar, a knotted rope
+    // belt with its ends hanging, wrapped forearms, bald.
+    palette:{armor:'#5a4330',armorLight:'#7a5e44',leather:'#3a2c20',accent:'#8a6a3a',boots:'#2c2218',capeCloth:'#5a4330',hair:['#222','#333','#444']},
+    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},
+    outfit:{kind:'robe',color:'#5e4634',trim:'#3a2a1e',length:.7,sleeves:true,sleeveWide:.1,collar:'#7a6248'},
+    props:['ropeBelt','wrappedForearms'],hair:{male:'bald',female:'bald'},
   },
   Priest:{
     palette:{armor:'#2a2a30',armorLight:'#6a6a74',leather:'#3a2c20',accent:'#c8a45a',boots:'#17171a',capeCloth:'#2a2a30',hair:['#3a3a3c','#585860','#80808a']},
@@ -361,6 +365,17 @@ const PROPS={
     const cuff=new THREE.Mesh(new THREE.TorusGeometry(.055,.014,8,20),iron);cuff.position.set(0,-.23,0);cuff.rotation.x=Math.PI/2;add(parts.elbow,cuff);
     const spot=new THREE.Mesh(new THREE.CircleGeometry(.014,6),rust);spot.position.set(.05,-.225,.03);spot.rotation.y=Math.PI/2;add(parts.elbow,spot);
     for(let i=0;i<3;i++){const link=new THREE.Mesh(new THREE.TorusGeometry(.016,.005,6,12),iron);link.position.set(.06+i*.004,-.26-i*.03,0);link.rotation.y=i%2?Math.PI/2:0;link.rotation.z=.3;add(parts.elbow,link);}
+  },
+  ropeBelt(add,parts){ // a twisted rope round the waist, knotted at the front, both ends hanging
+    const rope=cloth('#b8a06a',{roughness:1});
+    const belt=new THREE.Mesh(new THREE.TorusGeometry(.152,.016,7,30),rope);belt.position.set(0,.6,0);belt.rotation.x=Math.PI/2;belt.scale.set(1,.82,1);add(parts.body,belt);
+    const knot=new THREE.Mesh(new THREE.SphereGeometry(.03,8,6),rope);knot.position.set(.02,.6,.13);add(parts.body,knot);
+    for(const [x,len,rz] of [[.0,.2,.1],[.045,.15,-.15]]){const end=new THREE.Mesh(new THREE.CylinderGeometry(.012,.014,len,7),rope);end.position.set(x,.6-len/2,.135);end.rotation.z=rz;end.rotation.x=.1;add(parts.body,end);
+      const tip=new THREE.Mesh(new THREE.ConeGeometry(.016,.03,6),rope);tip.position.set(x-rz*len*.5,.6-len-.01,.14);tip.rotation.x=Math.PI;add(parts.body,tip);}
+  },
+  wrappedForearms(add,parts){ // linen wraps spiralling up both forearms
+    const linen=cloth('#c9bda0',{roughness:1});
+    for(const elbow of [parts.elbow,parts.shieldElbow])for(let i=0;i<4;i++){const w=new THREE.Mesh(new THREE.TorusGeometry(.082-i*.004,.011,6,16),linen);w.position.set(0,-.08-i*.042,0);w.rotation.x=Math.PI/2+.12*(i%2?1:-1);add(elbow,w);}
   },
   bandageRoll(add,parts){ // a roll of linen tucked under the sash on the right, one end hanging loose
     const linen=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.12,.6,.15);g.rotation.z=.3;add(parts.body,g);
