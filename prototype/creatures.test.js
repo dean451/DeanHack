@@ -2711,6 +2711,9 @@ test('angels, the dark Angel, aleaxes and archons stand taller than a man, the a
 });
 
 test('the kraken is a towering, beaked drowner',()=>{
+ const kr=createCreature({name:"kraken",symbol:";".charCodeAt(0),color:1});
+ let facets=0,hooks=0;kr.g.traverse(m=>{if(m.isMesh&&m.material.flatShading)facets++;if(m.isMesh&&m.material.name==="kraken-hook")hooks+=m.geometry.attributes.position.count;});
+ assert(facets>=10,"flat-shaded faceted mantle and arms");assert(hooks>=12*10,"twelve hooked claws, six on each club");
  const k=createCreature({name:'kraken',symbol:';'.charCodeAt(0),color:1});
  assert(k.g.scale.x>=1.3,'larger than a man');
  let beak=false;k.g.traverse(m=>{if(m.isMesh&&m.material.color?.getHexString()==='1a1410')beak=true;});
