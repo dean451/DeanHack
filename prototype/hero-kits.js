@@ -42,8 +42,12 @@ export const KITS={
     show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'tunic',color:'#8a6a46',trim:'#6a5030',length:.4,sleeves:false,fur:true},hair:{male:'wild',female:'wild'},
   },
   Convict:{
+    // Bald, in prison stripes: the Valkyrie rig under a striped tunic (grey bands round the body
+    // and the sleeves), one iron shackle on the wrist with a snapped chain.
     palette:{armor:'#6b6a63',armorLight:'#8a897f',leather:'#3c3a35',accent:'#7a786e',boots:'#26241f',capeCloth:'#55534c',hair:['#222','#2e2e2e','#444']},
-    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'tunic',color:'#6b6a63',trim:'#3c3a35',length:.42,sleeves:true,sleeveWide:.07},hair:{male:'bald',female:'bald'},
+    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},
+    outfit:{kind:'tunic',color:'#8e8c84',trim:'#3c3a35',length:.42,sleeves:true,sleeveWide:.075,stripes:'#2e2d2a'},
+    props:['shackle'],hair:{male:'bald',female:'bald'},
   },
   Archeologist:{
     // A field worker, not a khaki blob: a worn open leather jacket with scuffed elbows over a dusty
@@ -168,6 +172,15 @@ function tunic(add,parts,o){
   if(o.dust){ // dust from the dig on the hem and the knees
     const d=cloth(o.dust,{polygonOffset:true,polygonOffsetFactor:-2});
     for(let i=0;i<7;i++){const a=i/7*Math.PI*1.4-.7,r=prof[0][0]+.004,m2=new THREE.Mesh(new THREE.CircleGeometry(.022+(i%2)*.01,7),d);m2.position.set(Math.sin(a)*r,hemY+.03+(i%3)*.015,Math.cos(a)*r*.8);m2.lookAt(Math.sin(a)*3,hemY,Math.cos(a)*3);m2.scale.set(1.4,.7,1);add(parts.body,m2);}
+  }
+  if(o.stripes){ // prison stripes: dark bands round the body, following the tunic's profile, and round the sleeves
+    const st=cloth(o.stripes,{polygonOffset:true,polygonOffsetFactor:-1});
+    const rAt=y=>{for(let i=1;i<prof.length;i++){const [r0,y0]=prof[i-1],[r1,y1]=prof[i];if(y<=y1)return r0+(r1-r0)*(y-y0)/(y1-y0);}return prof[prof.length-1][0];};
+    for(let y=hemY+.06;y<1.0;y+=.085){const r=rAt(y)+.004,band=new THREE.Mesh(new THREE.CylinderGeometry(rAt(y+.02)+.004,r,.04,36,1,true),st);band.position.y=y;band.scale.z=.8;add(parts.body,band);}
+    for(const [arm,elbow] of [[parts.arm,parts.elbow],[parts.shieldArm,parts.shieldElbow]]){
+      for(const y of [-.07,-.17]){const b=new THREE.Mesh(new THREE.CylinderGeometry(.078+ (y+.07)*.04,.08+(y+.07)*.04,.03,16,1,true),st);b.position.y=y;add(arm,b);}
+      for(const y of [-.05,-.15]){const b=new THREE.Mesh(new THREE.CylinderGeometry(.08-(y+.05)*.05,.082-(y+.05)*.05,.03,16,1,true),st);b.position.y=y;add(elbow,b);}
+    }
   }
   if(o.flap){ // untucked on the left: a tail of shirt hangs below the belt
     const tail=new THREE.Mesh(new THREE.BoxGeometry(.11,.1,.012),m);tail.position.set(-.13,hemY-.04,.14);tail.rotation.z=.18;tail.rotation.y=.35;add(parts.body,tail);
@@ -342,6 +355,12 @@ const PROPS={
     const bag=new THREE.Mesh(new THREE.SphereGeometry(.036,10,8),hide);bag.scale.set(1,1.2,.8);g.add(bag);
     const tie=new THREE.Mesh(new THREE.TorusGeometry(.018,.005,5,10),cord);tie.position.y=.038;tie.rotation.x=Math.PI/2;g.add(tie);
     const s2=new THREE.Mesh(new THREE.BoxGeometry(.02,.012,.02),stone);s2.position.y=.05;s2.rotation.y=.4;g.add(s2);
+  },
+  shackle(add,parts){ // an iron shackle on the right wrist, three links of chain still hanging from it
+    const iron=new THREE.MeshStandardMaterial({color:'#4a4640',roughness:.6,metalness:.7}),rust=cloth('#5a3a22',{roughness:1,polygonOffset:true,polygonOffsetFactor:-1});
+    const cuff=new THREE.Mesh(new THREE.TorusGeometry(.055,.014,8,20),iron);cuff.position.set(0,-.23,0);cuff.rotation.x=Math.PI/2;add(parts.elbow,cuff);
+    const spot=new THREE.Mesh(new THREE.CircleGeometry(.014,6),rust);spot.position.set(.05,-.225,.03);spot.rotation.y=Math.PI/2;add(parts.elbow,spot);
+    for(let i=0;i<3;i++){const link=new THREE.Mesh(new THREE.TorusGeometry(.016,.005,6,12),iron);link.position.set(.06+i*.004,-.26-i*.03,0);link.rotation.y=i%2?Math.PI/2:0;link.rotation.z=.3;add(parts.elbow,link);}
   },
   bandageRoll(add,parts){ // a roll of linen tucked under the sash on the right, one end hanging loose
     const linen=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.12,.6,.15);g.rotation.z=.3;add(parts.body,g);
