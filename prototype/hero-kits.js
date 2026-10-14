@@ -77,8 +77,12 @@ export const KITS={
     props:['thighSheath','lockpickRoll'],hat:'hood',hair:{male:'short',female:'short'},
   },
   Ranger:{
-    palette:{armor:'#3f5238',armorLight:'#667a58',leather:'#4a3626',accent:'#9a8a5a',boots:'#2a2216',capeCloth:'#41563a',hair:['#3a2c1c','#52402a','#6a5436']},
-    show:{chest:false,pauldrons:false,tassets:false,mantles:false},outfit:{kind:'tunic',color:'#4f6444',trim:'#6a5a3a',length:.42,sleeves:true,sleeveWide:.068},hat:'hood',hair:{male:'short',female:'tied'},
+    // Green tunic and pants under the hood; a quiver of arrows on the back and a leather bracer on
+    // the bow arm say "ranger".
+    palette:{armor:'#2f4a2c',armorLight:'#4d6a46',leather:'#4a3626',accent:'#8a7a4a',boots:'#2a2216',capeCloth:'#3a5236',hair:['#3a2c1c','#52402a','#6a5436']},
+    show:{chest:false,pauldrons:false,tassets:false,mantles:false},
+    outfit:{kind:'tunic',color:'#3f5a3a',trim:'#5a4a30',length:.42,sleeves:true,sleeveWide:.07},
+    props:['quiver','bracer'],hat:'hood',hair:{male:'short',female:'tied'},
   },
   Healer:{
     // Bone linen gone grey in the dungeon, not mint (the scene light is teal, so the cloth is warm to
@@ -415,6 +419,20 @@ const PROPS={
     const roll=new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,.09,10),hide);roll.rotation.z=Math.PI/2;g.add(roll);
     const tie=new THREE.Mesh(new THREE.TorusGeometry(.024,.004,5,10),cord);tie.rotation.y=Math.PI/2;g.add(tie);
     for(const [z,rz] of [[.012,.1],[-.01,-.15]]){const pick=new THREE.Mesh(new THREE.CylinderGeometry(.002,.002,.06,4),steel);pick.position.set(.05,.015,z);pick.rotation.z=Math.PI/2+rz;g.add(pick);}
+  },
+  quiver(add,parts){ // a leather quiver slung across the back on a strap, a fan of fletched arrows standing out of it
+    const hide=cloth('#4a3626',{roughness:.85}),strap=cloth('#3a2a1e'),shaft=cloth('#8a6a3a',{roughness:.9}),fletch=cloth('#c9c0a4',{side:THREE.DoubleSide});
+    const g=new THREE.Group();g.position.set(.12,.78,-.2);g.rotation.z=.5;g.rotation.x=.12;add(parts.body,g);
+    const tube=new THREE.Mesh(new THREE.CylinderGeometry(.045,.038,.4,12),hide);g.add(tube);
+    const lip=new THREE.Mesh(new THREE.TorusGeometry(.046,.007,5,14),strap);lip.position.y=.2;lip.rotation.x=Math.PI/2;g.add(lip);
+    for(let i=0;i<5;i++){const a=i/5*Math.PI*2,x=Math.cos(a)*.022,z=Math.sin(a)*.022,sh=new THREE.Mesh(new THREE.CylinderGeometry(.004,.004,.2,5),shaft);sh.position.set(x,.3,z);sh.rotation.z=x*1.5;sh.rotation.x=-z*1.5;g.add(sh);
+      const f=new THREE.Mesh(new THREE.PlaneGeometry(.022,.045),fletch);f.position.set(x*1.6,.4,z*1.6);f.rotation.y=a;g.add(f);}
+    const band=new THREE.Mesh(new THREE.BoxGeometry(.034,.62,.012),strap);band.position.set(-.03,.78,.19);band.rotation.z=.56;band.rotation.x=-.1;add(parts.body,band);
+  },
+  bracer(add,parts){ // a laced leather bracer on the bow (shield) forearm
+    const hide=cloth('#3a2a1e',{roughness:.85}),lace=cloth('#8a7a4a');
+    const b=new THREE.Mesh(new THREE.CylinderGeometry(.088,.096,.16,14,1,true),hide);b.position.set(0,-.13,0);add(parts.shieldElbow,b);
+    for(let i=0;i<3;i++){const l=new THREE.Mesh(new THREE.TorusGeometry(.09,.004,4,12),lace);l.position.set(0,-.08-i*.045,0);l.rotation.x=Math.PI/2;add(parts.shieldElbow,l);}
   },
   bandageRoll(add,parts){ // a roll of linen tucked under the sash on the right, one end hanging loose
     const linen=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.12,.6,.15);g.rotation.z=.3;add(parts.body,g);
