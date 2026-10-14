@@ -95,8 +95,12 @@ export const KITS={
     props:['ropeBelt','wrappedForearms'],hair:{male:'bald',female:'bald'},
   },
   Priest:{
-    palette:{armor:'#2a2a30',armorLight:'#6a6a74',leather:'#3a2c20',accent:'#c8a45a',boots:'#17171a',capeCloth:'#2a2a30',hair:['#3a3a3c','#585860','#80808a']},
-    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'robe',color:'#2a2a30',trim:'#c8a45a',length:1,sleeves:true,sleeveWide:.1,sash:'#c8a45a',collar:'#e6e2d6'},hair:{male:'short',female:'tied'},
+    // White robes: bone linen with a grey-dragged hem, a dark stole down the front, a holy symbol on
+    // a cord at the chest and a loop of prayer beads at the belt.
+    palette:{armor:'#cfc8b4',armorLight:'#e4ded0',leather:'#3a2c20',accent:'#c8a45a',boots:'#17171a',capeCloth:'#cfc8b4',hair:['#3a3a3c','#585860','#80808a']},
+    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},
+    outfit:{kind:'robe',color:'#d8d2c0',trim:'#8a7f66',length:1,sleeves:true,sleeveWide:.1,sash:'#5a4a30',collar:'#ece8dc',hem:'#8a8474',stole:'#3a2a40'},
+    props:['holySymbol','prayerBeads'],hair:{male:'short',female:'tied'},
   },
   Wizard:{
     palette:{armor:'#2b3560',armorLight:'#5a6aa0',leather:'#3a2c20',accent:'#d8c27a',boots:'#201a14',capeCloth:'#2b3560',hair:['#8a8a84','#b4b3aa','#d8d6cc']},
@@ -132,6 +136,8 @@ function robe(add,parts,o){
     for(const [x,y,r,sx,sy,rot] of [[-.04,.5,.026,1.6,.8,.5],[.05,.33,.036,1.3,1,-.3],[-.06,.3,.018,.9,1.3,.2],[.02,.21,.014,1,1,0]]){const d=new THREE.Mesh(new THREE.CircleGeometry(r,9),st);d.position.set(x,y,.214);d.scale.set(sx,sy,1);d.rotation.z=rot;add(parts.body,d);}
     const drip=new THREE.Mesh(new THREE.PlaneGeometry(.012,.09),st);drip.position.set(.04,.27,.214);drip.rotation.z=.06;add(parts.body,drip);
   }
+  if(o.stole){ // a stole over the shoulders, two strips down the front, a brass cross on each end
+    const st=cloth(o.stole,{polygonOffset:true,polygonOffsetFactor:-2});for(const side of [-1,1]){const strip=new THREE.Mesh(new THREE.BoxGeometry(.055,.62,.01),st);strip.position.set(side*.075,.68,.21);strip.rotation.x=.14;strip.rotation.z=side*.03;add(parts.body,strip);const top=new THREE.Mesh(new THREE.BoxGeometry(.055,.16,.01),st);top.position.set(side*.1,.99,.2);top.rotation.x=-.5;add(parts.body,top);const cross=new THREE.Mesh(new THREE.BoxGeometry(.03,.03,.012),trimMat('#c8a45a'));cross.position.set(side*.075,.5,.218);add(parts.body,cross);}}
   sleeves(add,parts,o,m,t);
 }
 
@@ -376,6 +382,19 @@ const PROPS={
   wrappedForearms(add,parts){ // linen wraps spiralling up both forearms
     const linen=cloth('#c9bda0',{roughness:1});
     for(const elbow of [parts.elbow,parts.shieldElbow])for(let i=0;i<4;i++){const w=new THREE.Mesh(new THREE.TorusGeometry(.082-i*.004,.011,6,16),linen);w.position.set(0,-.08-i*.042,0);w.rotation.x=Math.PI/2+.12*(i%2?1:-1);add(elbow,w);}
+  },
+  holySymbol(add,parts){ // a brass ankh on a dark cord at the chest
+    const cord=cloth('#241709'),brass=trimMat('#c8a45a');
+    const loop=new THREE.Mesh(new THREE.TorusGeometry(.12,.006,5,24,Math.PI*1.4),cord);loop.rotation.x=Math.PI/2+.5;loop.rotation.z=Math.PI/2-.7;loop.position.set(0,1.03,-.005);add(parts.body,loop);
+    const g=new THREE.Group();g.position.set(0,.84,.215);add(parts.body,g);
+    const stem=new THREE.Mesh(new THREE.BoxGeometry(.012,.07,.008),brass);stem.position.y=-.02;g.add(stem);
+    const bar=new THREE.Mesh(new THREE.BoxGeometry(.05,.011,.008),brass);bar.position.y=.012;g.add(bar);
+    const ring2=new THREE.Mesh(new THREE.TorusGeometry(.014,.005,5,12),brass);ring2.position.y=.034;g.add(ring2);
+  },
+  prayerBeads(add,parts){ // a loop of dark wooden beads hung from the left of the sash
+    const wood=cloth('#3a2618',{roughness:.6}),g=new THREE.Group();g.position.set(-.13,.58,.11);g.rotation.y=.4;add(parts.body,g);
+    for(let i=0;i<9;i++){const a=i/9*Math.PI*2,b=new THREE.Mesh(new THREE.SphereGeometry(.011,6,5),wood);b.position.set(Math.sin(a)*.04,-.06+Math.cos(a)*.06,0);g.add(b);}
+    const tassel=new THREE.Mesh(new THREE.ConeGeometry(.012,.04,6),cloth('#8a2a22'));tassel.position.set(0,-.14,0);tassel.rotation.x=Math.PI;g.add(tassel);
   },
   bandageRoll(add,parts){ // a roll of linen tucked under the sash on the right, one end hanging loose
     const linen=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.12,.6,.15);g.rotation.z=.3;add(parts.body,g);
