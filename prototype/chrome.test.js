@@ -106,3 +106,11 @@ test('blessed items read green in the pack, the sun mark stays, and cursed stays
   assert(cr > cg + 30 && cr > cb + 30, `cursed ${cursed} is red`);
   assert.match(read('./item-buc.js'), /blessed: '☼'/);
 });
+
+test('the room idles behind the splash: about 8 frames a second, no backdrop blur, 1x pixels on a weak machine',()=>{
+  const main=readFileSync(new URL('./main.js',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+  assert.match(main,/const IDLE_FRAME_MS=125;/);
+  assert.match(main,/setAnimationLoop\(ms=>\{if\(document\.body\.classList\.contains\('start-open'\)\)\{if\(ms-idleAt<IDLE_FRAME_MS\)return;idleAt=ms;\}/);
+  assert.match(main,/setPixelRatio\(\(navigator\.hardwareConcurrency\|\|8\)<=4\?1:Math\.min\(devicePixelRatio,2\)\)/);
+  assert.doesNotMatch(css,/#start-screen,#start-cover\{[^}]*backdrop-filter/,'the splash does not blur the whole viewport');
+});
