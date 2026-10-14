@@ -153,7 +153,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 - **Kraken is balloons** (https://github.com/dean451/DeanHack/pull/1504, `prototype/creatures.js`): the render is a smooth red egg with tube tentacles and cartoon yellow eyes; the hooked claws are invisible at the game camera. **Done when:** a `creature-shot "kraken"` render shows a faceted mantle, tapered barbed tentacles and the hooked claws visible in the `game` view.
 - **Rock mole and long worm tail are smooth lumps** (https://github.com/dean451/DeanHack/pull/1495, `prototype/creatures.js`): the render shows a smooth grey egg and a smooth purple tube; the scars, ember eyes and horn spines cannot be seen at the game camera. **Done when:** `creature-shot "rock mole"` and `"long worm tail"` renders show faceted bodies and the added marks readable in the `game` view.
-- **Cockatrice looks like a plastic lizard** (https://github.com/dean451/DeanHack/pull/1451, `prototype/creatures.js`): flat yellow, stick legs, a comb like a toy; the stone-gaze eyes and wing claws do not read. **Done when:** a `creature-shot "cockatrice"` render shows a menacing, desaturated body with tapered legs and visible claws.
 
 **Models**
 

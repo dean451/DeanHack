@@ -516,17 +516,20 @@ const LIZARDS={newt:{skin:'#d69a38',belly:'#e9763a',spot:'#5a3a1a',scale:.8},gec
 // tapering tail as lizard() — reads as "petrifying bird-lizard", not another lizard.
 function cockatrice(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
- const skin=mat(o.skin),belly=mat(o.belly||shade(o.skin,1.3)),comb=o.fire?mat(o.comb,{emissive:o.comb,emissiveIntensity:2.5}):mat(o.comb),foot=mat(o.beak);
- sphere(body,.12,skin,0,.15,0,.95,.55,1.75);sphere(body,.08,belly,0,.11,.02,.9,.4,1.6);
+ const skin=mat(o.skin,{flatShading:true,roughness:.95}),belly=mat(o.belly||shade(o.skin,1.3),{flatShading:true}),comb=o.fire?mat(o.comb,{emissive:o.comb,emissiveIntensity:2.5}):mat(o.comb),foot=mat(o.beak,{flatShading:true}),clawMat=mat('#24201a',{roughness:.7,flatShading:true});
+ // faceted forms (6x4 sphere = a cut gem), not smooth eggs
+ const facet=(parent,r,m,x,y,z,sx,sy,sz)=>{const f=part(parent,new THREE.SphereGeometry(r,6,4),m,x,y,z);f.scale.set(sx,sy,sz);return f;};
+ facet(body,.12,skin,0,.15,0,.95,.55,1.75);facet(body,.08,belly,0,.11,.02,.9,.4,1.6);
  const head=new THREE.Group();head.position.set(0,.2,.26);body.add(head);
- sphere(head,.09,skin,0,0,0,1,.95,1.05);
+ facet(head,.09,skin,0,0,0,1,.95,1.05);
  const beak=cone(head,.045,.12,foot,0,-.02,.11,5);beak.rotation.x=Math.PI/2;
  for(let i=0;i<3;i++){const wave=cone(head,.02,.1-i*.018,comb,(i-1)*.035,.1,-.02+i*.012,4);wave.rotation.z=(i-1)*.3;}
  sphere(head,.022,comb,0,-.09,.09,1,1.3,.8);
  // the gaze that turns men to stone: sickly self-lit slit eyes (the pyrolisk keeps its coals, set below)
  const gaze=o.fire?darkEye:mat('#d8e84a',{emissive:'#a8c820',emissiveIntensity:2.2,roughness:.3});
  for(const side of [-1,1])sphere(head,.018,gaze,side*.06,.02,.06,o.fire?1:.8,o.fire?1:1.1,o.fire?1:.7);
- for(const side of [-1,1])for(const z of [-.12,.13]){const leg=new THREE.Group();leg.position.set(side*.1,.15,z);body.add(leg);const upper=rounded(leg,.13,.035,.04,skin,side*.07,-.03,0,.012);upper.rotation.z=side*-.5;rounded(leg,.05,.02,.08,foot,side*.13,-.11,.02,.008);legs.push(leg);}
+ for(const side of [-1,1])for(const z of [-.12,.13]){const leg=new THREE.Group();leg.position.set(side*.1,.15,z);body.add(leg);const upper=cylinder(leg,.016,.036,.13,skin,side*.07,-.03,0,5);upper.rotation.z=side*(.5-Math.PI);cylinder(leg,.008,.017,.08,skin,side*.13,-.1,.02,5);
+  for(let i=0;i<3;i++){const toe=cone(leg,.007,.06,clawMat,side*.13+(i-1)*.014,-.135,.065,4);toe.rotation.x=Math.PI/2+.15;}legs.push(leg);}
  // menace: a hooked black spur above each foot, and a lower beak spike so the beak gapes like a bared bite
  const spurMat=mat('#1a1814',{roughness:.7,flatShading:true});
  for(const leg of legs){const spur=cone(leg,.014,.07,spurMat,leg.position.x>0?.05:-.05,-.09,-.05,4);spur.rotation.x=-2.2;}
@@ -544,13 +547,13 @@ function cockatrice(o){
   g.userData.burning=true;}
  const wingParts=[];for(const side of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.17,.06);shape.lineTo(side*.12,.0);shape.lineTo(side*.15,-.05);shape.lineTo(0,-.02);const wing=part(body,new THREE.ShapeGeometry(shape),skin,side*.1,.2,-.02);wing.rotation.y=side*.35;wing.userData.side=side;wingParts.push(wing);
   // a bare bone claw hooked off the leading edge, so the wing reads as a leathery bat's, not a feather
-  const claw=cone(wing,.01,.07,mat('#8a8272',{roughness:.8,flatShading:true}),side*.16,.06,0,4);claw.rotation.z=-side*1.1;}
+  const claw=cone(wing,.014,.12,mat('#8a8272',{roughness:.8,flatShading:true}),side*.17,.065,0,4);claw.rotation.z=-side*1.1;}
  const tail=new THREE.Group();tail.position.set(0,.15,-.2);body.add(tail);
  let px=0,pz=0;for(let i=0;i<6;i++){const r=.05*(1-i/7),len=.09;const seg=cylinder(tail,r*.8,r,len,skin,px,-.012*i,pz-len/2,8);seg.rotation.x=Math.PI/2;px+=Math.sin(i*.6)*.012;pz-=len*.95;}
  for(let i=0;i<3;i++){const plume=cone(tail,.025,.1,comb,0,-.06-i*.02,pz-.03-i*.05,4);plume.rotation.x=1.7;}
  return {...actor(g,body,legs,tail,[],'cockatrice'),head,wingParts};
 }
-const COCKATRICES={chickatrice:{skin:'#8a6a3a',comb:'#a8382a',beak:'#d99a3a',scale:.65},cockatrice:{skin:'#c9a83a',comb:'#c8262a',beak:'#e0b23a',scale:1.1},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9,fire:true}};
+const COCKATRICES={chickatrice:{skin:'#66573a',comb:'#80241c',beak:'#9a7430',scale:.65},cockatrice:{skin:'#74703f',comb:'#861c1c',beak:'#8a6a2c',scale:1.1},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9,fire:true}};
 
 // Other F: a stationary mound. Lichens are in lichen.js, molds in mold.js, shriekers and violet fungi in mushroom.js.
 function fungus(o){
