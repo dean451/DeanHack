@@ -401,11 +401,12 @@ export {RAT_NECK};
 // Rock moles: a squat velvet-grey digger with no ear flaps, pin-prick eyes, a bare scarred mauve
 // snout and oversized spade forepaws tipped with pale claws. Chewed pebbles cling to its coat.
 function rockMole(){
+ const facet=(p,r,mt,x,y,z,sx=1,sy=1,sz=1)=>{const f=part(p,new THREE.SphereGeometry(r,7,5),mt,x,y,z);f.scale.set(sx,sy,sz);return f;};
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(.9);
- const coat=mat('#5b5a60',{roughness:1}),pink=mat('#7a5650',{roughness:.8}),claw=mat('#b5a98c',{roughness:.5}),pebble=mat('#8a8274',{roughness:.95});
- sphere(body,.24,coat,0,.22,-.02,1.05,.78,1.3);
+ const coat=mat('#4a4950',{roughness:1,flatShading:true}),pink=mat('#7a5650',{roughness:.8}),claw=mat('#b5a98c',{roughness:.5}),pebble=mat('#8a8274',{roughness:.95,flatShading:true});
+ facet(body,.24,coat,0,.22,-.02,1.05,.78,1.3);
  const head=new THREE.Group();head.position.set(0,.22,.27);body.add(head);
- sphere(head,.13,coat,0,0,0,.95,.82,1.05);
+ facet(head,.13,coat,0,0,0,.95,.82,1.05);
  const snout=cylinder(head,.028,.06,.14,pink,0,-.015,.15,10);snout.rotation.x=Math.PI/2;
  sphere(head,.034,pink,0,-.015,.225,1,.8,.6);
  for(const side of [-1,1]){sphere(head,.012,darkEye,side*.07,.045,.085);sphere(head,.005,nose,side*.013,-.012,.24);}
@@ -413,18 +414,20 @@ function rockMole(){
  for(const side of [-1,1]){
   // front legs: a short upper limb ending in a broad, outward-turned spade with five claws
   const fore=new THREE.Group();fore.position.set(side*.17,.17,.16);body.add(fore);
-  sphere(fore,.06,coat,0,-.03,0,.8,1,.9);
+  facet(fore,.06,coat,0,-.03,0,.8,1,.9);
   const palm=sphere(fore,.075,pink,side*.04,-.11,.05,1.1,.35,1);palm.rotation.z=side*.5;
   for(let i=0;i<5;i++){const c=cone(fore,.012,.07,claw,side*.04+(i-2)*.028,-.13,.12,4);c.rotation.x=Math.PI/2+.25;}
   legs.push(fore);
   const hind=new THREE.Group();hind.position.set(side*.14,.14,-.19);body.add(hind);
-  sphere(hind,.065,coat,0,-.03,0,.8,1,.9);rounded(hind,.07,.03,.11,pink,0,-.11,.03,.012);legs.push(hind);
+  facet(hind,.065,coat,0,-.03,0,.8,1,.9);rounded(hind,.07,.03,.11,pink,0,-.11,.03,.012);legs.push(hind);
  }
- for(const [x,y,z,r] of [[.12,.36,-.08,.028],[-.09,.39,.02,.022],[.02,.37,-.2,.03],[-.16,.3,-.12,.02]])sphere(body,r,pebble,x,y,z,1,.7,1);
+ for(const [x,y,z,r] of [[.12,.36,-.08,.028],[.02,.37,-.2,.03],[-.16,.3,-.12,.02]])facet(body,r*1.5,pebble,x,y,z,1,.7,1);
  // wear: a torn-open scar across the snout, and a pair of dull ember eyes set deep in the face
  const gash=mat('#3a1614',{roughness:.9}),ember=mat('#c0501c',{roughness:.4,emissive:'#c0501c',emissiveIntensity:1.6});ember.name='mole-eyes';
- part(head,new THREE.BoxGeometry(.012,.07,.012),gash,.02,.02,.2).rotation.set(.9,0,.5);g.userData.scarred=true;
- for(const side of [-1,1])sphere(head,.007,ember,side*.07,.045,.093);
+ part(head,new THREE.BoxGeometry(.022,.1,.02),gash,.02,.02,.2).rotation.set(.9,0,.5);g.userData.scarred=true;
+ for(const side of [-1,1])sphere(head,.016,ember,side*.07,.045,.088);
+ // a ridge of broken stone shards pushes up through the hide along the spine
+ for(let i=0;i<2;i++){const sh=cone(body,.04-i*.004,.16-i*.015,mat('#26242a',{roughness:.9,flatShading:true}),(i%2?.03:-.03),.43-i*.01,.12-i*.1,4);sh.rotation.x=-.3;}
  const tail=new THREE.Group();tail.position.set(0,.2,-.3);body.add(tail);
  const stub=cone(tail,.028,.1,pink,0,-.01,-.04,6);stub.rotation.x=-Math.PI/2-.3;
  return actor(g,body,legs,tail,[],'rat');
@@ -467,7 +470,7 @@ function nhColor(cell){return Number.isInteger(cell.color)?NH_COLORS[cell.color]
 function shade(hex,k){return '#'+new THREE.Color(hex).multiplyScalar(k).getHexString();}
 const nose=mat('#1b1716',{roughness:.5}),darkEye=mat('#0e0c0b',{roughness:.2,metalness:.2});
 
-function tube(parent,points,radius,material,segments=16){return part(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),segments,radius,8,false),material);}
+function tube(parent,points,radius,material,segments=16,radial=8){return part(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),segments,radius,radial,false),material);}
 
 // A tube that narrows to a point at its start: ring vertices are pulled in toward the centreline by taper(t),
 // t running 0..1 along the curve. Snakes and nagas use it so the tail ends in a point, not a blunt stump.
@@ -922,13 +925,14 @@ function worm(o){
 // one body weaving through the ground behind the head.
 function wormTail(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
- const skin=mat(o.color,{roughness:.62}),ring=mat(shade(o.color,.62),{roughness:.7}),mound=mat('#3a3128',{roughness:1}),r=.09;
+ const skin=mat(shade(o.color,.8),{roughness:.7,flatShading:true}),ring=mat(shade(o.color,.45),{roughness:.7,flatShading:true}),mound=mat('#3a3128',{roughness:1}),r=.09;
  const arch=[];for(let i=0;i<=8;i++){const a=i/8*Math.PI;arch.push([0,Math.sin(a)*.2-.03,-Math.cos(a)*.3]);}
- tube(body,arch,r,skin,24);
+ tube(body,arch,r,skin,10,5);
  for(let i=1;i<8;i+=1.5){const a=i/8*Math.PI;const band=part(body,new THREE.TorusGeometry(r*1.02,r*.13,6,16),ring,0,Math.sin(a)*.2-.03,-Math.cos(a)*.3);band.rotation.x=a-Math.PI/2;}
  for(const z of [-.3,.3])for(const [dx,dz,s] of [[-.07,-.04,1],[.07,.03,.8],[0,.06,.6]])sphere(body,.07*s,mound,dx,.01,z+dz,1.4,.35,1.2);
+ const spine=mat('#1c1416',{roughness:.6,flatShading:true});
  // a ridge of dark hooked horn spines along the crest of the arch
- for(let i=1;i<8;i+=2){const a=i/8*Math.PI;const sp=cone(body,r*.22,r*1.1,ring,0,Math.sin(a)*.2-.03+r*1.05,-Math.cos(a)*.3,4);sp.rotation.x=-.35;}
+ for(let i=1;i<8;i+=2){const a=i/8*Math.PI;const sp=cone(body,r*.3,r*1.7,spine,0,Math.sin(a)*.2-.03+r*1.25,-Math.cos(a)*.3,4);sp.rotation.x=-.35;}
  g.userData.spined=true;
  return actor(g,body,[],null,[],'worm');
 }
