@@ -50,8 +50,14 @@ export const KITS={
     show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'tunic',color:'#a58f62',trim:'#6a5a38',length:.4,sleeves:true,sleeveWide:.075},hat:'fedora',hair:{male:'short',female:'tied'},
   },
   Tourist:{
-    palette:{armor:'#b8472f',armorLight:'#e0b060',leather:'#6a4a2a',accent:'#e8d8a0',boots:'#5a4a30',capeCloth:'#b8472f',hair:['#4a3626','#6a4e34','#8a6a48']},
-    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'tunic',color:'#b8472f',trim:'#e8d27a',length:.46,sleeves:true,sleeveWide:.085,flowers:true},hat:'straw',hair:{male:'short',female:'short'},
+    // The one loud thing in the dungeon: a burnt-red shirt with a bone-and-ochre flower print, worn
+    // untucked on one side and sweated through at the collar, under an aged straw hat with a frayed
+    // brim. The expensive camera on its strap, the fat money pouch, the darts and the map tube say
+    // "tourist" from across the room; none of it is pastel.
+    palette:{armor:'#8f3a22',armorLight:'#b8603a',leather:'#5a3e26',accent:'#c9a24a',boots:'#4a3a2a',capeCloth:'#8f3a22',hair:['#4a3626','#6a4e34','#8a6a48']},
+    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},
+    outfit:{kind:'tunic',color:'#8f3a22',trim:'#3a1a12',length:.46,sleeves:true,sleeveWide:.09,flowers:{petal:'#e6dcc0',heart:'#d9a441',leaf:'#2f4a3a'},sweat:'#5e2516',flap:true},
+    props:['camera','moneyPouch','dartSheath','mapTube'],hat:'straw',hair:{male:'short',female:'short'},
   },
   Rogue:{
     palette:{armor:'#2c2c30',armorLight:'#4a4a52',leather:'#26221e',accent:'#7a6a4a',boots:'#161616',capeCloth:'#26262a',hair:['#1a1a1a','#2a2a2a','#3c3c3c']},
@@ -127,7 +133,23 @@ function tunic(add,parts,o){
     ring(.125,.04,fur,parts.body,0,1.05,0,1,.9);
   }else ring(prof[0][0],.012,t,parts.body,0,hemY+.01,0,1,.8);
   ring(.15,.02,trimMat('#2a1e16'),parts.body,0,.62,0,1,.82);                 // belt
-  if(o.flowers)for(let i=0;i<22;i++){const f=new THREE.Mesh(new THREE.CircleGeometry(.018+((i*3)%3)*.006,6),trimMat(i%2?'#e8d27a':'#2f6a58'));const y=.68+((i*37)%25)/50,a=(i/22)*Math.PI*1.3-.65;f.position.set(Math.sin(a)*.19,y,Math.cos(a)*.19*.8+.004);f.rotation.y=a;add(parts.body,f);}
+  if(o.flowers){ // a flower print round the whole shirt: five bone petals round an ochre heart, dark leaves between
+    const fl=typeof o.flowers==='object'?o.flowers:{petal:'#e8d27a',heart:'#d9a441',leaf:'#2f6a58'};
+    const petal=cloth(fl.petal,{polygonOffset:true,polygonOffsetFactor:-1}),heart=cloth(fl.heart,{polygonOffset:true,polygonOffsetFactor:-2}),leaf=cloth(fl.leaf,{polygonOffset:true,polygonOffsetFactor:-1});
+    const at=(a,y)=>{const r=y>.9?.26:y>.8?.17:.195;return [Math.sin(a)*r,y,Math.cos(a)*r*.8];};
+    for(let i=0;i<16;i++){const a=i/16*Math.PI*2+.3+(i%2)*.2,y=hemY+.07+((i*53)%41)/100,[x,yy,z]=at(a,y),g=new THREE.Group();g.position.set(x,yy,z);g.lookAt(x*2,yy,z*2);g.rotation.z+=i;add(parts.body,g);
+      const big=i%3===0,pr=big?.02:.015;
+      for(let k=0;k<5;k++){const pp=new THREE.Mesh(new THREE.CircleGeometry(pr,6),petal);const b=k/5*Math.PI*2;pp.position.set(Math.cos(b)*pr*1.3,Math.sin(b)*pr*1.3,.004);pp.scale.set(1,.8,1);g.add(pp);}
+      const h=new THREE.Mesh(new THREE.CircleGeometry(pr*.75,6),heart);h.position.z=.006;g.add(h);
+      const lf=new THREE.Mesh(new THREE.CircleGeometry(.02,5),leaf);lf.position.set(pr*2.4,-pr*1.4,.003);lf.scale.set(1.7,.6,1);lf.rotation.z=.6;g.add(lf);}
+  }
+  if(o.sweat){ // sweated through at the collar and under the arms
+    const sw=cloth(o.sweat,{polygonOffset:true,polygonOffsetFactor:-2});
+    for(const [x,y,z,sx,sy] of [[0,.96,.172,1.5,1.3],[-.21,.85,.08,.8,1.5],[.21,.85,.08,.8,1.5]]){const d=new THREE.Mesh(new THREE.CircleGeometry(.03,12),sw);d.position.set(x,y,z);d.scale.set(sx,sy,1);d.lookAt(x*3,y,z*3+(x?0:.5));add(parts.body,d);}
+  }
+  if(o.flap){ // untucked on the left: a tail of shirt hangs below the belt
+    const tail=new THREE.Mesh(new THREE.BoxGeometry(.11,.1,.012),m);tail.position.set(-.13,hemY-.04,.14);tail.rotation.z=.18;tail.rotation.y=.35;add(parts.body,tail);
+  }
   sleeves(add,parts,o,m,t);
 }
 
@@ -172,8 +194,17 @@ const HATS={
     const m=cloth(o.color),cap=new THREE.Mesh(new THREE.SphereGeometry(.235,22,14,Math.PI/2+.62,Math.PI*2-1.24,0,Math.PI*.66),m);cap.position.set(0,.02,-.012);cap.scale.set(1,1.04,1.08);add(parts.head,cap);
     const drape=new THREE.Mesh(new THREE.ConeGeometry(.3,.26,16,1,true),m);drape.position.set(0,-.2,-.03);drape.scale.z=.85;add(parts.head,drape);
   },
-  straw(add,parts){ const m=cloth('#cdb470',{roughness:1}),g=new THREE.Group();g.position.set(0,.14,0);add(parts.head,g);
-    const brim=new THREE.Mesh(new THREE.CylinderGeometry(.36,.36,.018,32),m);g.add(brim);const crown=new THREE.Mesh(new THREE.CylinderGeometry(.15,.17,.11,22),m);crown.position.y=.06;g.add(crown);ring(.168,.012,trimMat('#a83a2a'),g,0,.03,0,1,1);},
+  straw(add,parts){ // aged straw, the brim frayed and bent, a dark band with its ends hanging at the side
+    const m=cloth('#a8925a',{roughness:1}),worn=cloth('#7d6a3e',{roughness:1}),g=new THREE.Group();g.position.set(0,.14,0);g.rotation.z=-.08;g.rotation.x=.06;add(parts.head,g);
+    const brim=new THREE.Mesh(new THREE.CylinderGeometry(.36,.35,.016,32),m);const pos=brim.geometry.attributes.position;
+    for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i),r=Math.hypot(x,z);if(r>.3){const a=Math.atan2(z,x);pos.setY(i,pos.getY(i)+Math.sin(a*5+1)*.012-Math.max(0,Math.cos(a-.4))*.03);const k=1-Math.max(0,Math.sin(a*9))*.04;pos.setX(i,x*k);pos.setZ(i,z*k);}}
+    pos.needsUpdate=true;brim.geometry.computeVertexNormals();g.add(brim);
+    const crown=new THREE.Mesh(new THREE.CylinderGeometry(.15,.17,.11,22),m);crown.position.y=.06;g.add(crown);
+    const top=new THREE.Mesh(new THREE.CylinderGeometry(.13,.15,.02,22),worn);top.position.y=.115;g.add(top);
+    ring(.168,.016,trimMat('#3a2a1e'),g,0,.03,0,1,1);
+    for(const [x,len] of [[.17,.07],[.19,.05]]){const end=new THREE.Mesh(new THREE.BoxGeometry(.018,len,.006),cloth('#3a2a1e'));end.position.set(x,.03-len/2,.05);end.rotation.z=.4;g.add(end);}
+    for(let i=0;i<5;i++){const a=i/5*Math.PI*2+.7;const fray=new THREE.Mesh(new THREE.CircleGeometry(.014,5),worn);fray.position.set(Math.cos(a)*.33,.0,Math.sin(a)*.33);fray.rotation.x=-Math.PI/2;fray.scale.set(1.8,.7,1);fray.rotation.z=a;g.add(fray);}
+  },
   fedora(add,parts){ const m=cloth('#6a4a2e',{roughness:.95}),g=new THREE.Group();g.position.set(0,.12,0);g.rotation.z=.05;add(parts.head,g);
     const brim=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.014,30),m);brim.scale.z=1.05;g.add(brim);const crown=new THREE.Mesh(new THREE.CylinderGeometry(.14,.18,.15,22),m);crown.position.y=.075;g.add(crown);
     const dent=new THREE.Mesh(new THREE.BoxGeometry(.12,.03,.1),m);dent.position.set(0,.15,0);g.add(dent);ring(.178,.012,trimMat('#2a1e14'),g,0,.03,0,1,1);},
@@ -224,6 +255,40 @@ const PROPS={
     const hide=cloth('#2e2016',{roughness:.9}),steel=new THREE.MeshStandardMaterial({color:'#c8d0d4',metalness:.85,roughness:.25});
     const sheath=new THREE.Mesh(new THREE.BoxGeometry(.028,.13,.04),hide);sheath.position.set(.2,.52,.1);sheath.rotation.z=-.2;sheath.rotation.y=.4;add(parts.body,sheath);
     const handle=new THREE.Mesh(new THREE.CylinderGeometry(.006,.008,.07,8),steel);handle.position.set(.215,.615,.115);handle.rotation.z=-.2;add(parts.body,handle);
+  },
+  camera(add,parts){ // an expensive camera on a leather strap round the neck, hanging to one side of the chest
+    const strap=cloth('#3a2a1e',{roughness:.8}),black=cloth('#1c1a18',{roughness:.5}),brass=trimMat('#c9a24a'),glass=new THREE.MeshStandardMaterial({color:'#5a7a8a',metalness:.6,roughness:.15,emissive:'#2a4a5a',emissiveIntensity:.3});
+    const loop=new THREE.Mesh(new THREE.TorusGeometry(.14,.009,6,24,Math.PI*1.4),strap);loop.rotation.x=Math.PI/2+.4;loop.rotation.z=Math.PI/2-.9;loop.position.set(0,1.03,-.005);add(parts.body,loop);
+    for(const [x,z,rz] of [[-.06,.17,.25],[.07,.17,-.35]]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.007,.007,.2,6),strap);t.position.set(x+.02,.92,z);t.rotation.z=rz;t.rotation.x=.2;add(parts.body,t);}
+    const cam=new THREE.Group();cam.position.set(.07,.8,.2);cam.rotation.z=-.15;cam.rotation.x=.2;add(parts.body,cam);
+    const body=new THREE.Mesh(new THREE.BoxGeometry(.13,.08,.05),black);cam.add(body);
+    const plate=new THREE.Mesh(new THREE.BoxGeometry(.132,.026,.052),brass);plate.position.y=.03;cam.add(plate);
+    const lens=new THREE.Mesh(new THREE.CylinderGeometry(.028,.03,.04,16),black);lens.rotation.x=Math.PI/2;lens.position.set(.01,-.004,.04);cam.add(lens);
+    const lensRing=new THREE.Mesh(new THREE.TorusGeometry(.028,.005,6,16),brass);lensRing.position.set(.01,-.004,.058);cam.add(lensRing);
+    const eye=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.006,16),glass);eye.rotation.x=Math.PI/2;eye.position.set(.01,-.004,.06);cam.add(eye);
+    const knob=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.012,10),brass);knob.position.set(-.045,.05,0);cam.add(knob);
+    const flash=new THREE.Mesh(new THREE.CylinderGeometry(.018,.012,.014,10),brass);flash.position.set(.045,.05,0);cam.add(flash);
+  },
+  moneyPouch(add,parts){ // a fat coin purse on the right of the belt, cinched with a cord, a coin showing at the mouth
+    const hide=cloth('#5a3e26',{roughness:.9}),cord=cloth('#2a1e14',{roughness:.9}),gold=trimMat('#d9b14a'),g=new THREE.Group();g.position.set(.2,.55,.07);g.rotation.z=-.15;add(parts.body,g);
+    const bag=new THREE.Mesh(new THREE.SphereGeometry(.052,12,10),hide);bag.scale.set(1,1.25,.85);bag.position.y=-.03;g.add(bag);
+    const neck=new THREE.Mesh(new THREE.CylinderGeometry(.022,.034,.03,10),hide);neck.position.y=.045;g.add(neck);
+    const tie=new THREE.Mesh(new THREE.TorusGeometry(.024,.006,5,12),cord);tie.position.y=.04;tie.rotation.x=Math.PI/2;g.add(tie);
+    const coin=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.004,12),gold);coin.position.set(.004,.064,.004);coin.rotation.x=Math.PI/2-.4;g.add(coin);
+    const hang=new THREE.Mesh(new THREE.BoxGeometry(.01,.05,.01),cord);hang.position.set(.0,.08,-.02);g.add(hang);
+  },
+  dartSheath(add,parts){ // a flat leather sheath on the left hip with a row of darts, flights showing
+    const hide=cloth('#3a2a1e',{roughness:.9}),steel=new THREE.MeshStandardMaterial({color:'#b8c0c4',metalness:.8,roughness:.3}),flight=cloth('#c9a24a',{side:THREE.DoubleSide}),g=new THREE.Group();g.position.set(-.21,.5,-.02);g.rotation.y=-.5;g.rotation.z=.1;add(parts.body,g);
+    const sheath=new THREE.Mesh(new THREE.BoxGeometry(.09,.1,.028),hide);g.add(sheath);
+    for(let i=0;i<4;i++){const x=-.03+i*.02;const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.003,.004,.09,5),steel);shaft.position.set(x,.08,0);g.add(shaft);
+      const f=new THREE.Mesh(new THREE.PlaneGeometry(.018,.026),flight);f.position.set(x,.115,0);f.rotation.y=i%2?.5:-.3;g.add(f);}
+  },
+  mapTube(add,parts){ // a leather map tube slung across the back on its own strap, a scroll end poking out
+    const hide=cloth('#4a3626',{roughness:.85}),paper=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.1,.72,-.2);g.rotation.z=.9;g.rotation.x=.1;add(parts.body,g);
+    const tube=new THREE.Mesh(new THREE.CylinderGeometry(.028,.028,.42,12),hide);g.add(tube);
+    for(const y of [-.17,.17]){const cap=new THREE.Mesh(new THREE.TorusGeometry(.03,.006,5,12),trimMat('#c9a24a'));cap.position.y=y;cap.rotation.x=Math.PI/2;g.add(cap);}
+    const scroll=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.06,10),paper);scroll.position.y=.24;g.add(scroll);
+    const strap=new THREE.Mesh(new THREE.BoxGeometry(.028,.5,.01),hide);strap.position.set(-.06,.85,-.16);strap.rotation.z=.5;strap.rotation.x=.15;add(parts.body,strap);
   },
   bandageRoll(add,parts){ // a roll of linen tucked under the sash on the right, one end hanging loose
     const linen=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.12,.6,.15);g.rotation.z=.3;add(parts.body,g);

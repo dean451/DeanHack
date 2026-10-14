@@ -109,3 +109,18 @@ test('robes and tunics have shoulders the sleeves join: the cloth reaches out to
     assert.ok(widest>=.29,`${role}: the garment reaches x ${widest.toFixed(2)}, the arms hang at .3`);
   }
 });
+
+test('the Tourist is the one loud thing in the dungeon, and is named by the camera, pouch, darts and map tube',()=>{
+  const t=fakeRig();dressHero(t,{role:'Tourist',gender:'male'});
+  const added=t.kitAdded.map(a=>a.obj);
+  const colours=new Set();let flowers=0,glass=0;
+  for(const o of added)o.traverse(x=>{if(x.material?.color)colours.add(x.material.color.getHexString());if(x.geometry?.type==='CircleGeometry'&&x.material?.color?.getHexString()==='e6dcc0')flowers++;if(x.material?.emissive&&x.material.emissive.getHex()===0x2a4a5a)glass++;});
+  assert.ok(flowers>=60,`a print all round the shirt, not confetti: ${flowers} petals`);
+  assert.equal(glass,1,'one camera lens');
+  assert.ok(colours.size>=7,`tones: ${colours.size}`);
+  assert.equal(t.parts.mats.armor.color.getHexString(),'8f3a22','burnt red, not bright red');
+  const xs=added.filter(o=>o.parent===t.parts.body).map(o=>o.position.x);
+  assert.ok(xs.some(x=>x>.15)&&xs.some(x=>x<-.15),'pouch on one hip, darts on the other');
+  assert.ok(added.filter(o=>o.parent===t.parts.body).some(o=>o.position.z<-.15),'the map tube rides on the back');
+  dressHero(t,{role:'Valkyrie',gender:'male'});assert.equal(t.parts.body.children.length,0);
+});
