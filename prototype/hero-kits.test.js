@@ -175,3 +175,13 @@ test('the Rogue is black tunic and pants under a hood, with a thigh sheath and a
   assert.ok(r.parts.head.children.length>=2,'the hood');
   dressHero(r,{role:'Valkyrie',gender:'male'});assert.equal(r.parts.body.children.length,0);
 });
+
+test('the Ranger is green tunic and pants under a hood, with a quiver on the back and a bracer on the bow arm',()=>{
+  const r=fakeRig();dressHero(r,{role:'Ranger',gender:'female'});
+  assert.equal(r.parts.mats.armor.color.getHexString(),'2f4a2c','green');
+  let fletch=0;for(const {obj} of r.kitAdded)obj.traverse(x=>{if(x.geometry?.type==='PlaneGeometry')fletch++;});
+  assert.equal(fletch,5,'five fletched arrows');
+  assert.ok(r.kitAdded.some(({obj})=>obj.parent===r.parts.body&&obj.position.z<-.15),'the quiver rides on the back');
+  assert.ok(r.parts.shieldElbow.children.length>r.parts.elbow.children.length,'the bracer is on the bow arm only');
+  dressHero(r,{role:'Valkyrie',gender:'female'});assert.equal(r.parts.shieldElbow.children.length,0);
+});
