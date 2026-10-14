@@ -151,7 +151,11 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- none yet
+- **Wumpus is a toy** (https://github.com/dean451/DeanHack/pull/1479, `prototype/creatures.js`): the creature-shot render is flat teal with peg legs ringed in red and a rounded cartoon head; the snapped horn does not read at the game camera. **Done when:** a `creature-shot "wumpus"` render shows a faceted, desaturated body with tapered legs and a sculpted jaw, and the snapped horn is visible in the `game` view.
+- **Kraken is balloons** (https://github.com/dean451/DeanHack/pull/1504, `prototype/creatures.js`): the render is a smooth red egg with tube tentacles and cartoon yellow eyes; the hooked claws are invisible at the game camera. **Done when:** a `creature-shot "kraken"` render shows a faceted mantle, tapered barbed tentacles and the hooked claws visible in the `game` view.
+- **Rock mole and long worm tail are smooth lumps** (https://github.com/dean451/DeanHack/pull/1495, `prototype/creatures.js`): the render shows a smooth grey egg and a smooth purple tube; the scars, ember eyes and horn spines cannot be seen at the game camera. **Done when:** `creature-shot "rock mole"` and `"long worm tail"` renders show faceted bodies and the added marks readable in the `game` view.
+- **Frost giant is a block robot** (https://github.com/dean451/DeanHack/pull/1474, `prototype/creatures.js`): limbs are plain cylinders with ball joints and a pale toy colour; the frostbitten fingertips and buckle glow are not readable. **Done when:** a `creature-shot "frost giant"` render shows tapered, faceted limbs, hands with a thumb and four fingers, and a darker worn palette.
+- **Cockatrice looks like a plastic lizard** (https://github.com/dean451/DeanHack/pull/1451, `prototype/creatures.js`): flat yellow, stick legs, a comb like a toy; the stone-gaze eyes and wing claws do not read. **Done when:** a `creature-shot "cockatrice"` render shows a menacing, desaturated body with tapered legs and visible claws.
 
 **Models**
 
