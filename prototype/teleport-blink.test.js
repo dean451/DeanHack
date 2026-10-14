@@ -110,3 +110,54 @@ test('the arrival ring shivers as it closes but ends where it did and stays in b
   assert.ok(bumps > 3, 'the ring jitters outward at least a few times while collapsing');
   assert.ok(Math.abs(arrivePose(BLINK.arrive * .6).ring - .15) < .01, 'still lands on the square');
 });
+
+import {heroBlinkPose, heroBlinkLength, poseHeroBlink, HERO_PULL} from './teleport-blink.js';
+
+test('the hero leaves her tile in the column and is on the destination before the ring closes', () => {
+  assert.equal(heroBlinkPose(0).at, 'from');
+  assert.ok(heroBlinkPose(HERO_PULL * .9).sx < .2 && heroBlinkPose(HERO_PULL * .9).sy > 1.4, 'pulled to a wire');
+  const gone = heroBlinkPose(HERO_PULL + .01);
+  assert.equal(gone.at, 'to'); assert.ok(gone.sx < .05 && gone.sy < .05, 'invisible while she crosses');
+  assert.ok(HERO_PULL + .01 < BLINK.flash * 2 + BLINK.arrive * .6, 'on the destination before the landing flash');
+});
+
+test('the hero re-forms under the flash, stays in bounds, and ends at rest', () => {
+  for (const grand of [false, true]) {
+    const end = heroBlinkLength(grand);
+    assert.ok(end <= BLINK.flash * 2 + BLINK.arrive * (grand ? GRAND.time : 1) + 1e-9);
+    let dips = 0, prev = 0;
+    for (let t = 0; t < end; t += .002) {
+      const p = heroBlinkPose(t, grand);
+      assert.ok(p.sx >= .03 - 1e-9 && p.sx <= 1 + 1e-9 && p.sy >= .03 - 1e-9 && p.sy <= 1.6 + 1e-9, String(t));
+      if (t > HERO_PULL + .1) { if (p.sx < prev - 1e-6) dips++; prev = p.sx; }
+    }
+    assert.ok(dips > 0, 'she stutters once as she re-forms');
+    assert.equal(heroBlinkPose(end, grand), null);
+    assert.equal(heroBlinkPose(-1, grand), null);
+    assert.ok(heroBlinkPose(end - .01, grand).sx > .9, 'nearly whole at the end');
+  }
+});
+
+test('the hero model moves tile to tile with a hop and is restored when it ends or is interrupted', () => {
+  const THREE = new Proxy({}, {get: (_, k) => k === 'DoubleSide' ? 2 : class { constructor() { this.position = {set() {}}; this.scale = {set() {}, setScalar() {}}; this.rotation = {}; this.material = {}; this.visible = true; this.children = []; } add() {} dispose() {} }});
+  const parent = {add() {}, remove() {}};
+  const mkHero = () => ({g: {position: {x: 1, z: 2}, scale: {x: 1, y: 1, z: 1, set(x, y, z) { this.x = x; this.y = y; this.z = z; }}}});
+  const run = (cut) => {
+    const fx = createTeleportBlink(THREE, parent), hero = mkHero(), xs = [];
+    fx.hop({x: 1, z: 2}, {x: 8, z: 9});
+    for (let t = 0; t < heroBlinkLength() + .1; t += 1 / 60) {
+      if (cut && t > cut) { fx.levelChanged(0, 0); }
+      fx.update(1 / 60);
+      const h = fx.heroPose(); poseHeroBlink(hero, h?.pose, h?.from, h?.to); xs.push(hero.g.position.x);
+    }
+    return {hero, xs};
+  };
+  const full = run();
+  assert.ok(full.xs.includes(1) && full.xs.includes(8), 'leaves the start tile and lands on the destination');
+  assert.equal(full.xs.at(-1), 8);
+  assert.deepEqual([full.hero.g.scale.x, full.hero.g.scale.y, full.hero.g.scale.z], [1, 1, 1], 'whole again');
+  const cut = run(.2);
+  assert.deepEqual([cut.hero.g.scale.x, cut.hero.g.scale.y, cut.hero.g.scale.z], [1, 1, 1], 'an interrupted blink leaves her at rest');
+  const fx = createTeleportBlink(THREE, parent); fx.hop({x: 0, z: 0}, {x: 3, z: 3}); fx.clear();
+  assert.equal(fx.heroPose(), null);
+});
