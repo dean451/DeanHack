@@ -75,3 +75,37 @@ test('the live game dresses the hero from the engine frame, and the rig exposes 
   const line=main.split('\n').find(l=>l.startsWith(' const parts={chest'));assert.ok(line,'knight() builds its parts object');
   for(const part of ['chest','belt','pauldrons','tassets','mantles','cape','hairParts','mats','head','body','arm','elbow','shieldArm','shieldElbow'])assert.ok(new RegExp(`[{,]${part}[,:}]`).test(line),`knight() exposes ${part}`);
 });
+
+test('the Healer is told by what she carries: stethoscope, satchel, scalpel sheath and bandage, over a grimed, stained robe',()=>{
+  const h=fakeRig();dressHero(h,{role:'Healer',gender:'female'});
+  const added=h.kitAdded.map(a=>a.obj);
+  const names=new Set();for(const o of added)o.traverse(x=>{if(x.geometry)names.add(x.geometry.type);});
+  assert.ok(names.has('TorusGeometry'),'the stethoscope loop and sash');assert.ok(names.has('CircleGeometry'),'blood spatter discs');assert.ok(names.has('PlaneGeometry'),'the apron panel');
+  const colours=new Set();for(const o of added)o.traverse(x=>{if(x.material?.color)colours.add(x.material.color.getHexString());});
+  assert.ok(colours.size>=6,`a healer is not one flat colour: ${colours.size} tones`);
+  assert.equal(h.parts.mats.armor.color.getHexString(),'b8a276','warm bone linen, not mint');
+  const bodyKids=h.parts.body.children.length;
+  const c=fakeRig();dressHero(c,{role:'Convict',gender:'female'});
+  assert.ok(bodyKids>c.parts.body.children.length+8,'the Healer carries far more than a plain tunic class');
+  // props hang off one side: something sits left of the body's axis and something right
+  const xs=added.filter(o=>o.parent===h.parts.body).map(o=>o.position.x);
+  assert.ok(xs.some(x=>x<-.2)&&xs.some(x=>x>.1),'satchel on one hip, sheath on the other');
+  dressHero(h,{role:'Valkyrie',gender:'female'});
+  assert.equal(h.parts.body.children.length,0,'everything the Healer wore comes off');
+});
+
+test('the kit sheet holds each class\'s starting weapon',async()=>{
+  const {KIT_WEAPONS}=await import('./hero-kits.js');
+  for(const r of KIT_ROLES)assert.ok(r in KIT_WEAPONS,r+' has a starting weapon entry');
+  assert.equal(KIT_WEAPONS.Healer,'scalpel');assert.equal(KIT_WEAPONS.Monk,null,'a monk fights bare-handed');
+  const tool=readFileSync(new URL('./tools/kit-shots.mjs',import.meta.url),'utf8');
+  assert.match(tool,/KIT_WEAPONS/);
+});
+
+test('robes and tunics have shoulders the sleeves join: the cloth reaches out to where the arms hang',()=>{
+  for(const role of ['Healer','Convict','Priest','Caveman']){
+    const h=fakeRig();dressHero(h,{role,gender:'female'});
+    let widest=0;for(const {obj} of h.kitAdded)if(obj.parent===h.parts.body&&obj.geometry?.type==='LatheGeometry'){obj.geometry.computeBoundingBox();widest=Math.max(widest,obj.geometry.boundingBox.max.x);}
+    assert.ok(widest>=.29,`${role}: the garment reaches x ${widest.toFixed(2)}, the arms hang at .3`);
+  }
+});

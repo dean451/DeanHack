@@ -62,8 +62,14 @@ export const KITS={
     show:{chest:false,pauldrons:false,tassets:false,mantles:false},outfit:{kind:'tunic',color:'#4f6444',trim:'#6a5a3a',length:.42,sleeves:true,sleeveWide:.068},hat:'hood',hair:{male:'short',female:'tied'},
   },
   Healer:{
-    palette:{armor:'#cfd6c8',armorLight:'#e6ebde',leather:'#5a4636',accent:'#b8a35a',boots:'#4a3c2c',capeCloth:'#cfd6c8',hair:['#4a3a2c','#68523c','#866c4c']},
-    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},outfit:{kind:'robe',color:'#cfd6c8',trim:'#6a8a70',length:1,sleeves:true,sleeveWide:.11,sash:'#6a8a70'},hat:'mirror',hair:{male:'short',female:'tied'},
+    // Bone linen gone grey in the dungeon, not mint (the scene light is teal, so the cloth is warm to
+    // read as cloth): a dirty hem, a stained apron front, blood at the rolled cuffs, an oxblood sash.
+    // The stethoscope round the neck, the satchel on the hip and the scalpel at the belt say "healer"
+    // before the head mirror does.
+    palette:{armor:'#b8a276',armorLight:'#d0bc92',leather:'#4a3a2c',accent:'#8a6a3a',boots:'#3a2e22',capeCloth:'#ad9c7a',hair:['#4a3a2c','#68523c','#866c4c']},
+    show:{chest:false,pauldrons:false,tassets:false,cape:false,mantles:false},
+    outfit:{kind:'robe',color:'#c4ad7e',trim:'#5a1e1a',length:1,sleeves:true,sleeveWide:.078,sash:'#5a1e1a',hem:'#4a4034',apron:{color:'#8c8066',stains:'#4a1512'},cuffStains:'#4a1512'},
+    props:['stethoscope','satchel','scalpelSheath','bandageRoll'],hat:'mirror',hair:{male:'short',female:'tied'},
   },
   Monk:{
     palette:{armor:'#b79b62',armorLight:'#d4be86',leather:'#3a2c20',accent:'#8a2a22',boots:'#2c2218',capeCloth:'#b79b62',hair:['#222','#333','#444']},
@@ -79,6 +85,9 @@ export const KITS={
   },
 };
 export const KIT_ROLES=Object.keys(KITS);
+// What each class starts the game holding, for the kit sheet (tools/kit-shots.mjs); the live game
+// holds whatever the frame says.
+export const KIT_WEAPONS={Valkyrie:'long sword',Knight:'long sword',Samurai:'katana',Barbarian:'two-handed sword',Caveman:'club',Convict:'rubber hose',Archeologist:'pick-axe',Tourist:'dart',Rogue:'short sword',Ranger:'dagger',Healer:'scalpel',Monk:null,Priest:'mace',Wizard:'quarterstaff'};
 
 const SHOW_DEFAULT={chest:true,belt:true,pauldrons:true,tassets:true,mantles:true,cape:true};
 
@@ -86,23 +95,31 @@ const SHOW_DEFAULT={chest:true,belt:true,pauldrons:true,tassets:true,mantles:tru
 
 function robe(add,parts,o){
   const m=cloth(o.color),t=trimMat(o.trim),len=o.length??1;
-  const full=[[.265,.07],[.245,.2],[.2,.4],[.16,.56],[.14,.66],[.152,.8],[.185,.93],[.17,1.02],[.118,1.07]];
+  // ...rising to real shoulders at y .93: the arms hang at x ±.3, and the sleeves join the yoke.
+  const full=[[.265,.07],[.245,.2],[.2,.4],[.16,.56],[.14,.66],[.152,.8],[.25,.88],[.305,.93],[.27,.99],[.17,1.03],[.118,1.07]];
   const hemY=.07+(1-len)*.62;                                  // shorter garments start higher
   const prof=full.filter(([,y])=>y>hemY+.01);prof.unshift([hemY<.07?.265:.2+len*.065,hemY]);
   const body=new THREE.Mesh(fold(new THREE.LatheGeometry(prof.map(([r,y])=>new THREE.Vector2(r,y)),42,0,Math.PI*2),7,.035),m);body.scale.z=.8;add(parts.body,body);
   ring(prof[0][0],.014,t,parts.body,0,hemY+.012,0,1,.8);                // hem
-  if(o.sash){const s=trimMat(o.sash);ring(.147,.022,s,parts.body,0,.61,0,1,.82);
-    for(const [x,h] of [[.035,.2],[.075,.15]]){const e=new THREE.Mesh(new THREE.BoxGeometry(.04,h,.014),s);e.position.set(x,.61-h/2,.122);e.rotation.z=x*1.4;add(parts.body,e);}}
-  if(o.collar)ring(.125,.02,cloth(o.collar),parts.body,0,1.06,.01,1,.9);
-  else ring(.122,.017,t,parts.body,0,1.065,.012,1,.9);
-  if(o.stars)for(const [x,y] of [[-.09,.3],[.1,.24],[-.12,.52],[.06,.46],[.0,.18]]){const st=new THREE.Mesh(new THREE.OctahedronGeometry(.016),trimMat(o.stars));st.position.set(x,y,Math.sqrt(Math.max(0,.2*.2-x*x))*.78+.012);st.scale.z=.4;add(parts.body,st);}
+  if(o.hem){ // the lowest hand of the robe has dragged through the dungeon: a darker band, ragged at the top
+    const dirt=cloth(o.hem,{polygonOffset:true,polygonOffsetFactor:-1});
+    const band=new THREE.Mesh(fold(new THREE.LatheGeometry([new THREE.Vector2(prof[0][0]+.004,hemY),new THREE.Vector2(prof[0][0]-.004,hemY+.09),new THREE.Vector2(prof[1][0]+.002,hemY+.15)],42,0,Math.PI*2),9,.03),dirt);band.scale.z=.8;add(parts.body,band);
+  }
+  if(o.apron){ // a bib apron tied at the sash, narrower at the chest, spattered and streaked where the work lands
+    const a=cloth(o.apron.color,{polygonOffset:true,polygonOffsetFactor:-2});
+    const panel=new THREE.Mesh(new THREE.PlaneGeometry(.23,.5,2,8),a);panel.position.set(.01,.42,.2);panel.rotation.x=-.08;panel.rotation.z=.03;add(parts.body,panel);
+    const pos=panel.geometry.attributes.position;for(let i=0;i<pos.count;i++){const y=pos.getY(i),k=1-Math.max(0,y+.05)*.9;pos.setX(i,pos.getX(i)*k);pos.setZ(i,pos.getZ(i)+Math.sin(y*14+pos.getX(i)*9)*.008);}pos.needsUpdate=true;panel.geometry.computeVertexNormals();
+    const st=cloth(o.apron.stains||'#4a1512',{polygonOffset:true,polygonOffsetFactor:-3});
+    for(const [x,y,r,sx,sy,rot] of [[-.04,.5,.026,1.6,.8,.5],[.05,.33,.036,1.3,1,-.3],[-.06,.3,.018,.9,1.3,.2],[.02,.21,.014,1,1,0]]){const d=new THREE.Mesh(new THREE.CircleGeometry(r,9),st);d.position.set(x,y,.214);d.scale.set(sx,sy,1);d.rotation.z=rot;add(parts.body,d);}
+    const drip=new THREE.Mesh(new THREE.PlaneGeometry(.012,.09),st);drip.position.set(.04,.27,.214);drip.rotation.z=.06;add(parts.body,drip);
+  }
   sleeves(add,parts,o,m,t);
 }
 
 // A tunic: shorter than a robe, over visible legs, with a belt.
 function tunic(add,parts,o){
   const m=cloth(o.color),t=trimMat(o.trim),hemY=.62-(o.length??.4)*.62+.04;
-  const prof=[[.205,hemY],[.19,hemY+.1],[.155,.58],[.14,.66],[.152,.8],[.185,.93],[.17,1.02],[.118,1.07]].filter(([,y],i)=>i===0||y>hemY+.1);
+  const prof=[[.205,hemY],[.19,hemY+.1],[.155,.58],[.14,.66],[.152,.8],[.25,.88],[.305,.93],[.27,.99],[.17,1.03],[.118,1.07]].filter(([,y],i)=>i===0||y>hemY+.1);
   const body=new THREE.Mesh(fold(new THREE.LatheGeometry(prof.map(([r,y])=>new THREE.Vector2(r,y)),36),6,.02),m);body.scale.z=.8;add(parts.body,body);
   if(o.fur){ // a ragged fur hem and shoulder line
     const fur=cloth(o.trim,{roughness:1});
@@ -122,6 +139,10 @@ function sleeves(add,parts,o,m,t){
     const upper=new THREE.Mesh(new THREE.CylinderGeometry(.07,.082,.27,16,1,true),m);upper.position.set(0,-.125,0);add(arm,upper);
     const lower=new THREE.Mesh(new THREE.CylinderGeometry(.08,wide,.25,16,1,true),m);lower.position.set(0,-.12,0);add(elbow,lower);
     ring(wide,.011,t,elbow,0,-.245,0,1,1);
+    if(o.cuffStains){ // blood soaked up the cuff, more on the working hand
+      const st=cloth(o.cuffStains,{polygonOffset:true,polygonOffsetFactor:-1}),n=arm===parts.arm?4:2;
+      for(let i=0;i<n;i++){const a=i/n*Math.PI*2+.4,d=new THREE.Mesh(new THREE.CircleGeometry(.014+(i%2)*.008,6),st);d.position.set(Math.sin(a)*(wide+.002),-.225+(i%3)*.012,Math.cos(a)*(wide+.002));d.lookAt(d.position.clone().multiplyScalar(2));add(elbow,d);}
+    }
   }
 }
 
@@ -173,8 +194,42 @@ const HATS={
       });
     }
   },
-  mirror(add,parts){ const band=new THREE.Mesh(new THREE.TorusGeometry(.2,.012,6,28),trimMat('#8a8a82'));band.position.set(0,.1,0);band.rotation.x=Math.PI/2-.15;add(parts.head,band);
-    const disc=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.01,18),new THREE.MeshStandardMaterial({color:'#dfe6e8',metalness:.95,roughness:.12}));disc.position.set(0,.14,.19);disc.rotation.x=Math.PI/2-.35;add(parts.head,disc);},
+  mirror(add,parts){ // a doctor's head mirror: a brass band and a polished disc over the brow, tipped up
+    const band=new THREE.Mesh(new THREE.TorusGeometry(.2,.013,6,28),trimMat('#8a6a3a'));band.position.set(0,.1,0);band.rotation.x=Math.PI/2-.15;add(parts.head,band);
+    const disc=new THREE.Mesh(new THREE.CylinderGeometry(.058,.058,.012,20),new THREE.MeshStandardMaterial({color:'#eef3f4',metalness:.9,roughness:.1,emissive:'#9fb8bd',emissiveIntensity:.35}));disc.position.set(0,.16,.2);disc.rotation.x=Math.PI/2-.4;add(parts.head,disc);
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(.058,.007,6,20),trimMat('#8a6a3a'));rim.position.set(0,.16,.2);rim.rotation.x=-.4;add(parts.head,rim);},
+};
+
+// Props a class carries that name it from across the room. Each adds under the rig's body or head.
+const PROPS={
+  stethoscope(add,parts){ // a dark rubber loop round the neck, both tubes down the front to a brass chest-piece
+    const rubber=cloth('#2a2420',{roughness:.7}),brass=trimMat('#b08a3c'),g=new THREE.Group();g.position.set(0,1.0,0);add(parts.body,g);
+    const loop=new THREE.Mesh(new THREE.TorusGeometry(.132,.012,6,26,Math.PI*1.5),rubber);loop.rotation.x=Math.PI/2+.3;loop.rotation.z=Math.PI/2-.78;loop.position.set(0,.03,-.01);g.add(loop);
+    for(const x of [-.045,.035]){const tube=new THREE.Mesh(new THREE.CylinderGeometry(.009,.009,.2,6),rubber);tube.position.set(x,-.085,.15);tube.rotation.z=-x*1.2;tube.rotation.x=.18;g.add(tube);}
+    const y=new THREE.Mesh(new THREE.CylinderGeometry(.009,.009,.07,6),rubber);y.position.set(-.004,-.215,.185);y.rotation.x=.14;g.add(y);
+    const piece=new THREE.Mesh(new THREE.CylinderGeometry(.032,.036,.018,14),brass);piece.position.set(-.004,-.26,.2);piece.rotation.x=Math.PI/2-.2;g.add(piece);
+    const bell=new THREE.Mesh(new THREE.CylinderGeometry(.018,.032,.012,14),brass);bell.position.set(-.004,-.26,.188);bell.rotation.x=Math.PI/2-.2;g.add(bell);
+  },
+  satchel(add,parts){ // a worn leather bag on the left hip, its strap across the chest from the right shoulder
+    const hide=cloth('#4a3626',{roughness:.85}),dark=cloth('#2e2016',{roughness:.9}),brass=trimMat('#8a6a3a');
+    const strap=new THREE.Mesh(new THREE.BoxGeometry(.032,.62,.012),hide);strap.position.set(-.03,.78,.19);strap.rotation.z=-.56;strap.rotation.x=-.1;add(parts.body,strap);
+    const strapBack=new THREE.Mesh(new THREE.BoxGeometry(.032,.6,.012),hide);strapBack.position.set(-.03,.78,-.17);strapBack.rotation.z=.56;strapBack.rotation.x=.1;add(parts.body,strapBack);
+    const bag=new THREE.Group();bag.position.set(-.235,.5,.02);bag.rotation.z=.12;bag.rotation.y=.2;add(parts.body,bag);
+    const body=new THREE.Mesh(new THREE.BoxGeometry(.075,.17,.19),hide);body.position.y=-.02;bag.add(body);
+    const flap=new THREE.Mesh(new THREE.BoxGeometry(.085,.1,.2),dark);flap.position.set(-.006,.045,0);flap.rotation.z=-.06;bag.add(flap);
+    const buckle=new THREE.Mesh(new THREE.BoxGeometry(.012,.03,.03),brass);buckle.position.set(-.05,.0,.02);bag.add(buckle);
+    const scuff=new THREE.Mesh(new THREE.CircleGeometry(.024,6),cloth('#6a5238',{polygonOffset:true,polygonOffsetFactor:-1}));scuff.position.set(-.039,-.07,-.04);scuff.rotation.y=-Math.PI/2;scuff.scale.y=.6;bag.add(scuff);
+  },
+  scalpelSheath(add,parts){ // a slim leather sheath on the right of the belt, the steel handle showing
+    const hide=cloth('#2e2016',{roughness:.9}),steel=new THREE.MeshStandardMaterial({color:'#c8d0d4',metalness:.85,roughness:.25});
+    const sheath=new THREE.Mesh(new THREE.BoxGeometry(.028,.13,.04),hide);sheath.position.set(.2,.52,.1);sheath.rotation.z=-.2;sheath.rotation.y=.4;add(parts.body,sheath);
+    const handle=new THREE.Mesh(new THREE.CylinderGeometry(.006,.008,.07,8),steel);handle.position.set(.215,.615,.115);handle.rotation.z=-.2;add(parts.body,handle);
+  },
+  bandageRoll(add,parts){ // a roll of linen tucked under the sash on the right, one end hanging loose
+    const linen=cloth('#d6cdb8',{roughness:1}),g=new THREE.Group();g.position.set(.12,.6,.15);g.rotation.z=.3;add(parts.body,g);
+    const roll=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.07,12),linen);roll.rotation.x=Math.PI/2;g.add(roll);
+    const tail=new THREE.Mesh(new THREE.BoxGeometry(.04,.1,.006),linen);tail.position.set(.01,-.07,.03);tail.rotation.z=.25;g.add(tail);
+  },
 };
 
 function beard(add,parts,color){
@@ -210,6 +265,7 @@ export function dressHero(hero,{role='Valkyrie',gender='female'}={}){
   if(kit.outfit){const o={...kit.outfit};if(o.kind==='robe')robe(add,parts,o);else if(o.kind==='tabard')tabard(add,parts,o);else tunic(add,parts,o);}
   if(kit.hat)HATS[kit.hat]?.(add,parts,{color:kit.outfit?.color||'#333',hatColor:pal.capeCloth,trim:kit.outfit?.trim||'#999'});
   if(kit.beard?.[gender])beard(add,parts,kit.beard[gender]);
+  for(const prop of kit.props||[])PROPS[prop]?.(add,parts);
   hero.kitAdded=anchors.flatMap((parent,i)=>parent.children.filter(obj=>!before[i].has(obj)).map(obj=>({obj,parent})));
   return true;
 }
