@@ -151,7 +151,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Long worm tail is a bright magenta pipe** (https://github.com/dean451/DeanHack/pull/1532, `prototype/creatures.js`): the render is a saturated pink-purple tube with thin hoop bands that stand clear of the body, which reads as a plumbing pipe, not a worm. **Done when:** `creature-shot "long worm tail"` game view shows a desaturated, darker body with segment ridges sitting on the surface (assert `surfaceGap` of each band is small) and the pink gone.
 - **Pack row glow breaks blessed-is-green** (https://github.com/dean451/DeanHack/pull/1540, `prototype/style.css`): `glow-blessed` flashes pale blue and `glow-cursed` dark purple on the row, while the same rows mark blessed gold and cursed red, so one item shows two colour codes. **Done when:** a test asserts the `glow-blessed` keyframes use the green of the blessed convention and `glow-cursed` the red of the cursed one, matching `buc-*` rows.
 
 **Models**
