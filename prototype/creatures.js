@@ -1815,13 +1815,22 @@ function ogre(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
  const skin=mat(o.skin,{roughness:.82}),dark=mat(shade(o.skin,.72),{roughness:.9}),hide=mat(o.hide||'#6a4a2c',{roughness:.97}),hair=mat(o.hair||'#1e1812',{roughness:1}),tusk=mat('#e6dcbc',{roughness:.5}),wood=mat('#553a22',{roughness:.88});
  const metal=o.metal?mat(o.metal,{roughness:.35,metalness:.7}):null;
- for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.34,0);body.add(leg);rounded(leg,.15,.22,.15,skin,0,-.1,0,.06);rounded(leg,.13,.12,.14,skin,0,-.25,.01,.05);rounded(leg,.17,.06,.22,dark,0,-.31,.05,.025);legs.push(leg);}
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.34,0);body.add(leg);
+  if(o.faceted){// ogre lords: six-sided tapered legs ending in a wedge boot with a kicked-up toe, no capsules
+   cylinder(leg,.085,.065,.22,skin,0,-.1,0,6);cylinder(leg,.065,.07,.14,skin,0,-.25,.01,6);cone(leg,.085,.2,dark,0,-.25,.07,5).rotation.x=Math.PI/2;}
+  else{rounded(leg,.15,.22,.15,skin,0,-.1,0,.06);rounded(leg,.13,.12,.14,skin,0,-.25,.01,.05);rounded(leg,.17,.06,.22,dark,0,-.31,.05,.025);}legs.push(leg);}
  cylinder(body,.22,.26,.2,hide,0,.38,0,9);rounded(body,.46,.05,.3,M.leather,0,.47,0,.02);
+ if(o.faceted){// a slumped, slab-sided gut and chest cut from flat planes instead of a ball and a block
+  const fl=mat(o.skin,{roughness:.9,flatShading:true});part(body,new THREE.SphereGeometry(.25,6,4),fl,0,.64,.03).scale.set(1.1,.95,.95);part(body,new THREE.SphereGeometry(.17,6,4),mat(shade(o.skin,1.1),{roughness:.85,flatShading:true}),0,.58,.12).scale.set(1,.8,.6);sphere(body,.016,dark,0,.6,.23);
+  part(body,new THREE.CylinderGeometry(.27,.2,.22,6),fl,0,.86,-.01).scale.z=.7;}
+ else{
  sphere(body,.25,skin,0,.64,.03,1.15,1,1);sphere(body,.17,mat(shade(o.skin,1.12),{roughness:.8}),0,.6,.13,1.05,.95,.6);sphere(body,.016,dark,0,.6,.23);
- rounded(body,.48,.2,.3,skin,0,.86,-.01,.09);
+ rounded(body,.48,.2,.3,skin,0,.86,-.01,.09);}
  for(const side of [-1,1]){if(metal){const pad=sphere(body,.11,metal,side*.24,.92,0,1.1,.6,1.1);pad.rotation.z=side*.35;}else sphere(body,.1,skin,side*.23,.9,0,1,.85,1);}
  if(o.mantle){sphere(body,.24,mat(o.mantle,{roughness:1}),0,.93,-.04,1.25,.42,1.05);rounded(body,.44,.4,.04,mat(o.cape||'#6a1f24',{roughness:.9}),0,.66,-.2,.02);}
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.29,.9,.02);body.add(arm);rounded(arm,.13,.24,.13,skin,0,-.12,0,.05);rounded(arm,.12,.22,.12,skin,0,-.33,.02,.045);sphere(arm,.08,dark,0,-.47,.03,1.1,.9,1.1);arm.rotation.z=side*.12;arm.rotation.x=side>0?-.4:-.1;}
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.29,.9,.02);body.add(arm);
+  if(o.faceted){cylinder(arm,.075,.06,.24,skin,0,-.12,0,6);cylinder(arm,.06,.075,.22,skin,0,-.33,.02,6);part(arm,new THREE.SphereGeometry(.08,5,4),mat(shade(o.skin,.72),{roughness:.9,flatShading:true}),0,-.47,.03).scale.set(1.1,.9,1.1);}
+  else{rounded(arm,.13,.24,.13,skin,0,-.12,0,.05);rounded(arm,.12,.22,.12,skin,0,-.33,.02,.045);sphere(arm,.08,dark,0,-.47,.03,1.1,.9,1.1);}arm.rotation.z=side*.12;arm.rotation.x=side>0?-.4:-.1;}
  const head=new THREE.Group();head.position.set(0,1.02,.07);body.add(head);
  sphere(head,.13,skin,0,0,0,1.1,.95,1);rounded(head,.22,.045,.07,dark,0,.045,.09,.02);sphere(head,.035,dark,0,-.005,.13,1.1,.9,1);
  sphere(head,.1,skin,0,-.08,.05,1.2,.65,1.05);for(const side of [-1,1]){const t=cone(head,.016,side<0?.04:.07,tusk,side*.055,side<0?-.07:-.06,.13,5);t.rotation.x=-.15;sphere(head,.035,skin,side*.14,.0,-.01,.5,.9,.8);}
@@ -1839,7 +1848,7 @@ function ogre(o){
  for(let i=0;i<(o.bigClub?5:3);i++){const a=i*2.1,nail=cone(body,.016,.05,metal||M.darkSteel,.33+Math.cos(a)*.07,.56+(i%2)*.04,.29+Math.sin(a)*.03,4);nail.rotation.set(.55+Math.sin(a),0,Math.cos(a));}
  return trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head}));
 }
-const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#8a6a48',hide:'#4a3a2a',metal:'#a0703a',scars:true,scale:1.15},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,scars:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.32}};
+const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#6a5038',hide:'#3a2c20',metal:'#7a5430',scars:true,faceted:true,scale:1.15},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,scars:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.32}};
 
 // Generic guardian, kept as the last resort but tinted by the monster's glyph colour.
 // Liches: a gaunt, robed skeleton with a bare skull, burning eye sockets and a staff topped by a glowing orb.
