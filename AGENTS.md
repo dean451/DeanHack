@@ -12,7 +12,7 @@ Do not retune `LIVE_AMBIENT`, `TORCH_INTENSITY`, or lantern lighting without doc
 
 The user's Live game runs from the play copy. Never send input to it for testing. Use the worktree's own engine, or `prototype/engine/smoke.py` and its separate character.
 
-Merge one branch at a time. After a merge, update the working branch from `origin/master` before beginning another task. Before a session ends, list its open `claude/*` PRs and confirm each is still mergeable: the routines squash-merge to `master` every hour and every merge touches `prototype/package.json`, so a PR left waiting conflicts within the hour and auto-merge gives up without a word (the level-2 shop PR sat six hours this way on 2026-10-11). Merged branches are swept with `prototype/tools/sweep-branches.sh --delete` (run locally with `gh`; a cloud session cannot delete refs), and the repository setting "Automatically delete head branches" keeps new ones from piling up.
+Merge one branch at a time. After a merge, update the working branch from `origin/master` before beginning another task. Before a session ends, list its open `claude/*` PRs and confirm each is still mergeable: the routines squash-merge to `master` on their schedule and most merges touch `AGENTS.md`, so a PR left waiting can conflict before long and auto-merge gives up without a word (the level-2 shop PR sat six hours this way on 2026-10-11). Merged branches are swept with `prototype/tools/sweep-branches.sh --delete` (run locally with `gh`; a cloud session cannot delete refs), and the repository setting "Automatically delete head branches" keeps new ones from piling up.
 
 **Cloud sessions** (claude.ai/code) run in their own checkout with no access to the play copy, so they cannot read or append the handoff log and have no `gh`: for them the PR body is the handoff entry (files changed, checks run, open concerns), and auto-merge is set through the GitHub tools. Say in the PR body that it was a cloud session.
 
@@ -83,8 +83,8 @@ Claude sessions with the user add lines here from the user's direct feedback (ma
 - The live hero is `knight()` in `main.js`; `valkyrie.js` is a monster. Find which factory the live game actually calls (`creatureFactory`, `live.js`) before editing a model.
 - Colours passed to sculpt helpers must be hex, not arrays, or the result renders white.
 - Adding glow, rune or skull meshes changes draw counts and bounds; update the draw-count and bounds tests on purpose, never loosen them.
-- `prototype/package.json` lists tests explicitly. On conflict keep every test file from both sides.
-- A PR you leave open conflicts within the hour (every routine merge edits `package.json`); re-merge `master` and check auto-merge before you stop.
+- `prototype/package.json` runs tests by glob (`*.test.js`, `engine/*.test.js`): a new test file is picked up by itself, nothing to register, nothing to conflict on. A test file that is never meant to run has no place in those folders.
+- A PR you leave open can conflict with the next merge (AGENTS.md most often); re-merge `master` and check auto-merge before you stop.
 - *user* Small and safe is not the same as valuable: days of scars and 25 PRs on the cat added little and left the collar floating. Take a listed item toward its Done when, or open no PR.
 
 ### No audio
