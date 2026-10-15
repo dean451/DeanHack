@@ -103,7 +103,7 @@ Anything with a warning level of 4 or above, and every demon, demon lord, demon 
 
 ### Performance
 
-Many routines add glows, motes, decals and effects, so keep a busy level smooth. Reuse geometry and materials, cap particle and decal counts, prefer cheap emissive materials to extra lights, and never add a per-frame cost that scales with everything on the map. Stay inside the budgets `perf-budget.test.js` checks (meshes and materials per monster model and per screenful of 30, no lights or particle layers on models, floor items and terrain capped too); raise a cap only with a reason in the PR body.
+Many routines add glows, motes, decals and effects, so keep a busy level smooth. Reuse geometry and materials, cap particle and decal counts, prefer cheap emissive materials to extra lights, and never add a per-frame cost that scales with everything on the map. The frame itself is paced by `quality.js` (2026-10-15): three tiers (high, balanced, low) set the pixel-ratio cap, SSAO, shadow size and the idle frame rate (30 fps after 2.5 s with no input, engine event or camera move); balanced is the default, F8 cycles and saves, `?quality=` overrides. Anything animated must look right at 30 fps too. Stay inside the budgets `perf-budget.test.js` checks (meshes and materials per monster model and per screenful of 30, no lights or particle layers on models, floor items and terrain capped too); raise a cap only with a reason in the PR body.
 
 ### Roadmap (for Claude sessions; the routines do not take items from here)
 

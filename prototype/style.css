@@ -260,3 +260,5 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 @keyframes glow-cursed{0%,22%,55%{text-shadow:0 0 10px #9a2014}11%,33%,77%{text-shadow:0 0 2px #3a0c08}100%{text-shadow:none}}
 @keyframes glow-lifted{0%{text-shadow:0 0 10px #d89a2c}40%{text-shadow:0 0 4px #d89a2c}100%{text-shadow:none}}
 @media(prefers-reduced-motion:reduce){.engine-menu-row.glow-blessed,.engine-menu-row.glow-cursed,.engine-menu-row.glow-lifted{animation:none}}
+/* the F8 quality toast (quality.js) */
+.quality-toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:6;padding:7px 14px;font:12px Inter,system-ui,sans-serif;letter-spacing:.08em;color:#d6d9c9;background:#05080ad8;border:1px solid #6b7f8a66;border-radius:3px;pointer-events:none}.quality-toast[hidden]{display:none}

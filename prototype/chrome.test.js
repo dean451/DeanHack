@@ -107,10 +107,13 @@ test('blessed items read green in the pack, the sun mark stays, and cursed stays
   assert.match(read('./item-buc.js'), /blessed: '☼'/);
 });
 
-test('nothing draws behind the splash: the loop returns while it is open, no backdrop blur, 1x pixels on a weak machine',()=>{
+test('nothing draws behind the splash: the loop returns while it is open, no backdrop blur, the pixel ratio and pace follow the quality tier',()=>{
   const main=readFileSync(new URL('./main.js',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
   assert.match(main,/setAnimationLoop\(ms=>\{if\(document\.body\.classList\.contains\('start-open'\)\)return;/);
   assert.match(css,/#start-screen,#start-cover\{position:fixed;inset:0;z-index:60;padding:0;background:radial-gradient\(ellipse at 50% 42%,#050a0c 0%,#030609 62%,#020405 100%\)/,'the splash is opaque: no alpha in its gradient');
-  assert.match(main,/setPixelRatio\(\(navigator\.hardwareConcurrency\|\|8\)<=4\?1:Math\.min\(devicePixelRatio,2\)\)/);
+  assert.match(main,/renderer\.setPixelRatio\(pixelRatioFor\(quality\.tier,devicePixelRatio\)\)/,'the pixel ratio comes from the quality tier');
+  assert.match(main,/if\(!pacer\.shouldDraw\(ms,quality\.tier\)\)return;/,'the loop is paced: every frame while active, the idle rate after');
+  assert.match(main,/e\.key==='F8'/,'F8 cycles the tier');
+  assert.match(main,/onActivity:touch/,'engine events keep the frame rate up');
   assert.doesNotMatch(css,/#start-screen,#start-cover\{[^}]*backdrop-filter/,'the splash does not blur the whole viewport');
 });
