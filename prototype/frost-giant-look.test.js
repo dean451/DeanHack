@@ -18,3 +18,10 @@ test('frost giant geometry stays inside the draw budget', () => {
   let meshes = 0;make('frost giant').g.traverse(o => {if (o.isMesh) meshes++;});
   assert(meshes < 40, 'merged: ' + meshes);
 });
+
+test('frost giants are faceted: flat-shaded head, chest and hood, fewer rounded blocks', () => {
+  const c = make('frost giant');
+  let flat = 0, round = 0;c.g.traverse(o => {if (o.isMesh) {if (o.material.flatShading) flat++;if (o.geometry.type === 'RoundedBoxGeometry') round++;}});
+  assert(flat >= 3, 'flat-shaded skull, chest and hood: ' + flat);
+  assert(round <= 14, 'rounded boxes: ' + round);
+});
