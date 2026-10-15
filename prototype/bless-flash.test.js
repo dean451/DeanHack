@@ -119,3 +119,21 @@ test('a blessed ring sighs inward as it lets go', () => {
   assert.ok(r(.99) < r(.8) - .02);
   assert.ok(r(.99) > .3);
 });
+
+test('a glow message names its item and the pack row holding it flashes', async () => {
+  const {glowItem, rowHoldsItem, createGlowLog, GLOW_MEMORY_MS} = await import('./bless-flash.js');
+  assert.equal(glowItem('Your long sword softly glows light blue.'), 'long sword');
+  assert.equal(glowItem('Your pack softly glows amber.'), 'pack');
+  assert.equal(glowItem('Your dagger glows silver for a moment.'), null);
+  assert.ok(rowHoldsItem('a - a blessed +1 dagger (weapon in hand)', 'dagger'));
+  assert.ok(rowHoldsItem('b - 3 daggers', 'dagger') && rowHoldsItem('b - a dagger', 'daggers'));
+  assert.ok(!rowHoldsItem('c - a long sword', 'dagger'));
+  const log = createGlowLog();
+  assert.equal(log.note('Your dagger softly glows light blue.', 1000), 'blessed');
+  assert.equal(log.kindFor('a - a dagger', 2000), 'blessed');
+  assert.equal(log.kindFor('c - a long sword', 2000), null, 'only the named item flashes, not the rest of the pack');
+  assert.equal(log.kindFor('a - a dagger', 1000 + GLOW_MEMORY_MS + 1), null, 'the flash is spent');
+  log.note('Your pack softly glows amber.', 5000);
+  assert.equal(log.kindFor('c - a long sword', 5001), 'lifted');
+  log.clear(); assert.equal(log.kindFor('a - a dagger', 5002), null);
+});

@@ -16,6 +16,36 @@ export function blessKind(text) {
   return m ? GLOWS[m[1].toLowerCase()] : null;
 }
 
+// The item the glow message names: "Your long sword softly glows black." -> "long sword".
+export function glowItem(text) {
+  const m = /^(?:Your|The) (.+?) (?:softly )?glows? (?:with an? )?(?:light blue|black|amber)\b/i.exec(text || '');
+  return m ? m[1].toLowerCase() : null;
+}
+
+// Does a pack row ("a - a blessed +1 dagger (weapon in hand)") hold the item a glow message named? Plurals match both
+// ways, and a glowing "pack" is every row.
+export function rowHoldsItem(rowText, item) {
+  if (!item) return false;
+  if (item === 'pack') return true;
+  const row = String(rowText || '').toLowerCase().replace(/^\s*\S+ - /, '');
+  return row.includes(item) || row.includes(item.replace(/s$/, ''));
+}
+
+export const GLOW_MEMORY_MS = 20000;
+// Remembers which items glowed lately so the pack, opened a moment later, shows the flash on the item that changed.
+export function createGlowLog() {
+  const seen = [];
+  return {
+    note(text, now) { const kind = blessKind(text), item = glowItem(text); if (kind && item) seen.push({kind, item, at: now}); return kind; },
+    kindFor(rowText, now) {
+      for (let i = seen.length - 1; i >= 0; i--) if (now - seen[i].at <= GLOW_MEMORY_MS && rowHoldsItem(rowText, seen[i].item)) return seen[i].kind;
+      return null;
+    },
+    prune(now) { for (let i = seen.length - 1; i >= 0; i--) if (now - seen[i].at > GLOW_MEMORY_MS) seen.splice(i, 1); },
+    clear() { seen.length = 0; },
+  };
+}
+
 // The ring at age t: radius, height above the floor and alpha.
 export function ringPose(kind, t) {
   if (!BLESS_COLORS[kind] || t <= 0 || t >= BLESS.total) return {radius: 0, lift: 0, alpha: 0};
