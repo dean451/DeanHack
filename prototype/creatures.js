@@ -925,15 +925,20 @@ function worm(o){
 // one body weaving through the ground behind the head.
 function wormTail(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
- const skin=mat(shade(o.color,.8),{roughness:.7,flatShading:true}),ring=mat(shade(o.color,.45),{roughness:.7,flatShading:true}),mound=mat('#3a3128',{roughness:1}),r=.09;
- const arch=[];for(let i=0;i<=8;i++){const a=i/8*Math.PI;arch.push([0,Math.sin(a)*.2-.03,-Math.cos(a)*.3]);}
- tube(body,arch,r,skin,10,5);
- for(let i=1;i<8;i+=1.5){const a=i/8*Math.PI;const band=part(body,new THREE.TorusGeometry(r*1.02,r*.13,6,16),ring,0,Math.sin(a)*.2-.03,-Math.cos(a)*.3);band.rotation.x=a-Math.PI/2;}
+ // the engine paints tail cells in the long worm's bright magenta; ignore it for a dull, dark hide
+ const skin=mat('#3e3226',{roughness:.85,flatShading:true}),ring=mat('#241a14',{roughness:.8,flatShading:true}),mound=mat('#3a3128',{roughness:1}),r=.09;
+ const at=a=>[0,Math.sin(a)*.2-.03,-Math.cos(a)*.3];
+ const arch=[];for(let i=0;i<=8;i++)arch.push(at(i/8*Math.PI));
+ tube(body,arch,r,skin,28,10);
+ // segment ridges: rings hugging the hide, turned square to the arch's own direction (it is an ellipse, not a circle)
+ g.userData.bands=[];
+ for(let i=1;i<8;i+=1.5){const a=i/8*Math.PI,p=at(a),t=new THREE.Vector3(0,Math.cos(a)*.2,Math.sin(a)*.3).normalize();
+  const band=part(body,new THREE.TorusGeometry(r*.96,r*.15,5,10),ring,p[0],p[1],p[2]);band.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),t);g.userData.bands.push(band);}
  for(const z of [-.3,.3])for(const [dx,dz,s] of [[-.07,-.04,1],[.07,.03,.8],[0,.06,.6]])sphere(body,.07*s,mound,dx,.01,z+dz,1.4,.35,1.2);
  const spine=mat('#1c1416',{roughness:.6,flatShading:true});
  // a ridge of dark hooked horn spines along the crest of the arch
  for(let i=1;i<8;i+=2){const a=i/8*Math.PI;const sp=cone(body,r*.3,r*1.7,spine,0,Math.sin(a)*.2-.03+r*1.25,-Math.cos(a)*.3,4);sp.rotation.x=-.35;}
- g.userData.spined=true;
+ g.userData.spined=true;g.userData.hide=skin;g.userData.arch=body.children[0];
  return actor(g,body,[],null,[],'worm');
 }
 // apelike creatures (Y): a hunched, barrel-chested body on short bowed legs, with long arms knuckling the floor in front,
