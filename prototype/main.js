@@ -39,7 +39,8 @@ import {createGasRoil} from './poison-cloud-roil.js';
 import {createGasEdge} from './gas-edge.js';
 
 const scene=new THREE.Scene();scene.background=new THREE.Color('#142333');scene.fog=new THREE.FogExp2('#1b3040',.032);
-const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setClearColor(0x000000,0);renderer.setPixelRatio((navigator.hardwareConcurrency||8)<=4?1:Math.min(devicePixelRatio,2)); // a weak machine draws at 1x: four times fewer pixels on a Retina screenrenderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;document.querySelector('#scene').appendChild(renderer.domElement);
+// A weak machine (four cores or fewer) draws at 1x: four times fewer pixels on a Retina screen.
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setClearColor(0x000000,0);renderer.setPixelRatio((navigator.hardwareConcurrency||8)<=4?1:Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;document.querySelector('#scene').appendChild(renderer.domElement);
 const renderStats=createRenderStats(renderer,scene,{visible:new URLSearchParams(location.search).has('stats')});addEventListener('keydown',e=>{if(e.key==='F9'){e.preventDefault();renderStats.toggle();}});
 const flameFlicker=createFlameFlicker(scene,{focus:()=>controls.target});
 const sinkDrip=createSinkDrip(scene);
