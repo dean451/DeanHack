@@ -15,12 +15,16 @@ test('the ascension-kit shop is kept but switched off by default', () => {
 
 test('the regular store adds ordinary essentials, never forced enchantment or blessing', () => {
   const block = src.slice(src.indexOf('essential_items[] = {'), src.indexOf('place_essential_items('));
-  for (const item of ['FOOD_RATION', 'OIL_LAMP', 'SACK', 'SCR_IDENTIFY', 'PICK_AXE', 'UNICORN_HORN', 'POT_HEALING'])
+  for (const item of ['FOOD_RATION', 'OIL_LAMP', 'SACK', 'SCR_IDENTIFY', 'PICK_AXE', 'POT_HEALING'])
     assert.match(block, new RegExp(`\\b${item}\\b`), item);
-  for (const bad of ['EXCALIBUR', 'WAN_DEATH', 'SPEED_BOOTS', 'BAG_OF_HOLDING', 'CANDELABRUM', 'MAGIC_LAMP'])
+  for (const bad of ['EXCALIBUR', 'WAN_DEATH', 'SPEED_BOOTS', 'BAG_OF_HOLDING', 'CANDELABRUM', 'MAGIC_LAMP', 'UNICORN_HORN'])
     assert.doesNotMatch(block, new RegExp(bad), `${bad} is not in the regular store`);
-  const placer = src.slice(src.indexOf('place_essential_items(struct'), src.indexOf('place_essential_items(struct') + 1500);
+  const placer = src.slice(src.indexOf('place_essential_items(struct'), src.indexOf('place_essential_items(struct') + 1700);
   assert.doesNotMatch(placer, /spe = |blessed = 1|oerodeproof = 1/, 'ordinary items');
   assert.match(placer, /otmp->cursed = 0/, 'but never cursed');
+  // the lamp is a magic lamp one time in four (the user asked for a chance, 2026-10-15)
+  assert.match(placer, /if \(otyp == OIL_LAMP && !rn2\(4\)\) \{\s*otyp = MAGIC_LAMP;/, 'the essentials lamp can be magic');
+  // no unicorn horn in this store at all: those only come from unicorns
+  assert.match(src, /if \(mkshop_curated_loot && otmp->otyp == UNICORN_HORN\) \{\s*obj_extract_self\(otmp\);\s*obfree\(otmp, NULL\);\s*goto redo;/, 'the random stock rejects a unicorn horn too');
   assert.match(src, /#else\s*\n\s*place_essential_items\(sroom, rmno, sh\);/, 'placed when the ascension shop is off');
 });
