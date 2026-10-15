@@ -1642,7 +1642,7 @@ const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{
 // Smooth-body helpers: a lathed profile, and a tapered limb between two joint points
 // (so arms and legs read as one body rather than a jointed mannequin).
 function lathe(parent,profile,material,x=0,y=0,z=0,phiStart=0,phiLength=Math.PI*2){return part(parent,new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),24,phiStart,phiLength),material,x,y,z);}
-function segment(parent,a,b,r1,r2,material){const A=new THREE.Vector3(...a),d=new THREE.Vector3(...b).sub(A),m=part(parent,new THREE.CylinderGeometry(r2,r1,d.length(),12),material,A.x+d.x/2,A.y+d.y/2,A.z+d.z/2);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return m;}
+function segment(parent,a,b,r1,r2,material,sides=12){const A=new THREE.Vector3(...a),d=new THREE.Vector3(...b).sub(A),m=part(parent,new THREE.CylinderGeometry(r2,r1,d.length(),sides),material,A.x+d.x/2,A.y+d.y/2,A.z+d.z/2);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return m;}
 // Tear a lathed hem: vertices below `below` are pulled down unevenly around the circle.
 function tatter(geo,below,depth,freq){
  const p=geo.attributes.position,v=new THREE.Vector3();let low=Infinity;
@@ -2741,7 +2741,7 @@ const VAMPIRES={vampire:{scale:1.05},'vampire lord':{suit:'#2a1420',lining:'#b01
 // and a lighter build; djinn and sandestins trail a smoky wisp instead of legs and hover.
 function demon(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
- const skin=mat(o.skin,{roughness:.7}),dark=mat(shade(o.skin,.55),{roughness:.8}),horn=mat(o.horn||'#2a2018',{roughness:.45}),claw=mat('#15100c',{roughness:.35,metalness:.2}),
+ const fl=!!o.bound,skin=mat(o.skin,{roughness:.7,flatShading:fl}),dark=mat(shade(o.skin,.55),{roughness:.8,flatShading:fl}),horn=mat(o.horn||'#2a2018',{roughness:.45}),claw=mat('#15100c',{roughness:.35,metalness:.2}),
   tooth=mat('#e8e0c4',{roughness:.4}),glow=mat(o.eye||'#ffcc30',{emissive:o.eye||'#ffcc30',emissiveIntensity:3,roughness:.3}),mouth=mat('#2a0808',{roughness:1}),
   web=mat(o.wing||shade(o.skin,.45),{roughness:.85,side:THREE.DoubleSide,transparent:true,opacity:.92});
  const slim=!!o.slim,bulk=o.bulk||1,hipY=o.smoke?.5:.44,chestY=slim?.72:.7,shoulderX=(slim?.12:.17)*bulk,headY=slim?.97:.99+.03*(bulk-1);
@@ -2754,9 +2754,12 @@ function demon(o){
   segment(leg,[0,0,0],k,.075*bulk,.055,skin);sphere(leg,.05,skin,...k);segment(leg,k,a,.045,.03,dark);segment(leg,a,f,.03,.025,dark);
   for(const x of [-.018,.018])rounded(leg,.032,.03,.06,horn,side*.02+x,-.43,.02,.01);legs.push(leg);}
  // torso: a broad chest over a narrow waist, pectorals and a column of belly plates
- sphere(body,(slim?.12:.15)*bulk,skin,0,.56,0,1.1,1,.85);
+ if(fl){// a bound spirit is cut from hard planes: a six-sided waist under a wide wedge of chest, slab pectorals
+  cylinder(body,.15,.1,.2,skin,0,.56,0,6).scale.z=.85;cylinder(body,.22,.12,.3,skin,0,chestY,0,6).scale.z=.75;
+  for(const side of [-1,1]){rounded(body,.12,.09,.07,skin,side*.08,chestY+.04,.1,.012).rotation.z=-side*.12;}}
+ else{sphere(body,(slim?.12:.15)*bulk,skin,0,.56,0,1.1,1,.85);
  sphere(body,(slim?.14:.19)*bulk,skin,0,chestY,.0,1.15,1.05,.85);
- if(!slim)for(const side of [-1,1])sphere(body,.09*bulk,skin,side*.07*bulk,chestY+.04,.1*bulk,1,.8,.6);
+ if(!slim)for(const side of [-1,1])sphere(body,.09*bulk,skin,side*.07*bulk,chestY+.04,.1*bulk,1,.8,.6);}
  for(let i=0;i<3;i++)rounded(body,.1*bulk,.04,.03,dark,0,.5+i*.06,.12*bulk-i*.005,.012);
  if(o.spikes)for(let i=0;i<5;i++){const s=cone(body,.022,.1,o.spikes==='bone'?tooth:horn,0,.52+i*.09,-.14*bulk+i*.005,4);s.rotation.x=-1.2;}
  // old claw gashes raked slantwise down one flank: pale puckered scar tissue (seeded by the skin so each kind scars differently)
@@ -2768,13 +2771,17 @@ function demon(o){
  // arms: shoulder, elbow, wrist and three hooked claws; extra pairs sit lower on the flanks
  const pairs=o.arms||1;
  for(let p=0;p<pairs;p++)for(const side of [-1,1]){const dy=p*-.11,sc=1-p*.15,sh=[side*shoulderX,chestY+.12+dy,0],el=[side*(shoulderX+.1*sc),chestY-.04+dy,.04+p*.02],wr=[side*(shoulderX+.08*sc),chestY-.18+dy,.14];
-  sphere(body,.06*sc*bulk,skin,...sh);segment(body,sh,el,.05*sc*bulk,.04*sc,skin);segment(body,el,wr,.04*sc,.03*sc,skin);
+  if(fl){rounded(body,.11,.07,.1,skin,...sh,.012).rotation.z=-side*.3;segment(body,sh,el,.05,.036,skin,6);segment(body,el,wr,.036,.024,skin,6);}
+  else{sphere(body,.06*sc*bulk,skin,...sh);segment(body,sh,el,.05*sc*bulk,.04*sc,skin);segment(body,el,wr,.04*sc,.03*sc,skin);}
   if(o.spikes)cone(body,.015,.06,horn,el[0]+side*.03,el[1],el[2]-.02,4).rotation.z=-side*1.3;
   for(let k=-1;k<=1;k++){const c=cone(body,.01,.06,claw,wr[0]+k*.015,wr[1]-.04,wr[2]+.01,4);c.rotation.x=Math.PI+.3;c.rotation.z=k*.2;}}
  // a bound spirit: an iron shackle still locked on the left wrist, its chain snapped after a few links
- if(o.bound){const iron=mat('#1c1a1c',{roughness:.5,metalness:.7}),wx=-(shoulderX+.08),wy=chestY-.18;iron.name='djinni-shackle';
-  const cuff=part(body,new THREE.TorusGeometry(.036,.011,6,16),iron,wx,wy,.14);cuff.rotation.x=Math.PI/2;
-  for(let k=0;k<3;k++){const l=part(body,new THREE.TorusGeometry(.015,.0045,5,10,k===2?Math.PI*1.4:Math.PI*2),iron,wx-.01,wy-.06-k*.026,.14);l.rotation.set(0,k%2?Math.PI/2:0,Math.PI/2);l.scale.y=1.35;}}
+ if(o.bound){const iron=mat('#1c1a1c',{roughness:.5,metalness:.7,flatShading:true}),rust=mat('#4a2c1c',{roughness:.9,flatShading:true}),wx=-(shoulderX+.08),wy=chestY-.18;iron.name='djinni-shackle';
+  // a thick six-sided iron band the width of the forearm, with a rust-stained lug and a ring for the chain
+  const cuff=part(body,new THREE.CylinderGeometry(.052,.046,.07,6),iron,wx,wy,.14);cuff.rotation.x=0;
+  part(body,new THREE.CylinderGeometry(.056,.056,.012,6),rust,wx,wy+.038,.14);
+  rounded(body,.03,.04,.03,iron,wx,wy-.05,.14,.006);
+  for(let k=0;k<3;k++){const l=part(body,new THREE.TorusGeometry(.024,.008,4,8,k===2?Math.PI*1.4:Math.PI*2),iron,wx,wy-.1-k*.04,.14);l.rotation.set(0,k%2?Math.PI/2:0,Math.PI/2);l.scale.y=1.4;}}
  // weapon in the right hand
  const grip=[shoulderX+.08,chestY-.2,.16];
  if(o.weapon==='whip'){const pts=[grip,[grip[0]+.1,grip[1]-.12,.3],[grip[0]+.05,.1,.42],[grip[0]-.12,.02,.38],[grip[0]-.24,.01,.22]];const lash=tube(body,pts,.012,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.4}):M.leather,20);lash.castShadow=false;if(o.flame){lash.userData.part='whip';lash.userData.path=pts;}}
