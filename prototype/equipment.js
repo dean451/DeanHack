@@ -178,13 +178,16 @@ export function createHeldWeapon(item){
  }else if(/\b(spear|javelin|pike)\b/.test(name)){
   const shaftLength=/javelin/.test(name)?.88:/pike/.test(name)?1.55:1.2;
   const wood=new THREE.MeshStandardMaterial({color:0x805735,roughness:.86});
-  g.userData.extraMaterial=wood;
+  // A silver spear's head and ferrule are bright polished silver, not the grey steel of the rest.
+  const silver=/\bsilver\b/.test(name)?new THREE.MeshStandardMaterial({color:0xf4f7f9,metalness:.96,roughness:.12}):null;
+  const head=silver??steel;
+  g.userData.extraMaterial=silver?[wood,silver]:wood;
   const shoulder=shaftLength-.3;
   part(new THREE.CylinderGeometry(.018,.025,shaftLength,12),wood,0,shaftLength/2-.3);
   part(new THREE.CylinderGeometry(.028,.028,.18,12),leather,0,0);
   for(const y of [-.09,.09])part(new THREE.CylinderGeometry(.03,.03,.015,12),brass,0,y);
-  part(new THREE.CylinderGeometry(.025,.018,.09,12),steel,0,-.3);
-  part(new THREE.CylinderGeometry(.027,.034,.12,12),steel,0,shoulder);
+  part(new THREE.CylinderGeometry(.025,.018,.09,12),head,0,-.3);
+  part(new THREE.CylinderGeometry(.027,.034,.12,12),head,0,shoulder);
   // Raised central ridge and thin edges keep the socketed leaf blade readable.
   const geo=new THREE.BufferGeometry();
   const y=shoulder+.045;
@@ -193,7 +196,7 @@ export function createHeldWeapon(item){
    0,y+.12,.022, 0,y+.12,-.022
   ],3));
   geo.setIndex([0,4,1,1,4,2,2,4,3,3,4,0,0,1,5,1,2,5,2,3,5,3,0,5]);
-  geo.computeVertexNormals();part(geo,steel,0,0);
+  geo.computeVertexNormals();part(geo,head,0,0);
  }else if(/\bflail\b/.test(name)){
   const wood=new THREE.MeshStandardMaterial({color:0x735035,roughness:.9});
   g.userData.extraMaterial=wood;
