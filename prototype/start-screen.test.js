@@ -180,6 +180,24 @@ test('the splash is on screen before the app loads: a static cover with the drag
   assert.match(screen,/cover\?\.remove\(\)/);
 });
 
+test('the splash is opaque with a wavy ASCII field behind it, running only while it shows; nothing draws behind it',async()=>{
+  const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8'),main=readFileSync(new URL('./main.js',import.meta.url),'utf8');
+  assert.match(src,/const waves=createAsciiWaves\(\{doc\}\);el\.prepend\(waves\.el\);/,'the field sits under everything in the splash');
+  assert.match(src,/showDragon\(\);waves\.start\(\);/,'it runs when the splash opens');
+  assert.match(src,/doc\.body\.classList\.remove\('start-open'\);waves\.stop\(\);/,'and stops when it closes');
+  assert.match(css,/#start-screen,#start-cover\{[^}]*background:radial-gradient\(ellipse at 50% 42%,#050a0c 0%,#030609 62%,#020405 100%\)/,'no alpha: the demo room never shows through');
+  assert.match(css,/\.start-waves\{position:absolute;inset:0;[^}]*pointer-events:none;[^}]*z-index:0\}/);
+  assert.match(css,/\.start-stage\{position:relative;z-index:1;/,'the dragon and card sit above the field');
+  assert.match(main,/if\(document\.body\.classList\.contains\('start-open'\)\)return;/,'the scene does not draw while the splash is open');
+  // the cover gets one still frame of the field when it has a window to size it by
+  const {fillCover}=await import('./start-cover.js');
+  const pre={textContent:'',dataset:{},style:{vars:{},setProperty(k,v){this.vars[k]=v;}},getBoundingClientRect:()=>({height:100}),parentElement:{}};
+  const made=[];const cover={children:[],prepend(e){this.children.unshift(e);},ownerDocument:{createElement(){const e={className:'',textContent:'',attrs:{},setAttribute(k,v){this.attrs[k]=v;}};made.push(e);return e;}},remove(){},querySelector:s=>s==='.start-dragon'?pre:null};
+  fillCover(cover,{rand:()=>0,win:{innerWidth:780,innerHeight:300,getComputedStyle:()=>({paddingTop:'0'})}});
+  assert.equal(cover.children.length,1);assert.equal(cover.children[0].className,'start-waves');assert.equal(cover.children[0].attrs['aria-hidden'],'true');
+  assert.equal(cover.children[0].textContent.split('\n').length,21);
+});
+
 test('the cover picks a head, sizes it, and goes away for ?demo',async()=>{
   const {fillCover}=await import('./start-cover.js');
   const mk=()=>{const pre={textContent:'',dataset:{},style:{vars:{},setProperty(k,v){this.vars[k]=v;}}};const cover={removed:false,remove(){this.removed=true;},querySelector:s=>s==='.start-dragon'?pre:null};return {cover,pre};};
