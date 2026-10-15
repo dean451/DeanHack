@@ -9,6 +9,13 @@ test('every object class heading gets its own shape',()=>{
  assert.equal(new Set(marks).size,marks.length);
 });
 
+test('weapons, coins, potions and food use the game symbols',()=>{
+ assert.equal(itemClassMark('Weapons'),'⚔');
+ assert.equal(itemClassMark('Coins'),'$');
+ assert.equal(itemClassMark('Potions'),'!');
+ assert.equal(itemClassMark('Comestibles'),'%');
+});
+
 test('unknown or empty headings give no mark',()=>{
  assert.equal(itemClassMark(''),'');
  assert.equal(itemClassMark(undefined),'');

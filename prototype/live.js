@@ -143,6 +143,7 @@ let airborne=false;
 import {createLevelUp} from './level-up.js';
 import {createPrayerLight} from './prayer-light.js';
 import {createPrayerKneel} from './prayer-kneel.js';
+import {promptHeading,deathRecap} from './prompt-view.js';
 import {createBreath} from './breath.js';
 import {createEngulf,engulfCamera,dropEngulfCamera,poseEngulfed} from './engulf.js';
 import {createSwingFx} from './swing-fx.js';
@@ -565,7 +566,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
     void reply(13);return;
    }
    if(bareMore(pending,lines)){void reply(13);return;}
-   dialog.replaceChildren();const kicker=document.createElement('small');kicker.textContent='UNNETHACK ASKS';const title=document.createElement('h2');title.textContent=pending.prompt||'UnNetHack';dialog.append(kicker,title);
+   dialog.replaceChildren();const heading=promptHeading(pending);const kicker=document.createElement('small');kicker.textContent=heading.kicker;const title=document.createElement('h2');title.textContent=heading.title;dialog.append(kicker,title);
    if(pending.kind==='menu'&&menu){
     // "Take out / pick up what type of objects?" is answered with All types, so the full list opens at once.
     const skip=autoCategory(menu,pending.prompt);if(skip!==null){void reply(String(skip));return;}
@@ -608,7 +609,10 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
     form.onsubmit=e=>{e.preventDefault();reply(resolveCommand(list,input.value,shown[sel]));};
     form.append(input,ul);render();dialog.append(form);}
    else if(pending.kind==='line'){const story=sinceMark(messageLog,turnMark),shown=story.length?story:allRows(messageLog).slice(0,1).reverse();if(shown.length){const box=document.createElement('div');box.className='engine-recent-box';for(const row of shown){const p=document.createElement('p');p.className=`engine-recent msg msg-${row.tone}`;p.textContent=row.text;box.append(p);}dialog.append(box);}const form=document.createElement('form'),input=document.createElement('input'),submit=document.createElement('button');input.maxLength=200;input.autofocus=true;submit.textContent='Enter';form.append(input,submit);form.onsubmit=e=>{e.preventDefault();reply(input.value);};dialog.append(form);}
-   else{if(lines.length){const pre=document.createElement('pre');pre.textContent=lines.join('\n');dialog.append(pre);}const p=document.createElement('p');p.textContent=pending.kind==='more'?'Press Enter to continue.':'Press a response key. For a direction use arrows or h/j/k/l.';dialog.append(p);const ok=document.createElement('button');ok.textContent='Enter';ok.onclick=()=>reply(13);dialog.append(ok);}
+   else{if(lines.length){const pre=document.createElement('pre');pre.textContent=lines.join('\n');dialog.append(pre);}
+    // The end-of-game questions carry the last messages, so what killed you is there to read.
+    const recap=deathRecap(pending,allRows(messageLog));if(recap.length){const box=document.createElement('div');box.className='engine-recent-box';for(const row of recap){const p=document.createElement('p');p.className=`engine-recent msg msg-${row.tone}`;p.textContent=row.text;box.append(p);}dialog.append(box);}
+    const p=document.createElement('p');p.textContent=pending.kind==='more'?'Press Enter to continue.':'Press a response key. For a direction use arrows or h/j/k/l.';dialog.append(p);const ok=document.createElement('button');ok.textContent='Enter';ok.onclick=()=>reply(13);dialog.append(ok);}
    const cancel=document.createElement('button');cancel.textContent='Cancel / Escape';cancel.onclick=()=>reply(pending.kind==='menu'?'!':pending.kind==='line'?'\u001b':27);dialog.append(cancel);dialog.showModal();
  }
  dialog.addEventListener('cancel',e=>{e.preventDefault();if(pending)reply(pending.kind==='menu'?'!':pending.kind==='line'?'\u001b':27);});
