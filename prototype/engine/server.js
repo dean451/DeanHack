@@ -80,7 +80,7 @@ export function engineLaunch(rawName, manifest, rawChoice) {
   return {
     name, choice: { role, race, gender, align },
     args: ['-d', manifest.cwd, '-u', name, '-p', role, '-r', race],
-    options: `windowtype:bridge,name:${name},role:${role},race:${race},gender:${gender},align:${align},pettype:cat,!news,autodig,autopickup,pickup_types:/!?="`,
+    options: `windowtype:bridge,name:${name},role:${role},race:${race},gender:${gender},align:${align},pettype:cat,!news,autodig,autopickup,pickup_types:$/!?="`,
   };
 }
 
