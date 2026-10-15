@@ -4,7 +4,9 @@
 // static #start-cover in index.html (painted dark by style.css before any script runs) with the
 // splash dragon. installStartScreen then adopts that <pre> into the real splash, so the same head
 // stays put with no swap, and removes the cover. With ?demo there is no splash, so the cover goes.
+// The cover is opaque, as is the splash: the demo room is never seen behind either.
 import {pickDragon} from './dragon-art.js';
+import {waveFrame,gridFor} from './ascii-waves.js';
 
 export function fillCover(cover,{search='',rand=Math.random,win=null}={}){
   if(!cover)return null;
@@ -14,6 +16,8 @@ export function fillCover(cover,{search='',rand=Math.random,win=null}={}){
   pre.textContent=d.art;pre.dataset.dragon=d.name;
   pre.style.setProperty('--lines',lines.length);pre.style.setProperty('--cols',Math.max(...lines.map(l=>l.length)));
   if(win&&pre.getBoundingClientRect){const h=pre.getBoundingClientRect().height,pad=parseFloat(win.getComputedStyle?.(pre.parentElement)?.paddingTop)||0;pre.style.marginTop=`${Math.max(0,(win.innerHeight-h)/2-pad)}px`;}
+  // One still frame of the wave field, so it is already there when the start screen takes over.
+  if(win&&cover.prepend&&cover.ownerDocument){const waves=cover.ownerDocument.createElement('pre');waves.className='start-waves';waves.setAttribute('aria-hidden','true');const {cols,rows}=gridFor(win.innerWidth,win.innerHeight);waves.textContent=waveFrame(cols,rows,0);cover.prepend(waves);}
   return d;
 }
 

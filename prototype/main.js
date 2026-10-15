@@ -219,8 +219,8 @@ addEventListener('keydown',e=>{if(live.active || e.target instanceof HTMLButtonE
 $('#reset').onclick=reset;
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
 // While the splash is open nothing on screen needs 60 frames a second: the room behind it draws at about 8, which keeps old laptops quiet.
-let idleAt=-1e9;const IDLE_FRAME_MS=125;
-renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open')){if(ms-idleAt<IDLE_FRAME_MS)return;idleAt=ms;}const t=ms/1000,dt=Math.min(t-lastTime,.05);lastTime=t;const mix=1-Math.exp(-dt*14);
+// The splash is opaque (style.css), so while it is open nothing is drawn at all: no demo room behind it, no fans.
+renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open'))return;const t=ms/1000,dt=Math.min(t-lastTime,.05);lastTime=t;const mix=1-Math.exp(-dt*14);
  player.g.position.x=THREE.MathUtils.lerp(player.g.position.x,state.player.x,mix);player.g.position.z=THREE.MathUtils.lerp(player.g.position.z,state.player.z,mix);
  const moving=Math.hypot(player.g.position.x-state.player.x,player.g.position.z-state.player.z)>.025;
  player.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);player.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);player.cape.rotation.x=-.17+Math.sin(t*3)*.06;player.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;

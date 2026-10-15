@@ -1,10 +1,12 @@
 // The splash: the first screen, and the one the game returns to. A name and one button that either
 // resumes that character's saved game or begins a new one (choosing a class), then straight into
 // Live. Save & quit, death, an idle stop or a crash all come back here with a line saying what
-// happened. `?demo` skips it and shows the demo room (a development view).
+// happened. The splash is opaque and the 3D scene does not draw behind it (main.js): the demo
+// room is a development view, seen only with `?demo`, which skips the splash.
 // The engine keys a save by character name (-u name), so typing a saved name resumes that game.
 
 import {pickDragon} from './dragon-art.js';
+import {createAsciiWaves} from './ascii-waves.js';
 import {epitaph} from './death-beat.js';
 import {ROLES,ROLE_NAMES,RACES,DEFAULT_CHOICE,alignsFor,optionsFor,resolveChoice} from './roles.js';
 
@@ -98,6 +100,8 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
 <div class="step-class" hidden><label>Choose your class</label><div class="class-grid" role="radiogroup" aria-label="Class"></div>
 <div class="class-detail"><p class="class-blurb"></p><div class="class-opts"></div></div>
 <button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div><p class="start-mark"><a class="start-link" href="https://github.com/dean451/deanhack" target="_blank" rel="noopener" aria-label="DeanHack on GitHub">DEAN<b>HACK</b></a></p></div>`;
+  // The wavy ASCII field behind everything (ascii-waves.js); it runs only while the splash shows.
+  const waves=createAsciiWaves({doc});el.prepend(waves.el);
   doc.body.append(el);
   const $=s=>el.querySelector(s);
   // The cover (start-cover.js) already shows a head: take that very element so nothing swaps.
@@ -116,7 +120,7 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
   let saves=[],choice=readChoice(storage),pendingName=DEFAULT_NAME;
   const remembered=()=>{try{return(storage??localStorage).getItem('deanhack.playerName')||'';}catch{return '';}};
   const refresh=()=>{const plan=startPlan(input.value,saves);go.textContent=plan.label;note.textContent=plan.resume?`${plan.resume.role?plan.resume.role+', ':''}saved ${ago(plan.resume.savedAt)}.`:plan.note;go.classList.toggle('resume',!!plan.resume);forgetBtn.hidden=!plan.resume;for(const chip of list.children)chip.classList.toggle('current',chip.dataset.name===fileKey(input.value));};
-  const close=()=>{el.hidden=true;doc.body.classList.remove('start-open');};
+  const close=()=>{el.hidden=true;doc.body.classList.remove('start-open');waves.stop();};
   const loadSaves=()=>getSaves().then(found=>{
     saves=found;
     list.replaceChildren(...saves.slice(0,8).map(s=>{const b=doc.createElement('button');b.type='button';b.dataset.name=s.name;b.innerHTML=`<b></b><i></i>`;b.firstChild.textContent=s.name.replace(/_/g,' ');b.lastChild.textContent=(s.role?s.role+' · ':'')+ago(s.savedAt);
@@ -127,7 +131,7 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
     refresh();
   });
   const open=({note:line='',death=null,focus=true}={})=>{
-    el.hidden=false;doc.body.classList.add('start-open');showDragon();
+    el.hidden=false;doc.body.classList.add('start-open');showDragon();waves.start();
     const card=deathCard(death);
     if(card){status.innerHTML=card;status.classList.add('dead');status.hidden=false;}else{status.textContent=line;status.classList.remove('dead');status.hidden=!line;}
     stepClass.hidden=true;stepName.hidden=false;

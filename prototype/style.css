@@ -164,11 +164,14 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 #ground-notice li{break-inside:avoid}
 
 /* Start screen: a name and one button over the dimmed demo room. */
-#start-screen,#start-cover{position:fixed;inset:0;z-index:60;padding:0;background:radial-gradient(ellipse at 50% 42%,#050a0ce0 0%,#030609f2 62%,#020405 100%);color:#e9e2cf}
+#start-screen,#start-cover{position:fixed;inset:0;z-index:60;padding:0;background:radial-gradient(ellipse at 50% 42%,#050a0c 0%,#030609 62%,#020405 100%);color:#e9e2cf}
+/* opaque (no alpha in the gradient): nothing of the demo room shows through the splash, and the scene does not draw behind it */
+/* the wavy ASCII field (ascii-waves.js) under the dragon and the card */
+.start-waves{position:absolute;inset:0;margin:0;overflow:hidden;font:13px/15px 'Courier New',Courier,monospace;white-space:pre;color:#6fb7b4;opacity:.28;pointer-events:none;user-select:none;z-index:0}
 /* the dragon sits at the stage's top, offset by start-screen.js to centre it in the window, so a taller
    card (the class list) never drags it down. The stage holds the dragon, the card and the wordmark: at least a screen tall, and taller when the
    card is (the class list), so the wordmark in its bottom-right corner is pushed down, never covered */
-#start-screen .start-stage,#start-cover .start-stage{position:relative;box-sizing:border-box;min-height:100%;display:flex;align-items:center;justify-content:center;gap:64px;padding:24px 24px 72px}
+#start-screen .start-stage,#start-cover .start-stage{position:relative;z-index:1;box-sizing:border-box;min-height:100%;display:flex;align-items:center;justify-content:center;gap:64px;padding:24px 24px 72px}
 #start-screen .start-card,#start-cover .start-card{width:min(440px,100%);text-align:left}
 /* Tua Xiong's dragon keeps the card company on wide screens and steps aside on narrow ones. */
 .start-dragon{margin:0;flex:none;align-self:flex-start;font:max(4.5px,min(12px,calc((100vw - 600px) / (var(--cols,84) * .62)),calc((100vh - 60px) / (var(--lines,58) * 1.08))))/1.08 'Courier New',Courier,monospace;white-space:pre;color:#6fb7b4;text-shadow:0 0 14px #46bebe70,0 0 2px #9fe3df60;user-select:none;animation:dragon-breathe 9s ease-in-out infinite alternate}
