@@ -151,7 +151,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Frost giant is still a toy** (https://github.com/dean451/DeanHack/pull/1527, `prototype/creatures.js`): the render keeps a smooth dome head with goggle eyes, an egg torso, block boots and a pale grey-blue palette; the limbs are tapered but the body is not faceted or worn. **Done when:** `creature-shot "frost giant"` three and game views show a faceted, hooded or brow-ridged head (no smooth dome), a faceted torso, boots that are not rounded blocks, and a palette darker than the current light grey.
 - **Djinni is a smooth mannequin** (https://github.com/dean451/DeanHack/pull/1501, `prototype/creatures.js`): the render is a plain tan body with capsule arms; the locked shackle is a tiny black hook that cannot be read at the game camera. **Done when:** `creature-shot "djinni"` game view shows the shackle and broken chain as a clear dark iron shape on the wrist, and the torso and arms are faceted.
 
 **Models**
