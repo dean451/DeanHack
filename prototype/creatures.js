@@ -1835,22 +1835,40 @@ function ogre(o){
  else{
  sphere(body,.25,skin,0,.64,.03,1.15,1,1);sphere(body,.17,mat(shade(o.skin,1.12),{roughness:.8}),0,.6,.13,1.05,.95,.6);sphere(body,.016,dark,0,.6,.23);
  rounded(body,.48,.2,.3,skin,0,.86,-.01,.09);}
- for(const side of [-1,1]){if(metal){const pad=sphere(body,.11,metal,side*.24,.92,0,1.1,.6,1.1);pad.rotation.z=side*.35;}else sphere(body,.1,skin,side*.23,.9,0,1,.85,1);}
+ const plate=o.faceted&&metal?mat(o.metal,{roughness:.7,metalness:.45,flatShading:true}):null;
+ for(const side of [-1,1]){if(plate){// stepped, dented plates: a wedge of three flat slabs, no round dome to catch a highlight
+   for(let i=0;i<3;i++){const sl=part(body,new THREE.BoxGeometry(.2-i*.03,.03,.17-i*.02),plate,side*(.25+i*.012),.95-i*.03+(i===2&&side<0?-.01:0),0);sl.rotation.z=side*(.3+i*.1);}}
+  else if(metal){const pad=sphere(body,.11,metal,side*.24,.92,0,1.1,.6,1.1);pad.rotation.z=side*.35;}else sphere(body,.1,skin,side*.23,.9,0,1,.85,1);}
  if(o.mantle){sphere(body,.24,mat(o.mantle,{roughness:1}),0,.93,-.04,1.25,.42,1.05);rounded(body,.44,.4,.04,mat(o.cape||'#6a1f24',{roughness:.9}),0,.66,-.2,.02);}
  for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.29,.9,.02);body.add(arm);
   if(o.faceted){cylinder(arm,.075,.06,.24,skin,0,-.12,0,6);cylinder(arm,.06,.075,.22,skin,0,-.33,.02,6);part(arm,new THREE.SphereGeometry(.08,5,4),mat(shade(o.skin,.72),{roughness:.9,flatShading:true}),0,-.47,.03).scale.set(1.1,.9,1.1);}
   else{rounded(arm,.13,.24,.13,skin,0,-.12,0,.05);rounded(arm,.12,.22,.12,skin,0,-.33,.02,.045);sphere(arm,.08,dark,0,-.47,.03,1.1,.9,1.1);}arm.rotation.z=side*.12;arm.rotation.x=side>0?-.4:-.1;}
  const head=new THREE.Group();head.position.set(0,1.02,.07);body.add(head);
+ if(o.faceted){// ogre lords: a flat-shaded wedge skull, a hard brow ridge over sunk eyes, a slab jaw and ears of flat plates
+  const hf=mat(o.skin,{roughness:.92,flatShading:true}),hd=mat(shade(o.skin,.6),{roughness:1,flatShading:true});
+  part(head,new THREE.SphereGeometry(.13,6,4),hf,0,0,0).scale.set(1.05,.9,1);
+  const brow=part(head,new THREE.BoxGeometry(.25,.045,.08),hd,0,.045,.095);brow.rotation.x=.25;
+  part(head,new THREE.ConeGeometry(.03,.08,4),hf,0,-.005,.14).rotation.x=Math.PI/2;
+  const jaw=part(head,new THREE.CylinderGeometry(.12,.075,.1,6),hf,0,-.09,.05);jaw.scale.set(1,1,1.1);jaw.rotation.y=.2;
+  for(const side of [-1,1]){const t=cone(head,.016,side<0?.04:.07,tusk,side*.055,side<0?-.07:-.06,.13,5);t.rotation.x=-.15;
+   const ear=part(head,new THREE.ConeGeometry(.05,.07,3),hf,side*.14,0,-.01);ear.rotation.z=-side*Math.PI/2;
+   part(head,new THREE.BoxGeometry(.07,.035,.04),hd,side*.06,.015,.125);}// sunken sockets under the brow
+ }else{
  sphere(head,.13,skin,0,0,0,1.1,.95,1);rounded(head,.22,.045,.07,dark,0,.045,.09,.02);sphere(head,.035,dark,0,-.005,.13,1.1,.9,1);
- sphere(head,.1,skin,0,-.08,.05,1.2,.65,1.05);for(const side of [-1,1]){const t=cone(head,.016,side<0?.04:.07,tusk,side*.055,side<0?-.07:-.06,.13,5);t.rotation.x=-.15;sphere(head,.035,skin,side*.14,.0,-.01,.5,.9,.8);}
+ sphere(head,.1,skin,0,-.08,.05,1.2,.65,1.05);for(const side of [-1,1]){const t=cone(head,.016,side<0?.04:.07,tusk,side*.055,side<0?-.07:-.06,.13,5);t.rotation.x=-.15;sphere(head,.035,skin,side*.14,.0,-.01,.5,.9,.8);}}
  if(o.crown){const band=cylinder(head,.125,.13,.06,M.gold,0,.1,-.01,10);band.castShadow=false;for(let i=0;i<5;i++){const a=i/5*Math.PI*2;cone(head,.022,.07,M.gold,Math.sin(a)*.12,.16,Math.cos(a)*.12-.01,4);}sphere(head,.02,mat('#c0202a',{roughness:.2,metalness:.3}),0,.1,.125);}
+ else if(plate){const hm=part(head,new THREE.ConeGeometry(.14,.14,6),plate,0,.07,-.01);hm.rotation.y=.3;rounded(head,.03,.1,.03,plate,0,.02,.13,.01);}
  else if(metal){sphere(head,.135,metal,0,.04,-.01,1.1,.7,1.05);rounded(head,.03,.1,.03,metal,0,.02,.13,.01);}
  else{sphere(head,.1,hair,0,.07,-.04,1.05,.55,1);const knot=sphere(head,.04,hair,0,.15,-.06,1,1.3,1);knot.rotation.x=-.3;}
  // old war-scars raked across the chest of ogre lords and kings; every ogre has a snapped left tusk
  if(o.scars){const gash=mat('#2a1410',{roughness:1});g.userData.scarred=true;for(const [x,y,rz] of [[-.12,.86,.7],[.06,.8,-.6],[.14,.9,.5]]){const sc=rounded(body,.016,.16,.01,gash,x,y,.15,.004);sc.rotation.z=rz;}}
  eyes(head,o.glare?M.eye:mat('#d8c048',{emissive:'#7a6010',emissiveIntensity:.7,roughness:.3}),.015,.115,.05);
  // and a cord of hero skulls hangs from the belt, one cracked through
- if(o.scars){const bone=mat('#d8ccb0',{roughness:.7}),hole=mat('#120c0a',{roughness:1});g.userData.skullBelt=true;for(const [x,y] of [[-.16,.4],[-.04,.37],[.1,.4]]){sphere(body,.036,bone,x,y,.2,1,1.05,.95);rounded(body,.03,.012,.01,hole,x,y+.004,.235,.004).castShadow=false;}}
+ if(o.scars){const bone=mat('#d8ccb0',{roughness:.7}),hole=mat('#120c0a',{roughness:1});g.userData.skullBelt=true;const old2=mat('#a8987a',{roughness:.95,flatShading:true});
+  for(const [x,y] of [[-.16,.4],[-.04,.37],[.1,.4]]){// a skull is a cranium over a narrow jaw with two dark sockets and a nose slit, yellowed and cracked
+   part(body,new THREE.SphereGeometry(.036,5,4),old2,x,y+.008,.2).scale.set(1,.95,1);part(body,new THREE.BoxGeometry(.034,.022,.03),old2,x,y-.026,.21);
+   for(const sx of [-1,1])part(body,new THREE.BoxGeometry(.012,.014,.01),hole,x+sx*.014,y+.006,.234).castShadow=false;
+   part(body,new THREE.BoxGeometry(.005,.014,.01),hole,x,y-.012,.236).castShadow=false;}}
  const clubL=o.bigClub?.55:.46,club=cylinder(body,o.bigClub?.085:.07,.03,clubL,wood,.33,.4,.2,7);club.rotation.x=.55;
  // lords and kings have used the club: the nailed head is crusted with old dried blood
  if(o.scars){const dry=mat('#3a1210',{roughness:1});const st=sphere(body,.07,dry,.33,o.bigClub?.55:.52,.28,1.1,1.5,1);st.castShadow=false;g.userData.bloodyClub=true;}
