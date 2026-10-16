@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // The vortices were a stack of seven torus rings on a disc, which read as a coiled spring. This is the
 // real funnel, one kind at a time. Dust vortex first: a brown whirlwind of kicked-up earth.
@@ -8,11 +9,17 @@ import * as THREE from 'three';
 // - what it carries: four chunks of earth and stone and a torn rag of cloth, caught in the spiral
 //   (vortex-spin.js lifts and flings every other mesh of the body, and vortex-fx.js adds the grit);
 // - the ground: a scuffed disc under the foot (vortex-spin.js breathes it).
-// Seven draws. Handles: body (quirk 'hover').
+// Fire vortex second: a roaring column rather than a funnel. The same twisted torn sheet, but narrow and
+// near straight with a flickering top, drawn self-lit (MeshBasicMaterial, vertex colours from a dark
+// red base through orange to a pale yellow tongue) so the spin still shows in the bands; glowing coals
+// ride the spiral, a hot core burns in the middle, six embers glow on a scorched disc under the foot
+// (merged into one draw; userData.embers = 6 on the group, as vortex-wear.test.js reads).
+// Seven draws for dust, eight for fire. Handles: body (quirk 'hover'); fire also gives core.
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const H = .8, ROWS = 14, SEG = 20;
 const KINDS = {
   dust: {deep: '#4a3622', mid: '#8a6c46', pale: '#c4a878', grit: '#5a4630', stone: '#6e6a62', rag: '#3a2a22', ground: '#5a4630'},
+  fire: {deep: '#4a0e04', mid: '#d4501a', pale: '#ffc858', grit: '#2a1a14', stone: '#3a2418', ground: '#16100c', fire: true, radius: t => .05 + .17 * t ** .8 + .03 * Math.sin(t * 11), opacity: .62},
 };
 
 // radius of the sheet at height fraction t: a pinched foot, a widening throat, a flared top
@@ -24,7 +31,7 @@ function sheet(c, {turns, dir, scale, phase}) {
   for (let r = 0; r <= ROWS; r++) {
     const t = r / ROWS;
     for (let s = 0; s <= SEG; s++) {
-      const a = s / SEG * Math.PI * 2 + dir * t * turns + phase, k = scale * radius(t) * (1 + .1 * Math.sin(a * 3 + t * 6));
+      const a = s / SEG * Math.PI * 2 + dir * t * turns + phase, k = scale * (c.radius || radius)(t) * (1 + .1 * Math.sin(a * 3 + t * 6));
       // the top rim is torn: every few segments it is cut back, and the cut ones are ragged
       const cut = r >= ROWS - 2 ? hash(s * 7 + phase * 3) * .5 : 0;
       const y = (t - (r === ROWS ? cut * .5 : r === ROWS - 1 ? cut * .2 : 0)) * H * scale;
@@ -48,6 +55,8 @@ function sheet(c, {turns, dir, scale, phase}) {
   return g;
 }
 
+const FLAME = {ember: '#ffb040', glow: '#ff5a10'};
+
 export function createVortex({kind = 'dust', scale = 1} = {}) {
   const c = KINDS[kind] || KINDS.dust;
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
@@ -58,6 +67,17 @@ export function createVortex({kind = 'dust', scale = 1} = {}) {
   for (let i = 1; i < gp.count; i++) { const k = 1 + .22 * Math.sin(i * 2.7) + .1 * hash(i); gp.setXY(i, gp.getX(i) * k, gp.getY(i) * k); }
   const gm = add(ground, new THREE.MeshStandardMaterial({color: c.ground, roughness: 1, transparent: true, opacity: .45, depthWrite: false}), 'ground', g);
   gm.rotation.x = -Math.PI / 2; gm.position.y = .012;
+  if (c.fire) {
+    // six embers glow on the scorched ground round the foot, merged into one draw
+    const em = [];
+    for (let i = 0; i < 6; i++) {
+      const a = i * 1.05, r = (.2 + (i % 2) * .1) * scale, e = new THREE.CircleGeometry(.025 * scale * (1 + hash(i + 9)), 5);
+      e.rotateX(-Math.PI / 2); e.translate(Math.cos(a) * r, .016, Math.sin(a) * r); em.push(e);
+      g.userData.embers = (g.userData.embers || 0) + 1;
+    }
+    const merged = mergeGeometries(em); em.forEach(e => e.dispose());
+    add(merged, new THREE.MeshStandardMaterial({color: FLAME.ember, emissive: FLAME.glow, emissiveIntensity: 3, roughness: .5}), 'embers', g);
+  }
 
   // the funnel: an outer sheet and an inner one wound the other way, merged into one draw
   const outer = sheet(c, {turns: 5.5, dir: 1, scale, phase: 0}), inner = sheet(c, {turns: 4, dir: -1, scale: scale * .6, phase: 1.7});
@@ -68,19 +88,31 @@ export function createVortex({kind = 'dust', scale = 1} = {}) {
   merged.setAttribute('color', new THREE.BufferAttribute(cat(ca), 3));
   merged.setAttribute('normal', new THREE.BufferAttribute(cat(na), 3));
   merged.setIndex([...outer.index.array, ...Array.from(inner.index.array, i => i + off)]);
-  add(merged, new THREE.MeshStandardMaterial({vertexColors: true, roughness: 1, transparent: true, opacity: .52, depthWrite: false, side: THREE.DoubleSide, emissive: '#2a1c0e', emissiveIntensity: .25}), 'funnel');
+  const skin = c.fire
+    ? new THREE.MeshBasicMaterial({vertexColors: true, transparent: true, opacity: c.opacity, depthWrite: false, side: THREE.DoubleSide})
+    : new THREE.MeshStandardMaterial({vertexColors: true, roughness: 1, transparent: true, opacity: .52, depthWrite: false, side: THREE.DoubleSide, emissive: '#2a1c0e', emissiveIntensity: .25});
+  add(merged, skin, 'funnel');
+  const rad = c.radius || radius;
 
   // caught in the spiral: chunks of earth and stone, and a torn rag
-  const chunkMat = new THREE.MeshStandardMaterial({color: c.grit, roughness: 1, flatShading: true});
-  const stoneMat = new THREE.MeshStandardMaterial({color: c.stone, roughness: 1, flatShading: true});
+  const lit = c.fire ? {emissive: FLAME.glow, emissiveIntensity: 1.6} : {};
+  const chunkMat = new THREE.MeshStandardMaterial({color: c.grit, roughness: 1, flatShading: true, ...lit});
+  const stoneMat = new THREE.MeshStandardMaterial({color: c.stone, roughness: 1, flatShading: true, ...lit});
   [[0, .16, 1], [1, .34, 1.4], [2, .52, 1], [3, .68, 1.6]].forEach(([i, t, big]) => {
-    const a = i * 2.2, r = radius(t) * scale * 1.05, geo = new THREE.DodecahedronGeometry(.026 * big * scale, 0);
+    const a = i * 2.2, r = rad(t) * scale * 1.05, geo = new THREE.DodecahedronGeometry(.026 * big * scale, 0);
     const m = add(geo, i % 2 ? stoneMat : chunkMat, 'grit');
     m.scale.set(1, .7 + hash(i) * .4, .8 + hash(i + 3) * .5); m.position.set(Math.cos(a) * r, t * H * scale, Math.sin(a) * r); m.rotation.set(a, a * .6, 0);
   });
+  if (c.fire) {
+    // the hot core: a stretched white-yellow spark in the middle of the column
+    const core = add(new THREE.SphereGeometry(.07 * scale, 8, 6), new THREE.MeshStandardMaterial({color: c.pale, emissive: c.pale, emissiveIntensity: 4.5, roughness: .2}), 'core');
+    core.scale.set(.8, 1.6, .8); core.position.y = .32 * scale;
+    g.userData.core = core;
+    return {g, body, core};
+  }
   const rag = new THREE.PlaneGeometry(.2 * scale, .06 * scale, 5, 1), rp = rag.attributes.position;
   for (let i = 0; i < rp.count; i++) rp.setY(i, rp.getY(i) + Math.sin(rp.getX(i) * 40) * .012 * scale);
   const rm = add(rag, new THREE.MeshStandardMaterial({color: c.rag, roughness: 1, side: THREE.DoubleSide}), 'rag');
-  rm.position.set(radius(.45) * scale * 1.1, .45 * H * scale, 0); rm.rotation.set(.4, 1.1, .7);
+  rm.position.set(rad(.45) * scale * 1.1, .45 * H * scale, 0); rm.rotation.set(.4, 1.1, .7);
   return {g, body};
 }
