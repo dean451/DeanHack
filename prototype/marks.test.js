@@ -17,16 +17,16 @@ test('what is left follows the species: boneless things bleed, dry undead leave 
   assert.deepEqual(kinds({type: 'death', x: 1, z: 1, name: 'floating eye'}), ['pool']);
   assert.deepEqual(kinds({type: 'death', x: 1, z: 1, name: 'giant beetle'}), ['pool']);
   const skel = kinds({type: 'death', x: 1, z: 1, name: 'skeleton'});
-  assert.equal(skel[0], 'dust'); assert.ok(skel.filter(x => x === 'bone').length >= 3); assert.ok(!skel.includes('pool'));
+  assert.equal(skel[0], 'dust'); assert.ok(skel.filter(x => x === 'bone').length >= 3); assert.ok(!skel.includes('pool')); assert.equal(skel.filter(x => x === 'skull').length, 1, 'a dry kill leaves a skull');
   assert.deepEqual(kinds({type: 'combat', x: 1, z: 1, name: 'barrow wight'}), ['chip']);
   const ooze = kinds({type: 'death', x: 1, z: 1, name: 'gray ooze'});
   assert.equal(ooze[0], 'slick'); assert.ok(ooze.filter(x => x === 'drip').length >= 1); assert.ok(!ooze.includes('pool') && !ooze.includes('bone'));
   assert.deepEqual(kinds({type: 'combat', x: 1, z: 1, name: 'blue jelly'}), ['drip']);
   for (const name of ['yellow light', 'black light', 'fire elemental', 'earth elemental', 'energy vortex', 'stone golem', 'ghost', 'gas spore'])
     assert.deepEqual(kinds({type: 'death', x: 1, z: 1, name}), [], name), assert.deepEqual(kinds({type: 'combat', x: 1, z: 1, name}), [], name);
-  // the shards come in three shapes, picked deterministically
+  // the bones come in four shapes, picked deterministically
   const shapes = marksFor({type: 'death', x: 9, z: 2, name: 'human zombie'}).filter(m => m.kind === 'bone').map(m => m.shape);
-  assert.ok(shapes.every(s => Number.isInteger(s) && s >= 0 && s < 3));
+  assert.ok(shapes.every(s => Number.isInteger(s) && s >= 0 && s < 4));
 });
 
 test('marks stay within a cell of the event and are deterministic', () => {
@@ -53,8 +53,8 @@ test('the pool is capped and the oldest marks fade out first', () => {
 test('marks are flat, low, shared in geometry, and clear() removes everything', () => {
   const parent = new THREE.Group(), marks = createMarks(THREE, parent);
   for (let i = 0; i < 12; i++) marks.add({type: 'death', x: i, z: i});
-  assert.ok(new Set(parent.children.map(m => m.geometry)).size <= 6);
-  for (const m of parent.children) { assert.ok(m.position.y > 0 && m.position.y < .05); assert.equal(m.material.depthWrite, false); }
+  assert.ok(new Set(parent.children.map(m => m.geometry)).size <= 8);
+  for (const m of parent.children) { assert.ok(m.position.y >= 0 && m.position.y < .05); if (m.material.isMeshBasicMaterial) assert.equal(m.material.depthWrite, false, 'stains are flat'); else assert.ok(m.material.vertexColors && Math.abs(m.rotation.x) < .2 && Math.abs(m.rotation.z) < .2, 'bones are lit solids lying nearly flat'); }
   marks.update(NaN);
   marks.clear();
   assert.equal(marks.count(), 0); assert.equal(parent.children.length, 0);

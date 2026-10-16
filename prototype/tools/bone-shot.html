@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>bone shot</title>
+<style>html,body{margin:0;background:#233138}canvas{display:block}</style>
+<script type="module">
+// The five bones a kill can leave (bone-shards.js), large, in a row: /tools/bone-shot.html
+import * as THREE from 'three';
+import {boneGeometries, boneMaterial, SHAPES} from '../bone-shards.js';
+const W=1400,H=360,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(28,W/H,.05,60);
+scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const key=new THREE.DirectionalLight(0xffe1b6,3);key.position.set(-3,5,4);scene.add(key);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(20,8),new THREE.MeshStandardMaterial({color:0x4a5550,roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const g=boneGeometries();SHAPES.forEach((k,i)=>{const m=new THREE.Mesh(g[k],boneMaterial());m.position.x=(i-2)*2.4;m.rotation.y=.4;scene.add(m);});
+camera.position.set(0,4.5,6.5);camera.lookAt(0,.2,0);renderer.render(scene,camera);window.__done=true;
+</script>
