@@ -35,6 +35,7 @@ import {createFloatingEye} from './floating-eye.js';
 import {createAcidBlob} from './acid-blob.js';
 import {createGrayOoze} from './gray-ooze.js';
 import {createJelly} from './jelly.js';
+import {createVortex} from './vortex.js';
 import {waterDemonHead,waterDemonBody} from './water-demon.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
@@ -3157,6 +3158,7 @@ export function createCreature(cell={}){
  if(SNAKES[name])return snake(SNAKES[name]);
  if(WORMS[name])return worm(WORMS[name]);
  if(name==='long worm tail')return wormTail({color:color||WORMS['long worm'].color});
+ if(name==='dust vortex'){const a=createVortex({kind:'dust'});return actor(a.g,a.body,[],null,[],'hover');}
  if(VORTICES[name])return vortex(VORTICES[name]);
  if(isPiercer(name))return createPiercer(name);
  // the owlbear has its own model (owlbear.js), not the generic ape
