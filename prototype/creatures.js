@@ -1,7 +1,8 @@
 import {dressDragon,dragonElement,HIDE_FINISH,torsoTrunk,serpentTrunk} from './dragon-breeds.js';
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {mergeGeometries,mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
+import {bakeable,bakeKey,bakeInto,bakedMaterialFor} from './baked-material.js';
 import {heldBoulderGeometry} from './boulder.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
@@ -1130,21 +1131,27 @@ function spiralHorn(r,h,turns=3.5){
 // Meshes in `keep` (animation handles), named or tagged meshes, see-through ones (they sort per
 // object), hidden ones and mirrored ones (a flipped matrix would turn their faces inside out)
 // are left alone. Shadow flags and draw order are part of the bin, so no shadow changes.
-function mergeStatic(root,keep=new Set()){
+// Merges a group's static meshes that share a material into one. With `bake`, meshes whose
+// materials differ only in colour, roughness and metalness merge too, those values written per
+// vertex (baked-material.js) and unindexed pieces indexed so they join in: a model dressed in a
+// dozen plain materials costs one draw per body part instead of one per material. The merged mesh keeps the biggest piece's colour in
+// userData.color for the effects that read a body's colour (deaths.js deathLook).
+function mergeStatic(root,keep=new Set(),{bake=false}={}){
  const groups=[];root.traverse(o=>{if(!o.isMesh)groups.push(o);});
  for(const group of groups){
   const bins=new Map();
   for(const mesh of group.children){
    if(!mesh.isMesh||mesh.children.length||keep.has(mesh)||mesh.isInstancedMesh||mesh.isSkinnedMesh||!mesh.visible||mesh.name||Array.isArray(mesh.material)||mesh.material.transparent||Object.keys(mesh.userData).length)continue;
    mesh.updateMatrix();if(mesh.matrix.determinant()<=0)continue;
-   const geo=mesh.geometry,key=[mesh.material.uuid,geo.index?'i':'n',Object.keys(geo.attributes).sort().join(),Object.keys(geo.morphAttributes).length,mesh.castShadow,mesh.receiveShadow,mesh.renderOrder].join('|');
-   if(!bins.has(key))bins.set(key,[]);bins.get(key).push(mesh);}
-  for(const meshes of bins.values()){if(meshes.length<2)continue;
-   const geos=meshes.map(mesh=>mesh.geometry.clone().applyMatrix4(mesh.matrix)),merged=mergeGeometries(geos);
+   const geo=mesh.geometry,baked=bake&&bakeable(mesh.material),key=[baked?bakeKey(mesh.material):mesh.material.uuid,geo.index||baked?'i':'n',Object.keys(geo.attributes).sort().join(),Object.keys(geo.morphAttributes).length,mesh.castShadow,mesh.receiveShadow,mesh.renderOrder].join('|');
+   if(!bins.has(key))bins.set(key,{baked,meshes:[]});bins.get(key).meshes.push(mesh);}
+  for(const {baked,meshes} of bins.values()){if(meshes.length<2)continue;
+   const geos=meshes.map(mesh=>{let g=mesh.geometry.clone().applyMatrix4(mesh.matrix);if(baked&&!g.index)g=mergeVertices(g);return baked?bakeInto(g,mesh.material):g;}),merged=mergeGeometries(geos);
    if(!merged)continue;
    // no dispose: this runs before the first render, and a source geometry may be shared
    for(const mesh of meshes)group.remove(mesh);
-   const one=part(group,merged,meshes[0].material);one.castShadow=meshes[0].castShadow;one.receiveShadow=meshes[0].receiveShadow;one.renderOrder=meshes[0].renderOrder;}
+   const one=part(group,merged,baked?bakedMaterialFor(meshes[0].material):meshes[0].material);one.castShadow=meshes[0].castShadow;one.receiveShadow=meshes[0].receiveShadow;one.renderOrder=meshes[0].renderOrder;
+   if(baked){let big=null,v=-1;const size=new THREE.Vector3();geos.forEach((g,i)=>{g.computeBoundingBox();g.boundingBox.getSize(size);const vol=size.x*size.y*size.z;if(vol>v){v=vol;big=meshes[i];}});const c=big.material.color;one.userData.color=[c.r,c.g,c.b];}}
  }
 }
 // Every Object3D an actor hands out (its own fields and g.userData, one level into arrays and
@@ -1155,7 +1162,7 @@ function handles(a){
  for(const v of [...Object.values(a),...Object.values(a.g.userData)])add(v,true);
  return keep;
 }
-function trimDraws(a){mergeStatic(a.g,handles(a));return a;}
+function trimDraws(a,options){mergeStatic(a.g,handles(a),options);return a;}
 const HORSES={
  pony:{scale:.8,coat:1.15,hair:'#e0cc9a',legH:.34,stock:1.12,mane:'shaggy',hindSocks:true,tail:.4},
  horse:{scale:1,coat:1,hair:'#1e1a18',points:'#231e1b',legH:.42,stock:1,blaze:true,tail:.44},
@@ -2410,7 +2417,7 @@ function leprechaun(o){
  const loot=new THREE.Group();loot.position.set(.2,.32,.06);body.add(loot);
  sphere(loot,.07,sack,0,-.1,0,1,1.15,.95);cylinder(loot,.022,.03,.04,sack,0,-.02,0,8);part(loot,new THREE.TorusGeometry(.024,.006,6,12),wood,0,-.03,0).rotation.x=Math.PI/2;
  for(const [x,y,z,r] of [[.03,-.02,.03,.3],[-.02,-.01,.035,-.4],[.01,.005,.02,.1]]){const c=cylinder(loot,.018,.018,.005,coin,x,y,z,14);c.rotation.set(Math.PI/2-.4,0,r);}
- return trimDraws(Object.assign(actor(g,body,legs,loot,[],'idle'),{head,hat,loot,leprechaun:true}));
+ return trimDraws(Object.assign(actor(g,body,legs,loot,[],'idle'),{head,hat,loot,leprechaun:true}),{bake:true});
 }
 const LEPRECHAUNS={leprechaun:{coat:'#2f8a3a'}};
 // Gargoyles: crouching carved-stone brutes on digitigrade haunches with knuckles on the floor, a horned

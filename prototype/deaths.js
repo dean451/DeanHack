@@ -319,16 +319,19 @@ export function createDeathBurst(THREE, max = 256, seed = 23) {
 }
 
 // What a death burst needs from the actor: its body colour (first plain mesh under the body,
-// else the whole model; outlines and rings are skipped) and its height (from stageCreature).
+// else the whole model; outlines and rings are skipped; a baked mesh, which carries its biggest
+// piece's colour in userData.color, wins over loose trim) and its height (from stageCreature).
 export function deathLook(actor) {
-  let color = null;
+  let color = null, baked = null;
   const pick = o => {
-    if (color || !o.isMesh || o.userData.outline || o.userData.ring || Array.isArray(o.material)) return;
-    const c = o.material?.color;
-    if (c && Number.isFinite(c.r)) color = [c.r, c.g, c.b];
+    if (baked || !o.isMesh || o.userData.outline || o.userData.ring || Array.isArray(o.material)) return;
+    const b = o.userData.color, c = o.material?.color;
+    if (Array.isArray(b) && b.length === 3) baked = [...b];
+    else if (!color && c && Number.isFinite(c.r)) color = [c.r, c.g, c.b];
   };
   actor?.body?.traverse?.(pick);
-  if (!color) actor?.g?.traverse?.(pick);
+  if (!color && !baked) actor?.g?.traverse?.(pick);
+  color = baked ?? color;
   const h = actor?.g?.userData?.height;
   return {color, height: Number.isFinite(h) && h > 0 ? h : .6};
 }

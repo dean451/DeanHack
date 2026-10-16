@@ -215,7 +215,11 @@ export function updateLeprechaunCoin(a, dt, t, busy, look = null) {
     st.coin.material.emissiveIntensity = .2 + 2.2 * pulse(f.fly, .38, .24);
   }
 
-  // the sparks: drift, slow and fade
+  // the sparks: drift, slow and fade. The buffers go up only while a spark lives (and once
+  // more as the last one dies), not every frame for every leprechaun in a hall.
+  const alive = st.sparks.some(s => s.age < SPARK_LIFE);
+  if (!alive && st.sparksClear) return st;
+  st.sparksClear = !alive;
   const pos = st.cloud.geometry.attributes.position, col = st.cloud.geometry.attributes.color;
   st.sparks.forEach((s, i) => {
     if (s.age < SPARK_LIFE) {
