@@ -1,17 +1,17 @@
 <!doctype html><meta charset="utf-8"><title>cat strip</title>
 <style>html,body{margin:0;background:#233138}canvas{display:block}</style>
 <script type="module">
-// Six moments of the skinned cat's stride in a row, from the side: /tools/cat-strip.html?name=kitten&walk=1
+// Six moments of one of the skinned cat's clips in a row, from the side:
+// /tools/cat-strip.html?name=kitten&clip=walk   (clips: walk, idle, sit, pounce; walk=1 is the old spelling of clip=walk)
 import * as THREE from 'three';
-import {createSkinnedFeline, updateSkinnedFeline} from '../feline-skin.js';
-const q=new URLSearchParams(location.search),name=q.get('name')||'kitten',walk=q.get('walk')!=='0',N=6;
+import {createSkinnedFeline} from '../feline-skin.js';
+const q=new URLSearchParams(location.search),name=q.get('name')||'kitten',clip=q.get('clip')||(q.get('walk')==='0'?'idle':'walk'),N=6;
 const W=1400,H=380,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
 const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-N*.45,N*.45,.42,-.34,.1,50);
 scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const key=new THREE.DirectionalLight(0xffe1b6,3);key.position.set(-3,5,4);scene.add(key);
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(20,8),new THREE.MeshStandardMaterial({color:0x4a5550,roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
-const period=1/2.1;
 for(let i=0;i<N;i++){const cat=createSkinnedFeline(name);cat.g.position.x=(i-(N-1)/2)*.9;cat.g.rotation.y=Math.PI/2;scene.add(cat.g);
- const t=walk?1.5+period*i/N:2+i*.7;for(let s=0;s<t;s+=1/60)updateSkinnedFeline(cat,1/60,s,walk);}
+ cat.animator.show(clip,i/N);}
 camera.position.set(0,.34,6);camera.lookAt(0,.34,0);renderer.render(scene,camera);window.__done=true;
 </script>
