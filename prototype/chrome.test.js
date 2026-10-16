@@ -118,7 +118,12 @@ test('nothing draws behind the splash: the loop returns while it is open, no bac
   assert.match(main,/renderer\.shadowMap\.needsUpdate=pacer\.shadowDue\(ms,quality\.tier\);/);
   assert.match(main,/new THREE\.WebGLRenderer\(\{antialias:false,alpha:false\}\)/,'no MSAA resolve for a composer that never had MSAA, and an opaque canvas: the scene background covers every pixel');
   assert.match(main,/renderer\.setSize\(innerWidth,innerHeight\);setQuality\(quality\.tier\);\}\);/,'a resize re-applies the tier (the AO size)');
-  assert.match(main,/composer\.render\(\);\{const step=adaptive\.frame\(ms,frameCostNow\(ms\),quality\.tier\)/,'the drawn frame time feeds the adaptive tier');
+  assert.match(main,/composer\.render\(\);const renderMs=performance\.now\(\)-renderAt;\{const step=adaptive\.frame\(ms,frameCostNow\(ms\),quality\.tier\)/,'the drawn frame time feeds the adaptive tier');
+  assert.match(main,/renderStats\.end\(dt,\{update:updateMs,render:renderMs\}\)/,'the F9 panel shows where the main thread goes');
+  assert.match(main,/installLive\(\{scene,camera,controls,renderer,/,'the live game gets the renderer for shader warm-up');
+  const liveSrc=readFileSync(new URL('./live.js',import.meta.url),'utf8');
+  assert.match(liveSrc,/function warmUp\(\)\{if\(!staged\|\|!renderer\?\.compileAsync\)return;staged=false;renderer\.compileAsync\(scene,camera\)/,'new materials compile ahead of their first draw');
+  assert.equal((liveSrc.match(/staged=true;/g)||[]).length,3,'tiles, items and actors each mark the frame as staged');
   assert.match(main,/adaptive\.manual\(\);/,'F8 pins the tier');
   assert.match(main,/onActivity:touch/,'engine events keep the frame rate up');
   assert.doesNotMatch(css,/#start-screen,#start-cover\{[^}]*backdrop-filter/,'the splash does not blur the whole viewport');
