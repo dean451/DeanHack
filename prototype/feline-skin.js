@@ -9,11 +9,14 @@
 //
 // The animation is clips on a THREE.AnimationMixer, the way three's skinning examples do it:
 // the walk cycle (diagonal pairs, bending elbows, knees and hocks, an undulating spine, bobbing
-// hips), the idle (a breathing chest, a slow weight shift) and the tail (a curl and flick that
-// touches only the tail bones, so it plays under either) are sampled from pose functions into
-// keyframe tracks once per actor. Walk and idle cross-fade on the mixer as the pet stops and
-// starts; the head is left to the glance code (fidget.js) and a lean into turns is laid on top
-// after the mixer. live.js drives it through actor.asset.update so the rigid-part animations
+// hips), the idle (a breathing chest, a slow weight shift), the sit (haunches down, hind legs
+// folded, chest up, tail wrapped round, taken after SIT_AFTER seconds of standing still) and
+// the tail (a curl and flick that touches only the tail bones, so it plays under the others)
+// are sampled from pose functions into keyframe tracks once per actor; the pounce is a one-shot
+// clip (crouch, launch with the forelegs reaching, land) played when the pet's attack action
+// starts, and fades back to whatever it interrupted. Walk, idle and sit cross-fade on the mixer
+// as the pet stops and starts; the head is left to the glance code (fidget.js) and a lean into
+// turns is laid on top after the mixer. live.js drives it through actor.asset.update so the rigid-part animations
 // leave it alone, and a rigged GLB cat would play through the same mixer calls.
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
@@ -118,7 +121,7 @@ export function createSkinnedFeline(name, colour) {
   fur.bind(skeleton, fur.matrixWorld); eyes.bind(skeleton, eyes.matrixWorld);
   const rig = {hips, spine, chest, neck, head, tail: tailBones, legs, yaw: g.rotation.y, lean: 0};
   const actor = {g, body, legs: [], tail: null, wings: [], quirk: 'feline', head, species: name, skinned: true, rig, fur, eyes};
-  actor.animator = createFelineAnimator(body, rig);
+  actor.animator = createFelineAnimator(body, rig, actor);
   actor.asset = {update: (dt, walking) => updateSkinnedFeline(actor, dt, null, walking), skinned: true, mixer: actor.animator.mixer};
   return actor;
 }
@@ -147,7 +150,32 @@ export function tailPose(u) {
   for (let i = 0; i < n; i++) { const k = i / (n - 1); pose['tail' + i] = {x: (i ? Math.sin(u * TAU) * TAIL.curl * k : 0) + Math.sin(u * TAU * 3 + i * .9) * .03, y: Math.sin(u * TAU * 2 + .4) * TAIL.sway * k + Math.sin(u * TAU * 7 + i) * TAIL.flick * k, z: Math.sin(u * TAU + i) * .03}; }
   return pose;
 }
-export const CLIPS = {walk: {pose: walkPose, period: 1 / WALK.hz, frames: 24}, idle: {pose: idlePose, period: 4, frames: 32}, tail: {pose: tailPose, period: 6, frames: 48}};
+// Sitting: haunches down, hind legs folded under, forelegs straight and a little splayed, the
+// chest up so the front stays at height, the tail curled round the hip. The breath still runs.
+export const SIT = {drop: .075, thigh: -.85, knee: 1.95, hock: -1.05, chest: -.3, spine: -.2, fore: -.08};
+export function sitPose(u) {
+  const ph = u * TAU, breath = Math.sin(ph) * .5 + .5, pose = {hipsY: -SIT.drop, chestScale: 1 + .02 * breath};
+  pose.spine = {x: SIT.spine}; pose.chest = {x: SIT.chest}; pose.hips = {x: .12};
+  for (const key of ['lhind', 'rhind']) { pose[key + '0'] = {x: SIT.thigh}; pose[key + '1'] = {x: SIT.knee}; pose[key + '2'] = {x: SIT.hock}; pose[key + '3'] = {x: .1}; }
+  for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: SIT.fore, z: key[0] === 'l' ? -.06 : .06}; pose[key + '1'] = {x: 0}; pose[key + '2'] = {x: 0}; }
+  // the tail wraps round the right hip and its tip stirs
+  for (let i = 0; i < 5; i++) { const k = i / 4; pose['tail' + i] = {x: -.35 * k, y: .55 * k, z: Math.sin(ph * 2 + i) * .04 * k}; }
+  return pose;
+}
+// The pounce, over its whole duration: a crouch (u to .3), the launch with the forelegs reaching
+// and the hind legs driving (to .65), the landing and a settle to rest (to 1).
+export const POUNCE = {time: .75, crouch: .07, leap: .09, reach: -1.1, drive: .9};
+export function pouncePose(u) {
+  const crouch = smooth(u / .22) * (1 - smooth((u - .22) / .1)), leap = smooth((u - .28) / .14) * (1 - smooth((u - .6) / .2)), land = smooth((u - .6) / .12) * (1 - smooth((u - .78) / .22));
+  const pose = {hipsY: -POUNCE.crouch * crouch + POUNCE.leap * leap - .03 * land, chestScale: 1};
+  pose.spine = {x: .25 * crouch - .3 * leap + .1 * land}; pose.chest = {x: .15 * crouch - .25 * leap + .12 * land}; pose.hips = {x: -.1 * crouch + .2 * leap};
+  for (const key of ['lhind', 'rhind']) { pose[key + '0'] = {x: -.6 * crouch + POUNCE.drive * leap + .2 * land}; pose[key + '1'] = {x: 1.1 * crouch - .3 * leap + .4 * land}; pose[key + '2'] = {x: -.5 * crouch + .4 * leap - .3 * land}; pose[key + '3'] = {x: .2 * crouch}; }
+  for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: .35 * crouch + POUNCE.reach * leap - .25 * land}; pose[key + '1'] = {x: .6 * crouch + .3 * leap + .5 * land}; pose[key + '2'] = {x: .2 * crouch - .4 * leap}; }
+  return pose;
+}
+export const CLIPS = {walk: {pose: walkPose, period: 1 / WALK.hz, frames: 24}, idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
+// A pet that has stood still this long sits down.
+export const SIT_AFTER = 6;
 
 // Samples a pose function into an AnimationClip of quaternion (and position, scale) tracks on
 // the bones it names. The last frame repeats the first, so the loop is seamless.
@@ -172,28 +200,47 @@ export function sampleClip(name, {pose, period, frames}, bonesByName) {
   return new THREE.AnimationClip(name, period, tracks);
 }
 
-// The mixer and its actions for one cat. `update(dt, walking)` cross-fades walk and idle as the
-// pet starts and stops (three's skinning-blending example, in code), keeps the tail playing,
-// and lays the turn lean on top after the mixer has posed the bones.
-export function createFelineAnimator(root, rig) {
+// The mixer and its actions for one cat. `update(dt, walking)` cross-fades walk, idle and sit
+// as the pet starts, stops and settles (three's skinning-blending example, in code), plays the
+// pounce as a one-shot when the actor's attack action begins, keeps the tail playing, and lays
+// the turn lean on top after the mixer has posed the bones. `actor` is read for its actions.
+export function createFelineAnimator(root, rig, actor = null) {
   const bonesByName = {}; root.traverse(o => { if (o.isBone) bonesByName[o.name] = o; });
   const mixer = new THREE.AnimationMixer(root), actions = {};
-  for (const [name, spec] of Object.entries(CLIPS)) { const a = mixer.clipAction(sampleClip(name, spec, bonesByName)); a.play(); actions[name] = a; }
-  actions.walk.setEffectiveWeight(0); actions.idle.setEffectiveWeight(1); actions.tail.setEffectiveWeight(1);
-  let walking = false;
-  const fade = (to, from, time) => { to.enabled = true; to.setEffectiveTimeScale(1); to.setEffectiveWeight(1); to.time = to.time % to.getClip().duration; from.crossFadeTo(to, time, false); };
+  for (const [name, spec] of Object.entries(CLIPS)) {
+    const a = mixer.clipAction(sampleClip(name, spec, bonesByName));
+    if (spec.once) { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; } else a.play();
+    a.setEffectiveWeight(0); actions[name] = a;
+  }
+  actions.idle.setEffectiveWeight(1); actions.tail.setEffectiveWeight(1);
+  let walking = false, base = actions.idle, still = 0, pouncing = false, lastAttack = null;
+  // Fades `to` in over `from`; the base clip is whatever the pet stands, walks or sits with.
+  const fade = (to, from, time) => { to.enabled = true; to.setEffectiveTimeScale(1); to.setEffectiveWeight(1); if (to.loop !== THREE.LoopOnce) to.time = to.time % to.getClip().duration; to.play(); from.crossFadeTo(to, time, false); };
+  const setBase = (to, time) => { if (to === base) return; fade(to, pouncing ? actions.pounce : base, time); base = to; };
+  mixer.addEventListener('finished', e => { if (e.action === actions.pounce) { pouncing = false; fade(base, actions.pounce, .25); } });
   function update(dt, nowWalking) {
     dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
-    if (nowWalking !== walking) { walking = nowWalking; if (walking) fade(actions.walk, actions.idle, .25); else fade(actions.idle, actions.walk, .4); }
+    still = nowWalking ? 0 : still + dt;
+    // the pounce: once per attack action, the moment it starts
+    const atk = actor?.actions?.current?.kind === 'attack' ? actor.actions.current : null;
+    if (atk && atk !== lastAttack) { lastAttack = atk; pouncing = true; still = 0; actions.pounce.reset(); fade(actions.pounce, base, .08); }
+    if (nowWalking !== walking) { walking = nowWalking; if (!pouncing) setBase(walking ? actions.walk : actions.idle, walking ? .25 : .4); else base = walking ? actions.walk : actions.idle; }
+    if (!pouncing && !walking && still >= SIT_AFTER && base !== actions.sit) setBase(actions.sit, .6);
     mixer.update(dt);
     // the lean into a turn: the heading arrives in steps, so it snaps toward a turn and eases out
     const yaw = rig.hips.parent?.parent?.rotation.y ?? 0, d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
     const target = dt > 0 ? Math.max(-.5, Math.min(.5, d / dt * .12)) : 0;
     rig.lean += (target - rig.lean) * (1 - Math.exp(-dt * (Math.abs(target) > Math.abs(rig.lean) ? 14 : 3)));
     if (Math.abs(rig.lean) > 1e-4) { const l = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, -rig.lean * .25)); rig.spine.quaternion.multiply(l); rig.chest.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, 0))); }
-    return {walking, walkWeight: actions.walk.getEffectiveWeight(), idleWeight: actions.idle.getEffectiveWeight()};
+    return {walking, pouncing, sitting: base === actions.sit, walkWeight: actions.walk.getEffectiveWeight(), idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
   }
-  return {mixer, actions, update, get walking() { return walking; }};
+  // For the tool pages: hold one clip at a moment of its cycle (u in 0..1), everything else off.
+  function show(name, u = 0) {
+    for (const [key, a] of Object.entries(actions)) { a.enabled = true; a.paused = false; a.setEffectiveWeight(key === name || key === 'tail' ? 1 : 0); }
+    const a = actions[name]; a.play(); a.time = u * a.getClip().duration; a.paused = true;
+    mixer.update(0);
+  }
+  return {mixer, actions, update, show, get walking() { return walking; }, get base() { return Object.keys(actions).find(k => actions[k] === base); }};
 }
 
 // Per frame from live.js (through actor.asset.update). `t` is unused: the mixer keeps its own time.
