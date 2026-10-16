@@ -1,13 +1,23 @@
-// Persistent combat marks: a fight leaves a dark stain where it happened. A hit leaves a small
-// puddle on the floor, a kill a wider pool with a few bone shards beside it. Puddles are smooth,
-// gently lobed outlines (never spiky stars), quiet in colour, with shared geometry, a hard cap, and
-// the oldest mark fading out first when the cap is reached. Positions come from combat events (combat-events.js).
+// Persistent combat marks: a fight leaves a dark stain where it happened. What it leaves depends
+// on what died (remains.js): a flesh-and-bone creature's hit leaves a small puddle and its kill
+// a wider pool with bone shards beside it; a boneless one bleeds but leaves no bones; dry undead
+// leave bone shards on a grey dust smudge and no blood; lights, elementals, jellies and the like
+// leave nothing. Puddles are smooth, gently lobed outlines (never spiky stars), quiet in colour,
+// with shared geometry, a hard cap, and the oldest mark fading out first when the cap is reached.
+// Positions and species come from combat events (combat-events.js).
+import {remainsOf} from './remains.js';
+
 export const MARK_MAX = 40, FADE_S = 1.2, SPLAT_SIDES = 40;
 export const KINDS = {
   splat: {color: 0x3a0909, opacity: .55, r: .13},
   pool: {color: 0x2a0606, opacity: .68, r: .3},
-  bone: {color: 0xb8ae94, opacity: .9, r: .07},
+  bone: {color: 0xcfc5a8, opacity: .95, r: .13},
+  // the dry kinds: a dust smudge where a skeleton came apart, a chip of bone where it was struck
+  dust: {color: 0x4e4840, opacity: .38, r: .27},
+  chip: {color: 0xcfc5a8, opacity: .9, r: .06},
 };
+// The shards a kill leaves: shapes 0 long bone, 1 rib, 2 fragment (createMarks builds them).
+export const BONE_SHAPES = 3;
 
 // Deterministic pseudo-random in [0,1) from a cell and a salt, so the same fight draws the same marks.
 export const hash = (x, z, n = 0) => {
@@ -15,16 +25,20 @@ export const hash = (x, z, n = 0) => {
   return s - Math.floor(s);
 };
 
-// The marks one event makes: [{kind, x, z, rot, s}] in cell coordinates with a little scatter.
+// The marks one event makes: [{kind, x, z, rot, s, shape?}] in cell coordinates with a little
+// scatter. `ev.name` is the seen species; a pet's kill leaves no bones (it is eaten).
 export function marksFor(ev) {
   if (!ev || !Number.isFinite(ev.x) || !Number.isFinite(ev.z)) return [];
-  const {x, z} = ev, out = [];
-  const at = (kind, n, spread) => out.push({kind, x: x + (hash(x, z, n) - .5) * spread, z: z + (hash(x, z, n + 9) - .5) * spread,
-    rot: hash(x, z, n + 3) * Math.PI * 2, s: .75 + hash(x, z, n + 5) * .6});
+  const {x, z} = ev, out = [], what = remainsOf(ev.name);
+  if (what === 'none') return out;
+  const at = (kind, n, spread, shape) => out.push({kind, x: x + (hash(x, z, n) - .5) * spread, z: z + (hash(x, z, n + 9) - .5) * spread,
+    rot: hash(x, z, n + 3) * Math.PI * 2, s: .75 + hash(x, z, n + 5) * .6, ...(shape == null ? {} : {shape})});
+  const bones = n => { for (let i = 0; i < n; i++) at('bone', 20 + i, .7, Math.floor(hash(x, z, 30 + i) * BONE_SHAPES)); };
   if (ev.type === 'death') {
-    at('pool', 1, .2);
-    if (!ev.pet) for (let i = 0; i < 2 + (hash(x, z, 40) > .5 ? 1 : 0); i++) at('bone', 20 + i, .7);
-  } else at('splat', 1, .3);
+    if (what === 'bones') { at('dust', 1, .2); bones(3 + (hash(x, z, 40) > .5 ? 1 : 0)); }
+    else { at('pool', 1, .2); if (what === 'flesh' && !ev.pet) bones(2 + (hash(x, z, 40) > .5 ? 1 : 0)); }
+  } else if (what === 'bones') at('chip', 1, .3);
+  else at('splat', 1, .3);
   return out;
 }
 
@@ -45,21 +59,33 @@ function splatGeometry(THREE, seed) {
   return g;
 }
 
+// The bone shards, flat on the floor and read at a glance: a long bone with knobbed ends, a rib's
+// arc, and a jagged fragment. Unit scale; marks.r sets the size.
+export function boneShape(THREE, which) {
+  const V = (x, y) => new THREE.Vector2(x, y);
+  let pts;
+  if (which === 0) pts = [V(-1, .12), V(-.72, .2), V(-.6, .12), V(.6, .12), V(.72, .22), V(1, .1), V(1.02, -.12), V(.7, -.22), V(.6, -.12), V(-.6, -.12), V(-.72, -.2), V(-1, -.1)];
+  else if (which === 1) { pts = []; for (let i = 0; i <= 8; i++) { const a = -.9 + i / 8 * 1.8; pts.push(V(Math.sin(a) * 1.05, Math.cos(a) * 1.05 - .75)); } for (let i = 8; i >= 0; i--) { const a = -.9 + i / 8 * 1.8; pts.push(V(Math.sin(a) * .8, Math.cos(a) * .8 - .75)); } }
+  else pts = [V(-.9, 0), V(-.3, .35), V(.2, .2), V(.8, .3), V(.9, -.15), V(.3, -.3), V(-.2, -.1)];
+  const g = new THREE.ShapeGeometry(new THREE.Shape(pts));
+  g.rotateX(-Math.PI / 2);
+  return g;
+}
+
 export function createMarks(THREE, parent, {cap = MARK_MAX} = {}) {
   const splats = [0, 1, 2].map(i => splatGeometry(THREE, i + 1));
-  const shard = new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(-1, 0), new THREE.Vector2(.2, .35), new THREE.Vector2(1, 0), new THREE.Vector2(.1, -.2)]));
-  shard.rotateX(-Math.PI / 2);
+  const shards = [0, 1, 2].map(i => boneShape(THREE, i));
   const live = []; // oldest first
   const drop = m => { parent.remove(m.mesh); m.mesh.material.dispose(); };
   function add(ev) {
     for (const m of marksFor(ev)) {
       const k = KINDS[m.kind];
       const mat = new THREE.MeshBasicMaterial({color: k.color, transparent: true, opacity: k.opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2});
-      const mesh = new THREE.Mesh(m.kind === 'bone' ? shard : splats[Math.floor(hash(m.x, m.z, 7) * 3)], mat);
+      const mesh = new THREE.Mesh(m.kind === 'bone' ? shards[m.shape ?? 0] : m.kind === 'chip' ? shards[2] : splats[Math.floor(hash(m.x, m.z, 7) * 3)], mat);
       mesh.position.set(m.x, .035 + live.length % 8 * .001, m.z);
       mesh.rotation.y = m.rot; mesh.scale.setScalar(k.r * m.s); mesh.renderOrder = 1;
       parent.add(mesh);
-      live.push({mesh, base: k.opacity, fade: 0, bone: m.kind === 'bone'});
+      live.push({mesh, base: k.opacity, fade: 0, bone: m.kind === 'bone' || m.kind === 'chip'});
     }
     // Over the cap: start the oldest not-yet-fading marks fading, stains before bones, so a
     // fight's bones stay on the floor after its blood has faded. The total cap is unchanged.
