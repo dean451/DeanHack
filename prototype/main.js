@@ -8,7 +8,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { SSAOPass } from 'three/addons/postprocessing/SSAOPass.js';
+import { DungeonAOPass } from './ao-pass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {createState,act,fountain} from './simulation.js';
@@ -55,7 +55,7 @@ const bogBubbles=createBogBubbles(scene);
 const gasRoil=createGasRoil(scene);const gasEdge=createGasEdge();
 const camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,.1,100);camera.position.set(11,13,16);
 const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.1,0);controls.enableDamping=true;controls.minDistance=5;controls.maxDistance=27;controls.minPolarAngle=.3;controls.maxPolarAngle=1.22;controls.enablePan=false;
-const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));const ambientOcclusion=new SSAOPass(scene,camera,innerWidth,innerHeight);ambientOcclusion.kernelRadius=12;ambientOcclusion.minDistance=.002;ambientOcclusion.maxDistance=.14;composer.addPass(ambientOcclusion);const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.25,.48,1.25);composer.addPass(bloom);composer.addPass(new OutputPass());
+const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));/* ground-truth ambient occlusion (ao-pass.js), in place of the older SSAOPass whose kernel speckled flat floors */const ambientOcclusion=new DungeonAOPass(scene,camera,innerWidth,innerHeight);composer.addPass(ambientOcclusion);const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.25,.48,1.25);composer.addPass(bloom);composer.addPass(new OutputPass());
 scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const moon=new THREE.DirectionalLight(0x9fb9ca,2.3);moon.position.set(-4,10,3);moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);Object.assign(moon.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:.5,far:30});moon.shadow.bias=-.0003;moon.shadow.normalBias=.03;scene.add(moon);
 // Quality tiers (quality.js): pixel ratio, SSAO, shadows and the idle frame rate. F8 cycles and saves; ?quality= overrides.
 const qualityToast=document.createElement('div');qualityToast.className='quality-toast';qualityToast.hidden=true;document.body.append(qualityToast);let toastTimer=null;

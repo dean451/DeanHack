@@ -1,4 +1,4 @@
-// Render quality tiers and the frame pacer. The scene is drawn through SSAO and bloom at full
+// Render quality tiers and the frame pacer. The scene is drawn through ambient occlusion (GTAO) and bloom at full
 // resolution, with soft 2048 shadows, sixty times a second whether or not anything moves, and on
 // a retina MacBook that is enough to spin the fans. Most of a turn-based game is spent looking at
 // a still board, so two things pay off far more than any model trimming:
@@ -11,7 +11,7 @@
 // choice (F8 cycles it and saves it), then the machine.
 
 // Round two (2026-10-16), the same look for less work:
-//  - the shadow map is drawn once a frame, not once per scene render (the SSAO normal pass is a second
+//  - the shadow map is drawn once a frame, not once per scene render (the occlusion pass's normal render is a second
 //    render, and three redraws shadows on every render call unless told not to), and on balanced only
 //    30 times a second (`shadowHz`): an idle bob does not need its shadow at 60;
 //  - the ambient occlusion runs at half resolution on balanced (`aoScale`): AO is low-frequency and
