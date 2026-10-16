@@ -2,7 +2,8 @@
 // leaves each staged creature as a few meshes that all share one BakedMaterial, so they can go
 // into a single THREE.BatchedMesh: each part is a geometry in the batch and an instance whose
 // matrix follows the part every frame. The part's own mesh stays in the creature's rig as a
-// proxy (its matrixWorld is what we copy), moved to a layer no camera renders. A part whose
+// proxy (its matrixWorld is what we copy, from the batch's own render hooks, once the renderer
+// has brought the world matrices up to date), moved to a layer no camera renders. A part whose
 // material an effect swaps (fade, ghosting, stone) leaves the batch and draws itself until the
 // material comes back; a part whose creature is hidden or released drops out. Nothing else in
 // the game needs to know: effects keep working on the proxies. A part whose geometry an
@@ -27,6 +28,8 @@ export function createActorBatch(root, {start = START} = {}) {
     if (!b) {
       const mesh = new THREE.BatchedMesh(start.instances, start.vertices, start.indices, material);
       mesh.castShadow = mesh.receiveShadow = true; mesh.sortObjects = false; mesh.name = 'actor batch';
+      // the shadow pass comes first in a frame, the colour pass after: whichever is first syncs
+      mesh.onBeforeShadow = mesh.onBeforeRender = renderer => sync(renderer?.info?.render?.frame);
       root.add(mesh);
       batches.set(material, b = {mesh});
     }
@@ -67,7 +70,7 @@ export function createActorBatch(root, {start = START} = {}) {
     entries.delete(o);
   }
 
-  // Once a frame, after the rig is posed and world matrices are current.
+  // Once a frame, after the rig is posed: who is still here, who draws itself, who is hidden.
   function update() {
     for (const [o, e] of entries) {
       if (!isUnder(o, root)) { drop(o, e); continue; }
@@ -78,12 +81,24 @@ export function createActorBatch(root, {start = START} = {}) {
       const swapped = o.material !== e.material;
       if (swapped) { if (e.drawn) { mesh.setVisibleAt(e.instanceId, false); o.layers.set(0); e.drawn = false; } continue; }
       if (!e.drawn) { o.layers.set(HIDDEN_LAYER); e.drawn = true; }
-      const visible = shown(o, root);
-      mesh.setVisibleAt(e.instanceId, visible);
-      if (visible) { inv.copy(mesh.matrixWorld).invert(); m.multiplyMatrices(inv, o.matrixWorld); mesh.setMatrixAt(e.instanceId, m); }
+      e.visible = shown(o, root);
+      mesh.setVisibleAt(e.instanceId, e.visible);
+    }
+    synced = null;
+  }
+  // Copies every drawn part's world matrix into its instance. The render hooks call this with
+  // the renderer's frame number so it runs once a frame however many passes draw the batch.
+  let synced = null;
+  function sync(frame = null) {
+    if (frame !== null && frame === synced) return;
+    synced = frame;
+    for (const [o, e] of entries) {
+      if (!e.drawn || !e.visible) continue;
+      const mesh = e.b.mesh;
+      inv.copy(mesh.matrixWorld).invert(); m.multiplyMatrices(inv, o.matrixWorld); mesh.setMatrixAt(e.instanceId, m);
     }
   }
 
   function clear() { for (const [o, e] of [...entries]) drop(o, e); }
-  return {add, update, clear, get size() { return entries.size; }, get batches() { return batches.size; }, drawn: () => [...entries.values()].filter(e => e.drawn).length, meshes: () => [...batches.values()].map(b => b.mesh)};
+  return {add, update, sync, clear, get size() { return entries.size; }, get batches() { return batches.size; }, drawn: () => [...entries.values()].filter(e => e.drawn).length, meshes: () => [...batches.values()].map(b => b.mesh)};
 }

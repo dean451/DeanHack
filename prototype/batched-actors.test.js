@@ -19,7 +19,7 @@ test('a hall of leprechauns is one batch: parts leave the camera layer and follo
   for (const a of leps) a.g.traverse(o => { if (o.isMesh && o.material.isBakedMaterial) assert.ok(!o.layers.test(new THREE.Layers()), 'proxy hidden from the default layer'); });
   // the rig moves; the instance follows
   leps[2].body.rotation.y = 1; leps[2].g.position.x = 9;
-  root.updateMatrixWorld(true); batch.update();
+  root.updateMatrixWorld(true); batch.update(); batch.sync(1); batch.sync(1);
   const mesh = batch.meshes()[0], got = new THREE.Matrix4();
   let proxy = null; leps[2].body.traverse(o => { if (!proxy && o.isMesh && o.material.isBakedMaterial) proxy = o; });
   const e = [...Array(mesh.instanceCount).keys()];
