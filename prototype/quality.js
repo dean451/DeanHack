@@ -106,3 +106,47 @@ export function applyTier(tier, {renderer, composer, ambientOcclusion, light, sc
   }
   return {tier, ratio, ssao: t.ssao, aoScale: t.aoScale, shadow: t.shadow, soft: t.soft, shadowHz: t.shadowHz, idleFps: t.idleFps, deepFps: t.deepFps, label: t.label};
 }
+
+// Adaptive tier: watches how long a drawn frame takes and steps the tier down when the machine cannot
+// keep up, and back up once it has plenty to spare. Only the tier the machine chose is ever changed:
+// `manual()` (F8, or a tier from the URL or the saved choice) turns this off for good. An automatic
+// step is never saved, so the next visit starts from the user's own choice again.
+export const SLOW_MS = 24, FAST_MS = 10, SLOW_HOLD_MS = 3000, FAST_HOLD_MS = 30000, AVG_MS = 1000;
+// What a drawn frame cost. The GPU runs behind the CPU, so the time spent inside render() hides a slow
+// card; the gap between two drawn frames does not. A frame that arrives when the pacer expected it
+// (within LATE_MS) cost what the loop itself spent; a late one cost one display frame plus how late
+// it was, which on a loop drawing every frame is the whole gap.
+export const VSYNC_MS = 1000 / 60, LATE_MS = 20;
+export function frameCost(gapMs, workMs, fps = 60) {
+  const expected = 1000 / Math.min(60, Math.max(1, fps));
+  return gapMs > expected + LATE_MS ? Math.max(workMs, gapMs - expected + VSYNC_MS) : workMs;
+}
+export function createAdaptiveQuality({slowMs = SLOW_MS, fastMs = FAST_MS, slowHold = SLOW_HOLD_MS, fastHold = FAST_HOLD_MS, avgMs = AVG_MS, manual = false} = {}) {
+  let avg = null, last = null, slowSince = null, fastSince = null, pinned = manual, floor = null;
+  const reset = () => { avg = null; slowSince = null; fastSince = null; };
+  return {
+    manual() { pinned = true; reset(); },
+    // ms: the loop time; drawMs: how long this drawn frame took. Returns the tier to switch to, or null.
+    frame(ms, drawMs, tier) {
+      if (pinned || !Number.isFinite(ms)) return null;
+      // null: this frame was not a measurement (the loop was throttled, or it is the first)
+      if (!Number.isFinite(drawMs)) { reset(); last = ms; return null; }
+      const dt = last === null ? 0 : ms - last; last = ms;
+      // a hidden tab or a stall is not a measurement
+      if (dt > 2000) { reset(); return null; }
+      const k = dt <= 0 ? 1 : 1 - Math.exp(-dt / avgMs);
+      avg = avg === null ? drawMs : avg + (drawMs - avg) * k;
+      const i = ORDER.indexOf(tier);
+      if (avg > slowMs) { fastSince = null; slowSince ??= ms; } else slowSince = null;
+      if (avg < fastMs) { slowSince = null; fastSince ??= ms; } else fastSince = null;
+      if (slowSince !== null && ms - slowSince >= slowHold && i >= 0 && i < ORDER.length - 1 && tier !== 'low') {
+        floor ??= tier; reset(); return ORDER[i + 1];
+      }
+      if (fastSince !== null && ms - fastSince >= fastHold && floor !== null && i > ORDER.indexOf(floor)) {
+        const up = ORDER[i - 1]; if (up === floor) floor = null; reset(); return up;
+      }
+      return null;
+    },
+    get automatic() { return floor !== null; },
+  };
+}

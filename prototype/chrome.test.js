@@ -118,6 +118,8 @@ test('nothing draws behind the splash: the loop returns while it is open, no bac
   assert.match(main,/renderer\.shadowMap\.needsUpdate=pacer\.shadowDue\(ms,quality\.tier\);/);
   assert.match(main,/new THREE\.WebGLRenderer\(\{antialias:false,alpha:true\}\)/,'no MSAA resolve for a composer that never had MSAA');
   assert.match(main,/renderer\.setSize\(innerWidth,innerHeight\);setQuality\(quality\.tier\);\}\);/,'a resize re-applies the tier (the AO size)');
+  assert.match(main,/composer\.render\(\);\{const step=adaptive\.frame\(ms,frameCostNow\(ms\),quality\.tier\)/,'the drawn frame time feeds the adaptive tier');
+  assert.match(main,/adaptive\.manual\(\);/,'F8 pins the tier');
   assert.match(main,/onActivity:touch/,'engine events keep the frame rate up');
   assert.doesNotMatch(css,/#start-screen,#start-cover\{[^}]*backdrop-filter/,'the splash does not blur the whole viewport');
 });
