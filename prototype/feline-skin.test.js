@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK, CLIPS} from './feline-skin.js';
+import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK, CLIPS, SIT_AFTER, POUNCE} from './feline-skin.js';
 import {createFeline} from './feline.js';
 
 // feline-skin.js: the pet cat as one skinned mesh over a small skeleton (a trial of skinning).
@@ -37,7 +37,7 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
 
 test('the clips: walk, idle and tail are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['idle', 'tail', 'walk']);
+  assert.deepEqual(Object.keys(actions).sort(), ['idle', 'pounce', 'sit', 'tail', 'walk']);
   const walk = actions.walk.getClip(), tail = actions.tail.getClip(), idle = actions.idle.getClip();
   assert.ok(Math.abs(walk.duration - 1 / WALK.hz) < 1e-9);
   const names = c => c.tracks.map(t => t.name);
@@ -75,4 +75,43 @@ test('a turn leans the spine toward the new heading, on top of the clips', () =>
   assert.ok(r.lean > .05, `leans ${r.lean}`);
   for (let i = 0; i < 120; i++) updateSkinnedFeline(a, 1 / 60, null, true);
   assert.ok(Math.abs(r.lean) < .02, 'and straightens out');
+});
+
+test('a pet that stands still long enough sits down, and gets up the moment it walks', () => {
+  const a = createSkinnedFeline('kitten'), {actions} = a.animator;
+  for (let t = 0; t < SIT_AFTER - .5; t += 1 / 60) updateSkinnedFeline(a, 1 / 60, null, false);
+  assert.equal(actions.sit.getEffectiveWeight(), 0, 'not yet');
+  let r; for (let t = 0; t < 2; t += 1 / 60) r = updateSkinnedFeline(a, 1 / 60, null, false);
+  assert.ok(r.sitting && actions.sit.getEffectiveWeight() === 1 && actions.idle.getEffectiveWeight() === 0, 'sat');
+  assert.ok(a.rig.hips.position.y < a.rig.hips.userData.world[1] - .05, 'the haunches are down');
+  assert.ok(a.rig.legs.lhind.bones[1].rotation.x > 1, 'the hind legs are folded');
+  for (let i = 0; i < 40; i++) r = updateSkinnedFeline(a, 1 / 60, null, true);
+  assert.ok(!r.sitting && actions.walk.getEffectiveWeight() === 1 && actions.sit.getEffectiveWeight() === 0, 'up and walking');
+  // the sit clip is a loop; the pounce is a one-shot
+  assert.ok(!CLIPS.sit.once && CLIPS.pounce.once);
+});
+
+test('an attack action plays the pounce once, over whatever the pet was doing, then fades back', () => {
+  const a = createSkinnedFeline('housecat'), {actions} = a.animator;
+  a.actions = {current: null};
+  for (let i = 0; i < 30; i++) updateSkinnedFeline(a, 1 / 60, null, true);
+  const attack = {kind: 'attack'}; a.actions.current = attack;
+  let r = updateSkinnedFeline(a, 1 / 60, null, true);
+  assert.ok(r.pouncing, 'the pounce starts with the attack');
+  let reached = false, left = false;
+  for (let t = 0; t < POUNCE.time * .9; t += 1 / 60) { r = updateSkinnedFeline(a, 1 / 60, null, false); if (actions.pounce.getEffectiveWeight() === 1) reached = true; if (a.rig.legs.lfore.bones[0].rotation.x < -.5) reached = reached && true; if (a.rig.hips.position.y > a.rig.hips.userData.world[1] + .03) left = true; }
+  assert.ok(reached && left, 'full weight, forelegs reaching, hips off the ground');
+  for (let t = 0; t < 1; t += 1 / 60) r = updateSkinnedFeline(a, 1 / 60, null, false);
+  assert.ok(!r.pouncing && actions.pounce.getEffectiveWeight() === 0 && actions.idle.getEffectiveWeight() === 1, 'back to idle after the pounce');
+  // the same attack object does not pounce twice; a new one does
+  for (let i = 0; i < 5; i++) r = updateSkinnedFeline(a, 1 / 60, null, false); assert.ok(!r.pouncing);
+  a.actions.current = {kind: 'attack'}; r = updateSkinnedFeline(a, 1 / 60, null, false); assert.ok(r.pouncing);
+});
+
+test('show() holds one clip at a moment of its cycle for the tool pages', () => {
+  const a = createSkinnedFeline('kitten');
+  a.animator.show('sit', .5);
+  assert.ok(a.rig.hips.position.y < a.rig.hips.userData.world[1] - .05);
+  a.animator.show('walk', .25);
+  assert.ok(Math.abs(a.rig.hips.position.y - a.rig.hips.userData.world[1]) < .02 && Math.abs(a.rig.legs.lfore.bones[0].rotation.x) > .1);
 });
