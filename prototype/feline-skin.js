@@ -7,10 +7,14 @@
 // rotation, so an animation writes plain offsets and the head bone takes the same glance code
 // the rigid head took.
 //
-// updateSkinnedFeline(actor, dt, t, walking) is the animation: a breathing chest, a tail that
-// curls and flicks, a walk cycle (diagonal pairs, bending knees and elbows, a spine that
-// undulates and leans into a turn) and a settle back to rest. live.js drives it through
-// actor.asset.update so the rigid-part animations leave it alone.
+// The animation is clips on a THREE.AnimationMixer, the way three's skinning examples do it:
+// the walk cycle (diagonal pairs, bending elbows, knees and hocks, an undulating spine, bobbing
+// hips), the idle (a breathing chest, a slow weight shift) and the tail (a curl and flick that
+// touches only the tail bones, so it plays under either) are sampled from pose functions into
+// keyframe tracks once per actor. Walk and idle cross-fade on the mixer as the pet stops and
+// starts; the head is left to the glance code (fidget.js) and a lean into turns is laid on top
+// after the mixer. live.js drives it through actor.asset.update so the rigid-part animations
+// leave it alone, and a rigged GLB cat would play through the same mixer calls.
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {felineBuild} from './feline.js';
@@ -112,39 +116,87 @@ export function createSkinnedFeline(name, colour) {
   body.add(hips); body.add(fur); body.add(eyes); g.updateMatrixWorld(true);
   const skeleton = new THREE.Skeleton(bones);
   fur.bind(skeleton, fur.matrixWorld); eyes.bind(skeleton, eyes.matrixWorld);
-  const rig = {hips, spine, chest, neck, head, tail: tailBones, legs, yaw: g.rotation.y, lean: 0, phase: 0, breath: 0, flick: 0, stride: 0};
+  const rig = {hips, spine, chest, neck, head, tail: tailBones, legs, yaw: g.rotation.y, lean: 0};
   const actor = {g, body, legs: [], tail: null, wings: [], quirk: 'feline', head, species: name, skinned: true, rig, fur, eyes};
-  actor.asset = {update: (dt, walking) => updateSkinnedFeline(actor, dt, performance.now() / 1000, walking), skinned: true};
+  actor.animator = createFelineAnimator(body, rig);
+  actor.asset = {update: (dt, walking) => updateSkinnedFeline(actor, dt, null, walking), skinned: true, mixer: actor.animator.mixer};
   return actor;
 }
 
-// The animation. Writes bone rotations as plain offsets from rest every frame.
+// ---- clips ----
+// A pose is a map bone name -> {x, y, z} Euler offsets from rest (radians), plus optional
+// `hipsY` (hips lift) and `chestScale`. Each is a function of the cycle phase u in [0, 1).
+const TAU = Math.PI * 2;
+export function walkPose(u) {
+  const ph = u * TAU, pose = {};
+  const leg = (key, offset, fore, four) => { const a = Math.sin(ph + offset), lift = Math.max(0, Math.sin(ph + offset + Math.PI / 2));
+    pose[key + '0'] = {x: a * WALK.swing}; pose[key + '1'] = {x: lift * WALK.bend * (fore ? 1 : -.9)}; pose[key + '2'] = {x: lift * WALK.bend * (fore ? .4 : .8)}; if (four) pose[key + '3'] = {x: -lift * .3}; };
+  leg('lfore', 0, true, false); leg('rhind', 0, false, true); leg('rfore', Math.PI, true, false); leg('lhind', Math.PI, false, true);
+  pose.spine = {y: Math.sin(ph) * WALK.sway}; pose.chest = {y: Math.sin(ph) * WALK.sway * .6}; pose.hips = {x: Math.sin(ph * 2) * .03};
+  pose.hipsY = Math.abs(Math.sin(ph)) * WALK.bob;
+  return pose;
+}
+export function idlePose(u) {
+  const ph = u * TAU, breath = Math.sin(ph) * .5 + .5;
+  // a slow shift of weight from one side to the other rides under the breath
+  // (spine and chest are always written, so the lean laid on afterwards never accumulates)
+  return {chestScale: 1 + .025 * breath, spine: {z: Math.sin(ph * .5) * .02}, chest: {z: Math.sin(ph * .5) * .01}, hips: {z: -Math.sin(ph * .5) * .015}};
+}
+export function tailPose(u) {
+  const pose = {}, n = 5;
+  for (let i = 0; i < n; i++) { const k = i / (n - 1); pose['tail' + i] = {x: (i ? Math.sin(u * TAU) * TAIL.curl * k : 0) + Math.sin(u * TAU * 3 + i * .9) * .03, y: Math.sin(u * TAU * 2 + .4) * TAIL.sway * k + Math.sin(u * TAU * 7 + i) * TAIL.flick * k, z: Math.sin(u * TAU + i) * .03}; }
+  return pose;
+}
+export const CLIPS = {walk: {pose: walkPose, period: 1 / WALK.hz, frames: 24}, idle: {pose: idlePose, period: 4, frames: 32}, tail: {pose: tailPose, period: 6, frames: 48}};
+
+// Samples a pose function into an AnimationClip of quaternion (and position, scale) tracks on
+// the bones it names. The last frame repeats the first, so the loop is seamless.
+export function sampleClip(name, {pose, period, frames}, bonesByName) {
+  const times = Array.from({length: frames + 1}, (_, i) => i / frames * period), per = new Map(), e = new THREE.Euler(), q = new THREE.Quaternion();
+  const hipsY = [], chestScale = []; let anyHipsY = false, anyScale = false;
+  for (let i = 0; i <= frames; i++) {
+    const p = pose((i % frames) / frames);
+    for (const [key, o] of Object.entries(p)) {
+      if (key === 'hipsY' || key === 'chestScale') continue;
+      if (!bonesByName[key]) continue;
+      if (!per.has(key)) per.set(key, []);
+      e.set(o.x || 0, o.y || 0, o.z || 0); q.setFromEuler(e); per.get(key).push(q.x, q.y, q.z, q.w);
+    }
+    const hy = bonesByName.hips ? bonesByName.hips.position : null;
+    hipsY.push(hy ? hy.x : 0, (hy ? hy.y : 0) + (p.hipsY || 0), hy ? hy.z : 0); if (p.hipsY) anyHipsY = true;
+    chestScale.push(p.chestScale || 1, p.chestScale || 1, p.chestScale || 1); if (p.chestScale) anyScale = true;
+  }
+  const tracks = [...per].map(([key, values]) => new THREE.QuaternionKeyframeTrack(key + '.quaternion', times, values));
+  if (anyHipsY) tracks.push(new THREE.VectorKeyframeTrack('hips.position', times, hipsY));
+  if (anyScale) tracks.push(new THREE.VectorKeyframeTrack('chest.scale', times, chestScale));
+  return new THREE.AnimationClip(name, period, tracks);
+}
+
+// The mixer and its actions for one cat. `update(dt, walking)` cross-fades walk and idle as the
+// pet starts and stops (three's skinning-blending example, in code), keeps the tail playing,
+// and lays the turn lean on top after the mixer has posed the bones.
+export function createFelineAnimator(root, rig) {
+  const bonesByName = {}; root.traverse(o => { if (o.isBone) bonesByName[o.name] = o; });
+  const mixer = new THREE.AnimationMixer(root), actions = {};
+  for (const [name, spec] of Object.entries(CLIPS)) { const a = mixer.clipAction(sampleClip(name, spec, bonesByName)); a.play(); actions[name] = a; }
+  actions.walk.setEffectiveWeight(0); actions.idle.setEffectiveWeight(1); actions.tail.setEffectiveWeight(1);
+  let walking = false;
+  const fade = (to, from, time) => { to.enabled = true; to.setEffectiveTimeScale(1); to.setEffectiveWeight(1); to.time = to.time % to.getClip().duration; from.crossFadeTo(to, time, false); };
+  function update(dt, nowWalking) {
+    dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
+    if (nowWalking !== walking) { walking = nowWalking; if (walking) fade(actions.walk, actions.idle, .25); else fade(actions.idle, actions.walk, .4); }
+    mixer.update(dt);
+    // the lean into a turn: the heading arrives in steps, so it snaps toward a turn and eases out
+    const yaw = rig.hips.parent?.parent?.rotation.y ?? 0, d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
+    const target = dt > 0 ? Math.max(-.5, Math.min(.5, d / dt * .12)) : 0;
+    rig.lean += (target - rig.lean) * (1 - Math.exp(-dt * (Math.abs(target) > Math.abs(rig.lean) ? 14 : 3)));
+    if (Math.abs(rig.lean) > 1e-4) { const l = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, -rig.lean * .25)); rig.spine.quaternion.multiply(l); rig.chest.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, 0))); }
+    return {walking, walkWeight: actions.walk.getEffectiveWeight(), idleWeight: actions.idle.getEffectiveWeight()};
+  }
+  return {mixer, actions, update, get walking() { return walking; }};
+}
+
+// Per frame from live.js (through actor.asset.update). `t` is unused: the mixer keeps its own time.
 export function updateSkinnedFeline(actor, dt, t, walking) {
-  const r = actor?.rig; if (!r) return;
-  dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
-  // stride: eases up while walking, down when stopped, and drives the leg phase
-  r.stride = lerp(r.stride, walking ? 1 : 0, 1 - Math.exp(-dt * (walking ? 10 : 6)));
-  r.phase += dt * WALK.hz * Math.PI * 2 * (walking ? 1 : r.stride);
-  const s = r.stride, ph = r.phase;
-  // leaning into a turn: the spine bends toward where the heading went
-  // (the heading arrives in steps, so the lean snaps toward a turn and eases out of it)
-  const yaw = actor.g.rotation.y, d = Math.atan2(Math.sin(yaw - r.yaw), Math.cos(yaw - r.yaw)); r.yaw = yaw;
-  const target = dt > 0 ? Math.max(-.5, Math.min(.5, d / dt * .12)) : 0;
-  r.lean = lerp(r.lean, target, 1 - Math.exp(-dt * (Math.abs(target) > Math.abs(r.lean) ? 14 : 3)));
-  // breathing and the idle tail
-  r.breath = Math.sin(t * 1.7) * .5 + .5;
-  const curl = Math.sin(t * .9) * TAIL.curl, wag = Math.sin(t * 2.3) * TAIL.sway * (1 - s) + Math.sin(ph) * .1 * s;
-  r.tail.forEach((b, i) => { const k = i / (r.tail.length - 1); b.rotation.x = (i ? curl * k : 0) + Math.sin(t * 1.3 + i * .9) * .03; b.rotation.y = wag * k + Math.sin(t * 5.1 + i) * TAIL.flick * k * (1 - s); b.rotation.z = Math.sin(t * .7 + i) * .03; });
-  // the head rides the breath a little
-  r.head.rotation.x = -.03 * r.breath * (1 - s) + Math.sin(ph * 2) * .02 * s;
-  // spine: breath lifts the chest, the walk undulates it, the turn bends it
-  r.chest.scale.setScalar(1 + .025 * r.breath * (1 - s));
-  r.spine.rotation.y = r.lean * .5 + Math.sin(ph) * WALK.sway * s; r.chest.rotation.y = r.lean * .5 + Math.sin(ph) * WALK.sway * .6 * s;
-  r.spine.rotation.z = -r.lean * .25; r.hips.rotation.x = Math.sin(ph * 2) * .03 * s;
-  r.hips.position.y = r.hips.userData.world[1] + Math.abs(Math.sin(ph)) * WALK.bob * s;
-  // legs: diagonal pairs in phase; the upper bone swings, the next bends on the lift
-  // a foreleg folds back at the elbow on the lift and the paw tucks; a hind leg folds at the knee and the hock
-  const leg = (key, offset) => { const L = r.legs[key], fore = key.endsWith('fore'), a = Math.sin(ph + offset), lift = Math.max(0, Math.sin(ph + offset + Math.PI / 2)); L.bones[0].rotation.x = a * WALK.swing * s; L.bones[1].rotation.x = lift * WALK.bend * s * (fore ? 1 : -.9); if (L.bones[2]) L.bones[2].rotation.x = lift * WALK.bend * (fore ? .4 : .8) * s; if (L.bones[3]) L.bones[3].rotation.x = -lift * .3 * s; };
-  leg('lfore', 0); leg('rhind', 0); leg('rfore', Math.PI); leg('lhind', Math.PI);
-  return r;
+  return actor?.animator ? actor.animator.update(dt, !!walking) : null;
 }

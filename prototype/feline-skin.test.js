@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK} from './feline-skin.js';
+import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK, CLIPS} from './feline-skin.js';
 import {createFeline} from './feline.js';
 
 // feline-skin.js: the pet cat as one skinned mesh over a small skeleton (a trial of skinning).
@@ -30,31 +30,49 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
     const box = new THREE.Box3().setFromObject(a.g, true), rb = new THREE.Box3().setFromObject(rigid.g, true);
     assert.ok(Math.abs(box.min.y - rb.min.y) < .02, `${name} on the floor ${box.min.y} vs ${rb.min.y}`);
     assert.ok(Math.abs(box.max.y - rb.max.y) < .05 && Math.abs(box.max.z - rb.max.z) < .05 && Math.abs(box.min.z - rb.min.z) < .05, `${name} footprint`);
-    assert.ok(a.asset?.update && a.head?.isBone && a.legs.length === 0 && a.tail === null, 'drives itself through asset.update; the head bone takes the glance code');
+    assert.ok(a.asset?.update && a.asset.mixer && a.head?.isBone && a.legs.length === 0 && a.tail === null, 'drives itself through asset.update on a mixer; the head bone takes the glance code');
     assert.deepEqual(a.fur.userData.color.length, 3, 'remembers its coat for the death burst');
   }
 });
 
-test('walking swings and bends the legs in diagonal pairs and bobs the hips; standing still settles back and the tail keeps moving', () => {
-  const a = createSkinnedFeline('housecat'), r = a.rig;
-  for (let i = 0; i < 60; i++) updateSkinnedFeline(a, 1 / 60, i / 60, true);
-  const lf = r.legs.lfore.bones[0].rotation.x, rh = r.legs.rhind.bones[0].rotation.x, rf = r.legs.rfore.bones[0].rotation.x;
-  assert.ok(Math.abs(lf) > .05, 'the legs swing'); assert.ok(Math.sign(lf) === Math.sign(rh) && Math.sign(lf) !== Math.sign(rf), 'diagonal pairs');
-  assert.ok(Math.abs(r.spine.rotation.y) > 0 || Math.abs(r.chest.rotation.y) > 0, 'the spine undulates');
-  let bent = false; for (let i = 0; i < 30; i++) { updateSkinnedFeline(a, 1 / 60, 1 + i / 60, true); if (Math.abs(r.legs.lfore.bones[1].rotation.x) > .1) bent = true; }
-  assert.ok(bent, 'the elbow bends on the lift');
-  for (let i = 0; i < 180; i++) updateSkinnedFeline(a, 1 / 60, 2 + i / 60, false);
-  assert.ok(Math.abs(r.legs.lfore.bones[0].rotation.x) < .02 && Math.abs(r.hips.position.y - r.hips.userData.world[1]) < 1e-3, 'standing: the legs settle and the hips come down');
-  const t1 = r.tail[3].rotation.y; updateSkinnedFeline(a, 1 / 60, 6, false); updateSkinnedFeline(a, 1 / 60, 6.4, false);
-  assert.notEqual(t1, r.tail[3].rotation.y, 'the tail keeps swaying at rest');
-  assert.ok(WALK.swing > .3 && WALK.swing < 1);
+test('the clips: walk, idle and tail are sampled from pose functions into seamless looping tracks on the bones they name', () => {
+  const a = createSkinnedFeline('housecat'), {actions} = a.animator;
+  assert.deepEqual(Object.keys(actions).sort(), ['idle', 'tail', 'walk']);
+  const walk = actions.walk.getClip(), tail = actions.tail.getClip(), idle = actions.idle.getClip();
+  assert.ok(Math.abs(walk.duration - 1 / WALK.hz) < 1e-9);
+  const names = c => c.tracks.map(t => t.name);
+  assert.ok(names(walk).includes('lfore0.quaternion') && names(walk).includes('rhind3.quaternion') && names(walk).includes('hips.position') && names(walk).includes('spine.quaternion'));
+  assert.ok(names(tail).every(n => n.startsWith('tail')) && names(tail).length === 5, 'the tail clip touches only the tail bones');
+  assert.ok(names(idle).includes('chest.scale') && !names(idle).some(n => n.startsWith('head')), 'idle breathes; the head is left to the glance code');
+  for (const c of [walk, idle]) assert.ok(names(c).includes('spine.quaternion') && names(c).includes('chest.quaternion'), `${c.name} always writes the spine and chest, so the lean never accumulates`);
+  for (const c of [walk, idle, tail]) for (const t of c.tracks) { const n = t.getValueSize(); for (let k = 0; k < n; k++) assert.ok(Math.abs(t.values[k] - t.values[t.values.length - n + k]) < 1e-6, `${c.name} ${t.name} loops seamlessly`); }
+  assert.ok(CLIPS.walk.frames >= 16);
 });
 
-test('a turn leans the spine toward the new heading', () => {
+test('walking cross-fades the walk in and the idle out, swings and bends the legs in diagonal pairs and bobs the hips; stopping fades back and the tail keeps moving', () => {
+  const a = createSkinnedFeline('housecat'), r = a.rig, {actions} = a.animator;
+  assert.equal(actions.idle.getEffectiveWeight(), 1); assert.equal(actions.walk.getEffectiveWeight(), 0);
+  updateSkinnedFeline(a, 1 / 60, null, true); updateSkinnedFeline(a, 1 / 60, null, true);
+  const w = actions.walk.getEffectiveWeight(); assert.ok(w > 0 && w < 1, `mid cross-fade ${w}`);
+  for (let i = 0; i < 60; i++) updateSkinnedFeline(a, 1 / 60, null, true);
+  assert.equal(actions.walk.getEffectiveWeight(), 1); assert.equal(actions.idle.getEffectiveWeight(), 0);
+  const lf = r.legs.lfore.bones[0].rotation.x, rh = r.legs.rhind.bones[0].rotation.x, rf = r.legs.rfore.bones[0].rotation.x;
+  assert.ok(Math.abs(lf) > .05, 'the legs swing'); assert.ok(Math.sign(lf) === Math.sign(rh) && Math.sign(lf) !== Math.sign(rf), 'diagonal pairs');
+  let bent = false, bobbed = false; for (let i = 0; i < 30; i++) { updateSkinnedFeline(a, 1 / 60, null, true); if (Math.abs(r.legs.lfore.bones[1].rotation.x) > .1) bent = true; if (r.hips.position.y > r.hips.userData.world[1] + .005) bobbed = true; }
+  assert.ok(bent, 'the elbow bends on the lift'); assert.ok(bobbed, 'the hips bob');
+  for (let i = 0; i < 60; i++) updateSkinnedFeline(a, 1 / 60, null, false);
+  assert.equal(actions.idle.getEffectiveWeight(), 1); assert.equal(actions.walk.getEffectiveWeight(), 0);
+  assert.ok(Math.abs(r.legs.lfore.bones[0].rotation.x) < .02 && Math.abs(r.hips.position.y - r.hips.userData.world[1]) < 1e-3, 'standing: the legs settle and the hips come down');
+  const t1 = r.tail[3].rotation.y; for (let i = 0; i < 20; i++) updateSkinnedFeline(a, 1 / 60, null, false);
+  assert.notEqual(t1, r.tail[3].rotation.y, 'the tail keeps swaying at rest');
+  assert.ok(r.chest.scale.x !== 1 || r.chest.scale.y !== 1, 'and the chest breathes');
+});
+
+test('a turn leans the spine toward the new heading, on top of the clips', () => {
   const a = createSkinnedFeline('kitten'), r = a.rig;
-  for (let i = 0; i < 10; i++) updateSkinnedFeline(a, 1 / 60, i / 60, true);
-  a.g.rotation.y += .4; for (let i = 0; i < 5; i++) updateSkinnedFeline(a, 1 / 60, 1 + i / 60, true);
+  for (let i = 0; i < 10; i++) updateSkinnedFeline(a, 1 / 60, null, true);
+  a.g.rotation.y += .4; for (let i = 0; i < 5; i++) updateSkinnedFeline(a, 1 / 60, null, true);
   assert.ok(r.lean > .05, `leans ${r.lean}`);
-  for (let i = 0; i < 120; i++) updateSkinnedFeline(a, 1 / 60, 2 + i / 60, true);
+  for (let i = 0; i < 120; i++) updateSkinnedFeline(a, 1 / 60, null, true);
   assert.ok(Math.abs(r.lean) < .02, 'and straightens out');
 });
