@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
-import {createCreature} from './creatures.js';
+import {createCreature, bakeDraws} from './creatures.js';
 import {createGroundModel} from './ground-models.js';
 import {sceneCounts} from './render-stats.js';
 import {createAltar} from './altar.js';
@@ -24,7 +24,7 @@ import {createTrap} from './trap.js';
 // drag the frame rate down. Models carry no lights and no particle layers of their own (lights are
 // the live scene's, a few shared torches); draw calls follow meshes and unique materials.
 const BUDGET = {
-  meshesPerModel: 70, // the heaviest model today has 53
+  meshesPerModel: 60, // the heaviest model today (Tiamat) has 48 once baked as the live scene stages it
   materialsPerModel: 24, // the heaviest has 18
   busyMeshes: 700, // today 567, // a screenful of 30 mixed monsters
   busyMaterials: 180, // today 142
@@ -43,7 +43,7 @@ const busy = ['rabid rat', 'wood nymph', 'xan', 'rock mole', 'red dragon', 'balr
   'shopkeeper', 'watchman', 'Medusa'];
 
 function build(name) {
-  const actor = createCreature({name, symbol: name.charCodeAt(0)});
+  const actor = bakeDraws(createCreature({name, symbol: name.charCodeAt(0)})); // as the live scene stages it
   const scene = new THREE.Scene();
   scene.add(actor.g);
   let points = 0;
@@ -73,7 +73,7 @@ test('every engine monster model stays under the per-model mesh and material cap
 
 test('a busy screenful of monsters stays inside the draw-call budget', () => {
   const scene = new THREE.Scene();
-  for (const name of busy) scene.add(createCreature({name, symbol: name.charCodeAt(0)}).g);
+  for (const name of busy) scene.add(bakeDraws(createCreature({name, symbol: name.charCodeAt(0)})).g);
   const counts = sceneCounts(scene);
   assert(counts.meshes <= BUDGET.busyMeshes, `${counts.meshes} meshes, budget ${BUDGET.busyMeshes}`);
   assert(counts.materials <= BUDGET.busyMaterials, `${counts.materials} materials, budget ${BUDGET.busyMaterials}`);

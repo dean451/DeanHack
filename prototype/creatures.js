@@ -1163,6 +1163,10 @@ function handles(a){
  return keep;
 }
 function trimDraws(a,options){mergeStatic(a.g,handles(a),options);return a;}
+// Bakes a finished model for the live scene: every plain material merges per body part into
+// one draw (baked-material.js; the leprechaun does this at build). Called when an actor is
+// staged, not at build, so builders and their tests still see the pieces they made.
+export function bakeDraws(a){if(a?.g)mergeStatic(a.g,handles(a),{bake:true});return a;}
 const HORSES={
  pony:{scale:.8,coat:1.15,hair:'#e0cc9a',legH:.34,stock:1.12,mane:'shaggy',hindSocks:true,tail:.4},
  horse:{scale:1,coat:1,hair:'#1e1a18',points:'#231e1b',legH:.42,stock:1,blaze:true,tail:.44},
