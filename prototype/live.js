@@ -166,6 +166,7 @@ import {updateFidget} from './fidget.js';
 import {heroLook} from './glance.js';
 import {bakeDraws} from './creatures.js'; // monsters and pets are baked as they are staged (one draw per body part)
 import {createActorBatch} from './batched-actors.js'; // and their baked parts draw from one batch
+import {createTileInstancer} from './tile-instances.js'; // floor slabs, wall blocks and pebbles draw as instances
 import {updateDragonMenace} from './dragon-menace.js';
 import {updateCockatriceHiss} from './cockatrice-hiss.js';
 import {updateGhosting} from './ghosting.js';
@@ -238,7 +239,7 @@ const statusProgress=createStatusProgress();
 
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode,onActivity}) {
- const group=new THREE.Group();scene.add(group);group.visible=false;const marks=createMarks(THREE,group);const actorBatch=createActorBatch(group);
+ const group=new THREE.Group();scene.add(group);group.visible=false;const marks=createMarks(THREE,group);const tileInstances=createTileInstancer(group);const actorBatch=createActorBatch(group);
  const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map(),liftingItems=new Set(),pickupNotes=createPickupNotes();let active=false,lastCommand=null,pending=null,latest=null,token='',menu=null,commands=null,lines=[],origin=null,lastLevel='',lastBranch=null,lastDepth=NaN,source,pollNow=null;
  const $=s=>document.querySelector(s);
  const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
@@ -343,7 +344,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
  const animated=createAnimatedRegistry();
  function release(object){animated.remove(object);object.traverse(o=>o.userData.dispose?.());group.remove(object);}
  const ghosts=new Map();function dropGhost(gh){gh.mats.forEach(m=>m.dispose());release(gh.g);}
- function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();pickupNotes.clear();for(const w of wells.values())release(w);for(const gh of ghosts.values())dropGhost(gh);ghosts.clear();marks.clear();tiles.clear();actors.clear();groundItems.clear();wells.clear();actorBatch.clear();}
+ function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();pickupNotes.clear();for(const w of wells.values())release(w);for(const gh of ghosts.values())dropGhost(gh);ghosts.clear();marks.clear();tiles.clear();actors.clear();groundItems.clear();wells.clear();tileInstances.clear();actorBatch.clear();}
  function pickupIcon(cell){
    const icon=new THREE.Group(), kind=cell.object?.kind||'item', cls=cell.object?.class||0, itemName=(cell.object?.name||cell.name||'').toLowerCase();
    // Older bridge processes expose statues as generic objects. Keep the visual path
@@ -423,7 +424,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
   if(!kind)model.position.y=.35;
   tile.userData.slab.visible=!model.userData.hidesFloor;
   tile.add(model);tile.userData.feature=model;tile.userData.featureKey=key;tile.userData.axisFeature=AXIS_FEATURES.has(key)?model:null;
-  animated.add(tile); // a trap or feature can carry an animate hook, and can be dressed after the tile was built
+  animated.add(tile);tileInstances.add(tile);tileInstances.refresh(); // a trap or feature can carry an animate hook, and can be dressed after the tile was built
  }
  // Stairs and ladders share the up/down terrain; the glyph's colour tells them apart while
  // nothing covers it (ladder.js), so a square first seen occupied shows stairs until then.
@@ -462,7 +463,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
    for(const cell of frame.cells){const id=`${cell.x},${cell.z}`,x=cell.x-origin.x,z=cell.z-origin.z;
      if(cell.terrain!=='unknown'){
        seen.add(id);let tile=tiles.get(id);if(tile&&(tile.userData.type!==tileKind(cell)||tile.userData.ground!==groundOf(cell))){release(tile);tiles.delete(id);tile=null;}
-       if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=tileKind(cell);tile.userData.ground=groundOf(cell);const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);tile.userData.slab=slab;floorKit.dress(slab,tile,cell.x,cell.z,groundOf(cell));const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:DIM_COLOR,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;tile.userData.fog=fog;
+       if(!tile){tile=new THREE.Group();tile.position.set(x,0,z);tile.userData.type=tileKind(cell);tile.userData.ground=groundOf(cell);const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);tile.userData.slab=slab;floorKit.dress(slab,tile,cell.x,cell.z,groundOf(cell));const fog=box(new THREE.PlaneGeometry(.98,.98),new THREE.MeshBasicMaterial({color:DIM_COLOR,transparent:true,opacity:0,depthWrite:false}),tile,0,.012,0);fog.rotation.x=-Math.PI/2;fog.visible=false;/* setDim shows it; at opacity 0 it was a draw per tile for nothing */tile.userData.fog=fog;
          if(cell.terrain==='altar')tile.add(createAltar());
          if(cell.terrain==='throne')tile.add(createThrone());
          if(cell.terrain==='sink')tile.add(createSink());
@@ -474,7 +475,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
          }
          if(['door','broken-door'].includes(tileKind(cell))){const doorGroup=(tileKind(cell)==='door'?createDoor:createBrokenDoor)(cell.x*61+cell.z*37);tile.add(doorGroup);tile.userData.door=doorGroup;}
          if(['water','lava'].includes(groundOf(cell))){slab.visible=false;const liquid=createLiquid(groundOf(cell),cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
-         group.add(tile);tiles.set(id,tile);animated.add(tile);
+         group.add(tile);tiles.set(id,tile);animated.add(tile);tileInstances.add(tile);
        }if(cell.terrain==='feature')dressFeature(tile,cell);if(cell.terrain==='up'||cell.terrain==='down')dressStairs(tile,cell);if(cell.terrain==='tree')dressTree(tile,cell);syncWard(tile,cell);tile.visible=true;tile.scale.y=1;setDim(tile,!cell.visible&&cell.remembered);
        if(tile.userData.axisFeature){
         // Face the drawbridge across its moat, the hinge toward the gatehouse (terrain-feature.js).
@@ -516,7 +517,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
        { const fraction=healthFraction(cell.health); if(fraction!=null&&!a.hpBar){a.hpBar=createHealthBar();a.g.add(a.hpBar);} if(a.hpBar){if(fraction!=null&&fraction!==a.hpShown)placeAbove(a.hpBar,a.g);a.hpShown=fraction;setHealth(a.hpBar,fraction);} }
      }
    }
-   for(const [id,t] of tiles)if(!seen.has(id)){release(t);tiles.delete(id);}
+   for(const [id,t] of tiles)if(!seen.has(id)){release(t);tiles.delete(id);}tileInstances.refresh();
    cavern.rebuild(tiles,origin,newLevel);branchAir.setBranch(frame.dungeon,hero.g.position);{const f=floorFinish(frame.dungeon);floorKit.setBranch(f.tint,f.roughness);}{const w=wallFinish(frame.dungeon);wall.color.set(w.color);wall.roughness=w.roughness;}cavern.setTint(rockTint(frame.dungeon),rockRoughness(frame.dungeon),h=>rockVein(frame.dungeon,h));
    {const byId=new Map();for(const c of frame.cells)byId.set(`${c.x},${c.z}`,c);
     for(const [id,gh] of ghosts)if(ghostGone(byId.get(id))||seenActors.has(gh.key)||[...seenActors].some(k=>k.startsWith(id+':'))){dropGhost(gh);ghosts.delete(id);}

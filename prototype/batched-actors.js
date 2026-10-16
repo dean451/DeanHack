@@ -28,8 +28,11 @@ export function createActorBatch(root, {start = START} = {}) {
     if (!b) {
       const mesh = new THREE.BatchedMesh(start.instances, start.vertices, start.indices, material);
       mesh.castShadow = mesh.receiveShadow = true; mesh.sortObjects = false; mesh.name = 'actor batch';
-      // the shadow pass comes first in a frame, the colour pass after: whichever is first syncs
-      mesh.onBeforeShadow = mesh.onBeforeRender = renderer => sync(renderer?.info?.render?.frame);
+      // the shadow pass comes first in a frame, the colour pass after: whichever is first syncs.
+      // BatchedMesh has its own hooks (culling, the multi-draw lists), so they run after ours.
+      const render = mesh.onBeforeRender, shadow = mesh.onBeforeShadow;
+      mesh.onBeforeRender = function (renderer, ...rest) { sync(renderer?.info?.render?.frame); return render.call(this, renderer, ...rest); };
+      mesh.onBeforeShadow = function (renderer, ...rest) { sync(renderer?.info?.render?.frame); return shadow.call(this, renderer, ...rest); };
       root.add(mesh);
       batches.set(material, b = {mesh});
     }
