@@ -1,0 +1,32 @@
+<!doctype html><meta charset="utf-8"><title>creature sheet</title>
+<style>html,body{margin:0;background:#233138}canvas{display:block}#labels{position:absolute;left:0;top:0;pointer-events:none}
+#labels span{position:absolute;font:11px/1.2 'Courier New',monospace;color:#d8d2c2;background:#0a0d0fb0;padding:1px 4px;white-space:nowrap}</style>
+<script type="module">
+// A contact sheet of creatures at a three-quarter view: /tools/creature-sheet.html?from=0&count=48&cols=8
+// Every creature in tools/creature-names.json (from src/monst.c) from `from`, `count` of them, in a
+// grid of `cols`, each cell lit as creature-shot.html does, framed to fill the cell, and labelled with its
+// name and index. For skimming the whole bestiary against the quality bar; tools/creature-sheet.mjs
+// renders the pages to PNGs.
+import * as THREE from 'three';
+import {createCreature} from '../creatures.js';
+const q=new URLSearchParams(location.search),from=+q.get('from')||0,count=+q.get('count')||48,cols=+q.get('cols')||8,cell=+q.get('cell')||220;
+const names=await (await fetch('/tools/creature-names.json')).json();
+const page=names.slice(from,from+count),rows=Math.ceil(page.length/cols),W=cols*cell,H=rows*cell;
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.setScissorTest(true);document.body.append(renderer.domElement);
+const labels=document.createElement('div');labels.id='labels';document.body.append(labels);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(36,1,.05,60);
+scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const key=new THREE.DirectionalLight(0xffe1b6,3);key.position.set(-3,5,4);scene.add(key);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshStandardMaterial({color:0x4a5550,roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const failed=[];
+page.forEach((m,i)=>{
+  const x=(i%cols)*cell,y=Math.floor(i/cols)*cell;
+  let c=null;try{c=createCreature({name:m.name,symbol:m.letter.charCodeAt(0),color:m.color});}catch(e){failed.push(m.name+': '+e.message);}
+  // the three-quarter framing of creature-shot.html, a little tighter so each creature fills its cell
+  if(c){scene.add(c.g);const box=new THREE.Box3().setFromObject(c.g),size=box.getSize(new THREE.Vector3()),r=Math.max(size.x,size.y,size.z)||1,d=r*2.1;
+    camera.position.set(d*.8,size.y*.9+r*.3,d*.8);camera.lookAt(new THREE.Vector3(0,size.y*.4,0));
+    renderer.setViewport(x,H-y-cell,cell,cell);renderer.setScissor(x,H-y-cell,cell,cell);renderer.render(scene,camera);scene.remove(c.g);}
+  const l=document.createElement('span');l.style.left=x+3+'px';l.style.top=y+3+'px';l.textContent=`${from+i} ${m.name}`+(c?'':' (no model)');labels.append(l);
+});
+window.__failed=failed;window.__done=true;
+</script>
