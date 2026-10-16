@@ -1,8 +1,8 @@
 // Persistent combat marks: a fight leaves a dark stain where it happened. What it leaves depends
 // on what died (remains.js): a flesh-and-bone creature's hit leaves a small puddle and its kill
 // a wider pool with bone shards beside it; a boneless one bleeds but leaves no bones; dry undead
-// leave bone shards on a grey dust smudge and no blood; lights, elementals, jellies and the like
-// leave nothing. Puddles are smooth, gently lobed outlines (never spiky stars), quiet in colour,
+// leave bone shards on a grey dust smudge and no blood; jellies, puddings and oozes leave an acid
+// slick; lights, elementals and the like leave nothing. Puddles are smooth, gently lobed outlines (never spiky stars), quiet in colour,
 // with shared geometry, a hard cap, and the oldest mark fading out first when the cap is reached.
 // Positions and species come from combat events (combat-events.js).
 import {remainsOf} from './remains.js';
@@ -15,6 +15,9 @@ export const KINDS = {
   // the dry kinds: a dust smudge where a skeleton came apart, a chip of bone where it was struck
   dust: {color: 0x4e4840, opacity: .38, r: .27},
   chip: {color: 0xcfc5a8, opacity: .9, r: .06},
+  // the acid kinds: a drip where a jelly was struck, a slick with a few drips where it died
+  drip: {color: 0x6f8a1e, opacity: .5, r: .1},
+  slick: {color: 0x55701a, opacity: .62, r: .3},
 };
 // The shards a kill leaves: shapes 0 long bone, 1 rib, 2 fragment (createMarks builds them).
 export const BONE_SHAPES = 3;
@@ -36,8 +39,10 @@ export function marksFor(ev) {
   const bones = n => { for (let i = 0; i < n; i++) at('bone', 20 + i, .7, Math.floor(hash(x, z, 30 + i) * BONE_SHAPES)); };
   if (ev.type === 'death') {
     if (what === 'bones') { at('dust', 1, .2); bones(3 + (hash(x, z, 40) > .5 ? 1 : 0)); }
+    else if (what === 'slick') { at('slick', 1, .2); for (let i = 0; i < 2; i++) at('drip', 50 + i, .9); }
     else { at('pool', 1, .2); if (what === 'flesh' && !ev.pet) bones(2 + (hash(x, z, 40) > .5 ? 1 : 0)); }
   } else if (what === 'bones') at('chip', 1, .3);
+  else if (what === 'slick') at('drip', 1, .3);
   else at('splat', 1, .3);
   return out;
 }
