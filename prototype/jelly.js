@@ -27,6 +27,10 @@ const paint = (geo, fn) => {
 };
 
 // The mound's outline at angle a: lopsided, with a slumped lobe on one side.
+// The skull's place on the crown: the skin is pressed into a bowl round it so it shows from above.
+const SKULL = {x: .09, z: -.06}, bowl = (x, z) => Math.max(0, 1 - Math.hypot(x - SKULL.x, z - SKULL.z) / .085);
+// Cracks: thin bands where two wandering sine fields cross zero, cut into the skin and darkened.
+const crack = (x, z) => { const a = Math.abs(Math.sin(x * 26 + z * 11 + Math.sin(z * 19) * 1.6)), b = Math.abs(Math.sin(z * 23 - x * 9 + Math.sin(x * 17) * 1.4)); return Math.max(0, 1 - Math.min(a, b) * 9); };
 const reach = a => R * (1 + .16 * Math.sin(a * 2 + .8) + .09 * Math.sin(a * 3 - 1.1) + .05 * Math.sin(a * 7));
 
 export function createJelly({kind = 'blue'} = {}) {
@@ -45,17 +49,20 @@ export function createJelly({kind = 'blue'} = {}) {
     const x = sp.getX(i), y = sp.getY(i), z = sp.getZ(i), {r, a} = surf(x, z);
     const rr = Math.hypot(x, z);
     const wr = 1 + .045 * Math.sin(a * 9 + y * 6) * (y > 0 ? 1 : .3) + .03 * Math.sin(y * 17 + a * 4);
-    const dent = y > 0 ? pitAt(x, z) : 0;
-    const top = (y > 0 ? y * H * (1 + .16 * Math.sin(rr * 9 + a * 2)) : Math.max(y, -.9) * H * .9) * (1 - .55 * dent);
-    sp.setXYZ(i, x * r * wr, top, z * r * wr);
+    const dent = y > 0 ? pitAt(x, z) : 0, wx = x * r * wr, wz = z * r * wr;
+    const bl = !spotted && y > 0 ? bowl(wx, wz) : 0, ck = !spotted && y > 0 ? crack(wx, wz) : 0;
+    const top = (y > 0 ? y * H * (1 + .16 * Math.sin(rr * 9 + a * 2)) : Math.max(y, -.9) * H * .9) * (1 - .55 * dent) * (1 - .7 * bl) * (1 - .22 * ck);
+    sp.setXYZ(i, wx, top, wz);
   }
   skinG.computeVertexNormals();
   paint(skinG, (x, y, z, o) => {
     const up = THREE.MathUtils.clamp(y / H, 0, 1), veined = Math.max(0, Math.sin(x * 31 + z * 23) * Math.sin(z * 29 - x * 17));
+    const ck = spotted ? 0 : crack(x, z);
     o.copy(col.mid).lerp(col.deep, THREE.MathUtils.clamp(.55 - up, 0, 1) * 1.2).lerp(col.crown, THREE.MathUtils.clamp((up - .55) * 1.9, 0, spotted ? .35 : .8)).lerp(col.vein, veined * .45);
+    if (ck > 0) o.lerp(col.vein, Math.min(1, ck * 1.3));
     if (spotted) { const d = pitAt(x / R * .95, z / R * .95); if (d > 0) o.lerp(col.pit, Math.min(1, d * 1.6)); }
   });
-  const skin = add(skinG, new THREE.MeshPhysicalMaterial({vertexColors: true, roughness: .12, transparent: true, opacity: .84, clearcoat: 1, clearcoatRoughness: .08,
+  const skin = add(skinG, new THREE.MeshPhysicalMaterial({vertexColors: true, roughness: spotted ? .12 : .42, transparent: true, opacity: .84, clearcoat: spotted ? 1 : .25, clearcoatRoughness: spotted ? .08 : .5, flatShading: !spotted,
     emissive: spotted ? '#4a5a10' : '#1a3f80', emissiveIntensity: spotted ? .16 : .22, side: THREE.DoubleSide}), 'skin');
   skin.position.y = Y;
 
@@ -66,22 +73,22 @@ export function createJelly({kind = 'blue'} = {}) {
   nuc.position.set(-.03, Y + .015, .02);
 
   // the tendril: tapered along its length, curling out along the floor, blue-black, an icy tip
-  const path = new THREE.CatmullRomCurve3([new THREE.Vector3(.18, .05, .08), new THREE.Vector3(.32, .035, .2), new THREE.Vector3(.4, .02, .32), new THREE.Vector3(.36, .012, .43)]);
+  const path = new THREE.CatmullRomCurve3([new THREE.Vector3(.2, .034, .08), new THREE.Vector3(.34, .03, .1), new THREE.Vector3(.44, .026, .18), new THREE.Vector3(.46, .022, .3)]);
   const tubeG = new THREE.TubeGeometry(path, 14, .05, 8, false), tp = tubeG.attributes.position, seg = 9;
   for (let i = 0; i < tp.count; i++) {
     const ring = Math.floor(i / seg), u = ring / 14, c = path.getPoint(u);
-    const k = (1 - u * .8) ; tp.setXYZ(i, c.x + (tp.getX(i) - c.x) * k, c.y + (tp.getY(i) - c.y) * k * .7, c.z + (tp.getZ(i) - c.z) * k);
+    const k = (1 - u * .8) ; tp.setXYZ(i, c.x + (tp.getX(i) - c.x) * k, c.y + (tp.getY(i) - c.y) * k * .5, c.z + (tp.getZ(i) - c.z) * k);
   }
   tubeG.computeVertexNormals();
-  paint(tubeG, (x, y, z, o) => { const u = THREE.MathUtils.clamp((Math.hypot(x - .18, z - .08)) / .45, 0, 1); o.copy(col.deep).lerp(col.vein, .3).lerp(col.tip, Math.max(0, u - .7) * 2.5); });
+  paint(tubeG, (x, y, z, o) => { const u = THREE.MathUtils.clamp((Math.hypot(x - .2, z - .08)) / .4, 0, 1); o.copy(col.deep).lerp(col.vein, .3).lerp(col.tip, Math.max(0, u - .7) * 2.5); });
   add(tubeG, new THREE.MeshPhysicalMaterial({vertexColors: true, roughness: .15, clearcoat: 1, transparent: true, opacity: .88}), 'tendril');
 
   // inside: a frozen skull and rib, ice shards, bubbles, one opaque mesh
   const inside = [];
-  const skull = bare(new THREE.IcosahedronGeometry(.05, 1)); skull.scale(1, .88, 1.05); skull.rotateY(.6); skull.translate(.09, Y - .005, -.06);
-  paint(skull, (x, y, z, o) => o.copy(col.bone).lerp(col.iceDark, .35 + hash(Math.round(x * 90) + Math.round(y * 90)) * .15));
+  const skull = bare(new THREE.IcosahedronGeometry(.05, 1)); skull.scale(1.3, 1.15, 1.35); skull.rotateY(.6); skull.translate(SKULL.x, Y + .05, SKULL.z);
+  paint(skull, (x, y, z, o) => o.copy(col.bone).lerp(col.iceDark, .55 + hash(Math.round(x * 90) + Math.round(y * 90)) * .15));
   inside.push(skull);
-  for (const s of [-1, 1]) { const eye = bare(new THREE.IcosahedronGeometry(.012, 0)); eye.translate(.09 + s * .017 - .01, Y + .004, -.06 + .045); paint(eye, (x, y, z, o) => o.set('#050a14')); inside.push(eye); }
+  for (const s of [-1, 1]) { const eye = bare(new THREE.IcosahedronGeometry(.017, 0)); eye.translate(SKULL.x + s * .024, Y + .099, SKULL.z + .022); paint(eye, (x, y, z, o) => o.set('#050a14')); inside.push(eye); }
   const rib = bare(new THREE.TorusGeometry(.07, .008, 5, 12, 2.4)); rib.rotateX(Math.PI / 2 - .3); rib.rotateY(.8); rib.translate(-.1, Y - .01, -.05);
   paint(rib, (x, y, z, o) => o.copy(col.bone).lerp(col.iceDark, .4));
   inside.push(rib);
@@ -118,6 +125,7 @@ export function createJelly({kind = 'blue'} = {}) {
   const crust = [];
   for (let i = 0; i < 9; i++) {
     const a = i * 2.399, r = hash(i * 4) * .17, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (Math.hypot(x - SKULL.x, z - SKULL.z) < .11) continue; // keep the skull clear
     const y = Y + H * .93 * (1 - (r / R) ** 2) * (1 + .1) - .005;
     const plate = bare(new THREE.CylinderGeometry(.03 + hash(i * 6) * .035, .042 + hash(i * 9) * .03, .014, 5 + (i % 3), 1));
     plate.rotateY(hash(i) * 3); plate.rotateX((hash(i * 2) - .5) * .5); plate.rotateZ((hash(i * 3) - .5) * .5); plate.translate(x, y, z);
