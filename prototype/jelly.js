@@ -13,7 +13,11 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const bare = geo => { geo.deleteAttribute('uv'); return geo.index ? geo.toNonIndexed() : geo; };
 const R = .31, H = .13, Y = .12; // the skin's reach and height; jelly-frost's DOME reads Y and a ~.28 radius
-const C = {deep: '#1b3a6e', mid: '#2f5da8', crown: '#a9cdf2', vein: '#0d1e3c', nucleus: '#0b1a33', bone: '#c9cdbf', ice: '#d6ebff', iceDark: '#7fa8d6', tip: '#e8f4ff'};
+const PALETTES = {
+  blue: {deep: '#1b3a6e', mid: '#2f5da8', crown: '#a9cdf2', vein: '#0d1e3c', nucleus: '#0b1a33', bone: '#c9cdbf', ice: '#d6ebff', iceDark: '#7fa8d6', tip: '#e8f4ff'},
+  // spotted: a sour olive mass, pocked where its own acid has eaten through its skin
+  spotted: {deep: '#3b4416', mid: '#6b7a24', crown: '#b4b85a', vein: '#232a0c', nucleus: '#1a1d08', bone: '#a8a583', ice: '#8f9a3a', iceDark: '#4d5a1c', tip: '#c9d070', pit: '#0c0e04', stain: '#2a3008'},
+};
 
 const paint = (geo, fn) => {
   const p = geo.attributes.position, c = new Float32Array(p.count * 3), o = new THREE.Color();
@@ -26,10 +30,14 @@ const paint = (geo, fn) => {
 const reach = a => R * (1 + .16 * Math.sin(a * 2 + .8) + .09 * Math.sin(a * 3 - 1.1) + .05 * Math.sin(a * 7));
 
 export function createJelly({kind = 'blue'} = {}) {
+  const spotted = kind === 'spotted', C = PALETTES[kind] || PALETTES.blue;
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const col = Object.fromEntries(Object.entries(C).map(([k, v]) => [k, new THREE.Color(v)]));
   const add = (geo, mat, name, parent = body) => { const m = new THREE.Mesh(geo, mat); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
 
+  // the acid pits (spotted): where the skin has been eaten in, as unit-sphere directions (x, z) and a radius
+  const pits = !spotted ? [] : Array.from({length: 9}, (_, i) => { const a = i * 2.399 + .4, r = .15 + hash(i * 4 + 1) * .6; return {x: Math.cos(a) * r, z: Math.sin(a) * r, s: .1 + hash(i * 7) * .09}; });
+  const pitAt = (x, z) => { let d = 0; for (const p of pits) d = Math.max(d, 1 - Math.hypot(x - p.x, z - p.z) / p.s); return Math.max(0, d); };
   // skin: a sphere pressed flat, the base cut level, the surface wrinkled
   const skinG = new THREE.SphereGeometry(1, 36, 22), sp = skinG.attributes.position;
   const surf = (x, z) => { const a = Math.atan2(z, x); return {r: reach(a), a}; };
@@ -37,16 +45,18 @@ export function createJelly({kind = 'blue'} = {}) {
     const x = sp.getX(i), y = sp.getY(i), z = sp.getZ(i), {r, a} = surf(x, z);
     const rr = Math.hypot(x, z);
     const wr = 1 + .045 * Math.sin(a * 9 + y * 6) * (y > 0 ? 1 : .3) + .03 * Math.sin(y * 17 + a * 4);
-    const top = y > 0 ? y * H * (1 + .16 * Math.sin(rr * 9 + a * 2)) : Math.max(y, -.9) * H * .9;
+    const dent = y > 0 ? pitAt(x, z) : 0;
+    const top = (y > 0 ? y * H * (1 + .16 * Math.sin(rr * 9 + a * 2)) : Math.max(y, -.9) * H * .9) * (1 - .55 * dent);
     sp.setXYZ(i, x * r * wr, top, z * r * wr);
   }
   skinG.computeVertexNormals();
   paint(skinG, (x, y, z, o) => {
     const up = THREE.MathUtils.clamp(y / H, 0, 1), veined = Math.max(0, Math.sin(x * 31 + z * 23) * Math.sin(z * 29 - x * 17));
-    o.copy(col.mid).lerp(col.deep, THREE.MathUtils.clamp(.55 - up, 0, 1) * 1.2).lerp(col.crown, THREE.MathUtils.clamp((up - .55) * 1.9, 0, .8)).lerp(col.vein, veined * .45);
+    o.copy(col.mid).lerp(col.deep, THREE.MathUtils.clamp(.55 - up, 0, 1) * 1.2).lerp(col.crown, THREE.MathUtils.clamp((up - .55) * 1.9, 0, spotted ? .35 : .8)).lerp(col.vein, veined * .45);
+    if (spotted) { const d = pitAt(x / R * .95, z / R * .95); if (d > 0) o.lerp(col.pit, Math.min(1, d * 1.6)); }
   });
   const skin = add(skinG, new THREE.MeshPhysicalMaterial({vertexColors: true, roughness: .12, transparent: true, opacity: .84, clearcoat: 1, clearcoatRoughness: .08,
-    emissive: '#1a3f80', emissiveIntensity: .22, side: THREE.DoubleSide}), 'skin');
+    emissive: spotted ? '#4a5a10' : '#1a3f80', emissiveIntensity: spotted ? .16 : .22, side: THREE.DoubleSide}), 'skin');
   skin.position.y = Y;
 
   // nucleus: dark, clouded, off-centre
@@ -75,7 +85,7 @@ export function createJelly({kind = 'blue'} = {}) {
   const rib = bare(new THREE.TorusGeometry(.07, .008, 5, 12, 2.4)); rib.rotateX(Math.PI / 2 - .3); rib.rotateY(.8); rib.translate(-.1, Y - .01, -.05);
   paint(rib, (x, y, z, o) => o.copy(col.bone).lerp(col.iceDark, .4));
   inside.push(rib);
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < (spotted ? 0 : 5); i++) {
     const a = i * 2.5 + .5, r = .06 + hash(i * 3) * .15, s = .02 + hash(i * 5) * .02;
     const sh = bare(new THREE.OctahedronGeometry(s, 0)); sh.scale(.6, 1.6, .6); sh.rotateZ(hash(i) * 2 - 1); sh.translate(Math.cos(a) * r, Y + .02 + hash(i * 7) * .05, Math.sin(a) * r);
     paint(sh, (x, y, z, o) => o.copy(col.ice).lerp(col.iceDark, .3));
@@ -84,11 +94,26 @@ export function createJelly({kind = 'blue'} = {}) {
   for (let i = 0; i < 8; i++) {
     const a = i * 1.9, r = .05 + hash(i * 11) * .18, b = bare(new THREE.SphereGeometry(.007 + hash(i * 2) * .008, 6, 5));
     b.translate(Math.cos(a) * r, Y + .01 + hash(i * 13) * .08, Math.sin(a) * r);
-    paint(b, (x, y, z, o) => o.set('#bcd8f4'));
+    paint(b, (x, y, z, o) => o.set(spotted ? '#c3c96a' : '#bcd8f4'));
     inside.push(b);
   }
-  add(mergeGeometries(inside), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .45, emissive: '#16305a', emissiveIntensity: .35}), 'inside');
+  add(mergeGeometries(inside), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .45, emissive: spotted ? '#3a4510' : '#16305a', emissiveIntensity: .35}), 'inside');
 
+  if (spotted) {
+    // the pits: each a ragged rim of scab round a black hole, with a thread of acid hanging off the lip
+    const scabs = [];
+    pits.forEach((p, i) => {
+      const x = p.x * R * .95, z = p.z * R * .95, rr = Math.hypot(p.x, p.z), top = Y + H * Math.sqrt(Math.max(0, 1 - rr * rr)) * 1.05, y = top * .5 + Y * .5 + .004;
+      const rim = bare(new THREE.CylinderGeometry(p.s * R * .95, p.s * R * 1.25, .016, 6 + (i % 3), 1, true)); rim.rotateY(hash(i) * 3); rim.translate(x, top * .82 + Y * .18 + .002, z);
+      paint(rim, (px, py, pz, o) => o.copy(col.iceDark).lerp(col.tip, hash(i * 13 + Math.round(px * 400)) * .4));
+      const hole = bare(new THREE.CircleGeometry(p.s * R * .9, 6 + (i % 3))); hole.rotateX(-Math.PI / 2); hole.translate(x, top * .46 + Y * .54 + .006, z);
+      paint(hole, (px, py, pz, o) => o.copy(col.pit));
+      scabs.push(rim, hole);
+      if (i % 2 === 0) { const d = bare(new THREE.ConeGeometry(.012, .06 + hash(i) * .03, 4)); d.rotateX(Math.PI); d.translate(x * 1.25, Y + .02, z * 1.25); paint(d, (px, py, pz, o) => o.copy(col.tip).lerp(col.mid, .4)); scabs.push(d); }
+    });
+    add(mergeGeometries(scabs), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .55, flatShading: true, side: THREE.DoubleSide, emissive: '#2a3208', emissiveIntensity: .3}), 'pits');
+    return {g, body};
+  }
   // the crust: cracked plates of ice on the crown, splinters, icicles hanging off the rim; flat-shaded
   const crust = [];
   for (let i = 0; i < 9; i++) {
