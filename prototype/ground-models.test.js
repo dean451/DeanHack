@@ -80,10 +80,17 @@ test('gems, gray stones and rocks are grounded, hide their identity, and release
  assert.deepEqual(signature(stone('worthless piece of red glass','red',1)),signature(ruby),'glass must match the real gem');
  assert.notDeepEqual(signature(stone('sapphire','blue',4)),signature(ruby));
  assert.deepEqual(signature(stone('luckstone','gray',7)),signature(stone('flint','gray',7)));
- for(const model of [ruby,stone('diamond','white',15),stone('loadstone','gray',7),stone('rock',undefined,7),stone('small piece of unrefined mithril','silvery metal',6)]){
+ // A cut stone lies crown up, bedded into the floor to its girdle, so its pavilion sits below
+ // the floor plane and only the crown shows; pebbles, rubble and ore rest on the floor itself.
+ for(const [model,bedded] of [[ruby,true],[stone('diamond','white',15),true],[stone('loadstone','gray',7)],[stone('rock',undefined,7)],[stone('small piece of unrefined mithril','silvery metal',6)]]){
   assert(model);
   const bounds=new THREE.Box3().setFromObject(model);
-  assert(bounds.min.y>=-1e-6,`grounded: ${bounds.min.y}`);assert(bounds.max.y<.25);
+  assert(bounds.min.y>=(bedded?-.08:-1e-6),`grounded: ${bounds.min.y}`);assert(bounds.max.y<.25);
+  if(bedded){const facet=model.getObjectByProperty('type','Mesh');facet.updateMatrixWorld(true);
+   const pos=facet.geometry.attributes.position,v=new THREE.Vector3();let girdle=0;
+   for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i).applyMatrix4(facet.matrixWorld);if(Math.abs(v.y)<.003)girdle++;}
+   assert(girdle>=16,`the girdle meets the floor: ${girdle} vertices at floor level`);
+   assert(!model.children.some(c=>c.material?.blending===THREE.AdditiveBlending),'no light pool under the stone');}
   assert(bounds.max.x-bounds.min.x<.4&&bounds.max.z-bounds.min.z<.4);
   let geometries=0,disposed=0;
   model.traverse(part=>{if(part.geometry){
@@ -487,7 +494,7 @@ test('every other bag shares one cinched drawstring sack, so the kind never show
 test('cut gems bake their glints and mithril its nugget into one mesh each',()=>{
  const draws=m=>{let n=0;m.traverse(p=>{if(p.isMesh)n++;});return n;};
  const gem=createGroundModel({name:'ruby',class:13,appearance:'red',color:1});
- assert.equal(draws(gem),4,'facets, heart, glints, pool');
+ assert.equal(draws(gem),4,'facets, heart, glints, contact shadow');
  gem.updateMatrixWorld(true);let glints;gem.traverse(p=>{if(p.userData.part==='glints')glints=p;});
  assert(glints&&!glints.castShadow);
  const b=new THREE.Box3().setFromObject(glints),box=new THREE.Box3().setFromObject(gem);
@@ -498,7 +505,7 @@ test('cut gems bake their glints and mithril its nugget into one mesh each',()=>
  assert(parts['ore-rock']&&parts.nugget&&parts.nugget.material.metalness>.9,'the mithril is its own shiny mesh');
  const rock=new THREE.Box3().setFromObject(parts['ore-rock']),metal=new THREE.Box3().setFromObject(parts.nugget,true);
  assert(metal.max.y>rock.max.y,'crystals break above the rock');assert(Math.abs(metal.min.y)<1e-3,'loose nuggets rest on the floor');
- for(const m of [gem,ore]){const q=new THREE.Box3().setFromObject(m);assert(q.min.y>=-1e-6&&q.max.y<.2);m.userData.dispose();}
+ for(const [m,low] of [[gem,-.08],[ore,-1e-6]]){const q=new THREE.Box3().setFromObject(m);assert(q.min.y>=low&&q.max.y<.2);m.userData.dispose();}
 });
 
 test('each gem colour gets its own faceted cut, shared with its glass, grounded and finite',()=>{
@@ -517,7 +524,8 @@ test('each gem colour gets its own faceted cut, shared with its glass, grounded 
   }});
   assert(facets>=40,`${look}: ${facets} facets`);
   const b=new THREE.Box3().setFromObject(model);
-  assert(b.min.y>=-1e-6&&b.max.y<.25,`${look} y ${b.min.y}..${b.max.y}`);
+  // Bedded to the girdle: the pavilion lies under the floor, the crown above it.
+  assert(b.min.y>=-.08&&b.max.y>.02&&b.max.y<.25,`${look} y ${b.min.y}..${b.max.y}`);
   assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.3,`${look} footprint`);
   shapes.add(verts(model).slice(0,60).map(v=>v.toFixed(4)).join());
   model.userData.dispose();glass.userData.dispose();

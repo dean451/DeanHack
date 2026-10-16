@@ -5751,7 +5751,11 @@ export function createGroundModel(item={}){
     emissive:tint,emissiveIntensity:cut.cab?.12:.55,transparent:true,opacity:.7,depthWrite:false});
    const glint=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,toneMapped:false});
    materials.push(facet,heart,glint);
-   const gem=new THREE.Group();gem.position.set(0,.06,0);gem.rotation.set(cut.cab?0:.62,.35,cut.cab?0:.12);g.add(gem);
+   // The stone lies crown up, bedded into the floor grit to its girdle: a loose cut stone
+   // tipped on a pavilion facet showed the dark air under its raised side from the game
+   // camera, which read as hovering, so the pavilion now sits below the floor plane where
+   // nothing sees it and the girdle edge meets the floor all the way round.
+   const gem=new THREE.Group();gem.rotation.y=.35;g.add(gem);
    const part=(geo,m)=>{const p=new THREE.Mesh(geo,m);p.castShadow=p.receiveShadow=m!==glint;gem.add(p);return p;};
    part(geo,facet);
    if(!cut.cab){const core=part(geo.clone(),heart);core.scale.setScalar(.55);core.renderOrder=-1;}
@@ -5763,10 +5767,13 @@ export function createGroundModel(item={}){
    }
    // The glints bake to one mesh: 4 draws per stone, not 6.
    bakeMeshes(stars).userData.part='glints';
-   // A soft coloured spill of light on the floor beside it.
-   const pool=add(new THREE.CircleGeometry(.13,24),new THREE.MeshBasicMaterial({color:tint,transparent:true,opacity:cut.cab?.08:.2,depthWrite:false,blending:THREE.AdditiveBlending}),.04,.002,.035);
-   pool.rotation.x=-Math.PI/2;materials.push(pool.material);
-   gem.updateMatrixWorld(true);gem.position.y-=new THREE.Box3().setFromObject(gem).min.y;
+   // Seat it: a cabochon on its flat base, a cut stone with its girdle on the floor. Then shade
+   // the floor under the footprint. The old additive light pool lit the floor beside the stone,
+   // which read as a glow under a hovering gem.
+   gem.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(gem);
+   gem.position.y=cut.cab?-bb.min.y:.003;
+   const c=bb.getCenter(new THREE.Vector3()),sz=bb.getSize(new THREE.Vector3());
+   shadow(1,c.x,c.z,sz.x*.56,sz.z*.56,.34);
   }
  }else if(cls===6&&/\b(?:oil lamp|magic lamp|lamp)\b/.test(name)){
   // Oil and magic lamps deliberately share their unidentified appearance.
