@@ -60,7 +60,7 @@ export function poseHeroBlink(hero, pose, from, to) {
   hero.g.position.x = p.x; hero.g.position.z = p.z; s.set(pose.sx, pose.sy, pose.sx);
 }
 
-export function createTeleportBlink(THREE, parent) {
+export function createTeleportBlink(THREE, parent, {lights = null} = {}) {
   const live = [], pending = []; let armed = 0, track = null;
   function build(x, z, kind, grand = false) {
     const g = new THREE.Group(); g.name = 'TeleportBlink'; g.position.set(x, 0, z); parent.add(g);
@@ -69,7 +69,8 @@ export function createTeleportBlink(THREE, parent) {
     const flash = new THREE.Mesh(sph, mk(0xf4f8ff)); flash.position.y = .5; g.add(flash);
     const streak = new THREE.Mesh(cone, mk(0xcfe0ff)); g.add(streak);
     const ring = new THREE.Mesh(ringGeo, mk(0x9ab4ff)); ring.rotation.x = -Math.PI / 2; ring.position.y = .03; g.add(ring);
-    const light = new THREE.PointLight(0xbcd0ff, 0, 6); light.position.y = .8; g.add(light);
+    // From the shared pool when there is one (a fresh light would recompile every shader).
+    const light = lights ? lights.acquire(0xbcd0ff, 6) : new THREE.PointLight(0xbcd0ff, 0, 6); light.position.y = .8; g.add(light);
     live.push({g, geos: [cone, sph, ringGeo], mats, flash, streak, ring, light, kind, grand, t: 0});
   }
   function step(e, dt) {
@@ -84,7 +85,7 @@ export function createTeleportBlink(THREE, parent) {
     e.light.intensity = (fa * 5 + (out ? s.alpha * 2 : a.ringAlpha * 2)) * (e.grand ? GRAND.light : 1);
     return e.t < (out ? BLINK.streak : BLINK.arrive * gt);
   }
-  function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); e.light.dispose?.(); parent.remove(e.g); }
+  function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); if (lights) lights.release(e.light); else e.light.dispose?.(); parent.remove(e.g); }
   return {
     message(text, x, z) { if (isTeleportMessage(text)) { build(x, z, 'out'); armed = BLINK.armed; } },
     // A new level arrived: drop the old level's effects and, if the blink was ours, light the arrival.
