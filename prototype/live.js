@@ -164,6 +164,7 @@ import {updateGait,flapStyle,wingFlap,flightBob} from './gait.js';
 import {updateWereShudder} from './were-shudder.js';
 import {updateFidget} from './fidget.js';
 import {heroLook} from './glance.js';
+import {bakeDraws} from './creatures.js'; // monsters and pets are baked as they are staged (one draw per body part)
 import {updateDragonMenace} from './dragon-menace.js';
 import {updateCockatriceHiss} from './cockatrice-hiss.js';
 import {updateGhosting} from './ghosting.js';
@@ -503,7 +504,7 @@ export function installLive({scene,camera,controls,playerFactory,catFactory,mons
        if(cell.kind==='monster'||cell.kind==='pet'){
        const key=`${id}:${cell.glyph}`;seenActors.add(key);let a=actors.get(key);const fresh=!a;
        if(!a){for(const [previous,candidate] of actors){if(!seenActors.has(previous)&&!candidate.actions?.dead&&candidate.glyph===cell.glyph&&Math.hypot(candidate.g.position.x-x,candidate.g.position.z-z)<2.1){a=candidate;actors.delete(previous);actors.set(key,a);break;}}}
-       if(!a){const disposition=cell.kind==='pet'?'pet':cell.peaceful?'peaceful':'hostile';if(cell.kind==='pet'&&/cat|kitten/.test(cell.name)){a=creatureFactory?creatureFactory(cell):catFactory();a.petCat=true;stageCreature(a.g,{disposition});}else{const made=/^shopkeeper$/i.test(cell.name||'')?createShopkeeper():/^watchman$/i.test(cell.name||'')?createWatchman():/^grid bug$/i.test(cell.name||'')?createGridBug():/^oracle$/i.test(cell.name||'')?createOracle():creatureFactory?creatureFactory(cell):monsterFactory();a=made.g?made:{g:made};stageCreature(a.g,{disposition});attachModelAsset(a,cell.name,MODEL_URLS);}a.flap=flapStyle(cell.name);a.g.position.set(x,0,z);group.add(a.g);actors.set(key,a);}
+       if(!a){const disposition=cell.kind==='pet'?'pet':cell.peaceful?'peaceful':'hostile';if(cell.kind==='pet'&&/cat|kitten/.test(cell.name)){a=creatureFactory?bakeDraws(creatureFactory(cell)):catFactory();a.petCat=true;stageCreature(a.g,{disposition});}else{const made=/^shopkeeper$/i.test(cell.name||'')?createShopkeeper():/^watchman$/i.test(cell.name||'')?createWatchman():/^grid bug$/i.test(cell.name||'')?createGridBug():/^oracle$/i.test(cell.name||'')?createOracle():creatureFactory?bakeDraws(creatureFactory(cell)):monsterFactory();a=made.g?made:{g:made};stageCreature(a.g,{disposition});attachModelAsset(a,cell.name,MODEL_URLS);}a.flap=flapStyle(cell.name);a.g.position.set(x,0,z);group.add(a.g);actors.set(key,a);}
        if(a.actions?.finished){clearActionPose(a,a.actions);restoreFade(a);restoreStone(a);a.actions=createActionQueue();}
        a.glyph=cell.glyph;a.species=(cell.name||'').toLowerCase();a.target=new THREE.Vector3(x,perchHeight(cell.terrain),z);a.cell=`${cell.x},${cell.z}`;
        // A monster that just rose from its corpse gets up off the floor instead of popping in (rise.js).

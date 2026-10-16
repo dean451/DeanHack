@@ -8,7 +8,7 @@
 // name and index. For skimming the whole bestiary against the quality bar; tools/creature-sheet.mjs
 // renders the pages to PNGs.
 import * as THREE from 'three';
-import {createCreature} from '../creatures.js';
+import {createCreature,bakeDraws} from '../creatures.js';
 const q=new URLSearchParams(location.search),from=+q.get('from')||0,count=+q.get('count')||48,cols=+q.get('cols')||8,cell=+q.get('cell')||220;
 const names=await (await fetch('/tools/creature-names.json')).json();
 const page=names.slice(from,from+count),rows=Math.ceil(page.length/cols),W=cols*cell,H=rows*cell;
@@ -21,7 +21,7 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshStandardMa
 const failed=[];
 page.forEach((m,i)=>{
   const x=(i%cols)*cell,y=Math.floor(i/cols)*cell;
-  let c=null;try{c=createCreature({name:m.name,symbol:m.letter.charCodeAt(0),color:m.color});}catch(e){failed.push(m.name+': '+e.message);}
+  let c=null;try{c=bakeDraws(createCreature({name:m.name,symbol:m.letter.charCodeAt(0),color:m.color}));}catch(e){failed.push(m.name+': '+e.message);}
   // the three-quarter framing of creature-shot.html, a little tighter so each creature fills its cell
   if(c){scene.add(c.g);const box=new THREE.Box3().setFromObject(c.g),size=box.getSize(new THREE.Vector3()),r=Math.max(size.x,size.y,size.z)||1,d=r*2.1;
     camera.position.set(d*.8,size.y*.9+r*.3,d*.8);camera.lookAt(new THREE.Vector3(0,size.y*.4,0));
