@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TIERS, ORDER, pickTier, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
+import {TIERS, ORDER, pickTier, createAdaptiveQuality, frameCost, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
 
 test('the URL wins, then the saved choice, then the machine', () => {
   assert.equal(pickTier({search: '?quality=high', saved: 'low', cores: 2}), 'high');
@@ -89,4 +89,60 @@ test('the saved tier survives a broken storage', () => {
   saveTier('low', storage); assert.equal(readSaved(storage), 'low'); assert.equal(store.get(STORAGE_KEY), 'low');
   const broken = {getItem() { throw new Error('no'); }, setItem() { throw new Error('no'); }};
   assert.equal(readSaved(broken), null); saveTier('high', broken);
+});
+
+test('adaptive tier: three seconds over 24 ms steps one tier down, once, and never below low', () => {
+  
+  const a = createAdaptiveQuality(); let tier = 'high', step = null, at = 0;
+  for (at = 0; at < 2900; at += 16) assert.equal(a.frame(at, 30, tier), null, 'under three seconds: nothing yet');
+  for (; at < 3300 && !step; at += 16) step = a.frame(at, 30, tier);
+  assert.equal(step, 'balanced'); assert.equal(a.automatic, true); tier = step;
+  step = null; for (let t = at; t < at + 2900; t += 16) assert.equal(a.frame(t, 30, tier), null, 'the clock starts over after a step');
+  const b = createAdaptiveQuality(); let low = null;
+  for (let t = 0; t < 20000 && !low; t += 16) low = b.frame(t, 40, 'low');
+  assert.equal(low, null, 'low has nowhere to go');
+});
+
+test('adaptive tier: a short slow spell, or a spike in a quick run, does not step down', () => {
+  const a = createAdaptiveQuality(); let hit = null;
+  for (let t = 0; t < 20000; t += 16) hit ||= a.frame(t, (t % 4000) < 1200 ? 40 : 8, 'balanced');
+  assert.equal(hit, null);
+  const b = createAdaptiveQuality();
+  for (let t = 0; t < 20000; t += 16) hit ||= b.frame(t, t === 5000 ? 900 : 8, 'high');
+  assert.equal(hit, null, 'one long frame is averaged away');
+  assert.equal(b.frame(1e6, 500, 'high'), null); assert.equal(b.frame(1e6 + 5000, 500, 'high'), null, 'a stall of seconds is dropped, not measured');
+});
+
+test('adaptive tier: thirty seconds under 10 ms steps back up, only after an automatic step down', () => {
+  const a = createAdaptiveQuality(); let tier = 'balanced', t = 0;
+  for (; t < 40000; t += 16) assert.equal(a.frame(t, 5, tier), null, 'a tier the machine chose is not raised');
+  const b = createAdaptiveQuality(); tier = 'high';
+  for (t = 0; ; t += 16) { const s = b.frame(t, 40, tier); if (s) { tier = s; break; } }
+  assert.equal(tier, 'balanced');
+  const start = t; let up = null;
+  for (t += 16; t < start + 29000; t += 16) assert.equal(b.frame(t, 5, tier), null, 'not before thirty seconds');
+  for (; t < start + 31000 && !up; t += 16) up = b.frame(t, 5, tier);
+  assert.equal(up, 'high'); assert.equal(b.automatic, false, 'back at the starting tier, the machine is done');
+  for (t += 16; t < start + 90000; t += 16) assert.equal(b.frame(t, 5, 'high'), null);
+});
+
+test('adaptive tier: F8 pins the tier for good, and a saved choice starts pinned', () => {
+  const a = createAdaptiveQuality(); a.manual();
+  for (let t = 0; t < 30000; t += 16) assert.equal(a.frame(t, 60, 'high'), null);
+  const b = createAdaptiveQuality({manual: true});
+  for (let t = 0; t < 30000; t += 16) assert.equal(b.frame(t, 60, 'high'), null);
+  const c = createAdaptiveQuality(); let tier = 'high';
+  for (let t = 0; t < 4000; t += 16) tier = c.frame(t, 60, tier) ?? tier;
+  assert.equal(tier, 'balanced'); c.manual();
+  for (let t = 4000; t < 60000; t += 16) assert.equal(c.frame(t, 5, 'balanced'), null, 'no step back up once the user has chosen');
+});
+
+test('frame cost: late frames cost the whole gap, frames on the display beat cost the loop work, and a throttled frame is no measurement', () => {
+  assert.equal(frameCost(17, 6), 6); assert.equal(frameCost(8, 3), 3);
+  assert.ok(Math.abs(frameCost(600, 20) - 600) < 1e-9); assert.equal(frameCost(40, 55), 55);
+  assert.equal(frameCost(50, 4, 30), 4, 'idle at 30 fps: a frame on the vsync grid is on time'); assert.ok(frameCost(600, 4, 30) > 500);
+  const a = createAdaptiveQuality(); a.frame(0, 40, 'high'); a.frame(1000, 40, 'high');
+  assert.equal(a.frame(2000, null, 'high'), null, 'a null frame starts the window over');
+  for (let t = 2016; t < 4900; t += 16) assert.equal(a.frame(t, 40, 'high'), null, 'three seconds are counted from after the gap');
+  assert.equal(a.frame(5100, 40, 'high'), 'balanced');
 });

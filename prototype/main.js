@@ -27,7 +27,7 @@ import {createAltar} from './altar.js';
 import {createFire} from './fire.js';
 import {createHeldWeapon,turnHeld} from './equipment.js';
 import {createRenderStats} from './render-stats.js';
-import {pickTier,nextTier,pixelRatioFor,applyTier,createFramePacer,readSaved,saveTier} from './quality.js';
+import {TIERS,isTier,pickTier,nextTier,pixelRatioFor,applyTier,createFramePacer,createAdaptiveQuality,frameCost,readSaved,saveTier} from './quality.js';
 import {createFlameFlicker} from './flame-flicker.js';
 import {createSinkDrip} from './sink-drip.js';
 import {createCanopySway} from './canopy-sway.js';
@@ -42,7 +42,7 @@ import {createGasEdge} from './gas-edge.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color('#142333');scene.fog=new THREE.FogExp2('#1b3040',.032);
 // A weak machine (four cores or fewer) draws at 1x: four times fewer pixels on a Retina screen.
 // No MSAA: the composer's targets never had it (the scene is drawn into a plain target), so the flag only cost a resolve of the final quad.
-const renderer=new THREE.WebGLRenderer({antialias:false,alpha:true});renderer.setClearColor(0x000000,0);const quality={tier:pickTier({search:location.search,saved:readSaved(),cores:navigator.hardwareConcurrency})};renderer.setPixelRatio(pixelRatioFor(quality.tier,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;/* the loop says when (quality.js): once a frame at most, not once per scene render */renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;document.querySelector('#scene').appendChild(renderer.domElement);
+const renderer=new THREE.WebGLRenderer({antialias:false,alpha:true});renderer.setClearColor(0x000000,0);const quality={tier:pickTier({search:location.search,saved:readSaved(),cores:navigator.hardwareConcurrency})};const adaptive=createAdaptiveQuality({manual:isTier(readSaved())});renderer.setPixelRatio(pixelRatioFor(quality.tier,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;/* the loop says when (quality.js): once a frame at most, not once per scene render */renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;document.querySelector('#scene').appendChild(renderer.domElement);
 const renderStats=createRenderStats(renderer,scene,{visible:new URLSearchParams(location.search).has('stats')});addEventListener('keydown',e=>{if(e.key==='F9'){e.preventDefault();renderStats.toggle();}});
 const flameFlicker=createFlameFlicker(scene,{focus:()=>controls.target});
 const sinkDrip=createSinkDrip(scene);
@@ -59,10 +59,10 @@ const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scen
 scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const moon=new THREE.DirectionalLight(0x9fb9ca,2.3);moon.position.set(-4,10,3);moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);Object.assign(moon.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:.5,far:30});moon.shadow.bias=-.0003;moon.shadow.normalBias=.03;scene.add(moon);
 // Quality tiers (quality.js): pixel ratio, SSAO, shadows and the idle frame rate. F8 cycles and saves; ?quality= overrides.
 const qualityToast=document.createElement('div');qualityToast.className='quality-toast';qualityToast.hidden=true;document.body.append(qualityToast);let toastTimer=null;
-function setQuality(tier,{say=false}={}){quality.tier=tier;const got=applyTier(tier,{renderer,composer,ambientOcclusion,light:moon,scene,soft:THREE.PCFSoftShadowMap,plain:THREE.PCFShadowMap,devicePixelRatio,width:innerWidth,height:innerHeight});
- if(say){qualityToast.textContent=`Quality · ${got.label} (F8)`;qualityToast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{qualityToast.hidden=true;},2600);}return got;}
+function setQuality(tier,{say=false,auto=false}={}){quality.tier=tier;const got=applyTier(tier,{renderer,composer,ambientOcclusion,light:moon,scene,soft:THREE.PCFSoftShadowMap,plain:THREE.PCFShadowMap,devicePixelRatio,width:innerWidth,height:innerHeight});
+ if(say){qualityToast.textContent=auto?`Quality · ${TIERS[tier].label.split(':')[0]} (the game was running slow; F8 to choose)`:`Quality · ${got.label} (F8)`;qualityToast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{qualityToast.hidden=true;},2600);}return got;}
 setQuality(quality.tier);
-addEventListener('keydown',e=>{if(e.key==='F8'){e.preventDefault();const tier=nextTier(quality.tier);saveTier(tier);setQuality(tier,{say:true});}});
+addEventListener('keydown',e=>{if(e.key==='F8'){e.preventDefault();adaptive.manual();const tier=nextTier(quality.tier);saveTier(tier);setQuality(tier,{say:true});}});
 // The frame pacer: every frame while something is going on, the tier's idle rate after a quiet spell.
 const pacer=createFramePacer();const touch=()=>pacer.touch(performance.now());
 for(const ev of ['keydown','pointerdown','wheel'])addEventListener(ev,touch,{passive:true});controls.addEventListener('change',touch);
@@ -231,7 +231,8 @@ $('#reset').onclick=reset;
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);setQuality(quality.tier);});
 // While the splash is open nothing on screen needs 60 frames a second: the room behind it draws at about 8, which keeps old laptops quiet.
 // The splash is opaque (style.css), so while it is open nothing is drawn at all: no demo room behind it, no fans.
-renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open'))return;if(!pacer.shouldDraw(ms,quality.tier))return;renderer.shadowMap.needsUpdate=pacer.shadowDue(ms,quality.tier);const t=ms/1000,dt=Math.min(t-lastTime,.05);lastTime=t;const mix=1-Math.exp(-dt*14);
+let lastDrawAt=null;const frameCostNow=ms=>{const gap=lastDrawAt===null?null:ms-lastDrawAt,fps=pacer.rate(ms,quality.tier);lastDrawAt=ms;return gap===null?null:frameCost(gap,performance.now()-loopStart,fps);};let loopStart=0;
+renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open'))return;if(!pacer.shouldDraw(ms,quality.tier))return;loopStart=performance.now();renderer.shadowMap.needsUpdate=pacer.shadowDue(ms,quality.tier);const t=ms/1000,dt=Math.min(t-lastTime,.05);lastTime=t;const mix=1-Math.exp(-dt*14);
  player.g.position.x=THREE.MathUtils.lerp(player.g.position.x,state.player.x,mix);player.g.position.z=THREE.MathUtils.lerp(player.g.position.z,state.player.z,mix);
  const moving=Math.hypot(player.g.position.x-state.player.x,player.g.position.z-state.player.z)>.025;
  player.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);player.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);player.cape.rotation.x=-.17+Math.sin(t*3)*.06;player.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
@@ -243,7 +244,7 @@ renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open')
  flames.forEach(({f,light,phase})=>{f.userData.updateFire(t);light.intensity=13+Math.sin(t*11+phase)*1.3+Math.sin(t*19.3+phase)*.6;});
  for(const m of motes)m.m.position.set(m.x+Math.sin(t*.3+m.phase)*.2,(m.y+t*.055)%3.5,m.z+Math.cos(t*.2+m.phase)*.15);
  hazeLayers.forEach(({sprite,phase},i)=>{sprite.position.x+=Math.sin(t*.11+phase)*.0015;sprite.position.y+=Math.cos(t*.17+phase)*.0008;sprite.material.opacity=(.12+i*.035)+Math.sin(t*.23+phase)*.025;});enemy.userData.core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;
- live.update(t,dt);flameFlicker.update(t);sinkDrip.update(t);canopySway.update(t);throneGleam.update(t);graveMist.update(t);graveHands.update(t,live.heroAt(heroWorld));altarEmbers.update(t);bogBubbles.update(t);gasRoil.update(t);gasEdge.update(t,dt,live.heroAt(heroWorld),gasRoil.meshes);live.setCough(gasEdge.hunch);controls.update();renderStats.begin();composer.render();renderStats.end(dt);
+ live.update(t,dt);flameFlicker.update(t);sinkDrip.update(t);canopySway.update(t);throneGleam.update(t);graveMist.update(t);graveHands.update(t,live.heroAt(heroWorld));altarEmbers.update(t);bogBubbles.update(t);gasRoil.update(t);gasEdge.update(t,dt,live.heroAt(heroWorld),gasRoil.meshes);live.setCough(gasEdge.hunch);controls.update();renderStats.begin();composer.render();{const step=adaptive.frame(ms,frameCostNow(ms),quality.tier);if(step){setQuality(step,{say:true,auto:true});}}renderStats.end(dt);
 });
 // Read-only state snapshot for smoke tests and future engine-adapter experiments.
 window.roomPrototype={snapshot:()=>structuredClone(state),rendererInfo:()=>renderStats.frame(),renderStats:()=>renderStats.summary()};
