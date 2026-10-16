@@ -68,3 +68,16 @@ test('the instanced mesh grows when a level outgrows it', () => {
   const slabs = inst.meshes()[0];
   assert.equal(slabs.count, 20); assert.ok(slabs.instanceMatrix.count >= 20);
 });
+
+test('a proxy keeps a frozen local matrix while instanced (no per-pass recompose) and gets it back when it leaves', () => {
+  const root = new THREE.Group(), inst = createTileInstancer(root);
+  const geo = new THREE.BoxGeometry(1, .1, 1), mat = new THREE.MeshStandardMaterial();
+  const tiles = [0, 1].map(i => { const t = new THREE.Group(); t.position.set(i, 0, 0); const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; m.position.y = .05; t.add(m); root.add(t); return t; });
+  inst.add(tiles[0]); inst.add(tiles[1]);
+  const proxies = tiles.map(t => t.children[0]);
+  assert.ok(proxies.every(p => p.matrixAutoUpdate === false && p.matrix.elements[13] === .05), 'composed once, then frozen');
+  root.updateMatrixWorld(true);
+  assert.equal(proxies[1].matrixWorld.elements[12], 1, 'the world matrix still follows the tile');
+  inst.clear();
+  assert.ok(proxies.every(p => p.matrixAutoUpdate === true));
+});
