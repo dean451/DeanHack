@@ -2,12 +2,19 @@
 <style>
 html,body{margin:0;width:1200px;height:630px;overflow:hidden;background:radial-gradient(60% 75% at 50% 50%,#0b1518 0%,#070d10 60%,#04080a 100%)}
 pre{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;white-space:pre;font:10.4px/1.08 'Courier New',Courier,monospace;color:#6fb7b4;text-shadow:0 0 14px #46bebe70,0 0 2px #9fe3df60}
+/* one still frame of the title screen's wave field (ascii-waves.js) behind the head, as the splash has it */
+#waves{left:0;top:0;transform:none;width:1200px;height:630px;overflow:hidden;font:13px/15px 'Courier New',Courier,monospace;color:#6fb7b4;opacity:.3;text-shadow:none}
 </style>
+<pre id="waves"></pre>
 <pre id="art"></pre>
 <script type="module">
 // Renders the link-preview banner (1200x630, prototype/public/og.png): the title screen's ink
-// dragon head, alone, at the title screen's own line height so it is never stretched.
+// dragon head over a still frame of its wave field, at the title screen's own line height so it is never stretched.
 //   with a dev server up:  "Google Chrome" --headless --window-size=1200,630 --screenshot=og.png http://localhost:<port>/tools/ascii-banner.html
 import {DRAGONS} from '../dragon-art.js';
+import {waveFrame,gridFor} from '../ascii-waves.js';
+const {cols,rows}=gridFor(1200,630);
+document.getElementById('waves').textContent=waveFrame(cols,rows,7.3);
 document.getElementById('art').textContent=DRAGONS.find(d=>d.name==='ink').art;
+window.__done=true;
 </script>

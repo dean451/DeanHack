@@ -120,7 +120,7 @@ them with a bare page holding only the title, description and image, and serves 
 Everything else, including the game and its API, stays behind the password. Phones cache previews:
 if you change the banner and an old one shows, send the link with a trailing `?v=2`.
 
-The banner is the title screen's ink dragon head in ASCII (`prototype/tools/ascii-banner.html`).
+The banner is the title screen's ink dragon head in ASCII over a still frame of its wave field (`prototype/tools/ascii-banner.html`).
 To redraw it, run the dev server and capture that page with headless Chrome at 1200x630:
 `"Google Chrome" --headless=new --hide-scrollbars --window-size=1200,630 --screenshot=prototype/public/og.png http://localhost:<port>/tools/ascii-banner.html`.
 
