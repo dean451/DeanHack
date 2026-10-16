@@ -3159,6 +3159,7 @@ export function createCreature(cell={}){
  if(WORMS[name])return worm(WORMS[name]);
  if(name==='long worm tail')return wormTail({color:color||WORMS['long worm'].color});
  if(name==='dust vortex'){const a=createVortex({kind:'dust'});return actor(a.g,a.body,[],null,[],'hover');}
+ if(name==='steam vortex'){const a=createVortex({kind:'steam',scale:1.25});return actor(a.g,a.body,[],null,[],'hover');}
  if(name==='fire vortex'){const a=createVortex({kind:'fire',scale:1.25});return Object.assign(actor(a.g,a.body,[],null,[],'hover'),{core:a.core});}
  if(VORTICES[name])return vortex(VORTICES[name]);
  if(isPiercer(name))return createPiercer(name);

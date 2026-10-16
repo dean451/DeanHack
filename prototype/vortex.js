@@ -14,11 +14,16 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // red base through orange to a pale yellow tongue) so the spin still shows in the bands; glowing coals
 // ride the spiral, a hot core burns in the middle, six embers glow on a scorched disc under the foot
 // (merged into one draw; userData.embers = 6 on the group, as vortex-wear.test.js reads).
+// Steam vortex third: a scalding plume. The same torn sheet, narrow at the vent and boiling out into a
+// wide billowing head, pale grey-white with a faint glow of heat in it; nothing is caught in it (vortex-fx.js
+// peels wisps off the head), and six beads of condensation sit on the wet dark floor round the foot, merged
+// into one draw. Three draws.
 // Seven draws for dust, eight for fire. Handles: body (quirk 'hover'); fire also gives core.
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const H = .8, ROWS = 14, SEG = 20;
 const KINDS = {
   dust: {deep: '#4a3622', mid: '#8a6c46', pale: '#c4a878', grit: '#5a4630', stone: '#6e6a62', rag: '#3a2a22', ground: '#5a4630'},
+  steam: {deep: '#7c8790', mid: '#cdd6dd', pale: '#ffffff', ground: '#2a2f33', bead: '#dfe8ee', steam: true, radius: t => .04 + .09 * t ** .6 + .22 * t ** 3.2 + .02 * Math.sin(t * 13), opacity: .5},
   fire: {deep: '#4a0e04', mid: '#d4501a', pale: '#ffc858', grit: '#2a1a14', stone: '#3a2418', ground: '#16100c', fire: true, radius: t => .05 + .17 * t ** .8 + .03 * Math.sin(t * 11), opacity: .62},
 };
 
@@ -62,10 +67,11 @@ export function createVortex({kind = 'dust', scale = 1} = {}) {
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const add = (geo, mat, name, parent = body) => { const m = new THREE.Mesh(geo, mat); m.userData.part = name; m.castShadow = false; m.receiveShadow = false; parent.add(m); return m; };
 
+  const wet = c.steam ? {opacity: .6} : {};
   const ground = new THREE.CircleGeometry(.32 * scale, 14);
   const gp = ground.attributes.position;
   for (let i = 1; i < gp.count; i++) { const k = 1 + .22 * Math.sin(i * 2.7) + .1 * hash(i); gp.setXY(i, gp.getX(i) * k, gp.getY(i) * k); }
-  const gm = add(ground, new THREE.MeshStandardMaterial({color: c.ground, roughness: 1, transparent: true, opacity: .45, depthWrite: false}), 'ground', g);
+  const gm = add(ground, new THREE.MeshStandardMaterial({color: c.ground, roughness: 1, transparent: true, opacity: .45, depthWrite: false, ...wet}), 'ground', g);
   gm.rotation.x = -Math.PI / 2; gm.position.y = .012;
   if (c.fire) {
     // six embers glow on the scorched ground round the foot, merged into one draw
@@ -79,6 +85,17 @@ export function createVortex({kind = 'dust', scale = 1} = {}) {
     add(merged, new THREE.MeshStandardMaterial({color: FLAME.ember, emissive: FLAME.glow, emissiveIntensity: 3, roughness: .5}), 'embers', g);
   }
 
+  if (c.steam) {
+    // condensation beading on the floor round the vent: small domes, merged into one draw
+    const bd = [];
+    for (let i = 0; i < 6; i++) {
+      const a = i * 1.9 + .4, r = (.12 + hash(i + 2) * .2) * scale, d = new THREE.SphereGeometry(.02 * scale * (.7 + hash(i + 5)), 6, 4, 0, Math.PI * 2, 0, Math.PI / 2);
+      d.translate(Math.cos(a) * r, .014, Math.sin(a) * r); bd.push(d);
+    }
+    const mb = mergeGeometries(bd); bd.forEach(d => d.dispose());
+    add(mb, new THREE.MeshStandardMaterial({color: c.bead, roughness: .1, metalness: .1, emissive: '#6a7680', emissiveIntensity: .5}), 'beads', g);
+  }
+
   // the funnel: an outer sheet and an inner one wound the other way, merged into one draw
   const outer = sheet(c, {turns: 5.5, dir: 1, scale, phase: 0}), inner = sheet(c, {turns: 4, dir: -1, scale: scale * .6, phase: 1.7});
   const merged = new THREE.BufferGeometry(), pa = [outer.attributes.position.array, inner.attributes.position.array], ca = [outer.attributes.color.array, inner.attributes.color.array];
@@ -90,9 +107,10 @@ export function createVortex({kind = 'dust', scale = 1} = {}) {
   merged.setIndex([...outer.index.array, ...Array.from(inner.index.array, i => i + off)]);
   const skin = c.fire
     ? new THREE.MeshBasicMaterial({vertexColors: true, transparent: true, opacity: c.opacity, depthWrite: false, side: THREE.DoubleSide})
-    : new THREE.MeshStandardMaterial({vertexColors: true, roughness: 1, transparent: true, opacity: .52, depthWrite: false, side: THREE.DoubleSide, emissive: '#2a1c0e', emissiveIntensity: .25});
+    : new THREE.MeshStandardMaterial({vertexColors: true, roughness: 1, transparent: true, opacity: c.opacity || .52, depthWrite: false, side: THREE.DoubleSide, emissive: c.steam ? '#7a848c' : '#2a1c0e', emissiveIntensity: c.steam ? .45 : .25});
   add(merged, skin, 'funnel');
   const rad = c.radius || radius;
+  if (c.steam) return {g, body};
 
   // caught in the spiral: chunks of earth and stone, and a torn rag
   const lit = c.fire ? {emissive: FLAME.glow, emissiveIntensity: 1.6} : {};
