@@ -81,3 +81,10 @@ test('walking fades a stroke out and an attack blocks one', () => {
 test('other monsters do not stroke', () => {
   for (const [n, s] of [['gnome', 'G'], ['bugbear', 'h'], ['kobold', 'k']]) assert(!strokes(make(n, s)), n);
 });
+
+test('the hand is down and the glare spent, then the head gives one last grudging nod', () => {
+  assert.ok(strokePose(.94).nod > NOD * .3 && strokePose(.94).nod <= NOD + 1e-9, 'nod');
+  assert.ok(strokePose(.94).raise < RAISE * .05, 'hand already down');
+  for (let u = 0; u <= 1; u += .005) assert.ok(strokePose(u).nod <= NOD + 1e-9, `bound at ${u}`);
+  assert.equal(strokePose(1).nod, 0);
+});

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ringPose, gritPose, isSearchFindMessage, createSearchReveal, SEARCH} from './search-reveal.js';
+import {echoPose, ECHO_LAG, ringPose, gritPose, isSearchFindMessage, createSearchReveal, SEARCH} from './search-reveal.js';
 
 test('only the "You find" messages trigger it', () => {
   for (const t of ['You find a hidden door.', 'You find a hidden passage.', 'You find a bear trap.', 'You find a hidden land mine.']) assert.ok(isSearchFindMessage(t), t);
@@ -44,5 +44,36 @@ test('it plays on the hero\'s square and clears itself', () => {
   fx.message('You find nothing.', 3, 4); assert.equal(fx.active, 0);
   fx.message('You find a hidden door.', 3, 4); assert.equal(fx.active, 1);
   assert.deepEqual(added[0], [3, 4]);
-  fx.update(SEARCH.total + .1); assert.equal(fx.active, 0);
+  fx.update(SEARCH.total + ECHO_LAG + .1); assert.equal(fx.active, 0);
+});
+
+test('the last flake hangs mid-fall, then drops, never rising', () => {
+  const i = SEARCH.grit - 1, start = .12 + (i % 4) * .07;
+  let prev = 9, slow = 0;
+  for (let t = start + .01; t < SEARCH.total; t += .005) {
+    const p = gritPose(i, t);
+    if (p.alpha === 0) continue;
+    assert.ok(p.y <= prev + 1e-9, String(t));
+    if (prev - p.y < .002) slow++;
+    prev = p.y;
+  }
+  assert.ok(slow > 3, 'it hangs');
+});
+
+test('the echo ring trails the lead ring, fainter, and returns to rest', () => {
+  assert.equal(echoPose(0).alpha, 0);
+  assert.equal(echoPose(SEARCH.total + ECHO_LAG).alpha, 0);
+  for (let t = .01; t < SEARCH.total + ECHO_LAG; t += .01) {
+    const e = echoPose(t);
+    assert.ok(e.alpha <= .28 + 1e-9, String(t));
+    if (e.alpha > 0) assert.ok(e.radius <= 1.45 + 1e-9);
+  }
+  assert.ok(echoPose(.5).radius < ringPose(.5).radius);
+});
+
+test('the ring flinches before the lunge: its light dips, then recovers', () => {
+  const at = SEARCH.hesitate + .04, before = ringPose(SEARCH.hesitate - .03).alpha, dip = ringPose(at).alpha;
+  assert.ok(dip < before * .6, 'alpha dips');
+  assert.ok(ringPose(SEARCH.hesitate + .12).alpha > dip, 'recovers');
+  assert.equal(ringPose(SEARCH.total).alpha, 0);
 });

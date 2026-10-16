@@ -11,6 +11,11 @@ test('dangerous conditions become red capital tags, in order, without repeats', 
   assert.deepEqual(conditionTags(undefined), []);
 });
 
+test('deafness is an amber warning tag with its own shape', () => {
+  assert.deepEqual(conditionTags(['Deaf', 'Stun']), ['DEAF', 'STUN']);
+  assert.match(conditionTagsHtml(['Deaf']), /class="hero-condition mild"><i aria-hidden="true">≈<\/i> DEAF/);
+});
+
 test('the frame list wins; the status line is only the fallback', () => {
   const line = 'The Dungeons of Doom:25 $:1540 HP:43(80) Pw:29(29) AC:-31 Exp:12 T:10355 Stun';
   assert.deepEqual(heroConditions(['Conf'], line), ['Conf']);
@@ -20,6 +25,15 @@ test('the frame list wins; the status line is only the fallback', () => {
 });
 
 test('tags render as escaped spans', () => {
-  assert.equal(conditionTagsHtml(['Stun', 'Conf']), '<span class="hero-condition">STUN</span><span class="hero-condition">CONF</span>');
+  assert.equal(conditionTagsHtml(['Stun', 'Conf']), '<span class="hero-condition"><i aria-hidden="true">✦</i> STUN</span><span class="hero-condition"><i aria-hidden="true">✱</i> CONF</span>');
   assert.equal(conditionTagsHtml([]), '');
+});
+
+test('each hero tag leads with its condition shape, so colour is never the only cue', async () => {
+  const {conditionTagsHtml} = await import('./hud-conditions.js');
+  const html = conditionTagsHtml(['Hungry', 'Stun', 'Held']);
+  assert.match(html, /<i aria-hidden="true">◔<\/i> HUNGRY/);
+  assert.match(html, /<i aria-hidden="true">✦<\/i> STUN/);
+  assert.match(html, /<i aria-hidden="true">⊂⊃<\/i> HELD/);
+  assert.doesNotMatch(html, /·/);
 });

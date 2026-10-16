@@ -45,3 +45,13 @@ test('the fire elemental is crusted with black clinker and still fits its tile',
   assert(b.min.y > -0.05, 'stands on the floor');
   assert(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < 1.5, 'fits its tile');
 });
+
+test('the air elemental whirls jagged shards and a forked bolt, and still fits its tile', async () => {
+  const THREE = await import('three');
+  const e = createCreature({name: 'air elemental', symbol: 'E'.charCodeAt(0), color: 7});
+  assert(e.g.userData.storm);
+  assert(!createCreature({name: 'stalker', symbol: 'E'.charCodeAt(0), color: 7}).g.userData.storm);
+  e.g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(e.g, true);
+  assert(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < 1.5, 'fits its tile');
+});

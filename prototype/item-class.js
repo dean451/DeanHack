@@ -1,9 +1,10 @@
 // Class marks for pack rows: each item row carries a small shape for its class (read from the
 // engine's heading above it), a first step toward a grid of item models. Shape, not colour.
+// Weapons, coins, potions and food use the game's own symbols (a sword, $, ! and %), as the user asked.
 const MARKS=[
- [/^weapons?/i,'†'],[/^armou?r/i,'⛨'],[/^rings?/i,'○'],[/^amulets?/i,'♁'],[/^tools?/i,'⚒'],
- [/^comestibles?|^food/i,'♨'],[/^potions?/i,'⚗'],[/^scrolls?/i,'≡'],[/^spellbooks?/i,'▤'],
- [/^wands?/i,'/'],[/^coins?/i,'◎'],[/^gems?|^rocks?|^gray stones?/i,'◆'],[/^boulders?|^statues?/i,'▲'],
+ [/^weapons?/i,'⚔'],[/^armou?r/i,'⛨'],[/^rings?/i,'○'],[/^amulets?/i,'♁'],[/^tools?/i,'⚒'],
+ [/^comestibles?|^food/i,'%'],[/^potions?/i,'!'],[/^scrolls?/i,'≡'],[/^spellbooks?/i,'▤'],
+ [/^wands?/i,'/'],[/^coins?/i,'$'],[/^gems?|^rocks?|^gray stones?/i,'◆'],[/^boulders?|^statues?/i,'▲'],
  [/^iron balls?|^chains?/i,'⛓'],[/^venoms?/i,'☠'],
 ];
 export function itemClassMark(heading){

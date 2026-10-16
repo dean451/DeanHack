@@ -1,11 +1,11 @@
 // A rat's idle sniff (enormous-rat.js). A rat that stands still now and then works the air: the
 // head dips and bobs in quick sniffs, swings a little from side to side hunting the scent, and the
-// tail whips once as it finds nothing. Walking, an action or death takes it back within a moment.
+// tail whips once as it finds nothing; the whole body rocks forward with each sniff. Walking, an action or death takes it back within a moment.
 //
 // Offsets only: the head's pitch (rotation.x) and yaw (rotation.y) and the tail's swing (rotation.z)
 // are added on top of whatever gait.js and the action layer wrote, and taken back first next frame,
 // so nothing drifts.
-export const DIP = .3, HUNT = .35, WHIP = .6;
+export const DIP = .3, HUNT = .35, WHIP = .6, ROCK = .08;
 export const FIRST_MIN = 2, FIRST_SPAN = 4, GAP_MIN = 3, GAP_SPAN = 8, LEN = 2.2;
 const SNAP = 1e-3, FADE_OUT = 14;
 
@@ -19,9 +19,15 @@ export const sniffs = a => !!(a && !a.asset && a.quirk === 'rat' && a.head && a.
 export function sniffPose(u) {
   if (!(u > 0) || !(u < 1)) return {dip: 0, hunt: 0, whip: 0};
   const env = smooth(u / .1) * (1 - smooth((u - .75) / .1));
-  const dip = env * Math.sin(u * Math.PI * 2 * 7);
+  // the sniffing stops dead and the nose snaps up into a held stare just before the tail whips
+  const stare = smooth((u - .78) / .025) * (1 - smooth((u - .9) / .04));
+  // finding nothing, the nose sinks a little and hangs there before it comes back
+  const sink = .3 * Math.sin(Math.PI * clamp01((u - .92) / .08)) ** 2;
+  const dip = Math.max(-1, Math.min(1, env * Math.sin(u * Math.PI * 2 * 7) - .7 * stare + sink));
   const hunt = env * Math.sin(u * Math.PI * 2 * 1.5);
-  const whip = Math.exp(-(((u - .88) / .04) ** 2)) * Math.sin((u - .88) * 120);
+  // the tail gives one small, late twitch of its own once the nose has sunk, after everything else is done
+  const whip = Math.exp(-(((u - .88) / .04) ** 2)) * Math.sin((u - .88) * 120)
+    + .3 * Math.exp(-(((u - .95) / .012) ** 2)) * Math.sin((u - .95) * 260);
   return {dip, hunt, whip: Math.max(-1, Math.min(1, whip))};
 }
 
@@ -30,11 +36,11 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 // Call once per frame after the gait layer. `busy` is true while the actor walks or acts.
 export function updateRatSniff(actor, dt, t, busy) {
   if (!sniffs(actor)) return null;
-  const st = actor.ratSniff || (actor.ratSniff = {seed: ((actor.g?.id ?? 1) * 8123) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {x: 0, y: 0, z: 0}});
+  const st = actor.ratSniff || (actor.ratSniff = {seed: ((actor.g?.id ?? 1) * 8123) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {x: 0, y: 0, z: 0, b: 0}});
   const o = st.o, head = actor.head, tail = actor.tail;
-  head.rotation.x -= o.x; head.rotation.y -= o.y;
+  head.rotation.x -= o.x; head.rotation.y -= o.y; actor.body.rotation.x -= o.b;
   if (tail) tail.rotation.z -= o.z;
-  st.o = {x: 0, y: 0, z: 0};
+  st.o = {x: 0, y: 0, z: 0, b: 0};
   if (!st.wait && st.s == null) st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
   const still = !busy && !actor.actions?.dead;
@@ -48,8 +54,8 @@ export function updateRatSniff(actor, dt, t, busy) {
   }
   if (st.s == null) return null;
   const p = sniffPose(st.s), f = st.f;
-  st.o = {x: DIP * p.dip * f, y: HUNT * p.hunt * f, z: WHIP * p.whip * f};
-  head.rotation.x += st.o.x; head.rotation.y += st.o.y;
+  st.o = {x: DIP * p.dip * f, y: HUNT * p.hunt * f, z: WHIP * p.whip * f, b: ROCK * p.dip * f};
+  head.rotation.x += st.o.x; head.rotation.y += st.o.y; actor.body.rotation.x += st.o.b;
   if (tail) tail.rotation.z += st.o.z;
   return p;
 }

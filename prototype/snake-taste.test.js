@@ -22,7 +22,7 @@ test('the jaw hangs open after the head has cocked, and both shut together', () 
 });
 
 test('a lying snake does it now and then, stays in bounds and ends exactly at rest', () => {
-  const a = mon('snake'), head = a.jaw.parent, y = head.rotation.y, z = head.rotation.z, g = a.jaw.rotation.x;
+  const a = mon('snake'), head = a.jaw.parent, y = head.rotation.y, z = head.rotation.z, g = a.jaw.rotation.x, by = a.body.rotation.y;
   assert.ok(M.tastes(a));
   let seen = 0;
   for (let i = 0; i < 60 * 60; i++) {
@@ -30,13 +30,21 @@ test('a lying snake does it now and then, stays in bounds and ends exactly at re
     if (a.snakeTaste?.s != null) seen++;
     assert.ok(Math.abs(head.rotation.y - y) <= M.COCK + 1e-9 && Math.abs(head.rotation.z - z) <= M.TILT + 1e-9);
     assert.ok(a.jaw.rotation.x - g >= -1e-9 && a.jaw.rotation.x - g <= M.GAPE + 1e-9);
+    assert.ok(Math.abs(a.body.rotation.y - by) <= M.LEAN + 1e-9);
   }
   assert.ok(seen > 60, 'it moved');
   for (let i = 0; i < 120; i++) updateFidget(a, dt, i * dt, true, null);
-  assert.ok(Math.abs(head.rotation.y - y) < 1e-9 && Math.abs(head.rotation.z - z) < 1e-9 && Math.abs(a.jaw.rotation.x - g) < 1e-9);
+  assert.ok(Math.abs(head.rotation.y - y) < 1e-9 && Math.abs(head.rotation.z - z) < 1e-9 && Math.abs(a.jaw.rotation.x - g) < 1e-9 && Math.abs(a.body.rotation.y - by) < 1e-9);
 });
 
 test('cobras and other species are left alone', () => {
   assert.equal(M.tastes(mon('cobra')), false);
   assert.equal(M.updateSnakeTaste(mon('jackal'), dt, 0, false), null);
+});
+
+test('after the snap the jaw flicks half open once more, then rests exactly', () => {
+  assert.ok(M.tastePose(.8).gape < .01, 'shut after the snap');
+  assert.ok(M.tastePose(.9).gape > .45 && M.tastePose(.9).gape < .6, 'the flick');
+  assert.ok(M.tastePose(.9).cock < .01, 'the head stays straight for it');
+  assert.ok(M.tastePose(.9999).gape < 1e-3);
 });

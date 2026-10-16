@@ -47,3 +47,18 @@ test('it ends, cleans up, and ignores a bad direction', () => {
   assert.equal(fx.active, 0); assert.equal(removed.length, 1);
   fx.arrive(-1); fx.clear(); assert.equal(fx.active, 0);
 });
+
+test('the ring catches once mid-close, never reversing past its start, and ends at rest', () => {
+  let slow = Infinity, max = 0;
+  for (let t = .05; t < .55; t += .01) { const d = ringPose(t, 1).scale - ringPose(t + .01, 1).scale; slow = Math.min(slow, d); max = Math.max(max, d); }
+  assert.ok(slow < max / 2, 'a hitch in the close');
+  for (const dir of [1, -1]) { const s = ringPose(0, dir).scale, e = ringPose(STEP.total, dir).scale; assert.ok(s <= .6 && e <= .6 && ringPose(STEP.total, dir).alpha === 0); }
+});
+
+test('the late fleck drifts sideways against the rest and stays in bounds', () => {
+  // Fleck 0 sways off its radial line; compare against the same pose without the sway (fleck angle is fixed).
+  const off = (i, t) => { const p = fleckPose(i, t, 1), a = i * 2.4 + .7; return Math.abs(-Math.sin(a) * p.x + Math.cos(a) * p.z); };
+  let sway0 = 0, sway1 = 0;
+  for (let t = 0; t <= STEP.total; t += .01) { sway0 = Math.max(sway0, off(0, t)); sway1 = Math.max(sway1, off(1, t)); }
+  assert.ok(sway0 > .015 && sway1 < 1e-9);
+});

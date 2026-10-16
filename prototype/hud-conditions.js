@@ -7,7 +7,7 @@
 const LABELS = {
   stone: 'STONE', slime: 'SLIME', strngl: 'STRANGLED', foodpois: 'ILL', ill: 'ILL', termill: 'ILL',
   hungry: 'HUNGRY', weak: 'WEAK', fainting: 'FAINTING', fainted: 'FAINTED',
-  stun: 'STUN', conf: 'CONF', blind: 'BLIND', hallu: 'HALLU',
+  stun: 'STUN', deaf: 'DEAF', conf: 'CONF', blind: 'BLIND', hallu: 'HALLU',
   lev: 'LEV', legs: 'LEGS', trap: 'TRAPPED', held: 'HELD',
   burdened: 'BURDENED', stressed: 'STRESSED', strained: 'STRAINED', overtaxed: 'OVERTAXED', overloaded: 'OVERLOADED',
 };
@@ -29,8 +29,13 @@ export function heroConditions(frameConditions, statusText = '') {
   return (String(statusText).split(/T:\d+/)[1] || '').trim().split(/\s+/).filter(Boolean);
 }
 
+import {conditionGlyph} from './condition-glyph.js';
+
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 export function conditionTagsHtml(conditions) {
-  // Hungry is a warning, not yet a danger: the same tag, but amber instead of red.
-  return conditionTags(conditions).map(t => `<span class="hero-condition${t === 'HUNGRY' ? ' mild' : ''}">${esc(t)}</span>`).join('');
+  // Hungry and deaf are warnings, not yet dangers: the same tag, but amber instead of red.
+  // Each tag leads with the condition's shape, so a red tag and an amber one differ without colour too.
+  const first = {};
+  for (const c of conditions || []) { const tag = LABELS[String(c).toLowerCase().trim()]; if (tag && !first[tag]) first[tag] = c; }
+  return conditionTags(conditions).map(t => `<span class="hero-condition${t === 'HUNGRY' || t === 'DEAF' ? ' mild' : ''}"><i aria-hidden="true">${conditionGlyph(first[t])}</i> ${esc(t)}</span>`).join('');
 }

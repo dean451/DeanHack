@@ -369,7 +369,10 @@ place_curated_guaranteed_items(struct mkroom *sroom, int rmno, int sh)
 /* The regular level-2 store's extra stock: ordinary early kit, each entry
  * with the given percent chance, so the shop is reliably useful without
  * being the same every game. Nothing is forced blessed or enchanted; a
- * guaranteed shop should not sell a cursed "essential", so cursed is cleared. */
+ * guaranteed shop should not sell a cursed "essential", so cursed is cleared.
+ * No unicorn horn: those only come from unicorns (the random stock is
+ * filtered the same way in mkshobj_at). The lamp is a magic lamp one time
+ * in four, as the ordinary lamp odds in objects.c would make it. */
 static const struct {
     short otyp;
     short quan;     /* 0 or 1 means a single item */
@@ -382,7 +385,6 @@ static const struct {
     { HELMET,        1,  75 },
     { SCR_IDENTIFY,  2,  75 },
     { PICK_AXE,      1,  50 },
-    { UNICORN_HORN,  1,  50 },
     { HIGH_BOOTS,    1,  50 },
     { SMALL_SHIELD,  1,  50 },
     { POT_HEALING,   2,  50 },
@@ -395,7 +397,7 @@ static const struct {
 static void
 place_essential_items(struct mkroom *sroom, int rmno, int sh)
 {
-    int i, sx, sy, tries;
+    int i, sx, sy, tries, otyp;
     struct obj *otmp;
 
     for (i = 0; i < SIZE(essential_items); i++) {
@@ -413,7 +415,11 @@ place_essential_items(struct mkroom *sroom, int rmno, int sh)
         if (tries >= 50) {
             continue;
         }
-        otmp = mksobj_at(essential_items[i].otyp, sx, sy, TRUE, FALSE);
+        otyp = essential_items[i].otyp;
+        if (otyp == OIL_LAMP && !rn2(4)) {
+            otyp = MAGIC_LAMP;
+        }
+        otmp = mksobj_at(otyp, sx, sy, TRUE, FALSE);
         if (!otmp) {
             continue;
         }
@@ -549,6 +555,14 @@ redo:
 
         if (DEANHACK_ASCENSION_SHOP && mkshop_curated_loot
             && curated_loot_rejected(otmp)) {
+            obj_extract_self(otmp);
+            obfree(otmp, NULL);
+            goto redo;
+        }
+
+        /* the level-2 store never stocks a unicorn horn: those only come
+           from unicorns */
+        if (mkshop_curated_loot && otmp->otyp == UNICORN_HORN) {
             obj_extract_self(otmp);
             obfree(otmp, NULL);
             goto redo;

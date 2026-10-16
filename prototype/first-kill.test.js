@@ -39,3 +39,11 @@ test('only the first kill of a game is marked', () => {
   fx.message('You kill the rat!', 1, 2);
   assert.equal(fx.active, 0);
 });
+
+test('the ring shudders back open once while it stalls, then closes fully', () => {
+  const s = u => ringPose(u * KILL.total).scale;
+  let reopen = 0;
+  for (let u = .6; u < .75; u += .005) reopen = Math.max(reopen, s(u) - s(.6));
+  assert.ok(reopen > .005, 'shudders');
+  assert.ok(s(.99) < s(.6));
+});

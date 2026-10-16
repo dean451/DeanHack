@@ -1,14 +1,16 @@
 // The splash: the first screen, and the one the game returns to. A name and one button that either
 // resumes that character's saved game or begins a new one (choosing a class), then straight into
 // Live. Save & quit, death, an idle stop or a crash all come back here with a line saying what
-// happened. `?demo` skips it and shows the demo room (a development view).
+// happened. The splash is opaque and the 3D scene does not draw behind it (main.js): the demo
+// room is a development view, seen only with `?demo`, which skips the splash.
 // The engine keys a save by character name (-u name), so typing a saved name resumes that game.
 
 import {pickDragon} from './dragon-art.js';
+import {createAsciiWaves} from './ascii-waves.js';
 import {epitaph} from './death-beat.js';
 import {ROLES,ROLE_NAMES,RACES,DEFAULT_CHOICE,alignsFor,optionsFor,resolveChoice} from './roles.js';
 
-export const DEFAULT_NAME='Wanderer';
+export const DEFAULT_NAME='Adventurer';
 
 // The name as the engine will see it (same rules as cleanPlayerName in engine/server.js).
 export function cleanName(raw){
@@ -88,25 +90,37 @@ export async function forgetSave(name,fetchImpl=fetch){
 // Builds the splash once and wires it to the Live button and name field. Returns {open, close}:
 // the live game calls open({note}) when a session ends, so the player always lands back here.
 export function installStartScreen({doc=document,button,nameInput,search=location.search,getSaves=fetchSaves,forget=forgetSave,confirmFn=(m)=>confirm(m),storage}={}){
-  if(!wantsStartScreen(search))return null;
+  const cover=doc.getElementById?.('start-cover');
+  if(!wantsStartScreen(search)){cover?.remove();return null;}
   const el=doc.createElement('div');el.id='start-screen';
-  el.innerHTML=`<pre class="start-dragon" aria-hidden="true"></pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>DEAN<b>HACK</b></h1><p class="start-tag">A little light. A long way down.</p><p id="start-status" role="status" hidden></p>
+  el.innerHTML=`<div class="start-stage"><pre class="start-dragon" aria-hidden="true"></pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>An <a class="start-link" href="https://github.com/UnNetHack/UnNetHack" target="_blank" rel="noopener">UnNetHack</a> Fork</h1><p id="start-status" role="status" hidden></p>
 <form class="step-name" autocomplete="off"><label for="start-name">Your name</label><input id="start-name" type="text" maxlength="24" spellcheck="false" placeholder="${DEFAULT_NAME}" aria-describedby="start-note"><button type="submit" id="start-go"></button><p id="start-note" aria-live="polite"></p>
 <div class="start-row"><button type="button" class="start-new">New character</button><button type="button" class="start-forget" hidden>Start over (delete this save)</button></div>
 <div class="start-saves" hidden><span>Your characters</span><div class="start-list"></div></div></form>
 <div class="step-class" hidden><label>Choose your class</label><div class="class-grid" role="radiogroup" aria-label="Class"></div>
 <div class="class-detail"><p class="class-blurb"></p><div class="class-opts"></div></div>
-<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div><p class="start-credit"></p></div>`;
+<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div><p class="start-mark"><a class="start-link" href="https://github.com/dean451/deanhack" target="_blank" rel="noopener" aria-label="DeanHack on GitHub">DEAN<b>HACK</b></a></p></div>`;
+  // The wavy ASCII field behind everything (ascii-waves.js); it runs only while the splash shows.
+  const waves=createAsciiWaves({doc});el.prepend(waves.el);
   doc.body.append(el);
   const $=s=>el.querySelector(s);
-  const dragon=$('.start-dragon'),credit=$('.start-credit');
-  const showDragon=()=>{const d=pickDragon();dragon.textContent=d.art;credit.textContent=`Dragon by ${d.credit}`;};
-  showDragon();
+  // The cover (start-cover.js) already shows a head: take that very element so nothing swaps.
+  const coverDragon=cover?.querySelector?.('.start-dragon');const adopted=!!coverDragon?.textContent;
+  if(adopted)$('.start-dragon').replaceWith(coverDragon);
+  cover?.remove();
+  const dragon=$('.start-dragon');
+  // each head is sized to its own art (style.css), so a short one grows to match the card
+  // The dragon is centred in the window, not against the card, so the class list growing the card
+  // never moves it: its top margin is set from its own height and the window's, on show and resize.
+  const placeDragon=()=>{const win=doc.defaultView;if(!win||!dragon.getBoundingClientRect)return;const h=dragon.getBoundingClientRect().height,pad=parseFloat(win.getComputedStyle?.(dragon.parentElement)?.paddingTop)||0;dragon.style.marginTop=`${Math.max(0,(win.innerHeight-h)/2-pad)}px`;};
+  doc.defaultView?.addEventListener?.('resize',placeDragon);
+  const showDragon=()=>{const art=pickDragon().art,lines=art.split('\n');dragon.textContent=art;dragon.style.setProperty('--lines',lines.length);dragon.style.setProperty('--cols',Math.max(...lines.map(l=>l.length)));placeDragon();};
+  if(adopted)placeDragon();else showDragon();
   const input=$('#start-name'),go=$('#start-go'),note=$('#start-note'),status=$('#start-status'),list=$('.start-list'),box=$('.start-saves'),stepName=$('.step-name'),stepClass=$('.step-class'),forgetBtn=$('.start-forget');
   let saves=[],choice=readChoice(storage),pendingName=DEFAULT_NAME;
   const remembered=()=>{try{return(storage??localStorage).getItem('deanhack.playerName')||'';}catch{return '';}};
   const refresh=()=>{const plan=startPlan(input.value,saves);go.textContent=plan.label;note.textContent=plan.resume?`${plan.resume.role?plan.resume.role+', ':''}saved ${ago(plan.resume.savedAt)}.`:plan.note;go.classList.toggle('resume',!!plan.resume);forgetBtn.hidden=!plan.resume;for(const chip of list.children)chip.classList.toggle('current',chip.dataset.name===fileKey(input.value));};
-  const close=()=>{el.hidden=true;doc.body.classList.remove('start-open');};
+  const close=()=>{el.hidden=true;doc.body.classList.remove('start-open');waves.stop();};
   const loadSaves=()=>getSaves().then(found=>{
     saves=found;
     list.replaceChildren(...saves.slice(0,8).map(s=>{const b=doc.createElement('button');b.type='button';b.dataset.name=s.name;b.innerHTML=`<b></b><i></i>`;b.firstChild.textContent=s.name.replace(/_/g,' ');b.lastChild.textContent=(s.role?s.role+' · ':'')+ago(s.savedAt);
@@ -117,7 +131,7 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
     refresh();
   });
   const open=({note:line='',death=null,focus=true}={})=>{
-    el.hidden=false;doc.body.classList.add('start-open');showDragon();
+    el.hidden=false;doc.body.classList.add('start-open');showDragon();waves.start();
     const card=deathCard(death);
     if(card){status.innerHTML=card;status.classList.add('dead');status.hidden=false;}else{status.textContent=line;status.classList.remove('dead');status.hidden=!line;}
     stepClass.hidden=true;stepName.hidden=false;

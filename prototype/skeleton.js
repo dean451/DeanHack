@@ -152,7 +152,8 @@ function buildLeg(side){
  P.add(new THREE.SphereGeometry(.024,10,8),at(0,-.215,.006,[0,0,0],[1.35,.8,1]),joint);
  P.add(new THREE.SphereGeometry(.013,8,6),at(0,-.212,.03,[0,0,0],[1,1.2,.6]),bone);
  limb(P,[0,-.228,.006],[0,-.41,-.004],.016,.012,bone);
- limb(P,[side*.017,-.234,-.002],[side*.013,-.405,-.01],.0065,.006,bone,5);
+ // the left fibula is snapped off halfway, leaving a ragged stub
+ limb(P,[side*.017,-.234,-.002],side<0?[side*.015,-.32,-.006]:[side*.013,-.405,-.01],.0065,side<0?.0055:.006,bone,5);
  P.add(new THREE.SphereGeometry(.019,8,6),at(0,-.425,-.006,[0,0,0],[1.2,.9,1]),joint);
  P.add(new THREE.SphereGeometry(.015,8,6),at(0,-.442,-.026),bone);
  for(let i=0;i<5;i++){
@@ -193,7 +194,10 @@ function buildArm(side){
  }else{
   for(const [i,x] of [-.015,-.005,.005,.015].entries()){
    const len=.022+(i===1||i===2?.006:0);
+   // the outer finger is gone and the next is snapped after its first joint: it has been fought
+   if(i===0)continue;
    limb(P,[x*.7,-.405,.006],[x,-.405-len,.008],.005,.0045,bone,5);
+   if(i===3)continue;
    limb(P,[x,-.405-len,.008],[x*1.05,-.405-len*1.75,.018],.0045,.004,bone,5);
   }
   limb(P,[-.014,-.4,.012],[-.022,-.42,.024],.005,.0045,bone,5);
@@ -250,5 +254,5 @@ export function createSkeleton(){
  const weaponSocket=new THREE.Group();weaponSocket.position.set(...GRIP);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.sword,S.bone,'sword');
  g.scale.setScalar(1.12);// the tough lich-grade undead stands over the zombies
- return {g,body,legs,tail:null,wings:[],quirk:'zombie',arms,arm:arms[1],weaponSocket,head,heads:[head],jaw,hat:null,beard:null,pick:null};
+ return {g,body,legs,tail:null,wings:[],quirk:'zombie',kind:'skeleton',arms,arm:arms[1],weaponSocket,head,heads:[head],jaw,hat:null,beard:null,pick:null};
 }

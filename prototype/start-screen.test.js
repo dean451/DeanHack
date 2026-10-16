@@ -8,7 +8,7 @@ import {listSaves,cleanPlayerName} from './engine/server.js';
 
 test('the name is cleaned exactly as the engine launcher cleans it',()=>{
   for(const raw of ['Dean',"  Mary Jane O'Neil  ",'Mary-Jane','a,b;c','-x','---','','x'.repeat(100),'Ünïcode'])assert.equal(cleanName(raw),cleanPlayerName(raw),JSON.stringify(raw));
-  assert.equal(cleanName(undefined),DEFAULT_NAME);
+  assert.equal(cleanName(undefined),DEFAULT_NAME);assert.equal(DEFAULT_NAME,'Adventurer');
 });
 
 test('the button resumes a saved character and begins a new one',()=>{
@@ -131,24 +131,79 @@ test('the live game wires the link watch and the tombstone into the splash',()=>
   assert.match(live,/id='link-banner'/);
 });
 
-test('the splash draws one of three dragons at random, credited, out of the way of screen readers',async()=>{
-  const {DRAGONS,pickDragon}=await import('./dragon-art.js');
+test('the splash draws one of three dragon heads at random, uncredited, out of the way of screen readers',async()=>{
+  const {DRAGONS,pickDragon,deriveHead}=await import('./dragon-art.js');
   assert.equal(DRAGONS.length,3);
   for(const d of DRAGONS){
     const lines=d.art.split('\n');
     assert.ok(lines.every(l=>l.length<=84),`${d.name} fits beside the card`);
     assert.ok(lines.length>=40&&lines.length<=60,`${d.name} is splash sized`);
     assert.doesNotMatch(d.art,/[<>&]/,`${d.name}: nothing that innerHTML would misread`);
-    assert.ok(d.credit,`${d.name} is credited`);
+    assert.equal(d.credit,undefined,`${d.name}: no credit line`);
   }
-  const tua=DRAGONS.find(d=>d.name==='Tua Xiong');
-  assert.match(tua.art,/Tua Xiong/,'the signature stays in the art');
-  assert.equal(tua.art.split('\n').length,43);
+  assert.ok(!DRAGONS.some(d=>/Tua Xiong/.test(d.name+d.art)),'the Tua Xiong dragon is gone');
+  // the third head is derived from the red one: mirrored, one tone darker
+  const red=DRAGONS.find(d=>d.name==='red'),shadow=DRAGONS.find(d=>d.name==='shadow');
+  assert.equal(shadow.art,deriveHead(red.art));
+  assert.equal(shadow.art.split('\n').length,red.art.split('\n').length);
+  assert.notEqual(shadow.art,red.art);
   assert.equal(pickDragon(()=>0),DRAGONS[0]);assert.equal(pickDragon(()=>.999),DRAGONS[2]);assert.equal(pickDragon(()=>1),DRAGONS[2]);
   const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
   assert.match(src,/<pre class="start-dragon" aria-hidden="true"><\/pre>/);
-  assert.match(src,/const showDragon=\(\)=>\{const d=pickDragon\(\);dragon.textContent=d.art;credit.textContent=`Dragon by \$\{d.credit\}`;\};/);
+  assert.doesNotMatch(src,/Dragon by|start-credit/);
   assert.match(src,/doc.body.classList.add\('start-open'\);showDragon\(\);/,'a fresh dragon each time the splash opens');
   const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
-  assert.match(css,/@media\(max-width:1000px\),\(max-height:560px\)\{\.start-dragon,\.start-credit\{display:none\}\}/,'narrow and short screens keep the card alone');
+  assert.match(css,/@media\(max-width:760px\),\(max-height:400px\)\{\.start-dragon\{display:none\}\}/,'only really small screens keep the card alone');
+  assert.match(css,/\.start-dragon\{[^}]*align-self:flex-start;font:max\(4\.5px,min\(12px,[^}]*var\(--cols,84\)[^}]*var\(--lines,58\)/,'each dragon is sized to its own art to fill the space, held centred in the window');
+  assert.match(src,/dragon\.style\.setProperty\('--lines',lines\.length\)/);
+  assert.match(src,/const placeDragon=\(\)=>/,'the dragon is centred in the window, not against the card');
+});
+
+test('the card says An UnNetHack Fork, with a small DeanHack wordmark bottom right and no tagline',()=>{
+  const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
+  assert.match(src,/<h1>An <a class="start-link" href="https:\/\/github\.com\/UnNetHack\/UnNetHack"[^>]*>UnNetHack<\/a> Fork<\/h1>/);
+  assert.match(src,/class="start-mark"><a class="start-link" href="https:\/\/github\.com\/dean451\/deanhack"[^>]*>DEAN<b>HACK<\/b><\/a>/);
+  assert.doesNotMatch(src,/A little light/);
+  const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+  assert.match(css,/\.start-mark\{position:absolute;right:28px;bottom:22px/);
+  assert.match(css,/a\.start-link\{color:inherit;text-decoration:none/);
+
+});
+
+test('the splash is on screen before the app loads: a static cover with the dragon, adopted by the start screen',()=>{
+  const html=readFileSync(new URL('./index.html',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8'),screen=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
+  assert.ok(html.indexOf('id="start-cover"')<html.indexOf('<script type="module" src="/main.js">'),'the cover is in the HTML before the app script');
+  assert.ok(html.indexOf('src="/start-cover.js"')<html.indexOf('src="/main.js"'),'the cover script loads before the app');
+  assert.match(css,/#start-screen,#start-cover\{position:fixed;inset:0/);
+  assert.match(css,/#start-cover\{z-index:61;background:#030609\}/,'opaque: no demo room shows through');
+  assert.match(screen,/replaceWith\(coverDragon\)/,'the start screen adopts the cover\'s dragon element');
+  assert.match(screen,/cover\?\.remove\(\)/);
+});
+
+test('the splash is opaque with a wavy ASCII field behind it, running only while it shows; nothing draws behind it',async()=>{
+  const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8'),main=readFileSync(new URL('./main.js',import.meta.url),'utf8');
+  assert.match(src,/const waves=createAsciiWaves\(\{doc\}\);el\.prepend\(waves\.el\);/,'the field sits under everything in the splash');
+  assert.match(src,/showDragon\(\);waves\.start\(\);/,'it runs when the splash opens');
+  assert.match(src,/doc\.body\.classList\.remove\('start-open'\);waves\.stop\(\);/,'and stops when it closes');
+  assert.match(css,/#start-screen,#start-cover\{[^}]*background:radial-gradient\(ellipse at 50% 42%,#050a0c 0%,#030609 62%,#020405 100%\)/,'no alpha: the demo room never shows through');
+  assert.match(css,/\.start-waves\{position:absolute;inset:0;[^}]*pointer-events:none;[^}]*z-index:0\}/);
+  assert.match(css,/\.start-stage\{position:relative;z-index:1;/,'the dragon and card sit above the field');
+  assert.match(main,/if\(document\.body\.classList\.contains\('start-open'\)\)return;/,'the scene does not draw while the splash is open');
+  // the cover gets one still frame of the field when it has a window to size it by
+  const {fillCover}=await import('./start-cover.js');
+  const pre={textContent:'',dataset:{},style:{vars:{},setProperty(k,v){this.vars[k]=v;}},getBoundingClientRect:()=>({height:100}),parentElement:{}};
+  const made=[];const cover={children:[],prepend(e){this.children.unshift(e);},ownerDocument:{createElement(){const e={className:'',textContent:'',attrs:{},setAttribute(k,v){this.attrs[k]=v;}};made.push(e);return e;}},remove(){},querySelector:s=>s==='.start-dragon'?pre:null};
+  fillCover(cover,{rand:()=>0,win:{innerWidth:780,innerHeight:300,getComputedStyle:()=>({paddingTop:'0'})}});
+  assert.equal(cover.children.length,1);assert.equal(cover.children[0].className,'start-waves');assert.equal(cover.children[0].attrs['aria-hidden'],'true');
+  assert.equal(cover.children[0].textContent.split('\n').length,21);
+});
+
+test('the cover picks a head, sizes it, and goes away for ?demo',async()=>{
+  const {fillCover}=await import('./start-cover.js');
+  const mk=()=>{const pre={textContent:'',dataset:{},style:{vars:{},setProperty(k,v){this.vars[k]=v;}}};const cover={removed:false,remove(){this.removed=true;},querySelector:s=>s==='.start-dragon'?pre:null};return {cover,pre};};
+  let {cover,pre}=mk();const d=fillCover(cover,{rand:()=>0});
+  assert.equal(d.name,'red');assert.equal(pre.dataset.dragon,'red');assert.ok(pre.textContent.length>1000);
+  assert.equal(pre.style.vars['--lines'],pre.textContent.split('\n').length);
+  ({cover,pre}=mk());assert.equal(fillCover(cover,{search:'?demo'}),null);assert.equal(cover.removed,true);
+  assert.equal(fillCover(null),null);
 });

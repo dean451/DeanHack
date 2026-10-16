@@ -22,6 +22,6 @@ test('the bridge reports Hungry as a condition, before Weak', () => {
 test('the HUD shows HUNGRY as an amber tag, and WEAK as red', () => {
   assert.deepEqual(conditionTags(['Hungry']), ['HUNGRY']);
   assert.deepEqual(conditionTags(['Hungry', 'Weak']), ['HUNGRY', 'WEAK']);
-  assert.match(conditionTagsHtml(['Hungry']), /class="hero-condition mild">HUNGRY</);
-  assert.match(conditionTagsHtml(['Weak']), /class="hero-condition">WEAK</);
+  assert.match(conditionTagsHtml(['Hungry']), /class="hero-condition mild"><i aria-hidden="true">◔<\/i> HUNGRY</);
+  assert.match(conditionTagsHtml(['Weak']), /class="hero-condition"><i aria-hidden="true">◑<\/i> WEAK</);
 });

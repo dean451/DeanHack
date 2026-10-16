@@ -18,7 +18,7 @@ export function encodeReply(request, body) {
   if(!Number.isInteger(body.value)||body.value<1||body.value>255)throw new Error('Invalid key');
   return body.value+'\n';
 }
-export const DEFAULT_PLAYER_NAME = 'Wanderer';
+export const DEFAULT_PLAYER_NAME = 'Adventurer';
 // The character's name, typed by the player. It goes to the engine as `-u` and in NETHACKOPTIONS
 // (comma separated), and it names the save file, so keep it short and plain: letters, digits,
 // spaces, underscores and apostrophes, starting with a letter or digit so it can never read as a
@@ -80,7 +80,7 @@ export function engineLaunch(rawName, manifest, rawChoice) {
   return {
     name, choice: { role, race, gender, align },
     args: ['-d', manifest.cwd, '-u', name, '-p', role, '-r', race],
-    options: `windowtype:bridge,name:${name},role:${role},race:${race},gender:${gender},align:${align},pettype:cat,!news,autodig,autopickup,pickup_types:/!?="`,
+    options: `windowtype:bridge,name:${name},role:${role},race:${race},gender:${gender},align:${align},pettype:cat,!news,autodig,autopickup,pickup_types:$/!?=",force_invmenu`,
   };
 }
 

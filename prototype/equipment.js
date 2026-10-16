@@ -22,11 +22,42 @@ import {buildPickAxe,PICK_AXE_NAME} from './pick-axe.js';
 import {buildMjollnir} from './mjollnir.js';
 import {buildExcalibur} from './excalibur.js';
 import {artifactFromName} from './artifact-gleam.js';
+import {createGroundModel} from './ground-models.js';
 
 // A held weapon is turned a quarter about its own long axis, so the edge leads the swing
 // instead of the flat; the hero's sockets apply it to whatever they hold.
 export const HELD_TURN=Math.PI/2;
 export function turnHeld(weapon){weapon.rotateY(HELD_TURN);return weapon;}
+// NetHack's weapon class. Anything else wielded gets a weapon model only if the dispatch in
+// createHeldWeapon names it (pick-axe, unicorn horn, bullwhip...); otherwise createHeldObject.
+export const WEAPON_CLASS=2;
+// Longest side of a held object, in world units, and where its centre sits above the hand.
+export const HELD_OBJECT_MAX=.55,HELD_OBJECT_LIFT=.25;
+// Anything that is not a weapon used to be held as a wooden stick (the weapon proxy below): a
+// wielded potion, tin, boulder-sized... anything, looked like a club. Now the hero holds the thing
+// itself: its floor model (ground-models.js), stood with its longest side along the hand, scaled
+// into the fist. One rule for every class, no per-item fudges. An item with no floor model at all
+// is held as a plain wrapped bundle, never a stick.
+export function createHeldObject(item){
+ const g=new THREE.Group();g.name=item?.name||'';g.userData.heldObject=true;
+ const model=item?createGroundModel({...item,name:item.name}):null;
+ if(model){
+  const pivot=new THREE.Group();pivot.add(model);
+  model.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3()),c=box.getCenter(new THREE.Vector3());
+  model.position.sub(c);
+  const longest=size.x>=size.y&&size.x>=size.z?'x':size.z>=size.y?'z':'y';
+  if(longest==='x')pivot.rotation.z=Math.PI/2;else if(longest==='z')pivot.rotation.x=-Math.PI/2;
+  const len=Math.max(size.x,size.y,size.z,1e-6);pivot.scale.setScalar(Math.min(1,HELD_OBJECT_MAX/len));
+  pivot.position.y=HELD_OBJECT_LIFT;g.add(pivot);
+  g.userData.dispose=()=>model.userData.dispose?.();
+ }else{
+  const cloth=new THREE.MeshStandardMaterial({color:0x8a7a62,roughness:.95}),cord=new THREE.MeshStandardMaterial({color:0x3a2c20,roughness:.9});
+  const bundle=new THREE.Mesh(new THREE.BoxGeometry(.16,.22,.12),cloth);bundle.position.y=HELD_OBJECT_LIFT;bundle.castShadow=true;g.add(bundle);
+  const tie=new THREE.Mesh(new THREE.TorusGeometry(.1,.012,6,16),cord);tie.position.y=HELD_OBJECT_LIFT;tie.rotation.x=Math.PI/2;g.add(tie);
+  g.userData.dispose=()=>{bundle.geometry.dispose();tie.geometry.dispose();cloth.dispose();cord.dispose();};
+ }
+ return g;
+}
 export function createHeldWeapon(item){
  const g=new THREE.Group();if(!item)return g;
  // A wielded wand is held by its grip like the floor wand's model; its look comes from the
@@ -147,13 +178,16 @@ export function createHeldWeapon(item){
  }else if(/\b(spear|javelin|pike)\b/.test(name)){
   const shaftLength=/javelin/.test(name)?.88:/pike/.test(name)?1.55:1.2;
   const wood=new THREE.MeshStandardMaterial({color:0x805735,roughness:.86});
-  g.userData.extraMaterial=wood;
+  // A silver spear's head and ferrule are bright polished silver, not the grey steel of the rest.
+  const silver=/\bsilver\b/.test(name)?new THREE.MeshStandardMaterial({color:0xf4f7f9,metalness:.96,roughness:.12}):null;
+  const head=silver??steel;
+  g.userData.extraMaterial=silver?[wood,silver]:wood;
   const shoulder=shaftLength-.3;
   part(new THREE.CylinderGeometry(.018,.025,shaftLength,12),wood,0,shaftLength/2-.3);
   part(new THREE.CylinderGeometry(.028,.028,.18,12),leather,0,0);
   for(const y of [-.09,.09])part(new THREE.CylinderGeometry(.03,.03,.015,12),brass,0,y);
-  part(new THREE.CylinderGeometry(.025,.018,.09,12),steel,0,-.3);
-  part(new THREE.CylinderGeometry(.027,.034,.12,12),steel,0,shoulder);
+  part(new THREE.CylinderGeometry(.025,.018,.09,12),head,0,-.3);
+  part(new THREE.CylinderGeometry(.027,.034,.12,12),head,0,shoulder);
   // Raised central ridge and thin edges keep the socketed leaf blade readable.
   const geo=new THREE.BufferGeometry();
   const y=shoulder+.045;
@@ -162,7 +196,7 @@ export function createHeldWeapon(item){
    0,y+.12,.022, 0,y+.12,-.022
   ],3));
   geo.setIndex([0,4,1,1,4,2,2,4,3,3,4,0,0,1,5,1,2,5,2,3,5,3,0,5]);
-  geo.computeVertexNormals();part(geo,steel,0,0);
+  geo.computeVertexNormals();part(geo,head,0,0);
  }else if(/\bflail\b/.test(name)){
   const wood=new THREE.MeshStandardMaterial({color:0x735035,roughness:.9});
   g.userData.extraMaterial=wood;
@@ -279,8 +313,11 @@ export function createHeldWeapon(item){
   const [horn]=createUnicornHorn().children;
   horn.rotation.set(0,0,Math.PI/2);horn.position.set(0,.5/2-.1,0);
   g.add(horn);g.userData.extraMaterial=horn.material;
+ }else if(item.class!==undefined&&item.class!==WEAPON_CLASS){
+  // Not a weapon and no model of its own above: hold the thing itself, not the stick proxy.
+  steel.dispose();leather.dispose();brass.dispose();return createHeldObject(item);
  }else{
-  // A restrained proxy for weapon families whose detailed models are still pending.
+  // A restrained proxy for weapon families (class 2 only) whose detailed models are still pending.
   part(new THREE.CylinderGeometry(.027,.035,.65,8),leather,0,.18);
   if(/axe/.test(name))part(new THREE.BoxGeometry(.3,.19,.045),steel,.08,.48);
   else if(/mace|hammer|club/.test(name))part(new THREE.BoxGeometry(.19,.18,.16),steel,0,.48);

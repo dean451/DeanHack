@@ -7,12 +7,20 @@ const make = name => createGroundModel({name, class: 6, color: 1});
 const emissive = m => { let e = 0; m.traverse(o => { if (o.material?.emissiveIntensity > e) e = o.material.emissiveIntensity; }); return e; };
 
 test('magic tools take their effect in the material', () => {
-  for (const name of ['frost horn', 'fire horn', 'horn of plenty', 'magic harp', 'magic flute', 'magic whistle', 'bag of tricks', 'drum of earthquake', 'magic marker', 'unicorn horn']) {
+  for (const name of ['frost horn', 'fire horn', 'horn of plenty', 'magic harp', 'magic flute', 'magic whistle', 'drum of earthquake', 'magic marker', 'unicorn horn']) {
     const m = make(name);
     assert.equal(m.userData.twist, name);
     assert(emissive(m) > 0, name);
     m.userData.dispose();
   }
+});
+
+test('a bag of tricks keeps a plain sack\'s cloth and no red glow: its teeth are tell enough', async () => {
+  const {TOOL_AURAS} = await import('./tool-auras.js');
+  assert.equal(TOOL_AURAS['bag of tricks'], undefined);
+  const m = make('bag of tricks');
+  assert.equal(m.userData.twist, undefined);
+  m.userData.dispose();
 });
 
 test('mundane tools are left alone', () => {

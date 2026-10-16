@@ -77,6 +77,9 @@ function buildBody(){
   const t=i/16-.5,a=t*2.2;
   P.add(new THREE.TorusGeometry(.012,.004,4,8),at(Math.sin(a)*.14,.88-(.5-Math.abs(t))*.34,.07+Math.cos(a)*.08,[0,i%2?Math.PI/2:0,a*.5]),i%2?C.goldHi:C.gold);
  }
+ // a sword-cut slashed across the plate from the right shoulder, split to dark steel with dried blood at its foot
+ P.add(new THREE.BoxGeometry(.15,.01,.008),at(.01,.745,.142,[0,.08,-.6]),C.steelDark);
+ P.add(new THREE.BoxGeometry(.05,.016,.008),at(.075,.67,.142,[0,.08,-.6]),C.crimsonDark);
  P.add(new THREE.CylinderGeometry(.034,.034,.008,20),at(0,.7,.145,[Math.PI/2,0,0]),(x,y,z)=>Math.hypot(x,y-.7)>.026?C.goldDark:C.goldHi);
  P.add(new THREE.SphereGeometry(.012,8,6),at(0,.7,.152,[0,0,0],[1,1,.5]),C.emerald);
  // the royal mantle: deep crimson from the shoulders, dragging behind, trimmed in spotted ermine
@@ -124,8 +127,8 @@ function buildHead(){
  P.add(new THREE.CylinderGeometry(.084,.08,.04,28,1,true),at(0,.17,0,[0,0,0],[1,1,1.05]),(x,y,z)=>gilt(Math.cos(Math.atan2(x,z))*.5+.4,.5+(y-.15)*10));
  P.add(new THREE.TorusGeometry(.082,.006,4,28),at(0,.15,0,[Math.PI/2,0,0],[1,1.05,1]),C.goldHi);
  for(let k=0;k<8;k++){
-  const a=k/8*Math.PI*2,h=k%2?.06:.1;
-  P.add(new THREE.ConeGeometry(.016,h,4),at(Math.sin(a)*.08,.19+h/2,Math.cos(a)*.084,[Math.cos(a)*-.18,a,Math.sin(a)*.18]),(x,y,z)=>gilt(.8,1));
+  const a=k/8*Math.PI*2,snapped=k===2,h=snapped?.03:k%2?.06:.1;
+  P.add(new THREE.ConeGeometry(snapped?.012:.016,h,4),at(Math.sin(a)*.08,.19+h/2,Math.cos(a)*.084,[Math.cos(a)*-.18,a,Math.sin(a)*.18]),(x,y,z)=>snapped?(y>.19+h*.7?C.steelHi:C.goldDark):gilt(.8,1));// one spike snapped to a stump with a pale break
   P.add(new THREE.OctahedronGeometry(.011),at(Math.sin(a)*.086,.17,Math.cos(a)*.09,[0,a,0],[1,1.2,.6]),k%2?C.emerald:C.ruby);
  }
  // a crimson cap inside the crown

@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {kneelPose, kneelMessage, createPrayerKneel, KNEEL_TIME} from './prayer-kneel.js';
+import {kneelPose, kneelMessage, createPrayerKneel, KNEEL_TIME, LEG_FOLD, BODY_DROP} from './prayer-kneel.js';
 
 const rig = () => ({arm: {rotation: {x: 0, z: 0}}, elbow: {rotation: {x: 0}}, wrist: {rotation: {x: 0}}, weaponSocket: {rotation: {z: 0}},
-  shieldArm: {rotation: {x: 0, z: 0}}, shieldElbow: {rotation: {x: 0}}, body: {rotation: {x: 0, y: 0}}});
+  shieldArm: {rotation: {x: 0, z: 0}}, shieldElbow: {rotation: {x: 0}}, body: {rotation: {x: 0, y: 0}, position: {y: 0}},
+  head: {rotation: {x: 0}}, legs: [{rotation: {x: 0}}, {rotation: {x: 0}}]});
 
 test('only the start of a prayer kneels', () => {
   assert.ok(kneelMessage('You begin praying to Anhur.'));
@@ -18,7 +19,28 @@ test('the pose starts and ends exactly at rest, bows forward and stays in bounds
     lean = Math.max(lean, p.lean);
     for (const v of Object.values(p)) assert.ok(Math.abs(v) < 1.2, `${u}`);
   }
-  assert.ok(lean > .35 && kneelPose(.4).lean > .3);
+  assert.ok(lean > .25 && kneelPose(.4).lean > .2);
+});
+
+test('it kneels: both legs fold back and the body drops so the knees meet the floor, the head sinks', () => {
+  const p = kneelPose(.4);
+  assert.ok(p.leg > 1 && p.drop > .25 && p.head > .3, JSON.stringify(p));
+  // a .47 leg folded by LEG_FOLD rests its end at the floor once the body has dropped BODY_DROP
+  const hip = .47 - BODY_DROP, foot = hip - .47 * Math.cos(LEG_FOLD);
+  assert.ok(Math.abs(foot) < .02, String(foot));
+  for (const u of [0, 1]) assert.equal(kneelPose(u).leg, 0);
+});
+
+test('the legs and height are added fresh each frame, as the render loop rewrites them; the rest is taken back', () => {
+  const a = rig(), k = createPrayerKneel();
+  k.message('You begin praying to Anhur.');
+  for (let i = 0; i < 8; i++) { a.legs.forEach(l => l.rotation.x = 0); a.body.position.y = 0; k.update(a, .1); }
+  assert.ok(a.legs[0].rotation.x > 1 && a.legs[1].rotation.x > 1 && a.body.position.y < -.25 && a.head.rotation.x > .3);
+  // the next frame's rewrite is the only thing that resets them; the tracked offsets come off on their own
+  a.legs.forEach(l => l.rotation.x = 0); a.body.position.y = 0;
+  k.update(a, .1, true);
+  assert.equal(a.legs[0].rotation.x, 0); assert.equal(a.body.position.y, 0);
+  assert.ok(Math.abs(a.head.rotation.x) < 1e-9 && Math.abs(a.body.rotation.x) < 1e-9);
 });
 
 test('it flinches once: the lean eases back for a beat mid-hold', () => {
@@ -36,7 +58,7 @@ test('playing layers on the rig, restores it and yields to actions', () => {
   assert.ok(!k.message('You hit the newt.'));
   assert.ok(k.message('You begin praying to Anhur.'));
   for (let i = 0; i < 6; i++) k.update(a, .1);
-  assert.ok(a.body.rotation.x > .3 && k.playing);
+  assert.ok(a.body.rotation.x > .2 && k.playing);
   k.update(a, .1, true);
   assert.equal(a.body.rotation.x, 0);
   assert.ok(!k.playing);

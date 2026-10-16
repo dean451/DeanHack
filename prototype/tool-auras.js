@@ -1,5 +1,5 @@
 // Small magic tells on magical tools lying on the floor, in the spirit of the ring and amulet auras:
-// a bag of holding swallows light, a bag of tricks twitches, the horns breathe frost and embers.
+// a bag of holding swallows light, the horns breathe frost and embers.
 // Keyed on the bridge's true `name` (the magic lamp and crystal ball keep their own looks in
 // wand-auras.js); mundane tools get nothing. Every effect is a pure function of time.
 import {makePointLayer,rng,hashString} from './fx-points.js';
@@ -11,7 +11,6 @@ export const TOOL_CLASS = 6;
 // motion: the ring motions ('orbit', 'pulse', 'rise', 'spark', 'blink', 'gnaw').
 export const TOOL_AURAS = {
   'bag of holding': {color: 0x050406, blend: 'normal', motion: 'gnaw', count: 5, size: .05, period: 3, alpha: .6},
-  'bag of tricks': {color: 0xc02a20, blend: 'add', motion: 'blink', count: 2, size: .02, period: 2.2, alpha: .85},
   // A slow thread of dark-red ink vapour, not sparkles.
   'magic marker': {color: 0x6e0c14, blend: 'add', motion: 'rise', count: 2, size: .011, period: 3.4, alpha: .45},
   'magic whistle': {color: 0xdce8f4, blend: 'add', motion: 'pulse', count: 2, size: .09, period: 1.6, alpha: .2},

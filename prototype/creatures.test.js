@@ -2711,6 +2711,9 @@ test('angels, the dark Angel, aleaxes and archons stand taller than a man, the a
 });
 
 test('the kraken is a towering, beaked drowner',()=>{
+ const kr=createCreature({name:"kraken",symbol:";".charCodeAt(0),color:1});
+ let facets=0,hooks=0;kr.g.traverse(m=>{if(m.isMesh&&m.material.flatShading)facets++;if(m.isMesh&&m.material.name==="kraken-hook")hooks+=m.geometry.attributes.position.count;});
+ assert(facets>=10,"flat-shaded faceted mantle and arms");assert(hooks>=12*10,"twelve hooked claws, six on each club");
  const k=createCreature({name:'kraken',symbol:';'.charCodeAt(0),color:1});
  assert(k.g.scale.x>=1.3,'larger than a man');
  let beak=false;k.g.traverse(m=>{if(m.isMesh&&m.material.color?.getHexString()==='1a1410')beak=true;});
@@ -2756,7 +2759,7 @@ test('acid blobs sit in a burnt pool',()=>{
  const meshes=x=>{let n=0;x.g.traverse(o=>{if(o.isMesh)n++;});return n;};
  const parts=[];blob.g.traverse(o=>{if(o.isMesh)parts.push(o.userData.part);});
  for(const need of ['mass','inside','drips','pool'])assert(parts.includes(need),`acid blob ${need}`);
- assert(meshes(blob)<=6,'a sagging acid blob in its burnt pool: mass, inside, drips, pool and a glow');assert.equal(meshes(jelly),11);
+ assert(meshes(blob)<=6,'a sagging acid blob in its burnt pool: mass, inside, drips, pool and a glow');assert(meshes(jelly)<=6,'the blue jelly is its own five-draw model, not the shared blob of eleven');
 });
 
 test('a wyvern tail stinger keeps it inside its tile',()=>{
@@ -2966,6 +2969,18 @@ test('the xan drips venom from its barb and still fits its tile', () => {
  assert(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < 1, 'fits its tile');
 });
 
+test('the xan bristles with a comb of thorns on the thorax, the chillbug does not', () => {
+ assert(createCreature({name: 'xan', symbol: 120, color: 1}).g.userData.thorned, 'xan thorns');
+ assert(!createCreature({name: 'chillbug', symbol: 120, color: 4}).g.userData.thorned, 'chillbug is smooth');
+});
+
+test('the chillbug has a snapped hind spine and a missing rear shard, the xan is untouched', () => {
+ const count = name => { let n = 0; createCreature({name, symbol: 120, color: 4}).g.traverse(o => { if (o.isMesh) n++; }); return n; };
+ assert(createCreature({name: 'chillbug', symbol: 120, color: 4}).g.userData.chipped, 'chillbug chipped');
+ assert(!createCreature({name: 'xan', symbol: 120, color: 1}).g.userData.chipped, 'xan is not chipped');
+ assert(count('chillbug') <= 60, 'chillbug stays cheap');
+});
+
 test('the ki-rin\'s horn is chipped short with a dark break, unlike the unicorns\'',()=>{
  const tip=name=>{const c=createCreature({name,symbol:'u'.charCodeAt(0),color:3});c.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(c.g,true).max.y/c.g.scale.y;};
  let kirinMeshes=0;createCreature({name:'ki-rin',symbol:'u'.charCodeAt(0),color:3}).g.traverse(o=>{if(o.isMesh)kirinMeshes++;});
@@ -2983,4 +2998,44 @@ test('a wyvern stinger drips green venom, a draken does not',()=>{
  const cols=a=>{const s=new Set();a.g.traverse(o=>{if(o.isMesh)s.add('#'+o.material.color.getHexString());});return s;};
  assert(cols(createCreature({name:'wyvern',symbol:68,color:3})).has('#7fd23a'),'venom bead');
  assert(!cols(createCreature({name:'draken',symbol:68,color:3})).has('#7fd23a'));
+});
+
+test('the pyrolisk burns from within: glowing comb, coal eyes, charred back, still fits its tile',()=>{
+ const p=createCreature({name:'pyrolisk',symbol:99,color:1}),c=createCreature({name:'cockatrice',symbol:99,color:11});
+ assert(p.g.userData.burning,'burning');assert(!c.g.userData.burning,'only the pyrolisk');
+ let glow=0,meshes=0;p.g.traverse(o=>{if(o.isMesh){meshes++;if(o.material.emissiveIntensity>=2.5)glow++;}});
+ assert(glow>=4,`${glow} glowing meshes`);assert(meshes<=80,`${meshes} meshes`);
+ p.g.updateMatrixWorld(true);
+ const b=new THREE.Box3().setFromObject(p.g,true);
+ assert(b.min.y>-.05,'stands on the floor');
+ assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<1.2,'fits its tile');
+});
+
+test('the gelatinous cube holds a skeletal hand against its front wall without extra draws', async () => {
+  const THREE = await import('three');
+  const c = createCreature({name: 'gelatinous cube', symbol: 98, color: 6});
+  c.g.updateMatrixWorld(true);
+  let remains = null;
+  c.g.traverse(o => { if (o.userData.part === 'remains') remains = o; });
+  assert(remains, 'remains mesh exists');
+  const b = new THREE.Box3().setFromObject(remains, true);
+  assert(b.max.z > 0.2 * 1.3, 'the hand reaches the front wall');
+  assert(b.max.z < 0.26 * 1.3, 'and stays inside the jelly');
+});
+
+test('the shrieker has fangs set in its lip and the violet fungus hooked barbs on its tendrils',()=>{
+ const F=70,box=n=>{const g=createCreature({name:n,symbol:F}).g;g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(g);};
+ const sh=box('shrieker'),vf=box('violet fungus');
+ assert(sh.max.y<.7&&vf.max.y<.7,'both stay small and inside their tile');
+ // the fangs hang below the rim (y .54) so some geometry sits in the throat band; barbs sit above the tendril tops
+ const geos=n=>{let c=0;createCreature({name:n,symbol:F}).g.traverse(o=>{if(o.isMesh)c+=o.geometry.attributes.position.count;});return c;};
+ assert(geos('shrieker')>12500,'fang ring is merged into the shrieker');
+ assert(geos('violet fungus')>26000,'barbs are merged into the violet fungus tendrils');
+});
+test('the Wizard of Yendor wears a snapped circlet spike and a singed blade-cut across his robe',()=>{
+ const wiz=createCreature({name:'Wizard of Yendor',symbol:64,color:5});
+ let body=null;wiz.g.traverse(o=>{if(o.userData.part==='body')body=o;});
+ const col=body.geometry.attributes.color,pos=body.geometry.attributes.position;
+ let cut=0;for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i);if(pos.getZ(i)>0&&y>.38&&y<.7&&Math.abs(y-(.5+x*1.3))<.016&&col.getX(i)<.08)cut++;}
+ assert(cut>0,'dark cut vertices on the chest');
 });

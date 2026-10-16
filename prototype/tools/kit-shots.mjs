@@ -16,7 +16,7 @@ const {KIT_ROLES}=await p.evaluate(async()=>{const m=await import('/hero-kits.js
 const roles=args.filter(a=>!a.startsWith('--')).length?args.filter(a=>!a.startsWith('--')):KIT_ROLES;
 const shots=[];
 for(const role of roles){
-  await p.evaluate(async({role,gender,v})=>{const m=await import('/hero-kits.js');const {camera,controls,player}=window.__dh;m.dressHero(player,{role,gender});player.setShield?.(null);
+  await p.evaluate(async({role,gender,v})=>{const m=await import('/hero-kits.js');const {camera,controls,player}=window.__dh;m.dressHero(player,{role,gender});player.setShield?.(null);const w=m.KIT_WEAPONS?.[role];player.setWeapon?.(w?{name:w,class:2}:null);
     controls.minDistance=.1;controls.minPolarAngle=0;const q=player.g.position;
     camera.position.set(q.x+v.d[0],q.y+v.d[1],q.z+v.d[2]);controls.target.set(q.x+v.t[0],q.y+v.t[1],q.z+v.t[2]);camera.fov=v.fov;camera.updateProjectionMatrix();controls.update();},{role,gender,v:VIEWS[view]});
   await p.waitForTimeout(700);

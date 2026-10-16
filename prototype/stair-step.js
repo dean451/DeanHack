@@ -23,13 +23,16 @@ export function fleckPose(i, t, dir) {
   const start = i * .05 + (i === 0 ? .22 : 0), life = i === 0 ? .55 : .38, u = clamp01((t - start) / life);
   if (u <= 0 || u >= 1) return {x: 0, y: 0, z: 0, alpha: 0};
   const a = i * 2.4 + .7, spread = .05 + .1 * u, rise = .5 * smooth(u);
-  return {x: Math.cos(a) * spread, y: dir > 0 ? .03 + rise : .55 - rise + .03, z: Math.sin(a) * spread, alpha: Math.min(1, u * 8) * (1 - smooth((u - .8) / .2)) * .85};
+  // The late fleck drifts sideways against the rest, as if it were looking for the way back.
+  const lag = i === 0 ? .04 * Math.sin(Math.PI * u) : 0;
+  return {x: Math.cos(a) * spread + lag, y: dir > 0 ? .03 + rise : .55 - rise + .03, z: Math.sin(a) * spread, alpha: Math.min(1, u * 8) * (1 - smooth((u - .8) / .2)) * .85};
 }
 
 export function ringPose(t, dir) {
   const u = clamp01((t - .05) / .5);
   if (u <= 0 || u >= 1) return {scale: .001, alpha: 0};
-  const e = smooth(u), scale = dir > 0 ? .55 - .4 * e : .15 + .4 * e;
+  // The ring catches once halfway, as if the stair held on to the hero's feet, then lets go.
+  const e = smooth(u) - .05 * Math.sin(Math.PI * clamp01((u - .45) / .15)) ** 2, scale = dir > 0 ? .55 - .4 * e : .15 + .4 * e;
   return {scale, alpha: .5 * (dir > 0 ? u : 1 - u) * Math.min(1, u * 8) * (dir > 0 ? 1 - smooth((u - .8) / .2) : 1)};
 }
 

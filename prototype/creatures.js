@@ -32,6 +32,9 @@ import {createRat,isRat,RAT_NECK} from './enormous-rat.js';
 import {createLizard,isLizard} from './lizard.js';
 import {createFloatingEye} from './floating-eye.js';
 import {createAcidBlob} from './acid-blob.js';
+import {createGrayOoze} from './gray-ooze.js';
+import {createJelly} from './jelly.js';
+import {waterDemonHead,waterDemonBody} from './water-demon.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
@@ -153,7 +156,7 @@ const DRAGON_FORMS={
  amphitere:{serpent:'coil',wings:.85,feathered:true,scale:1.12},lindworm:{serpent:'coil',legs:2,scale:1.12},
  tatzelworm:{serpent:'short',legs:2,cat:true,scale:1.12},guivre:{serpent:'coil',beard:true,horns:1.5,scale:1.12},
  leviathan:{serpent:'humps',fins:true,scale:1.12},sirrush:{legs:4,sirrush:true,scale:1.1},
- tiamat:{legs:4,wings:.95,heads:5,scale:1.2},'chromatic dragon':{legs:4,wings:1,scale:1.25,chromatic:true},ixoth:{legs:4,wings:.95,scale:1.18},
+ tiamat:{legs:4,wings:.95,heads:5,scale:1.2},'chromatic dragon':{legs:4,wings:1,scale:1.25,chromatic:true},ixoth:{legs:4,wings:.95,scale:1.18,lance:true},
 };
 const DRAGON_BREATH=['#9a4aff','#ff5a1a','#8aee3a','#ff8a3a','#5ab8ff','#e060ff','#6fe0e0','#d8d0ff',null,'#ffb050','#a0ff50','#ecff40','#70a0ff','#ff4a20','#c8f8ff','#c0e8ff'];
 const DRAGON_WORD_COLOR={chromatic:5,black:0,red:1,green:2,blue:4,gray:7,orange:9,yellow:11,silver:14,white:15};
@@ -359,6 +362,11 @@ function dragon(o={}){
   else for(const s of [-1,1])dragonLimb(body,[s*.17,.56,-.13],[s*.22,.38,-.08],.14,m.hide,.35);
   // three claw rakes score the left flank, the old wounds of a long life of killing
   for(let i=0;i<3;i++){const rake=dragonBox(body,.012,.2,.02,m.scar,-.27+i*.0,.5-i*.0,.0,.004);rake.position.set(-.275+i*.0,.5,-.08+i*.055);rake.rotation.set(0,0,.35);rake.scale.set(1,1-i*.12,1);}
+  // Ixoth has killed Knights before: the snapped shaft and rusted head of a lance stand out of the right flank, a rag of pennon on it
+  if(f.lance){const wood=mat('#3a2a1c',{roughness:.9}),rust=mat('#5a3a2a',{roughness:.6,metalness:.5}),rag=mat('#6a1c1c',{roughness:1,side:THREE.DoubleSide});
+   const shaft=cylinder(body,.012,.018,.34,wood,.27,.54,-.02,6);shaft.rotation.set(.1,0,-1.05);
+   const head=cone(body,.03,.1,rust,.2,.48,-.02,4);head.rotation.set(.1,0,1.1);
+   const flag=part(body,new THREE.PlaneGeometry(.1,.05),rag,.36,.62,-.04);flag.rotation.set(0,.3,-.4);g.userData.scarred=true;}
   // overlapping armour scutes crust the back and flanks: dark, sharp-edged plates over the hide
   {const geos=[];for(let i=0;i<5;i++)for(const s of [-1,0,1]){const plate=new THREE.Mesh(DRAGON_SCUTE);plate.position.set(s*.13,.7-Math.abs(s)*.1,.3-i*.15);plate.scale.set(1-Math.abs(s)*.2,1,1);plate.rotation.set(-.2,0,s*.55);plate.updateMatrix();geos.push(DRAGON_SCUTE.clone().applyMatrix4(plate.matrix));}
    part(body,mergeGeometries(geos),m.dark);geos.forEach(g=>g.dispose());}
@@ -396,11 +404,12 @@ export {RAT_NECK};
 // Rock moles: a squat velvet-grey digger with no ear flaps, pin-prick eyes, a bare scarred mauve
 // snout and oversized spade forepaws tipped with pale claws. Chewed pebbles cling to its coat.
 function rockMole(){
+ const facet=(p,r,mt,x,y,z,sx=1,sy=1,sz=1)=>{const f=part(p,new THREE.SphereGeometry(r,7,5),mt,x,y,z);f.scale.set(sx,sy,sz);return f;};
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(.9);
- const coat=mat('#5b5a60',{roughness:1}),pink=mat('#7a5650',{roughness:.8}),claw=mat('#b5a98c',{roughness:.5}),pebble=mat('#8a8274',{roughness:.95});
- sphere(body,.24,coat,0,.22,-.02,1.05,.78,1.3);
+ const coat=mat('#4a4950',{roughness:1,flatShading:true}),pink=mat('#7a5650',{roughness:.8}),claw=mat('#b5a98c',{roughness:.5}),pebble=mat('#8a8274',{roughness:.95,flatShading:true});
+ facet(body,.24,coat,0,.22,-.02,1.05,.78,1.3);
  const head=new THREE.Group();head.position.set(0,.22,.27);body.add(head);
- sphere(head,.13,coat,0,0,0,.95,.82,1.05);
+ facet(head,.13,coat,0,0,0,.95,.82,1.05);
  const snout=cylinder(head,.028,.06,.14,pink,0,-.015,.15,10);snout.rotation.x=Math.PI/2;
  sphere(head,.034,pink,0,-.015,.225,1,.8,.6);
  for(const side of [-1,1]){sphere(head,.012,darkEye,side*.07,.045,.085);sphere(head,.005,nose,side*.013,-.012,.24);}
@@ -408,14 +417,20 @@ function rockMole(){
  for(const side of [-1,1]){
   // front legs: a short upper limb ending in a broad, outward-turned spade with five claws
   const fore=new THREE.Group();fore.position.set(side*.17,.17,.16);body.add(fore);
-  sphere(fore,.06,coat,0,-.03,0,.8,1,.9);
+  facet(fore,.06,coat,0,-.03,0,.8,1,.9);
   const palm=sphere(fore,.075,pink,side*.04,-.11,.05,1.1,.35,1);palm.rotation.z=side*.5;
   for(let i=0;i<5;i++){const c=cone(fore,.012,.07,claw,side*.04+(i-2)*.028,-.13,.12,4);c.rotation.x=Math.PI/2+.25;}
   legs.push(fore);
   const hind=new THREE.Group();hind.position.set(side*.14,.14,-.19);body.add(hind);
-  sphere(hind,.065,coat,0,-.03,0,.8,1,.9);rounded(hind,.07,.03,.11,pink,0,-.11,.03,.012);legs.push(hind);
+  facet(hind,.065,coat,0,-.03,0,.8,1,.9);rounded(hind,.07,.03,.11,pink,0,-.11,.03,.012);legs.push(hind);
  }
- for(const [x,y,z,r] of [[.12,.36,-.08,.028],[-.09,.39,.02,.022],[.02,.37,-.2,.03],[-.16,.3,-.12,.02]])sphere(body,r,pebble,x,y,z,1,.7,1);
+ for(const [x,y,z,r] of [[.12,.36,-.08,.028],[.02,.37,-.2,.03],[-.16,.3,-.12,.02]])facet(body,r*1.5,pebble,x,y,z,1,.7,1);
+ // wear: a torn-open scar across the snout, and a pair of dull ember eyes set deep in the face
+ const gash=mat('#3a1614',{roughness:.9}),ember=mat('#c0501c',{roughness:.4,emissive:'#c0501c',emissiveIntensity:1.6});ember.name='mole-eyes';
+ part(head,new THREE.BoxGeometry(.022,.1,.02),gash,.02,.02,.2).rotation.set(.9,0,.5);g.userData.scarred=true;
+ for(const side of [-1,1])sphere(head,.016,ember,side*.07,.045,.088);
+ // a ridge of broken stone shards pushes up through the hide along the spine
+ for(let i=0;i<2;i++){const sh=cone(body,.04-i*.004,.16-i*.015,mat('#26242a',{roughness:.9,flatShading:true}),(i%2?.03:-.03),.43-i*.01,.12-i*.1,4);sh.rotation.x=-.3;}
  const tail=new THREE.Group();tail.position.set(0,.2,-.3);body.add(tail);
  const stub=cone(tail,.028,.1,pink,0,-.01,-.04,6);stub.rotation.x=-Math.PI/2-.3;
  return actor(g,body,legs,tail,[],'rat');
@@ -458,7 +473,7 @@ function nhColor(cell){return Number.isInteger(cell.color)?NH_COLORS[cell.color]
 function shade(hex,k){return '#'+new THREE.Color(hex).multiplyScalar(k).getHexString();}
 const nose=mat('#1b1716',{roughness:.5}),darkEye=mat('#0e0c0b',{roughness:.2,metalness:.2});
 
-function tube(parent,points,radius,material,segments=16){return part(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),segments,radius,8,false),material);}
+function tube(parent,points,radius,material,segments=16,radial=8){return part(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),segments,radius,radial,false),material);}
 
 // A tube that narrows to a point at its start: ring vertices are pulled in toward the centreline by taper(t),
 // t running 0..1 along the curve. Snakes and nagas use it so the tail ends in a point, not a blunt stump.
@@ -507,15 +522,20 @@ const LIZARDS={newt:{skin:'#d69a38',belly:'#e9763a',spot:'#5a3a1a',scale:.8},gec
 // tapering tail as lizard() — reads as "petrifying bird-lizard", not another lizard.
 function cockatrice(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
- const skin=mat(o.skin),belly=mat(o.belly||shade(o.skin,1.3)),comb=mat(o.comb),foot=mat(o.beak);
- sphere(body,.12,skin,0,.15,0,.95,.55,1.75);sphere(body,.08,belly,0,.11,.02,.9,.4,1.6);
+ const skin=mat(o.skin,{flatShading:true,roughness:.95}),belly=mat(o.belly||shade(o.skin,1.3),{flatShading:true}),comb=o.fire?mat(o.comb,{emissive:o.comb,emissiveIntensity:2.5}):mat(o.comb),foot=mat(o.beak,{flatShading:true}),clawMat=mat('#24201a',{roughness:.7,flatShading:true});
+ // faceted forms (6x4 sphere = a cut gem), not smooth eggs
+ const facet=(parent,r,m,x,y,z,sx,sy,sz)=>{const f=part(parent,new THREE.SphereGeometry(r,6,4),m,x,y,z);f.scale.set(sx,sy,sz);return f;};
+ facet(body,.12,skin,0,.15,0,.95,.55,1.75);facet(body,.08,belly,0,.11,.02,.9,.4,1.6);
  const head=new THREE.Group();head.position.set(0,.2,.26);body.add(head);
- sphere(head,.09,skin,0,0,0,1,.95,1.05);
+ facet(head,.09,skin,0,0,0,1,.95,1.05);
  const beak=cone(head,.045,.12,foot,0,-.02,.11,5);beak.rotation.x=Math.PI/2;
  for(let i=0;i<3;i++){const wave=cone(head,.02,.1-i*.018,comb,(i-1)*.035,.1,-.02+i*.012,4);wave.rotation.z=(i-1)*.3;}
  sphere(head,.022,comb,0,-.09,.09,1,1.3,.8);
- for(const side of [-1,1])sphere(head,.018,darkEye,side*.06,.02,.06);
- for(const side of [-1,1])for(const z of [-.12,.13]){const leg=new THREE.Group();leg.position.set(side*.1,.15,z);body.add(leg);const upper=rounded(leg,.13,.035,.04,skin,side*.07,-.03,0,.012);upper.rotation.z=side*-.5;rounded(leg,.05,.02,.08,foot,side*.13,-.11,.02,.008);legs.push(leg);}
+ // the gaze that turns men to stone: sickly self-lit slit eyes (the pyrolisk keeps its coals, set below)
+ const gaze=o.fire?darkEye:mat('#d8e84a',{emissive:'#a8c820',emissiveIntensity:2.2,roughness:.3});
+ for(const side of [-1,1])sphere(head,.018,gaze,side*.06,.02,.06,o.fire?1:.8,o.fire?1:1.1,o.fire?1:.7);
+ for(const side of [-1,1])for(const z of [-.12,.13]){const leg=new THREE.Group();leg.position.set(side*.1,.15,z);body.add(leg);const upper=cylinder(leg,.016,.036,.13,skin,side*.07,-.03,0,5);upper.rotation.z=side*(.5-Math.PI);cylinder(leg,.008,.017,.08,skin,side*.13,-.1,.02,5);
+  for(let i=0;i<3;i++){const toe=cone(leg,.007,.06,clawMat,side*.13+(i-1)*.014,-.135,.065,4);toe.rotation.x=Math.PI/2+.15;}legs.push(leg);}
  // menace: a hooked black spur above each foot, and a lower beak spike so the beak gapes like a bared bite
  const spurMat=mat('#1a1814',{roughness:.7,flatShading:true});
  for(const leg of legs){const spur=cone(leg,.014,.07,spurMat,leg.position.x>0?.05:-.05,-.09,-.05,4);spur.rotation.x=-2.2;}
@@ -525,13 +545,21 @@ function cockatrice(o){
  cone(head,.012,.03,raw,.0,.1,.0,4);
  for(const [x,y,z,r] of [[-.06,.2,.04,.05],[.07,.19,-.06,.045],[.0,.22,-.12,.04]])sphere(body,r,stone,x,y,z,1.2,.35,1.3);
  g.userData.petrifying=true;
- const wingParts=[];for(const side of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.17,.06);shape.lineTo(side*.12,.0);shape.lineTo(side*.15,-.05);shape.lineTo(0,-.02);const wing=part(body,new THREE.ShapeGeometry(shape),skin,side*.1,.2,-.02);wing.rotation.y=side*.35;wing.userData.side=side;wingParts.push(wing);}
+ // a pyrolisk is burning from within: its eyes are live coals and its back is charred black under cracks of ember
+ if(o.fire){const char=mat('#14100e',{roughness:1,flatShading:true}),ember=mat('#ff7a24',{emissive:'#ff5a10',emissiveIntensity:3,roughness:.4});
+  for(const side of [-1,1])sphere(head,.02,ember,side*.063,.02,.065);
+  sphere(body,.07,char,0,.25,-.04,1.3,.3,1.5);
+  for(const [x,z] of [[-.03,-.02],[.03,-.09]])sphere(body,.012,ember,x,.265,z,1.6,.4,.6);
+  g.userData.burning=true;}
+ const wingParts=[];for(const side of [-1,1]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.lineTo(side*.17,.06);shape.lineTo(side*.12,.0);shape.lineTo(side*.15,-.05);shape.lineTo(0,-.02);const wing=part(body,new THREE.ShapeGeometry(shape),skin,side*.1,.2,-.02);wing.rotation.y=side*.35;wing.userData.side=side;wingParts.push(wing);
+  // a bare bone claw hooked off the leading edge, so the wing reads as a leathery bat's, not a feather
+  const claw=cone(wing,.014,.12,mat('#8a8272',{roughness:.8,flatShading:true}),side*.17,.065,0,4);claw.rotation.z=-side*1.1;}
  const tail=new THREE.Group();tail.position.set(0,.15,-.2);body.add(tail);
  let px=0,pz=0;for(let i=0;i<6;i++){const r=.05*(1-i/7),len=.09;const seg=cylinder(tail,r*.8,r,len,skin,px,-.012*i,pz-len/2,8);seg.rotation.x=Math.PI/2;px+=Math.sin(i*.6)*.012;pz-=len*.95;}
  for(let i=0;i<3;i++){const plume=cone(tail,.025,.1,comb,0,-.06-i*.02,pz-.03-i*.05,4);plume.rotation.x=1.7;}
  return {...actor(g,body,legs,tail,[],'cockatrice'),head,wingParts};
 }
-const COCKATRICES={chickatrice:{skin:'#8a6a3a',comb:'#a8382a',beak:'#d99a3a',scale:.65},cockatrice:{skin:'#c9a83a',comb:'#c8262a',beak:'#e0b23a',scale:1.1},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9}};
+const COCKATRICES={chickatrice:{skin:'#66573a',comb:'#80241c',beak:'#9a7430',scale:.65},cockatrice:{skin:'#74703f',comb:'#861c1c',beak:'#8a6a2c',scale:1.1},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9,fire:true}};
 
 // Other F: a stationary mound. Lichens are in lichen.js, molds in mold.js, shriekers and violet fungi in mushroom.js.
 function fungus(o){
@@ -626,6 +654,13 @@ function cubeRemainsGeometry(){
  {const m=at(.1,.16,.08,[.2,-.6,.3]),add=(geo,local,c)=>P.add(geo,new THREE.Matrix4().multiplyMatrices(m,local),c);
   add(new THREE.CylinderGeometry(.007,.009,.14,5),at(0,0,0),bone);
   for(let i=0;i<4;i++)add(new THREE.TorusGeometry(.05-i*.006,.004,4,8,Math.PI*1.1),at(.012,-.05+i*.032,0,[Math.PI/2,0,.4]),i%2?BONE_DARK:BONE);}
+ // a skeletal hand pressed flat against the front wall of the cube, three finger bones splayed and one snapped short
+ {const m=at(.06,.2,.215,[0,0,.2]),add=(geo,local,c)=>P.add(geo,new THREE.Matrix4().multiplyMatrices(m,local),c);
+  add(new THREE.BoxGeometry(.05,.04,.012),at(0,0,0),bone);
+  for(let i=0;i<4;i++){const a=-.45+i*.3,len=i===2?.03:.075;
+   add(new THREE.CylinderGeometry(.004,.006,len,5),at(Math.sin(a)*(len/2+.02),Math.cos(a)*(len/2+.02),0,[0,0,-a]),bone);
+   add(new THREE.SphereGeometry(.006,5,4),at(Math.sin(a)*(len+.02),Math.cos(a)*(len+.02),0),BONE);}
+  add(new THREE.CylinderGeometry(.005,.007,.06,5),at(-.04,-.01,0,[0,0,1.2]),bone);}
  cubeRemains=P.merge();
  return cubeRemains;
 }
@@ -665,6 +700,10 @@ function wisp(o){
  // the motes circle on their own group so light-flare.js can swirl them
  const ring=new THREE.Group();lift.add(ring);
  for(let i=0;i<6;i++){const a=i*1.05;sphere(ring,.03,core.material,Math.cos(a)*.3,Math.sin(a*2)*.08,Math.sin(a)*.3);}
+ // a black light is a hole in the room, not a cousin of the yellow one: jagged obsidian barbs
+ // bristle out of the core, never two the same length, so it reads as something that will burst
+ if(o.black||o.color==='#4a2a8a'){const barb=mat('#0a0610',{roughness:.3,metalness:.5,emissive:'#2a1458',emissiveIntensity:.5});
+  for(let i=0;i<7;i++){const a=i*2.4,e=(i%3-1)*.7,len=.16+(i*37%5)*.03,c=cone(lift,.025,len,barb,Math.cos(a)*Math.cos(e)*.2,Math.sin(e)*.2,Math.sin(a)*Math.cos(e)*.2,4);c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(Math.cos(a)*Math.cos(e),Math.sin(e),Math.sin(a)*Math.cos(e)));}}
  g.userData.core=core;return Object.assign(actor(g,body,[],null,[],'hover'),{core,lift,halo,ring,light:o.color==='#4a2a8a'||o.black?'black':'yellow'});
 }
 
@@ -687,8 +726,10 @@ function xan(o){
   sphere(body,.16,shell,0,y-.01,-.14,1.05,.75,1.25);
   for(const side of [-1,1]){const elytron=part(body,new THREE.SphereGeometry(.15,14,8,0,Math.PI,0,Math.PI/2),shell,side*.035,y+.03,-.12);elytron.scale.set(.62,.55,1.3);elytron.rotation.set(-.35,side*Math.PI/2,side*.5);}
   const ice=mat('#e2f6ff',{roughness:.08,metalness:.1,emissive:'#6fc8ff',emissiveIntensity:.35,transparent:true,opacity:.85});
-  for(let i=0;i<5;i++){const spike=cone(body,.022,.09-Math.abs(i-2)*.012,ice,Math.sin(i*2.1)*.02,y+.11-i*.01,.06-i*.075,5);spike.rotation.x=-.35-i*.12;}
-  for(const side of [-1,1])for(const z of [-.08,-.2]){const shard=cone(body,.016,.07,ice,side*.14,y-.02,z,4);shard.rotation.z=-side*1.2;}
+  for(let i=0;i<5;i++){const spike=cone(body,.022,(.09-Math.abs(i-2)*.012)*(i===4?.4:1),ice,Math.sin(i*2.1)*.02,y+.11-i*.01,.06-i*.075,5);spike.rotation.x=-.35-i*.12;}
+  for(const side of [-1,1])for(const z of [-.08,-.2]){if(side<0&&z<-.1)continue;const shard=cone(body,.016,.07,ice,side*.14,y-.02,z,4);shard.rotation.z=-side*1.2;}
+  // the hindmost dorsal spike is snapped to a stub and the left rear shard is gone: it has been fighting
+  g.userData.chipped=true;
  }else{
   // long segmented abdomen that curls down and forward into a hooked stinger
   const pts=[[0,y,-.06],[0,y-.02,-.2],[0,y-.1,-.3],[0,y-.22,-.28],[0,y-.3,-.16],[0,y-.3,-.04]].map(p=>new THREE.Vector3(...p)),curve=new THREE.CatmullRomCurve3(pts);
@@ -697,6 +738,10 @@ function xan(o){
   // venom beads on the barb: a sickly green drop hangs from the point and a dark crust stains its base
   {const venom=mat('#9ad23a',{emissive:'#6ab01a',emissiveIntensity:.9,roughness:.2});sphere(body,.011,venom,0,y-.31,.1,.8,1.5,.8);sphere(body,.007,venom,.012,y-.34,.1);sphere(body,.03,mat('#2a1a12',{roughness:.95}),0,y-.28,.015,1,.8,1);g.userData.venomed=true;}
  }
+ // xans only: a comb of three bone-white thorns stands off the thorax, uneven and the hindmost snapped short
+ if(o.stinger){const thorn=mat('#d8ccb0',{roughness:.45});
+  for(const [z,len] of [[.12,.07],[.04,.085],[-.04,.035]]){const t=cone(body,.014,len,thorn,0,y+.1+len/2-.01,z,4);t.rotation.x=-.25;}
+  g.userData.thorned=true;}
  for(const side of [-1,1]){
   const pair=new THREE.Group();pair.position.set(side*.03,y+.1,.05);body.add(pair);pair.rotation.x=-Math.PI/2+.25;
   for(const [len,width,tilt] of [[.34,.11,.15],[.26,.08,-.35]]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.quadraticCurveTo(side*len*.5,width*1.6,side*len,width*.3);shape.quadraticCurveTo(side*len*.6,-width*.6,0,0);const wing=part(pair,new THREE.ShapeGeometry(shape),membrane);wing.rotation.z=tilt*side;wing.castShadow=false;
@@ -782,7 +827,9 @@ function snakeHead(head,o){
   eyes.push(new THREE.SphereGeometry(.0155,12,8).applyMatrix4(at(side*ex,ey,ez)));
   // fangs: curved needles hanging from the front of the upper lip, outside the lower jaw
   if(o.fangs){const len=o.fangs,fz=.058,fx=side*Math.max(.022,width((fz-Z0)/LEN)*.6);
-   skull.add(new THREE.ConeGeometry(.0042,len,6),at(fx,-.004-len/2,fz,[Math.PI+.35,0,0]),fang);}}
+   skull.add(new THREE.ConeGeometry(.0042,len,6),at(fx,-.004-len/2,fz,[Math.PI+.35,0,0]),fang);
+   // the vipers and the cobra: a bead of venom hangs from the right fang tip
+   if(o.venom&&side>0)skull.add(new THREE.SphereGeometry(.0034,6,4),at(fx,-.004-len-.004,fz-len*.2,[0,0,0],[1,1.5,1]),rgb('#9ad23a'));}}
  const jaw=new THREE.Group();jaw.position.set(0,-.012,-.045);head.add(jaw);
  // the lower jaw: a flat-topped scoop, narrower than the skull, its inside the dark of the mouth
  const jg=new THREE.SphereGeometry(1,20,12),q=jg.attributes.position,J0=-.02,JL=.135;
@@ -831,14 +878,15 @@ function cobraHood(head,o){
  part(pivot,geo,mat('#ffffff',{vertexColors:true,roughness:.5}));
  return pivot;
 }
-const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75,wedge:.1,round:true},snake:{color:'#7a5a34',fangs:.012},'water moccasin':{color:'#5a3228',wedge:1,fangs:.022,pits:true},'pit viper':{color:'#3a5a8a',wedge:1,fangs:.024,pits:true},python:{color:'#7a5a7a',scale:1.4,wedge:.4},cobra:{color:'#3a4a7a',scale:1.2,hood:true,wedge:.25,fangs:.012,round:true}};
+const SNAKES={'garter snake':{color:'#3f7a34',belly:'#d6c84a',scale:.75,wedge:.1,round:true},snake:{color:'#7a5a34',fangs:.012},'water moccasin':{color:'#5a3228',wedge:1,fangs:.022,pits:true,venom:true},'pit viper':{color:'#3a5a8a',wedge:1,fangs:.024,pits:true,venom:true},python:{color:'#7a5a7a',scale:1.4,wedge:.4},cobra:{color:'#3a4a7a',scale:1.2,hood:true,wedge:.25,fangs:.012,round:true,venom:true}};
 
 // Long worms and purple worms: a ringed body that surfaces from the floor in an arch,
 // with the forward half as a swaying 'tail' group (live.js already sways actor.tail)
 // so the head weaves without any renderer changes. The mouth is a round lamprey maw.
 function worm(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);
- const skin=mat(o.color,{roughness:.62}),ring=mat(shade(o.color,.62),{roughness:.7}),belly=mat(shade(o.color,1.35),{roughness:.7});
+ const skin=mat(o.color,{roughness:.62}),ring=o.heat?mat('#ff7a1a',{emissive:'#e04a08',emissiveIntensity:2.2,roughness:.5}):mat(shade(o.color,.62),{roughness:.7}),belly=mat(shade(o.color,1.35),{roughness:.7});
+ if(o.heat){ring.name='worm-heat';g.userData.molten=true;}
  const r=o.baby?.07:.1,mound=mat('#3a3128',{roughness:1});
  // loose soil where the rear of the worm dives under the floor
  for(const [x,z,s] of [[-.08,-.34,1],[.07,-.38,.8],[0,-.3,.7]])sphere(body,.08*s,mound,x,.01,z,1.4,.35,1.2);
@@ -863,6 +911,13 @@ function worm(o){
  if(o.venom){const spike=mat('#2a1430',{roughness:.5});spike.name='worm-spikes';
   for(const [i,[x,y,z]] of rear.entries())cone(body,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=-.3;
   for(const [i,[x,y,z]] of fore.entries())cone(neck,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=.2;}
+ // remorhaz: the seams between its rings run white-hot and a ridge of cooled, blackened plates stands along the back
+ if(o.heat){const plate=mat('#1e1410',{roughness:.6});plate.name='worm-plates';
+  for(const [x,y,z] of rear)cone(body,r*.16,r*.5,plate,x,y+r*.9,z,4).rotation.x=-.3;
+  for(const [x,y,z] of fore)cone(neck,r*.16,r*.5,plate,x,y+r*.9,z,4).rotation.x=.2;}
+ // long worms: a ridge of short blackened horn knobs down the back, fewer and blunter than the purple worm's spikes
+ if(o.ridge&&!o.baby){const knob=mat('#2e2218',{roughness:.6});knob.name='worm-ridge';g.userData.ridged=true;
+  for(const [x,y,z] of rear)cone(body,r*.1,r*.35,knob,x,y+r*.9,z,4).rotation.x=-.3;}
  // purple worms: old spear-gouges raked across the hide, pale healed tissue between the rings
  if(o.venom){const gash=mat('#c9a8b8',{roughness:.9});gash.name='worm-gouges';g.userData.gouged=true;
   for(const [x,y,z,rz] of [[r*.9,.17,-.12,.6],[r*.95,.12,-.22,-.5],[-r*.9,.19,-.08,-.6],[-r*.92,.14,-.2,.5]]){const sc=rounded(body,.014,r*1.1,.012,gash,x,y,z,.004);sc.rotation.z=rz;}}
@@ -873,18 +928,27 @@ function worm(o){
 // one body weaving through the ground behind the head.
 function wormTail(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);
- const skin=mat(o.color,{roughness:.62}),ring=mat(shade(o.color,.62),{roughness:.7}),mound=mat('#3a3128',{roughness:1}),r=.09;
- const arch=[];for(let i=0;i<=8;i++){const a=i/8*Math.PI;arch.push([0,Math.sin(a)*.2-.03,-Math.cos(a)*.3]);}
- tube(body,arch,r,skin,24);
- for(let i=1;i<8;i+=1.5){const a=i/8*Math.PI;const band=part(body,new THREE.TorusGeometry(r*1.02,r*.13,6,16),ring,0,Math.sin(a)*.2-.03,-Math.cos(a)*.3);band.rotation.x=a-Math.PI/2;}
+ // the engine paints tail cells in the long worm's bright magenta; ignore it for a dull, dark hide
+ const skin=mat('#3e3226',{roughness:.85,flatShading:true}),ring=mat('#241a14',{roughness:.8,flatShading:true}),mound=mat('#3a3128',{roughness:1}),r=.09;
+ const at=a=>[0,Math.sin(a)*.2-.03,-Math.cos(a)*.3];
+ const arch=[];for(let i=0;i<=8;i++)arch.push(at(i/8*Math.PI));
+ tube(body,arch,r,skin,28,10);
+ // segment ridges: rings hugging the hide, turned square to the arch's own direction (it is an ellipse, not a circle)
+ g.userData.bands=[];
+ for(let i=1;i<8;i+=1.5){const a=i/8*Math.PI,p=at(a),t=new THREE.Vector3(0,Math.cos(a)*.2,Math.sin(a)*.3).normalize();
+  const band=part(body,new THREE.TorusGeometry(r*.96,r*.15,5,10),ring,p[0],p[1],p[2]);band.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),t);g.userData.bands.push(band);}
  for(const z of [-.3,.3])for(const [dx,dz,s] of [[-.07,-.04,1],[.07,.03,.8],[0,.06,.6]])sphere(body,.07*s,mound,dx,.01,z+dz,1.4,.35,1.2);
+ const spine=mat('#1c1416',{roughness:.6,flatShading:true});
+ // a ridge of dark hooked horn spines along the crest of the arch
+ for(let i=1;i<8;i+=2){const a=i/8*Math.PI;const sp=cone(body,r*.3,r*1.7,spine,0,Math.sin(a)*.2-.03+r*1.25,-Math.cos(a)*.3,4);sp.rotation.x=-.35;}
+ g.userData.spined=true;g.userData.hide=skin;g.userData.arch=body.children[0];
  return actor(g,body,[],null,[],'worm');
 }
 // apelike creatures (Y): a hunched, barrel-chested body on short bowed legs, with long arms knuckling the floor in front,
 // a heavy brow over a pale muzzle; monkeys get a curled tail, owlbears a hooked beak and ear tufts, yeti and sasquatch shaggy shoulders
 function ape(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
- const fur=mat(o.fur,{roughness:.97}),dark=mat(shade(o.fur,.6),{roughness:.97}),face=mat(o.face||shade(o.fur,1.35),{roughness:.8});
+ const clawDark=mat('#2a1c16',{roughness:.5}),fur=mat(o.fur,{roughness:.97}),dark=mat(shade(o.fur,.6),{roughness:.97}),face=mat(o.face||shade(o.fur,1.35),{roughness:.8});
  const torso=sphere(body,.24,fur,0,.55,-.02,1.05,1.05,.9);torso.rotation.x=.35;sphere(body,.15,face,0,.56,.13,1.05,1.1,.45);
  for(const side of [-1,1])sphere(body,.13,o.shaggy?mat(shade(o.fur,1.12),{roughness:1}):fur,side*.17,.7,.04,1,.8,1);
  const head=new THREE.Group();head.position.set(0,.82,.17);body.add(head);
@@ -896,12 +960,12 @@ function ape(o){
  if(o.shaggy){sphere(head,.07,mat('#4a1612',{roughness:.95}),0,-.11,.1,1.3,.8,.7);sphere(body,.1,mat('#3e1410',{roughness:.95}),0,.62,.2,1,1.4,.5);g.userData.bloodied=true;}
  // wear: old claw-rakes score the left flank, dark and raw
  if(o.scars){for(let i=0;i<3;i++)part(body,new THREE.BoxGeometry(.012,.17,.01),mat('#5a1e1c',{roughness:.9}),-.21+i*.02,.5-i*.015,.12-i*.03).rotation.set(.1,-.4,.45);g.userData.scarred=true;}
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.25,.68,.06);body.add(arm);rounded(arm,.1,.3,.11,fur,0,-.14,0,.04);rounded(arm,.09,.3,.1,fur,0,-.4,.05,.035).rotation.x=-.2;sphere(arm,.065,o.beak?dark:face,0,-.57,.08,1,.8,1.1);if(o.beak)for(let k=-1;k<=1;k++)cone(arm,.012,.05,M.whiteFur,k*.03,-.6,.15,4).rotation.x=Math.PI/2;arm.rotation.x=-.18;arm.rotation.z=side*.06;}
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.25,.68,.06);body.add(arm);rounded(arm,.1,.3,.11,fur,0,-.14,0,.04);rounded(arm,.09,.3,.1,fur,0,-.4,.05,.035).rotation.x=-.2;sphere(arm,.065,o.beak?dark:face,0,-.57,.08,1,.8,1.1);if(o.beak)for(let k=-1;k<=1;k++)cone(arm,.014,.12,clawDark,k*.03,-.62,.19,4).rotation.x=Math.PI/2;arm.rotation.x=-.18;arm.rotation.z=side*.06;}
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.32,-.1);body.add(leg);const thigh=rounded(leg,.12,.24,.13,fur,0,-.1,0,.045);thigh.rotation.z=side*.12;rounded(leg,.12,.06,.18,o.beak?dark:face,side*.02,-.26,.04,.025);legs.push(leg);}
  let tail=null;if(o.tail){tail=new THREE.Group();tail.position.set(0,.4,-.2);body.add(tail);tube(tail,[[0,0,0],[0,-.08,-.14],[0,.02,-.28],[0,.2,-.3],[0,.26,-.2],[0,.18,-.16]],.022,fur,20);}
  return actor(g,body,legs,tail,[],'idle');
 }
-const APES={monkey:{fur:'#8a6440',face:'#d6b08a',tail:true,scale:.7},ape:{fur:'#5a4030',face:'#a88a70'},owlbear:{fur:'#7a5a38',face:'#c8a878',beak:true,scale:1.4},yeti:{fur:'#e4e2da',face:'#8aa0b0',shaggy:true,glare:true,scars:true,scale:1.4},'carnivorous ape':{fur:'#2e2622',face:'#7a5a50',fangs:true,glare:true,scars:true,scale:1.25},sasquatch:{fur:'#4a3424',face:'#8a6a58',shaggy:true,scars:true,scale:1.5}};
+const APES={monkey:{fur:'#8a6440',face:'#d6b08a',tail:true,scale:.7},ape:{fur:'#5a4030',face:'#a88a70'},owlbear:{fur:'#7a5a38',face:'#c8a878',beak:true,glare:true,scale:1.4},yeti:{fur:'#e4e2da',face:'#8aa0b0',shaggy:true,glare:true,scars:true,scale:1.4},'carnivorous ape':{fur:'#2e2622',face:'#7a5a50',fangs:true,glare:true,scars:true,scale:1.25},sasquatch:{fur:'#4a3424',face:'#8a6a58',shaggy:true,scars:true,scale:1.5}};
 // mimics (m): a banded wooden treasure chest whose lid has cracked open on a row of fangs and a lolling tongue,
 // with a single eye peering out of the lid and stubby pseudopods where its feet should be
 function mimic(o){
@@ -967,6 +1031,9 @@ function centaur(o){
   // held upright beside the flank, butt near the ground
   cylinder(weaponSocket,.016,.016,1.08,wood,0,.1,0,6);
   const tip=cone(weaponSocket,.034,.15,M.steel,0,.715,0,4);tip.scale.z=.4;
+  // barbs flaring below the blade, and old blood dried black on its edge
+  for(const side of [-1,1]){const barb=cone(weaponSocket,.012,.06,M.steel,side*.03,.62,0,3);barb.rotation.z=side*-2.5;}
+  sphere(weaponSocket,.02,mat('#2a0c0a',{roughness:.9}),0,.68,.006,.7,2.2,.5);
   cylinder(weaponSocket,.02,.02,.06,leather,0,.6,0,6);
  }
  if(o.weapon==='club'){
@@ -974,6 +1041,9 @@ function centaur(o){
   const club=new THREE.Group();club.rotation.x=2.45;weaponSocket.add(club);
   cylinder(club,.022,.026,.14,leather,0,-.02,0,7);cylinder(club,.028,.06,.36,wood,0,.22,0,8);sphere(club,.062,wood,0,.4,0,1,.8,1);
   for(const [a,h] of [[0,.26],[2.1,.33],[4.2,.38],[1,.42]])sphere(club,.022,wood,Math.cos(a)*.05,h,Math.sin(a)*.05);
+  // rusted nails driven through the head, points out
+  const nail=mat('#4a3426',{roughness:.9});
+  for(const [a,h] of [[.9,.34],[2.8,.4],[4.9,.3],[5.7,.44]]){const n=cone(club,.012,.07,nail,Math.cos(a)*.075,h,Math.sin(a)*.075,4);n.rotation.z=-Math.cos(a)*1.3;n.rotation.x=Math.sin(a)*1.3;}
  }
  if(o.weapon==='bow'){
   // a tall longbow held in the left fist with its string, and a quiver of fletched arrows on the back
@@ -1304,6 +1374,10 @@ function leocrotta(o){
  // wear: three old claw-rakes score the left flank, dark and slightly raised, and a bite has notched the rump
  for(let i=0;i<3;i++)B.put(body,black,new THREE.BoxGeometry(.008,.015,.17),[-.158-i*.002,y+.02-i*.035,.02+i*.03],[.0,0,.5]);
  B.put(body,gum,S(.03,8,6),[.1,y+.03,-.3],[0,0,0],[.6,.9,.9]);
+ // a hunter's broken spear-head is still lodged in the shoulder: a dark iron blade, its haft snapped off, and a crust of dried blood round it
+ B.put(body,black,new THREE.ConeGeometry(.028,.12,4),[.12,y+.12,.2],[0,0,-1.1]);
+ B.put(body,gum,S(.035,8,6),[.115,y+.09,.2],[0,0,0],[.8,.4,1]);
+ g.userData.speared=true;
  g.userData.scarred=true;
  // a lion's tail with a dark tuft
  const tail=new THREE.Group();tail.position.set(0,y+.06,-.34);body.add(tail);
@@ -1326,14 +1400,14 @@ function wumpus(o){
  const put=(parent,colour,geo,pos=[0,0,0],rot=[0,0,0],scl=[1,1,1])=>{
   if(!bins.has(parent))bins.set(parent,pieces());
   bins.get(parent).add(geo,m.clone().compose(new THREE.Vector3(...pos),rot.isQuaternion?rot:new THREE.Quaternion().setFromEuler(e.set(...rot)),new THREE.Vector3(...scl)),colour);};
- const hide=rgb(o.hide),dark=rgb(o.fur),belly=rgb(o.belly),pad=rgb('#6e4a4c'),cup=rgb('#2e1418'),mouth=rgb('#3a1418'),tooth=rgb('#cfc29c'),horn=rgb('#a89c78');
+ const hide=rgb(o.hide),dark=rgb(o.fur),belly=rgb(o.belly),pad=rgb('#4a3a3a'),cup=rgb('#2e1418'),mouth=rgb('#3a1418'),tooth=rgb('#cfc29c'),horn=rgb('#a89c78');
  const S=(r,w=16,h=12)=>new THREE.SphereGeometry(r,w,h),legH=.17,y=legH+.2;
  // hide darkens toward the underside
  const shaded=(lo,hi)=>(x,py)=>mix(mix(hide,dark,.55),hide,(py-lo)/(hi-lo));
  // a round, heavy barrel, a pale belly sagging underneath
- put(body,shaded(y-.2,y+.1),S(.23,22,16),[0,y,-.02],[0,0,0],[1.02,.88,1.18]);
- put(body,shaded(y-.15,y+.12),S(.19,18,14),[0,y+.03,.12],[0,0,0],[1.08,.95,.9]);
- put(body,belly,S(.18,16,12),[0,y-.09,.03],[0,0,0],[.95,.55,1.2]);
+ put(body,shaded(y-.2,y+.1),S(.23,8,6),[0,y,-.02],[0,0,0],[1.02,.88,1.18]);
+ put(body,shaded(y-.15,y+.12),S(.19,7,5),[0,y+.03,.12],[0,0,0],[1.08,.95,.9]);
+ put(body,belly,S(.18,7,5),[0,y-.09,.03],[0,0,0],[.95,.55,1.2]);
  // coarse tufts over the back and flanks, pointing out and swept back, darker at the root
  for(let i=0;i<30;i++){
   const u=(i*.618034)%1,a=(i/30)*Math.PI*1.9-Math.PI*.95,up=.25+u*.9;
@@ -1341,11 +1415,13 @@ function wumpus(o){
   const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),n.clone().add(new THREE.Vector3(0,-.2,-.55)).normalize());
   put(body,mix(dark,hide,u*.4),new THREE.ConeGeometry(.034,.09+u*.04,5),[n.x*.225,y+n.y*.2,-.02+n.z*.26],q,[1,1,.6]);
  }
+ put(body,dark,new THREE.ConeGeometry(.12,.16,5),[0,y+.17,.08],[0,0,0],[1.5,1,1.4]);
  // the head: a great round skull sitting low and forward, a heavy brow and a broad muzzle
  const head=new THREE.Group();head.position.set(0,y+.05,.25);body.add(head);
- put(head,shaded(-.12,.14),S(.16,20,14),[0,.02,0],[0,0,0],[1.12,.92,.95]);
- put(head,hide,S(.1,14,10),[0,-.01,.1],[0,0,0],[1.35,.75,.8]);
+ put(head,shaded(-.12,.14),S(.16,8,6),[0,.02,0],[0,0,0],[1.12,.92,.95]);
+ put(head,hide,new THREE.ConeGeometry(.12,.16,5),[0,-.015,.12],[Math.PI/2,0,0],[1.25,1,.55]);
  put(head,dark,S(.05,12,8),[0,.1,.08],[0,0,0],[2.6,.55,.9]);
+ for(const side of [-1,1])put(head,dark,new THREE.ConeGeometry(.06,.12,4),[side*.12,-.03,.06],[Math.PI/2,0,side*-.6],[1,1,.7]);
  const eyes=[];
  for(const side of [-1,1]){
   // small sunken eyes, round ears, and stubby horns curling out and up, pale at the tip
@@ -1353,7 +1429,10 @@ function wumpus(o){
   eyes.push(S(.018,10,8).applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(side*.066,.075,.126),new THREE.Quaternion(),new THREE.Vector3(1,.8,.7))));
   put(head,hide,S(.04,10,8),[side*.15,.1,-.03],[0,0,side*.4],[1,1,.4]);
   put(head,belly,S(.026,10,8),[side*.152,.1,-.018],[0,0,side*.4],[1,1,.3]);
-  put(head,(x,py)=>mix(mix(horn,dark,.5),horn,(py-.12)/.1),taperedTube([[0,0,0],[side*.05,.03,0],[side*.075,.08,-.01],[side*.065,.12,-.025]],.028,.008,12,8),[side*.1,.12,.01]);
+  // the left horn is snapped off short, its break dark and splintered
+  put(head,(x,py)=>mix(mix(horn,dark,.5),horn,(py-.12)/.1),side<0?taperedTube([[0,0,0],[side*.05,.03,0],[side*.065,.06,-.006]],.036,.024,8,6):taperedTube([[0,0,0],[side*.05,.03,0],[side*.075,.08,-.01],[side*.065,.12,-.025]],.036,.008,8,6),[side*.1,.12,.01]);
+  if(side<0){put(head,cup,new THREE.CylinderGeometry(.026,.03,.008,6),[side*.1+side*.065,.12+.06,.01-.006]);
+   for(const [dx,h,t] of [[-.014,.022,-.3],[.002,.03,.05],[.016,.02,.35]])put(head,tooth,new THREE.ConeGeometry(.007,h,4),[side*.1+side*.065+dx,.12+.056+h/2,.01-.006],[0,0,t]);}
  }
  // wear: an old claw-rake splits the right brow and cheek, ragged and dark
  for(let i=0;i<3;i++)put(head,cup,new THREE.BoxGeometry(.008,.1,.012),[.07+i*.022,.07-i*.006,.125-i*.012],[0,0,.45]);
@@ -1365,24 +1444,24 @@ function wumpus(o){
  for(let k=0;k<11;k++){const a=Math.PI*(.12+.76*k/10);put(head,tooth,new THREE.ConeGeometry(.014,.034,5),[Math.cos(a)*.125,-.035,.035+Math.sin(a)*.115],[Math.PI,0,0]);}
  // the lower jaw hangs a little open, its own row of teeth pointing up
  const jaw=new THREE.Group();jaw.position.set(0,-.05,.02);jaw.rotation.x=.12;head.add(jaw);
- put(jaw,hide,S(.11,16,10),[0,-.03,.04],[0,0,0],[1.2,.45,.95]);
+ put(jaw,hide,new THREE.ConeGeometry(.115,.16,5),[0,-.03,.06],[Math.PI/2,0,0],[1.15,1,.45]);
  put(jaw,mouth,S(.1,14,8),[0,-.005,.05],[0,0,0],[1.1,.18,.85]);
  for(let k=0;k<9;k++){const a=Math.PI*(.15+.7*k/8);put(jaw,tooth,new THREE.ConeGeometry(.012,.03,5),[Math.cos(a)*.11,.01,.04+Math.sin(a)*.09]);}
  // four short, thick legs with a shaggy cuff, each on a broad sucker pad: bruised rim, dark cupped hollow
  for(const side of [-1,1])for(const z of [.13,-.15]){
   const leg=new THREE.Group();leg.position.set(side*.16,legH,z);body.add(leg);legs.push(leg);
-  put(leg,hide,S(.08,12,10),[0,.03,0],[0,0,0],[1,1.3,1.1]);
-  put(leg,shaded(-legH,0),new THREE.CylinderGeometry(.06,.055,legH-.02,12),[0,-legH/2+.01,0]);
-  put(leg,dark,new THREE.ConeGeometry(.068,.07,10,1,true),[0,-legH*.5,0]);
-  put(leg,pad,new THREE.CylinderGeometry(.075,.085,.028,18),[0,-legH+.014,.01]);
-  put(leg,pad,new THREE.TorusGeometry(.078,.012,6,20),[0,-legH+.03,.01],[Math.PI/2,0,0]);
-  put(leg,cup,new THREE.CylinderGeometry(.05,.05,.004,16),[0,-legH+.029,.01]);
+  put(leg,hide,new THREE.CylinderGeometry(.075,.05,.12,6),[0,.0,0]);
+  put(leg,shaded(-legH,0),new THREE.CylinderGeometry(.05,.034,legH-.02,6),[0,-legH/2+.01,0]);
+  put(leg,dark,new THREE.ConeGeometry(.058,.07,6,1,true),[0,-legH*.5,0]);
+  put(leg,pad,new THREE.CylinderGeometry(.06,.07,.028,7),[0,-legH+.014,.01]);
+  put(leg,pad,new THREE.TorusGeometry(.064,.01,5,7),[0,-legH+.03,.01],[Math.PI/2,0,0]);
+  put(leg,cup,new THREE.CylinderGeometry(.04,.04,.004,7),[0,-legH+.029,.01]);
  }
  // a short thick tail with a dark tuft
  const tail=new THREE.Group();tail.position.set(0,y+.02,-.28);body.add(tail);
  put(tail,hide,taperedTube([[0,0,0],[0,-.03,-.06],[0,-.09,-.1]],.035,.02,10,8));
  put(tail,dark,S(.035,10,8),[0,-.11,-.11],[0,0,0],[1,1.4,1]);
- const skin=mat('#ffffff',{vertexColors:true,roughness:.82});
+ const skin=mat('#ffffff',{vertexColors:true,roughness:.9,flatShading:true});
  for(const [parent,P] of bins)part(parent,P.merge(),skin);
  return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw});
 }
@@ -1468,22 +1547,38 @@ function giant(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[],arms=[];
  const skin=mat(o.skin,{roughness:.85}),cloth=mat(o.cloth||'#6a5a40',{roughness:.95}),hair=o.hair==='fire'?mat('#ff7a2a',{emissive:'#e0400e',emissiveIntensity:2.2,roughness:.5}):mat(o.hair||'#3a2a1c',{roughness:.95}),wood=mat('#5a3e24',{roughness:.85}),boot=mat(o.boot||'#3a2a20',{roughness:.9});
  const armor=o.armor?mat(o.armor,{roughness:.35,metalness:.7}):null;
- for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.11,.48,0);body.add(leg);rounded(leg,.14,.3,.15,skin,0,-.13,0,.05);rounded(leg,.17,.14,.22,boot,0,-.41,.03,.04);legs.push(leg);}
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.11,.48,0);body.add(leg);if(o.frostbite){cylinder(leg,.085,.055,.32,skin,0,-.14,0,7);cone(leg,.08,.22,boot,0,-.4,.07,5).rotation.x=Math.PI/2;cylinder(leg,.07,.085,.1,boot,0,-.36,0,6);}else{rounded(leg,.14,.3,.15,skin,0,-.13,0,.05);rounded(leg,.17,.14,.22,boot,0,-.41,.03,.04);}legs.push(leg);}
  cylinder(body,.2,.25,.22,cloth,0,.5,0,9);rounded(body,.42,.06,.28,M.leather,0,.62,0,.02);rounded(body,.07,.06,.03,M.gold,0,.62,.145,.01).castShadow=false;
- rounded(body,.44,.4,.28,armor||(o.tunic?mat(o.tunic,{roughness:.9}):skin),0,.83,0,.1);sphere(body,.12,skin,0,.9,.1,1.5,.9,.5);
+ if(o.frostbite){// frost giants: a slab-sided hexagonal chest of flat planes, no egg
+  part(body,new THREE.CylinderGeometry(.27,.2,.4,6),mat(o.skin,{roughness:.9,flatShading:true}),0,.83,0).scale.z=.68;}
+ else{rounded(body,.44,.4,.28,armor||(o.tunic?mat(o.tunic,{roughness:.9}):skin),0,.83,0,.1);sphere(body,.12,skin,0,.9,.1,1.5,.9,.5);}
  for(const side of [-1,1])sphere(body,.1,armor||skin,side*.2,1.0,0,1,.8,1);
+ if(o.spiked)for(const side of [-1,1]){const sp=cone(body,.035,.14,armor,side*.24,1.08,-.02,4);sp.rotation.z=-side*.7;}
  if(o.mantle)sphere(body,.2,mat(o.mantle,{roughness:1}),0,1.02,-.02,1.35,.45,1);
  if(o.ice)for(const side of [-1,1])for(const k of [0,1]){const shard=cone(body,.035,.16,mat('#cfeaf6',{roughness:.15,transparent:true,opacity:.85}),side*(.18+k*.06),1.1-k*.03,-.04,4);shard.rotation.z=-side*(.35+k*.3);}
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.26,.98,.01);body.add(arm);rounded(arm,.12,.28,.13,skin,0,-.14,0,.045);rounded(arm,.11,.26,.12,armor||skin,0,-.39,.02,.04);sphere(arm,.07,skin,0,-.56,.03);arm.rotation.z=side*.05;arm.rotation.x=side>0&&o.weapon?-.35:-.08;arms.push(arm);}
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.26,.98,.01);body.add(arm);if(o.frostbite){// frost giants: tapered faceted limbs ending in a clawed hand, a thumb and four knuckled fingers
+   cylinder(arm,.085,.062,.28,skin,0,-.14,0,7);cylinder(arm,.065,.045,.27,skin,0,-.39,.02,7);rounded(arm,.085,.07,.05,skin,0,-.56,.03,.012);
+   const dead=mat('#26222a',{roughness:1});for(const k of [-1.5,-.5,.5,1.5]){const f=rounded(arm,.017,.07,.019,skin,k*.021,-.62,.065,.005);f.rotation.x=-.5;if(side>0){const t=rounded(arm,.016,.03,.018,dead,k*.021,-.665,.088,.004);t.rotation.x=-.9;}}
+   const th=rounded(arm,.02,.06,.022,skin,-side*.05,-.57,.05,.006);th.rotation.set(-.4,0,-side*.7);}
+  else{rounded(arm,.12,.28,.13,skin,0,-.14,0,.045);rounded(arm,.11,.26,.12,armor||skin,0,-.39,.02,.04);sphere(arm,.07,skin,0,-.56,.03);}arm.rotation.z=side*.05;arm.rotation.x=side>0&&o.weapon?-.35:-.08;arms.push(arm);}
  const heads=o.twoHeads?[-.11,.11]:[0];
- for(const hx of heads){const head=new THREE.Group();head.position.set(hx,1.16,.03);head.rotation.z=-hx*1.2;body.add(head);
-  {sphere(head,.12,skin,0,0,0,.95,1.05,.95);if(o.cyclops)sphere(head,.024,skin,0,-.045,.115,1.3,.8,1);else{rounded(head,.2,.04,.06,mat(shade(o.skin,.8),{roughness:.9}),0,.04,.09,.015);sphere(head,.028,skin,0,-.01,.12,1,1.2,1);}
+ let leadHead=null;
+ for(const hx of heads){const head=new THREE.Group();if(!leadHead)leadHead=head;head.position.set(hx,1.16,.03);head.rotation.z=-hx*1.2;body.add(head);
+  if(o.frostbite){// frost giants: a faceted skull under a heavy brow ridge, a wedge jaw and a fur hood; the eyes sit in shadow
+   const fs=mat(o.skin,{roughness:.9,flatShading:true});
+   part(head,new THREE.SphereGeometry(.12,6,5),fs,0,0,0).scale.set(.95,1.05,.95);
+   const brow=rounded(head,.22,.045,.08,mat(shade(o.skin,.6),{roughness:.95}),0,.035,.09,.012);brow.rotation.x=.3;
+   const jaw=cone(head,.1,.13,fs,0,-.08,.06,4);jaw.rotation.set(Math.PI,Math.PI/4,0);jaw.scale.set(1.1,1,.8);
+   const hood=part(head,new THREE.ConeGeometry(.17,.26,6),mat(o.mantle,{roughness:1,flatShading:true}),0,.02,-.05);hood.rotation.x=-.25;hood.scale.set(1,1,.9);}
+  else{sphere(head,.12,skin,0,0,0,.95,1.05,.95);if(o.cyclops)sphere(head,.024,skin,0,-.045,.115,1.3,.8,1);else{rounded(head,.2,.04,.06,mat(shade(o.skin,.8),{roughness:.9}),0,.04,.09,.015);sphere(head,.028,skin,0,-.01,.12,1,1.2,1);}
    const scalp=sphere(head,.125,hair,0,.035,-.03,1,.85,1);scalp.rotation.x=.25;if(o.beard)sphere(head,.09,hair,0,-.09,.07,1,1.2,.65);}
   // ettins: a rusted iron collar studded with spikes at each neck, and a raked scar over one eye
   if(o.twoHeads){const rust=mat('#4a3426',{roughness:.7,metalness:.6});g.userData.collared=true;part(head,new THREE.TorusGeometry(.09,.017,5,14),rust,0,-.1,0).rotation.x=Math.PI/2;for(let i=0;i<5;i++){const a=(i-2)*.6,spike=cone(head,.014,.05,rust,Math.sin(a)*.1,-.1,Math.cos(a)*.1,4);spike.rotation.set(Math.cos(a)*1.2,0,-Math.sin(a)*1.2);}if(hx<0)rounded(head,.012,.1,.01,mat('#5a2a22',{roughness:1}),.04,.03,.1,.004).rotation.z=.5;}
   // frost giants: the beard has frozen into a hanging fringe of long, clear icicles
   if(o.icicles){const clear=mat('#d8f2fc',{roughness:.12,transparent:true,opacity:.85});g.userData.icicled=true;for(let i=0;i<5;i++){const x=(i-2)*.035,len=.14-Math.abs(i-2)*.025,c=cone(head,.013,len,clear,x,-.14-len/2+.03,.09-Math.abs(i-2)*.008,4);c.rotation.x=Math.PI;}}
   if(o.circlet)part(head,new THREE.TorusGeometry(.12,.012,5,16),M.gold,0,.07,0).rotation.x=Math.PI/2;
+  // titans: the gilded circlet is a war-crown of jagged tarnished spikes, one snapped short
+  if(o.spiked){const tarnish=mat('#6a5224',{roughness:.5,metalness:.7});g.userData.warCrowned=true;for(let i=0;i<5;i++){const a=(i-2)*.5,tall=i===3?.03:.1-Math.abs(i-2)*.02,spike=cone(head,.02,tall,tarnish,Math.sin(a)*.12,.07+tall/2,Math.cos(a)*.12,4);spike.rotation.set(Math.cos(a)*.2,0,-Math.sin(a)*.2);}}
   // a crown of jagged black-iron spikes, their tips white-hot
   if(o.crown){const iron=mat('#2a2224',{roughness:.45,metalness:.75}),hot=mat('#ffb060',{emissive:'#f05010',emissiveIntensity:3});part(head,new THREE.TorusGeometry(.118,.016,5,18),iron,0,.075,-.01).rotation.x=Math.PI/2;
    for(let i=0;i<7;i++){const a=(i-3)*.42,tall=.09-Math.abs(i-3)*.012,spike=cone(head,.022,tall,iron,Math.sin(a)*.118,.075+tall/2,Math.cos(a)*.118-.01,4);spike.rotation.set(Math.cos(a)*.22,0,-Math.sin(a)*.22);sphere(head,.009,hot,Math.sin(a)*(.118+tall*.22),.075+tall*.95,Math.cos(a)*(.118+tall*.22)-.01,1,1.4,1);}}
@@ -1494,9 +1589,14 @@ function giant(o){
    sphere(head,.05,white,0,.005,.085,1.1,.9,.75);sphere(head,.028,iris,0,.005,.118,1,1,.5);sphere(head,.009,slit,0,.005,.131,.45,2.2,.4);
    const brow=rounded(head,.17,.04,.07,mat(shade(o.skin,.7),{roughness:.95}),0,.055,.1,.018);brow.rotation.x=.35;
    for(const side of [-1,1]){const tusk=cone(head,.014,.06,mat('#d8cca4',{roughness:.5}),side*.045,-.07,.105,5);tusk.rotation.set(-.25,0,side*.25);}}
-  else eyes(head,o.glare||M.eye,.01,.11,.045);}
+  else if(!o.frostbite)eyes(head,o.glare||M.eye,.01,.11,.045);
+  if(o.frostbite)eyes(head,M.eye,.008,.115,.045);}
  // hill giants: a belt strung with the yellowed skulls of past meals
  if(o.skulls){const bone=mat('#cfc29a',{roughness:.75}),pit=mat('#14100c',{roughness:1});g.userData.skulled=true;for(const x of [-.17,-.06,.06,.17]){sphere(body,.032,bone,x,.55,.15,1,1,.9);rounded(body,.036,.01,.01,pit,x,.56,.18,.003);sphere(body,.012,bone,x,.52,.165,1.3,.8,.7);}}
+ // the plain giant: a thong of knucklebones from past meals hangs at the throat, one bone split and a tooth tied on
+ if(o.knuckles){const bone=mat('#cfc29a',{roughness:.75}),thong=mat('#2a1e14',{roughness:1});g.userData.necklaced=true;part(body,new THREE.TorusGeometry(.13,.008,4,14),thong,0,1.0,.07).rotation.x=Math.PI/2+.5;
+  for(let i=0;i<5;i++){const a=(i-2)*.38,k=sphere(body,i===3?.016:.022,bone,Math.sin(a)*.13,.95-Math.abs(i-2)*.012,.07+Math.cos(a)*.13*.9,1,1.2,1);if(i===1)k.scale.y*=.6;}
+  cone(body,.01,.05,bone,0,.9,.2,4).rotation.x=Math.PI;}
  // the Cyclops: an iron manacle still locked on one wrist, the chain broken after a few rusted links
  if(o.cyclops){const iron=mat('#3a3430',{roughness:.6,metalness:.7});g.userData.shackled=true;part(arms[0],new THREE.TorusGeometry(.065,.016,5,12),iron,0,-.52,.02).rotation.x=Math.PI/2;for(let i=0;i<3;i++)part(arms[0],new THREE.TorusGeometry(.025,.006,4,8),iron,0,-.6-i*.05,.02).rotation.set(0,i%2?0:Math.PI/2,0);}
  // storm giants: lightning has struck them and left branching fern-scars, faintly alight, down the chest and arm
@@ -1504,8 +1604,15 @@ function giant(o){
   for(const [y,rz] of [[-.2,.4],[-.32,-.5]]){const v=rounded(arms[1],.012,.1,.01,arc,.02,y,.065,.004);v.rotation.z=rz;}}
  // fire giants: the skin has cracked like cooling slag, glowing seams across the chest and shoulders
  if(o.cracked){const seam=mat('#ffb060',{emissive:'#e0400e',emissiveIntensity:2.4,roughness:.5});g.userData.cracked=true;for(const [x,y,z,rz] of [[-.1,.86,.145,.6],[.07,.8,.147,-.5],[.13,.95,.14,.3],[-.02,.74,.148,-.1]]){const v=rounded(body,.014,.13,.01,seam,x,y,z,.004);v.rotation.z=rz;}}
+ // frost giants: frostbite has blackened the fingertips of the right hand to dead stubs
+ if(o.frostbite)g.userData.frostbitten=true;
+ // fire giants: a black iron belt cinches the waist, its heavy buckle still glowing from the forge
+ if(o.buckle){const iron=mat('#1e1a1a',{roughness:.5,metalness:.7}),glow=mat('#ffb060',{emissive:'#e0400e',emissiveIntensity:2.4,roughness:.5});g.userData.buckled=true;part(body,new THREE.TorusGeometry(.17,.02,4,14),iron,0,.5,0).rotation.x=Math.PI/2;rounded(body,.07,.06,.03,glow,0,.5,.16,.01);}
  // titans: old war-scars slash the gilded breastplate
  if(o.scars){const gash=mat('#2a1410',{roughness:1});g.userData.scarred=true;for(const [x,y,rz] of [[-.1,.9,.7],[.08,.82,-.6],[.12,.94,.5]]){const sc=rounded(body,.016,.15,.01,gash,x,y,.145,.004);sc.rotation.z=rz;}}
+ // stone giants: grey lichen crusts the shoulders and a black crack splits the brow, as if quarried rather than born
+ if(o.lichen){const crust=mat('#6e7a56',{roughness:1}),crack=mat('#14120f',{roughness:1});g.userData.lichened=true;for(const [x,y,z,r] of [[-.2,1.06,-.02,.05],[.19,1.05,.02,.04],[-.1,1.04,-.1,.04],[.1,1.07,-.08,.035]])sphere(body,r,crust,x,y,z,1.4,.45,1.1);
+  rounded(leadHead,.012,.1,.01,crack,.03,.07,.115,.004).rotation.z=.4;}
  let core=null;
  if(o.weapon==='club'){const club=cylinder(body,.075,.03,.46,wood,.28,.46,.2,7);club.rotation.x=.55;for(let i=0;i<3;i++)cone(body,.02,.05,M.darkSteel,.28+(i-1)*.05,.6,.3,4).rotation.x=.55;}
  // stone giants hoist a fractured granite boulder overhead on the left palm, ready to throw; it rides the arm so it follows any swing
@@ -1515,9 +1622,9 @@ function giant(o){
  if(o.weapon==='axe'){const shaft=cylinder(body,.02,.02,.6,wood,.29,.5,.16,6);shaft.rotation.x=.3;const bit=part(body,new THREE.CylinderGeometry(.1,.1,.018,10,1,false,0,Math.PI),mat('#b8dcea',{roughness:.2,metalness:.4}),.29,.74,.23);bit.rotation.set(.3,0,Math.PI/2);}
  if(o.weapon==='spear'){const shaft=cylinder(body,.018,.018,.95,wood,.29,.6,.18,6);shaft.rotation.x=.2;core=cone(body,.04,.12,new THREE.MeshStandardMaterial({color:'#bfe6ff',emissive:'#3aa0ff',emissiveIntensity:4.5,roughness:.2}),.29,1.1,.28,4);core.rotation.x=.2;g.userData.core=core;}
  if(o.hair==='fire'&&!core){core=sphere(body,.05,new THREE.MeshStandardMaterial({color:'#ffb060',emissive:'#f05010',emissiveIntensity:4.5,roughness:.3}),0,1.08,.13);g.userData.core=core;}
- return trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),core?{core}:{}));
+ return trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head:leadHead},core?{core}:{}));
 }
-const GIANTS={giant:{skin:'#b08a6a',cloth:'#6a5a40',weapon:'club',scars:true,scale:1.1},'stone giant':{skin:'#8a867c',cloth:'#5a5650',hair:'#4a4642',weapon:'boulder',scars:true,scale:1.14},'hill giant':{skin:'#a88060',cloth:'#5a6a3a',hair:'#5a3a22',beard:true,weapon:'club',skulls:true,scars:true,scale:1.12},'fire giant':{skin:'#6a4234',cloth:'#3a2a24',hair:'fire',beard:true,armor:'#3a3436',boot:'#2a2424',weapon:'sword',glare:M.fire,cracked:true,scale:1.18},'frost giant':{skin:'#a8c0d0',cloth:'#4a5a6a',hair:'#eef2f4',beard:true,mantle:'#e2e2dc',ice:true,weapon:'axe',icicles:true,scale:1.18},ettin:{skin:'#8a7a6a',cloth:'#4a3a2a',hair:'#2a2420',twoHeads:true,weapon:'club',scars:true,scale:1.18},'storm giant':{skin:'#9aa4b4',cloth:'#2e4a78',tunic:'#3d5f9a',hair:'#1e2230',beard:true,weapon:'spear',glare:M.electric,storm:true,scars:true,scale:1.2},titan:{skin:'#d8b890',cloth:'#e8e0cc',hair:'#c9a23a',armor:'#a8883a',circlet:true,glare:M.eye,weapon:'spear',scars:true,scale:1.5},cyclops:{skin:'#9a7e62',cloth:'#4a3a2a',hair:'#2a221c',cyclops:true,weapon:'club',scars:true,scale:1.3},'lord surtur':{skin:'#4a2e26',cloth:'#2a1e1c',hair:'fire',beard:true,armor:'#2a2426',boot:'#1e1a1a',weapon:'sword',blade:1.5,crown:true,scars:true,glare:M.fire,scale:1.34}};
+const GIANTS={giant:{skin:'#b08a6a',cloth:'#6a5a40',weapon:'club',scars:true,knuckles:true,scale:1.1},'stone giant':{skin:'#8a867c',cloth:'#5a5650',hair:'#4a4642',weapon:'boulder',scars:true,lichen:true,scale:1.14},'hill giant':{skin:'#a88060',cloth:'#5a6a3a',hair:'#5a3a22',beard:true,weapon:'club',skulls:true,scars:true,scale:1.12},'fire giant':{skin:'#6a4234',cloth:'#3a2a24',hair:'fire',beard:true,buckle:true,armor:'#3a3436',boot:'#2a2424',weapon:'sword',glare:M.fire,cracked:true,scale:1.18},'frost giant':{skin:'#4a5a64',cloth:'#1c242a',hair:'#8e9aa0',beard:true,frostbite:true,mantle:'#403e3a',boot:'#181210',ice:true,weapon:'axe',icicles:true,scale:1.18},ettin:{skin:'#8a7a6a',cloth:'#4a3a2a',hair:'#2a2420',twoHeads:true,weapon:'club',scars:true,scale:1.18},'storm giant':{skin:'#9aa4b4',cloth:'#2e4a78',tunic:'#3d5f9a',hair:'#1e2230',beard:true,weapon:'spear',glare:M.electric,storm:true,scars:true,scale:1.2},titan:{skin:'#a07c5a',cloth:'#4a4438',hair:'#6a5a34',armor:'#7a5e28',circlet:true,spiked:true,glare:M.eye,weapon:'spear',scars:true,scale:1.5},cyclops:{skin:'#9a7e62',cloth:'#4a3a2a',hair:'#2a221c',cyclops:true,weapon:'club',scars:true,scale:1.3},'lord surtur':{skin:'#4a2e26',cloth:'#2a1e1c',hair:'fire',beard:true,armor:'#2a2426',boot:'#1e1a1a',weapon:'sword',blade:1.5,crown:true,scars:true,glare:M.fire,scale:1.34}};
 // vortices (v): a tapering funnel of tilted, offset swirl rings over a scuffed ground patch, with debris caught in the spiral; fog clouds are a low puffy bank instead
 function vortex(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const s=o.scale||1;
@@ -1527,16 +1634,23 @@ function vortex(o){
  else for(let i=0;i<7;i++){const t=i/6,ring=part(body,new THREE.TorusGeometry((.07+t*.22)*s,(.028+t*.02)*s,6,20),swirl,Math.sin(i*1.3)*.04*s,(.08+t*.72)*s,Math.cos(i*1.3)*.04*s);ring.rotation.x=Math.PI/2+Math.sin(i*1.9)*.22;ring.rotation.y=i*.7;ring.castShadow=false;}
  const debris=o.debris?mat(o.debris,glow?{emissive:o.debris,emissiveIntensity:3}:{}):null;
  if(debris)for(let i=0;i<8;i++){const t=i/7,a=i*2.2,r=(.1+t*.24)*s;const bit=o.shard?cone(body,.025*s,.08*s,debris,Math.cos(a)*r,(.12+t*.66)*s,Math.sin(a)*r,4):sphere(body,.022*s,debris,Math.cos(a)*r,(.12+t*.66)*s,Math.sin(a)*r);bit.rotation.set(a,a*.5,0);}
+ // energy vortices only: jagged forks of lightning leap out of the spiral, each a bent pair of glowing spikes
+ if(o.arcs){const bolt=new THREE.MeshStandardMaterial({color:'#e8f4ff',emissive:'#8ac0ff',emissiveIntensity:4,roughness:.2});
+  for(let i=0;i<5;i++){const a=i*1.26+.4,y=(.2+i*.12)*s,r0=.2*s,r1=.31*s,k=cone(body,.012*s,.16*s,bolt,Math.cos(a)*r0,y,Math.sin(a)*r0,3);k.rotation.set(0,-a,Math.PI/2-.5);k.castShadow=false;g.userData.arcs=(g.userData.arcs||0)+1;
+   const t=cone(body,.009*s,.12*s,bolt,Math.cos(a+.1)*r1,y+.06*s,Math.sin(a+.1)*r1,3);t.rotation.set(0,-a,Math.PI/2+.6);t.castShadow=false;}}
+ // fire vortices only: embers glow on the scorched ground around the foot
+ if(o.embers){const em=new THREE.MeshStandardMaterial({color:'#ffb040',emissive:'#ff5a10',emissiveIntensity:3,roughness:.5});
+  for(let i=0;i<6;i++){const a=i*1.05,r=(.2+(i%2)*.1)*s,e=part(g,new THREE.CircleGeometry(.025*s,5),em,Math.cos(a)*r,.016,Math.sin(a)*r);e.rotation.x=-Math.PI/2;e.castShadow=false;g.userData.embers=(g.userData.embers||0)+1;}}
  let core=null;if(glow){core=sphere(body,.07*s,new THREE.MeshStandardMaterial({color:o.debris||o.color,emissive:o.debris||o.color,emissiveIntensity:4.5,roughness:.2}),0,.32*s,0,.8,1.6,.8);g.userData.core=core;}
  return Object.assign(actor(g,body,[],null,[],'hover'),core?{core}:{});
 }
-const VORTICES={'fog cloud':{color:'#b4b8bc',cloud:true,opacity:.6},'dust vortex':{color:'#9a7a52',debris:'#6a5038'},'ice vortex':{color:'#bfe6f4',debris:'#e8f8ff',shard:true,scale:1.2},'energy vortex':{color:'#4f8cff',debris:'#d8f0ff',glow:true,scale:1.25},'steam vortex':{color:'#d4dce4',opacity:.42,scale:1.25},'fire vortex':{color:'#ff7a28',debris:'#ffd24a',glow:true,scale:1.25}};
-const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.9,venom:true}};
+const VORTICES={'fog cloud':{color:'#b4b8bc',cloud:true,opacity:.6},'dust vortex':{color:'#9a7a52',debris:'#6a5038'},'ice vortex':{color:'#bfe6f4',debris:'#e8f8ff',shard:true,scale:1.2},'energy vortex':{color:'#4f8cff',debris:'#d8f0ff',glow:true,arcs:true,scale:1.25},'steam vortex':{color:'#d4dce4',opacity:.42,scale:1.25},'fire vortex':{color:'#ff7a28',debris:'#ffd24a',glow:true,embers:true,scale:1.25}};
+const WORMS={'baby long worm':{color:'#8a6440',baby:true,scale:.8},'long worm':{color:'#8a6440',ridge:true,scale:1.25},'baby purple worm':{color:'#8a3a9a',lip:'#c05a8a',baby:true,scale:.9},'purple worm':{color:'#8a3a9a',lip:'#c05a8a',scale:1.9,venom:true},remorhaz:{color:'#6a2a1a',lip:'#ff7a1a',scale:1.7,heat:true}};
 
 // Smooth-body helpers: a lathed profile, and a tapered limb between two joint points
 // (so arms and legs read as one body rather than a jointed mannequin).
 function lathe(parent,profile,material,x=0,y=0,z=0,phiStart=0,phiLength=Math.PI*2){return part(parent,new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),24,phiStart,phiLength),material,x,y,z);}
-function segment(parent,a,b,r1,r2,material){const A=new THREE.Vector3(...a),d=new THREE.Vector3(...b).sub(A),m=part(parent,new THREE.CylinderGeometry(r2,r1,d.length(),12),material,A.x+d.x/2,A.y+d.y/2,A.z+d.z/2);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return m;}
+function segment(parent,a,b,r1,r2,material,sides=12){const A=new THREE.Vector3(...a),d=new THREE.Vector3(...b).sub(A),m=part(parent,new THREE.CylinderGeometry(r2,r1,d.length(),sides),material,A.x+d.x/2,A.y+d.y/2,A.z+d.z/2);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return m;}
 // Tear a lathed hem: vertices below `below` are pulled down unevenly around the circle.
 function tatter(geo,below,depth,freq){
  const p=geo.attributes.position,v=new THREE.Vector3();let low=Infinity;
@@ -1718,27 +1832,58 @@ function ogre(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
  const skin=mat(o.skin,{roughness:.82}),dark=mat(shade(o.skin,.72),{roughness:.9}),hide=mat(o.hide||'#6a4a2c',{roughness:.97}),hair=mat(o.hair||'#1e1812',{roughness:1}),tusk=mat('#e6dcbc',{roughness:.5}),wood=mat('#553a22',{roughness:.88});
  const metal=o.metal?mat(o.metal,{roughness:.35,metalness:.7}):null;
- for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.34,0);body.add(leg);rounded(leg,.15,.22,.15,skin,0,-.1,0,.06);rounded(leg,.13,.12,.14,skin,0,-.25,.01,.05);rounded(leg,.17,.06,.22,dark,0,-.31,.05,.025);legs.push(leg);}
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.34,0);body.add(leg);
+  if(o.faceted){// ogre lords: six-sided tapered legs ending in a wedge boot with a kicked-up toe, no capsules
+   cylinder(leg,.085,.065,.22,skin,0,-.1,0,6);cylinder(leg,.065,.07,.14,skin,0,-.25,.01,6);cone(leg,.085,.2,dark,0,-.25,.07,5).rotation.x=Math.PI/2;}
+  else{rounded(leg,.15,.22,.15,skin,0,-.1,0,.06);rounded(leg,.13,.12,.14,skin,0,-.25,.01,.05);rounded(leg,.17,.06,.22,dark,0,-.31,.05,.025);}legs.push(leg);}
  cylinder(body,.22,.26,.2,hide,0,.38,0,9);rounded(body,.46,.05,.3,M.leather,0,.47,0,.02);
+ if(o.faceted){// a slumped, slab-sided gut and chest cut from flat planes instead of a ball and a block
+  const fl=mat(o.skin,{roughness:.9,flatShading:true});part(body,new THREE.SphereGeometry(.25,6,4),fl,0,.64,.03).scale.set(1.1,.95,.95);part(body,new THREE.SphereGeometry(.17,6,4),mat(shade(o.skin,1.1),{roughness:.85,flatShading:true}),0,.58,.12).scale.set(1,.8,.6);sphere(body,.016,dark,0,.6,.23);
+  part(body,new THREE.CylinderGeometry(.27,.2,.22,6),fl,0,.86,-.01).scale.z=.7;}
+ else{
  sphere(body,.25,skin,0,.64,.03,1.15,1,1);sphere(body,.17,mat(shade(o.skin,1.12),{roughness:.8}),0,.6,.13,1.05,.95,.6);sphere(body,.016,dark,0,.6,.23);
- rounded(body,.48,.2,.3,skin,0,.86,-.01,.09);
- for(const side of [-1,1]){if(metal){const pad=sphere(body,.11,metal,side*.24,.92,0,1.1,.6,1.1);pad.rotation.z=side*.35;}else sphere(body,.1,skin,side*.23,.9,0,1,.85,1);}
+ rounded(body,.48,.2,.3,skin,0,.86,-.01,.09);}
+ const plate=o.faceted&&metal?mat(o.metal,{roughness:.7,metalness:.45,flatShading:true}):null;
+ for(const side of [-1,1]){if(plate){// stepped, dented plates: a wedge of three flat slabs, no round dome to catch a highlight
+   for(let i=0;i<3;i++){const sl=part(body,new THREE.BoxGeometry(.2-i*.03,.03,.17-i*.02),plate,side*(.25+i*.012),.95-i*.03+(i===2&&side<0?-.01:0),0);sl.rotation.z=side*(.3+i*.1);}}
+  else if(metal){const pad=sphere(body,.11,metal,side*.24,.92,0,1.1,.6,1.1);pad.rotation.z=side*.35;}else sphere(body,.1,skin,side*.23,.9,0,1,.85,1);}
  if(o.mantle){sphere(body,.24,mat(o.mantle,{roughness:1}),0,.93,-.04,1.25,.42,1.05);rounded(body,.44,.4,.04,mat(o.cape||'#6a1f24',{roughness:.9}),0,.66,-.2,.02);}
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.29,.9,.02);body.add(arm);rounded(arm,.13,.24,.13,skin,0,-.12,0,.05);rounded(arm,.12,.22,.12,skin,0,-.33,.02,.045);sphere(arm,.08,dark,0,-.47,.03,1.1,.9,1.1);arm.rotation.z=side*.12;arm.rotation.x=side>0?-.4:-.1;}
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.29,.9,.02);body.add(arm);
+  if(o.faceted){cylinder(arm,.075,.06,.24,skin,0,-.12,0,6);cylinder(arm,.06,.075,.22,skin,0,-.33,.02,6);part(arm,new THREE.SphereGeometry(.08,5,4),mat(shade(o.skin,.72),{roughness:.9,flatShading:true}),0,-.47,.03).scale.set(1.1,.9,1.1);}
+  else{rounded(arm,.13,.24,.13,skin,0,-.12,0,.05);rounded(arm,.12,.22,.12,skin,0,-.33,.02,.045);sphere(arm,.08,dark,0,-.47,.03,1.1,.9,1.1);}arm.rotation.z=side*.12;arm.rotation.x=side>0?-.4:-.1;}
  const head=new THREE.Group();head.position.set(0,1.02,.07);body.add(head);
+ if(o.faceted){// ogre lords: a flat-shaded wedge skull, a hard brow ridge over sunk eyes, a slab jaw and ears of flat plates
+  const hf=mat(o.skin,{roughness:.92,flatShading:true}),hd=mat(shade(o.skin,.6),{roughness:1,flatShading:true});
+  part(head,new THREE.SphereGeometry(.13,6,4),hf,0,0,0).scale.set(1.05,.9,1);
+  const brow=part(head,new THREE.BoxGeometry(.25,.045,.08),hd,0,.045,.095);brow.rotation.x=.25;
+  part(head,new THREE.ConeGeometry(.03,.08,4),hf,0,-.005,.14).rotation.x=Math.PI/2;
+  const jaw=part(head,new THREE.CylinderGeometry(.12,.075,.1,6),hf,0,-.09,.05);jaw.scale.set(1,1,1.1);jaw.rotation.y=.2;
+  for(const side of [-1,1]){const t=cone(head,.016,side<0?.04:.07,tusk,side*.055,side<0?-.07:-.06,.13,5);t.rotation.x=-.15;
+   const ear=part(head,new THREE.ConeGeometry(.05,.07,3),hf,side*.14,0,-.01);ear.rotation.z=-side*Math.PI/2;
+   part(head,new THREE.BoxGeometry(.07,.035,.04),hd,side*.06,.015,.125);}// sunken sockets under the brow
+ }else{
  sphere(head,.13,skin,0,0,0,1.1,.95,1);rounded(head,.22,.045,.07,dark,0,.045,.09,.02);sphere(head,.035,dark,0,-.005,.13,1.1,.9,1);
- sphere(head,.1,skin,0,-.08,.05,1.2,.65,1.05);for(const side of [-1,1]){const t=cone(head,.016,side<0?.04:.07,tusk,side*.055,side<0?-.07:-.06,.13,5);t.rotation.x=-.15;sphere(head,.035,skin,side*.14,.0,-.01,.5,.9,.8);}
+ sphere(head,.1,skin,0,-.08,.05,1.2,.65,1.05);for(const side of [-1,1]){const t=cone(head,.016,side<0?.04:.07,tusk,side*.055,side<0?-.07:-.06,.13,5);t.rotation.x=-.15;sphere(head,.035,skin,side*.14,.0,-.01,.5,.9,.8);}}
  if(o.crown){const band=cylinder(head,.125,.13,.06,M.gold,0,.1,-.01,10);band.castShadow=false;for(let i=0;i<5;i++){const a=i/5*Math.PI*2;cone(head,.022,.07,M.gold,Math.sin(a)*.12,.16,Math.cos(a)*.12-.01,4);}sphere(head,.02,mat('#c0202a',{roughness:.2,metalness:.3}),0,.1,.125);}
+ else if(plate){const hm=part(head,new THREE.ConeGeometry(.14,.14,6),plate,0,.07,-.01);hm.rotation.y=.3;rounded(head,.03,.1,.03,plate,0,.02,.13,.01);}
  else if(metal){sphere(head,.135,metal,0,.04,-.01,1.1,.7,1.05);rounded(head,.03,.1,.03,metal,0,.02,.13,.01);}
  else{sphere(head,.1,hair,0,.07,-.04,1.05,.55,1);const knot=sphere(head,.04,hair,0,.15,-.06,1,1.3,1);knot.rotation.x=-.3;}
  // old war-scars raked across the chest of ogre lords and kings; every ogre has a snapped left tusk
  if(o.scars){const gash=mat('#2a1410',{roughness:1});g.userData.scarred=true;for(const [x,y,rz] of [[-.12,.86,.7],[.06,.8,-.6],[.14,.9,.5]]){const sc=rounded(body,.016,.16,.01,gash,x,y,.15,.004);sc.rotation.z=rz;}}
  eyes(head,o.glare?M.eye:mat('#d8c048',{emissive:'#7a6010',emissiveIntensity:.7,roughness:.3}),.015,.115,.05);
+ // and a cord of hero skulls hangs from the belt, one cracked through
+ if(o.scars){const bone=mat('#d8ccb0',{roughness:.7}),hole=mat('#120c0a',{roughness:1});g.userData.skullBelt=true;const old2=mat('#a8987a',{roughness:.95,flatShading:true});
+  for(const [x,y] of [[-.16,.4],[-.04,.37],[.1,.4]]){// a skull is a cranium over a narrow jaw with two dark sockets and a nose slit, yellowed and cracked
+   part(body,new THREE.SphereGeometry(.036,5,4),old2,x,y+.008,.2).scale.set(1,.95,1);part(body,new THREE.BoxGeometry(.034,.022,.03),old2,x,y-.026,.21);
+   for(const sx of [-1,1])part(body,new THREE.BoxGeometry(.012,.014,.01),hole,x+sx*.014,y+.006,.234).castShadow=false;
+   part(body,new THREE.BoxGeometry(.005,.014,.01),hole,x,y-.012,.236).castShadow=false;}}
  const clubL=o.bigClub?.55:.46,club=cylinder(body,o.bigClub?.085:.07,.03,clubL,wood,.33,.4,.2,7);club.rotation.x=.55;
+ // lords and kings have used the club: the nailed head is crusted with old dried blood
+ if(o.scars){const dry=mat('#3a1210',{roughness:1});const st=sphere(body,.07,dry,.33,o.bigClub?.55:.52,.28,1.1,1.5,1);st.castShadow=false;g.userData.bloodyClub=true;}
  for(let i=0;i<(o.bigClub?5:3);i++){const a=i*2.1,nail=cone(body,.016,.05,metal||M.darkSteel,.33+Math.cos(a)*.07,.56+(i%2)*.04,.29+Math.sin(a)*.03,4);nail.rotation.set(.55+Math.sin(a),0,Math.cos(a));}
- return trimDraws(actor(g,body,legs,null,[],'orc'));
+ return trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head}));
 }
-const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#8a6a48',hide:'#4a3a2a',metal:'#a0703a',scars:true,scale:1.15},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,scars:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.32}};
+const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#6a5038',hide:'#3a2c20',metal:'#7a5430',scars:true,faceted:true,scale:1.15},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,scars:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.32}};
 
 // Generic guardian, kept as the last resort but tinted by the monster's glyph colour.
 // Liches: a gaunt, robed skeleton with a bare skull, burning eye sockets and a staff topped by a glowing orb.
@@ -1852,6 +1997,9 @@ function wraith(o){
  // the Nazgul's blade is a wicked, notched thing: dark bites chewed out of its edge and a hooked tip
  // the barrow wight's grave-rusted blade is chipped too: pale bright bites where the rust has flaked off the edge
  if(o.kind==='barrow wight'&&o.sword){const bite=mat('#b8b4a4',{roughness:.4,metalness:.7});for(const [dy,dx] of [[-.14,-1],[.02,1],[.15,-1]]){const n=rounded(body,.018,.035,.014,bite,.3+dx*.02,.74+dy*Math.cos(.9)+.02,.2+dy*Math.sin(.9)*-1,.004);n.rotation.x=.9;}}
+ // barrow wights wear their grave: clods of black earth caked on the shoulders and a rotted burial-cloth strip hanging from the sword arm
+ if(o.kind==='barrow wight'){const earth=mat('#2a2218',{roughness:1}),rag=mat('#7a7458',{roughness:1});g.userData.graveEarth=true;for(const [x,y,z,r] of [[-.2,1.0,-.04,.05],[.17,1.02,.02,.04],[-.08,1.04,-.1,.035]])sphere(body,r,earth,x,y,z,1.3,.6,1.1);
+  const strip=rounded(arms[1],.04,.22,.008,rag,.02,-.3,.06,.003);strip.rotation.z=.12;}
  // a wraith's cowl is torn: ragged shreds of shroud hang from the hood rim, drifting like smoke
  if(o.kind==='wraith'){for(const [sx,sz,len] of [[-.15,.1,.2],[.13,.12,.15],[.0,.17,.11]]){const t=cone(head,.03,len,robe,sx,1.0-H,sz,3);t.rotation.x=Math.PI;t.rotation.z=sx*1.2;}}
  if(o.crown&&o.sword){const nick=mat('#101014',{roughness:.5,metalness:.6});for(const [dy,dx] of [[-.12,1],[0,-1],[.12,1]]){const n=rounded(body,.02,.04,.016,nick,.3+dx*.02,.74+dy*Math.cos(.9)+.02,.2+dy*Math.sin(.9)*-1,.004);n.rotation.x=.9;}}
@@ -1866,20 +2014,49 @@ const WRAITHS={wraith:{robe:'#5a5e6a',glow:'#9ad8ff',scale:1.2},'barrow wight':{
 // Vampires: a tall, pale aristocrat in a high-collared cape with a red lining, slicked hair with a widow's peak,
 // fangs and red eyes. Lords wear a gold medallion, mages a violet cape and a glowing hand orb,
 // and Vlad a jewelled red cap, a moustache and a long impaling spear.
+// Cloth for a cloak: a sector of an open cone (radius r0 at the top, r1 at the hem, h tall, top at y 0)
+// falling in `folds` vertical folds that deepen toward the hem, the hem torn into jagged points.
+// `inset` pulls it inward (a lining under the outer cloth). Angles: 0 faces +z (front), PI the back.
+function drape({from,len,h,r0,r1,folds=8,amp=.03,tatter=.08,seed=0,inset=0}){
+ const geo=new THREE.CylinderGeometry(r0,r1,h,Math.max(12,Math.round(len*14)),14,true,from,len).translate(0,-h/2,0);
+ const p=geo.attributes.position,v=new THREE.Vector3();
+ // t is clamped: the top row rounds a hair above 0, and a negative base to the 1.1 is NaN
+ for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const t=Math.min(1,Math.max(0,-v.y/h)),a=Math.atan2(v.x,v.z),r=Math.hypot(v.x,v.z);
+  const fold=amp*Math.pow(t,1.1)*Math.sin(a*folds*2+seed);const nr=Math.max(.01,r+fold-inset*(.6+.4*t));
+  let y=v.y;if(t>.96){const jag=Math.abs(Math.sin(a*folds*3.1+seed*2.3))*.7+.3*Math.abs(Math.sin(a*23+seed));y-=tatter*jag;}
+  p.setXYZ(i,Math.sin(a)*nr,y,Math.cos(a)*nr);}
+ geo.computeVertexNormals();return geo;
+}
+// A tall standing collar behind the head: flared outward toward its top, its points rising at the sides.
+function collarSheet({h,r0,r1,inset=0}){
+ const span=1.25,geo=new THREE.CylinderGeometry(r1,r0,h,24,4,true,Math.PI-span,span*2).translate(0,h/2,0);
+ const p=geo.attributes.position,v=new THREE.Vector3();
+ for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const a=Math.atan2(v.x,v.z),t=v.y/h,side=Math.abs(Math.abs(a)-Math.PI)/span;
+  const r=Math.hypot(v.x,v.z)-inset;p.setXYZ(i,Math.sin(a)*r,v.y+t*.09*side*side,Math.cos(a)*r);}
+ geo.computeVertexNormals();return geo;
+}
 function vampire(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
  const skin=mat(o.skin||'#d8d0cc',{roughness:.6}),suit=mat(o.suit||'#1c1a22',{roughness:.8}),cape=mat(o.cape||'#141218',{roughness:.85,side:THREE.DoubleSide}),lining=mat(o.lining||'#8a1420',{roughness:.7,side:THREE.DoubleSide}),hair=mat(o.hair||'#141214',{roughness:.5}),boot=mat('#101012',{roughness:.5}),fang=mat('#f4f0e6',{roughness:.3}),glow=mat(o.eye||'#ff2a2a',{emissive:o.eye||'#ff2a2a',emissiveIntensity:2.4,roughness:.3});
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.1,.44,0);body.add(leg);rounded(leg,.12,.42,.13,suit,0,-.18,0,.035);rounded(leg,.13,.1,.24,boot,0,-.39,.04,.03);legs.push(leg);}
  rounded(body,.34,.44,.22,suit,0,.68,0,.05);rounded(body,.08,.3,.02,mat('#e8e4dc',{roughness:.6}),0,.74,.11,.01);
- // cape: a back panel flaring toward the hem, red-lined, with a tall two-piece collar framing the head
- // the back panel hangs from a pivot at the shoulders (`cape`), and each side flap from its own (`flaps`), so they can sweep
+ // cape: real cloth, not a board. A curved drape hangs round the back from the shoulders, falling in
+ // deep folds that flare wider toward a torn, jagged hem; a blood-red lining shows on the inside; side
+ // panels carry the drape round the arms; and a tall flared collar stands up behind the head, its
+ // points raised at the sides. The back drape hangs from a pivot at the shoulders (`cape`) and each
+ // side panel from its own (`flaps`), so vampire-sweep.js can still sweep and flare them.
  const capeG=new THREE.Group();capeG.position.set(0,.95,-.14);body.add(capeG);const flaps=[];
- const back=rounded(capeG,.46,.86,.03,cape,0,-.43,0,.015);back.rotation.x=-.08;rounded(capeG,.43,.82,.012,lining,0,-.42,.02,.006).rotation.x=-.08;
- // the hem is ragged: dark jagged tatters hang off the bottom of the cape, and the lining shows through one torn gap
- for(let i=0;i<6;i++){const t=cone(capeG,.032,.08+(i*5%3)*.03,cape,-.19+i*.076,-.80-(i*5%3)*.01,-.005,3);t.rotation.set(Math.PI,0,(i%2?.2:-.15));}
- for(const side of [-1,1]){const fg=new THREE.Group();fg.position.set(side*.24,.89,-.03);body.add(fg);flaps.push(fg);const flap=rounded(fg,.05,.74,.2,cape,0,-.37,0,.015);flap.rotation.z=side*.1;
-  const collar=rounded(body,.16,o.collar||.24,.015,lining,side*.12,1.02,-.06,.006);collar.rotation.set(-.25,side*.55,side*-.25);
-  const outer=rounded(body,.17,(o.collar||.24)+.02,.012,cape,side*.125,1.02,-.075,.006);outer.rotation.copy(collar.rotation);}
+ const BACK=Math.PI,SPAN=1.45,FLAP=.6;
+ const back=part(capeG,drape({from:BACK-SPAN,len:SPAN*2,h:.78,r0:.21,r1:.4,folds:9,amp:.03,tatter:.08,seed:1}).translate(0,-.022,.14),cape);back.rotation.x=.07; // the hem trails back behind the legs
+ part(capeG,drape({from:BACK-SPAN,len:SPAN*2,h:.76,r0:.205,r1:.39,folds:9,amp:.03,tatter:.06,seed:1,inset:.012}).translate(0,-.022,.14),lining).rotation.x=.07;
+ for(const side of [-1,1]){const fg=new THREE.Group();fg.position.set(side*.24,.89,-.03);body.add(fg);flaps.push(fg);
+  const from=side>0?BACK-SPAN-FLAP:BACK+SPAN;
+  part(fg,drape({from,len:FLAP,h:.78,r0:.21,r1:.39,folds:3,amp:.025,tatter:.07,seed:side+3}).translate(-side*.24,.06,.03),cape);
+  part(fg,drape({from,len:FLAP,h:.76,r0:.205,r1:.38,folds:3,amp:.025,tatter:.05,seed:side+3,inset:.012}).translate(-side*.24,.06,.03),lining);}
+ // the tall collar: flared outward toward its top, red inside, its points standing up at the sides
+ const collarH=(o.collar||.24)+.06;
+ part(body,collarSheet({h:collarH,r0:.135,r1:.21}),cape,0,1.0,-.01);
+ part(body,collarSheet({h:collarH-.01,r0:.128,r1:.2,inset:.008}),lining,0,1.0,-.01);
  // dried blood: a dark stain down the shirt front and a crusted streak from the corner of the mouth
  rounded(body,.07,.14,.012,mat('#4a0c12',{roughness:.5}),.025,.72,.118,.006).rotation.z=.15;
  // head: gaunt face, pointed ears, widow's peak, fangs and red eyes
@@ -2477,6 +2654,12 @@ function elemental(o){
   for(let i=0;i<8;i++){const a=i*.8;const leaf=part(swirl,new THREE.PlaneGeometry(.04,.02),mat(i%2?'#8a7a4a':'#6a8a3a',{side:THREE.DoubleSide}),Math.cos(a)*.34,.3+i*.09,Math.sin(a)*.34);leaf.rotation.set(a,a*2,a*.5);}}
  if(k==='water'){const foam=mat('#eef8ff',{roughness:.4});crown=new THREE.Group();crown.position.set(0,headY+.1,-.05);body.add(crown);for(let i=0;i<7;i++){const a=(i-3)*.4;sphere(crown,.04-Math.abs(i-3)*.004,foam,Math.sin(a)*.1,Math.cos(a)*.03,-Math.abs(i-3)*.015).castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.2;sphere(swirl,.018,dark,Math.cos(a)*.32,.3+i*.1,Math.sin(a)*.28,1,1.4,1).castShadow=false;}}
+ // stalkers only: not a gale but a hunter. Long hooked claws hang off both fists and a mouthful of needle fangs
+ // gapes in the pale face, under black pits for eyes
+ if(o.stalker){const claw=mat('#2a2a34',{roughness:.4,metalness:.3}),fang=mat('#e8e8f0',{roughness:.35});g.userData.stalker=true;
+  for(const side of [-1,1])for(let i=0;i<3;i++){const c=cone(body,.012,.16,claw,side*.3+(i-1)*.03,chestY-.36,.12,4);c.rotation.set(-.3,0,(i-1)*.25);}
+  sphere(body,.045,mat('#06060a',{roughness:1}),0,headY-.06,.1,1.3,.7,.6);
+  for(let i=0;i<6;i++){const x=(i-2.5)*.016,f=cone(body,.006,.03+(i%2)*.012,fang,x,headY-.06+(i%2?.02:-.02),.135,4);f.rotation.x=Math.PI*(i%2?1:0);}}
  // earth elementals only: a jagged fissure splits the chest, glowing like a banked forge
  if(k==='earth'){const vein=glow(o.eye,1.6);g.userData.cracked=true;for(const [x,y,rz] of [[-.05,.1,.5],[.02,.02,-.6],[-.02,-.08,.4]])part(body,new THREE.BoxGeometry(.018,.13,.012),vein,x,chestY+y,.16).rotation.z=rz;}
  // water elementals only: a drowned skull hangs in the dark of the chest, jaw agape, bones pale through the water
@@ -2484,13 +2667,17 @@ function elemental(o){
   sphere(body,.06,bone,0,chestY+.04,.04,1,1.1,.9);sphere(body,.04,bone,0,chestY-.03,.07,1,.7,1);
   for(const side of [-1,1])sphere(body,.017,hollow,side*.027,chestY+.05,.09,1,1.2,.6);
   for(let i=0;i<3;i++)part(body,new THREE.BoxGeometry(.1-i*.015,.008,.008),bone,0,chestY-.1-i*.035,.03);}
+ // air elementals only: not a breeze but a storm. Jagged shards of dark glass-wind whirl in the gale and a forked bolt crackles in the chest
+ if(k==='air'&&!o.stalker){const shard=glow('#6a7a96',.9),bolt=glow(o.eye,3);g.userData.storm=true;
+  for(let i=0;i<5;i++){const a=i*1.3,f=cone(swirl,.03,.2+(i%2)*.08,shard,Math.cos(a)*.38,.35+i*.13,Math.sin(a)*.34,4);f.rotation.set(a,0,Math.PI/2+i*.4);f.castShadow=false;}
+  for(const [x,y,rz] of [[-.03,.08,.5],[.03,0,-.6],[-.01,-.08,.4]])part(body,new THREE.BoxGeometry(.016,.12,.012),bolt,x,chestY+y,.16).rotation.z=rz;}
  // fire elementals only: black cooled clinker crusts the shoulders and brow, the fire burning through the gaps
  if(k==='fire'){const clinker=mat('#17110e',{roughness:1,flatShading:true});g.userData.clinkered=true;
   for(const [x,y,z,r] of [[-.2,chestY+.2,0,.07],[.19,chestY+.19,.02,.06],[-.08,chestY+.02,.15,.05],[.1,headY+.08,.06,.045]])part(body,new THREE.DodecahedronGeometry(r,0),clinker,x,y,z).rotation.set(x*9,y*5,z*3);}
  if(core)g.userData.core=core;
  return trimDraws(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),{element:k,swirl},crown?{crown}:{},core?{core}:{}));
 }
-const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff',scale:1.3},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0',scale:1.3},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.5},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff',scale:1.3},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff',scale:1.2}};
+const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff',scale:1.3},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0',scale:1.3},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.5},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff',scale:1.3},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff',stalker:true,scale:1.2}};
 
 // Angels: a robed figure hovering on feathered wings, with a halo and a sword. The wings
 // are pivots at the shoulder blades, so the default wing beat in live.js flexes them.
@@ -2580,7 +2767,7 @@ const VAMPIRES={vampire:{scale:1.05},'vampire lord':{suit:'#2a1420',lining:'#b01
 // and a lighter build; djinn and sandestins trail a smoky wisp instead of legs and hover.
 function demon(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
- const skin=mat(o.skin,{roughness:.7}),dark=mat(shade(o.skin,.55),{roughness:.8}),horn=mat(o.horn||'#2a2018',{roughness:.45}),claw=mat('#15100c',{roughness:.35,metalness:.2}),
+ const fl=!!o.bound,skin=mat(o.skin,{roughness:.7,flatShading:fl}),dark=mat(shade(o.skin,.55),{roughness:.8,flatShading:fl}),horn=mat(o.horn||'#2a2018',{roughness:.45}),claw=mat('#15100c',{roughness:.35,metalness:.2}),
   tooth=mat('#e8e0c4',{roughness:.4}),glow=mat(o.eye||'#ffcc30',{emissive:o.eye||'#ffcc30',emissiveIntensity:3,roughness:.3}),mouth=mat('#2a0808',{roughness:1}),
   web=mat(o.wing||shade(o.skin,.45),{roughness:.85,side:THREE.DoubleSide,transparent:true,opacity:.92});
  const slim=!!o.slim,bulk=o.bulk||1,hipY=o.smoke?.5:.44,chestY=slim?.72:.7,shoulderX=(slim?.12:.17)*bulk,headY=slim?.97:.99+.03*(bulk-1);
@@ -2593,9 +2780,12 @@ function demon(o){
   segment(leg,[0,0,0],k,.075*bulk,.055,skin);sphere(leg,.05,skin,...k);segment(leg,k,a,.045,.03,dark);segment(leg,a,f,.03,.025,dark);
   for(const x of [-.018,.018])rounded(leg,.032,.03,.06,horn,side*.02+x,-.43,.02,.01);legs.push(leg);}
  // torso: a broad chest over a narrow waist, pectorals and a column of belly plates
- sphere(body,(slim?.12:.15)*bulk,skin,0,.56,0,1.1,1,.85);
+ if(fl){// a bound spirit is cut from hard planes: a six-sided waist under a wide wedge of chest, slab pectorals
+  cylinder(body,.15,.1,.2,skin,0,.56,0,6).scale.z=.85;cylinder(body,.22,.12,.3,skin,0,chestY,0,6).scale.z=.75;
+  for(const side of [-1,1]){rounded(body,.12,.09,.07,skin,side*.08,chestY+.04,.1,.012).rotation.z=-side*.12;}}
+ else{sphere(body,(slim?.12:.15)*bulk,skin,0,.56,0,1.1,1,.85);
  sphere(body,(slim?.14:.19)*bulk,skin,0,chestY,.0,1.15,1.05,.85);
- if(!slim)for(const side of [-1,1])sphere(body,.09*bulk,skin,side*.07*bulk,chestY+.04,.1*bulk,1,.8,.6);
+ if(!slim)for(const side of [-1,1])sphere(body,.09*bulk,skin,side*.07*bulk,chestY+.04,.1*bulk,1,.8,.6);}
  for(let i=0;i<3;i++)rounded(body,.1*bulk,.04,.03,dark,0,.5+i*.06,.12*bulk-i*.005,.012);
  if(o.spikes)for(let i=0;i<5;i++){const s=cone(body,.022,.1,o.spikes==='bone'?tooth:horn,0,.52+i*.09,-.14*bulk+i*.005,4);s.rotation.x=-1.2;}
  // old claw gashes raked slantwise down one flank: pale puckered scar tissue (seeded by the skin so each kind scars differently)
@@ -2607,9 +2797,17 @@ function demon(o){
  // arms: shoulder, elbow, wrist and three hooked claws; extra pairs sit lower on the flanks
  const pairs=o.arms||1;
  for(let p=0;p<pairs;p++)for(const side of [-1,1]){const dy=p*-.11,sc=1-p*.15,sh=[side*shoulderX,chestY+.12+dy,0],el=[side*(shoulderX+.1*sc),chestY-.04+dy,.04+p*.02],wr=[side*(shoulderX+.08*sc),chestY-.18+dy,.14];
-  sphere(body,.06*sc*bulk,skin,...sh);segment(body,sh,el,.05*sc*bulk,.04*sc,skin);segment(body,el,wr,.04*sc,.03*sc,skin);
+  if(fl){rounded(body,.11,.07,.1,skin,...sh,.012).rotation.z=-side*.3;segment(body,sh,el,.05,.036,skin,6);segment(body,el,wr,.036,.024,skin,6);}
+  else{sphere(body,.06*sc*bulk,skin,...sh);segment(body,sh,el,.05*sc*bulk,.04*sc,skin);segment(body,el,wr,.04*sc,.03*sc,skin);}
   if(o.spikes)cone(body,.015,.06,horn,el[0]+side*.03,el[1],el[2]-.02,4).rotation.z=-side*1.3;
   for(let k=-1;k<=1;k++){const c=cone(body,.01,.06,claw,wr[0]+k*.015,wr[1]-.04,wr[2]+.01,4);c.rotation.x=Math.PI+.3;c.rotation.z=k*.2;}}
+ // a bound spirit: an iron shackle still locked on the left wrist, its chain snapped after a few links
+ if(o.bound){const iron=mat('#1c1a1c',{roughness:.5,metalness:.7,flatShading:true}),rust=mat('#4a2c1c',{roughness:.9,flatShading:true}),wx=-(shoulderX+.08),wy=chestY-.18;iron.name='djinni-shackle';
+  // a thick six-sided iron band the width of the forearm, with a rust-stained lug and a ring for the chain
+  const cuff=part(body,new THREE.CylinderGeometry(.052,.046,.07,6),iron,wx,wy,.14);cuff.rotation.x=0;
+  part(body,new THREE.CylinderGeometry(.056,.056,.012,6),rust,wx,wy+.038,.14);
+  rounded(body,.03,.04,.03,iron,wx,wy-.05,.14,.006);
+  for(let k=0;k<3;k++){const l=part(body,new THREE.TorusGeometry(.024,.008,4,8,k===2?Math.PI*1.4:Math.PI*2),iron,wx,wy-.1-k*.04,.14);l.rotation.set(0,k%2?Math.PI/2:0,Math.PI/2);l.scale.y=1.4;}}
  // weapon in the right hand
  const grip=[shoulderX+.08,chestY-.2,.16];
  if(o.weapon==='whip'){const pts=[grip,[grip[0]+.1,grip[1]-.12,.3],[grip[0]+.05,.1,.42],[grip[0]-.12,.02,.38],[grip[0]-.24,.01,.22]];const lash=tube(body,pts,.012,o.flame?mat(o.flame,{emissive:o.flame,emissiveIntensity:2.4}):M.leather,20);lash.castShadow=false;if(o.flame){lash.userData.part='whip';lash.userData.path=pts;}}
@@ -2622,6 +2820,7 @@ function demon(o){
  if(form==='beak'){sphere(head,.09,skin,0,0,0,1,1,1.1);const b=cone(head,.04,.18,horn,0,-.03,.14,6);b.rotation.x=Math.PI/2+.4;
   for(let i=0;i<10;i++){const a=i/10*Math.PI*2,f=cone(body,.03,.12,dark,Math.sin(a)*.09,headY-.12,Math.cos(a)*.08,4);f.rotation.set(Math.cos(a)*.9,0,-Math.sin(a)*.9);}
   for(const s of [-1,1])sphere(head,.02,glow,s*.05,.02,.07).castShadow=false;}
+ else if(form==='drowned')waterDemonHead(head,{skin,dark,mouth,tooth}); // the water demon's drowned toad skull (water-demon.js)
  else if(form==='toad'){sphere(head,.12,skin,0,-.01,.02,1.4,.65,1.1);cylinder(head,.1,.1,.012,mouth,0,-.04,.1,16).scale.set(1,1,.35);
   for(const s of [-1,1]){sphere(head,.04,skin,s*.08,.06,.04);sphere(head,.025,glow,s*.08,.08,.07).castShadow=false;}}
  else if(form==='boar'){sphere(head,.11,skin,0,0,0,1.15,1,1.05);const snout=cylinder(head,.045,.06,.15,skin,0,-.035,.13,8);snout.rotation.x=Math.PI/2;
@@ -2699,6 +2898,16 @@ function demon(o){
   const ring=part(body,new THREE.TorusGeometry(.07*bulk,.008,5,14),hot,0,chestY+.02,.15*bulk);ring.castShadow=false;
   for(let i=0;i<3;i++){const a=i*Math.PI*2/3+.5,c=cone(body,.008,.07*bulk,hot,Math.sin(a)*.04*bulk,chestY+.02+Math.cos(a)*.04*bulk,.155*bulk,4);c.rotation.x=Math.PI/2;c.castShadow=false;}
   for(const side of [-1,1]){const c=cone(body,.028,.17,iron,side*shoulderX*1.1,chestY+.14,-.02,5);c.rotation.z=-side*.7;c.castShadow=false;}}
+ // the erinys is a fury in iron: a spiked collar riveted round the neck and a snapped chain trailing down her back
+ if(o.mark==='fury'){const iron=mat('#1c1a1c',{roughness:.45,metalness:.7}),rust=mat('#5a3424',{roughness:.8,metalness:.4});iron.name='fury-collar';rust.name='fury-chain';
+  const ring=part(body,new THREE.TorusGeometry(.075,.014,5,12),iron,0,headY-.1,-.01);ring.rotation.x=Math.PI/2;ring.castShadow=false;
+  for(let i=0;i<6;i++){const a=i*1.05+.3,c=cone(body,.012,.06,iron,Math.sin(a)*.085,headY-.1,Math.cos(a)*.085-.01,4);c.rotation.z=-Math.sin(a)*Math.PI/2;c.rotation.x=Math.cos(a)*Math.PI/2;c.castShadow=false;}
+  const t=tube(body,[[.03,headY-.1,-.08],[.07,chestY+.1,-.15],[.03,chestY-.1,-.17],[.1,chestY-.3,-.15]],.01,rust,8);t.castShadow=false;}
+ if(o.mark==='slag'){const crust=mat('#14100e',{roughness:.95}),vein=mat(o.evil,{emissive:o.evil,emissiveIntensity:2.4,roughness:.4});crust.name='demon-slag';vein.name='demon-slag-glow';
+  for(const side of [-1,1]){const c=sphere(body,.07*bulk,crust,side*shoulderX*1.15,chestY+.12,-.01,1.2,.7,1);c.castShadow=false;}
+  for(const [x,y] of [[-.07,.04],[.02,.1],[.08,-.02]]){const t=tube(body,[[x*bulk,chestY+y,.16*bulk],[(x+.03)*bulk,chestY+y-.05,.17*bulk],[(x-.02)*bulk,chestY+y-.1,.15*bulk]],.007,vein,5);t.castShadow=false;}}
+ // the water demon: gills, dorsal fins, a bloated belly, draped weed, a barnacle crust, running water and a wet pool (water-demon.js)
+ if(o.mark==='drowned')waterDemonBody(body,{skin,chestY,headY,shoulderX,bulk});
  if(o.mark==='tentacles'){const flesh=mat('#3a4a34',{roughness:.5}),fin=mat('#2a3422',{roughness:.8});flesh.name='demon-tentacle';fin.name='demon-frill';
   for(const side of [-1,1]){tube(body,[[side*shoulderX*1.1,chestY+.08,-.04],[side*(shoulderX+.12),chestY-.1,-.1],[side*(shoulderX+.2),chestY-.3,.02],[side*(shoulderX+.1),chestY-.5,.14],[side*(shoulderX+.2),chestY-.62,.26]],.03,flesh,14);}
   for(let i=0;i<5;i++){const x=(i-2)*.05,f=cone(body,.02,.16-Math.abs(i-2)*.025,fin,x,headY-.08,-.06,4);f.rotation.x=-.5;f.castShadow=false;}}
@@ -2713,6 +2922,12 @@ function demon(o){
   part(wing,new THREE.ShapeGeometry(shape,6),web);
   segment(wing,[0,0,0],[side*.12*sp,.22*sp,.005],.02,.014,dark);for(const [x,y] of tips.slice(0,3))segment(wing,[side*.12*sp,.22*sp,.005],[x,y,.005],.01,.005,dark);
   cone(wing,.012,.05,claw,side*.12*sp,.25*sp,.005,4);wing.rotation.y=side*-.4;wings.push(wing);}
+ // sandestins only: the body is held together sand. Pale grains stream off the shoulders and the arms bleed
+ // grit, with dark fissures cracked across the face
+ if(o.sand){const grit=mat('#d8c48a',{roughness:1}),crack=mat('#14141c',{roughness:1});g.userData.sand=true;
+  for(let i=0;i<8;i++){const a=i*2.4,r=.17+(i%3)*.05;sphere(body,.011,grit,Math.cos(a)*r,hipY+.1+i*.1,Math.sin(a)*r*.8).castShadow=false;}
+  for(const side of [-1,1])for(let i=0;i<3;i++)cone(body,.01,.07,grit,side*(shoulderX+.05)+(i-1)*.02,chestY-.1-i*.1,.02,4).rotation.x=Math.PI;
+  for(const [x,rz] of [[-.025,.5],[.03,-.4]])part(body,new THREE.BoxGeometry(.008,.06,.01),crack,x,headY+.01,.095).rotation.z=rz;}
  // tail: a thin whip curling behind, ending in a spade
  let tail=null;
  if(o.tail&&!o.smoke){tail=new THREE.Group();tail.position.set(0,.5,-.1*bulk);tail.scale.setScalar(.75);body.add(tail);
@@ -2722,11 +2937,11 @@ function demon(o){
  return trimDraws(actor(g,body,legs,tail,wings,o.smoke?'hover':'orc'));
 }
 const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,evil:true,scale:1.35},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,evil:true,scale:1.25},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,evil:true,scale:1.25},war:{robe:'#3a1414',glow:'#ff3a2a',bone:'#a89080',solid:true,sword:true,evil:true,scale:1.3}};
-const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',evil:'#40d8c0',horns:'short',head:'toad',tail:true,bulk:1.1,scale:1.1},'lava demon':{skin:'#5a2418',eye:'#ffdd40',horns:'short',flame:'#ff6a20',evil:'#ff6a20',tail:true,bulk:1.15,scale:1.15},
- 'horned devil':{skin:'#8a3a24',mark:'iron',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident',scale:1.1},succubus:{skin:'#d8a090',eye:'#ff60a0',evil:'#d0306a',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true,scale:1.1},
+const DEMONS={'water demon':{skin:'#2f5a8a',mark:'drowned',eye:'#80f0ff',evil:'#40d8c0',horns:'short',head:'drowned',tail:true,bulk:1.15,scale:1.15},'lava demon':{skin:'#5a2418',mark:'slag',eye:'#ffdd40',horns:'short',flame:'#ff6a20',evil:'#ff6a20',tail:true,bulk:1.15,scale:1.15},
+ 'horned devil':{skin:'#8a3a24',mark:'iron',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident',scale:1.1},succubus:{skin:'#7a5664',eye:'#ff60a0',evil:'#d0306a',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true,scale:1.1},
  // the Minion of Huhetotl (the Archeologist quest nemesis): a black-skinned, long-horned winged fiend with a sword
  'minion of huhetotl':{skin:'#2a2224',eye:'#ff4030',evil:'#a01820',horns:'long',wings:.8,tail:true,weapon:'sword',bulk:1.1,scale:1.3},
- incubus:{skin:'#b07a60',eye:'#ff60a0',evil:'#c0561c',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true,scale:1.1},erinys:{skin:'#a86a58',eye:'#ff4030',evil:'#ff4030',slim:true,hair:'#3a2418',wings:.8,weapon:'sword',scale:1.05},
+ incubus:{skin:'#6a4a44',eye:'#ff60a0',evil:'#c0561c',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true,scale:1.1},erinys:{skin:'#a86a58',eye:'#ff4030',evil:'#ff4030',mark:'fury',slim:true,hair:'#3a2418',wings:.8,weapon:'sword',scale:1.05},
  'barbed devil':{skin:'#9a2e20',evil:'#ff2a28',horns:'short',spikes:true,tail:true,scale:1.1},marilith:{skin:'#7a3a5a',mark:'gilt',evil:'#c04a8a',eye:'#ffdd40',slim:true,hair:'#1a1418',arms:3,weapon:'sword',tail:true,scale:1.1},
  vrock:{skin:'#6a5a48',mark:'ruff',evil:'#a8b030',head:'beak',horn:'#3a3028',wings:.9,scale:1.1},'bone devil':{skin:'#9a9078',mark:'ribs',evil:'#c8e04a',head:'skull',spikes:'bone',tail:true,scale:1.1},
  'ice devil':{skin:'#b8d0e0',mark:'frost',evil:'#50b8ff',eye:'#60c0ff',horn:'#e8f4ff',head:'skull',spikes:'bone',tail:true,scale:1.15},nalfeshnee:{skin:'#5a4a3a',mark:'boils',evil:'#e07a20',head:'boar',spikes:'bone',wings:.5,bulk:1.3,scale:1.15},
@@ -2736,7 +2951,7 @@ const DEMONS={'water demon':{skin:'#2f5a8a',eye:'#80f0ff',evil:'#40d8c0',horns:'
  geryon:{skin:'#6a4a2a',mark:'crown',evil:'#ff7a20',horns:'ram',wings:.9,tail:true,scale:1.2},dispater:{skin:'#8a2a24',mark:'crown',evil:'#ff3030',horns:'long',tail:true,weapon:'trident',scale:1.15},
  baalzebub:{skin:'#3a4a2a',mark:'crown',evil:'#b8ff30',eye:'#ff4030',horns:'short',wings:.7,scale:1.2},asmodeus:{skin:'#a02018',mark:'crown',evil:'#ff2a10',eye:'#ffe040',horns:'long',tail:true,weapon:'trident',scale:1.25},
  demogorgon:{skin:'#5a6a4a',mark:'tentacles',evil:'#40ffa0',heads:2,eye:'#ff3030',horns:'short',arms:2,tail:true,bulk:1.2,scale:1.3},nalzok:{skin:'#4a1a2a',mark:'brand',evil:'#c02aff',eye:'#ff4060',horns:'ram',wings:1,flame:'#c02aff',tail:true,scale:1.2},
- 'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
+ 'mail daemon':{skin:'#3a5a9a',eye:'#ffe040',evil:'#5aa0ff',horns:'short',wings:.6,tail:true,scale:1.25},djinni:{bound:true,skin:'#d8a040',eye:'#fff080',hair:'#1a1410',evil:'#ffb030',smoke:true,scale:1.15},sandestin:{skin:'#8a8aa0',sand:true,eye:'#c0f0ff',horns:'short',evil:'#80d8ff',smoke:true,scale:1.15}};
 
 // trappers (t): a broad, ragged mantle flattened against the floor like a dropped cloak, mottled to match the stone,
 // with warty ridges, a fringed dark hem, and a wide toothed maw with stalked eyes along the front edge;
@@ -2806,21 +3021,28 @@ function seaMonster(o){
  }
  if(o.form==='kraken'){
   // a tall, backward-tilted squid mantle with a lateral fin, great round eyes, a ring of curling arms and two long clubbed tentacles
-  const mantle=lathe(body,[[0,0],[.14,.03],[.2,.14],[.19,.3],[.14,.44],[.06,.54],[0,.57]],skin,0,.22,-.08);mantle.rotation.x=-.45;
+  // a faceted seven-sided mantle in flat-shaded, dried-blood hide, so it reads as plates and not as an egg
+  const kskin=mat(shade(o.color,.72),{roughness:.92,flatShading:true}),kdark=mat(shade(o.color,.42),{roughness:.95,flatShading:true});
+  const mantle=part(body,new THREE.LatheGeometry([[0,0],[.14,.03],[.2,.14],[.19,.3],[.14,.44],[.06,.54],[0,.57]].map(([r,h])=>new THREE.Vector2(r,h)),7),kskin,0,.22,-.08);mantle.rotation.set(-.45,.2,0);
   for(const side of [-1,1]){const f=finShape(body,[[0,0],[.16,.1],[.02,.2]],fin,side*.12,.62,-.28);f.rotation.y=side>0?0:Math.PI;f.rotation.x=-.45;}
-  for(let i=0;i<7;i++){const a=i*2.3,r=.1+(i%3)*.04;sphere(body,.028,dark,Math.sin(a)*r*.9,.36+i*.035,.02-i*.035+Math.cos(a)*.05,1,.4,1);}
-  for(const side of [-1,1]){sphere(body,.07,eye,side*.14,.3,.1);sphere(body,.036,pupil,side*.175,.3,.14,.35,1.5,.6);}
+  for(let i=0;i<7;i++){const a=i*2.3,r=.1+(i%3)*.04;cone(body,.026,.06,kdark,Math.sin(a)*r*.9,.36+i*.035,.02-i*.035+Math.cos(a)*.05,4).rotation.x=-.9;}
+  // small deep-set eyes under a hard brow wedge: dim lamps in the dark, not saucers
+  for(const side of [-1,1]){sphere(body,.04,eye,side*.13,.3,.11);sphere(body,.02,pupil,side*.16,.3,.14,.35,1.5,.6);const brow=cone(body,.035,.1,kdark,side*.13,.35,.12,4);brow.rotation.set(0,0,side*Math.PI/2+side*.35);}
   sphere(body,.06,dark,0,.2,.14,1.2,.8,1);
   // a horny parrot beak hooked down over the mouth, and old scars raked across the mantle: a kraken is a drowner, not a pet
   const beak=mat('#1a1410',{roughness:.3});
   cone(body,.04,.12,beak,0,.17,.2,5).rotation.x=Math.PI*.78;cone(body,.03,.08,beak,0,.12,.19,5).rotation.x=Math.PI*.2;
   for(let i=0;i<3;i++){const sc=part(body,new THREE.BoxGeometry(.01,.16,.012),dark,.06-i*.04,.34+i*.015,-.1-i*.01);sc.rotation.set(-.45,0,.5);}
-  const n=o.arms||8;
+  // arms taper to a point in four stages and carry a row of black barbs down the underside
+  const n=o.arms||8,barb=mat('#1e1612',{roughness:.3,flatShading:true});
   for(let i=0;i<n;i++){const a=i/n*Math.PI*2,arm=new THREE.Group();arm.position.set(Math.sin(a)*.08,.18,Math.cos(a)*.08+.04);arm.rotation.y=a;body.add(arm);
    const pts=[];for(let k=0;k<=8;k++){const t=k/8,r=.02+t*.4,curl=t*t*2.2*(i%2?1:-1);pts.push([Math.sin(curl)*r*.4,.02-t*.17+Math.max(0,t-.75)*.5,r*Math.cos(curl*.4)]);}
-   tube(arm,pts,.028,skin,20);for(let k=2;k<8;k+=2){const p=pts[k];sphere(arm,.012,belly,p[0],p[1]-.02,p[2],1,.5,1);}
+   for(let k=0;k<8;k+=2){const q=k/8;segment(arm,pts[k],pts[k+2],.032*(1-q*.85),.032*(1-(q+.25)*.85),kskin);}
+   for(let k=2;k<8;k+=2){const p=pts[k];cone(arm,.011,.045,barb,p[0],p[1]-.03,p[2],4).rotation.x=Math.PI;}
    legs.push(arm);}
-  for(const side of [-1,1]){const pts=[[side*.04,.2,.12],[side*.12,.3,.3],[side*.2,.42,.38],[side*.24,.5,.34]];tube(body,pts,.016,skin,16);sphere(body,.045,belly,side*.25,.52,.33,1,1.6,1);}
+  for(const side of [-1,1]){const pts=[[side*.04,.2,.12],[side*.12,.3,.3],[side*.2,.42,.38],[side*.24,.5,.34]];tube(body,pts,.016,kskin,16);cone(body,.05,.14,belly,side*.25,.52,.33,5).rotation.x=Math.PI/2-.3;}
+  // the great clubs bristle with a ring of long hooked black claws, large enough to read from the game camera
+  if(o.hooks){const claw=mat('#1e1612',{roughness:.3});claw.name='kraken-hook';for(const side of [-1,1])for(let k=0;k<6;k++){const a=k/6*Math.PI*2,c=cone(body,.016,.1,claw,side*.25+Math.cos(a)*.06,.52+Math.sin(a)*.09,.33+Math.cos(a)*.05,4);c.rotation.set(Math.sin(a)*1.2,0,-Math.cos(a)*1.2);}}
   return trimDraws(actor(g,body,legs,null,[],'idle'));
  }
  if(o.form==='eel'){
@@ -2838,6 +3060,8 @@ function seaMonster(o){
   part(head,new THREE.CircleGeometry(.035,12),mouth,0,-.02,.135).scale.set(1,.6,1);
   for(let k=0;k<6;k++){const x=(k-2.5)*.012;cone(head,.005,.018,tooth,x,-.005,.125,4).rotation.x=Math.PI;cone(head,.005,.016,tooth,x,-.04,.12,4);}
   for(const side of [-1,1]){sphere(head,.015,eye,side*.045,.03,.09);sphere(head,.007,pupil,side*.055,.035,.1);}
+  // giant eels: old pale scars raked across the reared neck, and two long hooked fangs hang from the upper jaw
+  if(o.scars){const sc=mat('#c8c4b4',{roughness:.7});for(let k=0;k<3;k++){const s=part(body,new THREE.BoxGeometry(.004,.07,.008),sc,.045,.2+k*.07,.07+k*.015);s.rotation.set(.1,0,-.5+k*.15);}for(const side of [-1,1])cone(head,.007,.04,tooth,side*.02,-.025,.13,4).rotation.x=Math.PI;}
   if(o.spark){const glow=mat(o.spark,{emissive:o.spark,emissiveIntensity:2.4,roughness:.3});for(const p of rear.slice(1))sphere(tail,.014,glow,p[0]+.03,p[1],p[2]+.03);for(const p of front.slice(1,4))sphere(body,.014,glow,p[0]+.035,p[1],p[2]+.02);}
   return trimDraws(actor(g,body,[],tail,[],'snake'));
  }
@@ -2853,6 +3077,13 @@ function seaMonster(o){
  for(const side of [-1,1]){const p=finShape(body,[[0,0],[H*1.2,-H*.4],[H*.5,.02]],fin,side*H*.7,y-H*.35,L*.12);p.rotation.set(-Math.PI/2+.2,0,side>0?-.25:Math.PI+.25);}
  for(const side of [-1,1]){sphere(body,H*.18,eye,side*H*.72,y+H*.25,L*.62);sphere(body,H*.09,pupil,side*H*.82,y+H*.27,L*.66);}
  if(o.gills)for(const side of [-1,1])for(let k=0;k<5;k++){const s=part(body,new THREE.BoxGeometry(.004,H*.7,.01),dark,side*H*.79,y,L*.36-k*.035);s.rotation.z=side*.1;}
+ // old battle scars: three pale slashes raked across the right flank
+ if(o.scars){const sc=mat('#c8c4b4',{roughness:.7});for(let k=0;k<3;k++){const s=part(body,new THREE.BoxGeometry(.004,H*.9,.01),sc,H*.8,y+H*.08-k*H*.02,L*.1-k*L*.07);s.rotation.set(.2,0,-.35+k*.1);}}
+ // a snapped harpoon head still buried in the right flank behind the dorsal: rust-black shaft stub, two barbs and a frayed line
+ if(o.harpoon){const iron=mat('#2a2022',{roughness:.5,metalness:.6});iron.name='shark-harpoon';
+  const hx=H*.74,hy=y+H*.3,hz=-L*.04,shaft=cone(body,H*.07,H*.5,iron,hx+H*.1,hy+H*.12,hz,5);shaft.rotation.set(.15,0,-1.1);
+  for(const k of [-1,1]){const b=cone(body,H*.05,H*.22,iron,hx+H*.02,hy,hz+k*H*.12,4);b.rotation.set(k*.9,0,-.5);}
+  segment(body,[hx+H*.38,hy+H*.3,hz],[hx+H*.5,hy+H*.12,hz-H*.3],H*.018,H*.008,dark);segment(body,[hx+H*.5,hy+H*.12,hz-H*.3],[hx+H*.46,hy-H*.1,hz-H*.5],H*.008,H*.004,dark);}
  // mouth: a dark slit under the snout lined with teeth; a piranha's jaw juts forward
  const jawZ=L*(o.underbite?.8:.66),jawY=y-H*(o.underbite?.35:.5);
  const slit=part(body,new THREE.TorusGeometry(H*.42,H*.1,6,14,Math.PI),mouth,0,jawY,jawZ-H*.25);slit.rotation.x=Math.PI/2;slit.rotation.z=Math.PI;
@@ -2861,8 +3092,8 @@ function seaMonster(o){
  return trimDraws(actor(g,body,[],tail,[],'hover'));
 }
 const SEA_MONSTERS={jellyfish:{form:'jelly',color:'#7fa8e8',scale:.9},piranha:{form:'fish',color:'#8a8a94',belly:'#c83a2a',fin:'#6a5a5a',length:.26,depth:.13,underbite:true,dorsal:1,scale:.8},
- shark:{form:'fish',color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
- 'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff',scale:1.25},kraken:{form:'kraken',color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
+ shark:{form:'fish',scars:true,harpoon:true,color:'#6a7686',belly:'#e4e4de',length:.4,depth:.12,dorsal:1.9,gills:true,eye:'#1a1a1c',scale:1.5},'giant eel':{form:'eel',scars:true,color:'#4a5a3a',belly:'#b0a86a',eye:'#e0d040',scale:1.3},
+ 'electric eel':{form:'eel',color:'#2a4a6a',belly:'#8ab0c0',eye:'#c0e8ff',spark:'#9ae8ff',scale:1.25},kraken:{form:'kraken',hooks:true,color:'#6a2a2e',belly:'#a8827a',eye:'#d8a020',scale:1.4},
  'watcher in the water':{form:'kraken',color:'#4a5a52',belly:'#9aa89a',eye:'#b8ff90',arms:16,eyeGlow:2.8,scale:1.9}};
 
 // In development the default shape is bright magenta so a missing model cannot hide.
@@ -2922,7 +3153,7 @@ export function createCreature(cell={}){
  if(name==='baluchitherium')return createBaluchitherium();
  if(MEGA_RHINOS[name])return megaRhino(MEGA_RHINOS[name]);
  if(name==='rothe')return rothe(ROTHE);
- if(name==='wumpus')return wumpus({scale:1.08,hide:'#3f8f94',fur:'#27595c',belly:'#8ec2b6'});
+ if(name==='wumpus')return wumpus({scale:1.08,hide:'#4a6664',fur:'#243431',belly:'#8a9a88'});
  if(name==='leocrotta')return leocrotta({scale:1.15,coat:'#a8865a',dark:'#6e5436',mane:'#4a3420',belly:'#cdb48c'});
  if(name==='minotaur')return createMinotaur();
  if(GIANTS[name])return giant(GIANTS[name]);
@@ -2976,6 +3207,8 @@ export function createCreature(cell={}){
  if(isScorpion(name))return createScorpion(name);
  if(name==='gelatinous cube'){const c=cube({color:color||'#8ad0c0'});c.g.scale.setScalar(1.3);return c;}
  if(name==='acid blob'){const a=createAcidBlob({color:'#7ed23a'});return actor(a.g,a.body,[],null,[],'blob');}
+ if(name==='blue jelly'||name==='spotted jelly'){const a=createJelly({kind:name.split(' ')[0]});return actor(a.g,a.body,[],null,[],'blob');}
+ if(name==='gray ooze'){const a=createGrayOoze();return actor(a.g,a.body,[],null,[],'blob');}
  if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name),slime:name==='green slime',acid:name==='acid blob',black:name==='black pudding',brown:name==='brown pudding',scale:name==='black pudding'?1.5:/^(green slime|ochre jelly|blue slime)$/.test(name)?1.25:name==='brown pudding'?1.1:1});
  if(name==='centipede')return centipede({color:'#c9a03a'});
  if(name==='raven')return createRaven();

@@ -71,3 +71,9 @@ test('other creatures do not listen', () => {
   assert(!listens(createCreature({name: 'human zombie', symbol: 'Z'.charCodeAt(0), color: 1})));
   assert(!listens(createCreature({name: 'giant spider', symbol: 's'.charCodeAt(0), color: 5})));
 });
+
+test('the hand rubs once at the ear: it dips mid-hold and comes back', () => {
+  const held = listenPose(.36).point, rub = listenPose(.41).point;
+  assert.ok(rub < held - .1 && rub > 0, 'dips but stays raised');
+  assert.ok(Math.abs(listenPose(.5).point - listenPose(.36).point) < .02, 'back up after');
+});

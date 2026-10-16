@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {itemBuc, bucMark, itemFacts, itemHint} from './item-buc.js';
+import {itemBuc, bucMark, itemFacts, itemHint, itemUncursed} from './item-buc.js';
 
 test('blessed and cursed items are told from the name', () => {
   assert.equal(itemBuc('a blessed +1 dagger (weapon in hand)'), 'blessed');
@@ -44,13 +44,13 @@ test('hover hints spell out the marks', async () => {
   assert.equal(itemHint('a blessed +2 dagger'), 'blessed, enchanted up');
   assert.equal(itemHint('a cursed -1 long sword'), 'cursed, enchanted down');
   assert.equal(itemHint('a cursed scroll of light'), 'cursed');
-  assert.equal(itemHint('an uncursed +0 ring mail'), '');
+  assert.equal(itemHint('an uncursed +0 ring mail'), 'uncursed');
 });
 
 test('hover hints also name wear, wield, charges and erosion', async () => {
   const {itemHint, itemFacts} = await import('./item-buc.js');
   assert.equal(itemHint('a blessed +1 long sword (weapon in hand)'), 'blessed, enchanted up, wielded');
-  assert.equal(itemHint('an uncursed +0 ring mail (being worn)'), 'worn');
+  assert.equal(itemHint('an uncursed +0 ring mail (being worn)'), 'uncursed, worn');
   assert.equal(itemHint('a wand of striking (0:5)'), '5 charges');
   assert.equal(itemHint('a wand of sleep (0:1)'), '1 charge');
   assert.equal(itemHint('a wand of digging (0:-1)'), 'cancelled');
@@ -159,4 +159,85 @@ test('a shop stack priced each says so in the hover', () => {
 test('itemFacts says which hand a ring is on', () => {
   assert.deepEqual(itemFacts('a ring of regeneration (on right hand)'), ['worn, right hand']);
   assert.deepEqual(itemFacts('a ring of regeneration (on left finger)'), ['worn, left hand']);
+});
+
+test('a proofed item says which proofing it has in the hover', () => {
+  assert.deepEqual(itemFacts('a rustproof +1 dagger'), ['rustproof']);
+  assert.deepEqual(itemFacts('a fireproof cloak (being worn)'), ['fireproof', 'worn']);
+  assert.deepEqual(itemFacts('a dagger'), []);
+});
+
+test('a thrown-weapon quiver and an attached leash read plainly in the hover', () => {
+  assert.equal(itemHint('3 daggers (quivered)'), 'quivered');
+  assert.equal(itemHint('a leash (attached to the little dog)'), 'leashed to the little dog');
+});
+
+test('a corpse drained by a vampire says so in the hover', () => {
+  assert.deepEqual(itemFacts('a drained newt corpse'), ['drained']);
+  assert.deepEqual(itemFacts('a partly drained human corpse'), ['partly drained']);
+  assert.deepEqual(itemFacts('a newt corpse'), []);
+});
+
+test('an "empty" prefix reads empty for containers and spent lamps, not only tins', () => {
+  assert.deepEqual(itemFacts('an empty chest'), ['empty']);
+  assert.deepEqual(itemFacts('an empty brass lantern'), ['empty']);
+  assert.deepEqual(itemFacts('an empty oil lamp (lit)'), ['lit', 'empty']);
+  assert.deepEqual(itemFacts('a chest'), []);
+});
+
+test('armour in the pack reads its armour class in the hover', () => {
+  assert.deepEqual(itemFacts('a +1 plate mail [8] (being worn)'), ['worn', 'AC 8']);
+  assert.deepEqual(itemFacts('an elven mithril-coat [5]'), ['AC 5']);
+  assert.deepEqual(itemFacts('a cloak [0]'), ['AC 0']);
+  assert.deepEqual(itemFacts('a dagger'), []);
+});
+
+test('invisible, broken and fixed items say so in the hover', () => {
+  assert.deepEqual(itemFacts('an invisible +0 dagger'), ['invisible']);
+  assert.deepEqual(itemFacts('a broken large box'), ['broken']);
+  assert.deepEqual(itemFacts('a fixed +0 crysknife'), ['fixed']);
+});
+
+test('known holy and unholy water carry their state in the name', () => {
+  assert.equal(itemBuc('a potion of holy water'), 'blessed');
+  assert.equal(itemBuc('2 potions of unholy water'), 'cursed');
+  assert.equal(itemBuc('a potion of water'), null);
+  assert.equal(itemHint('a potion of holy water'), 'blessed');
+});
+
+test('a shop price with no label is a for-sale price', () => {
+  assert.deepEqual(itemFacts('a dagger (4 zorkmids)'), ['for sale 4zm']);
+  assert.deepEqual(itemFacts('a dagger (1 zorkmid)'), ['for sale 1zm']);
+  assert.deepEqual(itemFacts('an apple (unpaid, 7 zorkmids)'), ['unpaid 7zm']);
+  assert.equal(itemHint('a blessed +1 dagger (40 zorkmids)'), 'blessed, enchanted up, for sale 40zm');
+});
+
+test('a named or called item reads its label in the hover', () => {
+  assert.deepEqual(itemFacts('a blessed +2 long sword named Sting (weapon in hand)'), ['named Sting', 'wielded']);
+  assert.deepEqual(itemFacts('a ruby potion called healing'), ['called healing']);
+  assert.deepEqual(itemFacts('a dagger'), []);
+});
+
+test('a tin says how it was prepared in the hover', () => {
+  assert.deepEqual(itemFacts('a tin of rotten newt meat'), ['rotten']);
+  assert.deepEqual(itemFacts('2 tins of deep fried lichen meat'), ['deep fried']);
+  assert.deepEqual(itemFacts('a tin of soup made from jackal meat'), ['soup']);
+  assert.deepEqual(itemFacts('a tin of spinach'), []);
+});
+
+test('an unlabeled scroll reads blank in the hover', () => {
+  assert.deepEqual(itemFacts('an unlabeled scroll'), ['blank']);
+  assert.deepEqual(itemFacts('a scroll labeled FOOBIE'), []);
+  assert.deepEqual(itemFacts('2 scrolls of blank paper'), ['blank']);
+  assert.deepEqual(itemFacts('a spellbook of blank paper'), ['blank']);
+  assert.deepEqual(itemFacts('a scroll of light'), []);
+});
+
+test('a known uncursed item says so in the hover only', () => {
+  assert.equal(itemUncursed('an uncursed +1 dagger'), true);
+  assert.equal(itemUncursed('a +1 dagger'), false);
+  assert.equal(itemUncursed('a cursed dagger'), false);
+  assert.equal(itemBuc('an uncursed +1 dagger'), null);
+  assert.equal(itemHint('an uncursed +1 dagger (weapon in hand)'), 'uncursed, enchanted up, wielded');
+  assert.equal(itemHint('a dagger'), '');
 });

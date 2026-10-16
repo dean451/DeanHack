@@ -55,7 +55,7 @@ test('gold, power, experience and conditions live in the character panel, not un
 
 test('the character name is typed before starting, saved, sent with the start request and shown in the panel', () => {
   const live = read('live.js'), main = read('main.js');
-  assert.match(live, /nameInput\.placeholder='Wanderer'/);
+  assert.match(live, /nameInput\.placeholder='Adventurer'/);
   assert.match(live, /localStorage\.setItem\('deanhack\.playerName'/);
   assert.match(live, /post\('\/engine\/start',\{name:savedPlayerName\(\),\.\.\.readChoice\(\)\}\)/, 'the start request carries the name and the chosen class');
   assert.match(live, /setCharacterName\(started\.name\)/);
@@ -105,4 +105,21 @@ test('blessed items read green in the pack, the sun mark stays, and cursed stays
   assert(bg > br + 30 && bg > bb + 30, `blessed ${blessed} is green`);
   assert(cr > cg + 30 && cr > cb + 30, `cursed ${cursed} is red`);
   assert.match(read('./item-buc.js'), /blessed: '☼'/);
+});
+
+test('nothing draws behind the splash: the loop returns while it is open, no backdrop blur, the pixel ratio and pace follow the quality tier',()=>{
+  const main=readFileSync(new URL('./main.js',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+  assert.match(main,/setAnimationLoop\(ms=>\{if\(document\.body\.classList\.contains\('start-open'\)\)return;/);
+  assert.match(css,/#start-screen,#start-cover\{position:fixed;inset:0;z-index:60;padding:0;background:radial-gradient\(ellipse at 50% 42%,#050a0c 0%,#030609 62%,#020405 100%\)/,'the splash is opaque: no alpha in its gradient');
+  assert.match(main,/renderer\.setPixelRatio\(pixelRatioFor\(quality\.tier,devicePixelRatio\)\)/,'the pixel ratio comes from the quality tier');
+  assert.match(main,/if\(!pacer\.shouldDraw\(ms,quality\.tier\)\)return;/,'the loop is paced: every frame while active, the idle rate after');
+  assert.match(main,/e\.key==='F8'/,'F8 cycles the tier');
+  assert.match(main,/renderer\.shadowMap\.autoUpdate=false/,'shadows are redrawn when the loop says, not on every render call');
+  assert.match(main,/renderer\.shadowMap\.needsUpdate=pacer\.shadowDue\(ms,quality\.tier\);/);
+  assert.match(main,/new THREE\.WebGLRenderer\(\{antialias:false,alpha:true\}\)/,'no MSAA resolve for a composer that never had MSAA');
+  assert.match(main,/renderer\.setSize\(innerWidth,innerHeight\);setQuality\(quality\.tier\);\}\);/,'a resize re-applies the tier (the AO size)');
+  assert.match(main,/composer\.render\(\);\{const step=adaptive\.frame\(ms,frameCostNow\(ms\),quality\.tier\)/,'the drawn frame time feeds the adaptive tier');
+  assert.match(main,/adaptive\.manual\(\);/,'F8 pins the tier');
+  assert.match(main,/onActivity:touch/,'engine events keep the frame rate up');
+  assert.doesNotMatch(css,/#start-screen,#start-cover\{[^}]*backdrop-filter/,'the splash does not blur the whole viewport');
 });

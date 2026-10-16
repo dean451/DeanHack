@@ -21,7 +21,9 @@ export function tapPose(u) {
   if (!(u > 0) || !(u < 1)) return {raise: 0, flick: 0, tilt: 0};
   const raise = smooth(u / .25) * (1 - smooth((u - .78) / .18));
   const tapping = smooth((u - .28) / .02) * (1 - smooth((u - .55) / .02));
-  const flick = Math.max(-1, Math.min(1, Math.sin((u - .3) * Math.PI * 2 * 6) * tapping));
+  // One stray flick after the head has snapped upright, on the half-lowered syringe.
+  const stray = Math.exp(-(((u - .9) / .02) ** 2)) * raise * Math.sin((u - .9) * 150);
+  const flick = Math.max(-1, Math.min(1, Math.sin((u - .3) * Math.PI * 2 * 6) * tapping + stray));
   const tilt = smooth((u - .35) / .12) * (1 - smooth((u - .86) / .02));
   return {raise, flick, tilt};
 }

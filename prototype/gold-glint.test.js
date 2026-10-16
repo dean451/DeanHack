@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {coinPose, glintPose, isGoldMessage, createGoldGlint, GOLD, PENDING_WAIT} from './gold-glint.js';
+import {coinCount, coinPose, glintPose, isGoldMessage, createGoldGlint, GOLD, PENDING_WAIT} from './gold-glint.js';
 
 test('only the gold pickup message triggers it', () => {
   assert.ok(isGoldMessage('$ - 12 gold pieces.'));
@@ -49,4 +49,23 @@ test('the sparkle waits for the next frame and lands on the hero\'s new square',
   assert.deepEqual(added[0], [5, 5]);
   fx.update(GOLD.total + .1);
   assert.equal(fx.active, 0);
+});
+
+test('a fatter purse flicks more coins', () => {
+  assert.deepEqual(['$ - 3 gold pieces.', '$ - 12 gold pieces.', '$ - 150 gold pieces.', '$ - 900 gold pieces.'].map(coinCount), [2, 3, 4, GOLD.coins]);
+  assert.equal(coinCount(null), 2);
+});
+
+test('the reluctant coin shivers at the top of its climb and stays in bounds', () => {
+  let wobble = 0, prev = null;
+  for (let t = .2; t < .4; t += .002) { const y = coinPose(0, t).y; if (prev !== null) wobble = Math.max(wobble, Math.abs(y - prev)); prev = y; assert.ok(y <= .45); }
+  assert.ok(wobble > 0);
+  for (let t = 0; t <= GOLD.total; t += .005) assert.ok(coinPose(1, t).y <= .43);
+});
+
+test('the glint flares a second time as it fades, in bounds and back to rest', () => {
+  let rises = 0, prev = glintPose(.5 * GOLD.glint).alpha;
+  for (let t = .5 * GOLD.glint; t < GOLD.glint; t += .002) { const p = glintPose(t); if (p.alpha > prev + 1e-6) rises++; prev = p.alpha; assert.ok(p.size <= .55 && p.alpha <= 1 && p.alpha >= 0); }
+  assert.ok(rises > 0, 'alpha re-flares late');
+  assert.equal(glintPose(GOLD.glint).alpha, 0);
 });

@@ -18,8 +18,10 @@ test('the balrog and Durin\'s Bane glow with evil: cracks in the hide and a hell
  }
 });
 
-test('lesser fiends carry no evil glow',()=>{
- assert.equal(glows('mail daemon').length,0);
+test('the mail daemon, a warning-level demon, glows a cold postal blue',()=>{
+ const parts=glows('mail daemon');
+ assert(parts.length>=2);assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5),'a pool of light on the floor');
+ assert(parts[0].material.color.getHex()===0x5aa0ff);
 });
 
 test('the balrog trails smoke and embers and towers over a pit fiend',()=>{
@@ -103,7 +105,7 @@ test('the lava demon glows with molten evil and stands bigger than a plain demon
  const parts=glows('lava demon');
  assert(parts.length>=2);assert(parts.some(m=>m.material.transparent&&m.material.opacity<.5));
  const h=name=>new THREE.Box3().setFromObject(createCreature({name,symbol:38,color:1}).g).getSize(new THREE.Vector3()).y;
- assert(h('lava demon')>h('mail daemon'));
+ assert(h('lava demon')>h('horned devil'));
 });
 
 test('the water demon glows a drowned green-blue',()=>{

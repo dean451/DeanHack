@@ -98,6 +98,11 @@ function shrieker(K,P,A,r){
  A.add(new THREE.SphereGeometry(1,20,8,0,Math.PI*2,0,Math.PI/2),at(0,.372,0,[0,0,0],[.07,.018,.07]),[1,1,1]);
  // pale speckles on the outside of the trumpet
  for(let i=0;i<26;i++){const a=r()*Math.PI*2,j=6+Math.floor(r()*3),[R0,y]=trumpet(prof[j][0],prof[j][1],a,j),R=R0+.003;P.add(new THREE.IcosahedronGeometry(.007+r()*.006,0),at(Math.sin(a)*R,y,Math.cos(a)*R,[0,0,0],[1,.6,1]),mix(light,[1,1,1],r()*.5));}
+ // a ring of yellowed, inward-leaning fangs set into the lip, so the trumpet reads as a maw
+ for(let i=0;i<14;i++){
+  const a=i/14*Math.PI*2+.2,[R,y]=trumpet(prof[RIM][0]-.012,prof[RIM][1],a,RIM),len=.03+.012*Math.sin(i*2.3);
+  P.add(new THREE.ConeGeometry(.007,len,4),at(Math.sin(a)*R,y-len*.4,Math.cos(a)*R,[0,a,0]).multiply(at(0,0,0,[Math.PI+.3,0,0])),mix(light,rgb('#e0d4a0'),.7));
+ }
  // two button pups at the foot, each a little stalk and cap
  for(const [x,z,s] of [[.19,.1,.55],[-.14,.17,.4]]){
   P.add(lathe([[.03,0],[.034,.02],[.026,.06],[.024,.09]],12),at(x,0,z,[0,0,0],[s*1.6,s*1.6,s*1.6]),stem);
@@ -136,6 +141,12 @@ function violetFungus(K,P,A,r){
   const a=i*Math.PI/2+.4+(r()-.5)*.3,c=Math.cos(a),s=Math.sin(a),swing=(r()-.5)*.5,pt=(d,y,w=0)=>[Math.cos(a+w)*d,y,Math.sin(a+w)*d];
   const {geo,curve}=taperTube([pt(.12,.3),pt(.24,.27,swing*.2),pt(.33,.15,swing*.5),pt(.37,.03,swing*.8),pt(.43,.025,swing),pt(.46,.06,swing*1.2),pt(.42,.08,swing*1.4)],.026,.006,32,8);
   A.add(geo,null,(x,y,z)=>mix(ten,tenLight,y/.35+.1*noise(x*20,y*20,z*20,i)));
+  // hooked black barbs along the top of the reach, angled back toward the cap
+  for(let k=0;k<4;k++){
+   const t=.3+k*.15,p=curve.getPointAt(t),tan=curve.getTangentAt(t),rad=.026+(.006-.026)*t;
+   const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(0,1,0).addScaledVector(tan,-.9).normalize());
+   A.add(new THREE.ConeGeometry(rad*.55,rad*2.4,4),new THREE.Matrix4().compose(p.clone().add(new THREE.Vector3(0,rad*.9,0)),q,new THREE.Vector3(1,1,1)),rgb('#2a1432'));
+  }
   // suckers along the underside of the reach
   for(let k=0;k<6;k++){
    const t=.35+k*.09,p=curve.getPointAt(t),tan=curve.getTangentAt(t),side=new THREE.Vector3(-s,0,c),down=new THREE.Vector3().crossVectors(tan,side).normalize();

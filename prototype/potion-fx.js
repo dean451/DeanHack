@@ -5,10 +5,10 @@
 //  - smoky: a slow grey smoke coils in the air above the liquid, inside the glass
 //  - steamy: vapour seeps out round the cork and rises
 //  - swirly: pale streaks spiral round inside the liquid
-//  - cloudy, milky, murky, muddy: specks hang in the liquid and drift
-//  - viscous, gooey, greasy, oily, slimy, squishy: a slow drop oozes down the outside of the glass
+//  - cloudy, milky, murky: specks hang in the liquid and drift
+//  - viscous, gooey, greasy, oily, slimy, squishy, muddy: a slow drop oozes down the outside of the glass
 //  - dark, black, blood-red: two dim red points drift together in the depths, and blink
-//  - glowing, luminescent, sparkling: the liquid's own glow swells and fades
+//  - glowing, luminescent, sparkling, amber: the liquid's own glow swells and fades
 // Identity: it keys only on the shuffled appearance (the same word that picks the bottle and its
 // colour), never the potion's true type, so it tells you nothing a glance at the bottle wouldn't.
 // Positions are in the ground model's space, inside each bottle of the stack (potion.js
@@ -30,11 +30,11 @@ export const POTION_STYLES = [
   {name: 'smoke', test: /smoky/, motion: 'smoke', color: 0x4a4a48, blend: 'normal', count: 8, size: .05, period: 5, alpha: .45},
   {name: 'steam', test: /steamy/, motion: 'steam', color: 0xdfe6e6, blend: 'normal', count: 5, size: .06, period: 3.2, alpha: .18},
   {name: 'swirl', test: /swirly/, motion: 'swirl', color: 'light', blend: 'add', count: 9, size: .014, period: 4.2, alpha: .5},
-  {name: 'specks', test: /cloudy|milky|murky|muddy/, motion: 'specks', color: 'light', blend: 'normal', count: 8, size: .008, period: 9, alpha: .7},
-  {name: 'ooze', test: /viscous|gooey|greasy|oily|slimy|squishy/, motion: 'ooze', color: 'liquid', blend: 'normal', count: 1, size: .016, period: 7, alpha: .95},
+  {name: 'specks', test: /cloudy|milky|murky/, motion: 'specks', color: 'light', blend: 'normal', count: 8, size: .008, period: 9, alpha: .7},
+  {name: 'ooze', test: /viscous|gooey|greasy|oily|slimy|squishy|muddy/, motion: 'ooze', color: 'liquid', blend: 'normal', count: 1, size: .016, period: 7, alpha: .95},
   {name: 'lurk', test: /^dark$|black|blood-red/, motion: 'lurk', color: 0xb0141a, blend: 'add', count: 2, size: .008, period: 8, alpha: .75, together: true},
 ];
-export const GLOW_STYLE = /glowing|luminescent|sparkling/;
+export const GLOW_STYLE = /glowing|luminescent|sparkling|amber/;
 export const GLINT = {motion: 'glint', color: 0xffffff, blend: 'add', count: 1, size: .03, period: 6.5, alpha: .5};
 
 export function potionStyle(look = '') {

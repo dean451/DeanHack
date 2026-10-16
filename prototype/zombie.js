@@ -31,7 +31,7 @@ export const ZOMBIES={
 const C={
  bruise:rgb('#4a3440'),rot:rgb('#3a3226'),wound:rgb('#5a1814'),cavity:rgb('#1e0e0c'),bone:rgb('#d6cdb0'),
  shirt:rgb('#6e6652'),trousers:rgb('#3f3a34'),dirt:rgb('#2e271e'),hair:rgb('#231d18'),nail:rgb('#1c1612'),
- tooth:rgb('#c8bc90'),cap:rgb('#8a3a30'),beard:rgb('#6a6258'),tusk:rgb('#d8ccaa'),
+ tooth:rgb('#c8bc90'),cap:rgb('#8a3a30'),beard:rgb('#6a6258'),tusk:rgb('#d8ccaa'),iron:rgb('#4a3a30'),rust:rgb('#6a3a22'),
 };
 function rng(seed){let s=seed>>>0;return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
 const noise=(x,y,z)=>Math.sin(x*71+z*53+y*17)*Math.sin(y*97-x*31+z*11);
@@ -88,6 +88,17 @@ function buildBody(o,skin,R){
  ragged(P,R,{top:.87,len:.38,r0:.182,r1:.156,sz:.76,n:14,jag:.35,skip:[-.55,.35],colour:shirt});
  P.add(new THREE.SphereGeometry(.078,10,8,0,Math.PI*2,0,Math.PI/2),at(.19,.845,0,[0,0,-.3],[1.05,.9,1.05]),shirt);
  for(const x of [-.14,.12])P.add(new THREE.BoxGeometry(.05,.012,.03),at(x,.87,.07,[0,0,x*2]),shirt);
+ // the giant zombie still wears the broken spear that killed it: a snapped shaft and a rusted
+ // head jutting from its back, askew; the ettin zombie, a rusted spiked collar at the neck
+ if(o.feature==='giant'){
+  P.add(new THREE.CylinderGeometry(.011,.014,.34,5),at(.06,.74,-.17,[-.55,0,.2]),rgb('#3a2a1c'));
+  P.add(new THREE.ConeGeometry(.032,.11,4),at(.1,.88,-.26,[-.55-Math.PI,0,.2]),C.rust);
+  P.add(new THREE.BoxGeometry(.05,.02,.012),at(.08,.85,-.24,[-.55,0,.2]),C.iron);
+ }
+ if(o.heads===2){
+  P.add(new THREE.TorusGeometry(.125,.016,5,14),at(0,.88,.01,[Math.PI/2+.1,0,0],[1.35,1,1]),C.iron);
+  for(const [x,z] of [[-.17,.04],[0,.12],[.17,.04],[0,-.1]])P.add(new THREE.ConeGeometry(.014,.07,4),at(x,.9,z,[z>.05?Math.PI/2:-Math.PI/2,0,0]),C.rust);
+ }
  return P.merge();
 }
 

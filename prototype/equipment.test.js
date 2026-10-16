@@ -746,3 +746,25 @@ test('turnHeld spins a weapon a quarter about its own long axis',()=>{
  assert.ok(up.distanceTo(new THREE.Vector3(0,1,0))<1e-6,'the long axis stays put');
  assert.ok(Math.abs(sword.rotation.y-HELD_TURN)<1e-6);
 });
+
+test('wielding something that is not a weapon holds the thing itself, never the stick proxy',async()=>{
+  const {createHeldWeapon,createHeldObject,HELD_OBJECT_MAX,WEAPON_CLASS}=await import('./equipment.js');
+  const THREE=await import('three');
+  const sticks=g=>{let n=0;g.traverse(o=>{if(o.geometry?.type==='CylinderGeometry'&&Math.abs(o.geometry.parameters.height-.65)<1e-9)n++;});return n;};
+  const size=g=>{g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(g).getSize(new THREE.Vector3());};
+  for(const item of [{name:'potion of water',class:8,otyp:300},{name:'tin',class:7},{name:'blindfold',class:6},{name:'scroll of light',class:9},{name:'ring mail',class:3}]){
+    const held=createHeldWeapon(item);
+    assert.equal(held.userData.heldObject,true,item.name+' is held as an object');
+    assert.equal(sticks(held),0,item.name+' is not a stick');
+    const s=size(held);assert.ok(Math.max(s.x,s.y,s.z)<=HELD_OBJECT_MAX+.02,item.name+' fits the hand: '+JSON.stringify(s));
+    assert.ok(held.children.length>0);assert.equal(held.name,item.name);
+    held.userData.dispose();
+  }
+  const sword=createHeldWeapon({name:'long sword',class:WEAPON_CLASS});
+  assert.notEqual(sword.userData.heldObject,true,'a weapon keeps its weapon model');
+  const pick=createHeldWeapon({name:'pick-axe',class:6});
+  assert.notEqual(pick.userData.heldObject,true,'a weapon-tool keeps its own model');
+  const nameless=createHeldWeapon({name:'strange object',class:7});
+  assert.equal(nameless.userData.heldObject,true);assert.equal(sticks(nameless),0,'no floor model: a bundle, not a stick');
+  assert.equal(createHeldObject(null).children.length,1+1,'null still yields the bundle');
+});

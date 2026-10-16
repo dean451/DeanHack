@@ -44,3 +44,27 @@ test('the rust monster\'s left mandible is snapped short beside the whole right 
   }
   assert(right - left > 0.04, `right reaches ${right}, left ${left}`);
 });
+
+test('the disenchanter\'s left feeler orb has burst: a dark husk with no light, beside a whole glowing right orb', async () => {
+  const {createRustMonster} = await import('./rust-monster.js');
+  const d = createRustMonster('disenchanter');
+  const orbs = [];
+  d.g.traverse(o => { if (o.isMesh && o.userData.part === 'orb') orbs.push(o); });
+  assert.equal(orbs.length, 1, 'only the right orb still glows');
+  d.feelers[1].updateMatrixWorld(true);
+  assert(orbs[0].parent === d.feelers[1], 'the glowing orb is on the right feeler');
+  const r = createRustMonster('rust monster');
+  const n = a => { let c = 0; a.feelers[0].traverse(o => { if (o.isMesh) c++; }); return c; };
+  assert.equal(n(d), n(r), 'the husk adds no draw calls');
+});
+
+test('the rust monster\'s fourth plate is eaten through: a dark hollow on its right side', async () => {
+  const {createRustMonster} = await import('./rust-monster.js');
+  const mesh = (kind) => { let b = null; createRustMonster(kind).g.traverse(o => { if (o.isMesh && o.userData.part === 'body') b = o; }); return b; };
+  const count = (kind) => mesh(kind).geometry.attributes.position.count;
+  const rust = mesh('rust monster').geometry.attributes, c = rust.color;
+  let pits = 0;
+  for (let i = 0; i < rust.position.count; i++) if (rust.position.getX(i) > .05 && Math.abs(rust.position.getZ(i) - .2 + 3 * .085) < .04 && c.getX(i) < .15 && c.getY(i) < .1) pits++;
+  assert(pits > 20, `${pits} dark vertices at the hollow`);
+  assert(count('rust monster') > 0);
+});

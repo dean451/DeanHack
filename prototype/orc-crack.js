@@ -1,4 +1,4 @@
-// An orc's idle neck-crack (orc.js, goblin.js, bugbear.js). An orc, goblin or bugbear that stands
+// An orc's idle neck-crack (orc.js, goblin.js, bugbear.js, and the ogres and giants of creatures.js). An orc, goblin or bugbear that stands
 // still now and then rolls its head slowly to one side as if working out a stiffness, glowers
 // along the way, then snaps it hard the other way with a jolt of the shoulders. Walking, an action
 // or death takes it back within a moment.

@@ -1,11 +1,11 @@
 // An imp's idle leer (imp.js). An imp that stands still now and then jerks its head round to stare,
 // tilts it as if sizing something up, jerks it back, and lashes its tail in a tight pleased curl
-// on each jerk. Walking, an action or death takes it back within a moment.
+// on each jerk; the body twists after the head a beat short of it. Walking, an action or death takes it back within a moment.
 //
 // Offsets only: the head's yaw (rotation.y) and roll (rotation.z) and the tail's swing (rotation.z)
 // are added on top of whatever gait.js and the action layer wrote, and taken back first next
 // frame, so nothing drifts.
-export const DART = .6, TILT = .35, LASH = .6;
+export const DART = .6, TILT = .35, LASH = .6, TWIST = .22;
 export const FIRST_MIN = 3, FIRST_SPAN = 5, GAP_MIN = 4, GAP_SPAN = 8, LEN = 2.2;
 const SNAP = 1e-3, FADE_OUT = 14;
 
@@ -32,10 +32,10 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 // Call once per frame after the gait layer. `busy` is true while the actor walks or acts.
 export function updateImpLeer(actor, dt, t, busy) {
   if (!leers(actor)) return null;
-  const st = actor.impLeer || (actor.impLeer = {seed: ((actor.g?.id ?? 1) * 6007) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {y: 0, z: 0, t: 0}});
+  const st = actor.impLeer || (actor.impLeer = {seed: ((actor.g?.id ?? 1) * 6007) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {y: 0, z: 0, t: 0, b: 0}});
   const o = st.o, head = actor.head, tail = actor.tail;
-  head.rotation.y -= o.y; head.rotation.z -= o.z; tail.rotation.z -= o.t;
-  st.o = {y: 0, z: 0, t: 0};
+  head.rotation.y -= o.y; head.rotation.z -= o.z; tail.rotation.z -= o.t; actor.body.rotation.y -= o.b;
+  st.o = {y: 0, z: 0, t: 0, b: 0};
   if (!st.wait && st.s == null) st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
   const still = !busy && !actor.actions?.dead;
@@ -49,7 +49,8 @@ export function updateImpLeer(actor, dt, t, busy) {
   }
   if (st.s == null) return null;
   const p = leerPose(st.s), f = st.f;
-  st.o = {y: DART * p.dart * f, z: TILT * p.tilt * f, t: LASH * p.lash * f};
+  st.o = {y: DART * p.dart * f, z: TILT * p.tilt * f, t: LASH * p.lash * f, b: TWIST * p.dart * f};
+  actor.body.rotation.y += st.o.b;
   head.rotation.y += st.o.y; head.rotation.z += st.o.z; tail.rotation.z += st.o.t;
   return p;
 }

@@ -182,5 +182,5 @@ export function createGhoul(){
   // the arms hang forward from the hunched shoulders, the claws near the knees
   const arm=new THREE.Group();arm.position.set(...onTrunkPoint(s*.15,SHOULDER_Y,0));arm.rotation.set(s>0?-.62:-.4,0,s*.14);body.add(arm);mesh(arm,S.arm[s],S.hide,'arm');arms.push(arm);
  }
- return {g,body,legs,tail:null,wings:[],quirk:'zombie',arms,arm:arms[1],head,heads:[head],hat:null,beard:null,pick:null};
+ return {g,body,legs,tail:null,wings:[],quirk:'zombie',kind:'ghoul',arms,arm:arms[1],head,heads:[head],hat:null,beard:null,pick:null};
 }

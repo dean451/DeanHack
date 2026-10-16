@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createDeathBeat, deathBeatMs, epitaph, EPITAPHS, DEATH_PAUSE_MS} from './death-beat.js';
+import {createDeathBeat, deathBeatMs, epitaph, EPITAPHS, DEATH_PAUSE_MS, BONES_FADE_MS} from './death-beat.js';
 import {DEATH_TIME} from './deaths.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
 import {createCreature} from './creatures.js';
@@ -30,6 +30,21 @@ test('the bones are laid once, when the fall has finished', () => {
   assert.equal(b.corpseDue(true), false, 'only once');
 });
 
+test('the body dissolves into the bones over a short crossfade instead of a cut', () => {
+  const b = createDeathBeat();
+  assert.equal(b.crossfade(0), 0, 'no death, nothing to fade');
+  b.begin(0);
+  assert.equal(b.crossfade(500), 0, 'still falling');
+  b.corpseDue(true, 900);
+  assert.equal(b.crossfade(900), 0);
+  assert.ok(Math.abs(b.crossfade(900 + BONES_FADE_MS / 2) - .5) < 1e-9);
+  assert.equal(b.crossfade(900 + BONES_FADE_MS), 1);
+  assert.equal(b.crossfade(5000), 1, 'and stays gone');
+  assert.ok(BONES_FADE_MS < DEATH_PAUSE_MS, 'the fade finishes while the camera still rests on the body');
+  b.clear();
+  assert.equal(b.crossfade(6000), 0);
+});
+
 test('the hero\'s own action queue plays the fall and holds the last pose', () => {
   const hero = createCreature({name: 'human'}), q = createActionQueue();
   assert.equal(enqueueAction(q, {kind: 'die', dir: null, style: 'topple'}), true);
@@ -53,7 +68,9 @@ test('an epitaph is fixed for a name and cause, and some causes earn their own l
 test('the live game falls on the tombstone, lays bones, and waits before the splash', () => {
   const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
   assert.match(live, /v\.type==='tombstone'\)\{lastDeath=v;.*enqueueAction\(hero\.actions,\{kind:'die'/, 'the tombstone drops the hero');
-  assert.match(live, /deathBeat\.corpseDue\(hero\.actions\.finished\)/, 'bones once the fall is done');
+  assert.match(live, /deathBeat\.corpseDue\(hero\.actions\.finished,performance\.now\(\)\)/, 'bones once the fall is done');
+  assert.match(live, /crossfadeHeroBones\(deathBeat\.crossfade\(performance\.now\(\)\)\)/, 'the body dissolves into the bones');
+  assert.match(live, /applyFade\(hero,1-f\)/, 'the hero fades out');
   assert.match(live, /deathBeat\.remainingMs\(performance\.now\(\)\)/, 'the splash waits on the beat');
   assert.match(live, /deathBeat\.clear\(\)/, 'a new game forgets the old death');
 });

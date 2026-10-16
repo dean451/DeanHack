@@ -16,21 +16,40 @@ test('poses stay in bounds and end at zero', () => {
 });
 
 test('a standing sewer rat does it now and then, stays in bounds and ends exactly at rest', () => {
-  const a = mon('sewer rat'), x = a.head.rotation.x, y = a.head.rotation.y, z = a.tail?.rotation.z ?? 0;
+  const a = mon('sewer rat'), x = a.head.rotation.x, y = a.head.rotation.y, z = a.tail?.rotation.z ?? 0, bx = a.body.rotation.x;
   assert.ok(M.sniffs(a));
   let seen = 0;
   for (let i = 0; i < 60 * 40; i++) {
     updateFidget(a, dt, i * dt, false, null);
     if (a.ratSniff?.s != null) seen++;
     assert.ok(Math.abs(a.head.rotation.x - x) <= M.DIP + 1e-9 && Math.abs(a.head.rotation.y - y) <= M.HUNT + 1e-9);
+    assert.ok(Math.abs(a.body.rotation.x - bx) <= M.ROCK + 1e-9);
   }
   assert.ok(seen > 60, 'it moved');
   for (let i = 0; i < 120; i++) updateFidget(a, dt, i * dt, true, null);
-  assert.ok(Math.abs(a.head.rotation.x - x) < 1e-9 && Math.abs(a.head.rotation.y - y) < 1e-9);
+  assert.ok(Math.abs(a.head.rotation.x - x) < 1e-9 && Math.abs(a.head.rotation.y - y) < 1e-9 && Math.abs(a.body.rotation.x - bx) < 1e-9);
   if (a.tail) assert.ok(Math.abs(a.tail.rotation.z - z) < 1e-9);
 });
 
 test('only the right species does it', () => {
   assert.equal(M.updateRatSniff(mon('newt'), dt, 0, false), null);
   assert.equal(M.sniffs(mon('newt')), false);
+});
+
+test('the sniffing stops dead and the nose holds up in a stare before the whip', () => {
+  for (const u of [.82, .85, .87]) assert.ok(M.sniffPose(u).dip < -.5 + 1e-9, `held at ${u}`);
+  assert.ok(Math.abs(M.sniffPose(.5).dip) <= 1);
+});
+
+test('the nose sinks after the whip and is back at rest at the end', () => {
+  assert.ok(M.sniffPose(.96).dip > .25);
+  assert.equal(M.sniffPose(1).dip, 0);
+  assert.ok(Math.abs(M.sniffPose(.999).dip) < .01);
+});
+
+test('the tail twitches once more, small and late, after the nose has sunk', () => {
+  let peak = 0;
+  for (let u = .93; u < .97; u += .001) peak = Math.max(peak, Math.abs(M.sniffPose(u).whip));
+  assert.ok(peak > .1 && peak <= .3 + 1e-9, `late twitch ${peak}`);
+  assert.ok(Math.abs(M.sniffPose(.99).whip) < 1e-3);
 });

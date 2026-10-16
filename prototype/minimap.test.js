@@ -108,3 +108,19 @@ test('an open door is two posts, apart from the closed door bar', () => {
   assert.equal(door('open'), 'jamb');
   assert.notEqual(door('open'), door(undefined));
 });
+
+test('a sensed monster out of sight gets its own faint mark, apart from the hostile slash', () => {
+  const sensed = cellStyle({x: 1, z: 1, kind: 'monster', visible: false, sensed: true, terrain: 'floor'}, hero);
+  const seen = cellStyle({x: 1, z: 1, kind: 'monster', visible: true, terrain: 'floor'}, hero);
+  assert.equal(sensed.mark, 'faint');
+  assert.notEqual(sensed.mark, seen.mark);
+});
+
+test('other terrain features (ice, cloud, drawbridge) draw a hatched cell instead of a hole', () => {
+  const f = cellStyle({x: 1, z: 1, terrain: 'feature', visible: true}, hero);
+  assert.equal(f.mark, 'hatch');
+  assert.notEqual(f.fill, cellStyle({x: 1, z: 1, terrain: 'floor', visible: true}, hero).fill);
+  assert.notEqual(f.fill, cellStyle({x: 1, z: 1, terrain: 'wall'}, hero).fill);
+  assert.notEqual(cellStyle({x: 1, z: 1, terrain: 'feature', visible: false}, hero).fill, f.fill);
+  assert.equal(cellStyle({x: 1, z: 1, terrain: 'feature', object: {name: 'dagger'}}, hero).mark, 'dot');
+});

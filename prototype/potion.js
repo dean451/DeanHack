@@ -75,7 +75,16 @@ function buildBottle(shape,look,{bubbles}){
  glass.push(base);
  // The liquid darkens toward the bottom and brightens at the surface.
  const fill=clean(liquidGeometry(shape,wall));
- paint(fill,(x,y,z,c)=>{const t=Math.min(1,y/shape.fill);c.copy(deep).lerp(liquidTone,t);if(y>=shape.fill-.0005)c.copy(surface);});
+ if(look.metallic){
+  // Metal has no colour of its own to glow: it is what it mirrors. With no environment to reflect,
+  // paint the reflection in: hard bright and dark bands round the bottle, like a polished blade,
+  // between the deep tone (liquid) and the highlight (glass colour).
+  const hi=new THREE.Color(look.glass),mid=new THREE.Color(look.liquid),lo=new THREE.Color(look.liquid).multiplyScalar(.12);
+  paint(fill,(x,y,z,c)=>{const a=Math.atan2(z,x),b=Math.sin(a*2+y*28)+.55*Math.sin(a*5-y*61);
+   if(b>.7)c.copy(mid).lerp(hi,Math.min(1,(b-.7)*2.5));else if(b<-.1)c.copy(mid).lerp(lo,Math.min(1,(-.1-b)*1.4));else c.copy(mid);
+   // the top surface mirrors too: banded across, never a flat bright disc seen from the camera above
+   if(y>=shape.fill-.0005){const u=Math.sin(x*90+z*40)+.5*Math.sin(z*150-x*30);c.copy(u>.9?hi:u<-.2?lo:mid);}});
+ }else paint(fill,(x,y,z,c)=>{const t=Math.min(1,y/shape.fill);c.copy(deep).lerp(liquidTone,t);if(y>=shape.fill-.0005)c.copy(surface);});
  liquid.push(fill);
  if(bubbles){
   // Bubbles clinging to the glass and rising through the liquid, brightest near the top.
@@ -138,11 +147,18 @@ export function createPotion({appearance='',color,count=1,seed}={}){
   for(const key of Object.keys(parts))for(const geo of bottle[key]){geo.applyMatrix4(m);parts[key].push(geo);}
  }
  const merge=list=>{const geo=mergeGeometries(list,false);list.forEach(x=>x.dispose());geo.computeBoundingBox();geo.computeBoundingSphere();return geo;};
- const glassMat=new THREE.MeshPhysicalMaterial({color:new THREE.Color(tint.glass).lerp(new THREE.Color(0xffffff),.35),roughness:.06,metalness:0,
-  transmission:tint.transmission,transparent:true,opacity:Math.min(.5,tint.opacity*.7),clearcoat:1,clearcoatRoughness:.04,ior:1.5,depthWrite:false});
- // Golden and silver liquid is metal: mirror-bright, not a glowing dye.
- const liquidMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:tint.metallic?.16:.22,metalness:tint.metallic?.9:0,emissive:tint.liquid,emissiveIntensity:tint.emissiveIntensity,
+ // Round metal the glass is a bare, clear skin: no milky tint, no blurring transmission, so the
+ // metal's darks and highlights are not veiled into a pale wash (what made silver read as white).
+ const glassMat=new THREE.MeshPhysicalMaterial({color:tint.metallic?new THREE.Color(0xeef2f4):new THREE.Color(tint.glass).lerp(new THREE.Color(0xffffff),.35),roughness:.06,metalness:0,
+  transmission:tint.metallic?0:tint.transmission,transparent:true,opacity:tint.metallic?.1:Math.min(.5,tint.opacity*.7),clearcoat:1,clearcoatRoughness:.04,ior:1.5,depthWrite:false});
+ // Golden and silver liquid is metal, shaded like the armour and lamps beside it: opaque, highly
+ // metallic, mostly dark with hard highlights from the torches. Only a faint self-light, following
+ // the painted reflection bands (emissive times vertex colour), so it still reads in the dark
+ // without flattening into a pale glow.
+ const liquidMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:tint.metallic?.2:.22,metalness:tint.metallic?.85:0,
+  emissive:tint.metallic?0xffffff:tint.liquid,emissiveIntensity:tint.metallic?.24:tint.emissiveIntensity,
   transparent:tint.opacity<.6,opacity:tint.opacity<.6?Math.max(.55,tint.opacity+.2):1});
+ if(tint.metallic)liquidMat.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n\ttotalEmissiveRadiance *= vColor.rgb;');};
  const stopperMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92});
  const mesh=(geo,m,name,order)=>{const o=new THREE.Mesh(geo,m);o.name=name;o.renderOrder=order;o.castShadow=name!=='glass';o.receiveShadow=true;g.add(o);return o;};
  // The liquid draws before the glass round it, so it shows through.
