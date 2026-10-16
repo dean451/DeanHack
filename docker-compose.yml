@@ -11,6 +11,8 @@ services:
       # Players are told apart by the login Caddy forwards; the app is only reachable through Caddy.
       DEANHACK_TRUST_PROXY: "1"
       DEANHACK_MAX_ENGINES: ${DEANHACK_MAX_ENGINES:-8}
+      # Shared logins (comma-separated): each browser on one gets its own game, by a cookie (deploy/users/README.md).
+      DEANHACK_GUEST_LOGINS: ${DEANHACK_GUEST_LOGINS:-play}
     volumes:
       - game:/app/prototype/.engine/runtime/var
       - home:/app/prototype/.engine/runtime/home

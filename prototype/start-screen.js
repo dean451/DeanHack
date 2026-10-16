@@ -39,9 +39,11 @@ export function ago(ms,now=Date.now()){
 
 export function wantsStartScreen(search=''){return !new URLSearchParams(search).has('demo');}
 
+// The list carries `guest` (a shared login whose saves live with this browser; engine/server.js) as a property.
 export async function fetchSaves(fetchImpl=fetch){
-  try{const r=await fetchImpl('/engine/saves');if(!r.ok)return [];const data=await r.json();return Array.isArray(data.saves)?data.saves:[];}catch{return [];}
+  try{const r=await fetchImpl('/engine/saves');if(!r.ok)return [];const data=await r.json();const saves=Array.isArray(data.saves)?data.saves:[];if(data.guest)saves.guest=true;return saves;}catch{return [];}
 }
+export const GUEST_NOTE='Guest login: your characters stay with this browser. Ask for a login of your own to carry one between machines.';
 
 // The class chosen last time (always a valid character), kept in the browser.
 const CHOICE_KEY='deanhack.class';
@@ -125,7 +127,9 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
     saves=found;
     list.replaceChildren(...saves.slice(0,8).map(s=>{const b=doc.createElement('button');b.type='button';b.dataset.name=s.name;b.innerHTML=`<b></b><i></i>`;b.firstChild.textContent=s.name.replace(/_/g,' ');b.lastChild.textContent=(s.role?s.role+' · ':'')+ago(s.savedAt);
       b.addEventListener('click',()=>{input.value=s.name.replace(/_/g,' ');refresh();go.focus();});return b;}));
-    box.hidden=!saves.length;
+    box.hidden=!saves.length&&!saves.guest;
+    // a guest login says where its saves live, whether or not there are any yet
+    let guestNote=el.querySelector('.start-guest');if(saves.guest&&!guestNote){guestNote=doc.createElement('small');guestNote.className='start-guest';guestNote.textContent=GUEST_NOTE;box.append(guestNote);}else if(!saves.guest&&guestNote)guestNote.remove();
     // the most recent character is the likeliest one, so offer it first when nothing was typed before
     if(!input.value&&saves[0])input.value=saves[0].name.replace(/_/g,' ');
     refresh();
