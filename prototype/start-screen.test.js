@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtempSync,writeFileSync,utimesSync,readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {cleanName,startPlan,ago,wantsStartScreen,fetchSaves,DEFAULT_NAME,classView,pick,readChoice,saveChoice,endedNote,forgetSave,deathCard} from './start-screen.js';
+import {cleanName,startPlan,ago,wantsStartScreen,fetchSaves,DEFAULT_NAME,classView,pick,readChoice,saveChoice,endedNote,forgetSave,deathCard,fetchScores,scoreTable,installScoreboard,NO_SCORES} from './start-screen.js';
 import {listSaves,cleanPlayerName} from './engine/server.js';
 
 test('the name is cleaned exactly as the engine launcher cleans it',()=>{
@@ -218,4 +218,57 @@ test('a guest login is told its saves live with this browser',async()=>{
   const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
   assert.match(src,/saves\.guest&&!guestNote/,'the note is added once for a guest');
   assert.match(src,/box\.hidden=!saves\.length&&!saves\.guest;/,'a guest with no saves yet still sees the note');
+});
+
+test('the leaderboard is fetched from the server, and a server without one just has no finished games',async()=>{
+  assert.deepEqual(await fetchScores(async()=>({ok:false})),[]);
+  assert.deepEqual(await fetchScores(async()=>{throw new Error('offline');}),[]);
+  assert.deepEqual(await fetchScores(async()=>({ok:true,json:async()=>({nope:1})})),[]);
+  const calls=[];
+  assert.deepEqual(await fetchScores(async(url)=>{calls.push(url);return {ok:true,json:async()=>({scores:[{name:'Mira',points:700}]})};}),[{name:'Mira',points:700}]);
+  assert.deepEqual(calls,['/engine/scores']);
+});
+
+test('the leaderboard table ranks the games with points, name, cause of death, depth and turns, nothing unescaped',()=>{
+  const html=scoreTable([
+    {name:'Mira',points:12340,death:'killed by a soldier ant',deathlev:4,maxlvl:5,turns:2310,role:'Val',race:'Hum',when:'2026-10-12'},
+    {name:'<b>x</b>',points:88,death:'killed by a "newt"',deathlev:1,maxlvl:1,turns:null,role:null,race:null,when:null},
+  ]);
+  assert.match(html,/^<table class="start-scores"><thead><tr><th class="rank">#<\/th><th class="num">Points<\/th><th class="who">Name<\/th><th class="how">Cause of death<\/th><th class="num">Depth<\/th><th class="num">Turns<\/th><\/tr><\/thead>/);
+  assert.match(html,/<tr><td class="rank">1<\/td><td class="num">12,340<\/td><td class="who"><b>Mira<\/b><i>Human Valkyrie<\/i><\/td><td class="how">killed by a soldier ant<\/td><td class="num">4<\/td><td class="num">2,310<\/td><\/tr>/);
+  assert.match(html,/<td class="rank">2<\/td><td class="num">88<\/td><td class="who"><b>&lt;b&gt;x&lt;\/b&gt;<\/b><\/td><td class="how">killed by a &quot;newt&quot;<\/td><td class="num">1<\/td><td class="num"><\/td>/,'no class note without a role; a missing turns count is blank, not null');
+  assert.doesNotMatch(html,/<b>x<\/b>/);
+  assert.match(scoreTable([{name:'A',points:1,role:'Wiz'}]),/<i>Wizard<\/i>/,'the class alone when the race is missing');
+  assert.match(scoreTable([{name:'A',points:1,role:'Xyz',race:'Vam'}]),/<i>Vampire Xyz<\/i>/,'an unknown code is shown as it came');
+  assert.equal(scoreTable([]),`<p class="start-empty">${NO_SCORES}</p>`);
+  assert.equal(scoreTable(undefined),scoreTable([]));
+  assert.equal(NO_SCORES,'No games finished on this server yet.');
+});
+
+test('the Leaderboard button fetches once on the first click, shows the table, and hides it again on the next',async()=>{
+  const mk=()=>{const handlers={};return {hidden:true,innerHTML:'',disabled:false,attrs:{},setAttribute(k,v){this.attrs[k]=v;},addEventListener(t,f){handlers[t]=f;},click(){return handlers.click();}};};
+  const button=mk(),table=mk();let fetches=0,scores=[{name:'Mira',points:700,death:'killed by a jackal',deathlev:2,turns:300}];
+  const board=installScoreboard({button,table,getScores:async()=>{fetches++;return scores;}});
+  assert.equal(table.hidden,true,'closed until asked');
+  await button.click();
+  assert.equal(fetches,1);assert.equal(table.hidden,false);assert.equal(button.attrs['aria-expanded'],'true');assert.equal(button.disabled,false);
+  assert.match(table.innerHTML,/<b>Mira<\/b>/);assert.equal(board.shown,true);
+  await button.click();
+  assert.equal(table.hidden,true,'a second click hides it');assert.equal(button.attrs['aria-expanded'],'false');assert.equal(fetches,1);
+  await button.click();
+  assert.equal(fetches,1,'reopening does not fetch again');assert.equal(table.hidden,false);
+  // the splash reopening (a game just ended) marks the board stale: an open board refreshes at once, a closed one on the next click
+  scores=[...scores,{name:'Bo',points:40,death:'killed by a newt',deathlev:1,turns:90}];
+  board.stale();await new Promise(r=>setImmediate(r));
+  assert.equal(fetches,2);assert.match(table.innerHTML,/<b>Bo<\/b>/);
+  await button.click();board.stale();assert.equal(fetches,2,'closed: nothing fetched until it is wanted');
+  await button.click();assert.equal(fetches,3);
+  const empty=mk(),emptyTable=mk();installScoreboard({button:empty,table:emptyTable,getScores:async()=>[]});
+  await empty.click();assert.match(emptyTable.innerHTML,/No games finished on this server yet\./);
+  // the splash puts the button at the bottom of the page with the table below it
+  const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+  assert.match(src,/<\/div><div class="start-board"><button type="button" class="start-scores-toggle" aria-expanded="false" aria-controls="start-scores">Leaderboard<\/button><div id="start-scores" class="start-scores-box" hidden><\/div><\/div>`;/,'after the stage, under everything else');
+  assert.match(src,/const board=installScoreboard\(\{button:\$\('\.start-scores-toggle'\),table:\$\('#start-scores'\),getScores\}\);/);
+  assert.match(src,/stepName\.hidden=false;board\.stale\(\);/,'a reopened splash refreshes the board');
+  assert.match(css,/#start-screen \.start-scores-box\[hidden\]\{display:none\}/);
 });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {encodeReply,cleanPlayerName,engineLaunch,DEFAULT_PLAYER_NAME,playerIdOf,resolvePlayer,guestIdOf,guestLogins,GUEST_COOKIE} from './server.js';
+import {encodeReply,cleanPlayerName,engineLaunch,DEFAULT_PLAYER_NAME,playerIdOf,resolvePlayer,guestIdOf,guestLogins,GUEST_COOKIE,parseXlogfile,readScores} from './server.js';
 import {bareMore,groundNotice} from '../ground-notice.js';
 test('stale and duplicate requests cannot advance the game',()=>{assert.throws(()=>encodeReply({id:2,kind:'command'},{id:1,value:46}));assert.throws(()=>encodeReply(null,{id:2,value:46}));});
 test('line replies cannot inject a second turn',()=>{assert.throws(()=>encodeReply({id:1,kind:'line'},{id:1,value:'foo\n46'}));assert.equal(encodeReply({id:1,kind:'line'},{id:1,value:'inventory'}),'inventory\n');});
@@ -47,6 +47,28 @@ test('a named login is one player; a guest login is one player per browser, by a
   assert.equal(resolvePlayer({'x-player-id':'play'},false,{guests}).id,'local','local development is one player');
   assert.equal(resolvePlayer({},true,{guests}).id,null,'no login, no player');
   assert.equal(playerIdOf({'x-player-id':'alice'},true),'alice');
+});
+
+test('the xlogfile becomes a leaderboard: best first, only what the board shows, nothing about who was logged in',()=>{
+  const line=(f)=>Object.entries(f).map(([k,v])=>`${k}=${v}`).join('\t');
+  const text=[
+    line({version:'UnNetHack-6.0.0',points:1240,deathdnum:0,deathdname:'The Dungeons of Doom',deathlev:4,maxlvl:5,hp:-2,maxhp:40,deaths:1,deathdate:20261012,birthdate:20261011,uid:2001,role:'Val',race:'Hum',gender:'Fem',align:'Law',name:'Mira',death:'killed by a soldier ant',flags:'0x0',conduct:'0x1',turns:2310,mode:'normal'}),
+    line({version:'UnNetHack-6.0.0',points:88,deathlev:1,maxlvl:1,deathdate:20261013,uid:2002,role:'Wiz',race:'Elf',name:'Bo',death:'killed by a newt',turns:140,mode:'normal'}),
+    line({version:'UnNetHack-6.0.0',points:999999,deathlev:50,maxlvl:50,deathdate:20261013,uid:2001,role:'Val',race:'Hum',name:'Cheat',death:'ascended',turns:10,mode:'debug'}),
+    line({version:'UnNetHack-6.0.0',points:5000,deathlev:9,maxlvl:9,deathdate:20261014,uid:2003,role:'Sam',race:'Hum',name:'Kenji',death:'quit',turns:8000,mode:'normal'}),
+    '',
+    'garbage without an equals sign',
+    line({points:'abc',name:'Nope'}),
+  ].join('\n')+'\n';
+  const scores=parseXlogfile(text);
+  assert.deepEqual(scores.map(s=>s.name),['Kenji','Mira','Bo'],'highest points first; a wizard-mode game does not count; bad lines are skipped');
+  assert.deepEqual(scores[1],{name:'Mira',points:1240,death:'killed by a soldier ant',deathlev:4,maxlvl:5,turns:2310,role:'Val',race:'Hum',when:'2026-10-12'});
+  for(const s of scores){assert.equal('uid' in s,false);assert.equal('login' in s,false);assert.deepEqual(Object.keys(s).sort(),['death','deathlev','maxlvl','name','points','race','role','turns','when']);}
+  assert.equal(parseXlogfile(text,2).length,2,'top N');
+  // an older build separated fields with colons; a missing turns field is null, not NaN
+  assert.deepEqual(parseXlogfile('version=x:points=10:deathlev=2:deathdate=20250101:name=Old:death=killed by a jackal'),[{name:'Old',points:10,death:'killed by a jackal',deathlev:2,maxlvl:null,turns:null,role:null,race:null,when:'2025-01-01'}]);
+  assert.deepEqual(parseXlogfile(''),[]);assert.deepEqual(parseXlogfile(undefined),[]);
+  assert.deepEqual(readScores('/nonexistent/path/xlogfile'),[],'no file yet, no games');
 });
 
 test('a guest cookie is read strictly and a bad one is ignored',()=>{

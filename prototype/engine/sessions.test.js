@@ -204,3 +204,18 @@ test('the operator gets one log line per session start, death and end, with no t
     assert.ok(lines.every(l=>!l.includes(a)&&!l.includes(b)),'tokens never reach the log');
   }finally{await app.stopEngine();app.closeAllConnections?.();await new Promise(r=>app.close(r));}
 });
+
+test('GET /engine/scores serves the leaderboard from the xlogfile in the var folder, for every player on the server',async()=>{
+  const {spawnEngine}=fakeEngines(),root=fakeRoot();
+  const app=createApp({dist:mkdtempSync(join(tmpdir(),'dh-dist-')),engine:{trustProxy:true,spawnEngine,root}});
+  await new Promise(r=>app.listen(0,'127.0.0.1',r));const {port}=app.address();
+  try{
+    assert.deepEqual((await call(port,'/engine/scores',{player:'alice'})).json,{scores:[]},'no xlogfile yet: an empty board');
+    writeFileSync(join(root,'runtime','var','unnethack','xlogfile'),'version=UnNetHack-6.0.0\tpoints=40\tdeathlev=1\tmaxlvl=1\tdeathdate=20261010\tuid=2002\trole=Wiz\trace=Elf\tname=Bo\tdeath=killed by a newt\tturns=90\n'+'version=UnNetHack-6.0.0\tpoints=700\tdeathlev=3\tmaxlvl=4\tdeathdate=20261011\tuid=2001\trole=Val\trace=Hum\tname=Mira\tdeath=killed by a jackal\tturns=1200\n');
+    const {status,json}=await call(port,'/engine/scores',{player:'bob'});
+    assert.equal(status,200);
+    assert.deepEqual(json.scores.map(s=>[s.name,s.points,s.death,s.deathlev,s.turns,s.when]),[['Mira',700,'killed by a jackal',3,1200,'2026-10-11'],['Bo',40,'killed by a newt',1,90,'2026-10-10']],"bob sees alice's game too: the board is the whole server");
+    assert.ok(json.scores.every(s=>!('uid' in s)),'the player number never leaves the server');
+    assert.equal((await call(port,'/engine/scores')).status,403,'but it still takes a login');
+  }finally{await app.stopEngine();app.closeAllConnections?.();await new Promise(r=>app.close(r));}
+});

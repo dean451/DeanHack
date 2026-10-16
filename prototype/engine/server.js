@@ -44,6 +44,31 @@ export function listSaves(dir, uid) {
   }
   return saves.sort((a, b) => b.savedAt - a.savedAt);
 }
+// The finished games on this server, from the engine's xlogfile: one game per line, key=value
+// fields separated by tabs (older builds used colons; the engine turns the separator and newlines
+// inside a name or a death into underscores, so a split is safe). Only what the leaderboard shows
+// goes out: the character's name, never the uid or a login. Wizard and explore mode games do not
+// count. Highest score first, at most `limit` entries.
+export function parseXlogfile(text, limit = 25) {
+  const scores = [];
+  for (const line of String(text ?? '').split('\n')) {
+    if (!line.trim()) continue;
+    const fields = {};
+    for (const part of line.split(line.includes('\t') ? '\t' : ':')) { const i = part.indexOf('='); if (i > 0) fields[part.slice(0, i)] = part.slice(i + 1); }
+    const points = Number(fields.points), name = (fields.name || '').trim();
+    if (!name || !Number.isFinite(points) || points < 0) continue;
+    if (fields.mode === 'debug' || fields.mode === 'explore') continue;
+    const num = v => { const n = Number(v); return v !== undefined && v !== '' && Number.isFinite(n) ? n : null; };
+    const date = /^\d{8}$/.test(fields.deathdate || '') ? `${fields.deathdate.slice(0, 4)}-${fields.deathdate.slice(4, 6)}-${fields.deathdate.slice(6)}` : null;
+    scores.push({ name: name.slice(0, 32), points, death: (fields.death || '').slice(0, 200), deathlev: num(fields.deathlev), maxlvl: num(fields.maxlvl), turns: num(fields.turns), role: fields.role || null, race: fields.race || null, when: date });
+  }
+  // a stable sort keeps the order of equal scores as played
+  return scores.sort((a, b) => b.points - a.points).slice(0, limit);
+}
+export function readScores(file, limit = 25) {
+  let text; try { text = readFileSync(file, 'utf8'); } catch { return []; }
+  return parseXlogfile(text, limit);
+}
 // Which class each character was started as, so the saved-characters list can say "Wizard" without
 // loading the save. Keyed "<player number>:<save name>" in <var>/characters.json.
 export function readCharacters(file) {
@@ -276,6 +301,10 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
           const dir = varDir();
           const uid = session.uid ?? process.getuid?.() ?? 0, meta = dir ? readCharacters(resolve(dir, 'characters.json')) : {};
           return json(200, { saves: dir ? listSaves(resolve(dir, 'saves'), uid).map(save => ({ ...save, ...(meta[`${uid}:${save.name}`] || {}) })) : [], guest: who.guest });
+        }
+        if (req.method === 'GET' && path === '/engine/scores') {
+          const dir = varDir();
+          return json(200, { scores: dir ? readScores(resolve(dir, 'xlogfile')) : [] });
         }
         if (req.method === 'GET' && path === '/engine/events') {
           // Disable Nagle's algorithm: SSE is many small writes, and a proxy hop (e.g. a

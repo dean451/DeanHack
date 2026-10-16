@@ -263,3 +263,26 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 /* the F8 quality toast (quality.js) */
 .quality-toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:6;padding:7px 14px;font:12px Inter,system-ui,sans-serif;letter-spacing:.08em;color:#d6d9c9;background:#05080ad8;border:1px solid #6b7f8a66;border-radius:3px;pointer-events:none}.quality-toast[hidden]{display:none}
 #start-screen .start-guest{display:block;margin-top:10px;font:12px/1.4 Inter,system-ui,sans-serif;letter-spacing:0;text-transform:none;color:#8e9fac;text-shadow:none}
+/* The leaderboard (start-screen.js): a quiet button at the bottom of the splash, tucked into the stage's
+   bottom band beside the wordmark, and the table it opens below it. */
+#start-screen .start-board{position:relative;z-index:1;margin:-60px 0 0;padding:0 24px 28px;text-align:center}
+#start-screen .start-scores-toggle{padding:6px 10px;background:none;border:0;color:#8aa0a8;font:600 11px/1 'Courier New',monospace;letter-spacing:.32em;text-transform:uppercase;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+#start-screen .start-scores-toggle:hover,#start-screen .start-scores-toggle:focus-visible{color:#dfe8e6;outline:none}
+#start-screen .start-scores-toggle[aria-expanded="true"]{color:#6fb7b4}
+#start-screen .start-scores-toggle:disabled{color:#56656c;cursor:default}
+#start-screen .start-scores-box{width:min(820px,100%);margin:18px auto 0;overflow-x:auto;text-align:left}#start-screen .start-scores-box[hidden]{display:none}
+#start-screen .start-empty{margin:0;text-align:center;font:italic 14px/1.4 'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;color:#8d9aa1}
+#start-screen .start-scores{width:100%;border-collapse:collapse;font:14px/1.35 'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;color:#d8cfbb;background:#0a1417b3;border:1px solid #64797277;border-radius:4px}
+#start-screen .start-scores th{padding:9px 12px;font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#7f909a;text-align:left;border-bottom:1px solid #64797277}
+#start-screen .start-scores td{padding:8px 12px;border-top:1px solid #6479722e;vertical-align:top}
+#start-screen .start-scores tbody tr:first-child td{border-top:0}
+#start-screen .start-scores tbody tr:nth-child(odd) td{background:#0e1a1d66}
+#start-screen .start-scores tbody tr:hover td{background:#10282a}
+#start-screen .start-scores .rank{width:2em;text-align:right;color:#7f909a;font:12px 'Courier New',monospace}
+#start-screen .start-scores .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#start-screen .start-scores td.num:nth-child(2){color:#f1e8d4;font-weight:600}
+#start-screen .start-scores .who b{font:600 14px Inter,system-ui,sans-serif;color:#e9e2cf}
+#start-screen .start-scores .who i{display:block;font:normal 11px Inter,system-ui,sans-serif;color:#7f909a}
+#start-screen .start-scores .how{color:#b9b09c}
+#start-screen .start-scores tbody tr:first-child .rank,#start-screen .start-scores tbody tr:first-child td.num:nth-child(2){color:#c9552e}
+@media(max-width:760px){#start-screen .start-scores th:nth-child(n+5),#start-screen .start-scores td:nth-child(n+5){display:none}}
