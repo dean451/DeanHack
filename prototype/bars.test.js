@@ -94,6 +94,18 @@ test('door leaves hang in their own group on the hinge axis and swing clear of t
 });
 
 // The torch sconce shares this file because package.json is held by another open PR.
+test('torch sconces come from a small cache of built variants: clones share geometry, dispose on a clone is a no-op',async()=>{
+ const {createTorchSconce,VARIANTS}=await import('./torch.js');
+ const a=createTorchSconce(3),b=createTorchSconce(3+VARIANTS),c=createTorchSconce(4);
+ const geo=o=>o.children.filter(m=>m.isMesh).map(m=>m.geometry);
+ assert.deepEqual(geo(a),geo(b),'same variant, shared geometry');
+ assert.notDeepEqual(geo(a),geo(c),'another variant, its own geometry');
+ assert.notEqual(a,b);assert.notEqual(a.userData.flame,b.userData.flame,'each clone has its own flame vector');
+ let disposed=0;for(const g of geo(a))g.addEventListener('dispose',()=>disposed++);
+ a.userData.dispose();assert.equal(disposed,0,'a clone does not dispose the shared geometry');
+ assert.ok(VARIANTS>=4&&VARIANTS<=16);
+});
+
 test('torch sconces are finite, sit on the wall top, merge into wood and iron and put the flame on the torch',async()=>{
  const {createTorchSconce,WALL_TOP,TORCH_FLAME_Y}=await import('./torch.js');
  const prongs=new Set();
