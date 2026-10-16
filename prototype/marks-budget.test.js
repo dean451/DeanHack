@@ -7,7 +7,7 @@ import {createMarks, MARK_MAX, FADE_S} from './marks.js';
 // Each mark is one flat draw call, with no lights, and the geometry is shared.
 const BUDGET = {
   peakDraws: 100, // today 79 in a kill every fifth hit at 20 events a second: the cap plus marks still fading out
-  geometries: 6, // three splat shapes and three bone shards (long bone, rib, fragment)
+  geometries: 8, // three splat shapes and five bones (long bone, rib, splinter, vertebra, skull)
 };
 
 function brawl(events) {

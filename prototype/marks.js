@@ -6,21 +6,24 @@
 // with shared geometry, a hard cap, and the oldest mark fading out first when the cap is reached.
 // Positions and species come from combat events (combat-events.js).
 import {remainsOf} from './remains.js';
+import {boneGeometries, boneMaterial, placeBone, SHAPES as BONE_KINDS} from './bone-shards.js';
 
 export const MARK_MAX = 40, FADE_S = 1.2, SPLAT_SIDES = 40;
 export const KINDS = {
   splat: {color: 0x3a0909, opacity: .55, r: .13},
   pool: {color: 0x2a0606, opacity: .68, r: .3},
-  bone: {color: 0xcfc5a8, opacity: .95, r: .13},
+  bone: {color: 0xcfc5a8, opacity: 1, r: .15}, // a small lit solid (bone-shards.js), not a flat cut-out
+  skull: {color: 0xcfc5a8, opacity: 1, r: .14}, // one per dry kill
   // the dry kinds: a dust smudge where a skeleton came apart, a chip of bone where it was struck
   dust: {color: 0x4e4840, opacity: .38, r: .27},
-  chip: {color: 0xcfc5a8, opacity: .9, r: .06},
+  chip: {color: 0xcfc5a8, opacity: 1, r: .06}, // a splinter
   // the acid kinds: a drip where a jelly was struck, a slick with a few drips where it died
   drip: {color: 0x6f8a1e, opacity: .5, r: .1},
   slick: {color: 0x55701a, opacity: .62, r: .3},
 };
-// The shards a kill leaves: shapes 0 long bone, 1 rib, 2 fragment (createMarks builds them).
-export const BONE_SHAPES = 3;
+// The bones a kill leaves: shape 0 long bone, 1 rib, 2 splinter, 3 vertebra (bone-shards.js);
+// a dry kill adds a skull.
+export const BONE_SHAPES = 4;
 
 // Deterministic pseudo-random in [0,1) from a cell and a salt, so the same fight draws the same marks.
 export const hash = (x, z, n = 0) => {
@@ -38,7 +41,7 @@ export function marksFor(ev) {
     rot: hash(x, z, n + 3) * Math.PI * 2, s: .75 + hash(x, z, n + 5) * .6, ...(shape == null ? {} : {shape})});
   const bones = n => { for (let i = 0; i < n; i++) at('bone', 20 + i, .7, Math.floor(hash(x, z, 30 + i) * BONE_SHAPES)); };
   if (ev.type === 'death') {
-    if (what === 'bones') { at('dust', 1, .2); bones(3 + (hash(x, z, 40) > .5 ? 1 : 0)); }
+    if (what === 'bones') { at('dust', 1, .2); bones(3 + (hash(x, z, 40) > .5 ? 1 : 0)); at('skull', 60, .5); }
     else if (what === 'slick') { at('slick', 1, .2); for (let i = 0; i < 2; i++) at('drip', 50 + i, .9); }
     else { at('pool', 1, .2); if (what === 'flesh' && !ev.pet) bones(2 + (hash(x, z, 40) > .5 ? 1 : 0)); }
   } else if (what === 'bones') at('chip', 1, .3);
@@ -64,33 +67,24 @@ function splatGeometry(THREE, seed) {
   return g;
 }
 
-// The bone shards, flat on the floor and read at a glance: a long bone with knobbed ends, a rib's
-// arc, and a jagged fragment. Unit scale; marks.r sets the size.
-export function boneShape(THREE, which) {
-  const V = (x, y) => new THREE.Vector2(x, y);
-  let pts;
-  if (which === 0) pts = [V(-1, .12), V(-.72, .2), V(-.6, .12), V(.6, .12), V(.72, .22), V(1, .1), V(1.02, -.12), V(.7, -.22), V(.6, -.12), V(-.6, -.12), V(-.72, -.2), V(-1, -.1)];
-  else if (which === 1) { pts = []; for (let i = 0; i <= 8; i++) { const a = -.9 + i / 8 * 1.8; pts.push(V(Math.sin(a) * 1.05, Math.cos(a) * 1.05 - .75)); } for (let i = 8; i >= 0; i--) { const a = -.9 + i / 8 * 1.8; pts.push(V(Math.sin(a) * .8, Math.cos(a) * .8 - .75)); } }
-  else pts = [V(-.9, 0), V(-.3, .35), V(.2, .2), V(.8, .3), V(.9, -.15), V(.3, -.3), V(-.2, -.1)];
-  const g = new THREE.ShapeGeometry(new THREE.Shape(pts));
-  g.rotateX(-Math.PI / 2);
-  return g;
-}
-
 export function createMarks(THREE, parent, {cap = MARK_MAX} = {}) {
   const splats = [0, 1, 2].map(i => splatGeometry(THREE, i + 1));
-  const shards = [0, 1, 2].map(i => boneShape(THREE, i));
+  const bones = boneGeometries(), shapeOf = m => m.kind === 'skull' ? 'skull' : m.kind === 'chip' ? 'splinter' : BONE_KINDS[m.shape ?? 0];
   const live = []; // oldest first
   const drop = m => { parent.remove(m.mesh); m.mesh.material.dispose(); };
   function add(ev) {
     for (const m of marksFor(ev)) {
-      const k = KINDS[m.kind];
-      const mat = new THREE.MeshBasicMaterial({color: k.color, transparent: true, opacity: k.opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2});
-      const mesh = new THREE.Mesh(m.kind === 'bone' ? shards[m.shape ?? 0] : m.kind === 'chip' ? shards[2] : splats[Math.floor(hash(m.x, m.z, 7) * 3)], mat);
-      mesh.position.set(m.x, .035 + live.length % 8 * .001, m.z);
-      mesh.rotation.y = m.rot; mesh.scale.setScalar(k.r * m.s); mesh.renderOrder = 1;
+      const k = KINDS[m.kind], bone = m.kind === 'bone' || m.kind === 'chip' || m.kind === 'skull';
+      let mesh;
+      if (bone) { mesh = new THREE.Mesh(bones[shapeOf(m)], boneMaterial()); placeBone(mesh, shapeOf(m), {...m, seed: hash(m.x, m.z, 8) * 100}, k.r); }
+      else {
+        const mat = new THREE.MeshBasicMaterial({color: k.color, transparent: true, opacity: k.opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2});
+        mesh = new THREE.Mesh(splats[Math.floor(hash(m.x, m.z, 7) * 3)], mat);
+        mesh.position.set(m.x, .035 + live.length % 8 * .001, m.z);
+        mesh.rotation.y = m.rot; mesh.scale.setScalar(k.r * m.s); mesh.renderOrder = 1;
+      }
       parent.add(mesh);
-      live.push({mesh, base: k.opacity, fade: 0, bone: m.kind === 'bone' || m.kind === 'chip'});
+      live.push({mesh, base: k.opacity, fade: 0, bone});
     }
     // Over the cap: start the oldest not-yet-fading marks fading, stains before bones, so a
     // fight's bones stay on the floor after its blood has faded. The total cap is unchanged.
@@ -104,7 +98,7 @@ export function createMarks(THREE, parent, {cap = MARK_MAX} = {}) {
       const m = live[i];
       if (!m.fade) continue;
       m.fade -= dt / FADE_S;
-      if (m.fade <= 0) { drop(m); live.splice(i, 1); } else m.mesh.material.opacity = m.base * m.fade;
+      if (m.fade <= 0) { drop(m); live.splice(i, 1); } else { const mat = m.mesh.material; if (!mat.transparent) { mat.transparent = true; mat.needsUpdate = true; } mat.opacity = m.base * m.fade; }
     }
   }
   function clear() { live.forEach(drop); live.length = 0; }
