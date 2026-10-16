@@ -65,7 +65,7 @@ export function ashPose(i, t) {
   return {x: Math.cos(a) * (.1 + .06 * i / JET.ash) + Math.sin(u * 7 + i) * .05, y: .9 - .8 * u * (.8 + .2 * (i % 2)), z: Math.sin(a) * (.12 + .05 * i / JET.ash), alpha: u <= 0 || u >= 1 ? 0 : .6 * smooth(u / .2) * (1 - smooth((u - .7) / .3))};
 }
 
-export function createFireTrapJet(THREE, parent) {
+export function createFireTrapJet(THREE, parent, {lights = null} = {}) {
   const live = []; let pending = null;
   function add(x, z) {
     const g = new THREE.Group(); g.name = 'FireTrapJet'; g.position.set(x, 0, z); parent.add(g);
@@ -77,7 +77,7 @@ export function createFireTrapJet(THREE, parent) {
     const scorch = new THREE.Mesh(ringGeo, mk(0x1a0a04)); scorch.rotation.x = -Math.PI / 2; scorch.position.y = .02; g.add(scorch);
     const embers = Array.from({length: JET.embers}, () => { const m = new THREE.Mesh(sph, mk(0xffb040)); m.scale.setScalar(.018); g.add(m); return m; });
     const ash = Array.from({length: JET.ash}, () => { const m = new THREE.Mesh(sph, mk(0x6a625a)); m.scale.set(.03, .008, .03); g.add(m); return m; });
-    const light = new THREE.PointLight(0xff7a20, 0, 5); light.position.y = .6; g.add(light);
+    const light = lights ? lights.acquire(0xff7a20, 5) : new THREE.PointLight(0xff7a20, 0, 5); light.position.y = .6; g.add(light);
     live.push({g, geos: [geo, sph, ringGeo], mats, column, core, tongues, flash, scorch, embers, ash, light, t: 0});
   }
   const cone = (m, h, w, a, x = 0, z = 0) => { m.visible = a > .01; m.scale.set(w, Math.max(h, .001), w); m.position.set(x, h / 2, z); m.material.opacity = a; };
@@ -93,7 +93,7 @@ export function createFireTrapJet(THREE, parent) {
     e.light.intensity = (c.alpha * 3 + f.alpha * 4);
     return e.t < JET.total;
   }
-  function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); e.light.dispose?.(); parent.remove(e.g); }
+  function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); if (lights) lights.release(e.light); else e.light.dispose?.(); parent.remove(e.g); }
   return {
     add,
     // The message arrives before the frame that carries the hero's new square, so the x, z

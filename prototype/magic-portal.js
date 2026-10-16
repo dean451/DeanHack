@@ -31,14 +31,14 @@ export function ringPose(i, t, dir) {
 // The light's colour mix, 0 violet to 1 sick green-black.
 export const sourPose = t => clamp01(t / PORTAL.out);
 
-export function createMagicPortal(THREE, parent) {
+export function createMagicPortal(THREE, parent, {lights = null} = {}) {
   const live = []; let armed = 0;
   function build(x, z, dir) {
     const g = new THREE.Group(); g.name = 'MagicPortal'; g.position.set(x, 0, z); parent.add(g);
     const ringGeo = new THREE.RingGeometry(.88, 1, 5), mats = [];
     const mk = () => { const m = new THREE.MeshBasicMaterial({color: 0x9a5cff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, toneMapped: false}); mats.push(m); return m; };
     const rings = Array.from({length: PORTAL.rings}, () => { const m = new THREE.Mesh(ringGeo, mk()); m.rotation.x = -Math.PI / 2; m.position.y = .03; g.add(m); return m; });
-    const light = new THREE.PointLight(0x9a5cff, 0, 5); light.position.y = .5; g.add(light);
+    const light = lights ? lights.acquire(0x9a5cff, 5) : new THREE.PointLight(0x9a5cff, 0, 5); light.position.y = .5; g.add(light);
     live.push({g, geos: [ringGeo], mats, rings, light, dir, t: 0});
   }
   const violet = new THREE.Color(0x9a5cff), sick = new THREE.Color(0x2c4a1c);
@@ -52,7 +52,7 @@ export function createMagicPortal(THREE, parent) {
     e.light.intensity = peak * 3; e.light.color.copy(violet).lerp(sick, k);
     return e.t < life;
   }
-  function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); e.light.dispose?.(); parent.remove(e.g); }
+  function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); if (lights) lights.release(e.light); else e.light.dispose?.(); parent.remove(e.g); }
   return {
     message(text, x, z) { if (isPortalMessage(text)) { build(x, z, -1); armed = PORTAL.armed; } },
     // A new level arrived: drop the old level's effects and, if the portal was ours, unwind it here.
