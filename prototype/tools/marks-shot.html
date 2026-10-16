@@ -1,0 +1,18 @@
+<!doctype html><meta charset="utf-8"><title>marks shot</title>
+<style>html,body{margin:0;background:#233138}canvas{display:block}</style>
+<script type="module">
+// Renders what a fight leaves on the floor, one row per remains class (remains.js): a hit's
+// mark, then a kill's. /tools/marks-shot.html
+import * as THREE from 'three';
+import {createMarks} from '../marks.js';
+import {REMAINS} from '../remains.js';
+const EXAMPLES={flesh:'jackal',blood:'floating eye',bones:'skeleton',none:'yellow light'};
+const W=900,H=700,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(30,W/H,.05,60);
+scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const key=new THREE.DirectionalLight(0xffe1b6,3);key.position.set(-3,5,4);scene.add(key);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(6,6),new THREE.MeshStandardMaterial({color:0x4a5550,roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const marks=createMarks(THREE,scene,{cap:200});
+REMAINS.forEach((what,i)=>{const z=-1.5+i;const name=EXAMPLES[what];marks.add({type:'combat',x:-.8,z,name});marks.add({type:'death',x:.8,z,name});});
+camera.position.set(0,4.2,2.6);camera.lookAt(0,0,0);renderer.render(scene,camera);window.__done=true;
+</script>

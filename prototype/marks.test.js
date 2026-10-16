@@ -12,6 +12,20 @@ test('a hit makes one splat and a kill a pool with bones; a pet leaves no bones'
   assert.deepEqual(marksFor(null), []);
 });
 
+test('what is left follows the species: boneless things bleed, dry undead leave bone on dust, lights and elementals leave nothing', () => {
+  const kinds = ev => marksFor(ev).map(m => m.kind);
+  assert.deepEqual(kinds({type: 'death', x: 1, z: 1, name: 'floating eye'}), ['pool']);
+  assert.deepEqual(kinds({type: 'death', x: 1, z: 1, name: 'giant beetle'}), ['pool']);
+  const skel = kinds({type: 'death', x: 1, z: 1, name: 'skeleton'});
+  assert.equal(skel[0], 'dust'); assert.ok(skel.filter(x => x === 'bone').length >= 3); assert.ok(!skel.includes('pool'));
+  assert.deepEqual(kinds({type: 'combat', x: 1, z: 1, name: 'barrow wight'}), ['chip']);
+  for (const name of ['yellow light', 'black light', 'fire elemental', 'earth elemental', 'energy vortex', 'blue jelly', 'stone golem', 'ghost', 'gas spore'])
+    assert.deepEqual(kinds({type: 'death', x: 1, z: 1, name}), [], name), assert.deepEqual(kinds({type: 'combat', x: 1, z: 1, name}), [], name);
+  // the shards come in three shapes, picked deterministically
+  const shapes = marksFor({type: 'death', x: 9, z: 2, name: 'human zombie'}).filter(m => m.kind === 'bone').map(m => m.shape);
+  assert.ok(shapes.every(s => Number.isInteger(s) && s >= 0 && s < 3));
+});
+
 test('marks stay within a cell of the event and are deterministic', () => {
   const a = marksFor({type: 'death', x: 5, z: 7}), b = marksFor({type: 'death', x: 5, z: 7});
   assert.deepEqual(a, b);
@@ -36,7 +50,7 @@ test('the pool is capped and the oldest marks fade out first', () => {
 test('marks are flat, low, shared in geometry, and clear() removes everything', () => {
   const parent = new THREE.Group(), marks = createMarks(THREE, parent);
   for (let i = 0; i < 12; i++) marks.add({type: 'death', x: i, z: i});
-  assert.ok(new Set(parent.children.map(m => m.geometry)).size <= 4);
+  assert.ok(new Set(parent.children.map(m => m.geometry)).size <= 6);
   for (const m of parent.children) { assert.ok(m.position.y > 0 && m.position.y < .05); assert.equal(m.material.depthWrite, false); }
   marks.update(NaN);
   marks.clear();
