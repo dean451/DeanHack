@@ -104,3 +104,11 @@ test('a model whose parts carry a different attribute layout (no uv) gets its ow
   assert.equal(refused, 0, 'every jackal part is in a batch');
   assert.ok(batch.batches >= 2, 'the jackal\'s uv-less parts and the leprechaun\'s parts are separate batches');
 });
+
+test('the batch is never culled as a whole: its bounding sphere goes stale as monsters move', () => {
+  const root = new THREE.Group(), batch = createActorBatch(root);
+  const a = createCreature({ name: 'leprechaun', symbol: 'l'.charCodeAt(0), color: 2 }); bakeDraws(a); root.add(a.g); batch.add(a);
+  let mesh; root.traverse(o => { if (o.isBatchedMesh) mesh = o; });
+  assert.ok(mesh && mesh.frustumCulled === false, 'whole-batch frustum culling off; per-instance culling stays');
+  assert.ok(mesh.perObjectFrustumCulled);
+});
