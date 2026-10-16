@@ -40,6 +40,9 @@ export function createTileInstancer(root, {promoteAt = PROMOTE_AT, start = START
       let bin = bins.get(key);
       if (!bin) bins.set(key, bin = {geometry: o.geometry, material: o.material, cast: o.castShadow, receive: o.receiveShadow, proxies: new Set(), mesh: null});
       bin.proxies.add(o); of.set(o, bin); n++;
+      // A proxy never moves on its own (its tile does), so its local matrix is composed once here
+      // rather than on every render pass over the whole level.
+      o.updateMatrix(); o.matrixAutoUpdate = false;
       if (bin.mesh) o.layers.set(HIDDEN_LAYER);
       else if (bin.proxies.size >= promoteAt) { bin.mesh = build(bin, Math.max(start, bin.proxies.size * 2)); root.add(bin.mesh); for (const p of bin.proxies) p.layers.set(HIDDEN_LAYER); }
     });
@@ -52,7 +55,7 @@ export function createTileInstancer(root, {promoteAt = PROMOTE_AT, start = START
     if (!dirty || (frame !== null && frame === synced)) return;
     synced = frame; dirty = false;
     for (const bin of bins.values()) {
-      for (const p of bin.proxies) if (!isUnder(p, root)) { bin.proxies.delete(p); of.delete(p); p.layers.set(0); }
+      for (const p of bin.proxies) if (!isUnder(p, root)) { bin.proxies.delete(p); of.delete(p); p.layers.set(0); p.matrixAutoUpdate = true; }
       const mesh = bin.mesh;
       if (!mesh) continue;
       if (bin.proxies.size > mesh.instanceMatrix.count) { root.remove(mesh); mesh.dispose(); bin.mesh = build(bin, bin.proxies.size * 2); root.add(bin.mesh); bin.mesh.updateMatrixWorld(true); dirty = true; return sync(null); }
@@ -67,7 +70,7 @@ export function createTileInstancer(root, {promoteAt = PROMOTE_AT, start = START
     }
   }
   function clear() {
-    for (const bin of bins.values()) { for (const p of bin.proxies) p.layers.set(0); if (bin.mesh) { root.remove(bin.mesh); bin.mesh.dispose(); } }
+    for (const bin of bins.values()) { for (const p of bin.proxies) { p.layers.set(0); p.matrixAutoUpdate = true; } if (bin.mesh) { root.remove(bin.mesh); bin.mesh.dispose(); } }
     bins.clear(); of.clear(); dirty = false;
   }
   return {add, refresh, sync, clear, get size() { return of.size; }, get draws() { let n = 0; for (const b of bins.values()) if (b.mesh) n++; return n; }, meshes: () => [...bins.values()].filter(b => b.mesh).map(b => b.mesh)};

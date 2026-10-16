@@ -1,19 +1,15 @@
 import * as THREE from 'three';
 
-// Nested tapered tongues, animated independently rather than stretched spheres.
+// A shader flame on a camera-facing card, with eight embers drifting up from it as one
+// instanced draw. (An earlier version also built seven lathe-geometry tongues; they were
+// animated every frame but never added to the group, so they only cost CPU.)
 export function createFire(seed=0){
- const g=new THREE.Group(),tongues=[],embers=[];
- const materials=[0xff4b0c,0xff9e20,0xffebaa].map(color=>new THREE.MeshBasicMaterial({color,toneMapped:false}));
- const profile=[new THREE.Vector2(0,0),new THREE.Vector2(.055,.03),new THREE.Vector2(.072,.1),new THREE.Vector2(.05,.2),new THREE.Vector2(.023,.31),new THREE.Vector2(0,.43)];
- const geometry=new THREE.LatheGeometry(profile,10);
- for(let i=0;i<7;i++){
-  const layer=i%3,mesh=new THREE.Mesh(geometry,materials[layer]);
-  const size=layer===0?1:layer===1?.76:.48;
-  mesh.position.set(i<3?0:Math.sin(i*2.4)*.065,.015+layer*.008,i<3?0:Math.cos(i*2.4)*.065);
-  mesh.scale.setScalar(size);tongues.push({mesh,size,phase:seed+i*1.7});
- }
- const sparkGeometry=new THREE.SphereGeometry(.009,4,3);
- for(let i=0;i<8;i++){const mesh=new THREE.Mesh(sparkGeometry,materials[1]);g.add(mesh);embers.push(mesh);}
+ const g=new THREE.Group();
+ const emberMaterial=new THREE.MeshBasicMaterial({color:0xff9e20,toneMapped:false});
+ // One InstancedMesh, not eight meshes: the tile instancer would otherwise sweep eight plain
+ // meshes into its own instances and freeze their drift between engine frames.
+ const EMBERS=8,sparkGeometry=new THREE.SphereGeometry(.009,4,3),embers=new THREE.InstancedMesh(sparkGeometry,emberMaterial,EMBERS);
+ embers.name='embers';embers.frustumCulled=false;g.add(embers);const emberMatrix=new THREE.Matrix4(),emberPos=new THREE.Vector3(),emberScale=new THREE.Vector3(),noTurn=new THREE.Quaternion();
  const fireMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,toneMapped:false,uniforms:{time:{value:0},seed:{value:seed}},
  vertexShader:`varying vec2 vUv;void main(){vUv=uv;vec4 c=modelViewMatrix*vec4(0.,0.,0.,1.);c.xy+=position.xy*vec2(length(modelMatrix[0].xyz),length(modelMatrix[1].xyz));gl_Position=projectionMatrix*c;}`,
  fragmentShader:`
@@ -36,9 +32,10 @@ export function createFire(seed=0){
  const plane=new THREE.PlaneGeometry(.42,.64);plane.translate(0,.29,0);const flame=new THREE.Mesh(plane,fireMaterial);flame.frustumCulled=false;g.add(flame);
  g.userData.updateFire=t=>{
   fireMaterial.uniforms.time.value=t;
-  for(const {mesh,size,phase} of tongues){const flicker=Math.sin(t*11+phase)*.12+Math.sin(t*19.3+phase)*.06;mesh.scale.set(size*(1-flicker*.4),size*(1+flicker),size);mesh.rotation.z=Math.sin(t*5.7+phase)*.2;mesh.rotation.x=Math.sin(t*7.1+phase)*.12;}
-  embers.forEach((mesh,i)=>{const age=(t*(.45+i*.018)+i/8+seed)%1;mesh.position.set(Math.sin(age*8+i)*age*.17,.14+age*.65,Math.cos(age*7+i)*age*.12);mesh.scale.setScalar(Math.sin(age*Math.PI)*.8);});
+  for(let i=0;i<EMBERS;i++){const age=(t*(.45+i*.018)+i/8+seed)%1;emberPos.set(Math.sin(age*8+i)*age*.17,.14+age*.65,Math.cos(age*7+i)*age*.12);emberScale.setScalar(Math.max(1e-4,Math.sin(age*Math.PI)*.8));
+   embers.setMatrixAt(i,emberMatrix.compose(emberPos,noTurn,emberScale));}
+  embers.instanceMatrix.needsUpdate=true;
  };
- g.userData.dispose=()=>{plane.dispose();fireMaterial.dispose();geometry.dispose();sparkGeometry.dispose();materials.forEach(m=>m.dispose());};
+ g.userData.dispose=()=>{plane.dispose();fireMaterial.dispose();embers.dispose();sparkGeometry.dispose();emberMaterial.dispose();};
  return g;
 }
