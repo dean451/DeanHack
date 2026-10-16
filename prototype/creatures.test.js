@@ -2759,7 +2759,7 @@ test('acid blobs sit in a burnt pool',()=>{
  const meshes=x=>{let n=0;x.g.traverse(o=>{if(o.isMesh)n++;});return n;};
  const parts=[];blob.g.traverse(o=>{if(o.isMesh)parts.push(o.userData.part);});
  for(const need of ['mass','inside','drips','pool'])assert(parts.includes(need),`acid blob ${need}`);
- assert(meshes(blob)<=6,'a sagging acid blob in its burnt pool: mass, inside, drips, pool and a glow');assert.equal(meshes(jelly),11);
+ assert(meshes(blob)<=6,'a sagging acid blob in its burnt pool: mass, inside, drips, pool and a glow');assert(meshes(jelly)<=6,'the blue jelly is its own five-draw model, not the shared blob of eleven');
 });
 
 test('a wyvern tail stinger keeps it inside its tile',()=>{
