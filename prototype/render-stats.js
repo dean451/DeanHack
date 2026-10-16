@@ -41,6 +41,7 @@ export function formatStats(s) {
     `triangles ${compact(s.triangles)}`,
     `geoms     ${compact(s.geometries)}   textures ${compact(s.textures)}`,
   ];
+  if (s.cpu) lines.push(`cpu ms    update ${Number.isFinite(s.cpu.update) ? s.cpu.update.toFixed(2) : '–'}   render ${Number.isFinite(s.cpu.render) ? s.cpu.render.toFixed(1) : '–'}`);
   if (s.counts) lines.push(
     `meshes    ${compact(s.counts.meshes)}   materials ${compact(s.counts.materials)}`,
     `lights    ${compact(s.counts.lights)}   shadow ${compact(s.counts.shadowLights)}`,
@@ -52,7 +53,8 @@ export function createRenderStats(renderer, scene, {doc = globalThis.document, v
   renderer.info.autoReset = false;
   let panel = null, shown = false, sinceSample = 0, sinceCount = COUNT_EVERY, frames = 0, time = 0, counts = null;
   const last = {calls: 0, triangles: 0, points: 0, lines: 0};
-  const summary = {fps: NaN, ms: NaN, calls: 0, triangles: 0, geometries: 0, textures: 0, counts: null};
+  const summary = {fps: NaN, ms: NaN, calls: 0, triangles: 0, geometries: 0, textures: 0, counts: null, cpu: null};
+  const cpu = {update: 0, render: 0, frames: 0}; // main-thread ms per frame: the game update and the composer's submit
 
   function ensurePanel() {
     if (panel || !doc) return panel;
@@ -77,8 +79,9 @@ export function createRenderStats(renderer, scene, {doc = globalThis.document, v
     show,
     // Call just before the frame's first render.
     begin() { renderer.info.reset(); },
-    // Call after the frame's last render.
-    end(dt) {
+    // Call after the frame's last render. `times` (optional): {update, render} ms this frame spent on the main thread.
+    end(dt, times = null) {
+      if (times) { cpu.update += times.update || 0; cpu.render += times.render || 0; cpu.frames++; }
       const r = renderer.info.render;
       last.calls = r.calls; last.triangles = r.triangles; last.points = r.points; last.lines = r.lines;
       if (!shown) return;
@@ -90,8 +93,9 @@ export function createRenderStats(renderer, scene, {doc = globalThis.document, v
       summary.calls = last.calls; summary.triangles = last.triangles;
       summary.geometries = renderer.info.memory.geometries; summary.textures = renderer.info.memory.textures;
       summary.counts = counts;
+      summary.cpu = cpu.frames ? {update: cpu.update / cpu.frames, render: cpu.render / cpu.frames} : null;
       if (panel) panel.textContent = formatStats(summary);
-      frames = 0; time = 0; sinceSample = 0;
+      frames = 0; time = 0; sinceSample = 0; cpu.update = cpu.render = cpu.frames = 0;
     },
     // Whole-frame totals from the last completed frame.
     frame() { return {...last}; },

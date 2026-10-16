@@ -97,3 +97,9 @@ test('the panel samples fps while shown, toggles and is removed on dispose', () 
   stats.dispose();
   assert.equal(doc.body.children.length, 0);
 });
+
+test('the panel averages the main-thread update and render ms it is handed and prints them', () => {
+  const busy = formatStats({fps: 60, ms: 16.7, calls: 1, triangles: 1, geometries: 1, textures: 1, counts: null, cpu: {update: 2.345, render: 6.78}});
+  assert.match(busy, /cpu ms\s+update 2\.35\s+render 6\.8/);
+  assert.doesNotMatch(formatStats({fps: 60, ms: 16.7, calls: 1, triangles: 1, geometries: 1, textures: 1, counts: null, cpu: null}), /cpu ms/);
+});
