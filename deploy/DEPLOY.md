@@ -16,7 +16,9 @@ scene only, because Live mode needs the engine process on the server.
   without touching each other's game, and nobody can see another login's saved characters. The
   server runs at most `DEANHACK_MAX_ENGINES` games at once (default 8; set it in `.env`), and a game
   nobody has touched for 20 minutes is saved and stopped. Two tabs on the same login share that
-  login's game.
+  login's game, except on a guest login (`DEANHACK_GUEST_LOGINS`, default `play`): there every
+  browser is its own player, by a cookie, so the shared `play` login never puts two people in one game
+  (`deploy/users/README.md`).
 - **The login is the access control.** The game server trusts the login name Caddy passes along,
   and is only reachable through Caddy (its port is not published). Never publish port 8080.
   The allowed host list (`DEANHACK_HOSTS`) is a safety net, not authentication.

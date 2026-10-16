@@ -207,3 +207,15 @@ test('the cover picks a head, sizes it, and goes away for ?demo',async()=>{
   ({cover,pre}=mk());assert.equal(fillCover(cover,{search:'?demo'}),null);assert.equal(cover.removed,true);
   assert.equal(fillCover(null),null);
 });
+
+test('a guest login is told its saves live with this browser',async()=>{
+  const {fetchSaves,GUEST_NOTE}=await import('./start-screen.js');
+  const saves=await fetchSaves(async()=>({ok:true,json:async()=>({saves:[{name:'Bo',savedAt:1}],guest:true})}));
+  assert.equal(saves.length,1);assert.equal(saves.guest,true);
+  const named=await fetchSaves(async()=>({ok:true,json:async()=>({saves:[]})}));
+  assert.equal(named.guest,undefined,'a named login gets a plain list');
+  assert.match(GUEST_NOTE,/stay with this browser/);
+  const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
+  assert.match(src,/saves\.guest&&!guestNote/,'the note is added once for a guest');
+  assert.match(src,/box\.hidden=!saves\.length&&!saves\.guest;/,'a guest with no saves yet still sees the note');
+});

@@ -119,6 +119,32 @@ export function playerIdOf(headers, trustProxy) {
   return /^[A-Za-z0-9][A-Za-z0-9_.@-]{0,63}$/.test(id) ? id : null;
 }
 
+// Guest logins. A login named in DEANHACK_GUEST_LOGINS (default `play`) is shared by anyone who
+// knows it, so it must not be one game: two friends on it would be driving the same engine and
+// seeing each other's keystrokes. Each browser on a guest login gets a player of its own instead,
+// told apart by a random id in a cookie the server sets on the first request. Saves then belong
+// to that browser (a guest on another computer is another player, which is the point of a guest
+// login); a named login behaves as before. The id is only ever combined with the login name, so a
+// guest can never reach a named login's game.
+export const GUEST_COOKIE = 'deanhack_guest';
+export function guestLogins(env = process.env.DEANHACK_GUEST_LOGINS) {
+  return (env ?? 'play').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+export function guestIdOf(cookieHeader) {
+  const m = new RegExp(`(?:^|;\\s*)${GUEST_COOKIE}=([A-Za-z0-9_-]{8,64})(?:;|$)`).exec(typeof cookieHeader === 'string' ? cookieHeader : '');
+  return m ? m[1] : null;
+}
+// The player behind a request: {id, login, guest, setCookie}. id is null when not signed in;
+// setCookie is the Set-Cookie value to send when a guest browser has no id yet.
+export function resolvePlayer(headers, trustProxy, {guests = guestLogins(), newId = () => randomBytes(12).toString('base64url')} = {}) {
+  const login = playerIdOf(headers, trustProxy);
+  if (!login) return {id: null, login: null, guest: false, setCookie: null};
+  if (!trustProxy || !guests.includes(login.toLowerCase())) return {id: login, login, guest: false, setCookie: null};
+  let gid = guestIdOf(headers.cookie), setCookie = null;
+  if (!gid) { gid = newId(); setCookie = `${GUEST_COOKIE}=${gid}; Path=/; Max-Age=31536000; SameSite=Lax; HttpOnly`; }
+  return {id: `${login}~${gid}`, login, guest: true, setCookie};
+}
+
 // One player's engine and everything the browser sees of it: the process, the latest frame and
 // prompt, a recent message history, an event log for polling, and the open event streams.
 export function createSession({ root, id, uid = null, spawnEngine = spawn, now = Date.now, onEvent = null }) {
@@ -238,8 +264,9 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
         // anything else; same-origin still required either way.
         const originHost = req.headers.origin ? req.headers.origin.replace(/^https?:\/\//, '') : null;
         if (!host || !hostAllowed(host) || (originHost && originHost !== host)) { res.writeHead(403); res.end('Local or tunnel same-origin requests only'); return; }
-        const json = (code, data) => { res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
-        const playerId = playerIdOf(req.headers, trustProxy);
+        const who = resolvePlayer(req.headers, trustProxy), cookie = who.setCookie ? { 'Set-Cookie': who.setCookie } : {};
+        const json = (code, data) => { res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...cookie }); res.end(JSON.stringify(data)); };
+        const playerId = who.id;
         if (!playerId) return json(403, { error: 'Not signed in' });
         let session;
         try { session = sessionFor(playerId); } catch (e) { return json(503, { error: e.message }); }
@@ -248,13 +275,13 @@ export default function enginePlugin({ trustProxy = process.env.DEANHACK_TRUST_P
         if (req.method === 'GET' && path === '/engine/saves') {
           const dir = varDir();
           const uid = session.uid ?? process.getuid?.() ?? 0, meta = dir ? readCharacters(resolve(dir, 'characters.json')) : {};
-          return json(200, { saves: dir ? listSaves(resolve(dir, 'saves'), uid).map(save => ({ ...save, ...(meta[`${uid}:${save.name}`] || {}) })) : [] });
+          return json(200, { saves: dir ? listSaves(resolve(dir, 'saves'), uid).map(save => ({ ...save, ...(meta[`${uid}:${save.name}`] || {}) })) : [], guest: who.guest });
         }
         if (req.method === 'GET' && path === '/engine/events') {
           // Disable Nagle's algorithm: SSE is many small writes, and a proxy hop (e.g. a
           // Cloudflare tunnel) can otherwise coalesce/delay them long enough to look hung.
           req.socket?.setNoDelay(true);
-          res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' }); session.addClient(res);
+          res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', ...cookie }); session.addClient(res);
           // A proxy hop (Cloudflare's edge, for a tunnel) can hold back the first chunk of a
           // streaming response until enough bytes accumulate. Padding past that threshold
           // forces an immediate flush instead of leaving the client waiting on nothing.

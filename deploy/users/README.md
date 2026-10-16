@@ -20,6 +20,15 @@ Put one email per line in `deploy/users/testers.txt` (git-ignored) and run
 
 on the server. Each email becomes a login whose password is the email itself, lower-cased, and
 Caddy restarts. Tell each friend: user name and password are both your email, all lower case.
-Re-run after editing the list; a removed email stops working at once. A plain word works too: a line reading `play` makes a shared login with user name play and password play. This is a door, not a
+Re-run after editing the list; a removed email stops working at once. A plain word works too: a line reading `play` makes a login with user name play and password play.
+
+## Guest logins
+
+A login named in `DEANHACK_GUEST_LOGINS` (default `play`; comma-separated) is a guest login: everyone
+who uses it gets a game of their own, told apart by a cookie the server sets in each browser. Two
+friends on `play` at once no longer share one engine. The trade-off is that a guest's saves live with
+that browser: the same person on another computer is another guest. Anyone who wants to carry a
+character between machines needs a login of their own (an email line above). Every guest counts
+toward `DEANHACK_MAX_ENGINES`. This is a door, not a
 lock: anyone who knows a tester's email can play as them, which is fine for friends and not for
 the open internet.

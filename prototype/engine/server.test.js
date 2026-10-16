@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {encodeReply,cleanPlayerName,engineLaunch,DEFAULT_PLAYER_NAME} from './server.js';
+import {encodeReply,cleanPlayerName,engineLaunch,DEFAULT_PLAYER_NAME,playerIdOf,resolvePlayer,guestIdOf,guestLogins,GUEST_COOKIE} from './server.js';
 import {bareMore,groundNotice} from '../ground-notice.js';
 test('stale and duplicate requests cannot advance the game',()=>{assert.throws(()=>encodeReply({id:2,kind:'command'},{id:1,value:46}));assert.throws(()=>encodeReply(null,{id:2,value:46}));});
 test('line replies cannot inject a second turn',()=>{assert.throws(()=>encodeReply({id:1,kind:'line'},{id:1,value:'foo\n46'}));assert.equal(encodeReply({id:1,kind:'line'},{id:1,value:'inventory'}),'inventory\n');});
@@ -33,4 +33,28 @@ test('the engine is launched for the chosen name, in both the arguments and the 
   const fallback=engineLaunch('!!!',{cwd:'/runtime'});
   assert.equal(fallback.name,'Adventurer');
   assert.ok(fallback.options.includes('name:Adventurer,'));
+});
+
+test('a named login is one player; a guest login is one player per browser, by a cookie the server sets once',()=>{
+  const guests=['play'];
+  assert.deepEqual(resolvePlayer({'x-player-id':'alice'},true,{guests}),{id:'alice',login:'alice',guest:false,setCookie:null});
+  const first=resolvePlayer({'x-player-id':'play'},true,{guests,newId:()=>'abcdefgh1234'});
+  assert.equal(first.id,'play~abcdefgh1234');assert.equal(first.guest,true);
+  assert.match(first.setCookie,new RegExp(`^${GUEST_COOKIE}=abcdefgh1234; Path=/; Max-Age=31536000; SameSite=Lax; HttpOnly$`));
+  const again=resolvePlayer({'x-player-id':'play',cookie:`other=1; ${GUEST_COOKIE}=abcdefgh1234`},true,{guests,newId:()=>{throw new Error('no new id when the cookie is there');}});
+  assert.equal(again.id,'play~abcdefgh1234');assert.equal(again.setCookie,null);
+  assert.equal(resolvePlayer({'x-player-id':'Play'},true,{guests,newId:()=>'zzzzzzzz'}).id,'Play~zzzzzzzz','the login name keeps its case, the match does not');
+  assert.equal(resolvePlayer({'x-player-id':'play'},false,{guests}).id,'local','local development is one player');
+  assert.equal(resolvePlayer({},true,{guests}).id,null,'no login, no player');
+  assert.equal(playerIdOf({'x-player-id':'alice'},true),'alice');
+});
+
+test('a guest cookie is read strictly and a bad one is ignored',()=>{
+  assert.equal(guestIdOf(`${GUEST_COOKIE}=abcdefgh1234`),'abcdefgh1234');
+  assert.equal(guestIdOf(`a=b; ${GUEST_COOKIE}=abcdefgh1234; c=d`),'abcdefgh1234');
+  assert.equal(guestIdOf(`${GUEST_COOKIE}=short`),null);
+  assert.equal(guestIdOf(`${GUEST_COOKIE}=has space1234`),null);
+  assert.equal(guestIdOf(`not${GUEST_COOKIE}=abcdefgh1234`),null);
+  assert.equal(guestIdOf(undefined),null);
+  assert.deepEqual(guestLogins(undefined),['play']);assert.deepEqual(guestLogins('Play, demo ,'),['play','demo']);assert.deepEqual(guestLogins(''),[]);
 });
