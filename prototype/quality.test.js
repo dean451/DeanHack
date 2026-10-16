@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TIERS, ORDER, pickTier, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
+import {TIERS, ORDER, pickTier, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
 
 test('the URL wins, then the saved choice, then the machine', () => {
   assert.equal(pickTier({search: '?quality=high', saved: 'low', cores: 2}), 'high');
@@ -39,12 +39,26 @@ test('the pacer draws every frame while active and spaces frames to the idle rat
   p.touch(NaN); assert.equal(p.activeUntil, ACTIVE_MS + 5000 + ACTIVE_MS, 'a bad time is ignored');
 });
 
+test('after a long quiet the pacer drops to the deep idle rate, and the shadow map to its own rate', () => {
+  const p = createFramePacer();
+  p.touch(0);
+  let drawn = 0; for (let ms = DEEP_MS + 1000; ms < DEEP_MS + 2000; ms += 16.7) if (p.shouldDraw(ms, 'balanced')) drawn++;
+  assert.ok(drawn >= 14 && drawn <= 16, `deep idle at 15: ${drawn}`);
+  drawn = 0; for (let ms = DEEP_MS + 3000; ms < DEEP_MS + 4000; ms += 16.7) if (p.shouldDraw(ms, 'high')) drawn++;
+  assert.equal(drawn, 60, 'high never idles');
+  assert.equal(p.rate(100, 'low'), 60); assert.equal(p.rate(ACTIVE_MS + 10, 'low'), 30); assert.equal(p.rate(DEEP_MS + 10, 'low'), 15);
+  let shadows = 0; for (let ms = 0; ms < 1000; ms += 16.7) if (p.shadowDue(ms, 'balanced')) shadows++;
+  assert.ok(shadows >= 29 && shadows <= 31, `shadows at 30: ${shadows}`);
+  shadows = 0; for (let ms = 2000; ms < 3000; ms += 16.7) if (p.shadowDue(ms, 'high')) shadows++;
+  assert.equal(shadows, 60, 'high redraws shadows every frame');
+});
+
 const rig = () => {
   const mats = [{needsUpdate: false}, {needsUpdate: false}];
   return {
     renderer: {ratio: null, setPixelRatio(r) { this.ratio = r; }, shadowMap: {type: 'soft'}},
     composer: {ratio: null, size: null, setPixelRatio(r) { this.ratio = r; }, setSize(w, h) { this.size = [w, h]; }},
-    ambientOcclusion: {enabled: true},
+    ambientOcclusion: {enabled: true, size: null, setSize(w, h) { this.size = [w, h]; }},
     light: {shadow: {mapSize: {x: 2048, y: 2048, set(a, b) { this.x = a; this.y = b; }}, map: {disposed: false, dispose() { this.disposed = true; }}}},
     scene: {traverse(fn) { for (const m of mats) fn({material: m}); }}, mats,
   };
@@ -61,6 +75,11 @@ test('applying a tier sets the pixel ratio, SSAO, shadow map and type, and recom
   const r2 = rig();
   applyTier('balanced', {...r2, soft: 'soft', plain: 'plain', devicePixelRatio: 2});
   assert.equal(r2.renderer.ratio, 1.5); assert.equal(r2.ambientOcclusion.enabled, true);
+  assert.equal(r.ambientOcclusion.size?.join(), '720,450', 'low: the AO pass is sized to half the 1x buffer even while off');
+  const r3 = rig(); applyTier('balanced', {...r3, soft: 'soft', plain: 'plain', devicePixelRatio: 2, width: 1440, height: 900});
+  assert.deepEqual(r3.ambientOcclusion.size, [1080, 675], 'balanced: half of the 1.5x buffer');
+  const r4 = rig(); applyTier('high', {...r4, soft: 'soft', plain: 'plain', devicePixelRatio: 2, width: 1440, height: 900});
+  assert.equal(r4.ambientOcclusion.size, null, 'high leaves the composer\'s full size');
   assert.equal(r2.light.shadow.map.disposed, false, 'the same size keeps the map'); assert.ok(r2.mats.every(m => !m.needsUpdate), 'same type: no recompile');
   assert.equal(applyTier('nonsense', {}).tier, 'nonsense');
 });

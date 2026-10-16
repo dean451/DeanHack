@@ -10,15 +10,26 @@
 // default on a 4-core machine). `?quality=low|balanced|high` on the URL wins, then the saved
 // choice (F8 cycles it and saves it), then the machine.
 
+// Round two (2026-10-16), the same look for less work:
+//  - the shadow map is drawn once a frame, not once per scene render (the SSAO normal pass is a second
+//    render, and three redraws shadows on every render call unless told not to), and on balanced only
+//    30 times a second (`shadowHz`): an idle bob does not need its shadow at 60;
+//  - the ambient occlusion runs at half resolution on balanced (`aoScale`): AO is low-frequency and
+//    blurred anyway, and the normal pass, the 32-sample AO pass and the blur all shrink four times;
+//  - after DEEP_MS with nothing happening the loop drops further, to `deepFps` (the board is being
+//    read, not watched); any touch brings every frame back at once;
+//  - the renderer no longer asks for MSAA: the composer's targets never had it, so the flag only cost
+//    a resolve of the final quad.
 export const TIERS = {
-  high: {ratio: 2, ssao: true, shadow: 2048, soft: true, idleFps: 60, label: 'High: full resolution, 60 fps'},
-  balanced: {ratio: 1.5, ssao: true, shadow: 2048, soft: true, idleFps: 30, label: 'Balanced: 1.5x pixels, 30 fps when idle'},
-  low: {ratio: 1, ssao: false, shadow: 1024, soft: false, idleFps: 30, label: 'Low: 1x pixels, no ambient occlusion, 30 fps when idle'},
+  high: {ratio: 2, ssao: true, aoScale: 1, shadow: 2048, soft: true, shadowHz: 60, idleFps: 60, deepFps: 60, label: 'High: full resolution, 60 fps'},
+  balanced: {ratio: 1.5, ssao: true, aoScale: .5, shadow: 2048, soft: true, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Balanced: 1.5x pixels, half-size occlusion, 30 fps when idle'},
+  low: {ratio: 1, ssao: false, aoScale: .5, shadow: 1024, soft: false, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Low: 1x pixels, no ambient occlusion, 30 fps when idle'},
 };
 export const ORDER = ['high', 'balanced', 'low'];
 export const STORAGE_KEY = 'deanhack.quality';
-// How long after the last input, engine event or camera move the loop keeps drawing every frame.
-export const ACTIVE_MS = 2500;
+// How long after the last input, engine event or camera move the loop keeps drawing every frame, and
+// how long after that it drops to the deep idle rate.
+export const ACTIVE_MS = 2500, DEEP_MS = 45000;
 
 export function isTier(name) { return typeof name === 'string' && Object.hasOwn(TIERS, name); }
 
@@ -42,17 +53,24 @@ export function saveTier(tier, storage) { try { (storage ?? localStorage).setIte
 
 // Decides, per animation frame, whether to draw. touch() marks activity; while active every frame
 // draws, after ACTIVE_MS quiet the frames are spaced to the tier's idle rate.
-export function createFramePacer({activeMs = ACTIVE_MS} = {}) {
-  let lastTouch = -1e9, lastDraw = -1e9;
+export function createFramePacer({activeMs = ACTIVE_MS, deepMs = DEEP_MS} = {}) {
+  let lastTouch = -1e9, lastDraw = -1e9, lastShadow = -1e9;
+  const rate = (ms, tier) => { const t = TIERS[tier] ?? TIERS.balanced, quiet = ms - lastTouch; return quiet < activeMs ? 60 : quiet < deepMs ? t.idleFps : t.deepFps; };
   return {
     touch(ms) { lastTouch = Number.isFinite(ms) ? ms : lastTouch; },
     // ms is the animation-loop time. Returns true when this frame should draw.
     shouldDraw(ms, tier) {
-      const fps = TIERS[tier]?.idleFps ?? 60;
-      const active = ms - lastTouch < activeMs;
-      if (!active && fps < 60 && ms - lastDraw < 1000 / fps - 1) return false;
+      const fps = rate(ms, tier);
+      if (fps < 60 && ms - lastDraw < 1000 / fps - 1) return false;
       lastDraw = ms; return true;
     },
+    // Whether this (drawn) frame should redraw the shadow map: at most the tier's shadowHz.
+    shadowDue(ms, tier) {
+      const hz = TIERS[tier]?.shadowHz ?? 60;
+      if (hz < 60 && ms - lastShadow < 1000 / hz - 1) return false;
+      lastShadow = ms; return true;
+    },
+    rate,
     get activeUntil() { return lastTouch + activeMs; },
   };
 }
@@ -74,7 +92,11 @@ export function applyTier(tier, {renderer, composer, ambientOcclusion, light, sc
     }
   }
   if (composer) { composer.setPixelRatio?.(ratio); if (width && height) composer.setSize(width, height); }
-  if (ambientOcclusion) ambientOcclusion.enabled = t.ssao;
+  if (ambientOcclusion) {
+    ambientOcclusion.enabled = t.ssao;
+    // the composer just sized the pass to the full buffer; shrink it to the tier's share
+    if (width && height && t.aoScale < 1) ambientOcclusion.setSize?.(Math.max(1, Math.round(width * ratio * t.aoScale)), Math.max(1, Math.round(height * ratio * t.aoScale)));
+  }
   if (light?.shadow) {
     if (light.shadow.mapSize.x !== t.shadow) {
       light.shadow.mapSize.set(t.shadow, t.shadow);
@@ -82,5 +104,5 @@ export function applyTier(tier, {renderer, composer, ambientOcclusion, light, sc
       if (light.shadow.map) { light.shadow.map.dispose(); light.shadow.map = null; }
     }
   }
-  return {tier, ratio, ssao: t.ssao, shadow: t.shadow, soft: t.soft, idleFps: t.idleFps, label: t.label};
+  return {tier, ratio, ssao: t.ssao, aoScale: t.aoScale, shadow: t.shadow, soft: t.soft, shadowHz: t.shadowHz, idleFps: t.idleFps, deepFps: t.deepFps, label: t.label};
 }

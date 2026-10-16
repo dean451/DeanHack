@@ -41,7 +41,8 @@ import {createGasEdge} from './gas-edge.js';
 
 const scene=new THREE.Scene();scene.background=new THREE.Color('#142333');scene.fog=new THREE.FogExp2('#1b3040',.032);
 // A weak machine (four cores or fewer) draws at 1x: four times fewer pixels on a Retina screen.
-const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setClearColor(0x000000,0);const quality={tier:pickTier({search:location.search,saved:readSaved(),cores:navigator.hardwareConcurrency})};renderer.setPixelRatio(pixelRatioFor(quality.tier,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;document.querySelector('#scene').appendChild(renderer.domElement);
+// No MSAA: the composer's targets never had it (the scene is drawn into a plain target), so the flag only cost a resolve of the final quad.
+const renderer=new THREE.WebGLRenderer({antialias:false,alpha:true});renderer.setClearColor(0x000000,0);const quality={tier:pickTier({search:location.search,saved:readSaved(),cores:navigator.hardwareConcurrency})};renderer.setPixelRatio(pixelRatioFor(quality.tier,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;/* the loop says when (quality.js): once a frame at most, not once per scene render */renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;document.querySelector('#scene').appendChild(renderer.domElement);
 const renderStats=createRenderStats(renderer,scene,{visible:new URLSearchParams(location.search).has('stats')});addEventListener('keydown',e=>{if(e.key==='F9'){e.preventDefault();renderStats.toggle();}});
 const flameFlicker=createFlameFlicker(scene,{focus:()=>controls.target});
 const sinkDrip=createSinkDrip(scene);
@@ -227,10 +228,10 @@ const live=installLive({scene,camera,controls,playerFactory:knight,catFactory:ca
 const keys={k:[0,-1],ArrowUp:[0,-1],j:[0,1],ArrowDown:[0,1],h:[-1,0],ArrowLeft:[-1,0],l:[1,0],ArrowRight:[1,0],y:[-1,-1],u:[1,-1],b:[-1,1],n:[1,1]};
 addEventListener('keydown',e=>{if(live.active || e.target instanceof HTMLButtonElement || e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey)return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(keys[key]){e.preventDefault();action({type:'move',dx:keys[key][0],dz:keys[key][1]});}else if(key===' '){e.preventDefault();action({type:'wait'});}else if(key==='e')action({type:'drink'});});
 $('#reset').onclick=reset;
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);setQuality(quality.tier);});
 // While the splash is open nothing on screen needs 60 frames a second: the room behind it draws at about 8, which keeps old laptops quiet.
 // The splash is opaque (style.css), so while it is open nothing is drawn at all: no demo room behind it, no fans.
-renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open'))return;if(!pacer.shouldDraw(ms,quality.tier))return;const t=ms/1000,dt=Math.min(t-lastTime,.05);lastTime=t;const mix=1-Math.exp(-dt*14);
+renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open'))return;if(!pacer.shouldDraw(ms,quality.tier))return;renderer.shadowMap.needsUpdate=pacer.shadowDue(ms,quality.tier);const t=ms/1000,dt=Math.min(t-lastTime,.05);lastTime=t;const mix=1-Math.exp(-dt*14);
  player.g.position.x=THREE.MathUtils.lerp(player.g.position.x,state.player.x,mix);player.g.position.z=THREE.MathUtils.lerp(player.g.position.z,state.player.z,mix);
  const moving=Math.hypot(player.g.position.x-state.player.x,player.g.position.z-state.player.z)>.025;
  player.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);player.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);player.cape.rotation.x=-.17+Math.sin(t*3)*.06;player.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
