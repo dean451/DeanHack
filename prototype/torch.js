@@ -12,8 +12,21 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // rust on the plate and soot and faint heat colours on the basket. Coordinates are in
 // the wall tile's frame (the wall top is at y=0.63); the flame goes at TORCH_FLAME_Y.
 // Static parts merge into one mesh per material (`userData.part` is wood or iron).
-export const WALL_TOP=.63,TORCH_FLAME_Y=.96;
+//
+// Building one costs about eight milliseconds of noise colouring, and a level can want forty at
+// once (a level teleport froze for it), so VARIANTS sconces are built on first use and every
+// sconce after that is a clone sharing their geometry and materials. A clone's dispose is a
+// no-op: the cache owns the GPU resources for the session.
+export const WALL_TOP=.63,TORCH_FLAME_Y=.96,VARIANTS=8;
+const cache=new Map();
 export function createTorchSconce(seed=0){
+ const k=((Math.round(seed)%VARIANTS)+VARIANTS)%VARIANTS;
+ if(!cache.has(k))cache.set(k,buildTorchSconce(k*7919+13));
+ const built=cache.get(k),g=built.clone();
+ g.userData={flame:built.userData.flame.clone(),prongs:built.userData.prongs,dispose:()=>{}};
+ return g;
+}
+export function buildTorchSconce(seed=0){
  const g=new THREE.Group();g.name='Torch sconce';
  const materials=[],geometries=[];
  const mat=(o)=>{const m=new THREE.MeshStandardMaterial(o);materials.push(m);return m;};

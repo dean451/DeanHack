@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {BakedMaterial, bakeable, bakeKey, bakeInto, bakedMaterialFor} from './baked-material.js';
+import {BakedMaterial, bakeable, bakeKey, bakeInto, bakedMaterialFor, withIndex, convertInPlace} from './baked-material.js';
 import {createCreature} from './creatures.js';
 import {deathLook} from './deaths.js';
 
@@ -61,4 +61,14 @@ test('the leprechaun bakes to about a dozen meshes and keeps its coat colour for
   const look = deathLook(a);
   const coat = new THREE.Color('#2f8a3a');
   assert.ok(look.color && Math.abs(look.color[1] - coat.g) < .02 && look.color[1] > look.color[0], 'the burst is coat green, not white');
+});
+
+test('an unindexed part gets a plain index, no welding, so it can join a batch cheaply', () => {
+  const g = new THREE.BoxGeometry().toNonIndexed(), n = g.attributes.position.count;
+  withIndex(g);
+  assert.equal(g.index.count, n); assert.equal(g.index.getX(n - 1), n - 1);
+  assert.equal(withIndex(g), g, 'already indexed: untouched');
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry().toNonIndexed(), new THREE.MeshStandardMaterial({color: 'red'}));
+  mesh.castShadow = mesh.receiveShadow = true;
+  assert.ok(convertInPlace(mesh)); assert.ok(mesh.geometry.index && mesh.geometry.attributes.rm);
 });

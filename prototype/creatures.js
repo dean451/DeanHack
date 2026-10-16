@@ -1,8 +1,8 @@
 import {dressDragon,dragonElement,HIDE_FINISH,torsoTrunk,serpentTrunk} from './dragon-breeds.js';
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {mergeGeometries,mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
-import {bakeable,bakeKey,bakeInto,bakedMaterialFor,convertInPlace} from './baked-material.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {bakeable,bakeKey,bakeInto,bakedMaterialFor,convertInPlace,withIndex} from './baked-material.js';
 import {heldBoulderGeometry} from './boulder.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
@@ -1148,7 +1148,7 @@ function mergeStatic(root,keep=new Set(),{bake=false}={}){
    if(!bins.has(key))bins.set(key,{baked,meshes:[]});bins.get(key).meshes.push(mesh);}
   // a lone baked mesh is converted too, so every plain part shares the one material (batched-actors.js draws them together)
   for(const {baked,meshes} of bins.values()){if(meshes.length<2&&!baked)continue;
-   const geos=meshes.map(mesh=>{let g=mesh.geometry.clone().applyMatrix4(mesh.matrix);if(baked&&!g.index)g=mergeVertices(g);return baked?bakeInto(g,mesh.material):g;}),merged=mergeGeometries(geos);
+   const geos=meshes.map(mesh=>{let g=mesh.geometry.clone().applyMatrix4(mesh.matrix);if(baked)g=withIndex(g);return baked?bakeInto(g,mesh.material):g;}),merged=mergeGeometries(geos);
    if(!merged)continue;
    // no dispose: this runs before the first render, and a source geometry may be shared
    for(const mesh of meshes)group.remove(mesh);

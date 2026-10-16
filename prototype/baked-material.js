@@ -5,7 +5,6 @@
 // off (petrify.js does once a monster is stone) puts the material's own roughness and metalness
 // back in charge. Being a class keeps the shader hook across clone() (fade, ghosting, stone).
 import * as THREE from 'three';
-import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 
 export class BakedMaterial extends THREE.MeshStandardMaterial {
   constructor(options = {}) {
@@ -55,6 +54,17 @@ export function bakeInto(geo, m) {
   return geo;
 }
 
+// Gives an unindexed geometry a plain 0..n-1 index, so every baked part can share one batch
+// (BatchedMesh needs all or none indexed). No welding: mergeVertices hashed every vertex and
+// cost a level build half a second over forty monsters; the index itself is what the batch needs.
+export function withIndex(g) {
+  if (g.index) return g;
+  const n = g.attributes.position.count, index = new Uint32Array(n);
+  for (let i = 0; i < n; i++) index[i] = i;
+  g.setIndex(new THREE.BufferAttribute(index, 1));
+  return g;
+}
+
 // A plain vertex-coloured standard material (the early-game models are built that way) can
 // join the baked family too: its colours are already in the vertices, only `rm` is missing.
 export function vertexColoured(m) {
@@ -71,13 +81,11 @@ export function convertInPlace(mesh) {
   const m = mesh?.material;
   if (!mesh?.isMesh || mesh.isInstancedMesh || mesh.isSkinnedMesh || Array.isArray(m) || !mesh.geometry?.attributes?.position) return false;
   if (Object.keys(mesh.geometry.morphAttributes || {}).length) return false;
-  // indexed, so every converted part can share one batch (BatchedMesh needs all or none indexed)
-  const indexed = g => g.index ? g : mergeVertices(g);
   if (bakeable(m)) {
-    mesh.geometry = bakeInto(indexed(mesh.geometry.clone()), m);
+    mesh.geometry = bakeInto(withIndex(mesh.geometry.clone()), m);
     mesh.userData.color = [m.color.r, m.color.g, m.color.b];
   } else if (vertexColoured(m) && mesh.geometry.attributes.color?.itemSize === 3) {
-    const geo = indexed(mesh.geometry.clone()), n = geo.attributes.position.count, rm = new Float32Array(n * 2);
+    const geo = withIndex(mesh.geometry.clone()), n = geo.attributes.position.count, rm = new Float32Array(n * 2);
     for (let i = 0; i < n; i++) { rm[i * 2] = m.roughness; rm[i * 2 + 1] = m.metalness; }
     geo.setAttribute('rm', new THREE.BufferAttribute(rm, 2));
     mesh.geometry = geo;
