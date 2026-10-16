@@ -18,13 +18,17 @@ const isUnder = (o, root) => { for (let p = o; p; p = p.parent) if (p === root) 
 const shown = (o, root) => { for (let p = o; p && p !== root; p = p.parent) if (!p.visible) return false; return true; };
 
 export function createActorBatch(root, {start = START} = {}) {
-  const batches = new Map(); // BakedMaterial -> {mesh, vertices, indices}
+  const batches = new Map(); // material + attribute layout -> {mesh}: BatchedMesh needs one layout per batch
   const entries = new Map(); // proxy mesh -> {b, material, geometryId, instanceId, drawn}
   const m = new THREE.Matrix4(), inv = new THREE.Matrix4();
   let warned = false;
 
-  function batchFor(material) {
-    let b = batches.get(material);
+  // Geometries in one BatchedMesh must share their attribute set (the early-game models carry no
+  // uv), so the layout is part of the key and such models get a batch of their own.
+  const layoutOf = geometry => Object.keys(geometry.attributes).sort().join(',');
+  function batchFor(material, geometry) {
+    const key = material.uuid + '|' + layoutOf(geometry);
+    let b = batches.get(key);
     if (!b) {
       const mesh = new THREE.BatchedMesh(start.instances, start.vertices, start.indices, material);
       mesh.castShadow = mesh.receiveShadow = true; mesh.sortObjects = false; mesh.name = 'actor batch';
@@ -34,7 +38,7 @@ export function createActorBatch(root, {start = START} = {}) {
       mesh.onBeforeRender = function (renderer, ...rest) { sync(renderer?.info?.render?.frame); return render.call(this, renderer, ...rest); };
       mesh.onBeforeShadow = function (renderer, ...rest) { sync(renderer?.info?.render?.frame); return shadow.call(this, renderer, ...rest); };
       root.add(mesh);
-      batches.set(material, b = {mesh});
+      batches.set(key, b = {mesh});
     }
     return b;
   }
@@ -56,7 +60,7 @@ export function createActorBatch(root, {start = START} = {}) {
     let n = 0;
     g.traverse(o => {
       if (!o.isMesh || !o.material?.isBakedMaterial || entries.has(o) || o.userData.outline || o.userData.unbatched || !o.castShadow || !o.geometry?.index || !o.geometry.attributes?.position) return;
-      const b = batchFor(o.material);
+      const b = batchFor(o.material, o.geometry);
       let geometryId, instanceId;
       try { fit(b, o.geometry); geometryId = b.mesh.addGeometry(o.geometry); instanceId = b.mesh.addInstance(geometryId); }
       catch (err) { o.userData.unbatched = true; if (!warned) { warned = true; console.warn('batched-actors: a part draws itself', err.message); } return; }

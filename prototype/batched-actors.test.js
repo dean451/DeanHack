@@ -95,3 +95,12 @@ test('the render hooks sync and still run BatchedMesh\'s own (culling and the mu
   mesh.onBeforeRender({info: {render: {frame: 1}}}, new THREE.Scene(), camera, mesh.geometry, mesh.material);
   assert.ok(mesh._multiDrawCount > 0, 'the multi-draw list is filled');
 });
+
+test('a model whose parts carry a different attribute layout (no uv) gets its own batch instead of being refused', () => {
+  const root = new THREE.Group(), batch = createActorBatch(root);
+  const lep = stage(root, 'leprechaun', 0), jackal = stage(root, 'jackal', 2);
+  batch.add(lep); batch.add(jackal);
+  let refused = 0; jackal.g.traverse(o => { if (o.isMesh && o.userData.unbatched) refused++; });
+  assert.equal(refused, 0, 'every jackal part is in a batch');
+  assert.ok(batch.batches >= 2, 'the jackal\'s uv-less parts and the leprechaun\'s parts are separate batches');
+});
