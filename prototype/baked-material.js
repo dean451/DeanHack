@@ -5,6 +5,7 @@
 // off (petrify.js does once a monster is stone) puts the material's own roughness and metalness
 // back in charge. Being a class keeps the shader hook across clone() (fade, ghosting, stone).
 import * as THREE from 'three';
+import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 
 export class BakedMaterial extends THREE.MeshStandardMaterial {
   constructor(options = {}) {
@@ -52,4 +53,35 @@ export function bakeInto(geo, m) {
   geo.setAttribute('color', new THREE.BufferAttribute(color, 3));
   geo.setAttribute('rm', new THREE.BufferAttribute(rm, 2));
   return geo;
+}
+
+// A plain vertex-coloured standard material (the early-game models are built that way) can
+// join the baked family too: its colours are already in the vertices, only `rm` is missing.
+export function vertexColoured(m) {
+  return !!m && m.type === 'MeshStandardMaterial' && !m.isBakedMaterial && m.vertexColors && !m.transparent && m.opacity === 1
+    && !m.map && !m.emissiveMap && !m.normalMap && !m.roughnessMap && !m.metalnessMap && !m.alphaMap && !m.aoMap && !m.bumpMap && !m.envMap
+    && m.emissive.getHex() === 0 && !m.wireframe && m.alphaTest === 0 && m.blending === THREE.NormalBlending;
+}
+
+// Converts one mesh to the baked material where it stands, keeping the Mesh object (and so
+// every field, closure and userData that points at it): the geometry is cloned with the
+// material's colour, roughness and metalness written in, and the shared baked material takes
+// the material's place. The mesh remembers its colour in userData.color. False if it can't.
+export function convertInPlace(mesh) {
+  const m = mesh?.material;
+  if (!mesh?.isMesh || mesh.isInstancedMesh || mesh.isSkinnedMesh || Array.isArray(m) || !mesh.geometry?.attributes?.position) return false;
+  if (Object.keys(mesh.geometry.morphAttributes || {}).length) return false;
+  // indexed, so every converted part can share one batch (BatchedMesh needs all or none indexed)
+  const indexed = g => g.index ? g : mergeVertices(g);
+  if (bakeable(m)) {
+    mesh.geometry = bakeInto(indexed(mesh.geometry.clone()), m);
+    mesh.userData.color = [m.color.r, m.color.g, m.color.b];
+  } else if (vertexColoured(m) && mesh.geometry.attributes.color?.itemSize === 3) {
+    const geo = indexed(mesh.geometry.clone()), n = geo.attributes.position.count, rm = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) { rm[i * 2] = m.roughness; rm[i * 2 + 1] = m.metalness; }
+    geo.setAttribute('rm', new THREE.BufferAttribute(rm, 2));
+    mesh.geometry = geo;
+  } else return false;
+  mesh.material = bakedMaterialFor(m);
+  return true;
 }

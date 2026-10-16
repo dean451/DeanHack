@@ -2,7 +2,7 @@ import {dressDragon,dragonElement,HIDE_FINISH,torsoTrunk,serpentTrunk} from './d
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries,mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
-import {bakeable,bakeKey,bakeInto,bakedMaterialFor} from './baked-material.js';
+import {bakeable,bakeKey,bakeInto,bakedMaterialFor,convertInPlace} from './baked-material.js';
 import {heldBoulderGeometry} from './boulder.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
@@ -1145,7 +1145,8 @@ function mergeStatic(root,keep=new Set(),{bake=false}={}){
    mesh.updateMatrix();if(mesh.matrix.determinant()<=0)continue;
    const geo=mesh.geometry,baked=bake&&bakeable(mesh.material),key=[baked?bakeKey(mesh.material):mesh.material.uuid,geo.index||baked?'i':'n',Object.keys(geo.attributes).sort().join(),Object.keys(geo.morphAttributes).length,mesh.castShadow,mesh.receiveShadow,mesh.renderOrder].join('|');
    if(!bins.has(key))bins.set(key,{baked,meshes:[]});bins.get(key).meshes.push(mesh);}
-  for(const {baked,meshes} of bins.values()){if(meshes.length<2)continue;
+  // a lone baked mesh is converted too, so every plain part shares the one material (batched-actors.js draws them together)
+  for(const {baked,meshes} of bins.values()){if(meshes.length<2&&!baked)continue;
    const geos=meshes.map(mesh=>{let g=mesh.geometry.clone().applyMatrix4(mesh.matrix);if(baked&&!g.index)g=mergeVertices(g);return baked?bakeInto(g,mesh.material):g;}),merged=mergeGeometries(geos);
    if(!merged)continue;
    // no dispose: this runs before the first render, and a source geometry may be shared
@@ -1163,10 +1164,17 @@ function handles(a){
  return keep;
 }
 function trimDraws(a,options){mergeStatic(a.g,handles(a),options);return a;}
-// Bakes a finished model for the live scene: every plain material merges per body part into
-// one draw (baked-material.js; the leprechaun does this at build). Called when an actor is
-// staged, not at build, so builders and their tests still see the pieces they made.
-export function bakeDraws(a){if(a?.g)mergeStatic(a.g,handles(a),{bake:true});return a;}
+// Bakes a finished model for the live scene (baked-material.js; the leprechaun does this at
+// build): plain materials merge per body part, and every plain mesh left over (a labelled part,
+// a handle the animations hold, a lone piece) is converted where it stands, so the whole model
+// shares the one baked material and batched-actors.js can draw it in one call with every other
+// monster. Called when an actor is staged, not at build, so builders and their tests still see
+// the pieces they made. Shadowless and see-through pieces, glows and textures stay as they are.
+export function bakeDraws(a){
+ if(!a?.g)return a;
+ mergeStatic(a.g,handles(a),{bake:true});
+ a.g.traverse(o=>{if(o.isMesh&&!o.material?.isBakedMaterial&&o.castShadow&&o.receiveShadow&&!o.userData.outline&&!o.userData.ring)convertInPlace(o);});
+ return a;}
 const HORSES={
  pony:{scale:.8,coat:1.15,hair:'#e0cc9a',legH:.34,stock:1.12,mane:'shaggy',hindSocks:true,tail:.4},
  horse:{scale:1,coat:1,hair:'#1e1a18',points:'#231e1b',legH:.42,stock:1,blaze:true,tail:.44},
