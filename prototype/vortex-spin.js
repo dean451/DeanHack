@@ -66,11 +66,12 @@ export function debrisAt(u, angle, y0, y1, r0, r1, fling = SPIN.fling, climb = S
 }
 
 function setup(a) {
-  const V = VORTEX[a.species], rings = [], puffs = [], debris = [];
+  const V = VORTEX[a.species], rings = [], puffs = [], debris = [], funnels = [];
   for (const m of a.body.children) {
     if (!m.isMesh || m === a.core) continue;
     const rest = {m, pos: m.position.clone(), quat: m.quaternion.clone(), scale: m.scale.clone(), phi: 0};
-    if (m.geometry?.type === 'TorusGeometry') rings.push(rest);
+    if (m.userData.part === 'funnel') funnels.push(rest);
+    else if (m.geometry?.type === 'TorusGeometry') rings.push(rest);
     else if (V.cloud && m.material?.transparent) puffs.push(rest);
     else debris.push(rest);
   }
@@ -92,7 +93,7 @@ function setup(a) {
   const core = a.core || a.g.userData.core || null;
   const scale = (a.body.children.find(m => m.geometry?.type === 'TorusGeometry')?.geometry.parameters?.radius || .07) / .07;
   return {
-    V, rings, puffs, debris, path: {y0, y1, r0, r1}, fling: SPIN.fling * Math.min(1.2, scale),
+    V, rings, puffs, debris, funnels, path: {y0, y1, r0, r1}, fling: SPIN.fling * Math.min(1.2, scale),
     ground, groundScale: ground?.scale.clone(), core, coreScale: core?.scale.clone(),
     life: 0, walk: 0, t: 0, lean: 0, roll: 0, spin: 0,
   };
@@ -138,6 +139,7 @@ export function updateVortexSpin(a, dt, walking) {
     const speed = V.spin * (1 + (SPIN.bottom - 1) * (1 - r.h)) * (1 + SPIN.wobble * .3 * Math.sin(t * .7 + i * 2.1));
     turn(r, speed);
   });
+  st.funnels.forEach(r => turn(r, V.spin * 1.3));
   st.puffs.forEach((r, i) => {
     turn(r, V.spin * (1 + .4 * Math.sin(i * 1.7)), true);
     const b = 1 + SPIN.billow * w * Math.sin(t * SPIN.billowRate * (1 + i * .13) + i * 2.4);
