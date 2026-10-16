@@ -89,9 +89,42 @@ export async function forgetSave(name,fetchImpl=fetch){
   const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Could not delete the character');return data;
 }
 
+// The leaderboard: every game finished on this server, best first (engine/server.js reads the
+// engine's xlogfile). A server without one, or one that errors, just has no finished games.
+export async function fetchScores(fetchImpl=fetch){
+  try{const r=await fetchImpl('/engine/scores');if(!r.ok)return [];const data=await r.json();return Array.isArray(data.scores)?data.scores:[];}catch{return [];}
+}
+export const NO_SCORES='No games finished on this server yet.';
+const fmt=n=>Number.isFinite(n)?n.toLocaleString('en'):'';
+// The xlogfile abbreviates the class and race ("Val", "Hum"): the full name where one matches.
+const RACE_NAMES=Object.values(RACES).map(r=>r.label);
+const fullName=(code,names)=>code?names.find(n=>n.toLowerCase().startsWith(String(code).toLowerCase()))||String(code):'';
+// The table under the Leaderboard button: rank, points, name, the cause in the game's own words,
+// then depth and turns. Pure: JSON in, HTML out, nothing unescaped.
+export function scoreTable(scores){
+  if(!Array.isArray(scores)||!scores.length)return `<p class="start-empty">${NO_SCORES}</p>`;
+  const rows=scores.map((s,i)=>{const kind=[fullName(s.race,RACE_NAMES),fullName(s.role,ROLE_NAMES)].filter(Boolean).join(' ');
+    return `<tr><td class="rank">${i+1}</td><td class="num">${fmt(s.points)}</td><td class="who"><b>${esc(s.name||'')}</b>${kind?`<i>${esc(kind)}</i>`:''}</td><td class="how">${esc(s.death||'')}</td><td class="num">${fmt(s.deathlev)}</td><td class="num">${fmt(s.turns)}</td></tr>`;}).join('');
+  return `<table class="start-scores"><thead><tr><th class="rank">#</th><th class="num">Points</th><th class="who">Name</th><th class="how">Cause of death</th><th class="num">Depth</th><th class="num">Turns</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+// Wires the button to the table: the scores are fetched the first time it is pressed, shown, and
+// hidden again on the next press. stale() (the splash reopening) makes the next look fetch again,
+// so a game that just ended is on the board.
+export function installScoreboard({button,table,getScores=fetchScores,render=scoreTable}){
+  let fresh=false,loading=null;
+  const load=()=>loading??=getScores().then(scores=>{table.innerHTML=render(scores);fresh=true;}).finally(()=>{loading=null;});
+  const show=on=>{table.hidden=!on;button.setAttribute('aria-expanded',String(on));};
+  button.addEventListener('click',async()=>{
+    if(!table.hidden){show(false);return;}
+    if(!fresh){button.disabled=true;try{await load();}finally{button.disabled=false;}}
+    show(true);
+  });
+  return {stale(){fresh=false;if(!table.hidden)void load();},get shown(){return !table.hidden;}};
+}
+
 // Builds the splash once and wires it to the Live button and name field. Returns {open, close}:
 // the live game calls open({note}) when a session ends, so the player always lands back here.
-export function installStartScreen({doc=document,button,nameInput,search=location.search,getSaves=fetchSaves,forget=forgetSave,confirmFn=(m)=>confirm(m),storage}={}){
+export function installStartScreen({doc=document,button,nameInput,search=location.search,getSaves=fetchSaves,forget=forgetSave,getScores=fetchScores,confirmFn=(m)=>confirm(m),storage}={}){
   const cover=doc.getElementById?.('start-cover');
   if(!wantsStartScreen(search)){cover?.remove();return null;}
   const el=doc.createElement('div');el.id='start-screen';
@@ -101,7 +134,7 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
 <div class="start-saves" hidden><span>Your characters</span><div class="start-list"></div></div></form>
 <div class="step-class" hidden><label>Choose your class</label><div class="class-grid" role="radiogroup" aria-label="Class"></div>
 <div class="class-detail"><p class="class-blurb"></p><div class="class-opts"></div></div>
-<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div><p class="start-mark"><a class="start-link" href="https://github.com/dean451/deanhack" target="_blank" rel="noopener" aria-label="DeanHack on GitHub">DEAN<b>HACK</b></a></p></div>`;
+<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div><p class="start-mark"><a class="start-link" href="https://github.com/dean451/deanhack" target="_blank" rel="noopener" aria-label="DeanHack on GitHub">DEAN<b>HACK</b></a></p></div><div class="start-board"><button type="button" class="start-scores-toggle" aria-expanded="false" aria-controls="start-scores">Leaderboard</button><div id="start-scores" class="start-scores-box" hidden></div></div>`;
   // The wavy ASCII field behind everything (ascii-waves.js); it runs only while the splash shows.
   const waves=createAsciiWaves({doc});el.prepend(waves.el);
   doc.body.append(el);
@@ -138,7 +171,7 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
     el.hidden=false;doc.body.classList.add('start-open');showDragon();waves.start();
     const card=deathCard(death);
     if(card){status.innerHTML=card;status.classList.add('dead');status.hidden=false;}else{status.textContent=line;status.classList.remove('dead');status.hidden=!line;}
-    stepClass.hidden=true;stepName.hidden=false;
+    stepClass.hidden=true;stepName.hidden=false;board.stale();
     input.value=nameInput?.value||remembered();refresh();
     if(focus){input.focus();input.select();}
     return loadSaves();
@@ -183,6 +216,7 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
     forgetBtn.disabled=false;await loadSaves();
   });
   input.addEventListener('input',refresh);
+  const board=installScoreboard({button:$('.start-scores-toggle'),table:$('#start-scores'),getScores});
   open();
   return {el,open,close};
 }
