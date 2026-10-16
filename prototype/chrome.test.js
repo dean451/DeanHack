@@ -114,6 +114,10 @@ test('nothing draws behind the splash: the loop returns while it is open, no bac
   assert.match(main,/renderer\.setPixelRatio\(pixelRatioFor\(quality\.tier,devicePixelRatio\)\)/,'the pixel ratio comes from the quality tier');
   assert.match(main,/if\(!pacer\.shouldDraw\(ms,quality\.tier\)\)return;/,'the loop is paced: every frame while active, the idle rate after');
   assert.match(main,/e\.key==='F8'/,'F8 cycles the tier');
+  assert.match(main,/renderer\.shadowMap\.autoUpdate=false/,'shadows are redrawn when the loop says, not on every render call');
+  assert.match(main,/renderer\.shadowMap\.needsUpdate=pacer\.shadowDue\(ms,quality\.tier\);/);
+  assert.match(main,/new THREE\.WebGLRenderer\(\{antialias:false,alpha:true\}\)/,'no MSAA resolve for a composer that never had MSAA');
+  assert.match(main,/renderer\.setSize\(innerWidth,innerHeight\);setQuality\(quality\.tier\);\}\);/,'a resize re-applies the tier (the AO size)');
   assert.match(main,/onActivity:touch/,'engine events keep the frame rate up');
   assert.doesNotMatch(css,/#start-screen,#start-cover\{[^}]*backdrop-filter/,'the splash does not blur the whole viewport');
 });
