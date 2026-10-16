@@ -19,7 +19,10 @@ test('what is left follows the species: boneless things bleed, dry undead leave 
   const skel = kinds({type: 'death', x: 1, z: 1, name: 'skeleton'});
   assert.equal(skel[0], 'dust'); assert.ok(skel.filter(x => x === 'bone').length >= 3); assert.ok(!skel.includes('pool'));
   assert.deepEqual(kinds({type: 'combat', x: 1, z: 1, name: 'barrow wight'}), ['chip']);
-  for (const name of ['yellow light', 'black light', 'fire elemental', 'earth elemental', 'energy vortex', 'blue jelly', 'stone golem', 'ghost', 'gas spore'])
+  const ooze = kinds({type: 'death', x: 1, z: 1, name: 'gray ooze'});
+  assert.equal(ooze[0], 'slick'); assert.ok(ooze.filter(x => x === 'drip').length >= 1); assert.ok(!ooze.includes('pool') && !ooze.includes('bone'));
+  assert.deepEqual(kinds({type: 'combat', x: 1, z: 1, name: 'blue jelly'}), ['drip']);
+  for (const name of ['yellow light', 'black light', 'fire elemental', 'earth elemental', 'energy vortex', 'stone golem', 'ghost', 'gas spore'])
     assert.deepEqual(kinds({type: 'death', x: 1, z: 1, name}), [], name), assert.deepEqual(kinds({type: 'combat', x: 1, z: 1, name}), [], name);
   // the shards come in three shapes, picked deterministically
   const shapes = marksFor({type: 'death', x: 9, z: 2, name: 'human zombie'}).filter(m => m.kind === 'bone').map(m => m.shape);
