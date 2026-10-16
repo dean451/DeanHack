@@ -45,3 +45,16 @@ test('the creature factory builds the spotted jelly from jelly.js', () => {
   const a = createCreature({name: 'spotted jelly'});
   assert.ok(a.body.children.some(m => m.userData.part === 'pits'));
 });
+
+test('spotted jelly: pits differ in size and depth, some run together, with a stain on the floor', () => {
+  const {g, body} = createJelly({kind: 'spotted'});
+  const pits = g.userData.pits;
+  assert.ok(new Set(pits.map(p => p.s)).size === pits.length && Math.max(...pits.map(p => p.s)) > 2.5 * Math.min(...pits.map(p => p.s)));
+  assert.ok(new Set(pits.map(p => p.d)).size >= 5, 'depths vary');
+  let joined = 0; pits.forEach((a, i) => pits.forEach((b, j) => { if (i < j && Math.hypot(a.x - b.x, a.z - b.z) < a.s + b.s) joined++; }));
+  assert.ok(joined >= 2, 'some run together');
+  assert.equal(g.userData.slick, 2, 'a slick on the floor');
+  const floor = body.children.find(m => m.userData.part === 'pits').geometry.attributes.position;
+  let low = 0; for (let i = 0; i < floor.count; i++) if (floor.getY(i) < .01) low++;
+  assert.ok(low > 60, 'flat stain geometry lies on the floor');
+});
