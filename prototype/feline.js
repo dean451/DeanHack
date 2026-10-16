@@ -348,6 +348,17 @@ function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.c
 
 export function isFeline(name){return !!LOOKS[name];}
 
+// The built parts, layout and tail joints for a look, for feline-skin.js to rig into one
+// skinned mesh: S.body/head/eyes/fore/hind/tail geometries (the legs are the right side; the
+// left reuse them mirrored), L.neck/shoulder/hip/Y, and five points along the tail's curve in
+// the tail group's frame.
+export function felineBuild(name,colour){
+ const look=lookFor(name,colour),S=build(LOOKS[name]?name:'f:'+look.coat,look),L=S.L;
+ const key=L.tail||'j',sc=L.tailLen||1,curve=new THREE.CatmullRomCurve3(TAILS[key].map(([x,y,z])=>new THREE.Vector3(x*sc,y*sc,z*sc)));
+ const tailJoints=Array.from({length:5},(_,i)=>curve.getPoint(i/4).toArray());
+ return {S,L,look,tailJoints,coat:rgb(L.coat)};
+}
+
 export function createFeline(name,colour){
  const look=lookFor(name,colour),S=build(LOOKS[name]?name:'f:'+look.coat,look),L=S.L;
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(L.scale);

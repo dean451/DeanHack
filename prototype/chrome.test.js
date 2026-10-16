@@ -93,7 +93,7 @@ test('message text wraps instead of clipping', () => {
 
 test('the live pet cat is built from the feline model, not the old demo cat', () => {
   const live = read('./live.js');
-  assert.match(live, /cell\.kind==='pet'&&\/cat\|kitten\/\.test\(cell\.name\)\)\{a=creatureFactory\?bakeDraws\(creatureFactory\(cell\)\):catFactory\(\)/);
+  assert.match(live, /cell\.kind==='pet'&&\/cat\|kitten\/\.test\(cell\.name\)\)\{a=isFeline\(\(cell\.name\|\|''\)\.toLowerCase\(\)\)\?createSkinnedFeline\([^)]*\):creatureFactory\?bakeDraws\(creatureFactory\(cell\)\):catFactory\(\)/);
 });
 
 test('blessed items read green in the pack, the sun mark stays, and cursed stays red (the convention)', () => {
