@@ -337,6 +337,21 @@ const guessLetter=(name,plan)=>DRAGONS.test(name)?'D':plan==='humanoid'?'@':'';
 // A corpse never stands taller than this; anything taller (wings, a crest) slumps down.
 const MAX_HEIGHT=.62;
 
+// A person's own model goes down face first, so it is sprawled before it is laid flat: one arm flung up
+// past the head, the other loose at the side, the legs splayed, the head rolled onto its cheek, and
+// whatever it held dropped. Every turn is in the standing body's sideways plane (rotation.z), which the
+// fall lays along the floor, so nothing digs into the flagstones; the head's roll is about the spine.
+// (The standing model tipped over used to lie stiff as a plank, arms as they were, still clutching
+// its weapon.)
+export function sprawl(a){
+ const [left,right]=a.arms||[];
+ if(right)right.rotation.set(0,0,2.5);
+ if(left)left.rotation.set(0,0,-.3);
+ if(a.legs?.length>=2){a.legs[0].rotation.set(0,0,-.32);a.legs[1].rotation.set(0,0,.08);}
+ if(a.head)a.head.rotation.set(0,1.2,0);
+ for(const held of [a.weaponSocket,a.offHand])if(held)held.visible=false;
+ return a;
+}
 function posed(name,colour,factory,symbol){
  const key=`${name}|${colour}|${symbol??''}`;
  if(POSED.has(key))return POSED.get(key);
@@ -345,6 +360,7 @@ function posed(name,colour,factory,symbol){
   const letter=Number.isInteger(symbol)?symbol:guessLetter(name,corpsePlan(name)).charCodeAt(0);
   const a=factory({name,color:colour,symbol:Number.isFinite(letter)?letter:undefined});
   const model=a?.g||a;
+  if(corpsePlan(name)==='humanoid'&&a?.g)sprawl(a);
   if(model?.isObject3D){
    const holder=new THREE.Group();holder.add(model);
    model.position.set(0,0,0);model.rotation.set(0,0,0);
