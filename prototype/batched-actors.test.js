@@ -81,3 +81,17 @@ test('plain early-game models (vertex-coloured bodies, labelled parts) are conve
   }
   assert.ok(batch.batches <= 4, `a batched mesh per shading variant (smooth or flat, one- or two-sided): ${batch.batches}`);
 });
+
+test('the render hooks sync and still run BatchedMesh\'s own (culling and the multi-draw lists)', () => {
+  const root = new THREE.Group(), batch = createActorBatch(root);
+  batch.add(stage(root, 'gnome', 0));
+  const mesh = batch.meshes()[0];
+  assert.notEqual(mesh.onBeforeRender, THREE.BatchedMesh.prototype.onBeforeRender);
+  assert.match(mesh.onBeforeRender.toString(), /render\.call\(this/);
+  assert.match(mesh.onBeforeShadow.toString(), /shadow\.call\(this/);
+  // BatchedMesh's hook fills the multi-draw list from the instances; running ours must leave that intact
+  root.updateMatrixWorld(true); batch.update();
+  const camera = new THREE.PerspectiveCamera(); camera.position.set(0, 2, 6); camera.lookAt(0, 0, 0); camera.updateMatrixWorld(true);
+  mesh.onBeforeRender({info: {render: {frame: 1}}}, new THREE.Scene(), camera, mesh.geometry, mesh.material);
+  assert.ok(mesh._multiDrawCount > 0, 'the multi-draw list is filled');
+});
