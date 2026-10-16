@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK, CLIPS, SIT_AFTER, POUNCE} from './feline-skin.js';
+import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK, RUN, GAIT, CLIPS, SIT_AFTER, POUNCE} from './feline-skin.js';
 import {createFeline} from './feline.js';
 
 // feline-skin.js: the pet cat as one skinned mesh over a small skeleton (a trial of skinning).
@@ -37,7 +37,7 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
 
 test('the clips: walk, idle and tail are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['idle', 'pounce', 'sit', 'tail', 'walk']);
+  assert.deepEqual(Object.keys(actions).sort(), ['idle', 'pounce', 'run', 'sit', 'tail', 'walk']);
   const walk = actions.walk.getClip(), tail = actions.tail.getClip(), idle = actions.idle.getClip();
   assert.ok(Math.abs(walk.duration - 1 / WALK.hz) < 1e-9);
   const names = c => c.tracks.map(t => t.name);
@@ -114,4 +114,45 @@ test('show() holds one clip at a moment of its cycle for the tool pages', () => 
   assert.ok(a.rig.hips.position.y < a.rig.hips.userData.world[1] - .05);
   a.animator.show('walk', .25);
   assert.ok(Math.abs(a.rig.hips.position.y - a.rig.hips.userData.world[1]) < .02 && Math.abs(a.rig.legs.lfore.bones[0].rotation.x) > .1);
+});
+
+// The three tricks from three's skinning-blending example.
+const walkFor = (a, frames, tilesPerSecond, walking = true) => { let r; for (let i = 0; i < frames; i++) { a.g.position.x += tilesPerSecond / 60; r = updateSkinnedFeline(a, 1 / 60, null, walking); } return r; };
+
+test('the walk\'s stride rate follows the measured speed, within bounds', () => {
+  const a = createSkinnedFeline('housecat');
+  let r = walkFor(a, 60, .5);
+  assert.equal(r.gait, 'walk'); assert.equal(+r.timeScale.toFixed(2), GAIT.minScale, 'a creep is clamped at the slow end');
+  r = walkFor(a, 60, GAIT.nominal);
+  assert.ok(Math.abs(r.timeScale - 1) < .1, `nominal speed, stride rate about 1: ${r.timeScale}`);
+  r = walkFor(a, 60, 3);
+  assert.ok(r.timeScale > 1.1 && r.timeScale <= GAIT.maxScale, `quicker: ${r.timeScale}`);
+});
+
+test('past the run speed the walk warps into the run and back below it warps out; run and walk share phase so the warp can', () => {
+  const a = createSkinnedFeline('kitten'), {actions} = a.animator;
+  let r = walkFor(a, 60, 2);
+  assert.equal(r.gait, 'walk');
+  r = walkFor(a, 90, GAIT.runAt + 2);
+  assert.equal(r.gait, 'run'); assert.equal(actions.run.getEffectiveWeight(), 1); assert.equal(actions.walk.getEffectiveWeight(), 0);
+  assert.ok(r.timeScale <= GAIT.maxScale);
+  r = walkFor(a, 90, GAIT.walkAt - 1.5);
+  assert.equal(r.gait, 'walk'); assert.equal(actions.walk.getEffectiveWeight(), 1); assert.equal(actions.run.getEffectiveWeight(), 0);
+  assert.ok(RUN.hz > WALK.hz && RUN.swing > WALK.swing);
+  // both cycles put the same leg forward at the same phase
+  const {walkPose, runPose} = {walkPose: CLIPS.walk.pose, runPose: CLIPS.run.pose};
+  for (const u of [0, .25, .5, .75]) assert.equal(Math.sign(walkPose(u).lfore0.x || 0), Math.sign(runPose(u).lfore0.x || 0), `phase ${u}`);
+});
+
+test('a stop waits for the stride\'s loop boundary before fading to idle, so the feet are planted; walking again cancels the stop', () => {
+  const a = createSkinnedFeline('housecat'), {actions} = a.animator;
+  walkFor(a, 40, 2);
+  let r = updateSkinnedFeline(a, 1 / 60, null, false);
+  assert.ok(r.stopping && actions.walk.getEffectiveWeight() === 1, 'the frame after the halt the walk is still at full weight');
+  let frames = 0; while (actions.walk.getEffectiveWeight() > 0 && frames < 90) { r = updateSkinnedFeline(a, 1 / 60, null, false); frames++; }
+  assert.ok(frames > 2 && frames < 90, `faded out after the loop boundary (${frames} frames)`); assert.equal(r.gait, 'idle');
+  walkFor(a, 40, 2);
+  r = updateSkinnedFeline(a, 1 / 60, null, false); assert.ok(r.stopping);
+  r = walkFor(a, 5, 2);
+  assert.ok(!r.stopping && r.gait === 'walk' && actions.walk.getEffectiveWeight() === 1, 'walking again cancels the stop');
 });

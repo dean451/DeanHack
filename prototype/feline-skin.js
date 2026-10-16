@@ -15,8 +15,12 @@
 // are sampled from pose functions into keyframe tracks once per actor; the pounce is a one-shot
 // clip (crouch, launch with the forelegs reaching, land) played when the pet's attack action
 // starts, and fades back to whatever it interrupted. Walk, idle and sit cross-fade on the mixer
-// as the pet stops and starts; the head is left to the glance code (fidget.js) and a lean into
-// turns is laid on top after the mixer. live.js drives it through actor.asset.update so the rigid-part animations
+// as the pet stops and starts, with three tricks from three's skinning-blending example: a stop
+// waits for the walk's loop boundary so the feet are planted when it fades out; the walk's time
+// scale follows how fast the pet actually moves, so a hop and a dash don't share a stride rate;
+// and past RUN_AT the walk cross-fades into a faster run with warping, so the cadence slides
+// between them. The head is left to the glance code (fidget.js) and a lean into turns is laid
+// on top after the mixer. live.js drives it through actor.asset.update so the rigid-part animations
 // leave it alone, and a rigged GLB cat would play through the same mixer calls.
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
@@ -24,6 +28,11 @@ import {felineBuild} from './feline.js';
 
 export const BLEND = {spine: .06, leg: .022, tail: .02};
 export const WALK = {hz: 2.1, swing: .5, bend: .55, bob: .012, sway: .08};
+// The run: a faster cycle with a longer reach and more bob, in phase with the walk so the fade
+// between them can warp. GAIT maps the pet's measured speed (tiles per second, smoothed) to the
+// walk's time scale and to the run.
+export const RUN = {hz: 3.3, swing: .75, bend: .8, bob: .03, sway: .05};
+export const GAIT = {nominal: 2.4, minScale: .7, maxScale: 1.5, runAt: 4.2, walkAt: 3.2, smooth: 6, fade: .3};
 // The idle tail: the model's own J-curve is the rest; these are small swings about it.
 export const TAIL = {curl: .1, sway: .14, flick: .05};
 
@@ -130,15 +139,16 @@ export function createSkinnedFeline(name, colour) {
 // A pose is a map bone name -> {x, y, z} Euler offsets from rest (radians), plus optional
 // `hipsY` (hips lift) and `chestScale`. Each is a function of the cycle phase u in [0, 1).
 const TAU = Math.PI * 2;
-export function walkPose(u) {
+export function gaitPose(u, G) {
   const ph = u * TAU, pose = {};
   const leg = (key, offset, fore, four) => { const a = Math.sin(ph + offset), lift = Math.max(0, Math.sin(ph + offset + Math.PI / 2));
-    pose[key + '0'] = {x: a * WALK.swing}; pose[key + '1'] = {x: lift * WALK.bend * (fore ? 1 : -.9)}; pose[key + '2'] = {x: lift * WALK.bend * (fore ? .4 : .8)}; if (four) pose[key + '3'] = {x: -lift * .3}; };
+    pose[key + '0'] = {x: a * G.swing}; pose[key + '1'] = {x: lift * G.bend * (fore ? 1 : -.9)}; pose[key + '2'] = {x: lift * G.bend * (fore ? .4 : .8)}; if (four) pose[key + '3'] = {x: -lift * .3}; };
   leg('lfore', 0, true, false); leg('rhind', 0, false, true); leg('rfore', Math.PI, true, false); leg('lhind', Math.PI, false, true);
-  pose.spine = {y: Math.sin(ph) * WALK.sway}; pose.chest = {y: Math.sin(ph) * WALK.sway * .6}; pose.hips = {x: Math.sin(ph * 2) * .03};
-  pose.hipsY = Math.abs(Math.sin(ph)) * WALK.bob;
+  pose.spine = {y: Math.sin(ph) * G.sway, x: G === RUN ? -.08 + Math.sin(ph * 2) * .06 : 0}; pose.chest = {y: Math.sin(ph) * G.sway * .6}; pose.hips = {x: Math.sin(ph * 2) * .03};
+  pose.hipsY = Math.abs(Math.sin(ph)) * G.bob;
   return pose;
 }
+export const walkPose = u => gaitPose(u, WALK), runPose = u => gaitPose(u, RUN);
 export function idlePose(u) {
   const ph = u * TAU, breath = Math.sin(ph) * .5 + .5;
   // a slow shift of weight from one side to the other rides under the breath
@@ -173,7 +183,7 @@ export function pouncePose(u) {
   for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: .35 * crouch + POUNCE.reach * leap - .25 * land}; pose[key + '1'] = {x: .6 * crouch + .3 * leap + .5 * land}; pose[key + '2'] = {x: .2 * crouch - .4 * leap}; }
   return pose;
 }
-export const CLIPS = {walk: {pose: walkPose, period: 1 / WALK.hz, frames: 24}, idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
+export const CLIPS = {walk: {pose: walkPose, period: 1 / WALK.hz, frames: 24}, run: {pose: runPose, period: 1 / RUN.hz, frames: 24}, idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
 // A pet that has stood still this long sits down.
 export const SIT_AFTER = 6;
 
@@ -200,10 +210,12 @@ export function sampleClip(name, {pose, period, frames}, bonesByName) {
   return new THREE.AnimationClip(name, period, tracks);
 }
 
-// The mixer and its actions for one cat. `update(dt, walking)` cross-fades walk, idle and sit
-// as the pet starts, stops and settles (three's skinning-blending example, in code), plays the
-// pounce as a one-shot when the actor's attack action begins, keeps the tail playing, and lays
-// the turn lean on top after the mixer has posed the bones. `actor` is read for its actions.
+// The mixer and its actions for one cat. `update(dt, walking)` runs the gaits: walk, run, idle
+// and sit cross-fade as the pet starts, stops, speeds up and settles (three's skinning-blending
+// example, in code: a stop waits for the loop boundary, walk and run fade with warping, the
+// walk's time scale follows the measured speed), plays the pounce as a one-shot when the
+// actor's attack action begins, keeps the tail playing, and lays the turn lean on top after the
+// mixer has posed the bones. `actor` is read for its actions and its position.
 export function createFelineAnimator(root, rig, actor = null) {
   const bonesByName = {}; root.traverse(o => { if (o.isBone) bonesByName[o.name] = o; });
   const mixer = new THREE.AnimationMixer(root), actions = {};
@@ -213,26 +225,42 @@ export function createFelineAnimator(root, rig, actor = null) {
     a.setEffectiveWeight(0); actions[name] = a;
   }
   actions.idle.setEffectiveWeight(1); actions.tail.setEffectiveWeight(1);
-  let walking = false, base = actions.idle, still = 0, pouncing = false, lastAttack = null;
-  // Fades `to` in over `from`; the base clip is whatever the pet stands, walks or sits with.
-  const fade = (to, from, time) => { to.enabled = true; to.setEffectiveTimeScale(1); to.setEffectiveWeight(1); if (to.loop !== THREE.LoopOnce) to.time = to.time % to.getClip().duration; to.play(); from.crossFadeTo(to, time, false); };
-  const setBase = (to, time) => { if (to === base) return; fade(to, pouncing ? actions.pounce : base, time); base = to; };
+  let walking = false, base = actions.idle, still = 0, pouncing = false, lastAttack = null, stopping = false, fading = 0, speed = 0;
+  const last = new THREE.Vector3(), moving = () => base === actions.walk || base === actions.run;
+  if (actor?.g) last.copy(actor.g.position);
+  // Fades `to` in over `from` (the example's setWeight first: re-enable, un-warp, full weight).
+  // `warp` slides the time scales between two cyclic clips so a walk becomes a run mid-stride.
+  const fade = (to, from, time, warp = false) => { to.enabled = true; to.setEffectiveTimeScale(1); to.setEffectiveWeight(1); if (to.loop !== THREE.LoopOnce) to.time = warp ? from.time / from.getClip().duration * to.getClip().duration : 0; to.play(); from.crossFadeTo(to, time, warp); fading = Math.max(fading, time); stopping = false; };
+  const setBase = (to, time, warp = false) => { if (to === base) return; fade(to, pouncing ? actions.pounce : base, time, warp); base = to; };
   mixer.addEventListener('finished', e => { if (e.action === actions.pounce) { pouncing = false; fade(base, actions.pounce, .25); } });
+  // the stop: when the pet halts mid-stride, the fade to idle waits for the gait's loop boundary
+  mixer.addEventListener('loop', e => { if (stopping && e.action === base && moving() && !pouncing) setBase(actions.idle, .3); });
   function update(dt, nowWalking) {
     dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
     still = nowWalking ? 0 : still + dt;
+    // measured speed (tiles per second), smoothed
+    if (actor?.g && dt > 0) { const v = last.distanceTo(actor.g.position) / dt; last.copy(actor.g.position); speed += (Math.min(v, 12) - speed) * (1 - Math.exp(-dt * GAIT.smooth)); }
     // the pounce: once per attack action, the moment it starts
     const atk = actor?.actions?.current?.kind === 'attack' ? actor.actions.current : null;
     if (atk && atk !== lastAttack) { lastAttack = atk; pouncing = true; still = 0; actions.pounce.reset(); fade(actions.pounce, base, .08); }
-    if (nowWalking !== walking) { walking = nowWalking; if (!pouncing) setBase(walking ? actions.walk : actions.idle, walking ? .25 : .4); else base = walking ? actions.walk : actions.idle; }
-    if (!pouncing && !walking && still >= SIT_AFTER && base !== actions.sit) setBase(actions.sit, .6);
+    if (nowWalking && !walking) { walking = true; stopping = false; if (!pouncing) setBase(actions.walk, .25); else base = actions.walk; }
+    else if (!nowWalking && walking) { walking = false; if (pouncing) base = actions.idle; else if (moving()) stopping = true; }
+    // the gaits: past RUN_AT the walk warps into the run, below WALK_AT the run warps back
+    if (walking && !pouncing && !stopping) {
+      if (base === actions.walk && speed > GAIT.runAt) setBase(actions.run, GAIT.fade, true);
+      else if (base === actions.run && speed < GAIT.walkAt) setBase(actions.walk, GAIT.fade, true);
+    }
+    if (!pouncing && !walking && !stopping && still >= SIT_AFTER && base !== actions.sit) setBase(actions.sit, .6);
+    // the walk's stride rate follows the measured speed once no fade is warping it
+    fading = Math.max(0, fading - dt);
+    if (!fading && moving() && walking) { const nominal = base === actions.run ? GAIT.nominal * RUN.hz / WALK.hz : GAIT.nominal; base.setEffectiveTimeScale(Math.max(GAIT.minScale, Math.min(GAIT.maxScale, speed / nominal))); }
     mixer.update(dt);
     // the lean into a turn: the heading arrives in steps, so it snaps toward a turn and eases out
     const yaw = rig.hips.parent?.parent?.rotation.y ?? 0, d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
     const target = dt > 0 ? Math.max(-.5, Math.min(.5, d / dt * .12)) : 0;
     rig.lean += (target - rig.lean) * (1 - Math.exp(-dt * (Math.abs(target) > Math.abs(rig.lean) ? 14 : 3)));
     if (Math.abs(rig.lean) > 1e-4) { const l = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, -rig.lean * .25)); rig.spine.quaternion.multiply(l); rig.chest.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, 0))); }
-    return {walking, pouncing, sitting: base === actions.sit, walkWeight: actions.walk.getEffectiveWeight(), idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
+    return {walking, pouncing, stopping, speed, sitting: base === actions.sit, gait: Object.keys(actions).find(k => actions[k] === base), timeScale: base.getEffectiveTimeScale(), walkWeight: actions.walk.getEffectiveWeight(), runWeight: actions.run.getEffectiveWeight(), idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
   }
   // For the tool pages: hold one clip at a moment of its cycle (u in 0..1), everything else off.
   function show(name, u = 0) {
