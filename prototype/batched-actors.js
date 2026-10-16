@@ -32,6 +32,11 @@ export function createActorBatch(root, {start = START} = {}) {
     if (!b) {
       const mesh = new THREE.BatchedMesh(start.instances, start.vertices, start.indices, material);
       mesh.castShadow = mesh.receiveShadow = true; mesh.sortObjects = false; mesh.name = 'actor batch';
+      // Never cull the batch as a whole. three computes a BatchedMesh's bounding sphere once, from
+      // wherever its instances stood on the first frame, and setMatrixAt never refreshes it, so once
+      // the monsters have walked off the camera would cull the whole batch at some angles and leave
+      // only their unbatched parts (eyes, outlines) behind. Each instance is still culled on its own.
+      mesh.frustumCulled = false;
       // the shadow pass comes first in a frame, the colour pass after: whichever is first syncs.
       // BatchedMesh has its own hooks (culling, the multi-draw lists), so they run after ours.
       const render = mesh.onBeforeRender, shadow = mesh.onBeforeShadow;
