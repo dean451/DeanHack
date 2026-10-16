@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>corpse shot</title>
+<style>html,body{margin:0;background:#233138}canvas{display:block}</style>
+<script type="module">
+// Renders a creature's corpse as the floor shows it: /tools/corpse-shot.html?name=soldier&view=three
+// Views: three (three-quarter), top (straight down, the game's own angle on a body), side.
+import * as THREE from 'three';
+import {createCreature} from '../creatures.js';
+import {createCorpse} from '../corpse.js';
+const q=new URLSearchParams(location.search),name=q.get('name')||'soldier',view=q.get('view')||'three';
+const W=900,H=700,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(36,W/H,.05,60);
+scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const key=new THREE.DirectionalLight(0xffe1b6,3);key.position.set(-3,5,4);scene.add(key);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshStandardMaterial({color:0x4a5550,roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const c=createCorpse(name,q.get('color')?+q.get('color'):7,3,{creatureFactory:o=>createCreature(o),symbol:q.get('letter')?q.get('letter').charCodeAt(0):64});c.rotation.y=0;scene.add(c);
+const box=new THREE.Box3().setFromObject(c),size=box.getSize(new THREE.Vector3()),d=Math.max(1.2,Math.max(size.x,size.y,size.z)*1.7),look=new THREE.Vector3(0,Math.min(.4,size.y*.35),0);
+if(view==='top')camera.position.set(.01,d*1.3,.01);else if(view==='side')camera.position.set(d,size.y*.5+.2,0);else camera.position.set(d*.7,d*.6,d*.7);
+camera.lookAt(look);renderer.render(scene,camera);window.__done=true;
+</script>
