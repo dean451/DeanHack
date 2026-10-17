@@ -79,6 +79,7 @@ Claude sessions with the user add lines here from the user's direct feedback (ma
 - *user* Blessed is green, cursed is red, everywhere (inventory rows, auras). Follow roguelike habits.
 - *user* A pet or monster that is round, soft or pastel is wrong. Make it grim, then check it is still readable.
 - *user* Collars, belts, straps and bands must wrap the body; assert `surfaceGap(part, body)` (`fit-check.js`) is small. The pet-cat collar floated for five PRs.
+- Tests must feed what the bridge really sends: object classes are `oc_class` from `include/objclass.h` (strange object is 1, not 0). A class-0 test shipped a crate no shop showed.
 - Held weapons point forward (+z) at the hand unless deliberately shouldered; assert the tip is ahead of the butt in a test (see `kobold.test.js`).
 - The live hero is `knight()` in `main.js`; `valkyrie.js` is a monster. Find which factory the live game actually calls (`creatureFactory`, `live.js`) before editing a model.
 - Colours passed to sculpt helpers must be hex, not arrays, or the result renders white.
