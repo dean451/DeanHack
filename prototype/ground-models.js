@@ -5517,7 +5517,8 @@ export function createGroundModel(item={}){
  const ball=(r,m,x,y,z,s=[1,1,1])=>{const p=add(new THREE.SphereGeometry(r,16,10),m,x,y,z);p.scale.set(...s);return p;};
  if(/wolfsbane/.test(name)){
   buildWolfsbane({g,materials});
- }else if(cls===0&&/\bstrange object\b/.test(name)){
+ // The engine sends the strange object as ILLOBJ_CLASS (1); 0 is RANDOM_CLASS, a placeholder never on the map.
+ }else if(cls<=1&&/\bstrange object\b/.test(name)){
   buildStrangeObject({g,materials});
   g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===8){

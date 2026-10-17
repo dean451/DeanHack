@@ -1424,8 +1424,10 @@ test('the chest is a planked, iron-bound oak chest with a barrel lid, a brass lo
 });
 
 test('the shop mimic\'s "strange object" is a closed damp crate with a smiling seam and odd straps, two meshes on the floor',()=>{
- const model=createGroundModel({name:'strange object',class:0});
- assert(model);
+ // class 1 is what the bridge sends (ILLOBJ_CLASS, objects.c); a test on class 0 passed while the
+ // game still drew the fallback diamond in every shop.
+ const model=createGroundModel({name:'strange object',class:1,otyp:0});
+ assert(model,'the class the engine actually sends gets the crate');
  assert.deepEqual(model.children.map(p=>p.userData.part),['strange-object-wood','strange-object-iron']);
  assert(model.children.length<=6);
  const bounds={};
