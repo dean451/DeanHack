@@ -3591,6 +3591,76 @@ function buildLargeBox({g,materials}){
  g.rotation.y=.2;
 }
 
+// The shop mimic's disguise, "strange object": a closed crate the size of the large box, in
+// walnut-brown shop planks, that is almost right and does not shout. Three tells. The seam
+// between lid and body curves up at both ends like a closed mouth. The planks are faintly
+// glossy and darker low down, as if damp. The iron straps run along the long edges and
+// down one end only, where a real crate bands its short faces. No eyes, no teeth, no pulse.
+// Two merged, vertex-coloured meshes: the wood (with the dark core) and the iron.
+function buildStrangeObject({g,materials}){
+ const C=hex=>new THREE.Color(hex);
+ const WOOD={base:C(0x8a5e36),light:C(0xb58850),dark:C(0x3e2812)},CORE=C(0x120b06);
+ const IRON={base:C(0x45423e),light:C(0x86817a),dark:C(0x1a1918)},DAMP=C(0x24160a);
+ // Roughness .42 against the dry pine of the large box: a faint wet sheen, not a shine.
+ const woodMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.05,roughness:.42});
+ const metalMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,metalness:.55,roughness:.55});
+ materials.push(woodMat,metalMat);
+ const wood=[],metal=[];
+ const put=(geo,{look=WOOD,flat,grain='x',tone=0}={})=>{
+  if(geo.attributes.uv)geo.deleteAttribute('uv');
+  const out=geo.index?geo.toNonIndexed():geo;if(out!==geo)geo.dispose();
+  const p=out.attributes.position,cols=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),c=look.base.clone();
+   if(flat)c.copy(flat);
+   else{
+    const a=grain==='x'?x:z,b=grain==='x'?y+z:y+x;
+    const s=Math.sin(b*260+Math.sin(a*6+tone*9)*1.4)*.45+.55*stoneNoise(a*2,b*22,tone,6);
+    c.lerp(s>0?look.light:look.dark,Math.min(1,Math.abs(s)*(look===WOOD?.3:.35)));
+    if(look===WOOD){c.lerp(look.light,Math.max(0,tone)*.4).lerp(look.dark,Math.max(0,-tone)*.4);c.lerp(DAMP,Math.max(0,1-y/.12)*.45);}
+   }
+   cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;
+  }
+  out.setAttribute('color',new THREE.BufferAttribute(cols,3));(look===IRON?metal:wood).push(out);
+ };
+ const W=.46,D=.32,T=.012,base=.006,BH=.14,LH=.058,top=base+BH,H=BH+LH;
+ // The core, then three planks a side and two across each end, hairline gaps between them.
+ const core=new THREE.BoxGeometry(W-2*T+.002,BH+.012,D-2*T+.002);core.translate(0,base+(BH+.012)/2,0);put(core,{flat:CORE});
+ const bh=BH/3;
+ for(const s of [-1,1])for(let i=0;i<3;i++){
+  const tone=((i*3+(s>0?2:0))%5-2)*.1;
+  const long=new THREE.BoxGeometry(W,bh-.004,T,6,1,1);long.translate(0,base+bh*(i+.5),s*(D/2-T/2));put(long,{grain:'x',tone});
+  const end=new THREE.BoxGeometry(T,bh-.004,D-2*T,1,1,4);end.translate(s*(W/2-T/2),base+bh*(i+.5),0);put(end,{grain:'z',tone:-tone});
+ }
+ // The lid, slightly overhanging. Its lower front edge is bent into a shallow smile: the middle
+ // rides down over the body, both ends lift and show a dark wedge of core, so the seam reads as
+ // a closed mouth. The same bend runs round the ends, fading to a straight seam at the back.
+ const lid=new THREE.BoxGeometry(W+.012,LH,D+.012,24,1,8);
+ const lp=lid.attributes.position;
+ for(let i=0;i<lp.count;i++){
+  const x=lp.getX(i),y=lp.getY(i),z=lp.getZ(i);
+  if(y>0)continue;
+  const u=x/(W/2),front=Math.max(0,z/(D/2)),lift=.03*u*u*front;
+  lp.setY(i,y+lift-.004*front);
+ }
+ lid.translate(0,top+LH/2-.008,0);put(lid,{grain:'x',tone:.12});
+ // Lid planks: shallow grooves are the board seams, cut as dark strips just above the surface.
+ for(let i=1;i<4;i++){const gr=new THREE.BoxGeometry(W+.004,.002,.0035);gr.translate(0,top+LH-.008+.0008,-(D+.012)/2+(D+.012)*i/4);put(gr,{flat:DAMP});}
+ // Iron: a strap along the bottom front edge, one along the top back edge, and a single strap
+ // down one end. Nothing on the short faces of the other end, and nothing on the corners.
+ const sw=.026,st=.004,lx=W/2+.006,lz=D/2+.006;
+ const botFront=new THREE.BoxGeometry(W-.06,sw,st,10,1,1);botFront.translate(.02,base+sw/2+.004,D/2+st/2);put(botFront,{look:IRON});
+ const topBack=new THREE.BoxGeometry(W-.06,sw,st,10,1,1);topBack.translate(0,top+LH-.008-sw/2-.002,-(lz+st/2));put(topBack,{look:IRON});
+ const endStrap=new THREE.BoxGeometry(st,H-.012,sw,1,6,1);endStrap.translate(-(lx+st/2-.004),base+(H-.008)/2,-.03);put(endStrap,{look:IRON});
+ for(const [x,y,z,ax] of [[-.17,base+sw/2+.004,D/2+st+.001,'z'],[.19,base+sw/2+.004,D/2+st+.001,'z'],[-(lx+st+.001-.004),base+.03,-.03,'x'],[-(lx+st+.001-.004),top+LH-.04,-.03,'x']]){
+  const h=new THREE.CylinderGeometry(.0042,.0042,.003,6);if(ax==='z')h.rotateX(Math.PI/2);else h.rotateZ(Math.PI/2);
+  h.translate(x,y,z);put(h,{look:IRON});
+ }
+ const mesh=(list,m,part)=>{const geo=mergeGeometries(list);list.forEach(p=>p.dispose());const o=new THREE.Mesh(geo,m);o.castShadow=o.receiveShadow=true;o.userData.part=part;g.add(o);};
+ mesh(wood,woodMat,'strange-object-wood');mesh(metal,metalMat,'strange-object-iron');
+ g.rotation.y=.2;
+}
+
 // The ice box: a golden-oak, top-loading ice chest on bun feet. A lift lid with a raised field
 // covers the ice well; below a moulded cornice the front has one panelled provision door, and
 // each end a framed, raised panel. Nickel-plated fittings: two strap hinges and a lever latch on
@@ -5447,6 +5517,9 @@ export function createGroundModel(item={}){
  const ball=(r,m,x,y,z,s=[1,1,1])=>{const p=add(new THREE.SphereGeometry(r,16,10),m,x,y,z);p.scale.set(...s);return p;};
  if(/wolfsbane/.test(name)){
   buildWolfsbane({g,materials});
+ }else if(cls===0&&/\bstrange object\b/.test(name)){
+  buildStrangeObject({g,materials});
+  g.updateMatrixWorld(true);const low=new THREE.Box3().setFromObject(g).min.y;g.children.forEach(p=>p.position.y-=low);
  }else if(cls===8){
   // Potions: a corked bottle whose shape and colour come from the shuffled look (potion.js).
   // Its three merged meshes move into g like the unicorn horn.

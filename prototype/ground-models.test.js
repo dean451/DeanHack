@@ -1423,6 +1423,29 @@ test('the chest is a planked, iron-bound oak chest with a barrel lid, a brass lo
  model.userData.dispose();assert.equal(disposed,2);
 });
 
+test('the shop mimic\'s "strange object" is a closed damp crate with a smiling seam and odd straps, two meshes on the floor',()=>{
+ const model=createGroundModel({name:'strange object',class:0});
+ assert(model);
+ assert.deepEqual(model.children.map(p=>p.userData.part),['strange-object-wood','strange-object-iron']);
+ assert(model.children.length<=6);
+ const bounds={};
+ for(const part of model.children){
+  const {position,normal,color}=part.geometry.attributes;
+  for(const a of [position,normal,color])for(const x of a.array)assert(Number.isFinite(x));
+  for(const x of color.array)assert(x>=0&&x<=1);
+  part.geometry.computeBoundingBox();bounds[part.userData.part]=part.geometry.boundingBox;
+ }
+ const wood=bounds['strange-object-wood'];
+ assert(Math.abs(new THREE.Box3().setFromObject(model).min.y)<1e-6,'sits on the floor');
+ assert(wood.max.y>.18&&wood.max.y<.24&&wood.max.x<.27&&wood.max.z<.18,`size ${wood.max.x} ${wood.max.y}`);
+ // Faintly glossy against the large box's dry pine.
+ const box=createGroundModel({name:'large box',class:6});
+ assert(model.children[0].material.roughness<box.children[0].material.roughness);
+ // A mimic that has been seen through is not this model, and a plain large box is not either.
+ assert(!box.children.some(p=>/strange/.test(p.userData.part)));
+ box.userData.dispose();model.userData.dispose();
+});
+
 test('the large box is a nailed pine crate on skids, with a braced frame, rope handles and iron corner guards',()=>{
  const model=createGroundModel({name:'large box',class:6});
  assert.deepEqual(model.children.map(p=>p.userData.part),['large-box-wood','large-box-iron']);
