@@ -7,6 +7,7 @@
 
 import {pickDragon} from './dragon-art.js';
 import {createAsciiWaves} from './ascii-waves.js';
+import {createAsciiSpiral, DESCENT} from './ascii-spiral.js';
 import {epitaph} from './death-beat.js';
 import {ROLES,ROLE_NAMES,RACES,DEFAULT_CHOICE,alignsFor,optionsFor,resolveChoice} from './roles.js';
 
@@ -137,6 +138,20 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
 <button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div><p class="start-mark"><a class="start-link" href="https://github.com/dean451/deanhack" target="_blank" rel="noopener" aria-label="DeanHack on GitHub">DEAN<b>HACK</b></a></p></div><div class="start-board"><button type="button" class="start-scores-toggle" aria-expanded="false" aria-controls="start-scores">Leaderboard</button><div id="start-scores" class="start-scores-box" hidden></div></div>`;
   // The wavy ASCII field behind everything (ascii-waves.js); it runs only while the splash shows.
   const waves=createAsciiWaves({doc});el.prepend(waves.el);
+  // The descent (ascii-spiral.js): Descend fades the card out under a spiral that zooms for DESCENT.ms, then
+  // rests dim behind the engine's opening text until live.js reports the first frame landed.
+  const spiral=createAsciiSpiral({doc});let descending=false,landing=null;
+  const win=doc.defaultView;
+  const clearDescent=()=>{descending=false;if(landing){win?.clearTimeout?.(landing);landing=null;}el.classList.remove('start-descending');doc.body.classList.remove('start-descending');spiral.stop();spiral.el.remove();spiral.el.classList.remove('zoom','rest','gone');};
+  const descend=()=>{
+    if(spiral.still||!win?.setTimeout)return Promise.resolve();
+    descending=true;el.classList.add('start-descending');doc.body.classList.add('start-descending');waves.stop();
+    doc.body.append(spiral.el);spiral.speed=1;spiral.start();
+    (win.requestAnimationFrame??(f=>f()))(()=>spiral.el.classList.add('zoom'));
+    return new Promise(res=>win.setTimeout(res,DESCENT.ms)).then(()=>{spiral.speed=DESCENT.rest;spiral.el.classList.replace('zoom','rest');});
+  };
+  // The dungeon is on screen: the spiral fades away and the opening text's fade-in rules lift.
+  const landed=()=>{if(!descending||landing)return;spiral.el.classList.add('gone');doc.body.classList.remove('start-descending');landing=win.setTimeout(()=>{landing=null;clearDescent();},1000);};
   doc.body.append(el);
   const $=s=>el.querySelector(s);
   // The cover (start-cover.js) already shows a head: take that very element so nothing swaps.
@@ -168,6 +183,7 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
     refresh();
   });
   const open=({note:line='',death=null,focus=true}={})=>{
+    clearDescent();
     el.hidden=false;doc.body.classList.add('start-open');showDragon();waves.start();
     const card=deathCard(death);
     if(card){status.innerHTML=card;status.classList.add('dead');status.hidden=false;}else{status.textContent=line;status.classList.remove('dead');status.hidden=!line;}
@@ -179,7 +195,7 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
   const launch=name=>{
     // the existing name field remembers the name and shows it in the character panel
     if(nameInput){nameInput.value=name;nameInput.dispatchEvent(new Event('input'));}
-    close();button.click();
+    descend().then(()=>{close();button.click();});
   };
   const renderClass=()=>{
     const view=classView(choice);
@@ -218,5 +234,5 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
   input.addEventListener('input',refresh);
   const board=installScoreboard({button:$('.start-scores-toggle'),table:$('#start-scores'),getScores});
   open();
-  return {el,open,close};
+  return {el,open,close,landed};
 }

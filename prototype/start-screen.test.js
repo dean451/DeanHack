@@ -272,3 +272,19 @@ test('the Leaderboard button fetches once on the first click, shows the table, a
   assert.match(src,/stepName\.hidden=false;board\.stale\(\);/,'a reopened splash refreshes the board');
   assert.match(css,/#start-screen \.start-scores-box\[hidden\]\{display:none\}/);
 });
+
+test('Descend runs the ASCII spiral descent before the game starts, the splash hands it off, and the first dungeon frame lands it',()=>{
+  const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8'),live=readFileSync(new URL('./live.js',import.meta.url),'utf8');
+  assert.match(src,/descend\(\)\.then\(\(\)=>\{close\(\);button\.click\(\);\}\);/,'the game starts after the descent');
+  assert.match(src,/waves\.stop\(\);\n\s*doc\.body\.append\(spiral\.el\);spiral\.speed=1;spiral\.start\(\);/,'the waves stop and the spiral takes over, at full speed');
+  assert.match(src,/win\.setTimeout\(res,DESCENT\.ms\)/,'the zoom lasts DESCENT.ms');
+  assert.match(src,/spiral\.speed=DESCENT\.rest;spiral\.el\.classList\.replace\('zoom','rest'\)/,'then it rests, dim and slow');
+  assert.match(src,/if\(spiral\.still\|\|!win\?\.setTimeout\)return Promise\.resolve\(\);/,'reduced motion skips it');
+  assert.match(src,/const open=\(\{note:line='',death=null,focus=true\}=\{\}\)=>\{\n\s*clearDescent\(\);/,'coming back to the splash clears any descent');
+  assert.match(src,/return \{el,open,close,landed\};/);
+  assert.match(live,/if\(v\.kind==='command'\)startScreen\?\.landed\?\.\(\);/,'the first command prompt, after the opening text, lands the descent');
+  assert.match(css,/\.start-spiral\{[^}]*background:#030609;/,'opaque: the dungeon waits behind it');
+  assert.match(css,/\.start-spiral\{position:fixed;inset:0;z-index:62;[^}]*pointer-events:none;[^}]*opacity:0;transition:opacity/);
+  assert.match(css,/body\.start-descending dialog pre\{animation:intro-fade/,'the opening text fades in');
+  assert.match(css,/@media \(prefers-reduced-motion:reduce\)\{\.start-spiral/);
+});

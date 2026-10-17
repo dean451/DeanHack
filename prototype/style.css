@@ -286,3 +286,20 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 #start-screen .start-scores .how{color:#b9b09c}
 #start-screen .start-scores tbody tr:first-child .rank,#start-screen .start-scores tbody tr:first-child td.num:nth-child(2){color:#c9552e}
 @media(max-width:760px){#start-screen .start-scores th:nth-child(n+5),#start-screen .start-scores td:nth-child(n+5){display:none}}
+
+/* The descent (ascii-spiral.js, start-screen.js): Descend fades the splash's stage out while an ASCII spiral
+   zooms over everything, then the spiral rests dim and slow behind the engine's opening text, whose lines
+   fade in rather than pop, and goes once the first frame of the dungeon is on screen. */
+/* opaque while it plays, so the dungeon only shows once the spiral fades; the text dims to rest through its colour */
+.start-spiral{position:fixed;inset:0;z-index:62;margin:0;overflow:hidden;font:13px/15px 'Courier New',Courier,monospace;white-space:pre;background:#030609;color:#8fd0ccf2;text-shadow:0 0 10px #46bebe66;pointer-events:none;opacity:0;transition:opacity .55s ease,color 1.2s ease}
+.start-spiral.zoom{opacity:1}
+.start-spiral.rest{opacity:1;color:#8fd0cc5c}
+.start-spiral.gone{opacity:0;transition-duration:1s}
+#start-screen.start-descending .start-stage,#start-screen.start-descending .start-board{animation:descend-out .6s ease-in forwards}
+@keyframes descend-out{to{opacity:0;transform:scale(1.08)}}
+body.start-descending dialog{background:#070d10c4}
+body.start-descending dialog::backdrop{background:#04070a40;backdrop-filter:none}
+body.start-descending dialog pre{animation:intro-fade 2s ease-out both}
+body.start-descending dialog>p,body.start-descending dialog>button{animation:intro-fade 1.2s ease-out 1.1s both}
+@keyframes intro-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.start-spiral,#start-screen.start-descending .start-stage,body.start-descending dialog pre,body.start-descending dialog>p,body.start-descending dialog>button{animation:none;transition:none;opacity:1;transform:none}}
