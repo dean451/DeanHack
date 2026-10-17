@@ -18,7 +18,7 @@ import {createThrone} from './throne.js';
 import {createSink} from './sink.js';
 import {createGrave} from './grave.js';
 import {createTrap,trapKind} from './trap.js';
-import {createTerrainFeature,featureKind,AXIS_FEATURES,bridgeYaw,groundOf} from './terrain-feature.js';
+import {createTerrainFeature,featureKind,AXIS_FEATURES,bridgeYaw,groundOf,coveredFeature} from './terrain-feature.js';
 import {createTree} from './tree.js';
 import {createDeadTree,deadTreeShown} from './dead-tree.js';
 import {createBoulder,BOULDER_SEED} from './boulder.js';
@@ -420,7 +420,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  // anything else keeps the symbol label.
  function dressFeature(tile,cell){
   const trap=trapKind(cell.symbol,cell.color,cell.trap),other=trap?null:featureKind(cell.symbol,cell.color);
-  const kind=trap||other,portal=trap==='portal'&&cell.portal||null,key=portal?`portal:${portal}`:kind||(tile.userData.featureKey?null:'label');
+  const kind=trap||other,portal=trap==='portal'&&cell.portal||null,key=portal?`portal:${portal}`:kind||(tile.userData.featureKey||coveredFeature(cell)?null:'label');
   if(!key||key===tile.userData.featureKey)return;
   if(tile.userData.feature){tile.userData.feature.traverse(o=>o.userData.dispose?.());tile.remove(tile.userData.feature);}
   // Portals and the vibrating square animate themselves (portal-fx.js, vibrating-square.js).

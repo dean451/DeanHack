@@ -35,3 +35,17 @@ test('floor ice is a merged, flat, finite model that stays in its tile and frees
   console.log(`ice ${seed}: ${JSON.stringify(counts)}, y ${bounds.min.y.toFixed(4)}..${bounds.max.y.toFixed(4)}, x ${bounds.min.x.toFixed(3)}..${bounds.max.x.toFixed(3)}, z ${bounds.min.z.toFixed(3)}..${bounds.max.z.toFixed(3)}, colours ${lo.toFixed(3)}..${hi.toFixed(3)}, ${ms.toFixed(1)} ms`);
  }
 });
+
+test('a feature tile under a monster or item waits for its own symbol: no label of the occupant', async () => {
+  const {coveredFeature, featureKind} = await import('./terrain-feature.js');
+  // a towel on ice and a long worm tail over ice: the cell shows the occupant, not the ice
+  const towel = {terrain: 'feature', symbol: 40, color: 4, name: 'towel', object: {kind: 'item', class: 6, name: 'towel'}};
+  const tail = {terrain: 'feature', symbol: 126, color: 3, name: 'long worm tail'};
+  for (const cell of [towel, tail]) {
+    assert.equal(featureKind(cell.symbol, cell.color), null);
+    assert.equal(coveredFeature(cell), true, `${cell.name} covers the feature`);
+  }
+  assert.equal(coveredFeature({terrain: 'feature', symbol: 46, color: 6}), false, 'bare ice shows its own symbol');
+  const src = (await import('node:fs')).readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  assert.match(src, /kind\|\|\(tile\.userData\.featureKey\|\|coveredFeature\(cell\)\?null:'label'\)/, 'dressFeature skips the label while covered');
+});

@@ -22,6 +22,12 @@ export function featureKind(symbol,color){
  return null;
 }
 
+// A monster or item standing on a feature tile (ice, bog, a lowered bridge) shows its own symbol, so
+// the feature cannot be told from it. Such a tile waits for the feature's own symbol instead of
+// falling back to a label of the occupant's character (a towel's "(" or a long worm's "~" floating
+// in a dark bar over the ice).
+export function coveredFeature(cell){return !!(cell.object||cell.name);}
+
 // A poison cloud takes the cell's own glyph, so the bridge adds `under` (floor, water or
 // lava) to say what it floats over. The ground a cell is drawn on is that, not its terrain.
 export function groundOf(cell){return cell.under||cell.terrain;}
