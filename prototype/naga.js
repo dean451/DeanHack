@@ -34,19 +34,19 @@ const piece = (geo, hex, [sx, sy, sz], [rx, ry, rz], [px, py, pz]) => {
 };
 
 // A tube along a curve with a ring-by-ring profile and a vertex colour by (ring, side, normal, along). Ring layout
-// stays TubeGeometry's (8 sides, 9 vertices a ring) so a tail tip can be measured.
-function serpent(curve, segs, radius, profile, paintFn) {
-  const geo = new THREE.TubeGeometry(curve, segs, radius, 8, false), pos = geo.attributes.position, c = new THREE.Vector3(), v = new THREE.Vector3();
+// stays TubeGeometry's (`sides` sides, sides + 1 vertices a ring, 8 and 9 unless asked) so a tail tip can be measured.
+function serpent(curve, segs, radius, profile, paintFn, sides = 8, facet = null) {
+  const geo = new THREE.TubeGeometry(curve, segs, radius, sides, false), pos = geo.attributes.position, c = new THREE.Vector3(), v = new THREE.Vector3(), R = sides + 1;
   for (let i = 0; i <= segs; i++) {
     const u = i / segs; curve.getPointAt(u, c);
     const k = profile(u) * (i % 2 ? 1.05 : .96);
-    for (let j = 0; j < 9; j++) { const n = i * 9 + j; v.fromBufferAttribute(pos, n).sub(c).multiplyScalar(k).add(c); pos.setXYZ(n, v.x, v.y, v.z); }
+    for (let j = 0; j < R; j++) { const n = i * R + j; v.fromBufferAttribute(pos, n).sub(c).multiplyScalar(k * (facet ? facet(i, j % sides) : 1)).add(c); pos.setXYZ(n, v.x, v.y, v.z); }
   }
   geo.computeVertexNormals();
   const nor = geo.attributes.normal, col = new Float32Array(pos.count * 3), o = new THREE.Color();
-  for (let i = 0; i <= segs; i++) for (let j = 0; j < 9; j++) {
-    const n = i * 9 + j;
-    paintFn(o, i, j % 8, i / segs, nor.getX(n), nor.getY(n), nor.getZ(n));
+  for (let i = 0; i <= segs; i++) for (let j = 0; j < R; j++) {
+    const n = i * R + j;
+    paintFn(o, i, j % sides, i / segs, nor.getX(n), nor.getY(n), nor.getZ(n));
     o.toArray(col, n * 3);
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
@@ -70,7 +70,7 @@ export function createNaga({kind = 'red', baby = false} = {}) {
   };
 
   // the coil: tail tip outside, wound inward and climbing, ending under the raised neck
-  const y0 = r * 1.15, SEG = 100, pts = [];
+  const y0 = r * .95, SEG = 100, pts = [];
   for (let i = 0; i <= 34; i++) {
     const t = i / 34, a = Math.PI * .6 + t * Math.PI * 5.2, rad = .34 - t * .24;
     pts.push(new THREE.Vector3(Math.cos(a) * rad, y0 + t * t * r * 1.1, -Math.sin(a) * rad * .9 - .02));
@@ -84,8 +84,10 @@ export function createNaga({kind = 'red', baby = false} = {}) {
     scaled(o, i, j, u, nx, ny, nz, (x, y) => y < -.35);
     // scars: pale raked tissue across the middle turns, and one long gash cutting across a few rings
     if (!baby && u > .3 && u < .7 && ((i * 5 + j * 11) % 41 === 0 || (i >= 52 && i <= 56 && j >= 1 && j <= 3))) o.lerp(col.scar, .8);
-  });
-  add(coilG, scaleMat, 'coil', body);
+    if (!baby && i % 6 === 0) o.lerp(col.dark, .5);                       // a notch between every few scale rows
+  }, 6, (i, j) => (j % 2 ? .84 : 1.06) * (i % 6 === 0 ? .86 : 1) * (!baby && i >= 28 && i <= 33 && j < 3 ? .8 : 1));  // star-ish section, notched rows, one flank hacked flat
+  // a low-sided cross-section, a blade keel and notched scale rows, flat-shaded so it catches light in facets
+  add(coilG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: baby ? .65 : .5, metalness: .1, flatShading: true}), 'coil', body);
 
   // the neck: rises out of the coil, kicks back, then leans forward to carry the head
   const rise = new THREE.CatmullRomCurve3([[0, 0, 0], [0, .1, -.035], [0, .22, -.025], [0, .34, .03], [0, .43, .1], [0, .48, .17]].map(p => new THREE.Vector3(...p)));
@@ -104,7 +106,7 @@ export function createNaga({kind = 'red', baby = false} = {}) {
   const B = () => new THREE.BoxGeometry(1, 1, 1), I = d => new THREE.IcosahedronGeometry(1, d);
   // skull and the shadow and light on it
   head.push(piece(I(1), C.flesh, [.056, .06, .08], [0, 0, 0], [0, 0, .02]));
-  head.push(piece(B(), C.ridge, [.12, .017, .032], [-.12, 0, .05], [0, .033, .082]));       // brow ridge, tilted
+  for (const s of [-1, 1]) head.push(piece(B(), C.ridge, [.062, .02, .04], [-.1, s * .12, -s * .28], [s * .033, .03, .064])); // brow ridge: two slabs sunk into the skull, sloping to a scowl over the eyes
   head.push(piece(B(), C.ridge, [.014, .056, .014], [.45, 0, 0], [0, .0, .112]));           // nose bridge catches light
   for (const s of [-1, 1]) {
     head.push(piece(I(0), C.socket, [.024, .018, .016], [0, 0, 0], [s * .034, .017, .094])); // sockets: dark
