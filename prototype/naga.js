@@ -11,10 +11,11 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // - the head: faceted and asymmetric, a hooded cobra head with a human face (brow ridge, deep-set slit-pupil eyes
 //   under it, a nose bridge, cheekbones, a hard jaw hanging open on two fangs, one of them snapped);
 // - the hood: a torn, half-spread fan of ribs behind the head, with a mane of flame (self-lit) down its rim and nape.
-// Black naga: the same rig in near-black scale, a plain hood with a ridge of sharp black spines (some broken) down its rim and nape in place of the flame, green eyes. Six draws. Hatchlings are small and soft-scaled with the hood folded and no mane.
+// Golden naga: tarnished gold scales and a hood in dull brass, a battered circlet (one point snapped) with a gem lit from within on the brow and a faint warm glow on the floor round the coil, red eyes, no mane. Eight draws. Black naga: the same rig in near-black scale, a plain hood with a ridge of sharp black spines (some broken) down its rim and nape in place of the flame, green eyes. Six draws. Hatchlings are small and soft-scaled with the hood folded and no mane.
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const bare = geo => { geo.deleteAttribute('uv'); return geo.index ? geo.toNonIndexed() : geo; };
 const PALETTES = {
+  golden: {dark: '#34240a', mid: '#80601a', high: '#cfa83c', belly: '#d8c880', band: '#7a622a', scar: '#ecdca0', flesh: '#98762a', ridge: '#c4a040', socket: '#120a04', jaw: '#54400e', eye: '#ff5a3a', fang: '#e8dcb4', hood: '#56400e', rib: '#94701c'},
   black: {dark: '#0c0b10', mid: '#24222c', high: '#4a4858', belly: '#4a4852', band: '#222029', scar: '#7a7884', flesh: '#2e2c36', ridge: '#4a4858', socket: '#040406', jaw: '#1a1920', eye: '#8aff4a', fang: '#cfd2c2', hood: '#16151c', rib: '#2c2a36'},
   red: {dark: '#3c120c', mid: '#7c2418', high: '#b0442a', belly: '#b08a4c', band: '#6a4a26', scar: '#c8a48a', flesh: '#9c4630', ridge: '#a8553a', socket: '#140706', jaw: '#5a1c12', eye: '#ffc23a', fang: '#e4dcc6', hood: '#4c140e', rib: '#8e2a1a'},
 };
@@ -156,7 +157,7 @@ export function createNaga({kind = 'red', baby = false} = {}) {
       mane.push(flame(v.x, v.y + len * .35, v.z - .01, len, Math.sign(x) * (.2 + hash(k) * .3), 1));
     }
     for (let i = 0; i < 5; i++) mane.push(flame(0, .36 - i * .07, -.03 + i * .006 - (i === 3 ? .01 : 0), .06 + hash(i + 40) * .05, 0, 1));
-    if (kind === 'black') mane.length = 0;
+    if (kind === 'black' || kind === 'golden') mane.length = 0;
     if (kind === 'black') {
       // black spines: bone-hard thorns raked back along the rim and nape, base nearly black, tips a dull grey; two snapped
       const spine = (x, y, z, len, lean, side) => {
@@ -172,8 +173,30 @@ export function createNaga({kind = 'red', baby = false} = {}) {
       }
       for (let i = 0; i < 5; i++) mane.push(spine(0, .36 - i * .07, -.03 + i * .006, .09 + hash(i + 40) * .06, 0, 1));
     }
-    const maneG = mergeGeometries(mane);
-    const mm = add(maneG, kind === 'black' ? new THREE.MeshStandardMaterial({vertexColors: true, roughness: .4, metalness: .2, flatShading: true}) : new THREE.MeshBasicMaterial({vertexColors: true, side: THREE.DoubleSide}), 'mane', neck); mm.castShadow = kind === 'black';
+    if (kind === 'golden') {
+      // a circlet worn low on the brow: a tilted, dented band, five points (the right one snapped), a gem lit from within
+      const band = [], gems = [], tilt = [.06, 0, -.05];
+      const ring = piece(new THREE.CylinderGeometry(1, 1, 1, 7, 1, true), '#a8862c', [.066, .016, .082], tilt, [0, .042, .018]);
+      ring.computeVertexNormals(); band.push(ring);
+      for (let k = 0; k < 5; k++) {
+        const a = (k - 2) * .62, len = k === 4 ? .014 : k === 2 ? .05 : .034 + hash(k + 60) * .01;
+        band.push(piece(new THREE.ConeGeometry(1, 1, 4), k === 2 ? '#e0c050' : '#b8942e', [.009, len, .009], [Math.cos(a) * .3, 0, -Math.sin(a) * .35], [Math.sin(a) * .066, .05 + len / 2, .018 + Math.cos(a) * .082]));
+      }
+      gems.push(piece(new THREE.OctahedronGeometry(1), '#ff4a2a', [.011, .016, .008], [0, 0, 0], [0, .052, .104]));
+      gems.push(piece(new THREE.OctahedronGeometry(1), '#ffb040', [.006, .009, .006], [0, 0, 0], [-.046, .046, .082]));
+      const bandG = mergeGeometries(band); bandG.applyMatrix4(headAt);
+      add(bandG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .35, metalness: .75, flatShading: true}), 'circlet', neck);
+      const gemG = mergeGeometries(gems); gemG.applyMatrix4(headAt);
+      add(gemG, new THREE.MeshBasicMaterial({vertexColors: true}), 'gems', neck).castShadow = false;
+      // the glow: a faint warm pool on the floor round the coil, a ragged disc that never quite closes
+      const halo = new THREE.CircleGeometry(.5, 9); halo.rotateX(-Math.PI / 2);
+      const hp = halo.attributes.position; for (let i = 1; i < hp.count; i++) { const s = .86 + hash(i * 3) * .3; hp.setX(i, hp.getX(i) * s); hp.setZ(i, hp.getZ(i) * s); }
+      halo.translate(0, .008, 0);
+      const hm2 = add(halo, new THREE.MeshBasicMaterial({color: '#d8a030', transparent: true, opacity: .16, depthWrite: false}), 'glow', body);
+      hm2.castShadow = false; hm2.receiveShadow = false;
+    }
+    const maneG = mane.length ? mergeGeometries(mane) : null;
+    const mm = !maneG ? null : add(maneG, kind === 'black' ? new THREE.MeshStandardMaterial({vertexColors: true, roughness: .4, metalness: .2, flatShading: true}) : new THREE.MeshBasicMaterial({vertexColors: true, side: THREE.DoubleSide}), 'mane', neck); if (mm) mm.castShadow = kind === 'black';
     g.userData.scarred = true;
   }
   return {g, body, legs: [], tail: neck, wings: [], quirk: 'snake'};
