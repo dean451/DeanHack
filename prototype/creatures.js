@@ -36,6 +36,7 @@ import {createAcidBlob} from './acid-blob.js';
 import {createGrayOoze} from './gray-ooze.js';
 import {createJelly} from './jelly.js';
 import {createSlime} from './slime.js';
+import {createNaga} from './naga.js';
 import {createVortex} from './vortex.js';
 import {waterDemonHead,waterDemonBody} from './water-demon.js';
 import {ELVES,createElf} from './elf.js';
@@ -3189,6 +3190,7 @@ export function createCreature(cell={}){
  if(WRAITHS[name])return wraith({...WRAITHS[name],kind:name});
  if(VAMPIRES[name])return vampire({...VAMPIRES[name],kind:name});
  if(XORNS[name])return xorn(XORNS[name]);
+ if(name==='red naga'||name==='red naga hatchling')return createNaga({kind:'red',baby:/hatchling/.test(name)});
  if(NAGAS[name])return naga(NAGAS[name]);
  if(name==='disintegrator')return createDisintegrator();
  // rust monsters and disenchanters have their own models (rust-monster.js)
