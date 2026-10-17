@@ -6,7 +6,15 @@ import {RING_DASHES,ringArcs} from './ring-shape.js';
 
 const outlineMaterial=new THREE.ShaderMaterial({
  uniforms:{color:{value:new THREE.Color(0x07090a)},width:{value:.0019}},
- vertexShader:`uniform float width;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);vec3 n=normalize(normalMatrix*normal);mv.xyz+=n*width*-mv.z;gl_Position=projectionMatrix*mv;}`,
+ // The skinning chunks are no-ops unless the renderer defines USE_SKINNING for a SkinnedMesh hull,
+ // which then follows the same bones as the fur it outlines.
+ vertexShader:`uniform float width;
+#include <skinning_pars_vertex>
+void main(){vec3 objectNormal=vec3(normal);vec3 transformed=vec3(position);
+#include <skinbase_vertex>
+#include <skinnormal_vertex>
+#include <skinning_vertex>
+vec4 mv=modelViewMatrix*vec4(transformed,1.);vec3 n=normalize(normalMatrix*objectNormal);mv.xyz+=n*width*-mv.z;gl_Position=projectionMatrix*mv;}`,
  fragmentShader:`uniform vec3 color;void main(){gl_FragColor=vec4(color,1.);}`,
  side:THREE.BackSide,
 });
@@ -37,7 +45,11 @@ export function addOutlines(g){
   if(!geo.boundingBox)geo.computeBoundingBox();
   const dims=geo.boundingBox.getSize(new THREE.Vector3()).multiply(mesh.getWorldScale(new THREE.Vector3()));
   if(Math.min(dims.x,dims.y,dims.z)<.022)return;
-  const hull=new THREE.Mesh(geo,outlineMaterial);hull.castShadow=hull.receiveShadow=false;hull.userData.outline=true;mesh.add(hull);
+  // A skinned mesh (the pet cat) gets a skinned hull on its own skeleton: a plain hull would sit
+  // in the bind pose as a black cat under the animated one.
+  const hull=mesh.isSkinnedMesh?new THREE.SkinnedMesh(geo,outlineMaterial):new THREE.Mesh(geo,outlineMaterial);
+  if(mesh.isSkinnedMesh){hull.bindMode=mesh.bindMode;hull.bind(mesh.skeleton,mesh.bindMatrix);}
+  hull.castShadow=hull.receiveShadow=false;hull.userData.outline=true;mesh.add(hull);
  });
  return g;
 }
