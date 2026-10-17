@@ -39,6 +39,7 @@ import {createSlime} from './slime.js';
 import {createNaga} from './naga.js';
 import {createVortex} from './vortex.js';
 import {waterDemonHead,waterDemonBody} from './water-demon.js';
+import {hornedDevilHead,hornedDevilBody} from './horned-devil.js';
 import {ELVES,createElf} from './elf.js';
 import {PRIESTS,createPriest} from './priest.js';
 import {createNurse} from './nurse.js';
@@ -2842,6 +2843,7 @@ function demon(o){
  if(form==='beak'){sphere(head,.09,skin,0,0,0,1,1,1.1);const b=cone(head,.04,.18,horn,0,-.03,.14,6);b.rotation.x=Math.PI/2+.4;
   for(let i=0;i<10;i++){const a=i/10*Math.PI*2,f=cone(body,.03,.12,dark,Math.sin(a)*.09,headY-.12,Math.cos(a)*.08,4);f.rotation.set(Math.cos(a)*.9,0,-Math.sin(a)*.9);}
   for(const s of [-1,1])sphere(head,.02,glow,s*.05,.02,.07).castShadow=false;}
+ else if(form==='ramhorn')hornedDevilHead(head,{skin,dark,tooth,glow}); // the horned devil's ram-horned goat skull (horned-devil.js)
  else if(form==='drowned')waterDemonHead(head,{skin,dark,mouth,tooth}); // the water demon's drowned toad skull (water-demon.js)
  else if(form==='toad'){sphere(head,.12,skin,0,-.01,.02,1.4,.65,1.1);cylinder(head,.1,.1,.012,mouth,0,-.04,.1,16).scale.set(1,1,.35);
   for(const s of [-1,1]){sphere(head,.04,skin,s*.08,.06,.04);sphere(head,.025,glow,s*.08,.08,.07).castShadow=false;}}
@@ -2929,6 +2931,8 @@ function demon(o){
   for(const side of [-1,1]){const c=sphere(body,.07*bulk,crust,side*shoulderX*1.15,chestY+.12,-.01,1.2,.7,1);c.castShadow=false;}
   for(const [x,y] of [[-.07,.04],[.02,.1],[.08,-.02]]){const t=tube(body,[[x*bulk,chestY+y,.16*bulk],[(x+.03)*bulk,chestY+y-.05,.17*bulk],[(x-.02)*bulk,chestY+y-.1,.15*bulk]],.007,vein,5);t.castShadow=false;}}
  // the water demon: gills, dorsal fins, a bloated belly, draped weed, a barnacle crust, running water and a wet pool (water-demon.js)
+ // the horned devil's trident burns (horned-devil.js)
+ if(o.burn)hornedDevilBody(body,{chestY,shoulderX,flame:o.burn});
  if(o.mark==='drowned')waterDemonBody(body,{skin,chestY,headY,shoulderX,bulk});
  if(o.mark==='tentacles'){const flesh=mat('#3a4a34',{roughness:.5}),fin=mat('#2a3422',{roughness:.8});flesh.name='demon-tentacle';fin.name='demon-frill';
   for(const side of [-1,1]){tube(body,[[side*shoulderX*1.1,chestY+.08,-.04],[side*(shoulderX+.12),chestY-.1,-.1],[side*(shoulderX+.2),chestY-.3,.02],[side*(shoulderX+.1),chestY-.5,.14],[side*(shoulderX+.2),chestY-.62,.26]],.03,flesh,14);}
@@ -2960,7 +2964,7 @@ function demon(o){
 }
 const RIDERS={death:{robe:'#141218',glow:'#e8f4ff',bone:'#e0dccc',solid:true,evil:true,scale:1.35},famine:{robe:'#4a3a2a',glow:'#e0c060',bone:'#b8a888',solid:true,evil:true,scale:1.25},pestilence:{robe:'#3a4a26',glow:'#9aff4a',bone:'#a8b088',solid:true,evil:true,scale:1.25},war:{robe:'#3a1414',glow:'#ff3a2a',bone:'#a89080',solid:true,sword:true,evil:true,scale:1.3}};
 const DEMONS={'water demon':{skin:'#2f5a8a',mark:'drowned',eye:'#80f0ff',evil:'#40d8c0',horns:'short',head:'drowned',tail:true,bulk:1.15,scale:1.15},'lava demon':{skin:'#5a2418',mark:'slag',eye:'#ffdd40',horns:'short',flame:'#ff6a20',evil:'#ff6a20',tail:true,bulk:1.15,scale:1.15},
- 'horned devil':{skin:'#8a3a24',mark:'iron',evil:'#ff6a18',horns:'long',tail:true,weapon:'trident',scale:1.1},succubus:{skin:'#7a5664',eye:'#ff60a0',evil:'#d0306a',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true,scale:1.1},
+ 'horned devil':{skin:'#8a3a24',mark:'iron',evil:'#ff6a18',head:'ramhorn',tail:true,weapon:'trident',burn:'#ff4a10',scale:1.1},succubus:{skin:'#7a5664',eye:'#ff60a0',evil:'#d0306a',slim:true,hair:'#2a1418',horns:'short',wings:.7,tail:true,scale:1.1},
  // the Minion of Huhetotl (the Archeologist quest nemesis): a black-skinned, long-horned winged fiend with a sword
  'minion of huhetotl':{skin:'#2a2224',eye:'#ff4030',evil:'#a01820',horns:'long',wings:.8,tail:true,weapon:'sword',bulk:1.1,scale:1.3},
  incubus:{skin:'#6a4a44',eye:'#ff60a0',evil:'#c0561c',slim:true,hair:'#1a1010',horns:'short',wings:.7,tail:true,scale:1.1},erinys:{skin:'#a86a58',eye:'#ff4030',evil:'#ff4030',mark:'fury',slim:true,hair:'#3a2418',wings:.8,weapon:'sword',scale:1.05},
