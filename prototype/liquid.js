@@ -4,14 +4,16 @@ import * as THREE from 'three';
 // sunken bed and a finely divided surface. The shader lifts the surface with waves
 // computed from world position, so neighbouring tiles meet without a seam and a pool
 // or lava lake reads as one body. Water is clear enough to show pebbles on the bed and
-// sends out an occasional ripple ring. Lava shows dark crust plates split by glowing,
-// slowly drifting molten veins, with a basalt raft bobbing on it and a bubble that swells and bursts.
+// sends out an occasional ripple ring. Lava is the water's twin, red and hot: the same glossy,
+// rippling surface and drifting caustic network, but self-lit deep red with orange-yellow lines and
+// slow hot spots swelling through it, a few small ember flecks (never black), and a bubble that
+// swells and bursts. (Dark crust plates and a basalt raft read as black holes on the lava; gone.)
 // The surface geometry and materials are shared by all tiles and are never disposed;
 // each tile disposes only the parts it owns.
 
 const WAVES={
  water:{amp:[.011,.008,.004],freq:[[3.1,0],[1.2,3.7],[7.3,7.3]],speed:[1.6,-1.3,2.4]},
- lava:{amp:[.006,.004,.002],freq:[[2.3,.6],[-.8,2.9],[5.1,4.4]],speed:[.45,-.35,.8]},
+ lava:{amp:[.009,.006,.003],freq:[[2.6,.4],[1,3.3],[6.4,6.1]],speed:[.8,-.65,1.3]},
 };
 export const LIQUID_SURFACE_Y=-.06;
 const shared={};
@@ -45,7 +47,7 @@ function surfaceMaterial(kind){
  const uniforms={liquidTime:{value:0}};
  const material=kind==='water'
   ?new THREE.MeshStandardMaterial({color:0x1d6878,roughness:.08,metalness:.25,transparent:true,opacity:.8,emissive:0x082a33,emissiveIntensity:1})
-  :new THREE.MeshStandardMaterial({color:0x2a1812,roughness:.82,metalness:.05,emissive:0xffffff,emissiveIntensity:1});
+  :new THREE.MeshStandardMaterial({color:0x3a0e06,roughness:.22,metalness:.15,emissive:0xffffff,emissiveIntensity:1});
  material.name=`${kind} surface`;
  material.onBeforeCompile=shader=>{
   Object.assign(shader.uniforms,uniforms);
@@ -58,13 +60,16 @@ function surfaceMaterial(kind){
    float lqLines=pow(max(0.,1.-abs(lqCaustic*2.-1.)),6.);
    totalEmissiveRadiance+=vec3(.05,.2,.22)*lqLines+vec3(.0,.03,.04)*lqCaustic;`;
   const lava=`
-   vec2 lqFlow=vLiquidWorld.xz*1.7+vec2(liquidTime*.05,liquidTime*.03);
-   float lqN=lqFbm(lqFlow+lqFbm(lqFlow*1.3-liquidTime*.04)*1.2);
-   float lqMolten=smoothstep(.3,.42,lqN);
-   float lqVein=pow(max(0.,1.-abs(lqFbm(vLiquidWorld.xz*5.-liquidTime*.12)*2.-1.)),10.)*(1.-lqMolten);
-   float lqPulse=.85+.15*sin(liquidTime*1.7+lqN*9.);
-   diffuseColor.rgb*=1.-lqMolten*.7;
-   totalEmissiveRadiance=max((vec3(.9,.13,.01)*lqMolten+vec3(1.7,.62,.08)*pow(max(lqMolten,0.),4.)+vec3(1.3,.32,.03)*lqVein)*lqPulse+vec3(.32,.07,.005),vec3(0.));`;
+   // the water's caustic network, slower and thicker, burning orange-yellow on a red-hot body
+   float lqCaustic=lqFbm(vLiquidWorld.xz*3.2+vec2(liquidTime*.14,-liquidTime*.1));
+   float lqLines=pow(max(0.,1.-abs(lqCaustic*2.-1.)),5.);
+   float lqHot=lqFbm(vLiquidWorld.xz*1.1+vec2(-liquidTime*.035,liquidTime*.025));
+   float lqFleck=smoothstep(.74,.82,lqFbm(vLiquidWorld.xz*7.+liquidTime*.02));
+   float lqPulse=.88+.12*sin(liquidTime*1.4+lqHot*8.);
+   vec3 lqBody=mix(vec3(.2,.022,.003),vec3(.55,.075,.008),smoothstep(.35,.75,lqHot));
+   vec3 lqGlow=(lqBody+vec3(1.25,.26,.025)*lqLines+vec3(.6,.36,.06)*pow(max(lqLines,0.),3.))*lqPulse;
+   // flecks of cooling skin: dim ember red, never black
+   totalEmissiveRadiance=max(mix(lqGlow,vec3(.12,.014,.002),lqFleck*.7),vec3(0.));`;
   shader.fragmentShader=shader.fragmentShader
    .replace('#include <common>',`#include <common>\nuniform float liquidTime;varying vec3 vLiquidWorld;\n${NOISE_GLSL}`)
    .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>\n${kind==='water'?water:lava}`);
@@ -98,12 +103,8 @@ export function createLiquid(kind='water',seed=0){
   const period=3.5+r()*3,offset=r()*period;
   update=t=>{const p=((t+offset)%period)/period;ring.scale.setScalar(.4+p*3.2);ringMat.opacity=Math.max(0,.45*(1-p)*Math.min(1,p*8));};
  }else{
-  // A basalt crust raft that rides the waves, and a bubble that swells and bursts.
-  const basalt=new THREE.MeshStandardMaterial({color:0x221a17,roughness:.95}),glow=new THREE.MeshStandardMaterial({color:0x5a1a05,emissive:0xff5a10,emissiveIntensity:1.6,roughness:.5});
-  if(r()<.6){const s=.1+r()*.08,raft=own(new THREE.DodecahedronGeometry(s,1),basalt,(r()-.5)*.5,0,(r()-.5)*.5);raft.scale.set(1.2,.22,1);raft.rotation.y=r()*6;raft.castShadow=true;
-   // The glowing seam where the crust meets the melt; it inherits the raft's squash.
-   const rim=new THREE.Mesh(new THREE.TorusGeometry(s*1.02,.025,5,18),glow);geometries.push(rim.geometry);rim.rotation.x=Math.PI/2;raft.add(rim);
-   floaters.push({mesh:raft,lift:.005,phase:r()*6});}
+  // A bubble that swells and bursts.
+  const glow=new THREE.MeshStandardMaterial({color:0x5a1a05,emissive:0xff6a14,emissiveIntensity:1.6,roughness:.3});
   const bubble=own(new THREE.SphereGeometry(.05,14,10,0,Math.PI*2,0,Math.PI/2),glow,(r()-.5)*.6,LIQUID_SURFACE_Y,(r()-.5)*.6);
   const period=2.5+r()*3,offset=r()*period;
   update=t=>{const p=((t+offset)%period)/period,grow=p<.85?p/.85:0;bubble.scale.set(.3+grow*.9,.2+grow*1.1,.3+grow*.9);bubble.visible=grow>0;};
