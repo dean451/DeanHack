@@ -96,3 +96,27 @@ test('the second tongue goes dark for a heartbeat mid-hold and comes back', () =
   assert.ok(dark < lit * .2 && back > dark * 4, `${lit} ${dark} ${back}`);
   assert.ok(tonguePose(0, .66).alpha > dark * 4, 'the others burn on');
 });
+
+test('a monster on a fire trap gets the jet under it, never under the hero', async () => {
+  const {createFireTrapJet, fireTrapVictim, PENDING_WAIT} = await import('./fire-trap-jet.js');
+  assert.deepEqual(fireTrapVictim('A tower of flame erupts from the floor!'), {hero: true});
+  assert.deepEqual(fireTrapVictim('A tower of flame bursts from the large box!'), {hero: true});
+  assert.deepEqual(fireTrapVictim('A tower of flame erupts from the floor under the jackal!'), {monster: 'jackal'});
+  assert.deepEqual(fireTrapVictim('You see a tower of flame erupt from the floor!'), {unseen: true});
+  assert.equal(fireTrapVictim('The jackal is killed!'), null);
+  const added = [];
+  const THREE = new Proxy({}, {get: () => class { constructor() { this.position = {set: (x, y, z) => added.push([x, z]), y: 0}; this.rotation = {}; this.scale = {setScalar() {}, set() {}}; this.material = {}; } add() {} dispose() {} }});
+  const jet = createFireTrapJet(THREE, {add() {}, remove() {}});
+  const locate = name => name === 'jackal' ? [7, -3] : null;
+  jet.message('A tower of flame erupts from the floor under the jackal!', 1, 1, locate);
+  jet.settle(1, 1); // the hero's square on the next frame: ignored for a monster's trap
+  assert.equal(jet.active, 1); assert.deepEqual(added[0], [7, -3]);
+  jet.clear(); added.length = 0;
+  jet.message('A tower of flame erupts from the floor under the gnome lord!', 1, 1, locate);
+  jet.update(PENDING_WAIT + .01);
+  assert.equal(jet.active, 0, 'a monster it cannot place gets no jet');
+  jet.message('You see a tower of flame erupt from the floor!', 1, 1, locate);
+  jet.update(PENDING_WAIT + .01);
+  assert.equal(jet.active, 0, 'an unseen monster\'s trap puts nothing on the hero');
+  jet.clear();
+});
