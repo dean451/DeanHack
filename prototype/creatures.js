@@ -173,7 +173,9 @@ function dragonLook(name,index){
  const baby=/^baby /.test(name),species=name.replace(/^baby /,'');
  const form=DRAGON_FORMS[species]||DRAGON_FORMS.draken;
  const i=Number.isInteger(index)&&NH_COLORS[index]?index:DRAGON_WORD_COLOR[species.split(' ')[0]]??3;
- return {form,baby,color:i,heads:species==='tiamat'?TIAMAT_HEADS:null};
+ // The glowing dragon sheds real light from the moment it appears (emits_light, mondata.h), so its glow
+ // gives nothing away that the engine doesn't: it glows whether or not its scales are identified.
+ return {form,baby,color:i,heads:species==='tiamat'?TIAMAT_HEADS:null,glowing:species==='glowing dragon'};
 }
 // a bump map of overlapping scales, made once and shared by every dragon's hide
 let scaleBump=null;
@@ -189,18 +191,23 @@ function dragonScaleBump(){
  return scaleBump;
 }
 const dragonHides=new Map();
-function dragonHide(hex,opts){const key=hex+JSON.stringify(opts);if(!dragonHides.has(key))dragonHides.set(key,new THREE.MeshStandardMaterial({color:hex,roughness:.88,flatShading:true,...opts,bumpMap:dragonScaleBump(),bumpScale:1.4}));return dragonHides.get(key);}
+function dragonHide(hex,opts){const key=hex+JSON.stringify({...opts,emissiveMap:!!opts.emissiveMap});if(!dragonHides.has(key))dragonHides.set(key,new THREE.MeshStandardMaterial({color:hex,roughness:.88,flatShading:true,...opts,bumpMap:dragonScaleBump(),bumpScale:1.4}));return dragonHides.get(key);}
 let chromaticHideMat=null;
 function chromaticHide(){return chromaticHideMat||=new THREE.MeshPhysicalMaterial({color:'#54407c',roughness:.45,metalness:.2,emissive:'#150a28',emissiveIntensity:.8,iridescence:1,iridescenceIOR:1.9,iridescenceThicknessRange:[300,800],clearcoat:.7,clearcoatRoughness:.25,flatShading:true,bumpMap:dragonScaleBump(),bumpScale:1.4});}
-function dragonMats(i,chromatic){
- const silver=i===14,hex=chromatic?'#3a2c52':silver?'#b9c4c8':NH_COLORS[i]||'#8a6440',breath=DRAGON_BREATH[i]||'#ff8a3a';
+function dragonMats(i,chromatic,glowing=false){
+ const silver=i===14,hex=glowing?'#4a2214':chromatic?'#3a2c52':silver?'#b9c4c8':NH_COLORS[i]||'#8a6440',breath=glowing?'#ffa040':DRAGON_BREATH[i]||'#ff8a3a';
  const belly='#'+new THREE.Color(hex).lerp(new THREE.Color('#e8d6a4'),.45).getHexString();
  const fin=HIDE_FINISH[dragonElement(i)]||{},hideOpts={roughness:fin.roughness??(silver?.3:.62),metalness:fin.metalness??(silver?.7:.08)};
  if(fin.emissiveK)Object.assign(hideOpts,{emissive:shade(breath,fin.emissiveK*4),emissiveIntensity:.25});
+ // A glowing dragon burns inside its scales: the scale map is also its emissive map, so each scale's
+ // dome is lit and the seams between them stay dark ember, a lit pattern rather than a flat wash.
+ if(glowing)Object.assign(hideOpts,{roughness:.5,metalness:.05,emissive:'#ff7a20',emissiveIntensity:2.2,emissiveMap:dragonScaleBump()});
  // The chromatic dragon is oil-slick obsidian: a dark violet hide whose sheen shifts through every colour as it
  // turns, not patches of five paints. The five colours live in its glowing spine and eyes (dragon-breeds.js).
- return {scales:null,hide:chromatic?chromaticHide():dragonHide(hex,hideOpts),dark:mat(shade(hex,.5),{roughness:.7,metalness:silver?.6:0}),belly:mat(belly,{roughness:.78}),
-  membrane:mat(shade(hex,.72),{side:THREE.DoubleSide,roughness:.82}),feather:mat(belly,{side:THREE.DoubleSide,roughness:.9}),ivory:mat('#e6dcc0',{roughness:.45}),scar:mat('#3a0e0c',{roughness:.9}),
+ // its belly is the furnace and its wing membranes are lit through like hide over a lamp
+ const glowBelly=glowing?{emissive:'#ffb048',emissiveIntensity:2.2}:{},glowWing=glowing?{emissive:'#ff5a10',emissiveIntensity:1.1}:{};
+ return {scales:null,hide:chromatic?chromaticHide():dragonHide(hex,hideOpts),dark:mat(shade(hex,.5),{roughness:.7,metalness:silver?.6:0}),belly:mat(glowing?'#ffcf7a':belly,{roughness:.78,...glowBelly}),
+  membrane:mat(shade(hex,.72),{side:THREE.DoubleSide,roughness:.82,...glowWing}),feather:mat(belly,{side:THREE.DoubleSide,roughness:.9}),ivory:mat('#e6dcc0',{roughness:.45}),scar:mat('#3a0e0c',{roughness:.9}),
   glow:new THREE.MeshStandardMaterial({color:breath,emissive:breath,emissiveIntensity:4.5,roughness:.3})};
 }
 // a chain of scale-covered segments along a curve, each stretched along the curve, with a paler belly.
@@ -315,7 +322,7 @@ function dragonLegs(body,legs,m,o){
 function dragon(o={}){
  const f=o.form||DRAGON_FORMS.draken,baby=!!o.baby;
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar((baby?.62:1.05)*(f.scale||1));
- const m=dragonMats(o.color??3,f.chromatic),headScale=(baby?1.3:1)*(f.heads>1?.8:1);
+ const m=dragonMats(o.color??3,f.chromatic,!!o.glowing),headScale=(baby?1.3:1)*(f.heads>1?.8:1);
  let core=null,tail,tailCurve,trunk;const dressHeads=[];
  const addHead=(parent,points,mats,a=0,taper=null)=>{
   const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));dragonChain(parent,neck,6,taper?taper[0]:.085,taper?taper[1]:.065,mats);dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9);
@@ -401,7 +408,8 @@ function dragon(o={}){
   // a long bead of green venom hangs from the stinger's point
   const vm=mat('#7fd23a',{roughness:.2,emissive:'#3f8a14',emissiveIntensity:.9});sphere(tail,.022,vm,end.x+dir.x*.3,end.y+dir.y*.3+.1,end.z+dir.z*.3,1,2.2,1);}
  }
- const element=dragonElement(o.color??3);
+ // the glowing dragon breathes lava: its veins, glowing spikes and dripping tail even before identification
+ const element=dragonElement(o.color??3)??(o.glowing?'lava':null);
  if(element)dressDragon({element,m,trunk,heads:dressHeads,tail,tailCurve,wings:wings.map(w=>({inner:w.userData.inner,edge:w.userData.inner.userData.edge})),baby});
  g.userData.core=core;
  return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element,heads:dressHeads.map(h=>h.head)}));
