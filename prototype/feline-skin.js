@@ -51,7 +51,7 @@ export const PLANT = {blend: .5, reach: .9, peel: 1.05};
 // - the tail trails: it lags the turn and dips or lifts as the cat speeds up or brakes, through
 //   two low-pass stages so it swings late and settles, more at the tip than the root;
 // - the eyes blink: every BLINK.gap..gap+span seconds for BLINK.shut seconds, now and then twice.
-export const TURN = {ease: 9, max: 1.3, lead: .35};
+export const TURN = {ease: 9, max: 1.3, lead: .35, level: .8};
 export const TAIL_SPRING = {follow: 9, settle: 5, lag: .09, dip: .05, max: .6};
 export const BLINK = {gap: 2.5, span: 4, shut: .11, double: .22};
 // The idle tail: the model's own J-curve is the rest; these are small swings about it.
@@ -146,7 +146,11 @@ export function createSkinnedFeline(name, colour, {hull = true} = {}) {
     // one skin over everything, grown once per look
     const key = name + '|' + (colour || '');
     if (!hulls.has(key)) {
-      const parts = [{group: 'body', M: null, pieces: S.body.userData.pieces}, {group: 'head', M: headM, pieces: S.head.userData.pieces}, {group: 'tail', M: tailM, pieces: S.tail.userData.pieces}];
+      // the rump: a ball between the haunches and the tail root, so the tail grows out of the body
+      // instead of starting a gap behind it (painted like the haunch beside it)
+      const haunch = S.body.userData.pieces.find(r => r.type === 'SphereGeometry' && r.matrix && r.matrix.elements[14] < -.1);
+      const rump = {type: 'SphereGeometry', parameters: {radius: .048}, matrix: new THREE.Matrix4().makeTranslation(0, L.Y + .025, -.245), colour: haunch ? haunch.colour : coat};
+      const parts = [{group: 'body', M: null, pieces: [...S.body.userData.pieces, rump]}, {group: 'head', M: headM, pieces: S.head.userData.pieces}, {group: 'tail', M: tailM, pieces: S.tail.userData.pieces}];
       for (const [k, leg] of Object.entries(legs)) { const fore = k.endsWith('fore'), side = k[0] === 'l' ? -1 : 1; parts.push({group: k, M: new THREE.Matrix4().makeTranslation(...leg.root).multiply(new THREE.Matrix4().makeScale(side, 1, 1)), pieces: (fore ? S.fore : S.hind).userData.pieces}); }
       hulls.set(key, growHull(parts, {weigh}));
     }
@@ -207,16 +211,19 @@ export function tailPose(u) {
   for (let i = 0; i < n; i++) { const k = i / (n - 1); pose['tail' + i] = {x: (i ? Math.sin(u * TAU) * TAIL.curl * k : 0) + Math.sin(u * TAU * 3 + i * .9) * .03, y: Math.sin(u * TAU * 2 + .4) * TAIL.sway * k + Math.sin(u * TAU * 7 + i) * TAIL.flick * k, z: Math.sin(u * TAU + i) * .03}; }
   return pose;
 }
-// Sitting: haunches down, hind legs folded under, forelegs straight and a little splayed, the
-// chest up so the front stays at height, the tail curled round the hip. The breath still runs.
-export const SIT = {drop: .075, thigh: -.85, knee: 1.95, hock: -1.05, chest: -.3, spine: -.2, fore: -.08};
+// Sitting: the rump on the floor (the hips drop `drop`), the back rising steeply so the shoulders
+// stay at standing height and the forelegs stand straight (`fore` counters the pitch), the hind
+// legs folded with the knees up at the belly and the hocks and feet forward on the floor, the tail
+// laid round the hip. The breath still runs. The numbers come from a forward-kinematics search
+// over the kitten's rig (the rump within a centimetre of the floor, the hock and paw on it).
+export const SIT = {drop: .17, hips: -.25, spine: -.6, chest: -.15, thigh: -1.2, knee: .9, hock: -.9, paw: .1, fore: 1.0};
 export function sitPose(u) {
   const ph = u * TAU, breath = Math.sin(ph) * .5 + .5, pose = {hipsY: -SIT.drop, chestScale: 1 + .02 * breath};
-  pose.spine = {x: SIT.spine}; pose.chest = {x: SIT.chest}; pose.hips = {x: .12};
-  for (const key of ['lhind', 'rhind']) { pose[key + '0'] = {x: SIT.thigh}; pose[key + '1'] = {x: SIT.knee}; pose[key + '2'] = {x: SIT.hock}; pose[key + '3'] = {x: .1}; }
+  pose.spine = {x: SIT.spine}; pose.chest = {x: SIT.chest}; pose.hips = {x: SIT.hips};
+  for (const key of ['lhind', 'rhind']) { pose[key + '0'] = {x: SIT.thigh}; pose[key + '1'] = {x: SIT.knee}; pose[key + '2'] = {x: SIT.hock}; pose[key + '3'] = {x: SIT.paw}; }
   for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: SIT.fore, z: key[0] === 'l' ? -.06 : .06}; pose[key + '1'] = {x: 0}; pose[key + '2'] = {x: 0}; }
-  // the tail wraps round the right hip and its tip stirs
-  for (let i = 0; i < 5; i++) { const k = i / 4; pose['tail' + i] = {x: -.35 * k, y: .55 * k, z: Math.sin(ph * 2 + i) * .04 * k}; }
+  // the tail lies down and wraps round the right hip on the floor, its tip stirring
+  for (let i = 0; i < 5; i++) { const k = i / 4; pose['tail' + i] = {x: .75 * k, y: .6 * k, z: Math.sin(ph * 2 + i) * .04 * k}; }
   return pose;
 }
 // The pounce, over its whole duration: a crouch (u to .3), the launch with the forelegs reaching
@@ -322,8 +329,10 @@ export function createFelineAnimator(root, rig, actor = null) {
     spring.turn = Math.max(-TURN.max, Math.min(TURN.max, spring.turn - yawStep)) * Math.exp(-dt * TURN.ease);
     if (Math.abs(spring.turn) < 1e-4) spring.turn = 0;
     root.rotation.y = spring.turn;
-    // the neck leads into the new heading (the head bone is left to the glance code)
-    rig.neck.quaternion.setFromEuler(_le.set(0, -spring.turn * TURN.lead, 0)); // no clip writes the neck, so this is its whole pose
+    // the neck leads into the new heading, and levels the head against the body's pitch (a sitting
+    // cat's back rises steeply, a running one's dips): the head bone itself is left to the glance code
+    const pitch = rig.hips.rotation.x + rig.spine.rotation.x + rig.chest.rotation.x;
+    rig.neck.quaternion.setFromEuler(_le.set(-pitch * TURN.level, -spring.turn * TURN.lead, 0)); // no clip writes the neck, so this is its whole pose
     // the tail trails: late, then settling
     const rate = dt > 0 ? -spring.turn * TURN.ease : 0, acc = dt > 0 ? (speed - spring.lastSpeed) / dt : 0; spring.lastSpeed = speed;
     const k1 = 1 - Math.exp(-dt * TAIL_SPRING.follow), k2 = 1 - Math.exp(-dt * TAIL_SPRING.settle);
@@ -382,7 +391,7 @@ export function createFelineAnimator(root, rig, actor = null) {
   function show(name, u = 0) {
     for (const [key, a] of Object.entries(actions)) { a.enabled = true; a.paused = false; a.setEffectiveWeight(key === name || key === 'tail' ? 1 : 0); }
     const a = actions[name]; a.play(); a.time = u * a.getClip().duration; a.paused = true;
-    mixer.update(0);
+    mixer.update(0); secondary(0, 0); // the neck's levelling too, so a tool shows the head as the game would
   }
   return {mixer, actions, update, show, get walking() { return walking; }, get base() { return Object.keys(actions).find(k => actions[k] === base); }, get planting() { return planting; }, set planting(v) { planting = !!v; if (!v) for (const leg of Object.values(rig.legs)) leg.plant = null; }};
 }

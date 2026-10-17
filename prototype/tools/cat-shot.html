@@ -17,6 +17,6 @@ const cat=createSkinnedFeline(name,undefined,{hull:q.get('hull')!=='0'});cat.g.p
 // run the animation up to t in small steps so the eased parts settle like they would in play
 for(let s=0;s<t;s+=1/60)updateSkinnedFeline(cat,1/60,s,walk);
 const d=2.2,look=new THREE.Vector3(0,.3,0);
-if(view==='side')camera.position.set(d,.5,0);else if(view==='front')camera.position.set(0,.5,d);else if(view==='top')camera.position.set(.01,d,.01);else camera.position.set(d*.7,d*.55,d*.7);
+if(view==='side')camera.position.set(d,.5,0);else if(view==='back')camera.position.set(-d*.6,.6,-d*.8);else if(view==='front')camera.position.set(0,.5,d);else if(view==='top')camera.position.set(.01,d,.01);else camera.position.set(d*.7,d*.55,d*.7);
 camera.lookAt(look);renderer.render(scene,camera);window.__done=true;window.__cat=cat;
 </script>
