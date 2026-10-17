@@ -117,12 +117,14 @@ test('show() holds one clip at a moment of its cycle for the tool pages', () => 
 });
 
 // The three tricks from three's skinning-blending example.
-const walkFor = (a, frames, tilesPerSecond, walking = true) => { let r; for (let i = 0; i < frames; i++) { a.g.position.x += tilesPerSecond / 60; r = updateSkinnedFeline(a, 1 / 60, null, walking); } return r; };
+// The cat faces its path (live.js turns an actor toward its step), moving along +x.
+const walkFor = (a, frames, tilesPerSecond, walking = true) => { let r; a.g.rotation.y = Math.PI / 2; for (let i = 0; i < frames; i++) { a.g.position.x += tilesPerSecond / 60; r = updateSkinnedFeline(a, 1 / 60, null, walking); } return r; };
 
 test('the walk\'s stride rate follows the measured speed, within bounds', () => {
   const a = createSkinnedFeline('housecat');
-  let r = walkFor(a, 60, .5);
+  let r = walkFor(a, 60, .2);
   assert.equal(r.gait, 'walk'); assert.equal(+r.timeScale.toFixed(2), GAIT.minScale, 'a creep is clamped at the slow end');
+  assert.ok(Math.abs(GAIT.nominal - GAIT.stride.walk * WALK.hz) < 1e-9, 'one cycle per stride: the phase follows distance');
   r = walkFor(a, 60, GAIT.nominal);
   assert.ok(Math.abs(r.timeScale - 1) < .1, `nominal speed, stride rate about 1: ${r.timeScale}`);
   r = walkFor(a, 60, 3);
@@ -155,4 +157,32 @@ test('a stop waits for the stride\'s loop boundary before fading to idle, so the
   r = updateSkinnedFeline(a, 1 / 60, null, false); assert.ok(r.stopping);
   r = walkFor(a, 5, 2);
   assert.ok(!r.stopping && r.gait === 'walk' && actions.walk.getEffectiveWeight() === 1, 'walking again cancels the stop');
+});
+
+// How far a planted paw drifts along the ground while it should be standing: the sum, over a
+// walk, of each stance-phase frame's paw movement in world space.
+const footSlide = (a, tilesPerSecond, frames = 240) => {
+  const E = a.rig.legs.lfore.bones[2], p = new THREE.Vector3(), last = new THREE.Vector3(); let slide = 0, stanceFrames = 0;
+  for (let i = 0; i < 60; i++) walkFor(a, 1, tilesPerSecond); // settle into the walk
+  for (let i = 0; i < frames; i++) {
+    walkFor(a, 1, tilesPerSecond); a.g.updateMatrixWorld(true); E.getWorldPosition(p);
+    const base = a.animator.actions[a.animator.base], u = base.time / base.getClip().duration, stance = -Math.cos(u * Math.PI * 2);
+    if (stance > .3) { if (stanceFrames) slide += Math.abs(p.x - last.x); stanceFrames++; } else stanceFrames = 0;
+    last.copy(p);
+  }
+  return slide;
+};
+
+test('a planted foot stays put: the stance-phase paw drifts a fraction of what it did skating, and the leg still reaches it', () => {
+  const free = createSkinnedFeline('kitten'); free.animator.planting = false;
+  const pinned = createSkinnedFeline('kitten');
+  const before = footSlide(free, .5), after = footSlide(pinned, .5);
+  assert.ok(after < before * .35, `slide ${after.toFixed(3)} with planting vs ${before.toFixed(3)} without`);
+  // the solver really puts the paw on the pin
+  const leg = pinned.rig.legs.lfore, E = leg.bones[2]; let checked = 0;
+  for (let i = 0; i < 120; i++) { walkFor(pinned, 1, .5); if (leg.plant) { pinned.g.updateMatrixWorld(true); const p = E.getWorldPosition(new THREE.Vector3()); const base = pinned.animator.actions[pinned.animator.base], u = base.time / base.getClip().duration; if (-Math.cos(u * Math.PI * 2) > .6) { assert.ok(p.distanceTo(leg.plant) < .012, `paw ${p.distanceTo(leg.plant).toFixed(4)} from its pin`); checked++; } } }
+  assert.ok(checked > 10, 'stance frames were checked');
+  // nothing is pinned once the cat stands still or sits
+  for (let i = 0; i < 90; i++) walkFor(pinned, 1, 0, false);
+  assert.ok(Object.values(pinned.rig.legs).every(l => !l.plant));
 });
