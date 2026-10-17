@@ -8,7 +8,7 @@ const outlineMaterial=new THREE.ShaderMaterial({
  uniforms:{color:{value:new THREE.Color(0x07090a)},width:{value:.0019},pushBack:{value:0}},
  // The skinning chunks are no-ops unless the renderer defines USE_SKINNING for a SkinnedMesh hull,
  // which then follows the same bones as the fur it outlines.
- vertexShader:`uniform float width;
+ vertexShader:`uniform float width;uniform float pushBack;
 #include <skinning_pars_vertex>
 void main(){vec3 objectNormal=vec3(normal);vec3 transformed=vec3(position);
 #include <skinbase_vertex>

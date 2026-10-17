@@ -28,3 +28,11 @@ test('a rigid mesh keeps a plain hull', () => {
   const hull = m.children.find(c => c.userData.outline);
   assert.ok(hull && !hull.isSkinnedMesh);
 });
+
+test('the outline shader declares every uniform it uses (an undeclared one fails to compile and the ink silently vanishes)', () => {
+  const g = new THREE.Group(), m = new THREE.Mesh(new THREE.SphereGeometry(.2, 8, 6), new THREE.MeshStandardMaterial()); g.add(m);
+  addOutlines(g);
+  const mat = m.children.find(c => c.userData.outline).material, src = mat.vertexShader + mat.fragmentShader;
+  for (const name of Object.keys(mat.uniforms)) assert.match(src, new RegExp(`uniform\\s+\\w+\\s+${name}\\b`), `uniform ${name} is declared`);
+  for (const name of ['width', 'pushBack', 'color']) assert.ok(name in mat.uniforms);
+});
