@@ -13,6 +13,16 @@ import {clamp01, smooth} from './fx-textures.js';
 export const JET = {flash: .12, rise: .18, gutter: 1.0, tongues: 3, embers: 8, ash: 6, total: 1.6};
 export const PENDING_WAIT = .3;
 export const isFireTrapMessage = text => /a tower of flame (bursts|erupts) (from|out of)/i.test(text || '');
+// Whose trap it was. trap.c says "A tower of flame bursts|erupts from the floor!" for the hero,
+// "A tower of flame erupts from the floor under the jackal!" for a monster in sight, and "You see a
+// tower of flame erupt from the floor!" for one the hero cannot see. Only the first is the hero's square.
+export function fireTrapVictim(text = '') {
+  if (!isFireTrapMessage(text) && !/you see a tower of flame erupt/i.test(text)) return null;
+  const under = /\bunder (?:the |an? )?(.+?)!?$/i.exec(text);
+  if (under) return {monster: under[1].trim().toLowerCase()};
+  if (/you see a tower of flame/i.test(text)) return {unseen: true};
+  return {hero: true};
+}
 
 // The column: height (past head height at the peak), width and alpha. It shoots up fast,
 // holds with a ragged flicker, then stutters out.
@@ -93,6 +103,10 @@ export function createFireTrapJet(THREE, parent, {lights = null} = {}) {
     e.light.intensity = (c.alpha * 3 + f.alpha * 4);
     return e.t < JET.total;
   }
+  function fire(p) {
+    if (!p.monster) { add(p.x, p.z); return; }
+    const at = p.locate?.(p.monster); if (at) add(at[0], at[1]);
+  }
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); if (lights) lights.release(e.light); else e.light.dispose?.(); parent.remove(e.g); }
   return {
     add,
@@ -100,10 +114,17 @@ export function createFireTrapJet(THREE, parent, {lights = null} = {}) {
     // given here are where the hero stood BEFORE stepping on the trap. Hold the jet and let the
     // next frame (settle) say where the hero, and so the trap, really is; if no frame comes
     // within PENDING_WAIT, fall back to the square given.
-    message(text, x, z) { if (isFireTrapMessage(text)) { if (pending) add(pending.x, pending.z); pending = {x, z, wait: 0}; } },
-    settle(x, z) { if (pending) { add(x, z); pending = null; } },
+    // A monster's trap goes up under that monster, found on the next frame by `locate(name)` ([x, z]
+    // or null); one the hero cannot see, or cannot place, shows no jet rather than one on the hero.
+    message(text, x, z, locate = null) {
+      const victim = fireTrapVictim(text);
+      if (!victim || victim.unseen) return;
+      if (pending) fire(pending);
+      pending = victim.monster ? {monster: victim.monster, locate, wait: 0} : {x, z, wait: 0};
+    },
+    settle(x, z) { if (pending) { fire(pending.monster ? pending : {x, z}); pending = null; } },
     update(dt) {
-      if (pending && (pending.wait += dt) >= PENDING_WAIT) { add(pending.x, pending.z); pending = null; } for (let i = live.length - 1; i >= 0; i--) if (!step(live[i], dt)) { drop(live[i]); live.splice(i, 1); } },
+      if (pending && (pending.wait += dt) >= PENDING_WAIT) { fire(pending); pending = null; } for (let i = live.length - 1; i >= 0; i--) if (!step(live[i], dt)) { drop(live[i]); live.splice(i, 1); } },
     clear() { pending = null; live.forEach(drop); live.length = 0; },
     get active() { return live.length; },
   };

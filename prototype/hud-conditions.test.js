@@ -7,7 +7,8 @@ test('dangerous conditions become red capital tags, in order, without repeats', 
     ['STUN', 'CONF', 'ILL', 'STONE', 'SLIME', 'STRANGLED', 'WEAK']);
   assert.deepEqual(conditionTags(['Fainting', 'Fainted', 'Blind', 'Hallu', 'Lev', 'Legs', 'Trap', 'Held', 'Stressed']),
     ['FAINTING', 'FAINTED', 'BLIND', 'HALLU', 'LEV', 'LEGS', 'TRAPPED', 'HELD', 'STRESSED']);
-  assert.deepEqual(conditionTags(['Hungry', 'Satiated', 'Elbereth']), ['HUNGRY'], 'Hungry is a warning tag; satiated and Elbereth are not alarms');
+  // Satiated came back on the user's word (2026-10-17): eating past it can choke, so it is an amber warning like Hungry.
+  assert.deepEqual(conditionTags(['Hungry', 'Satiated', 'Elbereth']), ['HUNGRY', 'SATIATED'], 'Hungry and Satiated are warning tags; Elbereth is not');
   assert.deepEqual(conditionTags(undefined), []);
 });
 
@@ -36,4 +37,14 @@ test('each hero tag leads with its condition shape, so colour is never the only 
   assert.match(html, /<i aria-hidden="true">✦<\/i> STUN/);
   assert.match(html, /<i aria-hidden="true">⊂⊃<\/i> HELD/);
   assert.doesNotMatch(html, /·/);
+});
+
+test('Satiated shows as an amber tag, from the frame list or, on an older bridge, the status line', async () => {
+  const {heroConditions, conditionTagsHtml} = await import('./hud-conditions.js');
+  assert.match(conditionTagsHtml(['Satiated']), /class="hero-condition mild"[^>]*>.*SATIATED/);
+  assert.deepEqual(heroConditions(['Stun'], 'Dlvl:3 $:0 HP:10(10) T:120 Satiated Stun'), ['Stun', 'Satiated']);
+  assert.deepEqual(heroConditions(['Satiated'], 'T:5 Satiated'), ['Satiated'], 'no repeat');
+  assert.deepEqual(heroConditions([], 'T:5'), []);
+  const bridge = (await import('node:fs')).readFileSync(new URL('./engine/bridge.c', import.meta.url), 'utf8');
+  assert.match(bridge, /if \(u\.uhs == SATIATED\) on\[n\+\+\] = "Satiated";/);
 });
