@@ -18,7 +18,7 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
   for (const name of ['kitten', 'housecat', 'large cat']) {
     const a = createSkinnedFeline(name), rigid = createFeline(name);
     const skinned = []; a.g.traverse(o => { if (o.isSkinnedMesh) skinned.push(o); });
-    assert.equal(skinned.length, 2, name); assert.equal(skinned[0].skeleton, skinned[1].skeleton);
+    assert.equal(skinned.length, 3, `${name}: fur, details, eyes`); assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton));
     assert.equal(skinned[0].skeleton.bones.length, 24, 'hips, spine, chest, neck, head, 5 tail, 3+4 per side');
     for (const m of skinned) {
       const w = m.geometry.attributes.skinWeight, idx = m.geometry.attributes.skinIndex;

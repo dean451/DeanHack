@@ -133,11 +133,12 @@ function torso(L){
   p.setXYZ(i,x*w,L.Y+(y>0?y*ht:y*hb),u*.29-.01);
  }
  geo.deleteAttribute('uv');const merged=mergeVertices(geo);geo.dispose();merged.computeVertexNormals();
+ merged.userData.shaped=true; // no longer the sphere its parameters describe: a skin measures it by its points
  return merged;
 }
 
 function buildBody(L,C){
- const P=pieces(),bw=L.heavy||1,paint=torsoAt(L,C);
+ const P=pieces({record:true}),bw=L.heavy||1,paint=torsoAt(L,C);
  P.add(torso(L),null,paint);
  // shoulder blades and haunches under the skin
  for(const s of [-1,1]){
@@ -180,7 +181,7 @@ function buildBody(L,C){
 
 // Head, in head space: the origin is the neck pivot.
 function buildHead(L,C){
- const P=pieces(),inner=rgb(L.pattern==='ghost'||L.pattern==='shimmer'?'#4a3a40':L.scruffy?'#a07068':'#5a2a28');
+ const P=pieces({record:true}),inner=rgb(L.pattern==='ghost'||L.pattern==='shimmer'?'#4a3a40':L.scruffy?'#a07068':'#5a2a28');
  const paint=(x,y,z)=>{
   let c=mix(C.coat,C.back,smooth((y-.04)/.06)*.4);
   const ax=Math.abs(x);
@@ -256,7 +257,7 @@ function claw(P,x,y,z,k){
 
 // One right-hand leg, hip or shoulder at the origin, the floor at y=-top.
 function buildLeg(L,C,fore){
- const P=pieces(),k=L.heavy||1,[px,py,pz]=fore?L.shoulder:L.hip,fy=-py;
+ const P=pieces({record:true}),k=L.heavy||1,[px,py,pz]=fore?L.shoulder:L.hip,fy=-py;
  const paint=(x,y,z)=>{
   let c=markings(L,C,px+x,py+y,pz+z,C.coat,true);
   if(x<-.008)c=mix(c,C.belly,.45);
@@ -305,7 +306,7 @@ const TAILS={
  bob:[[0,0,0],[0,.015,-.045],[0,.035,-.085]],
 };
 function buildTail(L,C){
- const P=pieces(),key=L.tail||'j',s=L.tailLen||1,k=L.heavy||1;
+ const P=pieces({record:true}),key=L.tail||'j',s=L.tailLen||1,k=L.heavy||1;
  const curve=new THREE.CatmullRomCurve3(TAILS[key].map(([x,y,z])=>new THREE.Vector3(x*s,y*s,z*s)));
  const n=key==='bob'?4:12,pts=Array.from({length:n+1},(_,i)=>curve.getPoint(i/n).toArray());
  const r0=(key==='bob'?.034:.03)*k,r1=(key==='bob'?.028:.016)*k;

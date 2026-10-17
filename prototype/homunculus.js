@@ -12,11 +12,16 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // The geometry is built once and shared by every homunculus.
 // Handles: legs, arms, arm, head, wings, tail, body, like the humanoid rig.
 
-export function pieces(){
- const list=[];
+// With `record`, merge() also hands back what went in (geometry kind and parameters, matrix, colour) as
+// `userData.pieces` on the merged geometry, so a skin can be grown over the primitives (feline-hull.js).
+export function pieces({record=false}={}){
+ const list=[],records=[];
  return {
   add(geo,matrix,colour){
-   const flat=geo.index?geo.toNonIndexed():geo.clone();geo.dispose();
+   const flat=geo.index?geo.toNonIndexed():geo.clone();
+   // a shaped geometry (no parameters) is kept as its points, so a skin can still measure it
+   if(record){const shaped=!geo.parameters||geo.userData.shaped;records.push({type:shaped?'shaped':geo.type,parameters:shaped?null:{...geo.parameters},matrix:matrix?matrix.clone():null,colour,positions:shaped?flat.attributes.position.array.slice():null});}
+   geo.dispose();
    for(const key of Object.keys(flat.attributes))if(key!=='position'&&key!=='normal')flat.deleteAttribute(key);
    if(matrix)flat.applyMatrix4(matrix);
    const p=flat.attributes.position,col=new Float32Array(p.count*3);
@@ -24,7 +29,7 @@ export function pieces(){
    flat.setAttribute('color',new THREE.BufferAttribute(col,3));
    list.push(flat);
   },
-  merge(){const geo=mergeGeometries(list);list.forEach(g=>g.dispose());return geo;},
+  merge(){const geo=mergeGeometries(list);list.forEach(g=>g.dispose());if(record)geo.userData.pieces=records;return geo;},
  };
 }
 export const rgb=(hex)=>{const c=new THREE.Color(hex);return [c.r,c.g,c.b];};

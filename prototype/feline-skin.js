@@ -25,6 +25,7 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {felineBuild} from './feline.js';
+import {growHull} from './feline-hull.js';
 
 export const BLEND = {spine: .06, leg: .022, tail: .02};
 export const WALK = {hz: 2.1, swing: .5, bend: .55, bob: .012, sway: .08};
@@ -99,7 +100,13 @@ function skin(geo, weigh) {
   return geo;
 }
 
-export function createSkinnedFeline(name, colour) {
+// The skin: one surface grown over the parts (feline-hull.js), built once per look and shared.
+// `hull: false` keeps the parts as they are, for comparison in the tool pages.
+const hulls = new Map();
+// Grows a look's hull ahead of its first cat (live.js does this in idle time on the splash, for the
+// kitten most classes start with), so the first level does not pay the ~0.7 s on the main thread.
+export function growFelineHull(name, colour) { if (!hulls.has(name + '|' + (colour || ''))) createSkinnedFeline(name, colour); return hulls.get(name + '|' + (colour || '')); }
+export function createSkinnedFeline(name, colour, {hull = true} = {}) {
   const {S, L, tailJoints, coat} = felineBuild(name, colour);
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body); g.scale.setScalar(L.scale);
   const bones = [], names = {};
@@ -122,34 +129,52 @@ export function createSkinnedFeline(name, colour) {
     legs[key] = {bones: list, joints: joints.map(j => root[1] + j[1]), root};
   }
 
-  // the geometry, part by part, each weighted to its own chain
-  const parts = [];
-  const bodyGeo = S.body.clone();
-  skin(bodyGeo, (x, y, z) => chainWeights(z, [-.31, -.1, .08, .28], BLEND.spine).map(([k, w]) => [names[['hips', 'spine', 'chest'][k]], w]));
-  parts.push(bodyGeo);
+  // Bone weights per part, as a function of a point in the body frame: the body along its
+  // spine, the head whole, the tail by arc length along its joints, a leg down its chain.
   const headM = new THREE.Matrix4().compose(new THREE.Vector3(...L.neck), new THREE.Quaternion(), new THREE.Vector3().setScalar(L.headSize || 1));
-  const headGeo = S.head.clone().applyMatrix4(headM); skin(headGeo, () => [[names.head, 1]]); parts.push(headGeo);
-  const tailM = new THREE.Matrix4().makeTranslation(...tailRoot), tailGeo = S.tail.clone().applyMatrix4(tailM);
-  // tail weights by arc length along the joints
+  const tailM = new THREE.Matrix4().makeTranslation(...tailRoot);
   const tj = tailJoints.map(([x, y, z]) => [x + tailRoot[0], y + tailRoot[1], z + tailRoot[2]]), arcs = [0]; for (let i = 1; i < tj.length; i++) arcs.push(arcs[i - 1] + Math.hypot(tj[i][0] - tj[i - 1][0], tj[i][1] - tj[i - 1][1], tj[i][2] - tj[i - 1][2]));
-  skin(tailGeo, (x, y, z) => { let best = 0, bd = Infinity, bs = 0; for (let i = 0; i < tj.length - 1; i++) { const ax = tj[i], bx = tj[i + 1], dx = bx[0] - ax[0], dy = bx[1] - ax[1], dz = bx[2] - ax[2], L2 = dx * dx + dy * dy + dz * dz || 1; const t = clamp01(((x - ax[0]) * dx + (y - ax[1]) * dy + (z - ax[2]) * dz) / L2); const px = ax[0] + dx * t, py = ax[1] + dy * t, pz = ax[2] + dz * t, d = (x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2; if (d < bd) { bd = d; best = i; bs = arcs[i] + Math.sqrt(L2) * t; } } return chainWeights(bs, arcs, BLEND.tail).map(([k, w]) => [names['tail' + k], w]); });
-  parts.push(tailGeo);
-  for (const [key, leg] of Object.entries(legs)) {
-    const fore = key.endsWith('fore'), side = key[0] === 'l' ? -1 : 1, src = fore ? S.fore : S.hind;
-    const geo = (side < 0 ? mirrorX(src) : src.clone()).applyMatrix4(new THREE.Matrix4().makeTranslation(...leg.root));
-    skin(geo, (x, y) => chainWeights(y, leg.joints, BLEND.leg).map(([k, w]) => [names[key + Math.min(k, leg.bones.length - 1)], w]));
-    parts.push(geo);
+  const weighFor = {
+    body: (x, y, z) => chainWeights(z, [-.31, -.1, .08, .28], BLEND.spine).map(([k, w]) => [names[['hips', 'spine', 'chest'][k]], w]),
+    head: () => [[names.head, 1]],
+    tail: (x, y, z) => { let best = 0, bd = Infinity, bs = 0; for (let i = 0; i < tj.length - 1; i++) { const ax = tj[i], bx = tj[i + 1], dx = bx[0] - ax[0], dy = bx[1] - ax[1], dz = bx[2] - ax[2], L2 = dx * dx + dy * dy + dz * dz || 1; const t = clamp01(((x - ax[0]) * dx + (y - ax[1]) * dy + (z - ax[2]) * dz) / L2); const px = ax[0] + dx * t, py = ax[1] + dy * t, pz = ax[2] + dz * t, d = (x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2; if (d < bd) { bd = d; best = i; bs = arcs[i] + Math.sqrt(L2) * t; } } return chainWeights(bs, arcs, BLEND.tail).map(([k, w]) => [names['tail' + k], w]); },
+  };
+  for (const [key, leg] of Object.entries(legs)) weighFor[key] = (x, y) => chainWeights(y, leg.joints, BLEND.leg).map(([k, w]) => [names[key + Math.min(k, leg.bones.length - 1)], w]);
+  const weigh = (group, x, y, z) => weighFor[group](x, y, z);
+  let fur, details = null;
+  if (hull && S.body.userData.pieces) {
+    // one skin over everything, grown once per look
+    const key = name + '|' + (colour || '');
+    if (!hulls.has(key)) {
+      const parts = [{group: 'body', M: null, pieces: S.body.userData.pieces}, {group: 'head', M: headM, pieces: S.head.userData.pieces}, {group: 'tail', M: tailM, pieces: S.tail.userData.pieces}];
+      for (const [k, leg] of Object.entries(legs)) { const fore = k.endsWith('fore'), side = k[0] === 'l' ? -1 : 1; parts.push({group: k, M: new THREE.Matrix4().makeTranslation(...leg.root).multiply(new THREE.Matrix4().makeScale(side, 1, 1)), pieces: (fore ? S.fore : S.hind).userData.pieces}); }
+      hulls.set(key, growHull(parts, {weigh}));
+    }
+    const grown = hulls.get(key);
+    fur = new THREE.SkinnedMesh(grown.geometry, S.fur);
+    if (grown.details) { details = new THREE.SkinnedMesh(grown.details, S.fur); details.castShadow = details.receiveShadow = true; details.frustumCulled = false; details.userData.part = 'details'; }
+  } else {
+    // the parts as they are, each weighted to its own chain
+    const parts = [];
+    const bodyGeo = S.body.clone(); skin(bodyGeo, weighFor.body); parts.push(bodyGeo);
+    const headGeo = S.head.clone().applyMatrix4(headM); skin(headGeo, weighFor.head); parts.push(headGeo);
+    const tailGeo = S.tail.clone().applyMatrix4(tailM); skin(tailGeo, weighFor.tail); parts.push(tailGeo);
+    for (const [key, leg] of Object.entries(legs)) {
+      const fore = key.endsWith('fore'), side = key[0] === 'l' ? -1 : 1, src = fore ? S.fore : S.hind;
+      const geo = (side < 0 ? mirrorX(src) : src.clone()).applyMatrix4(new THREE.Matrix4().makeTranslation(...leg.root));
+      skin(geo, weighFor[key]); parts.push(geo);
+    }
+    fur = new THREE.SkinnedMesh(mergeGeometries(parts), S.fur);
   }
-  const fur = new THREE.SkinnedMesh(mergeGeometries(parts), S.fur);
   fur.castShadow = fur.receiveShadow = true; fur.frustumCulled = false; fur.userData.part = 'fur'; fur.userData.color = [...coat];
   const eyesGeo = S.eyes.clone().applyMatrix4(headM); skin(eyesGeo, () => [[names.head, 1]]);
   const eyes = new THREE.SkinnedMesh(eyesGeo, S.eye); eyes.frustumCulled = false; eyes.userData.part = 'eyes';
   // the bones' rest (the inverse bind matrices) must come from settled world matrices
-  body.add(hips); body.add(fur); body.add(eyes); g.updateMatrixWorld(true);
+  body.add(hips); body.add(fur); if (details) body.add(details); body.add(eyes); g.updateMatrixWorld(true);
   const skeleton = new THREE.Skeleton(bones);
-  fur.bind(skeleton, fur.matrixWorld); eyes.bind(skeleton, eyes.matrixWorld);
+  fur.bind(skeleton, fur.matrixWorld); eyes.bind(skeleton, eyes.matrixWorld); if (details) details.bind(skeleton, details.matrixWorld);
   const rig = {hips, spine, chest, neck, head, tail: tailBones, legs, yaw: g.rotation.y, lean: 0};
-  const actor = {g, body, legs: [], tail: null, wings: [], quirk: 'feline', head, species: name, skinned: true, rig, fur, eyes};
+  const actor = {g, body, legs: [], tail: null, wings: [], quirk: 'feline', head, species: name, skinned: true, rig, fur, eyes, details};
   actor.animator = createFelineAnimator(body, rig, actor);
   actor.asset = {update: (dt, walking) => updateSkinnedFeline(actor, dt, null, walking), skinned: true, mixer: actor.animator.mixer};
   return actor;
