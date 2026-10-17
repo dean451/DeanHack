@@ -52,3 +52,21 @@ test('the black naga has black spines instead of flame, green eyes, and its hatc
   const h = createCreature({name: 'black naga hatchling', symbol: 78, color: 1}), hn = meshes(h).map(m => m.userData.part);
   assert(!hn.includes('hood') && !hn.includes('mane') && box(h).max.y < b.max.y * .7);
 });
+
+test('the golden naga wears a circlet with a lit gem and a glow on the floor, no mane, red eyes, and its hatchling is bare', () => {
+  const a = createCreature({name: 'golden naga', symbol: 78, color: 1}), parts = meshes(a), names = parts.map(m => m.userData.part);
+  assert(parts.length <= 12, `${parts.length} meshes`);
+  for (const n of ['coil', 'neck', 'head', 'eyes', 'hood', 'circlet', 'gems', 'glow']) assert(names.includes(n), n);
+  assert(!names.includes('mane'), 'no flame or spines');
+  assert.equal(parts.find(m => m.userData.part === 'gems').material.type, 'MeshBasicMaterial', 'the gems are lit from within');
+  assert(parts.find(m => m.userData.part === 'eyes').geometry.attributes.color.getX(0) > .8, 'red eyes');
+  assert(parts.find(m => m.userData.part === 'glow').material.transparent);
+  assert(!parts.some(m => m.geometry.type === 'TorusGeometry'));
+  for (const m of parts) for (const v of m.geometry.attributes.position.array) assert(Number.isFinite(v));
+  const b = box(a); assert(b.min.y > -.02 && b.min.y < .02 && Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < .6, 'on its tile');
+  const circlet = parts.find(m => m.userData.part === 'circlet'), head = parts.find(m => m.userData.part === 'head');
+  circlet.geometry.computeBoundingBox(); head.geometry.computeBoundingBox();
+  assert(Math.abs(circlet.geometry.boundingBox.min.y - head.geometry.boundingBox.max.y) < .06, 'the band sits on the head');
+  const h = createCreature({name: 'golden naga hatchling', symbol: 78, color: 1}), hn = meshes(h).map(m => m.userData.part);
+  assert(!['hood', 'mane', 'circlet', 'gems'].some(n => hn.includes(n)) && box(h).max.y < b.max.y * .7);
+});
