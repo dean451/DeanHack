@@ -152,7 +152,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Naga coil reads as a smooth tyre, and the red naga's brow as a cap peak (review 2026-10-17):** in `prototype/naga.js` (https://github.com/dean451/DeanHack/pull/1604, shared by the black and golden kinds in https://github.com/dean451/DeanHack/pull/1608 and https://github.com/dean451/DeanHack/pull/1609) the coil is a glossy, evenly round tube at the game camera, the soft look AGENTS.md rejects, and the red naga's flat brow slab sticks out like a visor. Facet the coil (low-sided cross-section, scale ridges or notches along its length, a scar or two so it is not uniform) and sharpen the brow into a ridge over the eyes. **Done when:** `OUT=/tmp/ node tools/creature-shot.mjs "red naga" r` shows a coil with visible facets or ridges in the `three` and `game` views and a brow that sits on the skull, not in front of it, and `naga.test.js` still passes. This is one finding on `naga.js` and overrides the seven-day rule for that file; it is the only naga work routines may take.
 
 **Models**
 
