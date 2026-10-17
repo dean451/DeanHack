@@ -32,7 +32,17 @@ export const WALK = {hz: 2.1, swing: .5, bend: .55, bob: .012, sway: .08};
 // between them can warp. GAIT maps the pet's measured speed (tiles per second, smoothed) to the
 // walk's time scale and to the run.
 export const RUN = {hz: 3.3, swing: .75, bend: .8, bob: .03, sway: .05};
-export const GAIT = {nominal: 2.4, minScale: .7, maxScale: 1.5, runAt: 4.2, walkAt: 3.2, smooth: 6, fade: .3};
+// The clips' phase follows distance, not time: a cycle covers `stride` body units (times the
+// cat's scale), twice what a foot sweeps through its stance, so the body travels as far as the
+// planted foot sweeps back and the stride rate is speed / (stride x scale x hz), clamped;
+// `nominal` is the speed at which a scale-1 cat's walk plays at 1x.
+export const GAIT = {stride: {walk: .36, run: .52}, minScale: .5, maxScale: 3.5, runAt: 4.2, walkAt: 3.2, smooth: 6, fade: .3};
+GAIT.nominal = GAIT.stride.walk * WALK.hz;
+// Foot planting: while a gait plays, a foot in its stance phase is pinned where it came down and
+// the leg is solved (two-bone IK about the leg's hinge) to keep it there as the body moves on, so
+// the feet no longer skate. `blend` is the slice of the stance over which the pin fades in and
+// out; `reach` the share of the leg's full length past which the pin fades (the foot peels).
+export const PLANT = {blend: .5, reach: .9, peel: 1.05};
 // The idle tail: the model's own J-curve is the rest; these are small swings about it.
 export const TAIL = {curl: .1, sway: .14, flick: .05};
 
@@ -141,7 +151,9 @@ export function createSkinnedFeline(name, colour) {
 const TAU = Math.PI * 2;
 export function gaitPose(u, G) {
   const ph = u * TAU, pose = {};
-  const leg = (key, offset, fore, four) => { const a = Math.sin(ph + offset), lift = Math.max(0, Math.sin(ph + offset + Math.PI / 2));
+  // A leg lifts (and bends) while it swings forward (a positive x rotation points a leg back, so
+  // the swing is -sin while lift, cos, is up), then stands and sweeps back under the body.
+  const leg = (key, offset, fore, four) => { const a = -Math.sin(ph + offset), lift = Math.max(0, Math.cos(ph + offset));
     pose[key + '0'] = {x: a * G.swing}; pose[key + '1'] = {x: lift * G.bend * (fore ? 1 : -.9)}; pose[key + '2'] = {x: lift * G.bend * (fore ? .4 : .8)}; if (four) pose[key + '3'] = {x: -lift * .3}; };
   leg('lfore', 0, true, false); leg('rhind', 0, false, true); leg('rfore', Math.PI, true, false); leg('lhind', Math.PI, false, true);
   pose.spine = {y: Math.sin(ph) * G.sway, x: G === RUN ? -.08 + Math.sin(ph * 2) * .06 : 0}; pose.chest = {y: Math.sin(ph) * G.sway * .6}; pose.hips = {x: Math.sin(ph * 2) * .03};
@@ -225,7 +237,7 @@ export function createFelineAnimator(root, rig, actor = null) {
     a.setEffectiveWeight(0); actions[name] = a;
   }
   actions.idle.setEffectiveWeight(1); actions.tail.setEffectiveWeight(1);
-  let walking = false, base = actions.idle, still = 0, pouncing = false, lastAttack = null, stopping = false, fading = 0, speed = 0;
+  let walking = false, base = actions.idle, still = 0, pouncing = false, lastAttack = null, stopping = false, fading = 0, speed = 0, planting = true;
   const last = new THREE.Vector3(), moving = () => base === actions.walk || base === actions.run;
   if (actor?.g) last.copy(actor.g.position);
   // Fades `to` in over `from` (the example's setWeight first: re-enable, un-warp, full weight).
@@ -251,10 +263,11 @@ export function createFelineAnimator(root, rig, actor = null) {
       else if (base === actions.run && speed < GAIT.walkAt) setBase(actions.walk, GAIT.fade, true);
     }
     if (!pouncing && !walking && !stopping && still >= SIT_AFTER && base !== actions.sit) setBase(actions.sit, .6);
-    // the walk's stride rate follows the measured speed once no fade is warping it
+    // the stride rate follows the measured speed once no fade is warping it: one cycle per `stride` tiles
     fading = Math.max(0, fading - dt);
-    if (!fading && moving() && walking) { const nominal = base === actions.run ? GAIT.nominal * RUN.hz / WALK.hz : GAIT.nominal; base.setEffectiveTimeScale(Math.max(GAIT.minScale, Math.min(GAIT.maxScale, speed / nominal))); }
+    if (!fading && moving() && walking) { const run = base === actions.run, perSecond = (run ? GAIT.stride.run : GAIT.stride.walk) * (actor?.g?.scale.x || 1) * (run ? RUN.hz : WALK.hz); base.setEffectiveTimeScale(Math.max(GAIT.minScale, Math.min(GAIT.maxScale, speed / perSecond))); }
     mixer.update(dt);
+    if (planting) plantFeet();
     // the lean into a turn: the heading arrives in steps, so it snaps toward a turn and eases out
     const yaw = rig.hips.parent?.parent?.rotation.y ?? 0, d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
     const target = dt > 0 ? Math.max(-.5, Math.min(.5, d / dt * .12)) : 0;
@@ -262,13 +275,53 @@ export function createFelineAnimator(root, rig, actor = null) {
     if (Math.abs(rig.lean) > 1e-4) { const l = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, -rig.lean * .25)); rig.spine.quaternion.multiply(l); rig.chest.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, 0))); }
     return {walking, pouncing, stopping, speed, sitting: base === actions.sit, gait: Object.keys(actions).find(k => actions[k] === base), timeScale: base.getEffectiveTimeScale(), walkWeight: actions.walk.getEffectiveWeight(), runWeight: actions.run.getEffectiveWeight(), idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
   }
+  // ---- foot planting ----
+  // Which half of the gait cycle each leg stands on (gaitPose: a leg lifts while cos(phase + offset) > 0).
+  const STANCE_OFFSET = {lfore: 0, rhind: 0, rfore: Math.PI, lhind: Math.PI}, X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1);
+  const _t = new THREE.Vector3(), _s1 = new THREE.Vector3(), _s2 = new THREE.Vector3(), _j = new THREE.Vector3(), _e = new THREE.Vector3(), _m = new THREE.Matrix4(), _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _qj = new THREE.Quaternion(), _qz = new THREE.Quaternion();
+  const cross2 = (u, v) => u.y * v.z - u.z * v.y, ang = v => Math.atan2(v.z, v.y);
+  function plantFeet() {
+    const gaitW = Math.min(1, actions.walk.getEffectiveWeight() + actions.run.getEffectiveWeight());
+    const top = actor?.g || root; top.updateMatrixWorld(true);
+    const u = moving() ? base.time / base.getClip().duration : 0;
+    for (const [key, leg] of Object.entries(rig.legs)) {
+      const stance = -Math.cos(u * TAU + STANCE_OFFSET[key]);
+      const w0 = gaitW > 0 && stance > 0 && !pouncing ? smooth(stance / PLANT.blend) * gaitW : 0;
+      const R = leg.bones[0], J = leg.bones[1], E = leg.bones[leg.bones.length - 1];
+      if (w0 <= 0) { leg.plant = null; continue; }
+      if (!leg.plant) leg.plant = E.getWorldPosition(new THREE.Vector3()); // the foot came down here
+      // the pin, in the leg root's parent frame, relative to the root; the leg's hinge is that frame's x axis
+      _m.copy(R.parent.matrixWorld).invert(); _t.copy(leg.plant).applyMatrix4(_m).sub(R.position);
+      _s1.copy(J.position);
+      if (leg.bones.length > 3) { const H = leg.bones[2]; _s2.copy(E.position).applyQuaternion(H.quaternion).add(H.position); } else _s2.copy(E.position);
+      // the body sways, so the pin can sit a little to the side of the leg's plane: the leg root
+      // abducts about z to bring the plane onto the pin, then the hinges solve in that plane
+      const psi = Math.atan2(_t.x, -_t.y); _qz.setFromAxisAngle(Z, psi); _t.applyQuaternion(_qz.clone().invert());
+      const a = _s1.length(), b = _s2.length(), full = a + b, c = Math.hypot(_t.y, _t.z);
+      // past the leg's reach the pin fades and lets go
+      const w = w0 * (1 - smooth((c / full - PLANT.reach) / (PLANT.peel - PLANT.reach)));
+      leg.ik = {a, b, c, w, t: [_t.y, _t.z]}; // read by the tests and the tool pages
+      if (c > full * PLANT.peel) { leg.plant = null; continue; }
+      if (w <= 1e-3) continue;
+      const cc = Math.min(c, full * .999), phiT = Math.atan2(_t.z, _t.y);
+      const alpha = Math.acos(Math.max(-1, Math.min(1, (a * a + cc * cc - b * b) / (2 * a * cc))));
+      // keep the knee or elbow bent to the side the clip has it
+      _j.copy(_s1).applyQuaternion(R.quaternion); _qj.copy(R.quaternion).multiply(J.quaternion); _e.copy(_s2).applyQuaternion(_qj).add(_j);
+      const side = cross2(_e, _j) >= 0 ? 1 : -1;
+      const phi1 = phiT + side * alpha, theta1 = phi1 - ang(_s1);
+      _j.set(0, a * Math.cos(phi1), a * Math.sin(phi1)); _e.set(0, _t.y, _t.z).sub(_j);
+      const theta2 = ang(_e) - theta1 - ang(_s2);
+      _q1.setFromAxisAngle(X, theta1).premultiply(_qz); _q2.setFromAxisAngle(X, theta2);
+      R.quaternion.slerp(_q1, w); J.quaternion.slerp(_q2, w);
+    }
+  }
   // For the tool pages: hold one clip at a moment of its cycle (u in 0..1), everything else off.
   function show(name, u = 0) {
     for (const [key, a] of Object.entries(actions)) { a.enabled = true; a.paused = false; a.setEffectiveWeight(key === name || key === 'tail' ? 1 : 0); }
     const a = actions[name]; a.play(); a.time = u * a.getClip().duration; a.paused = true;
     mixer.update(0);
   }
-  return {mixer, actions, update, show, get walking() { return walking; }, get base() { return Object.keys(actions).find(k => actions[k] === base); }};
+  return {mixer, actions, update, show, get walking() { return walking; }, get base() { return Object.keys(actions).find(k => actions[k] === base); }, get planting() { return planting; }, set planting(v) { planting = !!v; if (!v) for (const leg of Object.values(rig.legs)) leg.plant = null; }};
 }
 
 // Per frame from live.js (through actor.asset.update). `t` is unused: the mixer keeps its own time.

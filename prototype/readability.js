@@ -5,7 +5,7 @@ import {RING_DASHES,ringArcs} from './ring-shape.js';
 // width, a disposition ring on the floor, and a minimum on-screen size.
 
 const outlineMaterial=new THREE.ShaderMaterial({
- uniforms:{color:{value:new THREE.Color(0x07090a)},width:{value:.0019}},
+ uniforms:{color:{value:new THREE.Color(0x07090a)},width:{value:.0019},pushBack:{value:0}},
  // The skinning chunks are no-ops unless the renderer defines USE_SKINNING for a SkinnedMesh hull,
  // which then follows the same bones as the fur it outlines.
  vertexShader:`uniform float width;
@@ -14,10 +14,13 @@ void main(){vec3 objectNormal=vec3(normal);vec3 transformed=vec3(position);
 #include <skinbase_vertex>
 #include <skinnormal_vertex>
 #include <skinning_vertex>
-vec4 mv=modelViewMatrix*vec4(transformed,1.);vec3 n=normalize(normalMatrix*objectNormal);mv.xyz+=n*width*-mv.z;gl_Position=projectionMatrix*mv;}`,
+vec4 mv=modelViewMatrix*vec4(transformed,1.);vec3 n=normalize(normalMatrix*objectNormal);float d=width*-mv.z;mv.xyz+=n*d;mv.z-=d*pushBack;gl_Position=projectionMatrix*mv;}`,
  fragmentShader:`uniform vec3 color;void main(){gl_FragColor=vec4(color,1.);}`,
  side:THREE.BackSide,
 });
+// A skinned body is one mesh of overlapping parts: its hull is pushed back by the ink width as well, so
+// the hull only shows past the true silhouette and the seams where parts overlap draw no ink rings.
+const skinnedOutlineMaterial=outlineMaterial.clone();skinnedOutlineMaterial.uniforms.pushBack.value=1;
 
 function ringMaterial(color,dashes){
  const c=document.createElement('canvas');c.width=c.height=128;const ctx=c.getContext('2d');
@@ -47,7 +50,7 @@ export function addOutlines(g){
   if(Math.min(dims.x,dims.y,dims.z)<.022)return;
   // A skinned mesh (the pet cat) gets a skinned hull on its own skeleton: a plain hull would sit
   // in the bind pose as a black cat under the animated one.
-  const hull=mesh.isSkinnedMesh?new THREE.SkinnedMesh(geo,outlineMaterial):new THREE.Mesh(geo,outlineMaterial);
+  const hull=mesh.isSkinnedMesh?new THREE.SkinnedMesh(geo,skinnedOutlineMaterial):new THREE.Mesh(geo,outlineMaterial);
   if(mesh.isSkinnedMesh){hull.bindMode=mesh.bindMode;hull.bind(mesh.skeleton,mesh.bindMatrix);}
   hull.castShadow=hull.receiveShadow=false;hull.userData.outline=true;mesh.add(hull);
  });
