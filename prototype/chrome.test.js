@@ -128,3 +128,8 @@ test('nothing draws behind the splash: the loop returns while it is open, no bac
   assert.match(main,/onActivity:touch/,'engine events keep the frame rate up');
   assert.doesNotMatch(css,/#start-screen,#start-cover\{[^}]*backdrop-filter/,'the splash does not blur the whole viewport');
 });
+
+test('menu accelerators use a monospace whose capital I and small l differ (Inter drew them alike)',()=>{
+  const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
+  assert.match(css,/\.engine-menu-row kbd\{[^}]*font:600 12px\/1\.2 'Courier New',Courier,monospace\}/);
+});
