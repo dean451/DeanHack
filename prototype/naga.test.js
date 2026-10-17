@@ -40,3 +40,15 @@ test('the red naga mane is self-lit and the scales are vertex colour', () => {
   assert.equal(mane.material.type, 'MeshBasicMaterial');
   assert(coil.material.vertexColors && coil.geometry.attributes.color);
 });
+
+test('the black naga has black spines instead of flame, green eyes, and its hatchling is smaller and bare', () => {
+  const a = createCreature({name: 'black naga', symbol: 78, color: 1}), parts = meshes(a), names = parts.map(m => m.userData.part);
+  assert(parts.length <= 12, `${parts.length} meshes`);
+  for (const n of ['coil', 'neck', 'head', 'eyes', 'hood', 'mane']) assert(names.includes(n), n);
+  assert.notEqual(parts.find(m => m.userData.part === 'mane').material.type, 'MeshBasicMaterial', 'spines are not self-lit');
+  assert(parts.find(m => m.userData.part === 'eyes').geometry.attributes.color.getY(0) > .8, 'green eyes');
+  assert(!parts.some(m => m.geometry.type === 'TorusGeometry'));
+  const b = box(a); assert(b.min.y > -.02 && b.min.y < .02 && Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < .6);
+  const h = createCreature({name: 'black naga hatchling', symbol: 78, color: 1}), hn = meshes(h).map(m => m.userData.part);
+  assert(!hn.includes('hood') && !hn.includes('mane') && box(h).max.y < b.max.y * .7);
+});

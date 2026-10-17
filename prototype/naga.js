@@ -11,10 +11,11 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // - the head: faceted and asymmetric, a hooded cobra head with a human face (brow ridge, deep-set slit-pupil eyes
 //   under it, a nose bridge, cheekbones, a hard jaw hanging open on two fangs, one of them snapped);
 // - the hood: a torn, half-spread fan of ribs behind the head, with a mane of flame (self-lit) down its rim and nape.
-// Six draws. Hatchlings are small and soft-scaled with the hood folded and no mane.
+// Black naga: the same rig in near-black scale, a plain hood with a ridge of sharp black spines (some broken) down its rim and nape in place of the flame, green eyes. Six draws. Hatchlings are small and soft-scaled with the hood folded and no mane.
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const bare = geo => { geo.deleteAttribute('uv'); return geo.index ? geo.toNonIndexed() : geo; };
 const PALETTES = {
+  black: {dark: '#0c0b10', mid: '#24222c', high: '#4a4858', belly: '#4a4852', band: '#222029', scar: '#7a7884', flesh: '#2e2c36', ridge: '#4a4858', socket: '#040406', jaw: '#1a1920', eye: '#8aff4a', fang: '#cfd2c2', hood: '#16151c', rib: '#2c2a36'},
   red: {dark: '#3c120c', mid: '#7c2418', high: '#b0442a', belly: '#b08a4c', band: '#6a4a26', scar: '#c8a48a', flesh: '#9c4630', ridge: '#a8553a', socket: '#140706', jaw: '#5a1c12', eye: '#ffc23a', fang: '#e4dcc6', hood: '#4c140e', rib: '#8e2a1a'},
 };
 
@@ -155,8 +156,24 @@ export function createNaga({kind = 'red', baby = false} = {}) {
       mane.push(flame(v.x, v.y + len * .35, v.z - .01, len, Math.sign(x) * (.2 + hash(k) * .3), 1));
     }
     for (let i = 0; i < 5; i++) mane.push(flame(0, .36 - i * .07, -.03 + i * .006 - (i === 3 ? .01 : 0), .06 + hash(i + 40) * .05, 0, 1));
+    if (kind === 'black') mane.length = 0;
+    if (kind === 'black') {
+      // black spines: bone-hard thorns raked back along the rim and nape, base nearly black, tips a dull grey; two snapped
+      const spine = (x, y, z, len, lean, side) => {
+        const f = bare(new THREE.ConeGeometry(.007 + len * .05, len, 4)), p = f.attributes.position, c = new Float32Array(p.count * 3), o = new THREE.Color();
+        for (let i = 0; i < p.count; i++) { o.set('#0a090d').lerp(new THREE.Color('#5a5864'), THREE.MathUtils.clamp(p.getY(i) / len + .5, 0, 1)); o.toArray(c, i * 3); }
+        f.setAttribute('color', new THREE.BufferAttribute(c, 3));
+        f.rotateZ(-side * lean); f.rotateX(-.8); f.translate(x, y, z);
+        return f;
+      };
+      for (let k = 1; k < N; k++) {
+        const [x, y, z] = rim[k], len = (.1 + hash(k * 5) * .09) * (k === 4 || k === 9 ? .4 : 1), v = new THREE.Vector3(x, y, z).applyMatrix4(hoodAt);
+        mane.push(spine(v.x, v.y + len * .3, v.z - .01, len, Math.sign(x) * (.25 + hash(k) * .35), 1));
+      }
+      for (let i = 0; i < 5; i++) mane.push(spine(0, .36 - i * .07, -.03 + i * .006, .09 + hash(i + 40) * .06, 0, 1));
+    }
     const maneG = mergeGeometries(mane);
-    const mm = add(maneG, new THREE.MeshBasicMaterial({vertexColors: true, side: THREE.DoubleSide}), 'mane', neck); mm.castShadow = false;
+    const mm = add(maneG, kind === 'black' ? new THREE.MeshStandardMaterial({vertexColors: true, roughness: .4, metalness: .2, flatShading: true}) : new THREE.MeshBasicMaterial({vertexColors: true, side: THREE.DoubleSide}), 'mane', neck); mm.castShadow = kind === 'black';
     g.userData.scarred = true;
   }
   return {g, body, legs: [], tail: neck, wings: [], quirk: 'snake'};
