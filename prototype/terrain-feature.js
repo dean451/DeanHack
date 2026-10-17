@@ -7,6 +7,7 @@ import {createIceFloor} from './ice-floor.js';
 import {createCloud} from './cloud.js';
 import {createAir} from './air.js';
 import {createMagicPlatform} from './magic-platform.js';
+import {createRainbowBridge,rainbowKind} from './rainbow-bridge.js';
 import {createPoisonCloud} from './poison-cloud.js';
 
 // Non-trap `feature` cells (ice, bog, drawbridges, ice walls, clouds, open air, magic
@@ -14,7 +15,8 @@ import {createPoisonCloud} from './poison-cloud.js';
 // sends them as generic features, so the kind comes from the map symbol and its
 // colour (drawing.c defsyms). Anything unknown returns null and keeps its label.
 export function featureKind(symbol,color){
- if(symbol===46)return {6:'ice',3:'bridge-down',7:'magic-platform'}[color]||null;   // '.'
+ // '.' — the Valkyrie locate level's rainbow bridge is magic platform recoloured per row (mapglyph.c)
+ if(symbol===46)return {6:'ice',3:'bridge-down',7:'magic-platform'}[color]||rainbowKind(color);
  if(symbol===125&&color===2)return 'bog';                         // '}'
  if(symbol===35)return {3:'bridge-up',7:'cloud',10:'poison-cloud'}[color]||null;   // '#'
  if(symbol===56)return color===15?'crystal-wall':'ice-wall';      // '8'
@@ -92,6 +94,11 @@ export function createTerrainFeature(kind,seed=0){
   const cloud=createCloud(seed);g.add(cloud);
   g.userData.hidesFloor=true;
   g.userData.dispose=()=>cloud.userData.dispose();
+  return g;
+ }else if(kind.startsWith('rainbow-')){
+  const bridge=createRainbowBridge(Number(kind.slice(8)),seed);g.add(bridge);
+  g.userData.hidesFloor=true;
+  g.userData.dispose=()=>bridge.userData.dispose();
   return g;
  }else if(kind==='magic-platform'){
   // A magic platform is a floating slab over open air (magic-platform.js); it replaces the floor.
