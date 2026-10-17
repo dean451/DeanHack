@@ -43,6 +43,16 @@ GAIT.nominal = GAIT.stride.walk * WALK.hz;
 // the feet no longer skate. `blend` is the slice of the stance over which the pin fades in and
 // out; `reach` the share of the leg's full length past which the pin fades (the foot peels).
 export const PLANT = {blend: .5, reach: .9, peel: 1.05};
+// Secondary motion, laid on after the mixer (none of it accumulates: each is a fresh offset
+// on what the clips wrote this frame, or a decaying state of its own):
+// - a turn: the heading arrives in a step, so the body counter-rotates by the step and eases
+//   round over ~1/ease s, the spine leans in, and the neck leads a little into the new heading;
+// - the tail trails: it lags the turn and dips or lifts as the cat speeds up or brakes, through
+//   two low-pass stages so it swings late and settles, more at the tip than the root;
+// - the eyes blink: every BLINK.gap..gap+span seconds for BLINK.shut seconds, now and then twice.
+export const TURN = {ease: 9, max: 1.3, lead: .35};
+export const TAIL_SPRING = {follow: 9, settle: 5, lag: .09, dip: .05, max: .6};
+export const BLINK = {gap: 2.5, span: 4, shut: .11, double: .22};
 // The idle tail: the model's own J-curve is the rest; these are small swings about it.
 export const TAIL = {curl: .1, sway: .14, flick: .05};
 
@@ -238,6 +248,11 @@ export function createFelineAnimator(root, rig, actor = null) {
   }
   actions.idle.setEffectiveWeight(1); actions.tail.setEffectiveWeight(1);
   let walking = false, base = actions.idle, still = 0, pouncing = false, lastAttack = null, stopping = false, fading = 0, speed = 0, planting = true;
+  const spring = {turn: 0, rate1: 0, rate2: 0, acc1: 0, acc2: 0, lastSpeed: 0};
+  let seed = 0; for (const c of String(actor?.species || 'cat')) seed = (seed * 31 + c.charCodeAt(0)) >>> 0;
+  const rnd = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
+  const blink = {until: BLINK.gap + rnd() * BLINK.span, shut: 0, again: false};
+  const _lq = new THREE.Quaternion(), _le = new THREE.Euler();
   const last = new THREE.Vector3(), moving = () => base === actions.walk || base === actions.run;
   if (actor?.g) last.copy(actor.g.position);
   // Fades `to` in over `from` (the example's setWeight first: re-enable, un-warp, full weight).
@@ -273,7 +288,30 @@ export function createFelineAnimator(root, rig, actor = null) {
     const target = dt > 0 ? Math.max(-.5, Math.min(.5, d / dt * .12)) : 0;
     rig.lean += (target - rig.lean) * (1 - Math.exp(-dt * (Math.abs(target) > Math.abs(rig.lean) ? 14 : 3)));
     if (Math.abs(rig.lean) > 1e-4) { const l = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, -rig.lean * .25)); rig.spine.quaternion.multiply(l); rig.chest.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, 0))); }
+    secondary(dt, d);
     return {walking, pouncing, stopping, speed, sitting: base === actions.sit, gait: Object.keys(actions).find(k => actions[k] === base), timeScale: base.getEffectiveTimeScale(), walkWeight: actions.walk.getEffectiveWeight(), runWeight: actions.run.getEffectiveWeight(), idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
+  }
+  // ---- secondary motion: eased turns, the trailing tail, blinks ----
+  function secondary(dt, yawStep) {
+    // the turn: counter the heading step on the mixer root and ease it away, so the body swings round
+    spring.turn = Math.max(-TURN.max, Math.min(TURN.max, spring.turn - yawStep)) * Math.exp(-dt * TURN.ease);
+    if (Math.abs(spring.turn) < 1e-4) spring.turn = 0;
+    root.rotation.y = spring.turn;
+    // the neck leads into the new heading (the head bone is left to the glance code)
+    rig.neck.quaternion.setFromEuler(_le.set(0, -spring.turn * TURN.lead, 0)); // no clip writes the neck, so this is its whole pose
+    // the tail trails: late, then settling
+    const rate = dt > 0 ? -spring.turn * TURN.ease : 0, acc = dt > 0 ? (speed - spring.lastSpeed) / dt : 0; spring.lastSpeed = speed;
+    const k1 = 1 - Math.exp(-dt * TAIL_SPRING.follow), k2 = 1 - Math.exp(-dt * TAIL_SPRING.settle);
+    spring.rate1 += (rate - spring.rate1) * k1; spring.rate2 += (spring.rate1 - spring.rate2) * k2;
+    spring.acc1 += (acc - spring.acc1) * k1; spring.acc2 += (spring.acc1 - spring.acc2) * k2;
+    const swing = Math.max(-TAIL_SPRING.max, Math.min(TAIL_SPRING.max, -spring.rate2 * TAIL_SPRING.lag)), dip = Math.max(-TAIL_SPRING.max, Math.min(TAIL_SPRING.max, -spring.acc2 * TAIL_SPRING.dip));
+    if (Math.abs(swing) > 1e-4 || Math.abs(dip) > 1e-4) rig.tail.forEach((b, i) => { const k = (i + 1) / rig.tail.length; b.quaternion.multiply(_lq.setFromEuler(_le.set(dip * k * .5, swing * k * .5, 0))); });
+    // blinks
+    if (actor?.eyes) {
+      if (blink.shut > 0) { blink.shut -= dt; if (blink.shut <= 0) { blink.shut = 0; blink.until = blink.again ? BLINK.double : BLINK.gap + rnd() * BLINK.span; blink.again = false; } }
+      else { blink.until -= dt; if (blink.until <= 0) { blink.shut = BLINK.shut; blink.again = !blink.again && rnd() < .25; } }
+      actor.eyes.visible = blink.shut <= 0;
+    }
   }
   // ---- foot planting ----
   // Which half of the gait cycle each leg stands on (gaitPose: a leg lifts while cos(phase + offset) > 0).

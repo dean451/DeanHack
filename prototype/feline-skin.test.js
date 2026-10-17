@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK, RUN, GAIT, CLIPS, SIT_AFTER, POUNCE} from './feline-skin.js';
+import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK, RUN, GAIT, CLIPS, SIT_AFTER, POUNCE, TURN, BLINK} from './feline-skin.js';
 import {createFeline} from './feline.js';
 
 // feline-skin.js: the pet cat as one skinned mesh over a small skeleton (a trial of skinning).
@@ -185,4 +185,33 @@ test('a planted foot stays put: the stance-phase paw drifts a fraction of what i
   // nothing is pinned once the cat stands still or sits
   for (let i = 0; i < 90; i++) walkFor(pinned, 1, 0, false);
   assert.ok(Object.values(pinned.rig.legs).every(l => !l.plant));
+});
+
+test('a turn: the body counters the heading step and eases round, the neck leads, and the tail trails late then settles', () => {
+  // `b` walks the same frames without the turn, so the tail's own clip can be subtracted out
+  const a = createSkinnedFeline('housecat'), b = createSkinnedFeline('housecat');
+  for (let i = 0; i < 90; i++) { walkFor(a, 1, 1); walkFor(b, 1, 1); } // the first frame saw the heading set, and has eased round since
+  assert.ok(Math.abs(a.body.rotation.y) < 1e-3, 'straight ahead: no counter-turn');
+  a.g.rotation.y = Math.PI / 2 + 1; // the heading jumps a radian to the left
+  updateSkinnedFeline(a, 1 / 60, null, true); updateSkinnedFeline(b, 1 / 60, null, true);
+  assert.ok(a.body.rotation.y < -.8, `the body counters the step: ${a.body.rotation.y}`);
+  const neck = new THREE.Euler().setFromQuaternion(a.rig.neck.quaternion);
+  assert.ok(neck.y > .2, `the neck leads into the turn: ${neck.y}`);
+  const tailAt = c => new THREE.Euler().setFromQuaternion(c.rig.tail[4].quaternion).y, extra = () => tailAt(a) - tailAt(b);
+  let peak = 0, peakAt = 0;
+  for (let i = 1; i <= 60; i++) { updateSkinnedFeline(a, 1 / 60, null, true); updateSkinnedFeline(b, 1 / 60, null, true); const y = extra(); if (Math.abs(y) > Math.abs(peak)) { peak = y; peakAt = i; } }
+  assert.ok(peakAt > 2 && peakAt < 30, `the tail swings late: peak at frame ${peakAt}`);
+  assert.ok(peak < -.05, `and trails the turn: ${peak}`);
+  assert.ok(Math.abs(a.body.rotation.y) < .01, 'a second later the body has come round');
+  for (let i = 0; i < 90; i++) { updateSkinnedFeline(a, 1 / 60, null, true); updateSkinnedFeline(b, 1 / 60, null, true); }
+  assert.ok(Math.abs(extra()) < .02, `and the tail has settled back onto its clip: ${extra()}`);
+});
+
+test('the eyes blink: shut for a moment every few seconds, open the rest of the time', () => {
+  const a = createSkinnedFeline('kitten');
+  let shut = 0, blinks = 0, was = true;
+  for (let i = 0; i < 60 * 20; i++) { updateSkinnedFeline(a, 1 / 60, null, false); const open = a.eyes.visible; if (!open) shut++; if (was && !open) blinks++; was = open; }
+  assert.ok(blinks >= 2 && blinks <= 9, `${blinks} blinks in 20 s`);
+  assert.ok(shut / (60 * 20) < .06, 'the eyes are open almost all the time');
+  assert.ok(shut / blinks >= BLINK.shut * 60 * .8, 'each blink lasts about the shut time');
 });
