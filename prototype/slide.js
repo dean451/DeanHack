@@ -42,7 +42,11 @@ export function speciesSlide(species) {
 // Closer than this and the actor is set exactly on its target.
 const ARRIVE = 2e-3;
 
-export const heavySlide = a => HEAVY[a?.quirk] || speciesSlide(a?.species);
+// A skinned, legged animal (the pet cat, the fox on our rig) bounds from tile to tile instead of
+// darting: it pulls away hard, cruises at a gallop's pace and brakes into the tile, so its legs have
+// a steady speed to stride to. An actor opts in with `actor.glide` (createSkinnedFeline, rigFox).
+export const FELINE_GLIDE = {cruise: 3.2, accel: 16, brake: 7, creep: .35, catchup: 2.4};
+export const heavySlide = a => a?.glide || HEAVY[a?.quirk] || speciesSlide(a?.species);
 
 // Moves actor.g toward actor.target by one frame of dt seconds.
 export function slideTo(actor, dt) {
@@ -57,14 +61,18 @@ function glide(actor, dt) {
   const d = pos.distanceTo(target);
   if (!heavy || d > heavy.catchup) {
     actor.slideSpeed = 0;
+    // the speed this move is taking, for an animator choosing a gait before the body is up to speed
+    actor.slidePlan = d > ARRIVE ? Math.min(12, d * EASE_RATE) : 0;
     pos.lerp(target, 1 - Math.exp(-dt * EASE_RATE));
     return;
   }
   if (d < ARRIVE) {
-    actor.slideSpeed = 0;
+    actor.slideSpeed = 0; actor.slidePlan = 0;
     pos.copy(target);
     return;
   }
+  // a glide knows its cruise from the first frame of the step: the gait it calls for holds to the end
+  actor.slidePlan = heavy.cruise;
   const v = Math.min(heavy.cruise, (actor.slideSpeed || 0) + heavy.accel * dt);
   const speed = Math.min(v, Math.max(d * heavy.brake, heavy.creep));
   actor.slideSpeed = speed;

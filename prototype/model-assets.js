@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone as cloneSkinned} from 'three/addons/utils/SkeletonUtils.js';
 import {rigFox} from './fox-skin.js';
+import {FELINE_GLIDE} from './slide.js';
 
 // Rigged GLB creatures (e.g. from Tripo) dropped into prototype/models/ replace the
 // procedural model once they load. A file is found by the monster's name with spaces as
@@ -74,10 +75,11 @@ export function swapInAsset(actor,gltf,tweak={}){
  g.add(holder);
  if(rigged){
   // our own rig: the cat's animator runs the gaits, the sit and the pounce (on the actor's attack action)
+  actor.glide=FELINE_GLIDE; // bounds tile to tile at a pace its gaits can stride to (slide.js)
   actor.asset={model:holder,mixer:rigged.animator.mixer,actions:rigged.animator.actions,animator:rigged.animator,rig:rigged.rig,
    play(){return false;},
    update(dt,walking){rigged.animator.update(dt,walking);},
-   restore(){rigged.animator.mixer.stopAllAction();g.remove(holder);hidden.forEach(c=>c.visible=true);delete actor.asset;}};
+   restore(){rigged.animator.mixer.stopAllAction();g.remove(holder);hidden.forEach(c=>c.visible=true);delete actor.asset;delete actor.glide;}};
   return actor.asset;
  }
  const mixer=new THREE.AnimationMixer(model),roles=clipRoles(gltf.animations||[]),actions={};
