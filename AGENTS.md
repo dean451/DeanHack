@@ -153,7 +153,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Bone devil head reads as a cartoon (review 2026-10-18):** in `prototype/bone-devil.js` (https://github.com/dean451/DeanHack/pull/1622) the two compound eyes are big, bright, near-white discs in round black pits on either side of a smooth cone snout, which at the game and three-quarter cameras reads as bug-eyed toy, not a long insect skull, and the curved lower mandible hangs under the snout as a separate blade rather than part of the jaw. Shrink and darken the eyes (a dull sick glow set into the brow, not a lit white disc), facet and ridge the snout so it is not a smooth cone, and root the mandibles in the jaw so nothing floats. **Done when:** `OUT=/tmp/ node tools/creature-shot.mjs "bone devil" bo` head and three-quarter renders show eyes that are not the brightest thing on the head, a snout with visible facets or ridges, and mandibles that touch the skull; `bone-devil.test.js` passes.
 
 **Models**
 
