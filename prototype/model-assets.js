@@ -59,6 +59,10 @@ export function swapInAsset(actor,gltf,tweak={}){
  const cx=box.isEmpty()?0:(box.min.x+box.max.x)/2,cz=box.isEmpty()?0:(box.min.z+box.max.z)/2;
  model.position.x+=cx-(own.min.x+own.max.x)/2;model.position.z+=cz-(own.min.z+own.max.z)/2;model.position.y-=own.min.y;
  model.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true;
+  // A glTF without normals (the fox) is shaded flat from screen derivatives, but the ambient
+  // occlusion pass draws its own normal buffer from the attribute and read zeros: the whole model
+  // went black. Face normals (a non-indexed mesh gives one per face) look the same and fix it.
+  if(!o.geometry.attributes.normal)o.geometry.computeVertexNormals();
   // Skinned bounds follow the bind pose, so an animated limb could be culled mid-swing.
   if(o.isSkinnedMesh)o.frustumCulled=false;}});
  hidden.forEach(c=>c.visible=false);

@@ -14,3 +14,9 @@ test('see-through and non-depth-writing meshes, points and lines sit the occlusi
   assert.ok(AO_PARAMS.radius > .1 && AO_PARAMS.radius < 1, 'radius in tile units');
   assert.match(DungeonAOPass.prototype._overrideVisibility.toString(), /sitsOut/);
 });
+
+test('ink outline hulls stay out of the occlusion pass', () => {
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial()); hull.userData.outline = true;
+  assert.ok(sitsOut(hull));
+  const plain = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial()); assert.ok(!sitsOut(plain));
+});

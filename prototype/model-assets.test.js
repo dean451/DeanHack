@@ -72,3 +72,14 @@ test('a missing or broken asset leaves the procedural model alone',async()=>{
  finally{console.warn=warn;}
  assert(!actor.asset&&actor.g.children.every(c=>c.visible));
 });
+
+test('a glTF without normals (as the fox ships) gets face normals, so the occlusion pass does not read zeros and paint it black',async()=>{
+ const actor=createCreature({name:'fox',symbol:100,color:1});
+ const gltf=fakeGltf();let mesh;gltf.scene.traverse(o=>{if(o.isSkinnedMesh)mesh=o;});
+ mesh.geometry=mesh.geometry.toNonIndexed();mesh.geometry.deleteAttribute('normal');
+ const asset=await attachModelAsset(actor,'fox',{'fox.glb':'/fake/fox.glb'},{loadAsync:async()=>gltf});
+ let swapped;asset.model.traverse(o=>{if(o.isSkinnedMesh)swapped=o;});
+ const n=swapped.geometry.attributes.normal;
+ assert(n,'normals were made');
+ for(let i=0;i<n.count;i+=5)assert(Math.abs(Math.hypot(n.getX(i),n.getY(i),n.getZ(i))-1)<1e-4,`normal ${i} is a unit vector`);
+});
