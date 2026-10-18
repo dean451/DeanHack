@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><title>fox strip</title>
+<style>html,body{margin:0;background:#233138}canvas{display:block}</style>
+<script type="module">
+// Six moments of one of the fox's clips (our rig, fox-skin.js, on the cat's animator), from the side:
+// /tools/fox-strip.html?clip=walk   (clips: walk, run, idle, sit, pounce)
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {rigFox} from '../fox-skin.js';
+const q=new URLSearchParams(location.search),clip=q.get('clip')||'walk',N=6;
+const W=1400,H=380,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-N*.5,N*.5,.5,-.32,.1,50);
+scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const key=new THREE.DirectionalLight(0xffe1b6,3);key.position.set(-3,5,4);scene.add(key);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(20,8),new THREE.MeshStandardMaterial({color:0x4a5550,roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const gltf=await new GLTFLoader().loadAsync('../models/fox.glb');
+for(let i=0;i<N;i++){const model=gltf.scene.clone(true),g=new THREE.Group();g.add(model);model.traverse(o=>{if(o.isMesh&&!o.geometry.attributes.normal)o.geometry.computeVertexNormals();});
+ const r=rigFox(model,{g});g.position.x=(i-(N-1)/2)*1;g.rotation.y=Math.PI/2;scene.add(g);r.animator.show(clip,i/N);}
+camera.position.set(0,.3,6);camera.lookAt(0,.3,0);renderer.render(scene,camera);window.__done=true;
+</script>
