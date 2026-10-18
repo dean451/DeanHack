@@ -2846,7 +2846,7 @@ function demon(o){
   for(let i=0;i<10;i++){const a=i/10*Math.PI*2,f=cone(body,.03,.12,dark,Math.sin(a)*.09,headY-.12,Math.cos(a)*.08,4);f.rotation.set(Math.cos(a)*.9,0,-Math.sin(a)*.9);}
   for(const s of [-1,1])sphere(head,.02,glow,s*.05,.02,.07).castShadow=false;}
  else if(form==='ramhorn')hornedDevilHead(head,{skin,dark,tooth,glow}); // the horned devil's ram-horned goat skull (horned-devil.js)
- else if(form==='insect')boneDevilHead(head,{glow}); // the bone devil's long insect skull (bone-devil.js)
+ else if(form==='insect')boneDevilHead(head); // the bone devil's long insect skull (bone-devil.js)
  else if(form==='barbed')barbedDevilHead(head,{skin,dark,tooth,glow}); // the barbed devil's thorned skull (barbed-devil.js)
  else if(form==='drowned')waterDemonHead(head,{skin,dark,mouth,tooth}); // the water demon's drowned toad skull (water-demon.js)
  else if(form==='toad'){sphere(head,.12,skin,0,-.01,.02,1.4,.65,1.1);cylinder(head,.1,.1,.012,mouth,0,-.04,.1,16).scale.set(1,1,.35);

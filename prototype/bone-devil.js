@@ -3,7 +3,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // The bone devil's own head and tail, on top of the shared demon rig in creatures.js. It was the stock demon
 // with a plain skull and the spade tail. It is now a thing of dry bone and chitin:
-// - the head: a long insect skull, a flat bone wedge of a face running forward to two slit nostrils, huge
+// - the head: a long insect skull, a flat bone wedge of a face running forward to two slit nostrils, small dull
 //   faceted eyes on the sides of it, a ridge of bony plates down the crown, two long hooked mandibles that
 //   cross in front of the mouth, and a pair of antenna spurs swept back (one snapped short);
 // - the tail: a scorpion's. Armoured bone segments rise behind the back and curl over it, each with a spur,
@@ -18,31 +18,41 @@ const mats = () => {
   const bone = new THREE.MeshStandardMaterial({color: '#cbbf9a', roughness: .65, flatShading: true}); bone.name = 'bone-devil-bone';
   const sting = new THREE.MeshStandardMaterial({color: '#2a2418', roughness: .4}); sting.name = 'bone-devil-sting';
   const void_ = new THREE.MeshStandardMaterial({color: '#0c0806', roughness: 1}); void_.name = 'bone-devil-void';
-  return {bone, sting, void_};
+  const eye = new THREE.MeshStandardMaterial({color: '#2a2a0c', roughness: .6, emissive: '#5c6a12', emissiveIntensity: .55, flatShading: true}); eye.name = 'bone-devil-eye';
+  return {bone, sting, void_, eye};
 };
 
-export function boneDevilHead(head, {glow}) {
+export function boneDevilHead(head) {
   const m = mats();
   head.scale.setScalar(1.4);
   const add = (geo, mat, x = 0, y = 0, z = 0) => { const mesh = new THREE.Mesh(geo, mat); mesh.position.set(x, y, z); mesh.castShadow = mesh.receiveShadow = true; head.add(mesh); return mesh; };
   // the skull: a small braincase and a long flat wedge of face
   const cran = add(new THREE.IcosahedronGeometry(.085, 1), m.bone, 0, .005, -.03); cran.scale.set(.85, .8, 1.15);
-  const face = add(new THREE.CylinderGeometry(.03, .062, .27, 5), m.bone, 0, -.012, .15); face.rotation.x = Math.PI / 2 + .1; face.scale.set(1, 1, .55);
+  const face = add(new THREE.CylinderGeometry(.03, .062, .27, 6), m.bone, 0, -.012, .15); face.rotation.x = Math.PI / 2 + .1; face.scale.set(1, 1, .55);
+  // the snout is ridged and stepped: a keel down the bridge, a plate on each cheek, a hard lower jaw wedge
+  const keel = add(new THREE.BoxGeometry(.014, .02, .22), m.bone, 0, .03, .16); keel.rotation.x = .1;
+  for (const s of [-1, 1]) {
+    const cheek = add(new THREE.BoxGeometry(.012, .03, .15), m.bone, s * .036, -.006, .13); cheek.rotation.set(.1, s * .12, s * .5);
+    const rib = add(new THREE.BoxGeometry(.01, .01, .09), m.bone, s * .026, .022, .225); rib.rotation.set(.1, -s * .2, s * .3);
+  }
+  const jaw = add(new THREE.BoxGeometry(.075, .016, .2), m.bone, 0, -.05, .15); jaw.rotation.x = .08;
+  const chin = add(new THREE.ConeGeometry(.034, .07, 4), m.bone, 0, -.05, .27); chin.rotation.set(Math.PI / 2 + .1, 0, Math.PI / 4);
   add(new THREE.BoxGeometry(.05, .014, .06), m.void_, 0, -.04, .27);
   for (const s of [-1, 1]) add(new THREE.BoxGeometry(.01, .012, .03), m.void_, s * .012, .005, .27).rotation.x = .1;
-  // compound eyes: big faceted domes in dark pits on either side
+  // compound eyes: small, dull and sick, set deep into the brow under a hard ridge
   for (const s of [-1, 1]) {
-    const pit = add(new THREE.SphereGeometry(.04, 7, 5), m.void_, s * .066, .01, .06); pit.scale.set(.5, .85, 1.2);
-    const eye = add(new THREE.IcosahedronGeometry(.034, 0), glow, s * .078, .012, .06); eye.scale.set(.7, 1, 1.25); eye.castShadow = false;
+    const pit = add(new THREE.SphereGeometry(.03, 6, 4), m.void_, s * .062, .012, .06); pit.scale.set(.5, .8, 1.2);
+    const eye = add(new THREE.IcosahedronGeometry(.018, 0), m.eye, s * .07, .012, .062); eye.scale.set(.6, 1, 1.3); eye.castShadow = false;
+    const brow = add(new THREE.BoxGeometry(.022, .012, .07), m.bone, s * .062, .04, .06); brow.rotation.set(0, 0, -s * .5);
   }
   // a ridge of bony plates down the crown, shrinking toward the back
   for (let i = 0; i < 5; i++) {
     const p = add(new THREE.BoxGeometry(.012, .035 - i * .004, .05), m.bone, 0, .08 - i * .012, .1 - i * .052); p.rotation.x = -.35;
   }
   // two hooked mandibles that cross in front of the mouth
-  const pts = s => new THREE.CatmullRomCurve3([V([s * .045, -.045, .2]), V([s * .06, -.07, .3]), V([s * .03, -.075, .37]), V([-s * .02, -.06, .4])]);
+  const pts = s => new THREE.CatmullRomCurve3([V([s * .034, -.05, .1]), V([s * .045, -.052, .2]), V([s * .06, -.07, .3]), V([s * .03, -.075, .37]), V([-s * .02, -.06, .4])]);
   for (const s of [-1, 1]) {
-    const mand = add(new THREE.TubeGeometry(pts(s), 8, .011, 4), m.bone); mand.geometry.deleteAttribute('uv');
+    const mand = add(new THREE.TubeGeometry(pts(s), 12, .011, 4), m.bone); mand.geometry.deleteAttribute('uv');
     add(new THREE.ConeGeometry(.013, .05, 4), m.bone, -s * .024, -.058, .418).rotation.set(Math.PI / 2 - .2, 0, s * .5);
   }
   // antenna spurs swept back from the brow; the left is snapped to a stump
