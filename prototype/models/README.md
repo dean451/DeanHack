@@ -7,3 +7,5 @@ Drop a rigged `.glb` here named after the monster, with spaces as dashes: `dwarf
 - **Animations are found by clip name:** `idle`/`stand`, `walk`/`run`, `attack`/`slash`/`swing`/`punch`, `hurt`/`react`, `death`/`die`. Idle and walk crossfade as the creature moves. Attack, hurt and death play once when combat events call `actor.asset.play(...)` (not wired yet; the engine doesn't send monster attacks).
 - **Keep files small:** aim for 5–20k triangles, 1k or 2k textures, and a few MB per file. It goes in git and every player downloads it. `npx @gltf-transform/cli optimize in.glb out.glb --texture-compress webp` helps, but skip Draco/meshopt compression for now (the loader isn't set up for it).
 - If a file fails to load, the procedural model stays and the console shows a warning.
+
+- **Credit every file in `CREDITS.md`.** Use only models whose license allows shipping them in the game (CC0, or CC BY with the credit line kept). `fox.glb` is the first one: a rigged test animal from the Khronos glTF samples.
