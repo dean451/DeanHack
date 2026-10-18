@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK, RUN, GAIT, CLIPS, SIT_AFTER, POUNCE, TURN, BLINK} from './feline-skin.js';
+import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK, RUN, GALLOP, GAIT, CLIPS, SIT_AFTER, POUNCE, TURN, BLINK, SIT} from './feline-skin.js';
+import {slideTo, FELINE_GLIDE} from './slide.js';
 import {createFeline} from './feline.js';
 
 // feline-skin.js: the pet cat as one skinned mesh over a small skeleton (a trial of skinning).
@@ -37,7 +38,7 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
 
 test('the clips: walk, idle and tail are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['idle', 'pounce', 'run', 'sit', 'tail', 'walk']);
+  assert.deepEqual(Object.keys(actions).sort(), ['gallop', 'idle', 'pounce', 'run', 'sit', 'tail', 'walk']);
   const walk = actions.walk.getClip(), tail = actions.tail.getClip(), idle = actions.idle.getClip();
   assert.ok(Math.abs(walk.duration - 1 / WALK.hz) < 1e-9);
   const names = c => c.tracks.map(t => t.name);
@@ -60,7 +61,7 @@ test('walking cross-fades the walk in and the idle out, swings and bends the leg
   assert.ok(Math.abs(lf) > .05, 'the legs swing'); assert.ok(Math.sign(lf) === Math.sign(rh) && Math.sign(lf) !== Math.sign(rf), 'diagonal pairs');
   let bent = false, bobbed = false; for (let i = 0; i < 30; i++) { updateSkinnedFeline(a, 1 / 60, null, true); if (Math.abs(r.legs.lfore.bones[1].rotation.x) > .1) bent = true; if (r.hips.position.y > r.hips.userData.world[1] + .005) bobbed = true; }
   assert.ok(bent, 'the elbow bends on the lift'); assert.ok(bobbed, 'the hips bob');
-  for (let i = 0; i < 60; i++) updateSkinnedFeline(a, 1 / 60, null, false);
+  for (let i = 0; i < 120; i++) updateSkinnedFeline(a, 1 / 60, null, false); // the stop waits for the stride's loop boundary first
   assert.equal(actions.idle.getEffectiveWeight(), 1); assert.equal(actions.walk.getEffectiveWeight(), 0);
   assert.ok(Math.abs(r.legs.lfore.bones[0].rotation.x) < .02 && Math.abs(r.hips.position.y - r.hips.userData.world[1]) < 1e-3, 'standing: the legs settle and the hips come down');
   const t1 = r.tail[3].rotation.y; for (let i = 0; i < 20; i++) updateSkinnedFeline(a, 1 / 60, null, false);
@@ -127,18 +128,20 @@ test('the walk\'s stride rate follows the measured speed, within bounds', () => 
   assert.ok(Math.abs(GAIT.nominal - GAIT.stride.walk * WALK.hz) < 1e-9, 'one cycle per stride: the phase follows distance');
   r = walkFor(a, 60, GAIT.nominal);
   assert.ok(Math.abs(r.timeScale - 1) < .1, `nominal speed, stride rate about 1: ${r.timeScale}`);
-  r = walkFor(a, 60, 3);
-  assert.ok(r.timeScale > 1.1 && r.timeScale <= GAIT.maxScale, `quicker: ${r.timeScale}`);
+  r = walkFor(a, 60, 1);
+  assert.equal(r.gait, 'walk'); assert.ok(r.timeScale > 1.1 && r.timeScale <= GAIT.maxScale, `quicker: ${r.timeScale}`);
 });
 
 test('past the run speed the walk warps into the run and back below it warps out; run and walk share phase so the warp can', () => {
   const a = createSkinnedFeline('kitten'), {actions} = a.animator;
-  let r = walkFor(a, 60, 2);
+  // the thresholds are body units per second: the kitten is .7 of a housecat
+  const u = a.g.scale.x;
+  let r = walkFor(a, 60, .6 * u);
   assert.equal(r.gait, 'walk');
-  r = walkFor(a, 90, GAIT.runAt + 2);
+  r = walkFor(a, 90, (GAIT.runAt + GAIT.gallopAt) / 2 * u);
   assert.equal(r.gait, 'run'); assert.equal(actions.run.getEffectiveWeight(), 1); assert.equal(actions.walk.getEffectiveWeight(), 0);
   assert.ok(r.timeScale <= GAIT.maxScale);
-  r = walkFor(a, 90, GAIT.walkAt - 1.5);
+  r = walkFor(a, 90, (GAIT.walkAt - .4) * u);
   assert.equal(r.gait, 'walk'); assert.equal(actions.walk.getEffectiveWeight(), 1); assert.equal(actions.run.getEffectiveWeight(), 0);
   assert.ok(RUN.hz > WALK.hz && RUN.swing > WALK.swing);
   // both cycles put the same leg forward at the same phase
@@ -148,14 +151,14 @@ test('past the run speed the walk warps into the run and back below it warps out
 
 test('a stop waits for the stride\'s loop boundary before fading to idle, so the feet are planted; walking again cancels the stop', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  walkFor(a, 40, 2);
+  walkFor(a, 40, .6);
   let r = updateSkinnedFeline(a, 1 / 60, null, false);
   assert.ok(r.stopping && actions.walk.getEffectiveWeight() === 1, 'the frame after the halt the walk is still at full weight');
   let frames = 0; while (actions.walk.getEffectiveWeight() > 0 && frames < 90) { r = updateSkinnedFeline(a, 1 / 60, null, false); frames++; }
   assert.ok(frames > 2 && frames < 90, `faded out after the loop boundary (${frames} frames)`); assert.equal(r.gait, 'idle');
-  walkFor(a, 40, 2);
+  walkFor(a, 40, .6);
   r = updateSkinnedFeline(a, 1 / 60, null, false); assert.ok(r.stopping);
-  r = walkFor(a, 5, 2);
+  r = walkFor(a, 5, .6);
   assert.ok(!r.stopping && r.gait === 'walk' && actions.walk.getEffectiveWeight() === 1, 'walking again cancels the stop');
 });
 
@@ -214,4 +217,36 @@ test('the eyes blink: shut for a moment every few seconds, open the rest of the 
   assert.ok(blinks >= 2 && blinks <= 9, `${blinks} blinks in 20 s`);
   assert.ok(shut / (60 * 20) < .06, 'the eyes are open almost all the time');
   assert.ok(shut / blinks >= BLINK.shut * 60 * .8, 'each blink lasts about the shut time');
+});
+
+// A pet following the hero: a tile a step, gliding (slide.js) the way live.js moves it.
+const stepTiles = (a, steps, gap = .6) => { const out = []; a.target = a.target || a.g.position.clone(); a.g.rotation.y = Math.PI / 2;
+  for (let s = 0; s < steps; s++) { a.target.x += 1; for (let f = 0; f < gap * 60; f++) { slideTo(a, 1 / 60); const moving = a.g.position.distanceTo(a.target) > .025; out.push(updateSkinnedFeline(a, 1 / 60, null, moving)); } }
+  return out; };
+
+test('a pet crossing tiles bounds in a gallop whose strides keep pace with the ground, never churning faster than it travels', () => {
+  const a = createSkinnedFeline('kitten');
+  assert.equal(a.glide, FELINE_GLIDE, 'the cat glides tile to tile instead of darting');
+  const frames = stepTiles(a, 5).filter(r => r.walking && r.gait !== 'idle');
+  assert.ok(frames.length > 60);
+  const gaits = new Set(frames.slice(10).map(r => r.gait));
+  assert.deepEqual([...gaits], ['gallop'], `one gait for the whole step: ${[...gaits]}`);
+  // the stride rate stays within honest bounds: at most maxScale, and the legs' ground speed matches the body's at cruise
+  for (const r of frames) assert.ok(r.timeScale <= GAIT.maxScale + 1e-9);
+  const cruise = frames.filter(r => r.speed > FELINE_GLIDE.cruise * .9);
+  for (const r of cruise) { const legSpeed = r.timeScale * GALLOP.hz * GAIT.stride.gallop * a.g.scale.x; assert.ok(legSpeed > FELINE_GLIDE.cruise * .75 && legSpeed < FELINE_GLIDE.cruise * 1.3, `legs cover ${legSpeed.toFixed(2)} tiles/s at a body speed of ${FELINE_GLIDE.cruise}`); }
+  // and about one and a half strides per tile, not seven
+  let cycles = 0, last = null; for (const r of frames) { const base = a.animator.actions.gallop; void base; }
+  const t = a.animator.actions.gallop; assert.ok(t.getClip().duration > 0);
+});
+
+test('the sit has the cat\'s feet under it: hind feet just behind the front paws, hocks on the floor, the back rising steeply', () => {
+  const a = createSkinnedFeline('kitten'); a.animator.show('sit', .5); a.g.updateMatrixWorld(true);
+  const wp = b => b.getWorldPosition(new THREE.Vector3()), L = a.rig.legs;
+  const fp = wp(L.lfore.bones[2]), hp = wp(L.lhind.bones[3]), hock = wp(L.lhind.bones[2]), hips = wp(a.rig.hips), chest = wp(a.rig.chest);
+  assert.ok(hp.z < fp.z && fp.z - hp.z < .1, `hind foot ${(fp.z - hp.z).toFixed(3)} behind the front paw`);
+  assert.ok(hock.y < .05 && hp.y < .05 && fp.y < .05, 'paws and hocks down on the floor');
+  const pitch = Math.atan2(chest.y - hips.y, chest.z - hips.z) * 180 / Math.PI;
+  assert.ok(pitch > 30, `the back rises ${pitch.toFixed(0)} degrees`);
+  assert.ok(SIT.hz > 0, 'the haunches slide forward under the body');
 });

@@ -2,7 +2,7 @@
 <style>html,body{margin:0;background:#233138}canvas{display:block}</style>
 <script type="module">
 // The skinned pet cat next to the rigid one, at a moment of its animation:
-// /tools/cat-shot.html?name=kitten&walk=1&t=0.6&view=three   (views: three, side, front, top)
+// /tools/cat-shot.html?name=kitten&walk=1&t=0.6&view=three   (views: three, side, front, top, back; ?clip=sit&u=.5 holds a clip)
 import * as THREE from 'three';
 import {createFeline} from '../feline.js';
 import {createSkinnedFeline, updateSkinnedFeline} from '../feline-skin.js';
@@ -14,8 +14,9 @@ scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const key=new THREE.
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshStandardMaterial({color:0x4a5550,roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
 const rigid=createFeline(name);rigid.g.position.x=-.55;scene.add(rigid.g);
 const cat=createSkinnedFeline(name,undefined,{hull:q.get('hull')!=='0'});cat.g.position.x=.55;scene.add(cat.g);
-// run the animation up to t in small steps so the eased parts settle like they would in play
-for(let s=0;s<t;s+=1/60)updateSkinnedFeline(cat,1/60,s,walk);
+// run the animation up to t in small steps so the eased parts settle like they would in play,
+// or hold one clip at a moment of its cycle (?clip=sit&u=.5)
+if(q.get('clip'))cat.animator.show(q.get('clip'),+(q.get('u')||0));else for(let s=0;s<t;s+=1/60)updateSkinnedFeline(cat,1/60,s,walk);
 const d=2.2,look=new THREE.Vector3(0,.3,0);
 if(view==='side')camera.position.set(d,.5,0);else if(view==='back')camera.position.set(-d*.6,.6,-d*.8);else if(view==='front')camera.position.set(0,.5,d);else if(view==='top')camera.position.set(.01,d,.01);else camera.position.set(d*.7,d*.55,d*.7);
 camera.lookAt(look);renderer.render(scene,camera);window.__done=true;window.__cat=cat;
