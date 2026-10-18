@@ -8,4 +8,4 @@ Drop a rigged `.glb` here named after the monster, with spaces as dashes: `dwarf
 - **Keep files small:** aim for 5–20k triangles, 1k or 2k textures, and a few MB per file. It goes in git and every player downloads it. `npx @gltf-transform/cli optimize in.glb out.glb --texture-compress webp` helps, but skip Draco/meshopt compression for now (the loader isn't set up for it).
 - If a file fails to load, the procedural model stays and the console shows a warning.
 
-- **Credit every file in `CREDITS.md`.** Use only models whose license allows shipping them in the game (CC0, or CC BY with the credit line kept). `fox.glb` is the first one: a rigged test animal from the Khronos glTF samples.
+- **Credit every file in `CREDITS.md`.** Use only models whose license allows shipping them in the game (CC0, or CC BY with the credit line kept). `fox.glb` is the first one: a CC0 body rigged by our own code (`fox-skin.js`). A model that ships as a bare body can be rigged the same way through `ASSET_TWEAKS[file].rig`; `tools/strip-glb.mjs` takes a credited rig and clips out of a file.

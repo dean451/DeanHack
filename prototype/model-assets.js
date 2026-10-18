@@ -1,14 +1,17 @@
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone as cloneSkinned} from 'three/addons/utils/SkeletonUtils.js';
+import {rigFox} from './fox-skin.js';
 
 // Rigged GLB creatures (e.g. from Tripo) dropped into prototype/models/ replace the
 // procedural model once they load. A file is found by the monster's name with spaces as
 // dashes ("dwarf.glb", "dwarf-lord.glb"); SHARED lets kin borrow a model. The procedural
 // model stays underneath as the fallback and sets the height the asset is scaled to.
 export const SHARED={'dwarf lord':'dwarf','dwarf king':'dwarf','gnome lord':'gnome','gnome king':'gnome'};
-// Per-file fixes for exports that don't face +z (glTF's forward) or sit oddly.
-export const ASSET_TWEAKS={};
+// Per-file fixes for exports that don't face +z (glTF's forward) or sit oddly. `rig` builds our own
+// skeleton and animator inside a model that ships as a bare body (the fox: its rig and clips carried a
+// credit, so they were stripped and it is rigged here instead; see fox-skin.js).
+export const ASSET_TWEAKS={'fox.glb':{rig:rigFox}};
 
 export function assetFileFor(name,urls={}){
  const n=(name||'').trim().toLowerCase(),file=s=>s.replace(/\s+/g,'-')+'.glb';
@@ -51,6 +54,8 @@ export function swapInAsset(actor,gltf,tweak={}){
  const height=tweak.height??(box.isEmpty()?1.1:box.max.y-Math.max(0,box.min.y));
  const model=cloneSkinned(gltf.scene),holder=new THREE.Group();
  holder.add(model);model.rotation.y=tweak.yaw||0;
+ const rigged=tweak.rig?tweak.rig(model,actor):null;
+ if(tweak.rig&&!rigged)return null;
  holder.updateMatrixWorld(true);
  const own=new THREE.Box3().setFromObject(holder,true),size=own.getSize(new THREE.Vector3());
  if(!(size.y>0)||!own.min.toArray().every(Number.isFinite))return null;
@@ -67,6 +72,14 @@ export function swapInAsset(actor,gltf,tweak={}){
   if(o.isSkinnedMesh)o.frustumCulled=false;}});
  hidden.forEach(c=>c.visible=false);
  g.add(holder);
+ if(rigged){
+  // our own rig: the cat's animator runs the gaits, the sit and the pounce (on the actor's attack action)
+  actor.asset={model:holder,mixer:rigged.animator.mixer,actions:rigged.animator.actions,animator:rigged.animator,rig:rigged.rig,
+   play(){return false;},
+   update(dt,walking){rigged.animator.update(dt,walking);},
+   restore(){rigged.animator.mixer.stopAllAction();g.remove(holder);hidden.forEach(c=>c.visible=true);delete actor.asset;}};
+  return actor.asset;
+ }
  const mixer=new THREE.AnimationMixer(model),roles=clipRoles(gltf.animations||[]),actions={};
  for(const [role,clip] of Object.entries(roles))if(clip)actions[role]=mixer.clipAction(clip);
  for(const role of ['attack','hurt','die'])if(actions[role]){actions[role].setLoop(THREE.LoopOnce,1);actions[role].clampWhenFinished=true;}

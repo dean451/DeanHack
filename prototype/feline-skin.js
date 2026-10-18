@@ -270,7 +270,9 @@ export function sampleClip(name, {pose, period, frames}, bonesByName) {
 // walk's time scale follows the measured speed), plays the pounce as a one-shot when the
 // actor's attack action begins, keeps the tail playing, and lays the turn lean on top after the
 // mixer has posed the bones. `actor` is read for its actions and its position.
-export function createFelineAnimator(root, rig, actor = null) {
+// `opts.yaw()` and `opts.scale()` override where the heading and the body-unit size come from, for a
+// rig that does not sit straight under the actor's group (the fox, inside its model holder).
+export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   const bonesByName = {}; root.traverse(o => { if (o.isBone) bonesByName[o.name] = o; });
   const mixer = new THREE.AnimationMixer(root), actions = {};
   for (const [name, spec] of Object.entries(CLIPS)) {
@@ -312,11 +314,11 @@ export function createFelineAnimator(root, rig, actor = null) {
     if (!pouncing && !walking && !stopping && still >= SIT_AFTER && base !== actions.sit) setBase(actions.sit, .6);
     // the stride rate follows the measured speed once no fade is warping it: one cycle per `stride` tiles
     fading = Math.max(0, fading - dt);
-    if (!fading && moving() && walking) { const run = base === actions.run, perSecond = (run ? GAIT.stride.run : GAIT.stride.walk) * (actor?.g?.scale.x || 1) * (run ? RUN.hz : WALK.hz); base.setEffectiveTimeScale(Math.max(GAIT.minScale, Math.min(GAIT.maxScale, speed / perSecond))); }
+    if (!fading && moving() && walking) { const run = base === actions.run, perSecond = (run ? GAIT.stride.run : GAIT.stride.walk) * (opts.scale ? opts.scale() : (actor?.g?.scale.x || 1)) * (run ? RUN.hz : WALK.hz); base.setEffectiveTimeScale(Math.max(GAIT.minScale, Math.min(GAIT.maxScale, speed / perSecond))); }
     mixer.update(dt);
     if (planting) plantFeet();
     // the lean into a turn: the heading arrives in steps, so it snaps toward a turn and eases out
-    const yaw = rig.hips.parent?.parent?.rotation.y ?? 0, d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
+    const yaw = opts.yaw ? opts.yaw() : (rig.hips.parent?.parent?.rotation.y ?? 0), d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
     const target = dt > 0 ? Math.max(-.5, Math.min(.5, d / dt * .12)) : 0;
     rig.lean += (target - rig.lean) * (1 - Math.exp(-dt * (Math.abs(target) > Math.abs(rig.lean) ? 14 : 3)));
     if (Math.abs(rig.lean) > 1e-4) { const l = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, -rig.lean * .25)); rig.spine.quaternion.multiply(l); rig.chest.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, 0))); }
