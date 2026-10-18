@@ -11,8 +11,11 @@ import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
 export const AO_PARAMS = {radius: .35, distanceExponent: 1, thickness: 1, distanceFallOff: 1, scale: 1.4, samples: 16, screenSpaceRadius: false};
 export const DENOISE_PARAMS = {lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, radiusExponent: 1, rings: 2, samples: 16};
 
-// True for an object that should not write into the occlusion pass's depth and normals.
-export const sitsOut = o => !!(o.visible && (o.isPoints || o.isLine || o.isLine2 || o.isSprite || (o.isMesh && o.material && !Array.isArray(o.material) && (o.material.transparent || o.material.depthWrite === false))));
+// True for an object that should not write into the occlusion pass's depth and normals. An ink
+// outline hull (readability.js) is one too: the pass draws it without its push outward, as a second
+// copy of the creature's surface with other normals, and on a flat-shaded GLB (the fox) that
+// occluded the whole creature to black.
+export const sitsOut = o => !!(o.visible && (o.isPoints || o.isLine || o.isLine2 || o.isSprite || o.userData?.outline || (o.isMesh && o.material && !Array.isArray(o.material) && (o.material.transparent || o.material.depthWrite === false))));
 
 export class DungeonAOPass extends GTAOPass {
   constructor(scene, camera, width, height) {

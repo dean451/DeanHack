@@ -133,3 +133,8 @@ test('menu accelerators use a monospace whose capital I and small l differ (Inte
   const css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
   assert.match(css,/\.engine-menu-row kbd\{[^}]*font:600 12px\/1\.2 'Courier New',Courier,monospace\}/);
 });
+
+test('a GLB creature is outlined with smoothed normals once its model swaps in',()=>{
+  const live=readFileSync(new URL('./live.js',import.meta.url),'utf8');
+  assert.match(live,/attachModelAsset\(a,cell\.name,MODEL_URLS\)\?\.then\(asset=>\{if\(asset\)addOutlines\(asset\.model,\{smooth:true\}\);\}\);/);
+});
