@@ -217,3 +217,46 @@ test('heavy movers hop too, at their own pace, and others can pose y in between'
   slideTo(a, 1 / 60);
   assert.equal(a.g.position.y, 0);
 });
+
+// A trail follower (the pet cat): it walks the way it was led, not straight at its newest cell.
+import {TRAIL, FELINE_GLIDE} from './slide.js';
+const trailWalker = (hip = .2) => ({g: new THREE.Group(), glide: FELINE_GLIDE, animator: {stepper: {hip: () => hip}}});
+const segDist = (p, [ax, az], [bx, bz]) => { const dx = bx - ax, dz = bz - az, k = Math.max(0, Math.min(1, ((p.x - ax) * dx + (p.z - az) * dz) / (dx * dx + dz * dz))); return Math.hypot(p.x - ax - dx * k, p.z - az - dz * k); };
+
+test('a trail follower walks the cells it was sent to in order, carving round corners close to the route, and lands on the last', () => {
+  const a = trailWalker(), route = [[0, 0], [1, 0], [2, 0], [2, 1], [2, 2], [1, 2]];
+  a.target = new THREE.Vector3();
+  let worst = 0, turnedEarly = false;
+  for (const [x, z] of route.slice(1)) {
+    a.target = new THREE.Vector3(x, 0, z);
+    for (let i = 0; i < 15; i++) {
+      slideTo(a, 1 / 60);
+      worst = Math.max(worst, Math.min(...route.slice(1).map((p, k) => segDist(a.g.position, route[k], p))));
+      // it never heads for the newest cell across the corner
+      if (a.g.position.x < 1.5 && a.g.position.z > .5) turnedEarly = true;
+    }
+  }
+  for (let i = 0; i < 60 * 12 && a.pathLeft > 0; i++) { slideTo(a, 1 / 60); worst = Math.max(worst, Math.min(...route.slice(1).map((p, k) => segDist(a.g.position, route[k], p)))); }
+  assert.ok(!turnedEarly, 'it went round by (2, 0), not across');
+  assert.ok(worst < .2, `within ${worst.toFixed(3)} of the route`);
+  assert.equal(a.pathLeft, 0); assert.equal(a.g.position.x, 1); assert.equal(a.g.position.z, 2);
+  assert.ok(Math.abs(Math.abs(a.pathYaw) - Math.PI / 2) < .3, `facing the way it last went (west): ${a.pathYaw}`);
+});
+
+test('a trail follower slows into a sharp turn, starts over after a jump, and eases straight there when far behind', () => {
+  // two cats sent the same distance, one straight on and one round a right angle at (2, 0)
+  const run = turn => { const c = trailWalker(); c.target = new THREE.Vector3(); let slowest = Infinity;
+    for (const [x, z] of [[1, 0], [2, 0], turn ? [2, 1] : [3, 0], turn ? [2, 2] : [4, 0]]) { c.target = new THREE.Vector3(x, 0, z); for (let i = 0; i < 15; i++) { slideTo(c, 1 / 60); if (c.g.position.x > 1.6) slowest = Math.min(slowest, c.slideSpeed); } }
+    for (let i = 0; i < 60; i++) { slideTo(c, 1 / 60); if (c.g.position.x > 1.6 && c.g.position.x < 2.4) slowest = Math.min(slowest, c.slideSpeed); }
+    return slowest; };
+  const straight = run(false), corner = run(true);
+  assert.ok(corner < straight * .9, `slower round the corner: ${corner.toFixed(2)} vs ${straight.toFixed(2)}`);
+  const a = trailWalker(); a.target = new THREE.Vector3(1, 0, 0); slideTo(a, 1 / 60);
+  // a jump (a teleport) drops the old trail
+  a.target = new THREE.Vector3(9, 0, 5); slideTo(a, 1 / 60);
+  assert.equal(a.trail.length, 1, 'only the new cell');
+  // farther than the catch-up distance: the ordinary ease, straight there
+  const b = trailWalker(); b.target = new THREE.Vector3(FELINE_GLIDE.catchup + 2, 0, 0); slideTo(b, 1 / 60);
+  assert.ok(Math.abs(b.g.position.x - b.target.x * (1 - Math.exp(-EASE_RATE / 60))) < 1e-9);
+  assert.ok(TRAIL.jump > Math.SQRT2, 'a diagonal step is not a jump');
+});

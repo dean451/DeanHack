@@ -114,7 +114,7 @@ The old procedural walk (sine-wave clips in `feline-skin.js`) against the real c
 | No wrist flick or heel roll | Wrist flicks at lift-off; paw rolls onto the toes | Both |
 | Whole clip sped up with speed | Stance shortens, swing stays ~0.25 s | Stance shortens, swing holds |
 | Sit drops the hip joint to the floor | Rump on the floor, hip held up by folded thigh | Open: needs side-on sit video |
-| Pet slides tile to tile at a gallop's pace | Walks after the player; trots to catch up | Walks within ~1 tile, trots by 2.5, gallops past 4; the path-following trail is next |
+| Pet slides tile to tile at a gallop's pace | Walks after the player; trots to catch up | Walks within ~1 tile, trots by 2.5, gallops past 4, along the cells it was led through: it carves round corners on a tight arc (within 0.14 tile of the route) and slows into them |
 | Old gallop clip: paws dipping ~2 cm into the floor | 3.1–3.4 strides/s held as speed rises; swing ~0.2 s; one flight a stride; hind paws ~0.11 apart; the spine flexes and extends | Stepped too, the trot sliding into it from ~2 m/s: 3.2–3.6 strides/s, swing 0.19–0.21 s, flight 3–13% rising with speed, hind paws ~0.09–0.11 apart (transverse LH → RH → LF → RF), spine gathering and stretching 0.18 h each way, tail streaming back |
 
 ## 9. Approach
