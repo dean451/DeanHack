@@ -133,8 +133,11 @@ function headPaint(C) {
     let c = mix(C.coat, C.back, smooth((y - .03) / .05) * .45);
     // the bridge of the nose, warm tan down to the nose leather
     c = mix(c, rgb('#b08455'), smooth((.014 - Math.abs(x)) / .006) * smooth((z - .1) / .015) * smooth((.035 - y) / .01) * smooth((y + .002) / .01) * .8);
-    const muzzle = smooth((-.02 - y) / .02) * smooth((z - .07) / .03) + smooth((z - .12) / .015) * smooth((-.005 - y) / .015);
-    return mix(c, C.belly, clamp01(muzzle) * .9);
+    // the muzzle: the pads, the upper lip and the chin clean white, the throat cream
+    const ax = Math.abs(x), pad = 1 - smooth((Math.hypot((ax - MUZZLE.pad[0]) / (MUZZLE.padR[0] * 1.35), (y - MUZZLE.pad[1]) / (MUZZLE.padR[1] * 1.35), (z - MUZZLE.pad[2]) / (MUZZLE.padR[2] * 1.6)) - .75) / .3);
+    const chin = smooth((-.034 - y) / .008) * smooth((z - .075) / .02), lower = smooth((-.02 - y) / .02) * smooth((z - .07) / .03);
+    c = mix(c, C.belly, clamp01(lower) * .9);
+    return mix(c, mix(C.belly, rgb('#ffffff'), MUZZLE.white), clamp01(Math.max(pad, chin)) * .95);
   };
 }
 
@@ -182,6 +185,10 @@ function foreLeg(L, C, side, k) {
 // Head space: the origin is the neck pivot (L.neck), before the look's head size.
 // The eyes (head space): centre, radii, outward turn, and `open`, how much of the eyeball's width
 // shows past the face round it (the coat draws the lid line there; a test checks it against the face).
+// The muzzle (head space): the right whisker pad's centre and radii and how softly it joins the
+// face (a tight join keeps the dip between the pads), the chin's centre and radii, and how far the
+// pads and chin go from cream to white.
+export const MUZZLE = {pad: [.0145, -.023, .122], padR: [.018, .016, .016], padJoin: .008, chin: [0, -.046, .106], chinR: [.015, .011, .013], white: .55};
 export const EYE = {x: .031, y: .027, z: .1015, r: [.0155, .014, .011], tilt: .2, open: .69};
 function headPieces(C, nose) {
   const paint = headPaint(C), out = [], H = (f, c, reach, blend = JOIN.head, colour = paint) => out.push(piece(f, c, reach, colour, blend));
@@ -192,11 +199,13 @@ function headPieces(C, nose) {
   for (const s of [-1, 1]) H(ellipsoid([s * .033, -.004, .056], [.028, .029, .038]), [s * .033, -.004, .056], .05, .03);
   // the muzzle: a short bridge, a compact block under the whisker pads, the nose leather and a small chin
   H(roundCone([0, .04, .1], [0, .006, .134], .016, .01), [0, .02, .118], .035, JOIN.face);
-  H(ellipsoid([0, -.021, .109], [.027, .022, .03]), [0, -.021, .109], .045, JOIN.face);
-  for (const s of [-1, 1]) H(ellipsoid([s * .013, -.024, .124], [.015, .014, .014]), [s * .013, -.024, .124], .025, JOIN.face);
+  H(ellipsoid([0, -.021, .109], [.028, .022, .03]), [0, -.021, .109], .045, JOIN.face);
+  // the whisker pads: two full round lobes, the dip under the nose left between them
+  for (const s of [-1, 1]) H(ellipsoid([s * MUZZLE.pad[0], MUZZLE.pad[1], MUZZLE.pad[2]], MUZZLE.padR), [s * MUZZLE.pad[0], MUZZLE.pad[1], MUZZLE.pad[2]], .03, MUZZLE.padJoin);
   H(ellipsoid([0, -.002, .14], [.0125, .0085, .006]), [0, -.002, .14], .015, .004, nose);
   H(roundCone([0, -.028, .045], [0, -.04, .1], .02, .012), [0, -.035, .07], .045, JOIN.face);
-  H(ellipsoid([0, -.044, .107], [.012, .009, .012]), [0, -.044, .107], .02, JOIN.face);
+  // the chin: small, round, standing a little forward under the mouth
+  H(ellipsoid(MUZZLE.chin, MUZZLE.chinR), MUZZLE.chin, .025, JOIN.face);
   // the fur mound each ear grows from, so its base sits in the skull and not on its edge
   for (const s of [-1, 1]) { const {base, up, fwd, across} = earFrame(s), c = base.clone().addScaledVector(up, .002).addScaledVector(fwd, -.004); H(framedEllipsoid(c, [across, up, fwd], EAR.mound), c.toArray(), .04, .014); }
   return out;
