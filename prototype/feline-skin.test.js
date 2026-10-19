@@ -97,7 +97,7 @@ test('a pet that stands still long enough sits down, and gets up the moment it w
   let r; for (let t = 0; t < 2; t += 1 / 60) r = updateSkinnedFeline(a, 1 / 60, null, false);
   assert.ok(r.sitting && actions.sit.getEffectiveWeight() === 1 && actions.idle.getEffectiveWeight() === 0, 'sat');
   assert.ok(a.rig.hips.position.y < a.rig.hips.userData.world[1] - .05, 'the haunches are down');
-  assert.ok(a.rig.legs.lhind.bones[1].rotation.x > .5 && a.rig.hips.rotation.x + a.rig.legs.lhind.bones[0].rotation.x < -.8, 'the hind legs are folded forward (the pelvis tipped back and the thigh forward)');
+  { a.g.updateMatrixWorld(true); const L = a.rig.legs.lhind, hip = L.bones[0].getWorldPosition(new THREE.Vector3()), foot = L.tip.clone().applyMatrix4(L.bones.at(-1).matrixWorld); assert.ok(hip.y < .6 * a.animator.stepper.hip() && foot.y < .02, 'the hind legs are folded under (the hip joint low), the feet on the floor'); }
   for (let i = 0; i < 40; i++) r = updateSkinnedFeline(a, 1 / 60, null, true);
   assert.ok(!r.sitting && r.step.stepping && r.stepWeight === 1 && actions.sit.getEffectiveWeight() === 0, 'up and walking');
   // the sit clip is a loop; the pounce is a one-shot
