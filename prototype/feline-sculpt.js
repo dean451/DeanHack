@@ -140,8 +140,8 @@ function hindLeg(L, C, side, k) {
   const {x, pts} = legJoints(L, false, side), [hip, knee, hock, foot] = pts, Y = L.Y, paint = legPaint(L, C, [x]), out = [];
   const xo = x + side * .004, P = (y, z, dx = 0) => [xo + side * dx, y, z];
   // thigh and hamstring: the haunch, flattened side to side, rounding off the rear of the body
-  out.push(piece(squash(roundCone(P(Y - .005, hip[2] - .015), P(knee[1] + .01, knee[2] - .005), .062 * k, .033 * k), xo, .66), P(Y - .06, -.16), .13, paint, JOIN.thigh));
-  out.push(piece(squash(roundCone(P(Y + .01, -.24), P(knee[1] - .01, -.17), .05 * k, .026 * k), xo, .72), P(Y - .05, -.2), .12, paint, JOIN.thigh));
+  out.push(piece(squash(roundCone(P(Y - .005, hip[2] - .015), P(knee[1] + .01, knee[2] - .005), .066 * k, .034 * k), xo, .66), P(Y - .06, -.16), .13, paint, JOIN.thigh));
+  out.push(piece(squash(roundCone(P(Y + .01, -.24), P(knee[1] - .01, -.17), .054 * k, .027 * k), xo, .72), P(Y - .05, -.2), .12, paint, JOIN.thigh));
   // shin, with the calf swelling behind it down to the hock
   out.push(piece(roundCone(knee, hock, .032 * k, .02 * k), P((knee[1] + hock[1]) / 2, (knee[2] + hock[2]) / 2), .09, paint, JOIN.leg));
   out.push(piece(roundCone(P(knee[1] - .015, knee[2] - .03), P(hock[1] + .012, hock[2] - .012), .029 * k, .013 * k), P(knee[1] - .03, -.19), .08, paint, JOIN.leg));

@@ -208,20 +208,26 @@ export function tailPose(u) {
   for (let i = 0; i < n; i++) { const k = i / (n - 1); pose['tail' + i] = {x: (i ? Math.sin(u * TAU) * TAIL.curl * k : 0) + Math.sin(u * TAU * 3 + i * .9) * .03, y: Math.sin(u * TAU * 2 + .4) * TAIL.sway * k + Math.sin(u * TAU * 7 + i) * TAIL.flick * k, z: Math.sin(u * TAU + i) * .03}; }
   return pose;
 }
-// Sitting the way a cat does, with its feet under it: the haunches slide forward under the body
-// (`hz`) as the rump drops to the floor (`drop`), so the hind feet come to rest just behind the
-// front paws with the hocks flat on the floor and the knees up at the flank; the back rises from
-// the rump to the shoulders, which stay at standing height over front legs standing straight on the
-// paws where they stood. The tail lies round the hip. The breath still runs. The numbers come from
-// a search over the kitten's rig that pins those contacts (tools: the cat-shot page, ?clip=sit).
-export const SIT = {drop: .169, hz: .114, hips: -.213, spine: -.888, chest: .003, thigh: -1.043, knee: 1.146, hock: -1.021, paw: .822, fore: 1.071, elbow: .54, wrist: -.482};
+// Sitting the way a cat does, measured against side-on photos of sitting cats: the pelvis tips and
+// the rump drops to the floor (`drop`) as the haunches slide forward under the body (`hz`); the
+// back rises from the haunch to the withers about as steeply as a line from hip joint to shoulder
+// does on a real cat (~40-45 degrees), straight or a touch hollow and never humped (the lumbar
+// spine curls, the chest lifts back); each hind leg folds in a Z under its haunch, the thigh
+// forward and level with the knee near the elbow, the shin back down to the hock under the rump,
+// the foot flat on the floor with its toes just behind the front paws; the front legs stand
+// straight and upright under the shoulders. The tail lies back along the floor behind the rump,
+// its tip curled. The breath still runs. The numbers come from a search over the sculpted kitten's
+// rig for those targets (tools/sit-search.mjs).
+export const SIT = {drop: .145, hz: .051, hips: -.438, spine: -.517, chest: .332, thigh: -.891, knee: .844, hock: -.705, paw: 1.33, fore: .438, elbow: .601, wrist: -.44};
+// The sat tail, per bone (root first): down from the rump (x) and curling to the side (y).
+export const SIT_TAIL = {x: [-1.35, -.3, -.4, -.25, -.1], y: [0, .05, .15, .3, .4]};
 export function sitPose(u) {
   const ph = u * TAU, breath = Math.sin(ph) * .5 + .5, pose = {hipsY: -SIT.drop, hipsZ: SIT.hz, chestScale: 1 + .02 * breath};
   pose.spine = {x: SIT.spine}; pose.chest = {x: SIT.chest}; pose.hips = {x: SIT.hips};
   for (const key of ['lhind', 'rhind']) { pose[key + '0'] = {x: SIT.thigh}; pose[key + '1'] = {x: SIT.knee}; pose[key + '2'] = {x: SIT.hock}; pose[key + '3'] = {x: SIT.paw}; }
   for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: SIT.fore}; pose[key + '1'] = {x: SIT.elbow}; pose[key + '2'] = {x: SIT.wrist}; }
-  // the tail lies down and wraps round the right hip on the floor, its tip stirring
-  for (let i = 0; i < 5; i++) { const k = i / 4; pose['tail' + i] = {x: .75 * k, y: .6 * k, z: Math.sin(ph * 2 + i) * .04 * k}; }
+  // the tail lies back along the floor behind the rump, curling a little at the tip, which stirs
+  for (let i = 0; i < 5; i++) { const k = i / 4; pose['tail' + i] = {x: SIT_TAIL.x[i], y: SIT_TAIL.y[i], z: Math.sin(ph * 2 + i) * .04 * k}; }
   return pose;
 }
 // The pounce, over its whole duration: a crouch (u to .3), the launch with the forelegs reaching
