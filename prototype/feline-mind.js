@@ -121,7 +121,8 @@ export function createFelineMind(rig, actor, {seed = 1} = {}) {
 
   // Per frame, after the turn code has written the neck and before the step solves the legs.
   // `ctx`: {dt, walking, pouncing, sitting, resting (sitting, lying or any settled pose), asleep (0..1:
-  // the head, ears and tail belong to the sleeping pose)}. Returns {crouch, hold, turn} for the step.
+  // the head, ears and tail belong to the sleeping pose), busy (0..1: grooming and the like hold the
+  // head)}. Returns {crouch, hold, turn} for the step.
   function update(dt, ctx) {
     st.t += dt;
     const sn = actor?.senses || {};
@@ -154,8 +155,8 @@ export function createFelineMind(rig, actor, {seed = 1} = {}) {
       }
     }
     // asleep, the gaze lets go: the head rests where the pose puts it
-    const awake = 1 - (ctx.asleep || 0);
-    const yawWant = Math.max(-MIND.yawMax, Math.min(MIND.yawMax, want.yaw)) * awake, pitchWant = Math.max(-MIND.pitchMax, Math.min(MIND.pitchMax, want.pitch)) * awake;
+    const awake = 1 - (ctx.asleep || 0), free = 1 - Math.max(ctx.asleep || 0, ctx.busy || 0); // (busy: grooming and the like: the pose holds the head)
+    const yawWant = Math.max(-MIND.yawMax, Math.min(MIND.yawMax, want.yaw)) * free, pitchWant = Math.max(-MIND.pitchMax, Math.min(MIND.pitchMax, want.pitch)) * free;
     const rate = st.snapping ? MIND.snap : MIND.track, k = 1 - Math.exp(-dt * rate);
     st.yaw += (yawWant - st.yaw) * k; st.pitch += (pitchWant - st.pitch) * k;
     if (Math.abs(yawWant - st.yaw) + Math.abs(pitchWant - st.pitch) < MIND.settle) st.snapping = false;

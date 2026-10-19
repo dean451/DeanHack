@@ -42,7 +42,7 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
 
 test('the clips: idle, sit, loaf, curl, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['curl', 'idle', 'loaf', 'pounce', 'sit', 'stretch', 'tail'], 'walking, trotting and galloping are stepped, not clips');
+  assert.deepEqual(Object.keys(actions).sort(), ['curl', 'groom', 'idle', 'loaf', 'pounce', 'scratch', 'sit', 'stretch', 'tail'], 'walking, trotting and galloping are stepped, not clips');
   const tail = actions.tail.getClip(), idle = actions.idle.getClip(), sit = actions.sit.getClip();
   const names = c => c.tracks.map(t => t.name);
   assert.ok(names(tail).every(n => n.startsWith('tail')) && names(tail).length === 5, 'the tail clip touches only the tail bones');
@@ -285,4 +285,29 @@ test('waking on its own, a pet stretches (forelegs out, rump up) and yawns (mout
   assert.ok(jaw > .7 && shut, `yawned wide (${jaw.toFixed(2)}) with its eyes shut`);
   const standing = createSkinnedFeline('kitten'); standing.g.updateMatrixWorld(true);
   assert.ok(low < standing.rig.chest.getWorldPosition(new THREE.Vector3()).y - .03, 'the chest went down in the bow');
+});
+
+test('a sitting pet grooms now and then: licks a raised forepaw, washes its face and ear with it, licks its shoulder, then sits on', () => {
+  const a = createSkinnedFeline('kitten'); let r, groomed = false, back = false, pawUp = 0, jaw = 0;
+  for (let t = 0; t < 900 && !back; t += 1 / 30) {
+    r = updateSkinnedFeline(a, 1 / 30, null, false);
+    if (r.rest === 'groom') { groomed = true; a.g.updateMatrixWorld(true); pawUp = Math.max(pawUp, a.rig.legs.rfore.bones[2].getWorldPosition(new THREE.Vector3()).y); jaw = Math.max(jaw, a.rig.jaw.rotation.x); }
+    else if (groomed && r.rest === 'sit') back = true;
+  }
+  assert.ok(groomed && back, 'groomed and sat on');
+  assert.ok(pawUp > .12, `the forepaw came up to the face (${pawUp.toFixed(3)})`);
+  assert.ok(jaw > .1, 'the mouth opened to lick');
+});
+
+test('the ear scratch: from the sit, the right hind foot reaches up near the right ear and strokes fast, then goes back down', () => {
+  const a = createSkinnedFeline('kitten'), L = a.rig.legs.rhind, tip = () => { a.g.updateMatrixWorld(true); return L.tip.clone().applyMatrix4(L.bones.at(-1).matrixWorld); };
+  a.animator.show('sit', 0); const down = tip().y;
+  const ys = []; for (let u = .3; u < .7; u += .01) { a.animator.show('scratch', u); ys.push(tip()); }
+  const ear = a.rig.headLocal([.04, .03, -.01]).applyMatrix4(a.rig.head.matrixWorld);
+  assert.ok(Math.min(...ys.map(p => p.y)) > down + .1, 'the foot is up off the floor through the scratch');
+  assert.ok(Math.min(...ys.map(p => p.distanceTo(ear))) < .07, 'it reaches up by the ear');
+  // the strokes: the foot moves back and forth several times
+  let turns = 0; for (let i = 2; i < ys.length; i++) if ((ys[i].y - ys[i - 1].y) * (ys[i - 1].y - ys[i - 2].y) < 0) turns++;
+  assert.ok(turns >= 4, `strokes: ${turns} turns`);
+  a.animator.show('scratch', .97); assert.ok(tip().y < down + .02, 'and set back down');
 });
