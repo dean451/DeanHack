@@ -1,0 +1,120 @@
+<!doctype html><meta charset="utf-8"><title>Coat lab</title>
+<style>html,body{margin:0;background:#1d2529}canvas{display:block}</style>
+<script type="module">
+// Coat lab: the pet cat's current coat beside two candidate looks, for choosing between them.
+// - current: the coat painted per vertex (feline.js), so stripes are as coarse as the mesh;
+// - A: the same low-poly body with the tabby computed per pixel in the shader from where each
+//   point sits on the cat at rest (so it sticks to the skin as it moves): fine mackerel stripes,
+//   a dorsal line, the M and cheek lines, barred legs, a ringed tail with a dark tip, ticked
+//   (agouti) hair, and a soft fur sheen;
+// - B: A plus shell fur: the skin drawn again in `shells` layers pushed out along its normals,
+//   each keeping only the hairs that reach that high, for a soft outline.
+// /tools/coat-lab.html?view=side|three|front&name=kitten&shells=16&fur=.022
+import * as THREE from 'three';
+import {createSkinnedFeline} from '../feline-skin.js';
+import {LOOKS} from '../feline.js';
+const q = new URLSearchParams(location.search), view = q.get('view') || 'three', name = q.get('name') || 'kitten';
+const SHELLS = +(q.get('shells') || 16), FUR = +(q.get('fur') || .022);
+// the same look with its stripes the colour of its coat: the shader paints the markings instead
+// (?video=1: the coat nudged toward the reference kitten's: a lighter, greyer buff, stripes dark grey-brown)
+const video = q.get('video') !== '0';
+LOOKS['coat lab'] = {...LOOKS[name], ...(video ? {coat: '#a3917a', belly: '#e0d5c0'} : {}), stripe: video ? '#a3917a' : LOOKS[name].coat};
+const STRIPE = video ? '#3b3129' : LOOKS[name].stripe;
+
+const W = 1500, H = 560, renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
+renderer.setPixelRatio(1); renderer.setSize(W, H); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.shadowMap.enabled = true; document.body.append(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x1d2529);
+scene.add(new THREE.HemisphereLight(0xb8cfd6, 0x3a3428, 1.3));
+const sun = new THREE.DirectionalLight(0xfff0dc, 2.8); sun.position.set(-2.5, 4, 3); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, {left: -3, right: 3, top: 2, bottom: -2}); scene.add(sun);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), new THREE.MeshStandardMaterial({color: 0x56604f, roughness: 1})); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+const C = k => new THREE.Color(LOOKS[name][k]);
+// Per vertex: where it sits on the cat at rest, and which part it belongs to (the bone it is
+// mostly weighted to): 0 body, 1 head, 2 tail, 3 leg.
+function tagCoat(fur) {
+  const geo = fur.geometry; if (geo.attributes.aPart) return;
+  const pos = geo.attributes.position, si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, names = fur.skeleton.bones.map(b => b.name);
+  // how much of each part a vertex belongs to (body, head, tail, leg), from its skin weights, so the
+  // patterns blend across the joints instead of meeting at a seam
+  const part = new Float32Array(pos.count * 4);
+  for (let i = 0; i < pos.count; i++) for (let c = 0; c < 4; c++) {
+    const n = names[si.getComponent(i, c)], k = n === 'head' || n === 'neck' ? 1 : n.startsWith('tail') ? 2 : /fore|hind/.test(n) ? 3 : 0;
+    part[i * 4 + k] += sw.getComponent(i, c);
+  }
+  geo.setAttribute('aRest', pos.clone()); geo.setAttribute('aPart', new THREE.BufferAttribute(part, 4));
+}
+// The tabby, per pixel. Coordinates are the cat's body space at rest (before its scale).
+const COAT_GLSL = `
+uniform vec3 uStripe; uniform float uY, uHead, uShell;
+varying vec3 vRest; varying vec4 vPart;
+float hash3(vec3 p) { p = fract(p * vec3(.1031, .1030, .0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
+float band(float t, float w) { return smoothstep(-w, w, t); }
+vec3 tabby(vec3 base) {
+  vec3 p = vRest; float ax = abs(p.x);
+  // body: broken mackerel stripes running down the flanks, fading on the belly; a dark spine line
+  float wob = sin(p.y * 31. + p.x * 13.) * 1.1 + sin(p.z * 23. + p.y * 9.) * .5;
+  float broken = .5 + .5 * sin(p.y * 47. + p.z * 17.) * sin(p.z * 29. - p.y * 11.);
+  float body = band(sin(p.z * 95. + wob + ax * 10.) - .5, .1) * mix(.5, 1., broken) * smoothstep(uY - .05, uY + .02, p.y);
+  body = max(body, band(.02 - ax, .006) * smoothstep(uY + .07, uY + .1, p.y));
+  // head (relative to the neck pivot): the M above the eyes, lines back from the eye corners
+  vec3 h = (p - vec3(0., uY + .13, .27)) / uHead;
+  float m = band(sin(ax * 150. + 1.) - .3, .1) * smoothstep(.03, .04, h.y) * smoothstep(.05, .07, h.z) * smoothstep(.055, .045, ax);
+  float cheek = band(sin((h.y + ax * .6) * 140.) - .5, .1) * smoothstep(.05, .06, ax) * smoothstep(.04, .03, abs(h.y));
+  float head = max(m, cheek) * .9;
+  // tail: rings and a dark tip
+  float ts = length(p - vec3(0., uY + .05, -.29));
+  float tail = max(band(sin(ts * 85.) - .25, .15) * smoothstep(.04, .1, ts), smoothstep(.27, .31, ts));
+  // legs: bars across the leg, fading toward the paw
+  float leg = band(sin(p.y * 95.) - .5, .12) * smoothstep(.02, .07, p.y) * .85;
+  float dark = dot(vPart, vec4(body, head, tail, leg));
+  vec3 c = mix(base, uStripe, dark * .88);
+  // ticked hair: each hair banded light and dark, seen as a fine grain over the whole coat
+  float tick = hash3(floor(p * 700.)), fine = hash3(floor(p * 1700.) + 7.);
+  c *= .9 + .2 * tick; c = mix(c, uStripe, step(.93, fine) * .35);
+  return c;
+}
+`;
+function coatMaterial(cat, shellK = -1) {
+  tagCoat(cat.fur);
+  const m = new THREE.MeshPhysicalMaterial({vertexColors: true, roughness: .82, sheen: .6, sheenRoughness: .55, sheenColor: new THREE.Color('#e9dcc4'), flatShading: false});
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, {uStripe: {value: new THREE.Color(STRIPE)}, uY: {value: (LOOKS[name].legH || .22) + .1}, uHead: {value: LOOKS[name].headSize || 1}, uShell: {value: Math.max(0, shellK)}, uFur: {value: FUR}});
+    sh.vertexShader = 'attribute vec3 aRest; attribute vec4 aPart; varying vec3 vRest; varying vec4 vPart; uniform float uShell, uFur;\n' + sh.vertexShader
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRest = aRest; vPart = aPart;')
+      .replace('#include <skinning_vertex>', '#include <skinning_vertex>\ntransformed += normalize(objectNormal) * uShell * uFur * dot(aPart, vec4(1., .35, 1.25, .45));');
+    sh.fragmentShader = COAT_GLSL + sh.fragmentShader
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        diffuseColor.rgb = tabby(diffuseColor.rgb);
+        if (uShell > 0.) {
+          // a hair reaches this shell if its (per-hair) length is above the shell's height
+          vec3 cellp = floor(vRest * 420.); float len = hash3(cellp + 3.1);
+          vec3 inCell = fract(vRest * 420.) - .5;
+          if (len < uShell || dot(inCell, inCell) > .3 * (1. - uShell)) discard;
+          diffuseColor.rgb *= mix(.68, 1., uShell);
+        }`);
+  };
+  m.customProgramCacheKey = () => 'coat' + (shellK > 0 ? 'shell' : '');
+  return m;
+}
+function shellFur(cat) {
+  for (let i = 1; i <= SHELLS; i++) {
+    const k = i / SHELLS, m = new THREE.SkinnedMesh(cat.fur.geometry, coatMaterial(cat, k));
+    m.bind(cat.fur.skeleton, cat.fur.bindMatrix); m.frustumCulled = false; m.castShadow = i < 3; cat.fur.parent.add(m);
+  }
+}
+
+const cats = [];
+const place = (cat, i, label) => { cat.g.position.x = (i - 1) * 1.05; cat.g.rotation.y = view === 'side' ? Math.PI / 2 : view === 'front' ? 0 : Math.PI / 3; cat.g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(cat.g); cat.animator.show('idle', .3); cats.push({cat, label}); };
+place(createSkinnedFeline(name), 0, 'current');
+const a = createSkinnedFeline('coat lab'); a.fur.material = coatMaterial(a); place(a, 1, 'A');
+const b = createSkinnedFeline('coat lab'); b.fur.material = coatMaterial(b); shellFur(b); place(b, 2, 'B');
+// each cat close up in its own third of the frame, the same framing for all three
+const s = LOOKS[name].scale || 1, camera = new THREE.PerspectiveCamera(20, (W / 3) / H, .05, 50);
+renderer.setScissorTest(true);
+cats.forEach(({cat}, i) => {
+  const x = cat.g.position.x; camera.position.set(x, .36 * s + .14, 2.3 * s + .45); camera.lookAt(x, .26 * s, 0);
+  renderer.setViewport(i * W / 3, 0, W / 3, H); renderer.setScissor(i * W / 3, 0, W / 3, H); renderer.render(scene, camera);
+});
+window.__done = true;
+</script>

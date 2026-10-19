@@ -35,7 +35,7 @@ import {segment,chain} from './ant.js';
 // Handles: body, legs (4, left pair first, hind then fore), head (the neck pivot), tail,
 // quirk 'feline'.
 
-const LOOKS={
+export const LOOKS={
  kitten:{scruffy:true,bold:true,scale:.7,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby',headSize:1.12,legH:.16,tail:'up',tailLen:.8},
  housecat:{scruffy:true,bold:true,scale:1,legH:.19,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
  'large cat':{scruffy:true,bold:true,scale:1.15,legH:.2,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
