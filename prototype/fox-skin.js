@@ -102,7 +102,7 @@ export function rigFox(model, actor = null, opts = {}) {
   for (const b of bones) b.userData.world = b.getWorldPosition(new THREE.Vector3()).toArray();
   const rig = {hips, spine, chest, neck, head, tail, legs, yaw: 0, lean: 0};
   const w = new THREE.Vector3();
-  const animator = createFelineAnimator(body, rig, actor, {
+  const animator = createFelineAnimator(body, rig, actor, {rest: false,
     // the live actor's group turns toward each step; one body unit is this many world units
     yaw: () => actor?.g?.rotation.y ?? 0,
     scale: () => body.getWorldScale(w).x,

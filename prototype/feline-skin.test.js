@@ -40,15 +40,15 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
   }
 });
 
-test('the clips: idle, sit, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
+test('the clips: idle, sit, loaf, curl, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['idle', 'pounce', 'sit', 'tail'], 'walking, trotting and galloping are stepped, not clips');
+  assert.deepEqual(Object.keys(actions).sort(), ['curl', 'idle', 'loaf', 'pounce', 'sit', 'tail'], 'walking, trotting and galloping are stepped, not clips');
   const tail = actions.tail.getClip(), idle = actions.idle.getClip(), sit = actions.sit.getClip();
   const names = c => c.tracks.map(t => t.name);
   assert.ok(names(tail).every(n => n.startsWith('tail')) && names(tail).length === 5, 'the tail clip touches only the tail bones');
   assert.ok(names(idle).includes('chest.scale') && !names(idle).some(n => n.startsWith('head')), 'idle breathes; the head is left to the glance code');
   assert.ok(names(idle).includes('spine.quaternion') && names(idle).includes('chest.quaternion'), 'idle always writes the spine and chest, so the lean never accumulates');
-  for (const c of [idle, tail, sit]) for (const t of c.tracks) { const n = t.getValueSize(); for (let k = 0; k < n; k++) assert.ok(Math.abs(t.values[k] - t.values[t.values.length - n + k]) < 1e-6, `${c.name} ${t.name} loops seamlessly`); }
+  for (const c of [idle, tail, sit, actions.loaf.getClip(), actions.curl.getClip()]) for (const t of c.tracks) { const n = t.getValueSize(); for (let k = 0; k < n; k++) assert.ok(Math.abs(t.values[k] - t.values[t.values.length - n + k]) < 1e-6, `${c.name} ${t.name} loops seamlessly`); }
 });
 
 // The cat faces its path (live.js turns an actor toward its step), moving along +x at `hs` hip heights a second.
@@ -255,4 +255,21 @@ test('the sit has the cat\'s feet under it: hind feet just behind the front paws
   const pitch = Math.atan2(chest.y - hips.y, chest.z - hips.z) * 180 / Math.PI;
   assert.ok(pitch > 30, `the back rises ${pitch.toFixed(0)} degrees`);
   assert.ok(SIT.hz > 0, 'the haunches slide forward under the body');
+});
+
+test('left alone, a pet settles: it sits, lies down, turns a circle and curls up asleep with its eyes shut, and walking gets it straight up', () => {
+  for (const name of ['kitten', 'housecat']) {
+    const a = createSkinnedFeline(name), seen = new Set(); let r, slept = 0, circled = false, turned = 0, last = a.g.rotation.y;
+    for (let t = 0; t < 600 && slept < 2; t += 1 / 30) {
+      r = updateSkinnedFeline(a, 1 / 30, null, false); seen.add(r.rest);
+      turned += Math.abs(a.g.rotation.y - last); last = a.g.rotation.y; if (r.rest === 'circle') circled = true;
+      if (r.asleep > .99) slept += 1 / 30;
+    }
+    assert.ok(seen.has('sit') && (seen.has('loaf') || seen.has('curl')), `${name} sat and lay down: ${[...seen]}`);
+    assert.ok(slept >= 2, `${name} fell asleep`); assert.ok(circled && turned > 5, `${name} turned a circle first (${turned.toFixed(1)} rad)`);
+    assert.equal(a.eyes.visible, false, 'eyes shut asleep');
+    // a walk: up within a second
+    let up = 0; for (; up < 2; up += 1 / 30) { r = updateSkinnedFeline(a, 1 / 30, null, true); if (r.asleep < .05 && r.lying < .05) break; }
+    assert.ok(up < 1.05, `${name} up and walking in ${up.toFixed(2)} s`);
+  }
 });

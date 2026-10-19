@@ -276,9 +276,60 @@ export function pouncePose(u) {
   for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: .35 * crouch + POUNCE.reach * leap - .25 * land}; pose[key + '1'] = {x: .6 * crouch + .3 * leap + .5 * land}; pose[key + '2'] = {x: .2 * crouch - .4 * leap}; }
   return pose;
 }
-export const CLIPS = {idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
+// The loaf: lying on its chest, the back level, the front paws tucked under the chest and the hind
+// feet folded beside the flank, the head up, the tail along its side. Angles from a search over the
+// sculpted kitten's rig for those contacts (tools/pose-search.mjs loaf).
+export const LOAF = {drop: .131, hz: 0, hips: 0, spine: 0, chest: .065, thigh: .46, knee: 2.732, hock: -1.286, paw: .9, fore: .592, elbow: -1.7, wrist: 1.335, tail: 1.873};
+export function loafPose(u) {
+  const ph = u * TAU, breath = Math.sin(ph) * .5 + .5, pose = {hipsY: -LOAF.drop, hipsZ: LOAF.hz, chestScale: 1 + .015 * breath, fold: 1};
+  pose.hips = {x: LOAF.hips}; pose.spine = {x: LOAF.spine}; pose.chest = {x: LOAF.chest};
+  for (const key of ['lhind', 'rhind']) { pose[key + '0'] = {x: LOAF.thigh}; pose[key + '1'] = {x: LOAF.knee}; pose[key + '2'] = {x: LOAF.hock}; pose[key + '3'] = {x: LOAF.paw}; }
+  for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: LOAF.fore}; pose[key + '1'] = {x: LOAF.elbow}; pose[key + '2'] = {x: LOAF.wrist}; }
+  // the tail down to the floor and round along the right side
+  for (let i = 0; i < 5; i++) { const k = i / 4; pose['tail' + i] = {x: i ? .15 : -LOAF.tail, y: i ? .35 * k : 0, z: Math.sin(ph * 2 + i) * .02 * k}; }
+  return pose;
+}
+// Curled up asleep: rolled onto its side (`roll`), then curled the way a cat flexes its spine, toward
+// the belly, which on its side lies flat along the floor: the back (`flex`, shared by the spine and
+// the chest), the neck and the head round toward the hind feet, the legs tucked in, the tail swept
+// round toward the face. Slow deep breaths: CLIPS.curl's period is one breath. Angles from a search
+// over the sculpted kitten's rig (tools/pose-search.mjs curl).
+export const CURL = {drop: .14, hz: .193, roll: 1.483, flex: 1.186, neckX: 1.51, headX: 1.921, headY: -.336, thigh: -.099, knee: -1.2, hock: 1.356, paw: 2.383, fore: -.032, elbow: -1.912, wrist: 1.863, tail: [2.406, .634, -.332, -.441, -.054]};
+export function curlPose(u) {
+  const ph = u * TAU, breath = Math.sin(ph) * .5 + .5, pose = {hipsY: -CURL.drop, hipsZ: CURL.hz, chestScale: 1 + .03 * breath, fold: 1};
+  pose.hips = {z: CURL.roll}; pose.spine = {x: CURL.flex}; pose.chest = {x: CURL.flex};
+  pose.neck = {x: CURL.neckX}; pose.head = {x: CURL.headX, y: CURL.headY};
+  for (const key of ['lhind', 'rhind']) { pose[key + '0'] = {x: CURL.thigh}; pose[key + '1'] = {x: CURL.knee}; pose[key + '2'] = {x: CURL.hock}; pose[key + '3'] = {x: CURL.paw}; }
+  for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: CURL.fore}; pose[key + '1'] = {x: CURL.elbow}; pose[key + '2'] = {x: CURL.wrist}; }
+  for (let i = 0; i < 5; i++) pose['tail' + i] = {x: CURL.tail[i], z: Math.sin(ph + i) * .01};
+  return pose;
+}
+// Poses the bones directly from a pose (the shape sampleClip reads), for tools and tests: rotations
+// from rest, the hips moved by hipsY/hipsZ, a longer back folded by `fold`. `rest`: the bones' rest
+// positions by name.
+export function applyPose(pose, bonesByName, rest) {
+  const e = new THREE.Euler();
+  for (const [name, b] of Object.entries(bonesByName)) { b.quaternion.identity(); if (rest[name]) b.position.copy(rest[name]); }
+  for (const [key, o] of Object.entries(pose)) { const b = bonesByName[key]; if (b && typeof o === 'object') b.quaternion.setFromEuler(e.set(o.x || 0, o.y || 0, o.z || 0)); }
+  const h = bonesByName.hips; if (h) { h.position.y += pose.hipsY || 0; h.position.z += pose.hipsZ || 0; }
+  for (const [name, base] of [['spine', BACK.spine], ['chest', BACK.chest]]) { const b = bonesByName[name]; if (b) b.position.z -= Math.max(0, b.position.z - base) * (pose.fold || 0); }
+}
+export const CLIPS = {idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, loaf: {pose: loafPose, period: 4, frames: 32}, curl: {pose: curlPose, period: 2.5, frames: 32}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
 // A pet that has stood still this long sits down.
 export const SIT_AFTER = 6;
+// Settling down (the animator's `settle`): how long it stays in each pose (seconds, a range; `settle`:
+// a loaf on its way to sleep), the
+// odds at each choice (sitting: lie down at all, and if so go to sleep; a loaf: go to sleep rather
+// than sit back up), the circle it turns before lying down to sleep, and the fades into each pose and back up.
+// A dream twitch while asleep: every `gap` seconds a forepaw jerks for `time` seconds, `size` radians.
+export const DREAM = {gap: [6, 18], time: .35, size: .25};
+export const REST = {
+  hold: {sit: [8, 20], loaf: [10, 25], settle: [3, 6], curl: [25, 60]},
+  odds: {lie: .6, sleep: .55, curl: .4},
+  circle: 2 * Math.PI,
+  fade: {sit: .6, loaf: 1, curl: 1.4},
+  up: {sit: .4, loaf: .5, curl: .7},
+};
 
 // Samples a pose function into an AnimationClip of quaternion (and position, scale) tracks on
 // the bones it names. The last frame repeats the first, so the loop is seamless.
@@ -313,6 +364,7 @@ export function sampleClip(name, {pose, period, frames}, bonesByName) {
 // walk's time scale follows the measured speed), plays the pounce as a one-shot when the
 // actor's attack action begins, keeps the tail playing, and lays the turn lean on top after the
 // mixer has posed the bones. `actor` is read for its actions and its position.
+// `opts.rest: false` keeps a rig to sitting (the lying poses are the cat's).
 // `opts.yaw()` and `opts.scale()` override where the heading and the body-unit size come from, for a
 // rig that does not sit straight under the actor's group (the fox, inside its model holder).
 export function createFelineAnimator(root, rig, actor = null, opts = {}) {
@@ -368,6 +420,29 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   const fade = (to, from, time) => { to.enabled = true; to.setEffectiveTimeScale(1); to.setEffectiveWeight(1); if (to.loop !== THREE.LoopOnce) to.time = 0; to.play(); from.crossFadeTo(to, time, false); };
   const setBase = (to, time) => { if (to === base) return; fade(to, pouncing ? actions.pounce : base, time); base = to; };
   mixer.addEventListener('finished', e => { if (e.action === actions.pounce) { pouncing = false; fade(base, actions.pounce, .25); } });
+  // Left alone, a content cat settles: standing still SIT_AFTER seconds it sits; after a while
+  // sitting it lies down in a loaf, or gets up, turns a circle on the spot and lies down to sleep,
+  // curling up after a few moments; from a loaf it sits back up or goes off to sleep the same way;
+  // asleep for a while, it wakes and stands. Walking, a pounce or anything to hunt or fear gets it up at once (and
+  // quicker than it settled).
+  const rest = {state: 'stand', t: 0, next: 0, plan: null}, dream = {in: 8, t: 0, leg: 'lfore'};
+  const range = ([a, b]) => a + (b - a) * rnd();
+  const enter = (state, plan = null) => { rest.state = state; rest.t = 0; rest.plan = plan; rest.next = range((plan === 'sleep' && REST.hold.settle) || REST.hold[state] || [0, 0]); if (actions[state]) setBase(actions[state], REST.fade[state]); };
+  function settle(dt) {
+    if (walking || pouncing || mood.mood !== 'content') { if (rest.state !== 'stand') { setBase(actions.idle, REST.up[rest.state] ?? REST.up.sit); rest.state = 'stand'; rest.plan = null; } return; }
+    rest.t += dt;
+    if (rest.state === 'stand') { if (still >= SIT_AFTER) enter('sit'); return; }
+    if (opts.rest === false) return; // (a rig without the resting poses only sits)
+    if (rest.state === 'circle') { if (!mind.state.turning) enter('loaf', 'sleep'); return; }
+    if (rest.t < rest.next) return;
+    const toSleep = () => { setBase(actions.idle, REST.up[rest.state] ?? REST.up.sit); rest.state = 'circle'; rest.t = 0; mind.circle(REST.circle * (rnd() < .5 ? -1 : 1)); };
+    if (rest.state === 'sit') {
+      if (rnd() < REST.odds.lie) { if (rnd() < REST.odds.sleep) toSleep(); else enter('loaf'); }
+      else enter('sit');
+    } else if (rest.state === 'loaf') {
+      if (rest.plan === 'sleep') enter('curl'); else if (rnd() < REST.odds.curl) toSleep(); else enter('sit');
+    } else if (rest.state === 'curl') { setBase(actions.idle, REST.up.curl); rest.state = 'stand'; still = 0; }
+  }
   function update(dt, nowWalking) {
     dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
     still = nowWalking || mood.mood !== 'content' ? 0 : still + dt; // a cat that is stalking or wary is not settling down
@@ -380,11 +455,9 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     // the pace in hip heights per second: the glide's own speed has no lag (actor.slideSpeed); the
     // measured speed stands in for other slides
     const actual = actor?.slideSpeed > 0 ? actor.slideSpeed : speed, pace = actual / stepper.hip();
-    // walking, the idle plays under the step (and a sitting cat gets up); standing long enough, it sits
+    // walking, the idle plays under the step (and a resting cat gets up); left alone, it settles (rest)
     if (walking && !pouncing) setBase(actions.idle, GAIT.fade);
-    // (only a content cat sits; one that is stalking or wary gets up)
-    if (!pouncing && !walking && still >= SIT_AFTER && base !== actions.sit && mood.mood === 'content') setBase(actions.sit, .6);
-    if (base === actions.sit && mood.mood !== 'content') setBase(actions.idle, .4);
+    settle(dt);
     takeBack(); mixer.update(dt); keepMixed();
     // the lean into a turn: the heading arrives in steps, so it snaps toward a turn and eases out
     const yaw = opts.yaw ? opts.yaw() : (rig.hips.parent?.parent?.rotation.y ?? 0), d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
@@ -395,13 +468,21 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     // its attention and mood (the gaze, the tail, the crouch, turning to face), then the legs last,
     // once the body they hang from has its pose for the frame
     const sitting = base === actions.sit || actions.sit.getEffectiveWeight() > .01; // (until it has got up)
-    mood = mind.update(dt, {walking, pouncing, sitting});
+    const lying = actions.loaf.getEffectiveWeight() + actions.curl.getEffectiveWeight(), asleep = actions.curl.getEffectiveWeight();
+    const resting = sitting || lying > .01 || base === actions.loaf || base === actions.curl;
+    mood = mind.update(dt, {walking, pouncing, sitting, resting, asleep});
+    // asleep, the eyes are shut, and now and then a forepaw twitches in a dream
+    if (actor?.eyes && asleep > .5) actor.eyes.visible = false;
+    if (asleep > .9) {
+      if ((dream.in -= dt) <= 0) { dream.in = range(DREAM.gap); dream.t = DREAM.time; dream.leg = rnd() < .5 ? 'lfore' : 'rfore'; }
+      if (dream.t > 0) { dream.t -= dt; const k = Math.sin(Math.PI * (1 - dream.t / DREAM.time)) * Math.sin(dream.t * 60); rig.legs[dream.leg]?.bones[1]?.quaternion.multiply(_lq.setFromEuler(_le.set(k * DREAM.size, 0, 0))); }
+    }
     if (mood.slowBlink && actor?.eyes && blink.shut <= 0) { blink.shut = BLINK.slow; blink.again = false; }
     // (a sitting cat's legs belong to the sit clip)
-    stepped = stepper.update(dt, walking && !pouncing, actual, pouncing || sitting, sitting ? {} : {hold: mood.hold, turn: mood.turn, crouch: mood.crouch});
+    stepped = stepper.update(dt, walking && !pouncing, actual, pouncing || resting, resting ? {} : {hold: mood.hold, turn: mood.turn, crouch: mood.crouch});
     restTail();
     const gait = stepped.stepping ? stepped.gait : Object.keys(actions).find(k => actions[k] === base);
-    return {walking, pouncing, speed, pace, sitting: base === actions.sit, gait, mood, step: stepped, stepWeight: stepped.weight, idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
+    return {walking, pouncing, speed, pace, sitting: base === actions.sit, rest: rest.state, lying, asleep, gait, mood, step: stepped, stepWeight: stepped.weight, idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
   }
   // ---- secondary motion: eased turns, the trailing tail, blinks ----
   function secondary(dt, yawStep) {
@@ -411,8 +492,9 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     root.rotation.y = spring.turn;
     // the neck leads into the new heading, and levels the head against the body's pitch (a sitting
     // cat's back rises steeply, a running one's dips): the head bone itself is left to the glance code
-    const pitch = rig.hips.rotation.x + rig.spine.rotation.x + rig.chest.rotation.x;
-    rig.neck.quaternion.setFromEuler(_le.set(-pitch * TURN.level, -spring.turn * TURN.lead, 0)); // no clip writes the neck, so this is its whole pose
+    // (lying down, the pose holds the head itself)
+    const pitch = (rig.hips.rotation.x + rig.spine.rotation.x + rig.chest.rotation.x) * (1 - Math.min(1, actions.loaf.getEffectiveWeight() + actions.curl.getEffectiveWeight()));
+    rig.neck.quaternion.multiply(_lq.setFromEuler(_le.set(-pitch * TURN.level, -spring.turn * TURN.lead, 0)));
     // the tail trails: late, then settling
     const rate = dt > 0 ? -spring.turn * TURN.ease : 0, acc = dt > 0 ? (speed - spring.lastSpeed) / dt : 0; spring.lastSpeed = speed;
     const k1 = 1 - Math.exp(-dt * TAIL_SPRING.follow), k2 = 1 - Math.exp(-dt * TAIL_SPRING.settle);

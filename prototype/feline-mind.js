@@ -120,7 +120,8 @@ export function createFelineMind(rig, actor, {seed = 1} = {}) {
   }
 
   // Per frame, after the turn code has written the neck and before the step solves the legs.
-  // `ctx`: {dt, walking, pouncing, sitting}. Returns {crouch, hold, turn} for the step.
+  // `ctx`: {dt, walking, pouncing, sitting, resting (sitting, lying or any settled pose), asleep (0..1:
+  // the head, ears and tail belong to the sleeping pose)}. Returns {crouch, hold, turn} for the step.
   function update(dt, ctx) {
     st.t += dt;
     const sn = actor?.senses || {};
@@ -140,37 +141,40 @@ export function createFelineMind(rig, actor, {seed = 1} = {}) {
     if (pick.kind !== st.kind) { st.kind = pick.kind; st.snapping = true; }
     // something it means to watch is behind it: after a moment, turn round to face it
     const locked = pick.kind === 'threat' || pick.kind === 'prey' || pick.kind === 'hero';
-    if (!ctx.walking && !ctx.pouncing && !ctx.sitting && locked && Math.abs(want.yaw) > MIND.turnAt) st.behind += dt; else st.behind = 0;
+    if (!ctx.walking && !ctx.pouncing && !ctx.sitting && !ctx.resting && locked && Math.abs(want.yaw) > MIND.turnAt) st.behind += dt; else st.behind = 0;
     // (the turn is measured on the actor's heading, not the body's springy follow-through)
     if (st.behind > MIND.turnAfter && !st.turning && gg) { st.turning = true; st.turnTo = gg.rotation.y + want.yaw; }
     if (st.turning && gg) {
-      if (ctx.walking || ctx.pouncing) st.turning = false;
+      if (ctx.walking || ctx.pouncing) st.turning = st.circling = false;
       else {
-        const left = wrap(st.turnTo - gg.rotation.y), step = Math.sign(left) * Math.min(Math.abs(left), MIND.turnRate * dt);
+        // (a circle before lying down is a full turn: not wrapped)
+        const left = st.circling ? st.turnTo - gg.rotation.y : wrap(st.turnTo - gg.rotation.y), step = Math.sign(left) * Math.min(Math.abs(left), MIND.turnRate * dt);
         gg.rotation.y += step; if (actor.pathYaw !== undefined) actor.pathYaw = gg.rotation.y; // the trail picks up the new heading
-        if (Math.abs(left) < .03) st.turning = false;
+        if (Math.abs(left) < .03) st.turning = st.circling = false;
       }
     }
-    const yawWant = Math.max(-MIND.yawMax, Math.min(MIND.yawMax, want.yaw)), pitchWant = Math.max(-MIND.pitchMax, Math.min(MIND.pitchMax, want.pitch));
+    // asleep, the gaze lets go: the head rests where the pose puts it
+    const awake = 1 - (ctx.asleep || 0);
+    const yawWant = Math.max(-MIND.yawMax, Math.min(MIND.yawMax, want.yaw)) * awake, pitchWant = Math.max(-MIND.pitchMax, Math.min(MIND.pitchMax, want.pitch)) * awake;
     const rate = st.snapping ? MIND.snap : MIND.track, k = 1 - Math.exp(-dt * rate);
     st.yaw += (yawWant - st.yaw) * k; st.pitch += (pitchWant - st.pitch) * k;
     if (Math.abs(yawWant - st.yaw) + Math.abs(pitchWant - st.pitch) < MIND.settle) st.snapping = false;
-    // the neck takes its share on top of the turn code's levelling; the head (which nothing else
-    // writes on the skinned cat) the rest
+    // the neck takes its share on top of the turn code's levelling; the head the rest, on top of
+    // whatever pose the clips gave it
     const n = MIND.neckShare;
     rig.neck.quaternion.multiply(_q.setFromEuler(_e.set(-st.pitch * n, st.yaw * n, 0)));
-    rig.head.quaternion.setFromEuler(_e.set(-st.pitch * (1 - n), st.yaw * (1 - n), -st.yaw * .08));
+    rig.head.quaternion.multiply(_q.setFromEuler(_e.set(-st.pitch * (1 - n), st.yaw * (1 - n), -st.yaw * .08)));
     // the ears: ahead of the head toward what it is about to look at, set by the mood, flicking now
     // and then, and (content and still) turning off on their own to listen
-    if (rig.ears) moveEars(dt, ctx, yawWant);
+    if (rig.ears) moveEars(dt, {...ctx, sleeping: (ctx.asleep || 0) > .5}, yawWant);
     // the tail, by mood (the tail clip writes it fresh each frame)
     const W = st.w, T = TAIL_MOOD, mix = key => W.content * T.content[key] + W.hunting * T.hunting[key] + W.wary * T.wary[key];
-    const lift = mix('lift'), hook = mix('hook'), burst = Math.max(0, Math.sin(st.t * 1.7)) ** 6;
+    const lift = mix('lift') * awake, hook = mix('hook') * awake, burst = Math.max(0, Math.sin(st.t * 1.7)) ** 6;
     const twitch = mix('twitch') * Math.sin(st.t * 22) * burst, lash = mix('lash') * Math.sin(st.t * 4.4);
     if ((st.hookIn -= dt) <= 0) { st.hookIn = range(TAIL_HOOK.gap); st.hookSide = -st.hookSide; }
     st.hookAt += (st.hookSide - st.hookAt) * (1 - Math.exp(-dt * TAIL_HOOK.rate));
     // sitting, the tail lies along the floor (the sit clip curls it there), so the upright hook eases out
-    st.sat += ((ctx.sitting ? 1 : 0) - st.sat) * (1 - Math.exp(-dt * 3));
+    st.sat += ((ctx.sitting || ctx.resting ? 1 : 0) - st.sat) * (1 - Math.exp(-dt * 3));
     const side = mix('side') * st.hookAt * (1 - st.sat);
     rig.tail.forEach((b, i) => {
       const tip = i / (rig.tail.length - 1); b.quaternion.multiply(_q.setFromEuler(_e.set((i ? lift * .15 : lift) + hook * tip * tip, lash * (i ? .25 : 0) + twitch * tip, 0)));
@@ -186,5 +190,7 @@ export function createFelineMind(rig, actor, {seed = 1} = {}) {
     const crouch = W.hunting * MIND.stalk + W.wary * MIND.wary;
     return {mood, look: pick.kind, yaw: st.yaw, pitch: st.pitch, crouch, tailSide: st.hookAt, hold: crouch > .01 && !ctx.walking, turn: st.turning, slowBlink, wiggle};
   }
-  return {update, state: st};
+  // Turn round on the spot by `angle` (a full turn and more, unwrapped): the circle before lying down.
+  function circle(angle) { const gg = g(); if (!gg) return; st.turning = st.circling = true; st.turnTo = gg.rotation.y + angle; }
+  return {update, circle, state: st};
 }
