@@ -15,6 +15,7 @@
 // - Face: the M on the forehead (fine lines running back over the crown), the two swirls running
 //   back from the outer corner of each eye, dark eye rims inside pale spectacles.
 import * as THREE from 'three';
+import {follicles} from './feline-sculpt.js';
 
 // Shapes of the markings, in body units (the housecat's build, before the look's scale).
 export const COAT = {
@@ -61,6 +62,7 @@ float fbm(vec3 p) { return .5 * vnoise(p) + .25 * vnoise(p * 2.03 + 1.7) + .125 
 // a stripe of width w (0..1 of its pitch) on a phase that repeats every 1, softened over the pixel
 float stripe(float ph, float w) { float d = abs(fract(ph) - .5) * 2., aa = fwidth(ph) * 2. + .02; return 1. - smoothstep(w - aa, w + aa, d); }
 // smoothstep that also runs downhill (a > b), which GLSL's own leaves undefined
+const vec3 FOLLICLE[${follicles().length}] = vec3[](${follicles().map(f => `vec3(${f.map(v => v.toFixed(4)).join(', ')})`).join(', ')});
 float rs(float a, float b, float x) { return a < b ? smoothstep(a, b, x) : 1. - smoothstep(b, a, x); }
 vec3 tabby(vec3 base) {
   vec3 p = vRest; float ax = abs(p.x);
@@ -98,9 +100,12 @@ vec3 tabby(vec3 base) {
   float behindEye = rs(uEye.z + .01, uEye.z - .03, h.z);
   float swirl1 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .005) + (uEye.z - h.z) * .25))) * rs(.045, .06, hx) * behindEye;
   float swirl2 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .03) + (uEye.z - h.z) * .55))) * rs(.04, .055, hx) * behindEye * rs(uEye.z - .07, uEye.z - .03, h.z);
-  float rim = (1. - rs(.0, .18, abs(eyeD - 1.08))) * rs(.06, .09, h.z);
-  float specs = (1. - rs(.15, .45, abs(eyeD - 1.45))) * rs(.06, .09, h.z);
-  float head = max(max(mLines, rim), max(swirl1, swirl2) * .9);
+  float rim = (1. - rs(.0, .1, abs(eyeD - 1.02))) * rs(.06, .09, h.z) * .8;
+  float specs = (1. - rs(.08, .25, abs(eyeD - 1.3))) * rs(.06, .09, h.z) * .5;
+  // whisker spots: rows of small dark follicles across each whisker pad
+  float follicles = 0.;
+  for (int i = 0; i < ${follicles().length}; i++) follicles = max(follicles, 1. - smoothstep(.0008, .0013, length(vec2(hx, h.y) - FOLLICLE[i].xy)) * step(FOLLICLE[i].z - .02, h.z));
+  float head = max(max(mLines, rim), max(max(swirl1, swirl2) * .9, follicles * .45));
   // the thigh and upper arm carry the flank's stripes on round them; the bars start at the knee and elbow
   leg = mix(body, leg, rs(uY - .06, uY - .13, p.y));
   float dark = dot(vPart, vec4(body, head, tail, leg)) * ${COAT.strength.toFixed(2)};

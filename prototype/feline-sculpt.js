@@ -180,12 +180,12 @@ function headPieces(C, nose) {
   // the cheekbones, widest a little below the eyes, so the face narrows to the muzzle
   for (const s of [-1, 1]) H(ellipsoid([s * .044, -.008, .055], [.034, .034, .042]), [s * .044, -.008, .055], .05, .03);
   // the muzzle: a short bridge, a compact block under the whisker pads, the nose leather and a small chin
-  H(roundCone([0, .04, .1], [0, .006, .128], .016, .011), [0, .02, .115], .03, JOIN.face);
-  H(ellipsoid([0, -.022, .105], [.034, .024, .028]), [0, -.022, .105], .045, JOIN.face);
-  for (const s of [-1, 1]) H(ellipsoid([s * .014, -.024, .12], [.016, .014, .014]), [s * .014, -.024, .12], .025, JOIN.face);
-  H(ellipsoid([0, -.003, .135], [.009, .006, .005]), [0, -.003, .135], .012, .004, nose);
+  H(roundCone([0, .04, .1], [0, .006, .134], .016, .01), [0, .02, .118], .035, JOIN.face);
+  H(ellipsoid([0, -.021, .109], [.031, .023, .03]), [0, -.021, .109], .045, JOIN.face);
+  for (const s of [-1, 1]) H(ellipsoid([s * .013, -.024, .124], [.015, .014, .014]), [s * .013, -.024, .124], .025, JOIN.face);
+  H(ellipsoid([0, -.003, .14], [.009, .006, .005]), [0, -.003, .14], .012, .004, nose);
   H(roundCone([0, -.03, .04], [0, -.04, .1], .024, .014), [0, -.035, .07], .045, JOIN.face);
-  H(ellipsoid([0, -.045, .104], [.013, .009, .012]), [0, -.045, .104], .02, JOIN.face);
+  H(ellipsoid([0, -.044, .107], [.012, .009, .012]), [0, -.044, .107], .02, JOIN.face);
   // the fur mound each ear grows from, so its base sits in the skull and not on its edge
   for (const s of [-1, 1]) { const {base, up, fwd, across} = earFrame(s), c = base.clone().addScaledVector(up, .008).addScaledVector(fwd, -.004); H(framedEllipsoid(c, [across, up, fwd], EAR.mound), c.toArray(), .04, .014); }
   // a shallow almond dish round each eye
@@ -235,26 +235,94 @@ function earGeometry(side, C, inner) {
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   g.computeVertexNormals(); return g;
 }
-// Whiskers and pupils, as recipes feline-hull.js builds as its thin details.
-function headDetails(C, whisker) {
-  const out = [], seg = (a, b, r0, r1, colour) => { const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A), len = d.length(); out.push({type: 'CylinderGeometry', parameters: {radiusTop: r1, radiusBottom: r0, height: len, radialSegments: 3}, matrix: new THREE.Matrix4().compose(A.clone().add(B).multiplyScalar(.5), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()), new THREE.Vector3(1, 1, 1)), colour}); };
-  for (const s of [-1, 1]) for (let k = 0; k < 4; k++) seg([s * .03, -.028 + k * .005, .128], [s * (.03 + .1), -.028 + k * .005 + (-.016 + .01 * k), .128 + (-.01 + .006 * k)], .0013, .0004, whisker);
-  for (const s of [-1, 1]) out.push({type: 'SphereGeometry', parameters: {radius: .015, widthSegments: 10, heightSegments: 8}, matrix: new THREE.Matrix4().compose(new THREE.Vector3(s * EYE.x, EYE.y, EYE.z + EYE.r[2] - .001), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, s * EYE.tilt, 0)), new THREE.Vector3(.2, .78, .2)), colour: rgb('#080606')});
-  return out;
+// The whiskers, as ready geometry in head space: on each side four offset rows of three on the
+// whisker pad (WHISKER.rows), each a tapering hair that bows forward and droops, its length, angle and
+// curve its own; the top rows sweep forward and up, the bottom ones down and back. Above each eye a
+// few eyebrow whiskers, and a couple on the cheek.
+export const WHISKER = {
+  rows: [{y: -.017, z: .124, n: 3, len: .1, up: .2, fwd: .2}, {y: -.023, z: .126, n: 3, len: .115, up: .05, fwd: .05},
+    {y: -.029, z: .125, n: 3, len: .11, up: -.12, fwd: -.1}, {y: -.035, z: .121, n: 3, len: .09, up: -.28, fwd: -.25}],
+  root: .0011, tip: .00015, segments: 8, sides: 4, droop: .22, bow: .18, spread: .12,
+};
+// Where each pad whisker grows (head space, the right side), for the whisker spots on the coat.
+export function follicles() { const out = []; WHISKER.rows.forEach((row, r) => { for (let k = 0; k < row.n; k++) out.push([.014 + k * .007 + (r % 2) * .0035, row.y, row.z - k * .004 - (r % 2) * .002]); }); return out; }
+function whiskerGeometry(colour) {
+  const pos = [], col = [], hairs = [];
+  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (const s of [-1, 1]) {
+    WHISKER.rows.forEach((row, r) => { for (let k = 0; k < row.n; k++) {
+      // follicles in offset rows across the pad, from near the nose outward
+      const x = s * (.014 + k * .007 + (r % 2) * .0035), z = row.z - k * .004 - (r % 2) * .002;
+      const out = new THREE.Vector3(s, row.up + (rnd() - .5) * WHISKER.spread, row.fwd + (rnd() - .5) * WHISKER.spread).normalize();
+      hairs.push({root: new THREE.Vector3(x, row.y + (rnd() - .5) * .002, z), out, len: row.len * (.75 + .5 * rnd()), droop: WHISKER.droop * (.6 + .8 * rnd()), bow: WHISKER.bow * (.5 + rnd()), thick: 1});
+    } });
+    // eyebrows, over the inner corner of the eye, up and out
+    for (let k = 0; k < 3; k++) hairs.push({root: new THREE.Vector3(s * (.026 + k * .007), EYE.y + .02 + k * .002, EYE.z - .004 - k * .004), out: new THREE.Vector3(s * .55, .8, .25 - k * .1).normalize(), len: .045 + .012 * rnd(), droop: .1, bow: .25, thick: .75});
+    // the cheek, behind the corner of the mouth
+    for (let k = 0; k < 2; k++) hairs.push({root: new THREE.Vector3(s * (.058 + k * .004), -.012 - k * .006, .07 - k * .01), out: new THREE.Vector3(s, .1, -.35).normalize(), len: .04 + .015 * rnd(), droop: .15, bow: .1, thick: .7});
+  }
+  const ring = (c, t, n, b, r, out) => { const v = []; for (let j = 0; j < WHISKER.sides; j++) { const a = j / WHISKER.sides * Math.PI * 2; v.push(c.clone().addScaledVector(n, Math.cos(a) * r).addScaledVector(b, Math.sin(a) * r)); } return v; };
+  for (const h of hairs) {
+    // a quadratic curve: out from the follicle, bowing forward, the tip drooping
+    const tip = h.root.clone().addScaledVector(h.out, h.len).add(new THREE.Vector3(0, -h.droop * h.len, 0));
+    const mid = h.root.clone().addScaledVector(h.out, h.len * .5).add(new THREE.Vector3(0, h.bow * h.len * .3, h.bow * h.len * .4));
+    const P = t => new THREE.Vector3().addScaledVector(h.root, (1 - t) ** 2).addScaledVector(mid, 2 * (1 - t) * t).addScaledVector(tip, t * t);
+    let prev = null;
+    for (let i = 0; i <= WHISKER.segments; i++) {
+      const t = i / WHISKER.segments, c = P(t), d = P(Math.min(1, t + .01)).sub(P(Math.max(0, t - .01))).normalize();
+      const n = new THREE.Vector3(0, 1, 0).cross(d).normalize(), b = d.clone().cross(n).normalize(), r = (WHISKER.root + (WHISKER.tip - WHISKER.root) * t) * h.thick;
+      const cur = ring(c, t, n, b, r);
+      if (prev) for (let j = 0; j < WHISKER.sides; j++) { const j2 = (j + 1) % WHISKER.sides; for (const v of [prev[j], cur[j], cur[j2], prev[j], cur[j2], prev[j2]]) { pos.push(v.x, v.y, v.z); col.push(...colour); } }
+      prev = cur;
+    }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
+  return g;
 }
-// The eyes' glow, softer than feline.js's so they read as eyes and not lamps.
+// The eyes, drawn per pixel on each eyeball in its own frame: a clean oval iris filling the
+// opening (a cat shows almost no white), streaked from the pupil out and darker at its rim, a
+// vertical oval pupil, under a glossy cornea that catches the light. They glow only a little, so
+// they read in a dark room without looking like lamps. IRIS: the iris and pupil half-sizes (of the
+// eyeball's own radius), the colours from the pupil out, the glow.
+export const IRIS = {size: [.97, .97], pupil: [.2, .72], inner: '#d9a442', outer: '#9c7a2c', rim: '#2b1f0e', glow: .12};
 const eyeMaterials = new Map();
 export function sculptEyeMaterial(look) {
-  if (!eyeMaterials.has(look.eye)) eyeMaterials.set(look.eye, new THREE.MeshStandardMaterial({color: look.eye, emissive: look.eye, emissiveIntensity: .3, roughness: .12}));
-  return eyeMaterials.get(look.eye);
+  if (eyeMaterials.has('iris')) return eyeMaterials.get('iris');
+  const m = new THREE.MeshPhysicalMaterial({color: '#ffffff', roughness: .05, clearcoat: 1, clearcoatRoughness: .04, emissive: '#ffffff', emissiveIntensity: IRIS.glow});
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, {uInner: {value: new THREE.Color(IRIS.inner)}, uOuter: {value: new THREE.Color(IRIS.outer)}, uRim: {value: new THREE.Color(IRIS.rim)}, uIris: {value: new THREE.Vector2(...IRIS.size)}, uPupil: {value: new THREE.Vector2(...IRIS.pupil)}});
+    sh.vertexShader = 'attribute vec3 aEye; varying vec3 vEye;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvEye = aEye;');
+    const iris = `
+      vec2 e = vEye.xy; float front = smoothstep(0., .25, vEye.z);
+      float ir = length(e / uIris), pr = length(e / uPupil), aa = fwidth(ir) * 1.5 + .01;
+      float ang = atan(e.y, e.x);
+      float streak = .85 + .15 * sin(ang * 37. + sin(ang * 11.) * 2.) * sin(ang * 23. + 1.3);
+      vec3 c = mix(uInner, uOuter, smoothstep(.25, .95, ir)) * streak;
+      c = mix(c, uRim, smoothstep(.78, 1., ir));
+      c = mix(c, uRim * .6, smoothstep(1. - aa, 1. + aa, ir)); // beyond the iris, only the dark lid line
+      c = mix(c, vec3(.01), (1. - smoothstep(1. - fwidth(pr) * 1.5 - .02, 1. + fwidth(pr) * 1.5, pr)) * front);
+      diffuseColor.rgb = c;`;
+    sh.fragmentShader = 'uniform vec3 uInner, uOuter, uRim; uniform vec2 uIris, uPupil; varying vec3 vEye;\n' + sh.fragmentShader
+      .replace('#include <color_fragment>', '#include <color_fragment>' + iris)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance *= diffuseColor.rgb;');
+  };
+  m.customProgramCacheKey = () => 'feline-iris';
+  eyeMaterials.set('iris', m);
+  return m;
 }
-// The eyes, larger and rounder than feline.js's, turned a little outward, in head space.
+// The eyeballs, larger and rounder than feline.js's, turned a little outward, in head space; each
+// vertex keeps where it sits on its own unit ball (aEye: z out of the front) for the iris.
 export function sculptEyes() {
   const parts = [];
-  for (const s of [-1, 1]) { const g = new THREE.SphereGeometry(1, 14, 10); g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(s * EYE.x, EYE.y, EYE.z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, s * EYE.tilt, 0)), new THREE.Vector3(...EYE.r))); parts.push(g.toNonIndexed()); g.dispose(); }
-  const g = new THREE.BufferGeometry(), n = parts.reduce((a, p) => a + p.attributes.position.count, 0), pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3);
-  let o = 0; for (const p of parts) { pos.set(p.attributes.position.array, o * 3); nrm.set(p.attributes.normal.array, o * 3); o += p.attributes.position.count; p.dispose(); }
-  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  for (const s of [-1, 1]) {
+    const g = new THREE.SphereGeometry(1, 20, 14); g.rotateX(Math.PI / 2); // poles at front and back, so the iris has no seam
+    const local = g.attributes.position.clone();
+    g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(s * EYE.x, EYE.y, EYE.z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, s * EYE.tilt, 0)), new THREE.Vector3(...EYE.r)));
+    g.setAttribute('aEye', local); const flat = g.toNonIndexed(); g.dispose(); parts.push(flat);
+  }
+  const g = new THREE.BufferGeometry(), n = parts.reduce((a, p) => a + p.attributes.position.count, 0), pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3), eye = new Float32Array(n * 3);
+  let o = 0; for (const p of parts) { pos.set(p.attributes.position.array, o * 3); nrm.set(p.attributes.normal.array, o * 3); eye.set(p.attributes.aEye.array, o * 3); o += p.attributes.position.count; p.dispose(); }
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3)); g.setAttribute('aEye', new THREE.BufferAttribute(eye, 3));
   return g;
 }
 
@@ -282,7 +350,7 @@ export function sculptFeline(L, {tail, headM}) {
   const n = tail.length - 1, tp = [];
   for (let i = 0; i < n; i++) { const r0 = TAIL_SCULPT.root + (TAIL_SCULPT.tip - TAIL_SCULPT.root) * i / n, r1 = TAIL_SCULPT.root + (TAIL_SCULPT.tip - TAIL_SCULPT.root) * (i + 1) / n; tp.push(piece(roundCone(tail[i], tail[i + 1], r0 * bw, r1 * bw), tail[i].map((v, j) => (v + tail[i + 1][j]) / 2), .06, mix(C.coat, C.back, .3), i === 0 ? JOIN.tail : .006)); }
   parts.push({group: 'tail', M: null, pieces: tp});
-  parts.push({group: 'head', M: headM, pieces: [...headPieces(C, C.nose), ...headDetails(C, rgb(L.whisker || '#f0ece0'))]});
+  parts.push({group: 'head', M: headM, pieces: headPieces(C, C.nose)});
   const inner = mix(C.belly, rgb('#c88a80'), .45);
-  return {parts, ears: [earGeometry(-1, C, inner), earGeometry(1, C, inner)]};
+  return {parts, ears: [earGeometry(-1, C, inner), earGeometry(1, C, inner), whiskerGeometry(rgb(L.whisker || '#f0ece0'))]};
 }
