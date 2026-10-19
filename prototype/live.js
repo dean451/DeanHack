@@ -682,7 +682,9 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  // The first thing a visitor sees: a name and one button that resumes or begins a game and goes straight to Live (?demo skips it).
  startScreen=installStartScreen({button,nameInput});if(startScreen){nameInput.hidden=true;button.hidden=true;}
  // the kitten's skin (feline-hull.js) is grown while the splash waits for a name, not on the first level
- (globalThis.requestIdleCallback??(f=>setTimeout(f,800)))(()=>{try{growFelineHull('kitten');}catch{}});
+ // and, while the splash is still up, the pet's grown-up looks, one per idle slot, so growing up later
+ // does not stall on its skin (each takes a few seconds; none start once play has begun)
+ {const idle=globalThis.requestIdleCallback??(f=>setTimeout(f,800)),looks=['kitten','housecat','large cat'],next=()=>{const n=looks.shift();if(!n||(active&&n!=='kitten'))return;try{growFelineHull(n);}catch{}idle(next);};idle(next);}
  actions.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{if(pending?.kind==='command')reply(Number(b.dataset.key));});
  addEventListener('keydown',e=>{if(!active||e.altKey||e.metaKey)return;if(e.ctrlKey&&e.key.toLowerCase()==='p'){e.preventDefault();e.stopImmediatePropagation();historyPanel.toggle();}else if(e.key==='Escape'&&historyPanel.isOpen()){e.preventDefault();e.stopImmediatePropagation();historyPanel.hide();}},true);
  addEventListener('keydown',e=>{if(!active||e.metaKey||e.altKey)return;if(e.target instanceof HTMLInputElement)return;

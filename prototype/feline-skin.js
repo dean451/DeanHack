@@ -34,7 +34,7 @@ export const BLEND = {spine: .06, leg: .022, tail: .03};
 export const BACK = {spine: .1, chest: .12};
 // The sculpted skin's grid (fine enough for the toes and the forearm), and how far each part's
 // weights reach into its neighbours' skin.
-export const SCULPT = {res: 120, soft: .045};
+export const SCULPT = {res: 150, soft: .045};
 // The sculpted back's bone weights along z: the hips, spine and chest bones hand over at the joints
 // they turn about (the spine bone at z -.02, the chest at .1), each over 2 x blend.
 export const SPINE = {joints: [-.31, -.02, .1, .28], blend: .07};
@@ -105,7 +105,7 @@ function skin(geo, weigh) {
 const hulls = new Map();
 // Grows a look's hull ahead of its first cat (live.js does this in idle time on the splash, for the
 // kitten most classes start with), so the first level does not pay the ~0.7 s on the main thread.
-export function growFelineHull(name, colour) { if (!hulls.has(name + '|' + (colour || ''))) createSkinnedFeline(name, colour); return hulls.get(name + '|' + (colour || '')); }
+export function growFelineHull(name, colour) { const key = name + '|' + (colour || ''), grown = () => hulls.get(key + '|sculpt') || hulls.get(key); if (!grown()) createSkinnedFeline(name, colour); return grown(); }
 // `sculpt`: grow the skin from the sculpted anatomy (feline-sculpt.js) and paint it with the
 // per-pixel coat (feline-coat.js) instead of building it from the parts; the pets' looks do.
 export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
@@ -144,6 +144,7 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
   // the neck: from the chest at the withers to the neck bone at the back of the skull
   const nA = [0, Y + .02, .19 + D], nB = L.neck, nD = [nB[0] - nA[0], nB[1] - nA[1], nB[2] - nA[2]], nL2 = nD[0] ** 2 + nD[1] ** 2 + nD[2] ** 2;
   const weighFor = {
+    ear: () => [[names.head, 1]],
     neck: (x, y, z) => { const s = clamp01(((x - nA[0]) * nD[0] + (y - nA[1]) * nD[1] + (z - nA[2]) * nD[2]) / nL2), w = smooth((s - .15) / .85); return [[names.chest, 1 - w], [names.neck, w]]; },
     // sculpted: each handover at the joint the bone turns about, spread wide, so a bent back is one curve
     body: (x, y, z) => (sculpt ? chainWeights(z, [SPINE.joints[0] - D, SPINE.joints[1], SPINE.joints[2] + D, SPINE.joints[3] + D], SPINE.blend) : chainWeights(z, [-.31, -.1, .08, .28], BLEND.spine)).map(([k, w]) => [names[['hips', 'spine', 'chest'][k]], w]),
@@ -158,10 +159,11 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
     if (!hulls.has(key)) {
       const tail = tailCurve.map(([x, y, z]) => [x + tailRoot[0], y + tailRoot[1], z + tailRoot[2]]), sc = sculptFeline(L, {tail, headM});
       const grown = growHull(sc.parts, {weigh, res: SCULPT.res, soft: SCULPT.soft});
-      coatAttributes(grown.geometry, bones.map(b => b.name), tail, {Y, front: L.shoulder[2] + .02, neckY: L.neck[1]});
-      // the ears, ready-made in head space, ride the head with the other details
-      const ears = sc.ears.map(e => { e.applyMatrix4(headM); skin(e, () => [[names.head, 1]]); return e; });
-      grown.details = grown.details ? mergeGeometries([grown.details, ...ears]) : mergeGeometries(ears);
+      const toHead = headM.clone().invert(), _h = new THREE.Vector3();
+      coatAttributes(grown.geometry, bones.map(b => b.name), tail, {Y, front: L.shoulder[2] + .02, neckY: L.neck[1], ear: (x, y, z) => sc.earSide(...(_h.set(x, y, z).applyMatrix4(toHead)).toArray())});
+      // the whiskers, ready-made in head space, ride the head with the other details
+      const extras = sc.extras.map(e => { e.applyMatrix4(headM); skin(e, () => [[names.head, 1]]); return e; });
+      grown.details = grown.details ? mergeGeometries([grown.details, ...extras]) : mergeGeometries(extras);
       hulls.set(key, grown);
     }
     const grown = hulls.get(key);

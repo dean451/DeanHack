@@ -26,7 +26,7 @@ const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
 // Joins: how far each fillet reaches (body units).
-export const JOIN = {trunk: .045, neck: .04, thigh: .035, arm: .03, leg: .016, paw: .012, toe: .005, head: .02, face: .012, tail: .02};
+export const JOIN = {ear: .008, trunk: .045, neck: .04, thigh: .035, arm: .03, leg: .016, paw: .012, toe: .005, head: .02, face: .012, tail: .02};
 // The trunk's stations along z: [z, top, bottom, half-width], top and bottom from the hip line Y.
 export const TRUNK = {
   rear: -.315, front: .278,
@@ -203,8 +203,9 @@ function headPieces(C, nose) {
 }
 
 // The ears: where each base sits on the skull (head space, the right ear; the left mirrors it), how
-// far they lean out and turn out, their size, the cup of the opening, and the fur mound each grows from.
-export const EAR = {base: [.036, .072, .014], lean: .3, yaw: .25, height: .074, width: .062, cup: .013, thick: .0035, mound: [.019, .011, .009]};
+// far they lean out and turn out, their size, the cup of the opening, how thick they are at the base and
+// the tip, how round the rim, and the fur mound each grows from.
+export const EAR = {base: [.036, .072, .014], lean: .3, yaw: .25, height: .085, width: .071, cup: .013, thick: [.013, .007], round: .004, mound: [.019, .011, .009]};
 // The ear's frame: base point, up its length, across its width (outward), forward out of its opening.
 export function earFrame(side) {
   const base = new THREE.Vector3(side * EAR.base[0], EAR.base[1], EAR.base[2]), up = new THREE.Vector3(side * Math.sin(EAR.lean), Math.cos(EAR.lean), -.08).normalize();
@@ -220,30 +221,32 @@ function framedEllipsoid(c, axes, r) {
     return k1 < 1e-9 ? -Math.min(...r) : k0 * (k0 - 1) / k1;
   };
 }
-// A thin cupped ear in head space, outside coat, inside pale.
-function earGeometry(side, C, inner) {
-  const {base, up, fwd, across} = earFrame(side), H = EAR.height, W = EAR.width, cup = EAR.cup, thick = EAR.thick, nu = 8, nv = 8, pos = [], col = [];
-  const point = (u, v, face) => {
-    // the sides bow out a little and the tip rounds off rather than ending in a point
-    const w = W / 2 * Math.pow(Math.max(0, 1 - Math.pow(u, 1.7)), .6) * (1 - u * .2), c = (1 - v * v) * cup * (1 - u * .7);
-    return base.clone().addScaledVector(up, u * H).addScaledVector(across, v * w).addScaledVector(fwd, -c - (face ? 0 : thick * (1 - u * .6)));
+// An ear as part of the sculpted body (head space): a cupped slab in the ear's frame, its outline
+// bowing out a little and rounding off at the tip, thick at the base and thinning toward the tip,
+// its rim rounded. Returns the piece and `side(x, y, z)`: +1 on the inside of the cup (the opening),
+// -1 on the back, 0 off the ear, for the paint and the fur.
+const smaxS = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.max(a, b) + h * h * k * .25; };
+function earPiece(side, C, inner) {
+  const {base, up, fwd, across} = earFrame(side), H = EAR.height, W = EAR.width;
+  const local = (x, y, z) => { const vx = x - base.x, vy = y - base.y, vz = z - base.z; return [across.x * vx + across.y * vy + across.z * vz, up.x * vx + up.y * vy + up.z * vz, fwd.x * vx + fwd.y * vy + fwd.z * vz]; };
+  const shape = b => { const u = clamp01(b / H); return {u, w: Math.max(1e-4, W / 2 * Math.pow(Math.max(0, 1 - Math.pow(u, 1.7)), .6) * (1 - u * .2)), t: EAR.thick[0] + (EAR.thick[1] - EAR.thick[0]) * u}; };
+  // the middle of the slab: the cup's hollow, deepest along the ear's middle, shallowing to the tip
+  const mid = (a, u, w) => { const v = Math.max(-1, Math.min(1, a / w)); return -(1 - v * v) * EAR.cup * (1 - u * .7); };
+  const field = (x, y, z) => {
+    const [a, b, f] = local(x, y, z), {u, w, t} = shape(b);
+    return smaxS(smaxS(Math.abs(a) - w, Math.abs(f - mid(a, u, w)) - t / 2, EAR.round), Math.max(-b - .01, b - H), EAR.round);
   };
-  const outC = mix(C.coat, C.back, .4), inC = inner;
-  const quad = (a, b, c, d, colour) => { for (const p of [a, b, c, a, c, d]) { pos.push(p.x, p.y, p.z); col.push(...colour); } };
-  for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
-    const u0 = i / nu, u1 = (i + 1) / nu, v0 = -1 + 2 * j / nv, v1 = -1 + 2 * (j + 1) / nv;
-    // the front face (the cup, pale with a coat-coloured rim) and the back face
-    const rim = Math.abs(v0 + v1) / 2 > .7 || u1 > .9, f = rim ? outC : inC;
-    if (side > 0) { quad(point(u0, v0, true), point(u0, v1, true), point(u1, v1, true), point(u1, v0, true), f); quad(point(u0, v0, false), point(u1, v0, false), point(u1, v1, false), point(u0, v1, false), outC); }
-    else { quad(point(u0, v0, true), point(u1, v0, true), point(u1, v1, true), point(u0, v1, true), f); quad(point(u0, v0, false), point(u0, v1, false), point(u1, v1, false), point(u1, v0, false), outC); }
-  }
-  // the rims between the faces
-  for (let i = 0; i < nu; i++) for (const v of [-1, 1]) {
-    const a = point(i / nu, v, true), b = point((i + 1) / nu, v, true), c = point((i + 1) / nu, v, false), d = point(i / nu, v, false);
-    if (v * side > 0) quad(a, d, c, b, outC); else quad(a, b, c, d, outC);
-  }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  g.computeVertexNormals(); return g;
+  const sideOf = (x, y, z) => { const [a, b, f] = local(x, y, z), {u, w, t} = shape(b); if (b < -.004 || Math.abs(a) > w + t || Math.abs(f - mid(a, u, w)) > t) return 0; return f > mid(a, u, w) ? 1 : -1; };
+  const outC = mix(C.coat, C.back, .5);
+  const paint = (x, y, z) => {
+    const [a, b, f] = local(x, y, z), {u, w} = shape(b);
+    if (f <= mid(a, u, w)) return outC;
+    // inside: a coat-coloured rim, pale fur, pink skin down in the hollow
+    const v = Math.abs(a) / w, rimK = smooth((v - .72) / .2) + smooth((u - .86) / .1);
+    return mix(mix(inner, rgb('#c9837a'), smooth((.55 - v) / .4) * smooth((.75 - u) / .4) * .55), outC, clamp01(rimK));
+  };
+  const c = base.clone().addScaledVector(up, H / 2);
+  return {piece: piece(field, c.toArray(), H * .75, paint, JOIN.ear), side: sideOf};
 }
 // The whiskers, as ready geometry in head space: on each side four offset rows of three on the
 // whisker pad (WHISKER.rows), each a tapering hair that bows forward and droops, its length, angle and
@@ -336,9 +339,9 @@ export function sculptEyes() {
   return g;
 }
 
-// The whole cat as hull parts ({group, M, pieces}) for growHull, plus the ears as ready geometry
-// in head space. `L` is feline.js's layout, `tail` the tail's points in body space, `headM` places
-// head space in the body.
+// The whole cat as hull parts ({group, M, pieces}) for growHull, the whiskers as ready geometry in
+// head space (`extras`), and `earSide` (see earPiece). `L` is feline.js's layout, `tail` the tail's
+// points in body space, `headM` places head space in the body.
 export function sculptFeline(L, {tail, headM}) {
   const C = {coat: rgb(L.coat), stripe: rgb(L.stripe), belly: rgb(L.belly), nose: rgb(L.nose)}; C.back = mix(C.coat, C.stripe, .2);
   const Y = L.Y, bw = L.heavy || 1, k = bw, paint = trunkPaint(L, C);
@@ -361,6 +364,10 @@ export function sculptFeline(L, {tail, headM}) {
   for (let i = 0; i < n; i++) { const r0 = TAIL_SCULPT.root + (TAIL_SCULPT.tip - TAIL_SCULPT.root) * i / n, r1 = TAIL_SCULPT.root + (TAIL_SCULPT.tip - TAIL_SCULPT.root) * (i + 1) / n; tp.push(piece(roundCone(tail[i], tail[i + 1], r0 * bw, r1 * bw), tail[i].map((v, j) => (v + tail[i + 1][j]) / 2), .06, mix(C.coat, C.back, .3), i === 0 ? JOIN.tail : .006)); }
   parts.push({group: 'tail', M: null, pieces: tp});
   parts.push({group: 'head', M: headM, pieces: headPieces(C, C.nose)});
-  const inner = mix(mix(C.belly, rgb('#ffffff'), .25), rgb('#d29a90'), .35);
-  return {parts, ears: [earGeometry(-1, C, inner), earGeometry(1, C, inner), whiskerGeometry(rgb(L.whisker || '#f0ece0'))]};
+  // the ears, grown with the head (after it, so they join it with their own fillet)
+  const inner = mix(C.belly, rgb('#ffffff'), .3), ears = [-1, 1].map(s => earPiece(s, C, inner));
+  parts.push({group: 'ear', M: headM, pieces: ears.map(e => e.piece)});
+  // which side of an ear a point (head space) is on: +1 inside the cup, -1 on the back, 0 off it
+  const earSide = (x, y, z) => { for (const e of ears) { const k = e.side(x, y, z); if (k) return k; } return 0; };
+  return {parts, earSide, extras: [whiskerGeometry(rgb(L.whisker || '#f0ece0'))]};
 }

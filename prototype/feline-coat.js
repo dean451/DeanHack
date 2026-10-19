@@ -30,12 +30,12 @@ export const COAT = {
 export const FUR = {shells: 10, length: .014, density: 480, comb: .6, root: .76};
 // Hair length by region (of FUR.length): longest on the chest, belly and tail, short on the face,
 // the legs and the paws.
-export const FUR_LENGTH = {body: 1, belly: 1.35, head: .45, cheek: .8, tail: 1.2, leg: .55, paw: .3};
+export const FUR_LENGTH = {body: 1, belly: 1.35, head: .45, cheek: .8, tail: 1.2, leg: .55, paw: .3, earBack: .3, earInside: 1.5};
 
 // Per vertex, for the shader: where it sits at rest (body space), how much of it is body, head,
 // tail and leg (from its bone weights, so the patterns blend across the joints), and how far along
 // the tail it is (0 at the root, 1 at the tip). `tail` is the tail's joints in body space.
-export function coatAttributes(geometry, boneNames, tail, {Y = .3, front = .2, neckY = Y + .13} = {}) {
+export function coatAttributes(geometry, boneNames, tail, {Y = .3, front = .2, neckY = Y + .13, ear = null} = {}) {
   const pos = geometry.attributes.position, si = geometry.attributes.skinIndex, sw = geometry.attributes.skinWeight, n = pos.count;
   const part = new Float32Array(n * 4), arc = new Float32Array(n);
   const kind = boneNames.map(b => b === 'head' ? 1 : b.startsWith('tail') ? 2 : /fore|hind/.test(b) ? 3 : 0);
@@ -54,20 +54,23 @@ export function coatAttributes(geometry, boneNames, tail, {Y = .3, front = .2, n
     }
   }
   // the fur's length per vertex
-  const fur = new Float32Array(n), F = FUR_LENGTH;
+  const fur = new Float32Array(n), ears = new Float32Array(n), F = FUR_LENGTH;
   for (let i = 0; i < n; i++) {
     const [b, h, t, l] = [0, 1, 2, 3].map(c => part[i * 4 + c]), x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
     const body = y < Y - .05 || z > front ? F.belly : F.body, head = Math.abs(x) > .03 && y < neckY ? F.cheek : F.head, leg = y < .04 ? F.paw : F.leg;
     fur[i] = b * body + h * head + t * F.tail + l * leg;
+    // the ears: short fur on the back, long pale tufts inside
+    ears[i] = ear ? ear(x, y, z) : 0; if (ears[i]) fur[i] = ears[i] > 0 ? F.earInside : F.earBack;
   }
   geometry.setAttribute('aFur', new THREE.BufferAttribute(fur, 1));
+  geometry.setAttribute('aEar', new THREE.BufferAttribute(ears, 1));
   geometry.setAttribute('aRest', pos.clone());
   geometry.setAttribute('aPart', new THREE.BufferAttribute(part, 4));
   geometry.setAttribute('aArc', new THREE.BufferAttribute(arc, 1));
 }
 
 const GLSL = `
-uniform vec3 uStripe; uniform float uY, uHeadScale, uFront; uniform vec2 uEyeR; uniform vec3 uNeck; uniform vec3 uEye;
+uniform vec3 uStripe; uniform float uY, uHeadScale, uFront; uniform vec2 uEyeR; varying float vEar; uniform vec3 uNeck; uniform vec3 uEye;
 varying vec3 vRest; varying vec4 vPart; varying float vArc;
 float h31(vec3 p) { p = fract(p * vec3(.1031, .1030, .0973)); p += dot(p, p.yzx + 33.33); return fract((p.x + p.y) * p.z); }
 float vnoise(vec3 p) {
@@ -132,7 +135,8 @@ vec3 tabby(vec3 base) {
   float head = max(max(mLines, rim), max(max(swirl1, swirl2) * .9, max(follicles * .45, mouth * .8)));
   // the thigh and upper arm carry the flank's stripes on round them; the bars start at the knee and elbow
   leg = mix(body, leg, rs(uY - .06, uY - .13, p.y));
-  float dark = dot(vPart, vec4(body, head, tail, leg)) * ${COAT.strength.toFixed(2)};
+  // (the ears keep their own colours: no tabby markings on them)
+  float dark = dot(vPart, vec4(body, head, tail, leg)) * ${COAT.strength.toFixed(2)} * (1. - abs(vEar));
   vec3 c = mix(base, mix(base, vec3(1.), .25), specs * vPart.y * .6);
   c = mix(c, uStripe, clamp(dark, 0., 1.));
   // ticking: the grain of banded hairs
@@ -152,8 +156,8 @@ export function coatMaterial(L, {neck, scale, eye, eyeR, front}, shell = 0) {
   const m = new THREE.MeshPhysicalMaterial({vertexColors: true, roughness: .86, metalness: 0, sheen: .2, sheenRoughness: .7, sheenColor: new THREE.Color(L.belly)});
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, {uStripe: {value: new THREE.Color(L.stripe)}, uY: {value: L.Y}, uNeck: {value: new THREE.Vector3(...neck)}, uHeadScale: {value: scale}, uEye: {value: new THREE.Vector3(...eye)}, uFront: {value: front}, uEyeR: {value: new THREE.Vector2(...eyeR)}, uShell: {value: shell}});
-    sh.vertexShader = 'attribute vec3 aRest; attribute vec4 aPart; attribute float aArc; attribute float aFur; uniform float uShell; varying vec3 vRest; varying vec4 vPart; varying float vArc; varying float vFur;\n' + sh.vertexShader
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRest = aRest; vPart = aPart; vArc = aArc; vFur = aFur;')
+    sh.vertexShader = 'attribute vec3 aRest; attribute vec4 aPart; attribute float aArc; attribute float aFur; attribute float aEar; uniform float uShell; varying vec3 vRest; varying vec4 vPart; varying float vArc; varying float vFur; varying float vEar;\n' + sh.vertexShader
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRest = aRest; vPart = aPart; vArc = aArc; vFur = aFur; vEar = aEar;')
       // a shell stands out along the skinned normal by its share of the hair, the tips lying back and down
       .replace('#include <skinning_vertex>', `#include <skinning_vertex>
         float furOut = uShell * aFur * ${FUR.length.toFixed(4)};
