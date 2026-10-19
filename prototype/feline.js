@@ -35,8 +35,8 @@ import {segment,chain} from './ant.js';
 // Handles: body, legs (4, left pair first, hind then fore), head (the neck pivot), tail,
 // quirk 'feline'.
 
-const LOOKS={
- kitten:{scruffy:true,bold:true,scale:.7,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby',headSize:1.12,legH:.16,tail:'up',tailLen:.8},
+export const LOOKS={
+ kitten:{scruffy:true,bold:true,scale:.7,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby',headSize:1.12,legH:.16,tail:'up',tailLen:1.25},
  housecat:{scruffy:true,bold:true,scale:1,legH:.19,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
  'large cat':{scruffy:true,bold:true,scale:1.15,legH:.2,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
  jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#c4b497',nose:'#5e3630',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
@@ -358,8 +358,8 @@ export function isFeline(name){return !!LOOKS[name];}
 export function felineBuild(name,colour){
  const look=lookFor(name,colour),S=build(LOOKS[name]?name:'f:'+look.coat,look),L=S.L;
  const key=L.tail||'j',sc=L.tailLen||1,curve=new THREE.CatmullRomCurve3(TAILS[key].map(([x,y,z])=>new THREE.Vector3(x*sc,y*sc,z*sc)));
- const tailJoints=Array.from({length:5},(_,i)=>curve.getPoint(i/4).toArray());
- return {S,L,look,tailJoints,coat:rgb(L.coat)};
+ const tailJoints=Array.from({length:5},(_,i)=>curve.getPoint(i/4).toArray()),tailCurve=Array.from({length:25},(_,i)=>curve.getPoint(i/24).toArray());
+ return {S,L,look,tailJoints,tailCurve,coat:rgb(L.coat)};
 }
 
 export function createFeline(name,colour){

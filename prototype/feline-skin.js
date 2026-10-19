@@ -25,9 +25,13 @@ import {felineBuild} from './feline.js';
 import {growHull} from './feline-hull.js';
 import {FELINE_GLIDE} from './slide.js';
 import {createStepper} from './feline-gait.js';
+import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE} from './feline-sculpt.js';
 import {createFelineMind} from './feline-mind.js';
 
 export const BLEND = {spine: .06, leg: .022, tail: .02};
+// The sculpted skin's grid (fine enough for the toes and the forearm), and how far each part's
+// weights reach into its neighbours' skin.
+export const SCULPT = {res: 120, soft: .045};
 // The animator's measured speed is smoothed at `smooth` per second; clips cross-fade over `fade` s.
 export const GAIT = {smooth: 6, fade: .3};
 // Secondary motion, laid on after the mixer (none of it accumulates: each is a fresh offset
@@ -93,8 +97,9 @@ const hulls = new Map();
 // Grows a look's hull ahead of its first cat (live.js does this in idle time on the splash, for the
 // kitten most classes start with), so the first level does not pay the ~0.7 s on the main thread.
 export function growFelineHull(name, colour) { if (!hulls.has(name + '|' + (colour || ''))) createSkinnedFeline(name, colour); return hulls.get(name + '|' + (colour || '')); }
-export function createSkinnedFeline(name, colour, {hull = true} = {}) {
-  const {S, L, tailJoints, coat} = felineBuild(name, colour);
+// `sculpt`: grow the skin from the sculpted anatomy (feline-sculpt.js) instead of the parts.
+export function createSkinnedFeline(name, colour, {hull = true, sculpt = false} = {}) {
+  const {S, L, tailJoints, tailCurve, coat} = felineBuild(name, colour);
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body); g.scale.setScalar(L.scale);
   const bones = [], names = {};
   const bone = (key, parent, pos) => { const b = new THREE.Bone(); b.name = key; b.position.set(...pos); if (parent) parent.add(b); bones.push(b); names[key] = bones.length - 1; b.userData.world = parent ? parent.userData.world.map((v, i) => v + pos[i]) : [...pos]; return b; };
@@ -119,10 +124,13 @@ export function createSkinnedFeline(name, colour, {hull = true} = {}) {
 
   // Bone weights per part, as a function of a point in the body frame: the body along its
   // spine, the head whole, the tail by arc length along its joints, a leg down its chain.
-  const headM = new THREE.Matrix4().compose(new THREE.Vector3(...L.neck), new THREE.Quaternion(), new THREE.Vector3().setScalar(L.headSize || 1));
+  const headM = new THREE.Matrix4().compose(new THREE.Vector3(...L.neck), new THREE.Quaternion(), new THREE.Vector3().setScalar((L.headSize || 1) * (sculpt ? HEAD_SCALE : 1)));
   const tailM = new THREE.Matrix4().makeTranslation(...tailRoot);
   const tj = tailJoints.map(([x, y, z]) => [x + tailRoot[0], y + tailRoot[1], z + tailRoot[2]]), arcs = [0]; for (let i = 1; i < tj.length; i++) arcs.push(arcs[i - 1] + Math.hypot(tj[i][0] - tj[i - 1][0], tj[i][1] - tj[i - 1][1], tj[i][2] - tj[i - 1][2]));
+  // the neck: from the chest at the withers to the neck bone at the back of the skull
+  const nA = [0, Y + .02, .19], nB = L.neck, nD = [nB[0] - nA[0], nB[1] - nA[1], nB[2] - nA[2]], nL2 = nD[0] ** 2 + nD[1] ** 2 + nD[2] ** 2;
   const weighFor = {
+    neck: (x, y, z) => { const s = clamp01(((x - nA[0]) * nD[0] + (y - nA[1]) * nD[1] + (z - nA[2]) * nD[2]) / nL2), w = smooth((s - .15) / .85); return [[names.chest, 1 - w], [names.neck, w]]; },
     body: (x, y, z) => chainWeights(z, [-.31, -.1, .08, .28], BLEND.spine).map(([k, w]) => [names[['hips', 'spine', 'chest'][k]], w]),
     head: () => [[names.head, 1]],
     tail: (x, y, z) => { let best = 0, bd = Infinity, bs = 0; for (let i = 0; i < tj.length - 1; i++) { const ax = tj[i], bx = tj[i + 1], dx = bx[0] - ax[0], dy = bx[1] - ax[1], dz = bx[2] - ax[2], L2 = dx * dx + dy * dy + dz * dz || 1; const t = clamp01(((x - ax[0]) * dx + (y - ax[1]) * dy + (z - ax[2]) * dz) / L2); const px = ax[0] + dx * t, py = ax[1] + dy * t, pz = ax[2] + dz * t, d = (x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2; if (d < bd) { bd = d; best = i; bs = arcs[i] + Math.sqrt(L2) * t; } } return chainWeights(bs, arcs, BLEND.tail).map(([k, w]) => [names['tail' + k], w]); },
@@ -130,7 +138,20 @@ export function createSkinnedFeline(name, colour, {hull = true} = {}) {
   for (const [key, leg] of Object.entries(legs)) weighFor[key] = (x, y) => chainWeights(y, leg.joints, BLEND.leg).map(([k, w]) => [names[key + Math.min(k, leg.bones.length - 1)], w]);
   const weigh = (group, x, y, z) => weighFor[group](x, y, z);
   let fur, details = null;
-  if (hull && S.body.userData.pieces) {
+  if (hull && sculpt) {
+    const key = name + '|' + (colour || '') + '|sculpt';
+    if (!hulls.has(key)) {
+      const tail = tailCurve.map(([x, y, z]) => [x + tailRoot[0], y + tailRoot[1], z + tailRoot[2]]), sc = sculptFeline(L, {tail, headM});
+      const grown = growHull(sc.parts, {weigh, res: SCULPT.res, soft: SCULPT.soft});
+      // the ears, ready-made in head space, ride the head with the other details
+      const ears = sc.ears.map(e => { e.applyMatrix4(headM); skin(e, () => [[names.head, 1]]); return e; });
+      grown.details = grown.details ? mergeGeometries([grown.details, ...ears]) : mergeGeometries(ears);
+      hulls.set(key, grown);
+    }
+    const grown = hulls.get(key);
+    fur = new THREE.SkinnedMesh(grown.geometry, S.fur);
+    details = new THREE.SkinnedMesh(grown.details, S.fur); details.castShadow = details.receiveShadow = true; details.frustumCulled = false; details.userData.part = 'details';
+  } else if (hull && S.body.userData.pieces) {
     // one skin over everything, grown once per look
     const key = name + '|' + (colour || '');
     if (!hulls.has(key)) {
@@ -159,8 +180,8 @@ export function createSkinnedFeline(name, colour, {hull = true} = {}) {
     fur = new THREE.SkinnedMesh(mergeGeometries(parts), S.fur);
   }
   fur.castShadow = fur.receiveShadow = true; fur.frustumCulled = false; fur.userData.part = 'fur'; fur.userData.color = [...coat];
-  const eyesGeo = S.eyes.clone().applyMatrix4(headM); skin(eyesGeo, () => [[names.head, 1]]);
-  const eyes = new THREE.SkinnedMesh(eyesGeo, S.eye); eyes.frustumCulled = false; eyes.userData.part = 'eyes';
+  const eyesGeo = (sculpt ? sculptEyes() : S.eyes.clone()).applyMatrix4(headM); skin(eyesGeo, () => [[names.head, 1]]);
+  const eyes = new THREE.SkinnedMesh(eyesGeo, sculpt ? sculptEyeMaterial(L) : S.eye); eyes.frustumCulled = false; eyes.userData.part = 'eyes';
   // the bones' rest (the inverse bind matrices) must come from settled world matrices
   body.add(hips); body.add(fur); if (details) body.add(details); body.add(eyes); g.updateMatrixWorld(true);
   const skeleton = new THREE.Skeleton(bones);

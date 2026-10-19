@@ -1,0 +1,273 @@
+// The pet cat sculpted as one body, for the skinned pet (feline-skin.js). feline.js builds every cat
+// from primitives (a ball head, a stretched-sphere torso, tubes and knobs for legs), and the hull
+// grown over those keeps their shapes: a round head, a hump where the neck ball sits, a point where
+// the torso's end cap meets the rump ball, and knobbed joints. This describes the cat's anatomy
+// as signed distances instead, joined with smooth minimums whose reach suits each join (a wide
+// fillet where a thigh meets the flank, a tight one between toes), and feline-hull.js grows the
+// skin from it the same way.
+// - Trunk: a loft along the spine, a cross-section per station from the rump to the chest: a level
+//   back that rises a little over the loins, a deep keel between the elbows, the belly line rising
+//   to the flank.
+// - Neck: thick, flowing from the withers into the back of the skull, with the throat under it.
+// - Hind leg: a broad thigh and hamstring that make the haunch and round off the rear, a slim shin
+//   with the calf behind it, a hock point, a long upright foot, an oval paw with four toes.
+// - Foreleg: the shoulder blade flat under the skin, the upper arm against the chest, the elbow
+//   point, a straight forearm, a round paw with four toes.
+// - Head: a wedge, not a ball: a braincase, a flat brow sloping to the nose, wide cheeks, whisker
+//   pads, a small chin, the eyes set in sockets; thin cupped ears and whiskers kept as their own
+//   geometry.
+// - Tail: about two thirds of the body, tapering steadily to a rounded tip.
+// Joint positions are the rig's (feline.js's layout), so the gait and every clip carry over
+// unchanged. Sizes are body units at the housecat's build, before the look's scale.
+import * as THREE from 'three';
+import {rgb, mix} from './homunculus.js';
+
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
+
+// Joins: how far each fillet reaches (body units).
+export const JOIN = {trunk: .045, neck: .04, thigh: .035, arm: .03, leg: .016, paw: .012, toe: .005, head: .02, face: .012, tail: .02};
+// The trunk's stations along z: [z, top, bottom, half-width], top and bottom from the hip line Y.
+export const TRUNK = {
+  rear: -.315, front: .29,
+  stations: [
+    [-.27, .066, -.05, .07],
+    [-.23, .09, -.074, .086],
+    [-.18, .1, -.086, .094],
+    [-.11, .1, -.1, .098],
+    [-.04, .096, -.114, .1],
+    [.03, .092, -.124, .099],
+    [.09, .09, -.132, .094],
+    [.15, .094, -.138, .087],
+    [.2, .092, -.13, .08],
+    [.245, .08, -.1, .068],
+  ],
+};
+// The tail's radius at the root and the tip, and how much longer than the look's tail curve
+// (feline.js) the pets carry it: a real cat's tail is about 0.6 of its head and body.
+export const TAIL_SCULPT = {root: .034, tip: .016};
+// The sculpted head is drawn this much larger than feline.js's head size, about the neck pivot.
+export const HEAD_SCALE = 1.1;
+
+// ---- distance functions ----
+// A cone with rounded ends between a (radius ra) and b (radius rb) (Inigo Quilez's round cone).
+export function roundCone(a, b, ra, rb) {
+  const bx = b[0] - a[0], by = b[1] - a[1], bz = b[2] - a[2], l2 = bx * bx + by * by + bz * bz, rr = ra - rb, a2 = l2 - rr * rr, il2 = 1 / l2;
+  return (x, y, z) => {
+    const px = x - a[0], py = y - a[1], pz = z - a[2], yy = px * bx + py * by + pz * bz, zz = yy - l2;
+    const qx = px * l2 - bx * yy, qy = py * l2 - by * yy, qz = pz * l2 - bz * yy, x2 = qx * qx + qy * qy + qz * qz, y2 = yy * yy * l2, z2 = zz * zz * l2;
+    const k = Math.sign(rr) * rr * rr * x2;
+    if (Math.sign(zz) * a2 * z2 > k) return Math.sqrt(x2 + z2) * il2 - rb;
+    if (Math.sign(yy) * a2 * y2 < k) return Math.sqrt(x2 + y2) * il2 - ra;
+    return (Math.sqrt(x2 * a2 * il2) + yy * rr) * il2 - ra;
+  };
+}
+// An ellipsoid centred at c with radii r, turned by Euler angles rot (an approximate distance,
+// good near the surface).
+export function ellipsoid(c, r, rot = [0, 0, 0]) {
+  const inv = new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)).invert(), v = new THREE.Vector3(), turned = rot.some(a => a);
+  return (x, y, z) => {
+    v.set(x - c[0], y - c[1], z - c[2]); if (turned) v.applyQuaternion(inv);
+    const k0 = Math.hypot(v.x / r[0], v.y / r[1], v.z / r[2]), k1 = Math.hypot(v.x / (r[0] * r[0]), v.y / (r[1] * r[1]), v.z / (r[2] * r[2]));
+    return k1 < 1e-9 ? -Math.min(...r) : k0 * (k0 - 1) / k1;
+  };
+}
+// Narrows a shape across x about cx by f (< 1 flattens it side to side).
+export const squash = (f, cx, k) => (x, y, z) => f(cx + (x - cx) / k, y, z) * k;
+
+// Catmull-Rom through a column of the stations.
+function profile(stations, col) {
+  const zs = stations.map(s => s[0]), vs = stations.map(s => s[col]), n = zs.length;
+  return z => {
+    if (z <= zs[0]) return vs[0]; if (z >= zs[n - 1]) return vs[n - 1];
+    let i = 0; while (zs[i + 1] < z) i++;
+    const t = (z - zs[i]) / (zs[i + 1] - zs[i]), p0 = vs[Math.max(0, i - 1)], p1 = vs[i], p2 = vs[i + 1], p3 = vs[Math.min(n - 1, i + 2)];
+    return .5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+  };
+}
+// The trunk: an ellipse per station, top and bottom radii apart, rounded off at both ends.
+export function trunkField(Y, bw = 1, T = TRUNK) {
+  const top = profile(T.stations, 1), bot = profile(T.stations, 2), wid = profile(T.stations, 3), z0 = T.stations[0][0], z1 = T.stations[T.stations.length - 1][0];
+  return (x, y, z) => {
+    let f = 1, zc = z;
+    if (z < z0) { const s = (z0 - z) / (z0 - T.rear); f = Math.sqrt(Math.max(0, 1 - s * s)); zc = z0; } else if (z > z1) { const s = (z - z1) / (T.front - z1); f = Math.sqrt(Math.max(0, 1 - s * s)); zc = z1; }
+    const t = top(zc), b = bot(zc), cy = Y + (t + b) / 2, ry = (t - b) / 2 * f, rx = wid(zc) * bw * f;
+    if (f <= 0) { const ez = z < z0 ? T.rear : T.front; return Math.hypot(x, y - cy, z - ez); }
+    const qx = x / rx, qy = (y - cy) / ry, k0 = Math.hypot(qx, qy), k1 = Math.hypot(qx / rx, qy / ry);
+    return k1 < 1e-9 ? -Math.min(rx, ry) : k0 * (k0 - 1) / k1;
+  };
+}
+
+// ---- the pieces ----
+// A piece of the field, in the form feline-hull.js reads: a distance function in its part's frame,
+// where it sits and how far it reaches, its paint, the fillet it joins with, and `cut` to carve
+// it away instead.
+const piece = (field, centre, reach, colour, blend, cut = false) => ({type: 'sdf', field, centre, reach, thin: 1, colour, blend, cut});
+
+// The coat, plain for now: darker along the back, cream underneath, on the chest, the chin and the
+// muzzle. `C`: rgb colours {coat, stripe, belly, back}.
+function trunkPaint(L, C) {
+  return (x, y, z) => {
+    let c = mix(C.coat, C.back, smooth((y - L.Y - .02) / .08) * .55);
+    const belly = smooth((L.Y - .05 - y) / .05), chest = smooth((z - .17) / .1) * smooth((L.Y + .03 - y) / .1);
+    return mix(c, C.belly, Math.max(belly, chest) * .85);
+  };
+}
+function legPaint(L, C, root) {
+  return (x, y, z) => {
+    let c = mix(C.coat, C.back, smooth((y - L.Y) / .06) * .4);
+    // the inside of the leg and the paw paler
+    if (Math.abs(x) < Math.abs(root[0]) - .01 && y < L.Y - .06) c = mix(c, C.belly, .35);
+    return mix(c, mix(C.coat, C.belly, .3), smooth((.04 - y) / .03));
+  };
+}
+function headPaint(C) {
+  return (x, y, z) => {
+    let c = mix(C.coat, C.back, smooth((y - .03) / .05) * .45);
+    const muzzle = smooth((-.02 - y) / .02) * smooth((z - .07) / .03) + smooth((z - .12) / .015) * smooth((-.005 - y) / .015);
+    return mix(c, C.belly, clamp01(muzzle) * .9);
+  };
+}
+
+// The rig's joints for one leg, in body space (feline-skin.js builds the bones from the same).
+export function legJoints(L, fore, side) {
+  const bw = L.heavy || 1, [rx, ry, rz] = fore ? L.shoulder : L.hip, fy = -ry, x = side * rx;
+  const rel = fore ? [[0, 0, 0], [0, -.11, -.045], [0, fy + .035, .01], [0, fy, .03]] : [[0, 0, 0], [0, -.12, .045], [0, fy + .1, -.04], [0, fy + .03, -.015], [0, fy, .0]];
+  return {x, bw, pts: rel.map(([, y, z]) => [x, ry + y, rz + z])};
+}
+
+function hindLeg(L, C, side, k) {
+  const {x, pts} = legJoints(L, false, side), [hip, knee, hock, foot] = pts, Y = L.Y, paint = legPaint(L, C, [x]), out = [];
+  const xo = x + side * .004, P = (y, z, dx = 0) => [xo + side * dx, y, z];
+  // thigh and hamstring: the haunch, flattened side to side, rounding off the rear of the body
+  out.push(piece(squash(roundCone(P(Y - .005, hip[2] - .015), P(knee[1] + .01, knee[2] - .005), .062 * k, .033 * k), xo, .66), P(Y - .06, -.16), .13, paint, JOIN.thigh));
+  out.push(piece(squash(roundCone(P(Y + .01, -.24), P(knee[1] - .01, -.17), .05 * k, .026 * k), xo, .72), P(Y - .05, -.2), .12, paint, JOIN.thigh));
+  // shin, with the calf swelling behind it down to the hock
+  out.push(piece(roundCone(knee, hock, .032 * k, .02 * k), P((knee[1] + hock[1]) / 2, (knee[2] + hock[2]) / 2), .09, paint, JOIN.leg));
+  out.push(piece(roundCone(P(knee[1] - .015, knee[2] - .03), P(hock[1] + .012, hock[2] - .012), .029 * k, .013 * k), P(knee[1] - .03, -.19), .08, paint, JOIN.leg));
+  out.push(piece(ellipsoid(P(hock[1] + .004, hock[2] - .014), [.012 * k, .014 * k, .012 * k]), P(hock[1], hock[2]), .03, paint, JOIN.leg));
+  // the long foot and the paw
+  out.push(piece(roundCone(hock, foot, .02 * k, .018 * k), P((hock[1] + foot[1]) / 2, (hock[2] + foot[2]) / 2), .06, paint, JOIN.leg));
+  const pz = foot[2] + .014;
+  out.push(piece(ellipsoid(P(.017, pz), [.027 * k, .017 * k, .034 * k]), P(.016, pz), .05, paint, JOIN.paw));
+  for (const [tx, tz] of [[-.019, .026], [-.007, .032], [.007, .032], [.019, .026]]) out.push(piece(ellipsoid([xo + tx * k, .011, pz + tz * k - .006], [.0105 * k, .01 * k, .012 * k]), [xo + tx * k, .011, pz + tz * k], .02, paint, JOIN.toe));
+  return out;
+}
+
+function foreLeg(L, C, side, k) {
+  const {x, pts} = legJoints(L, true, side), [shoulder, elbow, wrist, toe] = pts, Y = L.Y, paint = legPaint(L, C, [x]), out = [];
+  const xi = x - side * .008, P = (y, z, xx = xi) => [xx, y, z];
+  // the upper arm against the chest, the elbow point behind
+  out.push(piece(squash(roundCone(P(shoulder[1] + .005, shoulder[2] + .008), P(elbow[1] + .008, elbow[2] + .004), .048 * k, .034 * k), xi, .8), P(Y - .08, .13), .1, paint, JOIN.arm));
+  out.push(piece(ellipsoid(P(elbow[1] - .002, elbow[2] - .012, x), [.02 * k, .022 * k, .02 * k]), P(elbow[1], elbow[2], x), .03, paint, JOIN.leg));
+  // the forearm, straight, to the wrist
+  out.push(piece(roundCone(P(elbow[1], elbow[2], x), P(wrist[1] + .006, wrist[2], x), .032 * k, .022 * k), P((elbow[1] + wrist[1]) / 2, (elbow[2] + wrist[2]) / 2, x), .09, paint, JOIN.leg));
+  // the paw
+  const pz = toe[2] - .002;
+  out.push(piece(roundCone(P(wrist[1] + .006, wrist[2], x), P(.018, pz, x), .022 * k, .023 * k), P(.03, (wrist[2] + pz) / 2, x), .04, paint, JOIN.paw));
+  out.push(piece(ellipsoid([x, .017, pz], [.029 * k, .017 * k, .032 * k]), [x, .016, pz], .05, paint, JOIN.paw));
+  for (const [tx, tz] of [[-.02, .021], [-.007, .027], [.007, .027], [.02, .021]]) out.push(piece(ellipsoid([x + tx * k, .011, pz + tz * k - .004], [.0105 * k, .01 * k, .012 * k]), [x + tx * k, .011, pz + tz * k], .02, paint, JOIN.toe));
+  return out;
+}
+
+// Head space: the origin is the neck pivot (L.neck), before the look's head size.
+export const EYE = {x: .04, y: .026, z: .1, r: [.0175, .0155, .011], tilt: .24};
+function headPieces(C, nose) {
+  const paint = headPaint(C), out = [], H = (f, c, reach, blend = JOIN.head, colour = paint) => out.push(piece(f, c, reach, colour, blend));
+  // the braincase, and the brow over the eyes, so the forehead slopes from the crown to the nose
+  H(ellipsoid([0, .035, .03], [.062, .058, .07]), [0, .035, .03], .075);
+  H(ellipsoid([0, .03, .08], [.058, .032, .035]), [0, .03, .08], .06, JOIN.face);
+  // the cheekbones, widest a little below the eyes, so the face narrows to the muzzle
+  for (const s of [-1, 1]) H(ellipsoid([s * .044, -.008, .055], [.034, .034, .042]), [s * .044, -.008, .055], .05, .03);
+  // the muzzle: a short bridge, a compact block under the whisker pads, the nose leather and a small chin
+  H(roundCone([0, .04, .1], [0, .006, .128], .016, .011), [0, .02, .115], .03, JOIN.face);
+  H(ellipsoid([0, -.022, .105], [.034, .024, .028]), [0, -.022, .105], .045, JOIN.face);
+  for (const s of [-1, 1]) H(ellipsoid([s * .014, -.024, .12], [.016, .014, .014]), [s * .014, -.024, .12], .025, JOIN.face);
+  H(ellipsoid([0, -.003, .135], [.009, .006, .005]), [0, -.003, .135], .012, .004, nose);
+  H(roundCone([0, -.03, .04], [0, -.04, .1], .024, .014), [0, -.035, .07], .045, JOIN.face);
+  H(ellipsoid([0, -.045, .104], [.013, .009, .012]), [0, -.045, .104], .02, JOIN.face);
+  // a shallow almond dish round each eye
+  for (const s of [-1, 1]) out.push(piece(ellipsoid([s * EYE.x, EYE.y, EYE.z + .006], [.019, .016, .008]), [s * EYE.x, EYE.y, EYE.z], .03, paint, .005, true));
+  return out;
+}
+
+export const EAR = {yaw: .3};
+// A thin cupped ear in head space: base centre `b`, leaning out and back, outside coat, inside pale.
+function earGeometry(side, C, inner) {
+  const base = new THREE.Vector3(side * .04, .066, .018), up = new THREE.Vector3(side * .3, .95, -.08).normalize();
+  // the opening faces forward and turned out by EAR.yaw
+  const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), side * EAR.yaw); fwd.addScaledVector(up, -fwd.dot(up)).normalize();
+  const across = new THREE.Vector3().crossVectors(up, fwd).multiplyScalar(side).normalize();
+  const H = .074, W = .074, cup = .014, thick = .004, nu = 8, nv = 8, pos = [], col = [];
+  const point = (u, v, face) => {
+    const w = W / 2 * Math.sqrt(1 - u) * (1 - u * .35), c = (1 - v * v) * cup * (1 - u * .7);
+    return base.clone().addScaledVector(up, u * H).addScaledVector(across, v * w).addScaledVector(fwd, -c - (face ? 0 : thick * (1 - u * .6)));
+  };
+  const outC = mix(C.coat, C.back, .4), inC = inner;
+  const quad = (a, b, c, d, colour) => { for (const p of [a, b, c, a, c, d]) { pos.push(p.x, p.y, p.z); col.push(...colour); } };
+  for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
+    const u0 = i / nu, u1 = (i + 1) / nu, v0 = -1 + 2 * j / nv, v1 = -1 + 2 * (j + 1) / nv;
+    // the front face (the cup, pale with a coat-coloured rim) and the back face
+    const rim = Math.abs(v0 + v1) / 2 > .7 || u1 > .9, f = rim ? outC : inC;
+    if (side > 0) { quad(point(u0, v0, true), point(u0, v1, true), point(u1, v1, true), point(u1, v0, true), f); quad(point(u0, v0, false), point(u1, v0, false), point(u1, v1, false), point(u0, v1, false), outC); }
+    else { quad(point(u0, v0, true), point(u1, v0, true), point(u1, v1, true), point(u0, v1, true), f); quad(point(u0, v0, false), point(u0, v1, false), point(u1, v1, false), point(u1, v0, false), outC); }
+  }
+  // the rims between the faces
+  for (let i = 0; i < nu; i++) for (const v of [-1, 1]) {
+    const a = point(i / nu, v, true), b = point((i + 1) / nu, v, true), c = point((i + 1) / nu, v, false), d = point(i / nu, v, false);
+    if (v * side > 0) quad(a, d, c, b, outC); else quad(a, b, c, d, outC);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals(); return g;
+}
+// Whiskers and pupils, as recipes feline-hull.js builds as its thin details.
+function headDetails(C, whisker) {
+  const out = [], seg = (a, b, r0, r1, colour) => { const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A), len = d.length(); out.push({type: 'CylinderGeometry', parameters: {radiusTop: r1, radiusBottom: r0, height: len, radialSegments: 3}, matrix: new THREE.Matrix4().compose(A.clone().add(B).multiplyScalar(.5), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()), new THREE.Vector3(1, 1, 1)), colour}); };
+  for (const s of [-1, 1]) for (let k = 0; k < 4; k++) seg([s * .03, -.028 + k * .005, .128], [s * (.03 + .1), -.028 + k * .005 + (-.016 + .01 * k), .128 + (-.01 + .006 * k)], .0013, .0004, whisker);
+  for (const s of [-1, 1]) out.push({type: 'SphereGeometry', parameters: {radius: .015, widthSegments: 10, heightSegments: 8}, matrix: new THREE.Matrix4().compose(new THREE.Vector3(s * EYE.x, EYE.y, EYE.z + EYE.r[2] - .001), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, s * EYE.tilt, 0)), new THREE.Vector3(.2, .78, .2)), colour: rgb('#080606')});
+  return out;
+}
+// The eyes' glow, softer than feline.js's so they read as eyes and not lamps.
+const eyeMaterials = new Map();
+export function sculptEyeMaterial(look) {
+  if (!eyeMaterials.has(look.eye)) eyeMaterials.set(look.eye, new THREE.MeshStandardMaterial({color: look.eye, emissive: look.eye, emissiveIntensity: .3, roughness: .12}));
+  return eyeMaterials.get(look.eye);
+}
+// The eyes, larger and rounder than feline.js's, turned a little outward, in head space.
+export function sculptEyes() {
+  const parts = [];
+  for (const s of [-1, 1]) { const g = new THREE.SphereGeometry(1, 14, 10); g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(s * EYE.x, EYE.y, EYE.z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, s * EYE.tilt, 0)), new THREE.Vector3(...EYE.r))); parts.push(g.toNonIndexed()); g.dispose(); }
+  const g = new THREE.BufferGeometry(), n = parts.reduce((a, p) => a + p.attributes.position.count, 0), pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3);
+  let o = 0; for (const p of parts) { pos.set(p.attributes.position.array, o * 3); nrm.set(p.attributes.normal.array, o * 3); o += p.attributes.position.count; p.dispose(); }
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  return g;
+}
+
+// The whole cat as hull parts ({group, M, pieces}) for growHull, plus the ears as ready geometry
+// in head space. `L` is feline.js's layout, `tail` the tail's points in body space, `headM` places
+// head space in the body.
+export function sculptFeline(L, {tail, headM}) {
+  const C = {coat: rgb(L.coat), stripe: rgb(L.stripe), belly: rgb(L.belly), nose: rgb(L.nose)}; C.back = mix(C.coat, C.stripe, .35);
+  const Y = L.Y, bw = L.heavy || 1, k = bw, paint = trunkPaint(L, C);
+  const body = [piece(trunkField(Y, bw), [0, Y - .01, -.01], .34, paint, JOIN.trunk)];
+  // the neck from the withers into the back of the skull, the throat under it
+  const [, ny, nz] = L.neck, neck = [
+    piece(roundCone([0, Y + .02, .17], [0, ny - .01, nz - .005], .085 * bw, .07 * bw), [0, Y + .07, .23], .14, paint, JOIN.neck),
+    piece(roundCone([0, Y - .05, .22], [0, ny - .06, nz + .03], .062 * bw, .05 * bw), [0, Y + .02, .27], .12, paint, JOIN.neck),
+  ];
+  // the shoulder blades, flat under the skin, their tops back toward the withers (with the body:
+  // the step slides the shoulder joint, not the blade)
+  for (const side of [-1, 1]) { const x = side * (L.shoulder[0] * bw - .026); body.push(piece(squash(ellipsoid([x, Y + .03, L.shoulder[2] - .03], [.03, .062, .04], [.35, 0, 0]), x, .6), [x, Y + .03, .12], .08, paint, JOIN.arm)); }
+  const parts = [{group: 'body', M: null, pieces: body}, {group: 'neck', M: null, pieces: neck}];
+  for (const side of [-1, 1]) {
+    parts.push({group: (side < 0 ? 'l' : 'r') + 'hind', M: null, pieces: hindLeg(L, C, side, k)});
+    parts.push({group: (side < 0 ? 'l' : 'r') + 'fore', M: null, pieces: foreLeg(L, C, side, k)});
+  }
+  // the tail: round cones along its curve, tapering to a rounded tip
+  const n = tail.length - 1, tp = [];
+  for (let i = 0; i < n; i++) { const r0 = TAIL_SCULPT.root + (TAIL_SCULPT.tip - TAIL_SCULPT.root) * i / n, r1 = TAIL_SCULPT.root + (TAIL_SCULPT.tip - TAIL_SCULPT.root) * (i + 1) / n; tp.push(piece(roundCone(tail[i], tail[i + 1], r0 * bw, r1 * bw), tail[i].map((v, j) => (v + tail[i + 1][j]) / 2), .06, mix(C.coat, C.back, .3), i === 0 ? JOIN.tail : .006)); }
+  parts.push({group: 'tail', M: null, pieces: tp});
+  parts.push({group: 'head', M: headM, pieces: [...headPieces(C, C.nose), ...headDetails(C, rgb(L.whisker || '#f0ece0'))]});
+  const inner = mix(C.belly, rgb('#c88a80'), .45);
+  return {parts, ears: [earGeometry(-1, C, inner), earGeometry(1, C, inner)]};
+}

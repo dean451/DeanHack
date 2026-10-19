@@ -82,7 +82,7 @@ let cat = null, catName = null, rec = null, an = null, pose = null, frame = 0, p
 function makeCat(name) {
   if (cat && catName === name) return cat;
   if (cat) scene.remove(cat.g);
-  cat = createSkinnedFeline(name); catName = name; cat.g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(cat.g); return cat;
+  cat = createSkinnedFeline(name, undefined, {sculpt: q.get('sculpt') === '1'}); catName = name; cat.g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(cat.g); return cat;
 }
 
 // ---- run ----
