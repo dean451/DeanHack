@@ -180,7 +180,9 @@ function foreLeg(L, C, side, k) {
 }
 
 // Head space: the origin is the neck pivot (L.neck), before the look's head size.
-export const EYE = {x: .036, y: .027, z: .1, r: [.019, .017, .012], tilt: .26};
+// The eyes (head space): centre, radii, outward turn, and `open`, how much of the eyeball's width
+// shows past the face round it (the coat draws the lid line there; a test checks it against the face).
+export const EYE = {x: .031, y: .027, z: .1015, r: [.0155, .014, .011], tilt: .2, open: .69};
 function headPieces(C, nose) {
   const paint = headPaint(C), out = [], H = (f, c, reach, blend = JOIN.head, colour = paint) => out.push(piece(f, c, reach, colour, blend));
   // the braincase, and the brow over the eyes, so the forehead slopes from the crown to the nose

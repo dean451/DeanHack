@@ -32,6 +32,8 @@ test('the head is a cat\'s wedge, not a ball: the forehead slopes from the crown
   assert.ok(cheeks > brows && cheeks > muzzle * 1.5, `widest at the cheeks: ${cheeks.toFixed(3)} vs the brow ${brows.toFixed(3)} and the muzzle in front ${muzzle.toFixed(3)}`);
   const face = front(EYE.x, EYE.y), proud = EYE.z + EYE.r[2] - face;
   assert.ok(proud > 0 && proud < .015, `the eye stands ${proud.toFixed(3)} proud of the face`);
+  const open = Math.sqrt(1 - ((face - EYE.z) / EYE.r[2]) ** 2);
+  assert.ok(Math.abs(open - EYE.open) < .06, `the eye shows ${open.toFixed(2)} of its width past the face (EYE.open ${EYE.open})`);
 });
 
 test('the sculpted pet: one skin over the same skeleton, on the floor, a tail about two thirds its length, and no tear where the parts meet', () => {

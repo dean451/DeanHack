@@ -165,7 +165,7 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
       hulls.set(key, grown);
     }
     const grown = hulls.get(key);
-    const paint = {neck: L.neck, scale: (L.headSize || 1) * HEAD_SCALE, eye: [EYE.x, EYE.y, EYE.z], front: L.shoulder[2] + .02};
+    const paint = {neck: L.neck, scale: (L.headSize || 1) * HEAD_SCALE, eye: [EYE.x, EYE.y, EYE.z], eyeR: [EYE.r[0] * EYE.open, EYE.r[1] * EYE.open], front: L.shoulder[2] + .02};
     fur = new THREE.SkinnedMesh(grown.geometry, coatMaterial(L, paint));
     // the fur's layers, each the skin again a little further out (feline-coat.js)
     for (let k = 1; k <= FUR.shells; k++) { const m = new THREE.SkinnedMesh(grown.geometry, coatMaterial(L, paint, k / FUR.shells)); m.frustumCulled = false; m.receiveShadow = true; m.userData.part = 'fur-shell'; shells.push(m); }

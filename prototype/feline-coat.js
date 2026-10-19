@@ -67,7 +67,7 @@ export function coatAttributes(geometry, boneNames, tail, {Y = .3, front = .2, n
 }
 
 const GLSL = `
-uniform vec3 uStripe; uniform float uY, uHeadScale, uFront; uniform vec3 uNeck; uniform vec3 uEye;
+uniform vec3 uStripe; uniform float uY, uHeadScale, uFront; uniform vec2 uEyeR; uniform vec3 uNeck; uniform vec3 uEye;
 varying vec3 vRest; varying vec4 vPart; varying float vArc;
 float h31(vec3 p) { p = fract(p * vec3(.1031, .1030, .0973)); p += dot(p, p.yzx + 33.33); return fract((p.x + p.y) * p.z); }
 float vnoise(vec3 p) {
@@ -117,13 +117,13 @@ vec3 tabby(vec3 base) {
   // above them (the tabby's M seen up close), broken here and there; a few carry on over the crown
   float forehead = rs(.035, .05, h.y) * rs(.11, .095, h.z) * rs(.032, .022, hx) * step(.3, fbm(p * 60.));
   float mLines = forehead * stripe(hx / .0085 + .5 + warp.x * .35, .3) * .95;
-  float eyeD = length(vec2((hx - uEye.x) / .023, (h.y - uEye.y) / .02));
+  float eyeD = length(vec2((hx - uEye.x) / uEyeR.x, (h.y - uEye.y) / uEyeR.y));
   float behindEye = rs(uEye.z + .01, uEye.z - .03, h.z);
   float swirl1 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .005) + (uEye.z - h.z) * .25))) * rs(.045, .06, hx) * behindEye;
   float swirl2 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .03) + (uEye.z - h.z) * .55))) * rs(.04, .055, hx) * behindEye * rs(uEye.z - .07, uEye.z - .03, h.z);
   // the lid line right at the eye's edge (the eye's half-width is about .7 of eyeD's unit), pale fur just outside it
-  float rim = (1. - rs(.0, .06, abs(eyeD - .72))) * rs(.06, .09, h.z) * .8;
-  float specs = (1. - rs(.06, .2, abs(eyeD - .95))) * rs(.06, .09, h.z) * .6;
+  float rim = (1. - rs(.0, .1, abs(eyeD - 1.))) * rs(.06, .09, h.z) * .8;
+  float specs = (1. - rs(.08, .28, abs(eyeD - 1.32))) * rs(.06, .09, h.z) * .6;
   // whisker spots: rows of small dark follicles across each whisker pad
   float follicles = 0.;
   for (int i = 0; i < ${follicles().length}; i++) follicles = max(follicles, 1. - smoothstep(.0008, .0013, length(vec2(hx, h.y) - FOLLICLE[i].xy)) * step(FOLLICLE[i].z - .02, h.z));
@@ -144,14 +144,14 @@ vec3 tabby(vec3 base) {
 
 const cache = new Map();
 // The coat material for a look: `L` is feline.js's layout, `neck` the head's pivot and `scale` its
-// size, `eye` the eye centre in head space, `front` where the chest's necklaces begin (z). `shell`
+// size, `eye` the eye centre and `eyeR` the half-size of its opening in head space, `front` where the chest's necklaces begin (z). `shell`
 // (0..1) makes the material for one layer of fur that far out. Shared by every cat of the look.
-export function coatMaterial(L, {neck, scale, eye, front}, shell = 0) {
-  const key = [L.coat, L.stripe, L.Y, scale, front, shell].join('|');
+export function coatMaterial(L, {neck, scale, eye, eyeR, front}, shell = 0) {
+  const key = [L.coat, L.stripe, L.Y, scale, front, eyeR, shell].join('|');
   if (cache.has(key)) return cache.get(key);
   const m = new THREE.MeshPhysicalMaterial({vertexColors: true, roughness: .86, metalness: 0, sheen: .2, sheenRoughness: .7, sheenColor: new THREE.Color(L.belly)});
   m.onBeforeCompile = sh => {
-    Object.assign(sh.uniforms, {uStripe: {value: new THREE.Color(L.stripe)}, uY: {value: L.Y}, uNeck: {value: new THREE.Vector3(...neck)}, uHeadScale: {value: scale}, uEye: {value: new THREE.Vector3(...eye)}, uFront: {value: front}, uShell: {value: shell}});
+    Object.assign(sh.uniforms, {uStripe: {value: new THREE.Color(L.stripe)}, uY: {value: L.Y}, uNeck: {value: new THREE.Vector3(...neck)}, uHeadScale: {value: scale}, uEye: {value: new THREE.Vector3(...eye)}, uFront: {value: front}, uEyeR: {value: new THREE.Vector2(...eyeR)}, uShell: {value: shell}});
     sh.vertexShader = 'attribute vec3 aRest; attribute vec4 aPart; attribute float aArc; attribute float aFur; uniform float uShell; varying vec3 vRest; varying vec4 vPart; varying float vArc; varying float vFur;\n' + sh.vertexShader
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRest = aRest; vPart = aPart; vArc = aArc; vFur = aFur;')
       // a shell stands out along the skinned normal by its share of the hair, the tips lying back and down
