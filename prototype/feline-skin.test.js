@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import {FUR} from './feline-coat.js';
 import {createSkinnedFeline, updateSkinnedFeline, chainWeights, CLIPS, SIT_AFTER, POUNCE, TURN, BLINK, SIT} from './feline-skin.js';
 import {STEP, strideAt, spineAt} from './feline-gait.js';
 import {simulateGait, analyseGait} from './cat-measure.js';
@@ -21,8 +22,8 @@ test('chain weights blend softly across joints and always sum to one', () => {
 test('the skinned cat is two skinned meshes over one skeleton, weighted, bound at rest, standing on the floor with the rigid cat\'s footprint', () => {
   for (const name of ['kitten', 'housecat', 'large cat']) {
     const a = createSkinnedFeline(name), rigid = createFeline(name);
-    const skinned = []; a.g.traverse(o => { if (o.isSkinnedMesh) skinned.push(o); });
-    assert.equal(skinned.length, 3, `${name}: fur, details, eyes`); assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton));
+    const skinned = [], shells = []; a.g.traverse(o => { if (o.isSkinnedMesh) (o.userData.part === 'fur-shell' ? shells : skinned).push(o); });
+    assert.equal(skinned.length, 3, `${name}: fur, details, eyes`); assert.equal(shells.length, FUR.shells, `${name}: the fur's layers`); assert.ok(shells.every(m => m.skeleton === skinned[0].skeleton && m.geometry === a.fur.geometry), 'the layers are the skin again, on the same bones'); assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton));
     assert.equal(skinned[0].skeleton.bones.length, 24, 'hips, spine, chest, neck, head, 5 tail, 3+4 per side');
     for (const m of skinned) {
       const w = m.geometry.attributes.skinWeight, idx = m.geometry.attributes.skinIndex;

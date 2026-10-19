@@ -22,11 +22,20 @@ export const COAT = {
   stripePitch: .062, stripeLean: .35, stripeWidth: .42, warp: .7, warpScale: 9, breakScale: 16, breakUp: .22,
   spine: .011, spineSide: .03, necklace: .05, legPitch: .045, tailRings: 7, tailTip: .88, tick: .2, strength: .92,
 };
+// The fur: the skin drawn again `shells` times, each pushed out along the surface by its share of the
+// hair's length (`length` body units, times the region's own: FUR_LENGTH), keeping only the hairs that
+// reach that far, so they thin to tips and the outline goes soft. `density` hairs per body unit
+// across; `comb` how far the tips lie back and down along the body (of the length); `root` how dark
+// the coat is down at the hairs' roots.
+export const FUR = {shells: 10, length: .014, density: 480, comb: .6, root: .76};
+// Hair length by region (of FUR.length): longest on the chest, belly and tail, short on the face,
+// the legs and the paws.
+export const FUR_LENGTH = {body: 1, belly: 1.35, head: .45, cheek: .8, tail: 1.2, leg: .55, paw: .3};
 
 // Per vertex, for the shader: where it sits at rest (body space), how much of it is body, head,
 // tail and leg (from its bone weights, so the patterns blend across the joints), and how far along
 // the tail it is (0 at the root, 1 at the tip). `tail` is the tail's joints in body space.
-export function coatAttributes(geometry, boneNames, tail) {
+export function coatAttributes(geometry, boneNames, tail, {Y = .3, front = .2, neckY = Y + .13} = {}) {
   const pos = geometry.attributes.position, si = geometry.attributes.skinIndex, sw = geometry.attributes.skinWeight, n = pos.count;
   const part = new Float32Array(n * 4), arc = new Float32Array(n);
   const kind = boneNames.map(b => b === 'head' ? 1 : b.startsWith('tail') ? 2 : /fore|hind/.test(b) ? 3 : 0);
@@ -44,6 +53,14 @@ export function coatAttributes(geometry, boneNames, tail) {
       arc[i] = bs / total;
     }
   }
+  // the fur's length per vertex
+  const fur = new Float32Array(n), F = FUR_LENGTH;
+  for (let i = 0; i < n; i++) {
+    const [b, h, t, l] = [0, 1, 2, 3].map(c => part[i * 4 + c]), x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const body = y < Y - .05 || z > front ? F.belly : F.body, head = Math.abs(x) > .03 && y < neckY ? F.cheek : F.head, leg = y < .04 ? F.paw : F.leg;
+    fur[i] = b * body + h * head + t * F.tail + l * leg;
+  }
+  geometry.setAttribute('aFur', new THREE.BufferAttribute(fur, 1));
   geometry.setAttribute('aRest', pos.clone());
   geometry.setAttribute('aPart', new THREE.BufferAttribute(part, 4));
   geometry.setAttribute('aArc', new THREE.BufferAttribute(arc, 1));
@@ -127,18 +144,32 @@ vec3 tabby(vec3 base) {
 
 const cache = new Map();
 // The coat material for a look: `L` is feline.js's layout, `neck` the head's pivot and `scale` its
-// size, `eye` the eye centre in head space, `front` where the chest's necklaces begin (z). Shared by every cat of the look.
-export function coatMaterial(L, {neck, scale, eye, front}) {
-  const key = [L.coat, L.stripe, L.Y, scale, front].join('|');
+// size, `eye` the eye centre in head space, `front` where the chest's necklaces begin (z). `shell`
+// (0..1) makes the material for one layer of fur that far out. Shared by every cat of the look.
+export function coatMaterial(L, {neck, scale, eye, front}, shell = 0) {
+  const key = [L.coat, L.stripe, L.Y, scale, front, shell].join('|');
   if (cache.has(key)) return cache.get(key);
   const m = new THREE.MeshPhysicalMaterial({vertexColors: true, roughness: .86, metalness: 0, sheen: .2, sheenRoughness: .7, sheenColor: new THREE.Color(L.belly)});
   m.onBeforeCompile = sh => {
-    Object.assign(sh.uniforms, {uStripe: {value: new THREE.Color(L.stripe)}, uY: {value: L.Y}, uNeck: {value: new THREE.Vector3(...neck)}, uHeadScale: {value: scale}, uEye: {value: new THREE.Vector3(...eye)}, uFront: {value: front}});
-    sh.vertexShader = 'attribute vec3 aRest; attribute vec4 aPart; attribute float aArc; varying vec3 vRest; varying vec4 vPart; varying float vArc;\n' + sh.vertexShader
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRest = aRest; vPart = aPart; vArc = aArc;');
-    sh.fragmentShader = GLSL + sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = tabby(diffuseColor.rgb);');
+    Object.assign(sh.uniforms, {uStripe: {value: new THREE.Color(L.stripe)}, uY: {value: L.Y}, uNeck: {value: new THREE.Vector3(...neck)}, uHeadScale: {value: scale}, uEye: {value: new THREE.Vector3(...eye)}, uFront: {value: front}, uShell: {value: shell}});
+    sh.vertexShader = 'attribute vec3 aRest; attribute vec4 aPart; attribute float aArc; attribute float aFur; uniform float uShell; varying vec3 vRest; varying vec4 vPart; varying float vArc; varying float vFur;\n' + sh.vertexShader
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRest = aRest; vPart = aPart; vArc = aArc; vFur = aFur;')
+      // a shell stands out along the skinned normal by its share of the hair, the tips lying back and down
+      .replace('#include <skinning_vertex>', `#include <skinning_vertex>
+        float furOut = uShell * aFur * ${FUR.length.toFixed(4)};
+        transformed += normalize(objectNormal) * furOut + vec3(0., -.35, -1.) * furOut * uShell * ${FUR.comb.toFixed(2)};`);
+    sh.fragmentShader = GLSL + 'uniform float uShell; varying float vFur;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      diffuseColor.rgb = tabby(diffuseColor.rgb);
+      if (uShell > 0.) {
+        // one hair per cell: its own length; it reaches this shell, and thins toward its tip
+        vec3 cell = vRest * ${FUR.density.toFixed(1)}, inCell = fract(cell) - .5;
+        float len = .35 + .65 * h31(floor(cell) + 3.7);
+        if (vFur < .05 || len < uShell || dot(inCell, inCell) > .32 * (1. - uShell / len)) discard;
+      }
+      // darker down among the roots, lighter at the tips
+      diffuseColor.rgb *= uShell > 0. ? mix(${FUR.root.toFixed(2)}, 1.05, uShell) : mix(1., ${((1 + FUR.root) / 2).toFixed(2)}, smoothstep(.3, .8, vFur));`);
   };
-  m.customProgramCacheKey = () => 'feline-coat';
+  m.customProgramCacheKey = () => 'feline-coat' + (shell > 0 ? '-shell' : '');
   cache.set(key, m);
   return m;
 }

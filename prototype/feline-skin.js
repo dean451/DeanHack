@@ -26,7 +26,7 @@ import {growHull} from './feline-hull.js';
 import {FELINE_GLIDE} from './slide.js';
 import {createStepper} from './feline-gait.js';
 import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE, TAIL_SCULPT, EYE} from './feline-sculpt.js';
-import {coatAttributes, coatMaterial} from './feline-coat.js';
+import {coatAttributes, coatMaterial, FUR} from './feline-coat.js';
 import {createFelineMind} from './feline-mind.js';
 
 export const BLEND = {spine: .06, leg: .022, tail: .03};
@@ -152,20 +152,23 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
   };
   for (const [key, leg] of Object.entries(legs)) weighFor[key] = (x, y) => chainWeights(y, leg.joints, BLEND.leg).map(([k, w]) => [names[key + Math.min(k, leg.bones.length - 1)], w]);
   const weigh = (group, x, y, z) => weighFor[group](x, y, z);
-  let fur, details = null;
+  let fur, details = null; const shells = [];
   if (hull && sculpt) {
     const key = name + '|' + (colour || '') + '|sculpt';
     if (!hulls.has(key)) {
       const tail = tailCurve.map(([x, y, z]) => [x + tailRoot[0], y + tailRoot[1], z + tailRoot[2]]), sc = sculptFeline(L, {tail, headM});
       const grown = growHull(sc.parts, {weigh, res: SCULPT.res, soft: SCULPT.soft});
-      coatAttributes(grown.geometry, bones.map(b => b.name), tail);
+      coatAttributes(grown.geometry, bones.map(b => b.name), tail, {Y, front: L.shoulder[2] + .02, neckY: L.neck[1]});
       // the ears, ready-made in head space, ride the head with the other details
       const ears = sc.ears.map(e => { e.applyMatrix4(headM); skin(e, () => [[names.head, 1]]); return e; });
       grown.details = grown.details ? mergeGeometries([grown.details, ...ears]) : mergeGeometries(ears);
       hulls.set(key, grown);
     }
     const grown = hulls.get(key);
-    fur = new THREE.SkinnedMesh(grown.geometry, coatMaterial(L, {neck: L.neck, scale: (L.headSize || 1) * HEAD_SCALE, eye: [EYE.x, EYE.y, EYE.z], front: L.shoulder[2] + .02}));
+    const paint = {neck: L.neck, scale: (L.headSize || 1) * HEAD_SCALE, eye: [EYE.x, EYE.y, EYE.z], front: L.shoulder[2] + .02};
+    fur = new THREE.SkinnedMesh(grown.geometry, coatMaterial(L, paint));
+    // the fur's layers, each the skin again a little further out (feline-coat.js)
+    for (let k = 1; k <= FUR.shells; k++) { const m = new THREE.SkinnedMesh(grown.geometry, coatMaterial(L, paint, k / FUR.shells)); m.frustumCulled = false; m.receiveShadow = true; m.userData.part = 'fur-shell'; shells.push(m); }
     details = new THREE.SkinnedMesh(grown.details, S.fur); details.castShadow = details.receiveShadow = true; details.frustumCulled = false; details.userData.part = 'details';
   } else if (hull && S.body.userData.pieces) {
     // one skin over everything, grown once per look
@@ -201,7 +204,9 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
   // the bones' rest (the inverse bind matrices) must come from settled world matrices
   body.add(hips); body.add(fur); if (details) body.add(details); body.add(eyes); g.updateMatrixWorld(true);
   const skeleton = new THREE.Skeleton(bones);
+  for (const m of shells) body.add(m); body.updateMatrixWorld(true);
   fur.bind(skeleton, fur.matrixWorld); eyes.bind(skeleton, eyes.matrixWorld); if (details) details.bind(skeleton, details.matrixWorld);
+  for (const m of shells) m.bind(skeleton, m.matrixWorld);
   const rig = {hips, spine, chest, neck, head, tail: tailBones, legs, yaw: g.rotation.y, lean: 0};
   const actor = {g, body, legs: [], tail: null, wings: [], quirk: 'feline', head, species: name, skinned: true, rig, fur, eyes, details, glide: FELINE_GLIDE};
   actor.animator = createFelineAnimator(body, rig, actor);
