@@ -25,6 +25,7 @@ import {felineBuild} from './feline.js';
 import {growHull} from './feline-hull.js';
 import {FELINE_GLIDE} from './slide.js';
 import {createStepper} from './feline-gait.js';
+import {createFelineMind} from './feline-mind.js';
 
 export const BLEND = {spine: .06, leg: .022, tail: .02};
 // The animator's measured speed is smoothed at `smooth` per second; clips cross-fade over `fade` s.
@@ -35,10 +36,11 @@ export const GAIT = {smooth: 6, fade: .3};
 //   round over ~1/ease s, the spine leans in, and the neck leads a little into the new heading;
 // - the tail trails: it lags the turn and dips or lifts as the cat speeds up or brakes, through
 //   two low-pass stages so it swings late and settles, more at the tip than the root;
-// - the eyes blink: every BLINK.gap..gap+span seconds for BLINK.shut seconds, now and then twice.
+// - the eyes blink: every BLINK.gap..gap+span seconds for BLINK.shut seconds, now and then twice;
+//   a content cat watching the hero now and then slow-blinks at them (BLINK.slow seconds, feline-mind.js).
 export const TURN = {ease: 9, max: 1.3, lead: .35, level: .8};
 export const TAIL_SPRING = {follow: 9, settle: 5, lag: .09, dip: .05, max: .6};
-export const BLINK = {gap: 2.5, span: 4, shut: .11, double: .22};
+export const BLINK = {gap: 2.5, span: 4, shut: .11, double: .22, slow: .55};
 // The idle tail: the model's own J-curve is the rest; these are small swings about it.
 export const TAIL = {curl: .1, sway: .14, flick: .05};
 
@@ -249,6 +251,13 @@ export function sampleClip(name, {pose, period, frames}, bonesByName) {
 // rig that does not sit straight under the actor's group (the fox, inside its model holder).
 export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   const bonesByName = {}; root.traverse(o => { if (o.isBone) bonesByName[o.name] = o; });
+  // The mixer writes a bone only when its clip's value changes, so a held pose (the sit) is not
+  // rewritten each frame. Everything laid on after the mixer (the lean, the gaze, the tail's mood,
+  // the step) is therefore taken back at the start of the next frame: each bone returns to what the
+  // mixer last left it as, and the layers start again from the mixer's own pose.
+  const layered = Object.values(bonesByName), mixed = layered.map(b => ({q: b.quaternion.clone(), p: b.position.clone()}));
+  const keepMixed = () => layered.forEach((b, i) => { mixed[i].q.copy(b.quaternion); mixed[i].p.copy(b.position); });
+  const takeBack = () => layered.forEach((b, i) => { b.quaternion.copy(mixed[i].q); b.position.copy(mixed[i].p); });
   const mixer = new THREE.AnimationMixer(root), actions = {};
   for (const [name, spec] of Object.entries(CLIPS)) {
     const a = mixer.clipAction(sampleClip(name, spec, bonesByName));
@@ -258,10 +267,12 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   actions.idle.setEffectiveWeight(1); actions.tail.setEffectiveWeight(1);
   let walking = false, base = actions.idle, still = 0, pouncing = false, lastAttack = null, speed = 0, stepped = {stepping: false, weight: 0};
   const stepper = createStepper(rig, actor, opts);
+  let mood = {mood: 'content', crouch: 0, hold: false, turn: false};
   const spring = {turn: 0, rate1: 0, rate2: 0, acc1: 0, acc2: 0, lastSpeed: 0};
   let seed = 0; for (const c of String(actor?.species || 'cat')) seed = (seed * 31 + c.charCodeAt(0)) >>> 0;
   const rnd = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
   const blink = {until: BLINK.gap + rnd() * BLINK.span, shut: 0, again: false};
+  const mind = createFelineMind(rig, actor, {seed});
   const _lq = new THREE.Quaternion(), _le = new THREE.Euler();
   const last = new THREE.Vector3();
   if (actor?.g) last.copy(actor.g.position);
@@ -271,7 +282,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   mixer.addEventListener('finished', e => { if (e.action === actions.pounce) { pouncing = false; fade(base, actions.pounce, .25); } });
   function update(dt, nowWalking) {
     dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
-    still = nowWalking ? 0 : still + dt;
+    still = nowWalking || mood.mood !== 'content' ? 0 : still + dt; // a cat that is stalking or wary is not settling down
     // measured speed (tiles per second), smoothed
     if (actor?.g && dt > 0) { const v = last.distanceTo(actor.g.position) / dt; last.copy(actor.g.position); speed += (Math.min(v, 12) - speed) * (1 - Math.exp(-dt * GAIT.smooth)); }
     // the pounce: once per attack action, the moment it starts
@@ -283,18 +294,25 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     const actual = actor?.slideSpeed > 0 ? actor.slideSpeed : speed, pace = actual / stepper.hip();
     // walking, the idle plays under the step (and a sitting cat gets up); standing long enough, it sits
     if (walking && !pouncing) setBase(actions.idle, GAIT.fade);
-    if (!pouncing && !walking && still >= SIT_AFTER && base !== actions.sit) setBase(actions.sit, .6);
-    mixer.update(dt);
+    // (only a content cat sits; one that is stalking or wary gets up)
+    if (!pouncing && !walking && still >= SIT_AFTER && base !== actions.sit && mood.mood === 'content') setBase(actions.sit, .6);
+    if (base === actions.sit && mood.mood !== 'content') setBase(actions.idle, .4);
+    takeBack(); mixer.update(dt); keepMixed();
     // the lean into a turn: the heading arrives in steps, so it snaps toward a turn and eases out
     const yaw = opts.yaw ? opts.yaw() : (rig.hips.parent?.parent?.rotation.y ?? 0), d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
     const target = dt > 0 ? Math.max(-.5, Math.min(.5, d / dt * .12)) : 0;
     rig.lean += (target - rig.lean) * (1 - Math.exp(-dt * (Math.abs(target) > Math.abs(rig.lean) ? 14 : 3)));
     if (Math.abs(rig.lean) > 1e-4) { const l = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, -rig.lean * .25)); rig.spine.quaternion.multiply(l); rig.chest.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, 0))); }
     secondary(dt, d);
-    // the legs last, once the body they hang from has its pose for the frame
-    stepped = stepper.update(dt, walking && !pouncing, actual, pouncing);
+    // its attention and mood (the gaze, the tail, the crouch, turning to face), then the legs last,
+    // once the body they hang from has its pose for the frame
+    const sitting = base === actions.sit || actions.sit.getEffectiveWeight() > .01; // (until it has got up)
+    mood = mind.update(dt, {walking, pouncing, sitting});
+    if (mood.slowBlink && actor?.eyes && blink.shut <= 0) { blink.shut = BLINK.slow; blink.again = false; }
+    // (a sitting cat's legs belong to the sit clip)
+    stepped = stepper.update(dt, walking && !pouncing, actual, pouncing || sitting, sitting ? {} : {hold: mood.hold, turn: mood.turn, crouch: mood.crouch});
     const gait = stepped.stepping ? stepped.gait : Object.keys(actions).find(k => actions[k] === base);
-    return {walking, pouncing, speed, pace, sitting: base === actions.sit, gait, step: stepped, stepWeight: stepped.weight, idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
+    return {walking, pouncing, speed, pace, sitting: base === actions.sit, gait, mood, step: stepped, stepWeight: stepped.weight, idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
   }
   // ---- secondary motion: eased turns, the trailing tail, blinks ----
   function secondary(dt, yawStep) {
@@ -326,7 +344,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     const a = actions[name]; a.play(); a.time = u * a.getClip().duration; a.paused = true;
     mixer.update(0); secondary(0, 0); // the neck's levelling too, so a tool shows the head as the game would
   }
-  return {mixer, actions, update, show, stepper, get walking() { return walking; }, get base() { return Object.keys(actions).find(k => actions[k] === base); }};
+  return {mixer, actions, update, show, stepper, mind, get walking() { return walking; }, get base() { return Object.keys(actions).find(k => actions[k] === base); }};
 }
 
 // Per frame from live.js (through actor.asset.update). `t` is unused: the mixer keeps its own time.
