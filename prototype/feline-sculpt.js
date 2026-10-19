@@ -130,7 +130,9 @@ function legPaint(L, C, root) {
 }
 function headPaint(C) {
   return (x, y, z) => {
-    let c = mix(C.coat, C.back, smooth((y - .03) / .05) * .45);
+    let c = mix(C.coat, C.back, smooth((y - .03) / .05) * .3);
+    // a warm tan round the eyes (the cat's 'spectacles' tint)
+    c = mix(c, rgb('#b3895c'), smooth((.032 - Math.hypot(Math.abs(x) - EYE.x, y - EYE.y)) / .012) * smooth((z - .07) / .02) * .45);
     // the bridge of the nose, warm tan down to the nose leather
     c = mix(c, rgb('#b08455'), smooth((.014 - Math.abs(x)) / .006) * smooth((z - .1) / .015) * smooth((.035 - y) / .01) * smooth((y + .002) / .01) * .8);
     // the muzzle: the pads, the upper lip and the chin clean white, the throat cream

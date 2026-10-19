@@ -26,8 +26,9 @@ export const COAT = {
 // hair's length (`length` body units, times the region's own: FUR_LENGTH), keeping only the hairs that
 // reach that far, so they thin to tips and the outline goes soft. `density` hairs per body unit
 // across; `comb` how far the tips lie back and down along the body (of the length); `root` how dark
-// the coat is down at the hairs' roots.
-export const FUR = {shells: 10, length: .014, density: 480, comb: .6, root: .76};
+// the coat is down at the hairs' roots; the ticking: `band` how dark a hair's band, `guard` the share
+// of hairs dark to the tip, `tipLight` how much lighter the other tips are.
+export const FUR = {shells: 10, length: .014, density: 480, comb: .6, root: .78, band: .55, guard: .12, tipLight: 1.25};
 // Hair length by region (of FUR.length): longest on the chest, belly and tail, short on the face,
 // the legs and the paws.
 export const FUR_LENGTH = {body: 1, belly: 1.35, head: .45, cheek: .8, tail: 1.2, leg: .55, paw: .3, earBack: .3, earInside: 1.5};
@@ -122,8 +123,8 @@ vec3 tabby(vec3 base) {
   float mLines = forehead * stripe(hx / .0085 + .5 + warp.x * .35, .3) * .95;
   float eyeD = length(vec2((hx - uEye.x) / uEyeR.x, (h.y - uEye.y) / uEyeR.y));
   float behindEye = rs(uEye.z + .01, uEye.z - .03, h.z);
-  float swirl1 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .005) + (uEye.z - h.z) * .25))) * rs(.045, .06, hx) * behindEye;
-  float swirl2 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .03) + (uEye.z - h.z) * .55))) * rs(.04, .055, hx) * behindEye * rs(uEye.z - .07, uEye.z - .03, h.z);
+  float swirl1 = (1. - rs(.0018, .0035, abs(h.y - (uEye.y - .004) + (uEye.z - h.z) * .25))) * rs(uEye.x + uEyeR.x * .9, uEye.x + uEyeR.x * 1.4, hx) * behindEye;
+  float swirl2 = (1. - rs(.0018, .0035, abs(h.y - (uEye.y - .028) + (uEye.z - h.z) * .55))) * rs(.036, .05, hx) * behindEye * rs(uEye.z - .07, uEye.z - .03, h.z);
   // the lid line right at the eye's edge (the eye's half-width is about .7 of eyeD's unit), pale fur just outside it
   float rim = (1. - rs(.0, .1, abs(eyeD - 1.))) * rs(.06, .09, h.z) * .8;
   float specs = (1. - rs(.08, .28, abs(eyeD - 1.32))) * rs(.06, .09, h.z) * .6;
@@ -166,9 +167,16 @@ export function coatMaterial(L, {neck, scale, eye, eyeR, front}, shell = 0) {
       diffuseColor.rgb = tabby(diffuseColor.rgb);
       if (uShell > 0.) {
         // one hair per cell: its own length; it reaches this shell, and thins toward its tip
-        vec3 cell = vRest * ${FUR.density.toFixed(1)}, inCell = fract(cell) - .5;
+        // (on a lattice turned off the body's axes, each hair jittered in its cell, so no rows show)
+        vec3 cell = mat3(.80, .36, -.48, -.27, .93, .25, .54, -.08, .84) * vRest * ${FUR.density.toFixed(1)};
+        vec3 inCell = fract(cell) - .5 - (vec3(h31(floor(cell)), h31(floor(cell) + 1.3), h31(floor(cell) + 2.9)) - .5) * .45;
         float len = .35 + .65 * h31(floor(cell) + 3.7);
         if (vFur < .05 || len < uShell || dot(inCell, inCell) > .32 * (1. - uShell / len)) discard;
+        // ticking: each hair banded, light near its tip with a dark band below it; a few hairs dark to
+        // the tip (the guard hairs), more of them in the markings
+        float band = uShell / len, guard = step(1. - ${FUR.guard.toFixed(2)}, h31(floor(cell) + 9.1));
+        diffuseColor.rgb *= mix(1., ${FUR.band.toFixed(2)}, rs(.45, .55, band) * (1. - rs(.72, .8, band))) * mix(1., ${FUR.band.toFixed(2)}, guard * rs(.6, .8, band));
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * ${FUR.tipLight.toFixed(2)}, rs(.8, .95, band) * (1. - guard));
       }
       // darker down among the roots, lighter at the tips
       diffuseColor.rgb *= uShell > 0. ? mix(${FUR.root.toFixed(2)}, 1.05, uShell) : mix(1., ${((1 + FUR.root) / 2).toFixed(2)}, smoothstep(.3, .8, vFur));`);
