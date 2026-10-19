@@ -24,11 +24,11 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
     const a = createSkinnedFeline(name), rigid = createFeline(name);
     const skinned = [], shells = []; a.g.traverse(o => { if (o.isSkinnedMesh) (o.userData.part === 'fur-shell' ? shells : skinned).push(o); });
     assert.equal(skinned.length, 3, `${name}: fur, details, eyes`); assert.equal(shells.length, FUR.shells, `${name}: the fur's layers`); assert.ok(shells.every(m => m.skeleton === skinned[0].skeleton && m.geometry === a.fur.geometry), 'the layers are the skin again, on the same bones'); assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton));
-    assert.equal(skinned[0].skeleton.bones.length, 28, 'hips, spine, chest, neck, head, 5 tail, 3+4 per side, two ears, the jaw and the tongue');
+    assert.equal(skinned[0].skeleton.bones.length, 32, 'hips, back1, spine, back3, chest, neck0, neck1, neck, head, 5 tail, 3+4 per side, two ears, the jaw and the tongue');
     for (const m of skinned) {
       const w = m.geometry.attributes.skinWeight, idx = m.geometry.attributes.skinIndex;
       assert.ok(w && idx, 'skin attributes');
-      for (let i = 0; i < w.count; i++) { const sum = w.getX(i) + w.getY(i) + w.getZ(i) + w.getW(i); assert.ok(Math.abs(sum - 1) < 1e-4, `${name} vertex ${i} weights sum ${sum}`); for (const k of [idx.getX(i), idx.getY(i), idx.getZ(i), idx.getW(i)]) assert.ok(k >= 0 && k < 28); }
+      for (let i = 0; i < w.count; i++) { const sum = w.getX(i) + w.getY(i) + w.getZ(i) + w.getW(i); assert.ok(Math.abs(sum - 1) < 1e-4, `${name} vertex ${i} weights sum ${sum}`); for (const k of [idx.getX(i), idx.getY(i), idx.getZ(i), idx.getW(i)]) assert.ok(k >= 0 && k < 32); }
     }
     // at rest the skinned mesh sits where the rigid parts sit
     a.g.updateMatrixWorld(true); rigid.g.updateMatrixWorld(true);
@@ -194,7 +194,9 @@ test('a turn: the body counters the heading step and eases round, the neck leads
   a.g.rotation.y = Math.PI / 2 + 1; // the heading jumps a radian to the left
   updateSkinnedFeline(a, 1 / 60, null, true); updateSkinnedFeline(b, 1 / 60, null, true);
   assert.ok(a.body.rotation.y < -.8, `the body counters the step: ${a.body.rotation.y}`);
-  const neck = new THREE.Euler().setFromQuaternion(a.rig.neck.quaternion);
+  // (the whole neck's turn: shared over its vertebrae on a sculpted cat)
+  const nq = new THREE.Quaternion(); for (const b of a.rig.chains?.find(c => c.includes(a.rig.neck)) || [a.rig.neck]) nq.multiply(b.quaternion);
+  const neck = new THREE.Euler().setFromQuaternion(nq);
   assert.ok(neck.y > .2, `the neck leads into the turn: ${neck.y}`);
   const tailAt = c => new THREE.Euler().setFromQuaternion(c.rig.tail[4].quaternion).y, extra = () => tailAt(a) - tailAt(b);
   let peak = 0, peakAt = 0;
