@@ -29,7 +29,7 @@ const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 export const JOIN = {trunk: .045, neck: .04, thigh: .035, arm: .03, leg: .016, paw: .012, toe: .005, head: .02, face: .012, tail: .02};
 // The trunk's stations along z: [z, top, bottom, half-width], top and bottom from the hip line Y.
 export const TRUNK = {
-  rear: -.315, front: .29,
+  rear: -.315, front: .278,
   stations: [
     [-.27, .066, -.05, .07],
     [-.23, .09, -.074, .086],
@@ -37,10 +37,10 @@ export const TRUNK = {
     [-.11, .1, -.1, .098],
     [-.04, .096, -.114, .1],
     [.03, .092, -.124, .099],
-    [.09, .09, -.132, .094],
-    [.15, .094, -.138, .087],
-    [.2, .092, -.13, .08],
-    [.245, .08, -.1, .068],
+    [.09, .09, -.126, .094],
+    [.15, .093, -.128, .086],
+    [.2, .09, -.117, .078],
+    [.245, .078, -.088, .066],
   ],
 };
 // The tail's radius at the root and the tip, and how much longer than the look's tail curve
@@ -186,19 +186,34 @@ function headPieces(C, nose) {
   H(ellipsoid([0, -.003, .135], [.009, .006, .005]), [0, -.003, .135], .012, .004, nose);
   H(roundCone([0, -.03, .04], [0, -.04, .1], .024, .014), [0, -.035, .07], .045, JOIN.face);
   H(ellipsoid([0, -.045, .104], [.013, .009, .012]), [0, -.045, .104], .02, JOIN.face);
+  // the fur mound each ear grows from, so its base sits in the skull and not on its edge
+  for (const s of [-1, 1]) { const {base, up, fwd, across} = earFrame(s), c = base.clone().addScaledVector(up, .008).addScaledVector(fwd, -.004); H(framedEllipsoid(c, [across, up, fwd], EAR.mound), c.toArray(), .04, .014); }
   // a shallow almond dish round each eye
   for (const s of [-1, 1]) out.push(piece(ellipsoid([s * EYE.x, EYE.y, EYE.z + .006], [.019, .016, .008]), [s * EYE.x, EYE.y, EYE.z], .03, paint, .005, true));
   return out;
 }
 
-export const EAR = {yaw: .3};
-// A thin cupped ear in head space: base centre `b`, leaning out and back, outside coat, inside pale.
-function earGeometry(side, C, inner) {
-  const base = new THREE.Vector3(side * .04, .066, .018), up = new THREE.Vector3(side * .3, .95, -.08).normalize();
-  // the opening faces forward and turned out by EAR.yaw
+// The ears: where each base sits on the skull (head space, the right ear; the left mirrors it), how
+// far they lean out and turn out, their size, the cup of the opening, and the fur mound each grows from.
+export const EAR = {base: [.04, .063, .016], lean: .5, yaw: .3, height: .078, width: .064, cup: .013, thick: .004, mound: [.026, .02, .013]};
+// The ear's frame: base point, up its length, across its width (outward), forward out of its opening.
+export function earFrame(side) {
+  const base = new THREE.Vector3(side * EAR.base[0], EAR.base[1], EAR.base[2]), up = new THREE.Vector3(side * Math.sin(EAR.lean), Math.cos(EAR.lean), -.08).normalize();
   const fwd = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), side * EAR.yaw); fwd.addScaledVector(up, -fwd.dot(up)).normalize();
   const across = new THREE.Vector3().crossVectors(up, fwd).multiplyScalar(side).normalize();
-  const H = .074, W = .074, cup = .014, thick = .004, nu = 8, nv = 8, pos = [], col = [];
+  return {base, up, fwd, across};
+}
+// An ellipsoid along the given axes.
+function framedEllipsoid(c, axes, r) {
+  return (x, y, z) => {
+    const vx = x - c.x, vy = y - c.y, vz = z - c.z, l = axes.map(a => a.x * vx + a.y * vy + a.z * vz);
+    const k0 = Math.hypot(l[0] / r[0], l[1] / r[1], l[2] / r[2]), k1 = Math.hypot(l[0] / (r[0] * r[0]), l[1] / (r[1] * r[1]), l[2] / (r[2] * r[2]));
+    return k1 < 1e-9 ? -Math.min(...r) : k0 * (k0 - 1) / k1;
+  };
+}
+// A thin cupped ear in head space, outside coat, inside pale.
+function earGeometry(side, C, inner) {
+  const {base, up, fwd, across} = earFrame(side), H = EAR.height, W = EAR.width, cup = EAR.cup, thick = EAR.thick, nu = 8, nv = 8, pos = [], col = [];
   const point = (u, v, face) => {
     const w = W / 2 * Math.sqrt(1 - u) * (1 - u * .35), c = (1 - v * v) * cup * (1 - u * .7);
     return base.clone().addScaledVector(up, u * H).addScaledVector(across, v * w).addScaledVector(fwd, -c - (face ? 0 : thick * (1 - u * .6)));
@@ -253,7 +268,7 @@ export function sculptFeline(L, {tail, headM}) {
   // the neck from the withers into the back of the skull, the throat under it
   const [, ny, nz] = L.neck, neck = [
     piece(roundCone([0, Y + .02, .17], [0, ny - .01, nz - .005], .085 * bw, .07 * bw), [0, Y + .07, .23], .14, paint, JOIN.neck),
-    piece(roundCone([0, Y - .05, .22], [0, ny - .06, nz + .03], .062 * bw, .05 * bw), [0, Y + .02, .27], .12, paint, JOIN.neck),
+    piece(roundCone([0, Y - .04, .21], [0, ny - .06, nz + .03], .052 * bw, .044 * bw), [0, Y + .02, .27], .12, paint, JOIN.neck),
   ];
   // the shoulder blades, flat under the skin, their tops back toward the withers (with the body:
   // the step slides the shoulder joint, not the blade)

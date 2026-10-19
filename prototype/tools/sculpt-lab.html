@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import {createSkinnedFeline} from '../feline-skin.js';
 import {LOOKS} from '../feline.js';
-const q = new URLSearchParams(location.search), name = q.get('name') || 'kitten', clip = q.get('clip') || 'idle', at = +(q.get('at') || 0);
+const q = new URLSearchParams(location.search), name = q.get('name') || 'kitten', clip = q.get('clip') || 'idle', at = +(q.get('at') || 0), live = +(q.get('live') || 0);
 const VIEWS = (q.get('views') || 'side,three,front').split(','), W = 1200, H = 360 * VIEWS.length;
 const renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
 renderer.setPixelRatio(1); renderer.setSize(W, H); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -20,7 +20,9 @@ const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), new THREE.MeshStand
 const t0 = performance.now();
 const cats = [createSkinnedFeline(name), createSkinnedFeline(name, undefined, {sculpt: true})];
 window.__ms = performance.now() - t0;
-cats.forEach((cat, i) => { cat.g.position.x = (i - .5) * 1.4; cat.g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(cat.g); cat.animator.show(clip, at); });
+cats.forEach((cat, i) => { cat.g.position.x = (i - .5) * 1.4; cat.g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(cat.g); if (!live) cat.animator.show(clip, at); });
+// ?live=s: run the cats' own animation (idle, mind, tail) for s seconds instead of holding a clip
+if (live) for (let t = 0; t < live; t += 1 / 60) cats.forEach(cat => cat.asset.update(1 / 60, false));
 const s = LOOKS[name].scale || 1, camera = new THREE.PerspectiveCamera(22, (W / 2) / 360, .05, 50);
 renderer.setScissorTest(true);
 VIEWS.forEach((view, row) => cats.forEach((cat, i) => {

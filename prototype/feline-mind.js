@@ -25,12 +25,17 @@ export const MIND = {
   slowBlinkGap: [7, 14], moodRate: 3,
 };
 // Tail carriage per mood, radians per tail bone (root first): `lift` raises (-) or lowers (+) the
-// tail about its root, `hook` curls the tip forward, `twitch`/`lash` swing it sideways.
+// tail about its root, `hook` curls the tip forward, `twitch`/`lash` swing it sideways, `side` bends
+// the upper tail over to one side (the content cat's question-mark tail, its side switching every
+// TAIL_HOOK.gap seconds and easing across at TAIL_HOOK.rate).
 export const TAIL_MOOD = {
-  content: {lift: 0, hook: .35, twitch: 0, lash: 0},
-  hunting: {lift: -.75, hook: -.1, twitch: .35, lash: 0},
-  wary: {lift: -.55, hook: -.15, twitch: 0, lash: .35},
+  content: {lift: 0, hook: .3, twitch: 0, lash: 0, side: 1.6},
+  hunting: {lift: -.75, hook: -.1, twitch: .35, lash: 0, side: 0},
+  wary: {lift: -.55, hook: -.15, twitch: 0, lash: .35, side: 0},
 };
+// How the side bend shares out down the tail (root first), the seconds between switches, and the
+// rate the bend eases to its new side.
+export const TAIL_HOOK = {share: [0, .04, .14, .34, .48], gap: [3, 8], rate: 1.4};
 
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 const posOf = a => a?.target ?? a?.g?.position ?? null;
@@ -56,7 +61,11 @@ export function createFelineMind(rig, actor, {seed = 1} = {}) {
   const rnd = () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 2 ** 32, range = ([a, b]) => a + (b - a) * rnd();
   const st = {mood: 'content', w: {content: 1, hunting: 0, wary: 0}, yaw: 0, pitch: 0, aim: null, kind: null, snapping: false,
     glance: range(MIND.glanceGap), glancing: 0, scan: range(MIND.scanGap), scanning: 0, scanAt: {yaw: 0, pitch: 0},
-    behind: 0, turning: false, turnTo: 0, wiggle: range(MIND.wiggleGap), wiggling: 0, blink: range(MIND.slowBlinkGap), t: 0};
+    behind: 0, turning: false, turnTo: 0, wiggle: range(MIND.wiggleGap), wiggling: 0, blink: range(MIND.slowBlinkGap), t: 0,
+    hookSide: rnd() < .5 ? -1 : 1, hookIn: range(TAIL_HOOK.gap), hookAt: 0};
+  // each tail bone's sideways bend axis: across its own line (bones rest unturned, so a bone's line
+  // is where its child sits), so a bone running back bends about up and one standing up about forward
+  const sideAxis = rig.tail.map((b, i) => { const d = (rig.tail[i + 1] || b).position.clone().normalize(), a = d.cross(new THREE.Vector3(1, 0, 0)); return a.lengthSq() > 1e-6 ? a.normalize() : new THREE.Vector3(0, 1, 0); });
   const _v = new THREE.Vector3(), _q = new THREE.Quaternion(), _e = new THREE.Euler(0, 0, 0, 'YXZ');
   const g = () => actor?.g;
   const bodyYaw = () => (g()?.rotation.y ?? 0) + (rig.hips.parent?.rotation.y ?? 0);
@@ -125,7 +134,13 @@ export function createFelineMind(rig, actor, {seed = 1} = {}) {
     const W = st.w, T = TAIL_MOOD, mix = key => W.content * T.content[key] + W.hunting * T.hunting[key] + W.wary * T.wary[key];
     const lift = mix('lift'), hook = mix('hook'), burst = Math.max(0, Math.sin(st.t * 1.7)) ** 6;
     const twitch = mix('twitch') * Math.sin(st.t * 22) * burst, lash = mix('lash') * Math.sin(st.t * 4.4);
-    rig.tail.forEach((b, i) => { const tip = i / (rig.tail.length - 1); b.quaternion.multiply(_q.setFromEuler(_e.set((i ? lift * .15 : lift) + hook * tip * tip, lash * (i ? .25 : 0) + twitch * tip, 0))); });
+    if ((st.hookIn -= dt) <= 0) { st.hookIn = range(TAIL_HOOK.gap); st.hookSide = -st.hookSide; }
+    st.hookAt += (st.hookSide - st.hookAt) * (1 - Math.exp(-dt * TAIL_HOOK.rate));
+    const side = mix('side') * st.hookAt;
+    rig.tail.forEach((b, i) => {
+      const tip = i / (rig.tail.length - 1); b.quaternion.multiply(_q.setFromEuler(_e.set((i ? lift * .15 : lift) + hook * tip * tip, lash * (i ? .25 : 0) + twitch * tip, 0)));
+      if (side) b.quaternion.multiply(_q.setFromAxisAngle(sideAxis[i], side * (TAIL_HOOK.share[i] ?? 0)));
+    });
     // the haunches wiggle now and then before a pounce
     let wiggle = 0;
     if (mood === 'hunting' && !ctx.walking) { if (st.wiggling > 0) { st.wiggling -= dt; wiggle = Math.sin(st.wiggling * 20) * Math.sin(Math.PI * st.wiggling / MIND.wiggle) * .09; } else if ((st.wiggle -= dt) <= 0) { st.wiggle = range(MIND.wiggleGap); st.wiggling = MIND.wiggle; } }
@@ -134,7 +149,7 @@ export function createFelineMind(rig, actor, {seed = 1} = {}) {
     let slowBlink = false;
     if (mood === 'content' && pick.kind === 'hero' && !ctx.walking && !st.snapping) { if ((st.blink -= dt) <= 0) { st.blink = range(MIND.slowBlinkGap); slowBlink = true; } }
     const crouch = W.hunting * MIND.stalk + W.wary * MIND.wary;
-    return {mood, look: pick.kind, yaw: st.yaw, pitch: st.pitch, crouch, hold: crouch > .01 && !ctx.walking, turn: st.turning, slowBlink, wiggle};
+    return {mood, look: pick.kind, yaw: st.yaw, pitch: st.pitch, crouch, tailSide: st.hookAt, hold: crouch > .01 && !ctx.walking, turn: st.turning, slowBlink, wiggle};
   }
   return {update, state: st};
 }

@@ -28,7 +28,7 @@ import {createStepper} from './feline-gait.js';
 import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE} from './feline-sculpt.js';
 import {createFelineMind} from './feline-mind.js';
 
-export const BLEND = {spine: .06, leg: .022, tail: .02};
+export const BLEND = {spine: .06, leg: .022, tail: .03};
 // The sculpted skin's grid (fine enough for the toes and the forearm), and how far each part's
 // weights reach into its neighbours' skin.
 export const SCULPT = {res: 120, soft: .045};

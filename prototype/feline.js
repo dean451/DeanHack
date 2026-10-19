@@ -14,7 +14,7 @@ import {segment,chain} from './ant.js';
 // - The kitten, housecat and large cat go without a collar (a rigid hoop never sat on the neck) and are lean, lived-in cats: matted tufts along the spine, proud hip
 //   bones, ribs showing through the flank fur and upright ears. Their coats are
 //   clean enough for a pet that is fed: no mange, no face scar, full whiskers and bright open eyes.
-// - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
+// - Tail: a tapering jointed tail, carried upright on the pets (their mind hooks the tip to one side), hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
 // Coats are painted per vertex from the body position:
 // - kitten, housecat, large cat: the same plain brown (mackerel) tabby the pet grows up in, the
@@ -36,9 +36,9 @@ import {segment,chain} from './ant.js';
 // quirk 'feline'.
 
 export const LOOKS={
- kitten:{scruffy:true,bold:true,scale:.7,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby',headSize:1.12,legH:.16,tail:'up',tailLen:1.25},
- housecat:{scruffy:true,bold:true,scale:1,legH:.19,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
- 'large cat':{scruffy:true,bold:true,scale:1.15,legH:.2,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
+ kitten:{scruffy:true,bold:true,scale:.7,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby',headSize:1.12,legH:.16,tail:'hook',tailLen:1.25},
+ housecat:{scruffy:true,bold:true,scale:1,legH:.19,tail:'hook',tailLen:1.2,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
+ 'large cat':{scruffy:true,bold:true,scale:1.15,legH:.2,tail:'hook',tailLen:1.2,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
  jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#c4b497',nose:'#5e3630',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
  lynx:{scale:1.1,coat:'#a88f70',stripe:'#5a4630',belly:'#b8ac98',nose:'#5a3a30',eye:'#c8b040',pattern:'spots',tufts:true,ruff:true,legH:.26,tail:'bob'},
  panther:{scale:1.45,coat:'#232226',stripe:'#121114',belly:'#2e2c32',nose:'#141214',eye:'#9ad04a',pattern:'ghost',ears:'round',round:true,heavy:1.1,headSize:.95,tail:'low',gloss:.45,whisker:'#8a8a8a'},
@@ -303,6 +303,8 @@ function buildLeg(L,C,fore){
 
 const TAILS={
  up:[[0,0,0],[0,.03,-.06],[0,.12,-.1],[.01,.22,-.1],[.02,.3,-.07]],
+ // the pets: straight up from a short sweep back, the tip tipping forward (the mind hooks it to a side)
+ hook:[[0,0,0],[0,.035,-.055],[0,.12,-.09],[0,.22,-.095],[0,.3,-.075],[0,.34,-.04]],
  j:[[0,0,0],[0,-.02,-.07],[0,-.02,-.15],[.015,.03,-.23],[.04,.12,-.28],[.065,.22,-.28],[.08,.29,-.23]],
  low:[[0,0,0],[0,-.07,-.06],[0,-.15,-.1],[0,-.2,-.15],[.02,-.21,-.21],[.05,-.17,-.25],[.07,-.11,-.25]],
  bob:[[0,0,0],[0,.015,-.045],[0,.035,-.085]],
