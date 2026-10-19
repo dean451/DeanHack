@@ -1,6 +1,6 @@
 # Cat motion reference
 
-This is the target spec for the cat (and other felines) in the 3D view. Motion code is checked against these numbers in tests, not by eye. The cited source notes are in `research/`. Every number there is tagged as sourced (with paper, table or figure), estimated or not found.
+This is the target spec for the cat (and other felines) in the 3D view. Motion code is checked against these numbers in tests, not by eye. `cat-measure.js` takes the measurements, and `tools/cat-lab.html` shows them against this spec: footfalls, joint angles, paw and head heights, and the sit. The cited source notes are in `research/`. Every number there is tagged as sourced (with paper, table or figure), estimated or not found.
 
 **How reliable it is.** These notes were collected in a session that could only read search-result text: abstracts, table fragments and quoted sentences. No full paper and no figure was opened. The numbers below are the ones the notes give with a source. Rows marked *estimate* or *open* need either the full papers or our own measurements from side-on video of a real cat.
 
