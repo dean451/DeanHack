@@ -3,7 +3,7 @@
 <script type="module">
 // Sculpt lab: the pet cat as grown from its parts (left) beside the sculpted anatomy
 // (feline-sculpt.js, right), from the side, three-quarters and the front, in one pose.
-// Views: side, three, front, back, top, and close on the head: face, face3, faceside.
+// Views: side, right (the other side), three, front, back, top, and close on the head: face, face3, faceside.
 // /tools/sculpt-lab.html?name=kitten&clip=idle&at=0&views=side,face3&live=0&sit={"hips":-.5}
 import * as THREE from 'three';
 import {createSkinnedFeline, SIT} from '../feline-skin.js';
@@ -24,11 +24,20 @@ const cats = [createSkinnedFeline(name, undefined, {sculpt: false}), createSkinn
 window.__ms = performance.now() - t0;
 cats.forEach((cat, i) => { cat.g.position.x = (i - .5) * 1.4; cat.g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(cat.g); if (!live) cat.animator.show(clip, at); });
 // ?live=s: run the cats' own animation (idle, mind, tail) for s seconds instead of holding a clip
+// ?mood=wary|hunting: something in front of each cat for its mind to react to (with ?live)
+const sensed = q.get('mood');
+cats.forEach(cat => { const p = cat.g.position.clone().add(new THREE.Vector3(0, 0, 2)), it = {actor: {species: sensed === 'hunting' ? 'sewer rat' : 'hill orc', g: {position: p, userData: {disposition: 'hostile'}}, target: p}, dx: 0, dz: 2, d: 2};
+  cat.senses = sensed === 'wary' ? {threat: it} : sensed === 'hunting' ? {prey: it} : {}; });
 if (live) for (let t = 0; t < live; t += 1 / 60) cats.forEach(cat => cat.asset.update(1 / 60, false));
+// ?jaw=radians opens the mouth, ?tongue=body units pushes the tongue out (after any clip)
+// ?hide=details|fur-shell|eyes hides those meshes (to see what shows through)
+if (q.get('hide')) cats.forEach(cat => cat.g.traverse(o => { if (o.userData.part === q.get('hide')) o.visible = false; }));
+if (q.get('jaw')) cats.forEach(cat => cat.rig.jaw?.rotation.set(-.07 + +q.get('jaw'), 0, 0));
+if (q.get('tongue')) cats.forEach(cat => { if (cat.rig.tongue) cat.rig.tongue.position.z += +q.get('tongue'); });
 const s = LOOKS[name].scale || 1, camera = new THREE.PerspectiveCamera(22, (W / 2) / 360, .05, 50);
 renderer.setScissorTest(true);
 VIEWS.forEach((view, row) => cats.forEach((cat, i) => {
-  const turn = {side: Math.PI / 2, faceside: Math.PI / 2, front: 0, face: 0, back: Math.PI, top: Math.PI / 2}[view];
+  const turn = {side: Math.PI / 2, right: -Math.PI / 2, rthree: -Math.PI / 4, rback: -Math.PI * .75, faceside: Math.PI / 2, front: 0, face: 0, back: Math.PI, top: Math.PI / 2}[view];
   cat.g.rotation.y = turn ?? Math.PI / 4; cat.g.updateMatrixWorld(true);
   const x = cat.g.position.x;
   if (view === 'top') { camera.position.set(x, 2.6 * s, .01); camera.lookAt(x, 0, 0); }

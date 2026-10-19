@@ -190,6 +190,46 @@ function foreLeg(L, C, side, k) {
 // The muzzle (head space): the right whisker pad's centre and radii and how softly it joins the
 // face (a tight join keeps the dip between the pads), the chin's centre and radii, and how far the
 // pads and chin go from cream to white.
+// The mouth (head space): the hinge the lower jaw turns about (below and in front of the ear); the line
+// the lips meet along, y = lip[0] + lip[1] (x / half)^2 across the front of the muzzle (from `front` in z
+// forward), lower out toward the corners; how far back (`back`) and how wide (`jawHalf`) the lower jaw
+// reaches; `closed`, the jaw's turn at rest, a little past shut so the parted lips meet; and what is
+// inside: the cavity, the tongue (its root where the tongue bone sits) and the fangs.
+export const MOUTH = {
+  hinge: [0, -.016, .03], lip: [-.0285, -.006], half: .022, front: .09, back: .025, jawHalf: .036, closed: -.07,
+  cavity: {c: [0, -.031, .093], r: [.017, .01, .027]}, tongue: {root: [0, -.035, .072], c: [0, -.037, .092], r: [.0105, .0035, .019]},
+  fangs: {r: .002, h: .006, upper: [.0105, -.0262, .113], lower: [.0085, -.0345, .111]},
+};
+// The lips' meeting line at x (head space).
+export const lipY = x => { const u = Math.min(1, Math.abs(x) / MOUTH.half); return MOUTH.lip[0] + MOUTH.lip[1] * u * u; };
+// How much of a head-space point goes with the lower jaw (0..1): below the lip line, inside the jaw's
+// width, fading out toward the hinge.
+export function jawShare(x, y, z) {
+  // (sharp across the lips, where the skin is cut; gradual round the cheeks, where it is whole)
+  // (the sharpness fades out inside the cut, so the skin left whole at its edge changes over gently)
+  const lips = smooth((z - MOUTH.front - .004) / .008) * smooth((MOUTH.half - .002 - Math.abs(x)) / .008), soft = .016 - .01 * lips;
+  return smooth((lipY(x) - y) / soft + .5) * smooth((MOUTH.jawHalf - Math.abs(x)) / .012) * smooth((z - MOUTH.back) / .03);
+}
+// Inside the mouth, as ready geometry in head space: a dark cavity seen from inside (its faces turned
+// in), the tongue, two fangs up and two down. Each piece names the bone it rides: `head`, `jaw`,
+// `tongue`, or `split` (the cavity: its upper half the head, its lower half the jaw).
+function mouthGeometry() {
+  const M = MOUTH, out = [], paint = (g, colour) => { const n = g.attributes.position.count, c = new Float32Array(n * 3); for (let i = 0; i < n; i++) c.set(colour, i * 3); g.setAttribute('color', new THREE.BufferAttribute(c, 3)); return g; };
+  const ball = (c, r, colour, inward = false) => { let g = new THREE.SphereGeometry(1, 16, 10); g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(...c), new THREE.Quaternion(), new THREE.Vector3(...r))); g = g.toNonIndexed(); g.deleteAttribute('uv');
+    // (turned inside out: each triangle wound the other way, so its inside faces the light)
+    if (inward) { const p = g.attributes.position.array; for (let i = 0; i < p.length; i += 9) for (let k = 0; k < 3; k++) { const t = p[i + 3 + k]; p[i + 3 + k] = p[i + 6 + k]; p[i + 6 + k] = t; } }
+    return paint(g, colour); };
+  // (the upper fang hangs from its gum, the lower stands up)
+  const fang = (x, y, z, down) => { let g = new THREE.ConeGeometry(M.fangs.r, M.fangs.h, 5); if (down) g.rotateX(Math.PI); g.translate(x, y + (down ? -M.fangs.h / 2 : M.fangs.h / 2), z); g = g.toNonIndexed(); g.deleteAttribute('uv'); return paint(g, rgb('#f2ece0')); };
+  out.push(Object.assign(ball(M.cavity.c, M.cavity.r, rgb('#3a1418'), true), {bone: 'split'}));
+  out.push(Object.assign(ball(M.tongue.c, M.tongue.r, rgb('#c96a72')), {bone: 'tongue'}));
+  for (const s of [-1, 1]) {
+    out.push(Object.assign(fang(s * M.fangs.upper[0], M.fangs.upper[1], M.fangs.upper[2], true), {bone: 'head'}));
+    out.push(Object.assign(fang(s * M.fangs.lower[0], M.fangs.lower[1], M.fangs.lower[2], false), {bone: 'jaw'}));
+  }
+  for (const g of out) g.computeVertexNormals();
+  return out;
+}
 export const MUZZLE = {pad: [.0145, -.023, .122], padR: [.018, .016, .016], padJoin: .008, chin: [0, -.046, .106], chinR: [.015, .011, .013], white: .55};
 export const EYE = {x: .031, y: .027, z: .1015, r: [.0155, .014, .011], tilt: .2, open: .69};
 function headPieces(C, nose) {
@@ -380,5 +420,5 @@ export function sculptFeline(L, {tail, headM}) {
   parts.push({group: 'ear', M: headM, pieces: ears.map(e => e.piece)});
   // which side of an ear a point (head space) is on: +1 inside the cup, -1 on the back, 0 off it
   const earSide = (x, y, z) => { for (const e of ears) { const k = e.side(x, y, z); if (k) return k; } return 0; };
-  return {parts, earSide, extras: [whiskerGeometry(rgb(L.whisker || '#f0ece0'))]};
+  return {parts, earSide, extras: [Object.assign(whiskerGeometry(rgb(L.whisker || '#f0ece0')), {bone: 'head'}), ...mouthGeometry()]};
 }

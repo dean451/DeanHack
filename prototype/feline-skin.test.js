@@ -24,11 +24,11 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
     const a = createSkinnedFeline(name), rigid = createFeline(name);
     const skinned = [], shells = []; a.g.traverse(o => { if (o.isSkinnedMesh) (o.userData.part === 'fur-shell' ? shells : skinned).push(o); });
     assert.equal(skinned.length, 3, `${name}: fur, details, eyes`); assert.equal(shells.length, FUR.shells, `${name}: the fur's layers`); assert.ok(shells.every(m => m.skeleton === skinned[0].skeleton && m.geometry === a.fur.geometry), 'the layers are the skin again, on the same bones'); assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton));
-    assert.equal(skinned[0].skeleton.bones.length, 24, 'hips, spine, chest, neck, head, 5 tail, 3+4 per side');
+    assert.equal(skinned[0].skeleton.bones.length, 28, 'hips, spine, chest, neck, head, 5 tail, 3+4 per side, two ears, the jaw and the tongue');
     for (const m of skinned) {
       const w = m.geometry.attributes.skinWeight, idx = m.geometry.attributes.skinIndex;
       assert.ok(w && idx, 'skin attributes');
-      for (let i = 0; i < w.count; i++) { const sum = w.getX(i) + w.getY(i) + w.getZ(i) + w.getW(i); assert.ok(Math.abs(sum - 1) < 1e-4, `${name} vertex ${i} weights sum ${sum}`); for (const k of [idx.getX(i), idx.getY(i), idx.getZ(i), idx.getW(i)]) assert.ok(k >= 0 && k < 24); }
+      for (let i = 0; i < w.count; i++) { const sum = w.getX(i) + w.getY(i) + w.getZ(i) + w.getW(i); assert.ok(Math.abs(sum - 1) < 1e-4, `${name} vertex ${i} weights sum ${sum}`); for (const k of [idx.getX(i), idx.getY(i), idx.getZ(i), idx.getW(i)]) assert.ok(k >= 0 && k < 28); }
     }
     // at rest the skinned mesh sits where the rigid parts sit
     a.g.updateMatrixWorld(true); rigid.g.updateMatrixWorld(true);
@@ -40,15 +40,15 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
   }
 });
 
-test('the clips: idle, sit, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
+test('the clips: idle, sit, loaf, curl, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['idle', 'pounce', 'sit', 'tail'], 'walking, trotting and galloping are stepped, not clips');
+  assert.deepEqual(Object.keys(actions).sort(), ['curl', 'eat', 'groom', 'idle', 'loaf', 'pounce', 'scratch', 'sit', 'stretch', 'tail'], 'walking, trotting and galloping are stepped, not clips');
   const tail = actions.tail.getClip(), idle = actions.idle.getClip(), sit = actions.sit.getClip();
   const names = c => c.tracks.map(t => t.name);
   assert.ok(names(tail).every(n => n.startsWith('tail')) && names(tail).length === 5, 'the tail clip touches only the tail bones');
   assert.ok(names(idle).includes('chest.scale') && !names(idle).some(n => n.startsWith('head')), 'idle breathes; the head is left to the glance code');
   assert.ok(names(idle).includes('spine.quaternion') && names(idle).includes('chest.quaternion'), 'idle always writes the spine and chest, so the lean never accumulates');
-  for (const c of [idle, tail, sit]) for (const t of c.tracks) { const n = t.getValueSize(); for (let k = 0; k < n; k++) assert.ok(Math.abs(t.values[k] - t.values[t.values.length - n + k]) < 1e-6, `${c.name} ${t.name} loops seamlessly`); }
+  for (const c of [idle, tail, sit, actions.loaf.getClip(), actions.curl.getClip()]) for (const t of c.tracks) { const n = t.getValueSize(); for (let k = 0; k < n; k++) assert.ok(Math.abs(t.values[k] - t.values[t.values.length - n + k]) < 1e-6, `${c.name} ${t.name} loops seamlessly`); }
 });
 
 // The cat faces its path (live.js turns an actor toward its step), moving along +x at `hs` hip heights a second.
@@ -255,4 +255,59 @@ test('the sit has the cat\'s feet under it: hind feet just behind the front paws
   const pitch = Math.atan2(chest.y - hips.y, chest.z - hips.z) * 180 / Math.PI;
   assert.ok(pitch > 30, `the back rises ${pitch.toFixed(0)} degrees`);
   assert.ok(SIT.hz > 0, 'the haunches slide forward under the body');
+});
+
+test('left alone, a pet settles: it sits, lies down, turns a circle and curls up asleep with its eyes shut, and walking gets it straight up', () => {
+  for (const name of ['kitten', 'housecat']) {
+    const a = createSkinnedFeline(name), seen = new Set(); let r, slept = 0, circled = false, turned = 0, last = a.g.rotation.y;
+    for (let t = 0; t < 600 && slept < 2; t += 1 / 30) {
+      r = updateSkinnedFeline(a, 1 / 30, null, false); seen.add(r.rest);
+      turned += Math.abs(a.g.rotation.y - last); last = a.g.rotation.y; if (r.rest === 'circle') circled = true;
+      if (r.asleep > .99) slept += 1 / 30;
+    }
+    assert.ok(seen.has('sit') && (seen.has('loaf') || seen.has('curl')), `${name} sat and lay down: ${[...seen]}`);
+    assert.ok(slept >= 2, `${name} fell asleep`); assert.ok(circled && turned > 5, `${name} turned a circle first (${turned.toFixed(1)} rad)`);
+    assert.equal(a.eyes.visible, false, 'eyes shut asleep');
+    // a walk: up within a second
+    let up = 0; for (; up < 2; up += 1 / 30) { r = updateSkinnedFeline(a, 1 / 30, null, true); if (r.asleep < .05 && r.lying < .05) break; }
+    assert.ok(up < 1.05, `${name} up and walking in ${up.toFixed(2)} s`);
+  }
+});
+
+test('waking on its own, a pet stretches (forelegs out, rump up) and yawns (mouth wide, eyes shut) before it stands', () => {
+  const a = createSkinnedFeline('kitten'); let r, woke = false, jaw = 0, shut = false, low = Infinity, stood = false;
+  for (let t = 0; t < 900 && !stood; t += 1 / 30) {
+    r = updateSkinnedFeline(a, 1 / 30, null, false);
+    if (r.rest === 'stretch') { woke = true; jaw = Math.max(jaw, a.rig.jaw.rotation.x); if (a.rig.jaw.rotation.x > .5 && !a.eyes.visible) shut = true; a.g.updateMatrixWorld(true); low = Math.min(low, a.rig.chest.getWorldPosition(new THREE.Vector3()).y); }
+    if (woke && r.rest === 'stand') stood = true;
+  }
+  assert.ok(woke && stood, 'woke, stretched and stood');
+  assert.ok(jaw > .7 && shut, `yawned wide (${jaw.toFixed(2)}) with its eyes shut`);
+  const standing = createSkinnedFeline('kitten'); standing.g.updateMatrixWorld(true);
+  assert.ok(low < standing.rig.chest.getWorldPosition(new THREE.Vector3()).y - .03, 'the chest went down in the bow');
+});
+
+test('a sitting pet grooms now and then: licks a raised forepaw, washes its face and ear with it, licks its shoulder, then sits on', () => {
+  const a = createSkinnedFeline('kitten'); let r, groomed = false, back = false, pawUp = 0, jaw = 0;
+  for (let t = 0; t < 900 && !back; t += 1 / 30) {
+    r = updateSkinnedFeline(a, 1 / 30, null, false);
+    if (r.rest === 'groom') { groomed = true; a.g.updateMatrixWorld(true); pawUp = Math.max(pawUp, a.rig.legs.rfore.bones[2].getWorldPosition(new THREE.Vector3()).y); jaw = Math.max(jaw, a.rig.jaw.rotation.x); }
+    else if (groomed && r.rest === 'sit') back = true;
+  }
+  assert.ok(groomed && back, 'groomed and sat on');
+  assert.ok(pawUp > .12, `the forepaw came up to the face (${pawUp.toFixed(3)})`);
+  assert.ok(jaw > .1, 'the mouth opened to lick');
+});
+
+test('the ear scratch: from the sit, the right hind foot reaches up near the right ear and strokes fast, then goes back down', () => {
+  const a = createSkinnedFeline('kitten'), L = a.rig.legs.rhind, tip = () => { a.g.updateMatrixWorld(true); return L.tip.clone().applyMatrix4(L.bones.at(-1).matrixWorld); };
+  a.animator.show('sit', 0); const down = tip().y;
+  const ys = []; for (let u = .3; u < .7; u += .01) { a.animator.show('scratch', u); ys.push(tip()); }
+  const ear = a.rig.headLocal([.04, .03, -.01]).applyMatrix4(a.rig.head.matrixWorld);
+  assert.ok(Math.min(...ys.map(p => p.y)) > down + .1, 'the foot is up off the floor through the scratch');
+  assert.ok(Math.min(...ys.map(p => p.distanceTo(ear))) < .07, 'it reaches up by the ear');
+  // the strokes: the foot moves back and forth several times
+  let turns = 0; for (let i = 2; i < ys.length; i++) if ((ys[i].y - ys[i - 1].y) * (ys[i - 1].y - ys[i - 2].y) < 0) turns++;
+  assert.ok(turns >= 4, `strokes: ${turns} turns`);
+  a.animator.show('scratch', .97); assert.ok(tip().y < down + .02, 'and set back down');
 });
