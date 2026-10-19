@@ -96,24 +96,23 @@ vec3 tabby(vec3 base) {
   float tail = max(rings * rs(.06, .14, vArc), rs(${COAT.tailTip.toFixed(2)}, ${(COAT.tailTip + .04).toFixed(2)}, vArc));
   // the face, in head space (before the look's head size)
   vec3 h = (p - uNeck) / uHeadScale; float hx = abs(h.x);
-  // the M: four short thin strokes on the brow above the eyes, the inner pair upright, the outer pair
-  // leaning out; behind them a few broken lines run back over the crown, out of sight from the front
-  float brow = rs(.075, .09, h.z);
-  float m = 0.;
-  m = max(m, 1. - rs(.0018, .0032, seg2(vec2(hx, h.y), vec2(.007, .048), vec2(.01, .068))));
-  m = max(m, 1. - rs(.0018, .0032, seg2(vec2(hx, h.y), vec2(.024, .046), vec2(.032, .066))));
-  float crownLines = rs(.062, .075, h.y) * rs(.075, .045, h.z) * rs(.035, .028, hx) * stripe(hx / .02 + .5 + warp.x * .25, .22) * step(.35, fbm(p * 30.));
-  float mLines = max(m * brow, crownLines);
+  // the forehead: many fine faint lines between the ears, running down toward the eyes and fading
+  // above them (the tabby's M seen up close), broken here and there; a few carry on over the crown
+  float forehead = rs(.035, .05, h.y) * rs(.11, .095, h.z) * rs(.032, .022, hx) * step(.3, fbm(p * 60.));
+  float mLines = forehead * stripe(hx / .0085 + .5 + warp.x * .35, .3) * .95;
   float eyeD = length(vec2((hx - uEye.x) / .023, (h.y - uEye.y) / .02));
   float behindEye = rs(uEye.z + .01, uEye.z - .03, h.z);
   float swirl1 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .005) + (uEye.z - h.z) * .25))) * rs(.045, .06, hx) * behindEye;
   float swirl2 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .03) + (uEye.z - h.z) * .55))) * rs(.04, .055, hx) * behindEye * rs(uEye.z - .07, uEye.z - .03, h.z);
-  float rim = (1. - rs(.0, .08, abs(eyeD - 1.)) ) * rs(.06, .09, h.z) * .6;
-  float specs = (1. - rs(.08, .25, abs(eyeD - 1.3))) * rs(.06, .09, h.z) * .3;
+  // the lid line right at the eye's edge (the eye's half-width is about .7 of eyeD's unit), pale fur just outside it
+  float rim = (1. - rs(.0, .06, abs(eyeD - .72))) * rs(.06, .09, h.z) * .8;
+  float specs = (1. - rs(.06, .2, abs(eyeD - .95))) * rs(.06, .09, h.z) * .6;
   // whisker spots: rows of small dark follicles across each whisker pad
   float follicles = 0.;
   for (int i = 0; i < ${follicles().length}; i++) follicles = max(follicles, 1. - smoothstep(.0008, .0013, length(vec2(hx, h.y) - FOLLICLE[i].xy)) * step(FOLLICLE[i].z - .02, h.z));
-  float head = max(max(mLines, rim), max(max(swirl1, swirl2) * .9, follicles * .45));
+  // under the nose, the dark line down to the mouth and the mouth's two short arms (an inverted Y)
+  float mouth = max(1. - rs(.0007, .0014, seg2(vec2(hx, h.y), vec2(0., -.009), vec2(0., -.026))), 1. - rs(.0007, .0014, seg2(vec2(hx, h.y), vec2(0., -.026), vec2(.013, -.033)))) * rs(.115, .125, h.z);
+  float head = max(max(mLines, rim), max(max(swirl1, swirl2) * .9, max(follicles * .45, mouth * .8)));
   // the thigh and upper arm carry the flank's stripes on round them; the bars start at the knee and elbow
   leg = mix(body, leg, rs(uY - .06, uY - .13, p.y));
   float dark = dot(vPart, vec4(body, head, tail, leg)) * ${COAT.strength.toFixed(2)};

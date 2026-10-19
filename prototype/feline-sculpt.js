@@ -131,6 +131,8 @@ function legPaint(L, C, root) {
 function headPaint(C) {
   return (x, y, z) => {
     let c = mix(C.coat, C.back, smooth((y - .03) / .05) * .45);
+    // the bridge of the nose, warm tan down to the nose leather
+    c = mix(c, rgb('#b08455'), smooth((.014 - Math.abs(x)) / .006) * smooth((z - .1) / .015) * smooth((.035 - y) / .01) * smooth((y + .002) / .01) * .8);
     const muzzle = smooth((-.02 - y) / .02) * smooth((z - .07) / .03) + smooth((z - .12) / .015) * smooth((-.005 - y) / .015);
     return mix(c, C.belly, clamp01(muzzle) * .9);
   };
@@ -178,7 +180,7 @@ function foreLeg(L, C, side, k) {
 }
 
 // Head space: the origin is the neck pivot (L.neck), before the look's head size.
-export const EYE = {x: .036, y: .027, z: .102, r: [.016, .0145, .0105], tilt: .26};
+export const EYE = {x: .036, y: .027, z: .1, r: [.019, .017, .012], tilt: .26};
 function headPieces(C, nose) {
   const paint = headPaint(C), out = [], H = (f, c, reach, blend = JOIN.head, colour = paint) => out.push(piece(f, c, reach, colour, blend));
   // the braincase, and the brow over the eyes, so the forehead slopes from the crown to the nose
@@ -190,19 +192,17 @@ function headPieces(C, nose) {
   H(roundCone([0, .04, .1], [0, .006, .134], .016, .01), [0, .02, .118], .035, JOIN.face);
   H(ellipsoid([0, -.021, .109], [.027, .022, .03]), [0, -.021, .109], .045, JOIN.face);
   for (const s of [-1, 1]) H(ellipsoid([s * .013, -.024, .124], [.015, .014, .014]), [s * .013, -.024, .124], .025, JOIN.face);
-  H(ellipsoid([0, -.003, .14], [.009, .006, .005]), [0, -.003, .14], .012, .004, nose);
+  H(ellipsoid([0, -.002, .14], [.0125, .0085, .006]), [0, -.002, .14], .015, .004, nose);
   H(roundCone([0, -.028, .045], [0, -.04, .1], .02, .012), [0, -.035, .07], .045, JOIN.face);
   H(ellipsoid([0, -.044, .107], [.012, .009, .012]), [0, -.044, .107], .02, JOIN.face);
   // the fur mound each ear grows from, so its base sits in the skull and not on its edge
   for (const s of [-1, 1]) { const {base, up, fwd, across} = earFrame(s), c = base.clone().addScaledVector(up, .002).addScaledVector(fwd, -.004); H(framedEllipsoid(c, [across, up, fwd], EAR.mound), c.toArray(), .04, .014); }
-  // a shallow almond dish round each eye
-  for (const s of [-1, 1]) out.push(piece(ellipsoid([s * EYE.x, EYE.y, EYE.z + .006], [.0175, .015, .008]), [s * EYE.x, EYE.y, EYE.z], .03, paint, .005, true));
   return out;
 }
 
 // The ears: where each base sits on the skull (head space, the right ear; the left mirrors it), how
 // far they lean out and turn out, their size, the cup of the opening, and the fur mound each grows from.
-export const EAR = {base: [.034, .07, .016], lean: .36, yaw: .3, height: .062, width: .051, cup: .011, thick: .0035, mound: [.016, .01, .008]};
+export const EAR = {base: [.036, .072, .014], lean: .3, yaw: .25, height: .074, width: .062, cup: .013, thick: .0035, mound: [.019, .011, .009]};
 // The ear's frame: base point, up its length, across its width (outward), forward out of its opening.
 export function earFrame(side) {
   const base = new THREE.Vector3(side * EAR.base[0], EAR.base[1], EAR.base[2]), up = new THREE.Vector3(side * Math.sin(EAR.lean), Math.cos(EAR.lean), -.08).normalize();
@@ -222,7 +222,8 @@ function framedEllipsoid(c, axes, r) {
 function earGeometry(side, C, inner) {
   const {base, up, fwd, across} = earFrame(side), H = EAR.height, W = EAR.width, cup = EAR.cup, thick = EAR.thick, nu = 8, nv = 8, pos = [], col = [];
   const point = (u, v, face) => {
-    const w = W / 2 * Math.sqrt(1 - u) * (1 - u * .35), c = (1 - v * v) * cup * (1 - u * .7);
+    // the sides bow out a little and the tip rounds off rather than ending in a point
+    const w = W / 2 * Math.pow(Math.max(0, 1 - Math.pow(u, 1.7)), .6) * (1 - u * .2), c = (1 - v * v) * cup * (1 - u * .7);
     return base.clone().addScaledVector(up, u * H).addScaledVector(across, v * w).addScaledVector(fwd, -c - (face ? 0 : thick * (1 - u * .6)));
   };
   const outC = mix(C.coat, C.back, .4), inC = inner;
@@ -249,7 +250,7 @@ function earGeometry(side, C, inner) {
 export const WHISKER = {
   rows: [{y: -.017, z: .124, n: 3, len: .1, up: .2, fwd: .2}, {y: -.023, z: .126, n: 3, len: .115, up: .05, fwd: .05},
     {y: -.029, z: .125, n: 3, len: .11, up: -.12, fwd: -.1}, {y: -.035, z: .121, n: 3, len: .09, up: -.28, fwd: -.25}],
-  root: .0011, tip: .00015, segments: 8, sides: 4, droop: .22, bow: .18, spread: .12,
+  root: .0008, tip: .0001, segments: 8, sides: 4, droop: .32, bow: .14, spread: .16,
 };
 // Where each pad whisker grows (head space, the right side), for the whisker spots on the coat.
 export function follicles() { const out = []; WHISKER.rows.forEach((row, r) => { for (let k = 0; k < row.n; k++) out.push([.014 + k * .007 + (r % 2) * .0035, row.y, row.z - k * .004 - (r % 2) * .002]); }); return out; }
@@ -291,7 +292,7 @@ function whiskerGeometry(colour) {
 // vertical oval pupil, under a glossy cornea that catches the light. They glow only a little, so
 // they read in a dark room without looking like lamps. IRIS: the iris and pupil half-sizes (of the
 // eyeball's own radius), the colours from the pupil out, the glow.
-export const IRIS = {size: [.97, .97], pupil: [.2, .72], inner: '#d9a442', outer: '#9c7a2c', rim: '#2b1f0e', glow: .12};
+export const IRIS = {size: [.97, .97], pupil: [.34, .48], inner: '#c98a2e', outer: '#a3a144', rim: '#2b1f0e', glow: .12};
 const eyeMaterials = new Map();
 export function sculptEyeMaterial(look) {
   if (eyeMaterials.has('iris')) return eyeMaterials.get('iris');
@@ -358,6 +359,6 @@ export function sculptFeline(L, {tail, headM}) {
   for (let i = 0; i < n; i++) { const r0 = TAIL_SCULPT.root + (TAIL_SCULPT.tip - TAIL_SCULPT.root) * i / n, r1 = TAIL_SCULPT.root + (TAIL_SCULPT.tip - TAIL_SCULPT.root) * (i + 1) / n; tp.push(piece(roundCone(tail[i], tail[i + 1], r0 * bw, r1 * bw), tail[i].map((v, j) => (v + tail[i + 1][j]) / 2), .06, mix(C.coat, C.back, .3), i === 0 ? JOIN.tail : .006)); }
   parts.push({group: 'tail', M: null, pieces: tp});
   parts.push({group: 'head', M: headM, pieces: headPieces(C, C.nose)});
-  const inner = mix(C.belly, rgb('#c88a80'), .45);
+  const inner = mix(mix(C.belly, rgb('#ffffff'), .25), rgb('#d29a90'), .35);
   return {parts, ears: [earGeometry(-1, C, inner), earGeometry(1, C, inner), whiskerGeometry(rgb(L.whisker || '#f0ece0'))]};
 }
