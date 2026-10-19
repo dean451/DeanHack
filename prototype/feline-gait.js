@@ -117,7 +117,7 @@ export function createStepper(rig, actor, opts = {}) {
   for (const key of LEGS) {
     const leg = rig.legs[key], bones = leg.bones, segs = [...bones.slice(1).map(b => b.position), leg.tip];
     const rest = segs.map(ang);
-    legs[key] = {key, leg, bones, hind: key.endsWith('hind'), len: segs.map(s => Math.hypot(s.y, s.z)), rest, restAnkle: Math.PI - Math.abs(wrap(rest[2] - rest[1])), stance: true, plant: null, lift: null, swingFrom: 0, swingTo: 0, sink: 0, q: bones.map(() => new THREE.Quaternion())};
+    legs[key] = {key, leg, bones, hind: key.endsWith('hind'), len: segs.map(s => Math.hypot(s.y, s.z)), rest, restAnkle: Math.PI - Math.abs(wrap(rest[2] - rest[1])), stance: true, plant: null, lift: null, swingFrom: 0, swingTo: 0, sink: 0};
   }
   // Each paw's resting reach ahead of its hip or shoulder (`neutral`) and its leg's drop, in the
   // rig's units; then the crouch and the longest stance sweep the legs allow. A leg is checked over
@@ -144,7 +144,7 @@ export function createStepper(rig, actor, opts = {}) {
   let lo = STEP.minSweep, hi = 3;
   for (let it = 0; it < 30; it++) { const mid = (lo + hi) / 2; if (Object.values(legs).every(L => fits(L, crouch, mid * hipLocal))) lo = mid; else hi = mid; }
   const sweep = lo; // in h
-  const st = {phase: 0, weight: 0, go: false, stopping: false, settled: true, vel: new THREE.Vector3(), last: null, stride: strideAt(1), gait: 'walk'};
+  const st = {crouch: 0, turning: false, phase: 0, weight: 0, go: false, stopping: false, settled: true, vel: new THREE.Vector3(), last: null, stride: strideAt(1), gait: 'walk'};
   const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _qi = new THREE.Quaternion(), _qz = new THREE.Quaternion(), _qx = new THREE.Quaternion();
   const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1), UP = new THREE.Vector3(0, 1, 0);
   const top = () => actor?.g || rig.hips.parent;
@@ -167,8 +167,8 @@ export function createStepper(rig, actor, opts = {}) {
     // lands half of it ahead, from where the root will be when it lands
     const s = st.stride, land = st.phase + ahead / s.period, k = hip(), slideNow = rootSlide(L.hind, st.phase, s.stretch);
     const slideOn = rootSlide(L.hind, land, s.stretch), slideOff = rootSlide(L.hind, land + s.duty, s.stretch);
-    const lead = st.stopping ? 0 : (s.length * s.duty + slideOff - slideOn) * k / 2;
-    out.addScaledVector(F, L.neutral * rig.hips.getWorldScale(_b).x + lead + (slideOn - slideNow) * k).addScaledVector(st.vel, ahead); out.y = floorY();
+    const lead = st.stopping || st.turning ? 0 : (s.length * s.duty + slideOff - slideOn) * k / 2;
+    out.addScaledVector(F, L.neutral * rig.hips.getWorldScale(_b).x + lead + (slideOn - slideNow) * k); if (!st.turning) out.addScaledVector(st.vel, ahead); out.y = floorY();
     return out;
   }
 
@@ -217,24 +217,22 @@ export function createStepper(rig, actor, opts = {}) {
       dirs.push(d0, ang(new THREE.Vector3().subVectors(E, El)), ang(pawDir));
     }
     let prev = 0;
-    dirs.forEach((dir, i) => { const abs = wrap(dir - L.rest[i]), th = wrap(abs - prev); prev = abs; _qx.setFromAxisAngle(X, th); if (i === 0) _qx.premultiply(_qz); L.bones[i].quaternion.slerp(_qx, w); L.q[i].copy(L.bones[i].quaternion); });
-    L.wrote = true;
+    dirs.forEach((dir, i) => { const abs = wrap(dir - L.rest[i]), th = wrap(abs - prev); prev = abs; _qx.setFromAxisAngle(X, th); if (i === 0) _qx.premultiply(_qz); L.bones[i].quaternion.slerp(_qx, w); });
   }
 
-  // Moves a bone `value` along an axis from where the mixer left it. The mixer rewrites a position
-  // only while a clip that moves it plays, so a value still holding last frame's write is put back
-  // first, and the offset never piles up.
-  const wrote = new Map();
-  function offset(bone, axis, value) {
-    const key = bone.name + axis, last = wrote.get(key);
-    if (last && bone.position[axis] === last.at) bone.position[axis] -= last.by;
-    bone.position[axis] += value; wrote.set(key, {at: bone.position[axis], by: value});
-  }
+  // Moves a bone `value` along an axis from where the mixer left it (the animator puts every bone
+  // back to the mixer's pose at the start of each frame, so offsets never pile up).
+  function offset(bone, axis, value) { bone.position[axis] += value; }
 
   // Per frame, after the mixer has posed the body. `go`: the pet is stepping; `speed` its speed
-  // (world units per second); `release`: another gait (the gallop) is taking the legs, so let go of
-  // them at once instead of finishing the steps. Returns the gait's state for the animator.
-  function update(dt, go, speed, release = false) {
+  // (world units per second); `release`: something else (the pounce) is taking the legs, so let go
+  // of them at once instead of finishing the steps. `hold`: standing, keep the paws planted with the
+  // step's weight on (so the body can crouch over them); `turn`: turning on the spot, step the paws
+  // round under the body without travelling; `crouch`: lower the body by this share of the hip
+  // height (eased). Returns the gait's state for the animator.
+  function update(dt, go, speed, release = false, {hold = false, turn = false, crouch: low = 0} = {}) {
+    go = go || turn; st.turning = turn;
+    st.crouch += (low - st.crouch) * (1 - Math.exp(-dt * 4)); if (Math.abs(st.crouch - low) < 1e-4) st.crouch = low;
     const g = top(); g.updateMatrixWorld(true);
     const pos = g.getWorldPosition(new THREE.Vector3());
     if (st.last && dt > 0) { _a.subVectors(pos, st.last).divideScalar(dt); _a.y = 0; st.vel.lerp(_a, 1 - Math.exp(-dt * 12)); }
@@ -246,21 +244,18 @@ export function createStepper(rig, actor, opts = {}) {
     st.go = go;
     if (st.go || !st.settled) {
       // the clock: a stride's worth of phase per stride
-      st.stride = strideAt(st.stopping ? Math.max(hs, 1.2) : hs, unit(), sweep);
+      st.stride = strideAt(st.stopping ? Math.max(hs, 1.2) : turn ? STEP.strideAt : hs, unit(), sweep);
       st.gait = st.stride.gallop > .5 ? 'gallop' : st.stride.diagonality > .375 ? 'trot' : 'walk';
       if (go || st.stopping) st.phase += dt / st.stride.period;
     }
-    st.weight = clamp(st.weight + (st.go || !st.settled ? dt / STEP.fadeIn : -dt / STEP.fadeOut), 0, 1);
-    // a leg bone still holding what the step wrote last frame was not posed by the mixer this frame
-    // (only the idle plays, and it leaves the legs alone): it starts again from rest, so the step
-    // blends over the pose underneath and fades back to it
+    const holding = hold && !st.go && st.settled;
+    st.weight = clamp(st.weight + (st.go || !st.settled || holding || st.crouch > 1e-3 ? dt / STEP.fadeIn : -dt / STEP.fadeOut), 0, 1);
     // Over a leg at rest the step fades in by what it asks of the leg (the ankle's angle, the paw's
     // pitch), solving exactly each frame, so a planted paw stays put through the fade; over a pose
     // the mixer gives the legs (a pounce, the sit) it blends by rotation instead.
-    for (const L of Object.values(legs)) { L.bones.forEach((b, i) => { if (L.wrote && b.quaternion.equals(L.q[i])) b.quaternion.identity(); }); L.fromRest = L.bones.every(b => Math.abs(b.quaternion.w) > 1 - 1e-9); }
+    for (const L of Object.values(legs)) L.fromRest = L.bones.every(b => Math.abs(b.quaternion.w) > 1 - 1e-9);
     if (st.weight <= 0) {
-      offset(rig.hips, 'y', 0); offset(rig.hips, 'z', 0); offset(rig.spine, 'y', 0); offset(rig.spine, 'z', 0);
-      for (const L of Object.values(legs)) { L.plant = null; L.leg.plant = null; L.wrote = false; if (L.rootRest) L.bones[0].position.copy(L.rootRest); }
+      for (const L of Object.values(legs)) { L.plant = null; L.leg.plant = null; }
       return state();
     }
     // the body: in the walk and trot two small dips a stride, as the weight passes over each pair;
@@ -270,7 +265,7 @@ export function createStepper(rig, actor, opts = {}) {
     // the flight: from the last fore paw lifting to the first hind paw landing, when no paw is down
     const spine = moving ? spineAt(frac(st.phase)) : 0, airFrom = s0.offsets.rfore + s0.duty, u0 = frac(st.phase);
     const flight = airFrom < 1 && u0 > airFrom ? Math.sin(Math.PI * (u0 - airFrom) / (1 - airFrom)) : 0;
-    const dip = moving ? STEP.bob * (.5 - .5 * Math.cos(st.phase * Math.PI * 4)) * (1 - gal) - STEP.gallopLift * flight * gal : 0;
+    const dip = (moving ? STEP.bob * (.5 - .5 * Math.cos(st.phase * Math.PI * 4)) * (1 - gal) - STEP.gallopLift * flight * gal : 0) + st.crouch;
     offset(rig.hips, 'y', -(dip + crouch / hipLocal) * hipLocal * w);
     offset(rig.hips, 'z', -s0.stretch * spine * hipLocal * w);
     offset(rig.spine, 'z', 2 * s0.stretch * spine * hipLocal * w);
