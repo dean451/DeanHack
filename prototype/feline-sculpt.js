@@ -175,10 +175,10 @@ export const EYE = {x: .04, y: .026, z: .1, r: [.0175, .0155, .011], tilt: .24};
 function headPieces(C, nose) {
   const paint = headPaint(C), out = [], H = (f, c, reach, blend = JOIN.head, colour = paint) => out.push(piece(f, c, reach, colour, blend));
   // the braincase, and the brow over the eyes, so the forehead slopes from the crown to the nose
-  H(ellipsoid([0, .035, .03], [.062, .058, .07]), [0, .035, .03], .075);
+  H(ellipsoid([0, .034, .03], [.057, .062, .07]), [0, .034, .03], .075);
   H(ellipsoid([0, .03, .08], [.058, .032, .035]), [0, .03, .08], .06, JOIN.face);
   // the cheekbones, widest a little below the eyes, so the face narrows to the muzzle
-  for (const s of [-1, 1]) H(ellipsoid([s * .044, -.008, .055], [.034, .034, .042]), [s * .044, -.008, .055], .05, .03);
+  for (const s of [-1, 1]) H(ellipsoid([s * .038, -.01, .055], [.031, .031, .04]), [s * .038, -.01, .055], .05, .03);
   // the muzzle: a short bridge, a compact block under the whisker pads, the nose leather and a small chin
   H(roundCone([0, .04, .1], [0, .006, .134], .016, .01), [0, .02, .118], .035, JOIN.face);
   H(ellipsoid([0, -.021, .109], [.031, .023, .03]), [0, -.021, .109], .045, JOIN.face);
@@ -187,7 +187,7 @@ function headPieces(C, nose) {
   H(roundCone([0, -.03, .04], [0, -.04, .1], .024, .014), [0, -.035, .07], .045, JOIN.face);
   H(ellipsoid([0, -.044, .107], [.012, .009, .012]), [0, -.044, .107], .02, JOIN.face);
   // the fur mound each ear grows from, so its base sits in the skull and not on its edge
-  for (const s of [-1, 1]) { const {base, up, fwd, across} = earFrame(s), c = base.clone().addScaledVector(up, .008).addScaledVector(fwd, -.004); H(framedEllipsoid(c, [across, up, fwd], EAR.mound), c.toArray(), .04, .014); }
+  for (const s of [-1, 1]) { const {base, up, fwd, across} = earFrame(s), c = base.clone().addScaledVector(up, .002).addScaledVector(fwd, -.004); H(framedEllipsoid(c, [across, up, fwd], EAR.mound), c.toArray(), .04, .014); }
   // a shallow almond dish round each eye
   for (const s of [-1, 1]) out.push(piece(ellipsoid([s * EYE.x, EYE.y, EYE.z + .006], [.019, .016, .008]), [s * EYE.x, EYE.y, EYE.z], .03, paint, .005, true));
   return out;
@@ -195,7 +195,7 @@ function headPieces(C, nose) {
 
 // The ears: where each base sits on the skull (head space, the right ear; the left mirrors it), how
 // far they lean out and turn out, their size, the cup of the opening, and the fur mound each grows from.
-export const EAR = {base: [.04, .063, .016], lean: .5, yaw: .3, height: .078, width: .064, cup: .013, thick: .004, mound: [.026, .02, .013]};
+export const EAR = {base: [.034, .07, .016], lean: .36, yaw: .3, height: .062, width: .051, cup: .011, thick: .0035, mound: [.016, .01, .008]};
 // The ear's frame: base point, up its length, across its width (outward), forward out of its opening.
 export function earFrame(side) {
   const base = new THREE.Vector3(side * EAR.base[0], EAR.base[1], EAR.base[2]), up = new THREE.Vector3(side * Math.sin(EAR.lean), Math.cos(EAR.lean), -.08).normalize();

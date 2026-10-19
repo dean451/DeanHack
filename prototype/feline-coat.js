@@ -12,7 +12,7 @@
 // - Legs: the flank's stripes carry on over the thigh and upper arm; below the knee and elbow, bars
 //   across the outside of the leg, fading out toward the paws.
 // - Tail: rings, closer together toward the dark tip.
-// - Face: the M on the forehead (fine lines running back over the crown), the two swirls running
+// - Face: a thin M of four short strokes above the eyes, a few broken lines back over the crown, the two swirls running
 //   back from the outer corner of each eye, dark eye rims inside pale spectacles.
 import * as THREE from 'three';
 import {follicles} from './feline-sculpt.js';
@@ -63,6 +63,8 @@ float fbm(vec3 p) { return .5 * vnoise(p) + .25 * vnoise(p * 2.03 + 1.7) + .125 
 float stripe(float ph, float w) { float d = abs(fract(ph) - .5) * 2., aa = fwidth(ph) * 2. + .02; return 1. - smoothstep(w - aa, w + aa, d); }
 // smoothstep that also runs downhill (a > b), which GLSL's own leaves undefined
 const vec3 FOLLICLE[${follicles().length}] = vec3[](${follicles().map(f => `vec3(${f.map(v => v.toFixed(4)).join(', ')})`).join(', ')});
+// distance from p to the segment a-b
+float seg2(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0., 1.)); }
 float rs(float a, float b, float x) { return a < b ? smoothstep(a, b, x) : 1. - smoothstep(b, a, x); }
 vec3 tabby(vec3 base) {
   vec3 p = vRest; float ax = abs(p.x);
@@ -94,8 +96,14 @@ vec3 tabby(vec3 base) {
   float tail = max(rings * rs(.06, .14, vArc), rs(${COAT.tailTip.toFixed(2)}, ${(COAT.tailTip + .04).toFixed(2)}, vArc));
   // the face, in head space (before the look's head size)
   vec3 h = (p - uNeck) / uHeadScale; float hx = abs(h.x);
-  float crown = rs(.03, .045, h.y) * rs(.13, .07, h.z) * rs(-.03, .03, h.z);
-  float mLines = crown * stripe(hx / .016 + .5 + warp.x * .3, .32) * rs(.065, .045, hx);
+  // the M: four short thin strokes on the brow above the eyes, the inner pair upright, the outer pair
+  // leaning out; behind them a few broken lines run back over the crown, out of sight from the front
+  float brow = rs(.075, .09, h.z);
+  float m = 0.;
+  m = max(m, 1. - rs(.0018, .0032, seg2(vec2(hx, h.y), vec2(.007, .048), vec2(.01, .068))));
+  m = max(m, 1. - rs(.0018, .0032, seg2(vec2(hx, h.y), vec2(.024, .046), vec2(.032, .066))));
+  float crownLines = rs(.062, .075, h.y) * rs(.075, .045, h.z) * rs(.035, .028, hx) * stripe(hx / .02 + .5 + warp.x * .25, .22) * step(.35, fbm(p * 30.));
+  float mLines = max(m * brow, crownLines);
   float eyeD = length(vec2((hx - uEye.x) / .026, (h.y - uEye.y) / .022));
   float behindEye = rs(uEye.z + .01, uEye.z - .03, h.z);
   float swirl1 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .005) + (uEye.z - h.z) * .25))) * rs(.045, .06, hx) * behindEye;
