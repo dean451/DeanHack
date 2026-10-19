@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createSkinnedFeline, updateSkinnedFeline, chainWeights, WALK, RUN, GALLOP, GAIT, CLIPS, SIT_AFTER, POUNCE, TURN, BLINK, SIT} from './feline-skin.js';
+import {createSkinnedFeline, updateSkinnedFeline, chainWeights, GALLOP, GAIT, CLIPS, SIT_AFTER, POUNCE, TURN, BLINK, SIT} from './feline-skin.js';
+import {STEP, strideAt} from './feline-gait.js';
+import {simulateGait, analyseGait} from './cat-measure.js';
+import {REFERENCE} from './cat-reference.js';
 import {slideTo, FELINE_GLIDE} from './slide.js';
 import {createFeline} from './feline.js';
 
@@ -36,34 +39,44 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
   }
 });
 
-test('the clips: walk, idle and tail are sampled from pose functions into seamless looping tracks on the bones they name', () => {
+test('the clips: idle, sit, gallop, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['gallop', 'idle', 'pounce', 'run', 'sit', 'tail', 'walk']);
-  const walk = actions.walk.getClip(), tail = actions.tail.getClip(), idle = actions.idle.getClip();
-  assert.ok(Math.abs(walk.duration - 1 / WALK.hz) < 1e-9);
+  assert.deepEqual(Object.keys(actions).sort(), ['gallop', 'idle', 'pounce', 'sit', 'tail'], 'walking and trotting are stepped, not clips');
+  const gallop = actions.gallop.getClip(), tail = actions.tail.getClip(), idle = actions.idle.getClip();
+  assert.ok(Math.abs(gallop.duration - 1 / GALLOP.hz) < 1e-9);
   const names = c => c.tracks.map(t => t.name);
-  assert.ok(names(walk).includes('lfore0.quaternion') && names(walk).includes('rhind3.quaternion') && names(walk).includes('hips.position') && names(walk).includes('spine.quaternion'));
+  assert.ok(names(gallop).includes('lfore0.quaternion') && names(gallop).includes('rhind3.quaternion') && names(gallop).includes('hips.position'));
   assert.ok(names(tail).every(n => n.startsWith('tail')) && names(tail).length === 5, 'the tail clip touches only the tail bones');
   assert.ok(names(idle).includes('chest.scale') && !names(idle).some(n => n.startsWith('head')), 'idle breathes; the head is left to the glance code');
-  for (const c of [walk, idle]) assert.ok(names(c).includes('spine.quaternion') && names(c).includes('chest.quaternion'), `${c.name} always writes the spine and chest, so the lean never accumulates`);
-  for (const c of [walk, idle, tail]) for (const t of c.tracks) { const n = t.getValueSize(); for (let k = 0; k < n; k++) assert.ok(Math.abs(t.values[k] - t.values[t.values.length - n + k]) < 1e-6, `${c.name} ${t.name} loops seamlessly`); }
-  assert.ok(CLIPS.walk.frames >= 16);
+  for (const c of [gallop, idle]) assert.ok(names(c).includes('spine.quaternion') && names(c).includes('chest.quaternion'), `${c.name} always writes the spine and chest, so the lean never accumulates`);
+  for (const c of [gallop, idle, tail]) for (const t of c.tracks) { const n = t.getValueSize(); for (let k = 0; k < n; k++) assert.ok(Math.abs(t.values[k] - t.values[t.values.length - n + k]) < 1e-6, `${c.name} ${t.name} loops seamlessly`); }
 });
 
-test('walking cross-fades the walk in and the idle out, swings and bends the legs in diagonal pairs and bobs the hips; stopping fades back and the tail keeps moving', () => {
-  const a = createSkinnedFeline('housecat'), r = a.rig, {actions} = a.animator;
-  assert.equal(actions.idle.getEffectiveWeight(), 1); assert.equal(actions.walk.getEffectiveWeight(), 0);
-  updateSkinnedFeline(a, 1 / 60, null, true); updateSkinnedFeline(a, 1 / 60, null, true);
-  const w = actions.walk.getEffectiveWeight(); assert.ok(w > 0 && w < 1, `mid cross-fade ${w}`);
-  for (let i = 0; i < 60; i++) updateSkinnedFeline(a, 1 / 60, null, true);
-  assert.equal(actions.walk.getEffectiveWeight(), 1); assert.equal(actions.idle.getEffectiveWeight(), 0);
-  const lf = r.legs.lfore.bones[0].rotation.x, rh = r.legs.rhind.bones[0].rotation.x, rf = r.legs.rfore.bones[0].rotation.x;
-  assert.ok(Math.abs(lf) > .05, 'the legs swing'); assert.ok(Math.sign(lf) === Math.sign(rh) && Math.sign(lf) !== Math.sign(rf), 'diagonal pairs');
-  let bent = false, bobbed = false; for (let i = 0; i < 30; i++) { updateSkinnedFeline(a, 1 / 60, null, true); if (Math.abs(r.legs.lfore.bones[1].rotation.x) > .1) bent = true; if (r.hips.position.y > r.hips.userData.world[1] + .005) bobbed = true; }
-  assert.ok(bent, 'the elbow bends on the lift'); assert.ok(bobbed, 'the hips bob');
-  for (let i = 0; i < 120; i++) updateSkinnedFeline(a, 1 / 60, null, false); // the stop waits for the stride's loop boundary first
-  assert.equal(actions.idle.getEffectiveWeight(), 1); assert.equal(actions.walk.getEffectiveWeight(), 0);
-  assert.ok(Math.abs(r.legs.lfore.bones[0].rotation.x) < .02 && Math.abs(r.hips.position.y - r.hips.userData.world[1]) < 1e-3, 'standing: the legs settle and the hips come down');
+// The cat faces its path (live.js turns an actor toward its step), moving along +x at `hs` hip heights a second.
+const walkFor = (a, frames, hs, walking = true) => { let r; a.g.rotation.y = Math.PI / 2; const v = hs * a.animator.stepper.hip(); for (let i = 0; i < frames; i++) { a.g.position.x += v / 60; a.slideSpeed = walking ? v : 0; r = updateSkinnedFeline(a, 1 / 60, null, walking); } return r; };
+const tipOf = (a, L) => { a.g.updateMatrixWorld(true); const e = L.bones[L.bones.length - 1]; return L.leg.tip.clone().applyMatrix4(e.matrixWorld); };
+
+test('walking steps the legs over the idle: the step fades in, lifts the paws in the cat\'s order and bobs the hips; a stop lands every paw before the idle takes back over', () => {
+  const a = createSkinnedFeline('housecat'), r = a.rig, {actions} = a.animator, st = a.animator.stepper;
+  a.g.rotation.y = Math.PI / 2; updateSkinnedFeline(a, 1 / 60, null, false); // face the path first
+  let s = walkFor(a, 2, 2.8);
+  assert.ok(s.stepWeight > 0 && s.stepWeight < 1, `fading in ${s.stepWeight}`);
+  s = walkFor(a, 30, 2.8);
+  assert.equal(s.stepWeight, 1); assert.equal(s.gait, 'walk'); assert.equal(actions.idle.getEffectiveWeight(), 1, 'over the idle clip');
+  // the paws leave the ground in turn: left hind, left fore, right hind, right fore
+  const lifts = []; let was = Object.fromEntries(Object.values(st.legs).map(L => [L.key, L.stance]));
+  let low = Infinity, high = -Infinity;
+  for (let i = 0; i < 120; i++) { walkFor(a, 1, 2.8); for (const L of Object.values(st.legs)) { if (was[L.key] && !L.stance) lifts.push(L.key); was[L.key] = L.stance; } low = Math.min(low, r.hips.position.y); high = Math.max(high, r.hips.position.y); }
+  const i0 = lifts.indexOf('lhind'); assert.deepEqual(lifts.slice(i0, i0 + 4), ['lhind', 'lfore', 'rhind', 'rfore']);
+  assert.ok(high - low > .002, 'the hips bob');
+  // stop: no more lifts, the swinging paws land, then the idle has the legs again
+  s = updateSkinnedFeline(a, 1 / 60, null, false); a.slideSpeed = 0;
+  let frames = 0; while (s.step.stepping && frames < 120) { s = updateSkinnedFeline(a, 1 / 60, null, false); frames++; }
+  assert.ok(frames < 60, `all four paws down within ${frames} frames`);
+  assert.ok(Object.values(st.legs).every(L => L.stance), 'standing on four planted paws');
+  for (let i = 0; i < 30; i++) s = updateSkinnedFeline(a, 1 / 60, null, false);
+  assert.equal(s.stepWeight, 0); assert.equal(s.gait, 'idle');
+  assert.ok(Math.abs(r.legs.lfore.bones[0].rotation.x) < .02 && Math.abs(r.hips.position.y - r.hips.userData.world[1]) < 1e-3, 'standing: the legs back on the idle and the hips where they rest');
   const t1 = r.tail[3].rotation.y; for (let i = 0; i < 20; i++) updateSkinnedFeline(a, 1 / 60, null, false);
   assert.notEqual(t1, r.tail[3].rotation.y, 'the tail keeps swaying at rest');
   assert.ok(r.chest.scale.x !== 1 || r.chest.scale.y !== 1, 'and the chest breathes');
@@ -87,7 +100,7 @@ test('a pet that stands still long enough sits down, and gets up the moment it w
   assert.ok(a.rig.hips.position.y < a.rig.hips.userData.world[1] - .05, 'the haunches are down');
   assert.ok(a.rig.legs.lhind.bones[1].rotation.x > .5 && a.rig.legs.lhind.bones[0].rotation.x < -.8, 'the hind legs are folded forward');
   for (let i = 0; i < 40; i++) r = updateSkinnedFeline(a, 1 / 60, null, true);
-  assert.ok(!r.sitting && actions.walk.getEffectiveWeight() === 1 && actions.sit.getEffectiveWeight() === 0, 'up and walking');
+  assert.ok(!r.sitting && r.step.stepping && r.stepWeight === 1 && actions.sit.getEffectiveWeight() === 0, 'up and walking');
   // the sit clip is a loop; the pounce is a one-shot
   assert.ok(!CLIPS.sit.once && CLIPS.pounce.once);
 });
@@ -113,87 +126,61 @@ test('show() holds one clip at a moment of its cycle for the tool pages', () => 
   const a = createSkinnedFeline('kitten');
   a.animator.show('sit', .5);
   assert.ok(a.rig.hips.position.y < a.rig.hips.userData.world[1] - .05);
-  a.animator.show('walk', .25);
-  assert.ok(Math.abs(a.rig.hips.position.y - a.rig.hips.userData.world[1]) < .02 && Math.abs(a.rig.legs.lfore.bones[0].rotation.x) > .1);
+  a.animator.show('gallop', .25);
+  assert.ok(Math.abs(a.rig.legs.lfore.bones[0].rotation.x) > .1);
 });
 
-// The three tricks from three's skinning-blending example.
-// The cat faces its path (live.js turns an actor toward its step), moving along +x.
-const walkFor = (a, frames, tilesPerSecond, walking = true) => { let r; a.g.rotation.y = Math.PI / 2; for (let i = 0; i < frames; i++) { a.g.position.x += tilesPerSecond / 60; r = updateSkinnedFeline(a, 1 / 60, null, walking); } return r; };
-
-test('the walk\'s stride rate follows the measured speed, within bounds', () => {
-  const a = createSkinnedFeline('housecat');
-  let r = walkFor(a, 60, .2);
-  assert.equal(r.gait, 'walk'); assert.equal(+r.timeScale.toFixed(2), GAIT.minScale, 'a creep is clamped at the slow end');
-  assert.ok(Math.abs(GAIT.nominal - GAIT.stride.walk * WALK.hz) < 1e-9, 'one cycle per stride: the phase follows distance');
-  r = walkFor(a, 60, GAIT.nominal);
-  assert.ok(Math.abs(r.timeScale - 1) < .1, `nominal speed, stride rate about 1: ${r.timeScale}`);
-  r = walkFor(a, 60, 1);
-  assert.equal(r.gait, 'walk'); assert.ok(r.timeScale > 1.1 && r.timeScale <= GAIT.maxScale, `quicker: ${r.timeScale}`);
+test('the stride follows the speed, in hip heights: the walk lengthens its stride and shortens the stance with speed, the swing holds, and past the trot band it trots', () => {
+  const walk = strideAt(2.8), quick = strideAt(3.8), trot = strideAt(6);
+  assert.ok(Math.abs(walk.length - STEP.stride) < 1e-9 && quick.length > walk.length, 'longer strides when quicker');
+  assert.ok(quick.duty < walk.duty && trot.duty <= .5, 'each paw stands for less of the stride, down to a trot\'s half');
+  for (const s of [walk, quick, trot]) assert.ok(Math.abs(s.period * (1 - s.duty) - STEP.swing) < 1e-9, 'the swing time holds');
+  assert.equal(walk.diagonality, .25); assert.equal(trot.diagonality, .5);
+  // a cap from the legs' reach shortens the stride, never the swing
+  const capped = strideAt(2.8, 1, .5); assert.ok(capped.length * capped.duty <= .5 + 1e-9 && Math.abs(capped.period * (1 - capped.duty) - STEP.swing) < 1e-9);
 });
 
-test('past the run speed the walk warps into the run and back below it warps out; run and walk share phase so the warp can', () => {
+test('past gallopAt the gallop clip takes the legs from the step, and hands them back below stepAt', () => {
   const a = createSkinnedFeline('kitten'), {actions} = a.animator;
-  // the thresholds are body units per second: the kitten is .7 of a housecat
-  const u = a.g.scale.x;
-  let r = walkFor(a, 60, .6 * u);
-  assert.equal(r.gait, 'walk');
-  r = walkFor(a, 90, (GAIT.runAt + GAIT.gallopAt) / 2 * u);
-  assert.equal(r.gait, 'run'); assert.equal(actions.run.getEffectiveWeight(), 1); assert.equal(actions.walk.getEffectiveWeight(), 0);
+  let r = walkFor(a, 60, 2.8); assert.equal(r.gait, 'walk');
+  r = walkFor(a, 30, 6); assert.equal(r.gait, 'trot');
+  r = walkFor(a, 60, GAIT.gallopAt + 1); assert.equal(r.gait, 'gallop'); assert.equal(actions.gallop.getEffectiveWeight(), 1); assert.equal(r.stepWeight, 0, 'the step let go of the legs');
   assert.ok(r.timeScale <= GAIT.maxScale);
-  r = walkFor(a, 90, (GAIT.walkAt - .4) * u);
-  assert.equal(r.gait, 'walk'); assert.equal(actions.walk.getEffectiveWeight(), 1); assert.equal(actions.run.getEffectiveWeight(), 0);
-  assert.ok(RUN.hz > WALK.hz && RUN.swing > WALK.swing);
-  // both cycles put the same leg forward at the same phase
-  const {walkPose, runPose} = {walkPose: CLIPS.walk.pose, runPose: CLIPS.run.pose};
-  for (const u of [0, .25, .5, .75]) assert.equal(Math.sign(walkPose(u).lfore0.x || 0), Math.sign(runPose(u).lfore0.x || 0), `phase ${u}`);
+  r = walkFor(a, 30, (GAIT.gallopAt + GAIT.stepAt) / 2); assert.equal(r.gait, 'gallop', 'no flicker on the line');
+  r = walkFor(a, 60, GAIT.stepAt - 2); assert.equal(r.gait, 'trot'); assert.equal(r.stepWeight, 1);
 });
 
-test('a stop waits for the stride\'s loop boundary before fading to idle, so the feet are planted; walking again cancels the stop', () => {
-  const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  walkFor(a, 40, .6);
-  let r = updateSkinnedFeline(a, 1 / 60, null, false);
-  assert.ok(r.stopping && actions.walk.getEffectiveWeight() === 1, 'the frame after the halt the walk is still at full weight');
-  let frames = 0; while (actions.walk.getEffectiveWeight() > 0 && frames < 90) { r = updateSkinnedFeline(a, 1 / 60, null, false); frames++; }
-  assert.ok(frames > 2 && frames < 90, `faded out after the loop boundary (${frames} frames)`); assert.equal(r.gait, 'idle');
-  walkFor(a, 40, .6);
-  r = updateSkinnedFeline(a, 1 / 60, null, false); assert.ok(r.stopping);
-  r = walkFor(a, 5, .6);
-  assert.ok(!r.stopping && r.gait === 'walk' && actions.walk.getEffectiveWeight() === 1, 'walking again cancels the stop');
-});
-
-// How far a planted paw drifts along the ground while it should be standing: the sum, over a
-// walk, of each stance-phase frame's paw movement in world space.
-const footSlide = (a, tilesPerSecond, frames = 240) => {
-  const E = a.rig.legs.lfore.bones[2], p = new THREE.Vector3(), last = new THREE.Vector3(); let slide = 0, stanceFrames = 0;
-  for (let i = 0; i < 60; i++) walkFor(a, 1, tilesPerSecond); // settle into the walk
-  for (let i = 0; i < frames; i++) {
-    walkFor(a, 1, tilesPerSecond); a.g.updateMatrixWorld(true); E.getWorldPosition(p);
-    const base = a.animator.actions[a.animator.base], u = base.time / base.getClip().duration, stance = -Math.cos(u * Math.PI * 2);
-    if (stance > .3) { if (stanceFrames) slide += Math.abs(p.x - last.x); stanceFrames++; } else stanceFrames = 0;
-    last.copy(p);
+test('a planted paw stays put and no paw goes through the floor, kitten and housecat, walking and trotting', () => {
+  for (const name of ['kitten', 'housecat']) for (const hs of [2.8, 6]) {
+    const a = createSkinnedFeline(name), st = a.animator.stepper, h = st.hip(); walkFor(a, 60, hs);
+    let worst = 0, lowest = Infinity, checked = 0;
+    for (let i = 0; i < 180; i++) { walkFor(a, 1, hs); for (const L of Object.values(st.legs)) { const p = tipOf(a, L); lowest = Math.min(lowest, p.y); if (L.stance && L.plant) { worst = Math.max(worst, p.distanceTo(L.plant)); checked++; } } }
+    assert.ok(checked > 100, 'stance frames were checked');
+    assert.ok(worst < .02 * h, `${name} at ${hs} h/s: a standing paw stays within ${(worst / h).toFixed(4)} h of where it landed`);
+    assert.ok(lowest > -.01 * h, `${name} at ${hs} h/s: lowest paw ${(lowest / h).toFixed(4)} h`);
   }
-  return slide;
-};
+});
 
-test('a planted foot stays put: the stance-phase paw drifts a fraction of what it did skating, and the leg still reaches it', () => {
-  const free = createSkinnedFeline('kitten'); free.animator.planting = false;
-  const pinned = createSkinnedFeline('kitten');
-  const before = footSlide(free, .5), after = footSlide(pinned, .5);
-  assert.ok(after < before * .35, `slide ${after.toFixed(3)} with planting vs ${before.toFixed(3)} without`);
-  // the solver really puts the paw on the pin
-  const leg = pinned.rig.legs.lfore, E = leg.bones[2]; let checked = 0;
-  for (let i = 0; i < 120; i++) { walkFor(pinned, 1, .5); if (leg.plant) { pinned.g.updateMatrixWorld(true); const p = E.getWorldPosition(new THREE.Vector3()); const base = pinned.animator.actions[pinned.animator.base], u = base.time / base.getClip().duration; if (-Math.cos(u * Math.PI * 2) > .6) { assert.ok(p.distanceTo(leg.plant) < .012, `paw ${p.distanceTo(leg.plant).toFixed(4)} from its pin`); checked++; } } }
-  assert.ok(checked > 10, 'stance frames were checked');
-  // nothing is pinned once the cat stands still or sits
-  for (let i = 0; i < 90; i++) walkFor(pinned, 1, 0, false);
-  assert.ok(Object.values(pinned.rig.legs).every(l => !l.plant));
+// The walk held to the reference cat (cat-motion/README.md), as tools/cat-lab.html measures it.
+test('the walk meets the reference cat at a calm pace: the footfall order, diagonality, time each paw stands, swing time, paws on the floor and a steady head', () => {
+  const R = REFERENCE.walk;
+  for (const name of ['kitten', 'housecat']) {
+    const an = analyseGait(simulateGait({name, ms: .65, seconds: 3, hull: false}));
+    assert.deepEqual(an.order, ['lhind', 'lfore', 'rhind', 'rfore'], `${name} order`);
+    assert.ok(an.diagonality >= R.diagonality[0] && an.diagonality <= R.diagonality[1], `${name} diagonality ${an.diagonality}`);
+    for (const d of an.duty) assert.ok(d >= R.duty[0] && d <= R.duty[1], `${name} duty ${d}`);
+    assert.ok(an.swingS >= .17 && an.swingS <= R.swingS[1], `${name} swing ${an.swingS}`);
+    for (const c of an.plantedCm) assert.ok(c >= R.plantedCm[0] && c <= R.plantedCm[1], `${name} standing paw ${c} cm`);
+    for (const c of an.lowestCm) assert.ok(c >= R.lowestCm[0], `${name} lowest paw ${c} cm`);
+    assert.ok(an.headTravelCm >= R.headTravelCm[0] * .9 && an.headTravelCm <= R.headTravelCm[1], `${name} head bob ${an.headTravelCm} cm`);
+    assert.ok(an.headPitchDeg <= R.headPitchDeg[1], `${name} head pitch ${an.headPitchDeg}`);
+  }
 });
 
 test('a turn: the body counters the heading step and eases round, the neck leads, and the tail trails late then settles', () => {
   // `b` walks the same frames without the turn, so the tail's own clip can be subtracted out
   const a = createSkinnedFeline('housecat'), b = createSkinnedFeline('housecat');
-  for (let i = 0; i < 90; i++) { walkFor(a, 1, 1); walkFor(b, 1, 1); } // the first frame saw the heading set, and has eased round since
+  for (let i = 0; i < 90; i++) { walkFor(a, 1, 2.8); walkFor(b, 1, 2.8); } // the first frame saw the heading set, and has eased round since
   assert.ok(Math.abs(a.body.rotation.y) < 1e-3, 'straight ahead: no counter-turn');
   a.g.rotation.y = Math.PI / 2 + 1; // the heading jumps a radian to the left
   updateSkinnedFeline(a, 1 / 60, null, true); updateSkinnedFeline(b, 1 / 60, null, true);
@@ -224,20 +211,18 @@ const stepTiles = (a, steps, gap = .6) => { const out = []; a.target = a.target 
   for (let s = 0; s < steps; s++) { a.target.x += 1; for (let f = 0; f < gap * 60; f++) { slideTo(a, 1 / 60); const moving = a.g.position.distanceTo(a.target) > .025; out.push(updateSkinnedFeline(a, 1 / 60, null, moving)); } }
   return out; };
 
-test('a pet crossing tiles bounds in a gallop whose strides keep pace with the ground, never churning faster than it travels', () => {
+test('a pet walks to the next tile at a cat\'s pace, and hurries only as it falls behind: a trot, then a gallop, then back to a walk as it closes in', () => {
   const a = createSkinnedFeline('kitten');
-  assert.equal(a.glide, FELINE_GLIDE, 'the cat glides tile to tile instead of darting');
-  const frames = stepTiles(a, 5).filter(r => r.walking && r.gait !== 'idle');
-  assert.ok(frames.length > 60);
-  const gaits = new Set(frames.slice(10).map(r => r.gait));
-  assert.deepEqual([...gaits], ['gallop'], `one gait for the whole step: ${[...gaits]}`);
-  // the stride rate stays within honest bounds: at most maxScale, and the legs' ground speed matches the body's at cruise
-  for (const r of frames) assert.ok(r.timeScale <= GAIT.maxScale + 1e-9);
-  const cruise = frames.filter(r => r.speed > FELINE_GLIDE.cruise * .9);
-  for (const r of cruise) { const legSpeed = r.timeScale * GALLOP.hz * GAIT.stride.gallop * a.g.scale.x; assert.ok(legSpeed > FELINE_GLIDE.cruise * .75 && legSpeed < FELINE_GLIDE.cruise * 1.3, `legs cover ${legSpeed.toFixed(2)} tiles/s at a body speed of ${FELINE_GLIDE.cruise}`); }
-  // and about one and a half strides per tile, not seven
-  let cycles = 0, last = null; for (const r of frames) { const base = a.animator.actions.gallop; void base; }
-  const t = a.animator.actions.gallop; assert.ok(t.getClip().duration > 0);
+  assert.equal(a.glide, FELINE_GLIDE, 'the cat glides tile to tile at its own pace');
+  const one = stepTiles(a, 1, 3).filter(r => r.walking);
+  assert.ok(one.length > 60 && one.every(r => r.gait === 'walk'), `one tile is a walk: ${[...new Set(one.map(r => r.gait))]}`);
+  const h = a.animator.stepper.hip(), cruise = Math.max(...one.map(r => r.speed));
+  assert.ok(Math.abs(cruise / h - FELINE_GLIDE.pace[0][1]) < .3, `at the walk's ${FELINE_GLIDE.pace[0][1]} h/s: ${(cruise / h).toFixed(2)}`);
+  // the hero runs on: the target gets ahead and the cat speeds up through its gaits
+  const run = stepTiles(a, 8, .25).filter(r => r.walking), seen = [...new Set(run.map(r => r.gait))];
+  assert.deepEqual(seen, ['walk', 'trot', 'gallop'], `walk, then trot, then gallop: ${seen}`);
+  let r; for (let i = 0; i < 60 * 6; i++) { slideTo(a, 1 / 60); r = updateSkinnedFeline(a, 1 / 60, null, a.g.position.distanceTo(a.target) > .002); }
+  assert.ok(a.g.position.distanceTo(a.target) < .01 && !r.step.stepping, 'and it arrives and stands');
 });
 
 test('the sit has the cat\'s feet under it: hind feet just behind the front paws, hocks on the floor, the back rising steeply', () => {

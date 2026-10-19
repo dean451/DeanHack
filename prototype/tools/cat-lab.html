@@ -1,0 +1,277 @@
+<!doctype html><meta charset="utf-8"><title>Cat lab</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#1b2328;--panel:#232e34;--line:#3a4950;--text:#dfe7ea;--dim:#8fa3ab;--ok:#7fd18b;--bad:#ff8a7a;--warn:#e8c46a;--lh:#ff9f68;--lf:#ffd36e;--rf:#7fc8ff;--rh:#c49bff}
+html,body{margin:0;background:var(--bg);color:var(--text);font:13px/1.4 system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+header label{display:flex;gap:6px;align-items:center;color:var(--dim)}
+header select,header input,header button{font:inherit;color:var(--text);background:#2c3a41;border:1px solid var(--line);border-radius:4px;padding:2px 6px}
+header button{cursor:pointer}
+#main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:0}
+#view{position:relative;height:52vh;min-height:300px}
+#view canvas{display:block;width:100%;height:100%}
+#hud{position:absolute;left:8px;top:6px;color:var(--dim);font-variant-numeric:tabular-nums;pointer-events:none}
+#side{background:var(--panel);border-left:1px solid var(--line);padding:8px 10px;overflow:auto;height:52vh;min-height:300px;box-sizing:border-box}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+td,th{padding:3px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--dim);font-weight:500}
+td.ok{color:var(--ok)}td.bad{color:var(--bad)}td.na{color:var(--dim)}
+#time{display:flex;gap:8px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--line)}
+#time input[type=range]{flex:1}
+#charts{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 12px}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.chart h3{margin:0 0 4px;font-size:12px;font-weight:600;color:var(--dim)}
+.chart svg{width:100%;display:block}
+.note{color:var(--dim);font-size:12px;margin:6px 0}
+.legend span{display:inline-block;margin-right:10px}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+@media (max-width:900px){#main{grid-template-columns:1fr}#side{height:auto;border-left:0}#charts{grid-template-columns:1fr}}
+</style>
+<header>
+  <label>Cat <select id="name"><option>kitten</option><option>housecat</option><option>large cat</option></select></label>
+  <label>Mode <select id="mode"><option value="gait">Gait at speed</option><option value="pose">Held pose</option></select></label>
+  <label id="speedBox">Speed <input id="speed" type="range" min=".2" max="4" step=".05" value=".65"> <span id="speedOut"></span></label>
+  <label id="poseBox" hidden>Pose <select id="clip"><option>sit</option><option>idle</option><option>pounce</option></select> <input id="u" type="range" min="0" max="1" step=".01" value=".25"></label>
+  <label>View <select id="cam"><option value="side">Side</option><option value="front">Front</option><option value="top">Top</option><option value="three">Three-quarter</option><option value="low">Low side</option></select></label>
+  <label><input id="prints" type="checkbox" checked> Footprints</label>
+  <label><input id="paths" type="checkbox"> Paw paths</label>
+  <label><input id="skin" type="checkbox" checked> Skin</label>
+</header>
+<div id="time">
+  <button id="play">Pause</button>
+  <label>Slow <select id="rate"><option value="1">1×</option><option value=".5">½×</option><option value=".25" selected>¼×</option><option value=".1">1/10×</option><option value=".04">1/25×</option></select></label>
+  <button id="back" title="previous frame (,)">◀</button><button id="fwd" title="next frame (.)">▶</button>
+  <input id="scrub" type="range" min="0" max="0" value="0"><span id="tOut"></span>
+</div>
+<div id="main"><div id="view"><div id="hud"></div></div><div id="side"><table id="metrics"></table><p class="note" id="notes"></p></div></div>
+<div id="charts">
+  <div class="chart"><h3>Footfalls: when each paw stands (bars), ours above, reference walk below</h3><svg id="gait" viewBox="0 0 600 190"></svg>
+    <div class="legend"><span><i style="background:var(--lh)"></i>left hind</span><span><i style="background:var(--lf)"></i>left fore</span><span><i style="background:var(--rf)"></i>right fore</span><span><i style="background:var(--rh)"></i>right hind</span></div></div>
+  <div class="chart"><h3>Left hind joint angles over one stride (0% = paw lands)</h3><svg id="angles" viewBox="0 0 600 190"></svg>
+    <div class="legend"><span><i style="background:#ff9f68"></i>hip*</span><span><i style="background:#7fc8ff"></i>knee</span><span><i style="background:#7fd18b"></i>ankle</span><span>solid ours · dashed reference (constructed) · dots measured anchors ± sd</span></div></div>
+  <div class="chart"><h3>Paw height above the floor (cm, adult scale): standing paws should sit on 0</h3><svg id="heights" viewBox="0 0 600 160"></svg></div>
+  <div class="chart"><h3>Head height (cm, adult scale): a walking cat's head moves ~1.5 cm, twice a stride</h3><svg id="head" viewBox="0 0 600 160"></svg></div>
+</div>
+<script type="module">
+// The cat lab: runs the real animator at a steady speed (or holds a pose), records it, and plays it
+// back with footprints and charts against the reference in cat-motion/README.md.
+// /tools/cat-lab.html?name=kitten&mode=gait&speed=.65&view=side   (speed: m/s as a real cat would go, scaled by hip height)
+import * as THREE from 'three';
+import {createSkinnedFeline} from '../feline-skin.js';
+import {simulateGait, analyseGait, measurePose, applySnapshot, REFERENCE, LEGS} from '../cat-measure.js';
+const $ = id => document.getElementById(id), q = new URLSearchParams(location.search);
+const COL = {lhind: 0xff9f68, lfore: 0xffd36e, rfore: 0x7fc8ff, rhind: 0xc49bff}, CSS = {lhind: '#ff9f68', lfore: '#ffd36e', rfore: '#7fc8ff', rhind: '#c49bff'};
+const LABEL = {lhind: 'LH', lfore: 'LF', rfore: 'RF', rhind: 'RH'};
+for (const [k, el] of [['name', 'name'], ['mode', 'mode'], ['speed', 'speed'], ['view', 'cam'], ['clip', 'clip'], ['u', 'u'], ['rate', 'rate']]) if (q.has(k)) $(el).value = q.get(k);
+
+// ---- scene ----
+const view = $('view'), renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.setClearColor(0x1b2328); renderer.shadowMap.enabled = true;
+view.prepend(renderer.domElement);
+const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, 1, .01, 100);
+scene.add(new THREE.HemisphereLight(0x9fc4cc, 0x2a2822, 1.4));
+const sun = new THREE.DirectionalLight(0xffe6c0, 2.6); sun.position.set(-2, 4, 3); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, {left: -2, right: 2, top: 2, bottom: -2}); scene.add(sun, sun.target);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 6), new THREE.MeshStandardMaterial({color: 0x46524f, roughness: 1})); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+// tile lines every 1, fine lines every .1
+const grid = new THREE.Group(); scene.add(grid);
+const lines = (step, colour, y) => { const pts = []; for (let x = -10; x <= 100; x += step) pts.push(x, y, -3, x, y, 3); for (let z = -3; z <= 3; z += step) pts.push(-10, y, z, 100, y, z); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); return new THREE.LineSegments(g, new THREE.LineBasicMaterial({color: colour, transparent: true, opacity: .5})); };
+grid.add(lines(.1, 0x56625f, .0005), lines(1, 0x8a9a96, .001));
+const marks = new THREE.Group(); scene.add(marks);
+
+let cat = null, catName = null, rec = null, an = null, pose = null, frame = 0, playing = true, acc = 0;
+function makeCat(name) {
+  if (cat && catName === name) return cat;
+  if (cat) scene.remove(cat.g);
+  cat = createSkinnedFeline(name); catName = name; cat.g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(cat.g); return cat;
+}
+
+// ---- run ----
+function run() {
+  const name = $('name').value, mode = $('mode').value;
+  $('speedBox').hidden = mode !== 'gait'; $('poseBox').hidden = mode !== 'pose';
+  const c = makeCat(name);
+  marks.clear();
+  if (mode === 'gait') {
+    rec = simulateGait({cat: c, ms: +$('speed').value, seconds: 4}); an = analyseGait(rec); pose = null;
+    $('scrub').max = rec.frames.length - 1; frame = Math.min(frame, rec.frames.length - 1);
+    drawMarks(); drawGait(); drawAngles(); drawHeights(); drawHead();
+  } else {
+    rec = null; an = null; pose = measurePose({cat: c, clip: $('clip').value, u: +$('u').value});
+    c.animator.show($('clip').value, +$('u').value); c.g.position.set(0, 0, 0);
+    $('scrub').max = 0; ['gait', 'angles', 'heights', 'head'].forEach(id => $(id).innerHTML = '');
+  }
+  table(); updateSpeedOut(); show();
+  window.__lab = {rec, an, pose};
+}
+
+// ---- footprints and paw paths ----
+function drawMarks() {
+  const m = rec.metresPerUnit, r = .012 / m;
+  if ($('prints').checked) LEGS.forEach((k, i) => {
+    const c = an.contact[i]; let a = -1;
+    for (let f = 0; f <= c.length; f++) {
+      if (f < c.length && c[f] && a < 0) a = f;
+      if ((f === c.length || !c[f]) && a >= 0) {
+        const mid = rec.frames[(a + f - 1) >> 1].tips[i], h = rec.frames.slice(a, f).reduce((s, fr) => s + fr.tips[i][1], 0) / (f - a);
+        // a paw that stands in the air leaves a hollow ring at its height, a grounded one a solid print
+        const floating = h * m > .005, geo = floating ? new THREE.RingGeometry(r * .7, r, 24) : new THREE.CircleGeometry(r, 24);
+        const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({color: COL[k], side: THREE.DoubleSide, transparent: true, opacity: .85}));
+        mesh.rotation.x = -Math.PI / 2; mesh.position.set(mid[0], floating ? h : .002, mid[2]); marks.add(mesh);
+        if (floating) { const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(mid[0], .002, mid[2]), new THREE.Vector3(mid[0], h, mid[2])]); marks.add(new THREE.Line(g, new THREE.LineBasicMaterial({color: COL[k]}))); }
+        a = -1;
+      }
+    }
+  });
+  if ($('paths').checked) LEGS.forEach((k, i) => { const g = new THREE.BufferGeometry().setFromPoints(rec.frames.map(f => new THREE.Vector3(...f.tips[i]))); marks.add(new THREE.Line(g, new THREE.LineBasicMaterial({color: COL[k]}))); });
+}
+
+// ---- metrics table ----
+const fmt = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '—';
+const within = (v, [a, b]) => Number.isFinite(v) && v >= a && v <= b;
+function row(label, value, ref, ok) { return `<tr><td>${label}</td><td class="${ok === null ? 'na' : ok ? 'ok' : 'bad'}">${value}</td><td class="na">${ref}</td></tr>`; }
+function band(ms) { const g = REFERENCE.gaits; return ms <= g.walk[1] ? 'walk' : ms < g.trot[0] ? 'walk → trot' : ms <= g.trot[1] ? 'trot' : ms < g.gallop[0] ? 'trot → gallop' : 'gallop'; }
+function table() {
+  let h = '<tr><th>Measure</th><th>Ours</th><th>Real cat</th></tr>';
+  const notes = [];
+  if (an) {
+    const R = REFERENCE.walk, ms = rec.ms, walkSpeed = ms <= REFERENCE.gaits.walk[1], atRef = ms >= .5 && ms <= .8, d = an.duty, dm = d.reduce((a, b) => a + b) / 4;
+    h += row('Speed', `${fmt(ms)} m/s (real-cat scale)`, `${band(ms)} at this speed`, null);
+    h += row('Gait chosen', an.gaits.join(', '), band(ms), an.gaits.length === 1 && band(ms).startsWith(an.gaits[0]));
+    if (walkSpeed) {
+      // the reference stride rate at this speed, from the measured stride length (0.44-0.49 m)
+      const refHz = [ms / R.strideM[1], ms / R.strideM[0]];
+      h += row('Strides per second', fmt(an.strideHz), atRef ? `${fmt(refHz[0])}–${fmt(refHz[1])}` : `~${fmt(refHz[0])}–${fmt(refHz[1])} (stride held)`, atRef ? within(an.strideHz, refHz) : null);
+      h += row('Stride length', `${fmt(an.strideM)} m`, atRef ? `${R.strideM.join('–')} m` : 'measured at 0.6–0.7 m/s', atRef ? within(an.strideM, R.strideM) : null);
+      h += row('Swing time', `${fmt(an.swingS)} s`, `${R.swingS.join('–')} s (adult)`, within(an.swingS, R.swingS));
+      h += row('Time each paw stands', `${fmt(dm)} (${d.map(v => fmt(v)).join(' ')})`, R.duty.join('–'), d.every(v => within(v, R.duty)));
+      h += row('Fore lands after hind (diagonality)', fmt(an.diagonality), `${R.diagonality.join('–')} (0.5 = trot)`, within(an.diagonality, R.diagonality));
+      h += row('Footfall order', an.order.map(k => LABEL[k]).join(' → '), 'LH → LF → RH → RF', an.order.join() === 'lhind,lfore,rhind,rfore');
+    } else {
+      const trot = ms <= REFERENCE.gaits.trot[1];
+      h += row('Strides per second', fmt(an.strideHz), 'trot/gallop data open', null);
+      h += row('Time each paw stands', `${fmt(dm)} (${d.map(v => fmt(v)).join(' ')})`, trot ? '≤ 0.5 (trot)' : 'gallop: open', trot ? d.every(v => v <= .52) : null);
+      h += row('Fore lands after hind', fmt(an.diagonality), trot ? '~0.5 (trot)' : 'open', trot ? within(an.diagonality, [.4, .6]) : null);
+    }
+    h += row('Standing paw height', `${an.plantedCm.map(v => fmt(v, 1)).join(' ')} cm`, '0 cm (on the floor)', an.plantedCm.every(v => within(v, R.plantedCm)));
+    h += row('Lowest paw point', `${an.lowestCm.map(v => fmt(v, 1)).join(' ')} cm`, '≥ 0 cm (never through the floor)', an.lowestCm.every(v => within(v, R.lowestCm)));
+    h += row('Highest paw lift', `${an.peakSwingCm.map(v => fmt(v, 1)).join(' ')} cm`, 'low arc (open)', null);
+    h += row('Head bob per stride', `${fmt(an.headTravelCm, 1)} cm, ${fmt(an.headBobsPerStride, 1)}×`, `${R.headTravelCm.join('–')} cm, 2×`, walkSpeed ? within(an.headTravelCm, R.headTravelCm) : null);
+    h += row('Head pitch swing', `${fmt(an.headPitchDeg, 1)}°`, `~3°`, walkSpeed ? an.headPitchDeg <= R.headPitchDeg[1] : null);
+    h += row('Hind paw lifts at', `${fmt(an.pawOff * 100, 0)}% of stride`, '~62%', walkSpeed ? within(an.pawOff, [.55, .7]) : null);
+    notes.push('Speeds, lengths and heights are scaled to a real adult cat by hip height (0.23 m): gait scales with leg length. Reference: cat-motion/README.md.');
+    notes.push('* The hip is the thigh against the back line (the pelvis has no bone), so compare its swing (about 44° in a real walk), not its absolute value.');
+  } else if (pose) {
+    h += row('Hip joint height', `${fmt(pose.hipCm, 1)} cm`, 'well above the floor (open: to measure)', null);
+    h += row('Standing hip height', `${fmt(pose.standHipCm, 1)} cm`, '~23 cm adult', null);
+    h += row('Hip height vs standing', fmt(pose.hipRatio), 'open: to measure from video', null);
+    h += row('Lowest point of the body', `${fmt(pose.lowestBodyCm, 1)} cm`, pose.clip === 'sit' ? '0 cm: the rump rests on the floor' : '—', pose.clip === 'sit' ? within(pose.lowestBodyCm, [-.5, .5]) : null);
+    h += row('Paw heights (LH LF RF RH)', `${pose.pawsCm.map(v => fmt(v, 1)).join(' ')} cm`, pose.clip === 'sit' ? '0 cm: all on the floor' : '—', pose.clip === 'sit' ? pose.pawsCm.every(v => within(v, [-.5, .5])) : null);
+    h += row('Knee / ankle (interior)', `${fmt(pose.knee, 0)}° / ${fmt(pose.ankle, 0)}°`, 'limits: knee ≥ 24°, ankle ≥ 21°', pose.knee >= 24 && pose.ankle >= 21);
+    h += row('Head pitch', `${fmt(pose.headPitch, 1)}°`, '10–30° nose down when walking', null);
+    notes.push('Sit reference (ethograms): rump on the floor, hind legs folded on the ground, forelegs straight and vertical; the hip joint is held up by the folded thigh. Measured sit angles are still open.');
+  }
+  $('metrics').innerHTML = h; $('notes').innerHTML = notes.join('<br>');
+}
+function updateSpeedOut() { const ms = +$('speed').value; $('speedOut').textContent = `${ms.toFixed(2)} m/s · ${band(ms)}`; }
+
+// ---- charts ----
+const svg = (tag, attrs, text) => `<${tag} ${Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ')}>${text ?? ''}</${tag}>`;
+function axisX(W, x0, x1, label) { return svg('text', {x: x1, y: 0, fill: '#8fa3ab', 'font-size': 10, 'text-anchor': 'end'}, label); }
+function drawGait() {
+  const W = 600, L = 34, T = rec.frames.length * rec.dt, x = t => L + (t / T) * (W - L - 6), rowH = 16;
+  let s = '';
+  const block = (y0, c, title) => LEGS.forEach((k, i) => {
+    const y = y0 + i * (rowH + 3); s += svg('text', {x: 2, y: y + 12, fill: CSS[k], 'font-size': 11}, LABEL[k]);
+    s += svg('rect', {x: L, y, width: W - L - 6, height: rowH, fill: '#1b2328'});
+    let a = -1; for (let f = 0; f <= c[i].length; f++) { if (f < c[i].length && c[i][f] && a < 0) a = f; if ((f === c[i].length || !c[i][f]) && a >= 0) { s += svg('rect', {x: x(a * rec.dt), y, width: Math.max(1, x(f * rec.dt) - x(a * rec.dt)), height: rowH, fill: CSS[k], rx: 2}); a = -1; } }
+  });
+  block(4, an.contact);
+  // reference walk at this speed: stride from ~0.97 BL, duty 0.64, lateral sequence with diagonality 0.25
+  const ms = rec.ms, period = REFERENCE.walk.strideM.reduce((a, b) => a + b) / 2 / ms, duty = .64, start = (an.onsets[0][0] ?? 0) * rec.dt;
+  const phase = {lhind: 0, lfore: .25, rhind: .5, rfore: .75}, n = rec.frames.length;
+  const refC = LEGS.map(k => Array.from({length: n}, (_, f) => { const u = (((f * rec.dt - start) / period - phase[k]) % 1 + 1) % 1; return u < duty; }));
+  s += svg('text', {x: L, y: 100, fill: '#8fa3ab', 'font-size': 10}, ms <= REFERENCE.gaits.walk[1] ? `reference walk at ${ms.toFixed(2)} m/s: ${(1 / period).toFixed(2)} strides/s, each paw down 64%, LH → LF → RH → RF` : 'reference: walk pattern shown for comparison only (this speed is past the walk)');
+  block(106, refC);
+  s += `<line id="gaitCursor" x1="0" x2="0" y1="0" y2="190" stroke="#fff" stroke-width="1" opacity=".7"/>`;
+  $('gait').innerHTML = s;
+}
+function drawAngles() {
+  const W = 600, H = 190, L = 32, B = 18, lo = 0, hi = 180, x = u => L + u * (W - L - 6), y = d => H - B - (d - lo) / (hi - lo) * (H - B - 6);
+  let s = '';
+  for (let d = 0; d <= 180; d += 30) s += svg('line', {x1: L, x2: W - 6, y1: y(d), y2: y(d), stroke: '#3a4950'}) + svg('text', {x: L - 4, y: y(d) + 4, fill: '#8fa3ab', 'font-size': 10, 'text-anchor': 'end'}, d + '°');
+  for (let u = 0; u <= 1.001; u += .25) s += svg('text', {x: x(u), y: H - 4, fill: '#8fa3ab', 'font-size': 10, 'text-anchor': 'middle'}, Math.round(u * 100) + '%');
+  const C = {hip: '#ff9f68', knee: '#7fc8ff', ankle: '#7fd18b'}, idx = {hip: 1, knee: 2, ankle: 3};
+  const ref = REFERENCE.hind;
+  s += svg('line', {x1: x(ref.off.at), x2: x(ref.off.at), y1: 6, y2: H - B, stroke: '#8fa3ab', 'stroke-dasharray': '2 3'}) + svg('text', {x: x(ref.off.at) + 3, y: 14, fill: '#8fa3ab', 'font-size': 10}, 'real paw off');
+  if (Number.isFinite(an.pawOff)) s += svg('line', {x1: x(an.pawOff), x2: x(an.pawOff), y1: 6, y2: H - B, stroke: '#dfe7ea', 'stroke-dasharray': '1 2'}) + svg('text', {x: x(an.pawOff) + 3, y: 26, fill: '#dfe7ea', 'font-size': 10}, 'our paw off');
+  for (const j of ['hip', 'knee', 'ankle']) {
+    s += svg('polyline', {points: ref.curve.map(p => `${x(p[0])},${y(p[idx[j]])}`).join(' '), fill: 'none', stroke: C[j], 'stroke-dasharray': '5 4', 'stroke-width': 1.5, opacity: .8});
+    const n = an.curve[j].length; s += svg('polyline', {points: an.curve[j].map((v, i) => `${x(i / n)},${y(v)}`).join(' '), fill: 'none', stroke: C[j], 'stroke-width': 2.2});
+    const anchors = [[0, ref.contact[j], 0], [ref.off.at, ref.off[j], 0], [ref.flex[j][2], ref.flex[j][0], ref.flex[j][1]]];
+    for (const [u, v, sd] of anchors) { if (sd) s += svg('line', {x1: x(u), x2: x(u), y1: y(v - sd), y2: y(v + sd), stroke: C[j]}); s += svg('circle', {cx: x(u), cy: y(v), r: 3.5, fill: C[j], stroke: '#1b2328'}); }
+  }
+  s += `<line id="angleCursor" x1="0" x2="0" y1="6" y2="${H - B}" stroke="#fff" stroke-width="1" opacity=".7"/>`;
+  $('angles').innerHTML = s;
+}
+function series(id, H, values, colours, label, zero = true) {
+  const W = 600, L = 32, B = 14, T = rec.frames.length * rec.dt, all = values.flat().filter(Number.isFinite);
+  let lo = Math.min(...all, zero ? 0 : Infinity), hi = Math.max(...all, zero ? 0 : -Infinity); const pad = (hi - lo) * .1 || 1; lo -= pad; hi += pad;
+  const x = f => L + (f * rec.dt / T) * (W - L - 6), y = v => H - B - (v - lo) / (hi - lo) * (H - B - 6);
+  let s = '';
+  const step = Math.pow(10, Math.floor(Math.log10(hi - lo))) / (hi - lo > 5 * Math.pow(10, Math.floor(Math.log10(hi - lo))) ? 1 : 2);
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) s += svg('line', {x1: L, x2: W - 6, y1: y(v), y2: y(v), stroke: Math.abs(v) < 1e-9 && zero ? '#8a9a96' : '#3a4950'}) + svg('text', {x: L - 4, y: y(v) + 4, fill: '#8fa3ab', 'font-size': 10, 'text-anchor': 'end'}, +v.toFixed(2));
+  values.forEach((vals, i) => { s += svg('polyline', {points: vals.map((v, f) => `${x(f).toFixed(1)},${y(v).toFixed(1)}`).join(' '), fill: 'none', stroke: colours[i], 'stroke-width': 1.6}); });
+  s += svg('text', {x: W - 8, y: 12, fill: '#8fa3ab', 'font-size': 10, 'text-anchor': 'end'}, label);
+  s += `<line class="cursor" x1="0" x2="0" y1="0" y2="${H}" stroke="#fff" stroke-width="1" opacity=".7"/>`;
+  $(id).innerHTML = s; $(id).dataset.scale = JSON.stringify({L, W, T});
+}
+function drawHeights() { const cm = rec.metresPerUnit * 100; series('heights', 160, LEGS.map((_, i) => rec.frames.map(f => f.tips[i][1] * cm)), LEGS.map(k => CSS[k]), 'toe tip height; grey line = floor'); }
+function drawHead() { const cm = rec.metresPerUnit * 100; series('head', 160, [rec.frames.map(f => f.head[1] * cm)], ['#dfe7ea'], 'head height', false); }
+
+// ---- playback ----
+function show() {
+  if (rec) {
+    const f = rec.frames[frame]; applySnapshot(cat, rec.bones, f.pose); cat.g.position.x = f.x; cat.g.updateMatrixWorld(true);
+    $('scrub').value = frame; $('tOut').textContent = `${f.t.toFixed(3)} s · frame ${frame}`;
+    const T = rec.frames.length * rec.dt, gx = 34 + (f.t / T) * (600 - 34 - 6), gc = $('gaitCursor'); if (gc) { gc.setAttribute('x1', gx); gc.setAttribute('x2', gx); }
+    document.querySelectorAll('#heights .cursor, #head .cursor').forEach(c => { const sx = 32 + (f.t / T) * (600 - 32 - 6); c.setAttribute('x1', sx); c.setAttribute('x2', sx); });
+    // the phase within the current left hind stride
+    const on = an.onsets[0]; let s = on.findLastIndex(k => k <= frame); const ac = $('angleCursor');
+    if (ac && s >= 0 && s + 1 < on.length) { const u = (frame - on[s]) / (on[s + 1] - on[s]), ax = 32 + u * (600 - 32 - 6); ac.setAttribute('x1', ax); ac.setAttribute('x2', ax); ac.style.display = ''; } else if (ac) ac.style.display = 'none';
+    const st = LEGS.map((k, i) => an.contact[i][frame] ? LABEL[k] : '··').join(' ');
+    $('hud').textContent = `${f.state.gait} · stride scale ${f.state.timeScale?.toFixed(2)} · standing: ${st}`;
+  } else if (pose) $('hud').textContent = `${pose.clip} at u=${pose.u}`;
+  frameCamera();
+}
+function frameCamera() {
+  const cx = cat.g.position.x, s = cat.g.scale.x, d = 1.9 * s + .6, y = .18 * s, v = $('cam').value;
+  const at = new THREE.Vector3(cx, y, 0);
+  const pos = {side: [cx, y + .02, d * 1.1], low: [cx, .03, d * 1.2], front: [cx + d * 1.4, y + .05, 0], top: [cx + .001, d * 1.8, .001], three: [cx + d, y + d * .5, d]}[v];
+  camera.position.set(...pos); camera.lookAt(at); sun.position.set(cx - 2, 4, 3); sun.target.position.set(cx, 0, 0);
+}
+function resize() { const w = view.clientWidth, h = view.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(view);
+let last = performance.now();
+function tick(now) {
+  const dt = Math.min(.1, (now - last) / 1000); last = now;
+  if (rec && playing) { acc += dt * +$('rate').value; while (acc >= rec.dt) { acc -= rec.dt; frame = (frame + 1) % rec.frames.length; } show(); }
+  if ($('skin')) { cat.fur.visible = $('skin').checked; if (cat.details) cat.details.visible = $('skin').checked; }
+  renderer.render(scene, camera); requestAnimationFrame(tick);
+}
+// a bone view for when the skin is off
+const helper = () => { if (cat._helper) return; cat._helper = new THREE.SkeletonHelper(cat.g); scene.add(cat._helper); };
+
+// ---- controls ----
+let pending = 0; const rerun = () => { clearTimeout(pending); pending = setTimeout(run, 120); };
+['name', 'mode', 'clip'].forEach(id => $(id).addEventListener('change', rerun));
+$('speed').addEventListener('input', () => { updateSpeedOut(); rerun(); }); $('u').addEventListener('input', rerun);
+['prints', 'paths'].forEach(id => $(id).addEventListener('change', () => { marks.clear(); if (rec) drawMarks(); }));
+$('skin').addEventListener('change', () => { helper(); cat._helper.visible = !$('skin').checked; });
+$('cam').addEventListener('change', show);
+$('play').onclick = () => { playing = !playing; $('play').textContent = playing ? 'Pause' : 'Play'; };
+const stepBy = n => { if (!rec) return; playing = false; $('play').textContent = 'Play'; frame = (frame + n + rec.frames.length) % rec.frames.length; show(); };
+$('back').onclick = () => stepBy(-1); $('fwd').onclick = () => stepBy(1);
+$('scrub').addEventListener('input', () => { playing = false; $('play').textContent = 'Play'; frame = +$('scrub').value; show(); });
+addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return; if (e.key === ' ') { e.preventDefault(); $('play').click(); } else if (e.key === ',' || e.key === 'ArrowLeft') stepBy(-1); else if (e.key === '.' || e.key === 'ArrowRight') stepBy(1); });
+resize(); run(); requestAnimationFrame(tick); window.__done = true;
+</script>

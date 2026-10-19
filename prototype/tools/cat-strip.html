@@ -2,10 +2,10 @@
 <style>html,body{margin:0;background:#233138}canvas{display:block}</style>
 <script type="module">
 // Six moments of one of the skinned cat's clips in a row, from the side:
-// /tools/cat-strip.html?name=kitten&clip=walk   (clips: walk, idle, sit, pounce; walk=1 is the old spelling of clip=walk)
+// /tools/cat-strip.html?name=kitten&clip=sit   (clips: idle, sit, gallop, pounce; the walk and trot are stepped, not clips: see cat-lab.html)
 import * as THREE from 'three';
 import {createSkinnedFeline} from '../feline-skin.js';
-const q=new URLSearchParams(location.search),name=q.get('name')||'kitten',clip=q.get('clip')||(q.get('walk')==='0'?'idle':'walk'),N=6;
+const q=new URLSearchParams(location.search),name=q.get('name')||'kitten',clip=q.get('clip')||'idle',N=6;
 const W=1400,H=380,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
 const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-N*.45,N*.45,.42,-.34,.1,50);

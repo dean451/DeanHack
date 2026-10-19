@@ -54,7 +54,8 @@ export function rigFox(model, actor = null, opts = {}) {
     const key = (side < 0 ? 'l' : 'r') + kind, pts = chain.map(([x, y, z]) => [side * x, y, z]), list = [];
     let p = attach, pa = attachAt;
     pts.slice(0, -1).forEach((at, i) => { const b = bone(key + i, p, at, pa); list.push(b); p = b; pa = at; });
-    legs[key] = {bones: list, joints: pts.map(q => q[1] * S), root: sc(pts[0])};
+    const [ta, tb] = pts.slice(-2).map(sc); // the toe tip below the last bone
+    legs[key] = {bones: list, joints: pts.map(q => q[1] * S), root: sc(pts[0]), tip: new THREE.Vector3(tb[0] - ta[0], tb[1] - ta[1], tb[2] - ta[2])};
   }
   // the weights, per vertex, in mesh units
   const geo = src.geometry.clone(), pos = geo.attributes.position, n = pos.count;

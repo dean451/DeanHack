@@ -48,25 +48,26 @@ test('our rig: the cat\'s 24 bones under the cat\'s names, every vertex weighted
   assert.ok(Math.abs(box.min.y) < .01 && box.max.y > .4 && box.max.y < .6, `stands ${box.min.y.toFixed(3)}..${box.max.y.toFixed(3)}`);
 });
 
-test('the fox walks on the cat\'s clips with its feet planted, and the GLB loader rigs it in place of the procedural fox', async () => {
+test('the fox steps on the cat\'s gait with its feet planted, and the GLB loader rigs it in place of the procedural fox', async () => {
   const {scene} = readFox();
   const actor = createCreature({name: 'fox', symbol: 100, color: 1});
   const asset = await attachModelAsset(actor, 'fox', {'fox.glb': '/fake/fox.glb'}, {loadAsync: async () => ({scene, animations: []})});
   assert.ok(asset && asset.animator && actor.asset === asset, 'rigged by our code, not by clips in the file');
   let skinned; asset.model.traverse(o => { if (o.isSkinnedMesh) skinned = o; });
   assert.equal(skinned.skeleton.bones.length, 24);
-  // walk along +x facing the way it goes, and measure the left forepaw's drift while it stands
+  // walk along +x facing the way it goes at a calm pace, and measure each standing paw's drift from where it landed
   actor.g.rotation.y = Math.PI / 2;
-  const leg = asset.rig.legs.lfore, paw = leg.bones[leg.bones.length - 1], p = new THREE.Vector3();
-  let checked = 0, worst = 0;
+  const st = asset.animator.stepper, h = st.hip(), v = 2.8 * h, p = new THREE.Vector3();
+  assert.ok(h > 0, `the fox's hip height ${h}`);
+  let checked = 0, worst = 0, r;
   for (let i = 0; i < 300; i++) {
-    actor.g.position.x += .5 / 60; asset.update(1 / 60, true); actor.g.updateMatrixWorld(true);
-    if (i > 60 && leg.plant) { paw.getWorldPosition(p); const base = asset.animator.actions[asset.animator.base], u = base.time / base.getClip().duration; if (-Math.cos(u * Math.PI * 2) > .6) { worst = Math.max(worst, p.distanceTo(leg.plant)); checked++; } }
+    actor.g.position.x += v / 60; actor.slideSpeed = v; r = asset.animator.update(1 / 60, true); actor.g.updateMatrixWorld(true);
+    if (i > 60) for (const L of Object.values(st.legs)) if (L.stance && L.plant) { const e = L.bones[L.bones.length - 1]; p.copy(L.leg.tip).applyMatrix4(e.matrixWorld); worst = Math.max(worst, p.distanceTo(L.plant)); checked++; }
   }
-  assert.equal(asset.animator.base, 'walk');
-  assert.ok(checked > 10, `stance frames checked: ${checked}`);
-  assert.ok(worst < .03, `a planted paw stays within ${worst.toFixed(4)} of its pin`);
-  // stopping settles to idle, and the tail keeps moving
-  for (let i = 0; i < 120; i++) asset.update(1 / 60, false);
-  assert.equal(asset.animator.base, 'idle');
+  assert.equal(r.gait, 'walk');
+  assert.ok(checked > 100, `stance frames checked: ${checked}`);
+  assert.ok(worst < .03 * h, `a planted paw stays within ${(worst / h).toFixed(4)} h of where it landed`);
+  // stopping lands the paws and settles to idle, and the tail keeps moving
+  actor.slideSpeed = 0; for (let i = 0; i < 120; i++) r = asset.animator.update(1 / 60, false);
+  assert.equal(r.gait, 'idle'); assert.equal(asset.animator.base, 'idle');
 });
