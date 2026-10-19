@@ -25,7 +25,7 @@ import {felineBuild} from './feline.js';
 import {growHull} from './feline-hull.js';
 import {FELINE_GLIDE} from './slide.js';
 import {createStepper} from './feline-gait.js';
-import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE, TAIL_SCULPT, EYE, earFrame} from './feline-sculpt.js';
+import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE, TAIL_SCULPT, EYE, earFrame, MOUTH, jawShare, lipY} from './feline-sculpt.js';
 import {coatAttributes, coatMaterial, FUR} from './feline-coat.js';
 import {createFelineMind} from './feline-mind.js';
 
@@ -103,6 +103,18 @@ function skin(geo, weigh) {
   return geo;
 }
 
+// Opens the lips in a grown skin: drops the triangles that cross the lip line (feline-sculpt.js lipY)
+// across the front of the muzzle. `toHead(v)` takes a body-space point to head space (in place).
+function cutLips(geometry, toHead) {
+  const pos = geometry.attributes.position, idx = geometry.index.array, keep = [], v = new THREE.Vector3();
+  const below = new Int8Array(pos.count), front = new Uint8Array(pos.count);
+  const share = new Float32Array(pos.count);
+  for (let i = 0; i < pos.count; i++) { toHead(v.fromBufferAttribute(pos, i)); below[i] = v.y < lipY(v.x) ? 1 : 0; front[i] = v.z > MOUTH.front - .004 && Math.abs(v.x) < MOUTH.half + .008 ? 1 : 0; share[i] = jawShare(v.x, v.y, v.z); }
+  // (a triangle goes where it crosses the lips, or where its corners split sharply between the head and
+  // the jaw, so the skin left whole never tears)
+  for (let t = 0; t < idx.length; t += 3) { const a = idx[t], b = idx[t + 1], c = idx[t + 2], n = below[a] + below[b] + below[c], split = Math.max(share[a], share[b], share[c]) - Math.min(share[a], share[b], share[c]); if (front[a] && front[b] && front[c] && ((n > 0 && n < 3) || split > .55)) continue; keep.push(a, b, c); }
+  geometry.setIndex(keep);
+}
 // The skin: one surface grown over the parts (feline-hull.js), built once per look and shared.
 // `hull: false` keeps the parts as they are, for comparison in the tool pages.
 const hulls = new Map();
@@ -129,6 +141,10 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
     const frame = earFrame(side), at = frame.base.clone().multiplyScalar(headScale).add(new THREE.Vector3(...L.neck)), key = side < 0 ? 'l' : 'r';
     ears[key] = {bone: bone(key + 'ear', head, at.toArray().map((v, i) => v - head.userData.world[i])), side, frame};
   }
+  // the lower jaw, hinged below and in front of the ears, and the tongue on it (sculpted pets)
+  const fromHead = p => p.map((v, i) => v * headScale + L.neck[i]);
+  const jaw = sculpt ? bone('jaw', head, fromHead(MOUTH.hinge).map((v, i) => v - head.userData.world[i])) : null;
+  const tongue = sculpt ? bone('tongue', jaw, fromHead(MOUTH.tongue.root).map((v, i) => v - jaw.userData.world[i])) : null;
   // tail: the root sits where the tail group did, four bones along the curve
   const tailRoot = [0, Y + .05, -.29 - D], tailBones = [];
   let parent = hips, prev = [0, 0, 0];
@@ -159,7 +175,8 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
     neck: (x, y, z) => { const s = clamp01(((x - nA[0]) * nD[0] + (y - nA[1]) * nD[1] + (z - nA[2]) * nD[2]) / nL2), w = smooth((s - .15) / .85); return [[names.chest, 1 - w], [names.neck, w]]; },
     // sculpted: each handover at the joint the bone turns about, spread wide, so a bent back is one curve
     body: (x, y, z) => (sculpt ? chainWeights(z, [SPINE.joints[0] - D, SPINE.joints[1], SPINE.joints[2] + D, SPINE.joints[3] + D], SPINE.blend) : chainWeights(z, [-.31, -.1, .08, .28], BLEND.spine)).map(([k, w]) => [names[['hips', 'spine', 'chest'][k]], w]),
-    head: () => [[names.head, 1]],
+    // the head, its lower jaw going with the jaw bone
+    head: (x, y, z) => { if (!jaw) return [[names.head, 1]]; _ew.set(x, y, z).sub(_en).divideScalar(headScale); const k = jawShare(_ew.x, _ew.y, _ew.z); return k < 1e-3 ? [[names.head, 1]] : [[names.head, 1 - k], [names.jaw, k]]; },
     tail: (x, y, z) => { let best = 0, bd = Infinity, bs = 0; for (let i = 0; i < tj.length - 1; i++) { const ax = tj[i], bx = tj[i + 1], dx = bx[0] - ax[0], dy = bx[1] - ax[1], dz = bx[2] - ax[2], L2 = dx * dx + dy * dy + dz * dz || 1; const t = clamp01(((x - ax[0]) * dx + (y - ax[1]) * dy + (z - ax[2]) * dz) / L2); const px = ax[0] + dx * t, py = ax[1] + dy * t, pz = ax[2] + dz * t, d = (x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2; if (d < bd) { bd = d; best = i; bs = arcs[i] + Math.sqrt(L2) * t; } } return chainWeights(bs, arcs, BLEND.tail).map(([k, w]) => [names['tail' + k], w]); },
   };
   for (const [key, leg] of Object.entries(legs)) weighFor[key] = (x, y) => chainWeights(y, leg.joints, BLEND.leg).map(([k, w]) => [names[key + Math.min(k, leg.bones.length - 1)], w]);
@@ -173,7 +190,12 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
       const toHead = headM.clone().invert(), _h = new THREE.Vector3();
       coatAttributes(grown.geometry, bones.map(b => b.name), tail, {Y, front: L.shoulder[2] + .02, neckY: L.neck[1], ear: (x, y, z) => sc.earSide(...(_h.set(x, y, z).applyMatrix4(toHead)).toArray())});
       // the whiskers, ready-made in head space, ride the head with the other details
-      const extras = sc.extras.map(e => { e.applyMatrix4(headM); skin(e, () => [[names.head, 1]]); return e; });
+      // the lips part: the skin's triangles across the lip line at the front of the muzzle go, so the jaw
+      // opens a mouth rather than stretching a membrane (closed, the slit reads as the mouth line)
+      cutLips(grown.geometry, p => p.sub(_en).divideScalar(headScale));
+      // the whiskers and the inside of the mouth, ready-made in head space, each on its bone
+      const ride = {head: () => [[names.head, 1]], jaw: () => [[names.jaw, 1]], tongue: () => [[names.tongue, 1]], split: (x, y) => { const k = smooth(((MOUTH.lip[0] - .002) - (y - L.neck[1]) / headScale) / .004 + .5); return [[names.head, 1 - k], [names.jaw, k]]; }};
+      const extras = sc.extras.map(e => { const by = ride[e.bone] || ride.head; e.applyMatrix4(headM); skin(e, by); return e; });
       grown.details = grown.details ? mergeGeometries([grown.details, ...extras]) : mergeGeometries(extras);
       hulls.set(key, grown);
     }
@@ -220,7 +242,9 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
   for (const m of shells) body.add(m); body.updateMatrixWorld(true);
   fur.bind(skeleton, fur.matrixWorld); eyes.bind(skeleton, eyes.matrixWorld); if (details) details.bind(skeleton, details.matrixWorld);
   for (const m of shells) m.bind(skeleton, m.matrixWorld);
-  const rig = {hips, spine, chest, neck, head, tail: tailBones, legs, ears: sculpt ? ears : null, yaw: g.rotation.y, lean: 0};
+  // (the jaw rests a little past shut, so the lips meet over the cut between them)
+  if (jaw) jaw.rotation.x = MOUTH.closed;
+  const rig = {hips, spine, chest, neck, head, jaw, tongue, tail: tailBones, legs, ears: sculpt ? ears : null, yaw: g.rotation.y, lean: 0};
   const actor = {g, body, legs: [], tail: null, wings: [], quirk: 'feline', head, species: name, skinned: true, rig, fur, eyes, details, glide: FELINE_GLIDE};
   actor.animator = createFelineAnimator(body, rig, actor);
   actor.asset = {update: (dt, walking) => updateSkinnedFeline(actor, dt, null, walking), skinned: true, mixer: actor.animator.mixer};
@@ -304,17 +328,45 @@ export function curlPose(u) {
   for (let i = 0; i < 5; i++) pose['tail' + i] = {x: CURL.tail[i], z: Math.sin(ph + i) * .01};
   return pose;
 }
+// Waking: the stretch and the yawn, one clip of STRETCH.time seconds. The bow (the front stretch): the
+// forelegs reached far forward along the floor, the chest sunk, the rump kept high on straight hind
+// legs so the back dips, the head up; at its deepest the yawn (YAWN.time seconds, measured: Gallup et
+// al. 2016), the mouth wide, the tongue curled, the eyes shut, the ears back. Then the cat comes forward
+// and stretches a hind leg out behind it, and stands. BOW from a search over the sculpted kitten's rig
+// (tools/pose-search.mjs bow).
+export const BOW = {drop: .009, hz: .037, hips: .752, spine: -.986, chest: .312, fore: -.898, elbow: -.007, wrist: -.024, thigh: -.487, knee: -.416, hock: .481, paw: -.168, head: -.078};
+export const YAWN = {time: 1.97, jaw: .9, ears: .6};
+export const STRETCH = {time: 4.6, bowIn: .12, bowOut: .58, hindIn: .66, hindOut: .9, hind: {hz: .03, thigh: .8, knee: -.7, hock: 1, paw: .8}};
+export function bowPose(k = 1) {
+  const pose = {hipsY: -BOW.drop * k, hipsZ: BOW.hz * k};
+  pose.hips = {x: BOW.hips * k}; pose.spine = {x: BOW.spine * k}; pose.chest = {x: BOW.chest * k}; pose.head = {x: BOW.head * k};
+  for (const key of ['lhind', 'rhind']) { pose[key + '0'] = {x: BOW.thigh * k}; pose[key + '1'] = {x: BOW.knee * k}; pose[key + '2'] = {x: BOW.hock * k}; pose[key + '3'] = {x: BOW.paw * k}; }
+  for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: BOW.fore * k}; pose[key + '1'] = {x: BOW.elbow * k}; pose[key + '2'] = {x: BOW.wrist * k}; }
+  return pose;
+}
+export function stretchPose(u) {
+  const S = STRETCH, bow = smooth((u - 0) / S.bowIn) * (1 - smooth((u - S.bowOut) / .08)), hind = smooth((u - S.hindIn) / .06) * (1 - smooth((u - S.hindOut) / .08));
+  const pose = bowPose(bow);
+  // the yawn, centred in the bow's hold
+  const mid = (S.bowIn + S.bowOut) / 2, half = YAWN.time / S.time / 2, yawn = Math.max(0, Math.sin(Math.PI * clamp01((u - mid + half) / (2 * half))));
+  pose.jaw = {x: MOUTH.closed + YAWN.jaw * yawn}; pose.tongue = {x: -.3 * yawn}; pose.yawn = yawn;
+  // the hind stretch: forward over the fore paws, the right hind leg out behind
+  pose.hipsZ = (pose.hipsZ || 0) + S.hind.hz * hind;
+  pose.rhind0 = {x: (pose.rhind0?.x || 0) + S.hind.thigh * hind}; pose.rhind1 = {x: (pose.rhind1?.x || 0) + S.hind.knee * hind};
+  pose.rhind2 = {x: (pose.rhind2?.x || 0) + S.hind.hock * hind}; pose.rhind3 = {x: (pose.rhind3?.x || 0) + S.hind.paw * hind};
+  return pose;
+}
 // Poses the bones directly from a pose (the shape sampleClip reads), for tools and tests: rotations
 // from rest, the hips moved by hipsY/hipsZ, a longer back folded by `fold`. `rest`: the bones' rest
 // positions by name.
 export function applyPose(pose, bonesByName, rest) {
   const e = new THREE.Euler();
   for (const [name, b] of Object.entries(bonesByName)) { b.quaternion.identity(); if (rest[name]) b.position.copy(rest[name]); }
-  for (const [key, o] of Object.entries(pose)) { const b = bonesByName[key]; if (b && typeof o === 'object') b.quaternion.setFromEuler(e.set(o.x || 0, o.y || 0, o.z || 0)); }
+  for (const [key, o] of Object.entries(pose)) { const b = bonesByName[key]; if (b && o && typeof o === 'object') b.quaternion.setFromEuler(e.set(o.x || 0, o.y || 0, o.z || 0)); }
   const h = bonesByName.hips; if (h) { h.position.y += pose.hipsY || 0; h.position.z += pose.hipsZ || 0; }
   for (const [name, base] of [['spine', BACK.spine], ['chest', BACK.chest]]) { const b = bonesByName[name]; if (b) b.position.z -= Math.max(0, b.position.z - base) * (pose.fold || 0); }
 }
-export const CLIPS = {idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, loaf: {pose: loafPose, period: 4, frames: 32}, curl: {pose: curlPose, period: 2.5, frames: 32}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
+export const CLIPS = {idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, loaf: {pose: loafPose, period: 4, frames: 32}, curl: {pose: curlPose, period: 2.5, frames: 32}, stretch: {pose: stretchPose, period: STRETCH.time, frames: 92, once: true}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
 // A pet that has stood still this long sits down.
 export const SIT_AFTER = 6;
 // Settling down (the animator's `settle`): how long it stays in each pose (seconds, a range; `settle`:
@@ -339,7 +391,7 @@ export function sampleClip(name, {pose, period, frames}, bonesByName) {
   for (let i = 0; i <= frames; i++) {
     const p = pose((i % frames) / frames);
     for (const [key, o] of Object.entries(p)) {
-      if (key === 'hipsY' || key === 'hipsZ' || key === 'chestScale' || key === 'fold') continue;
+      if (key === 'hipsY' || key === 'hipsZ' || key === 'chestScale' || key === 'fold' || key === 'yawn') continue;
       if (!bonesByName[key]) continue;
       if (!per.has(key)) per.set(key, []);
       e.set(o.x || 0, o.y || 0, o.z || 0); q.setFromEuler(e); per.get(key).push(q.x, q.y, q.z, q.w);
@@ -441,7 +493,10 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
       else enter('sit');
     } else if (rest.state === 'loaf') {
       if (rest.plan === 'sleep') enter('curl'); else if (rnd() < REST.odds.curl) toSleep(); else enter('sit');
-    } else if (rest.state === 'curl') { setBase(actions.idle, REST.up.curl); rest.state = 'stand'; still = 0; }
+    } else if (rest.state === 'curl') {
+      // waking: the stretch and the yawn (a one-shot), then up
+      rest.state = 'stretch'; rest.t = 0; rest.next = 0; actions.stretch.reset(); fade(actions.stretch, base, REST.up.curl); base = actions.stretch;
+    } else if (rest.state === 'stretch' && rest.t >= STRETCH.time - REST.up.sit) { setBase(actions.idle, REST.up.sit); rest.state = 'stand'; still = 0; }
   }
   function update(dt, nowWalking) {
     dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
@@ -469,10 +524,13 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     // once the body they hang from has its pose for the frame
     const sitting = base === actions.sit || actions.sit.getEffectiveWeight() > .01; // (until it has got up)
     const lying = actions.loaf.getEffectiveWeight() + actions.curl.getEffectiveWeight(), asleep = actions.curl.getEffectiveWeight();
-    const resting = sitting || lying > .01 || base === actions.loaf || base === actions.curl;
+    const resting = sitting || lying > .01 || base === actions.loaf || base === actions.curl || base === actions.stretch;
     mood = mind.update(dt, {walking, pouncing, sitting, resting, asleep});
-    // asleep, the eyes are shut, and now and then a forepaw twitches in a dream
-    if (actor?.eyes && asleep > .5) actor.eyes.visible = false;
+    // asleep, the eyes are shut, and now and then a forepaw twitches in a dream; yawning, the eyes shut
+    // and the ears lie back
+    const yawn = base === actions.stretch ? stretchPose(actions.stretch.time / STRETCH.time).yawn * actions.stretch.getEffectiveWeight() : 0;
+    if (actor?.eyes && (asleep > .5 || yawn > .3)) actor.eyes.visible = false;
+    if (yawn > 0 && rig.ears) for (const e of Object.values(rig.ears)) e.bone.quaternion.multiply(_lq.setFromAxisAngle(e.frame.across, -e.side * YAWN.ears * yawn));
     if (asleep > .9) {
       if ((dream.in -= dt) <= 0) { dream.in = range(DREAM.gap); dream.t = DREAM.time; dream.leg = rnd() < .5 ? 'lfore' : 'rfore'; }
       if (dream.t > 0) { dream.t -= dt; const k = Math.sin(Math.PI * (1 - dream.t / DREAM.time)) * Math.sin(dream.t * 60); rig.legs[dream.leg]?.bones[1]?.quaternion.multiply(_lq.setFromEuler(_le.set(k * DREAM.size, 0, 0))); }

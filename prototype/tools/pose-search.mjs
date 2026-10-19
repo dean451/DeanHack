@@ -1,9 +1,11 @@
-// Run from prototype/: node tools/pose-search.mjs loaf|curl [kitten]. Tunes a resting pose's constants
+// Run from prototype/: node tools/pose-search.mjs loaf|curl|bow [kitten]. Tunes a resting pose's constants
 // (feline-skin.js LOAF, CURL) on the sculpted cat's rig against what real cats show, and prints the
 // constants it finds and what each target costs. The pose is applied straight to the bones through
 // the game's own pose function (applyPose), so what is searched is what plays.
 // - loaf: the belly on the floor along its length, the back level, the front paws tucked under the
 //   chest, the hind feet folded beside the flank, the tail lying along the floor;
+// - bow (the front stretch): the fore paws reached well forward along the floor, the hind paws where
+//   they stood, the chest sunk, the rump up, the head up;
 // - curl: on its side on the floor, low and round from above, the nose down by the hind feet, the tail
 //   tip wrapped round to the face, nothing through the floor.
 const THREE = await import(process.cwd() + '/node_modules/three/build/three.module.js');
@@ -12,13 +14,17 @@ const {createSkinnedFeline, applyPose} = skin;
 const which = process.argv[2] || 'loaf', name = process.argv[3] || 'kitten';
 const SPEC = {
   loaf: {consts: skin.LOAF, pose: skin.loafPose, keys: ['drop', 'hz', 'hips', 'spine', 'chest', 'thigh', 'knee', 'hock', 'paw', 'fore', 'elbow', 'wrist', 'tail']},
+  bow: {consts: skin.BOW, pose: () => skin.bowPose(1), keys: ['drop', 'hz', 'hips', 'spine', 'chest', 'fore', 'elbow', 'wrist', 'thigh', 'knee', 'hock', 'paw', 'head']},
   curl: {consts: skin.CURL, pose: skin.curlPose, keys: ['drop', 'hz', 'roll', 'flex', 'neckX', 'headX', 'headY', 'thigh', 'knee', 'hock', 'paw', 'fore', 'elbow', 'wrist', 'tail.0', 'tail.1', 'tail.2', 'tail.3', 'tail.4']},
 }[which];
 const a = createSkinnedFeline(name, undefined, {sculpt: true}), bones = {}; a.g.traverse(o => { if (o.isBone) bones[o.name] = o; });
 const rest = Object.fromEntries(Object.entries(bones).map(([k, b]) => [k, b.position.clone()]));
+// where things stand at rest (the bow is measured against the standing cat)
+a.g.updateMatrixWorld(true); const at0 = Object.fromEntries(['lfore2', 'lhind3', 'chest', 'hips', 'lfore0'].map(k => [k, bones[k].getWorldPosition(new THREE.Vector3())]));
 const wp = b => b.getWorldPosition(new THREE.Vector3());
 const pos = a.fur.geometry.attributes.position, groups = a.fur.geometry.userData.groups, body = [], tail = [], trunk = [];
-for (let i = 0; i < pos.count; i += 4) { (groups[i] === 'tail' ? tail : body).push(i); if (groups[i] === 'body') trunk.push([i, pos.getZ(i)]); }
+const {felineBuild} = await import(process.cwd() + '/feline.js'), Y = felineBuild(name).L.Y, dorsal = [];
+for (let i = 0; i < pos.count; i += 4) { (groups[i] === 'tail' ? tail : body).push(i); if (groups[i] === 'body') trunk.push([i, pos.getZ(i)]); if (groups[i] === 'body' && Math.abs(pos.getX(i)) < .012 && pos.getY(i) > Y + .04) dorsal.push([i, pos.getZ(i)]); }
 const get = k => { const [n, j] = k.split('.'); return j === undefined ? SPEC.consts[n] : SPEC.consts[n][+j]; };
 const set = (k, v) => { const [n, j] = k.split('.'); if (j === undefined) SPEC.consts[n] = v; else SPEC.consts[n][+j] = v; };
 const p = new THREE.Vector3(), posed = i => { p.fromBufferAttribute(pos, i); a.fur.applyBoneTransform(i, p); return a.fur.localToWorld(p).clone(); };
@@ -37,6 +43,18 @@ function cost(v, report = false) {
     t.foreTucked = 60 * (Math.max(0, fp.z - sh.z - .01) ** 2 + Math.max(0, sh.z - .09 - fp.z) ** 2 + Math.max(0, fp.y - .03) ** 2);
     t.hindFolded = 60 * (Math.max(0, hp.y - .03) ** 2 + Math.max(0, hj.z - hp.z) ** 2 + Math.max(0, hp.z - hj.z - .13) ** 2);
     t.tailDown = 20 * tp.reduce((c, q) => c + Math.max(0, q.y - .04) ** 2, 0) / tp.length;
+  } else if (which === 'bow') {
+    // the fore paws reached well forward along the floor, the hind paws where they stood, the chest
+    // sunk, the rump kept up, the head up off the chest
+    t.reach = 80 * Math.max(0, at0.lfore2.z + .09 - fp.z) ** 2 + 400 * (fp.y - at0.lfore2.y) ** 2;
+    t.hindStay = 200 * (hp.distanceToSquared(at0.lhind3));
+    t.chestDown = 80 * Math.max(0, chest.y - (at0.chest.y - .06)) ** 2;
+    t.rumpUp = 120 * Math.max(0, at0.hips.y - .015 - hips.y) ** 2;
+    t.headUp = 60 * Math.max(0, chest.y + .03 - head.y) ** 2;
+    // the back sags from the rump to the withers: no point of it above the straight line between them
+    const bins = []; for (const [i, z] of dorsal) (bins[Math.floor((z + .35) / .03)] ||= []).push(posed(i));
+    const line = bins.filter(Boolean).map(b => b.reduce((c, q) => c.add(q), new THREE.Vector3()).divideScalar(b.length)), A = line[0], B = line.at(-1);
+    t.sag = line.reduce((c, q) => { const k = (q.z - A.z) / (B.z - A.z), above = q.y - (A.y + (B.y - A.y) * k); return c + 400 * Math.max(0, above + .004) ** 2; }, 0);
   } else {
     // low and round from above, the nose by the hind feet, the tail tip at the face
     const xs = pts.map(q => q.x), zz = pts.map(q => q.z), w = Math.max(...xs) - Math.min(...xs), d = Math.max(...zz) - Math.min(...zz), high = Math.max(...pts.map(q => q.y));

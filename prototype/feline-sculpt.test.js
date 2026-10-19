@@ -41,7 +41,7 @@ test('the sculpted pet: one skin over the same skeleton, on the floor, a tail ab
     const t0 = performance.now(), a = createSkinnedFeline(name, undefined, {sculpt: true}), ms = performance.now() - t0;
     const skinned = []; a.g.traverse(o => { if (o.isSkinnedMesh && o.userData.part !== 'fur-shell') skinned.push(o); });
     assert.equal(skinned.length, 3, `${name}: fur, details (whiskers, pupils, ears), eyes`);
-    assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton) && skinned[0].skeleton.bones.length === 26, 'the rig the gait drives, and an ear bone each side');
+    assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton) && skinned[0].skeleton.bones.length === 28, 'the rig the gait drives, an ear bone each side, the jaw and the tongue');
     for (const m of skinned) { const w = m.geometry.attributes.skinWeight; for (let i = 0; i < w.count; i += 7) assert.ok(Math.abs(w.getX(i) + w.getY(i) + w.getZ(i) + w.getW(i) - 1) < 1e-4); }
     a.g.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(a.g, true);

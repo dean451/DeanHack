@@ -24,11 +24,11 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
     const a = createSkinnedFeline(name), rigid = createFeline(name);
     const skinned = [], shells = []; a.g.traverse(o => { if (o.isSkinnedMesh) (o.userData.part === 'fur-shell' ? shells : skinned).push(o); });
     assert.equal(skinned.length, 3, `${name}: fur, details, eyes`); assert.equal(shells.length, FUR.shells, `${name}: the fur's layers`); assert.ok(shells.every(m => m.skeleton === skinned[0].skeleton && m.geometry === a.fur.geometry), 'the layers are the skin again, on the same bones'); assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton));
-    assert.equal(skinned[0].skeleton.bones.length, 26, 'hips, spine, chest, neck, head, 5 tail, 3+4 per side, two ears');
+    assert.equal(skinned[0].skeleton.bones.length, 28, 'hips, spine, chest, neck, head, 5 tail, 3+4 per side, two ears, the jaw and the tongue');
     for (const m of skinned) {
       const w = m.geometry.attributes.skinWeight, idx = m.geometry.attributes.skinIndex;
       assert.ok(w && idx, 'skin attributes');
-      for (let i = 0; i < w.count; i++) { const sum = w.getX(i) + w.getY(i) + w.getZ(i) + w.getW(i); assert.ok(Math.abs(sum - 1) < 1e-4, `${name} vertex ${i} weights sum ${sum}`); for (const k of [idx.getX(i), idx.getY(i), idx.getZ(i), idx.getW(i)]) assert.ok(k >= 0 && k < 26); }
+      for (let i = 0; i < w.count; i++) { const sum = w.getX(i) + w.getY(i) + w.getZ(i) + w.getW(i); assert.ok(Math.abs(sum - 1) < 1e-4, `${name} vertex ${i} weights sum ${sum}`); for (const k of [idx.getX(i), idx.getY(i), idx.getZ(i), idx.getW(i)]) assert.ok(k >= 0 && k < 28); }
     }
     // at rest the skinned mesh sits where the rigid parts sit
     a.g.updateMatrixWorld(true); rigid.g.updateMatrixWorld(true);
@@ -42,7 +42,7 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
 
 test('the clips: idle, sit, loaf, curl, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['curl', 'idle', 'loaf', 'pounce', 'sit', 'tail'], 'walking, trotting and galloping are stepped, not clips');
+  assert.deepEqual(Object.keys(actions).sort(), ['curl', 'idle', 'loaf', 'pounce', 'sit', 'stretch', 'tail'], 'walking, trotting and galloping are stepped, not clips');
   const tail = actions.tail.getClip(), idle = actions.idle.getClip(), sit = actions.sit.getClip();
   const names = c => c.tracks.map(t => t.name);
   assert.ok(names(tail).every(n => n.startsWith('tail')) && names(tail).length === 5, 'the tail clip touches only the tail bones');
@@ -272,4 +272,17 @@ test('left alone, a pet settles: it sits, lies down, turns a circle and curls up
     let up = 0; for (; up < 2; up += 1 / 30) { r = updateSkinnedFeline(a, 1 / 30, null, true); if (r.asleep < .05 && r.lying < .05) break; }
     assert.ok(up < 1.05, `${name} up and walking in ${up.toFixed(2)} s`);
   }
+});
+
+test('waking on its own, a pet stretches (forelegs out, rump up) and yawns (mouth wide, eyes shut) before it stands', () => {
+  const a = createSkinnedFeline('kitten'); let r, woke = false, jaw = 0, shut = false, low = Infinity, stood = false;
+  for (let t = 0; t < 900 && !stood; t += 1 / 30) {
+    r = updateSkinnedFeline(a, 1 / 30, null, false);
+    if (r.rest === 'stretch') { woke = true; jaw = Math.max(jaw, a.rig.jaw.rotation.x); if (a.rig.jaw.rotation.x > .5 && !a.eyes.visible) shut = true; a.g.updateMatrixWorld(true); low = Math.min(low, a.rig.chest.getWorldPosition(new THREE.Vector3()).y); }
+    if (woke && r.rest === 'stand') stood = true;
+  }
+  assert.ok(woke && stood, 'woke, stretched and stood');
+  assert.ok(jaw > .7 && shut, `yawned wide (${jaw.toFixed(2)}) with its eyes shut`);
+  const standing = createSkinnedFeline('kitten'); standing.g.updateMatrixWorld(true);
+  assert.ok(low < standing.rig.chest.getWorldPosition(new THREE.Vector3()).y - .03, 'the chest went down in the bow');
 });
