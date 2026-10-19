@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createSkinnedFeline, updateSkinnedFeline, chainWeights, GALLOP, GAIT, CLIPS, SIT_AFTER, POUNCE, TURN, BLINK, SIT} from './feline-skin.js';
-import {STEP, strideAt} from './feline-gait.js';
+import {createSkinnedFeline, updateSkinnedFeline, chainWeights, CLIPS, SIT_AFTER, POUNCE, TURN, BLINK, SIT} from './feline-skin.js';
+import {STEP, strideAt, spineAt} from './feline-gait.js';
 import {simulateGait, analyseGait} from './cat-measure.js';
 import {REFERENCE} from './cat-reference.js';
 import {slideTo, FELINE_GLIDE} from './slide.js';
@@ -39,17 +39,15 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
   }
 });
 
-test('the clips: idle, sit, gallop, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
+test('the clips: idle, sit, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['gallop', 'idle', 'pounce', 'sit', 'tail'], 'walking and trotting are stepped, not clips');
-  const gallop = actions.gallop.getClip(), tail = actions.tail.getClip(), idle = actions.idle.getClip();
-  assert.ok(Math.abs(gallop.duration - 1 / GALLOP.hz) < 1e-9);
+  assert.deepEqual(Object.keys(actions).sort(), ['idle', 'pounce', 'sit', 'tail'], 'walking, trotting and galloping are stepped, not clips');
+  const tail = actions.tail.getClip(), idle = actions.idle.getClip(), sit = actions.sit.getClip();
   const names = c => c.tracks.map(t => t.name);
-  assert.ok(names(gallop).includes('lfore0.quaternion') && names(gallop).includes('rhind3.quaternion') && names(gallop).includes('hips.position'));
   assert.ok(names(tail).every(n => n.startsWith('tail')) && names(tail).length === 5, 'the tail clip touches only the tail bones');
   assert.ok(names(idle).includes('chest.scale') && !names(idle).some(n => n.startsWith('head')), 'idle breathes; the head is left to the glance code');
-  for (const c of [gallop, idle]) assert.ok(names(c).includes('spine.quaternion') && names(c).includes('chest.quaternion'), `${c.name} always writes the spine and chest, so the lean never accumulates`);
-  for (const c of [gallop, idle, tail]) for (const t of c.tracks) { const n = t.getValueSize(); for (let k = 0; k < n; k++) assert.ok(Math.abs(t.values[k] - t.values[t.values.length - n + k]) < 1e-6, `${c.name} ${t.name} loops seamlessly`); }
+  assert.ok(names(idle).includes('spine.quaternion') && names(idle).includes('chest.quaternion'), 'idle always writes the spine and chest, so the lean never accumulates');
+  for (const c of [idle, tail, sit]) for (const t of c.tracks) { const n = t.getValueSize(); for (let k = 0; k < n; k++) assert.ok(Math.abs(t.values[k] - t.values[t.values.length - n + k]) < 1e-6, `${c.name} ${t.name} loops seamlessly`); }
 });
 
 // The cat faces its path (live.js turns an actor toward its step), moving along +x at `hs` hip heights a second.
@@ -126,8 +124,8 @@ test('show() holds one clip at a moment of its cycle for the tool pages', () => 
   const a = createSkinnedFeline('kitten');
   a.animator.show('sit', .5);
   assert.ok(a.rig.hips.position.y < a.rig.hips.userData.world[1] - .05);
-  a.animator.show('gallop', .25);
-  assert.ok(Math.abs(a.rig.legs.lfore.bones[0].rotation.x) > .1);
+  a.animator.show('pounce', .5);
+  assert.ok(a.rig.legs.lfore.bones[0].rotation.x < -.5, 'the forelegs reach in the leap');
 });
 
 test('the stride follows the speed, in hip heights: the walk lengthens its stride and shortens the stance with speed, the swing holds, and past the trot band it trots', () => {
@@ -140,18 +138,28 @@ test('the stride follows the speed, in hip heights: the walk lengthens its strid
   const capped = strideAt(2.8, 1, .5); assert.ok(capped.length * capped.duty <= .5 + 1e-9 && Math.abs(capped.period * (1 - capped.duty) - STEP.swing) < 1e-9);
 });
 
-test('past gallopAt the gallop clip takes the legs from the step, and hands them back below stepAt', () => {
-  const a = createSkinnedFeline('kitten'), {actions} = a.animator;
-  let r = walkFor(a, 60, 2.8); assert.equal(r.gait, 'walk');
-  r = walkFor(a, 30, 6); assert.equal(r.gait, 'trot');
-  r = walkFor(a, 60, GAIT.gallopAt + 1); assert.equal(r.gait, 'gallop'); assert.equal(actions.gallop.getEffectiveWeight(), 1); assert.equal(r.stepWeight, 0, 'the step let go of the legs');
-  assert.ok(r.timeScale <= GAIT.maxScale);
-  r = walkFor(a, 30, (GAIT.gallopAt + GAIT.stepAt) / 2); assert.equal(r.gait, 'gallop', 'no flicker on the line');
-  r = walkFor(a, 60, GAIT.stepAt - 2); assert.equal(r.gait, 'trot'); assert.equal(r.stepWeight, 1);
+test('past the trot the stride slides into a gallop: the stride rate holds near 3 a second, the hind paws land a tenth of a stride apart, the spine gathers and stretches, and every paw leaves the floor once a stride', () => {
+  const trot = strideAt(STEP.gallopFrom - .5), gallop = strideAt(STEP.gallopTo + 1), faster = strideAt(STEP.gallopTo + 5);
+  assert.equal(trot.gallop, 0); assert.equal(gallop.gallop, 1);
+  assert.ok(Math.abs(1 / gallop.period - STEP.gallopHz) < .01 && Math.abs(1 / faster.period - STEP.gallopHz) < .01, 'the stride rate holds; the stride lengthens');
+  assert.ok(Math.abs(gallop.offsets.rhind - STEP.gallopHind) < 1e-9 && Math.abs(gallop.offsets.lfore - STEP.gallopLead) < 1e-9);
+  // the paws' stances leave a gap: a flight
+  const down = u => Object.values(gallop.offsets).some(o => ((u - o) % 1 + 1) % 1 < gallop.duty);
+  let air = 0; for (let i = 0; i < 1000; i++) if (!down(i / 1000)) air++;
+  assert.ok(air > 20, `in the air ${air / 10}% of the stride`);
+  assert.equal(spineAt(0), -1, 'gathered as the hind paws land'); assert.ok(Math.abs(spineAt(STEP.gallopLead) - 1) < 1e-9, 'stretched as the fore paws land');
+  // and in motion: the spine slides the hips and chest apart and back
+  const a = createSkinnedFeline('housecat'), r = a.rig; let lo = Infinity, hi = -Infinity, s;
+  for (let i = 0; i < 120; i++) { s = walkFor(a, 1, STEP.gallopTo + 2); if (i > 40) { lo = Math.min(lo, r.spine.position.z); hi = Math.max(hi, r.spine.position.z); } }
+  assert.equal(s.gait, 'gallop'); assert.equal(s.stepWeight, 1);
+  assert.ok(hi - lo > STEP.stretch * .2, `the spine stretches ${(hi - lo).toFixed(3)}`);
+  // slowing to a walk, it walks again
+  s = walkFor(a, 90, 2.8); assert.equal(s.gait, 'walk');
+  assert.ok(Math.abs(r.spine.position.z - .1) < 1e-6, `and the spine is back at its rest length: ${r.spine.position.z}`);
 });
 
-test('a planted paw stays put and no paw goes through the floor, kitten and housecat, walking and trotting', () => {
-  for (const name of ['kitten', 'housecat']) for (const hs of [2.8, 6]) {
+test('a planted paw stays put and no paw goes through the floor, kitten and housecat, walking, trotting and galloping', () => {
+  for (const name of ['kitten', 'housecat']) for (const hs of [2.8, 6, 12]) {
     const a = createSkinnedFeline(name), st = a.animator.stepper, h = st.hip(); walkFor(a, 60, hs);
     let worst = 0, lowest = Infinity, checked = 0;
     for (let i = 0; i < 180; i++) { walkFor(a, 1, hs); for (const L of Object.values(st.legs)) { const p = tipOf(a, L); lowest = Math.min(lowest, p.y); if (L.stance && L.plant) { worst = Math.max(worst, p.distanceTo(L.plant)); checked++; } } }
@@ -204,6 +212,18 @@ test('the eyes blink: shut for a moment every few seconds, open the rest of the 
   assert.ok(blinks >= 2 && blinks <= 9, `${blinks} blinks in 20 s`);
   assert.ok(shut / (60 * 20) < .06, 'the eyes are open almost all the time');
   assert.ok(shut / blinks >= BLINK.shut * 60 * .8, 'each blink lasts about the shut time');
+});
+
+test('the gallop meets the reference cat: stride rate, swing time, a flight every stride, hind paws a tenth of a stride apart, paws on the floor', () => {
+  const R = REFERENCE.gallop;
+  const an = analyseGait(simulateGait({name: 'housecat', ms: 2.8, seconds: 3, hull: false}));
+  assert.deepEqual(an.gaits, ['gallop']);
+  assert.ok(an.strideHz >= R.strideHz[0] && an.strideHz <= R.strideHz[1], `stride rate ${an.strideHz}`);
+  assert.ok(an.swingS >= R.swingS[0] && an.swingS <= R.swingS[1], `swing ${an.swingS}`);
+  assert.ok(an.flight >= R.flight[0] && an.flight <= R.flight[1], `flight ${an.flight}`);
+  assert.ok(an.hindLag >= R.hindLag[0] && an.hindLag <= R.hindLag[1], `hind paws ${an.hindLag} apart`);
+  for (const c of an.plantedCm) assert.ok(c < .5, `standing paw ${c} cm`);
+  for (const c of an.lowestCm) assert.ok(c >= -.3, `lowest paw ${c} cm`);
 });
 
 // A pet following the hero: a tile a step, gliding (slide.js) the way live.js moves it.

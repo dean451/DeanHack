@@ -17,5 +17,8 @@ export const REFERENCE = {
     // research/hindlimb.md §1c: CONSTRUCTED between the anchors, not measured
     curve: [[0, 92, 115, 115], [.1, 100, 108, 108], [.2, 110, 107, 108], [.3, 118, 110, 115], [.4, 125, 114, 125], [.5, 131, 118, 133], [.62, 135, 119.5, 139], [.7, 115, 105, 115], [.8, 100, 98, 102], [.9, 91, 108, 110], [1, 92, 115, 115]],
   },
+  // the gallop (§1, §2; research/gaits.md): stride rate near constant, one flight a stride, hind
+  // paws landing ~11% of a stride apart in the rotary and transverse gallops
+  gallop: {strideHz: [3, 3.5], swingS: [.18, .24], flight: [.02, .25], hindLag: [.05, .18]},
   gaits: {walk: [0, 1], trot: [1.2, 2], gallop: [2.1, 6]}, // m/s (§1)
 };

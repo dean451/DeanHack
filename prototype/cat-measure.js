@@ -56,14 +56,14 @@ export function hipHeight(cat) { return cat.animator.stepper.hip(); }
 // Runs the cat forward (+x) at `ms` metres per second (as the reference cat would go, scaled by
 // hip height) for `seconds` after a settling `warm`, through the same animator update the game
 // calls, and records every `dt`.
-export function simulateGait({name = 'kitten', ms = .65, seconds = 6, warm = 1.5, dt = 1 / 120, hull = true, cat = null} = {}) {
+export function simulateGait({name = 'kitten', ms = .65, seconds = 6, warm = 1.5, dt = 1 / 240, hull = true, cat = null} = {}) {
   cat = cat || createSkinnedFeline(name, undefined, {hull});
   cat.g.rotation.y = Math.PI / 2; cat.g.position.set(0, 0, 0);
   const h = hipHeight(cat), m = REFERENCE.hipHeight / h, speed = ms / m, bones = bonesOf(cat), frames = [];
   for (let t = -warm, x = 0; t < seconds; t += dt) {
     x += speed * dt; cat.g.position.x = x; cat.slideSpeed = speed; cat.slidePlan = speed;
     const state = cat.animator.update(dt, true);
-    if (t >= 0) frames.push({t, x, state: {gait: state?.gait, timeScale: state?.timeScale}, pose: snapshot(bones, cat.body), ...probe(cat)});
+    if (t >= 0) frames.push({t, x, state: {gait: state?.gait}, pose: snapshot(bones, cat.body), ...probe(cat)});
   }
   return {name, ms, speed, dt, hipHeight: h, bodyLength: bodyLength(cat), metresPerUnit: m, frames, cat, bones};
 }
@@ -85,6 +85,11 @@ export function analyseGait(rec) {
   // where each fore paw lands in the cycle of the hind paw on its side
   const lag = (hind, fore) => { const v = []; for (let s = 0; s + 1 < onsets[hind].length; s++) { const a = onsets[hind][s], b = onsets[hind][s + 1], f = onsets[fore].find(k => k >= a && k < b); if (f !== undefined) v.push((f - a) / (b - a)); } return v.length ? v.reduce((p, q) => p + q) / v.length : NaN; };
   const diagonality = (lag(0, 1) + lag(3, 2)) / 2;
+  // the gallop's spacing: the hind pair, the fore pair, and the first fore paw after the first hind
+  // (LEGS order: lhind, lfore, rfore, rhind)
+  const hindLag = lag(0, 3), foreLag = lag(1, 2), lead = lag(0, 1);
+  // the share of the time with every paw off the floor
+  const flight = frames.reduce((n, f, k) => n + (contact.every(c => !c[k]) ? 1 : 0), 0) / frames.length;
   // the order the paws come down in, from the first left hind footfall
   const seq = LEGS.flatMap((k, i) => onsets[i].map(f => [f, k])).sort((a, b) => a[0] - b[0]);
   const start = seq.findIndex(s => s[1] === 'lhind'), order = seq.slice(start, start + 4).map(s => s[1]);
@@ -106,7 +111,7 @@ export function analyseGait(rec) {
   const mean = v => v.length ? v.reduce((p, q) => p + q) / v.length : NaN;
   const off = mean(lh.slice(0, -1).map((a, s) => { const k = offs[0].find(x => x > a); return k === undefined ? NaN : (k - a) / (lh[s + 1] - a); }).filter(Number.isFinite));
   return {
-    contact, onsets, period, strideHz: 1 / period, strideM: rec.ms * period, duty, diagonality, order, swingS: period * (1 - duty[0]),
+    contact, onsets, period, strideHz: 1 / period, strideM: rec.ms * period, duty, diagonality, hindLag, foreLag, lead, flight, order, swingS: period * (1 - duty[0]),
     plantedCm, lowestCm, peakSwingCm, headTravelCm: mean(travel), headPitchDeg: mean(pitch), headBobsPerStride: mean(bobs), curve, pawOff: off, strides,
     speedMs: rec.ms, gaits: [...new Set(frames.map(f => f.state.gait))],
   };

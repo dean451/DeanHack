@@ -7,12 +7,11 @@
 // rotation, so an animation writes plain offsets and the head bone takes the same glance code
 // the rigid head took.
 //
-// Walking and trotting are stepped, not played: feline-gait.js plants each paw and solves the legs
-// from where the paws are, after the measurements in cat-motion/README.md. Everything else is
-// clips on a THREE.AnimationMixer, the way three's skinning examples do it: the idle (a breathing
+// Walking, trotting and galloping are stepped, not played: feline-gait.js plants each paw and solves
+// the legs from where the paws are, after the measurements in cat-motion/README.md. Everything else
+// is clips on a THREE.AnimationMixer, the way three's skinning examples do it: the idle (a breathing
 // chest, a slow weight shift), the sit (haunches down, hind legs folded, chest up, tail wrapped
-// round, taken after SIT_AFTER seconds of standing still), the gallop (for speeds past the trot)
-// and the tail (a curl and flick that touches only the tail bones, so it plays under the others)
+// round, taken after SIT_AFTER seconds of standing still) and the tail (a curl and flick that touches only the tail bones, so it plays under the others)
 // are sampled from pose functions into keyframe tracks once per actor; the pounce is a one-shot
 // clip (crouch, launch with the forelegs reaching, land) played when the pet's attack action
 // starts, and fades back to whatever it interrupted. The step lays the legs on top of the idle,
@@ -28,13 +27,8 @@ import {FELINE_GLIDE} from './slide.js';
 import {createStepper} from './feline-gait.js';
 
 export const BLEND = {spine: .06, leg: .022, tail: .02};
-// The gallop: a bound, the forelegs reaching together and the hind legs driving together half a
-// cycle later, the spine flexing and stretching between them, with a moment in the air. Its stride
-// is about two body lengths. It takes over from the step past `gallopAt` hip heights per second
-// (about 2.1 m/s for a real cat) and hands back below `stepAt`, so a speed on the line does not flicker between them; its stride
-// rate follows the speed (`stride` body units a cycle), clamped to minScale..maxScale.
-export const GALLOP = {hz: 3.2, swing: .85, bend: .95, bob: .05, flex: .32, lead: .35};
-export const GAIT = {gallopAt: 9, stepAt: 7.5, stride: 1.25, minScale: .55, maxScale: 1.6, smooth: 6, fade: .3};
+// The animator's measured speed is smoothed at `smooth` per second; clips cross-fade over `fade` s.
+export const GAIT = {smooth: 6, fade: .3};
 // Secondary motion, laid on after the mixer (none of it accumulates: each is a fresh offset
 // on what the clips wrote this frame, or a decaying state of its own):
 // - a turn: the heading arrives in a step, so the body counter-rotates by the step and eases
@@ -180,19 +174,6 @@ export function createSkinnedFeline(name, colour, {hull = true} = {}) {
 // A pose is a map bone name -> {x, y, z} Euler offsets from rest (radians), plus optional
 // `hipsY` (hips lift) and `chestScale`. Each is a function of the cycle phase u in [0, 1).
 const TAU = Math.PI * 2;
-export function gallopPose(u) {
-  const ph = u * TAU, G = GALLOP, pose = {};
-  // a leg swings forward lifted and bent, then plants and sweeps back; the
-  // forelegs lead the hind legs by half a cycle, and each pair lands a touch apart (`lead`)
-  const leg = (key, offset, fore, four) => { const a = -Math.sin(ph + offset), lift = Math.max(0, Math.cos(ph + offset));
-    pose[key + '0'] = {x: a * G.swing}; pose[key + '1'] = {x: lift * G.bend * (fore ? 1 : -.9)}; pose[key + '2'] = {x: lift * G.bend * (fore ? .5 : .85)}; if (four) pose[key + '3'] = {x: -lift * .35}; };
-  leg('lfore', 0, true, false); leg('rfore', G.lead, true, false); leg('lhind', Math.PI, false, true); leg('rhind', Math.PI + G.lead, false, true);
-  // the spine stretches as the forelegs reach and gathers as the hind legs come under
-  const flex = Math.sin(ph) * G.flex;
-  pose.spine = {x: -flex * .6}; pose.chest = {x: -flex * .4}; pose.hips = {x: flex * .5};
-  pose.hipsY = Math.max(0, Math.sin(ph * 2)) * G.bob;
-  return pose;
-}
 export function idlePose(u) {
   const ph = u * TAU, breath = Math.sin(ph) * .5 + .5;
   // a slow shift of weight from one side to the other rides under the breath
@@ -231,7 +212,7 @@ export function pouncePose(u) {
   for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: .35 * crouch + POUNCE.reach * leap - .25 * land}; pose[key + '1'] = {x: .6 * crouch + .3 * leap + .5 * land}; pose[key + '2'] = {x: .2 * crouch - .4 * leap}; }
   return pose;
 }
-export const CLIPS = {gallop: {pose: gallopPose, period: 1 / GALLOP.hz, frames: 24}, idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
+export const CLIPS = {idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
 // A pet that has stood still this long sits down.
 export const SIT_AFTER = 6;
 
@@ -275,22 +256,19 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     a.setEffectiveWeight(0); actions[name] = a;
   }
   actions.idle.setEffectiveWeight(1); actions.tail.setEffectiveWeight(1);
-  let walking = false, base = actions.idle, still = 0, pouncing = false, lastAttack = null, stopping = false, fading = 0, speed = 0, stepped = {stepping: false, weight: 0};
+  let walking = false, base = actions.idle, still = 0, pouncing = false, lastAttack = null, speed = 0, stepped = {stepping: false, weight: 0};
   const stepper = createStepper(rig, actor, opts);
   const spring = {turn: 0, rate1: 0, rate2: 0, acc1: 0, acc2: 0, lastSpeed: 0};
   let seed = 0; for (const c of String(actor?.species || 'cat')) seed = (seed * 31 + c.charCodeAt(0)) >>> 0;
   const rnd = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 2 ** 32;
   const blink = {until: BLINK.gap + rnd() * BLINK.span, shut: 0, again: false};
   const _lq = new THREE.Quaternion(), _le = new THREE.Euler();
-  const last = new THREE.Vector3(), moving = () => base === actions.gallop;
-  const unit = () => opts.scale ? opts.scale() : (actor?.g?.scale.x || 1);
+  const last = new THREE.Vector3();
   if (actor?.g) last.copy(actor.g.position);
-  // Fades `to` in over `from` (the example's setWeight first: re-enable, un-warp, full weight).
-  const fade = (to, from, time, warp = false) => { to.enabled = true; to.setEffectiveTimeScale(1); to.setEffectiveWeight(1); if (to.loop !== THREE.LoopOnce) to.time = warp ? from.time / from.getClip().duration * to.getClip().duration : 0; to.play(); from.crossFadeTo(to, time, warp); fading = Math.max(fading, time); stopping = false; };
-  const setBase = (to, time, warp = false) => { if (to === base) return; fade(to, pouncing ? actions.pounce : base, time, warp); base = to; };
+  // Fades `to` in over `from` (the example's setWeight first: re-enable, full weight).
+  const fade = (to, from, time) => { to.enabled = true; to.setEffectiveTimeScale(1); to.setEffectiveWeight(1); if (to.loop !== THREE.LoopOnce) to.time = 0; to.play(); from.crossFadeTo(to, time, false); };
+  const setBase = (to, time) => { if (to === base) return; fade(to, pouncing ? actions.pounce : base, time); base = to; };
   mixer.addEventListener('finished', e => { if (e.action === actions.pounce) { pouncing = false; fade(base, actions.pounce, .25); } });
-  // the stop out of a gallop: the fade to idle waits for the gallop's loop boundary
-  mixer.addEventListener('loop', e => { if (stopping && e.action === base && moving() && !pouncing) setBase(actions.idle, .3); });
   function update(dt, nowWalking) {
     dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), .1);
     still = nowWalking ? 0 : still + dt;
@@ -299,18 +277,13 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     // the pounce: once per attack action, the moment it starts
     const atk = actor?.actions?.current?.kind === 'attack' ? actor.actions.current : null;
     if (atk && atk !== lastAttack) { lastAttack = atk; pouncing = true; still = 0; actions.pounce.reset(); fade(actions.pounce, base, .08); }
-    if (nowWalking && !walking) { walking = true; stopping = false; }
-    else if (!nowWalking && walking) { walking = false; if (moving() && !pouncing) stopping = true; }
-    // the pace in hip heights per second: the glide's own speed has no lag (actor.slideSpeed), its
-    // plan is known the moment a step starts (actor.slidePlan); the measured speed stands in otherwise
-    const actual = actor?.slideSpeed > 0 ? actor.slideSpeed : speed, body = stepper.hip();
-    const pace = Math.max(actual, walking ? (actor?.slidePlan || 0) : 0) / body;
-    // the step walks and trots over the idle; past gallopAt the gallop clip takes over, back below stepAt
-    if (walking && !pouncing && !stopping) setBase((moving() ? pace > GAIT.stepAt : pace > GAIT.gallopAt) ? actions.gallop : actions.idle, GAIT.fade);
-    if (!pouncing && !walking && !stopping && still >= SIT_AFTER && base !== actions.sit) setBase(actions.sit, .6);
-    // the gallop's stride rate follows the speed once no fade is warping it
-    fading = Math.max(0, fading - dt);
-    if (!fading && moving() && walking) base.setEffectiveTimeScale(Math.max(GAIT.minScale, Math.min(GAIT.maxScale, actual / (GAIT.stride * unit() * GALLOP.hz))));
+    walking = nowWalking;
+    // the pace in hip heights per second: the glide's own speed has no lag (actor.slideSpeed); the
+    // measured speed stands in for other slides
+    const actual = actor?.slideSpeed > 0 ? actor.slideSpeed : speed, pace = actual / stepper.hip();
+    // walking, the idle plays under the step (and a sitting cat gets up); standing long enough, it sits
+    if (walking && !pouncing) setBase(actions.idle, GAIT.fade);
+    if (!pouncing && !walking && still >= SIT_AFTER && base !== actions.sit) setBase(actions.sit, .6);
     mixer.update(dt);
     // the lean into a turn: the heading arrives in steps, so it snaps toward a turn and eases out
     const yaw = opts.yaw ? opts.yaw() : (rig.hips.parent?.parent?.rotation.y ?? 0), d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
@@ -319,9 +292,9 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     if (Math.abs(rig.lean) > 1e-4) { const l = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, -rig.lean * .25)); rig.spine.quaternion.multiply(l); rig.chest.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rig.lean * .5, 0))); }
     secondary(dt, d);
     // the legs last, once the body they hang from has its pose for the frame
-    stepped = stepper.update(dt, walking && !pouncing && !moving(), actual, moving() || pouncing);
-    const gait = moving() ? 'gallop' : stepped.stepping ? stepped.gait : Object.keys(actions).find(k => actions[k] === base);
-    return {walking, pouncing, stopping, speed, pace, sitting: base === actions.sit, gait, step: stepped, timeScale: base.getEffectiveTimeScale(), stepWeight: stepped.weight, gallopWeight: actions.gallop.getEffectiveWeight(), idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
+    stepped = stepper.update(dt, walking && !pouncing, actual, pouncing);
+    const gait = stepped.stepping ? stepped.gait : Object.keys(actions).find(k => actions[k] === base);
+    return {walking, pouncing, speed, pace, sitting: base === actions.sit, gait, step: stepped, stepWeight: stepped.weight, idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
   }
   // ---- secondary motion: eased turns, the trailing tail, blinks ----
   function secondary(dt, yawStep) {

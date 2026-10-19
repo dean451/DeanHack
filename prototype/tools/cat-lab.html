@@ -146,18 +146,25 @@ function table() {
       h += row('Time each paw stands', `${fmt(dm)} (${d.map(v => fmt(v)).join(' ')})`, R.duty.join('–'), d.every(v => within(v, R.duty)));
       h += row('Fore lands after hind (diagonality)', fmt(an.diagonality), `${R.diagonality.join('–')} (0.5 = trot)`, within(an.diagonality, R.diagonality));
       h += row('Footfall order', an.order.map(k => LABEL[k]).join(' → '), 'LH → LF → RH → RF', an.order.join() === 'lhind,lfore,rhind,rfore');
+    } else if (ms <= REFERENCE.gaits.trot[1]) {
+      h += row('Strides per second', fmt(an.strideHz), 'trot: open', null);
+      h += row('Time each paw stands', `${fmt(dm)} (${d.map(v => fmt(v)).join(' ')})`, '≤ 0.5 (trot)', d.every(v => v <= .52));
+      h += row('Fore lands after hind', fmt(an.diagonality), '~0.5 (trot)', within(an.diagonality, [.4, .6]));
     } else {
-      const trot = ms <= REFERENCE.gaits.trot[1];
-      h += row('Strides per second', fmt(an.strideHz), 'trot/gallop data open', null);
-      h += row('Time each paw stands', `${fmt(dm)} (${d.map(v => fmt(v)).join(' ')})`, trot ? '≤ 0.5 (trot)' : 'gallop: open', trot ? d.every(v => v <= .52) : null);
-      h += row('Fore lands after hind', fmt(an.diagonality), trot ? '~0.5 (trot)' : 'open', trot ? within(an.diagonality, [.4, .6]) : null);
+      const G = REFERENCE.gallop;
+      h += row('Strides per second', fmt(an.strideHz), `${G.strideHz.join('–')} (adult; held as speed rises)`, rec.name === 'kitten' ? null : within(an.strideHz, G.strideHz));
+      h += row('Swing time', `${fmt(an.swingS)} s`, `~0.2 s`, within(an.swingS, G.swingS));
+      h += row('All four paws in the air', `${fmt(an.flight * 100, 0)}% of the stride`, 'once a stride', within(an.flight, G.flight));
+      h += row('Hind paws land apart', `${fmt(an.hindLag)} of a stride`, '~0.11 (rotary, transverse gallop)', within(an.hindLag, G.hindLag));
+      h += row('Fore paws land apart', `${fmt(an.foreLag)} of a stride`, '~0.25 reported', null);
+      h += row('Footfall order', an.order.map(k => LABEL[k]).join(' → '), 'LH → RH → LF → RF (transverse)', an.order.join() === 'lhind,rhind,lfore,rfore');
     }
     h += row('Standing paw height', `${an.plantedCm.map(v => fmt(v, 1)).join(' ')} cm`, '0 cm (on the floor)', an.plantedCm.every(v => within(v, R.plantedCm)));
     h += row('Lowest paw point', `${an.lowestCm.map(v => fmt(v, 1)).join(' ')} cm`, '≥ 0 cm (never through the floor)', an.lowestCm.every(v => within(v, R.lowestCm)));
     h += row('Highest paw lift', `${an.peakSwingCm.map(v => fmt(v, 1)).join(' ')} cm`, 'low arc (open)', null);
-    h += row('Head bob per stride', `${fmt(an.headTravelCm, 1)} cm, ${fmt(an.headBobsPerStride, 1)}×`, `${R.headTravelCm.join('–')} cm, 2×`, walkSpeed ? within(an.headTravelCm, R.headTravelCm) : null);
-    h += row('Head pitch swing', `${fmt(an.headPitchDeg, 1)}°`, `~3°`, walkSpeed ? an.headPitchDeg <= R.headPitchDeg[1] : null);
-    h += row('Hind paw lifts at', `${fmt(an.pawOff * 100, 0)}% of stride`, '~62%', walkSpeed ? within(an.pawOff, [.55, .7]) : null);
+    h += row('Head bob per stride', `${fmt(an.headTravelCm, 1)} cm, ${fmt(an.headBobsPerStride, 1)}×`, walkSpeed ? `${R.headTravelCm.join('–')} cm, 2×` : 'walk: 1–2 cm; faster gaits open', walkSpeed ? within(an.headTravelCm, R.headTravelCm) : null);
+    h += row('Head pitch swing', `${fmt(an.headPitchDeg, 1)}°`, walkSpeed ? '~3°' : 'walk: ~3°; faster gaits open', walkSpeed ? an.headPitchDeg <= R.headPitchDeg[1] : null);
+    if (walkSpeed) h += row('Hind paw lifts at', `${fmt(an.pawOff * 100, 0)}% of stride`, '~62%', within(an.pawOff, [.55, .7]));
     notes.push('Speeds, lengths and heights are scaled to a real adult cat by hip height (0.23 m): gait scales with leg length. Reference: cat-motion/README.md.');
     notes.push('* The hip is the thigh against the back line (the pelvis has no bone), so compare its swing (about 44° in a real walk), not its absolute value.');
   } else if (pose) {
@@ -239,7 +246,7 @@ function show() {
     const on = an.onsets[0]; let s = on.findLastIndex(k => k <= frame); const ac = $('angleCursor');
     if (ac && s >= 0 && s + 1 < on.length) { const u = (frame - on[s]) / (on[s + 1] - on[s]), ax = 32 + u * (600 - 32 - 6); ac.setAttribute('x1', ax); ac.setAttribute('x2', ax); ac.style.display = ''; } else if (ac) ac.style.display = 'none';
     const st = LEGS.map((k, i) => an.contact[i][frame] ? LABEL[k] : '··').join(' ');
-    $('hud').textContent = `${f.state.gait} · stride scale ${f.state.timeScale?.toFixed(2)} · standing: ${st}`;
+    $('hud').textContent = `${f.state.gait} · ${(1 / an.period).toFixed(2)} strides/s · standing: ${st}`;
   } else if (pose) $('hud').textContent = `${pose.clip} at u=${pose.u}`;
   frameCamera();
 }
