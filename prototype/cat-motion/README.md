@@ -100,19 +100,22 @@ Sources: Lecomte 2021 Table 1; Gregor 2006 Table 2; Smith 1998; Kuhtz-Buschbeck 
 
 ## 8. What this means for our cat
 
-Mismatches in the current procedural walk, `feline-skin.js`:
+The old procedural walk (sine-wave clips in `feline-skin.js`) against the real cat, and where the stepped walk (`feline-gait.js`) stands now. Numbers are from `tools/cat-lab.html` at 0.65 m/s, scaled by hip height.
 
-| Ours | Real | Effect |
+| Old walk | Real | Stepped walk now |
 | --- | --- | --- |
-| Walk at 2.1 strides/s | ~1.25 strides/s | Legs churn |
-| Sine legs, 50% on the ground | 55–70% on the ground; slow stance, fast swing | Floaty, mechanical |
-| All joints on one phase | Hip runs opposite to knee and ankle in E1 and E2 | No reach, no push |
-| No landing yield or toe roll | Knee and ankle give on landing; toes bend up, then flick | Stiff, weightless |
-| Whole clip sped up with speed | Stance shortens, swing stays ~0.25 s | Frantic at speed |
-| Head bobs with the body | Head stabilised, ~1.5 cm and ~3° | Toy-like |
-| Fixed shoulder | Scapula swings and slides | Front end looks rigid |
-| Sit drops the hip joint to the floor | Rump on the floor, hip held up by folded thigh | Body tilts down like a ramp |
-| Pet slides tile to tile | Trailing pet walks a smoothed path; trots to catch up | Gallop-darting |
+| 2.8 strides/s, stride 0.48 BL | 1.2–1.4 strides/s, 0.44–0.49 m | 1.9–2.0 strides/s, 0.32–0.35 m: the model's legs are ~25% shorter for their hip height than a real cat's, and a stride is capped at what they reach |
+| A trot pattern at walking speed (diagonality 0.5) | Lateral-sequence walk, diagonality ~0.25 | LH → LF → RH → RF, diagonality 0.25; slides to a trot (0.5) from ~1 m/s |
+| Each paw down 30–38% | 55–70% | 58–62%; the stance shortens with speed, the swing holds at ~0.2 s |
+| Standing paws 2–3 cm in the air, swinging paws 1.7 cm through the floor | Paws on the floor | Standing paws within 0.02 cm of the floor, none below it |
+| All joints on one sine | Hind ankle follows its own curve; hip and knee follow the paw | Ankle on the reference curve; knee 91–126° in stance (reference 107–121°) |
+| Fixed shoulder | Scapula swings and slides | Shoulder follows its paw (half the reach, up to 0.3 h) and sinks under load |
+| Head bob 1.6 cm | ~1.5 cm, ~3°, stabilised | 1.1 cm, 2.9° |
+| No wrist flick or heel roll | Wrist flicks at lift-off; paw rolls onto the toes | Both |
+| Whole clip sped up with speed | Stance shortens, swing stays ~0.25 s | Stance shortens, swing holds |
+| Sit drops the hip joint to the floor | Rump on the floor, hip held up by folded thigh | Open: needs side-on sit video |
+| Pet slides tile to tile at a gallop's pace | Walks after the player; trots to catch up | Walks within ~1 tile, trots by 2.5, gallops past 4; the path-following trail is next |
+| Old gallop clip | — | Still the old clip: paws dip ~2 cm into the floor; next to rebuild |
 
 ## 9. Approach
 

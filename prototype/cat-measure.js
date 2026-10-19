@@ -5,27 +5,10 @@
 // the tests can hold the numbers to the reference.
 import * as THREE from 'three';
 import {createSkinnedFeline} from './feline-skin.js';
+import {REFERENCE} from './cat-reference.js';
+export {REFERENCE};
 
-// The reference cat (cat-motion/README.md): an adult of ~4 kg, head-and-body 0.48 m.
-// Ranges are [low, high]; `src` names the section of the README they come from.
-export const REFERENCE = {
-  bodyLength: .48,
-  walk: {
-    speedBL: [1.3, 1.4], strideBL: [.92, 1.02], strideHz: [1.2, 1.4], swingS: [.2, .3], duty: [.55, .7], diagonality: [.2, .3],
-    headTravelCm: [1, 2], headPitchDeg: [2, 4], headBobsPerStride: 2, plantedCm: [-.3, .5], lowestCm: [-.3, 0], src: '§2, §3, §5',
-  },
-  // interior angles (degrees) of the hind leg at paw contact, paw off and peak swing flexion (§3)
-  hind: {
-    contact: {hip: 92, knee: 115, ankle: 115}, off: {hip: 135, knee: 120, ankle: 139, at: .62},
-    flex: {hip: [91, 8, .9], knee: [98, 9, .8], ankle: [102, 9, .8]}, // [mean, sd, phase]
-    // research/hindlimb.md §1c: CONSTRUCTED between the anchors, not measured
-    curve: [[0, 92, 115, 115], [.1, 100, 108, 108], [.2, 110, 107, 108], [.3, 118, 110, 115], [.4, 125, 114, 125], [.5, 131, 118, 133], [.62, 135, 119.5, 139], [.7, 115, 105, 115], [.8, 100, 98, 102], [.9, 91, 108, 110], [1, 92, 115, 115]],
-  },
-  gaits: {walk: [0, 2.1], trot: [2.5, 4.2], gallop: [4.4, 12.7]}, // body lengths per second (§1)
-};
 export const LEGS = ['lhind', 'lfore', 'rfore', 'rhind'];
-// the toe tip below each leg's last bone (feline-skin.js builds the joints; the tip has no bone)
-const TIP = {fore: new THREE.Vector3(0, -.035, .02), hind: new THREE.Vector3(0, -.03, .015)};
 const v3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const angleAt = (a, b, c) => { const u = v3().subVectors(a, b), w = v3().subVectors(c, b); return THREE.MathUtils.radToDeg(u.angleTo(w)); };
 
@@ -53,7 +36,7 @@ export function applySnapshot(cat, bones, a) {
 // Probe points of one frame: toe tips, the left hind leg's joints, the head.
 function probe(cat) {
   cat.g.updateMatrixWorld(true);
-  const tips = LEGS.map(k => { const bs = cat.rig.legs[k].bones, e = bs[bs.length - 1]; return TIP[k.endsWith('fore') ? 'fore' : 'hind'].clone().applyMatrix4(e.matrixWorld); });
+  const tips = LEGS.map(k => { const leg = cat.rig.legs[k], e = leg.bones[leg.bones.length - 1]; return leg.tip.clone().applyMatrix4(e.matrixWorld); });
   const lh = cat.rig.legs.lhind.bones, j = lh.map(b => b.getWorldPosition(v3()));
   const back = [cat.rig.hips.getWorldPosition(v3()), cat.rig.chest.getWorldPosition(v3())];
   const hq = cat.rig.head.getWorldQuaternion(new THREE.Quaternion()), fwd = v3(0, 0, 1).applyQuaternion(hq);
@@ -62,22 +45,27 @@ function probe(cat) {
     // the hip as the thigh against the back line (pelvis to chest): the pelvis itself has no bone,
     // so compare its swing, not its absolute value, with the reference
     hip: angleAt(v3().addVectors(j[0], v3().subVectors(back[1], back[0])), j[0], j[1]),
-    knee: angleAt(j[0], j[1], j[2]), ankle: angleAt(j[1], j[2], j[3]), mtp: angleAt(j[2], j[3], TIP.hind.clone().applyMatrix4(lh[3].matrixWorld)),
+    knee: angleAt(j[0], j[1], j[2]), ankle: angleAt(j[1], j[2], j[3]), mtp: angleAt(j[2], j[3], cat.rig.legs.lhind.tip.clone().applyMatrix4(lh[3].matrixWorld)),
   };
 }
 
-// Runs the cat forward (+x) at `bl` body lengths per second for `seconds` after a settling
-// `warm`, through the same animator update the game calls, and records every `dt`.
-export function simulateGait({name = 'kitten', bl = 1.35, seconds = 6, warm = 1.5, dt = 1 / 120, hull = true, cat = null} = {}) {
+// The hip joint's height off the floor at rest, in world units: the scale our cats are held to
+// the reference cat by (REFERENCE.hipHeight).
+export function hipHeight(cat) { return cat.animator.stepper.hip(); }
+
+// Runs the cat forward (+x) at `ms` metres per second (as the reference cat would go, scaled by
+// hip height) for `seconds` after a settling `warm`, through the same animator update the game
+// calls, and records every `dt`.
+export function simulateGait({name = 'kitten', ms = .65, seconds = 6, warm = 1.5, dt = 1 / 120, hull = true, cat = null} = {}) {
   cat = cat || createSkinnedFeline(name, undefined, {hull});
   cat.g.rotation.y = Math.PI / 2; cat.g.position.set(0, 0, 0);
-  const L = bodyLength(cat), speed = bl * L, bones = bonesOf(cat), frames = [];
+  const h = hipHeight(cat), m = REFERENCE.hipHeight / h, speed = ms / m, bones = bonesOf(cat), frames = [];
   for (let t = -warm, x = 0; t < seconds; t += dt) {
     x += speed * dt; cat.g.position.x = x; cat.slideSpeed = speed; cat.slidePlan = speed;
     const state = cat.animator.update(dt, true);
     if (t >= 0) frames.push({t, x, state: {gait: state?.gait, timeScale: state?.timeScale}, pose: snapshot(bones, cat.body), ...probe(cat)});
   }
-  return {name, bl, speed, dt, bodyLength: L, metresPerUnit: REFERENCE.bodyLength / L, frames, cat, bones};
+  return {name, ms, speed, dt, hipHeight: h, bodyLength: bodyLength(cat), metresPerUnit: m, frames, cat, bones};
 }
 
 // Footfalls and the rest, from a recording.
@@ -118,9 +106,9 @@ export function analyseGait(rec) {
   const mean = v => v.length ? v.reduce((p, q) => p + q) / v.length : NaN;
   const off = mean(lh.slice(0, -1).map((a, s) => { const k = offs[0].find(x => x > a); return k === undefined ? NaN : (k - a) / (lh[s + 1] - a); }).filter(Number.isFinite));
   return {
-    contact, onsets, period, strideHz: 1 / period, strideBL: rec.bl * period, duty, diagonality, order, swingS: period * (1 - duty[0]),
+    contact, onsets, period, strideHz: 1 / period, strideM: rec.ms * period, duty, diagonality, order, swingS: period * (1 - duty[0]),
     plantedCm, lowestCm, peakSwingCm, headTravelCm: mean(travel), headPitchDeg: mean(pitch), headBobsPerStride: mean(bobs), curve, pawOff: off, strides,
-    speedMs: rec.bl * REFERENCE.bodyLength, gaits: [...new Set(frames.map(f => f.state.gait))],
+    speedMs: rec.ms, gaits: [...new Set(frames.map(f => f.state.gait))],
   };
 }
 
@@ -129,7 +117,7 @@ export function measurePose({name = 'kitten', clip = 'sit', u = .25, hull = true
   cat = cat || createSkinnedFeline(name, undefined, {hull});
   cat.g.rotation.y = Math.PI / 2; cat.g.position.set(0, 0, 0);
   const at = (c, uu) => { cat.animator.show(c, uu); cat.g.updateMatrixWorld(true); return cat.rig.legs.lhind.bones[0].getWorldPosition(v3()).y; };
-  const stand = at('idle', 0), hip = at(clip, u), m = REFERENCE.bodyLength / bodyLength(cat), p = probe(cat);
+  const stand = at('idle', 0), hip = at(clip, u), m = REFERENCE.hipHeight / hipHeight(cat), p = probe(cat);
   // the lowest point of the skin that belongs to the body (mostly weighted to hips, spine or
   // chest, not a leg): the rump, in a sit
   const fur = cat.fur, geo = fur.geometry, pos = geo.attributes.position, si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight, sk = v3(), bones = fur.skeleton.bones; let low = Infinity;

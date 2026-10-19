@@ -29,7 +29,7 @@ td.ok{color:var(--ok)}td.bad{color:var(--bad)}td.na{color:var(--dim)}
 <header>
   <label>Cat <select id="name"><option>kitten</option><option>housecat</option><option>large cat</option></select></label>
   <label>Mode <select id="mode"><option value="gait">Gait at speed</option><option value="pose">Held pose</option></select></label>
-  <label id="speedBox">Speed <input id="speed" type="range" min=".4" max="8" step=".05" value="1.35"> <span id="speedOut"></span></label>
+  <label id="speedBox">Speed <input id="speed" type="range" min=".2" max="4" step=".05" value=".65"> <span id="speedOut"></span></label>
   <label id="poseBox" hidden>Pose <select id="clip"><option>sit</option><option>idle</option><option>pounce</option></select> <input id="u" type="range" min="0" max="1" step=".01" value=".25"></label>
   <label>View <select id="cam"><option value="side">Side</option><option value="front">Front</option><option value="top">Top</option><option value="three">Three-quarter</option><option value="low">Low side</option></select></label>
   <label><input id="prints" type="checkbox" checked> Footprints</label>
@@ -54,7 +54,7 @@ td.ok{color:var(--ok)}td.bad{color:var(--bad)}td.na{color:var(--dim)}
 <script type="module">
 // The cat lab: runs the real animator at a steady speed (or holds a pose), records it, and plays it
 // back with footprints and charts against the reference in cat-motion/README.md.
-// /tools/cat-lab.html?name=kitten&mode=gait&speed=1.35&view=side
+// /tools/cat-lab.html?name=kitten&mode=gait&speed=.65&view=side   (speed: m/s as a real cat would go, scaled by hip height)
 import * as THREE from 'three';
 import {createSkinnedFeline} from '../feline-skin.js';
 import {simulateGait, analyseGait, measurePose, applySnapshot, REFERENCE, LEGS} from '../cat-measure.js';
@@ -92,8 +92,7 @@ function run() {
   const c = makeCat(name);
   marks.clear();
   if (mode === 'gait') {
-    c.animator.planting = true;
-    rec = simulateGait({cat: c, bl: +$('speed').value, seconds: 4}); an = analyseGait(rec); pose = null;
+    rec = simulateGait({cat: c, ms: +$('speed').value, seconds: 4}); an = analyseGait(rec); pose = null;
     $('scrub').max = rec.frames.length - 1; frame = Math.min(frame, rec.frames.length - 1);
     drawMarks(); drawGait(); drawAngles(); drawHeights(); drawHead();
   } else {
@@ -130,27 +129,28 @@ function drawMarks() {
 const fmt = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '—';
 const within = (v, [a, b]) => Number.isFinite(v) && v >= a && v <= b;
 function row(label, value, ref, ok) { return `<tr><td>${label}</td><td class="${ok === null ? 'na' : ok ? 'ok' : 'bad'}">${value}</td><td class="na">${ref}</td></tr>`; }
-function band(bl) { const g = REFERENCE.gaits; return bl <= g.walk[1] ? 'walk' : bl < g.trot[0] ? 'walk → trot' : bl <= g.trot[1] ? 'trot' : bl < g.gallop[0] ? 'trot → gallop' : 'gallop'; }
+function band(ms) { const g = REFERENCE.gaits; return ms <= g.walk[1] ? 'walk' : ms < g.trot[0] ? 'walk → trot' : ms <= g.trot[1] ? 'trot' : ms < g.gallop[0] ? 'trot → gallop' : 'gallop'; }
 function table() {
   let h = '<tr><th>Measure</th><th>Ours</th><th>Real cat</th></tr>';
   const notes = [];
   if (an) {
-    const R = REFERENCE.walk, bl = rec.bl, walkSpeed = bl <= REFERENCE.gaits.walk[1], d = an.duty, dm = d.reduce((a, b) => a + b) / 4;
-    h += row('Speed', `${fmt(bl)} BL/s · ${fmt(an.speedMs)} m/s`, `${band(bl)} at this speed`, null);
-    h += row('Gait chosen', an.gaits.join(', '), band(bl), an.gaits.length === 1 && band(bl).startsWith(an.gaits[0] === 'run' ? 'trot' : an.gaits[0]));
+    const R = REFERENCE.walk, ms = rec.ms, walkSpeed = ms <= REFERENCE.gaits.walk[1], atRef = ms >= .5 && ms <= .8, d = an.duty, dm = d.reduce((a, b) => a + b) / 4;
+    h += row('Speed', `${fmt(ms)} m/s (real-cat scale)`, `${band(ms)} at this speed`, null);
+    h += row('Gait chosen', an.gaits.join(', '), band(ms), an.gaits.length === 1 && band(ms).startsWith(an.gaits[0]));
     if (walkSpeed) {
-      // reference stride rate at this speed from the measured stride length (~0.97 BL per stride)
-      const refHz = [bl / R.strideBL[1], bl / R.strideBL[0]];
-      h += row('Strides per second', fmt(an.strideHz), `${fmt(refHz[0])}–${fmt(refHz[1])}`, within(an.strideHz, refHz));
-      h += row('Stride length', `${fmt(an.strideBL)} BL`, `${R.strideBL.join('–')} BL`, within(an.strideBL, R.strideBL));
+      // the reference stride rate at this speed, from the measured stride length (0.44-0.49 m)
+      const refHz = [ms / R.strideM[1], ms / R.strideM[0]];
+      h += row('Strides per second', fmt(an.strideHz), atRef ? `${fmt(refHz[0])}–${fmt(refHz[1])}` : `~${fmt(refHz[0])}–${fmt(refHz[1])} (stride held)`, atRef ? within(an.strideHz, refHz) : null);
+      h += row('Stride length', `${fmt(an.strideM)} m`, atRef ? `${R.strideM.join('–')} m` : 'measured at 0.6–0.7 m/s', atRef ? within(an.strideM, R.strideM) : null);
       h += row('Swing time', `${fmt(an.swingS)} s`, `${R.swingS.join('–')} s (adult)`, within(an.swingS, R.swingS));
       h += row('Time each paw stands', `${fmt(dm)} (${d.map(v => fmt(v)).join(' ')})`, R.duty.join('–'), d.every(v => within(v, R.duty)));
       h += row('Fore lands after hind (diagonality)', fmt(an.diagonality), `${R.diagonality.join('–')} (0.5 = trot)`, within(an.diagonality, R.diagonality));
       h += row('Footfall order', an.order.map(k => LABEL[k]).join(' → '), 'LH → LF → RH → RF', an.order.join() === 'lhind,lfore,rhind,rfore');
     } else {
+      const trot = ms <= REFERENCE.gaits.trot[1];
       h += row('Strides per second', fmt(an.strideHz), 'trot/gallop data open', null);
-      h += row('Time each paw stands', `${fmt(dm)} (${d.map(v => fmt(v)).join(' ')})`, bl <= REFERENCE.gaits.trot[1] ? '≤ 0.5 (trot)' : 'gallop: open', null);
-      h += row('Fore lands after hind', fmt(an.diagonality), bl <= REFERENCE.gaits.trot[1] ? '~0.5 (trot)' : 'open', null);
+      h += row('Time each paw stands', `${fmt(dm)} (${d.map(v => fmt(v)).join(' ')})`, trot ? '≤ 0.5 (trot)' : 'gallop: open', trot ? d.every(v => v <= .52) : null);
+      h += row('Fore lands after hind', fmt(an.diagonality), trot ? '~0.5 (trot)' : 'open', trot ? within(an.diagonality, [.4, .6]) : null);
     }
     h += row('Standing paw height', `${an.plantedCm.map(v => fmt(v, 1)).join(' ')} cm`, '0 cm (on the floor)', an.plantedCm.every(v => within(v, R.plantedCm)));
     h += row('Lowest paw point', `${an.lowestCm.map(v => fmt(v, 1)).join(' ')} cm`, '≥ 0 cm (never through the floor)', an.lowestCm.every(v => within(v, R.lowestCm)));
@@ -158,7 +158,7 @@ function table() {
     h += row('Head bob per stride', `${fmt(an.headTravelCm, 1)} cm, ${fmt(an.headBobsPerStride, 1)}×`, `${R.headTravelCm.join('–')} cm, 2×`, walkSpeed ? within(an.headTravelCm, R.headTravelCm) : null);
     h += row('Head pitch swing', `${fmt(an.headPitchDeg, 1)}°`, `~3°`, walkSpeed ? an.headPitchDeg <= R.headPitchDeg[1] : null);
     h += row('Hind paw lifts at', `${fmt(an.pawOff * 100, 0)}% of stride`, '~62%', walkSpeed ? within(an.pawOff, [.55, .7]) : null);
-    notes.push('BL = head-and-body length. Times and heights are scaled to an adult cat (0.48 m) by body length. Reference: cat-motion/README.md.');
+    notes.push('Speeds, lengths and heights are scaled to a real adult cat by hip height (0.23 m): gait scales with leg length. Reference: cat-motion/README.md.');
     notes.push('* The hip is the thigh against the back line (the pelvis has no bone), so compare its swing (about 44° in a real walk), not its absolute value.');
   } else if (pose) {
     h += row('Hip joint height', `${fmt(pose.hipCm, 1)} cm`, 'well above the floor (open: to measure)', null);
@@ -172,7 +172,7 @@ function table() {
   }
   $('metrics').innerHTML = h; $('notes').innerHTML = notes.join('<br>');
 }
-function updateSpeedOut() { const bl = +$('speed').value; $('speedOut').textContent = `${bl.toFixed(2)} BL/s (${(bl * REFERENCE.bodyLength).toFixed(2)} m/s adult) · ${band(bl)}`; }
+function updateSpeedOut() { const ms = +$('speed').value; $('speedOut').textContent = `${ms.toFixed(2)} m/s · ${band(ms)}`; }
 
 // ---- charts ----
 const svg = (tag, attrs, text) => `<${tag} ${Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ')}>${text ?? ''}</${tag}>`;
@@ -187,10 +187,10 @@ function drawGait() {
   });
   block(4, an.contact);
   // reference walk at this speed: stride from ~0.97 BL, duty 0.64, lateral sequence with diagonality 0.25
-  const bl = rec.bl, period = REFERENCE.walk.strideBL.reduce((a, b) => a + b) / 2 / bl, duty = .64, start = an.onsets[0][0] * rec.dt;
+  const ms = rec.ms, period = REFERENCE.walk.strideM.reduce((a, b) => a + b) / 2 / ms, duty = .64, start = (an.onsets[0][0] ?? 0) * rec.dt;
   const phase = {lhind: 0, lfore: .25, rhind: .5, rfore: .75}, n = rec.frames.length;
   const refC = LEGS.map(k => Array.from({length: n}, (_, f) => { const u = (((f * rec.dt - start) / period - phase[k]) % 1 + 1) % 1; return u < duty; }));
-  s += svg('text', {x: L, y: 100, fill: '#8fa3ab', 'font-size': 10}, bl <= REFERENCE.gaits.walk[1] ? `reference walk at ${bl.toFixed(2)} BL/s: ${(1 / period).toFixed(2)} strides/s, each paw down 64%, LH → LF → RH → RF` : 'reference: walk pattern shown for comparison only (this speed is past the walk)');
+  s += svg('text', {x: L, y: 100, fill: '#8fa3ab', 'font-size': 10}, ms <= REFERENCE.gaits.walk[1] ? `reference walk at ${ms.toFixed(2)} m/s: ${(1 / period).toFixed(2)} strides/s, each paw down 64%, LH → LF → RH → RF` : 'reference: walk pattern shown for comparison only (this speed is past the walk)');
   block(106, refC);
   s += `<line id="gaitCursor" x1="0" x2="0" y1="0" y2="190" stroke="#fff" stroke-width="1" opacity=".7"/>`;
   $('gait').innerHTML = s;

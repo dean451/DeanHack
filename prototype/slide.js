@@ -42,10 +42,22 @@ export function speciesSlide(species) {
 // Closer than this and the actor is set exactly on its target.
 const ARRIVE = 2e-3;
 
-// A skinned, legged animal (the pet cat, the fox on our rig) bounds from tile to tile instead of
-// darting: it pulls away hard, cruises at a gallop's pace and brakes into the tile, so its legs have
-// a steady speed to stride to. An actor opts in with `actor.glide` (createSkinnedFeline, rigFox).
-export const FELINE_GLIDE = {cruise: 3.2, accel: 16, brake: 7, creep: .35, catchup: 2.4};
+// A skinned, legged animal (the pet cat, the fox on our rig) walks from tile to tile at a cat's own
+// pace and hurries only when it falls behind: its cruise depends on how far it has to go, in hip
+// heights per second (`pace`: [distance in cells, h/s] points, linear between), so a cat a tile away
+// walks (2.8 h/s, a real cat's 0.65 m/s), one falling behind trots and one far behind gallops
+// (cat-motion/README.md §1). Only past `catchup` cells (a teleport) does it ease straight there. An
+// actor opts in with `actor.glide` (createSkinnedFeline, rigFox); its animator's stepper knows its
+// hip height.
+export const FELINE_GLIDE = {
+  pace: [[1.2, 2.8], [2.5, 6], [4, 11]], accel: 12, brake: 7, creep: .15, catchup: 8,
+  cruise(actor, d) {
+    const hip = (actor?.animator || actor?.asset?.animator)?.stepper?.hip?.() || .2, P = this.pace;
+    let hs = P[0][1];
+    for (let i = 1; i < P.length; i++) if (d > P[i - 1][0]) hs = P[i - 1][1] + (P[i][1] - P[i - 1][1]) * Math.min(1, (d - P[i - 1][0]) / (P[i][0] - P[i - 1][0]));
+    return hs * hip;
+  },
+};
 export const heavySlide = a => a?.glide || HEAVY[a?.quirk] || speciesSlide(a?.species);
 
 // Moves actor.g toward actor.target by one frame of dt seconds.
@@ -72,8 +84,9 @@ function glide(actor, dt) {
     return;
   }
   // a glide knows its cruise from the first frame of the step: the gait it calls for holds to the end
-  actor.slidePlan = heavy.cruise;
-  const v = Math.min(heavy.cruise, (actor.slideSpeed || 0) + heavy.accel * dt);
+  const cruise = typeof heavy.cruise === 'function' ? heavy.cruise(actor, d) : heavy.cruise;
+  actor.slidePlan = cruise;
+  const v = Math.min(cruise, (actor.slideSpeed || 0) + heavy.accel * dt);
   const speed = Math.min(v, Math.max(d * heavy.brake, heavy.creep));
   actor.slideSpeed = speed;
   const step = speed * dt;

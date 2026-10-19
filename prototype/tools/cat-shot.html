@@ -2,7 +2,8 @@
 <style>html,body{margin:0;background:#233138}canvas{display:block}</style>
 <script type="module">
 // The skinned pet cat next to the rigid one, at a moment of its animation:
-// /tools/cat-shot.html?name=kitten&walk=1&t=0.6&view=three   (views: three, side, front, top, back; ?clip=sit&u=.5 holds a clip)
+// /tools/cat-shot.html?name=kitten&walk=1&t=0.6&view=three   (views: three, side, front, top, back; ?clip=sit&u=.5 holds a clip;
+// walk=1 steps in place, which the stepper does slowly: tools/cat-lab.html shows a real walk)
 import * as THREE from 'three';
 import {createFeline} from '../feline.js';
 import {createSkinnedFeline, updateSkinnedFeline} from '../feline-skin.js';
