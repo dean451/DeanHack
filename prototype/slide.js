@@ -49,8 +49,11 @@ const ARRIVE = 2e-3;
 // (cat-motion/README.md §1). Only past `catchup` cells (a teleport) does it ease straight there. An
 // actor opts in with `actor.glide` (createSkinnedFeline, rigFox); its animator's stepper knows its
 // hip height.
+//
+// It also walks the way it was led rather than straight at its newest cell: `trail: true` keeps the
+// cells it has been sent to as a path (TRAIL), its pace set by the distance left along it.
 export const FELINE_GLIDE = {
-  pace: [[1.2, 2.8], [2.5, 6], [4, 11]], accel: 12, brake: 7, creep: .15, catchup: 8,
+  pace: [[1.2, 2.8], [2.5, 6], [4, 11]], accel: 12, brake: 7, creep: .15, catchup: 8, trail: true,
   cruise(actor, d) {
     const hip = (actor?.animator || actor?.asset?.animator)?.stepper?.hip?.() || .2, P = this.pace;
     let hs = P[0][1];
@@ -59,6 +62,18 @@ export const FELINE_GLIDE = {
   },
 };
 export const heavySlide = a => a?.glide || HEAVY[a?.quirk] || speciesSlide(a?.species);
+
+// Following a trail (an actor whose glide sets `trail`): each new cell it is sent to joins the end
+// of actor.trail, unless it lies more than `jump` cells from the last (a teleport, a level change),
+// which starts the trail over. The body steers for a point `look` cells ahead along the trail (at
+// least; `lookTime` seconds of travel at speed), turning no faster than its speed allows on a curve
+// of radius `radius` cells (plus `spin` rad/s on the spot), so it carves round corners on an arc
+// and cuts them a little, the way a cat takes the widest line through a turn. It eases off as the
+// way ahead bends (to `corner` of its speed for a right-angle turn), and with `finish` cells to go
+// it walks straight onto the last cell. A cell counts as passed within `reach` of it, or once the
+// body is past it along the way it came. actor.pathYaw is its heading and actor.pathLeft the distance
+// still to go, for live.js to face it and to know it is walking.
+export const TRAIL = {jump: 2.2, look: .35, lookTime: .15, reach: .2, radius: .25, spin: 3, corner: .55, finish: .25};
 
 // Moves actor.g toward actor.target by one frame of dt seconds.
 export function slideTo(actor, dt) {
@@ -70,6 +85,7 @@ export function slideTo(actor, dt) {
 function glide(actor, dt) {
   const pos = actor.g.position, target = actor.target;
   const heavy = heavySlide(actor);
+  if (heavy?.trail) return followTrail(actor, dt, heavy);
   const d = pos.distanceTo(target);
   if (!heavy || d > heavy.catchup) {
     actor.slideSpeed = 0;
@@ -92,6 +108,52 @@ function glide(actor, dt) {
   const step = speed * dt;
   if (step >= d) pos.copy(target);
   else pos.lerp(target, step / d);
+}
+
+function followTrail(actor, dt, heavy) {
+  const pos = actor.g.position, target = actor.target, trail = actor.trail || (actor.trail = []);
+  const last = trail[trail.length - 1];
+  if (!last || Math.hypot(target.x - last.x, target.z - last.z) > 1e-3) {
+    if (last && Math.hypot(target.x - last.x, target.z - last.z) > TRAIL.jump) { trail.length = 0; actor.trailFrom = null; }
+    trail.push(target.clone());
+  }
+  // drop the cells already reached: close to one, or past it along the way it was approached
+  while (trail.length > 1) {
+    const a = trail[0], prev = actor.trailFrom || pos, ax = pos.x - a.x, az = pos.z - a.z;
+    if (Math.hypot(ax, az) < TRAIL.reach || ax * (a.x - prev.x) + az * (a.z - prev.z) > 0) actor.trailFrom = trail.shift(); else break;
+  }
+  let left = Math.hypot(trail[0].x - pos.x, trail[0].z - pos.z);
+  for (let i = 1; i < trail.length; i++) left += Math.hypot(trail[i].x - trail[i - 1].x, trail[i].z - trail[i - 1].z);
+  actor.pathLeft = left;
+  if (actor.pathYaw === undefined) actor.pathYaw = actor.g.rotation.y;
+  // far behind (a teleport, a level change): ease straight there as everything else does
+  if (left > heavy.catchup) {
+    actor.slideSpeed = 0; actor.slidePlan = Math.min(12, left * EASE_RATE);
+    pos.lerp(target, 1 - Math.exp(-dt * EASE_RATE)); trail.length = 0; trail.push(target.clone());
+    return;
+  }
+  if (left < ARRIVE) { actor.slideSpeed = 0; actor.slidePlan = 0; actor.pathLeft = 0; pos.x = target.x; pos.z = target.z; trail.length = 0; trail.push(target.clone()); return; }
+  // the point to steer for: `look` along the trail from where the body is
+  const v0 = actor.slideSpeed || 0, look = Math.max(TRAIL.look, v0 * TRAIL.lookTime);
+  let aim = trail[trail.length - 1], from = pos, need = look;
+  for (const p of trail) { const seg = Math.hypot(p.x - from.x, p.z - from.z); if (seg >= need) { const k = need / seg; aim = {x: from.x + (p.x - from.x) * k, z: from.z + (p.z - from.z) * k}; break; } need -= seg; from = p; }
+  const want = Math.atan2(aim.x - pos.x, aim.z - pos.z), off = Math.atan2(Math.sin(want - actor.pathYaw), Math.cos(want - actor.pathYaw));
+  // pace: the cruise for the distance left, slowed by how far the way ahead bends, braking to land
+  const cruise = (typeof heavy.cruise === 'function' ? heavy.cruise(actor, left) : heavy.cruise) * (1 - (1 - TRAIL.corner) * Math.min(1, Math.abs(off) / (Math.PI / 2)));
+  actor.slidePlan = cruise;
+  const speed = Math.min(cruise, v0 + heavy.accel * dt, Math.max(left * heavy.brake, heavy.creep));
+  actor.slideSpeed = speed;
+  // turn toward the aim no faster than the speed allows on the arc, then step along the heading;
+  // the last stretch walks straight onto the cell
+  const turn = (speed / TRAIL.radius + TRAIL.spin) * dt;
+  actor.pathYaw += Math.max(-turn, Math.min(turn, off));
+  const step = speed * dt;
+  if (left <= TRAIL.finish && trail.length === 1) {
+    const d = Math.hypot(target.x - pos.x, target.z - pos.z);
+    if (step >= d) { pos.x = target.x; pos.z = target.z; } else { pos.x += (target.x - pos.x) * step / d; pos.z += (target.z - pos.z) * step / d; }
+  } else { pos.x += Math.sin(actor.pathYaw) * step; pos.z += Math.cos(actor.pathYaw) * step; }
+  // the height (a perch) comes along in step with the ground still to cover
+  pos.y += (target.y - pos.y) * Math.min(1, step / Math.max(left, step));
 }
 
 // Hops. A step that changes height (onto an altar, up a stair, off a grave; see perch.js)
