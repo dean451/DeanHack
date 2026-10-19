@@ -42,7 +42,7 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
 
 test('the clips: idle, sit, loaf, curl, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['curl', 'groom', 'idle', 'loaf', 'pounce', 'scratch', 'sit', 'stretch', 'tail'], 'walking, trotting and galloping are stepped, not clips');
+  assert.deepEqual(Object.keys(actions).sort(), ['curl', 'eat', 'groom', 'idle', 'loaf', 'pounce', 'scratch', 'sit', 'stretch', 'tail'], 'walking, trotting and galloping are stepped, not clips');
   const tail = actions.tail.getClip(), idle = actions.idle.getClip(), sit = actions.sit.getClip();
   const names = c => c.tracks.map(t => t.name);
   assert.ok(names(tail).every(n => n.startsWith('tail')) && names(tail).length === 5, 'the tail clip touches only the tail bones');

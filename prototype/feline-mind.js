@@ -64,6 +64,14 @@ export function findThreat(cat, actors, range = MIND.threatRange) {
   return best;
 }
 
+// Whether a game message says a pet eats (NetHack: "Your kitten eats a newt corpse.", "Tibbles devours
+// a tripe ration."): the eater's words before the verb, or null. `pets` (names and species) narrows it.
+export function petEats(text, pets = null) {
+  const m = /^(.+?) (?:eats|devours|starts eating) /i.exec(String(text || '').trim()); if (!m) return null;
+  const who = m[1].replace(/^(?:your|the) /i, '').toLowerCase();
+  if (/^you\b/.test(who)) return null;
+  return !pets || pets.some(p => p && who.includes(String(p).toLowerCase())) ? who : null;
+}
 export function createFelineMind(rig, actor, {seed = 1} = {}) {
   let s = (seed * 2654435761) >>> 0 || 1;
   const rnd = () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 2 ** 32, range = ([a, b]) => a + (b - a) * rnd();

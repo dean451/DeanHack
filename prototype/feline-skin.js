@@ -405,6 +405,23 @@ export function scratchPose(u) {
   pose.reach = up; pose.stroke = Math.sin(t * S.hz * TAU) * smooth((u - S.up[1]) / .04) * (1 - smooth((u - S.down[0] + .04) / .04));
   return pose;
 }
+// Eating, when the game says the pet eats: the front end crouched over the food on the floor in front
+// of its fore paws (elbows bent, chest down), the hind legs standing, the head down (EAT, from tools/pose-search.mjs eat, standing rest plus
+// these turns; `hipsY` lowers the hips); chewing about 2.5 times a second (an estimate from body-mass
+// scaling of chewing rates: cat-motion/research/behaviours.md), the head tipped to one side and now
+// and then jerked sideways to shift the food, as cats do (Gorniak & Gans 1980). EATING sets the timing.
+export const EAT = {hipsY: -.005, 'hind0.x': 0, 'hind1.x': .05, 'hind2.x': -.08, 'fore0.x': -.671, 'fore1.x': -.99, 'fore2.x': .588, 'spine.x': .338, 'chest.x': .378, 'neck.x': 1.513, 'head.x': -.533};
+export const EATING = {time: 7, down: [0, .1], up: [.9, 1], hz: 2.5, jaw: .22, tilt: .35, jerkHz: .6, jerk: .25};
+export function eatPose(u) {
+  const E = EATING, t = u * E.time, k = smooth((u - E.down[0]) / (E.down[1] - E.down[0])) * (1 - smooth((u - E.up[0]) / (E.up[1] - E.up[0])));
+  const pose = {hipsY: (EAT.hipsY || 0) * k};
+  // (`fore…`, `hind…` without a side turn both legs alike)
+  for (const [key, v] of Object.entries(EAT)) { if (key === 'hipsY') continue; const [b, ax] = key.split('.'); for (const bone of /^(fore|hind)/.test(b) ? ['l' + b, 'r' + b] : [b]) pose[bone] = {...(pose[bone] || {}), [ax]: ((pose[bone] || {})[ax] || 0) + v * k}; }
+  const chew = (.5 - .5 * Math.cos(t * E.hz * TAU)) * k, jerk = Math.sin(t * E.jerkHz * TAU) ** 9 * k;
+  pose.head = {...pose.head, z: E.tilt * k, y: E.jerk * jerk};
+  pose.jaw = {x: MOUTH.closed + E.jaw * chew};
+  return pose;
+}
 // Poses the bones directly from a pose (the shape sampleClip reads), for tools and tests: rotations
 // from rest, the hips moved by hipsY/hipsZ, a longer back folded by `fold`. `rest`: the bones' rest
 // positions by name.
@@ -415,11 +432,11 @@ export function applyPose(pose, bonesByName, rest) {
   const h = bonesByName.hips; if (h) { h.position.y += pose.hipsY || 0; h.position.z += pose.hipsZ || 0; }
   for (const [name, base] of [['spine', BACK.spine], ['chest', BACK.chest]]) { const b = bonesByName[name]; if (b) b.position.z -= Math.max(0, b.position.z - base) * (pose.fold || 0); }
 }
-export const CLIPS = {idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, loaf: {pose: loafPose, period: 4, frames: 32}, curl: {pose: curlPose, period: 2.5, frames: 32}, stretch: {pose: stretchPose, period: STRETCH.time, frames: 92, once: true}, groom: {pose: groomPose, period: GROOM.time, frames: 330, once: true}, scratch: {pose: scratchPose, period: SCRATCHING.time, frames: 240, once: true}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
+export const CLIPS = {idle: {pose: idlePose, period: 4, frames: 32}, sit: {pose: sitPose, period: 4, frames: 32}, loaf: {pose: loafPose, period: 4, frames: 32}, curl: {pose: curlPose, period: 2.5, frames: 32}, stretch: {pose: stretchPose, period: STRETCH.time, frames: 92, once: true}, groom: {pose: groomPose, period: GROOM.time, frames: 330, once: true}, eat: {pose: eatPose, period: EATING.time, frames: 210, once: true}, scratch: {pose: scratchPose, period: SCRATCHING.time, frames: 240, once: true}, tail: {pose: tailPose, period: 6, frames: 48}, pounce: {pose: pouncePose, period: POUNCE.time, frames: 30, once: true}};
 // A pet that has stood still this long sits down.
 export const SIT_AFTER = 6;
 // The one-shots a sitting cat plays and goes back to the sit after.
-export const ONE_SHOT = {groom: GROOM, scratch: SCRATCHING};
+export const ONE_SHOT = {groom: GROOM, scratch: SCRATCHING, eat: EATING};
 // Settling down (the animator's `settle`): how long it stays in each pose (seconds, a range; `settle`:
 // a loaf on its way to sleep), the
 // odds at each choice (sitting: groom (and of that, scratch an ear instead), lie down at all, and if so go to sleep; a loaf: go to sleep rather
@@ -570,6 +587,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
       // waking: the stretch and the yawn (a one-shot), then up
       rest.state = 'stretch'; rest.t = 0; rest.next = 0; actions.stretch.reset(); fade(actions.stretch, base, REST.up.curl); base = actions.stretch;
     } else if (rest.state === 'stretch' && rest.t >= STRETCH.time - REST.up.sit) { setBase(actions.idle, REST.up.sit); rest.state = 'stand'; still = 0; }
+    else if (rest.state === 'eat' && rest.t >= EATING.time - REST.fade.sit) { setBase(actions.idle, REST.up.sit); rest.state = 'stand'; still = 0; }
     else if (ONE_SHOT[rest.state] && rest.t >= ONE_SHOT[rest.state].time - REST.fade.sit) enter('sit');
   }
   function update(dt, nowWalking) {
@@ -654,7 +672,10 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     takeBack(); mixer.update(0); keepMixed(); secondary(0, 0); restTail(); // the neck's levelling too, so a tool shows the head as the game would
     if (name === 'scratch' && rig.headLocal) { root.parent?.updateMatrixWorld(true); const P = scratchPose(u); if (P.reach > .01) reachLeg(rig.legs.rhind, rig.headLocal([SCRATCHING.at[0], SCRATCHING.at[1] + P.stroke * SCRATCHING.stroke, SCRATCHING.at[2] - P.stroke * SCRATCHING.stroke]).applyMatrix4(rig.head.matrixWorld), P.reach); }
   }
-  return {mixer, actions, update, show, stepper, mind, get walking() { return walking; }, get base() { return Object.keys(actions).find(k => actions[k] === base); }};
+  // The game said it eats: crouch over the food and chew (from standing, sitting or lying: it gets up
+  // to eat; a second meal message while eating carries on chewing).
+  function eat() { if (rest.state === 'eat') { rest.t = Math.min(rest.t, EATING.time * .3); actions.eat.time = Math.min(actions.eat.time, EATING.time * .3); return; } play('eat'); still = 0; }
+  return {mixer, actions, update, show, stepper, mind, eat, get walking() { return walking; }, get base() { return Object.keys(actions).find(k => actions[k] === base); }};
 }
 
 // Per frame from live.js (through actor.asset.update). `t` is unused: the mixer keeps its own time.

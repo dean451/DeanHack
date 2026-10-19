@@ -100,3 +100,16 @@ test('the ears: relaxed when content, pricked forward hunting, laid back and out
   const before = facing(c.rig.ears.r); stand(c, 4, {hero: at(3, .5)});
   assert.ok(facing(c.rig.ears.r) > before + .05 && Math.abs(headYaw(c)) < 1, 'the near ear leads the head');
 });
+
+test('a pet eats when the game says so: the messages that mean it, and not the hero or anyone else', async () => {
+  const {petEats} = await import('./feline-mind.js');
+  assert.equal(petEats('Your kitten eats a newt corpse.'), 'kitten');
+  assert.equal(petEats('Tibbles devours a tripe ration.'), 'tibbles');
+  assert.equal(petEats('The kitten starts eating a lichen corpse.'), 'kitten');
+  assert.equal(petEats('You eat the food ration.'), null);
+  assert.equal(petEats('The jackal bites!'), null);
+  assert.equal(petEats('Your kitten eats a newt corpse.', ['housecat']), null, 'narrowed to the pets on the level');
+  const a = createSkinnedFeline('kitten'); stand(a, 10, {}); a.animator.eat(); let r, low = Infinity, jaw = 0;
+  for (let i = 0; i < 150; i++) { r = updateSkinnedFeline(a, 1 / 30, null, false); a.g.updateMatrixWorld(true); low = Math.min(low, a.rig.headLocal([0, -.03, .135]).applyMatrix4(a.rig.head.matrixWorld).y); jaw = Math.max(jaw, a.rig.jaw.rotation.x); }
+  assert.equal(r.rest, 'eat'); assert.ok(low < .04, `the mouth down to the food on the floor (${low.toFixed(3)})`); assert.ok(jaw > .05, 'chewing');
+});
