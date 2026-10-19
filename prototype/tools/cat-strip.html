@@ -2,7 +2,7 @@
 <style>html,body{margin:0;background:#233138}canvas{display:block}</style>
 <script type="module">
 // Six moments of one of the skinned cat's clips in a row, from the side:
-// /tools/cat-strip.html?name=kitten&clip=sit   (clips: idle, sit, gallop, pounce; the walk and trot are stepped, not clips: see cat-lab.html)
+// /tools/cat-strip.html?name=kitten&clip=sit   (clips: idle, sit, pounce; the walk, trot and gallop are stepped, not clips: see cat-lab.html)
 import * as THREE from 'three';
 import {createSkinnedFeline} from '../feline-skin.js';
 const q=new URLSearchParams(location.search),name=q.get('name')||'kitten',clip=q.get('clip')||'idle',N=6;
