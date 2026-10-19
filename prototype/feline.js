@@ -17,7 +17,8 @@ import {segment,chain} from './ant.js';
 // - Tail: a tapering jointed tail, carried upright on the pets (their mind hooks the tip to one side), hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
 // Coats are painted per vertex from the body position:
-// - kitten, housecat, large cat: the same plain brown (mackerel) tabby the pet grows up in, the
+// - kitten, housecat, large cat: the same plain brown (mackerel) tabby the pet grows up in (as a
+//   skinned pet these are sculpted and painted per pixel: feline-sculpt.js, feline-coat.js), the
 //   everyday cat: a warm grey-brown coat with bold near-black stripes (`bold`: the markings at
 //   full strength on the pets' build), an M on the brow, a cream chin and belly, a brick-pink
 //   nose and green-gold eyes. The kitten has the bigger head.
@@ -36,9 +37,9 @@ import {segment,chain} from './ant.js';
 // quirk 'feline'.
 
 export const LOOKS={
- kitten:{scruffy:true,bold:true,scale:.7,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby',headSize:1.12,legH:.16,tail:'hook',tailLen:1.25},
- housecat:{scruffy:true,bold:true,scale:1,legH:.19,tail:'hook',tailLen:1.2,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
- 'large cat':{scruffy:true,bold:true,scale:1.15,legH:.2,tail:'hook',tailLen:1.2,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
+ kitten:{scruffy:true,bold:true,scale:.7,sculpt:true,coat:'#857360',stripe:'#1c1611',belly:'#d3c2a3',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby',headSize:1.12,legH:.16,tail:'hook',tailLen:1.25},
+ housecat:{scruffy:true,bold:true,scale:1,legH:.19,tail:'hook',tailLen:1.2,sculpt:true,coat:'#857360',stripe:'#1c1611',belly:'#d3c2a3',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
+ 'large cat':{scruffy:true,bold:true,scale:1.15,legH:.2,tail:'hook',tailLen:1.2,sculpt:true,coat:'#857360',stripe:'#1c1611',belly:'#d3c2a3',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
  jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#c4b497',nose:'#5e3630',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
  lynx:{scale:1.1,coat:'#a88f70',stripe:'#5a4630',belly:'#b8ac98',nose:'#5a3a30',eye:'#c8b040',pattern:'spots',tufts:true,ruff:true,legH:.26,tail:'bob'},
  panther:{scale:1.45,coat:'#232226',stripe:'#121114',belly:'#2e2c32',nose:'#141214',eye:'#9ad04a',pattern:'ghost',ears:'round',round:true,heavy:1.1,headSize:.95,tail:'low',gloss:.45,whisker:'#8a8a8a'},

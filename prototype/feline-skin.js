@@ -25,7 +25,8 @@ import {felineBuild} from './feline.js';
 import {growHull} from './feline-hull.js';
 import {FELINE_GLIDE} from './slide.js';
 import {createStepper} from './feline-gait.js';
-import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE, TAIL_SCULPT} from './feline-sculpt.js';
+import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE, TAIL_SCULPT, EYE} from './feline-sculpt.js';
+import {coatAttributes, coatMaterial} from './feline-coat.js';
 import {createFelineMind} from './feline-mind.js';
 
 export const BLEND = {spine: .06, leg: .022, tail: .03};
@@ -103,9 +104,11 @@ const hulls = new Map();
 // Grows a look's hull ahead of its first cat (live.js does this in idle time on the splash, for the
 // kitten most classes start with), so the first level does not pay the ~0.7 s on the main thread.
 export function growFelineHull(name, colour) { if (!hulls.has(name + '|' + (colour || ''))) createSkinnedFeline(name, colour); return hulls.get(name + '|' + (colour || '')); }
-// `sculpt`: grow the skin from the sculpted anatomy (feline-sculpt.js) instead of the parts.
-export function createSkinnedFeline(name, colour, {hull = true, sculpt = false} = {}) {
+// `sculpt`: grow the skin from the sculpted anatomy (feline-sculpt.js) and paint it with the
+// per-pixel coat (feline-coat.js) instead of building it from the parts; the pets' looks do.
+export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
   const {S, L, tailJoints, tailCurve, coat} = felineBuild(name, colour);
+  sculpt = hull && (sculpt ?? !!L.sculpt);
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body); g.scale.setScalar(L.scale);
   const bones = [], names = {};
   const bone = (key, parent, pos) => { const b = new THREE.Bone(); b.name = key; b.position.set(...pos); if (parent) parent.add(b); bones.push(b); names[key] = bones.length - 1; b.userData.world = parent ? parent.userData.world.map((v, i) => v + pos[i]) : [...pos]; return b; };
@@ -150,13 +153,14 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt = false} 
     if (!hulls.has(key)) {
       const tail = tailCurve.map(([x, y, z]) => [x + tailRoot[0], y + tailRoot[1], z + tailRoot[2]]), sc = sculptFeline(L, {tail, headM});
       const grown = growHull(sc.parts, {weigh, res: SCULPT.res, soft: SCULPT.soft});
+      coatAttributes(grown.geometry, bones.map(b => b.name), tail);
       // the ears, ready-made in head space, ride the head with the other details
       const ears = sc.ears.map(e => { e.applyMatrix4(headM); skin(e, () => [[names.head, 1]]); return e; });
       grown.details = grown.details ? mergeGeometries([grown.details, ...ears]) : mergeGeometries(ears);
       hulls.set(key, grown);
     }
     const grown = hulls.get(key);
-    fur = new THREE.SkinnedMesh(grown.geometry, S.fur);
+    fur = new THREE.SkinnedMesh(grown.geometry, coatMaterial(L, {neck: L.neck, scale: (L.headSize || 1) * HEAD_SCALE, eye: [EYE.x, EYE.y, EYE.z]}));
     details = new THREE.SkinnedMesh(grown.details, S.fur); details.castShadow = details.receiveShadow = true; details.frustumCulled = false; details.userData.part = 'details';
   } else if (hull && S.body.userData.pieces) {
     // one skin over everything, grown once per look

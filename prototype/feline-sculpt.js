@@ -262,7 +262,7 @@ export function sculptEyes() {
 // in head space. `L` is feline.js's layout, `tail` the tail's points in body space, `headM` places
 // head space in the body.
 export function sculptFeline(L, {tail, headM}) {
-  const C = {coat: rgb(L.coat), stripe: rgb(L.stripe), belly: rgb(L.belly), nose: rgb(L.nose)}; C.back = mix(C.coat, C.stripe, .35);
+  const C = {coat: rgb(L.coat), stripe: rgb(L.stripe), belly: rgb(L.belly), nose: rgb(L.nose)}; C.back = mix(C.coat, C.stripe, .2);
   const Y = L.Y, bw = L.heavy || 1, k = bw, paint = trunkPaint(L, C);
   const body = [piece(trunkField(Y, bw), [0, Y - .01, -.01], .34, paint, JOIN.trunk)];
   // the neck from the withers into the back of the skull, the throat under it

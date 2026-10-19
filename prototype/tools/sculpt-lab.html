@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import {createSkinnedFeline, SIT} from '../feline-skin.js';
 import {LOOKS} from '../feline.js';
-const q = new URLSearchParams(location.search), name = q.get('name') || 'kitten', clip = q.get('clip') || 'idle', at = +(q.get('at') || 0), live = +(q.get('live') || 0);
+const q = new URLSearchParams(location.search), name = q.get('name') || 'kitten', clip = q.get('clip') || 'idle', at = +(q.get('at') || 0), live = +(q.get('live') || 0), zoom = +(q.get('zoom') || 1);
 const VIEWS = (q.get('views') || 'side,three,front').split(','), W = 1200, H = 360 * VIEWS.length;
 const renderer = new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer: true});
 renderer.setPixelRatio(1); renderer.setSize(W, H); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -20,7 +20,7 @@ const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), new THREE.MeshStand
 // ?sit={...}: try other sit angles (feline-skin.js SIT) before the clips are sampled
 if (q.get('sit')) Object.assign(SIT, JSON.parse(q.get('sit')));
 const t0 = performance.now();
-const cats = [createSkinnedFeline(name), createSkinnedFeline(name, undefined, {sculpt: true})];
+const cats = [createSkinnedFeline(name, undefined, {sculpt: false}), createSkinnedFeline(name, undefined, {sculpt: true})];
 window.__ms = performance.now() - t0;
 cats.forEach((cat, i) => { cat.g.position.x = (i - .5) * 1.4; cat.g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(cat.g); if (!live) cat.animator.show(clip, at); });
 // ?live=s: run the cats' own animation (idle, mind, tail) for s seconds instead of holding a clip
@@ -33,7 +33,7 @@ VIEWS.forEach((view, row) => cats.forEach((cat, i) => {
   const x = cat.g.position.x;
   if (view === 'top') { camera.position.set(x, 2.6 * s, .01); camera.lookAt(x, 0, 0); }
   else if (view.startsWith('face')) { const h = cat.head.getWorldPosition(new THREE.Vector3()); camera.position.set(h.x, h.y + .03 * s, h.z + .75 * s); camera.lookAt(h.x, h.y, h.z); }
-  else { camera.position.set(x, .33 * s + .1, 2.1 * s + .35); camera.lookAt(x, .27 * s, 0); }
+  else { camera.position.set(x, .33 * s + .1, (2.1 * s + .35) / zoom); camera.lookAt(x, .27 * s, 0); }
   const y = H - (row + 1) * 360; renderer.setViewport(i * W / 2, y, W / 2, 360); renderer.setScissor(i * W / 2, y, W / 2, 360); renderer.render(scene, camera);
 }));
 window.__done = true;
