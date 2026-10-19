@@ -17,8 +17,10 @@ import {segment,chain} from './ant.js';
 // - Tail: a tapering jointed tail, carried up in a J on the small cats, hanging low with a
 //   curled tip on the big ones; the lynx has a stub.
 // Coats are painted per vertex from the body position:
-// - kitten: silver tabby with blue eyes and a big head. housecat: ginger tabby with white
-//   socks. large cat: brown tabby.
+// - kitten, housecat, large cat: the same plain brown (mackerel) tabby the pet grows up in, the
+//   everyday cat: a warm grey-brown coat with bold near-black stripes (`bold`: the markings at
+//   full strength on the pets' build), an M on the brow, a cream chin and belly, a brick-pink
+//   nose and green-gold eyes. The kitten has the bigger head.
 // - jaguar: gold with broken rosettes, a dot in most of them.
 // - lynx: tawny with faint spots, black ear tufts, a barred cheek ruff and a black-tipped stub.
 // - panther: glossy black with ghost rosettes that show only up close, green eyes.
@@ -34,9 +36,9 @@ import {segment,chain} from './ant.js';
 // quirk 'feline'.
 
 const LOOKS={
- kitten:{scruffy:true,scale:.7,coat:'#9a9690',stripe:'#4a4640',belly:'#b8b4a8',nose:'#6a3a38',eye:'#3f86c4',pattern:'tabby',headSize:1.12,legH:.16,tail:'up',tailLen:.8},
- housecat:{scruffy:true,scale:1,legH:.19,coat:'#cf9050',stripe:'#8a4e22',belly:'#c8b898',nose:'#6a3838',eye:'#c88a18',pattern:'tabby',socks:true},
- 'large cat':{scruffy:true,scale:1.15,legH:.2,coat:'#8a7050',stripe:'#2e241a',belly:'#dccab0',nose:'#5a3630',eye:'#b88a20',pattern:'tabby'},
+ kitten:{scruffy:true,bold:true,scale:.7,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby',headSize:1.12,legH:.16,tail:'up',tailLen:.8},
+ housecat:{scruffy:true,bold:true,scale:1,legH:.19,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
+ 'large cat':{scruffy:true,bold:true,scale:1.15,legH:.2,coat:'#8f7c62',stripe:'#231b14',belly:'#d6c8ac',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
  jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#c4b497',nose:'#5e3630',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
  lynx:{scale:1.1,coat:'#a88f70',stripe:'#5a4630',belly:'#b8ac98',nose:'#5a3a30',eye:'#c8b040',pattern:'spots',tufts:true,ruff:true,legH:.26,tail:'bob'},
  panther:{scale:1.45,coat:'#232226',stripe:'#121114',belly:'#2e2c32',nose:'#141214',eye:'#9ad04a',pattern:'ghost',ears:'round',round:true,heavy:1.1,headSize:.95,tail:'low',gloss:.45,whisker:'#8a8a8a'},
@@ -68,7 +70,7 @@ function markings(L,C,x,y,z,base,limb=false){
  switch(L.pattern){
   case 'tabby':{
    const t=limb?Math.sin(y*70+z*8):Math.sin(z*48+Math.sin(y*25+x*10)*1.1+Math.abs(x)*6);
-   if(t>.45)c=mix(c,C.stripe,(L.scruffy?.58:.75)*smooth((t-.45)/.2));
+   if(t>.45)c=mix(c,C.stripe,(L.bold?.85:L.scruffy?.58:.75)*smooth((t-.45)/.2));
    if(!limb&&Math.abs(x)<.018&&y>L.Y+.09)c=mix(c,C.stripe,.6);
    break;
   }
@@ -186,7 +188,7 @@ function buildHead(L,C){
   let c=mix(C.coat,C.back,smooth((y-.04)/.06)*.4);
   const ax=Math.abs(x);
   if(L.pattern==='tabby'||L.pattern==='tiger'){
-   if(y>.035&&z>.06&&ax<.05&&Math.sin(ax*120+1)>.35)c=mix(c,C.stripe,L.scruffy?.45:.8);
+   if(y>.035&&z>.06&&ax<.05&&Math.sin(ax*120+1)>.35)c=mix(c,C.stripe,L.bold||!L.scruffy?.8:.45);
    if(ax>.055&&y<.035&&y>-.035&&Math.sin((y+ax*.6)*120)>.55)c=mix(c,C.stripe,.8);
   }else if(L.pattern!=='shimmer'){
    const k=cell(x,y,z,.028);if(k.d<.24)c=mix(c,C.stripe,L.pattern==='ghost'?.5:.65);
@@ -312,8 +314,8 @@ function buildTail(L,C){
  const r0=(key==='bob'?.034:.03)*k,r1=(key==='bob'?.028:.016)*k;
  const ringed=L.pattern==='tabby'||L.pattern==='tiger'||L.pattern==='rosette';
  const colour=j=>{
-  if(j>=n-2&&L.pattern!=='shimmer')return L.pattern==='ghost'?C.stripe:mix(C.stripe,C.coat,L.scruffy?.4:.1);
-  if(ringed&&j>n*.35&&j%(L.scruffy?4:3)===0)return mix(C.coat,C.stripe,L.scruffy?.55:.85);
+  if(j>=n-2&&L.pattern!=='shimmer')return L.pattern==='ghost'?C.stripe:mix(C.stripe,C.coat,L.scruffy&&!L.bold?.4:.1);
+  if(ringed&&j>n*.35&&j%(L.scruffy&&!L.bold?4:3)===0)return mix(C.coat,C.stripe,L.scruffy&&!L.bold?.55:.85);
   if(L.pattern==='rosette'&&j<=n*.35&&j%2)return mix(C.coat,C.stripe,.5);
   return mix(C.coat,C.back,.3);
  };
