@@ -75,6 +75,11 @@ export function ellipsoid(c, r, rot = [0, 0, 0]) {
 // Narrows a shape across x about cx by f (< 1 flattens it side to side).
 export const squash = (f, cx, k) => (x, y, z) => f(cx + (x - cx) / k, y, z) * k;
 
+// The pets' longer body: `stretch` more length put in at the middle of the back, the rear half
+// (hips, hind legs, rump, tail) moved back by half of it and the front half (chest, forelegs, neck,
+// head) forward by half, over the middle 0.2 of the back. Returns z -> stretched z.
+export const stretchZ = stretch => z => z <= -.1 ? z - stretch / 2 : z >= .1 ? z + stretch / 2 : z + stretch / 2 * z / .1;
+const unstretchZ = stretch => { const m = .1 + stretch / 2; return z => z <= -m ? z + stretch / 2 : z >= m ? z - stretch / 2 : z * .1 / m; };
 // Catmull-Rom through a column of the stations.
 function profile(stations, col) {
   const zs = stations.map(s => s[0]), vs = stations.map(s => s[col]), n = zs.length;
@@ -86,9 +91,11 @@ function profile(stations, col) {
   };
 }
 // The trunk: an ellipse per station, top and bottom radii apart, rounded off at both ends.
-export function trunkField(Y, bw = 1, T = TRUNK) {
+export function trunkField(Y, bw = 1, T = TRUNK, stretch = 0) {
   const top = profile(T.stations, 1), bot = profile(T.stations, 2), wid = profile(T.stations, 3), z0 = T.stations[0][0], z1 = T.stations[T.stations.length - 1][0];
+  const unstretch = unstretchZ(stretch);
   return (x, y, z) => {
+    z = unstretch(z);
     let f = 1, zc = z;
     if (z < z0) { const s = (z0 - z) / (z0 - T.rear); f = Math.sqrt(Math.max(0, 1 - s * s)); zc = z0; } else if (z > z1) { const s = (z - z1) / (T.front - z1); f = Math.sqrt(Math.max(0, 1 - s * s)); zc = z1; }
     const t = top(zc), b = bot(zc), cy = Y + (t + b) / 2, ry = (t - b) / 2 * f, rx = wid(zc) * bw * f;
@@ -109,7 +116,7 @@ const piece = (field, centre, reach, colour, blend, cut = false) => ({type: 'sdf
 function trunkPaint(L, C) {
   return (x, y, z) => {
     let c = mix(C.coat, C.back, smooth((y - L.Y - .02) / .08) * .55);
-    const belly = smooth((L.Y - .05 - y) / .05), chest = smooth((z - .17) / .1) * smooth((L.Y + .03 - y) / .1);
+    const belly = smooth((L.Y - .05 - y) / .05), chest = smooth((z - L.shoulder[2] - .02) / .1) * smooth((L.Y + .03 - y) / .1);
     return mix(c, C.belly, Math.max(belly, chest) * .85);
   };
 }
@@ -140,11 +147,11 @@ function hindLeg(L, C, side, k) {
   const {x, pts} = legJoints(L, false, side), [hip, knee, hock, foot] = pts, Y = L.Y, paint = legPaint(L, C, [x]), out = [];
   const xo = x + side * .004, P = (y, z, dx = 0) => [xo + side * dx, y, z];
   // thigh and hamstring: the haunch, flattened side to side, rounding off the rear of the body
-  out.push(piece(squash(roundCone(P(Y - .005, hip[2] - .015), P(knee[1] + .01, knee[2] - .005), .066 * k, .034 * k), xo, .66), P(Y - .06, -.16), .13, paint, JOIN.thigh));
-  out.push(piece(squash(roundCone(P(Y + .01, -.24), P(knee[1] - .01, -.17), .054 * k, .027 * k), xo, .72), P(Y - .05, -.2), .12, paint, JOIN.thigh));
+  out.push(piece(squash(roundCone(P(Y - .005, hip[2] - .015), P(knee[1] + .01, knee[2] - .005), .066 * k, .034 * k), xo, .66), P(Y - .06, hip[2] + .01), .13, paint, JOIN.thigh));
+  out.push(piece(squash(roundCone(P(Y + .01, hip[2] - .07), P(knee[1] - .01, hip[2]), .054 * k, .027 * k), xo, .72), P(Y - .05, hip[2] - .03), .12, paint, JOIN.thigh));
   // shin, with the calf swelling behind it down to the hock
   out.push(piece(roundCone(knee, hock, .032 * k, .02 * k), P((knee[1] + hock[1]) / 2, (knee[2] + hock[2]) / 2), .09, paint, JOIN.leg));
-  out.push(piece(roundCone(P(knee[1] - .015, knee[2] - .03), P(hock[1] + .012, hock[2] - .012), .029 * k, .013 * k), P(knee[1] - .03, -.19), .08, paint, JOIN.leg));
+  out.push(piece(roundCone(P(knee[1] - .015, knee[2] - .03), P(hock[1] + .012, hock[2] - .012), .029 * k, .013 * k), P(knee[1] - .03, hip[2] - .02), .08, paint, JOIN.leg));
   out.push(piece(ellipsoid(P(hock[1] + .004, hock[2] - .014), [.012 * k, .014 * k, .012 * k]), P(hock[1], hock[2]), .03, paint, JOIN.leg));
   // the long foot and the paw
   out.push(piece(roundCone(hock, foot, .02 * k, .018 * k), P((hock[1] + foot[1]) / 2, (hock[2] + foot[2]) / 2), .06, paint, JOIN.leg));
@@ -171,25 +178,25 @@ function foreLeg(L, C, side, k) {
 }
 
 // Head space: the origin is the neck pivot (L.neck), before the look's head size.
-export const EYE = {x: .04, y: .026, z: .1, r: [.0175, .0155, .011], tilt: .24};
+export const EYE = {x: .036, y: .027, z: .102, r: [.016, .0145, .0105], tilt: .26};
 function headPieces(C, nose) {
   const paint = headPaint(C), out = [], H = (f, c, reach, blend = JOIN.head, colour = paint) => out.push(piece(f, c, reach, colour, blend));
   // the braincase, and the brow over the eyes, so the forehead slopes from the crown to the nose
-  H(ellipsoid([0, .034, .03], [.057, .062, .07]), [0, .034, .03], .075);
-  H(ellipsoid([0, .03, .08], [.058, .032, .035]), [0, .03, .08], .06, JOIN.face);
+  H(ellipsoid([0, .036, .03], [.062, .062, .07]), [0, .036, .03], .075);
+  H(ellipsoid([0, .03, .078], [.066, .034, .036]), [0, .03, .078], .065, JOIN.face);
   // the cheekbones, widest a little below the eyes, so the face narrows to the muzzle
-  for (const s of [-1, 1]) H(ellipsoid([s * .038, -.01, .055], [.031, .031, .04]), [s * .038, -.01, .055], .05, .03);
+  for (const s of [-1, 1]) H(ellipsoid([s * .033, -.004, .056], [.028, .029, .038]), [s * .033, -.004, .056], .05, .03);
   // the muzzle: a short bridge, a compact block under the whisker pads, the nose leather and a small chin
   H(roundCone([0, .04, .1], [0, .006, .134], .016, .01), [0, .02, .118], .035, JOIN.face);
-  H(ellipsoid([0, -.021, .109], [.031, .023, .03]), [0, -.021, .109], .045, JOIN.face);
+  H(ellipsoid([0, -.021, .109], [.027, .022, .03]), [0, -.021, .109], .045, JOIN.face);
   for (const s of [-1, 1]) H(ellipsoid([s * .013, -.024, .124], [.015, .014, .014]), [s * .013, -.024, .124], .025, JOIN.face);
   H(ellipsoid([0, -.003, .14], [.009, .006, .005]), [0, -.003, .14], .012, .004, nose);
-  H(roundCone([0, -.03, .04], [0, -.04, .1], .024, .014), [0, -.035, .07], .045, JOIN.face);
+  H(roundCone([0, -.028, .045], [0, -.04, .1], .02, .012), [0, -.035, .07], .045, JOIN.face);
   H(ellipsoid([0, -.044, .107], [.012, .009, .012]), [0, -.044, .107], .02, JOIN.face);
   // the fur mound each ear grows from, so its base sits in the skull and not on its edge
   for (const s of [-1, 1]) { const {base, up, fwd, across} = earFrame(s), c = base.clone().addScaledVector(up, .002).addScaledVector(fwd, -.004); H(framedEllipsoid(c, [across, up, fwd], EAR.mound), c.toArray(), .04, .014); }
   // a shallow almond dish round each eye
-  for (const s of [-1, 1]) out.push(piece(ellipsoid([s * EYE.x, EYE.y, EYE.z + .006], [.019, .016, .008]), [s * EYE.x, EYE.y, EYE.z], .03, paint, .005, true));
+  for (const s of [-1, 1]) out.push(piece(ellipsoid([s * EYE.x, EYE.y, EYE.z + .006], [.0175, .015, .008]), [s * EYE.x, EYE.y, EYE.z], .03, paint, .005, true));
   return out;
 }
 
@@ -332,11 +339,11 @@ export function sculptEyes() {
 export function sculptFeline(L, {tail, headM}) {
   const C = {coat: rgb(L.coat), stripe: rgb(L.stripe), belly: rgb(L.belly), nose: rgb(L.nose)}; C.back = mix(C.coat, C.stripe, .2);
   const Y = L.Y, bw = L.heavy || 1, k = bw, paint = trunkPaint(L, C);
-  const body = [piece(trunkField(Y, bw), [0, Y - .01, -.01], .34, paint, JOIN.trunk)];
+  const body = [piece(trunkField(Y, bw, TRUNK, L.stretch || 0), [0, Y - .01, -.01], .34 + (L.stretch || 0) / 2, paint, JOIN.trunk)];
   // the neck from the withers into the back of the skull, the throat under it
-  const [, ny, nz] = L.neck, neck = [
-    piece(roundCone([0, Y + .02, .17], [0, ny - .01, nz - .005], .085 * bw, .07 * bw), [0, Y + .07, .23], .14, paint, JOIN.neck),
-    piece(roundCone([0, Y - .04, .21], [0, ny - .06, nz + .03], .052 * bw, .044 * bw), [0, Y + .02, .27], .12, paint, JOIN.neck),
+  const [, ny, nz] = L.neck, sz = L.shoulder[2], neck = [
+    piece(roundCone([0, Y + .02, sz + .02], [0, ny - .01, nz - .005], .085 * bw, .07 * bw), [0, Y + .07, sz + .08], .14, paint, JOIN.neck),
+    piece(roundCone([0, Y - .04, sz + .06], [0, ny - .06, nz + .03], .052 * bw, .044 * bw), [0, Y + .02, nz], .12, paint, JOIN.neck),
   ];
   // the shoulder blades, flat under the skin, their tops back toward the withers (with the body:
   // the step slides the shoulder joint, not the blade)

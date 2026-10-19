@@ -30,6 +30,8 @@ import {coatAttributes, coatMaterial} from './feline-coat.js';
 import {createFelineMind} from './feline-mind.js';
 
 export const BLEND = {spine: .06, leg: .022, tail: .03};
+// The back bones' lengths (hips to spine, spine to chest) before a sculpted pet's stretch.
+export const BACK = {spine: .1, chest: .12};
 // The sculpted skin's grid (fine enough for the toes and the forearm), and how far each part's
 // weights reach into its neighbours' skin.
 export const SCULPT = {res: 120, soft: .045};
@@ -107,18 +109,21 @@ export function growFelineHull(name, colour) { if (!hulls.has(name + '|' + (colo
 // `sculpt`: grow the skin from the sculpted anatomy (feline-sculpt.js) and paint it with the
 // per-pixel coat (feline-coat.js) instead of building it from the parts; the pets' looks do.
 export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
-  const {S, L, tailJoints, tailCurve, coat} = felineBuild(name, colour);
-  sculpt = hull && (sculpt ?? !!L.sculpt);
+  const built = felineBuild(name, colour), {S, tailJoints, tailCurve, coat} = built;
+  sculpt = hull && (sculpt ?? !!built.L.sculpt);
+  // a sculpted pet's longer back (feline-sculpt.js stretchZ): the rear half moved back by D and the
+  // front half forward by D, the skeleton with it
+  const D = sculpt ? (built.L.stretch || 0) / 2 : 0, L = D ? {...built.L, hip: [built.L.hip[0], built.L.hip[1], built.L.hip[2] - D], shoulder: [built.L.shoulder[0], built.L.shoulder[1], built.L.shoulder[2] + D], neck: [built.L.neck[0], built.L.neck[1], built.L.neck[2] + D]} : built.L;
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body); g.scale.setScalar(L.scale);
   const bones = [], names = {};
   const bone = (key, parent, pos) => { const b = new THREE.Bone(); b.name = key; b.position.set(...pos); if (parent) parent.add(b); bones.push(b); names[key] = bones.length - 1; b.userData.world = parent ? parent.userData.world.map((v, i) => v + pos[i]) : [...pos]; return b; };
   // spine, in body space: hips at the haunch, chest at the shoulders, neck at the model's neck pivot
-  const Y = L.Y, hips = bone('hips', null, [0, Y, -.12]), spine = bone('spine', hips, [0, 0, .1]), chest = bone('chest', spine, [0, 0, .12]);
-  const neck = bone('neck', chest, [L.neck[0], L.neck[1] - Y, L.neck[2] - .1]), head = bone('head', neck, [0, .04, .04]);
+  const Y = L.Y, hips = bone('hips', null, [0, Y, -.12 - D]), spine = bone('spine', hips, [0, 0, BACK.spine + D]), chest = bone('chest', spine, [0, 0, BACK.chest + D]);
+  const neck = bone('neck', chest, [L.neck[0], L.neck[1] - Y, L.neck[2] - (.1 + D)]), head = bone('head', neck, [0, .04, .04]);
   // tail: the root sits where the tail group did, four bones along the curve
-  const tailRoot = [0, Y + .05, -.29], tailBones = [];
+  const tailRoot = [0, Y + .05, -.29 - D], tailBones = [];
   let parent = hips, prev = [0, 0, 0];
-  for (let i = 0; i < 5; i++) { const pt = i === 0 ? [0, 0, 0] : tailJoints[i]; const b = bone('tail' + i, parent, i === 0 ? [tailRoot[0], tailRoot[1] - Y, tailRoot[2] + .12] : [pt[0] - prev[0], pt[1] - prev[1], pt[2] - prev[2]]); tailBones.push(b); parent = b; prev = pt; }
+  for (let i = 0; i < 5; i++) { const pt = i === 0 ? [0, 0, 0] : tailJoints[i]; const b = bone('tail' + i, parent, i === 0 ? [tailRoot[0], tailRoot[1] - Y, tailRoot[2] + .12 + D] : [pt[0] - prev[0], pt[1] - prev[1], pt[2] - prev[2]]); tailBones.push(b); parent = b; prev = pt; }
   // legs: joints from feline.js's buildLeg, as offsets from the leg root
   const legs = {};
   for (const side of [-1, 1]) for (const fore of [false, true]) {
@@ -137,11 +142,11 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
   const tailM = new THREE.Matrix4().makeTranslation(...tailRoot);
   const tj = tailJoints.map(([x, y, z]) => [x + tailRoot[0], y + tailRoot[1], z + tailRoot[2]]), arcs = [0]; for (let i = 1; i < tj.length; i++) arcs.push(arcs[i - 1] + Math.hypot(tj[i][0] - tj[i - 1][0], tj[i][1] - tj[i - 1][1], tj[i][2] - tj[i - 1][2]));
   // the neck: from the chest at the withers to the neck bone at the back of the skull
-  const nA = [0, Y + .02, .19], nB = L.neck, nD = [nB[0] - nA[0], nB[1] - nA[1], nB[2] - nA[2]], nL2 = nD[0] ** 2 + nD[1] ** 2 + nD[2] ** 2;
+  const nA = [0, Y + .02, .19 + D], nB = L.neck, nD = [nB[0] - nA[0], nB[1] - nA[1], nB[2] - nA[2]], nL2 = nD[0] ** 2 + nD[1] ** 2 + nD[2] ** 2;
   const weighFor = {
     neck: (x, y, z) => { const s = clamp01(((x - nA[0]) * nD[0] + (y - nA[1]) * nD[1] + (z - nA[2]) * nD[2]) / nL2), w = smooth((s - .15) / .85); return [[names.chest, 1 - w], [names.neck, w]]; },
     // sculpted: each handover at the joint the bone turns about, spread wide, so a bent back is one curve
-    body: (x, y, z) => (sculpt ? chainWeights(z, SPINE.joints, SPINE.blend) : chainWeights(z, [-.31, -.1, .08, .28], BLEND.spine)).map(([k, w]) => [names[['hips', 'spine', 'chest'][k]], w]),
+    body: (x, y, z) => (sculpt ? chainWeights(z, [SPINE.joints[0] - D, SPINE.joints[1], SPINE.joints[2] + D, SPINE.joints[3] + D], SPINE.blend) : chainWeights(z, [-.31, -.1, .08, .28], BLEND.spine)).map(([k, w]) => [names[['hips', 'spine', 'chest'][k]], w]),
     head: () => [[names.head, 1]],
     tail: (x, y, z) => { let best = 0, bd = Infinity, bs = 0; for (let i = 0; i < tj.length - 1; i++) { const ax = tj[i], bx = tj[i + 1], dx = bx[0] - ax[0], dy = bx[1] - ax[1], dz = bx[2] - ax[2], L2 = dx * dx + dy * dy + dz * dz || 1; const t = clamp01(((x - ax[0]) * dx + (y - ax[1]) * dy + (z - ax[2]) * dz) / L2); const px = ax[0] + dx * t, py = ax[1] + dy * t, pz = ax[2] + dz * t, d = (x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2; if (d < bd) { bd = d; best = i; bs = arcs[i] + Math.sqrt(L2) * t; } } return chainWeights(bs, arcs, BLEND.tail).map(([k, w]) => [names['tail' + k], w]); },
   };
@@ -160,7 +165,7 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
       hulls.set(key, grown);
     }
     const grown = hulls.get(key);
-    fur = new THREE.SkinnedMesh(grown.geometry, coatMaterial(L, {neck: L.neck, scale: (L.headSize || 1) * HEAD_SCALE, eye: [EYE.x, EYE.y, EYE.z]}));
+    fur = new THREE.SkinnedMesh(grown.geometry, coatMaterial(L, {neck: L.neck, scale: (L.headSize || 1) * HEAD_SCALE, eye: [EYE.x, EYE.y, EYE.z], front: L.shoulder[2] + .02}));
     details = new THREE.SkinnedMesh(grown.details, S.fur); details.castShadow = details.receiveShadow = true; details.frustumCulled = false; details.userData.part = 'details';
   } else if (hull && S.body.userData.pieces) {
     // one skin over everything, grown once per look
@@ -227,13 +232,14 @@ export function tailPose(u) {
 // forward and level with the knee near the elbow, the shin back down to the hock under the rump,
 // the foot flat on the floor with its toes just behind the front paws; the front legs stand
 // straight and upright under the shoulders. The tail lies back along the floor behind the rump,
-// its tip curled. The breath still runs. The numbers come from a search over the sculpted kitten's
+// its tip curled. A sculpted pet's longer back folds back to the length the sit was measured on
+// (`fold`: the lumbar spine curls as it sits). The breath still runs. The numbers come from a search over the sculpted kitten's
 // rig for those targets (tools/sit-search.mjs).
 export const SIT = {drop: .123, hz: .013, hips: -.708, spine: .023, chest: .361, thigh: -.459, knee: .682, hock: -.847, paw: 1.622, fore: .122, elbow: .634, wrist: -.44};
 // The sat tail, per bone (root first): down from the rump (x) and curling to the side (y).
 export const SIT_TAIL = {x: [-1.05, -.3, -.4, -.25, -.1], y: [0, .05, .15, .3, .4]};
 export function sitPose(u) {
-  const ph = u * TAU, breath = Math.sin(ph) * .5 + .5, pose = {hipsY: -SIT.drop, hipsZ: SIT.hz, chestScale: 1 + .02 * breath};
+  const ph = u * TAU, breath = Math.sin(ph) * .5 + .5, pose = {hipsY: -SIT.drop, hipsZ: SIT.hz, chestScale: 1 + .02 * breath, fold: 1};
   pose.spine = {x: SIT.spine}; pose.chest = {x: SIT.chest}; pose.hips = {x: SIT.hips};
   for (const key of ['lhind', 'rhind']) { pose[key + '0'] = {x: SIT.thigh}; pose[key + '1'] = {x: SIT.knee}; pose[key + '2'] = {x: SIT.hock}; pose[key + '3'] = {x: SIT.paw}; }
   for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: SIT.fore}; pose[key + '1'] = {x: SIT.elbow}; pose[key + '2'] = {x: SIT.wrist}; }
@@ -260,11 +266,11 @@ export const SIT_AFTER = 6;
 // the bones it names. The last frame repeats the first, so the loop is seamless.
 export function sampleClip(name, {pose, period, frames}, bonesByName) {
   const times = Array.from({length: frames + 1}, (_, i) => i / frames * period), per = new Map(), e = new THREE.Euler(), q = new THREE.Quaternion();
-  const hipsY = [], chestScale = []; let anyHipsY = false, anyScale = false;
+  const hipsY = [], chestScale = [], spineAt = [], chestAt = []; let anyHipsY = false, anyScale = false, anyFold = false;
   for (let i = 0; i <= frames; i++) {
     const p = pose((i % frames) / frames);
     for (const [key, o] of Object.entries(p)) {
-      if (key === 'hipsY' || key === 'hipsZ' || key === 'chestScale') continue;
+      if (key === 'hipsY' || key === 'hipsZ' || key === 'chestScale' || key === 'fold') continue;
       if (!bonesByName[key]) continue;
       if (!per.has(key)) per.set(key, []);
       e.set(o.x || 0, o.y || 0, o.z || 0); q.setFromEuler(e); per.get(key).push(q.x, q.y, q.z, q.w);
@@ -272,10 +278,14 @@ export function sampleClip(name, {pose, period, frames}, bonesByName) {
     const hy = bonesByName.hips ? bonesByName.hips.position : null;
     hipsY.push(hy ? hy.x : 0, (hy ? hy.y : 0) + (p.hipsY || 0), (hy ? hy.z : 0) + (p.hipsZ || 0)); if (p.hipsY || p.hipsZ) anyHipsY = true;
     chestScale.push(p.chestScale || 1, p.chestScale || 1, p.chestScale || 1); if (p.chestScale) anyScale = true;
+    // `fold`: how much of a longer back's extra length (the sculpted pets') folds away
+    for (const [bone, base, out] of [[bonesByName.spine, BACK.spine, spineAt], [bonesByName.chest, BACK.chest, chestAt]]) { const r = bone ? bone.position : null; out.push(r ? r.x : 0, r ? r.y : 0, r ? r.z - Math.max(0, r.z - base) * (p.fold || 0) : 0); }
+    if (p.fold) anyFold = true;
   }
   const tracks = [...per].map(([key, values]) => new THREE.QuaternionKeyframeTrack(key + '.quaternion', times, values));
   if (anyHipsY) tracks.push(new THREE.VectorKeyframeTrack('hips.position', times, hipsY));
   if (anyScale) tracks.push(new THREE.VectorKeyframeTrack('chest.scale', times, chestScale));
+  if (anyFold) tracks.push(new THREE.VectorKeyframeTrack('spine.position', times, spineAt), new THREE.VectorKeyframeTrack('chest.position', times, chestAt));
   return new THREE.AnimationClip(name, period, tracks);
 }
 

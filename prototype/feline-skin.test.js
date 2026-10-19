@@ -149,13 +149,13 @@ test('past the trot the stride slides into a gallop: the stride rate holds near 
   assert.ok(air > 20, `in the air ${air / 10}% of the stride`);
   assert.equal(spineAt(0), -1, 'gathered as the hind paws land'); assert.ok(Math.abs(spineAt(STEP.gallopLead) - 1) < 1e-9, 'stretched as the fore paws land');
   // and in motion: the spine slides the hips and chest apart and back
-  const a = createSkinnedFeline('housecat'), r = a.rig; let lo = Infinity, hi = -Infinity, s;
+  const a = createSkinnedFeline('housecat'), r = a.rig, rest = r.spine.position.z; let lo = Infinity, hi = -Infinity, s;
   for (let i = 0; i < 120; i++) { s = walkFor(a, 1, STEP.gallopTo + 2); if (i > 40) { lo = Math.min(lo, r.spine.position.z); hi = Math.max(hi, r.spine.position.z); } }
   assert.equal(s.gait, 'gallop'); assert.equal(s.stepWeight, 1);
   assert.ok(hi - lo > STEP.stretch * .2, `the spine stretches ${(hi - lo).toFixed(3)}`);
   // slowing to a walk, it walks again
   s = walkFor(a, 90, 2.8); assert.equal(s.gait, 'walk');
-  assert.ok(Math.abs(r.spine.position.z - .1) < 1e-6, `and the spine is back at its rest length: ${r.spine.position.z}`);
+  assert.ok(Math.abs(r.spine.position.z - rest) < 1e-6, `and the spine is back at its rest length: ${r.spine.position.z}`);
 });
 
 test('a planted paw stays put and no paw goes through the floor, kitten and housecat, walking, trotting and galloping', () => {

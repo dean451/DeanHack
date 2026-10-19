@@ -4,7 +4,7 @@
 // the pelvis taking the tilt, the hind feet flat on the floor with the toes just behind the front
 // paws, the front legs straight and upright, the rump on the floor.
 const THREE = await import(process.cwd() + '/node_modules/three/build/three.module.js');
-const {createSkinnedFeline, SIT} = await import(process.cwd() + '/feline-skin.js');
+const {createSkinnedFeline, SIT, BACK} = await import(process.cwd() + '/feline-skin.js');
 const {felineBuild} = await import(process.cwd() + '/feline.js');
 const name = process.argv[2] || 'kitten', {L} = felineBuild(name);
 const a = createSkinnedFeline(name, undefined, {sculpt: true}), bones = {}; a.g.traverse(o => { if (o.isBone) bones[o.name] = o; });
@@ -22,6 +22,7 @@ function apply(v) {
   bones.hips.quaternion.copy(e(v.hips)); bones.spine.quaternion.copy(e(v.spine)); bones.chest.quaternion.copy(e(v.chest));
   for (const k of ['l', 'r']) { bones[k + 'hind0'].quaternion.copy(e(v.thigh)); bones[k + 'hind1'].quaternion.copy(e(v.knee)); bones[k + 'hind2'].quaternion.copy(e(v.hock)); bones[k + 'hind3'].quaternion.copy(e(v.paw)); bones[k + 'fore0'].quaternion.copy(e(v.fore)); bones[k + 'fore1'].quaternion.copy(e(v.elbow)); bones[k + 'fore2'].quaternion.copy(e(v.wrist)); }
   a.rig.hips.position.set(restHips.x, restHips.y - v.drop, restHips.z + v.hz);
+  bones.spine.position.z = BACK.spine; bones.chest.position.z = BACK.chest; // the sit folds a longer back (feline-skin.js sitPose `fold`)
   a.g.updateMatrixWorld(true); a.fur.skeleton.update();
 }
 const p = new THREE.Vector3(), posed = i => { p.fromBufferAttribute(pos, i); a.fur.applyBoneTransform(i, p); return a.fur.localToWorld(p).clone(); };
@@ -44,8 +45,9 @@ function cost(v, report = false) {
   const fp = wp(bones.lfore2), hp = wp(bones.lhind3), hk = wp(bones.lhind2), sh = wp(bones.lfore0), hi = wp(bones.hips), ch = wp(bones.chest), hj = wp(bones.lhind0), kn = wp(bones.lhind1);
   const m = hull(), sp = Math.atan2(ch.y - hi.y, ch.z - hi.z) * 180 / Math.PI, [bu, corner, knee] = bulge();
   const t = {
-    // the front paws stay on the floor and may step back under the shoulders (a few cm), the legs upright
-    frontPawStays: 600 * (fp.y - rest.fpaw.y) ** 2 + 40 * Math.max(0, Math.abs(fp.z - rest.fpaw.z) - .035) ** 2,
+    // the front paws stay on the floor and may step back under the shoulders (up to 7 cm: a cat draws them
+    // in toward its hind feet as it settles), the legs upright
+    frontPawStays: 600 * (fp.y - rest.fpaw.y) ** 2 + 40 * Math.max(0, Math.abs(fp.z - rest.fpaw.z) - .07) ** 2,
     foreUpright: 120 * (sh.z - fp.z) ** 2,
     hindPawDown: 40 * (hp.y - rest.hpaw.y) ** 2,
     footFlat: 40 * (hk.y - rest.hpaw.y * 1.2) ** 2,
@@ -71,7 +73,7 @@ function cost(v, report = false) {
 }
 const now = {...SIT};
 console.log('now', JSON.stringify(cost(now, true)));
-let best = {drop: 0.154, hz: 0.087, hips: -0.9, spine: -0.05, chest: 0, thigh: -0.759, knee: 1.041, hock: -0.955, paw: 1.33, fore: 0.488, elbow: 0.611, wrist: -0.44}, bc = cost(best);
+let best = {...SIT}, bc = cost(best);
 let rnd = 7; const R = () => (rnd = (rnd * 16807) % 2147483647) / 2147483647;
 for (let restart = 0; restart < 5; restart++) {
   let cur = restart ? Object.fromEntries(P.map(k => [k, best[k] + (R() - .5) * (k === 'drop' || k === 'hz' ? .06 : .6)])) : {...best}, cc = cost(cur);

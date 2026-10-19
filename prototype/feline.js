@@ -37,9 +37,9 @@ import {segment,chain} from './ant.js';
 // quirk 'feline'.
 
 export const LOOKS={
- kitten:{scruffy:true,bold:true,scale:.7,sculpt:true,coat:'#857360',stripe:'#1c1611',belly:'#d3c2a3',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby',headSize:1.12,legH:.16,tail:'hook',tailLen:1.25},
- housecat:{scruffy:true,bold:true,scale:1,legH:.19,tail:'hook',tailLen:1.2,sculpt:true,coat:'#857360',stripe:'#1c1611',belly:'#d3c2a3',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
- 'large cat':{scruffy:true,bold:true,scale:1.15,legH:.2,tail:'hook',tailLen:1.2,sculpt:true,coat:'#857360',stripe:'#1c1611',belly:'#d3c2a3',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
+ kitten:{scruffy:true,bold:true,scale:.7,sculpt:true,stretch:.07,coat:'#857360',stripe:'#1c1611',belly:'#d3c2a3',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby',headSize:1.12,legH:.16,tail:'hook',tailLen:1.25},
+ housecat:{scruffy:true,bold:true,scale:1,legH:.19,tail:'hook',tailLen:1.2,sculpt:true,stretch:.07,coat:'#857360',stripe:'#1c1611',belly:'#d3c2a3',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
+ 'large cat':{scruffy:true,bold:true,scale:1.15,legH:.2,tail:'hook',tailLen:1.2,sculpt:true,stretch:.07,coat:'#857360',stripe:'#1c1611',belly:'#d3c2a3',nose:'#b0675a',eye:'#9fa83c',pattern:'tabby'},
  jaguar:{scale:1.4,coat:'#c99a48',stripe:'#24180e',belly:'#c4b497',nose:'#5e3630',eye:'#e0b040',pattern:'rosette',ears:'round',round:true,heavy:1.15,headSize:.95,tail:'low',tailLen:.9},
  lynx:{scale:1.1,coat:'#a88f70',stripe:'#5a4630',belly:'#b8ac98',nose:'#5a3a30',eye:'#c8b040',pattern:'spots',tufts:true,ruff:true,legH:.26,tail:'bob'},
  panther:{scale:1.45,coat:'#232226',stripe:'#121114',belly:'#2e2c32',nose:'#141214',eye:'#9ad04a',pattern:'ghost',ears:'round',round:true,heavy:1.1,headSize:.95,tail:'low',gloss:.45,whisker:'#8a8a8a'},

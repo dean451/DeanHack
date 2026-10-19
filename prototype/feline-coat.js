@@ -50,7 +50,7 @@ export function coatAttributes(geometry, boneNames, tail) {
 }
 
 const GLSL = `
-uniform vec3 uStripe; uniform float uY, uHeadScale; uniform vec3 uNeck; uniform vec3 uEye;
+uniform vec3 uStripe; uniform float uY, uHeadScale, uFront; uniform vec3 uNeck; uniform vec3 uEye;
 varying vec3 vRest; varying vec4 vPart; varying float vArc;
 float h31(vec3 p) { p = fract(p * vec3(.1031, .1030, .0973)); p += dot(p, p.yzx + 33.33); return fract((p.x + p.y) * p.z); }
 float vnoise(vec3 p) {
@@ -86,7 +86,7 @@ vec3 tabby(vec3 base) {
   float spine = top * max(1. - rs(${COAT.spine.toFixed(3)} * .7, ${COAT.spine.toFixed(3)} * 1.3, ax + (warp.x) * .006),
     stripe((ax - ${COAT.spineSide.toFixed(3)}) / .03 + .5 + warp.y * .4, .3) * step(.4, fbm(p * 18.)) * rs(${COAT.spineSide.toFixed(3)} + .02, ${COAT.spineSide.toFixed(3)} + .01, ax));
   // the necklaces: bands across the throat and chest
-  float front = rs(.17, .22, p.z) * rs(uY + .06, uY + .01, p.y);
+  float front = rs(uFront, uFront + .05, p.z) * rs(uY + .06, uY + .01, p.y);
   float neck = front * stripe((p.y + p.z * .5) / ${COAT.necklace.toFixed(3)} + warp.x * 1.2, .34) * rs(.3, .45, fbm(p * 12. + 7.) + .2);
   float body = max(max(flank, spine), neck);
   // legs: bars round the outside of the leg, fading toward the paw
@@ -104,12 +104,12 @@ vec3 tabby(vec3 base) {
   m = max(m, 1. - rs(.0018, .0032, seg2(vec2(hx, h.y), vec2(.024, .046), vec2(.032, .066))));
   float crownLines = rs(.062, .075, h.y) * rs(.075, .045, h.z) * rs(.035, .028, hx) * stripe(hx / .02 + .5 + warp.x * .25, .22) * step(.35, fbm(p * 30.));
   float mLines = max(m * brow, crownLines);
-  float eyeD = length(vec2((hx - uEye.x) / .026, (h.y - uEye.y) / .022));
+  float eyeD = length(vec2((hx - uEye.x) / .023, (h.y - uEye.y) / .02));
   float behindEye = rs(uEye.z + .01, uEye.z - .03, h.z);
   float swirl1 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .005) + (uEye.z - h.z) * .25))) * rs(.045, .06, hx) * behindEye;
   float swirl2 = (1. - rs(.003, .007, abs(h.y - (uEye.y - .03) + (uEye.z - h.z) * .55))) * rs(.04, .055, hx) * behindEye * rs(uEye.z - .07, uEye.z - .03, h.z);
-  float rim = (1. - rs(.0, .1, abs(eyeD - 1.02))) * rs(.06, .09, h.z) * .8;
-  float specs = (1. - rs(.08, .25, abs(eyeD - 1.3))) * rs(.06, .09, h.z) * .5;
+  float rim = (1. - rs(.0, .08, abs(eyeD - 1.)) ) * rs(.06, .09, h.z) * .6;
+  float specs = (1. - rs(.08, .25, abs(eyeD - 1.3))) * rs(.06, .09, h.z) * .3;
   // whisker spots: rows of small dark follicles across each whisker pad
   float follicles = 0.;
   for (int i = 0; i < ${follicles().length}; i++) follicles = max(follicles, 1. - smoothstep(.0008, .0013, length(vec2(hx, h.y) - FOLLICLE[i].xy)) * step(FOLLICLE[i].z - .02, h.z));
@@ -127,14 +127,14 @@ vec3 tabby(vec3 base) {
 `;
 
 const cache = new Map();
-// The coat material for a look: `L` is feline.js's layout, `head` {neck: pivot, scale}, `eye` the
-// eye centre in head space. Shared by every cat of the look.
-export function coatMaterial(L, {neck, scale, eye}) {
-  const key = [L.coat, L.stripe, L.Y, scale].join('|');
+// The coat material for a look: `L` is feline.js's layout, `neck` the head's pivot and `scale` its
+// size, `eye` the eye centre in head space, `front` where the chest's necklaces begin (z). Shared by every cat of the look.
+export function coatMaterial(L, {neck, scale, eye, front}) {
+  const key = [L.coat, L.stripe, L.Y, scale, front].join('|');
   if (cache.has(key)) return cache.get(key);
   const m = new THREE.MeshPhysicalMaterial({vertexColors: true, roughness: .86, metalness: 0, sheen: .2, sheenRoughness: .7, sheenColor: new THREE.Color(L.belly)});
   m.onBeforeCompile = sh => {
-    Object.assign(sh.uniforms, {uStripe: {value: new THREE.Color(L.stripe)}, uY: {value: L.Y}, uNeck: {value: new THREE.Vector3(...neck)}, uHeadScale: {value: scale}, uEye: {value: new THREE.Vector3(...eye)}});
+    Object.assign(sh.uniforms, {uStripe: {value: new THREE.Color(L.stripe)}, uY: {value: L.Y}, uNeck: {value: new THREE.Vector3(...neck)}, uHeadScale: {value: scale}, uEye: {value: new THREE.Vector3(...eye)}, uFront: {value: front}});
     sh.vertexShader = 'attribute vec3 aRest; attribute vec4 aPart; attribute float aArc; varying vec3 vRest; varying vec4 vPart; varying float vArc;\n' + sh.vertexShader
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRest = aRest; vPart = aPart; vArc = aArc;');
     sh.fragmentShader = GLSL + sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb = tabby(diffuseColor.rgb);');
