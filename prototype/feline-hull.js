@@ -31,6 +31,13 @@ export function pieceField(rec, M) {
   const inv = quat.clone().invert(), ax = Math.abs(scale.x), ay = Math.abs(scale.y), az = Math.abs(scale.z), smin = Math.min(ax, ay, az), smax = Math.max(ax, ay, az);
   const p = rec.parameters || {};
   let local, reach, thin;
+  if (rec.type === 'sdf') {
+    // a distance function of its own (feline-sculpt.js), already in the part's frame
+    const back = M ? M.clone().invert() : null, at = w => { _p.copy(w); if (back) _p.applyMatrix4(back); return _p; };
+    const sdf = w => { const q = at(w); return rec.field(q.x, q.y, q.z) * smin; };
+    const colourAt = w => { if (typeof rec.colour !== 'function') return rec.colour; const q = at(w); return rec.colour(q.x, q.y, q.z); };
+    return {sdf, centre: new THREE.Vector3(...rec.centre).applyMatrix4(world), reach: rec.reach * smax, thin: rec.thin * smin, colourAt, rec, M, blend: rec.blend != null ? rec.blend * smin : null, cut: !!rec.cut};
+  }
   if (rec.type === 'SphereGeometry') {
     const r = p.radius;
     local = q => (q.length() - r) * smin; reach = r * smax; thin = r * smin;
@@ -67,31 +74,33 @@ export function pieceField(rec, M) {
 }
 
 const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * .25; };
+const smax = (a, b, k) => -smin(-a, -b, k);
 
 // parts: [{group, M, pieces}] with M placing the part in the body frame. Returns {geometry (the
 // skin, welded, smooth normals, vertex colours, `groups` per vertex), details (the thin pieces as
 // one geometry with the same attributes), ms}. `weigh(group, x, y, z)` -> [[bone, w]...] adds the
-// skin attributes when given.
-export function growHull(parts, {res = HULL.res, blend = HULL.blend, pad = HULL.pad, thin = HULL.thin, weigh = null} = {}) {
+// skin attributes when given; `soft` blends the parts' weights where they meet (see dress).
+export function growHull(parts, {res = HULL.res, blend = HULL.blend, pad = HULL.pad, thin = HULL.thin, weigh = null, soft = 0} = {}) {
   const t0 = performance.now();
   const fields = [], details = [];
   for (const part of parts) for (const rec of part.pieces || []) {
     if (rec.type === 'ConeGeometry' && rec.parameters.height < TUFT.height) continue;
     const f = pieceField(rec, part.M); f.group = part.group;
-    if (f.thin < thin && rec.type !== 'shaped') details.push(f); else fields.push(f);
+    if (f.thin < thin && rec.type !== 'shaped' && rec.type !== 'sdf') details.push(f); else fields.push(f);
   }
   // the grid: a cube round every piece's reach, plus the margin
   const lo = new THREE.Vector3(Infinity, Infinity, Infinity), hi = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
-  for (const f of fields) { lo.min(_p.copy(f.centre).subScalar(f.reach)); hi.max(_p.copy(f.centre).addScalar(f.reach)); }
+  for (const f of fields) if (!f.cut) { lo.min(_p.copy(f.centre).subScalar(f.reach)); hi.max(_p.copy(f.centre).addScalar(f.reach)); }
   const size = hi.clone().sub(lo), side = Math.max(size.x, size.y, size.z) + 2 * pad, origin = lo.clone().add(size.clone().multiplyScalar(.5)).subScalar(side / 2), cell = side / res;
   const mc = new MarchingCubes(res, new THREE.MeshBasicMaterial(), false, false, HULL.maxPoly);
   mc.isolation = HULL.iso;
-  const K = HULL.iso / (2 * cell), near = fields.map(f => ({f, r2: (f.reach + 4 * blend) ** 2}));
+  const K = HULL.iso / (2 * cell), near = fields.map(f => ({f, r2: (f.reach + 4 * (f.blend ?? blend)) ** 2}));
   const field = mc.field, w = new THREE.Vector3();
   for (let z = 0; z < res; z++) for (let y = 0; y < res; y++) for (let x = 0; x < res; x++) {
     w.set(origin.x + x * cell, origin.y + y * cell, origin.z + z * cell);
     let d = 1;
-    for (const {f, r2} of near) { if (w.distanceToSquared(f.centre) > r2) continue; d = smin(d, f.sdf(w), blend); }
+    // in order: each piece joins with its own fillet, and a cut carves what came before it
+    for (const {f, r2} of near) { if (w.distanceToSquared(f.centre) > r2) continue; const k = f.blend ?? blend; d = f.cut ? smax(d, -f.sdf(w), k) : smin(d, f.sdf(w), k); }
     field[z * res * res + y * res + x] = HULL.iso - d * K;
   }
   mc.update();
@@ -100,23 +109,33 @@ export function growHull(parts, {res = HULL.res, blend = HULL.blend, pad = HULL.
   for (let i = 0; i < n; i++) { pos[i * 3] = origin.x + (mc.positionArray[i * 3] + 1) * side / 2; pos[i * 3 + 1] = origin.y + (mc.positionArray[i * 3 + 1] + 1) * side / 2; pos[i * 3 + 2] = origin.z + (mc.positionArray[i * 3 + 2] + 1) * side / 2; }
   let geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geometry = mergeVertices(geometry, 1e-5); geometry.computeVertexNormals();
-  dress(geometry, fields, weigh);
+  dress(geometry, fields, weigh, soft);
   const detailGeo = details.length ? buildDetails(details, weigh) : null;
   mc.material.dispose(); mc.geometry?.dispose?.();
   return {geometry, details: detailGeo, ms: performance.now() - t0, cells: res ** 3, pieces: fields.length, thin: details.length};
 }
 
-// Colour and bone weights from the nearest primitive, per vertex.
-function dress(geometry, fields, weigh) {
-  const p = geometry.attributes.position, n = p.count, col = new Float32Array(n * 3), groups = new Array(n), w = new THREE.Vector3();
+// Colour and bone weights from the nearest primitive, per vertex. With `soft`, each part's weights
+// are mixed in by how near the vertex is to that part (falling off over `soft`), so the skin bends
+// smoothly where parts meet instead of tearing along the line where one part takes over.
+function dress(geometry, all, weigh, soft = 0) {
+  const fields = all.filter(f => !f.cut), p = geometry.attributes.position, n = p.count, col = new Float32Array(n * 3), groups = new Array(n), w = new THREE.Vector3();
   const idx = weigh ? new Uint16Array(n * 4) : null, wt = weigh ? new Float32Array(n * 4) : null;
   for (let i = 0; i < n; i++) {
-    w.fromBufferAttribute(p, i); let best = null, bd = Infinity;
-    for (const f of fields) { if (w.distanceTo(f.centre) > f.reach + .08) continue; const d = f.sdf(w); if (d < bd) { bd = d; best = f; } }
+    w.fromBufferAttribute(p, i); let best = null, bd = Infinity; const near = soft ? new Map() : null;
+    for (const f of fields) { if (w.distanceTo(f.centre) > f.reach + .08) continue; const d = f.sdf(w); if (d < bd) { bd = d; best = f; } if (near && d < (near.get(f.group) ?? Infinity)) near.set(f.group, d); }
     if (!best) for (const f of fields) { const d = f.sdf(w); if (d < bd) { bd = d; best = f; } }
     const c = best.colourAt(w); for (let k = 0; k < 3; k++) col[i * 3 + k] = Math.max(0, Math.min(1, c[k]));
     groups[i] = best.group;
-    if (weigh) { const list = weigh(best.group, w.x, w.y, w.z).sort((a, b) => b[1] - a[1]).slice(0, 4), sum = list.reduce((a, [, x]) => a + x, 0) || 1; list.forEach(([bone, x], k) => { idx[i * 4 + k] = bone; wt[i * 4 + k] = x / sum; }); }
+    if (weigh) {
+      let list;
+      if (soft && near.size > 1) {
+        const sum = new Map(); let total = 0;
+        for (const [g, d] of near) { const m = Math.max(0, 1 - (d - bd) / soft) ** 2; if (m <= 0) continue; total += m; for (const [bone, x] of weigh(g, w.x, w.y, w.z)) sum.set(bone, (sum.get(bone) || 0) + x * m); }
+        list = [...sum].map(([bone, x]) => [bone, x / total]);
+      } else list = weigh(best.group, w.x, w.y, w.z);
+      list = list.sort((a, b) => b[1] - a[1]).slice(0, 4); const sum = list.reduce((a, [, x]) => a + x, 0) || 1; list.forEach(([bone, x], k) => { idx[i * 4 + k] = bone; wt[i * 4 + k] = x / sum; });
+    }
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(col, 3));
   if (weigh) { geometry.setAttribute('skinIndex', new THREE.BufferAttribute(idx, 4)); geometry.setAttribute('skinWeight', new THREE.BufferAttribute(wt, 4)); }

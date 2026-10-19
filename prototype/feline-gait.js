@@ -310,8 +310,9 @@ export function createStepper(rig, actor, opts = {}) {
       const k = L.fromRest ? st.weight : 1;
       solve(L, T, pitch * k, L.hind ? L.restAnkle + (ankle - L.restAnkle) * k : 0, L.fromRest ? 1 : st.weight);
       L.leg.plant = L.stance ? L.plant : null; L.leg.ik = {reach: L.reach, stance: L.stance, forced: L.forced || 0};
-      // a planted paw the leg can no longer reach (a teleport, a shove, a change of gait) steps at once
-      if (L.stance && L.reach > 1 && st.go && !st.stopping) lift(true);
+      // a planted paw the leg can no longer reach (a teleport, a shove, a change of gait, the end of a
+      // turn on the spot) steps at once, settling or not
+      if (L.stance && L.reach > 1 && (st.go || st.stopping)) lift(true);
     }
     if (st.stopping && standing === 4) { st.settled = true; st.stopping = false; }
     return state();

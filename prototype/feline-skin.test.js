@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import {FUR} from './feline-coat.js';
 import {createSkinnedFeline, updateSkinnedFeline, chainWeights, CLIPS, SIT_AFTER, POUNCE, TURN, BLINK, SIT} from './feline-skin.js';
 import {STEP, strideAt, spineAt} from './feline-gait.js';
 import {simulateGait, analyseGait} from './cat-measure.js';
@@ -21,8 +22,8 @@ test('chain weights blend softly across joints and always sum to one', () => {
 test('the skinned cat is two skinned meshes over one skeleton, weighted, bound at rest, standing on the floor with the rigid cat\'s footprint', () => {
   for (const name of ['kitten', 'housecat', 'large cat']) {
     const a = createSkinnedFeline(name), rigid = createFeline(name);
-    const skinned = []; a.g.traverse(o => { if (o.isSkinnedMesh) skinned.push(o); });
-    assert.equal(skinned.length, 3, `${name}: fur, details, eyes`); assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton));
+    const skinned = [], shells = []; a.g.traverse(o => { if (o.isSkinnedMesh) (o.userData.part === 'fur-shell' ? shells : skinned).push(o); });
+    assert.equal(skinned.length, 3, `${name}: fur, details, eyes`); assert.equal(shells.length, FUR.shells, `${name}: the fur's layers`); assert.ok(shells.every(m => m.skeleton === skinned[0].skeleton && m.geometry === a.fur.geometry), 'the layers are the skin again, on the same bones'); assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton));
     assert.equal(skinned[0].skeleton.bones.length, 24, 'hips, spine, chest, neck, head, 5 tail, 3+4 per side');
     for (const m of skinned) {
       const w = m.geometry.attributes.skinWeight, idx = m.geometry.attributes.skinIndex;
@@ -96,7 +97,7 @@ test('a pet that stands still long enough sits down, and gets up the moment it w
   let r; for (let t = 0; t < 2; t += 1 / 60) r = updateSkinnedFeline(a, 1 / 60, null, false);
   assert.ok(r.sitting && actions.sit.getEffectiveWeight() === 1 && actions.idle.getEffectiveWeight() === 0, 'sat');
   assert.ok(a.rig.hips.position.y < a.rig.hips.userData.world[1] - .05, 'the haunches are down');
-  assert.ok(a.rig.legs.lhind.bones[1].rotation.x > .5 && a.rig.legs.lhind.bones[0].rotation.x < -.8, 'the hind legs are folded forward');
+  assert.ok(a.rig.legs.lhind.bones[1].rotation.x > .5 && a.rig.hips.rotation.x + a.rig.legs.lhind.bones[0].rotation.x < -.8, 'the hind legs are folded forward (the pelvis tipped back and the thigh forward)');
   for (let i = 0; i < 40; i++) r = updateSkinnedFeline(a, 1 / 60, null, true);
   assert.ok(!r.sitting && r.step.stepping && r.stepWeight === 1 && actions.sit.getEffectiveWeight() === 0, 'up and walking');
   // the sit clip is a loop; the pounce is a one-shot
@@ -149,13 +150,13 @@ test('past the trot the stride slides into a gallop: the stride rate holds near 
   assert.ok(air > 20, `in the air ${air / 10}% of the stride`);
   assert.equal(spineAt(0), -1, 'gathered as the hind paws land'); assert.ok(Math.abs(spineAt(STEP.gallopLead) - 1) < 1e-9, 'stretched as the fore paws land');
   // and in motion: the spine slides the hips and chest apart and back
-  const a = createSkinnedFeline('housecat'), r = a.rig; let lo = Infinity, hi = -Infinity, s;
+  const a = createSkinnedFeline('housecat'), r = a.rig, rest = r.spine.position.z; let lo = Infinity, hi = -Infinity, s;
   for (let i = 0; i < 120; i++) { s = walkFor(a, 1, STEP.gallopTo + 2); if (i > 40) { lo = Math.min(lo, r.spine.position.z); hi = Math.max(hi, r.spine.position.z); } }
   assert.equal(s.gait, 'gallop'); assert.equal(s.stepWeight, 1);
   assert.ok(hi - lo > STEP.stretch * .2, `the spine stretches ${(hi - lo).toFixed(3)}`);
   // slowing to a walk, it walks again
   s = walkFor(a, 90, 2.8); assert.equal(s.gait, 'walk');
-  assert.ok(Math.abs(r.spine.position.z - .1) < 1e-6, `and the spine is back at its rest length: ${r.spine.position.z}`);
+  assert.ok(Math.abs(r.spine.position.z - rest) < 1e-6, `and the spine is back at its rest length: ${r.spine.position.z}`);
 });
 
 test('a planted paw stays put and no paw goes through the floor, kitten and housecat, walking, trotting and galloping', () => {

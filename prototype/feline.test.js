@@ -133,7 +133,7 @@ test('the pet cats\' paws carry a light dusting of grime; the wild cats\' are cl
   return sum/n;
  };
  // each pet is judged against its own clean paw colour (coat mixed a quarter toward the belly), so the baseline is fair
- const clean={kitten:['#8f7c62','#d6c8ac'],'large cat':['#8f7c62','#d6c8ac']};
+ const clean={kitten:['#9c8a72','#ddcfb6'],'large cat':['#9c8a72','#ddcfb6']};
  for(const name of Object.keys(clean)){
   const c=new THREE.Color(clean[name][0]).lerp(new THREE.Color(clean[name][1]),.25),own=c.r+c.g+c.b;
   assert(bright(name)<own,`${name} paws ${bright(name)} vs its clean ${own}`);

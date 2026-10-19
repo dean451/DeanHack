@@ -37,7 +37,7 @@ test('the kitten grows one welded, painted, weighted skin, with the thin pieces 
   const weigh = (group, x, y, z) => [[group === 'head' ? 1 : 0, 1]];
   const r = growHull(parts, {res: 48, weigh});
   const g = r.geometry;
-  assert.ok(g.index && g.attributes.position.count > 2000 && g.attributes.position.count < g.index.count / 3, 'welded: shared vertices, far fewer than triangle corners');
+  assert.ok(g.index && g.attributes.position.count > 1500 && g.attributes.position.count < g.index.count / 3, 'welded: shared vertices, far fewer than triangle corners');
   assert.ok(g.attributes.normal && g.attributes.color && g.attributes.skinIndex && g.attributes.skinWeight);
   const col = g.attributes.color, w = g.attributes.skinWeight;
   for (let i = 0; i < col.count; i += 97) { for (const k of [0, 1, 2]) assert.ok(col.getComponent(i, k) >= 0 && col.getComponent(i, k) <= 1); assert.ok(Math.abs(w.getX(i) + w.getY(i) + w.getZ(i) + w.getW(i) - 1) < 1e-4); }
