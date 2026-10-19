@@ -25,7 +25,7 @@ import {felineBuild} from './feline.js';
 import {growHull} from './feline-hull.js';
 import {FELINE_GLIDE} from './slide.js';
 import {createStepper} from './feline-gait.js';
-import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE} from './feline-sculpt.js';
+import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE, TAIL_SCULPT} from './feline-sculpt.js';
 import {createFelineMind} from './feline-mind.js';
 
 export const BLEND = {spine: .06, leg: .022, tail: .03};
@@ -35,6 +35,9 @@ export const SCULPT = {res: 120, soft: .045};
 // The sculpted back's bone weights along z: the hips, spine and chest bones hand over at the joints
 // they turn about (the spine bone at z -.02, the chest at .1), each over 2 x blend.
 export const SPINE = {joints: [-.31, -.02, .1, .28], blend: .07};
+// How far above the floor a resting tail's joints keep their skin (body units): its radius plus this,
+// which also covers the skin bowing a little below the straight line between two joints.
+export const TAIL_REST = {clear: .008};
 // The animator's measured speed is smoothed at `smooth` per second; clips cross-fade over `fade` s.
 export const GAIT = {smooth: 6, fade: .3};
 // Secondary motion, laid on after the mixer (none of it accumulates: each is a fresh offset
@@ -222,9 +225,9 @@ export function tailPose(u) {
 // straight and upright under the shoulders. The tail lies back along the floor behind the rump,
 // its tip curled. The breath still runs. The numbers come from a search over the sculpted kitten's
 // rig for those targets (tools/sit-search.mjs).
-export const SIT = {drop: .145, hz: .051, hips: -.438, spine: -.517, chest: .332, thigh: -.891, knee: .844, hock: -.705, paw: 1.33, fore: .438, elbow: .601, wrist: -.44};
+export const SIT = {drop: .123, hz: .013, hips: -.708, spine: .023, chest: .361, thigh: -.459, knee: .682, hock: -.847, paw: 1.622, fore: .122, elbow: .634, wrist: -.44};
 // The sat tail, per bone (root first): down from the rump (x) and curling to the side (y).
-export const SIT_TAIL = {x: [-1.35, -.3, -.4, -.25, -.1], y: [0, .05, .15, .3, .4]};
+export const SIT_TAIL = {x: [-1.05, -.3, -.4, -.25, -.1], y: [0, .05, .15, .3, .4]};
 export function sitPose(u) {
   const ph = u * TAU, breath = Math.sin(ph) * .5 + .5, pose = {hipsY: -SIT.drop, hipsZ: SIT.hz, chestScale: 1 + .02 * breath};
   pose.spine = {x: SIT.spine}; pose.chest = {x: SIT.chest}; pose.hips = {x: SIT.hips};
@@ -305,6 +308,28 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   const blink = {until: BLINK.gap + rnd() * BLINK.span, shut: 0, again: false};
   const mind = createFelineMind(rig, actor, {seed});
   const _lq = new THREE.Quaternion(), _le = new THREE.Euler();
+  // The tail rests on the floor rather than through it, whatever laid it there (the sit, its sway,
+  // the mind's hook, the trailing spring): root to tip, a joint that would sink below the floor
+  // (less its radius), or the middle of a segment that would, lifts that segment about the joint
+  // before it, just enough to lie on it.
+  const _fa = new THREE.Vector3(), _fb = new THREE.Vector3(), _fn = new THREE.Vector3(), _fq = new THREE.Quaternion(), _fs = new THREE.Vector3();
+  function restTail() {
+    const g = root.parent; if (!g || !rig.tail?.length) return;
+    g.updateMatrixWorld(true);
+    const floor = g.getWorldPosition(_fa).y, scale = g.getWorldScale(_fs).y, n = rig.tail.length - 1;
+    for (let k = 1; k <= n; k++) for (const t of [.5, 1]) {
+      const pivot = rig.tail[k - 1], r = (TAIL_SCULPT.root + (TAIL_SCULPT.tip - TAIL_SCULPT.root) * (k - 1 + t) / n) * scale + TAIL_REST.clear;
+      pivot.getWorldPosition(_fa); rig.tail[k].getWorldPosition(_fb);
+      // the point t of the way along the segment
+      const seg = _fb.sub(_fa).multiplyScalar(t), len = seg.length(), flat = Math.hypot(seg.x, seg.z);
+      if (_fa.y + seg.y - r >= floor || flat < 1e-5) continue;
+      const lift = Math.asin(Math.max(-1, Math.min(1, (floor + r - _fa.y) / len))) - Math.asin(seg.y / len);
+      if (!(lift > 0)) continue;
+      // about the horizontal axis across the segment, in the pivot's parent's frame
+      _fn.crossVectors(seg, _fs.set(0, 1, 0)).normalize().applyQuaternion(pivot.parent.getWorldQuaternion(_fq).invert());
+      pivot.quaternion.premultiply(_fq.setFromAxisAngle(_fn, lift)); pivot.updateMatrixWorld(true);
+    }
+  }
   const last = new THREE.Vector3();
   if (actor?.g) last.copy(actor.g.position);
   // Fades `to` in over `from` (the example's setWeight first: re-enable, full weight).
@@ -342,6 +367,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     if (mood.slowBlink && actor?.eyes && blink.shut <= 0) { blink.shut = BLINK.slow; blink.again = false; }
     // (a sitting cat's legs belong to the sit clip)
     stepped = stepper.update(dt, walking && !pouncing, actual, pouncing || sitting, sitting ? {} : {hold: mood.hold, turn: mood.turn, crouch: mood.crouch});
+    restTail();
     const gait = stepped.stepping ? stepped.gait : Object.keys(actions).find(k => actions[k] === base);
     return {walking, pouncing, speed, pace, sitting: base === actions.sit, gait, mood, step: stepped, stepWeight: stepped.weight, idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
   }
@@ -373,7 +399,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   function show(name, u = 0) {
     for (const [key, a] of Object.entries(actions)) { a.enabled = true; a.paused = false; a.setEffectiveWeight(key === name || key === 'tail' ? 1 : 0); }
     const a = actions[name]; a.play(); a.time = u * a.getClip().duration; a.paused = true;
-    mixer.update(0); secondary(0, 0); // the neck's levelling too, so a tool shows the head as the game would
+    mixer.update(0); secondary(0, 0); restTail(); // the neck's levelling too, so a tool shows the head as the game would
   }
   return {mixer, actions, update, show, stepper, mind, get walking() { return walking; }, get base() { return Object.keys(actions).find(k => actions[k] === base); }};
 }

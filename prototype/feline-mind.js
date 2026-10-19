@@ -62,7 +62,7 @@ export function createFelineMind(rig, actor, {seed = 1} = {}) {
   const st = {mood: 'content', w: {content: 1, hunting: 0, wary: 0}, yaw: 0, pitch: 0, aim: null, kind: null, snapping: false,
     glance: range(MIND.glanceGap), glancing: 0, scan: range(MIND.scanGap), scanning: 0, scanAt: {yaw: 0, pitch: 0},
     behind: 0, turning: false, turnTo: 0, wiggle: range(MIND.wiggleGap), wiggling: 0, blink: range(MIND.slowBlinkGap), t: 0,
-    hookSide: rnd() < .5 ? -1 : 1, hookIn: range(TAIL_HOOK.gap), hookAt: 0};
+    hookSide: rnd() < .5 ? -1 : 1, hookIn: range(TAIL_HOOK.gap), hookAt: 0, sat: 0};
   // each tail bone's sideways bend axis: across its own line (bones rest unturned, so a bone's line
   // is where its child sits), so a bone running back bends about up and one standing up about forward
   const sideAxis = rig.tail.map((b, i) => { const d = (rig.tail[i + 1] || b).position.clone().normalize(), a = d.cross(new THREE.Vector3(1, 0, 0)); return a.lengthSq() > 1e-6 ? a.normalize() : new THREE.Vector3(0, 1, 0); });
@@ -136,7 +136,9 @@ export function createFelineMind(rig, actor, {seed = 1} = {}) {
     const twitch = mix('twitch') * Math.sin(st.t * 22) * burst, lash = mix('lash') * Math.sin(st.t * 4.4);
     if ((st.hookIn -= dt) <= 0) { st.hookIn = range(TAIL_HOOK.gap); st.hookSide = -st.hookSide; }
     st.hookAt += (st.hookSide - st.hookAt) * (1 - Math.exp(-dt * TAIL_HOOK.rate));
-    const side = mix('side') * st.hookAt;
+    // sitting, the tail lies along the floor (the sit clip curls it there), so the upright hook eases out
+    st.sat += ((ctx.sitting ? 1 : 0) - st.sat) * (1 - Math.exp(-dt * 3));
+    const side = mix('side') * st.hookAt * (1 - st.sat);
     rig.tail.forEach((b, i) => {
       const tip = i / (rig.tail.length - 1); b.quaternion.multiply(_q.setFromEuler(_e.set((i ? lift * .15 : lift) + hook * tip * tip, lash * (i ? .25 : 0) + twitch * tip, 0)));
       if (side) b.quaternion.multiply(_q.setFromAxisAngle(sideAxis[i], side * (TAIL_HOOK.share[i] ?? 0)));

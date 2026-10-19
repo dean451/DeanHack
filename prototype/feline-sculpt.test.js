@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {roundCone, ellipsoid, trunkField, sculptFeline, EYE, TRUNK} from './feline-sculpt.js';
 import {felineBuild} from './feline.js';
-import {createSkinnedFeline} from './feline-skin.js';
+import {createSkinnedFeline, updateSkinnedFeline} from './feline-skin.js';
 
 test('the distance pieces: negative inside, zero on the surface, about the distance outside', () => {
   const c = roundCone([0, 0, 0], [0, 1, 0], .2, .1);
@@ -58,5 +58,35 @@ test('the sculpted pet: one skin over the same skeleton, on the floor, a tail ab
     let tears = 0;
     for (let i = 0; i < idx.length; i += 3) for (const [p, q] of [[idx[i], idx[i + 1]], [idx[i + 1], idx[i + 2]], [idx[i + 2], idx[i]]]) if (jump(p, q) > 1.2 && !(names[si.getX(p)].startsWith('tail') && names[si.getX(q)].startsWith('tail'))) tears++;
     assert.equal(tears, 0, 'no edge hands its skin from one part to another at once');
+  }
+});
+
+test('the sat back is a soft slope from the rump up to the withers: steepest round the rump, easing off, never turning up into a knee', () => {
+  const {L} = felineBuild('kitten'), a = createSkinnedFeline('kitten', undefined, {sculpt: true});
+  a.animator.show('sit', .5); a.g.updateMatrixWorld(true); a.fur.skeleton.update();
+  const g = a.fur.geometry, pos = g.attributes.position, groups = g.userData.groups, p = new THREE.Vector3(), bins = [];
+  // the midline of the back, every 2 cm of its length at rest, from the rump to just short of the withers
+  for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i); if (Math.abs(x) > .012 || y < L.Y + .04 || z < -.25 || z > .1 || groups[i] === 'tail') continue; p.fromBufferAttribute(pos, i); a.fur.applyBoneTransform(i, p); a.fur.localToWorld(p); (bins[Math.floor((z + .25) / .02)] ||= []).push(p.clone()); }
+  const pts = bins.filter(Boolean).map(b => b.reduce((s, q) => s.add(q), new THREE.Vector3()).divideScalar(b.length));
+  let worst = -Infinity;
+  for (let k = 1; k + 1 < pts.length; k++) { const u = pts[k].clone().sub(pts[k - 1]), w = pts[k + 1].clone().sub(pts[k]); worst = Math.max(worst, Math.atan2(u.z * w.y - u.y * w.z, u.y * w.y + u.z * w.z) * 180 / Math.PI); }
+  assert.ok(pts.length > 12 && worst < 6, `the back turns up by at most ${worst.toFixed(1)} degrees over 2 cm`);
+  const first = Math.atan2(pts[1].y - pts[0].y, pts[1].z - pts[0].z), last = Math.atan2(pts.at(-1).y - pts.at(-2).y, pts.at(-1).z - pts.at(-2).z);
+  assert.ok(first > last, 'steeper round the rump than up the back');
+});
+
+test('a sitting pet\'s tail lies on the floor, not through it, while it sits with its tail stirring and its mind running', () => {
+  for (const name of ['kitten', 'housecat', 'large cat']) {
+    const a = createSkinnedFeline(name, undefined, {sculpt: true}), g = a.fur.geometry, pos = g.attributes.position, groups = g.userData.groups, p = new THREE.Vector3(), tail = [];
+    for (let i = 0; i < pos.count; i += 3) if (groups[i] === 'tail') tail.push(i);
+    let low = Infinity, sat = 0;
+    for (let t = 0; t < 14; t += 1 / 30) {
+      const r = updateSkinnedFeline(a, 1 / 30, null, false); if (!r.sitting || t < 8) continue; sat++;
+      if (sat % 3) continue;
+      a.g.updateMatrixWorld(true); a.fur.skeleton.update();
+      for (const i of tail) { p.fromBufferAttribute(pos, i); a.fur.applyBoneTransform(i, p); a.fur.localToWorld(p); low = Math.min(low, p.y); }
+    }
+    assert.ok(sat > 60, `${name} sat`);
+    assert.ok(low > -.001 && low < .03, `${name}: the tail's lowest point ${low.toFixed(4)} is on the floor`);
   }
 });
