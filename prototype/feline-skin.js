@@ -32,6 +32,9 @@ export const BLEND = {spine: .06, leg: .022, tail: .03};
 // The sculpted skin's grid (fine enough for the toes and the forearm), and how far each part's
 // weights reach into its neighbours' skin.
 export const SCULPT = {res: 120, soft: .045};
+// The sculpted back's bone weights along z: the hips, spine and chest bones hand over at the joints
+// they turn about (the spine bone at z -.02, the chest at .1), each over 2 x blend.
+export const SPINE = {joints: [-.31, -.02, .1, .28], blend: .07};
 // The animator's measured speed is smoothed at `smooth` per second; clips cross-fade over `fade` s.
 export const GAIT = {smooth: 6, fade: .3};
 // Secondary motion, laid on after the mixer (none of it accumulates: each is a fresh offset
@@ -131,7 +134,8 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt = false} 
   const nA = [0, Y + .02, .19], nB = L.neck, nD = [nB[0] - nA[0], nB[1] - nA[1], nB[2] - nA[2]], nL2 = nD[0] ** 2 + nD[1] ** 2 + nD[2] ** 2;
   const weighFor = {
     neck: (x, y, z) => { const s = clamp01(((x - nA[0]) * nD[0] + (y - nA[1]) * nD[1] + (z - nA[2]) * nD[2]) / nL2), w = smooth((s - .15) / .85); return [[names.chest, 1 - w], [names.neck, w]]; },
-    body: (x, y, z) => chainWeights(z, [-.31, -.1, .08, .28], BLEND.spine).map(([k, w]) => [names[['hips', 'spine', 'chest'][k]], w]),
+    // sculpted: each handover at the joint the bone turns about, spread wide, so a bent back is one curve
+    body: (x, y, z) => (sculpt ? chainWeights(z, SPINE.joints, SPINE.blend) : chainWeights(z, [-.31, -.1, .08, .28], BLEND.spine)).map(([k, w]) => [names[['hips', 'spine', 'chest'][k]], w]),
     head: () => [[names.head, 1]],
     tail: (x, y, z) => { let best = 0, bd = Infinity, bs = 0; for (let i = 0; i < tj.length - 1; i++) { const ax = tj[i], bx = tj[i + 1], dx = bx[0] - ax[0], dy = bx[1] - ax[1], dz = bx[2] - ax[2], L2 = dx * dx + dy * dy + dz * dz || 1; const t = clamp01(((x - ax[0]) * dx + (y - ax[1]) * dy + (z - ax[2]) * dz) / L2); const px = ax[0] + dx * t, py = ax[1] + dy * t, pz = ax[2] + dz * t, d = (x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2; if (d < bd) { bd = d; best = i; bs = arcs[i] + Math.sqrt(L2) * t; } } return chainWeights(bs, arcs, BLEND.tail).map(([k, w]) => [names['tail' + k], w]); },
   };
