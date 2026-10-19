@@ -24,6 +24,10 @@ const cats = [createSkinnedFeline(name, undefined, {sculpt: false}), createSkinn
 window.__ms = performance.now() - t0;
 cats.forEach((cat, i) => { cat.g.position.x = (i - .5) * 1.4; cat.g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(cat.g); if (!live) cat.animator.show(clip, at); });
 // ?live=s: run the cats' own animation (idle, mind, tail) for s seconds instead of holding a clip
+// ?mood=wary|hunting: something in front of each cat for its mind to react to (with ?live)
+const sensed = q.get('mood');
+cats.forEach(cat => { const p = cat.g.position.clone().add(new THREE.Vector3(0, 0, 2)), it = {actor: {species: sensed === 'hunting' ? 'sewer rat' : 'hill orc', g: {position: p, userData: {disposition: 'hostile'}}, target: p}, dx: 0, dz: 2, d: 2};
+  cat.senses = sensed === 'wary' ? {threat: it} : sensed === 'hunting' ? {prey: it} : {}; });
 if (live) for (let t = 0; t < live; t += 1 / 60) cats.forEach(cat => cat.asset.update(1 / 60, false));
 const s = LOOKS[name].scale || 1, camera = new THREE.PerspectiveCamera(22, (W / 2) / 360, .05, 50);
 renderer.setScissorTest(true);

@@ -25,7 +25,7 @@ import {felineBuild} from './feline.js';
 import {growHull} from './feline-hull.js';
 import {FELINE_GLIDE} from './slide.js';
 import {createStepper} from './feline-gait.js';
-import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE, TAIL_SCULPT, EYE} from './feline-sculpt.js';
+import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE, TAIL_SCULPT, EYE, earFrame} from './feline-sculpt.js';
 import {coatAttributes, coatMaterial, FUR} from './feline-coat.js';
 import {createFelineMind} from './feline-mind.js';
 
@@ -35,6 +35,9 @@ export const BACK = {spine: .1, chest: .12};
 // The sculpted skin's grid (fine enough for the toes and the forearm), and how far each part's
 // weights reach into its neighbours' skin.
 export const SCULPT = {res: 150, soft: .045};
+// Where an ear's skin hands over from the head to the ear's bone: from `from` up the ear (head units)
+// over `span`.
+export const EAR_BEND = {from: .004, span: .014};
 // The sculpted back's bone weights along z: the hips, spine and chest bones hand over at the joints
 // they turn about (the spine bone at z -.02, the chest at .1), each over 2 x blend.
 export const SPINE = {joints: [-.31, -.02, .1, .28], blend: .07};
@@ -120,6 +123,12 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
   // spine, in body space: hips at the haunch, chest at the shoulders, neck at the model's neck pivot
   const Y = L.Y, hips = bone('hips', null, [0, Y, -.12 - D]), spine = bone('spine', hips, [0, 0, BACK.spine + D]), chest = bone('chest', spine, [0, 0, BACK.chest + D]);
   const neck = bone('neck', chest, [L.neck[0], L.neck[1] - Y, L.neck[2] - (.1 + D)]), head = bone('head', neck, [0, .04, .04]);
+  // the ears (sculpted pets): a bone at each ear's base, under the head, turned in the ear's own frame
+  const headScale = (L.headSize || 1) * (sculpt ? HEAD_SCALE : 1), ears = {};
+  if (sculpt) for (const side of [-1, 1]) {
+    const frame = earFrame(side), at = frame.base.clone().multiplyScalar(headScale).add(new THREE.Vector3(...L.neck)), key = side < 0 ? 'l' : 'r';
+    ears[key] = {bone: bone(key + 'ear', head, at.toArray().map((v, i) => v - head.userData.world[i])), side, frame};
+  }
   // tail: the root sits where the tail group did, four bones along the curve
   const tailRoot = [0, Y + .05, -.29 - D], tailBones = [];
   let parent = hips, prev = [0, 0, 0];
@@ -143,8 +152,10 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
   const tj = tailJoints.map(([x, y, z]) => [x + tailRoot[0], y + tailRoot[1], z + tailRoot[2]]), arcs = [0]; for (let i = 1; i < tj.length; i++) arcs.push(arcs[i - 1] + Math.hypot(tj[i][0] - tj[i - 1][0], tj[i][1] - tj[i - 1][1], tj[i][2] - tj[i - 1][2]));
   // the neck: from the chest at the withers to the neck bone at the back of the skull
   const nA = [0, Y + .02, .19 + D], nB = L.neck, nD = [nB[0] - nA[0], nB[1] - nA[1], nB[2] - nA[2]], nL2 = nD[0] ** 2 + nD[1] ** 2 + nD[2] ** 2;
+  const _ew = new THREE.Vector3(), _en = new THREE.Vector3(...L.neck);
   const weighFor = {
-    ear: () => [[names.head, 1]],
+    // an ear's skin goes with its bone from a little above where it leaves the head
+    ear: (x, y, z) => { const e = ears[x < 0 ? 'l' : 'r']; if (!e) return [[names.head, 1]]; const up = _ew.set(x, y, z).sub(_en).divideScalar(headScale).sub(e.frame.base).dot(e.frame.up), w = smooth((up - EAR_BEND.from) / EAR_BEND.span); return [[names.head, 1 - w], [names[e.bone.name], w]]; },
     neck: (x, y, z) => { const s = clamp01(((x - nA[0]) * nD[0] + (y - nA[1]) * nD[1] + (z - nA[2]) * nD[2]) / nL2), w = smooth((s - .15) / .85); return [[names.chest, 1 - w], [names.neck, w]]; },
     // sculpted: each handover at the joint the bone turns about, spread wide, so a bent back is one curve
     body: (x, y, z) => (sculpt ? chainWeights(z, [SPINE.joints[0] - D, SPINE.joints[1], SPINE.joints[2] + D, SPINE.joints[3] + D], SPINE.blend) : chainWeights(z, [-.31, -.1, .08, .28], BLEND.spine)).map(([k, w]) => [names[['hips', 'spine', 'chest'][k]], w]),
@@ -209,7 +220,7 @@ export function createSkinnedFeline(name, colour, {hull = true, sculpt} = {}) {
   for (const m of shells) body.add(m); body.updateMatrixWorld(true);
   fur.bind(skeleton, fur.matrixWorld); eyes.bind(skeleton, eyes.matrixWorld); if (details) details.bind(skeleton, details.matrixWorld);
   for (const m of shells) m.bind(skeleton, m.matrixWorld);
-  const rig = {hips, spine, chest, neck, head, tail: tailBones, legs, yaw: g.rotation.y, lean: 0};
+  const rig = {hips, spine, chest, neck, head, tail: tailBones, legs, ears: sculpt ? ears : null, yaw: g.rotation.y, lean: 0};
   const actor = {g, body, legs: [], tail: null, wings: [], quirk: 'feline', head, species: name, skinned: true, rig, fur, eyes, details, glide: FELINE_GLIDE};
   actor.animator = createFelineAnimator(body, rig, actor);
   actor.asset = {update: (dt, walking) => updateSkinnedFeline(actor, dt, null, walking), skinned: true, mixer: actor.animator.mixer};

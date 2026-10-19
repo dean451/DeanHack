@@ -24,11 +24,11 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
     const a = createSkinnedFeline(name), rigid = createFeline(name);
     const skinned = [], shells = []; a.g.traverse(o => { if (o.isSkinnedMesh) (o.userData.part === 'fur-shell' ? shells : skinned).push(o); });
     assert.equal(skinned.length, 3, `${name}: fur, details, eyes`); assert.equal(shells.length, FUR.shells, `${name}: the fur's layers`); assert.ok(shells.every(m => m.skeleton === skinned[0].skeleton && m.geometry === a.fur.geometry), 'the layers are the skin again, on the same bones'); assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton));
-    assert.equal(skinned[0].skeleton.bones.length, 24, 'hips, spine, chest, neck, head, 5 tail, 3+4 per side');
+    assert.equal(skinned[0].skeleton.bones.length, 26, 'hips, spine, chest, neck, head, 5 tail, 3+4 per side, two ears');
     for (const m of skinned) {
       const w = m.geometry.attributes.skinWeight, idx = m.geometry.attributes.skinIndex;
       assert.ok(w && idx, 'skin attributes');
-      for (let i = 0; i < w.count; i++) { const sum = w.getX(i) + w.getY(i) + w.getZ(i) + w.getW(i); assert.ok(Math.abs(sum - 1) < 1e-4, `${name} vertex ${i} weights sum ${sum}`); for (const k of [idx.getX(i), idx.getY(i), idx.getZ(i), idx.getW(i)]) assert.ok(k >= 0 && k < 24); }
+      for (let i = 0; i < w.count; i++) { const sum = w.getX(i) + w.getY(i) + w.getZ(i) + w.getW(i); assert.ok(Math.abs(sum - 1) < 1e-4, `${name} vertex ${i} weights sum ${sum}`); for (const k of [idx.getX(i), idx.getY(i), idx.getZ(i), idx.getW(i)]) assert.ok(k >= 0 && k < 26); }
     }
     // at rest the skinned mesh sits where the rigid parts sit
     a.g.updateMatrixWorld(true); rigid.g.updateMatrixWorld(true);

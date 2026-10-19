@@ -80,3 +80,23 @@ test('findThreat: the nearest living hostile within range that is not prey', () 
   assert.equal(findThreat(cat, actors)?.actor, actors[2], 'not the hostile rat (prey), not the peaceful orc, not the far one');
   assert.equal(findThreat(cat, [orc(5, 0).actor]), null);
 });
+
+test('the ears: relaxed when content, pricked forward hunting, laid back and out when wary, flicking now and then, and turning toward a new target ahead of the head', () => {
+  const a = createSkinnedFeline('kitten'), E = a.rig.ears; assert.ok(E?.l && E?.r, 'an ear bone each side');
+  // how far an ear's tip leans forward (+) or back (-) of its base, and how far its opening faces out
+  const lean = e => new THREE.Vector3().copy(e.frame.up).applyQuaternion(e.bone.quaternion).dot(e.frame.fwd);
+  const facing = e => new THREE.Vector3().copy(e.frame.fwd).applyQuaternion(e.bone.quaternion).x * e.side;
+  stand(a, 120, {hero: at(0, 3)}); const content = lean(E.r);
+  stand(a, 120, {prey: rat(0, 1.5)}); const hunting = lean(E.r);
+  stand(a, 120, {threat: orc(0, 2)}); const wary = lean(E.r), waryOut = facing(E.r);
+  assert.ok(hunting > content + .03, `pricked forward hunting: ${hunting.toFixed(2)} vs ${content.toFixed(2)}`);
+  assert.ok(wary < content - .4 && waryOut > .3, `laid back (${wary.toFixed(2)}) and turned out (${waryOut.toFixed(2)}) when wary`);
+  // flicks: over half a minute each ear lays back quickly at least once
+  const b = createSkinnedFeline('kitten'); let flicked = 0, base = null;
+  for (let i = 0; i < 1800; i++) { stand(b, 1, {}); const l = lean(b.rig.ears.l); base ??= l; if (l < base - .2) flicked++; }
+  assert.ok(flicked > 0, 'an ear flicks');
+  // a hero appearing to one side: the ear on that side turns toward it before the head has got there
+  const c = createSkinnedFeline('kitten'); stand(c, 60, {hero: at(0, 3)});
+  const before = facing(c.rig.ears.r); stand(c, 4, {hero: at(3, .5)});
+  assert.ok(facing(c.rig.ears.r) > before + .05 && Math.abs(headYaw(c)) < 1, 'the near ear leads the head');
+});
