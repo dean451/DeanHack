@@ -48,8 +48,9 @@ export function dragonRoles(actor) {
   const j = actor.joints, chain = prefix => { const out = []; for (let i = 0; j[prefix + i]; i++) out.push(j[prefix + i]); return out; };
   const map = {
     head: () => at(() => j.head),
-    mouth: () => inFrame(() => j.head, [0, -.066, .225]),
-    chin: () => inFrame(() => j.head, [0, -.09, .2]),
+    // (a tatzelworm's short cat face has its mouth much closer in than a dragon's long jaw)
+    mouth: () => inFrame(() => j.head, j.head.userData.cat ? [0, -.065, .125] : [0, -.066, .225]),
+    chin: () => inFrame(() => j.head, j.head.userData.cat ? [0, -.085, .11] : [0, -.09, .2]),
     rump: () => at(() => j.tail0),
     tailtip: () => pastEnd(() => chain('tail')),
   };

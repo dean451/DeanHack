@@ -47,3 +47,13 @@ test('a goal written on roles solves on a draken through its neck joints: mouth 
   const cm = P.mouth().distanceTo(P['paw:rf']()) * 100;
   assert(cm < 2, `mouth ${cm.toFixed(2)} cm from the paw (cost ${r.cost})`);
 });
+
+test('the mouth sits at the front of the face on a long-jawed dragon and on the tatzelworm\'s short cat face', () => {
+  for (const name of ['draken', 'tatzelworm']) {
+    const a = make(name); a.g.updateMatrixWorld(true);
+    const P = rolesOf(a), head = a.joints.head, local = head.worldToLocal(P.mouth());
+    // the face's front at the mouth's height, from the head's own meshes
+    let front = -Infinity; head.traverse(o => { if (!o.isMesh) return; o.geometry.computeBoundingBox(); const b = o.geometry.boundingBox.clone().applyMatrix4(new THREE.Matrix4().copy(head.matrixWorld).invert().multiply(o.matrixWorld)); if (local.y > b.min.y && local.y < b.max.y && Math.abs(b.getCenter(new THREE.Vector3()).x) < .03) front = Math.max(front, b.max.z); });
+    assert(Math.abs(front - local.z) < .04, `${name}: mouth ${local.z.toFixed(3)} against the face's front ${front.toFixed(3)}`);
+  }
+});

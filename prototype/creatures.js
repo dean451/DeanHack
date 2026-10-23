@@ -384,7 +384,7 @@ function dragon(o={}){
  const addHead=(parent,points,mats,a=0,taper=null)=>{
   const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));const bones=dragonChain(parent,neck,6,taper?taper[0]:.085,taper?taper[1]:.065,mats,skin,'neck');skin.ride(dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9),bones);
   const end=points[points.length-1],head=new THREE.Group();head.position.set(0,.04,.06);head.rotation.y=a*.5;head.rotation.x=.12;head.scale.setScalar(headScale);bones[bones.length-1].add(head);head.name=skin.joints.head?'head_'+dressHeads.length:'head';skin.joints[head.name]=head;
-  const throat=dragonHead(head,mats,f,baby);core=core||throat;dressHeads.push({head,m:mats,cat:!!f.cat});
+  head.userData.cat=!!f.cat;const throat=dragonHead(head,mats,f,baby);core=core||throat;dressHeads.push({head,m:mats,cat:!!f.cat});
  };
  if(f.serpent){
   // serpents: the body lies in a coil (or rolls up in humps, for leviathans) and rears up at the front
