@@ -153,8 +153,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Dragon scutes test edited instead of kept (review 2026-10-23):** https://github.com/dean451/DeanHack/pull/1643 changed `prototype/dragon-scutes.test.js` (`tailVerts` now starts from a hard-coded `2 * 11 * 99`) although the D2 Done when says `dragon-scutes.test.js` passes unchanged. The magic number breaks on any change to the tail's segment count or segment geometry. **Done when:** `tailVerts` takes the tail's vertex count from the dragon's skinned tail segments (or the test is restored to its pre-1643 form and the check reads the skinned mesh), with no literal segment count or 99 in the test; `dragon-scutes.test.js` and `dragon-joints.test.js` pass.
-
 
 **Models**
 
