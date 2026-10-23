@@ -63,14 +63,16 @@ test('the tail carries the mood: up and hooked when content, low when hunting', 
   assert.ok(hunting < content - .05, `the tail drops for the hunt: tip ${hunting.toFixed(3)} vs ${content.toFixed(3)} above its root`);
 });
 
+// a hind leg folded under the cat: the hip joint down at well under its standing height
+const folded = a => { a.g.updateMatrixWorld(true); return a.rig.legs.lhind.bones[0].getWorldPosition(new THREE.Vector3()).y < .6 * a.animator.stepper.hip(); };
 test('only a content cat sits; one that sees prey gets up, and its sitting legs belong to the sit clip', () => {
   const a = createSkinnedFeline('kitten'); updateSkinnedFeline(a, 1 / 60, null, false);
   let r = stand(a, 60 * 9, {}); assert.ok(r.sitting);
-  assert.ok(a.rig.legs.lhind.bones[1].rotation.x > .5, 'the hind legs folded');
+  assert.ok(folded(a), 'the hind legs folded');
   r = stand(a, 120, {prey: rat(1, 0)}); assert.ok(!r.sitting); assert.equal(r.mood.mood, 'hunting');
   r = stand(a, 60, {}); assert.ok(!r.sitting, 'it does not drop straight back into a sit');
   r = stand(a, 60 * 9, {}); assert.ok(r.sitting);
-  assert.ok(a.rig.legs.lhind.bones[1].rotation.x > .5, 'sitting again, the legs fold again (the held sit pose is not lost under the step)');
+  assert.ok(folded(a), 'sitting again, the legs fold again (the held sit pose is not lost under the step)');
 });
 
 test('findThreat: the nearest living hostile within range that is not prey', () => {
