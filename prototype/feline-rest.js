@@ -137,25 +137,40 @@ function legs(v) { const o = {}; for (const [k, x] of Object.entries(v)) for (co
 export const WRAP = {gap: .028, bend: [-2.6, 2.6]};
 function layTail({pose, apply, P, bones, skin, u}) {
   apply(pose);
-  const tail = Object.keys(bones).filter(k => /^tail\d$/.test(k)).sort().map(k => bones[k]), root = tail[0].getWorldPosition(new THREE.Vector3());
+  const tail = Object.keys(bones).filter(k => /^tail\d$/.test(k)).sort().map(k => bones[k]);
+  const paws = ['paw:lf', 'paw:rf', 'paw:lh', 'paw:rh'].reduce((a, k) => { const v = P[k](); return a.add(new THREE.Vector2(v.x, v.z)); }, new THREE.Vector2()).divideScalar(4);
+  return wrapTail({pose, apply, P, tail, outline: skin.dense(), paws, gap: u(WRAP.gap), lie: u(.02), scale: u(1), bend: WRAP.bend});
+}
+// The same for any body: `tail`, its bones root first (the joint keys are their names); `outline`, world
+// points of the body's skin (their convex hull from above is the body's outline); `paws`, the point (in
+// the floor's plane, as a Vector2 of x and z) the path passes first; `gap`, how far out from the outline
+// the tail lies; `lie`, its height on the floor (or a function of the joint's index, for a tail that tapers);
+// `scale`, world units per unit of the bones' own lengths;
+// `drop`, for a tail that leaves the body high (a lying dragon's rump), how far along it the tail eases
+// down from its root's height to the floor (none: every joint on the floor, as the cat's).
+// The pose must already be applied.
+export function wrapTail({pose, apply, P, tail, outline, paws, gap, lie, scale, bend = WRAP.bend, iterations = 120, drop = 0}) {
+  const root = tail[0].getWorldPosition(new THREE.Vector3());
   // the outline: the convex hull of the body's skin in the floor's plane, pushed out by the gap
-  const pts = skin.dense().map(p => new THREE.Vector2(p.x, p.z)), hull = convexHull(pts), c = hull.reduce((a, p) => a.add(p), new THREE.Vector2()).divideScalar(hull.length);
-  const ring = hull.map(p => p.clone().add(p.clone().sub(c).normalize().multiplyScalar(u(WRAP.gap))));
+  const pts = outline.map(p => new THREE.Vector2(p.x, p.z)), hull = convexHull(pts), c = hull.reduce((a, p) => a.add(p), new THREE.Vector2()).divideScalar(hull.length);
+  const ring = hull.map(p => p.clone().add(p.clone().sub(c).normalize().multiplyScalar(gap)));
   // start at the ring point nearest the root; go the way that passes the paws first
   const r2 = new THREE.Vector2(root.x, root.z); let i0 = 0; ring.forEach((p, i) => { if (p.distanceTo(r2) < ring[i0].distanceTo(r2)) i0 = i; });
-  const paws = ['paw:lf', 'paw:rf', 'paw:lh', 'paw:rh'].reduce((a, k) => { const v = P[k](); return a.add(new THREE.Vector2(v.x, v.z)); }, new THREE.Vector2()).divideScalar(4);
   const n = ring.length, walk = dir => { const out = [r2.clone()]; for (let k = 0; k <= n; k++) out.push(ring[(i0 + dir * k + n * 2) % n]); return out; };
   const firstHalf = path => { let d = 0, near = Infinity, len = 0; for (let k = 1; k < path.length; k++) len += path[k].distanceTo(path[k - 1]); for (let k = 1; k < path.length && d < len / 3; k++) { d += path[k].distanceTo(path[k - 1]); near = Math.min(near, path[k].distanceTo(paws)); } return near; };
   const path = firstHalf(walk(1)) < firstHalf(walk(-1)) ? walk(1) : walk(-1);
-  const at = s => { let d = 0; for (let k = 1; k < path.length; k++) { const l = path[k].distanceTo(path[k - 1]); if (d + l >= s) return path[k - 1].clone().lerp(path[k], (s - d) / l); d += l; } return path[path.length - 1].clone(); };
+  const at = s => { let d = 0; for (let k = 1; k < path.length; k++) { const l = path[k].distanceTo(path[k - 1]); if (l < 1e-9) continue; if (d + l >= s) return path[k - 1].clone().lerp(path[k], (s - d) / l); d += l; } return path[path.length - 1].clone(); };
   // each joint at its own distance along the path, lying on the floor
-  const lens = [0]; for (let k = 1; k < tail.length; k++) lens.push(lens[k - 1] + tail[k].position.length() * u(1));
-  const lie = u(.02), targets = lens.map(s => { const q = at(s); return new THREE.Vector3(q.x, lie, q.y); });
+  const lens = [0]; for (let k = 1; k < tail.length; k++) lens.push(lens[k - 1] + tail[k].position.length() * scale);
+  // (easing down, each bone's length is shared between the drop and the way along the floor)
+  const lieAt = typeof lie === 'function' ? lie : () => lie, high = drop ? Math.max(0, root.y - lieAt(0)) : 0, ys = lens.map((s, k) => lieAt(k) + high * Math.max(0, 1 - s / drop) ** 2);
+  const plan = drop ? lens.map((s, k) => 0) : lens; if (drop) for (let k = 1; k < lens.length; k++) { const l = lens[k] - lens[k - 1], dy = (k === 1 ? root.y : ys[k - 1]) - ys[k]; plan[k] = plan[k - 1] + Math.sqrt(Math.max(0, l * l - dy * dy)); }
+  const targets = lens.map((s, k) => { const q = at(plan[k]); return new THREE.Vector3(q.x, drop ? ys[k] : lieAt(k), q.y); });
   const goals = tail.slice(1).map((b, k) => goal.reach(() => b.getWorldPosition(new THREE.Vector3()), targets[k + 1], {weight: 1 + k * .3}));
   // (all three axes: the body's roll leaves each bone's own axes tipped)
-  const joints = Object.fromEntries(tail.slice(0, -1).flatMap(b => ['x', 'y', 'z'].map(ax => [b.name + '.' + ax, WRAP.bend])));
-  const r = solvePose({joints, base: pose, goals, apply, points: P, rest: .005, iterations: 120});
-  return {pose: r.pose, report: {cost: r.cost, worst: Math.max(0, ...r.residuals.flat().map(Math.abs))}};
+  const joints = Object.fromEntries(tail.slice(0, -1).flatMap(b => ['x', 'y', 'z'].map(ax => [b.name + '.' + ax, bend])));
+  const r = solvePose({joints, base: pose, goals, apply, points: P, rest: .005, iterations});
+  return {pose: r.pose, targets, report: {cost: r.cost, worst: Math.max(0, ...r.residuals.flat().map(Math.abs))}};
 }
 // Andrew's monotone chain.
 function convexHull(points) {
