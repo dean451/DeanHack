@@ -11,8 +11,13 @@ test('four-legged dragons and wyverns wear a crust of armour scutes on the back,
 });
 
 test('the tail spade is barbed with two backswept hooks on dragons and wyverns; a sirrush keeps its scorpion sting instead', () => {
-  // the tail's segments are skinned into a mesh at the dragon's root now: eleven hide and eleven belly spheres of 99 vertices
-  const tailVerts = name => { let n = 2 * 11 * 99; createCreature({name, symbol: D, color: 1}).tail.traverse(o => { if (o.isMesh) n += o.geometry.attributes.position.count; }); return n; };
+  // the tail's segments are skinned into meshes at the dragon's root: count the vertices weighted to tail bones
+  const tailVerts = name => {
+    const a = createCreature({name, symbol: D, color: 1}); let n = 0;
+    a.tail.traverse(o => { if (o.isMesh) n += o.geometry.attributes.position.count; });
+    a.g.traverse(o => { if (!o.isSkinnedMesh) return; const id = o.geometry.attributes.skinIndex; for (let i = 0; i < id.count; i++) if (o.skeleton.bones[id.getX(i)].name.startsWith('tail')) n++; });
+    return n;
+  };
   // two 4-sided cones (19 vertices each) join the spade; the sirrush tail is left at its old count
   assert.equal(tailVerts('draken'), 2418);
   assert.equal(tailVerts('wyvern'), 2883); // plus a venom bead on the stinger
