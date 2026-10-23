@@ -47,3 +47,58 @@ test('skinning does not add meshes: every form stays at or under its old count',
   const before = {draken: 34, wyvern: 29, sirrush: 31, leviathan: 15, lindworm: 19, 'baby draken': 34};
   for (const [name, most] of Object.entries(before)) assert(meshCount(make(name)) <= most, `${name}: ${meshCount(make(name))} meshes`);
 });
+
+// the posed position of every vertex of the skinned meshes weighted mostly to one of `bones`
+const posed = (actor, names) => {
+  actor.g.updateMatrixWorld(true); const out = [], v = new THREE.Vector3();
+  for (const s of skinned(actor)) {
+    s.skeleton.update(); const idx = s.geometry.attributes.skinIndex, w = s.geometry.attributes.skinWeight, p = s.geometry.attributes.position;
+    for (let k = 0; k < p.count; k++) { const b = s.skeleton.bones[w.getX(k) >= .5 ? idx.getX(k) : idx.getY(k)]; if (!names.has(b.name)) continue; v.fromBufferAttribute(p, k); s.applyBoneTransform(k, v); out.push(v.clone().applyMatrix4(s.matrixWorld)); }
+  }
+  return out;
+};
+
+test('legs and wings are named joints too: each leg bends at hip, knee, hock and foot, each wing has its pivot', () => {
+  for (const name of ['draken', 'wyvern', 'sirrush', 'lindworm', 'baby draken']) {
+    const a = make(name), j = a.joints, legs = a.legs.map(l => l.name);
+    assert(legs.length && legs.every(n => /^[lr](fore|hind)$/.test(n) && j[n] && j[n + '0']?.isBone && j[n + '0'].children.some(c => c.isBone)), `${name}: legs ${legs}`);
+    for (const w of a.wings) assert(j[w.name] === w && j[w.name + '_inner'] === w.userData.inner && /^[lr]wing$/.test(w.name), `${name}: wing ${w.name}`);
+  }
+  // a four-legged dragon has all four, on the cat's sides (left is -x)
+  const d = make('draken');
+  assert.deepEqual(d.legs.map(l => l.name).sort(), ['lfore', 'lhind', 'rfore', 'rhind']);
+  assert(d.joints.lfore.position.x < 0 && d.joints.rfore.position.x > 0);
+});
+
+test('a bent knee carries the foot and its claws and leaves the hip where it was', () => {
+  const a = make('draken'), j = a.joints, foot = new Set(['lfore3', 'lfore4']), hip = new Set(['lfore0']);
+  const f0 = posed(a, foot), h0 = posed(a, hip);
+  j.lfore1.rotation.x = .8;
+  const f1 = posed(a, foot), h1 = posed(a, hip);
+  assert(f0.length > 50 && f0.every((p, i) => p.distanceTo(f1[i]) > .01), 'every foot and claw vertex moves with the knee');
+  assert(h0.every((p, i) => p.distanceTo(h1[i]) < 1e-9), 'the hip stays');
+});
+
+test('nothing that rides a chain is left behind when it bends: no loose meshes on the tail or the legs, and the spade follows the tail', () => {
+  for (const name of FORMS) {
+    const a = make(name);
+    const loose = [a.tail, ...a.legs].flatMap(g => g ? g.children.filter(c => c.isMesh) : []);
+    assert.equal(loose.length, 0, `${name}: ${loose.length} meshes still fixed to the tail or a leg group`);
+  }
+  const a = make('draken'), j = a.joints, last = Object.keys(j).filter(n => /^tail\d+$/.test(n)).sort((p, q) => +p.slice(4) - +q.slice(4)).at(-1);
+  const tip = new Set([last]), before = posed(a, tip);
+  j.tail1.rotation.y = .7;
+  const after = posed(a, tip);
+  assert(before.length > 30 && before.every((p, i) => p.distanceTo(after[i]) > .02), 'the spade and its barbs swing with the tail');
+});
+
+test('a serpent bends along its whole length: the head rides the spine\'s front, the tail its end', () => {
+  for (const name of ['leviathan', 'lindworm']) {
+    const a = make(name), j = a.joints, spine = Object.keys(j).filter(n => /^spine\d+$/.test(n));
+    assert(spine.length >= 9, `${name}: ${spine.length} spine bones`);
+    a.g.updateMatrixWorld(true);
+    const head = tip(a, j.head), tailRoot = tip(a, j.tail0);
+    j.spine0.rotation.y = .4;
+    assert(tip(a, j.head).distanceTo(head) > .01 && tip(a, j.tail0).distanceTo(tailRoot) > .01, `${name}: head and tail follow the spine`);
+  }
+});
