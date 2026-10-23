@@ -54,12 +54,16 @@ test('the wings fold like a bat\'s and lie over the back: no wing point below th
   assert(DRAGON.forearmMid > .25 && DRAGON.forearmMid < .4, 'the bat measure the fold follows');
 });
 
-test('the chin rests on the forepaws (the wyvern\'s on the floor ahead), the face looking forward', () => {
+test('the head curls round like a sleeping cat\'s: beside the chest, chin down on the left forepaw (a wyvern\'s on the floor), the face turned back along the flank, the neck low', () => {
   for (const name of ['draken', 'wyvern']) {
     const a = make(name), r = sleepPose(a, 'test:' + name); r.apply(r.pose); const P = r.points;
+    const half = Math.max(...posed(a, o => !o.isSkinnedMesh && o.parent === a.body).map(p => Math.abs(p.x))), head = a.joints.head.getWorldPosition(new THREE.Vector3());
     assert(P.chin().y < .1 * a.g.scale.x, `${name}: chin ${P.chin().y.toFixed(3)} up`);
-    assert(P.mouth().z > P.chin().z, `${name}: the face looks ahead`);
-    if (name === 'draken') { const m = P['paw:lf']().add(P['paw:rf']()).multiplyScalar(.5); assert(Math.hypot(P.chin().x - m.x, P.chin().z - m.z) < .08, 'over the forepaws'); }
+    assert(head.x < -half + .02, `${name}: the head lies beside the chest (${head.x.toFixed(3)} against its half-width ${half.toFixed(3)})`);
+    assert(P.mouth().z < P.chin().z && P.mouth().x < P.chin().x, `${name}: the face turned back and out along the flank`);
+    const necks = []; for (let i = 0; a.joints['neck' + i]; i++) necks.push(a.joints['neck' + i].getWorldPosition(new THREE.Vector3()).y);
+    assert(Math.max(...necks) - necks[0] < .1 * a.g.scale.x, `${name}: the neck rises ${(Math.max(...necks) - necks[0]).toFixed(3)} off the chest`);
+    if (name === 'draken') assert(P.chin().distanceTo(P['paw:lf']()) < .1 * a.g.scale.x, 'the chin on the left forepaw');
   }
 });
 
