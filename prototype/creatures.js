@@ -220,39 +220,68 @@ function dragonChain(parent,curve,n,r0,r1,m,skin,name){
  if(!skin){for(const [mt,p,q,r,sx,sy,sz] of segs)dragonSegment(parent,r,mt,p,q,sx,sy,sz);return null;}
  return skin.chain(parent,pts,segs,name);
 }
-// A dragon's neck and tail chains bend by skinning (as the pet cat does): the segments of every chain
-// merge per material into one SkinnedMesh at the dragon's root, each segment weighted to its own bone
-// and blended into the next, so a joint turns everything past it and the mesh count does not rise.
-// Bones nest (neck0 > neck1 > ...) in the chain's parent; `joints` maps their names to the bones.
+// A dragon bends by skinning (as the pet cat does): the neck, tail and leg chains, and everything that
+// rides on them (the dorsal spikes, the tail's spade or sting, the element's dressing, the claws), merge
+// per material into one SkinnedMesh at the dragon's root, each vertex weighted to the nearest bone of its
+// chain and blended into the next, so a joint turns everything past it and the mesh count does not rise.
+// Bones nest (neck0 > neck1 > ...) in the chain's parent; `joints` maps their names to the bones, and
+// also holds the head, leg and wing groups by name.
+// a mirrored piece turned inside out by its negative scale: wind its triangles the other way
+function flipWinding(geo){
+ if(geo.index){const x=geo.index.array;for(let i=0;i<x.length;i+=3){const t=x[i+1];x[i+1]=x[i+2];x[i+2]=t;}return;}
+ for(const at of Object.values(geo.attributes)){const n=at.itemSize,x=at.array;for(let i=0;i<at.count;i+=3)for(let k=0;k<n;k++){const t=x[(i+1)*n+k];x[(i+1)*n+k]=x[(i+2)*n+k];x[(i+2)*n+k]=t;}}
+}
 function dragonSkin(root){
- const bones=[],bins=new Map(),joints={},used={};
+ const bones=[],bins=new Map(),joints={},used={},chains=[];
+ const a=new THREE.Vector3(),ab=new THREE.Vector3(),v=new THREE.Vector3(),w=new THREE.Vector3();
+ // a geometry in its chain's parent space: weights to the nearest segment, then into the root's space
+ const add=(geo,material,c)=>{
+  const pos=geo.attributes.position,idx=new Uint16Array(pos.count*4),wt=new Float32Array(pos.count*4),pts=c.pts;
+  for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i);let best=1e9,j=0,u=0;
+   for(let e=0;e<pts.length-1;e++){a.copy(pts[e]);ab.copy(pts[e+1]).sub(a);const s=Math.min(1,Math.max(0,w.copy(v).sub(a).dot(ab)/ab.lengthSq())),d=v.distanceToSquared(w.copy(a).addScaledVector(ab,s));if(d<best){best=d;j=e;u=s;}}
+   // a hinge (the legs) keeps each vertex on its own bone until the last fifth of the segment
+   if(c.hinge)u=Math.max(0,(u-.8)/.2);
+   idx[i*4]=c.base+j;idx[i*4+1]=c.base+j+1;wt[i*4]=1-u;wt[i*4+1]=u;}
+  geo.setAttribute('skinIndex',new THREE.BufferAttribute(idx,4));geo.setAttribute('skinWeight',new THREE.BufferAttribute(wt,4));
+  c.parent.updateWorldMatrix(true,false);root.updateWorldMatrix(true,false);
+  geo.applyMatrix4(new THREE.Matrix4().copy(root.matrixWorld).invert().multiply(c.parent.matrixWorld));
+  if(!bins.has(material))bins.set(material,[]);bins.get(material).push(geo);
+ };
  return {joints,
-  chain(parent,pts,segs,name){
+  // a chain of bones through `pts` (the chain's parent's space), named name0, name1, ...; `segs` are
+  // the chain's own pieces ([material, position, quaternion, radius, sx, sy, sz])
+  chain(parent,pts,segs,name,{hinge=false}={}){
    const k=used[name]=(used[name]||0)+1,mine=[];
    pts.forEach((p,i)=>{const b=new THREE.Bone();b.name=name+(k>1?'_'+k+'_':'')+i;b.position.copy(i?p.clone().sub(pts[i-1]):p);(i?mine[i-1]:parent).add(b);mine.push(b);joints[b.name]=b;});
-   const base=bones.length;bones.push(...mine);
-   const a=new THREE.Vector3(),ab=new THREE.Vector3(),v=new THREE.Vector3();
-   for(const [mt,p,q,r,sx,sy,sz] of segs){
-    const geo=DRAGON_SEGMENT.clone().applyMatrix4(new THREE.Matrix4().compose(p,q,new THREE.Vector3(r*sx,r*sy,r*sz)));
-    const pos=geo.attributes.position,idx=new Uint16Array(pos.count*4),wt=new Float32Array(pos.count*4);
-    for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i);let best=1e9,j=0,s=0;
-     for(let e=0;e<pts.length-1;e++){a.copy(pts[e]);ab.copy(pts[e+1]).sub(a);const u=Math.min(1,Math.max(0,v.clone().sub(a).dot(ab)/ab.lengthSq())),d=v.distanceToSquared(a.clone().addScaledVector(ab,u));if(d<best){best=d;j=e;s=u;}}
-     idx[i*4]=base+j;idx[i*4+1]=base+j+1;wt[i*4]=1-s;wt[i*4+1]=s;}
-    geo.setAttribute('skinIndex',new THREE.BufferAttribute(idx,4));geo.setAttribute('skinWeight',new THREE.BufferAttribute(wt,4));
-    parent.updateWorldMatrix(true,false);root.updateWorldMatrix(true,false);
-    geo.applyMatrix4(new THREE.Matrix4().copy(root.matrixWorld).invert().multiply(parent.matrixWorld));
-    if(!bins.has(mt))bins.set(mt,[]);bins.get(mt).push(geo);}
+   const c={parent,pts:pts.map(p=>p.clone()),base:bones.length,hinge};bones.push(...mine);chains.push(c);mine.chain=c;mine[0].userData.chain=c;
+   for(const [mt,p,q,r,sx,sy,sz] of segs)add(DRAGON_SEGMENT.clone().applyMatrix4(new THREE.Matrix4().compose(p,q,new THREE.Vector3(r*sx,r*sy,r*sz))),mt,c);
    return mine;
+  },
+  // meshes built on a chain's parent (or under it) join the chain's skin, weighted along it; anything
+  // that is not a plain mesh is hung on the nearest bone instead
+  ride(objects,mine){
+   const c=mine.chain;c.parent.updateWorldMatrix(true,true);const into=new THREE.Matrix4().copy(c.parent.matrixWorld).invert();
+   for(const o of objects){
+    if(o.isMesh&&!o.isSkinnedMesh&&!Array.isArray(o.material)&&!o.children.length){
+     o.updateWorldMatrix(true,false);const geo=o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(into,o.matrixWorld));
+     if(o.matrixWorld.determinant()<0)flipWinding(geo);add(geo,o.material,c);o.removeFromParent();
+    }else{o.getWorldPosition(v).applyMatrix4(into);let best=0,d=1e9;c.pts.forEach((p,i)=>{const e=p.distanceToSquared(v);if(e<d){d=e;best=i;}});mine[best].attach(o);}
+   }
   },
   // after every chain is placed: one SkinnedMesh per material, bound with the bones at rest
   finish(){
    root.updateMatrixWorld(true);const skeleton=new THREE.Skeleton(bones);
-   for(const [mt,geos] of bins){const mesh=new THREE.SkinnedMesh(mergeGeometries(geos),mt);mesh.castShadow=true;root.add(mesh);mesh.updateMatrixWorld(true);mesh.bind(skeleton,mesh.matrixWorld);geos.forEach(g=>g.dispose());}
+   for(const [mt,geos] of bins){
+    // one attribute set and one index style, so pieces from different builders merge
+    const keep=['position','normal','uv','skinIndex','skinWeight'],flat=geos.map(g=>{if(!g.index){const n=g.attributes.position.count,ix=new (n>65535?Uint32Array:Uint16Array)(n);for(let i=0;i<n;i++)ix[i]=i;g.setIndex(new THREE.BufferAttribute(ix,1));}return g;});
+    for(const g of flat){for(const n of Object.keys(g.attributes))if(!keep.includes(n))g.deleteAttribute(n);if(!g.attributes.uv)g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(g.attributes.position.count*2),2));g.morphAttributes={};}
+    const mesh=new THREE.SkinnedMesh(mergeGeometries(flat),mt);mesh.castShadow=true;mesh.frustumCulled=false;root.add(mesh);mesh.updateMatrixWorld(true);mesh.bind(skeleton,mesh.matrixWorld);geos.forEach(g=>g.dispose());}
   }};
 }
 // dorsal spikes riding the top of a chain, shrinking toward its end
 function dragonRidge(parent,curve,n,r0,r1,size,material,t0=0,t1=1){
- for(let i=0;i<n;i++){const t=t0+(t1-t0)*(i+.5)/n,p=curve.getPoint(t),r=r0+(r1-r0)*t,s=size*(1-.55*t);const spike=cone(parent,s*.42,s,material,p.x,p.y+r*.8,p.z,4);spike.rotation.x=-.55;}
+ const spikes=[];for(let i=0;i<n;i++){const t=t0+(t1-t0)*(i+.5)/n,p=curve.getPoint(t),r=r0+(r1-r0)*t,s=size*(1-.55*t);const spike=cone(parent,s*.42,s,material,p.x,p.y+r*.8,p.z,4);spike.rotation.x=-.55;spikes.push(spike);}
+ return spikes;
 }
 function dragonHead(head,m,f,baby){
  if(f.cat){
@@ -325,9 +354,9 @@ function dragonLimb(parent,a,b,w,material,taper=.55){
  const mesh=part(parent,geo,material,(A.x+B.x)/2,(A.y+B.y)/2,(A.z+B.z)/2);
  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),B.clone().sub(A).normalize());return mesh;
 }
-function dragonLegs(body,legs,m,o){
+function dragonLegs(body,legs,m,o,skin){
  for(const [x,y,z,hind] of o.spots){
-  const leg=new THREE.Group();leg.position.set(x,y,z);body.add(leg);const k=o.thick||1;
+  const leg=new THREE.Group();leg.position.set(x,y,z);body.add(leg);const k=o.thick||1;leg.name=(x<0?'l':'r')+(hind?'hind':'fore');
   lowBlob(leg,.08*k,m.hide,0,-.02,0,.9,1.3,1.1,DRAGON_BONE);if(o.sirrush)dragonBox(leg,.075*k,y-.14,.085*k,m.hide,0,-(y-.1)/2-.04,.02,.03);
   if(o.sirrush&&!hind){sphere(leg,.055,m.hide,0,-y+.04,.05,1,.7,1.2);for(const cx of [-.025,0,.025])cone(leg,.008,.025,m.ivory,cx,-y+.03,.1,4).rotation.x=Math.PI/2;}
   else if(!o.sirrush){
@@ -341,6 +370,9 @@ function dragonLegs(body,legs,m,o){
   }
   else{dragonBox(leg,.1*k,.04,.12,m.dark,0,-y+.02,.05,.015);for(const cx of [-.035,0,.035])cone(leg,.012,.07*k,m.ivory,cx*k,-y+.02,.14,4).rotation.x=Math.PI/2;
    const spur=cone(leg,.01,.05,m.ivory,0,-y+.02,-.02,4);spur.rotation.x=-Math.PI/2;}
+  // the leg bends at hip, knee, hock and foot: its pieces ride a hinged chain of bones (lfore0..)
+  if(skin){const V=p=>new THREE.Vector3(...p),pts=o.sirrush?[[0,0,0],[0,-y*.5,.02],[0,-y+.03,.05],[0,-y+.02,.16]]:[[0,-.01,0],[0,-.42*y,.09*k],[0,-.74*y,-.035*k],[0,-y+.02,.03*k],[0,-y+.015,.16*k]];
+   const parts=[...leg.children];const bones=skin.chain(leg,pts.map(V),[],leg.name,{hinge:true});skin.ride(parts,bones);skin.joints[leg.name]=leg;}
   legs.push(leg);
  }
 }
@@ -348,9 +380,9 @@ function dragon(o={}){
  const f=o.form||DRAGON_FORMS.draken,baby=!!o.baby;
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar((baby?.62:1.05)*(f.scale||1));
  const skin=dragonSkin(g),m=dragonMats(o.color??3,f.chromatic),headScale=(baby?1.3:1)*(f.heads>1?.8:1);
- let core=null,tail,tailCurve,trunk;const dressHeads=[];
+ let core=null,tail,tailCurve,trunk,spineBones=null;const dressHeads=[];
  const addHead=(parent,points,mats,a=0,taper=null)=>{
-  const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));const bones=dragonChain(parent,neck,6,taper?taper[0]:.085,taper?taper[1]:.065,mats,skin,'neck');dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9);
+  const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));const bones=dragonChain(parent,neck,6,taper?taper[0]:.085,taper?taper[1]:.065,mats,skin,'neck');skin.ride(dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9),bones);
   const end=points[points.length-1],head=new THREE.Group();head.position.set(0,.04,.06);head.rotation.y=a*.5;head.rotation.x=.12;head.scale.setScalar(headScale);bones[bones.length-1].add(head);head.name=skin.joints.head?'head_'+dressHeads.length:'head';skin.joints[head.name]=head;
   const throat=dragonHead(head,mats,f,baby);core=core||throat;dressHeads.push({head,m:mats,cat:!!f.cat});
  };
@@ -361,13 +393,15 @@ function dragon(o={}){
    :[[0,.42,.24],[0,.24,.12],[.14,.13,-.02],[.06,.11,-.2],[-.14,.1,-.3]];
   for(const p of pts)p[1]+=.03;
   const spine=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
-  dragonChain(body,spine,f.serpent==='short'?8:12,f.serpent==='short'?.14:.12,.09,m,skin,'spine');trunk=serpentTrunk(body,{curve:spine,r0:f.serpent==='short'?.14:.12,r1:.09});dragonRidge(body,spine,f.serpent==='short'?5:9,.12,.09,baby?.04:.08,m.dark,.05,.95);
-  const top=pts[0];addHead(body,[[top[0],top[1]-.04,top[2]-.04],[top[0],top[1]+.08,top[2]+.04],[top[0],top[1]+.14,top[2]+.1]],m);
+  const sb=dragonChain(body,spine,f.serpent==='short'?8:12,f.serpent==='short'?.14:.12,.09,m,skin,'spine');trunk=serpentTrunk(body,{curve:spine,r0:f.serpent==='short'?.14:.12,r1:.09});skin.ride(dragonRidge(body,spine,f.serpent==='short'?5:9,.12,.09,baby?.04:.08,m.dark,.05,.95),sb);
+  // everything else built on the body below rides the spine; the neck hangs on its front bone
+  const before=new Set(body.children),front=new THREE.Group();front.position.copy(sb[0].position).negate();sb[0].add(front);
+  const top=pts[0];addHead(front,[[top[0],top[1]-.04,top[2]-.04],[top[0],top[1]+.08,top[2]+.04],[top[0],top[1]+.14,top[2]+.1]],m);
   // a serpent rears behind two angular dark blades flaring from the base of its neck, a cobra's cut hood
   for(const s of [-1,1])dragonLimb(body,[s*.04,pts[0][1]-.06,pts[0][2]],[s*.17,pts[0][1]+.1,pts[0][2]-.03],.07,m.dark,.3);
   // legged serpents carry a cut slab of muscle over each shoulder, like the four-legged breeds, not a bare stub
   if(f.legs)for(const s of [-1,1])dragonLimb(body,[s*.12,.3,.15],[s*.17,.18,.14],.11,m.hide,.35);
-  if(f.legs)dragonLegs(body,legs,m,{spots:[[-.13,.2,.14],[.13,.2,.14]],thick:.9});
+  if(f.legs)dragonLegs(body,legs,m,{spots:[[-.13,.2,.14],[.13,.2,.14]],thick:.9},skin);
   if(f.wings)for(const side of [-1,1]){const w=dragonWing(body,side,f.wings*(baby?.6:1),m,f.feathered);w.position.set(side*.08,.4,.2);wings.push(w);}
   if(f.fins){
    // leviathan: a finned sail along the humps and broad paddle fins at the front
@@ -377,7 +411,9 @@ function dragon(o={}){
    const fin=part(body,new THREE.ShapeGeometry(sail),m.membrane);fin.rotation.y=Math.PI/2;
    for(const side of [-1,1]){const paddle=new THREE.Shape();paddle.moveTo(0,0);paddle.quadraticCurveTo(side*.12,.06,side*.22,-.02);paddle.quadraticCurveTo(side*.12,-.05,0,-.04);const p=part(body,new THREE.ShapeGeometry(paddle,6),m.membrane,side*.1,.2,.12);p.rotation.x=-Math.PI/2+.3;p.rotation.y=-side*.4;}
   }
-  const last=pts[pts.length-1];tail=new THREE.Group();tail.position.set(...last);body.add(tail);
+  skin.ride(body.children.filter(c=>!before.has(c)),sb);
+  // the tail carries on from the spine's last bone
+  const last=pts[pts.length-1];tail=new THREE.Group();sb[sb.length-1].add(tail);spineBones=sb;
   const curve=new THREE.CatmullRomCurve3([[0,0,0],[last[0]>0?-.1:.1,-.02,-.12],[last[0]>0?-.2:.22,-.04,-.14],[last[0]>0?-.28:.3,-.05,-.06]].map(p=>new THREE.Vector3(...p)));
   dragonChain(tail,curve,8,.085,.025,m,skin,'tail');tailCurve=curve;
   if(f.fins){const fluke=cone(tail,.06,.1,m.membrane,curve.getPoint(1).x,-.05,-.04,3);fluke.scale.set(1.6,1,.3);fluke.rotation.z=Math.PI/2;}
@@ -417,7 +453,7 @@ function dragon(o={}){
    // a longer neck that tapers from thick shoulders to a narrow throat, rising in an S and reaching forward
    addHead(body,[[x*.15,.55,.24],[x*.4,.64+lift*.3,.34],[x*.7,.78+lift*.6,.42],[x,.88+lift,.54-Math.abs(x)*.3]],mats,a,[.115,.05]);});
   const hindY=f.legs===2?.38:.34;
-  dragonLegs(body,legs,m,{spots:f.legs===2?[[-.17,hindY,-.1,1],[.17,hindY,-.1,1]]:[[-.2,.34,.2,0],[.2,.34,.2,0],[-.21,.34,-.2,1],[.21,.34,-.2,1]],thick:f.legs===2?1.25:1,sirrush:f.sirrush});
+  dragonLegs(body,legs,m,{spots:f.legs===2?[[-.17,hindY,-.1,1],[.17,hindY,-.1,1]]:[[-.2,.34,.2,0],[.2,.34,.2,0],[-.21,.34,-.2,1],[.21,.34,-.2,1]],thick:f.legs===2?1.25:1,sirrush:f.sirrush},skin);
   if(f.wings)for(const side of [-1,1]){const w=dragonWing(body,side,f.wings*(baby?.6:1)*(f.chromatic||f.heads>1?1.06:1.3),m,false);w.position.set(side*.14,.64,.08);wings.push(w);}
   tail=new THREE.Group();tail.position.set(0,.44,-.34);body.add(tail);
   const tip=f.sirrush?[[0,0,0],[0,-.1,-.15],[.06,-.19,-.28],[.1,-.1,-.39],[.1,.05,-.39]]:[[0,0,0],[0,-.1,-.16],[.1,-.19,-.3],[.19,-.25,-.4]];
@@ -435,6 +471,10 @@ function dragon(o={}){
  }
  const element=dragonElement(o.color??3);
  if(element)dressDragon({element,m,trunk,heads:dressHeads,tail,tailCurve,wings:wings.map(w=>({inner:w.userData.inner,edge:w.userData.inner.userData.edge})),baby});
+ // the tail's own pieces (ridge, spade, barbs, sting, fluke, the element's dressing) ride the tail bones
+ if(tail){const tb=Object.values(skin.joints).filter(j=>j.isBone&&j.parent===tail);if(tb.length){const chain=[];for(let b=tb[0];b;b=b.children.find(c=>c.isBone))chain.push(b);chain.chain=tb[0].userData.chain;skin.ride(tail.children.filter(c=>!c.isBone),chain);}}
+ if(spineBones)skin.ride([...trunk.group.children],spineBones);
+ for(const w of wings){const n=(w.userData.side<0?'l':'r')+'wing';w.name=n;skin.joints[n]=w;skin.joints[n+'_inner']=w.userData.inner;}
  g.userData.core=core;skin.finish();
  return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element,heads:dressHeads.map(h=>h.head),joints:skin.joints}));
 }
