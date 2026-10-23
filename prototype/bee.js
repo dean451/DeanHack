@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {nameInsectJoints} from './insect-joints.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
 
@@ -220,5 +221,5 @@ export function createBee(name){
   if(s<0){a.scale.x=-1;b.scale.x=-1;}
   wings.push(wing);
  }
- return {g,body,legs,tail:null,wings,quirk:'bee',head};
+ return nameInsectJoints({g,body,legs,tail:null,wings,quirk:'bee',head});
 }

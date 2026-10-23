@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {nameInsectJoints} from './insect-joints.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 
 // Ants used to share the generic insect: three plain spheres, two bent feelers and six sticks.
@@ -221,5 +222,5 @@ export function createAnt(name,colour){
   legs.push(leg);
  });
  if(L.scarred)g.userData.scarred=true;
- return {g,body,legs,tail:null,wings:[],quirk:'insect',head,jaws,antJaws:known?name:'giant ant'};
+ return nameInsectJoints({g,body,legs,tail:null,wings:[],quirk:'insect',head,jaws,antJaws:known?name:'giant ant'});
 }
