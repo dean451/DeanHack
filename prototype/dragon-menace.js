@@ -23,6 +23,7 @@
 // creatures.js dragon() have the `heads` handle; the jabberwock (also quirk 'dragon') is left alone.
 // The smoke is one THREE.Points per dragon on its group (one extra draw), in the group's frame.
 import * as THREE from 'three';
+import {takeBackSleep, applySleep} from './dragon-sleep.js';
 
 // Wings. REST: live.js's resting pivot angle; BREATH: the slow open/close; FURL: how far the wings
 // fold back while walking, and FURL_DROOP how far they sink; FURL_RATE: how fast they fold (1/s).
@@ -103,6 +104,7 @@ function setup(a) {
     seed: ((a.g.id ?? 1) * 48271) % 2147483647 || 1, wait: 0, cur: null, f: 0, furl: 0, life: 1, ph: 0,
     heads: a.heads.map(h => ({base: h.rotation.y, y: 0, x: 0, aim: 0, next: 0})),
     applied: {heads: a.heads.map(() => ({y: 0, x: 0})), inner: (a.wings || []).map(() => ({x: 0, z: 0})), tailY: 0},
+    sleep: {p: 0, idle: 0, written: []},
   };
   st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
   st.ph = rand(st) * Math.PI * 2;
@@ -240,13 +242,14 @@ function updateSmoke(a, st, dt, t, walking, dead, snort, huff) {
 export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) {
   if (!menaces(a)) return null;
   const st = a.menace || (a.menace = setup(a));
+  takeBackSleep(a, st.sleep);
   takeBack(a, st);
   dt = Math.max(0, fin(dt)); t = fin(t);
   const dead = !!a.actions?.dead;
   if (dead) st.life = Math.max(0, st.life - dt * DEATH_RATE);
 
-  // Pick a mantle or lash while still; walking, an action or death cuts it short.
-  const still = !busy && !dead;
+  // Pick a mantle or lash while still (and awake); walking, an action or death cuts it short.
+  const still = !busy && !dead && !st.sleep.p;
   let snort = false, huff = false;
   if (st.cur) {
     const was = st.cur.s;
@@ -312,5 +315,7 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
   });
   updateSmoke(a, st, dt, t, walking, dead, snort, huff);
   if (dead && life <= SNAP) { st.cur = null; st.f = 0; }
-  return {mantle, lash, furl: st.furl, smoke: st.smoke.wisps.length, snort, huff};
+  // Asleep: a dragon left alone, still and with nobody in range, dozes off (dragon-sleep.js), last of all.
+  const sleep = applySleep(a, st.sleep, dt, !busy && !dead && !aim);
+  return {mantle, lash, furl: st.furl, smoke: st.smoke.wisps.length, snort, huff, sleep};
 }

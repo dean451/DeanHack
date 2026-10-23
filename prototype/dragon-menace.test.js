@@ -57,7 +57,8 @@ test('sixty seconds of a dragon: finite, bounded, furls to walk, and death settl
     const a = dragon(name), rest = snap(a), dt = 1 / 60;
     let mantles = 0, lashes = 0, wasCur = null, maxStep = 0, prevTail = a.tail.rotation.z;
     for (let i = 0; i < 3600; i++) {
-      const t = i * dt, walking = t > 20 && t < 25, look = t > 30 ? new THREE.Vector3(2, 0, 1) : null;
+      // (the hero arrives at 8 s, before the dragon would doze off: sleep has its own tests in dragon-sleep.test.js)
+      const t = i * dt, walking = t > 20 && t < 25, look = t > 8 ? new THREE.Vector3(2, 0, 1) : null;
       if (t >= 50 && !a.actions.dead) a.actions.dead = true;
       const r = updateDragonMenace(a, dt, t, walking, walking, look);
       const cur = a.menace.cur?.kind;
@@ -65,6 +66,7 @@ test('sixty seconds of a dragon: finite, bounded, furls to walk, and death settl
       wasCur = cur;
       for (const v of [r.mantle, r.lash, r.furl, a.tail.rotation.z, a.tail.rotation.y, ...a.heads.flatMap(h => [h.rotation.x, h.rotation.y]), ...a.wings.flatMap(w => [w.rotation.y, w.userData.inner.rotation.z])]) assert(Number.isFinite(v), `${name} ${t}`);
       assert(Math.abs(a.tail.rotation.z) < .8, `${name} tail ${a.tail.rotation.z}`);
+      assert.equal(r.sleep, 0, 'kept awake');
       for (const [k, h] of a.heads.entries()) assert(Math.abs(h.rotation.y - rest.heads[k][1]) <= YAW + 1e-9);
       if (walking && t > 21) for (const w of a.wings) assert(Math.abs(w.rotation.y - w.userData.side * (REST + FURL)) < .02, `${name} furled while walking`);
       maxStep = Math.max(maxStep, Math.abs(a.tail.rotation.z - prevTail)); prevTail = a.tail.rotation.z;
