@@ -2,9 +2,10 @@
 <style>html,body{margin:0;background:#233138}canvas{display:block}</style>
 <script type="module">
 // Renders one creature at a 3/4 view and at the game camera: /tools/creature-shot.html?name=chromatic%20dragon&view=game
-// (optional &bend=tail2.y:.6,... turns named joints first)
+// (optional &bend=tail2.y:.6,... turns named joints first; &pose=sleep lays a dragon down asleep)
 import * as THREE from 'three';
 import {createCreature} from '../creatures.js';
+import {sleepPose} from '../dragon-rest.js';
 const q=new URLSearchParams(location.search),name=q.get('name')||'chromatic dragon',view=q.get('view')||'three';
 const W=900,H=700,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
@@ -13,6 +14,8 @@ scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const key=new THREE.
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.MeshStandardMaterial({color:0x4a5550,roughness:1}));floor.rotation.x=-Math.PI/2;scene.add(floor);
 const c=createCreature({name,symbol:q.get('letter')?q.get('letter').charCodeAt(0):68,color:q.get('color')?+q.get('color'):5});scene.add(c.g);
 // ?bend=tail2.y:.6,neck1.x:-.4 turns named joints (a creature's actor.joints) before the shot
+// ?pose=sleep lays a dragon down asleep (dragon-rest.js)
+if(q.get('pose')==='sleep'&&c.joints){const r=sleepPose(c,name);r.apply(r.pose);}
 for(const b of (q.get('bend')||'').split(',').filter(Boolean)){const [k,v]=b.split(':'),[n,ax]=k.split('.');if(c.joints?.[n])c.joints[n].rotation[ax]+=+v;}
 const box=new THREE.Box3().setFromObject(c.g),size=box.getSize(new THREE.Vector3()),r=Math.max(size.x,size.y,size.z);
 const d=r*(view==='game'?3.4:2.4),look=new THREE.Vector3(0,size.y*.4,0);
