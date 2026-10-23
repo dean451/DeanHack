@@ -25,5 +25,16 @@ test('every pet look solves its resting, grooming and eating poses from their go
     for (const pose of ['sit', 'loaf', 'curl', 'bow', 'lick', 'wash', 'scratch', 'eat']) assert.ok(report[pose].worst < .06, `${name} ${pose}: worst residual ${report[pose].worst.toFixed(3)}`);
     // the shoulder lick is the hardest reach (a short neck): near, not exact
     assert.ok(report.flank.worst < .6, `${name} flank: ${report.flank.worst.toFixed(3)}`);
+    // asleep, the tail is laid on the floor round the outside of the curled body, out from under it
+    assert.ok(report.curlTail.worst < .08, `${name} curled tail: ${report.curlTail.worst.toFixed(3)}`);
+    a.animator.show('curl', .3); a.g.updateMatrixWorld(true); a.fur.skeleton.update();
+    const pos = a.fur.geometry.attributes.position, gr = a.fur.geometry.userData.groups, p = new THREE.Vector3(), tail = [], other = [];
+    for (let i = 0; i < pos.count; i += 5) { p.fromBufferAttribute(pos, i); a.fur.applyBoneTransform(i, p); a.fur.localToWorld(p); (gr[i] === 'tail' ? tail : other).push(p.clone()); }
+    const covered = tail.filter(t => other.some(o => Math.hypot(o.x - t.x, o.z - t.z) < .008 && o.y > t.y + .005)).length / tail.length;
+    assert.ok(covered < .4, `${name}: ${(covered * 100).toFixed(0)}% of the tail hidden under the body from above`);
+    // (its outer half, past where it rises from the rump, on the floor: within a tail's thickness of it)
+    const root = a.rig.tail[0].getWorldPosition(new THREE.Vector3()), outer = [...tail].sort((p, q) => p.distanceTo(root) - q.distanceTo(root)).slice(tail.length >> 1);
+    const high = outer.filter(t => t.y > .06 * a.g.scale.x).length / outer.length;
+    assert.ok(Math.min(...tail.map(t => t.y)) > -.005 && high < .15, `${name}: the tail lies on the floor (${(high * 100).toFixed(0)}% of its outer half off it)`);
   }
 });

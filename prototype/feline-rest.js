@@ -54,19 +54,20 @@ const POSES = {
       goal.ahead('shoulder:l', 'paw:lf', -u(.04), {within: u(.05)}), goal.ahead('hip:l', 'paw:lh', u(.065), {within: u(.065)}),
     ],
   }),
-  // Curled up asleep: rolled onto its side, low and round, the nose down by the hind feet and the tail
-  // round to the face, nothing through the floor; the face on the outside of the curl.
+  // Curled up asleep: rolled onto its side, low and round, the nose down by the hind feet, nothing
+  // through the floor, the face on the outside of the curl; then the tail laid along the floor round the
+  // body's outline, past the paws, to the nose (layTail).
   curl: ({P, R, skin, u, spineLine, bones}) => ({
     base: {fold: 1, hipsY: -.14, hipsZ: .19, hips: {z: 1.48}, spine: {x: 1.1}, chest: {x: 1.1}, neck: {x: 1.4}, head: {x: 1.2, y: -.3},
-      ...legs({hind0: -.1, hind1: 1.2, hind2: -1.3, hind3: 1.2, fore0: 0, fore1: -1.9, fore2: 1.86}), ...tailOf({x: [2, .6, .3, .3, .3], y: [0, 0, 0, 0, 0]})},
-    joints: {hipsY: [-.3, .05], hipsZ: [-.1, .3], 'hips.z': [0, 1.8], 'spine.x': [-.3, 1.3], 'chest.x': [-.3, 1.3], 'neck.x': [-.5, 1.6], 'head.x': [-1, 1.6], 'head.y': [-1, 1], ...LEGS, ...Object.fromEntries([0, 1, 2, 3, 4].map(i => ['tail' + i + '.x', [-2.5, 2.5]]))},
+      ...legs({hind0: -.1, hind1: 1.2, hind2: -1.3, hind3: 1.2, fore0: 0, fore1: -1.9, fore2: 1.86})},
+    joints: {hipsY: [-.3, .05], hipsZ: [-.1, .3], 'hips.z': [0, 1.8], 'spine.x': [-.3, 1.3], 'chest.x': [-.3, 1.3], 'spine.y': [-.9, .9], 'chest.y': [-.9, .9], 'neck.y': [-1, 1], 'neck.x': [-.5, 1.6], 'head.x': [-1, 1.6], 'head.y': [-1, 1], ...LEGS},
+    // (the tail is laid afterwards, round the outline of the curled body: see layTail)
+    tail: 'wrap',
     goals: [
-      goal.clear(skin.all, {weight: 3}), goal.clear(skin.tail, {weight: 2}), goal.rests(skin.all, {weight: 2}), goal.below('withers', u(.17)),
-      goal.reach('nose', 'paw:rh', {within: u(.07)}), goal.reach('tailtip', 'mouth', {within: u(.05)}), goal.above('mouth', u(.035)),
+      goal.clear(skin.dense, {weight: 3}), goal.clear(skin.tail, {weight: 2}), goal.rests(skin.all, {weight: 2}), goal.below('withers', u(.17)),
+      goal.reach('nose', 'paw:rh', {within: u(.07)}), goal.above('mouth', u(.035)),
       // (the face out on the rim of the curl, not tucked into it)
       goal.apart('mouth', () => P.rump().add(P.withers()).multiplyScalar(.5), u(.13), {weight: 2}), goal.above('crown', u(.06)),
-      // (and the tail round the outside of the body, clear of the spine all along it, not through it)
-      goal.outside(skin.tail, spineLine, u(.1), {weight: 3, skip: .2, plan: true, from: () => bones.tail0.getWorldPosition(new THREE.Vector3())}),
     ],
   }),
   // The bow, the front stretch on waking: the fore paws reached well forward along the floor, the hind
@@ -129,6 +130,40 @@ const POSES = {
 // side-less leg angles, both legs alike
 function legs(v) { const o = {}; for (const [k, x] of Object.entries(v)) for (const s of ['l', 'r']) o[s + k] = {x}; return o; }
 
+// Lays the tail along the floor round the outside of a lying body: the outline of the body seen from
+// above (the convex hull of its skin, held out by the tail's thickness), followed from where the tail
+// leaves the rump round the belly side (the paws' side) toward the face, each tail joint placed at its
+// own distance along it, then the tail's bones solved to those places.
+export const WRAP = {gap: .028, bend: [-2.6, 2.6]};
+function layTail({pose, apply, P, bones, skin, u}) {
+  apply(pose);
+  const tail = Object.keys(bones).filter(k => /^tail\d$/.test(k)).sort().map(k => bones[k]), root = tail[0].getWorldPosition(new THREE.Vector3());
+  // the outline: the convex hull of the body's skin in the floor's plane, pushed out by the gap
+  const pts = skin.dense().map(p => new THREE.Vector2(p.x, p.z)), hull = convexHull(pts), c = hull.reduce((a, p) => a.add(p), new THREE.Vector2()).divideScalar(hull.length);
+  const ring = hull.map(p => p.clone().add(p.clone().sub(c).normalize().multiplyScalar(u(WRAP.gap))));
+  // start at the ring point nearest the root; go the way that passes the paws first
+  const r2 = new THREE.Vector2(root.x, root.z); let i0 = 0; ring.forEach((p, i) => { if (p.distanceTo(r2) < ring[i0].distanceTo(r2)) i0 = i; });
+  const paws = ['paw:lf', 'paw:rf', 'paw:lh', 'paw:rh'].reduce((a, k) => { const v = P[k](); return a.add(new THREE.Vector2(v.x, v.z)); }, new THREE.Vector2()).divideScalar(4);
+  const n = ring.length, walk = dir => { const out = [r2.clone()]; for (let k = 0; k <= n; k++) out.push(ring[(i0 + dir * k + n * 2) % n]); return out; };
+  const firstHalf = path => { let d = 0, near = Infinity, len = 0; for (let k = 1; k < path.length; k++) len += path[k].distanceTo(path[k - 1]); for (let k = 1; k < path.length && d < len / 3; k++) { d += path[k].distanceTo(path[k - 1]); near = Math.min(near, path[k].distanceTo(paws)); } return near; };
+  const path = firstHalf(walk(1)) < firstHalf(walk(-1)) ? walk(1) : walk(-1);
+  const at = s => { let d = 0; for (let k = 1; k < path.length; k++) { const l = path[k].distanceTo(path[k - 1]); if (d + l >= s) return path[k - 1].clone().lerp(path[k], (s - d) / l); d += l; } return path[path.length - 1].clone(); };
+  // each joint at its own distance along the path, lying on the floor
+  const lens = [0]; for (let k = 1; k < tail.length; k++) lens.push(lens[k - 1] + tail[k].position.length() * u(1));
+  const lie = u(.02), targets = lens.map(s => { const q = at(s); return new THREE.Vector3(q.x, lie, q.y); });
+  const goals = tail.slice(1).map((b, k) => goal.reach(() => b.getWorldPosition(new THREE.Vector3()), targets[k + 1], {weight: 1 + k * .3}));
+  // (all three axes: the body's roll leaves each bone's own axes tipped)
+  const joints = Object.fromEntries(tail.slice(0, -1).flatMap(b => ['x', 'y', 'z'].map(ax => [b.name + '.' + ax, WRAP.bend])));
+  const r = solvePose({joints, base: pose, goals, apply, points: P, rest: .005, iterations: 120});
+  return {pose: r.pose, report: {cost: r.cost, worst: Math.max(0, ...r.residuals.flat().map(Math.abs))}};
+}
+// Andrew's monotone chain.
+function convexHull(points) {
+  const p = [...points].sort((a, b) => a.x - b.x || a.y - b.y), cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x), lo = [], hi = [];
+  for (const q of p) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.reverse()) { while (hi.length >= 2 && cross(hi[hi.length - 2], hi[hi.length - 1], q) <= 0) hi.pop(); hi.push(q); }
+  return lo.slice(0, -1).concat(hi.slice(0, -1));
+}
 // Solves every pose for a cat (once per look). `rig` and `fur` are the skinned cat's; `apply(pose)`
 // poses its bones (feline-skin.js applyPose, then the vertebrae's share-out); `key` names the look.
 const solved = new Map();
@@ -143,6 +178,8 @@ export function solveRest({rig, fur, bones, apply, key}) {
     body: skinSamples(fur, {groups: ['body', 'neck'], count: 50}),
     rump: skinSamples(fur, {groups: ['body'], filter: (x, y, z) => z < hipZ + .06 && y < Y, count: 30}),
     all: skinSamples(fur, {groups: ['body', 'neck', 'head', 'lfore', 'rfore', 'lhind', 'rhind'], count: 80}),
+    // (dense, for keeping the tail out from under the body and the body out of the floor when lying)
+    dense: skinSamples(fur, {groups: ['body', 'neck', 'head', 'lfore', 'rfore', 'lhind', 'rhind'], count: 400}),
     tail: skinSamples(fur, {groups: ['tail'], count: 24}),
     belly: [[-1, -.33], [-.33, .33], [.33, 1]].map(([a, b]) => skinSamples(fur, {groups: ['body'], filter: (x, y, z) => y < Y - .02 && z >= hipZ + (a + 1) * .2 && z < hipZ + (b + 1) * .2, count: 15})),
   };
@@ -164,6 +201,7 @@ export function solveRest({rig, fur, bones, apply, key}) {
       const r = solvePose({...spec, base, apply: pose, points: P});
       if (!best || r.cost < best.cost) best = r;
     }
+    if (spec.tail === 'wrap') { const t = layTail({pose: best.pose, apply: pose, P, bones, skin, u}); best = {...best, pose: t.pose}; report[name + 'Tail'] = t.report; }
     S[name] = best.pose; report[name] = {cost: best.cost, worst: Math.max(0, ...best.residuals.flat().map(Math.abs)), each: best.residuals.map(r => Math.max(0, ...r.map(Math.abs)))};
   }
   pose({});
