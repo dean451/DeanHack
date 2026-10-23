@@ -213,10 +213,42 @@ const DRAGON_TORSO=new THREE.SphereGeometry(1,9,6);
 function lowBlob(parent,r,material,x,y,z,sx,sy,sz,geo=DRAGON_SEGMENT){const mesh=part(parent,geo,material,x,y,z);mesh.scale.set(r*sx,r*sy,r*sz);return mesh;}
 function dragonBox(parent,w,h,d,material,x=0,y=0,z=0,r=.02){return part(parent,new RoundedBoxGeometry(w,h,d,1,Math.min(r,w/2,h/2,d/2)*.9),material,x,y,z);}
 const DRAGON_SCUTE=new THREE.BoxGeometry(.1,.012,.07);
-function dragonChain(parent,curve,n,r0,r1,m){
- const Z=new THREE.Vector3(0,0,1);
- for(let i=0;i<=n;i++){const t=i/n,p=curve.getPoint(t),r=r0+(r1-r0)*t,q=new THREE.Quaternion().setFromUnitVectors(Z,curve.getTangent(t).negate());
-  dragonSegment(parent,r,m.scales?m.scales[Math.min(4,Math.floor(t*5))]:m.hide,p,q,1,.9,1.3);dragonSegment(parent,r*.8,m.belly,p.clone().setY(p.y-r*.32),q,1.08,.7,1.3);}
+function dragonChain(parent,curve,n,r0,r1,m,skin,name){
+ const Z=new THREE.Vector3(0,0,1),segs=[],pts=[];
+ for(let i=0;i<=n;i++){const t=i/n,p=curve.getPoint(t),r=r0+(r1-r0)*t,q=new THREE.Quaternion().setFromUnitVectors(Z,curve.getTangent(t).negate());pts.push(p);
+  segs.push([m.scales?m.scales[Math.min(4,Math.floor(t*5))]:m.hide,p,q,r,1,.9,1.3],[m.belly,p.clone().setY(p.y-r*.32),q,r*.8,1.08,.7,1.3]);}
+ if(!skin){for(const [mt,p,q,r,sx,sy,sz] of segs)dragonSegment(parent,r,mt,p,q,sx,sy,sz);return null;}
+ return skin.chain(parent,pts,segs,name);
+}
+// A dragon's neck and tail chains bend by skinning (as the pet cat does): the segments of every chain
+// merge per material into one SkinnedMesh at the dragon's root, each segment weighted to its own bone
+// and blended into the next, so a joint turns everything past it and the mesh count does not rise.
+// Bones nest (neck0 > neck1 > ...) in the chain's parent; `joints` maps their names to the bones.
+function dragonSkin(root){
+ const bones=[],bins=new Map(),joints={},used={};
+ return {joints,
+  chain(parent,pts,segs,name){
+   const k=used[name]=(used[name]||0)+1,mine=[];
+   pts.forEach((p,i)=>{const b=new THREE.Bone();b.name=name+(k>1?'_'+k+'_':'')+i;b.position.copy(i?p.clone().sub(pts[i-1]):p);(i?mine[i-1]:parent).add(b);mine.push(b);joints[b.name]=b;});
+   const base=bones.length;bones.push(...mine);
+   const a=new THREE.Vector3(),ab=new THREE.Vector3(),v=new THREE.Vector3();
+   for(const [mt,p,q,r,sx,sy,sz] of segs){
+    const geo=DRAGON_SEGMENT.clone().applyMatrix4(new THREE.Matrix4().compose(p,q,new THREE.Vector3(r*sx,r*sy,r*sz)));
+    const pos=geo.attributes.position,idx=new Uint16Array(pos.count*4),wt=new Float32Array(pos.count*4);
+    for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i);let best=1e9,j=0,s=0;
+     for(let e=0;e<pts.length-1;e++){a.copy(pts[e]);ab.copy(pts[e+1]).sub(a);const u=Math.min(1,Math.max(0,v.clone().sub(a).dot(ab)/ab.lengthSq())),d=v.distanceToSquared(a.clone().addScaledVector(ab,u));if(d<best){best=d;j=e;s=u;}}
+     idx[i*4]=base+j;idx[i*4+1]=base+j+1;wt[i*4]=1-s;wt[i*4+1]=s;}
+    geo.setAttribute('skinIndex',new THREE.BufferAttribute(idx,4));geo.setAttribute('skinWeight',new THREE.BufferAttribute(wt,4));
+    parent.updateWorldMatrix(true,false);root.updateWorldMatrix(true,false);
+    geo.applyMatrix4(new THREE.Matrix4().copy(root.matrixWorld).invert().multiply(parent.matrixWorld));
+    if(!bins.has(mt))bins.set(mt,[]);bins.get(mt).push(geo);}
+   return mine;
+  },
+  // after every chain is placed: one SkinnedMesh per material, bound with the bones at rest
+  finish(){
+   root.updateMatrixWorld(true);const skeleton=new THREE.Skeleton(bones);
+   for(const [mt,geos] of bins){const mesh=new THREE.SkinnedMesh(mergeGeometries(geos),mt);mesh.castShadow=true;root.add(mesh);mesh.updateMatrixWorld(true);mesh.bind(skeleton,mesh.matrixWorld);geos.forEach(g=>g.dispose());}
+  }};
 }
 // dorsal spikes riding the top of a chain, shrinking toward its end
 function dragonRidge(parent,curve,n,r0,r1,size,material,t0=0,t1=1){
@@ -315,11 +347,11 @@ function dragonLegs(body,legs,m,o){
 function dragon(o={}){
  const f=o.form||DRAGON_FORMS.draken,baby=!!o.baby;
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar((baby?.62:1.05)*(f.scale||1));
- const m=dragonMats(o.color??3,f.chromatic),headScale=(baby?1.3:1)*(f.heads>1?.8:1);
+ const skin=dragonSkin(g),m=dragonMats(o.color??3,f.chromatic),headScale=(baby?1.3:1)*(f.heads>1?.8:1);
  let core=null,tail,tailCurve,trunk;const dressHeads=[];
  const addHead=(parent,points,mats,a=0,taper=null)=>{
-  const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));dragonChain(parent,neck,6,taper?taper[0]:.085,taper?taper[1]:.065,mats);dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9);
-  const end=points[points.length-1],head=new THREE.Group();head.position.set(end[0],end[1]+.04,end[2]+.06);head.rotation.y=a*.5;head.rotation.x=.12;head.scale.setScalar(headScale);parent.add(head);
+  const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));const bones=dragonChain(parent,neck,6,taper?taper[0]:.085,taper?taper[1]:.065,mats,skin,'neck');dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9);
+  const end=points[points.length-1],head=new THREE.Group();head.position.set(0,.04,.06);head.rotation.y=a*.5;head.rotation.x=.12;head.scale.setScalar(headScale);bones[bones.length-1].add(head);head.name=skin.joints.head?'head_'+dressHeads.length:'head';skin.joints[head.name]=head;
   const throat=dragonHead(head,mats,f,baby);core=core||throat;dressHeads.push({head,m:mats,cat:!!f.cat});
  };
  if(f.serpent){
@@ -329,7 +361,7 @@ function dragon(o={}){
    :[[0,.42,.24],[0,.24,.12],[.14,.13,-.02],[.06,.11,-.2],[-.14,.1,-.3]];
   for(const p of pts)p[1]+=.03;
   const spine=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
-  dragonChain(body,spine,f.serpent==='short'?8:12,f.serpent==='short'?.14:.12,.09,m);trunk=serpentTrunk(body,{curve:spine,r0:f.serpent==='short'?.14:.12,r1:.09});dragonRidge(body,spine,f.serpent==='short'?5:9,.12,.09,baby?.04:.08,m.dark,.05,.95);
+  dragonChain(body,spine,f.serpent==='short'?8:12,f.serpent==='short'?.14:.12,.09,m,skin,'spine');trunk=serpentTrunk(body,{curve:spine,r0:f.serpent==='short'?.14:.12,r1:.09});dragonRidge(body,spine,f.serpent==='short'?5:9,.12,.09,baby?.04:.08,m.dark,.05,.95);
   const top=pts[0];addHead(body,[[top[0],top[1]-.04,top[2]-.04],[top[0],top[1]+.08,top[2]+.04],[top[0],top[1]+.14,top[2]+.1]],m);
   // a serpent rears behind two angular dark blades flaring from the base of its neck, a cobra's cut hood
   for(const s of [-1,1])dragonLimb(body,[s*.04,pts[0][1]-.06,pts[0][2]],[s*.17,pts[0][1]+.1,pts[0][2]-.03],.07,m.dark,.3);
@@ -347,7 +379,7 @@ function dragon(o={}){
   }
   const last=pts[pts.length-1];tail=new THREE.Group();tail.position.set(...last);body.add(tail);
   const curve=new THREE.CatmullRomCurve3([[0,0,0],[last[0]>0?-.1:.1,-.02,-.12],[last[0]>0?-.2:.22,-.04,-.14],[last[0]>0?-.28:.3,-.05,-.06]].map(p=>new THREE.Vector3(...p)));
-  dragonChain(tail,curve,8,.085,.025,m);tailCurve=curve;
+  dragonChain(tail,curve,8,.085,.025,m,skin,'tail');tailCurve=curve;
   if(f.fins){const fluke=cone(tail,.06,.1,m.membrane,curve.getPoint(1).x,-.05,-.04,3);fluke.scale.set(1.6,1,.3);fluke.rotation.z=Math.PI/2;}
  }else{
   // four-legged dragons stand square; wyverns rear up on two legs and wings; sirrush are lean and long-necked
@@ -390,7 +422,7 @@ function dragon(o={}){
   tail=new THREE.Group();tail.position.set(0,.44,-.34);body.add(tail);
   const tip=f.sirrush?[[0,0,0],[0,-.1,-.15],[.06,-.19,-.28],[.1,-.1,-.39],[.1,.05,-.39]]:[[0,0,0],[0,-.1,-.16],[.1,-.19,-.3],[.19,-.25,-.4]];
   const curve=new THREE.CatmullRomCurve3(tip.map(p=>new THREE.Vector3(...p)));
-  dragonChain(tail,curve,10,.1,.03,m);tailCurve=curve;dragonRidge(tail,curve,6,.1,.03,baby?.04:.07,m.dark,.05,.9);
+  dragonChain(tail,curve,10,.1,.03,m,skin,'tail');tailCurve=curve;dragonRidge(tail,curve,6,.1,.03,baby?.04:.07,m.dark,.05,.9);
   const end=curve.getPoint(1),dir=curve.getTangent(1);
   // an arrowhead spade on the tail tip; a sirrush curls a scorpion's sting over its back instead
   const barb=cone(tail,f.sirrush?.025:.06,f.sirrush?.09:.12,f.sirrush?m.ivory:m.dark,end.x+dir.x*.04,end.y+dir.y*.04,end.z+dir.z*.04,f.sirrush?5:4);barb.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);if(!f.sirrush)barb.scale.set(1,1,.3);
@@ -403,8 +435,8 @@ function dragon(o={}){
  }
  const element=dragonElement(o.color??3);
  if(element)dressDragon({element,m,trunk,heads:dressHeads,tail,tailCurve,wings:wings.map(w=>({inner:w.userData.inner,edge:w.userData.inner.userData.edge})),baby});
- g.userData.core=core;
- return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element,heads:dressHeads.map(h=>h.head)}));
+ g.userData.core=core;skin.finish();
+ return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element,heads:dressHeads.map(h=>h.head),joints:skin.joints}));
 }
 // The plain rat's neck pivot, where its head handle turns (body space).
 export {RAT_NECK};
