@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
+    "smoke": "node smoke.mjs",
     "test": "node --test glowing-dragon.test.js rainbow-bridge.test.js '*.test.js' 'engine/*.test.js'",
     "engine:build": "python3 engine/build.py"
   },

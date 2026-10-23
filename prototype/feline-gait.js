@@ -280,6 +280,8 @@ export function createStepper(rig, actor, opts = {}) {
     }
     // and the head nods a little with the walk (the neck is written fresh each frame by the turn code)
     if (moving) rig.neck.quaternion.multiply(_qx.setFromAxisAngle(X, STEP.nod * Math.sin(st.phase * Math.PI * 4) * (1 - gal) * w));
+    // (a rig with vertebrae between its control bones shares those bends out before the legs are solved)
+    rig.distribute?.();
     g.updateMatrixWorld(true);
     const s = st.stride, off = s.offsets, swingS = s.period * (1 - s.duty);
     let standing = 0;
