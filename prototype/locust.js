@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {nameInsectJoints} from './insect-joints.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
 
@@ -188,5 +189,5 @@ export function createLocust(name){
   const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
   legs.push(leg);
  });
- return {g,body,legs,tail:null,wings:[],quirk:'insect',head,hopper:'locust'};
+ return nameInsectJoints({g,body,legs,tail:null,wings:[],quirk:'insect',head,hopper:'locust'});
 }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {nameInsectJoints} from './insect-joints.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
 
@@ -189,5 +190,5 @@ export function createBeetle(name){
   legs.push(leg);
  });
  g.userData.scarred=true;
- return {g,body,legs,tail:null,wings:[],quirk:'insect',head,beetle:true};
+ return nameInsectJoints({g,body,legs,tail:null,wings:[],quirk:'insect',head,beetle:true});
 }
