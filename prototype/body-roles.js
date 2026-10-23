@@ -39,8 +39,38 @@ export function bonesOf(actor) {
   return out;
 }
 
-// The role table for a built actor, by what it is. Only the cat has a map so far.
+// The dragon's map, from the joints `dragon()` exposes (actor.joints). `head` and `mouth` go through the
+// head group (the mouth at the jaw tip), `withers` sits at the wing roots (the base of the neck on a
+// wingless form), `rump` at the tail root, `tailtip` past the last tail joint, each paw at the sole under the last
+// bone of its leg, each wing point at the wing's `edge` points in the wing's inner frame. Roles a form has no
+// part for (a wyvern's forepaws, a serpent's legs, a wingless dragon's wings) are left out.
+export function dragonRoles(actor) {
+  const j = actor.joints, chain = prefix => { const out = []; for (let i = 0; j[prefix + i]; i++) out.push(j[prefix + i]); return out; };
+  const map = {
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.head, [0, -.066, .225]),
+    chin: () => inFrame(() => j.head, [0, -.09, .2]),
+    rump: () => at(() => j.tail0),
+    tailtip: () => pastEnd(() => chain('tail')),
+  };
+  const roots = actor.wings.map(w => w.userData.inner);
+  map.withers = () => roots.length ? () => { const p = new THREE.Vector3(); for (const r of roots) p.add(r.getWorldPosition(new THREE.Vector3())); return p.divideScalar(roots.length); } : at(() => j.neck0);
+  for (const leg of actor.legs) {
+    const side = leg.name[0], fore = /fore/.test(leg.name), bones = chain(leg.name);
+    map[`paw:${side}${fore ? 'f' : 'h'}`] = () => inFrame(() => bones[bones.length - 1], [0, -.016, 0]);
+    map[`${fore ? 'shoulder' : 'hip'}:${side}`] = () => at(() => bones[0]);
+  }
+  for (const w of actor.wings) {
+    const side = w.userData.side < 0 ? 'l' : 'r', [, wrist, tip] = w.userData.inner.userData.edge;
+    map[`wingwrist:${side}`] = () => inFrame(() => w.userData.inner, [wrist[0], wrist[1], 0]);
+    map[`wingtip:${side}`] = () => inFrame(() => w.userData.inner, [tip[0], tip[1], 0]);
+  }
+  return buildRoles(map, {});
+}
+
+// The role table for a built actor, by what it is: the cat and the dragons have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
+  if (actor.quirk === 'dragon' && actor.joints) return dragonRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
