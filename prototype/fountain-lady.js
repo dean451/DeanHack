@@ -7,14 +7,19 @@
 //
 // live.js calls add(x, z) at the hero's square when the message arrives, update(dt) every
 // frame and clear() on a level change. The Lady only comes to the hero's own fountain (the
-// dip is the hero's), so the message always means the square under them. Poses are functions
-// of t and return exactly to rest (nothing showing) at the end.
+// dip is the hero's), so the message always means the square under them. The hero model
+// stands on that square and would hide a single arm there, so she rises on the four squares
+// around the hero instead (north, south, east, west; one world unit per square), all four
+// arms in step. No floor check: an arm next to a wall simply rises out of it. Poses are
+// functions of t and return exactly to rest (nothing showing) at the end.
 
 import {softDot, softRing, clamp01, smooth} from './fx-textures.js';
 
 export const LADY = {rise: .45, riseTime: 1.1, turnAt: 1.9, twitchAt: 2.75, sinkAt: 3.2, sinkTime: .9, total: 4.4};
 export const ARM_MAX = .85; // how far the wrist clears the water
 export const STIR = {at: .05, end: .55}; // the water bulges and shivers before the arm breaks it
+// The four squares orthogonally next to the hero's square (x, z), where the arms rise.
+export const ladySquares = (x, z) => [[x, z - 1], [x, z + 1], [x + 1, z], [x - 1, z]];
 export const isLadyMessage = text => /a hand reaches up to bless the sword/i.test(text || '');
 // The other outcome: she curses the blade instead. Same arm, but the sword gutters a bruised
 // violet, the blade turns the wrong way and the glow stutters like a failing flame.
@@ -41,7 +46,8 @@ export function ladyPose(t, curse = false) {
 
 export function createFountainLady(THREE, parent) {
   const live = [];
-  function add(x, z, curse = false) {
+  function add(x, z, curse = false) { for (const [sx, sz] of ladySquares(x, z)) addArm(sx, sz, curse); }
+  function addArm(x, z, curse) {
     const g = new THREE.Group(); g.name = 'FountainLady'; g.position.set(x, .3, z); parent.add(g);
     const flesh = new THREE.MeshStandardMaterial({color: 0x8fa396, roughness: .9});
     const steel = new THREE.MeshStandardMaterial({color: 0xbfd6e6, metalness: .8, roughness: .25, emissive: curse ? 0x8a2bd0 : 0x5fb8ff, emissiveIntensity: 0});
