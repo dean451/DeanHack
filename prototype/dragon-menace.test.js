@@ -174,7 +174,8 @@ test('the mantle is a raptor\'s: wings out and down over the forepaws, head down
     const step = (n, t0) => { for (let i = 0; i < n; i++) updateDragonMenace(a, 1 / 60, t0 + i / 60, false, false, null); };
     step(30, 0);
     a.menace.cur = null; a.menace.wait = 1e9;
-    const rest = a.wings.map(tip), head0 = a.heads.map(h => h.rotation.x), tail0 = tailEnd(), tailX0 = a.tail.rotation.x, before = snap(a);
+    const mouth = h => { a.g.updateMatrixWorld(true); return h.localToWorld(new THREE.Vector3(0, -.066, .225)).y; };
+    const rest = a.wings.map(tip), head0 = a.heads.map(mouth), tail0 = tailEnd(), tailX0 = a.tail.rotation.x, before = snap(a);
     a.menace.cur = {kind: 'mantle', s: 0, side: 1}; a.menace.f = 1;
     step(Math.round((OPEN_S + HOLD_S / 2) * 60), 1);
     assert(a.menace.cur?.kind === 'mantle', name);
@@ -182,9 +183,9 @@ test('the mantle is a raptor\'s: wings out and down over the forepaws, head down
       const t = tip(w);
       assert(t.y < 0, `${name} wing tip ${t.y.toFixed(2)} should hang below its root`);
       assert(t.z > rest[i].z + .3, `${name} wing tip comes forward over the forepaws`);
-      assert(Math.abs(t.x) >= Math.abs(rest[i].x) - 1e-6, `${name} the span does not shrink`);
+      assert(Math.abs(t.x) >= Math.abs(rest[i].x) - 1e-6, `${name} the span does not shrink ${t.x} ${rest[i].x}`);
     });
-    a.heads.forEach((h, i) => assert(h.rotation.x > head0[i] + .05, `${name} head goes down`));
+    a.heads.forEach((h, i) => assert(mouth(h) < head0[i] - .05, `${name} head goes down`));
     assert(tailEnd() > tail0 + .01, `${name} tail lifts`);
     step(Math.round(mantleLength() * 60), 3);
     assert.equal(a.menace.cur, null);
