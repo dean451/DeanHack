@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -53,6 +53,19 @@ test('the fowl numbers are the animals\' own', () => {
   // a hen sits the perch for most of the dark and lies for most of that, so lying is a good part of the night but not all of it
   inside(fowl.perchDarkShare, [.5, 1], 'perch share of the dark'); inside(fowl.proneNightShare, [.5, 1], 'lying share of the night');
   inside(FOWL.lyingDark, [.5, .8], 'lying on the perch, share of the dark');
+});
+
+test('the wild cat numbers are the animals\' own', () => {
+  const {tiger, leopard, sleepHours, stealthRecovery} = MEASURES.wildCat;
+  // a tiger's tail is under half its head and body; males are longer than females; a leopard is the smaller cat
+  inside(tiger.tail[1] / tiger.headBody.female[1], [.3, .8], 'tail against head and body, cm');
+  assert(tiger.headBody.male[1] > tiger.headBody.female[1] && leopard.headBody[1] < tiger.headBody.male[1]);
+  inside(mid(tiger.shoulder), [70, 110], 'tiger shoulder height, cm');
+  inside(WILDCAT.tailShare[0], [.15, .4], 'tail share of the whole, low'); inside(WILDCAT.tailShare[1], [.3, .5], 'tail share of the whole, high');
+  // asleep most of the day, like the lion
+  inside(WILDCAT.sleepShare[0], [.6, .9], 'share of the day asleep'); assert.deepEqual(sleepHours, MEASURES.dragon.bigCat.sleepHours);
+  // a crouched stalk recovers little of its energy, a good deal less than a dog's 70%
+  assert(stealthRecovery.mean < .3 && stealthRecovery.max < .5 && stealthRecovery.max > stealthRecovery.mean);
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {
