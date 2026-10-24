@@ -110,3 +110,36 @@ test('a beetle\'s and a locust\'s abdomen hangs on tail0: turning it moves the a
   assert(new THREE.Box3().setFromObject(body).min.distanceTo(bodyBox.min)<1e-9,`${name}: the body stays`);
  }
 });
+
+test('each leg bends at its coxa, femur and tibia: turning one moves only that leg past the joint, mesh counts unchanged',()=>{
+ const skinned=leg=>leg.children.find(o=>o.isSkinnedMesh);
+ // every vertex of a leg in world space, posed by its bones
+ const verts=leg=>{const m=skinned(leg),p=m.geometry.attributes.position,v=new THREE.Vector3(),out=[];m.updateMatrixWorld(true);m.skeleton.update();for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);m.applyBoneTransform(i,v);out.push(v.clone().applyMatrix4(m.matrixWorld));}return out;};
+ for(const name of FAMILY){
+  const a=make(name),j=a.joints;
+  for(const side of ['l','r'])for(let i=0;i<3;i++){
+   const legName=`${side}leg${i}`,leg=j[legName];
+   assert(skinned(leg),`${name}: ${legName} is one skinned mesh`);
+   assert.equal(leg.children.filter(o=>o.isMesh).length,1,`${name}: ${legName} stays one mesh`);
+   for(let k=0;k<3;k++){
+    const bone=j[`${legName}_${k}`];
+    assert(bone&&bone.isBone,`${name}: ${legName}_${k}`);
+    a.g.updateMatrixWorld(true);
+    const rest=verts(leg),others=a.legs.filter(l=>l!==leg).map(l=>[l,verts(l)]);
+    // which vertices hang wholly on this bone or one past it
+    const m=skinned(leg),si=m.geometry.attributes.skinIndex,sw=m.geometry.attributes.skinWeight;
+    bone.rotation.x+=.6;a.g.updateMatrixWorld(true);
+    const now=verts(leg);let past=0,before=0;
+    for(let n=0;n<now.length;n++){
+     const d=now[n].distanceTo(rest[n]),b=si.getX(n),w=sw.getX(n),b2=si.getY(n),w2=sw.getY(n);
+     if(w===1&&b>=k&&now[n].distanceTo(bone.getWorldPosition(new THREE.Vector3()))>.002)past=Math.max(past,d);
+     if(w===1&&b<k||(w<1&&Math.max(b,b2)<k&&w2>0))before=Math.max(before,d);
+    }
+    assert(past>.002,`${name}: ${legName}_${k} moves the leg past it (${past})`);
+    assert(before<1e-9,`${name}: ${legName}_${k} leaves the leg before it (${before})`);
+    for(const [l,v] of others){const w=verts(l);assert(v.every((p,n)=>p.distanceTo(w[n])<1e-9),`${name}: ${legName}_${k} leaves ${l.name}`);}
+    bone.rotation.x-=.6;
+   }
+  }
+ }
+});

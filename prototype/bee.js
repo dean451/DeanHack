@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {nameInsectJoints} from './insect-joints.js';
+import {nameInsectJoints,skinLeg,rigLeg} from './insect-joints.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
 
@@ -161,7 +161,7 @@ function buildLeg(L,i){
  const a=new THREE.Vector3(...pts[3]),b=new THREE.Vector3(...pts[4]);
  for(let k=1;k<3;k++){const p=a.clone().lerp(b,k/3);P.add(new THREE.SphereGeometry(.0045,5,4),at(p.x,p.y,p.z),black);}
  segment(P,pts[4],[pts[4][0]+.004,pts[4][1]-.006,pts[4][2]+.006],.0025,.0005,black,3);
- return P.merge();
+ return skinLeg(P.merge(),pts);
 }
 
 // The right side's two wings, lying back over the abdomen with a little dihedral. The shapes are
@@ -220,7 +220,7 @@ export function createBee(name){
  const legs=[],wings=[];
  for(const s of [1,-1])S.legs.forEach((geo,i)=>{
   const leg=new THREE.Group();leg.position.set(s*.03,Y-.045,PAIRS[i].z);body.add(leg);
-  const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
+  rigLeg(leg,geo,S.material,{mirror:s<0});
   legs.push(leg);
  });
  // wings[0] is the left, wings[1] the right, as the buzz and the attack poses expect

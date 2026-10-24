@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {nameInsectJoints} from './insect-joints.js';
+import {nameInsectJoints,skinLeg,rigLeg} from './insect-joints.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 
 // Ants used to share the generic insect: three plain spheres, two bent feelers and six sticks.
@@ -195,7 +195,7 @@ function buildLeg(L,i){
  const tarsus=L.frost?mix(dark,FROST,.55):dark,claw=L.frost?FROST:dark;
  for(let k=1;k<4;k++){const p=a.clone().lerp(b,k/4);P.add(new THREE.SphereGeometry(.0055,5,4),at(p.x,p.y,p.z),k===3?claw:tarsus);}
  P.add(new THREE.SphereGeometry(.005,5,4),at(...pts[4]),claw);
- return P.merge();
+ return skinLeg(P.merge(),pts);
 }
 
 const cache=new Map();
@@ -229,7 +229,7 @@ export function createAnt(name,colour){
  for(const s of [1,-1])S.legs.forEach((geo,i)=>{
   const leg=new THREE.Group();
   leg.position.set(s*.028,Y-.005,PAIRS[i].z);body.add(leg);
-  const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
+  rigLeg(leg,geo,S.material,{mirror:s<0});
   legs.push(leg);
  });
  if(L.scarred)g.userData.scarred=true;
