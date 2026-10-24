@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -42,6 +42,17 @@ test('the insect numbers are the animals\' own', () => {
   // a male stag beetle is longer than a female, and the mandibles make up a good part of him
   assert(stag.male[1] > stag.female[1] && stag.maleBody[1] < stag.male[1]);
   inside(INSECTS.mandibleShare, [.2, .5], 'mandibles\' share of a male stag\'s length');
+});
+
+test('the fowl numbers are the animals\' own', () => {
+  const {fowl} = MEASURES;
+  assert.equal(fowl.bobPerStep, 1);
+  // a crow lasts a second or two, the jungle fowl's sequence about the same
+  for (const s of fowl.crowSeconds) inside(s, [1, 3], 'crow, seconds');
+  inside(fowl.jungleCrowMs / 1000, [1, 2], 'a jungle fowl crow sequence, seconds');
+  // a hen sits the perch for most of the dark and lies for most of that, so lying is a good part of the night but not all of it
+  inside(fowl.perchDarkShare, [.5, 1], 'perch share of the dark'); inside(fowl.proneNightShare, [.5, 1], 'lying share of the night');
+  inside(FOWL.lyingDark, [.5, .8], 'lying on the perch, share of the dark');
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {

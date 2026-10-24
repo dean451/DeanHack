@@ -92,3 +92,23 @@ The first monster family (AGENTS.md, family **a**). Measured from real ants (the
 | Weapons | a male's mandibles are longer than his head and are used to fight other males; a female's are shorter than her head | [Nature Conservation, Pensoft](https://natureconservation.pensoft.net/article_preview.php?id=12681) |
 
 **What the insects take from this.** An ant walks in two alternating tripods, its stride growing with speed, and defends with the gaster lifted and flexed forward over its back. A bee at rest lets head, antennae, thorax and abdomen sag and lies still for half an hour. A male beetle is about a third again as long with his mandibles as without, and they are longer than his head. Joints: `insect-joints.js`.
+
+## Cockerels (chickatrice, cockatrice, pyrolisk)
+
+The second monster family (AGENTS.md, family **c**; the monitor lizard is measured above under Dragons). Measured from the domestic fowl and its wild ancestor, the red jungle fowl: the strut and head bob, the crow, and how a hen rests at night.
+
+### Fowl (head bob, crow, night rest)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Head bob | one head cycle per step: a hold phase (head still against the ground while the body passes under it) then a thrust phase (head jerked forward); the hold share of the stride falls steadily as speed rises, and at the fastest speeds the neck stays extended with no bob | [Necker, "Head-bobbing of walking birds, a review"](https://reinhold-necker.de/seite10.html); [Hancock et al. 2014, Ibis](https://people.ohio.edu/stevensn/documents/Hancock%20et%20al%202014.pdf) |
+| Head bob, why | in chickens on a treadmill the bob follows visual motion velocity, not walking speed: the head is held still to see | Hataji, Otaki and Fujita 2015, [abstract](https://behaviour-2015.m.asnevents.com.au/schedule/session/6634/abstract/24884) |
+| Crow, length | 1.51 s in the morning, 1.86 s at noon, 1.61 s in the afternoon (10 Burgo roosters, Bengkulu) | [Biodiversitas / smujo.id, crowing of Burgo roosters](https://smujo.id/biodiv/article/download/5127/3677/17445) |
+| Crow, red jungle fowl | a crow sequence averages 29 calls over 1416 ms | [Temporal structure of red jungle fowl crow sequences](https://acnpsearch.tweb-dev.unibo.it/singlejournalindex/186895) |
+| Crow, posture | the head raised, often with the wings flapped | [Soundcy, how a rooster sounds](https://soundcy.com/article/how-does-a-rooster-sound) (a web guide, not a study) |
+| Night | caged hens roost on a perch about 85% of the dark period | Duncan et al. 1992, as summarised by [the Refinement Database](https://refinementdatabase.org/publications/effects-of-perches-in-laying-cages-on-welfare-and-production-of-hens) |
+| Night, posture | seven hens filmed overnight slept prostrate (lying) 77% of the night, the rest standing asleep, standing awake or grooming | [Nocturnal activity of hens, UACJ](https://cathi.uacj.mx/20.500.11961/29135) |
+
+*Not found:* the head's travel in centimetres or the bob's frequency in hertz for a chicken (the sources give the pattern and the one-per-step rhythm, not the amplitude), and any study of a crowing cock's neck angle. A hen's tucked head and one raised leg are described only by keepers' accounts, so no number is claimed for them.
+
+**What the cockerels take from this.** A walking fowl bobs once per step: the head hangs still in the air while the body passes beneath it, then darts forward, and the faster it goes the less it holds. A crow lasts about one and a half to two seconds, head raised. At night the fowl sits the perch for most of the dark and is down on its breast for most of that.
