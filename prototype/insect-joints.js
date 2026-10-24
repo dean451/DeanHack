@@ -44,7 +44,7 @@ export function skinLeg(geo,pts){
  }
  geo.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(idx,4));
  geo.setAttribute('skinWeight',new THREE.Float32BufferAttribute(wt,4));
- geo.userData.legBones=P.slice(0,3).map(p=>p.toArray());
+ geo.userData.legBones=P.slice(0,3).map(p=>p.toArray());geo.userData.foot=P.at(-1).toArray();
  return geo;
 }
 // One leg on its hip group: a SkinnedMesh of the skinned geometry with its three bones under it (so a mirrored
@@ -56,5 +56,7 @@ export function rigLeg(leg,geo,material,{mirror=false,part='leg'}={}){
  m.add(bones[0]);bones[0].add(bones[1]);bones[1].add(bones[2]);
  leg.add(m);m.updateMatrixWorld(true);m.bind(new THREE.Skeleton(bones));
  leg.userData.segments=bones;
+ // the claw's tip in the tibia's frame (body-roles.js puts the paw there, so it follows the bent leg)
+ const f=geo.userData.foot;leg.userData.foot=[f[0]-p2[0],f[1]-p2[1],f[2]-p2[2]];
  return m;
 }
