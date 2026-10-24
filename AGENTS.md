@@ -154,7 +154,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Wyvern venom bead floats (Claude, 2026-10-23, seen while rendering D2):** the green venom bead on the wyvern's stinger (`f.sting` in `dragon()`, `creatures.js`) hangs in the air a hand's width past the hook's point, at rest as well as bent. **Done when:** a `creature-shot` render of the wyvern (three-quarter and side) shows the bead touching the stinger's point, looked at, and a test checks the bead's centre is within its own radius of the hook's tip.
 
 
 **Models**
@@ -234,6 +233,7 @@ The pet cat poses from goals: `feline-pose.js` solves "mouth at the paw", "rump 
 - *At rest, a rig change must look exactly as before:* compare renders before and after (`compare -metric AE -fuzz 10%` gave 0 pixels), then render it bent (`BEND=`) and posed (`POSE=sleep`) and look.
 - *Real numbers, honestly sourced.* Cite every measure; where no source gives an angle, write the posture in words and set it by eye against references. Never invent a number.
 - *Solving is slow (1 to 12 s a form):* bake it ahead of time (`tools/bake-dragon-sleep.mjs` writes `dragon-sleep-poses.js`), gate each baked pose on its goals, and keep a test that the bake still matches a fresh solve, so a body change that forgets to re-bake fails loudly.
+- *Seat what is laid on a body, and test for floating pieces.* Ribs, plates, scars, horns and dressing placed at fixed offsets floated off the dragons wherever the body was narrower (or its low-poly facets lay inside the ideal shape); `seat` in `creatures.js` slides each in until it sinks into the hide, and `dragon-seat.test.js` splits every dragon into its separate pieces and fails on any more than 1.5 cm from the rest (measured both ways, surface to surface). Run the same check on any creature you build.
 - *Give the solver more than one way to do it.* One pose can't fit every body: a short neck can't curl, pillar legs can't fold. Try poses in order (curl, front, sprawl) and keep the first that meets every goal; and try a stuck stage from a few starts (the wings).
 - *Bake from what the game will actually build:* the same name, colour and options. A pose baked on a default-coloured dragon put the sarkany's element spikes 1.6 cm through the floor in play.
 - *Layer a pose on top of live motion without leaving residue:* ease from whatever the frame wrote toward the pose, record what you changed, and take it back at the start of the next frame unless something else rewrote it (`dragon-sleep.js`). Waking is then exact.
