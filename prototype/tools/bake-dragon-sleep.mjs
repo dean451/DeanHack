@@ -1,6 +1,7 @@
 // Bakes every dragon's sleeping pose (dragon-rest.js sleepPose) into dragon-sleep-poses.js, so the game
 // never solves one mid-play (a solve takes 1 to 9 s a form). Run from prototype/ after changing a dragon's
-// body or the sleep goals:  node tools/bake-dragon-sleep.mjs
+// body or the sleep goals:  node tools/bake-dragon-sleep.mjs   (or name forms to re-bake just those:
+// node tools/bake-dragon-sleep.mjs tiamat "baby draken")
 // A form is marked ok only when every goal is met to under 2 cm and nothing is through the floor; the game
 // lets only those fall asleep (dragon-sleep.js).
 import {readFileSync, writeFileSync} from 'node:fs';
@@ -9,11 +10,15 @@ import {createCreature} from '../creatures.js';
 import {sleepPose} from '../dragon-rest.js';
 import {menaces} from '../dragon-menace.js';
 
-const names = JSON.parse(readFileSync(new URL('./creature-names.json', import.meta.url))).filter(m => m.letter === 'D').map(m => m.name.toLowerCase());
+const only = process.argv.slice(2).map(n => n.toLowerCase());
+const names = JSON.parse(readFileSync(new URL('./creature-names.json', import.meta.url))).filter(m => m.letter === 'D');
 const round = v => Math.round(v * 1e4) / 1e4;
-const out = {};
-for (const name of names) {
-  const a = createCreature({name, symbol: 68});
+const out = only.length ? {...(await import('../dragon-sleep-poses.js')).SLEEP_POSES} : {};
+// each with its own glyph colour, as the game sends it (the colour picks the element, whose dressing changes the body)
+for (const {name: n, color} of names) {
+  const name = n.toLowerCase();
+  if (only.length && !only.includes(name)) continue;
+  const a = createCreature({name, symbol: 68, color});
   if (!menaces(a) || !a.joints) continue;
   const t0 = Date.now(), r = sleepPose(a, name);
   r.apply(r.pose); a.g.updateMatrixWorld(true);

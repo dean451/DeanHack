@@ -207,7 +207,27 @@ function dragonChain(parent,curve,n,r0,r1,m,skin,name){
  for(let i=0;i<=n;i++){const t=i/n,p=curve.getPoint(t),r=r0+(r1-r0)*t,q=new THREE.Quaternion().setFromUnitVectors(Z,curve.getTangent(t).negate());pts.push(p);
   segs.push([m.scales?m.scales[Math.min(4,Math.floor(t*5))]:m.hide,p,q,r,1,.9,1.3],[m.belly,p.clone().setY(p.y-r*.32),q,r*.8,1.08,.7,1.3]);}
  if(!skin){for(const [mt,p,q,r,sx,sy,sz] of segs)dragonSegment(parent,r,mt,p,q,sx,sy,sz);return null;}
- return skin.chain(parent,pts,segs,name);
+ // skinned, the hide and the belly are each one smooth tube along the curve (a string of overlapping spheres
+ // read as beads), with the end segments kept as rounded caps
+ const ends=segs.filter((_,k)=>k<2||k>=segs.length-2);
+ return skin.chain(parent,pts,ends,name,{tubes:[[m.hide,dragonTube(curve,r0,r1,{rings:n*4})],[m.belly,dragonTube(curve,r0,r1,{rings:n*4,k:.8,sx:1.08,sy:.7,drop:.32})]]});
+}
+// A smooth tube along a curve, its radius tapering from r0 to r1 times k, an ellipse sx wide and sy tall
+// (sy measured toward the world's up), dropped `drop` of the radius below the curve (the belly runs under
+// the hide). The frames are carried along the curve without twisting.
+function dragonTube(curve,r0,r1,{rings=24,radial=12,k=1,sx=1,sy=.9,drop=0}={}){
+ const pos=[],idx=[],up=new THREE.Vector3(0,1,0),T=new THREE.Vector3(),N=new THREE.Vector3(),B=new THREE.Vector3();
+ let prevN=null;
+ for(let i=0;i<=rings;i++){
+  const t=i/rings,p=curve.getPoint(t),r=(r0+(r1-r0)*t);curve.getTangent(t,T);
+  // the section's "up" is the world's up made square to the tangent, carried from the last ring where the curve runs steep
+  N.copy(prevN&&Math.abs(T.dot(up))>.95?prevN:up).addScaledVector(T,-T.dot(prevN&&Math.abs(T.dot(up))>.95?prevN:up)).normalize();prevN=N.clone();B.crossVectors(T,N);
+  const c=p.clone().addScaledVector(N,-r*drop);
+  for(let j=0;j<radial;j++){const a=j/radial*Math.PI*2,v=c.clone().addScaledVector(B,Math.cos(a)*r*k*sx).addScaledVector(N,Math.sin(a)*r*k*sy);pos.push(v.x,v.y,v.z);}
+ }
+ for(let i=0;i<rings;i++)for(let j=0;j<radial;j++){const a=i*radial+j,b=i*radial+(j+1)%radial,c=a+radial,d=b+radial;idx.push(a,c,b,b,c,d);}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2),2));g.setIndex(idx);g.computeVertexNormals();
+ return g;
 }
 // A dragon bends by skinning (as the pet cat does): the neck, tail and leg chains, and everything that
 // rides on them (the dorsal spikes, the tail's spade or sting, the element's dressing, the claws), merge
@@ -238,12 +258,14 @@ function dragonSkin(root){
  };
  return {joints,
   // a chain of bones through `pts` (the chain's parent's space), named name0, name1, ...; `segs` are
-  // the chain's own pieces ([material, position, quaternion, radius, sx, sy, sz])
-  chain(parent,pts,segs,name,{hinge=false}={}){
+  // the chain's own pieces ([material, position, quaternion, radius, sx, sy, sz]); `tubes`, [material, geometry]
+  // pairs laid along it (the smooth hide and belly)
+  chain(parent,pts,segs,name,{hinge=false,tubes=[]}={}){
    const k=used[name]=(used[name]||0)+1,mine=[];
    pts.forEach((p,i)=>{const b=new THREE.Bone();b.name=name+(k>1?'_'+k+'_':'')+i;b.position.copy(i?p.clone().sub(pts[i-1]):p);(i?mine[i-1]:parent).add(b);mine.push(b);joints[b.name]=b;});
    const c={parent,pts:pts.map(p=>p.clone()),base:bones.length,hinge};bones.push(...mine);chains.push(c);mine.chain=c;mine[0].userData.chain=c;
    for(const [mt,p,q,r,sx,sy,sz] of segs)add(DRAGON_SEGMENT.clone().applyMatrix4(new THREE.Matrix4().compose(p,q,new THREE.Vector3(r*sx,r*sy,r*sz))),mt,c);
+   for(const [mt,geo] of tubes)add(geo,mt,c);
    return mine;
   },
   // meshes built on a chain's parent (or under it) join the chain's skin, weighted along it; anything
@@ -465,7 +487,9 @@ function dragon(o={}){
  if(spineBones)skin.ride([...trunk.group.children],spineBones);
  for(const w of wings){const n=(w.userData.side<0?'l':'r')+'wing';w.name=n;skin.joints[n]=w;skin.joints[n+'_inner']=w.userData.inner;}
  g.userData.core=core;skin.finish();
- return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element,heads:dressHeads.map(h=>h.head),joints:skin.joints}));
+ // every joint's built angle, kept before anything animates it: the sleep (dragon-sleep.js) and the solver (dragon-rest.js) pose from these
+ const jointRest={rest:{},body:body.position.clone(),bodyRz:body.rotation.z};for(const [n,o] of Object.entries(skin.joints))jointRest.rest[n]={x:o.rotation.x,y:o.rotation.y,z:o.rotation.z,s:o.scale.x};
+ return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element,heads:dressHeads.map(h=>h.head),joints:skin.joints,jointRest}));
 }
 // The plain rat's neck pivot, where its head handle turns (body space).
 export {RAT_NECK};
