@@ -17,7 +17,7 @@ import {segment,chain} from './ant.js';
 //   with a herringbone of dark grooves raised up and back to a black knee above the wings, the
 //   tibia folded down beneath it, blood-red inside and lined with two rows of black-tipped spines.
 // The head is one vertex-coloured mesh on a neck pivot, the thorax, wings and abdomen another;
-// each leg is its own group holding one mesh (the tripod walk swings them). 8 draws, one material.
+// each leg is its own group holding one mesh (the tripod walk swings them); the abdomen is a ninth on `tail0`. 9 draws, one material.
 // Geometry is built once and shared; the left legs reuse the right ones mirrored.
 // Handles: body, legs (6), head (the neck pivot group), quirk 'insect', hopper 'locust' (locust-hop.js).
 
@@ -27,6 +27,7 @@ const LOOKS={
 const Y=.12;// thorax height above the floor, before scaling
 const HIP=Y-.025;// hip height
 const NECK=[0,Y+.015,.15];
+const WAIST=[0,Y-.012,.035];// the abdomen pivots here, where it leaves the thorax
 
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
 const grain=(x,y,z,f=160)=>hash(Math.floor(x*f)*7.3+Math.floor(y*f)*3.1+Math.floor(z*f)*1.7);
@@ -66,6 +67,24 @@ function buildHead(L){
  const geo=P.merge();geo.translate(-NECK[0],-NECK[1],-NECK[2]);return geo;
 }
 
+// The abdomen (banded tube and sting) is its own mesh on a `tail0` group that pivots at the waist, under the wings.
+function buildAbdomen(L){
+ const P=pieces(),shell=rgb(L.shell),dark=rgb(L.dark),pale=rgb(L.pale);
+ // abdomen: a long tapering tube of banded plates under the wings, curving down to the sting
+ const segs=9;
+ for(let k=0;k<segs;k++){
+  const u=k/(segs-1),z=.035-u*.27,y=Y-.012-u*u*.03,r=.033-u*.015;
+  P.add(new THREE.SphereGeometry(r,12,8),at(0,y,z,[0,0,0],[.95,.9,.95]),(x,py)=>{
+   const t=top(y-r,y+r)(py);let c=mix(dark,shell,.2+t*.7);
+   if(t<.35)c=mix(c,pale,.35);// a paler belly
+   return k%2?mix(c,dark,.25):c;
+  });
+ }
+ // a short black sting (it stings: AT_STNG, disease)
+ segment(P,[0,Y-.045,-.235],[0,Y-.07,-.28],.007,.0008,rgb(L.sting),6);
+ const geo=P.merge();geo.translate(-WAIST[0],-WAIST[1],-WAIST[2]);return geo;
+}
+
 function buildBody(L){
  const P=pieces(),shell=rgb(L.shell),dark=rgb(L.dark),pale=rgb(L.pale),wing=rgb(L.wing),soot=rgb(L.soot);
  // thorax under the shield
@@ -82,18 +101,6 @@ function buildBody(L){
   const z=.165-k*.022,y=Y+.044-k*k*.0006;
   segment(P,[0,y-.004,z+.006],[0,y+.011-k*.001,z-.006],.0045,.0006,k%2?dark:mix(dark,shell,.5),4);
  }
- // abdomen: a long tapering tube of banded plates under the wings, curving down to the sting
- const segs=9;
- for(let k=0;k<segs;k++){
-  const u=k/(segs-1),z=.035-u*.27,y=Y-.012-u*u*.03,r=.033-u*.015;
-  P.add(new THREE.SphereGeometry(r,12,8),at(0,y,z,[0,0,0],[.95,.9,.95]),(x,py)=>{
-   const t=top(y-r,y+r)(py);let c=mix(dark,shell,.2+t*.7);
-   if(t<.35)c=mix(c,pale,.35);// a paler belly
-   return k%2?mix(c,dark,.25):c;
-  });
- }
- // a short black sting (it stings: AT_STNG, disease)
- segment(P,[0,Y-.045,-.235],[0,Y-.07,-.28],.007,.0008,rgb(L.sting),6);
  // forewings: leathery blades folded in a roof along the back, past the end of the abdomen. Each
  // is a flattened capsule rolled out from the midline; blotched with soot, darker at the trailing
  // edge, with a few pale cross veins. Their tips break into ragged points.
@@ -168,7 +175,7 @@ function build(key,L){
  if(cache.has(key))return cache.get(key);
  const S={
   material:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.05}),
-  body:buildBody(L),head:buildHead(L),legs:[0,1,2].map(i=>buildLeg(L,i)),
+  body:buildBody(L),abdomen:buildAbdomen(L),head:buildHead(L),legs:[0,1,2].map(i=>buildLeg(L,i)),
  };
  cache.set(key,S);return S;
 }
@@ -180,6 +187,8 @@ export function createLocust(name){
  const L=LOOKS[name]||LOOKS.locust,S=build(LOOKS[name]?name:'locust',L);
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(L.scale);
  mesh(body,S.body,S.material,'body');
+ const tail0=new THREE.Group();tail0.position.set(...WAIST);body.add(tail0);
+ mesh(tail0,S.abdomen,S.material,'abdomen');
  const head=new THREE.Group();head.position.set(...NECK);body.add(head);
  mesh(head,S.head,S.material,'head');
  const legs=[];
@@ -189,5 +198,5 @@ export function createLocust(name){
   const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
   legs.push(leg);
  });
- return nameInsectJoints({g,body,legs,tail:null,wings:[],quirk:'insect',head,hopper:'locust'});
+ return nameInsectJoints({g,body,legs,tail:null,tail0,wings:[],quirk:'insect',head,hopper:'locust'});
 }
