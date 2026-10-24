@@ -16,7 +16,7 @@ import {segment,chain} from './ant.js';
 // - Legs: six stout legs (coxa, a thick femur up to the knee, a spined tibia down, five tarsal
 //   beads and a pair of hooked claws). The front tibiae are toothed along the outside for digging.
 // The head is one vertex-coloured mesh on a neck pivot, the shell and underside another; each leg
-// is its own group holding one mesh (the tripod walk swings them). 8 draws, one material.
+// is its own group holding one mesh (the tripod walk swings them); the abdomen is a ninth on `tail0`. 9 draws, one material.
 // Geometry is built once and shared; the left legs reuse the right ones mirrored.
 // Handles: body, legs (6), head (the neck pivot group), quirk 'insect'.
 
@@ -27,6 +27,7 @@ const Y=.14;// thorax height above the floor, before scaling
 const HY=Y-.04;// hip height
 const HZ=.17;// head centre
 const NECK=[0,Y,.13];
+const WAIST=[0,Y-.028,-.02];// the abdomen pivots here, under the front of the wing cases
 
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
 const grain=(x,y,z,f=150)=>hash(Math.floor(x*f)*7.3+Math.floor(y*f)*3.1+Math.floor(z*f)*1.7);
@@ -43,9 +44,9 @@ function shellColour(L,n,extra=0){
 // the normal of an ellipsoid with centre C and radii R at p
 const ellipsoidNormal=(p,C,R)=>new THREE.Vector3((p[0]-C[0])/(R[0]*R[0]),(p[1]-C[1])/(R[1]*R[1]),(p[2]-C[2])/(R[2]*R[2])).normalize();
 
-function buildBody(L){
+// The long banded abdomen under the wing cases is its own mesh on a `tail0` group that pivots at the waist.
+function buildAbdomen(L){
  const P=pieces(),under=rgb(L.under),black=rgb(L.black);
- // underside: a long banded abdomen and the breast plates between the legs
  const UC=[0,Y-.028,-.075],UR=[.105,.05,.165];
  P.add(new THREE.SphereGeometry(1,18,10),at(...UC,[0,0,0],UR),(x,y,z)=>{
   const band=((UC[2]+UR[2]-z)/(UR[2]*2)*6)%1;
@@ -53,6 +54,12 @@ function buildBody(L){
   if(band<.1&&z<.02)c=mix(c,black,.7);
   return c;
  });
+ const geo=P.merge();geo.translate(-WAIST[0],-WAIST[1],-WAIST[2]);return geo;
+}
+
+function buildBody(L){
+ const P=pieces(),under=rgb(L.under),black=rgb(L.black);
+ // the breast plates between the legs
  P.add(new THREE.SphereGeometry(1,16,10),at(0,Y-.035,.05,[0,0,0],[.075,.04,.08]),(x,y)=>mix(black,under,.5));
 
  // elytra: two domed halves with a seam between them, grooved lengthwise and pitted
@@ -168,7 +175,7 @@ function build(key,L){
  if(cache.has(key))return cache.get(key);
  const S={
   material:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.24,metalness:.22}),
-  body:buildBody(L),head:buildHead(L),legs:PAIRS.map((p,i)=>buildLeg(L,i)),
+  body:buildBody(L),abdomen:buildAbdomen(L),head:buildHead(L),legs:PAIRS.map((p,i)=>buildLeg(L,i)),
  };
  cache.set(key,S);return S;
 }
@@ -180,6 +187,8 @@ export function createBeetle(name){
  const L=LOOKS[name]||LOOKS['giant beetle'],S=build(LOOKS[name]?name:'giant beetle',L);
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(L.scale);
  mesh(body,S.body,S.material,'body');
+ const tail0=new THREE.Group();tail0.position.set(...WAIST);body.add(tail0);
+ mesh(tail0,S.abdomen,S.material,'abdomen');
  const head=new THREE.Group();head.position.set(...NECK);body.add(head);
  mesh(head,S.head,S.material,'head');
  const legs=[];
@@ -190,5 +199,5 @@ export function createBeetle(name){
   legs.push(leg);
  });
  g.userData.scarred=true;
- return nameInsectJoints({g,body,legs,tail:null,wings:[],quirk:'insect',head,beetle:true});
+ return nameInsectJoints({g,body,legs,tail:null,tail0,wings:[],quirk:'insect',head,beetle:true});
 }

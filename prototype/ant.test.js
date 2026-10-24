@@ -65,7 +65,7 @@ test('the locust has its own build: folded wings, jumping hind legs and a hooded
  assert.equal(a.legs.length,6);
  assert(a.head.children.some(o=>o.isMesh),'the head handle carries the head mesh');
  const parts=meshes(a);
- assert.equal(parts.length,8,'head, body and one mesh per leg');
+ assert.equal(parts.length,9,'head, body, abdomen and one mesh per leg');
  assert.equal(new Set(parts.map(m=>m.material)).size,1,'one material');
  assert.notEqual(parts[0].geometry,meshes(ant)[0].geometry);
  let verts=0;

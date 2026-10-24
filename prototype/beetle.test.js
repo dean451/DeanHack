@@ -12,7 +12,7 @@ test('the giant beetle gets domed wing cases, a shield, toothed jaws, a turning 
  assert.equal(a.wings.length,0);
  assert(a.head?.children.some(o=>o.isMesh),'the head handle carries the head mesh');
  const parts=meshes(a);
- assert.equal(parts.length,8,'body, head and 6 legs');
+ assert.equal(parts.length,9,'body, abdomen, head and 6 legs');
  assert.equal(new Set(parts.map(m=>m.material)).size,1,'one material');
  let verts=0;
  for(const m of parts){
@@ -40,7 +40,7 @@ test('the giant beetle gets domed wing cases, a shield, toothed jaws, a turning 
 test('the giant beetle has a split wing case and a snapped mandible and still fits its tile',()=>{
  const a=createCreature({name:'giant beetle',symbol:'a'.charCodeAt(0),color:0});
  assert(a.g.userData.scarred,'scarred');
- assert.equal(meshes(a).length,8,'same draws');
+ assert.equal(meshes(a).length,9,'same draws');
  a.g.updateMatrixWorld(true);
  const b=new THREE.Box3().setFromObject(a.g);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.48,'fits the tile');
