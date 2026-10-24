@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {KITS,KIT_ROLES,dressHero} from './hero-kits.js';
+import {ARM_X} from './hero-valkyrie.js';
 import {ROLE_NAMES} from './roles.js';
 import {readFileSync} from 'node:fs';
 
@@ -230,4 +231,12 @@ test('the Wizard keeps the hat, loses the costume stars, and carries a spellbook
   assert.ok(w.kitAdded.some(({obj})=>obj.parent===w.parts.body&&obj.position.x>.2&&obj.position.y<.6),'the book on the right hip');
   assert.ok(w.parts.head.children.length>=2,'hat and beard');
   dressHero(w,{role:'Valkyrie',gender:'male'});assert.equal(w.parts.body.children.length,0);
+});
+
+test('the Valkyrie\'s arms hang in against her slim plate; every other class gets the rig\'s shoulders back exactly',()=>{
+  const h=fakeRig();h.parts.arm.position.x=.3;h.parts.shieldArm.position.x=-.3;
+  dressHero(h,{role:'Valkyrie',gender:'female'});
+  assert.equal(h.parts.arm.position.x,ARM_X);assert.equal(h.parts.shieldArm.position.x,-ARM_X);
+  for(const role of ROLE_NAMES.filter(r=>r!=='Valkyrie')){dressHero(h,{role,gender:'male'});assert.equal(h.parts.arm.position.x,.3,role);assert.equal(h.parts.shieldArm.position.x,-.3,role);}
+  dressHero(h,{role:'Valkyrie',gender:'female'});assert.equal(h.parts.arm.position.x,ARM_X);
 });

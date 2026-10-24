@@ -157,9 +157,12 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  // Finer features: high cheekbones, a darker lower lip, long lower lashes and a narrow nose bridge between the brows.
  const plume=new THREE.Group();head.add(plume); // Stable legacy animation anchor, no spike.
  let helmetWorn=null;
- function setHelmet(item){helmetWorn=item||null;helmet.visible=!!item&&!valk.helm.visible;hair.visible=!item;helmet.name=item?.name||'Unequipped helmet';syncHelmWings();} // the Valkyrie's own winged helm stands in for any helmet she wears
- // her helm's wings show only while she wears a helmet (hero-kits.js calls this again after it shows or hides her suit)
- function syncHelmWings(){for(const w of valk.wings)w.visible=!!helmetWorn&&valk.helm.visible;}
+ function setHelmet(item){helmetWorn=item||null;hair.visible=!item;helmet.name=item?.name||'Unequipped helmet';syncHelmWings();helmet.visible=!!item&&!valk.helm.visible;} // the Valkyrie's own winged helm stands in for any helmet she wears
+ // her helm (and its wings) shows only while she wears a helmet; bare-headed she shows her face and long hair
+ // (hero-kits.js calls this again after it shows or hides her suit)
+ function syncHelmWings(){const suit=valk.objects.some(o=>o.visible&&!valk.headPieces.includes(o));if(!suit)return;
+  const bare=!helmetWorn;helmet.visible=false;for(const o of valk.headPieces)o.visible=!bare;for(const o of valk.bareHair)o.visible=bare;
+  face.forEach(o=>o.visible=bare);for(const o of [...hairCap,...hairStrands,...hairTail])o.visible=bare;}
  const pauldronStart=body.children.length;
  for(const side of [-1,1])for(let i=0;i<3;i++){
   const plate=roundedBox(.16-i*.013,.04,.2-i*.016,i?armor:armorLight,body,side*(.25+i*.035),.995-i*.059,0,.018);plate.rotation.z=-side*(.18+i*.16);

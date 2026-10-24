@@ -100,7 +100,10 @@ test('nothing floats: every piece sits on the body it covers', () => {
   for (const [i, leg] of r.legs.entries()) checks.push([`cuisse ${i}`, gap('cuisse', s.thighs[i], leg), .02], [`greave ${i}`, gap('greave', s.shins[i], leg), .022], [`knee cop ${i}`, gap('kneeCop', both(s.thighs[i], s.shins[i]), leg), .07], [`knee mail ${i}`, gap('kneeMail', both(s.thighs[i], s.shins[i]), leg), .02]);
   for (const [name, d, limit] of checks) assert.ok(d < limit, `${name}: ${d.toFixed(3)} off the body (limit ${limit})`);
   // and none of it is inside what it covers: the belt and plackart are outside the breastplate everywhere
-  for (const tag of ['belt', 'plackart']) for (const p of verts(onPart(r, tag, r.body))) { const t = torsoSurface(Math.atan2(p.x, p.z), p.y); assert.ok(Math.hypot(p.x, p.z) > Math.hypot(t.x, t.z) - .002, `${tag} does not cut into the plate`); }
+  // (the plate's surface in the same direction as the vertex: the plate is wider than deep at the upper arms, so
+  // the angle it was built at isn't the angle it ends up at; a few steps find the one that lands on the vertex's)
+  const along = (phi, y) => { let th = phi, t; for (let i = 0; i < 8; i++) { t = torsoSurface(th, y); th -= Math.atan2(t.x, t.z) - phi; } return t; };
+  for (const tag of ['belt', 'plackart']) for (const p of verts(onPart(r, tag, r.body))) { const t = along(Math.atan2(p.x, p.z), p.y); assert.ok(Math.hypot(p.x, p.z) > Math.hypot(t.x, t.z) - .002, `${tag} does not cut into the plate`); }
 });
 
 test('the helm is head-sized, closed, and its bevor narrows to a beak', () => {

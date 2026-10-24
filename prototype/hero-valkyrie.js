@@ -38,6 +38,9 @@ const torsoDepth = (y, front) => { const t = THREE.MathUtils.smoothstep(y, .86, 
 // flatter at the shoulders, a bust and a raised centre ridge in front.
 export function torsoWarp(x, y, z) {
   const front = z > 0, zz = z * torsoDepth(y, front);
+  // the back and ribs fill out at the height of the upper arms, so her arms hang against her sides (the
+  // waist below stays narrow)
+  x *= 1 + LATS * Math.exp(-(((y - .83) / .085) ** 2));
   if (!front) return [x, y, zz];
   const r = Math.hypot(x, z) || 1, f = Math.pow(Math.max(0, z / r), 2);
   const bust = .05 * Math.exp(-(((Math.abs(x) - .064) / .05) ** 2) - (((y - .85) / .055) ** 2));
@@ -60,6 +63,11 @@ export function bellSurfaceZ(x, y, out = 0) { const r = lerpTable(BELL, y) + out
 // Sized to a head, not to the rig's big face (which the closed helm hides): about a seventh of her height.
 export const HELM = [[.116, -.152], [.121, -.136], [.129, -.1], [.138, -.055], [.144, -.01], [.146, .028], [.141, .07], [.127, .106], [.1, .134], [.058, .151], [.001, .157]];
 export const HELM_TOP = .157;
+// Her arms hang ARM_X out from the middle (the rig's are .3 for every class: broad shoulders); her kit moves them
+// in to this, and LATS is how much wider (a share) the plate is at the height of her upper arms, so they meet it.
+export const ARM_X = .26, LATS = .22;
+// a [r, y] table with extra points every `step` in y between its own
+const dense = (table, step) => table.flatMap(([r, y], i) => { if (!i) return [[r, y]]; const [r0, y0] = table[i - 1], n = Math.max(1, Math.ceil(Math.abs(y - y0) / step)); return Array.from({length: n}, (_, k) => [r0 + (r - r0) * (k + 1) / n, y0 + (y - y0) * (k + 1) / n]); });
 // The helm's wings at this share of the photo's size: their tips stand about 0.14 over the helm, not 0.3.
 export const WING_SIZE = .5;
 const HELM_Z = 1.04;
@@ -192,7 +200,8 @@ export function buildValkyrie(rig, mats, {keep = false} = {}) {
 
   // -- breastplate, gorget, plackart, belt
   tag('breastplate');
-  C.add(body, armor, 'Plate', lathe(TORSO, torsoWarp, 40));
+  // (rings every 2.5 cm, so the plate follows the shaping at the upper arms, not just its table's points)
+  C.add(body, armor, 'Plate', lathe(dense(TORSO, .025), torsoWarp, 40));
   // a dent and a scrape in the plate (worn, not factory clean): pressed in under the left breast
   const dent = place(new THREE.SphereGeometry(.018, 6, 4), {p: [.09, .8, 0], s: [1.4, .7, .4]}); dent.translate(0, 0, torsoSurface(.62, .8).z - .004); C.add(body, armorLight, 'Plate', dent);
   tag('gorget');
@@ -204,7 +213,7 @@ export function buildValkyrie(rig, mats, {keep = false} = {}) {
   tag('plackart');
   for (let k = 0; k < 4; k++) { // the plackart: four lames over the belly, each overlapping the one below
     const yb = .625 + k * .037, yt = yb + .046;
-    C.add(body, k % 2 ? armorLight : armor, 'Plate', lathe([[lerpTable(TORSO, yb) + .009, yb], [lerpTable(TORSO, yt) + .004, yt]], torsoWarp, 40));
+    C.add(body, k % 2 ? armorLight : armor, 'Plate', lathe([0, 1, 2].map(i => { const y = yb + (yt - yb) * i / 2; return [lerpTable(TORSO, y) + .009 - .005 * i / 2, y]; }), torsoWarp, 40));
     for (const th of [-.75, -.4, .4, .75]) { const s = torsoSurface(th, yb + .009, .011); rivet(body, s.x, s.y, s.z); }
   }
   tag('belt');
@@ -222,12 +231,12 @@ export function buildValkyrie(rig, mats, {keep = false} = {}) {
 
   // -- pauldrons: a rounded cap on the shoulder, three lames on the upper arm under it
   for (const [arm, side] of [[rig.arm, 1], [rig.shieldArm, -1]]) {
-    const cap = place(new THREE.SphereGeometry(.1, 10, 5, 0, Math.PI * 2, 0, Math.PI * .56), {p: [side * .3, .9, 0], r: [0, 0, -side * .55], s: [1.0, .9, 1.02]});
-    if (side > 0) { const p = cap.attributes.position; for (let i = 0; i < p.count; i++) { const d = Math.hypot(p.getX(i) - .36, p.getY(i) - .975, p.getZ(i) - .05); if (d < .03) p.setZ(i, p.getZ(i) - (.03 - d) * .25); } } // a dent in the right cap
+    const cap = place(new THREE.SphereGeometry(.1, 10, 5, 0, Math.PI * 2, 0, Math.PI * .56), {p: [side * ARM_X, .9, 0], r: [0, 0, -side * .55], s: [1.0, .9, 1.02]});
+    if (side > 0) { const p = cap.attributes.position; for (let i = 0; i < p.count; i++) { const d = Math.hypot(p.getX(i) - (ARM_X + .06), p.getY(i) - .975, p.getZ(i) - .05); if (d < .03) p.setZ(i, p.getZ(i) - (.03 - d) * .25); } } // a dent in the right cap
     tag('pauldronCap'); C.add(body, armor, 'Pauldron', flat(cap)); // faceted, not a ball
     // a raised roll along the top of the cap, front to back
-    C.add(body, armorLight, 'Pauldron', place(new THREE.TorusGeometry(.094, .007, 4, 16, Math.PI), {p: [side * .3, .9, 0], r: [0, Math.PI / 2, -side * .55], order: 'ZYX'}));
-    for (let i = 0; i < 7; i++) { const a = (i / 6 - .5) * 2.4; rivet(body, side * (.3 + .1 * Math.cos(.55) * Math.cos(a)) + side * .012, .9 - .1 * Math.sin(.55) * Math.cos(a) - .006, .1 * Math.sin(a), .0075); } // round the cap's lower rim
+    C.add(body, armorLight, 'Pauldron', place(new THREE.TorusGeometry(.094, .007, 4, 16, Math.PI), {p: [side * ARM_X, .9, 0], r: [0, Math.PI / 2, -side * .55], order: 'ZYX'}));
+    for (let i = 0; i < 7; i++) { const a = (i / 6 - .5) * 2.4; rivet(body, side * (ARM_X + .1 * Math.cos(.55) * Math.cos(a)) + side * .012, .9 - .1 * Math.sin(.55) * Math.cos(a) - .006, .1 * Math.sin(a), .0075); } // round the cap's lower rim
     tag('pauldronLame');
     for (let k = 0; k < 3; k++) {
       const y = -.03 - k * .042, rt = .08 - k * .006, rb = .09 - k * .006, th0 = side > 0 ? Math.PI / 2 - 1.7 : -Math.PI / 2 - 1.7;
@@ -373,7 +382,18 @@ export function buildValkyrie(rig, mats, {keep = false} = {}) {
     hairLock(side, .026, .006, hairMid, {outward: hairOut});
   }
 
+  // -- bare-headed (no helmet worn): her hair falls over the back of her skull from under the rig's hair cap
+  // (main.js sizes that cap: a .196 sphere, x .91, y 1.04 + .01, z .94 - .018) down to the nape, where the
+  // locks above take over; shown only without a helmet (main.js syncHelmWings)
+  tag('bareHair');
+  {
+    const g = new THREE.SphereGeometry(.2, 20, 8, Math.PI - .35, Math.PI + .7, Math.PI * .45, Math.PI * .4), p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), wave = .006 * Math.sin(Math.atan2(x, z) * 9); p.setXYZ(i, x * .93 + Math.sign(x) * wave * .3, y * 1.04 + .01, z * .96 - .018 - Math.abs(wave)); }
+    g.computeVertexNormals(); C.add(head, hairDark, 'BareHair', g);
+  }
   const objects = C.finish();
   const byRole = role => objects.filter(o => o.userData.valkyrie === role);
-  return {objects, helm: byRole('Helm').find(o => o.material === armor), wings: byRole('Wing'), hair: byRole('Hair'), panel: byRole('SkirtPanel')[0], byRole, hairPaths, pieces: C.pieces, materials: {mail, slit, eyes}};
+  // everything on her head (helm, slit, eyes, its rivets, the wings): shown only while she wears a helmet
+  const headPieces = objects.filter(o => o.parent === head && o.userData.valkyrie !== 'BareHair');
+  return {objects, headPieces, bareHair: byRole('BareHair'), helm: byRole('Helm').find(o => o.material === armor), wings: byRole('Wing'), hair: byRole('Hair'), panel: byRole('SkirtPanel')[0], byRole, hairPaths, pieces: C.pieces, materials: {mail, slit, eyes}};
 }
