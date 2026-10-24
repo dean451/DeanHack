@@ -25,6 +25,7 @@
 import * as THREE from 'three';
 import {takeBackSleep, applySleep} from './dragon-sleep.js';
 import {MANTLE_POSES} from './dragon-mantle-poses.js';
+import {updateDragonWalk, takeBackWalk} from './dragon-walk.js';
 
 // Wings. REST: live.js's resting pivot angle; BREATH: the slow open/close; FURL: how far the wings
 // fold back while walking, and FURL_DROOP how far they sink; FURL_RATE: how fast they fold (1/s).
@@ -112,7 +113,7 @@ function setup(a) {
     seed: ((a.g.id ?? 1) * 48271) % 2147483647 || 1, wait: 0, cur: null, f: 0, furl: 0, life: 1, ph: 0,
     heads: a.heads.map(h => ({base: h.rotation.y, y: 0, x: 0, aim: 0, next: 0})),
     applied: {heads: a.heads.map(() => ({y: 0, x: 0})), inner: (a.wings || []).map(() => ({x: 0, z: 0})), tailY: 0, tailX: 0},
-    sleep: {p: 0, idle: 0, written: []}, mantled: [],
+    sleep: {p: 0, idle: 0, written: []}, mantled: [], walk: {w: 0, ph: 0, written: []},
   };
   st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
   st.ph = rand(st) * Math.PI * 2;
@@ -135,11 +136,12 @@ function takeBack(a, st) {
 function applyMantle(a, st, pose, k) {
   for (const [n, p] of Object.entries(pose)) {
     const o = a.joints?.[n]; if (!o) continue;
-    for (const ax of ['x', 'y', 'z']) { const d = (p[ax] || 0) * k; if (!d) continue; o.rotation[ax] += d; st.mantled.push({r: o.rotation, ax, left: o.rotation[ax], d}); }
+    for (const ax of ['x', 'y', 'z']) { const d = (p[ax] || 0) * k; if (!d) continue; const was = o.rotation[ax]; o.rotation[ax] += d; st.mantled.push({r: o.rotation, ax, left: o.rotation[ax], was}); }
   }
 }
 function takeBackMantle(st) {
-  for (const w of st.mantled) if (w.r[w.ax] === w.left) w.r[w.ax] -= w.d;
+  // (back to exactly the value found, not by subtracting, so the layers under it see their own value again)
+  for (let i = st.mantled.length - 1; i >= 0; i--) { const w = st.mantled[i]; if (w.r[w.ax] === w.left) w.r[w.ax] = w.was; }
   st.mantled.length = 0;
 }
 
@@ -262,12 +264,13 @@ function updateSmoke(a, st, dt, t, walking, dead, snort, huff) {
 
 // Call once per frame after live.js's wing and tail writes. `busy`: walking or an action playing
 // or queued; `walking`: actually moving; `look`: the hero's position (same parent as actor.g) or
-// null. Returns {mantle, lash, furl, smoke (live wisps), snort, huff} for tests, or null for anything but a dragon.
+// null. Returns {mantle, lash, furl, smoke (live wisps), snort, huff, sleep, walk (the walk's blend)} for tests, or null for anything but a dragon.
 export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) {
   if (!menaces(a)) return null;
   const st = a.menace || (a.menace = setup(a));
   takeBackSleep(a, st.sleep);
   takeBackMantle(st);
+  takeBackWalk(st.walk);
   takeBack(a, st);
   dt = Math.max(0, fin(dt)); t = fin(t);
   const dead = !!a.actions?.dead;
@@ -316,7 +319,8 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
   if (a.tail) {
     const drift = DRIFT * Math.sin(t * DRIFT_RATE + st.ph) + DRIFT2 * Math.sin(t * DRIFT2_RATE + st.ph * 1.7);
     const sway = WALK_SWAY * Math.sin(t * WALK_RATE + st.ph);
-    a.tail.rotation.z = (drift * (1 - st.furl) + sway * (walking ? st.furl : 0) + LASH * lash) * life;
+    // (a dragon with tail joints swings its tail with its stride instead: dragon-walk.js)
+    a.tail.rotation.z = (drift * (1 - st.furl) + (a.joints?.tail0 ? 0 : sway * (walking ? st.furl : 0)) + LASH * lash) * life;
     const y = LASH_Y * lash * life;
     a.tail.rotation.y += y;
     st.applied.tailY = y;
@@ -334,17 +338,20 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
     if (aim) { yawTo = clamp(wrap(aim.yaw - hs.base), YAW); pitchTo = clamp(aim.pitch, PITCH); }
     else {
       if ((hs.next -= dt) <= 0) { hs.aim = dead ? 0 : (rand(st) * 2 - 1) * SCAN; hs.next = SCAN_MIN + SCAN_SPAN * rand(st); }
-      yawTo = dead ? 0 : hs.aim; pitchTo = 0;
+      // (walking, it stops looking about and faces where it goes, like a lizard's steady head)
+      yawTo = dead || walking ? 0 : hs.aim; pitchTo = 0;
     }
     hs.y += (yawTo - hs.y) * k; hs.x += (pitchTo - hs.x) * k;
     const y = hs.y * life, x = (hs.x + REAR * mantle * hand) * life;
     h.rotation.y += y; h.rotation.x += x;
     st.applied.heads[i] = {y, x};
   });
+  // Walking: the lizard's stride, the trunk's swing, the tail opposite the hips, the head held steady (dragon-walk.js).
+  const walk = dead ? {w: 0} : updateDragonWalk(a, st.walk, dt, walking);
   if (solved && open) applyMantle(a, st, solved, open);
   updateSmoke(a, st, dt, t, walking, dead, snort, huff);
   if (dead && life <= SNAP) { st.cur = null; st.f = 0; }
   // Asleep: a dragon left alone, still and with nobody in range, dozes off (dragon-sleep.js), last of all.
   const sleep = applySleep(a, st.sleep, dt, !busy && !dead && !aim);
-  return {mantle, lash, furl: st.furl, smoke: st.smoke.wisps.length, snort, huff, sleep};
+  return {mantle, lash, furl: st.furl, smoke: st.smoke.wisps.length, snort, huff, sleep, walk: walk.w};
 }

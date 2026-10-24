@@ -2,7 +2,7 @@
 <style>html,body{margin:0;background:#233138}canvas{display:block}</style>
 <script type="module">
 // Renders one creature at a 3/4 view and at the game camera: /tools/creature-shot.html?name=chromatic%20dragon&view=game
-// (optional &bend=tail2.y:.6,... turns named joints first; &pose=sleep lays a dragon down asleep; &idle=20 lets it stand idle 20 s in the game's own update)
+// (optional &bend=tail2.y:.6,... turns named joints first; &pose=sleep lays a dragon down asleep; &idle=20 lets it stand idle 20 s in the game's own update; &walk=2 walks it 2 s)
 import * as THREE from 'three';
 import {createCreature} from '../creatures.js';
 import {sleepPose} from '../dragon-rest.js';
@@ -21,6 +21,8 @@ if(q.get('pose')==='sleep'&&c.joints){const r=sleepPose(c,name);r.apply(r.pose);
 if(q.get('pose')==='mantle'){c.species=name;updateDragonMenace(c,1/30,0,false,false,null);c.menace.cur={kind:'mantle',s:.8,side:1};c.menace.f=1;for(let i=0;i<3;i++)updateDragonMenace(c,1/30,i/30,false,false,null);}
 // ?idle=20 runs the game's own per-frame dragon update (dragon-menace.js) that many seconds with nobody near
 if(q.get('idle')){c.species=name;for(let i=0;i<+q.get('idle')*30;i++)updateDragonMenace(c,1/30,i/30,false,false,null);}
+// ?walk=2 walks it that many seconds in the game's own update, after live.js's leg swing and body bob each frame
+if(q.get('walk')){c.species=name;for(let i=0;i<+q.get('walk')*30;i++){const t=i/30;c.legs?.forEach((l,k)=>l.rotation.x=Math.sin(t*22+k*2)*.4);if(c.body)c.body.position.y=Math.sin(t*22)*.035;updateDragonMenace(c,1/30,t,true,true,null);}}
 for(const b of (q.get('bend')||'').split(',').filter(Boolean)){const [k,v]=b.split(':'),[n,ax]=k.split('.');if(c.joints?.[n])c.joints[n].rotation[ax]+=+v;}
 const box=new THREE.Box3().setFromObject(c.g),size=box.getSize(new THREE.Vector3()),r=Math.max(size.x,size.y,size.z);
 const d=r*(view==='game'?3.4:2.4),look=new THREE.Vector3(0,size.y*.4,0);

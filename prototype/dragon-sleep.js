@@ -27,7 +27,9 @@ function rest(a) {
 // Undoes last frame's easing. A value something else rewrote since (live.js writes the wings, the tail and
 // the body bob afresh every frame) is left alone; one only the sleep touched goes back exactly.
 export function takeBackSleep(a, st) {
-  for (const w of st.written || []) { const now = w.get(); if (now === w.left) w.set(now - w.delta); }
+  // (back to exactly the value found, not by subtracting, so the layers under it see their own value again)
+  const list = st.written || [];
+  for (let i = list.length - 1; i >= 0; i--) { const w = list[i]; if (w.get() === w.left) w.set(w.was); }
   st.written = [];
 }
 
@@ -42,15 +44,15 @@ export function applySleep(a, st, dt, quiet) {
   if (!st.p) return 0;
   const k = parts(st.p), {rest: r, body} = rest(a);
   const ease = (n, obj, ax, target, w) => {
-    const now = obj[ax], next = now + (target - now) * w, delta = next - now;
-    if (!delta) return;
-    obj[ax] = next; st.written.push({get: () => obj[ax], set: v => { obj[ax] = v; }, left: next, delta});
+    const now = obj[ax], next = now + (target - now) * w;
+    if (next === now) return;
+    obj[ax] = next; st.written.push({get: () => obj[ax], set: v => { obj[ax] = v; }, left: next, was: now});
   };
   // every joint the pose names, and the ones the waking frame sways (the tail's own group, the whole body's wobble)
   for (const [n, o] of Object.entries(a.joints)) {
     const p = pose[n] || {}, w = k[region(n)];
     for (const ax of ['x', 'y', 'z']) ease(n, o.rotation, ax, r[n][ax] + (p[ax] || 0), w);
-    if (p.s !== undefined) { const s = o.scale.x, next = s + (p.s - s) * w; if (next !== s) { o.scale.setScalar(next); st.written.push({get: () => o.scale.x, set: v => o.scale.setScalar(v), left: next, delta: next - s}); } }
+    if (p.s !== undefined) { const s = o.scale.x, next = s + (p.s - s) * w; if (next !== s) { o.scale.setScalar(next); st.written.push({get: () => o.scale.x, set: v => o.scale.setScalar(v), left: next, was: s}); } }
   }
   if (a.tail) for (const ax of ['x', 'y', 'z']) ease('tail', a.tail.rotation, ax, 0, k.body);
   ease('g', a.g.rotation, 'z', 0, k.body);

@@ -75,7 +75,7 @@ test('sixty seconds of a dragon: finite, bounded, furls to walk, and death settl
     assert(maxStep < .2, `${name} tail step ${maxStep}`);
     // dead: heads, inner wings and tail yaw exactly back at rest; the tail hangs still
     const end = snap(a);
-    for (const [k, [x, y]] of end.heads.entries()) { assert(Math.abs(x - rest.heads[k][0]) < 1e-9 && Math.abs(y - rest.heads[k][1]) < 1e-9, name); }
+    for (const [k, [x, y]] of end.heads.entries()) { assert(Math.abs(x - rest.heads[k][0]) < 1e-9 && Math.abs(y - rest.heads[k][1]) < 1e-9, `${name} ${x - rest.heads[k][0]} ${y - rest.heads[k][1]}`); }
     assert(Math.abs(end.tailY - rest.tailY) < 1e-9 && Math.abs(a.tail.rotation.z) < 1e-9, name);
     for (const w of a.wings) assert(Math.abs(w.rotation.y - w.userData.side * (REST + FURL)) < 1e-3, `${name} wings folded in death`);
   }
