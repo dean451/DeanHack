@@ -26,6 +26,7 @@ import * as THREE from 'three';
 import {takeBackSleep, applySleep} from './dragon-sleep.js';
 import {MANTLE_POSES} from './dragon-mantle-poses.js';
 import {updateDragonWalk, takeBackWalk} from './dragon-walk.js';
+import {wingsFor, applyWings, takeBackWings, flapLength} from './dragon-wingbeat.js';
 
 // Wings. REST: live.js's resting pivot angle; BREATH: the slow open/close; FURL: how far the wings
 // fold back while walking, and FURL_DROOP how far they sink; FURL_RATE: how fast they fold (1/s).
@@ -112,8 +113,8 @@ function setup(a) {
   const st = {
     seed: ((a.g.id ?? 1) * 48271) % 2147483647 || 1, wait: 0, cur: null, f: 0, furl: 0, life: 1, ph: 0,
     heads: a.heads.map(h => ({base: h.rotation.y, y: 0, x: 0, aim: 0, next: 0})),
-    applied: {heads: a.heads.map(() => ({y: 0, x: 0})), inner: (a.wings || []).map(() => ({x: 0, z: 0})), tailY: 0, tailX: 0},
-    sleep: {p: 0, idle: 0, written: []}, mantled: [], walk: {w: 0, ph: 0, written: []},
+    applied: {heads: a.heads.map(() => ({y: 0, x: 0})), inner: (a.wings || []).map(() => ({x: 0, z: 0})), tailY: 0, tailX: 0}, exact: [],
+    sleep: {p: 0, idle: 0, written: []}, mantled: [], walk: {w: 0, ph: 0, written: []}, wings: {written: [], flap: null, slept: false},
   };
   st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
   st.ph = rand(st) * Math.PI * 2;
@@ -122,11 +123,16 @@ function setup(a) {
   return st;
 }
 
+// An offset this frame adds, recorded so takeBack can undo it exactly.
+function put(st, r, ax, d) { if (!d) return; const was = r[ax]; r[ax] += d; st.exact.push({r, ax, left: r[ax], was, d}); }
+
 function takeBack(a, st) {
   const o = st.applied;
-  a.heads.forEach((h, i) => { h.rotation.y -= o.heads[i].y; h.rotation.x -= o.heads[i].x; o.heads[i].y = o.heads[i].x = 0; });
-  (a.wings || []).forEach((w, i) => { const inner = w.userData.inner; if (inner && o.inner[i]) { inner.rotation.x -= o.inner[i].x; inner.rotation.z -= o.inner[i].z; o.inner[i].x = o.inner[i].z = 0; } });
-  if (a.tail) { a.tail.rotation.y -= o.tailY; a.tail.rotation.x -= o.tailX; }
+  // (each value back to exactly what it was when nothing has touched it since, else the offset taken off)
+  for (let i = st.exact.length - 1; i >= 0; i--) { const w = st.exact[i]; w.r[w.ax] = w.r[w.ax] === w.left ? w.was : w.r[w.ax] - w.d; }
+  st.exact.length = 0;
+  a.heads.forEach((h, i) => { o.heads[i].y = o.heads[i].x = 0; });
+  (a.wings || []).forEach((w, i) => { if (o.inner[i]) o.inner[i].x = o.inner[i].z = 0; });
   o.tailY = 0; o.tailX = 0;
 }
 
@@ -270,6 +276,7 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
   const st = a.menace || (a.menace = setup(a));
   takeBackSleep(a, st.sleep);
   takeBackMantle(st);
+  takeBackWings(st.wings);
   takeBackWalk(st.walk);
   takeBack(a, st);
   dt = Math.max(0, fin(dt)); t = fin(t);
@@ -301,16 +308,18 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
   // Wings: furl while walking (and on death they fold and droop), otherwise breathe; mantle on top.
   const furlTo = walking || dead ? 1 : 0;
   st.furl += (furlTo - st.furl) * (1 - Math.exp(-FURL_RATE * dt));
-  const life = st.life, open = mantle * life, solved = mantleFor(a), hand = solved ? 0 : 1;
+  // (it settles the last thousandth at once, so the wings end exactly open or folded)
+  if (Math.abs(furlTo - st.furl) < 1e-3) st.furl = furlTo;
+  const life = st.life, open = mantle * life, solved = mantleFor(a), hand = solved ? 0 : 1, folds = wingsFor(a), handFurl = folds ? 0 : 1;
   (a.wings || []).forEach((w, i) => {
     const side = w.userData.side || (i ? 1 : -1);
     const breathe = BREATH * Math.sin(t * BREATH_RATE + st.ph) * (1 - st.furl) * (1 - open) * life;
-    w.rotation.y = side * (REST + breathe + FURL * st.furl - SPREAD * open * hand);
+    w.rotation.y = side * (REST + breathe + FURL * st.furl * handFurl - SPREAD * open * hand);
     const inner = w.userData.inner;
     if (inner) {
       const x = -CUP * open * hand + SHUDDER * .5 * holding * life * Math.sin(t * SHUDDER_HZ * .7);
-      const z = side * (RAISE * open * hand - FURL_DROOP * st.furl + SHUDDER * holding * life * Math.sin(t * SHUDDER_HZ + i));
-      inner.rotation.x += x; inner.rotation.z += z;
+      const z = side * (RAISE * open * hand - FURL_DROOP * st.furl * handFurl + SHUDDER * holding * life * Math.sin(t * SHUDDER_HZ + i));
+      put(st, inner.rotation, 'x', x); put(st, inner.rotation, 'z', z);
       st.applied.inner[i] = {x, z};
     }
   });
@@ -322,10 +331,10 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
     // (a dragon with tail joints swings its tail with its stride instead: dragon-walk.js)
     a.tail.rotation.z = (drift * (1 - st.furl) + (a.joints?.tail0 ? 0 : sway * (walking ? st.furl : 0)) + LASH * lash) * life;
     const y = LASH_Y * lash * life;
-    a.tail.rotation.y += y;
+    put(st, a.tail.rotation, 'y', y);
     st.applied.tailY = y;
     const lift = TAIL_UP * open * hand;
-    a.tail.rotation.x += lift;
+    put(st, a.tail.rotation, 'x', lift);
     st.applied.tailX = lift;
   }
 
@@ -343,15 +352,21 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
     }
     hs.y += (yawTo - hs.y) * k; hs.x += (pitchTo - hs.x) * k;
     const y = hs.y * life, x = (hs.x + REAR * mantle * hand) * life;
-    h.rotation.y += y; h.rotation.x += x;
+    put(st, h.rotation, 'y', y); put(st, h.rotation, 'x', x);
     st.applied.heads[i] = {y, x};
   });
   // Walking: the lizard's stride, the trunk's swing, the tail opposite the hips, the head held steady (dragon-walk.js).
   const walk = dead ? {w: 0} : updateDragonWalk(a, st.walk, dt, walking);
+  // The wings: a form with baked wings folds them the bat's way as it furls, and flaps on rising from sleep (dragon-wingbeat.js).
+  const ws = st.wings;
+  if (dead) ws.flap = null; else if (ws.flap !== null && (ws.flap += dt) >= flapLength()) ws.flap = null;
+  if (folds && (st.furl > 1e-6 || ws.flap !== null)) applyWings(a, ws, folds, st.furl, ws.flap);
   if (solved && open) applyMantle(a, st, solved, open);
   updateSmoke(a, st, dt, t, walking, dead, snort, huff);
   if (dead && life <= SNAP) { st.cur = null; st.f = 0; }
   // Asleep: a dragon left alone, still and with nobody in range, dozes off (dragon-sleep.js), last of all.
   const sleep = applySleep(a, st.sleep, dt, !busy && !dead && !aim);
-  return {mantle, lash, furl: st.furl, smoke: st.smoke.wisps.length, snort, huff, sleep, walk: walk.w};
+  // (rising from a sleep, once fully awake again, it shakes its wings out with a flap)
+  if (sleep >= 1) ws.slept = true; else if (!sleep && ws.slept) { ws.slept = false; if (folds && !dead) ws.flap = 0; }
+  return {mantle, lash, furl: st.furl, smoke: st.smoke.wisps.length, snort, huff, sleep, walk: walk.w, flap: ws.flap};
 }
