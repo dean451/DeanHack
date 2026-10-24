@@ -155,13 +155,13 @@ test('dragon heads carry a scar mark on the snout', () => {
   assert(scar, 'scar material present on the head');
 });
 
-test('every dragon hide carries a scale bump map, shared between dragons', () => {
-  const hides = new Set();
-  for (const name of ['draken', 'wyvern', 'tiamat', 'baby draken']) {
-    const a = dragon(name);
-    a.g.traverse(o => { if (o.material?.bumpMap) hides.add(o.material.bumpMap); });
+test('every dragon hide carries the shared scale shader: smooth, glossy and shimmering, never faceted', () => {
+  const specs = new Set();
+  for (const name of ['draken', 'wyvern', 'tiamat', 'baby draken', 'chromatic dragon']) {
+    const a = dragon(name); let hides = 0;
+    a.g.traverse(o => { const m = o.material; if (!m?.userData?.scales) return; hides++; specs.add(m.userData.scales);
+      assert(!m.flatShading && m.isMeshPhysicalMaterial && m.clearcoat > 0 && m.iridescence > 0 && !m.bumpMap, `${name}: smooth, clear-coated, iridescent`); });
+    assert(hides >= 3, `${name}: ${hides} scaled hide meshes`);
   }
-  assert.equal(hides.size, 1, 'one shared texture');
-  const [tex] = hides, d = tex.image.data;
-  assert(new Set(Array.from({length: 32 * 32}, (_, i) => d[i * 4])).size > 4, 'real relief, not flat');
+  assert.equal(specs.size, 1, 'one scale size and depth for every dragon');
 });

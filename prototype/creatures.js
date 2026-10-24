@@ -2,6 +2,7 @@ import {dressDragon,dragonElement,HIDE_FINISH,torsoTrunk,serpentTrunk} from './d
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {scaleHide,withScales} from './dragon-scales.js';
 import {bakeable,bakeKey,bakeInto,bakedMaterialFor,convertInPlace,withIndex} from './baked-material.js';
 import {heldBoulderGeometry} from './boulder.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
@@ -175,27 +176,15 @@ function dragonLook(name,index){
  const i=Number.isInteger(index)&&NH_COLORS[index]?index:DRAGON_WORD_COLOR[species.split(' ')[0]]??3;
  return {form,baby,color:i,heads:species==='tiamat'?TIAMAT_HEADS:null};
 }
-// a bump map of overlapping scales, made once and shared by every dragon's hide
-let scaleBump=null;
-function dragonScaleBump(){
- if(scaleBump)return scaleBump;
- const n=32,d=new Uint8Array(n*n*4);
- for(let j=0;j<n;j++)for(let i=0;i<n;i++){
-  // rows of scales, every other row shifted half a scale: each is a dome, sharp where the next one overlaps it
-  const row=Math.floor(j/8),u=((i+(row%2)*4)%8)/8-.5,v=(j%8)/8,h=Math.max(0,1-Math.hypot(u*1.6,v-.35)*1.7)*(1-v*.5),k=(i+j*n)*4;
-  d[k]=d[k+1]=d[k+2]=Math.round(255*Math.min(1,h));d[k+3]=255;
- }
- scaleBump=new THREE.DataTexture(d,n,n);scaleBump.wrapS=scaleBump.wrapT=THREE.RepeatWrapping;scaleBump.repeat.set(2,2);scaleBump.needsUpdate=true;
- return scaleBump;
-}
 const dragonHides=new Map();
-function dragonHide(hex,opts){const key=hex+JSON.stringify(opts);if(!dragonHides.has(key))dragonHides.set(key,new THREE.MeshStandardMaterial({color:hex,roughness:.88,flatShading:true,...opts,bumpMap:dragonScaleBump(),bumpScale:1.4}));return dragonHides.get(key);}
+// a dragon's hide: smooth, glossy, shimmering scales worked out in the shader (dragon-scales.js), one material per colour and finish
+function dragonHide(hex,opts){const key=hex+JSON.stringify(opts);if(!dragonHides.has(key))dragonHides.set(key,scaleHide(hex,opts));return dragonHides.get(key);}
 let chromaticHideMat=null;
-function chromaticHide(){return chromaticHideMat||=new THREE.MeshPhysicalMaterial({color:'#54407c',roughness:.45,metalness:.2,emissive:'#150a28',emissiveIntensity:.8,iridescence:1,iridescenceIOR:1.9,iridescenceThicknessRange:[300,800],clearcoat:.7,clearcoatRoughness:.25,flatShading:true,bumpMap:dragonScaleBump(),bumpScale:1.4});}
+function chromaticHide(){return chromaticHideMat||=withScales(new THREE.MeshPhysicalMaterial({color:'#54407c',roughness:.45,metalness:.2,emissive:'#150a28',emissiveIntensity:.8,iridescence:1,iridescenceIOR:1.9,iridescenceThicknessRange:[300,800],clearcoat:.7,clearcoatRoughness:.25}));}
 function dragonMats(i,chromatic){
  const silver=i===14,hex=chromatic?'#3a2c52':silver?'#b9c4c8':NH_COLORS[i]||'#8a6440',breath=DRAGON_BREATH[i]||'#ff8a3a';
  const belly='#'+new THREE.Color(hex).lerp(new THREE.Color('#e8d6a4'),.45).getHexString();
- const fin=HIDE_FINISH[dragonElement(i)]||{},hideOpts={roughness:fin.roughness??(silver?.3:.62),metalness:fin.metalness??(silver?.7:.08)};
+ const fin=HIDE_FINISH[dragonElement(i)]||{},hideOpts={roughness:fin.roughness??(silver?.3:.45),metalness:fin.metalness??(silver?.7:.12)};
  if(fin.emissiveK)Object.assign(hideOpts,{emissive:shade(breath,fin.emissiveK*4),emissiveIntensity:.25});
  // The chromatic dragon is oil-slick obsidian: a dark violet hide whose sheen shifts through every colour as it
  // turns, not patches of five paints. The five colours live in its glowing spine and eyes (dragon-breeds.js).
@@ -218,7 +207,27 @@ function dragonChain(parent,curve,n,r0,r1,m,skin,name){
  for(let i=0;i<=n;i++){const t=i/n,p=curve.getPoint(t),r=r0+(r1-r0)*t,q=new THREE.Quaternion().setFromUnitVectors(Z,curve.getTangent(t).negate());pts.push(p);
   segs.push([m.scales?m.scales[Math.min(4,Math.floor(t*5))]:m.hide,p,q,r,1,.9,1.3],[m.belly,p.clone().setY(p.y-r*.32),q,r*.8,1.08,.7,1.3]);}
  if(!skin){for(const [mt,p,q,r,sx,sy,sz] of segs)dragonSegment(parent,r,mt,p,q,sx,sy,sz);return null;}
- return skin.chain(parent,pts,segs,name);
+ // skinned, the hide and the belly are each one smooth tube along the curve (a string of overlapping spheres
+ // read as beads), with the end segments kept as rounded caps
+ const ends=segs.filter((_,k)=>k<2||k>=segs.length-2);
+ return skin.chain(parent,pts,ends,name,{tubes:[[m.hide,dragonTube(curve,r0,r1,{rings:n*4})],[m.belly,dragonTube(curve,r0,r1,{rings:n*4,k:.8,sx:1.08,sy:.7,drop:.32})]]});
+}
+// A smooth tube along a curve, its radius tapering from r0 to r1 times k, an ellipse sx wide and sy tall
+// (sy measured toward the world's up), dropped `drop` of the radius below the curve (the belly runs under
+// the hide). The frames are carried along the curve without twisting.
+function dragonTube(curve,r0,r1,{rings=24,radial=12,k=1,sx=1,sy=.9,drop=0}={}){
+ const pos=[],idx=[],up=new THREE.Vector3(0,1,0),T=new THREE.Vector3(),N=new THREE.Vector3(),B=new THREE.Vector3();
+ let prevN=null;
+ for(let i=0;i<=rings;i++){
+  const t=i/rings,p=curve.getPoint(t),r=(r0+(r1-r0)*t);curve.getTangent(t,T);
+  // the section's "up" is the world's up made square to the tangent, carried from the last ring where the curve runs steep
+  N.copy(prevN&&Math.abs(T.dot(up))>.95?prevN:up).addScaledVector(T,-T.dot(prevN&&Math.abs(T.dot(up))>.95?prevN:up)).normalize();prevN=N.clone();B.crossVectors(T,N);
+  const c=p.clone().addScaledVector(N,-r*drop);
+  for(let j=0;j<radial;j++){const a=j/radial*Math.PI*2,v=c.clone().addScaledVector(B,Math.cos(a)*r*k*sx).addScaledVector(N,Math.sin(a)*r*k*sy);pos.push(v.x,v.y,v.z);}
+ }
+ for(let i=0;i<rings;i++)for(let j=0;j<radial;j++){const a=i*radial+j,b=i*radial+(j+1)%radial,c=a+radial,d=b+radial;idx.push(a,c,b,b,c,d);}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2),2));g.setIndex(idx);g.computeVertexNormals();
+ return g;
 }
 // A dragon bends by skinning (as the pet cat does): the neck, tail and leg chains, and everything that
 // rides on them (the dorsal spikes, the tail's spade or sting, the element's dressing, the claws), merge
@@ -249,12 +258,14 @@ function dragonSkin(root){
  };
  return {joints,
   // a chain of bones through `pts` (the chain's parent's space), named name0, name1, ...; `segs` are
-  // the chain's own pieces ([material, position, quaternion, radius, sx, sy, sz])
-  chain(parent,pts,segs,name,{hinge=false}={}){
+  // the chain's own pieces ([material, position, quaternion, radius, sx, sy, sz]); `tubes`, [material, geometry]
+  // pairs laid along it (the smooth hide and belly)
+  chain(parent,pts,segs,name,{hinge=false,tubes=[]}={}){
    const k=used[name]=(used[name]||0)+1,mine=[];
    pts.forEach((p,i)=>{const b=new THREE.Bone();b.name=name+(k>1?'_'+k+'_':'')+i;b.position.copy(i?p.clone().sub(pts[i-1]):p);(i?mine[i-1]:parent).add(b);mine.push(b);joints[b.name]=b;});
    const c={parent,pts:pts.map(p=>p.clone()),base:bones.length,hinge};bones.push(...mine);chains.push(c);mine.chain=c;mine[0].userData.chain=c;
    for(const [mt,p,q,r,sx,sy,sz] of segs)add(DRAGON_SEGMENT.clone().applyMatrix4(new THREE.Matrix4().compose(p,q,new THREE.Vector3(r*sx,r*sy,r*sz))),mt,c);
+   for(const [mt,geo] of tubes)add(geo,mt,c);
    return mine;
   },
   // meshes built on a chain's parent (or under it) join the chain's skin, weighted along it; anything
@@ -307,7 +318,9 @@ function dragonHead(head,m,f,baby){
   if(f.sirrush){const horn=cone(head,.018,.22,m.ivory,s*.03,.1,.02,6);horn.rotation.x=-.35;horn.rotation.z=-s*.12;}
   else{
    // the left horn is snapped off short, its stump blunt and splintered
-   const len=(baby?.08:.17)*(f.horns||1)*(s<0&&!baby?.55:1),horn=cone(head,s<0&&!baby?.03:.026,len,m.ivory,s*.06,.09,-.07,s<0&&!baby?5:6);horn.rotation.x=-1.1;horn.rotation.z=-s*.25;}
+   const len=(baby?.08:.17)*(f.horns||1)*(s<0&&!baby?.55:1),horn=cone(head,s<0&&!baby?.03:.026,len,m.ivory,s*.06,.09,-.07,s<0&&!baby?5:6);horn.rotation.x=-1.1;horn.rotation.z=-s*.25;
+   // (rooted: its base, not its middle, at the skull, a little sunk in, however long it grows)
+   horn.position.addScaledVector(new THREE.Vector3(0,1,0).applyEuler(horn.rotation),len/2-.012);}
   // two jagged spines sweep back off the cheek
   for(let i=0;i<2;i++){const spine=cone(head,.016-i*.004,.075-i*.02,m.dark,s*(.1-i*.005),-.02-i*.045,-.01-i*.03,4);spine.rotation.set(-1.25,0,-s*.7);}
  }
@@ -348,6 +361,24 @@ function dragonWing(parent,side,span,m,feathered){
  return pivot;
 }
 // a limb segment between two points in leg space
+// The body as the ellipsoids it is built of (its blobs), and a piece laid over it seated on it: slid in
+// toward the nearest blob until it sinks just into the hide, so ribs, plates, scars, bones and the lance sit on
+// the body instead of hovering off it (the blobs are narrower in places than the pieces' fixed offsets assumed).
+function blobOf(mesh){return {c:mesh.position.clone(),r:mesh.scale.clone(),qi:mesh.quaternion.clone().invert()};}
+function blobDist(v,blobs){let d=Infinity,near=null;for(const b of blobs){const l=v.clone().sub(b.c).applyQuaternion(b.qi),e=(Math.hypot(l.x/b.r.x,l.y/b.r.y,l.z/b.r.z)-1)*Math.min(b.r.x,b.r.y,b.r.z);if(e<d){d=e;near=b;}}return {d,near};}
+// (`sink`: how far into the ideal ellipsoid; its low-poly mesh's flat faces lie up to 1.4 cm inside it)
+function seat(body,blobs,pieces,{sink=.016,most=.15}={}){
+ const list=[].concat(pieces);body.updateMatrixWorld(true);const v=new THREE.Vector3();
+ for(let it=0;it<4;it++){
+  let best=Infinity,from=null,to=null;
+  for(const m of list){m.updateWorldMatrix(true,false);const M=new THREE.Matrix4().copy(body.matrixWorld).invert().multiply(m.matrixWorld),p=m.geometry.attributes.position,step=Math.max(1,Math.floor(p.count/150));
+   for(let i=0;i<p.count;i+=step){v.fromBufferAttribute(p,i).applyMatrix4(M);const {d,near}=blobDist(v,blobs);if(d<best){best=d;from=v.clone();to=near.c;}}}
+  if(best<=-sink||best>most)return;
+  const shift=to.clone().sub(from).normalize().multiplyScalar(best+sink);
+  // (moved in each piece's own parent's frame)
+  for(const m of list){const pm=new THREE.Matrix4().copy(m.parent.matrixWorld).invert().multiply(body.matrixWorld),a=new THREE.Vector3().applyMatrix4(pm),b=shift.clone().applyMatrix4(pm);m.position.add(b.sub(a));m.updateMatrixWorld(true);}
+ }
+}
 function dragonLimb(parent,a,b,w,material,taper=.55){
  // a six-sided tapered prism (wide at the top, narrow at the bottom) reads as sinew and bone, not a plank
  const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),geo=new THREE.CylinderGeometry(w*.5,w*.5*taper,A.distanceTo(B),6,1);geo.scale(1,1,.9);
@@ -380,7 +411,7 @@ function dragon(o={}){
  const f=o.form||DRAGON_FORMS.draken,baby=!!o.baby;
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar((baby?.62:1.05)*(f.scale||1));
  const skin=dragonSkin(g),m=dragonMats(o.color??3,f.chromatic),headScale=(baby?1.3:1)*(f.heads>1?.8:1);
- let core=null,tail,tailCurve,trunk,spineBones=null;const dressHeads=[];
+ let core=null,tail,tailCurve,trunk,spineBones=null,trunkBlobs=null;const dressHeads=[];
  const addHead=(parent,points,mats,a=0,taper=null)=>{
   const neck=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));const bones=dragonChain(parent,neck,6,taper?taper[0]:.085,taper?taper[1]:.065,mats,skin,'neck');skin.ride(dragonRidge(parent,neck,4,.08,.065,baby?.04:.07,mats.dark,.1,.9),bones);
   const end=points[points.length-1],head=new THREE.Group();head.position.set(0,.04,.06);head.rotation.y=a*.5;head.rotation.x=.12;head.scale.setScalar(headScale);bones[bones.length-1].add(head);head.name=skin.joints.head?'head_'+dressHeads.length:'head';skin.joints[head.name]=head;
@@ -423,29 +454,33 @@ function dragon(o={}){
   // a lean frame: a deep keel of a chest, a tucked waist and heavy hip and shoulder masses
   const torso=lowBlob(body,.26,m.hide,0,.47,0,.92*lean,.9,1.45,DRAGON_TORSO);const under=lowBlob(body,.2,m.belly,0,.36,.04,.9*lean,.55,1.3,DRAGON_TORSO);
   const chest=lowBlob(body,.2,m.hide,0,.45,.16,1.05*lean,1.12,1.05),hips=lowBlob(body,.18,m.hide,0,.47,-.18,1.05*lean,.95,1);
+  const blobs=[];
   if(f.legs===2){torso.rotation.x=under.rotation.x=chest.rotation.x=hips.rotation.x=-.3;}
-  else{for(const s of [-1,1]){lowBlob(body,.1,m.hide,s*.17*lean,.55,.2,.9,1.1,1.2);lowBlob(body,.1,m.hide,s*.16*lean,.5,-.2,.9,1,1.2);}}
+  else{for(const s of [-1,1]){blobs.push(blobOf(lowBlob(body,.1,m.hide,s*.17*lean,.55,.2,.9,1.1,1.2)),blobOf(lowBlob(body,.1,m.hide,s*.16*lean,.5,-.2,.9,1,1.2)));}}
+  for(const b of [torso,under,chest,hips])blobs.push(blobOf(b));
   // ribs show through the flanks as dark curved bars, and the spine as a row of knuckles
-  for(let i=0;i<5;i++)for(const s of [-1,1]){const rib=lowBlob(body,1,m.dark,s*(.235-i*.012)*lean,.42,.2-i*.065,.008,.08-i*.008,.014,DRAGON_BONE);rib.rotation.z=s*.28;}
-  for(let i=0;i<7;i++)lowBlob(body,.022,m.dark,0,.7-Math.abs(i-3)*.012,.3-i*.1,1,1,1.2,DRAGON_BONE);
+  for(let i=0;i<5;i++)for(const s of [-1,1]){const rib=lowBlob(body,1,m.dark,s*(.235-i*.012)*lean,.42,.2-i*.065,.008,.08-i*.008,.014,DRAGON_BONE);rib.rotation.z=s*.28;seat(body,blobs,rib);}
+  for(let i=0;i<7;i++)seat(body,blobs,lowBlob(body,.022,m.dark,0,.7-Math.abs(i-3)*.012,.3-i*.1,1,1,1.2,DRAGON_BONE));
   // angular bone breaks the soft torso: a shoulder blade ridge each side, a jutting hip bone, and a keel of the breastbone
-  for(const s of [-1,1]){dragonLimb(body,[s*.2*lean,.7,.28],[s*.23*lean,.5,.12],.08,m.dark,.4);dragonLimb(body,[s*.17*lean,.66,-.12],[s*.22*lean,.46,-.24],.075,m.dark,.4);}
-  dragonLimb(body,[0,.34,.3],[0,.3,.12],.07,m.dark,.3);
+  for(const s of [-1,1]){seat(body,blobs,dragonLimb(body,[s*.2*lean,.7,.28],[s*.23*lean,.5,.12],.08,m.dark,.4));seat(body,blobs,dragonLimb(body,[s*.17*lean,.66,-.12],[s*.22*lean,.46,-.24],.075,m.dark,.4));}
+  seat(body,blobs,dragonLimb(body,[0,.34,.3],[0,.3,.12],.07,m.dark,.3));
   // the haunches are slabs of cut muscle: a thick faceted wedge from each hip down the outer thigh, not a round ham
   if(f.legs!==2)for(const s of [-1,1])dragonLimb(body,[s*.2*lean,.58,-.17],[s*.24*lean,.36,-.13],.15,m.hide,.35);
   // wyverns carry the same cut slab on their two big thighs, leaning with the reared torso
   else for(const s of [-1,1])dragonLimb(body,[s*.17,.56,-.13],[s*.22,.38,-.08],.14,m.hide,.35);
   // three claw rakes score the left flank, the old wounds of a long life of killing
-  for(let i=0;i<3;i++){const rake=dragonBox(body,.012,.2,.02,m.scar,-.27+i*.0,.5-i*.0,.0,.004);rake.position.set(-.275+i*.0,.5,-.08+i*.055);rake.rotation.set(0,0,.35);rake.scale.set(1,1-i*.12,1);}
+  for(let i=0;i<3;i++){const rake=dragonBox(body,.012,.2,.02,m.scar,-.27+i*.0,.5-i*.0,.0,.004);rake.position.set(-.275+i*.0,.5,-.08+i*.055);rake.rotation.set(0,0,.35);rake.scale.set(1,1-i*.12,1);seat(body,blobs,rake,{sink:.014});}
   // Ixoth has killed Knights before: the snapped shaft and rusted head of a lance stand out of the right flank, a rag of pennon on it
   if(f.lance){const wood=mat('#3a2a1c',{roughness:.9}),rust=mat('#5a3a2a',{roughness:.6,metalness:.5}),rag=mat('#6a1c1c',{roughness:1,side:THREE.DoubleSide});
    const shaft=cylinder(body,.012,.018,.34,wood,.27,.54,-.02,6);shaft.rotation.set(.1,0,-1.05);
    const head=cone(body,.03,.1,rust,.2,.48,-.02,4);head.rotation.set(.1,0,1.1);
-   const flag=part(body,new THREE.PlaneGeometry(.1,.05),rag,.36,.62,-.04);flag.rotation.set(0,.3,-.4);g.userData.scarred=true;}
+   const flag=part(body,new THREE.PlaneGeometry(.1,.05),rag,.36,.62,-.04);flag.rotation.set(0,.3,-.4);g.userData.scarred=true;
+   // (the broken lance moves as one, until its shaft is driven into the flank)
+   seat(body,blobs,[shaft,head,flag],{sink:.03});}
   // overlapping armour scutes crust the back and flanks: dark, sharp-edged plates over the hide
-  {const geos=[];for(let i=0;i<5;i++)for(const s of [-1,0,1]){const plate=new THREE.Mesh(DRAGON_SCUTE);plate.position.set(s*.13,.7-Math.abs(s)*.1,.3-i*.15);plate.scale.set(1-Math.abs(s)*.2,1,1);plate.rotation.set(-.2,0,s*.55);plate.updateMatrix();geos.push(DRAGON_SCUTE.clone().applyMatrix4(plate.matrix));}
+  {const geos=[];for(let i=0;i<5;i++)for(const s of [-1,0,1]){const plate=new THREE.Mesh(DRAGON_SCUTE);plate.position.set(s*.13,.7-Math.abs(s)*.1,.3-i*.15);plate.scale.set(1-Math.abs(s)*.2,1,1);plate.rotation.set(-.2,0,s*.55);body.add(plate);seat(body,blobs,plate,{sink:.014});body.remove(plate);plate.updateMatrix();geos.push(DRAGON_SCUTE.clone().applyMatrix4(plate.matrix));}
    part(body,mergeGeometries(geos),m.dark);geos.forEach(g=>g.dispose());}
-  trunk=torsoTrunk(body,{center:torso.position,radii:[.26*1.1*lean,.26*.85,.26*1.45],tilt:torso.rotation.x});
+  trunk=torsoTrunk(body,{center:torso.position,radii:[.26*1.1*lean,.26*.85,.26*1.45],tilt:torso.rotation.x});trunkBlobs=blobs;
   const spine=new THREE.CatmullRomCurve3([[0,.63,.28],[0,.68,0],[0,.6,-.3]].map(p=>new THREE.Vector3(...p)));
   dragonRidge(body,spine,6,.02,.02,baby?.05:.1,m.dark);
   const heads=o.heads||Array(f.heads||1).fill(null);
@@ -465,18 +500,22 @@ function dragon(o={}){
   // the spade is barbed: two backswept ivory hooks flank its root so it tears as it pulls free
   if(!f.sirrush)for(const sd of [-1,1]){const hk=cone(tail,.018,.09,m.ivory,end.x+sd*.04,end.y,end.z,4);hk.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(sd*.8,dir.y-.2,dir.z-.6).normalize());}
   // a wyvern's tail ends in a venom stinger: a long ivory hook past the spade, bent upward, with a dark gland at its root
-  if(f.sting){const hook=cone(tail,.03,.2,m.ivory,end.x+dir.x*.14,end.y+dir.y*.14+.03,end.z+dir.z*.14,5);hook.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(dir.x,dir.y+.7,dir.z).normalize());sphere(tail,.045,m.dark,end.x+dir.x*.07,end.y+dir.y*.07,end.z+dir.z*.07,1,.8,1.3);
-  // a long bead of green venom hangs from the stinger's point
-  const vm=mat('#7fd23a',{roughness:.2,emissive:'#3f8a14',emissiveIntensity:.9});sphere(tail,.022,vm,end.x+dir.x*.3,end.y+dir.y*.3+.1,end.z+dir.z*.3,1,2.2,1);}
+  if(f.sting){const hookDir=new THREE.Vector3(dir.x,dir.y+.7,dir.z).normalize(),hook=cone(tail,.03,.2,m.ivory,end.x+dir.x*.14,end.y+dir.y*.14+.03,end.z+dir.z*.14,5);hook.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),hookDir);sphere(tail,.045,m.dark,end.x+dir.x*.07,end.y+dir.y*.07,end.z+dir.z*.07,1,.8,1.3);
+  // a long bead of green venom hangs from the stinger's point (the cone's tip: half its height along it from its centre)
+  const tip=hook.position.clone().addScaledVector(hookDir,.1),vm=mat('#7fd23a',{roughness:.2,emissive:'#3f8a14',emissiveIntensity:.9});sphere(tail,.022,vm,tip.x,tip.y-.04,tip.z,1,2.2,1);}
  }
  const element=dragonElement(o.color??3);
  if(element)dressDragon({element,m,trunk,heads:dressHeads,tail,tailCurve,wings:wings.map(w=>({inner:w.userData.inner,edge:w.userData.inner.userData.edge})),baby});
+ // (the element's dressing on the trunk is laid on an ideal ellipsoid; seat each piece on the real body)
+ if(element&&trunkBlobs)for(const c of [...trunk.group.children])if(c.isMesh)seat(body,trunkBlobs,c);
  // the tail's own pieces (ridge, spade, barbs, sting, fluke, the element's dressing) ride the tail bones
  if(tail){const tb=Object.values(skin.joints).filter(j=>j.isBone&&j.parent===tail);if(tb.length){const chain=[];for(let b=tb[0];b;b=b.children.find(c=>c.isBone))chain.push(b);chain.chain=tb[0].userData.chain;skin.ride(tail.children.filter(c=>!c.isBone),chain);}}
  if(spineBones)skin.ride([...trunk.group.children],spineBones);
  for(const w of wings){const n=(w.userData.side<0?'l':'r')+'wing';w.name=n;skin.joints[n]=w;skin.joints[n+'_inner']=w.userData.inner;}
  g.userData.core=core;skin.finish();
- return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element,heads:dressHeads.map(h=>h.head),joints:skin.joints}));
+ // every joint's built angle, kept before anything animates it: the sleep (dragon-sleep.js) and the solver (dragon-rest.js) pose from these
+ const jointRest={rest:{},body:body.position.clone(),bodyRz:body.rotation.z};for(const [n,o] of Object.entries(skin.joints))jointRest.rest[n]={x:o.rotation.x,y:o.rotation.y,z:o.rotation.z,s:o.scale.x};
+ return trimDraws(Object.assign(actor(g,body,legs,tail,wings,'dragon'),{core,element,heads:dressHeads.map(h=>h.head),joints:skin.joints,jointRest}));
 }
 // The plain rat's neck pivot, where its head handle turns (body space).
 export {RAT_NECK};

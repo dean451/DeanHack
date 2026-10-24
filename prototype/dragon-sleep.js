@@ -20,7 +20,7 @@ const region = n => /^neck|^head/.test(n) ? 'head' : /wing/.test(n) ? 'wings' : 
 export function sleepFor(a) { const e = SLEEP_POSES[a?.species]; return e?.ok ? e.pose : null; }
 
 function rest(a) {
-  if (!a.jointRest) { a.jointRest = {rest: {}, body: a.body.position.clone()}; for (const [n, o] of Object.entries(a.joints)) a.jointRest.rest[n] = {x: o.rotation.x, y: o.rotation.y, z: o.rotation.z, s: o.scale.x}; }
+  if (!a.jointRest) { a.jointRest = {rest: {}, body: a.body.position.clone(), bodyRz: a.body.rotation.z}; for (const [n, o] of Object.entries(a.joints)) a.jointRest.rest[n] = {x: o.rotation.x, y: o.rotation.y, z: o.rotation.z, s: o.scale.x}; }
   return a.jointRest;
 }
 
@@ -55,5 +55,6 @@ export function applySleep(a, st, dt, quiet) {
   if (a.tail) for (const ax of ['x', 'y', 'z']) ease('tail', a.tail.rotation, ax, 0, k.body);
   ease('g', a.g.rotation, 'z', 0, k.body);
   ease('body', a.body.position, 'y', body.y + (pose.body?.y || 0), k.body);
+  ease('bodyR', a.body.rotation, 'z', (a.jointRest.bodyRz || 0) + (pose.body?.rz || 0), k.body);
   return st.p;
 }

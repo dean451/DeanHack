@@ -7,10 +7,13 @@ import {createActionQueue} from './actions.js';
 import {updateDragonMenace, menaces, TRACK_RANGE} from './dragon-menace.js';
 import {SETTLE, DOZE, WAKE, parts, sleepFor} from './dragon-sleep.js';
 import {SLEEP_POSES} from './dragon-sleep-poses.js';
-import {sleepPose} from './dragon-rest.js';
+import * as sleepPoseModule from './dragon-rest.js';
+const {sleepPose} = sleepPoseModule;
 
 const D = 68, FPS = 30;
-const dragon = (name = 'draken') => { const a = createCreature({name, symbol: D, color: 1}); a.actions = createActionQueue(); a.species = name; return a; };
+// each dragon in its own glyph colour, as the game sends it and as the poses were baked
+const COLORS = Object.fromEntries(JSON.parse(readFileSync(new URL('./tools/creature-names.json', import.meta.url))).filter(m => m.letter === 'D').map(m => [m.name.toLowerCase(), m.color]));
+const dragon = (name = 'draken') => { const a = createCreature({name, symbol: D, color: COLORS[name]}); a.actions = createActionQueue(); a.species = name; return a; };
 // runs the frame for `secs` seconds as live.js would after its own writes
 const run = (a, secs, {busy = false, walking = busy, look = null, t0 = 0} = {}) => { let r; for (let i = 0; i < secs * FPS; i++) r = updateDragonMenace(a, 1 / FPS, t0 + i / FPS, busy, walking, look); return r; };
 const bones = a => Object.entries(a.joints).filter(([, o]) => o.isBone);
@@ -39,9 +42,9 @@ test('a dragon that keeps moving, acting or has the hero in range never dozes; a
   }
   const hero = new THREE.Vector3(TRACK_RANGE * .5, 0, 0);
   assert.equal(run(dragon(), SETTLE + DOZE + 5, {look: hero}).sleep, 0, 'the hero in range keeps it awake');
-  const lev = dragon('leviathan');
-  assert(!SLEEP_POSES.leviathan.ok && sleepFor(lev) === null);
-  assert.equal(run(lev, SETTLE + DOZE + 5).sleep, 0, 'the leviathan, whose coil does not pass yet, stays awake');
+  const stranger = dragon('draken'); stranger.species = 'nameless wyrm';
+  assert(sleepFor(stranger) === null);
+  assert.equal(run(stranger, SETTLE + DOZE + 5).sleep, 0, 'a dragon with no baked pose that passed stays awake');
 });
 
 test('asleep, it does not mantle or lash; woken, it lifts its head first and every joint goes back exactly to its awake value', () => {
@@ -77,10 +80,23 @@ test('the baked poses cover every dragon, and the ones marked ok still hold: dow
     const tail = []; for (let i = 0; a.joints['tail' + i]; i++) tail.push(a.joints['tail' + i]);
     for (const b of tail.slice(Math.ceil(tail.length / 2))) assert(b.getWorldPosition(v).y < .16 * a.g.scale.x, `${name} ${b.name} on the floor`);
   }
-  assert(Object.values(SLEEP_POSES).filter(e => e.ok).length >= 8, 'most adult forms sleep');
+  assert(Object.values(SLEEP_POSES).filter(e => e.ok).length >= 20, 'nearly every form sleeps');
 });
 
 test('the baked draken still matches a fresh solve (re-bake after changing a dragon\'s body or the sleep goals)', () => {
-  const a = createCreature({name: 'draken', symbol: D}), fresh = sleepPose(a, 'bake-check:draken').pose, baked = SLEEP_POSES.draken.pose;
+  const a = createCreature({name: 'draken', symbol: D, color: COLORS.draken}), fresh = sleepPose(a, 'bake-check:draken').pose, baked = SLEEP_POSES.draken.pose;
   for (const [n, o] of Object.entries(fresh)) for (const [ax, val] of Object.entries(o)) assert(Math.abs(val - (baked[n]?.[ax] ?? (ax === 's' ? 1 : 0))) < 2e-3, `${n}.${ax}: baked ${baked[n]?.[ax]}, fresh ${val}`);
+});
+
+test('asleep in play, a dragon holds exactly its baked pose, even though the frame moved its head and wings before it ever dozed', () => {
+  // (the sleep must pose from the joints' built angles, not from whatever the first frame had already written)
+  const {dragonPoser} = sleepPoseModule;
+  for (const name of ['sirrush', 'tiamat', 'wyvern']) {
+    const twin = dragon(name); dragonPoser(twin).apply(SLEEP_POSES[name].pose); twin.g.updateMatrixWorld(true);
+    const a = dragon(name);
+    for (const w of a.wings) w.rotation.y = -.3; // as live.js writes the wings before the menace runs
+    run(a, 2, {look: new THREE.Vector3(1, 0, 1)}); // the heads swing round to the hero first
+    const r = run(a, SETTLE + DOZE + 1, {t0: 2}); assert.equal(r.sleep, 1, name);
+    for (const [n, o] of Object.entries(a.joints)) for (const ax of ['x', 'y', 'z']) assert(Math.abs(o.rotation[ax] - twin.joints[n].rotation[ax]) < 1e-9, `${name} ${n}.${ax}`);
+  }
 });
