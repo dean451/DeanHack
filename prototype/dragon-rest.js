@@ -71,7 +71,7 @@ export function blendDragon(a, b, k) {
 // `every` vertices apart; `keep(local)` filters by the vertex's position in the body's frame at rest.
 // `skip` leaves out skinned vertices that ride mostly on bones whose names match it (the tail, before it is
 // laid); `only` keeps just those that do (the legs, sampled densely so a flat foot stays out of the floor).
-function samples(a, {every = 23, keep = null, skinned = true, bodyOnly = false, skip = null, only = null} = {}) {
+export function samples(a, {every = 23, keep = null, skinned = true, bodyOnly = false, skip = null, only = null} = {}) {
   const list = [], inv = new THREE.Matrix4(), v = new THREE.Vector3();
   a.g.updateMatrixWorld(true); inv.copy(a.body.matrixWorld).invert();
   a.g.traverse(o => {

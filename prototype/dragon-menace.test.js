@@ -3,10 +3,13 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createActionQueue} from './actions.js';
+import {wingsFor} from './dragon-wingbeat.js';
 import {updateDragonMenace, menaces, mantleWeight, mantleLength, lashCurve, aimAt, LASH_S, OPEN_S, HOLD_S, REST, FURL, YAW, SMOKE_ALPHA, SIZE1} from './dragon-menace.js';
 
 const D = 'D'.charCodeAt(0);
 const dragon = (name = 'draken') => { const a = createCreature({name, symbol: D, color: 1}); a.actions = createActionQueue(); a.species = name; return a; };
+// a wing pivot's folded angle: the baked bat fold (dragon-wingbeat.js), or the hand-set furl for a form without one
+const folded = (a, w) => { const e = wingsFor(a); return w.userData.side * REST + (e ? e.fold[w.name]?.y || 0 : w.userData.side * FURL); };
 const snap = a => ({heads: a.heads.map(h => [h.rotation.x, h.rotation.y]), inner: a.wings.map(w => [w.userData.inner.rotation.x, w.userData.inner.rotation.z]), tailY: a.tail.rotation.y});
 
 test('the mantle snaps open, holds and folds; the lash cracks out and ripples back to nothing', () => {
@@ -68,7 +71,7 @@ test('sixty seconds of a dragon: finite, bounded, furls to walk, and death settl
       assert(Math.abs(a.tail.rotation.z) < .8, `${name} tail ${a.tail.rotation.z}`);
       assert.equal(r.sleep, 0, 'kept awake');
       for (const [k, h] of a.heads.entries()) assert(Math.abs(h.rotation.y - rest.heads[k][1]) <= YAW + 1e-9);
-      if (walking && t > 21) for (const w of a.wings) assert(Math.abs(w.rotation.y - w.userData.side * (REST + FURL)) < .02, `${name} furled while walking`);
+      if (walking && t > 21) for (const w of a.wings) assert(Math.abs(w.rotation.y - folded(a, w)) < .02, `${name} furled while walking`);
       maxStep = Math.max(maxStep, Math.abs(a.tail.rotation.z - prevTail)); prevTail = a.tail.rotation.z;
     }
     assert(mantles >= 1 && lashes >= 1, `${name} ${mantles} mantles ${lashes} lashes`);
@@ -77,7 +80,7 @@ test('sixty seconds of a dragon: finite, bounded, furls to walk, and death settl
     const end = snap(a);
     for (const [k, [x, y]] of end.heads.entries()) { assert(Math.abs(x - rest.heads[k][0]) < 1e-9 && Math.abs(y - rest.heads[k][1]) < 1e-9, `${name} ${x - rest.heads[k][0]} ${y - rest.heads[k][1]}`); }
     assert(Math.abs(end.tailY - rest.tailY) < 1e-9 && Math.abs(a.tail.rotation.z) < 1e-9, name);
-    for (const w of a.wings) assert(Math.abs(w.rotation.y - w.userData.side * (REST + FURL)) < 1e-3, `${name} wings folded in death`);
+    for (const w of a.wings) assert(Math.abs(w.rotation.y - folded(a, w)) < 1e-3, `${name} wings folded in death`);
   }
 });
 
