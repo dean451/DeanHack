@@ -15,7 +15,7 @@ test('bees get a fuzzy banded body, a turning head, dangling legs and veined gla
   assert.deepEqual(a.wings.map(w=>w.userData.side),[-1,1],`${name}: left wing first`);
   assert(a.head?.children.some(o=>o.isMesh),`${name}: the head handle carries the head mesh`);
   const parts=meshes(a);
-  assert.equal(parts.length,12,`${name}: body, head, 6 legs, membrane and veins per wing side`);
+  assert.equal(parts.length,13,`${name}: body, abdomen, head, 6 legs, membrane and veins per wing side`);
   assert.equal(new Set(parts.map(m=>m.material)).size,2,`${name}: the body material and the wing glass`);
   let verts=0;
   for(const m of parts){

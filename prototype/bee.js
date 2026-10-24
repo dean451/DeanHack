@@ -108,6 +108,13 @@ function buildBody(L){
  tufts(P,tc,[.075,.071,.081],110,.022,fuzz,(p,u)=>!(u.y>.8));
  // the waist
  P.add(new THREE.SphereGeometry(.02,10,8),at(0,Y-.015,-.05),black);
+ return P.merge();
+}
+
+// The abdomen is its own mesh on a `tail0` group that pivots at the waist, so it can swing without the thorax.
+const WAIST=[0,Y-.01,-.055];
+function buildAbdomen(L){
+ const P=pieces(),yellow=rgb(L.yellow),black=rgb(L.black),fuzz=rgb(L.fuzz);
  // abdomen: a lathed, pointed egg hanging a little down at the back, banded plate by plate
  const stretch=L.abdomen,prof=BELLY.map(([r,t])=>[r*(stretch>1?.92:1),t*stretch]);
  const spline=new THREE.SplineCurve(prof.map(([r,t])=>new THREE.Vector2(r,t))),pts=spline.getPoints(44).map(v=>new THREE.Vector2(Math.max(0,v.x),v.y));
@@ -138,7 +145,7 @@ function buildBody(L){
  const tip=origin.clone().addScaledVector(axis,len),sting=tip.clone().addScaledVector(axis,.05).add(new THREE.Vector3(0,-.012,0));
  segment(P,tip.clone().addScaledVector(axis,-.008).toArray(),sting.toArray(),.006,.0008,black,6);
  for(const f of [.4,.65]){const b=tip.clone().lerp(sting,f);segment(P,b.toArray(),[b.x,b.y-.006,b.z+.006],.0015,.0003,black,3);}
- return P.merge();
+ const geo=P.merge();geo.translate(-WAIST[0],-WAIST[1],-WAIST[2]);return geo;
 }
 
 // One right-hand leg, hanging under the body. i is the pair, 0 at the front; the hip is the origin.
@@ -194,7 +201,7 @@ function build(name,L){
  const S={
   material:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.62,metalness:.04}),
   glass:new THREE.MeshStandardMaterial({color:L.wingTint,roughness:.12,metalness:.1,transparent:true,opacity:.34,side:THREE.DoubleSide,depthWrite:false}),
-  body:buildBody(L),head:buildHead(L),legs:PAIRS.map((p,i)=>buildLeg(L,i)),wings:buildWings(L),
+  body:buildBody(L),abdomen:buildAbdomen(L),head:buildHead(L),legs:PAIRS.map((p,i)=>buildLeg(L,i)),wings:buildWings(L),
  };
  cache.set(name,S);return S;
 }
@@ -206,6 +213,8 @@ export function createBee(name){
  const L=LOOKS[name]||LOOKS['killer bee'],S=build(LOOKS[name]?name:'killer bee',L);
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(L.scale);
  mesh(body,S.body,S.material,'body');
+ const tail0=new THREE.Group();tail0.position.set(...WAIST);body.add(tail0);
+ mesh(tail0,S.abdomen,S.material,'abdomen');
  const head=new THREE.Group();head.position.set(...NECK);body.add(head);
  mesh(head,S.head,S.material,'head');
  const legs=[],wings=[];
@@ -221,5 +230,5 @@ export function createBee(name){
   if(s<0){a.scale.x=-1;b.scale.x=-1;}
   wings.push(wing);
  }
- return nameInsectJoints({g,body,legs,tail:null,wings,quirk:'bee',head});
+ return nameInsectJoints({g,body,legs,tail:null,tail0,wings,quirk:'bee',head});
 }
