@@ -14,6 +14,7 @@
 // functions of t and return exactly to rest (nothing showing) at the end.
 
 import {softDot, softRing, clamp01, smooth} from './fx-textures.js';
+import {buildExcalibur, createExcaliburGlow} from './excalibur.js';
 
 export const LADY = {rise: .45, riseTime: 1.1, turnAt: 1.9, twitchAt: 2.75, sinkAt: 3.2, sinkTime: .9, total: 4.4};
 export const ARM_MAX = .85; // how far the wrist clears the water
@@ -50,18 +51,23 @@ export function createFountainLady(THREE, parent) {
   function addArm(x, z, curse) {
     const g = new THREE.Group(); g.name = 'FountainLady'; g.position.set(x, .3, z); parent.add(g);
     const flesh = new THREE.MeshStandardMaterial({color: 0x8fa396, roughness: .9});
-    const steel = new THREE.MeshStandardMaterial({color: 0xbfd6e6, metalness: .8, roughness: .25, emissive: curse ? 0x8a2bd0 : 0x5fb8ff, emissiveIntensity: 0});
     const geos = [];
     const mesh = (geo, mat, parentObj = g) => { geos.push(geo); const m = new THREE.Mesh(geo, mat); parentObj.add(m); return m; };
     const arm = new THREE.Group(); g.add(arm);
     const fore = mesh(new THREE.CylinderGeometry(.035, .05, ARM_MAX, 7), flesh, arm); fore.position.y = -ARM_MAX / 2;
     const hand = new THREE.Group(); arm.add(hand);
     mesh(new THREE.BoxGeometry(.09, .08, .05), flesh, hand);
-    const blade = new THREE.Group(); blade.position.y = .02; hand.add(blade);
-    const b = mesh(new THREE.BoxGeometry(.04, .62, .012), steel, blade); b.position.y = .3;
-    const guard = mesh(new THREE.BoxGeometry(.2, .025, .03), steel, blade); guard.position.y = .02;
-    const glowMat = new THREE.SpriteMaterial({map: softDot(THREE), color: curse ? 0x9b3fd8 : 0x8fd8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
-    const glow = new THREE.Sprite(glowMat); glow.position.y = .3; glow.scale.setScalar(1.1); blade.add(glow);
+    // The sword is Excalibur as the hero wields it (excalibur.js): its broad blade, burning fuller and runes,
+    // the gold guard with its sapphires, the wire-wound grip and the ruby pommel, the grip in her hand. Blessed,
+    // it sheds the wielded blade's sparks; cursed, its steel and fuller burn a bruised violet instead.
+    const blade = new THREE.Group(); blade.position.y = -.01; hand.add(blade);
+    buildExcalibur(blade);
+    const meshes = blade.children.filter(c => c.isMesh), steel = meshes.find(m => /steel/.test(m.name)).material, fuller = blade.userData.fuller;
+    for (const m of meshes) { geos.push(m.geometry); }
+    if (curse) { steel.emissive.set(0x8a2bd0); fuller.color.set(0xd8b0ff); fuller.emissive.set(0x9b3fd8); }
+    const sparks = curse ? null : createExcaliburGlow(blade);
+    const glowMat = new THREE.SpriteMaterial({map: softDot(THREE), color: curse ? 0x9b3fd8 : 0xfff0c0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
+    const glow = new THREE.Sprite(glowMat); glow.position.y = .55; glow.scale.setScalar(1.3); blade.add(glow);
     const ringGeo = new THREE.PlaneGeometry(1, 1); ringGeo.rotateX(-Math.PI / 2);
     const rings = [0, .18].map(delay => {
       const mat = new THREE.MeshBasicMaterial({map: softRing(THREE), color: 0xa8d8d0, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
@@ -69,7 +75,7 @@ export function createFountainLady(THREE, parent) {
     });
     const swellMat = new THREE.MeshBasicMaterial({map: softDot(THREE), color: 0x0c1814, transparent: true, opacity: 0, depthWrite: false});
     const swell = new THREE.Mesh(ringGeo, swellMat); swell.position.y = .015; g.add(swell);
-    live.push({curse, swell, swellMat, g, arm, hand, blade, steel, glowMat, rings, geos, mats: [flesh, steel, glowMat, swellMat, ...rings.map(r => r.mat)], ringGeo, t: 0});
+    live.push({curse, swell, swellMat, g, arm, hand, blade, steel, fuller, sparks, glowMat, rings, geos, mats: [flesh, ...meshes.map(m => m.material), glowMat, swellMat, ...rings.map(r => r.mat)], ringGeo, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
@@ -79,14 +85,16 @@ export function createFountainLady(THREE, parent) {
     e.arm.position.set(p.twitch, p.rise, 0);
     e.hand.rotation.z = p.twitch * 1.5;
     e.blade.rotation.y = p.turn;
-    e.steel.emissiveIntensity = 1.5 * p.glow; e.glowMat.opacity = .8 * p.glow;
+    // (the steel keeps its wielded sheen and brightens with the glow; the fuller burns as the glow comes up)
+    if (e.sparks) e.sparks.update(dt, e.t);
+    e.steel.emissiveIntensity = .4 + 1.1 * p.glow; e.fuller.emissiveIntensity = 3 * p.glow; e.glowMat.opacity = .8 * p.glow;
     for (const {r, mat, delay} of e.rings) {
       const k = clamp01((p.ripple - delay * .2) * 1.15);
       r.scale.set(.2 + 1.3 * k, 1, .2 + 1.3 * k); mat.opacity = k <= 0 ? 0 : .7 * Math.sin(k * Math.PI) * (e.t < LADY.sinkAt ? 1 : 1 - smooth((e.t - LADY.sinkAt) / LADY.sinkTime));
     }
     return e.t < LADY.total;
   }
-  function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(m => m.dispose()); e.ringGeo.dispose(); parent.remove(e.g); }
+  function drop(e) { e.sparks?.dispose(); e.geos.forEach(x => x.dispose()); e.mats.forEach(m => m.dispose()); e.ringGeo.dispose(); parent.remove(e.g); }
   return {
     add,
     message(text, x, z) { if (isLadyCurseMessage(text)) add(x, z, true); },
