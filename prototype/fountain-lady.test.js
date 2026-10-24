@@ -100,3 +100,26 @@ test('the four arms move in step and clean up after themselves', () => {
   lady.clear();
   assert.equal(lady.active, 0); assert.equal(parent.children.length, 0);
 });
+
+test('each arm holds Excalibur as the hero wields it: its blade, gold guard, grip, gems and burning fuller', () => {
+  const parent = new THREE.Group(), lady = createFountainLady(THREE, parent);
+  lady.add(0, 0);
+  for (const g of ladyGroups(parent)) {
+    const swords = []; g.traverse(o => { if (o.userData.excalibur) swords.push(o); });
+    assert.equal(swords.length, 1, 'one Excalibur in each hand');
+    const names = swords[0].children.filter(c => c.isMesh).map(m => m.name).sort();
+    assert.deepEqual(names, ['excalibur gems', 'excalibur gold', 'excalibur leather', 'excalibur light', 'excalibur ruby', 'excalibur steel']);
+  }
+  // the fuller burns with the glow, and the blessed blade sheds the wielded sparks
+  lady.update(LADY.turnAt);
+  const fuller = (() => { let f; ladyGroups(parent)[0].traverse(o => { if (o.userData.fuller) f = o.userData.fuller; }); return f; })();
+  assert.ok(fuller.emissiveIntensity > 1, `fuller ${fuller.emissiveIntensity}`);
+  assert.equal(ladyGroups(parent)[0].getObjectsByProperty('type', 'Points').length, 1);
+  lady.clear();
+  // cursed, the fuller burns violet and there are no sparks
+  lady.message('From the murky depths, a hand reaches up to curse the sword.', 0, 0);
+  let f; ladyGroups(parent)[0].traverse(o => { if (o.userData.fuller) f = o.userData.fuller; });
+  assert.equal(f.emissive.getHex(), 0x9b3fd8);
+  assert.equal(ladyGroups(parent)[0].getObjectsByProperty('type', 'Points').length, 0);
+  lady.clear();
+});
