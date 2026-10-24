@@ -24,13 +24,16 @@
 // The smoke is one THREE.Points per dragon on its group (one extra draw), in the group's frame.
 import * as THREE from 'three';
 import {takeBackSleep, applySleep} from './dragon-sleep.js';
+import {MANTLE_POSES} from './dragon-mantle-poses.js';
 
 // Wings. REST: live.js's resting pivot angle; BREATH: the slow open/close; FURL: how far the wings
 // fold back while walking, and FURL_DROOP how far they sink; FURL_RATE: how fast they fold (1/s).
 export const REST = -.18, BREATH = .07, BREATH_RATE = 1.3, FURL = .5, FURL_DROOP = .12, FURL_RATE = 4;
-// Mantle, after a raptor over its kill (CREATURE-MEASURES.md): the wings open to SPREAD past rest, drop
-// RAISE (negative: out and down, not up), cup CUP forward over the forepaws; the head dips REAR
-// (positive is down) and the tail lifts TAIL_UP; the membranes shudder SHUDDER at SHUDDER_HZ.
+// Mantle, after a raptor over its kill (CREATURE-MEASURES.md): a form with a baked mantle (dragon-mantle.js,
+// solved from goals: wings out and drooped forward over the forepaws, head low over the kill, tail lifted)
+// blends that pose in. Any other keeps the hand-set one: the wings open to SPREAD past rest, drop RAISE
+// (negative: out and down, not up), cup CUP forward; the head dips REAR (positive is down) and the tail
+// lifts TAIL_UP. Either way the membranes shudder SHUDDER at SHUDDER_HZ through the hold.
 // It opens in OPEN_S, holds HOLD_S, folds back over FOLD_S.
 export const SPREAD = .42, RAISE = -.5, CUP = .45, SHUDDER = .035, SHUDDER_HZ = 29, REAR = .28, TAIL_UP = .3;
 export const OPEN_S = .35, HOLD_S = 1.3, FOLD_S = 1.1;
@@ -60,13 +63,16 @@ const SNAP = 1e-3;
 export const SMOKE_MAX = 64, PUFF_RATE = 4.5, EXHALE_RATE = 1.9, WALK_SMOKE = .35, SMOKE_LIFE = 1.8, SMOKE_SPAN = .9;
 export const PUFF_SPEED = .22, DRAG = 2.2, RISE = .17, CURL = .07, SIZE0 = .035, SIZE1 = .2, SMOKE_ALPHA = .36;
 export const SNORT = 5, SNORT_SPEED = .85, HUFF = 2, GLOW_MIX = .55, SMOKE_FADE = 1.2;
-const SMOKE_C = new THREE.Color('#4a4642');
+const SMOKE_C = new THREE.Color('#4a4642'), FLOOR_SMOKE = .01;
 
 const clamp = (v, m) => v < -m ? -m : v > m ? m : v;
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 const fin = (v, d = 0) => Number.isFinite(v) ? v : d;
+
+// The baked mantle for an actor (by species), or null when it has none that met its goals.
+export function mantleFor(a) { const e = MANTLE_POSES[a?.species]; return e?.ok ? e.pose : null; }
 
 export const menaces = a => !!(a && !a.asset && a.quirk === 'dragon' && Array.isArray(a.heads) && a.heads.length && a.g);
 
@@ -106,7 +112,7 @@ function setup(a) {
     seed: ((a.g.id ?? 1) * 48271) % 2147483647 || 1, wait: 0, cur: null, f: 0, furl: 0, life: 1, ph: 0,
     heads: a.heads.map(h => ({base: h.rotation.y, y: 0, x: 0, aim: 0, next: 0})),
     applied: {heads: a.heads.map(() => ({y: 0, x: 0})), inner: (a.wings || []).map(() => ({x: 0, z: 0})), tailY: 0, tailX: 0},
-    sleep: {p: 0, idle: 0, written: []},
+    sleep: {p: 0, idle: 0, written: []}, mantled: [],
   };
   st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
   st.ph = rand(st) * Math.PI * 2;
@@ -121,6 +127,20 @@ function takeBack(a, st) {
   (a.wings || []).forEach((w, i) => { const inner = w.userData.inner; if (inner && o.inner[i]) { inner.rotation.x -= o.inner[i].x; inner.rotation.z -= o.inner[i].z; o.inner[i].x = o.inner[i].z = 0; } });
   if (a.tail) { a.tail.rotation.y -= o.tailY; a.tail.rotation.x -= o.tailX; }
   o.tailY = 0; o.tailX = 0;
+}
+
+// The baked mantle, added `k` of the way onto every joint it names, on top of everything else the frame wrote.
+// Each write is taken back first thing next frame unless something else rewrote the value since (live.js
+// writes the wing pivots afresh every frame), so the mantle never drifts and ends exactly at rest.
+function applyMantle(a, st, pose, k) {
+  for (const [n, p] of Object.entries(pose)) {
+    const o = a.joints?.[n]; if (!o) continue;
+    for (const ax of ['x', 'y', 'z']) { const d = (p[ax] || 0) * k; if (!d) continue; o.rotation[ax] += d; st.mantled.push({r: o.rotation, ax, left: o.rotation[ax], d}); }
+  }
+}
+function takeBackMantle(st) {
+  for (const w of st.mantled) if (w.r[w.ax] === w.left) w.r[w.ax] -= w.d;
+  st.mantled.length = 0;
 }
 
 // ---- smoke ----
@@ -217,6 +237,8 @@ function updateSmoke(a, st, dt, t, walking, dead, snort, huff) {
     const u = w.age / w.life, sway = CURL * w.curl * (.3 + u);
     w.x += (w.vx + Math.cos(w.ph + w.age * 2.3) * sway) * dt;
     w.y += w.vy * dt;
+    // (a snort from a head held low hits the floor and rolls along it instead of going through)
+    if (w.y < FLOOR_SMOKE) { w.y = FLOOR_SMOKE; w.vy = Math.max(0, w.vy); }
     w.z += (w.vz + Math.sin(w.ph + w.age * 1.7) * sway) * dt;
   }
   const pos = sm.points.geometry.attributes.position, size = sm.points.geometry.attributes.aSize, col = sm.points.geometry.attributes.aColor;
@@ -245,6 +267,7 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
   if (!menaces(a)) return null;
   const st = a.menace || (a.menace = setup(a));
   takeBackSleep(a, st.sleep);
+  takeBackMantle(st);
   takeBack(a, st);
   dt = Math.max(0, fin(dt)); t = fin(t);
   const dead = !!a.actions?.dead;
@@ -275,15 +298,15 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
   // Wings: furl while walking (and on death they fold and droop), otherwise breathe; mantle on top.
   const furlTo = walking || dead ? 1 : 0;
   st.furl += (furlTo - st.furl) * (1 - Math.exp(-FURL_RATE * dt));
-  const life = st.life, open = mantle * life;
+  const life = st.life, open = mantle * life, solved = mantleFor(a), hand = solved ? 0 : 1;
   (a.wings || []).forEach((w, i) => {
     const side = w.userData.side || (i ? 1 : -1);
     const breathe = BREATH * Math.sin(t * BREATH_RATE + st.ph) * (1 - st.furl) * (1 - open) * life;
-    w.rotation.y = side * (REST + breathe + FURL * st.furl - SPREAD * open);
+    w.rotation.y = side * (REST + breathe + FURL * st.furl - SPREAD * open * hand);
     const inner = w.userData.inner;
     if (inner) {
-      const x = -CUP * open + SHUDDER * .5 * holding * life * Math.sin(t * SHUDDER_HZ * .7);
-      const z = side * (RAISE * open - FURL_DROOP * st.furl + SHUDDER * holding * life * Math.sin(t * SHUDDER_HZ + i));
+      const x = -CUP * open * hand + SHUDDER * .5 * holding * life * Math.sin(t * SHUDDER_HZ * .7);
+      const z = side * (RAISE * open * hand - FURL_DROOP * st.furl + SHUDDER * holding * life * Math.sin(t * SHUDDER_HZ + i));
       inner.rotation.x += x; inner.rotation.z += z;
       st.applied.inner[i] = {x, z};
     }
@@ -297,7 +320,7 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
     const y = LASH_Y * lash * life;
     a.tail.rotation.y += y;
     st.applied.tailY = y;
-    const lift = TAIL_UP * open;
+    const lift = TAIL_UP * open * hand;
     a.tail.rotation.x += lift;
     st.applied.tailX = lift;
   }
@@ -314,10 +337,11 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
       yawTo = dead ? 0 : hs.aim; pitchTo = 0;
     }
     hs.y += (yawTo - hs.y) * k; hs.x += (pitchTo - hs.x) * k;
-    const y = hs.y * life, x = (hs.x + REAR * mantle) * life;
+    const y = hs.y * life, x = (hs.x + REAR * mantle * hand) * life;
     h.rotation.y += y; h.rotation.x += x;
     st.applied.heads[i] = {y, x};
   });
+  if (solved && open) applyMantle(a, st, solved, open);
   updateSmoke(a, st, dt, t, walking, dead, snort, huff);
   if (dead && life <= SNAP) { st.cur = null; st.f = 0; }
   // Asleep: a dragon left alone, still and with nobody in range, dozes off (dragon-sleep.js), last of all.
