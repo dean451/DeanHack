@@ -71,3 +71,24 @@ test('an ant\'s gaster hangs on tail0: turning it moves the gaster and sting and
   assert(new THREE.Box3().setFromObject(body).min.distanceTo(bodyBox.min)<1e-9,`${name}: the body stays`);
  }
 });
+
+test('a bee\'s abdomen hangs on tail0: turning it moves the abdomen and stinger and nothing in front of the waist',()=>{
+ for(const name of ['killer bee','queen bee']){
+  const a=make(name),j=a.joints;
+  assert(j.tail0,`${name}: tail0`);
+  assert.equal(j.tail0.children.filter(o=>o.isMesh).length,1,`${name}: the abdomen is one mesh`);
+  assert(j.tail0.position.z<0,`${name}: the pivot is behind the thorax`);
+  a.g.updateMatrixWorld(true);
+  const abdomen=new THREE.Box3().setFromObject(j.tail0),legs=a.legs.map(l=>new THREE.Box3().setFromObject(l)),head=new THREE.Box3().setFromObject(a.head);
+  const wings=a.wings.map(w=>new THREE.Box3().setFromObject(w));
+  const body=a.body.children.find(o=>o.userData.part==='body'),bodyBox=new THREE.Box3().setFromObject(body);
+  assert(bodyBox.min.z>abdomen.min.z+.1,`${name}: the body mesh no longer holds the abdomen`);
+  j.tail0.rotation.x=.5;a.g.updateMatrixWorld(true);
+  const turned=new THREE.Box3().setFromObject(j.tail0);
+  assert(turned.min.distanceTo(abdomen.min)>.01||turned.max.distanceTo(abdomen.max)>.01,`${name}: the abdomen followed its joint`);
+  a.legs.forEach((l,i)=>assert(new THREE.Box3().setFromObject(l).min.distanceTo(legs[i].min)<1e-9,`${name}: legs stay`));
+  a.wings.forEach((w,i)=>assert(new THREE.Box3().setFromObject(w).min.distanceTo(wings[i].min)<1e-9,`${name}: wings stay`));
+  assert(new THREE.Box3().setFromObject(a.head).min.distanceTo(head.min)<1e-9,`${name}: the head stays`);
+  assert(new THREE.Box3().setFromObject(body).min.distanceTo(bodyBox.min)<1e-9,`${name}: the body stays`);
+ }
+});
