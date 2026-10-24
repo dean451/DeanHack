@@ -165,3 +165,31 @@ test('every dragon hide carries the shared scale shader: smooth, glossy and shim
   }
   assert.equal(specs.size, 1, 'one scale size and depth for every dragon');
 });
+
+test('the mantle is a raptor\'s: wings out and down over the forepaws, head down, tail up, then back to rest exactly', () => {
+  for (const name of ['draken', 'tiamat', 'wyvern']) {
+    const a = dragon(name);
+    const tip = w => { a.g.updateMatrixWorld(true); const e = w.userData.inner.userData.edge[2]; return w.userData.inner.localToWorld(new THREE.Vector3(e[0], e[1], 0)).sub(w.getWorldPosition(new THREE.Vector3())); };
+    const tailEnd = () => { a.g.updateMatrixWorld(true); return a.joints.tail7.getWorldPosition(new THREE.Vector3()).y; };
+    const step = (n, t0) => { for (let i = 0; i < n; i++) updateDragonMenace(a, 1 / 60, t0 + i / 60, false, false, null); };
+    step(30, 0);
+    a.menace.cur = null; a.menace.wait = 1e9;
+    const rest = a.wings.map(tip), head0 = a.heads.map(h => h.rotation.x), tail0 = tailEnd(), tailX0 = a.tail.rotation.x, before = snap(a);
+    a.menace.cur = {kind: 'mantle', s: 0, side: 1}; a.menace.f = 1;
+    step(Math.round((OPEN_S + HOLD_S / 2) * 60), 1);
+    assert(a.menace.cur?.kind === 'mantle', name);
+    a.wings.forEach((w, i) => {
+      const t = tip(w);
+      assert(t.y < 0, `${name} wing tip ${t.y.toFixed(2)} should hang below its root`);
+      assert(t.z > rest[i].z + .3, `${name} wing tip comes forward over the forepaws`);
+      assert(Math.abs(t.x) >= Math.abs(rest[i].x) - 1e-6, `${name} the span does not shrink`);
+    });
+    a.heads.forEach((h, i) => assert(h.rotation.x > head0[i] + .05, `${name} head goes down`));
+    assert(tailEnd() > tail0 + .01, `${name} tail lifts`);
+    step(Math.round(mantleLength() * 60), 3);
+    assert.equal(a.menace.cur, null);
+    step(60, 6);
+    assert(Math.abs(a.tail.rotation.x - tailX0) < 1e-9, `${name} the tail comes back`);
+    snap(a).inner.forEach((p, i) => p.forEach((v, k) => assert(Math.abs(v - before.inner[i][k]) < 1e-9, `${name} the wings come back`)));
+  }
+});
