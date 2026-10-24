@@ -675,7 +675,11 @@ function cockatrice(o){
  const tail=new THREE.Group();tail.position.set(0,.15,-.2);body.add(tail);
  let px=0,pz=0;for(let i=0;i<6;i++){const r=.05*(1-i/7),len=.09;const seg=cylinder(tail,r*.8,r,len,skin,px,-.012*i,pz-len/2,8);seg.rotation.x=Math.PI/2;px+=Math.sin(i*.6)*.012;pz-=len*.95;}
  for(let i=0;i<3;i++){const plume=cone(tail,.025,.1,comb,0,-.06-i*.02,pz-.03-i*.05,4);plume.rotation.x=1.7;}
- return {...actor(g,body,legs,tail,[],'cockatrice'),head,wingParts};
+ // named joints, the cat's and the dragon's names: legs front to back (left is -x), the neck pivot is the head group
+ const joints={head,neck0:head,tail0:tail};head.name='head';tail.name='tail0';
+ legs.forEach(leg=>{const name=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);leg.name=name;joints[name]=leg;});
+ for(const w of wingParts){const name=(w.userData.side<0?'l':'r')+'wing';w.name=name;joints[name]=w;}
+ return {...actor(g,body,legs,tail,[],'cockatrice'),head,wingParts,joints};
 }
 const COCKATRICES={chickatrice:{skin:'#66573a',comb:'#80241c',beak:'#9a7430',scale:.65},cockatrice:{skin:'#74703f',comb:'#861c1c',beak:'#8a6a2c',scale:1.1},pyrolisk:{skin:'#c96a2a',comb:'#e8401a',beak:'#ffae3a',scale:.9,fire:true}};
 
