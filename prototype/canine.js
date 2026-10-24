@@ -495,5 +495,10 @@ export function createCanine(name,colour){
   hellfire(tail,0,pts[n][1],pts[n][2],.85,.2);hellfire(tail,0,mid[1],mid[2],.6,-.3);
   for(const leg of legs)hellfire(leg,0,-leg.position.y+.005,.02,.45);
  }
- return {g,body,legs,tail,wings:[],quirk:L.pet?'dog':'canine',head,...(L.heads===3?{heads}:{})};
+ // named joints, the cat's and the dragon's names: legs front to back (left is -x), the neck pivot is
+ // the head group, the tail one joint; a three-headed hound's side heads are head_0 and head_1
+ const joints={head,neck0:head,tail0:tail};head.name='head';tail.name='tail0';
+ legs.forEach(leg=>{const name=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);leg.name=name;joints[name]=leg;});
+ if(L.heads===3)heads.filter(h=>h!==head).forEach((h,i)=>{h.name='head_'+i;joints[h.name]=h;});
+ return {g,body,legs,tail,wings:[],quirk:L.pet?'dog':'canine',head,joints,...(L.heads===3?{heads}:{})};
 }
