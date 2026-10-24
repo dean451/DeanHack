@@ -59,6 +59,9 @@ test('asleep, it does not mantle or lash; woken, it lifts its head first and eve
   assert(k.head < k.wings, `the head lifts first: ${JSON.stringify(k)}`);
   r = run(a, WAKE, {walking: true, busy: true, t0: 61});
   assert.equal(r.sleep, 0, 'awake');
+  // (and stops walking, kept busy so it neither mantles nor lashes: the walk blends out and leaves nothing behind)
+  r = run(a, 3, {walking: false, busy: true, t0: 62});
+  assert.equal(r.walk, 0, 'stopped');
   // what only the sleep writes is exactly back where it was
   for (const [n, o] of bones(a)) for (const ax of ['x', 'y', 'z']) assert.equal(o.rotation[ax], before.get(n)[ax], `${n}.${ax}`);
   assert.equal(a.body.position.y, body);
