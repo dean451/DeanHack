@@ -15,6 +15,7 @@
 
 import {softDot, softRing, clamp01, smooth} from './fx-textures.js';
 import {buildExcalibur, createExcaliburGlow} from './excalibur.js';
+import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 export const LADY = {rise: .45, riseTime: 1.1, turnAt: 1.9, twitchAt: 2.75, sinkAt: 3.2, sinkTime: .9, total: 4.4};
 export const ARM_MAX = .85; // how far the wrist clears the water
@@ -46,29 +47,49 @@ export function ladyPose(t, curse = false) {
   return {stir, rise, turn: t >= LADY.turnAt + .7 ? 0 : curse ? 0 - turn : turn, twitch, glow: t >= LADY.total ? 0 : glow, ripple};
 }
 
+// A slim closed fist round a grip that runs up through (0, y, GRIP_Z), the wrist below at the origin. Seen
+// round the grip: the back of the hand rises from the wrist (behind the grip, -z) to the knuckles at its side
+// (+x); each finger curls from its knuckle round the front of the grip in three segments, the four pressed
+// together; the thumb folds across the front of the first two. One merged geometry.
+function fistGeometry(THREE) {
+  const parts = [], R = .03 + .011; // the fingers' path: just outside the grip's leather
+  const around = (deg, y, r = R) => new THREE.Vector3(Math.cos(deg * Math.PI / 180) * r, y, GRIP_Z + Math.sin(deg * Math.PI / 180) * r);
+  const seg = (a, b, r0, r1) => {
+    const d = b.clone().sub(a), geo = new THREE.CapsuleGeometry((r0 + r1) / 2, Math.max(1e-3, d.length()), 3, 8);
+    geo.applyMatrix4(new THREE.Matrix4().compose(a.clone().add(b).multiplyScalar(.5), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()), new THREE.Vector3(1, 1, 1)));
+    return geo.index ? geo.toNonIndexed() : geo;
+  };
+  // the palm and the back of the hand: a rounded block from the wrist up to the knuckles, behind and beside the grip
+  const back = new THREE.SphereGeometry(1, 14, 10); back.scale(.03, .05, .022); back.rotateY(Math.PI / 4); back.translate(.024, .0, GRIP_Z - .03); parts.push(back.toNonIndexed());
+  // four fingers, the index at the top under the guard, each a little slimmer than the one above
+  for (let i = 0; i < 4; i++) {
+    const y = .03 - i * .02, r = .0118 - i * .0008, pts = [around(-10, y), around(50, y), around(125, y), around(195, y, R - .014)];
+    // (the last joint tucks in toward the palm, so the fingertips don't stick out past the grip)
+    parts.push(seg(pts[0], pts[1], r * 1.05, r), seg(pts[1], pts[2], r, r * .95), seg(pts[2], pts[3], r * .95, r * .85));
+    const knuckle = new THREE.SphereGeometry(r * 1.15, 8, 6); knuckle.translate(pts[0].x, pts[0].y, pts[0].z); parts.push(knuckle.toNonIndexed());
+  }
+  // the thumb: from the heel of the hand, round the far side and across the front of the first two fingers
+  const t0 = around(-140, -.018, R - .002), t1 = around(-185, .002, R + .002), t2 = around(125, .018, R + .013);
+  parts.push(seg(t0, t1, .012, .011), seg(t1, t2, .011, .0095));
+  for (const p of parts) for (const k of Object.keys(p.attributes)) if (k !== 'position' && k !== 'normal') p.deleteAttribute(k);
+  return mergeGeometries(parts);
+}
+
 export function createFountainLady(THREE, parent) {
   const live = [];
   function add(x, z, curse = false) { for (const [sx, sz] of ladySquares(x, z)) addArm(sx, sz, curse); }
   function addArm(x, z, curse) {
     const g = new THREE.Group(); g.name = 'FountainLady'; g.position.set(x, .3, z); parent.add(g);
-    // A woman's arm: pale, wet skin, clothed to the forearm in white samite as the legend has it.
-    const flesh = new THREE.MeshStandardMaterial({color: 0xc9ab98, roughness: .45, metalness: 0});
-    const samite = new THREE.MeshStandardMaterial({color: 0xeef2f0, roughness: .6, side: THREE.DoubleSide});
+    // A woman's arm: bare, pale and slender, the hand closed in a fist round the grip.
+    const flesh = new THREE.MeshStandardMaterial({color: 0xe3cbb8, roughness: .5, metalness: 0});
     const geos = [];
     const mesh = (geo, mat, parentObj = g) => { geos.push(geo); const m = new THREE.Mesh(geo, mat); parentObj.add(m); return m; };
     const arm = new THREE.Group(); g.add(arm);
     // the forearm: slender, swelling a little below the elbow and narrowing to a fine wrist
-    const forePts = [[.0, -ARM_MAX], [.03, -ARM_MAX], [.031, -ARM_MAX * .75], [.027, -ARM_MAX * .45], [.02, -.08], [.017, -.02], [.0, 0]].map(([r, y]) => new THREE.Vector2(r, y));
-    mesh(new THREE.LatheGeometry(forePts, 14), flesh, arm);
-    // the sleeve: white samite clinging wet up to mid-forearm, its cuff flared and trailing
-    const sleevePts = [[.036, -ARM_MAX], [.037, -ARM_MAX * .7], [.034, -ARM_MAX * .5], [.046, -ARM_MAX * .42], [.05, -ARM_MAX * .4]].map(([r, y]) => new THREE.Vector2(r, y));
-    const sleeve = mesh(new THREE.LatheGeometry(sleevePts, 16), samite, arm); sleeve.rotation.z = .04;
+    const forePts = [[.0, -ARM_MAX], [.033, -ARM_MAX], [.035, -ARM_MAX * .78], [.031, -ARM_MAX * .5], [.024, -.1], [.021, -.04], [.0, -.02]].map(([r, y]) => new THREE.Vector2(r, y));
+    mesh(new THREE.LatheGeometry(forePts, 16), flesh, arm);
     const hand = new THREE.Group(); arm.add(hand);
-    // a slim hand closed round the grip: a narrow palm, four fine fingers wrapped about the leather and the
-    // thumb laid over them
-    const palm = mesh(new THREE.SphereGeometry(1, 12, 8), flesh, hand); palm.scale.set(.024, .04, .014); palm.position.set(0, .0, .012);
-    for (let i = 0; i < 4; i++) { const f = mesh(new THREE.TorusGeometry(.031, .0075 - i * .0007, 6, 12, Math.PI * 1.35), flesh, hand); f.rotation.set(Math.PI / 2, 0, -Math.PI * .2); f.position.set(0, .03 - i * .019, GRIP_Z); }
-    const thumb = mesh(new THREE.CapsuleGeometry(.0075, .03, 3, 6), flesh, hand); thumb.position.set(.018, .04, GRIP_Z + .022); thumb.rotation.set(.3, 0, -.9);
+    mesh(fistGeometry(THREE), flesh, hand);
     // The sword is Excalibur as the hero wields it (excalibur.js): its broad blade, burning fuller and runes,
     // the gold guard with its sapphires, the wire-wound grip and the ruby pommel, the grip in her hand. Blessed,
     // it sheds the wielded blade's sparks; cursed, its steel and fuller burn a bruised violet instead.
@@ -87,7 +108,7 @@ export function createFountainLady(THREE, parent) {
     });
     const swellMat = new THREE.MeshBasicMaterial({map: softDot(THREE), color: 0x0c1814, transparent: true, opacity: 0, depthWrite: false});
     const swell = new THREE.Mesh(ringGeo, swellMat); swell.position.y = .015; g.add(swell);
-    live.push({curse, swell, swellMat, g, arm, hand, blade, steel, fuller, sparks, glowMat, rings, geos, mats: [flesh, samite, ...meshes.map(m => m.material), glowMat, swellMat, ...rings.map(r => r.mat)], ringGeo, t: 0});
+    live.push({curse, swell, swellMat, g, arm, hand, blade, steel, fuller, sparks, glowMat, rings, geos, mats: [flesh, ...meshes.map(m => m.material), glowMat, swellMat, ...rings.map(r => r.mat)], ringGeo, t: 0});
   }
   function step(e, dt) {
     e.t += dt;
