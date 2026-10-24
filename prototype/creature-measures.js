@@ -44,6 +44,14 @@ export const MEASURES = {
       male: [36, 89], maleBody: [28, 56], female: [26, 45], // mm, Lucanus cervus; with and without mandibles
     },
   },
+  // domestic fowl: the cockerel's head bob, crow and night rest
+  fowl: {
+    bobPerStep: 1, // head cycles per step: a hold, then a thrust (Necker; Hancock et al. 2014)
+    crowSeconds: [1.51, 1.86], // Burgo roosters, morning to noon
+    jungleCrowMs: 1416, // red jungle fowl, a sequence of 29 calls
+    perchDarkShare: .85, // of the dark, caged hens on a perch (Duncan et al. 1992)
+    proneNightShare: .77, // of the night, seven hens lying asleep
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -65,4 +73,9 @@ export const DRAGON = {
 export const INSECTS = {
   mandibleShare: 1 - mid(MEASURES.insects.stag.maleBody) / mid(MEASURES.insects.stag.male),
   strideExponent: MEASURES.insects.ant.strideExponent,
+};
+// What the cockerels' poses use: a crow lasts this long, and a hen is down on the perch for this share of the dark
+export const FOWL = {
+  crowSeconds: MEASURES.fowl.crowSeconds,
+  lyingDark: MEASURES.fowl.perchDarkShare * MEASURES.fowl.proneNightShare,
 };
