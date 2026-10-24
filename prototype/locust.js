@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {nameInsectJoints} from './insect-joints.js';
+import {nameInsectJoints,skinLeg,rigLeg} from './insect-joints.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
 
@@ -134,7 +134,7 @@ function buildLeg(L,i){
   const pts=[[0,0,0],dir(.02,-.015),dir(.07,knee),dir(reach-.035,-HIP+.02),dir(reach,-HIP+.004,i?0:.15)];
   chain(P,pts,[.009,.008,.006,.0045,.003],j=>j===1?mix(dark,shell,.85):mix(dark,shell,.55-j*.1),6);
   for(const s of [-1,1])segment(P,pts[4],[pts[4][0]+.008,-HIP+.001,pts[4][2]+s*.004],.002,.0006,tip,4);
-  return P.merge();
+  return skinLeg(P.merge(),pts);
  }
  // the hind leg: femur up and back to a knee above the wings, tibia folded down beneath it
  const hip=[0,0,0],swell=[.03,.04,-.07],knee=[.05,.105,-.2],foot=[.075,-HIP+.012,-.05],toe=[.085,-HIP+.002,-.015];
@@ -167,7 +167,8 @@ function buildLeg(L,i){
  const T=new THREE.Vector3(...toe);
  for(let k=1;k<=3;k++){const p=F.clone().lerp(T,k/3.5);P.add(new THREE.SphereGeometry(.0045,6,4),at(p.x,p.y,p.z,[0,0,0],[1,.7,1.3]),k===3?dark:mix(dark,pale,.4));}
  segment(P,toe,[toe[0]+.003,-HIP,toe[2]+.01],.0025,.0006,tip,4);
- return P.merge();
+ // (the bones: the coxa a short stub at the hip, the femur from it to the knee, the tibia from the knee)
+ return skinLeg(P.merge(),[hip,new THREE.Vector3(...hip).lerp(new THREE.Vector3(...swell),.3).toArray(),knee,foot,toe]);
 }
 
 const cache=new Map();
@@ -195,7 +196,7 @@ export function createLocust(name){
  for(const s of [1,-1])S.legs.forEach((geo,i)=>{
   const leg=new THREE.Group();
   leg.position.set(s*(i<2?.022:.026),HIP,PAIRS[i].z);body.add(leg);
-  const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
+  rigLeg(leg,geo,S.material,{mirror:s<0});
   legs.push(leg);
  });
  return nameInsectJoints({g,body,legs,tail:null,tail0,wings:[],quirk:'insect',head,hopper:'locust'});

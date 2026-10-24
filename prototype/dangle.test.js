@@ -14,6 +14,10 @@ function frame(a, t, dt, walking) {
 test('bee legs hang in flight, trail while flying on, and go slack to rest in death', () => {
   for (const name of ['killer bee', 'queen bee']) {
     const a = createCreature({name});
+    // the seed comes from the object id, and some seeds put the hind-leg flick or the front-leg rub (each a
+    // deliberate quick move with its own test below) right on a flight change or the death; pinned to one that
+    // doesn't, so adding an object anywhere else in a build doesn't move it
+    a.g.userData.fidgetId = 0;
     assert.ok(dangles(a), name);
     // right legs front to back, then left: the layout reads that from the hips
     assert.deepEqual(dangleLayout(a.legs), {side: [1, 1, 1, -1, -1, -1], rank: [0, 1, 2, 0, 1, 2]});

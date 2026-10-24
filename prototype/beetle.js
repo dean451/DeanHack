@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {nameInsectJoints} from './insect-joints.js';
+import {nameInsectJoints,skinLeg,rigLeg} from './insect-joints.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
 
@@ -167,7 +167,7 @@ function buildLeg(L,i){
   const c=b.clone().addScaledVector(fwd,.012).addScaledVector(side,s*.006).add(new THREE.Vector3(0,-.003,0));
   segment(P,b.toArray(),c.toArray(),.0025,.0008,claw,4);
  }
- return P.merge();
+ return skinLeg(P.merge(),pts);
 }
 
 const cache=new Map();
@@ -195,7 +195,7 @@ export function createBeetle(name){
  for(const s of [1,-1])S.legs.forEach((geo,i)=>{
   const leg=new THREE.Group();
   leg.position.set(s*.055,HY,PAIRS[i].z);body.add(leg);
-  const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
+  rigLeg(leg,geo,S.material,{mirror:s<0});
   legs.push(leg);
  });
  g.userData.scarred=true;
