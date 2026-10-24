@@ -52,6 +52,13 @@ export const MEASURES = {
     perchDarkShare: .85, // of the dark, caged hens on a perch (Duncan et al. 1992)
     proneNightShare: .77, // of the night, seven hens lying asleep
   },
+  // wild cats: the tiger and leopard's size and rest, and the housecat's stealthy walk
+  wildCat: {
+    tiger: {headBody: {male: [189, 300], female: [146, 177]}, tail: [72, 109], shoulder: [80, 100]}, // cm
+    leopard: {headBody: [91, 191], tail: [58, 110]}, // cm
+    sleepHours: [16, 20], // a day, tigers (a keeper's guide)
+    stealthRecovery: {mean: .176, sd: .113, max: .379}, // share of mechanical energy recovered walking crouched (Bishop et al. 2008)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -78,4 +85,9 @@ export const INSECTS = {
 export const FOWL = {
   crowSeconds: MEASURES.fowl.crowSeconds,
   lyingDark: MEASURES.fowl.perchDarkShare * MEASURES.fowl.proneNightShare,
+};
+// What the wild cats' poses use: the tail against head and body, and the share of the day asleep
+export const WILDCAT = {
+  tailShare: [MEASURES.wildCat.tiger.tail[0] / (MEASURES.wildCat.tiger.headBody.male[1] + MEASURES.wildCat.tiger.tail[0]), MEASURES.wildCat.tiger.tail[1] / (MEASURES.wildCat.tiger.headBody.female[0] + MEASURES.wildCat.tiger.tail[1])],
+  sleepShare: MEASURES.wildCat.sleepHours.map(h => h / 24),
 };

@@ -112,3 +112,21 @@ The second monster family (AGENTS.md, family **c**; the monitor lizard is measur
 *Not found:* the head's travel in centimetres or the bob's frequency in hertz for a chicken (the sources give the pattern and the one-per-step rhythm, not the amplitude), and any study of a crowing cock's neck angle. A hen's tucked head and one raised leg are described only by keepers' accounts, so no number is claimed for them.
 
 **What the cockerels take from this.** A walking fowl bobs once per step: the head hangs still in the air while the body passes beneath it, then darts forward, and the faster it goes the less it holds. A crow lasts about one and a half to two seconds, head raised. At night the fowl sits the perch for most of the dark and is down on its breast for most of that.
+
+## Wild cats (jaguar, lynx, panther, tiger and the other monster cats)
+
+The sixth monster family (AGENTS.md, family **f**; the lion's lying and sleep numbers are above under Dragons, "Big cat"). Measured from the tiger and the leopard, the two big cats the monster cats are drawn from, and from the stealthy crouched walk of the domestic cat.
+
+### Tiger and leopard (size, tail, rest, stalking walk)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Tiger head and body | males 189 to 300 cm, females 146 to 177 cm | [San Diego Zoo tiger fact sheet](https://ielc.libguides.com/sdzg/factsheets/tiger/characteristics) |
+| Tiger tail and shoulder | tail 72 to 109 cm (under half of head and body); shoulder height 80 to 100 cm | [San Diego Zoo tiger fact sheet](https://ielc.libguides.com/sdzg/factsheets/tiger/characteristics) |
+| Leopard head and body, tail | head and body 91 to 191 cm, tail 58 to 110 cm | [San Diego Zoo leopard fact sheet](https://ielc.libguides.com/sdzg/factsheets/leopard/characteristics) |
+| Time asleep or resting | tigers 16 to 20 hours a day (a keeper's guide, so loose: it counts dozing and resting as well as sleep) | [Big Cats India, how many hours do tigers sleep](https://bigcatsindia.com/how-many-hours-do-tigers-sleep/) |
+| Stalking walk | six housecats walking a runway recovered on average 17.6 ± 11.3% of their mechanical energy (best 37.9%, a dog up to about 70%); the crouched, more diagonal footfall is what costs it, a trade of economy for stealth | Bishop, Pai and Schmitt 2008, ["Whole body mechanics of stealthy walking in cats", PLoS ONE 3(11): e3808](https://pmc.ncbi.nlm.nih.gov/articles/PMC2583958) |
+
+*Not found:* a wild cat's sphinx (sternal) rest as an angle or a chin-to-paw distance, and a crouched stalk's speed or belly height in a tiger or leopard (the sources describe a low body and slow paw-by-paw steps, with no number; the cat paper is on housecats, the same body plan). No number is claimed for them; the pose stage sets them by eye against photographs.
+
+**What the wild cats take from this.** A tiger is long (tail under half the head and body) and sleeps most of the day, so a monster cat settles into the pet cat's lying pose readily. Stalking, the walk is crouched with a diagonal footfall (a rear foot follows the opposite front foot closely): the body low, the stride short and even, never bouncing.
