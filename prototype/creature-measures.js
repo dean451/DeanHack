@@ -30,6 +30,20 @@ export const MEASURES = {
       mantle: 'wings spread and drooped forward over the kill, tail fanned, back arched, shoulders hunched, head down',
     },
   },
+  insects: {
+    ant: {
+      gait: 'alternating tripod', strideExponent: [.3, .6], // s = a v^b (Zollikofer 1994)
+      runAbove: 370, // mm/s, Cataglyphis: aerial phases, duty factor under 0.5
+      defence: 'gaster lifted and flexed forward over the body to reach an attacker all round the head',
+    },
+    bee: {
+      worker: [10, 15], // mm
+      sleepMinutes: 30, // motionless, head lowered, antennae drooping
+    },
+    stag: {
+      male: [36, 89], maleBody: [28, 56], female: [26, 45], // mm, Lucanus cervus; with and without mandibles
+    },
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -46,4 +60,9 @@ export const DRAGON = {
   spanToLength: [MEASURES.dragon.raptor.span[0] / MEASURES.dragon.raptor.length.female[1], MEASURES.dragon.raptor.span[1] / MEASURES.dragon.raptor.length.male[0]],
   // asleep most of the day, like a big cat
   sleepShare: MEASURES.dragon.bigCat.sleepHours.map(h => h / 24),
+};
+// What the insects' poses use: the share of a male stag beetle's length that is mandibles
+export const INSECTS = {
+  mandibleShare: 1 - mid(MEASURES.insects.stag.maleBody) / mid(MEASURES.insects.stag.male),
+  strideExponent: MEASURES.insects.ant.strideExponent,
 };

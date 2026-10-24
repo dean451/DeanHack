@@ -60,3 +60,35 @@ A dragon's regions are measured from four real animals: a monitor lizard for the
 *Not found:* the angle of the wings in a mantle.
 
 **What the dragon takes from this.** A raptor's span is about 2.3 times its length (124 / 54; range 1.75 to 2.96). In a mantle the wings go out and down, forward over the forepaws and the kill, not up; the tail fans and lifts; the back arches; the head drops low over the prey.
+
+## Insects (ants, bees, beetles, locusts)
+
+The first monster family (AGENTS.md, family **a**). Measured from real ants (the tripod gait, the raised gaster), honeybees (size, sleep) and stag beetles (size, the male's weapons).
+
+### Ants (gait, defence)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Gait | an alternating tripod (three legs planted, three swinging) across a wide range of speeds; 12 species of *Cataglyphis*, *Formica*, *Lasius* and *Myrmica* | Zollikofer 1994, "Stepping patterns in ants", [J Exp Biol 192](https://cob.silverchair.com/jeb/article-pdf/192/1/95/2854548/jexbio_192_1_95.pdf) |
+| Stride length against speed | s = a v^b, with b between 0.3 and 0.6 by species | the same paper ([J Exp Biol 192:107](https://cob.silverchair.com/jeb/article-pdf/192/1/107/2854414/jexbio_192_1_107.pdf)) |
+| Running | above 370 mm/s the stride frequency levels off, the duty factor falls below 0.5 and the ant runs with aerial phases (*Cataglyphis fortis*); a faster walk shortens the stance, not the swing | [J Comp Physiol A 2015, doi 10.1007/s00359-015-0999-2](https://link.springer.com/article/10.1007/s00359-015-0999-2) |
+| Defence | the gaster is raised and flexed forward over the body so the sting or spray reaches an attacker in a full circle round the head; *Crematogaster* wipes the venom on with a blunt spatula-shaped sting | [AntWiki, *Crematogaster aurora*](https://antwiki.org/wiki/Crematogaster_aurora) |
+
+*Not found:* a resting ant's posture (legs folded or not), and the duty factor below the running threshold, as numbers.
+
+### Honeybee (size, sleep)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Worker length | 10 to 15 mm | [dimensions.com, western honey bee](https://dimensions.com/element/western-honey-bee-apis-mellifera) |
+| Sleeping posture | head lowered, antennae slack and drooping, the thorax and abdomen sagging with the wings settled against the body; motionless for up to 30 minutes | Klein et al. 2014, "Mapping sleeping bees within their nest", as quoted by [UW-La Crosse](https://www.uwlax.edu/currents/buzzworthy-study-on-bee-sleep/) |
+| Sleep, seen in the abdomen | breathing movements and the abdomen tip's larger motions tell a sleeping bee from a heating one; sleep was 16.9% of observations | Klein and Busby 2020, [PeerJ 9583](https://peerj.com/articles/9583) |
+
+### Stag beetle (size, weapons)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Length | males 36 to 89 mm with the mandibles, about 28 to 56 mm without; females 26 to 45 mm (*Lucanus cervus*, Bosnia) | [Bulletin of the Natural History Museum, Belgrade, 2010](https://nhmbeo.rs/wp-content/pdfovi/Bulletin-2010-11.pdf) |
+| Weapons | a male's mandibles are longer than his head and are used to fight other males; a female's are shorter than her head | [Nature Conservation, Pensoft](https://natureconservation.pensoft.net/article_preview.php?id=12681) |
+
+**What the insects take from this.** An ant walks in two alternating tripods, its stride growing with speed, and defends with the gaster lifted and flexed forward over its back. A bee at rest lets head, antennae, thorax and abdomen sag and lies still for half an hour. A male beetle is about a third again as long with his mandibles as without, and they are longer than his head. Joints: `insect-joints.js`.
