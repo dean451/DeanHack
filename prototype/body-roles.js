@@ -69,9 +69,37 @@ export function dragonRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the cat and the dragons have maps so far.
+// The cockerel family's map (chickatrice, cockatrice, pyrolisk), from the joints `cockatrice()` exposes. The
+// head group carries the beak, so the mouth and chin are points in its frame; the four leg groups are a
+// front pair and a hind pair like the cat's, each paw at the toes' sole; the tail is one group, so its tip is
+// the end of its last segment in the tail's frame; each wing's tip and wrist are points of its flat shape.
+export function cockatriceRoles(actor) {
+  const j = actor.joints, map = {
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.head, [0, -.03, .17]),
+    chin: () => inFrame(() => j.head, [0, -.07, .15]),
+    withers: () => inFrame(() => actor.body, [0, .2, .1]),
+    rump: () => at(() => j.tail0),
+    tailtip: () => inFrame(() => j.tail0, [0, -.06, -.5]),
+  };
+  for (const side of ['l', 'r']) {
+    const s = side === 'l' ? -1 : 1;
+    for (const [i, pair] of [[0, 'f'], [1, 'h']]) {
+      const leg = j[`${side}leg${i}`];
+      map[`paw:${side}${pair}`] = () => inFrame(() => leg, [s * .13, -.146, .07]);
+      map[`${pair === 'f' ? 'shoulder' : 'hip'}:${side}`] = () => at(() => leg);
+    }
+    const wing = j[`${side}wing`];
+    map[`wingwrist:${side}`] = () => inFrame(() => wing, [s * .17, .065, 0]);
+    map[`wingtip:${side}`] = () => inFrame(() => wing, [s * .15, -.05, 0]);
+  }
+  return buildRoles(map, {});
+}
+
+// The role table for a built actor, by what it is: the cat, the dragons and the cockerels have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'dragon' && actor.joints) return dragonRoles(actor);
+  if (actor.quirk === 'cockatrice' && actor.joints) return cockatriceRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
