@@ -24,10 +24,10 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 //   the jaw corners, the feeler clubs and claws are frosted white and the eyes glint ice blue.
 // - any other 'a' falls back on the giant ant's build in the glyph colour.
 // The head (with eyes and feelers) is one vertex-coloured mesh on a neck pivot, the
-// thorax, waist and gaster another; each leg is its own group holding one mesh (the walk swings
-// them); each mandible is its own mesh on a hinge group so it can open and snap. 10 draws, one material. Geometry is built once per look and
+// thorax and waist another, the gaster a third on the `tail0` joint; each leg is its own group holding one mesh (the walk swings
+// them); each mandible is its own mesh on a hinge group so it can open and snap. 11 draws, one material. Geometry is built once per look and
 // shared; the left legs reuse the right ones mirrored.
-// Handles: body, legs (6), head (the neck pivot group), jaws (2, right then left, hinged at the jaw
+// Handles: body, tail0 (the gaster group), legs (6), head (the neck pivot group), jaws (2, right then left, hinged at the jaw
 // corners; +rotation.y*side opens), antJaws (the look), quirk 'insect'.
 
 const LOOKS={
@@ -145,6 +145,16 @@ function buildBody(L){
   P.add(new THREE.SphereGeometry(.024,12,8),at(0,Y+.035,-.06,[0,0,0],[1,1.05,.9]),(x,y)=>mix(dark,shell,.2+top(Y,Y+.06)(y)*.8));
   P.add(new THREE.SphereGeometry(.028,12,8),at(0,Y+.03,-.1,[0,0,0],[1.15,.95,.9]),(x,y)=>mix(dark,shell,.2+top(Y,Y+.06)(y)*.8));
  }
+ if(L.frost)rime(P,at(0,Y+.035,.115,[.3,0,0],[.045,.0425,.0525]),5,19,.5,.03,.008);// a few shards on the thorax hump
+ return P.merge();
+}
+
+// The gaster is its own mesh on the `tail0` joint, pivoting where the petiole meets it, so it can swing
+// and curl under (the stinging ants) without touching the body.
+const waistPivot=[0,Y+.02,-.1];
+function buildGaster(L){
+ const P=pieces(),dark=rgb(L.dark),gaster=rgb(L.gaster),sheen=rgb(L.sheen);
+ const top=(lo,hi)=>y=>THREE.MathUtils.clamp((y-lo)/(hi-lo),0,1);
  // gaster: a big glossy egg tilted down at the back, banded at the plate edges, a sheen on top
  const gz=-.24,gr=.12;
  P.add(new THREE.SphereGeometry(gr,26,18),at(0,Y+.035,gz,[-.28,0,0],[.88,.8,1.12]),(x,y,z)=>{
@@ -162,13 +172,12 @@ function buildBody(L){
  if(L.frost){
   // jagged rime shards bristle from the gaster's top and back, and a few from the thorax hump
   rime(P,at(0,Y+.035,gz,[-.28,0,0],[.88*gr,.8*gr,1.12*gr]),16,7,.2,.05,.011);
-  rime(P,at(0,Y+.035,.115,[.3,0,0],[.045,.0425,.0525]),5,19,.5,.03,.008);
- }
+  }
  if(L.sting){
   const tip=[0,Y-.04,gz-.14];
   segment(P,[0,Y-.02,gz-.115],tip,.009,.001,dark,6);
  }
- return P.merge();
+ const geo=P.merge(),[px,py,pz]=waistPivot;geo.translate(-px,-py,-pz);return geo;
 }
 
 // One right-hand leg. i is the pair, 0 at the front. The hip is the origin; the geometry reaches
@@ -194,7 +203,7 @@ function build(key,L){
  if(cache.has(key))return cache.get(key);
  const S={
   material:new THREE.MeshStandardMaterial({vertexColors:true,roughness:L.rough??.34,metalness:.08}),
-  body:buildBody(L),head:buildHead(L),jaws:[1,-1].map(s=>buildJaw(L,s)),legs:PAIRS.map((p,i)=>buildLeg(L,i)),
+  body:buildBody(L),gaster:buildGaster(L),head:buildHead(L),jaws:[1,-1].map(s=>buildJaw(L,s)),legs:PAIRS.map((p,i)=>buildLeg(L,i)),
  };
  cache.set(key,S);return S;
 }
@@ -208,6 +217,8 @@ export function createAnt(name,colour){
  const S=build(known?name:'a:'+L.shell,L);
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(L.scale);
  mesh(body,S.body,S.material,'body');
+ const tail0=new THREE.Group();tail0.position.set(...waistPivot);body.add(tail0);
+ mesh(tail0,S.gaster,S.material,'gaster');
  const head=new THREE.Group();head.position.set(...neck(L));body.add(head);
  mesh(head,S.head,S.material,'head');
  const [nx,ny,nz]=neck(L),jaws=[1,-1].map((side,i)=>{
@@ -222,5 +233,5 @@ export function createAnt(name,colour){
   legs.push(leg);
  });
  if(L.scarred)g.userData.scarred=true;
- return nameInsectJoints({g,body,legs,tail:null,wings:[],quirk:'insect',head,jaws,antJaws:known?name:'giant ant'});
+ return nameInsectJoints({g,body,legs,tail:null,tail0,wings:[],quirk:'insect',head,jaws,antJaws:known?name:'giant ant'});
 }

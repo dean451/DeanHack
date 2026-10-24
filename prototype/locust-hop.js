@@ -76,7 +76,7 @@ export function leapPose(u) {
 }
 
 function setup(a) {
-  const st = {seed: ((a.g?.id ?? 1) * 48271) % 2147483647 || 1, life: 1, T: 0,
+  const st = {seed: ((a.g?.userData?.fidgetId ?? a.g?.id ?? 1) * 48271) % 2147483647 || 1, life: 1, T: 0,
     hop: null, len: HOP_LEN, h: 1, from: 0, to: 0, face: 0, wait: 0,
     rasp: null, raspWait: 0, lastHit: null, act: 1, headYaw: 0,
     applied: {pitch: 0, yaw: 0, roll: 0, z: 0, hp: 0, hy: 0},

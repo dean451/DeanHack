@@ -96,7 +96,7 @@ export function nodPose(u) {
 }
 
 function setup(a) {
-  const st = {seed: ((a.g?.id ?? 1) * 69621) % 2147483647 || 1, life: 1, look: LOOKS[a.antJaws] || LOOKS['giant ant'],
+  const st = {seed: ((a.g?.userData?.fidgetId ?? a.g?.id ?? 1) * 69621) % 2147483647 || 1, life: 1, look: LOOKS[a.antJaws] || LOOKS['giant ant'],
     rest: a.jaws.map(j => j.rotation.y), applied: {pitch: 0, yaw: 0},
     near: 0, face: 0, wait: 0, clack: null, n: 1, threat: null, tWait: 0, splay: 0, lastHit: null,
     nod: null, nodWait: 0, tickWait: 0, tick: 0, tickTo: 0, gape: 0, stride: 0, act: 1, T: 0};

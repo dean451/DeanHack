@@ -57,6 +57,7 @@ test('bee legs hang in flight, trail while flying on, and go slack to rest in de
 test('gallery bees hang their legs too, over main.js\'s small generic sway', () => {
   for (const name of ['killer bee', 'queen bee']) {
     const a = createCreature({name}), phase = .7;
+    a.g.userData.fidgetId = {'killer bee': 119, 'queen bee': 142}[name]; // the seed comes from the object id; pinned to the ids this test was written against
     let prev = null;
     for (let k = 0; k < 240; k++) {
       const t = k / 60;
@@ -100,6 +101,7 @@ test('a hovering bee now and then scrapes its front legs together; in flight or 
 
 test('the legs swing past their new pose when flight starts and stops, then settle', () => {
   const a = createCreature({name: 'killer bee'});
+  a.g.userData.fidgetId = 188; // pinned, as above
   let t = 0;
   const hind = () => a.legs[2].rotation.x;
   const run = (secs, walking) => { let lo = Infinity, hi = -Infinity; for (let k = 0; k < secs * 60; k++, t += 1 / 60) { frame(a, t, 1 / 60, walking); lo = Math.min(lo, hind()); hi = Math.max(hi, hind()); } return {lo, hi}; };
