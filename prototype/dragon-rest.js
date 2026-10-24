@@ -266,7 +266,8 @@ export function sleepPose(a, key = a.form ?? a.g.uuid) {
     const outline = [...skin(), ...legs.map(l => P[`paw:${l[0]}${/fore/.test(l) ? 'f' : 'h'}`]())];
     const face = P.chin();
     const t = wrapTail({pose, apply, P, tail, outline, paws: new THREE.Vector2(face.x, face.z), gap: u(SLEEP.tailGap), lie: k => tailUnder[k] + u(.015), scale: S, drop: u(SLEEP.tailDrop), bend: [-1, 1], iterations: 400});
-    pose = t.pose; report.tail = t.report; named.tail = () => tail.slice(1).map((b, k) => b.getWorldPosition(new THREE.Vector3()).distanceTo(t.targets[k + 1]));
+    // (like the coil's ring, the path round the body is a guide: a few centimetres off it still reads as wrapped, so it counts half)
+    pose = t.pose; report.tail = t.report; named.tail = () => tail.slice(1).map((b, k) => .5 * b.getWorldPosition(new THREE.Vector3()).distanceTo(t.targets[k + 1]));
   }
   // 5. settle: the legs, the tail (and a serpent's spine) eased together so nothing at all is through the
   // floor, every goal so far still held (a dense look at the skin this time)
