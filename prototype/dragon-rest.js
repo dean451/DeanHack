@@ -18,6 +18,9 @@ import {rolesOf} from './body-roles.js';
 import {DRAGON} from './creature-measures.js';
 
 // Sizes in the dragon's own units (multiplied by its scale):
+// - fanSpread, fanReach: a many-headed dragon's heads fanned this far either side of straight ahead (radians),
+//   this far out from the chest; coilTurn: how much of its ring a serpent's coil fills (a looser coil than a
+//   full turn, so a thick body keeps an open middle instead of piling up);
 // - sprawl: where each paw lies from its shoulder or hip when sprawled (out to the side, forward or back);
 // - frontPaw: where each forepaw lies from its shoulder (in toward the middle, forward) when the chin rests
 //   forward on them;
@@ -30,7 +33,7 @@ import {DRAGON} from './creature-measures.js';
 //   tail eases down to the floor from the rump;
 // - a serpent's coilLie: the coil's height on the floor (its thick body lies about evenly); coilDrop: how
 //   far along it the coil eases down from the front; coilFront: how high the front is held.
-export const SLEEP = {curlPawL: [-.1, .2], curlPawR: [-.14, .2], hindForward: .12, hindOut: .26, chinOver: .05, tailGap: .05, tailDrop: .3, coilLie: .1, coilDrop: .2, coilFront: .24, headClear: .04, neckRise: .08, frontPaw: [.12, .26], sprawl: [.28, .06]};
+export const SLEEP = {curlPawL: [-.1, .2], curlPawR: [-.14, .2], hindForward: .12, hindOut: .26, chinOver: .05, tailGap: .05, tailDrop: .3, coilLie: .1, coilDrop: .2, coilFront: .24, headClear: .04, neckRise: .08, frontPaw: [.12, .26], sprawl: [.28, .06], fanSpread: .95, fanReach: .42, coilTurn: .68};
 
 // The folded wing's size against the open wing: a bat's fingers fold back along its forearm, so the
 // folded wing is about the forearm's length; on the dragon's wing the forearm runs from the root to the
@@ -178,12 +181,13 @@ export function sleepPose(a, key = a.form ?? a.g.uuid) {
     if (fore.length) { const lift = Math.min(...fore.map(l => P[`paw:${l[0]}f`]().y)) - u(.01); if (lift > 0) { pose.body.y -= lift / S; apply(pose); } }
     // (the coil lies on its own underside: the middle of its spine's thickness, a thick serpent higher)
     const sp = undersides(a, spine).sort((p, q) => p - q), coilLie = Math.max(u(SLEEP.coilLie), sp[Math.floor(sp.length / 2)] + u(.01));
-    const all = [...spine, ...tail], len = all.slice(1).reduce((s, b) => s + b.position.length() * S, 0), R = len / (2 * Math.PI) * .97;
+    const all = [...spine, ...tail], len = all.slice(1).reduce((s, b) => s + b.position.length() * S, 0), R = len / (2 * Math.PI * SLEEP.coilTurn);
     const c = spine[0].getWorldPosition(new THREE.Vector3()).setY(0).add(new THREE.Vector3(R, 0, 0));
     const ring = Array.from({length: 48}, (_, k) => new THREE.Vector3(c.x + R * Math.cos(k / 48 * Math.PI * 2), 0, c.z + R * Math.sin(k / 48 * Math.PI * 2)));
-    const t = wrapTail({pose, apply, P, tail: all, outline: ring, paws: new THREE.Vector2(c.x, c.z + R), gap: 0, lie: coilLie, scale: S, bend: [-1.8, 1.8], drop: u(SLEEP.coilDrop), iterations: 400});
-    // (the ring is a guide, not a mould: a few centimetres off it on a body this thick still reads as a neat coil, so it counts half)
-    pose = t.pose; report.coil = t.report; named.coil = () => all.slice(1).map((b, k) => .5 * b.getWorldPosition(new THREE.Vector3()).distanceTo(t.targets[k + 1]));
+    const t = wrapTail({pose, apply, P, tail: all, outline: ring, paws: new THREE.Vector2(c.x, c.z + R), gap: 0, lie: coilLie, scale: S, bend: [-2.4, 2.4], drop: u(SLEEP.coilDrop), iterations: 800});
+    // (the ring is a guide, not a mould: a few centimetres off it on a body this thick still reads as a neat coil, so
+    // the first 3 cm are free and the rest counts half)
+    pose = t.pose; report.coil = t.report; named.coil = () => all.slice(1).map((b, k) => .5 * Math.max(0, b.getWorldPosition(new THREE.Vector3()).distanceTo(t.targets[k + 1]) - u(.03)));
     delete joints1['body.y']; delete joints1['body.rz']; delete goals1.belly;
     for (const l of fore) delete goals1[l + 'Reach'];
     if (legs.length) run('lie', joints1, goals1);
@@ -195,7 +199,11 @@ export function sleepPose(a, key = a.form ?? a.g.uuid) {
   // A cat curls its head round to lie along its flank: the chin on the left forepaw (a wyvern's on the floor
   // at the front corner of its chest), the face turned back toward the haunch, the head beside the body.
   // Lying with the chin forward: the chin on the forepaws, or on the floor ahead of the chest.
-  const rest = serpent ? () => { const s = spine[Math.floor(spine.length * .6)].getWorldPosition(new THREE.Vector3()); return s.setY(u(.2)); }
+  // A many-headed dragon fans every head out round the front of its chest, left to right as the necks leave
+  // the body, chins on the floor, each face turned out along its own spoke.
+  const fan = extra.length ? [{neck0: neck[0], main: true}, ...extra.map((e, k) => ({neck0: e.neck[0], k}))].sort((p, q) => p.neck0.getWorldPosition(new THREE.Vector3()).x - q.neck0.getWorldPosition(new THREE.Vector3()).x) : [];
+  const spoke = h => { const i = fan.indexOf(h), a = fan.length > 1 ? -SLEEP.fanSpread + 2 * SLEEP.fanSpread * i / (fan.length - 1) : 0; return {at: () => P.withers().setY(u(SLEEP.chinOver)).add(new THREE.Vector3(Math.sin(a) * u(SLEEP.fanReach), 0, u(.06) + Math.cos(a) * u(SLEEP.fanReach))), out: () => P.withers().setY(u(SLEEP.chinOver)).add(new THREE.Vector3(Math.sin(a) * u(2), 0, Math.cos(a) * u(2)))}; };
+  const rest = fan.length ? spoke(fan.find(h => h.main)).at : serpent ? () => { const s = spine[Math.floor(spine.length * .6)].getWorldPosition(new THREE.Vector3()); return s.setY(u(.2)); }
     : sprawl ? () => P.withers().setY(u(SLEEP.chinOver)).add(new THREE.Vector3(0, 0, u(.35)))
     : !curl ? (fore.length === 2 ? () => mid(P, 'paw:lf', 'paw:rf')().add(new THREE.Vector3(0, u(SLEEP.chinOver), -u(.03))) : () => P.withers().setY(u(SLEEP.chinOver)).add(new THREE.Vector3(0, 0, u(.35))))
     : has('paw:lf') ? () => P['paw:lf']().add(new THREE.Vector3(-u(.02), u(SLEEP.chinOver), -u(.04)))
@@ -210,7 +218,7 @@ export function sleepPose(a, key = a.form ?? a.g.uuid) {
     // the neck rising no more than a hand's breadth off the chest before it curls down and round (not arched
     // up over the head and hooked down), the face turned back along the flank, the head beside the body
     neckLow: serpent ? () => [0] : () => { const ys = neck.map(b => b.getWorldPosition(new THREE.Vector3()).y); return [2 * Math.max(0, Math.max(...ys) - ys[0] - u(SLEEP.neckRise))]; },
-    faceBack: serpent ? () => [0] : curl ? goal.facing('chin', 'mouth', back, {weight: 2}) : goal.ahead('chin', 'mouth', u(.05), {within: u(.04), weight: 2}),
+    faceBack: fan.length ? goal.facing('chin', 'mouth', spoke(fan.find(h => h.main)).out) : serpent ? () => [0] : curl ? goal.facing('chin', 'mouth', back, {weight: 2}) : goal.ahead('chin', 'mouth', u(.05), {within: u(.04), weight: 2}),
     beside: serpent || !curl ? () => [0] : outward(at(j.head), W + u(.02), {weight: 2}),
     skin: goal.clear(skin, {y: 0, weight: 3}),
   };
@@ -219,12 +227,13 @@ export function sleepPose(a, key = a.form ?? a.g.uuid) {
   extra.forEach(({head, neck: nk}, k) => {
     for (const b of nk) for (const ax of ['x', 'y', 'z']) joints2[`${b.name}.${ax}`] = ax === 'z' ? [-.3, .3] : ax === 'x' ? [-1.2, 1.2] : [-.7, .7];
     joints2[`${head.name}.x`] = [-.9, .9]; joints2[`${head.name}.y`] = [-.8, .8];
-    const side = head.getWorldPosition(new THREE.Vector3()).x < 0 ? -1 : 1;
-    goals2['chin' + k] = goal.reach(chins[k], () => P.withers().setY(u(SLEEP.chinOver)).add(new THREE.Vector3(side * u(.16 + .12 * Math.floor(k / 2)), 0, u(.32 - .08 * Math.floor(k / 2)))), {within: u(.04), weight: 2});
+    const sp = spoke(fan.find(h => h.k === k)), mouth = () => head.localToWorld(new THREE.Vector3(0, -.066, .225));
+    goals2['chin' + k] = goal.reach(chins[k], sp.at, {within: u(.03), weight: 2});
+    goals2['face' + k] = goal.facing(chins[k], mouth, sp.out);
     goals2['clear' + k] = goal.above(chins[k], u(.02));
     goals2['neckClear' + k] = floorAll(nk.map(at), u(.06));
   });
-  if (extra.length) goals2.apart = () => { const all = [P.chin(), ...chins.map(f => f())], out = []; for (let p = 0; p < all.length; p++) for (let q = p + 1; q < all.length; q++) out.push(Math.max(0, u(.1) - all[p].distanceTo(all[q]))); return out; };
+  if (extra.length) goals2.apart = () => { const all = [P.chin(), ...chins.map(f => f())], out = []; for (let p = 0; p < all.length; p++) for (let q = p + 1; q < all.length; q++) out.push(Math.max(0, u(.15) - all[p].distanceTo(all[q]))); return out; };
   // (first the chin to its rest, then the neck laid low and the face turned back from there)
   const {neckLow, faceBack, beside, ...reach} = goals2;
   run('head', joints2, reach, {iterations: 120});
@@ -266,8 +275,8 @@ export function sleepPose(a, key = a.form ?? a.g.uuid) {
     const outline = [...skin(), ...legs.map(l => P[`paw:${l[0]}${/fore/.test(l) ? 'f' : 'h'}`]())];
     const face = P.chin();
     const t = wrapTail({pose, apply, P, tail, outline, paws: new THREE.Vector2(face.x, face.z), gap: u(SLEEP.tailGap), lie: k => tailUnder[k] + u(.015), scale: S, drop: u(SLEEP.tailDrop), bend: [-1, 1], iterations: 400});
-    // (like the coil's ring, the path round the body is a guide: a few centimetres off it still reads as wrapped, so it counts half)
-    pose = t.pose; report.tail = t.report; named.tail = () => tail.slice(1).map((b, k) => .5 * b.getWorldPosition(new THREE.Vector3()).distanceTo(t.targets[k + 1]));
+    // (like the coil's ring, the path round the body is a guide: the first 3 cm off it are free, the rest counts half)
+    pose = t.pose; report.tail = t.report; named.tail = () => tail.slice(1).map((b, k) => .5 * Math.max(0, b.getWorldPosition(new THREE.Vector3()).distanceTo(t.targets[k + 1]) - u(.03)));
   }
   // 5. settle: the legs, the tail (and a serpent's spine) eased together so nothing at all is through the
   // floor, every goal so far still held (a dense look at the skin this time)
