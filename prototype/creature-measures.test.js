@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -30,6 +30,18 @@ test('what the dragon uses follows from them', () => {
   assert(DRAGON.forearmShare[0] < DRAGON.forearmMid && DRAGON.forearmMid < DRAGON.forearmShare[1]);
   assert(DRAGON.spanToLength[0] > 1.5 && DRAGON.spanToLength[1] < 3.2);
   inside(DRAGON.sleepShare[1], [.6, .9], 'share of the day asleep');
+});
+
+test('the insect numbers are the animals\' own', () => {
+  const {ant, bee, stag} = MEASURES.insects;
+  // stride length grows with speed, but less than in proportion
+  for (const b of ant.strideExponent) inside(b, [.2, .7], 'stride exponent');
+  inside(ant.runAbove, [200, 500], 'running speed, mm/s');
+  inside(mid(bee.worker), [10, 15], 'a worker honeybee, mm');
+  inside(bee.sleepMinutes, [5, 60], 'a bee\'s still sleep, minutes');
+  // a male stag beetle is longer than a female, and the mandibles make up a good part of him
+  assert(stag.male[1] > stag.female[1] && stag.maleBody[1] < stag.male[1]);
+  inside(INSECTS.mandibleShare, [.2, .5], 'mandibles\' share of a male stag\'s length');
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {
