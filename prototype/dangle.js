@@ -70,7 +70,7 @@ export function updateDangle(actor, dt, walking) {
   // rest pitch is 0 rather than whatever is there now
   let st = actor.dangle;
   if (!st) {
-    st = actor.dangle = {w: 0, lag: 0, a: actor.actions?.dead ? 0 : 1, t: 0, seed: Math.abs(actor.g?.id || 0) % 7,
+    st = actor.dangle = {w: 0, lag: 0, a: actor.actions?.dead ? 0 : 1, t: 0, seed: Math.abs(actor.g?.userData?.fidgetId ?? actor.g?.id ?? 0) % 7,
       layout: dangleLayout(actor.legs), rest: actor.legs.map(l => ({x: 0, z: l.rotation.z}))};
   }
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;

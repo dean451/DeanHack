@@ -9,6 +9,7 @@ import * as H from './locust-hop.js';
 const dt = 1 / 60;
 function mon(name, symbol = 'a') { const a = createCreature({name, symbol: symbol.charCodeAt(0), color: 1}); a.species = name; return a; }
 const kinds = ['giant ant', 'soldier ant', 'fire ant', 'snow ant'];
+const PINNED = {'giant ant': 177, 'soldier ant': 198, 'fire ant': 219, 'snow ant': 240};
 const opening = a => a.jaws.map((j, i) => (j.rotation.y - a.antJaws_.rest[i]) * j.userData.side);
 
 test('ants have hinged jaws and work them; others do not', () => {
@@ -60,6 +61,7 @@ test('poses stay in bounds and end at zero', () => {
 test('the jaws clack alone, gape and threaten at the hero, bite, and stay finite and in bounds', () => {
   for (const name of kinds) {
     const a = mon(name), L = J.LOOKS[name], hero = new THREE.Vector3(1.5, 0, 1.5);
+    a.g.userData.fidgetId = PINNED[name]; // the fidget seed comes from the object id, so a model gaining a mesh moved it; pinned to the ids this run was written against
     let clacks = 0, threats = 0, lastC = null, lastT = null, alone = 0, near = 0, n1 = 0, n2 = 0, lo = Infinity, hi = -Infinity, rear = 0, step = 0, prev = null;
     for (let i = 0; i < 60 * 40; i++) {
       const close = i > 60 * 20, T = i * dt;
@@ -129,6 +131,7 @@ test('hop and leap poses stay in bounds, are continuous and end at rest', () => 
 
 test('the locust hops alone, hops more and turns to face the hero, rasps, leaps to bite, and stays finite', () => {
   const a = createCreature({name: 'locust', symbol: 97, color: 7});
+  a.g.userData.fidgetId = 345; // pinned like the ants' above
   assert.ok(H.hops(a) && !H.hops(mon('giant ant')));
   const hero = new THREE.Vector3(-2, 0, .5), bearing = Math.atan2(hero.x, hero.z);
   let hopsAlone = 0, hopsNear = 0, rasps = 0, last = null, lastR = null, top = 0, kick = 0, reach = 0, faced = 0;
