@@ -5,13 +5,17 @@ import {KITS,KIT_ROLES,dressHero} from './hero-kits.js';
 import {ROLE_NAMES} from './roles.js';
 import {readFileSync} from 'node:fs';
 
-// A stand-in for the rig knight() builds: the same named parts, with the Valkyrie's colours.
+// A stand-in for the rig knight() builds: the same named parts, with the Valkyrie's colours. Her own
+// suit (hero-valkyrie.js) is a list of pieces the kit shows or hides; here they hang off no part, so
+// the counts below are of what a class kit adds.
 function fakeRig(){
   const mesh=()=>new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.1),new THREE.MeshStandardMaterial());
   const group=()=>new THREE.Group(),hairGroup=group(),mk=n=>Array.from({length:n},()=>{const m=mesh();hairGroup.add(m);return m;});
   const mats=Object.fromEntries(['armor','armorLight','leather','accent','boots','capeCloth','hairDark','hairMid','hairLight','skin'].map((k,i)=>[k,new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(i/10,.5,.5)})]));
   const parts={body:group(),head:group(),arm:group(),elbow:group(),shieldArm:group(),shieldElbow:group(),chest:mesh(),belt:mesh(),cape:group(),hair:hairGroup,
-    pauldrons:[mesh(),mesh()],tassets:[mesh(),mesh()],mantles:[mesh()],hairParts:{cap:mk(1),strands:mk(3),tail:mk(1),braids:mk(2)},mats};
+    pauldrons:[mesh(),mesh()],tassets:[mesh(),mesh()],mantles:[mesh()],hairParts:{cap:mk(1),strands:mk(3),tail:mk(1),braids:mk(2)},mats,
+    face:[mesh(),mesh()],legGear:[mesh(),mesh()],valkyrie:[mesh(),mesh(),mesh()]};
+  mats.glove=new THREE.MeshStandardMaterial({color:'#2c2f33',metalness:.6,roughness:.5});
   parts.arm.add(parts.elbow);parts.shieldArm.add(parts.shieldElbow);
   return {g:group(),parts};
 }
@@ -58,8 +62,26 @@ test('changing class restores the Valkyrie exactly',()=>{
   dressHero(hero,{role:'Valkyrie',gender:'female'});
   assert.equal(rigCount(hero),before,'every added piece is removed');
   assert.equal(hero.parts.mats.armor.color.getHex(),colour);assert.equal(hero.parts.mats.hairMid.color.getHex(),hair);
-  assert.equal(hero.parts.chest.visible,true);assert.ok(hero.parts.pauldrons.every(p=>p.visible));assert.equal(hero.parts.cape.visible,true);
-  assert.ok(Object.values(hero.parts.hairParts).flat().every(p=>p.visible),'the braids come back');
+  // she is back in her own suit: the winged helm and crimson mane, her plate, no cape; the plainer
+  // plate, the face and the brown hair the other classes use are put away
+  assert.ok(hero.parts.valkyrie.every(p=>p.visible),'her suit comes back');
+  assert.equal(hero.parts.chest.visible,false);assert.ok(hero.parts.pauldrons.every(p=>!p.visible));assert.equal(hero.parts.cape.visible,false);
+  assert.ok(hero.parts.face.every(p=>!p.visible),'her face is inside the closed helm');assert.ok(hero.parts.legGear.every(p=>!p.visible));
+  assert.ok(Object.values(hero.parts.hairParts).flat().every(p=>!p.visible),'her hair is the mane under the helm, not the other classes\' hair');
+});
+
+test('only the Valkyrie wears her suit; every other class gets the plainer plate, its face, leather gloves and the old polish back',()=>{
+  const v=fakeRig();dressHero(v,{role:'Valkyrie',gender:'female'});
+  const steel=v.parts.mats.glove.color.getHex(),finish=v.parts.mats.armor.metalness;
+  for(const role of ROLE_NAMES.filter(r=>r!=='Valkyrie')){
+    const h=fakeRig();dressHero(h,{role,gender:'female'});
+    assert.ok(h.parts.valkyrie.every(p=>!p.visible),role+' does not wear the winged helm and her plate');
+    assert.ok(h.parts.face.every(p=>p.visible),role+' shows a face');assert.ok(h.parts.legGear.every(p=>p.visible),role+' wears the rig\'s boots');
+    assert.equal(h.parts.mats.glove.color.getHexString(),'7a5238',role+' wears leather gloves');
+    if(!KITS[role].matte)assert.equal(h.parts.mats.armor.metalness,.82,role+' keeps the brighter polish');
+    dressHero(h,{role:'Valkyrie',gender:'female'});
+    assert.equal(h.parts.mats.glove.color.getHex(),steel,'and back to her plated gloves');assert.equal(h.parts.mats.armor.metalness,finish,'and her soft polish');
+  }
 });
 
 test('hair follows the class and gender',()=>{
@@ -72,8 +94,8 @@ test('hair follows the class and gender',()=>{
 test('the live game dresses the hero from the engine frame, and the rig exposes what a kit needs',()=>{
   const live=readFileSync(new URL('./live.js',import.meta.url),'utf8'),main=readFileSync(new URL('./main.js',import.meta.url),'utf8');
   assert.match(live,/dressHero\(hero,frame\.player\)/);
-  const line=main.split('\n').find(l=>l.startsWith(' const parts={chest'));assert.ok(line,'knight() builds its parts object');
-  for(const part of ['chest','belt','pauldrons','tassets','mantles','cape','hairParts','mats','head','body','arm','elbow','shieldArm','shieldElbow'])assert.ok(new RegExp(`[{,]${part}[,:}]`).test(line),`knight() exposes ${part}`);
+  const line=main.split('\n').find(l=>l.startsWith(' const parts={'));assert.ok(line,'knight() builds its parts object');
+  for(const part of ['face','legGear','valkyrie','chest','belt','pauldrons','tassets','mantles','cape','hairParts','mats','head','body','arm','elbow','shieldArm','shieldElbow'])assert.ok(new RegExp(`[{,]${part}[,:}]`).test(line),`knight() exposes ${part}`);
 });
 
 test('the Healer is told by what she carries: stethoscope, satchel, scalpel sheath and bandage, over a grimed, stained robe',()=>{
