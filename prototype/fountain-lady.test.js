@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ladyPose, isLadyMessage, isLadyCurseMessage, LADY, ARM_MAX, STIR} from './fountain-lady.js';
+import * as THREE from 'three';
+import {ladyPose, isLadyMessage, isLadyCurseMessage, LADY, ARM_MAX, STIR, ladySquares, createFountainLady} from './fountain-lady.js';
 
 test('only the Lady of the Lake message triggers her', () => {
   assert.ok(isLadyMessage('From the murky depths, a hand reaches up to bless the sword.'));
@@ -68,4 +69,34 @@ test('the curse variant has its own message and a wrong-way, stuttering blade', 
   }
   assert.ok(min < .3);
   for (const t of [0, LADY.total, LADY.total + 1]) { const p = ladyPose(t, true); assert.equal(p.rise, 0); assert.equal(p.glow, 0); assert.equal(p.turn, 0); }
+});
+
+const ladyGroups = parent => parent.children.filter(c => c.name === 'FountainLady');
+
+test('the blessing raises exactly four arms, one on each square next to the hero and none on the hero', () => {
+  assert.deepEqual(ladySquares(3, -2).map(([x, z]) => `${x},${z}`).sort(), ['2,-2', '3,-1', '3,-3', '4,-2']);
+  const parent = new THREE.Group(), lady = createFountainLady(THREE, parent);
+  lady.add(3, -2);
+  const arms = ladyGroups(parent);
+  assert.equal(arms.length, 4); assert.equal(lady.active, 4);
+  const at = arms.map(g => `${g.position.x},${g.position.z}`).sort();
+  assert.deepEqual(at, ['2,-2', '3,-1', '3,-3', '4,-2']);
+  assert.ok(!at.includes('3,-2'));
+  for (const g of arms) assert.equal(Math.abs(g.position.x - 3) + Math.abs(g.position.z + 2), 1);
+  // Each square gets the whole arm with its sword.
+  for (const g of arms) assert.ok(g.getObjectsByProperty('type', 'Sprite').length === 1);
+});
+
+test('the four arms move in step and clean up after themselves', () => {
+  const parent = new THREE.Group(), lady = createFountainLady(THREE, parent);
+  lady.add(0, 0);
+  lady.update(LADY.turnAt - .1);
+  const ys = ladyGroups(parent).map(g => g.children[0].position.y);
+  assert.ok(ys.every(y => Math.abs(y - ys[0]) < 1e-9 && y > ARM_MAX * .9));
+  lady.update(LADY.total);
+  assert.equal(lady.active, 0); assert.equal(ladyGroups(parent).length, 0);
+  lady.message('From the murky depths, a hand reaches up to curse the sword.', 5, 5);
+  assert.equal(ladyGroups(parent).length, 4);
+  lady.clear();
+  assert.equal(lady.active, 0); assert.equal(parent.children.length, 0);
 });
