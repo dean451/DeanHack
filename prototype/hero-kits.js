@@ -7,6 +7,7 @@
 // Adding a class look: edit its entry in KITS (palette, outfit, hat, hair). Use the shared builders;
 // a new builder is for a shape no other class has. Look at it with tools/kit-shots.mjs.
 import * as THREE from 'three';
+import {ARM_X} from './hero-valkyrie.js';
 
 const cloth=(color,o={})=>new THREE.MeshStandardMaterial({color,roughness:.92,metalness:0,side:THREE.DoubleSide,...o});
 const trimMat=(color)=>new THREE.MeshStandardMaterial({color,roughness:.55,metalness:.45});
@@ -26,7 +27,7 @@ const BASE_KEYS=['armor','armorLight','leather','accent','boots','capeCloth','ha
 
 export const KITS={
   // Her own suit (hero-valkyrie.js): the winged closed helm, crimson hair, riveted plate over mail.
-  Valkyrie:{show:{valkyrie:true,face:false,chest:false,pauldrons:false,tassets:false,mantles:false,cape:false,legGear:false},hair:'helmed',own:true},
+  Valkyrie:{show:{valkyrie:true,face:false,chest:false,pauldrons:false,tassets:false,mantles:false,cape:false,legGear:false},hair:'helmed',own:true,armX:ARM_X},
   Knight:{
     palette:{armor:'#6f7f86',armorLight:'#c4d0d2',leather:'#3d2c24',accent:'#b8b3a2',boots:'#1b2224',capeCloth:'#7b2a28',hair:['#3a2a20','#5a4030','#7a5a42']},
     outfit:{kind:'tabard',color:'#8a2a28',trim:'#c9b27a',emblem:'#e6e2d6'},hair:{male:'short',female:'tied'},
@@ -513,7 +514,7 @@ export function dressHero(hero,{role='Valkyrie',gender='female'}={}){
   for(const k of ['armor','armorLight']){const m=parts.mats[k],f=kit.own?parts.baseFinish[k]:CLASSIC_FINISH[k];m.metalness=kit.matte?0:f.metalness;m.roughness=kit.matte?.85:f.roughness;}
   // which armour shows
   const show={...SHOW_DEFAULT,...(kit.show||{})};
-  parts.chest.visible=show.chest;parts.belt.visible=show.belt&&show.chest;setVisible(parts.pauldrons,show.pauldrons);setVisible(parts.tassets,show.tassets);setVisible(parts.mantles,show.mantles);parts.cape.visible=show.cape;setVisible(parts.legGear,show.legGear);setVisible(parts.face,show.face);setVisible(parts.valkyrie,show.valkyrie);parts.syncHelmWings?.();
+  parts.chest.visible=show.chest;parts.belt.visible=show.belt&&show.chest;setVisible(parts.pauldrons,show.pauldrons);setVisible(parts.tassets,show.tassets);setVisible(parts.mantles,show.mantles);parts.cape.visible=show.cape;setVisible(parts.legGear,show.legGear);setVisible(parts.face,show.face);setVisible(parts.valkyrie,show.valkyrie);
   const gl=parts.mats.glove;if(gl){parts.baseGlove??={color:'#'+gl.color.getHexString(),emissive:'#'+gl.emissive.getHexString(),metalness:gl.metalness,roughness:gl.roughness};const f=kit.own?parts.baseGlove:LEATHER_GLOVE;gl.color.set(f.color);gl.emissive.set(f.emissive);gl.metalness=f.metalness;gl.roughness=f.roughness;}
   // hair
   const style=typeof kit.hair==='string'?kit.hair:(kit.hair?.[gender]??'helmed'),h=parts.hairParts;
@@ -525,5 +526,10 @@ export function dressHero(hero,{role='Valkyrie',gender='female'}={}){
   if(kit.beard?.[gender])beard(add,parts,kit.beard[gender]);
   for(const prop of kit.props||[])PROPS[prop]?.(add,parts);
   hero.kitAdded=anchors.flatMap((parent,i)=>parent.children.filter(obj=>!before[i].has(obj)).map(obj=>({obj,parent})));
+  // where the arms hang: a kit may bring them in from the rig's broad shoulders (the Valkyrie's slim frame)
+  parts.armBase??={arm:parts.arm.position.x,shield:parts.shieldArm.position.x};
+  parts.arm.position.x=kit.armX??parts.armBase.arm;parts.shieldArm.position.x=kit.armX?-kit.armX:parts.armBase.shield;
+  // last, so the helm, face and hair follow whether a helmet is worn over whatever the kit chose (main.js)
+  parts.syncHelmWings?.();
   return true;
 }
