@@ -513,7 +513,7 @@ export function dressHero(hero,{role='Valkyrie',gender='female'}={}){
   for(const k of ['armor','armorLight']){const m=parts.mats[k],f=kit.own?parts.baseFinish[k]:CLASSIC_FINISH[k];m.metalness=kit.matte?0:f.metalness;m.roughness=kit.matte?.85:f.roughness;}
   // which armour shows
   const show={...SHOW_DEFAULT,...(kit.show||{})};
-  parts.chest.visible=show.chest;parts.belt.visible=show.belt&&show.chest;setVisible(parts.pauldrons,show.pauldrons);setVisible(parts.tassets,show.tassets);setVisible(parts.mantles,show.mantles);parts.cape.visible=show.cape;setVisible(parts.legGear,show.legGear);setVisible(parts.face,show.face);setVisible(parts.valkyrie,show.valkyrie);
+  parts.chest.visible=show.chest;parts.belt.visible=show.belt&&show.chest;setVisible(parts.pauldrons,show.pauldrons);setVisible(parts.tassets,show.tassets);setVisible(parts.mantles,show.mantles);parts.cape.visible=show.cape;setVisible(parts.legGear,show.legGear);setVisible(parts.face,show.face);setVisible(parts.valkyrie,show.valkyrie);parts.syncHelmWings?.();
   const gl=parts.mats.glove;if(gl){parts.baseGlove??={color:'#'+gl.color.getHexString(),emissive:'#'+gl.emissive.getHexString(),metalness:gl.metalness,roughness:gl.roughness};const f=kit.own?parts.baseGlove:LEATHER_GLOVE;gl.color.set(f.color);gl.emissive.set(f.emissive);gl.metalness=f.metalness;gl.roughness=f.roughness;}
   // hair
   const style=typeof kit.hair==='string'?kit.hair:(kit.hair?.[gender]??'helmed'),h=parts.hairParts;

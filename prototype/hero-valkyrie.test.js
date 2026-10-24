@@ -40,14 +40,15 @@ const onPart = (r, tag, anchor) => { const g = G(); anchor.add(g); for (const p 
 const box = o => { o.updateMatrixWorld(true); return new THREE.Box3().setFromObject(o); };
 const verts = o => { const out = []; o.updateMatrixWorld(true); o.traverse(m => { const pos = m.isMesh && m.geometry.attributes.position; if (pos) for (let i = 0; i < pos.count; i++) out.push(new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld)); }); return out; };
 
-test('two steel wings rise from the helm, one each side, swept back and standing well above it', () => {
+test('two steel wings rise from the helm, one each side, swept back and standing above it (not antler-tall)', () => {
   const r = rig(), helm = onPart(r, 'helmShell', r.head), wings = onPart(r, 'wing', r.head);
   const top = box(helm).max.y, helmVerts = verts(helm);
   for (const side of [-1, 1]) {
     const mine = verts(wings).filter(p => Math.sign(p.x) === side);
     assert.ok(mine.length > 100, 'a wing on each side');
     const peak = mine.reduce((a, b) => b.y > a.y ? b : a);
-    assert.ok(peak.y > top + .25, `the wing tip stands ${(peak.y - top).toFixed(2)} above the helm (photo: well above it)`);
+    // (the photo's are taller; at the game's size they read as antlers, so they were halved)
+    assert.ok(peak.y > top + .1 && peak.y < top + .2, `the wing tip stands ${(peak.y - top).toFixed(2)} above the helm`);
     assert.ok(peak.z < r.head.position.z - .1, 'and sweeps back behind the head');
     assert.ok(Math.abs(peak.x) > .2, 'splayed out from the head, so it reads from the front and from above');
     const root = Math.min(...mine.filter((p, i) => i % 7 === 0).map(p => Math.min(...helmVerts.map(q => p.distanceTo(q)))));

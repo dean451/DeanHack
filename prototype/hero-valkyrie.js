@@ -60,6 +60,8 @@ export function bellSurfaceZ(x, y, out = 0) { const r = lerpTable(BELL, y) + out
 // Sized to a head, not to the rig's big face (which the closed helm hides): about a seventh of her height.
 export const HELM = [[.116, -.152], [.121, -.136], [.129, -.1], [.138, -.055], [.144, -.01], [.146, .028], [.141, .07], [.127, .106], [.1, .134], [.058, .151], [.001, .157]];
 export const HELM_TOP = .157;
+// The helm's wings at this share of the photo's size: their tips stand about 0.14 over the helm, not 0.3.
+export const WING_SIZE = .5;
 const HELM_Z = 1.04;
 // The lower front of the helm narrows into a pointed beak of a bevor over the nose, mouth and chin.
 function helmWarp(x, y, z) {
@@ -323,15 +325,17 @@ export function buildValkyrie(rig, mats, {keep = false} = {}) {
   // and curves up and back; the feathers hang back off it, longest at the top, so the trailing edge
   // is hollow like a crescent moon and the tips stand well above the helm. Each wing is swept back
   // and splayed out so it reads from the front and from above. The left wing has a feather snapped.
+  // WING_SIZE scales the whole wing (the photo's tall wings read as antlers on the game's small hero).
   tag('wing');
+  const k = WING_SIZE;
   for (const side of [-1, 1]) {
-    const E = t => V3(0, .3 * t, -.13 * t * t), root = [side * .138, .04, -.005];
+    const E = t => V3(0, .3 * k * t, -.13 * k * t * t), root = [side * .138, .04, -.005];
     const pose = geo => place(geo, {p: root, r: [0, -side * .8, -side * .08], order: 'YZX'}); // swept out behind at about 45 degrees, its face turned to the front and up to the game camera
     const at = (geo, t, beta, dx = 0) => { place(geo, {r: [-beta, 0, 0]}); const e = E(t); geo.translate(e.x + side * dx, e.y, e.z); return pose(geo); };
-    for (let i = 0; i < 10; i++) { const u = i / 9; C.add(head, armor, 'Wing', at(feather(.13 + .18 * Math.pow(u, 1.2), .11, .05, {broken: side < 0 && i === 5 ? .4 : 0}), .04 + u * .96, 1.5 - u * .9)); }
-    for (let i = 0; i < 5; i++) { const u = i / 4; C.add(head, armor, 'Wing', at(feather(.1 + .03 * u, .08, .02), .08 + u * .78, 1.25 - u * .75, .011)); }
+    for (let i = 0; i < 10; i++) { const u = i / 9; C.add(head, armor, 'Wing', at(feather((.13 + .18 * Math.pow(u, 1.2)) * k, .11 * k, .05 * k, {broken: side < 0 && i === 5 ? .4 : 0}), .04 + u * .96, 1.5 - u * .9)); }
+    for (let i = 0; i < 5; i++) { const u = i / 4; C.add(head, armor, 'Wing', at(feather((.1 + .03 * u) * k, .08 * k, .02 * k), .08 + u * .78, 1.25 - u * .75, .011 * k)); }
     const edge = []; for (let i = 0; i <= 8; i++) edge.push(E(i / 8 * 1.04));
-    C.add(head, armorLight, 'Wing', pose(taperTube(edge, .017, .006, {flat: .7, groove: 0, radial: 6, outward: () => V3(0, 0, 1)})));
+    C.add(head, armorLight, 'Wing', pose(taperTube(edge, .017 * Math.sqrt(k), .006 * Math.sqrt(k), {flat: .7, groove: 0, radial: 6, outward: () => V3(0, 0, 1)})));
     // the boss where the wing meets the helm
     C.add(head, armor, 'Wing', place(new THREE.CylinderGeometry(.024, .028, .016, 8), {p: [side * .143, .045, .0], r: [0, 0, Math.PI / 2]}));
     rivet(head, side * .152, .045, .0, .009);

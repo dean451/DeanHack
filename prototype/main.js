@@ -156,7 +156,10 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const hairBraids=hair.children.slice(hairBraidStart);
  // Finer features: high cheekbones, a darker lower lip, long lower lashes and a narrow nose bridge between the brows.
  const plume=new THREE.Group();head.add(plume); // Stable legacy animation anchor, no spike.
- function setHelmet(item){helmet.visible=!!item&&!valk.helm.visible;hair.visible=!item;helmet.name=item?.name||'Unequipped helmet';} // the Valkyrie's own winged helm stands in for any helmet she wears
+ let helmetWorn=null;
+ function setHelmet(item){helmetWorn=item||null;helmet.visible=!!item&&!valk.helm.visible;hair.visible=!item;helmet.name=item?.name||'Unequipped helmet';syncHelmWings();} // the Valkyrie's own winged helm stands in for any helmet she wears
+ // her helm's wings show only while she wears a helmet (hero-kits.js calls this again after it shows or hides her suit)
+ function syncHelmWings(){for(const w of valk.wings)w.visible=!!helmetWorn&&valk.helm.visible;}
  const pauldronStart=body.children.length;
  for(const side of [-1,1])for(let i=0;i<3;i++){
   const plate=roundedBox(.16-i*.013,.04,.2-i*.016,i?armor:armorLight,body,side*(.25+i*.035),.995-i*.059,0,.018);plate.rotation.z=-side*(.18+i*.16);
@@ -207,7 +210,8 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const valk=buildValkyrie({body,head,arm,elbow,shieldArm,shieldElbow,legs},{armor,armorLight,leather,accent,boots,hairDark,hairMid,hairLight});
  for(const o of [...face,chest,belt,...pauldrons,...tassets,...mantles,cape,...legGear,...hair.children])o.visible=false;
  // What a class kit (hero-kits.js) restyles: the armour pieces, the cloth, the hair and the materials they share.
- const parts={face,chest,belt,pauldrons,tassets,mantles,cape,legGear,valkyrie:valk.objects,hair,hairParts:{cap:hairCap,strands:hairStrands,tail:hairTail,braids:hairBraids},helmet,legs,arm,elbow,shieldArm,shieldElbow,head,body,mats:{armor,armorLight,leather,accent,boots,capeCloth,hairDark,hairMid,hairLight,skin,glove}};
+ syncHelmWings();
+ const parts={syncHelmWings,face,chest,belt,pauldrons,tassets,mantles,cape,legGear,valkyrie:valk.objects,hair,hairParts:{cap:hairCap,strands:hairStrands,tail:hairTail,braids:hairBraids},helmet,legs,arm,elbow,shieldArm,shieldElbow,head,body,mats:{armor,armorLight,leather,accent,boots,capeCloth,hairDark,hairMid,hairLight,skin,glove}};
  return {g,body,legs,arm,elbow,wrist,weaponSocket,offhandSocket,get dual(){return !!offhandWeapon;},head,shieldArm,shieldElbow,cape,plume,parts,setWeapon,setOffhand,setShield,setHelmet};}
 const glow=mat('#97ffed',{emissive:'#46e9ce',emissiveIntensity:3,roughness:.2});
 function cat(){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const fur=mat('#bd9361',{roughness:.94}),furLight=mat('#d3ad79',{roughness:.9}),paws=mat('#e1ca9e',{roughness:.88}),collar=mat('#ad7744',{metalness:.42,roughness:.44});sphere(.24,fur,body,0,.27,0,.75,.8,1.5);const head=sphere(.19,furLight,body,0,.46,.28);for(const x of [-.11,.11]){const e=mesh(new THREE.ConeGeometry(.085,.18,4),furLight,head,x,.16,0);e.rotation.z=x>0?-.2:.2;sphere(.025,glow,head,x*.65,.02,.16);}
