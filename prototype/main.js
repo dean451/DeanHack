@@ -1,6 +1,7 @@
 import {buildFace,faceMaterials} from './hero-face.js';
 import {buildHelm} from './hero-helm.js';
 import {createGauntletHand} from './hero-hand.js';
+import {buildValkyrie,PALETTE as VALKYRIE} from './hero-valkyrie.js';
 import {createFountain} from './fountain.js';
 import {installLive} from './live.js';
 import * as THREE from 'three';
@@ -109,28 +110,28 @@ const flames=[];for(const x of [-3,3]){
  const f=createFire(x+3);f.position.set(x,1.52,-3.4);f.scale.setScalar(1.5);scene.add(f);
  const light=new THREE.PointLight(0xffa450,13,8,2);light.position.set(x,1.9,-3);scene.add(light);flames.push({f,light,phase:rand()*5});
 }
-function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(body);const armor=mat('#58727b',{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.1,metalness:.82,roughness:.26}),armorLight=mat('#a7c2c5',{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.08,metalness:.76,roughness:.22}),boots=mat('#20292c',{roughness:.72}),leather=mat('#533c2f',{roughness:.9}),visor=mat('#101c20',{metalness:.5,roughness:.32}),accent=mat('#c8a45a',{metalness:.78,roughness:.26});const legs=[];for(const x of [-.122,.122]){const pivot=new THREE.Group();pivot.position.set(x,.49,0);body.add(pivot);sphere(.074,armor,pivot,0,-.14,0,.91,2,1);cylinder(.056,.062,.22,leather,pivot,0,-.30,0,16);
- roundedBox(.185,.065,.22,boots,pivot,0,-.205,0,.02);
+function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(body);const armor=mat(VALKYRIE.armor,{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.1,metalness:.5,roughness:.4}),armorLight=mat(VALKYRIE.armorLight,{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.08,metalness:.5,roughness:.34}),boots=mat(VALKYRIE.boots,{roughness:.72}),leather=mat(VALKYRIE.leather,{roughness:.9}),visor=mat('#101c20',{metalness:.5,roughness:.32}),accent=mat(VALKYRIE.accent,{metalness:.78,roughness:.3});const legs=[],legGear=[];for(const x of [-.122,.122]){const pivot=new THREE.Group();pivot.position.set(x,.49,0);body.add(pivot);sphere(.074,armor,pivot,0,-.14,0,.91,2,1);cylinder(.056,.062,.22,leather,pivot,0,-.30,0,16);
+ const gearStart=pivot.children.length;roundedBox(.185,.065,.22,boots,pivot,0,-.205,0,.02);
  sphere(.115,leather,pivot,0,-.405,.074,.86,.58,1.48);
  sphere(.112,boots,pivot,0,-.455,.071,.89,.16,1.5);
  for(let i=0;i<3;i++){const crease=roundedBox(.15-i*.012,.009,.012,boots,pivot,0,-.345-i*.027,.099+i*.016,.004);crease.rotation.z=(i-1)*.06;}
  for(const side of [-1,1]){roundedBox(.014,.12,.014,accent,pivot,side*.064,-.287,.102,.004);}
  roundedBox(.16,.026,.013,boots,pivot,0,-.248,.112,.006);
  roundedBox(.036,.036,.018,accent,pivot,.05,-.248,.123,.006);
- const scuff=roundedBox(.068,.008,.015,accent,pivot,-.026,-.411,.228,.004);scuff.rotation.z=.13;legs.push(pivot);}
+ const scuff=roundedBox(.068,.008,.015,accent,pivot,-.026,-.411,.228,.004);scuff.rotation.z=.13;legGear.push(...pivot.children.slice(gearStart));legs.push(pivot);}
  const cuirass=new THREE.LatheGeometry([new THREE.Vector2(.088,.56),new THREE.Vector2(.11,.63),new THREE.Vector2(.168,.82),new THREE.Vector2(.158,.91),new THREE.Vector2(.105,.99)],24);
  const chest=mesh(cuirass,armor,body);chest.scale.z=.76;
  const belt=cylinder(.118,.108,.05,leather,body,0,.605,0,24);belt.scale.z=.78;
  roundedBox(.04,.04,.015,accent,body,0,.605,.108,.006);
  const skin=mat('#d6a88c',{roughness:.8}),eyeWhite=mat('#ded8ca',{roughness:.7}),iris=mat('#384a42',{roughness:.6});
  const neckSkin=new THREE.MeshStandardMaterial({color:'#d2a083',emissive:'#4a2818',emissiveIntensity:.4,roughness:.75});
- cylinder(.11,.13,.14,neckSkin,body,0,1.04,.02,12);
+ const neck=cylinder(.11,.13,.14,neckSkin,body,0,1.04,.02,12);
  const head=new THREE.Group();head.position.set(0,1.23,.02);body.add(head);
- buildFace(head,faceMaterials());
+ buildFace(head,faceMaterials());const face=[neck,...head.children]; // hidden inside the Valkyrie's closed helm and gorget
  const helmet=new THREE.Group();head.add(helmet);helmet.visible=false;
  buildHelm(helmet,{iron:armor,steel:armorLight,trim:accent});
  const hair=new THREE.Group();head.add(hair);
- const hairDark=mat('#4a3226',{roughness:1}),hairMid=mat('#684632',{roughness:.98}),hairLight=mat('#8a6448',{roughness:.97});
+ const hairDark=mat(VALKYRIE.hairDark,{roughness:1}),hairMid=mat(VALKYRIE.hairMid,{roughness:.94}),hairLight=mat(VALKYRIE.hairLight,{roughness:.9});
  // An uneven swept hairline, with fine raised strands following the same flow.
  const hairGeo=new THREE.SphereGeometry(.196,32,18,0,Math.PI*2,0,Math.PI*.54);
  const hp=hairGeo.attributes.position;
@@ -155,7 +156,7 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const hairBraids=hair.children.slice(hairBraidStart);
  // Finer features: high cheekbones, a darker lower lip, long lower lashes and a narrow nose bridge between the brows.
  const plume=new THREE.Group();head.add(plume); // Stable legacy animation anchor, no spike.
- function setHelmet(item){helmet.visible=!!item;hair.visible=!item;helmet.name=item?.name||'Unequipped helmet';}
+ function setHelmet(item){helmet.visible=!!item&&!valk.helm.visible;hair.visible=!item;helmet.name=item?.name||'Unequipped helmet';} // the Valkyrie's own winged helm stands in for any helmet she wears
  const pauldronStart=body.children.length;
  for(const side of [-1,1])for(let i=0;i<3;i++){
   const plate=roundedBox(.16-i*.013,.04,.2-i*.016,i?armor:armorLight,body,side*(.25+i*.035),.995-i*.059,0,.018);plate.rotation.z=-side*(.18+i*.16);
@@ -178,7 +179,7 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  const elbow=new THREE.Group();elbow.position.set(0,-.25,0);elbow.rotation.x=-.65;arm.add(elbow);sphere(.062,leather,elbow);cylinder(.048,.036,.22,armorLight,elbow,0,-.12,0,16);
  const wrist=new THREE.Group();wrist.position.set(0,-.25,0);elbow.add(wrist);
  const weaponSocket=new THREE.Group();weaponSocket.rotation.x=Math.PI/4+.65;wrist.add(weaponSocket);
- const handMats={glove:new THREE.MeshStandardMaterial({color:'#7a5238',roughness:.85,emissive:'#2a160c',emissiveIntensity:.6}),plate:armorLight};
+ const glove=new THREE.MeshStandardMaterial({color:VALKYRIE.glove,roughness:.5,metalness:.6,emissive:'#0c0d0f',emissiveIntensity:.6}),handMats={glove,plate:armorLight};
  function grippingHand(parent){parent.add(createGauntletHand(handMats));}
  grippingHand(weaponSocket);
  let heldWeapon=null,heldKey;
@@ -202,8 +203,11 @@ function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(b
  function showShield(){shieldRoot.visible=shieldWorn&&!offhandWeapon;if(shieldRoot.visible||offhandWeapon)shieldHand.rotation.set(.35,-.2,-.12);else shieldHand.rotation.set(Math.PI/4+.65,.2,.12);}
  function setShield(item){shieldWorn=!!item;shieldRoot.name=item?.name||'Unequipped shield';showShield();}
  function setOffhand(item){const key=JSON.stringify(item??null);if(key===offhandKey)return;offhandKey=key;if(offhandWeapon){offhandWeapon.userData.dispose?.();offhandSocket.remove(offhandWeapon);offhandWeapon=null;}if(item){offhandWeapon=turnHeld(createHeldWeapon(item));offhandSocket.add(offhandWeapon);}showShield();}
+ // The Valkyrie's suit (hero-valkyrie.js), shown for her and hidden for every other class; the plate, cape and hair above are what the other kits restyle.
+ const valk=buildValkyrie({body,head,arm,elbow,shieldArm,shieldElbow,legs},{armor,armorLight,leather,accent,boots,hairDark,hairMid,hairLight});
+ for(const o of [...face,chest,belt,...pauldrons,...tassets,...mantles,cape,...legGear,...hair.children])o.visible=false;
  // What a class kit (hero-kits.js) restyles: the armour pieces, the cloth, the hair and the materials they share.
- const parts={chest,belt,pauldrons,tassets,mantles,cape,hair,hairParts:{cap:hairCap,strands:hairStrands,tail:hairTail,braids:hairBraids},helmet,legs,arm,elbow,shieldArm,shieldElbow,head,body,mats:{armor,armorLight,leather,accent,boots,capeCloth,hairDark,hairMid,hairLight,skin}};
+ const parts={face,chest,belt,pauldrons,tassets,mantles,cape,legGear,valkyrie:valk.objects,hair,hairParts:{cap:hairCap,strands:hairStrands,tail:hairTail,braids:hairBraids},helmet,legs,arm,elbow,shieldArm,shieldElbow,head,body,mats:{armor,armorLight,leather,accent,boots,capeCloth,hairDark,hairMid,hairLight,skin,glove}};
  return {g,body,legs,arm,elbow,wrist,weaponSocket,offhandSocket,get dual(){return !!offhandWeapon;},head,shieldArm,shieldElbow,cape,plume,parts,setWeapon,setOffhand,setShield,setHelmet};}
 const glow=mat('#97ffed',{emissive:'#46e9ce',emissiveIntensity:3,roughness:.2});
 function cat(){const g=new THREE.Group(),body=new THREE.Group();g.add(body);const fur=mat('#bd9361',{roughness:.94}),furLight=mat('#d3ad79',{roughness:.9}),paws=mat('#e1ca9e',{roughness:.88}),collar=mat('#ad7744',{metalness:.42,roughness:.44});sphere(.24,fur,body,0,.27,0,.75,.8,1.5);const head=sphere(.19,furLight,body,0,.46,.28);for(const x of [-.11,.11]){const e=mesh(new THREE.ConeGeometry(.085,.18,4),furLight,head,x,.16,0);e.rotation.z=x>0?-.2:.2;sphere(.025,glow,head,x*.65,.02,.16);}

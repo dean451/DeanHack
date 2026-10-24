@@ -1,5 +1,6 @@
-// Class outfits for the hero. knight() in main.js builds one rig (the Valkyrie in steel) and exposes
-// its parts; a kit restyles that rig for a class: palette, which armour shows, the hair, and what is
+// Class outfits for the hero. knight() in main.js builds one rig and exposes its parts: the Valkyrie's
+// own suit of blackened plate (hero-valkyrie.js, shown only for her) and a plainer plate, cape and hair
+// that the other kits restyle. A kit restyles that rig for a class: palette, which armour shows, the hair, and what is
 // added (a robe or tunic with sleeves, a hat or hood, a beard). The live game calls dressHero() with
 // the role and gender the engine reports (frame.player), so the model follows the character.
 //
@@ -24,7 +25,8 @@ function fold(geo,count=7,amp=.03,hemY=.07){
 const BASE_KEYS=['armor','armorLight','leather','accent','boots','capeCloth','hairDark','hairMid','hairLight'];
 
 export const KITS={
-  Valkyrie:{},
+  // Her own suit (hero-valkyrie.js): the winged closed helm, crimson hair, riveted plate over mail.
+  Valkyrie:{show:{valkyrie:true,face:false,chest:false,pauldrons:false,tassets:false,mantles:false,cape:false,legGear:false},hair:'helmed',own:true},
   Knight:{
     palette:{armor:'#6f7f86',armorLight:'#c4d0d2',leather:'#3d2c24',accent:'#b8b3a2',boots:'#1b2224',capeCloth:'#7b2a28',hair:['#3a2a20','#5a4030','#7a5a42']},
     outfit:{kind:'tabard',color:'#8a2a28',trim:'#c9b27a',emblem:'#e6e2d6'},hair:{male:'short',female:'tied'},
@@ -129,7 +131,11 @@ export const KIT_ROLES=Object.keys(KITS);
 // holds whatever the frame says.
 export const KIT_WEAPONS={Valkyrie:'long sword',Knight:'long sword',Samurai:'katana',Barbarian:'two-handed sword',Caveman:'club',Convict:'rubber hose',Archeologist:'pick-axe',Tourist:'dart',Rogue:'short sword',Ranger:'dagger',Healer:'scalpel',Monk:null,Priest:'mace',Wizard:'quarterstaff'};
 
-const SHOW_DEFAULT={chest:true,belt:true,pauldrons:true,tassets:true,mantles:true,cape:true};
+const SHOW_DEFAULT={chest:true,belt:true,pauldrons:true,tassets:true,mantles:true,cape:true,legGear:true,face:true,valkyrie:false};
+// The rig's own finish is the Valkyrie's (soft-polished blackened steel, plated gloves); every other
+// class keeps the brighter polish and leather gloves the rig had before her suit (\`own\` in a kit keeps hers).
+const LEATHER_GLOVE={color:'#7a5238',emissive:'#2a160c',metalness:0,roughness:.85};
+const CLASSIC_FINISH={armor:{metalness:.82,roughness:.26},armorLight:{metalness:.76,roughness:.22}};
 
 // ---- builders: each adds meshes to a parent and returns nothing; dressHero tracks what to remove.
 
@@ -504,14 +510,15 @@ export function dressHero(hero,{role='Valkyrie',gender='female'}={}){
   if(pal.hair)['hairDark','hairMid','hairLight'].forEach((k,i)=>parts.mats[k].color.set(pal.hair[i]));
   // bare skin: the arm materials are plate (metal map, metalness .82), and a skin colour on metal renders black
   parts.baseFinish??=Object.fromEntries(['armor','armorLight'].map(k=>[k,{metalness:parts.mats[k].metalness,roughness:parts.mats[k].roughness}]));
-  for(const k of ['armor','armorLight']){const m=parts.mats[k],f=parts.baseFinish[k];m.metalness=kit.matte?0:f.metalness;m.roughness=kit.matte?.85:f.roughness;}
+  for(const k of ['armor','armorLight']){const m=parts.mats[k],f=kit.own?parts.baseFinish[k]:CLASSIC_FINISH[k];m.metalness=kit.matte?0:f.metalness;m.roughness=kit.matte?.85:f.roughness;}
   // which armour shows
   const show={...SHOW_DEFAULT,...(kit.show||{})};
-  parts.chest.visible=show.chest;parts.belt.visible=show.belt&&show.chest;setVisible(parts.pauldrons,show.pauldrons);setVisible(parts.tassets,show.tassets);setVisible(parts.mantles,show.mantles);parts.cape.visible=show.cape;
+  parts.chest.visible=show.chest;parts.belt.visible=show.belt&&show.chest;setVisible(parts.pauldrons,show.pauldrons);setVisible(parts.tassets,show.tassets);setVisible(parts.mantles,show.mantles);parts.cape.visible=show.cape;setVisible(parts.legGear,show.legGear);setVisible(parts.face,show.face);setVisible(parts.valkyrie,show.valkyrie);
+  const gl=parts.mats.glove;if(gl){parts.baseGlove??={color:'#'+gl.color.getHexString(),emissive:'#'+gl.emissive.getHexString(),metalness:gl.metalness,roughness:gl.roughness};const f=kit.own?parts.baseGlove:LEATHER_GLOVE;gl.color.set(f.color);gl.emissive.set(f.emissive);gl.metalness=f.metalness;gl.roughness=f.roughness;}
   // hair
-  const style=typeof kit.hair==='string'?kit.hair:(kit.hair?.[gender]??'valkyrie'),h=parts.hairParts;
-  const styles={valkyrie:{cap:1,strands:1,tail:1,braids:1},long:{cap:1,strands:1,tail:1,braids:0},tied:{cap:1,strands:1,tail:1,braids:0},short:{cap:1,strands:0,tail:0,braids:0},topknot:{cap:1,strands:0,tail:1,braids:0},wild:{cap:1,strands:1,tail:0,braids:0},bald:{cap:0,strands:0,tail:0,braids:0}};
-  const st=styles[style]||styles.valkyrie;for(const part of ['cap','strands','tail','braids'])setVisible(h[part],!!st[part]);
+  const style=typeof kit.hair==='string'?kit.hair:(kit.hair?.[gender]??'helmed'),h=parts.hairParts;
+  const styles={helmed:{cap:0,strands:0,tail:0,braids:0},long:{cap:1,strands:1,tail:1,braids:0},tied:{cap:1,strands:1,tail:1,braids:0},short:{cap:1,strands:0,tail:0,braids:0},topknot:{cap:1,strands:0,tail:1,braids:0},wild:{cap:1,strands:1,tail:0,braids:0},bald:{cap:0,strands:0,tail:0,braids:0}};
+  const st=styles[style]||styles.helmed;for(const part of ['cap','strands','tail','braids'])setVisible(h[part],!!st[part]);
   // what a class wears over the rig
   if(kit.outfit){const o={...kit.outfit};if(o.kind==='robe')robe(add,parts,o);else if(o.kind==='tabard')tabard(add,parts,o);else if(o.kind==='loincloth')loincloth(add,parts,o);else tunic(add,parts,o);}
   if(kit.hat)HATS[kit.hat]?.(add,parts,{color:kit.outfit?.color||'#333',hatColor:pal.capeCloth,trim:kit.outfit?.trim||'#999'});
