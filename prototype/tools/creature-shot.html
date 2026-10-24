@@ -17,6 +17,8 @@ const c=createCreature({name,symbol:q.get('letter')?q.get('letter').charCodeAt(0
 // ?bend=tail2.y:.6,neck1.x:-.4 turns named joints (a creature's actor.joints) before the shot
 // ?pose=sleep lays a dragon down asleep (dragon-rest.js)
 if(q.get('pose')==='sleep'&&c.joints){const r=sleepPose(c,name);r.apply(r.pose);}
+// ?pose=mantle holds a dragon's mantle (dragon-menace.js) mid-hold
+if(q.get('pose')==='mantle'){c.species=name;updateDragonMenace(c,1/30,0,false,false,null);c.menace.cur={kind:'mantle',s:.8,side:1};c.menace.f=1;for(let i=0;i<3;i++)updateDragonMenace(c,1/30,i/30,false,false,null);}
 // ?idle=20 runs the game's own per-frame dragon update (dragon-menace.js) that many seconds with nobody near
 if(q.get('idle')){c.species=name;for(let i=0;i<+q.get('idle')*30;i++)updateDragonMenace(c,1/30,i/30,false,false,null);}
 for(const b of (q.get('bend')||'').split(',').filter(Boolean)){const [k,v]=b.split(':'),[n,ax]=k.split('.');if(c.joints?.[n])c.joints[n].rotation[ax]+=+v;}

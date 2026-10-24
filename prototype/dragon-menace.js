@@ -28,9 +28,11 @@ import {takeBackSleep, applySleep} from './dragon-sleep.js';
 // Wings. REST: live.js's resting pivot angle; BREATH: the slow open/close; FURL: how far the wings
 // fold back while walking, and FURL_DROOP how far they sink; FURL_RATE: how fast they fold (1/s).
 export const REST = -.18, BREATH = .07, BREATH_RATE = 1.3, FURL = .5, FURL_DROOP = .12, FURL_RATE = 4;
-// Mantle: open to SPREAD past rest, raise RAISE, cup CUP forward, shudder SHUDDER at SHUDDER_HZ.
-// It opens in OPEN_S, holds HOLD_S, folds back over FOLD_S. The heads rear REAR (negative lifts).
-export const SPREAD = .42, RAISE = .42, CUP = .16, SHUDDER = .035, SHUDDER_HZ = 29, REAR = -.12;
+// Mantle, after a raptor over its kill (CREATURE-MEASURES.md): the wings open to SPREAD past rest, drop
+// RAISE (negative: out and down, not up), cup CUP forward over the forepaws; the head dips REAR
+// (positive is down) and the tail lifts TAIL_UP; the membranes shudder SHUDDER at SHUDDER_HZ.
+// It opens in OPEN_S, holds HOLD_S, folds back over FOLD_S.
+export const SPREAD = .42, RAISE = -.5, CUP = .45, SHUDDER = .035, SHUDDER_HZ = 29, REAR = .28, TAIL_UP = .3;
 export const OPEN_S = .35, HOLD_S = 1.3, FOLD_S = 1.1;
 // Tail: the idle drift (two slow waves), the walking sway, and the lash: a snap to LASH (rad, z)
 // and LASH_Y (yaw) in SNAP_S, then a ripple of RIPPLE rad/s dying away at DAMP/s, over LASH_S.
@@ -103,7 +105,7 @@ function setup(a) {
   const st = {
     seed: ((a.g.id ?? 1) * 48271) % 2147483647 || 1, wait: 0, cur: null, f: 0, furl: 0, life: 1, ph: 0,
     heads: a.heads.map(h => ({base: h.rotation.y, y: 0, x: 0, aim: 0, next: 0})),
-    applied: {heads: a.heads.map(() => ({y: 0, x: 0})), inner: (a.wings || []).map(() => ({x: 0, z: 0})), tailY: 0},
+    applied: {heads: a.heads.map(() => ({y: 0, x: 0})), inner: (a.wings || []).map(() => ({x: 0, z: 0})), tailY: 0, tailX: 0},
     sleep: {p: 0, idle: 0, written: []},
   };
   st.wait = FIRST_MIN + FIRST_SPAN * rand(st);
@@ -117,8 +119,8 @@ function takeBack(a, st) {
   const o = st.applied;
   a.heads.forEach((h, i) => { h.rotation.y -= o.heads[i].y; h.rotation.x -= o.heads[i].x; o.heads[i].y = o.heads[i].x = 0; });
   (a.wings || []).forEach((w, i) => { const inner = w.userData.inner; if (inner && o.inner[i]) { inner.rotation.x -= o.inner[i].x; inner.rotation.z -= o.inner[i].z; o.inner[i].x = o.inner[i].z = 0; } });
-  if (a.tail) a.tail.rotation.y -= o.tailY;
-  o.tailY = 0;
+  if (a.tail) { a.tail.rotation.y -= o.tailY; a.tail.rotation.x -= o.tailX; }
+  o.tailY = 0; o.tailX = 0;
 }
 
 // ---- smoke ----
@@ -295,6 +297,9 @@ export function updateDragonMenace(a, dt, t, busy, walking = busy, look = null) 
     const y = LASH_Y * lash * life;
     a.tail.rotation.y += y;
     st.applied.tailY = y;
+    const lift = TAIL_UP * open;
+    a.tail.rotation.x += lift;
+    st.applied.tailX = lift;
   }
 
   // Heads: track the hero if in range, otherwise scan; rear back during a mantle.
