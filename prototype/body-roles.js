@@ -4,12 +4,13 @@
 // helpers in feline-pose.js already take, so the same goal solves on any body that has the roles.
 //
 // The roles: head, mouth, chin, withers, rump, tailtip, paw:lf / rf / lh / rh, hip:l / r,
-// shoulder:l / r, and for dragons wingtip:l / r and wingwrist:l / r.
+// shoulder:l / r, for dragons wingtip:l / r and wingwrist:l / r, and for six-legged bodies the middle pair's
+// paw:lm / rm.
 import * as THREE from 'three';
 import {points} from './feline-pose.js';
 
 export const ROLES = ['head', 'mouth', 'chin', 'withers', 'rump', 'tailtip', 'paw:lf', 'paw:rf', 'paw:lh', 'paw:rh',
-  'hip:l', 'hip:r', 'shoulder:l', 'shoulder:r', 'wingtip:l', 'wingtip:r', 'wingwrist:l', 'wingwrist:r'];
+  'hip:l', 'hip:r', 'shoulder:l', 'shoulder:r', 'wingtip:l', 'wingtip:r', 'wingwrist:l', 'wingwrist:r', 'paw:lm', 'paw:rm'];
 
 // Helpers for writing a species map: a joint's world position, a point in a joint's frame, and a
 // point carried on past the last joint of a chain by its own length (the tip of a tail).
@@ -96,10 +97,46 @@ export function cockatriceRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the cat, the dragons and the cockerels have maps so far.
+// The six-legged family's map (ants, bees, beetles, locusts), from the joints `insect-joints.js` names. Each
+// paw is the claw's tip on the leg's tibia bone (so it follows the bent leg): `paw:lf` / `rf` the front pair,
+// `paw:lm` / `rm` the middle pair, `paw:lh` / `rh` the hind pair; the front hips are the shoulders and the hind
+// hips the hips. The head group is the neck pivot; the mouth is the front of the head's lower half (below the
+// feelers) and the chin the underside behind it, both read off the head's own mesh; the rump is the waist
+// (`tail0`) and the tail tip the abdomen's farthest point back (the sting, on those that have one); a bee's
+// wing tip is its wing's farthest point. The withers sit between the front hips.
+export function insectRoles(actor) {
+  const j = actor.joints, V = (...a) => new THREE.Vector3(...a);
+  const verts = obj => { const out = []; obj.traverse(m => { if (!m.isMesh || m === obj) return; m.updateMatrix(); const p = m.geometry.attributes.position; for (let i = 0; i < p.count; i++) out.push(V().fromBufferAttribute(p, i).applyMatrix4(m.matrix)); }); return out; };
+  const meshes = (group, keep = m => true) => group.children.filter(m => m.isMesh && keep(m));
+  // the head's own mesh (not the jaws or anything hung on it): its lower half, where the mouthparts are
+  const head = meshes(j.head)[0], hv = []; { const p = head.geometry.attributes.position; head.updateMatrix(); for (let i = 0; i < p.count; i++) hv.push(V().fromBufferAttribute(p, i).applyMatrix4(head.matrix)); }
+  const ys = hv.map(v => v.y), lo = Math.min(...ys), mid = (lo + Math.max(...ys)) / 2, low = hv.filter(v => v.y < mid);
+  const front = low.reduce((a, b) => b.z > a.z ? b : a), mouth = [0, front.y, front.z], chin = [0, lo, front.z - (front.z - Math.min(...low.map(v => v.z))) * .35];
+  const map = {
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.head, mouth),
+    chin: () => inFrame(() => j.head, chin),
+    withers: () => () => j.lleg0.getWorldPosition(V()).add(j.rleg0.getWorldPosition(V())).multiplyScalar(.5),
+  };
+  if (j.tail0) { const tv = verts(j.tail0), tip = tv.reduce((a, b) => b.z < a.z ? b : a); map.rump = () => at(() => j.tail0); map.tailtip = () => inFrame(() => j.tail0, tip.toArray()); }
+  for (const side of ['l', 'r']) {
+    for (const [i, pair] of [[0, 'f'], [1, 'm'], [2, 'h']]) {
+      const leg = j[`${side}leg${i}`], tibia = j[`${side}leg${i}_2`], foot = leg.userData.foot;
+      map[`paw:${side}${pair}`] = () => inFrame(() => tibia, foot);
+    }
+    map[`shoulder:${side}`] = () => at(() => j[`${side}leg0`]);
+    map[`hip:${side}`] = () => at(() => j[`${side}leg2`]);
+    const wing = j[`${side}wing`];
+    if (wing) { const tip = verts(wing).reduce((a, b) => b.length() > a.length() ? b : a); map[`wingtip:${side}`] = () => inFrame(() => wing, tip.toArray()); }
+  }
+  return buildRoles(map, {});
+}
+
+// The role table for a built actor, by what it is: the cat, the dragons, the cockerels and the insects have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'dragon' && actor.joints) return dragonRoles(actor);
   if (actor.quirk === 'cockatrice' && actor.joints) return cockatriceRoles(actor);
+  if ((actor.quirk === 'insect' || actor.quirk === 'bee') && actor.joints?.lleg0_2) return insectRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
