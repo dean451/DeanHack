@@ -84,3 +84,24 @@ test('bending a neck joint carries the head and the skin past it, and leaves the
   assert(tailEnd(a).distanceTo(tail)<1e-6,`${name}: the tail stayed`);
  }
 });
+
+test('each leg is one skinned mesh on three bones; bending the elbow or knee carries the paw and leaves the shoulder',()=>{
+ for(const name of FAMILY){
+  const a=make(name),j=a.joints;
+  for(const side of ['l','r'])for(const i of [0,1]){
+   const hip=j[`${side}leg${i}`],bones=[0,1,2].map(k=>j[`${side}leg${i}_${k}`]);
+   bones.forEach((b,k)=>assert(b?.isBone,`${name}: ${side}leg${i}_${k}`));
+   const m=hip.children.find(o=>o.isSkinnedMesh);
+   assert(m,`${name}: ${side}leg${i} is one skinned mesh`);
+   a.g.updateMatrixWorld(true);
+   const verts=()=>{a.g.updateMatrixWorld(true);const v=new THREE.Vector3(),out=[];for(let n=0;n<m.geometry.attributes.position.count;n++){m.getVertexPosition(n,v);out.push(v.applyMatrix4(m.matrixWorld).clone());}return out;};
+   const rest=verts(),si=m.geometry.attributes.skinIndex,sw=m.geometry.attributes.skinWeight;
+   bones[1].rotation.x=.6;
+   const bent=verts();let before=0,past=0;
+   rest.forEach((r,n)=>{const d=r.distanceTo(bent[n]);let onPast=0;for(let k=0;k<4;k++)if(si.getComponent(n,k)>=1)onPast+=sw.getComponent(n,k);
+    if(onPast===0)before=Math.max(before,d);else if(onPast>.999)past=Math.max(past,d);});
+   assert(past>.02,`${name}: ${side}leg${i} past the joint moved ${past}`);
+   assert(before<1e-6,`${name}: ${side}leg${i} above the joint stayed (${before})`);
+  }
+ }
+});
