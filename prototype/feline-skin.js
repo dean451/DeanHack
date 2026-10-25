@@ -405,7 +405,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   const weightOf = name => actions[name]?.getEffectiveWeight() ?? 0, restPose = (name, u) => restClips(solved)[name].pose(u);
   for (const [name, spec] of Object.entries({...CLIPS, ...(solved ? restClips(solved) : {})})) {
     const a = mixer.clipAction(sampleClip(name, spec, bonesByName));
-    if (spec.once) { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = false; } else a.play();
+    if (spec.once) { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; } else a.play(); // (a one-shot holds its last frame while it fades out)
     a.setEffectiveWeight(0); actions[name] = a;
   }
   actions.idle.setEffectiveWeight(1); actions.tail.setEffectiveWeight(1);
@@ -440,12 +440,39 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
       pivot.quaternion.premultiply(_fq.setFromAxisAngle(_fn, lift)); pivot.updateMatrixWorld(true);
     }
   }
+  // The pounce lands on its paws, not through the floor: while it plays, the whole body rises by however far
+  // the lowest paw would sink below its standing height (each paw's height at rest, in the group's frame).
+  const _pw = new THREE.Vector3(), pawRest = {};
+  if (root.parent && rig.legs) { root.parent.updateMatrixWorld(true); for (const [k, l] of Object.entries(rig.legs)) pawRest[k] = root.parent.worldToLocal(l.bones.at(-1).getWorldPosition(_pw)).y; }
+  function landPaws() {
+    const g = root.parent; if (!g || !Object.keys(pawRest).length) return;
+    g.updateMatrixWorld(true);
+    let sink = 0; for (const [k, l] of Object.entries(rig.legs)) sink = Math.min(sink, g.worldToLocal(l.bones.at(-1).getWorldPosition(_pw)).y - pawRest[k]);
+    if (sink < 0) { rig.hips.position.y -= sink / (rig.hips.parent.getWorldScale(_pw).y / g.getWorldScale(_fs).y); rig.hips.updateMatrixWorld(true); }
+  }
   const last = new THREE.Vector3();
   if (actor?.g) last.copy(actor.g.position);
-  // Fades `to` in over `from` (the example's setWeight first: re-enable, full weight).
-  const fade = (to, from, time) => { to.enabled = true; to.setEffectiveTimeScale(1); to.setEffectiveWeight(1); if (to.loop !== THREE.LoopOnce) to.time = 0; to.play(); from.crossFadeTo(to, time, false); };
-  const setBase = (to, time) => { if (to === base) return; fade(to, pouncing ? actions.pounce : base, time); base = to; };
-  mixer.addEventListener('finished', e => { if (e.action === actions.pounce) { pouncing = false; fade(base, actions.pounce, .25); } });
+  // Fades `to` in and every other clip but the tail's sway out, each from the weight it has now, over
+  // `time`: the weights always sum to one, however a new clip cuts into a fade still under way. (The
+  // mixer's own crossFadeTo starts a fade-in at 0 and a fade-out at 1 whatever the weights were, so a clip
+  // cut short could jump, or stay on at full weight under the next one: a pounce over the eating crouch
+  // sank the forelegs through the floor.)
+  const fading = new Map();
+  const fade = (to, time) => {
+    const was = to.isScheduled() && to.enabled ? to.getEffectiveWeight() : 0; // (a clip stopped, or never started, comes in from nothing)
+    to.enabled = true; to.setEffectiveTimeScale(1); if (to.loop !== THREE.LoopOnce) to.time = 0; to.play(); to.setEffectiveWeight(was);
+    for (const [k, x] of Object.entries(actions)) if (k !== 'tail') { const aim = x === to ? 1 : 0, w = x.getEffectiveWeight(); if (w !== aim) fading.set(x, {from: w, aim, t: 0, time}); else fading.delete(x); }
+  };
+  const stepFades = dt => {
+    for (const [x, f] of fading) {
+      f.t += dt; const k = f.time > 0 ? Math.min(1, f.t / f.time) : 1;
+      x.setEffectiveWeight(f.from + (f.aim - f.from) * k);
+      if (k >= 1) { fading.delete(x); if (!f.aim && x.loop === THREE.LoopOnce) x.stop(); }
+    }
+  };
+  // (while the pounce plays it keeps the whole body; the base it lands back into is the latest asked for)
+  const setBase = (to, time) => { if (to === base) return; base = to; if (!pouncing) fade(to, time); };
+  mixer.addEventListener('finished', e => { if (e.action === actions.pounce) { pouncing = false; fade(base, .25); } });
   // Left alone, a content cat settles: standing still SIT_AFTER seconds it sits; after a while
   // sitting it lies down in a loaf, or gets up, turns a circle on the spot and lies down to sleep,
   // curling up after a few moments; from a loaf it sits back up or goes off to sleep the same way;
@@ -455,7 +482,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   const range = ([a, b]) => a + (b - a) * rnd();
   const enter = (state, plan = null) => { rest.state = state; rest.t = 0; rest.plan = plan; rest.next = range((plan === 'sleep' && REST.hold.settle) || REST.hold[state] || [0, 0]); if (actions[state]) setBase(actions[state], REST.fade[state]); };
   // a one-shot from the sit (grooming, the scratch): played through, then back to the sit
-  const play = name => { rest.state = name; rest.t = 0; rest.next = 0; actions[name].reset(); fade(actions[name], base, REST.fade.sit); base = actions[name]; };
+  const play = name => { rest.state = name; rest.t = 0; rest.next = 0; actions[name].reset(); base = actions[name]; if (!pouncing) fade(base, REST.fade.sit); };
   function settle(dt) {
     if (walking || pouncing || mood.mood !== 'content') { if (rest.state !== 'stand') { setBase(actions.idle, REST.up[rest.state] ?? REST.up.sit); rest.state = 'stand'; rest.plan = null; } return; }
     rest.t += dt;
@@ -472,7 +499,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
       if (rest.plan === 'sleep') enter('curl'); else if (rnd() < REST.odds.curl) toSleep(); else enter('sit');
     } else if (rest.state === 'curl') {
       // waking: the stretch and the yawn (a one-shot), then up
-      rest.state = 'stretch'; rest.t = 0; rest.next = 0; actions.stretch.reset(); fade(actions.stretch, base, REST.up.curl); base = actions.stretch;
+      rest.state = 'stretch'; rest.t = 0; rest.next = 0; actions.stretch.reset(); base = actions.stretch; fade(base, REST.up.curl);
     } else if (rest.state === 'stretch' && rest.t >= STRETCH.time - REST.up.sit) { setBase(actions.idle, REST.up.sit); rest.state = 'stand'; still = 0; }
     else if (rest.state === 'eat' && rest.t >= EATING.time - REST.fade.sit) { setBase(actions.idle, REST.up.sit); rest.state = 'stand'; still = 0; }
     else if (ONE_SHOT[rest.state] && rest.t >= ONE_SHOT[rest.state].time - REST.fade.sit) enter('sit');
@@ -484,7 +511,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     if (actor?.g && dt > 0) { const v = last.distanceTo(actor.g.position) / dt; last.copy(actor.g.position); speed += (Math.min(v, 12) - speed) * (1 - Math.exp(-dt * GAIT.smooth)); }
     // the pounce: once per attack action, the moment it starts
     const atk = actor?.actions?.current?.kind === 'attack' ? actor.actions.current : null;
-    if (atk && atk !== lastAttack) { lastAttack = atk; pouncing = true; still = 0; actions.pounce.reset(); fade(actions.pounce, base, .08); }
+    if (atk && atk !== lastAttack) { lastAttack = atk; pouncing = true; still = 0; actions.pounce.reset(); fade(actions.pounce, .08); }
     walking = nowWalking;
     // the pace in hip heights per second: the glide's own speed has no lag (actor.slideSpeed); the
     // measured speed stands in for other slides
@@ -494,7 +521,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     settle(dt);
     // the tail's own sway gives way to a pose that lays the tail somewhere (sitting, lying)
     actions.tail.setEffectiveWeight(1 - Math.min(1, weightOf('sit') + weightOf('loaf') + weightOf('curl')));
-    takeBack(); mixer.update(dt); keepMixed();
+    stepFades(dt); takeBack(); mixer.update(dt); keepMixed();
     // the lean into a turn: the heading arrives in steps, so it snaps toward a turn and eases out
     const yaw = opts.yaw ? opts.yaw() : (rig.hips.parent?.parent?.rotation.y ?? 0), d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
     const target = dt > 0 ? Math.max(-.5, Math.min(.5, d / dt * .12)) : 0;
@@ -522,6 +549,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     rig.distribute?.();
     // (a sitting cat's legs belong to the sit clip)
     stepped = stepper.update(dt, walking && !pouncing, actual, pouncing || resting, resting ? {} : {hold: mood.hold, turn: mood.turn, crouch: mood.crouch});
+    if (weightOf('pounce') > 0) landPaws();
     restTail();
     const gait = stepped.stepping ? stepped.gait : Object.keys(actions).find(k => actions[k] === base);
     return {walking, pouncing, speed, pace, sitting: base === actions.sit, rest: rest.state, lying, asleep, gait, mood, step: stepped, stepWeight: stepped.weight, idleWeight: actions.idle.getEffectiveWeight(), sitWeight: actions.sit.getEffectiveWeight(), pounceWeight: actions.pounce.getEffectiveWeight()};
@@ -554,6 +582,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   // For the tool pages: hold one clip at a moment of its cycle (u in 0..1), everything else off.
   function show(name, u = 0) {
     const ownsTail = name === 'sit' || name === 'loaf' || name === 'curl';
+    fading.clear();
     for (const [key, a] of Object.entries(actions)) { a.enabled = true; a.paused = false; a.setEffectiveWeight(key === name || (key === 'tail' && !ownsTail) ? 1 : 0); }
     const a = actions[name]; a.play(); a.time = u * a.getClip().duration; a.paused = true;
     takeBack(); mixer.update(0); keepMixed(); secondary(0, 0); rig.distribute?.(); restTail(); // the neck's levelling too, so a tool shows the head as the game would

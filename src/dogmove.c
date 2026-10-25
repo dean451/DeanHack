@@ -610,14 +610,19 @@ dog_goal(struct monst *mtmp, struct edog *edog, int after, int udist, int whappr
             return(-2);
         }
         appr = (udist >= 9) ? 1 : (mtmp->mflee) ? -1 : 0;
-        if (udist > 1) {
+        if (bonded_pet(mtmp) && !whappr && !mtmp->mleashed && IS_ROOM(levl[u.ux][u.uy].typ)) {
+            /* DeanHack: the starting pet gives the hero some room: it ranges up to five or so
+               squares off in a room and only comes in when farther, sometimes stepping back
+               when right alongside (it still follows closely in corridors and on a whistle) */
+            appr = (udist >= 26) ? 1 : (udist <= 2 && !rn2(3)) ? -1 : 0;
+        } else if (udist > 1) {
             if (!IS_ROOM(levl[u.ux][u.uy].typ) || !rn2(4) ||
                 whappr ||
                 (dog_has_minvent && rn2(edog->apport)))
                 appr = 1;
         }
-        /* if you have dog food it'll follow you more closely */
-        if (appr == 0) {
+        /* if you have dog food it'll follow you more closely (the starting pet keeps its distance) */
+        if (appr == 0 && !bonded_pet(mtmp)) {
             for (obj = invent; obj; obj = obj->nobj) {
                 if (dogfood(mtmp, obj) == DOGFOOD) {
                     appr = 1;

@@ -2173,6 +2173,10 @@ lifesaved_monster(struct monst *mtmp, uchar adtyp)
             mtmp->mhp = 0;
         }
     }
+    /* DeanHack: the hero's starting pet never dies; it bolts and comes back (dog.c) */
+    if (DEADMONSTER(mtmp)) {
+        bonded_escape(mtmp);
+    }
 }
 
 #ifndef WEBB_DISINT
@@ -2692,7 +2696,12 @@ monkilled(struct monst *mdef, const char *fltxt, int how)
     boolean be_sad = FALSE;     /* true if unseen pet is killed */
     boolean kenny = (!strcmp(m_monnam(mdef), "Kenny"));
 
-    if ((mdef->wormno ? worm_known(mdef) : cansee(mdef->mx, mdef->my))
+    if (bonded_pet(mdef) && !(mvitals[monsndx(mdef->data)].mvflags & G_GENOD)) {
+        /* DeanHack: the starting pet only takes a beating (it bolts: dog.c bonded_escape) */
+        if (cansee(mdef->mx, mdef->my) && fltxt) {
+            pline("%s is badly hurt%s%s!", Monnam(mdef), *fltxt ? " by the " : "", fltxt);
+        }
+    } else if ((mdef->wormno ? worm_known(mdef) : cansee(mdef->mx, mdef->my))
         && fltxt)
         pline("%s is %s%s%s!", Monnam(mdef),
               nonliving(mdef->data) ? "destroyed" : "killed",
@@ -2817,6 +2826,11 @@ xkilled(
     if (!nomsg) {
         boolean namedpet = has_mgivenname(mtmp) && !Hallucination;
         const char *verb = nonliving(mtmp->data) ? "destroy" : "kill";
+
+        /* DeanHack: the starting pet only takes a beating (it bolts: dog.c bonded_escape) */
+        if (bonded_pet(mtmp) && !(mvitals[monsndx(mtmp->data)].mvflags & G_GENOD)) {
+            verb = "badly hurt";
+        }
 
         You("%s %s!",
             verb,

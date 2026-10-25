@@ -121,6 +121,24 @@ test('an attack action plays the pounce once, over whatever the pet was doing, t
   a.actions.current = {kind: 'attack'}; r = updateSkinnedFeline(a, 1 / 60, null, false); assert.ok(r.pouncing);
 });
 
+test('a pounce that cuts into another clip (eating, then the kitten strikes) blends: the weights always sum to one, the cut clip fades out, no paw sinks through the floor', () => {
+  const a = createSkinnedFeline('kitten'), {actions} = a.animator, v = new THREE.Vector3();
+  a.actions = {current: null};
+  for (let i = 0; i < 30; i++) updateSkinnedFeline(a, 1 / 60, null, false);
+  a.g.updateMatrixWorld(true);
+  const standing = Object.fromEntries(Object.entries(a.rig.legs).map(([k, l]) => [k, a.g.worldToLocal(l.bones.at(-1).getWorldPosition(v)).y]));
+  a.animator.eat();
+  for (let i = 0; i < 20; i++) updateSkinnedFeline(a, 1 / 60, null, false);
+  a.actions.current = {kind: 'attack'};
+  for (let t = 0; t < 2.5; t += 1 / 60) {
+    updateSkinnedFeline(a, 1 / 60, null, false); a.g.updateMatrixWorld(true);
+    const sum = Object.entries(actions).reduce((m, [k, x]) => k === 'tail' ? m : m + x.getEffectiveWeight(), 0);
+    assert.ok(Math.abs(sum - 1) < 1e-6, `weights sum to ${sum.toFixed(3)} at ${t.toFixed(2)} s`);
+    for (const [k, l] of Object.entries(a.rig.legs)) { const y = a.g.worldToLocal(l.bones.at(-1).getWorldPosition(v)).y; assert.ok(y > standing[k] - .004, `${k} paw ${(y - standing[k]).toFixed(3)} under its standing height at ${t.toFixed(2)} s`); }
+  }
+  assert.equal(actions.eat.getEffectiveWeight(), 0, 'the eating crouch is gone');
+});
+
 test('show() holds one clip at a moment of its cycle for the tool pages', () => {
   const a = createSkinnedFeline('kitten');
   a.animator.show('sit', .5);

@@ -16,6 +16,8 @@ Merge one branch at a time. After a merge, update the working branch from `origi
 
 **Cloud sessions** (claude.ai/code) run in their own checkout with no access to the play copy, so they cannot read or append the handoff log and have no `gh`: for them the PR body is the handoff entry (files changed, checks run, open concerns), and auto-merge is set through the GitHub tools. Say in the PR body that it was a cloud session.
 
+**DeanHack's own game rules** (the user's, 2026-10-25; in `src/`, marked `DeanHack:`): every hero starts with an identified magic lamp (`u_init.c`; its djinni's wish is UnNetHack's non-magical one). The starting pet is the forever pet (`bonded_pet` in `dog.c`): a blow that would kill it makes it yowl and bolt out of sight instead, and it pads back to the hero's side 100 to 200 turns later (`bonded_escape`, `bonded_tick`); left behind on a level change it catches up on its own, a few turns after stairs or a portal and 150 to 350 after a fall or a level teleport (`bonded_follow_delay` in `do.c`); and in a room it gives the hero space instead of crowding them (`dog_goal` in `dogmove.c`). It still grows up (kitten, housecat, large cat). No whistle needed.
+
 ## Art direction
 
 The player trudges through a dark, barren, hostile fantasy world full of monsters. It is not baking tea cakes. Lean into sinister, sharp and menacing: harsh angular silhouettes, worn, scarred, grimy materials, desaturated earth tones with sickly accents, blood, bone, rust, ash and rot. Never make things rounder, softer, brighter, cuter, pastel, bubbly or fairy-tale. If something looks cute, make it grim.
