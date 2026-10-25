@@ -16,7 +16,8 @@ test('every cat built by createFeline has head, neck, tail and four legs as name
   const a=make(name),j=a.joints;
   assert(j,`${name}: joints`);
   assert.equal(j.head,a.head,name);
-  assert.equal(j.neck0,a.head,`${name}: the neck pivot is the head group`);
+  for(const k of ['spine0','neck0','neck1','neck2','neck3'])assert(j[k]?.isBone,`${name}: ${k}`);
+  assert.equal(a.head.parent,j.neck3,`${name}: the head rides neck3`);
   for(let i=0;i<5;i++)assert(j[`tail${i}`]?.isBone,`${name}: tail${i}`);
   assert.equal(j.tail0.parent.parent,a.tail,`${name}: the chain hangs under the tail pivot`);
   assert(a.tail.children.some(o=>o.isSkinnedMesh&&o.userData.part==='tail'),`${name}: one skinned tail`);
@@ -26,7 +27,7 @@ test('every cat built by createFeline has head, neck, tail and four legs as name
    assert.equal(leg.position.x<0,side==='l',`${name}: left is -x`);
    assert.equal(leg.position.z>0,i===0,`${name}: leg${i} front to back`);
   }
-  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length-1,`${name}: only head and neck0 share a group`);
+  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length,`${name}: every joint is its own object`);
  }
 });
 
@@ -61,5 +62,25 @@ test('bending a tail joint moves the tail past it and leaves the tail before it'
   assert(past>.04,`${name}: the tail past the joint moved ${past}`);
   assert(before<1e-6,`${name}: the tail before the joint stayed (${before})`);
   assert(world(j.tail0).distanceTo(root)<1e-9,`${name}: the root stayed`);
+ }
+});
+
+test('bending a neck joint carries the head and the skin past it, and leaves the hindquarters',()=>{
+ for(const name of FAMILY){
+  const a=make(name),j=a.joints,m=a.body.children.find(o=>o.isSkinnedMesh&&o.userData.part==='body');
+  assert(m,`${name}: one skinned body`);
+  const verts=()=>{a.g.updateMatrixWorld(true);const v=new THREE.Vector3(),out=[];for(let i=0;i<m.geometry.attributes.position.count;i++){m.getVertexPosition(i,v);out.push(v.applyMatrix4(m.matrixWorld).clone());}return out;};
+  const rest=verts(),head=world(a.head),legs=a.legs.map(world),tail=tailEnd(a);
+  j.neck1.rotation.x=.6;
+  const bent=verts();let before=0,past=0;
+  const si=m.geometry.attributes.skinIndex,sw=m.geometry.attributes.skinWeight;
+  // bone 0 is spine0, 1 is neck0, 2 is neck1: a vertex is "before" with no weight on neck1 or past it
+  rest.forEach((r,i)=>{const d=r.distanceTo(bent[i]);let onPast=0;for(let k=0;k<4;k++)if(si.getComponent(i,k)>=2)onPast+=sw.getComponent(i,k);
+   if(onPast===0)before=Math.max(before,d);else if(onPast>.999)past=Math.max(past,d);});
+  assert(past>.02,`${name}: the neck past the joint moved ${past}`);
+  assert(before<1e-6,`${name}: the body before the joint stayed (${before})`);
+  assert(world(a.head).distanceTo(head)>.02,`${name}: the head followed`);
+  a.legs.forEach((l,i)=>assert(world(l).distanceTo(legs[i])<1e-6,`${name}: leg ${i} stayed`));
+  assert(tailEnd(a).distanceTo(tail)<1e-6,`${name}: the tail stayed`);
  }
 });

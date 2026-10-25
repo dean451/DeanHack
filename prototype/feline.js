@@ -369,8 +369,12 @@ export function felineBuild(name,colour){
 export function createFeline(name,colour){
  const look=lookFor(name,colour),S=build(LOOKS[name]?name:'f:'+look.coat,look),L=S.L;
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(L.scale);
- mesh(body,S.body,S.fur,'body');
- const head=new THREE.Group();head.position.set(...L.neck);head.scale.setScalar(L.headSize||1);body.add(head);
+ // the body is one SkinnedMesh on spine0 (the withers) and neck0..neck3 up to the head's pivot (its own
+ // copy of the geometry, since the pets' skin rigs the shared one); the head group rides neck3
+ if(!S.skinBody){const A=[0,L.Y+.02,.19],B=L.neck;S.skinBody=skinChain(S.body.clone(),[0,.25,.5,.75,1].map(t=>A.map((v,i)=>v+(B[i]-v)*t)));}
+ const {bones:neckBones}=rigChain(body,S.skinBody,S.fur,'neck',{part:'body'});
+ neckBones.forEach((b,i)=>{b.name=i?'neck'+(i-1):'spine0';});
+ const head=new THREE.Group();head.scale.setScalar(L.headSize||1);neckBones[4].add(head);
  mesh(head,S.head,S.fur,'head');mesh(head,S.eyes,S.eye,'eyes');
  const legs=[];
  for(const s of [-1,1])for(const fore of [false,true]){
@@ -384,9 +388,9 @@ export function createFeline(name,colour){
  // stays the swish pivot; its own copy of the geometry, since the pets' skin rigs the shared one itself
  if(!S.skinTail)S.skinTail=skinChain(S.tail.clone(),felineBuild(name,colour).tailJoints);
  const {bones:tailBones}=rigChain(tail,S.skinTail,S.fur,'tail');
- // named joints, the cat's and the dragon's names: legs front to back (left is -x), the neck pivot is
- // the head group
- const joints={head,neck0:head};head.name='head';tail.name='tail';
+ // named joints, the cat's and the dragon's names: legs front to back (left is -x), the head on neck3
+ const joints={head};head.name='head';tail.name='tail';
+ neckBones.forEach(b=>{joints[b.name]=b;});
  tailBones.forEach(b=>{joints[b.name]=b;});
  legs.forEach(leg=>{const n=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);leg.name=n;joints[n]=leg;});
  return {g,body,legs,tail,wings:[],quirk:'feline',head,joints};
