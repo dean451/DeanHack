@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
+import {skinChain,rigChain} from './chain-skin.js';
 
 // Cats (f) used to be one stretched sphere with a few boxes laid across the back for stripes, a
 // ball head with cones for ears and four square posts. They now have a proper cat build, head
@@ -379,6 +380,14 @@ export function createFeline(name,colour){
   legs.push(leg);
  }
  const tail=new THREE.Group();tail.position.set(0,L.Y+.05,-.29);body.add(tail);
- mesh(tail,S.tail,S.fur,'tail');
- return {g,body,legs,tail,wings:[],quirk:'feline',head};
+ // the tail is one SkinnedMesh on five bones tail0 (rump) to tail4 (tip) under the `tail` group, which
+ // stays the swish pivot; its own copy of the geometry, since the pets' skin rigs the shared one itself
+ if(!S.skinTail)S.skinTail=skinChain(S.tail.clone(),felineBuild(name,colour).tailJoints);
+ const {bones:tailBones}=rigChain(tail,S.skinTail,S.fur,'tail');
+ // named joints, the cat's and the dragon's names: legs front to back (left is -x), the neck pivot is
+ // the head group
+ const joints={head,neck0:head};head.name='head';tail.name='tail';
+ tailBones.forEach(b=>{joints[b.name]=b;});
+ legs.forEach(leg=>{const n=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);leg.name=n;joints[n]=leg;});
+ return {g,body,legs,tail,wings:[],quirk:'feline',head,joints};
 }
