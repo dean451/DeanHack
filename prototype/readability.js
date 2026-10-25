@@ -33,8 +33,10 @@ function ringMaterial(color,dashes){
  const texture=new THREE.CanvasTexture(c);
  return new THREE.MeshBasicMaterial({map:texture,color,transparent:true,depthWrite:false,toneMapped:false,opacity:.85});
 }
-// Hostile monsters get no ring: most monsters are enemies and the ring states the obvious.
-const RINGS={pet:ringMaterial(0x4fe08a,RING_DASHES.pet),peaceful:ringMaterial(0xe8c860,RING_DASHES.peaceful)};
+// Hostile monsters get no ring: most monsters are enemies and the ring states the obvious. Pets get none
+// either (the user found the green ring kitschy, 2026-10-25): the pet cat reads by itself. Only a
+// peaceful monster keeps its dashed ring.
+const RINGS={peaceful:ringMaterial(0xe8c860,RING_DASHES.peaceful)};
 const ringGeo=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
 
 const MIN_SIZE=.72,MAX_FOOTPRINT=.98,MAX_SCALE=1.8;
