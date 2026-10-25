@@ -5,10 +5,12 @@ from pathlib import Path
 root=Path(__file__).resolve().parents[1]/'.engine'
 m=json.loads((root/'manifest.json').read_text())
 assert Path(m['prefix']).resolve().is_relative_to(root.resolve())
+# a fresh character every run: an old save of this name would be restored instead, and test an old game
+for old in (Path(m['prefix'])/'var/unnethack/saves').glob('*BridgeSmoke*'):old.unlink()
 env={**os.environ,'HOME':m['home'],'NETHACKOPTIONS':'windowtype:bridge,name:BridgeSmoke,role:Valkyrie,race:human,gender:female,align:lawful,pettype:cat,!news,!autopickup'}
 p=subprocess.Popen([m['binary'],'-d',m['cwd'],'-u','BridgeSmoke','-p','Valkyrie','-r','human'],cwd=m['cwd'],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 sel=selectors.DefaultSelector();sel.register(p.stdout,selectors.EVENT_READ);sel.register(p.stderr,selectors.EVENT_READ)
-buf=b'';stage=0;frame=None;start_turn=None;inventory=False;target=None;waited_turn=None;deadline=time.monotonic()+30;messages=[]
+buf=b'';stage=0;frame=None;start_turn=None;inventory=False;target=None;waited_turn=None;deadline=time.monotonic()+30;messages=[];pack=[]
 try:
  while time.monotonic()<deadline and p.poll() is None:
   for key,_ in sel.select(.3):
@@ -24,7 +26,7 @@ try:
     if v['type']=='frame':frame=v;assert v['player']['invisible'] is False,v['player'];assert v['dungeon']=='The Dungeons of Doom' and v['special']=='',(v.get('dungeon'),v.get('special'))
     elif v['type']=='message':messages.append(v['text'])
     elif v['type'] in ('text','menu'):
-     if stage==2:inventory=True
+     if stage==2:inventory=True;pack+=[t if isinstance(t,str) else t.get('text','') for t in v.get('lines',v.get('items',[]))]
     elif v['type']=='request':
      kind=v['kind'];reply='13'
      if kind=='command':
@@ -56,9 +58,11 @@ try:
      p.stdin.write((reply+'\n').encode());p.stdin.flush()
  if p.poll() is None:raise AssertionError('Engine smoke test timed out')
  assert stage==3 and inventory,(stage,messages[-10:])
+ # every hero starts with a magic lamp, known for what it is (u_init.c)
+ assert any('magic lamp' in t for t in pack),pack
  saves=list((Path(m['prefix'])/'var/unnethack/saves').glob('*BridgeSmoke*'))
  assert saves,'Save file missing'
- print(json.dumps({'dungeon':frame['dungeon'],'special':frame['special'],'turn_before':start_turn,'turn_after':frame['turn'],'observed_cells':len(frame['cells']),'inventory':inventory,'movement_target':target,'save_files':[s.name for s in saves],'exit':p.returncode}))
+ print(json.dumps({'dungeon':frame['dungeon'],'special':frame['special'],'turn_before':start_turn,'turn_after':frame['turn'],'observed_cells':len(frame['cells']),'inventory':inventory,'magic_lamp':any('magic lamp' in t for t in pack),'movement_target':target,'save_files':[s.name for s in saves],'exit':p.returncode}))
 finally:
  if p.poll() is None:
   p.stdin.close()

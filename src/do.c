@@ -1590,6 +1590,9 @@ goto_level(d_level *newlevel, boolean at_stairs, boolean falling, boolean portal
     set_ustuck((struct monst *) 0); /* clear u.ustuck and u.uswallow */
     u.uinwater = 0;
     u.uundetected = 0;/* not hidden, even if means are available */
+    /* DeanHack: the starting pet trails the stairs (or a portal) by a few turns, a level teleport,
+       trapdoor or fall by a few hundred (dog.c bonded_away) */
+    bonded_follow_delay = (at_stairs || portal) ? (long) rn1(4, 2) : (long) rn1(200, 150);
     keepdogs(FALSE);
     if (u.uswallow) {
         /* idem */

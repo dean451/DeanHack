@@ -442,6 +442,8 @@ moveloop_core(void)
                 /* once-per-turn things go here */
                 /********************************/
 
+                bonded_tick(); /* DeanHack: the forever pet (dog.c) */
+
                 if (flags.bypasses) {
                     clear_bypasses();
                 }

@@ -682,6 +682,8 @@ mon_catchup_elapsed_time(
 }
 
 /* called when you move to another level */
+static void bonded_away(struct monst *, long); /* DeanHack: the forever pet, below */
+
 void
 keepdogs(boolean pets_only) /**< TRUE for ascension or final escape */
 {
@@ -754,6 +756,17 @@ keepdogs(boolean pets_only) /**< TRUE for ascension or final escape */
                 }
                 stay_behind = TRUE;
             }
+            if (stay_behind && bonded_pet(mtmp) && !mon_has_amulet(mtmp)
+#ifdef BLACKMARKET
+                && !Is_blackmarket(&new_dlevel) && !Is_blackmarket(&u.uz)
+#endif
+                ) {
+                /* DeanHack: still eating or trapped, it catches up a few turns later */
+                mtmp->mtrapped = 0;
+                mtmp->meating = 0;
+                bonded_away(mtmp, bonded_follow_delay + rn1(5, 3));
+                continue;
+            }
             if (stay_behind) {
                 if (mtmp->mleashed) {
                     pline("%s leash suddenly comes loose.",
@@ -797,6 +810,13 @@ keepdogs(boolean pets_only) /**< TRUE for ascension or final escape */
             mtmp->mx = mtmp->my = 0; /* avoid mnexto()/MON_AT() problem */
             mtmp->wormno = num_segs;
             mtmp->mlstmv = monstermoves;
+        } else if (bonded_pet(mtmp) && !pets_only
+#ifdef BLACKMARKET
+                   && !Is_blackmarket(&new_dlevel) && !Is_blackmarket(&u.uz)
+#endif
+                   ) {
+            /* DeanHack: the starting pet follows wherever it is on the level */
+            bonded_away(mtmp, bonded_follow_delay);
         } else if (mtmp->iswiz) {
             /* we want to be able to find him when his next resurrection
                chance comes up, but have him resume his present location
@@ -809,6 +829,116 @@ keepdogs(boolean pets_only) /**< TRUE for ascension or final escape */
             pline("%s leash goes slack.", s_suffix(Monnam(mtmp)));
             m_unleash(mtmp, FALSE);
         }
+    }
+}
+
+/*
+ * DeanHack: the forever pet. The hero's starting pet, while it is tame, cannot be lost:
+ *  - when it would die it bolts instead (healed, cured, fed) and comes back to the hero's side
+ *    a while later, on whatever level the hero is on by then;
+ *  - when the hero takes the stairs (or a portal) and it isn't alongside, it follows a few turns
+ *    behind; after a level teleport, a trapdoor or a fall it catches up after a few hundred turns.
+ * While away it waits on migrating_mons with its destination dungeon set to BONDED_AWAY, so
+ * losedogs() never delivers it, and mlstmv holding the turn it comes back; bonded_tick() brings
+ * it to the hero when that turn comes. No new saved fields: an old save restores as it was.
+ */
+#define BONDED_AWAY (-1)
+static unsigned bolting_mid = 0; /* the starting pet bolting this turn (cleared by bonded_tick) */
+long bonded_follow_delay = 0;    /* how long it trails the hero's next level change (goto_level) */
+
+boolean
+bonded_pet(struct monst *mtmp)
+{
+    return (mtmp && is_starting_pet(mtmp) && mtmp->mtame && !mtmp->isminion) ? TRUE : FALSE;
+}
+
+/* off the map until `delay` turns from now; then bonded_tick() brings it to the hero */
+static void
+bonded_away(struct monst *mtmp, long delay)
+{
+    if (mtmp->mleashed) {
+        m_unleash(mtmp, FALSE);
+    }
+    migrate_to_level(mtmp, ledger_no(&u.uz), MIGR_NEAR_PLAYER, (coord *) 0);
+    mtmp->mux = BONDED_AWAY;
+    mtmp->mlstmv = monstermoves + max(1L, delay);
+}
+
+/* called when the starting pet would die (lifesaved_monster): it lives, and bolts at the end of
+   the turn; genocide still takes it */
+void
+bonded_escape(struct monst *mtmp)
+{
+    if (!bonded_pet(mtmp) || (mvitals[monsndx(mtmp->data)].mvflags & G_GENOD)) {
+        return;
+    }
+    if (mtmp->mhpmax <= 0) {
+        mtmp->mhpmax = 10;
+    }
+    mtmp->mhp = mtmp->mhpmax;
+    mtmp->mcanmove = 1;
+    mtmp->mfrozen = 0;
+    mtmp->msleeping = 0;
+    mtmp->mblinded = 0;
+    mtmp->mcansee = 1;
+    mtmp->mconf = 0;
+    mtmp->mstun = 0;
+    mtmp->mtrapped = 0;
+    mtmp->meating = 0;
+    if (has_edog(mtmp)) {
+        EDOG(mtmp)->hungrytime = monstermoves + 500;
+        EDOG(mtmp)->mhpmax_penalty = 0;
+        EDOG(mtmp)->killed_by_u = 0;
+    }
+    if (canseemon(mtmp)) {
+        pline("%s yowls and bolts out of sight!", Monnam(mtmp));
+    }
+    bolting_mid = mtmp->m_id;
+}
+
+/* once a turn: send off a pet that bolted, and bring back one whose time away is up */
+void
+bonded_tick(void)
+{
+    struct monst *mtmp, *prev;
+
+    if (bolting_mid) {
+        for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
+            if (mtmp->m_id == bolting_mid && !DEADMONSTER(mtmp) && mtmp->mx) {
+                coordxy x = mtmp->mx, y = mtmp->my;
+
+                if (mtmp == u.ustuck) {
+                    unstuck(mtmp);
+                }
+                if (mtmp == u.usteed) {
+                    dismount_steed(DISMOUNT_GENERIC);
+                }
+                bonded_away(mtmp, rn1(100, 100));
+                newsym(x, y);
+                break;
+            }
+        }
+        bolting_mid = 0;
+    }
+    for (prev = 0, mtmp = migrating_mons; mtmp; prev = mtmp, mtmp = mtmp->nmon) {
+        if (mtmp->mux != BONDED_AWAY || monstermoves < mtmp->mlstmv) {
+            continue;
+        }
+        if (prev) {
+            prev->nmon = mtmp->nmon;
+        } else {
+            migrating_mons = mtmp->nmon;
+        }
+        mtmp->mux = u.uz.dnum;
+        mtmp->muy = u.uz.dlevel;
+        mtmp->mtrack[0].x = MIGR_NEAR_PLAYER; /* beside the hero, wherever they are now */
+        mtmp->mlstmv = monstermoves - 1L;     /* no time-away catch-up: it was only waiting */
+        mon_arrive(mtmp, FALSE);
+        if (!DEADMONSTER(mtmp) && mtmp->mx && canseemon(mtmp)) {
+            pline("%s %s back to your side.", Monnam(mtmp),
+                  is_flyer(mtmp->data) ? "flies" : "pads");
+        }
+        break; /* the list changed under us; there is only one starting pet anyway */
     }
 }
 

@@ -191,6 +191,12 @@ static struct trobj Lamp[] = {
     { OIL_LAMP, 1, TOOL_CLASS, 1, 0 },
     { 0, 0, 0, 0, 0 }
 };
+/* DeanHack: every hero starts with a magic lamp. Its djinni, like a water demon, can only grant a
+ * wish for a non-magical item (makewish(FALSE)), so it lights the way rather than breaking the game. */
+static struct trobj MagicLamp[] = {
+    { MAGIC_LAMP, 1, TOOL_CLASS, 1, 0 },
+    { 0, 0, 0, 0, 0 }
+};
 static struct trobj Blindfold[] = {
     { BLINDFOLD, 0, TOOL_CLASS, 1, 0 },
     { 0, 0, 0, 0, 0 }
@@ -967,6 +973,10 @@ u_init(void)
         warning("u_init: unknown role %d", Role_switch);
         break;
     }
+
+    /* DeanHack: the magic lamp every hero carries, known for what it is */
+    ini_inv(MagicLamp);
+    discover_object(MAGIC_LAMP, TRUE, FALSE);
 
     /* Add knowledge of life saving amulets for heaven or hell mode. */
     if (heaven_or_hell_mode) {
