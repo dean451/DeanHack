@@ -351,6 +351,15 @@ function build(key,look){
  };
  cache.set(key,S);return S;
 }
+// A right-hand leg geometry flipped across x for the left side, faces still facing out.
+function mirrorLeg(geo){
+ const g=geo.clone(),p=g.attributes.position,nrm=g.attributes.normal;
+ for(let i=0;i<p.count;i++){p.setX(i,-p.getX(i));if(nrm)nrm.setX(i,-nrm.getX(i));}
+ if(g.index){const a=g.index.array;for(let i=0;i+2<a.length;i+=3){const t=a[i+1];a[i+1]=a[i+2];a[i+2]=t;}}
+ else for(const a of Object.values(g.attributes)){const n=a.itemSize,r=a.array;
+  for(let i=0;i+2<a.count;i+=3)for(let c=0;c<n;c++){const t=r[(i+1)*n+c];r[(i+1)*n+c]=r[(i+2)*n+c];r[(i+2)*n+c]=t;}}
+ return g;
+}
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
 export function isFeline(name){return !!LOOKS[name];}
@@ -377,10 +386,20 @@ export function createFeline(name,colour){
  const head=new THREE.Group();head.scale.setScalar(L.headSize||1);neckBones[4].add(head);
  mesh(head,S.head,S.fur,'head');mesh(head,S.eyes,S.eye,'eyes');
  const legs=[];
+ // each leg is one SkinnedMesh on three bones under its hip group: the shoulder or hip, the elbow or knee,
+ // and the wrist or hock (the paw rides the last); the left leg is the right one mirrored in the geometry
+ const legBones={};
+ if(!S.skinLegs){
+  const pts={fore:[[0,0,0],[0,-.11,-.045],[0,-L.shoulder[1]+.035,.01]],hind:[[0,0,0],[0,-.12,.045],[0,-L.hip[1]+.1,-.04]]};
+  S.skinLegs={};
+  for(const k of ['fore','hind']){const r=skinChain(S[k].clone(),pts[k]);S.skinLegs[k]={r,l:skinChain(mirrorLeg(S[k]),pts[k])};}
+ }
  for(const s of [-1,1])for(const fore of [false,true]){
   const [x,y,z]=fore?L.shoulder:L.hip,leg=new THREE.Group();
   leg.position.set(s*x,y,z);body.add(leg);
-  const m=mesh(leg,fore?S.fore:S.hind,S.fur,fore?'foreleg':'hindleg');if(s<0)m.scale.x=-1;
+  const n=(s<0?'l':'r')+'leg'+(fore?0:1);
+  const {bones}=rigChain(leg,S.skinLegs[fore?'fore':'hind'][s<0?'l':'r'],S.fur,n+'_',{part:fore?'foreleg':'hindleg'});
+  bones.forEach(b=>{legBones[b.name]=b;});
   legs.push(leg);
  }
  const tail=new THREE.Group();tail.position.set(0,L.Y+.05,-.29);body.add(tail);
@@ -392,6 +411,7 @@ export function createFeline(name,colour){
  const joints={head};head.name='head';tail.name='tail';
  neckBones.forEach(b=>{joints[b.name]=b;});
  tailBones.forEach(b=>{joints[b.name]=b;});
+ Object.assign(joints,legBones);
  legs.forEach(leg=>{const n=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);leg.name=n;joints[n]=leg;});
  return {g,body,legs,tail,wings:[],quirk:'feline',head,joints};
 }
