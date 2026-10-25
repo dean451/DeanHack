@@ -96,7 +96,7 @@ test('hell hounds burn: flickering flame tongues on the spine, head, tail and pa
   assert.equal(flames.length,13,name);
   assert(flames.every(f=>f.geometry===flames[0].geometry&&f.material===flames[0].material&&!f.castShadow),'one shared, shadowless flame');
   for(const leg of hound.legs)assert(leg.children.some(o=>o.userData.part==='flame'),'a burning paw');
-  assert(hound.tail.children.some(o=>o.userData.part==='flame'),'a burning tail');
+  let burns=false;hound.tail.traverse(o=>{if(o.userData.part==='flame')burns=true;});assert(burns,'a burning tail');
   for(const v of flames[0].geometry.attributes.position.array)assert(Number.isFinite(v));
   hound.g.updateMatrixWorld(true);
   const b=new THREE.Box3().setFromObject(hound.g);

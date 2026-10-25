@@ -39,7 +39,9 @@ test('the pose is bounded and slow', () => {
 });
 
 test('the remains stay inside the jelly, trail while moving and settle when it stops', () => {
+  // the drift's phase comes from the object id, which shifts whenever an earlier model gains parts; pin it
   const a = cube(), r = remains(a), dt = 1 / 30;
+  a.g.userData.fidgetId = 65;
   let t = 0, tipped = 0;
   for (let i = 0; i < 30 * 90; i++, t += dt) {
     const walking = (i % 300) < 60;

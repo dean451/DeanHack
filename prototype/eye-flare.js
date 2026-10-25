@@ -220,7 +220,7 @@ export function blinkCurve(v) {
 export const holdCurve = v => !(v > 0) || !(v < 1) ? 0 : smooth(v / .2) * (1 - smooth((v - .7) / .3));
 
 function setup(a) {
-  const L = LOOK[a.kind], st = {seed: ((a.g?.id ?? 1) * 40692) % 2147483647 || 1, T: 0, L, life: 1, near: 0, anger: 0,
+  const L = LOOK[a.kind], st = {seed: ((a.g?.userData?.fidgetId ?? a.g?.id ?? 1) * 40692) % 2147483647 || 1, T: 0, L, life: 1, near: 0, anger: 0,
     blink: null, glare: null, glint: null, glance: 0, bph: 0, side: 0, dart: 0, dartTo: 0, dartWait: 0, lastHit: null};
   a.eyes.material = a.eyes.material.clone();
   st.base = a.eyes.material.emissiveIntensity;

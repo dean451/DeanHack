@@ -480,6 +480,7 @@ test("the Dark One's eyes pulse cold and sink into shadow alone, and with the he
 test("Lord Carnarvon's eyes sweep slowly as if reading and squint to study alone, and with the hero near fix on them, wider and brighter, swelling with tomb fever", () => {
   // (made here, last, so the other creatures' ids and so their seeds don't shift)
   const a = make('lord carnarvon'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK['lord carnarvon'];
+  a.g.userData.fidgetId = 742;// the seed comes from the id, which shifts when an earlier model gains parts
   assert.ok(E.hasEyes(a));
   const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
   let t = 0;
@@ -569,6 +570,7 @@ test("Pelias's eyes drift slowly and glower alone, and with the hero near narrow
 test("the Master Assassin's eyes wait patiently alone, and with the hero near sink dark into still slits, flaring venom-green to mark them", () => {
   // (made here, last, so the other creatures' ids and so their seeds don't shift)
   const a = make('master assassin'), hero = new THREE.Vector3(1, 0, 1), far = new THREE.Vector3(30, 0, 30), L = E.LOOK['master assassin'];
+  a.g.userData.fidgetId = 774;
   assert.ok(E.hasEyes(a));
   const st0 = E.updateEyeFlare(a, 0, 0, false, far), rest = st0.pos.clone();
   let t = 0;

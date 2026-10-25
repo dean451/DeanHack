@@ -72,7 +72,7 @@ export function stepDrag(st, target, dt) {
 export function updateCubeDrift(a, dt, t, walking) {
   if (!drifts(a)) return null;
   const r = remainsOf(a);
-  const st = a.cubeDrift || (a.cubeDrift = {ph: ((a.g.id ?? 1) * 2.399) % (Math.PI * 2), drag: 0, vel: 0});
+  const st = a.cubeDrift || (a.cubeDrift = {ph: (((a.g.userData?.fidgetId ?? a.g.id) ?? 1) * 2.399) % (Math.PI * 2), drag: 0, vel: 0});
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
   stepDrag(st, walking && !a.actions?.dead ? 1 : 0, dt);
   const p = driftPose(t, st.ph, st.drag);
