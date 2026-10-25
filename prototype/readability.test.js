@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-// readability.js paints its disposition rings on a canvas at import; a stand-in context is enough here.
+// (a stand-in document, in case anything readability.js loads paints on a canvas at import)
 globalThis.document ??= {createElement: () => ({width: 0, height: 0, getContext: () => new Proxy({}, {get: (t, k) => k in t ? t[k] : () => {}, set: (t, k, v) => { t[k] = v; return true; }})})};
 const {stageCreature, addOutlines, smoothNormals} = await import('./readability.js');
 const {createSkinnedFeline} = await import('./feline-skin.js');
@@ -59,4 +59,14 @@ test('a model with no normals at all (as the fox ships) still gets a smooth hull
   assert.ok(!bare.attributes.normal, 'the model itself is left as it came');
   const plain = new THREE.Group(), q = new THREE.Mesh(bare, new THREE.MeshStandardMaterial()); plain.add(q); addOutlines(plain);
   assert.ok(!q.children.some(c => c.userData.outline), 'without smooth, a mesh with no normals is still skipped');
+});
+
+test('no disposition ring on the floor under anyone: pet, peaceful or hostile; the disposition is still kept on the group', () => {
+  for (const disposition of ['pet', 'peaceful', 'hostile']) {
+    const g = new THREE.Group(); g.add(new THREE.Mesh(new THREE.BoxGeometry(.3, .3, .3), new THREE.MeshStandardMaterial()));
+    stageCreature(g, {disposition});
+    const rings = []; g.traverse(o => { if (o.userData.ring) rings.push(o); });
+    assert.equal(rings.length, 0, disposition);
+    assert.equal(g.userData.disposition, disposition);
+  }
 });

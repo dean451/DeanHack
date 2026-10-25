@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import {RING_DASHES,ringArcs} from './ring-shape.js';
 
 // Readability staging for creatures at gameplay zoom: an ink outline of constant screen
-// width, a disposition ring on the floor, and a minimum on-screen size.
+// width and a minimum on-screen size. There are no disposition rings on the floor any more (the
+// user dropped the hostile red, then the pet green and the peaceful yellow, 2026-10-25): the
+// disposition is still kept on the group (userData.disposition) for the minimap and overlays.
 
 const outlineMaterial=new THREE.ShaderMaterial({
  uniforms:{color:{value:new THREE.Color(0x07090a)},width:{value:.0019},pushBack:{value:0}},
@@ -21,23 +22,6 @@ vec4 mv=modelViewMatrix*vec4(transformed,1.);vec3 n=normalize(normalMatrix*objec
 // A skinned body is one mesh of overlapping parts: its hull is pushed back by the ink width as well, so
 // the hull only shows past the true silhouette and the seams where parts overlap draw no ink rings.
 const skinnedOutlineMaterial=outlineMaterial.clone();skinnedOutlineMaterial.uniforms.pushBack.value=1;
-
-function ringMaterial(color,dashes){
- const c=document.createElement('canvas');c.width=c.height=128;const ctx=c.getContext('2d');
- // a stroked ring (solid or dashed) with a soft halo, so the shape survives without colour
- ctx.lineCap='butt';
- for(const [w,a] of [[14,.35],[7,.95]]){
-  ctx.strokeStyle=`rgba(255,255,255,${a})`;ctx.lineWidth=w;
-  for(const [s,e] of ringArcs(dashes)){ctx.beginPath();ctx.arc(64,64,48,s,e);ctx.stroke();}
- }
- const texture=new THREE.CanvasTexture(c);
- return new THREE.MeshBasicMaterial({map:texture,color,transparent:true,depthWrite:false,toneMapped:false,opacity:.85});
-}
-// Hostile monsters get no ring: most monsters are enemies and the ring states the obvious. Pets get none
-// either (the user found the green ring kitschy, 2026-10-25): the pet cat reads by itself. Only a
-// peaceful monster keeps its dashed ring.
-const RINGS={peaceful:ringMaterial(0xe8c860,RING_DASHES.peaceful)};
-const ringGeo=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
 
 const MIN_SIZE=.72,MAX_FOOTPRINT=.98,MAX_SCALE=1.8;
 
@@ -95,9 +79,5 @@ export function stageCreature(g,{disposition=null,normalize=true}={}){
  g.userData.height=world.y;
  addOutlines(g);
  if(disposition)g.userData.disposition=disposition;
- if(disposition&&RINGS[disposition]){
-  const ring=new THREE.Mesh(ringGeo,RINGS[disposition]);const d=Math.min(1,Math.max(.62,Math.max(world.x,world.z)*1.15));
-  ring.scale.set(d/gs,1,d/gs);ring.position.set((box.min.x+box.max.x)/2,.02/gs,(box.min.z+box.max.z)/2);ring.renderOrder=-1;ring.userData.ring=true;g.add(ring);
- }
  return g;
 }
