@@ -8,6 +8,7 @@ import {createCreature} from '../creatures.js';
 import {sleepPose, dragonPoser} from '../dragon-rest.js';
 import {WING_POSES} from '../dragon-wing-poses.js';
 import {restPose, birdPoser} from '../cockatrice-rest.js';
+import {restPose as beeRest, rests as beeRests} from '../bee-rest.js';
 import {updateDragonMenace} from '../dragon-menace.js';
 const q=new URLSearchParams(location.search),name=q.get('name')||'chromatic dragon',view=q.get('view')||'three';
 const W=900,H=700,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
@@ -21,6 +22,8 @@ const c=createCreature({name,symbol:q.get('letter')?q.get('letter').charCodeAt(0
 if(q.get('pose')==='sleep'&&c.joints){const r=sleepPose(c,name);r.apply(r.pose);}
 // ?pose=rest lies a chickatrice, cockatrice or pyrolisk down on its breast (cockatrice-rest.js)
 if(q.get('pose')==='rest'&&c.quirk==='cockatrice'){const r=restPose(c);birdPoser(c).apply(r.pose);}
+// ?pose=rest also lands a bee, its head hung and wings folded (bee-rest.js)
+if(q.get('pose')==='rest'&&beeRests(c)){const r=beeRest(c);birdPoser(c).apply(r.pose);}
 // ?pose=mantle holds a dragon's mantle (dragon-menace.js) mid-hold
 if(q.get('pose')==='mantle'){c.species=name;updateDragonMenace(c,1/30,0,false,false,null);c.menace.cur={kind:'mantle',s:.8,side:1};c.menace.f=1;for(let i=0;i<3;i++)updateDragonMenace(c,1/30,i/30,false,false,null);}
 // ?idle=20 runs the game's own per-frame dragon update (dragon-menace.js) that many seconds with nobody near
