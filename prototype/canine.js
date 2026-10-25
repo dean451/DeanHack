@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
+import {pickPoints,skinChain,rigChain} from './chain-skin.js';
 
 // Wild dogs (d) used to be four stretched spheres, a cylinder snout, cone ears, square posts and
 // a string of beads for a tail. They now have a proper canine build, head to the front (+z):
@@ -377,6 +378,7 @@ function buildLeg(L,C,fore){
  return P.merge();
 }
 
+const TAIL_BONES=5;// the tail's chain: tail0 at the rump to tail4 at the tip
 const TAILS={
  droop:[[0,0,0],[0,-.02,-.08],[0,-.09,-.16],[0,-.19,-.21],[0,-.29,-.23]],
  brush:[[0,0,0],[0,-.03,-.09],[0,-.09,-.19],[0,-.15,-.28],[0,-.18,-.36]],
@@ -411,7 +413,7 @@ function serpentTail(L,C){
   P.add(new THREE.SphereGeometry(r*.28,6,4),at(...local(s*r*.95,.02,.045)),rgb('#ff2a0a'));
   spike(P,local(s*r*.55,.004,.068),new THREE.Vector3(0,-1,.25).applyEuler(new THREE.Euler(0,yaw,0)).toArray(),r*.16,r*.75,rgb('#eee6d0'),5);
  }
- return {geo:P.merge(),pts};
+ return {geo:skinChain(P.merge(),pickPoints(pts,TAIL_BONES)),pts};
 }
 
 function buildTail(L,C){
@@ -435,7 +437,7 @@ function buildTail(L,C){
   const [x,y,z]=pts[i],t=curve.getTangent(i/n),side=i%4===1?1:-1;
   spike(P,[x+side*radii[i]*.6,y,z],[side*.7,-.3,t.z*.8],radii[i]*.35,radii[i]*.9,colour(i),4);
  }
- return {geo:P.merge(),pts};
+ return {geo:skinChain(P.merge(),pickPoints(pts,TAIL_BONES)),pts};
 }
 
 function lookFor(name,colour){
@@ -485,19 +487,23 @@ export function createCanine(name,colour){
   legs.push(leg);
  }
  const tail=new THREE.Group();tail.position.set(0,L.Y+.05,-.29);body.add(tail);
- mesh(tail,S.tail,S.fur,'tail');
+ const {bones:tailBones}=rigChain(tail,S.tail,S.fur,'tail');
  if(L.fire){
   // a mane of flame down the spine, flames behind the ears, a burning tail and flames licking
   // up round every paw
   [[.2,1],[.1,1.2],[0,1.15],[-.1,1],[-.2,.8]].forEach(([z,sc],i)=>hellfire(body,(i%2?.022:-.022),L.Y+.1+.012*(z/.3),z,sc,-.55,(i%2?-1:1)*.12));
   for(const x of [-.04,.04])hellfire(head,x,.1,-.045,.65,-.8,-x*4);
   const pts=S.tailPts,n=pts.length-1,mid=pts[Math.round(n*.55)];
-  hellfire(tail,0,pts[n][1],pts[n][2],.85,.2);hellfire(tail,0,mid[1],mid[2],.6,-.3);
+  // each flame rides the tail bone nearest it
+  const onBone=(p,s,lean)=>{const c=S.tail.userData.chain;let k=0;c.forEach((q,i)=>{if(Math.hypot(p[1]-q[1],p[2]-q[2])<Math.hypot(p[1]-c[k][1],p[2]-c[k][2]))k=i;});hellfire(tailBones[k],0,p[1]-c[k][1],p[2]-c[k][2],s,lean);};
+  onBone(pts[n],.85,.2);onBone(mid,.6,-.3);
   for(const leg of legs)hellfire(leg,0,-leg.position.y+.005,.02,.45);
  }
  // named joints, the cat's and the dragon's names: legs front to back (left is -x), the neck pivot is
- // the head group, the tail one joint; a three-headed hound's side heads are head_0 and head_1
- const joints={head,neck0:head,tail0:tail};head.name='head';tail.name='tail0';
+ // the head group, the tail a chain of bones tail0 (rump) to tail4 (tip) under the `tail` group, which
+ // stays the wag pivot; a three-headed hound's side heads are head_0 and head_1
+ const joints={head,neck0:head};head.name='head';tail.name='tail';
+ tailBones.forEach(b=>{joints[b.name]=b;});
  legs.forEach(leg=>{const name=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);leg.name=name;joints[name]=leg;});
  if(L.heads===3)heads.filter(h=>h!==head).forEach((h,i)=>{h.name='head_'+i;joints[h.name]=h;});
  return {g,body,legs,tail,wings:[],quirk:L.pet?'dog':'canine',head,joints,...(L.heads===3?{heads}:{})};
