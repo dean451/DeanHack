@@ -8,6 +8,7 @@ import {createCreature} from '../creatures.js';
 import {sleepPose, dragonPoser} from '../dragon-rest.js';
 import {WING_POSES} from '../dragon-wing-poses.js';
 import {restPose, birdPoser} from '../cockatrice-rest.js';
+import {crowPose, crows} from '../cockatrice-crow.js';
 import {restPose as beeRest, rests as beeRests} from '../bee-rest.js';
 import {restPose as insectRest, rests as insectRests} from '../insect-rest.js';
 import {gasterPose, raises as gasterRaises} from '../insect-gaster.js';
@@ -24,6 +25,8 @@ const c=createCreature({name,symbol:q.get('letter')?q.get('letter').charCodeAt(0
 if(q.get('pose')==='sleep'&&c.joints){const r=sleepPose(c,name);r.apply(r.pose);}
 // ?pose=rest lies a chickatrice, cockatrice or pyrolisk down on its breast (cockatrice-rest.js)
 if(q.get('pose')==='rest'&&c.quirk==='cockatrice'){const r=restPose(c);birdPoser(c).apply(r.pose);}
+// ?pose=crow throws a chickatrice, cockatrice or pyrolisk into its crow (cockatrice-crow.js)
+if(q.get('pose')==='crow'&&crows(c)){const r=crowPose(c);birdPoser(c).apply(r.pose);}
 // ?pose=rest also lands a bee, its head hung and wings folded (bee-rest.js)
 if(q.get('pose')==='rest'&&beeRests(c)){const r=beeRest(c);birdPoser(c).apply(r.pose);}
 // ?pose=rest also settles an ant, beetle or locust low on its legs (insect-rest.js)

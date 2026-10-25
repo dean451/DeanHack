@@ -1,5 +1,5 @@
 // Usage: OUT=/dir/ node tools/creature-shot.mjs "chromatic dragon" prefix [letter color]
-// BEND=tail2.y:.6,lfore1.x:.8 turns named joints (actor.joints) before the shot; POSE=sleep lays a dragon down asleep, POSE=mantle holds its mantle, POSE=fold / flapup / flapdown its baked wings; IDLE=20 lets it stand idle 20 s in the game's own update; WALK=2 walks it 2 s.
+// BEND=tail2.y:.6,lfore1.x:.8 turns named joints (actor.joints) before the shot; POSE=sleep lays a dragon down asleep, POSE=crow throws a cockerel into its crow, POSE=mantle holds its mantle, POSE=fold / flapup / flapdown its baked wings; IDLE=20 lets it stand idle 20 s in the game's own update; WALK=2 walks it 2 s.
 // Needs the dev server on 5174 and PLAYWRIGHT_MODULE (in the cloud: /opt/node-tools/node_modules/playwright-core/index.js).
 const pw=await import(process.env.PLAYWRIGHT_MODULE||'playwright-core');const chromium=pw.chromium||pw.default.chromium;
 const [name,prefix='creature',letter,color]=process.argv.slice(2);
