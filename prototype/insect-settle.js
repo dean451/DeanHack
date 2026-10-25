@@ -39,11 +39,11 @@ export function takeBackRest(st) {
 }
 
 // Eases the frame toward rest. `quiet`: nothing wants the creature up this frame. Returns the progress (0..1).
-export function applyRest(a, st, dt, quiet) {
+export function applyRest(a, st, dt, quiet, restOf = restFor) {
   st.idle = quiet ? (st.idle || 0) + dt : 0;
   const want = quiet && st.idle >= SETTLE ? 1 : 0;
   // (solved only once it has stood still the whole wait, so the built angles it is solved from are not mid-stride)
-  const pose = want || st.p ? restFor(a) : null;
+  const pose = want || st.p ? restOf(a) : null;
   if (!want && !st.p) return 0;
   if (!pose || !a.joints) { st.p = 0; return 0; }
   st.p = want ? Math.min(1, (st.p || 0) + dt / SETTLING) : Math.max(0, (st.p || 0) - dt / RISE);
