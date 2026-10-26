@@ -14,7 +14,9 @@ test('every gargoyle and gremlin has head, neck, tail and its legs as named join
   assert(j,`${name}: joints`);
   assert.equal(j.head,a.head,name);
   assert.equal(j.neck0,a.head,`${name}: the neck pivot is the head group`);
-  assert.equal(j.tail0,a.tail,`${name}: tail0`);
+  for(let i=0;i<5;i++)assert(j[`tail${i}`]?.isBone,`${name}: tail${i}`);
+  assert.equal(j.tail0.parent.parent,a.tail,`${name}: the chain hangs under the tail pivot`);
+  assert(a.tail.children.some(o=>o.isSkinnedMesh&&o.userData.part==='tail'),`${name}: one skinned tail`);
   for(const side of ['l','r']){
    const leg=j[`${side}leg1`];
    assert(leg&&a.legs.includes(leg),`${name}: ${side}leg1`);
@@ -28,9 +30,9 @@ test('every gargoyle and gremlin has head, neck, tail and its legs as named join
 test('turning the tail moves the tail and nothing before it; turning a hip moves that leg only; the head carries its face',()=>{
  for(const f of FAMILY){
   const a=make(f),j=a.joints,name=f[0];
-  const headBefore=world(a.head),legBefore=a.legs.map(world),tailTip=tip(j.tail0);
+  const headBefore=world(a.head),legBefore=a.legs.map(world),tailTip=tip(a.tail);
   j.tail0.rotation.y=.6;
-  assert(tip(j.tail0).distanceTo(tailTip)>.01,`${name}: the tail swung`);
+  assert(tip(a.tail).distanceTo(tailTip)>.01,`${name}: the tail swung`);
   assert(world(a.head).distanceTo(headBefore)<1e-6,`${name}: head stayed`);
   a.legs.forEach((l,i)=>assert(world(l).distanceTo(legBefore[i])<1e-6,`${name}: leg ${i} stayed`));
   j.tail0.rotation.y=0;
@@ -43,5 +45,22 @@ test('turning the tail moves the tail and nothing before it; turning a hip moves
   a.head.rotation.x=.5;
   assert(tip(a.head).distanceTo(faceBefore)>.01,`${name}: the head turned with its face`);
   a.legs.forEach((l,i)=>assert(tip(l).distanceTo(legsBefore[i])<1e-6,`${name}: leg ${i} stayed under the head`));
+ }
+});
+
+test('bending a tail joint moves the tail past it and leaves the tail before it, spade and tuft with it',()=>{
+ for(const f of FAMILY){
+  const a=make(f),j=a.joints,name=f[0],m=a.tail.children.find(o=>o.isSkinnedMesh);
+  const verts=()=>{a.g.updateMatrixWorld(true);const v=new THREE.Vector3(),out=[];for(let i=0;i<m.geometry.attributes.position.count;i++){m.getVertexPosition(i,v);out.push(v.applyMatrix4(m.matrixWorld).clone());}return out;};
+  const rest=verts(),root=world(j.tail0),endCap=a.tail.children.find(o=>!o.isSkinnedMesh)??j.tail4.children[0],capBefore=world(endCap);
+  j.tail2.rotation.x=.7;
+  const bent=verts();let before=0,past=0;
+  const si=m.geometry.attributes.skinIndex,sw=m.geometry.attributes.skinWeight;
+  rest.forEach((r,i)=>{const d=r.distanceTo(bent[i]);let onPast=0;for(let k=0;k<4;k++)if(si.getComponent(i,k)>=2)onPast+=sw.getComponent(i,k);
+   if(onPast===0)before=Math.max(before,d);else if(onPast>.999)past=Math.max(past,d);});
+  assert(past>.02,`${name}: the tail past the joint moved ${past}`);
+  assert(before<1e-6,`${name}: the tail before the joint stayed (${before})`);
+  assert(world(j.tail0).distanceTo(root)<1e-9,`${name}: the root stayed`);
+  assert(world(endCap).distanceTo(capBefore)>.02,`${name}: the spade or tuft followed the bend`);
  }
 });
