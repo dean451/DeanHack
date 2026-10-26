@@ -21,6 +21,7 @@ import {createScorpion,isScorpion} from './scorpion.js';
 import {createAnt,isAnt} from './ant.js';
 import {createLocust,isLocust} from './locust.js';
 import {createFeline,isFeline} from './feline.js';
+import {pickPoints,skinChain,rigChain} from './chain-skin.js';
 import {createCanine,isCanine,hellfire} from './canine.js';
 import {createBee,isBee} from './bee.js';
 import {createBeetle,isBeetle} from './beetle.js';
@@ -2557,6 +2558,12 @@ const LEPRECHAUNS={leprechaun:{coat:'#2f8a3a'}};
 // brow-ridged head with fangs and ember eyes, chipped cracks and moss. The winged kind spreads great stone
 // bat wings; the plain kind keeps stubby folded ones. Gremlins are skinny green imps with huge ribbed ears,
 // saucer eyes, a spined back and long clawed fingers, grinning wide. The tail swings on both.
+// A tail as one skinned tube on five bones tail0..tail4 under `tail` (which stays the swish pivot); returns the bones
+function skinnedTail(tail,points,radius,material){
+ const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),pts=curve.getPoints(16).map(p=>p.toArray());
+ const geo=skinChain(new THREE.TubeGeometry(curve,16,radius,8,false),pickPoints(pts,5));
+ return rigChain(tail,geo,material,'tail').bones;
+}
 function gargoyle(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
  const stone=mat(o.stone,{roughness:.95}),dark=mat(shade(o.stone,.62),{roughness:1}),crack=mat(shade(o.stone,.3),{roughness:1}),
@@ -2610,10 +2617,10 @@ function gargoyle(o){
   cone(pivot,.016,.06,crack,side*.2*span,.31*span,0,4);pivot.userData.side=side;wings.push(pivot);}
  // tail: a thick stone tail curling along the floor, ending in a spade
  const tail=new THREE.Group();tail.position.set(0,.2,-.14);body.add(tail);
- tube(tail,[[0,0,0],[.05,-.12,-.12],[.18,-.14,-.2],[.3,-.14,-.12]],.035,stone,16);
- const spade=cone(tail,.05,.1,dark,.34,-.14,-.1,4);spade.rotation.z=-Math.PI/2;spade.scale.set(1,1,.35);
+ const tailBones=skinnedTail(tail,[[0,0,0],[.05,-.12,-.12],[.18,-.14,-.2],[.3,-.14,-.12]],.035,stone),tip=tailBones[4];
+ const spade=cone(tip,.05,.1,dark,.04,0,.02,4);spade.rotation.z=-Math.PI/2;spade.scale.set(1,1,.35);
  // named joints, the cat's and the dragon's names: the haunches are the hind legs (left is -x), the neck pivot is the head group
- const joints={head,neck0:head,tail0:tail,lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};head.name='head';tail.name='tail0';
+ const joints={head,neck0:head,lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};head.name='head';tail.name='tail';tailBones.forEach(b=>{joints[b.name]=b;});
  legs.forEach((leg,i)=>{const name=(leg.position.x<0?'l':'r')+'leg1';leg.name=name;joints[name]=leg;});
  for(const n of ['lwing','rwing'])joints[n].name=n;
  return trimDraws({...actor(g,body,legs,tail,wings,'idle'),head,joints});
@@ -2651,8 +2658,8 @@ function gremlin(o){
   g.userData.torn=true;}
  // tail: a thin whip ending in a tuft
  const tail=new THREE.Group();tail.position.set(0,.26,-.08);body.add(tail);
- tube(tail,[[0,0,0],[.04,-.08,-.1],[.12,-.1,-.18],[.2,-.04,-.22]],.012,skin,12);cone(tail,.022,.05,dark,.21,-.03,-.22,4).rotation.z=-1.2;
- const joints={head,neck0:head,tail0:tail};head.name='head';tail.name='tail0';
+ const tailBones=skinnedTail(tail,[[0,0,0],[.04,-.08,-.1],[.12,-.1,-.18],[.2,-.04,-.22]],.012,skin);cone(tailBones[4],.022,.05,dark,.01,.01,-.0,4).rotation.z=-1.2;
+ const joints={head,neck0:head};head.name='head';tail.name='tail';tailBones.forEach(b=>{joints[b.name]=b;});
  legs.forEach(leg=>{const name=(leg.position.x<0?'l':'r')+'leg1';leg.name=name;joints[name]=leg;});
  return trimDraws({...actor(g,body,legs,tail,[],'idle'),head,joints});
 }
