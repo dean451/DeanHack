@@ -45,3 +45,10 @@ test('the pose is easy to leave: posing nothing returns every joint and the body
   for(const [n,o] of Object.entries(a.joints))assert.deepEqual(o.rotation.toArray().slice(0,3),built[n],`${name} ${n}`);
   assert.deepEqual(a.body.position.toArray(),body);}
 });
+
+test('the tail is laid round: its tip lies near the haunch, within REST.curl of the tail\'s length',()=>{
+ for(const name of FAMILY){const a=make(name),P=rolesOf(a),len=P.tailtip().distanceTo(P.rump());
+  const {apply}=birdPoser(a),r=restPose(a);apply(r.pose);a.g.updateMatrixWorld(true);
+  const d=P.tailtip().distanceTo(P['hip:l']());
+  assert(d<=REST.curl*len+.02,`${name}: tip ${(d*100).toFixed(0)} cm from the haunch of a ${(len*100).toFixed(0)} cm tail`);}
+});
