@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
-import {nameHumanoidJoints} from './humanoid-joints.js';
+import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
 
 // The hobbit used to be the generic short humanoid: a teal box for a body and a brown lump of
 // hair. It now stands as a plump, hard-bitten halfling: a round, sallow, weathered face with a bruised nose, a scowl, a scarred brow
@@ -140,7 +140,8 @@ function geometry(){
  const leg=buildLeg(),mirrored=leg.clone().scale(-1,1,1);
  // mirroring flips the winding (the normals are mirrored by scale()); turn it back
  const p=mirrored.attributes.position;for(let i=0;i<p.count;i+=3){for(const key of ['position','normal','color']){const a=mirrored.attributes[key];for(let k=0;k<a.itemSize;k++){const t=a.array[(i+1)*a.itemSize+k];a.array[(i+1)*a.itemSize+k]=a.array[(i+2)*a.itemSize+k];a.array[(i+2)*a.itemSize+k]=t;}}}
- S={body:buildBody(),head:buildHead(),legs:[mirrored,leg],arm:buildArm()};
+ // each arm and leg is skinned onto three bones (shoulder or hip, elbow or knee, wrist or ankle)
+ S={body:buildBody(),head:buildHead(),legs:[mirrored,leg].map(g=>skinLimb(g,[[0,0,0],[0,-.17,0],[0,-.3,0]])),arm:skinLimb(buildArm(),[[0,0,0],[0,-.17,0],[0,-.28,0]])};
  return S;
 }
 function mesh(parent,geo,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
@@ -152,9 +153,10 @@ export function createHobbit(){
  mesh(head,S.head,'head');
  const legs=[],arms=[];
  for(const [i,s] of [-1,1].entries()){
-  const leg=new THREE.Group();leg.position.set(s*.095,.36,0);body.add(leg);mesh(leg,S.legs[i],'leg');legs.push(leg);
-  const arm=new THREE.Group();arm.position.set(s*.28,.7,0);arm.rotation.z=s*.12;body.add(arm);mesh(arm,S.arm,'arm');arms.push(arm);
+  const leg=new THREE.Group();leg.position.set(s*.095,.36,0);body.add(leg);rigLimb(leg,S.legs[i],material,(s<0?'l':'r')+'leg1_','leg');legs.push(leg);
+  const arm=new THREE.Group();arm.position.set(s*.28,.7,0);arm.rotation.z=s*.12;body.add(arm);rigLimb(arm,S.arm,material,(s<0?'l':'r')+'fore_','arm');arms.push(arm);
  }
- const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-.3,.01);arms[1].add(weaponSocket);
+ // the socket rides the right wrist bone, so a bent elbow carries the weapon
+ const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-.02,.01);arms[1].getObjectByName('rfore_2').add(weaponSocket);
  return nameHumanoidJoints({g,body,legs,tail:null,wings:[],quirk:'hobbit',arms,arm:arms[1],weaponSocket,head,hat:null,beard:null,pick:null});
 }

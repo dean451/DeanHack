@@ -46,3 +46,27 @@ test('turning an arm moves that arm only; turning a hip moves that leg only; the
   [...a.arms,...a.legs].forEach((o,i)=>assert(tip(o).distanceTo(limbs[i])<1e-6,`${name}: limb ${i} stayed under the head`));
  }
 });
+
+test('the hobbit\'s arms and legs are one skinned mesh on three bones; bending the elbow or knee carries the hand or foot and leaves the shoulder',()=>{
+ const a=createHobbit(),j=a.joints;
+ for(const side of ['l','r'])for(const stem of ['fore','leg1']){
+  const group=j[side+stem],bones=[0,1,2].map(k=>j[`${side}${stem}_${k}`]);
+  bones.forEach((b,k)=>assert(b?.isBone,`${side}${stem}_${k}`));
+  const m=group.children.find(o=>o.isSkinnedMesh);
+  assert(m,`${side}${stem} is one skinned mesh`);
+  const verts=()=>{a.g.updateMatrixWorld(true);const v=new THREE.Vector3();return Array.from({length:m.geometry.attributes.position.count},(_,n)=>m.getVertexPosition(n,v).applyMatrix4(m.matrixWorld).clone());};
+  const rest=verts(),si=m.geometry.attributes.skinIndex,sw=m.geometry.attributes.skinWeight;
+  bones[1].rotation.x=.6;
+  const bent=verts();let before=0,past=0;
+  rest.forEach((r,n)=>{const d=r.distanceTo(bent[n]);let onPast=0;for(let k=0;k<4;k++)if(si.getComponent(n,k)>=1)onPast+=sw.getComponent(n,k);
+   if(onPast===0)before=Math.max(before,d);else if(onPast>.999)past=Math.max(past,d);});
+  assert(past>.02,`${side}${stem}: past the joint moved ${past}`);
+  assert(before<1e-6,`${side}${stem}: above the joint stayed (${before})`);
+ }
+});
+
+test('the hobbit\'s weapon socket follows a bent right elbow',()=>{
+ const a=createHobbit(),p=()=>{a.g.updateMatrixWorld(true);return a.weaponSocket.getWorldPosition(new THREE.Vector3());};
+ const rest=p();a.joints.rfore_1.rotation.x=.8;
+ assert(p().distanceTo(rest)>.05);
+});
