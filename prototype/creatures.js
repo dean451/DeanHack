@@ -2612,7 +2612,11 @@ function gargoyle(o){
  const tail=new THREE.Group();tail.position.set(0,.2,-.14);body.add(tail);
  tube(tail,[[0,0,0],[.05,-.12,-.12],[.18,-.14,-.2],[.3,-.14,-.12]],.035,stone,16);
  const spade=cone(tail,.05,.1,dark,.34,-.14,-.1,4);spade.rotation.z=-Math.PI/2;spade.scale.set(1,1,.35);
- return trimDraws(actor(g,body,legs,tail,wings,'idle'));
+ // named joints, the cat's and the dragon's names: the haunches are the hind legs (left is -x), the neck pivot is the head group
+ const joints={head,neck0:head,tail0:tail,lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};head.name='head';tail.name='tail0';
+ legs.forEach((leg,i)=>{const name=(leg.position.x<0?'l':'r')+'leg1';leg.name=name;joints[name]=leg;});
+ for(const n of ['lwing','rwing'])joints[n].name=n;
+ return trimDraws({...actor(g,body,legs,tail,wings,'idle'),head,joints});
 }
 function gremlin(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
@@ -2632,23 +2636,25 @@ function gremlin(o){
   sphere(body,.035,skin,...sh);segment(body,sh,el,.028,.022,skin);sphere(body,.022,skin,...el);segment(body,el,wr,.022,.016,skin);sphere(body,.025,skin,...wr);
   for(let t=-1;t<=1;t++){const c=cone(body,.006,.05,claw,wr[0]+t*.014,wr[1]+.04,wr[2]+.01,4);c.rotation.x=.3;c.rotation.z=t*.25;}}
  // head: big and round, saucer eyes, a wide toothy grin and enormous ribbed bat ears
- const headY=.6;sphere(body,.12,skin,0,headY,.02,1.1,.95,1);sphere(body,.05,skin,0,headY-.03,.12,1,.7,.8);
- for(const side of [-1,1]){sphere(body,.042,glow,side*.052,headY+.02,.1,1,1,.6).castShadow=false;sphere(body,.02,pupil,side*.052,headY+.02,.125,.6,1,.4);
-  const brow=rounded(body,.06,.014,.02,dark,side*.05,headY+.065,.1,.005);brow.rotation.z=side*.35;
+ const head=new THREE.Group();head.position.set(0,.6,0);body.add(head);sphere(head,.12,skin,0,0,.02,1.1,.95,1);sphere(head,.05,skin,0,-.03,.12,1,.7,.8);
+ for(const side of [-1,1]){sphere(head,.042,glow,side*.052,.02,.1,1,1,.6).castShadow=false;sphere(head,.02,pupil,side*.052,.02,.125,.6,1,.4);
+  const brow=rounded(head,.06,.014,.02,dark,side*.05,.065,.1,.005);brow.rotation.z=side*.35;
   const shape=new THREE.Shape();shape.moveTo(0,0);shape.quadraticCurveTo(side*.12,.12,side*.26,.1);shape.quadraticCurveTo(side*.18,.02,side*.22,-.06);shape.quadraticCurveTo(side*.1,-.04,0,-.05);
-  const e=part(body,new THREE.ShapeGeometry(shape),ear,side*.1,headY+.02,-.01);e.rotation.y=-side*.35;
-  const inner=part(body,new THREE.ShapeGeometry(shape),pink,side*.1,headY+.02,-.005);inner.rotation.y=-side*.35;inner.scale.setScalar(.7);}
- cylinder(body,.075,.075,.01,mouth,0,headY-.06,.105,16).rotation.x=Math.PI/2+.4;
- for(let k=-3;k<=3;k++){const t=cone(body,.008,.022,tooth,k*.018,headY-.05,.13-Math.abs(k)*.008,4);t.rotation.x=Math.PI;}
+  const e=part(head,new THREE.ShapeGeometry(shape),ear,side*.1,.02,-.01);e.rotation.y=-side*.35;
+  const inner=part(head,new THREE.ShapeGeometry(shape),pink,side*.1,.02,-.005);inner.rotation.y=-side*.35;inner.scale.setScalar(.7);}
+ cylinder(head,.075,.075,.01,mouth,0,-.06,.105,16).rotation.x=Math.PI/2+.4;
+ for(let k=-3;k<=3;k++){const t=cone(head,.008,.022,tooth,k*.018,-.05,.13-Math.abs(k)*.008,4);t.rotation.x=Math.PI;}
  // wear: one ear is torn through with a ragged notch, and old claw-rakes score the belly
  {const sc=mat('#2a1a14',{roughness:1});
-  cone(body,.03,.05,sc,-.2,headY+.0,-.005,3).rotation.z=-Math.PI/2;
+  cone(head,.03,.05,sc,-.2,0,-.005,3).rotation.z=-Math.PI/2;
   for(let i=0;i<3;i++){const r=rounded(body,.07,.006,.006,sc,-.03+i*.03,.3,.12,.002);r.rotation.z=.7;}
   g.userData.torn=true;}
  // tail: a thin whip ending in a tuft
  const tail=new THREE.Group();tail.position.set(0,.26,-.08);body.add(tail);
  tube(tail,[[0,0,0],[.04,-.08,-.1],[.12,-.1,-.18],[.2,-.04,-.22]],.012,skin,12);cone(tail,.022,.05,dark,.21,-.03,-.22,4).rotation.z=-1.2;
- return trimDraws(actor(g,body,legs,tail,[],'idle'));
+ const joints={head,neck0:head,tail0:tail};head.name='head';tail.name='tail0';
+ legs.forEach(leg=>{const name=(leg.position.x<0?'l':'r')+'leg1';leg.name=name;joints[name]=leg;});
+ return trimDraws({...actor(g,body,legs,tail,[],'idle'),head,joints});
 }
 const GARGOYLES={gargoyle:{stone:'#8a8478',eye:'#ff7a2a',scale:1.12},'winged gargoyle':{stone:'#6f6a74',eye:'#ffb030',winged:true,scale:1.3}};
 const GREMLINS={gremlin:{skin:'#4f8a3a',eye:'#ffd23a'}};
