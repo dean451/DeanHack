@@ -132,9 +132,43 @@ export function insectRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the cat, the dragons, the cockerels and the insects have maps so far.
+// The wild cats' map (jaguar, lynx, panther, tiger, displacer beast), from the joints `createFeline` exposes:
+// they have no `rig`, so the pet cat's map does not apply. Each paw is the lowest point of its leg's skin at
+// rest, carried on the leg's last bone (`<leg>_2`) so it follows the bent leg; the shoulders and hips are each
+// leg's first bone, the withers `spine0` and the rump `tail0`. The mouth is the head's nose end at the height of
+// its lower half's front and the chin the lowest point of the front half, both read off the head's own mesh
+// (in the head group's frame); the tail tip is the tail skin's farthest point back, in `tail4`'s frame.
+export function wildCatRoles(actor) {
+  const j = actor.joints, V = (...a) => new THREE.Vector3(...a);
+  actor.g.updateMatrixWorld(true);
+  const skinned = (parent, part) => parent.children.find(o => o.isSkinnedMesh && o.userData.part === part);
+  const worldVerts = m => { const out = [], v = V(); for (let i = 0; i < m.geometry.attributes.position.count; i++) { m.getVertexPosition(i, v); out.push(v.clone().applyMatrix4(m.matrixWorld)); } return out; };
+  const extreme = (list, better) => list.reduce((a, b) => better(b, a) ? b : a);
+  const hm = j.head.children.find(o => o.isMesh && o.userData.part === 'head'), hv = [];
+  { const p = hm.geometry.attributes.position; for (let i = 0; i < p.count; i++) hv.push(V().fromBufferAttribute(p, i)); }
+  const ys = hv.map(v => v.y), lo = Math.min(...ys), mid = (lo + Math.max(...ys)) / 2, nose = extreme(hv.filter(v => v.y < mid), (a, b) => a.z > b.z);
+  const mouth = [0, nose.y, nose.z], chin = [0, lo, nose.z * .6];
+  const tailMesh = skinned(actor.tail, 'tail'), tip = extreme(worldVerts(tailMesh), (a, b) => a.z < b.z);
+  const map = {
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.head, mouth),
+    chin: () => inFrame(() => j.head, chin),
+    withers: () => at(() => j.spine0),
+    rump: () => at(() => j.tail0),
+    tailtip: () => inFrame(() => j.tail4, j.tail4.worldToLocal(tip.clone()).toArray()),
+  };
+  for (const side of ['l', 'r']) for (const [i, pair] of [[0, 'f'], [1, 'h']]) {
+    const leg = j[`${side}leg${i}`], bone = j[`${side}leg${i}_2`], sole = extreme(worldVerts(skinned(leg, i ? 'hindleg' : 'foreleg')), (a, b) => a.y < b.y);
+    map[`paw:${side}${pair}`] = () => inFrame(() => bone, bone.worldToLocal(sole.clone()).toArray());
+    map[`${pair === 'f' ? 'shoulder' : 'hip'}:${side}`] = () => at(() => j[`${side}leg${i}_0`]);
+  }
+  return buildRoles(map, {});
+}
+
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the dragons, the cockerels and the insects have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
+  if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
   if (actor.quirk === 'dragon' && actor.joints) return dragonRoles(actor);
   if (actor.quirk === 'cockatrice' && actor.joints) return cockatriceRoles(actor);
   if ((actor.quirk === 'insect' || actor.quirk === 'bee') && actor.joints?.lleg0_2) return insectRoles(actor);
