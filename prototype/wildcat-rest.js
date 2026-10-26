@@ -11,8 +11,9 @@ import {rolesOf} from './body-roles.js';
 import {birdPoser} from './cockatrice-rest.js';
 
 // Shares of the cat's standing shoulder height: how far each forepaw reaches ahead of its shoulder, how far the
-// hind foot lies ahead of its hip, and how high the mouth is held (lowest allowed).
-export const REST = {reach: .33, hind: .1, head: .78, tail: .6};
+// hind foot lies ahead of its hip, how high the mouth is held (lowest allowed), and how near the tail's tip
+// lies to the left haunch, as a share of the tail's length (the tail laid round along the flank).
+export const REST = {reach: .33, hind: .1, head: .78, tail: .6, curl: .65};
 
 const KEYS = ['x', 'y', 'z'];
 
@@ -40,6 +41,7 @@ export function restPose(a) {
       goal.ahead(`shoulder:${side}`, `paw:${side}f`, REST.reach * high, {within: .02 * s}),
       goal.ahead(`hip:${side}`, `paw:${side}h`, REST.hind * high, {within: .03 * s}));
   }
+  goals.push(goal.reach('tailtip', 'hip:l', {within: REST.curl * tailLen, weight: 1.5}));
   goals.push(goal.above('mouth', floor + REST.head * high, {weight: 2}));
   const base = {hipsY: -.3, tail0: {x: -.9}, tail1: {x: -.3}};
   const out = solvePose({joints, base, goals, apply, points: P, iterations: 150, rest: .01});
