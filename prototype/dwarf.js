@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
-import {nameHumanoidJoints} from './humanoid-joints.js';
+import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
 
 // Dwarves used to be the generic box humanoid: a box torso, a ball for a head, a cylinder helm
 // and a ball of beard. They now have their own model: a broad, barrel-chested little warrior
@@ -38,6 +38,8 @@ const SKIN=rgb('#a8846a'),SKIN_SHADE=rgb('#7a5a46'),ROSE=rgb('#7a4a42'),EYE=rgb(
  CAPE=rgb('#8a2424'),CAPE_DARK=rgb('#4a1010');
 
 const HIP=.4,LEG_X=.13,SHOULDER_X=.3,SHOULDER_Y=.8,ARM=.38,HEAD_Y=1.0,HEAD_R=.15;
+// the limbs' bones, in the limb's own space: hip or shoulder, knee (the boot cuff) or elbow, ankle or wrist
+const LEG_BONES=[[0,0,0],[0,-.2,0],[0,-.34,0]],ARM_BONES=[[0,0,0],[0,-.19,0],[0,-.34,0]];
 const lathe=(profile,segments=28)=>new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),segments);
 const ramp=(a,b,lo,hi)=>y=>mix(a,b,(y-lo)/(hi-lo));
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
@@ -297,7 +299,7 @@ function geometry(kind){
  MAT.metal??=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.38,metalness:.72,side:THREE.DoubleSide});
  const L=LOOKS[kind],C=colours(L),leg=buildLeg(L,C);
  if(L.pick)pickGeo??=buildPick();
- cache[kind]={body:buildBody(L,C),head:buildHead(L,C),beard:buildBeard(L,C),legs:[mirrored(leg),leg],arm:buildArm(L,C),weapon:buildWeapon(L,C),pick:L.pick?pickGeo:null};
+ cache[kind]={body:buildBody(L,C),head:buildHead(L,C),beard:buildBeard(L,C),legs:[mirrored(leg),leg].map(g=>skinLimb(g,LEG_BONES)),arm:skinLimb(buildArm(L,C),ARM_BONES),weapon:buildWeapon(L,C),pick:L.pick?pickGeo:null};
  return cache[kind];
 }
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
@@ -316,10 +318,10 @@ export function createDwarf(name){
  const beard=mesh(head,S.beard,MAT.cloth,'beard');beard.position.set(0,-.07-.19,.07);
  const legs=[],arms=[];
  for(const [i,s] of [-1,1].entries()){
-  const leg=new THREE.Group();leg.position.set(s*LEG_X,HIP,0);body.add(leg);mesh(leg,S.legs[i],MAT.cloth,'leg');legs.push(leg);
-  const arm=new THREE.Group();arm.position.set(s*SHOULDER_X,SHOULDER_Y,0);arm.rotation.z=s*.12;body.add(arm);mesh(arm,S.arm,MAT.cloth,'arm');arms.push(arm);
+  const leg=new THREE.Group();leg.position.set(s*LEG_X,HIP,0);body.add(leg);rigLimb(leg,S.legs[i],MAT.cloth,(s<0?'l':'r')+'leg1_','leg');legs.push(leg);
+  const arm=new THREE.Group();arm.position.set(s*SHOULDER_X,SHOULDER_Y,0);arm.rotation.z=s*.12;body.add(arm);rigLimb(arm,S.arm,MAT.cloth,(s<0?'l':'r')+'fore_','arm');arms.push(arm);
  }
- const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-ARM,.03);arms[1].add(weaponSocket);
+ const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-ARM-ARM_BONES[2][1],.03);arms[1].getObjectByName('rfore_2').add(weaponSocket);
  both(weaponSocket,S.weapon,'weapon');
  // the pick, held low in the left hand and leaning out (the old humanoid's rest pose)
  let pick=null;
