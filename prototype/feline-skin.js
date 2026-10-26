@@ -27,7 +27,7 @@ import {FELINE_GLIDE} from './slide.js';
 import {createStepper} from './feline-gait.js';
 import {sculptFeline, sculptEyes, sculptEyeMaterial, HEAD_SCALE, TAIL_SCULPT, EYE, earFrame, MOUTH, jawShare, lipY} from './feline-sculpt.js';
 import {coatAttributes, coatMaterial, FUR} from './feline-coat.js';
-import {solveRest, restClips, SIT_TAIL, STRETCH, YAWN, GROOM, SCRATCHING, EATING} from './feline-rest.js';
+import {solveRest, restClips, SIT_TAIL, STRETCH, YAWN, GROOM, SCRATCHING, EATING, LIE} from './feline-rest.js';
 import {createFelineMind} from './feline-mind.js';
 
 export const BLEND = {spine: .06, leg: .022, tail: .03};
@@ -342,18 +342,19 @@ export const REST = {
   hold: {sit: [8, 20], loaf: [10, 25], settle: [3, 6], curl: [25, 60]},
   odds: {lie: .6, sleep: .55, curl: .4, groom: .45, scratch: .35},
   circle: 2 * Math.PI,
-  fade: {sit: .6, loaf: 1, curl: 1.4},
-  up: {sit: .4, loaf: .5, curl: .7},
+  fade: {sit: .6, loaf: 1, curl: .3, lie: .3},
+  up: {sit: .4, loaf: .5, curl: .7, scramble: 3},
 };
 
 // Samples a pose function into an AnimationClip of quaternion (and position, scale) tracks on
-// the bones it names. The last frame repeats the first, so the loop is seamless.
-export function sampleClip(name, {pose, period, frames}, bonesByName) {
+// the bones it names. The last frame repeats the first, so the loop is seamless (`ends`: a clip that
+// goes from one pose to another runs on to its own end instead).
+export function sampleClip(name, {pose, period, frames, ends}, bonesByName) {
   const times = Array.from({length: frames + 1}, (_, i) => i / frames * period), per = new Map(), e = new THREE.Euler(), q = new THREE.Quaternion();
   const folding = Object.values(bonesByName).filter(b => b.userData.fold !== undefined), foldAt = folding.map(() => []);
   const hipsY = [], chestScale = [], tongueAt = []; let anyHipsY = false, anyScale = false, anyFold = false, anyTongue = false;
   for (let i = 0; i <= frames; i++) {
-    const p = pose((i % frames) / frames);
+    const p = pose(ends ? i / frames : (i % frames) / frames);
     for (const [key, o] of Object.entries(p)) {
       if (key === 'hipsY' || key === 'hipsZ' || key === 'chestScale' || key === 'fold' || key === 'yawn' || key === 'tonguePos' || key === 'reach' || key === 'stroke') continue;
       if (!bonesByName[key]) continue;
@@ -402,7 +403,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   const solved = rig.headLocal && actor?.fur && opts.rest !== false ? solveRest({rig, fur: actor.fur, bones: bonesByName, key: actor.fur.geometry.uuid, apply: p => { applyPose(p, bonesByName, restAt); rig.distribute?.(); }}) : null;
   if (solved) { for (const b of Object.values(bonesByName)) { b.quaternion.identity(); b.position.copy(restAt[b.name]); } }
   const mixer = new THREE.AnimationMixer(root), actions = {};
-  const weightOf = name => actions[name]?.getEffectiveWeight() ?? 0, restPose = (name, u) => restClips(solved)[name].pose(u);
+  const weightOf = name => actions[name]?.getEffectiveWeight() ?? 0, lyingWeight = () => weightOf('loaf') + weightOf('curl') + weightOf('lie') + weightOf('rise'), restPose = (name, u) => restClips(solved)[name].pose(u);
   for (const [name, spec] of Object.entries({...CLIPS, ...(solved ? restClips(solved) : {})})) {
     const a = mixer.clipAction(sampleClip(name, spec, bonesByName));
     if (spec.once) { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; } else a.play(); // (a one-shot holds its last frame while it fades out)
@@ -478,14 +479,28 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   // curling up after a few moments; from a loaf it sits back up or goes off to sleep the same way;
   // asleep for a while, it wakes and stands. Walking, a pounce or anything to hunt or fear gets it up at once (and
   // quicker than it settled).
-  const rest = {state: 'stand', t: 0, next: 0, plan: null}, dream = {in: 8, t: 0, leg: 'lfore'};
+  const rest = {state: 'stand', t: 0, next: 0, plan: null, speed: 1}, dream = {in: 8, t: 0, leg: 'lfore'};
   const range = ([a, b]) => a + (b - a) * rnd();
   const enter = (state, plan = null) => { rest.state = state; rest.t = 0; rest.plan = plan; rest.next = range((plan === 'sleep' && REST.hold.settle) || REST.hold[state] || [0, 0]); if (actions[state]) setBase(actions[state], REST.fade[state]); };
   // a one-shot from the sit (grooming, the scratch): played through, then back to the sit
+  const stretch = () => { rest.state = 'stretch'; rest.t = 0; rest.next = 0; actions.stretch.reset(); base = actions.stretch; fade(base, REST.up.loaf); };
   const play = name => { rest.state = name; rest.t = 0; rest.next = 0; actions[name].reset(); base = actions[name]; if (!pouncing) fade(base, REST.fade.sit); };
+  // lying down to sleep from the loaf, and getting up out of the curl: the staged clips (feline-rest.js LIE),
+  // `speed` times as fast (a cat startled awake scrambles up)
+  const lie = () => { rest.state = 'lie'; rest.t = 0; rest.next = 0; actions.lie.reset(); base = actions.lie; if (!pouncing) fade(base, REST.fade.lie); };
+  const rise = (speed = 1) => { rest.state = 'rise'; rest.t = 0; rest.next = 0; rest.speed = speed; actions.rise.reset(); base = actions.rise; if (!pouncing) fade(base, REST.fade.lie / speed); actions.rise.setEffectiveTimeScale(speed); };
+  const risen = () => rest.t >= LIE.time / rest.speed - REST.up.loaf / rest.speed;
   function settle(dt) {
-    if (walking || pouncing || mood.mood !== 'content') { if (rest.state !== 'stand') { setBase(actions.idle, REST.up[rest.state] ?? REST.up.sit); rest.state = 'stand'; rest.plan = null; } return; }
+    if (walking || pouncing || mood.mood !== 'content') {
+      // curled up (or lying down), it gets up the way it lay down, quickly, before it goes
+      if (rest.state === 'curl' || rest.state === 'lie') { rise(REST.up.scramble); return; }
+      if (rest.state === 'rise') { rest.t += dt; if (risen()) { setBase(actions.idle, REST.up.loaf / rest.speed); rest.state = 'stand'; rest.plan = null; } return; }
+      if (rest.state !== 'stand') { setBase(actions.idle, REST.up[rest.state] ?? REST.up.sit); rest.state = 'stand'; rest.plan = null; }
+      return;
+    }
     rest.t += dt;
+    if (rest.state === 'lie') { if (rest.t >= LIE.time - REST.fade.curl) enter('curl'); return; }
+    if (rest.state === 'rise') { if (risen()) stretch(); return; }
     if (rest.state === 'stand') { if (still >= SIT_AFTER) enter('sit'); return; }
     if (!solved) return; // (a rig without the resting poses only sits)
     if (rest.state === 'circle') { if (!mind.state.turning) enter('loaf', 'sleep'); return; }
@@ -496,10 +511,10 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
       if (rnd() < REST.odds.lie) { if (rnd() < REST.odds.sleep) toSleep(); else enter('loaf'); }
       else enter('sit');
     } else if (rest.state === 'loaf') {
-      if (rest.plan === 'sleep') enter('curl'); else if (rnd() < REST.odds.curl) toSleep(); else enter('sit');
+      if (rest.plan === 'sleep') lie(); else if (rnd() < REST.odds.curl) toSleep(); else enter('sit');
     } else if (rest.state === 'curl') {
-      // waking: the stretch and the yawn (a one-shot), then up
-      rest.state = 'stretch'; rest.t = 0; rest.next = 0; actions.stretch.reset(); base = actions.stretch; fade(base, REST.up.curl);
+      // waking: it rolls back up onto its chest, then the stretch and the yawn (a one-shot), then up
+      rise();
     } else if (rest.state === 'stretch' && rest.t >= STRETCH.time - REST.up.sit) { setBase(actions.idle, REST.up.sit); rest.state = 'stand'; still = 0; }
     else if (rest.state === 'eat' && rest.t >= EATING.time - REST.fade.sit) { setBase(actions.idle, REST.up.sit); rest.state = 'stand'; still = 0; }
     else if (ONE_SHOT[rest.state] && rest.t >= ONE_SHOT[rest.state].time - REST.fade.sit) enter('sit');
@@ -517,10 +532,10 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     // measured speed stands in for other slides
     const actual = actor?.slideSpeed > 0 ? actor.slideSpeed : speed, pace = actual / stepper.hip();
     // walking, the idle plays under the step (and a resting cat gets up); left alone, it settles (rest)
-    if (walking && !pouncing) setBase(actions.idle, GAIT.fade);
+    if (walking && !pouncing && rest.state !== 'rise' && rest.state !== 'curl' && rest.state !== 'lie') setBase(actions.idle, GAIT.fade); // (curled up, it gets up first: settle)
     settle(dt);
     // the tail's own sway gives way to a pose that lays the tail somewhere (sitting, lying)
-    actions.tail.setEffectiveWeight(1 - Math.min(1, weightOf('sit') + weightOf('loaf') + weightOf('curl')));
+    actions.tail.setEffectiveWeight(1 - Math.min(1, weightOf('sit') + lyingWeight()));
     stepFades(dt); takeBack(); mixer.update(dt); keepMixed();
     // the lean into a turn: the heading arrives in steps, so it snaps toward a turn and eases out
     const yaw = opts.yaw ? opts.yaw() : (rig.hips.parent?.parent?.rotation.y ?? 0), d = Math.atan2(Math.sin(yaw - rig.yaw), Math.cos(yaw - rig.yaw)); rig.yaw = yaw;
@@ -531,9 +546,9 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     // its attention and mood (the gaze, the tail, the crouch, turning to face), then the legs last,
     // once the body they hang from has its pose for the frame
     const sitting = base === actions.sit || actions.sit.getEffectiveWeight() > .01; // (until it has got up)
-    const lying = weightOf('loaf') + weightOf('curl'), asleep = weightOf('curl');
+    const lying = lyingWeight(), asleep = weightOf('curl');
     const busy = Object.keys(ONE_SHOT).reduce((m, k) => Math.max(m, weightOf(k)), base === actions.stretch ? weightOf('stretch') : 0);
-    const resting = sitting || lying > .01 || busy > .01 || (solved && (base === actions.loaf || base === actions.curl || base === actions.stretch));
+    const resting = sitting || lying > .01 || busy > .01 || (solved && (base === actions.loaf || base === actions.curl || base === actions.stretch || base === actions.lie || base === actions.rise));
     mood = mind.update(dt, {walking, pouncing, sitting, resting, asleep, busy});
     // asleep, the eyes are shut, and now and then a forepaw twitches in a dream; yawning, the eyes shut
     // and the ears lie back
@@ -563,7 +578,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
     // the neck leads into the new heading, and levels the head against the body's pitch (a sitting
     // cat's back rises steeply, a running one's dips): the head bone itself is left to the glance code
     // (lying down, the pose holds the head itself)
-    const pitch = (rig.hips.rotation.x + rig.spine.rotation.x + rig.chest.rotation.x) * (1 - Math.min(1, weightOf('loaf') + weightOf('curl')));
+    const pitch = (rig.hips.rotation.x + rig.spine.rotation.x + rig.chest.rotation.x) * (1 - Math.min(1, lyingWeight()));
     rig.neck.quaternion.multiply(_lq.setFromEuler(_le.set(-pitch * TURN.level, -spring.turn * TURN.lead, 0)));
     // the tail trails: late, then settling
     const rate = dt > 0 ? -spring.turn * TURN.ease : 0, acc = dt > 0 ? (speed - spring.lastSpeed) / dt : 0; spring.lastSpeed = speed;
@@ -581,7 +596,7 @@ export function createFelineAnimator(root, rig, actor = null, opts = {}) {
   }
   // For the tool pages: hold one clip at a moment of its cycle (u in 0..1), everything else off.
   function show(name, u = 0) {
-    const ownsTail = name === 'sit' || name === 'loaf' || name === 'curl';
+    const ownsTail = name === 'sit' || name === 'loaf' || name === 'curl' || name === 'lie' || name === 'rise';
     fading.clear();
     for (const [key, a] of Object.entries(actions)) { a.enabled = true; a.paused = false; a.setEffectiveWeight(key === name || (key === 'tail' && !ownsTail) ? 1 : 0); }
     const a = actions[name]; a.play(); a.time = u * a.getClip().duration; a.paused = true;

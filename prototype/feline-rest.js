@@ -233,6 +233,25 @@ export const loafPose = (u, S) => stir(breathe(S.loaf, u, .015), u, .02);
 // (CLIPS.curl's period is one slow breath)
 export const curlPose = (u, S) => stir(breathe(S.curl, u, .03), u / 2, .01);
 
+// Lying down to sleep from the loaf, and getting back up: the loaf blended into the curl in stages, the
+// way a cat does it: it rolls onto its side first (the hips and the legs), then rounds its back (and the
+// tail), then brings its head round to its hind feet, the head kept upright while the body rolls under
+// it. (The curl's back and neck bend sideways only once the cat lies on its side: blended all at once,
+// halfway they bent the head down through the floor and out upside down under the forelegs.) The
+// stages, as shares of the clip: roll, back and head. Getting up runs it backwards.
+export const LIE = {time: 2.4, roll: [0, .55], back: [.3, .78], head: [.5, 1]};
+const stage = (k, [a, b]) => smooth((k - a) / (b - a));
+const groupOf = n => /^(neck|head|jaw|tongue|[lr]ear)/.test(n) ? 'head' : /^(spine|chest|back|tail)/.test(n) ? 'back' : 'roll';
+export function curlBlend(S, k) {
+  const w = {roll: stage(k, LIE.roll), back: stage(k, LIE.back), head: stage(k, LIE.head)}, out = {};
+  for (const n of new Set([...Object.keys(S.loaf), ...Object.keys(S.curl)])) out[n] = blend({[n]: S.loaf[n]}, {[n]: S.curl[n]}, w[groupOf(n)])[n];
+  const roll = (out.hips?.z || 0) - (S.loaf.hips?.z || 0);
+  out.head = {...out.head, z: (out.head?.z || 0) - roll * (1 - w.head)};
+  return out;
+}
+export const liePose = (u, S) => curlBlend(S, u);
+export const risePose = (u, S) => curlBlend(S, 1 - u);
+
 // Waking: the stretch and the yawn, one clip of STRETCH.time seconds: the bow, the yawn at its deepest
 // (YAWN.time: 1.97 s, Gallup et al. 2016; eyes shut and ears back, in the animator), then a hind leg
 // stretched out behind, then standing.
@@ -283,7 +302,8 @@ export function eatPose(u, S) {
 export function restClips(S) {
   return {
     sit: {pose: u => sitPose(u, S), period: 4, frames: 32}, loaf: {pose: u => loafPose(u, S), period: 4, frames: 32}, curl: {pose: u => curlPose(u, S), period: 2.5, frames: 32},
-    stretch: {pose: u => stretchPose(u, S), period: STRETCH.time, frames: 92, once: true}, groom: {pose: u => groomPose(u, S), period: GROOM.time, frames: 330, once: true},
+    stretch: {pose: u => stretchPose(u, S), period: STRETCH.time, frames: 92, once: true},
+    lie: {pose: u => liePose(u, S), period: LIE.time, frames: 48, once: true, ends: true}, rise: {pose: u => risePose(u, S), period: LIE.time, frames: 48, once: true, ends: true}, groom: {pose: u => groomPose(u, S), period: GROOM.time, frames: 330, once: true},
     eat: {pose: u => eatPose(u, S), period: EATING.time, frames: 210, once: true}, scratch: {pose: u => scratchPose(u, S), period: SCRATCHING.time, frames: 240, once: true},
   };
 }
