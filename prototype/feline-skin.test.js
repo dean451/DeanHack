@@ -42,7 +42,7 @@ test('the skinned cat is two skinned meshes over one skeleton, weighted, bound a
 
 test('the clips: idle, sit, loaf, curl, tail and pounce are sampled from pose functions into seamless looping tracks on the bones they name', () => {
   const a = createSkinnedFeline('housecat'), {actions} = a.animator;
-  assert.deepEqual(Object.keys(actions).sort(), ['curl', 'eat', 'groom', 'idle', 'loaf', 'pounce', 'scratch', 'sit', 'stretch', 'tail'], 'walking, trotting and galloping are stepped, not clips');
+  assert.deepEqual(Object.keys(actions).sort(), ['curl', 'eat', 'groom', 'idle', 'lie', 'loaf', 'pounce', 'rise', 'scratch', 'sit', 'stretch', 'tail'], 'walking, trotting and galloping are stepped, not clips; lie and rise join the loaf and the curl');
   const tail = actions.tail.getClip(), idle = actions.idle.getClip(), sit = actions.sit.getClip();
   const names = c => c.tracks.map(t => t.name);
   assert.ok(names(tail).every(n => n.startsWith('tail')) && names(tail).length === 5, 'the tail clip touches only the tail bones');
@@ -292,6 +292,37 @@ test('left alone, a pet settles: it sits, lies down, turns a circle and curls up
     let up = 0; for (; up < 2; up += 1 / 30) { r = updateSkinnedFeline(a, 1 / 30, null, true); if (r.asleep < .05 && r.lying < .05) break; }
     assert.ok(up < 1.05, `${name} up and walking in ${up.toFixed(2)} s`);
   }
+});
+
+test('lying down to sleep and getting up, the head stays upright and off the floor: it rolls onto its side first, then rounds its back, then brings its head round', () => {
+  const a = createSkinnedFeline('kitten'), q = new THREE.Quaternion(), v = new THREE.Vector3();
+  for (const clip of ['lie', 'rise']) for (let u = 0; u <= 1.0001; u += 1 / 40) {
+    a.animator.show(clip, Math.min(u, .999)); a.g.updateMatrixWorld(true);
+    const up = v.set(0, 1, 0).applyQuaternion(a.rig.head.getWorldQuaternion(q)).y;
+    assert.ok(up > -.05, `${clip} at ${u.toFixed(2)}: the head's up ${up.toFixed(2)} (not upside down)`);
+    assert.ok(a.rig.head.getWorldPosition(v).y > .02, `${clip} at ${u.toFixed(2)}: the head above the floor`);
+  }
+  // (the clips start and end on the loaf and the curl they join)
+  for (const [clip, u, pose] of [['lie', 0, 'loaf'], ['lie', .999, 'curl'], ['rise', 0, 'curl'], ['rise', .999, 'loaf']]) {
+    a.animator.show(clip, u); a.g.updateMatrixWorld(true); const at = a.rig.head.getWorldPosition(new THREE.Vector3());
+    a.animator.show(pose, 0); a.g.updateMatrixWorld(true);
+    assert.ok(at.distanceTo(a.rig.head.getWorldPosition(v)) < .02, `${clip} at ${u} matches the ${pose}`);
+  }
+});
+
+test('startled awake while curled up (something to fear comes close), it scrambles up the way it lay down: the head never turns upside down', () => {
+  const a = createSkinnedFeline('kitten'), q = new THREE.Quaternion(), v = new THREE.Vector3(), foe = {g: new THREE.Group(), species: 'jackal', actions: {}};
+  foe.g.userData.disposition = 'hostile'; foe.g.position.set(1, 0, 1);
+  let r, slept = false, rose = false;
+  for (let t = 0; t < 600; t += 1 / 30) {
+    a.senses = {hero: null, prey: null, threat: slept ? {actor: foe, dx: 1, dz: 1, d: 1.4} : null};
+    r = updateSkinnedFeline(a, 1 / 30, null, false); a.g.updateMatrixWorld(true);
+    if (r.asleep > .99) slept = true;
+    if (r.rest === 'rise') rose = true;
+    if (slept) assert.ok(v.set(0, 1, 0).applyQuaternion(a.rig.head.getWorldQuaternion(q)).y > -.05, `the head upside down at ${r.rest}`);
+    if (slept && rose && r.rest === 'stand' && r.lying < .01) break;
+  }
+  assert.ok(slept && rose && r.rest === 'stand' && r.lying < .01, `asleep, then up through the rise: ${r.rest}`);
 });
 
 test('waking on its own, a pet stretches (forelegs out, rump up) and yawns (mouth wide, eyes shut) before it stands', () => {
