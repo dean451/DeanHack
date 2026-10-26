@@ -16,6 +16,7 @@ import {updateDragonMenace} from '../dragon-menace.js';
 import {updateInsectSettle} from '../insect-settle.js';
 import {updateCockatriceSettle} from '../cockatrice-settle.js';
 import {updateInsectAlarm} from '../insect-alarm.js';
+import {updateCockatriceCrow} from '../cockatrice-crowing.js';
 const q=new URLSearchParams(location.search),name=q.get('name')||'chromatic dragon',view=q.get('view')||'three';
 const W=900,H=700,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
@@ -42,6 +43,8 @@ if(q.get('pose')==='mantle'){c.species=name;updateDragonMenace(c,1/30,0,false,fa
 if(q.get('idle')){c.species=name;for(let i=0;i<+q.get('idle')*30;i++)updateDragonMenace(c,1/30,i/30,false,false,null);}
 // ?settle=12 runs the game's own insect settling (insect-settle.js) that many seconds with nobody near; ?alarm=1 then holds the hero 1 m away that many seconds (insect-alarm.js)
 if(q.get('settle')||q.get('alarm')){const near={x:1,z:0};if(q.get('settle'))for(let i=0;i<+q.get('settle')*30;i++)updateInsectSettle(c,1/30,false,null),updateCockatriceSettle(c,1/30,false,null);if(q.get('alarm'))for(let i=0;i<+q.get('alarm')*30;i++)updateInsectAlarm(c,1/30,i/30,false,near);}
+// ?crowing=.8 brings a cockerel's own crow (cockatrice-crowing.js) on at once, with the hero far off, and runs it that many seconds
+if(q.get('crowing')){const far={x:9,z:0};updateCockatriceCrow(c,0,0,false,far);if(c.fowlCrow)c.fowlCrow.wait=0;for(let i=0;i<+q.get('crowing')*30;i++)updateCockatriceCrow(c,1/30,i/30,false,far);}
 // ?pose=fold, flapup or flapdown holds a dragon's baked folded wings or the top or bottom of its wingbeat (dragon-wings.js)
 if(['fold','flapup','flapdown'].includes(q.get('pose'))&&c.joints){const e=WING_POSES[name],k=q.get('pose')==='fold'?'fold':q.get('pose').slice(4),p=JSON.parse(JSON.stringify(e[k]));for(const w of c.wings)p[w.name]={...(p[w.name]||{}),y:(p[w.name]?.y||0)+(w.userData.side||1)*-.18};dragonPoser(c).apply(p);}
 // ?walk=2 walks it that many seconds in the game's own update, after live.js's leg swing and body bob each frame
