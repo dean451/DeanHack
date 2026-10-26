@@ -2586,10 +2586,13 @@ function gargoyle(o){
  // ember seams: thin cracks in the chest and back burn with the same fire as the eyes, as if something inside were awake
  for(const [x,y,z,rz,l] of [[.04,.52,.245,.5,.11],[-.07,.44,.24,-.7,.08],[.02,.6,-.12,.3,.1]]){const m=rounded(body,l,.007,.006,glow,x,y,z,.002);m.rotation.z=rz;m.castShadow=false;}
  // arms: heavy shoulders, long forearms reaching down so the knuckles rest on the floor
- for(const side of [-1,1]){const sh=[side*.22,.6,.08],el=[side*.28,.36,.16],wr=[side*.22,.08,.24];
-  sphere(body,.08,stone,...sh);segment(body,sh,el,.065,.05,stone);sphere(body,.05,stone,...el);segment(body,el,wr,.05,.04,dark);
-  sphere(body,.05,dark,wr[0],.05,wr[2],1.1,.8,1.2);
-  for(let t=-1;t<=1;t++){const c=cone(body,.012,.05,crack,wr[0]+t*.025,.02,wr[2]+.05,4);c.rotation.x=Math.PI/2+.3;}}
+ // each arm hangs from its own shoulder group (lfore / rfore, left is -x), drawn in the group's own space
+ const arms=[];
+ for(const side of [-1,1]){const arm=new THREE.Group(),sh=[side*.22,.6,.08],el=[side*.28-sh[0],.36-sh[1],.16-sh[2]],wr=[side*.22-sh[0],.08-sh[1],.24-sh[2]];
+  arm.position.set(...sh);arm.name=(side<0?'l':'r')+'fore';body.add(arm);arms.push(arm);
+  sphere(arm,.08,stone);segment(arm,[0,0,0],el,.065,.05,stone);sphere(arm,.05,stone,...el);segment(arm,el,wr,.05,.04,dark);
+  sphere(arm,.05,dark,wr[0],.05-sh[1],wr[2],1.1,.8,1.2);
+  for(let t=-1;t<=1;t++){const c=cone(arm,.012,.05,crack,wr[0]+t*.025,.02-sh[1],wr[2]+.05,4);c.rotation.x=Math.PI/2+.3;}}
  // head: jutting forward on the shoulders, heavy brow, curled horns, pointed ears, snout, fangs and glowing eyes
  const head=new THREE.Group();head.position.set(0,.72,.2);head.rotation.x=.15;body.add(head);
  sphere(head,.12,stone,0,0,0,1,.95,1.05);rounded(head,.19,.04,.06,dark,0,.045,.08,.015);
@@ -2623,6 +2626,7 @@ function gargoyle(o){
  const joints={head,neck0:head,lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};head.name='head';tail.name='tail';tailBones.forEach(b=>{joints[b.name]=b;});
  legs.forEach((leg,i)=>{const name=(leg.position.x<0?'l':'r')+'leg1';leg.name=name;joints[name]=leg;});
  for(const n of ['lwing','rwing'])joints[n].name=n;
+ for(const arm of arms)joints[arm.name]=arm;
  return trimDraws({...actor(g,body,legs,tail,wings,'idle'),head,joints});
 }
 function gremlin(o){

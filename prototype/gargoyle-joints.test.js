@@ -64,3 +64,22 @@ test('bending a tail joint moves the tail past it and leaves the tail before it,
   assert(world(endCap).distanceTo(capBefore)>.02,`${name}: the spade or tuft followed the bend`);
  }
 });
+
+test('each gargoyle arm hangs from its own shoulder group: turning it moves that arm only',()=>{
+ for(const f of FAMILY.filter(f=>/gargoyle/.test(f[0]))){
+  const a=make(f),j=a.joints,name=f[0];
+  for(const side of ['l','r']){
+   const arm=j[`${side}fore`];
+   assert(arm&&a.g.getObjectByName(`${side}fore`)===arm,`${name}: ${side}fore`);
+   assert.equal(arm.position.x<0,side==='l',`${name}: left is -x`);
+   assert(arm.children.length>=2,`${name}: ${side}fore holds the arm's parts`);
+   const other=j[`${side==='l'?'r':'l'}fore`],armBefore=tip(arm),otherBefore=tip(other),headBefore=tip(a.head),legsBefore=a.legs.map(tip);
+   arm.rotation.x=-.8;
+   assert(tip(arm).distanceTo(armBefore)>.02,`${name}: ${side}fore swung`);
+   assert(tip(other).distanceTo(otherBefore)<1e-6,`${name}: the other arm stayed`);
+   assert(tip(a.head).distanceTo(headBefore)<1e-6,`${name}: the head stayed`);
+   a.legs.forEach((l,i)=>assert(tip(l).distanceTo(legsBefore[i])<1e-6,`${name}: leg ${i} stayed`));
+   arm.rotation.x=0;
+  }
+ }
+});
