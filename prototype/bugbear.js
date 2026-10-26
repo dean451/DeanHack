@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {nameHumanoidJoints} from './humanoid-joints.js';
 
 // The bugbear used to be the generic stocky humanoid: a box torso with a sphere head, a little
 // snout ball and two round ears. It now has its own model: a big, hunched, shaggy goblinoid,
@@ -194,5 +195,5 @@ export function createBugbear(){
  }
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-L.arm-.01,.03);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.weapon,material,'weapon');
- return {g,body,legs,tail:null,wings:[],quirk:'orc',arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null};
+ return nameHumanoidJoints({g,body,legs,tail:null,wings:[],quirk:'orc',arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null});
 }

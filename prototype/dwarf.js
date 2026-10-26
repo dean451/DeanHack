@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {nameHumanoidJoints} from './humanoid-joints.js';
 
 // Dwarves used to be the generic box humanoid: a box torso, a ball for a head, a cylinder helm
 // and a ball of beard. They now have their own model: a broad, barrel-chested little warrior
@@ -323,5 +324,5 @@ export function createDwarf(name){
  // the pick, held low in the left hand and leaning out (the old humanoid's rest pose)
  let pick=null;
  if(S.pick){pick=new THREE.Group();pick.name='dwarf-pick';pick.position.set(-.36,.44,.1);pick.rotation.set(.12,0,.42);body.add(pick);both(pick,S.pick,'pick');}
- return {g,body,legs,tail:null,wings:[],quirk:'dwarf',arms,arm:arms[1],weaponSocket,head,hat:null,beard,pick};
+ return nameHumanoidJoints({g,body,legs,tail:null,wings:[],quirk:'dwarf',arms,arm:arms[1],weaponSocket,head,hat:null,beard,pick});
 }
