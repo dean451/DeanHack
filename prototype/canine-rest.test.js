@@ -35,6 +35,13 @@ test('lying: belly down, paws on the floor, muzzle low by the haunch, tail laid 
   assert(lowest(a)>floor-.02,`${name}: lowest point ${((lowest(a)-floor)*100).toFixed(1)} cm`);}
 });
 
+test('the tail is laid round the body, its tip within one head length of the muzzle',()=>{
+ for(const name of FAMILY){const a=make(name),P=rolesOf(a),head=P.head().distanceTo(P.mouth());
+  const r=restPose(a);birdPoser(a).apply(r.pose);
+  const d=P.tailtip().distanceTo(P.mouth());
+  assert(d<=head,`${name}: tail tip ${d.toFixed(2)} from the muzzle, head length ${head.toFixed(2)}`);}
+});
+
 test('the pose is easy to leave: posing nothing returns every joint and the body exactly to the built values',()=>{
  for(const name of ['jackal','dog','wolf']){const a=make(name),built={};
   for(const [n,o] of Object.entries(a.joints))built[n]=o.rotation.toArray().slice(0,3);
