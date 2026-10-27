@@ -159,6 +159,8 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
+- **The jackal's curled sleep does not curl (daily review 2026-10-27, https://github.com/dean451/DeanHack/pull/1715, `prototype/canine-rest.js`):** `tools/creature-shot.mjs jackal` with `POSE=rest` and the letter `d` renders a squashed squirrel-like lump: the head is large against a flattened body, the forepaw lies across the face, and the banded tail points straight out behind instead of wrapping round the flank toward the nose. **Done when:** side and game-camera renders of the jackal and the wolf at `POSE=rest` show the tail laid round the body with its tip near the muzzle, a body as long as the standing one's torso, nothing through the floor, and a test in `canine-rest.test.js` asserts the tail tip lies within one head length of the muzzle.
+
 
 
 **Models**
