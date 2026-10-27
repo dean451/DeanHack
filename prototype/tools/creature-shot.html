@@ -12,6 +12,7 @@ import {crowPose, crows} from '../cockatrice-crow.js';
 import {restPose as beeRest, rests as beeRests} from '../bee-rest.js';
 import {restPose as insectRest, rests as insectRests} from '../insect-rest.js';
 import {restPose as catRest, rests as catRests} from '../wildcat-rest.js';
+import {restPose as dogRest, rests as dogRests} from '../canine-rest.js';
 import {gasterPose, raises as gasterRaises} from '../insect-gaster.js';
 import {updateDragonMenace} from '../dragon-menace.js';
 import {updateInsectSettle} from '../insect-settle.js';
@@ -38,6 +39,8 @@ if(q.get('pose')==='rest'&&beeRests(c)){const r=beeRest(c);birdPoser(c).apply(r.
 if(q.get('pose')==='rest'&&insectRests(c)){const r=insectRest(c);birdPoser(c).apply(r.pose);}
 // ?pose=rest also lies a wild cat down in the sphinx (wildcat-rest.js)
 if(q.get('pose')==='rest'&&catRests(c)){const r=catRest(c);birdPoser(c).apply(r.pose);}
+// ?pose=rest also curls a dog, jackal or wolf asleep (canine-rest.js)
+if(q.get('pose')==='rest'&&dogRests(c)){const r=dogRest(c);birdPoser(c).apply(r.pose);}
 // ?pose=gaster lifts an ant's gaster over its back, the sting forward (insect-gaster.js)
 if(q.get('pose')==='gaster'&&gasterRaises(c)){const r=gasterPose(c);birdPoser(c).apply(r.pose);}
 // ?pose=mantle holds a dragon's mantle (dragon-menace.js) mid-hold
