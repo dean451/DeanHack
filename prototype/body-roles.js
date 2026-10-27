@@ -165,10 +165,52 @@ export function wildCatRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the dragons, the cockerels and the insects have maps so far.
+// The canines' map (jackals to hell hounds, Cerberus and the pet dogs), from the joints `createCanine` exposes.
+// Their hide is one skinned mesh, so the parts are found by weight: a paw is the lowest vertex that rides the
+// leg's pivot, carried on the leg's last bone (`<leg>_2`) so it follows the bent leg; the tail tip is the
+// farthest-back vertex that rides the tail, in `tail4`'s frame. Shoulders and hips are each leg's first bone,
+// the withers `spine0`, the rump `tail0`. The mouth and chin are read off the head's own mesh as on the wild cats
+// (Cerberus's map is its middle head's).
+export function canineRoles(actor) {
+  const j = actor.joints, V = (...a) => new THREE.Vector3(...a);
+  actor.g.updateMatrixWorld(true);
+  const hide = (() => { let m; actor.g.traverse(o => { if (o.isSkinnedMesh) m = o; }); return m; })();
+  const bones = hide.skeleton.bones, si = hide.geometry.attributes.skinIndex, sw = hide.geometry.attributes.skinWeight;
+  const under = (b, root) => { for (let p = b; p; p = p.parent) if (p === root) return true; return false; };
+  const riding = root => { // the hide's vertices, in the world, that mostly ride `root` or a bone under it
+    const out = [], v = V();
+    for (let i = 0; i < si.count; i++) {
+      let w = 0; for (let k = 0; k < 4; k++) if (under(bones[si.getComponent(i, k)], root)) w += sw.getComponent(i, k);
+      if (w > .5) { hide.getVertexPosition(i, v); out.push(v.clone().applyMatrix4(hide.matrixWorld)); }
+    }
+    return out;
+  };
+  const extreme = (list, better) => list.reduce((a, b) => better(b, a) ? b : a);
+  const hm = j.head.children.find(o => o.isMesh && o.userData.part === 'head'), hv = [];
+  { const p = hm.geometry.attributes.position; for (let i = 0; i < p.count; i++) hv.push(V().fromBufferAttribute(p, i)); }
+  const ys = hv.map(v => v.y), lo = Math.min(...ys), mid = (lo + Math.max(...ys)) / 2, nose = extreme(hv.filter(v => v.y < mid), (a, b) => a.z > b.z);
+  const tip = extreme(riding(actor.tail), (a, b) => a.z < b.z);
+  const map = {
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.head, [0, nose.y, nose.z]),
+    chin: () => inFrame(() => j.head, [0, lo, nose.z * .6]),
+    withers: () => at(() => j.spine0),
+    rump: () => at(() => j.tail0),
+    tailtip: () => inFrame(() => j.tail4, j.tail4.worldToLocal(tip.clone()).toArray()),
+  };
+  for (const side of ['l', 'r']) for (const [i, pair] of [[0, 'f'], [1, 'h']]) {
+    const bone = j[`${side}leg${i}_2`], sole = extreme(riding(j[`${side}leg${i}`]), (a, b) => a.y < b.y);
+    map[`paw:${side}${pair}`] = () => inFrame(() => bone, bone.worldToLocal(sole.clone()).toArray());
+    map[`${pair === 'f' ? 'shoulder' : 'hip'}:${side}`] = () => at(() => j[`${side}leg${i}_0`]);
+  }
+  return buildRoles(map, {});
+}
+
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels and the insects have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
+  if ((actor.quirk === 'canine' || actor.quirk === 'dog') && actor.joints?.lleg0_2) return canineRoles(actor);
   if (actor.quirk === 'dragon' && actor.joints) return dragonRoles(actor);
   if (actor.quirk === 'cockatrice' && actor.joints) return cockatriceRoles(actor);
   if ((actor.quirk === 'insect' || actor.quirk === 'bee') && actor.joints?.lleg0_2) return insectRoles(actor);
