@@ -11,8 +11,9 @@ import {birdPoser} from './cockatrice-rest.js';
 
 // Shares of the dog's standing shoulder height: how far each forepaw lies ahead of its shoulder, how far the
 // hind foot lies ahead of its hip, how near the muzzle lies to the left haunch, and how near the tail's tip
-// lies to the muzzle, and how high the muzzle lies above the floor.
-export const REST = {reach: .4, hind: .15, nose: .55, tail: .7, chin: .3};
+// lies to the muzzle, how high the muzzle lies above the floor, and how near the tail's middle lies to the left
+// haunch (the tail laid along the flank, not stuck out past the rump).
+export const REST = {reach: .4, hind: .15, nose: .55, tail: .7, chin: .3, wrap: .6};
 
 const worst = r => Math.max(...r.residuals.flat().map(Math.abs));
 
@@ -45,7 +46,8 @@ export function restPose(a) {
       goal.ahead(`hip:${side}`, `paw:${side}h`, REST.hind * high, {within: .06 * s}));
   }
   const round = [goal.floor('mouth', {y: floor + REST.chin * high, weight: 2}), goal.floor('tailtip', {y: floor + .1 * high, weight: 1.5}),
-    goal.reach('mouth', 'hip:l', {within: REST.nose * high, weight: 2}), goal.reach('tailtip', 'mouth', {within: REST.tail * high, weight: 1.5})];
+    goal.reach('mouth', 'hip:l', {within: REST.nose * high, weight: 2}), goal.reach('tailtip', 'mouth', {within: REST.tail * high, weight: 1.5}),
+    goal.reach(() => j.tail2.getWorldPosition(new THREE.Vector3()), 'hip:l', {within: REST.wrap * high, weight: 1.5})];
   const goals = [...down, goal.clear(all, {y: floor, weight: 2}), ...round];
   // Two stages, as the dragons': lie down first (tried from the legs as built and folded either way, the first
   // to meet every goal kept), then swing the neck and tail round with the body held (from either side).

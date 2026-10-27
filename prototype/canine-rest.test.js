@@ -42,6 +42,12 @@ test('the tail is laid round the body, its tip within one head length of the muz
   assert(d<=head,`${name}: tail tip ${d.toFixed(2)} from the muzzle, head length ${head.toFixed(2)}`);}
 });
 
+test('the tail is laid along the flank: its middle lies within REST.wrap of the haunch',()=>{
+ for(const name of FAMILY){const {a,r}=sleeper(name),P=rolesOf(a),mid=a.joints.tail2.getWorldPosition(new THREE.Vector3());
+  const d=mid.distanceTo(P['hip:l']());
+  assert(d<=REST.wrap*r.high+.02,`${name}: tail middle ${d.toFixed(2)} from the haunch, limit ${(REST.wrap*r.high).toFixed(2)}`);}
+});
+
 test('the pose is easy to leave: posing nothing returns every joint and the body exactly to the built values',()=>{
  for(const name of ['jackal','dog','wolf']){const a=make(name),built={};
   for(const [n,o] of Object.entries(a.joints))built[n]=o.rotation.toArray().slice(0,3);
