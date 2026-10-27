@@ -12,7 +12,7 @@ import {birdPoser} from './cockatrice-rest.js';
 // Shares of the dog's standing shoulder height: how far each forepaw lies ahead of its shoulder, how far the
 // hind foot lies ahead of its hip, how near the muzzle lies to the left haunch, and how near the tail's tip
 // lies to the muzzle, and how high the muzzle lies above the floor.
-export const REST = {reach: .4, hind: .15, nose: .7, tail: 1, chin: .3};
+export const REST = {reach: .4, hind: .15, nose: .55, tail: .7, chin: .3};
 
 const worst = r => Math.max(...r.residuals.flat().map(Math.abs));
 
