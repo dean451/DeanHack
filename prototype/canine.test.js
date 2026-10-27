@@ -15,9 +15,9 @@ test('wild dogs get a shaped torso, a turning head with a muzzle and ears, joint
   assert.equal(a.legs.length,4,name);
   assert(a.body?.isObject3D&&a.head?.isObject3D&&a.tail?.isObject3D,name);
   assert(a.head.children.some(o=>o.isMesh&&o.userData.part==='head'),`${name}: the head handle carries the head`);
-  assert(a.tail.children.some(o=>o.isMesh&&o.userData.part==='tail'),`${name}: the tail handle carries the tail`);
+  assert(a.tail.isBone&&a.joints.tail0.parent===a.tail,`${name}: the tail handle is the tail's wag pivot`);
   const parts=meshes(a);
-  assert.equal(parts.length,8,`${name}: body, head, eyes, four legs and the tail`);
+  assert.equal(parts.length,3,`${name}: the hide (torso, neck, legs and tail, canine-hide.js), the head and the eyes`);
   assert.equal(new Set(parts.map(m=>m.material)).size,2,`${name}: fur and eyes`);
   let verts=0;
   for(const m of parts){
@@ -34,7 +34,7 @@ test('wild dogs get a shaped torso, a turning head with a muzzle and ears, joint
   const hb=new THREE.Box3().setFromObject(a.head);
   assert(hb.max.z>b.max.z-.01,`${name}: the nose is the front of the dog`);
   assert.equal(foreLegs(a).length,2,`${name}: two forelegs`);
-  const lx=a.legs.map(l=>new THREE.Box3().setFromObject(l)).map(bb=>(bb.min.x+bb.max.x)/2);
+  const lx=a.legs.map(l=>l.position.x);
   assert(Math.abs(lx[0]+lx[2])<1e-6&&Math.abs(lx[1]+lx[3])<1e-6,`${name}: legs mirrored`);
   sizes[name]=b.max.y;
  }
@@ -91,7 +91,7 @@ test('pet dogs share the canine build with a collar, a tongue, breed ears and a 
   assert.equal(a.quirk,'dog',name);
   assert(a.head?.isObject3D&&a.tail?.isObject3D,name);
   const parts=meshes(a);
-  assert.equal(parts.length,8,`${name}: body, head, eyes, four legs and the tail`);
+  assert.equal(parts.length,3,`${name}: the hide, the head and the eyes`);
   assert.equal(new Set(parts.map(m=>m.material)).size,2,name);
   for(const m of parts)for(const key of ['position','normal'])for(const v of m.geometry.attributes[key].array)assert(Number.isFinite(v),`${name} ${m.userData.part} ${key}`);
   a.g.updateMatrixWorld(true);
@@ -100,8 +100,8 @@ test('pet dogs share the canine build with a collar, a tongue, breed ears and a 
   assert(Math.max(-b.min.x,b.max.x)<.4&&Math.max(-b.min.z,b.max.z)<.8,`${name} ${JSON.stringify(b)}`);
   assert.equal(foreLegs(a).length,2,name);
   // the tail is carried up: its tip is above where it leaves the rump
-  const t=new THREE.Box3().setFromObject(a.tail),root=a.tail.getWorldPosition(new THREE.Vector3());
-  assert(t.max.y>root.y+.1*a.g.scale.y,`${name}: tail up`);
+  const t=a.joints.tail4.getWorldPosition(new THREE.Vector3()),root=a.tail.getWorldPosition(new THREE.Vector3());
+  assert(t.y>root.y+.1*a.g.scale.y,`${name}: tail up`);
   // collar and tongue colours are in the body and head (vertex colours are linear)
   const has=(part,test)=>{const c=parts.find(m=>m.userData.part===part).geometry.attributes.color;for(let i=0;i<c.count;i++)if(test(c.getX(i),c.getY(i),c.getZ(i)))return true;return false;};
   assert(has('head',(r,g,bl)=>r>.17&&r<.3&&g<.045&&bl>g&&bl<.05),`${name}: dull bruised tongue`);
@@ -119,7 +119,7 @@ test('Cerberus is a three-headed hound with spiked collars, a viper mane and a s
  assert(a.heads[0].rotation.y<0&&a.heads[2].rotation.y>0,'the side heads look outward');
  for(const h of a.heads)assert(h.children.some(o=>o.userData.part==='head')&&h.children.some(o=>o.userData.part==='eyes'));
  const parts=meshes(a);
- assert.equal(parts.length,12,'body, three heads, three eyes, four legs and the tail');
+ assert.equal(parts.length,7,'the hide, three heads and three eyes');
  assert.equal(new Set(parts.map(m=>m.material)).size,2,'fur and eyes');
  for(const m of parts)for(const key of ['position','normal'])for(const v of m.geometry.attributes[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);
  a.g.updateMatrixWorld(true);
@@ -127,7 +127,10 @@ test('Cerberus is a three-headed hound with spiked collars, a viper mane and a s
  const hound=new THREE.Box3().setFromObject(createCreature({name:'hell hound'}).g,true);
  assert(b.min.y>-.03&&b.max.y>hound.max.y,'stands on the floor, bigger than a hell hound');
  assert(b.max.x-b.min.x>hound.max.x-hound.min.x+.3,'the heads spread him wide');
- assert(a.tail.children[0].geometry.attributes.position.count>3000,'a scaled serpent tail with a head');
+ // (the tail's vertices are the hide's on the tail bones)
+ const hide=parts.find(m=>m.isSkinnedMesh),bones=hide.skeleton.bones,si=hide.geometry.attributes.skinIndex;let tailVerts=0;
+ for(let i=0;i<si.count;i++)if(/^tail/.test(bones[si.getX(i)].name))tailVerts++;
+ assert(tailVerts>3000,`a scaled serpent tail with a head: ${tailVerts} vertices`);
  assert.equal(createCreature({name:'jackal'}).heads,undefined,'one head on other dogs');
 });
 
