@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {nameImpJoints} from './imp-joints.js';
 
 // The imp used to be the generic short humanoid in red, with a flat triangle for each wing and a
 // cone tail. It now stands as a small, wiry red devil: a lean, narrow-waisted torso with a ruddy
@@ -227,5 +228,5 @@ export function createImp(kind='red'){
   const wing=new THREE.Group();wing.position.set(s*.04,.58,-.08);wing.rotation.x=-.25;wing.userData.side=s;body.add(wing);mesh(wing,S.wing[s],S.material,'wing');wings.push(wing);
  }
  const tail=new THREE.Group();tail.position.set(0,.34,-.07);body.add(tail);mesh(tail,S.tail,S.material,'tail');
- return {g,body,legs,tail,wings,quirk:'imp',arms,arm:arms[1],head,hat:null,beard:null,pick:null};
+ return nameImpJoints({g,body,legs,tail,wings,quirk:'imp',arms,arm:arms[1],head,hat:null,beard:null,pick:null});
 }

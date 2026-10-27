@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {nameImpJoints} from './imp-joints.js';
 
 // Lemures share the minor demons' letter, so they used to be the imp humanoid tinted brown, wings
 // and all. They now slump as the shapeless larval devils they are: a mound of mottled, melting
@@ -125,5 +126,5 @@ export function createLemure(){
   const leg=new THREE.Group();leg.position.set(s*.09,.11,.11);body.add(leg);mesh(leg,S.lobe,S.material,'leg');legs.push(leg);
   const arm=new THREE.Group();arm.position.set(s*.16,.39,.06);arm.rotation.set(-.55,0,s*.35);body.add(arm);mesh(arm,S.arm[s],S.material,'arm');arms.push(arm);
  }
- return {g,body,legs,tail:null,wings:[],quirk:'lemure',arms,arm:arms[1],head,hat:null,beard:null,pick:null};
+ return nameImpJoints({g,body,legs,tail:null,wings:[],quirk:'lemure',arms,arm:arms[1],head,hat:null,beard:null,pick:null});
 }

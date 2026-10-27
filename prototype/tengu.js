@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {nameImpJoints} from './imp-joints.js';
 
 // The tengu shares the minor demons' letter, so it used to be the imp humanoid tinted cyan.
 // It now stands as a mountain goblin in yamabushi dress: a crimson face with a long nose,
@@ -165,5 +166,5 @@ export function createTengu(){
  }
  // the fan arm is raised forward, holding the fan before the chest
  const arm=arms[1];arm.rotation.x=-.55;
- return {g,body,legs,tail:null,wings,quirk:'tengu',arms,arm,head,hat:null,beard:null,pick:null};
+ return nameImpJoints({g,body,legs,tail:null,wings,quirk:'tengu',arms,arm,head,hat:null,beard:null,pick:null});
 }
