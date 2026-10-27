@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {nameImpJoints} from './imp-joints.js';
 
 // Quasits share the minor demons' letter, so they used to be the imp humanoid tinted blue, with the
 // imp's wings although quasits don't fly. They now crouch as small, lean blue demons: a narrow
@@ -158,5 +159,5 @@ export function createQuasit(){
   const arm=new THREE.Group();arm.position.set(s*.12,.52,.05);arm.rotation.set(-.3,0,s*.16);body.add(arm);mesh(arm,S.arm[s],S.material,'arm');arms.push(arm);
  }
  const tail=new THREE.Group();tail.position.set(0,.27,-.08);body.add(tail);mesh(tail,S.tail,S.material,'tail');
- return {g,body,legs,tail,wings:[],quirk:'quasit',arms,arm:arms[1],head,hat:null,beard:null,pick:null};
+ return nameImpJoints({g,body,legs,tail,wings:[],quirk:'quasit',arms,arm:arms[1],head,hat:null,beard:null,pick:null});
 }

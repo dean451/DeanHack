@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {nameImpJoints} from './imp-joints.js';
 
 // The homunculus shares the minor demons' letter, so it used to be the imp humanoid tinted green.
 // It now stands as a squat little alchemist's familiar: a pot-bellied green body with a paler belly
@@ -179,5 +180,5 @@ export function createHomunculus(){
   const wing=new THREE.Group();wing.position.set(s*.05,.5,-.1);wing.rotation.x=-.2;wing.userData.side=s;body.add(wing);mesh(wing,S.wing[s],S.material,'wing');wings.push(wing);
  }
  const tail=new THREE.Group();tail.position.set(0,.28,-.1);body.add(tail);mesh(tail,S.tail,S.material,'tail');
- return {g,body,legs,tail,wings,quirk:'homunculus',arms,arm:arms[1],head,hat:null,beard:null,pick:null};
+ return nameImpJoints({g,body,legs,tail,wings,quirk:'homunculus',arms,arm:arms[1],head,hat:null,beard:null,pick:null});
 }
