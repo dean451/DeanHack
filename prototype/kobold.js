@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {nameHumanoidJoints} from './humanoid-joints.js';
 
 // Kobolds used to be the generic short humanoid: a box torso, a sphere head with a cone snout, two
 // long flat cone ears and a stick spear. They now have their own model: a small, scaly, dog-snouted
@@ -266,5 +267,8 @@ export function createKobold(name){
  const tail=new THREE.Group();tail.position.set(0,P0.tailY*s,P0.tailZ*s);tail.rotation.x=1.2;body.add(tail);mesh(tail,S.tail,material,'tail');
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-(P0.arm+.01)*s,.02*s);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.weapon,material,'weapon');
- return {g,body,legs,tail,wings:[],quirk:'kobold',arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null};
+ const actor={g,body,legs,tail,wings:[],quirk:'kobold',arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null};
+ nameHumanoidJoints(actor);
+ tail.name='tail0';actor.joints.tail0=tail;
+ return actor;
 }
