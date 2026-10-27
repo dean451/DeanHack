@@ -130,3 +130,20 @@ The sixth monster family (AGENTS.md, family **f**; the lion's lying and sleep nu
 *Not found:* a wild cat's sphinx (sternal) rest as an angle or a chin-to-paw distance, and a crouched stalk's speed or belly height in a tiger or leopard (the sources describe a low body and slow paw-by-paw steps, with no number; the cat paper is on housecats, the same body plan). No number is claimed for them; the pose stage sets them by eye against photographs.
 
 **What the wild cats take from this.** A tiger is long (tail under half the head and body) and sleeps most of the day, so a monster cat settles into the pet cat's lying pose readily. Stalking, the walk is crouched with a diagonal footfall (a rear foot follows the opposite front foot closely): the body low, the stride short and even, never bouncing.
+
+## Canines (jackals, foxes, dogs, wolves, hell hounds)
+
+The fourth monster family (AGENTS.md, family **d**). Measured from the domestic dog: how it sleeps, how fast it walks and trots, and when it plays. Each number below is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Dog (sleep, walk, trot, play bow)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Curled sleep | the curled-up position is the most common, 71% of 2,000 UK owners reporting; owners believe their dogs sleep about nine hours a day (an owner survey by Guide Dogs, so what owners say they see, not a measurement) | [Yorkshire Evening Post on the Guide Dogs survey](https://www.yorkshireeveningpost.co.uk/read-this/the-unusual-and-adorable-sleeping-habits-of-dogs-revealed-in-new-survey-of-owners-3373970) |
+| Walking speed | adult Labrador retrievers walked a treadmill at 0.78 and 0.96 m/s, stride time and stance duration recorded from 3-D markers at 240 Hz | ["Kinematic and spatiotemporal assessment of habituation to treadmill walking in Labrador retrievers"](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5192580/) |
+| Trot speed | 14 trotting dogs (small, about 6.5 kg on average) crossed a pressure walkway at 0.9 to 1.1 m/s | [Pressure-walkway study of trotting dogs, PMC5015230](https://pmc.ncbi.nlm.nih.gov/articles/PMC5015230) |
+| Play bow | bows most often come after a brief pause in play, to restart it, not during rough or ambiguous moves | Byosiere, Espinosa and Smuts 2016, ["Investigating the function of play bows in adult pet dogs"](https://about.illinoisstate.edu/vfdouga/files/2019/10/byosiere-epinosa-smuts-2016-invest-funct-of-play-bows-in-adult-pet-dogs.pdf) |
+
+*Not found:* a dog's duty factor at a trot, a curl's wrap angle, a play bow's duration (Bekoff 1977 calls its duration and form stereotyped but the abstract gives no number), and any wolf or jackal figure. No number is claimed for them; the pose stages set them by eye.
+
+**What the canines take from this.** A dog walks at about 0.8 to 1 m/s and trots at about the same pace in a small dog, so the walk and trot are told apart by footfall, not speed. It most often sleeps curled up. The play bow is a pause-breaker: it comes after a lull, not in the middle of a fight.

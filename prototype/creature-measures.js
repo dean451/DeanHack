@@ -59,6 +59,12 @@ export const MEASURES = {
     sleepHours: [16, 20], // a day, tigers (a keeper's guide)
     stealthRecovery: {mean: .176, sd: .113, max: .379}, // share of mechanical energy recovered walking crouched (Bishop et al. 2008)
   },
+  canine: {
+    curledShare: .71, // owners reporting a curled sleeping dog (Guide Dogs survey of 2,000 UK owners)
+    ownerSleepHours: 9, // what those owners believe
+    walkSpeed: [.78, .96], // m/s, Labrador retrievers on a treadmill
+    trotSpeed: [.9, 1.1], // m/s, small trotting dogs on a pressure walkway
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -90,4 +96,10 @@ export const FOWL = {
 export const WILDCAT = {
   tailShare: [MEASURES.wildCat.tiger.tail[0] / (MEASURES.wildCat.tiger.headBody.male[1] + MEASURES.wildCat.tiger.tail[0]), MEASURES.wildCat.tiger.tail[1] / (MEASURES.wildCat.tiger.headBody.female[0] + MEASURES.wildCat.tiger.tail[1])],
   sleepShare: MEASURES.wildCat.sleepHours.map(h => h / 24),
+};
+// What the canines' poses use: the share of the day asleep as owners see it, and the walk's pace
+export const CANINE = {
+  sleepShare: MEASURES.canine.ownerSleepHours / 24,
+  curledMostly: MEASURES.canine.curledShare > .5,
+  walkMid: mid(MEASURES.canine.walkSpeed),
 };
