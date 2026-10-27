@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {nameImpJoints} from './imp-joints.js';
+import {skinChain,rigChain} from './chain-skin.js';
+import {skinLimb,rigLimb} from './humanoid-joints.js';
 
 // The imp used to be the generic short humanoid in red, with a flat triangle for each wing and a
 // cone tail. It now stands as a small, wiry red devil: a lean, narrow-waisted torso with a ruddy
@@ -163,7 +165,8 @@ function buildTail(C){
  // the spade: a flattened diamond cone with a round shoulder, aimed along the tail's end
  P.add(new THREE.ConeGeometry(.035,.07,4),new THREE.Matrix4().compose(end.clone().addScaledVector(dir,.04),q,new THREE.Vector3(1,1,.3)),C.skinDark);
  P.add(new THREE.SphereGeometry(.03,8,6),new THREE.Matrix4().compose(end.clone().addScaledVector(dir,.008),q,new THREE.Vector3(1,.5,.3)),C.skinDark);
- return P.merge();
+ // five bones down the tail's curve; the spade rides the last
+ return skinChain(P.merge(),[0,.25,.5,.75,1].map(u=>path.getPoint(u).toArray()));
 }
 
 // A cluster of jagged glowing shards (5-sided cones) bursting out from a point along a direction.
@@ -210,7 +213,8 @@ function geometry(kind){
  const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:C.ore?.7:.6});
  const glow=new THREE.MeshStandardMaterial({...eye,roughness:.25});
  return shared[kind]={material,eye:glow,body:buildBody(C),head:buildHead(C),eyes:C.ore?buildHeadGlow():buildEyes(),bodyGlow:C.ore?buildBodyGlow():null,
-  leg:buildLeg(C),tail:buildTail(C),arm:{'-1':buildArm(C,-1),'1':buildArm(C,1)},wing:{'-1':buildWing(C,-1),'1':buildWing(C,1)}};
+  leg:skinLimb(buildLeg(C),[[0,0,0],[0,-.13,.05],[0,-.24,-.04],[0,-.34,-.01]]),tail:buildTail(C),
+  arm:{'-1':skinLimb(buildArm(C,-1),[[0,0,0],[0,-.14,-.015],[0,-.25,.04]]),'1':skinLimb(buildArm(C,1),[[0,0,0],[0,-.14,-.015],[0,-.25,.04]])},wing:{'-1':buildWing(C,-1),'1':buildWing(C,1)}};
 }
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
@@ -223,10 +227,10 @@ export function createImp(kind='red'){
  mesh(head,S.head,S.material,'head');mesh(head,S.eyes,S.eye,'eyes');
  const legs=[],arms=[],wings=[];
  for(const s of [-1,1]){
-  const leg=new THREE.Group();leg.position.set(s*.065,.38,0);leg.rotation.z=s*.04;body.add(leg);mesh(leg,S.leg,S.material,'leg');legs.push(leg);
-  const arm=new THREE.Group();arm.position.set(s*.12,.61,0);arm.rotation.set(-.15,0,s*.14);body.add(arm);mesh(arm,S.arm[s],S.material,'arm');arms.push(arm);
+  const leg=new THREE.Group();leg.position.set(s*.065,.38,0);leg.rotation.z=s*.04;body.add(leg);rigLimb(leg,S.leg,S.material,(s<0?'l':'r')+'leg1_','leg');legs.push(leg);
+  const arm=new THREE.Group();arm.position.set(s*.12,.61,0);arm.rotation.set(-.15,0,s*.14);body.add(arm);rigLimb(arm,S.arm[s],S.material,(s<0?'l':'r')+'fore_','arm');arms.push(arm);
   const wing=new THREE.Group();wing.position.set(s*.04,.58,-.08);wing.rotation.x=-.25;wing.userData.side=s;body.add(wing);mesh(wing,S.wing[s],S.material,'wing');wings.push(wing);
  }
- const tail=new THREE.Group();tail.position.set(0,.34,-.07);body.add(tail);mesh(tail,S.tail,S.material,'tail');
+ const tail=new THREE.Group();tail.position.set(0,.34,-.07);body.add(tail);rigChain(tail,S.tail,S.material,'tail',{part:'tail'});
  return nameImpJoints({g,body,legs,tail,wings,quirk:'imp',arms,arm:arms[1],head,hat:null,beard:null,pick:null});
 }
