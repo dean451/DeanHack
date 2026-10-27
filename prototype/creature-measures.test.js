@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -66,6 +66,17 @@ test('the wild cat numbers are the animals\' own', () => {
   inside(WILDCAT.sleepShare[0], [.6, .9], 'share of the day asleep'); assert.deepEqual(sleepHours, MEASURES.dragon.bigCat.sleepHours);
   // a crouched stalk recovers little of its energy, a good deal less than a dog's 70%
   assert(stealthRecovery.mean < .3 && stealthRecovery.max < .5 && stealthRecovery.max > stealthRecovery.mean);
+});
+
+test('the canine numbers are the dog\'s own', () => {
+  const {curledShare, ownerSleepHours, walkSpeed, trotSpeed} = MEASURES.canine;
+  // curled is the commonest way to sleep, but not the only one
+  inside(curledShare, [.5, .9], 'share of owners reporting a curled dog');
+  inside(ownerSleepHours, [6, 14], 'hours asleep a day, as owners see it'); inside(CANINE.sleepShare, [.25, .6], 'share of the day');
+  // a dog walks and trots at a pace of about a metre a second
+  for (const v of [...walkSpeed, ...trotSpeed]) inside(v, [.5, 1.5], 'walking or trotting speed, m/s');
+  assert(walkSpeed[0] < walkSpeed[1] && trotSpeed[0] < trotSpeed[1] && CANINE.curledMostly);
+  inside(CANINE.walkMid, [.7, 1.1], 'mid walking speed, m/s');
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {
