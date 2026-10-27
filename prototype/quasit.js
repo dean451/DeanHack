@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {nameImpJoints} from './imp-joints.js';
+import {skinChain,rigChain} from './chain-skin.js';
+import {skinLimb,rigLimb} from './humanoid-joints.js';
 
 // Quasits share the minor demons' letter, so they used to be the imp humanoid tinted blue, with the
 // imp's wings although quasits don't fly. They now crouch as small, lean blue demons: a narrow
@@ -11,7 +13,8 @@ import {nameImpJoints} from './imp-joints.js';
 // barbed, poisoned tip.
 // Each moving part (body, head, each leg and arm, and the tail) is one merged, vertex-coloured mesh
 // with a shared material, plus one small emissive mesh for the eyes: 8 draws. The geometry is built
-// once and shared by every quasit.
+// once and shared by every quasit. Each arm, leg and the tail is a SkinnedMesh on its own bones (see
+// imp-joints.js), so a joint bends the limb instead of swinging a rigid mesh; the draw count is unchanged.
 // Handles: legs, arms, arm, head, tail, body, like the humanoid rig. No wings.
 
 const C={
@@ -134,7 +137,8 @@ function buildTail(){
   const barb=new THREE.Matrix4().compose(end.clone().add(side).addScaledVector(dir,-.005),q.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,s*2.6))),new THREE.Vector3(1,1,1));
   P.add(new THREE.ConeGeometry(.007,.03,4),barb,C.spineTip);
  }
- return P.merge();
+ // five bones down the tail's curve; the barb rides the last
+ return skinChain(P.merge(),[0,.25,.5,.75,1].map(u=>path.getPoint(u).toArray()));
 }
 
 let shared=null;
@@ -142,7 +146,7 @@ function geometry(){
  if(shared)return shared;
  const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.62});
  const eye=new THREE.MeshStandardMaterial({color:0xe0ff5a,emissive:0x9ad020,emissiveIntensity:2.4,roughness:.25});
- shared={material,eye,body:buildBody(),head:buildHead(),eyes:buildEyes(),leg:buildLeg(),tail:buildTail(),arm:{'-1':buildArm(-1),'1':buildArm(1)}};
+ shared={material,eye,body:buildBody(),head:buildHead(),eyes:buildEyes(),leg:skinLimb(buildLeg(),[[0,0,0],[0,-.11,.06],[0,-.2,-.04],[0,-.27,.02]]),tail:buildTail(),arm:{'-1':skinLimb(buildArm(-1),[[0,0,0],[0,-.15,-.01],[0,-.28,.05]]),'1':skinLimb(buildArm(1),[[0,0,0],[0,-.15,-.01],[0,-.28,.05]])}};
  return shared;
 }
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
@@ -155,9 +159,9 @@ export function createQuasit(){
  mesh(head,S.head,S.material,'head');mesh(head,S.eyes,S.eye,'eyes');
  const legs=[],arms=[];
  for(const s of [-1,1]){
-  const leg=new THREE.Group();leg.position.set(s*.065,.285,-.01);leg.rotation.z=s*.05;body.add(leg);mesh(leg,S.leg,S.material,'leg');legs.push(leg);
-  const arm=new THREE.Group();arm.position.set(s*.12,.52,.05);arm.rotation.set(-.3,0,s*.16);body.add(arm);mesh(arm,S.arm[s],S.material,'arm');arms.push(arm);
+  const leg=new THREE.Group();leg.position.set(s*.065,.285,-.01);leg.rotation.z=s*.05;body.add(leg);rigLimb(leg,S.leg,S.material,(s<0?'l':'r')+'leg1_','leg');legs.push(leg);
+  const arm=new THREE.Group();arm.position.set(s*.12,.52,.05);arm.rotation.set(-.3,0,s*.16);body.add(arm);rigLimb(arm,S.arm[s],S.material,(s<0?'l':'r')+'fore_','arm');arms.push(arm);
  }
- const tail=new THREE.Group();tail.position.set(0,.27,-.08);body.add(tail);mesh(tail,S.tail,S.material,'tail');
+ const tail=new THREE.Group();tail.position.set(0,.27,-.08);body.add(tail);rigChain(tail,S.tail,S.material,'tail',{part:'tail'});
  return nameImpJoints({g,body,legs,tail,wings:[],quirk:'quasit',arms,arm:arms[1],head,hat:null,beard:null,pick:null});
 }

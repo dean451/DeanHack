@@ -56,9 +56,9 @@ test('turning a joint moves that part only; the head carries its face',()=>{
  }
 });
 
-test('the imp\'s arms, legs and tail are skinned onto bones; bending an elbow, knee or tail joint carries what lies past it and leaves the root',()=>{
- for(const kind of ['red','uranium']){
-  const a=createImp(kind),j=a.joints;
+test('the imp\'s, homunculus\'s and quasit\'s arms, legs and tail are skinned onto bones; bending an elbow, knee or tail joint carries what lies past it and leaves the root',()=>{
+ for(const [kind,make] of [['red',()=>createImp('red')],['uranium',()=>createImp('uranium')],['homunculus',createHomunculus],['quasit',createQuasit]]){
+  const a=make(),j=a.joints;
   for(const side of ['l','r'])for(const [stem,n] of [['fore',3],['leg1',4]]){
    const bones=Array.from({length:n},(_,k)=>j[`${side}${stem}_${k}`]);
    bones.forEach((b,k)=>assert(b?.isBone,`${kind}: ${side}${stem}_${k}`));

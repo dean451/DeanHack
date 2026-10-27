@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {nameImpJoints} from './imp-joints.js';
+import {skinChain,rigChain} from './chain-skin.js';
+import {skinLimb,rigLimb} from './humanoid-joints.js';
 
 // The homunculus shares the minor demons' letter, so it used to be the imp humanoid tinted green.
 // It now stands as a squat little alchemist's familiar: a pot-bellied green body with a paler belly
@@ -10,6 +12,8 @@ import {nameImpJoints} from './imp-joints.js';
 // tip, and leathery bat wings folded half open behind it.
 // Each moving part (body, head, each leg, arm and wing, and the tail) is one merged,
 // vertex-coloured mesh with a shared material, plus one small mesh for the glowing eyes: 10 draws.
+// Each arm, leg and the tail is a SkinnedMesh on its own bones (see imp-joints.js), so a joint bends the
+// limb instead of swinging a rigid mesh; the draw count is unchanged.
 // The geometry is built once and shared by every homunculus.
 // Handles: legs, arms, arm, head, wings, tail, body, like the humanoid rig.
 
@@ -154,7 +158,8 @@ function buildTail(){
  const path=new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,0),new THREE.Vector3(0,-.08,-.1),new THREE.Vector3(0,-.18,-.14),new THREE.Vector3(0,-.22,-.22),new THREE.Vector3(0,-.16,-.28)]);
  P.add(new THREE.TubeGeometry(path,16,.014,6,false),null,C.skinDark);
  P.add(new THREE.ConeGeometry(.04,.07,4),at(0,-.13,-.29,[-.6,0,0],[1,1,.3]),C.skinDark);
- return P.merge();
+ // five bones down the tail's curve; the spade rides the last
+ return skinChain(P.merge(),[0,.25,.5,.75,1].map(u=>path.getPoint(u).toArray()));
 }
 
 let shared=null;
@@ -162,7 +167,7 @@ function geometry(){
  if(shared)return shared;
  const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.72});
  const eye=new THREE.MeshStandardMaterial({color:0xffc24a,emissive:0xe08a10,emissiveIntensity:2.4,roughness:.25});
- shared={material,eye,body:buildBody(),head:buildHead(),eyes:buildEyes(),leg:buildLeg(),tail:buildTail(),arm:{'-1':buildArm(-1),'1':buildArm(1)},wing:{'-1':buildWing(-1),'1':buildWing(1)}};
+ shared={material,eye,body:buildBody(),head:buildHead(),eyes:buildEyes(),leg:skinLimb(buildLeg(),[[0,0,0],[0,-.12,.035],[0,-.2,.01],[0,-.245,.04]]),tail:buildTail(),arm:{'-1':skinLimb(buildArm(-1),[[0,0,0],[0,-.13,0],[0,-.27,.04]]),'1':skinLimb(buildArm(1),[[0,0,0],[0,-.13,0],[0,-.27,.04]])},wing:{'-1':buildWing(-1),'1':buildWing(1)}};
  return shared;
 }
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
@@ -175,10 +180,10 @@ export function createHomunculus(){
  mesh(head,S.head,S.material,'head');mesh(head,S.eyes,S.eye,'eyes');
  const legs=[],arms=[],wings=[];
  for(const s of [-1,1]){
-  const leg=new THREE.Group();leg.position.set(s*.08,.255,0);leg.rotation.z=s*.08;body.add(leg);mesh(leg,S.leg,S.material,'leg');legs.push(leg);
-  const arm=new THREE.Group();arm.position.set(s*.14,.53,0);arm.rotation.z=s*.18;body.add(arm);mesh(arm,S.arm[s],S.material,'arm');arms.push(arm);
+  const leg=new THREE.Group();leg.position.set(s*.08,.255,0);leg.rotation.z=s*.08;body.add(leg);rigLimb(leg,S.leg,S.material,(s<0?'l':'r')+'leg1_','leg');legs.push(leg);
+  const arm=new THREE.Group();arm.position.set(s*.14,.53,0);arm.rotation.z=s*.18;body.add(arm);rigLimb(arm,S.arm[s],S.material,(s<0?'l':'r')+'fore_','arm');arms.push(arm);
   const wing=new THREE.Group();wing.position.set(s*.05,.5,-.1);wing.rotation.x=-.2;wing.userData.side=s;body.add(wing);mesh(wing,S.wing[s],S.material,'wing');wings.push(wing);
  }
- const tail=new THREE.Group();tail.position.set(0,.28,-.1);body.add(tail);mesh(tail,S.tail,S.material,'tail');
+ const tail=new THREE.Group();tail.position.set(0,.28,-.1);body.add(tail);rigChain(tail,S.tail,S.material,'tail',{part:'tail'});
  return nameImpJoints({g,body,legs,tail,wings,quirk:'homunculus',arms,arm:arms[1],head,hat:null,beard:null,pick:null});
 }
