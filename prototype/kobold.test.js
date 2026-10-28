@@ -13,7 +13,7 @@ test('kobolds get their own scaly, tailed model instead of the short humanoid',(
   assert.equal(a.g.name,name);assert.equal(a.quirk,'kobold');
   for(const key of ['body','head','arm','weaponSocket','eyes','tail'])assert(a[key]?.isObject3D,`${name} ${key}`);
   assert.equal(a.legs.length,2);assert.equal(a.arms.length,2);assert.equal(a.arm,a.arms[1]);
-  assert.equal(a.weaponSocket.parent,a.arm,'the weapon is in the right fist');
+  assert.equal(a.weaponSocket.parent,a.joints.rfore_2,'the weapon is in the right fist, on the wrist bone');assert(a.arm.getObjectByName('rfore_2'),'and that bone is in the right arm');
   const parts=meshes(a);
   assert.equal(parts.length,9,`${name}: one mesh per moving part, plus the eyes`);
   let verts=0;
