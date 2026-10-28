@@ -22,6 +22,7 @@ import {updateCockatriceSettle} from '../cockatrice-settle.js';
 import {updateInsectAlarm} from '../insect-alarm.js';
 import {updateCanineBow} from '../canine-bowing.js';
 import {updateCanineSettle} from '../canine-settle.js';
+import {updateWildcatSettle} from '../wildcat-settle.js';
 import {updateCockatriceCrow} from '../cockatrice-crowing.js';
 const q=new URLSearchParams(location.search),name=q.get('name')||'chromatic dragon',view=q.get('view')||'three';
 const W=900,H=700,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
@@ -58,7 +59,7 @@ if(q.get('idle')){c.species=name;for(let i=0;i<+q.get('idle')*30;i++)updateDrago
 // ?settle=12 runs the game's own insect settling (insect-settle.js) that many seconds with nobody near; ?alarm=1 then holds the hero 1 m away that many seconds (insect-alarm.js)
 // ?bowing=1.2 runs a canine's own play bow (canine-bowing.js): it stands still with the hero far, then the hero comes 1.2 m off and it bows that many seconds in
 if(q.get('bowing')){c.species=c.species||name.toLowerCase();for(let i=0;i<60;i++)updateCanineBow(c,1/30,i/30,false,{x:9,z:0});const near={x:Math.sin(c.g.rotation.y)*1.2,z:Math.cos(c.g.rotation.y)*1.2};for(let i=0;i<+q.get('bowing')*30;i++)updateCanineBow(c,1/30,2+i/30,false,near);}
-if(q.get('settle')||q.get('alarm')){c.species=c.species||name.toLowerCase();const near={x:1,z:0};if(q.get('settle'))for(let i=0;i<+q.get('settle')*30;i++)updateInsectSettle(c,1/30,false,null),updateCockatriceSettle(c,1/30,false,null),updateCanineSettle(c,1/30,false,null);if(q.get('alarm'))for(let i=0;i<+q.get('alarm')*30;i++)updateInsectAlarm(c,1/30,i/30,false,near);}
+if(q.get('settle')||q.get('alarm')){c.species=c.species||name.toLowerCase();const near={x:1,z:0};if(q.get('settle'))for(let i=0;i<+q.get('settle')*30;i++)updateInsectSettle(c,1/30,false,null),updateCockatriceSettle(c,1/30,false,null),updateCanineSettle(c,1/30,false,null),updateWildcatSettle(c,1/30,false,null);if(q.get('alarm'))for(let i=0;i<+q.get('alarm')*30;i++)updateInsectAlarm(c,1/30,i/30,false,near);}
 // ?crowing=.8 brings a cockerel's own crow (cockatrice-crowing.js) on at once, with the hero far off, and runs it that many seconds
 if(q.get('crowing')){const far={x:9,z:0};updateCockatriceCrow(c,0,0,false,far);if(c.fowlCrow)c.fowlCrow.wait=0;for(let i=0;i<+q.get('crowing')*30;i++)updateCockatriceCrow(c,1/30,i/30,false,far);}
 // ?pose=fold, flapup or flapdown holds a dragon's baked folded wings or the top or bottom of its wingbeat (dragon-wings.js)
