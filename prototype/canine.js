@@ -496,7 +496,7 @@ export function createCanine(name,colour){
   const onBone=(p,s,lean)=>{const c=S.tailChain;let k=0;c.forEach((q,i)=>{if(Math.hypot(p[1]-q[1],p[2]-q[2])<Math.hypot(p[1]-c[k][1],p[2]-c[k][2]))k=i;});hellfire(tailBones[k],0,p[1]-c[k][1],p[2]-c[k][2],s,lean);};
   onBone(pts[n],.85,.2);onBone(mid,.6,-.3);
   // (on the wrist or hock bone, so a bent leg carries its flame)
-  for(const leg of legs){const w=B[leg.name+'_2'],at=w.userData.at;hellfire(w,0,-at[1]+.005,leg.position.z+.02-at[2],.45);}
+  for(const leg of legs){const w=B[leg.name+'_2'],at=w.userData.at;hellfire(w,0,-at[1]+.005,leg.userData.at[2]+.02-at[2],.45);}
  }
  // named joints, the cat's and the dragon's names (all bones of the hide but the head, canine-hide.js):
  // spine0, the neck neck0 (withers) to neck3 (the head's pivot), the head hung on neck3; each leg's swing

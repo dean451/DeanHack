@@ -1,5 +1,5 @@
 // Bakes every canine's curled sleep (canine-rest.js restPose) into canine-rest-poses.js, so the game never solves one
-// mid-play (a solve takes 0.2 to 2 s). Run from prototype/ after changing a canine's body or the curl goals:
+// mid-play (a solve takes 1 to 17 s). Run from prototype/ after changing a canine's body or the curl goals:
 //   node tools/bake-canine-rest.mjs   (or names to re-bake just those: node tools/bake-canine-rest.mjs wolf jackal)
 // A canine is marked ok only when every goal is met to under 2 cm; the others do not sleep in play.
 import {createCreature} from '../creatures.js';
