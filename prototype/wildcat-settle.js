@@ -24,5 +24,5 @@ export function updateWildcatSettle(a, dt, busy, look = null) {
   takeBackRest(st);
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
   const near = !!look && Number.isFinite(look.x) && Number.isFinite(look.z) && Math.hypot(look.x - a.g.position.x, look.z - a.g.position.z) < NEAR;
-  return applyRest(a, st, dt, !busy && !a.actions?.dead && !near, restFor);
+  return applyRest(a, st, dt, !busy && !a.actions?.dead && !near && !(a.wildcatStalk?.p > 0), restFor);
 }
