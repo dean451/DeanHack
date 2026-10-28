@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints} from './humanoid-joints.js';
+import {skinChain,rigChain} from './chain-skin.js';
 
 // Kobolds used to be the generic short humanoid: a box torso, a sphere head with a cone snout, two
 // long flat cone ears and a stick spear. They now have their own model: a small, scaly, dog-snouted
@@ -20,7 +21,7 @@ import {nameHumanoidJoints} from './humanoid-joints.js';
 // vertex-coloured mesh sharing one material, plus the glowing eyes on their own emissive material:
 // 9 draws. The geometry is built once per kind and shared.
 // Handles: body, head, legs, arms, arm (the right, weapon arm), weaponSocket (at the right fist,
-// holding the weapon), tail (swings side to side on rotation.z), eyes. quirk 'kobold', as before.
+// holding the weapon), tail (swings side to side on rotation.z; its mesh is skinned onto bones tail0..tail4), eyes. quirk 'kobold', as before.
 // hat, beard and pick are null.
 
 const BASE={
@@ -179,6 +180,8 @@ function buildArm(L,C){
  return P.merge();
 }
 
+// The tail is one skinned mesh on five bones tail0..tail4 laid down −y (TAIL_PTS, at scale 1) under the `tail` pivot.
+const TAIL_PTS=[[0,0,0],[0,-.07,0],[0,-.14,0],[0,-.21,0],[0,-.285,0]];
 // The tail hangs from its root along −y; createKobold tips it back, so rotation.z swings it.
 function buildTail(L,C){
  const P=pieces(),hide=scaly(C,C.skin);
@@ -245,7 +248,7 @@ function geometry(kind){
  const L=LOOKS[kind],C=colours(L),s=L.scale,grow=g=>g.scale(s,s,s),leg=grow(buildLeg(L,C));
  cache[kind]={
   body:grow(buildBody(L,C)),head:grow(buildHead(L,C)),eyes:grow(buildEyes()),legs:[mirrored(leg),leg],
-  arms:[grow(buildArm(L,C)),grow(buildArm(L,C))],tail:grow(buildTail(L,C)),weapon:grow(buildWeapon(L,C)),
+  arms:[grow(buildArm(L,C)),grow(buildArm(L,C))],tail:skinChain(grow(buildTail(L,C)),TAIL_PTS.map(p=>p.map(v=>v*s))),weapon:grow(buildWeapon(L,C)),
   eyeMaterial:new THREE.MeshStandardMaterial({color:L.eye,emissive:L.eye,emissiveIntensity:2.6,roughness:.3}),
  };
  return cache[kind];
@@ -264,11 +267,11 @@ export function createKobold(name){
   const leg=new THREE.Group();leg.position.set(side*P0.legX*s,P0.hip*s,0);body.add(leg);mesh(leg,S.legs[i],material,'leg');legs.push(leg);
   const arm=new THREE.Group();arm.position.set(side*P0.shoulderX*s,P0.shoulderY*s,P0.shoulderZ*s);arm.rotation.z=side*.14;body.add(arm);mesh(arm,S.arms[i],material,'arm');arms.push(arm);
  }
- const tail=new THREE.Group();tail.position.set(0,P0.tailY*s,P0.tailZ*s);tail.rotation.x=1.2;body.add(tail);mesh(tail,S.tail,material,'tail');
+ const tail=new THREE.Group();tail.position.set(0,P0.tailY*s,P0.tailZ*s);tail.rotation.x=1.2;body.add(tail);const tailBones=rigChain(tail,S.tail,material,'tail').bones;
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-(P0.arm+.01)*s,.02*s);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.weapon,material,'weapon');
  const actor={g,body,legs,tail,wings:[],quirk:'kobold',arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null};
  nameHumanoidJoints(actor);
- tail.name='tail0';actor.joints.tail0=tail;
+ tail.name='tail';for(const b of tailBones)actor.joints[b.name]=b;
  return actor;
 }
