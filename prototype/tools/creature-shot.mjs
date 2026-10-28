@@ -7,7 +7,7 @@ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:[
 const p=await (await b.newContext({viewport:{width:900,height:700}})).newPage();
 p.on('pageerror',e=>console.log('ERR',e.message));p.on('console',m=>{if(m.type()==='error')console.log('CONSOLE',m.text())});
 for(const view of ['three','side','head','game']){
- await p.goto(`http://127.0.0.1:5174/tools/creature-shot.html?name=${encodeURIComponent(name)}&view=${view}${letter?`&letter=${letter}`:''}${color?`&color=${color}`:''}${process.env.BEND?`&bend=${encodeURIComponent(process.env.BEND)}`:''}${process.env.POSE?`&pose=${process.env.POSE}`:''}${process.env.IDLE?`&idle=${process.env.IDLE}`:''}${process.env.SETTLE?`&settle=${process.env.SETTLE}`:""}${process.env.ALARM?`&alarm=${process.env.ALARM}`:""}${process.env.CROWING?`&crowing=${process.env.CROWING}`:''}${process.env.WALK?`&walk=${process.env.WALK}`:''}`);
+ await p.goto(`http://127.0.0.1:5174/tools/creature-shot.html?name=${encodeURIComponent(name)}&view=${view}${letter?`&letter=${letter}`:''}${color?`&color=${color}`:''}${process.env.BEND?`&bend=${encodeURIComponent(process.env.BEND)}`:''}${process.env.POSE?`&pose=${process.env.POSE}`:''}${process.env.IDLE?`&idle=${process.env.IDLE}`:''}${process.env.SETTLE?`&settle=${process.env.SETTLE}`:""}${process.env.ALARM?`&alarm=${process.env.ALARM}`:""}${process.env.BOWING?`&bowing=${process.env.BOWING}`:''}${process.env.CROWING?`&crowing=${process.env.CROWING}`:''}${process.env.WALK?`&walk=${process.env.WALK}`:''}`);
  await p.waitForFunction(()=>window.__done,null,{timeout:30000});await p.waitForTimeout(300);
  await p.screenshot({path:`${process.env.OUT||'/tmp/'}${prefix}-${view}.png`});
 }
