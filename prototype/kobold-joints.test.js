@@ -72,3 +72,24 @@ test('the tail is one skinned mesh on bones tail0..tail4: bending tail2 carries 
   assert.equal(still,0,`${name}: hide before the bend stayed`);
  }
 });
+
+test('arms and legs are one skinned mesh each on three bones: bending the elbow or hock carries the hand or foot and leaves the root',()=>{
+ for(const name of KOBOLDS){
+  const a=createKobold(name),j=a.joints;
+  for(const [list,stem] of [[a.arms,'fore'],[a.legs,'leg1']])for(const limb of list){
+   assert.equal(limb.children.filter(o=>o.isMesh).length,1,`${name}: one mesh per limb`);
+   assert(limb.children.find(o=>o.isSkinnedMesh),`${name}: skinned limb`);
+  }
+  assert.equal(a.weaponSocket.parent,j.rfore_2,`${name}: the weapon rides the wrist bone`);
+  for(const key of ['lfore','rfore','lleg1','rleg1']){
+   const side=key[0],stem=key.slice(1),b=n=>j[`${side}${stem}_${n}`];
+   for(let i=0;i<3;i++)assert(b(i)?.isBone,`${name}: ${key}_${i}`);
+   const at=o=>{a.g.updateMatrixWorld(true);return new THREE.Vector3().setFromMatrixPosition(o.matrixWorld);};
+   const root=at(b(0)),end=at(b(2));
+   b(1).rotation.x=.7;
+   assert(at(b(2)).distanceTo(end)>.02,`${name}: ${key} end swung`);
+   assert(at(b(0)).distanceTo(root)<1e-6,`${name}: ${key} root stayed`);
+   b(1).rotation.x=0;
+  }
+ }
+});
