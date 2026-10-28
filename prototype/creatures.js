@@ -8,6 +8,7 @@ import {heldBoulderGeometry} from './boulder.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
 import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
+import {nameHumanoidJoints} from './humanoid-joints.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
@@ -2526,9 +2527,11 @@ function leprechaun(o){
  for(const side of [-1,1]){const lapel=box(body,.04,.13,.02,coatDark,side*.07,.47,.1);lapel.rotation.set(-.2,0,-side*.3);
   const tail=box(body,.08,.2,.025,coat,side*.05,.26,-.12);tail.rotation.set(.18,0,side*.12);}
  // arms: left hand grips a shillelagh planted on the floor; the right hand holds the sack
- for(const side of [-1,1]){const shoulder=[side*.14,.5,0],hand=[side*.2,.33,.06];
-  segment(body,shoulder,hand,.042,.036,coat);sphere(body,.045,coat,...shoulder);
-  cylinder(body,.04,.04,.03,stocking,hand[0]*.97,hand[1]+.035,hand[2]);sphere(body,.034,skin,...hand);}
+ // each arm hangs on its own group at the shoulder (`lfore` / `rfore`), the parts drawn where they were
+ const arms=[];
+ for(const side of [-1,1]){const shoulder=[side*.14,.5,0],hand=[side*.2-shoulder[0],.33-shoulder[1],.06],arm=new THREE.Group();arm.position.set(...shoulder);body.add(arm);
+  segment(arm,[0,0,0],hand,.042,.036,coat);sphere(arm,.045,coat,0,0,0);
+  cylinder(arm,.04,.04,.03,stocking,(side*.2)*.97-shoulder[0],hand[1]+.035,hand[2]);sphere(arm,.034,skin,...hand);arms.push(arm);}
  tube(body,[[-.23,.005,.1],[-.215,.2,.08],[-.2,.36,.06],[-.2,.46,.06]],.014,wood,12);sphere(body,.03,wood,-.2,.47,.06,1,.9,1);
  for(const [y,z] of [[.12,.095],[.25,.075]])sphere(body,.017,wood,-.225,y,z);
  // head (on a neck pivot): bruised cheeks, a bulbous scabbed nose, pointed ears, a green glint in the eye and a ginger chin-curtain beard
@@ -2551,7 +2554,9 @@ function leprechaun(o){
  const loot=new THREE.Group();loot.position.set(.2,.32,.06);body.add(loot);
  sphere(loot,.07,sack,0,-.1,0,1,1.15,.95);cylinder(loot,.022,.03,.04,sack,0,-.02,0,8);part(loot,new THREE.TorusGeometry(.024,.006,6,12),wood,0,-.03,0).rotation.x=Math.PI/2;
  for(const [x,y,z,r] of [[.03,-.02,.03,.3],[-.02,-.01,.035,-.4],[.01,.005,.02,.1]]){const c=cylinder(loot,.018,.018,.005,coin,x,y,z,14);c.rotation.set(Math.PI/2-.4,0,r);}
- return trimDraws(Object.assign(actor(g,body,legs,loot,[],'idle'),{head,hat,loot,leprechaun:true}),{bake:true});
+ const a=nameHumanoidJoints(Object.assign(actor(g,body,legs,loot,[],'idle'),{head,hat,loot,arms,leprechaun:true}));
+ delete a.arms; // named as joints only: fidget.js swings an actor's `arms`, and the leprechaun's pose is its own
+ return trimDraws(a,{bake:true});
 }
 const LEPRECHAUNS={leprechaun:{coat:'#2f8a3a'}};
 // Gargoyles: crouching carved-stone brutes on digitigrade haunches with knuckles on the floor, a horned
