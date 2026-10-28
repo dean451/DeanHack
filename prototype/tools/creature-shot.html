@@ -2,7 +2,7 @@
 <style>html,body{margin:0;background:#233138}canvas{display:block}</style>
 <script type="module">
 // Renders one creature at a 3/4 view and at the game camera: /tools/creature-shot.html?name=chromatic%20dragon&view=game
-// (optional &bend=tail2.y:.6,... turns named joints first; &pose=sleep lays a dragon down asleep; &idle=20 lets it stand idle 20 s in the game's own update; &walk=2 walks it 2 s; &settle=12 and &alarm=1 run an insect's or cockerel's own settling and an ant's alarm; &bowing=1 a canine's play bow)
+// (optional &bend=tail2.y:.6,... turns named joints first; &pose=sleep lays a dragon down asleep; &idle=20 lets it stand idle 20 s in the game's own update; &walk=2 walks it 2 s; &settle=12 and &alarm=1 run an insect's or cockerel's own settling and an ant's alarm; &bowing=1 a canine's play bow; &stalking=2 a wild cat's stalking crouch)
 import * as THREE from 'three';
 import {createCreature} from '../creatures.js';
 import {sleepPose, dragonPoser} from '../dragon-rest.js';
@@ -21,6 +21,7 @@ import {updateInsectSettle} from '../insect-settle.js';
 import {updateCockatriceSettle} from '../cockatrice-settle.js';
 import {updateInsectAlarm} from '../insect-alarm.js';
 import {updateCanineBow} from '../canine-bowing.js';
+import {updateWildcatStalk} from '../wildcat-stalking.js';
 import {updateCanineSettle} from '../canine-settle.js';
 import {updateWildcatSettle} from '../wildcat-settle.js';
 import {updateCockatriceCrow} from '../cockatrice-crowing.js';
@@ -59,6 +60,8 @@ if(q.get('idle')){c.species=name;for(let i=0;i<+q.get('idle')*30;i++)updateDrago
 // ?settle=12 runs the game's own insect settling (insect-settle.js) that many seconds with nobody near; ?alarm=1 then holds the hero 1 m away that many seconds (insect-alarm.js)
 // ?bowing=1.2 runs a canine's own play bow (canine-bowing.js): it stands still with the hero far, then the hero comes 1.2 m off and it bows that many seconds in
 if(q.get('bowing')){c.species=c.species||name.toLowerCase();for(let i=0;i<60;i++)updateCanineBow(c,1/30,i/30,false,{x:9,z:0});const near={x:Math.sin(c.g.rotation.y)*1.2,z:Math.cos(c.g.rotation.y)*1.2};for(let i=0;i<+q.get('bowing')*30;i++)updateCanineBow(c,1/30,2+i/30,false,near);}
+// ?stalking=2 runs a wild cat's own stalking crouch (wildcat-stalking.js): it stands still with the hero far, then the hero comes 4 m off and it crouches that many seconds in
+if(q.get('stalking')){c.species=c.species||name.toLowerCase();for(let i=0;i<60;i++)updateWildcatStalk(c,1/30,i/30,false,{x:20,z:0});const near={x:Math.sin(c.g.rotation.y)*4,z:Math.cos(c.g.rotation.y)*4};for(let i=0;i<+q.get('stalking')*30;i++)updateWildcatStalk(c,1/30,2+i/30,false,near);}
 if(q.get('settle')||q.get('alarm')){c.species=c.species||name.toLowerCase();const near={x:1,z:0};if(q.get('settle'))for(let i=0;i<+q.get('settle')*30;i++)updateInsectSettle(c,1/30,false,null),updateCockatriceSettle(c,1/30,false,null),updateCanineSettle(c,1/30,false,null),updateWildcatSettle(c,1/30,false,null);if(q.get('alarm'))for(let i=0;i<+q.get('alarm')*30;i++)updateInsectAlarm(c,1/30,i/30,false,near);}
 // ?crowing=.8 brings a cockerel's own crow (cockatrice-crowing.js) on at once, with the hero far off, and runs it that many seconds
 if(q.get('crowing')){const far={x:9,z:0};updateCockatriceCrow(c,0,0,false,far);if(c.fowlCrow)c.fowlCrow.wait=0;for(let i=0;i<+q.get('crowing')*30;i++)updateCockatriceCrow(c,1/30,i/30,false,far);}
