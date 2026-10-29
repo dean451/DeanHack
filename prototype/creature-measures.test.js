@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -77,6 +77,14 @@ test('the canine numbers are the dog\'s own', () => {
   for (const v of [...walkSpeed, ...trotSpeed]) inside(v, [.5, 1.5], 'walking or trotting speed, m/s');
   assert(walkSpeed[0] < walkSpeed[1] && trotSpeed[0] < trotSpeed[1] && CANINE.curledMostly);
   inside(CANINE.walkMid, [.7, 1.1], 'mid walking speed, m/s');
+});
+
+test('the gargoyle numbers are a monkey\'s rest and a hawk\'s perch', () => {
+  const {macaqueRest, hawkOneFoot} = MEASURES.gargoyle;
+  // a macaque rests about a third of the day
+  for (const v of macaqueRest) inside(v, [.25, .45], 'share of the day a macaque rests');
+  inside(GARGOYLE.restShare, [.3, .4], 'mid share resting'); inside(hawkOneFoot, [.1, .35], 'share of time on one foot');
+  assert(GARGOYLE.oneFootMax < GARGOYLE.restShare);
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {

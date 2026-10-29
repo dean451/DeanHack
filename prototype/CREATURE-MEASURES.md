@@ -147,3 +147,19 @@ The fourth monster family (AGENTS.md, family **d**). Measured from the domestic 
 *Not found:* a dog's duty factor at a trot, a curl's wrap angle, a play bow's duration (Bekoff 1977 calls its duration and form stereotyped but the abstract gives no number), and any wolf or jackal figure. No number is claimed for them; the pose stages set them by eye.
 
 **What the canines take from this.** A dog walks at about 0.8 to 1 m/s and trots at about the same pace in a small dog, so the walk and trot are told apart by footfall, not speed. It most often sleeps curled up. The play bow is a pause-breaker: it comes after a lull, not in the middle of a fight.
+
+## Gargoyles and gremlins (gargoyle, winged gargoyle, gremlin)
+
+The seventh monster family (AGENTS.md, family **g**). Measured from a macaque (the crouch: how much of a day a monkey spends sitting still) and a perched hawk (the winged gargoyle's perch; the raptor's flight and mantle numbers are above under Dragons, "Bird of prey"). Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Macaque and perched hawk (rest, perch)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Macaque resting | adult rhesus macaques in a Nepal forest spent 33.83% of observed time resting (moving 26.67%, feeding 22.92%, grooming 15.42%); the largest single share | [Diurnal activity budget of rhesus macaques, Daunne Forest, Nepal](https://elibrary.tucl.edu.np/items/b81c01e3-6847-4cc6-8897-25444adc57b1/full) |
+| Macaque resting, mangrove | long-tailed macaques in a mangrove spent 34.1% of the year resting | [Mangrove macaque activity budget, Jurnal Primatologi Indonesia](https://journal.ipb.ac.id/primatology/article/view/46387) |
+| Hawk on one foot | overwintering merlins, radio-tracked over 486 hours, stood on one foot up to about 22% of the time (at -10 to -19 C), less when warmer or colder (a 2024 *Laterality* study as quoted by a search result; the thread linked is a birders' forum discussing the posture) | [One-leg perching by hawks, iNaturalist forum](https://forum.inaturalist.org/t/one-leg-perching-by-hawks/53523) |
+
+*Not found:* a monkey's crouch as an angle (spine curve, head drop) or a duration, and a raptor's perch as a leg or tail angle. The sources count time, not posture. No number is claimed for them; the pose stages set them by eye against photographs.
+
+**What the gargoyles take from this.** A monkey rests about a third of its day, and a gargoyle, being stone, can rest far longer: a long still crouch is in character, with the move to it slow. A hawk stands on one foot for a fifth of its time at most, so a winged gargoyle's one-footed perch is an occasional shift, not its rest.
