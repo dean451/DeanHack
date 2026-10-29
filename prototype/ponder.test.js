@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
+import {partPoints} from './part-box.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
 import {updatePonder, ponderPose, ponders, REACH, INWARD, TAP, TILT, GAZE, CURL, WRITHE, FIRST_MIN, FIRST_SPAN} from './ponder.js';
 
@@ -22,14 +23,9 @@ const snap = a => [...a.arms.flatMap(r => [r.rotation.x, r.rotation.z]), a.head.
 function lowest(a, part) {
   a.g.updateMatrixWorld(true);
   const inv = a.g.matrixWorld.clone().invert(), v = new THREE.Vector3();
+  // (an arm's skin is in the mind flayer's one hide: partPoints takes it from there)
   let best = null;
-  part.traverse(o => {
-    const p = o.geometry?.attributes?.position; if (!p) return;
-    for (let i = 0; i < p.count; i += 3) {
-      v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv);
-      if (!best || v.y < best.y) best = v.clone();
-    }
-  });
+  for (const w of partPoints(a, part, 3)) { v.copy(w).applyMatrix4(inv); if (!best || v.y < best.y) best = v.clone(); }
   return best;
 }
 

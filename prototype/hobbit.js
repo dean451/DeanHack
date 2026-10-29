@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
-import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
+import {rigHumanoid,skinLimb,rigLimb} from './humanoid-joints.js';
 
 // The hobbit used to be the generic short humanoid: a teal box for a body and a brown lump of
 // hair. It now stands as a plump, hard-bitten halfling: a round, sallow, weathered face with a bruised nose, a scowl, a scarred brow
@@ -158,5 +158,5 @@ export function createHobbit(){
  }
  // the socket rides the right wrist bone, so a bent elbow carries the weapon
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-.02,.01);arms[1].getObjectByName('rfore_2').add(weaponSocket);
- return nameHumanoidJoints({g,body,legs,tail:null,wings:[],quirk:'hobbit',arms,arm:arms[1],weaponSocket,head,hat:null,beard:null,pick:null});
+ return rigHumanoid({g,body,legs,tail:null,wings:[],quirk:'hobbit',arms,arm:arms[1],weaponSocket,head,hat:null,beard:null,pick:null},S);
 }

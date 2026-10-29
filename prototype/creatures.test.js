@@ -864,7 +864,7 @@ test('hobbits get their own curly-haired, waistcoated, bare-footed model instead
  assert.equal(hobbit.legs.length,2);assert.equal(hobbit.arms.length,2);assert.equal(hobbit.arm,hobbit.arms[1]);
  assert.equal(hobbit.hat,null);assert.equal(hobbit.beard,null);assert.equal(hobbit.pick,null);
  const parts=meshes(hobbit);
- assert.equal(parts.length,6,'one mesh per moving part');
+ assert.equal(parts.length,2,'the hide (trunk, neck and limbs on one skeleton, humanoid-joints.js rigHumanoid) and the head');
  let verts=0;
  for(const m of parts){
   const a=m.geometry.attributes;verts+=a.position.count;
@@ -878,7 +878,7 @@ test('hobbits get their own curly-haired, waistcoated, bare-footed model instead
  assert(b.max.y>.95&&b.max.y<1.15,`top at ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of proportion');
  // the two feet mirror each other, and share the one material
- const [l,r]=hobbit.legs.map(leg=>new THREE.Box3().setFromObject(leg));
+ const [l,r]=hobbit.legs.map(leg=>partBox(hobbit,leg));
  assert(Math.abs((l.min.x+l.max.x)/2+(r.min.x+r.max.x)/2)<1e-6,'feet mirrored');
  const again=meshes(createCreature({name:'hobbit'}));
  parts.forEach((m,i)=>{assert.equal(m.geometry,again[i].geometry);assert.equal(m.material,parts[0].material);});
@@ -2194,7 +2194,7 @@ test('mind flayers get a merged robed illithid model with a ridged cranium, glow
   // the tentacles sway from the mouth and follow the head
   assert(flayer.head.children.includes(flayer.tail),name);
   const parts=meshes(flayer);
-  assert.equal(parts.length,8,`${name}: one mesh per moving part plus the eyes`);
+  assert.equal(parts.length,4,`${name}: the hide (trunk, neck and limbs on one skeleton, humanoid-joints.js rigHumanoid), the head, the eyes and the tentacles`);
   assert.equal(new Set(parts.map(m=>m.material)).size,2,name);
   assert(parts.find(m=>m.userData.part==='eyes').material.emissiveIntensity>1,`${name} eyes glow`);
   let verts=0;

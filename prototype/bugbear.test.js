@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
+import {partBox} from './part-box.js';
 
 const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
 
@@ -10,9 +11,9 @@ test('the bugbear gets its own shaggy model instead of the stocky humanoid',()=>
  assert.equal(a.g.name,'bugbear');assert.equal(a.quirk,'orc');
  for(const key of ['body','head','arm','weaponSocket','eyes'])assert(a[key]?.isObject3D,key);
  assert.equal(a.legs.length,2);assert.equal(a.arms.length,2);assert.equal(a.arm,a.arms[1]);
- assert.equal(a.weaponSocket.parent,a.arm,'the morning star is in the right fist');
+ assert(a.weaponSocket.parent===a.joints.rfore_2&&a.arm.getObjectByName('rfore_2'),'the morning star is in the right fist, on the wrist bone');
  const parts=meshes(a);
- assert.equal(parts.length,8,'one mesh per moving part, plus the eyes');
+ assert.equal(parts.length,4,'the hide (trunk, neck and limbs on one skeleton, humanoid-joints.js rigHumanoid), the head, the eyes and the weapon');
  let verts=0;
  for(const m of parts){
   const at=m.geometry.attributes;verts+=at.position.count;
@@ -25,7 +26,7 @@ test('the bugbear gets its own shaggy model instead of the stocky humanoid',()=>
  const b=new THREE.Box3().setFromObject(a.g);
  assert(b.min.y>-.04&&b.min.y<.03,`feet at ${b.min.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,'out of the tile');
- const [l,r]=a.legs.map(leg=>new THREE.Box3().setFromObject(leg));
+ const [l,r]=a.legs.map(leg=>partBox(a,leg));
  assert(Math.abs((l.min.x+l.max.x)/2+(r.min.x+r.max.x)/2)<1e-6,'feet mirrored');
  // it towers over the hobgoblin
  const hob=new THREE.Box3().setFromObject(createCreature({name:'hobgoblin'}).g);

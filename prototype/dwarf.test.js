@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import {partBox} from './part-box.js';
 import {createCreature} from './creatures.js';
 import {DWARVES} from './dwarf.js';
 
@@ -48,7 +49,7 @@ test('dwarves, dwarf lords and dwarf kings get their own model instead of the bo
    const box=new THREE.Box3().setFromObject(pick);
    assert(box.min.y>0&&box.max.y<1.2&&box.min.x>-.85&&box.max.x<0,name);
   }
-  const [l,r]=a.legs.map(leg=>new THREE.Box3().setFromObject(leg));
+  const [l,r]=a.legs.map(leg=>partBox(a,leg));
   assert(Math.abs((l.min.x+l.max.x)/2+(r.min.x+r.max.x)/2)<1e-6,`${name}: feet mirrored`);
   tops[name]=b.max.y;
   const again=meshes(createCreature({name}));

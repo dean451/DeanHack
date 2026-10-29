@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
-import {nameHumanoidJoints} from './humanoid-joints.js';
+import {rigHumanoid} from './humanoid-joints.js';
 
 // Mind flayers used to be a stack of primitives: a robe cylinder, a box chest, two spheres for a
 // head and four even tubes for tentacles, in about twenty draws. They now stand as gaunt robed
@@ -205,5 +205,5 @@ export function createMindFlayer(name){
   const arm=new THREE.Group();arm.position.set(s*.25,.92,0);arm.rotation.set(-.15,0,s*.1);body.add(arm);mesh(arm,S.arm,S.material,'arm');arms.push(arm);
  }
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-.47,.02);arms[1].add(weaponSocket);
- return nameHumanoidJoints({g,body,legs,tail,wings:[],quirk:'idle',arms,arm:arms[1],weaponSocket,head});
+ return rigHumanoid({g,body,legs,tail,wings:[],quirk:'idle',arms,arm:arms[1],weaponSocket,head},S);
 }
