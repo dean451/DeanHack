@@ -2659,7 +2659,7 @@ function gargoyle(o){
  legs.forEach((leg,i)=>{const name=(leg.position.x<0?'l':'r')+'leg1';leg.name=name;joints[name]=leg;});
  for(const n of ['lwing','rwing'])joints[n].name=n;
  for(const arm of arms)joints[arm.name]=arm;
- return trimDraws({...actor(g,body,legs,tail,wings,'idle'),head,joints});
+ return trimDraws({...actor(g,body,legs,tail,wings,'idle'),kind:'gargoyle',winged:!!o.winged,head,joints});
 }
 function gremlin(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale||1);
@@ -2703,7 +2703,7 @@ function gremlin(o){
  const joints={head,...neck};head.name='head';tail.name='tail';tailBones.forEach(b=>{joints[b.name]=b;});
  legs.forEach(leg=>{const name=(leg.position.x<0?'l':'r')+'leg1';leg.name=name;joints[name]=leg;});
  for(const arm of arms)joints[arm.name]=arm;
- return trimDraws({...actor(g,body,legs,tail,[],'idle'),head,joints});
+ return trimDraws({...actor(g,body,legs,tail,[],'idle'),kind:'gremlin',head,joints});
 }
 const GARGOYLES={gargoyle:{stone:'#8a8478',eye:'#ff7a2a',scale:1.12},'winged gargoyle':{stone:'#6f6a74',eye:'#ffb030',winged:true,scale:1.3}};
 const GREMLINS={gremlin:{skin:'#4f8a3a',eye:'#ffd23a'}};

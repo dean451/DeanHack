@@ -206,13 +206,47 @@ export function canineRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels and the insects have maps so far.
+// The gargoyles' and the gremlin's map, from the joints `gargoyle()` and `gremlin()` expose. The head group is the
+// pivot; the mouth and chin are fixed points in its frame (the snout's tip, the jaw under it). The withers are the
+// top of the trunk (`neck0`), the rump the tail's root (`tail0`) and the tail tip the last tail bone. The hip is
+// each haunch's pivot and the paw the floor under the foot, in the leg's own frame (so it follows the bent leg);
+// the gargoyles' forepaw is the floor under the knuckle, the shoulder each arm's pivot. The gremlin's hands are
+// raised and hooked, so its forepaw is the hand itself, not a point on the floor. The gargoyles' wing wrist and tip
+// are the wing shape's own points in the pivot's frame (the plain gargoyle's are its small folded stubs).
+export function gargoyleRoles(actor) {
+  const j = actor.joints, gremlin = actor.kind === 'gremlin';
+  const map = {
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.head, gremlin ? [0, -.06, .15] : [0, -.06, .17]),
+    chin: () => inFrame(() => j.head, gremlin ? [0, -.1, .1] : [0, -.1, .13]),
+    withers: () => at(() => j.neck0),
+    rump: () => at(() => j.tail0),
+    tailtip: () => at(() => j.tail4),
+  };
+  const span = actor.winged ? 1 : .42;
+  for (const side of ['l', 'r']) {
+    const s = side === 'l' ? -1 : 1, hind = j[`${side}leg1`], arm = j[`${side}fore`];
+    map[`paw:${side}h`] = () => inFrame(() => hind, [s * .03, -hind.position.y, gremlin ? .05 : .08]);
+    map[`hip:${side}`] = () => at(() => hind);
+    map[`paw:${side}f`] = gremlin ? () => inFrame(() => arm, [s * .08, .0, .16]) : () => inFrame(() => arm, [0, -arm.position.y, .16]);
+    map[`shoulder:${side}`] = () => at(() => arm);
+    const wing = j[`${side}wing`];
+    if (wing) {
+      map[`wingwrist:${side}`] = () => inFrame(() => wing, [s * .2 * span, .28 * span, 0]);
+      map[`wingtip:${side}`] = () => inFrame(() => wing, [s * .58 * span, .36 * span, 0]);
+    }
+  }
+  return buildRoles(map, {});
+}
+
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin and the insects have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
   if ((actor.quirk === 'canine' || actor.quirk === 'dog') && actor.joints?.lleg0_2) return canineRoles(actor);
   if (actor.quirk === 'dragon' && actor.joints) return dragonRoles(actor);
   if (actor.quirk === 'cockatrice' && actor.joints) return cockatriceRoles(actor);
+  if ((actor.kind === 'gargoyle' || actor.kind === 'gremlin') && actor.joints?.neck3) return gargoyleRoles(actor);
   if ((actor.quirk === 'insect' || actor.quirk === 'bee') && actor.joints?.lleg0_2) return insectRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
