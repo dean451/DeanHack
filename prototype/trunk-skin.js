@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // A standing creature's trunk and neck as one SkinnedMesh: the body's merged geometry weighted onto a spine of
 // vertebrae stacked up the trunk (the first the pelvis root, so the belt and the hips stay put when the back
@@ -62,4 +63,34 @@ export function rigTrunk(parent, geo, material, {part = 'body'} = {}) {
 export function hangOn(bone, child) {
   const at = bone.userData.at; child.position.set(child.position.x - at[0], child.position.y - at[1], child.position.z - at[2]);
   bone.add(child); return child;
+}
+
+// Merges a creature's skinned parts (the trunk first, then each limb and the tail, every one on its own bones under
+// its own group) into one SkinnedMesh on one skeleton, so they cost one draw instead of one each (a skinned mesh
+// cannot join the actor batch). Each part's geometry is moved from its mesh's space into the body's and its bone
+// indices moved past the ones before it; the bones stay where they are, under their groups, so every pivot still
+// works. Call at rest. `first`: the part to keep first (the trunk, whose bone order other skins share, as a
+// uranium imp's glow); `cache`: where to keep the merged geometry for every member built alike.
+export function mergeSkins(body, first, cache) {
+  body.updateWorldMatrix(true, true);
+  const parts = [first]; body.traverse(o => { if (o.isSkinnedMesh && o !== first && o.material === first.material) parts.push(o); });
+  const toBody = new THREE.Matrix4().copy(body.matrixWorld).invert(), bones = [];
+  if (!cache.geo) {
+    let base = 0;
+    const geos = parts.map(m => {
+      const g = m.geometry.clone().applyMatrix4(toBody.clone().multiply(m.matrixWorld)), si = g.attributes.skinIndex;
+      for (let i = 0; i < si.count; i++) for (let k = 0; k < 4; k++) si.setComponent(i, k, si.getComponent(i, k) + base);
+      base += m.skeleton.bones.length;
+      for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'color', 'skinIndex', 'skinWeight'].includes(k)) g.deleteAttribute(k);
+      return g.index ? g.toNonIndexed() : g;
+    });
+    cache.geo = mergeGeometries(geos); cache.geo.computeBoundingSphere();
+  }
+  // (each old mesh carries its chain's first bone, and with it everything hung on the chain: move those up onto its
+  // parent first; the meshes stand at their parent's origin, so nothing moves)
+  for (const m of parts) { bones.push(...m.skeleton.bones); const up = m.parent; for (const c of [...m.children]) up.add(c); up.remove(m); }
+  const hide = new THREE.SkinnedMesh(cache.geo, first.material);
+  hide.castShadow = hide.receiveShadow = true; hide.userData.part = 'body';
+  body.add(hide); hide.updateMatrixWorld(true); hide.bind(new THREE.Skeleton(bones));
+  return hide;
 }
