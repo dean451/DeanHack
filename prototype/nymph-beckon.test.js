@@ -69,6 +69,11 @@ test('she looks at the hero, beckons and teases, snatches, flinches and rests af
     assert.ok(Math.abs(a.beckonArm.rotation.x - st.arm.x) < 1.6);
     assert.ok(a.motes.position.length() < .3);
   }
+  // (a tease is one turn in TEASE_ODDS on a seed taken from the model's object id, so whether one falls in the 40 s
+  // above shifts whenever any model gains or loses a part: watch a second nymph idle for long enough that a tease
+  // and its gem flare are all but certain, about twenty turns)
+  const b = mon('wood nymph', 'n'); N.updateNymphBeckon(b, 0, 0, false, hero); const sb = b.nymphBeckon; let wasB = false;
+  for (let i = 0, tb = 0; i < 60 * 150; i++) { tb += dt; N.updateNymphBeckon(b, dt, tb, false, hero); if (sb.turn && !wasB && sb.turn.tease) teases++; wasB = !!sb.turn; flare = Math.max(flare, b.baubleGem.material.emissiveIntensity); }
   assert.ok(beck >= 2 && teases >= 1, `beckons ${beck} teases ${teases}`);
   assert.ok(lift > .9, `lift ${lift}`);
   assert.ok(curl > .5, `curl ${curl}`);

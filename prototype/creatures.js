@@ -1835,7 +1835,7 @@ function nymph(o){
  const sheer=mat(o.sheer||shade(o.cloth,1.7),{roughness:.5,side:THREE.DoubleSide,transparent:true,opacity:.62,depthWrite:false});
  const gemHex=o.gem||o.trim||'#2fae4a',gem=mat(gemHex,{emissive:gemHex,emissiveIntensity:.6,roughness:.15,metalness:.2});
  const hair=mat(o.hair,{roughness:.45,side:THREE.DoubleSide,emissive:o.glow||'#ff9a3a',emissiveIntensity:.18});
- const eye=o.eye||'#7a4a22',white=mat('#f3eee8',{roughness:.3}),iris=mat(eye,{emissive:eye,emissiveIntensity:.2,roughness:.2}),lash=mat(shade(o.hair,.4)),brow=mat(shade(o.hair,.65)),lips=mat(o.lips||'#c86a6a',{roughness:.3}),teeth=mat('#f6f2ea',{roughness:.3}),lid=mat(o.lid||shade(o.skin,.9),{roughness:.4});
+ const eye=o.eye||'#7a4a22',iris=mat(eye,{emissive:eye,emissiveIntensity:1.4,roughness:.2});
  const ember=mat(o.glow||'#ffc46a',{emissive:o.glow||'#ffb040',emissiveIntensity:2.4});
  // an open gold band round a limb, from p toward q
  const cuff=(parent,p,q,r,h)=>{const A=new THREE.Vector3(...p),d=new THREE.Vector3(...q).sub(A).normalize(),m=part(parent,new THREE.CylinderGeometry(r,r*1.04,h,16,1,true),trim,A.x,A.y,A.z);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d);return m;};
@@ -1888,21 +1888,20 @@ function nymph(o){
   for(const dx of [-.012,0,.012])cone(body,.005,.03,trim,x+dx*Math.cos(mid),.165-Math.abs(dx)*.5,z-dx*Math.sin(mid),5).rotation.x=Math.PI;
   if(back)cone(body,.004,.02,trim,x,.205,z,5);
  }
- // neck and face: half-lidded eyes over a sly smile, long pointed ears
+ // neck and face: the face hidden behind a fey mask (the user, 2026-10-29: the faces need a rework, mask them for
+ // now), a pale porcelain shell with a gold rim, dark almond eye-holes and a glint of eye in each; long pointed ears
  segment(body,[0,1.13,0],[0,1.235,.005],.037,.03,skin);
  const head=new THREE.Group();head.position.set(0,1.28,.005);head.rotation.set(.02,.1,.09);body.add(head);
  sphere(head,.08,skin,0,.025,-.004,.9,1.02,.98);sphere(head,.058,skin,0,-.03,.026,.82,.92,.88);
- const nose=cone(head,.01,.026,skin,0,-.008,.082,6);nose.rotation.x=Math.PI/2-.3;
- sphere(head,.012,teeth,0,-.048,.073,1.45,.4,.5);
- const smile=part(head,new THREE.TorusGeometry(.018,.004,5,12,Math.PI*.9),lips,0,-.044,.074);smile.rotation.z=Math.PI+Math.PI*.05;smile.scale.set(1,.55,.8);smile.rotation.y=.12;
- sphere(head,.011,lips,0,-.04,.075,1.5,.35,.6);
+ const maskMat=mat(o.mask||'#ebe4d6',{roughness:.3,metalness:.1,side:THREE.DoubleSide});
+ const mask=part(head,new THREE.SphereGeometry(.09,20,12,Math.PI/2-1.15,2.3,Math.PI*.3,Math.PI*.5),maskMat,0,.0,.004);mask.scale.set(.86,1.02,.96);
+ // a nose ridge raised on the mask, and a gold rim round its edge
+ const ridge=cone(head,.011,.03,maskMat,0,-.004,.088,4);ridge.rotation.x=Math.PI/2-.35;
+ const rim=part(head,new THREE.TorusGeometry(.083,.003,4,28,2.3),trim,0,.0,.004);rim.rotation.set(Math.PI/2,0,Math.PI/2-1.15);rim.scale.set(.86,.96,1);
  for(const side of [-1,1]){
-  sphere(head,.013,white,side*.03,.008,.068,1.5,.8,.5);sphere(head,.0078,iris,side*.03,.006,.074,1,1,.5);
-  // a heavy, shadowed upper lid drawn half down over the eye
-  const upper=part(head,new THREE.SphereGeometry(.0142,12,6,0,Math.PI*2,0,Math.PI*.5),lid,side*.03,.006,.0705);upper.scale.set(1.5,.85,.62);upper.rotation.x=.35;
-  rounded(head,.034,.005,.008,lash,side*.03,.012,.075,.002).rotation.z=side*.2;
-  rounded(head,.03,.004,.008,brow,side*.031,.043,.071,.002).rotation.z=side*.22;
-  sphere(head,.012,mat(shade(o.skin,.93)),side*.045,-.022,.058,1.3,.8,.5);
+  // the eye-holes: dark almonds slanting up at the outer corner, a faint glint of her eye colour deep in each
+  const hole=sphere(head,.0145,mat('#08060a',{roughness:.9}),side*.03,.008,.08,1.55,.62,.4);hole.rotation.z=side*.28;
+  sphere(head,.0045,iris,side*.03,.007,.082,1,1,.5);
   cone(head,.013,.1,skin,side*.08,.02,-.015,5).rotation.set(-.3,0,-side*1.1);
  }
  // long, full hair with a warm rim glow: a cap, bangs, a top-knot and two flowing layers that sway

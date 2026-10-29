@@ -2345,6 +2345,18 @@ test('nymphs are dancers: sheer gold-trimmed sashes, gold cuffs and a gem on the
  assert.equal(looks.size,3,'wood, water and mountain nymphs differ');
 });
 
+test('nymphs wear a pale mask over the face (the faces wait on a rework), with dark eye-holes and a glint of eye in each',()=>{
+ for(const name of ['wood nymph','water nymph','mountain nymph']){
+  const actor=createCreature({name}),parts=[];actor.head.traverse(o=>{if(o.isMesh)parts.push(o);});
+  // (the head's parts are merged by material, so the mask is found by its porcelain)
+  assert(parts.some(m=>m.material.color.getHexString()==='ebe4d6'),`${name}: a pale porcelain mask`);
+  // nothing of a face shows: no eye whites
+  assert(!parts.some(m=>m.material.color.getHexString()==='f3eee8'),`${name}: no eye whites`);
+  const glints=parts.filter(m=>m.material.emissiveIntensity>=1);
+  assert(glints.length>=2,`${name}: a glint in each eye-hole`);
+ }
+});
+
 test('the enormous rat is its own hulking, mangy rat, bigger than a giant rat, in nine shared draws',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const box=a=>{a.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(a.g);};
