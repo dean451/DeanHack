@@ -3339,6 +3339,7 @@ export function createCreature(cell={}){
  if(name==='dust vortex'){const a=createVortex({kind:'dust'});return actor(a.g,a.body,[],null,[],'hover');}
  if(name==='steam vortex'){const a=createVortex({kind:'steam',scale:1.25});return actor(a.g,a.body,[],null,[],'hover');}
  if(name==='ice vortex'){const a=createVortex({kind:'ice',scale:1.2});return actor(a.g,a.body,[],null,[],'hover');}
+ if(name==='energy vortex'){const a=createVortex({kind:'energy',scale:1.25});return Object.assign(actor(a.g,a.body,[],null,[],'hover'),{core:a.core});}
  if(name==='fire vortex'){const a=createVortex({kind:'fire',scale:1.25});return Object.assign(actor(a.g,a.body,[],null,[],'hover'),{core:a.core});}
  if(VORTICES[name])return vortex(VORTICES[name]);
  if(isPiercer(name))return createPiercer(name);

@@ -104,3 +104,29 @@ test('the ice vortex is a glassy funnel with ice shards in its spiral and a rime
   const b = new THREE.Box3().setFromObject(a.g, true);
   assert.ok(b.min.y > -.05 && Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < .6);
 });
+
+test('the energy vortex is a self-lit column with a core, five forks of lightning riding the sheet and a charged ring, not rings', () => {
+  const a = createCreature({name: 'energy vortex', kind: 'monster'}), ms = meshes(a);
+  assert.equal(ms.filter(m => m.geometry.type === 'TorusGeometry').length, 0);
+  assert.ok(ms.length <= 10, `${ms.length}`);
+  const funnel = ms.find(m => m.userData.part === 'funnel');
+  assert.ok(funnel && funnel.material.isMeshBasicMaterial && funnel.material.transparent);
+  assert.equal(a.g.userData.arcs, 5);
+  assert.ok(funnel.children.some(m => m.userData.part === 'bolts'), 'the forks turn with the sheet');
+  assert.ok(a.core && a.core === a.g.userData.core);
+  assert.ok(ms.some(m => m.userData.part === 'charge' && m.parent === a.g));
+  a.g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(a.g, true);
+  assert.ok(b.min.y > -.05 && Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < .6);
+});
+
+import {updateVortexFx} from './vortex-fx.js';
+test('the energy vortex\'s arcs crackle between levels of its sheet, close to it', () => {
+  const a = createCreature({name: 'energy vortex', kind: 'monster'}); a.species = 'energy vortex';
+  let seen = 0;
+  for (let i = 0; i < 300; i++) {
+    updateVortexSpin(a, 1 / 60, false); updateVortexFx(a, 1 / 60, false);
+    for (const slot of a.vortexFx.arcs) if (slot.arc) { seen++; for (const p of [slot.arc.from, slot.arc.to]) assert.ok(Math.hypot(p.x, p.z) < .4 && p.y > 0 && p.y < 1.1, `${p.x} ${p.y} ${p.z}`); }
+  }
+  assert.ok(seen > 10, `${seen}`);
+});
