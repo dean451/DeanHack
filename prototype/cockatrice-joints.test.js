@@ -12,9 +12,12 @@ test('every chickatrice, cockatrice and pyrolisk has head, neck, tail, wings and
  for(const name of FAMILY){
   const a=make(name),j=a.joints;
   assert(j,`${name}: joints`);
-  assert.equal(j.head,a.head,name);
-  assert.equal(j.neck0,a.head,`${name}: the neck pivot is the head group`);
-  assert.equal(j.tail0,a.tail,`${name}: tail0`);
+  assert(j.head===a.head,name);
+  // (plain asserts: assert.equal on scene objects diffs whole graphs when it fails)
+  for(let i=0;i<4;i++)assert(j['neck'+i]?.isBone,`${name}: neck${i}`);
+  for(let i=1;i<4;i++)assert(j['neck'+i].parent===j['neck'+(i-1)],`${name}: neck${i} hangs on neck${i-1}`);
+  assert(a.head.parent===j.neck3,`${name}: the head rides the top of the neck`);
+  assert(j.tail0===a.tail,`${name}: tail0`);
   for(const side of ['l','r'])for(let i=0;i<2;i++){
    const leg=j[`${side}leg${i}`];
    assert(leg&&a.legs.includes(leg),`${name}: ${side}leg${i}`);
@@ -22,7 +25,19 @@ test('every chickatrice, cockatrice and pyrolisk has head, neck, tail, wings and
    assert.equal(leg.position.z>0,i===0,`${name}: leg${i} front to back`);
   }
   assert(j.lwing&&j.rwing&&j.lwing.position.x<0&&j.rwing.position.x>0,`${name}: wings`);
-  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length-1,`${name}: only head and neck0 share a group`);
+  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length,`${name}: every joint its own`);
+ }
+});
+
+test('bending the neck carries the head; turning the head moves the head only',()=>{
+ for(const name of FAMILY){
+  const a=make(name),j=a.joints,head=world(a.head),legs=a.legs.map(world);
+  j.neck1.rotation.x=.6;
+  assert(world(a.head).distanceTo(head)>.01,`${name}: the head went with the neck`);
+  a.legs.forEach((l,i)=>assert(world(l).distanceTo(legs[i])<1e-9,`${name}: leg ${i} stayed`));
+  j.neck1.rotation.x=0;
+  const neck=world(j.neck3);a.head.rotation.x=.5;
+  assert(world(j.neck3).distanceTo(neck)<1e-9,`${name}: the neck stayed under the head`);
  }
 });
 
