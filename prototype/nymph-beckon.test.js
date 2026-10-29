@@ -21,7 +21,7 @@ test('nymphs beckon; other creatures do not', () => {
 
 test('the arm and amulet moved onto pivots without moving the model', () => {
   const a = mon('water nymph', 'n');
-  assert.equal(a.beckonHand.parent, a.beckonArm);
+  assert.ok(a.beckonHand.parent === a.beckonArm.getObjectByName('rfore_2'), 'the hand rides the beckoning arm\'s wrist bone');
   assert.equal(a.baubleGem.parent, a.bauble);
   a.g.updateMatrixWorld(true);
   const local = o => a.body.worldToLocal(new THREE.Vector3().setFromMatrixPosition(o.matrixWorld));

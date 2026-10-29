@@ -1822,6 +1822,14 @@ function hand(parent,wrist,dir,side,skin){
  segment(h,[0,-.012,.02],[side*-.008,-.04,.034],.0065,.005,skin);
  return h;
 }
+// A nymph's arm skin as one SkinnedMesh on three bones (shoulder, elbow, wrist; `<name>0`..`2`): `build` draws the
+// skin parts on a scratch group in the arm's space, merged into one vertex-coloured geometry in `skin`'s colour.
+// Returns the bones; the gold cuffs and the hand hang on them.
+function nymphArm(arm,name,pts,build,skin){
+ const A=new THREE.Group();build(A);
+ const limbMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:skin.roughness,metalness:skin.metalness});
+ return rigLimb(arm,skinLimb(flatSkin(A),pts),limbMat,name,'arm');
+}
 // Nymphs: fae dancers who charm you and slip away with your things. A halter top tied at a
 // jewelled choker, coins chiming under the bust and along a low belt, long sheer sashes front
 // and back edged in gold with tassels, gold cuffs on her arms, wrists and ankles, a garter on
@@ -1917,9 +1925,13 @@ function nymph(o){
  // arms in gold cuffs: her left hooks the belt, her right hangs loose and dangles the stolen amulet
  // (the belt arm hangs from a shoulder pivot and the amulet from her fingertips, so nymph-beckon.js can move them)
  const arm=new THREE.Group();arm.position.set(.118,1.07,0);body.add(arm);let beckonHand;
- {const at=v=>[v[0]-.118,v[1]-1.07,v[2]],S=[0,0,0],E=at([.24,.88,-.03]),W=at([.13,.735,.09]);segment(arm,S,E,.031,.025,skin);sphere(arm,.025,skin,...E);segment(arm,E,W,.024,.017,skin);cuff(arm,at([.2,.95,-.02]),E,.03,.035);cuff(arm,at([.15,.765,.065]),W,.02,.026);beckonHand=hand(arm,W,[-.07,-.05,.05],1,skin);}
+ {const at=v=>[v[0]-.118,v[1]-1.07,v[2]],S=[0,0,0],E=at([.24,.88,-.03]),W=at([.13,.735,.09]);
+  const bones=nymphArm(arm,'rfore_',[S,E,W],A=>{segment(A,S,E,.031,.025,skin);sphere(A,.025,skin,...E);segment(A,E,W,.024,.017,skin);},skin);
+  cuff(bones[0],at([.2,.95,-.02]).map((v,k)=>v-S[k]),E.map((v,k)=>v-S[k]),.03,.035);cuff(bones[1],at([.15,.765,.065]).map((v,k)=>v-E[k]),W.map((v,k)=>v-E[k]),.02,.026);beckonHand=hand(bones[2],[0,0,0],[-.07,-.05,.05],1,skin);}
  const larm=new THREE.Group();larm.position.set(-.118,1.07,0);body.add(larm);let bauble,baubleGem;
- {const at=v=>[v[0]+.118,v[1]-1.07,v[2]],S=[0,0,0],E=at([-.17,.845,-.04]),W=at([-.2,.63,0]);segment(larm,S,E,.031,.025,skin);sphere(larm,.025,skin,...E);segment(larm,E,W,.024,.017,skin);cuff(larm,at([-.152,.92,-.025]),E,.03,.035);cuff(larm,at([-.195,.67,-.01]),W,.02,.026);hand(larm,W,[-.01,-1,.02],-1,skin);
+ {const at=v=>[v[0]+.118,v[1]-1.07,v[2]],S=[0,0,0],E=at([-.17,.845,-.04]),W=at([-.2,.63,0]);
+  const bones=nymphArm(larm,'lfore_',[S,E,W],A=>{segment(A,S,E,.031,.025,skin);sphere(A,.025,skin,...E);segment(A,E,W,.024,.017,skin);},skin);
+  cuff(bones[0],at([-.152,.92,-.025]).map((v,k)=>v-S[k]),E.map((v,k)=>v-S[k]),.03,.035);cuff(bones[1],at([-.195,.67,-.01]).map((v,k)=>v-E[k]),W.map((v,k)=>v-E[k]),.02,.026);hand(bones[2],[0,0,0],[-.01,-1,.02],-1,skin);
   const tip=[-.204,.545,.006];bauble=new THREE.Group();bauble.position.set(...tip);body.add(bauble);tube(bauble,[[0,0,0],[.004,-.05,0],[0,-.1,0]],.003,M.gold,6);
   const amulet=cylinder(bauble,.028,.028,.008,M.gold,0,-.13,0,16);amulet.rotation.x=Math.PI/2;baubleGem=sphere(bauble,.012,mat('#d9344a',{emissive:'#d9344a',emissiveIntensity:1.4}),0,-.13,.006);}
  // motes drifting around her
