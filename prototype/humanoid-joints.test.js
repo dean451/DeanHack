@@ -9,70 +9,76 @@ import {MIND_FLAYER_KINDS,createMindFlayer} from './mind-flayer.js';
 const FAMILY=[['hobbit',createHobbit],['bugbear',createBugbear],
  ...DWARVES.map(n=>[n,()=>createDwarf(n)]),
  ...Object.keys(MIND_FLAYER_KINDS).map(n=>[n,()=>createMindFlayer(n)])];
-const tip=o=>{o.updateMatrixWorld(true);return new THREE.Box3().setFromObject(o).max.clone();};
+const world=o=>{o.updateWorldMatrix(true,false);return o.getWorldPosition(new THREE.Vector3());};
+// the hide: the skinned mesh on the limbs' material (a dwarf's armour is a second skin on the same bones)
+const usesArm=o=>{const k=o.skeleton.bones.findIndex(b=>b.name==='lfore_1'),si=o.geometry.attributes.skinIndex;for(let i=0;i<si.count;i++)if(si.getX(i)===k)return true;return false;};
+const hideOf=a=>{const m=[];a.g.traverse(o=>{if(o.isSkinnedMesh&&usesArm(o))m.push(o);});assert.equal(m.length,1,'one hide');return m[0];};
+// every skin on the hide's skeleton (the hide, and a dwarf's armour), its vertices as skinned now (world space)
+const skins=a=>{const h=hideOf(a),out=[];a.g.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton===h.skeleton)out.push(o);});return out;};
+const verts=a=>{a.g.updateMatrixWorld(true);const v=new THREE.Vector3(),out=[];for(const m of skins(a))for(let i=0;i<m.geometry.attributes.position.count;i++){m.getVertexPosition(i,v);out.push(v.applyMatrix4(m.matrixWorld).clone());}return out;};
+const under=(b,root)=>{for(let p=b;p;p=p.parent)if(p===root)return true;return false;};
+const shareOn=(a,root)=>skins(a).flatMap(m=>{const bones=m.skeleton.bones,si=m.geometry.attributes.skinIndex,sw=m.geometry.attributes.skinWeight;
+ return Array.from({length:si.count},(_,i)=>{let w=0;for(let k=0;k<4;k++)if(under(bones[si.getComponent(i,k)],root))w+=sw.getComponent(i,k);return w;});});
+// turns `joint` about x and checks: the skin mostly past it moved (a dwarf's short neck blends into the trunk, so
+// none of its skin rides the neck alone), the skin with no weight past it stayed
+function movesPastOnly(a,joint,angle,name,minMove=.01){
+ const rest=verts(a),share=shareOn(a,joint),was=joint.rotation.x;
+ joint.rotation.x+=angle;const bent=verts(a);joint.rotation.x=was;
+ let before=0,past=0;rest.forEach((r,i)=>{const d=r.distanceTo(bent[i]);if(share[i]===0)before=Math.max(before,d);else if(share[i]>.5)past=Math.max(past,d);});
+ assert(past>minMove,`${name}: the skin past ${joint.name} moved ${past.toFixed(3)}`);
+ assert(before<1e-6,`${name}: the skin before ${joint.name} stayed (${before})`);
+}
 
-test('every hobbit, dwarf, bugbear and mind flayer has head, neck, arms and legs as named joints',()=>{
+test('every hobbit, dwarf, bugbear and mind flayer has its trunk, neck, head, arms and legs as named joints on one skinned hide',()=>{
  assert(FAMILY.length>=6);
  for(const [name,make] of FAMILY){
   const a=make(),j=a.joints;
-  assert(j,`${name}: joints`);
+  hideOf(a);
   assert.equal(j.head,a.head,name);
-  assert.equal(j.neck0,a.head,`${name}: the neck pivot is the head group`);
-  for(const side of ['l','r']){
-   for(const [stem,list] of [['fore',a.arms],['leg1',a.legs]]){
-    const o=j[side+stem];
-    assert(o&&list.includes(o),`${name}: ${side}${stem}`);
-    assert.equal(o.position.x<0,side==='l',`${name}: left is -x`);
-    assert.equal(o.name,side+stem,name);
-   }
+  for(const n of ['hips','spine0','spine1','neck0','neck1','neck2','neck3'])assert(j[n]?.isBone,`${name}: ${n}`);
+  assert(a.head.parent===j.neck3,`${name}: the head rides the top of the neck`);
+  for(const arm of a.arms)assert(under(arm,j.spine1),`${name}: the arms hang from the chest`);
+  for(const side of ['l','r'])for(const [stem,list] of [['fore',a.arms],['leg1',a.legs]]){
+   const o=j[side+stem];
+   assert(o&&list.includes(o),`${name}: ${side}${stem}`);
+   assert.equal(o.position.x<0,side==='l',`${name}: left is -x`);
+   assert.equal(o.name,side+stem,name);
+   for(let k=0;k<3;k++)assert(j[`${side}${stem}_${k}`]?.isBone,`${name}: ${side}${stem}_${k}`);
   }
-  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length-1,`${name}: only head and neck0 share a group`);
+  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length,`${name}: every joint its own`);
+  assert(a.weaponSocket.parent===j.rfore_2,`${name}: the weapon socket rides the right wrist bone`);
  }
 });
 
-test('turning an arm moves that arm only; turning a hip moves that leg only; the head carries its face',()=>{
+test('turning an arm or a hip moves that limb only; the head turns alone',()=>{
  for(const [name,make] of FAMILY){
   const a=make(),j=a.joints;
-  for(const key of ['lfore','rfore','lleg1','rleg1']){
-   const joint=j[key],all=[...a.arms,...a.legs],others=all.filter(o=>o!==joint).map(o=>[o,tip(o)]),before=tip(joint);
-   joint.rotation.x=.6;
-   assert(tip(joint).distanceTo(before)>.005,`${name}: ${key} swung`);
-   for(const [o,b] of others)assert(tip(o).distanceTo(b)<1e-6,`${name}: ${key} left ${o.name} alone`);
-   joint.rotation.x=0;
-  }
-  const face=tip(a.head),limbs=[...a.arms,...a.legs].map(tip);
+  for(const key of ['lfore','rfore','lleg1','rleg1'])movesPastOnly(a,j[key],.6,`${name} ${key}`,.005);
+  const rest=verts(a),face=world(j.head);
   a.head.rotation.x=.5;
-  assert(tip(a.head).distanceTo(face)>.01,`${name}: the head turned with its face`);
-  [...a.arms,...a.legs].forEach((o,i)=>assert(tip(o).distanceTo(limbs[i])<1e-6,`${name}: limb ${i} stayed under the head`));
+  assert(verts(a).every((v,i)=>v.distanceTo(rest[i])<1e-6),`${name}: the head turns alone, the hide stays`);
+  assert(world(j.head).distanceTo(face)<1e-9,name);
  }
 });
 
-const SKINNED=[['hobbit',createHobbit],...DWARVES.map(n=>[n,()=>createDwarf(n)])];
-
-test('the hobbit\'s and every dwarf\'s arms and legs are one skinned mesh on three bones; bending the elbow or knee carries the hand or foot and leaves the shoulder',()=>{
- for(const [name,make] of SKINNED){
- const a=make(),j=a.joints;
- for(const side of ['l','r'])for(const stem of ['fore','leg1']){
-  const group=j[side+stem],bones=[0,1,2].map(k=>j[`${side}${stem}_${k}`]);
-  bones.forEach((b,k)=>assert(b?.isBone,`${side}${stem}_${k}`));
-  const m=group.children.find(o=>o.isSkinnedMesh);
-  assert(m,`${side}${stem} is one skinned mesh`);
-  const verts=()=>{a.g.updateMatrixWorld(true);const v=new THREE.Vector3();return Array.from({length:m.geometry.attributes.position.count},(_,n)=>m.getVertexPosition(n,v).applyMatrix4(m.matrixWorld).clone());};
-  const rest=verts(),si=m.geometry.attributes.skinIndex,sw=m.geometry.attributes.skinWeight;
-  bones[1].rotation.x=.6;
-  const bent=verts();let before=0,past=0;
-  rest.forEach((r,n)=>{const d=r.distanceTo(bent[n]);let onPast=0;for(let k=0;k<4;k++)if(si.getComponent(n,k)>=1)onPast+=sw.getComponent(n,k);
-   if(onPast===0)before=Math.max(before,d);else if(onPast>.999)past=Math.max(past,d);});
-  assert(past>.02,`${name} ${side}${stem}: past the joint moved ${past}`);
-  assert(before<1e-6,`${name} ${side}${stem}: above the joint stayed (${before})`);
- }
+test('bending a joint moves the skin past it and leaves the skin before it: every elbow and knee, the neck, the waist and the chest',()=>{
+ for(const [name,make] of FAMILY){
+  const a=make(),j=a.joints;
+  for(const key of ['lfore','rfore','lleg1','rleg1'])movesPastOnly(a,j[`${key}_1`],.6,`${name} ${key}_1`,.02);
+  for(const n of ['neck1','spine0','spine1'])movesPastOnly(a,j[n],.5,`${name} ${n}`);
  }
 });
 
-test('the weapon socket of the hobbit and every dwarf follows a bent right elbow',()=>{
- for(const [name,make] of SKINNED){
-  const a=make(),p=()=>{a.g.updateMatrixWorld(true);return a.weaponSocket.getWorldPosition(new THREE.Vector3());};
-  const rest=p();a.joints.rfore_1.rotation.x=.8;
-  assert(p().distanceTo(rest)>.05,name);
+test('the weapon follows a bent right elbow, and a hunch carries the head and arms and leaves the legs',()=>{
+ for(const [name,make] of FAMILY){
+  const a=make(),j=a.joints,socket=()=>world(a.weaponSocket);
+  const rest=socket();j.rfore_1.rotation.x=.8;
+  assert(socket().distanceTo(rest)>.05,`${name}: the weapon followed the elbow`);
+  j.rfore_1.rotation.x=0;
+  const head=world(a.head),legs=a.legs.map(world);
+  j.spine0.rotation.x=.4;j.spine1.rotation.x=.3;
+  assert(world(a.head).y<head.y-.03&&world(a.head).z>head.z,`${name}: the head came forward and down`);
+  assert(socket().distanceTo(rest)>.02,`${name}: the weapon arm went with the chest`);
+  a.legs.forEach((l,i)=>assert(world(l).distanceTo(legs[i])<1e-9,`${name}: the legs stayed`));
  }
 });

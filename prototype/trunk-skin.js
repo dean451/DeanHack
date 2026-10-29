@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {skinChain, rigChain} from './chain-skin.js';
 
 // A standing creature's trunk and neck as one SkinnedMesh: the body's merged geometry weighted onto a spine of
 // vertebrae stacked up the trunk (the first the pelvis root, so the belt and the hips stay put when the back
@@ -93,4 +94,45 @@ export function mergeSkins(body, first, cache) {
   hide.castShadow = hide.receiveShadow = true; hide.userData.part = 'body';
   body.add(hide); hide.updateMatrixWorld(true); hide.bind(new THREE.Skeleton(bones));
   return hide;
+}
+
+// A limb that is one plain mesh hanging down -y, skinned onto three bones `<prefix>0`..`2` (at the root, about
+// half its length and nine tenths of it) under its group, as the skinned limbs are (chain-skin.js). Cached per
+// geometry, so every member built alike shares the skinned copy.
+const LIMBS = new WeakMap();
+export function skinPlainLimb(group, prefix) {
+  const m = group.children.find(o => o.isMesh && !o.isSkinnedMesh);
+  if (!m) return;
+  if (!LIMBS.has(m.geometry)) { m.geometry.computeBoundingBox(); const y = m.geometry.boundingBox.min.y; LIMBS.set(m.geometry, skinChain(m.geometry.clone(), [[0, 0, 0], [0, .5 * y, 0], [0, .9 * y, 0]])); }
+  group.remove(m);
+  rigChain(group, LIMBS.get(m.geometry), m.material, prefix, {part: m.userData.part});
+}
+
+// The trunk and neck of a standing creature on bones, and its whole skin in one hide (after its limbs are on
+// bones and its joints named): a pelvis root `hips`, `spine0` at the waist, `spine1` at the chest, `neck0`..`neck3`
+// from the top of the trunk to the head's pivot, placed from where the creature's own hips (`legs`), shoulders
+// (`arms`) and head sit. The head hangs on `neck3` and the arms and wings on the chest; the legs and the tail stay
+// on the pelvis. Then the trunk, limbs and tail (all on the limbs' material) become one skinned hide (`mergeSkins`);
+// any other body skin (a second material, a glow) is skinned onto the same bones and bound to the hide's skeleton.
+// `S`: the shared geometry, where the skinned copies are cached. Adds the bones to `actor.joints`.
+export function rigBody(actor, S) {
+  const {body, head, legs, arms, wings = []} = actor, legY = legs[0].position.y, armY = arms[0].position.y, h = head.position.toArray();
+  const spine = [['hips', [0, 0, 0]], ['spine0', [0, legY + .35 * (armY - legY), 0]], ['spine1', [0, legY + .75 * (armY - legY), 0]]];
+  const root = [0, armY + .35 * (h[1] - armY), .5 * h[2]], neck = [0, 1, 2, 3].map(i => ['neck' + i, root.map((v, k) => v + (h[k] - v) * i / 3)]);
+  const def = {spine, neck, blend: .03, r: .045};
+  const skins = body.children.filter(o => o.isMesh && !o.isSkinnedMesh && (o.userData.part === 'body' || o.userData.part === 'glow'));
+  let limbMaterial = null; for (const o of [...arms, ...legs]) o.traverse(m => { if (m.isSkinnedMesh) limbMaterial ??= m.material; });
+  const first = skins.find(m => m.userData.part === 'body' && m.material === limbMaterial) || skins.find(m => m.userData.part === 'body');
+  const skinned = S.trunkSkins ??= new Map(), skinOf = m => { if (!skinned.has(m.geometry)) skinned.set(m.geometry, skinTrunk(m.geometry.clone(), def)); return skinned.get(m.geometry); };
+  for (const m of skins) body.remove(m);
+  const {mesh, bones} = rigTrunk(body, skinOf(first), first.material);
+  hangOn(bones.neck3, head);
+  for (const o of [...arms, ...wings]) hangOn(bones.spine1, o);
+  const hide = mergeSkins(body, mesh, S.hideCache ??= {});
+  for (const m of skins) if (m !== first) {
+    const s = new THREE.SkinnedMesh(skinOf(m), m.material); s.castShadow = m.castShadow; s.receiveShadow = m.receiveShadow; s.userData.part = m.userData.part;
+    body.add(s); s.updateMatrixWorld(true); s.bind(hide.skeleton, s.matrixWorld);
+  }
+  Object.assign(actor.joints, bones);
+  return actor;
 }
