@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
-import {nameImpJoints} from './imp-joints.js';
+import {rigImp} from './imp-joints.js';
 import {skinChain,rigChain} from './chain-skin.js';
 import {skinLimb,rigLimb} from './humanoid-joints.js';
 
@@ -163,5 +163,5 @@ export function createQuasit(){
   const arm=new THREE.Group();arm.position.set(s*.12,.52,.05);arm.rotation.set(-.3,0,s*.16);body.add(arm);rigLimb(arm,S.arm[s],S.material,(s<0?'l':'r')+'fore_','arm');arms.push(arm);
  }
  const tail=new THREE.Group();tail.position.set(0,.27,-.08);body.add(tail);rigChain(tail,S.tail,S.material,'tail',{part:'tail'});
- return nameImpJoints({g,body,legs,tail,wings:[],quirk:'quasit',arms,arm:arms[1],head,hat:null,beard:null,pick:null});
+ return rigImp({g,body,legs,tail,wings:[],quirk:'quasit',arms,arm:arms[1],head,hat:null,beard:null,pick:null},S);
 }
