@@ -3,93 +3,72 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {KOBOLDS,createKobold} from './kobold.js';
 
-const tip=o=>{
- let r=o;while(r.parent)r=r.parent;r.updateMatrixWorld(true);
- if(!o.isBone)return new THREE.Box3().setFromObject(o).max.clone();
- while(o.children.some(c=>c.isBone))o=o.children.find(c=>c.isBone);
- return new THREE.Vector3().setFromMatrixPosition(o.matrixWorld);
-};
+const world=o=>{o.updateWorldMatrix(true,false);return o.getWorldPosition(new THREE.Vector3());};
+// the one skinned hide and its vertices as skinned now (world space)
+const hideOf=a=>{const m=[];a.g.traverse(o=>{if(o.isSkinnedMesh)m.push(o);});assert.equal(m.length,1,'one skinned hide');return m[0];};
+const verts=a=>{a.g.updateMatrixWorld(true);const m=hideOf(a),v=new THREE.Vector3(),out=[];for(let i=0;i<m.geometry.attributes.position.count;i++){m.getVertexPosition(i,v);out.push(v.applyMatrix4(m.matrixWorld).clone());}return out;};
+// how much of each vertex's weight is on `root` or anything under it
+const under=(b,root)=>{for(let p=b;p;p=p.parent)if(p===root)return true;return false;};
+const shareOn=(a,root)=>{const m=hideOf(a),bones=m.skeleton.bones,si=m.geometry.attributes.skinIndex,sw=m.geometry.attributes.skinWeight;
+ return Array.from({length:si.count},(_,i)=>{let w=0;for(let k=0;k<4;k++)if(under(bones[si.getComponent(i,k)],root))w+=sw.getComponent(i,k);return w;});};
+// turns `joint` about `ax` and checks: the skin wholly past it moved, the skin with no weight past it stayed
+function movesPastOnly(a,joint,ax,angle,name,minMove=.01){
+ const rest=verts(a),share=shareOn(a,joint),was=joint.rotation[ax];
+ joint.rotation[ax]+=angle;const bent=verts(a);joint.rotation[ax]=was;
+ let before=0,past=0;rest.forEach((r,i)=>{const d=r.distanceTo(bent[i]);if(share[i]===0)before=Math.max(before,d);else if(share[i]>.999)past=Math.max(past,d);});
+ assert(past>minMove,`${name}: the skin past ${joint.name} moved ${past.toFixed(3)}`);
+ assert(before<1e-6,`${name}: the skin before ${joint.name} stayed (${before})`);
+}
 
-test('every kobold has head, neck, tail, arms and legs as named joints',()=>{
+test('every kobold has its trunk, neck, head, tail, arms and legs as named joints on one skinned hide',()=>{
  assert(KOBOLDS.length>=4);
  for(const name of KOBOLDS){
   const a=createKobold(name),j=a.joints;
-  assert(j,`${name}: joints`);
+  hideOf(a);
   assert.equal(j.head,a.head,name);
-  assert.equal(j.neck0,a.head,`${name}: the neck pivot is the head group`);
-  assert(j.tail0.isBone&&j.tail0.parent.parent===a.tail,`${name}: tail0 is the first bone under the tail pivot`);
+  for(const n of ['hips','spine0','spine1','neck0','neck1','neck2','neck3'])assert(j[n]?.isBone,`${name}: ${n}`);
+  assert.equal(a.head.parent,j.neck3,`${name}: the head rides the top of the neck`);
+  for(const arm of a.arms)assert(under(arm,j.spine1),`${name}: the arms hang from the chest`);
+  assert(j.tail0.isBone&&j.tail0.parent===a.tail,`${name}: tail0 is the first bone under the tail pivot`);
+  for(let i=0;i<5;i++)assert(j['tail'+i]?.isBone,`${name}: tail${i}`);
   for(const side of ['l','r'])for(const [stem,list] of [['fore',a.arms],['leg1',a.legs]]){
    const o=j[side+stem];
    assert(o&&list.includes(o),`${name}: ${side}${stem}`);
    assert.equal(o.position.x<0,side==='l',`${name}: left is -x`);
+   for(let k=0;k<3;k++)assert(j[`${side}${stem}_${k}`]?.isBone,`${name}: ${side}${stem}_${k}`);
   }
-  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length-1,`${name}: only head and neck0 share a group`);
+  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length,`${name}: every joint its own`);
+  assert.equal(a.weaponSocket.parent,j.rfore_2,`${name}: the weapon rides the wrist bone`);
  }
 });
 
-test('turning the tail moves the tail only; turning an arm or a hip moves that limb only; the head carries its face',()=>{
- for(const name of KOBOLDS){
-  const a=createKobold(name),j=a.joints,parts=[...a.arms,...a.legs,j.tail0];
-  for(const key of ['tail0','lfore','rfore','lleg1','rleg1']){
-   const joint=j[key],others=parts.filter(o=>o!==joint).map(o=>[o,tip(o)]),before=tip(joint),face=tip(a.head);
-   joint.rotation.x+=.6;
-   assert(tip(joint).distanceTo(before)>.005,`${name}: ${key} swung`);
-   for(const [o,b] of others)assert(tip(o).distanceTo(b)<1e-6,`${name}: ${key} left ${o.name} alone`);
-   assert(tip(a.head).distanceTo(face)<1e-6,`${name}: ${key} left the head alone`);
-   joint.rotation.x-=.6;
-  }
-  const limbs=parts.map(tip);
-  a.head.rotation.x=.5;
-  parts.forEach((o,i)=>assert(tip(o).distanceTo(limbs[i])<1e-6,`${name}: part ${i} stayed under the head`));
- }
-});
-
-test('the tail is one skinned mesh on bones tail0..tail4: bending tail2 carries the tip and leaves the root',()=>{
- for(const name of KOBOLDS){
-  const a=createKobold(name),j=a.joints,m=a.tail.children.find(o=>o.isSkinnedMesh);
-  assert(m,`${name}: skinned tail`);
-  assert.equal(a.tail.children.filter(o=>o.isMesh).length,1,`${name}: one tail mesh`);
-  for(let i=0;i<5;i++)assert(j['tail'+i]?.isBone,`${name}: tail${i}`);
-  const tipAt=()=>{a.g.updateMatrixWorld(true);return new THREE.Vector3().setFromMatrixPosition(j.tail4.matrixWorld);};
-  a.g.updateMatrixWorld(true);
-  const root=new THREE.Vector3().setFromMatrixPosition(j.tail1.matrixWorld),before=tipAt();
-  j.tail2.rotation.z=.7;
-  assert(tipAt().distanceTo(before)>.03,`${name}: the tip swung`);
-  assert(new THREE.Vector3().setFromMatrixPosition(j.tail1.matrixWorld).distanceTo(root)<1e-6,`${name}: tail1 stayed`);
-  // the hide follows: skinned vertices past the bend move, those before it do not
-  const g=m.geometry,ix=g.attributes.skinIndex,v=new THREE.Vector3();
-  m.skeleton.update();
-  let moved=0,still=0;
-  for(let i=0;i<g.attributes.position.count;i++){
-   const b=ix.getX(i);
-   const world=m.getVertexPosition?m.getVertexPosition(i,v).clone():v.fromBufferAttribute(g.attributes.position,i).clone();
-   const rest=new THREE.Vector3().fromBufferAttribute(g.attributes.position,i);
-   const d=world.distanceTo(rest);
-   if(b>=3&&d>.01)moved++;
-   if(b===0&&d>1e-6)still++;
-  }
-  assert(moved>0,`${name}: hide past the bend moved`);
-  assert.equal(still,0,`${name}: hide before the bend stayed`);
- }
-});
-
-test('arms and legs are one skinned mesh each on three bones: bending the elbow or hock carries the hand or foot and leaves the root',()=>{
+test('turning a limb or the tail moves that part only; the head carries its face and nothing else',()=>{
  for(const name of KOBOLDS){
   const a=createKobold(name),j=a.joints;
-  for(const [list,stem] of [[a.arms,'fore'],[a.legs,'leg1']])for(const limb of list){
-   assert.equal(limb.children.filter(o=>o.isMesh).length,1,`${name}: one mesh per limb`);
-   assert(limb.children.find(o=>o.isSkinnedMesh),`${name}: skinned limb`);
-  }
-  assert.equal(a.weaponSocket.parent,j.rfore_2,`${name}: the weapon rides the wrist bone`);
-  for(const key of ['lfore','rfore','lleg1','rleg1']){
-   const side=key[0],stem=key.slice(1),b=n=>j[`${side}${stem}_${n}`];
-   for(let i=0;i<3;i++)assert(b(i)?.isBone,`${name}: ${key}_${i}`);
-   const at=o=>{a.g.updateMatrixWorld(true);return new THREE.Vector3().setFromMatrixPosition(o.matrixWorld);};
-   const root=at(b(0)),end=at(b(2));
-   b(1).rotation.x=.7;
-   assert(at(b(2)).distanceTo(end)>.02,`${name}: ${key} end swung`);
-   assert(at(b(0)).distanceTo(root)<1e-6,`${name}: ${key} root stayed`);
-   b(1).rotation.x=0;
-  }
+  for(const key of ['tail0','lfore','rfore','lleg1','rleg1'])movesPastOnly(a,j[key],'x',.6,`${name} ${key}`,.005);
+  const rest=verts(a),face=world(j.head);
+  a.head.rotation.x=.5;
+  assert(verts(a).every((v,i)=>v.distanceTo(rest[i])<1e-6),`${name}: the head turns alone, the hide stays`);
+  assert(world(j.head).distanceTo(face)<1e-9,name);
+ }
+});
+
+test('bending a joint moves the skin past it and leaves the skin before it: the tail, the neck, the waist, the chest, every elbow and hock',()=>{
+ for(const name of KOBOLDS){
+  const a=createKobold(name),j=a.joints;
+  movesPastOnly(a,j.tail2,'z',.7,`${name} tail2`,.03);
+  for(const n of ['neck1','spine0','spine1'])movesPastOnly(a,j[n],'x',.5,`${name} ${n}`);
+  for(const key of ['lfore','rfore','lleg1','rleg1'])movesPastOnly(a,j[`${key}_1`],'x',.7,`${name} ${key}_1`,.02);
+ }
+});
+
+test('the back hunches: bending the waist and the chest carries the head, the arms and the weapon, and leaves the hips, legs and tail',()=>{
+ for(const name of KOBOLDS){
+  const a=createKobold(name),j=a.joints,head=world(a.head),hand=world(a.weaponSocket),legs=a.legs.map(world),tail=world(j.tail4);
+  j.spine0.rotation.x=.4;j.spine1.rotation.x=.3;
+  assert(world(a.head).y<head.y-.03&&world(a.head).z>head.z,`${name}: the head came forward and down`);
+  assert(world(a.weaponSocket).distanceTo(hand)>.02,`${name}: the weapon arm went with the chest`);
+  a.legs.forEach((l,i)=>assert(world(l).distanceTo(legs[i])<1e-9,`${name}: the legs stayed`));
+  assert(world(j.tail4).distanceTo(tail)<1e-9,`${name}: the tail stayed`);
  }
 });

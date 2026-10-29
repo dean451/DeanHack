@@ -15,7 +15,7 @@ test('kobolds get their own scaly, tailed model instead of the short humanoid',(
   assert.equal(a.legs.length,2);assert.equal(a.arms.length,2);assert.equal(a.arm,a.arms[1]);
   assert.equal(a.weaponSocket.parent,a.joints.rfore_2,'the weapon is in the right fist, on the wrist bone');assert(a.arm.getObjectByName('rfore_2'),'and that bone is in the right arm');
   const parts=meshes(a);
-  assert.equal(parts.length,9,`${name}: one mesh per moving part, plus the eyes`);
+  assert.equal(parts.length,4,`${name}: the hide (trunk, neck, limbs and tail on one skeleton), the head, the eyes and the weapon`);
   let verts=0;
   for(const m of parts){
    const at=m.geometry.attributes;verts+=at.position.count;
@@ -28,10 +28,13 @@ test('kobolds get their own scaly, tailed model instead of the short humanoid',(
   const b=new THREE.Box3().setFromObject(a.g);
   assert(b.min.y>-.04&&b.min.y<.03,`${name}: feet at ${b.min.y}`);
   assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,`${name}: out of the tile`);
-  const [l,r]=a.legs.map(leg=>new THREE.Box3().setFromObject(leg));
-  assert(Math.abs((l.min.x+l.max.x)/2+(r.min.x+r.max.x)/2)<1e-6,'feet mirrored');
+  // (the legs' skin is in the one hide: the vertices riding each leg's bones, mirrored side to side)
+  const hide=parts.find(m=>m.isSkinnedMesh),bones=hide.skeleton.bones,si=hide.geometry.attributes.skinIndex,v=new THREE.Vector3();
+  const riding=part=>{const box=new THREE.Box3();for(let i=0;i<si.count;i++){let o=bones[si.getX(i)];while(o&&o!==part)o=o.parent;if(o)box.expandByPoint(hide.getVertexPosition(i,v).applyMatrix4(hide.matrixWorld));}return box;};
+  const [l,r]=a.legs.map(riding);
+  assert(!l.isEmpty()&&Math.abs((l.min.x+l.max.x)/2+(r.min.x+r.max.x)/2)<1e-6,'feet mirrored');
   // the tail trails out behind
-  const t=new THREE.Box3().setFromObject(a.tail);
+  const t=riding(a.tail);
   assert(t.min.z<b.min.z+.01&&t.min.z<-.25,`${name}: tail reaches ${t.min.z}`);
   tops[name]=b.max.y;
  }

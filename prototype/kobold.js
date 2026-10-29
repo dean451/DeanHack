@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
-import {skinChain,rigChain} from './chain-skin.js';
+import {skinChain} from './chain-skin.js';
+import {skinTrunk,hangOn} from './trunk-skin.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Kobolds used to be the generic short humanoid: a box torso, a sphere head with a cone snout, two
 // long flat cone ears and a stick spear. They now have their own model: a small, scaly, dog-snouted
@@ -251,29 +253,62 @@ function geometry(kind){
  cache[kind]={
   body:grow(buildBody(L,C)),head:grow(buildHead(L,C)),eyes:grow(buildEyes()),legs:[mirrored(leg),leg].map(g=>skinLimb(g,LEG_BONES.map(p=>p.map(v=>v*s)))),
   arms:[0,1].map(()=>skinLimb(grow(buildArm(L,C)),ARM_BONES.map(p=>p.map(v=>v*s)))),tail:skinChain(grow(buildTail(L,C)),TAIL_PTS.map(p=>p.map(v=>v*s))),weapon:grow(buildWeapon(L,C)),
-  eyeMaterial:new THREE.MeshStandardMaterial({color:L.eye,emissive:L.eye,emissiveIntensity:2.6,roughness:.3}),
+  scale:s,eyeMaterial:new THREE.MeshStandardMaterial({color:L.eye,emissive:L.eye,emissiveIntensity:2.6,roughness:.3}),
  };
  return cache[kind];
 }
 function mesh(parent,geo,mat,name){const m=new THREE.Mesh(geo,mat);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
+// The trunk's vertebrae and the neck (body space at scale 1): the pelvis root `hips` (the belt and loincloth
+// stay put), `spine0` at the waist, `spine1` at the chest (the arms hang from it), and the neck from the top of
+// the trunk to the head's pivot (neck0..neck3), the head hung on neck3.
+const TRUNK={spine:[['hips',[0,0,0]],['spine0',[0,P0.hip+.05,0]],['spine1',[0,P0.hip+.15,.02]]],neck:[[0,P0.hip+.24,.055],[0,P0.headY,P0.headZ]]};
+// A chain's bones under `group` (no mesh: the hide is skinned to them), as chain-skin.js's rigChain lays them.
+function chainBones(group,chain,name){const bones=chain.map((p,i)=>{const b=new THREE.Bone();b.name=name+i;const q=i?chain[i-1]:[0,0,0];b.position.set(p[0]-q[0],p[1]-q[1],p[2]-q[2]);return b;});bones.forEach((b,i)=>(i?bones[i-1]:group).add(b));return bones;}
+
 export function createKobold(name){
  const kind=isKobold(name)?name:'kobold',L=LOOKS[kind],S=geometry(kind),s=L.scale;
  const g=new THREE.Group(),body=new THREE.Group();g.name=kind;g.add(body);
- mesh(body,S.body,material,'body');
- const head=new THREE.Group();head.position.set(0,P0.headY*s,P0.headZ*s);body.add(head);
+ // the trunk's and neck's bones (trunk-skin.js), placed at their pivots at rest
+ const trunk=[...TRUNK.spine.map(([n,p])=>[n,p.map(v=>v*s)]),...[0,1,2,3].map(i=>{const [a,b]=TRUNK.neck,t=i/3;return ['neck'+i,a.map((v,k)=>(v+(b[k]-v)*t)*s)];})],B={};
+ let prev=body,prevAt=[0,0,0];for(const [n,at] of trunk){const b=new THREE.Bone();b.name=n;b.position.set(at[0]-prevAt[0],at[1]-prevAt[1],at[2]-prevAt[2]);b.userData.at=at;prev.add(b);B[n]=b;prev=b;prevAt=at;}
+ const head=new THREE.Group();B.neck3.add(head);
  mesh(head,S.head,material,'head');
  const eyes=mesh(head,S.eyes,S.eyeMaterial,'eyes');eyes.castShadow=false;
- const legs=[],arms=[];
+ const legs=[],arms=[],limbBones=[];
  for(const [i,side] of [-1,1].entries()){
-  const leg=new THREE.Group();leg.position.set(side*P0.legX*s,P0.hip*s,0);body.add(leg);rigLimb(leg,S.legs[i],material,(side<0?'l':'r')+'leg1_','leg');legs.push(leg);
-  const arm=new THREE.Group();arm.position.set(side*P0.shoulderX*s,P0.shoulderY*s,P0.shoulderZ*s);arm.rotation.z=side*.14;body.add(arm);rigLimb(arm,S.arms[i],material,(side<0?'l':'r')+'fore_','arm');arms.push(arm);
+  const leg=new THREE.Group();leg.position.set(side*P0.legX*s,P0.hip*s,0);body.add(leg);legs.push(leg);
+  limbBones.push(chainBones(leg,S.legs[i].userData.chain,(side<0?'l':'r')+'leg1_'));
+  // (the arms hang from the chest, so a hunch or a bend of the back carries them)
+  const arm=new THREE.Group();arm.position.set(side*P0.shoulderX*s,P0.shoulderY*s,P0.shoulderZ*s);arm.rotation.z=side*.14;hangOn(B.spine1,arm);arms.push(arm);
+  limbBones.push(chainBones(arm,S.arms[i].userData.chain,(side<0?'l':'r')+'fore_'));
  }
- const tail=new THREE.Group();tail.position.set(0,P0.tailY*s,P0.tailZ*s);tail.rotation.x=1.2;body.add(tail);const tailBones=rigChain(tail,S.tail,material,'tail').bones;
+ const tail=new THREE.Group();tail.position.set(0,P0.tailY*s,P0.tailZ*s);tail.rotation.x=1.2;body.add(tail);const tailBones=chainBones(tail,S.tail.userData.chain,'tail');
+ // the whole hide (trunk and neck, legs, arms, tail) as one skinned mesh on one skeleton, built once per kind
+ // from where the parts' groups stand at rest
+ g.updateMatrixWorld(true);
+ S.hide??=hideGeometry(S,body,[legs[0],arms[0],legs[1],arms[1]],tail,trunk);
+ const hide=new THREE.SkinnedMesh(S.hide,material);hide.castShadow=hide.receiveShadow=true;hide.userData.part='body';body.add(hide);
+ hide.updateMatrixWorld(true);hide.bind(new THREE.Skeleton([...trunk.map(([n])=>B[n]),...limbBones.flat(),...tailBones]));
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-.01*s,.02*s);arms[1].getObjectByName('rfore_2').add(weaponSocket);
  mesh(weaponSocket,S.weapon,material,'weapon');
  const actor={g,body,legs,tail,wings:[],quirk:'kobold',arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null};
  nameHumanoidJoints(actor);
  tail.name='tail';for(const b of tailBones)actor.joints[b.name]=b;
+ // the trunk and the neck: neck0 is the neck's root bone now (no longer the head group)
+ for(const [n] of trunk)actor.joints[n]=B[n];
  return actor;
+}
+// The hide's geometry: the body skinned onto the trunk and neck (trunk-skin.js), then each limb and the tail, moved
+// from its group's space into the body's and its bone indices moved past the ones before it (the skeleton's order:
+// the trunk and neck, the left leg, left arm, right leg, right arm, the tail).
+function hideGeometry(S,body,limbs,tail,trunk){
+ const inBody=o=>new THREE.Matrix4().copy(body.matrixWorld).invert().multiply(o.matrixWorld);
+ const parts=[skinTrunk(S.body.clone(),{spine:trunk.slice(0,3),neck:trunk.slice(3),blend:.03*S.scale,r:.05*S.scale})];
+ let base=trunk.length;
+ const add=(geo,o)=>{const c=geo.clone().applyMatrix4(inBody(o)),si=c.attributes.skinIndex;for(let i=0;i<si.count;i++)for(let k=0;k<4;k++)si.setComponent(i,k,si.getComponent(i,k)+base);base+=geo.userData.chain.length;parts.push(c);};
+ add(S.legs[0],limbs[0]);add(S.arms[0],limbs[1]);add(S.legs[1],limbs[2]);add(S.arms[1],limbs[3]);add(S.tail,tail);
+ for(const p of parts)for(const k of Object.keys(p.attributes))if(!['position','normal','color','skinIndex','skinWeight'].includes(k))p.deleteAttribute(k);
+ const geo=mergeGeometries(parts.map(p=>p.index?p.toNonIndexed():p));geo.computeBoundingSphere();
+ return geo;
 }
