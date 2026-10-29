@@ -159,6 +159,7 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
+- Wild cat stalking crouch: the tail floats clear of the body, a gap of open floor between the rump and the tail in the game-camera view, so it reads as a detached part (https://github.com/dean451/DeanHack/pull/1732, `prototype/wildcat-stalk-poses.js` / `wildcat-stalking.js`). **Done when:** `STALKING=2 node tools/creature-shot.mjs "tiger"` and `POSE=stalk` renders (three-quarter and game) show the tail joined to the rump along its whole length, and a test in `wildcat-stalking.test.js` checks the tail root stays within a tail-width of the rump.
 
 
 
