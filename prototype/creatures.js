@@ -3343,6 +3343,7 @@ export function createCreature(cell={}){
  if(name==='ice vortex'){const a=createVortex({kind:'ice',scale:1.2});return actor(a.g,a.body,[],null,[],'hover');}
  if(name==='energy vortex'){const a=createVortex({kind:'energy',scale:1.25});return Object.assign(actor(a.g,a.body,[],null,[],'hover'),{core:a.core});}
  if(name==='fire vortex'){const a=createVortex({kind:'fire',scale:1.25});return Object.assign(actor(a.g,a.body,[],null,[],'hover'),{core:a.core});}
+ if(name==='fog cloud'){const a=createVortex({kind:'fog'});return actor(a.g,a.body,[],null,[],'hover');}
  if(VORTICES[name])return vortex(VORTICES[name]);
  if(isPiercer(name))return createPiercer(name);
  // the owlbear has its own model (owlbear.js), not the generic ape

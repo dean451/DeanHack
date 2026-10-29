@@ -27,10 +27,15 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // five jagged forks of lightning leap out of the spiral (userData.arcs = 5), drawn as one child of the funnel so they
 // turn with it; under the foot, an ionised scorch with a glowing ring. vortex-fx.js crackles arcs between the levels
 // in userData.arcRings and spits sparks off the core. Five draws.
+// Fog cloud last: no funnel at all, a low rolling bank of cold fog. Seven lumpy puffs (each a knobbly sphere pressed
+// flat on the floor, pale on top and dark grey underneath) heaped wide and low, the middle ones riding higher, and two
+// torn wisps trailing off along the floor; all transparent, so vortex-spin.js billows each and drifts them round each
+// other, and vortex-fx.js curls mist out along the floor. Ten draws.
 // Seven draws for dust, eight for fire. Handles: body (quirk 'hover'); fire also gives core.
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const H = .8, ROWS = 14, SEG = 20;
 const KINDS = {
+  fog: {deep: '#7c838b', pale: '#e2e6ea', ground: '#3a3e44', fog: true, opacity: .46},
   dust: {deep: '#4a3622', mid: '#8a6c46', pale: '#c4a878', grit: '#5a4630', stone: '#6e6a62', rag: '#3a2a22', ground: '#5a4630'},
   steam: {deep: '#7c8790', mid: '#cdd6dd', pale: '#ffffff', ground: '#2a2f33', bead: '#dfe8ee', steam: true, radius: t => .04 + .09 * t ** .6 + .22 * t ** 3.2 + .02 * Math.sin(t * 13), opacity: .5},
   energy: {deep: '#0a1650', mid: '#2f6cff', pale: '#eaf6ff', ground: '#0c1018', energy: true, radius: t => .05 + .12 * t ** .9 + .025 * Math.sin(t * 17), opacity: .58},
@@ -105,6 +110,41 @@ export function createVortex({kind = 'dust', scale = 1} = {}) {
     }
     const mb = mergeGeometries(bd); bd.forEach(d => d.dispose());
     add(mb, new THREE.MeshStandardMaterial({color: c.bead, roughness: .1, metalness: .1, emissive: '#6a7680', emissiveIntensity: .5}), 'beads', g);
+  }
+
+  if (c.fog) {
+    // the puffs: knobbly spheres pressed flat, heaped wide and low; each its own mesh so vortex-spin.js billows it
+    const fogMat = new THREE.MeshStandardMaterial({vertexColors: true, roughness: 1, transparent: true, opacity: c.opacity, depthWrite: false, emissive: '#5a6068', emissiveIntensity: .45});
+    const deep = new THREE.Color(c.deep), pale = new THREE.Color(c.pale);
+    [[0, 0, .22, .15, .07], [.21, .09, .17, .11, .05], [-.21, .11, .18, .12, .045], [.07, -.23, .16, .1, .04], [-.15, -.19, .15, .09, .03], [.25, -.15, .13, .08, .025], [-.06, .25, .14, .09, .03]].forEach(([x, z, r, h, y], i) => {
+      const geo = new THREE.SphereGeometry(1, 18, 10), p = geo.attributes.position, col = new Float32Array(p.count * 3), o = new THREE.Color();
+      for (let k = 0; k < p.count; k++) {
+        let px = p.getX(k), py = p.getY(k), pz = p.getZ(k);
+        const lump = 1 + .14 * Math.sin(px * 5 + i) * Math.sin(pz * 4 - i * 1.3) + .08 * Math.sin(py * 7 + px * 3 + i * 2);
+        px *= lump; pz *= lump; py = Math.max(py * lump, -.35); // the underside pressed flat
+        p.setXYZ(k, px * r * scale, (py + .35) * h * scale, pz * r * scale);
+        o.copy(deep).lerp(pale, Math.min(1, Math.max(0, (py + .35) / 1.2)) ** .8);
+        o.toArray(col, k * 3);
+      }
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.computeVertexNormals();
+      const m = add(geo, fogMat, 'puff');
+      m.position.set(x * scale, y * scale - .02 * scale, z * scale);
+    });
+    // two torn wisps trailing off along the floor, thin flat strands that fray at their ends
+    for (let w = 0; w < 2; w++) {
+      const a0 = w ? 2.4 : -.6, pts = [];
+      for (let k = 0; k <= 5; k++) { const a = a0 + k * .22 * (w ? 1 : -1), r = (.24 + k * .035) * scale; pts.push(new THREE.Vector3(Math.cos(a) * r, (.05 - k * .006) * scale, Math.sin(a) * r)); }
+      const curve = new THREE.CatmullRomCurve3(pts), geo = new THREE.TubeGeometry(curve, 10, .04 * scale, 6, false), tp = geo.attributes.position, col = new Float32Array(tp.count * 3), o = new THREE.Color();
+      const mid = new THREE.Vector3();
+      for (let k = 0; k < tp.count; k++) {
+        const u = Math.floor(k / 7) / 10, c0 = curve.getPointAt(u, mid), f = 1 - .75 * u;
+        tp.setXYZ(k, c0.x + (tp.getX(k) - c0.x) * f, c0.y + (tp.getY(k) - c0.y) * f * .45, c0.z + (tp.getZ(k) - c0.z) * f);
+        o.copy(deep).lerp(pale, .45 - .25 * u).toArray(col, k * 3);
+      }
+      geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.computeVertexNormals();
+      add(geo, fogMat, 'wisp');
+    }
+    return {g, body};
   }
 
   // the funnel: an outer sheet and an inner one wound the other way, merged into one draw
