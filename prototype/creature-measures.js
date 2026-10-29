@@ -65,6 +65,11 @@ export const MEASURES = {
     walkSpeed: [.78, .96], // m/s, Labrador retrievers on a treadmill
     trotSpeed: [.9, 1.1], // m/s, small trotting dogs on a pressure walkway
   },
+  // gargoyles and gremlins: a macaque's rest and a hawk's one-footed perch
+  gargoyle: {
+    macaqueRest: [.3383, .341], // share of the day resting: rhesus in Nepal, mangrove macaques
+    hawkOneFoot: .22, // peak share of time a merlin stands on one foot (Laterality 2024, as quoted)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -102,4 +107,10 @@ export const CANINE = {
   sleepShare: MEASURES.canine.ownerSleepHours / 24,
   curledMostly: MEASURES.canine.curledShare > .5,
   walkMid: mid(MEASURES.canine.walkSpeed),
+};
+
+// What the gargoyles' poses use: how much of a day a monkey rests, and the most a hawk perches on one foot
+export const GARGOYLE = {
+  restShare: mid(MEASURES.gargoyle.macaqueRest),
+  oneFootMax: MEASURES.gargoyle.hawkOneFoot,
 };
