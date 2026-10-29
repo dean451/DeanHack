@@ -2386,7 +2386,10 @@ test('the white naga is a pale Gehennom serpent with a crown of ice, frost fangs
  const parts=meshes(w);assert(parts.length<=12,`${parts.length} meshes`);
  for(const p of parts)for(const v of p.geometry.attributes.position.array)assert(Number.isFinite(v),'finite');
  assert(parts.some(icy),'ice crest');assert(!meshes(gold).some(icy),'other nagas have no ice');
- const body=parts.find(p=>p.material.color?.getHexString()==='d8d8d0');assert(body,'bone-white scales');
+ // (naga.js paints its scales in vertex colour: the coil's are pale and near colourless)
+ const coil=parts.find(p=>p.userData.part==='coil')?.geometry.attributes.color;assert(coil,'a scaled coil');
+ const avg=[0,1,2].map(k=>{let t=0;for(let i=0;i<coil.count;i++)t+=coil.getComponent(i,k);return t/coil.count;});
+ assert(Math.min(...avg)>.25&&Math.max(...avg)-Math.min(...avg)<.08,`bone-white scales (${avg.map(v=>v.toFixed(2))})`);
  const b=box(w);assert(b.min.y>-.005&&b.min.y<.01,`on the floor at ${b.min.y}`);
  assert(b.max.y>box(gold).max.y,'taller than a golden naga');assert(b.max.y<1.1,`top ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.6,'stays on its tile');

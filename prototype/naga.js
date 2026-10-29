@@ -79,7 +79,8 @@ export function createNaga({kind = 'red', baby = false} = {}) {
   };
 
   // the coil: tail tip outside, wound inward and climbing, ending under the raised neck
-  const y0 = r * .95, SEG = 100, pts = [];
+  // (the coil's base sits low enough that its fattest turns rest on the floor rather than hover over it)
+  const y0 = r * .8, SEG = 100, pts = [];
   for (let i = 0; i <= 34; i++) {
     const t = i / 34, a = Math.PI * .6 + t * Math.PI * 5.2, rad = .34 - t * .24;
     pts.push(new THREE.Vector3(Math.cos(a) * rad, y0 + t * t * r * 1.1, -Math.sin(a) * rad * .9 - .02));
