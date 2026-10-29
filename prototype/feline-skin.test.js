@@ -121,6 +121,30 @@ test('an attack action plays the pounce once, over whatever the pet was doing, t
   a.actions.current = {kind: 'attack'}; r = updateSkinnedFeline(a, 1 / 60, null, false); assert.ok(r.pouncing);
 });
 
+test('the pounce\'s crouch keeps the forepaws planted ahead of the shoulders, elbows tucked back, and the chest sinks over them', () => {
+  for (const name of ['kitten', 'housecat']) {
+    const a = createSkinnedFeline(name), legs = a.animator.stepper.legs; a.actions = {current: null};
+    for (let i = 0; i < 30; i++) updateSkinnedFeline(a, 1 / 60, null, false);
+    a.g.updateMatrixWorld(true);
+    const inv = () => a.g.matrixWorld.clone().invert(), at = b => b.getWorldPosition(new THREE.Vector3()).applyMatrix4(inv());
+    const tip = L => L.leg.tip.clone().applyMatrix4(L.bones.at(-1).matrixWorld).applyMatrix4(inv());
+    const restChest = at(legs.lfore.bones[0]).y;
+    a.actions.current = {kind: 'attack'};
+    let low = Infinity;
+    // the crouch, before the leap (POUNCE.time * .28)
+    for (let t = 0; t < POUNCE.time * .26; t += 1 / 60) {
+      updateSkinnedFeline(a, 1 / 60, null, false); a.g.updateMatrixWorld(true);
+      for (const key of ['lfore', 'rfore']) {
+        const L = legs[key], sh = at(L.bones[0]), el = at(L.bones[1]), paw = tip(L);
+        assert.ok(paw.z > sh.z - .01 * a.g.scale.x, `${name} ${key}: paw ${paw.z.toFixed(3)} stays ahead of the shoulder ${sh.z.toFixed(3)}`);
+        assert.ok(el.z < sh.z, `${name} ${key}: the elbow points back`);
+        low = Math.min(low, sh.y);
+      }
+    }
+    assert.ok(low < restChest * .8, `${name}: the chest sinks in the crouch (${low.toFixed(3)} from ${restChest.toFixed(3)})`);
+  }
+});
+
 test('a pounce that cuts into another clip (eating, then the kitten strikes) blends: the weights always sum to one, the cut clip fades out, no paw sinks through the floor', () => {
   const a = createSkinnedFeline('kitten'), {actions} = a.animator, v = new THREE.Vector3();
   a.actions = {current: null};

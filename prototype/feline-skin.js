@@ -314,7 +314,9 @@ export function pouncePose(u) {
   const pose = {hipsY: -POUNCE.crouch * crouch + POUNCE.leap * leap - .03 * land, chestScale: 1};
   pose.spine = {x: .25 * crouch - .3 * leap + .1 * land}; pose.chest = {x: .15 * crouch - .25 * leap + .12 * land}; pose.hips = {x: -.1 * crouch + .2 * leap};
   for (const key of ['lhind', 'rhind']) { pose[key + '0'] = {x: -.6 * crouch + POUNCE.drive * leap + .2 * land}; pose[key + '1'] = {x: 1.1 * crouch - .3 * leap + .4 * land}; pose[key + '2'] = {x: -.5 * crouch + .4 * leap - .3 * land}; pose[key + '3'] = {x: .2 * crouch}; }
-  for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: .35 * crouch + POUNCE.reach * leap - .25 * land}; pose[key + '1'] = {x: .6 * crouch + .3 * leap + .5 * land}; pose[key + '2'] = {x: .2 * crouch - .4 * leap}; }
+  // (the crouch keeps the forepaws planted ahead of the shoulders: the upper arm swings back, tucking the elbow, and the
+  // forearm angles forward, so the chest sinks over the paws instead of the paws sliding back under the belly)
+  for (const key of ['lfore', 'rfore']) { pose[key + '0'] = {x: .45 * crouch + POUNCE.reach * leap - .25 * land}; pose[key + '1'] = {x: -1.5 * crouch + .3 * leap + .5 * land}; pose[key + '2'] = {x: .8 * crouch - .4 * leap}; }
   return pose;
 }
 // Poses the bones directly from a pose (the shape sampleClip reads), for tools and tests: rotations
