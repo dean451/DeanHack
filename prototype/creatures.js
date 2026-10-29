@@ -8,7 +8,7 @@ import {heldBoulderGeometry} from './boulder.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
 import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
-import {nameHumanoidJoints} from './humanoid-joints.js';
+import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
@@ -2508,7 +2508,14 @@ const RUST_MONSTERS={'rust monster':{color:'#8a5a34',belly:'#c08a5a',fleck:'#c06
 
 // Leprechaun: a small, portly trickster in a green frock coat and buckled top hat,
 // leaning on a knobbly shillelagh with a swinging sack of stolen gold in his other hand.
+// The meshes built on a scratch group, merged into one vertex-coloured geometry (each mesh's material colour).
+function flatSkin(group){
+ group.updateMatrixWorld(true);const P=pieces();
+ group.traverse(m=>{if(m.isMesh)P.add(m.geometry,m.matrixWorld,m.material.color.toArray());});
+ return P.merge();
+}
 function leprechaun(o){
+ const limbMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,metalness:.04});
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
  const box=(p,w,h,d,m,x,y,z)=>part(p,new THREE.BoxGeometry(w,h,d),m,x,y,z);
  const coat=mat(o.coat,{roughness:.85}),coatDark=mat(shade(o.coat,.6),{roughness:.9}),vest=mat(o.vest||'#d8c89a',{roughness:.85}),skin=mat('#a08468',{roughness:.8}),rosy=mat('#6e3e36',{roughness:.8}),
@@ -2527,11 +2534,13 @@ function leprechaun(o){
  for(const side of [-1,1]){const lapel=box(body,.04,.13,.02,coatDark,side*.07,.47,.1);lapel.rotation.set(-.2,0,-side*.3);
   const tail=box(body,.08,.2,.025,coat,side*.05,.26,-.12);tail.rotation.set(.18,0,side*.12);}
  // arms: left hand grips a shillelagh planted on the floor; the right hand holds the sack
- // each arm hangs on its own group at the shoulder (`lfore` / `rfore`), the parts drawn where they were
+ // each arm hangs on its own group at the shoulder (`lfore` / `rfore`), the parts drawn where they were,
+ // merged into one vertex-coloured skin on three bones (shoulder, elbow, wrist)
  const arms=[];
  for(const side of [-1,1]){const shoulder=[side*.14,.5,0],hand=[side*.2-shoulder[0],.33-shoulder[1],.06],arm=new THREE.Group();arm.position.set(...shoulder);body.add(arm);
-  segment(arm,[0,0,0],hand,.042,.036,coat);sphere(arm,.045,coat,0,0,0);
-  cylinder(arm,.04,.04,.03,stocking,(side*.2)*.97-shoulder[0],hand[1]+.035,hand[2]);sphere(arm,.034,skin,...hand);arms.push(arm);}
+  const A=new THREE.Group();segment(A,[0,0,0],hand,.042,.036,coat);sphere(A,.045,coat,0,0,0);
+  cylinder(A,.04,.04,.03,stocking,(side*.2)*.97-shoulder[0],hand[1]+.035,hand[2]);sphere(A,.034,skin,...hand);
+  rigLimb(arm,skinLimb(flatSkin(A),[[0,0,0],hand.map(v=>v/2),hand]),limbMat,(side<0?'l':'r')+'fore_','arm');arms.push(arm);}
  tube(body,[[-.23,.005,.1],[-.215,.2,.08],[-.2,.36,.06],[-.2,.46,.06]],.014,wood,12);sphere(body,.03,wood,-.2,.47,.06,1,.9,1);
  for(const [y,z] of [[.12,.095],[.25,.075]])sphere(body,.017,wood,-.225,y,z);
  // head (on a neck pivot): bruised cheeks, a bulbous scabbed nose, pointed ears, a green glint in the eye and a ginger chin-curtain beard

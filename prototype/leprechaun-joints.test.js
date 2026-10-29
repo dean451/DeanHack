@@ -29,3 +29,23 @@ test('turning an arm moves that arm only; the shillelagh and the sack stay put',
   j[key].rotation.x=0;
  }
 });
+
+test('each arm is one skinned mesh on shoulder, elbow and wrist bones; bending the elbow moves the forearm and not the shoulder',()=>{
+ const a=createCreature({name:'leprechaun',symbol:108,color:2}),j=a.joints;
+ for(const side of ['l','r']){
+  const arm=j[side+'fore'],meshes=[];arm.traverse(o=>{if(o.isSkinnedMesh)meshes.push(o);});
+  assert.equal(meshes.length,1,side+' arm is one skinned mesh');
+  const [m]=meshes,elbow=j[side+'fore_1'];
+  assert(j[side+'fore_0']&&elbow&&j[side+'fore_2'],'three bones');
+  const verts=()=>{a.g.updateMatrixWorld(true);m.skeleton.update();return Array.from({length:m.geometry.attributes.position.count},(_,i)=>m.getVertexPosition(i,new THREE.Vector3()).applyMatrix4(m.matrixWorld));};
+  const before=verts();elbow.rotation.x=-.8;const after=verts();
+  const w=m.geometry.attributes.skinWeight,ix=m.geometry.attributes.skinIndex;let still=0,moved=0;
+  for(let i=0;i<before.length;i++){
+   const d=before[i].distanceTo(after[i]);
+   if(ix.getX(i)===0&&w.getX(i)===1){assert(d<1e-6,'a vertex on the shoulder bone alone stays');still++;}
+   if(ix.getX(i)>=1&&w.getX(i)>=1-1e-6||ix.getY(i)===2&&w.getY(i)>.99){assert(d>.005,'a vertex past the elbow follows it');moved++;}
+  }
+  assert(still>0&&moved>0,'both kinds of vertex exist');
+  elbow.rotation.x=0;
+ }
+});
