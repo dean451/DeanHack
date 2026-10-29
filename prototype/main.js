@@ -4,6 +4,7 @@ import {createGauntletHand} from './hero-hand.js';
 import {buildValkyrie,PALETTE as VALKYRIE} from './hero-valkyrie.js';
 import {createFountain} from './fountain.js';
 import {installLive} from './live.js';
+import {createHeroPortrait,mountPortraitView,PORTRAIT_INTERVAL_MS} from './hero-portrait.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -237,6 +238,9 @@ function reset(){state=createState();player.g.position.set(state.player.x,0,stat
 function action(a){touch();const now=performance.now()/1000;if(now<lockedUntil)return;const result=act(state,a);if(result.type!=='blocked')lockedUntil=now+.18;if(result.type==='attack'){attackTime=now;player.g.rotation.y=Math.atan2(state.enemy.x-state.player.x,state.enemy.z-state.player.z);}if(result.type==='move'){moveTime=now;player.g.rotation.y=Math.atan2(a.dx,a.dz);}updateHUD();}
 if(new URLSearchParams(location.search).has('debug'))window.__dh={camera,controls,player,scene,renderer};
 const live=installLive({scene,camera,controls,renderer,playerFactory:knight,catFactory:cat,monsterFactory:sentinel,creatureFactory:createCreature,wellTemplate:well,onDemo:()=>{$('.stats').innerHTML='<span>AC <b>−2</b></span><span>LVL <b>1</b></span><span>TURN <b id="turn">0</b></span>';updateHUD();},onMode:active=>{galleryButton.hidden=active;setGallery(false);if(active)for(const object of [player.g,pet.g,enemy,marker])object.visible=false;},demoObjects:scene.children.filter(o=>!o.isHemisphereLight&&!o.isDirectionalLight),onActivity:touch});if(window.__dh)window.__dh.live=live;
+// The hero's portrait beside the hitpoints (hero-portrait.js): the live hero in the game, the demo room's knight otherwise, redrawn a few times a second.
+const heroPortrait=createHeroPortrait({THREE,renderer,view:mountPortraitView(document,$('.character'))});if(window.__dh)window.__dh.portrait=heroPortrait;
+const demoPortrait=()=>gallery.visible?null:{g:player.g,head:player.head,shape:null,kit:player.kitKey||'',hp:state.hp,maxhp:24,conditions:[],dead:state.hp<=0};
 const keys={k:[0,-1],ArrowUp:[0,-1],j:[0,1],ArrowDown:[0,1],h:[-1,0],ArrowLeft:[-1,0],l:[1,0],ArrowRight:[1,0],y:[-1,-1],u:[1,-1],b:[-1,1],n:[1,1]};
 addEventListener('keydown',e=>{if(live.active || e.target instanceof HTMLButtonElement || e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey)return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(keys[key]){e.preventDefault();action({type:'move',dx:keys[key][0],dz:keys[key][1]});}else if(key===' '){e.preventDefault();action({type:'wait'});}else if(key==='e')action({type:'drink'});});
 $('#reset').onclick=reset;
@@ -256,7 +260,7 @@ renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open')
  flames.forEach(({f,light,phase})=>{f.userData.updateFire(t);light.intensity=13+Math.sin(t*11+phase)*1.3+Math.sin(t*19.3+phase)*.6;});
  for(const m of motes)m.m.position.set(m.x+Math.sin(t*.3+m.phase)*.2,(m.y+t*.055)%3.5,m.z+Math.cos(t*.2+m.phase)*.15);
  hazeLayers.forEach(({sprite,phase},i)=>{sprite.position.x+=Math.sin(t*.11+phase)*.0015;sprite.position.y+=Math.cos(t*.17+phase)*.0008;sprite.material.opacity=(.12+i*.035)+Math.sin(t*.23+phase)*.025;});enemy.userData.core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;
- const updateAt=performance.now();live.update(t,dt);const updateMs=performance.now()-updateAt;flameFlicker.update(t);sinkDrip.update(t);canopySway.update(t);throneGleam.update(t);graveMist.update(t);graveHands.update(t,live.heroAt(heroWorld));altarEmbers.update(t);bogBubbles.update(t);gasRoil.update(t);gasEdge.update(t,dt,live.heroAt(heroWorld),gasRoil.meshes);live.setCough(gasEdge.hunch);controls.update();renderStats.begin();const renderAt=performance.now();composer.render();const renderMs=performance.now()-renderAt;{const step=adaptive.frame(ms,frameCostNow(ms),quality.tier);if(step){setQuality(step,{say:true,auto:true});}}renderStats.end(dt,{update:updateMs,render:renderMs});
+ const updateAt=performance.now();live.update(t,dt);const updateMs=performance.now()-updateAt;flameFlicker.update(t);sinkDrip.update(t);canopySway.update(t);throneGleam.update(t);graveMist.update(t);graveHands.update(t,live.heroAt(heroWorld));altarEmbers.update(t);bogBubbles.update(t);gasRoil.update(t);gasEdge.update(t,dt,live.heroAt(heroWorld),gasRoil.meshes);live.setCough(gasEdge.hunch);heroPortrait.update(performance.now(),live.active?live.portraitSubject:demoPortrait(),{interval:PORTRAIT_INTERVAL_MS[quality.tier]});controls.update();renderStats.begin();const renderAt=performance.now();composer.render();const renderMs=performance.now()-renderAt;{const step=adaptive.frame(ms,frameCostNow(ms),quality.tier);if(step){setQuality(step,{say:true,auto:true});}}renderStats.end(dt,{update:updateMs,render:renderMs});
 });
 // Read-only state snapshot for smoke tests and future engine-adapter experiments.
 window.roomPrototype={snapshot:()=>structuredClone(state),rendererInfo:()=>renderStats.frame(),renderStats:()=>renderStats.summary()};
