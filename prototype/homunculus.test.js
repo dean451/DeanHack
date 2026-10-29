@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
+import {partBox} from './part-box.js';
 
 const I=105;// 'i'
 function meshes(actor){const list=[];actor.g.traverse(o=>{if(o.isMesh)list.push(o);});return list;}
@@ -16,8 +17,8 @@ test('the homunculus gets its own bat-winged, pot-bellied model instead of the t
  assert(hom.arms.includes(hom.arm));
  assert.deepEqual(hom.wings.map(w=>w.userData.side),[-1,1]);
  const parts=meshes(hom);
- assert.equal(parts.length,10,'one mesh per moving part plus the eyes');
- assert.deepEqual([...new Set(parts.map(m=>m.userData.part))].sort(),['arm','body','eyes','head','leg','tail','wing']);
+ assert.equal(parts.length,5,'the hide (trunk, limbs and tail on one skeleton, imp-joints.js rigImp), the head, the eyes and two wings');
+ assert.deepEqual([...new Set(parts.map(m=>m.userData.part))].sort(),['body','eyes','head','wing']);
  let verts=0;
  for(const m of parts){
   const a=m.geometry.attributes;verts+=a.position.count;

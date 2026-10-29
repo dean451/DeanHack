@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
+import {partBox} from './part-box.js';
 
 const I=105;// 'i'
 function meshes(actor){const list=[];actor.g.traverse(o=>{if(o.isMesh)list.push(o);});return list;}
@@ -16,9 +17,9 @@ test('the tengu gets its own long-nosed, crow-winged model instead of the tinted
  assert(tengu.arms.includes(tengu.arm));
  assert.deepEqual(tengu.wings.map(w=>w.userData.side),[-1,1]);
  const parts=meshes(tengu);
- assert.equal(parts.length,9,'one mesh per moving part plus the eyes');
- assert.deepEqual([...new Set(parts.map(m=>m.userData.part))].sort(),['arm','body','eyes','head','leg','wing']);
- assert.notEqual(parts.length,meshes(imp).length,'still the imp');
+ assert.equal(parts.length,5,'the hide (trunk and limbs on one skeleton, imp-joints.js rigImp), the head, the eyes and two wings');
+ assert.deepEqual([...new Set(parts.map(m=>m.userData.part))].sort(),['body','eyes','head','wing']);
+ assert.notEqual(parts.find(m=>m.userData.part==='head').geometry,meshes(imp).find(m=>m.userData.part==='head').geometry,'still the imp');
  for(const m of parts){
   const a=m.geometry.attributes;
   for(const key of ['position','normal','color'])if(a[key])for(const v of a[key].array)assert(Number.isFinite(v),`${m.userData.part} ${key}`);

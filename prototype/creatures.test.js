@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import * as THREE from 'three';
 import {createCreature,RAT_NECK} from './creatures.js';
+import {partBox} from './part-box.js';
 
 const D=68;
 function glowOf(actor){return '#'+actor.core.material.emissive.getHexString();}
@@ -305,7 +306,7 @@ test('quasits get their own lean, wingless, barb-tailed model instead of the tin
  for(const key of ['body','head','arm','tail'])assert(quasit[key]?.isObject3D,key);
  assert.equal(quasit.legs.length,2);assert.equal(quasit.arms.length,2);assert.equal(quasit.wings.length,0);
  const parts=meshes(quasit);
- assert.equal(parts.length,8,'one mesh per moving part plus the eyes');
+ assert.equal(parts.length,3,'the hide (trunk, limbs and tail on one skeleton, imp-joints.js rigImp), the head and the eyes');
  let verts=0;
  for(const m of parts){
   const a=m.geometry.attributes;verts+=a.position.count;
@@ -319,10 +320,10 @@ test('quasits get their own lean, wingless, barb-tailed model instead of the tin
  assert(b.max.y>.65&&b.max.y<.9,`top at ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.45,'fits the tile');
  // the feet rest on the floor, the claws hang below the hips and the tail trails well behind
- for(const leg of quasit.legs){const l=new THREE.Box3().setFromObject(leg);assert(l.min.y>-.03&&l.min.y<.03,`foot at ${l.min.y}`);}
- const hand=new THREE.Box3().setFromObject(quasit.arm);
+ for(const leg of quasit.legs){const l=partBox(quasit,leg);assert(l.min.y>-.03&&l.min.y<.03,`foot at ${l.min.y}`);}
+ const hand=partBox(quasit,quasit.arm);
  assert(hand.min.y>.05&&hand.min.y<.25,`claws at ${hand.min.y}`);
- const tail=new THREE.Box3().setFromObject(quasit.tail);
+ const tail=partBox(quasit,quasit.tail);
  assert(tail.min.z<-.3,`tail reaches z ${tail.min.z}`);assert(tail.min.y>0,`tail at ${tail.min.y}`);
  const other=meshes(createCreature({name:'quasit'}));
  parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});
@@ -337,7 +338,7 @@ test('lemures get their own slumped, melting, legless model instead of the tinte
  for(const key of ['body','head','arm'])assert(lemure[key]?.isObject3D,key);
  assert.equal(lemure.legs.length,2);assert.equal(lemure.arms.length,2);assert.equal(lemure.wings.length,0);assert.equal(lemure.tail,null);
  const parts=meshes(lemure);
- assert.equal(parts.length,7,'one mesh per moving part plus the eyes');
+ assert.equal(parts.length,3,'the hide (trunk, lobes and arms on one skeleton, imp-joints.js rigImp), the head and the eyes');
  let verts=0;
  for(const m of parts){
   const a=m.geometry.attributes;verts+=a.position.count;
@@ -351,8 +352,8 @@ test('lemures get their own slumped, melting, legless model instead of the tinte
  assert(b.max.y>.5&&b.max.y<.75,`top at ${b.max.y}`);
  assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.45,'fits the tile');
  // the lobes sit on the ground and the hands reach out low in front
- for(const leg of lemure.legs){const l=new THREE.Box3().setFromObject(leg);assert(l.min.y>-.03&&l.min.y<.04,`lobe at ${l.min.y}`);}
- const hand=new THREE.Box3().setFromObject(lemure.arm);
+ for(const leg of lemure.legs){const l=partBox(lemure,leg);assert(l.min.y>-.03&&l.min.y<.04,`lobe at ${l.min.y}`);}
+ const hand=partBox(lemure,lemure.arm);
  assert(hand.min.y>.03&&hand.min.y<.25,`hand at ${hand.min.y}`);assert(hand.max.z>.15,`hand reaches to z ${hand.max.z}`);
  const other=meshes(createCreature({name:'lemure'}));
  parts.forEach((m,i)=>{assert.equal(m.geometry,other[i].geometry);assert.equal(m.material,other[i].material);});

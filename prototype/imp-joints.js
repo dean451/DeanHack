@@ -4,7 +4,7 @@
 // `tail0`..`tail4` under the `tail` pivot), and its trunk and neck too (`rigImp`, below).
 import * as THREE from 'three';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
-import {skinTrunk,rigTrunk,hangOn} from './trunk-skin.js';
+import {skinTrunk,rigTrunk,hangOn,mergeSkins} from './trunk-skin.js';
 
 export function nameImpJoints(actor){
  nameHumanoidJoints(actor);
@@ -23,8 +23,8 @@ export function nameImpJoints(actor){
 // `spine1` at the chest, `neck0`..`neck3` from the top of the trunk to the head's pivot. The head hangs on `neck3`
 // (so `neck0` is a bone, no longer the head group) and the arms and wings on the chest, so a hunch carries them;
 // the legs and the tail stay on the pelvis. The vertebrae are placed from where the creature's own hips,
-// shoulders and head sit. The body was already its own mesh, so the draw count does not change (a uranium imp's
-// glow is skinned the same way, on the same bones). `S`: the creature's shared geometry (the skinned copies are
+// shoulders and head sit. Then the trunk, limbs and tail are merged into one skinned hide (`mergeSkins`), one draw
+// where each skinned part used to draw itself (a uranium imp's glow is skinned the same way, on the same bones). `S`: the creature's shared geometry (the skinned copies are
 // cached on it).
 export function rigImp(actor, S) {
   for (const [list, stem] of [[actor.legs, 'leg1_'], [actor.arms, 'fore_']]) for (const o of list) skinPlainLimb(o, (o.position.x < 0 ? 'l' : 'r') + stem);
@@ -37,9 +37,12 @@ export function rigImp(actor, S) {
   S.trunkGeo ??= skinTrunk(plain.geometry.clone(), def);
   body.remove(plain);
   const {mesh, bones} = rigTrunk(body, S.trunkGeo, plain.material);
-  if (glow) { S.glowGeo ??= skinTrunk(glow.geometry.clone(), def); body.remove(glow); const m = new THREE.SkinnedMesh(S.glowGeo, glow.material); m.castShadow = glow.castShadow; m.receiveShadow = glow.receiveShadow; m.userData.part = 'glow'; body.add(m); m.updateMatrixWorld(true); m.bind(mesh.skeleton, m.matrixWorld); }
   hangOn(bones.neck3, head);
   for (const o of [...arms, ...wings]) hangOn(bones.spine1, o);
+  // the trunk, the limbs and the tail as one skinned hide, one draw instead of one each (trunk-skin.js); a uranium
+  // imp's glow, on its own material, rides the hide's skeleton (the trunk's bones come first, as its skin expects)
+  const hide = mergeSkins(body, mesh, S.hideCache ??= {});
+  if (glow) { S.glowGeo ??= skinTrunk(glow.geometry.clone(), def); body.remove(glow); const m = new THREE.SkinnedMesh(S.glowGeo, glow.material); m.castShadow = glow.castShadow; m.receiveShadow = glow.receiveShadow; m.userData.part = 'glow'; body.add(m); m.updateMatrixWorld(true); m.bind(hide.skeleton, m.matrixWorld); }
   Object.assign(actor.joints, bones);
   return actor;
 }
