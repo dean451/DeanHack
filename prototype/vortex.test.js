@@ -90,3 +90,17 @@ test('the steam vortex stays on its tile and spins down to rest', () => {
   for (let i = 0; i < 400; i++) updateVortexSpin(a, .05, false);
   assert.ok(funnel.quaternion.angleTo(q0) < 1e-3);
 });
+
+test('the ice vortex is a glassy funnel with ice shards in its spiral and a rime ring on the floor, not rings', () => {
+  const a = createCreature({name: 'ice vortex', kind: 'monster'}), ms = meshes(a);
+  assert.equal(ms.filter(m => m.geometry.type === 'TorusGeometry').length, 0);
+  assert.ok(ms.length <= 10, `${ms.length}`);
+  const funnel = ms.find(m => m.userData.part === 'funnel');
+  assert.ok(funnel && funnel.material.transparent);
+  assert.ok(ms.filter(m => m.userData.part === 'shard').length >= 4, 'shards');
+  const rime = ms.find(m => m.userData.part === 'rime');
+  assert.ok(rime && rime.parent === a.g, 'the rime stays on the floor while the body spins');
+  a.g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(a.g, true);
+  assert.ok(b.min.y > -.05 && Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < .6);
+});

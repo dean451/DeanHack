@@ -18,12 +18,17 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // wide billowing head, pale grey-white with a faint glow of heat in it; nothing is caught in it (vortex-fx.js
 // peels wisps off the head), and six beads of condensation sit on the wet dark floor round the foot, merged
 // into one draw. Three draws.
+// Ice vortex fourth: a cold, glassy funnel of sleet. The same torn sheet, pale blue-white and lit faintly cold from
+// within, slimmer at the waist than the dust funnel and flaring at the top; five long shards of clear ice ride the
+// spiral (vortex-spin.js tumbles them fast, so they glint), and a ring of rime stands up off the floor round the
+// foot, splinters of frost leaning outward, in one draw (vortex-fx.js lays the frost creeping out under it). Eight draws.
 // Seven draws for dust, eight for fire. Handles: body (quirk 'hover'); fire also gives core.
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const H = .8, ROWS = 14, SEG = 20;
 const KINDS = {
   dust: {deep: '#4a3622', mid: '#8a6c46', pale: '#c4a878', grit: '#5a4630', stone: '#6e6a62', rag: '#3a2a22', ground: '#5a4630'},
   steam: {deep: '#7c8790', mid: '#cdd6dd', pale: '#ffffff', ground: '#2a2f33', bead: '#dfe8ee', steam: true, radius: t => .04 + .09 * t ** .6 + .22 * t ** 3.2 + .02 * Math.sin(t * 13), opacity: .5},
+  ice: {deep: '#3c6684', mid: '#9cc8e2', pale: '#f4fbff', ground: '#9ab8c8', shard: '#d8f0ff', rime: '#eaf6ff', ice: true, radius: t => .03 + .07 * t + .23 * t ** 2.6 + .015 * Math.sin(t * 15), opacity: .44},
   fire: {deep: '#4a0e04', mid: '#d4501a', pale: '#ffc858', grit: '#2a1a14', stone: '#3a2418', ground: '#16100c', fire: true, radius: t => .05 + .17 * t ** .8 + .03 * Math.sin(t * 11), opacity: .62},
 };
 
@@ -107,10 +112,31 @@ export function createVortex({kind = 'dust', scale = 1} = {}) {
   merged.setIndex([...outer.index.array, ...Array.from(inner.index.array, i => i + off)]);
   const skin = c.fire
     ? new THREE.MeshBasicMaterial({vertexColors: true, transparent: true, opacity: c.opacity, depthWrite: false, side: THREE.DoubleSide})
-    : new THREE.MeshStandardMaterial({vertexColors: true, roughness: 1, transparent: true, opacity: c.opacity || .52, depthWrite: false, side: THREE.DoubleSide, emissive: c.steam ? '#7a848c' : '#2a1c0e', emissiveIntensity: c.steam ? .45 : .25});
+    : new THREE.MeshStandardMaterial({vertexColors: true, roughness: c.ice ? .3 : 1, metalness: c.ice ? .1 : 0, transparent: true, opacity: c.opacity || .52, depthWrite: false, side: THREE.DoubleSide,
+      emissive: c.ice ? '#5a8cb0' : c.steam ? '#7a848c' : '#2a1c0e', emissiveIntensity: c.ice ? .35 : c.steam ? .45 : .25});
   add(merged, skin, 'funnel');
   const rad = c.radius || radius;
   if (c.steam) return {g, body};
+  if (c.ice) {
+    // long shards of clear ice in the spiral, each its own mesh so vortex-spin.js tumbles it on its own phase
+    const iceMat = new THREE.MeshStandardMaterial({color: c.shard, roughness: .15, metalness: .2, flatShading: true, transparent: true, opacity: .85, emissive: '#6aa8d8', emissiveIntensity: .6});
+    [[0, .14, .9], [1, .3, 1.3], [2, .46, 1], [3, .62, 1.5], [4, .8, 1.1]].forEach(([i, t, big]) => {
+      const a = i * 2.5 + .3, r = rad(t) * scale * 1.05, geo = new THREE.OctahedronGeometry(.024 * big * scale, 0);
+      geo.scale(.55, 2.4, .8);
+      const m = add(geo, iceMat, 'shard');
+      m.position.set(Math.cos(a) * r, t * H * scale, Math.sin(a) * r); m.rotation.set(.6 + hash(i) * .8, a, .9 * (hash(i + 4) - .5));
+    });
+    // the rime ring: splinters of frost standing up off the floor round the foot, leaning outward, in one draw
+    const rime = [];
+    for (let i = 0; i < 16; i++) {
+      const a = i / 16 * Math.PI * 2 + hash(i) * .3, r = (.17 + hash(i + 7) * .09) * scale, len = (.035 + hash(i + 3) * .05) * scale;
+      const sp = new THREE.ConeGeometry(.012 * scale * (1 + hash(i + 11)), len, 4);
+      sp.translate(0, len / 2, 0); sp.rotateZ(-(.35 + hash(i + 5) * .4)); sp.rotateY(-a); sp.translate(Math.cos(a) * r, .012, Math.sin(a) * r); rime.push(sp);
+    }
+    const mr = mergeGeometries(rime); rime.forEach(r => r.dispose());
+    add(mr, new THREE.MeshStandardMaterial({color: c.rime, roughness: .25, flatShading: true, emissive: '#7ab0d8', emissiveIntensity: .4}), 'rime', g);
+    return {g, body};
+  }
 
   // caught in the spiral: chunks of earth and stone, and a torn rag
   const lit = c.fire ? {emissive: FLAME.glow, emissiveIntensity: 1.6} : {};
