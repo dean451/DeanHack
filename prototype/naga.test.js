@@ -88,3 +88,21 @@ test('the guardian naga spreads a wide green hood with eye spots on its back, no
   const h = createCreature({name: 'guardian naga hatchling', symbol: 83}), hn = meshes(h).map(m => m.userData.part);
   assert(!hn.includes('hood') && !hn.includes('spots') && box(h).max.y < b.max.y * .7);
 });
+
+test('the white naga is bone-pale with a crown of ice, frost fangs, ice-blue eyes and rime on its coil instead of scars, and its hatchling is smaller and bare', () => {
+  const a = createCreature({name: 'white naga', symbol: 83}), parts = meshes(a), names = parts.map(m => m.userData.part);
+  assert(parts.length <= 12, `${parts.length} meshes`);
+  for (const n of ['coil', 'neck', 'head', 'eyes', 'hood', 'mane', 'rime']) assert(names.includes(n), n);
+  assert(!a.g.userData.scarred, 'rime, not scars');
+  const ice = parts.find(m => m.userData.part === 'mane').material;
+  assert(ice.type !== 'MeshBasicMaterial' && ice.emissiveIntensity > 0, 'the ice is lit faintly cold, not flame');
+  const eye = parts.find(m => m.userData.part === 'eyes').geometry.attributes.color;
+  assert(eye.getZ(0) > .9 && eye.getX(0) < .5, 'ice-blue eyes');
+  const coil = parts.find(m => m.userData.part === 'coil').geometry.attributes.color;
+  let r = 0, gg = 0, bl = 0; for (let i = 0; i < coil.count; i++) { r += coil.getX(i); gg += coil.getY(i); bl += coil.getZ(i); } r /= coil.count; gg /= coil.count; bl /= coil.count;
+  assert(Math.min(r, gg, bl) > .25 && Math.max(r, gg, bl) - Math.min(r, gg, bl) < .08, `pale, grey scales (${r.toFixed(2)} ${gg.toFixed(2)} ${bl.toFixed(2)})`);
+  assert(!parts.some(m => m.geometry.type === 'TorusGeometry'));
+  const b = box(a); assert(b.min.y > -.02 && b.min.y < .02 && Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < .6);
+  const h = createCreature({name: 'white naga hatchling', symbol: 83}), hn = meshes(h).map(m => m.userData.part);
+  assert(!hn.includes('hood') && !hn.includes('mane') && !hn.includes('rime') && box(h).max.y < b.max.y * .7);
+});
