@@ -7,10 +7,10 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 //   thicken toward the rear;
 // - the iris: a domed ring of radial fibres, blue-white at the rim and deep blue toward a black pupil, lit from
 //   within so it stares out of the dark, with one hard glint;
-// - the lids: heavy, creased flesh caps above and below, half-closed, with a swollen red rim;
+// - no lids: it is a bare ball, nothing on its crown (flesh caps there read as a hat);
 // - the stump: a thick, ragged bundle of optic nerve tendrils with vessels trailing underneath.
 // Handles: `eye` (the iris and pupil pivot at the ball's centre, which glance.js rolls), `pupil` (dilates).
-// Four draws: ball and veins, iris, flesh, and the pupil and glint.
+// Five draws: ball and veins, iris, nerve stump, pupil and glint.
 const R = .24;
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const col = hex => new THREE.Color(hex);
@@ -77,32 +77,39 @@ export function createFloatingEye({iris = '#2f6ad0'} = {}) {
   const glint = new THREE.Mesh(new THREE.SphereGeometry(.0085, 8, 6), new THREE.MeshBasicMaterial({color: '#ffffff'}));
   glint.position.set(-.022, .026, R + .047); glint.userData.part = 'glint'; eye.add(glint);
 
-  // heavy, creased lids: spherical caps above and below the opening with a swollen rim
+  // No lids: a floating eye is a bare ball. (It had heavy flesh caps above and below with a swollen rim and
+  // a crease fold; from the game camera the upper cap and its rim read as a hat, and the lower one as a collar.)
+  // The stump: where the optic nerve tore out at the back and underside, a ragged ring of raw tissue on the
+  // ball, then a bundle of tapering nerve strands and vessels trailing down and back as it drifts.
   const flesh = [];
-  const cap = (from, to, tilt) => {
-    const c = bare(new THREE.SphereGeometry(R * 1.045, 36, 12, 0, Math.PI * 2, from, to - from));
-    paint(c, (x, y, z, out) => out.copy(col('#a65a52')).lerp(col('#6e2e2e'), THREE.MathUtils.clamp(Math.abs(y) / R * .3 + (hash(Math.round(x * 60) + Math.round(z * 60) * 7) > .8 ? .25 : 0), 0, .6)));
-    return c;
+  const exit = new THREE.Vector3(0, -.62, -.78).normalize();
+  const stump = bare(new THREE.CylinderGeometry(.05, .068, .03, 9, 1, true));
+  stump.translate(0, .004, 0);
+  stump.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, -1, 0), exit));
+  stump.translate(...exit.clone().multiplyScalar(R * .97).toArray());
+  paint(stump, (x, y, z, out) => out.copy(col('#8e3a34')).lerp(col('#4e1a1a'), hash(Math.round(x * 90) + Math.round(z * 90) * 7) * .6));
+  flesh.push(stump);
+  // a tube from the curve that narrows toward its end (`tip` is the end radius as a share of the root's)
+  const strand = (pts, r, tip, seed) => {
+    const curve = new THREE.CatmullRomCurve3(pts), segs = 12, radial = 6;
+    const t = new THREE.TubeGeometry(curve, segs, r, radial, false), p = t.attributes.position, c = new THREE.Vector3(), v = new THREE.Vector3();
+    for (let i = 0; i <= segs; i++) {
+      curve.getPointAt(i / segs, c); const k = 1 - (1 - tip) * (i / segs);
+      for (let j = 0; j <= radial; j++) { const n = i * (radial + 1) + j; v.fromBufferAttribute(p, n).sub(c).multiplyScalar(k).add(c); p.setXYZ(n, v.x, v.y, v.z); }
+    }
+    const geo = bare(t);
+    return paint(geo, (x, y, z, out) => out.copy(col('#b0685a')).lerp(col('#6a2626'), THREE.MathUtils.clamp((-.2 - y) * 2.4 + hash(seed) * .2, 0, .85)));
   };
-  flesh.push(cap(0, .66));                                                       // upper lid, from the crown down
-  const lower = cap(Math.PI - .5, Math.PI); flesh.push(lower);                    // lower lid, from the chin up
-  for (const [ang, h] of [[.66, 1], [Math.PI - .5, -1]]) {
-    const rim = bare(new THREE.TorusGeometry(R * 1.045 * Math.sin(ang), .0105, 6, 36)); rim.rotateX(Math.PI / 2); rim.translate(0, R * 1.045 * Math.cos(ang), 0);
-    paint(rim, (x, y, z, out) => out.copy(col('#8a2a2a')).lerp(col('#c05a50'), hash(Math.round(x * 80) + Math.round(z * 80) * 5) * .5));
-    flesh.push(rim);
-    // a crease fold beyond the rim
-    const fold = bare(new THREE.TorusGeometry(R * 1.05 * Math.sin(ang - h * .16), .008, 5, 30)); fold.rotateX(Math.PI / 2); fold.translate(0, R * 1.05 * Math.cos(ang - h * .16), 0);
-    paint(fold, (x, y, z, out) => out.copy(col('#5a2424')));
-    flesh.push(fold);
-  }
-  // the stump: a ragged bundle of thick optic-nerve tendrils with vessels, trailing from the back and underside
-  for (let i = 0; i < 8; i++) {
-    const a = i * 0.78 + hash(i) * .4, r0 = .05 + hash(i * 3) * .07, len = .24 + hash(i * 7) * .26;
-    const pts = [[Math.cos(a) * r0, -.19, Math.sin(a) * r0 - .05], [Math.cos(a) * (r0 + .035), -.19 - len * .45, Math.sin(a) * (r0 + .035) - .05 + (hash(i * 2) - .5) * .06],
-      [Math.cos(a + .5) * (r0 + .02), -.19 - len, Math.sin(a + .5) * (r0 + .02) - .05 - hash(i * 5) * .08]].map(p => new THREE.Vector3(...p));
-    const t = bare(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 10, .022 - hash(i) * .008, 6, false));
-    paint(t, (x, y, z, out) => out.copy(col('#b0685a')).lerp(col('#7a3030'), THREE.MathUtils.clamp((-.19 - y) * 2.2, 0, .8)));
-    flesh.push(t);
+  const root = exit.clone().multiplyScalar(R * 1.0);
+  for (let i = 0; i < 9; i++) {
+    const a = i * 2.399 + hash(i) * .5, spread = .02 + hash(i * 3) * .025, len = .18 + hash(i * 7) * .22;
+    const o = new THREE.Vector3(Math.cos(a) * spread, Math.sin(a) * spread * .6, Math.sin(a) * spread * .5);
+    const sway = (hash(i * 2) - .5) * .1;
+    const pts = [root.clone().add(o),
+      root.clone().add(o.clone().multiplyScalar(1.8)).add(new THREE.Vector3(sway * .5, -len * .35, -len * .25)),
+      root.clone().add(o.clone().multiplyScalar(3.4)).add(new THREE.Vector3(sway, -len * .75, -len * .38)),
+      root.clone().add(o.clone().multiplyScalar(5.2)).add(new THREE.Vector3(sway * 1.4 + (hash(i * 5) - .5) * .05, -len, -len * .42 - hash(i * 5) * .05))];
+    flesh.push(strand(pts, i < 3 ? .022 : .011 + hash(i) * .006, .3, i));
   }
   const fleshMat = new THREE.MeshStandardMaterial({vertexColors: true, roughness: .55, side: THREE.DoubleSide});
   add(lift, mergeGeometries(flesh), fleshMat, 'flesh');
