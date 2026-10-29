@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
+import {createEyeCorpse,EYE_CORPSE} from './eye-corpse.js';
 
 // Corpses used to be one generic pile of bones and a skull, whatever had died. They now lie as
 // the body the monster had, picked by its name (the bridge sends the monster's name for a corpse):
@@ -404,6 +405,7 @@ function creaturePool(w,d,seed){
 // (the class letter the bridge sends) picks the right one where the name alone can't; without
 // it, or when the model can't be built, the corpse falls back to a generic body plan.
 export function createCorpse(name,colour,seed=0,{creatureFactory=null,symbol}={}){
+ if(EYE_CORPSE.test(String(name||'').toLowerCase()))return eyeCorpse(seed);
  const n=String(name||'').toLowerCase(),fromModel=creatureFactory&&n?posed(n,colour,creatureFactory,symbol):null,S=fromModel||build(n,colour);
  const g=new THREE.Group();g.name=`Corpse of ${n||'creature'}`;g.rotation.y=(seed%360)*Math.PI/180;
  if(!fromModel)g.scale.setScalar(SCALE[S.size]*(PLAN_SCALE[S.plan]??1));
@@ -416,5 +418,15 @@ export function createCorpse(name,colour,seed=0,{creatureFactory=null,symbol}={}
  }
  g.userData.plan=S.plan;g.userData.lie=S.lie||null;
  g.userData.dispose=()=>materials.forEach(m=>m.dispose());
+ return g;
+}
+
+// The floating eye leaves a burst eye of its own with a breathing violet halo (eye-corpse.js): eating
+// it grants telepathy, so it must stand out from every other body on the floor. userData.fx.update(t)
+// animates it; live.js calls it from its ground-items loop.
+function eyeCorpse(seed){
+ const e=createEyeCorpse(),g=e.g;g.name='Corpse of floating eye';g.rotation.y=(seed%360)*Math.PI/180;
+ g.userData.plan='eye';g.userData.lie='burst';g.userData.fx=e.fx;
+ g.userData.dispose=()=>{e.materials.forEach(m=>m.dispose());e.dispose();};
  return g;
 }
