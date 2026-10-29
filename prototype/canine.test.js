@@ -58,7 +58,7 @@ test('winter wolves are frost-white with ice-blue eyes, rime in the coat and ici
   // the cyan glyph colour is not used: the coat is near white
   const body=parts.find(m=>m.userData.part==='body').geometry,c=body.attributes.color,p=body.attributes.position;
   let pale=0,ice=0,below=0;
-  const Y=a.legs[0].position.y;
+  const Y=a.legs[0].userData.at[1];
   for(let i=0;i<c.count;i++){
    const r=c.getX(i),g=c.getY(i),bl=c.getZ(i);
    if(r>.5&&g>.6&&bl>.65)pale++;

@@ -1,17 +1,22 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
-// A canine's whole hide as one SkinnedMesh on one skeleton: the torso on spine0, the neck on neck0 (at the
-// withers) to neck3 (at the head's pivot), each leg on its swing pivot and three bones (`<leg>_0` at the
+// A canine's whole hide as one SkinnedMesh on one skeleton: the torso on three vertebrae (spine0 the chest,
+// spine1 mid-back, spine2 the loins, which carries the hind legs and the tail, so the back can bend round into a
+// curl), the neck on neck0 (at the withers) to neck3 (at the head's pivot), each leg on its swing pivot and three bones (`<leg>_0` at the
 // shoulder or hip, `_1` the elbow or stifle, `_2` the wrist or hock, the paw riding it), and the tail on its
 // wag pivot and the chain tail0 (rump) to tail4 (tip). The head stays a rigid part hung on neck3, so it keeps
 // its place in the actor batch: the hide and the eyes are the only parts out of the batch, as the skinned
 // tail and the eyes were before, so the jackal still draws as cheaply (batched-actors.test.js).
 //
-// Bone order (the skin indices): spine0, neck0..neck3, tail, tail0..tail4, then each leg's pivot, _0, _1, _2
-// in LEGS order. Every bone is placed in body space at rest; the hierarchy is spine0 > neck0 > .. > neck3,
-// spine0 > tail > tail0 > .. > tail4 and spine0 > leg pivot > _0 > _1 > _2.
-export const NECK_BONES = 4, TAIL_BONES = 5;
+// Bone order (the skin indices): spine0, spine1, spine2, neck0..neck3, tail, tail0..tail4, then each leg's
+// pivot, _0, _1, _2 in LEGS order. Every bone is placed in body space at rest; the hierarchy is spine0 > neck0
+// > .. > neck3, spine0 > spine1 > spine2, spine2 > tail > tail0 > .. > tail4, spine0 > fore leg pivot > _0 > _1
+// > _2 and spine2 > hind leg pivot > ...
+export const SPINE_BONES = 3, NECK_BONES = 4, TAIL_BONES = 5;
+// The back's vertebrae: where spine1 and spine2 pivot along the back (z, body units, at the back's height), and
+// how far either side of each the torso's skin hands over from the one before (a smooth blend).
+export const BACK = {mid: .02, loin: -.12, blend: .06};
 // the legs in the order createCanine has always made them: left hind, left fore, right hind, right fore
 export const LEGS = [['lleg1', -1, false], ['lleg0', -1, true], ['rleg1', 1, false], ['rleg0', 1, true]];
 // How far either side of a leg joint the skin blends between the bones (metres, body units)
@@ -69,12 +74,15 @@ export function hideGeometry(L, {body, fore, hind, tail}, {tailAt, sideNecks = [
     const s = p.clone().sub(W).dot(axis) / len2, d = p.distanceTo(c.copy(axis).multiplyScalar(Math.min(1, Math.max(0, s))).add(W));
     let n = smooth(s / .25) * (1 - smooth((d - r) / r));
     if (side.some(l => { l.closestPointToPoint(p, true, c); return c.distanceTo(p) < d; })) n = 0;
-    if (n < 1e-3) return [[0, 1]];
+    // the torso's share by where it lies along the back: the chest on spine0, mid-back on spine1, the loins on spine2
+    const w2 = smooth((BACK.loin + BACK.blend - p.z) / (2 * BACK.blend)), w1 = smooth((BACK.mid + BACK.blend - p.z) / (2 * BACK.blend)) - w2, w0 = 1 - w1 - w2;
+    const back = [[0, w0], [1, w1], [2, w2]].filter(([, w]) => w > 1e-4).map(([b, w]) => [b, w * (1 - n)]);
+    if (n < 1e-3) return back;
     const x = Math.min(NECK_BONES - 1, Math.max(0, s * (NECK_BONES - 1))), k = Math.min(NECK_BONES - 2, Math.floor(x)), f = x - k;
-    return [[0, 1 - n], [1 + k, n * (1 - f)], [2 + k, n * f]];
+    return [...back, [SPINE_BONES + k, n * (1 - f)], [SPINE_BONES + 1 + k, n * f]].filter(([, w]) => w > 1e-4);
   }));
   // the tail: its chain's own weights (chain-skin.js), the bones moved past spine0, the neck and the pivot
-  const T0 = 1 + NECK_BONES + 1, tg = tail.clone(), ti = tg.attributes.skinIndex;
+  const T0 = SPINE_BONES + NECK_BONES + 1, tg = tail.clone(), ti = tg.attributes.skinIndex;
   for (let i = 0; i < ti.count; i++) for (let k = 0; k < 4; k++) ti.setComponent(i, k, ti.getComponent(i, k) + T0);
   tg.translate(...tailAt); parts.push(tg);
   // the legs: each vertex on the bone of the segment it lies along (the paw, past the last joint, on _2),
@@ -104,12 +112,13 @@ export function hideGeometry(L, {body, fore, hind, tail}, {tailAt, sideNecks = [
 export function rigHide(body, geo, material, L, {tailAt, tailChain}) {
   const mesh = new THREE.SkinnedMesh(geo, material); mesh.castShadow = mesh.receiveShadow = true; mesh.userData.part = 'body';
   const bones = [], byName = {}, bone = (name, parent, at, parentAt = [0, 0, 0]) => { const b = new THREE.Bone(); b.name = name; b.position.set(at[0] - parentAt[0], at[1] - parentAt[1], at[2] - parentAt[2]); (parent || mesh).add(b); bones.push(b); byName[name] = b; b.userData.at = at; return b; };
-  const spine = bone('spine0', null, [0, 0, 0]);
+  const spine = bone('spine0', null, [0, 0, 0]), backY = L.Y + .02;
+  const mid = bone('spine1', spine, [0, backY, BACK.mid]), loin = bone('spine2', mid, [0, backY, BACK.loin], mid.userData.at);
   let prev = spine; neckJoints(L).forEach((p, i) => { prev = bone('neck' + i, prev, p, prev.userData.at); });
-  const tail = bone('tail', spine, tailAt);
+  const tail = bone('tail', loin, tailAt, loin.userData.at);
   prev = tail; tailChain.forEach((p, i) => { const at = [tailAt[0] + p[0], tailAt[1] + p[1], tailAt[2] + p[2]]; prev = bone('tail' + i, prev, at, prev.userData.at); });
   const legs = LEGS.map(([name, s, fore]) => {
-    const at = fore ? L.shoulder : L.hip, pivotAt = [s * at[0], at[1], at[2]], pivot = bone(name, spine, pivotAt);
+    const at = fore ? L.shoulder : L.hip, pivotAt = [s * at[0], at[1], at[2]], up = fore ? spine : loin, pivot = bone(name, up, pivotAt, up.userData.at);
     let p = pivot; legJoints(L, fore).forEach((j, i) => { const jAt = [pivotAt[0] + s * j[0], pivotAt[1] + j[1], pivotAt[2] + j[2]]; p = bone(name + '_' + i, p, jAt, p.userData.at); });
     return pivot;
   });
