@@ -22,24 +22,18 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // within, slimmer at the waist than the dust funnel and flaring at the top; five long shards of clear ice ride the
 // spiral (vortex-spin.js tumbles them fast, so they glint), and a ring of rime stands up off the floor round the
 // foot, splinters of frost leaning outward, in one draw (vortex-fx.js lays the frost creeping out under it). Eight draws.
-<<<<<<< HEAD
 // Energy vortex fifth: a crackling column of lightning. The same torn sheet, narrow and near straight, drawn
 // self-lit in electric blue to a white-hot edge, round a blazing white-blue core (vortex-spin.js flickers it);
 // five jagged forks of lightning leap out of the spiral (userData.arcs = 5), drawn as one child of the funnel so they
 // turn with it; under the foot, an ionised scorch with a glowing ring. vortex-fx.js crackles arcs between the levels
 // in userData.arcRings and spits sparks off the core. Five draws.
-=======
->>>>>>> origin/master
 // Seven draws for dust, eight for fire. Handles: body (quirk 'hover'); fire also gives core.
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const H = .8, ROWS = 14, SEG = 20;
 const KINDS = {
   dust: {deep: '#4a3622', mid: '#8a6c46', pale: '#c4a878', grit: '#5a4630', stone: '#6e6a62', rag: '#3a2a22', ground: '#5a4630'},
   steam: {deep: '#7c8790', mid: '#cdd6dd', pale: '#ffffff', ground: '#2a2f33', bead: '#dfe8ee', steam: true, radius: t => .04 + .09 * t ** .6 + .22 * t ** 3.2 + .02 * Math.sin(t * 13), opacity: .5},
-<<<<<<< HEAD
   energy: {deep: '#0a1650', mid: '#2f6cff', pale: '#eaf6ff', ground: '#0c1018', energy: true, radius: t => .05 + .12 * t ** .9 + .025 * Math.sin(t * 17), opacity: .58},
-=======
->>>>>>> origin/master
   ice: {deep: '#3c6684', mid: '#9cc8e2', pale: '#f4fbff', ground: '#9ab8c8', shard: '#d8f0ff', rime: '#eaf6ff', ice: true, radius: t => .03 + .07 * t + .23 * t ** 2.6 + .015 * Math.sin(t * 15), opacity: .44},
   fire: {deep: '#4a0e04', mid: '#d4501a', pale: '#ffc858', grit: '#2a1a14', stone: '#3a2418', ground: '#16100c', fire: true, radius: t => .05 + .17 * t ** .8 + .03 * Math.sin(t * 11), opacity: .62},
 };
@@ -126,11 +120,7 @@ export function createVortex({kind = 'dust', scale = 1} = {}) {
     ? new THREE.MeshBasicMaterial({vertexColors: true, transparent: true, opacity: c.opacity, depthWrite: false, side: THREE.DoubleSide})
     : new THREE.MeshStandardMaterial({vertexColors: true, roughness: c.ice ? .3 : 1, metalness: c.ice ? .1 : 0, transparent: true, opacity: c.opacity || .52, depthWrite: false, side: THREE.DoubleSide,
       emissive: c.ice ? '#5a8cb0' : c.steam ? '#7a848c' : '#2a1c0e', emissiveIntensity: c.ice ? .35 : c.steam ? .45 : .25});
-<<<<<<< HEAD
   const funnel = add(merged, skin, 'funnel');
-=======
-  add(merged, skin, 'funnel');
->>>>>>> origin/master
   const rad = c.radius || radius;
   if (c.energy) {
     // the forks: each a jagged bolt leaping out of the sheet and forking once, thin glowing prisms, one draw
