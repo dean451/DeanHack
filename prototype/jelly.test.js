@@ -58,3 +58,28 @@ test('spotted jelly: pits differ in size and depth, some run together, with a st
   let low = 0; for (let i = 0; i < floor.count; i++) if (floor.getY(i) < .01) low++;
   assert.ok(low > 60, 'flat stain geometry lies on the floor');
 });
+
+test('ochre jelly: at most 6 meshes, low, on its tile, with the parts acid-fizz.js finds and the boot it is eating', () => {
+  const {g, body} = createJelly({kind: 'ochre'});
+  assert.ok(meshes(g).length <= 6);
+  const box = new THREE.Box3().setFromObject(g);
+  assert.ok(box.min.y >= -1e-3 && box.min.y < .05 && box.max.y < .33);
+  assert.ok(box.max.x <= .5 && box.min.x >= -.5 && box.max.z <= .5 && box.min.z >= -.5);
+  const kids = body.children.filter(m => m.isMesh);
+  assert.ok(kids.find(m => m.geometry.type === 'SphereGeometry' && m.material.transparent), 'skin');
+  assert.ok(kids.find(m => m.geometry.type === 'SphereGeometry' && !m.material.transparent), 'nucleus');
+  assert.ok(kids.some(m => m.geometry.type === 'TubeGeometry'), 'tendril');
+  assert.ok(!kids.some(m => m.userData.part === 'crust' || m.userData.part === 'pits'), 'neither iced nor pitted');
+  // the boot lies half in the jelly: its toe under the skin's reach, its shaft out past the rim
+  const boot = kids.find(m => m.userData.part === 'boot'), p = boot.geometry.attributes.position;
+  let near = Infinity, far = 0; for (let i = 0; i < p.count; i++) { const r = Math.hypot(p.getX(i), p.getZ(i)); near = Math.min(near, r); far = Math.max(far, r); }
+  assert.ok(near < .3 && far > .4, `boot from ${near.toFixed(2)} to ${far.toFixed(2)}`);
+});
+
+test('the creature factory builds the ochre jelly from jelly.js, not the shared blob', () => {
+  const a = createCreature({name: 'ochre jelly'});
+  assert.ok(a.body.children.some(m => m.userData.part === 'boot'));
+  // it is built 1.2 times the size (menace-scale.test.js), and still stays on its tile
+  a.g.updateMatrixWorld(true); const box = new THREE.Box3().setFromObject(a.g);
+  assert.ok(a.g.scale.x >= 1.2 && box.max.x <= .5 && box.min.x >= -.5 && box.max.z <= .5 && box.min.z >= -.5);
+});
