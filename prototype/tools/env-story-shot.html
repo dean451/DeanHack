@@ -1,0 +1,46 @@
+<!doctype html><meta charset="utf-8"><title>env story shot</title>
+<style>html,body{margin:0;background:#0b0d10}canvas{display:block}</style>
+<script type="module">
+// Renders the environmental storytelling (env-story.js) round the features that set it off: a fire
+// trap, a spiked pit, a trap door, a broken door in a wall and a fountain, on floor slabs like the
+// live game's, fed through a frame as the bridge sends it. /tools/env-story-shot.html?view=game|close
+import * as THREE from 'three';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {createEnvStory} from '../env-story.js';
+import {createTrap,trapKind} from '../trap.js';
+import {createBrokenDoor} from '../door.js';
+import {createFountain} from '../fountain.js';
+const view=new URLSearchParams(location.search).get('view')||'game';
+const W=900,H=700,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x0b0d10);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(36,W/H,.05,80);
+scene.add(new THREE.HemisphereLight(0x8fb3b8,0x2a2620,.9));
+const lamp=new THREE.PointLight(0xffc98a,22,12,1.4);lamp.position.set(6,3.2,4.5);scene.add(lamp);
+// A 13 x 9 room: walls round it, a doorway in the west wall with a corridor beyond.
+const cells=[];
+for(let z=0;z<9;z++)for(let x=0;x<13;x++){const edge=x===0||z===0||x===12||z===8;cells.push({x,z,terrain:edge?'wall':'floor',kind:'terrain',visible:true,remembered:true,symbol:46,color:7});}
+const at=(x,z)=>cells.find(c=>c.x===x&&c.z===z);
+for(const x of [-1,-2])cells.push({x,z:4,terrain:'floor',kind:'terrain',visible:true,remembered:true});
+Object.assign(at(0,4),{terrain:'floor',door:'broken'});
+Object.assign(at(3,2),{terrain:'feature',symbol:94,color:9,trap:'fire trap'});
+Object.assign(at(9,2),{terrain:'feature',symbol:94,color:0,trap:'spiked pit'});
+Object.assign(at(9,6),{terrain:'feature',symbol:94,color:3,trap:'trap door'});
+Object.assign(at(5,6),{terrain:'fountain',symbol:123,color:4});
+const slabGeo=new RoundedBoxGeometry(.97,.14,.97,3,.035),wallGeo=new RoundedBoxGeometry(.97,.7,.97,3,.045);
+const stone=new THREE.MeshStandardMaterial({color:0x5d6461,roughness:.95}),wall=new THREE.MeshStandardMaterial({color:0x3e4446,roughness:.9});
+for(const c of cells){
+ const s=new THREE.Mesh(slabGeo,stone);s.position.set(c.x,-.1,c.z);scene.add(s);
+ if(c.terrain==='wall'){const w=new THREE.Mesh(wallGeo,wall);w.position.set(c.x,.28,c.z);scene.add(w);}
+ const kind=c.terrain==='feature'?trapKind(c.symbol,c.color,c.trap):null;
+ if(kind){const t=createTrap(kind,c.x*53+c.z*29);t.position.set(c.x,0,c.z);scene.add(t);}
+ if(c.door==='broken'){const d=createBrokenDoor(c.x*61+c.z*37);d.rotation.y=Math.PI/2;d.position.set(c.x,0,c.z);scene.add(d);}
+ if(c.terrain==='fountain'){const f=createFountain({scale:.46});f.position.set(c.x,0,c.z);scene.add(f);}
+}
+const story=createEnvStory(THREE,scene);story.frame({branch:0,depth:3,cells},{x:0,z:0});
+window.__plan=story.plan();
+if(view==='close'){camera.position.set(3,3.2,5.2);camera.lookAt(3,0,2.6);}
+else if(view==='door'){camera.position.set(0,3,3.2);camera.lookAt(0,0,4);}
+else if(view==='east'){camera.position.set(9,4.2,7.6);camera.lookAt(8.4,0,4);}
+else {camera.position.set(6,9.5,11.5);camera.lookAt(6,0,4);}
+renderer.render(scene,camera);window.__done=true;
+</script>

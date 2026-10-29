@@ -159,6 +159,7 @@ import {createDeathBurst,deathLook,applyFade,restoreFade,hideDeathRing} from './
 import {createPetrify,restoreStone} from './petrify.js';
 import {combatAction,deathAction} from './combat-events.js';
 import {createMarks} from './marks.js';
+import {createEnvStory} from './env-story.js';
 import {reviveAction,riseActionFor,createRiseWatch} from './rise.js';
 import {updateGait,flapStyle,wingFlap,flightBob} from './gait.js';
 import {updateWereShudder} from './were-shudder.js';
@@ -253,7 +254,7 @@ const statusProgress=createStatusProgress();
 
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,renderer=null,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode,onActivity}) {
- const group=new THREE.Group();scene.add(group);group.visible=false;const marks=createMarks(THREE,group);const tileInstances=createTileInstancer(group);const actorBatch=createActorBatch(group);
+ const group=new THREE.Group();scene.add(group);group.visible=false;const marks=createMarks(THREE,group);const envStory=createEnvStory(THREE,group);const tileInstances=createTileInstancer(group);const actorBatch=createActorBatch(group);
  const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map(),liftingItems=new Set(),pickupNotes=createPickupNotes();let active=false,lastCommand=null,pending=null,latest=null,token='',menu=null,commands=null,lines=[],origin=null,lastLevel='',lastBranch=null,lastDepth=NaN,source,pollNow=null;
  const $=s=>document.querySelector(s);
  const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
@@ -362,7 +363,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  const animated=createAnimatedRegistry();
  function release(object){animated.remove(object);object.traverse(o=>o.userData.dispose?.());group.remove(object);}
  const ghosts=new Map();function dropGhost(gh){gh.mats.forEach(m=>m.dispose());release(gh.g);}
- function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();pickupNotes.clear();for(const w of wells.values())release(w);for(const gh of ghosts.values())dropGhost(gh);ghosts.clear();marks.clear();tiles.clear();actors.clear();groundItems.clear();wells.clear();tileInstances.clear();actorBatch.clear();}
+ function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();pickupNotes.clear();for(const w of wells.values())release(w);for(const gh of ghosts.values())dropGhost(gh);ghosts.clear();marks.clear();envStory.clear();tiles.clear();actors.clear();groundItems.clear();wells.clear();tileInstances.clear();actorBatch.clear();}
  function pickupIcon(cell){
    const icon=new THREE.Group(), kind=cell.object?.kind||'item', cls=cell.object?.class||0, itemName=(cell.object?.name||cell.name||'').toLowerCase();
    // Older bridge processes expose statues as generic objects. Keep the visual path
@@ -541,7 +542,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
        a.g.visible=!cell.invisible;
      }
    }
-   for(const [id,t] of tiles)if(!seen.has(id)){release(t);tiles.delete(id);}tileInstances.refresh();
+   for(const [id,t] of tiles)if(!seen.has(id)){release(t);tiles.delete(id);}tileInstances.refresh();envStory.frame(frame,origin); // set-dressing round traps, broken doors and fountains (env-story.js)
    cavern.rebuild(tiles,origin,newLevel);branchAir.setBranch(frame.dungeon,hero.g.position);{const f=floorFinish(frame.dungeon);floorKit.setBranch(f.tint,f.roughness);}{const w=wallFinish(frame.dungeon);wall.color.set(w.color);wall.roughness=w.roughness;}cavern.setTint(rockTint(frame.dungeon),rockRoughness(frame.dungeon),h=>rockVein(frame.dungeon,h));
    {const byId=new Map();for(const c of frame.cells)byId.set(`${c.x},${c.z}`,c);
     for(const [id,gh] of ghosts)if(ghostGone(byId.get(id))||seenActors.has(gh.key)||[...seenActors].some(k=>k.startsWith(id+':'))){dropGhost(gh);ghosts.delete(id);}
