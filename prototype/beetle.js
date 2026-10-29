@@ -16,7 +16,9 @@ import {segment,chain} from './ant.js';
 // - Legs: six stout legs (coxa, a thick femur up to the knee, a spined tibia down, five tarsal
 //   beads and a pair of hooked claws). The front tibiae are toothed along the outside for digging.
 // The head is one vertex-coloured mesh on a neck pivot, the shell and underside another; each leg
-// is its own group holding one mesh (the tripod walk swings them); the abdomen is a ninth on `tail0`. 9 draws, one material.
+// is its own group holding one mesh (the tripod walk swings them); the abdomen is a ninth on `tail0`; each wing case
+// is its own mesh on a shoulder hinge and a folded flying wing lies under each (beetle-flex.js opens them). 13 draws,
+// two materials (the wings' membrane is see-through).
 // Geometry is built once and shared; the left legs reuse the right ones mirrored.
 // Handles: body, legs (6), head (the neck pivot group), quirk 'insect'.
 
@@ -62,27 +64,6 @@ function buildBody(L){
  // the breast plates between the legs
  P.add(new THREE.SphereGeometry(1,16,10),at(0,Y-.035,.05,[0,0,0],[.075,.04,.08]),(x,y)=>mix(black,under,.5));
 
- // elytra: two domed halves with a seam between them, grooved lengthwise and pitted
- const EC=[0,Y,-.09],ER=[.128,.1,.178];
- for(const s of [-1,1]){
-  const geo=new THREE.SphereGeometry(1,24,14,s>0?Math.PI/2:-Math.PI/2,Math.PI,0,Math.PI*.62);
-  const C=[s*.004,EC[1],EC[2]];
-  P.add(geo,at(...C,[0,0,0],ER),(x,y,z)=>{
-   const n=ellipsoidNormal([x,y,z],C,ER);
-   let c=shellColour(L,n);
-   // grooves run from the shoulder to the tip: bands of the angle round the long axis
-   const a=Math.atan2(Math.abs(x-C[0])/ER[0],Math.max(y-C[1],-.5*ER[1])/ER[1]);
-   const stria=(a/(Math.PI*.55)*8)%1;
-   if(stria<.13)c=mix(c,black,.75);
-   else if(stria>.35&&stria<.6&&grain(x,y,z)>.8)c=mix(c,black,.5);
-   // the sutural edge along the seam and the rim at the foot are darker
-   if(Math.abs(x)<.012)c=mix(c,black,.6);
-   if(y<C[1]-.02)c=mix(c,black,.5);
-   // an old blow has split the right wing case: a jagged dark crack runs back from the shoulder
-   if(s>0&&z<-.02&&z>-.17&&Math.abs(x-(.035+(z+.09)*.4+Math.sin(z*160)*.006))<.0045)c=rgb('#0a0406');
-   return c;
-  });
- }
  // scutellum: a small triangle pointing back between the wing-case shoulders
  P.add(new THREE.ConeGeometry(.024,.04,3),at(0,Y+.086,.0,[-Math.PI/2+.15,0,Math.PI],[1,1,.35]),(x,y,z)=>shellColour(L,new THREE.Vector3(0,.95,.3),.1));
 
@@ -170,12 +151,53 @@ function buildLeg(L,i){
  return skinLeg(P.merge(),pts);
 }
 
+// The wing cases, each its own mesh hinged at its shoulder (HINGE, mirrored) so beetle-flex.js can lift and part
+// them: two domed halves with a seam between them, grooved lengthwise and pitted. Built in the body's space, then
+// moved so the hinge is the origin.
+const HINGE=[.03,Y+.075,.07];
+function buildElytron(L,s){
+ const P=pieces(),black=rgb(L.black);
+ const EC=[0,Y,-.09],ER=[.128,.1,.178];
+ const geo=new THREE.SphereGeometry(1,24,14,s>0?Math.PI/2:-Math.PI/2,Math.PI,0,Math.PI*.62);
+ const C=[s*.004,EC[1],EC[2]];
+ P.add(geo,at(...C,[0,0,0],ER),(x,y,z)=>{
+  const n=ellipsoidNormal([x,y,z],C,ER);
+  let c=shellColour(L,n);
+  // grooves run from the shoulder to the tip: bands of the angle round the long axis
+  const a=Math.atan2(Math.abs(x-C[0])/ER[0],Math.max(y-C[1],-.5*ER[1])/ER[1]);
+  const stria=(a/(Math.PI*.55)*8)%1;
+  if(stria<.13)c=mix(c,black,.75);
+  else if(stria>.35&&stria<.6&&grain(x,y,z)>.8)c=mix(c,black,.5);
+  // the sutural edge along the seam and the rim at the foot are darker
+  if(Math.abs(x)<.012)c=mix(c,black,.6);
+  if(y<C[1]-.02)c=mix(c,black,.5);
+  // an old blow has split the right wing case: a jagged dark crack runs back from the shoulder
+  if(s>0&&z<-.02&&z>-.17&&Math.abs(x-(.035+(z+.09)*.4+Math.sin(z*160)*.006))<.0045)c=rgb('#0a0406');
+  return c;
+ });
+ const g=P.merge();g.translate(-s*HINGE[0],-HINGE[1],-HINGE[2]);return g;
+}
+// The flying wings folded under the cases: a long veined membrane, smoky amber darkening to the tip, laid back
+// along the body from the hinge at rest. Its own see-through material.
+function buildHindwing(){
+ const sh=new THREE.Shape();sh.moveTo(0,0);sh.bezierCurveTo(.05,.02,.11,.03,.19,.012);sh.bezierCurveTo(.21,.0,.2,-.03,.17,-.045);sh.bezierCurveTo(.11,-.06,.05,-.05,0,-.015);sh.closePath();
+ const geo=new THREE.ShapeGeometry(sh,10);geo.deleteAttribute('uv');
+ const p=geo.attributes.position,col=new Float32Array(p.count*3),c=new THREE.Color(),tip=new THREE.Color('#2a1a10'),base=new THREE.Color('#a8782e');
+ for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),vein=Math.abs(Math.sin(x*70+y*30))<.12||Math.abs(y+.004-x*.12)<.004;c.copy(base).lerp(tip,Math.min(1,x/.2)*.8);if(vein)c.lerp(tip,.7);c.toArray(col,i*3);}
+ geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+ // in the wing's own space the membrane runs out along +x from the hinge; laid flat (the x-z plane)
+ geo.rotateX(-Math.PI/2);geo.scale(1.6,1,1.35);
+ return geo;
+}
+
 const cache=new Map();
 function build(key,L){
  if(cache.has(key))return cache.get(key);
  const S={
   material:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.24,metalness:.22}),
   body:buildBody(L),abdomen:buildAbdomen(L),head:buildHead(L),legs:PAIRS.map((p,i)=>buildLeg(L,i)),
+  elytra:[-1,1].map(s=>buildElytron(L,s)),hindwing:buildHindwing(),
+  membrane:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.35,transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false}),
  };
  cache.set(key,S);return S;
 }
@@ -198,6 +220,20 @@ export function createBeetle(name){
   rigLeg(leg,geo,S.material,{mirror:s<0});
   legs.push(leg);
  });
+ // the wing cases on their shoulder hinges, and under each a folded flying wing laid back along the body
+ const cases=[],hind=[];
+ [-1,1].forEach((s,k)=>{
+  const hinge=new THREE.Group();hinge.position.set(s*HINGE[0],HINGE[1],HINGE[2]);hinge.userData.side=s;body.add(hinge);
+  mesh(hinge,S.elytra[k],S.material,'elytron');cases.push(hinge);
+  const wing=new THREE.Group();wing.position.set(s*HINGE[0]*.6,HINGE[1]-.035,HINGE[2]-.01);wing.userData.side=s;body.add(wing);
+  const m=mesh(wing,S.hindwing,S.membrane,'hindwing');m.castShadow=false;m.scale.x=s;
+  // folded: turned back to lie along the body under its case
+  // (hidden while folded: it would show through the seam between the cases; beetle-flex.js shows it while it is out)
+  wing.userData.fold=s*(Math.PI/2+.12);wing.rotation.y=wing.userData.fold;wing.visible=false;hind.push(wing);
+ });
  g.userData.scarred=true;
- return nameInsectJoints({g,body,legs,tail:null,tail0,wings:[],quirk:'insect',head,beetle:true});
+ const a=nameInsectJoints({g,body,legs,tail:null,tail0,wings:[],quirk:'insect',head,beetle:true,elytra:cases,hindwings:hind});
+ // (named as joints only: the hindwings are not `wings`, which the idle flap would swing every frame)
+ for(const [list,stem] of [[cases,'elytron'],[hind,'hindwing']])list.forEach(o=>{o.name=(o.userData.side<0?'l':'r')+stem;a.joints[o.name]=o;});
+ return a;
 }
