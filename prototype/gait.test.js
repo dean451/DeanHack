@@ -295,17 +295,6 @@ test('every vortex whirls, stays finite and in its tile, and dies back to rest',
   }
 });
 
-test('the bottom ring of a vortex turns faster than the top one', () => {
-  // the dust, fire, steam and ice vortices are funnel sheets now (vortex.js); the energy vortex is still a stack of rings
-  const a = createCreature({name: 'energy vortex'});
-  a.species = 'energy vortex';
-  updateVortexSpin(a, 1 / 60, false);
-  const rings = a.vortexSpin.rings, low = rings.reduce((m, r) => r.h < m.h ? r : m), high = rings.reduce((m, r) => r.h > m.h ? r : m);
-  let lo = 0, hi = 0;
-  for (let i = 0; i < 60; i++) { const a0 = low.phi, b0 = high.phi; updateVortexSpin(a, 1 / 60, false); lo += (low.phi - a0 + Math.PI * 2) % (Math.PI * 2); hi += (high.phi - b0 + Math.PI * 2) % (Math.PI * 2); }
-  assert.ok(lo > hi * 1.5, `bottom ${lo} vs top ${hi}`);
-});
-
 test('non-vortices are left alone', () => {
   const a = createCreature({name: 'jackal'});
   a.species = 'jackal';

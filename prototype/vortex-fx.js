@@ -6,7 +6,8 @@
 // - ice: shards that orbit down the funnel, glinting as they catch the light, over a ring of rime
 //   that creeps out across the floor with spiky crystal rays whose tips twinkle;
 // - energy: sparks spat off the core, and jagged arcs that crackle between neighbouring rings (or
-//   from the core to a ring) for a flicker at a time;
+//   from the core to a ring) for a flicker at a time; on vortex.js's funnel sheet the "rings" are the
+//   levels it lists in userData.arcRings, turning with the sheet;
 // - steam: soft wisps peeling off the top ring, curling out and up as they thin away;
 // - fire: embers climbing out of the top and sparks flung out to fall and die on the floor, over a
 //   charred scorch whose ragged rim smoulders;
@@ -151,6 +152,8 @@ function paintMark(st, T, w) {
 // A point on a ring (in the body's frame), at angle th round its tube's centre line.
 const v = new THREE.Vector3();
 function ringPoint(ring, th) {
+  // (a level on a funnel sheet, vortex.js's userData.arcRings: a circle of radius r at height y, turning with the sheet)
+  if (!ring.isMesh) { ring.mesh.updateMatrix(); return v.set(Math.cos(th) * ring.r, ring.y, Math.sin(th) * ring.r).applyMatrix4(ring.mesh.matrix); }
   const r = ring.geometry.parameters.radius;
   ring.updateMatrix();
   return v.set(Math.cos(th) * r, Math.sin(th) * r, 0).applyMatrix4(ring.matrix);
@@ -172,7 +175,7 @@ function newArc(st, random) {
 function setup(a) {
   const fx = FX[a.species], random = rng(((a.g?.id ?? 1) * 2654435761) >>> 0);
   const tori = a.body.children.filter(m => m.isMesh && m.geometry?.type === 'TorusGeometry');
-  const s = tori.length ? Math.min(...tori.map(m => m.geometry.parameters.radius)) / .07 : 1;
+  const s = tori.length ? Math.min(...tori.map(m => m.geometry.parameters.radius)) / .07 : a.g.userData.fxScale || 1;
   const st = {fx, s, t: 0, life: 1, walk: 0, random, layers: [], bob: 0};
   for (const style of fx.layers) {
     const path = PATHS[style.path];
@@ -192,7 +195,7 @@ function setup(a) {
     a.g.add(st.mark);
   }
   if (fx.arcs) {
-    st.rings = tori.slice().sort((p, q) => p.position.y - q.position.y);
+    st.rings = tori.length ? tori.slice().sort((p, q) => p.position.y - q.position.y) : a.g.userData.arcRings || [];
     st.core = a.core || a.g.userData.core || null;
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ARCS * ARC_SEGS * 2 * 3), 3));
