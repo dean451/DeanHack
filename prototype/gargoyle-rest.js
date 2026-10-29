@@ -1,7 +1,7 @@
 // The resting gargoyle (gargoyle, winged gargoyle) and gremlin: a monkey's crouch, written by body role and solved
 // on the joints `gargoyle()` and `gremlin()` expose, from the macaque numbers in creature-measures.js. The haunches
 // drop to the floor with the hind feet flat, the forepaws (the gargoyles' knuckles) planted ahead of them, the head
-// held up and level on its neck chain, the tail laid down on the floor and the wings drawn in to the back. No source gave a monkey's crouch as an
+// held up and level on its neck chain, the tail laid down on the floor and the wings drawn in to the back (the winged gargoyle's folded over it, tips back along the flanks). No source gave a monkey's crouch as an
 // angle (CREATURE-MEASURES.md, Gargoyles and gremlins), so its proportions are set by eye. A pose is
 // {joint: {x, y, z}} (radians, added to the joint's built rotation) and hipsY, the body's drop in body units, as the
 // cockerel's (cockatrice-rest.js).
@@ -13,7 +13,7 @@ import {birdPoser} from './cockatrice-rest.js';
 // Shares of the creature's standing shoulder height: how low the withers may stay (highest allowed), how high the
 // mouth is held (lowest allowed), how far a forepaw plants ahead of its shoulder, and how close a folded wing tip
 // lies to its haunch.
-export const REST = {withers: .95, gremlinWithers: 1.05, head: .6, reach: .5, wingIn: .45};
+export const REST = {withers: .95, gremlinWithers: 1.05, head: .6, reach: .5, wingIn: .45, fold: .08, foldOut: 0, foldDown: 0, foldBack: 1.2};
 
 export const rests = a => !!(a && (a.kind === 'gargoyle' || a.kind === 'gremlin') && a.joints?.neck3 && !a.rig);
 
@@ -29,12 +29,18 @@ export function restPose(a) {
     joints[`${side}leg1.x`] = [-2.2, 2.2]; joints[`${side}fore.x`] = [-2.2, 2.2];
     if (j[`${side}wing`]) { joints[`${side}wing.y`] = [-2, 2]; joints[`${side}wing.z`] = [-2, 2]; joints[`${side}wing.x`] = [-2, 2]; }
   }
+  // where a folded wing's tip lies: the wing laid back along the flank from its shoulder, at its built length,
+  // the tip a little lower than the shoulder (it cannot reach over the back: the wing is longer than the body)
+  const wingLen = a.winged ? P['wingtip:l']().distanceTo(P['shoulder:l']()) : 0;
+  const foldAt = side => { const sh = P[`shoulder:${side}`](); return sh.add(new THREE.Vector3((side === 'l' ? -1 : 1) * REST.foldOut * s, -REST.foldDown * wingLen, -REST.foldBack * wingLen)); };
   const goals = [P2 => [Math.max(0, P2.withers().y - (floor + (gremlin ? REST.gremlinWithers : REST.withers) * high))]];
   for (const side of ['l', 'r']) {
     goals.push(goal.floor(`paw:${side}h`, {y: floor, weight: 3}));
     // the gargoyles plant their knuckles; the gremlin keeps its hands raised and hooked
     if (!gremlin) goals.push(goal.floor(`paw:${side}f`, {y: floor, weight: 2}), goal.ahead(`shoulder:${side}`, `paw:${side}f`, REST.reach * high, {within: .03 * s}));
-    if (j[`${side}wing`]) goals.push(goal.reach(`wingtip:${side}`, `hip:${side}`, {within: REST.wingIn * s * (a.winged ? 1 : .42)}));
+    // the winged gargoyle folds its wings over its back, tips back along the flanks; the others keep them near the haunch
+    if (j[`${side}wing`] && a.winged) goals.push(goal.reach(`wingtip:${side}`, () => foldAt(side), {within: REST.fold * s}));
+    else if (j[`${side}wing`]) goals.push(goal.reach(`wingtip:${side}`, `hip:${side}`, {within: REST.wingIn * s * .42}));
   }
   // the tail is one skin: every fourth vertex of it, as it now stands, stays above the floor
   const skin = a.tail.children.find(o => o.isSkinnedMesh), v = new THREE.Vector3();
