@@ -58,3 +58,15 @@ test('a corpse takes the class letter, guesses it for dragons and people, and ne
   assert(s.y<=.63,`${name} lies low (${s.y})`);
  }
 });
+
+test('a naga dies in its own coil: no longer flipped on its back, it lies low with its neck and head along the floor and the hood folded', () => {
+  for (const name of ['red naga', 'golden naga', 'guardian naga', 'white naga', 'black naga', 'red naga hatchling']) {
+    const c = createCorpse(name, undefined, 0, {creatureFactory: createCreature, symbol: 'N'.charCodeAt(0)}); c.updateMatrixWorld(true);
+    assert.equal(c.userData.lie, 'coil', name);
+    const b = new THREE.Box3().setFromObject(c), size = b.getSize(new THREE.Vector3());
+    assert.ok(b.min.y > -.01 && b.min.y < .01, `${name}: on the floor at ${b.min.y}`);
+    // lying, not a coil held up on a neck: far wider than tall
+    assert.ok(size.y < .32 && Math.max(size.x, size.z) > 2.5 * size.y, `${name}: lies low (${size.y.toFixed(2)} tall, ${Math.max(size.x, size.z).toFixed(2)} wide)`);
+    assert.ok(Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < .75, `${name}: within its tile`);
+  }
+});
