@@ -3373,6 +3373,7 @@ export function createCreature(cell={}){
  if(name==='red naga'||name==='red naga hatchling')return createNaga({kind:'red',baby:/hatchling/.test(name)});
  if(name==='black naga'||name==='black naga hatchling')return createNaga({kind:'black',baby:/hatchling/.test(name)});
  if(name==='golden naga'||name==='golden naga hatchling')return createNaga({kind:'golden',baby:/hatchling/.test(name)});
+ if(name==='guardian naga'||name==='guardian naga hatchling')return createNaga({kind:'guardian',baby:/hatchling/.test(name)});
  if(NAGAS[name])return naga(NAGAS[name]);
  if(name==='disintegrator')return createDisintegrator();
  // rust monsters and disenchanters have their own models (rust-monster.js)

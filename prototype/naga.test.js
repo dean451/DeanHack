@@ -70,3 +70,21 @@ test('the golden naga wears a circlet with a lit gem and a glow on the floor, no
   const h = createCreature({name: 'golden naga hatchling', symbol: 78, color: 1}), hn = meshes(h).map(m => m.userData.part);
   assert(!['hood', 'mane', 'circlet', 'gems'].some(n => hn.includes(n)) && box(h).max.y < b.max.y * .7);
 });
+
+test('the guardian naga spreads a wide green hood with eye spots on its back, no mane, and its hatchling is smaller and bare', () => {
+  const a = createCreature({name: 'guardian naga', symbol: 83}), parts = meshes(a), names = parts.map(m => m.userData.part);
+  assert(parts.length <= 12, `${parts.length} meshes`);
+  for (const n of ['coil', 'neck', 'head', 'eyes', 'hood', 'spots']) assert(names.includes(n), n);
+  assert(!names.includes('mane'), 'no mane');
+  assert(!parts.some(m => m.geometry.type === 'TorusGeometry'));
+  const coil = parts.find(m => m.userData.part === 'coil').geometry.attributes.color;
+  assert(coil.getY(40) > coil.getX(40) && coil.getY(40) > coil.getZ(40), 'green scales');
+  // the spots face back, behind the hood
+  const spots = parts.find(m => m.userData.part === 'spots').geometry, hood = parts.find(m => m.userData.part === 'hood').geometry;
+  spots.computeBoundingBox(); hood.computeBoundingBox();
+  assert(spots.boundingBox.max.z <= hood.boundingBox.max.z, 'on the back of the hood');
+  const b = box(a); assert(b.min.y > -.02 && b.min.y < .02 && Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < .6);
+  assert(b.max.y > box(createCreature({name: 'red naga', symbol: 83})).max.y, 'bigger than the red naga');
+  const h = createCreature({name: 'guardian naga hatchling', symbol: 83}), hn = meshes(h).map(m => m.userData.part);
+  assert(!hn.includes('hood') && !hn.includes('spots') && box(h).max.y < b.max.y * .7);
+});
