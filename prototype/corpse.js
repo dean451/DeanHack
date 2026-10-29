@@ -353,6 +353,17 @@ export function sprawl(a){
  for(const held of [a.weaponSocket,a.offHand])if(held)held.visible=false;
  return a;
 }
+// A naga dies in its own coil: the coil stays as it lay, the raised neck (actor.tail) falls forward and to one
+// side so the head rests on the floor beside it, and the hood (and whatever crest grows on it) folds away.
+// The neck is curved, so where it falls past the floor it is pressed flat against it (posed() clamps it).
+// (Laid on its back like a snake, the standing model hung its coil in the air over its head.)
+export const NAGA_SLUMP={x:1.1,z:.55};
+export function slumpNaga(a){
+ if(a?.tail)a.tail.rotation.set(NAGA_SLUMP.x,0,NAGA_SLUMP.z);
+ a?.g?.traverse(o=>{if(o.isMesh&&['hood','mane','spots'].includes(o.userData.part))o.visible=false;});
+ return a;
+}
+const NAGA=/\bnaga\b/;
 function posed(name,colour,factory,symbol){
  const key=`${name}|${colour}|${symbol??''}`;
  if(POSED.has(key))return POSED.get(key);
@@ -362,12 +373,13 @@ function posed(name,colour,factory,symbol){
   const a=factory({name,color:colour,symbol:Number.isFinite(letter)?letter:undefined});
   const model=a?.g||a;
   if(corpsePlan(name)==='humanoid'&&a?.g)sprawl(a);
+  const naga=NAGA.test(name)&&a?.tail;if(naga)slumpNaga(a);
   if(model?.isObject3D){
    const holder=new THREE.Group();holder.add(model);
    model.position.set(0,0,0);model.rotation.set(0,0,0);
    holder.updateMatrixWorld(true);
    const stand=new THREE.Box3().setFromObject(holder),size=stand.getSize(new THREE.Vector3());
-   const footprint=Math.max(size.x,size.z),plan=corpsePlan(name),lie=corpseLie(plan,size.y,footprint);
+   const footprint=Math.max(size.x,size.z),plan=corpsePlan(name),lie=naga?'coil':corpseLie(plan,size.y,footprint);
    const grow=Math.min(MAX_GROW,Math.max(1,MIN_SIZE/Math.max(size.y,footprint,1e-3)));
    holder.scale.setScalar(grow);
    // Which way it falls is fixed per species (the corpse's yaw already varies per tile).
@@ -377,6 +389,8 @@ function posed(name,colour,factory,symbol){
    else if(lie==='front')model.rotation.x=Math.PI/2;
    else holder.scale.set(grow*1.35,grow*.32,grow*1.35);
    let body=bakeModel(holder);
+   // (a slumped naga's neck pressed flat where it falls past the floor)
+   if(body&&naga){const p=body.attributes.position;for(let i=0;i<p.count;i++)if(p.getY(i)<0)p.setY(i,0);}
    if(body){
     body.computeBoundingBox();
     const b=body.boundingBox,mid=b.getCenter(new THREE.Vector3());
