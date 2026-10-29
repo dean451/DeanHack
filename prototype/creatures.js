@@ -9,7 +9,7 @@ import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
 import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
-import {rigBody} from './trunk-skin.js';
+import {rigBody,hangOn} from './trunk-skin.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
@@ -1823,11 +1823,10 @@ function hand(parent,wrist,dir,side,skin){
  return h;
 }
 // A nymph's arm skin as one SkinnedMesh on three bones (shoulder, elbow, wrist; `<name>0`..`2`): `build` draws the
-// skin parts on a scratch group in the arm's space, merged into one vertex-coloured geometry in `skin`'s colour.
+// skin parts on a scratch group in the arm's space, merged into one vertex-coloured geometry (on `limbMat`, shared by the whole hide).
 // Returns the bones; the gold cuffs and the hand hang on them.
-function nymphArm(arm,name,pts,build,skin){
+function nymphArm(arm,name,pts,build,limbMat){
  const A=new THREE.Group();build(A);
- const limbMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:skin.roughness,metalness:skin.metalness});
  return rigLimb(arm,skinLimb(flatSkin(A),pts),limbMat,name,'arm');
 }
 // Nymphs: fae dancers who charm you and slip away with your things. A halter top tied at a
@@ -1864,21 +1863,24 @@ function nymph(o){
   sphere(foot,.021,skin);sphere(foot,.021,skin,0,-.024,-.012,.95,.75,1.1);sphere(foot,.024,skin,0,-.03,.03,.85,.5,1.55);
   for(let t=0;t<5;t++)sphere(foot,t===0?.0085:.0065-t*.0004,skin,(t-2)*.0085*-side,-.036,.068-Math.abs(t-1)*.004,1,.8,1.2);
  }
- // curvy torso, shoulders and bust
- lathe(body,[[0,.56],[.09,.58],[.122,.63],[.128,.68],[.115,.74],[.09,.81],[.083,.85],[.09,.9],[.1,.95],[.103,1],[.1,1.04],[.098,1.07],[.07,1.115],[.034,1.14],[0,1.15]],skin).scale.z=.78;
- for(const side of [-1,1]){sphere(body,.044,skin,side*.1,1.07,0,1.25,.85,.9);sphere(body,.054,skin,side*.046,.983,.05,1,.92,.86);}
+ // curvy torso, shoulders and bust (skin, merged below into one hide on the spine with the neck and the arms)
+ const trunk=new THREE.Group(),limbMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:skin.roughness,metalness:skin.metalness});
+ lathe(trunk,[[0,.56],[.09,.58],[.122,.63],[.128,.68],[.115,.74],[.09,.81],[.083,.85],[.09,.9],[.1,.95],[.103,1],[.1,1.04],[.098,1.07],[.07,1.115],[.034,1.14],[0,1.15]],skin).scale.z=.78;
+ for(const side of [-1,1]){sphere(trunk,.044,skin,side*.1,1.07,0,1.25,.85,.9);sphere(trunk,.054,skin,side*.046,.983,.05,1,.92,.86);}
+ // (the halter, choker and chest band hang on one group that rides the chest bone)
+ const chest=new THREE.Group();body.add(chest);
  // the halter: a panel over each breast, its strap running up to the choker, gold-rimmed
  for(const side of [-1,1]){
-  const panel=part(body,new THREE.SphereGeometry(.062,14,10,0,Math.PI*2,0,Math.PI*.55),cloth,side*.047,.983,.05);panel.scale.set(1.02,1.04,.9);panel.rotation.set(Math.PI/2,0,-side*.12);
-  const rim=part(body,new THREE.TorusGeometry(.061,.003,4,24),trim,side*.047,.983,.041);rim.scale.set(1.02,1.04,1);rim.rotation.z=-side*.12;
-  segment(body,[side*.035,1.02,.08],[side*.016,1.155,.026],.011,.006,cloth);
+  const panel=part(chest,new THREE.SphereGeometry(.062,14,10,0,Math.PI*2,0,Math.PI*.55),cloth,side*.047,.983,.05);panel.scale.set(1.02,1.04,.9);panel.rotation.set(Math.PI/2,0,-side*.12);
+  const rim=part(chest,new THREE.TorusGeometry(.061,.003,4,24),trim,side*.047,.983,.041);rim.scale.set(1.02,1.04,1);rim.rotation.z=-side*.12;
+  segment(chest,[side*.035,1.02,.08],[side*.016,1.155,.026],.011,.006,cloth);
  }
  // the choker: a dark band at the throat with a gem in a gold setting
- const choker=part(body,new THREE.TorusGeometry(.034,.0055,5,20),leather,0,1.165,.004);choker.rotation.x=Math.PI/2;
- const set=part(body,new THREE.SphereGeometry(.011,4,2),trim,0,1.158,.04);set.scale.set(.9,1.3,.5);sphere(body,.0065,gem,0,1.156,.044,1,1.3,.6);
+ const choker=part(chest,new THREE.TorusGeometry(.034,.0055,5,20),leather,0,1.165,.004);choker.rotation.x=Math.PI/2;
+ const set=part(chest,new THREE.SphereGeometry(.011,4,2),trim,0,1.158,.04);set.scale.set(.9,1.3,.5);sphere(chest,.0065,gem,0,1.156,.044,1,1.3,.6);
  // under the bust a chain band with coins hanging along the front
- const band=part(body,new THREE.TorusGeometry(.098,.004,4,28),trim,0,.928,0);band.rotation.x=Math.PI/2;band.scale.set(1,.8,1);
- for(let i=0;i<9;i++){const a=-1.2+i*.3;coin(body,Math.sin(a)*.1,.913-(i%2)*.006,Math.cos(a)*.08+.002,-a);}
+ const band=part(chest,new THREE.TorusGeometry(.098,.004,4,28),trim,0,.928,0);band.rotation.x=Math.PI/2;band.scale.set(1,.8,1);
+ for(let i=0;i<9;i++){const a=-1.2+i*.3;coin(chest,Math.sin(a)*.1,.913-(i%2)*.006,Math.cos(a)*.08+.002,-a);}
  // a low studded belt riding on the hips, tilted down toward the bent leg, fringed with
  // coins, a gold medallion and a gem at the front
  const belt=part(body,new THREE.TorusGeometry(.128,.011,6,32),leather,0,.685,0);belt.rotation.set(Math.PI/2,-.09,0);belt.scale.set(1,.82,1);
@@ -1899,7 +1901,8 @@ function nymph(o){
  }
  // neck and face: the face hidden behind a fey mask (the user, 2026-10-29: the faces need a rework, mask them for
  // now), a pale porcelain shell with a gold rim, dark almond eye-holes and a glint of eye in each; long pointed ears
- segment(body,[0,1.13,0],[0,1.235,.005],.037,.03,skin);
+ segment(trunk,[0,1.13,0],[0,1.235,.005],.037,.03,skin);
+ const hide=new THREE.Mesh(flatSkin(trunk),limbMat);hide.userData.part='body';hide.castShadow=hide.receiveShadow=true;body.add(hide);
  const head=new THREE.Group();head.position.set(0,1.28,.005);head.rotation.set(.02,.1,.09);body.add(head);
  sphere(head,.08,skin,0,.025,-.004,.9,1.02,.98);sphere(head,.058,skin,0,-.03,.026,.82,.92,.88);
  const maskMat=mat(o.mask||'#ebe4d6',{roughness:.3,metalness:.1,side:THREE.DoubleSide});
@@ -1926,18 +1929,20 @@ function nymph(o){
  // (the belt arm hangs from a shoulder pivot and the amulet from her fingertips, so nymph-beckon.js can move them)
  const arm=new THREE.Group();arm.position.set(.118,1.07,0);body.add(arm);let beckonHand;
  {const at=v=>[v[0]-.118,v[1]-1.07,v[2]],S=[0,0,0],E=at([.24,.88,-.03]),W=at([.13,.735,.09]);
-  const bones=nymphArm(arm,'rfore_',[S,E,W],A=>{segment(A,S,E,.031,.025,skin);sphere(A,.025,skin,...E);segment(A,E,W,.024,.017,skin);},skin);
+  const bones=nymphArm(arm,'rfore_',[S,E,W],A=>{segment(A,S,E,.031,.025,skin);sphere(A,.025,skin,...E);segment(A,E,W,.024,.017,skin);},limbMat);
   cuff(bones[0],at([.2,.95,-.02]).map((v,k)=>v-S[k]),E.map((v,k)=>v-S[k]),.03,.035);cuff(bones[1],at([.15,.765,.065]).map((v,k)=>v-E[k]),W.map((v,k)=>v-E[k]),.02,.026);beckonHand=hand(bones[2],[0,0,0],[-.07,-.05,.05],1,skin);}
  const larm=new THREE.Group();larm.position.set(-.118,1.07,0);body.add(larm);let bauble,baubleGem;
  {const at=v=>[v[0]+.118,v[1]-1.07,v[2]],S=[0,0,0],E=at([-.17,.845,-.04]),W=at([-.2,.63,0]);
-  const bones=nymphArm(larm,'lfore_',[S,E,W],A=>{segment(A,S,E,.031,.025,skin);sphere(A,.025,skin,...E);segment(A,E,W,.024,.017,skin);},skin);
+  const bones=nymphArm(larm,'lfore_',[S,E,W],A=>{segment(A,S,E,.031,.025,skin);sphere(A,.025,skin,...E);segment(A,E,W,.024,.017,skin);},limbMat);
   cuff(bones[0],at([-.152,.92,-.025]).map((v,k)=>v-S[k]),E.map((v,k)=>v-S[k]),.03,.035);cuff(bones[1],at([-.195,.67,-.01]).map((v,k)=>v-E[k]),W.map((v,k)=>v-E[k]),.02,.026);hand(bones[2],[0,0,0],[-.01,-1,.02],-1,skin);
   const tip=[-.204,.545,.006];bauble=new THREE.Group();bauble.position.set(...tip);body.add(bauble);tube(bauble,[[0,0,0],[.004,-.05,0],[0,-.1,0]],.003,M.gold,6);
   const amulet=cylinder(bauble,.028,.028,.008,M.gold,0,-.13,0,16);amulet.rotation.x=Math.PI/2;baubleGem=sphere(bauble,.012,mat('#d9344a',{emissive:'#d9344a',emissiveIntensity:1.4}),0,-.13,.006);}
  // motes drifting around her
  // (on one ring, so they stay a single draw and nymph-beckon.js can turn it)
  const motes=new THREE.Group();body.add(motes);for(const [x,y,z] of [[.32,1.05,.1],[-.3,.78,.16],[.16,1.48,-.08],[-.22,1.25,.12]])sphere(motes,.011,ember,x,y,z);
- const a=nameHumanoidJoints(Object.assign(actor(g,body,legs,locks,[],'nymph'),{head,arms:[larm,arm],beckonArm:arm,beckonHand,bauble,baubleGem,motes,nymph:true}));
+ // trunk and neck on bones (`hips`, `spine0`, `spine1`, `neck0`..`neck3`), the arms and the trunk one hide; the head rides `neck3`
+ const a=rigBody(nameHumanoidJoints(Object.assign(actor(g,body,legs,locks,[],'nymph'),{head,arms:[larm,arm],beckonArm:arm,beckonHand,bauble,baubleGem,motes,nymph:true})),{});
+ hangOn(a.joints.spine1,chest);
  delete a.arms; // named as joints only: fidget.js swings an actor's `arms`, and the nymph's arms are posed by nymph-beckon.js
  return trimDraws(a);
 }
