@@ -81,7 +81,7 @@ test('a text prompt shows everything that happened since the last command, not o
   assert.match(live, /sinceMark\(messageLog,turnMark\)/, 'the line prompt reads the turn\'s messages');
 });
 
-test('low vitality is marked with a warning triangle, not by red and a flash alone', () => {
+test('low hitpoints are marked with a warning triangle, not by red and a flash alone', () => {
   assert.match(read('style.css'), /\.character\.low-hp #hp::before\{content:"\\25B2/);
 });
 
@@ -137,4 +137,11 @@ test('menu accelerators use a monospace whose capital I and small l differ (Inte
 test('a GLB creature is outlined with smoothed normals once its model swaps in',()=>{
   const live=readFileSync(new URL('./live.js',import.meta.url),'utf8');
   assert.match(live,/attachModelAsset\(a,cell\.name,MODEL_URLS\)\?\.then\(asset=>\{if\(asset\)addOutlines\(asset\.model,\{smooth:true\}\);\}\);/);
+});
+
+test('monsters and pets carry no health bar or total; only the hero HUD shows hitpoints', () => {
+  const live = read('live.js'), html = read('index.html');
+  assert.doesNotMatch(live, /health-bar|createHealthBar|hpBar|cell\.health/, 'no bar is built over any monster, pet included');
+  assert.match(html, /<div class="health"><span>HITPOINTS<\/span><strong id="hp">/, 'the hero total is labelled hitpoints');
+  assert.doesNotMatch(html, /VITALITY/i);
 });

@@ -6,7 +6,7 @@
 // takes the branch's name ("Vlad's Tower", "Sheol"); a plain Dungeons of Doom level stays
 // "The Dungeons". `named` says whether the level is worth announcing on arrival.
 //
-// lowHealth(hp, maxhp): below LOW_HP of the maximum the vitality bar turns red and flashes.
+// lowHealth(hp, maxhp): below LOW_HP of the maximum the hitpoints bar turns red and flashes.
 //
 // parseAttributes(text): the six attributes and alignment from the first bottom status line
 // ("[Wanderer the Swashbuckler]  St:18/50 Dx:17 Co:17 In:8 Wi:8 Ch:9  Lawful"), or null.

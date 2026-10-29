@@ -130,3 +130,26 @@ test('the energy vortex\'s arcs crackle between levels of its sheet, close to it
   }
   assert.ok(seen > 10, `${seen}`);
 });
+
+test('the fog cloud is a low rolling bank on the floor, no funnel: puffs and wisps vortex-spin.js billows', () => {
+  const a = createCreature({name: 'fog cloud', kind: 'monster'}), ms = meshes(a);
+  assert.ok(!ms.some(m => m.userData.part === 'funnel'));
+  assert.ok(ms.filter(m => m.userData.part === 'puff').length >= 5 && ms.some(m => m.userData.part === 'wisp'));
+  a.g.updateMatrixWorld(true);
+  const b = new THREE.Box3().setFromObject(a.g, true);
+  assert.ok(b.min.y > -.01 && b.max.y < .3, `a low bank (${b.min.y} to ${b.max.y})`);
+  assert.ok(b.max.x - b.min.x > 2.5 * b.max.y, 'wider than tall');
+  a.species = 'fog cloud'; updateVortexSpin(a, 1 / 60, false);
+  assert.ok(a.vortexSpin.puffs.length >= 7, 'every puff and wisp billows');
+});
+
+test('all six vortices: no stack of rings, at most 10 meshes, on their tile', () => {
+  for (const name of ['fog cloud', 'dust vortex', 'ice vortex', 'energy vortex', 'steam vortex', 'fire vortex']) {
+    const a = createCreature({name, kind: 'monster'}), ms = meshes(a);
+    assert.equal(ms.filter(m => m.geometry.type === 'TorusGeometry').length, 0, name);
+    assert.ok(ms.length <= 10, `${name}: ${ms.length}`);
+    a.g.updateMatrixWorld(true);
+    const b = new THREE.Box3().setFromObject(a.g, true);
+    assert.ok(b.min.y > -.05 && Math.max(-b.min.x, b.max.x, -b.min.z, b.max.z) < .6, name);
+  }
+});

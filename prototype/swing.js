@@ -15,7 +15,8 @@ export const CONTACT_U = {slash: .46, pierce: .42, blunt: .5};
 
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
-const FIELDS = ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'shield', 'twist', 'lean', 'offArm', 'offElbow'];
+// step slides the whole body forward (world units, along the way the hero faces).
+const FIELDS = ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'shield', 'twist', 'lean', 'offArm', 'offElbow', 'step'];
 const REST = Object.fromEntries(FIELDS.map(f => [f, 0]));
 
 // Keyframes: [u, offsets]. Rest at both ends. arm = shoulder pitch (negative raises forward),
@@ -50,9 +51,81 @@ export function blowOf(blow) {
   return blow === 'pierce' || blow === 'blunt' ? blow : 'slash';
 }
 
+// Three more swings, so a run of attacks doesn't repeat one motion. Each is authored with its
+// blade reaching the target at VARIANT_CONTACT and is retimed per blow so that key lands on the
+// blow's CONTACT_U: contact, hitstop and the flinch keep the same timing whichever plays.
+const VARIANT_CONTACT = .45;
+const VARIANT_KEYS = {
+  // Backhand: the blade starts over the off shoulder and sweeps back out to the sword side.
+  backhand: [
+    [0, REST],
+    [.3, {arm: -1.95, armZ: -.8, elbow: -.5, wrist: .3, socket: -.9, shield: -.1, twist: -.42, lean: -.04}],
+    [.45, {arm: -1.4, armZ: .1, elbow: .5, wrist: -.2, socket: .5, shield: .05, twist: .1, lean: .08}],
+    [.68, {arm: -.8, armZ: .8, elbow: .35, wrist: -.35, socket: 1, shield: .15, twist: .4, lean: .1}],
+    [1, REST],
+  ],
+  // Rising cut: dropped low and back on the sword side, then up through the target to high
+  // across the body, the hero straightening as it goes.
+  rising: [
+    [0, REST],
+    [.3, {arm: .45, armZ: .35, elbow: -.2, wrist: .4, socket: .9, shield: .2, twist: .32, lean: .14}],
+    [.45, {arm: -1.3, armZ: 0, elbow: .5, wrist: -.1, socket: -.2, shield: .05, twist: -.1, lean: -.02}],
+    [.68, {arm: -2.5, armZ: -.45, elbow: .2, wrist: -.4, socket: -.8, shield: -.1, twist: -.3, lean: -.12}],
+    [1, REST],
+  ],
+  // Lunge: weight sat back with the weapon drawn to the hip, then a long step in behind a low,
+  // straight-armed drive, the torso bent well over it, held a moment.
+  lunge: [
+    [0, REST],
+    [.3, {arm: .6, armZ: .25, elbow: -1, wrist: -.2, socket: -.3, shield: .2, twist: .55, lean: -.12, step: -.08}],
+    [.45, {arm: -1.15, armZ: -.15, elbow: .7, wrist: -.45, socket: -.55, shield: -.15, twist: -.42, lean: .42, step: .3}],
+    [.62, {arm: -1.1, armZ: -.12, elbow: .62, wrist: -.4, socket: -.5, shield: -.12, twist: -.36, lean: .38, step: .27}],
+    [1, REST],
+  ],
+};
+// Which swings suit which blow: a point thrusts, a club chops or sweeps, an edge does any.
+export const SWING_VARIANTS = {
+  slash: ['base', 'backhand', 'rising', 'lunge'],
+  pierce: ['base', 'lunge'],
+  blunt: ['base', 'backhand', 'rising'],
+};
+// Key times moved so the authored contact lands on the blow's contact.
+function retime(keys, c) {
+  return keys.map(([u, k]) => [u === VARIANT_CONTACT ? c
+    : u < VARIANT_CONTACT ? u * c / VARIANT_CONTACT : c + (u - VARIANT_CONTACT) * (1 - c) / (1 - VARIANT_CONTACT), k]);
+}
+const keysFor = (blow, variant) => {
+  const b = blowOf(blow);
+  return SWING_VARIANTS[b].includes(variant) && VARIANT_KEYS[variant] ? RETIMED[variant][b] : KEYS[b];
+};
+const RETIMED = Object.fromEntries(Object.entries(VARIANT_KEYS).map(([v, keys]) =>
+  [v, Object.fromEntries(Object.keys(CONTACT_U).map(b => [b, retime(keys, CONTACT_U[b])]))]));
+
+// Small integer hash, so the pick is the same every run for the same actor and strike.
+function mix(a, b) {
+  let h = (Math.imul(a | 0, 0x9e3779b1) ^ Math.imul(b | 0, 0x85ebca6b)) >>> 0;
+  h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d) >>> 0; h ^= h >>> 12;
+  return h >>> 0;
+}
+// A number for an actor (its species or name), to seed its picks.
+export function swingSeed(actor) {
+  const s = String(actor?.species ?? actor?.name ?? 'hero');
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+// The swing for strike number `n` of an actor seeded `seed`, never the same as `prev`
+// (when the blow has more than one to choose from).
+export function pickSwingVariant(blow, seed, n, prev = null) {
+  const pool = SWING_VARIANTS[blowOf(blow)];
+  const open = pool.length > 1 ? pool.filter(v => v !== prev) : pool;
+  return open[mix(seed, n) % open.length];
+}
+
 // Offsets at normalised time u. A miss carries on further past where the target would be.
-export function swingPose(blow, u, result = 'hit') {
-  const keys = KEYS[blowOf(blow)];
+// `variant` picks one of SWING_VARIANTS (the blow's own motion when it doesn't suit the blow).
+export function swingPose(blow, u, result = 'hit', variant = 'base') {
+  const keys = keysFor(blow, variant);
   u = clamp01(Number.isFinite(u) ? u : 1);
   let i = 0;
   while (i < keys.length - 2 && u > keys[i + 1][0]) i++;
@@ -81,8 +154,8 @@ export function swingPose(blow, u, result = 'hit') {
 // at contact; on the sword hand's turn the off arm just draws back a little, ready. Both are
 // zero at the ends, so the swing still returns to rest.
 export const DUAL_GUARD = .55;
-export function dualSwingPose(blow, u, result = 'hit', offLead = false) {
-  const p = swingPose(blow, u, result);
+export function dualSwingPose(blow, u, result = 'hit', offLead = false, variant = 'base') {
+  const p = swingPose(blow, u, result, variant);
   const c = CONTACT_U[blowOf(blow)];
   u = clamp01(Number.isFinite(u) ? u : 1);
   const env = u < c ? smooth(u / c) : 1 - smooth((u - c) / (1 - c));
@@ -130,6 +203,7 @@ export function applySwing(actor, p) {
   if (actor.shieldArm && p.offArm) actor.shieldArm.rotation.x += p.offArm;
   if (actor.shieldElbow && p.offElbow) actor.shieldElbow.rotation.x += p.offElbow;
   if (actor.body) { actor.body.rotation.y += p.twist; actor.body.rotation.x += p.lean; }
+  if (actor.body && p.step) actor.body.position.z += p.step;
 }
 
 export function clearSwing(actor, p) {

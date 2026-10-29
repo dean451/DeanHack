@@ -8,11 +8,13 @@
 // weaponSocket. Anything missing is skipped. Durations are in seconds.
 //
 // A weapon attack by an actor with the hero's arm rig (an `elbow`) plays swing.js's arc for
-// its blow type instead of the generic arm wave, with its hitstop and longer length.
+// its blow type instead of the generic arm wave, with its hitstop and longer length; which of
+// the blow's swings plays is picked per strike (pickSwingVariant), never the same twice running.
 
 import {monsterAttackPose, foreLegs, wingSide} from './monster-attacks.js';
 import {deathStyle, deathPose, DEATH_TIME, DEATH_BURST_U, DEATH_SHED_U} from './deaths.js';
-import {swingPose, dualSwingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME} from './swing.js';
+import {swingPose, dualSwingPose, swingPhase, swingLength, swingTrailOn, blowOf, applySwing, clearSwing, CONTACT_U, SWING_TIME,
+  pickSwingVariant, swingSeed} from './swing.js';
 import {hitStyle, hitReactionPose, HIT_TIME} from './hit-fx.js';
 import {catMove, catSize, catLength, catAttackPose} from './cats.js';
 import {jawPose, jawReach, jawChatters, chatterPose} from './jaw.js';
@@ -226,7 +228,11 @@ export function updateActions(actor, q, dt) {
   if (!actor?.g || !q) return 'idle';
   if (!q.current && q.queue.length) {
     q.current = q.queue.shift(); q.age = 0; q.face = null;
-    if (swings(actor, q.current)) { q.current.swing = true; q.strikes = (q.strikes ?? 0) + 1; }
+    if (swings(actor, q.current)) {
+      q.current.swing = true; q.strikes = (q.strikes ?? 0) + 1;
+      // Which of the blow's swings this one is (swing.js): varied, never the last one again.
+      q.current.variant = q.lastVariant = pickSwingVariant(q.current.blow, swingSeed(actor), q.strikes, q.lastVariant ?? null);
+    }
     // A body that lies down is kept on the floor (ground.js); its points are taken at rest.
     q.ground = grounds(q.current, q.current.style) ? groundSamples(actor.g) : null;
   }
@@ -272,11 +278,11 @@ export function updateActions(actor, q, dt) {
     pose.arm = pose.wrist = pose.socket = 0;
     // Wielding two weapons, the off hand takes every other strike.
     const off = !!actor.dual && q.strikes % 2 === 0;
-    pose.swing = actor.dual ? dualSwingPose(a.blow, u, a.result, off) : swingPose(a.blow, u, a.result);
+    pose.swing = actor.dual ? dualSwingPose(a.blow, u, a.result, off, a.variant) : swingPose(a.blow, u, a.result, a.variant);
     // What the renderer needs for the trail and the impact burst. `contact` is true on the one
     // frame the blade reaches a target it hits.
     const tc = CONTACT_U[blowOf(a.blow)] * SWING_TIME;
-    q.swing = {blow: blowOf(a.blow), u, trail: swingTrailOn(a.blow, u), off, dir: a.dir, target: a.target ?? null,
+    q.swing = {blow: blowOf(a.blow), variant: a.variant, u, trail: swingTrailOn(a.blow, u), off, dir: a.dir, target: a.target ?? null,
       contact: a.result === 'hit' && before < tc && q.age >= tc};
   }
   const restY = actor.g.position.y;

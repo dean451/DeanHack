@@ -21,7 +21,7 @@ test('special levels and branches are named in the header; plain dungeon levels 
   assert.equal(levelTitle({depth: 7}).title, 'The Dungeons');
 });
 
-test('the vitality bar goes red below 40% of maximum', () => {
+test('the hitpoints bar goes red below 40% of maximum', () => {
   assert.equal(lowHealth(40, 100), false);
   assert.equal(lowHealth(39, 100), true);
   assert.equal(lowHealth(0, 100), true);

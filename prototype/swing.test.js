@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import './swing-fx.test.js';
 import {swingPose, dualSwingPose, swingPhase, swingLength, swingTrailOn, applySwing, clearSwing, impactKind,
-  createImpactBurst, createSwingTrail, SWING_TIME, HITSTOP, CONTACT_U, IMPACTS} from './swing.js';
+  createImpactBurst, createSwingTrail, SWING_TIME, HITSTOP, CONTACT_U, IMPACTS,
+  SWING_VARIANTS, pickSwingVariant, swingSeed} from './swing.js';
 
 // The hero's arm chain as main.js builds it (knight()), facing +z with the sword on +x.
 function rig() {
@@ -181,4 +182,80 @@ test('two-weapon strikes alternate hands, rest at both ends and take back off cl
   assert.notEqual(r.shieldArm.rotation.x, 0);
   clearSwing(r, p);
   snapshot(r).concat(r.shieldElbow.rotation.x).forEach((v, i) => assert.ok(Math.abs(v - before[i]) < 1e-9));
+});
+
+const NEW_SWINGS = ['backhand', 'rising', 'lunge'];
+const blowsFor = v => Object.keys(SWING_VARIANTS).filter(b => SWING_VARIANTS[b].includes(v));
+
+test('the three extra swings are finite, bounded and rest at both ends', () => {
+  for (const v of NEW_SWINGS) {
+    assert.ok(blowsFor(v).length > 0, `${v} is used by some blow`);
+    for (const blow of blowsFor(v)) for (const result of ['hit', 'miss']) {
+      for (const f of Object.values(swingPose(blow, 0, result, v))) assert.equal(f, 0);
+      for (const f of Object.values(swingPose(blow, 1, result, v))) assert.ok(Math.abs(f) < 1e-12, `${v} ${blow} ends at rest`);
+      for (let u = 0; u <= 1; u += .01) for (const [k, val] of Object.entries(swingPose(blow, u, result, v))) {
+        assert.ok(Number.isFinite(val) && Math.abs(val) < 3.8, `${v} ${blow} ${k}=${val} at ${u}`);
+      }
+      for (const lead of [false, true]) for (const val of Object.values(dualSwingPose(blow, 1, result, lead, v))) assert.ok(Math.abs(val) < 1e-12);
+    }
+  }
+});
+
+test('each extra swing is its own motion and strikes at the blow\'s contact time', () => {
+  for (const blow of Object.keys(SWING_VARIANTS)) {
+    const c = CONTACT_U[blow];
+    const poses = SWING_VARIANTS[blow].map(v => swingPose(blow, c, 'hit', v));
+    // Clearly different at contact and at the windup.
+    for (let i = 0; i < poses.length; i++) for (let j = i + 1; j < poses.length; j++) {
+      const at = u => { const a = swingPose(blow, u, 'hit', SWING_VARIANTS[blow][i]), b = swingPose(blow, u, 'hit', SWING_VARIANTS[blow][j]);
+        return Math.hypot(...Object.keys(a).map(f => a[f] - b[f])); };
+      assert.ok(at(c * .65) > .5 || at(c) > .5, `${blow}: ${SWING_VARIANTS[blow][i]} vs ${SWING_VARIANTS[blow][j]}`);
+    }
+    for (const v of SWING_VARIANTS[blow]) {
+      // The blade is fastest into contact, so contact is where the strike's key sits.
+      const speed = u => { const a = swingPose(blow, u - .005, 'hit', v), b = swingPose(blow, u + .005, 'hit', v);
+        return Math.hypot(...Object.keys(a).map(f => b[f] - a[f])); };
+      assert.ok(speed(c - .01) > speed(c - .08), `${v} ${blow} accelerates into contact`);
+      assert.ok(speed(c + .01) > speed(c + .15), `${v} ${blow} eases out after contact`);
+      // The hitstop holds the pose at contact for every swing alike.
+      const held = swingPose(blow, swingPhase(c * SWING_TIME + HITSTOP * .5, blow, 'hit'), 'hit', v);
+      assert.deepEqual(held, swingPose(blow, c, 'hit', v));
+      // A whiff still lurches on and recovers.
+      const u = c + (1 - c) * .3;
+      assert.ok(swingPose(blow, u, 'miss', v).lean > swingPose(blow, u, 'hit', v).lean + .03, `${v} ${blow} lurches`);
+    }
+  }
+  // A swing that doesn't suit the blow falls back to the blow's own.
+  assert.deepEqual(swingPose('pierce', .3, 'hit', 'backhand'), swingPose('pierce', .3, 'hit'));
+  assert.deepEqual(swingPose('slash', .3, 'hit', 'nonsense'), swingPose('slash', .3, 'hit'));
+});
+
+test('the lunge steps the body in and back; the rig takes it all back off', () => {
+  assert.ok(swingPose('pierce', CONTACT_U.pierce, 'hit', 'lunge').step > .15);
+  for (const v of SWING_VARIANTS.slash) {
+    const r = rig(), before = snapshot(r).concat(r.body.position.z);
+    for (let u = 0; u <= 1; u += .05) {
+      const p = swingPose('slash', u, 'miss', v); applySwing(r, p);
+      for (const x of snapshot(r)) assert.ok(Number.isFinite(x));
+      clearSwing(r, p);
+    }
+    snapshot(r).concat(r.body.position.z).forEach((x, i) => assert.ok(Math.abs(x - before[i]) < 1e-9, `${v} back at rest`));
+  }
+});
+
+test('the swing picked is deterministic, varied and never the same twice running', () => {
+  for (const blow of Object.keys(SWING_VARIANTS)) for (const name of ['hero', 'samurai', 'watchman']) {
+    const seed = swingSeed({species: name}), run = [];
+    let prev = null;
+    for (let n = 1; n <= 200; n++) {
+      const v = pickSwingVariant(blow, seed, n, prev);
+      assert.ok(SWING_VARIANTS[blow].includes(v));
+      assert.notEqual(v, prev, `${blow} ${name} repeats at strike ${n}`);
+      assert.equal(v, pickSwingVariant(blow, seed, n, prev), 'same inputs, same swing');
+      run.push(v); prev = v;
+    }
+    for (const v of SWING_VARIANTS[blow]) assert.ok(run.filter(x => x === v).length > 200 / SWING_VARIANTS[blow].length / 3, `${blow} ${name} plays ${v}`);
+  }
+  assert.equal(swingSeed({species: 'hero'}), swingSeed({species: 'hero'}));
+  assert.notEqual(swingSeed({species: 'hero'}), swingSeed({species: 'samurai'}));
 });
