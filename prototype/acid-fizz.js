@@ -1,6 +1,5 @@
-// The ochre jelly's acid (creature animation queue item 7, first entry). Its model is creatures.js's
-// flat blob: a squat translucent dome (the skin), a dark nucleus inside, and six tendrils splayed on
-// the floor. In NetHack it sits and dissolves: its engulf is acid, and anything that touches it gets
+// The ochre jelly's acid (creature animation queue item 7, first entry). Its model is jelly.js's
+// mound: a squat translucent dome (the skin), a dark nucleus inside, and a tendril on the floor. In NetHack it sits and dissolves: its engulf is acid, and anything that touches it gets
 // burnt by its passive acid. The spotted jelly's passive is acid too, so it gets the same treatment.
 //  - The floor under it is eaten away: a dark, wet, ragged etch with a sickly yellow-green rim that
 //    glows faintly and pulses with the jelly.
