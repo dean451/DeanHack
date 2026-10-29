@@ -43,3 +43,13 @@ test('the pose is easy to leave: posing nothing returns every joint and the body
   for(const [n,o] of Object.entries(a.joints))assert.deepEqual(o.rotation.toArray().slice(0,3),built[n],`${f[0]} ${n}`);
   assert.deepEqual(a.body.position.toArray(),body);}
 });
+
+test('the winged gargoyle folds its wings back along its flanks: tips behind the rump, no wider than the shoulders, not out to the sides',()=>{
+ const a=make(['winged gargoyle',11]),floor=a.g.position.y,{apply}=birdPoser(a),P=rolesOf(a),open=Math.abs(P['wingtip:l']().x);
+ apply(restPose(a).pose);a.g.updateMatrixWorld(true);
+ for(const s of ['l','r']){const tip=P[`wingtip:${s}`](),sh=P[`shoulder:${s}`]();
+  assert(tip.z<P.rump().z-.2,`${s} tip ${(tip.z-P.rump().z).toFixed(2)} from the rump`);
+  assert(Math.abs(tip.x)<=Math.abs(sh.x)+.15*a.g.scale.x,`${s} tip x ${tip.x.toFixed(2)} against shoulder ${sh.x.toFixed(2)}`);
+  assert(Math.abs(tip.x)<open*.6,`${s} tip is far narrower than the open wing`);
+  assert(tip.y>floor+.05,`${s} tip off the floor`);}
+});
