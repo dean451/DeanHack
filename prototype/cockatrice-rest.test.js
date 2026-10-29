@@ -35,3 +35,13 @@ test('the pose is easy to leave: posing nothing returns every joint and the body
   for(const [n,o] of Object.entries(a.joints))assert.deepEqual(o.rotation.toArray().slice(0,3),built[n],`${name} ${n}`);
   assert.deepEqual(a.body.position.toArray(),body);}
 });
+
+test('the head is tucked back: within a body length of the shoulder and behind the breast\'s front',()=>{
+ for(const name of FAMILY){const a=make(name),{apply}=birdPoser(a),r=restPose(a);
+  // (the breast's front: the frontmost of the body's own parts, in the body's space)
+  const inv=a.body.matrixWorld.clone().invert(),front=Math.max(...a.body.children.filter(o=>o.isMesh).map(o=>new THREE.Box3().setFromObject(o).applyMatrix4(inv).max.z));
+  apply(r.pose);const P=rolesOf(a),local=v=>a.body.worldToLocal(v.clone());
+  const shoulder=P['shoulder:l']().add(P['shoulder:r']()).multiplyScalar(.5),length=shoulder.distanceTo(P.rump());
+  assert(P.head().distanceTo(shoulder)<length,`${name}: head ${P.head().distanceTo(shoulder).toFixed(3)} from the shoulder, body ${length.toFixed(3)}`);
+  assert(local(P.head()).z<front,`${name}: head at z ${local(P.head()).z.toFixed(3)}, breast front ${front.toFixed(3)}`);}
+});

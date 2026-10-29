@@ -35,7 +35,7 @@ test('a goal written on roles solves on the family through the neck: the beak re
   const a=make(name),j=a.joints,P=rolesOf(a),keys=['x','y','z'];
   const apply=pose=>{for(const ax of keys)j.neck0.rotation[ax]=pose.neck0?.[ax]||0;a.g.updateMatrixWorld(true);};
   const joints={};for(const ax of keys)joints[`neck0.${ax}`]=[-1.4,1.4];
-  const pivot=P.head(),target=P.mouth().sub(pivot).applyEuler(new THREE.Euler(.5,-.3,0)).add(pivot);
+  a.g.updateMatrixWorld(true);const pivot=new THREE.Vector3().setFromMatrixPosition(j.neck0.matrixWorld),target=P.mouth().sub(pivot).applyEuler(new THREE.Euler(.5,-.3,0)).add(pivot);
   solvePose({joints,goals:[goal.reach('mouth',target,{within:0})],apply,points:P,rest:0,iterations:200});
   const cm=P.mouth().distanceTo(target)*100;
   assert(cm<2,`${name}: mouth ${cm.toFixed(2)} cm from the point`);
