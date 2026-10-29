@@ -11,10 +11,14 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // - the head: faceted and asymmetric, a hooded cobra head with a human face (brow ridge, deep-set slit-pupil eyes
 //   under it, a nose bridge, cheekbones, a hard jaw hanging open on two fangs, one of them snapped);
 // - the hood: a torn, half-spread fan of ribs behind the head, with a mane of flame (self-lit) down its rim and nape.
+// Guardian naga: mossy green scales and a bigger body (1.12), the hood spread wide and whole (a guardian does not
+// back down), dark green with paler ribs, and on its back two cobra eye spots (a cream ring round a black centre)
+// staring at whatever comes up behind it; yellow eyes, no mane. Seven draws.
 // Golden naga: tarnished gold scales and a hood in dull brass, a battered circlet (one point snapped) with a gem lit from within on the brow and a faint warm glow on the floor round the coil, red eyes, no mane. Eight draws. Black naga: the same rig in near-black scale, a plain hood with a ridge of sharp black spines (some broken) down its rim and nape in place of the flame, green eyes. Six draws. Hatchlings are small and soft-scaled with the hood folded and no mane.
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const bare = geo => { geo.deleteAttribute('uv'); return geo.index ? geo.toNonIndexed() : geo; };
 const PALETTES = {
+  guardian: {dark: '#0e2410', mid: '#2a5c2a', high: '#5a9a44', belly: '#b4c878', band: '#6a7a3a', scar: '#c8d4a0', flesh: '#46743a', ridge: '#68984e', socket: '#081006', jaw: '#24401c', eye: '#ffe040', fang: '#e4e0c4', hood: '#1e5426', rib: '#357a36', spot: '#e6dc9a', pupil: '#0c1408'},
   golden: {dark: '#34240a', mid: '#80601a', high: '#cfa83c', belly: '#d8c880', band: '#7a622a', scar: '#ecdca0', flesh: '#98762a', ridge: '#c4a040', socket: '#120a04', jaw: '#54400e', eye: '#ff5a3a', fang: '#e8dcb4', hood: '#56400e', rib: '#94701c'},
   black: {dark: '#0c0b10', mid: '#24222c', high: '#4a4858', belly: '#4a4852', band: '#222029', scar: '#7a7884', flesh: '#2e2c36', ridge: '#4a4858', socket: '#040406', jaw: '#1a1920', eye: '#8aff4a', fang: '#cfd2c2', hood: '#16151c', rib: '#2c2a36'},
   red: {dark: '#3c120c', mid: '#7c2418', high: '#b0442a', belly: '#b08a4c', band: '#6a4a26', scar: '#c8a48a', flesh: '#9c4630', ridge: '#a8553a', socket: '#140706', jaw: '#5a1c12', eye: '#ffc23a', fang: '#e4dcc6', hood: '#4c140e', rib: '#8e2a1a'},
@@ -56,7 +60,7 @@ function serpent(curve, segs, radius, profile, paintFn, sides = 8, facet = null)
 export function createNaga({kind = 'red', baby = false} = {}) {
   const C = PALETTES[kind] || PALETTES.red, col = Object.fromEntries(Object.entries(C).map(([k, v]) => [k, new THREE.Color(v)]));
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
-  g.scale.setScalar(baby ? .8 : 1);
+  g.scale.setScalar(baby ? .8 : kind === 'guardian' ? 1.12 : 1);
   const r = baby ? .05 : .075, ridge = baby ? .5 : 1;
   const add = (geo, mat, name, parent) => { const m = new THREE.Mesh(geo, mat); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
   const scaleMat = new THREE.MeshStandardMaterial({vertexColors: true, roughness: baby ? .65 : .5, metalness: .1});
@@ -130,9 +134,10 @@ export function createNaga({kind = 'red', baby = false} = {}) {
   if (!baby) {
     const hoodAt = new THREE.Matrix4().compose(new THREE.Vector3(0, .465, .1), new THREE.Quaternion().setFromEuler(new THREE.Euler(-.25, 0, 0)), new THREE.Vector3(1, 1, 1));
     const tri = [], colr = [], rim = [];
-    const N = 13, W = .125, Hh = .19;
+    // (the guardian's hood is spread wider and whole, only frayed)
+    const guard = kind === 'guardian', N = 13, W = guard ? .16 : .125, Hh = guard ? .2 : .19;
     for (let k = 0; k <= N; k++) {
-      const phi = -.35 + k / N * (Math.PI + .7), torn = 1 - (k === 4 || k === 9 ? .32 : 0) - hash(k * 3) * .16 - (k > 9 ? .08 : 0);
+      const phi = -.35 + k / N * (Math.PI + .7), torn = guard ? 1 - hash(k * 3) * .06 : 1 - (k === 4 || k === 9 ? .32 : 0) - hash(k * 3) * .16 - (k > 9 ? .08 : 0);
       rim.push([Math.cos(phi) * W * torn, Math.sin(phi) * Hh * torn - .02, -.015 - Math.sin(phi) * .015]);
     }
     for (let k = 0; k < N; k++) {
@@ -159,7 +164,17 @@ export function createNaga({kind = 'red', baby = false} = {}) {
       mane.push(flame(v.x, v.y + len * .35, v.z - .01, len, Math.sign(x) * (.2 + hash(k) * .3), 1));
     }
     for (let i = 0; i < 5; i++) mane.push(flame(0, .36 - i * .07, -.03 + i * .006 - (i === 3 ? .01 : 0), .06 + hash(i + 40) * .05, 0, 1));
-    if (kind === 'black' || kind === 'golden') mane.length = 0;
+    if (kind === 'black' || kind === 'golden' || guard) mane.length = 0;
+    if (guard) {
+      // the eye spots on the hood's back: a cream ring round a black centre each side, facing back
+      const spots = [];
+      for (const sx of [-1, 1]) {
+        const ring = bare(new THREE.CircleGeometry(.03, 10)); ring.rotateY(Math.PI); ring.translate(sx * .058, .055, -.022); spots.push(tint(ring, C.spot));
+        const dot = bare(new THREE.CircleGeometry(.016, 8)); dot.rotateY(Math.PI); dot.translate(sx * .058, .055, -.0235); spots.push(tint(dot, C.pupil));
+      }
+      const spotG = mergeGeometries(spots); spotG.applyMatrix4(hoodAt);
+      add(spotG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .6, polygonOffset: true, polygonOffsetFactor: -1}), 'spots', neck).castShadow = false;
+    }
     if (kind === 'black') {
       // black spines: bone-hard thorns raked back along the rim and nape, base nearly black, tips a dull grey; two snapped
       const spine = (x, y, z, len, lean, side) => {
