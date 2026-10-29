@@ -42,6 +42,7 @@ test('he leers, flips and palms coins, hops his hat at a blow, darts to attack a
   const rest = pose(a);
   L.updateLeprechaunCoin(a, 0, 0, false, hero);
   const st = a.leprechaunCoin;
+  st.seed = 69621; // pinned: the seed comes from the model's object id, which shifts whenever a builder adds an object
   let t = 0, flipsSeen = 0, palms = 0, was = false, coinTop = 0, spark = 0, hop = 0, aim = 0, dart = 0;
   for (let i = 0; i < 60 * 40; i++) {
     t += dt;

@@ -9,6 +9,7 @@ import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
 import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
+import {rigBody} from './trunk-skin.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
@@ -2529,13 +2530,15 @@ function leprechaun(o){
   sphere(leg,.06,coat,0,-.01,0,1,1.1,1);segment(leg,[0,-.04,0],[0,-.2,0],.036,.03,stocking);
   rounded(leg,.075,.05,.14,black,0,-.22,.025,.02);cone(leg,.022,.05,black,0,-.21,.105,6).rotation.x=Math.PI/2-.6;
   box(leg,.05,.03,.012,coin,0,-.2,.07);legs.push(leg);}
- // body: a round belly under a cream waistcoat, a broad belt with a big gold buckle and a green frock coat with tails
- sphere(body,.12,coat,0,.3,0,1.05,.6,.9);
- sphere(body,.14,coat,0,.43,-.01,1,1.08,.92);sphere(body,.11,vest,0,.43,.035,.9,1,.9);
- for(let i=0;i<3;i++)sphere(body,.012,coin,0,.38+i*.045,.135-i*.006);
- cylinder(body,.142,.142,.035,black,0,.35,0,20).scale.z=.92;box(body,.06,.045,.015,coin,0,.35,.13);box(body,.032,.022,.016,black,0,.35,.132);
- for(const side of [-1,1]){const lapel=box(body,.04,.13,.02,coatDark,side*.07,.47,.1);lapel.rotation.set(-.2,0,-side*.3);
-  const tail=box(body,.08,.2,.025,coat,side*.05,.26,-.12);tail.rotation.set(.18,0,side*.12);}
+ const trunk=new THREE.Group();
+ // body (merged below into one skin on the spine): a round belly under a cream waistcoat, a broad belt with a big gold buckle and a green frock coat with tails
+ sphere(trunk,.12,coat,0,.3,0,1.05,.6,.9);
+ sphere(trunk,.14,coat,0,.43,-.01,1,1.08,.92);sphere(trunk,.11,vest,0,.43,.035,.9,1,.9);
+ for(let i=0;i<3;i++)sphere(trunk,.012,coin,0,.38+i*.045,.135-i*.006);
+ cylinder(trunk,.142,.142,.035,black,0,.35,0,20).scale.z=.92;box(trunk,.06,.045,.015,coin,0,.35,.13);box(trunk,.032,.022,.016,black,0,.35,.132);
+ for(const side of [-1,1]){const lapel=box(trunk,.04,.13,.02,coatDark,side*.07,.47,.1);lapel.rotation.set(-.2,0,-side*.3);
+  const tail=box(trunk,.08,.2,.025,coat,side*.05,.26,-.12);tail.rotation.set(.18,0,side*.12);}
+ const hide=new THREE.Mesh(flatSkin(trunk),limbMat);hide.userData.part='body';hide.castShadow=hide.receiveShadow=true;body.add(hide);
  // arms: left hand grips a shillelagh planted on the floor; the right hand holds the sack
  // each arm hangs on its own group at the shoulder (`lfore` / `rfore`), the parts drawn where they were,
  // merged into one vertex-coloured skin on three bones (shoulder, elbow, wrist)
@@ -2566,7 +2569,8 @@ function leprechaun(o){
  const loot=new THREE.Group();loot.position.set(.2,.32,.06);body.add(loot);
  sphere(loot,.07,sack,0,-.1,0,1,1.15,.95);cylinder(loot,.022,.03,.04,sack,0,-.02,0,8);part(loot,new THREE.TorusGeometry(.024,.006,6,12),wood,0,-.03,0).rotation.x=Math.PI/2;
  for(const [x,y,z,r] of [[.03,-.02,.03,.3],[-.02,-.01,.035,-.4],[.01,.005,.02,.1]]){const c=cylinder(loot,.018,.018,.005,coin,x,y,z,14);c.rotation.set(Math.PI/2-.4,0,r);}
- const a=nameHumanoidJoints(Object.assign(actor(g,body,legs,loot,[],'idle'),{head,hat,loot,arms,leprechaun:true}));
+ // trunk and neck on bones (`hips`, `spine0`, `spine1`, `neck0`..`neck3`), the arms and the trunk one hide; the head rides `neck3`
+ const a=rigBody(nameHumanoidJoints(Object.assign(actor(g,body,legs,loot,[],'idle'),{head,hat,loot,arms,leprechaun:true})),{});
  delete a.arms; // named as joints only: fidget.js swings an actor's `arms`, and the leprechaun's pose is its own
  return trimDraws(a,{bake:true});
 }
