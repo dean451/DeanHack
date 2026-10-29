@@ -15,9 +15,13 @@ import {rests} from './wildcat-rest.js';
 // hip's top and bottom, how high the mouth is held at most, how far ahead of the shoulder it lies at least,
 // how high the tail's tip is allowed above the floor, and how far it hangs below the rump as a share of its length
 // (a short tail cannot reach the floor, so the higher of the two limits holds).
-export const STALK = {shoulder: [.6, .78], hip: [.65, .88], mouth: .7, face: .3, tail: .15, drop: .6};
+// `root`: how far (in the cat's own units, so times its scale) the tail's root may lie from the body skin: the tail grows from the rump, it does not float clear of it.
+export const STALK = {shoulder: [.6, .78], hip: [.65, .88], mouth: .7, face: .3, tail: .15, drop: .6, root: .03};
 
 export const stalks = rests;
+
+// How far the tail's root (a world point) lies from the nearest of the body skin's sample points.
+export const tailRootGap = (a, pts, root) => Math.min(...pts.map(p => p.distanceTo(root)));
 
 // Solves the stalking crouch (the built pose is left as it was found).
 export function stalkPose(a) {
@@ -34,12 +38,14 @@ export function stalkPose(a) {
   const samples = (mesh, step) => () => { const out = []; mesh.updateMatrixWorld(true); mesh.skeleton.update(); for (let i = 0; i < mesh.geometry.attributes.position.count; i += step) out.push(mesh.getVertexPosition(i, v).clone().applyMatrix4(mesh.matrixWorld)); return out; };
   const skins = [samples(skinOf(a.body, 'body'), 24), samples(skinOf(a.tail, 'tail'), 4),
     ...['lleg0', 'rleg0', 'lleg1', 'rleg1'].map(n => samples(skinOf(j[n], n.endsWith('0') ? 'foreleg' : 'hindleg'), 6))];
+  const bodySkin = skinOf(a.body, 'body'), bodyAt = samples(bodySkin, 4);
   const tailLen = P.tailtip().distanceTo(P.rump());
   const goals = skins.map(l => goal.clear(l, {y: floor, weight: 2}));
   goals.push(goal.above('shoulder:l', floor + STALK.shoulder[0] * high, {weight: 2}), goal.below('shoulder:l', floor + STALK.shoulder[1] * high, {weight: 3}),
     goal.above('hip:l', floor + STALK.hip[0] * hipHigh, {weight: 2}), goal.below('hip:l', floor + STALK.hip[1] * hipHigh, {weight: 3}),
     goal.below('mouth', floor + STALK.mouth * high, {weight: 2}), goal.ahead('shoulder:l', 'mouth', STALK.face * high, {within: .1 * s}),
     P2 => [1.5 * Math.max(0, P2.tailtip().y - Math.max(floor + STALK.tail * high, P2.rump().y - STALK.drop * tailLen))]);
+  goals.push(P2 => [3 * Math.max(0, tailRootGap(a, bodyAt(), P2.rump()) - STALK.root * s)]);
   for (const side of ['l', 'r']) goals.push(goal.floor(`paw:${side}f`, {y: floor, weight: 2}), goal.floor(`paw:${side}h`, {y: floor, weight: 2}));
   // (tried from several drops and bends, the first to meet every goal kept, else the best)
   const worst = r => Math.max(...r.residuals.flat().map(Math.abs));

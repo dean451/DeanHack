@@ -5,7 +5,9 @@ import {updateWildcatStalk, stalkFor, STALKING} from './wildcat-stalking.js';
 import {updateWildcatSettle} from './wildcat-settle.js';
 import {SETTLE, SETTLING} from './insect-settle.js';
 import {STALK_POSES} from './wildcat-stalk-poses.js';
-import {stalkPose} from './wildcat-stalk.js';
+import {stalkPose, STALK} from './wildcat-stalk.js';
+import {birdPoser} from './cockatrice-rest.js';
+import * as THREE from 'three';
 import {rolesOf} from './body-roles.js';
 
 const FAMILY = ['jaguar', 'lynx', 'panther', 'tiger', 'displacer beast'];
@@ -77,4 +79,13 @@ test('the pet cat and other creatures are left alone', () => {
   const a = {quirk: 'feline', joints: {}, g: {position: {x: 0, z: 0}}};
   assert.equal(updateWildcatStalk(a, 1, 0, false, {x: 4, z: 0}), 0); assert.equal(a.wildcatStalk, undefined);
   assert.equal(updateWildcatStalk(null, 1, 0, false), 0);
+});
+
+test('in the crouch the tail root stays joined to the rump, within a tail-width of the body skin', () => {
+  for (const name of FAMILY) {
+    const a = make(name), {apply} = birdPoser(a), body = a.body.children.find(o => o.isSkinnedMesh && o.userData.part === 'body'), v = new THREE.Vector3();
+    const gap = () => { a.g.updateMatrixWorld(true); body.skeleton.update(); const r = rolesOf(a).rump(); let m = Infinity; for (let i = 0; i < body.geometry.attributes.position.count; i += 2) m = Math.min(m, body.getVertexPosition(i, v).applyMatrix4(body.matrixWorld).distanceTo(r)); return m; };
+    apply(STALK_POSES[name].pose);
+    assert(gap() < (STALK.root + .01) * a.g.scale.x, `${name}: tail root ${gap().toFixed(3)} from the body`);
+  }
 });
