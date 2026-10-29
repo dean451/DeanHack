@@ -2236,7 +2236,9 @@ test('centaurs stand on the horse body with a human torso, arms and their own we
 });
 
 test('heavy monsters merge their static parts but keep every animated handle attached',()=>{
- const counts={'wood nymph':40,Angel:30,'shimmering dragon':40,marilith:25,'Kop Kaptain':25,gremlin:20,'lurker above':15,'electric eel':15};
+ // (the gremlin's arms became their own groups, lfore and rfore, 2026-10-29: two more raw meshes, but bakeDraws merges
+ // each group into one batched mesh, so it still draws alone only its eyes and its tail, as before)
+ const counts={'wood nymph':40,Angel:30,'shimmering dragon':40,marilith:25,'Kop Kaptain':25,gremlin:22,'lurker above':15,'electric eel':15};
  for(const [name,most] of Object.entries(counts)){
   const actor=createCreature({name});let meshes=0;actor.g.traverse(o=>{if(o.isMesh)meshes++;});
   assert(meshes<=most,`${name}: ${meshes} meshes`);

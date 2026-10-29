@@ -2578,6 +2578,15 @@ function skinnedTail(tail,points,radius,material){
  const geo=skinChain(new THREE.TubeGeometry(curve,16,radius,8,false),pickPoints(pts,5));
  return rigChain(tail,geo,material,'tail').bones;
 }
+// A neck of four bones, neck0 at `from` (the top of the trunk, body space) to neck3 at the head's pivot, the head
+// group hung on neck3 (its own turn kept): no skin rides it (the head sits on the trunk), so turning a neck joint
+// carries the head and whatever is past it and nothing before. Returns the bones by name.
+function neckChain(body,head,from){
+ const to=head.position.toArray(),out={};let prev=body,prevAt=[0,0,0];
+ for(let i=0;i<4;i++){const at=from.map((v,k)=>v+(to[k]-v)*i/3),b=new THREE.Bone();b.name='neck'+i;b.position.set(at[0]-prevAt[0],at[1]-prevAt[1],at[2]-prevAt[2]);prev.add(b);out[b.name]=b;prev=b;prevAt=at;}
+ out.neck3.add(head);head.position.set(0,0,0);
+ return out;
+}
 function gargoyle(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
  const stone=mat(o.stone,{roughness:.95}),dark=mat(shade(o.stone,.62),{roughness:1}),crack=mat(shade(o.stone,.3),{roughness:1}),
@@ -2636,8 +2645,10 @@ function gargoyle(o){
  const tail=new THREE.Group();tail.position.set(0,.2,-.14);body.add(tail);
  const tailBones=skinnedTail(tail,[[0,0,0],[.05,-.12,-.12],[.18,-.14,-.2],[.3,-.14,-.12]],.035,stone),tip=tailBones[4];
  const spade=cone(tip,.05,.1,dark,.04,0,.02,4);spade.rotation.z=-Math.PI/2;spade.scale.set(1,1,.35);
- // named joints, the cat's and the dragon's names: the haunches are the hind legs (left is -x), the neck pivot is the head group
- const joints={head,neck0:head,lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};head.name='head';tail.name='tail';tailBones.forEach(b=>{joints[b.name]=b;});
+ // named joints, the cat's and the dragon's names: the haunches are the hind legs (left is -x)
+ // the neck: a chain of bones from the top of the chest to the head's pivot, the head on its last (neckChain)
+ const neck=neckChain(body,head,[0,.62,.1]);
+ const joints={head,...neck,lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};head.name='head';tail.name='tail';tailBones.forEach(b=>{joints[b.name]=b;});
  legs.forEach((leg,i)=>{const name=(leg.position.x<0?'l':'r')+'leg1';leg.name=name;joints[name]=leg;});
  for(const n of ['lwing','rwing'])joints[n].name=n;
  for(const arm of arms)joints[arm.name]=arm;
@@ -2657,9 +2668,12 @@ function gremlin(o){
  sphere(body,.1,skin,0,.3,.01,1,1.1,.9);sphere(body,.08,dark,0,.29,.05,.85,.9,.6);sphere(body,.1,skin,0,.42,-.01,1.05,.9,.9);
  for(let i=0;i<5;i++){const s=cone(body,.014,.06,dark,0,.26+i*.05,-.09+i*.005,4);s.rotation.x=-1.2;}
  // arms: long and thin, elbows out, hands raised with hooked fingers
- for(const side of [-1,1]){const sh=[side*.1,.46,0],el=[side*.2,.36,.06],wr=[side*.18,.46,.16];
-  sphere(body,.035,skin,...sh);segment(body,sh,el,.028,.022,skin);sphere(body,.022,skin,...el);segment(body,el,wr,.022,.016,skin);sphere(body,.025,skin,...wr);
-  for(let t=-1;t<=1;t++){const c=cone(body,.006,.05,claw,wr[0]+t*.014,wr[1]+.04,wr[2]+.01,4);c.rotation.x=.3;c.rotation.z=t*.25;}}
+ // each arm hangs from its own shoulder group (lfore / rfore, left is -x), drawn in the group's own space
+ const arms=[];
+ for(const side of [-1,1]){const at=[side*.1,.46,0],rel=p=>p.map((v,k)=>v-at[k]),sh=[0,0,0],el=rel([side*.2,.36,.06]),wr=rel([side*.18,.46,.16]);
+  const arm=new THREE.Group();arm.position.set(...at);arm.name=(side<0?'l':'r')+'fore';body.add(arm);arms.push(arm);
+  sphere(arm,.035,skin,...sh);segment(arm,sh,el,.028,.022,skin);sphere(arm,.022,skin,...el);segment(arm,el,wr,.022,.016,skin);sphere(arm,.025,skin,...wr);
+  for(let t=-1;t<=1;t++){const c=cone(arm,.006,.05,claw,wr[0]+t*.014,wr[1]+.04,wr[2]+.01,4);c.rotation.x=.3;c.rotation.z=t*.25;}}
  // head: big and round, saucer eyes, a wide toothy grin and enormous ribbed bat ears
  const head=new THREE.Group();head.position.set(0,.6,0);body.add(head);sphere(head,.12,skin,0,0,.02,1.1,.95,1);sphere(head,.05,skin,0,-.03,.12,1,.7,.8);
  for(const side of [-1,1]){sphere(head,.042,glow,side*.052,.02,.1,1,1,.6).castShadow=false;sphere(head,.02,pupil,side*.052,.02,.125,.6,1,.4);
@@ -2677,8 +2691,11 @@ function gremlin(o){
  // tail: a thin whip ending in a tuft
  const tail=new THREE.Group();tail.position.set(0,.26,-.08);body.add(tail);
  const tailBones=skinnedTail(tail,[[0,0,0],[.04,-.08,-.1],[.12,-.1,-.18],[.2,-.04,-.22]],.012,skin);cone(tailBones[4],.022,.05,dark,.01,.01,-.0,4).rotation.z=-1.2;
- const joints={head,neck0:head};head.name='head';tail.name='tail';tailBones.forEach(b=>{joints[b.name]=b;});
+ // the neck: a chain of bones from the top of the hunched back to the head's pivot, the head on its last (neckChain)
+ const neck=neckChain(body,head,[0,.5,0]);
+ const joints={head,...neck};head.name='head';tail.name='tail';tailBones.forEach(b=>{joints[b.name]=b;});
  legs.forEach(leg=>{const name=(leg.position.x<0?'l':'r')+'leg1';leg.name=name;joints[name]=leg;});
+ for(const arm of arms)joints[arm.name]=arm;
  return trimDraws({...actor(g,body,legs,tail,[],'idle'),head,joints});
 }
 const GARGOYLES={gargoyle:{stone:'#8a8478',eye:'#ff7a2a',scale:1.12},'winged gargoyle':{stone:'#6f6a74',eye:'#ffb030',winged:true,scale:1.3}};

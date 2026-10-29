@@ -6,14 +6,15 @@ import {createCreature} from './creatures.js';
 const FAMILY=[['gargoyle',11],['winged gargoyle',11],['gremlin',2]];
 const make=([name,color])=>createCreature({name,symbol:'g'.charCodeAt(0),color});
 const world=o=>{o.updateWorldMatrix(true,false);return o.getWorldPosition(new THREE.Vector3());};
-const tip=o=>{o.updateMatrixWorld(true);return new THREE.Box3().setFromObject(o).max.clone();};
+const tip=o=>{o.updateWorldMatrix(true,true);return new THREE.Box3().setFromObject(o).max.clone();};
 
 test('every gargoyle and gremlin has head, neck, tail and its legs as named joints',()=>{
  for(const f of FAMILY){
   const a=make(f),j=a.joints,name=f[0];
   assert(j,`${name}: joints`);
   assert.equal(j.head,a.head,name);
-  assert.equal(j.neck0,a.head,`${name}: the neck pivot is the head group`);
+  for(let i=0;i<4;i++)assert(j[`neck${i}`]?.isBone,`${name}: neck${i}`);
+  assert(a.head.parent===j.neck3,`${name}: the head rides the top of the neck`);
   for(let i=0;i<5;i++)assert(j[`tail${i}`]?.isBone,`${name}: tail${i}`);
   assert.equal(j.tail0.parent.parent,a.tail,`${name}: the chain hangs under the tail pivot`);
   assert(a.tail.children.some(o=>o.isSkinnedMesh&&o.userData.part==='tail'),`${name}: one skinned tail`);
@@ -23,7 +24,8 @@ test('every gargoyle and gremlin has head, neck, tail and its legs as named join
    assert.equal(leg.position.x<0,side==='l',`${name}: left is -x`);
   }
   if(/winged/.test(name))assert(j.lwing&&j.rwing&&j.lwing.position.x<0&&j.rwing.position.x>0,`${name}: wings`);
-  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length-1,`${name}: only head and neck0 share a group`);
+  for(const side of ['l','r'])assert(j[`${side}fore`]&&j[`${side}fore`].position.x<0===(side==='l'),`${name}: ${side}fore`);
+  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length,`${name}: every joint its own`);
  }
 });
 
@@ -65,8 +67,8 @@ test('bending a tail joint moves the tail past it and leaves the tail before it,
  }
 });
 
-test('each gargoyle arm hangs from its own shoulder group: turning it moves that arm only',()=>{
- for(const f of FAMILY.filter(f=>/gargoyle/.test(f[0]))){
+test('each arm hangs from its own shoulder group: turning it moves that arm only',()=>{
+ for(const f of FAMILY){
   const a=make(f),j=a.joints,name=f[0];
   for(const side of ['l','r']){
    const arm=j[`${side}fore`];
@@ -81,5 +83,17 @@ test('each gargoyle arm hangs from its own shoulder group: turning it moves that
    a.legs.forEach((l,i)=>assert(tip(l).distanceTo(legsBefore[i])<1e-6,`${name}: leg ${i} stayed`));
    arm.rotation.x=0;
   }
+ }
+});
+
+test('the neck is a chain of bones: turning a neck joint carries the head and nothing before it',()=>{
+ for(const f of FAMILY){
+  const a=make(f),j=a.joints,name=f[0];
+  const head=tip(a.head),neck0=world(j.neck0),limbs=[...a.legs,j.lfore,j.rfore].map(tip),tail=tip(a.tail);
+  j.neck1.rotation.x=.5;
+  assert(tip(a.head).distanceTo(head)>.01,`${name}: the head went with the neck`);
+  assert(world(j.neck0).distanceTo(neck0)<1e-9,`${name}: the neck's root stayed`);
+  [...a.legs,j.lfore,j.rfore].forEach((o,i)=>assert(tip(o).distanceTo(limbs[i])<1e-6,`${name}: ${o.name} stayed`));
+  assert(tip(a.tail).distanceTo(tail)<1e-6,`${name}: the tail stayed`);
  }
 });
