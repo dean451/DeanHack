@@ -52,7 +52,7 @@ dialog button{margin:18px 8px 0 0;font-size:12px}
 #ground-notice{display:none;position:absolute;z-index:4;left:24px;bottom:145px;width:220px;max-height:32vh;overflow:auto;padding:14px 16px;background:#0c181bed;border:1px solid #64797266;border-radius:5px;color:#dedfce;font:13px/1.5 Inter,sans-serif;pointer-events:none}
 #ground-notice strong{font-size:14px;color:#f0e5cc}#ground-notice ul{padding:0;margin:8px 0;list-style:none}#ground-notice li+li{margin-top:4px}#ground-notice small{color:#9fb5b0}
 @media(max-width:650px){#ground-notice{left:12px;bottom:155px;width:175px;max-height:22vh}}
-/* live character panel: attributes, low vitality, and the level name on arrival */
+/* live character panel: attributes, low hitpoints, and the level name on arrival */
 .attributes{display:none;grid-template-columns:repeat(3,1fr);gap:6px 10px;margin-top:12px;color:#9aaab7;font-size:11px;letter-spacing:1px}.live-engine .attributes:not(:empty){display:grid}.attributes b{color:#e4d8c2;font-weight:400;margin-left:5px}.attributes .alignment{grid-column:1/-1;font-size:10px;letter-spacing:2px;color:#b6c4ce}
 .character.low-hp #hp{color:#ff6a5a}.character.low-hp #hp::before{content:"\25B2  ";font-size:.8em}.character.low-hp .bar{background:#ff4a3a22}.character.low-hp .bar i{background:#e0402f;box-shadow:0 0 10px #ff4a3a;animation:hp-flash 1s ease-in-out infinite}.character.low-hp .health{animation:hp-flash 1s ease-in-out infinite}
 @keyframes hp-flash{0%,100%{opacity:1}50%{opacity:.35}}
@@ -111,7 +111,7 @@ footer .buttons button:hover,footer .buttons button:focus-visible,.engine-action
 .engine-recent-box .engine-recent{margin:0 0 5px}
 #farlook{position:fixed;z-index:5;pointer-events:none;padding:2px 7px;font:12px/1.4 monospace;color:#d8d2c2;background:#05080acc;border-left:2px solid #6b2a24;letter-spacing:.04em}#farlook[hidden]{display:none}
 
-/* Live layout: a small character panel in the top-left corner (vitality, stats, gold, power, experience),
+/* Live layout: a small character panel in the top-left corner (hitpoints, stats, gold, power, experience),
    the messages in the top-right corner, nothing else floating over the map. */
 body.live-engine .character{top:14px;left:16px;width:200px;z-index:3}
 body.live-engine .character>small{display:block;margin:0 0 8px;font-size:11px;letter-spacing:2.5px;color:#cfd6da;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

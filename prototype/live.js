@@ -40,7 +40,6 @@ import {attachModelAsset} from './model-assets.js';
 import {MODEL_URLS} from './asset-urls.js';
 import {potionLook} from './item-looks.js';
 import {captureView,restoreView} from './camera-view.js';
-import {createHealthBar,setHealth,placeAbove,healthFraction} from './health-bar.js';
 import {createMinimap} from './minimap.js';
 import {createMessageLog,addMessage,panelView,allRows,markTurn,sinceMark} from './message-log.js';
 import {createHistoryPanel} from './message-history.js';
@@ -535,7 +534,6 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
        // Invisible-and-sensed monsters (telepathy, warning) still send a cell, but the model,
        // its disposition ring — all children of a.g — should stay hidden.
        a.g.visible=!cell.invisible;
-       { const fraction=healthFraction(cell.health); if(fraction!=null&&!a.hpBar){a.hpBar=createHealthBar();a.g.add(a.hpBar);} if(a.hpBar){if(fraction!=null&&fraction!==a.hpShown)placeAbove(a.hpBar,a.g);a.hpShown=fraction;setHealth(a.hpBar,fraction);} }
      }
    }
    for(const [id,t] of tiles)if(!seen.has(id)){release(t);tiles.delete(id);}tileInstances.refresh();
@@ -544,7 +542,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
     for(const [id,gh] of ghosts)if(ghostGone(byId.get(id))||seenActors.has(gh.key)||[...seenActors].some(k=>k.startsWith(id+':'))){dropGhost(gh);ghosts.delete(id);}
     for(const [id,a] of actors)if(!seenActors.has(id)){
      const at=a.cell,cell=at&&byId.get(at);
-     if(at&&!ghosts.has(at)&&shouldGhost(cell,a.actions?.dead)){restoreFade(a);if(a.hpBar)a.hpBar.visible=false;const mats=ghostize(a.g,THREE);a.g.position.copy(a.target||a.g.position);ghosts.set(at,{g:a.g,mats,key:id});while(ghosts.size>GHOST_MAX){const [oldId,old]=ghosts.entries().next().value;dropGhost(old);ghosts.delete(oldId);}}
+     if(at&&!ghosts.has(at)&&shouldGhost(cell,a.actions?.dead)){restoreFade(a);const mats=ghostize(a.g,THREE);a.g.position.copy(a.target||a.g.position);ghosts.set(at,{g:a.g,mats,key:id});while(ghosts.size>GHOST_MAX){const [oldId,old]=ghosts.entries().next().value;dropGhost(old);ghosts.delete(oldId);}}
      else{restoreFade(a);release(a.g);}
      actors.delete(id);}}
    for(const [id,item] of groundItems)if(!seenActors.has(id)){if(hasMagicLook(item)&&item.visible&&pickupNotes.take(...squareOfKey(id).split(',').map(Number),performance.now()))liftingItems.add(item);else release(item);groundItems.delete(id);}
