@@ -417,3 +417,35 @@ test('a dying lich queues a shed of flakes at each jolt, and other deaths queue 
     assert.equal(got, sheds, name);
   }
 });
+
+test('a run of hero strikes varies the swing, never repeating one, each landing at its blow\'s contact', async () => {
+  const {CONTACT_U, SWING_TIME, SWING_VARIANTS} = await import('./swing.js');
+  for (const blow of ['slash', 'pierce', 'blunt']) {
+    const strikes = () => {
+      const r = knight(), q = createActionQueue();
+      r.species = 'hero';
+      const rest = rigSnap(r), seen = [];
+      for (let i = 0; i < 8; i++) {
+        assert.ok(enqueueAction(q, {kind: 'attack', attack: 'weapon', blow, result: 'hit', dir: [0, 1]}));
+        let t = 0, contactAt = null;
+        do {
+          const dt = 1 / 240; t += dt;
+          clearActionPose(r, q);
+          updateActions(r, q, dt);
+          if (q.swing?.contact) contactAt = t;
+          if (seen.length === i) seen.push(q.current.variant);
+        } while (q.current && t < 2);
+        clearActionPose(r, q);
+        assert.ok(Math.abs(contactAt - CONTACT_U[blow] * SWING_TIME) < 1 / 120, `${blow} strike ${i} (${seen[i]}) contact at ${contactAt}`);
+        assert.equal(rigSnap(r), rest, `${blow} strike ${i} (${seen[i]}) back at rest`);
+      }
+      return seen;
+    };
+    const seen = strikes();
+    for (let i = 1; i < seen.length; i++) assert.notEqual(seen[i], seen[i - 1], `${blow} repeats ${seen[i]}`);
+    for (const v of seen) assert.ok(SWING_VARIANTS[blow].includes(v));
+    assert.ok(new Set(seen).size >= Math.min(3, SWING_VARIANTS[blow].length), `${blow} plays ${[...new Set(seen)]}`);
+    // The same hero's same run picks the same swings again.
+    assert.deepEqual(strikes(), seen);
+  }
+});
