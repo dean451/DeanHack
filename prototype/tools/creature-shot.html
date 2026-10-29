@@ -22,6 +22,7 @@ import {updateCockatriceSettle} from '../cockatrice-settle.js';
 import {updateInsectAlarm} from '../insect-alarm.js';
 import {updateCanineBow} from '../canine-bowing.js';
 import {updateWildcatStalk} from '../wildcat-stalking.js';
+import {updateFlayerPsi} from '../psionic.js';
 import {updateCanineSettle} from '../canine-settle.js';
 import {updateWildcatSettle} from '../wildcat-settle.js';
 import {updateCockatriceCrow} from '../cockatrice-crowing.js';
@@ -56,6 +57,8 @@ if(q.get('pose')==='gaster'&&gasterRaises(c)){const r=gasterPose(c);birdPoser(c)
 // ?pose=mantle holds a dragon's mantle (dragon-menace.js) mid-hold
 if(q.get('pose')==='mantle'){c.species=name;updateDragonMenace(c,1/30,0,false,false,null);c.menace.cur={kind:'mantle',s:.8,side:1};c.menace.f=1;for(let i=0;i<3;i++)updateDragonMenace(c,1/30,i/30,false,false,null);}
 // ?idle=20 runs the game's own per-frame dragon update (dragon-menace.js) that many seconds with nobody near
+// ?psi=1.3 runs a mind flayer's psionic ripples (psionic.js) that many seconds
+if(q.get('psi')){c.species=name.toLowerCase();for(let i=0;i<=+q.get('psi')*30;i++)updateFlayerPsi(c,1/30,i/30);}
 if(q.get('idle')){c.species=name;for(let i=0;i<+q.get('idle')*30;i++)updateDragonMenace(c,1/30,i/30,false,false,null);}
 // ?settle=12 runs the game's own insect settling (insect-settle.js) that many seconds with nobody near; ?alarm=1 then holds the hero 1 m away that many seconds (insect-alarm.js)
 // ?bowing=1.2 runs a canine's own play bow (canine-bowing.js): it stands still with the hero far, then the hero comes 1.2 m off and it bows that many seconds in
