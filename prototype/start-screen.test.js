@@ -288,3 +288,12 @@ test('Descend runs the ASCII spiral descent before the game starts, the splash h
   assert.match(css,/body\.start-descending dialog pre\{animation:intro-fade/,'the opening text fades in');
   assert.match(css,/@media \(prefers-reduced-motion:reduce\)\{\.start-spiral/);
 });
+
+test('the descent\'s spiral can never cover the page for good: a watchdog lands it, and a failed start lifts it', () => {
+  const src = readFileSync(new URL('./start-screen.js', import.meta.url), 'utf8'), live = readFileSync(new URL('./live.js', import.meta.url), 'utf8'), css = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
+  assert.match(src, /export const LANDING_MS=15000;/);
+  assert.match(src, /spiral\.el\.classList\.replace\('zoom','rest'\);[\s\S]{0,400}watchdog=win\.setTimeout\(\(\)=>\{watchdog=null;landed\(\);\},LANDING_MS\);/, 'resting starts the watchdog');
+  assert.match(src, /if\(watchdog\)\{win\?\.clearTimeout\?\.\(watchdog\);watchdog=null;\}/, 'clearing the descent stops it');
+  assert.match(live, /catch\(e\)\{startScreen\?\.landed\?\.\(\);/, 'an engine that fails to start lifts the spiral so its message shows');
+  assert.doesNotMatch(css.match(/\.start-spiral\{[^}]*\}/)[0], /text-shadow/, 'no per-glyph shadow: it held the swirl to about 5 fps');
+});
