@@ -89,6 +89,7 @@ Claude sessions with the user add lines here from the user's direct feedback (ma
 - Adding glow, rune or skull meshes changes draw counts and bounds; update the draw-count and bounds tests on purpose, never loosen them.
 - `prototype/package.json` runs tests by glob (`*.test.js`, `engine/*.test.js`): a new test file is picked up by itself, nothing to register, nothing to conflict on. A test file that is never meant to run has no place in those folders.
 - A PR you leave open can conflict with the next merge (AGENTS.md most often); re-merge `master` and check auto-merge before you stop.
+- *user* Performance is a focus, not an afterthought: a new effect adds no always-on light, no full-window CSS filter and no per-frame scene walk; measure before and after.
 - *user* Small and safe is not the same as valuable: days of scars and 25 PRs on the cat added little and left the collar floating. Take a listed item toward its Done when, or open no PR.
 - Time a frame by the gap between drawn frames, not by the time inside `render()`: the GPU runs behind the CPU, so `render()` returned in 10 to 30 ms on a software renderer that drew a frame every 1.2 s (`frameCost` in `quality.js`).
 - Dark steel at metalness .8 renders black in the dungeon light (no environment map): keep metalness near .5, raise the value, and look at the render.
