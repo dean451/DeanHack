@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createEffectLights, EFFECT_LIGHTS} from './effect-lights.js';
+import {createEffectLights, EFFECT_LIGHTS, shareFlash} from './effect-lights.js';
 import {createTeleportBlink} from './teleport-blink.js';
 import {createFireTrapJet} from './fire-trap-jet.js';
 import {createMagicPortal} from './magic-portal.js';
@@ -31,4 +31,20 @@ test('a spent pool hands out invisible lights rather than new ones in the scene'
   assert.equal(visibleLights(scene), 1);
   lights.release(a); lights.release(b);
   assert.equal(a.parent, scene); assert.equal(b.parent, null); assert.equal(lights.free, 1);
+});
+
+test('the ray flash, a blast and a breath share one light: the brightest this frame gets it', () => {
+  const light = new THREE.PointLight(0xffffff, 0, 5);
+  const ray = {intensity: 30, color: 0xdce6ff, x: 1, y: 3.2, z: 2, distance: 18, decay: 1.2}, blast = {intensity: 45, color: 0xffa050, x: 4, y: 1.2, z: 5, distance: 9, decay: 1.4};
+  assert.equal(shareFlash(light, [ray, blast]), blast);
+  assert.equal(light.intensity, 45); assert.equal(light.color.getHex(), 0xffa050); assert.deepEqual(light.position.toArray(), [4, 1.2, 5]); assert.equal(light.distance, 9);
+  shareFlash(light, [ray, {...blast, intensity: 0}]);
+  assert.equal(light.intensity, 30); assert.equal(light.distance, 18); assert.equal(light.decay, 1.2);
+  assert.equal(shareFlash(light, [{...ray, intensity: 0}, null]), null); assert.equal(light.intensity, 0);
+});
+
+test('live.js keeps one flash light, not a ray light and a blast light', async () => {
+  const live = (await import('node:fs')).readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  assert.equal((live.match(/new THREE\.PointLight\(/g) || []).length, 3, 'the lantern, the torch pool and the one flash light');
+  assert.ok(!/rayFlashLight|blastLight/.test(live));
 });
