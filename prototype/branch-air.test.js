@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {airFor, rockTint, rockRoughness, rockVein, MINES_VEIN, createBranchAir, PARTICLES, HALF, TOP} from './branch-air.js';
 
-test('Gehennom lifts embers and ash, within the particle cap', () => {
+test('Gehennom lifts embers while ash falls, within the particle cap', () => {
   const a = airFor('Gehennom');
   assert(a.ember.count + a.ash.count <= PARTICLES);
-  assert(a.ember.fall < 0 && a.ash.fall < 0);
+  assert(a.ember.fall < 0 && a.ash.fall > 0);
   const group = new THREE.Group(), air = createBranchAir({group});
   air.setBranch('Gehennom', new THREE.Vector3());
   const hero = new THREE.Vector3();

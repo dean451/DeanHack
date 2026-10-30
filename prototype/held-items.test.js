@@ -20,6 +20,13 @@ test('the items on squares a monster or pet now stands on are held, with who sta
   assert.equal(itemsUnderMonsters(null, items).size, 0);
 });
 
+test('the hero\'s own square is never held: squeezing onto a boulder leaves no boulder drawn round the hero', () => {
+  // the hero's cell carries a monster glyph; what lies under the hero is not drawn
+  const cells = [{x: 3, z: 4, kind: 'monster', name: 'valkyrie', visible: true}, {x: 7, z: 1, kind: 'pet', name: 'kitten', visible: true}];
+  const u = itemsUnderMonsters(cells, items, {x: 3, z: 4});
+  assert.deepEqual([...u.keys()], ['7,1']);
+});
+
 test('a pickup or a meal by a monster names it; the hero\'s own does not', () => {
   assert.equal(takerOf('The kitten picks up a dagger.'), 'kitten');
   assert.equal(takerOf('Miso picks up 3 gold pieces.'), 'miso');
@@ -38,7 +45,7 @@ test('the taker takes the items under it: by name, or under the pets for a pet t
 
 test('live.js keeps held items through the release sweep and drops them on a pickup message', () => {
   const src = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
-  const keep = src.indexOf('heldUnder.map=itemsUnderMonsters(frame.cells,groundItems.keys())'), sweep = src.indexOf('for(const [id,item] of groundItems)if(!seenActors.has(id))');
+  const keep = src.indexOf('heldUnder.map=itemsUnderMonsters(frame.cells,groundItems.keys(),frame.player)'), sweep = src.indexOf('for(const [id,item] of groundItems)if(!seenActors.has(id))');
   assert.ok(keep > 0 && sweep > keep, 'held before the sweep');
   assert.ok(/takenSquares\(taker,heldUnder\.map\)/.test(src));
 });
