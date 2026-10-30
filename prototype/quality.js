@@ -37,6 +37,12 @@ export const ACTIVE_MS = 2500, DEEP_MS = 45000;
 export const TORCH_LIGHTS = {high: 8, balanced: 4, low: 4};
 export const torchLightsFor = tier => TORCH_LIGHTS[tier] ?? TORCH_LIGHTS.balanced;
 
+// How many layers the pet's fur is drawn in (feline-coat.js FUR.shells). Each layer is the whole skin again
+// (some 42,000 triangles, skinned, with the physical coat material), and at the game camera the cat is a few
+// dozen pixels tall: six layers read the same there as ten. Set once at start-up, before any cat is built.
+export const FUR_SHELLS = {high: 10, balanced: 6, low: 4};
+export const furShellsFor = tier => FUR_SHELLS[tier] ?? FUR_SHELLS.balanced;
+
 export function isTier(name) { return typeof name === 'string' && Object.hasOwn(TIERS, name); }
 
 // The tier to start with: the URL, then the saved choice, then the machine.
