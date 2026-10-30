@@ -63,7 +63,7 @@ const composer=new EffectComposer(renderer);const huePass=createHuePass();compos
 scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const moon=new THREE.DirectionalLight(0x9fb9ca,2.3);moon.position.set(-4,10,3);moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);Object.assign(moon.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:.5,far:30});moon.shadow.bias=-.0003;moon.shadow.normalBias=.03;scene.add(moon);
 // Quality tiers (quality.js): pixel ratio, SSAO, shadows and the idle frame rate. F8 cycles and saves; ?quality= overrides.
 const qualityToast=document.createElement('div');qualityToast.className='quality-toast';qualityToast.hidden=true;document.body.append(qualityToast);let toastTimer=null;
-function setQuality(tier,{say=false,auto=false}={}){quality.tier=tier;const got=applyTier(tier,{renderer,composer,ambientOcclusion,light:moon,scene,soft:THREE.PCFSoftShadowMap,plain:THREE.PCFShadowMap,devicePixelRatio,width:innerWidth,height:innerHeight,keepShadowType:auto});
+function setQuality(tier,{say=false,auto=false}={}){quality.tier=tier;const got=applyTier(tier,{renderer,composer,ambientOcclusion,bloom,light:moon,scene,soft:THREE.PCFSoftShadowMap,plain:THREE.PCFShadowMap,devicePixelRatio,width:innerWidth,height:innerHeight,keepShadowType:auto});
  if(say){qualityToast.textContent=auto?`Quality · ${TIERS[tier].label.split(':')[0]} (the game was running slow; F8 to choose)`:`Quality · ${got.label} (F8)`;qualityToast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{qualityToast.hidden=true;},2600);}return got;}
 setQuality(quality.tier);
 addEventListener('keydown',e=>{if(e.key==='F8'){e.preventDefault();adaptive.manual();const tier=nextTier(quality.tier);saveTier(tier);setQuality(tier,{say:true});}});
