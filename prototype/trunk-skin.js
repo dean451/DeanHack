@@ -96,16 +96,24 @@ export function mergeSkins(body, first, cache) {
   return hide;
 }
 
-// A limb that is one plain mesh hanging down -y, skinned onto three bones `<prefix>0`..`2` (at the root, about
-// half its length and nine tenths of it) under its group, as the skinned limbs are (chain-skin.js). Cached per
-// geometry, so every member built alike shares the skinned copy.
+// A limb hanging down -y, skinned onto three bones `<prefix>0`..`2` (at the root, about half its length and nine tenths of it) under
+// its group, as the skinned limbs are (chain-skin.js). Only its first plain mesh, or with `all` every plain mesh
+// (an elephant's skin, toenails and shag): the first carries the bones and the others are bound to the same
+// skeleton, so the limb bends together and the mesh count is unchanged. Cached per geometry, so
+// every member built alike shares the skinned copies.
 const LIMBS = new WeakMap();
-export function skinPlainLimb(group, prefix) {
-  const m = group.children.find(o => o.isMesh && !o.isSkinnedMesh);
-  if (!m) return;
-  if (!LIMBS.has(m.geometry)) { m.geometry.computeBoundingBox(); const y = m.geometry.boundingBox.min.y; LIMBS.set(m.geometry, skinChain(m.geometry.clone(), [[0, 0, 0], [0, .5 * y, 0], [0, .9 * y, 0]])); }
-  group.remove(m);
-  rigChain(group, LIMBS.get(m.geometry), m.material, prefix, {part: m.userData.part});
+export function skinPlainLimb(group, prefix, all = false) {
+  const plain = group.children.filter(o => o.isMesh && !o.isSkinnedMesh).slice(0, all ? Infinity : 1);
+  if (!plain.length) return;
+  let y = 0; for (const m of plain) { m.geometry.computeBoundingBox(); y = Math.min(y, m.geometry.boundingBox.min.y); }
+  const skinned = m => { if (!LIMBS.has(m.geometry)) LIMBS.set(m.geometry, skinChain(m.geometry.clone(), [[0, 0, 0], [0, .5 * y, 0], [0, .9 * y, 0]])); return LIMBS.get(m.geometry); };
+  let first = null;
+  for (const m of plain) {
+    group.remove(m);
+    if (!first) { first = rigChain(group, skinned(m), m.material, prefix, {part: m.userData.part}).mesh; continue; }
+    const s = new THREE.SkinnedMesh(skinned(m), m.material); s.castShadow = m.castShadow; s.receiveShadow = m.receiveShadow; s.userData.part = m.userData.part;
+    group.add(s); s.updateMatrixWorld(true); s.bind(first.skeleton, first.matrixWorld);
+  }
 }
 
 // The trunk and neck of a standing creature on bones, and its whole skin in one hide (after its limbs are on
