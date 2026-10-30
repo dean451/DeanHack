@@ -167,3 +167,11 @@ test('only the high tier keeps eight torch lights; the live torch list is not re
   assert.ok(!update.includes('[...tiles.values()].filter(tile=>tile.userData.torch).sort'), 'no filter and sort over every tile each frame');
   assert.match(update, /if\(torchTiles\.key!==`\$\{lastLevel\}:\$\{tiles\.size\}`\)/);
 });
+
+test('balanced and low run the glow from a smaller buffer; high keeps the full size', () => {
+  const sized = tier => { const bloom = {size: null, setSize(w, h) { this.size = [w, h]; }}; applyTier(tier, {bloom, devicePixelRatio: 2, width: 1440, height: 900}); return bloom.size; };
+  assert.deepEqual(sized('balanced'), [1080, 675]);
+  assert.deepEqual(sized('low'), [720, 450]);
+  assert.equal(sized('high'), null);
+  assert.match(readFileSync(new URL('./main.js', import.meta.url), 'utf8'), /applyTier\(tier,\{renderer,composer,ambientOcclusion,bloom,/);
+});

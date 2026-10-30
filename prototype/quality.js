@@ -21,9 +21,9 @@
 //  - the renderer no longer asks for MSAA: the composer's targets never had it, so the flag only cost
 //    a resolve of the final quad.
 export const TIERS = {
-  high: {ratio: 2, ssao: true, aoScale: 1, shadow: 2048, soft: true, shadowHz: 60, idleFps: 60, deepFps: 60, label: 'High: full resolution, 60 fps'},
-  balanced: {ratio: 1.5, ssao: true, aoScale: .5, shadow: 2048, soft: true, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Balanced: 1.5x pixels, half-size occlusion, 30 fps when idle'},
-  low: {ratio: 1, ssao: false, aoScale: .5, shadow: 1024, soft: false, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Low: 1x pixels, no ambient occlusion, 30 fps when idle'},
+  high: {bloomScale: 1, ratio: 2, ssao: true, aoScale: 1, shadow: 2048, soft: true, shadowHz: 60, idleFps: 60, deepFps: 60, label: 'High: full resolution, 60 fps'},
+  balanced: {bloomScale: 0.5, ratio: 1.5, ssao: true, aoScale: .5, shadow: 2048, soft: true, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Balanced: 1.5x pixels, half-size occlusion, 30 fps when idle'},
+  low: {bloomScale: 0.5, ratio: 1, ssao: false, aoScale: .5, shadow: 1024, soft: false, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Low: 1x pixels, no ambient occlusion, 30 fps when idle'},
 };
 export const ORDER = ['high', 'balanced', 'low'];
 export const STORAGE_KEY = 'deanhack.quality';
@@ -87,7 +87,7 @@ export function createFramePacer({activeMs = ACTIVE_MS, deepMs = DEEP_MS} = {}) 
 // keepShadowType: leave the shadow filter as it is. The filter is baked into every material's shader, so
 // changing it recompiles all of them at once (a freeze of a second or more with a hundred programs); an
 // automatic step, taken because frames are already slow, must never do that.
-export function applyTier(tier, {renderer, composer, ambientOcclusion, light, scene, soft, plain, devicePixelRatio = 1, width = 0, height = 0, keepShadowType = false}) {
+export function applyTier(tier, {renderer, composer, ambientOcclusion, bloom, light, scene, soft, plain, devicePixelRatio = 1, width = 0, height = 0, keepShadowType = false}) {
   const t = TIERS[tier] ?? TIERS.balanced, ratio = pixelRatioFor(tier, devicePixelRatio);
   if (renderer) {
     renderer.setPixelRatio(ratio);
@@ -101,6 +101,9 @@ export function applyTier(tier, {renderer, composer, ambientOcclusion, light, sc
     }
   }
   if (composer) { composer.setPixelRatio?.(ratio); if (width && height) composer.setSize(width, height); }
+  // Glow: UnrealBloomPass blurs five mips starting at half its size; bloomScale shrinks that again on
+  // balanced and low. The glow is a soft blur already, so a quarter-size start reads the same.
+  if (bloom && width && height && t.bloomScale < 1) bloom.setSize?.(Math.max(1, Math.round(width * ratio * t.bloomScale)), Math.max(1, Math.round(height * ratio * t.bloomScale)));
   if (ambientOcclusion) {
     ambientOcclusion.enabled = t.ssao;
     // the composer just sized the pass to the full buffer; shrink it to the tier's share
