@@ -22,7 +22,7 @@
 //    a resolve of the final quad.
 export const TIERS = {
   high: {bloomScale: 1, ratio: 2, ssao: true, aoScale: 1, shadow: 2048, soft: true, shadowHz: 60, idleFps: 60, deepFps: 60, label: 'High: full resolution, 60 fps'},
-  balanced: {bloomScale: 0.5, ratio: 1.5, ssao: true, aoScale: .5, shadow: 2048, soft: true, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Balanced: 1.5x pixels, half-size occlusion, 30 fps when idle'},
+  balanced: {bloomScale: 0.5, ratio: 1.5, ssao: true, aoScale: .5, shadow: 1024, soft: true, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Balanced: 1.5x pixels, half-size occlusion, 1024 shadows, 30 fps when idle'},
   low: {bloomScale: 0.5, ratio: 1, ssao: false, aoScale: .5, shadow: 1024, soft: false, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Low: 1x pixels, no ambient occlusion, 30 fps when idle'},
 };
 export const ORDER = ['high', 'balanced', 'low'];
