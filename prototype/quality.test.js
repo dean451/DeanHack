@@ -85,6 +85,16 @@ test('applying a tier sets the pixel ratio, SSAO, shadow map and type, and recom
   assert.equal(applyTier('nonsense', {}).tier, 'nonsense');
 });
 
+test('an automatic step never changes the shadow filter, so no material recompiles mid-game', () => {
+  const r = rig();
+  applyTier('low', {...r, soft: 'soft', plain: 'plain', devicePixelRatio: 2, width: 1440, height: 900, keepShadowType: true});
+  assert.equal(r.renderer.shadowMap.type, 'soft'); assert.ok(r.mats.every(m => !m.needsUpdate), 'no recompile');
+  assert.equal(r.renderer.ratio, 1); assert.equal(r.ambientOcclusion.enabled, false); assert.equal(r.light.shadow.mapSize.x, 1024);
+  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
+  assert.match(main, /keepShadowType:auto/, 'main.js keeps the filter on automatic steps');
+  assert.match(main, /renderer\.debug\.checkShaderErrors=new URLSearchParams\(location\.search\)\.has\('debug'\)/, 'shader logs are only read with ?debug');
+});
+
 test('the saved tier survives a broken storage', () => {
   const store = new Map(), storage = {getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v)};
   saveTier('low', storage); assert.equal(readSaved(storage), 'low'); assert.equal(store.get(STORAGE_KEY), 'low');
