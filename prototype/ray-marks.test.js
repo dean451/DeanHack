@@ -16,12 +16,19 @@ const longest = type => Math.max(...MARK_LOOKS[type].map(L => L.ms));
 test('every mark look is finite and bounded', () => {
   for (const [type, parts] of Object.entries(MARK_LOOKS)) {
     for (const L of parts) {
-      assert.ok([0, 1, 2, 3, 4].includes(L.shape), type);
+      assert.ok([0, 1, 2, 3, 4, 5].includes(L.shape), type);
       assert.ok(L.alpha > 0 && L.alpha <= 1, `${type} alpha`);
       assert.ok(L.size > 0 && L.size <= .8, `${type} size`);
       assert.ok(L.fadeMs > 0 && L.fadeMs <= L.ms && L.grow > 0, `${type} timing`);
     }
   }
+});
+
+test('cold leaves a snowflake, not an x; no other ray does', () => {
+  assert.deepEqual(MARK_LOOKS.cold.filter(L => !L.add).map(L => L.shape), [5]);
+  for (const [type, parts] of Object.entries(MARK_LOOKS)) if (type !== 'cold') assert.ok(parts.every(L => L.shape !== 5), type);
+  const p = markFrame(rayMarks(bolt('cold')).slice(0, 1), 300).find(q => q.shape === 5);
+  assert.ok(p && p.alpha > .5 && !p.add);
 });
 
 test('a bouncing bolt marks each cell once, when the beam first got there', () => {
