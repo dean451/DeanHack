@@ -25,7 +25,12 @@ export const TIERS = {
   balanced: {bloomScale: 0.5, ratio: 1.5, ssao: true, aoScale: .5, shadow: 1024, soft: true, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Balanced: 1.5x pixels, half-size occlusion, 1024 shadows, 30 fps when idle'},
   low: {bloomScale: 0.5, ratio: 1, ssao: false, aoScale: .5, shadow: 1024, soft: false, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Low: 1x pixels, no ambient occlusion, 30 fps when idle'},
 };
-export const ORDER = ['high', 'balanced', 'low'];
+// Fast: the look stripped to what plays. No ambient occlusion, no glow, no shadows (no second and third draw
+// of the scene, no full-screen sampling passes), 1x pixels, two torch lights, three fur layers. Only chosen by
+// hand (the Quality button or ?quality=fast): turning the shadows off changes every shader once, which an
+// automatic step must never do, so the adaptive steps stop at low.
+TIERS.fast = {bloomScale: .5, ratio: 1, ssao: false, aoScale: .5, shadow: 1024, soft: false, shadows: false, bloom: false, shadowHz: 15, idleFps: 30, deepFps: 15, label: 'Fast: 1x pixels, no occlusion, no glow, no shadows'};
+export const ORDER = ['high', 'balanced', 'low', 'fast'];
 export const STORAGE_KEY = 'deanhack.quality';
 // How long after the last input, engine event or camera move the loop keeps drawing every frame, and
 // how long after that it drops to the deep idle rate.
@@ -34,13 +39,13 @@ export const ACTIVE_MS = 2500, DEEP_MS = 45000;
 // How many torch point lights the live scene keeps. Each point light costs every lit pixel every frame
 // whether it is lit or dark (three bakes the count into the shaders), so only the high tier keeps eight;
 // the others light the four torches nearest the hero, the rest still burn and glow, unlit.
-export const TORCH_LIGHTS = {high: 8, balanced: 4, low: 4};
+export const TORCH_LIGHTS = {high: 8, balanced: 4, low: 4, fast: 2};
 export const torchLightsFor = tier => TORCH_LIGHTS[tier] ?? TORCH_LIGHTS.balanced;
 
 // How many layers the pet's fur is drawn in (feline-coat.js FUR.shells). Each layer is the whole skin again
 // (some 42,000 triangles, skinned, with the physical coat material), and at the game camera the cat is a few
 // dozen pixels tall: six layers read the same there as ten. Set once at start-up, before any cat is built.
-export const FUR_SHELLS = {high: 10, balanced: 6, low: 4};
+export const FUR_SHELLS = {high: 10, balanced: 6, low: 4, fast: 3};
 export const furShellsFor = tier => FUR_SHELLS[tier] ?? FUR_SHELLS.balanced;
 
 // Whether monsters are built with their lighter models (creature-lod.js): every tier but high. At the game camera a
@@ -115,11 +120,14 @@ export function applyTier(tier, {renderer, composer, ambientOcclusion, bloom, li
   // Glow: UnrealBloomPass blurs five mips starting at half its size; bloomScale shrinks that again on
   // balanced and low. The glow is a soft blur already, so a quarter-size start reads the same.
   if (bloom && width && height && t.bloomScale < 1) bloom.setSize?.(Math.max(1, Math.round(width * ratio * t.bloomScale)), Math.max(1, Math.round(height * ratio * t.bloomScale)));
+  if (bloom) bloom.enabled = t.bloom !== false;
   if (ambientOcclusion) {
     ambientOcclusion.enabled = t.ssao;
     // the composer just sized the pass to the full buffer; shrink it to the tier's share
     if (width && height && t.aoScale < 1) ambientOcclusion.setSize?.(Math.max(1, Math.round(width * ratio * t.aoScale)), Math.max(1, Math.round(height * ratio * t.aoScale)));
   }
+  // Fast casts no shadows at all (the shadow count is in every shader, so never on an automatic step)
+  if (light && !keepShadowType) light.castShadow = t.shadows !== false;
   if (light?.shadow) {
     if (light.shadow.mapSize.x !== t.shadow) {
       light.shadow.mapSize.set(t.shadow, t.shadow);
