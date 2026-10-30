@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
+import {partBox} from './part-box.js';
 import {ORCS} from './orc.js';
 
 const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
@@ -16,7 +17,7 @@ test('every orc kind gets its own model instead of the box humanoid',()=>{
   assert(a.weaponSocket.parent===a.joints.rfore_2&&a.arm.getObjectByName('rfore_2'),'the weapon is in the right fist, on the wrist bone');
   assert.equal(a.hat,null);assert.equal(a.beard,null);assert.equal(a.pick,null);
   const parts=meshes(a);
-  assert.equal(parts.length,8,`${name}: one mesh per moving part, plus the eyes`);
+  assert.equal(parts.length,4,`${name}: the hide, the head, the eyes and the weapon`);
   let verts=0;
   for(const m of parts){
    const at=m.geometry.attributes;verts+=at.position.count;
@@ -29,7 +30,7 @@ test('every orc kind gets its own model instead of the box humanoid',()=>{
   const b=new THREE.Box3().setFromObject(a.g);
   assert(b.min.y>-.04&&b.min.y<.03,`${name}: feet at ${b.min.y}`);
   assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.5,`${name}: out of the tile (${b.min.x} ${b.max.x} ${b.min.z} ${b.max.z})`);
-  const [l,r]=a.legs.map(leg=>new THREE.Box3().setFromObject(leg));
+  const [l,r]=a.legs.map(leg=>partBox(a,leg));
   assert(Math.abs((l.min.x+l.max.x)/2+(r.min.x+r.max.x)/2)<1e-6,`${name}: feet mirrored`);
   // the eyes look out from the front of the face
   const eye=a.eyes.getWorldPosition(new THREE.Vector3()),head=a.head.getWorldPosition(new THREE.Vector3());
