@@ -70,6 +70,7 @@ import {fxTimeline,fxHoldMs,delayTimeline} from './fx.js';
 import {createExplosions} from './explosions.js';
 import {updateSlither} from './slither.js';
 import {itemsUnderMonsters,takerOf,takenSquares} from './held-items.js';
+import {remodelBudget} from './hallu-budget.js';
 import {createFlood} from './flood.js';
 import {createSplash} from './splash.js';
 import {createFlights} from './flights.js';
@@ -483,6 +484,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
    if(frame.player?.countdowns&&typeof frame.player.countdowns==='object')frameCountdowns=frame.player.countdowns;
    if(Array.isArray(frame.player?.conditions)){frameConditions=frame.player.conditions;const tags=document.getElementById('hero-conditions');if(tags)tags.innerHTML=conditionTagsHtml(frameConditions);applyStatusScreen(statusScreenEl(),frameConditions);statusScreenEl().style.setProperty('--status-progress',worstProgress(statusProgress.update(frameConditions,frame.turn||0)).toFixed(2));}minimap.update(frame);
    const where=levelTitle(frame);$('.location small').textContent=where.place;$('.location h1').textContent=where.title;$('.location h1').hidden=!where.named;announceLevel(where);
+   /* hallucinating, only a few monsters a frame are rebuilt for their new glyph (hallu-budget.js) */remodels=remodelBudget(frame.player?.conditions);
    if(groundPanelTile!==groundTile(frame)){groundPanel.hidden=true;groundPanelTile=null;}
    /* a shop's prices come only with the look_here list; keep them on the frame's own list (ground-notice.js withPrices) */if(Array.isArray(frame.ground)){const shown=withPrices(frame.ground,groundPriced);/* the prices belong to what is underfoot: once nothing here matches them they are dropped, whichever of the frame and the look-here line arrived first */if(groundPriced&&shown.every((n,i)=>n===frame.ground[i]))groundPriced=null;showGround(shown);}
    hero.setWeapon?.(frame.player.weapon??null);syncHeldWandAura(hero,frame.player.weapon??null);syncHeldGleam(hero,frame.player.weapon??null);syncHeldMagic(hero,frame.player.weapon??null);
@@ -538,6 +540,8 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
        if(cell.kind==='monster'||cell.kind==='pet'){
        const key=`${id}:${cell.glyph}`;seenActors.add(key);let a=actors.get(key);const fresh=!a;
        if(!a){for(const [previous,candidate] of actors){if(!seenActors.has(previous)&&!candidate.actions?.dead&&candidate.glyph===cell.glyph&&Math.hypot(candidate.g.position.x-x,candidate.g.position.z-z)<(candidate.glide?candidate.glide.catchup+1:2.1)){/* a walker that trails its cell (slide.js FELINE_GLIDE) may be several tiles behind it */a=candidate;actors.delete(previous);actors.set(key,a);break;}}}
+       if(!a&&remodels<=0){for(const [previous,candidate] of actors){if(!seenActors.has(previous)&&!candidate.actions?.dead&&Math.hypot(candidate.g.position.x-x,candidate.g.position.z-z)<(candidate.glide?candidate.glide.catchup+1:2.1)){a=candidate;actors.delete(previous);actors.set(key,a);break;}}}
+       if(!a)remodels--;
        if(!a){const disposition=cell.kind==='pet'?'pet':cell.peaceful?'peaceful':'hostile';if(cell.kind==='pet'&&/cat|kitten/.test(cell.name)){a=isFeline((cell.name||'').toLowerCase())?createSkinnedFeline((cell.name||'').toLowerCase()):creatureFactory?bakeDraws(creatureFactory(cell)):catFactory();a.petCat=true;stageCreature(a.g,{disposition});}else{const made=/^shopkeeper$/i.test(cell.name||'')?createShopkeeper():/^watchman$/i.test(cell.name||'')?createWatchman():/^grid bug$/i.test(cell.name||'')?createGridBug():/^oracle$/i.test(cell.name||'')?createOracle():creatureFactory?bakeDraws(creatureFactory(cell)):monsterFactory();a=made.g?made:{g:made};stageCreature(a.g,{disposition});attachModelAsset(a,cell.name,MODEL_URLS)?.then(asset=>{if(asset)addOutlines(asset.model,{smooth:true});});/* a GLB creature gets the same ink as the rest */}a.flap=flapStyle(cell.name);a.g.position.set(x,0,z);group.add(a.g);actors.set(key,a);actorBatch.add(a);staged=true;}
        if(a.actions?.finished){clearActionPose(a,a.actions);restoreFade(a);restoreStone(a);a.actions=createActionQueue();}
        a.glyph=cell.glyph;a.species=(cell.name||'').toLowerCase();a.target=new THREE.Vector3(x,perchHeight(cell.terrain),z);a.cell=`${cell.x},${cell.z}`;
@@ -569,7 +573,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  // the glow waits for that frame instead of landing on the square the hero stepped off.
  let pendingAltarGlow=null;
  // The hero's conditions from the latest frame (hud-conditions.js), or null before the first one.
- let frameConditions=null,frameCountdowns=null,messagePanelsDue=false,lastMessageText='';
+ let frameConditions=null,frameCountdowns=null,messagePanelsDue=false,lastMessageText='',remodels=Infinity;
  // Mjollnir: "Lightning strikes the jackal!" brings a bolt down on the monster the hero just hit.
  // The message and the hero's combat event can come in either order, so whichever comes second
  // pairs them; the bolt lands at the swing's impact, not the moment the news arrives.
