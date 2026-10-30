@@ -26,3 +26,15 @@ export function createEffectLights(THREE, parent, {size = EFFECT_LIGHTS} = {}) {
     },
   };
 }
+
+// One point light shared by the big one-frame flashes (a ray's flash, a blast, a breath): each light in the
+// scene costs every lit pixel every frame, so the flashes, which rarely overlap, take turns at one light. The
+// brightest source this frame gets it; with none above zero it goes dark.
+export function shareFlash(light, sources) {
+  let best = null;
+  for (const s of sources) if (s && s.intensity > 0 && (!best || s.intensity > best.intensity)) best = s;
+  if (!best) { light.intensity = 0; return null; }
+  light.intensity = best.intensity; light.color.setHex(best.color); light.position.set(best.x, best.y, best.z);
+  light.distance = best.distance; light.decay = best.decay;
+  return best;
+}
