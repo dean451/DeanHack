@@ -115,7 +115,7 @@ test('nothing draws behind the splash: the loop returns while it is open, no bac
   assert.match(main,/if\(!pacer\.shouldDraw\(ms,quality\.tier\)\)return;/,'the loop is paced: every frame while active, the idle rate after');
   assert.match(main,/e\.key==='F8'/,'F8 cycles the tier');
   assert.match(main,/renderer\.shadowMap\.autoUpdate=false/,'shadows are redrawn when the loop says, not on every render call');
-  assert.match(main,/renderer\.shadowMap\.needsUpdate=pacer\.shadowDue\(ms,quality\.tier\);/);
+  assert.match(main,/renderer\.shadowMap\.needsUpdate=shadowMotion\.due\(ms,live\.motionSignature,pacer\.shadowDue\(ms,quality\.tier\)\);/,'shadows at the tier rate, and only when a caster moved (shadow-motion.js)');
   assert.match(main,/new THREE\.WebGLRenderer\(\{antialias:false,alpha:false\}\)/,'no MSAA resolve for a composer that never had MSAA, and an opaque canvas: the scene background covers every pixel');
   assert.match(main,/renderer\.setSize\(innerWidth,innerHeight\);setQuality\(quality\.tier\);\}\);/,'a resize re-applies the tier (the AO size)');
   assert.match(main,/composer\.render\(\);const renderMs=performance\.now\(\)-renderAt;\{const step=adaptive\.frame\(ms,frameCostNow\(ms\),quality\.tier\)/,'the drawn frame time feeds the adaptive tier');
