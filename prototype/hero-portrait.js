@@ -19,7 +19,7 @@ import {conditionGlyph} from './condition-glyph.js';
 
 // Milliseconds between refreshes with nothing changed: the hero breathes and her cape sways, so
 // the picture stays alive, but it never costs a render per frame.
-export const PORTRAIT_INTERVAL_MS = {high: 200, balanced: 250, low: 500};
+export const PORTRAIT_INTERVAL_MS = {high: 200, balanced: 250, low: 500, fast: 1000};
 // However fast things change (a flurry of blows), renders stay at least this far apart.
 export const PORTRAIT_MIN_GAP_MS = 80;
 // The portrait's size on screen in CSS pixels (style.css matches); drawn at up to twice that.
