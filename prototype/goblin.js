@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {nameHumanoidJoints} from './humanoid-joints.js';
 import {sculptSkull} from './hero-face.js';
 
 // Goblins and hobgoblins used to fall through to the class-letter fallback and stand as the plain
@@ -285,5 +286,5 @@ export function createGoblin(name){
  }
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-L.arm,.03);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.weapon,material,'weapon');
- return {g,body,legs,tail:null,wings:[],quirk:'orc',arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null};
+ return nameHumanoidJoints({g,body,legs,tail:null,wings:[],quirk:'orc',arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null});
 }
