@@ -29,7 +29,7 @@ import {createAltar} from './altar.js';
 import {createFire} from './fire.js';
 import {createHeldWeapon,turnHeld} from './equipment.js';
 import {createRenderStats} from './render-stats.js';
-import {TIERS,isTier,pickTier,nextTier,pixelRatioFor,applyTier,createFramePacer,createAdaptiveQuality,frameCost,readSaved,saveTier} from './quality.js';
+import {TIERS,isTier,pickTier,nextTier,pixelRatioFor,applyTier,createFramePacer,createAdaptiveQuality,frameCost,readSaved,saveTier,torchLightsFor} from './quality.js';
 import {createFlameFlicker} from './flame-flicker.js';
 import {createSinkDrip} from './sink-drip.js';
 import {createCanopySway} from './canopy-sway.js';
@@ -237,7 +237,7 @@ function updateHUD(){$('#hp').textContent=`${state.hp} / 24`;$('#healthbar').sty
 function reset(){state=createState();player.g.position.set(state.player.x,0,state.player.z);pet.g.position.set(state.cat.x,0,state.cat.z);enemy.position.set(state.enemy.x,0,state.enemy.z);enemy.scale.setScalar(1);enemy.visible=true;attackTime=-10;lockedUntil=0;updateHUD();}reset();
 function action(a){touch();const now=performance.now()/1000;if(now<lockedUntil)return;const result=act(state,a);if(result.type!=='blocked')lockedUntil=now+.18;if(result.type==='attack'){attackTime=now;player.g.rotation.y=Math.atan2(state.enemy.x-state.player.x,state.enemy.z-state.player.z);}if(result.type==='move'){moveTime=now;player.g.rotation.y=Math.atan2(a.dx,a.dz);}updateHUD();}
 if(new URLSearchParams(location.search).has('debug'))window.__dh={camera,controls,player,scene,renderer};
-const live=installLive({scene,camera,controls,renderer,playerFactory:knight,catFactory:cat,monsterFactory:sentinel,creatureFactory:createCreature,wellTemplate:well,onDemo:()=>{$('.stats').innerHTML='<span>AC <b>−2</b></span><span>LVL <b>1</b></span><span>TURN <b id="turn">0</b></span>';updateHUD();},onMode:active=>{galleryButton.hidden=active;setGallery(false);if(active)for(const object of [player.g,pet.g,enemy,marker])object.visible=false;},demoObjects:scene.children.filter(o=>!o.isHemisphereLight&&!o.isDirectionalLight),onActivity:touch});if(window.__dh)window.__dh.live=live;
+const live=installLive({scene,camera,controls,renderer,torchLightCount:torchLightsFor(quality.tier),playerFactory:knight,catFactory:cat,monsterFactory:sentinel,creatureFactory:createCreature,wellTemplate:well,onDemo:()=>{$('.stats').innerHTML='<span>AC <b>−2</b></span><span>LVL <b>1</b></span><span>TURN <b id="turn">0</b></span>';updateHUD();},onMode:active=>{galleryButton.hidden=active;setGallery(false);if(active)for(const object of [player.g,pet.g,enemy,marker])object.visible=false;},demoObjects:scene.children.filter(o=>!o.isHemisphereLight&&!o.isDirectionalLight),onActivity:touch});if(window.__dh)window.__dh.live=live;
 // The hero's portrait beside the hitpoints (hero-portrait.js): the live hero in the game, the demo room's knight otherwise, redrawn a few times a second.
 const heroPortrait=createHeroPortrait({THREE,renderer,view:mountPortraitView(document,$('.character'))});if(window.__dh)window.__dh.portrait=heroPortrait;
 const demoPortrait=()=>gallery.visible?null:{g:player.g,head:player.head,shape:null,kit:player.kitKey||'',hp:state.hp,maxhp:24,conditions:[],dead:state.hp<=0};

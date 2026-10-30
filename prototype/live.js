@@ -257,7 +257,7 @@ import {createStatusProgress,worstProgress} from './status-progress.js';
 const statusProgress=createStatusProgress();
 
 // Only window-port observations enter this view. No prediction of game rules.
-export function installLive({scene,camera,controls,renderer=null,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode,onActivity}) {
+export function installLive({scene,camera,controls,renderer=null,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,demoObjects,onDemo,onMode,onActivity,torchLightCount=8}) {
  const group=new THREE.Group();scene.add(group);group.visible=false;const marks=createMarks(THREE,group);const envStory=createEnvStory(THREE,group);const tileInstances=createTileInstancer(group);const actorBatch=createActorBatch(group);
  const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map(),heldUnder={map:new Map()},liftingItems=new Set(),pickupNotes=createPickupNotes();let active=false,lastCommand=null,pending=null,latest=null,token='',menu=null,commands=null,lines=[],origin=null,lastLevel='',lastBranch=null,lastDepth=NaN,source,pollNow=null;
  const $=s=>document.querySelector(s);
@@ -338,7 +338,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  // Torches are real light sources: a fixed pool of point lights follows the torches
  // nearest the hero. The pool size never changes, so materials never recompile.
  // ?torches=N (0..8) tries a smaller pool: every point light is evaluated per lit pixel, so this is the knob for a slow GPU.
- const TORCH_LIGHTS=Math.min(8,Math.max(0,parseInt(new URLSearchParams(location.search).get('torches')??'8',10)||0)),TORCH_INTENSITY=15,LIVE_AMBIENT=.68,RAY_FLASH_INTENSITY=60,BLAST_LIGHT_INTENSITY=45,BREATH_LIGHT_INTENSITY=30;
+ /* every point light is shaded on every lit pixel each frame, lit or dark, so the torch pool is sized by quality tier (main.js torchLightsFor); ?torches=N still overrides */const TORCH_LIGHTS=Math.min(8,Math.max(0,parseInt(new URLSearchParams(location.search).get('torches')??String(torchLightCount),10)||0)),TORCH_INTENSITY=15,LIVE_AMBIENT=.68,RAY_FLASH_INTENSITY=60,BLAST_LIGHT_INTENSITY=45,BREATH_LIGHT_INTENSITY=30;
  const torchLights=Array.from({length:TORCH_LIGHTS},()=>{const l=new THREE.PointLight(0xff9a48,0,6,2);l.userData={tile:null,level:0};group.add(l);return l;});
  const ambientLights=scene.children.filter(o=>o.isHemisphereLight||o.isDirectionalLight).map(light=>({light,base:light.intensity}));
  const torchHaloMaterial=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const ctx=c.getContext('2d'),g=ctx.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,190,110,.55)');g.addColorStop(.35,'rgba(255,130,50,.18)');g.addColorStop(1,'rgba(255,100,30,0)');ctx.fillStyle=g;ctx.fillRect(0,0,64,64);return new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});})();
@@ -347,9 +347,10 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  const floorKit=createFloorKit();
  const cavern=createCavern({group,scene,camera,controls});
  const branchAir=createBranchAir({group});
+ const torchTiles={key:'',list:[]};
  function updateTorchLights(t,dt){
    const rank=tile=>tile.position.distanceToSquared(hero.g.position)+(tile.userData.fog.visible?16:0);
-   const wanted=new Set([...tiles.values()].filter(tile=>tile.userData.torch).sort((a,b)=>rank(a)-rank(b)).slice(0,TORCH_LIGHTS));
+   if(torchTiles.key!==`${lastLevel}:${tiles.size}`){torchTiles.key=`${lastLevel}:${tiles.size}`;torchTiles.list=[...tiles.values()].filter(tile=>tile.userData.torch);}/* the torch list is rebuilt only when the tiles change, not every frame */const wanted=new Set(torchTiles.list.filter(tile=>tile.parent).sort((a,b)=>rank(a)-rank(b)).slice(0,TORCH_LIGHTS));
    const held=new Set(torchLights.map(l=>l.userData.tile));
    for(const tile of wanted){if(held.has(tile))continue;const free=torchLights.find(l=>!l.userData.tile);if(!free)break;free.userData.tile=tile;free.userData.level=0;free.position.copy(tile.position).setY(1.15);}
    const ease=1-Math.exp(-dt*5);
