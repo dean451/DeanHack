@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {nameHumanoidJoints,rigHumanoidLimbs} from './humanoid-joints.js';
+import {rigHumanoid} from './humanoid-joints.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 
 // Orcs used to be the generic box humanoid: a brown box with two cones for tusks and a pair of
@@ -365,5 +365,5 @@ export function createOrc(name){
  }
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-ARM,.03);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.weapon,material,'weapon');
- return nameHumanoidJoints(rigHumanoidLimbs({g,body,legs,tail:null,wings:[],quirk:'orc',arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null}));
+ return rigHumanoid({g,body,legs,tail:null,wings:[],quirk:'orc',arms,arm:arms[1],weaponSocket,head,eyes,hat:null,beard:null,pick:null},S);
 }
