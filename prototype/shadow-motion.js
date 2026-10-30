@@ -2,7 +2,7 @@
 // of the time, yet the shadow map (every caster drawn again from the moon) was redrawn at the tier's full rate.
 // live.js reports a signature of where the hero, every monster and pet, and the level's pieces stand; while it
 // changes, shadows follow at the tier's rate (quality.js shadowHz); while it holds, they refresh only IDLE_HZ times a
-// second, enough for idle bobs and small effects. A null signature (the demo room) leaves the tier's rate alone.
+// second, enough for idle bobs and small effects. A null signature (no live level) leaves the tier's rate alone.
 export const IDLE_HZ = 8;
 
 export function createShadowMotion({idleHz = IDLE_HZ} = {}) {
