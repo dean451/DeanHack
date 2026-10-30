@@ -70,6 +70,12 @@ export const MEASURES = {
     macaqueRest: [.3383, .341], // share of the day resting: rhesus in Nepal, mangrove macaques
     hawkOneFoot: .22, // peak share of time a merlin stands on one foot (Laterality 2024, as quoted)
   },
+  // hobbit, dwarves, bugbear, mind flayer: an adult human's walk
+  human: {
+    walkSpeed: [1.27, 1.35], // m/s, usual pace outdoors, 95% CI of the mean (Murtagh et al. 2020)
+    cadence: 116.65, // steps a minute at that pace
+    stepWidth: .13, // preferred step width as a share of leg length (SFU locomotion lab)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -113,4 +119,12 @@ export const CANINE = {
 export const GARGOYLE = {
   restShare: mid(MEASURES.gargoyle.macaqueRest),
   oneFootMax: MEASURES.gargoyle.hawkOneFoot,
+};
+
+// What the humanoids' poses use: a person's pace, and the step length and width that come with it
+export const HUMAN = {
+  walkMid: mid(MEASURES.human.walkSpeed),
+  // metres a step covers at the mid pace
+  stepLength: mid(MEASURES.human.walkSpeed) / (MEASURES.human.cadence / 60),
+  stepWidth: MEASURES.human.stepWidth,
 };

@@ -163,3 +163,19 @@ The seventh monster family (AGENTS.md, family **g**). Measured from a macaque (t
 *Not found:* a monkey's crouch as an angle (spine curve, head drop) or a duration, and a raptor's perch as a leg or tail angle. The sources count time, not posture. No number is claimed for them; the pose stages set them by eye against photographs.
 
 **What the gargoyles take from this.** A monkey rests about a third of its day, and a gargoyle, being stone, can rest far longer: a long still crouch is in character, with the move to it slow. A hawk stands on one foot for a fifth of its time at most, so a winged gargoyle's one-footed perch is an occasional shift, not its rest.
+
+## Humanoids (hobbit, dwarves, bugbear, mind flayer)
+
+The eighth monster family (AGENTS.md, family **h**). Measured from an adult human. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Human (walk)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Usual walking speed | 1.31 m/s mean outdoors in healthy adults (95% CI 1.27 to 1.35) | [Murtagh et al., Sports Medicine 2020](https://link.springer.com/10.1007/s40279-020-01351-3) |
+| Usual cadence | 116.65 steps a minute at that pace | [Same review, PMC7806575](https://pmc.ncbi.nlm.nih.gov/articles/PMC7806575) |
+| Preferred step width | about 0.13 of leg length, close to one foot's width | [Step width study, SFU locomotion lab](https://www.sfu.ca/locomotionlab/assets/stepwidth2001.pdf) |
+
+*Not found:* a slumped sitting posture as an angle that a source states outright (the studies found say only that slump sitting has more thoracic flexion), and any gait number for short-statured people, so the dwarf's wide stance has no source: the pose stages set it by eye, and the width above scales with leg length, so a dwarf's is narrower in centimetres, not wider.
+
+**What the humanoids take from this.** A step is about two thirds of a metre at a person's usual pace and the feet fall about an eighth of a leg apart; the short folk take proportionally shorter, narrower steps. A wide stance is a character choice, not a measurement.
