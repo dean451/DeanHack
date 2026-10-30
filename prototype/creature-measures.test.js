@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -85,6 +85,16 @@ test('the gargoyle numbers are a monkey\'s rest and a hawk\'s perch', () => {
   for (const v of macaqueRest) inside(v, [.25, .45], 'share of the day a macaque rests');
   inside(GARGOYLE.restShare, [.3, .4], 'mid share resting'); inside(hawkOneFoot, [.1, .35], 'share of time on one foot');
   assert(GARGOYLE.oneFootMax < GARGOYLE.restShare);
+});
+
+test('the humanoid numbers are an adult human\'s walk', () => {
+  const {walkSpeed, cadence, stepWidth} = MEASURES.human;
+  for (const v of walkSpeed) inside(v, [1.1, 1.5], 'usual walking speed, m/s');
+  inside(cadence, [100, 130], 'steps a minute');
+  inside(stepWidth, [.08, .2], 'step width as a share of leg length');
+  // a step is about two thirds of a metre
+  inside(HUMAN.stepLength, [.55, .8], 'step length, m');
+  assert(walkSpeed[0] < walkSpeed[1]);
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {
