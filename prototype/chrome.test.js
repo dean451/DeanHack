@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 
 const read = f => readFileSync(new URL(f, import.meta.url), 'utf8');
 
@@ -11,7 +11,7 @@ test('there is no audio anywhere in the client', () => {
   }
 });
 
-test('the footer buttons are only Save & quit, Demo room and the demo reset', () => {
+test('the footer buttons are only Save & quit and Quality', () => {
   const html = read('index.html'), live = read('live.js');
   for (const label of ['Rotate view', 'Quaff', 'Pick up', 'Inventory</button>', 'Open door']) {
     assert.ok(!html.includes(label) && !live.includes(`>${label}`), `${label} button is gone`);
@@ -54,12 +54,11 @@ test('gold, power, experience and conditions live in the character panel, not un
 });
 
 test('the character name is typed before starting, saved, sent with the start request and shown in the panel', () => {
-  const live = read('live.js'), main = read('main.js');
+  const live = read('live.js');
   assert.match(live, /nameInput\.placeholder='Adventurer'/);
   assert.match(live, /localStorage\.setItem\('deanhack\.playerName'/);
   assert.match(live, /post\('\/engine\/start',\{name:savedPlayerName\(\),\.\.\.readChoice\(\)\}\)/, 'the start request carries the name and the chosen class');
   assert.match(live, /setCharacterName\(started\.name\)/);
-  assert.match(main, /e\.target instanceof HTMLInputElement/, 'typing a name does not move the demo hero');
 });
 
 test('the minimap sits in the bottom-right corner and the live key legend stops short of it', () => {
@@ -151,4 +150,14 @@ test('a burst of messages redraws the message panels once, on the next frame', (
   const msg = live.slice(live.indexOf(' function message(text){'), live.indexOf(' function drawMessagePanels(){'));
   assert.ok(msg.includes('requestAnimationFrame(drawMessagePanels)') && !msg.includes('replaceChildren'), 'message() only schedules the redraw');
   assert.match(live, /function drawMessagePanels\(\)\{messagePanelsDue=false;[^\n]*replaceChildren[^\n]*historyPanel\.refresh\(\);\}/);
+});
+
+test('the demo room is gone: no ?demo, no demo scene, no Demo room or Reset room buttons', () => {
+  const html = read('index.html'), main = read('main.js'), live = read('live.js'), screen = read('start-screen.js'), cover = read('start-cover.js');
+  assert.ok(!existsSync(new URL('./simulation.js', import.meta.url)), 'the demo simulation is deleted');
+  for (const [name, src] of [['main.js', main], ['live.js', live], ['start-screen.js', screen], ['start-cover.js', cover]]) {
+    assert.doesNotMatch(src, /has\('demo'\)|'Demo room'|demoObjects|onDemo|simulation\.js/, `${name} has no demo room`);
+  }
+  assert.doesNotMatch(html, /id="reset"|class="legend"|Miso|Creature gallery/);
+  assert.doesNotMatch(main, /Creature gallery|createState|scene\.add\(player/);
 });

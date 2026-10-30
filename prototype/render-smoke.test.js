@@ -1,5 +1,5 @@
 // Headless-browser smoke test: the unit tests can pass while the game looks
-// broken, so load the review gallery and the demo scene in a real browser and
+// broken, so load the review galleries and the game page in a real browser and
 // assert there are no console errors and that something was actually drawn.
 // It needs Playwright and a Chromium build, which the CI job does not install,
 // so it skips (visibly) when either is missing. Set CHROMIUM_PATH to point at a
@@ -8,6 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {createServer} from 'vite';
+import {liftSplashAddHero} from './smoke-checks.js';
 
 let playwright = null;
 try { playwright = await import('playwright'); } catch { /* not installed */ }
@@ -66,17 +67,21 @@ test('orientation review gallery draws every monster, trap and door card with it
   assert.deepEqual(problems, []);
 }));
 
-test('demo scene boots, draws a frame and logs no errors', {skip, timeout: 120000}, () => withPage(async (page, base, problems) => {
-  await page.goto(`${base}?demo`, {waitUntil: 'load'});
-  await page.waitForSelector('canvas');
+test('the game page boots behind the splash, draws the hero once the splash lifts, and logs no errors', {skip, timeout: 120000}, () => withPage(async (page, base, problems) => {
+  await page.goto(`${base}?debug`, {waitUntil: 'load'});
+  await page.waitForFunction(() => window.__dh?.renderer, null, {timeout: 30000});
+  assert.ok(await page.evaluate(liftSplashAddHero), 'the game hero built');
   await page.waitForTimeout(2500);
-  const size = await page.$eval('canvas', canvas => [canvas.width, canvas.height]);
+  const size = await page.$eval('#scene canvas', canvas => [canvas.width, canvas.height]);
   assert.ok(size[0] > 100 && size[1] > 100, `canvas is ${size}`);
+  assert.ok(await page.evaluate(() => window.__dh.renderer.info.render.frame) > 1, 'frames were drawn');
   assert.deepEqual(problems.filter(p => !/WebSocket|\/engine|net::ERR/.test(p)), []);
 }));
 
-test('demo scene render stats are sane', {skip, timeout: 120000}, () => withPage(async (page, base) => {
-  await page.goto(`${base}?demo&stats`, {waitUntil: 'load'});
+test('render stats of the hero in the bare scene are sane', {skip, timeout: 120000}, () => withPage(async (page, base) => {
+  await page.goto(`${base}?debug&stats`, {waitUntil: 'load'});
+  await page.waitForFunction(() => window.__dh?.renderer, null, {timeout: 30000});
+  await page.evaluate(liftSplashAddHero);
   await page.waitForFunction(() => /meshes\s+[1-9]/.test(document.querySelector('#render-stats')?.textContent || ''), null, {timeout: 30000});
   const text = await page.$eval('#render-stats', pre => pre.textContent);
   const read = label => {
@@ -84,7 +89,7 @@ test('demo scene render stats are sane', {skip, timeout: 120000}, () => withPage
     return found ? Number(found[1]) * ({k: 1e3, M: 1e6}[found[2]] || 1) : NaN;
   };
   const [calls, triangles, meshes, lights] = ['calls', 'triangles', 'meshes', 'lights'].map(read);
-  // Generous ceilings (the demo measures about 1900 calls over all passes, 750k triangles, 500 meshes, 8 lights): they catch a runaway effect or a duplicated scene, not tuning.
+  // Generous ceilings: they catch a runaway effect or a duplicated hero, not tuning.
   assert.ok(calls > 0 && calls < 4000, `draw calls out of range:\n${text}`);
   assert.ok(triangles > 0, `nothing was drawn:\n${text}`);
   assert.ok(triangles < 3e6, `triangle count too high:\n${text}`);

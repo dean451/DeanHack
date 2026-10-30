@@ -90,7 +90,7 @@ export function createDarkness(THREE, parent) {
     veil, halo, state,
     // Read the frame's light. Returns the new reading.
     frame(frame) { const l = lightAround(frame); state.dark = l.dark; state.radius = l.radius; state.carried = l.carried; return l; },
-    // Turned off at once (a new level, demo mode).
+    // Turned off at once (a new level, back to the splash).
     clear() { state.dark = state.carried = false; state.radius = 0; state.veil = state.halo = 0; veil.visible = halo.visible = false; },
     update(t, dt, {at, camera, moving = false} = {}) {
       dt = Math.max(0, dt || 0);

@@ -2,17 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {smokeFailures} from './smoke-checks.js';
 
-const good={splash:{dragon:true,waves:true},demo:{canvas:true,frames:30,moved:true},errors:[]};
+const good={splash:{dragon:true,waves:true},scene:{canvas:true,frames:30,hero:true},errors:[]};
 
 test('a healthy report has no failures', () => assert.deepEqual(smokeFailures(good), []));
 test('an unmounted canvas fails', () => {
- assert.deepEqual(smokeFailures({...good,demo:{...good.demo,canvas:false}}), ['demo: no canvas is mounted']);
+ assert.deepEqual(smokeFailures({...good,scene:{...good.scene,canvas:false}}), ['scene: no canvas is mounted']);
 });
 test('a renderer that drew nothing fails', () => {
- assert.match(smokeFailures({...good,demo:{...good.demo,frames:0}})[0], /drew 0 frames/);
+ assert.match(smokeFailures({...good,scene:{...good.scene,frames:0}})[0], /drew 0 frames/);
 });
-test('a hero that stayed put fails', () => {
- assert.match(smokeFailures({...good,demo:{...good.demo,moved:false}})[0], /did not move/);
+test('a hero that did not build fails', () => {
+ assert.match(smokeFailures({...good,scene:{...good.scene,hero:false}})[0], /did not build/);
 });
 test('a missing dragon or wave field fails', () => {
  assert.equal(smokeFailures({...good,splash:{dragon:false,waves:false}}).length, 2);

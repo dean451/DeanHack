@@ -16,20 +16,7 @@ import {createHuePass} from './hue-pass.js'
 import {createAoMotion} from './ao-motion.js'
 import {createShadowMotion} from './shadow-motion.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {createState,act,fountain} from './simulation.js';
 import {createCreature} from './creatures.js';
-import {flapStyle,wingFlap,flightBob} from './gait.js';
-import {updateCockatriceHiss} from './cockatrice-hiss.js';
-import {updateBatJitter} from './bat-jitter.js';
-import {updateAntJaws} from './ant-jaws.js';
-import {updateBask} from './bask.js';
-import {tailSway} from './tail-sway.js';
-import {updateWhiffle} from './whiffle.js';
-import {updateSleeves} from './sleeves.js';
-import {updateDangle} from './dangle.js';
-import {stageCreature} from './readability.js';
-import {createAltar} from './altar.js';
-import {createFire} from './fire.js';
 import {createHeldWeapon,turnHeld} from './equipment.js';
 import {createRenderStats} from './render-stats.js';
 import {TIERS,isTier,pickTier,nextTier,pixelRatioFor,applyTier,createFramePacer,createAdaptiveQuality,frameCost,readSaved,saveTier,torchLightsFor,furShellsFor,monsterLodFor} from './quality.js'
@@ -83,44 +70,14 @@ const mat=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.85,
 function surfaceTexture(base, accent, repeat=1){const canvas=document.createElement('canvas');canvas.width=canvas.height=256;const ctx=canvas.getContext('2d');ctx.fillStyle=base;ctx.fillRect(0,0,256,256);let n=19;const noise=()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296;};for(let i=0;i<760;i++){const x=noise()*256,y=noise()*256,r=1+noise()*7;ctx.globalAlpha=.05+noise()*.15;ctx.fillStyle=accent;ctx.beginPath();ctx.ellipse(x,y,r,r*(.25+noise()*.8),noise()*Math.PI,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=.3;for(let i=0;i<30;i++){ctx.strokeStyle=accent;ctx.lineWidth=.3+noise();ctx.beginPath();let x=noise()*256,y=noise()*256;ctx.moveTo(x,y);for(let j=0;j<4;j++){x+=noise()*34-17;y+=noise()*34-17;ctx.lineTo(x,y);}ctx.stroke();}ctx.globalAlpha=1;const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;map.wrapS=map.wrapT=THREE.RepeatWrapping;map.repeat.set(repeat,repeat);const bumpCanvas=document.createElement('canvas');bumpCanvas.width=bumpCanvas.height=256;const bumpCtx=bumpCanvas.getContext('2d');bumpCtx.fillStyle='#777';bumpCtx.fillRect(0,0,256,256);for(let i=0;i<360;i++){bumpCtx.globalAlpha=.12+noise()*.42;bumpCtx.fillStyle=noise()>.5?'#bbb':'#333';bumpCtx.beginPath();bumpCtx.ellipse(noise()*256,noise()*256,1+noise()*8,1+noise()*4,noise()*Math.PI,0,Math.PI*2);bumpCtx.fill();}const bump=new THREE.CanvasTexture(bumpCanvas);bump.wrapS=bump.wrapT=THREE.RepeatWrapping;bump.repeat.set(repeat,repeat);return {map,bump};}
 const stoneSurface=surfaceTexture('#56625f','#20333a',.7),floorSurface=surfaceTexture('#68736c','#2c4140',1.15),metalSurface=surfaceTexture('#9db6bd','#42565a',1.3);
 const stone=mat('#68746e',{map:stoneSurface.map,bumpMap:stoneSurface.bump,bumpScale:.12,roughness:.88}),darkStone=mat('#303b3b',{map:stoneSurface.map,bumpMap:stoneSurface.bump,bumpScale:.16,roughness:.92}),trim=mat('#85877a',{map:stoneSurface.map,bumpMap:stoneSurface.bump,bumpScale:.09,roughness:.7}),gold=mat('#b49355',{metalness:.75,roughness:.3}),steel=mat('#a6bec3',{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.07,metalness:.82,roughness:.25}),cloth=mat('#315b59',{map:floorSurface.map,bumpMap:floorSurface.bump,bumpScale:.06,roughness:.94});
-let seed=42;function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
 function mesh(geo,material,parent=scene,x=0,y=0,z=0){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
 function box(w,h,d,m,p=scene,x=0,y=0,z=0){return mesh(new THREE.BoxGeometry(w,h,d),m,p,x,y,z);}
 function roundedBox(w,h,d,m,p=scene,x=0,y=0,z=0,r=.04){return mesh(new RoundedBoxGeometry(w,h,d,3,r),m,p,x,y,z);}
 function sphere(r,m,p,x=0,y=0,z=0,sx=1,sy=1,sz=1){const o=mesh(new THREE.SphereGeometry(r,16,12),m,p,x,y,z);o.scale.set(sx,sy,sz);return o;}
 function cylinder(r1,r2,h,m,p=scene,x=0,y=0,z=0,n=24){return mesh(new THREE.CylinderGeometry(r1,r2,h,n),m,p,x,y,z);}
 function torus(r,t,m,p=scene,x=0,y=0,z=0){const o=mesh(new THREE.TorusGeometry(r,t,8,48),m,p,x,y,z);o.rotation.x=Math.PI/2;return o;}
-box(10,.6,8,darkStone,scene,0,-.42,0);box(10.2,.15,8.2,trim,scene,0,-.76,0);box(10,.3,8,darkStone,scene,0,-.96,0);
-for(let x=-4;x<=4;x++)for(let z=-3;z<=3;z++){
- const c=new THREE.Color('#748078').multiplyScalar(.72+rand()*.4);const tile=roundedBox(.974,.18,.974,mat(c,{map:floorSurface.map,bumpMap:floorSurface.bump,bumpScale:.13,roughness:.9}),scene,x,-.085+rand()*.013,z,.035);tile.rotation.y=(rand()-.5)*.016;
- if(rand()<.25){const crack=box(.003,.003,.35,mat('#303b35'),scene,x+(rand()-.5)*.6,.015,z);crack.rotation.y=rand()*3;}
-}
-// Open near walls retain a readable view into the room.
-for(let row=0;row<5;row++)for(let i=0;i<10;i++){
- let x=-4.5+i+(row%2)*.25;if(x>4.5)continue;
- if(Math.abs(x)<.9 && row<4)continue;
- roundedBox(.95,.43,.42,row%2?stone:darkStone,scene,x,.23+row*.46,-3.85,.045);
-}
-for(let row=0;row<3;row++)for(let i=0;i<8;i++)roundedBox(.42,.43,.95,row%2?stone:darkStone,scene,-4.85,.23+row*.46,-3.5+i,.045);
-box(9.8,.16,.6,trim,scene,0,2.45,-3.85);
-// Recessed doorway and brass keystone.
-box(1.65,2,.08,mat('#091213'),scene,0,1,-4.08);
-for(const x of [-.95,.95]){box(.27,2.2,.65,trim,scene,x,1.1,-3.85);box(.4,.18,.8,gold,scene,x,.1,-3.85);}
-box(2.25,.25,.65,trim,scene,0,2.18,-3.85);box(.28,.35,.73,gold,scene,0,2.2,-3.82);
-for(const [x,z] of [[-4.55,-3.5],[4.55,-3.5],[-4.55,3.5],[4.55,3.5]]){
- const h=z>0?.7:2.8;box(.72,.18,.72,trim,scene,x,.08,z);box(.48,h,.48,stone,scene,x,h/2,z);box(.7,.2,.7,trim,scene,x,h,z);box(.53,.09,.53,gold,scene,x,h-.24,z);
-}
-// Rubble and moss, deterministically placed along room edges.
-const moss=mat('#465b39');for(let i=0;i<60;i++){const x=-4.3+rand()*8.6,z=rand()<.5?-3.35:3.35;const o=mesh(new THREE.DodecahedronGeometry(.04+rand()*.11),i%3?stone:moss,scene,x,.05,z);o.scale.y=.4;o.rotation.set(rand(),rand(),rand());}
-function haze(color,opacity,x,y,z,sx,sy){const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');const gradient=ctx.createRadialGradient(128,128,0,128,128,128);gradient.addColorStop(0,color);gradient.addColorStop(.48,`${color}88`);gradient.addColorStop(1,`${color}00`);ctx.fillStyle=gradient;ctx.fillRect(0,0,256,256);const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;const material=new THREE.SpriteMaterial({map:texture,transparent:true,opacity,depthWrite:false,blending:THREE.AdditiveBlending});const sprite=new THREE.Sprite(material);sprite.position.set(x,y,z);sprite.scale.set(sx,sy,1);scene.add(sprite);return {sprite,phase:rand()};}
-const hazeLayers=[haze('#23465f',.28,-4.6,3.1,-5.6,8,4),haze('#1e5260',.2,3.8,2.3,-5.7,7,3.5),haze('#58705e',.12,-1.2,1.2,-5.4,6,2.7)];
-const altar=createAltar();altar.position.set(2,0,-2);altar.scale.setScalar(1.4);scene.add(altar);
-const well=createFountain({materials:{stone,trim,gold}});well.position.set(fountain.x,0,fountain.z);scene.add(well);const springLight=new THREE.PointLight(0x48e8cf,8,5,2);springLight.position.set(0,1,-1);scene.add(springLight);
-const flames=[];for(const x of [-3,3]){
- box(.17,.6,.2,gold,scene,x,1.1,-3.45);cylinder(.22,.1,.2,gold,scene,x,1.45,-3.4);
- const f=createFire(x+3);f.position.set(x,1.52,-3.4);f.scale.setScalar(1.5);scene.add(f);
- const light=new THREE.PointLight(0xffa450,13,8,2);light.position.set(x,1.9,-3);scene.add(light);flames.push({f,light,phase:rand()*5});
-}
+// The fountain the live game copies for each fountain it shows (oracle-visuals.js createLiveFountain); never added to the scene itself.
+const well=createFountain({materials:{stone,trim,gold}});
 function knight(){const g=new THREE.Group();const body=new THREE.Group();g.add(body);const armor=mat(VALKYRIE.armor,{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.1,metalness:.5,roughness:.4}),armorLight=mat(VALKYRIE.armorLight,{map:metalSurface.map,bumpMap:metalSurface.bump,bumpScale:.08,metalness:.5,roughness:.34}),boots=mat(VALKYRIE.boots,{roughness:.72}),leather=mat(VALKYRIE.leather,{roughness:.9}),visor=mat('#101c20',{metalness:.5,roughness:.32}),accent=mat(VALKYRIE.accent,{metalness:.78,roughness:.3});const legs=[],legGear=[];for(const x of [-.122,.122]){const pivot=new THREE.Group();pivot.position.set(x,.49,0);body.add(pivot);sphere(.074,armor,pivot,0,-.14,0,.91,2,1);cylinder(.056,.062,.22,leather,pivot,0,-.30,0,16);
  const gearStart=pivot.children.length;roundedBox(.185,.065,.22,boots,pivot,0,-.205,0,.02);
  sphere(.115,leather,pivot,0,-.405,.074,.86,.58,1.48);
@@ -235,42 +192,16 @@ function cat(){const g=new THREE.Group(),body=new THREE.Group();g.add(body);cons
 function sentinel(){const g=new THREE.Group();const core=mat('#ff9a58',{emissive:'#ff4d1f',emissiveIntensity:5,roughness:.3}),guard=mat('#3d4b4b',{map:stoneSurface.map,bumpMap:stoneSurface.bump,bumpScale:.14,roughness:.8}),guardLight=mat('#77827a',{map:stoneSurface.map,bumpMap:stoneSurface.bump,bumpScale:.1,roughness:.65}),visor=mat('#161f22',{metalness:.5,roughness:.3});cylinder(.38,.45,.18,darkStone,g,0,.09,0,8);roundedBox(.53,.7,.43,guard,g,0,.52,0,.08);roundedBox(.3,.3,.46,darkStone,g,0,.78,.03,.04);for(const x of [-.43,.43]){roundedBox(.3,.2,.38,guardLight,g,x,.72,0,.06);roundedBox(.18,.42,.25,guard,g,x,.45,0,.05);}
  sphere(.27,guardLight,g,0,1.03,0,1,.9,1);roundedBox(.32,.09,.05,visor,g,0,1.04,.25,.02);for(const x of [-.14,.14]){const horn=mesh(new THREE.ConeGeometry(.07,.25,5),guardLight,g,x,1.3,0);horn.rotation.z=x>0?.35:-.35;}
  const coreMesh=sphere(.1,core,g,0,.59,.25);roundedBox(.07,.37,.05,core,g,0,.59,.3,.015);return Object.assign(g,{userData:{core:coreMesh}});}
-const player=knight(),pet=cat(),enemy=sentinel();scene.add(player.g,pet.g,enemy);
 const $=s=>document.querySelector(s);
-function galleryLabel(text){const canvas=document.createElement('canvas');canvas.width=384;canvas.height=64;const ctx=canvas.getContext('2d');ctx.fillStyle='rgba(8,15,22,.72)';ctx.beginPath();ctx.roundRect(18,10,348,44,9);ctx.fill();ctx.font='22px system-ui';ctx.textAlign='center';ctx.fillStyle='#e8ddc7';ctx.fillText(text,192,39);const texture=new THREE.CanvasTexture(canvas),material=new THREE.SpriteMaterial({map:texture,depthTest:false});const sprite=new THREE.Sprite(material);sprite.scale.set(1.05,.18,1);sprite.position.y=1.48;sprite.userData.dispose=()=>{texture.dispose();material.dispose();};return sprite;}
-const gallery=new THREE.Group();const galleryActors=[];const galleryNames=['jackal','fox','coyote','newt','gecko','kobold','large kobold','lichen','yellow mold','floating eye','shocking sphere','acid blob','yellow light','giant bat','raven','couatl','killer bee','giant ant','cave spider','centipede','garter snake','kobold zombie','homunculus','hobbit','gnome','hill orc','shopkeeper','unicorn','iron golem','clay golem','glass golem','giant turtle','gelatinous cube','water nymph','cockatrice','crocodile','ghost','shade','mind flayer'];for(const [i,name] of galleryNames.entries()){const actor=createCreature({name,kind:'monster'});actor.species=name;stageCreature(actor.g,{disposition:name==='shopkeeper'?'peaceful':'hostile'});actor.g.position.set((i%6-2.5)*1.7,0,(Math.floor(i/6)-1.5)*1.7);actor.g.add(galleryLabel(name));gallery.add(actor.g);galleryActors.push({actor,phase:i*.73,flap:flapStyle(name)});}gallery.visible=false;scene.add(gallery);
-const galleryButton=document.createElement('button');galleryButton.id='gallery';galleryButton.textContent='Creature gallery';$('.buttons').append(galleryButton);function setGallery(value){gallery.visible=value;for(const object of [player.g,pet.g,enemy,marker])object.visible=!value;galleryButton.textContent=value?'Close gallery':'Creature gallery';if(value)$('#message').textContent='Creature test roster: silhouettes and idle animations';else $('#message').textContent=state.message;}galleryButton.onclick=()=>setGallery(!gallery.visible);
-const marker=torus(.4,.013,mat('#d9c58e',{emissive:'#a18843',emissiveIntensity:.5}));marker.position.y=.025;
-const motes=[];const moteMaterial=mat('#c6c598',{emissive:'#9bba87',emissiveIntensity:1});for(let i=0;i<45;i++){const m=sphere(.009,moteMaterial);motes.push({m,x:rand()*9-4.5,z:rand()*7-3.5,y:rand()*3,phase:rand()*6});}
-let state=createState(),lastTime=0,attackTime=-10,moveTime=-10,lockedUntil=0;
-function updateHUD(){$('#hp').textContent=`${state.hp} / 24`;$('#healthbar').style.width=`${state.hp/24*100}%`;$('#turn').textContent=state.turn;$('#message').textContent=state.message;}
-function reset(){state=createState();player.g.position.set(state.player.x,0,state.player.z);pet.g.position.set(state.cat.x,0,state.cat.z);enemy.position.set(state.enemy.x,0,state.enemy.z);enemy.scale.setScalar(1);enemy.visible=true;attackTime=-10;lockedUntil=0;updateHUD();}reset();
-function action(a){touch();const now=performance.now()/1000;if(now<lockedUntil)return;const result=act(state,a);if(result.type!=='blocked')lockedUntil=now+.18;if(result.type==='attack'){attackTime=now;player.g.rotation.y=Math.atan2(state.enemy.x-state.player.x,state.enemy.z-state.player.z);}if(result.type==='move'){moveTime=now;player.g.rotation.y=Math.atan2(a.dx,a.dz);}updateHUD();}
-if(new URLSearchParams(location.search).has('debug'))window.__dh={camera,controls,player,scene,renderer};
-/* the pet's fur layers follow the tier (quality.js FUR_SHELLS), set before any cat is built */FUR.shells=furShellsFor(quality.tier);/* lighter monster models below high (creature-lod.js) */LOD.enabled=monsterLodFor(quality.tier);const live=installLive({scene,camera,controls,renderer,torchLightCount:torchLightsFor(quality.tier),playerFactory:knight,catFactory:cat,monsterFactory:sentinel,creatureFactory:createCreature,wellTemplate:well,onDemo:()=>{$('.stats').innerHTML='<span>AC <b>−2</b></span><span>LVL <b>1</b></span><span>TURN <b id="turn">0</b></span>';updateHUD();},onMode:active=>{galleryButton.hidden=active;setGallery(false);if(active)for(const object of [player.g,pet.g,enemy,marker])object.visible=false;},demoObjects:scene.children.filter(o=>!o.isHemisphereLight&&!o.isDirectionalLight),onActivity:touch});if(window.__dh)window.__dh.live=live;
-// The hero's portrait beside the hitpoints (hero-portrait.js): the live hero in the game, the demo room's knight otherwise, redrawn a few times a second.
+if(new URLSearchParams(location.search).has('debug'))window.__dh={camera,controls,scene,renderer,heroFactory:knight};
+/* the pet's fur layers follow the tier (quality.js FUR_SHELLS), set before any cat is built */FUR.shells=furShellsFor(quality.tier);/* lighter monster models below high (creature-lod.js) */LOD.enabled=monsterLodFor(quality.tier);const live=installLive({scene,camera,controls,renderer,torchLightCount:torchLightsFor(quality.tier),playerFactory:knight,catFactory:cat,monsterFactory:sentinel,creatureFactory:createCreature,wellTemplate:well,onActivity:touch});if(window.__dh)window.__dh.live=live;
+// The hero's portrait beside the hitpoints (hero-portrait.js), redrawn a few times a second.
 const heroPortrait=createHeroPortrait({THREE,renderer,view:mountPortraitView(document,$('.character'))});if(window.__dh)window.__dh.portrait=heroPortrait;
-const demoPortrait=()=>gallery.visible?null:{g:player.g,head:player.head,shape:null,kit:player.kitKey||'',hp:state.hp,maxhp:24,conditions:[],dead:state.hp<=0};
-const keys={k:[0,-1],ArrowUp:[0,-1],j:[0,1],ArrowDown:[0,1],h:[-1,0],ArrowLeft:[-1,0],l:[1,0],ArrowRight:[1,0],y:[-1,-1],u:[1,-1],b:[-1,1],n:[1,1]};
-addEventListener('keydown',e=>{if(live.active || e.target instanceof HTMLButtonElement || e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey)return;const key=e.key.length===1?e.key.toLowerCase():e.key;if(keys[key]){e.preventDefault();action({type:'move',dx:keys[key][0],dz:keys[key][1]});}else if(key===' '){e.preventDefault();action({type:'wait'});}else if(key==='e')action({type:'drink'});});
-$('#reset').onclick=reset;
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);setQuality(quality.tier);});
-// While the splash is open nothing on screen needs 60 frames a second: the room behind it draws at about 8, which keeps old laptops quiet.
-// The splash is opaque (style.css), so while it is open nothing is drawn at all: no demo room behind it, no fans.
-let lastDrawAt=null;const frameCostNow=ms=>{const gap=lastDrawAt===null?null:ms-lastDrawAt,fps=pacer.rate(ms,quality.tier);lastDrawAt=ms;return gap===null?null:frameCost(gap,performance.now()-loopStart,fps);};let loopStart=0;
-renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open'))return;if(!pacer.shouldDraw(ms,quality.tier))return;loopStart=performance.now();/* shadows follow only when a caster moved (shadow-motion.js) */renderer.shadowMap.needsUpdate=shadowMotion.due(ms,live.motionSignature,pacer.shadowDue(ms,quality.tier));const t=ms/1000,dt=Math.min(t-lastTime,.05);lastTime=t;const mix=1-Math.exp(-dt*14);
- player.g.position.x=THREE.MathUtils.lerp(player.g.position.x,state.player.x,mix);player.g.position.z=THREE.MathUtils.lerp(player.g.position.z,state.player.z,mix);
- const moving=Math.hypot(player.g.position.x-state.player.x,player.g.position.z-state.player.z)>.025;
- player.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);player.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);player.cape.rotation.x=-.17+Math.sin(t*3)*.06;player.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;
- const swing=Math.max(0,1-(t-attackTime)/.35);player.arm.rotation.x=-Math.sin(swing*Math.PI)*1.9;player.wrist.rotation.x=Math.sin(swing*Math.PI)*.34;player.weaponSocket.rotation.z=-Math.sin(swing*Math.PI)*1.18;player.shieldArm.rotation.z=Math.sin(swing*Math.PI)*.12;
- const pdx=state.cat.x-pet.g.position.x,pdz=state.cat.z-pet.g.position.z,petMoving=Math.hypot(pdx,pdz)>.04;if(petMoving)pet.g.rotation.y=Math.atan2(pdx,pdz);pet.g.position.x+=pdx*mix*.7;pet.g.position.z+=pdz*mix*.7;pet.body.position.y=Math.sin(t*(petMoving?22:2.5))*.015;pet.legs.forEach((l,i)=>l.rotation.x=petMoving?Math.sin(t*22+i*2)*.4:0);pet.tail.rotation.z=Math.sin(t*3)*.24;pet.charm.position.y=.3+Math.sin(t*4)*.025;
- if(gallery.visible)for(const {actor,phase,flap} of galleryActors){const quirk=actor.quirk;actor.body.position.y=Math.sin(t*(quirk==='dragon'?2.1:2.5)+phase)*(quirk==='dragon'?.035:quirk==='gridbug'?.008:.018);actor.legs.forEach((l,i)=>l.rotation.x=Math.sin(t*(quirk==='gridbug'?9:2.2)+i+phase)*.08);if(actor.tail)actor.tail.rotation.z=tailSway(actor,t,phase);if(quirk==='nymph')actor.body.rotation.z=Math.sin(t*1.3+phase)*.035;if(actor.wings?.length)actor.wings.forEach((wing,i)=>{if(quirk==='bat'||flap)wing.rotation.z=(wing.userData.side||(i?1:-1))*wingFlap(flap,t+phase);else if(quirk==='bee')wing.rotation.y=(i?1:-1)*Math.sin(t*60)*.35;else wing.rotation.y=(i?1:-1)*(-.18+Math.sin(t*5+phase)*.12);});if(quirk==='hover'||quirk==='bat'||quirk==='bee')actor.body.position.y=flightBob(flap,t,phase);if(quirk==='dragon')actor.g.rotation.z=Math.sin(t*1.7+phase)*.025;if(actor.g.userData.core)actor.g.userData.core.material.emissiveIntensity=4.5+Math.sin(t*5+phase)*1.4;updateBask(actor,dt,t,false);updateCockatriceHiss(actor,dt,t,false);updateBatJitter(actor,dt,t,false);updateAntJaws(actor,dt,t,false);updateWhiffle(actor,dt,t,false,false);updateSleeves(actor,dt,false);updateDangle(actor,dt,false);}
- marker.position.set(player.g.position.x,.025,player.g.position.z);enemy.rotation.y=Math.atan2(player.g.position.x-enemy.position.x,player.g.position.z-enemy.position.z);enemy.position.y=state.enemy.hp>0?Math.sin(t*2)*.02:0;if(state.enemy.hp<=0){enemy.scale.multiplyScalar(Math.exp(-dt*6));if(enemy.scale.x<.02)enemy.visible=false;}
- well.userData.updateFountain(t);
- flames.forEach(({f,light,phase})=>{f.userData.updateFire(t);light.intensity=13+Math.sin(t*11+phase)*1.3+Math.sin(t*19.3+phase)*.6;});
- for(const m of motes)m.m.position.set(m.x+Math.sin(t*.3+m.phase)*.2,(m.y+t*.055)%3.5,m.z+Math.cos(t*.2+m.phase)*.15);
- hazeLayers.forEach(({sprite,phase},i)=>{sprite.position.x+=Math.sin(t*.11+phase)*.0015;sprite.position.y+=Math.cos(t*.17+phase)*.0008;sprite.material.opacity=(.12+i*.035)+Math.sin(t*.23+phase)*.025;});enemy.userData.core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;
- const updateAt=performance.now();live.update(t,dt);const updateMs=performance.now()-updateAt;flameFlicker.update(t);sinkDrip.update(t);canopySway.update(t);throneGleam.update(t);graveMist.update(t);graveHands.update(t,live.heroAt(heroWorld));altarEmbers.update(t);bogBubbles.update(t);gasRoil.update(t);gasEdge.update(t,dt,live.heroAt(heroWorld),gasRoil.meshes);live.setCough(gasEdge.hunch);heroPortrait.update(performance.now(),live.active?live.portraitSubject:demoPortrait(),{interval:PORTRAIT_INTERVAL_MS[quality.tier]});controls.update();renderStats.begin();huePass.update(document.getElementById('status-screen')?.classList.contains('status-hallu'),t);{/* occlusion sits out while the player drags or zooms the camera (ao-motion.js) */const ao=aoMotion.frame(ms,TIERS[quality.tier]?.ssao!==false);ambientOcclusion.enabled=ao.enabled;ambientOcclusion.blendIntensity=ao.blend;}const renderAt=performance.now();composer.render();const renderMs=performance.now()-renderAt;{const step=adaptive.frame(ms,frameCostNow(ms),quality.tier);if(step){setQuality(step,{say:true,auto:true});showQuality();}}renderStats.end(dt,{update:updateMs,render:renderMs});
+// The splash is opaque (style.css), so while it is open nothing is drawn at all.
+let lastTime=0,lastDrawAt=null;const frameCostNow=ms=>{const gap=lastDrawAt===null?null:ms-lastDrawAt,fps=pacer.rate(ms,quality.tier);lastDrawAt=ms;return gap===null?null:frameCost(gap,performance.now()-loopStart,fps);};let loopStart=0;
+renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open'))return;if(!pacer.shouldDraw(ms,quality.tier))return;loopStart=performance.now();/* shadows follow only when a caster moved (shadow-motion.js) */renderer.shadowMap.needsUpdate=shadowMotion.due(ms,live.motionSignature,pacer.shadowDue(ms,quality.tier));const t=ms/1000,dt=Math.min(t-lastTime,.05);lastTime=t;
+ const updateAt=performance.now();live.update(t,dt);const updateMs=performance.now()-updateAt;flameFlicker.update(t);sinkDrip.update(t);canopySway.update(t);throneGleam.update(t);graveMist.update(t);graveHands.update(t,live.heroAt(heroWorld));altarEmbers.update(t);bogBubbles.update(t);gasRoil.update(t);gasEdge.update(t,dt,live.heroAt(heroWorld),gasRoil.meshes);live.setCough(gasEdge.hunch);heroPortrait.update(performance.now(),live.portraitSubject,{interval:PORTRAIT_INTERVAL_MS[quality.tier]});controls.update();renderStats.begin();huePass.update(document.getElementById('status-screen')?.classList.contains('status-hallu'),t);{/* occlusion sits out while the player drags or zooms the camera (ao-motion.js) */const ao=aoMotion.frame(ms,TIERS[quality.tier]?.ssao!==false);ambientOcclusion.enabled=ao.enabled;ambientOcclusion.blendIntensity=ao.blend;}const renderAt=performance.now();composer.render();const renderMs=performance.now()-renderAt;{const step=adaptive.frame(ms,frameCostNow(ms),quality.tier);if(step){setQuality(step,{say:true,auto:true});showQuality();}}renderStats.end(dt,{update:updateMs,render:renderMs});
 });
-// Read-only state snapshot for smoke tests and future engine-adapter experiments.
-window.roomPrototype={snapshot:()=>structuredClone(state),rendererInfo:()=>renderStats.frame(),renderStats:()=>renderStats.summary()};
+// Read-only renderer numbers for smoke tests.
+window.roomPrototype={rendererInfo:()=>renderStats.frame(),renderStats:()=>renderStats.summary()};

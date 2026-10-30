@@ -1,16 +1,15 @@
 // The splash cover. The start screen is built by live.js, which only runs once the whole app
-// bundle has loaded and the demo room has been set up, so for a moment the room showed through
+// bundle has loaded, so for a moment the bare page showed
 // before the splash drew over it. This tiny module loads first, ahead of main.js, and fills the
 // static #start-cover in index.html (painted dark by style.css before any script runs) with the
 // splash dragon. installStartScreen then adopts that <pre> into the real splash, so the same head
-// stays put with no swap, and removes the cover. With ?demo there is no splash, so the cover goes.
-// The cover is opaque, as is the splash: the demo room is never seen behind either.
+// stays put with no swap, and removes the cover.
+// The cover is opaque, as is the splash: the scene is never seen behind either.
 import {pickDragon} from './dragon-art.js';
 import {waveFrame,gridFor} from './ascii-waves.js';
 
-export function fillCover(cover,{search='',rand=Math.random,win=null}={}){
+export function fillCover(cover,{rand=Math.random,win=null}={}){
   if(!cover)return null;
-  if(new URLSearchParams(search).has('demo')){cover.remove();return null;}
   const pre=cover.querySelector('.start-dragon');if(!pre)return null;
   const d=pickDragon(rand),lines=d.art.split('\n');
   pre.textContent=d.art;pre.dataset.dragon=d.name;
@@ -21,4 +20,4 @@ export function fillCover(cover,{search='',rand=Math.random,win=null}={}){
   return d;
 }
 
-if(typeof document!=='undefined')fillCover(document.getElementById('start-cover'),{search:location.search,win:window});
+if(typeof document!=='undefined')fillCover(document.getElementById('start-cover'),{win:window});
