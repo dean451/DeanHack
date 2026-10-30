@@ -13,7 +13,8 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { DungeonAOPass } from './ao-pass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import {createHuePass} from './hue-pass.js'
-import {createAoMotion} from './ao-motion.js';
+import {createAoMotion} from './ao-motion.js'
+import {createShadowMotion} from './shadow-motion.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {createState,act,fountain} from './simulation.js';
 import {createCreature} from './creatures.js';
@@ -61,7 +62,7 @@ const altarEmbers=createAltarEmbers(scene);
 const bogBubbles=createBogBubbles(scene);
 const gasRoil=createGasRoil(scene);const gasEdge=createGasEdge();
 const camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,.1,100);camera.position.set(11,13,16);
-const controls=new OrbitControls(camera,renderer.domElement);const aoMotion=createAoMotion();controls.addEventListener('start',()=>aoMotion.start());controls.addEventListener('end',()=>aoMotion.end(performance.now()));controls.target.set(0,.1,0);controls.enableDamping=true;controls.minDistance=5;controls.maxDistance=27;controls.minPolarAngle=.3;controls.maxPolarAngle=1.22;controls.enablePan=false;
+const controls=new OrbitControls(camera,renderer.domElement);const aoMotion=createAoMotion();const shadowMotion=createShadowMotion();controls.addEventListener('start',()=>aoMotion.start());controls.addEventListener('end',()=>aoMotion.end(performance.now()));controls.target.set(0,.1,0);controls.enableDamping=true;controls.minDistance=5;controls.maxDistance=27;controls.minPolarAngle=.3;controls.maxPolarAngle=1.22;controls.enablePan=false;
 const composer=new EffectComposer(renderer);const huePass=createHuePass();composer.addPass(new RenderPass(scene,camera));/* ground-truth ambient occlusion (ao-pass.js), in place of the older SSAOPass whose kernel speckled flat floors */const ambientOcclusion=new DungeonAOPass(scene,camera,innerWidth,innerHeight);composer.addPass(ambientOcclusion);const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.25,.48,1.25);composer.addPass(bloom);/* hallucination's colour slide (hue-pass.js), off unless hallucinating */composer.addPass(huePass);composer.addPass(new OutputPass());
 scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const moon=new THREE.DirectionalLight(0x9fb9ca,2.3);moon.position.set(-4,10,3);moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);Object.assign(moon.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:.5,far:30});moon.shadow.bias=-.0003;moon.shadow.normalBias=.03;scene.add(moon);
 // Quality tiers (quality.js): pixel ratio, SSAO, shadows and the idle frame rate. F8 cycles and saves; ?quality= overrides.
@@ -257,7 +258,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 // While the splash is open nothing on screen needs 60 frames a second: the room behind it draws at about 8, which keeps old laptops quiet.
 // The splash is opaque (style.css), so while it is open nothing is drawn at all: no demo room behind it, no fans.
 let lastDrawAt=null;const frameCostNow=ms=>{const gap=lastDrawAt===null?null:ms-lastDrawAt,fps=pacer.rate(ms,quality.tier);lastDrawAt=ms;return gap===null?null:frameCost(gap,performance.now()-loopStart,fps);};let loopStart=0;
-renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open'))return;if(!pacer.shouldDraw(ms,quality.tier))return;loopStart=performance.now();renderer.shadowMap.needsUpdate=pacer.shadowDue(ms,quality.tier);const t=ms/1000,dt=Math.min(t-lastTime,.05);lastTime=t;const mix=1-Math.exp(-dt*14);
+renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open'))return;if(!pacer.shouldDraw(ms,quality.tier))return;loopStart=performance.now();/* shadows follow only when a caster moved (shadow-motion.js) */renderer.shadowMap.needsUpdate=shadowMotion.due(ms,live.motionSignature,pacer.shadowDue(ms,quality.tier));const t=ms/1000,dt=Math.min(t-lastTime,.05);lastTime=t;const mix=1-Math.exp(-dt*14);
  player.g.position.x=THREE.MathUtils.lerp(player.g.position.x,state.player.x,mix);player.g.position.z=THREE.MathUtils.lerp(player.g.position.z,state.player.z,mix);
  const moving=Math.hypot(player.g.position.x-state.player.x,player.g.position.z-state.player.z)>.025;
  player.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);player.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);player.cape.rotation.x=-.17+Math.sin(t*3)*.06;player.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;

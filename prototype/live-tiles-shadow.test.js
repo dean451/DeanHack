@@ -7,5 +7,5 @@ import {readFileSync} from 'node:fs';
 test('floor slabs and fog planes stay out of the shadow pass', () => {
   const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
   assert.match(live, /const slab=box\(floorGeo,[^;]*;[^;]*slab\.castShadow=false;/);
-  assert.match(live, /const fog=box\(new THREE\.PlaneGeometry\(\.98,\.98\)[^;]*;fog\.castShadow=fog\.receiveShadow=false;/);
+  assert.match(live, /const fog=dimLayer\.stand\(tile\);/, 'the dimming is one instanced layer, out of the shadow pass (dim-layer.js)');
 });
