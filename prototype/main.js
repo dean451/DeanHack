@@ -12,7 +12,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { DungeonAOPass } from './ao-pass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
-import {createHuePass} from './hue-pass.js';
+import {createHuePass} from './hue-pass.js'
+import {createAoMotion} from './ao-motion.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {createState,act,fountain} from './simulation.js';
 import {createCreature} from './creatures.js';
@@ -59,7 +60,7 @@ const altarEmbers=createAltarEmbers(scene);
 const bogBubbles=createBogBubbles(scene);
 const gasRoil=createGasRoil(scene);const gasEdge=createGasEdge();
 const camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,.1,100);camera.position.set(11,13,16);
-const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.1,0);controls.enableDamping=true;controls.minDistance=5;controls.maxDistance=27;controls.minPolarAngle=.3;controls.maxPolarAngle=1.22;controls.enablePan=false;
+const controls=new OrbitControls(camera,renderer.domElement);const aoMotion=createAoMotion();controls.addEventListener('start',()=>aoMotion.start());controls.addEventListener('end',()=>aoMotion.end(performance.now()));controls.target.set(0,.1,0);controls.enableDamping=true;controls.minDistance=5;controls.maxDistance=27;controls.minPolarAngle=.3;controls.maxPolarAngle=1.22;controls.enablePan=false;
 const composer=new EffectComposer(renderer);const huePass=createHuePass();composer.addPass(new RenderPass(scene,camera));/* ground-truth ambient occlusion (ao-pass.js), in place of the older SSAOPass whose kernel speckled flat floors */const ambientOcclusion=new DungeonAOPass(scene,camera,innerWidth,innerHeight);composer.addPass(ambientOcclusion);const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.25,.48,1.25);composer.addPass(bloom);/* hallucination's colour slide (hue-pass.js), off unless hallucinating */composer.addPass(huePass);composer.addPass(new OutputPass());
 scene.add(new THREE.HemisphereLight(0x92bfc4,0x333025,1.5));const moon=new THREE.DirectionalLight(0x9fb9ca,2.3);moon.position.set(-4,10,3);moon.castShadow=true;moon.shadow.mapSize.set(2048,2048);Object.assign(moon.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:.5,far:30});moon.shadow.bias=-.0003;moon.shadow.normalBias=.03;scene.add(moon);
 // Quality tiers (quality.js): pixel ratio, SSAO, shadows and the idle frame rate. F8 cycles and saves; ?quality= overrides.
@@ -267,7 +268,7 @@ renderer.setAnimationLoop(ms=>{if(document.body.classList.contains('start-open')
  flames.forEach(({f,light,phase})=>{f.userData.updateFire(t);light.intensity=13+Math.sin(t*11+phase)*1.3+Math.sin(t*19.3+phase)*.6;});
  for(const m of motes)m.m.position.set(m.x+Math.sin(t*.3+m.phase)*.2,(m.y+t*.055)%3.5,m.z+Math.cos(t*.2+m.phase)*.15);
  hazeLayers.forEach(({sprite,phase},i)=>{sprite.position.x+=Math.sin(t*.11+phase)*.0015;sprite.position.y+=Math.cos(t*.17+phase)*.0008;sprite.material.opacity=(.12+i*.035)+Math.sin(t*.23+phase)*.025;});enemy.userData.core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;
- const updateAt=performance.now();live.update(t,dt);const updateMs=performance.now()-updateAt;flameFlicker.update(t);sinkDrip.update(t);canopySway.update(t);throneGleam.update(t);graveMist.update(t);graveHands.update(t,live.heroAt(heroWorld));altarEmbers.update(t);bogBubbles.update(t);gasRoil.update(t);gasEdge.update(t,dt,live.heroAt(heroWorld),gasRoil.meshes);live.setCough(gasEdge.hunch);heroPortrait.update(performance.now(),live.active?live.portraitSubject:demoPortrait(),{interval:PORTRAIT_INTERVAL_MS[quality.tier]});controls.update();renderStats.begin();huePass.update(document.getElementById('status-screen')?.classList.contains('status-hallu'),t);const renderAt=performance.now();composer.render();const renderMs=performance.now()-renderAt;{const step=adaptive.frame(ms,frameCostNow(ms),quality.tier);if(step){setQuality(step,{say:true,auto:true});showQuality();}}renderStats.end(dt,{update:updateMs,render:renderMs});
+ const updateAt=performance.now();live.update(t,dt);const updateMs=performance.now()-updateAt;flameFlicker.update(t);sinkDrip.update(t);canopySway.update(t);throneGleam.update(t);graveMist.update(t);graveHands.update(t,live.heroAt(heroWorld));altarEmbers.update(t);bogBubbles.update(t);gasRoil.update(t);gasEdge.update(t,dt,live.heroAt(heroWorld),gasRoil.meshes);live.setCough(gasEdge.hunch);heroPortrait.update(performance.now(),live.active?live.portraitSubject:demoPortrait(),{interval:PORTRAIT_INTERVAL_MS[quality.tier]});controls.update();renderStats.begin();huePass.update(document.getElementById('status-screen')?.classList.contains('status-hallu'),t);{/* occlusion sits out while the player drags or zooms the camera (ao-motion.js) */const ao=aoMotion.frame(ms,TIERS[quality.tier]?.ssao!==false);ambientOcclusion.enabled=ao.enabled;ambientOcclusion.blendIntensity=ao.blend;}const renderAt=performance.now();composer.render();const renderMs=performance.now()-renderAt;{const step=adaptive.frame(ms,frameCostNow(ms),quality.tier);if(step){setQuality(step,{say:true,auto:true});showQuality();}}renderStats.end(dt,{update:updateMs,render:renderMs});
 });
 // Read-only state snapshot for smoke tests and future engine-adapter experiments.
 window.roomPrototype={snapshot:()=>structuredClone(state),rendererInfo:()=>renderStats.frame(),renderStats:()=>renderStats.summary()};

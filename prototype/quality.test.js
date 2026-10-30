@@ -81,7 +81,7 @@ test('applying a tier sets the pixel ratio, SSAO, shadow map and type, and recom
   assert.deepEqual(r3.ambientOcclusion.size, [1080, 675], 'balanced: half of the 1.5x buffer');
   const r4 = rig(); applyTier('high', {...r4, soft: 'soft', plain: 'plain', devicePixelRatio: 2, width: 1440, height: 900});
   assert.equal(r4.ambientOcclusion.size, null, 'high leaves the composer\'s full size');
-  assert.equal(r2.light.shadow.map.disposed, false, 'the same size keeps the map'); assert.ok(r2.mats.every(m => !m.needsUpdate), 'same type: no recompile');
+  assert.equal(r4.light.shadow.map.disposed, false, 'the same size (high, 2048) keeps the map'); assert.ok(r2.mats.every(m => !m.needsUpdate), 'same type: no recompile');
   assert.equal(applyTier('nonsense', {}).tier, 'nonsense');
 });
 
@@ -204,4 +204,8 @@ test('main.js shows a Quality button that cycles the tiers, for keyboards withou
   assert.match(main, /qualityButton\.addEventListener\('click',\(\)=>\{cycleQuality\(\);/);
   assert.match(main, /document\.querySelector\('\.buttons'\)\.append\(qualityButton\)/);
   assert.match(main, /if\(e\.key==='F8'\)\{e\.preventDefault\(\);cycleQuality\(\);\}/);
+});
+
+test('balanced draws its shadows into a 1024 map: the moon\'s 18-unit square still gets about 57 texels a tile', () => {
+  assert.equal(TIERS.balanced.shadow, 1024); assert.equal(TIERS.high.shadow, 2048); assert.ok(TIERS.balanced.soft, 'still soft-edged');
 });
