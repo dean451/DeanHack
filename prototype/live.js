@@ -174,7 +174,8 @@ import {heroLook} from './glance.js';
 import {bakeDraws} from './creatures.js'; // monsters and pets are baked as they are staged (one draw per body part)
 import {createActorBatch} from './batched-actors.js'; // and their baked parts draw from one batch
 import {createTileInstancer} from './tile-instances.js'; // floor slabs, wall blocks and pebbles draw as instances
-import {createSkinnedFeline, growFelineHull} from './feline-skin.js';
+import {createSkinnedFeline, growFelineHull, adoptFelineHull} from './feline-skin.js';
+import {unpackHull} from './hull-transfer.js';
 import {findThreat,petEats} from './feline-mind.js'; // the pet cat is one skinned mesh (a trial of skinning)
 import {isFeline} from './feline.js';
 import {updateDragonMenace} from './dragon-menace.js';
@@ -707,10 +708,12 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  button.onclick=async()=>{if(active){setMode(false);return;}setMode(true);setPrompt('Starting isolated UnNetHack…');try{const started=await post('/engine/start',{name:savedPlayerName(),...readChoice()});if(started?.name)setCharacterName(started.name);connect();}catch(e){message(`Could not start engine: ${e.message}. Run npm run engine:build first.`);}};
  // The first thing a visitor sees: a name and one button that resumes or begins a game and goes straight to Live (?demo skips it).
  startScreen=installStartScreen({button,nameInput});if(startScreen){nameInput.hidden=true;button.hidden=true;}
- // the kitten's skin (feline-hull.js) is grown while the splash waits for a name, not on the first level
- // and, while the splash is still up, the pet's grown-up looks, one per idle slot, so growing up later
- // does not stall on its skin (each takes a few seconds; none start once play has begun)
- {const idle=globalThis.requestIdleCallback??(f=>setTimeout(f,800)),looks=['kitten','housecat','large cat'],next=()=>{const n=looks.shift();if(!n||(active&&n!=='kitten'))return;try{growFelineHull(n);}catch{}idle(next);};idle(next);}
+ // the pet's skins (feline-hull.js), kitten first, then its grown-up looks, are grown before they are needed, so
+ // neither the first level nor growing up later stalls on one (each takes a few seconds)
+ {const looks=['kitten','housecat','large cat'];let worker=null;try{worker=new Worker(new URL('./feline-hull-worker.js',import.meta.url),{type:'module'});}catch{}
+  /* in a worker the seconds of growing never touch the page (feline-hull-worker.js); without one, idle slots as before */
+  if(worker){worker.onmessage=({data})=>{if(data?.hull)adoptFelineHull(data.key,unpackHull(data.hull));if(!looks.length)worker.terminate();else worker.postMessage({name:looks.shift()});};worker.onerror=()=>{worker.terminate();worker=null;};worker.postMessage({name:looks.shift()});}
+  else{const idle=globalThis.requestIdleCallback??(f=>setTimeout(f,800)),next=()=>{const n=looks.shift();if(!n||(active&&n!=='kitten'))return;try{growFelineHull(n);}catch{}idle(next);};idle(next);}}
  actions.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{if(pending?.kind==='command')reply(Number(b.dataset.key));});
  addEventListener('keydown',e=>{if(!active||e.altKey||e.metaKey)return;if(e.ctrlKey&&e.key.toLowerCase()==='p'){e.preventDefault();e.stopImmediatePropagation();historyPanel.toggle();}else if(e.key==='Escape'&&historyPanel.isOpen()){e.preventDefault();e.stopImmediatePropagation();historyPanel.hide();}},true);
  addEventListener('keydown',e=>{if(!active||e.metaKey||e.altKey)return;if(e.target instanceof HTMLInputElement)return;
