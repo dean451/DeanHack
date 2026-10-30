@@ -239,7 +239,41 @@ export function gargoyleRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin and the insects have maps so far.
+// The two-legged humanoids' map (hobbit, dwarves, bugbear, mind flayers), from the joints `rigHumanoid` exposes. The head
+// group's own box, read at rest in its frame, gives the crown and the front; the mouth and chin sit a fixed share of the
+// crown's height under the pivot, so a long beard or a mind flayer's tentacles hanging below the face move neither. `withers` is the neck's
+// root (`neck0`), `rump` the pelvis (`spine0`); there is no tail. A foot is the floor under the ankle (`<leg>_2`) and a
+// hand the wrist carried on along the forearm by a hand's length, both fixed in the bone's frame so they follow the bent
+// limb; the forepaws are the hands (`paw:lf`/`rf`) and the hind paws the feet (`paw:lh`/`rh`), the shoulder and hip each
+// limb's root bone.
+const HAND = .09;
+export function humanoidRoles(actor) {
+  const j = actor.joints, g = actor.g, floor = g.getWorldPosition(new THREE.Vector3()).y;
+  g.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(j.head), head = j.head;
+  const lo = head.worldToLocal(box.min.clone()), hi = head.worldToLocal(box.max.clone());
+  const x = (lo.x + hi.x) / 2, front = Math.max(lo.z, hi.z), top = Math.max(lo.y, hi.y);
+  const map = {
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.head, [x, -top * .3, front * .85]),
+    chin: () => inFrame(() => j.head, [x, -top * .65, front * .7]),
+    withers: () => at(() => j.neck0),
+    rump: () => at(() => j.spine0),
+  };
+  for (const side of ['l', 'r']) {
+    const foot = j[`${side}leg1_2`], wrist = j[`${side}fore_2`], elbow = j[`${side}fore_1`];
+    const sole = foot.worldToLocal(foot.getWorldPosition(new THREE.Vector3()).setY(floor));
+    const along = wrist.worldToLocal(wrist.getWorldPosition(new THREE.Vector3()).multiplyScalar(2).sub(elbow.getWorldPosition(new THREE.Vector3())));
+    const hand = along.clone().sub(new THREE.Vector3()).normalize().multiplyScalar(HAND).toArray();
+    map[`paw:${side}h`] = () => inFrame(() => foot, sole.toArray());
+    map[`paw:${side}f`] = () => inFrame(() => wrist, hand);
+    map[`hip:${side}`] = () => at(() => j[`${side}leg1_0`]);
+    map[`shoulder:${side}`] = () => at(() => j[`${side}fore_0`]);
+  }
+  return buildRoles(map, {});
+}
+
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects and the two-legged humanoids have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
@@ -248,5 +282,6 @@ export function rolesOf(actor) {
   if (actor.quirk === 'cockatrice' && actor.joints) return cockatriceRoles(actor);
   if ((actor.kind === 'gargoyle' || actor.kind === 'gremlin') && actor.joints?.neck3) return gargoyleRoles(actor);
   if ((actor.quirk === 'insect' || actor.quirk === 'bee') && actor.joints?.lleg0_2) return insectRoles(actor);
+  if (actor.joints?.rfore_2 && actor.joints.lleg1_2 && actor.joints.spine1 && actor.joints.neck3 && !actor.joints.tail0) return humanoidRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
