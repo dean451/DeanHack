@@ -46,3 +46,20 @@ test('turning the tail moves only the tail, a hip only that leg, the head only i
   a.legs.forEach((l,i)=>assert(tip(l).distanceTo(legsBefore[i])<1e-6,`${name}: leg ${i} stayed under the head`));
  }
 });
+
+test('a one-mesh leg is skinned on three bones; bending the knee moves the foot and not the hip',()=>{
+ for(const name of ['rothe','wumpus','baluchitherium']){
+  const a=make(name),j=a.joints;
+  for(const leg of a.legs){
+   const skinned=leg.children.filter(o=>o.isSkinnedMesh);
+   assert.equal(skinned.length,1,`${name} ${leg.name}: one skinned mesh`);
+   for(const k of [0,1,2])assert(j[`${leg.name}_${k}`]?.isBone,`${name}: ${leg.name}_${k}`);
+  }
+  const knee=j.rleg1_1,hip=j.rleg1_0,foot=j.rleg1_2;
+  const hipAt=world(hip),footAt=world(foot),otherFoot=world(j.lleg1_2);
+  knee.rotation.x=.6;
+  assert(world(foot).distanceTo(footAt)>.02,`${name}: the foot swung`);
+  assert(world(hip).distanceTo(hipAt)<1e-6,`${name}: the hip stayed`);
+  assert(world(j.lleg1_2).distanceTo(otherFoot)<1e-6,`${name}: the other leg stayed`);
+ }
+});
