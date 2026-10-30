@@ -47,12 +47,14 @@ test('turning the tail moves only the tail, a hip only that leg, the head only i
  }
 });
 
-test('a one-mesh leg is skinned on three bones; bending the knee moves the foot and not the hip',()=>{
- for(const name of ['rothe','wumpus','baluchitherium']){
+test('every leg, one mesh or several, is skinned on three bones; bending the knee moves the foot and not the hip',()=>{
+ for(const name of FAMILY){
   const a=make(name),j=a.joints;
   for(const leg of a.legs){
    const skinned=leg.children.filter(o=>o.isSkinnedMesh);
-   assert.equal(skinned.length,1,`${name} ${leg.name}: one skinned mesh`);
+   assert(skinned.length>=1,`${name} ${leg.name}: skinned`);
+   assert.equal(leg.children.filter(o=>o.isMesh&&!o.isSkinnedMesh).length,0,`${name} ${leg.name}: no plain mesh left behind`);
+   assert(skinned.every(m=>m.skeleton===skinned[0].skeleton),`${name} ${leg.name}: one skeleton`);
    for(const k of [0,1,2])assert(j[`${leg.name}_${k}`]?.isBone,`${name}: ${leg.name}_${k}`);
   }
   const knee=j.rleg1_1,hip=j.rleg1_0,foot=j.rleg1_2;
@@ -61,5 +63,19 @@ test('a one-mesh leg is skinned on three bones; bending the knee moves the foot 
   assert(world(foot).distanceTo(footAt)>.02,`${name}: the foot swung`);
   assert(world(hip).distanceTo(hipAt)<1e-6,`${name}: the hip stayed`);
   assert(world(j.lleg1_2).distanceTo(otherFoot)<1e-6,`${name}: the other leg stayed`);
+ }
+});
+
+test('a bent knee carries the lowest vertex of every mesh of a leg: toenails and shag go with the foot',()=>{
+ for(const name of ['mumak','mastodon','titanothere','leocrotta']){
+  const a=make(name),j=a.joints,meshes=j.rleg1.children.filter(o=>o.isSkinnedMesh);
+  assert(meshes.length>=2,`${name}: a leg of several meshes`);
+  const lowest=m=>{const p=m.geometry.attributes.position;let k=0;for(let i=1;i<p.count;i++)if(p.getY(i)<p.getY(k))k=i;return k;};
+  const at=m=>{a.g.updateMatrixWorld(true);m.skeleton.update();return m.applyBoneTransform(lowest(m),new THREE.Vector3()).applyMatrix4(m.matrixWorld);};
+  const before=meshes.map(at);
+  j.rleg1_1.rotation.x=.6;
+  const moved=meshes.map((m,i)=>at(m).distanceTo(before[i]));
+  assert(moved[0]>.02,`${name}: the foot swung`);
+  assert(Math.max(...moved)-Math.min(...moved)<.02,`${name}: every mesh's foot moved alike (${moved.map(v=>v.toFixed(3))})`);
  }
 });
