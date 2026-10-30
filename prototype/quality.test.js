@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {TIERS, ORDER, pickTier, createAdaptiveQuality, frameCost, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
 
 test('the URL wins, then the saved choice, then the machine', () => {
@@ -82,6 +83,16 @@ test('applying a tier sets the pixel ratio, SSAO, shadow map and type, and recom
   assert.equal(r4.ambientOcclusion.size, null, 'high leaves the composer\'s full size');
   assert.equal(r2.light.shadow.map.disposed, false, 'the same size keeps the map'); assert.ok(r2.mats.every(m => !m.needsUpdate), 'same type: no recompile');
   assert.equal(applyTier('nonsense', {}).tier, 'nonsense');
+});
+
+test('an automatic step never changes the shadow filter, so no material recompiles mid-game', () => {
+  const r = rig();
+  applyTier('low', {...r, soft: 'soft', plain: 'plain', devicePixelRatio: 2, width: 1440, height: 900, keepShadowType: true});
+  assert.equal(r.renderer.shadowMap.type, 'soft'); assert.ok(r.mats.every(m => !m.needsUpdate), 'no recompile');
+  assert.equal(r.renderer.ratio, 1); assert.equal(r.ambientOcclusion.enabled, false); assert.equal(r.light.shadow.mapSize.x, 1024);
+  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
+  assert.match(main, /keepShadowType:auto/, 'main.js keeps the filter on automatic steps');
+  assert.match(main, /renderer\.debug\.checkShaderErrors=new URLSearchParams\(location\.search\)\.has\('debug'\)/, 'shader logs are only read with ?debug');
 });
 
 test('the saved tier survives a broken storage', () => {
