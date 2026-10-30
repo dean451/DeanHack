@@ -555,7 +555,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
      if(at&&!ghosts.has(at)&&shouldGhost(cell,a.actions?.dead)){restoreFade(a);const mats=ghostize(a.g,THREE);a.g.position.copy(a.target||a.g.position);ghosts.set(at,{g:a.g,mats,key:id});while(ghosts.size>GHOST_MAX){const [oldId,old]=ghosts.entries().next().value;dropGhost(old);ghosts.delete(oldId);}}
      else{restoreFade(a);release(a.g);}
      actors.delete(id);}}
-   /* an item a monster or pet stands on stays drawn until it is picked up or the square shows something else (held-items.js) */heldUnder.map=itemsUnderMonsters(frame.cells,groundItems.keys());for(const h of heldUnder.map.values())for(const k of h.keys){seenActors.add(k);const it=groundItems.get(k);if(it)it.visible=h.visible;}
+   /* an item a monster or pet stands on stays drawn until it is picked up or the square shows something else (held-items.js) */heldUnder.map=itemsUnderMonsters(frame.cells,groundItems.keys(),frame.player);for(const h of heldUnder.map.values())for(const k of h.keys){seenActors.add(k);const it=groundItems.get(k);if(it)it.visible=h.visible;}
    for(const [id,item] of groundItems)if(!seenActors.has(id)){if(hasMagicLook(item)&&item.visible&&pickupNotes.take(...squareOfKey(id).split(',').map(Number),performance.now()))liftingItems.add(item);else release(item);groundItems.delete(id);}
    for(const [id,w] of wells)if(!seenWells.has(id)){release(w);wells.delete(id);}
    hero.target=new THREE.Vector3(frame.player.x-origin.x,perchHeight(frame.cells.find(c=>c.x===frame.player.x&&c.z===frame.player.z)?.terrain),frame.player.z-origin.z);renderSurroundings(frame);

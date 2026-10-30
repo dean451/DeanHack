@@ -7,13 +7,17 @@
 // Pure helpers, so the rules can be tested without a renderer.
 
 // The ground-item keys (live.js keys them "x,z:glyph:...") under the monster and pet cells of a frame, with who
-// stands on each square and whether it is in view: Map(cellId -> {name, pet, keys, visible}).
-export function itemsUnderMonsters(cells, itemKeys) {
+// stands on each square and whether it is in view: Map(cellId -> {name, pet, keys, visible}). The hero's own
+// square is not one of them: the hero's cell is a monster glyph too, but what the hero stands on is listed in the
+// ground panel and is not drawn (live.js skips that cell), or squeezing onto a boulder's square would leave the
+// boulder drawn round the hero, a second boulder beside the one that blocked it.
+export function itemsUnderMonsters(cells, itemKeys, player = null) {
   const under = new Map();
   if (!cells || !itemKeys) return under;
   const keys = [...itemKeys];
   for (const c of cells) {
     if (c.kind !== 'monster' && c.kind !== 'pet') continue;
+    if (player && c.x === player.x && c.z === player.z) continue;
     const id = `${c.x},${c.z}`, held = keys.filter(k => k.startsWith(id + ':'));
     if (held.length) under.set(id, {name: String(c.name || '').toLowerCase(), pet: c.kind === 'pet', keys: held, visible: !!(c.visible || c.sensed)});
   }
