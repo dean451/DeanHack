@@ -95,6 +95,8 @@ export async function forgetSave(name,fetchImpl=fetch){
 export async function fetchScores(fetchImpl=fetch){
   try{const r=await fetchImpl('/engine/scores');if(!r.ok)return [];const data=await r.json();return Array.isArray(data.scores)?data.scores:[];}catch{return [];}
 }
+// The longest the descent's spiral rests waiting for the game (ms) before it fades by itself.
+export const LANDING_MS=15000;
 export const NO_SCORES='No games finished on this server yet.';
 const fmt=n=>Number.isFinite(n)?n.toLocaleString('en'):'';
 // The xlogfile abbreviates the class and race ("Val", "Hum"): the full name where one matches.
@@ -140,15 +142,18 @@ export function installStartScreen({doc=document,button,nameInput,search=locatio
   const waves=createAsciiWaves({doc});el.prepend(waves.el);
   // The descent (ascii-spiral.js): Descend fades the card out under a spiral that zooms for DESCENT.ms, then
   // rests dim behind the engine's opening text until live.js reports the first frame landed.
-  const spiral=createAsciiSpiral({doc});let descending=false,landing=null;
+  const spiral=createAsciiSpiral({doc});let descending=false,landing=null,watchdog=null;
   const win=doc.defaultView;
-  const clearDescent=()=>{descending=false;if(landing){win?.clearTimeout?.(landing);landing=null;}el.classList.remove('start-descending');doc.body.classList.remove('start-descending');spiral.stop();spiral.el.remove();spiral.el.classList.remove('zoom','rest','gone');};
+  const clearDescent=()=>{descending=false;if(landing){win?.clearTimeout?.(landing);landing=null;}if(watchdog){win?.clearTimeout?.(watchdog);watchdog=null;}el.classList.remove('start-descending');doc.body.classList.remove('start-descending');spiral.stop();spiral.el.remove();spiral.el.classList.remove('zoom','rest','gone');};
   const descend=()=>{
     if(spiral.still||!win?.setTimeout)return Promise.resolve();
     descending=true;el.classList.add('start-descending');doc.body.classList.add('start-descending');waves.stop();
     doc.body.append(spiral.el);spiral.speed=1;spiral.start();
     (win.requestAnimationFrame??(f=>f()))(()=>spiral.el.classList.add('zoom'));
-    return new Promise(res=>win.setTimeout(res,DESCENT.ms)).then(()=>{spiral.speed=DESCENT.rest;spiral.el.classList.replace('zoom','rest');});
+    return new Promise(res=>win.setTimeout(res,DESCENT.ms)).then(()=>{spiral.speed=DESCENT.rest;spiral.el.classList.replace('zoom','rest');
+      // the spiral never outstays LANDING_MS: if the game is slow to answer or never does (an engine that failed to
+      // start, a lost connection), it fades anyway rather than cover the page until a refresh
+      watchdog=win.setTimeout(()=>{watchdog=null;landed();},LANDING_MS);});
   };
   // The dungeon is on screen: the spiral fades away and the opening text's fade-in rules lift.
   const landed=()=>{if(!descending||landing)return;spiral.el.classList.add('gone');doc.body.classList.remove('start-descending');landing=win.setTimeout(()=>{landing=null;clearDescent();},1000);};

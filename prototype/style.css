@@ -294,7 +294,7 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
    zooms over everything, then the spiral rests dim and slow behind the engine's opening text, whose lines
    fade in rather than pop, and goes once the first frame of the dungeon is on screen. */
 /* opaque while it plays, so the dungeon only shows once the spiral fades; the text dims to rest through its colour */
-.start-spiral{position:fixed;inset:0;z-index:62;margin:0;overflow:hidden;font:13px/15px 'Courier New',Courier,monospace;white-space:pre;background:#030609;color:#8fd0ccf2;text-shadow:0 0 10px #46bebe66;pointer-events:none;opacity:0;transition:opacity .55s ease,color 1.2s ease}
+/* no text-shadow: blurring every glyph each frame held the swirl to about 5 fps; the glow is one still gradient behind it */.start-spiral{position:fixed;inset:0;z-index:62;margin:0;overflow:hidden;font:13px/15px 'Courier New',Courier,monospace;white-space:pre;background:#030609;background-image:radial-gradient(ellipse at 50% 50%,#0c2a2b 0%,#071416 38%,#030609 75%);color:#9adcd8f2;pointer-events:none;opacity:0;transition:opacity .55s ease,color 1.2s ease}
 .start-spiral.zoom{opacity:1}
 .start-spiral.rest{opacity:1;color:#8fd0cc5c}
 .start-spiral.gone{opacity:0;transition-duration:1s}
