@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {flashPose, ringPose, debrisPose, smokePose, isLandMineMessage, createLandMine, PENDING_WAIT, MINE} from './land-mine.js';
+import {flashPose, ringPose, debrisPose, smokePose, isLandMineMessage, landMineSite, createLandMine, PENDING_WAIT, MINE} from './land-mine.js';
 
 test('only the land mine blast message triggers it', () => {
   assert.ok(isLandMineMessage('KAABLAMM!!!  You triggered a land mine!'));
@@ -107,4 +107,30 @@ test('the smoke column flinches back near the top, then resumes its lean, in bou
   assert.ok(x(.83) < lean(u(.83)) - .02, 'flinched');
   assert.ok(Math.abs(x(.4) - lean(u(.4))) < 1e-9 && Math.abs(x(1.25) - lean(u(1.25))) < 1e-9);
   for (let t = 0; t <= MINE.total + .1; t += .005) assert.ok(x(t) >= -1e-9 && x(t) <= .16 + 1e-9, String(t));
+});
+
+test('only the hero\'s own land mine goes off on the hero; a monster\'s goes off where it is; one heard in the distance, or a boulder\'s, draws nothing', () => {
+  // the messages, as trap.c and hack.c print them
+  for (const t of ['KAABLAMM!!!  You triggered a land mine!', 'KAABLAMM!!!  You triggered your land mine!', 'KAABLAMM!!!  Your inept attempt sets it off!', 'KAABLAMM!!!  The air currents set your land mine off!'])
+    assert.deepEqual(landMineSite(t), {at: 'hero'}, t);
+  assert.deepEqual(landMineSite('KAABLAMM!!!  The jackal triggers a land mine!'), {at: 'monster', name: 'jackal'});
+  assert.deepEqual(landMineSite('KAABLAMM!!!  The hill orc triggers your land mine!'), {at: 'monster', name: 'hill orc'});
+  for (const t of ['Kaablamm!  You hear an explosion in the distance!', 'KAABLAMM!!!  The boulder triggers a land mine.', 'KAABLAMM!!! The rolling boulder triggers a land mine.', 'KAABLAMM!!!', 'You find a land mine.'])
+    assert.equal(landMineSite(t), null, t);
+
+  const added = [];
+  const THREE = new Proxy({}, {get: () => class { constructor() { this.position = {set: (x, y, z) => added.push([x, z]), y: 0}; this.rotation = {set() {}}; this.scale = {setScalar() {}, set() {}}; this.material = {}; } add() {} dispose() {} }});
+  const fx = createLandMine(THREE, {add() {}, remove() {}});
+  // heard in the distance: nothing, not even after the wait or the next frame
+  fx.message('Kaablamm!  You hear an explosion in the distance!', 1, 1, () => ({x: 9, z: 9}));
+  fx.update(PENDING_WAIT + .01); fx.settle(1, 1);
+  assert.equal(fx.active, 0);
+  // a monster in view: at the monster, at once
+  fx.message('KAABLAMM!!!  The jackal triggers a land mine!', 1, 1, name => name === 'jackal' ? {x: 4, z: 6} : null);
+  assert.equal(fx.active, 1); assert.deepEqual(added.at(-1), [4, 6]);
+  // a monster the map doesn't have: nothing (never on the hero)
+  fx.clear(); added.length = 0;
+  fx.message('KAABLAMM!!!  It triggers a land mine!', 1, 1, () => null);
+  fx.update(PENDING_WAIT + .01); fx.settle(1, 1);
+  assert.equal(fx.active, 0); assert.equal(added.length, 0);
 });

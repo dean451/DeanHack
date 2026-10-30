@@ -3,9 +3,13 @@
 // stone and scrap is thrown up and rains back down, and a column of black smoke rises, lingers
 // and thins. The flash is brutal and short; the smoke is what stays. Over in about a second.
 //
-// live.js calls message(text, x, z) with every engine message (x, z the hero's last known
-// square), settle(x, z) each frame with the hero's new square, which is the trap's, update(dt)
-// every frame and clear() on a level change. Poses are functions of t and return exactly to
+// live.js calls message(text, x, z, locate) with every engine message (x, z the hero's last known
+// square; locate(name) finds a monster on the map by name), settle(x, z) each frame with the hero's
+// new square, which is the trap's, update(dt) every frame and clear() on a level change.
+// Only some KAABLAMMs are the hero's own (trap.c, hack.c): the hero's trigger and its two "sets it off"
+// variants go off on the hero's square; a monster in view that triggers one goes off where that monster
+// is; the unseen one ("Kaablamm!  You hear an explosion in the distance!") and boulders setting one off
+// (whose square the message doesn't give) draw nothing, rather than a blast on the hero. Poses are functions of t and return exactly to
 // rest (nothing showing) at the end.
 
 import {clamp01} from './fx-textures.js';
@@ -13,6 +17,16 @@ import {clamp01} from './fx-textures.js';
 export const MINE = {debris: 9, total: 1.3};
 export const PENDING_WAIT = .3;
 export const isLandMineMessage = text => /kaablamm/i.test(text || '');
+// Where a KAABLAMM message's blast is: {at: 'hero'}, {at: 'monster', name}, or null (heard, not seen, or
+// a boulder's).
+export function landMineSite(text) {
+  const t = String(text || '');
+  if (!isLandMineMessage(t) || /in the distance/i.test(t)) return null;
+  if (/you triggered|your inept attempt sets|the air currents set/i.test(t)) return {at: 'hero'};
+  const m = /kaablamm!+\s+(.+?)\s+triggers\s+(?:a|your)\s+land mine/i.exec(t);
+  if (m && !/boulder/i.test(m[1])) return {at: 'monster', name: m[1].replace(/^the\s+/i, '').toLowerCase()};
+  return null;
+}
 
 // The flash: biggest and brightest in the first instant, gone by a quarter second.
 export function flashPose(t) {
@@ -82,7 +96,12 @@ export function createLandMine(THREE, parent) {
   function drop(e) { e.geos.forEach(x => x.dispose()); e.mats.forEach(x => x.dispose()); parent.remove(e.g); }
   return {
     add,
-    message(text, x, z) { if (isLandMineMessage(text)) { if (pending) add(pending.x, pending.z); pending = {x, z, wait: 0}; } },
+    message(text, x, z, locate) {
+      const site = landMineSite(text);
+      if (!site) return;
+      if (site.at === 'monster') { const p = locate?.(site.name); if (p && Number.isFinite(p.x) && Number.isFinite(p.z)) add(p.x, p.z); return; }
+      if (pending) add(pending.x, pending.z); pending = {x, z, wait: 0};
+    },
     settle(x, z) { if (pending) { add(x, z); pending = null; } },
     update(dt) {
       if (pending && (pending.wait += dt) >= PENDING_WAIT) { add(pending.x, pending.z); pending = null; }
