@@ -6,6 +6,11 @@ import {cellHash} from './floor.js';
 // every square the hero hasn't uncovered, fading into darkness past the map edge.
 
 const COLS=80,ROWS=21,MARGIN=8,BASE=-.3;
+// The rock is drawn in CHUNK x CHUNK squares of blocks, each its own instanced mesh with a bounding sphere, so the
+// camera skips the chunks it cannot see (most of the 96 x 37 field at the game camera) instead of drawing all 3,552
+// blocks every pass. The blocks are rounded boxes of one bevel segment (108 triangles, not 300): at the game
+// camera, in the dark, the extra rounding never showed, and it was half the triangles in a frame.
+export const CHUNK=16,ROCK_SEGMENTS=1;
 const LOW=.1,MID=.34,HIGH=.6; // rock top next to open ground, one square back, and beyond
 
 function rockTextures(){
@@ -22,8 +27,16 @@ function rockTextures(){
 export function createCavern({group,scene,camera,controls}){
  const minX=-MARGIN,minZ=-MARGIN,W=COLS+MARGIN*2,H=ROWS+MARGIN*2,count=W*H;
  const {map,bump}=rockTextures();
- const mesh=new THREE.InstancedMesh(new RoundedBoxGeometry(1,1,1,2,.09),new THREE.MeshStandardMaterial({map,bumpMap:bump,bumpScale:3,roughness:1}),count);
- mesh.receiveShadow=true;mesh.frustumCulled=false;group.add(mesh);
+ const geometry=new RoundedBoxGeometry(1,1,1,ROCK_SEGMENTS,.09),material=new THREE.MeshStandardMaterial({map,bumpMap:bump,bumpScale:3,roughness:1});
+ // chunk c holds the blocks whose column and row fall in its square; slot[i] is block i's place in its chunk
+ const CW=Math.ceil(W/CHUNK),chunkOf=new Int32Array(count),slot=new Int32Array(count),sizes=new Array(CW*Math.ceil(H/CHUNK)).fill(0);
+ for(let i=0;i<count;i++){const c=Math.floor(Math.floor(i/W)/CHUNK)*CW+Math.floor((i%W)/CHUNK);chunkOf[i]=c;slot[i]=sizes[c]++;}
+ const chunks=sizes.map(n=>{const m=new THREE.InstancedMesh(geometry,material,n);m.receiveShadow=true;m.name='cavern rock';group.add(m);return m;});
+ const changed=new Set(chunks);
+ // the one-mesh calls the rest of this file makes, routed to the block's chunk
+ const mesh={material,setMatrixAt:(i,m)=>{chunks[chunkOf[i]].setMatrixAt(slot[i],m);changed.add(chunks[chunkOf[i]]);},setColorAt:(i,c)=>chunks[chunkOf[i]].setColorAt(slot[i],c),
+  set colorsDirty(v){for(const m of chunks)if(m.instanceColor)m.instanceColor.needsUpdate=v;},
+  settle(){for(const m of changed){m.instanceMatrix.needsUpdate=true;m.computeBoundingSphere();}changed.clear();}};
  const current=new Float32Array(count).fill(BASE),target=new Float32Array(count).fill(BASE),color=new THREE.Color(),tmp=new THREE.Color();
  for(let i=0;i<count;i++){const h=cellHash(i,1,9);mesh.setColorAt(i,color.setRGB(.12,.13,.135).multiplyScalar(.7+(h%100)/200));}
  let originX=0,originZ=0,animating=false;
@@ -31,7 +44,7 @@ export function createCavern({group,scene,camera,controls}){
 
  function compose(i){
   const x=i%W+minX,z=Math.floor(i/W)+minZ,h=cellHash(x,z,8),height=current[i]-BASE;
-  if(height<.005){matrix.makeScale(0,0,0);mesh.setMatrixAt(i,matrix);return;}
+  if(height<.005){/* collapsed in place, not at the origin, so it never stretches its chunk's bounding sphere */matrix.makeScale(0,0,0).setPosition(x-originX,BASE,z-originZ);mesh.setMatrixAt(i,matrix);return;}
   // irregular boulders rather than a grid: each block wanders, leans and swells a little
   const rough=Math.min(1,height/(HIGH-BASE));
   position.set(x-originX+((h&15)/15-.5)*.22*rough,BASE+height/2,z-originZ+((h>>>4&15)/15-.5)*.22*rough);
@@ -78,7 +91,7 @@ export function createCavern({group,scene,camera,controls}){
   if(animating){
    const ease=1-Math.exp(-dt*6);animating=false;
    for(let i=0;i<count;i++){const delta=target[i]-current[i];if(delta){current[i]=Math.abs(delta)<.003?target[i]:current[i]+delta*ease;if(current[i]!==target[i])animating=true;}compose(i);}
-   mesh.instanceMatrix.needsUpdate=true;
+   mesh.settle();
   }
   // The dust hangs in the world, not on the hero: a swing's lunge or a step never drags it along.
   // Motes that fall more than half the field behind wrap round to the far side, so the hero is
@@ -91,6 +104,6 @@ export function createCavern({group,scene,camera,controls}){
 function setTint([r,g,b],roughness=1,vein=null){mesh.material.color.setRGB(r,g,b);mesh.material.roughness=roughness;
  for(let i=0;i<count;i++){const h=cellHash(i,1,9),v=vein&&vein(cellHash(i,2,9));
   mesh.setColorAt(i,color.setRGB(.12,.13,.135).multiplyScalar(.7+(h%100)/200));if(v)color.multiply(tmp.setRGB(v[0],v[1],v[2]));mesh.setColorAt(i,color);}
- mesh.instanceColor.needsUpdate=true;}
- return {rebuild,update,setActive,setTint,motes};
+ mesh.colorsDirty=true;}
+ return {rebuild,update,setActive,setTint,motes,chunks};
 }
