@@ -909,7 +909,7 @@ function snake(o){
  const skin=mat(o.color,{roughness:.55}),belly=mat(o.belly||shade(o.color,1.5)),coil=[];
  for(let i=0;i<=28;i++){const t=i/28,a=t*Math.PI*3.6,r=.24-t*.13;coil.push([Math.cos(a)*r,.005+.045*tailTaper(t)+t*.1,Math.sin(a)*r]);}
  coil.push([0,.3,.06],[0,.42,.14]);
- pointedTailTube(body,coil,.045,skin,64);
+ pointedTailTube(body,coil,.045,skin,64).userData.coil=true;// slither.js ripples it
  const head=new THREE.Group();head.position.set(0,.44,.18);body.add(head);
  const jaw=snakeHead(head,o);
  const hood=o.hood?cobraHood(head,o):null;
@@ -2280,7 +2280,7 @@ function naga(o){
   glow=mat(o.eye||'#f0d040',{emissive:o.eye||'#f0d040',emissiveIntensity:2,roughness:.3}),pupil=mat('#0c0a08',{roughness:.4}),r=o.baby?.05:.075;
  // lower body: a flat spiral coil ending under the raised neck
  const coil=[];for(let i=0;i<=30;i++){const t=i/30,a=Math.PI*.5+t*Math.PI*3.2,rad=.3-t*.18;coil.push([Math.cos(a)*rad,r*tailTaper(t)+t*.04,-Math.sin(a)*rad*.9-.02]);}
- coil.push([0,r+.08,.1]);pointedTailTube(body,coil,r,scales,72);
+ coil.push([0,r+.08,.1]);pointedTailTube(body,coil,r,scales,72).userData.coil=true;
  // raised half: pivots above the coil centre
  const neck=new THREE.Group();neck.position.set(0,r+.08,.1);body.add(neck);
  const rise=[[0,0,0],[0,.14,.03],[0,.3,.02],[0,.44,-.01]];tube(neck,rise,r*.95,scales,20);
