@@ -21,9 +21,9 @@
 //  - the renderer no longer asks for MSAA: the composer's targets never had it, so the flag only cost
 //    a resolve of the final quad.
 export const TIERS = {
-  high: {bloomScale: 1, ratio: 2, ssao: true, aoScale: 1, shadow: 2048, soft: true, shadowHz: 60, idleFps: 60, deepFps: 60, label: 'High: full resolution, 60 fps'},
-  balanced: {bloomScale: 0.5, ratio: 1.5, ssao: true, aoScale: .5, shadow: 1024, soft: true, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Balanced: 1.5x pixels, half-size occlusion, 1024 shadows, 30 fps when idle'},
-  low: {bloomScale: 0.5, ratio: 1, ssao: false, aoScale: .5, shadow: 1024, soft: false, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Low: 1x pixels, no ambient occlusion, 30 fps when idle'},
+  high: {aoSamples: 16, bloomScale: 1, ratio: 2, ssao: true, aoScale: 1, shadow: 2048, soft: true, shadowHz: 60, idleFps: 60, deepFps: 60, label: 'High: full resolution, 60 fps'},
+  balanced: {aoSamples: 8, bloomScale: 0.5, ratio: 1.5, ssao: true, aoScale: .5, shadow: 1024, soft: true, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Balanced: 1.5x pixels, half-size occlusion, 1024 shadows, 30 fps when idle'},
+  low: {aoSamples: 8, bloomScale: 0.5, ratio: 1, ssao: false, aoScale: .5, shadow: 1024, soft: false, shadowHz: 30, idleFps: 30, deepFps: 15, label: 'Low: 1x pixels, no ambient occlusion, 30 fps when idle'},
 };
 // Fast: the look stripped to what plays. No ambient occlusion, no glow, no shadows (no second and third draw
 // of the scene, no full-screen sampling passes), 1x pixels, two torch lights, three fur layers. Only chosen by
@@ -122,6 +122,11 @@ export function applyTier(tier, {renderer, composer, ambientOcclusion, bloom, li
   if (bloom && width && height && t.bloomScale < 1) bloom.setSize?.(Math.max(1, Math.round(width * ratio * t.bloomScale)), Math.max(1, Math.round(height * ratio * t.bloomScale)));
   if (bloom) bloom.enabled = t.bloom !== false;
   if (ambientOcclusion) {
+    // Occlusion samples per pixel, and as many in its denoiser: 16 on high, 8 below. The pass already runs at half
+    // size on balanced and is blurred by the denoiser, so half the taps reads the same at a fraction of the work.
+    // (A changed count recompiles the pass's two shaders, never the scene's.)
+    const samples = t.aoSamples ?? 16;
+    if (ambientOcclusion.gtaoMaterial?.defines && ambientOcclusion.gtaoMaterial.defines.SAMPLES !== samples) { ambientOcclusion.updateGtaoMaterial?.({samples}); ambientOcclusion.updatePdMaterial?.({samples}); }
     ambientOcclusion.enabled = t.ssao;
     // the composer just sized the pass to the full buffer; shrink it to the tier's share
     if (width && height && t.aoScale < 1) ambientOcclusion.setSize?.(Math.max(1, Math.round(width * ratio * t.aoScale)), Math.max(1, Math.round(height * ratio * t.aoScale)));
