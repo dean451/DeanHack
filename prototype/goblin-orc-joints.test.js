@@ -44,3 +44,20 @@ test('turning an arm or a hip moves that limb only; the head carries only its fa
   assert(world(a.weaponSocket).distanceTo(socket)<1e-9,`${name}: the head leaves the weapon`);
  }
 });
+
+test('every goblin and orc limb is one skinned mesh on three bones, and the weapon rides the wrist',()=>{
+ for(const [name,make] of FAMILY){
+  const a=make(),j=a.joints;
+  for(const side of ['l','r'])for(const [stem,joint] of [['fore',j[side+'fore']],['leg1',j[side+'leg1']]]){
+   const meshes=[];joint.traverse(o=>{if(o.isMesh&&o.userData.part!=='weapon')meshes.push(o);});
+   assert.equal(meshes.length,1,`${name}: ${side}${stem} one mesh`);
+   assert(meshes[0].isSkinnedMesh,`${name}: ${side}${stem} skinned`);
+   for(const i of [0,1,2])assert(j[`${side}${stem}_${i}`]?.isBone,`${name}: ${side}${stem}_${i}`);
+  }
+  assert(under(a.weaponSocket,j.rfore_2),`${name}: the weapon rides the wrist bone`);
+  a.g.updateMatrixWorld(true);
+  const socket=world(a.weaponSocket);
+  j.rfore_0.rotation.x+=.6;a.g.updateMatrixWorld(true);
+  assert(world(a.weaponSocket).distanceTo(socket)>.01,`${name}: a bent shoulder carries the weapon`);
+ }
+});

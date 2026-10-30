@@ -13,7 +13,7 @@ test('every orc kind gets its own model instead of the box humanoid',()=>{
   assert.equal(a.g.name,name);assert.equal(a.quirk,'orc');
   for(const key of ['body','head','arm','weaponSocket','eyes'])assert(a[key]?.isObject3D,`${name} ${key}`);
   assert.equal(a.legs.length,2);assert.equal(a.arms.length,2);assert.equal(a.arm,a.arms[1]);
-  assert.equal(a.weaponSocket.parent,a.arm,'the weapon is in the right fist');
+  assert(a.weaponSocket.parent===a.joints.rfore_2&&a.arm.getObjectByName('rfore_2'),'the weapon is in the right fist, on the wrist bone');
   assert.equal(a.hat,null);assert.equal(a.beard,null);assert.equal(a.pick,null);
   const parts=meshes(a);
   assert.equal(parts.length,8,`${name}: one mesh per moving part, plus the eyes`);
