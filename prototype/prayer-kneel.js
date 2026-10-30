@@ -1,8 +1,9 @@
-// Prayer, the kneeling hero. While the god is deciding (see prayer-light.js) the hero goes down
-// on both knees: the legs fold back under, the body drops until the knees meet the floor, the
-// torso bows, both hands draw in to the chest and the head sinks. It is not devout so much as
-// braced. A faint tremor runs through the held pose and, once, a small flinch, as if something
-// had looked back. Then the hero straightens slowly, with no relief in it.
+// Prayer, the kneeling hero. While the god is deciding (see prayer-light.js) the hero kneels on both
+// knees, calm and devout: the legs fold back under, the body lowers until the knees meet the floor, the
+// back stays nearly straight with only a slight bow, both hands draw in and meet at the chest, and the
+// head bows. The hold is still, only one slow breath moving through it and the head settling a touch
+// lower. Then the hero rises, unhurried, and stands as before. (It used to be a fearful crouch, with a
+// shiver, a peek at the sky, a flinch and a wary glance back; the user wanted it devout instead.)
 //
 // The arm and torso offsets are swing.js offsets on the hero rig, taken back off each frame
 // before the new one is added, so they layer on whatever actions.js posed; the head tilt is
@@ -20,30 +21,22 @@ const SWING_FIELDS = ['arm', 'armZ', 'elbow', 'wrist', 'socket', 'shield', 'twis
 const FIELDS = [...SWING_FIELDS, 'head', 'leg', 'drop'];
 const REST = Object.fromEntries(FIELDS.map(f => [f, 0]));
 export const LEG_FOLD = 1.15, BODY_DROP = .28;
-const KNELT = {arm: -.85, armZ: -.2, elbow: -.55, wrist: .25, socket: -.3, shield: -.15, twist: 0, lean: .3, offArm: -.8, offElbow: -.5,
-  head: .5, leg: LEG_FOLD, drop: BODY_DROP};
+const KNELT = {arm: -.75, armZ: -.25, elbow: -.7, wrist: .2, socket: -.25, shield: -.2, twist: 0, lean: .12, offArm: -.7, offElbow: -.65,
+  head: .42, leg: LEG_FOLD, drop: BODY_DROP};
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
 export const kneelMessage = text => typeof text === 'string' && /^You begin praying to /.test(text);
 
-// Offsets at normalised time u: a quick drop to the knees, a held kneel that shivers, a sneaked
-// look up that ducks back lower, one flinch at about two thirds, then a slow rise.
+// Offsets at normalised time u: a measured kneel (the first fifth), a still hold with a slow breath and the
+// head settling a little lower, then an unhurried rise (the last fifth).
 export function kneelPose(u) {
   u = clamp01(Number.isFinite(u) ? u : 1);
-  const hold = smooth(u / .16) * (1 - smooth((u - .82) / .18));
+  const hold = smooth(u / .2) * (1 - smooth((u - .8) / .2));
   const p = {...REST};
   for (const f of FIELDS) p[f] = KNELT[f] * hold;
-  // the shiver builds toward the flinch, as if something were drawing near
-  p.lean += .015 * (1 + 1.5 * smooth((u - .35) / .25) * (1 - clamp01((u - .62) / .04))) * Math.sin(u * 60) * hold;
-  const flinch = Math.sin(clamp01((u - .62) / .07) * Math.PI) * (1 - clamp01((u - .69) / .03)) * hold;
-  p.lean -= .12 * flinch; p.twist += .1 * flinch; p.head -= .15 * flinch;
-  // Early in the hold the hero sneaks a look up, then ducks a little lower than before, as if
-  // the sky had been looking too.
-  const peek = Math.sin(clamp01((u - .28) / .08) * Math.PI) * hold, duck = smooth((u - .37) / .05) * (1 - smooth((u - .6) / .1)) * hold;
-  p.lean += .05 * duck - .1 * peek; p.head += .08 * duck - .35 * peek; p.wrist -= .15 * peek; p.socket -= .06 * peek;
-  // Rising, the hero flicks one wary glance over the shoulder, at whatever was behind the sky, before facing front again.
-  p.twist -= .22 * Math.sin(clamp01((u - .86) / .1) * Math.PI);
+  p.lean += .025 * Math.sin(Math.PI * clamp01((u - .2) / .6)) * hold;
+  p.head += .08 * smooth((u - .25) / .4) * hold;
   return p;
 }
 

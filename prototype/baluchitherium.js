@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {nameQuadrupedJoints} from './quadruped-joints.js';
 
 // The baluchitherium used to be the giant-rhino builder with a longer neck: a stretched rothe. It
 // is now Paraceratherium as it was, the largest land beast there ever was: towering pillar legs,
@@ -121,7 +122,7 @@ export function createBaluchitherium(){
  const tail=new THREE.Group();tail.position.set(0,L.hindLeg+.3,L.hindZ-.3);body.add(tail);mesh(tail,S.tail,'tail');
  g.userData.browse=createBrowse({neck,lip,jaw,ears});
  g.userData.updateBaluchitherium=(t,dt)=>g.userData.browse.update(dt);
- return {g,body,legs,tail,wings:[],quirk:'idle',head,neck,lip,jaw,ears};
+ return nameQuadrupedJoints({g,body,legs,tail,wings:[],quirk:'idle',head,neck,lip,jaw,ears});
 }
 
 // Browsing: rest; now and then the neck stretches up (to ~.5 rad), the lip curls and grasps three or
