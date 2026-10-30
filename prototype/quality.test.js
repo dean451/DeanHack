@@ -209,3 +209,12 @@ test('main.js shows a Quality button that cycles the tiers, for keyboards withou
 test('balanced draws its shadows into a 1024 map: the moon\'s 18-unit square still gets about 57 texels a tile', () => {
   assert.equal(TIERS.balanced.shadow, 1024); assert.equal(TIERS.high.shadow, 2048); assert.ok(TIERS.balanced.soft, 'still soft-edged');
 });
+
+test('occlusion takes 16 samples a pixel on high and 8 below, in the pass and its denoiser', () => {
+  assert.equal(TIERS.high.aoSamples, 16); assert.equal(TIERS.balanced.aoSamples, 8); assert.equal(TIERS.low.aoSamples, 8);
+  const calls = [];
+  const ao = {enabled: true, gtaoMaterial: {defines: {SAMPLES: 16}}, updateGtaoMaterial(p) { calls.push(['gtao', p.samples]); this.gtaoMaterial.defines.SAMPLES = p.samples; }, updatePdMaterial(p) { calls.push(['pd', p.samples]); }};
+  applyTier('balanced', {ambientOcclusion: ao});
+  assert.deepEqual(calls, [['gtao', 8], ['pd', 8]]);
+  applyTier('balanced', {ambientOcclusion: ao}); assert.equal(calls.length, 2, 'unchanged: no recompile');
+});
