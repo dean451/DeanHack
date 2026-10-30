@@ -43,6 +43,11 @@ export const torchLightsFor = tier => TORCH_LIGHTS[tier] ?? TORCH_LIGHTS.balance
 export const FUR_SHELLS = {high: 10, balanced: 6, low: 4};
 export const furShellsFor = tier => FUR_SHELLS[tier] ?? FUR_SHELLS.balanced;
 
+// Whether monsters are built with their lighter models (creature-lod.js): every tier but high. At the game camera a
+// monster is a few dozen pixels tall, and the lighter copy has 40 to 60% of the triangles and vertices.
+export const MONSTER_LOD = {high: false, balanced: true, low: true};
+export const monsterLodFor = tier => MONSTER_LOD[tier] ?? true;
+
 export function isTier(name) { return typeof name === 'string' && Object.hasOwn(TIERS, name); }
 
 // The tier to start with: the URL, then the saved choice, then the machine.
