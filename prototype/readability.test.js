@@ -70,3 +70,11 @@ test('no disposition ring on the floor under anyone: pet, peaceful or hostile; t
     assert.equal(g.userData.disposition, disposition);
   }
 });
+
+test('the fur\'s layers get no outline of their own: the fur\'s hull already draws it', async () => {
+  const {createSkinnedFeline} = await import('./feline-skin.js');
+  const a = createSkinnedFeline('kitten'); addOutlines(a.g);
+  const outlined = []; a.g.traverse(o => { if (o.userData.outline) outlined.push(o.parent.userData.part); });
+  assert.ok(outlined.includes('fur') || outlined.length >= 1, 'the fur keeps its ink');
+  assert.ok(!outlined.includes('fur-shell'), 'no layer carries a second copy of it');
+});

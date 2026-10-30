@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {torchLightsFor, TIERS, ORDER, pickTier, createAdaptiveQuality, frameCost, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
+import {furShellsFor, torchLightsFor, TIERS, ORDER, pickTier, createAdaptiveQuality, frameCost, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
 
 test('the URL wins, then the saved choice, then the machine', () => {
   assert.equal(pickTier({search: '?quality=high', saved: 'low', cores: 2}), 'high');
@@ -174,4 +174,10 @@ test('balanced and low run the glow from a smaller buffer; high keeps the full s
   assert.deepEqual(sized('low'), [720, 450]);
   assert.equal(sized('high'), null);
   assert.match(readFileSync(new URL('./main.js', import.meta.url), 'utf8'), /applyTier\(tier,\{renderer,composer,ambientOcclusion,bloom,/);
+});
+
+test('the pet\'s fur keeps all ten layers only on high; main.js sets it before any cat is built', () => {
+  assert.equal(furShellsFor('high'), 10); assert.equal(furShellsFor('balanced'), 6); assert.equal(furShellsFor('low'), 4);
+  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
+  assert.ok(main.indexOf('FUR.shells=furShellsFor(quality.tier)') > 0 && main.indexOf('FUR.shells=furShellsFor(quality.tier)') < main.indexOf('const live=installLive({'));
 });
