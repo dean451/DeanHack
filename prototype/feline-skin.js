@@ -134,6 +134,10 @@ function cutLips(geometry, toHead) {
 const hulls = new Map();
 // Grows a look's hull ahead of its first cat (live.js does this in idle time on the splash, for the
 // kitten most classes start with), so the first level does not pay the ~0.7 s on the main thread.
+// The hull grown for a look, with the key it is kept under (the sculpted skin's or the parts' one), or null.
+export function grownFelineHull(name, colour) { const key = name + '|' + (colour || ''); for (const k of [key + '|sculpt', key]) if (hulls.has(k)) return {key: k, hull: hulls.get(k)}; return null; }
+// A hull grown elsewhere (feline-hull-worker.js, off the main thread) joins the cache, unless one is already there.
+export function adoptFelineHull(key, hull) { if (key && hull?.geometry && !hulls.has(key)) hulls.set(key, hull); }
 export function growFelineHull(name, colour) { const key = name + '|' + (colour || ''), grown = () => hulls.get(key + '|sculpt') || hulls.get(key); if (!grown()) createSkinnedFeline(name, colour); return grown(); }
 // `sculpt`: grow the skin from the sculpted anatomy (feline-sculpt.js) and paint it with the
 // per-pixel coat (feline-coat.js) instead of building it from the parts; the pets' looks do.
