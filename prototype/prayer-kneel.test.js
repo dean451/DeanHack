@@ -11,7 +11,7 @@ test('only the start of a prayer kneels', () => {
   for (const t of ['You pray.', 'You feel that Anhur is well-pleased.', null]) assert.ok(!kneelMessage(t), String(t));
 });
 
-test('the pose starts and ends exactly at rest, bows forward and stays in bounds', () => {
+test('the pose starts and ends exactly at rest, bows slightly and stays in bounds', () => {
   for (const u of [0, 1]) for (const v of Object.values(kneelPose(u))) assert.ok(Math.abs(v) < 1e-12);
   let lean = 0;
   for (let u = 0; u <= 1; u += .005) {
@@ -19,10 +19,11 @@ test('the pose starts and ends exactly at rest, bows forward and stays in bounds
     lean = Math.max(lean, p.lean);
     for (const v of Object.values(p)) assert.ok(Math.abs(v) < 1.2, `${u}`);
   }
-  assert.ok(lean > .25 && kneelPose(.4).lean > .2);
+  // a devout bow: the back stays nearly straight
+  assert.ok(lean > .1 && lean < .2 && kneelPose(.4).lean > .1, String(lean));
 });
 
-test('it kneels: both legs fold back and the body drops so the knees meet the floor, the head sinks', () => {
+test('it kneels on both knees: the legs fold back and the body drops so the knees meet the floor, the head bows', () => {
   const p = kneelPose(.4);
   assert.ok(p.leg > 1 && p.drop > .25 && p.head > .3, JSON.stringify(p));
   // a .47 leg folded by LEG_FOLD rests its end at the floor once the body has dropped BODY_DROP
@@ -43,14 +44,18 @@ test('the legs and height are added fresh each frame, as the render loop rewrite
   assert.ok(Math.abs(a.head.rotation.x) < 1e-9 && Math.abs(a.body.rotation.x) < 1e-9);
 });
 
-test('it flinches once: the lean eases back for a beat mid-hold', () => {
-  assert.ok(kneelPose(.655).lean < kneelPose(.55).lean - .05);
+test('calm and devout: the hands meet at the chest, the head bows, and the hold is still', () => {
+  const p = kneelPose(.5);
+  // both arms draw in alike, so the hands meet
+  assert.ok(Math.abs(p.arm - p.offArm) < .1 && Math.abs(p.elbow - p.offElbow) < .1 && p.arm < -.6, JSON.stringify(p));
+  assert.ok(p.head > .4);
+  // no twist, peek or flinch: nothing turns, and the lean moves only with a slow breath
+  for (let u = 0; u <= 1; u += .002) assert.equal(kneelPose(u).twist, 0);
+  for (let u = .25; u <= .75; u += .002) assert.ok(Math.abs(kneelPose(u + .002).lean - kneelPose(u).lean) < .002, String(u));
 });
 
-test('it sneaks a look up early in the hold, then ducks lower than the bow it started from', () => {
-  assert.ok(kneelPose(.32).lean < kneelPose(.24).lean - .05);
-  const top = (a, b) => { let m = -1; for (let u = a; u <= b; u += .005) m = Math.max(m, kneelPose(u).lean); return m; };
-  assert.ok(top(.42, .58) > top(.18, .26) + .03);
+test('the head settles a little lower as the prayer goes on', () => {
+  assert.ok(kneelPose(.7).head > kneelPose(.25).head + .05);
 });
 
 test('playing layers on the rig, restores it and yields to actions', () => {
@@ -58,7 +63,7 @@ test('playing layers on the rig, restores it and yields to actions', () => {
   assert.ok(!k.message('You hit the newt.'));
   assert.ok(k.message('You begin praying to Anhur.'));
   for (let i = 0; i < 6; i++) k.update(a, .1);
-  assert.ok(a.body.rotation.x > .2 && k.playing);
+  assert.ok(a.body.rotation.x > .1 && k.playing);
   k.update(a, .1, true);
   assert.equal(a.body.rotation.x, 0);
   assert.ok(!k.playing);
@@ -70,15 +75,6 @@ test('playing layers on the rig, restores it and yields to actions', () => {
   assert.ok(Math.abs(a.body.rotation.x) < 1e-9 && !k.playing);
 });
 
-test('rising, the hero glances once over the shoulder, then faces front', () => {
-  let min = 0; for (let u = .8; u <= 1; u += .002) min = Math.min(min, kneelPose(u).twist);
-  assert.ok(min < -.15, String(min));
-  assert.ok(Math.abs(kneelPose(.85).twist) < 1e-9 && Math.abs(kneelPose(.97).twist) < 1e-9);
-});
-
-test('the shiver builds toward the flinch, then is back to the old tremor', () => {
-  const wob = u => Math.abs(kneelPose(u + .003).lean - kneelPose(u - .003).lean);
-  let early = 0, late = 0;
-  for (let i = 0; i < 60; i++) { early = Math.max(early, wob(.2 + i * .001)); late = Math.max(late, wob(.5 + i * .001)); }
-  assert.ok(late > early, 'tremor grows before the flinch');
+test('the rise is unhurried: the last fifth eases back to standing', () => {
+  assert.ok(kneelPose(.85).leg > LEG_FOLD * .7 && kneelPose(.95).leg > .05 && kneelPose(.95).leg < LEG_FOLD * .3);
 });
