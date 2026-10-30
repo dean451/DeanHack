@@ -92,5 +92,5 @@ function setTint([r,g,b],roughness=1,vein=null){mesh.material.color.setRGB(r,g,b
  for(let i=0;i<count;i++){const h=cellHash(i,1,9),v=vein&&vein(cellHash(i,2,9));
   mesh.setColorAt(i,color.setRGB(.12,.13,.135).multiplyScalar(.7+(h%100)/200));if(v)color.multiply(tmp.setRGB(v[0],v[1],v[2]));mesh.setColorAt(i,color);}
  mesh.instanceColor.needsUpdate=true;}
- return {rebuild,update,setActive,setTint};
+ return {rebuild,update,setActive,setTint,motes};
 }
