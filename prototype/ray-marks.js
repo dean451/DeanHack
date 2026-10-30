@@ -18,7 +18,8 @@ export const MARK_Y = .012;
 export const FLASH_MS = 220;
 
 // Each part of a mark: shape 0 is a ragged blot, 1 a ring spreading out, 2 soft haze, 3 a
-// four-point frost star, 4 a pitted blot (so cold and acid read apart from fire without colour).
+// four-point frost star, 4 a pitted blot (so cold and acid read apart from fire without colour), 5 a
+// six-armed snowflake with little side barbs on each arm (cold; the user wanted snowflakes, not x's).
 // ms is how long it lasts (it holds, then fades over the last `fadeMs`); size is its
 // radius at full size in tiles; grow is how long it takes to reach that size (ms).
 // add: true draws it additively (glows); otherwise it darkens/tints the floor.
@@ -32,7 +33,7 @@ export const MARK_LOOKS = {
     {shape: 0, color: 0xff3a0a, alpha: 1, size: .4, ms: 2600, fadeMs: 2200, grow: 60, add: true},
   ],
   cold: [
-    {shape: 3, color: 0xdff6ff, alpha: .55, size: .46, ms: 6000, fadeMs: 2500, grow: 160},
+    {shape: 5, color: 0xe4f4ff, alpha: .7, size: .42, ms: 6000, fadeMs: 2500, grow: 160},
     {shape: 1, color: 0xbfeaff, alpha: .8, size: .5, ms: 420, fadeMs: 360, grow: 300, add: true},
   ],
   lightning: [
@@ -124,9 +125,11 @@ void main() {
   vUv = uv * 2.0 - 1.0; vColor = aColor; vAlpha = aAlpha; vShape = aShape;
   gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
 }`;
-// aShape.x: 0 blot, 1 ring, 2 haze, 3 frost star, 4 pitted blot; aShape.y: per-mark seed for the ragged edge.
+// aShape.x: 0 blot, 1 ring, 2 haze, 3 frost star, 4 pitted blot, 5 snowflake; aShape.y: per-mark seed for the ragged edge.
 const FRAG = `
 varying vec2 vUv; varying vec3 vColor; varying float vAlpha; varying vec2 vShape;
+// distance from p to the segment a-b
+float seg(vec2 p, vec2 a, vec2 b) { vec2 pa = p - a, ba = b - a; return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0)); }
 void main() {
   float r = length(vUv);
   float a = atan(vUv.y, vUv.x);
@@ -143,6 +146,18 @@ void main() {
   } else if (vShape.x < 3.5) {
     float arm = 0.35 + 0.65 * pow(abs(cos(2.0 * a)), 6.0);
     k = 1.0 - smoothstep(arm * 0.8 - 0.2, arm * 0.8, r);
+  } else if (vShape.x > 4.5) {
+    // fold into one of six arms (the arm lies along +x of the sector), mirrored so the barbs pair up
+    float a6 = mod(a + 3.14159265 / 6.0, 3.14159265 / 3.0) - 3.14159265 / 6.0;
+    vec2 p = vec2(cos(a6), abs(sin(a6))) * r;
+    float d = seg(p, vec2(0.0), vec2(0.86, 0.0));
+    d = min(d, seg(p, vec2(0.38, 0.0), vec2(0.38 + 0.22 * 0.5, 0.22 * 0.866)));
+    d = min(d, seg(p, vec2(0.6, 0.0), vec2(0.6 + 0.15 * 0.5, 0.15 * 0.866)));
+    d = min(d, abs(r - 0.16) * 1.4);
+    float w = 0.055 - 0.02 * r;
+    // frosted: a fine sparkle grain through the ice, and a faint rime glow round the flake
+    float frost = 0.8 + 0.2 * sin(vUv.x * 41.0 + s) * sin(vUv.y * 37.0 - s);
+    k = (1.0 - smoothstep(w * 0.6, w, d)) * frost + 0.18 * (1.0 - smoothstep(0.0, 0.14, d)) * (1.0 - r);
   } else {
     float edge = 0.78 + 0.12 * sin(a * 5.0 + s);
     float pits = smoothstep(0.55, 0.7, sin(vUv.x * 17.0 + s) * sin(vUv.y * 15.0 - s * 1.7) + 0.35);
