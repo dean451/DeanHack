@@ -46,6 +46,9 @@ export function addOutlines(g,{smooth=false}={}){
  g.traverse(mesh=>{
   if(!mesh.isMesh||mesh.userData.outline||mesh.userData.ring||mesh.userData.hasOutline)return;
   const geo=mesh.geometry;mesh.userData.hasOutline=true;
+  // the fur's layers are the skin again (feline-skin.js): the fur's own hull already draws that outline, and a hull
+  // per layer drew the same 42,000 skinned triangles up to ten more times over
+  if(mesh.userData.part==='fur-shell')return;
   if(geo.type==='ShapeGeometry'||geo.type==='PlaneGeometry'||mesh.material.transparent||(!geo.attributes.normal&&!smooth))return;
   if(!geo.boundingBox)geo.computeBoundingBox();
   const dims=geo.boundingBox.getSize(new THREE.Vector3()).multiply(mesh.getWorldScale(new THREE.Vector3()));
