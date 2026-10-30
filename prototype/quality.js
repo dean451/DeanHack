@@ -78,11 +78,14 @@ export function createFramePacer({activeMs = ACTIVE_MS, deepMs = DEEP_MS} = {}) 
 // Applies a tier to the renderer and passes. `targets` holds what the tier reaches: the renderer and
 // composer (pixel ratio), the SSAO pass (on or off), the shadow light (map size), and the shadow type
 // constants. Returns what was set, for the toast and tests.
-export function applyTier(tier, {renderer, composer, ambientOcclusion, light, scene, soft, plain, devicePixelRatio = 1, width = 0, height = 0}) {
+// keepShadowType: leave the shadow filter as it is. The filter is baked into every material's shader, so
+// changing it recompiles all of them at once (a freeze of a second or more with a hundred programs); an
+// automatic step, taken because frames are already slow, must never do that.
+export function applyTier(tier, {renderer, composer, ambientOcclusion, light, scene, soft, plain, devicePixelRatio = 1, width = 0, height = 0, keepShadowType = false}) {
   const t = TIERS[tier] ?? TIERS.balanced, ratio = pixelRatioFor(tier, devicePixelRatio);
   if (renderer) {
     renderer.setPixelRatio(ratio);
-    if (renderer.shadowMap && soft !== undefined && plain !== undefined) {
+    if (renderer.shadowMap && soft !== undefined && plain !== undefined && !keepShadowType) {
       const type = t.soft ? soft : plain;
       if (renderer.shadowMap.type !== type) {
         renderer.shadowMap.type = type;
