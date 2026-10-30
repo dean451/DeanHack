@@ -145,3 +145,10 @@ test('monsters and pets carry no health bar or total; only the hero HUD shows hi
   assert.match(html, /<div class="health"><span>HITPOINTS<\/span><strong id="hp">/, 'the hero total is labelled hitpoints');
   assert.doesNotMatch(html, /VITALITY/i);
 });
+
+test('a burst of messages redraws the message panels once, on the next frame', () => {
+  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const msg = live.slice(live.indexOf(' function message(text){'), live.indexOf(' function drawMessagePanels(){'));
+  assert.ok(msg.includes('requestAnimationFrame(drawMessagePanels)') && !msg.includes('replaceChildren'), 'message() only schedules the redraw');
+  assert.match(live, /function drawMessagePanels\(\)\{messagePanelsDue=false;[^\n]*replaceChildren[^\n]*historyPanel\.refresh\(\);\}/);
+});

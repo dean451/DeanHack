@@ -121,3 +121,10 @@ test('a seen magic portal says where it leads', () => {
   assert.equal(farlookText({...portal, portal: 'other'}), 'magic portal');
   assert.equal(farlookText(portal), 'magic portal');
 });
+
+test('the hero\'s own square names the hero, not the role\'s monster', () => {
+  const cell = {x: 4, z: 7, visible: true, kind: 'monster', name: 'valkyrie'};
+  assert.equal(farlookText(cell, null, {x: 4, z: 7, name: 'Miri'}), 'Miri');
+  assert.equal(farlookText(cell, null, {x: 4, z: 7, name: '  '}), 'you');
+  assert.equal(farlookText(cell, null, {x: 5, z: 7, name: 'Miri'}), 'valkyrie (hostile)', 'another valkyrie is still a monster');
+});

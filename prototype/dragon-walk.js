@@ -17,7 +17,7 @@ import {DRAGON} from './creature-measures.js';
 // as the trunk, opposite); stride: the legs' swing (radians); lift: the knee's bend as a foot swings
 // forward; blend: how fast the walk blends in
 // and out (1/s). A serpent's wave: wave (radians a joint), waveLength (joints per wave).
-export const WALK = {rate: 8, trunk: .14, headSteady: DRAGON.headSteady, tail: 1, stride: .3, lift: .45, blend: 6, wave: .16, waveLength: 9};
+export const WALK = {rate: 8, trunk: .19, headSteady: DRAGON.headSteady, tail: 1, stride: .3, lift: .45, blend: 6, wave: .21, waveLength: 9};
 
 const DIAGONAL = {lfore: 0, rhind: 0, rfore: Math.PI, lhind: Math.PI};
 
