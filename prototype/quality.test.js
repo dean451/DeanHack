@@ -12,8 +12,8 @@ test('the URL wins, then the saved choice, then the machine', () => {
   assert.equal(pickTier({cores: 0}), 'balanced', 'an unknown core count is treated as a decent machine');
 });
 
-test('F8 cycles the tiers in order', () => {
-  assert.equal(nextTier('high'), 'balanced'); assert.equal(nextTier('balanced'), 'low'); assert.equal(nextTier('low'), 'high');
+test('the Quality button (and F8) cycles the tiers in order, fast last', () => {
+  assert.equal(nextTier('high'), 'balanced'); assert.equal(nextTier('balanced'), 'low'); assert.equal(nextTier('low'), 'fast'); assert.equal(nextTier('fast'), 'high');
   assert.equal(nextTier('nonsense'), 'balanced');
   assert.deepEqual(ORDER, Object.keys(TIERS));
 });
@@ -180,6 +180,30 @@ test('the pet\'s fur keeps all ten layers only on high; main.js sets it before a
   assert.equal(furShellsFor('high'), 10); assert.equal(furShellsFor('balanced'), 6); assert.equal(furShellsFor('low'), 4);
   const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
   assert.ok(main.indexOf('FUR.shells=furShellsFor(quality.tier)') > 0 && main.indexOf('FUR.shells=furShellsFor(quality.tier)') < main.indexOf('const live=installLive({'));
+});
+
+test('fast strips the look to what plays: no occlusion, no glow, no shadows, 1x pixels, fewer lights and fur layers', () => {
+  const t = TIERS.fast;
+  assert.equal(t.ssao, false); assert.equal(t.bloom, false); assert.equal(t.shadows, false); assert.equal(t.ratio, 1);
+  assert.equal(torchLightsFor('fast'), 2); assert.equal(furShellsFor('fast'), 3);
+  const bloom = {enabled: true}, light = {castShadow: true, shadow: {mapSize: {x: 1024, y: 1024, set() {}}, map: null}}, ao = {enabled: true};
+  applyTier('fast', {bloom, light, ambientOcclusion: ao});
+  assert.equal(bloom.enabled, false); assert.equal(light.castShadow, false); assert.equal(ao.enabled, false);
+  applyTier('balanced', {bloom, light, ambientOcclusion: ao});
+  assert.equal(bloom.enabled, true); assert.equal(light.castShadow, true, 'shadows come back on the way out of fast');
+  // an automatic step never reaches fast, and never touches the shadow switch
+  const a = createAdaptiveQuality({slowHold: 0}); let tier = 'low';
+  for (let ms = 0; ms < 5000; ms += 16) { const s = a.frame(ms, 80, tier); if (s) tier = s; }
+  assert.equal(tier, 'low');
+  const lit = {castShadow: true, shadow: {mapSize: {x: 1024, y: 1024, set() {}}, map: null}}; applyTier('fast', {light: lit, keepShadowType: true}); assert.equal(lit.castShadow, true);
+});
+
+test('main.js shows a Quality button that cycles the tiers, for keyboards without F8', () => {
+  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
+  assert.match(main, /qualityButton\.id='quality'/);
+  assert.match(main, /qualityButton\.addEventListener\('click',\(\)=>\{cycleQuality\(\);/);
+  assert.match(main, /document\.querySelector\('\.buttons'\)\.append\(qualityButton\)/);
+  assert.match(main, /if\(e\.key==='F8'\)\{e\.preventDefault\(\);cycleQuality\(\);\}/);
 });
 
 test('balanced draws its shadows into a 1024 map: the moon\'s 18-unit square still gets about 57 texels a tile', () => {
