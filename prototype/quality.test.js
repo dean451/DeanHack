@@ -151,7 +151,7 @@ test('frame cost: late frames cost the whole gap, frames on the display beat cos
 test('only the high tier keeps eight torch lights; the live torch list is not rebuilt every frame', () => {
   assert.equal(torchLightsFor('high'), 8); assert.equal(torchLightsFor('balanced'), 4); assert.equal(torchLightsFor('low'), 4); assert.equal(torchLightsFor('nonsense'), 4);
   const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8'), live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
-  assert.match(main, /installLive\(\{torchLightCount:torchLightsFor\(quality\.tier\)/);
+  assert.match(main, /installLive\(\{scene,camera,controls,renderer,torchLightCount:torchLightsFor\(quality\.tier\)/);
   assert.match(live, /get\('torches'\)\?\?String\(torchLightCount\)/);
   const update = live.slice(live.indexOf('function updateTorchLights('), live.indexOf('const ease=1-Math.exp(-dt*5);'));
   assert.ok(!update.includes('[...tiles.values()].filter(tile=>tile.userData.torch).sort'), 'no filter and sort over every tile each frame');
