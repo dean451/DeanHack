@@ -104,6 +104,7 @@ import {createDjinniWish} from './djinni-wish.js';
 import {createFireTrapJet} from './fire-trap-jet.js';
 import {createDarkness} from './darkness.js'; // the dark around the hero's light, and the light's own halo (no lights: two meshes)
 import {createDarkEyes} from './dark-eyes.js'; // monsters perceived on unseen squares show as eyes in the dark
+import {createWarmTarget,compileFor} from './shader-target.js';
 import {createEffectLights,shareFlash} from './effect-lights.js'; // one fixed pool of lights for the one-shot effects, so the light count (and every shader) stays put
 import {createGoldGlint} from './gold-glint.js';
 import {createPotionSip} from './potion-sip.js';
@@ -481,7 +482,11 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  // shaders compile ahead of the draw (compileAsync uses the parallel-compile extension where there
  // is one), instead of stalling the first frame that shows a new material.
  let staged=false;
- function warmUp(){if(!staged||!renderer?.compileAsync)return;staged=false;renderer.compileAsync(scene,camera).catch(()=>{});}
+ /* compiled against a render target, as the composer draws the scene (into its buffers: linear colour, tone
+ mapping left to the output pass). Compiled for the canvas instead, every warmed shader was the canvas variant (sRGB,
+ ACES), which the frame never uses, and the frame's own variant compiled on the spot at first draw (shader-target.js) */
+ const warmTarget=renderer?createWarmTarget(THREE):null;
+ function warmUp(){if(!staged||!renderer?.compileAsync)return;staged=false;compileFor(renderer,warmTarget,()=>renderer.compileAsync(scene,camera)).catch(()=>{});}
  function apply(frame){const prevFrame=latest;latest=frame;if(prevFrame?.player&&frame.player&&prevFrame.depth===frame.depth&&prevFrame.branch===frame.branch&&frame.player.hp<prevFrame.player.hp)hitFeel.hit(prevFrame.player.hp-frame.player.hp,{heroHurt:true});if(!active)return;
    if(frame.player?.countdowns&&typeof frame.player.countdowns==='object')frameCountdowns=frame.player.countdowns;
    if(Array.isArray(frame.player?.conditions)){frameConditions=frame.player.conditions;const tags=document.getElementById('hero-conditions');if(tags)tags.innerHTML=conditionTagsHtml(frameConditions);applyStatusScreen(statusScreenEl(),frameConditions);statusScreenEl().style.setProperty('--status-progress',worstProgress(statusProgress.update(frameConditions,frame.turn||0)).toFixed(2));}minimap.update(frame);
