@@ -31,6 +31,12 @@ export const STORAGE_KEY = 'deanhack.quality';
 // how long after that it drops to the deep idle rate.
 export const ACTIVE_MS = 2500, DEEP_MS = 45000;
 
+// How many torch point lights the live scene keeps. Each point light costs every lit pixel every frame
+// whether it is lit or dark (three bakes the count into the shaders), so only the high tier keeps eight;
+// the others light the four torches nearest the hero, the rest still burn and glow, unlit.
+export const TORCH_LIGHTS = {high: 8, balanced: 4, low: 4};
+export const torchLightsFor = tier => TORCH_LIGHTS[tier] ?? TORCH_LIGHTS.balanced;
+
 export function isTier(name) { return typeof name === 'string' && Object.hasOwn(TIERS, name); }
 
 // The tier to start with: the URL, then the saved choice, then the machine.
