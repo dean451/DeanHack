@@ -144,3 +144,12 @@ test('a room of every terrain feature stays inside the draw-call budget', () => 
   const counts = sceneCounts(scene);
   assert(counts.meshes <= BUDGET.busyFeatures, `${counts.meshes} meshes, budget ${BUDGET.busyFeatures}`);
 });
+
+// The page around the canvas has a budget too. A backdrop-filter re-filters everything behind it each frame
+// the canvas changes (every frame, in play); animating one over the whole window was what made hallucinating
+// in the Big Room crawl. Static ones on small panels are fine; animated ones are not.
+test('no CSS animation drives a backdrop-filter', () => {
+  const css = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
+  const animated = [...css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]*\{[^{}]*\})*)[^{}]*\}/g)].filter(m => /backdrop-filter/.test(m[2])).map(m => m[1]);
+  assert.deepEqual(animated, []);
+});
