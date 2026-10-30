@@ -31,6 +31,12 @@ export const STORAGE_KEY = 'deanhack.quality';
 // how long after that it drops to the deep idle rate.
 export const ACTIVE_MS = 2500, DEEP_MS = 45000;
 
+// How many torch point lights the live scene keeps. Each point light costs every lit pixel every frame
+// whether it is lit or dark (three bakes the count into the shaders), so only the high tier keeps eight;
+// the others light the four torches nearest the hero, the rest still burn and glow, unlit.
+export const TORCH_LIGHTS = {high: 8, balanced: 4, low: 4};
+export const torchLightsFor = tier => TORCH_LIGHTS[tier] ?? TORCH_LIGHTS.balanced;
+
 export function isTier(name) { return typeof name === 'string' && Object.hasOwn(TIERS, name); }
 
 // The tier to start with: the URL, then the saved choice, then the machine.
@@ -78,11 +84,14 @@ export function createFramePacer({activeMs = ACTIVE_MS, deepMs = DEEP_MS} = {}) 
 // Applies a tier to the renderer and passes. `targets` holds what the tier reaches: the renderer and
 // composer (pixel ratio), the SSAO pass (on or off), the shadow light (map size), and the shadow type
 // constants. Returns what was set, for the toast and tests.
-export function applyTier(tier, {renderer, composer, ambientOcclusion, light, scene, soft, plain, devicePixelRatio = 1, width = 0, height = 0}) {
+// keepShadowType: leave the shadow filter as it is. The filter is baked into every material's shader, so
+// changing it recompiles all of them at once (a freeze of a second or more with a hundred programs); an
+// automatic step, taken because frames are already slow, must never do that.
+export function applyTier(tier, {renderer, composer, ambientOcclusion, light, scene, soft, plain, devicePixelRatio = 1, width = 0, height = 0, keepShadowType = false}) {
   const t = TIERS[tier] ?? TIERS.balanced, ratio = pixelRatioFor(tier, devicePixelRatio);
   if (renderer) {
     renderer.setPixelRatio(ratio);
-    if (renderer.shadowMap && soft !== undefined && plain !== undefined) {
+    if (renderer.shadowMap && soft !== undefined && plain !== undefined && !keepShadowType) {
       const type = t.soft ? soft : plain;
       if (renderer.shadowMap.type !== type) {
         renderer.shadowMap.type = type;

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TIERS, ORDER, pickTier, createAdaptiveQuality, frameCost, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
+import {readFileSync} from 'node:fs';
+import {torchLightsFor, TIERS, ORDER, pickTier, createAdaptiveQuality, frameCost, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
 
 test('the URL wins, then the saved choice, then the machine', () => {
   assert.equal(pickTier({search: '?quality=high', saved: 'low', cores: 2}), 'high');
@@ -84,6 +85,16 @@ test('applying a tier sets the pixel ratio, SSAO, shadow map and type, and recom
   assert.equal(applyTier('nonsense', {}).tier, 'nonsense');
 });
 
+test('an automatic step never changes the shadow filter, so no material recompiles mid-game', () => {
+  const r = rig();
+  applyTier('low', {...r, soft: 'soft', plain: 'plain', devicePixelRatio: 2, width: 1440, height: 900, keepShadowType: true});
+  assert.equal(r.renderer.shadowMap.type, 'soft'); assert.ok(r.mats.every(m => !m.needsUpdate), 'no recompile');
+  assert.equal(r.renderer.ratio, 1); assert.equal(r.ambientOcclusion.enabled, false); assert.equal(r.light.shadow.mapSize.x, 1024);
+  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
+  assert.match(main, /keepShadowType:auto/, 'main.js keeps the filter on automatic steps');
+  assert.match(main, /renderer\.debug\.checkShaderErrors=new URLSearchParams\(location\.search\)\.has\('debug'\)/, 'shader logs are only read with ?debug');
+});
+
 test('the saved tier survives a broken storage', () => {
   const store = new Map(), storage = {getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v)};
   saveTier('low', storage); assert.equal(readSaved(storage), 'low'); assert.equal(store.get(STORAGE_KEY), 'low');
@@ -145,4 +156,14 @@ test('frame cost: late frames cost the whole gap, frames on the display beat cos
   assert.equal(a.frame(2000, null, 'high'), null, 'a null frame starts the window over');
   for (let t = 2016; t < 4900; t += 16) assert.equal(a.frame(t, 40, 'high'), null, 'three seconds are counted from after the gap');
   assert.equal(a.frame(5100, 40, 'high'), 'balanced');
+});
+
+test('only the high tier keeps eight torch lights; the live torch list is not rebuilt every frame', () => {
+  assert.equal(torchLightsFor('high'), 8); assert.equal(torchLightsFor('balanced'), 4); assert.equal(torchLightsFor('low'), 4); assert.equal(torchLightsFor('nonsense'), 4);
+  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8'), live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  assert.match(main, /installLive\(\{scene,camera,controls,renderer,torchLightCount:torchLightsFor\(quality\.tier\)/);
+  assert.match(live, /get\('torches'\)\?\?String\(torchLightCount\)/);
+  const update = live.slice(live.indexOf('function updateTorchLights('), live.indexOf('const ease=1-Math.exp(-dt*5);'));
+  assert.ok(!update.includes('[...tiles.values()].filter(tile=>tile.userData.torch).sort'), 'no filter and sort over every tile each frame');
+  assert.match(update, /if\(torchTiles\.key!==`\$\{lastLevel\}:\$\{tiles\.size\}`\)/);
 });

@@ -75,6 +75,7 @@ import {createBugbear} from './bugbear.js';
 import {createOwlbear} from './owlbear.js';
 import {createWarhorse} from './warhorse.js';
 import {createBaluchitherium} from './baluchitherium.js';
+import {nameQuadrupedJoints} from './quadruped-joints.js';
 import {createRustMonster} from './rust-monster.js';
 import {createKobold,isKobold} from './kobold.js';
 import {createEvilEye} from './evil-eye.js';
@@ -909,7 +910,7 @@ function snake(o){
  const skin=mat(o.color,{roughness:.55}),belly=mat(o.belly||shade(o.color,1.5)),coil=[];
  for(let i=0;i<=28;i++){const t=i/28,a=t*Math.PI*3.6,r=.24-t*.13;coil.push([Math.cos(a)*r,.005+.045*tailTaper(t)+t*.1,Math.sin(a)*r]);}
  coil.push([0,.3,.06],[0,.42,.14]);
- pointedTailTube(body,coil,.045,skin,64);
+ pointedTailTube(body,coil,.045,skin,64).userData.coil=true;// slither.js ripples it
  const head=new THREE.Group();head.position.set(0,.44,.18);body.add(head);
  const jaw=snakeHead(head,o);
  const hood=o.hood?cobraHood(head,o):null;
@@ -1398,7 +1399,7 @@ function proboscidean(o){
  B.put(tail,skin,taperedTube([[0,0,0],[0,-.1,-.05],[0,-.28,-.06]],.022,.014,8,6));
  B.put(tail,hair||dark,new THREE.ConeGeometry(.03,.09,6),[0,-.31,-.06],[Math.PI,0,0]);
  B.bake();
- return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,trunk});
+ return nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'idle'),{head,trunk}));
 }
 const PROBOSCIDEANS={
  mumak:{name:'mumak',scale:1.25,skin:'#7c7872',dark:'#56524d',ear:.2,crown:0,minorTusks:true,warScars:true},
@@ -1461,7 +1462,7 @@ function megaRhino(o){
  B.put(tail,skin,taperedTube([[0,0,0],[0,-.08,-.04],[0,-.2,-.05]],.025,.014,8,6));
  B.put(tail,dark,new THREE.ConeGeometry(.028,.08,6),[0,-.23,-.05],[Math.PI,0,0]);
  B.bake();
- return Object.assign(actor(g,body,legs,tail,[],'idle'),{head});
+ return nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'idle'),{head}));
 }
 const MEGA_RHINOS={
  titanothere:{name:'titanothere',scale:1.15,skin:'#6e6254',dark:'#4a4036',legH:.34,girth:.3,length:1.45,hump:.16,neck:0,headTilt:.32,headSize:1.35,horn:'fork',stance:.17,legR:.085,setBack:-.15},
@@ -1529,7 +1530,7 @@ function leocrotta(o){
  B.put(tail,coat,taperedTube([[0,0,0],[0,-.08,-.08],[0,-.26,-.12],[0,-.4,-.08]],.024,.014,14,6));
  B.put(tail,mane,S(.035,10,8),[0,-.43,-.07],[0,0,0],[1,1.6,1]);
  B.bake();
- return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw});
+ return nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw}));
 }
 // Wumpuses (q): used to borrow the rothe, tinted cyan. A squat, round, shaggy beast too heavy for
 // a bat to lift, on four short, thick legs that end in the sucker feet of the old Hunt the Wumpus
@@ -1608,7 +1609,7 @@ function wumpus(o){
  put(tail,dark,S(.035,10,8),[0,-.11,-.11],[0,0,0],[1,1.4,1]);
  const skin=mat('#ffffff',{vertexColors:true,roughness:.9,flatShading:true});
  for(const [parent,P] of bins)part(parent,P.merge(),skin);
- return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw});
+ return nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw}));
 }
 // Rothes (q): used to be the generic canine with little horns. A shaggy, musk-ox-like grazer from
 // the underdark: a heavy barrel body under a high shoulder hump, draped in a long skirt of coarse dark
@@ -1683,7 +1684,7 @@ function rothe(o){
  put(tail,fur,new THREE.ConeGeometry(.03,.08,6),[0,-.13,-.05],[Math.PI,0,0]);
  const skin=mat('#ffffff',{vertexColors:true,roughness:.9});
  for(const [parent,P] of bins)part(parent,P.merge(),skin);
- return Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw});
+ return nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'idle'),{head,jaw}));
 }
 // giants (H): a towering, broad-shouldered brute in a hide kilt and belt, with thick legs in wrapped boots and heavy fists;
 // hill giants swing clubs, stone giants shoulder a boulder, fire giants have a smouldering beard and a sword, frost giants
@@ -2280,7 +2281,7 @@ function naga(o){
   glow=mat(o.eye||'#f0d040',{emissive:o.eye||'#f0d040',emissiveIntensity:2,roughness:.3}),pupil=mat('#0c0a08',{roughness:.4}),r=o.baby?.05:.075;
  // lower body: a flat spiral coil ending under the raised neck
  const coil=[];for(let i=0;i<=30;i++){const t=i/30,a=Math.PI*.5+t*Math.PI*3.2,rad=.3-t*.18;coil.push([Math.cos(a)*rad,r*tailTaper(t)+t*.04,-Math.sin(a)*rad*.9-.02]);}
- coil.push([0,r+.08,.1]);pointedTailTube(body,coil,r,scales,72);
+ coil.push([0,r+.08,.1]);pointedTailTube(body,coil,r,scales,72).userData.coil=true;
  // raised half: pivots above the coil centre
  const neck=new THREE.Group();neck.position.set(0,r+.08,.1);body.add(neck);
  const rise=[[0,0,0],[0,.14,.03],[0,.3,.02],[0,.44,-.01]];tube(neck,rise,r*.95,scales,20);

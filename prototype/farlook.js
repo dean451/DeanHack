@@ -47,8 +47,11 @@ function bareText(cell) {
 
 // The one quiet line for a square, or '' when there is nothing to name. A square out of sight
 // still names what detection or telepathy sensed there, marked as sensed.
-export function farlookText(cell, stuck) {
+// `hero` ({x, z, name}): the hero's own square names the hero by the character's name, not by the
+// role's monster ("valkyrie (hostile)"), since the hero's cell carries a monster glyph like any other.
+export function farlookText(cell, stuck, hero = null) {
   if (!cell) return '';
+  if (hero && cell.x === hero.x && cell.z === hero.z) return String(hero.name || '').trim() || 'you';
   if (cell.visible) return seenText(cell, stuck);
   if (!cell.sensed || !(cell.name || cell.object?.label || cell.object?.name)) return '';
   const text = seenText({...cell, visible: true, health: undefined});
