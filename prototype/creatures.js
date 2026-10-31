@@ -40,6 +40,7 @@ import {createAcidBlob} from './acid-blob.js';
 import {createGrayOoze} from './gray-ooze.js';
 import {createJelly} from './jelly.js';
 import {createSlime} from './slime.js';
+import {createPudding} from './pudding.js';
 import {createNaga} from './naga.js';
 import {createVortex} from './vortex.js';
 import {waterDemonHead,waterDemonBody} from './water-demon.js';
@@ -3442,6 +3443,7 @@ export function createCreature(cell={}){
  if(name==='blue jelly'||name==='spotted jelly'||name==='ochre jelly'){const a=createJelly({kind:name.split(' ')[0]});if(name==='ochre jelly')a.g.scale.setScalar(1.2);// (it spreads wider than a plain ooze, menace-scale.test.js)
  return actor(a.g,a.body,[],null,[],'blob');}
  if(name==='blue slime'){const a=createSlime({kind:'blue'});a.g.scale.setScalar(1.25);return actor(a.g,a.body,[],null,[],'blob');}
+ if(name==='black pudding'||name==='brown pudding'){const a=createPudding({kind:name.split(' ')[0]});a.g.scale.setScalar(name==='black pudding'?1.5:1.1);return actor(a.g,a.body,[],null,[],'blob');}
  if(name==='gray ooze'){const a=createGrayOoze();return actor(a.g,a.body,[],null,[],'blob');}
  if(/(blob|jelly|pudding|ooze|slime)$/.test(name))return blob({color:color||{acid:'#6fae3a','blue':'#3d6fd0','spotted':'#7a8a3a','ochre':'#c08a3a','brown':'#7a5a3a','black':'#2a2a30','gray':'#7a7a78','green':'#4f9a3a','quivering':'#b0a8d0','gelatinous':'#8ad0c0'}[name.split(' ')[0]]||'#7a9a6a',flat:/jelly$/.test(name),slime:name==='green slime',acid:name==='acid blob',black:name==='black pudding',brown:name==='brown pudding',scale:name==='black pudding'?1.5:/^(green slime|ochre jelly|blue slime)$/.test(name)?1.25:name==='brown pudding'?1.1:1});
  if(name==='centipede')return centipede({color:'#c9a03a'});
