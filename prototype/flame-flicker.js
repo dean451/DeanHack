@@ -10,6 +10,7 @@
 // brightens and dims with them. The pool never grows or shrinks (a change in light count would
 // recompile every shader); unused lights sit at intensity 0.
 import * as THREE from 'three';
+import {eachObject} from './scene-walk.js';
 
 export const FLAME_SCAN_EVERY = .5; // seconds between scene scans
 export const FLAME_STRETCH = .16; // peak height change (fraction)
@@ -104,9 +105,9 @@ export function restoreFlame(mesh, keepMaterial = false) {
   delete mesh.userData.flameRest;
 }
 
-export function findFlames(scene) {
+export function findFlames(scene, t) {
   const out = [];
-  scene.traverse(o => { if (o.isMesh && o.userData.part === 'flame') out.push(o); });
+  eachObject(scene, t, o => { if (o.isMesh && o.userData.part === 'flame') out.push(o); });
   return out;
 }
 
@@ -180,7 +181,7 @@ export function createFlameFlicker(scene, {focus} = {}) {
     get lights() { return lights.lights; },
     update(t) {
       if (t >= nextScan || t < nextScan - FLAME_SCAN_EVERY * 2) {
-        const found = findFlames(scene), keep = new Set(found), used = new Set(found.map(f => f.material));
+        const found = findFlames(scene, t), keep = new Set(found), used = new Set(found.map(f => f.material));
         // A flame that left the scene is put back, in case its item is shown again.
         for (const f of flames) if (!keep.has(f)) { lights.release(f);restoreFlame(f, used.has(f.material)); }
         flames = found;nextScan = t + FLAME_SCAN_EVERY;

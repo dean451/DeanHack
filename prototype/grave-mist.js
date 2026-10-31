@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {eachObject} from './scene-walk.js';
 
 // A thin ground mist that clings to every grave in the scene (grave.js names its group 'Grave').
 // Each grave gets a few faint, flat wisps lying just above the soil. They drift slowly round the
@@ -105,9 +106,9 @@ export function detachMist(group) {
   group.removeFromParent();
 }
 
-export function findGraves(scene) {
+export function findGraves(scene, t) {
   const out = [];
-  scene.traverse(o => { if (o.name === 'Grave') out.push(o); });
+  eachObject(scene, t, o => { if (o.name === 'Grave') out.push(o); });
   return out;
 }
 
@@ -117,7 +118,7 @@ export function createGraveMist(scene) {
     get mists() { return mists; },
     update(t) {
       if (t >= nextScan || t < nextScan - MIST_SCAN_EVERY * 2) {
-        const found = new Set(findGraves(scene)), next = new Map();
+        const found = new Set(findGraves(scene, t)), next = new Map();
         for (const [grave, group] of mists) if (found.has(grave) && group.parent === grave) next.set(grave, group);else detachMist(group);
         for (const grave of found) if (!next.has(grave)) next.set(grave, attachMist(grave));
         mists = next;nextScan = t + MIST_SCAN_EVERY;

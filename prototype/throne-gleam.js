@@ -7,6 +7,7 @@
 // away anything unidentified.
 // The scene is re-scanned twice a second, so thrones on tiles that come and go are picked up.
 // Everything is a function of t, so it's frame-rate independent and restore() puts back the rest glow.
+import {eachObject} from './scene-walk.js';
 
 export const GLEAM_SCAN_EVERY = .5; // seconds between scene scans
 export const GLEAM_BREATHE = .18; // peak slow change in the sapphire's glow (fraction)
@@ -72,9 +73,9 @@ export function restoreGleam(mesh) {
   delete mesh.userData.gleamRest;
 }
 
-export function findThrones(scene) {
+export function findThrones(scene, t) {
   const out = [];
-  scene.traverse(o => {
+  eachObject(scene, t, o => {
     if (o.name !== 'Throne') return;
     const stones = o.children.filter(c => c.isMesh && (c.userData.part === 'jewel' || c.userData.part === 'ruby'));
     if (stones.length) out.push({throne: o, stones});
@@ -88,7 +89,7 @@ export function createThroneGleam(scene) {
     get thrones() { return thrones; },
     update(t) {
       if (t >= nextScan || t < nextScan - GLEAM_SCAN_EVERY * 2) {
-        const found = findThrones(scene), keep = new Set(found.flatMap(f => f.stones));
+        const found = findThrones(scene, t), keep = new Set(found.flatMap(f => f.stones));
         for (const {stones} of thrones) for (const s of stones) if (!keep.has(s)) restoreGleam(s);
         thrones = found;nextScan = t + GLEAM_SCAN_EVERY;
       }

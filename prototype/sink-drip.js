@@ -7,6 +7,7 @@
 // right place. The scene is re-scanned twice a second, so sinks that come and go are picked up.
 // Everything is a function of t, so it's frame-rate independent.
 import * as THREE from 'three';
+import {eachObject} from './scene-walk.js';
 
 export const DRIP_SCAN_EVERY = .5; // seconds between scene scans
 export const DRIP_PERIOD = [2.4, 3.8]; // seconds between drops, picked per sink
@@ -78,9 +79,9 @@ export function dripState(t, period, offset, height) {
   return out;
 }
 
-export function findSinks(scene) {
+export function findSinks(scene, t) {
   const out = [];
-  scene.traverse(o => { if (o.isGroup && o.name === 'Sink') out.push(o); });
+  eachObject(scene, t, o => { if (o.isGroup && o.name === 'Sink') out.push(o); });
   return out;
 }
 
@@ -117,15 +118,15 @@ export function createSinkDrip(scene) {
     sinks.delete(sink);
   }
 
-  function scan() {
-    const found = new Set(findSinks(scene));
+  function scan(t) {
+    const found = new Set(findSinks(scene, t));
     for (const sink of [...sinks.keys()]) if (!found.has(sink)) drop(sink);
     for (const sink of found) if (!sinks.has(sink)) sinks.set(sink, rig(sink));
   }
 
   return {
     update(t) {
-      if (t >= nextScan || t < nextScan - DRIP_SCAN_EVERY * 2) {nextScan = t + DRIP_SCAN_EVERY;scan();}
+      if (t >= nextScan || t < nextScan - DRIP_SCAN_EVERY * 2) {nextScan = t + DRIP_SCAN_EVERY;scan(t);}
       for (const r of sinks.values()) {
         if (!r) continue;
         const s = dripState(t, r.period, r.offset, r.height);
