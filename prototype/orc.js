@@ -59,6 +59,17 @@ const HIP=.46,SHOULDER_Y=HIP+.44,SHOULDER_X=.245,ARM=.43,HEAD_Y=HIP+.6,HEAD_R=.1
 const lathe=(profile,segments=24)=>new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),segments);
 const ramp=(a,b,lo,hi)=>y=>mix(a,b,(y-lo)/(hi-lo));
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
+// flat-shaded and knocked a little out of true: split the faces, nudge each corner by a hash of
+// where it sits (so shared corners move together), then take face normals
+function faceted(geo,jitter){
+ const g=geo.index?geo.toNonIndexed():geo,p=g.attributes.position,key=new Map();
+ for(let i=0;i<p.count;i++){
+  const k=`${p.getX(i).toFixed(4)},${p.getY(i).toFixed(4)},${p.getZ(i).toFixed(4)}`;
+  let d=key.get(k);if(!d){const n=key.size+1;d=[hash(n*1.7)-.5,hash(n*2.9)-.5,hash(n*4.1)-.5];key.set(k,d);}
+  p.setXYZ(i,p.getX(i)+d[0]*jitter*2,p.getY(i)+d[1]*jitter,p.getZ(i)+d[2]*jitter*2);
+ }
+ g.deleteAttribute('uv');g.computeVertexNormals();return g;
+}
 const colours=L=>{const C={};for(const [k,v] of Object.entries(L))if(typeof v==='string'&&v.startsWith('#'))C[k]=rgb(v);return C;};
 const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 // mail: a fine grid of darker rings
@@ -83,7 +94,10 @@ function buildBody(L,C){
  const coat={hide:C.leather,fur:C.leather,mail:null,plate:C.metal,robe:C.cloth,captain:null}[L.armour];
  const torso=coat?(x,y,z)=>mix(ramp(mix(coat,[0,0,0],.3),coat,h,h+.3)(y),mix(coat,[0,0,0],.3),z<-.06?.3:0):mail(C);
  // a barrel chest that swells up into heavy shoulders, over a thick waist, leaning forward
- P.add(lathe([[0,h-.04],[.17,h-.04],[.19,h+.04],[.2,h+.14],[.225,h+.26],[.25,h+.36],[.23,h+.42],[.15,h+.47],[.07,h+.49],[0,h+.495]],28),at(0,0,.01,[.12,0,0],[1,1,.78]),torso);
+ const chest=[[0,h-.04],[.17,h-.04],[.19,h+.04],[.2,h+.14],[.225,h+.26],[.25,h+.36],[.23,h+.42],[.15,h+.47],[.07,h+.49],[0,h+.495]];
+ // a hide-clad orc's trunk is faceted (nine flat sides, knocked out of true), not a smooth sack
+ if(L.armour==='hide'||L.armour==='fur')P.add(faceted(lathe(chest,9),.022),at(0,0,.01,[.12,0,0],[1,1,.78]),torso);
+ else P.add(lathe(chest,28),at(0,0,.01,[.12,0,0],[1,1,.78]),torso);
  // the hunch: a hump of muscle over the shoulders, and the thick neck jutting forward
  P.add(new THREE.SphereGeometry(.13,14,10),at(0,h+.45,-.05,[0,0,0],[1.55,.7,.9]),L.armour==='plate'?C.metal:coat?torso:mail(C));
  P.add(new THREE.CylinderGeometry(.075,.09,.13,12),at(0,h+.52,.05,[.55,0,0]),C.shade);
@@ -97,7 +111,11 @@ function buildBody(L,C){
  }
  if(L.armour==='fur'){
   // a shaggy fur mantle round the shoulders
-  for(let i=0;i<22;i++){const a=i/22*Math.PI*2,r=.23+hash(i)*.02;P.add(new THREE.SphereGeometry(.06,8,6),at(Math.sin(a)*r,h+.44+hash(i*3)*.03,Math.cos(a)*r*.82-.02,[0,a,0],[1,.8,1.2]),mix(C.fur,rgb('#3a2a1a'),hash(i*5)*.6));}
+  // two tiers sunk into the chest's own slope (the lower on the shoulders, the upper at the base
+  // of the neck), so the mantle is part of the body and not a ring hanging round it
+  for(const [n,y,r] of [[22,h+.37,.22],[14,h+.45,.14]])for(let i=0;i<n;i++){
+   const a=i/n*Math.PI*2+(y>h+.4?.2:0),rr=r+hash(i+n)*.015;
+   P.add(faceted(new THREE.IcosahedronGeometry(.06,0),.012),at(Math.sin(a)*rr,y+hash(i*3)*.025,Math.cos(a)*rr*.78+.01,[0,a,0],[1,.8,1.2]),mix(C.fur,rgb('#3a2a1a'),hash(i*5)*.6));}
  }
  if(L.armour==='mail'||L.armour==='captain'||L.armour==='plate'){
   // a mail skirt below the belt

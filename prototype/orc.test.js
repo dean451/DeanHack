@@ -47,3 +47,16 @@ test('every orc kind gets its own model instead of the box humanoid',()=>{
  assert.equal(createCreature({name:'hobgoblin'}).g.name,'hobgoblin');
  for(const name of ['orc zombie','orc mummy','Orcus'])assert(!ORCS.includes(createCreature({name}).g.name),name);
 });
+
+test('hide and fur orcs wear a faceted trunk, a mail orc keeps its smooth one',()=>{
+ const flat=name=>{
+  const a=createCreature({name,symbol:111,color:1}),m=meshes(a).find(o=>o.userData.part==='body')||meshes(a)[0],g=m.geometry,n=g.attributes.normal,ix=g.index;
+  let tris=0,same=0;const cnt=ix?ix.count:n.count;
+  for(let i=0;i<cnt;i+=3){
+   const [p,q,r]=[0,1,2].map(k=>ix?ix.getX(i+k):i+k);
+   tris++;if(Math.abs(n.getX(p)-n.getX(q))+Math.abs(n.getY(p)-n.getY(q))+Math.abs(n.getZ(p)-n.getZ(q))<1e-4&&Math.abs(n.getX(p)-n.getX(r))+Math.abs(n.getY(p)-n.getY(r))+Math.abs(n.getZ(p)-n.getZ(r))<1e-4)same++;
+  }
+  return same/tris;
+ };
+ assert(flat('hill orc')>flat('mordor orc')+.1,`hill ${flat('hill orc')} mordor ${flat('mordor orc')}`);
+});
