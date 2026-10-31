@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -95,6 +95,18 @@ test('the humanoid numbers are an adult human\'s walk', () => {
   // a step is about two thirds of a metre
   inside(HUMAN.stepLength, [.55, .8], 'step length, m');
   assert(walkSpeed[0] < walkSpeed[1]);
+});
+
+test('the imp numbers are a monkey\'s walk and a bird\'s bob', () => {
+  const {monkeyWalkSpeed, macaqueTreadmill, gullBobSpeed, gullNoBobSpeed} = MEASURES.imp;
+  // a monkey walks a treadmill at a metre a second or less, up to a little over one and a half for macaques
+  for (const v of monkeyWalkSpeed) inside(v, [.2, 1.2], 'monkey walking speed, m/s');
+  for (const v of macaqueTreadmill) inside(v, [.2, 2], 'macaque treadmill speed, m/s');
+  assert(monkeyWalkSpeed[0] < monkeyWalkSpeed[1] && macaqueTreadmill[0] < macaqueTreadmill[1]);
+  inside(IMP.walkMid, [.5, .9], 'mid monkey walking speed, m/s');
+  // a bird bobs at the slower speeds, in head lengths a second
+  inside(gullBobSpeed, [1, 5], 'bobbing speed, head lengths a second'); inside(gullNoBobSpeed, [2, 8], 'non-bobbing speed');
+  assert(IMP.bobbingBelowRun);
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {

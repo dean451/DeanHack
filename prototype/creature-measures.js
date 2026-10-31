@@ -70,6 +70,13 @@ export const MEASURES = {
     macaqueRest: [.3383, .341], // share of the day resting: rhesus in Nepal, mangrove macaques
     hawkOneFoot: .22, // peak share of time a merlin stands on one foot (Laterality 2024, as quoted)
   },
+  // imps: a monkey's walk and a bird's head bob
+  imp: {
+    monkeyWalkSpeed: [.4, 1.0], // m/s, rhesus and cynomolgus on a treadmill
+    macaqueTreadmill: [.4, 1.7], // m/s, Japanese macaques, diagonal at every speed
+    gullBobSpeed: 2.56, // head lengths a second while bobbing (Ring-billed gulls)
+    gullNoBobSpeed: 3.98, // head lengths a second while not bobbing
+  },
   // hobbit, dwarves, bugbear, mind flayer: an adult human's walk
   human: {
     walkSpeed: [1.27, 1.35], // m/s, usual pace outdoors, 95% CI of the mean (Murtagh et al. 2020)
@@ -127,4 +134,10 @@ export const HUMAN = {
   // metres a step covers at the mid pace
   stepLength: mid(MEASURES.human.walkSpeed) / (MEASURES.human.cadence / 60),
   stepWidth: MEASURES.human.stepWidth,
+};
+
+// What the imps' poses use: the pace of a monkey's diagonal walk, and that a bird bobs only below a run
+export const IMP = {
+  walkMid: mid(MEASURES.imp.monkeyWalkSpeed),
+  bobbingBelowRun: MEASURES.imp.gullBobSpeed < MEASURES.imp.gullNoBobSpeed,
 };
