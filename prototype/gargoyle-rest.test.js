@@ -53,3 +53,14 @@ test('the winged gargoyle folds its wings back along its flanks: tips behind the
   assert(Math.abs(tip.x)<open*.6,`${s} tip is far narrower than the open wing`);
   assert(tip.y>floor+.05,`${s} tip off the floor`);}
 });
+
+test('the folded wings lie back along the flanks: no point of either wing above the wing root, the arm drooping at the pinned angle',()=>{
+ const a=make(['winged gargoyle',11]),{apply}=birdPoser(a),r=restPose(a);
+ apply(r.pose);a.g.updateMatrixWorld(true);
+ const q=new THREE.Quaternion(),X=new THREE.Vector3();
+ for(const s of ['l','r']){const w=a.joints[`${s}wing`],root=w.getWorldPosition(new THREE.Vector3()),top=new THREE.Box3().setFromObject(w,true).max.y;
+  assert(top<=root.y+.12*a.g.scale.x,`${s} wing tops ${(top-root.y).toFixed(2)} above its root`);
+  w.getWorldQuaternion(q);X.set(s==='l'?-1:1,0,0).applyQuaternion(q);
+  assert(X.z<-.5,`${s} arm points back`);
+  assert(Math.abs(Math.asin(-X.y)-REST.droop)<=.2,`${s} arm droops ${(Math.asin(-X.y)).toFixed(2)} rad against ${REST.droop}`);}
+});
