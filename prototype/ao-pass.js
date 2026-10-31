@@ -24,6 +24,8 @@ export class DungeonAOPass extends GTAOPass {
   }
   _overrideVisibility() {
     const cache = this._visibilityCache;
-    this.scene.traverse(o => { if (sitsOut(o)) { o.visible = false; cache.push(o); } });
+    // traverseVisible: a hidden object's subtree is never drawn, so nothing under it needs hiding, and the walk
+    // skips it (the splash's hidden live group, levels' hidden props) on every frame.
+    this.scene.traverseVisible(o => { if (sitsOut(o)) { o.visible = false; cache.push(o); } });
   }
 }
