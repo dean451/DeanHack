@@ -273,7 +273,48 @@ export function humanoidRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects and the two-legged humanoids have maps so far.
+// The imps' map (imp, uranium imp, homunculus, quasit, tengu, lemure), from the joints `rigImp` exposes. Like the humanoids':
+// the head group's own box at rest gives the mouth and chin, `withers` is the neck's root, `rump` the pelvis (`spine0`), a
+// foot the floor under the leg's last bone (`lleg1_3` on the four-bone legs, `lleg1_2` on the tengu's and lemure's) and a
+// hand the wrist carried on along the forearm. The tail tip is the last tail bone (`tail4`; the tengu and lemure have no
+// tail). A wing's tip is the far edge of its box in the wing's own frame, level with its middle, and the wrist the point
+// on the top edge a third of the way out, so both follow a turned wing.
+export function impRoles(actor) {
+  const j = actor.joints, g = actor.g, floor = g.getWorldPosition(new THREE.Vector3()).y;
+  g.updateMatrixWorld(true);
+  const head = j.head, box = new THREE.Box3().setFromObject(head);
+  const lo = head.worldToLocal(box.min.clone()), hi = head.worldToLocal(box.max.clone());
+  const x = (lo.x + hi.x) / 2, front = Math.max(lo.z, hi.z), top = Math.max(lo.y, hi.y);
+  const map = {
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.head, [x, -top * .3, front * .85]),
+    chin: () => inFrame(() => j.head, [x, -top * .65, front * .7]),
+    withers: () => at(() => j.neck0),
+    rump: () => at(() => j.spine0),
+  };
+  if (j.tail4) map.tailtip = () => at(() => j.tail4);
+  const legEnd = j.lleg1_3 ? 3 : 2;
+  for (const side of ['l', 'r']) {
+    const foot = j[`${side}leg1_${legEnd}`], wrist = j[`${side}fore_2`], elbow = j[`${side}fore_1`];
+    const sole = foot.worldToLocal(foot.getWorldPosition(new THREE.Vector3()).setY(floor));
+    const along = wrist.worldToLocal(wrist.getWorldPosition(new THREE.Vector3()).multiplyScalar(2).sub(elbow.getWorldPosition(new THREE.Vector3())));
+    const hand = along.normalize().multiplyScalar(HAND).toArray();
+    map[`paw:${side}h`] = () => inFrame(() => foot, sole.toArray());
+    map[`paw:${side}f`] = () => inFrame(() => wrist, hand);
+    map[`hip:${side}`] = () => at(() => j[`${side}leg1_0`]);
+    map[`shoulder:${side}`] = () => at(() => j[`${side}fore_0`]);
+    const wing = j[`${side}wing`];
+    if (wing) {
+      const wb = new THREE.Box3().setFromObject(wing), a = wing.worldToLocal(wb.min.clone()), b = wing.worldToLocal(wb.max.clone());
+      const out = side === 'l' ? Math.min(a.x, b.x) : Math.max(a.x, b.x), ytop = Math.max(a.y, b.y), mid = (a.y + b.y) / 2, zc = (a.z + b.z) / 2;
+      map[`wingtip:${side}`] = () => inFrame(() => wing, [out, mid, zc]);
+      map[`wingwrist:${side}`] = () => inFrame(() => wing, [out / 3, ytop, zc]);
+    }
+  }
+  return buildRoles(map, {});
+}
+
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids and the imps have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
@@ -282,6 +323,7 @@ export function rolesOf(actor) {
   if (actor.quirk === 'cockatrice' && actor.joints) return cockatriceRoles(actor);
   if ((actor.kind === 'gargoyle' || actor.kind === 'gremlin') && actor.joints?.neck3) return gargoyleRoles(actor);
   if ((actor.quirk === 'insect' || actor.quirk === 'bee') && actor.joints?.lleg0_2) return insectRoles(actor);
+  if (['imp', 'homunculus', 'quasit', 'tengu', 'lemure'].includes(actor.quirk) && actor.joints?.rfore_2) return impRoles(actor);
   if (actor.joints?.rfore_2 && actor.joints.lleg1_2 && actor.joints.spine1 && actor.joints.neck3 && !actor.joints.tail0) return humanoidRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
