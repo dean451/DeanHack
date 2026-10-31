@@ -42,3 +42,22 @@ test('goblins and hobgoblins get their own models instead of the orc humanoid',(
  // real orcs keep the orc humanoid
  assert.notEqual(createCreature({name:'hill orc'}).g.name,'goblin');
 });
+
+test('the goblin trunk is faceted and its shoulders reach the arm joints',()=>{
+ const a=createCreature({name:'goblin',symbol:111,color:7});
+ const body=meshes(a).find(m=>m.userData.part==='body').geometry;
+ body.computeBoundingBox();
+ for(const arm of a.arms){
+  const gap=Math.abs(arm.position.x)-body.boundingBox[arm.position.x<0?'min':'max'].x*Math.sign(arm.position.x);
+  assert(gap<.04,`a shoulder joint stands ${gap.toFixed(3)} outboard of the trunk`);
+ }
+ // the gap between trunk and arm joint on each side is filled by a shoulder yoke
+ const p=body.attributes.position;const yoke={'-1':0,'1':0};
+ for(let i=0;i<p.count;i++)if(p.getY(i)>.6&&p.getY(i)<.7&&Math.abs(p.getX(i))>.135&&Math.abs(p.getX(i))<.155)yoke[Math.sign(p.getX(i))]++;
+ assert(yoke[-1]>0&&yoke[1]>0,'both shoulders have a yoke');
+ assert.equal(body.index,null,'flat faces, not a smoothed egg');
+ // the trunk's own faces carry one normal each: a good share of the hide is flat, not smoothed
+ const n=body.attributes.normal;let flat=0,tri=0;
+ for(let i=0;i+8<n.count*3;i+=9){tri++;if(Math.abs(n.array[i]-n.array[i+3])+Math.abs(n.array[i+1]-n.array[i+4])+Math.abs(n.array[i+2]-n.array[i+5])<1e-4)flat++;}
+ assert(flat/tri>.15,`only ${flat} of ${tri} faces are flat`);
+});
