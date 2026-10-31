@@ -164,7 +164,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 - **Black pudding is a black ball with dots on it** (https://github.com/dean451/DeanHack/pull/1817, `prototype/pudding.js`): `tools/creature-shot.mjs "black pudding" kp P` at the game camera shows a round dark dome on round lobes, the helm, blade and skull tiny on top and the pitch plates unreadable. **Done when:** the game-camera render shows an angular, plated mass whose silhouette is not a dome, with the embedded helm, blade and skull readable; the same three tests still pass.
 - **Winged gargoyle's wings stand up as two thin rods in the rest crouch** (https://github.com/dean451/DeanHack/pull/1825, `prototype/gargoyle-rest.js`): `POSE=rest OUT=/dir/ node tools/creature-shot.mjs "winged gargoyle" wg g` shows, at the game camera, two long thin spars rising above the head instead of wings folded back along the flanks. **Done when:** the three, side and game renders in `POSE=rest` show both wings folded flat against the flanks, none rising above the back; `gargoyle-rest.test.js` asserts the wing tips lie within the body's height.
 
-- **Hill orc's torso is a smooth brown sack with a loose collar** (https://github.com/dean451/DeanHack/pull/1780, `prototype/orc.js`): `tools/creature-shot.mjs "hill orc" o 11` shows the one-hide trunk as a plain barrel and the ring of lumps round the neck sitting off the body like a collar. **Done when:** the three render shows a faceted, asymmetric torso and the neck ring seated on the shoulders with no gap.
 
 
 
