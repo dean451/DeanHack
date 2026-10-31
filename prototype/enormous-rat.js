@@ -235,5 +235,10 @@ export function createRat(name='enormous rat'){
  }
  const tail=new THREE.Group();tail.position.set(...TAIL_ROOT);body.add(tail);
  mesh(tail,S.tail,S.fur,'tail');
- return {g,body,legs,tail,wings:[],quirk:'rat',head};
+ // Named joints, the canines' names (left is -x, fore is +z): `head` (the neck pivot `neck0` is the same group),
+ // `tail0` (one joint: the tail is a single mesh) and the four legs `lleg0` / `rleg0` fore, `lleg1` / `rleg1` hind.
+ head.name='head';tail.name='tail';
+ const joints={head,neck0:head,tail0:tail};
+ for(const leg of legs){const n=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);leg.name=n;joints[n]=leg;}
+ return {g,body,legs,tail,wings:[],quirk:'rat',head,joints};
 }
