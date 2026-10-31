@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -107,6 +107,18 @@ test('the imp numbers are a monkey\'s walk and a bird\'s bob', () => {
   // a bird bobs at the slower speeds, in head lengths a second
   inside(gullBobSpeed, [1, 5], 'bobbing speed, head lengths a second'); inside(gullNoBobSpeed, [2, 8], 'non-bobbing speed');
   assert(IMP.bobbingBelowRun);
+});
+
+test('the kobold numbers are a crouched walk and a dog\'s head tip', () => {
+  const {crouchKnee, crouchKneeSim, crouchSpeedShare, atlasSwing} = MEASURES.kobold;
+  // a crouch starts near 30 degrees of knee bend; the simulated one is deeper and slower
+  inside(crouchKnee, [20, 45], 'crouch threshold, degrees'); inside(crouchKneeSim, [30, 90], 'simulated crouch, degrees');
+  assert(crouchKneeSim > crouchKnee);
+  inside(crouchSpeedShare, [.3, .8], 'crouch pace share');
+  for (const [a, b] of Object.values(atlasSwing)) { assert(a < b); inside(a, [1, 20], 'atlas swing, degrees'); inside(b, [5, 30], 'atlas swing, degrees'); }
+  inside(KOBOLD.crouchKnee, [.3, 1], 'crouch knee, rad');
+  inside(KOBOLD.crouchPace, [.4, .8], 'crouched pace, m/s');
+  assert(KOBOLD.headSwing[0] < KOBOLD.headSwing[1]);
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {

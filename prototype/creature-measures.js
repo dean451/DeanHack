@@ -77,6 +77,13 @@ export const MEASURES = {
     gullBobSpeed: 2.56, // head lengths a second while bobbing (Ring-billed gulls)
     gullNoBobSpeed: 3.98, // head lengths a second while not bobbing
   },
+  // kobolds: a crouched human walk and a dog's head on its neck
+  kobold: {
+    crouchKnee: 30, // degrees of minimum knee flexion that makes a walk a crouch
+    crouchKneeSim: 45, // degrees held by healthy men simulating crouch gait
+    crouchSpeedShare: .5, // their pace against their normal pace
+    atlasSwing: {labrador: [5.7, 14.5], chihuahua: [9.1, 18.7]}, // degrees, sagittal rotation of the skull on the neck, mean through a walk
+  },
   // hobbit, dwarves, bugbear, mind flayer: an adult human's walk
   human: {
     walkSpeed: [1.27, 1.35], // m/s, usual pace outdoors, 95% CI of the mean (Murtagh et al. 2020)
@@ -140,4 +147,11 @@ export const HUMAN = {
 export const IMP = {
   walkMid: mid(MEASURES.imp.monkeyWalkSpeed),
   bobbingBelowRun: MEASURES.imp.gullBobSpeed < MEASURES.imp.gullNoBobSpeed,
+};
+
+// What the kobolds' poses use: how bent a crouch is, how slow it walks, and how far the dog-like head tips on its neck
+export const KOBOLD = {
+  crouchKnee: MEASURES.kobold.crouchKnee * Math.PI / 180,
+  crouchPace: MEASURES.kobold.crouchSpeedShare * HUMAN.walkMid,
+  headSwing: [MEASURES.kobold.atlasSwing.labrador[0], MEASURES.kobold.atlasSwing.chihuahua[1]].map(d => d * Math.PI / 180),
 };
