@@ -179,3 +179,20 @@ The eighth monster family (AGENTS.md, family **h**). Measured from an adult huma
 *Not found:* a slumped sitting posture as an angle that a source states outright (the studies found say only that slump sitting has more thoracic flexion), and any gait number for short-statured people, so the dwarf's wide stance has no source: the pose stages set it by eye, and the width above scales with leg length, so a dwarf's is narrower in centimetres, not wider.
 
 **What the humanoids take from this.** A step is about two thirds of a metre at a person's usual pace and the feet fall about an eighth of a leg apart; the short folk take proportionally shorter, narrower steps. A wide stance is a character choice, not a measurement.
+
+## Imps (imp, homunculus, quasit, tengu, lemure)
+
+The ninth monster family (AGENTS.md, family **i**). Measured from a monkey (the imps' squat and scamper: how fast and in what order a monkey walks) and a head-bobbing bird (the tengu's crow head; the cockerel's bob is under Cockerels above). A monkey's rest share is under Gargoyles and gremlins above (33.83% of observed time, rhesus in Nepal) and is not repeated. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Monkey and bird (walk, head bob)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Monkey walking speed | young adult rhesus and cynomolgus monkeys walked a treadmill at 0.4 to 1.0 m/s, with diagonal and lateral gaits; swing phases shorten as speed rises | [Rhesus and cynomolgus treadmill walking, PMC12964192](https://pmc.ncbi.nlm.nih.gov/articles/PMC12964192) |
+| Monkey gait order | Japanese macaques on a treadmill at 0.4 to 1.7 m/s showed the diagonal pattern (each hind foot follows the foot of the fore limb on its own side) at every constant speed tested | [Quadrupedal locomotor movements in monkeys (M. fuscata) on a treadmill, kinematic analyses](https://bvbvf1.bib-bvb.de/vufind/PrimoRecord/cdi_proquest_miscellaneous_78593947) |
+| Bird head bob and speed | ring-billed gulls bobbed their heads at the slower speeds: 2.56 plus or minus 0.66 head lengths a second (n = 11) against 3.98 plus or minus 1.48 (n = 11) when not bobbing; running cranes did not bob at all | [Head-bobbing and terrestrial locomotion in charadriiform birds, SICB](https://sicb.org/?p=25934) |
+
+*Not found:* a monkey's squat as a hip or knee angle (the macaque numbers found are bipedal walking, not a crouch), any crow's or raven's bob frequency, and anything about a small climbing or perching monkey's rest, so the imp's squat and the tengu's bob amplitude are set by eye against photographs. The gull figure is not a crow's; it says only that a bob belongs to a walk and goes at a run.
+
+**What the imps take from this.** A monkey-footed imp walks at about half a metre to a metre a second in diagonal pairs (the left fore with the right hind), not as a cat does; the tengu's head bobs once a step at a walk and holds still, unbobbing, when it runs.
+
