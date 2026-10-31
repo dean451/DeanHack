@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {segment,chain} from './ant.js';
+import {skinTrunk,rigTrunk,mergeSkins,skinPlainLimb} from './trunk-skin.js';
 
 // The enormous rat (UnNetHack's level-6, dog-sized r) used to borrow the little sewer rat at
 // .85 scale, a grey ball of spheres. It is now a hulking, diseased brute, head to the front (+z):
@@ -213,6 +214,14 @@ function build(kind='enormous'){
  shared[kind]={fur,gloss,eye,body:buildBody(),head:buildHead(),teeth:buildTeeth(),eyes:buildEyes(),fore:buildLeg(true),hind:buildLeg(false),tail:buildTail()};
  return shared[kind];
 }
+// A leg's geometry mirrored across x (the left legs were the right leg's mesh with scale.x=-1, which a skinned copy
+// would drop): positions and normals flipped and each triangle's winding reversed, so it still faces out.
+function mirrored(geo){
+ const g=geo.clone();g.applyMatrix4(new THREE.Matrix4().makeScale(-1,1,1));
+ if(g.index){const a=g.index.array;for(let i=0;i<a.length;i+=3){const t=a[i+1];a[i+1]=a[i+2];a[i+2]=t;}}
+ else for(const at of Object.values(g.attributes)){const n=at.itemSize,a=at.array;for(let i=0;i<at.count;i+=3)for(let k=0;k<n;k++){const t=a[(i+1)*n+k];a[(i+1)*n+k]=a[(i+2)*n+k];a[(i+2)*n+k]=t;}}
+ return g;
+}
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
 export const isEnormousRat=name=>name==='enormous rat';
@@ -230,7 +239,8 @@ export function createRat(name='enormous rat'){
  const legs=[];
  for(const s of [-1,1])for(const fore of [false,true]){
   const leg=new THREE.Group();leg.position.set(s*(fore?SHOULDER:HIP)[0],(fore?SHOULDER:HIP)[1],(fore?SHOULDER:HIP)[2]);body.add(leg);
-  const m=mesh(leg,fore?S.fore:S.hind,S.fur,fore?'foreleg':'hindleg');if(s<0)m.scale.x=-1;
+  const right=fore?S.fore:S.hind,left=fore?(S.foreL??=mirrored(S.fore)):(S.hindL??=mirrored(S.hind));
+  mesh(leg,s<0?left:right,S.fur,fore?'foreleg':'hindleg');
   legs.push(leg);
  }
  const tail=new THREE.Group();tail.position.set(...TAIL_ROOT);body.add(tail);
@@ -240,5 +250,14 @@ export function createRat(name='enormous rat'){
  head.name='head';tail.name='tail';
  const joints={head,neck0:head,tail0:tail};
  for(const leg of legs){const n=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);leg.name=n;joints[n]=leg;}
+ // The four legs on three bones each (`lleg0_0`..`_2`, hip or shoulder, knee, foot), and the trunk on one root bone
+ // `hips`; then the trunk and legs become one skinned hide, so the rat costs one unbatched part, not five (the
+ // early-game batching rule). The tail, neck and spine are still plain.
+ for(const leg of legs)skinPlainLimb(leg,leg.name+'_');
+ const trunk=(S.trunkSkin??=skinTrunk(S.body.clone(),{spine:[['hips',[0,0,0]]]}));
+ const {mesh:skin}=rigTrunk(body,trunk,S.fur);
+ body.children.filter(o=>o.isMesh&&!o.isSkinnedMesh&&o.userData.part==='body').forEach(o=>body.remove(o));
+ const hide=mergeSkins(body,skin,S.hideCache??={});
+ for(const b of hide.skeleton.bones)joints[b.name]??=b;
  return {g,body,legs,tail,wings:[],quirk:'rat',head,joints};
 }

@@ -6,6 +6,20 @@ import {RAT_KINDS} from './enormous-rat.js';
 
 const make=name=>createCreature({name,symbol:'r'.charCodeAt(0),color:7});
 const tip=o=>{o.updateWorldMatrix(true,true);return new THREE.Box3().setFromObject(o).max.clone();};
+// the one skinned hide: its vertices as skinned now (world space), and how much of each rides the bones under `root`
+const hideOf=a=>{const m=[];a.g.traverse(o=>{if(o.isSkinnedMesh)m.push(o);});assert.equal(m.length,1,'one hide');return m[0];};
+const verts=a=>{a.g.updateMatrixWorld(true);const h=hideOf(a),v=new THREE.Vector3(),out=[];for(let i=0;i<h.geometry.attributes.position.count;i++){h.getVertexPosition(i,v);out.push(v.applyMatrix4(h.matrixWorld).clone());}return out;};
+const under=(b,root)=>{for(let p=b;p;p=p.parent)if(p===root)return true;return false;};
+const shareOn=(a,root)=>{const h=hideOf(a),si=h.geometry.attributes.skinIndex,sw=h.geometry.attributes.skinWeight;
+ return Array.from({length:si.count},(_,i)=>{let w=0;for(let k=0;k<4;k++)if(under(h.skeleton.bones[si.getComponent(i,k)],root))w+=sw.getComponent(i,k);return w;});};
+// turns `joint` about x: the skin riding it moves, the skin with no weight on it stays
+function movesPastOnly(a,joint,angle,name){
+ const rest=verts(a),share=shareOn(a,joint),was=joint.rotation.x;
+ joint.rotation.x+=angle;const bent=verts(a);joint.rotation.x=was;
+ let before=0,past=0;rest.forEach((r,i)=>{const d=r.distanceTo(bent[i]);if(share[i]===0)before=Math.max(before,d);else if(share[i]>.5)past=Math.max(past,d);});
+ assert(past>.003,`${name}: the skin past ${joint.name} moved ${past.toFixed(4)}`);
+ assert(before<1e-6,`${name}: the skin before ${joint.name} stayed (${before})`);
+}
 const world=o=>{o.updateWorldMatrix(true,false);return o.getWorldPosition(new THREE.Vector3());};
 
 test('every rat has head, neck, tail and four legs as named joints',()=>{
@@ -35,14 +49,29 @@ test('turning a rat joint moves only what lies past it',()=>{
   assert(world(a.head).distanceTo(headBefore)<1e-6,`${name}: head stayed`);
   a.legs.forEach((l,i)=>assert(world(l).distanceTo(legBefore[i])<1e-6,`${name}: leg ${i} stayed`));
   j.tail0.rotation.x=0;
-  const leg=j.rleg1,before=tip(leg),others=a.legs.filter(l=>l!==leg).map(l=>[l,tip(l)]);
-  leg.rotation.x=.5;
-  assert(tip(leg).distanceTo(before)>.003,`${name}: the leg swung`);
-  for(const [l,b] of others)assert(tip(l).distanceTo(b)<1e-6,`${name}: other legs stayed`);
-  leg.rotation.x=0;
-  const faceBefore=tip(a.head),legsBefore=a.legs.map(tip);
+  // each leg turns on its own: the skin on it moves, the skin with no weight on it (the trunk, the other legs) stays
+  for(const leg of a.legs)movesPastOnly(a,leg,.5,name);
+  const faceBefore=tip(a.head),legsBefore=verts(a);
   j.neck0.rotation.x=.5;
   assert(tip(a.head).distanceTo(faceBefore)>.003,`${name}: the head turned`);
-  a.legs.forEach((l,i)=>assert(tip(l).distanceTo(legsBefore[i])<1e-6,`${name}: leg ${i} stayed under the head`));
+  verts(a).forEach((v,i)=>assert(v.distanceTo(legsBefore[i])<1e-6,`${name}: the hide stayed under the head`));
+ }
+});
+
+test('every rat is one skinned hide on three bones a leg, with the left legs mirrored and not flipped inside out',()=>{
+ for(const name of Object.keys(RAT_KINDS)){
+  const a=make(name),h=hideOf(a),names=h.skeleton.bones.map(b=>b.name);
+  assert(names.includes('hips'),`${name}: hips`);
+  for(const leg of a.legs)for(let k=0;k<3;k++)assert(names.includes(`${leg.name}_${k}`),`${name}: ${leg.name}_${k}`);
+  // the left legs' feet lie on the left (-x) and the right's on the right, both on the floor with the others
+  for(const side of ['l','r']){
+   const bone=a.joints[`${side}leg1_2`],foot=world(bone);
+   assert.equal(foot.x<0,side==='l',`${name}: ${side} hind foot on its side`);
+  }
+  // the winding faces out: the hide's mean normal-to-centre dot is positive
+  const pos=h.geometry.attributes.position,nor=h.geometry.attributes.normal;let out=0;const c=new THREE.Vector3();
+  for(let i=0;i<pos.count;i++)c.add(new THREE.Vector3().fromBufferAttribute(pos,i));c.divideScalar(pos.count);
+  for(let i=0;i<pos.count;i++)out+=new THREE.Vector3().fromBufferAttribute(pos,i).sub(c).dot(new THREE.Vector3().fromBufferAttribute(nor,i))>0?1:-1;
+  assert(out>0,`${name}: normals face out`);
  }
 });
