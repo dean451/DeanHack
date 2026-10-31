@@ -23,6 +23,23 @@ export function braceFor(a) {
 
 const smooth = v => { v = v < 0 ? 0 : v > 1 ? 1 : v; return v * v * (3 - 2 * v); };
 
+// Eases every joint and the body's height a share w of the way toward a solved pose, recording each write in st so
+// takeBackRest can undo it next frame. Returns the ease function (obj, axis, target) for further writes.
+export function easePose(a, st, pose, w) {
+  if (!a.jointRest) { a.jointRest = {rest: {}, body: a.body.position.clone()}; for (const [n, o] of Object.entries(a.joints)) a.jointRest.rest[n] = {x: o.rotation.x, y: o.rotation.y, z: o.rotation.z}; }
+  const {rest} = a.jointRest;
+  const ease = (obj, ax, target) => {
+    const now = obj[ax], next = now + (target - now) * w;
+    if (next === now) return;
+    obj[ax] = next; st.written.push({get: () => obj[ax], set: v => { obj[ax] = v; }, left: next, was: now});
+  };
+  for (const [n, o] of Object.entries(a.joints)) {
+    const p = pose[n] || {};
+    for (const ax of ['x', 'y', 'z']) ease(o.rotation, ax, rest[n][ax] + (p[ax] || 0));
+  }
+  return ease;
+}
+
 // Called every frame for every actor; does nothing for a creature that is not a dwarf. Returns the progress (0..1).
 export function updateDwarfGuard(a, dt, t, busy, look = null) {
   if (!braces(a) || a.asset) return 0;
@@ -35,20 +52,10 @@ export function updateDwarfGuard(a, dt, t, busy, look = null) {
   if (!pose) { st.p = 0; return 0; }
   st.p = want ? Math.min(1, st.p + dt / DROP) : Math.max(0, st.p - dt / RISE);
   if (!st.p) return 0;
-  if (!a.jointRest) { a.jointRest = {rest: {}, body: a.body.position.clone()}; for (const [n, o] of Object.entries(a.joints)) a.jointRest.rest[n] = {x: o.rotation.x, y: o.rotation.y, z: o.rotation.z}; }
-  const {rest, body} = a.jointRest, w = smooth(st.p);
-  const ease = (obj, ax, target) => {
-    const now = obj[ax], next = now + (target - now) * w;
-    if (next === now) return;
-    obj[ax] = next; st.written.push({get: () => obj[ax], set: v => { obj[ax] = v; }, left: next, was: now});
-  };
-  for (const [n, o] of Object.entries(a.joints)) {
-    const p = pose[n] || {};
-    for (const ax of ['x', 'y', 'z']) ease(o.rotation, ax, rest[n][ax] + (p[ax] || 0));
-  }
+  const w = smooth(st.p), ease = easePose(a, st, pose, w);
   // held, the weight shifts from foot to foot: the chest rolls a little about the waist
   const sway = st.p === 1 && a.joints.spine0 ? Math.sin(t * RATE) * SHIFT : 0;
   if (sway) { const o = a.joints.spine0.rotation, now = o.z; o.z = now + sway; st.written.push({get: () => o.z, set: v => { o.z = v; }, left: o.z, was: now}); }
-  ease(a.body.position, 'y', body.y + (pose.hipsY || 0));
+  ease(a.body.position, 'y', a.jointRest.body.y + (pose.hipsY || 0));
   return st.p;
 }
