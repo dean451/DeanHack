@@ -18,7 +18,7 @@ The two folders are siblings. Where they sit depends on the machine:
 
 - **Handoff log:** always read and append to `deanhack-handoff.md` in the root of the play copy, never the copy inside another worktree.
 - **Stay in this worktree.** Never edit, commit in, or run dev servers from another checkout. A `deanhack-codex` folder, if present, is a leftover from the retired Codex setup; leave it alone.
-- **Windows:** the live UnNetHack engine build (`npm run engine:build`) is Unix-only and needs WSL. The demo scene and `npm test` / `npm run build` run natively.
+- **Windows:** the live UnNetHack engine build (`npm run engine:build`) is Unix-only and needs WSL. `npm test` / `npm run build` run natively.
 
 ## Live engine
 

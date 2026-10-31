@@ -110,7 +110,7 @@ export function findFlames(scene) {
   return out;
 }
 
-// True when the mesh and every ancestor are visible (Live mode hides its whole group in the demo room).
+// True when the mesh and every ancestor are visible (the live group is hidden while the splash is open).
 export function shownInScene(o) {
   for (; o; o = o.parent) if (!o.visible) return false;
   return true;
