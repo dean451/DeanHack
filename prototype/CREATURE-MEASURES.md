@@ -196,3 +196,19 @@ The ninth monster family (AGENTS.md, family **i**). Measured from a monkey (the 
 
 **What the imps take from this.** A monkey-footed imp walks at about half a metre to a metre a second in diagonal pairs (the left fore with the right hind), not as a cat does; the tengu's head bobs once a step at a walk and holds still, unbobbing, when it runs.
 
+
+## Kobolds (kobold, large kobold, kobold lord, kobold shaman)
+
+The tenth monster family (AGENTS.md, family **k**). Measured from a person walking crouched (the kobolds' hunched stalk) and from a dog's head and neck (the dog-like head carriage; the dog's walk pace is under Canines above and is not repeated). Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Crouched human and dog head (crouch, speed, head carriage)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Crouch threshold | crouch gait is bent-hip, bent-knee walking with about 30 degrees of minimum knee flexion | [Crouch gait as forced-use exercise in stroke](https://samafind.sama.gov.sa/index.php/EdsRecord/edsair,edsair.doi.dedup.....d464c9b346eaa5f63d4865596df6b3c9) |
+| Crouch and pace | 15 healthy men simulating crouch gait with the knee held at 45 degrees walked at about half their normal speed (one of two summaries of the study; the other reports no speed difference for crouch with equinus) | [Compensatory strategies in simulated crouch gait, Korea Science](https://www.koreascience.or.kr/article/JAKO200416549674196.pdf) |
+| Dog head on the neck | the atlas (skull on neck) rotated in the sagittal plane by 5.7 to 14.5 degrees (Labrador retrievers) and 9.1 to 18.7 degrees (Chihuahuas) on average through a treadmill walk | [Craniocervical kinematics of walking dogs, Frontiers in Veterinary Science 2021](https://www.frontiersin.org/articles/10.3389/fvets.2021.709967/pdf) |
+
+*Not found:* a dog's static head height above the withers or neck angle at rest, and a crouched walk's step length or hip angle. No number is claimed for them; the pose stages set the hunch's hip and spine by eye against photographs.
+
+**What the kobolds take from this.** A kobold's hunch is a real crouch: knees bent past 30 degrees, and a crouching walker is slow, about half a person's pace. Its dog-like head tips a few to nearly twenty degrees on the neck as it walks, not a fixed pose.
