@@ -42,13 +42,28 @@ const lathe=(profile,segments=24,phiStart=0,phiLength=Math.PI*2)=>new THREE.Lath
 const ramp=(a,b,lo,hi)=>y=>mix(a,b,(y-lo)/(hi-lo));
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
 const chain=(m,...rest)=>rest.reduce((acc,r)=>new THREE.Matrix4().multiplyMatrices(acc,r),m);
+// flat-shaded and knocked a little out of true: split the faces, nudge each corner by a hash of
+// where it sits (so shared corners move together), then take face normals
+function faceted(geo,jitter){
+ const g=geo.index?geo.toNonIndexed():geo,p=g.attributes.position,key=new Map();
+ for(let i=0;i<p.count;i++){
+  const k=`${p.getX(i).toFixed(4)},${p.getY(i).toFixed(4)},${p.getZ(i).toFixed(4)}`;
+  let d=key.get(k);if(!d){const n=key.size+1;d=[hash(n*1.7)-.5,hash(n*2.9)-.5,hash(n*4.1)-.5];key.set(k,d);}
+  p.setXYZ(i,p.getX(i)+d[0]*jitter*2,p.getY(i)+d[1]*jitter,p.getZ(i)+d[2]*jitter*2);
+ }
+ g.deleteAttribute('uv');g.computeVertexNormals();return g;
+}
 function colours(L){const C={};for(const [k,v] of Object.entries(L))if(typeof v==='string')C[k]=rgb(v);return C;}
 
 function buildBody(kind,L,C){
  const P=pieces(),h=L.hip;
  if(kind==='goblin'){
   // a narrow, bony trunk with a little pot belly, and a hump over the shoulders from the hunch
-  P.add(lathe([[0,.29],[.1,.29],[.13,.33],[.135,.4],[.15,.45],[.14,.5],[.12,.55],[.13,.6],[.1,.65],[.05,.67],[0,.675]],22),at(0,0,.01,[.18,0,0],[.86,1,.8]),(x,y,z)=>mix(ramp(C.shade,C.skin,.3,.5)(y),C.shade,z<-.04?.35:0));
+  // faceted, not an egg: seven flat sides, knocked out of true, with the rib cage pinched to a
+  // bony waist and the shoulders broad enough to take the arm joints
+  P.add(faceted(lathe([[0,.29],[.1,.29],[.12,.33],[.125,.4],[.15,.45],[.135,.5],[.15,.56],[.19,.61],[.14,.655],[.05,.672],[0,.678]],7),.014),at(0,0,.01,[.18,0,0],[.86,1,.8]),(x,y,z)=>mix(ramp(C.shade,C.skin,.3,.5)(y),C.shade,z<-.04?.35:0));
+  // a shoulder yoke on each side joins the trunk to the arm; the right one rides higher
+  for(const s of [-1,1])P.add(faceted(new THREE.IcosahedronGeometry(.062,0),.008),at(s*.165,s>0?.645:.63,.012,[0,s*.5,s*.3],[1.35,.7,1]),C.skin);
   P.add(new THREE.SphereGeometry(.1,12,8),at(0,.58,-.07,[0,0,0],[1.3,.8,.8]),C.skin);
   // ribs down each flank
   for(const s of [-1,1])for(let i=0;i<3;i++)P.add(new THREE.SphereGeometry(.03,8,4),at(s*.125,.49+i*.04,.045,[0,s*.5,0],[.5,.25,1.4]),C.shade);
