@@ -2357,14 +2357,14 @@ test('nymphs wear a pale mask over the face (the faces wait on a rework), with d
  }
 });
 
-test('the enormous rat is its own hulking, mangy rat, bigger than a giant rat, in nine shared draws',()=>{
+test('the enormous rat is its own hulking, mangy rat, bigger than a giant rat, in five shared draws',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const box=a=>{a.g.updateMatrixWorld(true);return new THREE.Box3().setFromObject(a.g);};
  const m=createCreature({name:'enormous rat',symbol:114,color:3});
  assert.equal(m.quirk,'rat');assert.equal(m.legs.length,4);
  for(const h of ['body','head','tail'])assert(m[h]?.isObject3D,h);
  const parts=meshes(m);
- assert.deepEqual(parts.map(p=>p.userData.part).sort(),['body','eyes','foreleg','foreleg','head','hindleg','hindleg','tail','teeth']);
+ assert.deepEqual(parts.map(p=>p.userData.part).sort(),['body','eyes','head','tail','teeth']);// the trunk and four legs are one skinned hide
  for(const p of parts){const a=p.geometry.attributes;for(const key of ['position','normal'])for(const v of a[key].array)assert(Number.isFinite(v),`${p.userData.part} ${key}`);}
  assert(parts.find(p=>p.userData.part==='eyes').material.emissiveIntensity>0,'red eyes glow');
  const b=box(m);assert(b.min.y>-.005&&b.min.y<.01,`sits on the floor at ${b.min.y}`);
@@ -2522,9 +2522,9 @@ test('plain rats carry a head handle that turns the face about the neck and leav
   const local=o=>m.body.worldToLocal(o.getWorldPosition(new THREE.Vector3()));
   const face=m.head.children.find(o=>o.userData.part==='head'),trunk=m.body.children.find(o=>o.userData.part==='body');
   assert.ok(face&&trunk,name);
-  // the sculpt is the enormous rat's: five vertex-coloured meshes plus teeth and eyes
+  // the sculpt is the enormous rat's: the skinned hide (trunk and legs), the head, the tail, teeth and eyes
   const meshes=[];m.g.traverse(o=>{if(o.isMesh)meshes.push(o);});
-  assert.ok(meshes.length>=8&&meshes.length<=12,`${name}: ${meshes.length}`);
+  assert.ok(meshes.length>=5&&meshes.length<=12,`${name}: ${meshes.length}`);
   const tip=new THREE.Vector3(0,0,.2).applyMatrix4(face.matrixWorld);
   const before=m.body.worldToLocal(tip.clone()),trunkBefore=local(trunk);
   m.head.rotation.y=.6;m.g.updateMatrixWorld(true);
