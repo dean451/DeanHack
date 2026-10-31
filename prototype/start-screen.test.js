@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtempSync,writeFileSync,utimesSync,readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {cleanName,startPlan,ago,wantsStartScreen,fetchSaves,DEFAULT_NAME,classView,pick,readChoice,saveChoice,endedNote,forgetSave,deathCard,fetchScores,scoreTable,installScoreboard,NO_SCORES} from './start-screen.js';
+import {cleanName,startPlan,ago,fetchSaves,DEFAULT_NAME,classView,pick,readChoice,saveChoice,endedNote,forgetSave,deathCard,fetchScores,scoreTable,installScoreboard,NO_SCORES} from './start-screen.js';
 import {listSaves,cleanPlayerName} from './engine/server.js';
 
 test('the name is cleaned exactly as the engine launcher cleans it',()=>{
@@ -32,12 +32,6 @@ test('times read plainly',()=>{
   assert.equal(ago(now+5000,now),'just now','a clock a little ahead never shows a negative time');
 });
 
-test('?demo skips the start screen',()=>{
-  assert.equal(wantsStartScreen(''),true);
-  assert.equal(wantsStartScreen('?debug'),true);
-  assert.equal(wantsStartScreen('?demo'),false);
-  assert.equal(wantsStartScreen('?stats&demo'),false);
-});
 
 test('a server without saves, or one that errors, just shows no saved characters',async()=>{
   assert.deepEqual(await fetchSaves(async()=>({ok:false})),[]);
@@ -102,10 +96,10 @@ test('forgetting a character sends its name with the session token and reports a
   await assert.rejects(forgetSave('Mira',refusing),/playing right now/);
 });
 
-test('the player flow has no demo-room toggle, no name box, and comes back to the splash',()=>{
+test('the player flow has no mode toggle, no name box, and comes back to the splash',()=>{
   const live=readFileSync(new URL('./live.js',import.meta.url),'utf8'),screen=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
   assert.match(live,/startScreen=installStartScreen\(/);
-  assert.match(live,/if\(startScreen\)\{nameInput\.hidden=true;button\.hidden=true;\}/,'the footer hides the Live/Demo toggle and the name box');
+  assert.match(live,/startScreen=installStartScreen\(\{button,nameInput\}\);nameInput\.hidden=true;button\.hidden=true;/,'the footer hides the start button and the name box');
   assert.match(live,/endedNote\(v\.reason,death\?\.killer\)/,'a session end reopens the splash with a note');
   assert.match(live,/Save & quit/);
   assert.doesNotMatch(screen,/start-demo|Look around/,'no demo-room link on the splash');
@@ -198,13 +192,12 @@ test('the splash is opaque with a wavy ASCII field behind it, running only while
   assert.equal(cover.children[0].textContent.split('\n').length,21);
 });
 
-test('the cover picks a head, sizes it, and goes away for ?demo',async()=>{
+test('the cover picks a head and sizes it',async()=>{
   const {fillCover}=await import('./start-cover.js');
   const mk=()=>{const pre={textContent:'',dataset:{},style:{vars:{},setProperty(k,v){this.vars[k]=v;}}};const cover={removed:false,remove(){this.removed=true;},querySelector:s=>s==='.start-dragon'?pre:null};return {cover,pre};};
   let {cover,pre}=mk();const d=fillCover(cover,{rand:()=>0});
   assert.equal(d.name,'red');assert.equal(pre.dataset.dragon,'red');assert.ok(pre.textContent.length>1000);
   assert.equal(pre.style.vars['--lines'],pre.textContent.split('\n').length);
-  ({cover,pre}=mk());assert.equal(fillCover(cover,{search:'?demo'}),null);assert.equal(cover.removed,true);
   assert.equal(fillCover(null),null);
 });
 

@@ -1,10 +1,8 @@
 # The Quiet Well / Live UnNetHack
 
-Two modes share the 3D presentation:
-
-- **Demo room** is the original independent diorama simulation.
-- **Live UnNetHack** runs the repository's C game with an experimental JSON window
-  port. Movement, pet AI, combat, visibility, inventory and turns belong to the engine.
+The 3D presentation runs the repository's C game with an experimental JSON window
+port. Movement, pet AI, combat, visibility, inventory and turns belong to the engine.
+(The old demo room, a standalone diorama, was removed on 2026-10-30.)
 
 The browser is a local development preview, not the final native client.
 
@@ -21,11 +19,9 @@ npm run engine:build
 npm run dev
 ```
 
-Open the printed localhost URL and select **Live UnNetHack**. The initial character
-is a lawful human Valkyrie named Wanderer with a cat. A saved Wanderer resumes on
-starting Live mode again. Switching to Demo room pauses input to the existing engine;
-it does not create or reset a character. A page reload likewise does not reset the
-engine: select Live UnNetHack again to reconnect to its pending prompt.
+Open the printed localhost URL. The splash asks for a name: a saved name resumes that
+game, a new one picks a class and begins. A page reload does not reset the engine:
+continue from the splash to reconnect to its pending prompt.
 
 `h j k l` move left/down/up/right; `y u b n` move diagonally. Arrows also move.
 `s` searches; `o` opens a door; Space waits; `i` opens inventory; `<` / `>` use stairs. Toolbar
@@ -85,7 +81,7 @@ between inputs and animating visual motion independently of game turns.
 ## Validation
 
 ```sh
-npm test                  # simulation and protocol validation
+npm test                  # unit and protocol validation
 npm run build             # frontend production compilation
 python3 engine/smoke.py    # real engine: move, inventory, save
 python3 engine/smoke.py    # restore that test character, repeat

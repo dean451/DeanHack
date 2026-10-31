@@ -13,7 +13,7 @@
 :root{background:#0a1320}body{background:radial-gradient(ellipse at 52% 39%,#203b4d 0%,#14283c 35%,#0a1320 78%)}body::before,body::after{opacity:.46;mix-blend-mode:screen;filter:blur(58px)}body::before{background:radial-gradient(ellipse at 18% 64%,#496b7040 0 14%,transparent 38%),radial-gradient(ellipse at 79% 25%,#53678430 0 12%,transparent 36%)}body::after{background:radial-gradient(ellipse at 44% 86%,#8a86542a 0 10%,transparent 28%),radial-gradient(ellipse at 65% 58%,#38546b2d 0 11%,transparent 34%)}
 .live-engine .log{display:none}@media(max-width:1000px){.live-engine .character{top:135px}.live-engine #engine-panel{top:auto;bottom:130px;left:24px;right:24px;width:auto;max-height:230px}.live-engine #engine-messages{max-height:72px;overflow:auto}.live-engine #engine-status{margin-top:8px}.live-engine #engine-prompt{margin-top:6px}}@media(max-width:650px){.live-engine #engine-panel{bottom:155px;max-height:210px}}
 
-/* Live panel speaks the demo's language: no box, tracked kicker, serif lines, hairline rules, dot bullets. */
+/* Live panel: no box, tracked kicker, serif lines, hairline rules, dot bullets. */
 #engine-panel{right:40px;top:26%;width:250px;background:none;border:0;border-radius:0;padding:0;max-height:none;overflow:visible;font-size:12px;pointer-events:none}
 #engine-panel::before{content:"";position:absolute;inset:-48px -40px -48px -70px;background:radial-gradient(ellipse at 58% 46%,#04070acc 0,#04070a80 48%,transparent 74%);z-index:-1;pointer-events:none}
 #engine-line{font:italic 24px/1.2 'Cormorant Garamond',Georgia,serif;color:#d6ddd6;margin:12px 0 0;min-height:1.2em;text-shadow:0 2px 10px #000}
@@ -96,7 +96,7 @@ dialog button{font:600 12px 'Cinzel',Georgia,serif;letter-spacing:1.5px}
 .engine-recent{margin:6px 0 10px;font:italic 16px/1.35 'Cormorant Garamond',Georgia,serif;color:#9fb0bb}
 body.live-engine footer{right:384px}@media(max-width:1000px){body.live-engine footer{right:288px}}
 #minimap.aiming{pointer-events:auto;cursor:crosshair;border-color:#fff0b8}
-/* Footer buttons (Save & exit, Demo room, Reset room): small quiet text, out of the way at the edge. */
+/* Footer buttons (Save & quit, Quality): small quiet text, out of the way at the edge. */
 footer .buttons,.engine-actions{gap:2px}
 footer .buttons button,.engine-actions button{padding:2px 7px;font-size:10px;letter-spacing:1px;text-transform:uppercase;background:transparent;border-color:transparent;color:#7f909a}
 footer .buttons button:hover,footer .buttons button:focus-visible,.engine-actions button:hover,.engine-actions button:focus-visible{background:transparent;border-color:#c4b68355;color:#cbd8df}
@@ -166,9 +166,9 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 #ground-notice ul:has(li:nth-child(9)){columns:2;column-gap:22px}
 #ground-notice li{break-inside:avoid}
 
-/* Start screen: a name and one button over the dimmed demo room. */
+/* Start screen: a name and one button. */
 #start-screen,#start-cover{position:fixed;inset:0;z-index:60;padding:0;background:radial-gradient(ellipse at 50% 42%,#050a0c 0%,#030609 62%,#020405 100%);color:#e9e2cf}
-/* opaque (no alpha in the gradient): nothing of the demo room shows through the splash, and the scene does not draw behind it */
+/* opaque (no alpha in the gradient): nothing shows through the splash, and the scene does not draw behind it */
 /* the wavy ASCII field (ascii-waves.js) under the dragon and the card */
 .start-waves{position:absolute;inset:0;margin:0;overflow:hidden;font:13px/15px 'Courier New',Courier,monospace;white-space:pre;color:#6fb7b4;opacity:.28;pointer-events:none;user-select:none;z-index:0}
 /* the dragon sits at the stage's top, offset by start-screen.js to centre it in the window, so a taller
@@ -204,7 +204,7 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 #start-status{margin:-14px 0 22px 3px;padding:8px 12px;border-left:2px solid #6fb7b4;background:#0f1d20cc;color:#dfe8e6;font:14px/1.4 Inter,system-ui,sans-serif}#start-status[hidden]{display:none}
 .start-row{display:flex;gap:14px;margin:12px 2px 0}.start-row button{padding:4px 2px;background:none;border:0;color:#8aa0a8;font:12px Inter,system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.start-row button:hover,.start-row button:focus-visible{color:#dfe8e6;outline:none}.start-row button[hidden]{display:none}.start-forget{color:#c9684a!important}
 #start-screen[hidden]{display:none}
-/* the cover is opaque (nothing of the demo room shows through it) and sits over the splash until it is adopted */
+/* the cover is opaque (nothing shows through it) and sits over the splash until it is adopted */
 #start-cover{z-index:61;background:#030609}
 .start-saves{margin-top:22px}.start-saves[hidden]{display:none}
 .start-saves>span{display:block;font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#7f909a;margin:0 0 8px 2px}
@@ -212,8 +212,6 @@ body.live-engine #engine-messages,#engine-messages{max-height:none;overflow:visi
 .start-list button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:8px 12px;min-width:92px;background:#0a1417b3;border:1px solid #64797277;border-radius:4px;color:#d8cfbb;cursor:pointer;text-align:left}
 .start-list button b{font:600 14px Inter,system-ui,sans-serif}.start-list button i{font:normal 11px Inter,system-ui,sans-serif;color:#7f909a}
 .start-list button:hover,.start-list button:focus-visible,.start-list button.current{border-color:#6fb7b4;background:#10282a}
-.start-demo{margin-top:26px;padding:4px 2px;background:none;border:0;color:#6f7f88;font:12px Inter,system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-.start-demo:hover,.start-demo:focus-visible{color:#aeb9bf;outline:none}
 
 /* Class screen: the second step for a new character. */
 #start-screen .start-card:has(.step-class:not([hidden])){width:min(640px,100%)}

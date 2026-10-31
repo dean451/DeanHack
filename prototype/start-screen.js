@@ -1,8 +1,7 @@
 // The splash: the first screen, and the one the game returns to. A name and one button that either
 // resumes that character's saved game or begins a new one (choosing a class), then straight into
 // Live. Save & quit, death, an idle stop or a crash all come back here with a line saying what
-// happened. The splash is opaque and the 3D scene does not draw behind it (main.js): the demo
-// room is a development view, seen only with `?demo`, which skips the splash.
+// happened. The splash is opaque and the 3D scene does not draw behind it (main.js).
 // The engine keys a save by character name (-u name), so typing a saved name resumes that game.
 
 import {pickDragon} from './dragon-art.js';
@@ -38,7 +37,6 @@ export function ago(ms,now=Date.now()){
   return new Date(ms).toLocaleDateString('en',{month:'short',day:'numeric'});
 }
 
-export function wantsStartScreen(search=''){return !new URLSearchParams(search).has('demo');}
 
 // The list carries `guest` (a shared login whose saves live with this browser; engine/server.js) as a property.
 export async function fetchSaves(fetchImpl=fetch){
@@ -127,9 +125,8 @@ export function installScoreboard({button,table,getScores=fetchScores,render=sco
 
 // Builds the splash once and wires it to the Live button and name field. Returns {open, close}:
 // the live game calls open({note}) when a session ends, so the player always lands back here.
-export function installStartScreen({doc=document,button,nameInput,search=location.search,getSaves=fetchSaves,forget=forgetSave,getScores=fetchScores,confirmFn=(m)=>confirm(m),storage}={}){
+export function installStartScreen({doc=document,button,nameInput,getSaves=fetchSaves,forget=forgetSave,getScores=fetchScores,confirmFn=(m)=>confirm(m),storage}={}){
   const cover=doc.getElementById?.('start-cover');
-  if(!wantsStartScreen(search)){cover?.remove();return null;}
   const el=doc.createElement('div');el.id='start-screen';
   el.innerHTML=`<div class="start-stage"><pre class="start-dragon" aria-hidden="true"></pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>An <a class="start-link" href="https://github.com/UnNetHack/UnNetHack" target="_blank" rel="noopener">UnNetHack</a> Fork</h1><p id="start-status" role="status" hidden></p>
 <form class="step-name" autocomplete="off"><label for="start-name">Your name</label><input id="start-name" type="text" maxlength="24" spellcheck="false" placeholder="${DEFAULT_NAME}" aria-describedby="start-note"><button type="submit" id="start-go"></button><p id="start-note" aria-live="polite"></p>

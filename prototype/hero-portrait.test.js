@@ -174,7 +174,7 @@ test('the polymorph stand-in is framed by its own bounds', async () => {
 test('the game wires the portrait: main.js draws it each frame and live.js hands over the live hero', () => {
   const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
   assert.ok(main.includes("mountPortraitView(document,$('.character'))"));
-  assert.ok(main.includes('heroPortrait.update(performance.now(),live.active?live.portraitSubject:demoPortrait()'));
+  assert.ok(main.includes('heroPortrait.update(performance.now(),live.portraitSubject'));
   const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
   assert.match(live, /get portraitSubject\(\)\{[^]*?g:hero\.g,head:/);
   const css = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
