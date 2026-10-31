@@ -8,6 +8,7 @@
 // The scene is re-scanned twice a second, so trees on tiles that come and go are picked up.
 // Everything is a function of t, so it's frame-rate independent and restore() puts back the rest pose.
 import * as THREE from 'three';
+import {eachObject} from './scene-walk.js';
 
 export const CANOPY_SCAN_EVERY = .5; // seconds between scene scans
 export const CANOPY_LEAN = .03; // peak lean in a draught, radians
@@ -67,9 +68,9 @@ export function restoreCanopy(mesh) {
   delete mesh.userData.canopyRest;
 }
 
-export function findCanopies(scene) {
+export function findCanopies(scene, t) {
   const out = [];
-  scene.traverse(o => { if (o.isMesh && o.userData.part === 'leaves' && o.parent?.userData.canopy === o) out.push(o); });
+  eachObject(scene, t, o => { if (o.isMesh && o.userData.part === 'leaves' && o.parent?.userData.canopy === o) out.push(o); });
   return out;
 }
 
@@ -79,7 +80,7 @@ export function createCanopySway(scene) {
     get canopies() { return canopies; },
     update(t) {
       if (t >= nextScan || t < nextScan - CANOPY_SCAN_EVERY * 2) {
-        const found = findCanopies(scene), keep = new Set(found);
+        const found = findCanopies(scene, t), keep = new Set(found);
         for (const c of canopies) if (!keep.has(c)) restoreCanopy(c);
         canopies = found;nextScan = t + CANOPY_SCAN_EVERY;
       }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {eachObject} from './scene-walk.js';
 
 // The altar's brazier (altar.js names its group 'Altar of the Last Ember') comes alive.
 // Its glowing coals breathe: their glow swells and sinks on two slow, uneven beats. Sparks
@@ -155,9 +156,9 @@ export function detachEmbers(group) {
   group.removeFromParent();
 }
 
-export function findAltars(scene) {
+export function findAltars(scene, t) {
   const out = [];
-  scene.traverse(o => { if (o.isGroup && o.name === 'Altar of the Last Ember') out.push(o); });
+  eachObject(scene, t, o => { if (o.isGroup && o.name === 'Altar of the Last Ember') out.push(o); });
   return out;
 }
 
@@ -167,7 +168,7 @@ export function createAltarEmbers(scene) {
     get embers() { return embers; },
     update(t) {
       if (t >= nextScan || t < nextScan - EMBER_SCAN_EVERY * 2) {
-        const found = new Set(findAltars(scene)), next = new Map();
+        const found = new Set(findAltars(scene, t)), next = new Map();
         for (const [altar, group] of embers) if (found.has(altar) && group.parent === altar) next.set(altar, group);else detachEmbers(group);
         for (const altar of found) if (!next.has(altar)) next.set(altar, attachEmbers(altar));
         embers = next;nextScan = t + EMBER_SCAN_EVERY;

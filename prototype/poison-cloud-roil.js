@@ -13,6 +13,7 @@ import {attachGasSparks, poseGasSparks, detachGasSparks} from './poison-gas-spar
 import {attachGasShimmer, poseGasShimmer, detachGasShimmer} from './poison-gas-shimmer.js';
 import {attachGasFilm, poseGasFilm, detachGasFilm} from './poison-gas-film.js';
 import {attachGasRipples, poseGasRipples, detachGasRipples} from './poison-gas-ripples.js';
+import {eachObject} from './scene-walk.js';
 
 export const GAS_SCAN_EVERY = .5; // seconds between scene scans
 export const GAS_CORE_TURN = .22; // core spin, radians per second
@@ -140,9 +141,9 @@ export function restoreGas(mesh) {
   delete mesh.userData.gasRest;
 }
 
-export function findGas(scene) {
+export function findGas(scene, t) {
   const out = [];
-  scene.traverse(o => { if (o.isMesh && o.parent?.userData.poisonCloud && (o.userData.part === 'core' || o.userData.part === 'wisps')) out.push(o); });
+  eachObject(scene, t, o => { if (o.isMesh && o.parent?.userData.poisonCloud && (o.userData.part === 'core' || o.userData.part === 'wisps')) out.push(o); });
   return out;
 }
 
@@ -152,7 +153,7 @@ export function createGasRoil(scene) {
     get meshes() { return meshes; },
     update(t) {
       if (t >= nextScan || t < nextScan - GAS_SCAN_EVERY * 2) {
-        const found = findGas(scene), keep = new Set(found);
+        const found = findGas(scene, t), keep = new Set(found);
         for (const m of meshes) if (!keep.has(m)) restoreGas(m);
         meshes = found;nextScan = t + GAS_SCAN_EVERY;
       }

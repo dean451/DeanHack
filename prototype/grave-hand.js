@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {eachObject} from './scene-walk.js';
 
 // The skeletal hand clawing up out of a risen grave (grave.js: userData.hand pivots at the
 // wrist just under the soil, userData.claw at the knuckles) is dead still most of the time.
@@ -154,9 +155,9 @@ function phaseOf(obj) {
   return x - Math.floor(x);
 }
 
-export function findRisenGraves(scene) {
+export function findRisenGraves(scene, t) {
   const out = [];
-  scene.traverse(o => { if (o.name === 'Grave' && o.userData.hand && o.userData.claw) out.push(o); });
+  eachObject(scene, t, o => { if (o.name === 'Grave' && o.userData.hand && o.userData.claw) out.push(o); });
   return out;
 }
 
@@ -168,7 +169,7 @@ export function createGraveHands(scene) {
     update(t, heroWorld = null) {
       const dt = last == null ? 0 : Math.min(.25, Math.max(0, t - last));last = t;
       if (t >= nextScan || t < nextScan - HAND_SCAN_EVERY * 2) {
-        graves = findRisenGraves(scene);
+        graves = findRisenGraves(scene, t);
         for (const g of graves) g.userData.handPhase ??= phaseOf(g);
         nextScan = t + HAND_SCAN_EVERY;
       }

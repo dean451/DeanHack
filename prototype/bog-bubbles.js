@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {eachObject} from './scene-walk.js';
 
 // Marsh gas comes up through the bog's pools (bog.js names its group 'Bog' and hands over its
 // pool shapes as userData.pools). Now and then a glossy dome of gas swells on the black water
@@ -60,9 +61,9 @@ export function bubbleState(t, i, pool, phase = 0) {
   return out;
 }
 
-export function findBogs(scene) {
+export function findBogs(scene, t) {
   const out = [];
-  scene.traverse(o => { if (o.isGroup && o.name === 'Bog' && o.userData.pools?.length) out.push(o); });
+  eachObject(scene, t, o => { if (o.isGroup && o.name === 'Bog' && o.userData.pools?.length) out.push(o); });
   return out;
 }
 
@@ -136,7 +137,7 @@ export function createBogBubbles(scene) {
     get meshes() { return meshes; },
     update(t) {
       if (t >= nextScan || t < nextScan - BUBBLE_SCAN_EVERY * 2) {
-        bogs = findBogs(scene);nextScan = t + BUBBLE_SCAN_EVERY;
+        bogs = findBogs(scene, t);nextScan = t + BUBBLE_SCAN_EVERY;
         const need = Math.min(BUBBLE_MAX, bogs.reduce((s, b) => s + b.userData.pools.length * BUBBLE_SLOTS, 0));
         if (need && (!meshes || meshes.capacity < need)) {
           if (meshes) freeMeshes(meshes);
