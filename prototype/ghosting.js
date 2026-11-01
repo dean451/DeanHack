@@ -1,3 +1,4 @@
+import {fadeTwin} from './fade-prewarm.js';
 // A faint shimmer on the hero while they're invisible. When the frame says the player is
 // invisible (bridge.c's `player.invisible`, true exactly when tty hides the hero's own glyph), the
 // hero fades over about half a second to a glassy ghost: most of the body see-through, with a slow
@@ -40,8 +41,7 @@ export function updateGhosting(actor, dt, t, invisible) {
     if (!o.isMesh || !o.material || Array.isArray(o.material)) return;
     let saved = o.userData.ghostSaved;
     if (!saved) {
-      const m = o.material.clone();
-      m.transparent = true;
+      const m = fadeTwin(o.material); // the copy fade-prewarm.js compiled ahead
       saved = o.userData.ghostSaved = {mat: o.material, opacity: o.material.opacity ?? 1};
       o.material = m;
     }
