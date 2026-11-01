@@ -41,3 +41,24 @@ test('only imps do it', () => {
   assert.equal(M.updateImpLeer(mon('newt', 'i'), dt, 0, false), null);
   assert.equal(M.leers(mon('newt', 'i')), false);
 });
+
+test('the hero coming close sets the leer off soon, and again while he stays', () => {
+  const far = mon('imp'), near = mon('imp'), hero = {x: 2, z: 0}, away = {x: 30, z: 0};
+  far.g.position.set(0, 0, 0); near.g.position.set(0, 0, 0);
+  const starts = (a, look, secs) => {
+    let n = 0, was = null;
+    for (let i = 0; i < secs * 60; i++) {
+      updateFidget(a, dt, i * dt, false, look);
+      const s = a.impLeer?.s; if (s != null && was == null) n++; was = s;
+    }
+    return n;
+  };
+  assert.equal(starts(far, away, 2.5), 0, 'nobody near: it keeps to its idle timer (first leer after 3 s)');
+  assert.ok(starts(near, hero, 1) >= 1, 'hero near: it leers within a second');
+  assert.ok(starts(mon('imp'), hero, 12) >= 3, 'and keeps leering while he stays');
+  const a = mon('imp'), y = a.head.rotation.y, b = a.body.rotation.y;
+  a.g.position.set(0, 0, 0);
+  for (let i = 0; i < 300; i++) updateFidget(a, dt, i * dt, false, hero);
+  for (let i = 0; i < 120; i++) updateFidget(a, dt, i * dt, true, hero);
+  assert.ok(Math.abs(a.head.rotation.y - y) < 1e-9 && Math.abs(a.body.rotation.y - b) < 1e-9, 'busy takes it back exactly');
+});
