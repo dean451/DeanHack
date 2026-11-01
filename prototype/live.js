@@ -272,6 +272,7 @@ import {createHeroBatch} from './hero-batch.js';
 import {planRoute,walkRoute} from './hero-route.js';
 import {holdUncompiled,releaseHeld,MAX_WAIT_MS} from './compile-gate.js';
 import {guardStaleInput} from './stale-input.js';
+import {createFadePrewarm} from './fade-prewarm.js';
 const statusProgress=createStatusProgress();
 
 // Only window-port observations enter this view. No prediction of game rules.
@@ -493,12 +494,12 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  // Something new was staged this frame (a tile, an item, a monster): after the frame is applied, its
  // shaders compile ahead of the draw (compileAsync uses the parallel-compile extension where there
  // is one), instead of stalling the first frame that shows a new material.
- let staged=false;const compiledMaterials=new WeakSet();
+ let staged=false;const compiledMaterials=new WeakSet();const fadePrewarm=createFadePrewarm();
  /* compiled against a render target, as the composer draws the scene (into its buffers: linear colour, tone
  mapping left to the output pass). Compiled for the canvas instead, every warmed shader was the canvas variant (sRGB,
  ACES), which the frame never uses, and the frame's own variant compiled on the spot at first draw (shader-target.js) */
  const warmTarget=renderer?createWarmTarget(THREE):null;
- function warmUp(){if(!staged||!renderer?.compileAsync)return;staged=false;/* what has not been drawn before waits off-camera for its shaders, so the screen never stalls on a compile (compile-gate.js) */const held=holdUncompiled(group,compiledMaterials,o=>o===hero.g),done=()=>releaseHeld(held,compiledMaterials);compileFor(renderer,warmTarget,()=>renderer.compileAsync(scene,camera)).then(done,done);setTimeout(done,MAX_WAIT_MS);}
+ function warmUp(){if(!staged||!renderer?.compileAsync)return;staged=false;/* what has not been drawn before waits off-camera for its shaders, so the screen never stalls on a compile (compile-gate.js) */const held=holdUncompiled(group,compiledMaterials,o=>o===hero.g),done=()=>releaseHeld(held,compiledMaterials);compileFor(renderer,warmTarget,()=>renderer.compileAsync(scene,camera)).then(done,done);setTimeout(done,MAX_WAIT_MS);/* the see-through copies a death's fade and invisibility will need compile now, not as the creature dies (fade-prewarm.js) */const fades=fadePrewarm.stage([hero.g,...[...actors.values()].map(a=>a.g)]);if(fades)compileFor(renderer,warmTarget,()=>renderer.compileAsync(fades,camera,scene)).catch(()=>{});}
  function apply(frame){const prevFrame=latest;latest=frame;dimLayer.touch();if(prevFrame?.player&&frame.player&&prevFrame.depth===frame.depth&&prevFrame.branch===frame.branch&&frame.player.hp<prevFrame.player.hp)hitFeel.hit(prevFrame.player.hp-frame.player.hp,{heroHurt:true});if(!active)return;
    if(frame.player?.countdowns&&typeof frame.player.countdowns==='object')frameCountdowns=frame.player.countdowns;
    if(Array.isArray(frame.player?.conditions)){frameConditions=frame.player.conditions;const tags=document.getElementById('hero-conditions');if(tags)tags.innerHTML=conditionTagsHtml(frameConditions);applyStatusScreen(statusScreenEl(),frameConditions);statusScreenEl().style.setProperty('--status-progress',worstProgress(statusProgress.update(frameConditions,frame.turn||0)).toFixed(2));}minimap.update(frame);

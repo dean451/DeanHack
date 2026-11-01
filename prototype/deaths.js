@@ -1,3 +1,4 @@
+import {fadeTwin} from './fade-prewarm.js';
 // Per-class deaths (motion queue item 6). Instead of every creature toppling the same way,
 // the seen species name picks a death style:
 //   crumble   undead and golems of earth: shudder, sag straight down and fall to dust
@@ -348,9 +349,8 @@ export function applyFade(actor, f) {
     actor.fadeSaved = [];
     g.traverse(o => {
       if (!o.isMesh || !o.material || Array.isArray(o.material) || o.userData.keepOpaque) return;
-      const m = o.material.clone();
+      const m = fadeTwin(o.material); // the copy fade-prewarm.js compiled when the creature appeared
       actor.fadeSaved.push({o, mat: o.material, opacity: m.opacity ?? 1, visible: o.visible});
-      m.transparent = true;
       o.material = m;
     });
   }
