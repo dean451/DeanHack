@@ -17,6 +17,7 @@ const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Mat
 const bare = geo => { geo.deleteAttribute('uv'); return geo.index ? geo.toNonIndexed() : geo; };
 const R = .3, H = .2, Y = .1;
 const PALETTES = {
+  green: {deep: '#142108', mid: '#4a7f26', crown: '#a6d94a', glow: '#c4f25a', vein: '#0b1505', clot: '#0c1406', bone: '#cdc5a6', flesh: '#a8977a', rot: '#5d6b2e', scab: '#1a2410', tip: '#d8f77a'},
   blue: {deep: '#12343f', mid: '#2c6f86', crown: '#b6e3ee', rime: '#e4f6fb', vein: '#0a1d26', core: '#0a1a22', bone: '#cfd3c4', ice: '#cfeaf4', iceDark: '#7db0c4', mist: '#9cc6d6'},
 };
 
@@ -31,6 +32,7 @@ const reach = a => R * (1 + .2 * Math.sin(a * 2 + .4) + .1 * Math.sin(a * 3 - 1.
 const frozen = (x, z) => THREE.MathUtils.clamp((x * .8 - z * .6) / R * 1.2 + .35 + .25 * Math.sin(x * 40 + z * 17), 0, 1);
 
 export function createSlime({kind = 'blue'} = {}) {
+  if (kind === 'green') return createGreenSlime();
   const C = PALETTES[kind] || PALETTES.blue, col = Object.fromEntries(Object.entries(C).map(([k, v]) => [k, new THREE.Color(v)]));
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const add = (geo, mat, name, parent = body) => { const m = new THREE.Mesh(geo, mat); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
@@ -111,5 +113,141 @@ export function createSlime({kind = 'blue'} = {}) {
   const mist = new THREE.CircleGeometry(.46, 24); mist.rotateX(-Math.PI / 2); mist.translate(.01, .02, 0);
   const mm = add(mist, new THREE.MeshBasicMaterial({color: col.mist, transparent: true, opacity: .2, depthWrite: false}), 'mist', g);
   mm.castShadow = false; mm.receiveShadow = false;
+  return {g, body};
+}
+
+// Green slime: the one that turns you into slime. A tall, sagging mass that is climbing something, its tip
+// hooked over, lit from inside by a sick green core, with a half-slimed victim still in it (a skull in the
+// belly, a hand clawing out of the flank), tendrils reaching and hooked, drips hanging, and a wide slick
+// with runners creeping out across the floor. Thirteen draws; handles: body (quirk 'blob').
+const GH = .5, GR = .27;
+const fold = (a, t) => 1 + .07 * Math.sin(a * 7 + t * 3) * (1 - t * .6) + .03 * Math.sin(a * 13);
+// a point on the skin at angle a and height fraction t (0 floor, 1 tip), r pushes it out
+const surf = (a, t, push = 0) => {
+  const u = Math.sqrt(Math.max(0, 1 - t * t)), r = (Math.pow(u, .8) * GR * (1 - .5 * t) * reach(a) / R * fold(a, t)) + push;
+  return new THREE.Vector3(Math.cos(a) * r + .09 * t * t + .17 * t ** 4, t * GH, Math.sin(a) * r - .05 * t * t);
+};
+const taper = (path, rad, seg, end) => {
+  let tg = new THREE.TubeGeometry(path, seg, rad, 6, false); const tp = tg.attributes.position;
+  for (let i = 0; i < tp.count; i++) { const u = Math.floor(i / 7) / seg, c = path.getPoint(u), t = 1 - u * (end ?? .85); tp.setXYZ(i, c.x + (tp.getX(i) - c.x) * t, c.y + (tp.getY(i) - c.y) * t, c.z + (tp.getZ(i) - c.z) * t); }
+  tg.computeVertexNormals(); return bare(tg);
+};
+function createGreenSlime() {
+  const C = PALETTES.green, col = Object.fromEntries(Object.entries(C).map(([k, v]) => [k, new THREE.Color(v)]));
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const add = (geo, mat, name, parent = body) => { const m = new THREE.Mesh(geo, mat); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
+  const glowMat = (o = {}) => new THREE.MeshStandardMaterial({vertexColors: true, roughness: .2, emissive: col.mid, emissiveIntensity: .35, ...o});
+
+  // skin: a tall tapering heap, slumped folds down its flanks, the tip hooked over toward +x
+  const skinG = new THREE.SphereGeometry(1, 40, 30), sp = skinG.attributes.position;
+  for (let i = 0; i < sp.count; i++) {
+    const y = sp.getY(i), p = surf(Math.atan2(sp.getZ(i), sp.getX(i)), Math.max(0, y));
+    sp.setXYZ(i, p.x, p.y, p.z);
+  }
+  skinG.computeVertexNormals();
+  paint(skinG, (x, y, z, o) => {
+    const up = THREE.MathUtils.clamp(y / GH, 0, 1), fl = Math.max(0, Math.sin(x * 31 + z * 17 + y * 9) * Math.sin(z * 23 - x * 13));
+    o.copy(col.deep).lerp(col.mid, THREE.MathUtils.clamp(.35 + up * 1.1, 0, 1)).lerp(col.vein, fl * .3).lerp(col.crown, Math.pow(up, 2.2) * .55);
+  });
+  const skin = add(skinG, new THREE.MeshPhysicalMaterial({vertexColors: true, roughness: .1, clearcoat: 1, clearcoatRoughness: .08, transparent: true, opacity: .6, emissive: col.mid, emissiveIntensity: .5, side: THREE.DoubleSide}), 'skin');
+  skin.position.y = .02;
+
+  // the core: a sick light deep in the mass, ringed with dark clots
+  const core = bare(new THREE.IcosahedronGeometry(.05, 1)); core.scale(1, 1.6, 1); core.translate(.02, .2, -.04);
+  paint(core, (x, y, z, o) => o.copy(col.glow).lerp(col.crown, hash(Math.round(x * 80) + Math.round(y * 60) * 7) * .3));
+  add(core, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .4, emissive: col.glow, emissiveIntensity: .95, flatShading: true}), 'core');
+  const clots = [];
+  for (let i = 0; i < 6; i++) {
+    const a = i * 1.1 + .3, c = bare(new THREE.IcosahedronGeometry(.02 + hash(i * 5) * .02, 0)); c.scale(1, .7 + hash(i), 1);
+    c.translate(Math.cos(a) * (.08 + hash(i * 3) * .05), .06 + hash(i * 7) * .26, Math.sin(a) * (.08 + hash(i * 3) * .05) + .02);
+    paint(c, (x, y, z, o) => o.copy(col.clot).lerp(col.rot, hash(i * 9) * .3)); clots.push(c);
+  }
+  add(mergeGeometries(clots), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .6, flatShading: true}), 'clots');
+
+  // the victim: a skull in the belly, jaw hanging, its lower half already green; a hand clawing out of the flank
+  const skull = [];
+  const rotted = (y, o) => o.copy(col.bone).lerp(col.rot, THREE.MathUtils.clamp((.24 - y) * 7, 0, 1) * .85);
+  const cran = bare(new THREE.IcosahedronGeometry(.075, 1)); cran.scale(1, .92, 1.08); skull.push(cran);
+  const jaw = bare(new THREE.BoxGeometry(.07, .022, .07)); jaw.rotateX(.35); jaw.translate(0, -.08, .03); skull.push(jaw);
+  const place = geo => { geo.rotateZ(.5); geo.rotateY(-.5); geo.translate(-.02, .17, .13); };
+  skull.forEach(geo => { place(geo); paint(geo, (x, y, z, o) => rotted(y, o)); });
+  const sockets = [-1, 1].map(s => { const e = bare(new THREE.IcosahedronGeometry(.02, 0)); e.translate(s * .03, .008, .065); place(e); paint(e, (x, y, z, o) => o.copy(col.clot)); return e; });
+  const sk = mergeGeometries([...skull, ...sockets]);
+  add(sk, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .85, flatShading: true}), 'skull');
+  const hand = [], wrist = new THREE.Vector3(.0, .24, .14), dir = new THREE.Vector3(.35, .55, .75).normalize();
+  const K = 2, bit = (len, rad, from, d) => { len *= K; rad *= K; from = wrist.clone().add(from.clone().sub(wrist).multiplyScalar(K)); const c = bare(new THREE.CylinderGeometry(rad * .7, rad, len, 5)); c.translate(0, len / 2, 0); c.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d)); c.translate(from.x, from.y, from.z); return c; };
+  const palm = bit(.055, .017, wrist, dir); hand.push(palm);
+  const side = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 0, 1)).normalize(), top = wrist.clone().addScaledVector(dir, .055);
+  [[-1.5, 1], [-.5, 1.12], [.5, 1.05], [1.5, .85]].forEach(([k, l], i) => {
+    const base = top.clone().addScaledVector(side, k * .0125), d1 = dir.clone().addScaledVector(side, k * .1).normalize(), len = .04 * l;
+    hand.push(bit(len, .007, base, d1));
+    const knuckle = base.clone().addScaledVector(d1, len), d2 = d1.clone().lerp(new THREE.Vector3(-.6, -.2, 0), .55).normalize();
+    hand.push(bit(len * .8, .0055, knuckle, d2));
+  });
+  hand.push(bit(.035, .008, wrist.clone().addScaledVector(dir, .015).addScaledVector(side, -.022), side.clone().multiplyScalar(-1).addScaledVector(dir, .6).normalize()));
+  const handG = mergeGeometries(hand);
+  paint(handG, (x, y, z, o) => o.copy(col.flesh).lerp(col.bone, .35).lerp(col.rot, THREE.MathUtils.clamp((.17 - z) * 10, 0, 1) * .6));
+  add(handG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .75, flatShading: true, emissive: col.flesh, emissiveIntensity: .15}), 'hand');
+
+  // the tendrils: three reaching up and over, hooked, the hooks bright
+  const tendrils = [], tips = [];
+  [[.6, .45, .8], [2.7, .4, .65], [4.5, .52, .9]].forEach(([a, t0, up], k) => {
+    const p0 = surf(a, t0, -.02), out = new THREE.Vector3(Math.cos(a), 0, Math.sin(a)), pts = [p0];
+    pts.push(p0.clone().addScaledVector(out, .08).add(new THREE.Vector3(0, .09 * up, 0)));
+    pts.push(p0.clone().addScaledVector(out, .13).add(new THREE.Vector3(0, .2 * up, 0)));
+    pts.push(p0.clone().addScaledVector(out, .08).add(new THREE.Vector3(0, .27 * up, 0)));
+    pts.push(p0.clone().addScaledVector(out, -.01).add(new THREE.Vector3(0, .26 * up, 0)));
+    const path = new THREE.CatmullRomCurve3(pts), tg = taper(path, .026 - k * .003, 14, .8);
+    paint(tg, (x, y, z, o) => o.copy(col.mid).lerp(col.crown, THREE.MathUtils.clamp(y / .6, 0, 1) * .6)); tendrils.push(tg);
+    const end = path.getPoint(1), dir2 = path.getTangent(1), hook = bare(new THREE.ConeGeometry(.012, .06, 5));
+    hook.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir2)); hook.translate(end.x + dir2.x * .02, end.y + dir2.y * .02, end.z + dir2.z * .02);
+    paint(hook, (x, y, z, o) => o.copy(col.tip)); tips.push(hook);
+  });
+  add(mergeGeometries(tendrils), glowMat({transparent: true, opacity: .85, emissiveIntensity: .45}), 'tendrils');
+  add(mergeGeometries(tips), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .3, emissive: col.tip, emissiveIntensity: .7, flatShading: true}), 'hooks');
+
+  // drips hanging off the rim, each ending in a bead
+  const drips = [];
+  [[.2, .13], [1.2, .08], [2.0, .11], [3.3, .09], [4.1, .14], [5.2, .07], [5.8, .1]].forEach(([a, len], i) => {
+    const p = surf(a, .08, -.012), c = bare(new THREE.ConeGeometry(.014, len, 5)); c.rotateX(Math.PI); c.translate(p.x, Math.max(len / 2, p.y + .02 - len / 2 + .02), p.z);
+    const b = bare(new THREE.IcosahedronGeometry(.013, 0)); b.scale(1, 1.3, 1); b.translate(p.x, Math.max(.02, Math.max(len / 2, p.y + .02 - len / 2 + .02) - len / 2), p.z);
+    paint(c, (x, y, z, o) => o.copy(col.mid)); paint(b, (x, y, z, o) => o.copy(col.crown)); drips.push(c, b);
+  });
+  add(mergeGeometries(drips), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .12, flatShading: true, emissive: col.mid, emissiveIntensity: .3}), 'drips');
+
+  // blisters: acid beads on the skin, bright; scabs: dried black-green plates on the back
+  const blis = [], scabs = [];
+  for (let i = 0; i < 9; i++) {
+    const a = i * 2.4 + 1, t = .12 + hash(i * 5) * .6, p = surf(a, t, .004), b = bare(new THREE.IcosahedronGeometry(.009 + hash(i) * .012, 1));
+    b.translate(p.x, p.y + .02, p.z); paint(b, (x, y, z, o) => o.copy(col.glow).lerp(col.crown, hash(i) * .4)); blis.push(b);
+  }
+  for (let i = 0; i < 7; i++) {
+    const a = -1.2 + i * .5, t = .2 + hash(i * 3) * .5, p = surf(a, t, .006), pl = bare(new THREE.CylinderGeometry(.018 + hash(i) * .018, .03 + hash(i * 2) * .015, .008, 5 + (i % 2)));
+    pl.rotateX((hash(i * 4) - .5) * .8); pl.rotateZ((hash(i * 6) - .5) * .8); pl.translate(p.x, p.y + .02, p.z);
+    paint(pl, (x, y, z, o) => o.copy(col.scab).lerp(col.rot, hash(i * 7 + Math.round(y * 400)) * .35)); scabs.push(pl);
+  }
+  add(mergeGeometries(blis), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .15, emissive: col.glow, emissiveIntensity: .8}), 'blisters');
+  add(mergeGeometries(scabs), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .9, flatShading: true}), 'scabs');
+
+  // the floor: a wide slick and runners reaching out of it
+  const slick = bare(new THREE.CircleGeometry(1, 44)), fp = slick.attributes.position;
+  for (let v = 0; v < fp.count; v++) { const x = fp.getX(v), y = fp.getY(v), a = Math.atan2(y, x), j = 1 + .25 * Math.sin(a * 3 + 1) + .15 * Math.sin(a * 5) + .07 * Math.sin(a * 9); fp.setXYZ(v, x * j * GR * 1.05, y * j * GR * 1.0, 0); }
+  slick.rotateX(-Math.PI / 2); slick.translate(0, .004, 0);
+  paint(slick, (x, y, z, o) => o.copy(col.deep).lerp(col.mid, THREE.MathUtils.clamp(1 - Math.hypot(x, z) / (GR * 1.4), 0, 1) * .5));
+  add(slick, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .1, emissive: col.mid, emissiveIntensity: .25, polygonOffset: true, polygonOffsetFactor: -1, side: THREE.DoubleSide}), 'slick', g);
+  const runs = [];
+  [[.1, .8, .17], [1.3, .9, .19], [2.4, 1.1, .16], [3.5, .7, .2], [4.7, 1.0, .18], [5.6, .8, .15]].forEach(([a, bend, len]) => {
+    const r0 = GR * .9, a2 = a + .35 * (bend - .9), P = (aa, rr, y) => new THREE.Vector3(Math.cos(aa) * rr, y, Math.sin(aa) * rr);
+    const path = new THREE.CatmullRomCurve3([P(a, r0, .04), P(a2, r0 + len * .5, .035), P(a + bend * .5, r0 + len, .025)]);
+    const tg = taper(path, .028, 10, .85);
+    paint(tg, (x, y, z, o) => { const u = THREE.MathUtils.clamp((Math.hypot(x, z) - r0) / len, 0, 1); o.copy(col.mid).lerp(col.deep, .25).lerp(col.crown, Math.max(0, u - .5) * 1.2); });
+    runs.push(tg);
+  });
+  add(mergeGeometries(runs), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .12, emissive: col.mid, emissiveIntensity: .3, polygonOffset: true, polygonOffsetFactor: -1.5}), 'runners', g);
+
+  // a faint acrid haze clinging to the slick
+  const haze = new THREE.CircleGeometry(.44, 24); haze.rotateX(-Math.PI / 2); haze.translate(0, .03, 0);
+  const hm = add(haze, new THREE.MeshBasicMaterial({color: col.rot, transparent: true, opacity: .16, depthWrite: false}), 'fume', g);
+  hm.castShadow = false; hm.receiveShadow = false;
   return {g, body};
 }

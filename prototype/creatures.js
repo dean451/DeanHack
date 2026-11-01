@@ -3442,6 +3442,7 @@ export function createCreature(cell={}){
  if(name==='acid blob'){const a=createAcidBlob({color:'#7ed23a'});return actor(a.g,a.body,[],null,[],'blob');}
  if(name==='blue jelly'||name==='spotted jelly'||name==='ochre jelly'){const a=createJelly({kind:name.split(' ')[0]});if(name==='ochre jelly')a.g.scale.setScalar(1.2);// (it spreads wider than a plain ooze, menace-scale.test.js)
  return actor(a.g,a.body,[],null,[],'blob');}
+ if(name==='green slime'){const a=createSlime({kind:'green'});a.g.scale.setScalar(1.25);return actor(a.g,a.body,[],null,[],'blob');}
  if(name==='blue slime'){const a=createSlime({kind:'blue'});a.g.scale.setScalar(1.25);return actor(a.g,a.body,[],null,[],'blob');}
  if(name==='black pudding'||name==='brown pudding'){const a=createPudding({kind:name.split(' ')[0]});a.g.scale.setScalar(name==='black pudding'?1.5:1.1);return actor(a.g,a.body,[],null,[],'blob');}
  if(name==='gray ooze'){const a=createGrayOoze();return actor(a.g,a.body,[],null,[],'blob');}
