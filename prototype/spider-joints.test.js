@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
+import {createScorpion} from './scorpion.js';
 
 const NAMES=['cave spider','giant spider','recluse'];
 const make=name=>createCreature({name,symbol:115,color:3});
@@ -48,6 +49,31 @@ test('each spider leg bends at its coxa, femur and tibia: turning one moves only
     assert(past>.002,`${name}: ${legName}_${k} moves the leg past it (${past})`);
     assert(before<1e-9,`${name}: ${legName}_${k} leaves the leg before it (${before})`);
     for(const [l,v] of others){const w=verts(l);assert(v.every((p,n)=>p.distanceTo(w[n])<1e-9),`${name}: ${legName}_${k} leaves ${l.name}`);}
+    bone.rotation.x-=.6;
+   }
+  }
+ }
+});
+
+test('a scorpion has its eight legs as named joints on three bones each, and the same bend moves only the leg past the joint',()=>{
+ for(const name of ['scorpion','scorpius']){
+  const a=createScorpion(name),j=a.joints;
+  assert.equal(j.head,a.head,name);assert.equal(j.tail0,a.tail,name);assert(!j.neck0,name);
+  assert.equal(new Set(a.legs.map(l=>l.name)).size,8,name);
+  let meshes=0;a.g.traverse(o=>{if(o.isMesh)meshes++;});
+  assert.equal(meshes,13,`${name}: still 13 meshes`);
+  for(const side of ['l','r'])for(let i=0;i<4;i++){
+   const legName=`${side}leg${i}`,leg=j[legName];
+   assert(leg&&a.legs.includes(leg)&&skinned(leg),`${name}: ${legName}`);
+   assert.equal(leg.position.x<0,side==='l',`${name}: left is -x`);
+   for(let k=0;k<3;k++){
+    const bone=j[`${legName}_${k}`];assert(bone?.isBone,`${name}: ${legName}_${k}`);
+    a.g.updateMatrixWorld(true);
+    const rest=verts(leg),others=a.legs.filter(l=>l!==leg).map(l=>[l,verts(l)]);
+    bone.rotation.x+=.6;a.g.updateMatrixWorld(true);
+    const now=verts(leg);
+    assert(now.some((p,n)=>p.distanceTo(rest[n])>.002),`${name}: ${legName}_${k} moves the leg`);
+       for(const [l,v] of others){const w=verts(l);assert(v.every((p,n)=>p.distanceTo(w[n])<1e-9),`${name}: ${legName}_${k} leaves ${l.name}`);}
     bone.rotation.x-=.6;
    }
   }

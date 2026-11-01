@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {skinLeg,rigLeg} from './insect-joints.js';
 
 // The scorpion shares the spiders' letter, so it used to be a red cave spider. It now has a
 // scorpion's build: a flat, shield-shaped carapace with two raised middle eyes and small eyes at
@@ -7,7 +8,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // arch up and forward over the back to a swollen venom bulb with a hooked black stinger.
 // Two big pincers reach forward on jointed arms: each has a heavy, ridged hand, a fixed finger
 // on the outside and a hinged finger inside, with little teeth along the bite and dark tips.
-// Eight short legs splay out low from under the carapace, the back pairs raking backwards.
+// Eight short legs (each one skinned mesh on three bones) splay out low from under the carapace, the back pairs raking backwards.
 // - scorpion: dark rust-red chitin, paler at the joints and plate edges, amber eyes.
 // - Scorpius (the Ranger quest nemesis): a huge, blue-black one with violet edges, a glowing
 //   violet venom bulb and red eyes.
@@ -149,7 +150,7 @@ function buildLeg(L,i){
   if(j>0)P.add(new THREE.SphereGeometry(radii[j]*1.1,6,5),at(...pts[j]),pale);
  }
  P.add(new THREE.SphereGeometry(.0045,5,4),at(...pts[5]),dark);
- return P.merge();
+ return skinLeg(P.merge(),pts);
 }
 
 const cache=new Map();
@@ -165,6 +166,20 @@ function build(key,L){
  cache.set(key,S);return S;
 }
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
+
+// Named joints, as the spiders': `lleg0`..`lleg3` / `rleg0`..`rleg3` front to hind (left is -x), each leg's
+// coxa, femur and tibia as bones `<leg>_0`..`_2` of its one skinned mesh, and `head` (the eye mesh; no neck).
+// `tail0` is the tail group for now (one joint, not yet a chain).
+function nameScorpionJoints(actor){
+ const joints={head:actor.head,tail0:actor.tail};
+ actor.head.name='head';actor.tail.name='tail0';
+ actor.legs.forEach((leg,i)=>{
+  const name=(i<4?'r':'l')+'leg'+i%4;leg.name=name;joints[name]=leg;
+  (leg.userData.segments||[]).forEach((b,k)=>{b.name=`${name}_${k}`;joints[b.name]=b;});
+ });
+ actor.joints=joints;
+ return actor;
+}
 
 export function createScorpion(name){
  const key=(name||'').toLowerCase(),L=LOOKS[key]||LOOKS.scorpion,S=build(LOOKS[key]?key:'scorpion',L);
@@ -182,9 +197,9 @@ export function createScorpion(name){
  for(const s of [1,-1])S.legs.forEach((geo,i)=>{
   const leg=new THREE.Group();
   leg.position.set(s*.052,Y,.12-i*.03);body.add(leg);
-  const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
+  rigLeg(leg,geo,S.material,{mirror:s<0});
   legs.push(leg);
  });
  if(L.cracked)g.userData.scarred=true;
- return {g,body,legs,tail,wings:[],quirk:'spider',head,claws};
+ return nameScorpionJoints({g,body,legs,tail,wings:[],quirk:'spider',head,claws});
 }
