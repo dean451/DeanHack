@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {skinLeg,rigLeg} from './insect-joints.js';
 
 // Spiders used to be two plain spheres with a flat plate on top, four red dots and eight bent
 // sticks. They now have a proper spider build: a domed cephalothorax with a dark fovea and
@@ -16,7 +17,7 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 //   chevrons down the abdomen and orange knee bands, and bristles all over. Red glowing eyes.
 // - any other 's' falls back on the cave spider's build in the glyph colour.
 // The body (with fangs and palps) is one vertex-coloured mesh and the eyes are another (they
-// glow); each leg is its own group (the walk swings them) holding one mesh. 10 draws. Geometry
+// glow); each leg is its own group (the walk swings them) holding one skinned mesh on three bones. 10 draws. Geometry
 // is built once per look and shared; the left legs reuse the right ones mirrored.
 // Handles: body, legs (8), head (the eye mesh), quirk 'spider'.
 
@@ -134,7 +135,7 @@ function buildLeg(L,i){
  }
  // the claw tuft on the tarsus
  P.add(new THREE.SphereGeometry(.007,5,4),at(...pts[5]),dark);
- return P.merge();
+ return skinLeg(P.merge(),pts);
 }
 
 const cache=new Map();
@@ -149,6 +150,20 @@ function build(key,L){
 }
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
+// Named joints, as the six-legged family has them: `lleg0`..`lleg3` / `rleg0`..`rleg3` front to hind (left is
+// -x), and each leg's coxa, femur and tibia as bones `<leg>_0`..`<leg>_2` of its one skinned mesh (rigLeg).
+// A spider has no neck: the head is fused to the thorax, so `head` is the eye mesh and there is no `neck0`.
+// The legs are built right side first, then the left.
+function nameSpiderJoints(actor){
+ const joints={head:actor.head};
+ actor.legs.forEach((leg,i)=>{
+  const name=(i<4?'r':'l')+'leg'+i%4;leg.name=name;joints[name]=leg;
+  (leg.userData.segments||[]).forEach((b,k)=>{b.name=`${name}_${k}`;joints[b.name]=b;});
+ });
+ actor.joints=joints;
+ return actor;
+}
+
 export function createSpider(name,colour){
  const known=LOOKS[name],L=known||{...LOOKS['cave spider'],scale:1,shell:colour||LOOKS['cave spider'].shell,dark:new THREE.Color(colour||'#7a7a74').multiplyScalar(.45).getStyle()};
  const S=build(known?name:'s:'+L.shell,L);
@@ -159,9 +174,9 @@ export function createSpider(name,colour){
  for(const s of [1,-1])S.legs.forEach((geo,i)=>{
   const leg=new THREE.Group();
   leg.position.set(s*.06,Y,.1-i*.035);body.add(leg);
-  const m=mesh(leg,geo,S.material,'leg');if(s<0)m.scale.x=-1;
+  rigLeg(leg,geo,S.material,{mirror:s<0});
   legs.push(leg);
  });
  if(L.worn)g.userData.scarred=true;
- return {g,body,legs,tail:null,wings:[],quirk:'spider',head};
+ return nameSpiderJoints({g,body,legs,tail:null,wings:[],quirk:'spider',head});
 }
