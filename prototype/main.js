@@ -32,6 +32,7 @@ import {createAltarEmbers} from './altar-embers.js';
 import {createBogBubbles} from './bog-bubbles.js';
 import {createGasRoil} from './poison-cloud-roil.js';
 import {createGasEdge} from './gas-edge.js';
+import {installSlowTrace} from './slow-trace.js';
 
 /* every renderer.render(scene) walked the whole graph's world matrices again (the main pass, then the occlusion pass's own scene render), so the frame updates them once, just before the composer draws */const scene=new THREE.Scene();scene.matrixWorldAutoUpdate=false;scene.background=new THREE.Color('#142333');scene.fog=new THREE.FogExp2('#1b3040',.032);
 // A weak machine (four cores or fewer) draws at 1x: four times fewer pixels on a Retina screen.
@@ -193,6 +194,7 @@ function sentinel(){const g=new THREE.Group();const core=mat('#ff9a58',{emissive
  sphere(.27,guardLight,g,0,1.03,0,1,.9,1);roundedBox(.32,.09,.05,visor,g,0,1.04,.25,.02);for(const x of [-.14,.14]){const horn=mesh(new THREE.ConeGeometry(.07,.25,5),guardLight,g,x,1.3,0);horn.rotation.z=x>0?.35:-.35;}
  const coreMesh=sphere(.1,core,g,0,.59,.25);roundedBox(.07,.37,.05,core,g,0,.59,.3,.015);return Object.assign(g,{userData:{core:coreMesh}});}
 const $=s=>document.querySelector(s);
+/* on the dev server, a freeze is profiled as it happens and can be copied as a report (slow-trace.js) */installSlowTrace({enabled:import.meta.env.DEV});
 if(new URLSearchParams(location.search).has('debug'))window.__dh={camera,controls,scene,renderer,heroFactory:knight};
 /* the pet's fur layers follow the tier (quality.js FUR_SHELLS), set before any cat is built */FUR.shells=furShellsFor(quality.tier);/* lighter monster models below high (creature-lod.js) */LOD.enabled=monsterLodFor(quality.tier);const live=installLive({scene,camera,controls,renderer,torchLightCount:torchLightsFor(quality.tier),playerFactory:knight,catFactory:cat,monsterFactory:sentinel,creatureFactory:createCreature,wellTemplate:well,onActivity:touch});if(window.__dh)window.__dh.live=live;
 // The hero's portrait beside the hitpoints (hero-portrait.js), redrawn a few times a second.
