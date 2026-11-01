@@ -30,13 +30,24 @@ export function leerPose(u) {
   return {dart: c(dart), tilt: c(tilt), lash: c(lash)};
 }
 
+// Which way the first jerk goes: toward the hero's side of the imp's own facing (+1 turns the head toward
+// +x at yaw 0, the way yawToward counts). Anyone near the dead ahead or behind, or nobody, keeps +1.
+export function sideToward(actor, look) {
+  if (!look || !Number.isFinite(look.x) || !Number.isFinite(look.z)) return 1;
+  const dx = look.x - actor.g.position.x, dz = look.z - actor.g.position.z;
+  if (Math.hypot(dx, dz) < 1e-6) return 1;
+  let d = Math.atan2(dx, dz) - (actor.g.rotation.y || 0);
+  d = Math.atan2(Math.sin(d), Math.cos(d));
+  return Math.abs(d) < .1 || Math.abs(d) > Math.PI - .1 ? 1 : (d > 0 ? 1 : -1);
+}
+
 function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; return st.seed / 2147483648; }
 
 // Call once per frame after the gait layer. `busy` is true while the actor walks or acts; `look` is the hero
 // ({x, z}): an imp left standing with the hero within NEAR leers at him soon, instead of when its idle timer says.
 export function updateImpLeer(actor, dt, t, busy, look = null) {
   if (!leers(actor)) return null;
-  const st = actor.impLeer || (actor.impLeer = {seed: ((actor.g?.id ?? 1) * 6007) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {y: 0, z: 0, t: 0, b: 0}});
+  const st = actor.impLeer || (actor.impLeer = {seed: ((actor.g?.id ?? 1) * 6007) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {y: 0, z: 0, t: 0, b: 0}, side: 1});
   const o = st.o, head = actor.head, tail = actor.tail;
   head.rotation.y -= o.y; head.rotation.z -= o.z; tail.rotation.z -= o.t; actor.body.rotation.y -= o.b;
   st.o = {y: 0, z: 0, t: 0, b: 0};
@@ -52,11 +63,12 @@ export function updateImpLeer(actor, dt, t, busy, look = null) {
     if (near && st.wait > ALERT && !st.alerted) { st.wait = ALERT; st.alerted = true; }
     if (!near) st.alerted = false;
     st.wait -= dt;
-    if (st.wait <= 0) { st.s = 0; st.f = 0; st.broken = false; st.wait = (st.alerted ? NEAR_GAP : GAP_MIN + GAP_SPAN * rand(st)); }
+    if (st.wait <= 0) { st.s = 0; st.f = 0; st.broken = false; st.side = near ? sideToward(actor, look) : 1; st.wait = (st.alerted ? NEAR_GAP : GAP_MIN + GAP_SPAN * rand(st)); }
   }
   if (st.s == null) return null;
   const p = leerPose(st.s), f = st.f;
-  st.o = {y: DART * p.dart * f, z: TILT * p.tilt * f, t: LASH * p.lash * f, b: TWIST * p.dart * f};
+  const sd = st.side || 1;
+  st.o = {y: DART * p.dart * f * sd, z: TILT * p.tilt * f * sd, t: LASH * p.lash * f, b: TWIST * p.dart * f * sd};
   actor.body.rotation.y += st.o.b;
   head.rotation.y += st.o.y; head.rotation.z += st.o.z; tail.rotation.z += st.o.t;
   return p;

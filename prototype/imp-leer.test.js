@@ -62,3 +62,22 @@ test('the hero coming close sets the leer off soon, and again while he stays', (
   for (let i = 0; i < 120; i++) updateFidget(a, dt, i * dt, true, hero);
   assert.ok(Math.abs(a.head.rotation.y - y) < 1e-9 && Math.abs(a.body.rotation.y - b) < 1e-9, 'busy takes it back exactly');
 });
+
+test('the first jerk turns toward the hero\'s side of the imp, and stays in bounds', () => {
+  const peak = (heroPos, yaw) => {
+    const a = mon('imp'); a.g.position.set(0, 0, 0); a.g.rotation.y = yaw;
+    const y0 = a.head.rotation.y; let max = 0, tilt = 0, z0 = a.head.rotation.z;
+    for (let i = 0; i < 180; i++) {
+      updateFidget(a, dt, i * dt, false, heroPos);
+      const d = a.head.rotation.y - y0;
+      if (Math.abs(d) > Math.abs(max)) max = d;
+      assert.ok(Math.abs(d) <= M.DART + 1e-9 && Math.abs(a.head.rotation.z - z0) <= M.TILT + 1e-9);
+    }
+    return max;
+  };
+  assert.ok(peak({x: 2, z: 0}, 0) > M.DART * .8, 'hero to the east of a south-facing imp: head turns +');
+  assert.ok(peak({x: -2, z: 0}, 0) < -M.DART * .8, 'hero to the west: head turns -');
+  assert.ok(peak({x: 2, z: 0}, Math.PI) < -M.DART * .8, 'imp turned round: the same hero is on the other side');
+  assert.equal(M.sideToward(mon('imp'), null), 1);
+  assert.equal(M.sideToward(mon('imp'), {x: NaN, z: 1}), 1);
+});
