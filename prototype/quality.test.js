@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {furShellsFor, torchLightsFor, TIERS, ORDER, pickTier, createAdaptiveQuality, frameCost, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
+import {furShellsFor, torchLightsFor, flameLightsFor, TIERS, ORDER, pickTier, createAdaptiveQuality, frameCost, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
 
 test('the URL wins, then the saved choice, then the machine', () => {
   assert.equal(pickTier({search: '?quality=high', saved: 'low', cores: 2}), 'high');
@@ -159,7 +159,7 @@ test('frame cost: late frames cost the whole gap, frames on the display beat cos
 });
 
 test('only the high tier keeps eight torch lights; the live torch list is not rebuilt every frame', () => {
-  assert.equal(torchLightsFor('high'), 8); assert.equal(torchLightsFor('balanced'), 4); assert.equal(torchLightsFor('low'), 4); assert.equal(torchLightsFor('nonsense'), 4);
+  assert.equal(torchLightsFor('high'), 4); assert.equal(torchLightsFor('balanced'), 3); assert.equal(torchLightsFor('low'), 2); assert.equal(torchLightsFor('nonsense'), 3);
   const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8'), live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
   assert.match(main, /installLive\(\{scene,camera,controls,renderer,torchLightCount:torchLightsFor\(quality\.tier\)/);
   assert.match(live, /get\('torches'\)\?\?String\(torchLightCount\)/);
@@ -185,7 +185,7 @@ test('the pet\'s fur keeps all ten layers only on high; main.js sets it before a
 test('fast strips the look to what plays: no occlusion, no glow, no shadows, 1x pixels, fewer lights and fur layers', () => {
   const t = TIERS.fast;
   assert.equal(t.ssao, false); assert.equal(t.bloom, false); assert.equal(t.shadows, false); assert.equal(t.ratio, 1);
-  assert.equal(torchLightsFor('fast'), 2); assert.equal(furShellsFor('fast'), 3);
+  assert.equal(torchLightsFor('fast'), 1); assert.equal(furShellsFor('fast'), 3);
   const bloom = {enabled: true}, light = {castShadow: true, shadow: {mapSize: {x: 1024, y: 1024, set() {}}, map: null}}, ao = {enabled: true};
   applyTier('fast', {bloom, light, ambientOcclusion: ao});
   assert.equal(bloom.enabled, false); assert.equal(light.castShadow, false); assert.equal(ao.enabled, false);
@@ -217,4 +217,11 @@ test('occlusion takes 16 samples a pixel on high and 8 below, in the pass and it
   applyTier('balanced', {ambientOcclusion: ao});
   assert.deepEqual(calls, [['gtao', 8], ['pd', 8]]);
   applyTier('balanced', {ambientOcclusion: ao}); assert.equal(calls.length, 2, 'unchanged: no recompile');
+});
+
+test('the point lights are few: the torch and flame pools follow the tier, and the live scene at high keeps ten in all', () => {
+  assert.deepEqual(ORDER.map(torchLightsFor), [4, 3, 2, 1]);
+  assert.deepEqual(ORDER.map(flameLightsFor), [2, 2, 1, 1]);
+  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
+  assert.match(main, /createFlameFlicker\(scene,\{focus:\(\)=>controls\.target,lights:flameLightsFor\(quality\.tier\)\}\)/);
 });

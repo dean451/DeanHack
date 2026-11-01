@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import {createGrave} from './grave.js';
 import {createLightItem} from './shop-visuals.js';
 import {createCandelabrum} from './candelabrum.js';
 import {createWatch} from './watch.js';
-import {createFlameFlicker, flameState, flameLightPosition, FLAME_SCAN_EVERY, FLAME_LIGHTS, FLAME_LIGHT_INTENSITY, FLAME_LIGHT_LANTERN} from './flame-flicker.js';
+import {findFlames, createFlameFlicker, flameState, flameLightPosition, FLAME_SCAN_EVERY, FLAME_LIGHTS, FLAME_LIGHT_INTENSITY, FLAME_LIGHT_LANTERN} from './flame-flicker.js';
 import {createThrone} from './throne.js';
 import {createThroneGleam, gleamState, glint, GLEAM_BREATHE, GLEAM_SMOULDER, GLEAM_GLINT, GLEAM_SAPPHIRE_EVERY, GLEAM_RUBY_EVERY, GLEAM_TIC, GLEAM_TIC_DELAY, sapphireTic} from './throne-gleam.js';
 
@@ -193,4 +194,14 @@ test('throne jewels breathe and glint smoothly, out of step between thrones, and
   gleam.restore();
   assert.deepEqual(stones.map(list => list.map(m => m.material.emissiveIntensity)), rest);
   for (const th of thrones) th.userData.dispose();
+});
+
+test('a flame tagged unlit (a grave candle) flickers but never takes a point light', () => {
+  const scene = new THREE.Scene(), grave = createGrave();scene.add(grave);
+  const candle = findFlames(scene)[0];
+  assert.ok(candle && candle.userData.unlit, 'the grave candle is a flame, tagged unlit');
+  const flicker = createFlameFlicker(scene, {focus: () => new THREE.Vector3()});
+  for (let t = 0; t < 2; t += .1) flicker.update(t);
+  assert.ok(flicker.lights.every(l => l.intensity === 0 && !l.userData.flame), 'no light follows it');
+  assert.notDeepEqual(candle.scale.toArray(), [1, 1, 1], 'it still flickers');
 });

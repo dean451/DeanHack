@@ -19,7 +19,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import {createCreature} from './creatures.js';
 import {createHeldWeapon,turnHeld} from './equipment.js';
 import {createRenderStats} from './render-stats.js';
-import {TIERS,isTier,pickTier,nextTier,pixelRatioFor,applyTier,createFramePacer,createAdaptiveQuality,frameCost,readSaved,saveTier,torchLightsFor,furShellsFor,monsterLodFor} from './quality.js'
+import {TIERS,isTier,pickTier,nextTier,pixelRatioFor,applyTier,createFramePacer,createAdaptiveQuality,frameCost,readSaved,saveTier,torchLightsFor,flameLightsFor,furShellsFor,monsterLodFor} from './quality.js'
 import {LOD} from './creature-lod.js'
 import {FUR} from './feline-coat.js';
 import {createFlameFlicker} from './flame-flicker.js';
@@ -39,7 +39,7 @@ import {createGasEdge} from './gas-edge.js';
 // No alpha channel either: the scene has an opaque background, so the page never showed through, and an opaque canvas skips the browser's blend with the page.
 const renderer=new THREE.WebGLRenderer({antialias:false,alpha:false});/* checking each shader's compile log makes the driver finish every compile on the spot, stalling the frame; only ?debug asks for it */renderer.debug.checkShaderErrors=new URLSearchParams(location.search).has('debug');const quality={tier:pickTier({search:location.search,saved:readSaved(),cores:navigator.hardwareConcurrency})};const adaptive=createAdaptiveQuality({manual:isTier(readSaved())});renderer.setPixelRatio(pixelRatioFor(quality.tier,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;/* the loop says when (quality.js): once a frame at most, not once per scene render */renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;document.querySelector('#scene').appendChild(renderer.domElement);
 const renderStats=createRenderStats(renderer,scene,{visible:new URLSearchParams(location.search).has('stats')});addEventListener('keydown',e=>{if(e.key==='F9'){e.preventDefault();renderStats.toggle();}});
-const flameFlicker=createFlameFlicker(scene,{focus:()=>controls.target});
+/* the candle and lamp flames' light pool follows the tier (quality.js) */const flameFlicker=createFlameFlicker(scene,{focus:()=>controls.target,lights:flameLightsFor(quality.tier)});
 const sinkDrip=createSinkDrip(scene);
 const canopySway=createCanopySway(scene);
 const throneGleam=createThroneGleam(scene);

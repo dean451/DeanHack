@@ -18,7 +18,7 @@ export const FLAME_SQUEEZE = .45; // width change per unit of stretch, the other
 export const FLAME_SWAY = .09; // peak lean, radians
 export const FLAME_GLOW = .22; // peak brightness change (fraction)
 
-export const FLAME_LIGHTS = 3; // point lights shared by the nearest flames
+export const FLAME_LIGHTS = 3; // point lights shared by the nearest flames, unless the caller sizes the pool (main.js: by quality tier)
 export const FLAME_LIGHT_INTENSITY = 5; // a candle; a lantern gets FLAME_LIGHT_LANTERN times this
 export const FLAME_LIGHT_LANTERN = 1.6;
 export const FLAME_LIGHT_RANGE = 3.2;
@@ -131,8 +131,8 @@ function flameStrength(mesh) {
   return (r.many ? 1.8 : tall > .07 ? FLAME_LIGHT_LANTERN : 1) * FLAME_LIGHT_INTENSITY;
 }
 
-function createFlameLights(scene) {
-  const lights = Array.from({length: FLAME_LIGHTS}, () => {
+function createFlameLights(scene, count = FLAME_LIGHTS) {
+  const lights = Array.from({length: count}, () => {
     const l = new THREE.PointLight(0xffb45e, 0, FLAME_LIGHT_RANGE, 2);
     l.castShadow = false;l.userData = {flame: null, level: 0, strength: 0};
     scene.add(l);return l;
@@ -143,9 +143,9 @@ function createFlameLights(scene) {
     lights,
     update(flames, t, focus) {
       const dt = last === null ? 0 : Math.min(.1, Math.max(0, t - last));last = t;
-      const lit = focus ? flames.filter(shownInScene)
+      const lit = focus ? flames.filter(f => !f.userData.unlit && shownInScene(f))
         .map(f => ({f, d: flameLightPosition(f, p).distanceToSquared(focus)}))
-        .sort((x, y) => x.d - y.d).slice(0, FLAME_LIGHTS).map(x => x.f) : [];
+        .sort((x, y) => x.d - y.d).slice(0, count).map(x => x.f) : [];
       const wanted = new Set(lit);
       // Lights whose flame is gone fade out; free lights take the new flames.
       for (const l of lights) if (l.userData.flame && !wanted.has(l.userData.flame)) l.userData.target = 0;
@@ -173,9 +173,9 @@ function createFlameLights(scene) {
 
 // `focus` (optional) returns the world point to light around, e.g. the orbit target; without it
 // the flame lights stay off.
-export function createFlameFlicker(scene, {focus} = {}) {
+export function createFlameFlicker(scene, {focus, lights: lightCount = FLAME_LIGHTS} = {}) {
   let flames = [], nextScan = -Infinity;
-  const lights = createFlameLights(scene);
+  const lights = createFlameLights(scene, lightCount);
   return {
     get flames() { return flames; },
     get lights() { return lights.lights; },
