@@ -273,7 +273,8 @@ export function humanoidRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The imps' map (imp, uranium imp, homunculus, quasit, tengu, lemure), from the joints `rigImp` exposes. Like the humanoids':
+// The imps' map (imp, uranium imp, homunculus, quasit, tengu, lemure), from the joints `rigImp` exposes; the kobolds' too (their
+// bodies are laid out the same: three-bone legs `lleg1_0`..`_2`, `tail0`..`tail4`, no wings). Like the humanoids':
 // the head group's own box at rest gives the mouth and chin, `withers` is the neck's root, `rump` the pelvis (`spine0`), a
 // foot the floor under the leg's last bone (`lleg1_3` on the four-bone legs, `lleg1_2` on the tengu's and lemure's) and a
 // hand the wrist carried on along the forearm. The tail tip is the last tail bone (`tail4`; the tengu and lemure have no
@@ -314,7 +315,7 @@ export function impRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids and the imps have maps so far.
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids, the imps and the kobolds have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
@@ -323,7 +324,7 @@ export function rolesOf(actor) {
   if (actor.quirk === 'cockatrice' && actor.joints) return cockatriceRoles(actor);
   if ((actor.kind === 'gargoyle' || actor.kind === 'gremlin') && actor.joints?.neck3) return gargoyleRoles(actor);
   if ((actor.quirk === 'insect' || actor.quirk === 'bee') && actor.joints?.lleg0_2) return insectRoles(actor);
-  if (['imp', 'homunculus', 'quasit', 'tengu', 'lemure'].includes(actor.quirk) && actor.joints?.rfore_2) return impRoles(actor);
+  if (['imp', 'homunculus', 'quasit', 'tengu', 'lemure', 'kobold'].includes(actor.quirk) && actor.joints?.rfore_2) return impRoles(actor);
   if (actor.joints?.rfore_2 && actor.joints.lleg1_2 && actor.joints.spine1 && actor.joints.neck3 && !actor.joints.tail0) return humanoidRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
