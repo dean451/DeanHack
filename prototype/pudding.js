@@ -21,7 +21,7 @@ const PALETTES = {
 const top0 = (x, z) => CY + R * SY * Math.sqrt(Math.max(0, 1 - (x * x + z * z) / (R * R)));
 // the rotten brown skin is lumpy and sagged: its radius varies with direction (a continuous function,
 // so shared vertices stay joined). Lopsided: a slumped shoulder at -x/+z, a pinched trough, a flattened belly.
-export const brownProfile = (dx, dy, dz) => 1 + .17 * Math.max(0, -dx * .8 + dz * .6) - .1 * Math.max(0, dx * .7 + dz * .5) * Math.max(0, dy)
+export const brownProfile = (dx, dy, dz) => 1 + .24 * Math.max(0, -dx * .8 + dz * .6) - .1 * Math.max(0, dx * .7 + dz * .5) * Math.max(0, dy)
   + .07 * Math.sin(dx * 5.3 + dz * 3.1 + 1.2) * Math.max(0, dy + .3) - (dy < -.25 ? .1 * (-.25 - dy) / .75 : 0);
 const BROWN_SX = 1.14, BROWN_SZ = .88;
 // the height of the skin above (x, z): brown follows its profile, found by bisection along the vertical
@@ -77,7 +77,13 @@ export function createPudding({kind = 'black'} = {}) {
   const lobeMat = new THREE.MeshStandardMaterial({color: C.lobe, roughness: black ? .15 : .8, metalness: black ? .3 : 0, transparent: true, opacity: .9, flatShading: !black});
   for (let i = 0; i < 5; i++) {
     const a = i * 1.3 + .2, r = .22 + hash(i + 3) * .06, s = .06 + hash(i + 9) * .035;
-    const l = add(new THREE.SphereGeometry(s, black ? 12 : 5, black ? 8 : 3), lobeMat, 'lobe'); l.position.set(Math.cos(a) * r, .06, Math.sin(a) * r); l.scale.set(1.2, .6, 1);
+    const lg = new THREE.SphereGeometry(s, black ? 12 : 5, black ? 8 : 3);
+    if (!black) { // ragged: every vertex pushed in or out by its own amount, so no lobe is a clean oval
+      const lp = lg.attributes.position;
+      for (let v = 0; v < lp.count; v++) { const k = .55 + hash(i * 31 + v * 7 + 1) * .6; lp.setXYZ(v, lp.getX(v) * k, lp.getY(v) * (.7 + hash(v + i) * .6), lp.getZ(v) * k); }
+      lg.computeVertexNormals();
+    }
+    const l = add(lg, lobeMat, 'lobe'); l.position.set(Math.cos(a) * r, .06, Math.sin(a) * r); l.scale.set(1.2, .6, 1);
     if (!black) { l.scale.set(1.5 + hash(i) * .6, .35 + hash(i + 5) * .2, .8 + hash(i + 7) * .5); l.rotation.y = a + hash(i + 2) * 2; }
   }
 
