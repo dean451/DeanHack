@@ -17,7 +17,7 @@ export const rests = a => !!(a && !a.asset && a.joints?.rfore_2 && a.joints.lleg
   && a.joints.hips && a.name !== 'lemure');
 
 // Solves the squat (the built pose is left as it was found).
-export function restPose(a) {
+export function restPose(a, rest = REST) {
   const P = rolesOf(a), s = a.g.scale.x, floor = a.g.position.y, j = a.joints, {apply} = birdPoser(a);
   const stand = P.rump().y - floor;
   const joints = {hipsY: [-1, 0]};
@@ -26,11 +26,11 @@ export function restPose(a) {
     for (const i of [0, 1, 2]) joints[`${side}leg1_${i}.x`] = [-2.6, 2.6];
     for (const i of [0, 1]) { joints[`${side}fore_${i}.x`] = [-2.6, 2.6]; joints[`${side}fore_${i}.z`] = [-.8, .8]; }
   }
-  const goals = [goal.below('rump', floor + REST.seat * stand, {weight: 3})];
+  const goals = [goal.below('rump', floor + rest.seat * stand, {weight: 3})];
   for (const side of ['l', 'r']) {
-    goals.push(goal.floor(`paw:${side}h`, {y: floor, weight: 3}), goal.ahead('rump', `paw:${side}h`, 0, {within: REST.feet * stand}));
+    goals.push(goal.floor(`paw:${side}h`, {y: floor, weight: 3}), goal.ahead('rump', `paw:${side}h`, 0, {within: rest.feet * stand}));
     // the hand hangs over the knee at its own side, a little above it, the arm slack
-    goals.push(goal.reach(`paw:${side}f`, () => P[`hip:${side}`]().lerp(P[`paw:${side}h`](), .5).add(new THREE.Vector3(P[`shoulder:${side}`]().x - P[`hip:${side}`]().x, REST.lap * stand, 0)), {within: .06 * s}));
+    goals.push(goal.reach(`paw:${side}f`, () => P[`hip:${side}`]().lerp(P[`paw:${side}h`](), .5).add(new THREE.Vector3(P[`shoulder:${side}`]().x - P[`hip:${side}`]().x, rest.lap * stand, 0)), {within: .06 * s}));
   }
   const lowest = group => () => { const b = new THREE.Box3().setFromObject(group, true); return [new THREE.Vector3(0, b.min.y, 0)]; };
   for (const name of Object.keys(j).filter(n => /^[lr](leg1|fore)$|^head/.test(n))) goals.push(goal.clear(lowest(j[name]), {y: floor - .008 * s}));
