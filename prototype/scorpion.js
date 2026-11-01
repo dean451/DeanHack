@@ -108,7 +108,37 @@ function buildTail(L){
  P.add(new THREE.SphereGeometry(.5,14,10),at(end[0],end[1]+.004,end[2]+.022,[-.3,0,0],[.042,.036,.054]),(x,y,z)=>mix(bulb,dark,THREE.MathUtils.clamp((z-end[2]-.02)/.03,0,1)*.6));
  const hook=[[0,end[1]+.004,end[2]+.046],[0,end[1]-.004,end[2]+.064],[0,end[1]-.024,end[2]+.074],[0,end[1]-.042,end[2]+.07]];
  for(let i=0;i<3;i++)segment(P,hook[i],hook[i+1],.011-i*.004,.007-i*.0032,tip,6);
- return P.merge();
+ return skinTail(P.merge());
+}
+// Five bones `tail0`..`tail4`, one per segment (tail0 at the pivot, each next one at the segment's far end); every
+// vertex rides the segment it lies nearest, blending across a joint over a little of either side so a bent joint
+// doesn't crack. The venom bulb and stinger past the last joint ride the last bone.
+function skinTail(geo){
+ const P=TAIL.map(p=>new THREE.Vector3(...p)),pos=geo.attributes.position,n=pos.count;
+ const idx=new Uint16Array(n*4),wt=new Float32Array(n*4),v=new THREE.Vector3(),seg=new THREE.Line3(),c=new THREE.Vector3();
+ const len=k=>P[k].distanceTo(P[k+1]),last=P.length-2;
+ for(let i=0;i<n;i++){
+  v.fromBufferAttribute(pos,i);
+  let best=Infinity,bk=0,bt=0;
+  for(let k=0;k<=last;k++){seg.set(P[k],P[k+1]);const t=seg.closestPointToPointParameter(v,true);seg.at(t,c);const d=c.distanceToSquared(v);if(d<best-1e-12){best=d;bk=k;bt=t;}}
+  let a=bk,b=bk,w=1;
+  const blend=k=>Math.min(.008,.25*Math.min(len(k-1),len(k)));
+  if(bk>=1&&bt*len(bk)<blend(bk)){a=bk;b=bk-1;w=.5+.5*bt*len(bk)/blend(bk);}
+  else if(bk<last&&(1-bt)*len(bk)<blend(bk+1)){a=bk;b=bk+1;w=.5+.5*(1-bt)*len(bk)/blend(bk+1);}
+  idx[i*4]=a;idx[i*4+1]=b;wt[i*4]=w;wt[i*4+1]=1-w;
+ }
+ geo.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(idx,4));
+ geo.setAttribute('skinWeight',new THREE.Float32BufferAttribute(wt,4));
+ return geo;
+}
+// The tail mesh on its five bones, under the tail group (which still swings the whole tail for the attacks).
+function rigTail(tail,geo,material){
+ const m=new THREE.SkinnedMesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part='tail';
+ const bones=TAIL.slice(0,5).map((p,i)=>{const b=new THREE.Bone();b.name='tail'+i;if(i)b.position.set(p[0]-TAIL[i-1][0],p[1]-TAIL[i-1][1],p[2]-TAIL[i-1][2]);return b;});
+ m.add(bones[0]);bones.forEach((b,i)=>{if(i)bones[i-1].add(b);});
+ tail.add(m);m.updateMatrixWorld(true);m.bind(new THREE.Skeleton(bones));
+ tail.userData.segments=bones;
+ return m;
 }
 
 // The right pincer, from its shoulder (the group origin) forward. The left one mirrors it.
@@ -169,10 +199,12 @@ function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.c
 
 // Named joints, as the spiders': `lleg0`..`lleg3` / `rleg0`..`rleg3` front to hind (left is -x), each leg's
 // coxa, femur and tibia as bones `<leg>_0`..`_2` of its one skinned mesh, and `head` (the eye mesh; no neck).
-// `tail0` is the tail group for now (one joint, not yet a chain).
+// The tail is one skinned mesh on bones `tail0`..`tail4` (tail0 at the pivot, so turning it swings the whole tail);
+// the tail group above them is `actor.tail`, which the attacks swing as one.
 function nameScorpionJoints(actor){
- const joints={head:actor.head,tail0:actor.tail};
- actor.head.name='head';actor.tail.name='tail0';
+ const joints={head:actor.head};
+ actor.head.name='head';actor.tail.name='tail';
+ actor.tail.userData.segments.forEach(b=>{joints[b.name]=b;});
  actor.legs.forEach((leg,i)=>{
   const name=(i<4?'r':'l')+'leg'+i%4;leg.name=name;joints[name]=leg;
   (leg.userData.segments||[]).forEach((b,k)=>{b.name=`${name}_${k}`;joints[b.name]=b;});
@@ -187,7 +219,7 @@ export function createScorpion(name){
  mesh(body,S.body,S.material,'body');
  const head=mesh(body,S.eyes,S.eyeMaterial,'eyes');
  const tail=new THREE.Group();tail.position.set(0,Y+.012,-.19);body.add(tail);
- mesh(tail,S.tail,S.tailMaterial,'tail');
+ rigTail(tail,S.tail,S.tailMaterial);
  const claws=[1,-1].map(s=>{
   const claw=new THREE.Group();claw.position.set(s*.05,Y+.004,.15);body.add(claw);
   const m=mesh(claw,S.claw,S.material,'claw');if(s<0)m.scale.x=-1;

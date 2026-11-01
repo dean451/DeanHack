@@ -58,7 +58,7 @@ test('each spider leg bends at its coxa, femur and tibia: turning one moves only
 test('a scorpion has its eight legs as named joints on three bones each, and the same bend moves only the leg past the joint',()=>{
  for(const name of ['scorpion','scorpius']){
   const a=createScorpion(name),j=a.joints;
-  assert.equal(j.head,a.head,name);assert.equal(j.tail0,a.tail,name);assert(!j.neck0,name);
+  assert.equal(j.head,a.head,name);assert(!j.neck0,name);
   assert.equal(new Set(a.legs.map(l=>l.name)).size,8,name);
   let meshes=0;a.g.traverse(o=>{if(o.isMesh)meshes++;});
   assert.equal(meshes,13,`${name}: still 13 meshes`);
@@ -76,6 +76,31 @@ test('a scorpion has its eight legs as named joints on three bones each, and the
        for(const [l,v] of others){const w=verts(l);assert(v.every((p,n)=>p.distanceTo(w[n])<1e-9),`${name}: ${legName}_${k} leaves ${l.name}`);}
     bone.rotation.x-=.6;
    }
+  }
+ }
+});
+
+test('a scorpion tail is five bones: turning one bends the tail past it and leaves the tail before it and the legs alone',()=>{
+ for(const name of ['scorpion','scorpius']){
+  const a=createScorpion(name),j=a.joints,tm=a.tail.children.find(o=>o.isSkinnedMesh);
+  assert(tm,`${name}: tail is skinned`);
+  for(let k=0;k<5;k++)assert(j['tail'+k]?.isBone,`${name}: tail${k}`);
+  const tv=()=>{const p=tm.geometry.attributes.position,v=new THREE.Vector3(),out=[];tm.updateMatrixWorld(true);tm.skeleton.update();for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);tm.applyBoneTransform(i,v);out.push(v.clone().applyMatrix4(tm.matrixWorld));}return out;};
+  const si=tm.geometry.attributes.skinIndex,sw=tm.geometry.attributes.skinWeight;
+  for(let k=0;k<5;k++){
+   a.g.updateMatrixWorld(true);
+   const rest=tv(),legs=a.legs.map(l=>verts(l));
+   j['tail'+k].rotation.x+=.5;a.g.updateMatrixWorld(true);
+   const now=tv();let past=0,before=0;
+   for(let n=0;n<now.length;n++){
+    const d=now[n].distanceTo(rest[n]),b=si.getX(n),w=sw.getX(n);
+    if(w===1&&b>=k)past=Math.max(past,d);
+    if(w===1&&b<k)before=Math.max(before,d);
+   }
+   assert(past>.01,`${name}: tail${k} moves the tail past it (${past})`);
+   assert(before<1e-9,`${name}: tail${k} leaves the tail before it (${before})`);
+   a.legs.forEach((l,i)=>{const w=verts(l);assert(legs[i].every((p,n)=>p.distanceTo(w[n])<1e-9),`${name}: tail${k} leaves ${l.name}`);});
+   j['tail'+k].rotation.x-=.5;
   }
  }
 });
