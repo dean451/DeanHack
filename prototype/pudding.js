@@ -18,7 +18,23 @@ const PALETTES = {
 };
 
 // the skin's height at a spot on its crown
-const top = (x, z) => CY + R * SY * Math.sqrt(Math.max(0, 1 - (x * x + z * z) / (R * R)));
+const top0 = (x, z) => CY + R * SY * Math.sqrt(Math.max(0, 1 - (x * x + z * z) / (R * R)));
+// the rotten brown skin is lumpy and sagged: its radius varies with direction (a continuous function,
+// so shared vertices stay joined). Lopsided: a slumped shoulder at -x/+z, a pinched trough, a flattened belly.
+export const brownProfile = (dx, dy, dz) => 1 + .17 * Math.max(0, -dx * .8 + dz * .6) - .1 * Math.max(0, dx * .7 + dz * .5) * Math.max(0, dy)
+  + .07 * Math.sin(dx * 5.3 + dz * 3.1 + 1.2) * Math.max(0, dy + .3) - (dy < -.25 ? .1 * (-.25 - dy) / .75 : 0);
+const BROWN_SX = 1.14, BROWN_SZ = .88;
+// the height of the skin above (x, z): brown follows its profile, found by bisection along the vertical
+function topBrown(x, z) {
+  const lx = x / BROWN_SX, lz = z / BROWN_SZ;
+  let lo = 0, hi = R * 1.5;
+  for (let i = 0; i < 24; i++) {
+    const y = (lo + hi) / 2, l = Math.hypot(lx, y, lz);
+    if (l < R * brownProfile(lx / l, y / l, lz / l)) lo = y; else hi = y;
+  }
+  return CY + lo * SY;
+}
+let top = top0;
 const frame = (px, py, pz, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) =>
   new THREE.Matrix4().compose(new THREE.Vector3(px, py, pz), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));
 
@@ -36,6 +52,7 @@ function build(list) {
 
 export function createPudding({kind = 'black'} = {}) {
   const C = PALETTES[kind] || PALETTES.black, black = kind === 'black';
+  top = black ? top0 : topBrown;
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const add = (geo, material, name) => { const m = new THREE.Mesh(geo, material); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; body.add(m); return m; };
   const flat = (name, list, o = {}) => add(build(list), new THREE.MeshStandardMaterial({vertexColors: true, flatShading: true, roughness: .85, ...o}), name);
@@ -44,7 +61,15 @@ export function createPudding({kind = 'black'} = {}) {
   // the rotten one is coarse and faceted, slumped lopsided, not a glossy dome
   const skin = add(new THREE.SphereGeometry(R, black ? 24 : 11, black ? 16 : 7), new THREE.MeshStandardMaterial({color: C.skin, emissive: C.glow, emissiveIntensity: .35,
     roughness: black ? .12 : .8, metalness: black ? .35 : 0, transparent: true, opacity: black ? .92 : .9, flatShading: !black}), 'skin');
-  skin.position.y = CY; skin.scale.set(black ? 1 : 1.14, SY, black ? 1 : .88);
+  skin.position.y = CY; skin.scale.set(black ? 1 : BROWN_SX, SY, black ? 1 : BROWN_SZ);
+  if (!black) {
+    const pa = skin.geometry.attributes.position;
+    for (let i = 0; i < pa.count; i++) {
+      const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), l = Math.hypot(x, y, z) || 1, k = brownProfile(x / l, y / l, z / l);
+      pa.setXYZ(i, x * k, y * k, z * k);
+    }
+    skin.geometry.computeVertexNormals();
+  }
   // the nucleus: a dark clot, seen faintly through the hide
   const nuc = add(new THREE.SphereGeometry(.09, 12, 9), new THREE.MeshStandardMaterial({color: C.nucleus, roughness: .9}), 'nucleus');
   nuc.position.y = CY; nuc.scale.set(1, .8, 1);

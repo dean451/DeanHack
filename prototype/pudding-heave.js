@@ -111,8 +111,10 @@ function setup(a) {
     st.r = r;
     st.rest = Float32Array.from(pos.array);
     st.dir = new Float32Array(n * 3);
+    st.len = new Float32Array(n); // each vertex's rest distance from the centre (a lumpy skin is not a sphere)
     for (let i = 0; i < n; i++) {
       const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), l = Math.hypot(x, y, z) || 1;
+      st.len[i] = l;
       st.dir[i * 3] = x / l; st.dir[i * 3 + 1] = y / l; st.dir[i * 3 + 2] = z / l;
     }
     // vertices that share a spot (the UV seam and the poles): their normals are averaged after each
@@ -135,7 +137,7 @@ function reshape(st, f) {
     return;
   }
   for (let i = 0; i < n; i++) {
-    const nx = st.dir[i * 3], ny = st.dir[i * 3 + 1], nz = st.dir[i * 3 + 2], k = r * (1 + skinOffset(nx, ny, nz, f));
+    const nx = st.dir[i * 3], ny = st.dir[i * 3 + 1], nz = st.dir[i * 3 + 2], k = st.len[i] * (1 + skinOffset(nx, ny, nz, f));
     arr[i * 3] = nx * k; arr[i * 3 + 1] = ny * k; arr[i * 3 + 2] = nz * k;
   }
   pos.needsUpdate = true;
