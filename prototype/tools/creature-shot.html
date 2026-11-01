@@ -16,6 +16,7 @@ import {restPose as dogRest, rests as dogRests} from '../canine-rest.js';
 import {bowPose} from '../canine-bow.js';
 import {restPose as gargoyleRest, rests as gargoyleRests} from '../gargoyle-rest.js';
 import {restPose as humanoidRest, rests as humanoidRests} from '../humanoid-rest.js';
+import {restPose as impRest, rests as impRests} from '../imp-rest.js';
 import {bracePose, braces} from '../humanoid-brace.js';
 import {ambushPose, ambushes} from '../humanoid-ambush.js';
 import {stalkPose} from '../wildcat-stalk.js';
@@ -59,6 +60,7 @@ if(q.get('pose')==='bow'&&dogRests(c)){const r=bowPose(c);birdPoser(c).apply(r.p
 // ?pose=rest also crouches a gargoyle, winged gargoyle or gremlin like a monkey (gargoyle-rest.js), and sits a hobbit, dwarf, bugbear or mind flayer slumped (humanoid-rest.js); ?pose=brace braces a dwarf (humanoid-brace.js)
 if(q.get('pose')==='rest'&&gargoyleRests(c)){const r=gargoyleRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='rest'&&humanoidRests(c)){const r=humanoidRest(c);birdPoser(c).apply(r.pose);}
+if(q.get('pose')==='rest'&&impRests(c)){const r=impRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='brace'&&braces(c)){const r=bracePose(c);birdPoser(c).apply(r.pose);}
 // ?pose=ambush crouches a bugbear low over its knees (humanoid-ambush.js)
 if(q.get('pose')==='ambush'&&ambushes(c)){const r=ambushPose(c);birdPoser(c).apply(r.pose);}
