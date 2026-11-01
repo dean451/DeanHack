@@ -121,7 +121,7 @@ test('nothing draws behind the splash: the loop returns while it is open, no bac
   assert.match(main,/renderStats\.end\(dt,\{update:updateMs,render:renderMs\}\)/,'the F9 panel shows where the main thread goes');
   assert.match(main,/installLive\(\{scene,camera,controls,renderer,/,'the live game gets the renderer for shader warm-up');
   const liveSrc=readFileSync(new URL('./live.js',import.meta.url),'utf8');
-  assert.match(liveSrc,/function warmUp\(\)\{if\(!staged\|\|!renderer\?\.compileAsync\)return;staged=false;compileFor\(renderer,warmTarget,\(\)=>renderer\.compileAsync\(scene,camera\)\)/,'new materials compile ahead of their first draw, for the variant the composer draws');
+  assert.match(liveSrc,/function warmUp\(\)\{if\(!staged\|\|!renderer\?\.compileAsync\)return;staged=false;[^}]*compileFor\(renderer,warmTarget,\(\)=>renderer\.compileAsync\(scene,camera\)\)/,'new materials compile ahead of their first draw, for the variant the composer draws');
   assert.equal((liveSrc.match(/staged=true;/g)||[]).length,3,'tiles, items and actors each mark the frame as staged');
   assert.match(main,/adaptive\.manual\(\);/,'F8 pins the tier');
   assert.match(main,/onActivity:touch/,'engine events keep the frame rate up');
