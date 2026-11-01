@@ -37,10 +37,13 @@ export const STORAGE_KEY = 'deanhack.quality';
 export const ACTIVE_MS = 2500, DEEP_MS = 45000;
 
 // How many torch point lights the live scene keeps. Each point light costs every lit pixel every frame
-// whether it is lit or dark (three bakes the count into the shaders), so only the high tier keeps eight;
-// the others light the four torches nearest the hero, the rest still burn and glow, unlit.
-export const TORCH_LIGHTS = {high: 8, balanced: 4, low: 4, fast: 2};
+// whether it is lit or dark (three bakes the count into the shaders), so the pool lights only the torches
+// nearest the hero (four at most, on high); the rest still burn and glow, unlit. The same goes for the candle
+// and lamp flames' pool (flame-flicker.js). Most of the time most of these sat at zero, paid for anyway.
+export const TORCH_LIGHTS = {high: 4, balanced: 3, low: 2, fast: 1};
 export const torchLightsFor = tier => TORCH_LIGHTS[tier] ?? TORCH_LIGHTS.balanced;
+export const FLAME_LIGHTS_BY_TIER = {high: 2, balanced: 2, low: 1, fast: 1};
+export const flameLightsFor = tier => FLAME_LIGHTS_BY_TIER[tier] ?? FLAME_LIGHTS_BY_TIER.balanced;
 
 // How many layers the pet's fur is drawn in (feline-coat.js FUR.shells). Each layer is the whole skin again
 // (some 42,000 triangles, skinned, with the physical coat material), and at the game camera the cat is a few

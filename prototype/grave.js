@@ -272,6 +272,8 @@ export function createGrave(seed=0){
   const geo=mergeGeometries(flats);flats.forEach(f=>f.dispose());geometries.push(geo);
   const mesh=new THREE.Mesh(geo,material);mesh.castShadow=material!==flame&&material!==grass;mesh.receiveShadow=material!==flame;
   mesh.userData.part=Object.keys(parts).find(key=>parts[key]===material);
+  // the candle flickers and glows but casts no light of its own: a point light on every grave lit the mound too strongly (flame-flicker.js)
+  if(material===flame)mesh.userData.unlit=true;
   return mesh;
  };
  for(const [material,list] of bins)if(list.length)g.add(bake(material,list));

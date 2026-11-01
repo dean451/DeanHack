@@ -5,7 +5,7 @@
 // An effect borrows one and re-parents it into its own group (the count never changes), then
 // gives it back. With the pool spent, an effect gets a light that is never visible: no glow,
 // but no recompile either.
-export const EFFECT_LIGHTS = 3; // blink out + blink in can overlap a trap's jet
+export const EFFECT_LIGHTS = 2; // blink out + blink in; a third effect at the same moment (a trap's jet) plays unlit
 
 export function createEffectLights(THREE, parent, {size = EFFECT_LIGHTS} = {}) {
   const pool = Array.from({length: size}, () => { const l = new THREE.PointLight(0xffffff, 0, 5); l.name = 'effect light'; l.userData.busy = false; parent.add(l); return l; });
