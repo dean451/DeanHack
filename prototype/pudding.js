@@ -41,17 +41,19 @@ export function createPudding({kind = 'black'} = {}) {
   const flat = (name, list, o = {}) => add(build(list), new THREE.MeshStandardMaterial({vertexColors: true, flatShading: true, roughness: .85, ...o}), name);
 
   // the skin: tar-black and glossy, or rotten brown and wet-matte
-  const skin = add(new THREE.SphereGeometry(R, 24, 16), new THREE.MeshStandardMaterial({color: C.skin, emissive: C.glow, emissiveIntensity: .35,
-    roughness: black ? .12 : .55, metalness: black ? .35 : 0, transparent: true, opacity: black ? .92 : .86}), 'skin');
-  skin.position.y = CY; skin.scale.set(1, SY, 1);
+  // the rotten one is coarse and faceted, slumped lopsided, not a glossy dome
+  const skin = add(new THREE.SphereGeometry(R, black ? 24 : 11, black ? 16 : 7), new THREE.MeshStandardMaterial({color: C.skin, emissive: C.glow, emissiveIntensity: .35,
+    roughness: black ? .12 : .8, metalness: black ? .35 : 0, transparent: true, opacity: black ? .92 : .9, flatShading: !black}), 'skin');
+  skin.position.y = CY; skin.scale.set(black ? 1 : 1.14, SY, black ? 1 : .88);
   // the nucleus: a dark clot, seen faintly through the hide
   const nuc = add(new THREE.SphereGeometry(.09, 12, 9), new THREE.MeshStandardMaterial({color: C.nucleus, roughness: .9}), 'nucleus');
   nuc.position.y = CY; nuc.scale.set(1, .8, 1);
   // five lobes slumped round the foot, uneven
-  const lobeMat = new THREE.MeshStandardMaterial({color: C.lobe, roughness: black ? .15 : .55, metalness: black ? .3 : 0, transparent: true, opacity: .9});
+  const lobeMat = new THREE.MeshStandardMaterial({color: C.lobe, roughness: black ? .15 : .8, metalness: black ? .3 : 0, transparent: true, opacity: .9, flatShading: !black});
   for (let i = 0; i < 5; i++) {
     const a = i * 1.3 + .2, r = .22 + hash(i + 3) * .06, s = .06 + hash(i + 9) * .035;
-    const l = add(new THREE.SphereGeometry(s, 12, 8), lobeMat, 'lobe'); l.position.set(Math.cos(a) * r, .06, Math.sin(a) * r); l.scale.set(1.2, .6, 1);
+    const l = add(new THREE.SphereGeometry(s, black ? 12 : 5, black ? 8 : 3), lobeMat, 'lobe'); l.position.set(Math.cos(a) * r, .06, Math.sin(a) * r); l.scale.set(1.2, .6, 1);
+    if (!black) { l.scale.set(1.5 + hash(i) * .6, .35 + hash(i + 5) * .2, .8 + hash(i + 7) * .5); l.rotation.y = a + hash(i + 2) * 2; }
   }
 
   if (black) {

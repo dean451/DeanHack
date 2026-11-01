@@ -36,3 +36,16 @@ test('no dressing floats: every piece sits within the skin or on it, and the mas
     }
   }
 });
+
+test('the brown pudding is faceted and lopsided: a coarse flat-shaded skin, slumped wider than deep, angular lobes', () => {
+  const kids = make('brown pudding').g.getObjectByProperty('isMesh', true).parent.children;
+  const skin = kids.find(m => m.userData.part === 'skin');
+  assert.equal(skin.material.flatShading, true);
+  assert.ok(skin.geometry.parameters.widthSegments <= 12, 'coarse skin');
+  assert.ok(skin.scale.x > skin.scale.z * 1.2, 'slumped lopsided');
+  const lobes = kids.filter(m => m.userData.part === 'lobe');
+  assert.equal(lobes.length, 5);
+  for (const l of lobes) assert.ok(l.geometry.parameters.widthSegments <= 5, 'angular lobe');
+  const black = make('black pudding').g.getObjectByProperty('isMesh', true).parent.children.find(m => m.userData.part === 'skin');
+  assert.ok(black.geometry.parameters.widthSegments >= 24 && !black.material.flatShading, 'black pudding unchanged');
+});
