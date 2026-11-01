@@ -351,3 +351,6 @@ body.live-engine .character{width:250px}
 #hero-portrait.dead .portrait-marks{display:none}
 @media(prefers-reduced-motion:reduce){#hero-portrait,#hero-portrait canvas,#hero-portrait .portrait-well{animation:none!important}}
 @media(max-width:650px){#hero-portrait{display:none}body.live-engine .character{width:200px}}
+/* the freeze report note (slow-trace.js, dev server only): small, top centre, out of the way */
+#freeze-note{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:80;display:flex;gap:10px;align-items:center;padding:8px 12px;background:#1b1712ee;border:1px solid #6b5a3a;border-radius:6px;color:#e8ddc7;font:13px Inter,system-ui,sans-serif}
+#freeze-note button{background:none;border:1px solid #6b5a3a;border-radius:4px;color:#e8ddc7;font:inherit;padding:3px 8px;cursor:pointer}

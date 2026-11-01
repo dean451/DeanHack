@@ -271,6 +271,7 @@ import {createCoinPile} from './coin-pile.js';
 import {createHeroBatch} from './hero-batch.js';
 import {planRoute,walkRoute} from './hero-route.js';
 import {holdUncompiled,releaseHeld,MAX_WAIT_MS} from './compile-gate.js';
+import {guardStaleInput} from './stale-input.js';
 const statusProgress=createStatusProgress();
 
 // Only window-port observations enter this view. No prediction of game rules.
@@ -731,6 +732,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
   if(worker){worker.onmessage=({data})=>{if(data?.hull)adoptFelineHull(data.key,unpackHull(data.hull));if(!looks.length)worker.terminate();else worker.postMessage({name:looks.shift()});};worker.onerror=()=>{worker.terminate();worker=null;};worker.postMessage({name:looks.shift()});}
   else{const idle=globalThis.requestIdleCallback??(f=>setTimeout(f,800)),next=()=>{const n=looks.shift();if(!n||(active&&n!=='kitten'))return;try{growFelineHull(n);}catch{}idle(next);};idle(next);}}
  actions.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{if(pending?.kind==='command')reply(Number(b.dataset.key));});
+ /* a key press or click that waited out a freeze is dropped, not played (stale-input.js) */guardStaleInput(globalThis,()=>active);
  addEventListener('keydown',e=>{if(!active||e.altKey||e.metaKey)return;if(e.ctrlKey&&e.key.toLowerCase()==='p'){e.preventDefault();e.stopImmediatePropagation();historyPanel.toggle();}else if(e.key==='Escape'&&historyPanel.isOpen()){e.preventDefault();e.stopImmediatePropagation();historyPanel.hide();}},true);
  addEventListener('keydown',e=>{if(!active||e.metaKey||e.altKey)return;if(e.target instanceof HTMLInputElement)return;
    if(e.ctrlKey){if(e.key.toLowerCase()==='d'&&pending?.kind==='command'){e.preventDefault();e.stopImmediatePropagation();void reply(4);}return;}
