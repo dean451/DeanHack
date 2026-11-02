@@ -1,13 +1,10 @@
 import {DIM_COLOR,DIM_OPACITY} from './remembered.js';
-import {yawToward} from './orientation.js';
 import {LIVE_KEYS_HTML} from './live-keys.js';
 import * as THREE from 'three';
 import {groundTile} from './ground-notice.js';
 import {installStartScreen,readChoice} from './start-screen.js';
 import {ALTAR_TOP} from './altar.js';
-import {updateDoorSwings} from './door-swing.js';
 import {createFloorKit} from './floor.js';
-import {createCorpse} from './corpse.js';
 import {createDeathBeat} from './death-beat.js';
 import {addOutlines} from './readability.js';
 import {createCavern} from './cavern.js';
@@ -20,21 +17,16 @@ import {aimKeys,createAimCursor,directionLanes,isDirectionPrompt,laneHits,laneRa
 import {squareAt,farlookText,createFarlook} from './farlook.js';
 import {clickMove} from './click-move.js';
 import {createTravelMark,createTravelState} from './travel-mark.js';
-import {parseAttributes} from './hud.js';
-import {updateHeldWandAura} from './wand-auras.js';
-import {updatePickupLift} from './pickup-lift.js';
 import {createPickupNotes} from './pickup-events.js';
-import {updateHeldGleam} from './artifact-gleam.js';
-import {createBrainSuck,poseBrainSuck} from './brain-suck.js';
+import {createBrainSuck} from './brain-suck.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {createExplosions} from './explosions.js';
-import {updateSlither} from './slither.js';
 import {createFlood} from './flood.js';
 import {createSplash} from './splash.js';
 import {createFlights} from './flights.js';
 import {createGrab} from './grab.js';
-import {createHold,poseHeld} from './hold.js';
-import {createPolymorph,poseActor} from './polymorph.js';
+import {createHold} from './hold.js';
+import {createPolymorph} from './polymorph.js';
 import {createHeroForm} from './hero-form.js';
 import {createBarsMelt} from './bars-melt.js';
 import {createDoorBreak} from './door-break.js';
@@ -45,8 +37,7 @@ import {createFountainGush} from './fountain-gush.js';
 import {createAltarSacrifice} from './altar-sacrifice.js';
 import {createAltarClover} from './altar-clover.js';
 import {createAltarGlow} from './altar-glow.js';
-import {updateHeldExcalibur} from './excalibur.js';
-import {updateHeldMjollnir,createLightningStrikes} from './mjollnir-storm.js';
+import {createLightningStrikes} from './mjollnir-storm.js';
 import {createAltarFlashes} from './altar-offering.js';
 import {createAltarGift} from './altar-gift.js';
 import {createBlessFlash,createGlowLog} from './bless-flash.js';
@@ -62,8 +53,8 @@ import {createWarmTarget,compileFor} from './shader-target.js';
 import {createDimLayer} from './dim-layer.js';
 import {positionSignature} from './shadow-motion.js';
 import {createGeometryGC} from './geometry-gc.js';
-import {createViewCull,restsUnseen} from './view-cull.js';
-import {createEffectLights,shareFlash} from './effect-lights.js'; // one fixed pool of lights for the one-shot effects, so the light count (and every shader) stays put
+import {createViewCull} from './view-cull.js';
+import {createEffectLights} from './effect-lights.js'; // one fixed pool of lights for the one-shot effects, so the light count (and every shader) stays put
 import {createGoldGlint} from './gold-glint.js';
 import {createPotionSip} from './potion-sip.js';
 import {createSinkDrain} from './sink-drain.js';
@@ -76,7 +67,7 @@ import {createFirstKill} from './first-kill.js';
 import {createSearchReveal} from './search-reveal.js';
 import {createSqueakyBoard} from './squeaky-board.js';
 import {createRollingTrap} from './rolling-trap.js';
-import {createOrientationOverlay,liveEntries} from './orientation-overlay.js';
+import {createOrientationOverlay} from './orientation-overlay.js';
 import {createFallingRock} from './falling-rock.js';
 import {createDartTrap} from './dart-trap.js';
 import {createLandMine} from './land-mine.js';
@@ -99,136 +90,58 @@ import {createWebSnare} from './web-snare.js';
 import {createStatueTrap} from './statue-trap.js';
 import {createBearTrapSnap} from './bear-trap-snap.js';
 import {createSleepingGas} from './sleeping-gas.js';
-import {createTeleportBlink,poseHeroBlink} from './teleport-blink.js';
+import {createTeleportBlink} from './teleport-blink.js';
 import {createMagicPortal} from './magic-portal.js';
 import {createDigChips} from './dig-chips.js';
 import {createDigCracks} from './dig-cracks.js';
 import {createDigSwing} from './dig-swing.js';
-import {createDigDrop,airborneStatus} from './dig-drop.js';
+import {createDigDrop} from './dig-drop.js';
 import {createStairTumble} from './stair-tumble.js';
 import {createLevelUp} from './level-up.js';
 import {createPrayerLight} from './prayer-light.js';
 import {createPrayerKneel} from './prayer-kneel.js';
 import {createAnimatedRegistry} from './tile-animations.js';
 import {createBreath} from './breath.js';
-import {createEngulf,engulfCamera,dropEngulfCamera,poseEngulfed} from './engulf.js';
+import {createEngulf,dropEngulfCamera} from './engulf.js';
 import {createSwingFx} from './swing-fx.js';
 import {createHitFx} from './hit-fx.js';
 import {createHitFeel} from './hit-feel.js';
 import {createRays,solidAt} from './rays.js';
 import {createZapFlash} from './zap-flash.js';
 import {createRayMarks} from './ray-marks.js';
-import {createDeathBurst,deathLook,applyFade,restoreFade,hideDeathRing} from './deaths.js';
+import {createDeathBurst,deathLook,restoreFade} from './deaths.js';
 import {createPetrify} from './petrify.js';
-import {combatAction,deathAction} from './combat-events.js';
 import {createMarks} from './marks.js';
 import {createEnvStory} from './env-story.js';
 import {createRiseWatch} from './rise.js';
-import {updateGait,wingFlap,flightBob} from './gait.js';
-import {updateWereShudder} from './were-shudder.js';
-import {updateFidget} from './fidget.js';
 import {heroLook} from './glance.js';
  // monsters and pets are baked as they are staged (one draw per body part)
 import {createActorBatch} from './batched-actors.js'; // and their baked parts draw from one batch
 import {createTileInstancer} from './tile-instances.js'; // floor slabs, wall blocks and pebbles draw as instances
 import {growFelineHull,adoptFelineHull} from './feline-skin.js';
 import {unpackHull} from './hull-transfer.js';
-import {findThreat} from './feline-mind.js'; // the pet cat is one skinned mesh (a trial of skinning)
-import {updateDragonMenace} from './dragon-menace.js';
-import {updateCockatriceHiss} from './cockatrice-hiss.js';
-import {updateInsectSettle} from './insect-settle.js';
-import {updateCockatriceSettle} from './cockatrice-settle.js';
-import {updateCockatriceCrow} from './cockatrice-crowing.js';
-import {updateCockatriceBob} from './cockatrice-bob.js';
-import {updateInsectAlarm} from './insect-alarm.js';
-import {updateDwarfGuard} from './humanoid-guard.js';
-import {updateBugbearLurk} from './humanoid-lurk.js';
-import {updateGhosting} from './ghosting.js';
-import {updateSkulk} from './skulk.js';
-import {updateTaunt} from './taunt.js';
-import {updateInvoke} from './invoke.js';
-import {updateHeft} from './heft.js';
-import {updateDwarfStroke} from './dwarf-stroke.js';
-import {updateGnomeTug} from './gnome-tug.js';
-import {updateOrcSpit} from './orc-spit.js';
-import {updateKoboldSniff} from './kobold-sniff.js';
-import {updateTenguCock} from './tengu-cock.js';
-import {updateHomunculusLurk} from './homunculus-lurk.js';
-import {updateCanineSnuffle} from './canine-snuffle.js';
-import {updateCanineBow} from './canine-bowing.js';
-import {updateCanineSettle} from './canine-settle.js';
-import {updateWildcatSettle} from './wildcat-settle.js';
-import {updateImpSettle} from './imp-settle.js';
-import {updateWildcatStalk} from './wildcat-stalking.js';
-import {updateFelineWatch} from './feline-watch.js';
-import {updateBeetleGnash} from './beetle-gnash.js';
-import {updateBeetleFlex} from './beetle-flex.js';
-import {updateTurtleGlare} from './turtle-glare.js';
-import {updateQuasitWhisper} from './quasit-whisper.js';
-import {updateScorpionClack} from './scorpion-clack.js';
-import {updateLemureSlump} from './lemure-slump.js';
-import {updateManesScrabble} from './manes-scrabble.js';
-import {updateZombieReach} from './zombie-reach.js';
-import {updateMummyCreak} from './mummy-creak.js';
-import {updateGolemRatchet} from './golem-ratchet.js';
-import {updateElfListen} from './elf-listen.js';
-import {updateHobbitClutch} from './hobbit-clutch.js';
-import {updateLocustRasp} from './locust-rasp.js';
-import {updateCentipedeWrithe} from './centipede-writhe.js';
-import {updateRally} from './rally.js';
-import {updatePonder} from './ponder.js';
-import {updateKamae} from './kamae.js';
-import {updateDualStance,unposeDualStance} from './dual-stance.js';
-import {updateHoseFlop} from './hose-flop.js';
-import {updateSlingWhirl} from './sling-whirl.js';
-import {updateSalute} from './salute.js';
-import {updateMonkBow} from './monk-bow.js';
-import {updateCubeDrift} from './cube-drift.js';
-import {updateWhipEmbers} from './whip-embers.js';
-import {updateRogueProwl} from './rogue-prowl.js';
-import {updateBarbarianBrood} from './barbarian-brood.js';
-import {updateHealerPeer} from './healer-peer.js';
-import {updateTouristGawk} from './tourist-gawk.js';
-import {updateMuggerCosh} from './mugger-cosh.js';
-import {updateConvictHunted} from './convict-hunted.js';
-import {updateRangerDraw} from './ranger-draw.js';
-import {updateCharonOar} from './charon-oar.js';
-import {updatePrisonerRock} from './prisoner-rock.js';
-import {tailSway} from './tail-sway.js';
-import {updateTwitch} from './twitch.js';
-import {updateBask} from './bask.js';
-import {updateWhiffle} from './whiffle.js';
-import {updateTuck} from './tuck.js';
-import {updatePlod} from './plod.js';
-import {updateSkitter} from './skitter.js';
-import {updateTripod} from './tripod.js';
-import {slideTo,beginHop,endHop} from './slide.js';
-import {updateTrudge} from './trudge.js';
-import {updateStrawFlop} from './straw-flop.js';
-import {updateHemSway} from './hem-sway.js';
-import {updateSerpentStaff} from './serpent-staff.js';
-import {updateFlap} from './puggaree-flap.js';
-import {findPrey,updateStalk,clearStalk} from './stalk.js';
-import {createActionQueue,clearActionPose,updateActions,findActor,queueCombat,queueDeath,ACTION_TIME,STRIKE_U} from './actions.js';
-import {conditionGlyph} from './condition-glyph.js';
-import {heroConditions,conditionTags,conditionTagsHtml} from './hud-conditions.js';
-import {applyStatusScreen} from './status-screen.js';
-import {psiPressure,updatePsionicScreen,updateFlayerPsi} from './psionic.js';
-import {createStatusProgress,worstProgress} from './status-progress.js';
+ // the pet cat is one skinned mesh (a trial of skinning)
+
+import {createActionQueue,findActor,ACTION_TIME,STRIKE_U} from './actions.js';
+import {heroConditions} from './hud-conditions.js';
+import {createStatusProgress} from './status-progress.js';
 import {createHeroBatch} from './hero-batch.js';
-import {walkRoute} from './hero-route.js';
 import {holdUncompiled,releaseHeld,MAX_WAIT_MS} from './compile-gate.js';
 import {guardStaleInput} from './stale-input.js';
 import {createFadePrewarm} from './fade-prewarm.js';
 import {createRecorder} from './replay-recorder.js';
 import {pickupIcon as pickupIcon_} from './live-ground-icon.js';
 import {label,dressFeature as dressFeature_} from './live-tile-dress.js';
-import {setPrompt as setPrompt_,setCharacterName as setCharacterName_,statusScreenEl,renderSurroundings as renderSurroundings_,hideLinkBanner as hideLinkBanner_,showLinkBanner as showLinkBanner_} from './live-hud.js';
+import {setPrompt as setPrompt_,setCharacterName as setCharacterName_,renderSurroundings as renderSurroundings_,hideLinkBanner as hideLinkBanner_,showLinkBanner as showLinkBanner_} from './live-hud.js';
 import {updateTorchLights as updateTorchLights_} from './live-torch-lights.js';
 import {prompt as prompt_} from './live-prompt.js';
 import {message as message_,drawMessagePanels as drawMessagePanels_} from './live-messages.js';
 import {apply as apply_} from './live-apply.js';
 import {connect as connect_,reply as reply_,post as post_,applySoon as applySoon_} from './live-engine-link.js';
+import {combatEvent as combatEvent_,queueStrike as queueStrike_,fireStrikes as fireStrikes_,monsterSquare as monsterSquare_} from './live-combat.js';
+import {renderStatus as renderStatus_,renderAttributes as renderAttributes_,announceLevel as announceLevel_} from './live-status.js';
+import {layHeroBones as layHeroBones_,crossfadeHeroBones as crossfadeHeroBones_,clearHeroBones as clearHeroBones_} from './live-hero-death.js';
+import {updateFrame as updateFrame_} from './live-frame.js';
 
 // Only window-port observations enter this view. No prediction of game rules.
 export function installLive({scene,camera,controls,renderer=null,playerFactory,catFactory,monsterFactory,creatureFactory,wellTemplate,onMode,onActivity,torchLightCount=8}) {
@@ -261,10 +174,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  const esc=text=>String(text).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
  function setPrompt(text){return setPrompt_(text,{$,esc});}
  const attributesEl=document.createElement('div');attributesEl.className='attributes';$('.stats').after(attributesEl);
- function renderAttributes({attributes,alignment}){
-   S.heroStrength=attributes.find(a=>a.label==='STR')?.value;
-   attributesEl.innerHTML=attributes.map(({label,value})=>`<span>${label} <b>${esc(value)}</b></span>`).join('')+(alignment?`<span class="alignment">${esc(alignment.toUpperCase())}</span>`:'');
- }
+ function renderAttributes(...a){return renderAttributes_(L,...a);}
  // On arrival at a named level or branch, its name fades in over the scene for a few seconds.
  // A banner for a lost link or a restarted server, with the one button that fixes it (a reload).
  const linkBanner=document.createElement('div');linkBanner.id='link-banner';linkBanner.hidden=true;linkBanner.innerHTML='<span></span><button type="button"></button>';document.body.append(linkBanner);
@@ -273,25 +183,9 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  S.link=null;S.currentHandle=null;
  const levelBanner=document.createElement('div');levelBanner.id='level-banner';levelBanner.setAttribute('aria-live','polite');document.body.append(levelBanner);
  S.shownTitle=null;
- function announceLevel(level){
-   if(level.title===S.shownTitle)return;S.shownTitle=level.title;if(!level.named)return;
-   levelBanner.innerHTML=`<small>${esc(level.place)}</small><strong>${esc(level.title)}</strong>`;
-   levelBanner.classList.remove('show');void levelBanner.offsetWidth;levelBanner.classList.add('show');
- }
+ function announceLevel(level){return announceLevel_(level,L);}
  // Parse the bottom status line into the same label/value pairs the character panel uses.
- function renderStatus(text){
-   // The first status line carries the attributes (hud.js); it is drawn under the stats and
-   // never replaces the gold/power/exp line, even while it is still being written.
-   if(/^\s*\[/.test(text)){const attrs=parseAttributes(text);if(attrs)renderAttributes(attrs);return;}
-   const el=$('#engine-status'),num=re=>text.match(re);el.title=text;if(/T:\d+/.test(text))S.airborne=airborneStatus(text);
-   const gold=num(/\$:(\d+)/),power=num(/Pw:(\d+)\((\d+)\)/),exp=num(/Exp:(\d+)/);
-   if(!gold&&!power&&!exp){el.textContent=text;return;}
-   // The frame's own condition list (bridge) wins; the status line's words are the fallback.
-   const conditions=heroConditions(S.frameConditions,text),others=conditions.filter(c=>!conditionTags([c]).length);
-   applyStatusScreen(statusScreenEl(),conditions);
-   {const turn=num(/T:(\d+)/);statusScreenEl().style.setProperty('--status-progress',worstProgress(statusProgress.update(conditions,turn?+turn[1]:0,S.frameCountdowns)).toFixed(2));}
-   el.innerHTML=[gold&&`<span>GOLD <b>${gold[1]}</b></span>`,power&&`<span>POWER <b>${power[1]} / ${power[2]}</b></span>`,exp&&`<span>EXP <b>${exp[1]}</b></span>`,`<span id="hero-conditions">${conditionTagsHtml(conditions)}</span>`,...others.map(c=>`<span class="condition"><i aria-hidden="true">${conditionGlyph(c)}</i> ${esc(c)}</span>`)].filter(Boolean).join('');
- }
+ function renderStatus(text){return renderStatus_(text,L);}
  const psiState={v:0};
  
  // The pet in view goes to the companion slot (the creatures-in-view list is gone: the game is shown by its visuals).
@@ -359,26 +253,20 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  // pairs them; the bolt lands at the swing's impact, not the moment the news arrives.
  S.heldCrackle=null;S.lastHeroHit=null;S.pendingStrike=null;const strikeQueue=[];
  const STRIKE_PAIR_MS=1500,IMPACT_MS=ACTION_TIME.attack*STRIKE_U*1000;
- function queueStrike(at,name){
-  let x=null,z=null;
-  if(at){x=at.x-S.origin.x;z=at.z-S.origin.z;}
-  else if(name){let best=null;for(const a of actors.values())if(a.species===name.toLowerCase()&&a.target){const d=a.target.distanceTo(hero.g.position);if(!best||d<best.d)best={d,a};}if(best){x=best.a.target.x;z=best.a.target.z;}}
-  if(x===null)return;strikeQueue.push({x,z,when:(at?.t??performance.now())+IMPACT_MS});
- }
- function fireStrikes(){const now=performance.now();for(let i=strikeQueue.length-1;i>=0;i--)if(strikeQueue[i].when<=now){const s=strikeQueue[i];strikeQueue.splice(i,1);mjollnirStrikes.strike(s.x,s.z);S.heldCrackle?.surge();}}
+ function queueStrike(at,name){return queueStrike_(at,name,L);}
+ function fireStrikes(){return fireStrikes_(L);}
  S.meleeIntent=null;S.queuedCommand=null;S.combatStream=false;S.heldFrame=null;S.heldTimer=null;S.fxHoldUntil=0;
  // A bridge that sends combat events drives the action layer; text matching is the fallback for older engines.
  const findSide=s=>findActor(actors,s.x,s.z,{name:s.name,origin:S.origin});
  // Whoever stands where a thrown object starts (throw-motion.js): the hero or a seen monster.
  const findThrower=(x,z)=>S.latest?.player&&x===S.latest.player.x&&z===S.latest.player.z?hero:findActor(actors,x,z,{exact:true});
- function combatEvent(v){const c=v.type==='combat'?combatAction(v):deathAction(v);if(!c)return;const log=globalThis.deanhackCombat??=[];log.push(c);if(log.length>16)log.shift();if(S.origin){if(v.type!=='combat')marks.add({type:'death',x:c.x-S.origin.x,z:c.z-S.origin.z,pet:c.pet,name:c.name});else if(c.result==='hit'&&c.defender?.seen&&!c.defender.pet)marks.add({type:'combat',x:c.defender.x-S.origin.x,z:c.defender.z-S.origin.z,name:c.defender.name});}if(v.type!=='combat'){grab.death(c);queueDeath(c,findSide);return;}grab.combat(c);brainSuck.combat(c);S.combatStream=true;if(c.heroAttacks){S.meleeIntent=null;S.swingTarget=c.defender?.name??null;if(c.result==='hit'&&c.defender?.seen){const hit={x:c.defender.x,z:c.defender.z,t:performance.now()};if(S.pendingStrike&&hit.t-S.pendingStrike.t<STRIKE_PAIR_MS){queueStrike(hit);S.pendingStrike=null;}else S.lastHeroHit=hit;}}queueCombat(c,{hero,find:findSide});}
+ function combatEvent(v){return combatEvent_(v,L);}
  // Map frames wait for queued deaths to play, so the corpse appears after the fall; a newer frame replaces a held one.
  function applySoon(frame){return applySoon_(frame,L);}
  const messageLog=createMessageLog();S.turnMark=0;
  // The square of the nearest monster of that species (the name a trap message gives, "jackal"), in
  // scene space, or null: so a monster's trap effect goes off under the monster, not the hero.
- function monsterSquare(name){const p=S.latest?.player;if(!p||!S.latest?.cells)return null;let best=null,bd=Infinity;
-  for(const c of S.latest.cells){if(!c.name||c.object||String(c.name).toLowerCase()!==name)continue;const d=Math.hypot(c.x-p.x,c.z-p.z);if(d<bd){bd=d;best=[c.x-S.origin.x,c.z-S.origin.z];}}return best;}
+ function monsterSquare(name){return monsterSquare_(name,L);}
  function message(text){return message_(text,L);}
  function drawMessagePanels(){return drawMessagePanels_(L);}
  // The name the player typed for their character; the start screen saves it here. Without one the engine uses its default.
@@ -402,9 +290,9 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  S.startScreen=null;S.lastDeath=null;S.heroCorpse=null;S.heroCell=null;S.heroTeleportAt=-Infinity;const deathBeat=createDeathBeat();
  // The hero's bones, laid on her cell once the fall has played out (death-beat.js).
  // The bones start invisible: crossfadeHeroBones dissolves the body into them (BONES_FADE_MS).
- function layHeroBones(){if(S.heroCorpse||!S.latest?.player)return;S.heroCorpse=createCorpse(S.latest.player.role||'human',15,(S.latest.player.x*7+S.latest.player.z)|0);S.heroCorpse.position.set(S.latest.player.x-S.origin.x,0,S.latest.player.z-S.origin.z);S.heroCorpse.traverse(o=>{if(o.isMesh&&o.material){o.material.transparent=true;o.material.opacity=0;}});group.add(S.heroCorpse);}
- function crossfadeHeroBones(f){if(!S.heroCorpse)return;applyFade(hero,1-f);S.heroCorpse.traverse(o=>{if(!o.isMesh||!o.material)return;o.material.opacity=f;if(f>=1)o.material.transparent=false;});if(f>=1)hero.g.visible=false;}
- function clearHeroBones(){deathBeat.clear();if(S.heroCorpse){group.remove(S.heroCorpse);S.heroCorpse.userData.dispose?.();S.heroCorpse=null;}restoreFade(hero);hero.g.visible=true;}
+ function layHeroBones(){return layHeroBones_(L);}
+ function crossfadeHeroBones(f){return crossfadeHeroBones_(f,L);}
+ function clearHeroBones(){return clearHeroBones_(L);}
  function setMode(value){S.active=value;minimap.setVisible(value);if(!value)syncAim();cavern.setActive(S.active);for(const {light,base} of ambientLights)light.intensity=S.active?base*LIVE_AMBIENT:base;document.body.classList.toggle('live-engine',S.active);group.visible=S.active;panel.hidden=!S.active;actions.hidden=!S.active;$('.character h2').hidden=S.active;if(!S.active){$('.character').classList.remove('low-hp');levelBanner.classList.remove('show');S.shownTitle=null;}$('.keys').innerHTML=S.active?LIVE_KEYS_HTML:'';if(S.active){if(S.latest)apply(S.latest);prompt();}else{dialog.close();dropEngulfCamera(camera,controls);}onMode?.(S.active);}
  button.onclick=async()=>{if(S.active)return;setMode(true);setPrompt('Starting isolated UnNetHack…');try{const started=await post('/engine/start',{name:savedPlayerName(),...readChoice()});if(started?.name)setCharacterName(started.name);connect();}catch(e){S.startScreen?.landed?.();/* the descent's spiral lifts so the message can be read */message(`Could not start engine: ${e.message}. Run npm run engine:build first.`);}};
  // The first thing a visitor sees: a name and one button that resumes or begins a game and goes straight to Live.
@@ -430,22 +318,10 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  /* what the parts in live-messages.js read (L) */Object.assign(L,{splash,S,heldUnder,groundItems,release,actors,digChips,hero,digCracks,digSwing,prayerKneel,digDrop,stairTumble,levelUp,prayerLight,throneVanish,fountainLady,fountainSnakes,fountainGush,altarSacrifice,altarClover,altarFlashes,STRIKE_PAIR_MS,queueStrike,altarGift,blessFlash,glowLog,fountainNymph,fountainDemon,fountainWish,fireTrapJet,monsterSquare,goldGlint,firstKill,potionSip,sinkDrain,stoneCure,towelWipe,calmClear,unicornSpiral,searchReveal,squeakyBoard,rollingTrap,fallingRock,dartTrap,landMine,rustTrap,iceTrap,pitFall,polyTrap,magicTrap,boulderFill,spellFizzle,throneSit,throneCurse,throneInsight,throneWrench,throneGift,spellStudy,spellCrumble,antiMagic,webSnare,statueTrap,bearTrapSnap,sleepingGas,teleportBlink,magicPortal,grab,brainSuck,poly,barsMelt,breath,messageLog,drawMessagePanels,$,historyPanel});
  /* what the parts in live-apply.js read (L) */Object.assign(L,{S,dimLayer,hitFeel,statusProgress,minimap,$,announceLevel,groundPanel,showGround,hero,heroForm,poly,camera,controls,clear,darkness,darkEyes,throneVanish,fountainLady,fountainSnakes,fountainGush,altarSacrifice,altarClover,altarGlow,mjollnirStrikes,altarFlashes,strikeQueue,altarGift,blessFlash,glowLog,fountainNymph,fountainDemon,fountainWish,wandWishFlare,djinniWish,fireTrapJet,goldGlint,firstKill,potionSip,sinkDrain,stoneCure,towelWipe,calmClear,unicornSpiral,stairStep,searchReveal,squeakyBoard,rollingTrap,fallingRock,dartTrap,landMine,rustTrap,iceTrap,pitFall,polyTrap,magicTrap,boulderFill,spellFizzle,throneSit,throneCurse,throneInsight,throneWrench,throneGift,spellStudy,spellCrumble,antiMagic,webSnare,statueTrap,bearTrapSnap,sleepingGas,digChips,digCracks,digSwing,digDrop,stairTumble,levelUp,teleportBlink,magicPortal,prayerLight,prayerKneel,rays,zapFlash,rayMarks,explosions,flood,splash,flights,grab,brainSuck,hold,barsMelt,doorBreak,breath,engulf,clearHeroBones,tiles,release,floorGeo,floorKit,wallGeo,wall,torchHaloMaterial,group,animated,tileInstances,dressFeature,setDim,wells,wellTemplate,groundItems,petrify,actors,pickupIcon,creatureFactory,catFactory,monsterFactory,actorBatch,rises,envStory,cavern,branchAir,branchMood,ghosts,dropGhost,heldUnder,pickupNotes,liftingItems,renderSurroundings,warmUp});
  /* what the parts in live-engine-link.js read (L) */Object.assign(L,{S,hideLinkBanner,showLinkBanner,recorder,onActivity,applySoon,travelState,travelMark,messageLog,prompt,reply,message,renderStatus,combatEvent,pickupNotes,wandWishFlare,djinniWish,teleportBlink,rises,zapFlash,hero,findThrower,rays,rayMarks,explosions,flights,splash,breath,deathBeat,dialog,setMode,setPrompt,post,actors,apply});
- return {get active(){return S.active;},recorder,/* plays a saved record: Live with no engine behind it, fed by the returned handler */startReplay(){S.replaying=true;recorder.enabled=false;setMode(true);connect({replay:true});return S.currentHandle;},get heroBatch(){return {proxies:heroBatch.proxies.length,batched:heroBatch.batched.length,rebuilds:heroBatch.rebuilds};},get portraitSubject(){/* the HUD portrait's hero (hero-portrait.js): the model, its head, the polymorph stand-in and what the portrait shows */const p=S.latest?.player;if(!S.active||!p||!hero.target)return null;return {g:hero.g,head:hero.head??hero.parts?.head,shape:heroForm.shape,kit:`${hero.kitKey||''}|${heroForm.current}`,hp:p.hp,maxhp:p.maxhp,conditions:heroConditions(S.frameConditions,$('#engine-status')?.title||''),dead:p.hp<=0||deathBeat.active||!!hero.actions.dead};},setCough(h){S.coughHunch=h;},orient(on){return orientOverlay.set(on);},get orientCount(){return orientOverlay.count;},get darkness(){const s=darkness.state;return {dark:s.dark,radius:s.radius,carried:s.carried,veil:+s.veil.toFixed(2),halo:+s.halo.toFixed(2),veilShown:darkness.veil.visible,haloShown:darkness.halo.visible,eyes:darkEyes.count};},get deathState(){return {dead:!!hero.actions.dead,finished:!!hero.actions.finished,current:hero.actions.current?.kind??null,beat:deathBeat.active,bones:!!S.heroCorpse,fade:+deathBeat.crossfade(performance.now()).toFixed(2),visible:hero.g.visible};},get flightsInAir(){return flights.active.map(f=>({shape:f.shape,visible:f.outer.visible,x:+f.outer.position.x.toFixed(2),z:+f.outer.position.z.toFixed(2),yaw:+f.outer.rotation.y.toFixed(2)}));},_inject(v){S.currentHandle?.(v);},_link(){return S.link;},heroAt(out){if(!S.active||!hero.target||!heroLook(S.latest?.player,true))return null;return hero.g.getWorldPosition(out);},/* where every caster stands, for shadow-motion.js (null outside the live game) */get motionSignature(){if(!S.active||!hero.target)return null;return `${S.lastLevel}|${tiles.size}|${groundItems.size}|`+positionSignature([hero.g,...[...actors.values()].map(a=>a.g)]);},update(t,dt){geometryGC.flush(group);const feel=hitFeel.update(dt);hitFeel.apply(camera,feel.offset);dt*=feel.scale;aim.update(t);travelMark.update(t);if(!S.active||!hero.target)return;dimLayer.sync(tiles);poseEngulfed(hero,null);poseHeld(hero,null);clearActionPose(hero,hero.actions);unposeDualStance(hero);zapFlash.unpose(hero);const delta=STEP.copy(hero.target).sub(hero.g.position),moving=delta.length()>.025;if(moving)hero.g.rotation.y=hero.route?.length&&hero.routeYaw!==undefined?hero.routeYaw:Math.atan2(delta.x,delta.z);beginHop(hero);if(!walkRoute(hero,dt))hero.g.position.lerp(hero.target,1-Math.exp(-dt*14));endHop(hero,dt);{const blink=teleportBlink.heroPose();poseHeroBlink(hero,blink?.pose,blink?.from,blink?.to);}hero.body.position.y=Math.sin(t*(moving?18:2))*(moving?.035:.013);if(S.coughHunch||S.coughApplied)hero.body.rotation.x=S.coughHunch;S.coughApplied=S.coughHunch;hero.legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(t*18+i*Math.PI)*.5:0);heroForm.animate(t,moving);hero.cape.rotation.x=-.17+Math.sin(t*3)*.06;if(hero.plume)hero.plume.rotation.z=-.16+Math.sin(t*2.4)*.035;updateGhosting(hero,dt,t,!!S.latest?.player?.invisible);
-   const offset=STEP.copy(hero.g.position).sub(controls.target);offset.y=0;offset.multiplyScalar(1-Math.exp(-dt*3));controls.target.add(offset);camera.position.add(offset);lantern.position.copy(hero.g.position);lantern.position.y+=3;
-   darkness.update(t,dt,{at:hero.g.position,camera,moving});darkEyes.update(actors.values(),dt,t,{veiled:darkness.state.veil>.5});
-   animated.update(t);updateDoorSwings(dt);
-   updateDualStance(hero,dt,t);updateActions(hero,hero.actions,dt);if(deathBeat.corpseDue(hero.actions.finished,performance.now()))layHeroBones();if(S.heroCorpse)crossfadeHeroBones(deathBeat.crossfade(performance.now()));digSwing.update(hero,dt,!!hero.actions?.current||!!hero.actions?.queue.length||!!hero.actions?.dead);prayerKneel.update(hero,dt,!!hero.actions?.current||!!hero.actions?.queue.length||!!hero.actions?.dead);zapFlash.update(dt,hero);swingFx.update(hero,dt,S.swingTarget);updateHoseFlop(hero,dt);updateSlingWhirl(hero);
-   updateTorchLights(t,dt);cavern.update(t,dt,hero.g.position);branchAir.update(t,dt,hero.g.position);branchMood.update(t,dt,hero.g.position);
-   viewCull.update(camera);for(const a of actors.values()){clearActionPose(a,a.actions);clearStalk(a);a.g.userData.updateOracle?.(t);a.g.userData.updateGridBug?.(t);a.g.userData.updateOwlbear?.(t,dt);a.g.userData.updateBaluchitherium?.(t,dt);let walking=false;if(a.target){const d=STEP.copy(a.target).sub(a.g.position);walking=(a.trail?a.pathLeft??d.length():d.length())>.025;if(walking)a.g.rotation.y=a.trail&&a.pathYaw!==undefined?a.pathYaw:yawToward(d.x,d.z,a.g.rotation.y);/* a trail follower (slide.js) faces its own heading along the way it was led */slideTo(a,dt);if(a.legs)a.legs.forEach((l,i)=>l.rotation.x=walking?Math.sin(t*22+i*2)*.4:0);}/* out of view, standing and idle: skip the idle animators this frame (view-cull.js) */if(restsUnseen(a,walking,viewCull))continue;if((a.animator||a.asset?.animator)?.mind)a.senses={hero:heroLook(S.latest?.player,hero.g.position),prey:findPrey(a,actors.values()),threat:findThreat(a,actors.values())};/* what the pet's mind attends to (feline-mind.js) */a.asset?.update(dt,walking);if(a.tail)a.tail.rotation.z=tailSway(a,t);if(a.charm)a.charm.position.y=.3+Math.sin(t*4)*.025;if(a.body){const idle=a.quirk==='orc'?.025:a.quirk==='dragon'?.035:a.quirk==='unicorn'?.022:.015;a.body.position.y=Math.sin(t*(walking?22:2.5))*idle;}if(a.wings?.length)a.wings.forEach((wing,i)=>{if(a.quirk==='bat'||a.flap){wing.rotation.z=(wing.userData.side||(i?1:-1))*wingFlap(a.flap,t);}else if(a.quirk==='bee'){wing.rotation.y=(i?1:-1)*Math.sin(t*60)*.35;}else wing.rotation.y=(i?1:-1)*(-.18+Math.sin(t*5)*.12);});if((a.quirk==='hover'||a.quirk==='bat'||a.quirk==='bee')&&a.body)a.body.position.y=flightBob(a.flap,t,a.g.position.x);if(a.quirk==='dragon')a.g.rotation.z=Math.sin(t*1.7)*.025;if(a.quirk==='nymph'&&a.body)a.body.rotation.z=Math.sin(t*1.3+a.g.position.x)*.035;if(a.quirk==='gridbug')a.g.rotation.z=Math.sin(t*9)*.035;if(a.quirk==='guard')a.g.rotation.z=Math.sin(t*1.3)*.012;const busy=walking||!!a.actions?.current||!!a.actions?.queue.length;updateGait(a,dt,walking);updateSlither(a,dt,t,walking);updatePlod(a,dt,walking);updateSkitter(a,dt,walking);updateTripod(a,dt,walking);updateTrudge(a,dt,walking);updateStrawFlop(a,dt,t,walking);updateHemSway(a,dt,t);updateSerpentStaff(a,dt,t,heroLook(S.latest?.player,hero.g.position));updateFlap(a,dt,t);updateFidget(a,dt,t,busy,heroLook(S.latest?.player,hero.g.position));updateWereShudder(a,dt,t,busy,heroLook(S.latest?.player,hero.g.position));updateStalk(a,dt,t,findPrey(a,actors.values()),busy);const core=a.core||a.g.userData.core;if(core&&!a.spherePulse&&!a.lightFlare)core.material.emissiveIntensity=4.5+Math.sin(t*5)*1.4;if(a.actions){updateActions(a,a.actions,dt);const q=a.actions;if(q.dead)hideDeathRing(a);if(q.dead&&q.fade!=null)applyFade(a,q.fade);if(q.deathBurst){deathFx.burst(q.deathBurst.style,a.g.position,{dir:q.deathBurst.dir,...deathLook(a)});q.deathBurst=null;}if(q.deathShed){deathFx.burst(q.deathShed.style,a.g.position,{dir:q.deathShed.dir,...deathLook(a)});q.deathShed=null;}if(q.riseBurst){for(const look of ['rise','riseMotes'])deathFx.burst(look,a.g.position,deathLook(a));q.riseBurst=null;}}updateBask(a,dt,t,busy);updateDragonMenace(a,dt,t,busy,walking,heroLook(S.latest?.player,hero.g.position));updateCockatriceHiss(a,dt,t,busy,walking,heroLook(S.latest?.player,hero.g.position));updateSkulk(a,dt,t,busy);updateTaunt(a,dt,t,busy);updateInvoke(a,dt,t,busy);updateHeft(a,dt,t,busy);updateDwarfStroke(a,dt,t,busy);updateGnomeTug(a,dt,t,busy);updateOrcSpit(a,dt,t,busy);updateKoboldSniff(a,dt,t,busy);updateTenguCock(a,dt,t,busy);updateHomunculusLurk(a,dt,t,busy);updateCanineSnuffle(a,dt,t,busy);updateCanineBow(a,dt,t,busy,heroLook(S.latest?.player,hero.g.position));updateFelineWatch(a,dt,t,busy);updateBeetleGnash(a,dt,t,busy);updateFlayerPsi(a,dt,t);updateBeetleFlex(a,dt,t,busy);updateTurtleGlare(a,dt,t,busy);updateScorpionClack(a,dt,t,busy);updateLemureSlump(a,dt,t,busy);updateManesScrabble(a,dt,t,busy);updateZombieReach(a,dt,t,busy);updateMummyCreak(a,dt,t,busy);updateGolemRatchet(a,dt,t,busy);updateElfListen(a,dt,t,busy);updateHobbitClutch(a,dt,t,busy);updateLocustRasp(a,dt,t,busy);updateCentipedeWrithe(a,dt,t,busy);updateQuasitWhisper(a,dt,t,busy);updateRally(a,dt,t,busy);updatePonder(a,dt,t,busy);updateKamae(a,dt,t);updateSalute(a,dt,t,busy);updateMonkBow(a,dt,t,busy);updateRogueProwl(a,dt,t,busy);updateBarbarianBrood(a,dt,t,busy);updateHealerPeer(a,dt,t,busy);updateTouristGawk(a,dt,t,busy);updateMuggerCosh(a,dt,t,busy);updateConvictHunted(a,dt,t,busy);updateRangerDraw(a,dt,t,busy);updateCharonOar(a,dt,t,busy);updatePrisonerRock(a,dt,t,busy,heroLook(S.latest?.player,hero.g.position));updateCubeDrift(a,dt,t,walking);updateWhipEmbers(a,dt,t);updateTwitch(a,dt,t,busy);updateWhiffle(a,dt,t,walking,!!a.actions?.current||!!a.actions?.queue.length);updateTuck(a,dt,walking);updateInsectSettle(a,dt,busy,heroLook(S.latest?.player,hero.g.position));updateCockatriceSettle(a,dt,busy,heroLook(S.latest?.player,hero.g.position));updateCanineSettle(a,dt,busy,heroLook(S.latest?.player,hero.g.position));updateWildcatSettle(a,dt,busy,heroLook(S.latest?.player,hero.g.position));updateWildcatStalk(a,dt,t,busy,heroLook(S.latest?.player,hero.g.position));updateCockatriceCrow(a,dt,t,busy,heroLook(S.latest?.player,hero.g.position));updateCockatriceBob(a,dt,walking);updateInsectAlarm(a,dt,t,busy,heroLook(S.latest?.player,hero.g.position));updateDwarfGuard(a,dt,t,busy,heroLook(S.latest?.player,hero.g.position));updateBugbearLurk(a,dt,t,busy,heroLook(S.latest?.player,hero.g.position));updateImpSettle(a,dt,busy,heroLook(S.latest?.player,hero.g.position));}{let el=document.getElementById('psionic');if(!el){el=document.createElement('div');el.id='psionic';document.body.appendChild(el);}updatePsionicScreen(el,psiState,psiPressure(hero.g.position,actors.values()),dt);}/* a mind flayer's pressure at the edges of the view (psionic.js) */actorBatch.update();hitFx.update([hero,...actors.values()],dt);deathFx.update(dt);petrify.update(dt);throneVanish.update(dt);fountainLady.update(dt);fountainSnakes.update(dt);fountainGush.update(dt);altarSacrifice.update(dt);altarClover.update(dt);altarGlow.update(dt);mjollnirStrikes.update(dt);altarFlashes.update(dt);fireStrikes();altarGift.update(dt);blessFlash.update(dt);fountainNymph.update(dt);fountainDemon.update(dt);fountainWish.update(dt);wandWishFlare.update(dt);djinniWish.update(dt);fireTrapJet.update(dt);goldGlint.update(dt);firstKill.update(dt);potionSip.update(dt);sinkDrain.update(dt);stoneCure.update(dt);towelWipe.update(dt);calmClear.update(dt);unicornSpiral.update(dt);stairStep.update(dt);searchReveal.update(dt);squeakyBoard.update(dt);rollingTrap.update(dt);fallingRock.update(dt);dartTrap.update(dt);landMine.update(dt);rustTrap.update(dt);iceTrap.update(dt);pitFall.update(dt);polyTrap.update(dt);magicTrap.update(dt);boulderFill.update(dt);spellFizzle.update(dt);throneSit.update(dt);throneCurse.update(dt);throneInsight.update(dt);throneWrench.update(dt);throneGift.update(dt);spellStudy.update(dt);spellCrumble.update(dt);antiMagic.update(dt);webSnare.update(dt);statueTrap.update(dt);bearTrapSnap.update(dt);sleepingGas.update(dt);teleportBlink.update(dt);magicPortal.update(dt);digChips.update(dt);digCracks.update(dt);levelUp.update(dt);prayerLight.update(dt);rays.update(dt,S.origin);const {flash:rayFlash}=rayMarks.update(dt,S.origin);const blast=explosions.update(dt,S.origin);/* one flash light serves the ray flash, a blast and a breath, whichever is brightest this frame (effect-lights.js shareFlash) */shareFlash(flashLight,[{intensity:rayFlash*RAY_FLASH_INTENSITY,color:0xdce6ff,x:hero.g.position.x,y:3.2,z:hero.g.position.z,distance:18,decay:1.2},{intensity:blast.light*BLAST_LIGHT_INTENSITY,color:blast.color,x:blast.x-S.origin.x,y:1.2,z:blast.z-S.origin.z,distance:9,decay:1.4}]);
-   for(const item of groundItems.values())if(item.visible){item.userData.wandAura?.userData.update(t);item.userData.artifactGleam?.userData.update(t);item.userData.scrollAura?.userData.update(t);item.userData.ringAura?.userData.update(t);item.userData.amuletAura?.userData.update(t);item.userData.toolAura?.userData.update(t);item.userData.armorAura?.userData.update(t);item.userData.weaponAura?.userData.update(t);item.userData.potionFx?.userData.update(t);item.userData.potionAura?.userData.update(t);item.userData.bagMaw?.userData.update(t);item.userData.corpseFx?.userData.update(t);}
-   for(const item of liftingItems)if(updatePickupLift(item,hero.g.position,dt)){release(item);liftingItems.delete(item);}
-   updateHeldWandAura(hero,t);S.heldCrackle=updateHeldMjollnir(hero,dt,t);updateHeldExcalibur(hero,dt,t);updateHeldGleam(hero,t);
-   for(const item of groundItems.values())item.userData.coinPile?.update(dt);
-   marks.update(dt);if(S.flooding)S.flooding=flood.update(dt,S.origin).count>0;splash.update(dt,S.origin);flights.update(dt,S.origin);const grabbed=grab.update(dt,S.origin);poseBrainSuck(hero,brainSuck.update(dt,S.origin).shake);const holding=hold.update(dt,S.origin,{skip:grabbed.held});poseHeld(hero,holding.squeeze);hero.g.position.y=(hero.hopAt?.y??0)+grabbed.sink+digDrop.update(dt)+stairTumble.update(dt)+(hero.actions.applied?.dy??0);
-   const {poses:polyPoses}=poly.update(dt,S.origin);poseActor(hero,S.latest?.player&&polyPoses.get(`${S.latest.player.x},${S.latest.player.z}`));for(const a of actors.values())poseActor(a,polyPoses.get(a.cell));barsMelt.update(dt,S.origin);doorBreak.update(dt,S.origin);const br=breath.update(dt,S.origin);if(br.glow*BREATH_LIGHT_INTENSITY>flashLight.intensity)shareFlash(flashLight,[{intensity:br.glow*BREATH_LIGHT_INTENSITY,color:br.color,x:br.x-S.origin.x,y:1.2,z:br.z-S.origin.z,distance:9,decay:1.4}]);const eng=engulf.update(dt,S.origin);engulfCamera(camera,controls,eng);poseEngulfed(hero,eng.hero);
-   for(const tile of tiles.values()){const liquid=tile.userData.liquid;if(!liquid)continue;liquid.visible=!(S.flooding&&flood.pending(tile.position.x+S.origin.x,tile.position.z+S.origin.z));if(tile.visible&&liquid.visible)liquid.userData.updateLiquid(t);}
-   for(const w of wells.values())w.userData.updateFountain?.(t);
-   if(orientOverlay.enabled)orientOverlay.update(liveEntries({hero,actors:actors.values(),tiles:tiles.values(),flights:flights.active}));
-   heroBatch.sync();
- }};
+ /* what the parts in live-combat.js read (L) */Object.assign(L,{S,marks,grab,findSide,brainSuck,STRIKE_PAIR_MS,queueStrike,hero,actors,strikeQueue,IMPACT_MS,mjollnirStrikes});
+ /* what the parts in live-status.js read (L) */Object.assign(L,{renderAttributes,$,S,statusProgress,esc,attributesEl,levelBanner});
+ /* what the parts in live-hero-death.js read (L) */Object.assign(L,{S,group,hero,deathBeat});
+ /* the per-frame step, a declaration so it can be split out like the rest */function updateFrame(t,dt){return updateFrame_(t,dt,L);}
+ /* what the parts in live-frame.js read (L) */Object.assign(L,{geometryGC,group,hitFeel,camera,aim,travelMark,S,hero,dimLayer,tiles,zapFlash,STEP,teleportBlink,heroForm,controls,lantern,darkness,darkEyes,actors,animated,deathBeat,layHeroBones,crossfadeHeroBones,digSwing,prayerKneel,swingFx,updateTorchLights,cavern,branchAir,branchMood,viewCull,deathFx,psiState,actorBatch,hitFx,petrify,throneVanish,fountainLady,fountainSnakes,fountainGush,altarSacrifice,altarClover,altarGlow,mjollnirStrikes,altarFlashes,fireStrikes,altarGift,blessFlash,fountainNymph,fountainDemon,fountainWish,wandWishFlare,djinniWish,fireTrapJet,goldGlint,firstKill,potionSip,sinkDrain,stoneCure,towelWipe,calmClear,unicornSpiral,stairStep,searchReveal,squeakyBoard,rollingTrap,fallingRock,dartTrap,landMine,rustTrap,iceTrap,pitFall,polyTrap,magicTrap,boulderFill,spellFizzle,throneSit,throneCurse,throneInsight,throneWrench,throneGift,spellStudy,spellCrumble,antiMagic,webSnare,statueTrap,bearTrapSnap,sleepingGas,magicPortal,digChips,digCracks,levelUp,prayerLight,rays,rayMarks,explosions,flashLight,RAY_FLASH_INTENSITY,BLAST_LIGHT_INTENSITY,groundItems,liftingItems,release,marks,flood,splash,flights,grab,brainSuck,hold,digDrop,stairTumble,poly,barsMelt,doorBreak,breath,BREATH_LIGHT_INTENSITY,engulf,wells,orientOverlay,heroBatch});
+ return {get active(){return S.active;},recorder,/* plays a saved record: Live with no engine behind it, fed by the returned handler */startReplay(){S.replaying=true;recorder.enabled=false;setMode(true);connect({replay:true});return S.currentHandle;},get heroBatch(){return {proxies:heroBatch.proxies.length,batched:heroBatch.batched.length,rebuilds:heroBatch.rebuilds};},get portraitSubject(){/* the HUD portrait's hero (hero-portrait.js): the model, its head, the polymorph stand-in and what the portrait shows */const p=S.latest?.player;if(!S.active||!p||!hero.target)return null;return {g:hero.g,head:hero.head??hero.parts?.head,shape:heroForm.shape,kit:`${hero.kitKey||''}|${heroForm.current}`,hp:p.hp,maxhp:p.maxhp,conditions:heroConditions(S.frameConditions,$('#engine-status')?.title||''),dead:p.hp<=0||deathBeat.active||!!hero.actions.dead};},setCough(h){S.coughHunch=h;},orient(on){return orientOverlay.set(on);},get orientCount(){return orientOverlay.count;},get darkness(){const s=darkness.state;return {dark:s.dark,radius:s.radius,carried:s.carried,veil:+s.veil.toFixed(2),halo:+s.halo.toFixed(2),veilShown:darkness.veil.visible,haloShown:darkness.halo.visible,eyes:darkEyes.count};},get deathState(){return {dead:!!hero.actions.dead,finished:!!hero.actions.finished,current:hero.actions.current?.kind??null,beat:deathBeat.active,bones:!!S.heroCorpse,fade:+deathBeat.crossfade(performance.now()).toFixed(2),visible:hero.g.visible};},get flightsInAir(){return flights.active.map(f=>({shape:f.shape,visible:f.outer.visible,x:+f.outer.position.x.toFixed(2),z:+f.outer.position.z.toFixed(2),yaw:+f.outer.rotation.y.toFixed(2)}));},_inject(v){S.currentHandle?.(v);},_link(){return S.link;},heroAt(out){if(!S.active||!hero.target||!heroLook(S.latest?.player,true))return null;return hero.g.getWorldPosition(out);},/* where every caster stands, for shadow-motion.js (null outside the live game) */get motionSignature(){if(!S.active||!hero.target)return null;return `${S.lastLevel}|${tiles.size}|${groundItems.size}|`+positionSignature([hero.g,...[...actors.values()].map(a=>a.g)]);},update(t,dt){return updateFrame(t,dt);}};
 }
