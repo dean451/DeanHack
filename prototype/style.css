@@ -354,3 +354,8 @@ body.live-engine .character{width:250px}
 /* the freeze report note (slow-trace.js, dev server only): small, top centre, out of the way */
 #freeze-note{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:80;display:flex;gap:10px;align-items:center;padding:8px 12px;background:#1b1712ee;border:1px solid #6b5a3a;border-radius:6px;color:#e8ddc7;font:13px Inter,system-ui,sans-serif}
 #freeze-note button{background:none;border:1px solid #6b5a3a;border-radius:4px;color:#e8ddc7;font:inherit;padding:3px 8px;cursor:pointer}
+/* the replay page's controls (replay-ui.js, ?replay): a bar along the bottom */
+#replay-panel{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:70;display:flex;gap:10px;align-items:center;padding:8px 12px;background:#141110ee;border:1px solid #6b5a3a;border-radius:6px;color:#e8ddc7;font:13px Inter,system-ui,sans-serif}
+#replay-panel button,#replay-panel select,#replay-panel .replay-file{background:none;border:1px solid #6b5a3a;border-radius:4px;color:#e8ddc7;font:inherit;padding:3px 8px;cursor:pointer}
+#replay-panel .replay-file input{display:none}
+#replay-panel .replay-input{color:#aeb9bf}
