@@ -5,7 +5,8 @@
 // under it and the hands on the knees. The 0.7 is set by eye: no source gave a resting angle.
 import {restPose as squat, rests as squats} from './imp-rest.js';
 
-export const REST = {seat: .7, lap: .1, feet: .3};
+export const REST = {seat: .7, lap: .1, feet: .3, mouth: {low: .6, fwd: .3}};
+// (mouth: the dog-like head carried low and forward, the mouth under 0.6 of the standing pelvis height and 0.3 of it ahead of the pelvis; set by eye, no source gave a resting head height)
 
 export const rests = a => !!(a && squats(a) && a.quirk === 'kobold');
 
