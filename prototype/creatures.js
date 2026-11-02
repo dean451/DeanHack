@@ -1199,7 +1199,7 @@ const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#6a8aa0',
 function horse(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale);g.name=o.horn?'unicorn':'horse';
  const coat=mat(o.coat,{roughness:.8}),belly=mat(shade(o.coat,1.15),{roughness:.85}),hair=mat(o.hair,{roughness:.95}),lower=mat(o.points||o.coat,{roughness:.85}),sock=mat(o.feather||'#ece6da',{roughness:.85}),hoof=mat(o.hoof||'#2a2420',{roughness:.55,metalness:o.hoof?.3:0}),snoot=mat(shade(o.coat,o.horn?.8:.55),{roughness:.7});
- const legH=o.legH,y=legH+.16,s=o.stock;
+ const legH=o.legH,y=legH+.16,s=o.stock;let head=null;
  sphere(body,.2,coat,0,y,0,.82*s,.85,1.55);sphere(body,.17,coat,0,y+.02,.2,.9*s,1,.9);sphere(body,.18,coat,0,y+.04,-.22,.95*s,.95,.9);
  sphere(body,.14,belly,0,y-.08,0,.78*s,.6,1.45);sphere(body,.08,coat,0,y+.15,.15,.9,.8,1.4);
  if(!o.centaur){
@@ -1209,7 +1209,7 @@ function horse(o){
  for(let i=0;i<9;i++){const t=i/8,r=.11*s+(.07-.11*s)*t,p=n0.clone().lerp(n1,t).addScaledVector(up,r*.85);
   if(o.mane==='braided')sphere(body,.028,hair,p.x,p.y+.01,p.z);
   else{sphere(body,.04,hair,p.x,p.y,p.z,.55,1.3,1);if(o.mane==='shaggy'){const lock=sphere(body,.05,hair,.045,p.y-.05,p.z,.35,1.4,.9);lock.rotation.z=-.25;}else sphere(body,.035,hair,.03,p.y-.03,p.z,.35,1.3,.9);}}
- const head=new THREE.Group();head.position.set(0,y+.4,.46);head.rotation.x=.85;body.add(head);
+ head=new THREE.Group();head.position.set(0,y+.4,.46);head.rotation.x=.85;body.add(head);
  sphere(head,.085,coat,0,0,0,.85,.95,1.1);
  segment(head,[0,0,.02],[0,-.02,.24],.07,.05,coat).scale.x=.8;
  sphere(head,.058,snoot,0,-.025,.25,.9,.85,1.05);sphere(head,.04,snoot,0,-.065,.19,.8,.7,1.2);
@@ -1245,7 +1245,7 @@ function horse(o){
  for(const k of [-1,0,1])tube(tail,[[0,-.03,-.06],[k*.02,-.12,-.13],[k*.03,-.3,-.16],[k*.035,-o.tail,-.13+Math.abs(k)*.02]],o.mane==='shaggy'?.036:.028,hair,12);
  if(o.centaur)return {g,body,legs,tail,y,s};
  mergeStatic(g);
- return actor(g,body,legs,tail,[],'unicorn');
+ return nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head}),{skin:false});
 }
 // A horn that tapers to a point with two ridges winding round it, like the unicorn horn on the
 // floor (unicorn-horn.js) but light enough to wear. Base at y -h/2, tip at +h/2.

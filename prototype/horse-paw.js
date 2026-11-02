@@ -13,7 +13,7 @@ const SNAP = 1e-3, FADE_OUT = 14;
 const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
 const smooth = v => { v = clamp01(v); return v * v * (3 - 2 * v); };
 
-export const paws = a => !!(a && !a.asset && a.quirk === 'unicorn' && !a.head && a.body && a.legs?.length === 4);
+export const paws = a => !!(a && !a.asset && a.quirk === 'unicorn' && !a.arms && a.body && a.legs?.length === 4);
 
 // The paw at progress u (0..1): {lift} 0..1 foreleg raised, {rake} -1..1 the scrape back and forth,
 // {dip} 0..1 body pitch on the stamp, {lash} -1..1 tail. The leg rises, rakes three times, drops
