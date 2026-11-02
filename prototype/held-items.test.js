@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {itemsUnderMonsters, takerOf, takenSquares} from './held-items.js';
+import {liveSource} from './live-source.js';
 
 const items = ['3,4:2001:', '3,4:2002:', '7,1:2003:', '5,5:2004:'];
 
@@ -44,7 +45,7 @@ test('the taker takes the items under it: by name, or under the pets for a pet t
 });
 
 test('live.js keeps held items through the release sweep and drops them on a pickup message', () => {
-  const src = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const src = liveSource();
   const keep = src.indexOf('heldUnder.map=itemsUnderMonsters(frame.cells,groundItems.keys(),frame.player)'), sweep = src.indexOf('for(const [id,item] of groundItems)if(!seenActors.has(id))');
   assert.ok(keep > 0 && sweep > keep, 'held before the sweep');
   assert.ok(/takenSquares\(taker,heldUnder\.map\)/.test(src));

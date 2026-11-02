@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {moodFor, scarPlan, gridEdges, glowAt, GLOW_REACH, SCAR_ONE_IN, createBranchMood, DUST} from './branch-mood.js';
+import {liveSource} from './live-source.js';
 
 // A room of open floor x 1..8, z 1..6 walled round, as live.js's tiles ("x,z" -> {userData: {type}}).
 function room() {
@@ -80,7 +81,7 @@ test('the mood follows the branch: Mines dust and scars, Sokoban grid and still 
 });
 
 test('live.js drives the mood each frame and each render', () => {
-  const src = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const src = liveSource();
   assert(/branchMood\.frame\(frame\.dungeon,tiles,origin\)/.test(src));
   assert(/branchMood\.update\(t,dt,hero\.g\.position\)/.test(src));
 });

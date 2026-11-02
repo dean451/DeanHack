@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {PSI, psiPressure, updatePsionicScreen, updateFlayerPsi, isFlayer} from './psionic.js';
+import {liveSource} from './live-source.js';
 
 const at = (x, z) => new THREE.Vector3(x, 0, z);
 const flayer = (x, z, dead = false) => ({species: 'mind flayer', target: at(x, z), actions: dead ? {dead: true} : null});
@@ -52,7 +53,7 @@ test('every mind flayer pulses faint additive rings off its cranium that die awa
 });
 
 test('live.js drives the ripples on every actor and the pressure once a frame', () => {
-  const src = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const src = liveSource();
   assert.ok(src.includes("from './psionic.js'"));
   assert.ok(/updateFlayerPsi\(a,dt,t\)/.test(src));
   assert.ok(/updatePsionicScreen\(el,psiState,psiPressure\(hero\.g\.position,actors\.values\(\)\),dt\)/.test(src));

@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 import {holdUncompiled, releaseHeld, WAIT_LAYER} from './compile-gate.js';
 import {addOutlines} from './readability.js';
+import {liveSource} from './live-source.js';
 
 const drawn = o => o.layers.test(new THREE.Layers());
 const box = m => new THREE.Mesh(new THREE.BoxGeometry(.2, .2, .2), m);
@@ -32,6 +33,6 @@ test('a material that turned up after the compile started is not marked compiled
 });
 
 test('live.js holds the uncompiled things back while its warm-up compile runs, and lets them go when it ends', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.match(live, /const held=holdUncompiled\(group,compiledMaterials,o=>o===hero\.g\),done=\(\)=>releaseHeld\(held,compiledMaterials\);compileFor\(renderer,warmTarget,\(\)=>renderer\.compileAsync\(scene,camera\)\)\.then\(done,done\);setTimeout\(done,MAX_WAIT_MS\);/);
 });

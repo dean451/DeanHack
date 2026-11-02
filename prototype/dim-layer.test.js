@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {createDimLayer} from './dim-layer.js';
+import {liveSource} from './live-source.js';
 
 test('every dimmed square is one instance of one plane: one draw, one material', () => {
   const group = new THREE.Group(), layer = createDimLayer(THREE, group, {color: 0x15171c, opacity: .74, start: 2});
@@ -22,7 +23,7 @@ test('every dimmed square is one instance of one plane: one draw, one material',
 });
 
 test('live.js dims through the layer and no longer marks materials for recompiling each frame', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.match(live, /function setDim\(tile,dim\)\{if\(tile\.userData\.fog\.visible===dim\)return;tile\.userData\.fog\.visible=dim;dimLayer\.touch\(\);\}/);
   assert.doesNotMatch(live, /fog\.material\.needsUpdate/);
   assert.match(live, /dimLayer\.sync\(tiles\);/);

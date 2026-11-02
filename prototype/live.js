@@ -1,29 +1,21 @@
 import {DIM_COLOR,DIM_OPACITY,GHOST_MAX,shouldGhost,ghostGone,ghostize} from './remembered.js';
 import {wallYaw,yawToward} from './orientation.js';
 import {LIVE_KEYS_HTML} from './live-keys.js';
-import {createShopkeeper,createWatchman,createLightItem,createShopItem} from './shop-visuals.js';
+import {createShopkeeper,createWatchman} from './shop-visuals.js';
 import {createGridBug} from './grid-bug.js';
 import * as THREE from 'three';
-import {createGroundModel} from './ground-models.js';
 import {bareMore,groundNotice,groundTile,withPrices} from './ground-notice.js';
 import {menuKeys,autoCategory,menuCommand,menuGroups,EXT_FALLBACK,matchCommands,resolveCommand,completePrefix} from './engine-menus.js';
 import {installStartScreen,readChoice,endedNote} from './start-screen.js';
 import {createLinkWatch} from './link-watch.js';
 import {dressHero} from './hero-kits.js';
 import {meleeDirection,confirmsPlayerMelee} from './combat-visuals.js';
-import {createHeldWeapon} from './equipment.js';
-import {createCentaurStatue,createOracle,createLiveFountain} from './oracle-visuals.js';
+import {createOracle,createLiveFountain} from './oracle-visuals.js';
 import {createAltar,ALTAR_TOP} from './altar.js';
 import {createThrone} from './throne.js';
 import {createSink} from './sink.js';
 import {createGrave} from './grave.js';
-import {createTrap,trapKind} from './trap.js';
-import {createTerrainFeature,featureKind,AXIS_FEATURES,bridgeYaw,groundOf,coveredFeature} from './terrain-feature.js';
-import {createTree} from './tree.js';
-import {createDeadTree,deadTreeShown} from './dead-tree.js';
-import {createBoulder,BOULDER_SEED} from './boulder.js';
-import {createStairs} from './stairs.js';
-import {createLadder,ladderShown} from './ladder.js';
+import {bridgeYaw,groundOf} from './terrain-feature.js';
 import {createBars} from './bars.js';
 import {createDoor,createBrokenDoor} from './door.js';
 import {tileKind,setDoorOpen,orientDoor,updateDoorSwings,clearDoorSwings} from './door-swing.js';
@@ -39,7 +31,6 @@ import {createBranchAir,rockTint,rockRoughness,rockVein,floorFinish,wallFinish} 
 import {createBranchMood} from './branch-mood.js';
 import {attachModelAsset} from './model-assets.js';
 import {MODEL_URLS} from './asset-urls.js';
-import {potionLook} from './item-looks.js';
 import {captureView,restoreView} from './camera-view.js';
 import {createMinimap} from './minimap.js';
 import {createMessageLog,addMessage,panelView,allRows,markTurn,sinceMark} from './message-log.js';
@@ -81,8 +72,6 @@ import {createPolymorph,poseActor} from './polymorph.js';
 import {createHeroForm} from './hero-form.js';
 import {createBarsMelt} from './bars-melt.js';
 import {createDoorBreak} from './door-break.js';
-import {animatePortal,createSheolVortex} from './portal-fx.js';
-import {createVibratingSquare} from './vibrating-square.js';
 import {syncWard} from './elbereth-ward.js';
 import {createThroneVanish,isThronePuff} from './throne-vanish.js';
 import {createFountainLady,isLadyMessage} from './fountain-lady.js';
@@ -93,7 +82,7 @@ import {createAltarClover} from './altar-clover.js';
 import {createAltarGlow,glowAlignment} from './altar-glow.js';
 import {updateHeldExcalibur} from './excalibur.js';
 import {updateHeldMjollnir,createLightningStrikes,strikeVictim} from './mjollnir-storm.js';
-import {layOnSlab,createAltarFlashes} from './altar-offering.js';
+import {createAltarFlashes} from './altar-offering.js';
 import {createAltarGift} from './altar-gift.js';
 import {createBlessFlash,createGlowLog} from './bless-flash.js';
 import {createFountainNymph} from './fountain-nymph.js';
@@ -267,13 +256,16 @@ import {heroConditions,conditionTags,conditionTagsHtml} from './hud-conditions.j
 import {applyStatusScreen} from './status-screen.js';
 import {psiPressure,updatePsionicScreen,updateFlayerPsi} from './psionic.js';
 import {createStatusProgress,worstProgress} from './status-progress.js';
-import {createCoinPile} from './coin-pile.js';
 import {createHeroBatch} from './hero-batch.js';
 import {planRoute,walkRoute} from './hero-route.js';
 import {holdUncompiled,releaseHeld,MAX_WAIT_MS} from './compile-gate.js';
 import {guardStaleInput} from './stale-input.js';
 import {createFadePrewarm} from './fade-prewarm.js';
 import {createRecorder} from './replay-recorder.js';
+import {pickupIcon as pickupIcon_} from './live-ground-icon.js';
+import {box,label,hasTorch,dressTree,dressStairs,dressFeature as dressFeature_} from './live-tile-dress.js';
+import {setPrompt as setPrompt_,setCharacterName as setCharacterName_,statusScreenEl,renderSurroundings as renderSurroundings_,hideLinkBanner as hideLinkBanner_,showLinkBanner as showLinkBanner_} from './live-hud.js';
+import {updateTorchLights as updateTorchLights_} from './live-torch-lights.js';
 const statusProgress=createStatusProgress();
 
 // Only window-port observations enter this view. No prediction of game rules.
@@ -281,14 +273,14 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  const group=new THREE.Group();scene.add(group);group.visible=false;const marks=createMarks(THREE,group);const envStory=createEnvStory(THREE,group);const tileInstances=createTileInstancer(group);const viewCull=createViewCull();const geometryGC=createGeometryGC();const dimLayer=createDimLayer(THREE,group,{color:DIM_COLOR,opacity:DIM_OPACITY});const actorBatch=createActorBatch(group);
  const tiles=new Map(),actors=new Map(),wells=new Map(),groundItems=new Map(),heldUnder={map:new Map()},liftingItems=new Set(),pickupNotes=createPickupNotes();let active=false,lastCommand=null,pending=null,latest=null,token='',menu=null,commands=null,lines=[],origin=null,lastLevel='',lastBranch=null,lastDepth=NaN,source,pollNow=null;
  const $=s=>document.querySelector(s);
- const WEAPON_CLASS=2,ARMOR_CLASS=3,RING_CLASS=4,AMULET_CLASS=5,POTION_CLASS=8,SCROLL_CLASS=9,COIN_CLASS=12;
+ 
  const button=document.createElement('button');button.textContent='Live UnNetHack';button.id='live-mode';$('.buttons').prepend(button);
  // The character's name: typed before starting, kept in localStorage (sent with /engine/start), and shown in the character panel.
  const nameInput=document.createElement('input');nameInput.id='player-name';nameInput.type='text';nameInput.placeholder='Adventurer';nameInput.maxLength=24;nameInput.autocomplete='off';nameInput.spellcheck=false;nameInput.setAttribute('aria-label','Character name');
  try{nameInput.value=localStorage.getItem('deanhack.playerName')||'';}catch{}
  nameInput.addEventListener('input',()=>{try{localStorage.setItem('deanhack.playerName',nameInput.value);}catch{}setCharacterName(nameInput.value);});
  $('.buttons').prepend(nameInput);
- function setCharacterName(name){const el=$('.character>small');if(el)el.textContent=(String(name||'').trim()||'Adventurer');}
+ function setCharacterName(name){return setCharacterName_(name,{$});}
  setCharacterName(nameInput.value);
  const panel=document.createElement('section');panel.id='engine-panel';panel.hidden=true;panel.innerHTML='<p id="engine-line" aria-live="polite"></p><div id="engine-messages" role="log"></div><div id="engine-prompt"></div>';document.body.append(panel);
  // Gold, power, experience and conditions live in the character panel, not under the messages.
@@ -304,7 +296,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  // Engine commands live in the footer.
  const actions=document.createElement('div');actions.className='engine-actions';actions.hidden=true;actions.innerHTML='<button data-key="83">Save & quit</button>';$('.buttons').prepend(actions);
  const esc=text=>String(text).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
- function setPrompt(text){$('#engine-prompt').innerHTML=text?`<span class="dot"></span>${esc(text)}`:'';}
+ function setPrompt(text){return setPrompt_(text,{$,esc});}
  const attributesEl=document.createElement('div');attributesEl.className='attributes';$('.stats').after(attributesEl);
  function renderAttributes({attributes,alignment}){
    heroStrength=attributes.find(a=>a.label==='STR')?.value;
@@ -313,8 +305,8 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  // On arrival at a named level or branch, its name fades in over the scene for a few seconds.
  // A banner for a lost link or a restarted server, with the one button that fixes it (a reload).
  const linkBanner=document.createElement('div');linkBanner.id='link-banner';linkBanner.hidden=true;linkBanner.innerHTML='<span></span><button type="button"></button>';document.body.append(linkBanner);
- function showLinkBanner(text,label){if(!active)return;linkBanner.firstChild.textContent=text;linkBanner.lastChild.textContent=label;linkBanner.lastChild.onclick=()=>location.reload();linkBanner.hidden=false;}
- function hideLinkBanner(){linkBanner.hidden=true;}
+ function showLinkBanner(text,label){return showLinkBanner_(text,label,{active,linkBanner});}
+ function hideLinkBanner(){return hideLinkBanner_({linkBanner});}
  let link=null,currentHandle=null;
  const levelBanner=document.createElement('div');levelBanner.id='level-banner';levelBanner.setAttribute('aria-live','polite');document.body.append(levelBanner);
  let shownTitle=null;
@@ -338,17 +330,9 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
    el.innerHTML=[gold&&`<span>GOLD <b>${gold[1]}</b></span>`,power&&`<span>POWER <b>${power[1]} / ${power[2]}</b></span>`,exp&&`<span>EXP <b>${exp[1]}</b></span>`,`<span id="hero-conditions">${conditionTagsHtml(conditions)}</span>`,...others.map(c=>`<span class="condition"><i aria-hidden="true">${conditionGlyph(c)}</i> ${esc(c)}</span>`)].filter(Boolean).join('');
  }
  const psiState={v:0};
- function statusScreenEl(){let el=document.getElementById('status-screen');if(!el){el=document.createElement('div');el.id='status-screen';document.body.appendChild(el);}return el;}
+ 
  // The pet in view goes to the companion slot (the creatures-in-view list is gone: the game is shown by its visuals).
- function renderSurroundings(frame){
-   const pets=[];
-   for(const cell of frame.cells){
-     if(cell.kind==='pet'&&cell.visible&&!(cell.x===frame.player.x&&cell.z===frame.player.z))pets.push(cell.name);
-   }
-   // With no pet in view the companion slot is left out rather than saying so.
-   $('.companion').hidden=!pets.length;
-   $('.companion').innerHTML=pets.length?`<span class="dot"></span> ${esc(pets[0])}${pets.length>1?` +${pets.length-1}`:''}`:'';
- }
+ function renderSurroundings(frame){return renderSurroundings_(frame,{$,esc});}
  const dialog=document.createElement('dialog');dialog.id='engine-dialog';document.body.append(dialog);
  const groundPanel=document.createElement('aside');groundPanel.id='ground-notice';groundPanel.hidden=true;groundPanel.setAttribute('aria-live','polite');groundPanel.setAttribute('aria-label','Items on this tile');document.body.append(groundPanel);let groundPanelTile=null,groundPriced=null;
  const lantern=new THREE.PointLight(0xffd49c,22,11,2);group.add(lantern);
@@ -363,131 +347,30 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  const ambientLights=scene.children.filter(o=>o.isHemisphereLight||o.isDirectionalLight).map(light=>({light,base:light.intensity}));
  const torchHaloMaterial=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const ctx=c.getContext('2d'),g=ctx.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,190,110,.55)');g.addColorStop(.35,'rgba(255,130,50,.18)');g.addColorStop(1,'rgba(255,100,30,0)');ctx.fillStyle=g;ctx.fillRect(0,0,64,64);return new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});})();
  // Integer hash so torches scatter along a wall instead of lining a whole row.
- function hasTorch(x,z){return cellHash(x,z)%9===0;}
+ 
  const floorKit=createFloorKit();
  const cavern=createCavern({group,scene,camera,controls});
  const branchAir=createBranchAir({group}),branchMood=createBranchMood({group,cavernMotes:cavern.motes});
  const torchTiles={key:'',list:[]};
- function updateTorchLights(t,dt){
-   const rank=tile=>tile.position.distanceToSquared(hero.g.position)+(tile.userData.fog.visible?16:0);
-   if(torchTiles.key!==`${lastLevel}:${tiles.size}`){torchTiles.key=`${lastLevel}:${tiles.size}`;torchTiles.list=[...tiles.values()].filter(tile=>tile.userData.torch);}/* the torch list is rebuilt only when the tiles change, not every frame */const wanted=new Set(torchTiles.list.filter(tile=>tile.parent).sort((a,b)=>rank(a)-rank(b)).slice(0,TORCH_LIGHTS));
-   const held=new Set(torchLights.map(l=>l.userData.tile));
-   for(const tile of wanted){if(held.has(tile))continue;const free=torchLights.find(l=>!l.userData.tile);if(!free)break;free.userData.tile=tile;free.userData.level=0;free.position.copy(tile.position).setY(1.15);}
-   const ease=1-Math.exp(-dt*5);
-   for(const l of torchLights){const {tile}=l.userData;if(!tile){l.intensity=0;continue;}
-     if(!tile.parent){l.userData.tile=null;l.intensity=0;continue;}
-     const target=wanted.has(tile)?(tile.userData.fog.visible?.55:1):0;l.userData.level+=(target-l.userData.level)*ease;
-     if(!target&&l.userData.level<.02){l.userData.tile=null;l.intensity=0;continue;}
-     const p=tile.userData.torch.phase,flicker=1+Math.sin(t*11+p)*.09+Math.sin(t*19.3+p*1.7)*.05+Math.sin(t*3.1+p)*.04;
-     l.intensity=TORCH_INTENSITY*l.userData.level*flicker;
-   }
- }
- function box(geo,mat,parent,x,y,z){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;parent.add(m);return m;}
- function label(text,color='#f0d9b0'){const c=document.createElement('canvas');c.width=512;c.height=96;const ctx=c.getContext('2d');ctx.fillStyle='rgba(10,20,20,.68)';ctx.beginPath();ctx.roundRect(54,16,404,64,12);ctx.fill();ctx.font='30px system-ui';ctx.textAlign='center';ctx.fillStyle=color;ctx.fillText(text,256,61);const texture=new THREE.CanvasTexture(c),material=new THREE.SpriteMaterial({map:texture,depthTest:false});const s=new THREE.Sprite(material);s.scale.set(1.3,.25,1);s.position.y=1.7;s.userData.dispose=()=>{texture.dispose();material.dispose();};return s;}
+ function updateTorchLights(t,dt){return updateTorchLights_(t,dt,{hero,torchTiles,lastLevel,tiles,TORCH_LIGHTS,torchLights,TORCH_INTENSITY});}
+ 
+ 
  // the tiles' animated parts (sconce flames, trap sigils), found once per tile instead of by a walk each frame
  const animated=createAnimatedRegistry();
  function release(object){animated.remove(object);object.traverse(o=>o.userData.dispose?.());group.remove(object);geometryGC.queue(object);/* its GPU buffers are freed next frame unless still drawn (geometry-gc.js) */}
  const ghosts=new Map();function dropGhost(gh){gh.mats.forEach(m=>m.dispose());release(gh.g);}
  function clear(){for(const o of tiles.values())release(o);for(const a of actors.values()){restoreFade(a);release(a.g);}for(const o of groundItems.values())release(o);for(const o of liftingItems)release(o);liftingItems.clear();pickupNotes.clear();for(const w of wells.values())release(w);for(const gh of ghosts.values())dropGhost(gh);ghosts.clear();marks.clear();envStory.clear();tiles.clear();actors.clear();groundItems.clear();wells.clear();tileInstances.clear();actorBatch.clear();}
- function pickupIcon(cell){
-   const icon=new THREE.Group(), kind=cell.object?.kind||'item', cls=cell.object?.class||0, itemName=(cell.object?.name||cell.name||'').toLowerCase();
-   // Older bridge processes expose statues as generic objects. Keep the visual path
-   // usable while they are being replaced; the current bridge supplies creature directly.
-   const statueCreature=cell.object?.creature||({6746:'gecko'}[cell.glyph]);
-   if((kind==='statue'||itemName==='statue')&&/centaur/i.test(statueCreature||'')){const statue=createCentaurStatue(statueCreature);return statue;}
-   const lightItem=createLightItem(cell.object?.lit?`${itemName} (lit)`:itemName);if(lightItem){return lightItem;}
-   const shopItem=createShopItem(itemName);if(shopItem){return shopItem;}
-   const warm=new THREE.MeshStandardMaterial({color:kind==='corpse'?0x72534a:cls===POTION_CLASS?0x5bd0c7:cls===WEAPON_CLASS?0xd9b15e:0xc9a86b,emissive:kind==='corpse'?0x241314:0x362718,roughness:.42,metalness:cls===WEAPON_CLASS?.65:.18});
-   const edge=new THREE.MeshStandardMaterial({color:kind==='corpse'?0xb9a189:0xe8d8aa,roughness:.55,metalness:cls===WEAPON_CLASS?.7:.25});
-   const add=(geometry,material=warm,x=0,y=.34,z=0)=>{const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=true;icon.add(m);return m;};
-   const dedicated=kind==='corpse'||kind==='statue'?null:createGroundModel({color:cell.color,...cell.object,name:itemName});
-   if(dedicated){icon.add(dedicated);icon.userData.restingWeapon=true;if(dedicated.userData.bagMaw)icon.userData.bagMaw=dedicated.userData.bagMaw;icon.userData.dispose=()=>dedicated.userData.dispose();
-   }else if((kind==='statue'||itemName==='statue')&&statueCreature&&creatureFactory){
-     const sculpture=creatureFactory({name:statueCreature,symbol:cell.object?.creatureSymbol,color:cell.object?.creatureColor}).g;
-     const stoneMaterials=[new THREE.MeshStandardMaterial({color:0x898b86,roughness:.98}),new THREE.MeshStandardMaterial({color:0x777b78,roughness:1})];
-     sculpture.traverse(o=>{if(o.isMesh){o.material=stoneMaterials[o.geometry?.uuid?.charCodeAt?.(0)%2||0];o.castShadow=o.receiveShadow=true;}});
-     sculpture.scale.multiplyScalar(.75);sculpture.position.y=.06;icon.add(sculpture);
-     const base=new THREE.Mesh(new THREE.CylinderGeometry(.38,.42,.07,12),stoneMaterials[0]);base.position.y=.035;icon.add(base);
-     icon.userData.restingWeapon=true;icon.name=`Stone statue of ${statueCreature}`;
-     icon.userData.dispose=()=>{const geometries=new Set();sculpture.traverse(o=>{if(o.geometry)geometries.add(o.geometry);});geometries.forEach(geo=>geo.dispose());base.geometry.dispose();stoneMaterials.forEach(material=>material.dispose());};
-   }else if(kind==='corpse'){
-     // The monster's own model, knocked over where it fell (corpse.js); cell.name is the monster.
-     const corpse=createCorpse(cell.object?.name||cell.name,cell.color,cellHash(cell.x|0,cell.z|0,11),{creatureFactory,symbol:cell.object?.creatureSymbol});icon.add(corpse);
-     // On an altar it is laid out along the slab, an offering waiting, not a heap (altar-offering.js).
-     if(cell.terrain==='altar')layOnSlab(corpse);
-     icon.userData.restingWeapon=true;icon.userData.dispose=()=>corpse.userData.dispose();
-     // The floating eye's corpse breathes a violet halo and sheds motes (eye-corpse.js), animated below.
-     if(corpse.userData.fx)icon.userData.corpseFx=corpse.userData.fx;
-   } else if(/boulder|large rock/.test(itemName)){
-     const boulder=createBoulder(BOULDER_SEED);icon.add(boulder);icon.userData.dispose=()=>boulder.userData.dispose();
-   } else if(cls===WEAPON_CLASS){
-     const weapon=createHeldWeapon({name:itemName});
-     const pose=new THREE.Group();pose.rotation.y=-.65;icon.add(pose);
-     weapon.rotation.x=-Math.PI/2;weapon.scale.setScalar(.8);weapon.position.set(0,.052,.3);pose.add(weapon);
-     icon.userData.restingWeapon=true;
-   } else if(cls===COIN_CLASS){
-     const coinMats=[new THREE.MeshStandardMaterial({color:0xd9a93c,metalness:.55,roughness:.17,emissive:0xb87a18,emissiveIntensity:.5}),new THREE.MeshStandardMaterial({color:0xeabb48,metalness:.55,roughness:.14,emissive:0xc98a1c,emissiveIntensity:.55}),new THREE.MeshStandardMaterial({color:0xc79a34,metalness:.5,roughness:.2,emissive:0xa86f14,emissiveIntensity:.45})],coinStampMats=[new THREE.MeshStandardMaterial({color:0xf2d578,metalness:.5,roughness:.2,emissive:0xd9a63a,emissiveIntensity:.5}),new THREE.MeshStandardMaterial({color:0xfae79a,metalness:.5,roughness:.16,emissive:0xe6b648,emissiveIntensity:.55})],shadow=new THREE.MeshBasicMaterial({color:0x140e08,transparent:true,opacity:.48,depthWrite:false});
-     const ground=add(new THREE.CircleGeometry(.19,24),shadow,0,.002,0);ground.rotation.x=-Math.PI/2;
-     const pieces=[[-.108,-.066,0,.2,0,.05],[-.042,-.09,0,-.4,0,0],[.036,-.084,0,.7,.04,-.03],[.102,-.036,0,-.1,0,0],[-.12,.006,0,.5,0,.08],[-.06,.006,1,-.6,.08,0],[.012,-.012,1,.4,0,0],[.09,.018,0,-.3,0,-.06],[-.096,.06,0,.8,0,0],[-.024,.066,1,.1,.05,.04],[.048,.06,1,-.5,0,0],[.12,.06,0,.3,0,.08],[-.024,-.024,2,.6,0,0],[-.078,-.018,1,-.2,.1,-.04],[.042,.006,2,.5,0,0],[.012,.072,2,-.8,.06,0],[.072,-.048,1,.15,0,-.08],[-.132,-.036,0,-.5,0,.04]];
-     /* the coins of one material are one instanced draw (coin-pile.js): five draws for the pile instead of 36 */icon.userData.coinPile=createCoinPile(THREE,icon,{pieces,coinMats,stampMats:coinStampMats});
-     icon.userData.dispose=()=>{icon.userData.coinPile.dispose();coinMats.forEach(material=>material.dispose());coinStampMats.forEach(material=>material.dispose());shadow.dispose();};
-   } else if(cls===POTION_CLASS){
-     const look=potionLook((cell.object?.appearance||itemName).toLowerCase(),cell.color,cell.object?.otyp);
-     const glass=new THREE.MeshPhysicalMaterial({color:look.glass,roughness:.16,metalness:.02,transmission:look.transmission,transparent:true,opacity:look.opacity}),liquid=new THREE.MeshStandardMaterial({color:look.liquid,emissive:look.liquid,emissiveIntensity:look.emissiveIntensity,roughness:.3});
-     const bottle=add(new THREE.SphereGeometry(.18,16,10),glass,0,.3,0);bottle.scale.y=1.18;const fill=add(new THREE.SphereGeometry(.145,14,9),liquid,0,.28,0);fill.scale.y=1.18;add(new THREE.CylinderGeometry(.065,.065,.14,10),glass,0,.57,0);add(new THREE.CylinderGeometry(.075,.085,.045,12),edge,0,.66,0);
-     icon.userData.dispose=()=>{glass.dispose();liquid.dispose();};
-   } else if(cls===ARMOR_CLASS){
-     const helm=new THREE.MeshStandardMaterial({color:0x89979a,metalness:.78,roughness:.34}),visorMat=new THREE.MeshStandardMaterial({color:0x182126,metalness:.5,roughness:.3});const dome=add(new THREE.SphereGeometry(.27,16,10),helm,0,.32,0);dome.scale.set(.86,.7,.7);add(new THREE.BoxGeometry(.08,.42,.06),visorMat,0,.36,.19);add(new THREE.ConeGeometry(.06,.2,5),edge,0,.57,0);
-     icon.userData.dispose=()=>{helm.dispose();visorMat.dispose();};
-   } else if(cls===RING_CLASS){
-     const jewelry=new THREE.MeshStandardMaterial({color:0xb49a5e,metalness:.8,roughness:.3}),ring=add(new THREE.TorusGeometry(.16,.045,8,20),jewelry,0,.3,0);ring.rotation.x=Math.PI/2;const highlight=add(new THREE.SphereGeometry(.045,8,6),jewelry,0,.3,.15);highlight.scale.set(1,.7,.6);
-     icon.userData.dispose=()=>jewelry.dispose();
-   } else if(cls===AMULET_CLASS){
-     const jewelry=new THREE.MeshStandardMaterial({color:0xb49a5e,metalness:.78,roughness:.32}),chain=add(new THREE.TorusGeometry(.15,.018,6,18),jewelry,0,.47,0);chain.rotation.x=Math.PI/2;const pendant=add(new THREE.OctahedronGeometry(.1),jewelry,0,.27,.02);pendant.scale.y=1.25;
-     icon.userData.dispose=()=>jewelry.dispose();
-   } else if(cls===SCROLL_CLASS){
-     const parchment=new THREE.MeshStandardMaterial({color:0xcbb889,roughness:.72}),ribbon=new THREE.MeshStandardMaterial({color:0x714243,roughness:.62});const roll=add(new THREE.CylinderGeometry(.13,.13,.42,12),parchment,0,.36,0);roll.rotation.z=Math.PI/2;for(const x of [-.21,.21]){const end=add(new THREE.CylinderGeometry(.15,.15,.035,12),parchment,x,.36,0);end.rotation.z=Math.PI/2;}add(new THREE.BoxGeometry(.045,.08,.11),ribbon,0,.36,.0);
-     icon.userData.dispose=()=>{parchment.dispose();ribbon.dispose();};
-   } else {
-     add(new THREE.OctahedronGeometry(.2),warm,0,.38,0);
-   }
-   const extraDispose=icon.userData.dispose;icon.userData.dispose=()=>{warm.dispose();edge.dispose();extraDispose?.();};return icon;
- }
+ function pickupIcon(cell){return pickupIcon_(cell,{creatureFactory});}
  // Traps and the other known features (ice, bog, drawbridges, ice walls, clouds, air) get a
  // model once their own symbol is showing (a monster or item on top hides it);
  // anything else keeps the symbol label.
- function dressFeature(tile,cell){
-  const trap=trapKind(cell.symbol,cell.color,cell.trap),other=trap?null:featureKind(cell.symbol,cell.color);
-  const kind=trap||other,portal=trap==='portal'&&cell.portal||null,key=portal?`portal:${portal}`:kind||(tile.userData.featureKey||coveredFeature(cell)?null:'label');
-  if(!key||key===tile.userData.featureKey)return;
-  if(tile.userData.feature){tile.userData.feature.traverse(o=>o.userData.dispose?.());tile.remove(tile.userData.feature);}
-  // Portals and the vibrating square animate themselves (portal-fx.js, vibrating-square.js).
-  const seed=cell.x*53+cell.z*29;
-  const model=portal==='sheol'?createSheolVortex(seed):trap==='vibrating'?createVibratingSquare(seed):trap?createTrap(trap,seed):other?createTerrainFeature(other,cell.x*41+cell.z*23):label(String.fromCharCode(cell.symbol));
-  if(trap==='portal')animatePortal(model,portal||'other',seed);
-  if(!kind)model.position.y=.35;
-  tile.userData.slab.visible=!model.userData.hidesFloor;
-  tile.add(model);tile.userData.feature=model;tile.userData.featureKey=key;tile.userData.axisFeature=AXIS_FEATURES.has(key)?model:null;
-  animated.add(tile);tileInstances.add(tile);tileInstances.refresh(); // a trap or feature can carry an animate hook, and can be dressed after the tile was built
- }
+ function dressFeature(tile,cell){return dressFeature_(tile,cell,{animated,tileInstances});}
  // Stairs and ladders share the up/down terrain; the glyph's colour tells them apart while
  // nothing covers it (ladder.js), so a square first seen occupied shows stairs until then.
- function dressStairs(tile,cell){
-  const ladder=ladderShown(cell)??tile.userData.ladder??false,key=`${cell.terrain}:${ladder}`;
-  if(key===tile.userData.stairsKey)return;
-  for(const o of tile.userData.stairs||[]){o.traverse(c=>c.userData.dispose?.());tile.remove(o);}
-  const seed=cell.x*131+cell.z,model=(ladder?createLadder:createStairs)(cell.terrain,seed);
-  tile.add(model);tile.userData.stairs=[model];tile.userData.stairsKey=key;tile.userData.ladder=ladder;
- }
+ 
  // Dead trees share the tree terrain; the glyph's colour tells them apart while nothing
  // covers it (dead-tree.js), and a tree withered by a death ray swaps in place.
- function dressTree(tile,cell){
-  const dead=deadTreeShown(cell)??tile.userData.deadTree??false;
-  if(tile.userData.tree&&dead===tile.userData.deadTree)return;
-  if(tile.userData.tree){tile.userData.tree.userData.dispose?.();tile.remove(tile.userData.tree);}
-  const model=(dead?createDeadTree:createTree)(cell.x*97+cell.z);
-  tile.add(model);tile.userData.tree=model;tile.userData.deadTree=dead;
- }
+ 
  function setDim(tile,dim){if(tile.userData.fog.visible===dim)return;tile.userData.fog.visible=dim;dimLayer.touch();}
  let coughHunch=0,coughApplied=0;const hero=playerFactory();hero.setWeapon?.(null);hero.actions=createActionQueue();group.add(hero.g);const heroForm=createHeroForm(hero,creatureFactory,shape=>addOutlines(shape));/* the hero's pieces draw through merged stand-ins per parent and material (hero-batch.js); held weapons, auras and a polymorph shape are left out */const heroBatch=createHeroBatch(hero.g,{exclude:o=>o===hero.weaponSocket||o===hero.offhandSocket||o===hero.g.userData.heldWand||o===heroForm.shape,outline:m=>addOutlines(m)});
  const swingFx=createSwingFx(THREE,group);const hitFx=createHitFx(THREE,group);const rays=createRays(THREE,group);const zapFlash=createZapFlash(THREE,group);const rayMarks=createRayMarks(THREE,group);const flashLight=new THREE.PointLight(0xffa050,0,9,1.4);group.add(flashLight);const explosions=createExplosions(THREE,group);const flood=createFlood(THREE,group);let flooding=false;const splash=createSplash(THREE,group);const flights=createFlights(THREE,group);const orientOverlay=createOrientationOverlay(group);if(new URLSearchParams(location.search).has('orient'))orientOverlay.set(true);const grab=createGrab(THREE,group,{onSplash:s=>splash.add(s)});const brainSuck=createBrainSuck(THREE,group);const hold=createHold(THREE,group);const poly=createPolymorph(THREE,group);const barsMelt=createBarsMelt(THREE,group);const doorBreak=createDoorBreak(THREE,group);const breath=createBreath(THREE,group);const engulf=createEngulf(THREE,group);let swingTarget=null;const hitFeel=createHitFeel();

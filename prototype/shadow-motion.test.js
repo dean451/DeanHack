@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createShadowMotion, positionSignature, IDLE_HZ} from './shadow-motion.js';
+import {liveSource} from './live-source.js';
 
 test('shadows follow at the tier\'s rate while something moves and drop to the idle rate while nothing does', () => {
   const s = createShadowMotion();
@@ -23,7 +24,7 @@ test('a position signature ignores float noise but sees a step', () => {
 });
 
 test('main.js gates the shadow redraw on live.js\'s motion signature', () => {
-  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8'), live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8'), live = liveSource();
   assert.match(main, /renderer\.shadowMap\.needsUpdate=shadowMotion\.due\(ms,live\.motionSignature,pacer\.shadowDue\(ms,quality\.tier\)\);/);
   assert.match(live, /get motionSignature\(\)\{if\(!active\|\|!hero\.target\)return null;/);
 });

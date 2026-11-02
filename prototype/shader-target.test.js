@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {createWarmTarget, compileFor} from './shader-target.js';
+import {liveSource} from './live-source.js';
 
 test('a warm-up compile runs with a render target bound, and the bound target is put back', () => {
   let bound = 'canvas';
@@ -17,7 +18,7 @@ test('a warm-up compile runs with a render target bound, and the bound target is
 });
 
 test('live.js warms the scene against the warm target', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.match(live, /compileFor\(renderer,warmTarget,\(\)=>renderer\.compileAsync\(scene,camera\)\)/);
   assert.doesNotMatch(live, /staged=false;renderer\.compileAsync\(scene,camera\)/, 'no bare canvas-variant compile left');
 });

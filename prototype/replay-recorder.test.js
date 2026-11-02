@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createRecorder, decodeReplay, replayBlob, readReplayFile, REPLAY_VERSION} from './replay-recorder.js';
 import {createReplayPlayer} from './replay-player.js';
+import {liveSource} from './live-source.js';
 
 const frame = (turn, cells, x = 1) => ({type: 'frame', turn, player: {x, z: 1}, cells});
 const cell = (x, z, terrain = 'floor', kind = 'terrain') => ({x, z, terrain, kind});
@@ -51,7 +52,7 @@ test('the player paces the engine messages, reports the replies, and steps to th
 });
 
 test('live.js records what it handles and sends, and a replay sends nothing', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8'), main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
+  const live = liveSource(), main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
   assert.match(live, /const handle=v=>\{recorder\.record\('in',v\);/);
   assert.match(live, /async function reply\(value\)\{if\(!pending\|\|replaying\)return;const req=pending;recorder\.record\('out'/);
   assert.match(live, /startReplay\(\)\{replaying=true;recorder\.enabled=false;setMode\(true\);connect\(\{replay:true\}\);return currentHandle;\}/);

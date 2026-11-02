@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {createGeometryGC} from './geometry-gc.js';
+import {liveSource} from './live-source.js';
 
 const counted = g => { let n = 0; g.addEventListener('dispose', () => n++); return () => n; };
 
@@ -27,7 +28,7 @@ test('an object put back before the flush keeps its geometry', () => {
 });
 
 test('live.js queues every release and flushes once a frame', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.match(live, /function release\(object\)\{[^}]*group\.remove\(object\);geometryGC\.queue\(object\);/);
   assert.match(live, /update\(t,dt\)\{geometryGC\.flush\(group\);/);
 });

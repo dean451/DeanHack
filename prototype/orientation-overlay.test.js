@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {arrowPoints, forwardOf, createOrientationOverlay, liveEntries, COLORS, MAX_ARROWS} from './orientation-overlay.js';
 import {yawToward} from './orientation.js';
+import {liveSource} from './live-source.js';
 
 test('an arrow is a shaft along the facing with two barbs at the tip and a tick at the tail', () => {
   const pts = arrowPoints(new THREE.Vector3(1, 0, 2), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0), .5, .14);
@@ -61,7 +62,7 @@ test('a live scene offers the hero, actors, their held weapons, doors, axis feat
 
 test('the live game wires the overlay: ?orient turns it on, the debug hook toggles it, and it updates last in the loop', async () => {
   const {readFileSync} = await import('node:fs');
-  const src = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const src = liveSource();
   assert.match(src, /const orientOverlay=createOrientationOverlay\(group\);if\(new URLSearchParams\(location\.search\)\.has\('orient'\)\)orientOverlay\.set\(true\)/);
   assert.match(src, /if\(orientOverlay\.enabled\)orientOverlay\.update\(liveEntries\(\{hero,actors:actors\.values\(\),tiles:tiles\.values\(\),flights:flights\.active\}\)\);/);
   assert.match(src, /orient\(on\)\{return orientOverlay\.set\(on\);\}/);

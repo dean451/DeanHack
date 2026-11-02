@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createTerrainFeature} from './terrain-feature.js';
+import {liveSource} from './live-source.js';
 
 test('floor ice is a merged, flat, finite model that stays in its tile and frees its resources',()=>{
  for(const seed of [0,1,7,42,123,999,2024,31337]){
@@ -46,6 +47,6 @@ test('a feature tile under a monster or item waits for its own symbol: no label 
     assert.equal(coveredFeature(cell), true, `${cell.name} covers the feature`);
   }
   assert.equal(coveredFeature({terrain: 'feature', symbol: 46, color: 6}), false, 'bare ice shows its own symbol');
-  const src = (await import('node:fs')).readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const src = liveSource();
   assert.match(src, /kind\|\|\(tile\.userData\.featureKey\|\|coveredFeature\(cell\)\?null:'label'\)/, 'dressFeature skips the label while covered');
 });

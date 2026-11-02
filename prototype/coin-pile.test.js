@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 import {createCoinPile} from './coin-pile.js';
+import {liveSource} from './live-source.js';
 
 const pieces = [[-.108,-.066,0,.2,0,.05],[-.042,-.09,0,-.4,0,0],[.036,-.084,0,.7,.04,-.03],[-.06,.006,1,-.6,.08,0],[-.024,-.024,2,.6,0,0]];
 const mats = n => Array.from({length: n}, () => new THREE.MeshStandardMaterial());
@@ -31,7 +32,7 @@ test('the coins fall, bounce and settle at their layer, the stamp just above the
 });
 
 test('live.js builds its gold piles with coin-pile.js and steps them each frame', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.match(live, /icon\.userData\.coinPile=createCoinPile\(THREE,icon,\{pieces,coinMats,stampMats:coinStampMats\}\)/);
   assert.match(live, /for\(const item of groundItems\.values\(\)\)item\.userData\.coinPile\?\.update\(dt\);/);
   assert.doesNotMatch(live, /new THREE\.CylinderGeometry\(\.046,\.046,\.02,16\)/, 'no mesh per coin');

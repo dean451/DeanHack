@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {cleanName,startPlan,ago,fetchSaves,DEFAULT_NAME,classView,pick,readChoice,saveChoice,endedNote,forgetSave,deathCard,fetchScores,scoreTable,installScoreboard,NO_SCORES} from './start-screen.js';
 import {listSaves,cleanPlayerName} from './engine/server.js';
+import {liveSource} from './live-source.js';
 
 test('the name is cleaned exactly as the engine launcher cleans it',()=>{
   for(const raw of ['Dean',"  Mary Jane O'Neil  ",'Mary-Jane','a,b;c','-x','---','','x'.repeat(100),'Ünïcode'])assert.equal(cleanName(raw),cleanPlayerName(raw),JSON.stringify(raw));
@@ -97,7 +98,7 @@ test('forgetting a character sends its name with the session token and reports a
 });
 
 test('the player flow has no mode toggle, no name box, and comes back to the splash',()=>{
-  const live=readFileSync(new URL('./live.js',import.meta.url),'utf8'),screen=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
+  const live=liveSource(),screen=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8');
   assert.match(live,/startScreen=installStartScreen\(/);
   assert.match(live,/startScreen=installStartScreen\(\{button,nameInput\}\);nameInput\.hidden=true;button\.hidden=true;/,'the footer hides the start button and the name box');
   assert.match(live,/endedNote\(v\.reason,death\?\.killer\)/,'a session end reopens the splash with a note');
@@ -116,7 +117,7 @@ test('the tombstone card says who, what and where, in the game\'s words, with no
 });
 
 test('the live game wires the link watch and the tombstone into the splash',()=>{
-  const live=readFileSync(new URL('./live.js',import.meta.url),'utf8');
+  const live=liveSource();
   assert.match(live,/createLinkWatch\(\{onLost:/);
   assert.match(live,/es\.onerror=\(\)=>\{[^}]*link\.lost\(\)/,'a stream error starts the grace period');
   assert.match(live,/es\.onopen=async\(\)=>/,'a reopened stream checks the session token');
@@ -267,7 +268,7 @@ test('the Leaderboard button fetches once on the first click, shows the table, a
 });
 
 test('Descend runs the ASCII spiral descent before the game starts, the splash hands it off, and the first dungeon frame lands it',()=>{
-  const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8'),live=readFileSync(new URL('./live.js',import.meta.url),'utf8');
+  const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8'),live=liveSource();
   assert.match(src,/descend\(\)\.then\(\(\)=>\{close\(\);button\.click\(\);\}\);/,'the game starts after the descent');
   assert.match(src,/waves\.stop\(\);\n\s*doc\.body\.append\(spiral\.el\);spiral\.speed=1;spiral\.start\(\);/,'the waves stop and the spiral takes over, at full speed');
   assert.match(src,/win\.setTimeout\(res,DESCENT\.ms\)/,'the zoom lasts DESCENT.ms');
@@ -283,7 +284,7 @@ test('Descend runs the ASCII spiral descent before the game starts, the splash h
 });
 
 test('the descent\'s spiral can never cover the page for good: a watchdog lands it, and a failed start lifts it', () => {
-  const src = readFileSync(new URL('./start-screen.js', import.meta.url), 'utf8'), live = readFileSync(new URL('./live.js', import.meta.url), 'utf8'), css = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('./start-screen.js', import.meta.url), 'utf8'), live = liveSource(), css = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
   assert.match(src, /export const LANDING_MS=15000;/);
   assert.match(src, /spiral\.el\.classList\.replace\('zoom','rest'\);[\s\S]{0,400}watchdog=win\.setTimeout\(\(\)=>\{watchdog=null;landed\(\);\},LANDING_MS\);/, 'resting starts the watchdog');
   assert.match(src, /if\(watchdog\)\{win\?\.clearTimeout\?\.\(watchdog\);watchdog=null;\}/, 'clearing the descent stops it');

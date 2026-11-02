@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {packHull, unpackHull} from './hull-transfer.js';
 import {grownFelineHull, adoptFelineHull} from './feline-skin.js';
+import {liveSource} from './live-source.js';
 
 test('a grown hull crosses to the page as transferable arrays and comes back the same', () => {
   const geometry = new THREE.BoxGeometry(1, 2, 3);
@@ -33,7 +34,7 @@ test('an adopted hull is the one a look then uses; one already grown is kept', (
 });
 
 test('live.js grows the pets\' skins in a worker, with the old idle slots only as a fallback', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.match(live, /new Worker\(new URL\('\.\/feline-hull-worker\.js',import\.meta\.url\),\{type:'module'\}\)/);
   assert.match(live, /adoptFelineHull\(data\.key,unpackHull\(data\.hull\)\)/);
   const worker = readFileSync(new URL('./feline-hull-worker.js', import.meta.url), 'utf8');

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createBoulder} from './boulder.js';
+import {liveSource} from './live-source.js';
 
 test('boulders are finite, sit on the floor inside their tile, vary by seed and dispose their resources',()=>{
  const sizes=new Set();
@@ -31,7 +32,7 @@ test('boulders are finite, sit on the floor inside their tile, vary by seed and 
 
 test('live.js gives every boulder the one fixed seed, so a pushed boulder keeps its model',async()=>{
  const {readFileSync}=await import('node:fs');
- const src=readFileSync(new URL('./live.js',import.meta.url),'utf8');
+ const src=liveSource();
  assert(src.includes('createBoulder(BOULDER_SEED)'),'the boulder is built from BOULDER_SEED, not the tile');
  assert(!/createBoulder\(cellHash/.test(src),'the boulder seed must not depend on its tile');
 });

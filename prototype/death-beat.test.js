@@ -5,6 +5,7 @@ import {createDeathBeat, deathBeatMs, epitaph, EPITAPHS, DEATH_PAUSE_MS, BONES_F
 import {DEATH_TIME} from './deaths.js';
 import {createActionQueue, enqueueAction, updateActions, clearActionPose} from './actions.js';
 import {createCreature} from './creatures.js';
+import {liveSource} from './live-source.js';
 
 test('the beat is the fall, then a pause on the body', () => {
   assert.equal(deathBeatMs('topple'), DEATH_TIME.topple * 1000 + DEATH_PAUSE_MS);
@@ -66,7 +67,7 @@ test('an epitaph is fixed for a name and cause, and some causes earn their own l
 });
 
 test('the live game falls on the tombstone, lays bones, and waits before the splash', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.match(live, /v\.type==='tombstone'\)\{lastDeath=v;.*enqueueAction\(hero\.actions,\{kind:'die'/, 'the tombstone drops the hero');
   assert.match(live, /deathBeat\.corpseDue\(hero\.actions\.finished,performance\.now\(\)\)/, 'bones once the fall is done');
   assert.match(live, /crossfadeHeroBones\(deathBeat\.crossfade\(performance\.now\(\)\)\)/, 'the body dissolves into the bones');
