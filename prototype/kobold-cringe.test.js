@@ -36,3 +36,45 @@ test('only the right species does it', () => {
   assert.equal(M.updateKoboldCringe(mon('newt'), dt, 0, false), null);
   assert.equal(M.cringes(mon('newt')), false);
 });
+
+const near = (a, x, z) => ({x: a.g.position.x + x, z: a.g.position.z + z});
+const firstDart = (a, look) => {
+  for (let i = 0; i < 60 * 3; i++) {
+    updateFidget(a, dt, i * dt, false, look);
+    if (Math.abs(a.head.rotation.y) > .1) return Math.sign(a.head.rotation.y);
+  }
+  return 0;
+};
+
+test('a near hero sets the cringe off within a second; a far one leaves the idle timer', () => {
+  const a = mon('kobold'), far = mon('kobold');
+  a.koboldCringe = {seed: 7, wait: 30, s: null, f: 0, o: {x: 0, y: 0, z: 0, b: 0}, side: 1};
+  far.koboldCringe = {seed: 7, wait: 30, s: null, f: 0, o: {x: 0, y: 0, z: 0, b: 0}, side: 1};
+  let started = -1, farStarted = false;
+  for (let i = 0; i < 60 * 3; i++) {
+    updateFidget(a, dt, i * dt, false, near(a, 2, 0));
+    updateFidget(far, dt, i * dt, false, near(far, 20, 0));
+    if (started < 0 && a.koboldCringe.s != null) started = i * dt;
+    if (far.koboldCringe.s != null) farStarted = true;
+  }
+  assert.ok(started >= 0 && started < 1, `started at ${started}`);
+  assert.equal(farStarted, false);
+});
+
+test('the first dart goes toward the hero\'s side, mirrored when the kobold is turned round', () => {
+  const mk = rot => { const a = mon('kobold'); a.g.rotation.y = rot; a.koboldCringe = {seed: 7, wait: .1, s: null, f: 0, o: {x: 0, y: 0, z: 0, b: 0}, side: 1}; return a; };
+  assert.equal(firstDart(mk(0), {x: 2, z: 0}), 1);
+  assert.equal(firstDart(mk(0), {x: -2, z: 0}), -1);
+  assert.equal(firstDart(mk(Math.PI / 2), {x: 0, z: 2}), -1);
+  assert.equal(firstDart(mk(Math.PI / 2), {x: 0, z: -2}), 1);
+});
+
+test('a near hero\'s cringe stays in bounds and ends exactly at rest', () => {
+  const a = mon('kobold lord'), x = a.head.rotation.x, y = a.head.rotation.y, bx = a.body.rotation.x;
+  for (let i = 0; i < 60 * 20; i++) {
+    updateFidget(a, dt, i * dt, false, near(a, -2, 1));
+    assert.ok(Math.abs(a.head.rotation.y - y) <= M.DART + 1e-9 && Math.abs(a.head.rotation.x - x) <= M.DUCK + 1e-9);
+  }
+  for (let i = 0; i < 120; i++) updateFidget(a, dt, i * dt, true, null);
+  assert.ok(Math.abs(a.head.rotation.y - y) < 1e-9 && Math.abs(a.head.rotation.x - x) < 1e-9 && Math.abs(a.body.rotation.x - bx) < 1e-9);
+});

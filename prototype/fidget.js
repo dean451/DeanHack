@@ -237,7 +237,7 @@ export function updateFidget(actor, dt, t, busy, look = null) {
   // And the mummies' grope: the head creaks round each way, the arms sweep wide feeling the dark, then clutch at nothing (mummy-grope.js).
   updateMummyGrope(actor, dt, t, busy);
   // And the kobolds' cringe: the head darts left and right at a sound, ducks low and the tail flicks (kobold-cringe.js).
-  updateKoboldCringe(actor, dt, t, busy);
+  updateKoboldCringe(actor, dt, t, busy, look);
   // And the orcs' neck-crack: the head rolls slowly aside, glowering, then snaps hard the other way with a jolt of the shoulders (orc-crack.js).
   updateOrcCrack(actor, dt, t, busy);
   // And the imps' leer: the head jerks round to stare, tilts, jerks back, and the tail lashes with each jerk (imp-leer.js).
