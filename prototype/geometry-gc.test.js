@@ -30,5 +30,5 @@ test('an object put back before the flush keeps its geometry', () => {
 test('live.js queues every release and flushes once a frame', () => {
   const live = liveSource();
   assert.match(live, /function release\(object\)\{[^}]*group\.remove\(object\);geometryGC\.queue\(object\);/);
-  assert.match(live, /function updateFrame\(t,dt,L\)\{const \{[^}]*\}=L;geometryGC\.flush\(group\);/);
+  assert.match(live, /function updateFrame\(t,dt,L\)\{const \{[^}]*\}=L;(?:[^;]*;)?geometryGC\.flush\(group\);/);
 });

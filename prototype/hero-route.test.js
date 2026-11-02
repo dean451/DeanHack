@@ -45,6 +45,6 @@ test('the hero walks the route briskly, turning along it, and a long one still t
 test('live.js plans the route when the hero moves several squares and walks it instead of sliding', () => {
   const live = liveSource();
   assert.match(live, /const path=planRoute\(frame\.cells,from,to\)/);
-  assert.match(live, /if\(!walkRoute\(hero,dt\)\)hero\.g\.position\.lerp\(hero\.target,1-Math\.exp\(-dt\*14\)\);/);
+  assert.match(live, /if\(!walkRoute\(hero,pdt\)\)hero\.g\.position\.lerp\(hero\.target,1-Math\.exp\(-pdt\*14\)\);/);
   assert.match(live, /else if\(v\.type==='teleport'\)\{S\.heroTeleportAt=performance\.now\(\);/, 'a teleport still jumps');
 });
