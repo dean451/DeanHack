@@ -73,6 +73,8 @@ export function createCavern({group,scene,camera,controls}){
 
  // Distance fog so the rock sinks into darkness instead of ending at a hard edge.
  const fog=new THREE.Fog('#05080b',10,30),background=new THREE.Color('#05080b');let saved=null;
+ // how far the fog reaches, as a share of the usual (special-mood.js: the Big Room wide open, the Valley close)
+ let reach=1;
  function setActive(active){
   if(active&&!saved){saved={fog:scene.fog,background:scene.background};scene.fog=fog;scene.background=background;}
   else if(!active&&saved){scene.fog=saved.fog;scene.background=saved.background;saved=null;}
@@ -87,7 +89,7 @@ export function createCavern({group,scene,camera,controls}){
  motes.frustumCulled=false;group.add(motes);
 
  function update(t,dt,hero){
-  const d=camera.position.distanceTo(controls.target);fog.near=d*.9;fog.far=d*2.1;
+  const d=camera.position.distanceTo(controls.target);fog.near=d*.9*reach;fog.far=d*2.1*reach;
   if(animating){
    const ease=1-Math.exp(-dt*6);animating=false;
    for(let i=0;i<count;i++){const delta=target[i]-current[i];if(delta){current[i]=Math.abs(delta)<.003?target[i]:current[i]+delta*ease;if(current[i]!==target[i])animating=true;}compose(i);}
@@ -105,5 +107,5 @@ function setTint([r,g,b],roughness=1,vein=null){mesh.material.color.setRGB(r,g,b
  for(let i=0;i<count;i++){const h=cellHash(i,1,9),v=vein&&vein(cellHash(i,2,9));
   mesh.setColorAt(i,color.setRGB(.12,.13,.135).multiplyScalar(.7+(h%100)/200));if(v)color.multiply(tmp.setRGB(v[0],v[1],v[2]));mesh.setColorAt(i,color);}
  mesh.colorsDirty=true;}
- return {rebuild,update,setActive,setTint,motes,chunks};
+ return {rebuild,update,setActive,setTint,motes,chunks,fog,background,setFogReach(k){reach=k;}};
 }
