@@ -103,6 +103,15 @@ export const MEASURES = {
     cadence: 116.65, // steps a minute at that pace
     stepWidth: .13, // preferred step width as a share of leg length (SFU locomotion lab)
   },
+  // goblins and orcs: a drilled soldier's march and stand at ease
+  soldier: {
+    quickTime: 120, // steps a minute (the Army's range is 116 to 124)
+    quickStep: .762, // metres, the 30-inch step
+    slowMarch: 106, // steps a minute, a modern normal cadence (Army Heritage Center)
+    doubleTime: 180, // steps a minute
+    atEaseFeet: [.254, .305], // metres the left foot moves out: 10 inches and 12 inches, two summaries
+    lumbarUpright: .6, // share of L5/S1 flexion range already used sitting upright
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -182,4 +191,13 @@ export const LEPRECHAUN = {
   squatHip: MEASURES.leprechaun.squatHip * Math.PI / 180,
   skipMid: mid(MEASURES.leprechaun.skipSpeed),
   skipOverWalk: mid(MEASURES.leprechaun.skipSpeed) / MEASURES.leprechaun.usualWalk,
+};
+
+// What the goblins' and orcs' poses use: a drilled march's pace and the stance at ease
+export const SOLDIER = {
+  // metres a second at quick time
+  quickPace: MEASURES.soldier.quickTime / 60 * MEASURES.soldier.quickStep,
+  slowOverQuick: MEASURES.soldier.slowMarch / MEASURES.soldier.quickTime,
+  chargeOverQuick: MEASURES.soldier.doubleTime / MEASURES.soldier.quickTime,
+  atEaseFeet: mid(MEASURES.soldier.atEaseFeet),
 };

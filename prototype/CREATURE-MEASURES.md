@@ -246,3 +246,23 @@ The twelfth monster family (AGENTS.md, family **n**). Measured from a person sit
 *Not found:* a sitter's hip angle on the ground (cross-legged or side-saddle, the nymph's likely rest), the angles of a person sitting on a rock or a log, and any figure for a nymph's beckoning arm. No number is claimed for them; the pose stages set them by eye.
 
 **What the nymphs take from this.** A nymph sits upright at about a right angle at hip and knee, or relaxes back to about 135 degrees between trunk and thigh (45 degrees more open than upright), where a person's back is least strained. A reclined sitter's pelvis tilts back and the lower back rounds less, so a leaning nymph should tip at the hip, not slump at the waist.
+
+
+## Goblins and orcs (goblin, hobgoblin, the orcs, Uruk-hai)
+
+The thirteenth monster family (AGENTS.md, family **o**). Measured from a soldier: how a drilled troop marches and stands at ease, and how far a slouched sit flexes the lower back. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session. The drill pages are secondary summaries of the Army's drill manual (TC 3-21.5) and disagree among themselves, so both values are kept.
+
+### Human soldier (march, stand at ease, slump)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Quick time | 120 steps a minute with a 30-inch (76 cm) step, heel to heel; the Army's tempo range is 116 to 124 | [Military step](https://en.wikipedia.org/wiki/Military_step) |
+| A slower modern march | a normal cadence of 106 steps a minute | [Army Heritage Center, foot marching](https://www.armyheritage.org/wp-content/uploads/ref-bibs/subjects/Marching/Foot%20Marching.pdf) |
+| Double time | 180 steps a minute | [Drill and ceremonies, TC 3-21.5 summary](https://open-exam-prep.com/study-guides/army-promotion-board/customs-courtesies-traditions/drill-and-ceremonies-tc-3-21-5) |
+| Stand at ease | the parade rest stance with the left foot moved 10 inches (25 cm) to the left, the hands clasped behind the back | [Drill and ceremonies, TC 3-21.5 summary](https://open-exam-prep.com/study-guides/army-promotion-board/customs-courtesies-traditions/drill-and-ceremonies-tc-3-21-5) |
+| Stand at ease, another count | the left foot 12 inches (30 cm) to the left | [Cadet trails, week 1 drill lab](https://cadettrails.pages.dev/labs/week1/) |
+| Slouched sit | upright sitting already flexes the lowest lumbar joint (L5/S1) past 60% of its range; in slouched sitting the lower three lumbar joints each approach their full flexion | [Evidence of a pelvis-driven flexion pattern, Clin Biomech 2009](https://pubmed.ncbi.nlm.nih.gov/19138810/) |
+
+*Not found:* a slump as an angle in degrees (the studies found say only that slump sitting has more thoracic flexion and less lumbar lordosis), any gait number for a short, broad soldier, and any figure for a rough, unmarching troop's pace. No number is claimed for them; the pose stages set them by eye.
+
+**What the goblins and orcs take from this.** A drilled march is about two steps a second with a step three quarters of a metre long, a pace of about 1.5 m/s, a little faster than a person's usual walk (1.31 m/s); a straggling band marches slower and uneven, near 106 a minute, and a charge runs near 180. At ease, the feet stand about 25 to 30 cm apart (a human's; scale it by leg length) and the hands go behind the back. A slouch is mostly the lower back rounding; there is no angle to cite, so the sit's slump is a character choice.

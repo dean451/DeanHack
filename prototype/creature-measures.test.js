@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -140,6 +140,19 @@ test('the nymph numbers are an upright sit and a relaxed lean back', () => {
   inside(relaxedTrunkThigh, [110, 160], 'relaxed trunk-thigh, degrees'); assert(relaxedTrunkThigh > uprightSit);
   assert(seatBack[0] < seatBack[1]); inside(seatBack[0], [10, 35], 'seat back, degrees'); inside(seatBack[1], [40, 70], 'seat back, degrees');
   inside(NYMPH.leanBack, [.4, 1.2], 'lean back, rad'); assert(NYMPH.relaxedHip > NYMPH.uprightHip);
+});
+
+test('the soldier numbers are a drilled march and a stand at ease', () => {
+  const {quickTime, quickStep, slowMarch, doubleTime, atEaseFeet, lumbarUpright} = MEASURES.soldier;
+  inside(quickTime, [100, 130], 'quick time, steps a minute');
+  inside(quickStep, [.6, .9], 'quick step, m');
+  assert(slowMarch < quickTime && quickTime < doubleTime);
+  assert(atEaseFeet[0] < atEaseFeet[1]); for (const f of atEaseFeet) inside(f, [.2, .35], 'at ease, m');
+  inside(lumbarUpright, [.5, .8], 'lumbar share');
+  // a drilled march is a little brisker than a usual walk, but nowhere near a run
+  inside(SOLDIER.quickPace, [1.3, 2], 'quick pace, m/s'); assert(SOLDIER.quickPace > HUMAN.walkMid);
+  assert(SOLDIER.slowOverQuick < 1 && SOLDIER.chargeOverQuick > 1.3);
+  inside(SOLDIER.atEaseFeet, [.2, .35], 'at ease feet, m');
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {
