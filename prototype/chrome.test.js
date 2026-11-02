@@ -123,7 +123,7 @@ test('nothing draws behind the splash: the loop returns while it is open, no bac
   assert.match(main,/installLive\(\{scene,camera,controls,renderer,/,'the live game gets the renderer for shader warm-up');
   const liveSrc=liveSource();
   assert.match(liveSrc,/function warmUp\(\)\{if\(!S\.staged\|\|!renderer\?\.compileAsync\)return;S\.staged=false;[^}]*compileFor\(renderer,warmTarget,\(\)=>renderer\.compileAsync\(scene,camera\)\)/,'new materials compile ahead of their first draw, for the variant the composer draws');
-  assert.equal((liveSrc.match(/S\.staged=true;/g)||[]).length,3,'tiles, items and actors each mark the frame as S.staged');
+  assert.equal((liveSrc.match(/S\.staged=true;/g)||[]).length,4,'tiles, items and actors each mark the frame as S.staged, and so does a square built from the backlog');
   assert.match(main,/adaptive\.manual\(\);/,'F8 pins the tier');
   assert.match(main,/onActivity:touch/,'engine events keep the frame rate up');
   assert.doesNotMatch(css,/#start-screen,#start-cover\{[^}]*backdrop-filter/,'the splash does not blur the whole viewport');

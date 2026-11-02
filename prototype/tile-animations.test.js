@@ -42,7 +42,7 @@ test('the registry runs the same hooks a full traverse would', () => {
 
 test('live.js registers a tile when it is built and again when a feature is dressed, releases it, and runs the registry each frame', () => {
   const src = liveSource();
-  assert.match(src, /tiles\.set\(id,tile\);animated\.add\(tile\);/, 'registered when built');
+  assert.match(src, /export function fillTile\(tile,cell,L\)\{[^]*?animated\.add\(tile\);tileInstances\.add\(tile\);\}/, 'registered when built (now or from the backlog)');
   assert.match(src, /tile\.userData\.featureKey=key;[^\n]*\n\s*animated\.add\(tile\);/, 're-walked when a feature is dressed');
   assert.match(src, /function release\(object\)\{animated\.remove\(object\);/, 'dropped on release');
   assert.match(src, /animated\.update\(t\);updateDoorSwings\(dt\);/, 'run once a frame');
