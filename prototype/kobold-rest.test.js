@@ -47,6 +47,17 @@ test('crouching: pelvis sunk, feet flat under it, hands low, knees bent past the
   }
 });
 
+test('the head is carried low and forward of the pelvis, as a dog carries it', () => {
+  for (const n of KOBOLDS) {
+    const {a, r} = solve(n), floor = a.g.position.y, P = rolesOf(a);
+    birdPoser(a).apply(r.pose);
+    const m = P.mouth(), hip = P.rump();
+    assert(m.y - floor <= REST.mouth.low * r.stand + .02, `${n}: mouth ${(m.y - floor).toFixed(2)} of ${r.stand.toFixed(2)}`);
+    assert(m.z - hip.z >= REST.mouth.fwd * r.stand - .02, `${n}: mouth ${(m.z - hip.z).toFixed(2)} ahead`);
+    birdPoser(a).apply({});
+  }
+});
+
 test('posing nothing returns every joint and the body exactly to the built values', () => {
   const a = make('kobold'), built = {};
   for (const [n, o] of Object.entries(a.joints)) built[n] = o.rotation.toArray().slice(0, 3);
