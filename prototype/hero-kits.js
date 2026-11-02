@@ -264,7 +264,21 @@ function tabard(add,parts,o){
   ring(.158,.02,trimMat('#2a1e16'),parts.body,0,.62,0,1,.86);
 }
 
-const HATS={
+// Headgear builders. The live hero wears whichever matches the helmet slot (hero-headgear.js), never a class default.
+export const HATS={
+  pot(add,parts){ // a dented cooking pot worn upside down: a dull iron drum, a rolled rim, the handle sticking out at the side, one dent
+    const iron=new THREE.MeshStandardMaterial({color:'#55585a',roughness:.6,metalness:.65}),g=new THREE.Group();g.position.set(0,.06,-.01);g.rotation.z=.12;add(parts.head,g);
+    const drum=new THREE.Mesh(new THREE.CylinderGeometry(.19,.205,.17,18,1,true),iron);drum.position.y=.06;g.add(drum);
+    const top=new THREE.Mesh(new THREE.CircleGeometry(.19,18),iron);top.rotation.x=-Math.PI/2;top.position.y=.145;g.add(top);
+    ring(.205,.012,iron,g,0,-.025,0,1,1);
+    const handle=new THREE.Mesh(new THREE.BoxGeometry(.16,.022,.04),iron);handle.position.set(.27,0,0);g.add(handle);
+    const dent=new THREE.Mesh(new THREE.SphereGeometry(.05,8,6),iron);dent.position.set(-.1,.1,.15);dent.scale.set(1,.5,.4);g.add(dent);
+  },
+  tinfoil(add,parts){ // a tinfoil hat: a crumpled shiny cap folded up to a point
+    const foil=new THREE.MeshStandardMaterial({color:'#d8dce0',roughness:.25,metalness:.9,flatShading:true}),g=new THREE.Group();g.position.set(0,.08,-.01);add(parts.head,g);
+    const geo=new THREE.ConeGeometry(.25,.3,10,3);const p=geo.attributes.position;for(let i=0;i<p.count;i++){const k=1+.12*Math.sin(i*2.7)*Math.cos(i*1.3);p.setXYZ(i,p.getX(i)*k,p.getY(i),p.getZ(i)*k);}geo.computeVertexNormals();
+    const cap=new THREE.Mesh(geo,foil);cap.position.y=.16;g.add(cap);
+  },
   wizard(add,parts,o){ // a wide brim and a tall cone that bends back at the tip
     const m=cloth(o.hatColor||o.color),t=trimMat(o.trim),g=new THREE.Group();g.position.set(0,.13,-.01);g.rotation.x=-.1;add(parts.head,g);
     const brim=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.02,30),m);brim.scale.z=.95;g.add(brim);
@@ -522,7 +536,8 @@ export function dressHero(hero,{role='Valkyrie',gender='female'}={}){
   const st=styles[style]||styles.helmed;for(const part of ['cap','strands','tail','braids'])setVisible(h[part],!!st[part]);
   // what a class wears over the rig
   if(kit.outfit){const o={...kit.outfit};if(o.kind==='robe')robe(add,parts,o);else if(o.kind==='tabard')tabard(add,parts,o);else if(o.kind==='loincloth')loincloth(add,parts,o);else tunic(add,parts,o);}
-  if(kit.hat)HATS[kit.hat]?.(add,parts,{color:kit.outfit?.color||'#333',hatColor:pal.capeCloth,trim:kit.outfit?.trim||'#999'});
+  // no class hat: the headgear follows the helmet slot (hero-headgear.js); `hat` in a kit is kept for a later talk about class hats
+  if(parts.headState)parts.headState.own=!!kit.own;
   if(kit.beard?.[gender])beard(add,parts,kit.beard[gender]);
   for(const prop of kit.props||[])PROPS[prop]?.(add,parts);
   hero.kitAdded=anchors.flatMap((parent,i)=>parent.children.filter(obj=>!before[i].has(obj)).map(obj=>({obj,parent})));

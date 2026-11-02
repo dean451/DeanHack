@@ -48,12 +48,12 @@ test('every class and gender dresses without error and keeps the rig sound',()=>
   }
 });
 
-test('a robe class hides the plate, wears a hat, and a man gets a beard',()=>{
+test('a robe class hides the plate, and a man gets a beard',()=>{
   const w=fakeRig();dressHero(w,{role:'Wizard',gender:'female'});
   assert.equal(w.parts.chest.visible,false);assert.ok(w.parts.pauldrons.every(p=>!p.visible));assert.ok(w.parts.tassets.every(p=>!p.visible));assert.equal(w.parts.cape.visible,false);
   const women=count(w.parts.head);
   const m=fakeRig();dressHero(m,{role:'Wizard',gender:'male'});
-  assert.ok(count(m.parts.head)>women,'the male Wizard has a beard on top of the hat');
+  assert.ok(count(m.parts.head)>women,'the male Wizard has a beard');
   assert.equal(w.parts.mats.armor.color.getHexString(),'262f58','the robe takes the class colour');
 });
 
@@ -190,13 +190,13 @@ test('the Priest is white robes with a dark stole, a holy symbol at the chest an
   dressHero(r,{role:'Valkyrie',gender:'male'});assert.equal(r.parts.body.children.length,0);
 });
 
-test('the Rogue is black tunic and pants under a hood, with a thigh sheath and a lockpick roll',()=>{
+test('the Rogue is black tunic and pants, with a thigh sheath and a lockpick roll, and no class hood',()=>{
   const r=fakeRig();dressHero(r,{role:'Rogue',gender:'male'});
   assert.equal(r.parts.mats.armor.color.getHexString(),'1e1e22','black');assert.equal(r.parts.mats.boots.color.getHexString(),'121212');
   const body=r.kitAdded.filter(({obj})=>obj.parent===r.parts.body).map(({obj})=>obj);
   assert.ok(body.some(o=>o.position.x>.1&&o.position.y<.4),'the sheath sits on the right thigh');
   assert.ok(body.some(o=>o.position.x<-.1&&o.position.z<-.1),'the pick roll at the back of the belt');
-  assert.ok(r.parts.head.children.length>=2,'the hood');
+  assert.equal(r.kitAdded.filter(({obj})=>obj.parent===r.parts.head).length,0,'no class headgear: the head wears what the helmet slot holds (hero-headgear.js)');
   dressHero(r,{role:'Valkyrie',gender:'male'});assert.equal(r.parts.body.children.length,0);
 });
 
@@ -225,12 +225,12 @@ test('the Caveman is bare skin and a fur loincloth, a hide strap and a bone at t
   assert.ok(c.parts.mats.armor.metalness>0||c.parts.mats.armor.metalness===c.parts.baseFinish.armor.metalness,'the plate finish comes back');
 });
 
-test('the Wizard keeps the hat, loses the costume stars, and carries a spellbook with marks round the hem',()=>{
+test('the Wizard has no class hat, no costume stars, and carries a spellbook with marks round the hem',()=>{
   const w=fakeRig();dressHero(w,{role:'Wizard',gender:'male'});
   let octa=0,marks=0,pages=0;for(const {obj} of w.kitAdded)obj.traverse(x=>{if(x.geometry?.type==='OctahedronGeometry')octa++;if(x.material?.color?.getHexString()==='d8c27a'&&x.parent===w.parts.body)marks++;if(x.material?.color?.getHexString()==='d6cdb8')pages++;});
   assert.equal(octa,0,'no stars anywhere');assert.equal(marks,10,'ten embroidered marks round the hem');assert.equal(pages,1,'the page block');
   assert.ok(w.kitAdded.some(({obj})=>obj.parent===w.parts.body&&obj.position.x>.2&&obj.position.y<.6),'the book on the right hip');
-  assert.ok(w.parts.head.children.length>=2,'hat and beard');
+  assert.equal(w.kitAdded.filter(({obj})=>obj.parent===w.parts.head).length,1,'the beard, and no class hat');
   dressHero(w,{role:'Valkyrie',gender:'male'});assert.equal(w.parts.body.children.length,0);
 });
 

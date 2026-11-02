@@ -405,11 +405,8 @@ static void frame_body(void) {
         if (Sick) { printf("%s\"sick\":%ld", first ? "" : ",", (long)(Sick & TIMEOUT)); first = 0; }
         putchar('}');
     }
-    printf(",\"helmet\":");
-    if (uarmh) {
-        printf("{\"name\":");quoted(xname(uarmh));
-        printf(",\"otyp\":%d}",uarmh->otyp);
-    } else printf("null");
+    /* the helmet slot, which decides the hero's headgear (hero-headgear.js): a fedora shows as a fedora */
+    printf(",\"helmet\":");worn_piece(uarmh);
     /* The rest of what the hero wears, so the model shows it: body armour, cloak, shirt, gloves, boots. */
     printf(",\"worn\":{\"suit\":");worn_piece(uarm);
     printf(",\"cloak\":");worn_piece(uarmc);
