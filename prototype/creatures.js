@@ -1245,7 +1245,7 @@ function horse(o){
  for(const k of [-1,0,1])tube(tail,[[0,-.03,-.06],[k*.02,-.12,-.13],[k*.03,-.3,-.16],[k*.035,-o.tail,-.13+Math.abs(k)*.02]],o.mane==='shaggy'?.036:.028,hair,12);
  if(o.centaur)return {g,body,legs,tail,y,s};
  mergeStatic(g);
- return nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head}),{skin:false});
+ return nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head}),{bake:true});
 }
 // A horn that tapers to a point with two ridges winding round it, like the unicorn horn on the
 // floor (unicorn-horn.js) but light enough to wear. Base at y -h/2, tip at +h/2.
