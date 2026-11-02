@@ -272,6 +272,15 @@ static void known_magic(struct obj *o) {
     if (o->known && (o->oclass==WEAPON_CLASS || is_weptool(o))) printf(",\"spe\":%d",o->spe);
     if (o->bknown) printf(",\"buc\":\"%s\"",o->blessed?"blessed":o->cursed?"cursed":"uncursed");
 }
+/* A worn piece of armour, for the hero model: what it looks like, never what it is. Material and colour
+   follow the appearance (o_init.c shuffles them with the description), so an unidentified cloak shows as
+   its "tattered cape" and leaks nothing the inventory doesn't. Erosion is what xname already prints. */
+static void worn_piece(struct obj *o) {
+    if (!o) {printf("null");return;}
+    printf("{\"name\":");quoted(xname(o));
+    printf(",\"otyp\":%d,\"mat\":",o->otyp);quoted(materialnm[objects[o->otyp].oc_material]);
+    printf(",\"color\":%d,\"eroded\":%d,\"eroded2\":%d}",objects[o->otyp].oc_color,o->oeroded,o->oeroded2);
+}
 static void held(struct obj *o) {
     if (!o) {printf("null");return;}
     printf("{\"name\":");quoted(xname(o));
@@ -396,11 +405,15 @@ static void frame_body(void) {
         if (Sick) { printf("%s\"sick\":%ld", first ? "" : ",", (long)(Sick & TIMEOUT)); first = 0; }
         putchar('}');
     }
-    printf(",\"helmet\":");
-    if (uarmh) {
-        printf("{\"name\":");quoted(xname(uarmh));
-        printf(",\"otyp\":%d}",uarmh->otyp);
-    } else printf("null");
+    /* the helmet slot, which decides the hero's headgear (hero-headgear.js): a fedora shows as a fedora */
+    printf(",\"helmet\":");worn_piece(uarmh);
+    /* The rest of what the hero wears, so the model shows it: body armour, cloak, shirt, gloves, boots. */
+    printf(",\"worn\":{\"suit\":");worn_piece(uarm);
+    printf(",\"cloak\":");worn_piece(uarmc);
+    printf(",\"shirt\":");worn_piece(uarmu);
+    printf(",\"gloves\":");worn_piece(uarmg);
+    printf(",\"boots\":");worn_piece(uarmf);
+    putchar('}');
     /* Swallowed: the map is cleared down to the 3x3 swallow border, so say who holds us.
        No name while blind ("It engulfs you!") or hallucinating. */
     if (u.uswallow && u.ustuck) {
