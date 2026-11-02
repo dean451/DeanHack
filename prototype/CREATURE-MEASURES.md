@@ -230,3 +230,19 @@ The eleventh monster family (AGENTS.md, family **l**). Measured from a person: h
 
 **What the leprechaun takes from this.** Its rest crouch is no deeper than a human's deepest squat: knee about 112°, hip about 107°. Its jig can travel at about twice a person's walk (2.5 to 2.7 m/s against 1.3), a hop-step between a walk and a run, not a dance on the spot.
 
+
+## Nymphs (wood, water and mountain nymph)
+
+The twelfth monster family (AGENTS.md, family **n**). Measured from a person sitting at ease: how upright a sit is and how far back a relaxed one leans. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Human (sitting)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Upright sit | the "90-90-90" sit: hips, knees and ankles each at about 90 degrees, feet flat (an ergonomic guide's rule of thumb, not a population measure) | [The 90-90-90 rule with seating, University of Colorado Denver](https://www.ucdenver.edu/docs/librariesprovider38/tech-for-tykes-documents/tech-tip-the-90-90-90-rule-with-seating.pdf) |
+| Relaxed lean | the lumbar spine sits neutral, with least strain, at a trunk-thigh angle of 135 degrees, against an upright 90 (Keegan 1953; positional MRI, RSNA 2006; Keegan's was 4 people and was never replicated) | [Positional MRI of sitting postures, RSNA 2006](https://archive.rsna.org/2006/4435870.html) |
+| Reclining | 24 people measured in a seat at seat-back angles of 23, 33, 43 and 53 degrees: the more the recline, the further the pelvis tilts back and the less the lumbar spine flexes | [Seat-back angle and posture, CDC Stacks](https://stacks.cdc.gov/view/cdc/223620) |
+
+*Not found:* a sitter's hip angle on the ground (cross-legged or side-saddle, the nymph's likely rest), the angles of a person sitting on a rock or a log, and any figure for a nymph's beckoning arm. No number is claimed for them; the pose stages set them by eye.
+
+**What the nymphs take from this.** A nymph sits upright at about a right angle at hip and knee, or relaxes back to about 135 degrees between trunk and thigh (45 degrees more open than upright), where a person's back is least strained. A reclined sitter's pelvis tilts back and the lower back rounds less, so a leaning nymph should tip at the hip, not slump at the waist.

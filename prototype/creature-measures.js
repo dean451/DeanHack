@@ -91,6 +91,12 @@ export const MEASURES = {
     skipSpeed: [2.5, 2.68], // m/s, the fixed speeds skipping was measured at (two lab studies)
     usualWalk: 1.31, // m/s, usual outdoor pace, to set the skip against
   },
+  // nymphs: a person sitting at ease
+  nymph: {
+    uprightSit: 90, // degrees at hip and knee in the upright "90-90-90" sit (an ergonomic guide, not a population measure)
+    relaxedTrunkThigh: 135, // degrees between trunk and thigh at which the lumbar spine sits neutral (Keegan 1953; positional MRI, RSNA 2006)
+    seatBack: [23, 53], // degrees of seat-back angle 24 people were measured at; more recline, pelvis tilted back and less lumbar flexion
+  },
   // hobbit, dwarves, bugbear, mind flayer: an adult human's walk
   human: {
     walkSpeed: [1.27, 1.35], // m/s, usual pace outdoors, 95% CI of the mean (Murtagh et al. 2020)
@@ -161,6 +167,13 @@ export const KOBOLD = {
   crouchKnee: MEASURES.kobold.crouchKnee * Math.PI / 180,
   crouchPace: MEASURES.kobold.crouchSpeedShare * HUMAN.walkMid,
   headSwing: [MEASURES.kobold.atlasSwing.labrador[0], MEASURES.kobold.atlasSwing.chihuahua[1]].map(d => d * Math.PI / 180),
+};
+
+// What the nymphs' poses use: how a person sits upright and how far back a relaxed sit leans
+export const NYMPH = {
+  uprightHip: MEASURES.nymph.uprightSit * Math.PI / 180,
+  relaxedHip: MEASURES.nymph.relaxedTrunkThigh * Math.PI / 180,
+  leanBack: (MEASURES.nymph.relaxedTrunkThigh - MEASURES.nymph.uprightSit) * Math.PI / 180,
 };
 
 // What the leprechaun's poses use: how deep it squats and how fast it skips

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -131,6 +131,15 @@ test('the leprechaun numbers are a deep squat and a skip', () => {
   // skipping sits between a walk and a run: faster than a walk, slower than a sprint
   inside(LEPRECHAUN.skipMid, [2, 3.5], 'skip, m/s'); assert(LEPRECHAUN.skipOverWalk > 1.5);
   inside(LEPRECHAUN.squatKnee, [1.5, 2.5], 'squat knee, rad');
+});
+
+test('the nymph numbers are an upright sit and a relaxed lean back', () => {
+  const {uprightSit, relaxedTrunkThigh, seatBack} = MEASURES.nymph;
+  inside(uprightSit, [80, 100], 'upright sit, degrees');
+  // a relaxed sit opens the trunk-thigh angle past a right angle, but not to a lie
+  inside(relaxedTrunkThigh, [110, 160], 'relaxed trunk-thigh, degrees'); assert(relaxedTrunkThigh > uprightSit);
+  assert(seatBack[0] < seatBack[1]); inside(seatBack[0], [10, 35], 'seat back, degrees'); inside(seatBack[1], [40, 70], 'seat back, degrees');
+  inside(NYMPH.leanBack, [.4, 1.2], 'lean back, rad'); assert(NYMPH.relaxedHip > NYMPH.uprightHip);
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {
