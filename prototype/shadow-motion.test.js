@@ -26,5 +26,5 @@ test('a position signature ignores float noise but sees a step', () => {
 test('main.js gates the shadow redraw on live.js\'s motion signature', () => {
   const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8'), live = liveSource();
   assert.match(main, /renderer\.shadowMap\.needsUpdate=shadowMotion\.due\(ms,live\.motionSignature,pacer\.shadowDue\(ms,quality\.tier\)\);/);
-  assert.match(live, /get motionSignature\(\)\{if\(!active\|\|!hero\.target\)return null;/);
+  assert.match(live, /get motionSignature\(\)\{if\(!S\.active\|\|!hero\.target\)return null;/);
 });

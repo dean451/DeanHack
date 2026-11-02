@@ -82,6 +82,6 @@ test('the mood follows the branch: Mines dust and scars, Sokoban grid and still 
 
 test('live.js drives the mood each frame and each render', () => {
   const src = liveSource();
-  assert(/branchMood\.frame\(frame\.dungeon,tiles,origin\)/.test(src));
+  assert(/branchMood\.frame\(frame\.dungeon,tiles,S\.origin\)/.test(src));
   assert(/branchMood\.update\(t,dt,hero\.g\.position\)/.test(src));
 });

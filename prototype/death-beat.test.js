@@ -68,7 +68,7 @@ test('an epitaph is fixed for a name and cause, and some causes earn their own l
 
 test('the live game falls on the tombstone, lays bones, and waits before the splash', () => {
   const live = liveSource();
-  assert.match(live, /v\.type==='tombstone'\)\{lastDeath=v;.*enqueueAction\(hero\.actions,\{kind:'die'/, 'the tombstone drops the hero');
+  assert.match(live, /v\.type==='tombstone'\)\{S\.lastDeath=v;.*enqueueAction\(hero\.actions,\{kind:'die'/, 'the tombstone drops the hero');
   assert.match(live, /deathBeat\.corpseDue\(hero\.actions\.finished,performance\.now\(\)\)/, 'bones once the fall is done');
   assert.match(live, /crossfadeHeroBones\(deathBeat\.crossfade\(performance\.now\(\)\)\)/, 'the body dissolves into the bones');
   assert.match(live, /applyFade\(hero,1-f\)/, 'the hero fades out');

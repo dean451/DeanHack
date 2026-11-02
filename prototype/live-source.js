@@ -2,5 +2,5 @@
 // many more) check how live.js wires things; reading this instead lets code move between the parts unchanged.
 import {readFileSync} from 'node:fs';
 
-export const LIVE_PARTS = ['live.js', 'live-ground-icon.js', 'live-tile-dress.js', 'live-hud.js', 'live-torch-lights.js'];
+export const LIVE_PARTS = ['live.js', 'live-ground-icon.js', 'live-tile-dress.js', 'live-hud.js', 'live-torch-lights.js', 'live-prompt.js', 'live-messages.js', 'live-apply.js', 'live-engine-link.js'];
 export const liveSource = () => LIVE_PARTS.map(f => readFileSync(new URL(`./${f}`, import.meta.url), 'utf8')).join('\n');

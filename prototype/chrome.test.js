@@ -77,8 +77,8 @@ test('the live panel carries no engine caption', () => {
 
 test('a text prompt shows everything that happened since the last command, not only the last line', () => {
   const live = liveSource();
-  assert.match(live, /if\(v\.kind==='command'\)turnMark=markTurn\(messageLog\)/, 'the mark is taken when the game asks for a command');
-  assert.match(live, /sinceMark\(messageLog,turnMark\)/, 'the line prompt reads the turn\'s messages');
+  assert.match(live, /if\(v\.kind==='command'\)S\.turnMark=markTurn\(messageLog\)/, 'the mark is taken when the game asks for a command');
+  assert.match(live, /sinceMark\(messageLog,S\.turnMark\)/, 'the line prompt reads the turn\'s messages');
 });
 
 test('low hitpoints are marked with a warning triangle, not by red and a flash alone', () => {
@@ -122,8 +122,8 @@ test('nothing draws behind the splash: the loop returns while it is open, no bac
   assert.match(main,/renderStats\.end\(dt,\{update:updateMs,render:renderMs\}\)/,'the F9 panel shows where the main thread goes');
   assert.match(main,/installLive\(\{scene,camera,controls,renderer,/,'the live game gets the renderer for shader warm-up');
   const liveSrc=liveSource();
-  assert.match(liveSrc,/function warmUp\(\)\{if\(!staged\|\|!renderer\?\.compileAsync\)return;staged=false;[^}]*compileFor\(renderer,warmTarget,\(\)=>renderer\.compileAsync\(scene,camera\)\)/,'new materials compile ahead of their first draw, for the variant the composer draws');
-  assert.equal((liveSrc.match(/staged=true;/g)||[]).length,3,'tiles, items and actors each mark the frame as staged');
+  assert.match(liveSrc,/function warmUp\(\)\{if\(!S\.staged\|\|!renderer\?\.compileAsync\)return;S\.staged=false;[^}]*compileFor\(renderer,warmTarget,\(\)=>renderer\.compileAsync\(scene,camera\)\)/,'new materials compile ahead of their first draw, for the variant the composer draws');
+  assert.equal((liveSrc.match(/S\.staged=true;/g)||[]).length,3,'tiles, items and actors each mark the frame as S.staged');
   assert.match(main,/adaptive\.manual\(\);/,'F8 pins the tier');
   assert.match(main,/onActivity:touch/,'engine events keep the frame rate up');
   assert.doesNotMatch(css,/#start-screen,#start-cover\{[^}]*backdrop-filter/,'the splash does not blur the whole viewport');
@@ -148,9 +148,9 @@ test('monsters and pets carry no health bar or total; only the hero HUD shows hi
 
 test('a burst of messages redraws the message panels once, on the next frame', () => {
   const live = liveSource();
-  const msg = live.slice(live.indexOf(' function message(text){'), live.indexOf(' function drawMessagePanels(){'));
+  const msg = live.slice(live.indexOf('export function message(text,L){'), live.indexOf('export function drawMessagePanels(L){'));
   assert.ok(msg.includes('requestAnimationFrame(drawMessagePanels)') && !msg.includes('replaceChildren'), 'message() only schedules the redraw');
-  assert.match(live, /function drawMessagePanels\(\)\{messagePanelsDue=false;[^\n]*replaceChildren[^\n]*historyPanel\.refresh\(\);\}/);
+  assert.match(live, /function drawMessagePanels\(L\)\{const \{[^}]*\}=L;S\.messagePanelsDue=false;[^\n]*replaceChildren[^\n]*historyPanel\.refresh\(\);\}/);
 });
 
 test('the demo room is gone: no ?demo, no demo scene, no Demo room or Reset room buttons', () => {

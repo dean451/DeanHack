@@ -15,7 +15,7 @@ test('only hallucination caps how many monsters a frame are rebuilt', () => {
 
 test('live.js lets a re-glyphed monster keep its model once the frame\'s budget is spent', () => {
   const src = liveSource();
-  const reset = src.indexOf('remodels=remodelBudget(frame.player?.conditions)'), reuse = src.indexOf('if(!a&&remodels<=0)'), spend = src.indexOf('if(!a)remodels--;');
+  const reset = src.indexOf('S.remodels=remodelBudget(frame.player?.conditions)'), reuse = src.indexOf('if(!a&&S.remodels<=0)'), spend = src.indexOf('if(!a)S.remodels--;');
   const sweep = src.indexOf("const key=`${id}:${cell.glyph}`;seenActors.add(key)");
   assert.ok(reset > 0 && reset < sweep && sweep < reuse && reuse < spend, 'budget set per frame, then reuse, then spend');
 });
