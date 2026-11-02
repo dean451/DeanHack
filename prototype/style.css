@@ -359,3 +359,8 @@ body.live-engine .character{width:250px}
 #replay-panel button,#replay-panel select,#replay-panel .replay-file{background:none;border:1px solid #6b5a3a;border-radius:4px;color:#e8ddc7;font:inherit;padding:3px 8px;cursor:pointer}
 #replay-panel .replay-file input{display:none}
 #replay-panel .replay-input{color:#aeb9bf}
+/* the death recap under the tombstone (start-screen.js recapHtml): a few sections to open, the open one scrolling */
+.tomb .recap{margin:12px 0 4px;text-align:left;max-width:560px}
+.tomb .recap details{border-top:1px solid #3a3226;padding:4px 0}
+.tomb .recap summary{cursor:pointer;color:#cdbf9f;font:600 12px Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.tomb .recap pre{margin:6px 0 2px;max-height:180px;overflow:auto;color:#d8cfbb;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap}
