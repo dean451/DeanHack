@@ -28,7 +28,7 @@ function tally(trace, range, self, total, counted) {
 }
 
 // playing(): only freezes during play are reported (loading the page and the splash are slow by nature).
-export function installSlowTrace({win = globalThis, doc = globalThis.document, storage = globalThis.localStorage, enabled = true, playing = () => !!doc?.body?.classList.contains('live-engine')} = {}) {
+export function installSlowTrace({win = globalThis, doc = globalThis.document, storage = globalThis.localStorage, enabled = true, actions = [], playing = () => !!doc?.body?.classList.contains('live-engine')} = {}) {
   if (!enabled || typeof win.Profiler !== 'function' || typeof win.PerformanceObserver !== 'function') return null;
   // the long task is often reported only after the window that sampled it has closed (the freeze held up the
   // timer too), so the last window's trace is kept and the samples are picked by the freeze's own time
@@ -41,6 +41,8 @@ export function installSlowTrace({win = globalThis, doc = globalThis.document, s
     if (!el) { el = doc.createElement('div');el.id = 'freeze-note';el.innerHTML = '<span></span><button type="button">Copy freeze report</button><button type="button" aria-label="Dismiss">×</button>';doc.body.append(el); }
     el.querySelector('span').textContent = `The game froze for ${(report.blockedMs / 1000).toFixed(1)} s.`;
     const [copy, close] = el.querySelectorAll('button');
+    // more buttons from the caller (main.js: Save replay, so the freeze can be played back)
+    for (const {label, run} of actions) if (!el.querySelector(`[data-action="${label}"]`)) { const b = doc.createElement('button');b.type = 'button';b.dataset.action = label;b.textContent = label;b.onclick = run;close.before(b); }
     copy.onclick = () => { win.navigator?.clipboard?.writeText(JSON.stringify(report, null, 1)).then(() => { copy.textContent = 'Copied'; }, () => {}); };
     close.onclick = () => el.remove();
   };

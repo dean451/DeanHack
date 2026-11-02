@@ -20,5 +20,5 @@ test('without the Profiler API (a production build, another browser) nothing is 
 
 test('the dev server allows self-profiling and main.js installs it there only', () => {
   assert.match(readFileSync(new URL('./vite.config.js', import.meta.url), 'utf8'), /headers:\{'Document-Policy':'js-profiling'\}/);
-  assert.match(readFileSync(new URL('./main.js', import.meta.url), 'utf8'), /installSlowTrace\(\{enabled:import\.meta\.env\.DEV\}\);/);
+  assert.match(readFileSync(new URL('./main.js', import.meta.url), 'utf8'), /installSlowTrace\(\{enabled:import\.meta\.env\.DEV,/);
 });
