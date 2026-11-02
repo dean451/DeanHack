@@ -11,6 +11,7 @@ import {trapKind,createTrap} from './trap.js';
 import {featureKind,coveredFeature,createTerrainFeature,AXIS_FEATURES} from './terrain-feature.js';
 import {createSheolVortex,animatePortal} from './portal-fx.js';
 import {createVibratingSquare} from './vibrating-square.js';
+import {cachedModel} from './model-cache.js';
 
 export function box(geo,mat,parent,x,y,z){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;parent.add(m);return m;}
 export function label(text,color='#f0d9b0'){const c=document.createElement('canvas');c.width=512;c.height=96;const ctx=c.getContext('2d');ctx.fillStyle='rgba(10,20,20,.68)';ctx.beginPath();ctx.roundRect(54,16,404,64,12);ctx.fill();ctx.font='30px system-ui';ctx.textAlign='center';ctx.fillStyle=color;ctx.fillText(text,256,61);const texture=new THREE.CanvasTexture(c),material=new THREE.SpriteMaterial({map:texture,depthTest:false});const s=new THREE.Sprite(material);s.scale.set(1.3,.25,1);s.position.y=1.7;s.userData.dispose=()=>{texture.dispose();material.dispose();};return s;}
@@ -26,7 +27,7 @@ export function dressStairs(tile,cell){
   const ladder=ladderShown(cell)??tile.userData.ladder??false,key=`${cell.terrain}:${ladder}`;
   if(key===tile.userData.stairsKey)return;
   for(const o of tile.userData.stairs||[]){o.traverse(c=>c.userData.dispose?.());tile.remove(o);}
-  const seed=cell.x*131+cell.z,model=(ladder?createLadder:createStairs)(cell.terrain,seed);
+  const seed=cell.x*131+cell.z,model=cachedModel(`${ladder?'ladder':'stairs'}|${cell.terrain}|${seed}`,()=>(ladder?createLadder:createStairs)(cell.terrain,seed)); // kept and copied (model-cache.js)
   tile.add(model);tile.userData.stairs=[model];tile.userData.stairsKey=key;tile.userData.ladder=ladder;
  }
 export function dressFeature(tile,cell,{animated,tileInstances}={}){

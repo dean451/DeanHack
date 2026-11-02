@@ -66,21 +66,22 @@ import {itemsUnderMonsters} from './held-items.js';
 import {hasMagicLook} from './pickup-lift.js';
 import {squareOfKey} from './pickup-events.js';
 import {planRoute} from './hero-route.js';
+import {cachedModel} from './model-cache.js';
 
 // A square's parts (floor slab, dimming stand-in, wall and torch, feature model, door, liquid): built when the square first
 // shows, or later from the backlog when a reveal brings more than one frame's budget (tile-backlog.js).
 export function fillTile(tile,cell,L){const {dimLayer,floorGeo,floorKit,wallGeo,wall,torchHaloMaterial,animated,tileInstances,setDim}=L;
 const slab=box(floorGeo,floorKit.material(cell.x,cell.z),tile,0,-.1,0);/* the floor takes shadows but casts none: a slab's shadow could only fall under the floor, and every slab cast was the whole level drawn again into the shadow map */slab.castShadow=false;tile.userData.slab=slab;floorKit.dress(slab,tile,cell.x,cell.z,groundOf(cell));/* the dimming plane is one instance of the dim layer (dim-layer.js): the square keeps only a stand-in */const fog=dimLayer.stand(tile);/* setDim shows it; at opacity 0 it was a draw per tile for nothing */tile.userData.fog=fog;
-         if(cell.terrain==='altar')tile.add(createAltar());
-         if(cell.terrain==='throne')tile.add(createThrone());
-         if(cell.terrain==='sink')tile.add(createSink());
-         if(cell.terrain==='grave')tile.add(createGrave(cell.x*31+cell.z*17));
-         if(cell.terrain==='bars'){const grate=createBars(cell.x*53+cell.z*29);tile.add(grate);tile.userData.grate=grate;}
+         /* built features are kept and copied, not carved again (model-cache.js) */if(cell.terrain==='altar')tile.add(cachedModel('altar',createAltar));
+         if(cell.terrain==='throne')tile.add(cachedModel('throne',createThrone));
+         if(cell.terrain==='sink')tile.add(cachedModel('sink',createSink));
+         if(cell.terrain==='grave'){const seed=cell.x*31+cell.z*17;tile.add(cachedModel(`grave|${seed}`,()=>createGrave(seed)));}
+         if(cell.terrain==='bars'){const seed=cell.x*53+cell.z*29,grate=cachedModel(`bars|${seed}`,()=>createBars(seed));tile.add(grate);tile.userData.grate=grate;}
          if(cell.terrain==='wall'){
           box(wallGeo,wall,tile,0,.28,0);
           if(hasTorch(cell.x,cell.z)){const sconce=createTorchSconce(cell.x*43+cell.z*71);tile.add(sconce);const fire=createFire(cell.x+cell.z);fire.position.copy(sconce.userData.flame);tile.add(fire);const halo=new THREE.Sprite(torchHaloMaterial);halo.position.copy(sconce.userData.flame).setY(1.12);halo.scale.setScalar(.9);tile.add(halo);tile.userData.torch={phase:(cell.x*3.7+cell.z*5.3)%(Math.PI*2)};}
          }
-         if(['door','broken-door'].includes(tileKind(cell))){const doorGroup=(tileKind(cell)==='door'?createDoor:createBrokenDoor)(cell.x*61+cell.z*37);tile.add(doorGroup);tile.userData.door=doorGroup;}
+         if(['door','broken-door'].includes(tileKind(cell))){const kind=tileKind(cell),seed=cell.x*61+cell.z*37,doorGroup=cachedModel(`${kind}|${seed}`,()=>(kind==='door'?createDoor:createBrokenDoor)(seed));tile.add(doorGroup);tile.userData.door=doorGroup;}
          if(['water','lava'].includes(groundOf(cell))){slab.visible=false;const liquid=createLiquid(groundOf(cell),cellHash(cell.x,cell.z,6));tile.add(liquid);tile.userData.liquid=liquid;}
  animated.add(tile);tileInstances.add(tile);}
 // What a built square shows this frame: its feature, stairs or tree dressed, its dimming, and a drawbridge, grate or door
