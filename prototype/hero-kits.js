@@ -298,11 +298,11 @@ const HATS={
     const pinch=new THREE.Mesh(new THREE.BoxGeometry(.05,.08,.06),dark);pinch.position.set(0,.13,.12);g.add(pinch);
     ring(.178,.016,dark,g,0,.03,0,1,1);
     const sweat=new THREE.Mesh(new THREE.CylinderGeometry(.181,.182,.03,22,1,true),cloth('#2a1c10',{polygonOffset:true,polygonOffsetFactor:-1}));sweat.position.y=.055;g.add(sweat);},
-  kabuto(add,parts){ // a lacquered dome tilted back off the brow, a flared neck guard, and a crescent crest
-    const m=new THREE.MeshStandardMaterial({color:'#2a2220',roughness:.45,metalness:.6,side:THREE.DoubleSide}),r=new THREE.MeshStandardMaterial({color:'#9a2a22',roughness:.5,metalness:.4,side:THREE.DoubleSide}),g=new THREE.Group();g.position.set(0,.07,-.02);g.rotation.x=-.25;add(parts.head,g);
+  kabuto(add,parts){ // a lacquered dome tilted back off the brow, a flared neck guard round the back (open at the face), and a crescent crest
+    const m=new THREE.MeshStandardMaterial({color:'#2a2220',roughness:.45,metalness:.6,side:THREE.DoubleSide}),r=new THREE.MeshStandardMaterial({color:'#9a2a22',roughness:.5,metalness:.4,side:THREE.DoubleSide}),g=new THREE.Group();g.position.set(0,.07,-.02);g.rotation.x=-.12;add(parts.head,g);
     g.add(new THREE.Mesh(new THREE.SphereGeometry(.205,24,14,0,Math.PI*2,0,Math.PI*.42),m));
-    for(let i=0;i<4;i++){const s=new THREE.Mesh(new THREE.CylinderGeometry(.18+i*.05,.2+i*.06,.045,26,1,true,Math.PI*.78,Math.PI*1.44),i%2?m:r);s.position.set(0,-.06-i*.045,-.01);g.add(s);}
-    const crest=new THREE.Mesh(new THREE.TorusGeometry(.085,.011,6,18,Math.PI),trimMat('#c9a24a'));crest.position.set(0,.17,.1);crest.rotation.x=-.3;g.add(crest);},
+    for(let i=0;i<4;i++){const s=new THREE.Mesh(new THREE.CylinderGeometry(.18+i*.05,.2+i*.06,.045,26,1,true,Math.PI*.3,Math.PI*1.4),i%2?m:r);s.position.set(0,-.06-i*.045,-.01);g.add(s);}
+    const visor=new THREE.Mesh(new THREE.CylinderGeometry(.215,.225,.012,26,1,false,-Math.PI*.32,Math.PI*.64),m);visor.position.set(0,.0,.02);visor.rotation.x=.18;g.add(visor);/* the mabisashi: a short peak over the brow */const crest=new THREE.Mesh(new THREE.TorusGeometry(.1,.013,6,18,Math.PI),trimMat('#c9a24a'));crest.position.set(0,.2,.215);crest.rotation.set(-.15,0,Math.PI);g.add(crest);/* the maedate: a gold crescent standing on the brow */},
   horned(add,parts){ // an iron cap with two horns, each three tapering segments curving up and out
     const iron=new THREE.MeshStandardMaterial({color:'#4a4640',roughness:.55,metalness:.7}),bone=cloth('#d9d0b8',{roughness:.8}),g=new THREE.Group();g.position.set(0,.06,-.01);add(parts.head,g);
     g.add(new THREE.Mesh(new THREE.SphereGeometry(.2,22,12,0,Math.PI*2,0,Math.PI*.4),iron));ring(.19,.016,iron,g,0,0,0,1,1.02);
