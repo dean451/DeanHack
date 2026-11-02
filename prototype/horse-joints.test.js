@@ -13,7 +13,8 @@ test('every horse and unicorn has head, neck, tail and its four legs as named jo
   assert(j,`${name}: joints`);
   assert(a.head,`${name}: head`);
   assert.equal(j.head,a.head,name);
-  assert.equal(j.tail0,a.tail,`${name}: tail0`);
+  for(let i=0;i<5;i++)assert(j[`tail${i}`]?.isBone,`${name}: tail${i} is a bone`);
+  assert.equal(a.tail.name,'tail',name);
   for(const side of ['l','r'])for(const k of [0,1]){
    const leg=j[`${side}leg${k}`];
    assert(leg&&a.legs.includes(leg),`${name}: ${side}leg${k}`);
@@ -26,15 +27,12 @@ test('every horse and unicorn has head, neck, tail and its four legs as named jo
 test('turning the tail, a hip or the head moves only what hangs on it',()=>{
  for(const name of FAMILY){
   const a=make(name),j=a.joints;
-  const legsBefore=a.legs.map(tip),tailBefore=tip(a.tail);
+  const legsBefore=a.legs.map(tip);
   j.rleg1.rotation.x=.5;
   assert(tip(j.rleg1).distanceTo(legsBefore[a.legs.indexOf(j.rleg1)])>.005,`${name}: the leg swung`);
   a.legs.forEach((l,i)=>{if(l!==j.rleg1)assert(tip(l).distanceTo(legsBefore[i])<1e-6,`${name}: other legs stayed`);});
   j.rleg1.rotation.x=0;
-  j.tail0.rotation.x=.6;
-  assert(tip(a.tail).distanceTo(tailBefore)>.01,`${name}: the tail swung`);
   a.legs.forEach((l,i)=>assert(tip(l).distanceTo(legsBefore[i])<1e-6,`${name}: legs stayed under the tail`));
-  j.tail0.rotation.x=0;
   const headBefore=tip(a.head);
   a.head.rotation.x=.5;
   assert(tip(a.head).distanceTo(headBefore)>.005,`${name}: the head turned`);
@@ -86,5 +84,22 @@ test('turning the hip carries the whole skinned leg, hoof and sock included',()=
   leg.rotation.x=.5;
   const after=legBox(a,leg);
   assert(after.min.distanceTo(before.min)>.05,`${name}: the foot swung with the hip`);
+ }
+});
+
+test('the tail hangs on five bones; a bend at one carries the hair past it and leaves the dock and the legs',()=>{
+ for(const name of FAMILY){
+  const a=make(name),j=a.joints,meshes=meshesOf(a.tail);
+  assert.equal(meshes.length,2,`${name}: dock and hair`);
+  assert(meshes.every(m=>m.isSkinnedMesh),`${name}: the tail is skinned`);
+  const rest=legBox(a,a.tail),legs=a.legs.map(l=>legBox(a,l));
+  j.tail2.rotation.x=.7;
+  const bent=legBox(a,a.tail);
+  assert(Math.abs(bent.min.z-rest.min.z)>.03||Math.abs(bent.min.y-rest.min.y)>.03,`${name}: the tip swung`);
+  assert(Math.abs(bent.max.y-rest.max.y)<1e-6,`${name}: the dock stayed`);
+  a.legs.forEach((l,i)=>assert(legBox(a,l).min.distanceTo(legs[i].min)<1e-9,`${name}: legs stayed`));
+  j.tail2.rotation.x=0;
+  j.tail0.rotation.x=.5;
+  assert(Math.abs(legBox(a,a.tail).min.z-rest.min.z)>.03||Math.abs(legBox(a,a.tail).min.y-rest.min.y)>.03,`${name}: bending the root swings the tail`);
  }
 });
