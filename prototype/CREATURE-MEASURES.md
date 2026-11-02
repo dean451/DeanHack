@@ -212,3 +212,21 @@ The tenth monster family (AGENTS.md, family **k**). Measured from a person walki
 *Not found:* a dog's static head height above the withers or neck angle at rest, and a crouched walk's step length or hip angle. No number is claimed for them; the pose stages set the hunch's hip and spine by eye against photographs.
 
 **What the kobolds take from this.** A kobold's hunch is a real crouch: knees bent past 30 degrees, and a crouching walker is slow, about half a person's pace. Its dog-like head tips a few to nearly twenty degrees on the neck as it walks, not a fixed pose.
+
+## Leprechauns (leprechaun)
+
+The eleventh monster family (AGENTS.md, family **l**). Measured from a person: how deep a squat goes (the leprechaun's rest is a crouch) and how fast skipping is (its jig is a hop-step gait). Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Human (squat, skip)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Deep squat | 35 healthy subjects reached average peak hip and knee flexion of 107° and 112° | [Personalized musculoskeletal modelling of the deep squat, PMC8512761](https://pmc.ncbi.nlm.nih.gov/articles/PMC8512761) |
+| Squat as a rest | the squat is widely performed while resting, socializing, toileting and household chores in some non-western cultures | [Squat kinematics study, PMC3916928](https://pmc.ncbi.nlm.nih.gov/articles/PMC3916928) |
+| Skipping speed | skipping and running compared at fixed speeds of 2.68 m/s (a 2016 East Carolina University thesis) and 2.5 m/s (Journal of Applied Biomechanics, 2022); skipping is a gait between walking and running | [East Carolina University thesis on skipping and running](https://thescholarship.ecu.edu/items/b8cf42cd-ec46-40fb-b8cc-56d02d11dd33) |
+| Usual walk | 1.31 m/s outdoors, 116.65 steps a minute (35 studies, 14,015 people) | [Murtagh et al. 2021, Sports Medicine](https://pubmed.ncbi.nlm.nih.gov/33030707/) |
+
+*Not found:* a resting squat's angles (the numbers above are the peak of a lifting squat, so a rest is no deeper), a skip's step length or flight time, and any figure for a heel click. No number is claimed for them; the pose stages set them by eye.
+
+**What the leprechaun takes from this.** Its rest crouch is no deeper than a human's deepest squat: knee about 112°, hip about 107°. Its jig can travel at about twice a person's walk (2.5 to 2.7 m/s against 1.3), a hop-step between a walk and a run, not a dance on the spot.
+

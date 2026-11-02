@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -119,6 +119,18 @@ test('the kobold numbers are a crouched walk and a dog\'s head tip', () => {
   inside(KOBOLD.crouchKnee, [.3, 1], 'crouch knee, rad');
   inside(KOBOLD.crouchPace, [.4, .8], 'crouched pace, m/s');
   assert(KOBOLD.headSwing[0] < KOBOLD.headSwing[1]);
+});
+
+test('the leprechaun numbers are a deep squat and a skip', () => {
+  const {squatKnee, squatHip, skipSpeed, usualWalk} = MEASURES.leprechaun;
+  // a deep squat bends the knee and hip past a right angle, the knee further
+  inside(squatKnee, [90, 140], 'squat knee, degrees'); inside(squatHip, [90, 130], 'squat hip, degrees');
+  assert(squatKnee > squatHip);
+  assert(skipSpeed[0] < skipSpeed[1]);
+  inside(usualWalk, [1.2, 1.4], 'usual walk, m/s');
+  // skipping sits between a walk and a run: faster than a walk, slower than a sprint
+  inside(LEPRECHAUN.skipMid, [2, 3.5], 'skip, m/s'); assert(LEPRECHAUN.skipOverWalk > 1.5);
+  inside(LEPRECHAUN.squatKnee, [1.5, 2.5], 'squat knee, rad');
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {

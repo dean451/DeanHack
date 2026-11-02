@@ -84,6 +84,13 @@ export const MEASURES = {
     crouchSpeedShare: .5, // their pace against their normal pace
     atlasSwing: {labrador: [5.7, 14.5], chihuahua: [9.1, 18.7]}, // degrees, sagittal rotation of the skull on the neck, mean through a walk
   },
+  // leprechaun: a human squatting to rest, and skipping (the jig is a hop-step gait)
+  leprechaun: {
+    squatKnee: 112, // degrees of peak knee flexion in a deep squat (35 healthy subjects, mean)
+    squatHip: 107, // degrees of peak hip flexion in the same squat
+    skipSpeed: [2.5, 2.68], // m/s, the fixed speeds skipping was measured at (two lab studies)
+    usualWalk: 1.31, // m/s, usual outdoor pace, to set the skip against
+  },
   // hobbit, dwarves, bugbear, mind flayer: an adult human's walk
   human: {
     walkSpeed: [1.27, 1.35], // m/s, usual pace outdoors, 95% CI of the mean (Murtagh et al. 2020)
@@ -154,4 +161,12 @@ export const KOBOLD = {
   crouchKnee: MEASURES.kobold.crouchKnee * Math.PI / 180,
   crouchPace: MEASURES.kobold.crouchSpeedShare * HUMAN.walkMid,
   headSwing: [MEASURES.kobold.atlasSwing.labrador[0], MEASURES.kobold.atlasSwing.chihuahua[1]].map(d => d * Math.PI / 180),
+};
+
+// What the leprechaun's poses use: how deep it squats and how fast it skips
+export const LEPRECHAUN = {
+  squatKnee: MEASURES.leprechaun.squatKnee * Math.PI / 180,
+  squatHip: MEASURES.leprechaun.squatHip * Math.PI / 180,
+  skipMid: mid(MEASURES.leprechaun.skipSpeed),
+  skipOverWalk: mid(MEASURES.leprechaun.skipSpeed) / MEASURES.leprechaun.usualWalk,
 };
