@@ -75,11 +75,17 @@ export function endedNote(reason,death){
 }
 
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-// The tombstone on the splash after a death: the name, the cause in the game's own words, and where.
-export function deathCard(tomb){
+// The tombstone on the splash after a death: the name, the cause in the game's own words, and where; under it the
+// recap the game showed at the end (death-recap.js): possessions identified, attributes, conduct, vanquished,
+// genocided, each a section to open.
+export function deathCard(tomb,recap=[]){
   if(!tomb||!tomb.killer)return '';
   const where=tomb.depth?` on level ${tomb.depth}${tomb.dungeon?` of ${tomb.dungeon}`:''}`:'';
-  return `<div class="tomb"><small>REST IN PEACE</small><b>${esc(tomb.name||'')}</b><span>${esc(tomb.killer+where)}</span><i>${esc(epitaph(tomb))}</i><em>The dungeon keeps what it takes. Begin again, or choose a new character.</em></div>`;
+  return `<div class="tomb"><small>REST IN PEACE</small><b>${esc(tomb.name||'')}</b><span>${esc(tomb.killer+where)}</span><i>${esc(epitaph(tomb))}</i>${recapHtml(recap)}<em>The dungeon keeps what it takes. Begin again, or choose a new character.</em></div>`;
+}
+export function recapHtml(recap=[]){
+  if(!Array.isArray(recap)||!recap.length)return '';
+  return `<div class="recap">${recap.map((s,i)=>`<details${i===0?' open':''}><summary>${esc(s.title)}</summary><pre>${esc(s.lines.join('\n'))}</pre></details>`).join('')}</div>`;
 }
 
 export async function forgetSave(name,fetchImpl=fetch){
@@ -184,11 +190,14 @@ export function installStartScreen({doc=document,button,nameInput,getSaves=fetch
     if(!input.value&&saves[0])input.value=saves[0].name.replace(/_/g,' ');
     refresh();
   });
-  const open=({note:line='',death=null,focus=true}={})=>{
+  const open=({note:line='',death=null,recap=[],focus=true}={})=>{
     clearDescent();
     el.hidden=false;doc.body.classList.add('start-open');showDragon();waves.start();
-    const card=deathCard(death);
-    if(card){status.innerHTML=card;status.classList.add('dead');status.hidden=false;}else{status.textContent=line;status.classList.remove('dead');status.hidden=!line;}
+    const card=deathCard(death,recap);
+    if(card){status.innerHTML=card;status.classList.add('dead');status.hidden=false;}
+    /* a game that ended without a tombstone (quit, escaped) still gets its recap under the line */
+    else if(recap?.length){status.innerHTML=`<div class="tomb">${esc(line)}${recapHtml(recap)}</div>`;status.classList.remove('dead');status.hidden=false;}
+    else{status.textContent=line;status.classList.remove('dead');status.hidden=!line;}
     stepClass.hidden=true;stepName.hidden=false;board.stale();
     input.value=nameInput?.value||remembered();refresh();
     if(focus){input.focus();input.select();}

@@ -122,7 +122,7 @@ test('the live game wires the link watch and the tombstone into the splash',()=>
   assert.match(live,/es\.onerror=\(\)=>\{[^}]*S\.link\.lost\(\)/,'a stream error starts the grace period');
   assert.match(live,/es\.onopen=async\(\)=>/,'a reopened stream checks the session S.token');
   assert.match(live,/if\(seq<since\)\{S\.link\.restart\(\);/,'polling notices a server restart');
-  assert.match(live,/S\.startScreen\.open\(\{note,death\}\)/,'the tombstone reaches the splash');
+  assert.match(live,/S\.startScreen\.open\(\{note,death,recap:deathRecap\.take\(\)\}\)/,'the tombstone, and the recap, reach the splash');
   assert.match(live,/id='link-banner'/);
 });
 
@@ -274,7 +274,7 @@ test('Descend runs the ASCII spiral descent before the game starts, the splash h
   assert.match(src,/win\.setTimeout\(res,DESCENT\.ms\)/,'the zoom lasts DESCENT.ms');
   assert.match(src,/spiral\.speed=DESCENT\.rest;spiral\.el\.classList\.replace\('zoom','rest'\)/,'then it rests, dim and slow');
   assert.match(src,/if\(spiral\.still\|\|!win\?\.setTimeout\)return Promise\.resolve\(\);/,'reduced motion skips it');
-  assert.match(src,/const open=\(\{note:line='',death=null,focus=true\}=\{\}\)=>\{\n\s*clearDescent\(\);/,'coming back to the splash clears any descent');
+  assert.match(src,/const open=\(\{note:line='',death=null,recap=\[\],focus=true\}=\{\}\)=>\{\n\s*clearDescent\(\);/,'coming back to the splash clears any descent');
   assert.match(src,/return \{el,open,close,landed\};/);
   assert.match(live,/if\(v\.kind==='command'\)S\.startScreen\?\.landed\?\.\(\);/,'the first command prompt, after the opening text, lands the descent');
   assert.match(css,/\.start-spiral\{[^}]*background:#030609;/,'opaque: the dungeon waits behind it');
