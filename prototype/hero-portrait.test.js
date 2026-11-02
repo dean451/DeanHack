@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {hpStage, portraitLook, createRefreshGate, createHeroPortrait, PORTRAIT_INTERVAL_MS, PORTRAIT_MIN_GAP_MS, PORTRAIT_MARKS} from './hero-portrait.js';
+import {liveSource} from './live-source.js';
 
 // A renderer stand-in: records what it draws and what scene the hero was in at the time.
 function fakeRenderer() {
@@ -175,7 +176,7 @@ test('the game wires the portrait: main.js draws it each frame and live.js hands
   const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
   assert.ok(main.includes("mountPortraitView(document,$('.character'))"));
   assert.ok(main.includes('heroPortrait.update(performance.now(),live.portraitSubject'));
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.match(live, /get portraitSubject\(\)\{[^]*?g:hero\.g,head:/);
   const css = readFileSync(new URL('./style.css', import.meta.url), 'utf8');
   for (const rule of ['#hero-portrait{', '#hero-portrait.dead', '#hero-portrait.t-blind', '#hero-portrait.stage-3', '@media(max-width:650px){#hero-portrait{display:none}'])

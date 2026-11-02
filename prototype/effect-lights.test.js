@@ -5,6 +5,7 @@ import {createEffectLights, EFFECT_LIGHTS, shareFlash} from './effect-lights.js'
 import {createTeleportBlink} from './teleport-blink.js';
 import {createFireTrapJet} from './fire-trap-jet.js';
 import {createMagicPortal} from './magic-portal.js';
+import {liveSource} from './live-source.js';
 
 const visibleLights = root => { let n = 0; root.traverseVisible(o => { if (o.isLight) n++; }); return n; };
 
@@ -44,7 +45,7 @@ test('the ray flash, a blast and a breath share one light: the brightest this fr
 });
 
 test('live.js keeps one flash light, not a ray light and a blast light', async () => {
-  const live = (await import('node:fs')).readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.equal((live.match(/new THREE\.PointLight\(/g) || []).length, 3, 'the lantern, the torch pool and the one flash light');
   assert.ok(!/rayFlashLight|blastLight/.test(live));
 });

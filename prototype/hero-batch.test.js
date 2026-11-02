@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 import {createHeroBatch, HIDDEN_LAYER} from './hero-batch.js';
 import {addOutlines} from './readability.js';
+import {liveSource} from './live-source.js';
 
 const drawn = o => o.layers.test(new THREE.Layers());
 function rig() {
@@ -66,7 +67,7 @@ test('dispose puts every piece back on the drawn layer', () => {
 });
 
 test('live.js batches the hero each frame, leaving held weapons, auras and a polymorph shape out', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.match(live, /const heroBatch=createHeroBatch\(hero\.g,\{exclude:o=>o===hero\.weaponSocket\|\|o===hero\.offhandSocket\|\|o===hero\.g\.userData\.heldWand\|\|o===heroForm\.shape,outline:m=>addOutlines\(m\)\}\)/);
   assert.match(live, /heroBatch\.sync\(\);\n/);
 });

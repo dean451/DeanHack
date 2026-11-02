@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {hallucinating, remodelBudget, REMODEL_BUDGET} from './hallu-budget.js';
 import {hueAt, createHuePass, HUE_PERIOD} from './hue-pass.js';
+import {liveSource} from './live-source.js';
 
 test('only hallucination caps how many monsters a frame are rebuilt', () => {
   assert.ok(hallucinating(['Hallu']) && hallucinating(['Stun', 'Hallucinating']));
@@ -13,7 +14,7 @@ test('only hallucination caps how many monsters a frame are rebuilt', () => {
 });
 
 test('live.js lets a re-glyphed monster keep its model once the frame\'s budget is spent', () => {
-  const src = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const src = liveSource();
   const reset = src.indexOf('remodels=remodelBudget(frame.player?.conditions)'), reuse = src.indexOf('if(!a&&remodels<=0)'), spend = src.indexOf('if(!a)remodels--;');
   const sweep = src.indexOf("const key=`${id}:${cell.glyph}`;seenActors.add(key)");
   assert.ok(reset > 0 && reset < sweep && sweep < reuse && reuse < spend, 'budget set per frame, then reuse, then spend');

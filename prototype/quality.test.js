@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {furShellsFor, torchLightsFor, flameLightsFor, TIERS, ORDER, pickTier, createAdaptiveQuality, frameCost, nextTier, pixelRatioFor, createFramePacer, applyTier, ACTIVE_MS, DEEP_MS, readSaved, saveTier, STORAGE_KEY} from './quality.js';
+import {liveSource} from './live-source.js';
 
 test('the URL wins, then the saved choice, then the machine', () => {
   assert.equal(pickTier({search: '?quality=high', saved: 'low', cores: 2}), 'high');
@@ -160,7 +161,7 @@ test('frame cost: late frames cost the whole gap, frames on the display beat cos
 
 test('only the high tier keeps eight torch lights; the live torch list is not rebuilt every frame', () => {
   assert.equal(torchLightsFor('high'), 4); assert.equal(torchLightsFor('balanced'), 3); assert.equal(torchLightsFor('low'), 2); assert.equal(torchLightsFor('nonsense'), 3);
-  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8'), live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8'), live = liveSource();
   assert.match(main, /installLive\(\{scene,camera,controls,renderer,torchLightCount:torchLightsFor\(quality\.tier\)/);
   assert.match(live, /get\('torches'\)\?\?String\(torchLightCount\)/);
   const update = live.slice(live.indexOf('function updateTorchLights('), live.indexOf('const ease=1-Math.exp(-dt*5);'));

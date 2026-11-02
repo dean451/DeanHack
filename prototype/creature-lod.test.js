@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {lighten, lightenModel, lodReady, LOD} from './creature-lod.js';
 import {createCreature, bakeDraws} from './creatures.js';
 import {monsterLodFor} from './quality.js';
+import {liveSource} from './live-source.js';
 
 const tris = g => (g.index ? g.index.count : g.attributes.position.count) / 3;
 const count = root => { let v = 0, t = 0; root.traverse(o => { if (o.isMesh && !o.userData.outline) { v += o.geometry.attributes.position.count; t += tris(o.geometry); } }); return {v, t}; };
@@ -45,7 +46,7 @@ test('monsters of a kind share one lighter copy; small parts and the high tier a
 });
 
 test('live.js lightens a new monster before it is staged and batched; main.js sets it from the tier', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8'), main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
+  const live = liveSource(), main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
   const at = live.indexOf('lightenModel(a.g,{species:cell.name})');
   assert.ok(at > 0 && at < live.indexOf('stageCreature(a.g,{disposition});', at) && at < live.indexOf('actorBatch.add(a)', at));
   assert.match(main, /LOD\.enabled=monsterLodFor\(quality\.tier\);/);

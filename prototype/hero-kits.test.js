@@ -5,6 +5,7 @@ import {KITS,KIT_ROLES,dressHero} from './hero-kits.js';
 import {ARM_X} from './hero-valkyrie.js';
 import {ROLE_NAMES} from './roles.js';
 import {readFileSync} from 'node:fs';
+import {liveSource} from './live-source.js';
 
 // A stand-in for the rig knight() builds: the same named parts, with the Valkyrie's colours. Her own
 // suit (hero-valkyrie.js) is a list of pieces the kit shows or hides; here they hang off no part, so
@@ -93,7 +94,7 @@ test('hair follows the class and gender',()=>{
 });
 
 test('the live game dresses the hero from the engine frame, and the rig exposes what a kit needs',()=>{
-  const live=readFileSync(new URL('./live.js',import.meta.url),'utf8'),main=readFileSync(new URL('./main.js',import.meta.url),'utf8');
+  const live=liveSource(),main=readFileSync(new URL('./main.js',import.meta.url),'utf8');
   assert.match(live,/dressHero\(hero,frame\.player\)/);
   const line=main.split('\n').find(l=>l.startsWith(' const parts={'));assert.ok(line,'knight() builds its parts object');
   for(const part of ['face','legGear','valkyrie','chest','belt','pauldrons','tassets','mantles','cape','hairParts','mats','head','body','arm','elbow','shieldArm','shieldElbow'])assert.ok(new RegExp(`[{,]${part}[,:}]`).test(line),`knight() exposes ${part}`);

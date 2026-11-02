@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {mergeStatic, heldObjects, mergeable} from './static-merge.js';
+import {liveSource} from './live-source.js';
 
 const mat = new THREE.MeshStandardMaterial(), other = new THREE.MeshStandardMaterial();
 const piece = (m = mat, x = 0) => { const o = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .1), m); o.position.x = x; return o; };
@@ -28,6 +29,6 @@ test('named, held, tagged and differently-shown pieces are left alone', () => {
 });
 
 test('live.js merges the hero before outlining it, keeping what hero.parts and the kit hold', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   const at = live.indexOf("mergeStatic(hero.g,{keep:heldObjects(hero.parts,(hero.kitAdded||[]).map(k=>k.obj)"); assert.ok(at > 0 && live.indexOf("addOutlines(hero.g)", at) > at, "merged, then outlined");
 });

@@ -1,18 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
+import {liveSource, LIVE_PARTS} from './live-source.js';
 
 const read = f => readFileSync(new URL(f, import.meta.url), 'utf8');
 
 test('there is no audio anywhere in the client', () => {
-  for (const file of ['main.js', 'live.js', 'index.html']) {
+  for (const file of ['main.js', ...LIVE_PARTS, 'index.html']) {
     const src = read(file);
     assert.doesNotMatch(src, /AudioContext|createOscillator|id="sound"|#sound/, `${file} must not make sound`);
   }
 });
 
 test('the footer buttons are only Save & quit and Quality', () => {
-  const html = read('index.html'), live = read('live.js');
+  const html = read('index.html'), live = liveSource();
   for (const label of ['Rotate view', 'Quaff', 'Pick up', 'Inventory</button>', 'Open door']) {
     assert.ok(!html.includes(label) && !live.includes(`>${label}`), `${label} button is gone`);
   }
@@ -21,7 +22,7 @@ test('the footer buttons are only Save & quit and Quality', () => {
 });
 
 test('the page carries no badge, brand block or footer blurb', () => {
-  const html = read('index.html'), css = read('style.css'), live = read('live.js');
+  const html = read('index.html'), css = read('style.css'), live = liveSource();
   assert.doesNotMatch(html, /VISUAL PROTOTYPE|class="brand"|class="badge"|Standalone scene|Drag to orbit/);
   assert.doesNotMatch(css, /\.brand|\.badge|footer>small/);
   assert.doesNotMatch(live, /Real UnNetHack rules|footer>small/);
@@ -30,7 +31,7 @@ test('the page carries no badge, brand block or footer blurb', () => {
 });
 
 test('the creatures-in-view list and the live engine caption are gone', () => {
-  const live = read('live.js'), css = read('style.css');
+  const live = liveSource(), css = read('style.css');
   assert.doesNotMatch(live, /engine-seen|UNNETHACK · LIVE ENGINE|Nothing stirs in view/);
   assert.doesNotMatch(css, /engine-seen/);
 });
@@ -48,13 +49,13 @@ test('the messages sit in the upper-right corner and the character panel in the 
 });
 
 test('gold, power, experience and conditions live in the character panel, not under the messages', () => {
-  const live = read('live.js');
+  const live = liveSource();
   assert.match(live, /statusLine\.id='engine-status';\$\('\.character'\)\.append\(statusLine\)/);
   assert.doesNotMatch(live, /<div id="engine-messages" role="log"><\/div><div id="engine-status">/);
 });
 
 test('the character name is typed before starting, saved, sent with the start request and shown in the panel', () => {
-  const live = read('live.js');
+  const live = liveSource();
   assert.match(live, /nameInput\.placeholder='Adventurer'/);
   assert.match(live, /localStorage\.setItem\('deanhack\.playerName'/);
   assert.match(live, /post\('\/engine\/start',\{name:savedPlayerName\(\),\.\.\.readChoice\(\)\}\)/, 'the start request carries the name and the chosen class');
@@ -70,12 +71,12 @@ test('the minimap sits in the bottom-right corner and the live key legend stops 
 });
 
 test('the live panel carries no engine caption', () => {
-  assert.doesNotMatch(read('live.js'), /UNNETHACK · LIVE ENGINE/);
+  assert.doesNotMatch(liveSource(), /UNNETHACK · LIVE ENGINE/);
   assert.doesNotMatch(read('style.css'), /#engine-panel>small/);
 });
 
 test('a text prompt shows everything that happened since the last command, not only the last line', () => {
-  const live = read('live.js');
+  const live = liveSource();
   assert.match(live, /if\(v\.kind==='command'\)turnMark=markTurn\(messageLog\)/, 'the mark is taken when the game asks for a command');
   assert.match(live, /sinceMark\(messageLog,turnMark\)/, 'the line prompt reads the turn\'s messages');
 });
@@ -91,7 +92,7 @@ test('message text wraps instead of clipping', () => {
 })
 
 test('the live pet cat is built from the feline model, not the old demo cat', () => {
-  const live = read('./live.js');
+  const live = liveSource();
   assert.match(live, /cell\.kind==='pet'&&\/cat\|kitten\/\.test\(cell\.name\)\)\{a=isFeline\(\(cell\.name\|\|''\)\.toLowerCase\(\)\)\?createSkinnedFeline\(.*?\):creatureFactory\?bakeDraws\(creatureFactory\(cell\)\):catFactory\(\)/);
 });
 
@@ -120,7 +121,7 @@ test('nothing draws behind the splash: the loop returns while it is open, no bac
   assert.match(main,/composer\.render\(\);const renderMs=performance\.now\(\)-renderAt;\{const step=adaptive\.frame\(ms,frameCostNow\(ms\),quality\.tier\)/,'the drawn frame time feeds the adaptive tier');
   assert.match(main,/renderStats\.end\(dt,\{update:updateMs,render:renderMs\}\)/,'the F9 panel shows where the main thread goes');
   assert.match(main,/installLive\(\{scene,camera,controls,renderer,/,'the live game gets the renderer for shader warm-up');
-  const liveSrc=readFileSync(new URL('./live.js',import.meta.url),'utf8');
+  const liveSrc=liveSource();
   assert.match(liveSrc,/function warmUp\(\)\{if\(!staged\|\|!renderer\?\.compileAsync\)return;staged=false;[^}]*compileFor\(renderer,warmTarget,\(\)=>renderer\.compileAsync\(scene,camera\)\)/,'new materials compile ahead of their first draw, for the variant the composer draws');
   assert.equal((liveSrc.match(/staged=true;/g)||[]).length,3,'tiles, items and actors each mark the frame as staged');
   assert.match(main,/adaptive\.manual\(\);/,'F8 pins the tier');
@@ -134,26 +135,26 @@ test('menu accelerators use a monospace whose capital I and small l differ (Inte
 });
 
 test('a GLB creature is outlined with smoothed normals once its model swaps in',()=>{
-  const live=readFileSync(new URL('./live.js',import.meta.url),'utf8');
+  const live=liveSource();
   assert.match(live,/attachModelAsset\(a,cell\.name,MODEL_URLS\)\?\.then\(asset=>\{if\(asset\)addOutlines\(asset\.model,\{smooth:true\}\);\}\);/);
 });
 
 test('monsters and pets carry no health bar or total; only the hero HUD shows hitpoints', () => {
-  const live = read('live.js'), html = read('index.html');
+  const live = liveSource(), html = read('index.html');
   assert.doesNotMatch(live, /health-bar|createHealthBar|hpBar|cell\.health/, 'no bar is built over any monster, pet included');
   assert.match(html, /<div class="health"><span>HITPOINTS<\/span><strong id="hp">/, 'the hero total is labelled hitpoints');
   assert.doesNotMatch(html, /VITALITY/i);
 });
 
 test('a burst of messages redraws the message panels once, on the next frame', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   const msg = live.slice(live.indexOf(' function message(text){'), live.indexOf(' function drawMessagePanels(){'));
   assert.ok(msg.includes('requestAnimationFrame(drawMessagePanels)') && !msg.includes('replaceChildren'), 'message() only schedules the redraw');
   assert.match(live, /function drawMessagePanels\(\)\{messagePanelsDue=false;[^\n]*replaceChildren[^\n]*historyPanel\.refresh\(\);\}/);
 });
 
 test('the demo room is gone: no ?demo, no demo scene, no Demo room or Reset room buttons', () => {
-  const html = read('index.html'), main = read('main.js'), live = read('live.js'), screen = read('start-screen.js'), cover = read('start-cover.js');
+  const html = read('index.html'), main = read('main.js'), live = liveSource(), screen = read('start-screen.js'), cover = read('start-cover.js');
   assert.ok(!existsSync(new URL('./simulation.js', import.meta.url)), 'the demo simulation is deleted');
   for (const [name, src] of [['main.js', main], ['live.js', live], ['start-screen.js', screen], ['start-cover.js', cover]]) {
     assert.doesNotMatch(src, /has\('demo'\)|'Demo room'|demoObjects|onDemo|simulation\.js/, `${name} has no demo room`);

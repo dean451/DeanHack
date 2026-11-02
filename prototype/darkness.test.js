@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {lightAround, inCircle, CIRCLES, createDarkness, VEIL_ALPHA, HALO_ALPHA, LIGHT_EDGE, HALO_HALF} from './darkness.js';
+import {liveSource} from './live-source.js';
 
 // A frame with the hero at (10,5) and the given cells visible (offsets from the hero); everything
 // else in a 15x9 block is remembered floor out of sight.
@@ -102,7 +103,7 @@ test('adds no lights, two meshes in all, and costs nothing per cell', () => {
 });
 
 test('live.js keeps its tuned lighting constants and wires the dark in', () => {
-  const src = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const src = liveSource();
   assert.match(src, /TORCH_INTENSITY=15,LIVE_AMBIENT=\.68,/);
   assert.match(src, /const lantern=new THREE\.PointLight\(0xffd49c,22,11,2\)/);
   assert.match(src, /darkness\.frame\(frame\)/);

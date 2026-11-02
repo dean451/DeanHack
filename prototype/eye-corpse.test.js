@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {createCorpse} from './corpse.js';
 import {motePose, MOTES} from './eye-corpse.js';
+import {liveSource} from './live-source.js';
 
 const factory = {creatureFactory: createCreature, symbol: 'e'.charCodeAt(0)};
 const parts = g => { const out = {}; g.traverse(o => { if (o.isMesh) out[o.userData.part] = o; }); return out; };
@@ -75,7 +76,7 @@ test('the eye corpse stays inside the floor-item mesh and material caps and shar
 });
 
 test('the live scene animates the eye corpse from its ground-items loop', async () => {
-  const live = await readFile(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   assert.match(live, /icon\.userData\.corpseFx=corpse\.userData\.fx/);
   assert.match(live, /item\.userData\.corpseFx\?\.userData\.update\(t\)/);
 });

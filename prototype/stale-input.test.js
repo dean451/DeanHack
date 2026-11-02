@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {isStale, guardStaleInput, STALE_INPUT_MS} from './stale-input.js';
+import {liveSource} from './live-source.js';
 
 test('an event handled long after it happened is stale; a fresh one, or one with no usable time, is not', () => {
   assert.equal(isStale({timeStamp: 1000}, 1000 + STALE_INPUT_MS + 1), true);
@@ -24,5 +25,5 @@ test('the guard swallows stale keys and clicks before the game sees them, only w
 });
 
 test('live.js guards its input', () => {
-  assert.match(readFileSync(new URL('./live.js', import.meta.url), 'utf8'), /guardStaleInput\(globalThis,\(\)=>active\);/);
+  assert.match(liveSource(), /guardStaleInput\(globalThis,\(\)=>active\);/);
 });

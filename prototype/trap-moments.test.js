@@ -21,6 +21,7 @@ import {isIceTrapMessage} from './ice-trap.js';
 import {isTeleportMessage} from './teleport-blink.js';
 import {isPortalMessage} from './magic-portal.js';
 import {trapdoorMessage} from './dig-drop.js';
+import {liveSource} from './live-source.js';
 
 // Every trap kind `trapKind` can return, the NetHack message that springs it, the module
 // matcher keyed on that message, and the creator `live.js` wires in.
@@ -69,7 +70,7 @@ test('every trap kind has a trigger moment keyed on its NetHack message, or is a
 });
 
 test('each moment fires on its message and is wired into live.js', () => {
-  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  const live = liveSource();
   for (const [kind, [message, matches, creator]] of Object.entries(MOMENTS)) {
     assert.ok(matches(message), `${kind}: matcher rejects "${message}"`);
     assert.ok(!matches('You see here a dagger.'), `${kind}: matcher is too loose`);

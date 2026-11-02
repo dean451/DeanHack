@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 import {createFadePrewarm, fadeTwin} from './fade-prewarm.js';
 import {applyFade} from './deaths.js';
+import {liveSource} from './live-source.js';
 
 test('each new piece gets a see-through stand-in once, sharing its geometry and skeleton', () => {
   const root = new THREE.Group(), mat = new THREE.MeshStandardMaterial(), geo = new THREE.BoxGeometry();
@@ -29,7 +30,7 @@ test('the death fade makes exactly the copy that was compiled', () => {
 
 test('live.js prewarms the fade copies in its warm-up, and deaths.js and ghosting.js use fadeTwin', () => {
   const read = f => readFileSync(new URL(f, import.meta.url), 'utf8');
-  assert.match(read('./live.js'), /const fades=fadePrewarm\.stage\(\[hero\.g,\.\.\.\[\.\.\.actors\.values\(\)\]\.map\(a=>a\.g\)\]\);if\(fades\)compileFor\(renderer,warmTarget,\(\)=>renderer\.compileAsync\(fades,camera,scene\)\)/);
+  assert.match(liveSource(), /const fades=fadePrewarm\.stage\(\[hero\.g,\.\.\.\[\.\.\.actors\.values\(\)\]\.map\(a=>a\.g\)\]\);if\(fades\)compileFor\(renderer,warmTarget,\(\)=>renderer\.compileAsync\(fades,camera,scene\)\)/);
   assert.match(read('./deaths.js'), /const m = fadeTwin\(o\.material\);/);
   assert.match(read('./ghosting.js'), /const m = fadeTwin\(o\.material\);/);
 });
