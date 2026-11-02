@@ -34,7 +34,7 @@ test('a monster just past the edge still animates (its reach), so nothing pops a
 
 test('live.js skips only after the slide, and updates the view once a frame', () => {
   const live = liveSource();
-  const slide = live.indexOf('slideTo(a,dt);if(a.legs)'), skip = live.indexOf('if(restsUnseen(a,walking,viewCull))continue;');
+  const slide = live.indexOf('slideTo(a,pdt);if(a.legs)'), skip = live.indexOf('if(restsUnseen(a,walking,viewCull))continue;');
   assert.ok(slide > 0 && skip > slide && skip - slide < 200);
   assert.match(live, /viewCull\.update\(camera\);for\(const a of actors\.values\(\)\)\{clearActionPose/);
 });
