@@ -102,11 +102,15 @@ export function mergeSkins(body, first, cache) {
 // skeleton, so the limb bends together and the mesh count is unchanged. Cached per geometry, so
 // every member built alike shares the skinned copies.
 const LIMBS = new WeakMap();
-export function skinPlainLimb(group, prefix, all = false) {
+const IDENTITY = new THREE.Matrix4();
+export function skinPlainLimb(group, prefix, all = false, bake = false) {
   const plain = group.children.filter(o => o.isMesh && !o.isSkinnedMesh).slice(0, all ? Infinity : 1);
   if (!plain.length) return;
-  let y = 0; for (const m of plain) { m.geometry.computeBoundingBox(); y = Math.min(y, m.geometry.boundingBox.min.y); }
-  const skinned = m => { if (!LIMBS.has(m.geometry)) LIMBS.set(m.geometry, skinChain(m.geometry.clone(), [[0, 0, 0], [0, .5 * y, 0], [0, .9 * y, 0]])); return LIMBS.get(m.geometry); };
+  // `bake`: a mesh set off its group's origin (a hoof or a sock placed with `position`) carries that place into its
+  // geometry, or the skin would draw it at the origin.
+  const geo = new Map(plain.map(m => { m.updateMatrix(); return [m, bake && !m.matrix.equals(IDENTITY) ? m.geometry.clone().applyMatrix4(m.matrix) : m.geometry]; }));
+  let y = 0; for (const m of plain) { const g = geo.get(m); g.computeBoundingBox(); y = Math.min(y, g.boundingBox.min.y); }
+  const skinned = m => { const g = geo.get(m); if (!LIMBS.has(g)) LIMBS.set(g, skinChain(g === m.geometry ? g.clone() : g, [[0, 0, 0], [0, .5 * y, 0], [0, .9 * y, 0]])); return LIMBS.get(g); };
   let first = null;
   for (const m of plain) {
     group.remove(m);

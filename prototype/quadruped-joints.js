@@ -4,16 +4,17 @@
 // legs `lleg0` / `rleg0` fore and `lleg1` / `rleg1` hind (left is -x, fore is +z). A leg that is one plain mesh
 // (rothe, wumpus, baluchitherium) or of several (the elephants, the titanothere, the leocrotta) is skinned onto
 // three bones `<leg>_0`..`_2`, hip, knee and fetlock, as the wild cats' legs are. `{skin:false}` only names the
-// groups (the horses and unicorns, whose hooves and socks the plain-limb skin does not yet keep).
+// groups. `bake`: the leg's parts sit off its origin (the horses' hooves and socks), so their place is baked into
+// the skin's geometry.
 import {skinPlainLimb} from './trunk-skin.js';
 
-export function nameQuadrupedJoints(actor,{skin=true}={}){
+export function nameQuadrupedJoints(actor,{skin=true,bake=false}={}){
  const {head,tail,legs}=actor,joints={head,neck0:actor.neck||head,tail0:tail};
  head.name='head';tail.name='tail';
  for(const leg of legs){
   const name=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);
   leg.name=name;joints[name]=leg;
-  if(skin)skinPlainLimb(leg,name+'_',true);
+  if(skin)skinPlainLimb(leg,name+'_',true,bake);
   leg.traverse(b=>{if(b.isBone)joints[b.name]=b;});
  }
  actor.joints=joints;
