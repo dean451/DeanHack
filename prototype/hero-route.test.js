@@ -46,5 +46,5 @@ test('live.js plans the route when the hero moves several squares and walks it i
   const live = liveSource();
   assert.match(live, /const path=planRoute\(frame\.cells,from,to\)/);
   assert.match(live, /if\(!walkRoute\(hero,dt\)\)hero\.g\.position\.lerp\(hero\.target,1-Math\.exp\(-dt\*14\)\);/);
-  assert.match(live, /else if\(v\.type==='teleport'\)\{heroTeleportAt=performance\.now\(\);/, 'a teleport still jumps');
+  assert.match(live, /else if\(v\.type==='teleport'\)\{S\.heroTeleportAt=performance\.now\(\);/, 'a teleport still jumps');
 });

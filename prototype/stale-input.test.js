@@ -25,5 +25,5 @@ test('the guard swallows stale keys and clicks before the game sees them, only w
 });
 
 test('live.js guards its input', () => {
-  assert.match(liveSource(), /guardStaleInput\(globalThis,\(\)=>active\);/);
+  assert.match(liveSource(), /guardStaleInput\(globalThis,\(\)=>S\.active\);/);
 });

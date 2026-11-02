@@ -119,10 +119,10 @@ test('the tombstone card says who, what and where, in the game\'s words, with no
 test('the live game wires the link watch and the tombstone into the splash',()=>{
   const live=liveSource();
   assert.match(live,/createLinkWatch\(\{onLost:/);
-  assert.match(live,/es\.onerror=\(\)=>\{[^}]*link\.lost\(\)/,'a stream error starts the grace period');
-  assert.match(live,/es\.onopen=async\(\)=>/,'a reopened stream checks the session token');
-  assert.match(live,/if\(seq<since\)\{link\.restart\(\);/,'polling notices a server restart');
-  assert.match(live,/startScreen\.open\(\{note,death\}\)/,'the tombstone reaches the splash');
+  assert.match(live,/es\.onerror=\(\)=>\{[^}]*S\.link\.lost\(\)/,'a stream error starts the grace period');
+  assert.match(live,/es\.onopen=async\(\)=>/,'a reopened stream checks the session S.token');
+  assert.match(live,/if\(seq<since\)\{S\.link\.restart\(\);/,'polling notices a server restart');
+  assert.match(live,/S\.startScreen\.open\(\{note,death\}\)/,'the tombstone reaches the splash');
   assert.match(live,/id='link-banner'/);
 });
 
@@ -276,7 +276,7 @@ test('Descend runs the ASCII spiral descent before the game starts, the splash h
   assert.match(src,/if\(spiral\.still\|\|!win\?\.setTimeout\)return Promise\.resolve\(\);/,'reduced motion skips it');
   assert.match(src,/const open=\(\{note:line='',death=null,focus=true\}=\{\}\)=>\{\n\s*clearDescent\(\);/,'coming back to the splash clears any descent');
   assert.match(src,/return \{el,open,close,landed\};/);
-  assert.match(live,/if\(v\.kind==='command'\)startScreen\?\.landed\?\.\(\);/,'the first command prompt, after the opening text, lands the descent');
+  assert.match(live,/if\(v\.kind==='command'\)S\.startScreen\?\.landed\?\.\(\);/,'the first command prompt, after the opening text, lands the descent');
   assert.match(css,/\.start-spiral\{[^}]*background:#030609;/,'opaque: the dungeon waits behind it');
   assert.match(css,/\.start-spiral\{position:fixed;inset:0;z-index:62;[^}]*pointer-events:none;[^}]*opacity:0;transition:opacity/);
   assert.match(css,/body\.start-descending dialog pre\{animation:intro-fade/,'the opening text fades in');
@@ -288,6 +288,6 @@ test('the descent\'s spiral can never cover the page for good: a watchdog lands 
   assert.match(src, /export const LANDING_MS=15000;/);
   assert.match(src, /spiral\.el\.classList\.replace\('zoom','rest'\);[\s\S]{0,400}watchdog=win\.setTimeout\(\(\)=>\{watchdog=null;landed\(\);\},LANDING_MS\);/, 'resting starts the watchdog');
   assert.match(src, /if\(watchdog\)\{win\?\.clearTimeout\?\.\(watchdog\);watchdog=null;\}/, 'clearing the descent stops it');
-  assert.match(live, /catch\(e\)\{startScreen\?\.landed\?\.\(\);/, 'an engine that fails to start lifts the spiral so its message shows');
+  assert.match(live, /catch\(e\)\{S\.startScreen\?\.landed\?\.\(\);/, 'an engine that fails to start lifts the spiral so its message shows');
   assert.doesNotMatch(css.match(/\.start-spiral\{[^}]*\}/)[0], /text-shadow/, 'no per-glyph shadow: it held the swirl to about 5 fps');
 });

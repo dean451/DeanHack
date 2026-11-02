@@ -54,7 +54,7 @@ test('the player paces the engine messages, reports the replies, and steps to th
 test('live.js records what it handles and sends, and a replay sends nothing', () => {
   const live = liveSource(), main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
   assert.match(live, /const handle=v=>\{recorder\.record\('in',v\);/);
-  assert.match(live, /async function reply\(value\)\{if\(!pending\|\|replaying\)return;const req=pending;recorder\.record\('out'/);
-  assert.match(live, /startReplay\(\)\{replaying=true;recorder\.enabled=false;setMode\(true\);connect\(\{replay:true\}\);return currentHandle;\}/);
+  assert.match(live, /async function reply\(value,L\)\{const \{[^}]*\}=L;if\(!S\.pending\|\|S\.replaying\)return;const req=S\.pending;recorder\.record\('out'/);
+  assert.match(live, /startReplay\(\)\{S\.replaying=true;recorder\.enabled=false;setMode\(true\);connect\(\{replay:true\}\);return S\.currentHandle;\}/);
   assert.match(main, /if\(wantsReplay\(location\.search\)\)mountReplayUI\(\{live\}\);/);
 });
