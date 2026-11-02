@@ -32,6 +32,11 @@ export function restPose(a, rest = REST) {
     // the hand hangs over the knee at its own side, a little above it, the arm slack
     goals.push(goal.reach(`paw:${side}f`, () => P[`hip:${side}`]().lerp(P[`paw:${side}h`](), .5).add(new THREE.Vector3(P[`shoulder:${side}`]().x - P[`hip:${side}`]().x, rest.lap * stand, 0)), {within: .06 * s}));
   }
+  // a rest that names a head carriage (the kobolds') holds the mouth low and out ahead of the pelvis
+  if (rest.mouth) {
+    goals.push(P2 => [3 * Math.max(0, P2.mouth().y - (floor + rest.mouth.low * stand))]);
+    goals.push(P2 => [3 * Math.max(0, rest.mouth.fwd * stand - (P2.mouth().z - P2.rump().z))]);
+  }
   const lowest = group => () => { const b = new THREE.Box3().setFromObject(group, true); return [new THREE.Vector3(0, b.min.y, 0)]; };
   for (const name of Object.keys(j).filter(n => /^[lr](leg1|fore)$|^head/.test(n))) goals.push(goal.clear(lowest(j[name]), {y: floor - .008 * s}));
   const skins = [], v = new THREE.Vector3();
