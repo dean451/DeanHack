@@ -71,5 +71,7 @@ export function createPrayerKneel() {
     },
     clear(actor) { if (applied) applyTracked(actor, applied, -1); applied = null; age = null; },
     get playing() { return age !== null; },
+    // seconds of kneel still to come (crowning.js waits for it)
+    get remaining() { return age === null ? 0 : Math.max(0, KNEEL_TIME - age); },
   };
 }
