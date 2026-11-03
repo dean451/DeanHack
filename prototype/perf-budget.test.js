@@ -157,5 +157,5 @@ test('no CSS animation drives a backdrop-filter', () => {
 test('the scene graph\'s world matrices are updated once a frame, not once per pass that draws the scene', () => {
   const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
   assert.match(main, /const scene=new THREE\.Scene\(\);scene\.matrixWorldAutoUpdate=false;/);
-  assert.match(main, /scene\.updateMatrixWorld\(\);composer\.render\(\);/, 'updated just before the composer draws');
+  assert.match(main, /scene\.updateMatrixWorld\(\);\/\*[^]*?\*\/live\.syncInstances\(\);composer\.render\(\);/, 'updated just before the composer draws, with only the tile instances synced in between (tile-instances.js)');
 });
