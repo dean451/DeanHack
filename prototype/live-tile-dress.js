@@ -8,7 +8,7 @@ import {createTree} from './tree.js';
 import {ladderShown,createLadder} from './ladder.js';
 import {createStairs} from './stairs.js';
 import {trapKind,createTrap} from './trap.js';
-import {featureKind,coveredFeature,createTerrainFeature,AXIS_FEATURES} from './terrain-feature.js';
+import {featureKind,bridgeKind,coveredFeature,createTerrainFeature,AXIS_FEATURES} from './terrain-feature.js';
 import {createSheolVortex,animatePortal} from './portal-fx.js';
 import {createVibratingSquare} from './vibrating-square.js';
 
@@ -30,7 +30,7 @@ export function dressStairs(tile,cell){
   tile.add(model);tile.userData.stairs=[model];tile.userData.stairsKey=key;tile.userData.ladder=ladder;
  }
 export function dressFeature(tile,cell,{animated,tileInstances}={}){
-  const trap=trapKind(cell.symbol,cell.color,cell.trap),other=trap?null:featureKind(cell.symbol,cell.color);
+  const trap=trapKind(cell.symbol,cell.color,cell.trap),other=trap?null:bridgeKind(cell)??featureKind(cell.symbol,cell.color);
   const kind=trap||other,portal=trap==='portal'&&cell.portal||null,key=portal?`portal:${portal}`:kind||(tile.userData.featureKey||coveredFeature(cell)?null:'label');
   if(!key||key===tile.userData.featureKey)return;
   if(tile.userData.feature){tile.userData.feature.traverse(o=>o.userData.dispose?.());tile.remove(tile.userData.feature);}

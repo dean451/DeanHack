@@ -24,6 +24,10 @@ export function featureKind(symbol,color){
  return null;
 }
 
+// A drawbridge, from the bridge's own `bridge` field ('down' or 'up'), which it sends whatever stands on the
+// square: the hero, a monster or a corpse on a lowered bridge must never turn it into bare floor.
+export function bridgeKind(cell){return cell?.bridge==='down'?'bridge-down':cell?.bridge==='up'?'bridge-up':null;}
+
 // A monster or item standing on a feature tile (ice, bog, a lowered bridge) shows its own symbol, so
 // the feature cannot be told from it. Such a tile waits for the feature's own symbol instead of
 // falling back to a label of the occupant's character (a towel's "(" or a long worm's "~" floating
