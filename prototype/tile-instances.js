@@ -1,9 +1,13 @@
 // The level's repeated pieces (floor slabs, wall blocks, pebbles) drawn as instances: one draw
 // per (geometry, material) pair instead of one per tile. A tile keeps its own meshes as proxies
 // (hidden from every camera by their layer), so everything that dresses, hides or releases a
-// tile goes on working on them; each proxy's world matrix is copied into its instance, from the
-// instanced mesh's own render hooks so the matrices are current, whenever a tile was added or
-// the level changed. A hidden proxy (a slab under water, an unseen tile) gets a zero matrix. A
+// tile goes on working on them; each proxy's world matrix is copied into its instance whenever a
+// tile was added or the level changed. main.js calls sync() once a frame, after the scene's world
+// matrices are updated and before the draw. It must come before the draw: three uploads an
+// InstancedMesh's instance matrices while it gathers the scene, before any render hook runs, so a
+// sync from the hook alone drew the previous upload, and a new bin's first frame drew its
+// constructor's identity matrices: a pebble a metre across at the origin, where the hero stands
+// after taking the stairs. The render hooks still sync, as a fallback for a draw nothing else synced. A hidden proxy (a slab under water, an unseen tile) gets a zero matrix. A
 // pair of one is left alone: nothing to gain. Only three's own mesh materials are taken, since a
 // custom shader has to opt into instancing itself.
 import * as THREE from 'three';

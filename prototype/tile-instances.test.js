@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createTileInstancer, instanceable, PROMOTE_AT} from './tile-instances.js';
@@ -80,4 +81,27 @@ test('a proxy keeps a frozen local matrix while instanced (no per-pass recompose
   assert.equal(proxies[1].matrixWorld.elements[12], 1, 'the world matrix still follows the tile');
   inst.clear();
   assert.ok(proxies.every(p => p.matrixAutoUpdate === true));
+});
+
+// The rock on the stairs (the user, 2026-11-03: "when you go up stairs a big rock flickers on the character model and
+// goes away"). three uploads an InstancedMesh's matrices while it gathers the scene, before onBeforeRender, so a new
+// level's first frame drew the pebbles' constructor identity matrices: a unit rock at the origin, where the hero stood.
+test('the frame syncs the tile instances after the world matrices and before the draw', () => {
+  const main = readFileSync(new URL('./main.js', import.meta.url), 'utf8');
+  const i = main.indexOf('scene.updateMatrixWorld();'), j = main.indexOf('live.syncInstances();'), k = main.indexOf('composer.render();');
+  assert.ok(i >= 0 && j > i && k > j, 'updateMatrixWorld, then syncInstances, then the draw');
+  assert.match(readFileSync(new URL('./live.js', import.meta.url), 'utf8'), /syncInstances\(\)\{tileInstances\.sync\(\);\}/);
+});
+
+test('a sync before the draw leaves the instances in place, so the render hook has nothing left to do', () => {
+  const root = new THREE.Group(), inst = createTileInstancer(root), geo = new THREE.DodecahedronGeometry(1, 0), mat = new THREE.MeshStandardMaterial();
+  const tiles = [0, 1].map(x => { const t = new THREE.Group();t.position.set(x * 3, 0, 5);const p = new THREE.Mesh(geo, mat);p.scale.setScalar(.03);t.add(p);root.add(t);return t; });
+  for (const t of tiles) inst.add(t);
+  root.updateMatrixWorld(true);
+  inst.sync();
+  const mesh = inst.meshes()[0], m = new THREE.Matrix4(), s = new THREE.Vector3();
+  assert.equal(mesh.count, 2);
+  for (let k = 0; k < 2; k++) { mesh.getMatrixAt(k, m);s.setFromMatrixScale(m);assert.ok(s.x < .05, `instance ${k} is pebble-sized, not a unit rock`); }
+  const before = mesh.instanceMatrix.version;mesh.onBeforeRender({info: {render: {frame: 7}}});
+  assert.equal(mesh.instanceMatrix.version, before, 'nothing changes inside the draw');
 });
