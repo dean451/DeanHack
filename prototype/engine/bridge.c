@@ -89,7 +89,10 @@ static int under_glyph(int x,int y,int b) {
     c=glyph_to_cmap(m);
     if (c==S_fountain || c==S_altar || c==S_throne || c==S_sink || c==S_grave ||
         c==S_upstair || c==S_dnstair || c==S_upladder || c==S_dnladder ||
-        c==S_tree || c==S_deadtree || c==S_ndoor || c==S_vodoor || c==S_hodoor) return m;
+        c==S_tree || c==S_deadtree || c==S_ndoor || c==S_vodoor || c==S_hodoor ||
+        /* a drawbridge under the hero, a monster or a corpse must not turn into bare floor: a
+           hidden bridge is a death trap (standing under a raised one, or by one being destroyed) */
+        c==S_vodbridge || c==S_hodbridge || c==S_vcdbridge || c==S_hcdbridge) return m;
     return b;
 }
 static const char *object_kind(int glyph) {
@@ -467,6 +470,11 @@ static void frame_body(void) {
            had a door, so the client can keep the jamb and scatter splinters. Same test as farlook. */
         else if(glyph_is_cmap(terrain_glyph)&&glyph_to_cmap(terrain_glyph)==S_ndoor&&IS_DOOR(levl[x][y].typ)&&
                 (levl[x][y].doormask&~D_TRAPPED)==D_BROKEN&&is_drawbridge_wall(x,y)<0)printf(",\"door\":\"broken\"");
+        /* A drawbridge, whatever stands on it: the client builds the bridge from this, since the shown
+           symbol is then the occupant's (terrain-feature.js). Only what under_glyph already says is there. */
+        if(glyph_is_cmap(terrain_glyph)){int tc=glyph_to_cmap(terrain_glyph);
+            if(tc==S_vodbridge||tc==S_hodbridge)printf(",\"bridge\":\"down\"");
+            else if(tc==S_vcdbridge||tc==S_hcdbridge)printf(",\"bridge\":\"up\"");}
         printf(",\"invisible\":%s",glyph_is_invisible(g)?"true":"false");
         /* An object the hero knows of without ever having seen its square (object detection,
            a crystal ball): the cell was never "remembered" in the seen sense, so say so. */
