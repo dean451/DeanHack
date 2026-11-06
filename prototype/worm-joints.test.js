@@ -57,8 +57,40 @@ test('turning neck1 or neck2 moves everything past it and nothing before it',()=
 
 test('a worm with the neck at rest keeps the same ring layout as before the chain',()=>{
  const a=make('purple worm');a.g.updateMatrixWorld(true);
- const w=a.joints.neck0.position;
+ const w=a.body.worldToLocal(world(a.joints.neck0));
  assert.deepEqual([w.x,w.y,w.z].map(v=>+v.toFixed(3)),[0,.2,.02]);
  const h=world(a.joints.head).sub(world(a.joints.neck0));
  assert.deepEqual([h.x,h.y,h.z].map(v=>+v.toFixed(3)),[0,.19,.27].map(v=>+(v*(a.g.scale.x)).toFixed(3)));
+});
+
+test('the rear arch is a chain: spine0..spine3 with the neck on the last',()=>{
+ for(const name of NAMES){
+  const a=make(name),j=a.joints;
+  for(const k of ['spine0','spine1','spine2','spine3'])assert(j[k]&&j[k].name===k,`${name}: ${k}`);
+  assert.equal(j.spine0.parent,a.body,name);
+  for(const k of [1,2,3])assert.equal(j['spine'+k].parent,j['spine'+(k-1)],`${name}: spine${k}`);
+  assert.equal(j.neck0.parent,j.spine3,`${name}: the neck hangs on spine3`);
+ }
+});
+
+test('turning a spine joint moves everything past it and nothing before it',()=>{
+ for(const name of NAMES){
+  for(const [k,past,before] of [['spine1',['spine2','spine3','neck0','head'],['spine0']],['spine2',['spine3','neck0','neck2','head'],['spine0','spine1']]]){
+   const a=make(name);a.g.updateMatrixWorld(true);
+   const j=a.joints,p0=past.map(n=>world(j[n])),b0=before.map(n=>world(j[n]));
+   const meshes=[];j[k].traverse(o=>{if(o.isMesh)meshes.push(o);});
+   assert(meshes.length>=2,`${name}: ${k} carries its ring and band`);
+   j[k].rotation.x+=.5;a.g.updateMatrixWorld(true);
+   past.forEach((n,i)=>assert(world(j[n]).distanceTo(p0[i])>.005,`${name}: ${n} moved with ${k}`));
+   before.forEach((n,i)=>assert(world(j[n]).distanceTo(b0[i])<1e-9,`${name}: ${n} stayed`));
+  }
+ }
+});
+
+test('the soil mounds stay on the body when the arch bends',()=>{
+ const a=make('purple worm');a.g.updateMatrixWorld(true);
+ const mounds=a.body.children.filter(c=>c.isMesh),m0=mounds.map(world);
+ assert(mounds.length>=3);
+ a.joints.spine0.rotation.x+=.5;a.g.updateMatrixWorld(true);
+ mounds.forEach((c,i)=>assert(world(c).distanceTo(m0[i])<1e-9));
 });
