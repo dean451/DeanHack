@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
-import {suitLook, wearFinish, cloakColor, wearGear, SUIT_PIECES, CLR} from './hero-gear.js';
+import {suitLook, wearFinish, cloakColor, wearGear, SUIT_PIECES, CLR, CAP_R, CHEST_SHOULDER_R} from './hero-gear.js';
 
 const I = (name, mat, color = 7) => ({name, mat, color, otyp: 1});
 const NONE = {suit: null, cloak: null, shirt: null, gloves: null, boots: null};
@@ -43,10 +43,10 @@ function hero(valkyrie = false) {
   return {parts, kitKey: valkyrie ? 'Valkyrie:female' : 'Knight:female'};
 }
 
-test('plate shows pauldrons, tassets and leg plates; mail drops the pauldrons; nothing is a padded shirt', () => {
+test('plate shows pauldrons and tassets; mail drops the pauldrons; nothing is a padded shirt', () => {
   const h = hero();
   assert.equal(wearGear(h, {...NONE, suit: I('plate mail', 'iron')}), true);
-  assert.ok(h.parts.chest.visible && h.parts.pauldrons[0].visible && h.parts.tassets[0].visible && h.parts.legGear[0].visible);
+  assert.ok(h.parts.chest.visible && h.parts.pauldrons[0].visible && h.parts.tassets[0].visible);
   assert.equal(h.parts.mats.armor.color.getHexString(), '6f7f86', 'iron keeps the kit\'s steel');
   wearGear(h, {...NONE, suit: I('ring mail', 'iron')});
   assert.ok(h.parts.chest.visible && !h.parts.pauldrons[0].visible && h.parts.tassets[0].visible && !h.parts.legGear[0].visible);
@@ -95,4 +95,36 @@ test('the live game dresses the hero from the frame\'s worn armour, and the brid
   const bridge = readFileSync(new URL('./engine/bridge.c', import.meta.url), 'utf8');
   for (const [slot, v] of [['suit', 'uarm'], ['cloak', 'uarmc'], ['shirt', 'uarmu'], ['gloves', 'uarmg'], ['boots', 'uarmf']]) assert.match(bridge, new RegExp(`${slot}\\\\":"\\);worn_piece\\(${v}\\)`));
   assert.match(bridge, /materialnm\[objects\[o->otyp\]\.oc_material\]/, 'the appearance\'s material, never the true type');
+});
+
+// The user, 2026-11-04: "without boots it doesn't look like she has feet and again the arms aren't touching the body."
+// The rig's legGear is its boots (cuff, foot, sole, straps), so it follows the boots slot, and bare feet stand in without
+// boots; with no pauldrons, caps at the shoulders join the arms to a torso widened to meet them.
+function rig({armX = .26} = {}) {
+  const h = hero(), p = h.parts, skin = new THREE.MeshStandardMaterial({color: '#d6a88c'});p.mats.skin = skin;
+  p.legs = [new THREE.Group(), new THREE.Group()];p.arm = new THREE.Group();p.arm.position.x = armX;p.shieldArm = new THREE.Group();p.shieldArm.position.x = -armX;
+  return h;
+}
+test('boots show the rig\'s boots; no boots shows bare feet, never a stump', () => {
+  const h = rig(), feet = () => h.parts.gearBody.feet;
+  wearGear(h, NONE);
+  assert.ok(!h.parts.legGear[0].visible, 'no boots drawn');assert.ok(feet().length === 4 && feet().every(f => f.visible), 'a bare foot and toes on each leg');
+  assert.ok(feet().every(f => f.material === h.parts.mats.skin));
+  wearGear(h, {...NONE, boots: I('high boots', 'leather', 3)});
+  assert.ok(h.parts.legGear[0].visible && feet().every(f => !f.visible));
+  wearGear(h, {...NONE, suit: I('plate mail', 'iron')});
+  assert.ok(!h.parts.legGear[0].visible && feet().every(f => f.visible), 'plate mail does not bring boots');
+});
+test('without pauldrons the shoulders are capped and the torso widened to meet the arms; plate puts it all back', () => {
+  const h = rig({armX: .3}), caps = () => h.parts.gearBody.caps;
+  wearGear(h, NONE);
+  assert.ok(caps().length === 2 && caps().every(c => c.visible && c.material === h.parts.mats.armor), 'a cap at each shoulder, in the shirt');
+  const sx = h.parts.chest.scale.x;assert.ok(sx > 1.15 && sx <= 1.3, `the torso widened (${sx})`);
+  const inner = .3 - .022 - CAP_R, torso = CHEST_SHOULDER_R * sx;assert.ok(torso >= inner, `the caps meet the torso (${inner} vs ${torso})`);
+  wearGear(h, {...NONE, suit: I('plate mail', 'iron')});
+  assert.ok(caps().every(c => !c.visible));assert.equal(h.parts.chest.scale.x, 1);
+});
+test('a robe or tunic covers the shoulders already; a tabard does not', () => {
+  const w = rig();w.kitKey = 'Wizard:female';wearGear(w, NONE);assert.ok(w.parts.gearBody.caps.every(c => !c.visible), 'the robe has its own shoulders');
+  const k = rig();k.kitKey = 'Knight:female';wearGear(k, NONE);assert.ok(k.parts.gearBody.caps.every(c => c.visible), 'a tabard is only a front panel');
 });
