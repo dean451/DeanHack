@@ -266,3 +266,22 @@ The thirteenth monster family (AGENTS.md, family **o**). Measured from a soldier
 *Not found:* a slump as an angle in degrees (the studies found say only that slump sitting has more thoracic flexion and less lumbar lordosis), any gait number for a short, broad soldier, and any figure for a rough, unmarching troop's pace. No number is claimed for them; the pose stages set them by eye.
 
 **What the goblins and orcs take from this.** A drilled march is about two steps a second with a step three quarters of a metre long, a pace of about 1.5 m/s, a little faster than a person's usual walk (1.31 m/s); a straggling band marches slower and uneven, near 106 a minute, and a charge runs near 180. At ease, the feet stand about 25 to 30 cm apart (a human's; scale it by leg length) and the hands go behind the back. A slouch is mostly the lower back rounding; there is no angle to cite, so the sit's slump is a character choice.
+
+## Heavy quadrupeds (rothe, mumak, leocrotta, wumpus, titanothere, baluchitherium)
+
+The seventeenth monster family in the plan (AGENTS.md, family **q**). Measured from the animals each is drawn from: an Asian elephant for the walk, a cow for lying down, a rhinoceros for sleep. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Elephant, cow and rhinoceros (walk, lying, sleep)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Elephant walk | Asian elephants walking at about 1.1 m/s on a 15 m path: mean stride length 192 to 199 cm, mean gait cycle time 2.26 to 2.34 s for each limb | [Kongsawasdi et al. 2017, Kafkas Univ Vet Fak Derg](https://vetdergikafkas.org/abstract.php?id=2053) |
+| Elephant speeds | over 2,400 strides of 14 African and 48 Asian elephants, from a slow walk at 0.40 m/s up; the fastest verified Asian elephant ran 6.8 m/s; elephants speed up mostly by raising stride frequency | [Hutchinson et al. 2006, J Exp Biol 209](https://cob.silverchair.com/jeb/article/209/19/3812/16362/The-locomotor-kinematics-of-Asian-and-African) |
+| Cow lying | a majority of lactating cows lie down about 10 to 12 hours a day; on pasture 9.3 hours, in a freestall barn 11.4 | [Lying Time of Dairy Cows, Texas Dairy Matters](https://texasdairymatters.tamu.edu/files/2022/01/Lying-Time-of-Dairy-Cows.-Importance-of-a-behavioral-need.pdf) |
+| Rhinoceros sleep | rhinos sleep in intervals totalling up to about eight hours a day, standing or lying; deep sleep is lying down with the feet curled slightly to one side | [International Rhino Foundation, How much do rhinos sleep?](https://rhinos.org/blog/how-much-do-rhinos-sleep/) |
+
+*Disagreement:* a stride of 1.96 m every 2.3 s is 0.85 m/s, under the 1.1 m/s the same summary quotes; both are kept and the poses take the stride and its time, which are the ones a gait is built from.
+
+*Not found:* a hyena's (leocrotta) or an ox's head or trunk swing as an angle or a period, the elephant's stride frequency stated directly (the 0.43 a second here is the stride time turned over), a lying cow's joint angles, and any hours-a-day figure for how long a rhinoceros lies in sternal posture (one zoo study classes a lying rhino as lateral, a sedation study measures sternal against lateral only in immobilised animals). No number is claimed for them; the pose stages set them by eye.
+
+**What the heavy quadrupeds take from this.** A heavy walker is slow and long in the stride: an elephant's stride is nearly two metres and takes over two seconds, about 0.43 strides a second, so the mumak and the titanotheres plod at about a metre a second, not a trot. A bovine spends about half its day lying, so the rothe settles often and for long; a rhinoceros sleeps less (a third of the day at most) and lies with the feet curled to one side. The lying posture's angles and the trunk or head swing are by eye.
