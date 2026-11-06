@@ -1244,8 +1244,26 @@ function horse(o){
  segment(tail,[0,.02,.03],[0,-.04,-.07],.04,.03,coat);
  for(const k of [-1,0,1])tube(tail,[[0,-.03,-.06],[k*.02,-.12,-.13],[k*.03,-.3,-.16],[k*.035,-o.tail,-.13+Math.abs(k)*.02]],o.mane==='shaggy'?.036:.028,hair,12);
  if(o.centaur)return {g,body,legs,tail,y,s};
+ const tailBones=skinHorseTail(tail,o.tail);
  mergeStatic(g);
- return nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head}),{bake:true});
+ const named=nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head}),{bake:true});
+ tailBones.forEach(b=>{named.joints[b.name]=b;});
+ return named;
+}
+// The horse's tail as a chain of five bones `tail0` (the dock) to `tail4` (the hair's tip) under the `tail` group: the
+// dock (coat) and the hair strands (merged into one geometry) are each one SkinnedMesh on the same skeleton, so a bend
+// at any bone carries everything past it and the mesh count stays two. Cached per geometry like the legs.
+const HORSE_TAIL=new WeakMap();
+function skinHorseTail(tail,len){
+ const pts=[[0,0,0],[0,-.06,-.08],[0,-.12,-.13],[0,-.3,-.16],[0,-len,-.13]],plain=tail.children.filter(m=>m.isMesh);
+ const dock=plain[0],hairs=plain.slice(1);
+ const geoOf=m=>{m.updateMatrix();return m.geometry.clone().applyMatrix4(m.matrix);};
+ const hairGeo=mergeGeometries(hairs.map(geoOf));
+ for(const m of plain)tail.remove(m);
+ const first=rigChain(tail,skinChain(hairGeo,pts),hairs[0].material,'tail',{part:'tail'}).mesh;
+ const d=new THREE.SkinnedMesh(skinChain(geoOf(dock),pts),dock.material);d.castShadow=dock.castShadow;d.receiveShadow=dock.receiveShadow;d.userData.part='tail';
+ tail.add(d);d.updateMatrixWorld(true);d.bind(first.skeleton,first.matrixWorld);
+ return first.skeleton.bones;
 }
 // A horn that tapers to a point with two ridges winding round it, like the unicorn horn on the
 // floor (unicorn-horn.js) but light enough to wear. Base at y -h/2, tip at +h/2.
