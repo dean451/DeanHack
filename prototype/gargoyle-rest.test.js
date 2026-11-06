@@ -64,3 +64,20 @@ test('the folded wings lie back along the flanks: no point of either wing above 
   assert(X.z<-.5,`${s} arm points back`);
   assert(Math.abs(Math.asin(-X.y)-REST.droop)<=.2,`${s} arm droops ${(Math.asin(-X.y)).toFixed(2)} rad against ${REST.droop}`);}
 });
+
+test('the folded wings splay outward and never cross: each tip stays on its own side of the spine, clear of the other',()=>{
+ const a=make(['winged gargoyle',11]),{apply}=birdPoser(a),P=rolesOf(a);
+ apply(restPose(a).pose);a.g.updateMatrixWorld(true);
+ const l=P['wingtip:l'](),r=P['wingtip:r']();
+ assert(l.x*r.x<0,'the tips are on opposite sides');
+ assert(Math.abs(l.x-r.x)>.25*a.g.scale.x,`tips ${Math.abs(l.x-r.x).toFixed(2)} apart`);
+ for(const s of ['l','r']){const w=a.joints[`${s}wing`],q=new THREE.Quaternion(),X=new THREE.Vector3(s==='l'?-1:1,0,0);w.getWorldQuaternion(q);X.applyQuaternion(q);
+  assert(Math.abs(X.x)>.15,`${s} arm points a little outward (x ${X.x.toFixed(2)})`);}
+});
+
+test('the folded wing tips lie within the body height: none higher than the withers',()=>{
+ const a=make(['winged gargoyle',11]),{apply}=birdPoser(a),P=rolesOf(a);
+ apply(restPose(a).pose);a.g.updateMatrixWorld(true);
+ const top=P.withers().y+.05*a.g.scale.x;
+ for(const s of ['l','r']){const t=P[`wingtip:${s}`]().y;assert(t<=top,`${s} tip ${t.toFixed(2)} above the withers ${top.toFixed(2)}`);}
+});
