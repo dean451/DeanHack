@@ -13,15 +13,15 @@ import {birdPoser} from './cockatrice-rest.js';
 // Shares of the creature's standing shoulder height: how low the withers may stay (highest allowed), how high the
 // mouth is held (lowest allowed), how far a forepaw plants ahead of its shoulder, and how close a folded wing tip
 // lies to its haunch (the others' wings); then the winged gargoyle's wing droop and roll (radians, see `foldedWing`)
-// and how far its solved wing joints may stray from that attitude.
-export const REST = {withers: .95, gremlinWithers: 1.05, head: .6, reach: .5, wingIn: .45, droop: .75, tilt: -.3, fold3: .12};
+// and how far its solved wing joints may stray from that attitude; `splay` turns each arm out from straight back by that much of a unit, so the two wings lie along the flanks and never cross over the back.
+export const REST = {withers: .95, gremlinWithers: 1.05, head: .6, reach: .5, wingIn: .45, droop: .75, tilt: -.3, splay: .3, fold3: .12};
 
 // The folded wing's attitude: the arm laid back along the flank and drooping (`droop`, radians below level) so the
 // leading edge ends no higher than the shoulder, the membrane hanging below it, the sheet rolled `tilt` radians
 // about the arm so its lower edge lies outboard of the flank. Returns the Euler the wing joint is turned to for the
 // wing on `side` (-1 left, 1 right), as the joint's added rotation over its built `built` x rotation.
 export function foldedWing(side, built = -.25) {
-  const X = new THREE.Vector3(0, -Math.sin(REST.droop), -Math.cos(REST.droop)), Y0 = new THREE.Vector3(0, Math.cos(REST.droop), -Math.sin(REST.droop));
+  const X = new THREE.Vector3(REST.splay, -Math.sin(REST.droop), -Math.cos(REST.droop)).normalize(), Y0 = new THREE.Vector3(0, Math.cos(REST.droop), -Math.sin(REST.droop)); Y0.addScaledVector(X, -Y0.dot(X)).normalize();
   const Y = Y0.clone().multiplyScalar(Math.cos(REST.tilt)).addScaledVector(new THREE.Vector3().crossVectors(X, Y0), Math.sin(REST.tilt));
   const D = new THREE.Matrix4().makeScale(side, 1, 1), M = new THREE.Matrix4().makeBasis(X, Y, new THREE.Vector3().crossVectors(X, Y));
   const e = new THREE.Euler().setFromRotationMatrix(D.clone().multiply(M).multiply(D), 'XYZ');
