@@ -315,7 +315,7 @@ export function impRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids, the imps and the kobolds have maps so far.
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins and orcs too), the imps and the kobolds have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
