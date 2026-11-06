@@ -1050,7 +1050,9 @@ function worm(o){
  // purple worms: old spear-gouges raked across the hide, pale healed tissue between the rings
  if(o.venom){const gash=mat('#c9a8b8',{roughness:.9});gash.name='worm-gouges';g.userData.gouged=true;
   for(const [x,y,z,rz] of [[r*.9,.17,-.12,.6],[r*.95,.12,-.22,-.5],[-r*.9,.19,-.08,-.6],[-r*.92,.14,-.2,.5]]){const sc=rounded(body,.014,r*1.1,.012,gash,x,y,z,.004);sc.rotation.z=rz;}}
- return actor(g,body,[],neck,[],'worm');
+ // Named joints (the dragons' and the rat's names): `neck0` is the swaying forward half, `head` the maw on its end.
+ neck.name='neck0';head.name='head';
+ return {...actor(g,body,[],neck,[],'worm'),head,joints:{neck0:neck,head}};
 }
 // Long worm tail segments arrive as their own monster cells ("long worm tail", glyph ~).
 // Each one is a ringed hump arching in and out of the floor, so a trail of them reads as
