@@ -6,6 +6,8 @@
 // Offsets only: the head's pitch (rotation.x) and yaw (rotation.y) and the tail's swing (rotation.z)
 // are added on top of whatever gait.js and the action layer wrote, and taken back first next frame,
 // so nothing drifts.
+import {takeBackRest} from './insect-settle.js';
+
 export const DART = .55, DUCK = .3, FLICK = .5, HUNCH = .14;
 export const FIRST_MIN = 2, FIRST_SPAN = 4, GAP_MIN = 4, GAP_SPAN = 8, LEN = 2.4;
 // NEAR: how close the hero may come (metres) before a kobold stops waiting and cringes at once (after ALERT
@@ -47,6 +49,9 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 export function updateKoboldCringe(actor, dt, t, busy, look = null) {
   if (!cringes(actor)) return null;
   const st = actor.koboldCringe || (actor.koboldCringe = {seed: ((actor.g?.id ?? 1) * 4421) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {x: 0, y: 0, z: 0, b: 0}, side: 1});
+  // The crouch (kobold-settle.js) runs last in the frame and eases these same joints; take it back first so the offsets
+  // below are removed from the values they were added to, else the crouch's take-back finds them changed and leaves them.
+  if (actor.koboldRest) takeBackRest(actor.koboldRest);
   const o = st.o, head = actor.head, tail = actor.tail;
   actor.body.rotation.x -= o.b;
   head.rotation.x -= o.x; head.rotation.y -= o.y;
