@@ -1019,12 +1019,14 @@ function worm(o){
  const r=o.baby?.07:.1,mound=mat('#3a3128',{roughness:1});
  // loose soil where the rear of the worm dives under the floor
  for(const [x,z,s] of [[-.08,-.34,1],[.07,-.38,.8],[0,-.3,.7]])sphere(body,.08*s,mound,x,.01,z,1.4,.35,1.2);
- // rear arch: segments rising out of the ground toward the neck
- const rear=[[0,-.02,-.34],[0,.12,-.28],[0,.2,-.16],[0,.2,-.04]];
- for(const [i,[x,y,z]] of rear.entries()){const k=1-i*.04;sphere(body,r*k,skin,x,y,z,1,.95,.9);const band=part(body,new THREE.TorusGeometry(r*k*.97,r*.13,6,16),ring,x,y,z);band.rotation.x=Math.PI/2-(i<2?.9:.3);}
+ // rear arch: segments rising out of the ground toward the neck, a chain of joints spine0..spine3
+ // (spine0 where the worm leaves the soil), each ring, band and spike riding its own joint.
+ const rear=[[0,-.02,-.34],[0,.12,-.28],[0,.2,-.16],[0,.2,-.04]],arch=[];
+ for(const [i,[x,y,z]] of rear.entries()){const q=i?rear[i-1]:[0,0,0],j=new THREE.Group();j.name='spine'+i;j.position.set(x-q[0],y-q[1],z-q[2]);(i?arch[i-1]:body).add(j);arch.push(j);
+  const k=1-i*.04;sphere(j,r*k,skin,0,0,0,1,.95,.9);const band=part(j,new THREE.TorusGeometry(r*k*.97,r*.13,6,16),ring,0,0,0);band.rotation.x=Math.PI/2-(i<2?.9:.3);}
  // forward half pivots at the neck; this is the group that sways. Its three rings are a chain of joints,
  // neck0 (the sway pivot, ring 0), neck1 and neck2, each ring, belly, band and spike riding its own joint.
- const neck=new THREE.Group();neck.position.set(0,.2,.02);body.add(neck);
+ const neck=new THREE.Group();neck.position.set(0,.2-rear[3][1],.02-rear[3][2]);arch[3].add(neck);
  const fore=[[0,.01,.07],[0,.05,.15],[0,.11,.21]],seg=[neck];
  for(let i=1;i<fore.length;i++){const j=new THREE.Group(),q=i>1?fore[i-1]:[0,0,0];j.position.set(fore[i][0]-q[0],fore[i][1]-q[1],fore[i][2]-q[2]);j.name='neck'+i;seg[i-1].add(j);seg.push(j);}
  // ring 0 sits off neck0's origin; the others sit on their own joints
@@ -1043,21 +1045,21 @@ function worm(o){
  for(let i=0;i<teeth;i++){const a=i/teeth*Math.PI*2;cone(head,r*.08,r*.3,toothMat,Math.cos(a)*r*.52,Math.sin(a)*r*.52,r*.76,4).rotation.z=a+Math.PI/2;}
  // purple worms: a ridge of dark horn spikes down the arched back, so the great worm reads as a predator
  if(o.venom){const spike=mat('#2a1430',{roughness:.5});spike.name='worm-spikes';
-  for(const [i,[x,y,z]] of rear.entries())cone(body,r*.14,r*.55,spike,x,y+r*.85,z,5).rotation.x=-.3;
+  for(const i of rear.keys())cone(arch[i],r*.14,r*.55,spike,0,r*.85,0,5).rotation.x=-.3;
   for(const i of fore.keys())cone(seg[i],r*.14,r*.55,spike,at(i)[0],at(i)[1]+r*.85,at(i)[2],5).rotation.x=.2;}
  // remorhaz: the seams between its rings run white-hot and a ridge of cooled, blackened plates stands along the back
  if(o.heat){const plate=mat('#1e1410',{roughness:.6});plate.name='worm-plates';
-  for(const [x,y,z] of rear)cone(body,r*.16,r*.5,plate,x,y+r*.9,z,4).rotation.x=-.3;
+  for(const i of rear.keys())cone(arch[i],r*.16,r*.5,plate,0,r*.9,0,4).rotation.x=-.3;
   for(const i of fore.keys())cone(seg[i],r*.16,r*.5,plate,at(i)[0],at(i)[1]+r*.9,at(i)[2],4).rotation.x=.2;}
  // long worms: a ridge of short blackened horn knobs down the back, fewer and blunter than the purple worm's spikes
  if(o.ridge&&!o.baby){const knob=mat('#2e2218',{roughness:.6});knob.name='worm-ridge';g.userData.ridged=true;
-  for(const [x,y,z] of rear)cone(body,r*.1,r*.35,knob,x,y+r*.9,z,4).rotation.x=-.3;}
+  for(const i of rear.keys())cone(arch[i],r*.1,r*.35,knob,0,r*.9,0,4).rotation.x=-.3;}
  // purple worms: old spear-gouges raked across the hide, pale healed tissue between the rings
  if(o.venom){const gash=mat('#c9a8b8',{roughness:.9});gash.name='worm-gouges';g.userData.gouged=true;
   for(const [x,y,z,rz] of [[r*.9,.17,-.12,.6],[r*.95,.12,-.22,-.5],[-r*.9,.19,-.08,-.6],[-r*.92,.14,-.2,.5]]){const sc=rounded(body,.014,r*1.1,.012,gash,x,y,z,.004);sc.rotation.z=rz;}}
  // Named joints (the dragons' and the rat's names): `neck0` is the swaying forward half, `head` the maw on its end.
  neck.name='neck0';head.name='head';
- return {...actor(g,body,[],neck,[],'worm'),head,joints:{neck0:neck,neck1:seg[1],neck2:seg[2],head}};
+ return {...actor(g,body,[],neck,[],'worm'),head,joints:{spine0:arch[0],spine1:arch[1],spine2:arch[2],spine3:arch[3],neck0:neck,neck1:seg[1],neck2:seg[2],head}};
 }
 // Long worm tail segments arrive as their own monster cells ("long worm tail", glyph ~).
 // Each one is a ringed hump arching in and out of the floor, so a trail of them reads as
