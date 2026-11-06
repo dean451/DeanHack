@@ -31,7 +31,7 @@ function pelvisBottom(a) {
 // A robe hangs from the hips to the floor, so the pelvis has no depth to sit on and the hem floats: the mind flayers
 // stay up until their robe is posed (what is left of stage 4).
 export const rests = a => !!(a && a.joints?.rfore_2 && a.joints.lleg1_2 && a.joints.spine1 && a.joints.neck3 && !a.joints.tail0 && !a.rig
-  && pelvisBottom(a) - a.g.position.y > .25 * (rolesOf(a).rump().y - a.g.position.y));
+  && pelvisBottom(a) - a.g.position.y > .2 * (rolesOf(a).rump().y - a.g.position.y));
 
 // Solves the sitting pose (the built pose is left as it was found).
 export function restPose(a) {
