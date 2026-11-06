@@ -112,6 +112,18 @@ export const MEASURES = {
     atEaseFeet: [.254, .305], // metres the left foot moves out: 10 inches and 12 inches, two summaries
     lumbarUpright: .6, // share of L5/S1 flexion range already used sitting upright
   },
+  // rothe, mumak, leocrotta, wumpus, titanothere, baluchitherium: an elephant's walk, a cow's lying, a rhino's sleep
+  quadruped: {
+    elephantWalk: 1.1, // m/s, Asian elephants filmed on a 15 m path (Kongsawasdi et al. 2017)
+    elephantStride: [1.92, 1.99], // metres, mean stride length at that pace
+    elephantStrideTime: [2.26, 2.34], // seconds, mean gait cycle time of each limb
+    elephantSlowest: .4, // m/s, the slowest walk in 2,400 strides of 62 elephants (Hutchinson et al. 2006)
+    elephantFastest: 6.8, // m/s, the fastest verified Asian elephant
+    cowLying: [10, 12], // hours a day a lactating cow lies down (Tucker, in Texas Dairy Matters)
+    cowLyingPasture: 9.3, // hours a day on pasture
+    cowLyingFreestall: 11.4, // hours a day in a freestall barn
+    rhinoSleep: 8, // hours a day, at most, in intervals; deep sleep lying with the feet curled to one side (International Rhino Foundation)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -200,4 +212,16 @@ export const SOLDIER = {
   slowOverQuick: MEASURES.soldier.slowMarch / MEASURES.soldier.quickTime,
   chargeOverQuick: MEASURES.soldier.doubleTime / MEASURES.soldier.quickTime,
   atEaseFeet: mid(MEASURES.soldier.atEaseFeet),
+};
+
+// What the heavy quadrupeds' poses use: an elephant's slow walk and how long a bovine lies
+export const QUADRUPED = {
+  // stride frequency at the filmed pace, strides a second
+  strideHz: 1 / mid(MEASURES.quadruped.elephantStrideTime),
+  // metres a second a stride of that length covers in that time
+  stridePace: mid(MEASURES.quadruped.elephantStride) / mid(MEASURES.quadruped.elephantStrideTime),
+  // the share of a day a cow spends lying down
+  cowLyingShare: mid(MEASURES.quadruped.cowLying) / 24,
+  // the share of a day a rhino sleeps, at most
+  rhinoSleepShare: MEASURES.quadruped.rhinoSleep / 24,
 };

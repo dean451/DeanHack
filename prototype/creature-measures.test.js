@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -153,6 +153,19 @@ test('the soldier numbers are a drilled march and a stand at ease', () => {
   inside(SOLDIER.quickPace, [1.3, 2], 'quick pace, m/s'); assert(SOLDIER.quickPace > HUMAN.walkMid);
   assert(SOLDIER.slowOverQuick < 1 && SOLDIER.chargeOverQuick > 1.3);
   inside(SOLDIER.atEaseFeet, [.2, .35], 'at ease feet, m');
+});
+
+test('the heavy quadruped numbers are an elephant walk, a cow lying and a rhino asleep', () => {
+  const q = MEASURES.quadruped;
+  inside(q.elephantWalk, [.4, 2], 'elephant walk, m/s');
+  assert(q.elephantSlowest < q.elephantWalk && q.elephantWalk < q.elephantFastest);
+  for (const r of [q.elephantStride, q.elephantStrideTime, q.cowLying]) assert(r[0] < r[1]);
+  inside(q.elephantStride[0], [1.5, 2.5], 'elephant stride, m'); inside(q.elephantStrideTime[0], [2, 2.6], 'stride time, s');
+  // the stride over its time is a little under the pace the study quotes (0.85 against about 1.1 m/s: the summary's own figures do not agree)
+  inside(QUADRUPED.stridePace / q.elephantWalk, [.6, 1.05], 'stride over time against pace');
+  inside(QUADRUPED.strideHz, [.38, .5], 'stride Hz');
+  inside(q.cowLying[0], [8, 12], 'cow lying, h'); assert(q.cowLyingPasture < q.cowLyingFreestall);
+  inside(QUADRUPED.cowLyingShare, [.35, .55], 'cow lying share'); assert(QUADRUPED.rhinoSleepShare < QUADRUPED.cowLyingShare);
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {
