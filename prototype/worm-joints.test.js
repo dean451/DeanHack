@@ -29,3 +29,36 @@ test('turning the neck carries the head and leaves the rear where it was',()=>{
   rear.forEach((c,i)=>assert(world(c).distanceTo(rear0[i])<1e-9,`${name}: the rear stayed`));
  }
 });
+
+test('the forward half is a chain: neck0, neck1, neck2, the head on the last',()=>{
+ for(const name of NAMES){
+  const a=make(name),j=a.joints;
+  for(const k of ['neck0','neck1','neck2'])assert(j[k]&&j[k].name===k,`${name}: ${k}`);
+  assert.equal(j.neck1.parent,j.neck0,name);assert.equal(j.neck2.parent,j.neck1,name);
+  assert.equal(j.head.parent,j.neck2,`${name}: the head hangs on neck2`);
+ }
+});
+
+test('turning neck1 or neck2 moves everything past it and nothing before it',()=>{
+ for(const name of NAMES){
+  for(const [k,past,before] of [['neck1',['neck2','head'],['neck0']],['neck2',['head'],['neck0','neck1']]]){
+   const a=make(name);a.g.updateMatrixWorld(true);
+   const j=a.joints,p0=past.map(n=>world(j[n])),b0=before.map(n=>world(j[n]));
+   const meshes=[];j[k].traverse(o=>{if(o.isMesh)meshes.push(o);});
+   assert(meshes.length>=3,`${name}: ${k} carries its ring, belly and band`);
+   const m0=meshes.map(world);
+   j[k].rotation.x+=.5;a.g.updateMatrixWorld(true);
+   past.forEach((n,i)=>assert(world(j[n]).distanceTo(p0[i])>.005,`${name}: ${n} moved with ${k}`));
+   before.forEach((n,i)=>assert(world(j[n]).distanceTo(b0[i])<1e-9,`${name}: ${n} stayed`));
+   assert(meshes.some((m,i)=>world(m).distanceTo(m0[i])>.005),`${name}: the ring parts moved`);
+  }
+ }
+});
+
+test('a worm with the neck at rest keeps the same ring layout as before the chain',()=>{
+ const a=make('purple worm');a.g.updateMatrixWorld(true);
+ const w=a.joints.neck0.position;
+ assert.deepEqual([w.x,w.y,w.z].map(v=>+v.toFixed(3)),[0,.2,.02]);
+ const h=world(a.joints.head).sub(world(a.joints.neck0));
+ assert.deepEqual([h.x,h.y,h.z].map(v=>+v.toFixed(3)),[0,.19,.27].map(v=>+(v*(a.g.scale.x)).toFixed(3)));
+});
