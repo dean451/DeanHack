@@ -47,5 +47,5 @@ test('the brown pudding is faceted and lopsided: a coarse flat-shaded skin, slum
   assert.equal(lobes.length, 5);
   for (const l of lobes) assert.ok(l.geometry.parameters.widthSegments <= 5, 'angular lobe');
   const black = make('black pudding').g.getObjectByProperty('isMesh', true).parent.children.find(m => m.userData.part === 'skin');
-  assert.ok(black.geometry.parameters.widthSegments >= 24 && !black.material.flatShading, 'black pudding unchanged');
+  assert.ok(black.geometry.parameters.widthSegments <= 12 && black.material.flatShading, 'black pudding is faceted too');
 });

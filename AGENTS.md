@@ -166,7 +166,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Black pudding is a black ball with dots on it** (https://github.com/dean451/DeanHack/pull/1817, `prototype/pudding.js`): `tools/creature-shot.mjs "black pudding" kp P` at the game camera shows a round dark dome on round lobes, the helm, blade and skull tiny on top and the pitch plates unreadable. **Done when:** the game-camera render shows an angular, plated mass whose silhouette is not a dome, with the embedded helm, blade and skull readable; the same three tests still pass.
 
 
 
