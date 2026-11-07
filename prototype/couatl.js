@@ -190,5 +190,8 @@ export function createCouatl(){
   const p=SPINE.getPointAt(.13),wing=new THREE.Group();wing.position.set(p.x+s*.035,p.y+.02,p.z);
   wing.userData.side=s;body.add(wing);mesh(wing,S.wing[s],S.material,'wing');wings.push(wing);
  }
- return {g,body,legs:[],tail,wings,quirk:'hover',head};
+ // named joints for the pose and role code: the head group is the top of the neck (neck0), the tail group
+ // is one joint for now, and the wings are the two wing groups (left is -x). Names only: no mesh moved.
+ const joints={head,neck0:head,tail0:tail,lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};
+ return {g,body,legs:[],tail,wings,quirk:'hover',head,joints};
 }
