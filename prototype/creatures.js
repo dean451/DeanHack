@@ -2471,7 +2471,7 @@ const HORRORS={'shambling horror':{color:'#9aa8a4',raw:'#8a2a3a',eye:'#7affe8',s
 // knuckle-dragging arms ending in hooked claws, a heavy underslung jaw with upthrust tusks and small, deep-set eyes.
 // The head is the 'tail' group, so live.js sways it slowly from side to side.
 function zruty(o){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1.18);const legs=[];
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1.18);const legs=[],arms=[];
  const fur=mat(o.fur,{roughness:1}),shag=mat(shade(o.fur,.62),{roughness:1}),hide=mat(o.hide||shade(o.fur,1.35),{roughness:.9}),
   claw=mat('#e2d6b8',{roughness:.4}),tusk=mat('#efe4c4',{roughness:.35}),mouth=mat('#3a1210',{roughness:1}),gore=mat('#3c0e0c',{roughness:.5}),
   eye=mat(o.eye,{emissive:o.eye,emissiveIntensity:1.1,roughness:.25});
@@ -2489,7 +2489,7 @@ function zruty(o){
   const tuft=cone(body,.045,.16,shag,Math.sin(a)*r,.48+(i%2)*.08,Math.cos(a)*r*.85+.02,5);tuft.rotation.set(Math.cos(a)*.35+Math.PI,0,-Math.sin(a)*.35);}
  for(let i=0;i<7;i++){const s=cone(body,.04+.012*Math.sin(i/6*Math.PI),.18+.07*Math.sin(i/6*Math.PI),shag,0,.58+i*.075,-.24-Math.sin(i/6*Math.PI)*.06+i*.012,5);s.rotation.x=-1.9+i*.12;}
  // arms: long enough to reach the floor, knuckles down, forearms thick with fur and hooked claws curled under
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.31,.9,.04);body.add(arm);
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.31,.9,.04);body.add(arm);arms.push(arm);
   sphere(arm,.13,fur,0,0,0,1,.9,1);
   segment(arm,[0,0,0],[side*.08,-.3,.08],.1,.085,fur);sphere(arm,.075,shag,side*.08,-.3,.08);
   segment(arm,[side*.08,-.3,.08],[side*.1,-.66,.16],.095,.07,shag);
@@ -2515,7 +2515,10 @@ function zruty(o){
   for(let k=0;k<3;k++){const b=cone(head,.03,.1,shag,side*(.12+k*.02),-.08-k*.03,.02,5);b.rotation.set(0,0,side*(2.4+k*.2));}}
  for(let k=0;k<5;k++){const b=cone(head,.035,.12,shag,(k-2)*.05,-.17,.08,5);b.rotation.x=Math.PI-.3;}
  head.rotation.x=.1;
- return trimDraws(actor(g,body,legs,head,[],'orc'));
+ // named joints (family z, stage 1 step 1): `head` (also `neck0`), `lfore` / `rfore` (the long arms) and `lleg1` / `rleg1`; named only, as `arms` stays off the actor so nothing swings them
+ const a=nameHumanoidJoints(Object.assign(actor(g,body,legs,head,[],'orc'),{head,arms}));
+ delete a.arms;
+ return trimDraws(a);
 }
 const ZRUTIES={'zruty':{fur:'#6a4a2c',hide:'#a07a58',eye:'#e8a030',scale:1.5}};
 
