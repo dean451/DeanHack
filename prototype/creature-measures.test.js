@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -178,6 +178,14 @@ test('the rat numbers are a walk, a face-washing chain and a day\'s sleep', () =
   // more of the light phase is spent asleep than of the dark, and about half a day in all
   assert(r.asleepLight > r.asleepDark);
   inside(RAT.asleepShare, [.45, .65], 'share of a day asleep');
+});
+
+test('the zruty numbers are a bear\'s walk and a gorilla\'s night', () => {
+  const z = MEASURES.zruty;
+  assert(z.bearWildWalk < z.bearEfficientWalk && z.bearEfficientWalk < z.bearWalk && z.bearWalk < z.bearRunningWalk && z.bearRunningWalk < z.bearCanter);
+  inside(ZRUTY.walkMid, [1, 2.5], 'bear walk, m/s'); inside(ZRUTY.canterOverWalk, [1.3, 2], 'canter over walk');
+  inside(z.gorillaNight[0], [10, 14], 'gorilla night low, h'); assert(z.gorillaNight[0] <= z.gorillaNight[1]);
+  inside(ZRUTY.asleepShare, [.45, .6], 'share of a day asleep');
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {

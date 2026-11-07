@@ -136,6 +136,16 @@ export const MEASURES = {
     asleepLight: .584 + .069, // share of the light phase asleep at 75 days old (NREM 58.4% and REM 6.9%, Frontiers in Neurology 2019)
     asleepDark: .375 + .063, // share of the dark phase asleep (NREM 37.5% and REM 6.3%)
   },
+  // the zruty: a bear's walk and a gorilla's night
+  zruty: {
+    bearWalk: 1.7, // m/s, a captive grizzly's walk (SICB conference abstract, four females on a runway)
+    bearRunningWalk: 2.6, // m/s, its running walk (same abstract)
+    bearCanter: 2.9, // m/s, its canter (same abstract)
+    bearEfficientWalk: 4.2 / 3.6, // m/s, the most energy-efficient walking speed on a treadmill (4.2 km/h, PopSci on the grizzly treadmill study)
+    bearWildWalk: .6, // m/s, wild grizzlies recorded walking (same article)
+    gorillaNight: [12, 13], // hours a night in the nest (Taronga Zoo says about 13; other pages say 12)
+    gorillaNestBefore: 1, // hours before sunset a gorilla starts building its night nest
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -248,4 +258,12 @@ export const RAT = {
   asleepShare: (MEASURES.rat.asleepLight + MEASURES.rat.asleepDark) / 2,
   // seconds a face-washing stroke takes, evenly spread over the chain
   strokeTime: MEASURES.rat.groomChain / MEASURES.rat.groomStrokes,
+};
+
+// What the zruty's poses use: a bear's walking pace against its canter and how much of a day a gorilla sleeps
+export const ZRUTY = {
+  walkMid: MEASURES.zruty.bearWalk,
+  canterOverWalk: MEASURES.zruty.bearCanter / MEASURES.zruty.bearWalk,
+  // the share of a whole day asleep, taking the night as twelve hours
+  asleepShare: mid(MEASURES.zruty.gorillaNight) / 24,
 };

@@ -305,3 +305,22 @@ The eighteenth monster family in the plan (AGENTS.md, family **r**). Measured fr
 
 **What the rats take from this.** A rat strides about twice a second at a walk (about 16 cm a stride at the slow walk) and its gait does not change shape between 20 and 80 cm/s, so one walk cycle only stretches. The face wash is a five second chain of about twenty small strokes, 0.2 s each, starting at the nose. A rat sleeps about half the day, more of the light than of the dark, so a rat left alone settles often. Angles and the tail's carriage are by eye.
 
+## Zruty (a bear and an ape)
+
+The next family in the plan (AGENTS.md, family **z**). The zruty is drawn as a huge bear-ape, so its walk is measured from a grizzly and its night from a gorilla. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Grizzly bear (walk) and gorilla (night)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Bear gaits | four captive female grizzlies walk at 1.7 m/s, use a running walk at 2.6 m/s and canter at 2.9 m/s | [SICB conference abstract on grizzly gaits](https://sicb.org/?p=20531) |
+| Bear efficient walk | the most energy-efficient walking speed on a treadmill was about 4.2 km/h (1.17 m/s); wild grizzlies were recorded at about 0.6 m/s | [Popular Science on the grizzly treadmill study](https://www.popsci.com/story/environment/why-you-find-bears-hiking/) |
+| Gorilla night | about 13 hours a night in the nest, with several hours of rest in the middle of the day | [Taronga Zoo, gorilla](https://taronga.org.au/animals/gorilla) |
+| Gorilla nest | a new nest is built each night, started about an hour before sunset | [Dian Fossey Gorilla Fund, gorilla night routines](https://gorillafund.org/gorilla-night-routines/) |
+
+*Caveat:* the 12 hour figure other pages give for the gorilla's night is not cited; the range 12 to 13 is a reading of several search results. The 1 hour before sunset came from a search summary that credits a different page than the one linked.
+
+*Not found:* a bear's stride length or stride frequency (one unreliable site gave figures; not used), a gorilla's knuckle-walking speed, duty factor or stride rate (the studies found cover climbing or all great apes together), and any posture as an angle: a sleeping bear lies curled with its eyes closed, a gorilla sleeps on its side, back or belly. No number is claimed for them; the pose stages set them by eye.
+
+**What the zruty takes from this.** A bear's walk is about 1.7 m/s and its canter about 1.7 times that, so a lumbering walk and a rare lunge. A gorilla sleeps about half a day, mostly at night. Postures and the knuckle walk's timing are by eye.
+
