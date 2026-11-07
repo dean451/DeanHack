@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -166,6 +166,18 @@ test('the heavy quadruped numbers are an elephant walk, a cow lying and a rhino 
   inside(QUADRUPED.strideHz, [.38, .5], 'stride Hz');
   inside(q.cowLying[0], [8, 12], 'cow lying, h'); assert(q.cowLyingPasture < q.cowLyingFreestall);
   inside(QUADRUPED.cowLyingShare, [.35, .55], 'cow lying share'); assert(QUADRUPED.rhinoSleepShare < QUADRUPED.cowLyingShare);
+});
+
+test('the rat numbers are a walk, a face-washing chain and a day\'s sleep', () => {
+  const r = MEASURES.rat;
+  inside(r.walkSpeed[0], [.1, .3], 'rat walk low, m/s'); inside(r.walkSpeed[1], [.6, 1], 'rat walk high, m/s');
+  assert(r.walkSpeed[0] < r.slowWalk && r.slowWalk < r.walkSpeed[1] && r.walkSpeed[1] < r.gallop);
+  inside(RAT.strideHz, [1.5, 2.5], 'rat strides a second'); inside(RAT.slowStride, [.1, .2], 'rat slow stride, m');
+  inside(r.groomChain, [3, 8], 'grooming chain, s'); assert(r.groomPhases === 4 && r.groomStrokes === 25);
+  inside(RAT.strokeTime, [.1, .4], 'stroke time, s');
+  // more of the light phase is spent asleep than of the dark, and about half a day in all
+  assert(r.asleepLight > r.asleepDark);
+  inside(RAT.asleepShare, [.45, .65], 'share of a day asleep');
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {

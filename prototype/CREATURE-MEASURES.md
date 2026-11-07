@@ -285,3 +285,23 @@ The seventeenth monster family in the plan (AGENTS.md, family **q**). Measured f
 *Not found:* a hyena's (leocrotta) or an ox's head or trunk swing as an angle or a period, the elephant's stride frequency stated directly (the 0.43 a second here is the stride time turned over), a lying cow's joint angles, and any hours-a-day figure for how long a rhinoceros lies in sternal posture (one zoo study classes a lying rhino as lateral, a sedation study measures sternal against lateral only in immobilised animals). No number is claimed for them; the pose stages set them by eye.
 
 **What the heavy quadrupeds take from this.** A heavy walker is slow and long in the stride: an elephant's stride is nearly two metres and takes over two seconds, about 0.43 strides a second, so the mumak and the titanotheres plod at about a metre a second, not a trot. A bovine spends about half its day lying, so the rothe settles often and for long; a rhinoceros sleeps less (a third of the day at most) and lies with the feet curled to one side. The lying posture's angles and the trunk or head swing are by eye.
+
+## Rats (enormous, giant, rabid and sewer rat)
+
+The eighteenth monster family in the plan (AGENTS.md, family **r**). Measured from the brown rat. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Brown rat (walk, washing the face, sleep)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Rat walk | between 20 and 80 cm/s a rat's gait keeps its pattern; faster, the stance shortens and the stride lengthens | [Quantitative aspects of normal locomotion in rats, 1979](https://data.zhenzhi.com/details/1/998754936) |
+| Rat gait speeds | speed per stride from 31.9 cm/s for a slow walk to 125.9 cm/s for a gallop; a walking stride takes 500 ms | [Muscle activity in rat locomotion, 1975 study](https://typeset.io/pdf/muscle-activity-in-rat-locomotion-movement-analysis-and-11igrit81o.pdf) |
+| Face-washing chain | the most stereotyped grooming pattern links up to 25 forelimb strokes and body licks in four phases and lasts about 5 s; the first phase is small ellipses tight round the nose | [Berridge, Fentress and Parr 1987, Natural syntax rules control action sequence of rats](https://www.bohrium.com/paper-details/natural-syntax-rules-control-action-sequence-of-rats/812409028758994945-8574) |
+| Rat sleep | at 75 days old a rat is asleep (NREM plus REM) 65.3% of the light phase (58.4 + 6.9) and 43.8% of the dark phase (37.5 + 6.3) | [Frontiers in Neurology 2019, sleep in rats across development](https://www.frontiersin.org/journals/neurology/articles/10.3389/fneur.2019.00873/pdf) |
+
+*Caveat:* the 5 s chain and its 25 strokes came from a search summary that credits the 1987 paper; the page could not be opened to check. The 1979 and 1975 gait pages are matched to their numbers by the search result's own title and wording.
+
+*Not found:* a rat's walking stride length in centimetres, the head-washing bout's own length apart from the whole chain, a resting rat's joint angles or how it holds its tail, and the hunch as an angle. No number is claimed for them; the pose stages set them by eye.
+
+**What the rats take from this.** A rat strides about twice a second at a walk (about 16 cm a stride at the slow walk) and its gait does not change shape between 20 and 80 cm/s, so one walk cycle only stretches. The face wash is a five second chain of about twenty small strokes, 0.2 s each, starting at the nose. A rat sleeps about half the day, more of the light than of the dark, so a rat left alone settles often. Angles and the tail's carriage are by eye.
+
