@@ -124,6 +124,18 @@ export const MEASURES = {
     cowLyingFreestall: 11.4, // hours a day in a freestall barn
     rhinoSleep: 8, // hours a day, at most, in intervals; deep sleep lying with the feet curled to one side (International Rhino Foundation)
   },
+  // enormous, giant, rabid and sewer rats: a brown rat's walk, its face-washing chain and its sleep
+  rat: {
+    walkSpeed: [.2, .8], // m/s, the range over which a walking rat's gait keeps its pattern (Quantitative aspects of normal locomotion in rats, 1979)
+    slowWalk: .319, // m/s, a slow walk's speed per stride (1975 rat locomotion study)
+    walkStrideTime: .5, // seconds, a walking stride (same study)
+    gallop: 1.259, // m/s, a gallop's speed per stride (same study)
+    groomChain: 5, // seconds, the stereotyped face-washing chain (Berridge, Fentress and Parr 1987)
+    groomStrokes: 25, // at most, forelimb strokes and body licks in that chain
+    groomPhases: 4,
+    asleepLight: .584 + .069, // share of the light phase asleep at 75 days old (NREM 58.4% and REM 6.9%, Frontiers in Neurology 2019)
+    asleepDark: .375 + .063, // share of the dark phase asleep (NREM 37.5% and REM 6.3%)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -224,4 +236,16 @@ export const QUADRUPED = {
   cowLyingShare: mid(MEASURES.quadruped.cowLying) / 24,
   // the share of a day a rhino sleeps, at most
   rhinoSleepShare: MEASURES.quadruped.rhinoSleep / 24,
+};
+
+// What the rats' poses use: the stride of a slow walk and how much of a day a rat sleeps
+export const RAT = {
+  // strides a second in a walk
+  strideHz: 1 / MEASURES.rat.walkStrideTime,
+  // metres a stride covers at the slow walk
+  slowStride: MEASURES.rat.slowWalk * MEASURES.rat.walkStrideTime,
+  // the share of a whole day asleep, light and dark phases twelve hours each
+  asleepShare: (MEASURES.rat.asleepLight + MEASURES.rat.asleepDark) / 2,
+  // seconds a face-washing stroke takes, evenly spread over the chain
+  strokeTime: MEASURES.rat.groomChain / MEASURES.rat.groomStrokes,
 };
