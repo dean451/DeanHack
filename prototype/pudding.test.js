@@ -49,3 +49,9 @@ test('the brown pudding is faceted and lopsided: a coarse flat-shaded skin, slum
   const black = make('black pudding').g.getObjectByProperty('isMesh', true).parent.children.find(m => m.userData.part === 'skin');
   assert.ok(black.geometry.parameters.widthSegments <= 12 && black.material.flatShading, 'black pudding is faceted too');
 });
+
+test('the black pudding skull is angular, not sphere meshes', () => {
+  const part = n => meshes(make('black pudding')).find(m => m.userData.part === n);
+  // a 10x8 sphere skull alone is 480 vertices unindexed; octahedra, wedges and boxes stay small
+  assert.ok(part('skull').geometry.attributes.position.count < 200, 'skull is faceted');
+});
