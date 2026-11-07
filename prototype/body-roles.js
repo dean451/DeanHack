@@ -315,7 +315,37 @@ export function impRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins and orcs too), the imps and the kobolds have maps so far.
+// The heavy quadrupeds' map (rothe, mumak, mastodon, titanothere, baluchitherium, leocrotta, wumpus), from the joints
+// `nameQuadrupedJoints` exposes: a head group, a tail group (one joint), and four three-bone legs. The head is rigid, so the
+// mouth and chin are fixed points in its frame, read off its own box at rest (the snout's tip, the jaw under it; a trunk
+// or a long muzzle makes the mouth the lowest forward point). `withers` is the neck's root (`neck0`, which is the head
+// group itself on the beasts with no separate neck), `rump` the tail's root (`tail0`) and the tail tip the far end of the
+// tail's box in its own frame. A paw is the floor under the leg's last bone, in that bone's frame so it follows the bent
+// leg; the shoulder and hip are each leg's first bone.
+export function quadrupedRoles(actor) {
+  const j = actor.joints, floor = actor.g.getWorldPosition(new THREE.Vector3()).y;
+  actor.g.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(j.head), lo = j.head.worldToLocal(box.min.clone()), hi = j.head.worldToLocal(box.max.clone());
+  const x = (lo.x + hi.x) / 2, front = Math.max(lo.z, hi.z), bottom = Math.min(lo.y, hi.y), top = Math.max(lo.y, hi.y);
+  const tb = new THREE.Box3().setFromObject(j.tail0), ta = j.tail0.worldToLocal(tb.min.clone()), tc = j.tail0.worldToLocal(tb.max.clone());
+  const tip = [(ta.x + tc.x) / 2, (ta.y + tc.y) / 2, Math.min(ta.z, tc.z)];
+  const map = {
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.head, [x, bottom + (top - bottom) * .3, front * .95]),
+    chin: () => inFrame(() => j.head, [x, bottom, front * .6]),
+    withers: () => at(() => j.neck0),
+    rump: () => at(() => j.tail0),
+    tailtip: () => inFrame(() => j.tail0, tip),
+  };
+  for (const side of ['l', 'r']) for (const [i, pair] of [[0, 'f'], [1, 'h']]) {
+    const bone = j[`${side}leg${i}_2`], sole = bone.worldToLocal(bone.getWorldPosition(new THREE.Vector3()).setY(floor));
+    map[`paw:${side}${pair}`] = () => inFrame(() => bone, sole.toArray());
+    map[`${pair === 'f' ? 'shoulder' : 'hip'}:${side}`] = () => at(() => j[`${side}leg${i}_0`]);
+  }
+  return buildRoles(map, {});
+}
+
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins and orcs too), the imps, the kobolds and the heavy quadrupeds have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
@@ -325,6 +355,7 @@ export function rolesOf(actor) {
   if ((actor.kind === 'gargoyle' || actor.kind === 'gremlin') && actor.joints?.neck3) return gargoyleRoles(actor);
   if ((actor.quirk === 'insect' || actor.quirk === 'bee') && actor.joints?.lleg0_2) return insectRoles(actor);
   if (['imp', 'homunculus', 'quasit', 'tengu', 'lemure', 'kobold'].includes(actor.quirk) && actor.joints?.rfore_2) return impRoles(actor);
+  if (actor.joints?.tail0 && actor.joints.lleg0_2 && actor.joints.rleg1_2 && !actor.joints.tail1 && !actor.joints.hips && !actor.joints.spine0 && !actor.joints.neck1) return quadrupedRoles(actor);
   if (actor.joints?.rfore_2 && actor.joints.lleg1_2 && actor.joints.spine1 && actor.joints.neck3 && !actor.joints.tail0) return humanoidRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
