@@ -13,28 +13,34 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const R = .28, SY = .72, CY = .2;
 const PALETTES = {
-  black: {skin: '#1a1a1d', nucleus: '#2a1608', lobe: '#151519', iron: '#6b3a1c', ironDark: '#3a2010', bone: '#b8ac8c', hole: '#050506', crust: '#34343f', glow: '#241c2a'},
+  black: {skin: '#1a1a1d', nucleus: '#2a1608', lobe: '#151519', iron: '#6b3a1c', ironDark: '#3a2010', bone: '#b8ac8c', hole: '#050506', crust: '#4a4a58', glow: '#241c2a'},
   brown: {skin: '#6a4a2a', nucleus: '#2a1a0c', lobe: '#5a3e22', mould: '#8f9a7a', mouldDark: '#4e5a42', spore: '#d8dcc0', bone: '#bdb08e', strand: '#3e2a16', glow: '#2a1c0c'},
 };
 
-// the skin's height at a spot on its crown
-const top0 = (x, z) => CY + R * SY * Math.sqrt(Math.max(0, 1 - (x * x + z * z) / (R * R)));
 // the rotten brown skin is lumpy and sagged: its radius varies with direction (a continuous function,
 // so shared vertices stay joined). Lopsided: a slumped shoulder at -x/+z, a pinched trough, a flattened belly.
 export const brownProfile = (dx, dy, dz) => 1 + .24 * Math.max(0, -dx * .8 + dz * .6) - .1 * Math.max(0, dx * .7 + dz * .5) * Math.max(0, dy)
   + .07 * Math.sin(dx * 5.3 + dz * 3.1 + 1.2) * Math.max(0, dy + .3) - (dy < -.25 ? .1 * (-.25 - dy) / .75 : 0);
 const BROWN_SX = 1.14, BROWN_SZ = .88;
+// the black skin is a hard-crusted, plated mass: ridged and lopsided, a heap with a high shoulder at +x/-z
+// (a continuous function of direction, so shared vertices stay joined; the coarse flat-shaded skin turns
+// it into facets, not a dome)
+export const blackProfile = (dx, dy, dz) => 1 + .2 * Math.max(0, dx * .7 - dz * .6) * Math.max(0, dy + .2)
+  + .13 * Math.sin(dx * 6.1 + dz * 2.3 + .4) * Math.max(0, dy + .1) + .09 * Math.sin(dz * 7.7 - dx * 3.9 + 2.1) - (dy < -.2 ? .1 * (-.2 - dy) / .8 : 0);
+const BLACK_SX = 1.12, BLACK_SZ = .96;
+const PROFILES = {black: [blackProfile, BLACK_SX, BLACK_SZ], brown: [brownProfile, BROWN_SX, BROWN_SZ]};
 // the height of the skin above (x, z): brown follows its profile, found by bisection along the vertical
-function topBrown(x, z) {
-  const lx = x / BROWN_SX, lz = z / BROWN_SZ;
+function topProfile(kind, x, z) {
+  const [profile, sx, sz] = PROFILES[kind], lx = x / sx, lz = z / sz;
   let lo = 0, hi = R * 1.5;
   for (let i = 0; i < 24; i++) {
     const y = (lo + hi) / 2, l = Math.hypot(lx, y, lz);
-    if (l < R * brownProfile(lx / l, y / l, lz / l)) lo = y; else hi = y;
+    if (l < R * profile(lx / l, y / l, lz / l)) lo = y; else hi = y;
   }
   return CY + lo * SY;
 }
-let top = top0;
+const topBrown = (x, z) => topProfile('brown', x, z), topBlack = (x, z) => topProfile('black', x, z);
+let top = topBlack;
 const frame = (px, py, pz, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) =>
   new THREE.Matrix4().compose(new THREE.Vector3(px, py, pz), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));
 
@@ -52,20 +58,21 @@ function build(list) {
 
 export function createPudding({kind = 'black'} = {}) {
   const C = PALETTES[kind] || PALETTES.black, black = kind === 'black';
-  top = black ? top0 : topBrown;
+  top = black ? topBlack : topBrown;
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
   const add = (geo, material, name) => { const m = new THREE.Mesh(geo, material); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; body.add(m); return m; };
   const flat = (name, list, o = {}) => add(build(list), new THREE.MeshStandardMaterial({vertexColors: true, flatShading: true, roughness: .85, ...o}), name);
 
   // the skin: tar-black and glossy, or rotten brown and wet-matte
   // the rotten one is coarse and faceted, slumped lopsided, not a glossy dome
-  const skin = add(new THREE.SphereGeometry(R, black ? 24 : 11, black ? 16 : 7), new THREE.MeshStandardMaterial({color: C.skin, emissive: C.glow, emissiveIntensity: .35,
-    roughness: black ? .12 : .8, metalness: black ? .35 : 0, transparent: true, opacity: black ? .92 : .9, flatShading: !black}), 'skin');
-  skin.position.y = CY; skin.scale.set(black ? 1 : BROWN_SX, SY, black ? 1 : BROWN_SZ);
-  if (!black) {
+  const skin = add(new THREE.SphereGeometry(R, black ? 10 : 11, 7), new THREE.MeshStandardMaterial({color: C.skin, emissive: C.glow, emissiveIntensity: .35,
+    roughness: black ? .3 : .8, metalness: black ? .35 : 0, transparent: true, opacity: black ? .95 : .9, flatShading: true}), 'skin');
+  skin.position.y = CY; skin.scale.set(PROFILES[kind]?.[1] ?? BLACK_SX, SY, PROFILES[kind]?.[2] ?? BLACK_SZ);
+  {
+    const profile = black ? blackProfile : brownProfile;
     const pa = skin.geometry.attributes.position;
     for (let i = 0; i < pa.count; i++) {
-      const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), l = Math.hypot(x, y, z) || 1, k = brownProfile(x / l, y / l, z / l);
+      const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), l = Math.hypot(x, y, z) || 1, k = profile(x / l, y / l, z / l);
       pa.setXYZ(i, x * k, y * k, z * k);
     }
     skin.geometry.computeVertexNormals();
@@ -74,17 +81,17 @@ export function createPudding({kind = 'black'} = {}) {
   const nuc = add(new THREE.SphereGeometry(.09, 12, 9), new THREE.MeshStandardMaterial({color: C.nucleus, roughness: .9}), 'nucleus');
   nuc.position.y = CY; nuc.scale.set(1, .8, 1);
   // five lobes slumped round the foot, uneven
-  const lobeMat = new THREE.MeshStandardMaterial({color: C.lobe, roughness: black ? .15 : .8, metalness: black ? .3 : 0, transparent: true, opacity: .9, flatShading: !black});
+  const lobeMat = new THREE.MeshStandardMaterial({color: C.lobe, roughness: black ? .15 : .8, metalness: black ? .3 : 0, transparent: true, opacity: .9, flatShading: true});
   for (let i = 0; i < 5; i++) {
     const a = i * 1.3 + .2, r = .22 + hash(i + 3) * .06, s = .06 + hash(i + 9) * .035;
-    const lg = new THREE.SphereGeometry(s, black ? 12 : 5, black ? 8 : 3);
-    if (!black) { // ragged: every vertex pushed in or out by its own amount, so no lobe is a clean oval
+    const lg = new THREE.SphereGeometry(s, 5, 3);
+    { // ragged: every vertex pushed in or out by its own amount, so no lobe is a clean oval
       const lp = lg.attributes.position;
       for (let v = 0; v < lp.count; v++) { const k = .55 + hash(i * 31 + v * 7 + 1) * .6; lp.setXYZ(v, lp.getX(v) * k, lp.getY(v) * (.7 + hash(v + i) * .6), lp.getZ(v) * k); }
       lg.computeVertexNormals();
     }
     const l = add(lg, lobeMat, 'lobe'); l.position.set(Math.cos(a) * r, .06, Math.sin(a) * r); l.scale.set(1.2, .6, 1);
-    if (!black) { l.scale.set(1.5 + hash(i) * .6, .35 + hash(i + 5) * .2, .8 + hash(i + 7) * .5); l.rotation.y = a + hash(i + 2) * 2; }
+    { l.scale.set(1.5 + hash(i) * .6, .35 + hash(i + 5) * .2, .8 + hash(i + 7) * .5); l.rotation.y = a + hash(i + 2) * 2; }
   }
 
   if (black) {
@@ -92,14 +99,14 @@ export function createPudding({kind = 'black'} = {}) {
     const iron = [], scrap = [];
     const sword = (x, z, turn, lean) => {
       const m = frame(x, top(x, z) - .02, z, lean, turn, .25);
-      iron.push([new THREE.CylinderGeometry(.004, .026, .2, 4), frame(0, .08, 0, 0, .8, 0).premultiply(m), C.iron]);
-      iron.push([new THREE.BoxGeometry(.13, .025, .025), frame(0, -.03, 0).premultiply(m), C.ironDark]);
-      iron.push([new THREE.CylinderGeometry(.008, .008, .07, 5), frame(0, -.075, 0).premultiply(m), C.ironDark]);
+      iron.push([new THREE.CylinderGeometry(.005, .035, .28, 4), frame(0, .11, 0, 0, .8, 0).premultiply(m), C.iron]);
+      iron.push([new THREE.BoxGeometry(.18, .035, .035), frame(0, -.04, 0).premultiply(m), C.ironDark]);
+      iron.push([new THREE.CylinderGeometry(.011, .011, .09, 5), frame(0, -.1, 0).premultiply(m), C.ironDark]);
     };
-    sword(-.1, .1, .6, -.5);
+    sword(-.1, .1, .6, -.35);
     const helm = frame(.13, top(.13, -.07) - .005, -.07, .25, .5, -.35);
-    scrap.push([new THREE.SphereGeometry(.06, 8, 5, 0, Math.PI * 2, 0, Math.PI * .55), helm, C.iron]);
-    scrap.push([new THREE.BoxGeometry(.012, .06, .012), frame(0, .02, .05).premultiply(helm), C.ironDark]);
+    scrap.push([new THREE.SphereGeometry(.085, 8, 5, 0, Math.PI * 2, 0, Math.PI * .55), helm, C.iron]);
+    scrap.push([new THREE.BoxGeometry(.016, .085, .016), frame(0, .03, .07).premultiply(helm), C.ironDark]);
     for (const [x, z, t] of [[-.2, -.08, .8], [.02, .2, 2.4], [.2, .12, 4.1]]) {
       const m = frame(x, top(x, z) - .01, z, .9 + hash(x * 7) * .4, t, .2);
       scrap.push([new THREE.CylinderGeometry(.006, .004, .1, 4), m, C.ironDark]);
@@ -109,17 +116,17 @@ export function createPudding({kind = 'black'} = {}) {
     flat('scrap', scrap);
     // a skull half-eaten, rising from the crown, eyes full of tar, jaw gone on one side
     const sk = frame(.04, top(.04, .0) + .02, .02, .5, -.4, .3), skull = [];
-    skull.push([new THREE.SphereGeometry(.07, 10, 8), frame(0, 0, 0, 0, 0, 0, 1, .9, 1.1).premultiply(sk), C.bone]);
-    skull.push([new THREE.BoxGeometry(.06, .03, .05), frame(0, -.045, .03).premultiply(sk), C.bone]);
-    for (const s of [-1, 1]) skull.push([new THREE.SphereGeometry(.02, 6, 5), frame(s * .03, -.005, .058, 0, 0, 0, 1, 1.1, .5).premultiply(sk), C.hole]);
-    skull.push([new THREE.ConeGeometry(.011, .03, 3), frame(0, -.03, .062, Math.PI, 0, 0).premultiply(sk), C.hole]);
+    skull.push([new THREE.SphereGeometry(.09, 10, 8), frame(0, 0, 0, 0, 0, 0, 1, .9, 1.1).premultiply(sk), C.bone]);
+    skull.push([new THREE.BoxGeometry(.078, .04, .065), frame(0, -.058, .04).premultiply(sk), C.bone]);
+    for (const s of [-1, 1]) skull.push([new THREE.SphereGeometry(.026, 6, 5), frame(s * .038, -.005, .075, 0, 0, 0, 1, 1.1, .5).premultiply(sk), C.hole]);
+    skull.push([new THREE.ConeGeometry(.014, .04, 3), frame(0, -.04, .08, Math.PI, 0, 0).premultiply(sk), C.hole]);
     flat('skull', skull);
     // hard pitch crust: broken angular plates split the mass, asymmetric, each seated in the skin
     const crust = [], shards = [];
-    for (const [x, z, s, t] of [[-.17, .1, .08, .3], [.18, -.1, .07, 1.4], [-.04, -.2, .09, 2.2], [.1, .17, .06, 3.3], [-.2, -.08, .05, 4.4], [.0, -.04, .05, 5.1]]) {
-      const y = top(x, z) - .035, n = new THREE.Vector3(x, (y - CY) / SY, z).normalize();
+    for (const [x, z, s, t] of [[-.19, .1, .12, .3], [.2, -.1, .11, 1.4], [-.04, -.22, .13, 2.2], [.12, .19, .1, 3.3], [-.22, -.1, .08, 4.4], [.0, -.04, .05, 5.1]]) {
+      const y = top(x, z) - .02, n = new THREE.Vector3(x, (y - CY) / SY, z).normalize();
       const m = frame(x, y, z).multiply(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n)));
-      (s > .06 ? crust : shards).push([new THREE.TetrahedronGeometry(s, 0), m.multiply(frame(0, 0, 0, t, t * 1.7, 0, 1.3, .45, .9)), C.crust]);
+      (s > .07 ? crust : shards).push([new THREE.TetrahedronGeometry(s, 0), m.multiply(frame(0, 0, 0, t, t * 1.7, 0, 1.3, .8, .9)), C.crust]);
     }
     flat('crust', crust, {roughness: .4, metalness: .2});
     flat('shards', shards, {roughness: .4, metalness: .2});
