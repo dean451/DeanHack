@@ -10,9 +10,10 @@ import {rolesOf} from './body-roles.js';
 // Stage 4 of the creature plan for goblins and orcs: the humanoid slump, solved on every member.
 const FAMILY=[...GOBLINS.map(n=>[n,()=>createGoblin(n)]),...ORCS.map(n=>[n,()=>createOrc(n)])];
 const make=([,build])=>{const a=build();a.g.updateMatrixWorld(true);return a;};
+// every vertex, not a sample
 const lowest=a=>{let y=Infinity;const v=new THREE.Vector3();
  a.g.traverse(m=>{if(!m.isSkinnedMesh)return;m.updateMatrixWorld(true);m.skeleton.update();const n=m.geometry.attributes.position.count;
-  for(let i=0;i<n;i+=3){m.getVertexPosition(i,v).applyMatrix4(m.matrixWorld);y=Math.min(y,v.y);}});return y;};
+  for(let i=0;i<n;i++){m.getVertexPosition(i,v).applyMatrix4(m.matrixWorld);y=Math.min(y,v.y);}});return y;};
 
 test('every goblin and orc sits, the small goblin and the robed shaman included',()=>{
  for(const f of FAMILY)assert(rests(make(f)),f[0]);
@@ -34,9 +35,7 @@ test('sitting: pelvis down, heels ahead, back stooped, head low, hands low, noth
    assert(P[`paw:${s}f`]().y-floor<r.stand*.75,`${f[0]}: hand low`);}
   assert(P.withers().z-P.rump().z>REST.stoop*r.stand-.08,`${f[0]}: stooped`);
   assert(P.mouth().y-floor<=REST.head*stood+.02,`${f[0]}: head low`);
-  // Known, open (AGENTS.md): 9 vertices of the hobgoblin's cloth reach 2.6 cm under the floor; the solver's every-fifth-vertex
-  // sample misses them and a denser sample unsettles the dwarves. Pinned so it cannot get worse.
-  assert(lowest(a)>floor-(f[0]==='hobgoblin'?.03:.02),`${f[0]}: lowest point ${((lowest(a)-floor)*100).toFixed(1)} cm`);}
+  assert(lowest(a)>floor-.02,`${f[0]}: lowest point ${((lowest(a)-floor)*100).toFixed(1)} cm`);}
 });
 
 test('posing nothing returns every joint and the body exactly to the built values',()=>{

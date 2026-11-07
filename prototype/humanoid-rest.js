@@ -56,7 +56,7 @@ export function restPose(a) {
   // the hide (trunk and limbs, one skin) stays above the floor: every fifth vertex, as it now stands
   const skins = [], v = new THREE.Vector3();
   a.g.traverse(o => { if (o.isSkinnedMesh) skins.push(o); });
-  goals.push(goal.clear(() => { const out = []; for (const m of skins) { m.updateMatrixWorld(true); m.skeleton.update(); for (let i = 0; i < m.geometry.attributes.position.count; i += 5) out.push(m.getVertexPosition(i, v).clone().applyMatrix4(m.matrixWorld)); } return out; }, {y: floor - .008 * s, weight: 2}));
+  goals.push(goal.clear(() => { const out = []; for (const m of skins) { m.updateMatrixWorld(true); m.skeleton.update(); for (let i = 0; i < m.geometry.attributes.position.count; i += 4) out.push(m.getVertexPosition(i, v).clone().applyMatrix4(m.matrixWorld)); } return out; }, {y: floor - .008 * s, weight: 2}));
   const out = solvePose({joints, base: {hipsY: -.3 * stand / s, lfore_1: {x: -1}, rfore_1: {x: -1}, lleg1_0: {x: -.9}, rleg1_0: {x: -.9}}, goals, apply, points: P, iterations: 1500, rest: .01});
   apply({});
   return {pose: out.pose, residuals: out.residuals, goals, stand, seat};
