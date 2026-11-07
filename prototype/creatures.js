@@ -865,10 +865,19 @@ function xan(o){
  }else{
   // long segmented abdomen that curls down and forward into a hooked stinger
   const pts=[[0,y,-.06],[0,y-.02,-.2],[0,y-.1,-.3],[0,y-.22,-.28],[0,y-.3,-.16],[0,y-.3,-.04]].map(p=>new THREE.Vector3(...p)),curve=new THREE.CatmullRomCurve3(pts);
-  for(let i=0;i<9;i++){const t=i/8,p=curve.getPoint(t),r=.075-t*.045;const seg=sphere(body,r,i%2?shell:dark,p.x,p.y,p.z);seg.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),curve.getTangent(t));seg.scale.set(1,.8,1);}
-  const barb=cone(body,.022,.12,mat('#e8dcc0',{roughness:.3}),0,y-.28,.03,6);barb.rotation.x=Math.PI/2+.5;
+  // the nine segments are one vertex-coloured skin on five bones tail0..tail4 (chain-skin.js), so the abdomen bends
+  // and the barb and venom ride tail4
+  const parts=[],up=new THREE.Vector3(0,1,0);
+  for(let i=0;i<9;i++){const t=i/8,p=curve.getPoint(t),r=.075-t*.045,c=(i%2?shell:dark).color,geo=new THREE.SphereGeometry(r,16,12);
+   geo.applyMatrix4(new THREE.Matrix4().compose(p,new THREE.Quaternion().setFromUnitVectors(up,curve.getTangent(t)),new THREE.Vector3(1,.8,1)));
+   const col=new Float32Array(geo.attributes.position.count*3);for(let k=0;k<col.length;k+=3){col[k]=c.r;col[k+1]=c.g;col[k+2]=c.b;}
+   geo.setAttribute('color',new THREE.BufferAttribute(col,3));parts.push(geo);}
+  const abdomen=mergeGeometries(parts);parts.forEach(g=>g.dispose());
+  const tailBones=rigChain(body,skinChain(abdomen,pickPoints(curve.getPoints(16).map(q=>q.toArray()),5)),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.42,metalness:.1}),'tail').bones,tip=tailBones[4],tipAt=tip.position.clone();
+  for(let i=3;i>=0;i--)tipAt.add(tailBones[i].position);
+  const barb=cone(tip,.022,.12,mat('#e8dcc0',{roughness:.3}),0-tipAt.x,y-.28-tipAt.y,.03-tipAt.z,6);barb.rotation.x=Math.PI/2+.5;
   // venom beads on the barb: a sickly green drop hangs from the point and a dark crust stains its base
-  {const venom=mat('#9ad23a',{emissive:'#6ab01a',emissiveIntensity:.9,roughness:.2});sphere(body,.011,venom,0,y-.31,.1,.8,1.5,.8);sphere(body,.007,venom,.012,y-.34,.1);sphere(body,.03,mat('#2a1a12',{roughness:.95}),0,y-.28,.015,1,.8,1);g.userData.venomed=true;}
+  {const venom=mat('#9ad23a',{emissive:'#6ab01a',emissiveIntensity:.9,roughness:.2});sphere(tip,.011,venom,0-tipAt.x,y-.31-tipAt.y,.1-tipAt.z,.8,1.5,.8);sphere(tip,.007,venom,.012-tipAt.x,y-.34-tipAt.y,.1-tipAt.z);sphere(tip,.03,mat('#2a1a12',{roughness:.95}),0-tipAt.x,y-.28-tipAt.y,.015-tipAt.z,1,.8,1);g.userData.venomed=true;g.userData.tailBones=tailBones;}
  }
  // xans only: a comb of three bone-white thorns stands off the thorax, uneven and the hindmost snapped short
  if(o.stinger){const thorn=mat('#d8ccb0',{roughness:.45});
@@ -893,6 +902,7 @@ function xan(o){
  // joints: the head (also the neck pivot), the wings and the six legs front to hind, left is -x as on the cat
  head.name='head';
  const joints={head,neck0:head,lwing:wings[0],rwing:wings[1]};
+ (g.userData.tailBones||[]).forEach(b=>{joints[b.name]=b;});
  legs.forEach((leg,i)=>{const name=(i<3?'l':'r')+'leg'+(2-i%3);leg.name=name;joints[name]=leg;(leg.userData.segments||[]).forEach((b,k)=>{b.name=`${name}_${k}`;joints[b.name]=b;});});// built hindmost first: +z is forward
  return Object.assign(actor(g,body,legs,null,wings,'bee'),{head,joints});
 }

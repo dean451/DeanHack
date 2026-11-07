@@ -63,3 +63,18 @@ test('each leg is one skinned mesh on three bones: bending the knee swings the f
   assert(moved[0]<1e-9,`${name}: the hip end of the tube stayed (${moved[0]})`);
  }
 });
+
+test('the xan abdomen is one skinned hide on five bones: bending tail2 swings the barb and leaves the thorax; the chillbug has none',()=>{
+ const a=make('xan'),j=a.joints;
+ for(let k=0;k<5;k++)assert(j['tail'+k]?.isBone,`tail${k}`);
+ const hide=a.body.children.find(o=>o.isSkinnedMesh&&o.skeleton.bones[0]===j.tail0);
+ assert(hide,'the abdomen is a skinned mesh on tail0..tail4');
+ const barb=j.tail4.children.find(o=>o.isMesh&&!o.isSkinnedMesh);
+ assert(barb,'the barb rides tail4');
+ a.g.updateMatrixWorld(true);
+ const at=o=>o.getWorldPosition(new THREE.Vector3()),b0=at(barb),h0=at(j.head),t1=at(j.tail1);
+ j.tail2.rotation.x=.6;a.g.updateMatrixWorld(true);
+ assert(at(barb).distanceTo(b0)>.03,'the barb followed the bend');
+ assert(at(j.head).distanceTo(h0)<1e-9&&at(j.tail1).distanceTo(t1)<1e-9,'the head and the root of the abdomen stayed');
+ assert(!make('chillbug').joints.tail0,'the chillbug has no abdomen chain');
+});
