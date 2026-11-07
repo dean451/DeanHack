@@ -45,3 +45,21 @@ test('turning the head carries the eyes, feelers and mouthparts and nothing behi
   assert(still.min.distanceTo(other.min)<1e-9&&still.max.distanceTo(other.max)<1e-9,`${name}: the other leg stays`);
  }
 });
+
+test('each leg is one skinned mesh on three bones: bending the knee swings the foot and leaves the thigh',()=>{
+ const verts=leg=>{const m=leg.children.find(o=>o.isSkinnedMesh),p=m.geometry.attributes.position,v=new THREE.Vector3(),out=[];m.updateMatrixWorld(true);m.skeleton.update();for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);m.applyBoneTransform(i,v);out.push(v.clone().applyMatrix4(m.matrixWorld));}return out;};
+ for(const name of FORMS){
+  const a=make(name),j=a.joints;
+  for(const leg of a.legs){
+   assert.equal(leg.children.filter(o=>o.isMesh).length,1,`${name}: ${leg.name} is one mesh`);
+   assert(leg.children.some(o=>o.isSkinnedMesh),`${name}: ${leg.name} is skinned`);
+   for(let k=0;k<3;k++)assert(j[`${leg.name}_${k}`]?.isBone,`${name}: ${leg.name}_${k}`);
+  }
+  a.g.updateMatrixWorld(true);
+  const leg=j.rleg1,rest=verts(leg);
+  j.rleg1_2.rotation.x=.7;a.g.updateMatrixWorld(true);
+  const now=verts(leg),moved=now.map((p,i)=>p.distanceTo(rest[i]));
+  assert(Math.max(...moved)>.03,`${name}: the foot swung (${Math.max(...moved)})`);
+  assert(moved[0]<1e-9,`${name}: the hip end of the tube stayed (${moved[0]})`);
+ }
+});

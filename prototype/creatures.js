@@ -5,6 +5,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {scaleHide,withScales} from './dragon-scales.js';
 import {bakeable,bakeKey,bakeInto,bakedMaterialFor,convertInPlace,withIndex} from './baked-material.js';
 import {heldBoulderGeometry} from './boulder.js';
+import {skinLeg,rigLeg} from './insect-joints.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
 import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
@@ -881,11 +882,18 @@ function xan(o){
  }
  // xans trail long dangling barbed legs; chillbugs tuck short ones
  const reach=o.stinger?1:.6;
- for(const side of [-1,1])for(const z of [-.01,.06,.13]){const leg=new THREE.Group();leg.position.set(side*.06,y-.03,z);body.add(leg);const knee=[side*.14*reach,.06,(z-.06)*.8],foot=[side*.2*reach,-.26*reach,(z-.06)*1.6-.05];tube(leg,[[0,0,0],knee,foot],.009,dark,8);if(o.stinger)cone(leg,.012,.04,dark,(knee[0]+foot[0])/2,(knee[1]+foot[1])/2,(knee[2]+foot[2])/2,4).rotation.z=side*1.3;legs.push(leg);}
+ for(const side of [-1,1])for(const z of [-.01,.06,.13]){
+  const leg=new THREE.Group();leg.position.set(side*.06,y-.03,z);body.add(leg);
+  const knee=[side*.14*reach,.06,(z-.06)*.8],foot=[side*.2*reach,-.26*reach,(z-.06)*1.6-.05];
+  // one skinned leg on three bones (coxa, femur, tibia; insect-joints.js): the tube and, on a xan, its barb
+  const geos=[new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[0,0,0],knee,foot].map(p=>new THREE.Vector3(...p))),16,.009,8,false)];
+  if(o.stinger){const barb=new THREE.ConeGeometry(.012,.04,4);barb.rotateZ(side*1.3);barb.translate((knee[0]+foot[0])/2,(knee[1]+foot[1])/2,(knee[2]+foot[2])/2);geos.push(barb);}
+  const geo=skinLeg(mergeGeometries(geos),[[0,0,0],knee.map(v=>v*.4),knee,foot]);geos.forEach(g=>g.dispose());
+  rigLeg(leg,geo,dark,{mirror:false});legs.push(leg);}
  // joints: the head (also the neck pivot), the wings and the six legs front to hind, left is -x as on the cat
  head.name='head';
  const joints={head,neck0:head,lwing:wings[0],rwing:wings[1]};
- legs.forEach((leg,i)=>{const name=(i<3?'l':'r')+'leg'+(2-i%3);leg.name=name;joints[name]=leg;});// built hindmost first: +z is forward
+ legs.forEach((leg,i)=>{const name=(i<3?'l':'r')+'leg'+(2-i%3);leg.name=name;joints[name]=leg;(leg.userData.segments||[]).forEach((b,k)=>{b.name=`${name}_${k}`;joints[b.name]=b;});});// built hindmost first: +z is forward
  return Object.assign(actor(g,body,legs,null,wings,'bee'),{head,joints});
 }
 
