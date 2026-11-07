@@ -844,11 +844,13 @@ function xan(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[],wings=[];g.add(body);g.scale.setScalar(o.scale||1);
  const shell=mat(o.color,{roughness:.4,metalness:.15}),dark=mat(shade(o.color,.35),{roughness:.45}),glow=mat(o.eye,{emissive:o.eye,emissiveIntensity:1.6,roughness:.25}),y=.52;
  const membrane=mat(o.frost?'#d8f0ff':'#f0d8c8',{transparent:true,opacity:.42,side:THREE.DoubleSide,depthWrite:false,roughness:.3});
- const head=sphere(body,.07,dark,0,y+.02,.19,1,.9,.95);
- for(const side of [-1,1])sphere(head,.042,glow,side*.05,.015,.025,.8,1.05,.9);
- if(o.stinger)tube(body,[[0,y-.02,.24],[0,y-.08,.3],[0,y-.15,.31]],.007,dark,6);
- else for(const side of [-1,1]){const mandible=cone(body,.018,.08,mat('#e8f4ff',{roughness:.2}),side*.03,y-.03,.26,5);mandible.rotation.set(Math.PI/2+.3,0,side*.5);}
- for(const side of [-1,1])tube(body,[[side*.025,y+.07,.23],[side*.08,y+.17,.26],[side*.13,y+.2,.34]],.007,dark,8);
+ // the head is a group at the skull so the feelers and mouthparts turn with it (actor.joints.head / neck0)
+ const head=new THREE.Group();head.position.set(0,y+.02,.19);body.add(head);
+ const skull=sphere(head,.07,dark,0,0,0,1,.9,.95);
+ for(const side of [-1,1])sphere(skull,.042,glow,side*.05,.015,.025,.8,1.05,.9);
+ if(o.stinger)tube(head,[[0,-.04,.05],[0,-.1,.11],[0,-.17,.12]],.007,dark,6);
+ else for(const side of [-1,1]){const mandible=cone(head,.018,.08,mat('#e8f4ff',{roughness:.2}),side*.03,-.05,.07,5);mandible.rotation.set(Math.PI/2+.3,0,side*.5);}
+ for(const side of [-1,1])tube(head,[[side*.025,.05,.04],[side*.08,.15,.07],[side*.13,.18,.15]],.007,dark,8);
  sphere(body,.1,shell,0,y+.02,.06,1,.95,1.1);
  if(o.frost){
   // squat beetle: wide abdomen under raised elytra, frost crystals along the spine
@@ -875,12 +877,16 @@ function xan(o){
   const pair=new THREE.Group();pair.position.set(side*.03,y+.1,.05);body.add(pair);pair.rotation.x=-Math.PI/2+.25;
   for(const [len,width,tilt] of [[.34,.11,.15],[.26,.08,-.35]]){const shape=new THREE.Shape();shape.moveTo(0,0);shape.quadraticCurveTo(side*len*.5,width*1.6,side*len,width*.3);shape.quadraticCurveTo(side*len*.6,-width*.6,0,0);const wing=part(pair,new THREE.ShapeGeometry(shape),membrane);wing.rotation.z=tilt*side;wing.castShadow=false;
    const vein=new THREE.CatmullRomCurve3([new THREE.Vector3(0,0,.001),new THREE.Vector3(side*len*.5,width*.9,.001),new THREE.Vector3(side*len*.95,width*.35,.001)]);const veinMesh=part(wing,new THREE.TubeGeometry(vein,8,.0035,4,false),dark);veinMesh.castShadow=false;}
-  wings.push(pair);
+  pair.userData.side=side;pair.name=side<0?'lwing':'rwing';wings.push(pair);
  }
  // xans trail long dangling barbed legs; chillbugs tuck short ones
  const reach=o.stinger?1:.6;
  for(const side of [-1,1])for(const z of [-.01,.06,.13]){const leg=new THREE.Group();leg.position.set(side*.06,y-.03,z);body.add(leg);const knee=[side*.14*reach,.06,(z-.06)*.8],foot=[side*.2*reach,-.26*reach,(z-.06)*1.6-.05];tube(leg,[[0,0,0],knee,foot],.009,dark,8);if(o.stinger)cone(leg,.012,.04,dark,(knee[0]+foot[0])/2,(knee[1]+foot[1])/2,(knee[2]+foot[2])/2,4).rotation.z=side*1.3;legs.push(leg);}
- return actor(g,body,legs,null,wings,'bee');
+ // joints: the head (also the neck pivot), the wings and the six legs front to hind, left is -x as on the cat
+ head.name='head';
+ const joints={head,neck0:head,lwing:wings[0],rwing:wings[1]};
+ legs.forEach((leg,i)=>{const name=(i<3?'l':'r')+'leg'+(2-i%3);leg.name=name;joints[name]=leg;});// built hindmost first: +z is forward
+ return Object.assign(actor(g,body,legs,null,wings,'bee'),{head,joints});
 }
 
 function centipede(o){
