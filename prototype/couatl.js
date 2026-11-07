@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {pickPoints,skinChain,rigChain} from './chain-skin.js';
 
 // The couatl used to be the plain green-and-gold snake coiled on the floor, with
 // no wings. It is now a feathered serpent hovering in the air, facing +z: a long
@@ -113,7 +114,10 @@ function buildTail(){
   const s=(k-2)/2,dir=t.clone().addScaledVector(side,s*.55).addScaledVector(top,.12-Math.abs(s)*.1);
   plume(P,p.clone().sub(O).addScaledVector(t,-.01),dir,.15-Math.abs(s)*.03,.035,.005,{root:C.emerald,tip:C.teal,band:C.gold,face:top});
  }
- return mergeGeometries([tube(TAIL_FROM,1,60,12,O),P.merge()]);
+ // the hide and the plumes are one skin on five bones tail0..tail4 along the loop (chain-skin.js), so a turned
+ // joint bends the tail and everything past it follows, the quetzal fan included
+ const pts=Array.from({length:17},(_,i)=>SPINE.getPointAt(TAIL_FROM+(1-TAIL_FROM)*i/16).sub(O).toArray());
+ return skinChain(mergeGeometries([tube(TAIL_FROM,1,60,12,O),P.merge()]),pickPoints(pts,5));
 }
 
 function buildHead(){
@@ -184,14 +188,14 @@ export function createCouatl(){
  mesh(body,S.body,S.material,'body');
  const head=new THREE.Group();head.position.copy(SPINE.getPointAt(0));head.rotation.x=.12;body.add(head);
  mesh(head,S.head,S.material,'head');mesh(head,S.eyes,S.eye,'eyes');
- const tail=new THREE.Group();tail.position.copy(SPINE.getPointAt(TAIL_FROM));body.add(tail);mesh(tail,S.tail,S.material,'tail');
+ const tail=new THREE.Group();tail.position.copy(SPINE.getPointAt(TAIL_FROM));body.add(tail);const tailBones=rigChain(tail,S.tail,S.material,'tail').bones;
  const wings=[];
  for(const s of [-1,1]){
   const p=SPINE.getPointAt(.13),wing=new THREE.Group();wing.position.set(p.x+s*.035,p.y+.02,p.z);
   wing.userData.side=s;body.add(wing);mesh(wing,S.wing[s],S.material,'wing');wings.push(wing);
  }
- // named joints for the pose and role code: the head group is the top of the neck (neck0), the tail group
- // is one joint for now, and the wings are the two wing groups (left is -x). Names only: no mesh moved.
- const joints={head,neck0:head,tail0:tail,lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};
+ // named joints for the pose and role code: the head group is the top of the neck (neck0), the tail's
+ // first bone starts a chain tail0..tail4 (the tail group stays the handle the generic roll turns), and the wings are the two wing groups (left is -x). The tail is skinned.
+ const joints={head,neck0:head,tail0:tailBones[0],tail1:tailBones[1],tail2:tailBones[2],tail3:tailBones[3],tail4:tailBones[4],lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};
  return {g,body,legs:[],tail,wings,quirk:'hover',head,joints};
 }
