@@ -105,7 +105,9 @@ export function createPudding({kind = 'black'} = {}) {
     };
     sword(-.1, .1, .6, -.35);
     const helm = frame(.13, top(.13, -.07) - .005, -.07, .25, .5, -.35);
-    scrap.push([new THREE.SphereGeometry(.085, 8, 5, 0, Math.PI * 2, 0, Math.PI * .55), helm, C.iron]);
+    // a dented helm: a five-sided pyramid with a flat brow ridge, no round dome
+    scrap.push([new THREE.ConeGeometry(.09, .1, 5, 1), frame(0, .02, 0, 0, .3, 0, 1, 1, .85).premultiply(helm), C.iron]);
+    scrap.push([new THREE.BoxGeometry(.17, .016, .05), frame(0, -.028, .045, .15, 0, .1).premultiply(helm), C.ironDark]);
     scrap.push([new THREE.BoxGeometry(.016, .085, .016), frame(0, .03, .07).premultiply(helm), C.ironDark]);
     for (const [x, z, t] of [[-.2, -.08, .8], [.02, .2, 2.4], [.2, .12, 4.1]]) {
       const m = frame(x, top(x, z) - .01, z, .9 + hash(x * 7) * .4, t, .2);
@@ -116,9 +118,11 @@ export function createPudding({kind = 'black'} = {}) {
     flat('scrap', scrap);
     // a skull half-eaten, rising from the crown, eyes full of tar, jaw gone on one side
     const sk = frame(.04, top(.04, .0) + .02, .02, .5, -.4, .3), skull = [];
-    skull.push([new THREE.SphereGeometry(.09, 10, 8), frame(0, 0, 0, 0, 0, 0, 1, .9, 1.1).premultiply(sk), C.bone]);
+    // the cranium is a cracked, angular block: a squashed octahedron and a sunken brow plate
+    skull.push([new THREE.OctahedronGeometry(.09, 0), frame(0, 0, 0, .1, .4, 0, 1, .9, 1.1).premultiply(sk), C.bone]);
+    skull.push([new THREE.BoxGeometry(.1, .03, .05), frame(0, .015, .07, -.2, 0, 0).premultiply(sk), C.bone]);
     skull.push([new THREE.BoxGeometry(.078, .04, .065), frame(0, -.058, .04).premultiply(sk), C.bone]);
-    for (const s of [-1, 1]) skull.push([new THREE.SphereGeometry(.026, 6, 5), frame(s * .038, -.005, .075, 0, 0, 0, 1, 1.1, .5).premultiply(sk), C.hole]);
+    for (const s of [-1, 1]) skull.push([new THREE.OctahedronGeometry(.026, 0), frame(s * .038, -.005, .075, 0, 0, 0, 1, 1.1, .5).premultiply(sk), C.hole]);
     skull.push([new THREE.ConeGeometry(.014, .04, 3), frame(0, -.04, .08, Math.PI, 0, 0).premultiply(sk), C.hole]);
     flat('skull', skull);
     // hard pitch crust: broken angular plates split the mass, asymmetric, each seated in the skin
