@@ -78,3 +78,13 @@ test('the xan abdomen is one skinned hide on five bones: bending tail2 swings th
  assert(at(j.head).distanceTo(h0)<1e-9&&at(j.tail1).distanceTo(t1)<1e-9,'the head and the root of the abdomen stayed');
  assert(!make('chillbug').joints.tail0,'the chillbug has no abdomen chain');
 });
+
+test('the xan abdomen is faceted plates, not smooth beads, and the eyes sit small under a brow',()=>{
+ const a=make('xan');let skinned=null;
+ a.g.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton.bones.some(b=>b.name==='tail0'))skinned=o;});
+ assert(skinned,'abdomen mesh');
+ assert(skinned.geometry.attributes.position.count<700,`low-poly plates (${skinned.geometry.attributes.position.count} vertices; nine smooth spheres were ~1900)`);
+ const eyes=[];a.head.traverse(o=>{if(o.isMesh&&o.material.emissive&&o.material.emissive.getHex()===0xffcf40)eyes.push(o);});
+ assert.equal(eyes.length,2);
+ for(const e of eyes)assert(e.geometry.parameters.radius<=.025,'small eyes');
+});

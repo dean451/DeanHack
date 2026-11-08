@@ -848,7 +848,9 @@ function xan(o){
  // the head is a group at the skull so the feelers and mouthparts turn with it (actor.joints.head / neck0)
  const head=new THREE.Group();head.position.set(0,y+.02,.19);body.add(head);
  const skull=sphere(head,.07,dark,0,0,0,1,.9,.95);
- for(const side of [-1,1])sphere(skull,.042,glow,side*.05,.015,.025,.8,1.05,.9);
+ // small eyes sunk in dark sockets under a hooded brow ridge
+ for(const side of [-1,1]){sphere(skull,.03,mat('#120b0a',{roughness:.9}),side*.05,.012,.03,.8,.9,.8);sphere(skull,.02,glow,side*.056,.012,.04,.8,1,.8);
+  const brow=cone(skull,.012,.05,dark,side*.052,.036,.04,4);brow.rotation.set(Math.PI/2-.2,0,side*1.2);}
  if(o.stinger)tube(head,[[0,-.04,.05],[0,-.1,.11],[0,-.17,.12]],.007,dark,6);
  else for(const side of [-1,1]){const mandible=cone(head,.018,.08,mat('#e8f4ff',{roughness:.2}),side*.03,-.05,.07,5);mandible.rotation.set(Math.PI/2+.3,0,side*.5);}
  for(const side of [-1,1])tube(head,[[side*.025,.05,.04],[side*.08,.15,.07],[side*.13,.18,.15]],.007,dark,8);
@@ -868,8 +870,9 @@ function xan(o){
   // the nine segments are one vertex-coloured skin on five bones tail0..tail4 (chain-skin.js), so the abdomen bends
   // and the barb and venom ride tail4
   const parts=[],up=new THREE.Vector3(0,1,0);
-  for(let i=0;i<9;i++){const t=i/8,p=curve.getPoint(t),r=.075-t*.045,c=(i%2?shell:dark).color,geo=new THREE.SphereGeometry(r,16,12);
-   geo.applyMatrix4(new THREE.Matrix4().compose(p,new THREE.Quaternion().setFromUnitVectors(up,curve.getTangent(t)),new THREE.Vector3(1,.8,1)));
+  // each segment is a tapered six-sided plate (a flattened frustum, wide at the front edge, narrowing toward the tip), not a bead
+  for(let i=0;i<9;i++){const t=i/8,p=curve.getPoint(t),r=.075-t*.045,rn=.075-Math.min(1,(i+1)/8)*.045,c=(i%2?shell:dark).color,geo=new THREE.CylinderGeometry(rn*.85,r,.115,6,1);
+   geo.applyMatrix4(new THREE.Matrix4().compose(p,new THREE.Quaternion().setFromUnitVectors(up,curve.getTangent(t)),new THREE.Vector3(1.15,1,.7)));
    const col=new Float32Array(geo.attributes.position.count*3);for(let k=0;k<col.length;k+=3){col[k]=c.r;col[k+1]=c.g;col[k+2]=c.b;}
    geo.setAttribute('color',new THREE.BufferAttribute(col,3));parts.push(geo);}
   const abdomen=mergeGeometries(parts);parts.forEach(g=>g.dispose());

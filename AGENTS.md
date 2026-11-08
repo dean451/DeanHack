@@ -166,7 +166,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Xan abdomen is a string of smooth glossy red spheres** (https://github.com/dean451/DeanHack/pull/1898, `prototype/creatures.js`): `tools/creature-shot.mjs "xan" xan` shows tail0..tail4 as round beads, with huge round pale eyes; it reads as a toy bug, not a menacing one. Joints are fine; the shapes are not. **Done when:** the render shows the abdomen segments as tapered faceted plates (no `SphereGeometry`) and the eyes smaller and set under a brow in a darker socket; `xan-joints.test.js` still passes.
 
 
 
