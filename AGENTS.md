@@ -380,6 +380,7 @@ The pet cat poses from goals: `feline-pose.js` solves "mouth at the paw", "rump 
   - **A** couatl, ki-rin and the angels (a feathered serpent and a horse for ki-rin; a human for the angels)
     Stage 1 moved to the Claude list (2026-11-08, three strikes: see "Couatl, ki-rin and angel joints" under Needs a look); the next open stage of any family goes to the routines.
   - **B** bats, raven (bats: hanging and the fold; a raven: the hop and the head tilt)
+    Stage 2 done (routine, 2026-11-08): the Bats and ravens section of `CREATURE-MEASURES.md` and `MEASURES.bat` / `BAT` in `creature-measures.js`, with a range test: a little brown bat spends about 15 h a day in day roosts, 5 in night roosts and 4 foraging (Kunz 1980, quoted by a review), the 19.9 h sleep record is one captive bat in 1969, a horseshoe bat's minimum-power speed is 4.8 m/s (Aldridge 1987), a raven is 58 to 69 cm long with a 120 to 150 cm span. Not found: the hanging posture as angles and any raven hop, walk or head-tilt number; the pose stages set them by eye. Sources are search-result quotes, the pages were not opened (cloud).
   - **C** centaurs (a horse's body with a human torso)
   - **E** stalker and the elementals with bodies (a human; skip air and water)
   - **G** gnomes (a short human, the waddle)

@@ -343,3 +343,22 @@ The nineteenth monster family in the plan (AGENTS.md, family **s**). Measured fr
 *Not found:* a spider's stride frequency in Hz or stride length in centimetres (Ward and Humphreys give them but the quoted text does not), a scorpion's walking speed, the tail's arch as an angle, and how many hours a day a spider rests (one blog gave 10 to 14 hours for jumping spiders; not used). No number is claimed for them; the pose stages set them by eye.
 
 **What the spiders take from this.** The eight legs step in two alternating sets of four, not the insects' three, so the walk cycle alternates diagonal quartets. A spider can sprint far faster than it walks: top speed scales with mass to the 0.35, the mean far less, so the idle pace and the lunge are different things. A scorpion's tail is a quarter of its weight and, raised, throws its body forward and loads the front legs more, so the raised sting leans the body onto its front legs. A resting spider droops, legs drawn in, nearly still. Angles and hours are by eye.
+
+## Bats and ravens (bats, raven)
+
+The family in the plan (AGENTS.md, family **B**). Measured from a little brown bat and a horseshoe bat for the roost and the flight, and the common raven for its size. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Bats (the roost, the flight) and the raven (size)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Day on a roost | a little brown bat spends about 15 hours a day in day roosts and 5 in night roosts, with about 4 foraging (Kunz 1980, quoted by a sleep review) | [Sleep review preprint, EcoEvoRxiv](https://ecoevorxiv.org/repository/object/4029/download/7989) |
+| Longest sleep | 19.9 hours a day asleep, recorded in 1969 for one captive little brown bat; researchers question it | [Guinness World Records, most sleep for a mammal](https://www.guinnessworldrecords.com/world-records/513008-most-sleep-for-a-mammal) |
+| Flight speed | a greater horseshoe bat at its minimum-power speed of 4.8 m/s uses a reduced-span upstroke and decelerates in it | [Aldridge 1987, body accelerations during the wingbeat in six bat species](https://cob.silverchair.com/jeb/article-split/130/1/275/5247/Body-Accelerations-During-the-Wingbeat-in-Six-Bat) |
+| Raven size | 58 to 69 cm long with a wingspan of 120 to 150 cm | [BirdForum Opus, Corvus corax](https://www.birdforum.net/opus/Corvus_corax) |
+
+*Caveat:* the 15, 5 and 4 hours came from a search summary that credits Kunz (1980) through a review; the page could not be opened (the host is outside the session's allowed network domains). The raven's size is from a secondary page, and other pages differ slightly (115 to 150 cm span).
+
+*Not found:* the hanging posture as angles (the locking flexor tendon, Quinn and Baumel 1993, lets a bat hang with little muscular effort but gives no joint numbers), the fold of a roosting wing (the Dragons section has the wing numbers), and any number for a raven's hop, walk or head tilt: the searches returned only gulls and cranes. No number is claimed for them; the pose stages set them by eye.
+
+**What the bats take from this.** A bat hangs for about four fifths of a day and flies for under a fifth, so a bat left alone should hang almost always, and a flight is short and fast (about 5 m/s). A raven is a bird about 0.6 m long with a span twice that. The hanging pose, the head tilt and the hop are set by eye.

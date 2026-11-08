@@ -154,6 +154,16 @@ export const MEASURES = {
     fastest: 3.59, // m/s, Heteropoda jugulans over a very short burst (preprint, ScienceAlert)
     scorpionTailShare: .25, // about a quarter of a fat-tailed scorpion's mass is its tail (Telheiro et al. 2021)
   },
+  // bats and the raven: a little brown bat's day on the roost, a horseshoe bat's flight, a raven's size
+  bat: {
+    roostDay: 15, // hours a day a little brown bat spends in day roosts (Kunz 1980, as quoted by a sleep review)
+    roostNight: 5, // hours a day in night roosts (same)
+    forage: 4, // hours a day foraging (same)
+    sleepRecord: 19.9, // hours a day asleep, the 1969 record from one captive bat (Guinness World Records; questioned)
+    minPowerSpeed: 4.8, // m/s, a greater horseshoe bat's minimum-power flight speed, with a reduced-span upstroke (Aldridge 1987)
+    ravenLength: [.58, .69], // m, a common raven bill to tail (BirdForum Opus)
+    ravenSpan: [1.2, 1.5], // m, its wingspan (same)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -284,4 +294,14 @@ export const SPIDER = {
   legsPerSet: MEASURES.spider.gaitLegs,
   // the share of a scorpion's weight carried in its tail
   tailShare: MEASURES.spider.scorpionTailShare,
+};
+
+// What the bats' and the raven's poses use: how much of a day a bat hangs, and a raven's span against its length
+export const BAT = {
+  // the share of a day spent in a roost, day or night
+  roostShare: (MEASURES.bat.roostDay + MEASURES.bat.roostNight) / 24,
+  // the share spent flying and foraging
+  forageShare: MEASURES.bat.forage / 24,
+  // a raven's wingspan over its length, mid to mid
+  ravenSpanOverLength: mid(MEASURES.bat.ravenSpan) / mid(MEASURES.bat.ravenLength),
 };
