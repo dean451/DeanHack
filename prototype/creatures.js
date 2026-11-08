@@ -847,10 +847,14 @@ function xan(o){
  const membrane=mat(o.frost?'#d8f0ff':'#f0d8c8',{transparent:true,opacity:.42,side:THREE.DoubleSide,depthWrite:false,roughness:.3});
  // the head is a group at the skull so the feelers and mouthparts turn with it (actor.joints.head / neck0)
  const head=new THREE.Group();head.position.set(0,y+.02,.19);body.add(head);
- const skull=sphere(head,.07,dark,0,0,0,1,.9,.95);
- // small eyes sunk in dark sockets under a hooded brow ridge
- for(const side of [-1,1]){sphere(skull,.03,mat('#120b0a',{roughness:.9}),side*.05,.012,.03,.8,.9,.8);sphere(skull,.02,glow,side*.056,.012,.04,.8,1,.8);
-  const brow=cone(skull,.012,.05,dark,side*.052,.036,.04,4);brow.rotation.set(Math.PI/2-.2,0,side*1.2);}
+ // a faceted skull (a six-sided, four-ring low-poly shell, flat shaded), a hooded brow ridge in the lighter shell colour that catches the light,
+ // and small eyes sunk in angular dark sockets under it
+ const bone=mat(shade(o.color,.35),{roughness:.45,flatShading:true}),ridge=mat(shade(o.color,.9),{roughness:.35,flatShading:true});
+ const skull=part(head,new THREE.SphereGeometry(.07,6,4),bone);skull.scale.set(1,.9,1.05);skull.rotation.y=Math.PI/6;
+ for(const side of [-1,1]){
+  const socket=part(skull,new THREE.SphereGeometry(.03,5,3),mat('#0a0606',{roughness:.95,flatShading:true}),side*.05,.012,.03);socket.scale.set(.8,.9,.8);
+  sphere(skull,.016,glow,side*.056,.012,.044,.8,1,.8);
+  const brow=part(skull,new THREE.BoxGeometry(.05,.012,.026),ridge,side*.046,.04,.048);brow.rotation.set(-.35,side*-.5,side*.25);}
  if(o.stinger)tube(head,[[0,-.04,.05],[0,-.1,.11],[0,-.17,.12]],.007,dark,6);
  else for(const side of [-1,1]){const mandible=cone(head,.018,.08,mat('#e8f4ff',{roughness:.2}),side*.03,-.05,.07,5);mandible.rotation.set(Math.PI/2+.3,0,side*.5);}
  for(const side of [-1,1])tube(head,[[side*.025,.05,.04],[side*.08,.15,.07],[side*.13,.18,.15]],.007,dark,8);
