@@ -13,7 +13,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 const hash = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
 const R = .28, SY = .72, CY = .2;
 const PALETTES = {
-  black: {skin: '#1a1a1d', nucleus: '#2a1608', lobe: '#151519', iron: '#6b3a1c', ironDark: '#3a2010', bone: '#b8ac8c', hole: '#050506', crust: '#4a4a58', glow: '#241c2a'},
+  black: {skin: '#3a3a44', nucleus: '#2a1608', lobe: '#151519', iron: '#6b3a1c', ironDark: '#3a2010', bone: '#b8ac8c', hole: '#050506', crust: '#4a4a58', glow: '#241c2a'},
   brown: {skin: '#6a4a2a', nucleus: '#2a1a0c', lobe: '#5a3e22', mould: '#8f9a7a', mouldDark: '#4e5a42', spore: '#d8dcc0', bone: '#bdb08e', strand: '#3e2a16', glow: '#2a1c0c'},
 };
 
@@ -29,7 +29,7 @@ export const blackProfile = (dx, dy, dz) => 1 + .2 * Math.max(0, dx * .7 - dz * 
   + .13 * Math.sin(dx * 6.1 + dz * 2.3 + .4) * Math.max(0, dy + .1) + .09 * Math.sin(dz * 7.7 - dx * 3.9 + 2.1) - (dy < -.2 ? .1 * (-.2 - dy) / .8 : 0)
   // flat planes: on the flanks the eight skin columns alternate in and out, so each side is a slab with a
   // ridge between; the crown is chewed away over every second column, a broken top edge, not a dome
-  + .14 * Math.cos(4 * Math.atan2(dz, dx)) * (1 - Math.abs(dy)) - .3 * Math.max(0, dy - .3) * (1 + Math.cos(4 * Math.atan2(dz, dx) + 1.1)) / 2;
+  + .2 * Math.cos(4 * Math.atan2(dz, dx)) * (1 - Math.abs(dy)) - .4 * Math.max(0, dy - .3) * (1 + Math.cos(4 * Math.atan2(dz, dx) + 1.1)) / 2;
 const BLACK_SX = 1.12, BLACK_SZ = .96;
 const PROFILES = {black: [blackProfile, BLACK_SX, BLACK_SZ], brown: [brownProfile, BROWN_SX, BROWN_SZ]};
 // the height of the skin above (x, z): brown follows its profile, found by bisection along the vertical
@@ -69,7 +69,7 @@ export function createPudding({kind = 'black'} = {}) {
   // the skin: tar-black and glossy, or rotten brown and wet-matte
   // the rotten one is coarse and faceted, slumped lopsided, not a glossy dome
   const skin = add(new THREE.SphereGeometry(R, black ? 8 : 11, 7), new THREE.MeshStandardMaterial({color: C.skin, emissive: C.glow, emissiveIntensity: .35,
-    roughness: black ? .3 : .8, metalness: black ? .35 : 0, transparent: true, opacity: black ? .95 : .9, flatShading: true}), 'skin');
+    roughness: black ? .5 : .8, metalness: black ? .1 : 0, transparent: true, opacity: black ? .95 : .9, flatShading: true}), 'skin');
   skin.position.y = CY; skin.scale.set(PROFILES[kind]?.[1] ?? BLACK_SX, SY, PROFILES[kind]?.[2] ?? BLACK_SZ);
   {
     const profile = black ? blackProfile : brownProfile;
