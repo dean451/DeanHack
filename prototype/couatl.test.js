@@ -29,7 +29,8 @@ test('the couatl gets its own feathered, winged serpent instead of the plain sna
  // raised wings on either side, the head leads and the tail plumes trail
  const [left,right]=couatl.wings.map(box);
  assert(right.min.x>0&&right.max.x>.3&&left.max.x<0&&left.min.x<-.3,'wings spread');
- assert(right.max.y>box(couatl.body.children[0]).max.y,'wings raised above the back');
+ const hide=couatl.body.children[0];hide.geometry.computeBoundingBox();
+ assert(right.max.y>hide.geometry.boundingBox.clone().applyMatrix4(hide.matrixWorld).max.y,'wings raised above the back');
  assert(Math.abs(box(couatl.head).max.z-b.max.z)<1e-6,'head leads');
  assert(Math.abs(box(couatl.tail).min.z-b.min.z)<1e-6,'tail trails');
  // a green serpent: the body is more green than red or blue on average

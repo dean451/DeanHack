@@ -103,7 +103,11 @@ function buildBody(){
  // a low row of small feathers along the spine behind the wings
  for(let k=0;k<9;k++){const u=.17+k*.04,{p,t,top}=frame(u);plume(P,p.clone().addScaledVector(top,radius(u)*.85),top.clone().multiplyScalar(.6).addScaledVector(t,1),.04-k*.002,.02,.004,{root:C.teal,tip:C.gold,face:top});}
  const body=tube(0,TAIL_FROM,90,16,O);
- return mergeGeometries([body,P.merge()]);
+ // the hide, the ruff and the spine feathers are one skin on five bones, rooted where the tail starts and
+ // running up the neck to the head: spine0, neck3, neck2, neck1, neck0. A turned neck bone bends the hide and
+ // carries everything past it (the head, and the wings on neck1)
+ const pts=Array.from({length:17},(_,i)=>SPINE.getPointAt(TAIL_FROM*(1-i/16)).toArray());
+ return skinChain(mergeGeometries([body,P.merge()]),pickPoints(pts,5));
 }
 
 function buildTail(){
@@ -185,17 +189,19 @@ function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.c
 export function createCouatl(){
  const S=geometry();
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(1.1);
- mesh(body,S.body,S.material,'body');
- const head=new THREE.Group();head.position.copy(SPINE.getPointAt(0));head.rotation.x=.12;body.add(head);
+ const spine=rigChain(body,S.body,S.material,'spine',{part:'body'}).bones;
+ const [spine0,neck3,neck2,neck1,neck0]=spine;spine.slice(1).forEach((b,i)=>{b.name='neck'+(3-i);});
+ const head=new THREE.Group();head.rotation.x=.12;neck0.add(head);
  mesh(head,S.head,S.material,'head');mesh(head,S.eyes,S.eye,'eyes');
- const tail=new THREE.Group();tail.position.copy(SPINE.getPointAt(TAIL_FROM));body.add(tail);const tailBones=rigChain(tail,S.tail,S.material,'tail').bones;
+ const tail=new THREE.Group();spine0.add(tail);const tailBones=rigChain(tail,S.tail,S.material,'tail').bones;
  const wings=[];
  for(const s of [-1,1]){
-  const p=SPINE.getPointAt(.13),wing=new THREE.Group();wing.position.set(p.x+s*.035,p.y+.02,p.z);
-  wing.userData.side=s;body.add(wing);mesh(wing,S.wing[s],S.material,'wing');wings.push(wing);
+  const p=SPINE.getPointAt(.13),wing=new THREE.Group(),b=neck1.position.clone().add(neck2.position).add(neck3.position).add(spine0.position);
+  wing.position.set(p.x+s*.035-b.x,p.y+.02-b.y,p.z-b.z);
+  wing.userData.side=s;neck1.add(wing);mesh(wing,S.wing[s],S.material,'wing');wings.push(wing);
  }
  // named joints for the pose and role code: the head group is the top of the neck (neck0), the tail's
  // first bone starts a chain tail0..tail4 (the tail group stays the handle the generic roll turns), and the wings are the two wing groups (left is -x). The tail is skinned.
- const joints={head,neck0:head,tail0:tailBones[0],tail1:tailBones[1],tail2:tailBones[2],tail3:tailBones[3],tail4:tailBones[4],lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};
+ const joints={head,neck0,neck1,neck2,neck3,spine0,tail0:tailBones[0],tail1:tailBones[1],tail2:tailBones[2],tail3:tailBones[3],tail4:tailBones[4],lwing:wings.find(w=>w.userData.side<0),rwing:wings.find(w=>w.userData.side>0)};
  return {g,body,legs:[],tail,wings,quirk:'hover',head,joints};
 }
