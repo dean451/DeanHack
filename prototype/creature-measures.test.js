@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -186,6 +186,17 @@ test('the zruty numbers are a bear\'s walk and a gorilla\'s night', () => {
   inside(ZRUTY.walkMid, [1, 2.5], 'bear walk, m/s'); inside(ZRUTY.canterOverWalk, [1.3, 2], 'canter over walk');
   inside(z.gorillaNight[0], [10, 14], 'gorilla night low, h'); assert(z.gorillaNight[0] <= z.gorillaNight[1]);
   inside(ZRUTY.asleepShare, [.45, .6], 'share of a day asleep');
+});
+
+test('the spider numbers are a running gait, the speed scaling and a scorpion\'s tail', () => {
+  const s = MEASURES.spider;
+  assert(s.gaitLegs === 4);
+  inside(s.maxSpeedExponent, [.3, .4], 'max speed exponent'); inside(s.meanSpeedExponent, [.15, .25], 'mean speed exponent');
+  // the top speed grows faster with size than the usual pace
+  assert(SPIDER.sprintGap > 0); inside(SPIDER.sprintGap, [.1, .25], 'sprint gap');
+  inside(s.fastest, [2, 5], 'fastest spider, m/s');
+  inside(SPIDER.tailShare, [.2, .3], 'scorpion tail share');
+  assert(SPIDER.legsPerSet * 2 === 8);
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {
