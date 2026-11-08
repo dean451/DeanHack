@@ -166,7 +166,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Xan head and eyes are still a smooth ball with big glowing discs** (https://github.com/dean451/DeanHack/pull/1915, `prototype/creatures.js`, `xan()`): the abdomen is now tapered plates, but `tools/creature-shot.mjs "xan" xan` (three-quarter and head) still shows the skull as one smooth sphere with large pale eyes that read as bright dots on the surface; no dark socket or hooded brow shows at the game camera or close up, so it still reads as a toy bug. **Done when:** the head render shows a faceted skull (no `sphere` for the skull) with small eyes visibly sunk in darker sockets under a brow ridge that catches light; `xan-joints.test.js` still passes.
 
 
 
