@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -197,6 +197,18 @@ test('the spider numbers are a running gait, the speed scaling and a scorpion\'s
   inside(s.fastest, [2, 5], 'fastest spider, m/s');
   inside(SPIDER.tailShare, [.2, .3], 'scorpion tail share');
   assert(SPIDER.legsPerSet * 2 === 8);
+});
+
+test('the bat numbers are a day on the roost, a flight speed and a raven\'s size', () => {
+  const b = MEASURES.bat;
+  // the roost day and night and the foraging fill a day, and the 1969 record is more than any field estimate
+  assert(b.roostDay + b.roostNight + b.forage === 24);
+  assert(b.sleepRecord < 24 && b.sleepRecord > b.roostDay);
+  inside(BAT.roostShare, [.75, .9], 'share of a day on a roost'); inside(BAT.forageShare, [.1, .25], 'share of a day foraging');
+  inside(b.minPowerSpeed, [3, 7], 'minimum-power speed, m/s');
+  inside(b.ravenLength[0], [.5, .65], 'raven length low, m'); assert(b.ravenLength[0] < b.ravenLength[1]);
+  inside(b.ravenSpan[0], [1, 1.3], 'raven span low, m'); assert(b.ravenSpan[0] < b.ravenSpan[1]);
+  inside(BAT.ravenSpanOverLength, [1.8, 2.5], 'raven span over length');
 });
 
 test('every number in CREATURE-MEASURES.md has a source link in its row', () => {
