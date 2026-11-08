@@ -44,3 +44,25 @@ test('the zruty has a head, long arms and short legs as named joints; each turns
   assert(at(j.lleg1).distanceTo(at(j.rleg1)) > .1);
   assert.equal(z.arms, undefined, 'arms are not swung by the fidget');
 });
+
+test('the zruty legs and arms are skinned on three bones each, and bending a bone carries every piece past it', () => {
+  const z = zruty(), j = z.joints;
+  for (const n of ['lleg1', 'rleg1', 'lfore', 'rfore']) {
+    for (let i = 0; i < 3; i++) assert(j[n + '_' + i]?.isBone, n + '_' + i + ' is a bone');
+    let plain = 0;
+    j[n].traverse(o => { if (o.isMesh && !o.isSkinnedMesh) plain++; });
+    assert.equal(plain, 0, n + ' leaves no plain piece behind');
+  }
+  const low = (o) => { // lowest and farthest-forward true vertex of a limb's skinned pieces
+    let y = Infinity;
+    o.traverse(m => { if (!m.isSkinnedMesh) return; const p = m.geometry.attributes.position, v = new THREE.Vector3();
+      for (let i = 0; i < p.count; i++) { m.getVertexPosition(i, v); v.applyMatrix4(m.matrixWorld); y = Math.min(y, v.y); } });
+    return y;
+  };
+  z.g.updateMatrixWorld(true);
+  const rest = low(j.lleg1), other = low(j.rleg1), arm = low(j.lfore);
+  j.lleg1_1.rotation.x = -.8; j.lfore_1.rotation.x = -.8; z.g.updateMatrixWorld(true);
+  assert(low(j.lleg1) > rest + .02, 'the bent knee carries the foot');
+  assert(low(j.lfore) > arm + .02, 'the bent elbow lifts the knuckles');
+  assert.equal(low(j.rleg1), other, 'the other leg stays');
+});

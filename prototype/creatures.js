@@ -10,7 +10,7 @@ import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
 import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
-import {rigBody,hangOn} from './trunk-skin.js';
+import {rigBody,hangOn,skinPlainLimb} from './trunk-skin.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
@@ -2523,9 +2523,12 @@ function zruty(o){
  for(let k=0;k<5;k++){const b=cone(head,.035,.12,shag,(k-2)*.05,-.17,.08,5);b.rotation.x=Math.PI-.3;}
  head.rotation.x=.1;
  // named joints (family z, stage 1 step 1): `head` (also `neck0`), `lfore` / `rfore` (the long arms) and `lleg1` / `rleg1`; named only, as `arms` stays off the actor so nothing swings them
- const a=nameHumanoidJoints(Object.assign(actor(g,body,legs,head,[],'orc'),{head,arms}));
+ // step 2: merge each limb's pieces per material first, then skin every piece of each leg and arm onto three bones (`lleg1_0`..`_2`, `lfore_0`..`_2`)
+ const a=trimDraws(Object.assign(actor(g,body,legs,head,[],'orc'),{head,arms}));
+ for(const [list,stem] of [[legs,'leg1_'],[arms,'fore_']])for(const o of list)skinPlainLimb(o,(o.position.x<0?'l':'r')+stem,true,true);
+ nameHumanoidJoints(a);
  delete a.arms;
- return trimDraws(a);
+ return a;
 }
 const ZRUTIES={'zruty':{fur:'#6a4a2c',hide:'#a07a58',eye:'#e8a030',scale:1.5}};
 
