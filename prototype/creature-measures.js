@@ -146,6 +146,14 @@ export const MEASURES = {
     gorillaNight: [12, 13], // hours a night in the nest (Taronga Zoo says about 13; other pages say 12)
     gorillaNestBefore: 1, // hours before sunset a gorilla starts building its night nest
   },
+  // cave and giant spiders and the scorpions: a spider's running speed, a scorpion's tail
+  spider: {
+    gaitLegs: 4, // legs in each of the two alternating sets of a running wolf spider (Ward and Humphreys 1981)
+    maxSpeedExponent: .353, // maximum speed scales with body mass to this power in wolf and huntsman spiders (J. Comp. Physiol. A 2021)
+    meanSpeedExponent: .197, // mean running speed scales to this power (same study)
+    fastest: 3.59, // m/s, Heteropoda jugulans over a very short burst (preprint, ScienceAlert)
+    scorpionTailShare: .25, // about a quarter of a fat-tailed scorpion's mass is its tail (Telheiro et al. 2021)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -266,4 +274,14 @@ export const ZRUTY = {
   canterOverWalk: MEASURES.zruty.bearCanter / MEASURES.zruty.bearWalk,
   // the share of a whole day asleep, taking the night as twelve hours
   asleepShare: mid(MEASURES.zruty.gorillaNight) / 24,
+};
+
+// What the spiders' poses use: how much faster a spider's top speed grows with size than its usual pace, and the tail's weight
+export const SPIDER = {
+  // top speed against mean speed grows by this power of mass
+  sprintGap: MEASURES.spider.maxSpeedExponent - MEASURES.spider.meanSpeedExponent,
+  // legs stepping at once in a running gait (the other four are planted)
+  legsPerSet: MEASURES.spider.gaitLegs,
+  // the share of a scorpion's weight carried in its tail
+  tailShare: MEASURES.spider.scorpionTailShare,
 };

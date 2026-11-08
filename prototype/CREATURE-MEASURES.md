@@ -324,3 +324,22 @@ The next family in the plan (AGENTS.md, family **z**). The zruty is drawn as a h
 
 **What the zruty takes from this.** A bear's walk is about 1.7 m/s and its canter about 1.7 times that, so a lumbering walk and a rare lunge. A gorilla sleeps about half a day, mostly at night. Postures and the knuckle walk's timing are by eye.
 
+## Spiders and scorpions (cave spider, giant spider, scorpions)
+
+The nineteenth monster family in the plan (AGENTS.md, family **s**). Measured from wolf spiders and huntsman spiders (running), a fat-tailed scorpion (the raised tail) and jumping spiders (rest). Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Spiders and scorpions (running, the raised tail, rest)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Gait | a vagrant wolf spider (Trochosa ruricola) runs with two alternating sets of four diagonally adjacent legs, like a fast running insect; the burrow-dwelling Lycosa tarentula deviates from that; protraction/retraction ratio rises with both running speed and stepping frequency | [Ward and Humphreys 1981, Locomotion in wolf spiders, J. Exp. Biol.](https://library.museum.wa.gov.au/internaldocs/49467/WardHumphreys1981SpiderLocoJexpBiol.pdf) |
+| Running speed scaling | in 128 wolf and huntsman spiders (0.0054 to 3.01 g) maximum speed scaled with body mass to the power 0.353, mean running speed to the power 0.197 | [Journal of Comparative Physiology A 2021, DOI 10.1007/s00359-021-01468-4](https://springerlink.bibliotecabuap.elogim.com/10.1007/s00359-021-01468-4) |
+| Fastest spider | the huntsman Heteropoda jugulans reached 3.59 m/s (12.9 km/h) over a very short burst; a preprint, not yet peer reviewed | [ScienceAlert on the 258-species spider race](https://sciencealert.com/the-worlds-fastest-spider-has-been-identified-and-it-can-can-outrun-a-human) |
+| Scorpion tail | the tail (metasoma) of the fat-tailed scorpion Androctonus australis is about a quarter of its mass; raising it into the defensive arch moves the centre of mass forward and raises the second leg pair's duty factor, even allowing for the slower walk | [Telheiro, Coelho and van der Meijden 2021, J. Comp. Physiol. A, DOI 10.1007/s00359-021-01467-5](https://link.springer.com/10.1007/s00359-021-01467-5) |
+| Rest | jumping spiders rest hanging from a silk thread or upside down on a small silk platform, the body drooping and almost motionless; in the active phases the legs curl and the spinnerets twitch | [Rößler et al. 2022, PNAS 119(33), DOI 10.1073/pnas.2204754119](https://www.nationalgeographic.com/animals/article/jumping-spiders-dream-rem-sleep-study-suggests) |
+
+*Caveat:* the speed and mass figures come from search-result quotes of the papers; the pages were not opened. The 3.59 m/s is a peak over a very short burst. The rest row matches a press page to the PNAS paper by its title and wording.
+
+*Not found:* a spider's stride frequency in Hz or stride length in centimetres (Ward and Humphreys give them but the quoted text does not), a scorpion's walking speed, the tail's arch as an angle, and how many hours a day a spider rests (one blog gave 10 to 14 hours for jumping spiders; not used). No number is claimed for them; the pose stages set them by eye.
+
+**What the spiders take from this.** The eight legs step in two alternating sets of four, not the insects' three, so the walk cycle alternates diagonal quartets. A spider can sprint far faster than it walks: top speed scales with mass to the 0.35, the mean far less, so the idle pace and the lunge are different things. A scorpion's tail is a quarter of its weight and, raised, throws its body forward and loads the front legs more, so the raised sting leans the body onto its front legs. A resting spider droops, legs drawn in, nearly still. Angles and hours are by eye.
