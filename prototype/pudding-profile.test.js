@@ -20,6 +20,16 @@ test('the black pudding skin is a lopsided, faceted heap, not a sphere', () => {
   assert.ok(blackProfile(.8, .2, -.6) > blackProfile(-.8, .2, .6) + .1, 'high shoulder');
 });
 
+test('the black pudding flanks are slabs with ridges and the crown is notched, and the skin is light enough to show it', () => {
+  // flank: column directions at 0 and 45 degrees differ clearly; crown: the chewed columns sit well below the kept ones
+  const c = a => [Math.cos(a) * .95, 0, Math.sin(a) * .95];
+  assert.ok(Math.abs(blackProfile(...c(0)) - blackProfile(...c(Math.PI / 4))) > .2, 'flank ridge vs slab');
+  const crown = a => [Math.cos(a) * .5, .85, Math.sin(a) * .5];
+  assert.ok(Math.abs(blackProfile(...crown(-1.1 / 4)) - blackProfile(...crown(-1.1 / 4 + Math.PI / 4))) > .15, 'crown notch');
+  const skin = skinOf('black').material.color;
+  assert.ok(skin.r + skin.g + skin.b > .12, 'skin not pitch black');
+});
+
 test('the brown pudding foot lobes are ragged, not matching ovals', () => {
   const lobes = createPudding({kind: 'brown'}).body.children.filter(m => m.userData.part === 'lobe');
   assert.equal(lobes.length, 5);
