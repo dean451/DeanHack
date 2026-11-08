@@ -54,5 +54,9 @@ export function createGridBug(){
  const arc=new THREE.Line(arcGeo,arcMaterial);head.add(arc);arc.visible=false;
  g.userData.updateGridBug=t=>{arc.visible=(t%3.7)>.0&&(t%3.7)<.13;cyan.emissiveIntensity=1+Math.sin(t*3)*.15;};
  g.userData.dispose=()=>{geos.forEach(o=>o.dispose());[shell,plate,dark,cyan,arcMaterial].forEach(o=>o.dispose());};
- return {g,body,legs,quirk:'gridbug'};
+ // Named joints, as the insects: `head` (also `neck0`) is the group the skull, eyes, mandibles and feelers ride, and the six
+ // legs are `lleg0`..`lleg2` / `rleg0`..`rleg2` from front to hind (left is -x). `legs` keeps its build order.
+ const joints={head,neck0:head};head.name='head';
+ legs.forEach((leg,k)=>{const side=k<3?'l':'r',i=2-k%3,name=`${side}leg${i}`;leg.name=name;joints[name]=leg;});
+ return {g,body,head,legs,joints,quirk:'gridbug'};
 }
