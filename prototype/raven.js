@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {nameBatJoints} from './bat-joints.js';
+import {skinChain,rigChain} from './chain-skin.js';
 
 // The raven shares the bats' letter, so it used to be the bat: a fur ball with
 // membrane wings and red eyes. It is now a big glossy black corvid in flight,
@@ -136,12 +137,15 @@ function buildWing(side){
  return P.merge();
 }
 
+// The tail's four bones run straight back from its root; each feather rides the two bones either side of it, so a
+// turned joint bends the fan from there on. The same geometry for every raven.
+const TAIL_BONES=[[0,0,0],[0,0,-.07],[0,0,-.14],[0,0,-.21]];
 let shared=null;
 function geometry(){
  if(shared)return shared;
  const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.5,metalness:.08});
  const eye=new THREE.MeshStandardMaterial({color:0x1e140c,emissive:0x5a3a14,emissiveIntensity:.8,roughness:.08});
- shared={material,eye,body:buildBody(),head:buildHead(),eyes:buildEyes(),tail:buildTail(),leg:buildLeg(),wing:{'-1':buildWing(-1),'1':buildWing(1)}};
+ shared={material,eye,body:buildBody(),head:buildHead(),eyes:buildEyes(),tail:skinChain(buildTail(),TAIL_BONES),leg:buildLeg(),wing:{'-1':buildWing(-1),'1':buildWing(1)}};
  return shared;
 }
 function mesh(parent,geo,material,name){const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
@@ -153,11 +157,13 @@ export function createRaven(){
  mesh(lift,S.body,S.material,'body');
  const head=new THREE.Group();head.position.set(0,.035,.215);lift.add(head);
  mesh(head,S.head,S.material,'head');mesh(head,S.eyes,S.eye,'eyes');
- const tail=new THREE.Group();tail.position.set(0,.004,-.155);lift.add(tail);mesh(tail,S.tail,S.material,'tail');
+ const tail=new THREE.Group();tail.position.set(0,.004,-.155);lift.add(tail);const tailBones=rigChain(tail,S.tail,S.material,'tail').bones;
  const legs=[],wings=[];
  for(const s of [-1,1]){
   const leg=new THREE.Group();leg.position.set(s*.032,-.055,-.05);lift.add(leg);mesh(leg,S.leg,S.material,'leg');legs.push(leg);
   const wing=new THREE.Group();wing.position.set(s*.062,.03,.035);wing.userData.side=s;lift.add(wing);mesh(wing,S.wing[s],S.material,'wing');wings.push(wing);
  }
- return nameBatJoints({g,body,legs,tail,wings,quirk:'bat',head});
+ const actor=nameBatJoints({g,body,legs,tail,wings,quirk:'bat',head});
+ tailBones.forEach((b,i)=>{actor.joints['tail'+i]=b;});
+ return actor;
 }
