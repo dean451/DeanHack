@@ -54,3 +54,16 @@ test('the raven tail is one skinned fan on tail0..tail3: bending tail2 moves onl
  }
  assert(still>20&&moved>20,still+' still, '+moved+' moved');
 });
+
+test('every bat has a head group (also neck0) holding skull, ears and eyes; turning it leaves the wings',()=>{
+ for(const name of ['bat','giant bat','vampire bat']){
+  const a=createCreature({name,symbol:B,color:3}),j=a.joints;
+  assert.equal(j.head,a.head,name);assert.equal(j.neck0,a.head,name);assert.equal(j.head.name,'head');
+  let n=0;j.head.traverse(m=>{if(m.isMesh)n++;});assert(n>=6,name+' skull, ears and eyes ride the head');
+  assert.equal(j.head.position.length(),0,name+' no offset');
+  const wing=boxOf(j.rwing).clone(),h0=boxOf(j.head).clone();
+  j.head.rotation.y+=.6;
+  assert(!boxOf(j.head).equals(h0),name+' the head turned');assert(boxOf(j.rwing).equals(wing),name+' the wing stayed');
+  j.head.rotation.y-=.6;
+ }
+});
