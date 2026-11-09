@@ -931,11 +931,13 @@ function centipede(o){
 function bat(o){
  const g=new THREE.Group(),body=new THREE.Group(),lift=new THREE.Group(),wings=[];g.add(body);body.add(lift);lift.position.y=.62;g.scale.setScalar(o.scale||1);
  const fur=mat(o.color),membrane=mat(shade(o.color,.6),{side:THREE.DoubleSide,roughness:.8});
- sphere(lift,.085,fur,0,0,0,1,1.15,.9);sphere(lift,.065,fur,0,.08,.05);
- for(const side of [-1,1]){const ear=cone(lift,.03,.1,fur,side*.035,.16,.04,4);ear.rotation.z=-side*.3;sphere(lift,.012,mat('#ff5a3a',{emissive:'#ff3a1a',emissiveIntensity:2}),side*.025,.09,.105);
+ // the skull, ears and eyes ride a head group at the lift's origin (no offset: nothing moves), so the bat's head turns on its own
+ const head=new THREE.Group();lift.add(head);
+ sphere(head,.085,fur,0,0,0,1,1.15,.9);sphere(head,.065,fur,0,.08,.05);
+ for(const side of [-1,1]){const ear=cone(head,.03,.1,fur,side*.035,.16,.04,4);ear.rotation.z=-side*.3;sphere(head,.012,mat('#ff5a3a',{emissive:'#ff3a1a',emissiveIntensity:2}),side*.025,.09,.105);
   const shape=new THREE.Shape();shape.moveTo(0,.05);shape.lineTo(side*.2,.14);shape.lineTo(side*.42,.08);shape.quadraticCurveTo(side*.36,-.02,side*.3,-.08);shape.quadraticCurveTo(side*.22,-.02,side*.16,-.1);shape.quadraticCurveTo(side*.08,-.04,0,-.06);
   const pivot=new THREE.Group();pivot.position.set(side*.05,.02,0);lift.add(pivot);part(pivot,new THREE.ShapeGeometry(shape),membrane);pivot.userData.side=side;wings.push(pivot);}
- return nameBatJoints({...actor(g,body,[],null,wings,'bat'),batLift:lift,batJitter:o.kind||'bat'});
+ return nameBatJoints({...actor(g,body,[],null,wings,'bat'),head,batLift:lift,batJitter:o.kind||'bat'});
 }
 
 function snake(o){

@@ -1,7 +1,7 @@
 // Named joints for the bats and the raven (family B, stage 1 step 1), using the dragon's and the cat's names:
 // `lwing` / `rwing` (the wing pivots the flap swings; left is -x), and on the raven `head` (`neck0` is the same
-// group), `tail0` (the tail group, one joint) and `lleg1` / `rleg1` (a bird's legs are its hind legs). The bat's head is
-// part of its one body mesh, so it has no `head` yet. Names only: no mesh moves.
+// group), `tail0` (the tail group, one joint) and `lleg1` / `rleg1` (a bird's legs are its hind legs). The bat's skull, ears and
+// eyes ride a `head` group (also `neck0`) at the lift's origin. Names only: no mesh moves.
 export function nameBatJoints(actor){
  const joints={};
  for(const w of actor.wings){const n=(w.userData.side<0?'l':'r')+'wing';w.name=n;joints[n]=w;}
