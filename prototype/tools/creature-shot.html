@@ -20,6 +20,7 @@ import {restPose as impRest, rests as impRests} from '../imp-rest.js';
 import {restPose as quadRest, rests as quadRests} from '../quadruped-rest.js';
 import {restPose as koboldRest, rests as koboldRests} from '../kobold-rest.js';
 import {bracePose, braces} from '../humanoid-brace.js';
+import {snarlPose, snarls} from '../goblin-snarl.js';
 import {ambushPose, ambushes} from '../humanoid-ambush.js';
 import {stalkPose} from '../wildcat-stalk.js';
 import {gasterPose, raises as gasterRaises} from '../insect-gaster.js';
@@ -66,6 +67,7 @@ if(q.get('pose')==='rest'&&humanoidRests(c)){const r=humanoidRest(c);birdPoser(c
 if(q.get('pose')==='rest'&&quadRests(c)){birdPoser(c).apply(quadRest(c).pose);}
 if(q.get('pose')==='rest'&&impRests(c)){const r=koboldRests(c)?koboldRest(c):impRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='brace'&&braces(c)){const r=bracePose(c);birdPoser(c).apply(r.pose);}
+if(q.get('pose')==='snarl'&&snarls(c)){const r=snarlPose(c);birdPoser(c).apply(r.pose);}
 // ?pose=ambush crouches a bugbear low over its knees (humanoid-ambush.js)
 if(q.get('pose')==='ambush'&&ambushes(c)){const r=ambushPose(c);birdPoser(c).apply(r.pose);}
 // ?pose=gaster lifts an ant's gaster over its back, the sting forward (insect-gaster.js)
