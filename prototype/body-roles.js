@@ -345,7 +345,7 @@ export function quadrupedRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins and orcs too), the imps, the kobolds and the heavy quadrupeds have maps so far.
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins and orcs too), the imps, the kobolds, the heavy quadrupeds and the rats have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
@@ -355,7 +355,7 @@ export function rolesOf(actor) {
   if ((actor.kind === 'gargoyle' || actor.kind === 'gremlin') && actor.joints?.neck3) return gargoyleRoles(actor);
   if ((actor.quirk === 'insect' || actor.quirk === 'bee') && actor.joints?.lleg0_2) return insectRoles(actor);
   if (['imp', 'homunculus', 'quasit', 'tengu', 'lemure', 'kobold'].includes(actor.quirk) && actor.joints?.rfore_2) return impRoles(actor);
-  if (actor.joints?.tail0 && actor.joints.lleg0_2 && actor.joints.rleg1_2 && !actor.joints.tail1 && !actor.joints.hips && !actor.joints.spine0 && !actor.joints.neck1) return quadrupedRoles(actor);
+  if (actor.joints?.tail0 && actor.joints.lleg0_2 && actor.joints.rleg1_2 && !actor.joints.tail1 && (!actor.joints.hips || actor.quirk === 'rat') && !actor.joints.spine0 && !actor.joints.neck1) return quadrupedRoles(actor);
   if (actor.joints?.rfore_2 && actor.joints.lleg1_2 && actor.joints.spine1 && actor.joints.neck3 && !actor.joints.tail0) return humanoidRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
