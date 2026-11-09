@@ -2487,14 +2487,14 @@ function zruty(o){
   segment(leg,[0,0,0],[side*.06,-.18,.05],.11,.09,fur);segment(leg,[side*.06,-.18,.05],[side*.05,-.32,.02],.085,.075,shag);
   const foot=sphere(leg,.09,hide,side*.05,-.33,.07,1,.45,1.35);foot.rotation.y=side*.2;
   for(let k=-1;k<=1;k++)cone(leg,.018,.06,claw,side*.05+k*.04,-.34,.18,4).rotation.x=Math.PI/2;legs.push(leg);}
- // torso: a barrel chest leaning well forward, a paler hide belly and a hump of muscle over the shoulders
- const torso=sphere(body,.28,fur,0,.62,.03,1.1,1.05,.95);torso.rotation.x=.45;
- sphere(body,.2,hide,0,.55,.14,1.05,1.1,.6).rotation.x=.4;
- sphere(body,.25,fur,0,.86,-.06,1.3,.75,1);
+ // torso (merged below into one vertex-coloured hide on the spine bones): a barrel chest leaning well forward, a paler hide belly and a hump of muscle over the shoulders
+ const trunk=new THREE.Group(),torso=sphere(trunk,.28,fur,0,.62,.03,1.1,1.05,.95);torso.rotation.x=.45;
+ sphere(trunk,.2,hide,0,.55,.14,1.05,1.1,.6).rotation.x=.4;
+ sphere(trunk,.25,fur,0,.86,-.06,1.3,.75,1);
  // shaggy coat: ragged tufts hanging off the flanks and a bristling mane down the back
  for(let i=0;i<14;i++){const a=(i/14)*Math.PI*2,r=.27+(i%3)*.015;
-  const tuft=cone(body,.045,.16,shag,Math.sin(a)*r,.48+(i%2)*.08,Math.cos(a)*r*.85+.02,5);tuft.rotation.set(Math.cos(a)*.35+Math.PI,0,-Math.sin(a)*.35);}
- for(let i=0;i<7;i++){const s=cone(body,.04+.012*Math.sin(i/6*Math.PI),.18+.07*Math.sin(i/6*Math.PI),shag,0,.58+i*.075,-.24-Math.sin(i/6*Math.PI)*.06+i*.012,5);s.rotation.x=-1.9+i*.12;}
+  const tuft=cone(trunk,.045,.16,shag,Math.sin(a)*r,.48+(i%2)*.08,Math.cos(a)*r*.85+.02,5);tuft.rotation.set(Math.cos(a)*.35+Math.PI,0,-Math.sin(a)*.35);}
+ for(let i=0;i<7;i++){const s=cone(trunk,.04+.012*Math.sin(i/6*Math.PI),.18+.07*Math.sin(i/6*Math.PI),shag,0,.58+i*.075,-.24-Math.sin(i/6*Math.PI)*.06+i*.012,5);s.rotation.x=-1.9+i*.12;}
  // arms: long enough to reach the floor, knuckles down, forearms thick with fur and hooked claws curled under
  for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.31,.9,.04);body.add(arm);arms.push(arm);
   sphere(arm,.13,fur,0,0,0,1,.9,1);
@@ -2505,8 +2505,9 @@ function zruty(o){
   for(let k=-1;k<=1;k++){const c=cone(arm,.02,.1,claw,side*.1+k*.045,-.78,.25,5);c.rotation.x=Math.PI/2+.5;
    cone(arm,.021,.045,gore,side*.1+k*.045,-.74,.22,5).rotation.x=Math.PI/2+.5;}}
  // old wounds: three raking scars across the flank and a clotted gash on the shoulder hump
- for(let k=0;k<3;k++){const sc=rounded(body,.02,.2,.012,gore,-.2+k*.035,.66+k*.01,.19,.006);sc.rotation.set(.3,0,.5);}
- rounded(body,.1,.02,.02,gore,.12,.93,-.04,.008).rotation.z=-.4;
+ for(let k=0;k<3;k++){const sc=rounded(trunk,.02,.2,.012,gore,-.2+k*.035,.66+k*.01,.19,.006);sc.rotation.set(.3,0,.5);}
+ rounded(trunk,.1,.02,.02,gore,.12,.93,-.04,.008).rotation.z=-.4;
+ const hideMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),skin=new THREE.Mesh(flatSkin(trunk),hideMat);skin.userData.part='body';skin.castShadow=skin.receiveShadow=true;body.add(skin);
  // head: slung low and forward under the hump, a bony brow, flat nose, underslung jaw with upthrust tusks
  const head=new THREE.Group();head.position.set(0,.95,.26);body.add(head);
  sphere(head,.17,fur,0,.02,-.02,1.1,.95,1);
@@ -2527,6 +2528,8 @@ function zruty(o){
  const a=trimDraws(Object.assign(actor(g,body,legs,head,[],'orc'),{head,arms}));
  for(const [list,stem] of [[legs,'leg1_'],[arms,'fore_']])for(const o of list)skinPlainLimb(o,(o.position.x<0?'l':'r')+stem,true,true);
  nameHumanoidJoints(a);
+ // step 3: the trunk and neck on bones (`hips`, `spine0`, `spine1`, `neck0`..`neck3`, the head on `neck3`, the arms on the chest) and the body in one hide
+ rigBody(a,{});
  delete a.arms;
  return a;
 }

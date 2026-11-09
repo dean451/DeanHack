@@ -22,7 +22,8 @@ test('the zruty has a head, long arms and short legs as named joints; each turns
   const z = zruty(), j = z.joints;
   assert(j, 'joints');
   assert.equal(j.head, z.head);
-  assert.equal(j.neck0, z.head, 'the neck pivot is the head group');
+  assert(j.neck0.isBone && j.neck3.isBone && j.hips.isBone && j.spine0.isBone && j.spine1.isBone, 'the trunk and neck are bones');
+  assert.equal(j.neck3.children.includes(z.head), true, 'the head rides the top of the neck');
   for (const side of ['l', 'r']) {
     assert.equal(j[side + 'fore'].position.x < 0, side === 'l', side + ' arm side');
     assert.equal(j[side + 'leg1'].position.x < 0, side === 'l', side + ' leg side');
@@ -65,4 +66,21 @@ test('the zruty legs and arms are skinned on three bones each, and bending a bon
   assert(low(j.lleg1) > rest + .02, 'the bent knee carries the foot');
   assert(low(j.lfore) > arm + .02, 'the bent elbow lifts the knuckles');
   assert.equal(low(j.rleg1), other, 'the other leg stays');
+});
+
+test('the zruty trunk and neck are bones in one hide: a bent spine carries the head and arms, a bent neck only the head', () => {
+  const z = zruty(), j = z.joints;
+  const hide = []; z.body.traverse(o => { if (o.isSkinnedMesh && o.userData.part === 'body') hide.push(o); });
+  assert(hide.length >= 1, 'a skinned body hide');
+  const at = o => { o.updateWorldMatrix(true, false); return o.getWorldPosition(new THREE.Vector3()); };
+  const probe = () => { z.g.updateMatrixWorld(true); return {head: at(z.head), lfore: at(j.lfore), rleg: at(j.rleg1_0), lleg: at(j.lleg1_0)}; };
+  const rest = probe();
+  j.neck1.rotation.x = .5; let p = probe();
+  assert(p.head.distanceTo(rest.head) > .02, 'a bent neck moves the head');
+  assert.equal(p.lfore.distanceTo(rest.lfore), 0, 'and not the arm');
+  assert.equal(p.rleg.distanceTo(rest.rleg), 0, 'nor the leg');
+  j.neck1.rotation.x = 0; j.spine0.rotation.x = .4; p = probe();
+  assert(p.head.distanceTo(rest.head) > .02, 'a bent spine moves the head');
+  assert(p.lfore.distanceTo(rest.lfore) > .02, 'and the arm');
+  assert.equal(p.rleg.distanceTo(rest.rleg), 0, 'not the leg');
 });
