@@ -19,6 +19,7 @@ import {createZombie,ZOMBIES} from './zombie.js';
 import {createGhoul} from './ghoul.js';
 import {createSkeleton} from './skeleton.js';
 import {createRaven} from './raven.js';
+import {nameBatJoints} from './bat-joints.js';
 import {createSpider} from './spider.js';
 import {createScorpion,isScorpion} from './scorpion.js';
 import {createAnt,isAnt} from './ant.js';
@@ -934,7 +935,7 @@ function bat(o){
  for(const side of [-1,1]){const ear=cone(lift,.03,.1,fur,side*.035,.16,.04,4);ear.rotation.z=-side*.3;sphere(lift,.012,mat('#ff5a3a',{emissive:'#ff3a1a',emissiveIntensity:2}),side*.025,.09,.105);
   const shape=new THREE.Shape();shape.moveTo(0,.05);shape.lineTo(side*.2,.14);shape.lineTo(side*.42,.08);shape.quadraticCurveTo(side*.36,-.02,side*.3,-.08);shape.quadraticCurveTo(side*.22,-.02,side*.16,-.1);shape.quadraticCurveTo(side*.08,-.04,0,-.06);
   const pivot=new THREE.Group();pivot.position.set(side*.05,.02,0);lift.add(pivot);part(pivot,new THREE.ShapeGeometry(shape),membrane);pivot.userData.side=side;wings.push(pivot);}
- return {...actor(g,body,[],null,wings,'bat'),batLift:lift,batJitter:o.kind||'bat'};
+ return nameBatJoints({...actor(g,body,[],null,wings,'bat'),batLift:lift,batJitter:o.kind||'bat'});
 }
 
 function snake(o){
