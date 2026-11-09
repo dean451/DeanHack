@@ -1230,7 +1230,10 @@ function centaur(o){
   const strap=segment(body,[-.13,hip+.34,z0+.06],[.12,hip+.08,z0+.07],.012,.012,leather);strap.scale.z=.5;
  }
  mergeStatic(g);
- return Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head,arms,arm:arms[1],weaponSocket,offHand,centaur:o.weapon||null});
+ // names only (family C, stage 1 step 1): the horse's `tail0` and four legs, and the man's `head`, `neck0` and arms `lfore` / `rfore` (left is -x)
+ const named=nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head,arms,arm:arms[1],weaponSocket,offHand,centaur:o.weapon||null}),{skin:false});
+ for(const arm of arms){arm.name=(arm.position.x<0?'l':'r')+'fore';named.joints[arm.name]=arm;}
+ return named;
 }
 const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#6a8aa0',weapon:'spear'},'forest centaur':{coat:'#5a3c24',hair:'#2a1a10',tunic:'#3f6a34',weapon:'bow',scale:1.05},'mountain centaur':{coat:'#7a7670',hair:'#3a3632',mantle:'#8a7058',beard:true,weapon:'club',scale:1.08}};
 // Ponies, horses and warhorses (u): a barrel with a sloped croup, an arched neck with a mane, a long
