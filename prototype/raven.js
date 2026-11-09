@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {nameBatJoints} from './bat-joints.js';
 
 // The raven shares the bats' letter, so it used to be the bat: a fur ball with
 // membrane wings and red eyes. It is now a big glossy black corvid in flight,
@@ -158,5 +159,5 @@ export function createRaven(){
   const leg=new THREE.Group();leg.position.set(s*.032,-.055,-.05);lift.add(leg);mesh(leg,S.leg,S.material,'leg');legs.push(leg);
   const wing=new THREE.Group();wing.position.set(s*.062,.03,.035);wing.userData.side=s;lift.add(wing);mesh(wing,S.wing[s],S.material,'wing');wings.push(wing);
  }
- return {g,body,legs,tail,wings,quirk:'bat',head};
+ return nameBatJoints({g,body,legs,tail,wings,quirk:'bat',head});
 }
