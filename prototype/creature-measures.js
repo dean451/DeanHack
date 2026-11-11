@@ -187,6 +187,21 @@ export const MEASURES = {
     walkStrideTime: [1.064, 1.159], // s, extended to collected (same)
     restLeg: 'one hind leg locked by the stay apparatus carries the hindquarter, the other rests flexed on the toe of its hoof (WikiVet)',
   },
+  // the long worms, purple worms and remorhaz: an earthworm's peristaltic crawl and coiled rest, a snake's concertina and strike
+  worm: {
+    massRange: [.012, 8.5], // g, the earthworms filmed crawling (Quillin 1999, J Exp Biol 202:661)
+    speedExp: .33, strideExp: .41, freqExp: -.07, dutyExp: -.03, // crawling speed, stride length, stride frequency and duty factor against body mass (same)
+    strideHz: .25, strideBL: .15, // stride frequency, Hz, and stride length, body lengths, near 1 g (a secondary summary of the same; unconfirmed)
+    contacts: [4, 6], // anchor points a corn snake presses on the walls of a 4 cm channel in concertina (Marvi and Hu 2012)
+    wallPush: 9, // times its body weight a snake pushes the walls with, climbing a 60 degree channel (same)
+    strike: {
+      ratSnake: {v: 2.67, dist: .167, ms: 74}, // mean peak speed m/s, reach m and duration ms (Penning, Sawvel and Moon 2016)
+      cottonmouth: {v: 2.98, dist: .136, ms: 66}, // (same)
+    },
+    strikeReach: [1 / 3, 1], // share of its length a rattlesnake can strike (Crotalus summary)
+    strikeUsual: .5, // and it rarely strikes past this share (same)
+    rest: 'an earthworm waits out drought coiled into a tight ball in a mucus-lined chamber; a resting snake lies coiled, loosely or tightly',
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -352,4 +367,17 @@ export const HORSE = {
   // the usual (medium) walk, m/s, and the stride at it, m
   walkMid: MEASURES.horse.walkSpeed.medium,
   strideMid: mid(MEASURES.horse.walkStride),
+};
+
+// What the worms' poses use: a slow crawl that speeds up by longer strides, a few anchors, and a fast short strike from a coil
+export const WORM = {
+  // crawling speed near 1 g, body lengths a second (stride frequency times stride length)
+  crawlBL: MEASURES.worm.strideHz * MEASURES.worm.strideBL,
+  // the anchors along a crawling body, mid of the range
+  anchors: mid(MEASURES.worm.contacts),
+  // a strike's duration, s, and its mean speed over the reach, m/s, mid of the two snakes
+  strikeS: (MEASURES.worm.strike.ratSnake.ms + MEASURES.worm.strike.cottonmouth.ms) / 2000,
+  strikeMeanV: (MEASURES.worm.strike.ratSnake.dist / MEASURES.worm.strike.ratSnake.ms + MEASURES.worm.strike.cottonmouth.dist / MEASURES.worm.strike.cottonmouth.ms) / 2 * 1000,
+  // the usual strike reach, a share of the body's length: no more than half
+  strikeShare: MEASURES.worm.strikeUsual,
 };
