@@ -20,6 +20,7 @@ import {restPose as impRest, rests as impRests} from '../imp-rest.js';
 import {restPose as quadRest, rests as quadRests} from '../quadruped-rest.js';
 import {restPose as koboldRest, rests as koboldRests} from '../kobold-rest.js';
 import {restPose as ratRest, rests as ratRests} from '../rat-rest.js';
+import {washPose, washPoser} from '../rat-wash.js';
 import {bracePose, braces} from '../humanoid-brace.js';
 import {snarlPose, snarls} from '../goblin-snarl.js';
 import {ambushPose, ambushes} from '../humanoid-ambush.js';
@@ -68,6 +69,8 @@ if(q.get('pose')==='rest'&&humanoidRests(c)){const r=humanoidRest(c);birdPoser(c
 if(q.get('pose')==='rest'&&quadRests(c)){birdPoser(c).apply(quadRest(c).pose);}
 // ?pose=rest also hunches a rat, nose down and tail laid along the floor (rat-rest.js)
 if(q.get('pose')==='rest'&&ratRests(c)){birdPoser(c).apply(ratRest(c).pose);}
+// ?pose=wash sits a rat up on its haunches, both forepaws at the nose (rat-wash.js)
+if(q.get('pose')==='wash'&&ratRests(c)){washPoser(c).apply(washPose(c).pose);}
 if(q.get('pose')==='rest'&&impRests(c)){const r=koboldRests(c)?koboldRest(c):impRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='brace'&&braces(c)){const r=bracePose(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='snarl'&&snarls(c)){const r=snarlPose(c);birdPoser(c).apply(r.pose);}
