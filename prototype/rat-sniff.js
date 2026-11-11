@@ -41,6 +41,8 @@ export function updateRatSniff(actor, dt, t, busy) {
   const st = actor.ratSniff || (actor.ratSniff = {seed: ((actor.g?.id ?? 1) * 8123) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {x: 0, y: 0, z: 0, b: 0}});
   // The hunch (rat-settle.js) runs last in the frame and eases these same joints; take it back first so the offsets
   // below are removed from the values they were added to, else the hunch's take-back finds them changed and leaves them.
+  // The wash (rat-washing.js) is written after the hunch, so it comes off first.
+  if (actor.ratWash) takeBackRest(actor.ratWash);
   if (actor.ratRest) takeBackRest(actor.ratRest);
   const o = st.o, head = actor.head, tail = actor.tail;
   head.rotation.x -= o.x; head.rotation.y -= o.y; actor.body.rotation.x -= o.b;
