@@ -86,3 +86,38 @@ test('the centaur tail hangs on five bones; a bend carries the hair past it and 
   assert(skinBox(a,a.head).max.distanceTo(head)<1e-9,`${name}: the man stayed`);
  }
 });
+
+// The arm's own skin, without the hand and what it holds (they hang on the wrist bone, inside the skin's tree).
+function armBox(a,arm,hand){
+ a.g.updateMatrixWorld(true);const box=new THREE.Box3();
+ for(const o of meshesOf(arm))if(o.isSkinnedMesh&&!hand.getObjectById(o.id)){o.skeleton.update();const p=o.geometry.attributes.position;
+  for(let i=0;i<p.count;i++){o.getVertexPosition(i,V);box.expandByPoint(V.applyMatrix4(o.matrixWorld));}}
+ return box;
+}
+test('each centaur arm hangs on three bones, shoulder, elbow and wrist, and the hand rides the wrist',()=>{
+ for(const name of NAMES){
+  const a=createCreature({name,symbol:67,color:3}),j=a.joints;
+  for(const arm of a.arms){
+   const side=arm.name[0],hand=side==='r'?a.weaponSocket:a.offHand;
+   for(const k of [0,1,2])assert(j[`${side}fore_${k}`]?.isBone,`${name}: ${side}fore_${k}`);
+   const parts=meshesOf(arm).filter(m=>!hand.getObjectById(m.id));
+   assert(parts.length>=1&&parts.every(m=>m.isSkinnedMesh),`${name}: ${arm.name} is skinned`);
+   assert.equal(hand.parent,j[`${side}fore_2`],`${name}: the ${arm.name} hand rides its wrist bone`);
+   // the hand did not move when it was hung on the wrist: it is still at the forearm's end (arm space 0,-.34,.125)
+   a.g.updateMatrixWorld(true);
+   assert(at(hand).distanceTo(arm.localToWorld(new THREE.Vector3(0,-.34,.125)))<1e-6,`${name}: the ${arm.name} hand stayed put`);
+   // the arm keeps its length: the skin reaches from the shoulder down past the elbow
+   const box=armBox(a,arm,hand);
+   assert(box.max.y-box.min.y>.3*a.g.scale.y,`${name}: ${arm.name} keeps its length`);
+  }
+  // an elbow bend swings the forearm and the weapon hand, and leaves the shoulder and the other arm
+  const arm=j.rfore,other=armBox(a,j.lfore,a.offHand),shoulder=at(j.rfore_0),hand=at(a.weaponSocket),before=armBox(a,arm,a.weaponSocket);
+  j.rfore_1.rotation.x=-.9;
+  assert(at(a.weaponSocket).distanceTo(hand)>.05,`${name}: the elbow carries the hand`);
+  assert(at(j.rfore_0).distanceTo(shoulder)<1e-9,`${name}: the shoulder stayed`);
+  assert(Math.abs(armBox(a,arm,a.weaponSocket).max.y-before.max.y)<1e-6,`${name}: the upper arm stayed`);
+  const still=armBox(a,j.lfore,a.offHand);
+  assert(still.min.distanceTo(other.min)<1e-9&&still.max.distanceTo(other.max)<1e-9,`${name}: the other arm stayed`);
+  j.rfore_1.rotation.x=0;
+ }
+});
