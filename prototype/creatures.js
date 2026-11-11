@@ -2965,33 +2965,46 @@ function elemental(o){
  const glow=(color,i=2.5)=>mat(color,{emissive:color,emissiveIntensity:i,roughness:.3});
  // fire burns in three tones and is cut in facets like a flame: a deep ember body, hot yellow seams and a white-hot core
  const ember=(color,em,i)=>mat(color,{emissive:em,emissiveIntensity:i,roughness:.6,flatShading:true});
- const skin=k==='earth'?mat(c,{roughness:1,flatShading:true}):k==='fire'?ember(shade(c,.62),'#9a2206',1.1):k==='water'?see(c,.62,.25):see(c,.34,.35);
- const dark=k==='earth'?mat(shade(c,.6),{roughness:1,flatShading:true}):k==='fire'?ember(o.hot||'#ffe070',o.hot||'#ffe070',2):k==='water'?see(shade(c,1.35),.4,.4):see(shade(c,1.3),.22,.5);
- const eye=glow(o.eye||'#ffffff',k==='earth'?2:3);
+ // a stalker is no gale but a gaunt hunter: opaque, faceted ash-grey hide over dark recesses, cut like the fire (`facet`)
+ const st=!!o.stalker,facet=k==='fire'||st,hide=(color,r)=>mat(color,{roughness:r,flatShading:true});
+ // its third and fourth tones: pale ridges where the light catches bone under the hide, and old yellowed bone breaking through
+ const ridgeM=st&&hide('#b4b4bc',.7),bone=st&&hide('#b8b096',.6);
+ const skin=st?hide('#8a8a94',.85):k==='earth'?mat(c,{roughness:1,flatShading:true}):k==='fire'?ember(shade(c,.62),'#9a2206',1.1):k==='water'?see(c,.62,.25):see(c,.34,.35);
+ const dark=st?hide('#3e3e48',.95):k==='earth'?mat(shade(c,.6),{roughness:1,flatShading:true}):k==='fire'?ember(o.hot||'#ffe070',o.hot||'#ffe070',2):k==='water'?see(shade(c,1.35),.4,.4):see(shade(c,1.3),.22,.5);
+ const eye=st?mat('#040406',{roughness:1}):glow(o.eye||'#ffffff',k==='earth'?2:3);
  // moves a piece built on the body into a joint group, keeping where it is drawn (body and joints are unrotated)
  const into=(grp,mesh)=>{mesh.position.sub(grp.position);grp.add(mesh);return mesh;};
- const lump=(p,r,m,x,y,z,sx=1,sy=1,sz=1)=>{const mesh=k==='earth'?part(p,new THREE.DodecahedronGeometry(r,0),m,x,y,z):k==='fire'?part(p,new THREE.IcosahedronGeometry(r,0),m,x,y,z):sphere(p,r,m,x,y,z);mesh.scale.set(sx,sy,sz);if(k==='earth')mesh.rotation.set(x*7,y*5,z*3);if(k==='fire')mesh.rotation.set(.3+x*5,y*3,z*4);if(k!=='earth')mesh.castShadow=false;return mesh;};
+ const lump=(p,r,m,x,y,z,sx=1,sy=1,sz=1)=>{const mesh=k==='earth'?part(p,new THREE.DodecahedronGeometry(r,0),m,x,y,z):facet?part(p,new THREE.IcosahedronGeometry(r,0),m,x,y,z):sphere(p,r,m,x,y,z);mesh.scale.set(sx,sy,sz);if(k==='earth')mesh.rotation.set(x*7,y*5,z*3);if(facet)mesh.rotation.set(.3+x*5,y*3,z*4);if(k!=='earth')mesh.castShadow=false;return mesh;};
  // lower body: earth gets two stubby boulder legs; the others a tapering funnel that sways as the tail
  let tail=null;
  if(k==='earth'){for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.36,0);body.add(leg);lump(leg,.1,skin,0,-.07,0,1,1.2,1);lump(leg,.11,dark,0,-.25,.03,1.1,.9,1.2);legs.push(leg);}}
  else{tail=new THREE.Group();tail.position.y=.5;body.add(tail);
-  if(k==='air')for(let i=0;i<6;i++){const t=i/5,ring=part(tail,new THREE.TorusGeometry(.2-t*.15,.03-t*.015,6,20),i%2?skin:dark,Math.sin(i*1.7)*.03,-.04-t*.4,Math.cos(i*1.7)*.03);ring.rotation.set(Math.PI/2+Math.sin(i*2.1)*.25,i*.6,0);ring.castShadow=false;}
+  if(k==='air')for(let i=0;i<6;i++){const t=i/5,ring=part(tail,new THREE.TorusGeometry(.2-t*.15,.03-t*.015,st?4:6,st?7:20),i%2?skin:dark,Math.sin(i*1.7)*.03,-.04-t*.4,Math.cos(i*1.7)*.03);ring.rotation.set(Math.PI/2+Math.sin(i*2.1)*.25,i*.6,0);ring.castShadow=false;}
   if(k==='fire')for(let i=0;i<9;i++){const a=i*2.4,r=.04+(i%3)*.04,f=cone(tail,.07-(i%3)*.012,.3-(i%3)*.05,i%3?skin:dark,Math.cos(a)*r,-.2+(i%3)*.03,Math.sin(a)*r,6);f.rotation.set(Math.PI+Math.sin(a)*.3,0,Math.cos(a)*.3);f.castShadow=false;}
   if(k==='water'){lathe(tail,[[.03,-.47],[.08,-.4],[.1,-.28],[.15,-.12],[.19,0]],skin).castShadow=false;const curl=part(tail,new THREE.TorusGeometry(.13,.035,8,20,Math.PI*1.4),dark,0,-.2,0);curl.rotation.set(Math.PI/2,0,.6);curl.castShadow=false;}
   const pool=part(g,new THREE.CircleGeometry(.26,20),mat(k==='fire'?'#2a1a10':shade(c,.5),{transparent:true,opacity:k==='fire'?.6:.35,depthWrite:false,emissive:k==='fire'?c:'#000000',emissiveIntensity:k==='fire'?.8:0}),0,.012,0);pool.rotation.x=-Math.PI/2;pool.castShadow=false;}
  // torso, shoulders and head, lumped from the element
  const chestY=k==='earth'?.6:.68;
  if(k==='fire'){const t=cylinder(body,.21,.07,.42,skin,0,chestY-.06,0,6);t.scale.z=.7;t.rotation.y=.26;t.castShadow=false;lump(body,.1,dark,0,chestY-.2,.02,1,1.3,.8);}
+ // the stalker's trunk is a starved six-sided wedge pinched to a wasp waist, the ribs cut dark across it, uneven
+ else if(st){const t=cylinder(body,.17,.05,.44,skin,0,chestY-.06,0,6);t.scale.z=.62;t.rotation.y=.2;t.castShadow=false;lump(body,.07,dark,0,chestY-.22,.01,1,1.4,.8);
+  for(let i=0;i<4;i++){const r=part(body,new THREE.BoxGeometry(.2-i*.03,.012,.03),dark,(i%2?.006:-.008),chestY+.08-i*.05,.075-i*.008);r.rotation.set(-.15,0,(i%2?.06:-.05));r.castShadow=false;}
+  // collarbones ride hard under the hide, and a crooked ridge of vertebrae breaks through down the back
+  for(const side of [-1,1]){const cb=segment(body,[side*.03,chestY+.17,.07],[side*.19,chestY+.15+(side<0?.02:0),.02],.012,.008,ridgeM,4);cb.castShadow=false;}
+  for(let i=0;i<5;i++)part(body,new THREE.IcosahedronGeometry(.026-i*.003,0),bone,Math.sin(i*1.9)*.012,chestY+.14-i*.075,-.1+i*.006).castShadow=false;}
  else{lump(body,.2,skin,0,chestY,0,1.1,1,.8);lump(body,.15,dark,0,chestY-.14,0,.9,.8,.8);}
- const headY=chestY+.3,head=new THREE.Group();head.position.set(0,headY,0);body.add(head);into(head,lump(body,.12,skin,0,headY,.02,...(k==='fire'?[.85,1.2,.95]:[1,1.05,1])));
+ const headY=chestY+.3,head=new THREE.Group();head.position.set(0,headY,0);body.add(head);into(head,lump(body,.12,skin,0,headY,.02,...(k==='fire'?[.85,1.2,.95]:st?[.72,1.3,.95]:[1,1.05,1])));
  // a fire elemental's skull narrows to a jutting chin, under a clinker brow over two black sockets the eyes burn deep in
- if(k==='fire'){const jaw=into(head,cone(body,.07,.14,skin,0,headY-.12,.05,5));jaw.rotation.set(Math.PI-.35,.3,0);jaw.castShadow=false;
-  for(const side of [-1,1])into(head,part(body,new THREE.DodecahedronGeometry(.036,0),mat('#0c0604',{roughness:1}),side*.046,headY+.005,.09)).scale.set(1.2,.8,.7);}
- for(const side of [-1,1]){into(head,sphere(body,k==='fire'?.016:.024,eye,side*.045,headY+.01,k==='fire'?.112:.12,k==='fire'?1.4:1,.7,.6)).castShadow=false;lump(body,.1,k==='earth'?dark:skin,side*.2,chestY+.12,0,1,.85,.9);}
+ // the stalker's long skull narrows the same way, to a lantern jaw, its sockets sunk under a hard brow ridge
+ if(facet){const jaw=into(head,cone(body,st?.06:.07,st?.17:.14,skin,0,headY-(st?.13:.12),.05,5));jaw.rotation.set(Math.PI-.35,st?-.2:.3,0);jaw.castShadow=false;
+  for(const side of [-1,1])into(head,part(body,new THREE.DodecahedronGeometry(st?.032:.036,0),mat(st?'#08080c':'#0c0604',{roughness:1}),side*(st?.04:.046),headY+.005,.09)).scale.set(1.2,.8,.7);}
+ if(st)for(const side of [-1,1]){const ridge=into(head,part(body,new THREE.BoxGeometry(.06,.016,.03),ridgeM,side*.038,headY+.04,.095));ridge.rotation.set(-.2,0,side*(side<0?.32:.22));ridge.castShadow=false;
+  const cheek=into(head,part(body,new THREE.TetrahedronGeometry(.026,0),bone,side*.058,headY-.04,.07));cheek.rotation.set(.4,side*.6,side*.3);cheek.castShadow=false;}
+ for(const side of [-1,1]){into(head,sphere(body,facet?.016:.024,eye,side*(st?.04:.045),headY+.01,facet?.112:.12,facet?1.4:1,.7,.6)).castShadow=false;lump(body,st?.075:.1,k==='earth'?dark:skin,side*.2,chestY+.12,0,...(st?[1.15,.75,.85]:[1,.85,.9]));}
  // arms: tapered limbs to heavy fists (earth) or dissolving hands
  const arms=[];
  for(const side of [-1,1]){const sh=[side*.22,chestY+.1,0],el=[side*.3,chestY-.08,.06],fist=[side*.3,chestY-.26,.1],arm=new THREE.Group();arm.position.set(...sh);body.add(arm);arms.push(arm);
-  const sides=k==='fire'?5:12,thin=k==='fire'?.75:1;into(arm,segment(body,sh,el,.07,.06*thin,skin,sides)).castShadow=k==='earth';into(arm,segment(body,el,fist,.06*thin,.05*thin,skin,sides)).castShadow=k==='earth';
+  const sides=facet?5:12,thin=st?.65:k==='fire'?.75:1;into(arm,segment(body,sh,el,.07,.06*thin,skin,sides)).castShadow=k==='earth';into(arm,segment(body,el,fist,.06*thin,.05*thin,skin,sides)).castShadow=k==='earth';
   into(arm,lump(body,k==='earth'?.09:.065,dark,...fist));
   if(k==='fire')for(let i=0;i<3;i++){const f=into(arm,cone(body,.022,.12,dark,fist[0]+(i-1)*.025,fist[1]+.09,fist[2],5));f.rotation.z=(i-1)*.3;f.castShadow=false;}}
  // element flourishes
@@ -3012,8 +3025,10 @@ function elemental(o){
  // stalkers only: not a gale but a hunter. Long hooked claws hang off both fists and a mouthful of needle fangs
  // gapes in the pale face, under black pits for eyes
  if(o.stalker){const claw=mat('#2a2a34',{roughness:.4,metalness:.3}),fang=mat('#e8e8f0',{roughness:.35});g.userData.stalker=true;
-  for(const side of [-1,1])for(let i=0;i<3;i++){const c=into(arms[side<0?0:1],cone(body,.012,.16,claw,side*.3+(i-1)*.03,chestY-.36,.12,4));c.rotation.set(-.3,0,(i-1)*.25);}
-  into(head,sphere(body,.045,mat('#06060a',{roughness:1}),0,headY-.06,.1,1.3,.7,.6));
+  for(const side of [-1,1])for(let i=0;i<3;i++){const c=into(arms[side<0?0:1],cone(body,.012,.16,claw,side*.3+(i-1)*.03,chestY-.36,.12,4));c.rotation.set(-.3,0,(i-1)*.25);
+   // a bony spur at each knuckle the claw grows from
+   into(arms[side<0?0:1],part(body,new THREE.TetrahedronGeometry(.016,0),bone,side*.3+(i-1)*.03,chestY-.27,.15)).castShadow=false;}
+  into(head,part(body,new THREE.DodecahedronGeometry(.045,0),mat('#06060a',{roughness:1}),0,headY-.06,.1)).scale.set(1.3,.7,.6);
   for(let i=0;i<6;i++){const x=(i-2.5)*.016,f=into(head,cone(body,.006,.03+(i%2)*.012,fang,x,headY-.06+(i%2?.02:-.02),.135,4));f.rotation.x=Math.PI*(i%2?1:0);}}
  // earth elementals only: a jagged fissure splits the chest, glowing like a banked forge
  if(k==='earth'){const vein=glow(o.eye,1.6);g.userData.cracked=true;for(const [x,y,rz] of [[-.05,.1,.5],[.02,.02,-.6],[-.02,-.08,.4]])part(body,new THREE.BoxGeometry(.018,.13,.012),vein,x,chestY+y,.16).rotation.z=rz;}
