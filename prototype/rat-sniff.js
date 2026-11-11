@@ -5,6 +5,8 @@
 // Offsets only: the head's pitch (rotation.x) and yaw (rotation.y) and the tail's swing (rotation.z)
 // are added on top of whatever gait.js and the action layer wrote, and taken back first next frame,
 // so nothing drifts.
+import {takeBackRest} from './insect-settle.js';
+
 export const DIP = .3, HUNT = .35, WHIP = .6, ROCK = .08;
 export const FIRST_MIN = 2, FIRST_SPAN = 4, GAP_MIN = 3, GAP_SPAN = 8, LEN = 2.2;
 const SNAP = 1e-3, FADE_OUT = 14;
@@ -37,6 +39,9 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 export function updateRatSniff(actor, dt, t, busy) {
   if (!sniffs(actor)) return null;
   const st = actor.ratSniff || (actor.ratSniff = {seed: ((actor.g?.id ?? 1) * 8123) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {x: 0, y: 0, z: 0, b: 0}});
+  // The hunch (rat-settle.js) runs last in the frame and eases these same joints; take it back first so the offsets
+  // below are removed from the values they were added to, else the hunch's take-back finds them changed and leaves them.
+  if (actor.ratRest) takeBackRest(actor.ratRest);
   const o = st.o, head = actor.head, tail = actor.tail;
   head.rotation.x -= o.x; head.rotation.y -= o.y; actor.body.rotation.x -= o.b;
   if (tail) tail.rotation.z -= o.z;
