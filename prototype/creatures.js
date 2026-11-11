@@ -1175,30 +1175,66 @@ const MIMICS={'strange object':{color:'#7a4a2a',glare:true},'small mimic':{color
 function centaur(o){
  const coatHex=o.coat,{g,body,legs,tail,y,s}=horse({scale:o.scale||1,coat:coatHex,hair:o.hair,points:shade(coatHex,.62),legH:.4,stock:1,tail:.42,centaur:true,feathered:o.feathered,mane:o.feathered?'shaggy':undefined});
  g.name='centaur';
- const coat=mat(coatHex,{roughness:.8}),skin=mat(o.skin||'#d2a47c',{roughness:.72}),hair=mat(o.hair,{roughness:.95}),leather=mat('#4a3222',{roughness:.8}),wood=mat('#6a4a2a',{roughness:.8});
+ const coat=mat(coatHex,{roughness:.8,flatShading:true}),skinHex=o.skin||'#c09272',skin=mat(skinHex,{roughness:.72,flatShading:true}),hair=mat(o.hair,{roughness:.95,flatShading:true}),leather=mat('#4a3222',{roughness:.8}),wood=mat('#6a4a2a',{roughness:.8});
+ // review 2026-11-11: no smooth spheres or capsules on the man. `knot` is a low, flat-shaded lump (six sides, four rings), `limb` a five-sided bone
+ const knot=(p,r,m,x,y,z,sx=1,sy=1,sz=1,ry=Math.PI/6)=>{const k=part(p,new THREE.SphereGeometry(r,6,4),m,x,y,z);k.scale.set(sx,sy,sz);k.rotation.y=ry;return k;},
+  limb=(p,a,b,r1,r2,m)=>segment(p,a,b,r1,r2,m,5),slab=(p,w,h,d,m,x,y,z)=>part(p,new THREE.BoxGeometry(w,h,d),m,x,y,z),
+  hull=(p,profile,m,sides=7)=>part(p,new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),sides,Math.PI/sides),m,0,hip,z0),
+  shadow=mat(shade(skinHex,.42),{roughness:.9,flatShading:true});
  // the horse's shoulders swell up into the human hips; the belt sits on the seam
  const hip=y+.1,z0=.25;
- sphere(body,.13,coat,0,hip,z0-.02,.95*s,.85,.85);
- lathe(body,[[0,0],[.1,0],[.105,.06],[.095,.13],[.11,.2],[.128,.28],[.135,.33],[.11,.37],[.06,.395],[.035,.41],[.035,.46],[0,.46]],skin,0,hip,z0).scale.set(1.2,1,.78);
- if(o.tunic)lathe(body,[[.103,.05],[.108,.07],[.098,.13],[.113,.2],[.132,.28],[.138,.32],[.1,.365],[.06,.38]],mat(o.tunic,{roughness:.85}),0,hip,z0).scale.set(1.2,1,.8);
- const belt=part(body,new THREE.TorusGeometry(.104,.017,6,20),leather,0,hip+.055,z0);belt.rotation.x=Math.PI/2;belt.scale.set(1.2,.8,1);
- sphere(body,.022,M.gold,0,hip+.055,z0+.086,1,1,.5);
- if(o.mantle){const fur=mat(o.mantle,{roughness:1});sphere(body,.16,fur,0,hip+.34,z0-.01,1.15,.42,.85);for(const side of [-1,1])sphere(body,.07,fur,side*.15,hip+.33,z0,1,.8,1);}
- // head: skull, jaw, nose, ears, eyes, brows and a mop of hair falling to the nape
+ knot(body,.13,coat,0,hip,z0-.02,.95*s,.85,.85);
+ // a lean, hard trunk in seven flat sides: ribs under the chest, two slabs of pectoral, a collarbone ridge
+ hull(body,[[0,0],[.1,0],[.105,.06],[.092,.13],[.108,.2],[.128,.28],[.135,.33],[.11,.37],[.06,.395],[.035,.41],[.035,.46],[0,.46]],skin).scale.set(1.2,1,.78);
+ if(!o.tunic)for(const side of [-1,1]){const pec=slab(body,.1,.055,.03,skin,side*.06,hip+.27,z0+.085);pec.rotation.set(-.25,side*.25,side*-.12);
+  const rib=slab(body,.07,.012,.02,shadow,side*.07,hip+.19,z0+.085);rib.rotation.set(-.1,side*.3,side*.3);}
+ for(const side of [-1,1])limb(body,[side*.02,hip+.36,z0+.06],[side*.13,hip+.345,z0+.02],.014,.012,skin);
+ // a worn, faded tunic: flat-sided, its hem chewed ragged over the belt, a dark stain and a stitched patch
+ if(o.tunic){const cloth=mat(o.tunic,{roughness:.95,flatShading:true});
+  const tunic=part(body,tatter(new THREE.LatheGeometry([[.103,.05],[.108,.07],[.098,.13],[.113,.2],[.132,.28],[.138,.32],[.1,.365],[.06,.38]].map(([r,h])=>new THREE.Vector2(r,h)),9,Math.PI/9),.1,.03,5),cloth,0,hip,z0);tunic.scale.set(1.2,1,.8);
+  const stain=slab(body,.06,.075,.012,mat(shade(o.tunic,.5),{roughness:1}),-.05,hip+.17,z0+.085);stain.rotation.set(-.12,-.3,.2);
+  const patch=slab(body,.05,.045,.012,mat(shade(o.tunic,1.25),{roughness:1}),.075,hip+.25,z0+.09);patch.rotation.set(-.2,.35,-.15);
+  for(let k=0;k<3;k++)slab(body,.004,.03,.014,leather,.055+k*.018,hip+.25,z0+.094).rotation.set(-.2,.35,.9);}
+ const belt=part(body,new THREE.TorusGeometry(.104,.017,4,9),leather,0,hip+.055,z0);belt.rotation.x=Math.PI/2;belt.scale.set(1.2,.8,1);
+ slab(body,.04,.03,.01,M.gold,0,hip+.055,z0+.088);
+ if(o.mantle){const fur=mat(o.mantle,{roughness:1,flatShading:true});knot(body,.16,fur,0,hip+.34,z0-.01,1.15,.42,.85);
+  // a ragged pelt over the shoulders: hard knots of fur and hanging tufts, no round caps
+  for(const side of [-1,1]){knot(body,.07,fur,side*.15,hip+.34,z0-.01,1.1,.55,1,side*.5);
+   for(let k=0;k<4;k++){const t=cone(body,.03,.11,fur,side*(.08+k*.03),hip+.28,z0-.07+k*.04,4);t.rotation.set(Math.PI+.2,0,side*-.4);}}}
+ // head: a faceted skull with a hard jaw, cheekbones, a brow ridge jutting over deep-set eyes, a broken nose, ears, and hair falling to the nape
  const head=new THREE.Group();head.position.set(0,hip+.53,z0+.01);body.add(head);
- sphere(head,.095,skin,0,0,0,.88,1.05,.95);sphere(head,.06,skin,0,-.05,.035,.9,.8,.9);
- cone(head,.018,.05,skin,0,-.005,.1,4).rotation.x=Math.PI/2+.35;
- for(const side of [-1,1]){sphere(head,.022,skin,side*.083,0,-.005,.5,1,.8);sphere(head,.012,darkEye,side*.033,.015,.083);const brow=rounded(head,.04,.01,.012,hair,side*.034,.035,.084,.004);brow.rotation.z=side*.15;}
- const mop=sphere(head,.1,hair,0,.035,-.02,.95,.85,1);mop.rotation.x=.25;sphere(head,.07,hair,0,-.04,-.07,1.15,1.1,.7);
- if(o.beard){sphere(head,.065,hair,0,-.075,.055,1.05,1.15,.75);sphere(head,.04,hair,0,-.14,.06,.9,1.1,.7);}
- // arms: shoulder, upper arm, elbow, forearm, hand; the right (+x) one is the weapon arm
+ knot(head,.095,skin,0,.005,-.005,.86,1.05,.95,0);
+ const jaw=slab(head,.088,.058,.075,skin,0,-.056,.03);jaw.rotation.x=.2;slab(head,.05,.026,.04,skin,0,-.088,.05).rotation.x=.35;
+ const brow=slab(head,.13,.028,.045,skin,0,.031,.072);brow.rotation.x=-.25;
+ cone(head,.02,.055,skin,.003,-.008,.1,4).rotation.set(Math.PI/2+.4,0,.12);
+ for(const side of [-1,1]){
+  const cheek=slab(head,.035,.025,.03,skin,side*.05,-.015,.065);cheek.rotation.set(0,side*.5,side*.2);
+  knot(head,.022,skin,side*.085,0,-.005,.45,1,.8,0);
+  // the eye socket a dark pit under the brow, the eye a small, wet glint at its back
+  knot(head,.02,shadow,side*.034,.008,.068,1.2,.75,.6,0);part(head,new THREE.OctahedronGeometry(.0055),darkEye,side*.034,.006,.076);
+  const bh=slab(head,.045,.01,.014,hair,side*.034,.046,.087);bh.rotation.set(-.2,0,side*.22);}
+ const mop=knot(head,.1,hair,0,.04,-.025,.95,.82,1,0);mop.rotation.x=.25;knot(head,.07,hair,0,-.04,-.07,1.15,1.1,.7,0);
+ for(let k=0;k<5;k++){const lock=cone(head,.022,.09,hair,-.06+k*.03,-.02-(k%2)*.02,-.08,4);lock.rotation.x=Math.PI-.3;}
+ if(o.beard){knot(head,.065,hair,0,-.08,.06,1.05,1.15,.75,0);cone(head,.04,.1,hair,0,-.15,.065,5).rotation.x=Math.PI-.15;}
+ // arms: a wedge of deltoid, a five-sided upper arm and forearm, a knotted elbow; the right (+x) one is the weapon arm
  const arms=[];let weaponSocket=null,offHand=null;
  for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.15,hip+.33,z0);arm.rotation.z=side*.1;body.add(arm);arms.push(arm);
-  sphere(arm,.05,skin);
-  segment(arm,[0,0,0],[0,-.19,-.01],.043,.036,skin);sphere(arm,.036,skin,0,-.19,-.01);
-  segment(arm,[0,-.19,-.01],[0,-.32,.11],.034,.028,skin);sphere(arm,.034,skin,0,-.34,.125,.9,1.1,1);
-  if(o.weapon==='bow'||o.mantle)cylinder(arm,.033,.033,.05,leather,0,-.29,.075,8).rotation.x=-.85;
+  limb(arm,[side*-.01,.035,0],[side*.012,-.1,.004],.048,.03,skin);
+  limb(arm,[0,0,0],[0,-.19,-.01],.043,.033,skin);knot(arm,.034,skin,0,-.19,-.01,1,1,1,0);
+  limb(arm,[0,-.19,-.01],[0,-.32,.11],.035,.026,skin);
+  if(o.weapon==='bow'||o.mantle)cylinder(arm,.034,.032,.06,mat('#4a3222',{roughness:.8,flatShading:true}),0,-.29,.075,6).rotation.x=-.85;
   const hand=new THREE.Group();hand.position.set(0,-.34,.125);arm.add(hand);if(side>0)weaponSocket=hand;else offHand=hand;}
+ // a fist closed round a grip running along `axis` (the hand's local frame): the back of the hand outward, four
+ // two-jointed fingers wrapping the grip from the front and a thumb closing over them from behind
+ const fist=(hand,side,r,rx=0,dz=0)=>{const f=new THREE.Group();f.rotation.x=rx;f.position.z=dz;hand.add(f);
+  const R=r+.009,ring=(a,y)=>[side*Math.cos(a)*R,y,Math.sin(a)*R];
+  const back=slab(f,.016,.05,.042,skin,side*(R+.002),0,-.004);back.rotation.y=side*.12;
+  for(let k=0;k<4;k++){const y=.017-k*.0115,a0=-.15,steps=[a0,.75,1.7,2.5];
+   knot(f,.0075,skin,...ring(a0,y),1,1,1,0);
+   for(let i=0;i<3;i++)limb(f,ring(steps[i],y),ring(steps[i+1],y-.002*i),.0068-.0006*i,.006-.0006*i,skin);}
+  const t0=[side*(R*.7),.01,-R*.9];
+  limb(f,t0,ring(-1.9,.024),.0075,.0065,skin);limb(f,ring(-1.9,.024),ring(-2.6,.02),.0065,.0055,skin);
+  return f;};
  if(o.weapon==='spear'){
   // held upright beside the flank, butt near the ground
   cylinder(weaponSocket,.016,.016,1.08,wood,0,.1,0,6);
@@ -1207,6 +1243,7 @@ function centaur(o){
   for(const side of [-1,1]){const barb=cone(weaponSocket,.012,.06,M.steel,side*.03,.62,0,3);barb.rotation.z=side*-2.5;}
   sphere(weaponSocket,.02,mat('#2a0c0a',{roughness:.9}),0,.68,.006,.7,2.2,.5);
   cylinder(weaponSocket,.02,.02,.06,leather,0,.6,0,6);
+  fist(weaponSocket,1,.016);
  }
  if(o.weapon==='club'){
   // a knotted cudgel hanging forward from the fist
@@ -1216,6 +1253,7 @@ function centaur(o){
   // rusted nails driven through the head, points out
   const nail=mat('#4a3426',{roughness:.9});
   for(const [a,h] of [[.9,.34],[2.8,.4],[4.9,.3],[5.7,.44]]){const n=cone(club,.012,.07,nail,Math.cos(a)*.075,h,Math.sin(a)*.075,4);n.rotation.z=-Math.cos(a)*1.3;n.rotation.x=Math.sin(a)*1.3;}
+  fist(weaponSocket,1,.022,2.45);
  }
  if(o.weapon==='bow'){
   // a tall longbow held in the left fist with its string, and a quiver of fletched arrows on the back
@@ -1228,7 +1266,11 @@ function centaur(o){
   const fletch=mat('#d8d0b8',{roughness:.9});
   for(const [x,z,h] of [[-.015,.01,.2],[.018,0,.22],[0,-.018,.19]]){cylinder(quiver,.005,.005,.12,wood,x,h-.04,z,4);sphere(quiver,.018,fletch,x,h,z,.45,1.6,1);}
   const strap=segment(body,[-.13,hip+.34,z0+.06],[.12,hip+.08,z0+.07],.012,.012,leather);strap.scale.z=.5;
+  fist(offHand,-1,.018,0,.04);
  }
+ // an empty hand balls into a fist
+ if(o.weapon!=='bow')fist(offHand,-1,.004);
+ if(!o.weapon||o.weapon==='bow')fist(weaponSocket,1,.004);
  // the horse's tail is five bones `tail0`..`tail4` and its legs three bones each (hooves and socks baked in), as on the horse (family C, stage 1 step 2);
  // the man's arms `lfore` / `rfore` (left is -x) are three bones each, shoulder, elbow and wrist (`lfore_0`..`_2`), with the hand
  // (spear, club or bow) moved onto the wrist bone so a bent elbow carries it (stage 1 step 3); `head` and `neck0` are still a group
@@ -1243,7 +1285,7 @@ function centaur(o){
  for(const arm of arms){arm.name=(arm.position.x<0?'l':'r')+'fore';named.joints[arm.name]=arm;arm.traverse(b=>{if(b.isBone)named.joints[b.name]=b;});}
  return named;
 }
-const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#6a8aa0',weapon:'spear'},'forest centaur':{coat:'#5a3c24',hair:'#2a1a10',tunic:'#3f6a34',weapon:'bow',scale:1.05},'mountain centaur':{coat:'#7a7670',hair:'#3a3632',mantle:'#8a7058',beard:true,weapon:'club',scale:1.08}};
+const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#58605c',weapon:'spear'},'forest centaur':{coat:'#5a3c24',hair:'#2a1a10',tunic:'#48503c',weapon:'bow',scale:1.05},'mountain centaur':{coat:'#7a7670',hair:'#3a3632',mantle:'#8a7058',beard:true,weapon:'club',scale:1.08}};
 // Ponies, horses and warhorses (u): a barrel with a sloped croup, an arched neck with a mane, a long
 // wedge head with a blaze, legs with knees, hocks, fetlocks and hooves, and a flowing tail. No horn.
 // All three are brown on the map, so the glyph colour is the base coat and the breed sets the
