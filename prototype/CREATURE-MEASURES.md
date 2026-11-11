@@ -362,3 +362,22 @@ The family in the plan (AGENTS.md, family **B**). Measured from a little brown b
 *Not found:* the hanging posture as angles (the locking flexor tendon, Quinn and Baumel 1993, lets a bat hang with little muscular effort but gives no joint numbers), the fold of a roosting wing (the Dragons section has the wing numbers), and any number for a raven's hop, walk or head tilt: the searches returned only gulls and cranes. No number is claimed for them; the pose stages set them by eye.
 
 **What the bats take from this.** A bat hangs for about four fifths of a day and flies for under a fifth, so a bat left alone should hang almost always, and a flight is short and fast (about 5 m/s). A raven is a bird about 0.6 m long with a span twice that. The hanging pose, the head tilt and the hop are set by eye.
+
+## Elementals (stalker, fire elemental, earth elemental)
+
+The family in the plan after the centaurs (AGENTS.md, family **E**; the air and water elementals have no body to pose). Each is drawn as a person, so its rest is measured from a person standing still and its creep from very slow walking; the fire elemental's own motion, its flicker, is measured from real buoyant flames. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session (the hosts are outside the session's allowed network domains).
+
+### Person (quiet stance, creeping) and flame (flicker)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Quiet stance sway speed | the centre of pressure moves about 9.2 mm/s with the eyes open in 100 young adults (mean age 22); eyes closed, 11.2 mm/s in women and 12.38 mm/s in men | [Posturographic standards for optimal control of human standing posture](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10170532/) |
+| Quiet stance sway amplitude | front-to-back amplitude over 10 s about 5.5 to 5.6 mm in 28 active students before fatigue (5.6 ± 1.3 mm in the men) | [Journal of Human Kinetics, postural sway and fatigue](https://jhk.termedia.pl/pdf-159452-87600) |
+| Very slow walking | step length grows as speed to the power 0.577 and step time shrinks as speed to the power 0.423; at the slowest speed both feet are down for about 55% of the cycle against about 12% at a person's own pace | [Smith and Lemaire, Scientific Reports 2019](https://link.springer.com/10.1038/s41598-019-54271-2) |
+| Flame flicker | a buoyant flame puffs at f = 0.48 √(g/D), the same as 1.5 / √D with D the base width in metres; another review's best fit is 1.68 / √D; pools a few centimetres wide puff near 10 Hz | [Xia et al., Flickering of buoyant diffusion flames (arXiv 1803.10400)](https://arxiv.org/pdf/1803.10400), [review of pulsation of buoyant diffusion flames and pool fires](https://repository.lboro.ac.uk/articles/journal_contribution/A_review_of_research_and_experimental_study_on_the_pulsation_of_buoyant_diffusion_flames_and_pool_fires/9547682), [APS DFD 2017 abstract on pool-fire puffing](https://archive.aps.org/dfd/2017/d35/1) |
+
+*Caveat:* the 1.68 factor came from a search summary that credits a 1996 review by Malalasekera and colleagues through another paper; the stance amplitude depends on trial length and platform, so it is an order of size, not a norm.
+
+*Not found:* any measure of a person stalking or sneaking as such (the studies found are of slow walking in general), a hunter's crouch as an angle (the kobolds' crouch numbers stand for it), and how an earth elemental's stone body would move. No number is claimed for them; the pose stages set them by eye.
+
+**What the elementals take from this.** Standing still, a body is never quite still: it drifts a few millimetres front to back, about a centimetre a second, so an idle elemental's rest is a slow sway, not a frozen statue. The stalker's creep at about 0.3 m/s takes steps about 0.43 of a usual step and keeps both feet down for over half of every stride. A fire elemental about half a metre across flickers about 2.1 to 2.4 times a second (a candle's 10 Hz would read as a small flame, not a big body), and a wider one slower.
