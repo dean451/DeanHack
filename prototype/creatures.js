@@ -2493,45 +2493,52 @@ const HORRORS={'shambling horror':{color:'#9aa8a4',raw:'#8a2a3a',eye:'#7affe8',s
 // The head is the 'tail' group, so live.js sways it slowly from side to side.
 function zruty(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1.18);const legs=[],arms=[];
- const fur=mat(o.fur,{roughness:1}),shag=mat(shade(o.fur,.62),{roughness:1}),hide=mat(o.hide||shade(o.fur,1.35),{roughness:.9}),
+ const fur=mat(o.fur,{roughness:1,flatShading:true}),shag=mat(shade(o.fur,.62),{roughness:1,flatShading:true}),hide=mat(o.hide||shade(o.fur,1.35),{roughness:.9,flatShading:true}),
   claw=mat('#e2d6b8',{roughness:.4}),tusk=mat('#efe4c4',{roughness:.35}),mouth=mat('#3a1210',{roughness:1}),gore=mat('#3c0e0c',{roughness:.5}),
   eye=mat(o.eye,{emissive:o.eye,emissiveIntensity:1.1,roughness:.25});
+ // review 2026-11-09: no round caps or smooth tubes. `knot` is a low-poly, flat-shaded lump (six sides, four rings), `limb` a five-sided bone
+ const knot=(p,r,m,x,y,z,sx=1,sy=1,sz=1,ry=Math.PI/6)=>{const k=part(p,new THREE.SphereGeometry(r,6,4),m,x,y,z);k.scale.set(sx,sy,sz);k.rotation.y=ry;return k;},
+  limb=(p,a,b,r1,r2,m)=>segment(p,a,b,r1,r2,m,5),slab=(p,w,h,d,m,x,y,z)=>part(p,new THREE.BoxGeometry(w,h,d),m,x,y,z);
  // legs: short, bowed and thick, with broad padded feet and three toe claws
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.16,.36,-.04);body.add(leg);
-  segment(leg,[0,0,0],[side*.06,-.18,.05],.11,.09,fur);segment(leg,[side*.06,-.18,.05],[side*.05,-.32,.02],.085,.075,shag);
-  const foot=sphere(leg,.09,hide,side*.05,-.33,.07,1,.45,1.35);foot.rotation.y=side*.2;
+  limb(leg,[0,0,0],[side*.06,-.18,.05],.11,.09,fur);limb(leg,[side*.06,-.18,.05],[side*.05,-.32,.02],.085,.075,shag);
+  const foot=knot(leg,.09,hide,side*.05,-.33,.07,1,.45,1.35,0);foot.rotation.y=side*.2;
   for(let k=-1;k<=1;k++)cone(leg,.018,.06,claw,side*.05+k*.04,-.34,.18,4).rotation.x=Math.PI/2;legs.push(leg);}
  // torso (merged below into one vertex-coloured hide on the spine bones): a barrel chest leaning well forward, a paler hide belly and a hump of muscle over the shoulders
- const trunk=new THREE.Group(),torso=sphere(trunk,.28,fur,0,.62,.03,1.1,1.05,.95);torso.rotation.x=.45;
- sphere(trunk,.2,hide,0,.55,.14,1.05,1.1,.6).rotation.x=.4;
- sphere(trunk,.25,fur,0,.86,-.06,1.3,.75,1);
+ const trunk=new THREE.Group(),torso=knot(trunk,.28,fur,0,.62,.03,1.1,1.05,.95);torso.rotation.x=.45;
+ knot(trunk,.2,hide,0,.55,.14,1.05,1.1,.6).rotation.x=.4;
+ knot(trunk,.25,fur,0,.86,-.06,1.3,.75,1,0);
  // shaggy coat: ragged tufts hanging off the flanks and a bristling mane down the back
  for(let i=0;i<14;i++){const a=(i/14)*Math.PI*2,r=.27+(i%3)*.015;
   const tuft=cone(trunk,.045,.16,shag,Math.sin(a)*r,.48+(i%2)*.08,Math.cos(a)*r*.85+.02,5);tuft.rotation.set(Math.cos(a)*.35+Math.PI,0,-Math.sin(a)*.35);}
  for(let i=0;i<7;i++){const s=cone(trunk,.04+.012*Math.sin(i/6*Math.PI),.18+.07*Math.sin(i/6*Math.PI),shag,0,.58+i*.075,-.24-Math.sin(i/6*Math.PI)*.06+i*.012,5);s.rotation.x=-1.9+i*.12;}
  // arms: long enough to reach the floor, knuckles down, forearms thick with fur and hooked claws curled under
  for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.31,.9,.04);body.add(arm);arms.push(arm);
-  sphere(arm,.13,fur,0,0,0,1,.9,1);
-  segment(arm,[0,0,0],[side*.08,-.3,.08],.1,.085,fur);sphere(arm,.075,shag,side*.08,-.3,.08);
-  segment(arm,[side*.08,-.3,.08],[side*.1,-.66,.16],.095,.07,shag);
+  // the shoulder a hard, lopsided knot of muscle with a ridge of matted hackles jutting up and out
+  const cap=knot(arm,.12,fur,side*.01,.01,0,1.15,.85,.95,side*.4);cap.rotation.z=side*.5;
+  for(let k=0;k<3;k++){const h=cone(arm,.035,.13-k*.025,shag,side*(.03+k*.045),.09-k*.035,-.02+k*.02,4);h.rotation.set(-.4,0,-side*(.5+k*.35));}
+  limb(arm,[0,0,0],[side*.08,-.3,.08],.1,.085,fur);knot(arm,.075,shag,side*.08,-.3,.08,1,1,1,side*.3);
+  limb(arm,[side*.08,-.3,.08],[side*.1,-.66,.16],.095,.07,shag);
   for(let k=0;k<3;k++){const t=cone(arm,.04,.12,shag,side*(.13+k*.012),-.36-k*.1,.07+k*.02,5);t.rotation.z=side*(Math.PI/2+.3);}
-  sphere(arm,.085,hide,side*.1,-.72,.18,1.1,.75,1.05);
+  knot(arm,.085,hide,side*.1,-.72,.18,1.1,.75,1.05,0);
   for(let k=-1;k<=1;k++){const c=cone(arm,.02,.1,claw,side*.1+k*.045,-.78,.25,5);c.rotation.x=Math.PI/2+.5;
    cone(arm,.021,.045,gore,side*.1+k*.045,-.74,.22,5).rotation.x=Math.PI/2+.5;}}
  // old wounds: three raking scars across the flank and a clotted gash on the shoulder hump
  for(let k=0;k<3;k++){const sc=rounded(trunk,.02,.2,.012,gore,-.2+k*.035,.66+k*.01,.19,.006);sc.rotation.set(.3,0,.5);}
  rounded(trunk,.1,.02,.02,gore,.12,.93,-.04,.008).rotation.z=-.4;
- const hideMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),skin=new THREE.Mesh(flatSkin(trunk),hideMat);skin.userData.part='body';skin.castShadow=skin.receiveShadow=true;body.add(skin);
+ const hideMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true}),skin=new THREE.Mesh(flatSkin(trunk),hideMat);skin.userData.part='body';skin.castShadow=skin.receiveShadow=true;body.add(skin);
  // head: slung low and forward under the hump, a bony brow, flat nose, underslung jaw with upthrust tusks
  const head=new THREE.Group();head.position.set(0,.95,.26);body.add(head);
- sphere(head,.17,fur,0,.02,-.02,1.1,.95,1);
- sphere(head,.13,hide,0,-.02,.08,1.05,.8,.8);
- rounded(head,.28,.06,.09,shag,0,.08,.1,.025).rotation.x=-.25;
- sphere(head,.05,hide,0,.0,.19,1.3,.8,.9);for(const x of [-.022,.022])sphere(head,.013,mouth,x,-.01,.225);
- const jaw=rounded(head,.22,.08,.15,hide,0,-.11,.1,.035);jaw.rotation.x=.15;
+ // a faceted skull with a flat, sloping crown and a crest ridge; a hooded brow in two plates angled down into a scowl
+ knot(head,.17,fur,0,.02,-.02,1.1,.85,1.05);
+ knot(head,.13,hide,0,-.02,.08,1.05,.8,.8,0);
+ const crest=cone(head,.05,.2,shag,0,.15,-.06,4);crest.rotation.set(-1.25,Math.PI/4,0);crest.scale.set(.5,1,1);
+ for(const side of [-1,1]){const brow=slab(head,.14,.045,.1,shag,side*.068,.075,.14);brow.rotation.set(-.35,-side*.25,side*.32);}
+ knot(head,.05,hide,0,.0,.19,1.3,.8,.9,0);for(const x of [-.022,.022])sphere(head,.013,mouth,x,-.01,.225);
+ const jaw=slab(head,.22,.08,.15,hide,0,-.11,.1);jaw.rotation.x=.15;
  rounded(head,.17,.02,.02,mouth,0,-.075,.18,.008);
  for(const side of [-1,1]){
-  sphere(head,.03,mouth,side*.065,.045,.155);sphere(head,.02,eye,side*.065,.045,.168);
+  sphere(head,.03,mouth,side*.065,.04,.155);sphere(head,.016,eye,side*.065,.034,.178,1.2,.75,1);
   const t=cone(head,.022,.1,tusk,side*.085,-.04,.17,6);t.rotation.set(-.3,0,-side*.35);
   const ear=cone(head,.04,.08,shag,side*.16,.08,-.03,5);ear.rotation.z=-side*1.1;
   for(let k=0;k<3;k++){const b=cone(head,.03,.1,shag,side*(.12+k*.02),-.08-k*.03,.02,5);b.rotation.set(0,0,side*(2.4+k*.2));}}
