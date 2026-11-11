@@ -84,3 +84,18 @@ test('the zruty trunk and neck are bones in one hide: a bent spine carries the h
   assert(p.lfore.distanceTo(rest.lfore) > .02, 'and the arm');
   assert.equal(p.rleg.distanceTo(rest.rleg), 0, 'not the leg');
 });
+
+test('the zruty is faceted, not a smooth toy: flat-shaded fur and hide, no round sphere caps on the skull (review 2026-11-09)', () => {
+  const z = zruty();
+  let fur = 0;
+  z.g.traverse(o => {
+    if (!o.isMesh || o.material.emissive.getHex()) return;
+    const c = o.material.color.getHexString();
+    if (o.material.vertexColors || ['6a4a2c', '543a22', 'a07a58'].includes(c)) { fur++; assert(o.material.flatShading, 'fur and hide are flat shaded: ' + c); }
+  });
+  assert(fur >= 10, 'the hide, fur and skin pieces are found');
+  z.head.traverse(o => {
+    const p = o.isMesh && o.geometry.parameters;
+    if (p && o.geometry.type === 'SphereGeometry' && p.radius > .04) assert(p.widthSegments <= 6, 'a big round skull or muzzle piece: r ' + p.radius);
+  });
+});

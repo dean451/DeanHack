@@ -167,7 +167,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Zruty reads as a smooth toy ape (review 2026-11-09, touched by https://github.com/dean451/DeanHack/pull/1921 and https://github.com/dean451/DeanHack/pull/1923):** `prototype/creatures.js` zruty has spherical shoulder caps, plain smooth tube forearms and a round skull; no faceted planes, soft and rounded, nowhere near the enormous rat or weeping angels. **Done when:** a `tools/creature-shot.mjs "zruty"` three and game render shows faceted shoulders, arms and skull with a hostile silhouette and no round sphere caps; `zruty.test.js` still passes.
 
 
 
