@@ -28,7 +28,8 @@ test('the swirl and crown groups did not move the model', () => {
     const b = new THREE.Box3().setFromObject(a.g);
     const k = a.g.scale.y;
     assert.ok(b.max.y > .9 * k && b.max.y < 1.5 * k && b.min.y > -.05, `${name} ${b.min.y} ${b.max.y}`);
-    if (name.startsWith('fire') || name.startsWith('water')) assert.equal(a.crown.parent, a.body, name);
+    // the crown rides the head joint (family E stage 1), which hangs on the body
+    if (name.startsWith('fire') || name.startsWith('water')) assert.ok(a.crown.parent === a.head && a.head.parent === a.body, name);
     else assert.equal(a.crown, undefined, name);
   }
 });
