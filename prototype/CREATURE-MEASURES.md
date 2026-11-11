@@ -381,3 +381,23 @@ The family in the plan after the centaurs (AGENTS.md, family **E**; the air and 
 *Not found:* any measure of a person stalking or sneaking as such (the studies found are of slow walking in general), a hunter's crouch as an angle (the kobolds' crouch numbers stand for it), and how an earth elemental's stone body would move. No number is claimed for them; the pose stages set them by eye.
 
 **What the elementals take from this.** Standing still, a body is never quite still: it drifts a few millimetres front to back, about a centimetre a second, so an idle elemental's rest is a slow sway, not a frozen statue. The stalker's creep at about 0.3 m/s takes steps about 0.43 of a usual step and keeps both feet down for over half of every stride. A fire elemental about half a metre across flickers about 2.1 to 2.4 times a second (a candle's 10 Hz would read as a small flame, not a big body), and a wider one slower.
+
+## Horses (pony, horse, warhorse and the three unicorns)
+
+The family in the plan (AGENTS.md, family **u**). Measured from the domestic horse: how long it sleeps and how much of that it spends lying down, the resting stance on a cocked hind leg, and the walk of trained horses. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Horse (sleep, lying, the cocked hind leg, walk)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Sleep | an adult horse sleeps about 2.5 to 5 hours a day, about 80% of it standing; at least 30 minutes lying down a day gives it about 3.5 to 4.5 minutes of REM sleep | [Sleep and recumbency in sanctuary horses, Animals 2021 (PMC8614510)](https://pmc.ncbi.nlm.nih.gov/articles/PMC8614510) |
+| Lying down | 83 sanctuary horses lay down 0 to 319 minutes a day, a mean of 67.4 | [the same](https://pmc.ncbi.nlm.nih.gov/articles/PMC8614510) |
+| Sternal and lateral | lying on the chest takes about 6 to 10% of a horse's time budget, flat on its side about 1 to 4%; REM sleep needs one or the other | [Frontiers in Veterinary Science 2017, recumbency and REM sleep (PMC5339441)](https://pmc.ncbi.nlm.nih.gov/articles/PMC5339441) |
+| Cocked hind leg | standing at rest one hind leg is locked by the stay apparatus and carries the hindquarter, and the other rests flexed on the toe of its hoof; the hock and stifle flex together (the reciprocal apparatus) | [WikiVet, stay apparatus (horse anatomy)](https://en.wikivet.net/Stay_Apparatus_-_Horse_Anatomy) |
+| Walk | six dressage horses walked 1.37 m/s collected, 1.73 medium and 1.82 extended, with strides of about 157 to 193 cm taking 1,159 to 1,064 ms (Clayton 1995) | [Comparison of the stride kinematics of the collected, medium, and extended walks in horses (AGRIS record)](https://agris.fao.org/search/fr/records/65df0ea563b8185d9caa9089) |
+
+*Caveat:* the REM minutes differ between sources (an older finding quoted by a magazine gives 30 to 60 minutes; not used). The walk numbers are trained dressage horses, and only one of the six kept a perfectly even four-beat rhythm. The cocked leg comes from an anatomy wiki, not a measurement.
+
+*Not found:* the cocked hind leg as an angle, how often a resting horse swaps legs, and any rate or height for the head toss (the head-movement studies found are of headshaking disease, given as ratios between groups). No number is claimed for them; the pose stages set them by eye.
+
+**What the horses take from this.** A horse dozes on its feet: most of its rest is standing, one hind leg cocked on the toe with the hock dropped, the hip on that side sunk. It lies down only about an hour a day, mostly on its chest with the legs folded under, and flat on its side for a few minutes. So an idle horse should cock a hind leg long before it lies down, and lying should be the rarer, longer rest. The walk is about 1.4 to 1.8 m/s with a stride of about 1.6 to 1.9 m taking just over a second.
