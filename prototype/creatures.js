@@ -1229,9 +1229,12 @@ function centaur(o){
   for(const [x,z,h] of [[-.015,.01,.2],[.018,0,.22],[0,-.018,.19]]){cylinder(quiver,.005,.005,.12,wood,x,h-.04,z,4);sphere(quiver,.018,fletch,x,h,z,.45,1.6,1);}
   const strap=segment(body,[-.13,hip+.34,z0+.06],[.12,hip+.08,z0+.07],.012,.012,leather);strap.scale.z=.5;
  }
+ // the horse's tail is five bones `tail0`..`tail4` and its legs three bones each (hooves and socks baked in), as on the horse (family C, stage 1 step 2);
+ // the man's `head`, `neck0` and arms `lfore` / `rfore` (left is -x) are still named groups
+ const tailBones=skinHorseTail(tail,.42);
  mergeStatic(g);
- // names only (family C, stage 1 step 1): the horse's `tail0` and four legs, and the man's `head`, `neck0` and arms `lfore` / `rfore` (left is -x)
- const named=nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head,arms,arm:arms[1],weaponSocket,offHand,centaur:o.weapon||null}),{skin:false});
+ const named=nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head,arms,arm:arms[1],weaponSocket,offHand,centaur:o.weapon||null}),{bake:true});
+ tailBones.forEach(b=>{named.joints[b.name]=b;});
  for(const arm of arms){arm.name=(arm.position.x<0?'l':'r')+'fore';named.joints[arm.name]=arm;}
  return named;
 }
