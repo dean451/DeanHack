@@ -167,7 +167,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Stalker is a translucent bubble man (review 2026-11-11, touched by https://github.com/dean451/DeanHack/pull/1942):** `prototype/creatures.js` `elemental()` with `stalker`: smooth see-through spheres for head, shoulders, chest and fists, a round head with two white disc eyes; soft and rubbery, not a hunter. Change the look only; keep the joints. **Done when:** `tools/creature-shot.mjs "stalker"` three and head renders show a gaunt, faceted, tapered body and skull (no smooth sphere head, shoulders or fists), eyes as dark pits per its own comment, the needle fangs still readable; `elemental-joints.test.js` and `stalker.test.js` pass unchanged.
 
 
 
