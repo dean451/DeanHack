@@ -6,6 +6,7 @@ import {updateRatSettle, restFor, rests, FAMILY} from './rat-settle.js';
 import {REST_POSES} from './rat-rest-poses.js';
 import {restPose} from './rat-rest.js';
 import {updateRatSniff} from './rat-sniff.js';
+import {LEN} from './rat-washing.js';
 import {rolesOf} from './body-roles.js';
 
 // Stage 5 of the creature plan for the rats (family r), step 1: an idle rat hunches down in play.
@@ -70,8 +71,9 @@ test('the idle sniff over a hunched rat leaves nothing behind once it gets up', 
     const frames = (k, secs, look, settle) => { for (let i = 0; i < Math.round(secs * 20); i++) { if (updateRatSniff(k, .05, i * .05, false)) sniffed++; if (settle) updateRatSettle(k, .05, false, look); } };
     frames(a, SETTLE + SETTLING + 40, far, true); frames(c, SETTLE + SETTLING + 40, far, false);
     assert.equal(a.ratRest.p, 1, `${n}: it hunched`); assert(sniffed > 0, `${n}: sniffs fired over the hunch`);
-    frames(a, RISE + 1.5, near, true); frames(c, RISE + 1.5, near, false);
-    assert.equal(a.ratRest.p, 0, `${n}: up`);
+    // the hero 2 m off gets it up and sets off the wash too, run to its end
+    frames(a, RISE + LEN + 1.5, near, true); frames(c, RISE + LEN + 1.5, near, false);
+    assert.equal(a.ratRest.p, 0, `${n}: up`); assert.equal(a.ratWash.u, null, `${n}: washed and done`);
     const pa = JSON.parse(snap(a)).flat(2), pc = JSON.parse(snap(c)).flat(2);
     pa.forEach((v, i) => assert(Math.abs(v - pc[i]) < 1e-9, `${n}: value ${i} drifted by ${(v - pc[i]).toExponential(2)}`));
   }
