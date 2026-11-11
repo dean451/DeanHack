@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -216,6 +216,21 @@ test('every number in CREATURE-MEASURES.md has a source link in its row', () => 
   const rows = md.split('\n').filter(l => /^\| [^-|]/.test(l) && !/^\| Measure \|/.test(l));
   assert(rows.length >= 12, `${rows.length} rows`);
   for (const r of rows) assert(/\]\(https?:\/\//.test(r) || /the same|as above|above/.test(r), `no source: ${r.slice(0, 80)}`);
+});
+
+test('the elemental numbers are a still stance, a slow creep and a flame\'s flicker', () => {
+  const e = MEASURES.elemental;
+  // standing still, a body drifts millimetres, and more with the eyes shut
+  inside(e.swayVelocity, [5, 15], 'sway speed eyes open, mm/s'); assert(e.swayVelocityClosed.every(v => v > e.swayVelocity));
+  inside(ELEMENTAL.swayAmplitude, [.002, .015], 'front-to-back sway, m');
+  // step length and step time share the speed between them
+  inside(e.stepLengthExponent + e.stepTimeExponent, [.95, 1.05], 'step length and time exponents');
+  inside(ELEMENTAL.creepStepShare, [.3, .7], 'creeping step against the usual step');
+  assert(e.doubleSupport.usual < .2 && e.doubleSupport.slowest > .4, 'a creep keeps both feet down far longer');
+  assert.equal(ELEMENTAL.creepDoubleSupport, e.doubleSupport.slowest);
+  // a person-sized flame puffs a couple of times a second, not a candle's ten
+  assert(e.flickerFactor[0] < e.flickerFactor[1]);
+  ELEMENTAL.flickerHz.forEach(f => inside(f, [1.5, 3], 'flicker of a half-metre flame, Hz'));
 });
 
 function mid([a, b]) { return (a + b) / 2; }

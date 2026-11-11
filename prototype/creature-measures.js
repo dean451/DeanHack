@@ -164,6 +164,16 @@ export const MEASURES = {
     ravenLength: [.58, .69], // m, a common raven bill to tail (BirdForum Opus)
     ravenSpan: [1.2, 1.5], // m, its wingspan (same)
   },
+  // the stalker and the fire and earth elementals: a person standing still, creeping, and a fire's flicker
+  elemental: {
+    swayVelocity: 9.2, // mm/s, mean centre-of-pressure speed in quiet stance, eyes open, 100 young adults (Posturographic standards, PMC10170532)
+    swayVelocityClosed: [11.2, 12.38], // mm/s, the same with eyes closed, women and men (same)
+    swayAP: [5.5, 5.6], // mm, front-to-back sway amplitude over 10 s in active students, before fatigue (J Hum Kinet)
+    stepLengthExponent: .577, // step length grows as speed to this power in very slow walking (Smith and Lemaire 2019)
+    stepTimeExponent: .423, // step time shrinks as speed to this power (same)
+    doubleSupport: {usual: .12, slowest: .55}, // share of the gait cycle on both feet, self-selected and slowest speed (same)
+    flickerFactor: [1.5, 1.68], // Hz·m^0.5: a buoyant flame puffs at about this over the square root of its base width in metres (Xia et al., arXiv 1803.10400; Malalasekera 1996)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -304,4 +314,16 @@ export const BAT = {
   forageShare: MEASURES.bat.forage / 24,
   // a raven's wingspan over its length, mid to mid
   ravenSpanOverLength: mid(MEASURES.bat.ravenSpan) / mid(MEASURES.bat.ravenLength),
+};
+
+// What the elementals' poses use: a standing body's slow drift, the stalker's creep, and how fast a fire elemental flickers
+export const ELEMENTAL = {
+  // metres of front-to-back drift a body standing still shows, mid of the measured amplitude
+  swayAmplitude: mid(MEASURES.elemental.swayAP) / 1000,
+  // step length at a creep of 0.3 m/s against the usual pace, from the slow-walking power law
+  creepStepShare: (.3 / HUMAN.walkMid) ** MEASURES.elemental.stepLengthExponent,
+  // share of a creeping stride with both feet down
+  creepDoubleSupport: MEASURES.elemental.doubleSupport.slowest,
+  // the flicker of a flame body about 0.5 m across, Hz, for the two published factors
+  flickerHz: MEASURES.elemental.flickerFactor.map(k => k / Math.sqrt(.5)),
 };
