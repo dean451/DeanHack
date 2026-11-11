@@ -13,10 +13,12 @@ test('gnomes, gnome lords, gnome kings and gnomish wizards get their own model i
   assert.equal(a.g.name,name);assert.equal(a.quirk,'gnome');
   for(const key of ['body','head','arm','weaponSocket','hat','beard'])assert(a[key]?.isObject3D,`${name} ${key}`);
   assert.equal(a.legs.length,2);assert.equal(a.arms.length,2);assert.equal(a.arm,a.arms[1]);
-  assert.equal(a.weaponSocket.parent,a.arm,'the weapon is in the right fist');
-  assert.equal(a.hat.parent,a.head);assert.equal(a.beard.parent,a.head);
+  assert(a.weaponSocket.parent===a.joints.rfore_2,'the weapon is in the right fist, on the wrist bone');
+  assert(a.hat.parent===a.head&&a.beard.parent===a.head,`${name}: the cap and beard ride the head`);
   const parts=meshes(a);
-  assert.equal(parts.length,9,`${name}: one mesh per moving part`);
+  // the tunic, arms and legs are one skinned hide; the head, cap, beard and weapon stay rigid
+  assert.equal(parts.length,5,`${name}: the hide, head, cap, beard and weapon`);
+  assert.equal(parts.filter(m=>m.isSkinnedMesh).length,1,`${name}: one skinned hide`);
   let verts=0;
   for(const m of parts){
    const at=m.geometry.attributes;verts+=at.position.count;
@@ -38,8 +40,9 @@ test('gnomes, gnome lords, gnome kings and gnomish wizards get their own model i
   for(let i=0;i<pos.count;i++){top.fromBufferAttribute(pos,i);if(top.distanceTo(new THREE.Vector3(0,-.18,0))>.2&&top.z<tip.z)tip.copy(top);}
   a.hat.localToWorld(tip);
   assert(tip.z<brim.z-.1&&tip.y>brim.y+.12,`${name}: cap tip flops back (${tip.z-brim.z}, ${tip.y-brim.y})`);
-  const [l,r]=a.legs.map(leg=>new THREE.Box3().setFromObject(leg));
-  assert(Math.abs((l.min.x+l.max.x)/2+(r.min.x+r.max.x)/2)<1e-6,`${name}: feet mirrored`);
+  // (the legs are bones in the hide now: their ankles stand mirrored)
+  const [l,r]=a.legs.map(leg=>leg.getObjectByName(leg.name+'_2').getWorldPosition(new THREE.Vector3()));
+  assert(Math.abs(l.x+r.x)<1e-6&&Math.abs(l.y-r.y)<1e-6&&Math.abs(l.z-r.z)<1e-6,`${name}: feet mirrored`);
   tops[name]=b.max.y;
   const again=meshes(createCreature({name}));
   parts.forEach((m,i)=>assert.equal(m.geometry,again[i].geometry,'geometry shared'));

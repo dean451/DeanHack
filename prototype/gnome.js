@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {sculptSkull} from './hero-face.js';
+import {rigHumanoid} from './humanoid-joints.js';
 
 // Gnomes used to be the generic box humanoid with a cone for a cap and a ball for a beard. They
 // now have their own model: a stumpy, pot-bellied little fellow with a big round head, a bulbous
@@ -17,10 +18,15 @@ import {sculptSkull} from './hero-face.js';
 // - gnomish wizard: a tall starry blue cap with a crescent moon, a knee-length robe with a rope
 //   belt, and a gnarled staff with a glowing crystal in its crook.
 // Each moving part (body, head, hat, beard, each leg and arm, and the weapon) is one merged
-// vertex-coloured mesh on one shared material: 9 draws. The geometry is built once per kind.
+// vertex-coloured mesh on one shared material. The geometry is built once per kind.
 // Handles: body, head, legs, arms, arm (the right, weapon arm), weaponSocket, hat and beard (for
 // the gait's cap nod and beard swing: the hat turns about its brim .18 below its origin, the
 // beard about the chin .19 above its origin, as gait.js expects). quirk 'gnome'. pick is null.
+// Joints (the creature plan, family G stage 1): `rigHumanoid`, as the goblins and orcs. Each arm and
+// leg is on three bones (`lfore_0`..`_2`, `lleg1_0`..`_2`, the right likewise), the trunk on `hips`,
+// `spine0`, `spine1` and the neck `neck0`..`neck3`, the head (with its cap and beard) hung on `neck3`,
+// the arms on the chest and the weapon on the right wrist bone `rfore_2`. Tunic, arms and legs are one
+// skinned hide, so a gnome draws 5 meshes: the hide, the head, the cap, the beard and the weapon.
 
 const LOOKS={
  gnome:{cap:'#5e3c22',capDark:'#3a2212',tunic:'#4a5538',tunicDark:'#2e382a',breeches:'#52422e',beard:'#9a7458',weapon:'aklys',scale:1},
@@ -279,5 +285,5 @@ export function createGnome(name){
  }
  const weaponSocket=new THREE.Group();weaponSocket.position.set(0,-ARM,.03);arms[1].add(weaponSocket);
  mesh(weaponSocket,S.weapon,'weapon');
- return {g,body,legs,tail:null,wings:[],quirk:'gnome',arms,arm:arms[1],weaponSocket,head,hat,beard,pick:null};
+ return rigHumanoid({g,body,legs,tail:null,wings:[],quirk:'gnome',arms,arm:arms[1],weaponSocket,head,hat,beard,pick:null},S);
 }
