@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -257,3 +257,28 @@ test('the horse numbers are its sleep, how rarely it lies down, and its walk', (
 });
 
 function mid([a, b]) { return (a + b) / 2; }
+
+test('the worm numbers are a slow crawl by longer strides, a few anchors, and a fast short strike', () => {
+  const w = MEASURES.worm;
+  // the worms ranged from a hundredth of a gram to over eight grams
+  assert(w.massRange[0] < .1 && w.massRange[1] > 5, 'mass range spans the sizes');
+  // bigger worms crawl faster mostly by longer strides: the stride grows almost as fast as the speed, the beat barely changes
+  inside(w.speedExp, [.2, .5], 'speed exponent'); inside(w.strideExp, [.3, .5], 'stride exponent');
+  assert(Math.abs(w.freqExp) < .15 && Math.abs(w.dutyExp) < .1, 'beat and duty factor nearly size-free');
+  // stride = speed over frequency, so the exponents nearly add up
+  inside(w.strideExp + w.freqExp, [w.speedExp - .05, w.speedExp + .05], 'stride plus frequency exponent gives speed');
+  // a crawl of a few hundredths of a body length a second: slow
+  inside(WORM.crawlBL, [.01, .1], 'crawl, body lengths a second');
+  // four to six anchors along the body in a channel
+  assert(w.contacts[0] < w.contacts[1]); inside(WORM.anchors, [3, 7], 'anchors');
+  assert(w.wallPush > 1, 'pushes the walls harder than its weight');
+  // a strike lasts well under a tenth of a second, at two to three metres a second peak, reaching a sixth of a metre
+  for (const s of [w.strike.ratSnake, w.strike.cottonmouth]) {
+    inside(s.v, [2, 3.5], 'peak strike speed, m/s'); inside(s.dist, [.1, .25], 'strike reach, m'); inside(s.ms, [50, 90], 'strike duration, ms');
+    assert(s.dist / (s.ms / 1000) < s.v, 'the mean speed over the reach is under the peak');
+  }
+  inside(WORM.strikeS, [.05, .09], 'strike, s'); inside(WORM.strikeMeanV, [1.5, 2.6], 'mean strike speed, m/s');
+  // it reaches out at most half its length, usually
+  assert(w.strikeReach[0] < WORM.strikeShare && WORM.strikeShare <= w.strikeReach[1]);
+  assert(/coiled/.test(w.rest), 'rests coiled');
+});
