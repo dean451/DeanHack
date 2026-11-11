@@ -2917,6 +2917,8 @@ function elemental(o){
  const skin=k==='earth'?mat(c,{roughness:1,flatShading:true}):k==='fire'?glow(c,1.6):k==='water'?see(c,.62,.25):see(c,.34,.35);
  const dark=k==='earth'?mat(shade(c,.6),{roughness:1,flatShading:true}):k==='fire'?glow(o.hot||'#ffe070',3):k==='water'?see(shade(c,1.35),.4,.4):see(shade(c,1.3),.22,.5);
  const eye=glow(o.eye||'#ffffff',k==='earth'?2:3);
+ // moves a piece built on the body into a joint group, keeping where it is drawn (body and joints are unrotated)
+ const into=(grp,mesh)=>{mesh.position.sub(grp.position);grp.add(mesh);return mesh;};
  const lump=(p,r,m,x,y,z,sx=1,sy=1,sz=1)=>{const mesh=k==='earth'?part(p,new THREE.DodecahedronGeometry(r,0),m,x,y,z):sphere(p,r,m,x,y,z);mesh.scale.set(sx,sy,sz);if(k==='earth')mesh.rotation.set(x*7,y*5,z*3);if(k!=='earth')mesh.castShadow=false;return mesh;};
  // lower body: earth gets two stubby boulder legs; the others a tapering funnel that sways as the tail
  let tail=null;
@@ -2929,32 +2931,33 @@ function elemental(o){
  // torso, shoulders and head, lumped from the element
  const chestY=k==='earth'?.6:.68;
  lump(body,.2,skin,0,chestY,0,1.1,1,.8);lump(body,.15,dark,0,chestY-.14,0,.9,.8,.8);
- const headY=chestY+.3;lump(body,.12,skin,0,headY,.02,1,1.05,1);
- for(const side of [-1,1]){sphere(body,.024,eye,side*.045,headY+.01,.12,1,.7,.6).castShadow=false;lump(body,.1,k==='earth'?dark:skin,side*.2,chestY+.12,0,1,.85,.9);}
+ const headY=chestY+.3,head=new THREE.Group();head.position.set(0,headY,0);body.add(head);into(head,lump(body,.12,skin,0,headY,.02,1,1.05,1));
+ for(const side of [-1,1]){into(head,sphere(body,.024,eye,side*.045,headY+.01,.12,1,.7,.6)).castShadow=false;lump(body,.1,k==='earth'?dark:skin,side*.2,chestY+.12,0,1,.85,.9);}
  // arms: tapered limbs to heavy fists (earth) or dissolving hands
- for(const side of [-1,1]){const sh=[side*.22,chestY+.1,0],el=[side*.3,chestY-.08,.06],fist=[side*.3,chestY-.26,.1];
-  segment(body,sh,el,.07,.06,skin).castShadow=k==='earth';segment(body,el,fist,.06,.05,skin).castShadow=k==='earth';
-  lump(body,k==='earth'?.09:.065,dark,...fist);
-  if(k==='fire')for(let i=0;i<3;i++){const f=cone(body,.022,.12,dark,fist[0]+(i-1)*.025,fist[1]+.09,fist[2],5);f.rotation.z=(i-1)*.3;f.castShadow=false;}}
+ const arms=[];
+ for(const side of [-1,1]){const sh=[side*.22,chestY+.1,0],el=[side*.3,chestY-.08,.06],fist=[side*.3,chestY-.26,.1],arm=new THREE.Group();arm.position.set(...sh);body.add(arm);arms.push(arm);
+  into(arm,segment(body,sh,el,.07,.06,skin)).castShadow=k==='earth';into(arm,segment(body,el,fist,.06,.05,skin)).castShadow=k==='earth';
+  into(arm,lump(body,k==='earth'?.09:.065,dark,...fist));
+  if(k==='fire')for(let i=0;i<3;i++){const f=into(arm,cone(body,.022,.12,dark,fist[0]+(i-1)*.025,fist[1]+.09,fist[2],5));f.rotation.z=(i-1)*.3;f.castShadow=false;}}
  // element flourishes
  // swirl: the bits that circle the body (spun about y); crown: the flames or foam on the head
  let core=null,crown=null;const swirl=new THREE.Group();body.add(swirl);
  if(k==='earth'){for(let i=0;i<5;i++){const a=(i-2)*.45,sh=cone(body,.035,.16+(i%2)*.06,glow(o.crystal||'#7fd8c0',1.2),Math.sin(a)*.16,chestY+.12+Math.cos(a)*.05,-.13,5);sh.rotation.set(-.6,0,-a);}
-  for(const [x,y,z] of [[-.12,chestY+.15,.14],[.1,chestY-.05,.15],[.06,headY+.1,.08]])lump(body,.035,mat('#4f6a34',{roughness:1,flatShading:true}),x,y,z,1.3,.5,1);}
+  for(const [x,y,z] of [[-.12,chestY+.15,.14],[.1,chestY-.05,.15],[.06,headY+.1,.08]])into(y>headY?head:body,lump(body,.035,mat('#4f6a34',{roughness:1,flatShading:true}),x,y,z,1.3,.5,1));}
  if(k==='fire'){core=sphere(body,.08,glow(o.hot||'#ffe070',4.5),0,chestY,.1,1,1.2,.6);core.castShadow=false;
-  crown=new THREE.Group();crown.position.set(0,headY+.12,-.02);body.add(crown);
+  crown=new THREE.Group();crown.position.set(0,.12,-.02);head.add(crown);
   for(let i=0;i<7;i++){const a=(i-3)*.42,f=cone(crown,.045-Math.abs(i-3)*.005,.28-Math.abs(i-3)*.04,i%2?skin:dark,Math.sin(a)*.09,Math.cos(a)*.04,0,6);f.rotation.z=-a*.7;f.castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.1;sphere(swirl,.016,dark,Math.cos(a)*.34,.35+i*.12,Math.sin(a)*.3).castShadow=false;}}
  if(k==='air'){for(let i=0;i<3;i++){const ring=part(swirl,new THREE.TorusGeometry(.3+i*.05,.008,4,28,Math.PI*1.3),dark,0,chestY-.1+i*.14,0);ring.rotation.set(Math.PI/2+(i-1)*.3,0,i*2);ring.castShadow=false;}
   for(let i=0;i<8;i++){const a=i*.8;const leaf=part(swirl,new THREE.PlaneGeometry(.04,.02),mat(i%2?'#8a7a4a':'#6a8a3a',{side:THREE.DoubleSide}),Math.cos(a)*.34,.3+i*.09,Math.sin(a)*.34);leaf.rotation.set(a,a*2,a*.5);}}
- if(k==='water'){const foam=mat('#eef8ff',{roughness:.4});crown=new THREE.Group();crown.position.set(0,headY+.1,-.05);body.add(crown);for(let i=0;i<7;i++){const a=(i-3)*.4;sphere(crown,.04-Math.abs(i-3)*.004,foam,Math.sin(a)*.1,Math.cos(a)*.03,-Math.abs(i-3)*.015).castShadow=false;}
+ if(k==='water'){const foam=mat('#eef8ff',{roughness:.4});crown=new THREE.Group();crown.position.set(0,.1,-.05);head.add(crown);for(let i=0;i<7;i++){const a=(i-3)*.4;sphere(crown,.04-Math.abs(i-3)*.004,foam,Math.sin(a)*.1,Math.cos(a)*.03,-Math.abs(i-3)*.015).castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.2;sphere(swirl,.018,dark,Math.cos(a)*.32,.3+i*.1,Math.sin(a)*.28,1,1.4,1).castShadow=false;}}
  // stalkers only: not a gale but a hunter. Long hooked claws hang off both fists and a mouthful of needle fangs
  // gapes in the pale face, under black pits for eyes
  if(o.stalker){const claw=mat('#2a2a34',{roughness:.4,metalness:.3}),fang=mat('#e8e8f0',{roughness:.35});g.userData.stalker=true;
-  for(const side of [-1,1])for(let i=0;i<3;i++){const c=cone(body,.012,.16,claw,side*.3+(i-1)*.03,chestY-.36,.12,4);c.rotation.set(-.3,0,(i-1)*.25);}
-  sphere(body,.045,mat('#06060a',{roughness:1}),0,headY-.06,.1,1.3,.7,.6);
-  for(let i=0;i<6;i++){const x=(i-2.5)*.016,f=cone(body,.006,.03+(i%2)*.012,fang,x,headY-.06+(i%2?.02:-.02),.135,4);f.rotation.x=Math.PI*(i%2?1:0);}}
+  for(const side of [-1,1])for(let i=0;i<3;i++){const c=into(arms[side<0?0:1],cone(body,.012,.16,claw,side*.3+(i-1)*.03,chestY-.36,.12,4));c.rotation.set(-.3,0,(i-1)*.25);}
+  into(head,sphere(body,.045,mat('#06060a',{roughness:1}),0,headY-.06,.1,1.3,.7,.6));
+  for(let i=0;i<6;i++){const x=(i-2.5)*.016,f=into(head,cone(body,.006,.03+(i%2)*.012,fang,x,headY-.06+(i%2?.02:-.02),.135,4));f.rotation.x=Math.PI*(i%2?1:0);}}
  // earth elementals only: a jagged fissure splits the chest, glowing like a banked forge
  if(k==='earth'){const vein=glow(o.eye,1.6);g.userData.cracked=true;for(const [x,y,rz] of [[-.05,.1,.5],[.02,.02,-.6],[-.02,-.08,.4]])part(body,new THREE.BoxGeometry(.018,.13,.012),vein,x,chestY+y,.16).rotation.z=rz;}
  // water elementals only: a drowned skull hangs in the dark of the chest, jaw agape, bones pale through the water
@@ -2968,9 +2971,13 @@ function elemental(o){
   for(const [x,y,rz] of [[-.03,.08,.5],[.03,0,-.6],[-.01,-.08,.4]])part(body,new THREE.BoxGeometry(.016,.12,.012),bolt,x,chestY+y,.16).rotation.z=rz;}
  // fire elementals only: black cooled clinker crusts the shoulders and brow, the fire burning through the gaps
  if(k==='fire'){const clinker=mat('#17110e',{roughness:1,flatShading:true});g.userData.clinkered=true;
-  for(const [x,y,z,r] of [[-.2,chestY+.2,0,.07],[.19,chestY+.19,.02,.06],[-.08,chestY+.02,.15,.05],[.1,headY+.08,.06,.045]])part(body,new THREE.DodecahedronGeometry(r,0),clinker,x,y,z).rotation.set(x*9,y*5,z*3);}
+  for(const [x,y,z,r] of [[-.2,chestY+.2,0,.07],[.19,chestY+.19,.02,.06],[-.08,chestY+.02,.15,.05],[.1,headY+.08,.06,.045]])into(y>headY?head:body,part(body,new THREE.DodecahedronGeometry(r,0),clinker,x,y,z)).rotation.set(x*9,y*5,z*3);}
  if(core)g.userData.core=core;
- return trimDraws(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),{element:k,swirl},crown?{crown}:{},core?{core}:{}));
+ // named joints (family E, stage 1 step 1): `head` (also `neck0`), the arms `lfore` / `rfore` at the shoulders, the earth
+ // elemental's boulder legs `lleg1` / `rleg1` and the others' funnel `tail0`; named only, as `arms` stays off the actor so nothing swings them
+ const a=nameHumanoidJoints(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),{element:k,swirl,head,arms},crown?{crown}:{},core?{core}:{}));
+ delete a.arms;if(tail){tail.name='tail0';a.joints.tail0=tail;}
+ return trimDraws(a);
 }
 const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff',scale:1.3},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0',scale:1.3},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.5},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff',scale:1.3},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff',stalker:true,scale:1.2}};
 
