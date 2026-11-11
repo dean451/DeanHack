@@ -14,10 +14,11 @@ import {birdPoser} from './cockatrice-rest.js';
 // its hip (along the body), how high the mouth is held (lowest allowed), how high the belly may still hang (highest
 // allowed).
 export const REST = {tuck: .35, head: .55, belly: .12};
+// (rats map through the same roles but rest hunched instead: rat-rest.js)
 // (a short-legged beast, the wumpus, whose belly hangs a leg's length up and whose legs have no room to fold, is held to these instead)
 export const SHORT = {tuck: .6, belly: .5};
 
-export const rests = a => !!(a && a.joints?.tail0 && a.joints.lleg0_2 && a.joints.rleg1_2 && !a.joints.tail1 && !a.joints.spine0 && !a.joints.neck1 && !a.rig);
+export const rests = a => !!(a && a.quirk !== 'rat' && a.joints?.tail0 && a.joints.lleg0_2 && a.joints.rleg1_2 && !a.joints.tail1 && !a.joints.spine0 && !a.joints.neck1 && !a.rig);
 
 // The lowest point of a group's own meshes (the body's torso: not the legs, head and tail it carries)
 const torsoLow = a => () => {

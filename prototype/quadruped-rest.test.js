@@ -17,6 +17,8 @@ const lowest=a=>{let y=Infinity;const b=new THREE.Box3();a.g.updateMatrixWorld(t
 test('the seven heavy quadrupeds rest this way; nothing else does',()=>{
  for(const n of FAMILY)assert(rests(make(n)),n);
  assert(!rests(null)&&!rests({joints:{}})&&!rests(make('newt')));
+ // the rats share the role map but rest hunched (rat-rest.js), so they are not lain down this way
+ for(const n of ['enormous rat','sewer rat'])assert(!rests(createCreature({name:n,symbol:114,color:7})),n);
 });
 
 test('lying down meets every goal under 2 cm on all seven',()=>{
