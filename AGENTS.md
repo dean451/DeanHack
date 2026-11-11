@@ -167,7 +167,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Fire elemental is a smooth orange gingerbread toy (review 2026-11-11, touched by https://github.com/dean451/DeanHack/pull/1942):** `prototype/creatures.js` `elemental()` fire kind: the head, chest, shoulders and fists are smooth glossy spheres in one flat pastel orange, with two white dot eyes; it reads as a toy, not a living fire. Change the look only; keep the joints. **Done when:** `tools/creature-shot.mjs "fire elemental"` three and head renders show a faceted, tapered, flickering-flame silhouette with dark cooled clinker and a white-hot core (at least three tones, no smooth sphere head or fists), eyes in dark sockets; `elemental-joints.test.js` and `elemental-roil.test.js` pass unchanged.
 - **Stalker is a translucent bubble man (review 2026-11-11, touched by https://github.com/dean451/DeanHack/pull/1942):** `prototype/creatures.js` `elemental()` with `stalker`: smooth see-through spheres for head, shoulders, chest and fists, a round head with two white disc eyes; soft and rubbery, not a hunter. Change the look only; keep the joints. **Done when:** `tools/creature-shot.mjs "stalker"` three and head renders show a gaunt, faceted, tapered body and skull (no smooth sphere head, shoulders or fists), eyes as dark pits per its own comment, the needle fangs still readable; `elemental-joints.test.js` and `stalker.test.js` pass unchanged.
 
 

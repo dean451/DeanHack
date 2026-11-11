@@ -2963,12 +2963,14 @@ function elemental(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[],k=o.kind,c=o.color;
  const see=(color,opacity,glow=0)=>mat(color,{transparent:true,opacity,depthWrite:false,roughness:.25,emissive:color,emissiveIntensity:glow});
  const glow=(color,i=2.5)=>mat(color,{emissive:color,emissiveIntensity:i,roughness:.3});
- const skin=k==='earth'?mat(c,{roughness:1,flatShading:true}):k==='fire'?glow(c,1.6):k==='water'?see(c,.62,.25):see(c,.34,.35);
- const dark=k==='earth'?mat(shade(c,.6),{roughness:1,flatShading:true}):k==='fire'?glow(o.hot||'#ffe070',3):k==='water'?see(shade(c,1.35),.4,.4):see(shade(c,1.3),.22,.5);
+ // fire burns in three tones and is cut in facets like a flame: a deep ember body, hot yellow seams and a white-hot core
+ const ember=(color,em,i)=>mat(color,{emissive:em,emissiveIntensity:i,roughness:.6,flatShading:true});
+ const skin=k==='earth'?mat(c,{roughness:1,flatShading:true}):k==='fire'?ember(shade(c,.62),'#9a2206',1.1):k==='water'?see(c,.62,.25):see(c,.34,.35);
+ const dark=k==='earth'?mat(shade(c,.6),{roughness:1,flatShading:true}):k==='fire'?ember(o.hot||'#ffe070',o.hot||'#ffe070',2):k==='water'?see(shade(c,1.35),.4,.4):see(shade(c,1.3),.22,.5);
  const eye=glow(o.eye||'#ffffff',k==='earth'?2:3);
  // moves a piece built on the body into a joint group, keeping where it is drawn (body and joints are unrotated)
  const into=(grp,mesh)=>{mesh.position.sub(grp.position);grp.add(mesh);return mesh;};
- const lump=(p,r,m,x,y,z,sx=1,sy=1,sz=1)=>{const mesh=k==='earth'?part(p,new THREE.DodecahedronGeometry(r,0),m,x,y,z):sphere(p,r,m,x,y,z);mesh.scale.set(sx,sy,sz);if(k==='earth')mesh.rotation.set(x*7,y*5,z*3);if(k!=='earth')mesh.castShadow=false;return mesh;};
+ const lump=(p,r,m,x,y,z,sx=1,sy=1,sz=1)=>{const mesh=k==='earth'?part(p,new THREE.DodecahedronGeometry(r,0),m,x,y,z):k==='fire'?part(p,new THREE.IcosahedronGeometry(r,0),m,x,y,z):sphere(p,r,m,x,y,z);mesh.scale.set(sx,sy,sz);if(k==='earth')mesh.rotation.set(x*7,y*5,z*3);if(k==='fire')mesh.rotation.set(.3+x*5,y*3,z*4);if(k!=='earth')mesh.castShadow=false;return mesh;};
  // lower body: earth gets two stubby boulder legs; the others a tapering funnel that sways as the tail
  let tail=null;
  if(k==='earth'){for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.36,0);body.add(leg);lump(leg,.1,skin,0,-.07,0,1,1.2,1);lump(leg,.11,dark,0,-.25,.03,1.1,.9,1.2);legs.push(leg);}}
@@ -2979,13 +2981,17 @@ function elemental(o){
   const pool=part(g,new THREE.CircleGeometry(.26,20),mat(k==='fire'?'#2a1a10':shade(c,.5),{transparent:true,opacity:k==='fire'?.6:.35,depthWrite:false,emissive:k==='fire'?c:'#000000',emissiveIntensity:k==='fire'?.8:0}),0,.012,0);pool.rotation.x=-Math.PI/2;pool.castShadow=false;}
  // torso, shoulders and head, lumped from the element
  const chestY=k==='earth'?.6:.68;
- lump(body,.2,skin,0,chestY,0,1.1,1,.8);lump(body,.15,dark,0,chestY-.14,0,.9,.8,.8);
- const headY=chestY+.3,head=new THREE.Group();head.position.set(0,headY,0);body.add(head);into(head,lump(body,.12,skin,0,headY,.02,1,1.05,1));
- for(const side of [-1,1]){into(head,sphere(body,.024,eye,side*.045,headY+.01,.12,1,.7,.6)).castShadow=false;lump(body,.1,k==='earth'?dark:skin,side*.2,chestY+.12,0,1,.85,.9);}
+ if(k==='fire'){const t=cylinder(body,.21,.07,.42,skin,0,chestY-.06,0,6);t.scale.z=.7;t.rotation.y=.26;t.castShadow=false;lump(body,.1,dark,0,chestY-.2,.02,1,1.3,.8);}
+ else{lump(body,.2,skin,0,chestY,0,1.1,1,.8);lump(body,.15,dark,0,chestY-.14,0,.9,.8,.8);}
+ const headY=chestY+.3,head=new THREE.Group();head.position.set(0,headY,0);body.add(head);into(head,lump(body,.12,skin,0,headY,.02,...(k==='fire'?[.85,1.2,.95]:[1,1.05,1])));
+ // a fire elemental's skull narrows to a jutting chin, under a clinker brow over two black sockets the eyes burn deep in
+ if(k==='fire'){const jaw=into(head,cone(body,.07,.14,skin,0,headY-.12,.05,5));jaw.rotation.set(Math.PI-.35,.3,0);jaw.castShadow=false;
+  for(const side of [-1,1])into(head,part(body,new THREE.DodecahedronGeometry(.036,0),mat('#0c0604',{roughness:1}),side*.046,headY+.005,.09)).scale.set(1.2,.8,.7);}
+ for(const side of [-1,1]){into(head,sphere(body,k==='fire'?.016:.024,eye,side*.045,headY+.01,k==='fire'?.112:.12,k==='fire'?1.4:1,.7,.6)).castShadow=false;lump(body,.1,k==='earth'?dark:skin,side*.2,chestY+.12,0,1,.85,.9);}
  // arms: tapered limbs to heavy fists (earth) or dissolving hands
  const arms=[];
  for(const side of [-1,1]){const sh=[side*.22,chestY+.1,0],el=[side*.3,chestY-.08,.06],fist=[side*.3,chestY-.26,.1],arm=new THREE.Group();arm.position.set(...sh);body.add(arm);arms.push(arm);
-  into(arm,segment(body,sh,el,.07,.06,skin)).castShadow=k==='earth';into(arm,segment(body,el,fist,.06,.05,skin)).castShadow=k==='earth';
+  const sides=k==='fire'?5:12,thin=k==='fire'?.75:1;into(arm,segment(body,sh,el,.07,.06*thin,skin,sides)).castShadow=k==='earth';into(arm,segment(body,el,fist,.06*thin,.05*thin,skin,sides)).castShadow=k==='earth';
   into(arm,lump(body,k==='earth'?.09:.065,dark,...fist));
   if(k==='fire')for(let i=0;i<3;i++){const f=into(arm,cone(body,.022,.12,dark,fist[0]+(i-1)*.025,fist[1]+.09,fist[2],5));f.rotation.z=(i-1)*.3;f.castShadow=false;}}
  // element flourishes
@@ -2993,7 +2999,9 @@ function elemental(o){
  let core=null,crown=null;const swirl=new THREE.Group();body.add(swirl);
  if(k==='earth'){for(let i=0;i<5;i++){const a=(i-2)*.45,sh=cone(body,.035,.16+(i%2)*.06,glow(o.crystal||'#7fd8c0',1.2),Math.sin(a)*.16,chestY+.12+Math.cos(a)*.05,-.13,5);sh.rotation.set(-.6,0,-a);}
   for(const [x,y,z] of [[-.12,chestY+.15,.14],[.1,chestY-.05,.15],[.06,headY+.1,.08]])into(y>headY?head:body,lump(body,.035,mat('#4f6a34',{roughness:1,flatShading:true}),x,y,z,1.3,.5,1));}
- if(k==='fire'){core=sphere(body,.08,glow(o.hot||'#ffe070',4.5),0,chestY,.1,1,1.2,.6);core.castShadow=false;
+ if(k==='fire'){core=part(body,new THREE.IcosahedronGeometry(.075,0),ember('#fff4dc','#fff0c8',4.5),0,chestY,.1);core.scale.set(1,1.3,.6);core.castShadow=false;
+  // flame tongues lick up off the shoulders and back, a ragged burning silhouette
+  for(const [x,z,h,rz,rx] of [[-.17,-.04,.26,.35,-.2],[.16,-.05,.3,-.3,-.25],[-.07,-.1,.22,.15,-.5],[.06,-.1,.34,-.1,-.45],[0,-.06,.2,.05,-.35]]){const f=cone(body,.045,h,(x*100|0)%2?skin:dark,x,chestY+.16+h/2,z,5);f.rotation.set(rx,x*4,rz);f.castShadow=false;}
   crown=new THREE.Group();crown.position.set(0,.12,-.02);head.add(crown);
   for(let i=0;i<7;i++){const a=(i-3)*.42,f=cone(crown,.045-Math.abs(i-3)*.005,.28-Math.abs(i-3)*.04,i%2?skin:dark,Math.sin(a)*.09,Math.cos(a)*.04,0,6);f.rotation.z=-a*.7;f.castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.1;sphere(swirl,.016,dark,Math.cos(a)*.34,.35+i*.12,Math.sin(a)*.3).castShadow=false;}}
@@ -3020,7 +3028,10 @@ function elemental(o){
   for(const [x,y,rz] of [[-.03,.08,.5],[.03,0,-.6],[-.01,-.08,.4]])part(body,new THREE.BoxGeometry(.016,.12,.012),bolt,x,chestY+y,.16).rotation.z=rz;}
  // fire elementals only: black cooled clinker crusts the shoulders and brow, the fire burning through the gaps
  if(k==='fire'){const clinker=mat('#17110e',{roughness:1,flatShading:true});g.userData.clinkered=true;
-  for(const [x,y,z,r] of [[-.2,chestY+.2,0,.07],[.19,chestY+.19,.02,.06],[-.08,chestY+.02,.15,.05],[.1,headY+.08,.06,.045]])into(y>headY?head:body,part(body,new THREE.DodecahedronGeometry(r,0),clinker,x,y,z)).rotation.set(x*9,y*5,z*3);}
+  for(const [x,y,z,r] of [[-.2,chestY+.2,0,.07],[.19,chestY+.19,.02,.06],[-.08,chestY+.02,.15,.05],[.1,headY+.08,.06,.045]])into(y>headY?head:body,part(body,new THREE.DodecahedronGeometry(r,0),clinker,x,y,z)).rotation.set(x*9,y*5,z*3);
+  // a heavy clinker brow over the sockets, and a cooled crust over each fist's knuckles
+  for(const side of [-1,1]){const brow=into(head,part(body,new THREE.DodecahedronGeometry(.04,0),clinker,side*.042,headY+.045,.095));brow.scale.set(1.3,.45,.7);brow.rotation.z=side*.35;
+   into(arms[side<0?0:1],part(body,new THREE.DodecahedronGeometry(.045,0),clinker,side*.3,chestY-.24,.14)).scale.set(1,.6,.8);}}
  if(core)g.userData.core=core;
  // named joints (family E, stage 1 step 1): `head` (also `neck0`), the arms `lfore` / `rfore` at the shoulders, the earth
  // elemental's boulder legs `lleg1` / `rleg1` and the others' funnel `tail0`; named only, as `arms` stays off the actor so nothing swings them
