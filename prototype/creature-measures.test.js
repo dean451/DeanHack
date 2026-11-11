@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -231,6 +231,29 @@ test('the elemental numbers are a still stance, a slow creep and a flame\'s flic
   // a person-sized flame puffs a couple of times a second, not a candle's ten
   assert(e.flickerFactor[0] < e.flickerFactor[1]);
   ELEMENTAL.flickerHz.forEach(f => inside(f, [1.5, 3], 'flicker of a half-metre flame, Hz'));
+});
+
+test('the horse numbers are its sleep, how rarely it lies down, and its walk', () => {
+  const h = MEASURES.horse;
+  // a horse sleeps a few hours, most of it on its feet
+  inside(h.sleepHours[0], [2, 3.5], 'sleep low, h'); inside(h.sleepHours[1], [4, 6], 'sleep high, h');
+  inside(h.sleepStanding, [.6, .9], 'share of sleep standing');
+  inside(HORSE.standingSleepHours, [2, 4], 'hours dozing on its feet');
+  // it lies down about an hour a day, at least half an hour for REM, and some horses never
+  assert(h.lyingMinutes.low <= h.lyingMinutes.mean && h.lyingMinutes.mean < h.lyingMinutes.high);
+  assert(h.remMinLying < h.lyingMinutes.mean, 'the mean horse lies long enough for REM');
+  inside(HORSE.lyingShare, [.02, .1], 'share of a day lying');
+  // lying, mostly on the chest, rarely flat out
+  assert(h.sternalShare[0] > h.lateralShare[1], 'sternal more than lateral');
+  inside(HORSE.sternalOfLying, [.6, .9], 'share of lying on the chest');
+  // the walk: faster as it extends, a stride of one and a half to two metres in about a second
+  const w = h.walkSpeed;
+  assert(w.collected < w.medium && w.medium < w.extended);
+  inside(HORSE.walkMid, [1.2, 2], 'walk, m/s'); inside(HORSE.strideMid, [1.4, 2.1], 'stride, m');
+  for (const s of h.walkStrideTime) inside(s, [.9, 1.3], 'stride time, s');
+  // stride over stride time comes back to the measured speeds
+  inside(h.walkStride[0] / h.walkStrideTime[1], [w.collected * .9, w.collected * 1.1], 'collected speed from its stride');
+  inside(h.walkStride[1] / h.walkStrideTime[0], [w.extended * .9, w.extended * 1.1], 'extended speed from its stride');
 });
 
 function mid([a, b]) { return (a + b) / 2; }

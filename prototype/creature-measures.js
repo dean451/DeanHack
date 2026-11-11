@@ -174,6 +174,19 @@ export const MEASURES = {
     doubleSupport: {usual: .12, slowest: .55}, // share of the gait cycle on both feet, self-selected and slowest speed (same)
     flickerFactor: [1.5, 1.68], // Hz·m^0.5: a buoyant flame puffs at about this over the square root of its base width in metres (Xia et al., arXiv 1803.10400; Malalasekera 1996)
   },
+  // the pony, horse, warhorse and unicorns: a horse's sleep, its lying down, the cocked hind leg and the walk
+  horse: {
+    sleepHours: [2.5, 5], // hours a day an adult horse sleeps (Animals 2021, PMC8614510)
+    sleepStanding: .8, // share of that sleep standing (same)
+    lyingMinutes: {low: 0, mean: 67.4, high: 319}, // minutes a day lying down, 83 sanctuary horses (same)
+    remMinLying: 30, // minutes a day lying down for minimal REM sleep (same; Frontiers 2017)
+    sternalShare: [.06, .10], // share of the time budget lying on the chest (Frontiers 2017, PMC5339441)
+    lateralShare: [.01, .04], // share lying flat on the side (same)
+    walkSpeed: {collected: 1.37, medium: 1.73, extended: 1.82}, // m/s, six dressage horses (Clayton 1995)
+    walkStride: [1.57, 1.93], // m, collected to extended (same)
+    walkStrideTime: [1.064, 1.159], // s, extended to collected (same)
+    restLeg: 'one hind leg locked by the stay apparatus carries the hindquarter, the other rests flexed on the toe of its hoof (WikiVet)',
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -326,4 +339,17 @@ export const ELEMENTAL = {
   creepDoubleSupport: MEASURES.elemental.doubleSupport.slowest,
   // the flicker of a flame body about 0.5 m across, Hz, for the two published factors
   flickerHz: MEASURES.elemental.flickerFactor.map(k => k / Math.sqrt(.5)),
+};
+
+// What the horses' poses use: how rarely a horse lies down against dozing on its feet, and its walking pace
+export const HORSE = {
+  // the share of a day spent lying, from the mean minutes
+  lyingShare: MEASURES.horse.lyingMinutes.mean / (24 * 60),
+  // hours a day of sleep taken standing, cocked on one hind leg, mid of the range
+  standingSleepHours: mid(MEASURES.horse.sleepHours) * MEASURES.horse.sleepStanding,
+  // of the time lying, the share on the chest rather than flat out, mid to mid
+  sternalOfLying: mid(MEASURES.horse.sternalShare) / (mid(MEASURES.horse.sternalShare) + mid(MEASURES.horse.lateralShare)),
+  // the usual (medium) walk, m/s, and the stride at it, m
+  walkMid: MEASURES.horse.walkSpeed.medium,
+  strideMid: mid(MEASURES.horse.walkStride),
 };
