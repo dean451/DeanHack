@@ -1230,12 +1230,17 @@ function centaur(o){
   const strap=segment(body,[-.13,hip+.34,z0+.06],[.12,hip+.08,z0+.07],.012,.012,leather);strap.scale.z=.5;
  }
  // the horse's tail is five bones `tail0`..`tail4` and its legs three bones each (hooves and socks baked in), as on the horse (family C, stage 1 step 2);
- // the man's `head`, `neck0` and arms `lfore` / `rfore` (left is -x) are still named groups
+ // the man's arms `lfore` / `rfore` (left is -x) are three bones each, shoulder, elbow and wrist (`lfore_0`..`_2`), with the hand
+ // (spear, club or bow) moved onto the wrist bone so a bent elbow carries it (stage 1 step 3); `head` and `neck0` are still a group
  const tailBones=skinHorseTail(tail,.42);
  mergeStatic(g);
+ for(const arm of arms){const side=arm.position.x<0?'l':'r';skinPlainLimb(arm,side+'fore_',true,true);
+  const wrist=arm.getObjectByName(side+'fore_2'),hand=side==='r'?weaponSocket:offHand;
+  let at=new THREE.Vector3();for(let b=wrist;b!==arm;b=b.parent)at.add(b.position);
+  hand.position.sub(at);wrist.add(hand);}
  const named=nameQuadrupedJoints(Object.assign(actor(g,body,legs,tail,[],'unicorn'),{head,arms,arm:arms[1],weaponSocket,offHand,centaur:o.weapon||null}),{bake:true});
  tailBones.forEach(b=>{named.joints[b.name]=b;});
- for(const arm of arms){arm.name=(arm.position.x<0?'l':'r')+'fore';named.joints[arm.name]=arm;}
+ for(const arm of arms){arm.name=(arm.position.x<0?'l':'r')+'fore';named.joints[arm.name]=arm;arm.traverse(b=>{if(b.isBone)named.joints[b.name]=b;});}
  return named;
 }
 const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#6a8aa0',weapon:'spear'},'forest centaur':{coat:'#5a3c24',hair:'#2a1a10',tunic:'#3f6a34',weapon:'bow',scale:1.05},'mountain centaur':{coat:'#7a7670',hair:'#3a3632',mantle:'#8a7058',beard:true,weapon:'club',scale:1.08}};
