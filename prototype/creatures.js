@@ -3041,7 +3041,10 @@ function elemental(o){
  let core=null,crown=null;const swirl=new THREE.Group();body.add(swirl);
  if(k==='earth'){for(let i=0;i<5;i++){const a=(i-2)*.45,sh=cone(body,.035,.16+(i%2)*.06,glow(o.crystal||'#7fd8c0',1.2),Math.sin(a)*.16,chestY+.12+Math.cos(a)*.05,-.13,5);sh.rotation.set(-.6,0,-a);}
   for(const [x,y,z] of [[-.12,chestY+.15,.14],[.1,chestY-.05,.15],[.06,headY+.1,.08]])into(y>headY?head:body,lump(body,.035,mat('#4f6a34',{roughness:1,flatShading:true}),x,y,z,1.3,.5,1));}
- if(k==='fire'){core=part(body,new THREE.IcosahedronGeometry(.075,0),ember('#fff4dc','#fff0c8',4.5),0,chestY,.1);core.scale.set(1,1.3,.6);core.castShadow=false;
+ // the heart fire shows only through a forked crack split in the chest crust: thin jagged slivers, one mesh, hot gold not white
+ if(k==='fire'){const cut=[[-.008,.01,.32,.15],[.022,.075,-.5,.07],[-.03,-.06,.6,.08],[.018,-.07,-.25,.06]].map(([x,y,rz,h])=>{const b=new THREE.BoxGeometry(.016,h,.03,1,2,1),q=b.attributes.position;
+   for(let i=0;i<q.count;i++)q.setX(i,q.getX(i)+Math.sin(q.getY(i)*61+x*90)*.005);b.rotateZ(rz);b.translate(x,y,0);return b;});
+  core=part(body,mergeGeometries(cut),ember('#ff9a34','#e04808',4.5),0,chestY,.1);core.castShadow=false;
   // flame tongues lick up off the shoulders and back, a ragged burning silhouette
   for(const [x,z,h,rz,rx] of [[-.17,-.04,.26,.35,-.2],[.16,-.05,.3,-.3,-.25],[-.07,-.1,.22,.15,-.5],[.06,-.1,.34,-.1,-.45],[0,-.06,.2,.05,-.35]]){const f=cone(body,.045,h,(x*100|0)%2?skin:dark,x,chestY+.16+h/2,z,5);f.rotation.set(rx,x*4,rz);f.castShadow=false;}
   crown=new THREE.Group();crown.position.set(0,.12,-.02);head.add(crown);
@@ -3072,12 +3075,15 @@ function elemental(o){
  if(k==='air'&&!o.stalker){const shard=glow('#6a7a96',.9),bolt=glow(o.eye,3);g.userData.storm=true;
   for(let i=0;i<5;i++){const a=i*1.3,f=cone(swirl,.03,.2+(i%2)*.08,shard,Math.cos(a)*.38,.35+i*.13,Math.sin(a)*.34,4);f.rotation.set(a,0,Math.PI/2+i*.4);f.castShadow=false;}
   for(const [x,y,rz] of [[-.03,.08,.5],[.03,0,-.6],[-.01,-.08,.4]])part(body,new THREE.BoxGeometry(.016,.12,.012),bolt,x,chestY+y,.16).rotation.z=rz;}
- // fire elementals only: black cooled clinker crusts the shoulders and brow, the fire burning through the gaps
- if(k==='fire'){const clinker=mat('#17110e',{roughness:1,flatShading:true});g.userData.clinkered=true;
-  for(const [x,y,z,r] of [[-.2,chestY+.2,0,.07],[.19,chestY+.19,.02,.06],[-.08,chestY+.02,.15,.05],[.1,headY+.08,.06,.045]])into(y>headY?head:body,part(body,new THREE.DodecahedronGeometry(r,0),clinker,x,y,z)).rotation.set(x*9,y*5,z*3);
+ // fire elementals only: cooled clinker crusts the shoulders, chest and brow, dark red going to char and still faintly
+ // smouldering, never pure black; flat plates sunk into the flame's own surface, not rocks set on it
+ if(k==='fire'){const clinker=ember('#3a1a10','#5a1206',.5),char=ember('#24120c','#3a0a04',.35);g.userData.clinkered=true;
+  // [x, y, z, size, flatten axis (0 y, 1 z), tilt about z, tone]: on the shoulder tops, the chest either side of the crack, the scalp
+  for(const [x,y,z,r,ax,rz,m] of [[-.19,chestY+.18,0,.07,0,.25,char],[.19,chestY+.18,.02,.06,0,-.3,clinker],[-.075,chestY+.03,.085,.05,1,.4,char],[.07,chestY-.06,.075,.04,1,-.3,clinker],[.05,headY+.11,.03,.045,0,-.5,char]]){
+   const c=into(y>headY?head:body,part(body,new THREE.DodecahedronGeometry(r,0),m,x,y,z));c.userData.clinker=true;c.scale.set(1.25,ax?1:.3,ax?.25:1);c.rotation.set(ax?0:x*2,y*5,rz);c.castShadow=false;}
   // a heavy clinker brow over the sockets, and a cooled crust over each fist's knuckles
-  for(const side of [-1,1]){const brow=into(head,part(body,new THREE.DodecahedronGeometry(.04,0),clinker,side*.042,headY+.045,.095));brow.scale.set(1.3,.45,.7);brow.rotation.z=side*.35;
-   onWrist(side<0?0:1,part(body,new THREE.DodecahedronGeometry(.045,0),clinker,side*.3,chestY-.24,.14)).scale.set(1,.6,.8);}}
+  for(const side of [-1,1]){const brow=into(head,part(body,new THREE.DodecahedronGeometry(.04,0),side<0?char:clinker,side*.042,headY+.045,.095));brow.scale.set(1.3,.45,.7);brow.rotation.z=side*.35;
+   onWrist(side<0?0:1,part(body,new THREE.DodecahedronGeometry(.045,0),side<0?clinker:char,side*.3,chestY-.24,.14)).scale.set(1,.6,.8);}}
  if(core)g.userData.core=core;
  // named joints (family E, stage 1 step 1): `head` (also `neck0`), the arms `lfore` / `rfore` at the shoulders, the earth
  // elemental's boulder legs `lleg1` / `rleg1` and the others' funnel bones `tail0`..`tail4`; `arms` stays off the actor so nothing swings them
