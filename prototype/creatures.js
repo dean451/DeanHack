@@ -2982,7 +2982,12 @@ function elemental(o){
  let tail=null,tailBones=[];
  if(k==='earth'){for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.36,0);body.add(leg);lump(leg,.1,skin,0,-.07,0,1,1.2,1);lump(leg,.11,dark,0,-.25,.03,1.1,.9,1.2);legs.push(leg);}}
  else{tail=new THREE.Group();tail.position.y=.5;body.add(tail);
-  if(k==='air')for(let i=0;i<6;i++){const t=i/5,ring=part(tail,new THREE.TorusGeometry(.2-t*.15,.03-t*.015,st?4:6,st?7:20),i%2?skin:dark,Math.sin(i*1.7)*.03,-.04-t*.4,Math.cos(i*1.7)*.03);ring.rotation.set(Math.PI/2+Math.sin(i*2.1)*.25,i*.6,0);ring.castShadow=false;}
+  if(k==='air'&&!st)for(let i=0;i<6;i++){const t=i/5,ring=part(tail,new THREE.TorusGeometry(.2-t*.15,.03-t*.015,6,20),i%2?skin:dark,Math.sin(i*1.7)*.03,-.04-t*.4,Math.cos(i*1.7)*.03);ring.rotation.set(Math.PI/2+Math.sin(i*2.1)*.25,i*.6,0);ring.castShadow=false;}
+  // the stalker's funnel is no stack of hoops but its own hide drawn on down from the wasp waist: a six-sided taper
+  // that starts inside the trunk (no gap), twisted ring by ring, with a darker, thinner strand wound down beside it
+  if(st)for(const [m,w,dx,dz,twist,low] of [[skin,1,0,0,.35,.47],[dark,.62,.018,-.012,-.5,.52]]){const prof=[[.004,-low],[.014,-low+.06],[.03,-.34],[.045,-.26],[.06,-.16],[.056,-.09],[.07,.03]].map(([r,h])=>new THREE.Vector2(r*w,h));
+   const geo=new THREE.LatheGeometry(prof,6),q=geo.attributes.position;for(let i=0;i<q.count;i++){const y=q.getY(i),a=y*twist*6,x=q.getX(i),z=q.getZ(i);q.setXYZ(i,x*Math.cos(a)-z*Math.sin(a)+Math.sin(y*11)*.008,y,x*Math.sin(a)+z*Math.cos(a));}
+   geo.computeVertexNormals();const f=part(tail,geo,m,dx,0,dz);f.scale.z=.72;f.castShadow=false;}
   if(k==='fire')for(let i=0;i<9;i++){const a=i*2.4,r=.04+(i%3)*.04,f=cone(tail,.07-(i%3)*.012,.3-(i%3)*.05,i%3?skin:dark,Math.cos(a)*r,-.2+(i%3)*.03,Math.sin(a)*r,6);f.rotation.set(Math.PI+Math.sin(a)*.3,0,Math.cos(a)*.3);f.castShadow=false;}
   if(k==='water'){lathe(tail,[[.03,-.47],[.08,-.4],[.1,-.28],[.15,-.12],[.19,0]],skin).castShadow=false;const curl=part(tail,new THREE.TorusGeometry(.13,.035,8,20,Math.PI*1.4),dark,0,-.2,0);curl.rotation.set(Math.PI/2,0,.6);curl.castShadow=false;}
   // the funnel on a chain of five bones, `tail0` at the waist to `tail4` at its tip (family E stage 1 step 3): its
@@ -3034,7 +3039,9 @@ function elemental(o){
   crown=new THREE.Group();crown.position.set(0,.12,-.02);head.add(crown);
   for(let i=0;i<7;i++){const a=(i-3)*.42,f=cone(crown,.045-Math.abs(i-3)*.005,.28-Math.abs(i-3)*.04,i%2?skin:dark,Math.sin(a)*.09,Math.cos(a)*.04,0,6);f.rotation.z=-a*.7;f.castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.1;sphere(swirl,.016,dark,Math.cos(a)*.34,.35+i*.12,Math.sin(a)*.3).castShadow=false;}}
- if(k==='air'){for(let i=0;i<3;i++){const ring=part(swirl,new THREE.TorusGeometry(.3+i*.05,.008,4,28,Math.PI*1.3),dark,0,chestY-.1+i*.14,0);ring.rotation.set(Math.PI/2+(i-1)*.3,0,i*2);ring.castShadow=false;}
+ if(k==='air'){const streak=st?mat('#c8c8d0',{transparent:true,opacity:.1,depthWrite:false,roughness:1}):dark;
+  // the stalker's wind is faint air: short, near-invisible streaks, never solid hoops round its chest
+  for(let i=0;i<3;i++){const ring=part(swirl,new THREE.TorusGeometry(.3+i*.05,st?.004:.008,4,28,Math.PI*(st?.55:1.3)),streak,0,chestY-.1+i*.14,0);ring.rotation.set(Math.PI/2+(i-1)*.3,0,i*2);ring.castShadow=false;}
   for(let i=0;i<8;i++){const a=i*.8;const leaf=part(swirl,new THREE.PlaneGeometry(.04,.02),mat(i%2?'#8a7a4a':'#6a8a3a',{side:THREE.DoubleSide}),Math.cos(a)*.34,.3+i*.09,Math.sin(a)*.34);leaf.rotation.set(a,a*2,a*.5);}}
  if(k==='water'){const foam=mat('#eef8ff',{roughness:.4});crown=new THREE.Group();crown.position.set(0,.1,-.05);head.add(crown);for(let i=0;i<7;i++){const a=(i-3)*.4;sphere(crown,.04-Math.abs(i-3)*.004,foam,Math.sin(a)*.1,Math.cos(a)*.03,-Math.abs(i-3)*.015).castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.2;sphere(swirl,.018,dark,Math.cos(a)*.32,.3+i*.1,Math.sin(a)*.28,1,1.4,1).castShadow=false;}}
