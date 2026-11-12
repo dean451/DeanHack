@@ -31,7 +31,7 @@ test('every member has a head, two arms and a funnel or two legs as named joints
       }
       assert.equal(j.tail0, undefined, 'the earth elemental stands on legs, no funnel');
     } else {
-      assert.equal(j.tail0, a.tail, name + ': the funnel is tail0');
+      assert.equal(j.tail0.parent, a.tail, name + ': the funnel chain tail0.. hangs on the tail group, the sway pivot');
       assert.equal(a.legs.length, 0, name);
     }
     assert.equal(a.arms, undefined, name + ': arms are not swung by the fidget');
@@ -52,8 +52,9 @@ test('turning a joint moves everything on it and nothing else', () => {
       }
       assert(on > 0, `${name}: turning ${label} moved what hangs on it`);
     };
-    for (const [label, axis, v] of [['neck0', 'x', .6], ['lfore', 'x', .7], ['rfore', 'z', .5], ...(j.tail0 ? [['tail0', 'x', .5]] : [['lleg1', 'x', .5], ['rleg1', 'x', .5]])]) {
-      const joint = j[label];
+    // the funnel's sway pivot is the `tail` group (its bones are checked in elemental-funnel.test.js)
+    for (const [label, axis, v] of [['neck0', 'x', .6], ['lfore', 'x', .7], ['rfore', 'z', .5], ...(j.tail0 ? [['tail', 'x', .5]] : [['lleg1', 'x', .5], ['rleg1', 'x', .5]])]) {
+      const joint = label === 'tail' ? a.tail : j[label];
       joint.rotation[axis] += v; check(joint, label); joint.rotation[axis] -= v;
     }
     // what rides each joint: the face on the head, the fists (and the stalker's claws) on the arms
