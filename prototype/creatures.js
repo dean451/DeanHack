@@ -1286,6 +1286,41 @@ function centaur(o){
  for(const arm of arms){arm.name=(arm.position.x<0?'l':'r')+'fore';named.joints[arm.name]=arm;arm.traverse(b=>{if(b.isBone)named.joints[b.name]=b;});}
  return named;
 }
+// Review 2026-11-12: the centaur's horse half was a glossy chest ball and rump ball. Instead one eight-sided, flat-shaded hull
+// runs croup to chest, its back dipped between a high withers and the croup, the belly drawn up behind a deep chest, and
+// knocked out of true (a hash of each vertex's position, so the lathe's seam stays shut). On it: a dark topline ridge
+// withers to croup, ribs showing through the flanks, jutting hip points, a girth gall rubbed pale and an old scar.
+const BARREL=[[0,-.41],[.1,-.4],[.155,-.35],[.18,-.26],[.17,-.15],[.155,-.03],[.162,.08],[.178,.19],[.168,.28],[.115,.345],[0,.37]];
+function barrelRadius(z){for(let i=1;i<BARREL.length;i++){const [r0,z0]=BARREL[i-1],[r1,z1]=BARREL[i];if(z<=z1)return r0+(r1-r0)*(z-z0)/(z1-z0);}return 0;}
+// the topline's rise over the plain hull: up at the withers and the croup, sunk through the back
+function barrelTop(z){return .045*Math.exp(-(((z-.2)/.08)**2))+.02*Math.exp(-(((z+.25)/.07)**2))-.012*Math.exp(-(((z+.02)/.08)**2));}
+export function centaurBarrel(into,coatHex,y,s){
+ const body=new THREE.Group();
+ const flat=(hex,r)=>mat(hex,{roughness:r,flatShading:true}),coat=flat(coatHex,.85),dark=flat(shade(coatHex,.55),.9),ribs=flat(shade(coatHex,.72),.9),pale=flat(shade(coatHex,1.3),.95),scar=flat('#3a2a22',.9),wx=.82*s;
+ const geo=new THREE.LatheGeometry(BARREL.map(([r,z])=>new THREE.Vector2(r,z)),8,Math.PI/8);geo.rotateX(Math.PI/2);
+ const pos=geo.attributes.position,v=new THREE.Vector3(),hash=(a,b)=>{const t=Math.sin(a*127.1+b*311.7)*43758.5453;return t-Math.floor(t)-.5;};
+ for(let i=0;i<pos.count;i++){v.fromBufferAttribute(pos,i);const r=Math.hypot(v.x,v.y),up=r>1e-6?v.y/r:0;
+  // deep chest, tucked flank: the underside drops in front and lifts toward the stifle
+  if(up<0)v.y*=1+.22*Math.exp(-(((v.z-.12)/.14)**2))-.12*Math.exp(-(((v.z+.22)/.1)**2));
+  if(up>0)v.y+=barrelTop(v.z)*up;
+  if(r>1e-6){const j=1+.07*hash(Math.round(v.x*200),Math.round(v.z*200)+Math.round(v.y*200)*7);v.x*=j;v.y*=1+.5*(j-1);}
+  pos.setXYZ(i,v.x*wx,v.y,v.z);}
+ geo.computeVertexNormals();part(body,geo,coat,0,y,0);
+ const top=z=>y+barrelRadius(z)+barrelTop(z),side=(z,h)=>wx*barrelRadius(z)*Math.sqrt(Math.max(0,1-h*h));
+ // the topline: a dark, five-sided ridge from the withers along the sunk back to the croup and down to the dock
+ const ridge=[.27,.18,.06,-.08,-.22,-.33].map(z=>[0,top(z)-.006,z]);
+ for(let i=1;i<ridge.length;i++)segment(body,ridge[i-1],ridge[i],.016,.016,dark,5);
+ // ribs under the hide, four on the near (+x) flank and three on the far, slanted back and down
+ for(const [k,dir] of [[4,1],[3,-1]])for(let i=0;i<k;i++){const z=.13-i*.06,rib=part(body,new THREE.BoxGeometry(.008,.15,.016),ribs,dir*(side(z,.05)-.002),y-.02,z);rib.rotation.set(.4,0,dir*-.12);}
+ // the hip points jut either side of the croup, the left knocked lower
+ for(const dir of [-1,1])part(body,new THREE.DodecahedronGeometry(.042),coat,dir*(side(-.24,.45)-.012),y+.1+(dir<0?-.018:0),-.24).scale.set(.8,.9,1.2);
+ // a girth gall rubbed pale behind the elbow on the near side, and an old scar raked across the far haunch
+ const gall=part(body,new THREE.BoxGeometry(.006,.06,.08),pale,side(.16,0)-.001,y-.01,.16);gall.rotation.set(.2,.1,0);
+ const cut=part(body,new THREE.BoxGeometry(.01,.012,.13),scar,-side(-.2,.2)-.003,y+.03,-.2);cut.rotation.set(.45,0,.2);
+ // baked into one vertex-coloured mesh (baked-material.js): every tone, one draw
+ const geos=body.children.map(m=>{m.updateMatrix();return bakeInto(withIndex(m.geometry.clone().applyMatrix4(m.matrix)),m.material);});
+ const barrel=part(into,mergeGeometries(geos),bakedMaterialFor(coat));barrel.name='barrel';return barrel;
+}
 const CENTAURS={'plains centaur':{coat:'#a8804a',hair:'#4a3020',tunic:'#58605c',weapon:'spear'},'forest centaur':{coat:'#5a3c24',hair:'#2a1a10',tunic:'#48503c',weapon:'bow',scale:1.05},'mountain centaur':{coat:'#7a7670',hair:'#3a3632',mantle:'#8a7058',beard:true,weapon:'club',scale:1.08}};
 // Ponies, horses and warhorses (u): a barrel with a sloped croup, an arched neck with a mane, a long
 // wedge head with a blaze, legs with knees, hocks, fetlocks and hooves, and a flowing tail. No horn.
@@ -1297,8 +1332,9 @@ function horse(o){
  const g=new THREE.Group(),body=new THREE.Group(),legs=[];g.add(body);g.scale.setScalar(o.scale);g.name=o.horn?'unicorn':'horse';
  const coat=mat(o.coat,{roughness:.8}),belly=mat(shade(o.coat,1.15),{roughness:.85}),hair=mat(o.hair,{roughness:.95}),lower=mat(o.points||o.coat,{roughness:.85}),sock=mat(o.feather||'#ece6da',{roughness:.85}),hoof=mat(o.hoof||'#2a2420',{roughness:.55,metalness:o.hoof?.3:0}),snoot=mat(shade(o.coat,o.horn?.8:.55),{roughness:.7});
  const legH=o.legH,y=legH+.16,s=o.stock;let head=null;
- sphere(body,.2,coat,0,y,0,.82*s,.85,1.55);sphere(body,.17,coat,0,y+.02,.2,.9*s,1,.9);sphere(body,.18,coat,0,y+.04,-.22,.95*s,.95,.9);
- sphere(body,.14,belly,0,y-.08,0,.78*s,.6,1.45);sphere(body,.08,coat,0,y+.15,.15,.9,.8,1.4);
+ if(o.centaur)centaurBarrel(body,o.coat,y,s);
+ else{sphere(body,.2,coat,0,y,0,.82*s,.85,1.55);sphere(body,.17,coat,0,y+.02,.2,.9*s,1,.9);sphere(body,.18,coat,0,y+.04,-.22,.95*s,.95,.9);
+ sphere(body,.14,belly,0,y-.08,0,.78*s,.6,1.45);sphere(body,.08,coat,0,y+.15,.15,.9,.8,1.4);}
  if(!o.centaur){
  // neck, with the mane on its upper edge
  const n0=new THREE.Vector3(0,y+.1,.24),n1=new THREE.Vector3(0,y+.38,.44),dir=n1.clone().sub(n0).normalize(),up=new THREE.Vector3(0,dir.z,-dir.y);
@@ -1329,8 +1365,11 @@ function horse(o){
   rounded(body,.34*s,.025,.34,mat(o.cloth,{roughness:.9}),0,y+.19,-.02,.01);for(const side of [-1,1]){const drape=rounded(body,.02,.2,.34,mat(o.cloth,{roughness:.9}),side*.165*s,y+.1,-.02,.008);drape.rotation.z=side*.12;rounded(body,.022,.02,.35,mat('#4a3f30',{metalness:.55,roughness:.62}),side*.178*s,y+.005,-.02,.006);}}
  }
  const H=(hy,front)=>{const leg=new THREE.Group();body.add(leg);
-  if(front){sphere(leg,.075,coat,0,-.02,0,.8,1.3,1);segment(leg,[0,.02,0],[0,-hy*.5,.01],.06,.04,coat);sphere(leg,.036,lower,0,-hy*.5,.012);segment(leg,[0,-hy*.5,.012],[0,-hy*.86,0],.03,.028,lower);}
-  else{sphere(leg,.09,coat,0,-.06,0,.8,1.4,1.1);segment(leg,[0,-.05,.02],[0,-hy*.55,-.07],.06,.038,coat);sphere(leg,.036,lower,0,-hy*.55,-.07);segment(leg,[0,-hy*.55,-.07],[0,-hy*.86,-.03],.032,.028,lower);}
+  // a centaur's shoulder and haunch are faceted lumps, not glossy balls (review 2026-11-12)
+  // (face normals on the leg's own coat, so the leg still merges into one draw)
+  const top=(r,y,sx,sy,sz)=>{const k=sphere(leg,r,coat,0,y,0,sx,sy,sz);if(o.centaur){k.geometry=withIndex(new THREE.SphereGeometry(r,6,4).toNonIndexed());k.geometry.computeVertexNormals();k.rotation.y=Math.PI/6;}return k;};
+  if(front){top(.075,-.02,.8,1.3,1);segment(leg,[0,.02,0],[0,-hy*.5,.01],.06,.04,coat);sphere(leg,.036,lower,0,-hy*.5,.012);segment(leg,[0,-hy*.5,.012],[0,-hy*.86,0],.03,.028,lower);}
+  else{top(.09,-.06,.8,1.4,1.1);segment(leg,[0,-.05,.02],[0,-hy*.55,-.07],.06,.038,coat);sphere(leg,.036,lower,0,-hy*.55,-.07);segment(leg,[0,-hy*.55,-.07],[0,-hy*.86,-.03],.032,.028,lower);}
   const fz=front?0:-.03;sphere(leg,.034,lower,0,-hy*.87,fz-.005);segment(leg,[0,-hy*.87,fz-.005],[0,-hy+.04,fz+.03],.026,.028,lower);
   if(o.feathered)cylinder(leg,.036,.062,.09,sock,0,-hy+.08,fz+.02,10);
   cylinder(leg,.035,.045,.05,hoof,0,-hy+.025,fz+.035,10);return leg;};
