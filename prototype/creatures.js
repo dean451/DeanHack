@@ -3002,11 +3002,18 @@ function elemental(o){
   const cheek=into(head,part(body,new THREE.TetrahedronGeometry(.026,0),bone,side*.058,headY-.04,.07));cheek.rotation.set(.4,side*.6,side*.3);cheek.castShadow=false;}
  for(const side of [-1,1]){into(head,sphere(body,facet?.016:.024,eye,side*(st?.04:.045),headY+.01,facet?.112:.12,facet?1.4:1,.7,.6)).castShadow=false;lump(body,st?.075:.1,k==='earth'?dark:skin,side*.2,chestY+.12,0,...(st?[1.15,.75,.85]:[1,.85,.9]));}
  // arms: tapered limbs to heavy fists (earth) or dissolving hands
- const arms=[];
+ // each arm is one skinned mesh on three bones, shoulder, elbow and wrist (`lfore_0`..`_2`, family E stage 1 step 2):
+ // the upper arm and forearm merged on the arm's own material, and the fist and all it holds hung on the wrist bone
+ const arms=[],wrists=[];
+ // moves a piece built on the body onto arm `i`'s wrist bone, keeping where it is drawn (the wrist is at the fist)
+ const onWrist=(i,mesh)=>{mesh.position.sub(wrists[i].userData.at);wrists[i].add(mesh);return mesh;};
  for(const side of [-1,1]){const sh=[side*.22,chestY+.1,0],el=[side*.3,chestY-.08,.06],fist=[side*.3,chestY-.26,.1],arm=new THREE.Group();arm.position.set(...sh);body.add(arm);arms.push(arm);
-  const sides=facet?5:12,thin=st?.65:k==='fire'?.75:1;into(arm,segment(body,sh,el,.07,.06*thin,skin,sides)).castShadow=k==='earth';into(arm,segment(body,el,fist,.06*thin,.05*thin,skin,sides)).castShadow=k==='earth';
-  into(arm,lump(body,k==='earth'?.09:.065,dark,...fist));
-  if(k==='fire')for(let i=0;i<3;i++){const f=into(arm,cone(body,.022,.12,dark,fist[0]+(i-1)*.025,fist[1]+.09,fist[2],5));f.rotation.z=(i-1)*.3;f.castShadow=false;}}
+  const sides=facet?5:12,thin=st?.65:k==='fire'?.75:1,rel=p=>p.map((v,i)=>v-sh[i]),A=new THREE.Group();
+  const geo=mergeGeometries([segment(A,[0,0,0],rel(el),.07,.06*thin,skin,sides),segment(A,rel(el),rel(fist),.06*thin,.05*thin,skin,sides)].map(m=>{m.updateMatrix();return m.geometry.clone().applyMatrix4(m.matrix);}));
+  const bones=rigLimb(arm,skinLimb(geo,[[0,0,0],rel(el),rel(fist)]),skin,(side<0?'l':'r')+'fore_','arm'),i=arms.length-1;
+  bones[0].parent.castShadow=k==='earth';bones[2].userData.at=new THREE.Vector3(...fist);wrists.push(bones[2]);
+  onWrist(i,lump(body,k==='earth'?.09:.065,dark,...fist));
+  if(k==='fire')for(let n=0;n<3;n++){const f=onWrist(i,cone(body,.022,.12,dark,fist[0]+(n-1)*.025,fist[1]+.09,fist[2],5));f.rotation.z=(n-1)*.3;f.castShadow=false;}}
  // element flourishes
  // swirl: the bits that circle the body (spun about y); crown: the flames or foam on the head
  let core=null,crown=null;const swirl=new THREE.Group();body.add(swirl);
@@ -3025,9 +3032,9 @@ function elemental(o){
  // stalkers only: not a gale but a hunter. Long hooked claws hang off both fists and a mouthful of needle fangs
  // gapes in the pale face, under black pits for eyes
  if(o.stalker){const claw=mat('#2a2a34',{roughness:.4,metalness:.3}),fang=mat('#e8e8f0',{roughness:.35});g.userData.stalker=true;
-  for(const side of [-1,1])for(let i=0;i<3;i++){const c=into(arms[side<0?0:1],cone(body,.012,.16,claw,side*.3+(i-1)*.03,chestY-.36,.12,4));c.rotation.set(-.3,0,(i-1)*.25);
+  for(const side of [-1,1])for(let i=0;i<3;i++){const c=onWrist(side<0?0:1,cone(body,.012,.16,claw,side*.3+(i-1)*.03,chestY-.36,.12,4));c.rotation.set(-.3,0,(i-1)*.25);
    // a bony spur at each knuckle the claw grows from
-   into(arms[side<0?0:1],part(body,new THREE.TetrahedronGeometry(.016,0),bone,side*.3+(i-1)*.03,chestY-.27,.15)).castShadow=false;}
+   onWrist(side<0?0:1,part(body,new THREE.TetrahedronGeometry(.016,0),bone,side*.3+(i-1)*.03,chestY-.27,.15)).castShadow=false;}
   into(head,part(body,new THREE.DodecahedronGeometry(.045,0),mat('#06060a',{roughness:1}),0,headY-.06,.1)).scale.set(1.3,.7,.6);
   for(let i=0;i<6;i++){const x=(i-2.5)*.016,f=into(head,cone(body,.006,.03+(i%2)*.012,fang,x,headY-.06+(i%2?.02:-.02),.135,4));f.rotation.x=Math.PI*(i%2?1:0);}}
  // earth elementals only: a jagged fissure splits the chest, glowing like a banked forge
@@ -3046,7 +3053,7 @@ function elemental(o){
   for(const [x,y,z,r] of [[-.2,chestY+.2,0,.07],[.19,chestY+.19,.02,.06],[-.08,chestY+.02,.15,.05],[.1,headY+.08,.06,.045]])into(y>headY?head:body,part(body,new THREE.DodecahedronGeometry(r,0),clinker,x,y,z)).rotation.set(x*9,y*5,z*3);
   // a heavy clinker brow over the sockets, and a cooled crust over each fist's knuckles
   for(const side of [-1,1]){const brow=into(head,part(body,new THREE.DodecahedronGeometry(.04,0),clinker,side*.042,headY+.045,.095));brow.scale.set(1.3,.45,.7);brow.rotation.z=side*.35;
-   into(arms[side<0?0:1],part(body,new THREE.DodecahedronGeometry(.045,0),clinker,side*.3,chestY-.24,.14)).scale.set(1,.6,.8);}}
+   onWrist(side<0?0:1,part(body,new THREE.DodecahedronGeometry(.045,0),clinker,side*.3,chestY-.24,.14)).scale.set(1,.6,.8);}}
  if(core)g.userData.core=core;
  // named joints (family E, stage 1 step 1): `head` (also `neck0`), the arms `lfore` / `rfore` at the shoulders, the earth
  // elemental's boulder legs `lleg1` / `rleg1` and the others' funnel `tail0`; named only, as `arms` stays off the actor so nothing swings them
