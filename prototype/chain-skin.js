@@ -31,3 +31,14 @@ export function rigChain(parent,geo,material,name,{part=name}={}){
  parent.add(m);m.updateMatrixWorld(true);m.bind(new THREE.Skeleton(bones));
  return {mesh:m,bones};
 }
+// Several meshes (one per material) on one chain: each [geometry, material] pair is skinned along the same
+// `pts` and bound to one skeleton, whose bones `<name>0`.. hang straight on `parent` (beside the meshes, not
+// under one), so a turned bone bends every material together. Returns {meshes,bones}.
+export function rigChains(parent,pairs,pts,name,{part=name,castShadow=false}={}){
+ const bones=pts.map((p,i)=>{const b=new THREE.Bone();b.name=name+i;const q=i?pts[i-1]:[0,0,0];b.position.set(p[0]-q[0],p[1]-q[1],p[2]-q[2]);return b;});
+ bones.forEach((b,i)=>(i?bones[i-1]:parent).add(b));
+ parent.updateMatrixWorld(true);
+ const skeleton=new THREE.Skeleton(bones);
+ const meshes=pairs.map(([geo,material])=>{skinChain(geo,pts);const m=new THREE.SkinnedMesh(geo,material);m.castShadow=castShadow;m.receiveShadow=true;m.userData.part=part;parent.add(m);m.updateMatrixWorld(true);m.bind(skeleton);return m;});
+ return {meshes,bones};
+}

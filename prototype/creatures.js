@@ -25,7 +25,7 @@ import {createScorpion,isScorpion} from './scorpion.js';
 import {createAnt,isAnt} from './ant.js';
 import {createLocust,isLocust} from './locust.js';
 import {createFeline,isFeline} from './feline.js';
-import {pickPoints,skinChain,rigChain} from './chain-skin.js';
+import {pickPoints,skinChain,rigChain,rigChains} from './chain-skin.js';
 import {createCanine,isCanine,hellfire} from './canine.js';
 import {createBee,isBee} from './bee.js';
 import {createBeetle,isBeetle} from './beetle.js';
@@ -2959,6 +2959,8 @@ const KOPS={'keystone kop':{coat:'#2f3f8a'},'kop sergeant':{coat:'#2a3a82',rank:
 
 // Elementals: one torso-and-arms spirit built from its element. Air, fire and water
 // rise from a swaying funnel (the actor tail) and hover; earth stands on boulder legs.
+// the elementals' funnel chain: five points from the waist (the `tail` group's origin) down to the funnel's tip at `tip`
+const funnel=tip=>[0,1,2,3,4].map(i=>[0,tip*i/4,0]);
 function elemental(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[],k=o.kind,c=o.color;
  const see=(color,opacity,glow=0)=>mat(color,{transparent:true,opacity,depthWrite:false,roughness:.25,emissive:color,emissiveIntensity:glow});
@@ -2976,12 +2978,18 @@ function elemental(o){
  const into=(grp,mesh)=>{mesh.position.sub(grp.position);grp.add(mesh);return mesh;};
  const lump=(p,r,m,x,y,z,sx=1,sy=1,sz=1)=>{const mesh=k==='earth'?part(p,new THREE.DodecahedronGeometry(r,0),m,x,y,z):facet?part(p,new THREE.IcosahedronGeometry(r,0),m,x,y,z):sphere(p,r,m,x,y,z);mesh.scale.set(sx,sy,sz);if(k==='earth')mesh.rotation.set(x*7,y*5,z*3);if(facet)mesh.rotation.set(.3+x*5,y*3,z*4);if(k!=='earth')mesh.castShadow=false;return mesh;};
  // lower body: earth gets two stubby boulder legs; the others a tapering funnel that sways as the tail
- let tail=null;
+ let tail=null,tailBones=[];
  if(k==='earth'){for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.36,0);body.add(leg);lump(leg,.1,skin,0,-.07,0,1,1.2,1);lump(leg,.11,dark,0,-.25,.03,1.1,.9,1.2);legs.push(leg);}}
  else{tail=new THREE.Group();tail.position.y=.5;body.add(tail);
   if(k==='air')for(let i=0;i<6;i++){const t=i/5,ring=part(tail,new THREE.TorusGeometry(.2-t*.15,.03-t*.015,st?4:6,st?7:20),i%2?skin:dark,Math.sin(i*1.7)*.03,-.04-t*.4,Math.cos(i*1.7)*.03);ring.rotation.set(Math.PI/2+Math.sin(i*2.1)*.25,i*.6,0);ring.castShadow=false;}
   if(k==='fire')for(let i=0;i<9;i++){const a=i*2.4,r=.04+(i%3)*.04,f=cone(tail,.07-(i%3)*.012,.3-(i%3)*.05,i%3?skin:dark,Math.cos(a)*r,-.2+(i%3)*.03,Math.sin(a)*r,6);f.rotation.set(Math.PI+Math.sin(a)*.3,0,Math.cos(a)*.3);f.castShadow=false;}
   if(k==='water'){lathe(tail,[[.03,-.47],[.08,-.4],[.1,-.28],[.15,-.12],[.19,0]],skin).castShadow=false;const curl=part(tail,new THREE.TorusGeometry(.13,.035,8,20,Math.PI*1.4),dark,0,-.2,0);curl.rotation.set(Math.PI/2,0,.6);curl.castShadow=false;}
+  // the funnel on a chain of five bones, `tail0` at the waist to `tail4` at its tip (family E stage 1 step 3): its
+  // pieces merged per material into skinned meshes on one skeleton, so a turned bone bends the whole funnel past
+  // it; the `tail` group above them stays the pivot live.js sways and elemental-roil.js spins
+  const bins=new Map();for(const m of [...tail.children]){m.updateMatrix();if(!bins.has(m.material))bins.set(m.material,[]);bins.get(m.material).push(m.geometry.clone().applyMatrix4(m.matrix));tail.remove(m);}
+  const pairs=[...bins].map(([mt,geos])=>[mergeGeometries(geos),mt]),tip=Math.min(...pairs.map(([geo])=>{geo.computeBoundingBox();return geo.boundingBox.min.y;}));
+  tailBones=rigChains(tail,pairs,funnel(tip),'tail').bones;
   const pool=part(g,new THREE.CircleGeometry(.26,20),mat(k==='fire'?'#2a1a10':shade(c,.5),{transparent:true,opacity:k==='fire'?.6:.35,depthWrite:false,emissive:k==='fire'?c:'#000000',emissiveIntensity:k==='fire'?.8:0}),0,.012,0);pool.rotation.x=-Math.PI/2;pool.castShadow=false;}
  // torso, shoulders and head, lumped from the element
  const chestY=k==='earth'?.6:.68;
@@ -3056,9 +3064,9 @@ function elemental(o){
    onWrist(side<0?0:1,part(body,new THREE.DodecahedronGeometry(.045,0),clinker,side*.3,chestY-.24,.14)).scale.set(1,.6,.8);}}
  if(core)g.userData.core=core;
  // named joints (family E, stage 1 step 1): `head` (also `neck0`), the arms `lfore` / `rfore` at the shoulders, the earth
- // elemental's boulder legs `lleg1` / `rleg1` and the others' funnel `tail0`; named only, as `arms` stays off the actor so nothing swings them
+ // elemental's boulder legs `lleg1` / `rleg1` and the others' funnel bones `tail0`..`tail4`; `arms` stays off the actor so nothing swings them
  const a=nameHumanoidJoints(Object.assign(actor(g,body,legs,tail,[],k==='earth'?'idle':'hover'),{element:k,swirl,head,arms},crown?{crown}:{},core?{core}:{}));
- delete a.arms;if(tail){tail.name='tail0';a.joints.tail0=tail;}
+ delete a.arms;if(tail){tail.name='tail';for(const b of tailBones)a.joints[b.name]=b;}
  return trimDraws(a);
 }
 const ELEMENTALS={'air elemental':{kind:'air',color:'#b8d8e8',eye:'#e8fbff',scale:1.3},'fire elemental':{kind:'fire',color:'#ff6a1e',hot:'#ffd84a',eye:'#fff6c0',scale:1.3},'earth elemental':{kind:'earth',color:'#7a6a54',eye:'#ffb040',crystal:'#7fd8c0',scale:1.5},'water elemental':{kind:'water',color:'#3a7ac8',eye:'#c8f0ff',scale:1.3},stalker:{kind:'air',color:'#c8c8d0',eye:'#e0e0ff',stalker:true,scale:1.2}};
