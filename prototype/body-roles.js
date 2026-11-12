@@ -241,16 +241,30 @@ export function gargoyleRoles(actor) {
 
 // The two-legged humanoids' map (hobbit, dwarves, bugbear, mind flayers), from the joints `rigHumanoid` exposes. The head
 // group's own box, read at rest in its frame, gives the crown and the front; the mouth and chin sit a fixed share of the
-// crown's height under the pivot, so a long beard or a mind flayer's tentacles hanging below the face move neither. `withers` is the neck's
+// crown's height under the pivot, so a long beard or a mind flayer's tentacles hanging below the face move neither; a hat
+// riding the head (the gnomes' caps, `actor.hat`) is left out of the box, or the wizard's tall cap drops the mouth under the jaw. `withers` is the neck's
 // root (`neck0`), `rump` the pelvis (`spine0`); there is no tail. A foot is the floor under the ankle (`<leg>_2`) and a
 // hand the wrist carried on along the forearm by a hand's length, both fixed in the bone's frame so they follow the bent
 // limb; the forepaws are the hands (`paw:lf`/`rf`) and the hind paws the feet (`paw:lh`/`rh`), the shoulder and hip each
 // limb's root bone.
 const HAND = .09;
+// The world box of `root` and everything under it but the `skip` subtree.
+function boxWithout(root, skip) {
+  const box = new THREE.Box3(), walk = o => {
+    if (o === skip) return;
+    const kids = o.children;
+    o.children = [];
+    box.expandByObject(o);
+    o.children = kids;
+    kids.forEach(walk);
+  };
+  walk(root);
+  return box;
+}
 export function humanoidRoles(actor) {
   const j = actor.joints, g = actor.g, floor = g.getWorldPosition(new THREE.Vector3()).y;
   g.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(j.head), head = j.head;
+  const head = j.head, box = actor.hat ? boxWithout(head, actor.hat) : new THREE.Box3().setFromObject(head);
   const lo = head.worldToLocal(box.min.clone()), hi = head.worldToLocal(box.max.clone());
   const x = (lo.x + hi.x) / 2, front = Math.max(lo.z, hi.z), top = Math.max(lo.y, hi.y);
   const map = {
