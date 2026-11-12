@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -281,4 +281,26 @@ test('the worm numbers are a slow crawl by longer strides, a few anchors, and a 
   // it reaches out at most half its length, usually
   assert(w.strikeReach[0] < WORM.strikeShare && WORM.strikeShare <= w.strikeReach[1]);
   assert(/coiled/.test(w.rest), 'rests coiled');
+});
+
+test('the gnome numbers are a short-legged walk: slower, shorter, quicker steps, the pelvis tipped and swung round', () => {
+  const g = MEASURES.gnome;
+  // slower by shorter steps at a higher cadence, and the speed is a person's once leg length is taken out
+  assert(g.walkSpeed.short < g.walkSpeed.control && g.stepLength.short < g.stepLength.control && g.cadence.short > g.cadence.control);
+  inside(GNOME.speedShare, [.6, .9], 'speed against a person'); inside(GNOME.stepShare, [.5, .75], 'step against a person');
+  inside(GNOME.cadenceShare, [1.05, 1.35], 'cadence against a person'); inside(GNOME.stepTime, [.33, .47], 'step, s');
+  // speed = step times cadence, within rounding of the means
+  inside(g.stepLength.short * g.cadence.short / 60, [g.walkSpeed.short * .85, g.walkSpeed.short * 1.15], 'step times cadence');
+  inside(g.normSpeed.short - g.normSpeed.control, [-.05, .05], 'normalised speed difference');
+  // a walk, not a run: the normalised speed stays under the walk-run Froude number's square root
+  assert(g.normSpeed.short < Math.sqrt(g.walkRunFroude));
+  // the adults show the same: slower, shorter strides, quicker
+  assert(g.adultVsControl.speed < 0 && g.adultVsControl.stride < 0 && g.adultVsControl.strideFreq > 0);
+  // the pelvis tips forward more than a person's, and turns round further each stride; it does not tip side to side more
+  assert(g.pelvisTilt.short > g.pelvisTilt.control && g.pelvisRotation.short > g.pelvisRotation.control);
+  assert(g.pelvisObliquity.short <= g.pelvisObliquity.control + 1);
+  GNOME.pelvisTilt.forEach(t => inside(t, [.25, .5], 'standing pelvis tilt, rad'));
+  GNOME.waddleYaw.forEach(t => inside(t, [.1, .3], 'waddle turn each way, rad'));
+  inside(GNOME.waddleRoll, [.03, .1], 'waddle tip each way, rad');
+  assert(GNOME.waddleRoll < GNOME.waddleYaw[0], 'the waddle turns more than it tips');
 });

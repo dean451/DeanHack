@@ -421,3 +421,24 @@ The family in the plan (AGENTS.md, family **w**: an earthworm and a snake, the c
 *Not found:* a concertina cycle's period or speed for a snake on the ground (the tunnel speeds of Jayne and Davis 1991 did not come up), the angle of a snake's raised S before a strike, and any coil's size against body length. No number is claimed for them; the pose stages set them by eye.
 
 **What the worms take from this.** A worm crawls slowly, a few hundredths of its length a second, and a bigger worm goes faster by longer strides, not a faster beat: a baby and an adult share the beat, the adult's waves are longer. The body grips at four to six places at once and the rest bunches up between them. At rest a worm lies coiled, a tight ball when it is hiding. Its signature is the strike: from a raised, coiled front a snake lunges about a sixth of a metre in about 70 ms, peaking near 3 m/s, and rarely reaches past half its length; a long worm's maw should snap out that fast and that far for its size, then draw back slowly.
+
+## Gnomes (gnome, gnome lord, gnome king, gnomish wizard)
+
+The family in the plan (AGENTS.md, family **G**: a short human, the waddle). A gnome is drawn as a short-legged person, so it is measured from people with achondroplasia, the commonest short-limbed stature: how they stand (the rest), how the pelvis swings when they walk (the waddle, the signature) and the walk's main numbers. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Short-legged person (stance, the pelvis's swing, walk)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Walk | 16 children with achondroplasia walked 0.98 m/s with 0.38 m steps at 152.8 steps a minute; 19 age-matched controls 1.32 m/s, 0.61 m and 128.3 | [Broström et al. 2022, Gait in children with achondroplasia, BMC Musculoskeletal Disorders](https://bmcmusculoskeletdisord.biomedcentral.com/articles/10.1186/s12891-022-05343-4) |
+| Walk, leg length taken out | speed normalised by leg length and gravity was the same in both groups, 0.49 and 0.48 | [the same](https://bmcmusculoskeletdisord.biomedcentral.com/articles/10.1186/s12891-022-05343-4) |
+| Walk, adults | 10 adults with achondroplasia walked 23% slower than 17 controls, with 29% shorter strides at a 13% higher stride frequency, the legs more flexed through the cycle | [Sims et al. 2020, Gait and Posture (MMU e-space)](https://e-space.mmu.ac.uk/626148) |
+| Standing pelvis (the rest) | peak forward tilt of the pelvis 20.0° against 11.0° in the controls (children); 21.9° in adults, put down to the lumbar lordosis | [Broström et al. 2022](https://bmcmusculoskeletdisord.biomedcentral.com/articles/10.1186/s12891-022-05343-4), [EORS 2016 abstract, Bone and Joint](https://boneandjoint.org.uk/Article/10.1302/1358-992X.99BSUPP_1.EORS2016-011) |
+| The waddle | the pelvis turns about the vertical through 19.6° a stride against 12.2° (children), 28.7° in adults; its side-to-side tip is not raised, 7.4° against 8.0° | [Broström et al. 2022](https://bmcmusculoskeletdisord.biomedcentral.com/articles/10.1186/s12891-022-05343-4), [EORS 2016 abstract](https://boneandjoint.org.uk/Article/10.1302/1358-992X.99BSUPP_1.EORS2016-011) |
+| Walk to run | people of any leg length change from a walk to a run near a Froude number of 0.5 | [Transition from walking to running](https://en.wikipedia.org/wiki/Transition_from_walking_to_running) |
+
+*Caveat:* the walk and pelvis numbers are children's (6 to 12 years) except where marked adult; the adult samples are about ten people. The adult tilt and rotation are from a conference abstract. Hip flexion contracture and an exaggerated lumbar lordosis are described in reviews of achondroplasia, but no adult standing angle came up.
+
+*Not found:* how a short-legged person sits or sleeps, the pelvis's drop in adults (Sims 2020 measures it; the value did not come up), and any measure of the trunk's own side sway. No number is claimed for them; the pose stages set them by eye.
+
+**What the gnomes take from this.** A gnome stands with its pelvis tipped forward about 20° (nearly twice a person's 11°) and the small of its back hollowed, the belly forward and the rump out. It walks at about three quarters of a person's pace by steps about 0.6 of a person's, taken about 1.2 times as fast, about 0.4 s a step; for its leg length that is just a person's walk. The waddle is the pelvis swinging round: about 10° to 14° each way from straight with every step, against a person's 6°, while it tips side to side no more than a person's (about 4° each way). So the waddle is a turning, rolling-forward hip, not a side-to-side rock.

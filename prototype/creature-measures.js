@@ -202,6 +202,20 @@ export const MEASURES = {
     strikeUsual: .5, // and it rarely strikes past this share (same)
     rest: 'an earthworm waits out drought coiled into a tight ball in a mucus-lined chamber; a resting snake lies coiled, loosely or tightly',
   },
+  // the gnomes: a short-legged person (achondroplasia) standing and walking; the waddle is the pelvis's swing
+  gnome: {
+    walkSpeed: {short: .98, control: 1.32}, // m/s, self-selected, 16 children with achondroplasia and 19 controls (Broström et al. 2022)
+    stepLength: {short: .38, control: .61}, // m (same)
+    cadence: {short: 152.8, control: 128.3}, // steps a minute (same)
+    normSpeed: {short: .49, control: .48}, // speed over the square root of g times leg length: the same once leg length is taken out (same)
+    pelvisTilt: {short: 20.0, control: 11.0}, // degrees, peak forward tilt of the pelvis (same)
+    pelvisTiltAdult: 21.9, // degrees, mean forward tilt in adults with achondroplasia (EORS 2016 abstract)
+    pelvisRotation: {short: 19.6, control: 12.2}, // degrees, the pelvis's range of turn about the vertical over a stride, children (Broström et al. 2022)
+    pelvisRotationAdult: 28.7, // degrees, the same range in adults (EORS 2016 abstract)
+    pelvisObliquity: {short: 7.4, control: 8.0}, // degrees, the pelvis's side-to-side tip over a stride: not raised (Broström et al. 2022)
+    adultVsControl: {speed: -.23, stride: -.29, strideFreq: .13}, // 10 adults against 17 controls (Sims et al. 2020)
+    walkRunFroude: .5, // a person changes from a walk to a run near this Froude number, at any leg length
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -380,4 +394,20 @@ export const WORM = {
   strikeMeanV: (MEASURES.worm.strike.ratSnake.dist / MEASURES.worm.strike.ratSnake.ms + MEASURES.worm.strike.cottonmouth.dist / MEASURES.worm.strike.cottonmouth.ms) / 2 * 1000,
   // the usual strike reach, a share of the body's length: no more than half
   strikeShare: MEASURES.worm.strikeUsual,
+};
+
+// What the gnomes' poses use: short legs walk slower by shorter, quicker steps; the pelvis tips forward and swings round, not side to side
+export const GNOME = {
+  // the short walk against a person's: speed, step and cadence, children's values
+  speedShare: MEASURES.gnome.walkSpeed.short / MEASURES.gnome.walkSpeed.control,
+  stepShare: MEASURES.gnome.stepLength.short / MEASURES.gnome.stepLength.control,
+  cadenceShare: MEASURES.gnome.cadence.short / MEASURES.gnome.cadence.control,
+  // seconds a step takes at the short walk
+  stepTime: 60 / MEASURES.gnome.cadence.short,
+  // the standing pelvis's forward tilt, rad, children to adults
+  pelvisTilt: [MEASURES.gnome.pelvisTilt.short, MEASURES.gnome.pelvisTiltAdult].map(d => d * Math.PI / 180),
+  // the waddle: the pelvis's turn about the vertical, each way from straight (half the range), rad, children to adults
+  waddleYaw: [MEASURES.gnome.pelvisRotation.short, MEASURES.gnome.pelvisRotationAdult].map(d => d / 2 * Math.PI / 180),
+  // its side-to-side tip, each way, rad: a person's, no more
+  waddleRoll: MEASURES.gnome.pelvisObliquity.short / 2 * Math.PI / 180,
 };
