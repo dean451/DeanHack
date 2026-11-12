@@ -39,6 +39,7 @@ import {updateCanineSettle} from '../canine-settle.js';
 import {updateWildcatSettle} from '../wildcat-settle.js';
 import {updateQuadrupedSettle} from '../quadruped-settle.js';
 import {updateRatSettle} from '../rat-settle.js';
+import {updateGnomeSettle} from '../gnome-settle.js';
 import {updateCockatriceCrow} from '../cockatrice-crowing.js';
 const q=new URLSearchParams(location.search),name=q.get('name')||'chromatic dragon',view=q.get('view')||'three';
 const W=900,H=700,renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(W,H);renderer.setClearColor(0x233138);
@@ -96,7 +97,7 @@ if(q.get('bowing')){c.species=c.species||name.toLowerCase();for(let i=0;i<60;i++
 if(q.get('stalking')){c.species=c.species||name.toLowerCase();for(let i=0;i<60;i++)updateWildcatStalk(c,1/30,i/30,false,{x:20,z:0});const near={x:Math.sin(c.g.rotation.y)*4,z:Math.cos(c.g.rotation.y)*4};for(let i=0;i<+q.get('stalking')*30;i++)updateWildcatStalk(c,1/30,2+i/30,false,near);}
 // ?washing=2 holds the hero 2.5 m off a rat that many seconds, through the game's own settle (rat-washing.js: the nervous wash)
 if(q.get('washing')){c.species=c.species||name.toLowerCase();const look={x:0,z:2.5};for(let i=0;i<+q.get('washing')*30;i++)updateRatSettle(c,1/30,false,look);}
-if(q.get('settle')||q.get('alarm')){c.species=c.species||name.toLowerCase();const near={x:1,z:0};if(q.get('settle'))for(let i=0;i<+q.get('settle')*30;i++)updateInsectSettle(c,1/30,false,null),updateCockatriceSettle(c,1/30,false,null),updateCanineSettle(c,1/30,false,null),updateWildcatSettle(c,1/30,false,null),updateQuadrupedSettle(c,1/30,false,null),updateRatSettle(c,1/30,false,null);if(q.get('alarm'))for(let i=0;i<+q.get('alarm')*30;i++)updateInsectAlarm(c,1/30,i/30,false,near);}
+if(q.get('settle')||q.get('alarm')){c.species=c.species||name.toLowerCase();const near={x:1,z:0};if(q.get('settle'))for(let i=0;i<+q.get('settle')*30;i++)updateInsectSettle(c,1/30,false,null),updateCockatriceSettle(c,1/30,false,null),updateCanineSettle(c,1/30,false,null),updateWildcatSettle(c,1/30,false,null),updateQuadrupedSettle(c,1/30,false,null),updateRatSettle(c,1/30,false,null),updateGnomeSettle(c,1/30,false,null);if(q.get('alarm'))for(let i=0;i<+q.get('alarm')*30;i++)updateInsectAlarm(c,1/30,i/30,false,near);}
 // ?crowing=.8 brings a cockerel's own crow (cockatrice-crowing.js) on at once, with the hero far off, and runs it that many seconds
 if(q.get('crowing')){const far={x:9,z:0};updateCockatriceCrow(c,0,0,false,far);if(c.fowlCrow)c.fowlCrow.wait=0;for(let i=0;i<+q.get('crowing')*30;i++)updateCockatriceCrow(c,1/30,i/30,false,far);}
 // ?pose=fold, flapup or flapdown holds a dragon's baked folded wings or the top or bottom of its wingbeat (dragon-wings.js)
