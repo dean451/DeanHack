@@ -1845,15 +1845,43 @@ function rothe(o){
 // hill giants swing clubs, stone giants shoulder a boulder, fire giants have a smouldering beard and a sword, frost giants
 // an icy mantle and an axe, storm giants a lightning-tipped spear, titans gilded armour; ettins have two heads (the minotaur has its own model in minotaur.js)
 function giant(o){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[],arms=[];
- const skin=mat(o.skin,{roughness:.85}),cloth=mat(o.cloth||'#6a5a40',{roughness:.95}),hair=o.hair==='fire'?mat('#ff7a2a',{emissive:'#e0400e',emissiveIntensity:2.2,roughness:.5}):mat(o.hair||'#3a2a1c',{roughness:.95}),wood=mat('#5a3e24',{roughness:.85}),boot=mat(o.boot||'#3a2a20',{roughness:.9});
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[],arms=[],B=!!o.brute;
+ const skin=mat(o.skin,{roughness:.85,flatShading:B}),cloth=mat(o.cloth||'#6a5a40',{roughness:.95}),hair=o.hair==='fire'?mat('#ff7a2a',{emissive:'#e0400e',emissiveIntensity:2.2,roughness:.5}):mat(o.hair||'#3a2a1c',{roughness:.95}),wood=mat('#5a3e24',{roughness:.85}),boot=mat(o.boot||'#3a2a20',{roughness:.9});
+ // review 2026-11-12, `brute` (the hill giant): no capsules, balls or rounded bricks. `knot` is a low flat-shaded lump, `limb` a five-sided
+ // tapered bone, `slab` a hard plane; `fist` closes four two-jointed fingers and a thumb round a grip along local y at `at`, built straight into `p`
+ const shadow=mat(shade(o.skin,.42),{roughness:.95,flatShading:true}),pit=mat('#14100c',{roughness:1});
+ const knot=(p,r,m,x,y,z,sx=1,sy=1,sz=1,ry=Math.PI/6)=>{const k=part(p,new THREE.SphereGeometry(r,6,4),m,x,y,z);k.scale.set(sx,sy,sz);k.rotation.y=ry;return k;},
+  limb=(p,a,b,r1,r2,m)=>segment(p,a,b,r1,r2,m,5),slab=(p,w,h,d,m,x,y,z)=>part(p,new THREE.BoxGeometry(w,h,d),m,x,y,z);
+ const fist=(p,side,r,[ox,oy,oz]=[0,0,0])=>{const R=r+.017,ring=(a,y)=>[ox+side*Math.cos(a)*R,oy+y,oz+Math.sin(a)*R];
+  slab(p,.03,.1,.08,skin,ox+side*(R+.006),oy+.005,oz-.008).rotation.y=side*.12;
+  for(let k=0;k<4;k++){const y=.036-k*.023,steps=[-.15,.75,1.7,2.5];knot(p,.015,skin,...ring(steps[0],y),1,1,1,0);
+   for(let i=0;i<3;i++)limb(p,ring(steps[i],y),ring(steps[i+1],y-.004*i),.0135-.0012*i,.012-.0012*i,skin);}
+  const t0=[ox+side*R*.7,oy+.02,oz-R*.9];limb(p,t0,ring(-1.9,.05),.016,.014,skin);limb(p,ring(-1.9,.05),ring(-2.6,.042),.014,.011,skin);};
  const armor=o.armor?mat(o.armor,{roughness:.35,metalness:.7}):null;
- for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.11,.48,0);body.add(leg);if(o.frostbite){cylinder(leg,.085,.055,.32,skin,0,-.14,0,7);cone(leg,.08,.22,boot,0,-.4,.07,5).rotation.x=Math.PI/2;cylinder(leg,.07,.085,.1,boot,0,-.36,0,6);}else{rounded(leg,.14,.3,.15,skin,0,-.13,0,.05);rounded(leg,.17,.14,.22,boot,0,-.41,.03,.04);}legs.push(leg);}
- cylinder(body,.2,.25,.22,cloth,0,.5,0,9);rounded(body,.42,.06,.28,M.leather,0,.62,0,.02);rounded(body,.07,.06,.03,M.gold,0,.62,.145,.01).castShadow=false;
+ for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.11,.48,0);body.add(leg);if(o.frostbite){cylinder(leg,.085,.055,.32,skin,0,-.14,0,7);cone(leg,.08,.22,boot,0,-.4,.07,5).rotation.x=Math.PI/2;cylinder(leg,.07,.085,.1,boot,0,-.36,0,6);}
+  else if(B){// a tapered thigh and shin over a knotted knee, and a bare, splayed, filthy foot: wedge sole, heel, instep and five black-nailed toes
+   limb(leg,[0,.03,0],[side*.012,-.2,.012],.082,.062,skin);knot(leg,.062,skin,side*.01,-.205,.022,1,.85,1);limb(leg,[side*.012,-.21,.012],[0,-.42,0],.064,.045,skin);
+   slab(leg,.11,.045,.19,shadow,0,-.457,.045).rotation.y=-side*.08;knot(leg,.05,skin,0,-.43,.02,1,.9,1.3);knot(leg,.04,shadow,0,-.45,-.04,1.1,.8,1);
+   for(let t=0;t<5;t++){const x=-side*(.042-t*.021),big=t===0?1.35:1-t*.06;knot(leg,.016*big,skin,x,-.462,.15-t*.006,1,.85,1.25,0);slab(leg,.016*big,.006,.012,pit,x,-.455,.165-t*.006);}}
+  else{rounded(leg,.14,.3,.15,skin,0,-.13,0,.05);rounded(leg,.17,.14,.22,boot,0,-.41,.03,.04);}legs.push(leg);}
+ if(B){// a worn hide kilt, its hem chewed ragged, a dark stain and a stitched patch, under a rope of rawhide and an iron buckle
+  part(body,tatter(new THREE.LatheGeometry([[.265,0],[.245,.07],[.218,.17],[.2,.25]].map(([r,h])=>new THREE.Vector2(r,h)),9,Math.PI/9),.1,.05,4),cloth,0,.37,0).scale.z=.78;
+  slab(body,.09,.1,.012,mat(shade(o.cloth,.5),{roughness:1}),-.07,.47,.18).rotation.set(-.15,-.3,.2);
+  const patch=slab(body,.07,.06,.012,mat(shade(o.cloth,1.3),{roughness:1}),.1,.5,.168);patch.rotation.set(-.15,.45,-.15);
+  for(let k=0;k<3;k++)slab(body,.005,.04,.016,M.leather,.075+k*.022,.5,.176).rotation.set(-.15,.45,.9);
+  const belt=part(body,new THREE.TorusGeometry(.205,.022,4,9),M.leather,0,.62,0);belt.rotation.x=Math.PI/2;belt.scale.set(1.08,.7,1);
+  slab(body,.06,.05,.02,mat('#3a3430',{roughness:.6,metalness:.5}),0,.62,.15);}
+ else{cylinder(body,.2,.25,.22,cloth,0,.5,0,9);rounded(body,.42,.06,.28,M.leather,0,.62,0,.02);rounded(body,.07,.06,.03,M.gold,0,.62,.145,.01).castShadow=false;}
  if(o.frostbite){// frost giants: a slab-sided hexagonal chest of flat planes, no egg
   part(body,new THREE.CylinderGeometry(.27,.2,.4,6),mat(o.skin,{roughness:.9,flatShading:true}),0,.83,0).scale.z=.68;}
+ else if(B){// a barrel trunk in seven flat sides with a sagging gut, two slabs of pectoral, hard ridges of trapezius and grime in the folds
+  part(body,new THREE.LatheGeometry([[0,0],[.19,0],[.215,.07],[.225,.15],[.2,.23],[.215,.3],[.235,.35],[.2,.4],[.12,.43],[.065,.45],[.06,.5],[0,.5]].map(([r,h])=>new THREE.Vector2(r,h)),7,Math.PI/7),skin,0,.6,0).scale.set(1.1,1,.68);
+  knot(body,.15,skin,0,.7,.055,1.1,.75,.72,0);
+  for(const side of [-1,1]){const pec=slab(body,.12,.065,.03,skin,side*.08,.925,.122);pec.rotation.set(-.35,side*.3,side*-.12);
+   slab(body,.08,.014,.02,shadow,side*.1,.84,.14).rotation.set(-.1,side*.3,side*.35);knot(body,.09,skin,side*.14,1.04,-.01,1.05,.62,.95,side*.4);}
+  slab(body,.07,.05,.01,shadow,.06,.68,.165).rotation.set(-.4,.3,.5);}
  else{rounded(body,.44,.4,.28,armor||(o.tunic?mat(o.tunic,{roughness:.9}):skin),0,.83,0,.1);sphere(body,.12,skin,0,.9,.1,1.5,.9,.5);}
- for(const side of [-1,1])sphere(body,.1,armor||skin,side*.2,1.0,0,1,.8,1);
+ if(!B)for(const side of [-1,1])sphere(body,.1,armor||skin,side*.2,1.0,0,1,.8,1);
  if(o.spiked)for(const side of [-1,1]){const sp=cone(body,.035,.14,armor,side*.24,1.08,-.02,4);sp.rotation.z=-side*.7;}
  if(o.mantle)sphere(body,.2,mat(o.mantle,{roughness:1}),0,1.02,-.02,1.35,.45,1);
  if(o.ice)for(const side of [-1,1])for(const k of [0,1]){const shard=cone(body,.035,.16,mat('#cfeaf6',{roughness:.15,transparent:true,opacity:.85}),side*(.18+k*.06),1.1-k*.03,-.04,4);shard.rotation.z=-side*(.35+k*.3);}
@@ -1861,6 +1889,10 @@ function giant(o){
    cylinder(arm,.085,.062,.28,skin,0,-.14,0,7);cylinder(arm,.065,.045,.27,skin,0,-.39,.02,7);rounded(arm,.085,.07,.05,skin,0,-.56,.03,.012);
    const dead=mat('#26222a',{roughness:1});for(const k of [-1.5,-.5,.5,1.5]){const f=rounded(arm,.017,.07,.019,skin,k*.021,-.62,.065,.005);f.rotation.x=-.5;if(side>0){const t=rounded(arm,.016,.03,.018,dead,k*.021,-.665,.088,.004);t.rotation.x=-.9;}}
    const th=rounded(arm,.02,.06,.022,skin,-side*.05,-.57,.05,.006);th.rotation.set(-.4,0,-side*.7);}
+  else if(B){// a wedge of deltoid, a five-sided upper arm and a thick forearm over a knotted elbow; the empty left hand balled into a fist
+   knot(arm,.078,skin,side*.012,-.005,0,1.15,.95,1.05,side*.3);
+   limb(arm,[0,.03,0],[0,-.27,.012],.078,.058,skin);knot(arm,.058,skin,0,-.28,.004,1,.9,1);limb(arm,[0,-.28,.004],[0,-.52,.03],.064,.05,skin);
+   if(side<0)fist(arm,-1,.006,[0,-.6,.035]);}
   else{rounded(arm,.12,.28,.13,skin,0,-.14,0,.045);rounded(arm,.11,.26,.12,armor||skin,0,-.39,.02,.04);sphere(arm,.07,skin,0,-.56,.03);}arm.rotation.z=side*.05;arm.rotation.x=side>0&&o.weapon?-.35:-.08;arms.push(arm);}
  const heads=o.twoHeads?[-.11,.11]:[0];
  let leadHead=null;const allHeads=[];
@@ -1871,6 +1903,14 @@ function giant(o){
    const brow=rounded(head,.22,.045,.08,mat(shade(o.skin,.6),{roughness:.95}),0,.035,.09,.012);brow.rotation.x=.3;
    const jaw=cone(head,.1,.13,fs,0,-.08,.06,4);jaw.rotation.set(Math.PI,Math.PI/4,0);jaw.scale.set(1.1,1,.8);
    const hood=part(head,new THREE.ConeGeometry(.17,.26,6),mat(o.mantle,{roughness:1,flatShading:true}),0,.02,-.05);hood.rotation.x=-.25;hood.scale.set(1,1,.9);}
+  else if(B){// a faceted skull, a slab of jaw, a brow ridge jutting over eyes sunk in dark pits, a broken nose, lank hair and a matted beard
+   knot(head,.12,skin,0,.005,-.01,.92,1,.95,0);const jaw=slab(head,.13,.075,.1,skin,0,-.07,.035);jaw.rotation.x=.2;
+   cone(head,.03,.07,skin,.008,-.012,.13,4).rotation.set(Math.PI/2+.4,0,.15);
+   for(const side of [-1,1]){const brow=slab(head,.078,.026,.055,skin,side*.042,.028,.094);brow.rotation.set(-.3,side*.25,side*.2);knot(head,.021,skin,side*.068,-.03,.08,1.2,.8,.9,0);knot(head,.03,skin,side*.115,0,-.005,.45,1,.8,0);
+    knot(head,.028,shadow,side*.045,.006,.09,1.2,.75,.6,0);part(head,new THREE.OctahedronGeometry(.008),M.eye,side*.045,.004,.102);}
+   const mop=knot(head,.125,hair,0,.045,-.035,.98,.8,1,0);mop.rotation.x=.25;
+   for(let k=0;k<5;k++){const lock=cone(head,.03,.12,hair,-.08+k*.04,-.03-(k%2)*.025,-.1,4);lock.rotation.x=Math.PI-.3;}
+   if(o.beard){knot(head,.09,hair,0,-.1,.07,1.05,1.15,.7,0);for(const [x,l] of [[-.04,.1],[0,.14],[.045,.08]])cone(head,.035,l,hair,x,-.16-l/3,.075,4).rotation.x=Math.PI-.15;}}
   else{sphere(head,.12,skin,0,0,0,.95,1.05,.95);if(o.cyclops)sphere(head,.024,skin,0,-.045,.115,1.3,.8,1);else{rounded(head,.2,.04,.06,mat(shade(o.skin,.8),{roughness:.9}),0,.04,.09,.015);sphere(head,.028,skin,0,-.01,.12,1,1.2,1);}
    const scalp=sphere(head,.125,hair,0,.035,-.03,1,.85,1);scalp.rotation.x=.25;if(o.beard)sphere(head,.09,hair,0,-.09,.07,1,1.2,.65);}
   // ettins: a rusted iron collar studded with spikes at each neck, and a raked scar over one eye
@@ -1890,7 +1930,7 @@ function giant(o){
    sphere(head,.05,white,0,.005,.085,1.1,.9,.75);sphere(head,.028,iris,0,.005,.118,1,1,.5);sphere(head,.009,slit,0,.005,.131,.45,2.2,.4);
    const brow=rounded(head,.17,.04,.07,mat(shade(o.skin,.7),{roughness:.95}),0,.055,.1,.018);brow.rotation.x=.35;
    for(const side of [-1,1]){const tusk=cone(head,.014,.06,mat('#d8cca4',{roughness:.5}),side*.045,-.07,.105,5);tusk.rotation.set(-.25,0,side*.25);}}
-  else if(!o.frostbite)eyes(head,o.glare||M.eye,.01,.11,.045);
+  else if(!o.frostbite&&!B)eyes(head,o.glare||M.eye,.01,.11,.045);
   if(o.frostbite)eyes(head,M.eye,.008,.115,.045);}
  // hill giants: a belt strung with the yellowed skulls of past meals
  if(o.skulls){const bone=mat('#cfc29a',{roughness:.75}),pit=mat('#14100c',{roughness:1});g.userData.skulled=true;for(const x of [-.17,-.06,.06,.17]){sphere(body,.032,bone,x,.55,.15,1,1,.9);rounded(body,.036,.01,.01,pit,x,.56,.18,.003);sphere(body,.012,bone,x,.52,.165,1.3,.8,.7);}}
@@ -1924,6 +1964,10 @@ function giant(o){
  if(o.weapon==='sword'){const L=o.blade||1,blade=rounded(held,.05*L,.5*L,.015,mat('#d8a070',{emissive:'#c0501a',emissiveIntensity:o.blade?2.4:.9,roughness:.3,metalness:.7}),.3,.56+.25*(L-1)*Math.cos(.55),.28+.25*(L-1)*Math.sin(.55),.01);blade.rotation.x=.55;rounded(held,.14,.03,.04,M.gold,.3,.37,.18,.01);}
  if(o.weapon==='axe'){const shaft=cylinder(held,.02,.02,.6,wood,.29,.5,.16,6);shaft.rotation.x=.3;const bit=part(held,new THREE.CylinderGeometry(.1,.1,.018,10,1,false,0,Math.PI),mat('#b8dcea',{roughness:.2,metalness:.4}),.29,.74,.23);bit.rotation.set(.3,0,Math.PI/2);}
  if(o.weapon==='spear'){const shaft=cylinder(held,.018,.018,.95,wood,.29,.6,.18,6);shaft.rotation.x=.2;core=cone(held,.04,.12,new THREE.MeshStandardMaterial({color:'#bfe6ff',emissive:'#3aa0ff',emissiveIntensity:4.5,roughness:.2}),.29,1.1,.28,4);core.rotation.x=.2;g.userData.core=core;}
+ // brutes: the club is slid so its haft runs through the right wrist, and the fist closes round it there
+ if(B&&o.weapon==='club'){g.updateMatrixWorld(true);const club=held.children[0],w=body.worldToLocal(arms[1].localToWorld(new THREE.Vector3(0,-.6,.035))),d=new THREE.Vector3(0,1,0).applyQuaternion(club.quaternion);
+  const t=THREE.MathUtils.clamp(w.clone().sub(club.position).dot(d),-.19,-.08),at=club.position.clone().addScaledVector(d,t);held.position.add(w.sub(at));
+  const grip=new THREE.Group();grip.position.copy(at);grip.quaternion.copy(club.quaternion);held.add(grip);fist(grip,1,.03+.045*(t+.23)/.46);}
  if(o.hair==='fire'&&!core){core=sphere(body,.05,new THREE.MeshStandardMaterial({color:'#ffb060',emissive:'#f05010',emissiveIntensity:4.5,roughness:.3}),0,1.08,.13);g.userData.core=core;}
  // family H stage 1 step 2: each limb's pieces merged per material, then skinned onto three bones (`lleg1_0`..`_2`, `lfore_0`..`_2`),
  // and the weapon (and the stone giant's boulder) moved onto the wrist bone, so a bent elbow carries it; at rest nothing moves
@@ -1933,7 +1977,7 @@ function giant(o){
  g.updateMatrixWorld(true);for(const [arm,o] of [[arms[1],held],[arms[0],arms[0].getObjectByName('grip')]])if(o)arm.getObjectByName((arm.position.x<0?'l':'r')+'fore_2').attach(o);
  return nameGiantJoints(a,{heads:allHeads,arms});
 }
-const GIANTS={giant:{skin:'#b08a6a',cloth:'#6a5a40',weapon:'club',scars:true,knuckles:true,scale:1.1},'stone giant':{skin:'#8a867c',cloth:'#5a5650',hair:'#4a4642',weapon:'boulder',scars:true,lichen:true,scale:1.14},'hill giant':{skin:'#a88060',cloth:'#5a6a3a',hair:'#5a3a22',beard:true,weapon:'club',skulls:true,scars:true,scale:1.12},'fire giant':{skin:'#6a4234',cloth:'#3a2a24',hair:'fire',beard:true,buckle:true,armor:'#3a3436',boot:'#2a2424',weapon:'sword',glare:M.fire,cracked:true,scale:1.18},'frost giant':{skin:'#4a5a64',cloth:'#1c242a',hair:'#8e9aa0',beard:true,frostbite:true,mantle:'#403e3a',boot:'#181210',ice:true,weapon:'axe',icicles:true,scale:1.18},ettin:{skin:'#8a7a6a',cloth:'#4a3a2a',hair:'#2a2420',twoHeads:true,weapon:'club',scars:true,scale:1.18},'storm giant':{skin:'#9aa4b4',cloth:'#2e4a78',tunic:'#3d5f9a',hair:'#1e2230',beard:true,weapon:'spear',glare:M.electric,storm:true,scars:true,scale:1.2},titan:{skin:'#a07c5a',cloth:'#4a4438',hair:'#6a5a34',armor:'#7a5e28',circlet:true,spiked:true,glare:M.eye,weapon:'spear',scars:true,scale:1.5},cyclops:{skin:'#9a7e62',cloth:'#4a3a2a',hair:'#2a221c',cyclops:true,weapon:'club',scars:true,scale:1.3},'lord surtur':{skin:'#4a2e26',cloth:'#2a1e1c',hair:'fire',beard:true,armor:'#2a2426',boot:'#1e1a1a',weapon:'sword',blade:1.5,crown:true,scars:true,glare:M.fire,scale:1.34}};
+const GIANTS={giant:{skin:'#b08a6a',cloth:'#6a5a40',weapon:'club',scars:true,knuckles:true,scale:1.1},'stone giant':{skin:'#8a867c',cloth:'#5a5650',hair:'#4a4642',weapon:'boulder',scars:true,lichen:true,scale:1.14},'hill giant':{skin:'#a88060',cloth:'#565040',hair:'#3e2c1e',beard:true,brute:true,weapon:'club',skulls:true,scars:true,scale:1.12},'fire giant':{skin:'#6a4234',cloth:'#3a2a24',hair:'fire',beard:true,buckle:true,armor:'#3a3436',boot:'#2a2424',weapon:'sword',glare:M.fire,cracked:true,scale:1.18},'frost giant':{skin:'#4a5a64',cloth:'#1c242a',hair:'#8e9aa0',beard:true,frostbite:true,mantle:'#403e3a',boot:'#181210',ice:true,weapon:'axe',icicles:true,scale:1.18},ettin:{skin:'#8a7a6a',cloth:'#4a3a2a',hair:'#2a2420',twoHeads:true,weapon:'club',scars:true,scale:1.18},'storm giant':{skin:'#9aa4b4',cloth:'#2e4a78',tunic:'#3d5f9a',hair:'#1e2230',beard:true,weapon:'spear',glare:M.electric,storm:true,scars:true,scale:1.2},titan:{skin:'#a07c5a',cloth:'#4a4438',hair:'#6a5a34',armor:'#7a5e28',circlet:true,spiked:true,glare:M.eye,weapon:'spear',scars:true,scale:1.5},cyclops:{skin:'#9a7e62',cloth:'#4a3a2a',hair:'#2a221c',cyclops:true,weapon:'club',scars:true,scale:1.3},'lord surtur':{skin:'#4a2e26',cloth:'#2a1e1c',hair:'fire',beard:true,armor:'#2a2426',boot:'#1e1a1a',weapon:'sword',blade:1.5,crown:true,scars:true,glare:M.fire,scale:1.34}};
 // vortices (v): a tapering funnel of tilted, offset swirl rings over a scuffed ground patch, with debris caught in the spiral; fog clouds are a low puffy bank instead
 function vortex(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);const s=o.scale||1;
