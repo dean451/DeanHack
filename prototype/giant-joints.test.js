@@ -54,3 +54,44 @@ test('the stone giant\'s boulder rides its left arm', () => {
   const a = build('stone giant'), rock = meshesUnder(a.joints.lfore).find(m => m.userData.part === 'boulder');
   assert(rock, 'the boulder is on lfore');
 });
+
+// stage 1 step 2: each arm and leg on three bones, the weapon (and the stone giant's boulder) on the wrist bone
+const worldOf = o => { o.updateWorldMatrix(true, false); return new THREE.Vector3().setFromMatrixPosition(o.matrixWorld); };
+
+test('every giant\'s arms and legs are on three bones each', () => {
+  for (const name of GIANTS) {
+    const a = build(name), j = a.joints;
+    for (const limb of ['lfore', 'rfore', 'lleg1', 'rleg1']) {
+      for (const k of [0, 1, 2]) assert(j[`${limb}_${k}`]?.isBone, `${name}: ${limb}_${k}`);
+      assert.equal(j[`${limb}_1`].parent, j[`${limb}_0`], `${name}: ${limb} elbow or knee under its root`);
+      assert.equal(j[`${limb}_2`].parent, j[`${limb}_1`], `${name}: ${limb} wrist or ankle under the elbow or knee`);
+      const plain = j[limb].children.filter(o => o.isMesh && !o.isSkinnedMesh);
+      assert.equal(plain.length, 0, `${name}: no plain mesh left on ${limb}`);
+      assert(j[limb].children.some(o => o.isSkinnedMesh), `${name}: ${limb} skinned`);
+    }
+  }
+});
+
+test('a bent elbow carries the weapon; a bent knee moves the foot and not the trunk', () => {
+  for (const name of GIANTS) {
+    const a = build(name), held = a.g.getObjectByName('held');
+    const weapon = held && meshesUnder(held)[0];
+    if (weapon) {
+      assert.equal(held.parent, a.joints.rfore_2, `${name}: the weapon hangs on the right wrist`);
+      const rest = world(weapon); a.joints.rfore_1.rotation.x -= 1; const bent = world(weapon); a.joints.rfore_1.rotation.x += 1;
+      assert(rest.distanceTo(bent) > .05, `${name}: the weapon follows the elbow`);
+    }
+    const head = worldOf(a.head), was = head.clone();
+    a.joints.lleg1_1.rotation.x += .8; assert(worldOf(a.head).distanceTo(was) < 1e-9, `${name}: the knee leaves the head`); a.joints.lleg1_1.rotation.x -= .8;
+  }
+  for (const name of ['giant', 'hill giant', 'fire giant', 'frost giant', 'storm giant', 'titan'])
+    assert(meshesUnder(build(name).g.getObjectByName('held')).length, `${name} holds a weapon`);
+});
+
+test('the stone giant\'s boulder hangs on its left wrist bone and follows the elbow', () => {
+  const a = build('stone giant'), grip = a.g.getObjectByName('grip');
+  assert.equal(grip.parent, a.joints.lfore_2, 'on lfore_2');
+  const rock = meshesUnder(grip).find(m => m.userData.part === 'boulder'), rest = world(rock);
+  a.joints.lfore_1.rotation.x += .8;
+  assert(world(rock).distanceTo(rest) > .05, 'the boulder moves with the elbow');
+});
