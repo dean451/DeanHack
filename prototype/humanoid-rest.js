@@ -33,8 +33,9 @@ function pelvisBottom(a) {
 export const rests = a => !!(a && a.joints?.rfore_2 && a.joints.lleg1_2 && a.joints.spine1 && a.joints.neck3 && !a.joints.tail0 && !a.rig
   && pelvisBottom(a) - a.g.position.y > .2 * (rolesOf(a).rump().y - a.g.position.y));
 
-// Solves the sitting pose (the built pose is left as it was found).
-export function restPose(a) {
+// Solves the sitting pose (the built pose is left as it was found). `every` is how sparsely the hide's floor check
+// samples its vertices (every fourth by default); a smaller step catches a thin boot sole the default steps over.
+export function restPose(a, {every = 4} = {}) {
   const P = rolesOf(a), s = a.g.scale.x, floor = a.g.position.y, j = a.joints, {apply} = birdPoser(a);
   const stand = P.rump().y - floor, withers = P.withers().y - floor, mouth = P.mouth().y - floor;
   const joints = {hipsY: [-1, 0]};
@@ -53,10 +54,10 @@ export function restPose(a) {
   }
   goals.push(goal.ahead('rump', 'withers', REST.stoop * stand, {within: .06 * s}), goal.below('mouth', floor + REST.head * mouth, {weight: 2}));
   for (const name of Object.keys(j).filter(n => /^[lr](leg1|fore)$|^head/.test(n))) goals.push(goal.clear(lowest(j[name]), {y: floor - .008 * s}));
-  // the hide (trunk and limbs, one skin) stays above the floor: every fifth vertex, as it now stands
+  // the hide (trunk and limbs, one skin) stays above the floor: every `every`th vertex, as it now stands
   const skins = [], v = new THREE.Vector3();
   a.g.traverse(o => { if (o.isSkinnedMesh) skins.push(o); });
-  goals.push(goal.clear(() => { const out = []; for (const m of skins) { m.updateMatrixWorld(true); m.skeleton.update(); for (let i = 0; i < m.geometry.attributes.position.count; i += 4) out.push(m.getVertexPosition(i, v).clone().applyMatrix4(m.matrixWorld)); } return out; }, {y: floor - .008 * s, weight: 2}));
+  goals.push(goal.clear(() => { const out = []; for (const m of skins) { m.updateMatrixWorld(true); m.skeleton.update(); for (let i = 0; i < m.geometry.attributes.position.count; i += every) out.push(m.getVertexPosition(i, v).clone().applyMatrix4(m.matrixWorld)); } return out; }, {y: floor - .008 * s, weight: 2}));
   const out = solvePose({joints, base: {hipsY: -.3 * stand / s, lfore_1: {x: -1}, rfore_1: {x: -1}, lleg1_0: {x: -.9}, rleg1_0: {x: -.9}}, goals, apply, points: P, iterations: 1500, rest: .01});
   apply({});
   return {pose: out.pose, residuals: out.residuals, goals, stand, seat};
