@@ -216,6 +216,21 @@ export const MEASURES = {
     adultVsControl: {speed: -.23, stride: -.29, strideFreq: .13}, // 10 adults against 17 controls (Sims et al. 2020)
     walkRunFroude: .5, // a person changes from a walk to a run near this Froude number, at any leg length
   },
+  // the grid bugs and xans: a cockroach resting, running and escaping (grid bug, chillbug); a wasp's sting (xan)
+  gridBug: {
+    tripodSpeed: [.44, 1.0], // m/s, the American cockroach (0.83 g) runs an alternating tripod over this range (Full and Tu 1991, J Exp Biol 156:215)
+    fewLegSpeed: [1.0, 1.5], // m/s, four and then two legs, with aerial phases (same)
+    topBL: 50, // body lengths a second, flat out (UF Book of Insect Records, ch. 39)
+    earlyBL: 40, earlySpeed: 1.3, // the earlier record, nearly 40 lengths a second at 1.3 m/s (McConnell and Richards 1955, as cited)
+    tripodHz: 7, // stepping faster than this holds a tight tripod (Bender et al., PLoS ONE, Blaberus discoidalis)
+    gaitFroude: .4, // the gait changes near this Froude number (same)
+    escapeLatency: {usual: .058, fastest: .011}, // s, wind puff to escape starting (Camhi, Tom and Volman 1978, as cited)
+    escapeThreshold: .012, // m/s, the slowest puff that sets it off (Plummer and Camhi 1981, as cited)
+    rest: 'the body and the antennae both touching the surface; alert but still, it stands on extended legs with the body partly raised and the antennae moving',
+    escape: 'it first turns away from the attack, then runs',
+    stingAngle: {wasp: 10, bee: 6}, // degrees, the most efficient insertion slant, modelled (Scientific Reports 2018)
+    sting: 'a paper wasp bends its abdomen swiftly into a sharp curve under the body to strike; the thin waist lets it',
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -410,4 +425,16 @@ export const GNOME = {
   waddleYaw: [MEASURES.gnome.pelvisRotation.short, MEASURES.gnome.pelvisRotationAdult].map(d => d / 2 * Math.PI / 180),
   // its side-to-side tip, each way, rad: a person's, no more
   waddleRoll: MEASURES.gnome.pelvisObliquity.short / 2 * Math.PI / 180,
+};
+
+// What the grid bugs and xans use: lie flat at rest, scuttle in quick tripods, startle away in a twentieth of a second; the xan stings in a curl at a slant
+export const GRIDBUG = {
+  // the startle's delay, s, from the hero coming near to the turn starting
+  startle: MEASURES.gridBug.escapeLatency.usual,
+  // the fewest steps a second for a tight tripod scuttle
+  scuttleHz: MEASURES.gridBug.tripodHz,
+  // body lengths a second flat out, the record range
+  dashBL: [MEASURES.gridBug.earlyBL, MEASURES.gridBug.topBL],
+  // the sting's slant off the target, rad
+  stingSlant: MEASURES.gridBug.stingAngle.wasp * Math.PI / 180,
 };

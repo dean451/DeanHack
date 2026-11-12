@@ -422,6 +422,34 @@ The family in the plan (AGENTS.md, family **w**: an earthworm and a snake, the c
 
 **What the worms take from this.** A worm crawls slowly, a few hundredths of its length a second, and a bigger worm goes faster by longer strides, not a faster beat: a baby and an adult share the beat, the adult's waves are longer. The body grips at four to six places at once and the rest bunches up between them. At rest a worm lies coiled, a tight ball when it is hiding. Its signature is the strike: from a raised, coiled front a snake lunges about a sixth of a metre in about 70 ms, peaking near 3 m/s, and rarely reaches past half its length; a long worm's maw should snap out that fast and that far for its size, then draw back slowly.
 
+## Grid bugs and xans (grid bug, xan, chillbug)
+
+The family in the plan (AGENTS.md, family **x**: insects, the grid bug's square scuttle stays its own). The grid bug and the chillbug are drawn as flat, armoured scuttlers, so they are measured from cockroaches: how one rests, how it runs, and its escape (the signature: turn away, then run). The xan is a winged insect whose hooked tail stinger curls forward under it, so its strike is measured from wasps. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Cockroach (rest, gait, escape)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Gait | the American cockroach (*Periplaneta americana*, 0.83 g) runs an alternating tripod from 0.44 to 1.0 m/s, and switches to four and then two legs at 1.0 to 1.5 m/s, with aerial phases above 1 m/s | [Full and Tu 1991, J Exp Biol 156:215](https://cob.silverchair.com/jeb/article-pdf/156/1/215/2579388/jexbio_156_1_215.pdf) |
+| Top speed in body lengths | about 50 body lengths a second; an earlier 1.3 m/s was nearly 40 | [UF Book of Insect Records, chapter 39](https://entnemdept.ufl.edu/walker/ufbir/chapters/chapter_39.shtml), citing McConnell and Richards 1955 |
+| Tripod and stepping rate | stepping faster than about 7 Hz holds a tightly constrained tripod, slower walkers vary their leg coordination; the gait changes near a Froude number of about 0.4 (*Blaberus discoidalis*) | [Bender et al., PLoS ONE (PMC3102013)](https://pmc.ncbi.nlm.nih.gov/articles/PMC3102013) |
+| Rest | the main rest in the light period has the body and the antennae both touching the surface (*Blaberus giganteus*); a still but alert one stands with the legs extended and the body partly raised, the antennae moving | [Tobler 1983 (PubMed 6871020)](https://pubmed.ncbi.nlm.nih.gov/6871020/), [J Exp Biol 118:449](https://cob.silverchair.com/jeb/article-pdf/118/1/449/2637031/jexbio_118_1_449.pdf) |
+| Escape latency (the signature) | 58 ms on average from a wind puff to the escape starting, as low as 11 ms with controlled puffs; it first turns away from the attack, then runs | [Camhi, Tom and Volman 1978, J Comp Physiol 128 (via a course handout)](https://web.as.uky.edu/biology/faculty/cooper/Bio450-AS300/cockroach%20ceri/cockroach.pdf), [Levi and Camhi 1996, J Exp Biol 199:563](https://cob.silverchair.com/jeb/article-pdf/199/3/563/3389532/jexbio_199_3_563.pdf) |
+| Escape threshold | a puff of 12 mm/s (600 mm/s² acceleration) is enough to set it off | [the same handout, citing Plummer and Camhi 1981](https://web.as.uky.edu/biology/faculty/cooper/Bio450-AS300/cockroach%20ceri/cockroach.pdf) |
+
+### Wasp (the sting)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| The curl | a paper wasp can swiftly bend its abdomen into a sharply curved shape when it attacks; its thin waist lets the abdomen move freely against the thorax (a honeybee's underside stays flat) | [a paper-wasp stinger study (PMC4571097)](https://rcastoragev2.blob.core.windows.net/92655755c0527f882d60807919019c2a/PMC4571097.pdf) |
+| Insertion angle | the stinger goes in at a shallow slant, not straight down: about 10° is the most efficient for a wasp's, 6° for a honeybee's (from the stinger's mechanics, not filmed stings) | [Scientific Reports 2018, via ScienceDaily](https://www.sciencedaily.com/releases/2018/10/181009102420.htm) |
+
+*Caveat:* the latencies are from different stimuli (58 ms for natural puffs, 11 ms at best) and were read from a teaching handout and abstracts, not the papers. The insertion angle is modelled.
+
+*Not found:* a cockroach's rest as heights or angles, how far it turns before running, and how far a wasp's abdomen tip swings forward in a strike. No number is claimed for them; the pose stages set them by eye.
+
+**What the grid bugs and xans take from this.** A grid bug or chillbug at rest settles flat: belly and feelers down on the floor, still. Alert, it stands up on extended legs with the feelers waving. It scuttles in tripods, quick steps of 7 Hz or more, and flat out a cockroach covers 40 to 50 of its lengths a second, so even a slow grid bug's scuttle is a blur of legs, not a stroll. Its signature is the startle: about a twentieth of a second after the hero comes near it jerks round away from the threat and bolts (the grid bug's own square turn). The xan's strike is a wasp's: the abdomen whips round under the body into a tight curl and the sting goes in at a shallow slant, about 10° off the skin, not straight down.
+
 ## Gnomes (gnome, gnome lord, gnome king, gnomish wizard)
 
 The family in the plan (AGENTS.md, family **G**: a short human, the waddle). A gnome is drawn as a short-legged person, so it is measured from people with achondroplasia, the commonest short-limbed stature: how they stand (the rest), how the pelvis swings when they walk (the waddle, the signature) and the walk's main numbers. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.

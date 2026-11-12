@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -303,4 +303,25 @@ test('the gnome numbers are a short-legged walk: slower, shorter, quicker steps,
   GNOME.waddleYaw.forEach(t => inside(t, [.1, .3], 'waddle turn each way, rad'));
   inside(GNOME.waddleRoll, [.03, .1], 'waddle tip each way, rad');
   assert(GNOME.waddleRoll < GNOME.waddleYaw[0], 'the waddle turns more than it tips');
+});
+
+test('the grid bug numbers are a cockroach: flat at rest, a quick tripod scuttle, a startle in a twentieth of a second, a wasp\'s slanted sting', () => {
+  const g = MEASURES.gridBug;
+  // the tripod runs up to where the few-legged run starts, and the record is a metre or more a second
+  assert(g.tripodSpeed[0] < g.tripodSpeed[1] && g.tripodSpeed[1] === g.fewLegSpeed[0] && g.fewLegSpeed[1] >= g.earlySpeed);
+  inside(g.earlySpeed, [1, 1.6], 'record speed, m/s');
+  // 40 lengths a second at 1.3 m/s is a body of about 3 to 4 cm, a cockroach's
+  inside(g.earlySpeed / g.earlyBL, [.025, .045], 'body length, m');
+  assert(g.topBL > g.earlyBL);
+  inside(g.tripodHz, [4, 12], 'tight tripod stepping, Hz'); inside(g.gaitFroude, [.2, .6], 'gait change Froude');
+  // the startle takes tens of milliseconds, never as long as a tenth of a second
+  assert(g.escapeLatency.fastest < g.escapeLatency.usual);
+  inside(GRIDBUG.startle, [.02, .1], 'startle delay, s');
+  inside(g.escapeThreshold, [.005, .03], 'escape threshold, m/s');
+  assert(/touching the surface/.test(g.rest) && /turns away/.test(g.escape), 'rests flat, turns away then runs');
+  // the wasp's sting goes in at a shallow slant, steeper than a bee's but far from straight down
+  assert(g.stingAngle.wasp > g.stingAngle.bee);
+  inside(GRIDBUG.stingSlant, [.05, .35], 'sting slant, rad');
+  assert(/curve/.test(g.sting), 'the abdomen curls to sting');
+  assert(GRIDBUG.dashBL[0] < GRIDBUG.dashBL[1] && GRIDBUG.scuttleHz === g.tripodHz);
 });
