@@ -3060,11 +3060,15 @@ function elemental(o){
  // fire burns in three tones and is cut in facets like a flame: a deep ember body, hot yellow seams and a white-hot core
  const ember=(color,em,i)=>mat(color,{emissive:em,emissiveIntensity:i,roughness:.6,flatShading:true});
  // a stalker is no gale but a gaunt hunter: opaque, faceted ash-grey hide over dark recesses, cut like the fire (`facet`)
- const st=!!o.stalker,facet=k==='fire'||st,hide=(color,r)=>mat(color,{roughness:r,flatShading:true});
+ const st=!!o.stalker,hide=(color,r)=>mat(color,{roughness:r,flatShading:true});
+ // the air elemental is no bubble but a storm given a body: faceted slate-grey wind, torn pale streaks and black hollows
+ // for eyes, a faint cold light in it so it reads in the dark (review finding 2026-11-12)
+ const gust=k==='air'&&!st,facet=k==='fire'||st||gust,storm=(color,em,i,r=.65)=>mat(color,{roughness:r,flatShading:true,emissive:em,emissiveIntensity:i});
+ const pale=gust&&storm('#b4c2d0','#4a5c70',.35,.5),wisp=gust&&mat('#c8d6e2',{transparent:true,opacity:.28,depthWrite:false,roughness:1,side:THREE.DoubleSide});
  // its third and fourth tones: pale ridges where the light catches bone under the hide, and old yellowed bone breaking through
  const ridgeM=st&&hide('#b4b4bc',.7),bone=st&&hide('#b8b096',.6);
- const skin=st?hide('#8a8a94',.85):k==='earth'?mat(c,{roughness:1,flatShading:true}):k==='fire'?ember(shade(c,.62),'#9a2206',1.1):k==='water'?see(c,.62,.25):see(c,.34,.35);
- const dark=st?hide('#3e3e48',.95):k==='earth'?mat(shade(c,.6),{roughness:1,flatShading:true}):k==='fire'?ember(o.hot||'#ffe070',o.hot||'#ffe070',2):k==='water'?see(shade(c,1.35),.4,.4):see(shade(c,1.3),.22,.5);
+ const skin=st?hide('#8a8a94',.85):k==='earth'?mat(c,{roughness:1,flatShading:true}):k==='fire'?ember(shade(c,.62),'#9a2206',1.1):k==='water'?see(c,.62,.25):storm('#6a7a8c','#1e2c3c',.45);
+ const dark=st?hide('#3e3e48',.95):k==='earth'?mat(shade(c,.6),{roughness:1,flatShading:true}):k==='fire'?ember(o.hot||'#ffe070',o.hot||'#ffe070',2):k==='water'?see(shade(c,1.35),.4,.4):storm('#2a323e','#0c141e',.3,.9);
  const eye=st?mat('#040406',{roughness:1}):glow(o.eye||'#ffffff',k==='earth'?2:3);
  // moves a piece built on the body into a joint group, keeping where it is drawn (body and joints are unrotated)
  const into=(grp,mesh)=>{mesh.position.sub(grp.position);grp.add(mesh);return mesh;};
@@ -3073,11 +3077,12 @@ function elemental(o){
  let tail=null,tailBones=[];
  if(k==='earth'){for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.13,.36,0);body.add(leg);lump(leg,.1,skin,0,-.07,0,1,1.2,1);lump(leg,.11,dark,0,-.25,.03,1.1,.9,1.2);legs.push(leg);}}
  else{tail=new THREE.Group();tail.position.y=.5;body.add(tail);
-  if(k==='air'&&!st)for(let i=0;i<6;i++){const t=i/5,ring=part(tail,new THREE.TorusGeometry(.2-t*.15,.03-t*.015,6,20),i%2?skin:dark,Math.sin(i*1.7)*.03,-.04-t*.4,Math.cos(i*1.7)*.03);ring.rotation.set(Math.PI/2+Math.sin(i*2.1)*.25,i*.6,0);ring.castShadow=false;}
   // the stalker's funnel is no stack of hoops but its own hide drawn on down from the wasp waist: a six-sided taper
   // that starts inside the trunk (no gap), twisted ring by ring, with a darker, thinner strand wound down beside it
-  if(st)for(const [m,w,dx,dz,twist,low] of [[skin,1,0,0,.35,.47],[dark,.62,.018,-.012,-.5,.52]]){const prof=[[.004,-low],[.014,-low+.06],[.03,-.34],[.045,-.26],[.06,-.16],[.056,-.09],[.07,.03]].map(([r,h])=>new THREE.Vector2(r*w,h));
-   const geo=new THREE.LatheGeometry(prof,6),q=geo.attributes.position;for(let i=0;i<q.count;i++){const y=q.getY(i),a=y*twist*6,x=q.getX(i),z=q.getZ(i);q.setXYZ(i,x*Math.cos(a)-z*Math.sin(a)+Math.sin(y*11)*.008,y,x*Math.sin(a)+z*Math.cos(a));}
+  // the air elemental's is the same twisted taper cut wider: a seven-sided gale flaring under the trunk, its edge torn
+  // ragged (each ring's radius jagged by angle), and a dark strand wound down it the other way
+  if(st||gust)for(const [m,w,dx,dz,twist,low] of st?[[skin,1,0,0,.35,.47],[dark,.62,.018,-.012,-.5,.52]]:[[skin,1,0,0,.3,.46],[dark,.58,.03,-.02,-.55,.5]]){const prof=(st?[[.004,-low],[.014,-low+.06],[.03,-.34],[.045,-.26],[.06,-.16],[.056,-.09],[.07,.03]]:[[.005,-low],[.024,-low+.07],[.05,-.35],[.08,-.26],[.11,-.16],[.15,-.06],[.19,.03],[.13,.09]]).map(([r,h])=>new THREE.Vector2(r*w,h));
+   const geo=new THREE.LatheGeometry(prof,st?6:7),q=geo.attributes.position;for(let i=0;i<q.count;i++){const y=q.getY(i),a=y*twist*6,tear=st?1:1+.16*Math.sin(Math.atan2(q.getZ(i),q.getX(i))*5+y*17),x=q.getX(i)*tear,z=q.getZ(i)*tear;q.setXYZ(i,x*Math.cos(a)-z*Math.sin(a)+Math.sin(y*11)*.008,y,x*Math.sin(a)+z*Math.cos(a));}
    geo.computeVertexNormals();const f=part(tail,geo,m,dx,0,dz);f.scale.z=.72;f.castShadow=false;}
   if(k==='fire')for(let i=0;i<9;i++){const a=i*2.4,r=.04+(i%3)*.04,f=cone(tail,.07-(i%3)*.012,.3-(i%3)*.05,i%3?skin:dark,Math.cos(a)*r,-.2+(i%3)*.03,Math.sin(a)*r,6);f.rotation.set(Math.PI+Math.sin(a)*.3,0,Math.cos(a)*.3);f.castShadow=false;}
   if(k==='water'){lathe(tail,[[.03,-.47],[.08,-.4],[.1,-.28],[.15,-.12],[.19,0]],skin).castShadow=false;const curl=part(tail,new THREE.TorusGeometry(.13,.035,8,20,Math.PI*1.4),dark,0,-.2,0);curl.rotation.set(Math.PI/2,0,.6);curl.castShadow=false;}
@@ -3097,15 +3102,23 @@ function elemental(o){
   // collarbones ride hard under the hide, and a crooked ridge of vertebrae breaks through down the back
   for(const side of [-1,1]){const cb=segment(body,[side*.03,chestY+.17,.07],[side*.19,chestY+.15+(side<0?.02:0),.02],.012,.008,ridgeM,4);cb.castShadow=false;}
   for(let i=0;i<5;i++)part(body,new THREE.IcosahedronGeometry(.026-i*.003,0),bone,Math.sin(i*1.9)*.012,chestY+.14-i*.075,-.1+i*.006).castShadow=false;}
+ // the air elemental's trunk: a seven-sided wedge tapering hard to the waist, torn pale streaks raked across it
+ else if(gust){const t=cylinder(body,.23,.08,.44,skin,0,chestY-.06,0,7);t.scale.z=.7;t.rotation.y=.3;t.castShadow=false;lump(body,.09,dark,0,chestY-.22,.02,1,1.4,.8);
+  for(const [x,y,rz,w] of [[-.03,.1,.42,.24],[.04,-.02,-.35,.2],[-.02,-.13,.5,.13]]){const r=part(body,new THREE.BoxGeometry(w,.012,.022),pale,x,chestY+y,.135-Math.abs(y)*.25);r.rotation.set(-.2,0,rz);r.castShadow=false;}}
  else{lump(body,.2,skin,0,chestY,0,1.1,1,.8);lump(body,.15,dark,0,chestY-.14,0,.9,.8,.8);}
- const headY=chestY+.3,head=new THREE.Group();head.position.set(0,headY,0);body.add(head);into(head,lump(body,.12,skin,0,headY,.02,...(k==='fire'?[.85,1.2,.95]:st?[.72,1.3,.95]:[1,1.05,1])));
+ const headY=chestY+.3,head=new THREE.Group();head.position.set(0,headY,0);body.add(head);into(head,lump(body,.12,skin,0,headY,.02,...(k==='fire'?[.85,1.2,.95]:st?[.72,1.3,.95]:gust?[.8,1.2,.9]:[1,1.05,1])));
  // a fire elemental's skull narrows to a jutting chin, under a clinker brow over two black sockets the eyes burn deep in
  // the stalker's long skull narrows the same way, to a lantern jaw, its sockets sunk under a hard brow ridge
  if(facet){const jaw=into(head,cone(body,st?.06:.07,st?.17:.14,skin,0,headY-(st?.13:.12),.05,5));jaw.rotation.set(Math.PI-.35,st?-.2:.3,0);jaw.castShadow=false;
   for(const side of [-1,1])into(head,part(body,new THREE.DodecahedronGeometry(st?.032:.036,0),mat(st?'#08080c':'#0c0604',{roughness:1}),side*(st?.04:.046),headY+.005,.09)).scale.set(1.2,.8,.7);}
+ // the air elemental's head is torn by its own wind: a pale brow ridge cut over each hollow, and three ragged see-through
+ // tatters streaming back off the skull
+ if(gust){for(const side of [-1,1]){const ridge=into(head,part(body,new THREE.BoxGeometry(.06,.016,.03),pale,side*.042,headY+.045,.09));ridge.rotation.set(-.2,0,side*.3);ridge.castShadow=false;}
+  const torn=[[-.05,.06,.26,.35],[.01,.09,.32,-.08],[.06,.04,.22,-.4]].map(([x,y,len,rz])=>new THREE.ConeGeometry(.035,len,3).scale(.4,1,1).rotateZ(rz).rotateX(-Math.PI/2-.35).translate(x,y,-.08-len*.35));
+  part(head,mergeGeometries(torn),wisp).castShadow=false;}
  if(st)for(const side of [-1,1]){const ridge=into(head,part(body,new THREE.BoxGeometry(.06,.016,.03),ridgeM,side*.038,headY+.04,.095));ridge.rotation.set(-.2,0,side*(side<0?.32:.22));ridge.castShadow=false;
   const cheek=into(head,part(body,new THREE.TetrahedronGeometry(.026,0),bone,side*.058,headY-.04,.07));cheek.rotation.set(.4,side*.6,side*.3);cheek.castShadow=false;}
- for(const side of [-1,1]){into(head,sphere(body,facet?.016:.024,eye,side*(st?.04:.045),headY+.01,facet?.112:.12,facet?1.4:1,.7,.6)).castShadow=false;lump(body,st?.075:.1,k==='earth'?dark:skin,side*.2,chestY+.12,0,...(st?[1.15,.75,.85]:[1,.85,.9]));}
+ for(const side of [-1,1]){into(head,sphere(body,gust?.011:facet?.016:.024,eye,side*(st?.04:.045),headY+.01,facet?.112:.12,gust?1.5:facet?1.4:1,gust?.55:.7,gust?.5:.6)).castShadow=false;lump(body,st?.075:.1,k==='earth'?dark:skin,side*.2,chestY+.12,0,...(st?[1.15,.75,.85]:[1,.85,.9]));}
  // arms: tapered limbs to heavy fists (earth) or dissolving hands
  // each arm is one skinned mesh on three bones, shoulder, elbow and wrist (`lfore_0`..`_2`, family E stage 1 step 2):
  // the upper arm and forearm merged on the arm's own material, and the fist and all it holds hung on the wrist bone
@@ -3113,7 +3126,7 @@ function elemental(o){
  // moves a piece built on the body onto arm `i`'s wrist bone, keeping where it is drawn (the wrist is at the fist)
  const onWrist=(i,mesh)=>{mesh.position.sub(wrists[i].userData.at);wrists[i].add(mesh);return mesh;};
  for(const side of [-1,1]){const sh=[side*.22,chestY+.1,0],el=[side*.3,chestY-.08,.06],fist=[side*.3,chestY-.26,.1],arm=new THREE.Group();arm.position.set(...sh);body.add(arm);arms.push(arm);
-  const sides=facet?5:12,thin=st?.65:k==='fire'?.75:1,rel=p=>p.map((v,i)=>v-sh[i]),A=new THREE.Group();
+  const sides=facet?5:12,thin=st?.65:k==='fire'||gust?.75:1,rel=p=>p.map((v,i)=>v-sh[i]),A=new THREE.Group();
   const geo=mergeGeometries([segment(A,[0,0,0],rel(el),.07,.06*thin,skin,sides),segment(A,rel(el),rel(fist),.06*thin,.05*thin,skin,sides)].map(m=>{m.updateMatrix();return m.geometry.clone().applyMatrix4(m.matrix);}));
   const bones=rigLimb(arm,skinLimb(geo,[[0,0,0],rel(el),rel(fist)]),skin,(side<0?'l':'r')+'fore_','arm'),i=arms.length-1;
   bones[0].parent.castShadow=k==='earth';bones[2].userData.at=new THREE.Vector3(...fist);wrists.push(bones[2]);
@@ -3133,7 +3146,7 @@ function elemental(o){
   crown=new THREE.Group();crown.position.set(0,.12,-.02);head.add(crown);
   for(let i=0;i<7;i++){const a=(i-3)*.42,f=cone(crown,.045-Math.abs(i-3)*.005,.28-Math.abs(i-3)*.04,i%2?skin:dark,Math.sin(a)*.09,Math.cos(a)*.04,0,6);f.rotation.z=-a*.7;f.castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.1;sphere(swirl,.016,dark,Math.cos(a)*.34,.35+i*.12,Math.sin(a)*.3).castShadow=false;}}
- if(k==='air'){const streak=st?mat('#c8c8d0',{transparent:true,opacity:.1,depthWrite:false,roughness:1}):dark;
+ if(k==='air'){const streak=st?mat('#c8c8d0',{transparent:true,opacity:.1,depthWrite:false,roughness:1}):mat('#3a4452',{transparent:true,opacity:.6,depthWrite:false,roughness:.9});
   // the stalker's wind is faint air: short, near-invisible streaks, never solid hoops round its chest
   for(let i=0;i<3;i++){const ring=part(swirl,new THREE.TorusGeometry(.3+i*.05,st?.004:.008,4,28,Math.PI*(st?.55:1.3)),streak,0,chestY-.1+i*.14,0);ring.rotation.set(Math.PI/2+(i-1)*.3,0,i*2);ring.castShadow=false;}
   for(let i=0;i<8;i++){const a=i*.8;const leaf=part(swirl,new THREE.PlaneGeometry(.04,.02),mat(i%2?'#8a7a4a':'#6a8a3a',{side:THREE.DoubleSide}),Math.cos(a)*.34,.3+i*.09,Math.sin(a)*.34);leaf.rotation.set(a,a*2,a*.5);}}
@@ -3157,7 +3170,7 @@ function elemental(o){
  // air elementals only: not a breeze but a storm. Jagged shards of dark glass-wind whirl in the gale and a forked bolt crackles in the chest
  if(k==='air'&&!o.stalker){const shard=glow('#6a7a96',.9),bolt=glow(o.eye,3);g.userData.storm=true;
   for(let i=0;i<5;i++){const a=i*1.3,f=cone(swirl,.03,.2+(i%2)*.08,shard,Math.cos(a)*.38,.35+i*.13,Math.sin(a)*.34,4);f.rotation.set(a,0,Math.PI/2+i*.4);f.castShadow=false;}
-  for(const [x,y,rz] of [[-.03,.08,.5],[.03,0,-.6],[-.01,-.08,.4]])part(body,new THREE.BoxGeometry(.016,.12,.012),bolt,x,chestY+y,.16).rotation.z=rz;}
+  for(const [x,y,rz] of [[-.03,.08,.5],[.03,0,-.6],[-.01,-.08,.4]])part(body,new THREE.BoxGeometry(.016,.12,.012),bolt,x,chestY+y,.125-Math.abs(y)*.2).rotation.z=rz;}
  // fire elementals only: cooled clinker crusts the shoulders, chest and brow, dark red going to char and still faintly
  // smouldering, never pure black; flat plates sunk into the flame's own surface, not rocks set on it
  if(k==='fire'){const clinker=ember('#3a1a10','#5a1206',.5),char=ember('#24120c','#3a0a04',.35);g.userData.clinkered=true;

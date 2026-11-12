@@ -167,7 +167,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Air elemental is a translucent bubble man (review 2026-11-12, touched by https://github.com/dean451/DeanHack/pull/1953 and https://github.com/dean451/DeanHack/pull/1957):** `prototype/creatures.js` `elemental()` air kind: smooth see-through spheres for head, shoulders, chest, belly and fists, two white disc eyes, and the funnel a stack of round tubes; the stalker and fire kinds were fixed for this, the air kind still reads as a soft toy. Change the look only; keep the joints. **Done when:** `tools/creature-shot.mjs "air elemental"` three, head and game renders show a faceted, tapered, wind-torn form (no smooth sphere head, shoulders or fists), eyes in dark hollows, at least three tones; `elemental-joints.test.js`, `elemental-arms.test.js` and `elemental-funnel.test.js` pass unchanged.
 
 
 
