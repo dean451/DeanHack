@@ -293,6 +293,16 @@ export const MEASURES = {
     soundFps: 24, // frames a second, sound film's projection rate, locked in 1925 or 1926 (same)
     rest: 'stands at ease, the hands at the small of the back centred on the belt (a police academy drill page); the feet as the soldier\'s (soldier.atEaseFeet)',
   },
+  // the liches: a wasted, rigid human, measured from frailty and parkinsonian gait (slow, stooped, arms still, the hands trembling, turning in one piece)
+  lich: {
+    slowWalk: .8, // m/s, at or under this usual pace a person counts as slow in sarcopenia (EWGSOP2) and at risk of disability (PMC12017394)
+    armSwingLoss: 7.07, // degrees less arm swing range than healthy walkers, pooled over 15 studies (Navarro-Lopez et al. 2022, Gait Posture 98)
+    stoop: {lower: 30, upper: 45}, // degrees of standing forward bend that count as camptocormia, bending at the hips or at the chest (2018 consensus)
+    tremorHz: [4, 6], // the parkinsonian rest tremor, distal and often one-sided (J Parkinsons Dis review)
+    turnSeconds: {pd: 2.18, control: 1.79}, // s, a 180 degree turn, early parkinson\'s against age-matched people (Salarian et al. 2009, inertial sensors)
+    turnSteps: {pd: 4, control: 3}, // steps for that turn: people with parkinson\'s take more than 4, healthy people 2 to 3 (Tzu Chi Med J 2013 review)
+    rest: 'stands bent forward from the hips or chest, the bend gone only when lying down; arms hang still at the sides, the hands trembling at rest',
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -575,4 +585,21 @@ export const KOP = {
   // at ease: the soldier's foot spread, the hands behind at the belt
   atEaseFeet: mid(MEASURES.soldier.atEaseFeet),
   handsBehind: /small of the back/.test(MEASURES.kop.rest),
+};
+
+// What the liches use: a wasted walker's slow pace, the stoop, the still arms, the rest tremor and the turn in one piece
+export const LICH = {
+  // usual pace, m/s, and as a share of a healthy walker's
+  walk: MEASURES.lich.slowWalk,
+  walkShare: MEASURES.lich.slowWalk / mid(MEASURES.human.walkSpeed),
+  // the stoop at rest, rad: the lower (hip) bend, never past the upper (chest) one
+  stoop: MEASURES.lich.stoop.lower * Math.PI / 180,
+  stoopUpper: MEASURES.lich.stoop.upper * Math.PI / 180,
+  // the arm swing taken away, rad
+  armSwingLoss: MEASURES.lich.armSwingLoss * Math.PI / 180,
+  // the hands' tremor, Hz, mid of the range
+  tremor: mid(MEASURES.lich.tremorHz),
+  // a half turn takes this much longer than a healthy one, and more steps
+  turnSlow: MEASURES.lich.turnSeconds.pd / MEASURES.lich.turnSeconds.control,
+  turnSteps: MEASURES.lich.turnSteps.pd,
 };
