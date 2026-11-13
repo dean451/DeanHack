@@ -363,6 +363,30 @@ The family in the plan (AGENTS.md, family **B**). Measured from a little brown b
 
 **What the bats take from this.** A bat hangs for about four fifths of a day and flies for under a fifth, so a bat left alone should hang almost always, and a flight is short and fast (about 5 m/s). A raven is a bird about 0.6 m long with a span twice that. The hanging pose, the head tilt and the hop are set by eye.
 
+## Centaurs (plains, forest and mountain centaur)
+
+The family in the plan (AGENTS.md, family **C**: a horse's body with a human torso). The horse half walks and rests as a horse (see Horses: the walk, sleep on its feet with a hind leg cocked, lying sternal), so this section adds what a centaur does more of: the trot, and the horse's restless pawing while it stands. The man's half carries the bow (the plains and forest centaurs shoot), so its signature is an archer's draw and hold. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session (the hosts are outside the session's allowed network domains).
+
+### Horse (the trot, pawing)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Trot | six trained dressage horses trotted 3.20 m/s collected, 3.61 working, 4.47 medium and 4.93 extended, with strides of 250, 273, 326 and 355 cm; the stride's duration fell a little as speed rose (Clayton 1994, Equine Vet J 26:230) | [Comparison of the stride kinematics of the collected, working, medium and extended trot in horses (Scilit record)](https://scilit.com/publications/b7a6e4d79e77f0195b5fe3140cc23a89) |
+| Pawing | of 41 Standardbred racehorses, 24 (58.5%) pawed at least once; pawing was about 9% of the morning observations before training and 11.2% after it | [Butler and Houpt 2014, Pawing by Standardbred racehorses: frequency and patterns, J Equine Sci 25:57 (PubMed record)](https://ebusca.uv.mx/Record/pubmed-4190064), [The Veterinarian, abstract](https://theveterinarian.com.au/?p=1858) |
+
+### Archer (the draw and the hold)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Draw and hold | two groups of elite archers took about 1.0 and 2.2 s drawing and held at full draw about 3.0 and 4.4 s before the release | [A Feasibility Study of Kinematic Characteristics on the Upper Body According to the Shooting of Elite Disabled Archery Athletes (PMC8000336)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8000336/) |
+| Drawing arm | aiming, elite recurve archers held the drawing shoulder abducted about 99° (novices 107°) with the elbow bent about 138° (novices 144°); arm tremor was least with the shoulder at 90° | [Frontiers in Sports and Active Living 2025, citing Shinohara and Urabe](https://www.frontiersin.org/articles/10.3389/fspor.2025.1650300/full) |
+
+*Caveat:* the trot numbers are trained dressage horses, the draw and hold times two small groups of para-archers, and the arm angles a later paper's citation of an earlier study; each is quoted from a search summary, not read off the page. Pawing was scan sampled, so it is a share of observations, not strikes a minute.
+
+*Not found:* the stride duration in ms for each trot (the paper's table could not be opened), how many strikes a pawing bout has or how fast, the bow arm's angle at full draw, and any measure of a mounted archer drawing at the trot. No number is claimed for them; the pose stages set them by eye.
+
+**What the centaurs take from this.** A centaur moving with purpose trots: about 3.6 m/s by strides of about 2.7 m, a little over one stride a second, against the walk's one. Standing, the horse half is restless: about a tenth of the time it paws, one foreleg lifted, swung forward and dragged back, more when kept waiting. The man's display is the shot: the bow arm out toward the hero, the string drawn back in one to two seconds with the drawing elbow up near shoulder height (the shoulder raised about 99° out to the side, the elbow folded about 138°), held three to four seconds, then loosed.
+
 ## Elementals (stalker, fire elemental, earth elemental)
 
 The family in the plan after the centaurs (AGENTS.md, family **E**; the air and water elementals have no body to pose). Each is drawn as a person, so its rest is measured from a person standing still and its creep from very slow walking; the fire elemental's own motion, its flicker, is measured from real buoyant flames. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session (the hosts are outside the session's allowed network domains).

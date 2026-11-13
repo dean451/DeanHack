@@ -249,6 +249,18 @@ export const MEASURES = {
     shoulderFlexionActive: 168, // degrees, a measured active norm (PMC1713230, table 2)
     elbowFlexion: [145, 150], // degrees, normal elbow flexion (CDC joint range of motion study; AAOS values)
   },
+  // the centaurs: a horse's trot and its restless pawing for the horse half (the walk and rest are `horse`), an archer's draw for the man's half
+  centaur: {
+    trotSpeed: {collected: 3.20, working: 3.61, medium: 4.47, extended: 4.93}, // m/s, six trained dressage horses (Clayton 1994, Equine Vet J 26:230)
+    trotStride: {collected: 2.50, working: 2.73, medium: 3.26, extended: 3.55}, // m, the stride at each of those trots (same)
+    pawedShare: .585, // of 41 Standardbred racehorses, the share seen pawing at least once (Butler and Houpt 2014, J Equine Sci 25:57)
+    pawingShare: {morning: .09, afternoon: .112}, // share of scan observations spent pawing, before and after training (same)
+    paw: 'a horse standing tied or stalled paws: one foreleg lifted, swung forward and dragged back along the ground, again and again, more when sore or kept waiting (Butler and Houpt 2014)',
+    drawSeconds: [.985, 2.228], // s, the drawing phase in two groups of elite archers (PMC8000336, ARST and ARW2 group means)
+    holdSeconds: [3.042, 4.414], // s, the holding phase at full draw in the same two groups (same)
+    drawShoulder: {elite: 99.0, novice: 107.2}, // degrees, drawing arm's shoulder abduction while aiming (Shinohara and Urabe, as cited in Frontiers in Sports and Active Living 2025)
+    drawElbow: {elite: 138, novice: 144}, // degrees, drawing arm's elbow flexion while aiming (same)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -470,4 +482,20 @@ export const ANGELIC = {
   lean: MEASURES.angelic.standLean * Math.PI / 180,
   // the sword arm raised overhead, rad from hanging, the measured active reach
   raise: MEASURES.angelic.shoulderFlexionActive * Math.PI / 180,
+};
+
+// What the centaurs use: the horse half trots and paws, the man's half draws and holds a bow
+export const CENTAUR = {
+  // the working trot, m/s, and its stride, m; strides a second at it
+  trotMid: MEASURES.centaur.trotSpeed.working,
+  trotStride: MEASURES.centaur.trotStride.working,
+  trotHz: MEASURES.centaur.trotSpeed.working / MEASURES.centaur.trotStride.working,
+  // the share of an idle stand spent pawing, mid of the morning and afternoon shares
+  pawShare: (MEASURES.centaur.pawingShare.morning + MEASURES.centaur.pawingShare.afternoon) / 2,
+  // the draw and the hold at full draw, s, mid of the two groups
+  draw: mid(MEASURES.centaur.drawSeconds),
+  hold: mid(MEASURES.centaur.holdSeconds),
+  // the drawing arm at full draw: shoulder raised out to the side and elbow folded, rad, the elite archers'
+  drawShoulder: MEASURES.centaur.drawShoulder.elite * Math.PI / 180,
+  drawElbow: MEASURES.centaur.drawElbow.elite * Math.PI / 180,
 };

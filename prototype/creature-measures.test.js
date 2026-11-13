@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -345,4 +345,26 @@ test('the couatl, ki-rin and angel numbers: a flying snake\'s slow wide wave, a 
   assert(a.shoulderFlexionActive <= a.shoulderFlexion);
   inside(ANGELIC.raise, [2.6, Math.PI], 'arm raised overhead, rad');
   inside(a.elbowFlexion[0], [130, 150], 'elbow flexion, degrees');
+});
+
+test('the centaur numbers: a horse\'s trot and restless pawing, an archer\'s quick draw and short hold', () => {
+  const c = MEASURES.centaur;
+  // faster trots come by longer strides, from about 3 to 5 m/s and 2.5 to 3.6 m
+  const kinds = ['collected', 'working', 'medium', 'extended'];
+  for (let i = 1; i < kinds.length; i++) {
+    assert(c.trotSpeed[kinds[i]] > c.trotSpeed[kinds[i - 1]] && c.trotStride[kinds[i]] > c.trotStride[kinds[i - 1]], kinds[i]);
+  }
+  inside(CENTAUR.trotMid, [3, 5], 'working trot, m/s'); inside(CENTAUR.trotStride, [2.4, 3.6], 'trot stride, m');
+  // a trot is a little over one stride a second, faster than the walk's one (Horses)
+  inside(CENTAUR.trotHz, [1.2, 1.5], 'trot strides a second');
+  assert(CENTAUR.trotHz > HORSE.walkMid / HORSE.strideMid, 'trots quicker than it walks');
+  // most horses paw now and then, about a tenth of the time they stand waiting
+  inside(c.pawedShare, [.5, .7], 'horses that paw'); inside(CENTAUR.pawShare, [.05, .15], 'time spent pawing');
+  assert(c.pawingShare.afternoon > c.pawingShare.morning && /foreleg/.test(c.paw));
+  // the draw takes one to two seconds, the hold a few more
+  inside(CENTAUR.draw, [.8, 2.5], 'draw, s'); inside(CENTAUR.hold, [2.5, 5], 'hold, s');
+  assert(CENTAUR.hold > CENTAUR.draw, 'held longer than drawn');
+  // at full draw the drawing arm is up near the horizontal and the elbow folded hard; the elite hold it tighter
+  inside(CENTAUR.drawShoulder, [1.5, 2], 'drawing shoulder, rad'); inside(CENTAUR.drawElbow, [2.2, 2.6], 'drawing elbow, rad');
+  assert(c.drawShoulder.elite < c.drawShoulder.novice && c.drawElbow.elite < c.drawElbow.novice);
 });
