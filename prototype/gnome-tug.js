@@ -7,7 +7,7 @@
 // Only the head, the cap and the left arm move, as offsets on top of whatever the idle loop and
 // actions.js posed this frame (the gait also nods the cap, so these add to it). The tug takes
 // back its own last offset first and then adds this frame's. A settled gnome's sit (gnome-settle.js, which runs
-// after this) is taken back before that, so the sit's easing is never left behind on a joint the tug changed.
+// after this) and its waddle (gnome-waddling.js, written after the sit) are taken back before that, last first, so the sit's easing is never left behind on a joint the tug changed.
 import {takeBackRest} from './insect-settle.js';
 
 // RAISE: left arm thrown up (negative x); IN: arm swung across to the cap (z); YANK: the downward
@@ -55,6 +55,7 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 export function updateGnomeTug(actor, dt, t, busy) {
   if (!tugs(actor)) return null;
   const st = actor.gnomeTug || (actor.gnomeTug = {seed: ((actor.g?.id ?? 1) * 49979687) % 2147483647 || 1, wait: 0, cur: null, f: 0, applied: ZERO()});
+  if (actor.gnomeWaddle) takeBackRest(actor.gnomeWaddle);
   if (actor.gnomeRest) takeBackRest(actor.gnomeRest);
   const {head, hat, arms: [hand]} = actor, o = st.applied;
   hand.rotation.x += o.raise - o.yank; hand.rotation.z -= o.across;
