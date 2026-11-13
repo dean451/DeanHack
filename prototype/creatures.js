@@ -3103,9 +3103,10 @@ function elemental(o){
   // collarbones ride hard under the hide, and a crooked ridge of vertebrae breaks through down the back
   for(const side of [-1,1]){const cb=segment(body,[side*.03,chestY+.17,.07],[side*.19,chestY+.15+(side<0?.02:0),.02],.012,.008,ridgeM,4);cb.castShadow=false;}
   for(let i=0;i<5;i++)part(body,new THREE.IcosahedronGeometry(.026-i*.003,0),bone,Math.sin(i*1.9)*.012,chestY+.14-i*.075,-.1+i*.006).castShadow=false;}
- // the air elemental's trunk: a seven-sided wedge tapering hard to the waist, torn pale streaks raked across it
+ // the air elemental's trunk: a seven-sided wedge tapering hard to the waist, short torn pale streaks raked into its
+ // flat front face clear of the seam (a long bar lay over the chest like a stick, review finding 2026-11-13)
  else if(gust){const t=cylinder(body,.23,.08,.44,skin,0,chestY-.06,0,7);t.scale.z=.7;t.rotation.y=.3;t.castShadow=false;lump(body,.09,dark,0,chestY-.22,.02,1,1.4,.8);
-  for(const [x,y,rz,w] of [[-.03,.1,.42,.24],[.04,-.02,-.35,.2],[-.02,-.13,.5,.13]]){const r=part(body,new THREE.BoxGeometry(w,.012,.022),pale,x,chestY+y,.135-Math.abs(y)*.25);r.rotation.set(-.2,0,rz);r.castShadow=false;}}
+  for(const [x,y,rz,w] of [[-.075,.1,.42,.09],[-.065,-.03,-.35,.07],[-.06,-.11,.5,.05]]){const r=part(body,new THREE.BoxGeometry(w,.012,.022),pale,x,chestY+y,.104+.227*y);r.rotation.set(.22,0,rz);r.castShadow=false;r.userData.streak=true;}}
  else{lump(body,.2,skin,0,chestY,0,1.1,1,.8);lump(body,.15,dark,0,chestY-.14,0,.9,.8,.8);}
  const headY=chestY+.3,head=new THREE.Group();head.position.set(0,headY,0);body.add(head);into(head,lump(body,.12,skin,0,headY,.02,...(k==='fire'?[.85,1.2,.95]:st?[.72,1.3,.95]:gust?[.8,1.2,.9]:[1,1.05,1])));
  // a fire elemental's skull narrows to a jutting chin, under a clinker brow over two black sockets the eyes burn deep in
@@ -3147,9 +3148,10 @@ function elemental(o){
   crown=new THREE.Group();crown.position.set(0,.12,-.02);head.add(crown);
   for(let i=0;i<7;i++){const a=(i-3)*.42,f=cone(crown,.045-Math.abs(i-3)*.005,.28-Math.abs(i-3)*.04,i%2?skin:dark,Math.sin(a)*.09,Math.cos(a)*.04,0,6);f.rotation.z=-a*.7;f.castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.1;sphere(swirl,.016,dark,Math.cos(a)*.34,.35+i*.12,Math.sin(a)*.3).castShadow=false;}}
- if(k==='air'){const streak=st?mat('#c8c8d0',{transparent:true,opacity:.1,depthWrite:false,roughness:1}):mat('#3a4452',{transparent:true,opacity:.6,depthWrite:false,roughness:.9});
-  // the stalker's wind is faint air: short, near-invisible streaks, never solid hoops round its chest
-  for(let i=0;i<3;i++){const ring=part(swirl,new THREE.TorusGeometry(.3+i*.05,st?.004:.008,4,28,Math.PI*(st?.55:1.3)),streak,0,chestY-.1+i*.14,0);ring.rotation.set(Math.PI/2+(i-1)*.3,0,i*2);ring.castShadow=false;}
+ if(k==='air'){const streak=mat(st?'#c8c8d0':'#c8d6e2',{transparent:true,opacity:st?.1:.13,depthWrite:false,roughness:1});
+  // the wind is faint air on both: short, near-invisible streaks, never solid hoops round the chest (the air elemental's
+  // read as dark hoops, review finding 2026-11-13); the gale's are a shade longer and paler than the stalker's
+  for(let i=0;i<3;i++){const ring=part(swirl,new THREE.TorusGeometry(.3+i*.05,.004,4,28,Math.PI*(st?.55:.7)),streak,0,chestY-.1+i*.14,0);ring.rotation.set(Math.PI/2+(i-1)*.3,0,i*2);ring.castShadow=false;}
   for(let i=0;i<8;i++){const a=i*.8;const leaf=part(swirl,new THREE.PlaneGeometry(.04,.02),mat(i%2?'#8a7a4a':'#6a8a3a',{side:THREE.DoubleSide}),Math.cos(a)*.34,.3+i*.09,Math.sin(a)*.34);leaf.rotation.set(a,a*2,a*.5);}}
  if(k==='water'){const foam=mat('#eef8ff',{roughness:.4});crown=new THREE.Group();crown.position.set(0,.1,-.05);head.add(crown);for(let i=0;i<7;i++){const a=(i-3)*.4;sphere(crown,.04-Math.abs(i-3)*.004,foam,Math.sin(a)*.1,Math.cos(a)*.03,-Math.abs(i-3)*.015).castShadow=false;}
   for(let i=0;i<6;i++){const a=i*1.2;sphere(swirl,.018,dark,Math.cos(a)*.32,.3+i*.1,Math.sin(a)*.28,1,1.4,1).castShadow=false;}}
@@ -3169,9 +3171,15 @@ function elemental(o){
   for(const side of [-1,1])sphere(body,.017,hollow,side*.027,chestY+.05,.09,1,1.2,.6);
   for(let i=0;i<3;i++)part(body,new THREE.BoxGeometry(.1-i*.015,.008,.008),bone,0,chestY-.1-i*.035,.03);}
  // air elementals only: not a breeze but a storm. Jagged shards of dark glass-wind whirl in the gale and a forked bolt crackles in the chest
- if(k==='air'&&!o.stalker){const shard=glow('#6a7a96',.9),bolt=glow(o.eye,3);g.userData.storm=true;
+ if(k==='air'&&!o.stalker){const shard=glow('#6a7a96',.9),bolt=storm('#5a8ae8','#2a5aff',2.8,.3);g.userData.storm=true;
   for(let i=0;i<5;i++){const a=i*1.3,f=cone(swirl,.03,.2+(i%2)*.08,shard,Math.cos(a)*.38,.35+i*.13,Math.sin(a)*.34,4);f.rotation.set(a,0,Math.PI/2+i*.4);f.castShadow=false;}
-  for(const [x,y,rz] of [[-.03,.08,.5],[.03,0,-.6],[-.01,-.08,.4]])part(body,new THREE.BoxGeometry(.016,.12,.012),bolt,x,chestY+y,.125-Math.abs(y)*.2).rotation.z=rz;}
+  // the bolt is no white X stuck on the chest but lightning seen through a crack in the storm: one forked, jagged seam
+  // of cold blue, sunk in the trunk so only its edge breaks the surface (review finding 2026-11-13)
+  const seam=[[[-.02,.11],[.025,.05],[-.015,0],[.02,-.06],[-.005,-.12]],[[-.015,0],[-.06,-.05]],[[.02,-.06],[.055,-.09]]].flatMap(path=>path.slice(1).map((b,n)=>{const a=path[n],len=Math.hypot(b[0]-a[0],b[1]-a[1]),geo=new THREE.BoxGeometry(n?.007:.01,len+.006,.03);
+   geo.rotateZ(Math.atan2(a[0]-b[0],b[1]-a[1]));geo.translate((a[0]+b[0])/2,(a[1]+b[1])/2,0);return geo;})),crack=mergeGeometries(seam),q=crack.attributes.position;
+  // the trunk's face leans back as it narrows to the waist and turns away on the right: the seam follows it
+  for(let i=0;i<q.count;i++){const x=q.getX(i);q.setZ(i,q.getZ(i)+.227*q.getY(i)-(x>0?5*x*x:0));}
+  crack.computeVertexNormals();part(body,crack,bolt,0,chestY,.104).castShadow=false;}
  // fire elementals only: cooled clinker crusts the shoulders, chest and brow, dark red going to char and still faintly
  // smouldering, never pure black; flat plates sunk into the flame's own surface, not rocks set on it
  if(k==='fire'){const clinker=ember('#3a1a10','#5a1206',.5),char=ember('#24120c','#3a0a04',.35);g.userData.clinkered=true;

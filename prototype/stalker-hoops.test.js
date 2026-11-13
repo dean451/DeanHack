@@ -33,9 +33,9 @@ test('the stalker\'s wind streaks are faint, thin arcs, not solid hoops', () => 
   for (const m of meshes(s.g)) if (m.geometry.type === 'TorusGeometry') assert(m.parent === s.swirl, 'a ring on the stalker outside its faint wind');
 });
 
-test('the air elemental keeps its ringed funnel and its gale', () => {
+test('the air elemental keeps its wide funnel, its wind faint streaks too (review finding 2026-11-13)', () => {
   const a = build('air elemental');
-  assert(meshes(a.swirl).some(m => m.geometry.type === 'TorusGeometry' && m.geometry.parameters.arc > Math.PI));
+  assert(meshes(a.swirl).some(m => m.geometry.type === 'TorusGeometry'));
   let wide = 0;
   for (const m of a.tail.children.filter(o => o.isSkinnedMesh)) { const p = m.geometry.attributes.position; for (let i = 0; i < p.count; i++) wide = Math.max(wide, Math.hypot(p.getX(i), p.getZ(i))); }
   assert(wide > .15);
