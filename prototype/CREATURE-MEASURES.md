@@ -553,3 +553,24 @@ The family in the plan (AGENTS.md, family **H**: a heavy human, the sit and the 
 *Not found:* a heavy person's sitting posture as an angle (how far the trunk slumps, where the hands rest), a step length in metres for the heavy walk, and the boulder's own weight against the thrower's. No number is claimed for them; the pose stages set them by eye.
 
 **What the giants take from this.** A giant lumbers: a little slower than a person's walk for its size (about 95% of a lean pace) on feet set about 30% wider, so the body rolls side to side over each step. At rest it sits heavily, and getting up is slow, about three seconds, leaning forward little and shoving up with the knees. Its display is the boulder throw: a long wind-up of a second and a half, turning on its feet, then a heave of a fifth of a second that sends the rock off rising at about 37°.
+
+## Jabberwock (jabberwock, vorpal jabberwock)
+
+The family in the plan (AGENTS.md, family **J**: a heron and a monitor lizard). The jabberwock stands hunched on long legs with a long neck that thrusts its head out low, so its neck, its rest and its signature, the bite, are measured from herons, which strike from a folded neck; its walk is the monitor lizard's, already measured under Dragons. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session (the hosts are outside the session's allowed network domains).
+
+### Heron (the strike, the neck, the stalk)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Strike | a western reef heron's head moved in two phases at underwater prey: a slow pre-strike phase averaging about 52 cm/s, then the strike at about 270 cm/s along a path with a mean angle of 33°; at prey above the water the phases were less distinct, the strike about 154 cm/s | [Katzir and Intrator 1987, Striking of underwater prey by a reef heron, Egretta gularis schistacea, J Comp Physiol A 160](https://link.springer.com/article/10.1007/BF00615085) |
+| Strike length | a great blue heron filmed at 60 frames a second struck in about ten frames, about 0.167 s (an amateur's frame count) | [Union Bay Watch, Striking Speed](https://unionbaywatch.blogspot.com/2014/09/striking-speed.html) |
+| Neck | herons of very different body mass all have 17 cervical and 6 thoracic vertebrae | [(Almost) the same at any size: scaling of the axial skeleton in herons (Ardeidae), SICB abstract](https://sicb.org/?p=42524) |
+| The hinge | a heron often starts its strike with the head bent back into a coiled S, and one uniquely long neck vertebra works as a hinge; the neck starts slow, then extends very fast | [Audubon, More Than You Ever Wanted to Know About Heron Necks](https://www.audubon.org/magazine/more-you-ever-wanted-know-about-heron-necks) |
+| Day budget | nesting great blue herons, 86 hours of focal watches: foraging 62% of an adult's time, vigilant 3.1%, in the nest 1.4% | [Ecology of the Great Blue Heron (Ardea herodias), Crested Butte Land Trust 2019 report](https://www.cblandtrust.org/wp-content/uploads/2023/03/2019-Great-Blue-Heron-Report.pdf) |
+| Rest | grey herons stand still for long periods with an upright stance, often on a single leg | [Grey heron (encyclopedia entry, IPFS mirror of Wikipedia)](https://bafybeiemxf5abjwjbikoz4mc3a3dla6ual3jsgpdr4cjr3oz3evfyavhwq.ipfs.4everland.io/wiki/Gray_heron.html) |
+
+*Caveat:* the strike speeds are from one species filmed in 1987 at an angle the summary gave without its reference (taken here as the path's angle down from the horizontal); the strike length is an amateur's count of video frames, a rough check only; the day budget is from nesting birds in one valley. Each is quoted from a search summary, not read off the page.
+
+*Not found:* a heron's step rate or step length while stalking (the walk slows until it blends into standing), the neck's angles in the folded S, and how long a heron holds one leg up. No number is claimed for them; the pose stages set them by eye.
+
+**What the jabberwock takes from this.** It stalks most of its time, standing still or creeping, and at rest stands on one leg with the neck folded back into an S and the head sunk on its shoulders. Its display is the bite: the head creeps forward at about half a metre a second, then the folded neck uncoils all at once, the head shooting out five times faster, about 2.7 m/s, down along a path some 33° below the horizontal, over in about a sixth of a second. Walking, the trunk swings as a lizard's does while the head holds nearly still (see Dragons).
