@@ -10,7 +10,7 @@ import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
 import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
-import {nameGiantJoints} from './giant-joints.js';
+import {rigGiant} from './giant-joints.js';
 import {rigBody,hangOn,skinPlainLimb} from './trunk-skin.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
@@ -1975,7 +1975,8 @@ function giant(o){
  const a=trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head:leadHead},core?{core}:{}));
  for(const [list,stem] of [[legs,'leg1_'],[arms,'fore_']])for(const o of list)skinPlainLimb(o,(o.position.x<0?'l':'r')+stem,true,true);
  g.updateMatrixWorld(true);for(const [arm,o] of [[arms[1],held],[arms[0],arms[0].getObjectByName('grip')]])if(o)arm.getObjectByName((arm.position.x<0?'l':'r')+'fore_2').attach(o);
- return nameGiantJoints(a,{heads:allHeads,arms});
+ // step 3: the trunk and neck on bones in one hide, every head on the top of the neck (giant-joints.js)
+ return rigGiant(a,{heads:allHeads,arms});
 }
 const GIANTS={giant:{skin:'#b08a6a',cloth:'#6a5a40',weapon:'club',scars:true,knuckles:true,scale:1.1},'stone giant':{skin:'#8a867c',cloth:'#5a5650',hair:'#4a4642',weapon:'boulder',scars:true,lichen:true,scale:1.14},'hill giant':{skin:'#a88060',cloth:'#565040',hair:'#3e2c1e',beard:true,brute:true,weapon:'club',skulls:true,scars:true,scale:1.12},'fire giant':{skin:'#6a4234',cloth:'#3a2a24',hair:'fire',beard:true,buckle:true,armor:'#3a3436',boot:'#2a2424',weapon:'sword',glare:M.fire,cracked:true,scale:1.18},'frost giant':{skin:'#4a5a64',cloth:'#1c242a',hair:'#8e9aa0',beard:true,frostbite:true,mantle:'#403e3a',boot:'#181210',ice:true,weapon:'axe',icicles:true,scale:1.18},ettin:{skin:'#8a7a6a',cloth:'#4a3a2a',hair:'#2a2420',twoHeads:true,weapon:'club',scars:true,scale:1.18},'storm giant':{skin:'#9aa4b4',cloth:'#2e4a78',tunic:'#3d5f9a',hair:'#1e2230',beard:true,weapon:'spear',glare:M.electric,storm:true,scars:true,scale:1.2},titan:{skin:'#a07c5a',cloth:'#4a4438',hair:'#6a5a34',armor:'#7a5e28',circlet:true,spiked:true,glare:M.eye,weapon:'spear',scars:true,scale:1.5},cyclops:{skin:'#9a7e62',cloth:'#4a3a2a',hair:'#2a221c',cyclops:true,weapon:'club',scars:true,scale:1.3},'lord surtur':{skin:'#4a2e26',cloth:'#2a1e1c',hair:'fire',beard:true,armor:'#2a2426',boot:'#1e1a1a',weapon:'sword',blade:1.5,crown:true,scars:true,glare:M.fire,scale:1.34}};
 // vortices (v): a tapering funnel of tilted, offset swirl rings over a scuffed ground patch, with debris caught in the spiral; fog clouds are a low puffy bank instead
