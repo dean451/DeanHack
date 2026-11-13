@@ -111,7 +111,8 @@ export function aimAt(actor, look) {
 
 function setup(a) {
   const st = {
-    seed: ((a.g.id ?? 1) * 48271) % 2147483647 || 1, wait: 0, cur: null, f: 0, furl: 0, life: 1, ph: 0,
+    // (a test may pin `g.userData.fidgetId`, as for the other fidgets, so its run does not hang on how many objects were built before it)
+    seed: ((a.g.userData?.fidgetId ?? a.g.id ?? 1) * 48271) % 2147483647 || 1, wait: 0, cur: null, f: 0, furl: 0, life: 1, ph: 0,
     heads: a.heads.map(h => ({base: h.rotation.y, y: 0, x: 0, aim: 0, next: 0})),
     applied: {heads: a.heads.map(() => ({y: 0, x: 0})), inner: (a.wings || []).map(() => ({x: 0, z: 0})), tailY: 0, tailX: 0}, exact: [],
     sleep: {p: 0, idle: 0, written: []}, mantled: [], walk: {w: 0, ph: 0, written: []}, wings: {written: [], flap: null, slept: false},
