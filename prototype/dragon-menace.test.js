@@ -55,9 +55,13 @@ test('heads swing round to face the hero and glide after them', () => {
   assert(Math.abs(h.rotation.y - base + YAW) < .02, `${h.rotation.y - base}`);
 });
 
+// The seeds this test always ran with (each dragon's Object3D id in this file before the jabberwock's tail
+// bones were added), pinned so a model elsewhere gaining an object no longer reshuffles the run.
+const SIXTY_SEEDS = {draken: 2174, tiamat: 2436, guivre: 2914, wyvern: 3025};
 test('sixty seconds of a dragon: finite, bounded, furls to walk, and death settles it exactly', () => {
   for (const name of ['draken', 'tiamat', 'guivre', 'wyvern']) {
     const a = dragon(name), rest = snap(a), dt = 1 / 60;
+    a.g.userData.fidgetId = SIXTY_SEEDS[name];
     let mantles = 0, lashes = 0, wasCur = null, maxStep = 0, prevTail = a.tail.rotation.z;
     for (let i = 0; i < 3600; i++) {
       // (the hero arrives at 8 s, before the dragon would doze off: sleep has its own tests in dragon-sleep.test.js)
@@ -108,7 +112,8 @@ test('smoke curls from the nostrils in breaths, snorts after a mantle, and thins
       }
       const al = alphas(a);
       for (const v of al) assert(Number.isFinite(v) && v >= 0 && v <= SMOKE_ALPHA + 1e-9);
-      for (const v of p.geometry.attributes.aSize.array) assert(Number.isFinite(v) && v >= 0 && v <= SIZE1 + 1e-9);
+      // (aSize is a Float32Array, where SIZE1 itself is stored as 0.20000000298: compare at that precision)
+      for (const v of p.geometry.attributes.aSize.array) assert(Number.isFinite(v) && v >= 0 && v <= Math.fround(SIZE1), `${name} size ${v}`);
       if (t < 30) { const n = r.smoke; minCount = Math.min(minCount, t > 5 ? n : Infinity); maxCount = Math.max(maxCount, n); if (n) shown++; peak = Math.max(peak, ...al); }
     }
     assert(shown > 1000, `${name} smokes most of the time: ${shown}`);

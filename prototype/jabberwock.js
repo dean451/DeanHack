@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {pickPoints,skinChain} from './chain-skin.js';
 
 // Jabberwocks used to be a pot-bellied purple thing with buck teeth and antennae, closer to a
 // cartoon than to one of the deadliest monsters in the dungeon. Now it is a bladed predator:
@@ -21,6 +22,12 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // mesh per material (hide, blade, glow; the wings also have a membrane): about 24 draws in
 // place of ~150 meshes. The geometry and materials are built once per kind and shared.
 // Handles: body, head, jaw (for jaw.js), arms/arm, legs, wings, tail. The quirk stays 'dragon'.
+// Named joints (the creature plan, family J stage 1): `actor.joints` holds `head` (also `neck0`: the neck
+// is still part of the body's mesh), `jaw`, the arms `lfore` / `rfore`, the legs `lleg1` / `rleg1` (a
+// biped's legs are its hind legs; left is -x), the wings `lwing` / `rwing` and the tail's five bones
+// `tail0` (root) to `tail4` (tip). The tail's hide, fins, crescent blade and glowing edges are skinned
+// on one skeleton under the `tail` group, which stays the swing pivot, so a bent tail joint carries
+// everything past it. Still one mesh per material, so the draw count is unchanged.
 
 const KINDS={
  'vorpal jabberwock':{scale:1.35,hide:'#2b1a3a',dark:'#120a1a',belly:'#4a3a56',horn:'#1a1420',tooth:'#ece4cc',mouth:'#5a0a1e',
@@ -181,9 +188,12 @@ function buildLeg(B,s){
 }
 
 // The tail sweeping back and curling up, finned all along and ending in a crescent blade.
+const TAIL=[[0,0,0],[0,-.12,-.16],[.04,-.23,-.34],[.1,-.26,-.52],[.15,-.2,-.68],[.16,-.08,-.78]];
+// The tail's bones: five points along its curve, root to tip (the tail group's own space).
+const TAIL_BONES=pickPoints(new THREE.CatmullRomCurve3(TAIL.map(p=>V(...p))).getPoints(16).map(p=>p.toArray()),5);
 function buildTail(B){
  const {hide,blade}=B,P=part();
- const pts=[[0,0,0],[0,-.12,-.16],[.04,-.23,-.34],[.1,-.26,-.52],[.15,-.2,-.68],[.16,-.08,-.78]];
+ const pts=TAIL;
  P.add('hide',taper(pts,.075,.018,24,10),null,hide);
  const curve=new THREE.CatmullRomCurve3(pts.map(p=>V(...p)));
  for(let i=0;i<7;i++){const t=.1+i*.12,p=curve.getPointAt(t),tan=curve.getTangentAt(t),r=.075+(.018-.075)*t;
@@ -235,6 +245,7 @@ function kindParts(name){
  };
  const G={body:buildBody(B),head:buildHead(B),eyes:buildEyes(),jaw:buildJaw(B),tail:buildTail(B),
   arm:{'-1':buildArm(B,-1),'1':buildArm(B,1)},leg:{'-1':buildLeg(B,-1),'1':buildLeg(B,1)},wing:{'-1':buildWing(B,-1,1),'1':buildWing(B,1,2)}};
+ for(const geo of Object.values(G.tail))skinChain(geo,TAIL_BONES);
  const out={k,M,G};cache.set(name,out);return out;
 }
 function meshes(parent,geos,M,name){
@@ -243,6 +254,19 @@ function meshes(parent,geos,M,name){
  }
 }
 
+// The tail's meshes (one per material, already skinned along TAIL_BONES) bound to one skeleton whose bones
+// `tail0`..`tail4` hang on the tail group, each placed relative to the last.
+function skinnedTail(tail,geos,M){
+ const bones=TAIL_BONES.map((p,i)=>{const b=new THREE.Bone(),q=i?TAIL_BONES[i-1]:[0,0,0];b.name='tail'+i;b.position.set(p[0]-q[0],p[1]-q[1],p[2]-q[2]);return b;});
+ bones.forEach((b,i)=>(i?bones[i-1]:tail).add(b));
+ tail.updateMatrixWorld(true);
+ const skeleton=new THREE.Skeleton(bones);
+ for(const key of ['hide','blade','glow','membrane'])if(geos[key]){
+  const m=new THREE.SkinnedMesh(geos[key],M[key]);m.castShadow=key!=='glow';m.receiveShadow=key!=='glow';m.userData.part='tail';
+  tail.add(m);m.updateMatrixWorld(true);m.bind(skeleton);
+ }
+ return bones;
+}
 export function createJabberwock(name){
  const {k,M,G}=kindParts(KINDS[name]?name:'jabberwock');
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(k.scale);g.name='jabberwock';
@@ -258,6 +282,14 @@ export function createJabberwock(name){
   const arm=new THREE.Group();arm.position.set(s*.2,.9,.14);arm.rotation.x=-.35;body.add(arm);meshes(arm,G.arm[s],M,'arm');arms.push(arm);
   const wing=new THREE.Group();wing.position.set(s*.13,1,-.12);wing.rotation.y=s*-.35;body.add(wing);meshes(wing,G.wing[s],M,'wing');wings.push(wing);
  }
- const tail=new THREE.Group();tail.position.set(0,.5,-.2);body.add(tail);meshes(tail,G.tail,M,'tail');
- return {g,body,legs,tail,wings,quirk:'dragon',head,jaw,arms,arm:arms[1]};
+ const tail=new THREE.Group();tail.position.set(0,.5,-.2);tail.name='tail';body.add(tail);
+ const tailBones=skinnedTail(tail,G.tail,M);
+ // named joints (left is -x: each list is built left side first)
+ const joints={head,neck0:head,jaw,lfore:arms[0],rfore:arms[1],lleg1:legs[0],rleg1:legs[1],lwing:wings[0],rwing:wings[1]};
+ for(const [n,o] of Object.entries(joints))if(n!=='neck0')o.name=n;
+ for(const b of tailBones)joints[b.name]=b;
+ // (the skinned tail's bind inverse follows its world matrix: refresh the whole actor once, scale included,
+ // so a box measured before the first frame sees the tail where it is drawn)
+ g.updateMatrixWorld(true);
+ return {g,body,legs,tail,wings,quirk:'dragon',head,jaw,arms,arm:arms[1],joints};
 }
