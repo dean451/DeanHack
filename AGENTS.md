@@ -167,7 +167,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 - Items that need a live engine, a play-test or a bridge change are in the Claude list, not here.
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
-- **Gnome's belt stands off the body in the waddle stride, now seen in play (review 2026-11-13, https://github.com/dean451/DeanHack/pull/1971, pose from https://github.com/dean451/DeanHack/pull/1960):** `prototype/gnome-waddle-poses.js` / the gnome's belt in `creatures.js`: in the widest stride the belt ring keeps its rest place while the trunk tilts, so it hangs as a hoop with a clear gap on the leading side and the tunic hem stacks under it as a second ring. **Done when:** `WADDLING=1.2 tools/creature-shot.mjs gnome x G` and `POSE=waddle` three and side renders show the belt wrapping the waist with no gap, and a test asserts `surfaceGap(belt, body)` small in the waddle pose; `gnome-waddling.test.js` and `gnome-settle.test.js` pass unchanged.
 
 
 

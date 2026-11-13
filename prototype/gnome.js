@@ -48,8 +48,19 @@ const ramp=(a,b,lo,hi)=>y=>mix(a,b,(y-lo)/(hi-lo));
 const hash=n=>{const v=Math.sin(n*12.9898)*43758.5453;return v-Math.floor(v);};
 const colours=L=>{const C={};for(const [k,v] of Object.entries(L))if(typeof v==='string'&&v.startsWith('#'))C[k]=rgb(v);return C;};
 
+// The belts wrap the tunic at the belt line instead of hanging round it as a hoop: both are ten-sided like the
+// tunic, a corner on each of its corners, and placed with its centre and depth (z .01, .9 deep). The tunic's
+// radius at height y is tunicR(y) (its profile, from .3 to .36, below).
+const tunicR=y=>.185+.25*(y-.3);
+// a broad, flat leather band, its face `out` proud of the cloth, its back sunk into it
+const beltBand=(y0,y1,out)=>lathe([[tunicR(y0)-.004,y0],[tunicR(y0)+out*.6,y0],[tunicR(y0+.004)+out,y0+.004],[tunicR(y1-.004)+out,y1-.004],[tunicR(y1)+out*.6,y1],[tunicR(y1)-.004,y1]],10);
+// a rope, its middle `sink` inside the cloth
+const beltRope=(y,sink,tube)=>new THREE.TorusGeometry(tunicR(y)-sink,tube,5,10).rotateZ(Math.PI/10);
+
 function buildBody(L,C){
- const P=pieces();
+ const P=pieces(),add=P.add;let count=0,belt=null;
+ // (counts the vertices as they go in, so the belt's run in the merged hide is known: BELT)
+ P.add=(geo,...r)=>{const n=geo.index?geo.index.count:geo.attributes.position.count;add(geo,...r);count+=n;};
  // A pot-bellied tunic: flared at the hem, swelling round the belly, narrowing to the shoulders.
  const hem=L.robe?.16:.24;
  P.add(lathe([[0,hem],[.17,hem],[.19,hem+.03],[.185,.3],[.2,.36],[.205,.42],[.19,.49],[.16,.55],[.1,.595],[.05,.61],[0,.612]],10),
@@ -60,16 +71,16 @@ function buildBody(L,C){
  P.add(new THREE.TorusGeometry(.18,.013,5,28),at(0,hem+.01,.01,[Math.PI/2,0,0],[1.02,.9,1]),C.tunicDark);
  if(L.robe){
   // a rope belt tied at the front, the ends hanging
-  P.add(new THREE.TorusGeometry(.205,.012,5,28),at(0,.34,.035,[Math.PI/2,0,0],[1.02,.98,1]),ROPE);
-  P.add(new THREE.SphereGeometry(.02,8,6),at(.03,.335,.23),ROPE);
-  for(const [x,len] of [[.02,.12],[.045,.1]]){P.add(new THREE.CylinderGeometry(.008,.008,len,5),at(x,.33-len/2,.23),ROPE);P.add(new THREE.SphereGeometry(.012,6,4),at(x,.33-len,.23),ROPE);}
+  belt=[count];P.add(beltRope(.34,.002,.012),at(0,.34,.01,[Math.PI/2,0,0],[1,.9,1]),ROPE);belt.push(count);
+  P.add(new THREE.SphereGeometry(.02,8,6),at(.03,.335,.19),ROPE);
+  for(const [x,len] of [[.02,.12],[.045,.1]]){P.add(new THREE.CylinderGeometry(.008,.008,len,5),at(x,.33-len/2,.19),ROPE);P.add(new THREE.SphereGeometry(.012,6,4),at(x,.33-len,.19),ROPE);}
   // stars and a moon picked out in gold thread on the robe's front
   for(const [x,y] of [[-.1,.24],[.09,.21],[-.05,.46],[.12,.47],[-.13,.38]])P.add(new THREE.OctahedronGeometry(.013),at(x,y,Math.sqrt(Math.max(0,.2**2-x*x))*.95+.05,[0,0,Math.PI/4],[1,1,.35]),GOLD);
  }else{
   // a broad leather belt with a buckle, and a pouch on the left hip
-  P.add(new THREE.TorusGeometry(.2,.022,5,28),at(0,.34,.035,[Math.PI/2,0,0],[1.03,.98,1]),LEATHER);
-  P.add(new THREE.BoxGeometry(.06,.05,.02),at(0,.34,.235),L.weapon==='dagger'?BRASS:rgb('#8a8a80'));
-  P.add(new THREE.BoxGeometry(.034,.026,.024),at(0,.34,.236),LEATHER);
+  belt=[count];P.add(beltBand(.318,.362,.01),at(0,0,.01,[0,0,0],[1,1,.9]),(x,y)=>mix(LEATHER,LEATHER_DARK,Math.abs(y-.34)>.018?.6:0));belt.push(count);
+  P.add(new THREE.BoxGeometry(.06,.05,.02),at(0,.34,.2),L.weapon==='dagger'?BRASS:rgb('#8a8a80'));
+  P.add(new THREE.BoxGeometry(.034,.026,.024),at(0,.34,.201),LEATHER);
   P.add(new THREE.SphereGeometry(.05,10,8),at(-.17,.28,.09,[0,0,0],[.8,1,.7]),LEATHER);
   P.add(new THREE.BoxGeometry(.06,.014,.04),at(-.17,.32,.1,[0,0,.1]),LEATHER_DARK);
   // a patch on the belly, stitched on crooked
@@ -85,7 +96,7 @@ function buildBody(L,C){
   for(let i=0;i<9;i++){const a=i/9*Math.PI*2;P.add(new THREE.SphereGeometry(.007,4,3),at(Math.sin(a)*.16,.61,Math.cos(a)*.13-.01,[0,0,0],[1,1.8,1]),SPOT);}
   P.add(new THREE.SphereGeometry(.018,8,6),at(0,.58,.14),GOLD);
  }
- return P.merge();
+ const geo=P.merge();geo.userData.belt=belt;return geo;
 }
 
 function buildHead(L,C){
@@ -259,6 +270,8 @@ function mirrored(geo){
 }
 
 const cache={};let material=null;
+// The belt's run of vertices in a kind's hide ([start, end): the trunk comes first in it) and how many the trunk has.
+export const BELT=kind=>{const S=geometry(isGnome(kind)?kind:'gnome');return {belt:S.body.userData.belt,trunk:S.body.attributes.position.count};};
 function geometry(kind){
  if(cache[kind])return cache[kind];
  material??=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,metalness:.05,flatShading:true,side:THREE.DoubleSide});
