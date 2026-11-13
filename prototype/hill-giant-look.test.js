@@ -13,7 +13,11 @@ test('the hill giant\'s skin is flat shaded everywhere: trunk, arms, legs and he
   const a = make(), skin = meshes(a.g).filter(m => m.material.color?.equals(SKIN));
   assert(skin.length > 0, 'skin meshes');
   for (const m of skin) assert(m.material.flatShading, 'skin is faceted');
-  for (const n of ['lfore', 'rfore', 'lleg1', 'rleg1', 'head']) assert(meshes(a.joints[n]).some(m => m.material.color?.equals(SKIN)), `${n} has skin`);
+  // (the arms' and legs' skin is in the trunk's hide since stage 1 step 3: find it by the hide's weights on their bones)
+  const onBones = (m, n) => { if (!m.isSkinnedMesh) return false; const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
+    for (let i = 0; i < si.count; i++) for (let k = 0; k < 4; k++) if (sw.getComponent(i, k) > .5 && m.skeleton.bones[si.getComponent(i, k)].name.startsWith(n + '_')) return true; return false; };
+  for (const n of ['lfore', 'rfore', 'lleg1', 'rleg1']) assert(skin.some(m => onBones(m, n)), `${n} has skin`);
+  assert(meshes(a.joints.head).some(m => m.material.color?.equals(SKIN)), 'head has skin');
 });
 
 test('the hill giant\'s right fist closes round the club\'s haft', () => {
