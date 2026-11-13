@@ -574,3 +574,24 @@ The family in the plan (AGENTS.md, family **J**: a heron and a monitor lizard). 
 *Not found:* a heron's step rate or step length while stalking (the walk slows until it blends into standing), the neck's angles in the folded S, and how long a heron holds one leg up. No number is claimed for them; the pose stages set them by eye.
 
 **What the jabberwock takes from this.** It stalks most of its time, standing still or creeping, and at rest stands on one leg with the neck folded back into an S and the head sunk on its shoulders. Its display is the bite: the head creeps forward at about half a metre a second, then the folded neck uncoils all at once, the head shooting out five times faster, about 2.7 m/s, down along a path some 33° below the horizontal, over in about a sixth of a second. Walking, the trunk swings as a lizard's does while the head holds nearly still (see Dragons).
+
+## Kops (Keystone Kop, Kop Sergeant, Kop Lieutenant, Kop Kaptain)
+
+The family in the plan (AGENTS.md, family **K**: a human, the comic run stays). The Kops are silent-film policemen, so they are measured from two things: a person running, and how a silent comedy of their day was shot and shown, which is where the comic run's speed came from. Their rest is a policeman standing at ease. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session. The film-speed pages are a silent-film accompanist's research blog, not peer-reviewed, and historians still argue over the exact speeds.
+
+### Runner, silent comedy and a policeman at ease (the run, its speed-up, the rest)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Running cadence | 21 experienced recreational runners on outdoor runs: a preferred cadence of about 165 steps a minute, the most economical about 171 | [de Ruiter et al. 2020, quoted by Newswise](https://www.newswise.com/articles/step-it-up-does-running-cadence-matter-not-as-much-as-previously-thought) |
+| Cadence spread | in one 100 km race the mean was 182 steps a minute, some ran at 160 and others at 210; cadence rose 4 to 5 steps a minute per mile an hour faster | [Burns, quoted in Outside, running cadence research](https://www.outsideonline.com/health/running/running-cadence-new-research/) |
+| Cranking speed | the Mutual comedies (the 1916 to 1917 shorts) were cranked at 14 frames a second, sometimes at 12 | [silentfilmmusic.com, Mutual restorations and fps](https://silentfilmmusic.com/mutual-restorations-fps/) |
+| Projection speed | films from the 1900s to the early or mid teens are best seen at 16 to 18 frames a second, "silent speed" | [silentfilmmusic.com, "Silent" Speed](https://silentfilmmusic.com/lsf55-silent-speed/) |
+| The Kops on screen | Keystone shorts run at 20 or 21 frames a second keep the slapstick and the characters' decisions readable; their "too fast" look comes from being shown at 24, sound film's rate (locked at 90 feet a minute in 1925 or 1926) | [silentfilmmusic.com, Over-Speeding and Keystone Cops](https://silentfilmmusic.com/lsf42-over-speeding-keystone-cops/) |
+| At ease | a police academy's drill: the hands at the small of the back, centred on the belt (the feet as the soldier's, under Goblins and orcs) | [Metropolitan Police Department (DC), Drill and Ceremony](https://mpdc.dc.gov/sites/default/files/dc/sites/mpdc/publication/attachments/1.2%20Drill%20and%20Ceremony.pdf) |
+
+*Caveat:* the cranking speed is given for the Mutual comedies, not for Keystone itself (Keystone's films went out through Mutual in those years, but no page found names Keystone's own rate). The speed-up below is the ratio of the two ranges, not a measured one.
+
+*Not found:* any number for the comic run's arm swing, lean or the skidding turn at a corner, or for a Kop's pile-up fall. No number is claimed for them; the pose stages set them by eye.
+
+**What the Kops take from this.** A runner steps about 165 times a minute (2.75 a second). Cranked at 12 to 14 frames and shown at 16 to 18, the same run played back 1.14 to 1.5 times faster, and today at 24 frames half as fast again: the comic run is a real run sped up, about 3.6 steps a second as the audience saw it, a scurry no runner would choose. At rest a Kop stands at ease, feet about a quarter of a metre apart (scaled by leg length), the hands behind at the belt.

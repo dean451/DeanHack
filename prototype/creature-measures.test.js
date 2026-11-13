@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -398,3 +398,20 @@ test('the jabberwock numbers: a heron\'s slow aim, a sudden strike down from the
   // walking, the head stays nearly still against the trunk, like the dragon's
   inside(JABBERWOCK.headSteady, [.1, .25], 'head yaw against trunk yaw');
 });
+
+test('the kop numbers: a runner\'s cadence, undercranked and shown fast, and a policeman at ease', () => {
+  const k = MEASURES.kop;
+  // a runner prefers a little under the economical cadence, and runners spread widely round it
+  inside(k.runCadence, [150, 185], 'preferred cadence'); assert(k.runCadence < k.runCadenceEfficient);
+  inside(k.runCadence, k.runCadenceSpread, 'preferred cadence in the race spread');
+  // cranked slower than shown, so the run played back faster: about 1.1 to 1.5 in its day, half again at sound speed
+  assert(k.crankFps[1] < k.projectFps[0] && k.projectFps[1] < k.keystoneFps[0] && k.keystoneFps[1] < k.soundFps);
+  inside(KOP.comicSpeed[0], [1.1, 1.2], 'comic speed low'); inside(KOP.comicSpeed[1], [1.4, 1.6], 'comic speed high');
+  inside(KOP.modernSpeed, [1.4, 1.6], 'sound-speed playback');
+  // the comic run's step rate as seen: faster than any runner's preferred cadence, a scurry
+  inside(KOP.cadence, [2.5, 3.1], 'cadence, Hz'); inside(KOP.comicCadence, [3.3, 4], 'comic cadence, Hz');
+  assert(KOP.comicCadence * 60 > k.runCadenceEfficient);
+  // at ease: the feet a quarter of a metre apart, the hands behind at the belt
+  inside(KOP.atEaseFeet, [.25, .31], 'at ease feet, m'); assert(KOP.handsBehind);
+});
+
