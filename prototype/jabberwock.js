@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {pickPoints,skinChain} from './chain-skin.js';
+import {mergeSkins} from './trunk-skin.js';
 
 // Jabberwocks used to be a pot-bellied purple thing with buck teeth and antennae, closer to a
 // cartoon than to one of the deadliest monsters in the dungeon. Now it is a bladed predator:
@@ -27,7 +28,11 @@ import {pickPoints,skinChain} from './chain-skin.js';
 // biped's legs are its hind legs; left is -x), the wings `lwing` / `rwing` and the tail's five bones
 // `tail0` (root) to `tail4` (tip). The tail's hide, fins, crescent blade and glowing edges are skinned
 // on one skeleton under the `tail` group, which stays the swing pivot, so a bent tail joint carries
-// everything past it. Still one mesh per material, so the draw count is unchanged.
+// everything past it. Each arm is skinned the same way on `lfore_0` (shoulder), `_1` (elbow) and `_2`
+// (wrist), and each leg on `lleg1_0` (hip), `_1` (knee), `_2` (ankle) and `_3` (the foot, toes and
+// sickle claw), under its own group (still the swing pivot). A skinned mesh cannot join the actor batch,
+// so the tail's, arms' and legs' skins are then merged into one skinned mesh per material on one skeleton
+// (`mergeSkins`; the bones stay under their groups): three draws, as when only the tail was skinned.
 
 const KINDS={
  'vorpal jabberwock':{scale:1.35,hide:'#2b1a3a',dark:'#120a1a',belly:'#4a3a56',horn:'#1a1420',tooth:'#ece4cc',mouth:'#5a0a1e',
@@ -154,6 +159,8 @@ function buildJaw(B){
 
 // An arm reaching forward from the shoulder: upper arm, elbow and forearm, a mantis blade
 // along the forearm, a hooked elbow spur and three scythe talons plus a thumb claw.
+// The arm's bones at shoulder, elbow and wrist (the arm group's own space).
+const ARM_BONES=s=>[[0,0,0],[s*.02,-.22,0],[0,-.35,.2]];
 function buildArm(B,s){
  const {hide,blade}=B,P=part();
  P.add('hide',taper([[0,0,0],[s*.03,-.12,.02],[s*.02,-.22,0]],.048,.032,10,8),null,hide);
@@ -169,6 +176,8 @@ function buildArm(B,s){
 
 // A digitigrade leg: a thick thigh, shin and long foot, three clawed toes, a raised sickle claw,
 // a spike off the knee and a heel spur.
+// The leg's bones at hip, knee, ankle and the ball of the foot (the leg group's own space).
+const LEG_BONES=s=>[[0,0,0],[s*.02,-.2,.12],[s*.02,-.4,-.04],[s*.02,-.475,.04]];
 function buildLeg(B,s){
  const {hide,blade}=B,P=part(),x=s*.02;
  P.add('hide',taper([[0,0,0],[x,-.12,.08],[x,-.2,.12]],.085,.055,10,10),null,hide);
@@ -246,7 +255,8 @@ function kindParts(name){
  const G={body:buildBody(B),head:buildHead(B),eyes:buildEyes(),jaw:buildJaw(B),tail:buildTail(B),
   arm:{'-1':buildArm(B,-1),'1':buildArm(B,1)},leg:{'-1':buildLeg(B,-1),'1':buildLeg(B,1)},wing:{'-1':buildWing(B,-1,1),'1':buildWing(B,1,2)}};
  for(const geo of Object.values(G.tail))skinChain(geo,TAIL_BONES);
- const out={k,M,G};cache.set(name,out);return out;
+ for(const s of [-1,1]){for(const geo of Object.values(G.arm[s]))skinChain(geo,ARM_BONES(s));for(const geo of Object.values(G.leg[s]))skinChain(geo,LEG_BONES(s));}
+ const out={k,M,G,skins:{hide:{},blade:{},glow:{}}};cache.set(name,out);return out;
 }
 function meshes(parent,geos,M,name){
  for(const key of ['hide','blade','glow','membrane'])if(geos[key]){
@@ -254,21 +264,22 @@ function meshes(parent,geos,M,name){
  }
 }
 
-// The tail's meshes (one per material, already skinned along TAIL_BONES) bound to one skeleton whose bones
-// `tail0`..`tail4` hang on the tail group, each placed relative to the last.
-function skinnedTail(tail,geos,M){
- const bones=TAIL_BONES.map((p,i)=>{const b=new THREE.Bone(),q=i?TAIL_BONES[i-1]:[0,0,0];b.name='tail'+i;b.position.set(p[0]-q[0],p[1]-q[1],p[2]-q[2]);return b;});
- bones.forEach((b,i)=>(i?bones[i-1]:tail).add(b));
- tail.updateMatrixWorld(true);
+// A chain's meshes (one per material, already skinned along `pts`) bound to one skeleton whose bones
+// `<name>0`.. hang on `group`, each placed relative to the last: the tail (`tail0`..), an arm (`lfore_0`..)
+// or a leg (`lleg1_0`..).
+function skinned(group,geos,M,pts,name,part){
+ const bones=pts.map((p,i)=>{const b=new THREE.Bone(),q=i?pts[i-1]:[0,0,0];b.name=name+i;b.position.set(p[0]-q[0],p[1]-q[1],p[2]-q[2]);return b;});
+ bones.forEach((b,i)=>(i?bones[i-1]:group).add(b));
+ group.updateMatrixWorld(true);
  const skeleton=new THREE.Skeleton(bones);
  for(const key of ['hide','blade','glow','membrane'])if(geos[key]){
-  const m=new THREE.SkinnedMesh(geos[key],M[key]);m.castShadow=key!=='glow';m.receiveShadow=key!=='glow';m.userData.part='tail';
-  tail.add(m);m.updateMatrixWorld(true);m.bind(skeleton);
+  const m=new THREE.SkinnedMesh(geos[key],M[key]);m.castShadow=key!=='glow';m.receiveShadow=key!=='glow';m.userData.part=part;
+  group.add(m);m.updateMatrixWorld(true);m.bind(skeleton);
  }
  return bones;
 }
 export function createJabberwock(name){
- const {k,M,G}=kindParts(KINDS[name]?name:'jabberwock');
+ const {k,M,G,skins}=kindParts(KINDS[name]?name:'jabberwock');
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(k.scale);g.name='jabberwock';
  meshes(body,G.body,M,'body');
  const head=new THREE.Group();head.position.set(0,1.16,.42);head.rotation.x=.12;body.add(head);
@@ -276,18 +287,25 @@ export function createJabberwock(name){
  const eyes=new THREE.Mesh(G.eyes,M.glow);eyes.userData.part='eyes';head.add(eyes);
  const jaw=new THREE.Group();jaw.position.set(0,-.035,.02);jaw.userData.reach=.85;head.add(jaw);
  meshes(jaw,G.jaw,M,'jaw');
- const legs=[],arms=[],wings=[];
+ const legs=[],arms=[],wings=[],limbBones=[];
  for(const s of [-1,1]){
-  const leg=new THREE.Group();leg.position.set(s*.14,.5,-.06);body.add(leg);meshes(leg,G.leg[s],M,'leg');legs.push(leg);
-  const arm=new THREE.Group();arm.position.set(s*.2,.9,.14);arm.rotation.x=-.35;body.add(arm);meshes(arm,G.arm[s],M,'arm');arms.push(arm);
+  const side=s<0?'l':'r';
+  const leg=new THREE.Group();leg.position.set(s*.14,.5,-.06);body.add(leg);legs.push(leg);
+  const arm=new THREE.Group();arm.position.set(s*.2,.9,.14);arm.rotation.x=-.35;body.add(arm);arms.push(arm);
+  for(const b of [...skinned(arm,G.arm[s],M,ARM_BONES(s),side+'fore_','arm'),...skinned(leg,G.leg[s],M,LEG_BONES(s),side+'leg1_','leg')])limbBones.push(b);
   const wing=new THREE.Group();wing.position.set(s*.13,1,-.12);wing.rotation.y=s*-.35;body.add(wing);meshes(wing,G.wing[s],M,'wing');wings.push(wing);
  }
  const tail=new THREE.Group();tail.position.set(0,.5,-.2);tail.name='tail';body.add(tail);
- const tailBones=skinnedTail(tail,G.tail,M);
+ const tailBones=skinned(tail,G.tail,M,TAIL_BONES,'tail','tail');
  // named joints (left is -x: each list is built left side first)
  const joints={head,neck0:head,jaw,lfore:arms[0],rfore:arms[1],lleg1:legs[0],rleg1:legs[1],lwing:wings[0],rwing:wings[1]};
  for(const [n,o] of Object.entries(joints))if(n!=='neck0')o.name=n;
- for(const b of tailBones)joints[b.name]=b;
+ for(const b of [...tailBones,...limbBones])joints[b.name]=b;
+ // the tail's, arms' and legs' skins: one mesh per material (the tail's first, so its bones lead the skeleton)
+ for(const key of Object.keys(skins)){
+  const first=tail.children.find(o=>o.isSkinnedMesh&&o.material===M[key]);
+  if(first){const m=mergeSkins(body,first,skins[key]);m.userData.part='limbs';m.castShadow=m.receiveShadow=key!=='glow';}
+ }
  // (the skinned tail's bind inverse follows its world matrix: refresh the whole actor once, scale included,
  // so a box measured before the first frame sees the tail where it is drawn)
  g.updateMatrixWorld(true);
