@@ -11,6 +11,7 @@ import {createTengu} from './tengu.js';
 import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
 import {rigGiant} from './giant-joints.js';
+import {carveScar} from './skin-scar.js';
 import {rigBody,hangOn,skinPlainLimb} from './trunk-skin.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
@@ -1950,7 +1951,10 @@ function giant(o){
  // fire giants: a black iron belt cinches the waist, its heavy buckle still glowing from the forge
  if(o.buckle){const iron=mat('#1e1a1a',{roughness:.5,metalness:.7}),glow=mat('#ffb060',{emissive:'#e0400e',emissiveIntensity:2.4,roughness:.5});g.userData.buckled=true;part(body,new THREE.TorusGeometry(.17,.02,4,14),iron,0,.5,0).rotation.x=Math.PI/2;rounded(body,.07,.06,.03,glow,0,.5,.16,.01);}
  // titans: old war-scars slash the gilded breastplate
- if(o.scars){const gash=mat('#2a1410',{roughness:1});g.userData.scarred=true;for(const [x,y,rz] of [[-.1,.9,.7],[.08,.82,-.6],[.12,.94,.5]]){const sc=rounded(body,.016,.15,.01,gash,x,y,.145,.004);sc.rotation.z=rz;}}
+ if(o.scars){const gash=mat('#2a1410',{roughness:1});g.userData.scarred=true;
+  // brutes (review 2026-11-13): the gashes are cut into the slab-sided chest itself, following every facet and pectoral edge (skin-scar.js)
+  if(B){const on=body.children.filter(m=>m.isMesh&&m.material===skin);for(const [x,y,rz] of [[-.1,.9,.7],[.08,.82,-.6],[.12,.94,.5]])carveScar(body,on,gash,{x,y,rz,len:.15,wide:.016});}
+  else for(const [x,y,rz] of [[-.1,.9,.7],[.08,.82,-.6],[.12,.94,.5]]){const sc=rounded(body,.016,.15,.01,gash,x,y,.145,.004);sc.rotation.z=rz;}}
  // stone giants: grey lichen crusts the shoulders and a black crack splits the brow, as if quarried rather than born
  if(o.lichen){const crust=mat('#6e7a56',{roughness:1}),crack=mat('#14120f',{roughness:1});g.userData.lichened=true;for(const [x,y,z,r] of [[-.2,1.06,-.02,.05],[.19,1.05,.02,.04],[-.1,1.04,-.1,.04],[.1,1.07,-.08,.035]])sphere(body,r,crust,x,y,z,1.4,.45,1.1);
   rounded(leadHead,.012,.1,.01,crack,.03,.07,.115,.004).rotation.z=.4;}
