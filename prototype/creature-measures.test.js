@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -367,4 +367,19 @@ test('the centaur numbers: a horse\'s trot and restless pawing, an archer\'s qui
   // at full draw the drawing arm is up near the horizontal and the elbow folded hard; the elite hold it tighter
   inside(CENTAUR.drawShoulder, [1.5, 2], 'drawing shoulder, rad'); inside(CENTAUR.drawElbow, [2.2, 2.6], 'drawing elbow, rad');
   assert(c.drawShoulder.elite < c.drawShoulder.novice && c.drawElbow.elite < c.drawElbow.novice);
+});
+
+test('the giant numbers: a heavy, wide lumber, a slow stiff rise and a quick heave at the end of a long throw', () => {
+  const g = MEASURES.giant;
+  // the heavy walk is a little slower and markedly wider than a lean one
+  inside(g.walkSpeed.heavy, [1.2, 1.5], 'heavy walk, m/s'); inside(GIANT.walkOverLean, [.9, 1], 'heavy walk against lean');
+  inside(g.stepWidthGain, [.2, .4], 'wider step'); assert(GIANT.stepWidth > HUMAN.stepWidth, 'steps wider than a person');
+  // rising takes the heavy body nearly twice as long, with less forward lean
+  inside(GIANT.rise, [2.5, 3.5], 'rise, s'); inside(GIANT.rise / g.riseSeconds.lean, [1.5, 2.2], 'rise against lean');
+  inside(GIANT.riseLean, [.4, .6], 'lean while rising, rad'); assert(g.riseTrunkFlexion.heavy < g.riseTrunkFlexion.lean && /knees/.test(g.rise));
+  // a throw winds up for over a second and a half, then the heave is a fifth of a second
+  inside(GIANT.throw, [1.4, 1.8], 'throw, s'); inside(GIANT.heave, [.15, .25], 'heave, s');
+  assert(GIANT.heave < GIANT.throw / 5, 'the heave is a short end to a long wind-up');
+  // the boulder leaves rising, below the textbook 45 degrees
+  inside(GIANT.release, [.6, .7], 'release angle, rad'); assert(GIANT.release < Math.PI / 4);
 });
