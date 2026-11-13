@@ -595,3 +595,24 @@ The family in the plan (AGENTS.md, family **K**: a human, the comic run stays). 
 *Not found:* any number for the comic run's arm swing, lean or the skidding turn at a corner, or for a Kop's pile-up fall. No number is claimed for them; the pose stages set them by eye.
 
 **What the Kops take from this.** A runner steps about 165 times a minute (2.75 a second). Cranked at 12 to 14 frames and shown at 16 to 18, the same run played back 1.14 to 1.5 times faster, and today at 24 frames half as fast again: the comic run is a real run sped up, about 3.6 steps a second as the audience saw it, a scurry no runner would choose. At rest a Kop stands at ease, feet about a quarter of a metre apart (scaled by leg length), the hands behind at the belt.
+
+## Liches (lich, demilich, master lich, arch-lich)
+
+The family in the plan (AGENTS.md, family **L**: a human, stiff and wasted). A lich is measured from the living people whose bodies move the most like it: the frail, wasted walker of sarcopenia, and the rigid, stooped walker of Parkinson's disease, whose arms stop swinging, whose hands tremble at rest and who turns in one piece. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### A wasted, rigid walker (the stoop at rest, the slow walk, the tremor and the turn)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Slow walk | a usual pace of 0.8 m/s or less counts as low physical performance in sarcopenia (EWGSOP2) and picked out the risk of disability better than frailty or sarcopenia did | [Low gait speed is better than frailty and sarcopenia at identifying the risk of disability in older adults (PMC12017394)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12017394/) |
+| Still arms | pooled over 15 studies, people with Parkinson's swing their arms through 7.07 degrees less range than healthy controls, 0.8 cm less amplitude and 0.31 m/s slower, on or off medication | [Navarro-López et al. 2022, Arm-swing kinematics in Parkinson's disease: a systematic review and meta-analysis, Gait & Posture 98](https://burjcdigital.urjc.es/handle/10115/28440) |
+| The stoop | camptocormia, the forward bend that shows standing or walking and goes when lying down: 30 degrees or more bending at the hips (lower), 45 or more at the chest (upper), a 2018 expert consensus | [IRIS Humanitas, consensus criteria for camptocormia in Parkinson's disease](https://iris.hunimed.eu/handle/11699/103438) |
+| Rest tremor | the classic parkinsonian tremor is at rest, distal, often one-sided, about 4 to 6 Hz (pill-rolling) | [Journal of Parkinson's Disease, clinical review of tremor](https://content.iospress.com/articles/journal-of-parkinsons-disease/jpd150650) |
+| The half turn | a 180 degree turn took 2.18 ± 0.43 s in early, untreated Parkinson's against 1.79 ± 0.27 s in age-matched people, with a longer delay before it began (12 patients, 14 controls, inertial sensors) | [Salarian et al. 2009, Analyzing 180° turns using an inertial system reveals early signs of progression of Parkinson's disease (EPFL Infoscience)](https://infoscience.epfl.ch/record/147270?ln=en) |
+| Steps to turn | healthy people turn 180 degrees in 2 to 3 steps and under 2 s; people with Parkinson's take more than 4 steps and more than 2 s, the delay greatest on the first turn step | [Tzu Chi Medical Journal 2013 review of turning in Parkinson's disease (25:4, 200 to 202)](https://www.tzuchi.com.tw/medjnl/files/2013/vol-25-4/2013-25-4-200-202.pdf) |
+
+*Caveat:* the step counts are a review's rule of thumb gathered from several studies, not one study's means. Whether people with Parkinson's turn more en bloc than healthy people depends on the task in the studies found.
+
+*Not found:* a stride length or cadence for a frail or parkinsonian walker (Morris et al. 1994 found the stride shorter and the cadence higher at a matched speed, but the numbers were not in the results), and any angle for the head carried forward. No number is claimed for them; the pose stages set them by eye.
+
+**What the liches take from this.** A lich walks at about 0.8 m/s, three fifths of a healthy usual pace, bent forward at least 30 degrees from the hips (45 if it bends at the chest), its arms hanging with about 7 degrees less swing than a living walker's, so nearly none. At rest it stands in that stoop and does not straighten; its hands tremble at 4 to 6 beats a second. Its signature is the turn: when the hero comes, it turns to face them in one piece, head, trunk and pelvis together, over about 2.2 s and more than four shuffling steps, about a fifth slower than a living person.

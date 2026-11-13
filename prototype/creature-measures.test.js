@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -415,3 +415,20 @@ test('the kop numbers: a runner\'s cadence, undercranked and shown fast, and a p
   inside(KOP.atEaseFeet, [.25, .31], 'at ease feet, m'); assert(KOP.handsBehind);
 });
 
+test('the lich numbers: a wasted walker\'s slow pace, the stoop, still arms, the rest tremor and a slow turn', () => {
+  const l = MEASURES.lich;
+  // slow: well under a healthy usual pace, about three fifths of it
+  inside(l.slowWalk, [.6, 1], 'slow walk, m/s'); assert(l.slowWalk < MEASURES.human.walkSpeed[0]);
+  inside(LICH.walkShare, [.5, .7], 'pace against a healthy walker');
+  // the stoop: bent at the hips at least 30 degrees, at the chest 45
+  inside(l.stoop.lower, [15, 45], 'lower stoop, degrees'); inside(l.stoop.upper, [30, 60], 'upper stoop, degrees');
+  assert(LICH.stoop <= LICH.stoopUpper);
+  // the arms swing several degrees less; the tremor is slow and coarse, a few beats a second
+  inside(l.armSwingLoss, [3, 15], 'arm swing loss, degrees');
+  inside(l.tremorHz[0], [3, 5], 'tremor low, Hz'); inside(l.tremorHz[1], [5, 7], 'tremor high, Hz'); inside(LICH.tremor, [4, 6], 'tremor, Hz');
+  // the half turn: longer and in more steps than a healthy person's
+  inside(l.turnSeconds.pd, [1.8, 4], 'turn, s'); inside(l.turnSeconds.control, [1.2, 2.2], 'control turn, s');
+  inside(LICH.turnSlow, [1.1, 1.5], 'turn slower by'); assert(l.turnSteps.pd > l.turnSteps.control);
+  // at rest it stands bent with the arms hanging and the hands trembling
+  assert(/bent forward/.test(l.rest) && /trembling/.test(l.rest));
+});
