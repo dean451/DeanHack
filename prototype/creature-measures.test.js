@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -382,4 +382,19 @@ test('the giant numbers: a heavy, wide lumber, a slow stiff rise and a quick hea
   assert(GIANT.heave < GIANT.throw / 5, 'the heave is a short end to a long wind-up');
   // the boulder leaves rising, below the textbook 45 degrees
   inside(GIANT.release, [.6, .7], 'release angle, rad'); assert(GIANT.release < Math.PI / 4);
+});
+
+test('the jabberwock numbers: a heron\'s slow aim, a sudden strike down from the folded neck, long still stalks', () => {
+  const h = MEASURES.heron;
+  // the head creeps, then strikes several times faster, and faster still at prey under the water
+  inside(JABBERWOCK.aim, [.3, .8], 'aim, m/s'); inside(JABBERWOCK.strike, [2, 3.5], 'strike, m/s');
+  inside(JABBERWOCK.strikeOverAim, [4, 7], 'strike against aim'); assert(h.strikeSpeed.surface < h.strikeSpeed.underwater);
+  // the strike drives down at a third of a right angle, and is over in a fraction of a second
+  inside(JABBERWOCK.strikePath, [.5, .65], 'strike path, rad'); inside(JABBERWOCK.strikeTime, [.1, .3], 'strike, s');
+  // a long neck of many vertebrae, held folded at rest and struck from that fold
+  inside(h.cervical, [15, 20], 'neck vertebrae'); assert(/one leg/.test(h.rest) && /S/.test(h.rest));
+  // most of the day is stalking or standing still; watching upright is a sliver of it
+  inside(JABBERWOCK.stalkShare, [.5, .75], 'stalking share'); inside(JABBERWOCK.watchShare, [.01, .06], 'watching share');
+  // walking, the head stays nearly still against the trunk, like the dragon's
+  inside(JABBERWOCK.headSteady, [.1, .25], 'head yaw against trunk yaw');
 });

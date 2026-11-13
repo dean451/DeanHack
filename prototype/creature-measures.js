@@ -272,6 +272,17 @@ export const MEASURES = {
     deliverySeconds: [.18, .20], // s, the last double support phase, the heave itself (same)
     releaseAngle: [37, 38], // degrees, the release angle top shot putters cluster round (arXiv 1007.3689)
   },
+  // the jabberwock: a heron's neck and strike (its long neck thrusts the head out low); the walk is the monitor lizard's (dragon.lizard)
+  heron: {
+    aimSpeed: .52, // m/s, the head's slow pre-strike phase, western reef heron at underwater prey (Katzir and Intrator 1987, J Comp Physiol A 160)
+    strikeSpeed: {underwater: 2.70, surface: 1.54}, // m/s, the strike phase itself (same; at prey above the water the two phases blur)
+    strikePath: 33, // degrees, the mean angle of the head's path in the strike (same)
+    strikeSeconds: .167, // s, about ten frames at 60 fps, a great blue heron filmed by an amateur: a rough check, not a measurement
+    cervical: 17, // neck vertebrae, the same in herons of very different size (SICB abstract, scaling of the axial skeleton in Ardeidae)
+    forageShare: .62, // of an adult great blue heron's day budget spent foraging, standing or wading slowly (Crested Butte Land Trust 2019 report)
+    vigilantShare: .031, // of the same budget spent upright and vigilant (same)
+    rest: 'stands still for long spells, often on one leg, the neck folded back into an S with the head sunk on the shoulders; strikes from that S, one long vertebra acting as the hinge',
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -524,4 +535,20 @@ export const GIANT = {
   heave: mid(MEASURES.giant.deliverySeconds),
   // the boulder leaves the hands rising at this angle, rad
   release: mid(MEASURES.giant.releaseAngle) * Math.PI / 180,
+};
+
+// What the jabberwock uses: the heron's slow aim and sudden strike from a folded neck, and the dragon's lizard walk
+export const JABBERWOCK = {
+  // the head creeps forward, then shoots out about five times faster
+  aim: MEASURES.heron.aimSpeed,
+  strike: MEASURES.heron.strikeSpeed.underwater,
+  strikeOverAim: MEASURES.heron.strikeSpeed.underwater / MEASURES.heron.aimSpeed,
+  // the head's path down onto the prey, rad, and the strike's length, s
+  strikePath: MEASURES.heron.strikePath * Math.PI / 180,
+  strikeTime: MEASURES.heron.strikeSeconds,
+  // most of its time it stands and stalks; a little of it upright and watching
+  stalkShare: MEASURES.heron.forageShare,
+  watchShare: MEASURES.heron.vigilantShare,
+  // walking, the head holds steady against the trunk's swing, as a dragon's does
+  headSteady: MEASURES.dragon.lizard.headYaw / MEASURES.dragon.lizard.trunkYaw,
 };
