@@ -282,6 +282,16 @@ export const MEASURES = {
     forageShare: .62, // of an adult great blue heron's day budget spent foraging, standing or wading slowly (Crested Butte Land Trust 2019 report)
     vigilantShare: .031, // of the same budget spent upright and vigilant (same)
     rest: 'stands still for long spells, often on one leg, the neck folded back into an S with the head sunk on the shoulders; strikes from that S, one long vertebra acting as the hinge',
+  },  // the Kops: a policeman at ease and a runner, played back as a silent comedy was (undercranked, then shown faster)
+  kop: {
+    runCadence: 165, // steps a minute, 21 experienced recreational runners' preferred cadence (de Ruiter et al. 2020)
+    runCadenceEfficient: 171, // steps a minute, the same runners' most economical cadence (same)
+    runCadenceSpread: [160, 210], // steps a minute, the spread among runners of one 100 km race (Burns, quoted by Outside)
+    crankFps: [12, 14], // frames a second the Mutual-era comedies were cranked at (silentfilmmusic.com, Mutual restorations)
+    projectFps: [16, 18], // frames a second, the projection speed films of the early and mid teens are best seen at (silentfilmmusic.com)
+    keystoneFps: [20, 21], // frames a second Keystone shorts can be run at and keep the slapstick readable (silentfilmmusic.com)
+    soundFps: 24, // frames a second, sound film's projection rate, locked in 1925 or 1926 (same)
+    rest: 'stands at ease, the hands at the small of the back centred on the belt (a police academy drill page); the feet as the soldier\'s (soldier.atEaseFeet)',
   },
 };
 
@@ -551,4 +561,18 @@ export const JABBERWOCK = {
   watchShare: MEASURES.heron.vigilantShare,
   // walking, the head holds steady against the trunk's swing, as a dragon's does
   headSteady: MEASURES.dragon.lizard.headYaw / MEASURES.dragon.lizard.trunkYaw,
+};
+
+// What the Kops use: a runner's cadence sped up the way a silent comedy was, and a policeman's stand at ease
+export const KOP = {
+  // a runner's preferred step rate, Hz
+  cadence: MEASURES.kop.runCadence / 60,
+  // how much faster the run looked in its day (cranked at 12 to 14, shown at 16 to 18), and seen today at sound speed
+  comicSpeed: [MEASURES.kop.projectFps[0] / MEASURES.kop.crankFps[1], MEASURES.kop.projectFps[1] / MEASURES.kop.crankFps[0]],
+  modernSpeed: MEASURES.kop.soundFps / MEASURES.kop.projectFps[0],
+  // the step rate of the comic run as the audience saw it, Hz: the runner's, sped up by the middle of that range
+  comicCadence: MEASURES.kop.runCadence / 60 * mid([MEASURES.kop.projectFps[0] / MEASURES.kop.crankFps[1], MEASURES.kop.projectFps[1] / MEASURES.kop.crankFps[0]]),
+  // at ease: the soldier's foot spread, the hands behind at the belt
+  atEaseFeet: mid(MEASURES.soldier.atEaseFeet),
+  handsBehind: /small of the back/.test(MEASURES.kop.rest),
 };
