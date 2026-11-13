@@ -231,6 +231,24 @@ export const MEASURES = {
     stingAngle: {wasp: 10, bee: 6}, // degrees, the most efficient insertion slant, modelled (Scientific Reports 2018)
     sting: 'a paper wasp bends its abdomen swiftly into a sharp curve under the body to strike; the thin waist lets it',
   },
+  // the couatl, ki-rin and angels: a flying snake's glide (couatl), a resting snake's coil, a horse's levade (ki-rin), a person's upright stance and raised arm (angels)
+  angelic: {
+    glideHz: 1.4, // Hz, a paradise tree snake's aerial undulation in an equilibrium glide (Socha and LaBarbera 2005, J Exp Biol 208:1835)
+    glideHzRange: [1.15, 1.46], // Hz, the sample trials of the 3D motion-capture study (Yeaton, Ross, Baumgardner and Socha 2020, Nature Physics, SI)
+    glideAmplitude: .23, // the wave's height as a share of snout-vent length in that glide (Socha and LaBarbera 2005)
+    glideAmplitudeRange: [.20, .34], // the same over earlier glides (as quoted with Socha and LaBarbera 2005)
+    glideAngle: 25, // degrees below the horizontal at equilibrium (Socha and LaBarbera 2005)
+    diveAngle: [52, 62], // degrees, the ballistic dive after the jump, before the glide shallows (same)
+    glideSpeed: {forward: 6.8, sink: 3.0}, // m/s (same)
+    coil: 'an ambushing rattlesnake rests coiled on the ground, the head on or near the top of the coil, for hundreds of hours at a stretch (Maag and Clark 2022, 250 coiled hours a predator encounter)',
+    coiledHoursPerThreat: 250, // coiled hours per predator encounter, averaged over six rattlesnake populations (same)
+    levade: [30, 35], // degrees, the horse's body to the ground in the levade, forehand raised on lowered, coiled hindquarters (Airs above the ground)
+    pesade: 45, // degrees, the older, steeper rear (same)
+    standLean: 3, // degrees, a person's usual forward lean in quiet standing, the centre of mass a little ahead of the ankle (Physiology News, Understanding standing)
+    shoulderFlexion: 180, // degrees, the arm raised forward and up over the head, the textbook normal (AAOS values, Physiopedia)
+    shoulderFlexionActive: 168, // degrees, a measured active norm (PMC1713230, table 2)
+    elbowFlexion: [145, 150], // degrees, normal elbow flexion (CDC joint range of motion study; AAOS values)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -437,4 +455,19 @@ export const GRIDBUG = {
   dashBL: [MEASURES.gridBug.earlyBL, MEASURES.gridBug.topBL],
   // the sting's slant off the target, rad
   stingSlant: MEASURES.gridBug.stingAngle.wasp * Math.PI / 180,
+};
+
+// What the couatl, ki-rin and angels use: the couatl swims the air in slow wide waves, a ki-rin rears into a levade, an angel stands tall, leaning a hair forward, and raises its blade overhead
+export const ANGELIC = {
+  // the couatl's wave, Hz, and its height against the body's length
+  glideHz: MEASURES.angelic.glideHz,
+  waveShare: MEASURES.angelic.glideAmplitude,
+  // the couatl's body pitched nose down as it glides, rad
+  glidePitch: MEASURES.angelic.glideAngle * Math.PI / 180,
+  // a ki-rin's rear: the body's angle to the floor, rad, mid of the levade
+  rear: mid(MEASURES.angelic.levade) * Math.PI / 180,
+  // an angel's lean forward from the ankles at rest, rad
+  lean: MEASURES.angelic.standLean * Math.PI / 180,
+  // the sword arm raised overhead, rad from hanging, the measured active reach
+  raise: MEASURES.angelic.shoulderFlexionActive * Math.PI / 180,
 };

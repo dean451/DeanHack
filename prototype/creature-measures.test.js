@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -324,4 +324,25 @@ test('the grid bug numbers are a cockroach: flat at rest, a quick tripod scuttle
   inside(GRIDBUG.stingSlant, [.05, .35], 'sting slant, rad');
   assert(/curve/.test(g.sting), 'the abdomen curls to sting');
   assert(GRIDBUG.dashBL[0] < GRIDBUG.dashBL[1] && GRIDBUG.scuttleHz === g.tripodHz);
+});
+
+test('the couatl, ki-rin and angel numbers: a flying snake\'s slow wide wave, a resting coil, a horse\'s levade, a person\'s upright stance and raised arm', () => {
+  const a = MEASURES.angelic;
+  // the aerial wave is slow and wide: one to two beats a second, a fifth to a third of the body high
+  inside(a.glideHz, a.glideHzRange, 'glide wave, Hz'); inside(ANGELIC.glideHz, [1, 2], 'glide wave, Hz');
+  inside(a.glideAmplitude, a.glideAmplitudeRange, 'wave height share'); inside(ANGELIC.waveShare, [.15, .4], 'wave height share');
+  // it dives steeply first, then glides shallower, and goes forward faster than it sinks
+  assert(a.glideAngle < a.diveAngle[0] && a.diveAngle[0] < a.diveAngle[1]);
+  assert(Math.abs(Math.atan2(a.glideSpeed.sink, a.glideSpeed.forward) * 180 / Math.PI - a.glideAngle) < 2, 'speeds agree with the glide angle');
+  inside(ANGELIC.glidePitch, [.3, .6], 'glide pitch, rad');
+  assert(/coiled/.test(a.coil) && a.coiledHoursPerThreat > 100, 'a snake rests coiled, for a long time');
+  // the levade is a low rear, lower than the pesade, the forehand well up
+  assert(a.levade[1] < a.pesade);
+  inside(ANGELIC.rear, [.45, .7], 'levade, rad');
+  // an angel stands almost upright: a lean of a few degrees, never a stoop
+  inside(ANGELIC.lean, [.02, .1], 'stance lean, rad');
+  // the sword arm goes all the way up, past straight overhead is not asked
+  assert(a.shoulderFlexionActive <= a.shoulderFlexion);
+  inside(ANGELIC.raise, [2.6, Math.PI], 'arm raised overhead, rad');
+  inside(a.elbowFlexion[0], [130, 150], 'elbow flexion, degrees');
 });

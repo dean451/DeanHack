@@ -470,3 +470,36 @@ The family in the plan (AGENTS.md, family **G**: a short human, the waddle). A g
 *Not found:* how a short-legged person sits or sleeps, the pelvis's drop in adults (Sims 2020 measures it; the value did not come up), and any measure of the trunk's own side sway. No number is claimed for them; the pose stages set them by eye.
 
 **What the gnomes take from this.** A gnome stands with its pelvis tipped forward about 20° (nearly twice a person's 11°) and the small of its back hollowed, the belly forward and the rump out. It walks at about three quarters of a person's pace by steps about 0.6 of a person's, taken about 1.2 times as fast, about 0.4 s a step; for its leg length that is just a person's walk. The waddle is the pelvis swinging round: about 10° to 14° each way from straight with every step, against a person's 6°, while it tips side to side no more than a person's (about 4° each way). So the waddle is a turning, rolling-forward hip, not a side-to-side rock.
+
+## Couatl, ki-rin and angels (couatl, ki-rin, Aleax, Angel, dark angel, archon)
+
+The family in the plan (AGENTS.md, family **A**: a feathered serpent and a horse for the ki-rin; a human for the angels). The couatl is drawn as a winged serpent hovering in the air, so its gait is measured from the flying snake's aerial undulation and its rest from a resting snake's coil; the ki-rin is a horse, so its walk and rest are the Horses section's and its signature is the horse's rear, the levade; the angels are tall people, so their rest is a person's quiet stance and their signature the sword arm raised overhead. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Flying snake (the glide) and resting snake (the coil)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Aerial undulation | a paradise tree snake (*Chrysopelea paradisi*) gliding at equilibrium undulates at about 1.4 Hz with a wave about 23% of its snout-vent length high; earlier glides 1 to 2 Hz and 20 to 34% | [Socha and LaBarbera 2005, Effects of size and behavior on aerial performance of two species of flying snakes, J Exp Biol 208:1835](https://cob.silverchair.com/jeb/article/208/10/1835/15326/Effects-of-size-and-behavior-on-aerial-performance) |
+| Undulation, 3D capture | sample trials at 1.15 to 1.46 Hz, a large side-to-side wave (about 100 to 112°) and a smaller up-and-down one (about 28 to 31°); the undulation keeps the snake from tumbling | [Yeaton, Ross, Baumgardner and Socha 2020, Nature Physics, supplementary information](https://ross.aoe.vt.edu/papers/yeaton-ross-baumgardner-socha-2020-SI.pdf), [EurekAlert release](https://www.eurekalert.org/news-releases/588478) |
+| Glide | 6.8 m/s forward, 3.0 m/s sinking, a 25° glide angle; before it, a 1 to 5 m ballistic dive at 52 to 62° | [Socha and LaBarbera 2005](https://cob.silverchair.com/jeb/article-pdf/208/10/1835/1252347/1835.pdf) |
+| Rest | ambushing rattlesnakes lie coiled for long stretches: six species filmed for 8,300 hours met a predator about once every 250 coiled hours | [Maag and Clark 2022, Safety in coils, Amphibia-Reptilia](https://ouci.dntb.gov.ua/works/4YdqywP7) |
+
+### Horse (the levade)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Levade | the horse holds its body about 30 to 35° from the ground, the forehand raised on deeply bent, tucked hindquarters carrying all its weight | [Airs above the ground (Wikipedia, via search)](https://en.wikipedia.org/wiki/Levade) |
+| Pesade | the older, steeper rear at about 45° to the ground; an expert answer puts the levade under 45° | [the same](https://en.wikipedia.org/wiki/Levade), [Dressage Today](https://dressagetoday.com/theory/experts-29431/) |
+
+### Person (quiet stance, the raised arm)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Quiet stance | most people stand leaning about 3° forward, the centre of mass a little ahead of the ankle | [Physiology News, Understanding standing](https://www.physoc.org/magazine-articles/understanding-standing/), [PMC5529402](https://pmc.ncbi.nlm.nih.gov/articles/PMC5529402) |
+| Arm raised overhead | shoulder flexion 180° (the textbook normal), about 168° measured actively; elbow flexion 145 to 150° | [Physiopedia, range of motion normative values](https://www.physio-pedia.com/Range_of_Motion_Normative_Values), [PMC1713230, table 2](https://pmc.ncbi.nlm.nih.gov/articles/PMC1713230/table/T2), [CDC joint range of motion study](https://archive.cdc.gov/www_cdc_gov/ncbddd/jointrom/index.html) |
+
+*Caveat:* the flying snake glides downward from a height; it cannot hover, so the couatl's hover borrows only the wave's beat and height. The levade and pesade angles are from an encyclopaedia and a trainer's answer, not measurements. The stance lean is a magazine's summary of studies it does not name.
+
+*Not found:* a resting snake's coil size against its length, the time a horse holds a levade or how fast it rises into it, and any measure of a person holding a weapon overhead. No number is claimed for them; the pose stages set them by eye.
+
+**What the couatl, ki-rin and angels take from this.** The couatl swims the air: a slow wave, about one and a half beats a second, running down a body bent side to side about a quarter of its length, with a smaller up-and-down ripple; when it glides down it pitches about 25° nose down. At rest it settles coiled, head on top of the coil, and can stay so for hours. The ki-rin walks and rests as a horse (see Horses); its display is the levade, the forehand lifted until the body is about 30 to 35° off the floor, all its weight on bent, tucked hind legs. An angel stands nearly upright, leaning only about 3° forward from the ankles, and its signature is the blade raised overhead: the arm swung up close to 170° from hanging, the elbow free to bend up to about 150°.
