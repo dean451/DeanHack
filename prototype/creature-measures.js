@@ -261,6 +261,17 @@ export const MEASURES = {
     drawShoulder: {elite: 99.0, novice: 107.2}, // degrees, drawing arm's shoulder abduction while aiming (Shinohara and Urabe, as cited in Frontiers in Sports and Active Living 2025)
     drawElbow: {elite: 138, novice: 144}, // degrees, drawing arm's elbow flexion while aiming (same)
   },
+  // the giants: a heavy person's slower, wider walk and slow rise from a seat, and a thrower's heave (giants hurl boulders)
+  giant: {
+    walkSpeed: {heavy: 1.40, lean: 1.47}, // m/s, preferred walking speed of 10 obese and 10 normal-weight women (Browning and Kram 2005, Obes Res 13:891)
+    stepWidthGain: .30, // obese adults stepped about 30% wider at every speed from 0.5 to 1.75 m/s (Browning and Kram 2007, Med Sci Sports Exerc 39:1632, as summarized)
+    riseSeconds: {heavy: 3.02, lean: 1.67}, // s, sit to stand in women who were obese against lean women (Univ. of Kentucky study)
+    riseTrunkFlexion: {heavy: 28.9, lean: 35.8}, // degrees, peak trunk flexion while rising (same): the heavy body leans forward less
+    rise: 'a heavy person rises from a seat slowly and with little forward lean, pushing up with the knees more than the hips (Sibella et al. 2003)',
+    throwSeconds: [1.60, 1.62], // s, a rotational shot put from the first double support to release, one athlete's two throws (ISBS 1996, Konstanz archive)
+    deliverySeconds: [.18, .20], // s, the last double support phase, the heave itself (same)
+    releaseAngle: [37, 38], // degrees, the release angle top shot putters cluster round (arXiv 1007.3689)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -498,4 +509,19 @@ export const CENTAUR = {
   // the drawing arm at full draw: shoulder raised out to the side and elbow folded, rad, the elite archers'
   drawShoulder: MEASURES.centaur.drawShoulder.elite * Math.PI / 180,
   drawElbow: MEASURES.centaur.drawElbow.elite * Math.PI / 180,
+};
+
+// What the giants use: a heavy person's lumber (slower and wider than a person's usual walk), the slow rise and the boulder heave
+export const GIANT = {
+  // the heavy walk's speed as a share of a lean one's, and its step width against the humanoids' (a share of leg length)
+  walkOverLean: MEASURES.giant.walkSpeed.heavy / MEASURES.giant.walkSpeed.lean,
+  stepWidth: MEASURES.human.stepWidth * (1 + MEASURES.giant.stepWidthGain),
+  // standing up from the sit, s, and the forward lean on the way up, rad
+  rise: MEASURES.giant.riseSeconds.heavy,
+  riseLean: MEASURES.giant.riseTrunkFlexion.heavy * Math.PI / 180,
+  // the whole throw and the heave at its end, s, mid of the measured throws
+  throw: mid(MEASURES.giant.throwSeconds),
+  heave: mid(MEASURES.giant.deliverySeconds),
+  // the boulder leaves the hands rising at this angle, rad
+  release: mid(MEASURES.giant.releaseAngle) * Math.PI / 180,
 };

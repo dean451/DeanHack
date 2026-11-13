@@ -527,3 +527,29 @@ The family in the plan (AGENTS.md, family **A**: a feathered serpent and a horse
 *Not found:* a resting snake's coil size against its length, the time a horse holds a levade or how fast it rises into it, and any measure of a person holding a weapon overhead. No number is claimed for them; the pose stages set them by eye.
 
 **What the couatl, ki-rin and angels take from this.** The couatl swims the air: a slow wave, about one and a half beats a second, running down a body bent side to side about a quarter of its length, with a smaller up-and-down ripple; when it glides down it pitches about 25° nose down. At rest it settles coiled, head on top of the coil, and can stay so for hours. The ki-rin walks and rests as a horse (see Horses); its display is the levade, the forehand lifted until the body is about 30 to 35° off the floor, all its weight on bent, tucked hind legs. An angel stands nearly upright, leaning only about 3° forward from the ankles, and its signature is the blade raised overhead: the arm swung up close to 170° from hanging, the elbow free to bend up to about 150°.
+
+## Giants (giant, stone, hill, fire, frost and storm giants, ettin, titan, Cyclops, Lord Surtur)
+
+The family in the plan (AGENTS.md, family **H**: a heavy human, the sit and the lumber). A giant is drawn as a huge, heavy person, so its walk and its rise from a sit are measured from heavy people against lean ones, and its signature, hurling a boulder, from shot putters, who throw the heaviest thing people throw for sport. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session (the hosts are outside the session's allowed network domains).
+
+### Heavy person (the lumber, the rise)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Walk | 10 obese women walked at a preferred 1.40 m/s against 1.47 for 10 normal-weight women (p = 0.07), and walking cost them 11% more | [Browning and Kram 2005, Energetic cost and preferred speed of walking in obese vs. normal weight women, Obes Res (PubMed 15919843)](https://pubmed.ncbi.nlm.nih.gov/15919843/) |
+| Step width | obese adults stepped about 30% wider at every treadmill speed from 0.50 to 1.75 m/s, and the width did not change with speed | [Browning and Kram 2007, Effects of obesity on the biomechanics of walking at different speeds, Med Sci Sports Exerc (abstract)](https://www.ovid.com/jnls/acsm-msse/abstract/10.1249/mss.0b013e318076b54b~effects-of-obesity-on-the-biomechanics-of-walking-at), [Obesity and walking (Wikipedia summary)](https://en.wikipedia.org/wiki/Obesity_and_walking) |
+| Rise from a seat | women who were obese took 3.02 s (SD 0.75) to stand up against 1.67 s (SD 0.28) for lean women, with a peak trunk flexion of 28.9° against 35.8° | [The Association of Obesity with Quadriceps Activation during Sit-to-Stand (University of Kentucky)](https://scholars.uky.edu/en/publications/the-association-of-obesity-with-quadriceps-activation-during-sit-/) |
+| How it rises | 40 obese patients rose with the trunk held 73.1° from the horizontal against 49.2° in 10 normal-weight people, and leaned on knee torque more than hip torque | [Biomechanical analysis of sit-to-stand movement in normal and obese subjects (Sibella et al. 2003, record)](https://data.zhenzhi.com/details/1/874191562) |
+
+### Shot putter (the boulder heave)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Throw | one rotational shot putter's two throws took 1.62 and 1.60 s from the first double support to release: about 0.7 s on both feet winding up, 0.4 s on one, 0.14 s in flight, then 0.18 to 0.20 s each for the last single and double support, the heave | [A preliminary study of rotational shot put technique (ISBS, Konstanz archive), table](https://ojs.ub.uni-konstanz.de/cpa/article/view/1631/1533) |
+| Release angle | the simplest model gives 45°, but top shot putters release at about 37 to 38°, since release speed falls as the angle rises | [The optimal angle in the shot put (arXiv 1007.3689)](https://arxiv.org/abs/1007.3689) |
+
+*Caveat:* the walk and rise numbers are from small groups of women (and one group of patients), the step width a summary of a paper's result, the throw one athlete's two throws, and the release angle a model fitted to top athletes; each is quoted from a search summary, not read off the page.
+
+*Not found:* a heavy person's sitting posture as an angle (how far the trunk slumps, where the hands rest), a step length in metres for the heavy walk, and the boulder's own weight against the thrower's. No number is claimed for them; the pose stages set them by eye.
+
+**What the giants take from this.** A giant lumbers: a little slower than a person's walk for its size (about 95% of a lean pace) on feet set about 30% wider, so the body rolls side to side over each step. At rest it sits heavily, and getting up is slow, about three seconds, leaning forward little and shoving up with the knees. Its display is the boulder throw: a long wind-up of a second and a half, turning on its feet, then a heave of a fifth of a second that sends the rock off rising at about 37°.
