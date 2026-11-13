@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -431,4 +431,21 @@ test('the lich numbers: a wasted walker\'s slow pace, the stoop, still arms, the
   inside(LICH.turnSlow, [1.1, 1.5], 'turn slower by'); assert(l.turnSteps.pd > l.turnSteps.control);
   // at rest it stands bent with the arms hanging and the hands trembling
   assert(/bent forward/.test(l.rest) && /trembling/.test(l.rest));
+});
+
+test('the mummy numbers: a living knee\'s swing, the stiff-knee cut-off, the hip hike and the crossed arms', () => {
+  const m = MEASURES.mummy;
+  // a living walker bends the knee about 60 degrees at the top of the swing, a little less with age
+  inside(m.swingKnee[0], [55, 65], 'live swing knee low, degrees'); inside(m.swingKnee[1], [60, 72], 'live swing knee high, degrees');
+  inside(m.swingKneeAgeLoss[1], [.2, 1.5], 'swing knee lost a decade, degrees');
+  // a stiff knee is under about 40 degrees; the bad cases bend a fraction of that
+  inside(m.stiffKnee, [30, 45], 'stiff knee cut-off, degrees'); inside(m.stiffKneeSide.peak, [35, 50], 'stiff knee against the other leg, degrees');
+  inside(m.stiffKneeSide.gap, [10, 25], 'gap between legs, degrees');
+  inside(m.severeKnee[0], [0, 15], 'severe knee low, degrees'); inside(m.severeKnee[1], [15, m.stiffKnee], 'severe knee high, degrees');
+  // the mummy keeps about a quarter of a living knee's swing, under the cut-off
+  assert(MUMMY.swingKnee < MUMMY.stiffKnee && MUMMY.stiffKnee < MUMMY.liveKnee);
+  inside(MUMMY.kneeShare, [.15, .4], 'share of a living knee');
+  assert(MUMMY.legGap < MUMMY.liveKnee - MUMMY.swingKnee);
+  // the stiff leg clears the floor by a hip hike; at rest the arms are crossed over the chest
+  assert(MUMMY.hipHike && MUMMY.armsCrossed);
 });

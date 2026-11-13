@@ -616,3 +616,24 @@ The family in the plan (AGENTS.md, family **L**: a human, stiff and wasted). A l
 *Not found:* a stride length or cadence for a frail or parkinsonian walker (Morris et al. 1994 found the stride shorter and the cadence higher at a matched speed, but the numbers were not in the results), and any angle for the head carried forward. No number is claimed for them; the pose stages set them by eye.
 
 **What the liches take from this.** A lich walks at about 0.8 m/s, three fifths of a healthy usual pace, bent forward at least 30 degrees from the hips (45 if it bends at the chest), its arms hanging with about 7 degrees less swing than a living walker's, so nearly none. At rest it stands in that stoop and does not straighten; its hands tremble at 4 to 6 beats a second. Its signature is the turn: when the hero comes, it turns to face them in one piece, head, trunk and pelvis together, over about 2.2 s and more than four shuffling steps, about a fifth slower than a living person.
+
+## Mummies (kobold, gnome, orc, dwarf, elf, human, ettin and giant mummies)
+
+The family in the plan (AGENTS.md, family **M**: a stiff human, the shamble). A mummy is measured from living walkers whose knees will not bend in the swing, the stiff-knee gait, and its rest from the way real mummies were laid out. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### The stiff-knee walk (the shamble) and the laid-out rest
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| A living knee's swing | healthy adults bend the knee about 61 to 68 degrees at the top of the swing, depending on sex, losing 0.5 to 0.8 degrees a decade with age (233 subjects aged 10 to 79) | [Öberg, Karsznia and Öberg 1994, Joint angle parameters in gait: reference data for normal subjects 10 to 79 years of age (J Rehabil Res Dev)](https://typeset.io/pdf/joint-angle-parameters-in-gait-reference-data-for-normal-2e7jzf02xo.pdf) |
+| Stiff knee, the cut-off | stiff-knee gait is diagnosed when the peak swing knee flexion is under 40 degrees | [Stiff-knee gait diagnosis recommendation (PMC9654761)](https://pmc.ncbi.nlm.nih.gov/articles/PMC9654761) |
+| Stiff knee, against the other leg | after stroke, a peak swing flexion under 44.3 degrees, or 17.0 degrees or more less than the other leg, picked out stiff-knee gait at a self-selected pace; the difference between legs held up better across speeds | [Lee et al., Clinical Biomechanics 120 (Neptune lab, UT Austin)](https://sites.utexas.edu/neptune/files/2024/09/clinbiomech120.pdf) |
+| A badly stiff knee | in a small post-stroke sample the peak swing knee flexion was about 7 to 26 degrees, walking 0.35 to 0.5 m/s | [Post-stroke stiff-knee gait sample (PMC7448457)](https://pmc.ncbi.nlm.nih.gov/articles/PMC7448457) |
+| How the leg clears the floor | healthy adults walking with a locked knee brace swing the stiff leg round (circumduction) by hiking the hip, not by abducting it | [Akbas et al., simulated stiff-knee gait in healthy people with an adjustable brace (bioRxiv 520684)](https://www.biorxiv.org/content/10.1101/520684.full.pdf) |
+| The laid-out arms | Amenhotep I's right forearm is bent at the elbow across the chest, the left arm (broken by robbers, rewrapped) along the flank; the arms were probably first crossed, the earliest New Kingdom mummy so laid, and from about 600 BCE non-royal mummies too were laid with the arms crossed | [Saleem and Hawass 2021, Digital unwrapping of the mummy of King Amenhotep I by CT (Frontiers in Medicine 8:778498)](https://frontiersin.org/journals/medicine/articles/10.3389/fmed.2021.778498/full); [Carlos Museum, Emory, He's Got the Look](https://carlos.emory.edu/Hes-Got-the-Look) |
+
+*Caveat:* the stroke numbers come from people walking slowly with one bad leg; a mummy has two. The circumduction row is a direction (hip hiking, not abduction) without an angle.
+
+*Not found:* an angle for the hip hike or for the swing out to the side, a step length or cadence for a stiff-knee walker at a matched speed, and any foot clearance in centimetres for a shuffling walker (Alcock et al. 2018 found step length decides toe clearance, but the numbers were not in the results). No number is claimed for them; the pose stages set them by eye.
+
+**What the mummies take from this.** A mummy's knees bend no more than about 15 degrees at the top of the swing, a quarter of a living walker's 60-odd and well under the 40 that marks a stiff knee, so each leg swings forward nearly straight and clears the floor by a hike of the hip that rocks the pelvis, the foot dragged round in a shallow arc: the shamble. One leg may be the worse (a difference of 17 degrees or more between them is what a clinician reads as one stiff leg). At rest it lies or stands as it was laid out: the forearms crossed over the chest, or one across and one along the flank.
