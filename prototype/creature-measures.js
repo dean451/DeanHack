@@ -303,6 +303,16 @@ export const MEASURES = {
     turnSteps: {pd: 4, control: 3}, // steps for that turn: people with parkinson\'s take more than 4, healthy people 2 to 3 (Tzu Chi Med J 2013 review)
     rest: 'stands bent forward from the hips or chest, the bend gone only when lying down; arms hang still at the sides, the hands trembling at rest',
   },
+  // the mummies: a stiff human, measured from the stiff-knee gait (the knee barely bends in the swing, the leg hiked round) and how real mummies were laid out
+  mummy: {
+    swingKnee: [61, 68], // degrees, a healthy adult's peak knee flexion in the swing, by sex (Oberg et al. 1994, 233 subjects)
+    swingKneeAgeLoss: [.5, .8], // degrees less of it each decade of age (same)
+    stiffKnee: 40, // degrees, peak swing knee flexion under this is diagnosed stiff-knee gait (PMC9654761)
+    stiffKneeSide: {peak: 44.3, gap: 17}, // degrees: under 44.3, or 17 less than the other leg, picks out stiff-knee gait after stroke (Lee et al., Clin Biomech 120)
+    severeKnee: [7, 26], // degrees, peak swing knee flexion in a small post-stroke sample walking 0.35 to 0.5 m/s (PMC7448457)
+    clearance: 'hip hiking', // how a braced stiff leg clears the floor: hiked at the hip and swung round, not abducted (Akbas et al., bioRxiv 520684)
+    rest: 'laid out with the forearms crossed over the chest, or one across the chest and one along the flank (Amenhotep I, Saleem and Hawass 2021)',
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -602,4 +612,21 @@ export const LICH = {
   // a half turn takes this much longer than a healthy one, and more steps
   turnSlow: MEASURES.lich.turnSeconds.pd / MEASURES.lich.turnSeconds.control,
   turnSteps: MEASURES.lich.turnSteps.pd,
+};
+
+// What the mummies use: the knee held nearly straight through the swing, the hip hiked to clear the floor, the arms crossed at rest
+export const MUMMY = {
+  // a living walker's peak swing knee, rad, mid of the range
+  liveKnee: mid(MEASURES.mummy.swingKnee) * Math.PI / 180,
+  // the mummy's peak swing knee, rad: the middle of the badly stiff sample, under the stiff-knee cut-off
+  swingKnee: mid(MEASURES.mummy.severeKnee) * Math.PI / 180,
+  // the cut-off it must stay under, rad
+  stiffKnee: MEASURES.mummy.stiffKnee * Math.PI / 180,
+  // the share of a living knee's swing it keeps
+  kneeShare: mid(MEASURES.mummy.severeKnee) / mid(MEASURES.mummy.swingKnee),
+  // a worse leg: at least this much less bend than the other, rad
+  legGap: MEASURES.mummy.stiffKneeSide.gap * Math.PI / 180,
+  // the leg clears the floor by hiking the hip, not by swinging it out
+  hipHike: /hip hiking/.test(MEASURES.mummy.clearance),
+  armsCrossed: /crossed over the chest/.test(MEASURES.mummy.rest),
 };
