@@ -168,6 +168,7 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 - Items that need a live engine, a play-test or a bridge change are in the Claude list, not here.
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
+- **Keystone Kop's belt is a bar half-buried in the coat, now riding the spine rigid (review 2026-11-14, https://github.com/dean451/DeanHack/pull/1994):** `prototype/creatures.js` `kop()`: the belt cylinder (radius .155 at y .41) sits inside the coat lathe and belly sphere, so in `tools/creature-shot.mjs "Keystone Kop" x K` side render only its front shows, as a black bar standing off the belly with its ends cut off at the flanks; since https://github.com/dean451/DeanHack/pull/1994 it hangs rigid on a spine bone over the skinned hide, so any hunch will open or bury it further. Seat it round the baked trunk (or bake it into the hide). **Done when:** three, side and head renders of the Keystone Kop and the Kop Kaptain show the belt wrapping the waist all the way round with no bar or end standing off the coat, a test asserts `surfaceGap(belt, trunk)` (`fit-check.js`) small at rest and with `spine1` bent, and `kop-joints.test.js` and `kop-limbs.test.js` pass unchanged.
 
 
 
