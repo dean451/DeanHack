@@ -18,6 +18,7 @@ import {restPose as gargoyleRest, rests as gargoyleRests} from '../gargoyle-rest
 import {restPose as humanoidRest, rests as humanoidRests} from '../humanoid-rest.js';
 import {restPose as gnomeRest, rests as gnomeRests} from '../gnome-rest.js';
 import {restPose as kopRest, rests as kopRests} from '../kop-rest.js';
+import {haltPose, halts as kopHalts} from '../kop-halt.js';
 import {restPose as impRest, rests as impRests} from '../imp-rest.js';
 import {restPose as quadRest, rests as quadRests} from '../quadruped-rest.js';
 import {restPose as koboldRest, rests as koboldRests} from '../kobold-rest.js';
@@ -72,6 +73,8 @@ if(q.get('pose')==='bow'&&dogRests(c)){const r=bowPose(c);birdPoser(c).apply(r.p
 if(q.get('pose')==='rest'&&gargoyleRests(c)){const r=gargoyleRest(c);birdPoser(c).apply(r.pose);}
 // ?pose=rest stands a Kop at ease, the left foot out, the hands behind at the belt (kop-rest.js)
 if(q.get('pose')==='rest'&&kopRests(c)){birdPoser(c).apply(kopRest(c).pose);}
+// ?pose=halt throws a Kop's left arm out at the hero and cocks the truncheon back over the helmet (kop-halt.js)
+if(q.get('pose')==='halt'&&kopHalts(c)){birdPoser(c).apply(haltPose(c).pose);}
 else if(q.get('pose')==='rest'&&humanoidRests(c)){const r=gnomeRests(c)?gnomeRest(c):humanoidRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='rest'&&quadRests(c)){birdPoser(c).apply(quadRest(c).pose);}
 // ?pose=rest also hunches a rat, nose down and tail laid along the floor (rat-rest.js)
