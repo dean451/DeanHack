@@ -242,7 +242,7 @@ export function gargoyleRoles(actor) {
 // The two-legged humanoids' map (hobbit, dwarves, bugbear, mind flayers), from the joints `rigHumanoid` exposes. The head
 // group's own box, read at rest in its frame, gives the crown and the front; the mouth and chin sit a fixed share of the
 // crown's height under the pivot, so a long beard or a mind flayer's tentacles hanging below the face move neither; a hat
-// riding the head (the gnomes' caps, `actor.hat`) is left out of the box, or the wizard's tall cap drops the mouth under the jaw. `withers` is the neck's
+// riding the head (the gnomes' caps, the Kops' helmets, `actor.hat`) is left out of the box, or the wizard's tall cap drops the mouth under the jaw. `withers` is the neck's
 // root (`neck0`), `rump` the pelvis (`spine0`); there is no tail. A foot is the floor under the ankle (`<leg>_2`) and a
 // hand the wrist carried on along the forearm by a hand's length, both fixed in the bone's frame so they follow the bent
 // limb; the forepaws are the hands (`paw:lf`/`rf`) and the hind paws the feet (`paw:lh`/`rh`), the shoulder and hip each
@@ -266,11 +266,15 @@ export function humanoidRoles(actor) {
   g.updateMatrixWorld(true);
   const head = j.head, box = actor.hat ? boxWithout(head, actor.hat) : new THREE.Box3().setFromObject(head);
   const lo = head.worldToLocal(box.min.clone()), hi = head.worldToLocal(box.max.clone());
-  const x = (lo.x + hi.x) / 2, front = Math.max(lo.z, hi.z), top = Math.max(lo.y, hi.y);
+  const x = (lo.x + hi.x) / 2, front = Math.max(lo.z, hi.z), top = Math.max(lo.y, hi.y), bottom = Math.min(lo.y, hi.y);
+  // a head pivoting at the collar under the whole face (the Kops', `actor.headAtCollar`) takes the mouth and chin a
+  // share of the face's own height up from its bottom (the moustache's tips), not a share of the crown under the pivot
+  const mouth = actor.headAtCollar ? [x, bottom + (top - bottom) * .33, front * .85] : [x, -top * .3, front * .85];
+  const chin = actor.headAtCollar ? [x, bottom + (top - bottom) * .15, front * .7] : [x, -top * .65, front * .7];
   const map = {
     head: () => at(() => j.head),
-    mouth: () => inFrame(() => j.head, [x, -top * .3, front * .85]),
-    chin: () => inFrame(() => j.head, [x, -top * .65, front * .7]),
+    mouth: () => inFrame(() => j.head, mouth),
+    chin: () => inFrame(() => j.head, chin),
     withers: () => at(() => j.neck0),
     rump: () => at(() => j.spine0),
   };
@@ -359,7 +363,7 @@ export function quadrupedRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins and orcs too), the imps, the kobolds, the heavy quadrupeds and the rats have maps so far.
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins, orcs, gnomes and Kops too), the imps, the kobolds, the heavy quadrupeds and the rats have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);

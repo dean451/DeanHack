@@ -3037,6 +3037,10 @@ function kop(o){
  const dressing=body.children.filter(o=>o!==trunk&&o!==head&&o!==lArm&&o!==rArm&&!legs.includes(o));
  const a=rigBody(nameHumanoidJoints(Object.assign(actor(g,body,legs,club,[],'guard'),{head,arms:[lArm,rArm]})),{});
  delete a.arms;
+ // the helmet is the actor's `hat`, so the role map leaves it out of the head's box (family K stage 3: the tall crown
+ // dropped the mouth to the collar); no gait runs on a kop (`guard`), so nothing nods it. The head pivots at the
+ // collar, under the whole face (`headAtCollar`), so the map measures the mouth up from the face's bottom
+ a.hat=hat;a.headAtCollar=true;
  const spine=[a.joints.hips,a.joints.spine0,a.joints.spine1],bb=new THREE.Box3(),c=new THREE.Vector3();
  for(const o of dressing){
   if(o.isMesh){o.updateMatrix();o.geometry.boundingBox??o.geometry.computeBoundingBox();bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrix).getCenter(c);}else c.copy(o.position);
