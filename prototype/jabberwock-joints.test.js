@@ -10,7 +10,7 @@ const make=name=>createCreature({name,symbol:74,color:5});
 const world=o=>{o.updateWorldMatrix(true,false);return o.getWorldPosition(new THREE.Vector3());};
 const box=o=>{o.updateWorldMatrix(true,true);return new THREE.Box3().setFromObject(o);};
 const skins=a=>a.body.children.filter(o=>o.isSkinnedMesh);
-const ARM=['_0','_1','_2'],LEG=['_0','_1','_2','_3'];
+const ARM=['_0','_1','_2'],LEG=['_0','_1','_2','_3'],TRUNK=['hips','spine0','spine1','neck0','neck1','neck2','neck3'];
 // every skinned vertex in world space, as the skin places it, with the bones it rides
 const verts=a=>{
  a.g.updateMatrixWorld(true);const v=new THREE.Vector3(),out=[];
@@ -42,7 +42,12 @@ test('every jabberwock has its head, jaw, arms, legs, wings, limb bones and five
  for(const name of KINDS){
   const a=make(name),j=a.joints;
   assert(j,`${name}: joints`);
-  assert.equal(j.head,a.head,name);assert.equal(j.neck0,a.head,`${name}: the neck pivot is the head group`);
+  assert.equal(j.head,a.head,name);
+  // the trunk and neck: a chain of bones from the pelvis up the back and the neck, the head on the last
+  TRUNK.forEach((n,i)=>{assert(j[n]?.isBone,`${name}: ${n}`);if(i)assert.equal(j[n].parent,j[TRUNK[i-1]],`${name}: ${n} on ${TRUNK[i-1]}`);});
+  assert.equal(a.head.parent,j.neck3,`${name}: the head hangs on the top of the neck`);
+  for(const o of [...a.arms,...a.wings])assert.equal(o.parent,j.spine1,`${name}: ${o.name} hangs on the chest`);
+  for(const o of [...a.legs,a.tail])assert.equal(o.parent,a.body,`${name}: ${o.name} stays on the pelvis`);
   assert.equal(j.jaw,a.jaw,name);assert.equal(j.jaw.parent,j.head,`${name}: the jaw hangs on the head`);
   for(const [stem,list,bones] of [['fore',a.arms,ARM],['leg1',a.legs,LEG],['wing',a.wings,[]]])for(const side of ['l','r']){
    const o=j[side+stem];
@@ -63,9 +68,10 @@ test('every jabberwock has its head, jaw, arms, legs, wings, limb bones and five
   assert.equal(new Set(s.map(m=>m.material)).size,3,`${name}: one skin per material`);
   for(const o of [a.tail,...a.arms,...a.legs]){let loose=0;o.traverse(m=>{if(m.isMesh)loose++;});assert.equal(loose,0,`${name}: nothing left on ${o.name} but its bones`);}
   let n=0,skinned=0;a.g.traverse(o=>{if(o.isMesh){n++;if(o.isSkinnedMesh)skinned++;}});
-  assert(n<=29,`${name}: no more meshes than before the limbs were skinned (29): ${n}`);
-  assert.equal(skinned,3,`${name}: three skinned draws, as when only the tail was skinned`);
-  assert.equal(new Set(Object.entries(j).filter(([k])=>k!=='neck0').map(([,o])=>o)).size,Object.keys(j).length-1,`${name}: every joint its own`);
+  assert(n<=14,`${name}: the trunk joins the limbs' skins (14 meshes, 17 before): ${n}`);
+  assert.equal(skinned,3,`${name}: three skinned draws for trunk, limbs and tail, as when only the tail was skinned`);
+  assert(!a.body.children.some(o=>o.isMesh&&!o.isSkinnedMesh),`${name}: nothing plain left on the body`);
+  assert.equal(new Set(Object.values(j)).size,Object.keys(j).length,`${name}: every joint its own`);
  }
 });
 
@@ -89,6 +95,28 @@ test('bending a tail joint moves the tail past it, crescent blade and glow too, 
   assert(world(j.tail0).distanceTo(root)<1e-9,`${name}: the root stayed`);
   assert(world(a.head).distanceTo(head)<1e-9,`${name}: the head stayed`);
   a.legs.forEach((l,i)=>assert(world(l).distanceTo(legs[i])<1e-9,`${name}: leg ${i} stayed`));
+ }
+});
+
+test('bending a neck or spine joint carries the neck, head, fins and everything past it, and nothing before it',()=>{
+ for(const name of KINDS){
+  const a=make(name),j=a.joints,legs=a.legs.map(world),tail=world(a.tail);
+  for(const [n,axis,by] of [['neck1','x',.6],['neck2','y',.6],['spine1','x',.4],['spine0','x',.4]]){
+   const head=world(a.head),eyes=world(a.head.children.find(o=>o.userData.part==='eyes')),wing=world(a.wings[0]);
+   const {before,moved,byMaterial}=bend(a,j[n],axis,by);
+   assert(moved>.02,`${name}: past ${n} moved ${moved}`);
+   assert(before<1e-6,`${name}: everything not on ${n} or past it stayed (${before})`);
+   for(const m of skins(a))assert((byMaterial.get(m.material)||0)>.01,`${name}: ${n} carried its ${m.material.emissiveIntensity>1?'glow':'blade or hide'}`);
+   // the head (plain meshes on its group) goes with the neck, and with the trunk the wings too
+   j[n].rotation[axis]+=by;
+   assert(world(a.head).distanceTo(head)>.02,`${name}: the head followed ${n}`);
+   assert(world(a.head.children.find(o=>o.userData.part==='eyes')).distanceTo(eyes)>.02,`${name}: the eyes followed ${n}`);
+   if(n.startsWith('spine'))assert(world(a.wings[0]).distanceTo(wing)>.01,`${name}: the wing followed ${n}`);
+   else assert(world(a.wings[0]).distanceTo(wing)<1e-9,`${name}: the wing stayed when ${n} turned`);
+   a.legs.forEach((l,i)=>assert(world(l).distanceTo(legs[i])<1e-9,`${name}: leg ${i} stayed`));
+   assert(world(a.tail).distanceTo(tail)<1e-9,`${name}: the tail stayed`);
+   j[n].rotation[axis]-=by;
+  }
  }
 });
 

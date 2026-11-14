@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {pickPoints,skinChain} from './chain-skin.js';
-import {mergeSkins} from './trunk-skin.js';
+import {mergeSkins,skinTrunk,rigTrunk,hangOn} from './trunk-skin.js';
 
 // Jabberwocks used to be a pot-bellied purple thing with buck teeth and antennae, closer to a
 // cartoon than to one of the deadliest monsters in the dungeon. Now it is a bladed predator:
@@ -23,16 +23,20 @@ import {mergeSkins} from './trunk-skin.js';
 // mesh per material (hide, blade, glow; the wings also have a membrane): about 24 draws in
 // place of ~150 meshes. The geometry and materials are built once per kind and shared.
 // Handles: body, head, jaw (for jaw.js), arms/arm, legs, wings, tail. The quirk stays 'dragon'.
-// Named joints (the creature plan, family J stage 1): `actor.joints` holds `head` (also `neck0`: the neck
-// is still part of the body's mesh), `jaw`, the arms `lfore` / `rfore`, the legs `lleg1` / `rleg1` (a
-// biped's legs are its hind legs; left is -x), the wings `lwing` / `rwing` and the tail's five bones
+// Named joints (the creature plan, family J stage 1): `actor.joints` holds `head`, `jaw`, the arms `lfore` /
+// `rfore`, the legs `lleg1` / `rleg1` (a biped's legs are its hind legs; left is -x), the wings `lwing` / `rwing` and the tail's five bones
 // `tail0` (root) to `tail4` (tip). The tail's hide, fins, crescent blade and glowing edges are skinned
 // on one skeleton under the `tail` group, which stays the swing pivot, so a bent tail joint carries
 // everything past it. Each arm is skinned the same way on `lfore_0` (shoulder), `_1` (elbow) and `_2`
 // (wrist), and each leg on `lleg1_0` (hip), `_1` (knee), `_2` (ankle) and `_3` (the foot, toes and
 // sickle claw), under its own group (still the swing pivot). A skinned mesh cannot join the actor batch,
 // so the tail's, arms' and legs' skins are then merged into one skinned mesh per material on one skeleton
-// (`mergeSkins`; the bones stay under their groups): three draws, as when only the tail was skinned.
+// (`mergeSkins`; the bones stay under their groups).
+// The trunk and neck are on bones too (`skinTrunk`): a pelvis root `hips`, `spine0` at the waist, `spine1` at
+// the chest and `neck0`..`neck3` from the top of the chest to the head's pivot. The head hangs on `neck3`,
+// the arms and wings on `spine1`; the legs and the tail stay on the pelvis. The trunk leads each material's
+// merged skin: three skinned draws (hide, blades, glow) for trunk, limbs and tail. The wings are still plain
+// meshes on their groups (merged into the hide, a wing's fingertip claws drop out of ground.js's sampled extremes).
 
 const KINDS={
  'vorpal jabberwock':{scale:1.35,hide:'#2b1a3a',dark:'#120a1a',belly:'#4a3a56',horn:'#1a1420',tooth:'#ece4cc',mouth:'#5a0a1e',
@@ -213,6 +217,25 @@ function buildTail(B){
  return P.merge();
 }
 
+// The trunk's bones (the body's own space): the pelvis at the body's origin, the waist and the chest up the
+// hunched back, then the neck as four bones on the line from the top of the chest to the head's pivot (the
+// neck's tube bows up off that line by about 8 cm, so its skin reaches 14 cm out, the fins' roots too, and fades over as far again).
+const HEAD_AT=[0,1.16,.42],NECK_ROOT=[0,.92,.12];
+const TRUNK={spine:[['hips',[0,0,0]],['spine0',[0,.66,-.02]],['spine1',[0,.8,.06]]],
+ neck:[0,1,2,3].map(i=>['neck'+i,NECK_ROOT.map((v,k)=>v+(HEAD_AT[k]-v)*i/3)]),blend:.03,r:.14};
+// A blade or its glowing edge stands off the hide, out where the neck's skin fades, so it takes the weights of
+// the hide vertex nearest it instead: a fin rides the hide it grows from as one piece, and never shears.
+function weightsFromHide(hide,geo){
+ const hp=hide.attributes.position,hi=hide.attributes.skinIndex,hw=hide.attributes.skinWeight,p=geo.attributes.position;
+ const idx=new Uint16Array(p.count*4),wt=new Float32Array(p.count*4);
+ for(let i=0;i<p.count;i++){
+  const x=p.getX(i),y=p.getY(i),z=p.getZ(i);let best=Infinity,b=0;
+  for(let j=0;j<hp.count;j++){const dx=hp.getX(j)-x,dy=hp.getY(j)-y,dz=hp.getZ(j)-z,d=dx*dx+dy*dy+dz*dz;if(d<best){best=d;b=j;}}
+  for(let k=0;k<4;k++){idx[i*4+k]=hi.getComponent(b,k);wt[i*4+k]=hw.getComponent(b,k);}
+ }
+ geo.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(idx,4));geo.setAttribute('skinWeight',new THREE.Float32BufferAttribute(wt,4));
+ return geo;
+}
 // A bat wing on four long fingers, with hooked claws at the wrist and fingertips and a ragged,
 // torn membrane between the fingers.
 function buildWing(B,s,k){
@@ -256,6 +279,7 @@ function kindParts(name){
   arm:{'-1':buildArm(B,-1),'1':buildArm(B,1)},leg:{'-1':buildLeg(B,-1),'1':buildLeg(B,1)},wing:{'-1':buildWing(B,-1,1),'1':buildWing(B,1,2)}};
  for(const geo of Object.values(G.tail))skinChain(geo,TAIL_BONES);
  for(const s of [-1,1]){for(const geo of Object.values(G.arm[s]))skinChain(geo,ARM_BONES(s));for(const geo of Object.values(G.leg[s]))skinChain(geo,LEG_BONES(s));}
+ skinTrunk(G.body.hide,TRUNK);for(const key of ['blade','glow'])weightsFromHide(G.body.hide,G.body[key]);
  const out={k,M,G,skins:{hide:{},blade:{},glow:{}}};cache.set(name,out);return out;
 }
 function meshes(parent,geos,M,name){
@@ -281,8 +305,13 @@ function skinned(group,geos,M,pts,name,part){
 export function createJabberwock(name){
  const {k,M,G,skins}=kindParts(KINDS[name]?name:'jabberwock');
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(k.scale);g.name='jabberwock';
- meshes(body,G.body,M,'body');
- const head=new THREE.Group();head.position.set(0,1.16,.42);head.rotation.x=.12;body.add(head);
+ // the trunk and neck: one skinned mesh per material on the trunk's bones
+ const trunk=rigTrunk(body,G.body.hide,M.hide),trunkMeshes={hide:trunk.mesh};
+ for(const key of ['blade','glow']){
+  const m=new THREE.SkinnedMesh(G.body[key],M[key]);m.castShadow=m.receiveShadow=key!=='glow';m.userData.part='body';
+  body.add(m);m.updateMatrixWorld(true);m.bind(trunk.mesh.skeleton,m.matrixWorld);trunkMeshes[key]=m;
+ }
+ const head=new THREE.Group();head.position.set(...HEAD_AT);head.rotation.x=.12;body.add(head);
  meshes(head,G.head,M,'head');
  const eyes=new THREE.Mesh(G.eyes,M.glow);eyes.userData.part='eyes';head.add(eyes);
  const jaw=new THREE.Group();jaw.position.set(0,-.035,.02);jaw.userData.reach=.85;head.add(jaw);
@@ -297,13 +326,17 @@ export function createJabberwock(name){
  }
  const tail=new THREE.Group();tail.position.set(0,.5,-.2);tail.name='tail';body.add(tail);
  const tailBones=skinned(tail,G.tail,M,TAIL_BONES,'tail','tail');
+ // the head on the top of the neck, the arms and wings on the chest
+ hangOn(trunk.bones.neck3,head);
+ for(const o of [...arms,...wings])hangOn(trunk.bones.spine1,o);
  // named joints (left is -x: each list is built left side first)
- const joints={head,neck0:head,jaw,lfore:arms[0],rfore:arms[1],lleg1:legs[0],rleg1:legs[1],lwing:wings[0],rwing:wings[1]};
- for(const [n,o] of Object.entries(joints))if(n!=='neck0')o.name=n;
+ const joints={...trunk.bones,head,jaw,lfore:arms[0],rfore:arms[1],lleg1:legs[0],rleg1:legs[1],lwing:wings[0],rwing:wings[1]};
+ for(const [n,o] of Object.entries(joints))o.name=n;
  for(const b of [...tailBones,...limbBones])joints[b.name]=b;
- // the tail's, arms' and legs' skins: one mesh per material (the tail's first, so its bones lead the skeleton)
+ // the trunk's, tail's, arms' and legs' skins: one mesh per material (the trunk's first, so its bones lead
+ // the skeleton)
  for(const key of Object.keys(skins)){
-  const first=tail.children.find(o=>o.isSkinnedMesh&&o.material===M[key]);
+  const first=trunkMeshes[key];
   if(first){const m=mergeSkins(body,first,skins[key]);m.userData.part='limbs';m.castShadow=m.receiveShadow=key!=='glow';}
  }
  // (the skinned tail's bind inverse follows its world matrix: refresh the whole actor once, scale included,
