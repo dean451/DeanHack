@@ -28,9 +28,9 @@ test('jabberwocks are bladed predators with a hinged jaw, scythe arms and glowin
   assert(verts<100000,`${name}: ${verts} vertices`);
   // blades glow along their edges, and every moving part carries some
   const glow=parts.filter(m=>m.material.emissiveIntensity>1);
-  for(const p of ['body','head'])assert(glow.some(m=>m.userData.part===p||m.userData.part==='eyes'&&p==='head'),`${name}: no glow on ${p}`);
-  // (the arms, legs and tail are skinned into one mesh per material: their glow rides their bones)
-  for(const p of ['fore_','leg1_','tail'])assert(glow.some(m=>m.isSkinnedMesh&&rides(m,p)>0),`${name}: no glow on ${p}`);
+  assert(glow.some(m=>m.userData.part==='eyes'),`${name}: no glow on head`);
+  // (the trunk, arms, legs and tail are skinned into one mesh per material: their glow rides their bones)
+  for(const p of ['spine','neck','fore_','leg1_','tail'])assert(glow.some(m=>m.isSkinnedMesh&&rides(m,p)>0),`${name}: no glow on ${p}`);
   j.g.updateMatrixWorld(true);
   const b=new THREE.Box3().setFromObject(j.g);
   assert(b.min.y>-.04&&b.min.y<.03,`${name}: feet at ${b.min.y}`);
