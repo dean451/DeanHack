@@ -313,6 +313,19 @@ export const MEASURES = {
     clearance: 'hip hiking', // how a braced stiff leg clears the floor: hiked at the hip and swung round, not abducted (Akbas et al., bioRxiv 520684)
     rest: 'laid out with the forearms crossed over the chest, or one across the chest and one along the flank (Amenhotep I, Saleem and Hawass 2021)',
   },
+  // the nagas: a cobra's rear and hood in front, a brooding python's coil behind
+  naga: {
+    rearShare: 1 / 3, // share of the body a threatened cobra lifts off the ground (Columbus Zoo; Central Florida Zoo, Egyptian cobra)
+    rearHeight: [1, 1.2], // m, how high a king cobra raises its front in the threat display (Smithsonian's National Zoo)
+    hood: 'raised actively from the head backward, often in stages; held up by continued muscle work; dropped partly by passive recoil (Young and Kardong 2010)',
+    hoodRibs: {widest: [10, 11], last: 20}, // the neck ribs lengthen to the 10th or 11th and shorten to the 20th (Naja skeletons, Phil Trans 1804)
+    strikeSpeed: {cottonmouth: 2.98, ratSnake: 2.67, deathAdder: 2.5, viperTop: 4.5}, // m/s (Penning et al. 2016; EurekAlert 1102213, the death adder the fastest elapid)
+    strike: 'the forest cobra creeps close before it lunges and bites (EurekAlert 1102213)',
+    coilTwitch: {mean: 16, range: [10.5, 20], older: [5, 16]}, // contractions a minute of a brooding Burmese python (Cherkiss et al. 2010; Van Mierop and Barnard 1976)
+    coilTwitchBelow: 33, // deg C, the brooding contractions begin when the air is cooler than this (Indian python)
+    broodDays: [45, 73], // days a wild Everglades python held its coil, from May (day not given) to 13 July (USGS); fasting two months or more (National Zoo)
+    rest: 'lies coiled, now and then opening the coils a little to let the eggs breathe, then drawing them tight',
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -629,4 +642,22 @@ export const MUMMY = {
   // the leg clears the floor by hiking the hip, not by swinging it out
   hipHike: /hip hiking/.test(MEASURES.mummy.clearance),
   armsCrossed: /crossed over the chest/.test(MEASURES.mummy.rest),
+};
+
+// What the nagas use: a third of the body reared, the hood raised from the head back and held, a lunge no faster than an elapid's, the coil twitching at rest
+export const NAGA = {
+  rearShare: MEASURES.naga.rearShare,
+  // the hood's widest rib as a share of the hood's ribs, from the head back
+  hoodWidest: mid(MEASURES.naga.hoodRibs.widest) / MEASURES.naga.hoodRibs.last,
+  // the hood comes up from the head backward, and only stays up while held
+  hoodFromHead: /from the head backward/.test(MEASURES.naga.hood),
+  hoodHeld: /continued muscle work/.test(MEASURES.naga.hood),
+  // the lunge's top speed, m/s: the fastest elapid's
+  lunge: MEASURES.naga.strikeSpeed.deathAdder,
+  // it closes in before the lunge
+  creeps: /creeps close/.test(MEASURES.naga.strike),
+  // seconds between the resting coil's twitches, at the mean rate
+  twitchGap: 60 / MEASURES.naga.coilTwitch.mean,
+  // the coil loosens now and then at rest
+  loosens: /opening the coils/.test(MEASURES.naga.rest),
 };
