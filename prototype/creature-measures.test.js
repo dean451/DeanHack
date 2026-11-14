@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY, NAGA} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY, NAGA, OGRE} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -469,4 +469,21 @@ test('the naga numbers: a third of the body reared, the hood raised from the hea
   inside(n.broodDays[0], [40, 100], 'days on the coil');
   // at rest it lies coiled and loosens the coil now and then
   assert(NAGA.loosens);
+});
+
+test('the ogre numbers: a slower plod, a stance planted side to side but rocking front to back, a heavy club\'s slower blow', () => {
+  const o = MEASURES.ogre;
+  // the step rate falls with weight, and an obese walker takes about five sixths of a healthy one's steps
+  assert(o.cadence.obese < o.cadence.overweight && o.cadence.overweight < o.cadence.healthy);
+  inside(o.cadence.healthy, [100, 125], 'healthy steps a minute'); inside(OGRE.cadenceOverLean, [.75, .92], 'obese over healthy step rate');
+  inside(OGRE.stepGap, [.55, .75], 'seconds between steps');
+  inside(o.stepShorter[0], [0, .1], 'step shorter low, m'); inside(o.stepShorter[1], [o.stepShorter[0], .2], 'step shorter high, m');
+  // standing: steadier side to side, a wider rock front to back
+  inside(OGRE.swaySide, [.6, .9], 'side sway share'); inside(OGRE.swayFront, [1.05, 1.4], 'front sway range gain');
+  assert(o.swaySide.eyesClosed < 0 && o.swaySpeedGain > 0 && OGRE.planted);
+  // a heavier bat swings slower than a standard one, a light one faster
+  assert(o.batSpeed.heavy < o.batSpeed.standard && o.batSpeed.standard < o.batSpeed.light);
+  inside(OGRE.clubOverBat, [.8, .97], 'heavy over standard swing speed');
+  // a pro's swing is under a fifth of a second; the club's blow a little longer, still well under a third
+  inside(o.swingTime, [.12, .25], 'pro swing, s'); inside(OGRE.blow, [o.swingTime, .3], 'club blow, s');
 });

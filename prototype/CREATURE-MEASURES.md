@@ -660,3 +660,24 @@ The family in the plan (AGENTS.md, family **N**: a cobra's rear and a python's c
 *Not found:* the hood's width against the head's, an angle for the reared neck's forward lean, a cobra's sway period while it watches a threat, and the number of turns in a resting python's coil. No number is claimed for them; the pose stages set them by eye.
 
 **What the nagas take from this.** A naga rears about a third of its length off its coil, the rest staying down as the heap; a big one's head rides about a metre up. Its hood comes up from the head backward, in stages, widest about half way down the hood's ribs, and stays up only while held: it sags when the naga stops caring. It does not snap-strike like a viper: it leans in close, then lunges at no more than about 2.5 m/s. At rest it lies in its coil like a brooding python, the heap twitching about once every four seconds, and now and then loosens the coil a little before drawing it tight again.
+
+## Ogres (ogre, ogre lord, ogre king)
+
+The family in the plan (AGENTS.md, family **O**: a heavy human). An ogre is a huge, heavy brute with a club, so its gait and its stance are measured from heavy people against lean ones (the giants already hold the heavy walk's speed, step width and rise from a seat; these rows add the step rate and how a heavy body stands), and its signature, the club blow, from batters swinging a heavy bat against a standard one. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Heavy person (the plod, the planted stance) and batter (the heavy swing)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Step rate | 40 young men walked at 114.35 (SD 4.95) steps a minute when healthy, 102.98 (2.73) when overweight and 93.82 (8.06) when obese (F = 45.56, p < 0.001) | [Ahsan 2022, Acta Biomedica (PMC9686171)](https://pmc.ncbi.nlm.nih.gov/articles/PMC9686171) |
+| Step length | across studies, people with obesity take steps about 5 to 10 cm shorter and up to 10 steps a minute fewer than normal-weight walkers | [Exploring the influence of BMI on gait metrics, Sensors 2024 (PMC11479383)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11479383/) |
+| Standing sway | obese young women standing still swayed 25% less from side to side with the eyes open (22% less with them shut) and over an 18% greater front-to-back range with the eyes shut than normal-weight women; the authors read the side-to-side cut as the mass steadying the body | [Posturographic characteristics of the standing posture in obese young women, PLoS One 2019 (PMC6726190)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6726190/) |
+| Sway speed | morbidly obese adults standing still with the eyes open moved their centre of pressure 47% faster than controls (p = 0.04) | [Pagnotti et al. 2020, Postural stability in obese preoperative bariatric patients, Obesity Facts (Karger)](https://karger.com/ofa/article/13/5/499/239633/Postural-Stability-in-Obese-Preoperative-Bariatric) |
+| A heavy swing | warming up, batters swung a light bat at 22.0 m/s, a standard bat at 16.0 and a heavier bat at 14.4 | [ISB 2005 conference abstract 0808, weighted warm-up bats](https://media.isbweb.org/images/conf/2005/abstracts/0808.pdf) |
+| Swing time | a professional batter takes about 180 ms from the start of the bat's acceleration to contact | [PMC4743964 (as quoted, citing earlier work)](https://pmc.ncbi.nlm.nih.gov/articles/PMC4743964) |
+
+*Caveat:* the step-rate study is 40 young men, and the 2024 *Sensors* study it sits beside found no cadence difference at all, so the slower plod is a finding, not a law. The sway rows are two small studies that disagree on the speed (one finds it faster, the other finds the side-to-side sway smaller); both find the front-to-back sway the larger. The bat speeds are warm-up swings in one abstract, and the 180 ms a pro's swing at a standard bat, quoted second hand.
+
+*Not found:* how a heavy person stands at rest as an angle (where the weight sits, how far the feet are apart standing still), a club's or sledgehammer's overhead swing time, and any number for the wind-up before a heavy blow. No number is claimed for them; the pose stages set them by eye.
+
+**What the ogres take from this.** An ogre plods at about 94 steps a minute, under five sixths of a lean walker's rate, on short steps (the giants' numbers give its speed and wide gait). It stands planted, its bulk keeping it from swaying side to side, but it rocks slowly forward and back, never quite still. Its club comes round about a tenth slower than a man's bat because it is heavy, about a fifth of a second from the start of the blow to the hit, so the menace is in the wind-up, not the blow.
