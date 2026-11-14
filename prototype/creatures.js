@@ -2963,6 +2963,9 @@ function kop(o){
   skin=mat('#a8896e',{roughness:.8}),nose=mat('#7a3a34',{roughness:.7}),tache=mat(o.tache||'#3a2a1e',{roughness:.95}),
   boot=mat('#141212',{roughness:.4}),brass=mat('#d8b048',{metalness:.85,roughness:.28}),silver=mat('#c8ccd0',{metalness:.9,roughness:.22}),
   glove=mat('#ece8dc',{roughness:.85}),wood=mat('#3a2616',{roughness:.7}),helm=mat(shade(o.coat,.7),{roughness:.6});
+ // moves a piece built on the body into a joint group, keeping where it is drawn (body and joints are unrotated)
+ const into=(grp,mesh)=>{mesh.position.sub(grp.position);grp.add(mesh);return mesh;};
+ const joint=(x,y,z)=>{const j=new THREE.Group();j.position.set(x,y,z);body.add(j);return j;};
  // legs: straight dark trousers into big flat boots splayed outward
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.075,.32,0);body.add(leg);
   segment(leg,[0,0,0],[0,-.26,0],.045,.04,trousers);
@@ -2976,33 +2979,40 @@ function kop(o){
  cylinder(body,.075,.085,.045,coatDark,0,.645,0,16);
  tube(body,[[-.06,.6,.1],[-.02,.54,.13],[.04,.53,.13]],.004,silver,8);cylinder(body,.009,.009,.04,silver,.055,.53,.13,8).rotation.z=Math.PI/2;
  // arms: left fist on the hip, right arm raised with the truncheon
- const lShoulder=[-.16,.58,0],lElbow=[-.23,.46,-.02],lHand=[-.14,.41,.04];
- sphere(body,.05,coat,...lShoulder);segment(body,lShoulder,lElbow,.042,.038,coat);segment(body,lElbow,lHand,.038,.034,coat);sphere(body,.036,glove,...lHand);
- const rShoulder=[.16,.58,0],rElbow=[.24,.68,.04],rHand=[.2,.82,.07];
- sphere(body,.05,coat,...rShoulder);segment(body,rShoulder,rElbow,.042,.038,coat);segment(body,rElbow,rHand,.038,.034,coat);sphere(body,.036,glove,...rHand);
- if(rank===1)for(const [s,e] of [[lShoulder,lElbow],[rShoulder,rElbow]])for(let i=0;i<3;i++){const t=.45+i*.14,p=s.map((v,k)=>v+(e[k]-v)*t);
-  const c=box(body,.05,.009,.012,brass,p[0]+Math.sign(p[0])*.035,p[1],p[2]+.01);c.rotation.set(0,Math.sign(p[0])*1.2,.5);}
+ // each arm is its own group at the shoulder (`lfore` / `rfore`), its pieces drawn where they were
+ const lShoulder=[-.16,.58,0],lElbow=[-.23,.46,-.02],lHand=[-.14,.41,.04],lArm=joint(...lShoulder);
+ for(const m of [sphere(body,.05,coat,...lShoulder),segment(body,lShoulder,lElbow,.042,.038,coat),segment(body,lElbow,lHand,.038,.034,coat),sphere(body,.036,glove,...lHand)])into(lArm,m);
+ const rShoulder=[.16,.58,0],rElbow=[.24,.68,.04],rHand=[.2,.82,.07],rArm=joint(...rShoulder);
+ for(const m of [sphere(body,.05,coat,...rShoulder),segment(body,rShoulder,rElbow,.042,.038,coat),segment(body,rElbow,rHand,.038,.034,coat),sphere(body,.036,glove,...rHand)])into(rArm,m);
+ if(rank===1)for(const [s,e,arm] of [[lShoulder,lElbow,lArm],[rShoulder,rElbow,rArm]])for(let i=0;i<3;i++){const t=.45+i*.14,p=s.map((v,k)=>v+(e[k]-v)*t);
+  const c=into(arm,box(body,.05,.009,.012,brass,p[0]+Math.sign(p[0])*.035,p[1],p[2]+.01));c.rotation.set(0,Math.sign(p[0])*1.2,.5);}
  if(rank>=2)for(const side of [-1,1]){const ep=new THREE.Group();ep.position.set(side*.15,.625,0);ep.rotation.z=-side*.35;body.add(ep);
   sphere(ep,.055,brass,0,0,0,1,.35,1.1);for(let i=0;i<7;i++){const a=(i/6-.5)*2.4;segment(ep,[Math.sin(a)*.05*side,-.005,Math.cos(a)*.05],[Math.sin(a)*.055*side,-.05,Math.cos(a)*.055],.005,.005,brass);}}
  if(rank===3){const sash=part(body,new THREE.TorusGeometry(.16,.014,6,24,Math.PI*1.1),brass,0,.5,.0);sash.rotation.set(0,0,-.9);sash.scale.z=.9;}
- const club=new THREE.Group();club.position.set(...rHand);body.add(club);
+ // the truncheon rides the raised right arm, so turning `rfore` carries it; it still swings as the tail
+ const club=new THREE.Group();club.position.set(...rHand.map((v,k)=>v-rShoulder[k]));rArm.add(club);
  segment(club,[0,-.03,0],[-.06,.2,-.03],.02,.026,wood);sphere(club,.027,wood,-.06,.2,-.03);box(club,.012,.03,.012,glove,0,-.045,0);
  tube(club,[[0,-.03,0],[.01,-.07,.01],[.0,-.1,.0]],.003,glove,6);
  // head: sallow, gaunt face, bruised swollen nose, beady eyes, big ears and a drooping walrus moustache
- const headY=.75;sphere(body,.1,skin,0,headY,.01,1,1.05,1);
- sphere(body,.03,nose,0,headY-.01,.1,1,.9,1);
- for(const side of [-1,1]){sphere(body,.013,boot,side*.035,headY+.022,.088);sphere(body,.03,skin,side*.1,headY,.0,.5,1,.8);
-  const brow=box(body,.04,.012,.015,tache,side*.036,headY+.045,.09);brow.rotation.z=side*.2;
-  tube(body,[[0,headY-.035,.105],[side*.045,headY-.04,.1],[side*.08,headY-.07,.08],[side*.085,headY-.1,.07]],.016,tache,10);}
+ // the head is a group pivoting at the top of the collar (`head`, also `neck0`), its face and helmet on it
+ const headY=.75,head=joint(0,.665,0);into(head,sphere(body,.1,skin,0,headY,.01,1,1.05,1));
+ into(head,sphere(body,.03,nose,0,headY-.01,.1,1,.9,1));
+ for(const side of [-1,1]){into(head,sphere(body,.013,boot,side*.035,headY+.022,.088));into(head,sphere(body,.03,skin,side*.1,headY,.0,.5,1,.8));
+  const brow=into(head,box(body,.04,.012,.015,tache,side*.036,headY+.045,.09));brow.rotation.z=side*.2;
+  into(head,tube(body,[[0,headY-.035,.105],[side*.045,headY-.04,.1],[side*.08,headY-.07,.08],[side*.085,headY-.1,.07]],.016,tache,10));}
  // custodian helmet: tall domed crown, rim, top knob and a silver star badge; the kaptain's is braided in gold
- const hat=new THREE.Group();hat.position.set(0,headY+.035,.0);hat.rotation.x=-.08;body.add(hat);
+ const hat=new THREE.Group();hat.position.set(0,headY+.035-head.position.y,.0);hat.rotation.x=-.08;head.add(hat);
  lathe(hat,[[.118,0],[.112,.06],[.1,.13],[.075,.19],[.04,.22],[.0,.225]],helm);
  cylinder(hat,.125,.125,.012,helm,0,.004,0,24);cylinder(hat,.034,.024,.035,rank===3?brass:silver,0,.235,0,10);
  const star=part(hat,new THREE.CylinderGeometry(.035,.035,.008,8),silver,0,.08,.11);star.rotation.set(Math.PI/2-.35,0,0);
  sphere(hat,.014,rank===3?brass:boot,0,.08,.118,1,1,.5);
  if(rank===3)for(const y of [.02,.045])cylinder(hat,.117-y*.08,.117-y*.08,.01,brass,0,y,0,24);
  tube(hat,[[-.11,.0,.02],[-.06,-.12,.07],[.06,-.12,.07],[.11,.0,.02]],.005,boot,12);
- return trimDraws(actor(g,body,legs,club,[],'guard'));
+ // named joints (family K, stage 1 step 1): `head` (also `neck0`), `lfore` / `rfore`, `lleg1` / `rleg1` (left is -x);
+ // named only, as `arms` stays off the actor so nothing fidgets them
+ const a=nameHumanoidJoints(Object.assign(actor(g,body,legs,club,[],'guard'),{head,arms:[lArm,rArm]}));
+ delete a.arms;
+ return trimDraws(a);
 }
 // Quantum mechanic: a stooped scientist in a long white lab coat over a coloured shirt and tie, with a shock of
 // white hair, round wire spectacles, Schrödinger's box tucked under one arm and a glowing atom held aloft in the
