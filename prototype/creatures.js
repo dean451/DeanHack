@@ -3100,7 +3100,7 @@ function quantumMechanic(o){
 }
 const QUANTUM_MECHANICS={'quantum mechanic':{shirt:'#3a9aa8',glow:'#5ae0ff'},'genetic engineer':{shirt:'#3f8a3a',glow:'#7aff6a'}};
 // the height of the kop's belt (under the paunch, on the pelvis bone)
-const KOP_BELT_Y=.37;
+export const KOP_BELT_Y=.37;
 const KOPS={'keystone kop':{coat:'#2f3f8a'},'kop sergeant':{coat:'#2a3a82',rank:1,scale:1.15},'kop lieutenant':{coat:'#2a5f86',rank:2,scale:1.18,tache:'#5a3a22'},'kop kaptain':{coat:'#5a2a72',rank:3,scale:1.22,tache:'#8a8478'}};
 
 // Elementals: one torso-and-arms spirit built from its element. Air, fire and water

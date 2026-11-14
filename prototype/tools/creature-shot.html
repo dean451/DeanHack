@@ -17,6 +17,7 @@ import {bowPose} from '../canine-bow.js';
 import {restPose as gargoyleRest, rests as gargoyleRests} from '../gargoyle-rest.js';
 import {restPose as humanoidRest, rests as humanoidRests} from '../humanoid-rest.js';
 import {restPose as gnomeRest, rests as gnomeRests} from '../gnome-rest.js';
+import {restPose as kopRest, rests as kopRests} from '../kop-rest.js';
 import {restPose as impRest, rests as impRests} from '../imp-rest.js';
 import {restPose as quadRest, rests as quadRests} from '../quadruped-rest.js';
 import {restPose as koboldRest, rests as koboldRests} from '../kobold-rest.js';
@@ -69,7 +70,9 @@ if(q.get('pose')==='rest'&&dogRests(c)){const r=dogRest(c);birdPoser(c).apply(r.
 if(q.get('pose')==='bow'&&dogRests(c)){const r=bowPose(c);birdPoser(c).apply(r.pose);}
 // ?pose=rest also crouches a gargoyle, winged gargoyle or gremlin like a monkey (gargoyle-rest.js), and sits a hobbit, dwarf, bugbear, mind flayer or gnome slumped (humanoid-rest.js, gnome-rest.js); ?pose=brace braces a dwarf (humanoid-brace.js)
 if(q.get('pose')==='rest'&&gargoyleRests(c)){const r=gargoyleRest(c);birdPoser(c).apply(r.pose);}
-if(q.get('pose')==='rest'&&humanoidRests(c)){const r=gnomeRests(c)?gnomeRest(c):humanoidRest(c);birdPoser(c).apply(r.pose);}
+// ?pose=rest stands a Kop at ease, the left foot out, the hands behind at the belt (kop-rest.js)
+if(q.get('pose')==='rest'&&kopRests(c)){birdPoser(c).apply(kopRest(c).pose);}
+else if(q.get('pose')==='rest'&&humanoidRests(c)){const r=gnomeRests(c)?gnomeRest(c):humanoidRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='rest'&&quadRests(c)){birdPoser(c).apply(quadRest(c).pose);}
 // ?pose=rest also hunches a rat, nose down and tail laid along the floor (rat-rest.js)
 if(q.get('pose')==='rest'&&ratRests(c)){birdPoser(c).apply(ratRest(c).pose);}
@@ -77,7 +80,7 @@ if(q.get('pose')==='rest'&&ratRests(c)){birdPoser(c).apply(ratRest(c).pose);}
 if(q.get('pose')==='wash'&&ratRests(c)){washPoser(c).apply(washPose(c).pose);}
 // ?pose=waddle catches a gnome (letter G) in the waddle's widest stride (gnome-waddle.js)
 if(q.get('pose')==='waddle'&&gnomeWaddles(c)){waddlePoser(c).apply(waddlePose(c).pose);}
-if(q.get('pose')==='rest'&&impRests(c)){const r=koboldRests(c)?koboldRest(c):impRest(c);birdPoser(c).apply(r.pose);}
+if(q.get('pose')==='rest'&&impRests(c)&&!kopRests(c)){const r=koboldRests(c)?koboldRest(c):impRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='brace'&&braces(c)){const r=bracePose(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='snarl'&&snarls(c)){const r=snarlPose(c);birdPoser(c).apply(r.pose);}
 // ?pose=ambush crouches a bugbear low over its knees (humanoid-ambush.js)
