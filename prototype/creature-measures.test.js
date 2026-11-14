@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY, NAGA, OGRE, RUSTMONSTER} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY, NAGA, OGRE, RUSTMONSTER, SNAKE} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -504,4 +504,21 @@ test('the rust monster numbers: a sniff every 0.4 s, a minute or two at one spot
   assert(RUSTMONSTER.forage < RUSTMONSTER.cruiseBelow && RUSTMONSTER.knuckles);
   // the startle leap: about a metre straight up
   inside(RUSTMONSTER.leap, [.8, 1.3], 'startle leap, m');
+});
+
+test('the snake numbers: a slow slither on lifted bends, a front third thrown out of the coil in a fifth of a second, a long wait coiled', () => {
+  const s = MEASURES.snake;
+  // about a fifth of its length a second, which puts the milk snakes at about 40 cm
+  inside(SNAKE.crawlBL, [.1, .4], 'crawl, body lengths a second'); inside(SNAKE.bodyLength, [.25, .8], 'body length, m');
+  inside(SNAKE.liftGain, [.2, .5], 'speed gained by lifting the bends'); assert(SNAKE.liftsBends);
+  // the strike: a third out, over in well under half a second, at a few metres a second
+  inside(SNAKE.strikeShare, [.25, .45], 'share of the body striking');
+  inside(s.contactTime[0], [.02, .1], 'earliest hit, s'); inside(s.contactTime[1], [s.contactTime[0], s.strikeUnder], 'latest hit, s');
+  inside(SNAKE.hitS, [.1, .2], 'time to the hit, s');
+  inside(s.peakSpeed[0], [.5, 2], 'slowest peak strike, m/s'); inside(s.peakSpeed[1], [s.peakSpeed[0], 4.5], 'fastest peak strike, m/s');
+  inside(s.peakAccel[0], [30, 120], 'lowest peak acceleration, m/s^2'); inside(s.peakAccel[1], [s.peakAccel[0], 400], 'highest peak acceleration, m/s^2');
+  // the strike speeds sit with the worms' rat snake and cottonmouth
+  inside(MEASURES.worm.strike.cottonmouth.v, s.peakSpeed, 'cottonmouth against the range');
+  // the ambush coil: most aimed up a tree, hours of waiting
+  inside(SNAKE.aimedUp, [.4, .8], 'share of coils aimed up a tree'); assert(s.ambush.sightings > 500 && s.coiledHours > 1000);
 });

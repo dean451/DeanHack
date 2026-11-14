@@ -350,6 +350,19 @@ export const MEASURES = {
     travelBelow: 1, // km/h, the review's average speed on its longest days
     walk: 'a slow shuffling walk on the knuckles of the forefeet, the claws folded under the palms',
   },
+  // the snakes: a milk snake's slither, a rattlesnake's strike out of the S-coil, a timber rattlesnake's ambush coil
+  snake: {
+    slither: {cmps: 8, blps: .2}, // cm/s and body lengths a second, lab milk snakes on flat ground (Goldman and Hu 2010)
+    liftGain: {from: .17, to: .23}, // the model's forward speed before and after unloading the body at its bends (Hu et al. 2009, PNAS)
+    contact: 'the body touches the ground about where its curvature is zero and lifts at the bends',
+    strikeShare: 1 / 3, // share of the body thrown forward in the extend stage (Kardong and Bels 1998)
+    strikeUnder: .5, // s, a rattlesnake's whole strike (same)
+    contactTime: [.05, .25], // s from the start of the strike to the fangs reaching the prey (same, as a review relays it)
+    peakSpeed: [1.08, 3.39], // m/s, venomous snakes' peak strike speeds (J Exp Biol 2025, jeb250347)
+    peakAccel: [70, 273.8], // m/s^2, and their peak accelerations (same)
+    ambush: {sightings: 722, tree: .61}, // timber rattlesnake ambush postures, the share coiled at a tree's base, head up the trunk (Goetz et al. 2016)
+    coiledHours: 8300, // hours of ambush coils filmed, six rattlesnake species (Safety in coils, NSF PAR 10454106)
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -715,4 +728,20 @@ export const RUSTMONSTER = {
   // the startle: the leap's middle height, m
   leap: (MEASURES.rustMonster.leap[0] + MEASURES.rustMonster.leap[1]) / 2,
   knuckles: /knuckles of the forefeet/.test(MEASURES.rustMonster.walk),
+};
+
+// What the snakes use: a slow slither on lifted bends, a long wait in the coil, a strike that throws only the front third out of the S
+export const SNAKE = {
+  // the crawl, body lengths a second, and the snake's length that speed implies, m
+  crawlBL: MEASURES.snake.slither.blps,
+  bodyLength: MEASURES.snake.slither.cmps / 100 / MEASURES.snake.slither.blps,
+  // how much faster lifting the bends makes it, a share
+  liftGain: MEASURES.snake.liftGain.to / MEASURES.snake.liftGain.from - 1,
+  liftsBends: /lifts at the bends/.test(MEASURES.snake.contact),
+  // the strike: the share of the body that leaves the coil, the time to the hit (mid), s, and the peak speed (mid), m/s
+  strikeShare: MEASURES.snake.strikeShare,
+  hitS: mid(MEASURES.snake.contactTime),
+  peakV: mid(MEASURES.snake.peakSpeed),
+  // the share of ambush coils aimed up a vertical surface
+  aimedUp: MEASURES.snake.ambush.tree,
 };
