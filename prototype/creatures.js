@@ -2983,12 +2983,16 @@ function kop(o){
   const foot=rounded(leg,.085,.05,.19,boot,side*.012,-.285,.04,.022);foot.rotation.y=side*.28;
   limb(leg,(side<0?'l':'r')+'leg1_',[[0,0,0],[0,-.13,0],[0,-.26,0]],[shin],[foot],'leg');legs.push(leg);}
  // tunic: a pot belly under a long flared coat, belt with a brass buckle and a double row of brass buttons
- lathe(body,[[.0,.28],[.13,.28],[.15,.36],[.16,.46],[.15,.56],[.13,.62],[.0,.64]],coat);
- sphere(body,.13,coat,0,.44,.03,1,1,.95);
+ // (the coat, the belly and the collar are built on a scratch group and baked into one vertex-coloured trunk on
+ // `limbMat`, so rigBody skins it onto the spine and neck and joins it to the limbs in one hide; stage 1 step 3)
+ const T=new THREE.Group();
+ lathe(T,[[.0,.28],[.13,.28],[.15,.36],[.16,.46],[.15,.56],[.13,.62],[.0,.64]],coat);
+ sphere(T,.13,coat,0,.44,.03,1,1,.95);
  cylinder(body,.155,.155,.035,boot,0,.41,.01,20).scale.z=.95;box(body,.05,.04,.012,brass,0,.41,.16);
  for(let i=0;i<4;i++)for(const x of [-.045,.045])sphere(body,.012,brass,x,.47+i*.045,.145-i*.012);
  // stand-up collar and a silver whistle on a chain
- cylinder(body,.075,.085,.045,coatDark,0,.645,0,16);
+ cylinder(T,.075,.085,.045,coatDark,0,.645,0,16);
+ const trunk=new THREE.Mesh(flatSkin(T),limbMat);trunk.userData.part='body';trunk.castShadow=trunk.receiveShadow=true;body.add(trunk);
  tube(body,[[-.06,.6,.1],[-.02,.54,.13],[.04,.53,.13]],.004,silver,8);cylinder(body,.009,.009,.04,silver,.055,.53,.13,8).rotation.z=Math.PI/2;
  // arms: left fist on the hip, right arm raised with the truncheon
  // each arm is its own group at the shoulder (`lfore` / `rfore`), its pieces drawn where they were
@@ -3024,10 +3028,20 @@ function kop(o){
  sphere(hat,.014,rank===3?brass:boot,0,.08,.118,1,1,.5);
  if(rank===3)for(const y of [.02,.045])cylinder(hat,.117-y*.08,.117-y*.08,.01,brass,0,y,0,24);
  tube(hat,[[-.11,.0,.02],[-.06,-.12,.07],[.06,-.12,.07],[.11,.0,.02]],.005,boot,12);
- // named joints (family K, stage 1): `head` (also `neck0`), `lfore` / `rfore`, `lleg1` / `rleg1` (left is -x) and their
- // bones (`lfore_0`..`_2`, `lleg1_0`..`_2`, ...); `arms` stays off the actor so nothing fidgets them
- const a=nameHumanoidJoints(Object.assign(actor(g,body,legs,club,[],'guard'),{head,arms:[lArm,rArm]}));
+ // named joints (family K, stage 1): `head`, `lfore` / `rfore`, `lleg1` / `rleg1` (left is -x) and their bones
+ // (`lfore_0`..`_2`, `lleg1_0`..`_2`, ...), then the trunk and neck on bones (rigBody: `hips`, `spine0`, `spine1`,
+ // `neck0`..`neck3`), the head on `neck3`, the arms on the chest, and the trunk and limbs one skinned hide. Every
+ // other piece on the trunk (the belt and buckle, the buttons, the whistle, the epaulettes, the sash) hangs rigid
+ // on the spine bone at its height, so a hunch carries it and it stays a plain mesh the batch can draw.
+ // `arms` stays off the actor so nothing fidgets them
+ const dressing=body.children.filter(o=>o!==trunk&&o!==head&&o!==lArm&&o!==rArm&&!legs.includes(o));
+ const a=rigBody(nameHumanoidJoints(Object.assign(actor(g,body,legs,club,[],'guard'),{head,arms:[lArm,rArm]})),{});
  delete a.arms;
+ const spine=[a.joints.hips,a.joints.spine0,a.joints.spine1],bb=new THREE.Box3(),c=new THREE.Vector3();
+ for(const o of dressing){
+  if(o.isMesh){o.updateMatrix();o.geometry.boundingBox??o.geometry.computeBoundingBox();bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrix).getCenter(c);}else c.copy(o.position);
+  hangOn(spine.findLast(b=>b.userData.at[1]<=c.y)??a.joints.hips,o);
+ }
  return trimDraws(a);
 }
 // Quantum mechanic: a stooped scientist in a long white lab coat over a coloured shirt and tie, with a shock of
