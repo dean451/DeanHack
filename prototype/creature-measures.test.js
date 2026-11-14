@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY, NAGA} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -448,4 +448,25 @@ test('the mummy numbers: a living knee\'s swing, the stiff-knee cut-off, the hip
   assert(MUMMY.legGap < MUMMY.liveKnee - MUMMY.swingKnee);
   // the stiff leg clears the floor by a hip hike; at rest the arms are crossed over the chest
   assert(MUMMY.hipHike && MUMMY.armsCrossed);
+});
+
+test('the naga numbers: a third of the body reared, the hood raised from the head and held, an elapid\'s lunge, the brooding coil\'s twitch', () => {
+  const n = MEASURES.naga;
+  // a cobra rears about a third of its body; a big one's head rides about a metre up
+  inside(n.rearShare, [.25, .5], 'reared share'); inside(n.rearHeight[0], [.6, 1.5], 'reared height low, m'); inside(n.rearHeight[1], [n.rearHeight[0], 2], 'reared height high, m');
+  // the hood's ribs are longest about half way down, and it rises from the head back and is held up
+  inside(NAGA.hoodWidest, [.35, .7], 'widest hood rib share');
+  assert(NAGA.hoodFromHead && NAGA.hoodHeld);
+  // strikes: the elapid is slower than the pit viper and the colubrid, and the viper's best is faster still
+  const s = n.strikeSpeed;
+  inside(s.deathAdder, [1.5, 3.5], 'elapid strike, m/s');
+  assert(s.deathAdder < s.ratSnake && s.ratSnake < s.cottonmouth && s.cottonmouth < s.viperTop);
+  assert.equal(NAGA.lunge, s.deathAdder); assert(NAGA.creeps);
+  // the brooding coil twitches 10 to 20 times a minute, so every 3 to 6 s at the mean
+  inside(n.coilTwitch.mean, n.coilTwitch.range, 'mean twitch rate'); inside(n.coilTwitch.range[1], [15, 30], 'top twitch rate');
+  inside(NAGA.twitchGap, [2, 6], 'seconds between twitches');
+  inside(n.coilTwitchBelow, [28, 36], 'twitching starts below, deg C');
+  inside(n.broodDays[0], [40, 100], 'days on the coil');
+  // at rest it lies coiled and loosens the coil now and then
+  assert(NAGA.loosens);
 });
