@@ -2282,16 +2282,20 @@ function lich(o){
   if(o.finery>1){cylinder(body,.2,.24,.04,gilt,0,.97,0,12);for(const x of [-.1,0,.1])cone(body,.018,.06,gilt,x,.99,.2,4).rotation.x=Math.PI/2;}
   const rune=mat(o.glow,{emissive:o.glow,emissiveIntensity:2,roughness:.4});for(let i=0;i<o.finery+1;i++){const r=sphere(body,.014,rune,0,.6-i*.12,.318);r.castShadow=false;}}
  // skull: cranium, cheekbones, dark sockets with a glow deep inside, a toothed jaw
- sphere(body,.15,bone,0,1.11,.04,.82,1.08,.98);
+ // The skull is a group pivoting at the neck (`head`, also `neck0`), its pieces moved in where they were drawn
+ // (body and head are unrotated); the hood stays on the robe.
+ const head=new THREE.Group();head.position.set(0,.98,0);body.add(head);
+ const into=m=>{m.position.sub(head.position);head.add(m);return m;};
+ into(sphere(body,.15,bone,0,1.11,.04,.82,1.08,.98));
  // elven cast: high cheekbones, a narrow brow ridge and long swept-back pointed ears
- for(const x of [-1,1]){sphere(body,.032,bone,x*.088,1.075,.14,1,.7,.8);const ear=cone(body,.022,x>0?.09:.15,bone,x*.135,1.15,.01,4);ear.rotation.z=-x*1.15;ear.rotation.x=-.25;}
+ for(const x of [-1,1]){into(sphere(body,.032,bone,x*.088,1.075,.14,1,.7,.8));const ear=into(cone(body,.022,x>0?.09:.15,bone,x*.135,1.15,.01,4));ear.rotation.z=-x*1.15;ear.rotation.x=-.25;}
  // old wear: the right ear snapped short, and a black crack split across the left of the cranium
- for(let i=0;i<3;i++){const k=rounded(body,.012,.07,.008,socket,-.07-i*.016,1.2-i*.035,.1-i*.025,.003);k.rotation.z=.5-i*.35;k.castShadow=false;}
- rounded(body,.15,.02,.05,bone,0,1.15,.17,.01);
- for(const x of [-.06,.06]){sphere(body,.042,socket,x,1.11,.165,1,1,.5);sphere(body,.02,glow,x,1.11,.18);}
- cone(body,.02,.04,socket,0,1.05,.19,3).rotation.x=Math.PI;
- // the jaw and its teeth hinge under the ears, so it chatters like the skeleton's (jaw.js)
- const jaw=new THREE.Group();jaw.position.set(0,1.04,.03);body.add(jaw);jaw.userData.chatter=true;jaw.userData.reach=.45;
+ for(let i=0;i<3;i++){const k=into(rounded(body,.012,.07,.008,socket,-.07-i*.016,1.2-i*.035,.1-i*.025,.003));k.rotation.z=.5-i*.35;k.castShadow=false;}
+ into(rounded(body,.15,.02,.05,bone,0,1.15,.17,.01));
+ for(const x of [-.06,.06]){into(sphere(body,.042,socket,x,1.11,.165,1,1,.5));into(sphere(body,.02,glow,x,1.11,.18));}
+ into(cone(body,.02,.04,socket,0,1.05,.19,3)).rotation.x=Math.PI;
+ // the jaw and its teeth hinge under the ears, so it chatters like the skeleton's (jaw.js); it rides the head
+ const jaw=new THREE.Group();jaw.position.set(0,1.04-head.position.y,.03);head.add(jaw);jaw.userData.chatter=true;jaw.userData.reach=.45;
  rounded(jaw,.12,.06,.1,bone,0,-.05,.07,.03);
  cone(jaw,.03,.07,bone,0,-.085,.11,4).rotation.x=Math.PI*.9;
  for(let i=0;i<5;i++)rounded(jaw,.018,.025,.015,bone,(i-2)*.024,-.065,.125,.004);
@@ -2307,13 +2311,13 @@ function lich(o){
  for(const x of [-.02,.02])sphere(sk,.014,glow,x,.03,.042,1,1,.6);
  const orb=sphere(sk,.026,glow,0,.1,.02);
  // a plain lich and a demilich wear a thin circlet with a glowing stone; higher tiers wear the crowns below
- if(!o.crown){cylinder(body,.152,.152,.018,o.evil?M.gold:M.darkSteel,0,1.2,.02,12);cone(body,.016,.06,o.evil?M.gold:M.darkSteel,0,1.24,.17,4);sphere(body,.02,glow,0,1.2,.17);}
+ if(!o.crown){into(cylinder(body,.152,.152,.018,o.evil?M.gold:M.darkSteel,0,1.2,.02,12));into(cone(body,.016,.06,o.evil?M.gold:M.darkSteel,0,1.24,.17,4));into(sphere(body,.02,glow,0,1.2,.17));}
  // master and arch-lich crowns: a band of upswept points alternating tall and short and raked back like thorns, a glowing gem on each tall tip;
  // the arch-lich's is gilt with more points, a high central spire and a hanging brow stone
- if(o.crown){const arch=o.crown==='tall',n=arch?9:5,metal=arch?M.gold:bone,jewel=mat(o.glow,{emissive:o.glow,emissiveIntensity:3,roughness:.2});cylinder(body,.155,.165,.05,metal,0,1.21,.02,12);
-  for(let i=0;i<n;i++){const a=(i/(n-1)-.5)*Math.PI*1.3,tall=i%2===0,h=(arch?.12:.08)+(tall?(arch?.08:.06):0),mid=i===(n-1)/2&&arch,H=mid?.3:h,k=cone(body,.02,H,metal,Math.sin(a)*.155,1.26+H/2-.02,.02+Math.cos(a)*.155-.02,4);k.rotation.x=-.25;k.rotation.z=-Math.sin(a)*.2;
-   if(tall){const gem=sphere(body,.011,jewel,Math.sin(a)*.155,1.26+H-.01,.02+Math.cos(a)*.155-.07);gem.castShadow=false;}}
-  sphere(body,.026,glow,0,1.22,.18);if(arch)cone(body,.014,.05,M.gold,0,1.17,.19,4).rotation.x=Math.PI;}
+ if(o.crown){const arch=o.crown==='tall',n=arch?9:5,metal=arch?M.gold:bone,jewel=mat(o.glow,{emissive:o.glow,emissiveIntensity:3,roughness:.2});into(cylinder(body,.155,.165,.05,metal,0,1.21,.02,12));
+  for(let i=0;i<n;i++){const a=(i/(n-1)-.5)*Math.PI*1.3,tall=i%2===0,h=(arch?.12:.08)+(tall?(arch?.08:.06):0),mid=i===(n-1)/2&&arch,H=mid?.3:h,k=into(cone(body,.02,H,metal,Math.sin(a)*.155,1.26+H/2-.02,.02+Math.cos(a)*.155-.02,4));k.rotation.x=-.25;k.rotation.z=-Math.sin(a)*.2;
+   if(tall){const gem=into(sphere(body,.011,jewel,Math.sin(a)*.155,1.26+H-.01,.02+Math.cos(a)*.155-.07));gem.castShadow=false;}}
+  into(sphere(body,.026,glow,0,1.22,.18));if(arch)into(cone(body,.014,.05,M.gold,0,1.17,.19,4)).rotation.x=Math.PI;}
  // master and arch-lich: a broken ring of cold light stands behind the skull, the arch-lich's doubled
  if(o.finery>1){for(let i=0;i<o.finery-1;i++){const ring=part(body,new THREE.TorusGeometry(.27+i*.07,.01,5,20,Math.PI*1.7),glow,0,1.13,-.2-i*.02);ring.rotation.z=.5+i;ring.castShadow=false;}}
  if(o.mantle){for(const side of [-1,1]){const spike=cone(body,.05,.22,bone,side*.24,1.02,-.04,5);spike.rotation.z=-side*.9;}rounded(body,.46,.08,.3,trim,0,.97,-.02,.03);}
@@ -2321,7 +2325,12 @@ function lich(o){
  if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.2,transparent:true,opacity:.15,depthWrite:false}),flame=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=flame.name='evil-glow';
   const p=cylinder(g,.4,.46,.004,pool,0,.004,0,24);p.userData.ring=true;p.castShadow=false;p.receiveShadow=false;
   for(const [x,y,z,h,r] of [[-.25,1.0,-.05,.2,.3],[.25,1.0,-.05,.24,-.3],[0,1.0,-.2,.28,0]]){const f=cone(body,.035,h,flame,x,y+h/2,z,5);f.rotation.z=r;f.castShadow=false;}}
- return trimDraws(Object.assign(actor(g,body,[],null,[],'idle'),{jaw,lichHands,orb}));
+ // named joints (family L, stage 1 step 1): `head` (also `neck0`), `lfore` / `rfore` (the sleeved arms at the
+ // shoulders; left is -x). No legs: the robe reaches the floor. Named only, as `arms` stays off the actor so
+ // nothing fidgets them (lich-chill.js flexes the hands through `lichHands`).
+ const a=nameHumanoidJoints(Object.assign(actor(g,body,[],null,[],'idle'),{head,jaw,lichHands,orb,arms:lichHands.map(h=>h.arm)}));
+ a.joints.jaw=jaw;delete a.arms;
+ return trimDraws(a);
 }
 const LICHES={lich:{robe:'#5a4430',glow:'#8ad060',scale:1.08},demilich:{robe:'#6a2a24',glow:'#ff5a3a',evil:true,bone:'#c8bc98',tattered:true,finery:1,scale:1.1},'master lich':{robe:'#4a1f52',glow:'#c070ff',evil:true,crown:'bone',finery:2,scale:1.12},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',evil:true,crown:'tall',mantle:true,finery:3,scale:1.25}};
 
