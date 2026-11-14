@@ -326,6 +326,17 @@ export const MEASURES = {
     broodDays: [45, 73], // days a wild Everglades python held its coil, from May (day not given) to 13 July (USGS); fasting two months or more (National Zoo)
     rest: 'lies coiled, now and then opening the coils a little to let the eggs breathe, then drawing them tight',
   },
+  // the ogres: a heavy human's plod and planted stance, and a heavy bat's slower swing for the club
+  ogre: {
+    cadence: {healthy: 114.35, overweight: 102.98, obese: 93.82}, // steps a minute, 40 young men (Ahsan 2022, Acta Biomed, PMC9686171)
+    stepShorter: [.05, .10], // m, how much shorter an obese walker's step is, across studies (Sensors 2024, PMC11479383)
+    swaySide: {eyesOpen: -.25, eyesClosed: -.22}, // change in side-to-side sway standing still, obese young women (PLoS One 2019, PMC6726190)
+    swayFrontRange: .18, // greater front-to-back sway range with the eyes shut (same)
+    swaySpeedGain: .47, // faster centre-of-pressure travel standing still, eyes open, morbidly obese adults (Pagnotti et al. 2020, Obes Facts)
+    batSpeed: {light: 22.0, standard: 16.0, heavy: 14.4}, // m/s, warm-up swings (ISB 2005 abstract 0808)
+    swingTime: .18, // s, a professional batter from the start of the bat's acceleration to contact (PMC4743964)
+    stance: 'the mass steadies the body side to side, while it sways further front to back',
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -660,4 +671,18 @@ export const NAGA = {
   twitchGap: 60 / MEASURES.naga.coilTwitch.mean,
   // the coil loosens now and then at rest
   loosens: /opening the coils/.test(MEASURES.naga.rest),
+};
+
+// What the ogres use: a slower plod, a stance steady side to side but rocking front to back, and a club blow slowed by its weight
+export const OGRE = {
+  // the obese step rate as a share of a healthy one's, and the seconds between steps
+  cadenceOverLean: MEASURES.ogre.cadence.obese / MEASURES.ogre.cadence.healthy,
+  stepGap: 60 / MEASURES.ogre.cadence.obese,
+  // standing still: the side-to-side sway as a share of a lean body's (eyes open), and the front-to-back range's gain
+  swaySide: 1 + MEASURES.ogre.swaySide.eyesOpen,
+  swayFront: 1 + MEASURES.ogre.swayFrontRange,
+  // a heavy club's speed as a share of a standard bat's, and the blow's time over the same path, s
+  clubOverBat: MEASURES.ogre.batSpeed.heavy / MEASURES.ogre.batSpeed.standard,
+  blow: MEASURES.ogre.swingTime * MEASURES.ogre.batSpeed.standard / MEASURES.ogre.batSpeed.heavy,
+  planted: /steadies the body side to side/.test(MEASURES.ogre.stance),
 };
