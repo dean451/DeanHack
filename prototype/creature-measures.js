@@ -337,6 +337,19 @@ export const MEASURES = {
     swingTime: .18, // s, a professional batter from the start of the bat's acceleration to contact (PMC4743964)
     stance: 'the mass steadies the body side to side, while it sways further front to back',
   },
+  // the rust monster and the disenchanter: a giant anteater's sniffing forage and curled sleep, a nine-banded armadillo's nose and startle leap
+  rustMonster: {
+    flicks: {nationalZoo: 150, beardsley: 160}, // tongue flicks a minute at a nest (National Zoo, Paris zoo: 150; Beardsley Zoo, National Wildlife 2003: 160)
+    nestBout: [1, 2], // minutes at one nest before the insects drive it off (zoo pages: about a minute, seldom more than a couple)
+    sleepHours: {anteater: [15, 16], armadillo: 16}, // hours a day (SF Zoo, h2g2; DesertUSA, Live Science)
+    sleep: 'curls up with the head between the forelegs and the bushy tail laid over the body',
+    smellDepth: [.15, .20], // m of soil an armadillo smells insects through (TPWD; Science, as relayed)
+    leap: [.9, 1.2], // m straight up, a startled nine-banded armadillo (Library of Congress, 3 to 4 feet)
+    dayRange: {single: 1326, mean: 3700, max: 11000}, // m a day, giant anteaters tracked by GPS (one Cerrado animal; a 2019 review)
+    forageSpeed: 1.04, // m a minute, that animal's average over its day
+    travelBelow: 1, // km/h, the review's average speed on its longest days
+    walk: 'a slow shuffling walk on the knuckles of the forefeet, the claws folded under the palms',
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -685,4 +698,21 @@ export const OGRE = {
   clubOverBat: MEASURES.ogre.batSpeed.heavy / MEASURES.ogre.batSpeed.standard,
   blow: MEASURES.ogre.swingTime * MEASURES.ogre.batSpeed.standard / MEASURES.ogre.batSpeed.heavy,
   planted: /steadies the body side to side/.test(MEASURES.ogre.stance),
+};
+
+// What the rust monster and disenchanter use: a quick sniff on a slow, low forage, a curled sleep under the tail, a jolt straight up when startled
+export const RUSTMONSTER = {
+  // seconds between sniffs (one per tongue flick), and how long it worries one spot, s
+  sniffGap: 60 / ((MEASURES.rustMonster.flicks.nationalZoo + MEASURES.rustMonster.flicks.beardsley) / 2),
+  dwell: MEASURES.rustMonster.nestBout.map(m => m * 60),
+  // share of the day asleep, the anteater's middle figure
+  asleep: (MEASURES.rustMonster.sleepHours.anteater[0] + MEASURES.rustMonster.sleepHours.anteater[1]) / 2 / 24,
+  tailOver: /tail laid over the body/.test(MEASURES.rustMonster.sleep),
+  headTucked: /head between the forelegs/.test(MEASURES.rustMonster.sleep),
+  // the cruising pace, m/s: the review's ceiling, and the day's foraging average
+  cruiseBelow: MEASURES.rustMonster.travelBelow / 3.6,
+  forage: MEASURES.rustMonster.forageSpeed / 60,
+  // the startle: the leap's middle height, m
+  leap: (MEASURES.rustMonster.leap[0] + MEASURES.rustMonster.leap[1]) / 2,
+  knuckles: /knuckles of the forefeet/.test(MEASURES.rustMonster.walk),
 };

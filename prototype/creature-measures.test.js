@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY, NAGA, OGRE} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY, NAGA, OGRE, RUSTMONSTER} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -486,4 +486,22 @@ test('the ogre numbers: a slower plod, a stance planted side to side but rocking
   inside(OGRE.clubOverBat, [.8, .97], 'heavy over standard swing speed');
   // a pro's swing is under a fifth of a second; the club's blow a little longer, still well under a third
   inside(o.swingTime, [.12, .25], 'pro swing, s'); inside(OGRE.blow, [o.swingTime, .3], 'club blow, s');
+});
+
+test('the rust monster numbers: a sniff every 0.4 s, a minute or two at one spot, a curled sleep under the tail, a slow shuffle and a startle leap', () => {
+  const r = MEASURES.rustMonster;
+  inside(r.flicks.nationalZoo, [120, 180], 'flicks a minute'); inside(r.flicks.beardsley, [r.flicks.nationalZoo, 180], 'flicks a minute, high');
+  inside(RUSTMONSTER.sniffGap, [.33, .5], 'seconds between sniffs');
+  inside(RUSTMONSTER.dwell[0], [30, 90], 'shortest dwell, s'); inside(RUSTMONSTER.dwell[1], [RUSTMONSTER.dwell[0], 180], 'longest dwell, s');
+  // asleep about two thirds of the day, the head tucked and the tail over it
+  inside(RUSTMONSTER.asleep, [.55, .75], 'share of the day asleep'); inside(r.sleepHours.armadillo, [12, 20], 'armadillo hours asleep');
+  assert(RUSTMONSTER.tailOver && RUSTMONSTER.headTucked);
+  // the nose reads a hand's depth of soil
+  inside(r.smellDepth[0], [.05, .25], 'smell depth low, m'); inside(r.smellDepth[1], [r.smellDepth[0], .3], 'smell depth high, m');
+  // the day's travel spreads widely, but always slowly: under a walking pace, the foraging average a crawl
+  assert(r.dayRange.single < r.dayRange.mean && r.dayRange.mean < r.dayRange.max);
+  inside(RUSTMONSTER.cruiseBelow, [.2, .35], 'cruise ceiling, m/s'); inside(RUSTMONSTER.forage, [.005, .05], 'foraging average, m/s');
+  assert(RUSTMONSTER.forage < RUSTMONSTER.cruiseBelow && RUSTMONSTER.knuckles);
+  // the startle leap: about a metre straight up
+  inside(RUSTMONSTER.leap, [.8, 1.3], 'startle leap, m');
 });
