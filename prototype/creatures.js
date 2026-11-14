@@ -2988,7 +2988,10 @@ function kop(o){
  const T=new THREE.Group();
  lathe(T,[[.0,.28],[.13,.28],[.15,.36],[.16,.46],[.15,.56],[.13,.62],[.0,.64]],coat);
  sphere(T,.13,coat,0,.44,.03,1,1,.95);
- cylinder(body,.155,.155,.035,boot,0,.41,.01,20).scale.z=.95;box(body,.05,.04,.012,brass,0,.41,.16);
+ // the belt is slung under the paunch, below the spine0 seam (.41), so it rides the pelvis bone with the coat it wraps
+ // (review finding 2026-11-14: at .41 a narrower, squashed band sank into the coat and showed only as a bar in front);
+ // it is round like the coat's lathe and as finely cut (24 sides), a few millimetres proud of it all the way round
+ cylinder(body,.158,.158,.036,boot,0,KOP_BELT_Y,0,24);box(body,.05,.04,.012,brass,0,KOP_BELT_Y,.16);
  for(let i=0;i<4;i++)for(const x of [-.045,.045])sphere(body,.012,brass,x,.47+i*.045,.145-i*.012);
  // stand-up collar and a silver whistle on a chain
  cylinder(T,.075,.085,.045,coatDark,0,.645,0,16);
@@ -3096,6 +3099,8 @@ function quantumMechanic(o){
  return trimDraws(actor(g,body,legs,atom,[],'idle'));
 }
 const QUANTUM_MECHANICS={'quantum mechanic':{shirt:'#3a9aa8',glow:'#5ae0ff'},'genetic engineer':{shirt:'#3f8a3a',glow:'#7aff6a'}};
+// the height of the kop's belt (under the paunch, on the pelvis bone)
+const KOP_BELT_Y=.37;
 const KOPS={'keystone kop':{coat:'#2f3f8a'},'kop sergeant':{coat:'#2a3a82',rank:1,scale:1.15},'kop lieutenant':{coat:'#2a5f86',rank:2,scale:1.18,tache:'#5a3a22'},'kop kaptain':{coat:'#5a2a72',rank:3,scale:1.22,tache:'#8a8478'}};
 
 // Elementals: one torso-and-arms spirit built from its element. Air, fire and water
