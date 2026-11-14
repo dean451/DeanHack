@@ -2302,7 +2302,13 @@ function lich(o){
  // skeletal arms: thin bone forearms and claw fingers poking out of wide sleeves
  // Each claw finger hangs from its own knuckle, so lich-chill.js can flex it (handles: lichHands, orb).
  const lichHands=[];
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.93,0);body.add(arm);cylinder(arm,.06,.1,.3,robe,0,-.14,0,8);cylinder(arm,.018,.018,.16,bone,0,-.34,.02,6);const fingers=[];for(const f of [-.025,0,.025]){const k=new THREE.Group();k.position.set(f,-.405,.03);arm.add(k);cone(k,.008,.15,bone,0,-.075,0,4).rotation.x=Math.PI;sphere(k,.011,bone,0,-.04,0);fingers.push(k);}arm.rotation.z=side*.16;arm.rotation.x=side<0?-.55:-.2;lichHands.push({side,arm,fingers});}
+ // Each arm is on three bones, shoulder, elbow and wrist (`lfore_0`..`_2`, family L stage 1 step 2): the sleeve and
+ // the bone forearm skinned down the arm, one skinned mesh per material on one skeleton, and the knuckles hung on
+ // the wrist bone where they were drawn, so a bent elbow carries the claws.
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.22,.93,0);body.add(arm);cylinder(arm,.06,.1,.3,robe,0,-.14,0,8);cylinder(arm,.018,.018,.16,bone,0,-.34,.02,6);
+  const prefix=(side<0?'l':'r')+'fore_';skinPlainLimb(arm,prefix,true,true);
+  const wrist=arm.getObjectByName(prefix+'2'),w=new THREE.Vector3();for(let b=wrist;b!==arm;b=b.parent)w.add(b.position);
+  const fingers=[];for(const f of [-.025,0,.025]){const k=new THREE.Group();k.position.set(f-w.x,-.405-w.y,.03-w.z);wrist.add(k);cone(k,.008,.15,bone,0,-.075,0,4).rotation.x=Math.PI;sphere(k,.011,bone,0,-.04,0);fingers.push(k);}arm.rotation.z=side*.16;arm.rotation.x=side<0?-.55:-.2;lichHands.push({side,arm,fingers});}
  // staff held out on the right, orb glowing in the lich's colour
  const staff=rounded(body,.035,1.15,.035,M.leather,.34,.66,.16,.01);staff.rotation.z=-.06;
  // the staff is topped with a small skull whose sockets glow in the lich's colour; the orb rides in its brow (lich-chill.js flexes it)
@@ -2325,12 +2331,13 @@ function lich(o){
  if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.2,transparent:true,opacity:.15,depthWrite:false}),flame=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=flame.name='evil-glow';
   const p=cylinder(g,.4,.46,.004,pool,0,.004,0,24);p.userData.ring=true;p.castShadow=false;p.receiveShadow=false;
   for(const [x,y,z,h,r] of [[-.25,1.0,-.05,.2,.3],[.25,1.0,-.05,.24,-.3],[0,1.0,-.2,.28,0]]){const f=cone(body,.035,h,flame,x,y+h/2,z,5);f.rotation.z=r;f.castShadow=false;}}
- // named joints (family L, stage 1 step 1): `head` (also `neck0`), `lfore` / `rfore` (the sleeved arms at the
- // shoulders; left is -x). No legs: the robe reaches the floor. Named only, as `arms` stays off the actor so
+ // named joints (family L, stage 1): `head` (also `neck0`), `lfore` / `rfore` (the sleeved arms at the
+ // shoulders; left is -x) and their bones (`lfore_0`..`_2`, `rfore_0`..`_2`). No legs: the robe reaches the floor. Named only, as `arms` stays off the actor so
  // nothing fidgets them (lich-chill.js flexes the hands through `lichHands`).
  const a=nameHumanoidJoints(Object.assign(actor(g,body,[],null,[],'idle'),{head,jaw,lichHands,orb,arms:lichHands.map(h=>h.arm)}));
  a.joints.jaw=jaw;delete a.arms;
- return trimDraws(a);
+ // the arm skins cache their box: settle the world matrices (with the lich's scale) before anything measures it
+ trimDraws(a);g.updateMatrixWorld(true);return a;
 }
 const LICHES={lich:{robe:'#5a4430',glow:'#8ad060',scale:1.08},demilich:{robe:'#6a2a24',glow:'#ff5a3a',evil:true,bone:'#c8bc98',tattered:true,finery:1,scale:1.1},'master lich':{robe:'#4a1f52',glow:'#c070ff',evil:true,crown:'bone',finery:2,scale:1.12},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',evil:true,crown:'tall',mantle:true,finery:3,scale:1.25}};
 
