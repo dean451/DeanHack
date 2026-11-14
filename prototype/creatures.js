@@ -2966,10 +2966,22 @@ function kop(o){
  // moves a piece built on the body into a joint group, keeping where it is drawn (body and joints are unrotated)
  const into=(grp,mesh)=>{mesh.position.sub(grp.position);grp.add(mesh);return mesh;};
  const joint=(x,y,z)=>{const j=new THREE.Group();j.position.set(x,y,z);body.add(j);return j;};
- // legs: straight dark trousers into big flat boots splayed outward
+ // A limb on three bones (family K stage 1 step 2): its cloth pieces, built in the joint group's space, merged into
+ // one vertex-coloured SkinnedMesh (each piece keeps its material's colour; `limbMat` is shared by all four limbs, so
+ // the trunk's skin can later join them in one hide) weighted along `pts` (shoulder or hip, elbow or knee, wrist or
+ // ankle; `<name>0`..`2`), and every other piece (a glove, a boot) hung where it is drawn on the last bone, so a bent
+ // elbow or knee carries it. Returns the bones.
+ const limbMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85,metalness:.04});
+ const limb=(grp,name,pts,main,ends,role)=>{
+  const A=new THREE.Group();for(const m of main){grp.remove(m);A.add(m);}
+  const bones=rigLimb(grp,skinLimb(flatSkin(A),pts),limbMat,name,role),end=pts[2];
+  for(const m of ends){m.position.set(m.position.x-end[0],m.position.y-end[1],m.position.z-end[2]);bones[2].add(m);}
+  return bones;};
+ // legs: straight dark trousers into big flat boots splayed outward, each on hip, knee and ankle bones
  for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.075,.32,0);body.add(leg);
-  segment(leg,[0,0,0],[0,-.26,0],.045,.04,trousers);
-  const foot=rounded(leg,.085,.05,.19,boot,side*.012,-.285,.04,.022);foot.rotation.y=side*.28;legs.push(leg);}
+  const shin=segment(leg,[0,0,0],[0,-.26,0],.045,.04,trousers);
+  const foot=rounded(leg,.085,.05,.19,boot,side*.012,-.285,.04,.022);foot.rotation.y=side*.28;
+  limb(leg,(side<0?'l':'r')+'leg1_',[[0,0,0],[0,-.13,0],[0,-.26,0]],[shin],[foot],'leg');legs.push(leg);}
  // tunic: a pot belly under a long flared coat, belt with a brass buckle and a double row of brass buttons
  lathe(body,[[.0,.28],[.13,.28],[.15,.36],[.16,.46],[.15,.56],[.13,.62],[.0,.64]],coat);
  sphere(body,.13,coat,0,.44,.03,1,1,.95);
@@ -2980,17 +2992,21 @@ function kop(o){
  tube(body,[[-.06,.6,.1],[-.02,.54,.13],[.04,.53,.13]],.004,silver,8);cylinder(body,.009,.009,.04,silver,.055,.53,.13,8).rotation.z=Math.PI/2;
  // arms: left fist on the hip, right arm raised with the truncheon
  // each arm is its own group at the shoulder (`lfore` / `rfore`), its pieces drawn where they were
- const lShoulder=[-.16,.58,0],lElbow=[-.23,.46,-.02],lHand=[-.14,.41,.04],lArm=joint(...lShoulder);
- for(const m of [sphere(body,.05,coat,...lShoulder),segment(body,lShoulder,lElbow,.042,.038,coat),segment(body,lElbow,lHand,.038,.034,coat),sphere(body,.036,glove,...lHand)])into(lArm,m);
- const rShoulder=[.16,.58,0],rElbow=[.24,.68,.04],rHand=[.2,.82,.07],rArm=joint(...rShoulder);
- for(const m of [sphere(body,.05,coat,...rShoulder),segment(body,rShoulder,rElbow,.042,.038,coat),segment(body,rElbow,rHand,.038,.034,coat),sphere(body,.036,glove,...rHand)])into(rArm,m);
- if(rank===1)for(const [s,e,arm] of [[lShoulder,lElbow,lArm],[rShoulder,rElbow,rArm]])for(let i=0;i<3;i++){const t=.45+i*.14,p=s.map((v,k)=>v+(e[k]-v)*t);
-  const c=into(arm,box(body,.05,.009,.012,brass,p[0]+Math.sign(p[0])*.035,p[1],p[2]+.01));c.rotation.set(0,Math.sign(p[0])*1.2,.5);}
+ // and each on three bones, shoulder, elbow and wrist (`lfore_0`..`_2`), the coat sleeve skinned and the glove on the wrist
+ const armOf=(shoulder,elbow,hand)=>{const arm=joint(...shoulder),rel=p=>p.map((v,k)=>v-shoulder[k]);
+  const [top,upper,fore,fist]=[sphere(body,.05,coat,...shoulder),segment(body,shoulder,elbow,.042,.038,coat),segment(body,elbow,hand,.038,.034,coat),sphere(body,.036,glove,...hand)].map(m=>into(arm,m));
+  return [arm,limb(arm,(shoulder[0]<0?'l':'r')+'fore_',[[0,0,0],rel(elbow),rel(hand)],[top,upper,fore],[fist],'arm')];};
+ const lShoulder=[-.16,.58,0],lElbow=[-.23,.46,-.02],lHand=[-.14,.41,.04],[lArm,lBones]=armOf(lShoulder,lElbow,lHand);
+ const rShoulder=[.16,.58,0],rElbow=[.24,.68,.04],rHand=[.2,.82,.07],[rArm,rBones]=armOf(rShoulder,rElbow,rHand);
+ // the sergeant's chevrons ride the upper arm's bone (at the shoulder, so drawn where they were)
+ if(rank===1)for(const [s,e,arm,bone] of [[lShoulder,lElbow,lArm,lBones[0]],[rShoulder,rElbow,rArm,rBones[0]]])for(let i=0;i<3;i++){const t=.45+i*.14,p=s.map((v,k)=>v+(e[k]-v)*t);
+  const c=into(arm,box(body,.05,.009,.012,brass,p[0]+Math.sign(p[0])*.035,p[1],p[2]+.01));c.rotation.set(0,Math.sign(p[0])*1.2,.5);bone.add(c);}
  if(rank>=2)for(const side of [-1,1]){const ep=new THREE.Group();ep.position.set(side*.15,.625,0);ep.rotation.z=-side*.35;body.add(ep);
   sphere(ep,.055,brass,0,0,0,1,.35,1.1);for(let i=0;i<7;i++){const a=(i/6-.5)*2.4;segment(ep,[Math.sin(a)*.05*side,-.005,Math.cos(a)*.05],[Math.sin(a)*.055*side,-.05,Math.cos(a)*.055],.005,.005,brass);}}
  if(rank===3){const sash=part(body,new THREE.TorusGeometry(.16,.014,6,24,Math.PI*1.1),brass,0,.5,.0);sash.rotation.set(0,0,-.9);sash.scale.z=.9;}
- // the truncheon rides the raised right arm, so turning `rfore` carries it; it still swings as the tail
- const club=new THREE.Group();club.position.set(...rHand.map((v,k)=>v-rShoulder[k]));rArm.add(club);
+ // the truncheon rides the raised right arm's wrist bone `rfore_2` (at the fist), so turning `rfore` or bending the
+ // elbow carries it; it still swings as the tail
+ const club=new THREE.Group();rBones[2].add(club);
  segment(club,[0,-.03,0],[-.06,.2,-.03],.02,.026,wood);sphere(club,.027,wood,-.06,.2,-.03);box(club,.012,.03,.012,glove,0,-.045,0);
  tube(club,[[0,-.03,0],[.01,-.07,.01],[.0,-.1,.0]],.003,glove,6);
  // head: sallow, gaunt face, bruised swollen nose, beady eyes, big ears and a drooping walrus moustache
@@ -3008,8 +3024,8 @@ function kop(o){
  sphere(hat,.014,rank===3?brass:boot,0,.08,.118,1,1,.5);
  if(rank===3)for(const y of [.02,.045])cylinder(hat,.117-y*.08,.117-y*.08,.01,brass,0,y,0,24);
  tube(hat,[[-.11,.0,.02],[-.06,-.12,.07],[.06,-.12,.07],[.11,.0,.02]],.005,boot,12);
- // named joints (family K, stage 1 step 1): `head` (also `neck0`), `lfore` / `rfore`, `lleg1` / `rleg1` (left is -x);
- // named only, as `arms` stays off the actor so nothing fidgets them
+ // named joints (family K, stage 1): `head` (also `neck0`), `lfore` / `rfore`, `lleg1` / `rleg1` (left is -x) and their
+ // bones (`lfore_0`..`_2`, `lleg1_0`..`_2`, ...); `arms` stays off the actor so nothing fidgets them
  const a=nameHumanoidJoints(Object.assign(actor(g,body,legs,club,[],'guard'),{head,arms:[lArm,rArm]}));
  delete a.arms;
  return trimDraws(a);
