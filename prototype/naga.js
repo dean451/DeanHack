@@ -98,7 +98,27 @@ export function createNaga({kind = 'red', baby = false} = {}) {
     if (!baby && i % 6 === 0) o.lerp(col.dark, .5);                       // a notch between every few scale rows
   }, 6, (i, j) => (j % 2 ? .84 : 1.06) * (i % 6 === 0 ? .86 : 1) * (!baby && i >= 28 && i <= 33 && j < 3 ? .8 : 1));  // star-ish section, notched rows, one flank hacked flat
   // a low-sided cross-section, a blade keel and notched scale rows, flat-shaded so it catches light in facets
-  add(coilG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: baby ? .65 : .5, metalness: .1, flatShading: true}), 'coil', body);
+  // the coil's joints (family N, stage 1): bones tail0 (where the coil rises into the neck) out to tail11 (by the
+  // tip) along the spiral, nested in order on the body, so a turned joint swings the rest of the coil out past it.
+  // Each ring of the tube rides the two bones either side of it by where it lies along the curve (not by distance:
+  // the turns lie close, so a nearest-bone weight would hang a ring on the turn inside it). The slither's ripple
+  // writes the coil's rest positions, which the skin then carries, so it works the same on the skinned coil.
+  const CB = 12, coilAt = s => coil.getPointAt(1 - s / (CB - 1)), coilPts = Array.from({length: CB}, (_, i) => coilAt(i));
+  const coilBones = coilPts.map((p, i) => { const b = new THREE.Bone(); b.name = 'tail' + i; b.position.copy(i ? p.clone().sub(coilPts[i - 1]) : p); return b; });
+  coilBones.forEach((b, i) => (i ? coilBones[i - 1] : body).add(b));
+  // skin a geometry on the coil's bones: each vertex by its place along the coil, u (0 at the tip, 1 at the neck)
+  const alongCoil = (geo, uOf) => {
+    const n = geo.attributes.position.count, idx = new Uint16Array(n * 4), wt = new Float32Array(n * 4);
+    for (let v = 0; v < n; v++) {
+      const s = THREE.MathUtils.clamp((1 - uOf(v)) * (CB - 1), 0, CB - 1), k = Math.min(CB - 2, Math.floor(s)), t = s - k;
+      idx[v * 4] = k; idx[v * 4 + 1] = k + 1; wt[v * 4] = 1 - t; wt[v * 4 + 1] = t;
+    }
+    geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(idx, 4));
+    geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(wt, 4));
+    return geo;
+  };
+  const coilSkin = [], onCoil = (geo, mat, name) => { const m = new THREE.SkinnedMesh(geo, mat); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; body.add(m); coilSkin.push(m); return m; };
+  onCoil(alongCoil(coilG, v => Math.floor(v / 7) / SEG), new THREE.MeshStandardMaterial({vertexColors: true, roughness: baby ? .65 : .5, metalness: .1, flatShading: true}), 'coil');
 
   // the neck: rises out of the coil, kicks back, then leans forward to carry the head
   const rise = new THREE.CatmullRomCurve3([[0, 0, 0], [0, .1, -.035], [0, .22, -.025], [0, .34, .03], [0, .43, .1], [0, .48, .17]].map(p => new THREE.Vector3(...p)));
@@ -199,8 +219,11 @@ export function createNaga({kind = 'red', baby = false} = {}) {
       for (let i = 0; i < 5; i++) mane.push(shard(.05 + (i % 3) * .022, .012 + (i % 2) * .005, [-1.25 + (i % 2) * .25, i, 0], [(i % 2 ? 1 : -1) * .01, .36 - i * .07, -.06]));
       crest.push(crownG);
       const rime = [];
-      for (let i = 0; i < 6; i++) { const t = .12 + i * .14, p = coil.getPointAt(t * .9), a = i * 2.1; rime.push(shard(.04 + (i % 2) * .025, .011, [Math.sin(a) * .5, i, Math.cos(a) * .5], [p.x + Math.cos(a) * r * .5, p.y + r * .7, p.z + Math.sin(a) * r * .5])); }
-      add(mergeGeometries(rime), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .12, metalness: .15, flatShading: true, emissive: '#3a90d0', emissiveIntensity: .55}), 'rime', body);
+      const rimeU = [];
+      for (let i = 0; i < 6; i++) { const t = .12 + i * .14, p = coil.getPointAt(t * .9), a = i * 2.1; rime.push(shard(.04 + (i % 2) * .025, .011, [Math.sin(a) * .5, i, Math.cos(a) * .5], [p.x + Math.cos(a) * r * .5, p.y + r * .7, p.z + Math.sin(a) * r * .5])); rimeU.push(t * .9); }
+      // each splinter rides the coil's bones whole, where it juts from the coil
+      const per = rime[0].attributes.position.count, rimeG = mergeGeometries(rime);
+      onCoil(alongCoil(rimeG, v => rimeU[Math.floor(v / per)]), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .12, metalness: .15, flatShading: true, emissive: '#3a90d0', emissiveIntensity: .55}), 'rime');
     }
     if (guard) {
       // the eye spots on the hood's back: a cream ring round a black centre each side, facing back
@@ -265,7 +288,9 @@ export function createNaga({kind = 'red', baby = false} = {}) {
   // bind with the actor's scale already in every world matrix (see "Lessons so far"), and leave them current
   g.updateMatrixWorld(true);
   for (const m of skinned) m.bind(skeleton);
+  const coilSkeleton = new THREE.Skeleton(coilBones);
+  for (const m of coilSkin) m.bind(coilSkeleton);
   g.updateMatrixWorld(true);
-  const joints = Object.fromEntries(bones.map(b => [b.name, b]));
+  const joints = Object.fromEntries([...bones, ...coilBones].map(b => [b.name, b]));
   return {g, body, legs: [], tail: neck, wings: [], quirk: 'snake', joints};
 }
