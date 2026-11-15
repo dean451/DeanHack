@@ -20,6 +20,7 @@ import {restPose as gnomeRest, rests as gnomeRests} from '../gnome-rest.js';
 import {restPose as kopRest, rests as kopRests} from '../kop-rest.js';
 import {restPose as lichRest, rests as lichRests} from '../lich-rest.js';
 import {haltPose, halts as kopHalts} from '../kop-halt.js';
+import {shufflePose, turns as lichTurns} from '../lich-turn.js';
 import {restPose as impRest, rests as impRests} from '../imp-rest.js';
 import {restPose as quadRest, rests as quadRests} from '../quadruped-rest.js';
 import {restPose as koboldRest, rests as koboldRests} from '../kobold-rest.js';
@@ -77,6 +78,8 @@ if(q.get('pose')==='rest'&&gargoyleRests(c)){const r=gargoyleRest(c);birdPoser(c
 if(q.get('pose')==='rest'&&kopRests(c)){birdPoser(c).apply(kopRest(c).pose);}
 // ?pose=rest stoops a lich over its staff, the free arm hanging (lich-rest.js)
 if(q.get('pose')==='rest'&&lichRests(c)){birdPoser(c).apply(lichRest(c).pose);}
+// ?pose=shufflel / shuffler rocks a lich's weight over its left or right foot, one shuffle of its turn in one piece (lich-turn.js)
+if((q.get('pose')==='shufflel'||q.get('pose')==='shuffler')&&lichTurns(c)){birdPoser(c).apply(shufflePose(c,q.get('pose')==='shufflel'?-1:1).pose);}
 // ?pose=halt throws a Kop's left arm out at the hero and cocks the truncheon back over the helmet (kop-halt.js)
 if(q.get('pose')==='halt'&&kopHalts(c)){birdPoser(c).apply(haltPose(c).pose);}
 else if(q.get('pose')==='rest'&&humanoidRests(c)){const r=gnomeRests(c)?gnomeRest(c):humanoidRest(c);birdPoser(c).apply(r.pose);}
