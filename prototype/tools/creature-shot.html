@@ -20,6 +20,7 @@ import {restPose as gnomeRest, rests as gnomeRests} from '../gnome-rest.js';
 import {restPose as kopRest, rests as kopRests} from '../kop-rest.js';
 import {restPose as lichRest, rests as lichRests} from '../lich-rest.js';
 import {haltPose, halts as kopHalts} from '../kop-halt.js';
+import {HALT_POSES} from '../kop-halt-poses.js';
 import {shufflePose, turns as lichTurns} from '../lich-turn.js';
 import {restPose as impRest, rests as impRests} from '../imp-rest.js';
 import {restPose as quadRest, rests as quadRests} from '../quadruped-rest.js';
@@ -80,8 +81,11 @@ if(q.get('pose')==='rest'&&kopRests(c)){birdPoser(c).apply(kopRest(c).pose);}
 if(q.get('pose')==='rest'&&lichRests(c)){birdPoser(c).apply(lichRest(c).pose);}
 // ?pose=shufflel / shuffler rocks a lich's weight over its left or right foot, one shuffle of its turn in one piece (lich-turn.js)
 if((q.get('pose')==='shufflel'||q.get('pose')==='shuffler')&&lichTurns(c)){birdPoser(c).apply(shufflePose(c,q.get('pose')==='shufflel'?-1:1).pose);}
-// ?pose=halt throws a Kop's left arm out at the hero and cocks the truncheon back over the helmet (kop-halt.js)
-if(q.get('pose')==='halt'&&kopHalts(c)){birdPoser(c).apply(haltPose(c).pose);}
+// ?pose=halt throws a Kop's left arm out at the hero and cocks the truncheon back over the helmet: the baked halt the
+// game plays (kop-halt-poses.js), solved live (kop-halt.js) only for a Kop with none. The live solve leaves the arm's
+// twist free and lands on either of two twists by engine (Node and Chromium differ), and the open glove is turned for
+// the baked one (kop-glove.js)
+if(q.get('pose')==='halt'&&kopHalts(c)){const b=HALT_POSES[name.toLowerCase()];birdPoser(c).apply(b?.ok?b.pose:haltPose(c).pose);}
 else if(q.get('pose')==='rest'&&humanoidRests(c)){const r=gnomeRests(c)?gnomeRest(c):humanoidRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='rest'&&quadRests(c)){birdPoser(c).apply(quadRest(c).pose);}
 // ?pose=rest also hunches a rat, nose down and tail laid along the floor (rat-rest.js)
