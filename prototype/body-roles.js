@@ -363,7 +363,35 @@ export function quadrupedRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins, orcs, gnomes and Kops too), the imps, the kobolds, the heavy quadrupeds and the rats have maps so far.
+// The liches' map (lich, demilich, master lich, arch-lich), from the joints `lich()` rigs: `hips` at the floor (no
+// legs: the robe reaches it), `spine0` at the waist, `spine1` at the chest, `neck0`..`neck3` up to the skull, the
+// arms on three bones and the claws hung on the wrist. The mouth is at the teeth and the chin under them, both on
+// the jaw (it hinges under the ears, over the skull's pivot), so a dropped jaw carries them. `withers` is the neck's
+// root, `rump` the waist (`spine0`). A hand is the middle claw's knuckle, on the wrist bone. There are no legs, so a
+// foot is the floor under the robe a stance's width either side, and a hip the point above it at the waist's height
+// less a hand, both in the floor bone's frame: they stand where a wasted man's would, and a stoop leaves them.
+const LICH_STANCE = .09;
+export function lichRoles(actor) {
+  const j = actor.joints, hands = Object.fromEntries(actor.lichHands.map(h => [h.side < 0 ? 'l' : 'r', h.fingers[1]]));
+  const waist = j.spine0.position.y - HAND;
+  const map = {
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.jaw, [0, -.065, .125]),
+    chin: () => inFrame(() => j.jaw, [0, -.09, .1]),
+    withers: () => at(() => j.neck0),
+    rump: () => at(() => j.spine0),
+  };
+  for (const side of ['l', 'r']) {
+    const x = (side === 'l' ? -1 : 1) * LICH_STANCE;
+    map[`paw:${side}h`] = () => inFrame(() => j.hips, [x, 0, 0]);
+    map[`hip:${side}`] = () => inFrame(() => j.hips, [x, waist, 0]);
+    map[`paw:${side}f`] = () => at(() => hands[side]);
+    map[`shoulder:${side}`] = () => at(() => j[`${side}fore_0`]);
+  }
+  return buildRoles(map, {});
+}
+
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins, orcs, gnomes and Kops too), the liches, the imps, the kobolds, the heavy quadrupeds and the rats have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
@@ -375,5 +403,6 @@ export function rolesOf(actor) {
   if (['imp', 'homunculus', 'quasit', 'tengu', 'lemure', 'kobold'].includes(actor.quirk) && actor.joints?.rfore_2) return impRoles(actor);
   if (actor.joints?.tail0 && actor.joints.lleg0_2 && actor.joints.rleg1_2 && !actor.joints.tail1 && (!actor.joints.hips || actor.quirk === 'rat') && !actor.joints.spine0 && !actor.joints.neck1) return quadrupedRoles(actor);
   if (actor.joints?.rfore_2 && actor.joints.lleg1_2 && actor.joints.spine1 && actor.joints.neck3 && !actor.joints.tail0) return humanoidRoles(actor);
+  if (actor.lichHands && actor.joints?.hips && actor.joints.jaw) return lichRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
