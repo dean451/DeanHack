@@ -229,6 +229,9 @@ export function createMummy(name){
  }
  const actor=nameHumanoidJoints({g,body,legs,tail:null,wings:[],quirk:'mummy',arms,arm:arms[1],head:heads[0],heads,hat:null,beard:null,pick:null});
  heads.slice(1).forEach((h,i)=>{h.name='head_'+(i+1);actor.joints[h.name]=h;});
+ // the face for the role map (stage 3), in the head's frame: the mouth at the bared tooth row on the jaw, the chin
+ // at the jaw's front under it, both under the eye slit (y 0) whatever the crown adds over the head
+ actor.face={mouth:[0,-.088,.105],chin:[0,-.118,.085]};
  // (a two-headed neck runs to a stand-in midway between the heads, which stands where a lone head does, so every
  // mummy shares one trunk skin and one hide; then both heads hang on its last bone)
  let top=heads[0];
