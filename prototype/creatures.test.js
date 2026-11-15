@@ -370,7 +370,7 @@ test('mummies get their own linen-bound model instead of the strapped undead hum
   for(const key of ['body','head','arm'])assert(mummy[key]?.isObject3D,`${name} ${key}`);
   assert.equal(mummy.legs.length,2);assert.equal(mummy.arms.length,2);assert.equal(mummy.wings.length,0);assert.equal(mummy.tail,null);
   const parts=meshes(mummy),heads=name==='ettin mummy'?2:1;
-  assert.equal(parts.length,5+2*heads,`${name}: one mesh per moving part plus the eyes`);
+  assert.equal(parts.length,1+2*heads,`${name}: one hide (trunk and limbs) plus a head and its eyes per head`);
   let verts=0;
   for(const m of parts){
    const a=m.geometry.attributes;verts+=a.position.count;
@@ -379,11 +379,16 @@ test('mummies get their own linen-bound model instead of the strapped undead hum
   }
   assert(verts<52000,`${name}: ${verts} vertices`);
   mummy.g.updateMatrixWorld(true);
-  const b=new THREE.Box3().setFromObject(mummy.g),s=mummy.g.scale.y;
+  // (precise: since the trunk and limbs are one hide on the stooped body, its own box turned with the stoop reaches
+  // below the floor; the skin's vertices do not)
+  const b=new THREE.Box3().setFromObject(mummy.g,true),s=mummy.g.scale.y;
   assert(b.min.y>-.03*s&&b.min.y<.03*s,`${name}: feet at ${b.min.y}`);
   assert(b.max.y>1.05*s&&b.max.y<1.25*s,`${name}: top at ${b.max.y}`);
   // the arms reach forward, hands at about waist height
-  const hand=new THREE.Box3().setFromObject(mummy.arm);
+  // (the arm's skin is in the hide since the trunk went on bones: measure the hide's vertices riding the arm's bones)
+  const hand=new THREE.Box3();let hide;mummy.g.traverse(o=>{if(o.isSkinnedMesh)hide=o;});
+  {const bones=hide.skeleton.bones,si=hide.geometry.attributes.skinIndex,sw=hide.geometry.attributes.skinWeight,v=new THREE.Vector3(),on=b=>{for(let p=b;p;p=p.parent)if(p===mummy.arm)return true;return false;};
+   for(let i=0;i<si.count;i++){let w=0;for(let k=0;k<4;k++)if(on(bones[si.getComponent(i,k)]))w+=sw.getComponent(i,k);if(w>.999)hand.expandByPoint(hide.getVertexPosition(i,v).applyMatrix4(hide.matrixWorld));}}
   assert(hand.max.z>.5*mummy.g.scale.z&&hand.max.z<.72*mummy.g.scale.z,`${name}: hand reaches to z ${hand.max.z}`);
   assert(hand.min.y>.3*s&&hand.min.y<.7*s,`${name}: hand (and its loose end) down to ${hand.min.y}`);
   assert(Math.max(-b.min.x,b.max.x,-b.min.z,b.max.z)<.8*mummy.g.scale.z,`${name} is out of proportion`);

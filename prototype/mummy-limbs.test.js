@@ -10,7 +10,8 @@ const NAMES = Object.keys(MUMMIES);
 const LIMBS = ['lfore', 'rfore', 'lleg1', 'rleg1'];
 const build = name => createCreature({name, symbol: 77, color: 7});
 const under = (o, root) => { for (let p = o; p; p = p.parent) if (p === root) return true; return false; };
-const skinOf = (a, limb) => { const m = []; a.joints[limb].traverse(o => { if (o.isSkinnedMesh) m.push(o); }); assert.equal(m.length, 1, limb + ': one skin'); return m[0]; };
+// (since step 3 the limbs' skins are merged with the trunk into one hide on the body; the bones stay under each limb's group)
+const skinOf = a => { const m = []; a.g.traverse(o => { if (o.isSkinnedMesh) m.push(o); }); assert.equal(m.length, 1, 'one hide'); return m[0]; };
 // each vertex's weight on bones under `root`
 const shareOn = (m, root) => { const bones = m.skeleton.bones, si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
   return Array.from({length: si.count}, (_, i) => { let w = 0; for (let k = 0; k < 4; k++) if (under(bones[si.getComponent(i, k)], root)) w += sw.getComponent(i, k); return w; }); };
@@ -22,8 +23,8 @@ test('every limb of every mummy has three bones in its joint group, named in joi
   for (const name of NAMES) {
     const a = build(name), j = a.joints;
     for (const limb of LIMBS) {
-      const skin = skinOf(a, limb);
-      assert.equal(skin.userData.part, limb.endsWith('fore') ? 'arm' : 'leg', `${name} ${limb} part`);
+      const skin = skinOf(a);
+      assert.equal(skin.userData.part, 'body', `${name} the hide`);
       for (let i = 0; i < 3; i++) {
         const b = j[`${limb}_${i}`];
         assert(b?.isBone && skin.skeleton.bones.includes(b), `${name} ${limb}_${i}: a bone of the limb's skin, in joints`);
@@ -50,10 +51,10 @@ test('bending an elbow or a knee bends the limb below it and leaves the part abo
   for (const name of NAMES) {
     const a = build(name), j = a.joints;
     for (const limb of LIMBS) {
-      const skin = skinOf(a, limb), share = shareOn(skin, j[`${limb}_1`]), rest = verts(skin, a.g);
-      // the point farthest down the limb in its own space (a fingertip or the toe), which rides the last bone
-      const pos = skin.geometry.attributes.position;
-      let lowest = 0; for (let i = 1; i < pos.count; i++) if (pos.getY(i) < pos.getY(lowest)) lowest = i;
+      const skin = skinOf(a), share = shareOn(skin, j[`${limb}_1`]), rest = verts(skin, a.g);
+      // the point of the limb farthest from its root (a fingertip or the toe), which rides the last bone
+      const root = j[limb].getWorldPosition(new THREE.Vector3()), whole = shareOn(skin, j[limb]);
+      let lowest = -1; for (let i = 0; i < rest.length; i++) if (whole[i] === 1 && (lowest < 0 || rest[i].distanceTo(root) > rest[lowest].distanceTo(root))) lowest = i;
       j[`${limb}_1`].rotation.x += .9;
       const now = verts(skin, a.g);
       j[`${limb}_1`].rotation.x -= .9;
@@ -73,7 +74,7 @@ test('bending a wrist or ankle turns only the bound hand or foot', () => {
   for (const name of ['human mummy', 'ettin mummy']) {
     const a = build(name), j = a.joints;
     for (const limb of LIMBS) {
-      const skin = skinOf(a, limb), share = shareOn(skin, j[`${limb}_2`]), rest = verts(skin, a.g);
+      const skin = skinOf(a), share = shareOn(skin, j[`${limb}_2`]), rest = verts(skin, a.g);
       j[`${limb}_2`].rotation.x += .7;
       const now = verts(skin, a.g);
       j[`${limb}_2`].rotation.x -= .7;
@@ -88,6 +89,6 @@ test('bending a wrist or ankle turns only the bound hand or foot', () => {
   }
 });
 
-test('the limbs on bones cost no more meshes: 7, and 9 for the two-headed ettin', () => {
-  for (const name of NAMES) assert.equal(meshCount(build(name)), name === 'ettin mummy' ? 9 : 7, name);
+test('the limbs on bones cost no more meshes (7, the ettin 9); one hide since step 3: 3, the ettin 5', () => {
+  for (const name of NAMES) assert.equal(meshCount(build(name)), name === 'ettin mummy' ? 5 : 3, name);
 });
