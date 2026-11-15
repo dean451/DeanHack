@@ -271,6 +271,9 @@ export function humanoidRoles(actor) {
   // share of the face's own height up from its bottom (the moustache's tips), not a share of the crown under the pivot
   const mouth = actor.headAtCollar ? [x, bottom + (top - bottom) * .33, front * .85] : [x, -top * .3, front * .85];
   const chin = actor.headAtCollar ? [x, bottom + (top - bottom) * .15, front * .7] : [x, -top * .65, front * .7];
+  // a builder that knows where its face is (the mummies': the bared tooth row under the eye slit, where a crown's
+  // spikes would stretch the box) names the points itself in the head's frame, `actor.face`
+  if (actor.face) { mouth.splice(0, 3, ...actor.face.mouth); chin.splice(0, 3, ...actor.face.chin); }
   const map = {
     head: () => at(() => j.head),
     mouth: () => inFrame(() => j.head, mouth),
@@ -391,7 +394,7 @@ export function lichRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins, orcs, gnomes and Kops too), the liches, the imps, the kobolds, the heavy quadrupeds and the rats have maps so far.
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins, orcs, gnomes, Kops and mummies too), the liches, the imps, the kobolds, the heavy quadrupeds and the rats have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
