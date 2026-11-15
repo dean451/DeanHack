@@ -10,7 +10,7 @@ import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
 import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
-import {rigGiant} from './giant-joints.js';
+import {rigGiant,nameGiantJoints} from './giant-joints.js';
 import {carveScar} from './skin-scar.js';
 import {rigBody,hangOn,skinPlainLimb,skinTrunk,rigTrunk} from './trunk-skin.js';
 import {kopGlove,haltGloveTurn} from './kop-glove.js';
@@ -2226,7 +2226,7 @@ function ogre(o){
    for(let i=0;i<3;i++){const sl=part(body,new THREE.BoxGeometry(.2-i*.03,.03,.17-i*.02),plate,side*(.25+i*.012),.95-i*.03+(i===2&&side<0?-.01:0),0);sl.rotation.z=side*(.3+i*.1);}}
   else if(metal){const pad=sphere(body,.11,metal,side*.24,.92,0,1.1,.6,1.1);pad.rotation.z=side*.35;}else sphere(body,.1,skin,side*.23,.9,0,1,.85,1);}
  if(o.mantle){sphere(body,.24,mat(o.mantle,{roughness:1}),0,.93,-.04,1.25,.42,1.05);rounded(body,.44,.4,.04,mat(o.cape||'#6a1f24',{roughness:.9}),0,.66,-.2,.02);}
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.29,.9,.02);body.add(arm);
+ const arms=[];for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.29,.9,.02);body.add(arm);arms.push(arm);
   if(o.faceted){cylinder(arm,.075,.06,.24,skin,0,-.12,0,6);cylinder(arm,.06,.075,.22,skin,0,-.33,.02,6);part(arm,new THREE.SphereGeometry(.08,5,4),mat(shade(o.skin,.72),{roughness:.9,flatShading:true}),0,-.47,.03).scale.set(1.1,.9,1.1);}
   else{rounded(arm,.13,.24,.13,skin,0,-.12,0,.05);rounded(arm,.12,.22,.12,skin,0,-.33,.02,.045);sphere(arm,.08,dark,0,-.47,.03,1.1,.9,1.1);}arm.rotation.z=side*.12;arm.rotation.x=side>0?-.4:-.1;}
  const head=new THREE.Group();head.position.set(0,1.02,.07);body.add(head);
@@ -2259,7 +2259,9 @@ function ogre(o){
  // lords and kings have used the club: the nailed head is crusted with old dried blood
  if(o.scars){const dry=mat('#3a1210',{roughness:1});const st=sphere(body,.07,dry,.33,o.bigClub?.55:.52,.28,1.1,1.5,1);st.castShadow=false;g.userData.bloodyClub=true;}
  for(let i=0;i<(o.bigClub?5:3);i++){const a=i*2.1,nail=cone(body,.016,.05,metal||M.darkSteel,.33+Math.cos(a)*.07,.56+(i%2)*.04,.29+Math.sin(a)*.03,4);nail.rotation.set(.55+Math.sin(a),0,Math.cos(a));}
- return trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head}));
+ // named joints (family O stage 1): `head` (also `neck0`), the arms `lfore` / `rfore` and the legs `lleg1` / `rleg1`
+ // (left is -x), as on the giants; only `actor.joints` is set, so no arm motion turns on and the club stays on the body
+ return nameGiantJoints(trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head})),{heads:[head],arms});
 }
 const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#6a5038',hide:'#3a2c20',metal:'#7a5430',scars:true,faceted:true,scale:1.15},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,scars:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.32}};
 
