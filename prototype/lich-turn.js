@@ -26,26 +26,31 @@ export const TURN = {roll: .14, half: MEASURES.lich.turnSeconds.control, delay: 
 
 export const turns = rests;
 
-// Solves one shuffle's weight shift over the foot on `side` (the built pose is left as it was found).
-export function shufflePose(a, side) {
+// Solves one shuffle's weight shift over the foot on `side` (the built pose is left as it was found). `upright`: the
+// shuffle of a lich standing straight (the hero close by keeps it up, lich-settle.js), solved from the built frame:
+// the trunk keeps its built lean forward and only rolls out over the foot, the free hand keeps where it hangs from
+// its shoulder, the staff hand its grip.
+export function shufflePose(a, side, {upright = false} = {}) {
   const P = rolesOf(a), s = a.g.scale.x, {apply} = birdPoser(a);
   apply({});
   const rump = P.rump().clone(), withers = P.withers().clone(), trunk = withers.distanceTo(rump);
-  // the stoop's line, leaned sideways over the foot: forward by the stoop, out by the roll
-  const dir = new THREE.Vector3(side * Math.sin(TURN.roll), Math.cos(REST.stoop) * Math.cos(TURN.roll), Math.sin(REST.stoop) * Math.cos(TURN.roll));
+  const built = withers.clone().sub(rump), stoop = upright ? Math.atan2(built.z, built.y) : REST.stoop;
+  // the trunk's line, leaned sideways over the foot: forward by the stoop (or the built lean), out by the roll
+  const dir = new THREE.Vector3(side * Math.sin(TURN.roll), Math.cos(stoop) * Math.cos(TURN.roll), Math.sin(stoop) * Math.cos(TURN.roll));
   const bent = rump.clone().add(dir.multiplyScalar(trunk));
-  const arm = P['shoulder:l']().distanceTo(P['paw:lf']()), grip = P['paw:rf']().clone();
-  const joints = {'spine0.x': [0, 1.2], 'spine0.z': [-.6, .6], 'spine1.x': [-.1, REST.chest], 'spine1.z': [-.12, .12]};
+  const arm = P['shoulder:l']().distanceTo(P['paw:lf']()), grip = P['paw:rf']().clone(), hang = P['paw:lf']().sub(P['shoulder:l']());
+  const joints = {'spine0.x': upright ? [-.3, .3] : [0, 1.2], 'spine0.z': [-.6, .6], 'spine1.x': upright ? [-.3, .3] : [-.1, REST.chest], 'spine1.z': upright ? [-.3, .3] : [-.12, .12]};
   for (const k of ['l', 'r']) {
     for (const ax of ['x', 'y', 'z']) joints[`${k}fore_0.${ax}`] = [-2.5, 2.5];
     joints[`${k}fore_1.x`] = [-2, 2];
   }
+  const free = upright ? () => P['shoulder:l']().clone().add(hang) : () => P['shoulder:l']().clone().add(new THREE.Vector3(0, -arm, 0));
   const goals = [
     goal.reach('withers', () => bent, {within: .005 * s, weight: 3}),
-    goal.reach('paw:lf', () => P['shoulder:l']().clone().add(new THREE.Vector3(0, -arm, 0)), {within: .01 * s, weight: 2}),
+    goal.reach('paw:lf', free, {within: .01 * s, weight: 2}),
     goal.reach('paw:rf', () => grip, {within: .005 * s, weight: 3}),
   ];
-  const r = solvePose({joints, base: {spine0: {x: REST.stoop}}, goals, apply, points: P, iterations: 800, rest: .01});
+  const r = solvePose({joints, base: upright ? {} : {spine0: {x: REST.stoop}}, goals, apply, points: P, iterations: 800, rest: .01});
   apply({});
   return {pose: r.pose, residuals: r.residuals, goals, trunk, arm, grip, bent, rump, side};
 }
