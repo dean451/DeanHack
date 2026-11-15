@@ -104,6 +104,7 @@ Claude sessions with the user add lines here from the user's direct feedback (ma
 - Fidget seeds come from `g.id` (`ant-jaws.js`, `locust-hop.js`, `dangle.js`, `dragon-menace.js`), so a model gaining an object shifts them and flips seed-sensitive tests; tests pin `g.userData.fidgetId`.
 - A `SkinnedMesh` bound inside a builder takes its bind inverse from a world matrix that does not yet hold the actor's scale, and it caches its box: `Box3.setFromObject` before the first frame (the shot tools frame by it) then measures the skin wrong. Call `g.updateMatrixWorld(true)` at the end of the build, and test the box on a fresh actor against a second, updated one.
 - Building or posing a creature's skin, joints or behaviour: read "What the pet cat and the dragons taught" in the Creature behaviour plan first.
+- A live `solvePose` can land on a different solution in Chromium than in Node when a goal leaves a degree of freedom open (the Kop halt's arm twist: same wrist, the hand rolled 90 degrees). Anything fitted to a baked pose (the Kop's open glove) must be looked at in the baked pose the game plays; the shot tools use the bake where one exists.
 
 ### No audio
 
@@ -169,7 +170,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Keystone Kop halt: the thrown-out hand is a white ball (review 2026-11-15, https://github.com/dean451/DeanHack/pull/2000):** the halt (`kop-halt.js`) throws the left arm straight at the hero, palm out, but the glove on `lfore_2` is a plain `sphere` (`armOf` in `kop()`, `prototype/creatures.js`), so the gesture's focal point reads as a smooth white ball, not a policeman's raised palm (a sphere is for an eyeball). Shape the glove only, not the arm or the pose. **Done when:** `POSE=halt node tools/creature-shot.mjs "Keystone Kop" kop K` shows, in the head and game views, an open flattened glove with a thumb and four fingers facing the camera, and a test asserts the left glove is no longer one sphere (at least five finger or thumb parts on `lfore_2`).
 - **creature-shot `POSE=rest` sits the Kop on the floor (review 2026-11-15, https://github.com/dean451/DeanHack/pull/2000):** in `prototype/tools/creature-shot.html` the halt line went in between the Kop's `if(...kopRests...)` and its `else if(...humanoidRests...)`, so the `else` now hangs off the halt and a Kop given `POSE=rest` gets the stance at ease and then the humanoid slumped sit on top (legs out on the floor, head hung). The game is not affected (`humanoid-rest-poses.js` has no Kop), only the review tool. **Done when:** `POSE=rest node tools/creature-shot.mjs "Keystone Kop" koprest K` renders the Kop standing at ease (both boots flat, feet apart, hands behind at the belt), matching `SETTLE=12` on the same Kop, and `POSE=rest` on a dwarf still sits it.
 
 

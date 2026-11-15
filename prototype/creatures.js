@@ -13,6 +13,8 @@ import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
 import {rigGiant} from './giant-joints.js';
 import {carveScar} from './skin-scar.js';
 import {rigBody,hangOn,skinPlainLimb,skinTrunk,rigTrunk} from './trunk-skin.js';
+import {kopGlove,haltGloveTurn} from './kop-glove.js';
+import {HALT_POSES} from './kop-halt-poses.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
@@ -3046,11 +3048,13 @@ function kop(o){
  cylinder(T,.075,.085,.045,coatDark,0,.645,0,16);
  const trunk=new THREE.Mesh(flatSkin(T),limbMat);trunk.userData.part='body';trunk.castShadow=trunk.receiveShadow=true;body.add(trunk);
  tube(body,[[-.06,.6,.1],[-.02,.54,.13],[.04,.53,.13]],.004,silver,8);cylinder(body,.009,.009,.04,silver,.055,.53,.13,8).rotation.z=Math.PI/2;
- // arms: left fist on the hip, right arm raised with the truncheon
+ // arms: left hand on the hip, right arm raised with the truncheon; the left is an open glove (kop-glove.js; review
+ // finding 2026-11-15: a ball read as nothing at the end of the halt's thrust-out arm), the right a fist round the club
  // each arm is its own group at the shoulder (`lfore` / `rfore`), its pieces drawn where they were
  // and each on three bones, shoulder, elbow and wrist (`lfore_0`..`_2`), the coat sleeve skinned and the glove on the wrist
  const armOf=(shoulder,elbow,hand)=>{const arm=joint(...shoulder),rel=p=>p.map((v,k)=>v-shoulder[k]);
-  const [top,upper,fore,fist]=[sphere(body,.05,coat,...shoulder),segment(body,shoulder,elbow,.042,.038,coat),segment(body,elbow,hand,.038,.034,coat),sphere(body,.036,glove,...hand)].map(m=>into(arm,m));
+  const open=shoulder[0]<0,hold=open?kopGlove(glove):sphere(body,.036,glove,...hand);if(open){hold.position.set(...hand);body.add(hold);}
+  const [top,upper,fore,fist]=[sphere(body,.05,coat,...shoulder),segment(body,shoulder,elbow,.042,.038,coat),segment(body,elbow,hand,.038,.034,coat),hold].map(m=>into(arm,m));
   return [arm,limb(arm,(shoulder[0]<0?'l':'r')+'fore_',[[0,0,0],rel(elbow),rel(hand)],[top,upper,fore],[fist],'arm')];};
  const lShoulder=[-.16,.58,0],lElbow=[-.23,.46,-.02],lHand=[-.14,.41,.04],[lArm,lBones]=armOf(lShoulder,lElbow,lHand);
  const rShoulder=[.16,.58,0],rElbow=[.24,.68,.04],rHand=[.2,.82,.07],[rArm,rBones]=armOf(rShoulder,rElbow,rHand);
@@ -3093,6 +3097,9 @@ function kop(o){
  // dropped the mouth to the collar); no gait runs on a kop (`guard`), so nothing nods it. The head pivots at the
  // collar, under the whole face (`headAtCollar`), so the map measures the mouth up from the face's bottom
  a.hat=hat;a.headAtCollar=true;
+ // the open glove is turned so that in this Kop's baked halt its palm faces straight ahead, fingers up (kop-glove.js)
+ const openGlove=lBones[2].children.find(o=>o.name==='KopGlove');
+ if(openGlove)openGlove.quaternion.copy(haltGloveTurn(a,lBones[2],(HALT_POSES[o.name]||HALT_POSES['keystone kop']).pose));
  const spine=[a.joints.hips,a.joints.spine0,a.joints.spine1],bb=new THREE.Box3(),c=new THREE.Vector3();
  for(const o of dressing){
   if(o.isMesh){o.updateMatrix();o.geometry.boundingBox??o.geometry.computeBoundingBox();bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrix).getCenter(c);}else c.copy(o.position);
@@ -3816,7 +3823,7 @@ export function createCreature(cell={}){
  if(LEPRECHAUNS[name])return leprechaun(LEPRECHAUNS[name]);
  if(GARGOYLES[name])return gargoyle(GARGOYLES[name]);
  if(GREMLINS[name])return gremlin(GREMLINS[name]);
- if(KOPS[name])return kop(KOPS[name]);
+ if(KOPS[name])return kop({name,...KOPS[name]});
  if(QUANTUM_MECHANICS[name])return quantumMechanic(QUANTUM_MECHANICS[name]);
  if(ELEMENTALS[name])return elemental(ELEMENTALS[name]);
  if(ANGELS[name])return angel(ANGELS[name]);
