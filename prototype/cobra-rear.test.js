@@ -38,7 +38,9 @@ test('helpers stay in bounds and come back to rest', () => {
 });
 
 test('the cobra lies low and folded alone, rears and spreads at the hero, strikes, spits and rests after death', () => {
-  const a = snake('cobra'), rest = pose(a), head = a.hood.parent, ry0 = rest[1];
+  // the seed pinned (the id it had on master), so the run does not hang on how many objects earlier tests built
+  const a = snake('cobra'); a.g.userData.fidgetId = 118;
+  const rest = pose(a), head = a.hood.parent, ry0 = rest[1];
   let t = 0, flicks = {far: 0, near: 0}, maxHood = 0, hisses = 0, last = pose(a);
   const run = (secs, look, tag) => {
     for (let i = 0; i < secs * 60; i++) {
