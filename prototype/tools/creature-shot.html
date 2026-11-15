@@ -86,7 +86,8 @@ if((q.get('pose')==='shufflel'||q.get('pose')==='shuffler')&&lichTurns(c)){birdP
 // twist free and lands on either of two twists by engine (Node and Chromium differ), and the open glove is turned for
 // the baked one (kop-glove.js)
 if(q.get('pose')==='halt'&&kopHalts(c)){const b=HALT_POSES[name.toLowerCase()];birdPoser(c).apply(b?.ok?b.pose:haltPose(c).pose);}
-else if(q.get('pose')==='rest'&&humanoidRests(c)){const r=gnomeRests(c)?gnomeRest(c):humanoidRest(c);birdPoser(c).apply(r.pose);}
+// the Kop has its own rest above, so the humanoid slumped sit leaves it standing
+if(q.get('pose')==='rest'&&humanoidRests(c)&&!kopRests(c)){const r=gnomeRests(c)?gnomeRest(c):humanoidRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='rest'&&quadRests(c)){birdPoser(c).apply(quadRest(c).pose);}
 // ?pose=rest also hunches a rat, nose down and tail laid along the floor (rat-rest.js)
 if(q.get('pose')==='rest'&&ratRests(c)){birdPoser(c).apply(ratRest(c).pose);}

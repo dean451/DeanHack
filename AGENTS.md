@@ -170,7 +170,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **creature-shot `POSE=rest` sits the Kop on the floor (review 2026-11-15, https://github.com/dean451/DeanHack/pull/2000):** in `prototype/tools/creature-shot.html` the halt line went in between the Kop's `if(...kopRests...)` and its `else if(...humanoidRests...)`, so the `else` now hangs off the halt and a Kop given `POSE=rest` gets the stance at ease and then the humanoid slumped sit on top (legs out on the floor, head hung). The game is not affected (`humanoid-rest-poses.js` has no Kop), only the review tool. **Done when:** `POSE=rest node tools/creature-shot.mjs "Keystone Kop" koprest K` renders the Kop standing at ease (both boots flat, feet apart, hands behind at the belt), matching `SETTLE=12` on the same Kop, and `POSE=rest` on a dwarf still sits it.
 
 
 
