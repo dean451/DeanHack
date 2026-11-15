@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {nameHumanoidJoints} from './humanoid-joints.js';
 
 // The eight mummies used to be the boxy undead humanoid with six flat strips across its chest.
 // They now shamble wrapped head to foot in grave linen: every limb, the torso, the neck and the
@@ -15,6 +16,8 @@ import {pieces,rgb,mix,at} from './homunculus.js';
 // geometry is built once and shared by every mummy; each species only picks a scale, a build and
 // a faint tint of its glyph colour on the linen.
 // Handles: legs, arms, arm, head, body, like the humanoid rig. The quirk stays 'mummy'.
+// Named joints (family M stage 1): `actor.joints` holds `head` (also `neck0`; the ettin's second head is
+// `head_1`, as on the giants), the arms `lfore` / `rfore` and the legs `lleg1` / `rleg1` (left is -x).
 
 export const MUMMIES={
  'kobold mummy':{scale:.7,wide:1,tint:'#b04030'},
@@ -213,5 +216,7 @@ export function createMummy(name){
   const leg=new THREE.Group();leg.position.set(s*.095,.455,0);body.add(leg);mesh(leg,S.leg[s],linenMat,'leg');legs.push(leg);
   const arm=new THREE.Group();arm.position.set(s*.225,.83,0);arm.rotation.set(-1.35,0,s*.08);body.add(arm);mesh(arm,S.arm[s],linenMat,'arm');arms.push(arm);
  }
- return {g,body,legs,tail:null,wings:[],quirk:'mummy',arms,arm:arms[1],head:heads[0],heads,hat:null,beard:null,pick:null};
+ const actor=nameHumanoidJoints({g,body,legs,tail:null,wings:[],quirk:'mummy',arms,arm:arms[1],head:heads[0],heads,hat:null,beard:null,pick:null});
+ heads.slice(1).forEach((h,i)=>{h.name='head_'+(i+1);actor.joints[h.name]=h;});
+ return actor;
 }
