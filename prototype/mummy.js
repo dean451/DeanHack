@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
-import {nameHumanoidJoints} from './humanoid-joints.js';
+import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
 
 // The eight mummies used to be the boxy undead humanoid with six flat strips across its chest.
 // They now shamble wrapped head to foot in grave linen: every limb, the torso, the neck and the
@@ -18,6 +18,9 @@ import {nameHumanoidJoints} from './humanoid-joints.js';
 // Handles: legs, arms, arm, head, body, like the humanoid rig. The quirk stays 'mummy'.
 // Named joints (family M stage 1): `actor.joints` holds `head` (also `neck0`; the ettin's second head is
 // `head_1`, as on the giants), the arms `lfore` / `rfore` and the legs `lleg1` / `rleg1` (left is -x).
+// Each limb is one SkinnedMesh on three bones (family M stage 1 step 2): the legs on hip, knee and ankle
+// (`lleg1_0`..`_2`), the arms on shoulder, elbow and wrist (`lfore_0`..`_2`); the bound hand and foot ride the
+// last bone, so a bent elbow or knee carries them.
 
 export const MUMMIES={
  'kobold mummy':{scale:.7,wide:1,tint:'#b04030'},
@@ -186,11 +189,14 @@ function buildArm(side){
  return P.merge();
 }
 
+// where each limb's bones sit in its group: hip, knee (the knee ball) and ankle (above the bound foot);
+// shoulder, elbow (the elbow ball) and wrist (where the wrappings end over the palm)
+export const LEG_BONES=[[0,0,0],[0,-.22,0],[0,-.385,0]],ARM_BONES=[[0,0,0],[0,-.2,0],[0,-.37,0]];
 let shared=null;
 function geometry(){
  if(shared)return shared;
  const eye=new THREE.MeshStandardMaterial({color:0xe8e0b0,emissive:0x8a7a30,emissiveIntensity:1.5,roughness:.3});
- shared={eye,materials:new Map(),body:buildBody(),head:buildHead(),headCrowned:buildHead(true),eyes:buildEyes(),leg:{'-1':buildLeg(-1),'1':buildLeg(1)},arm:{'-1':buildArm(-1),'1':buildArm(1)}};
+ shared={eye,materials:new Map(),body:buildBody(),head:buildHead(),headCrowned:buildHead(true),eyes:buildEyes(),leg:{'-1':skinLimb(buildLeg(-1),LEG_BONES),'1':skinLimb(buildLeg(1),LEG_BONES)},arm:{'-1':skinLimb(buildArm(-1),ARM_BONES),'1':skinLimb(buildArm(1),ARM_BONES)}};
  return shared;
 }
 // linen takes a faint cast of the species' glyph colour
@@ -213,10 +219,13 @@ export function createMummy(name){
  }
  const legs=[],arms=[];
  for(const s of [-1,1]){
-  const leg=new THREE.Group();leg.position.set(s*.095,.455,0);body.add(leg);mesh(leg,S.leg[s],linenMat,'leg');legs.push(leg);
-  const arm=new THREE.Group();arm.position.set(s*.225,.83,0);arm.rotation.set(-1.35,0,s*.08);body.add(arm);mesh(arm,S.arm[s],linenMat,'arm');arms.push(arm);
+  const leg=new THREE.Group();leg.position.set(s*.095,.455,0);body.add(leg);rigLimb(leg,S.leg[s],linenMat,(s<0?'l':'r')+'leg1_','leg');legs.push(leg);
+  const arm=new THREE.Group();arm.position.set(s*.225,.83,0);arm.rotation.set(-1.35,0,s*.08);body.add(arm);rigLimb(arm,S.arm[s],linenMat,(s<0?'l':'r')+'fore_','arm');arms.push(arm);
  }
  const actor=nameHumanoidJoints({g,body,legs,tail:null,wings:[],quirk:'mummy',arms,arm:arms[1],head:heads[0],heads,hat:null,beard:null,pick:null});
  heads.slice(1).forEach((h,i)=>{h.name='head_'+(i+1);actor.joints[h.name]=h;});
+ // the skins were bound before the actor's scale reached them: refresh the world matrices so a box taken before
+ // the first frame measures the skin where it is drawn
+ g.updateMatrixWorld(true);
  return actor;
 }
