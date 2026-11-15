@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
+import {rigBody,hangOn} from './trunk-skin.js';
 
 // The eight mummies used to be the boxy undead humanoid with six flat strips across its chest.
 // They now shamble wrapped head to foot in grave linen: every limb, the torso, the neck and the
@@ -21,6 +22,10 @@ import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
 // Each limb is one SkinnedMesh on three bones (family M stage 1 step 2): the legs on hip, knee and ankle
 // (`lleg1_0`..`_2`), the arms on shoulder, elbow and wrist (`lfore_0`..`_2`); the bound hand and foot ride the
 // last bone, so a bent elbow or knee carries them.
+// The trunk and neck are on bones too (family M stage 1 step 3; trunk-skin.js rigBody): `hips` at the body's
+// origin, `spine0` at the waist, `spine1` at the chest, `neck0`..`neck3` up to the head's pivot. The head hangs on
+// `neck3` (the ettin's neck rises between its two heads, as the giants', so both ride it) and the arms on the chest,
+// and the wrapped trunk and the four limbs are one skinned hide: 3 draws (5 for the ettin).
 
 export const MUMMIES={
  'kobold mummy':{scale:.7,wide:1,tint:'#b04030'},
@@ -224,6 +229,12 @@ export function createMummy(name){
  }
  const actor=nameHumanoidJoints({g,body,legs,tail:null,wings:[],quirk:'mummy',arms,arm:arms[1],head:heads[0],heads,hat:null,beard:null,pick:null});
  heads.slice(1).forEach((h,i)=>{h.name='head_'+(i+1);actor.joints[h.name]=h;});
+ // (a two-headed neck runs to a stand-in midway between the heads, which stands where a lone head does, so every
+ // mummy shares one trunk skin and one hide; then both heads hang on its last bone)
+ let top=heads[0];
+ if(heads.length>1){top=new THREE.Group();top.position.set(0,heads[0].position.y,heads[0].position.z);body.add(top);actor.head=top;}
+ rigBody(actor,S);
+ if(top!==heads[0]){actor.joints.neck3.remove(top);actor.head=heads[0];for(const h of heads)hangOn(actor.joints.neck3,h);}
  // the skins were bound before the actor's scale reached them: refresh the world matrices so a box taken before
  // the first frame measures the skin where it is drawn
  g.updateMatrixWorld(true);

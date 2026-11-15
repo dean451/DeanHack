@@ -7,7 +7,7 @@ test('mummies show a rotted cheek and a bone splinter and keep their mesh count'
     const c = createCreature({name, symbol: 77, color: 7});
     let n = 0, verts = 0;
     c.g.traverse(o => { if (o.isMesh) { n++; verts += o.geometry.attributes.position.count; } });
-    assert.equal(n, 7, name + ' meshes');
+    assert.equal(n, 3, name + ' meshes (the trunk and limbs one hide, the head, the eyes)');
     assert(verts < 52000, name + ' vertices ' + verts);
     c.arms.forEach(a => a.updateMatrixWorld(true));
   }
@@ -32,6 +32,6 @@ test('the giant and ettin mummies wear a tarnished gold circlet that rises above
     assert(k.maxY > plain.maxY + .03, name + ' crown rises ' + k.maxY);
     assert(k.gold > plain.gold + 20, name + ' gold ' + k.gold);
   }
-  assert.equal(top('giant mummy').meshes, 7, 'no extra draws');
-  assert.equal(top('ettin mummy').meshes, 9, 'no extra draws');
+  assert.equal(top('giant mummy').meshes, 3, 'no extra draws');
+  assert.equal(top('ettin mummy').meshes, 5, 'no extra draws');
 });
