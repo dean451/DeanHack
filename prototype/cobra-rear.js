@@ -106,7 +106,7 @@ function sharedResources() {
 
 function setup(a) {
   const head = a.hood.parent;
-  const st = {seed: ((a.g.id ?? 1) * 48271) % 2147483647 || 1, T: 0, life: 1, near: 0, rear: 0, face: 0, walk: 0,
+  const st = {seed: ((a.g.userData?.fidgetId ?? a.g.id ?? 1) * 48271) % 2147483647 || 1, T: 0, life: 1, near: 0, rear: 0, face: 0, walk: 0,
     hood: a.hood.scale.x, on: 0, hiss: null, flick: null, lastSpit: null, drops: [], off: new Map(), head, restHead: head.position.clone()};
   st.ph = rand(st) * TAU;
   st.flickWait = between(st, FLICK_WAIT);

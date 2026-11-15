@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {skinChain} from './chain-skin.js';
 
 // The nagas were a torus coil with a tube and a column of yellow belly blocks. This is the family's own body,
 // one colour at a time. Red naga first (and its hatchling):
@@ -108,7 +109,22 @@ export function createNaga({kind = 'red', baby = false} = {}) {
     // three raked scars slashed over the neck
     if (!baby && !white && ((i === 8 && j >= 2 && j <= 4) || (i === 14 && j >= 5 && j <= 7) || (i === 20 && j >= 1 && j <= 3))) o.lerp(col.scar, .85);
   });
-  add(neckG, scaleMat, 'neck', neck);
+  // the neck's joints (family N, stage 1): bones neck0 (where it leaves the coil) to neck4 (under the head) along the
+  // rise, and `head` at the head's own pivot on neck4. The tube is one SkinnedMesh over neck0..neck4, each vertex
+  // riding the two bones either end of its segment, so a turned joint bends it and everything past it follows; the
+  // head and what grows on it hang on the `head` bone. The `neck` group stays the sway pivot (actor.tail).
+  const NB = 5, nk = Array.from({length: NB}, (_, i) => rise.getPointAt(i / (NB - 1)).toArray());
+  const HEAD = [0, .5, .18], bones = [...nk, HEAD].map((p, i, all) => {
+    const b = new THREE.Bone(); b.name = i < NB ? 'neck' + i : 'head';
+    const q = i ? all[i - 1] : [0, 0, 0]; b.position.set(p[0] - q[0], p[1] - q[1], p[2] - q[2]); return b;
+  });
+  bones.forEach((b, i) => (i ? bones[i - 1] : neck).add(b));
+  const headBone = bones[NB], skeleton = new THREE.Skeleton(bones);
+  const skinned = [];
+  const addSkin = (geo, mat, name) => { const m = new THREE.SkinnedMesh(geo, mat); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; neck.add(m); skinned.push(m); return m; };
+  addSkin(skinChain(neckG, nk), scaleMat, 'neck');
+  // a piece of the head, built in the neck's frame, moved into the head bone's
+  const onHead = (geo, mat, name) => add(geo.translate(-HEAD[0], -HEAD[1], -HEAD[2]), mat, name, headBone);
 
   // the head and what grows behind it, in the neck's frame: set at the top of the rise, nodding forward
   const headAt = new THREE.Matrix4().compose(new THREE.Vector3(0, .5, .18), new THREE.Quaternion().setFromEuler(new THREE.Euler(.32, .06, 0)), new THREE.Vector3(1, 1, 1).multiplyScalar(baby ? .8 : 1));
@@ -130,11 +146,11 @@ export function createNaga({kind = 'red', baby = false} = {}) {
   head.push(piece(new THREE.ConeGeometry(1, 1, 4), C.fang, [.0075, .05, .0075], [Math.PI, 0, 0], [-.022, -.047, .122]));          // fangs: the right one snapped
   head.push(piece(new THREE.ConeGeometry(1, 1, 4), C.fang, [.0075, .026, .0075], [Math.PI, 0, .15], [.022, -.036, .122]));
   const headG = mergeGeometries(head); headG.applyMatrix4(headAt);
-  add(headG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .55, flatShading: true}), 'head', neck);
+  onHead(headG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .55, flatShading: true}), 'head');
   // eyes: small and bright against the darkened sockets
   const eyes = [-1, 1].map(s => { const e = bare(new THREE.OctahedronGeometry(1)); e.scale(.014, .012, .007); e.translate(s * .034, .017, .108); return tint(e, C.eye); });
   const eyeG = mergeGeometries(eyes); eyeG.applyMatrix4(headAt);
-  const eyeM = add(eyeG, new THREE.MeshBasicMaterial({vertexColors: true}), 'eyes', neck); eyeM.castShadow = false;
+  const eyeM = onHead(eyeG, new THREE.MeshBasicMaterial({vertexColors: true}), 'eyes'); eyeM.castShadow = false;
 
   // the hood: a torn, half-spread fan of ribs behind the head (folded away on a hatchling)
   if (!baby) {
@@ -155,10 +171,12 @@ export function createNaga({kind = 'red', baby = false} = {}) {
     hoodG.setAttribute('position', new THREE.Float32BufferAttribute(tri, 3));
     hoodG.setAttribute('color', new THREE.Float32BufferAttribute(colr, 3));
     hoodG.computeVertexNormals(); hoodG.applyMatrix4(hoodAt);
-    const hm = add(hoodG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .6, side: THREE.DoubleSide}), 'hood', neck); hm.receiveShadow = false;
+    const hm = onHead(hoodG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .6, side: THREE.DoubleSide}), 'hood'); hm.receiveShadow = false;
 
     // the mane: tongues of flame down the hood's rim and the nape, self-lit, hot at the tips
-    const mane = [], flame = (x, y, z, len, lean, side) => {
+    // the mane is two lots: `crest` grows on the head (the hood's rim, a crown) and rides the head bone; `mane` runs
+    // down the nape and rides the neck's bones
+    const crest = [], mane = [], flame = (x, y, z, len, lean, side) => {
       const f = bare(new THREE.ConeGeometry(.013 + len * .06, len, 4)), p = f.attributes.position, c = new Float32Array(p.count * 3), o = new THREE.Color();
       for (let i = 0; i < p.count; i++) { o.set('#b81a08').lerp(new THREE.Color('#ffc43a'), THREE.MathUtils.clamp(p.getY(i) / len + .5, 0, 1)); o.toArray(c, i * 3); }
       f.setAttribute('color', new THREE.BufferAttribute(c, 3));
@@ -167,10 +185,10 @@ export function createNaga({kind = 'red', baby = false} = {}) {
     };
     for (let k = 1; k < N; k++) {
       const [x, y, z] = rim[k], len = .07 + hash(k * 5) * .07 - (k === 6 ? .045 : 0), v = new THREE.Vector3(x, y, z).applyMatrix4(hoodAt);
-      mane.push(flame(v.x, v.y + len * .35, v.z - .01, len, Math.sign(x) * (.2 + hash(k) * .3), 1));
+      crest.push(flame(v.x, v.y + len * .35, v.z - .01, len, Math.sign(x) * (.2 + hash(k) * .3), 1));
     }
     for (let i = 0; i < 5; i++) mane.push(flame(0, .36 - i * .07, -.03 + i * .006 - (i === 3 ? .01 : 0), .06 + hash(i + 40) * .05, 0, 1));
-    if (kind === 'black' || kind === 'golden' || guard || white) mane.length = 0;
+    if (kind === 'black' || kind === 'golden' || guard || white) crest.length = mane.length = 0;
     if (white) {
       // the ice: a crooked crown raking back off the skull, spines down the nape, two frost fangs; then rime on the coil
       const shard = (len, w, [rx, ry, rz], [x, y, z]) => piece(new THREE.ConeGeometry(1, 1, 4), '#d6f2ff', [w, len, w], [rx, ry, rz], [x, y, z]);
@@ -179,7 +197,7 @@ export function createNaga({kind = 'red', baby = false} = {}) {
       for (const sx of [-1, 1]) crown.push(shard(.045, .006, [Math.PI + .2, 0, 0], [sx * .02, -.075, .1]));
       const crownG = mergeGeometries(crown); crownG.applyMatrix4(headAt);
       for (let i = 0; i < 5; i++) mane.push(shard(.05 + (i % 3) * .022, .012 + (i % 2) * .005, [-1.25 + (i % 2) * .25, i, 0], [(i % 2 ? 1 : -1) * .01, .36 - i * .07, -.06]));
-      mane.push(crownG);
+      crest.push(crownG);
       const rime = [];
       for (let i = 0; i < 6; i++) { const t = .12 + i * .14, p = coil.getPointAt(t * .9), a = i * 2.1; rime.push(shard(.04 + (i % 2) * .025, .011, [Math.sin(a) * .5, i, Math.cos(a) * .5], [p.x + Math.cos(a) * r * .5, p.y + r * .7, p.z + Math.sin(a) * r * .5])); }
       add(mergeGeometries(rime), new THREE.MeshStandardMaterial({vertexColors: true, roughness: .12, metalness: .15, flatShading: true, emissive: '#3a90d0', emissiveIntensity: .55}), 'rime', body);
@@ -192,7 +210,7 @@ export function createNaga({kind = 'red', baby = false} = {}) {
         const dot = bare(new THREE.CircleGeometry(.016, 8)); dot.rotateY(Math.PI); dot.translate(sx * .058, .055, -.0235); spots.push(tint(dot, C.pupil));
       }
       const spotG = mergeGeometries(spots); spotG.applyMatrix4(hoodAt);
-      add(spotG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .6, polygonOffset: true, polygonOffsetFactor: -1}), 'spots', neck).castShadow = false;
+      onHead(spotG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .6, polygonOffset: true, polygonOffsetFactor: -1}), 'spots').castShadow = false;
     }
     if (kind === 'black') {
       // black spines: bone-hard thorns raked back along the rim and nape, base nearly black, tips a dull grey; two snapped
@@ -205,7 +223,7 @@ export function createNaga({kind = 'red', baby = false} = {}) {
       };
       for (let k = 1; k < N; k++) {
         const [x, y, z] = rim[k], len = (.1 + hash(k * 5) * .09) * (k === 4 || k === 9 ? .4 : 1), v = new THREE.Vector3(x, y, z).applyMatrix4(hoodAt);
-        mane.push(spine(v.x, v.y + len * .3, v.z - .01, len, Math.sign(x) * (.25 + hash(k) * .35), 1));
+        crest.push(spine(v.x, v.y + len * .3, v.z - .01, len, Math.sign(x) * (.25 + hash(k) * .35), 1));
       }
       for (let i = 0; i < 5; i++) mane.push(spine(0, .36 - i * .07, -.03 + i * .006, .09 + hash(i + 40) * .06, 0, 1));
     }
@@ -221,9 +239,9 @@ export function createNaga({kind = 'red', baby = false} = {}) {
       gems.push(piece(new THREE.OctahedronGeometry(1), '#ff4a2a', [.011, .016, .008], [0, 0, 0], [0, .052, .104]));
       gems.push(piece(new THREE.OctahedronGeometry(1), '#ffb040', [.006, .009, .006], [0, 0, 0], [-.046, .046, .082]));
       const bandG = mergeGeometries(band); bandG.applyMatrix4(headAt);
-      add(bandG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .35, metalness: .75, flatShading: true}), 'circlet', neck);
+      onHead(bandG, new THREE.MeshStandardMaterial({vertexColors: true, roughness: .35, metalness: .75, flatShading: true}), 'circlet');
       const gemG = mergeGeometries(gems); gemG.applyMatrix4(headAt);
-      add(gemG, new THREE.MeshBasicMaterial({vertexColors: true}), 'gems', neck).castShadow = false;
+      onHead(gemG, new THREE.MeshBasicMaterial({vertexColors: true}), 'gems').castShadow = false;
       // the glow: a faint warm pool on the floor round the coil, a ragged disc that never quite closes
       const halo = new THREE.CircleGeometry(.5, 9); halo.rotateX(-Math.PI / 2);
       const hp = halo.attributes.position; for (let i = 1; i < hp.count; i++) { const s = .86 + hash(i * 3) * .3; hp.setX(i, hp.getX(i) * s); hp.setZ(i, hp.getZ(i) * s); }
@@ -231,11 +249,23 @@ export function createNaga({kind = 'red', baby = false} = {}) {
       const hm2 = add(halo, new THREE.MeshBasicMaterial({color: '#d8a030', transparent: true, opacity: .16, depthWrite: false}), 'glow', body);
       hm2.castShadow = false; hm2.receiveShadow = false;
     }
-    const maneG = mane.length ? mergeGeometries(mane) : null;
-    const mm = !maneG ? null : add(maneG, kind === 'black' ? new THREE.MeshStandardMaterial({vertexColors: true, roughness: .4, metalness: .2, flatShading: true})
+    const heads = crest.reduce((n, f) => n + f.attributes.position.count, 0), all = [...crest, ...mane];
+    const maneG = all.length ? mergeGeometries(all) : null;
+    if (maneG) {
+      // the nape rides the neck's bones by where it lies along them; the crest rides the head bone whole
+      skinChain(maneG, nk);
+      const idx = maneG.attributes.skinIndex, wt = maneG.attributes.skinWeight;
+      for (let i = 0; i < heads; i++) { idx.setXYZW(i, NB, 0, 0, 0); wt.setXYZW(i, 1, 0, 0, 0); }
+    }
+    const mm = !maneG ? null : addSkin(maneG, kind === 'black' ? new THREE.MeshStandardMaterial({vertexColors: true, roughness: .4, metalness: .2, flatShading: true})
       : white ? new THREE.MeshStandardMaterial({vertexColors: true, roughness: .12, metalness: .15, flatShading: true, emissive: '#3a90d0', emissiveIntensity: .55})
-      : new THREE.MeshBasicMaterial({vertexColors: true, side: THREE.DoubleSide}), 'mane', neck); if (mm) mm.castShadow = kind === 'black' || white;
+      : new THREE.MeshBasicMaterial({vertexColors: true, side: THREE.DoubleSide}), 'mane'); if (mm) mm.castShadow = kind === 'black' || white;
     if (!white) g.userData.scarred = true; // (the white naga wears rime instead)
   }
-  return {g, body, legs: [], tail: neck, wings: [], quirk: 'snake'};
+  // bind with the actor's scale already in every world matrix (see "Lessons so far"), and leave them current
+  g.updateMatrixWorld(true);
+  for (const m of skinned) m.bind(skeleton);
+  g.updateMatrixWorld(true);
+  const joints = Object.fromEntries(bones.map(b => [b.name, b]));
+  return {g, body, legs: [], tail: neck, wings: [], quirk: 'snake', joints};
 }

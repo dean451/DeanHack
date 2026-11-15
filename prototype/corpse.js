@@ -361,6 +361,18 @@ export const NAGA_SLUMP={x:1.1,z:.55};
 export function slumpNaga(a){
  if(a?.tail)a.tail.rotation.set(NAGA_SLUMP.x,0,NAGA_SLUMP.z);
  a?.g?.traverse(o=>{if(o.isMesh&&['hood','mane','spots'].includes(o.userData.part))o.visible=false;});
+ // the neck is skinned on its bones (naga.js), and the bake takes plain meshes only: set it in its pose as one
+ a?.g?.updateMatrixWorld(true);
+ const skins=[];a?.g?.traverse(o=>{if(o.isSkinnedMesh)skins.push(o);});
+ for(const s of skins){
+  s.skeleton.update();
+  const geo=s.geometry.clone(),pos=geo.attributes.position,v=new THREE.Vector3();
+  for(let i=0;i<pos.count;i++){s.getVertexPosition(i,v);pos.setXYZ(i,v.x,v.y,v.z);}
+  geo.deleteAttribute('skinIndex');geo.deleteAttribute('skinWeight');geo.computeVertexNormals();
+  const m=new THREE.Mesh(geo,s.material);m.userData.part=s.userData.part;m.visible=s.visible;
+  m.position.copy(s.position);m.quaternion.copy(s.quaternion);m.scale.copy(s.scale);
+  s.parent.add(m);s.parent.remove(s);
+ }
  return a;
 }
 const NAGA=/\bnaga\b/;
