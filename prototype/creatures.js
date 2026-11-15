@@ -12,7 +12,7 @@ import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
 import {rigGiant} from './giant-joints.js';
 import {carveScar} from './skin-scar.js';
-import {rigBody,hangOn,skinPlainLimb} from './trunk-skin.js';
+import {rigBody,hangOn,skinPlainLimb,skinTrunk,rigTrunk} from './trunk-skin.js';
 import {createManes} from './manes.js';
 import {createLemure} from './lemure.js';
 import {createQuasit} from './quasit.js';
@@ -2267,23 +2267,30 @@ const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#6a
 function lich(o){
  const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);
  const bone=mat(o.bone||'#d8d0b8',{roughness:.7}),robe=mat(o.robe,{roughness:.9}),trim=mat(shade(o.robe,.5),{roughness:.85}),glow=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.6,roughness:.3}),socket=mat('#141012',{roughness:.6});
- cylinder(body,.17,.32,.7,robe,0,.35,0,12);
+ // The robe, its hem tatters, the overrobe panel and the train are drawn on a scratch group `T` and baked into one
+ // vertex-coloured hide, and the panel's two glow strips into one mesh `S`, both skinned below onto the trunk's bones
+ // (family L stage 1 step 3)
+ const T=new THREE.Group(),S=new THREE.Group();
+ cylinder(T,.17,.32,.7,robe,0,.35,0,12);
  // ragged hem: alternating dark tatters hang below the robe
- for(let i=0;i<(o.tattered?10:7);i++){const a=i/(o.tattered?10:7)*Math.PI*2,t=cone(body,.05,.14+(i%2)*.06,trim,Math.sin(a)*.31,.1,Math.cos(a)*.31,4);t.rotation.x=Math.PI;}
- rounded(body,.34,.32,.24,robe,0,.82,0,.06);
+ for(let i=0;i<(o.tattered?10:7);i++){const a=i/(o.tattered?10:7)*Math.PI*2,t=cone(T,.05,.14+(i%2)*.06,trim,Math.sin(a)*.31,.1,Math.cos(a)*.31,4);t.rotation.x=Math.PI;}
+ rounded(T,.34,.32,.24,robe,0,.82,0,.06);
  // layered regal robes: an open overrobe panel down the front edged in dark trim, and a long ragged train trailing behind
- rounded(body,.16,.62,.03,trim,0,.38,.3,.01);
- for(const x of [-1,1])rounded(body,.02,.6,.035,mat(o.glow,{emissive:o.glow,emissiveIntensity:.6,roughness:.5}),x*.085,.38,.31,.005);
- const train=cone(body,.2,.55,robe,0,.12,-.42,5);train.rotation.x=-1.45;
- for(const x of [-.09,.09]){const t=cone(body,.04,.2,trim,x,.04,-.62,4);t.rotation.x=-1.5;}
+ rounded(T,.16,.62,.03,trim,0,.38,.3,.01);
+ const stripMat=mat(o.glow,{emissive:o.glow,emissiveIntensity:.6,roughness:.5});
+ for(const x of [-1,1])rounded(S,.02,.6,.035,stripMat,x*.085,.38,.31,.005);
+ const train=cone(T,.2,.55,robe,0,.12,-.42,5);train.rotation.x=-1.45;
+ for(const x of [-.09,.09]){const t=cone(T,.04,.2,trim,x,.04,-.62,4);t.rotation.x=-1.5;}
+ const hide=new THREE.Mesh(flatSkin(T),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9}));hide.userData.part='body';hide.castShadow=hide.receiveShadow=true;body.add(hide);
+ S.updateMatrixWorld(true);const strips=new THREE.Mesh(mergeGeometries(S.children.map(m=>m.geometry.clone().applyMatrix4(m.matrixWorld))),stripMat);strips.castShadow=strips.receiveShadow=true;body.add(strips);
  const hood=sphere(body,.24,trim,0,1.1,-.06,1,1.05,1);hood.scale.z=1.05;
  // finer robes per tier (finery 1 demilich, 2 master lich, 3 arch-lich): a gilt hem band, a gorget at the neck, glowing runes down the overrobe
  if(o.finery){const gilt=o.finery>2?M.gold:M.darkSteel;cylinder(body,.318,.325,.03,gilt,0,.2,0,14);
   if(o.finery>1){cylinder(body,.2,.24,.04,gilt,0,.97,0,12);for(const x of [-.1,0,.1])cone(body,.018,.06,gilt,x,.99,.2,4).rotation.x=Math.PI/2;}
   const rune=mat(o.glow,{emissive:o.glow,emissiveIntensity:2,roughness:.4});for(let i=0;i<o.finery+1;i++){const r=sphere(body,.014,rune,0,.6-i*.12,.318);r.castShadow=false;}}
  // skull: cranium, cheekbones, dark sockets with a glow deep inside, a toothed jaw
- // The skull is a group pivoting at the neck (`head`, also `neck0`), its pieces moved in where they were drawn
- // (body and head are unrotated); the hood stays on the robe.
+ // The skull is a group pivoting at the neck (`head`, hung on the neck's last bone `neck3` below), its pieces moved
+ // in where they were drawn (body and head are unrotated); the hood stays on the robe (on the chest bone).
  const head=new THREE.Group();head.position.set(0,.98,0);body.add(head);
  const into=m=>{m.position.sub(head.position);head.add(m);return m;};
  into(sphere(body,.15,bone,0,1.11,.04,.82,1.08,.98));
@@ -2331,13 +2338,39 @@ function lich(o){
  if(o.evil){const pool=mat(o.glow,{emissive:o.glow,emissiveIntensity:1.2,transparent:true,opacity:.15,depthWrite:false}),flame=mat(o.glow,{emissive:o.glow,emissiveIntensity:2.4,roughness:.4});pool.name=flame.name='evil-glow';
   const p=cylinder(g,.4,.46,.004,pool,0,.004,0,24);p.userData.ring=true;p.castShadow=false;p.receiveShadow=false;
   for(const [x,y,z,h,r] of [[-.25,1.0,-.05,.2,.3],[.25,1.0,-.05,.24,-.3],[0,1.0,-.2,.28,0]]){const f=cone(body,.035,h,flame,x,y+h/2,z,5);f.rotation.z=r;f.castShadow=false;}}
- // named joints (family L, stage 1): `head` (also `neck0`), `lfore` / `rfore` (the sleeved arms at the
- // shoulders; left is -x) and their bones (`lfore_0`..`_2`, `rfore_0`..`_2`). No legs: the robe reaches the floor. Named only, as `arms` stays off the actor so
- // nothing fidgets them (lich-chill.js flexes the hands through `lichHands`).
+ // named joints (family L, stage 1): `head`, `jaw`, `lfore` / `rfore` (the sleeved arms at the shoulders; left is
+ // -x) and their bones (`lfore_0`..`_2`, `rfore_0`..`_2`), then the trunk and neck bones (`hips`, `spine0`, `spine1`,
+ // `neck0`..`neck3`; rigLichTrunk below, step 3: `neck0` is now a bone, not the head group). No legs: the robe
+ // reaches the floor. `arms` stays off the actor so nothing fidgets them (lich-chill.js flexes the hands through `lichHands`).
  const a=nameHumanoidJoints(Object.assign(actor(g,body,[],null,[],'idle'),{head,jaw,lichHands,orb,arms:lichHands.map(h=>h.arm)}));
  a.joints.jaw=jaw;delete a.arms;
+ rigLichTrunk(a,hide,strips,[staff,sk]);
  // the arm skins cache their box: settle the world matrices (with the lich's scale) before anything measures it
  trimDraws(a);g.updateMatrixWorld(true);return a;
+}
+// The lich's trunk and neck on bones (family L stage 1 step 3): `hips` at the floor (no legs: the robe reaches
+// it), `spine0` at the waist, `spine1` at the chest, `neck0`..`neck3` from the top of the trunk to the skull's pivot.
+// The robe's hide and the glow strips are skinned onto them, the skull hangs on `neck3` and the arms on the chest,
+// and every other piece on the robe (hood, mantle, gilt, runes, halo rings, soul-flames) hangs rigid on the spine
+// bone at its height, as the Kops' dressing does. `planted`: what stays on the body (the staff stands on the floor).
+function rigLichTrunk(a,hide,strips,planted){
+ const {body,head}=a,arms=a.lichHands.map(h=>h.arm),armY=arms[0].position.y,h=head.position.toArray();
+ const spine=[['hips',[0,0,0]],['spine0',[0,.45,0]],['spine1',[0,.75,0]]];
+ const root=[0,armY+.35*(h[1]-armY),.5*h[2]],neck=[0,1,2,3].map(i=>['neck'+i,root.map((v,k)=>v+(h[k]-v)*i/3)]);
+ const def={spine,neck,blend:.03,r:.045},dressing=body.children.filter(o=>o!==hide&&o!==strips&&o!==head&&!arms.includes(o)&&!planted.includes(o));
+ body.remove(hide);
+ const {mesh,bones}=rigTrunk(body,skinTrunk(hide.geometry,def),hide.material);
+ body.remove(strips);
+ const s=new THREE.SkinnedMesh(skinTrunk(strips.geometry,def),strips.material);s.castShadow=s.receiveShadow=true;
+ body.add(s);s.updateMatrixWorld(true);s.bind(mesh.skeleton,s.matrixWorld);
+ hangOn(bones.neck3,head);for(const o of arms)hangOn(bones.spine1,o);
+ const chain=[bones.hips,bones.spine0,bones.spine1],bb=new THREE.Box3(),c=new THREE.Vector3();
+ for(const o of dressing){
+  if(o.isMesh){o.updateMatrix();o.geometry.boundingBox??o.geometry.computeBoundingBox();bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrix).getCenter(c);}else c.copy(o.position);
+  hangOn(chain.findLast(b=>b.userData.at[1]<=c.y)??bones.hips,o);
+ }
+ Object.assign(a.joints,bones);
+ return a;
 }
 const LICHES={lich:{robe:'#5a4430',glow:'#8ad060',scale:1.08},demilich:{robe:'#6a2a24',glow:'#ff5a3a',evil:true,bone:'#c8bc98',tattered:true,finery:1,scale:1.1},'master lich':{robe:'#4a1f52',glow:'#c070ff',evil:true,crown:'bone',finery:2,scale:1.12},'arch-lich':{robe:'#2a1438',glow:'#6ad8ff',bone:'#e4e0d4',evil:true,crown:'tall',mantle:true,finery:3,scale:1.25}};
 
