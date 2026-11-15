@@ -110,10 +110,14 @@ function setup(a) {
   return st;
 }
 
-const tmp = new THREE.Vector3(), tmpE = new THREE.Euler();
-// The free hand's fingertip in body space, for the arm's current rotation.
-function handPoint(h, out) {
-  return out.copy(TIP).applyEuler(tmpE.set(h.arm.rotation.x, h.arm.rotation.y, h.arm.rotation.z)).add(h.arm.position);
+const tmp = new THREE.Vector3(), tmpE = new THREE.Euler(), tmpM = new THREE.Matrix4();
+// The free hand's fingertip in body space, for the arm's current rotation. The arm hangs on the chest bone
+// (family L stage 1 step 3), so its place is carried from the bone's space into the body's (last frame's matrices).
+function handPoint(h, out, body) {
+  out.copy(TIP).applyEuler(tmpE.set(h.arm.rotation.x, h.arm.rotation.y, h.arm.rotation.z)).add(h.arm.position);
+  const up = h.arm.parent;
+  if (up && body && up !== body) out.applyMatrix4(tmpM.copy(body.matrixWorld).invert().multiply(up.matrixWorld));
+  return out;
 }
 
 function current(a, kind) {
@@ -172,7 +176,7 @@ export function updateLichChill(a, dt, t, busy) {
   }
 
   // drifting motes: born at the hand or the orb, sinking to the floor; drawn in during a fist
-  const hp = handPoint(st.free, tmp), hx = hp.x, hy = hp.y, hz = hp.z;
+  const hp = handPoint(st.free, tmp, a.body), hx = hp.x, hy = hp.y, hz = hp.z;
   const ox = a.orb ? a.orb.position.x : hx, oy = a.orb ? a.orb.position.y : hy, oz = a.orb ? a.orb.position.z : hz;
   const pos = st.points.geometry.attributes.position, col = st.points.geometry.attributes.color, C = st.color;
   const pull = gp.pull * w;

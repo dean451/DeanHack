@@ -1,4 +1,4 @@
-// Family L stage 1 step 1: every lich exposes named joints (`head` / `neck0`, `jaw`, `lfore` / `rfore`),
+// Family L stage 1 step 1: every lich exposes named joints (`head`, `neck0`..`neck3`, `jaw`, `lfore` / `rfore`),
 // each joint turns only what hangs on it, and the model is drawn where it was before.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,13 +17,15 @@ test('every lich has a head, a jaw and two arms as named joints', () => {
     const a = build(m), j = a.joints, name = m[0];
     assert(j, name + ' joints');
     assert.equal(j.head, a.head, name);
-    assert.equal(j.neck0, a.head, name + ': the neck pivot is the head group');
-    assert.equal(a.head.parent, a.body, name + ': the head hangs on the body');
+    // (since step 3 `neck0` is the neck's first bone and the skull hangs on its last, `neck3`; assert(===), not
+    // assert.equal, so a failure does not try to print two scene graphs)
+    assert(j.neck0?.isBone, name + ': neck0 is a bone of the neck');
+    assert(a.head.parent === j.neck3, name + ': the head hangs on the top of the neck');
     assert.equal(j.jaw, a.jaw, name);
     assert(under(a.jaw, a.head), name + ': the jaw rides the skull');
     for (const [side, hand] of [['l', a.lichHands[0]], ['r', a.lichHands[1]]]) {
       assert.equal(j[side + 'fore'], hand.arm, `${name} ${side}fore is the sleeved arm lich-chill flexes`);
-      assert.equal(j[side + 'fore'].parent, a.body, `${name} ${side}fore`);
+      assert(j[side + 'fore'].parent === j.spine1, `${name} ${side}fore hangs from the chest`);
       assert.equal(j[side + 'fore'].position.x < 0, side === 'l', `${name} ${side} arm side`);
     }
     assert.equal(a.arms, undefined, name + ': arms are not swung by the fidget');
@@ -34,12 +36,14 @@ test('every lich has a head, a jaw and two arms as named joints', () => {
 test('turning a joint moves everything on it and nothing else', () => {
   for (const m of MEMBERS) {
     const a = build(m), j = a.joints, rest = places(a.g), name = m[0];
-    for (const [label, axis, v] of [['neck0', 'x', .5], ['neck0', 'y', .6], ['jaw', 'x', .4], ['lfore', 'x', .7], ['rfore', 'z', .5]]) {
+    for (const [label, axis, v] of [['head', 'x', .5], ['head', 'y', .6], ['neck1', 'x', .5], ['jaw', 'x', .4], ['lfore', 'x', .7], ['rfore', 'z', .5]]) {
       const joint = j[label];
       joint.rotation[axis] += v;
       const now = places(a.g);
       let on = 0;
       for (const [mesh, p] of rest) {
+        // (the robe's hide and glow strips bend with the trunk's bones: lich-trunk.test.js checks their vertices)
+        if (mesh.isSkinnedMesh && !under(mesh, joint)) continue;
         const d = moved(now.get(mesh), p);
         if (under(mesh, joint)) { if (d > 1e-4) on++; }
         else assert(d < 1e-9, `${name}: turning ${label} moved a mesh not on it`);
@@ -82,7 +86,7 @@ test('named joints leave the lich drawn where it was: same bounds, under the mes
     lo.forEach((v, k) => assert(Math.abs(b.min.getComponent(k) - v) < .001, `${name} min ${k}`));
     hi.forEach((v, k) => assert(Math.abs(b.max.getComponent(k) - v) < .001, `${name} max ${k}`));
     let meshes = 0; a.g.traverse(o => { if (o.isMesh) meshes++; });
-    // 28 to 33 on master; the skull's bone, socket and gilt no longer merge with the robe's
+    // 28 to 35 before step 3, 26 to 36 after it (the robe one hide; the arch-lich's runes and gilt split over the spine's bones)
     assert(meshes <= 36, `${name}: ${meshes} meshes`);
   }
 });
