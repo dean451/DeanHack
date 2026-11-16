@@ -6,6 +6,10 @@
 // The roles: head, mouth, chin, withers, rump, tailtip, paw:lf / rf / lh / rh, hip:l / r,
 // shoulder:l / r, for dragons wingtip:l / r and wingwrist:l / r, and for six-legged bodies the middle pair's
 // paw:lm / rm.
+//
+// Joint names for kinds of part the cat and the dragon lack (each builder's `actor.joints`): `ljaw` / `rjaw`
+// (the ants' mandibles), `lwing` / `rwing`, and the rust monster's and disenchanter's feelers `lfeeler` /
+// `rfeeler` and tail propeller `vane` (rust-monster.js).
 import * as THREE from 'three';
 import {points} from './feline-pose.js';
 
