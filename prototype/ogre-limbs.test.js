@@ -9,7 +9,9 @@ const NAMES = ['ogre', 'ogre lord', 'ogre king', 'unknown O'];
 const LIMBS = ['lfore', 'rfore', 'lleg1', 'rleg1'];
 const build = name => createCreature({name, symbol: 79, color: 1});
 const under = (o, root) => { for (let p = o; p; p = p.parent) if (p === root) return true; return false; };
-const skinsOf = (a, root) => { const m = []; root.traverse(o => { if (o.isSkinnedMesh) m.push(o); }); return m; };
+// every skinned mesh on the limb's bones: since step 3 the skin-coloured limb is merged into the one hide on the body,
+// and the boot or fist stays a skin of its own under the limb, bound to the same skeleton
+const skinsOf = (a, root) => { const m = []; a.g.traverse(o => { if (o.isSkinnedMesh && o.skeleton.bones.some(b => under(b, root))) m.push(o); }); return m; };
 // each vertex's weight on bones under `root`
 const shareOn = (m, root) => { const bones = m.skeleton.bones, si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
   return Array.from({length: si.count}, (_, i) => { let w = 0; for (let k = 0; k < 4; k++) if (under(bones[si.getComponent(i, k)], root)) w += sw.getComponent(i, k); return w; }); };
@@ -45,13 +47,14 @@ test('bending an elbow or a knee bends the limb below it and leaves the part abo
     for (const limb of LIMBS) {
       let still = 0, top = 0, topN = 0, low = 0, lowN = 0;
       for (const skin of skinsOf(a, j[limb])) {
-        const share = shareOn(skin, j[`${limb}_1`]), rest = verts(skin, a.g);
+        const share = shareOn(skin, j[`${limb}_1`]), onLimb = shareOn(skin, j[`${limb}_0`]), rest = verts(skin, a.g);
         j[`${limb}_1`].rotation.x += .9;
         const now = verts(skin, a.g);
         j[`${limb}_1`].rotation.x -= .9;
         for (let i = 0; i < rest.length; i++) {
           const d = rest[i].distanceTo(now[i]);
           if (share[i] === 0) { assert(d < 1e-6, `${name} ${limb}: a vertex not on the lower bones moved`); still++; }
+          if (onLimb[i] < .5) continue; // (the hide's trunk and other limbs: not this limb)
           if (share[i] < .25) { top += d; topN++; } else if (share[i] > .75) { low += d; lowN++; }
         }
       }
