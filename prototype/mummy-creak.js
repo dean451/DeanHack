@@ -7,6 +7,8 @@
 // (rotation.x) are added on top of whatever the idle loop and the action layer wrote, and taken
 // back first next frame, so nothing drifts.
 
+import {takeBackRest} from './insect-settle.js';
+
 // GRIND: head yaw (rad); CANT: head roll (rad); POINT: arm lift (rad).
 export const GRIND = .9, CANT = .2, POINT = 1.3;
 // First creak after FIRST_MIN..+FIRST_SPAN s standing still, then GAP_MIN..+GAP_SPAN apart.
@@ -43,6 +45,8 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 export function updateMummyCreak(actor, dt, t, busy) {
   if (!creaks(actor)) return null;
   const st = actor.mummyCreak || (actor.mummyCreak = {seed: ((actor.g?.id ?? 1) * 52711) % 2147483647 || 1, wait: 0, cur: null, f: 0, applied: ZERO()});
+  // the laid-out rest (mummy-settle.js) was written last frame after this, so it is taken back first
+  if (actor.mummyRest) takeBackRest(actor.mummyRest);
   const {head} = actor, arm = actor.arms[1], o = st.applied;
   head.rotation.y -= o.grind * GRIND; head.rotation.z -= o.cant * CANT;
   arm.rotation.x += o.point * POINT;
