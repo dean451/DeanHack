@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
+import {skinLimb,rigLimb} from './humanoid-joints.js';
 
 // Rust monsters and disenchanters used to share one low armadillo-bug built from spheres: stacked
 // sphere plates, cone barbs, a little two-blade propeller. They now have their own models.
@@ -115,16 +116,17 @@ function buildFeeler(k,s){
  return {feeler:P.merge(),glow:k==='disenchanter'&&s>0?G.merge():null};
 }
 
+// jointed: up and out to a knee, down to a hooked foot (the leg's three bones sit at these points)
+const legPoints=s=>[[0,0,0],[s*.08,.03,0],[s*.11,-.24,.02]];
 function buildLeg(k,s){
  const C=palette(k),P=pieces();
- // jointed: up and out to a knee, down to a hooked foot
- const hip=[0,0,0],knee=[s*.08,.03,0],foot=[s*.11,-.24,.02];
+ const [hip,knee,foot]=legPoints(s);
  P.add(new THREE.SphereGeometry(.03,10,8),at(...hip),C.hide);
  P.add(along(hip,knee,.028,.022),null,C.shell);
  P.add(new THREE.SphereGeometry(.022,8,6),at(...knee),C.shellHi);
  P.add(along(knee,foot,.02,.012),null,C.shell);
  P.add(new THREE.ConeGeometry(.012,.05,5),at(foot[0]+s*.01,foot[1]-.01,foot[2]+.03,[Math.PI/2+.6,0,0]),C.pit);
- return P.merge();
+ return skinLimb(P.merge(),legPoints(s));
 }
 
 function buildTail(k){
@@ -168,11 +170,12 @@ export function createRustMonster(kind='rust monster'){
  mesh(head,S.head.glow,S.glow,'eyes').castShadow=false;
  const feelers=[-1,1].map((s,i)=>{const f=new THREE.Group();f.position.set(s*.035,.06,.04);head.add(f);mesh(f,S.feelers[i].feeler,S.material,'feeler');const orb=mesh(f,S.feelers[i].glow,S.seamGlow,'orb');if(orb)orb.castShadow=false;return f;});
  const legs=[];
- for(const [i,s] of [-1,1].entries())for(const z of [-.13,.14]){const leg=new THREE.Group();leg.position.set(s*.14,Y-.06,z);body.add(leg);mesh(leg,S.legs[i],S.material,'leg');legs.push(leg);}
+ for(const [i,s] of [-1,1].entries())for(const z of [-.13,.14]){const leg=new THREE.Group();leg.position.set(s*.14,Y-.06,z);body.add(leg);rigLimb(leg,S.legs[i],S.material,legName(leg)+'_','leg');legs.push(leg);}
  const tail=new THREE.Group();tail.position.set(0,Y,-.29);body.add(tail);mesh(tail,S.tail,S.material,'tail');
  const vane=new THREE.Group();vane.position.set(0,0,VANE_Z);tail.add(vane);mesh(vane,S.vane,S.material,'vane');
  // its plates are pitted by its own corrosion (painted into the carapace), as creatures.test.js expects
  if(k==='rust monster')g.userData.rustEaten=true;
+ g.updateMatrixWorld(true); // the skinned legs measure their box from the scaled actor
  return {g,body,legs,tail,wings:[],quirk:'lizard',kind:k,head,feelers,vane,feelHead:head,rustFeel:k,joints:nameJoints(head,tail,legs,feelers,vane)};
 }
 
@@ -180,11 +183,13 @@ export function createRustMonster(kind='rust monster'){
 // straight on the body, there is no neck), `tail0` (the tail group: one joint, not yet a chain), the legs
 // `lleg0` / `rleg0` fore and `lleg1` / `rleg1` hind (the quadrupeds' names; left is -x, fore is +z), and two
 // new kinds of part: the feelers `lfeeler` / `rfeeler` (pivoting at their roots on the head) and the tail's
-// propeller `vane`. Names only: no group moves.
+// propeller `vane`. Each leg is one SkinnedMesh on three bones under its group (which stays the swing pivot):
+// `<leg>_0` at the hip, `<leg>_1` at the knee, `<leg>_2` at the foot, the hooked claw riding the last.
+const legName=leg=>(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);
 function nameJoints(head,tail,legs,feelers,vane){
  const joints={head,neck0:head,tail0:tail,vane};
  head.name='head';tail.name='tail';vane.name='vane';
- for(const leg of legs){const n=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);leg.name=n;joints[n]=leg;}
+ for(const leg of legs){const n=legName(leg);leg.name=n;joints[n]=leg;leg.traverse(b=>{if(b.isBone)joints[b.name]=b;});}
  for(const f of feelers){const n=(f.position.x<0?'l':'r')+'feeler';f.name=n;joints[n]=f;}
  return joints;
 }
