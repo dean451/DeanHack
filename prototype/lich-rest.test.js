@@ -18,7 +18,7 @@ const vertices = a => { const out = [], v = new THREE.Vector3(); a.g.updateMatri
   return out; };
 const posed = f => { const a = make(f), P = rolesOf(a), r = stoop(f); birdPoser(a).apply(r.pose); return {a, P, r}; };
 const find = (a, test) => { let hit = null; a.g.traverse(m => { if (!hit && m.isMesh && test(m)) hit = m; }); return hit; };
-const hoodOf = a => find(a, m => m.geometry.type === 'SphereGeometry' && m.geometry.parameters.radius === .24);
+const hoodOf = a => find(a, m => m.name === 'hood');
 const staffOf = a => find(a, m => m.parent === a.body && m.geometry.type !== 'SphereGeometry' && new THREE.Box3().setFromObject(m).getSize(new THREE.Vector3()).y > 1);
 
 test('every lich stoops; a goblin does not', () => {

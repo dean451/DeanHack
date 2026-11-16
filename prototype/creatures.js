@@ -8,6 +8,7 @@ import {heldBoulderGeometry} from './boulder.js';
 import {skinLeg,rigLeg} from './insect-joints.js';
 import {SPHERE_KINDS,createSphereCreature} from './spheres.js';
 import {createTengu} from './tengu.js';
+import {lichCowl} from './lich-hood.js';
 import {createHomunculus,pieces,rgb,mix,at} from './homunculus.js';
 import {nameHumanoidJoints,skinLimb,rigLimb} from './humanoid-joints.js';
 import {rigGiant,nameGiantJoints} from './giant-joints.js';
@@ -2298,7 +2299,8 @@ function lich(o){
  for(const x of [-.09,.09]){const t=cone(T,.04,.2,trim,x,.04,-.62,4);t.rotation.x=-1.5;}
  const hide=new THREE.Mesh(flatSkin(T),new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9}));hide.userData.part='body';hide.castShadow=hide.receiveShadow=true;body.add(hide);
  S.updateMatrixWorld(true);const strips=new THREE.Mesh(mergeGeometries(S.children.map(m=>m.geometry.clone().applyMatrix4(m.matrixWorld))),stripMat);strips.castShadow=strips.receiveShadow=true;body.add(strips);
- const hood=sphere(body,.24,trim,0,1.1,-.06,1,1.05,1);hood.scale.z=1.05;
+ // the hood: a faceted, peaked cowl seated on the shoulders, the skull in its pointed opening (lich-hood.js)
+ lichCowl(body,mat(shade(o.robe,.5),{roughness:.9,flatShading:true,side:THREE.DoubleSide}));
  // finer robes per tier (finery 1 demilich, 2 master lich, 3 arch-lich): a gilt hem band, a gorget at the neck, glowing runes down the overrobe
  if(o.finery){const gilt=o.finery>2?M.gold:M.darkSteel;cylinder(body,.318,.325,.03,gilt,0,.2,0,14);
   if(o.finery>1){cylinder(body,.2,.24,.04,gilt,0,.97,0,12);for(const x of [-.1,0,.1])cone(body,.018,.06,gilt,x,.99,.2,4).rotation.x=Math.PI/2;}

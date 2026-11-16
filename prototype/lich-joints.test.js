@@ -74,11 +74,13 @@ test('the skull, its sockets and the crown ride the head; the hood and the staff
 });
 
 test('named joints leave the lich drawn where it was: same bounds, under the mesh cap', () => {
-  // bounds of each lich on master before the joints were named (scale included)
+  // bounds of each lich on master before the joints were named (scale included); the tops of the lich, demilich and
+  // master lich since are the peak of the faceted cowl (lich-hood.js, 2026-11-16: 1.49 up, raked back) that replaced
+  // the round hood (the arch-lich's spire crown still stands above it)
   const before = {
-    lich: [[-.394, -.080, -.777], [.447, 1.507, .389]],
-    demilich: [[-.506, -.081, -.792], [.506, 1.535, .506]],
-    'master lich': [[-.515, -.083, -.806], [.515, 1.579, .515]],
+    lich: [[-.394, -.080, -.777], [.447, 1.609, .389]],
+    demilich: [[-.506, -.081, -.792], [.506, 1.639, .506]],
+    'master lich': [[-.515, -.083, -.806], [.515, 1.669, .515]],
     'arch-lich': [[-.575, -.092, -.900], [.575, 1.951, .575]],
   };
   for (const [name, [lo, hi]] of Object.entries(before)) {
