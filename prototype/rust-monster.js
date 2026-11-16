@@ -173,5 +173,18 @@ export function createRustMonster(kind='rust monster'){
  const vane=new THREE.Group();vane.position.set(0,0,VANE_Z);tail.add(vane);mesh(vane,S.vane,S.material,'vane');
  // its plates are pitted by its own corrosion (painted into the carapace), as creatures.test.js expects
  if(k==='rust monster')g.userData.rustEaten=true;
- return {g,body,legs,tail,wings:[],quirk:'lizard',kind:k,head,feelers,vane,feelHead:head,rustFeel:k};
+ return {g,body,legs,tail,wings:[],quirk:'lizard',kind:k,head,feelers,vane,feelHead:head,rustFeel:k,joints:nameJoints(head,tail,legs,feelers,vane)};
+}
+
+// Named joints (creature behaviour plan, family R stage 1): `head` (also `neck0`: the head group hangs
+// straight on the body, there is no neck), `tail0` (the tail group: one joint, not yet a chain), the legs
+// `lleg0` / `rleg0` fore and `lleg1` / `rleg1` hind (the quadrupeds' names; left is -x, fore is +z), and two
+// new kinds of part: the feelers `lfeeler` / `rfeeler` (pivoting at their roots on the head) and the tail's
+// propeller `vane`. Names only: no group moves.
+function nameJoints(head,tail,legs,feelers,vane){
+ const joints={head,neck0:head,tail0:tail,vane};
+ head.name='head';tail.name='tail';vane.name='vane';
+ for(const leg of legs){const n=(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);leg.name=n;joints[n]=leg;}
+ for(const f of feelers){const n=(f.position.x<0?'l':'r')+'feeler';f.name=n;joints[n]=f;}
+ return joints;
 }
