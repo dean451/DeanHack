@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {pieces,rgb,mix,at} from './homunculus.js';
 import {skinLimb,rigLimb} from './humanoid-joints.js';
+import {skinChain,rigChain} from './chain-skin.js';
 
 // Rust monsters and disenchanters used to share one low armadillo-bug built from spheres: stacked
 // sphere plates, cone barbs, a little two-blade propeller. They now have their own models.
@@ -129,10 +130,15 @@ function buildLeg(k,s){
  return skinLimb(P.merge(),legPoints(s));
 }
 
+// The tail's five bones in its own space, at the joins of its four armoured segments, and the body's three
+// vertebrae in body space: spine0 at the fore legs (the chest, the root), spine1 mid-back, spine2 at the hind legs
+// (the loins, carrying the hind legs and the tail).
+const TAIL_PTS=[[0,0,0],[0,0,-.0575],[0,0,-.1125],[0,0,-.1675],[0,0,-.225]];
+const SPINE_PTS=[[0,Y,.14],[0,Y,0],[0,Y,-.13]];
 function buildTail(k){
  const C=palette(k),P=pieces();
  for(let i=0;i<4;i++){const r=.045-i*.008;P.add(new THREE.CylinderGeometry(r*.85,r,.06,10),at(0,0,-.03-i*.055,[Math.PI/2,0,0]),i%2?C.shell:C.shellHi);}
- return P.merge();
+ return skinChain(P.merge(),TAIL_PTS);
 }
 
 function buildVane(k){
@@ -152,44 +158,54 @@ const shared={};
 function geometry(k){
  if(shared[k])return shared[k];
  const o=KINDS[k];
- shared[k]={body:buildBody(k),head:buildHead(k),feelers:[buildFeeler(k,-1),buildFeeler(k,1)],legs:[buildLeg(k,-1),buildLeg(k,1)],tail:buildTail(k),vane:buildVane(k),
+ const body=buildBody(k);skinChain(body.body,SPINE_PTS);if(body.glow)skinChain(body.glow,SPINE_PTS);
+ shared[k]={body,head:buildHead(k),feelers:[buildFeeler(k,-1),buildFeeler(k,1)],legs:[buildLeg(k,-1),buildLeg(k,1)],tail:buildTail(k),vane:buildVane(k),
   material:new THREE.MeshStandardMaterial({vertexColors:true,roughness:k==='rust monster'?.75:.32,metalness:k==='rust monster'?.35:.55,side:THREE.DoubleSide}),
   glow:new THREE.MeshStandardMaterial({color:o.eye,emissive:o.eye,emissiveIntensity:2.2,roughness:.3}),
   seamGlow:new THREE.MeshStandardMaterial({color:o.tip,emissive:o.tip,emissiveIntensity:2.4,roughness:.3})};
  return shared[k];
 }
-function mesh(parent,geo,material,name){if(!geo)return null;const m=new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
+function mesh(parent,geo,material,name){if(!geo)return null;const m=geo.attributes.skinIndex?new THREE.SkinnedMesh(geo,material):new THREE.Mesh(geo,material);m.castShadow=m.receiveShadow=true;m.userData.part=name;parent.add(m);return m;}
 
 export const RUST_KINDS=Object.keys(KINDS);
 export function createRustMonster(kind='rust monster'){
  const k=KINDS[kind]?kind:'rust monster',S=geometry(k),g=new THREE.Group(),body=new THREE.Group();g.name=k;g.add(body);g.scale.setScalar(KINDS[k].scale);body.position.y=.028; // the hooked feet rest on the floor
- mesh(body,S.body.body,S.material,'body');
- const seams=mesh(body,S.body.glow,S.seamGlow,'seams');if(seams)seams.castShadow=false;
- const head=new THREE.Group();head.position.set(0,Y-.02,.27);body.add(head);
+ // the carapace (and the disenchanter's seams and runes) is skinned on the spine; everything else hangs on a vertebra
+ const spine=SPINE_PTS.map((p,i)=>{const b=new THREE.Bone();b.name='spine'+i;const q=i?SPINE_PTS[i-1]:[0,0,0];b.position.set(p[0]-q[0],p[1]-q[1],p[2]-q[2]);return b;});
+ spine.forEach((b,i)=>(i?spine[i-1]:body).add(b));
+ const on=(i,o,x,y,z)=>{const p=SPINE_PTS[i];o.position.set(x-p[0],y-p[1],z-p[2]);spine[i].add(o);return o;};
+ const hide=[mesh(body,S.body.body,S.material,'body')];
+ const seams=mesh(body,S.body.glow,S.seamGlow,'seams');if(seams){seams.castShadow=false;hide.push(seams);}
+ body.updateMatrixWorld(true);const skeleton=new THREE.Skeleton(spine);for(const m of hide)m.bind(skeleton);
+ const head=on(0,new THREE.Group(),0,Y-.02,.27);
  mesh(head,S.head.head,S.material,'head');
  mesh(head,S.head.glow,S.glow,'eyes').castShadow=false;
  const feelers=[-1,1].map((s,i)=>{const f=new THREE.Group();f.position.set(s*.035,.06,.04);head.add(f);mesh(f,S.feelers[i].feeler,S.material,'feeler');const orb=mesh(f,S.feelers[i].glow,S.seamGlow,'orb');if(orb)orb.castShadow=false;return f;});
  const legs=[];
- for(const [i,s] of [-1,1].entries())for(const z of [-.13,.14]){const leg=new THREE.Group();leg.position.set(s*.14,Y-.06,z);body.add(leg);rigLimb(leg,S.legs[i],S.material,legName(leg)+'_','leg');legs.push(leg);}
- const tail=new THREE.Group();tail.position.set(0,Y,-.29);body.add(tail);mesh(tail,S.tail,S.material,'tail');
- const vane=new THREE.Group();vane.position.set(0,0,VANE_Z);tail.add(vane);mesh(vane,S.vane,S.material,'vane');
+ for(const [i,s] of [-1,1].entries())for(const z of [-.13,.14]){const leg=new THREE.Group(),fore=z>0;leg.name=(s<0?'l':'r')+'leg'+(fore?0:1);on(fore?0:2,leg,s*.14,Y-.06,z);rigLimb(leg,S.legs[i],S.material,leg.name+'_','leg');legs.push(leg);}
+ const tail=on(2,new THREE.Group(),0,Y,-.29);
+ const tailBones=rigChain(tail,S.tail,S.material,'tail').bones;
+ const vane=new THREE.Group();vane.position.set(0,0,VANE_Z-TAIL_PTS.at(-1)[2]);tailBones.at(-1).add(vane);mesh(vane,S.vane,S.material,'vane');
  // its plates are pitted by its own corrosion (painted into the carapace), as creatures.test.js expects
  if(k==='rust monster')g.userData.rustEaten=true;
  g.updateMatrixWorld(true); // the skinned legs measure their box from the scaled actor
- return {g,body,legs,tail,wings:[],quirk:'lizard',kind:k,head,feelers,vane,feelHead:head,rustFeel:k,joints:nameJoints(head,tail,legs,feelers,vane)};
+ return {g,body,legs,tail,wings:[],quirk:'lizard',kind:k,head,feelers,vane,feelHead:head,rustFeel:k,joints:nameJoints(head,tail,legs,feelers,vane,spine)};
 }
 
-// Named joints (creature behaviour plan, family R stage 1): `head` (also `neck0`: the head group hangs
-// straight on the body, there is no neck), `tail0` (the tail group: one joint, not yet a chain), the legs
-// `lleg0` / `rleg0` fore and `lleg1` / `rleg1` hind (the quadrupeds' names; left is -x, fore is +z), and two
-// new kinds of part: the feelers `lfeeler` / `rfeeler` (pivoting at their roots on the head) and the tail's
-// propeller `vane`. Each leg is one SkinnedMesh on three bones under its group (which stays the swing pivot):
-// `<leg>_0` at the hip, `<leg>_1` at the knee, `<leg>_2` at the foot, the hooked claw riding the last.
-const legName=leg=>(leg.position.x<0?'l':'r')+'leg'+(leg.position.z>0?0:1);
-function nameJoints(head,tail,legs,feelers,vane){
- const joints={head,neck0:head,tail0:tail,vane};
+// Named joints (creature behaviour plan, family R stage 1): `head` (also `neck0`: the head hangs straight on the
+// chest, there is no neck), the spine `spine0` (the chest: the root, carrying the head and the fore legs), `spine1`
+// (mid-back) and `spine2` (the loins, carrying the hind legs and the tail), the carapace skinned on them; the tail
+// as the chain `tail0`..`tail4` under the `tail` group (which stays the swing pivot), the propeller `vane` riding
+// `tail4`; the legs `lleg0` / `rleg0` fore and `lleg1` / `rleg1` hind (the quadrupeds' names; left is -x, fore is
+// +z), each one SkinnedMesh on three bones under its group (the swing pivot): `<leg>_0` at the hip, `<leg>_1` at
+// the knee, `<leg>_2` at the foot, the hooked claw riding the last; and the feelers `lfeeler` / `rfeeler`
+// (pivoting at their roots on the head).
+function nameJoints(head,tail,legs,feelers,vane,spine){
+ const joints={head,neck0:head,vane};
  head.name='head';tail.name='tail';vane.name='vane';
- for(const leg of legs){const n=legName(leg);leg.name=n;joints[n]=leg;leg.traverse(b=>{if(b.isBone)joints[b.name]=b;});}
+ for(const b of spine)joints[b.name]=b;
+ tail.traverse(b=>{if(b.isBone)joints[b.name]=b;});
+ for(const leg of legs){joints[leg.name]=leg;leg.traverse(b=>{if(b.isBone)joints[b.name]=b;});}
  for(const f of feelers){const n=(f.position.x<0?'l':'r')+'feeler';f.name=n;joints[n]=f;}
  return joints;
 }
