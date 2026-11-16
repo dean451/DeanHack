@@ -170,6 +170,7 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
+- **Lich hood is a plain smooth sphere, now the lead shape of the stoop in play (review 2026-11-16, https://github.com/dean451/DeanHack/pull/2015):** `prototype/creatures.js` `lich()` (line ~2301) draws the hood as `sphere(body,.24,trim,...)`; since the stoop plays whenever a lich stands still, the trunk pitches forward and in `POSE=rest node tools/creature-shot.mjs "lich"` (head and game views) the lich reads as a big round brown ball over a cone, the face squeezed under its lower edge (a sphere is for an eyeball). Shape the hood only, not the skull, robe or pose: a faceted, peaked cowl seated on the robe, the face still in its opening. **Done when:** a test finds no `SphereGeometry` in any lich's hood (lich, demilich, master lich, arch-lich), the hood is seated (`surfaceGap` to the robe under 1.5 cm) and the skull centre stays inside its opening at rest and in the baked stoop; and `POSE=rest` and plain `creature-shot` head and game renders of the lich and the arch-lich show a peaked cowl with no round outline, looked at.
 
 
 
