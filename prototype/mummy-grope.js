@@ -38,7 +38,9 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 export function updateMummyGrope(actor, dt, t, busy) {
   if (!gropes(actor)) return null;
   const st = actor.mummyGrope || (actor.mummyGrope = {seed: ((actor.g?.id ?? 1) * 31337) % 2147483647 || 1, wait: 0, s: null, f: 0, o: {y: 0, z: 0, x: 0}});
-  // the laid-out rest (mummy-settle.js) was written last frame after this, so it is taken back first
+  // the laid-out rest and the lurch (mummy-settle.js) were written last frame after this, so they are taken back
+  // first, the lurch (written last) before the rest
+  if (actor.mummyLurch) takeBackRest(actor.mummyLurch);
   if (actor.mummyRest) takeBackRest(actor.mummyRest);
   const o = st.o, heads = actor.heads || [actor.head], [l, r] = actor.arms;
   for (const h of heads) h.rotation.y -= o.y;

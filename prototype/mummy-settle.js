@@ -5,10 +5,12 @@
 // writes mummy-rest-poses.js). Called last from live-frame.js's actor loop through insect-settle.js's easing: each
 // joint eases from wherever the frame left it toward the laid-out value and the next call takes that back (the grope
 // and the creak take it back first, since they run earlier in the frame: mummy-grope.js, mummy-creak.js), so waking
-// returns every joint exactly to its awake value.
+// returns every joint exactly to its awake value. After the rest, the hero coming near a mummy that is up sets off the
+// lurch (mummy-lurching.js), eased and taken back the same way.
 import {REST_POSES} from './mummy-rest-poses.js';
 import {rests} from './mummy-rest.js';
 import {applyRest, takeBackRest, NEAR} from './insect-settle.js';
+import {applyLurch} from './mummy-lurching.js';
 
 export {rests};
 
@@ -22,7 +24,9 @@ export function restFor(a) {
 export function updateMummySettle(a, dt, busy, look = null) {
   if (!a || a.asset || !a.joints || !restFor(a)) return 0;
   const st = a.mummyRest || (a.mummyRest = {p: 0, idle: 0, written: []});
-  takeBackRest(st);
+  const lurch = a.mummyLurch || (a.mummyLurch = {u: null, w: 0, written: []});
+  // the lurch was written last, so it is taken back first
+  takeBackRest(lurch); takeBackRest(st);
   if (st.can === undefined) st.can = rests(a);
   if (!st.can) return 0;
   // the rest is added to the angles the mummy was built with, taken on its first frame: the grope and the creak
@@ -30,5 +34,7 @@ export function updateMummySettle(a, dt, busy, look = null) {
   if (!a.jointRest) { a.jointRest = {rest: {}, body: a.body.position.clone()}; for (const [n, o] of Object.entries(a.joints)) a.jointRest.rest[n] = {x: o.rotation.x, y: o.rotation.y, z: o.rotation.z}; }
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
   const near = !!look && Number.isFinite(look.x) && Number.isFinite(look.z) && Math.hypot(look.x - a.g.position.x, look.z - a.g.position.z) < NEAR;
-  return applyRest(a, st, dt, !busy && !a.actions?.dead && !near, restFor);
+  const p = applyRest(a, st, dt, !busy && !a.actions?.dead && !near, restFor);
+  applyLurch(a, lurch, dt, busy, look, p);
+  return p;
 }
