@@ -19,6 +19,7 @@ import {restPose as humanoidRest, rests as humanoidRests} from '../humanoid-rest
 import {restPose as gnomeRest, rests as gnomeRests} from '../gnome-rest.js';
 import {restPose as kopRest, rests as kopRests} from '../kop-rest.js';
 import {restPose as lichRest, rests as lichRests} from '../lich-rest.js';
+import {restPose as mummyRest, rests as mummyRests} from '../mummy-rest.js';
 import {haltPose, halts as kopHalts} from '../kop-halt.js';
 import {HALT_POSES} from '../kop-halt-poses.js';
 import {shufflePose, turns as lichTurns} from '../lich-turn.js';
@@ -81,6 +82,8 @@ if(q.get('pose')==='rest'&&gargoyleRests(c)){const r=gargoyleRest(c);birdPoser(c
 if(q.get('pose')==='rest'&&kopRests(c)){birdPoser(c).apply(kopRest(c).pose);}
 // ?pose=rest stoops a lich over its staff, the free arm hanging (lich-rest.js)
 if(q.get('pose')==='rest'&&lichRests(c)){birdPoser(c).apply(lichRest(c).pose);}
+// ?pose=rest stands a mummy as it was laid out, the forearms crossed over the chest (mummy-rest.js)
+if(q.get('pose')==='rest'&&mummyRests(c)){birdPoser(c).apply(mummyRest(c).pose);}
 // ?pose=shufflel / shuffler rocks a lich's weight over its left or right foot, one shuffle of its turn in one piece (lich-turn.js)
 if((q.get('pose')==='shufflel'||q.get('pose')==='shuffler')&&lichTurns(c)){birdPoser(c).apply(shufflePose(c,q.get('pose')==='shufflel'?-1:1).pose);}
 // ?pose=halt throws a Kop's left arm out at the hero and cocks the truncheon back over the helmet: the baked halt the
@@ -88,8 +91,8 @@ if((q.get('pose')==='shufflel'||q.get('pose')==='shuffler')&&lichTurns(c)){birdP
 // twist free and lands on either of two twists by engine (Node and Chromium differ), and the open glove is turned for
 // the baked one (kop-glove.js)
 if(q.get('pose')==='halt'&&kopHalts(c)){const b=HALT_POSES[name.toLowerCase()];birdPoser(c).apply(b?.ok?b.pose:haltPose(c).pose);}
-// the Kop has its own rest above, so the humanoid slumped sit leaves it standing
-if(q.get('pose')==='rest'&&humanoidRests(c)&&!kopRests(c)){const r=gnomeRests(c)?gnomeRest(c):humanoidRest(c);birdPoser(c).apply(r.pose);}
+// the Kop and the mummies have their own rests above, so the humanoid slumped sit leaves them standing
+if(q.get('pose')==='rest'&&humanoidRests(c)&&!kopRests(c)&&!mummyRests(c)){const r=gnomeRests(c)?gnomeRest(c):humanoidRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='rest'&&quadRests(c)){birdPoser(c).apply(quadRest(c).pose);}
 // ?pose=rest also hunches a rat, nose down and tail laid along the floor (rat-rest.js)
 if(q.get('pose')==='rest'&&ratRests(c)){birdPoser(c).apply(ratRest(c).pose);}
@@ -97,7 +100,7 @@ if(q.get('pose')==='rest'&&ratRests(c)){birdPoser(c).apply(ratRest(c).pose);}
 if(q.get('pose')==='wash'&&ratRests(c)){washPoser(c).apply(washPose(c).pose);}
 // ?pose=waddle catches a gnome (letter G) in the waddle's widest stride (gnome-waddle.js)
 if(q.get('pose')==='waddle'&&gnomeWaddles(c)){waddlePoser(c).apply(waddlePose(c).pose);}
-if(q.get('pose')==='rest'&&impRests(c)&&!kopRests(c)){const r=koboldRests(c)?koboldRest(c):impRest(c);birdPoser(c).apply(r.pose);}
+if(q.get('pose')==='rest'&&impRests(c)&&!kopRests(c)&&!mummyRests(c)){const r=koboldRests(c)?koboldRest(c):impRest(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='brace'&&braces(c)){const r=bracePose(c);birdPoser(c).apply(r.pose);}
 if(q.get('pose')==='snarl'&&snarls(c)){const r=snarlPose(c);birdPoser(c).apply(r.pose);}
 // ?pose=ambush crouches a bugbear low over its knees (humanoid-ambush.js)
