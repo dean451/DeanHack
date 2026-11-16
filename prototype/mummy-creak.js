@@ -45,7 +45,9 @@ function rand(st) { st.seed = (st.seed * 1103515245 + 12345) % 2147483648; retur
 export function updateMummyCreak(actor, dt, t, busy) {
   if (!creaks(actor)) return null;
   const st = actor.mummyCreak || (actor.mummyCreak = {seed: ((actor.g?.id ?? 1) * 52711) % 2147483647 || 1, wait: 0, cur: null, f: 0, applied: ZERO()});
-  // the laid-out rest (mummy-settle.js) was written last frame after this, so it is taken back first
+  // the laid-out rest and the lurch (mummy-settle.js) were written last frame after this, so they are taken back
+  // first, the lurch (written last) before the rest
+  if (actor.mummyLurch) takeBackRest(actor.mummyLurch);
   if (actor.mummyRest) takeBackRest(actor.mummyRest);
   const {head} = actor, arm = actor.arms[1], o = st.applied;
   head.rotation.y -= o.grind * GRIND; head.rotation.z -= o.cant * CANT;
