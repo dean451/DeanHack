@@ -35,7 +35,7 @@ test('every ogre has a head, two arms and two legs as named joints', () => {
   }
 });
 
-test('turning a joint moves everything on it and nothing else; the club stays on the body', () => {
+test('turning a joint moves everything on it and nothing else; the club rides the right arm', () => {
   for (const name of NAMES) {
     const a = build(name), j = a.joints, rest = places(a.g);
     for (const [label, axis, v] of [['neck0', 'x', .5], ['neck0', 'y', .6], ['lfore', 'x', .7], ['rfore', 'z', .5], ['lleg1', 'x', .6], ['rleg1', 'x', -.6]]) {
@@ -59,7 +59,8 @@ test('named joints leave every ogre drawn where it was: same bounds, same mesh c
   const before = {
     'ogre': [[-.434, 0, -.244], [.434, 1.221, .38], 22],
     'ogre lord': [[-.499, .006, -.281], [.494, 1.334, .437], 26],
-    'ogre king': [[-.572, 0, -.385], [.572, 1.604, .549], 30],
+    // (since step 2 the king's nails ride the club on the wrist, so they no longer merge with his shoulder pads: one more)
+    'ogre king': [[-.572, 0, -.385], [.572, 1.604, .549], 31],
     'unknown O': [[-.434, 0, -.244], [.434, 1.221, .38], 22],
   };
   for (const [name, [lo, hi, count]] of Object.entries(before)) {

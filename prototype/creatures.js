@@ -2255,13 +2255,21 @@ function ogre(o){
    part(body,new THREE.SphereGeometry(.036,5,4),old2,x,y+.008,.2).scale.set(1,.95,1);part(body,new THREE.BoxGeometry(.034,.022,.03),old2,x,y-.026,.21);
    for(const sx of [-1,1])part(body,new THREE.BoxGeometry(.012,.014,.01),hole,x+sx*.014,y+.006,.234).castShadow=false;
    part(body,new THREE.BoxGeometry(.005,.014,.01),hole,x,y-.012,.236).castShadow=false;}}
- const clubL=o.bigClub?.55:.46,club=cylinder(body,o.bigClub?.085:.07,.03,clubL,wood,.33,.4,.2,7);club.rotation.x=.55;
+ // the club, its blood crust and its nails are drawn on `held`, a group at the body's origin, so step 2 can hand it to the wrist
+ const held=new THREE.Group();body.add(held);
+ const clubL=o.bigClub?.55:.46,club=cylinder(held,o.bigClub?.085:.07,.03,clubL,wood,.33,.4,.2,7);club.rotation.x=.55;
  // lords and kings have used the club: the nailed head is crusted with old dried blood
- if(o.scars){const dry=mat('#3a1210',{roughness:1});const st=sphere(body,.07,dry,.33,o.bigClub?.55:.52,.28,1.1,1.5,1);st.castShadow=false;g.userData.bloodyClub=true;}
- for(let i=0;i<(o.bigClub?5:3);i++){const a=i*2.1,nail=cone(body,.016,.05,metal||M.darkSteel,.33+Math.cos(a)*.07,.56+(i%2)*.04,.29+Math.sin(a)*.03,4);nail.rotation.set(.55+Math.sin(a),0,Math.cos(a));}
+ if(o.scars){const dry=mat('#3a1210',{roughness:1});const st=sphere(held,.07,dry,.33,o.bigClub?.55:.52,.28,1.1,1.5,1);st.castShadow=false;g.userData.bloodyClub=true;}
+ for(let i=0;i<(o.bigClub?5:3);i++){const a=i*2.1,nail=cone(held,.016,.05,metal||M.darkSteel,.33+Math.cos(a)*.07,.56+(i%2)*.04,.29+Math.sin(a)*.03,4);nail.rotation.set(.55+Math.sin(a),0,Math.cos(a));}
  // named joints (family O stage 1): `head` (also `neck0`), the arms `lfore` / `rfore` and the legs `lleg1` / `rleg1`
- // (left is -x), as on the giants; only `actor.joints` is set, so no arm motion turns on and the club stays on the body
- return nameGiantJoints(trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head})),{heads:[head],arms});
+ // (left is -x), as on the giants; only `actor.joints` is set, so no arm motion turns on.
+ // Step 2, as on the giants: each limb's pieces merged per material, then skinned onto three bones (`lleg1_0`..`_2`,
+ // `lfore_0`..`_2`), and the club moved onto the right wrist bone, so a bent elbow carries it; at rest nothing moves
+ g.updateMatrixWorld(true);arms[1].attach(held);
+ const a=trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head}));
+ for(const [list,stem] of [[legs,'leg1_'],[arms,'fore_']])for(const o of list)skinPlainLimb(o,(o.position.x<0?'l':'r')+stem,true,true);
+ g.updateMatrixWorld(true);arms[1].getObjectByName('rfore_2').attach(held);
+ return nameGiantJoints(a,{heads:[head],arms});
 }
 const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#6a5038',hide:'#3a2c20',metal:'#7a5430',scars:true,faceted:true,scale:1.15},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,scars:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.32}};
 
