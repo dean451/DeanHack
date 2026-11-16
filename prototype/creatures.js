@@ -2267,9 +2267,12 @@ function ogre(o){
  // `lfore_0`..`_2`), and the club moved onto the right wrist bone, so a bent elbow carries it; at rest nothing moves
  g.updateMatrixWorld(true);arms[1].attach(held);
  const a=trimDraws(Object.assign(actor(g,body,legs,null,[],'orc'),{head}));
+ // (the skin-coloured piece first in each limb, so it carries the bones and step 3's hide is the skin, not the boot or fist)
+ for(const o of [...legs,...arms])o.children.sort((x,y)=>(y.material===skin)-(x.material===skin));
  for(const [list,stem] of [[legs,'leg1_'],[arms,'fore_']])for(const o of list)skinPlainLimb(o,(o.position.x<0?'l':'r')+stem,true,true);
  g.updateMatrixWorld(true);arms[1].getObjectByName('rfore_2').attach(held);
- return nameGiantJoints(a,{heads:[head],arms});
+ // step 3, as on the giants: the trunk and neck on bones in one hide, the head on the top of the neck (giant-joints.js)
+ return rigGiant(a,{heads:[head],arms});
 }
 const OGRES={ogre:{skin:'#9a7a52',hair:'#2a1e14',scale:1},'ogre lord':{skin:'#6a5038',hide:'#3a2c20',metal:'#7a5430',scars:true,faceted:true,scale:1.15},'ogre king':{skin:'#7e5e40',hide:'#3a2a1e',metal:'#b9954d',crown:true,scars:true,mantle:'#d8ccb4',cape:'#6a1f5a',bigClub:true,glare:true,scale:1.32}};
 
