@@ -20,6 +20,7 @@ import {restPose as gnomeRest, rests as gnomeRests} from '../gnome-rest.js';
 import {restPose as kopRest, rests as kopRests} from '../kop-rest.js';
 import {restPose as lichRest, rests as lichRests} from '../lich-rest.js';
 import {restPose as mummyRest, rests as mummyRests} from '../mummy-rest.js';
+import {lurchPose, lurchPoser, lurches as mummyLurches} from '../mummy-lurch.js';
 import {haltPose, halts as kopHalts} from '../kop-halt.js';
 import {HALT_POSES} from '../kop-halt-poses.js';
 import {shufflePose, turns as lichTurns} from '../lich-turn.js';
@@ -84,6 +85,8 @@ if(q.get('pose')==='rest'&&kopRests(c)){birdPoser(c).apply(kopRest(c).pose);}
 if(q.get('pose')==='rest'&&lichRests(c)){birdPoser(c).apply(lichRest(c).pose);}
 // ?pose=rest stands a mummy as it was laid out, the forearms crossed over the chest (mummy-rest.js)
 if(q.get('pose')==='rest'&&mummyRests(c)){birdPoser(c).apply(mummyRest(c).pose);}
+// ?pose=lurch catches a mummy in its stiff-knee lurch at the hero, the arms flung out (mummy-lurch.js)
+if(q.get('pose')==='lurch'&&mummyLurches(c)){lurchPoser(c).apply(lurchPose(c).pose);}
 // ?pose=shufflel / shuffler rocks a lich's weight over its left or right foot, one shuffle of its turn in one piece (lich-turn.js)
 if((q.get('pose')==='shufflel'||q.get('pose')==='shuffler')&&lichTurns(c)){birdPoser(c).apply(shufflePose(c,q.get('pose')==='shufflel'?-1:1).pose);}
 // ?pose=halt throws a Kop's left arm out at the hero and cocks the truncheon back over the helmet: the baked halt the
