@@ -2206,11 +2206,21 @@ function troll(o){
  if(o.fin){const fin=part(head,new THREE.CylinderGeometry(.13,.13,.012,10,1,false,0,Math.PI),mat(shade(o.skin,1.25),{roughness:.5,transparent:true,opacity:.85}),0,.08,-.06);fin.rotation.set(0,Math.PI/2,Math.PI/2);}
  eyes(head,o.glare?M.eye:mat(o.eye||'#e8d040',{emissive:o.eye||'#a08a10',emissiveIntensity:.8,roughness:.3}),.015,.095,.042);
  const arms=[];for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.25,.84,.06);body.add(arm);arms.push(arm);rounded(arm,.11,.32,.12,skin,0,-.15,0,.045);rounded(arm,.1,.34,.11,skin,0,-.46,.03,.04).rotation.x=-.12;sphere(arm,.075,dark,0,-.66,.06,1.1,.8,1.2);for(let k=-1;k<=1;k++)cone(arm,.012,.05,tusk,k*.03,-.69,.14,4).rotation.x=Math.PI/2;arm.rotation.x=-.28;arm.rotation.z=side*.1;}
- if(o.club){const club=cylinder(body,.07,.028,.44,mat('#4a3420',{roughness:.9}),.3,.22,.24,7);club.rotation.x=.5;if(o.armor)for(let i=0;i<3;i++)cone(body,.02,.05,M.darkSteel,.3+(i-1)*.05,.37,.33,4).rotation.x=.5;}
+ // the club and its spikes are drawn on `held`, a group at the body's origin, so it can be handed to the right wrist
+ const held=new THREE.Group();body.add(held);
+ if(o.club){const club=cylinder(held,.07,.028,.44,mat('#4a3420',{roughness:.9}),.3,.22,.24,7);club.rotation.x=.5;if(o.armor)for(let i=0;i<3;i++)cone(held,.02,.05,M.darkSteel,.3+(i-1)*.05,.37,.33,4).rotation.x=.5;}
  // handles for troll-knit.js: the head and both arms, and which troll it is
  // named joints (family T stage 1 step 1), as on the giants and ogres: `head` (also `neck0`), the arms `lfore` /
- // `rfore` and the legs `lleg1` / `rleg1` (left is -x); the troll keeps the `arms` and `arm` handles it already had
- return nameGiantJoints(trimDraws({...actor(g,body,legs,null,[],'orc'),head,arms,arm:arms[1],troll:o.kind||'troll'}),{heads:[head],arms});
+ // `rfore` and the legs `lleg1` / `rleg1` (left is -x); the troll keeps the `arms` and `arm` handles it already had.
+ // Step 2, as on the ogres: each limb's pieces merged per material, then skinned onto three bones (`lleg1_0`..`_2`,
+ // `lfore_0`..`_2`), the skin-coloured piece first so it carries the bones; the club moves onto the right wrist bone,
+ // so a bent elbow (or troll-knit.js's overhead haul) carries it. At rest nothing moves.
+ g.updateMatrixWorld(true);arms[1].attach(held);
+ const a=trimDraws({...actor(g,body,legs,null,[],'orc'),head,arms,arm:arms[1],troll:o.kind||'troll'});
+ for(const o of [...legs,...arms])o.children.sort((x,y)=>(y.material===skin)-(x.material===skin));
+ for(const [list,stem] of [[legs,'leg1_'],[arms,'fore_']])for(const o of list)skinPlainLimb(o,(o.position.x<0?'l':'r')+stem,true,true);
+ g.updateMatrixWorld(true);arms[1].getObjectByName('rfore_2').attach(held);
+ return nameGiantJoints(a,{heads:[head],arms});
 }
 const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020',trophy:true,scale:1.35},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,rime:true,eye:'#8ad8ff',scale:1.35},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.35},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.22},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,helm:true,scale:1.4}};
 
