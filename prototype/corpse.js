@@ -362,6 +362,10 @@ export function slumpNaga(a){
  if(a?.tail)a.tail.rotation.set(NAGA_SLUMP.x,0,NAGA_SLUMP.z);
  a?.g?.traverse(o=>{if(o.isMesh&&['hood','mane','spots'].includes(o.userData.part))o.visible=false;});
  // the neck is skinned on its bones (naga.js), and the bake takes plain meshes only: set it in its pose as one
+ return plainSkins(a);
+}
+// Every SkinnedMesh in the model swapped for a plain mesh in its current pose (the bake takes plain meshes only).
+export function plainSkins(a){
  a?.g?.updateMatrixWorld(true);
  const skins=[];a?.g?.traverse(o=>{if(o.isSkinnedMesh)skins.push(o);});
  for(const s of skins){
@@ -386,6 +390,8 @@ function posed(name,colour,factory,symbol){
   const model=a?.g||a;
   if(corpsePlan(name)==='humanoid'&&a?.g)sprawl(a);
   const naga=NAGA.test(name)&&a?.tail;if(naga)slumpNaga(a);
+  // a snake's coil is skinned on its bones (snake-joints.js): bake it as it lies
+  else if(a?.quirk==='snake'&&a.joints?.tail0)plainSkins(a);
   if(model?.isObject3D){
    const holder=new THREE.Group();holder.add(model);
    model.position.set(0,0,0);model.rotation.set(0,0,0);

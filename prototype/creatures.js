@@ -127,6 +127,7 @@ import {createConvict} from './convict.js';
 import {createPrisoner} from './prisoner.js';
 import {createBarbarian} from './barbarian.js';
 import {createHealer} from './healer.js';
+import {skinSnakeCoil} from './snake-joints.js';
 
 const M={
  skin:new THREE.MeshStandardMaterial({color:0xb78f72,roughness:.9}),greenSkin:new THREE.MeshStandardMaterial({color:0x63764b,roughness:.92}),graySkin:new THREE.MeshStandardMaterial({color:0x8b8374,roughness:.9}),fur:new THREE.MeshStandardMaterial({color:0xb98a5b,roughness:.94}),whiteFur:new THREE.MeshStandardMaterial({color:0xd6d2c1,roughness:.9}),
@@ -950,14 +951,18 @@ function snake(o){
  const skin=mat(o.color,{roughness:.55}),belly=mat(o.belly||shade(o.color,1.5)),coil=[];
  for(let i=0;i<=28;i++){const t=i/28,a=t*Math.PI*3.6,r=.24-t*.13;coil.push([Math.cos(a)*r,.005+.045*tailTaper(t)+t*.1,Math.sin(a)*r]);}
  coil.push([0,.3,.06],[0,.42,.14]);
- pointedTailTube(body,coil,.045,skin,64).userData.coil=true;// slither.js ripples it
- const head=new THREE.Group();head.position.set(0,.44,.18);body.add(head);
+ // one tube, skinned on the coil's bones tail0..tail11 (snake-joints.js); slither.js ripples it
+ const {bones}=skinSnakeCoil(body,pointedTailTube(body,coil,.045,skin,64),28,coil.length);
+ const head=new THREE.Group();head.name='head';head.position.set(0,.44,.18);body.add(head);
  const jaw=snakeHead(head,o);
  const hood=o.hood?cobraHood(head,o):null;
  const tongue=rounded(head,.012,.004,.12,mat('#c0282a'),0,-.01,.12,.002);tongue.rotation.x=.2;
  const a=actor(g,body,[],null,[],'snake');
  a.jaw=jaw;
  if(hood)a.hood=hood;
+ // joints (family S, stage 1): the head group (also neck0: it hangs straight on the body), the jaw and the coil
+ a.joints={head,neck0:head,jaw,...Object.fromEntries(bones.map(b=>[b.name,b]))};
+ g.updateMatrixWorld(true);
  return a;
 }
 // Snake heads. The skull is one vertex-coloured mesh: head shields over a flat crown, a scowling
