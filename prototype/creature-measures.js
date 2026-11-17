@@ -363,6 +363,18 @@ export const MEASURES = {
     ambush: {sightings: 722, tree: .61}, // timber rattlesnake ambush postures, the share coiled at a tree's base, head up the trunk (Goetz et al. 2016)
     coiledHours: 8300, // hours of ambush coils filmed, six rattlesnake species (Safety in coils, NSF PAR 10454106)
   },
+  // the trolls: a gorilla's slow knuckle walk, its long sits and the chest-beat display
+  troll: {
+    knuckleWalk: [.60, .97], // m/s, three gorillas knuckle-walking (Sci Rep 2025, s41598-025-21780-2)
+    strideS: [1.1, 1.8], // s, their stride durations (same)
+    dutyFactor: {fore: .674, hind: .650}, // share of a stride each limb is down (same)
+    budget: {feeding: .55, resting: .34, travelling: .065, social: .036}, // mountain gorillas' day (as quoted by Masi et al. 2009, Am J Primatol)
+    dailyTravel: 712, // m a day, five Virunga groups (Sci Rep 2018, s41598-018-35255-0)
+    chestBeat: {duration: .30, beats: 4.25, rate: 14.45}, // s, beats per display and beats a second, one silverback (Wright et al. 2021, Sci Rep 11:6879)
+    beatsPerHour: 503 / 3211, // displays an hour of focal watching, six males (same)
+    walk: 'all four limbs on the ground together at the slow walk',
+    rest: 'sitting, most weight on the buttocks; lying recumbent, little or no weight on hands or feet',
+  },
 };
 
 const mid = ([a, b]) => (a + b) / 2;
@@ -744,4 +756,20 @@ export const SNAKE = {
   peakV: mid(MEASURES.snake.peakSpeed),
   // the share of ambush coils aimed up a vertical surface
   aimedUp: MEASURES.snake.ambush.tree,
+};
+
+// What the trolls use: a slow four-footed walk with every limb down at once, long sits, and a short, rapid chest beat
+export const TROLL = {
+  // the walk, m/s (mid), and the stride's middle length, m
+  walk: mid(MEASURES.troll.knuckleWalk),
+  stride: mid(MEASURES.troll.knuckleWalk) * mid(MEASURES.troll.strideS),
+  // the duty factors over a half: above it, all four feet are down together for a while each stride
+  overlap: Math.min(MEASURES.troll.dutyFactor.fore, MEASURES.troll.dutyFactor.hind) - .5,
+  fourDown: /all four limbs on the ground/.test(MEASURES.troll.walk),
+  // resting over travelling: how much longer a troll sits than it walks
+  sitsOverWalks: MEASURES.troll.budget.resting / MEASURES.troll.budget.travelling,
+  // the chest beat: the gap between beats, s, and the hours between displays
+  beatGap: 1 / MEASURES.troll.chestBeat.rate,
+  hoursBetweenBeats: 1 / MEASURES.troll.beatsPerHour,
+  sits: /buttocks/.test(MEASURES.troll.rest),
 };
