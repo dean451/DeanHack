@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY, NAGA, OGRE, RUSTMONSTER, SNAKE} from './creature-measures.js';
+import {MEASURES, DRAGON, INSECTS, FOWL, WILDCAT, CANINE, GARGOYLE, HUMAN, IMP, KOBOLD, LEPRECHAUN, NYMPH, SOLDIER, QUADRUPED, RAT, ZRUTY, SPIDER, BAT, ELEMENTAL, HORSE, WORM, GNOME, GRIDBUG, ANGELIC, CENTAUR, GIANT, JABBERWOCK, KOP, LICH, MUMMY, NAGA, OGRE, RUSTMONSTER, SNAKE, TROLL} from './creature-measures.js';
 
 const inside = (v, [a, b], what) => assert(v >= a && v <= b, `${what}: ${v} outside ${a} to ${b}`);
 
@@ -521,4 +521,24 @@ test('the snake numbers: a slow slither on lifted bends, a front third thrown ou
   inside(MEASURES.worm.strike.cottonmouth.v, s.peakSpeed, 'cottonmouth against the range');
   // the ambush coil: most aimed up a tree, hours of waiting
   inside(SNAKE.aimedUp, [.4, .8], 'share of coils aimed up a tree'); assert(s.ambush.sightings > 500 && s.coiledHours > 1000);
+});
+
+test('the troll numbers: a slow knuckle walk with all four feet down, long sits, a short rapid chest beat', () => {
+  const t = MEASURES.troll;
+  // a gorilla knuckle-walks well under a metre a second, a stride every one to two seconds
+  inside(t.knuckleWalk[0], [.3, 1], 'slowest walk, m/s'); inside(t.knuckleWalk[1], [t.knuckleWalk[0], 1.5], 'fastest walk, m/s');
+  inside(t.strideS[0], [.8, 1.5], 'shortest stride, s'); inside(t.strideS[1], [t.strideS[0], 2.2], 'longest stride, s');
+  inside(TROLL.stride, [.8, 1.6], 'stride length, m');
+  // every limb down for about two thirds of the stride, so a spell with all four planted
+  inside(t.dutyFactor.fore, [.55, .8], 'fore duty factor'); inside(t.dutyFactor.hind, [.55, .8], 'hind duty factor');
+  assert(TROLL.overlap > 0 && TROLL.fourDown);
+  // the day: mostly eating and sitting, little walking
+  const day = t.budget.feeding + t.budget.resting + t.budget.travelling + t.budget.social;
+  inside(day, [.95, 1.01], 'budget adds up'); inside(t.budget.resting, [.25, .45], 'share resting');
+  inside(TROLL.sitsOverWalks, [3, 8], 'rest over travel'); inside(t.dailyTravel, [300, 2000], 'metres a day');
+  // the chest beat: a third of a second of four or five rapid slaps, a few times a day
+  inside(t.chestBeat.duration, [.1, 1], 'display, s'); inside(t.chestBeat.beats, [2, 10], 'beats a display');
+  inside(TROLL.beatGap, [.04, .12], 'seconds between beats');
+  inside(t.chestBeat.duration * t.chestBeat.rate, [t.chestBeat.beats * .7, t.chestBeat.beats * 1.3], 'duration and rate agree with the count');
+  inside(TROLL.hoursBetweenBeats, [2, 15], 'hours between displays'); assert(TROLL.sits);
 });

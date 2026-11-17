@@ -727,3 +727,26 @@ The family in the plan (AGENTS.md, family **S**: the coil at rest, the S-strike 
 *Not found:* a terrestrial wavelength or undulation frequency for any snake (the garter snake studies found are swimming ones), the angle of the S-coil's neck before a strike, and the number of turns in a resting ambush coil. No number is claimed for them; the pose stages set them by eye.
 
 **What the snakes take from this.** A snake crawls slowly for its size, about a fifth of its length a second, its body laid down only where it straightens between bends and lifted a little at each bend, so it glides rather than drags. At rest it waits in a flat coil for hours on end, the head on the coil and aimed along whatever the prey will come by (up a wall, along a log). When it strikes, only the front third leaves the coil, thrown straight out of the S at up to about three metres a second, and the whole lunge is over in a fifth of a second; the back two thirds never move.
+
+## Trolls (troll, ice troll, rock troll, water troll, Olog-hai)
+
+The family in the plan (AGENTS.md, family **T**: a gorilla, the knuckle walk, the squat). A troll is drawn as a long-armed brute going on its knuckles, so its walk is measured from gorillas knuckle-walking, its rest from how a gorilla spends its day and how it sits, and its signature, the threat display, from silverbacks beating their chests. The zruty section already holds a gorilla's night (about 13 hours in a nest); these rows add the day. Each number is one a search result quoted from the named page; the pages themselves could not be opened from a cloud session.
+
+### Gorilla (the knuckle walk, the day's rest, the chest beat)
+
+| Measure | Value | Source |
+| --- | --- | --- |
+| Knuckle-walking speed | three gorillas knuckle-walked at 0.97, 0.69 and 0.60 m/s | [Gorilla knuckle-walking mechanics suggest independent evolution in African great apes, Sci Rep 2025](https://www.nature.com/articles/s41598-025-21780-2) |
+| Stride | their strides took 1.1 to 1.8 s | [Sci Rep 2025, same study](https://www.nature.com/articles/s41598-025-21780-2) |
+| Duty factor | each forelimb was down 67.4% (SD 4.2) of the stride and each hindlimb 65.0% (3.6); at that slow speed all four limbs are on the ground together for part of each stride | [Sci Rep 2025, same study](https://www.nature.com/articles/s41598-025-21780-2) |
+| The day | mountain gorillas spend about 55% of the day feeding, 34% resting, 6.5% travelling and 3.6% in social and other behaviour | [Masi, Cipolletta and Robbins 2009, Activity patterns of western lowland gorillas at Bai Hokou (Am J Primatol, doi 10.1002/ajp.20629)](https://zendy.io/title/10.1002/ajp.20629) |
+| Travel | five Virunga groups travelled about 712 m a day | [Sci Rep 2018, s41598-018-35255-0](https://www.nature.com/articles/s41598-018-35255-0) |
+| How it sits | a gorilla ethogram codes sitting as not moving with most of the weight on the buttocks, and lying as recumbent with little or no weight on the hands or feet | [gorilla ethogram, J Zoo Aquar Res](https://jzar.org/jzar/article/download/275/216/1629) |
+| The chest beat | one silverback's beats lasted 0.30 s on average, 4.25 slaps a display at 14.45 a second (SD 2.10) | [Wright et al. 2021, Chest beats as an honest signal of body size in male mountain gorillas (Sci Rep 11:6879)](https://doaj.org/article/21454aed48914413beb86dc54da4a2ca) |
+| How often | 503 chest beats in 3211 hours of focal watching, about 1.6 every ten hours | [Wright et al. 2021, as above](https://doaj.org/article/21454aed48914413beb86dc54da4a2ca); [Sci News](https://www.sci.news/biology/gorilla-chest-beating-09545.html) |
+
+*Caveat:* the walking numbers are three animals in one study (captive, on the ground); the stride range is read off its table as a search result relayed it. The 55/34/6.5 day is mountain gorillas as a lowland study quotes them, not its own lowland figures. The chest beat's timing is the one male whose row the search result showed; the study's other five males were not seen, and it found no link between body size and a beat's length or count.
+
+*Not found:* a gorilla's squat or sit as joint angles, how its head and arms lie when it sits, a stride length measured directly, and how long a chest-beat display's rise onto the hind legs takes. No number is claimed for them; the pose stages set them by eye.
+
+**What the trolls take from this.** A troll walks slowly on its knuckles, under a metre a second, a stride about every second and a half, and never has fewer than two limbs down: for a moment in each stride all four are planted at once, so it rolls forward rather than steps. It spends five times as long sitting as walking, heavy on its haunches with its hands slack on the floor. Its threat is short and sudden: a third of a second of four or five slaps, fourteen a second, and then nothing for hours.
