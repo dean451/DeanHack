@@ -170,6 +170,7 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
+- **Crowned liches' crown cuts through the new cowl (review 2026-11-17, https://github.com/dean451/DeanHack/pull/2028):** `prototype/creatures.js` `lich()` (the `o.crown` block, line ~2366) still seats the master lich's bone crown and the arch-lich's tall gold crown at y 1.21, radius .155 to .165, where the cowl from `prototype/lich-hood.js` now stands; in `POSE=rest node tools/creature-shot.mjs "master lich"` and `"arch-lich"` (head and three-quarter views) the band's sides vanish into the cowl's walls and the spikes stab out through the cowl's crown and back, a part clipping through another. Fix the crown's seat only, not the cowl's shape, the skull or the pose: worn over the cowl, or inside its opening. **Done when:** a test on the master lich and the arch-lich, standing and in the baked stoop, finds no crown mesh (band and every spike) with vertices on both sides of the cowl's shell; and `POSE=rest` and plain `creature-shot` head and game renders of both show the whole crown, band and spikes, with none cut by the cowl, looked at.
 
 
 
