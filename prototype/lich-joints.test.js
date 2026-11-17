@@ -54,13 +54,13 @@ test('turning a joint moves everything on it and nothing else', () => {
   }
 });
 
-test('the skull, its sockets and the crown ride the head; the hood and the staff stay put', () => {
+test('the skull, its sockets and the circlet ride the head; the hood, the crown and the staff stay put', () => {
   for (const m of MEMBERS) {
     const a = build(m), name = m[0];
     a.g.updateMatrixWorld(true);
     const head = boxOf(a.head);
-    // the head group holds the cranium down to the jaw and up to the circlet or crown
-    assert(head.max.y - head.min.y > .25 * a.g.scale.y, name + ': the head group holds the skull and its circlet or crown');
+    // the head group holds the cranium down to the jaw and up to the circlet (the crowns are worn over the cowl, lich-hood.js)
+    assert(head.max.y - head.min.y > .25 * a.g.scale.y, name + ': the head group holds the skull, from the jaw to the crown of the cranium');
     let glows = 0; a.head.traverse(o => { if (o.isMesh && o.material.emissiveIntensity >= 2) glows++; });
     assert(glows >= 1, name + ': the burning sockets ride the head (merged into one glowing mesh)');
     // nodding the head carries its top and leaves the staff's orb where it was
@@ -76,12 +76,13 @@ test('the skull, its sockets and the crown ride the head; the hood and the staff
 test('named joints leave the lich drawn where it was: same bounds, under the mesh cap', () => {
   // bounds of each lich on master before the joints were named (scale included); the tops of the lich, demilich and
   // master lich since are the peak of the faceted cowl (lich-hood.js, 2026-11-16: 1.49 up, raked back) that replaced
-  // the round hood (the arch-lich's spire crown still stands above it)
+  // the round hood; the master lich's and arch-lich's tops since are their crowns' points, worn over the cowl
+  // (lich-hood.js lichCrown, 2026-11-17), the arch-lich's spire highest
   const before = {
     lich: [[-.394, -.080, -.777], [.447, 1.609, .389]],
     demilich: [[-.506, -.081, -.792], [.506, 1.639, .506]],
-    'master lich': [[-.515, -.083, -.806], [.515, 1.669, .515]],
-    'arch-lich': [[-.575, -.092, -.900], [.575, 1.951, .575]],
+    'master lich': [[-.515, -.083, -.806], [.515, 1.686, .515]],
+    'arch-lich': [[-.575, -.092, -.900], [.575, 2.021, .575]],
   };
   for (const [name, [lo, hi]] of Object.entries(before)) {
     const a = build(MEMBERS.find(m => m[0] === name)), b = boxOf(a.g);
