@@ -28,6 +28,7 @@ import {restPose as impRest, rests as impRests} from '../imp-rest.js';
 import {restPose as quadRest, rests as quadRests} from '../quadruped-rest.js';
 import {restPose as koboldRest, rests as koboldRests} from '../kobold-rest.js';
 import {restPose as ratRest, rests as ratRests} from '../rat-rest.js';
+import {restPose as nagaRest, rests as nagaRests} from '../naga-rest.js';
 import {washPose, washPoser} from '../rat-wash.js';
 import {waddlePose, waddlePoser, waddles as gnomeWaddles} from '../gnome-waddle.js';
 import {bracePose, braces} from '../humanoid-brace.js';
@@ -86,6 +87,8 @@ if(q.get('pose')==='rest'&&kopRests(c)){birdPoser(c).apply(kopRest(c).pose);}
 if(q.get('pose')==='rest'&&lichRests(c)){birdPoser(c).apply(lichRest(c).pose);}
 // ?pose=rest stands a mummy as it was laid out, the forearms crossed over the chest (mummy-rest.js)
 if(q.get('pose')==='rest'&&mummyRests(c)){birdPoser(c).apply(mummyRest(c).pose);}
+// ?pose=rest lays a naga's neck down over its coil, the chin on the scales, as a python broods (naga-rest.js)
+if(q.get('pose')==='rest'&&nagaRests(c)){birdPoser(c).apply(nagaRest(c).pose);}
 // ?pose=lurch catches a mummy in its stiff-knee lurch at the hero, the arms flung out (mummy-lurch.js)
 if(q.get('pose')==='lurch'&&mummyLurches(c)){lurchPoser(c).apply(lurchPose(c).pose);}
 // ?pose=shufflel / shuffler rocks a lich's weight over its left or right foot, one shuffle of its turn in one piece (lich-turn.js)
