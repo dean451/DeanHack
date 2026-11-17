@@ -107,7 +107,7 @@ function sharedResources() {
 function setup(a) {
   const head = a.hood.parent;
   const st = {seed: ((a.g.userData?.fidgetId ?? a.g.id ?? 1) * 48271) % 2147483647 || 1, T: 0, life: 1, near: 0, rear: 0, face: 0, walk: 0,
-    hood: a.hood.scale.x, on: 0, hiss: null, flick: null, lastSpit: null, drops: [], off: new Map(), head, restHead: head.position.clone()};
+    hood: a.hood.scale.x, on: 0, hiss: null, flick: null, lastSpit: null, drops: [], off: new Map(), head, body: a.body, restHead: head.position.clone()};
   st.ph = rand(st) * TAU;
   st.flickWait = between(st, FLICK_WAIT);
   st.hissWait = between(st, HISS_WAIT);
@@ -161,7 +161,10 @@ const m4 = new THREE.Matrix4(), q0 = new THREE.Quaternion(), s3 = new THREE.Vect
 // first (so it covers the tube's stub), back under the hood, then forward into the head.
 function layNeck(st, head) {
   v0.set(...NECK_BASE);
-  v3.set(...NECK_JOIN).applyEuler(head.rotation).add(head.position);
+  // the head's joint in the body's frame: through the head and every bone it hangs on (snake-joints.js puts the
+  // head on the rise's last neck bone), each by its own transform this frame
+  head.updateMatrix(); v3.set(...NECK_JOIN).applyMatrix4(head.matrix);
+  for (let o = head.parent; o && o !== st.body; o = o.parent) { o.updateMatrix(); v3.applyMatrix4(o.matrix); }
   const L = v3.distanceTo(v0);
   v1.set(0, .14, .09).multiplyScalar(L / .3).add(v0);
   v2.set(v3.x, v3.y - .32 * L, v3.z - .24 * L);
