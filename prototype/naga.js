@@ -292,5 +292,9 @@ export function createNaga({kind = 'red', baby = false} = {}) {
   for (const m of coilSkin) m.bind(coilSkeleton);
   g.updateMatrixWorld(true);
   const joints = Object.fromEntries([...bones, ...coilBones].map(b => [b.name, b]));
-  return {g, body, legs: [], tail: neck, wings: [], quirk: 'snake', joints};
+  // where the face is, in the head bone's frame (for the role map, body-roles.js `nagaRoles`): the mouth at the front
+  // of the open mouth between the fangs, the chin under it on the hanging jaw, both carried through the head's own set
+  const facePt = p => new THREE.Vector3(...p).applyMatrix4(headAt).sub(new THREE.Vector3(...HEAD)).toArray();
+  const face = {mouth: facePt([0, -.047, .118]), chin: facePt([0, -.078, .112])};
+  return {g, body, legs: [], tail: neck, wings: [], quirk: 'snake', kind: 'naga', joints, face};
 }

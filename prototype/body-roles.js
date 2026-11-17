@@ -398,7 +398,25 @@ export function lichRoles(actor) {
   return buildRoles(map, {});
 }
 
-// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins, orcs, gnomes, Kops and mummies too), the liches, the imps, the kobolds, the heavy quadrupeds and the rats have maps so far.
+// The nagas' map (red, black, golden, guardian and white nagas and their hatchlings), from the joints `createNaga`
+// rigs: the raised neck on `neck0` (where it leaves the coil) to `neck4`, the head on its own `head` bone, and the
+// coil on `tail0` (where it rises into the neck) out to `tail11` (the tip). The mouth and chin are the points the
+// builder names on the face (`actor.face`, in the head bone's frame), so a bowed neck or a turned head carries them.
+// `withers` is the neck's root and `rump` the coil's (they meet where the coil rises, as on a serpent dragon), and the
+// tail tip is the last coil bone, which sits at the tube's point. There are no legs, arms or wings.
+export function nagaRoles(actor) {
+  const j = actor.joints, {mouth, chin} = actor.face;
+  return buildRoles({
+    head: () => at(() => j.head),
+    mouth: () => inFrame(() => j.head, mouth),
+    chin: () => inFrame(() => j.head, chin),
+    withers: () => at(() => j.neck0),
+    rump: () => at(() => j.tail0),
+    tailtip: () => at(() => j.tail11),
+  }, {});
+}
+
+// The role table for a built actor, by what it is: the pet cat, the wild cats, the canines, the dragons, the cockerels, the gargoyles and gremlin, the insects, the two-legged humanoids (goblins, orcs, gnomes, Kops and mummies too), the liches, the imps, the kobolds, the heavy quadrupeds, the rats and the nagas have maps so far.
 export function rolesOf(actor) {
   if (actor.quirk === 'feline' && actor.rig) return catRoles(actor.rig, bonesOf(actor));
   if (actor.quirk === 'feline' && actor.joints?.spine0) return wildCatRoles(actor);
@@ -411,5 +429,6 @@ export function rolesOf(actor) {
   if (actor.joints?.tail0 && actor.joints.lleg0_2 && actor.joints.rleg1_2 && !actor.joints.tail1 && (!actor.joints.hips || actor.quirk === 'rat') && !actor.joints.spine0 && !actor.joints.neck1) return quadrupedRoles(actor);
   if (actor.joints?.rfore_2 && actor.joints.lleg1_2 && actor.joints.spine1 && actor.joints.neck3 && !actor.joints.tail0) return humanoidRoles(actor);
   if (actor.lichHands && actor.joints?.hips && actor.joints.jaw) return lichRoles(actor);
+  if (actor.kind === 'naga' && actor.face && actor.joints?.tail11) return nagaRoles(actor);
   throw new Error(`no role map for ${actor.species ?? 'this body'}`);
 }
