@@ -2220,7 +2220,9 @@ function troll(o){
  for(const o of [...legs,...arms])o.children.sort((x,y)=>(y.material===skin)-(x.material===skin));
  for(const [list,stem] of [[legs,'leg1_'],[arms,'fore_']])for(const o of list)skinPlainLimb(o,(o.position.x<0?'l':'r')+stem,true,true);
  g.updateMatrixWorld(true);arms[1].getObjectByName('rfore_2').attach(held);
- return nameGiantJoints(a,{heads:[head],arms});
+ // step 3, as on the ogres: the trunk and neck on bones in one hide, the head on the top of the neck (giant-joints.js);
+ // rigGiant drops `arms` (the giants have no arm motion), so the troll's handles for troll-knit.js are put back
+ return Object.assign(rigGiant(a,{heads:[head],arms}),{arms,arm:arms[1]});
 }
 const TROLLS={troll:{skin:'#5f7a4a',hair:'#2a3020',trophy:true,scale:1.35},'ice troll':{skin:'#b8d0dc',hair:'#eef4f6',cloth:'#6a7a86',ice:true,rime:true,eye:'#8ad8ff',scale:1.35},'rock troll':{skin:'#7a746a',hair:'#3a3630',rock:true,club:true,scale:1.35},'water troll':{skin:'#3f6f78',hair:'#2f5a3a',cloth:'#2a4a4a',fin:true,eye:'#9af0c0',scale:1.22},'olog-hai':{skin:'#34362f',hair:'#141412',cloth:'#2a2420',armor:'#3a3e40',club:true,glare:true,helm:true,scale:1.4}};
 
