@@ -8,6 +8,11 @@
 // the share it reaches is reported by `rearPose` and pinned by the test. The column's lean and the head's hook are
 // set by eye (no source gave them). A pose is {joint: {x, y, z}} (radians added to the joint's built rotation),
 // applied with `birdPoser` (cockatrice-rest.js) as the rest is.
+// Step 3: the hood spreads with the rear, as a threatened cobra's does (cobra-rear.js spreads the snakes' the same
+// way, by the hood's scale.x): `spreadHood` widens the hood's fan (and the guardian's eye spots on it) about the
+// head's centre line, sideways only, so it stays behind the face. How wide is set by eye against the skull, since no
+// source gave a spread hood's width against the head's (CREATURE-MEASURES.md, Nagas, Not found). Hatchlings have no
+// hood (it is folded away on them) and spread nothing.
 import * as THREE from 'three';
 import {solvePose, goal} from './feline-pose.js';
 import {rolesOf} from './body-roles.js';
@@ -22,6 +27,31 @@ import {rests, NECK, coilRings, coilDepth, samplesOf} from './naga-rest.js';
 export const REAR = {rise: .9, lean: .08, hook: .12, slope: -10, slack: 10, sink: .006};
 
 export const rearsUp = rests;
+
+// wide: the spread hood's width as a share of the skull's; least: the spread a hood already built wide (the
+// guardian's) still takes, so every grown naga's hood visibly opens.
+export const HOOD = {wide: 2.1, least: 1.15};
+
+// The hood's fan and the guardian's eye spots: plain meshes of their own on the head bone (they carry a part name,
+// so bakeDraws leaves them unmerged, and no shadow flag pair, so it leaves their material too).
+export const hoodParts = a => (a.joints?.head?.children || []).filter(o => o.isMesh && (o.userData.part === 'hood' || o.userData.part === 'spots'));
+
+const widthOf = m => { m.geometry.computeBoundingBox(); const b = m.geometry.boundingBox; return b.max.x - b.min.x; };
+const spreads = new WeakMap();
+// How far this naga's hood spreads (1 for one with none): the fan's width taken to HOOD.wide of the skull's.
+export function hoodSpread(a) {
+  if (spreads.has(a)) return spreads.get(a);
+  const fan = hoodParts(a).find(o => o.userData.part === 'hood'), skull = a.joints?.head?.children.find(o => o.userData.part === 'head');
+  const f = fan && skull ? Math.max(HOOD.least, HOOD.wide * widthOf(skull) / widthOf(fan)) : 1;
+  spreads.set(a, f);
+  return f;
+}
+// Spreads the hood a share k of the way (0 folded as built, exactly; 1 fully spread). Returns the spread reached.
+export function spreadHood(a, k) {
+  const t = Math.min(1, Math.max(0, k)), s = 1 + (hoodSpread(a) - 1) * t;
+  for (const o of hoodParts(a)) o.scale.x = s;
+  return s;
+}
 
 const worldOf = o => o.getWorldPosition(new THREE.Vector3());
 
@@ -76,5 +106,5 @@ export function rearPose(a) {
   apply({});
   // the share of the body lifted off the floor: the neck, against the whole length
   const share = L / (L + coilLength(a));
-  return {pose: out.pose, residuals: out.residuals, worst: out.worst, goals, awake, reared, neck: L, share};
+  return {pose: out.pose, residuals: out.residuals, worst: out.worst, goals, awake, reared, neck: L, share, hood: hoodSpread(a)};
 }
