@@ -19,13 +19,17 @@ test('every U has a head, two arms and two legs as named joints', () => {
   for (const name of NAMES) {
     const a = build(name), j = a.joints;
     assert(j, name + ' joints');
-    assert(j.head === a.tail && j.neck0 === a.tail, name + ': head and neck0 are the head group (the tail handle)');
+    assert(j.head === a.tail, name + ': head is the head group (the tail handle)');
+    // (since step 3 the neck is on bones: neck0 is its first bone and the head hangs on the last, neck3)
+    assert(j.neck0?.isBone && j.neck0 !== a.tail, name + ': neck0 is the neck\'s first bone');
+    assert(a.tail.parent === j.neck3, name + ': the head hangs on the top of the neck');
     assert.equal(a.tail.name, 'head', name);
     assert.equal(a.head, undefined, name + ': no head handle, so no new head motion');
     for (const label of ['fore', 'leg1']) for (const side of ['l', 'r']) {
       const o = j[side + label];
       assert(o && o.isObject3D && !o.isMesh, `${name} ${side}${label} is a group`);
-      assert(o.parent === a.body, `${name} ${side}${label} hangs on the body`);
+      // (since step 3 the arms hang on the chest bone, the legs on the body at the pelvis)
+      assert(o.parent === (label === 'fore' ? j.spine1 : a.body), `${name} ${side}${label} hangs on the chest or the pelvis`);
       assert.equal(o.name, side + label, name);
       assert.equal(o.position.x < 0, side === 'l', `${name} ${side}${label} side`);
       assert(o.children.some(m => m.isMesh), `${name} ${side}${label} carries its limb`);
@@ -37,19 +41,29 @@ test('every U has a head, two arms and two legs as named joints', () => {
   assert(isShambler(h), 'shambler-lurch.js still takes it');
 });
 
+// every skinned vertex in the world as drawn now, and how much of its weight hangs past `root`
+const verts = g => { g.updateMatrixWorld(true); const v = new THREE.Vector3(), out = [];
+  g.traverse(m => { if (m.isSkinnedMesh) for (let i = 0; i < m.geometry.attributes.position.count; i++) { m.getVertexPosition(i, v); out.push(v.clone().applyMatrix4(m.matrixWorld)); } }); return out; };
+const shareOn = (g, root) => { const out = [];
+  g.traverse(m => { if (!m.isSkinnedMesh) return; const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
+    for (let i = 0; i < si.count; i++) { let w = 0; for (let k = 0; k < 4; k++) if (under(m.skeleton.bones[si.getComponent(i, k)], root)) w += sw.getComponent(i, k); out.push(w); } }); return out; };
+
 test('turning a joint moves everything on it and nothing else', () => {
+  // (since step 3 the skin is one hide on the body: a skinned vertex is on a joint by its weight on the bones past it)
   for (const name of NAMES) {
-    const a = build(name), j = a.joints, rest = places(a.g);
-    for (const [label, axis, v] of [['neck0', 'x', .5], ['head', 'y', .6], ['lfore', 'x', .7], ['rfore', 'z', .5], ['lleg1', 'x', .6], ['rleg1', 'x', -.6]]) {
-      const joint = j[label];
+    const a = build(name), j = a.joints, rest = places(a.g), restV = verts(a.g);
+    for (const [label, axis, v] of [['neck0', 'x', .5], ['head', 'y', .6], ['lfore', 'x', .7], ['rfore', 'z', .5], ['lleg1', 'x', .6], ['rleg1', 'x', -.6], ['spine0', 'x', .4]]) {
+      const joint = j[label], share = shareOn(a.g, joint);
       joint.rotation[axis] += v;
-      const now = places(a.g);
+      const now = places(a.g), nowV = verts(a.g);
       let on = 0;
       for (const [mesh, p] of rest) {
+        if (mesh.isSkinnedMesh) continue;
         const d = moved(now.get(mesh), p);
         if (under(mesh, joint)) { if (d > 1e-4) on++; }
         else assert(d < 1e-9, `${name}: turning ${label} moved a mesh not on it`);
       }
+      restV.forEach((r, i) => { const d = r.distanceTo(nowV[i]); if (share[i] === 0) assert(d < 1e-6, `${name}: turning ${label} moved skin not on it`); else if (share[i] > .5 && d > 1e-3) on++; });
       assert(on > 0, `${name}: turning ${label} moved what hangs on it`);
       joint.rotation[axis] -= v;
     }
@@ -59,9 +73,10 @@ test('turning a joint moves everything on it and nothing else', () => {
 test('named joints leave every U drawn where it was: same bounds, same mesh count', () => {
   // bounds and mesh counts of each on master before the joints were named (scale included)
   const before = {
-    'umber hulk': [[-.694, .007, -.509], [.694, 1.716, .74], 29],
-    'shambling horror': [[-.561, .007, -.463], [.566, 1.364, .445], 24],
-    'unknown U': [[-.479, .005, -.351], [.479, 1.183, .51], 29],
+    // (since step 3 the skin-coloured trunk and the four limbs' skins are one hide: four meshes fewer on each)
+    'umber hulk': [[-.694, .007, -.509], [.694, 1.716, .74], 25],
+    'shambling horror': [[-.561, .007, -.463], [.566, 1.364, .445], 20],
+    'unknown U': [[-.479, .005, -.351], [.479, 1.183, .51], 25],
   };
   for (const [name, [lo, hi, count]] of Object.entries(before)) {
     const a = build(name), b = boxOf(a.g);

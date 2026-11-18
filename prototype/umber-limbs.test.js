@@ -31,10 +31,13 @@ test('every limb of every U has three bones chained in its joint group, named in
       assert(skins.length >= 2, `${name} ${limb}: the skin and its claws or fingers are skinned (${skins.length})`);
       for (const m of skins) assert(m.skeleton.bones.includes(j[`${limb}_0`]), `${name} ${limb}: on the limb's bones`);
       assert.equal(j[limb].children.filter(o => o.isMesh && !o.isSkinnedMesh).length, 0, `${name} ${limb}: no plain piece left on the joint`);
-      // (the hide or flesh carries the bones: the plates and claws are bound to its skeleton)
-      const carrier = skins.find(m => m.children.includes(j[`${limb}_0`]));
-      assert(carrier, `${name} ${limb}: one skin carries the bones`);
-      assert(skins.every(m => m.skeleton === carrier.skeleton), `${name} ${limb}: one skeleton`);
+      // (since step 3 the hide or flesh of every limb and the trunk is one skin on the body, on one skeleton; the
+      // limb's bones hang straight on its joint group, and the plates, claws and fingers are bound to those same bones)
+      assert(j[`${limb}_0`].parent === j[limb], `${name} ${limb}: the bones hang on the joint`);
+      const hide = skins.filter(m => m.parent === a.body);
+      assert.equal(hide.length, 1, `${name} ${limb}: one hide on the body carries the limb`);
+      assert(hide[0].skeleton.bones.includes(j.spine1), `${name} ${limb}: the hide is the trunk's skin too`);
+      for (const m of skins) for (let i = 0; i < 3; i++) assert(m.skeleton.bones.includes(j[`${limb}_${i}`]), `${name} ${limb}: every piece on the same three bones`);
     }
   }
   const h = build('shambling horror');

@@ -2662,7 +2662,11 @@ function uJoints(a,head,arms,skin){
  for(const o of [...a.legs,...arms])o.children.sort((x,y)=>(y.material===skin)-(x.material===skin));
  for(const [list,stem] of [[a.legs,'leg1_'],[arms,'fore_']])for(const o of list)skinPlainLimb(o,(o.position.x<0?'l':'r')+stem,true,true);
  a.g.updateMatrixWorld(true);
- a.joints=nameHumanoidJoints({head,arms,legs:a.legs}).joints;return a;}
+ // step 3, as on the trolls: the trunk and neck on bones in one hide (`hips`, `spine0`, `spine1`, `neck0`..`neck3`,
+ // rigGiant in giant-joints.js), the head on the top of the neck, the arms on the chest and every other trunk piece
+ // (the plates, ridges, rift, spurs, lumps, sores, feelers, stray eyes) rigid on the bone at its height. rigGiant reads
+ // the head as `actor.head`; the U keeps no head handle (the head is still its `tail`), so it is lent and taken back.
+ a.head=head;rigGiant(a,{heads:[head],arms});delete a.head;return a;}
 const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.45}};
 
 // Shambling horror (U): a thing that should not have been made. A lopsided, lurching mound of pallid, wet
