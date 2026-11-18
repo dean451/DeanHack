@@ -6,9 +6,12 @@
 // toward the brooding value and the next call takes that back, so waking returns every joint exactly to its awake
 // value. The neck's pivot (`actor.tail`, which tail-sway.js swings about z every frame) is eased back to its built
 // angle with the neck, so the laid-down neck does not roll through the coil; tail-sway rewrites it each frame.
+// After the rest, the hero coming near a naga that is up sets off the rear (naga-rearing.js), eased and taken back
+// the same way.
 import {REST_POSES} from './naga-rest-poses.js';
 import {rests} from './naga-rest.js';
 import {applyRest, takeBackRest, parts, NEAR} from './insect-settle.js';
+import {applyRear} from './naga-rearing.js';
 
 export {rests};
 
@@ -25,7 +28,9 @@ export const PIVOT_Z = 0;
 export function updateNagaSettle(a, dt, busy, look = null) {
   if (!a || a.asset || !a.joints || !restFor(a)) return 0;
   const st = a.nagaRest || (a.nagaRest = {p: 0, idle: 0, written: []});
-  takeBackRest(st);
+  const rear = a.nagaRear || (a.nagaRear = {w: 0, written: []});
+  // the rear was written last, so it is taken back first
+  takeBackRest(rear); takeBackRest(st);
   if (st.can === undefined) st.can = rests(a);
   if (!st.can) return 0;
   dt = Number.isFinite(dt) ? Math.max(0, dt) : 0;
@@ -36,5 +41,6 @@ export function updateNagaSettle(a, dt, busy, look = null) {
     const now = pivot.z, next = now + (PIVOT_Z - now) * parts(p).head;
     if (next !== now) { pivot.z = next; st.written.push({get: () => pivot.z, set: v => { pivot.z = v; }, left: next, was: now}); }
   }
+  applyRear(a, rear, dt, busy, look, p);
   return p;
 }
