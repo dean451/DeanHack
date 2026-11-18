@@ -170,7 +170,6 @@ Rules agreed with the user on 2026-10-12 and 2026-10-14, after days of one-more-
 
 **Review findings** (from the daily review routine; taken before any list below; the one that fixes a finding deletes it)
 
-- **Naga neck at rest is a smooth, swollen sausage (review 2026-11-18, https://github.com/dean451/DeanHack/pull/2037, in play since https://github.com/dean451/DeanHack/pull/2045):** in `POSE=rest` and `SETTLE=12` renders of the golden and black naga (`node tools/creature-shot.mjs "golden naga" x N`, three, head and game views) the neck laid over the coil reads as a smooth, glossy, round tube, visibly fatter than the coil turns under it, with one soft highlight band and none of the coil's facets, keel or notched rows; at the game camera it is the biggest shape on the model and the softest. The neck tube is `neckG` in `prototype/naga.js` (`serpent(rise, 32, r * 1.05, ...)`, round eight-sided section, no `facet`). Fix the neck's section and nape only, not the rest pose, the coil or the head: give it the coil's low-sided notched section and scale rows so the laid-down nape catches light in facets, and no thicker than the coil where they meet. **Done when:** a test finds the neck's cross-section at its middle rings varies in radius around the ring by at least as much as the coil's does, and its widest ring is no wider than the coil's widest ring; and `POSE=rest`, `SETTLE=12` and `POSE=rear` three and game renders of the golden and black naga show a faceted, ridged neck no fatter than the coil, looked at.
 
 
 

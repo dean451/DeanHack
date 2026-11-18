@@ -69,7 +69,6 @@ export function createNaga({kind = 'red', baby = false} = {}) {
   const white = kind === 'white';
   const r = baby ? .05 : .075, ridge = baby ? .5 : 1;
   const add = (geo, mat, name, parent) => { const m = new THREE.Mesh(geo, mat); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
-  const scaleMat = new THREE.MeshStandardMaterial({vertexColors: true, roughness: baby ? .65 : .5, metalness: .1});
 
   // scales: a diamond lattice of dark and mid, a lit keel along the spine, darker between rows
   const scaled = (o, i, j, u, nx, ny, nz, belly) => {
@@ -118,17 +117,22 @@ export function createNaga({kind = 'red', baby = false} = {}) {
     return geo;
   };
   const coilSkin = [], onCoil = (geo, mat, name) => { const m = new THREE.SkinnedMesh(geo, mat); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; body.add(m); coilSkin.push(m); return m; };
-  onCoil(alongCoil(coilG, v => Math.floor(v / 7) / SEG), new THREE.MeshStandardMaterial({vertexColors: true, roughness: baby ? .65 : .5, metalness: .1, flatShading: true}), 'coil');
+  const facetMat = new THREE.MeshStandardMaterial({vertexColors: true, roughness: baby ? .65 : .5, metalness: .1, flatShading: true});
+  onCoil(alongCoil(coilG, v => Math.floor(v / 7) / SEG), facetMat, 'coil');
 
   // the neck: rises out of the coil, kicks back, then leans forward to carry the head
   const rise = new THREE.CatmullRomCurve3([[0, 0, 0], [0, .1, -.035], [0, .22, -.025], [0, .34, .03], [0, .43, .1], [0, .48, .17]].map(p => new THREE.Vector3(...p)));
   const neck = new THREE.Group(); neck.position.copy(NECK); body.add(neck);
-  const neckG = serpent(rise, 32, r * 1.05, u => 1.1 - u * .38, (o, i, j, u, nx, ny, nz) => {
+  // The coil's own section on the neck: six low sides, a blade keel and a notch every few scale rows, flat-shaded in
+  // the coil's material, so the nape laid over the coil at rest catches light in facets; no thicker than the coil
+  // where the two meet (the review of 2026-11-18 found a smooth, swollen eight-sided tube fatter than the coil).
+  const neckG = serpent(rise, 32, r, u => 1 - u * .26, (o, i, j, u, nx, ny, nz) => {
     // the front (+z) is belly: amber plates, a band every other ring; the nape is scale
     scaled(o, i, j, u, nx, ny, nz, (x, y, z) => z > .3 && y > -.5);
     // three raked scars slashed over the neck
-    if (!baby && !white && ((i === 8 && j >= 2 && j <= 4) || (i === 14 && j >= 5 && j <= 7) || (i === 20 && j >= 1 && j <= 3))) o.lerp(col.scar, .85);
-  });
+    if (!baby && !white && ((i === 8 && j >= 2 && j <= 4) || (i === 14 && j >= 4 && j <= 5) || (i === 20 && j >= 1 && j <= 3))) o.lerp(col.scar, .85);
+    if (!baby && i % 4 === 0) o.lerp(col.dark, .5);                       // a notch between every few scale rows
+  }, 6, (i, j) => (j % 2 ? .83 : 1.06) * (i % 4 === 0 ? .86 : 1));  // a shade sharper than the coil's: no flank hacked flat here
   // the neck's joints (family N, stage 1): bones neck0 (where it leaves the coil) to neck4 (under the head) along the
   // rise, and `head` at the head's own pivot on neck4. The tube is one SkinnedMesh over neck0..neck4, each vertex
   // riding the two bones either end of its segment, so a turned joint bends it and everything past it follows; the
@@ -142,7 +146,7 @@ export function createNaga({kind = 'red', baby = false} = {}) {
   const headBone = bones[NB], skeleton = new THREE.Skeleton(bones);
   const skinned = [];
   const addSkin = (geo, mat, name) => { const m = new THREE.SkinnedMesh(geo, mat); m.userData.part = name; m.castShadow = true; m.receiveShadow = true; neck.add(m); skinned.push(m); return m; };
-  addSkin(skinChain(neckG, nk), scaleMat, 'neck');
+  addSkin(skinChain(neckG, nk), facetMat, 'neck');
   // a piece of the head, built in the neck's frame, moved into the head bone's
   const onHead = (geo, mat, name) => add(geo.translate(-HEAD[0], -HEAD[1], -HEAD[2]), mat, name, headBone);
 
