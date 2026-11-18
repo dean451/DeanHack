@@ -2648,12 +2648,21 @@ function umberHulk(o){
   tube(head,[[side*.07,-.08,.12],[side*.11,-.13,.2],[side*.07,-.18,.27],[side*.015,-.19,.28]],.018,claw,10);
   cone(head,.02,.05,claw,side*.015,-.19,.29,4).rotation.z=side*Math.PI/2;
   const antenna=cone(head,.012,.12,dark,side*.07,.12,.02,4);antenna.rotation.set(-.6,0,-side*.5);}
- return uJoints(trimDraws(actor(g,body,legs,head,[],'orc')),head,arms);
+ return uJoints(trimDraws(actor(g,body,legs,head,[],'orc')),head,arms,hide);
 }
 // Family U stage 1 step 1: named joints, as on the trolls: `head` (also `neck0`; the head group, still the actor's
 // `tail` handle, which tail-sway.js and shambler-lurch.js turn), the arms `lfore` / `rfore` and the legs `lleg1` /
 // `rleg1` (left is -x). Names only: nothing moves, and the actor gains no `head` handle, so no head motion changes.
-function uJoints(a,head,arms){a.joints=nameHumanoidJoints({head,arms,legs:a.legs}).joints;return a;}
+// Step 2, as on the trolls and ogres: each limb's pieces (already merged per material by trimDraws) are skinned onto
+// three bones (`lfore_0`..`_2`, `lleg1_0`..`_2`: shoulder or hip, about halfway, near the end), the skin-coloured
+// piece (`skin`: the hulk's hide, the horror's flesh) first so it carries the bones and the others (plates, claws,
+// talons, fingers) bound to the same skeleton. At rest nothing moves; the joint groups stay the swing pivots
+// shambler-lurch.js turns, and the bones are named in `joints`.
+function uJoints(a,head,arms,skin){
+ for(const o of [...a.legs,...arms])o.children.sort((x,y)=>(y.material===skin)-(x.material===skin));
+ for(const [list,stem] of [[a.legs,'leg1_'],[arms,'fore_']])for(const o of list)skinPlainLimb(o,(o.position.x<0?'l':'r')+stem,true,true);
+ a.g.updateMatrixWorld(true);
+ a.joints=nameHumanoidJoints({head,arms,legs:a.legs}).joints;return a;}
 const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.45}};
 
 // Shambling horror (U): a thing that should not have been made. A lopsided, lurching mound of pallid, wet
@@ -2711,7 +2720,7 @@ function shamblingHorror(o){
  for(const [x,y,z,r,ry] of [[-.26,1.02,.1,.026,-.6],[-.18,1.08,.04,.018,.4],[.2,.9,.16,.02,.9]]){
   const e=sphere(body,r,eye,x,y,z);const p=sphere(body,r*.45,pupil,x+Math.sin(ry)*r*.75,y,z+Math.cos(ry)*r*.75,1,1.6,.5);p.rotation.y=ry;e.rotation.y=ry;}
  // the arms are kept as their own groups (digArm, limpArm) so shambler-lurch.js can swing them
- return uJoints(trimDraws(Object.assign(actor(g,body,legs,head,[],'orc'),{kind:'shambling horror',digArm,limpArm})),head,[digArm,limpArm]);
+ return uJoints(trimDraws(Object.assign(actor(g,body,legs,head,[],'orc'),{kind:'shambling horror',digArm,limpArm})),head,[digArm,limpArm],flesh);
 }
 const HORRORS={'shambling horror':{color:'#9aa8a4',raw:'#8a2a3a',eye:'#7affe8',scale:1.2}};
 
