@@ -131,6 +131,8 @@ if(q.get('bowing')){c.species=c.species||name.toLowerCase();for(let i=0;i<60;i++
 if(q.get('stalking')){c.species=c.species||name.toLowerCase();for(let i=0;i<60;i++)updateWildcatStalk(c,1/30,i/30,false,{x:20,z:0});const near={x:Math.sin(c.g.rotation.y)*4,z:Math.cos(c.g.rotation.y)*4};for(let i=0;i<+q.get('stalking')*30;i++)updateWildcatStalk(c,1/30,2+i/30,false,near);}
 // ?washing=2 holds the hero 2.5 m off a rat that many seconds, through the game's own settle (rat-washing.js: the nervous wash)
 if(q.get('washing')){c.species=c.species||name.toLowerCase();const look={x:0,z:2.5};for(let i=0;i<+q.get('washing')*30;i++)updateRatSettle(c,1/30,false,look);}
+// ?rearing=1.5 holds the hero 2.5 m off a naga (letter N) that many seconds, through the game's own settle (naga-rearing.js)
+if(q.get('rearing')){c.species=c.species||name.toLowerCase();const look={x:0,z:2.5};for(let i=0;i<+q.get('rearing')*30;i++)updateNagaSettle(c,1/30,false,look);}
 // ?lurching=1.2 holds the hero 2.5 m off a mummy that many seconds, through the game's own settle (mummy-lurching.js)
 if(q.get('lurching')){c.species=c.species||name.toLowerCase();const look={x:0,z:2.5};for(let i=0;i<+q.get('lurching')*30;i++)updateMummySettle(c,1/30,false,look);}
 // ?waddling=1.2 holds the hero 2.5 m off a gnome (letter G) that many seconds, through the game's own settle (gnome-waddling.js)
