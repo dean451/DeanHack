@@ -29,7 +29,7 @@ import {restPose as quadRest, rests as quadRests} from '../quadruped-rest.js';
 import {restPose as koboldRest, rests as koboldRests} from '../kobold-rest.js';
 import {restPose as ratRest, rests as ratRests} from '../rat-rest.js';
 import {restPose as nagaRest, rests as nagaRests} from '../naga-rest.js';
-import {rearPose as nagaRear, rearsUp as nagaRearsUp} from '../naga-rear.js';
+import {rearPose as nagaRear, rearsUp as nagaRearsUp, spreadHood as nagaHood} from '../naga-rear.js';
 import {washPose, washPoser} from '../rat-wash.js';
 import {waddlePose, waddlePoser, waddles as gnomeWaddles} from '../gnome-waddle.js';
 import {bracePose, braces} from '../humanoid-brace.js';
@@ -90,8 +90,8 @@ if(q.get('pose')==='rest'&&lichRests(c)){birdPoser(c).apply(lichRest(c).pose);}
 if(q.get('pose')==='rest'&&mummyRests(c)){birdPoser(c).apply(mummyRest(c).pose);}
 // ?pose=rest lays a naga's neck down over its coil, the chin on the scales, as a python broods (naga-rest.js)
 if(q.get('pose')==='rest'&&nagaRests(c)){birdPoser(c).apply(nagaRest(c).pose);}
-// ?pose=rear draws a naga's neck up into a straight post, the head hooked forward over the hero (naga-rear.js)
-if(q.get('pose')==='rear'&&nagaRearsUp(c)){birdPoser(c).apply(nagaRear(c).pose);}
+// ?pose=rear draws a naga's neck up into a straight post, the head hooked forward over the hero and the hood spread (naga-rear.js)
+if(q.get('pose')==='rear'&&nagaRearsUp(c)){birdPoser(c).apply(nagaRear(c).pose);nagaHood(c,1);}
 // ?pose=lurch catches a mummy in its stiff-knee lurch at the hero, the arms flung out (mummy-lurch.js)
 if(q.get('pose')==='lurch'&&mummyLurches(c)){lurchPoser(c).apply(lurchPose(c).pose);}
 // ?pose=shufflel / shuffler rocks a lich's weight over its left or right foot, one shuffle of its turn in one piece (lich-turn.js)
