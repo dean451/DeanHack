@@ -62,7 +62,8 @@ export function samplesOf(a, {step = 10} = {}) {
 export function restPose(a) {
   const P = rolesOf(a), s = a.g.scale.x, floor = a.g.position.y, j = a.joints, {apply} = birdPoser(a);
   apply({});
-  const rings = coilRings(a), S = samplesOf(a), withers = P.withers();
+  // the head sampled every fifth vertex: every tenth let a corner of it sink 2 cm into the coil unseen
+  const rings = coilRings(a), S = samplesOf(a, {step: 5}), withers = P.withers();
   const top = Math.max(...rings.map(r => r.c.y + r.max)), reared = P.mouth().y - floor;
   const joints = {'head.x': [-.9, .9], 'head.y': [-.6, .6]};
   for (const n of NECK) { joints[`${n}.x`] = [-1.3, 1.3]; joints[`${n}.y`] = [-1.3, 1.3]; joints[`${n}.z`] = [-.8, .8]; }
