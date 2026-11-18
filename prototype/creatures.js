@@ -2611,7 +2611,7 @@ const NAGAS={'red naga':{color:'#b0321e',belly:'#e0a040',eye:'#ffcc40',crest:'fl
 // thick legs, long arms ending in three huge digging claws, and a broad head with two big confusing
 // compound eyes, two small eyes between them and a pair of curved mandibles. The head is the 'tail' group, so it tilts.
 function umberHulk(o){
- const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[];
+ const g=new THREE.Group(),body=new THREE.Group();g.add(body);g.scale.setScalar(o.scale||1);const legs=[],arms=[];
  const shell=mat(o.color,{roughness:.45,metalness:.15}),dark=mat(shade(o.color,.55),{roughness:.7}),hide=mat(o.hide||shade(o.color,1.25),{roughness:.9}),claw=mat('#1c1612',{roughness:.35,metalness:.2}),
   compound=mat(o.eye,{emissive:o.eye,emissiveIntensity:.9,roughness:.15,metalness:.3,flatShading:true}),small=mat('#0e0a08',{roughness:.2}),mouth=mat('#2a0e0c',{roughness:1});
  // legs: thick thighs and shins with chitin knee caps and three-toed clawed feet
@@ -2627,7 +2627,7 @@ function umberHulk(o){
  // shoulders: heavy pauldron plates
  for(const side of [-1,1]){const pad=sphere(body,.14,shell,side*.29,.98,.02,1.1,.7,1.15);pad.rotation.z=side*.45;}
  // arms: long and heavy, hanging forward, each ending in three great hooked claws for tunnelling through rock
- for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.3,.95,.04);body.add(arm);
+ for(const side of [-1,1]){const arm=new THREE.Group();arm.position.set(side*.3,.95,.04);body.add(arm);arms.push(arm);
   segment(arm,[0,0,0],[side*.05,-.3,.05],.09,.08,hide);sphere(arm,.07,shell,side*.05,-.3,.05,1,.8,1);
   segment(arm,[side*.05,-.3,.05],[side*.04,-.58,.14],.085,.075,shell);rounded(arm,.15,.1,.14,dark,side*.04,-.62,.15,.035);
   for(let k=-1;k<=1;k++){const c=cone(arm,.026,.16,claw,side*.04+k*.05,-.72,.2,5);c.rotation.x=Math.PI-.5;c.rotation.z=k*.15;}
@@ -2648,8 +2648,12 @@ function umberHulk(o){
   tube(head,[[side*.07,-.08,.12],[side*.11,-.13,.2],[side*.07,-.18,.27],[side*.015,-.19,.28]],.018,claw,10);
   cone(head,.02,.05,claw,side*.015,-.19,.29,4).rotation.z=side*Math.PI/2;
   const antenna=cone(head,.012,.12,dark,side*.07,.12,.02,4);antenna.rotation.set(-.6,0,-side*.5);}
- return trimDraws(actor(g,body,legs,head,[],'orc'));
+ return uJoints(trimDraws(actor(g,body,legs,head,[],'orc')),head,arms);
 }
+// Family U stage 1 step 1: named joints, as on the trolls: `head` (also `neck0`; the head group, still the actor's
+// `tail` handle, which tail-sway.js and shambler-lurch.js turn), the arms `lfore` / `rfore` and the legs `lleg1` /
+// `rleg1` (left is -x). Names only: nothing moves, and the actor gains no `head` handle, so no head motion changes.
+function uJoints(a,head,arms){a.joints=nameHumanoidJoints({head,arms,legs:a.legs}).joints;return a;}
 const UMBER_HULKS={'umber hulk':{color:'#4a3322',hide:'#6a5038',eye:'#d8a040',scale:1.45}};
 
 // Shambling horror (U): a thing that should not have been made. A lopsided, lurching mound of pallid, wet
@@ -2707,7 +2711,7 @@ function shamblingHorror(o){
  for(const [x,y,z,r,ry] of [[-.26,1.02,.1,.026,-.6],[-.18,1.08,.04,.018,.4],[.2,.9,.16,.02,.9]]){
   const e=sphere(body,r,eye,x,y,z);const p=sphere(body,r*.45,pupil,x+Math.sin(ry)*r*.75,y,z+Math.cos(ry)*r*.75,1,1.6,.5);p.rotation.y=ry;e.rotation.y=ry;}
  // the arms are kept as their own groups (digArm, limpArm) so shambler-lurch.js can swing them
- return trimDraws(Object.assign(actor(g,body,legs,head,[],'orc'),{kind:'shambling horror',digArm,limpArm}));
+ return uJoints(trimDraws(Object.assign(actor(g,body,legs,head,[],'orc'),{kind:'shambling horror',digArm,limpArm})),head,[digArm,limpArm]);
 }
 const HORRORS={'shambling horror':{color:'#9aa8a4',raw:'#8a2a3a',eye:'#7affe8',scale:1.2}};
 
