@@ -2534,8 +2534,13 @@ function vampire(o){
  if(o.orb){const orb=sphere(body,.06,mat(o.orb,{emissive:o.orb,emissiveIntensity:3,roughness:.2,transparent:true,opacity:.9}),.26,.5,.2);g.userData.core=orb;}
  if(o.vlad){const red=mat('#9a1a24',{roughness:.7});cylinder(head,.125,.135,.1,red,0,.11,-.01,12);sphere(head,.02,mat('#e8e0c8',{roughness:.3}),0,.12,.125);for(const side of [-1,1]){const m=rounded(head,.07,.018,.02,hair,side*.035,-.065,.12,.008);m.rotation.z=side*-.35;}
   const spear=rounded(body,.03,1.4,.03,mat('#4a3420',{roughness:.9}),-.3,.71,.12,.01);spear.rotation.z=.04;cone(body,.035,.18,M.steel,-.33,1.49,.12,4);}
- return trimDraws(Object.assign(actor(g,body,legs,null,[],'idle'),{head,arms,arm:arms[1],cape:capeG,flaps,vampire:o.kind||'vampire'}));
+ return vJoints(trimDraws(Object.assign(actor(g,body,legs,null,[],'idle'),{head,arms,arm:arms[1],cape:capeG,flaps,vampire:o.kind||'vampire'})));
 }
+// Family V stage 1 step 1: named joints, as on the liches and the U: `head` (also `neck0`; the head group, which
+// vampire-sweep.js already turns as `actor.head`), the arms `lfore` / `rfore` (the same groups as `actor.arms`; the
+// right is the cape-sweeping `arm`) and the legs `lleg1` / `rleg1` (left is -x). Names only: nothing moves and no
+// handle changes. The cape and its side flaps stay their own pivots on the body (`cape`, `flaps`).
+function vJoints(a){return nameHumanoidJoints(a);}
 // Xorns: a faceted stone barrel on three stubby legs, with three arms and three eyes spaced around its sides
 // and a wide, fanged mouth on top.
 function xorn(o){
