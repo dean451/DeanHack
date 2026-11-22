@@ -95,7 +95,7 @@ Claude sessions with the user add lines here from the user's direct feedback (ma
 - Colours passed to sculpt helpers must be hex, not arrays, or the result renders white.
 - `ground.js` samples each mesh's extremes, so merging parts into one skinned mesh can drop a far tip (a jabberwock's wing claw) from a toppled body's floor check; run `ground.test.js` after any merge.
 - Adding glow, rune or skull meshes changes draw counts and bounds; update the draw-count and bounds tests on purpose, never loosen them.
-- `prototype/package.json` runs tests by glob (`*.test.js`, `engine/*.test.js`): a new test file is picked up by itself, nothing to register, nothing to conflict on. A test file that is never meant to run has no place in those folders.
+- `npm test` (`prototype/tools/run-tests.mjs`) runs tests by glob (`*.test.js`, `engine/*.test.js`), one file per core: a new test file is picked up by itself, nothing to register, nothing to conflict on. The whole suite must stay well inside CI's 10-minute job limit (the user keeps that limit); a slow new test is a real cost. A test file that is never meant to run has no place in those folders.
 - A PR you leave open can conflict with the next merge (AGENTS.md most often); re-merge `master` and check auto-merge before you stop.
 - *user* Performance is a focus, not an afterthought: a new effect adds no always-on light, no full-window CSS filter and no per-frame scene walk; measure before and after.
 - *user* Small and safe is not the same as valuable: days of scars and 25 PRs on the cat added little and left the collar floating. Take a listed item toward its Done when, or open no PR.
