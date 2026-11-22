@@ -4,6 +4,7 @@
 // happened. The splash is opaque and the 3D scene does not draw behind it (main.js).
 // The engine keys a save by character name (-u name), so typing a saved name resumes that game.
 
+import {installCredits,touchOnly,KEYBOARD_NOTE,createKeysCard} from './start-extras.js';
 import {pickDragon} from './dragon-art.js';
 import {createAsciiWaves} from './ascii-waves.js';
 import {createAsciiSpiral, DESCENT} from './ascii-spiral.js';
@@ -134,13 +135,13 @@ export function installScoreboard({button,table,getScores=fetchScores,render=sco
 export function installStartScreen({doc=document,button,nameInput,getSaves=fetchSaves,forget=forgetSave,getScores=fetchScores,confirmFn=(m)=>confirm(m),storage}={}){
   const cover=doc.getElementById?.('start-cover');
   const el=doc.createElement('div');el.id='start-screen';
-  el.innerHTML=`<div class="start-stage"><pre class="start-dragon" aria-hidden="true"></pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>An <a class="start-link" href="https://github.com/UnNetHack/UnNetHack" target="_blank" rel="noopener">UnNetHack</a> Fork</h1><p id="start-status" role="status" hidden></p>
+  el.innerHTML=`<div class="start-stage"><pre class="start-dragon" aria-hidden="true"></pre><div class="start-card"><small>THE DUNGEONS OF DOOM</small><h1>An <a class="start-link" href="https://github.com/UnNetHack/UnNetHack" target="_blank" rel="noopener">UnNetHack</a> Fork</h1><p id="start-status" role="status" hidden></p><p class="start-device" hidden></p>
 <form class="step-name" autocomplete="off"><label for="start-name">Your name</label><input id="start-name" type="text" maxlength="24" spellcheck="false" placeholder="${DEFAULT_NAME}" aria-describedby="start-note"><button type="submit" id="start-go"></button><p id="start-note" aria-live="polite"></p>
 <div class="start-row"><button type="button" class="start-new">New character</button><button type="button" class="start-forget" hidden>Start over (delete this save)</button></div>
 <div class="start-saves" hidden><span>Your characters</span><div class="start-list"></div></div></form>
 <div class="step-class" hidden><label>Choose your class</label><div class="class-grid" role="radiogroup" aria-label="Class"></div>
 <div class="class-detail"><p class="class-blurb"></p><div class="class-opts"></div></div>
-<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div><p class="start-mark"><a class="start-link" href="https://github.com/dean451/deanhack" target="_blank" rel="noopener" aria-label="DeanHack on GitHub">DEAN<b>HACK</b></a></p></div><div class="start-board"><button type="button" class="start-scores-toggle" aria-expanded="false" aria-controls="start-scores">Leaderboard</button><div id="start-scores" class="start-scores-box" hidden></div></div>`;
+<button type="button" id="class-go"></button><button type="button" class="start-back">Back</button></div></div><p class="start-mark"><a class="start-link" href="https://github.com/dean451/deanhack" target="_blank" rel="noopener" aria-label="DeanHack on GitHub">DEAN<b>HACK</b></a></p></div><div class="start-board"><button type="button" class="start-scores-toggle" aria-expanded="false" aria-controls="start-scores">Leaderboard</button><button type="button" class="start-scores-toggle start-about-toggle" aria-expanded="false" aria-controls="start-about">Credits</button><div id="start-scores" class="start-scores-box" hidden></div><div id="start-about" class="start-scores-box start-about-box" hidden></div></div>`;
   // The wavy ASCII field behind everything (ascii-waves.js); it runs only while the splash shows.
   const waves=createAsciiWaves({doc});el.prepend(waves.el);
   // The descent (ascii-spiral.js): Descend fades the card out under a spiral that zooms for DESCENT.ms, then
@@ -159,7 +160,7 @@ export function installStartScreen({doc=document,button,nameInput,getSaves=fetch
       watchdog=win.setTimeout(()=>{watchdog=null;landed();},LANDING_MS);});
   };
   // The dungeon is on screen: the spiral fades away and the opening text's fade-in rules lift.
-  const landed=()=>{if(!descending||landing)return;spiral.el.classList.add('gone');doc.body.classList.remove('start-descending');landing=win.setTimeout(()=>{landing=null;clearDescent();},1000);};
+  const landed=()=>{if(!descending||landing)return;keys?.show();spiral.el.classList.add('gone');doc.body.classList.remove('start-descending');landing=win.setTimeout(()=>{landing=null;clearDescent();},1000);};
   doc.body.append(el);
   const $=s=>el.querySelector(s);
   // The cover (start-cover.js) already shows a head: take that very element so nothing swaps.
@@ -244,6 +245,10 @@ export function installStartScreen({doc=document,button,nameInput,getSaves=fetch
   });
   input.addEventListener('input',refresh);
   const board=installScoreboard({button:$('.start-scores-toggle'),table:$('#start-scores'),getScores});
+  // credits and licences, a keyboard notice for touch-only devices, and the keys card on a first game (start-extras.js)
+  installCredits({button:$('.start-about-toggle'),box:$('#start-about')});
+  if(touchOnly(win)){const d=$('.start-device');d.textContent=KEYBOARD_NOTE;d.hidden=false;}
+  const keys=createKeysCard({doc,storage});
   open();
   return {el,open,close,landed};
 }
