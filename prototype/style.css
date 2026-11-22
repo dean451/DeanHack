@@ -364,3 +364,20 @@ body.live-engine .character{width:250px}
 .tomb .recap details{border-top:1px solid #3a3226;padding:4px 0}
 .tomb .recap summary{cursor:pointer;color:#cdbf9f;font:600 12px Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}
 .tomb .recap pre{margin:6px 0 2px;max-height:180px;overflow:auto;color:#d8cfbb;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap}
+/* credits and licences under the splash (start-extras.js) */
+#start-screen .start-about{padding:14px 18px;font:14px/1.5 'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;color:#cfc6b2;background:#0a1417b3;border:1px solid #64797277;border-radius:4px}
+#start-screen .start-about p{margin:0 0 10px}
+#start-screen .start-about ul{margin:0;padding:0;list-style:none}
+#start-screen .start-about li{padding:4px 0;border-top:1px solid #6479722e}
+#start-screen .start-about li span{color:#9aa6ab}
+#start-screen .start-about li i{color:#7f909a;font:12px Inter,system-ui,sans-serif;margin-left:.4em}
+#start-screen .start-device{margin:8px 0 0;padding:8px 10px;border:1px solid #b8873a66;border-radius:4px;color:#e4c48a;font:14px/1.4 Inter,system-ui,sans-serif;background:#2a1d0c99}
+#start-screen .start-device[hidden]{display:none}
+/* the keys card on a first game: a corner card that never takes a keypress */
+.keys-card{position:fixed;right:18px;bottom:72px;z-index:40;width:min(300px,calc(100vw - 36px));padding:12px 14px;background:#0a1417e6;border:1px solid #64797299;border-radius:6px;color:#d8cfbb;font:13px/1.4 Inter,system-ui,sans-serif;box-shadow:0 8px 24px #0008}
+.keys-card>b{display:block;margin-bottom:6px;font:600 11px/1 'Courier New',monospace;letter-spacing:.3em;text-transform:uppercase;color:#6fb7b4}
+.keys-card dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0}
+.keys-card dt{font:600 13px 'Courier New',monospace;color:#f1e8d4;white-space:nowrap}
+.keys-card dd{margin:0;color:#b9b2a3}
+.keys-card p{margin:8px 0 6px;color:#8d9aa1;font-size:12px}
+.keys-card .keys-close{padding:5px 10px;background:#143235;border:1px solid #6fb7b466;border-radius:4px;color:#dfe8e6;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}

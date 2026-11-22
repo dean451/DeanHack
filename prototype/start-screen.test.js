@@ -261,7 +261,7 @@ test('the Leaderboard button fetches once on the first click, shows the table, a
   await empty.click();assert.match(emptyTable.innerHTML,/No games finished on this server yet\./);
   // the splash puts the button at the bottom of the page with the table below it
   const src=readFileSync(new URL('./start-screen.js',import.meta.url),'utf8'),css=readFileSync(new URL('./style.css',import.meta.url),'utf8');
-  assert.match(src,/<\/div><div class="start-board"><button type="button" class="start-scores-toggle" aria-expanded="false" aria-controls="start-scores">Leaderboard<\/button><div id="start-scores" class="start-scores-box" hidden><\/div><\/div>`;/,'after the stage, under everything else');
+  assert.match(src,/<\/div><div class="start-board"><button type="button" class="start-scores-toggle" aria-expanded="false" aria-controls="start-scores">Leaderboard<\/button><button type="button" class="start-scores-toggle start-about-toggle" aria-expanded="false" aria-controls="start-about">Credits<\/button><div id="start-scores" class="start-scores-box" hidden><\/div><div id="start-about" class="start-scores-box start-about-box" hidden><\/div><\/div>`;/,'after the stage, under everything else, with Credits beside it (start-extras.js)');
   assert.match(src,/const board=installScoreboard\(\{button:\$\('\.start-scores-toggle'\),table:\$\('#start-scores'\),getScores\}\);/);
   assert.match(src,/stepName\.hidden=false;board\.stale\(\);/,'a reopened splash refreshes the board');
   assert.match(css,/#start-screen \.start-scores-box\[hidden\]\{display:none\}/);
