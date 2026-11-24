@@ -19,7 +19,9 @@ money, the server, a decision). *Both* = Dean decides, Claude builds.
 - [ ] **English Towne font licence** (*Dean*). Dieter Steffmann's fonts are distributed as freeware; check the licence text that came with `EnglishTowne.ttf` allows use on a public website, or drop the font (the title falls back to Pirata One).
 - [ ] **Privacy note** (*Both*). The server keeps a login name, a save per player and log lines
   (session start, death, end); the browser keeps a few local settings. A short page saying so, and who
-  to contact. Dean decides the contact address.
+  to contact. Drafted (Claude): `prototype/public/privacy.html`, linked from the Credits box, with GitHub
+  issues as the contact. Dean: swap in a contact address if issues is not enough, then tick this. If Caddy
+  ever gets an access log, the page's "does not log your IP address" must change.
 
 ## 2. Getting in (must-have)
 
@@ -38,13 +40,25 @@ money, the server, a decision). *Both* = Dean decides, Claude builds.
   own intro text is where newcomers give up (Tester readiness 6).
 - [x] **Phones and small screens** (*Claude*, done: the splash's keyboard notice in `start-extras.js`). A clear "DeanHack needs a keyboard" line on the splash
   for touch-only devices instead of a frozen screen (Tester readiness 7).
-- [ ] **Landing copy** (*Both*). The splash and the link preview say what this is in one line
-  ("NetHack, in 3D, in your browser"), and the og description is still "An UnNetHack fork."
+- [ ] **Landing copy** (*Both*). The splash and the link preview say what this is in one line.
+  Drafted (Claude): the description, og and twitter cards now read "UnNetHack, the classic roguelike, played
+  in 3D in your browser. Free and open source; bring a keyboard." The splash keeps "An UnNetHack Fork" with no
+  tagline (pinned by `start-screen.test.js`). Dean: approve or rewrite the line, then tick this.
 
 ## 4. Server and operations (should-have)
 
 - [ ] **Capacity** (*Dean*). How many players at once the server can hold; size the Hetzner box and
-  `DEANHACK_MAX_ENGINES` to match. Claude can measure memory and CPU per engine.
+  `DEANHACK_MAX_ENGINES` to match.
+  Measured (Claude, 2026-11-24, `node engine/serve.js` on a 4-core cloud container, 30 games at once, each
+  sent a random move about 7.5 times a second over `/engine/poll`, far busier than a person):
+  - **Memory:** each engine about 6.3 MB (max 6.8); the server 56 MB idle, 154 MB with 30 games and their
+    event logs. About 60 MB plus 5 to 7 MB a player.
+  - **CPU:** 224 inputs a second in all cost the server 21% of one core and the 30 engines 5%. About 1% of a
+    core per busy player; a real player, pausing to read, costs less.
+  - **Disk:** a new game's save is about 10 KB compressed (deeper games grow); the runtime folder held 12 MB.
+  - **So:** the engines are cheap; the limit today is `DEANHACK_MAX_ENGINES=8`, not the box. A 2 vCPU / 4 GB
+    machine has room for 50 or more at once. Raising the cap to 24 or 32 is safe; watch `docker stats` the
+    first busy week.
 - [ ] **Uptime check** (*Dean*): a free external monitor on https://deanhack.online so a crash at 3am is
   noticed.
 - [ ] **Off-server backups** (*Dean*): `deploy/backup.sh` keeps 14 nights on the box itself; copy them off.
