@@ -55,7 +55,7 @@ money, the server, a decision). *Both* = Dean decides, Claude builds.
     event logs. About 60 MB plus 5 to 7 MB a player.
   - **CPU:** 224 inputs a second in all cost the server 21% of one core and the 30 engines 5%. About 1% of a
     core per busy player; a real player, pausing to read, costs less.
-  - **Disk:** a save is tens of KB; the engine's runtime folder held 12 MB with 30 games.
+  - **Disk:** a new game's save is about 10 KB compressed (deeper games grow); the runtime folder held 12 MB.
   - **So:** the engines are cheap; the limit today is `DEANHACK_MAX_ENGINES=8`, not the box. A 2 vCPU / 4 GB
     machine has room for 50 or more at once. Raising the cap to 24 or 32 is safe; watch `docker stats` the
     first busy week.
