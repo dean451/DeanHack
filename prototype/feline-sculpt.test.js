@@ -5,6 +5,7 @@ import {roundCone, ellipsoid, trunkField, sculptFeline, EYE, TRUNK} from './feli
 import {felineBuild} from './feline.js';
 import {createSkinnedFeline, updateSkinnedFeline} from './feline-skin.js';
 
+import {cpuNow} from './test-clock.js';
 test('the distance pieces: negative inside, zero on the surface, about the distance outside', () => {
   const c = roundCone([0, 0, 0], [0, 1, 0], .2, .1);
   assert.ok(c(0, 0, 0) < 0 && Math.abs(c(.2, 0, 0)) < 1e-9 && Math.abs(c(0, 1.1, 0)) < 1e-9 && Math.abs(c(.5, .5, 0) - (.5 - .15)) < .01);
@@ -38,7 +39,7 @@ test('the head is a cat\'s wedge, not a ball: the forehead slopes from the crown
 
 test('the sculpted pet: one skin over the same skeleton, on the floor, a tail about two thirds its length, and no tear where the parts meet', () => {
   for (const name of ['kitten', 'housecat', 'large cat']) {
-    const t0 = performance.now(), a = createSkinnedFeline(name, undefined, {sculpt: true}), ms = performance.now() - t0;
+    const t0 = cpuNow(), a = createSkinnedFeline(name, undefined, {sculpt: true}), ms = cpuNow() - t0;
     const skinned = []; a.g.traverse(o => { if (o.isSkinnedMesh && o.userData.part !== 'fur-shell') skinned.push(o); });
     assert.equal(skinned.length, 3, `${name}: fur, details (whiskers, pupils, ears), eyes`);
     assert.ok(skinned.every(m => m.skeleton === skinned[0].skeleton) && skinned[0].skeleton.bones.length === 32, 'the rig the gait drives with its vertebrae, an ear bone each side, the jaw and the tongue');

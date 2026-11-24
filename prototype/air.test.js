@@ -4,11 +4,12 @@ import * as THREE from 'three';
 import {createTerrainFeature} from './terrain-feature.js';
 import {SKY_Y} from './air.js';
 
+import {cpuNow} from './test-clock.js';
 test('open air is a flat sky plus one merged, fading drift that stays in its tile and frees its resources',()=>{
  for(const seed of [0,1,7,42,123,999,2024,31337]){
-  const t0=performance.now();
+  const t0=cpuNow();
   const model=createTerrainFeature('air',seed);
-  const ms=performance.now()-t0;
+  const ms=cpuNow()-t0;
   assert(model.userData.hidesFloor,'an air tile should hide the stone slab');
   const bounds=new THREE.Box3().setFromObject(model);
   for(const v of [bounds.min.x,bounds.max.x,bounds.min.z,bounds.max.z])assert(Math.abs(v)<=.501,'air leaves its tile');

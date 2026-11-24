@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 
+import {cpuNow} from './test-clock.js';
 const E=101;// 'e'
 function parts(actor){const meshes=[];actor.g.traverse(o=>{if(o.isMesh)meshes.push(o);});return meshes;}
 
@@ -10,7 +11,7 @@ test('gas spores and flaming and freezing spheres get their own hovering models,
  const eye=parts(createCreature({name:'floating eye',symbol:E,color:4}));
  const expected={'gas spore':['spore'],'flaming sphere':['core','flames'],'freezing sphere':['core','ice']};
  for(const [name,want] of Object.entries(expected)){
-  const t0=performance.now(),actor=createCreature({name,symbol:E,color:7}),ms=performance.now()-t0;
+  const t0=cpuNow(),actor=createCreature({name,symbol:E,color:7}),ms=cpuNow()-t0;
   assert.equal(actor.quirk,'hover',name);assert(actor.body,name);
   const meshes=parts(actor);
   assert.deepEqual(meshes.map(m=>m.userData.part).sort(),want,name);

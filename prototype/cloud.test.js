@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createTerrainFeature} from './terrain-feature.js';
 
+import {cpuNow} from './test-clock.js';
 test('clouds are a merged, finite bank that fills its tile, replaces the floor and frees its resources',()=>{
  for(const seed of [0,1,7,42,123,999,2024,31337]){
-  const t0=performance.now();
+  const t0=cpuNow();
   const model=createTerrainFeature('cloud',seed);
-  const ms=performance.now()-t0;
+  const ms=cpuNow()-t0;
   assert(model.userData.hidesFloor,'a cloud tile should hide the stone slab');
   const bounds=new THREE.Box3().setFromObject(model);
   for(const v of [bounds.min.x,bounds.max.x,bounds.min.z,bounds.max.z])assert(Math.abs(v)<=.5,'cloud leaves its tile');

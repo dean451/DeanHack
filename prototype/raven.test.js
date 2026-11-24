@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 
+import {cpuNow} from './test-clock.js';
 const B=66;// 'B'
 function meshes(actor){const list=[];actor.g.traverse(o=>{if(o.isMesh)list.push(o);});return list;}
 
 test('the raven gets its own glossy black bird instead of the bat',()=>{
- const t0=performance.now(),raven=createCreature({name:'raven',symbol:B,color:0}),ms=performance.now()-t0;
+ const t0=cpuNow(),raven=createCreature({name:'raven',symbol:B,color:0}),ms=cpuNow()-t0;
  const bat=createCreature({name:'bat',symbol:B,color:3});
  // it keeps the bat's flap and hover, and the handles the animation layers drive
  assert.equal(raven.quirk,'bat');

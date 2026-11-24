@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 
+import {cpuNow} from './test-clock.js';
 const APOS=39;// "'"
 function meshes(actor){const list=[];actor.g.traverse(o=>{if(o.isMesh)list.push(o);});return list;}
 const box=o=>new THREE.Box3().setFromObject(o);
 
 test('the giant turtle gets its own tortoise with a scuted shell instead of the dome and blobs',()=>{
- const t0=performance.now(),a=createCreature({name:'giant turtle',symbol:APOS,color:2}),ms=performance.now()-t0;
+ const t0=cpuNow(),a=createCreature({name:'giant turtle',symbol:APOS,color:2}),ms=cpuNow()-t0;
  // it keeps the turtle quirk and the handles the animation layers drive, plus a head
  assert.equal(a.quirk,'turtle');
  for(const key of ['body','head','tail'])assert(a[key]?.isObject3D,key);
