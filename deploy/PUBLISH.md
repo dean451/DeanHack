@@ -19,7 +19,9 @@ money, the server, a decision). *Both* = Dean decides, Claude builds.
 - [ ] **English Towne font licence** (*Dean*). Dieter Steffmann's fonts are distributed as freeware; check the licence text that came with `EnglishTowne.ttf` allows use on a public website, or drop the font (the title falls back to Pirata One).
 - [ ] **Privacy note** (*Both*). The server keeps a login name, a save per player and log lines
   (session start, death, end); the browser keeps a few local settings. A short page saying so, and who
-  to contact. Dean decides the contact address.
+  to contact. Drafted (Claude): `prototype/public/privacy.html`, linked from the Credits box, with GitHub
+  issues as the contact. Dean: swap in a contact address if issues is not enough, then tick this. If Caddy
+  ever gets an access log, the page's "does not log your IP address" must change.
 
 ## 2. Getting in (must-have)
 
@@ -38,8 +40,10 @@ money, the server, a decision). *Both* = Dean decides, Claude builds.
   own intro text is where newcomers give up (Tester readiness 6).
 - [x] **Phones and small screens** (*Claude*, done: the splash's keyboard notice in `start-extras.js`). A clear "DeanHack needs a keyboard" line on the splash
   for touch-only devices instead of a frozen screen (Tester readiness 7).
-- [ ] **Landing copy** (*Both*). The splash and the link preview say what this is in one line
-  ("NetHack, in 3D, in your browser"), and the og description is still "An UnNetHack fork."
+- [ ] **Landing copy** (*Both*). The splash and the link preview say what this is in one line.
+  Drafted (Claude): the description, og and twitter cards now read "UnNetHack, the classic roguelike, played
+  in 3D in your browser. Free and open source; bring a keyboard." The splash keeps "An UnNetHack Fork" with no
+  tagline (pinned by `start-screen.test.js`). Dean: approve or rewrite the line, then tick this.
 
 ## 4. Server and operations (should-have)
 

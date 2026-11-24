@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {creditsHtml, CREDITS, SOURCE_URL, LICENSE_URL, touchOnly, KEYBOARD_NOTE, keysHtml, KEYS, createKeysCard, KEYS_SEEN, startFailedNote} from './start-extras.js';
+import {creditsHtml, CREDITS, SOURCE_URL, LICENSE_URL, touchOnly, KEYBOARD_NOTE, keysHtml, KEYS, createKeysCard, KEYS_SEEN, startFailedNote, PRIVACY_URL} from './start-extras.js';
 
 test('the credits name the source, the licence and everything the page ships that we did not make', () => {
   const html = creditsHtml();
@@ -73,4 +73,14 @@ test('a game that cannot start goes back to the splash with the reason; a full d
   assert.doesNotMatch(live, /Could not start engine/);
   const server = readFileSync(new URL('./engine/server.js', import.meta.url), 'utf8');
   assert.ok(server.includes(full), 'the server sends the words the splash shows');
+});
+
+test('the privacy page is linked from the credits and names what is really kept', () => {
+  assert.ok(creditsHtml().includes(`href="${PRIVACY_URL}"`));
+  const page = readFileSync(new URL('./public' + PRIVACY_URL, import.meta.url), 'utf8');
+  const server = readFileSync(new URL('./engine/server.js', import.meta.url), 'utf8');
+  const cookie = server.match(/GUEST_COOKIE = '([^']+)'/)[1];assert.ok(page.includes(cookie), 'the guest cookie by its real name');
+  for (const k of ['save', 'leaderboard', 'Log lines', 'Backups', 'local storage', 'Google Fonts']) assert.ok(page.includes(k), k);
+  assert.match(readFileSync(new URL('../deploy/backup.sh', import.meta.url), 'utf8'), /DEANHACK_BACKUP_KEEP:-14/, 'two weeks of backups, as the page says');
+  assert.match(page, /<title>DeanHack · Privacy<\/title>/);
 });
