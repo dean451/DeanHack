@@ -48,7 +48,17 @@ money, the server, a decision). *Both* = Dean decides, Claude builds.
 ## 4. Server and operations (should-have)
 
 - [ ] **Capacity** (*Dean*). How many players at once the server can hold; size the Hetzner box and
-  `DEANHACK_MAX_ENGINES` to match. Claude can measure memory and CPU per engine.
+  `DEANHACK_MAX_ENGINES` to match.
+  Measured (Claude, 2026-11-24, `node engine/serve.js` on a 4-core cloud container, 30 games at once, each
+  sent a random move about 7.5 times a second over `/engine/poll`, far busier than a person):
+  - **Memory:** each engine about 6.3 MB (max 6.8); the server 56 MB idle, 154 MB with 30 games and their
+    event logs. About 60 MB plus 5 to 7 MB a player.
+  - **CPU:** 224 inputs a second in all cost the server 21% of one core and the 30 engines 5%. About 1% of a
+    core per busy player; a real player, pausing to read, costs less.
+  - **Disk:** a save is tens of KB; the engine's runtime folder held 12 MB with 30 games.
+  - **So:** the engines are cheap; the limit today is `DEANHACK_MAX_ENGINES=8`, not the box. A 2 vCPU / 4 GB
+    machine has room for 50 or more at once. Raising the cap to 24 or 32 is safe; watch `docker stats` the
+    first busy week.
 - [ ] **Uptime check** (*Dean*): a free external monitor on https://deanhack.online so a crash at 3am is
   noticed.
 - [ ] **Off-server backups** (*Dean*): `deploy/backup.sh` keeps 14 nights on the box itself; copy them off.
