@@ -10,6 +10,7 @@
 // to the joint's built rotation), hipsY (the body's drop in body units) and body: {y}, the whole body's turn: the
 // legs hang off the body, not the hips bone, so the pelvis turns by turning the body and the spine twists back.
 import * as THREE from 'three';
+import {skinSampler, lowestY} from './skin-points.js';
 import {solvePose, goal} from './feline-pose.js';
 import {rolesOf} from './body-roles.js';
 import {birdPoser} from './cockatrice-rest.js';
@@ -83,11 +84,11 @@ export function waddlePose(a) {
     goal.above('mouth', floor + WADDLE.head * mouth, {weight: 2}),
   ];
   // nothing of the hide, a limb or the head through the floor (the hide at every third vertex, as gnome-rest.js)
-  const lowest = group => () => { const b = new THREE.Box3().setFromObject(group, true); return [new THREE.Vector3(0, b.min.y, 0)]; };
+  const lowest = group => () => [new THREE.Vector3(0, lowestY(group), 0)]; // setFromObject(group, true).min.y, faster (skin-points.js)
   for (const name of Object.keys(j).filter(n => /^[lr](leg1|fore)$|^head/.test(n))) goals.push(goal.clear(lowest(j[name]), {y: floor - .008 * s}));
-  const skins = [], v = new THREE.Vector3();
+  const skins = [];
   a.g.traverse(o => { if (o.isSkinnedMesh) skins.push(o); });
-  goals.push(goal.clear(() => { const out = []; for (const m of skins) { m.updateMatrixWorld(true); m.skeleton.update(); for (let i = 0; i < m.geometry.attributes.position.count; i += 3) out.push(m.getVertexPosition(i, v).clone().applyMatrix4(m.matrixWorld)); } return out; }, {y: floor - .008 * s, weight: 2}));
+  goals.push(goal.clear(skinSampler(skins, 3), {y: floor - .008 * s, weight: 2}));
   // starting points: the legs split one way or the other at the hip (the solver finds the signs), knees a little bent
   const start = k => ({body: {y: .25}, hipsY: -.03, spine0: {y: -.12}, spine1: {y: -.12}, lleg1_0: {x: -.6 * k}, lleg1_1: {x: .3}, rleg1_0: {x: .5 * k}, rleg1_1: {x: .3},
     rfore_0: {x: -.6 * k}, rfore_1: {x: -.4}, lfore_0: {x: .5 * k}, lfore_1: {x: -.2}});
