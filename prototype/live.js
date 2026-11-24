@@ -1,4 +1,5 @@
 import {DIM_COLOR,DIM_OPACITY} from './remembered.js';
+import {startFailedNote} from './start-extras.js';
 import {LIVE_KEYS_HTML} from './live-keys.js';
 import * as THREE from 'three';
 import {groundTile} from './ground-notice.js';
@@ -303,7 +304,7 @@ export function installLive({scene,camera,controls,renderer=null,playerFactory,c
  function crossfadeHeroBones(f){return crossfadeHeroBones_(f,L);}
  function clearHeroBones(){return clearHeroBones_(L);}
  function setMode(value){S.active=value;minimap.setVisible(value);if(!value)syncAim();cavern.setActive(S.active);for(const {light,base} of ambientLights)light.intensity=S.active?base*LIVE_AMBIENT:base;document.body.classList.toggle('live-engine',S.active);group.visible=S.active;panel.hidden=!S.active;actions.hidden=!S.active;$('.character h2').hidden=S.active;if(!S.active){$('.character').classList.remove('low-hp');levelBanner.classList.remove('show');S.shownTitle=null;}$('.keys').innerHTML=S.active?LIVE_KEYS_HTML:'';if(S.active){if(S.latest)apply(S.latest);prompt();}else{dialog.close();dropEngulfCamera(camera,controls);}onMode?.(S.active);}
- button.onclick=async()=>{if(S.active)return;setMode(true);setPrompt('Starting isolated UnNetHack…');try{const started=await post('/engine/start',{name:savedPlayerName(),...readChoice()});if(started?.name)setCharacterName(started.name);connect();}catch(e){S.startScreen?.landed?.();/* the descent's spiral lifts so the message can be read */message(`Could not start engine: ${e.message}. Run npm run engine:build first.`);}};
+ button.onclick=async()=>{if(S.active)return;setMode(true);setPrompt('Starting isolated UnNetHack…');try{const started=await post('/engine/start',{name:savedPlayerName(),...readChoice()});if(started?.name)setCharacterName(started.name);connect();}catch(e){S.startScreen?.landed?.();/* back to the splash with the reason, in the server's own words (start-extras.js): a full dungeon is not a dead end in an empty view */setMode(false);void S.startScreen?.open?.({note:startFailedNote(e.message)});}};
  // The first thing a visitor sees: a name and one button that resumes or begins a game and goes straight to Live.
  S.startScreen=installStartScreen({button,nameInput});nameInput.hidden=true;button.hidden=true;
  // the pet's skins (feline-hull.js), kitten first, then its grown-up looks, are grown before they are needed, so

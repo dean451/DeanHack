@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {creditsHtml, CREDITS, SOURCE_URL, LICENSE_URL, touchOnly, KEYBOARD_NOTE, keysHtml, KEYS, createKeysCard, KEYS_SEEN} from './start-extras.js';
+import {creditsHtml, CREDITS, SOURCE_URL, LICENSE_URL, touchOnly, KEYBOARD_NOTE, keysHtml, KEYS, createKeysCard, KEYS_SEEN, startFailedNote} from './start-extras.js';
 
 test('the credits name the source, the licence and everything the page ships that we did not make', () => {
   const html = creditsHtml();
@@ -60,4 +60,17 @@ test('the splash wires the credits, the keyboard notice and the keys card', () =
   assert.match(src, /installCredits\(\{button:\$\('\.start-about-toggle'\),box:\$\('#start-about'\)\}\)/);
   assert.match(src, /if\(touchOnly\(win\)\)/);
   assert.match(src, /const landed=\(\)=>\{if\(!descending\|\|landing\)return;keys\?\.show\(\);/);
+});
+
+test('a game that cannot start goes back to the splash with the reason; a full dungeon says so in its own words', () => {
+  const full = 'The dungeon is full right now. Try again in a few minutes.';
+  assert.equal(startFailedNote(full), full, 'no "could not start" or build hint on a full dungeon');
+  assert.match(startFailedNote('ENOENT: engine manifest missing'), /npm run engine:build/);
+  assert.equal(startFailedNote('socket closed'), 'The game could not start: socket closed');
+  assert.equal(startFailedNote(undefined), 'The game could not start: The game could not start.');
+  const live = readFileSync(new URL('./live.js', import.meta.url), 'utf8');
+  assert.match(live, /S\.startScreen\?\.open\?\.\(\{note:startFailedNote\(e\.message\)\}\)/);
+  assert.doesNotMatch(live, /Could not start engine/);
+  const server = readFileSync(new URL('./engine/server.js', import.meta.url), 'utf8');
+  assert.ok(server.includes(full), 'the server sends the words the splash shows');
 });

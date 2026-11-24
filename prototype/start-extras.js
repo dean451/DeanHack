@@ -49,6 +49,16 @@ export function touchOnly(win) {
 }
 export const KEYBOARD_NOTE = 'DeanHack is played with a keyboard. Come back on a computer to explore the dungeon.';
 
+// A game that could not start goes back to the splash with the server's own reason: "The dungeon is full right
+// now. Try again in a few minutes." when every engine slot is taken (engine/server.js, DEANHACK_MAX_ENGINES), or
+// whatever else went wrong. A local checkout with no engine built is told how to build one.
+export function startFailedNote(message) {
+  const m = String(message ?? '').trim() || 'The game could not start.';
+  if (/dungeon is full/i.test(m)) return m;
+  if (/manifest|ENOENT|engine:build|not built/i.test(m)) return `The game could not start: ${m}. On a local checkout, run npm run engine:build first.`;
+  return `The game could not start: ${m}`;
+}
+
 // The essential keys, NetHack's own: [keys, what they do]
 export const KEYS = [
   ['h j k l', 'move west, south, north, east'],

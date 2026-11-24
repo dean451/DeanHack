@@ -26,7 +26,7 @@ money, the server, a decision). *Both* = Dean decides, Claude builds.
 - [ ] **How strangers get in** (*Both*, Dean decides first). Today every player needs a hand-made Caddy
   login. Options: open guest play (the `DEANHACK_GUEST_LOGINS` cookie path already gives each browser
   its own game on one shared login), a signup page, or invite codes.
-- [ ] **Server full** (*Claude*). At most `DEANHACK_MAX_ENGINES` (8) games run at once; the 9th player
+- [x] **Server full** (*Claude*, done: `startFailedNote` in `start-extras.js` sends the player back to the splash with the server's words). At most `DEANHACK_MAX_ENGINES` (8) games run at once; the 9th player
   needs a clear "the dungeon is full, try again in a few minutes" instead of an error.
 - [ ] **Rate limits per player** (*Both*; needs `engine/server.js`, which sessions only edit with Dean's
   OK): a cap on game starts and input per login or address, so one visitor cannot hold every engine.
