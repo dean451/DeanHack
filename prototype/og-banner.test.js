@@ -25,3 +25,12 @@ test('only the banner and the bare preview card are reachable without the passwo
   assert.ok(caddy.indexOf('basic_auth')>gated,'basic_auth lives inside the catch-all, after the public handlers');
   assert.equal(caddy.split('basic_auth').length-1,1);
 });
+
+test('the link preview says what DeanHack is in one line, the same in every card', () => {
+  const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+  const of = re => html.match(re)?.[1];
+  const d = of(/name="description" content="([^"]*)"/);
+  assert.match(d, /UnNetHack/);assert.match(d, /3D/);assert.match(d, /browser/);assert.match(d, /keyboard/);
+  assert.equal(of(/property="og:description" content="([^"]*)"/), d);assert.equal(of(/name="twitter:description" content="([^"]*)"/), d);
+  assert.ok(d.length <= 160, 'fits a search result');
+});

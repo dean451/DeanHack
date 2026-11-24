@@ -9,6 +9,7 @@
 
 export const SOURCE_URL = 'https://github.com/dean451/DeanHack';
 export const LICENSE_URL = '/LICENSE-NETHACK.txt';
+export const PRIVACY_URL = '/privacy.html'; // what the server and browser keep (public/privacy.html)
 export const KEYS_SEEN = 'deanhack.keysSeen';
 export const KEYS_MS = 45000;
 
@@ -27,7 +28,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', 
 const link = (href, text) => `<a class="start-link" href="${esc(href)}" target="_blank" rel="noopener">${esc(text)}</a>`;
 
 export function creditsHtml() {
-  return `<div class="start-about"><p>DeanHack is a free, open-source fork of ${link('https://github.com/UnNetHack/UnNetHack', 'UnNetHack')}, itself a variant of ${link('https://www.nethack.org/', 'NetHack')}. Its source is on ${link(SOURCE_URL, 'GitHub')}, under the ${link(LICENSE_URL, 'NetHack General Public License')}. It is not affiliated with the NetHack DevTeam. It comes with no warranty.</p>
+  return `<div class="start-about"><p>DeanHack is a free, open-source fork of ${link('https://github.com/UnNetHack/UnNetHack', 'UnNetHack')}, itself a variant of ${link('https://www.nethack.org/', 'NetHack')}. Its source is on ${link(SOURCE_URL, 'GitHub')}, under the ${link(LICENSE_URL, 'NetHack General Public License')}. It is not affiliated with the NetHack DevTeam. It comes with no warranty. ${link(PRIVACY_URL, 'What it keeps about you')}.</p>
 <ul>${CREDITS.map(([what, who, lic, href]) => `<li><b>${link(href, what)}</b> <span>${esc(who)}</span> <i>${esc(lic)}</i></li>`).join('')}</ul></div>`;
 }
 
@@ -48,6 +49,16 @@ export function touchOnly(win) {
   return mq('(hover: none) and (pointer: coarse)') && !mq('(any-pointer: fine)');
 }
 export const KEYBOARD_NOTE = 'DeanHack is played with a keyboard. Come back on a computer to explore the dungeon.';
+
+// A game that could not start goes back to the splash with the server's own reason: "The dungeon is full right
+// now. Try again in a few minutes." when every engine slot is taken (engine/server.js, DEANHACK_MAX_ENGINES), or
+// whatever else went wrong. A local checkout with no engine built is told how to build one.
+export function startFailedNote(message) {
+  const m = String(message ?? '').trim() || 'The game could not start.';
+  if (/dungeon is full/i.test(m)) return m;
+  if (/manifest|ENOENT|engine:build|not built/i.test(m)) return `The game could not start: ${m}. On a local checkout, run npm run engine:build first.`;
+  return `The game could not start: ${m}`;
+}
 
 // The essential keys, NetHack's own: [keys, what they do]
 export const KEYS = [
