@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createTerrainFeature} from './terrain-feature.js';
 
+import {cpuNow} from './test-clock.js';
 test('bogs are merged, finite models that stay in their tile and free their resources',()=>{
  for(const seed of [0,1,7,42,123,999]){
-  const t0=performance.now();
+  const t0=cpuNow();
   const model=createTerrainFeature('bog',seed);
-  const ms=performance.now()-t0;
+  const ms=cpuNow()-t0;
   const bounds=new THREE.Box3().setFromObject(model);
   for(const v of [bounds.min.x,bounds.max.x,bounds.min.z,bounds.max.z])assert(Math.abs(v)<=.5,'bog leaves its tile');
   assert(bounds.min.y>-1e-6&&bounds.max.y<.7,`bog has a bad height ${bounds.min.y}..${bounds.max.y}`);

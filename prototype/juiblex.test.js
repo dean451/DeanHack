@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 
+import {cpuNow} from './test-clock.js';
 const AMP=38;// '&'
 function meshes(actor){const list=[];actor.g.traverse(o=>{if(o.isMesh)list.push(o);});return list;}
 const box=o=>new THREE.Box3().setFromObject(o);
 
 test('Juiblex rises as a many-eyed column of slime instead of the plain blob',()=>{
- const t0=performance.now(),juiblex=createCreature({name:'Juiblex',symbol:AMP,color:2}),ms=performance.now()-t0;
+ const t0=cpuNow(),juiblex=createCreature({name:'Juiblex',symbol:AMP,color:2}),ms=cpuNow()-t0;
  // it keeps the blob's quirk and body handle; nothing else to drive
  assert.equal(juiblex.quirk,'blob');
  assert(juiblex.body?.isObject3D);

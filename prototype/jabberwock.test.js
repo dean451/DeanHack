@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 
+import {cpuNow} from './test-clock.js';
 const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
 
 // how many of a skin's vertices ride a bone whose name holds `stem`, and how far forward (world z) they reach
@@ -12,7 +13,7 @@ const farthest=(m,stem)=>{m.updateMatrixWorld(true);const v=new THREE.Vector3();
 
 test('jabberwocks are bladed predators with a hinged jaw, scythe arms and glowing edges',()=>{
  for(const name of ['vorpal jabberwock','jabberwock']){
-  const t0=performance.now(),j=createCreature({name,symbol:74,color:5}),ms=performance.now()-t0;
+  const t0=cpuNow(),j=createCreature({name,symbol:74,color:5}),ms=cpuNow()-t0;
   assert.equal(j.quirk,'dragon',name);
   for(const key of ['body','head','jaw','arm','tail'])assert(j[key]?.isObject3D,`${name} ${key}`);
   assert.equal(j.legs.length,2);assert.equal(j.arms.length,2);assert.equal(j.wings.length,2);

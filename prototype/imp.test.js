@@ -4,11 +4,12 @@ import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {partBox} from './part-box.js';
 
+import {cpuNow} from './test-clock.js';
 const I=105;// 'i'
 function meshes(actor){const list=[];actor.g.traverse(o=>{if(o.isMesh)list.push(o);});return list;}
 
 test('the imp gets its own goat-legged, bat-winged, spade-tailed model instead of the generic humanoid',()=>{
- const t0=performance.now(),imp=createCreature({name:'imp',symbol:I,color:1}),ms=performance.now()-t0;
+ const t0=cpuNow(),imp=createCreature({name:'imp',symbol:I,color:1}),ms=cpuNow()-t0;
  assert.equal(imp.quirk,'imp');
  for(const key of ['body','head','arm','tail'])assert(imp[key]?.isObject3D,key);
  assert.equal(imp.legs.length,2);assert.equal(imp.arms.length,2);assert.equal(imp.wings.length,2);

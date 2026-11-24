@@ -4,6 +4,7 @@
 // (CREATURE-MEASURES.md, Humanoids), so its proportions are set by eye. A pose is {joint: {x, y, z}} (radians, added
 // to the joint's built rotation) and hipsY, the body's drop in body units.
 import * as THREE from 'three';
+import {skinSampler} from './skin-points.js';
 import {solvePose, goal} from './feline-pose.js';
 import {rolesOf} from './body-roles.js';
 import {birdPoser} from './cockatrice-rest.js';
@@ -33,9 +34,9 @@ export function ambushPose(a) {
     goals.push(Q => [3 * Math.max(0, Math.abs(Q[`paw:${side}h`]().x - Q.rump().x) - AMBUSH.stance * stand / 2)]);
     goals.push(goal.ahead(`shoulder:${side}`, `paw:${side}f`, AMBUSH.reach * stand, {within: .05 * s}), goal.below(`paw:${side}f`, floor + .8 * (P.withers().y - floor), {weight: 1}));
   }
-  const skins = [], v = new THREE.Vector3();
+  const skins = [];
   a.g.traverse(o => { if (o.isSkinnedMesh) skins.push(o); });
-  goals.push(goal.clear(() => { const out = []; for (const m of skins) { m.updateMatrixWorld(true); m.skeleton.update(); for (let i = 0; i < m.geometry.attributes.position.count; i += 5) out.push(m.getVertexPosition(i, v).clone().applyMatrix4(m.matrixWorld)); } return out; }, {y: floor - .008 * s, weight: 2}));
+  goals.push(goal.clear(skinSampler(skins, 5), {y: floor - .008 * s, weight: 2}));
   const out = solvePose({joints, base: {hipsY: -.12 * stand / s, lleg1_0: {x: -.6}, rleg1_0: {x: -.6}, lleg1_1: {x: 1}, rleg1_1: {x: 1}}, goals, apply, points: P, iterations: 1500, rest: .01});
   apply({});
   return {pose: out.pose, residuals: out.residuals, goals, stand};

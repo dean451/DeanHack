@@ -4,11 +4,12 @@ import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 import {partBox} from './part-box.js';
 
+import {cpuNow} from './test-clock.js';
 const I=105;// 'i'
 function meshes(actor){const list=[];actor.g.traverse(o=>{if(o.isMesh)list.push(o);});return list;}
 
 test('the homunculus gets its own bat-winged, pot-bellied model instead of the tinted imp',()=>{
- const t0=performance.now(),hom=createCreature({name:'homunculus',symbol:I,color:2}),ms=performance.now()-t0;
+ const t0=cpuNow(),hom=createCreature({name:'homunculus',symbol:I,color:2}),ms=cpuNow()-t0;
  const imp=createCreature({name:'imp',symbol:I,color:1});
  assert.equal(hom.quirk,'homunculus');
  // the handles the animation layers drive

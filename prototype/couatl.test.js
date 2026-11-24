@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 
+import {cpuNow} from './test-clock.js';
 const S=83;// 'S'
 function meshes(actor){const list=[];actor.g.traverse(o=>{if(o.isMesh)list.push(o);});return list;}
 const box=o=>new THREE.Box3().setFromObject(o);
 
 test('the couatl gets its own feathered, winged serpent instead of the plain snake',()=>{
- const t0=performance.now(),couatl=createCreature({name:'couatl',symbol:S,color:2}),ms=performance.now()-t0;
+ const t0=cpuNow(),couatl=createCreature({name:'couatl',symbol:S,color:2}),ms=cpuNow()-t0;
  // it flies, so it takes the hover bob and wing sway, and keeps the handles the animation layers drive
  assert.equal(couatl.quirk,'hover');
  for(const key of ['body','head','tail'])assert(couatl[key]?.isObject3D,key);

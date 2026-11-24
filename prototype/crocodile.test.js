@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 
+import {cpuNow} from './test-clock.js';
 const COLON=58;// ':'
 function meshes(actor){const list=[];actor.g.traverse(o=>{if(o.isMesh)list.push(o);});return list;}
 const box=o=>new THREE.Box3().setFromObject(o);
 
 test('crocodiles get their own low armoured model instead of the scaled lizard',()=>{
- const t0=performance.now(),croc=createCreature({name:'crocodile',symbol:COLON,color:2}),ms=performance.now()-t0;
+ const t0=cpuNow(),croc=createCreature({name:'crocodile',symbol:COLON,color:2}),ms=cpuNow()-t0;
  const baby=createCreature({name:'baby crocodile',symbol:COLON,color:2});
  for(const a of [croc,baby]){
   // it keeps the lizard quirk and the handles the animation layers drive, plus a jaw

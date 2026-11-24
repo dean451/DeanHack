@@ -6,6 +6,7 @@
 // {joint: {x, y, z}} (radians, added to the joint's built rotation) and hipsY, the body's drop in body units, as the
 // cockerel's (cockatrice-rest.js).
 import * as THREE from 'three';
+import {skinSampler, lowestY} from './skin-points.js';
 import {solvePose, goal} from './feline-pose.js';
 import {rolesOf} from './body-roles.js';
 import {birdPoser} from './cockatrice-rest.js';
@@ -34,7 +35,7 @@ export const rests = a => !!(a && (a.kind === 'gargoyle' || a.kind === 'gremlin'
 export function restPose(a) {
   const P = rolesOf(a), s = a.g.scale.x, floor = a.g.position.y, j = a.joints, {apply} = birdPoser(a);
   const gremlin = a.kind === 'gremlin', high = P['shoulder:l']().y - floor;
-  const lowest = group => () => { const b = new THREE.Box3().setFromObject(group, true); return [new THREE.Vector3(0, b.min.y, 0)]; };
+  const lowest = group => () => [new THREE.Vector3(0, lowestY(group), 0)]; // setFromObject(group, true).min.y, faster (skin-points.js)
   const joints = {hipsY: [-.5, 0]};
   for (const n of ['neck0', 'neck1', 'neck2', 'neck3']) joints[`${n}.x`] = [-.7, .7];
   for (const n of ['tail0', 'tail1', 'tail2']) { joints[`${n}.x`] = [-1.2, .8]; joints[`${n}.y`] = [-.8, .8]; }
@@ -51,8 +52,8 @@ export function restPose(a) {
     if (j[`${side}wing`] && !a.winged) goals.push(goal.reach(`wingtip:${side}`, `hip:${side}`, {within: REST.wingIn * s * .42}));
   }
   // the tail is one skin: every fourth vertex of it, as it now stands, stays above the floor
-  const skin = a.tail.children.find(o => o.isSkinnedMesh), v = new THREE.Vector3();
-  goals.push(goal.clear(() => { const out = []; skin.updateMatrixWorld(true); skin.skeleton.update(); for (let i = 0; i < skin.geometry.attributes.position.count; i += 4) out.push(skin.getVertexPosition(i, v).clone().applyMatrix4(skin.matrixWorld)); return out; }, {y: floor, weight: 2}));
+  const skin = a.tail.children.find(o => o.isSkinnedMesh);
+  goals.push(goal.clear(skinSampler([skin], 4), {y: floor, weight: 2}));
   goals.push(goal.above('mouth', floor + REST.head * high, {weight: 2}), goal.floor('tailtip', {y: floor + .02 * s}));
   for (const name of Object.keys(j).filter(n => /^[lr](leg|fore)|^tail0|^head/.test(n))) goals.push(goal.clear(lowest(j[name]), {y: floor - .008 * s}));
   const base = {hipsY: -.15, lleg1: {x: .9}, rleg1: {x: .9}};

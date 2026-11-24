@@ -5,13 +5,14 @@ import {createWand, wandAppearance, WAND_APPEARANCES} from './wand.js';
 import {createHeldWeapon} from './equipment.js';
 import {createGroundModel} from './ground-models.js';
 
+import {cpuNow} from './test-clock.js';
 const meshes = g => { const list = []; g.traverse(o => { if (o.isMesh) list.push(o); }); return list; };
 const bounds = g => { g.updateMatrixWorld(true); return new THREE.Box3().setFromObject(g); };
 
 test('every wand appearance builds a finite wand of at most three meshes, held and on the floor', () => {
   assert.equal(WAND_APPEARANCES.length, 49);
   for (const look of [...WAND_APPEARANCES, null, 'unknown']) for (const floor of [false, true]) {
-    const t0 = performance.now(), wand = createWand(look, {floor}), ms = performance.now() - t0, parts = meshes(wand);
+    const t0 = cpuNow(), wand = createWand(look, {floor}), ms = cpuNow() - t0, parts = meshes(wand);
     const name = `${look} ${floor ? 'floor' : 'held'}`;
     assert(parts.length >= 2 && parts.length <= 3, `${name}: ${parts.length} meshes`);
     for (const m of parts) {

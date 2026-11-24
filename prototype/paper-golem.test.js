@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createCreature} from './creatures.js';
 
+import {cpuNow} from './test-clock.js';
 const QUOTE=39;// "'"
 function meshes(actor){const list=[];actor.g.traverse(o=>{if(o.isMesh)list.push(o);});return list;}
 
 test('the paper golem is folded from printed paper instead of the tinted stone golem',()=>{
- const t0=performance.now(),golem=createCreature({name:'paper golem',symbol:QUOTE,color:11}),ms=performance.now()-t0;
+ const t0=cpuNow(),golem=createCreature({name:'paper golem',symbol:QUOTE,color:11}),ms=cpuNow()-t0;
  assert.equal(golem.quirk,'golem');
  for(const key of ['body','head','arm','core'])assert(golem[key]?.isObject3D,key);
  assert.equal(golem.legs.length,2);assert.equal(golem.arms.length,2);assert(golem.arms.includes(golem.arm));

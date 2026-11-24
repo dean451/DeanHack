@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {createCreature,RAT_NECK} from './creatures.js';
 import {partBox} from './part-box.js';
 
+import {cpuNow} from './test-clock.js';
 const D=68;
 function glowOf(actor){return '#'+actor.core.material.emissive.getHexString();}
 
@@ -271,7 +272,7 @@ test('rothes are shaggy, horned musk-ox grazers on cloven hooves, not horned can
 
 test('manes get their own hunched, wingless, rib-caged model instead of the tinted imp',()=>{
  const I=105,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
- const t0=performance.now(),manes=createCreature({name:'manes',symbol:I,color:1}),ms=performance.now()-t0;
+ const t0=cpuNow(),manes=createCreature({name:'manes',symbol:I,color:1}),ms=cpuNow()-t0;
  assert.equal(manes.quirk,'manes');
  for(const key of ['body','head','arm'])assert(manes[key]?.isObject3D,key);
  assert.equal(manes.legs.length,2);assert.equal(manes.arms.length,2);assert.equal(manes.wings.length,0);assert.equal(manes.tail,null);
@@ -301,7 +302,7 @@ test('manes get their own hunched, wingless, rib-caged model instead of the tint
 
 test('quasits get their own lean, wingless, barb-tailed model instead of the tinted imp',()=>{
  const I=105,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
- const t0=performance.now(),quasit=createCreature({name:'quasit',symbol:I,color:4}),ms=performance.now()-t0;
+ const t0=cpuNow(),quasit=createCreature({name:'quasit',symbol:I,color:4}),ms=cpuNow()-t0;
  assert.equal(quasit.quirk,'quasit');
  for(const key of ['body','head','arm','tail'])assert(quasit[key]?.isObject3D,key);
  assert.equal(quasit.legs.length,2);assert.equal(quasit.arms.length,2);assert.equal(quasit.wings.length,0);
@@ -333,7 +334,7 @@ test('quasits get their own lean, wingless, barb-tailed model instead of the tin
 
 test('lemures get their own slumped, melting, legless model instead of the tinted imp',()=>{
  const I=105,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
- const t0=performance.now(),lemure=createCreature({name:'lemure',symbol:I,color:3}),ms=performance.now()-t0;
+ const t0=cpuNow(),lemure=createCreature({name:'lemure',symbol:I,color:3}),ms=cpuNow()-t0;
  assert.equal(lemure.quirk,'lemure');
  for(const key of ['body','head','arm'])assert(lemure[key]?.isObject3D,key);
  assert.equal(lemure.legs.length,2);assert.equal(lemure.arms.length,2);assert.equal(lemure.wings.length,0);assert.equal(lemure.tail,null);
@@ -365,7 +366,7 @@ test('mummies get their own linen-bound model instead of the strapped undead hum
  const M=77,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const names=['kobold mummy','gnome mummy','orc mummy','dwarf mummy','elf mummy','human mummy','ettin mummy','giant mummy'];
  for(const name of names){
-  const t0=performance.now(),mummy=createCreature({name,symbol:M,color:7}),ms=performance.now()-t0;
+  const t0=cpuNow(),mummy=createCreature({name,symbol:M,color:7}),ms=cpuNow()-t0;
   assert.equal(mummy.quirk,'mummy',name);
   for(const key of ['body','head','arm'])assert(mummy[key]?.isObject3D,`${name} ${key}`);
   assert.equal(mummy.legs.length,2);assert.equal(mummy.arms.length,2);assert.equal(mummy.wings.length,0);assert.equal(mummy.tail,null);
@@ -405,7 +406,7 @@ test('mummies get their own linen-bound model instead of the strapped undead hum
 test('zombies get their own rotting, ragged model instead of the tinted undead humanoid',()=>{
  const Z=90,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  for(const name of ['kobold zombie','gnome zombie','orc zombie','dwarf zombie','elf zombie','human zombie','ettin zombie','giant zombie']){
-  const t0=performance.now(),zombie=createCreature({name,symbol:Z,color:7}),ms=performance.now()-t0;
+  const t0=cpuNow(),zombie=createCreature({name,symbol:Z,color:7}),ms=cpuNow()-t0;
   assert.equal(zombie.quirk,'zombie',name);
   for(const key of ['body','head','arm'])assert(zombie[key]?.isObject3D,`${name} ${key}`);
   assert.equal(zombie.legs.length,2);assert.equal(zombie.arms.length,2);assert.equal(zombie.wings.length,0);assert.equal(zombie.tail,null);
@@ -439,7 +440,7 @@ test('zombies get their own rotting, ragged model instead of the tinted undead h
 test('elves get their own slender, cloaked, sword-bearing model instead of the tinted human',()=>{
  const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  for(const name of ['Woodland-elf','Green-elf','Grey-elf','elf-lord','Elvenking','High-elf']){
-  const t0=performance.now(),elf=createCreature({name,symbol:AT,color:2}),ms=performance.now()-t0;
+  const t0=cpuNow(),elf=createCreature({name,symbol:AT,color:2}),ms=cpuNow()-t0;
   assert.equal(elf.quirk,'elf',name);
   for(const key of ['body','head','arm','weaponSocket'])assert(elf[key]?.isObject3D,`${name} ${key}`);
   assert.equal(elf.legs.length,2);assert.equal(elf.arms.length,2);
@@ -471,7 +472,7 @@ test('elves get their own slender, cloaked, sword-bearing model instead of the t
 test('priests get a robed, mace-bearing model with a hood, mitre or tonsure per kind',()=>{
  const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  for(const name of ['aligned priest','high priest','Arch Priest','priest','priestess','acolyte']){
-  const t0=performance.now(),p=createCreature({name,symbol:AT,color:15}),ms=performance.now()-t0;
+  const t0=cpuNow(),p=createCreature({name,symbol:AT,color:15}),ms=cpuNow()-t0;
   assert.equal(p.quirk,'priest',name);
   for(const key of ['body','head','arm','weaponSocket'])assert(p[key]?.isObject3D,`${name} ${key}`);
   assert.equal(p.legs.length,2);assert.equal(p.arms.length,2);
@@ -498,7 +499,7 @@ test('priests get a robed, mace-bearing model with a hood, mitre or tonsure per 
 
 test('the nurse gets a dress, apron, cap and syringe instead of the plain humanoid',()=>{
  const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
- const t0=performance.now(),n=createCreature({name:'nurse',symbol:AT,color:15}),ms=performance.now()-t0;
+ const t0=cpuNow(),n=createCreature({name:'nurse',symbol:AT,color:15}),ms=cpuNow()-t0;
  assert.equal(n.quirk,'nurse');
  for(const key of ['body','head','arm','weaponSocket'])assert(n[key]?.isObject3D,key);
  assert.equal(n.legs.length,2);assert.equal(n.arms.length,2);
@@ -524,7 +525,7 @@ test('the nurse gets a dress, apron, cap and syringe instead of the plain humano
 test('shopkeepers get an apron, waistcoat, keys, purse, spectacles and a balance, the same in Live and the gallery',async()=>{
  const {createShopkeeper}=await import('./shop-visuals.js');
  const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
- const t0=performance.now(),k=createCreature({name:'shopkeeper',symbol:AT,color:15}),ms=performance.now()-t0;
+ const t0=cpuNow(),k=createCreature({name:'shopkeeper',symbol:AT,color:15}),ms=cpuNow()-t0;
  assert.equal(k.quirk,'shopkeeper');
  for(const key of ['body','head','arm','weaponSocket'])assert(k[key]?.isObject3D,key);
  assert.equal(k.legs.length,2);assert.equal(k.arms.length,2);
@@ -572,7 +573,7 @@ test('the watch get tabards, helmets and a halberd and lantern or a sword instea
  const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const expect={watchman:{draws:9,weapon:'halberd',lantern:true},'watch captain':{draws:7,weapon:'sword',lantern:false}},built={};
  for(const [name,e] of Object.entries(expect)){
-  const t0=performance.now(),w=createCreature({name,symbol:AT,color:2}),ms=performance.now()-t0;
+  const t0=cpuNow(),w=createCreature({name,symbol:AT,color:2}),ms=cpuNow()-t0;
   assert.equal(w.quirk,'guard');assert.equal(w.kind,name);
   for(const key of ['body','head','arm','weaponSocket'])assert(w[key]?.isObject3D,`${name} ${key}`);
   assert.equal(w.legs.length,2);assert.equal(w.arms.length,2);
@@ -606,7 +607,7 @@ test('soldiers and guards get livery gambesons, cuirasses, rank helmets and a sp
  const AT=64,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
  const expect={soldier:{draws:8,weapon:'spear'},guard:{draws:8,weapon:'spear'},'prison guard':{draws:8,weapon:'spear'},sergeant:{draws:8,weapon:'sword'},lieutenant:{draws:7,weapon:'sword'},captain:{draws:7,weapon:'longsword'}},built={};
  for(const [name,e] of Object.entries(expect)){
-  const t0=performance.now(),w=createCreature({name,symbol:AT,color:7}),ms=performance.now()-t0;
+  const t0=cpuNow(),w=createCreature({name,symbol:AT,color:7}),ms=cpuNow()-t0;
   assert.equal(w.quirk,'guard');assert.equal(w.kind,name);
   for(const key of ['body','head','arm','weaponSocket','shieldArm'])assert(w[key]?.isObject3D,`${name} ${key}`);
   assert.equal(w.legs.length,2);assert.equal(w.arms.length,2);
@@ -641,7 +642,7 @@ test('each mold is its own lobed colony with a kind-specific accent instead of t
  const F=70,accents={yellow:'spores',green:'acid',brown:'rime',red:'embers'},colours={yellow:3,green:2,brown:3,red:1};
  const bounds={};
  for(const kind of Object.keys(accents)){
-  const t0=performance.now(),m=createCreature({name:`${kind} mold`,symbol:F,color:colours[kind]}),ms=performance.now()-t0;
+  const t0=cpuNow(),m=createCreature({name:`${kind} mold`,symbol:F,color:colours[kind]}),ms=cpuNow()-t0;
   assert.equal(m.quirk,'fungus');assert.equal(m.kind,kind);assert(m.body?.isObject3D);
   const parts=[];m.g.traverse(o=>{if(o.isMesh)parts.push(o);});
   assert.deepEqual(parts.map(p=>p.userData.part),['colony',accents[kind]],'two draws');
@@ -675,7 +676,7 @@ test('shriekers and violet fungi are their own merged mushrooms instead of the p
  const F=70,accents={shrieker:'throat','violet fungus':'tendrils'};
  const tops={};
  for(const name of Object.keys(accents)){
-  const t0=performance.now(),m=createCreature({name,symbol:F,color:5}),ms=performance.now()-t0;
+  const t0=cpuNow(),m=createCreature({name,symbol:F,color:5}),ms=cpuNow()-t0;
   assert.equal(m.quirk,'fungus');assert.equal(m.kind,name);assert(m.body?.isObject3D);
   const parts=[];m.g.traverse(o=>{if(o.isMesh)parts.push(o);});
   assert.deepEqual(parts.map(p=>p.userData.part),['fungus',accents[name]],'two draws');
@@ -705,7 +706,7 @@ test('shriekers and violet fungi are their own merged mushrooms instead of the p
 });
 
 test('the lichen is a leafy rosette with cups and fruiting discs instead of the sphere crust',()=>{
- const F=70,t0=performance.now(),m=createCreature({name:'lichen',symbol:F,color:10}),ms=performance.now()-t0;
+ const F=70,t0=cpuNow(),m=createCreature({name:'lichen',symbol:F,color:10}),ms=cpuNow()-t0;
  assert.equal(m.quirk,'fungus');assert.equal(m.kind,'lichen');assert(m.body?.isObject3D);
  const parts=[];m.g.traverse(o=>{if(o.isMesh)parts.push(o);});
  assert.deepEqual(parts.map(p=>p.userData.part),['thallus','fruit'],'two draws');
@@ -799,7 +800,7 @@ test('piercers are twisted, eyeless stalactites with a toothed gash, and the roc
 
 test('ghosts get their own sheeted, floating model instead of the guardian box',()=>{
  const meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
- const t0=performance.now(),ghost=createCreature({name:'ghost',symbol:32,color:7}),ms=performance.now()-t0;
+ const t0=cpuNow(),ghost=createCreature({name:'ghost',symbol:32,color:7}),ms=cpuNow()-t0;
  assert.equal(ghost.quirk,'hover');
  for(const key of ['body','head','arm'])assert(ghost[key]?.isObject3D,key);
  assert.equal(ghost.arms.length,2);assert.equal(ghost.legs.length,0);assert.equal(ghost.wings.length,0);assert.equal(ghost.tail,null);
@@ -2256,7 +2257,7 @@ test('heavy monsters merge their static parts but keep every animated handle att
 
 test('the ghoul gets its own crouched, clawed corpse-eater instead of the human zombie',()=>{
  const Z=90,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
- const t0=performance.now(),ghoul=createCreature({name:'ghoul',symbol:Z,color:0}),ms=performance.now()-t0;
+ const t0=cpuNow(),ghoul=createCreature({name:'ghoul',symbol:Z,color:0}),ms=cpuNow()-t0;
  assert.equal(ghoul.quirk,'zombie');
  for(const key of ['body','head','arm'])assert(ghoul[key]?.isObject3D,key);
  assert.equal(ghoul.legs.length,2);assert.equal(ghoul.arms.length,2);assert(ghoul.arms.includes(ghoul.arm));
@@ -2290,7 +2291,7 @@ test('the ghoul gets its own crouched, clawed corpse-eater instead of the human 
 
 test('the skeleton gets its own bony model with a rusty sword instead of the human zombie',async ()=>{
  const Z=90,meshes=a=>{const l=[];a.g.traverse(o=>{if(o.isMesh)l.push(o);});return l;};
- const t0=performance.now(),skel=createCreature({name:'skeleton',symbol:Z,color:15}),ms=performance.now()-t0;
+ const t0=cpuNow(),skel=createCreature({name:'skeleton',symbol:Z,color:15}),ms=cpuNow()-t0;
  assert.equal(skel.quirk,'zombie');
  for(const key of ['body','head','arm','weaponSocket','jaw'])assert(skel[key]?.isObject3D,key);
  assert.equal(skel.legs.length,2);assert.equal(skel.arms.length,2);assert.equal(skel.arm,skel.arms[1]);
