@@ -5,6 +5,7 @@
 // (humanoid-brace.js) and driven the way humanoid-guard.js drives it. No source gave a threat crouch as an angle
 // (CREATURE-MEASURES.md, Goblins and orcs), so its proportions are set by eye.
 import * as THREE from 'three';
+import {skinSampler} from './skin-points.js';
 import {solvePose, goal} from './feline-pose.js';
 import {rolesOf} from './body-roles.js';
 import {birdPoser} from './cockatrice-rest.js';
@@ -35,9 +36,9 @@ export function snarlPose(a) {
   for (const side of ['l', 'r']) {
     goals.push(goal.floor(`paw:${side}h`, {y: floor, weight: 3}), goal.above(`paw:${side}f`, floor + SNARL.hands * stand, {weight: 2}));
   }
-  const skins = [], v = new THREE.Vector3();
+  const skins = [];
   a.g.traverse(o => { if (o.isSkinnedMesh) skins.push(o); });
-  goals.push(goal.clear(() => { const out = []; for (const m of skins) { m.updateMatrixWorld(true); m.skeleton.update(); for (let i = 0; i < m.geometry.attributes.position.count; i += 4) out.push(m.getVertexPosition(i, v).clone().applyMatrix4(m.matrixWorld)); } return out; }, {y: floor, weight: 2}));
+  goals.push(goal.clear(skinSampler(skins, 4), {y: floor, weight: 2}));
   const out = solvePose({joints, base: {hipsY: -.14 * stand / s, lleg1_0: {x: -.5}, rleg1_0: {x: -.5}, lleg1_1: {x: .8}, rleg1_1: {x: .8}, lfore_0: {z: -.9}, rfore_0: {z: .9}}, goals, apply, points: P, iterations: 1500, rest: .01});
   apply({});
   return {pose: out.pose, residuals: out.residuals, goals, stand};

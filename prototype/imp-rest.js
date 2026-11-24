@@ -6,6 +6,7 @@
 // (radians, added to the joint's built rotation) and hipsY, the body's drop in body units, as the humanoid sit's
 // (humanoid-rest.js). The lemure has its own slump (lemure-slump.js) and keeps it.
 import * as THREE from 'three';
+import {skinSampler, lowestY} from './skin-points.js';
 import {solvePose, goal} from './feline-pose.js';
 import {rolesOf} from './body-roles.js';
 import {birdPoser} from './cockatrice-rest.js';
@@ -37,11 +38,11 @@ export function restPose(a, rest = REST) {
     goals.push(P2 => [3 * Math.max(0, P2.mouth().y - (floor + rest.mouth.low * stand))]);
     goals.push(P2 => [3 * Math.max(0, rest.mouth.fwd * stand - (P2.mouth().z - P2.rump().z))]);
   }
-  const lowest = group => () => { const b = new THREE.Box3().setFromObject(group, true); return [new THREE.Vector3(0, b.min.y, 0)]; };
+  const lowest = group => () => [new THREE.Vector3(0, lowestY(group), 0)]; // setFromObject(group, true).min.y, faster (skin-points.js)
   for (const name of Object.keys(j).filter(n => /^[lr](leg1|fore)$|^head/.test(n))) goals.push(goal.clear(lowest(j[name]), {y: floor - .008 * s}));
-  const skins = [], v = new THREE.Vector3();
+  const skins = [];
   a.g.traverse(o => { if (o.isSkinnedMesh) skins.push(o); });
-  goals.push(goal.clear(() => { const out = []; for (const m of skins) { m.updateMatrixWorld(true); m.skeleton.update(); for (let i = 0; i < m.geometry.attributes.position.count; i += 5) out.push(m.getVertexPosition(i, v).clone().applyMatrix4(m.matrixWorld)); } return out; }, {y: floor - .008 * s, weight: 2}));
+  goals.push(goal.clear(skinSampler(skins, 5), {y: floor - .008 * s, weight: 2}));
   const base = {hipsY: -.35 * stand / s, lleg1_0: {x: -1.2}, rleg1_0: {x: -1.2}, lleg1_1: {x: 1.4}, rleg1_1: {x: 1.4}};
   const out = solvePose({joints, base, goals, apply, points: P, iterations: 1500, rest: .01});
   apply({});

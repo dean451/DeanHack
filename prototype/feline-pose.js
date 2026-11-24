@@ -114,9 +114,14 @@ export function solvePose({joints, base = {}, goals, apply, points: P, iteration
   for (let it = 0; it < iterations; it++) {
     // the Jacobian, column by column
     const J = keys.map((_, j) => { const xp = [...x]; xp[j] += SOLVE.h; const rp = residuals(xp); return rp.map((v, i) => (v - r[i]) / SOLVE.h); });
-    // (JᵀJ + λ diag) δ = -Jᵀ r
-    const A = Array.from({length: n}, (_, a) => Array.from({length: n}, (_, b) => J[a].reduce((s, v, i) => s + v * J[b][i], 0)));
-    const g = Array.from({length: n}, (_, a) => J[a].reduce((s, v, i) => s + v * r[i], 0));
+    // (JᵀJ + λ diag) δ = -Jᵀ r. A floor or clearance goal returns a residual per skin sample, almost all exactly
+    // zero, so the sums run over the rows with a nonzero entry only, in the same order: a skipped term is an exact
+    // zero, so A and g are bit for bit what the full sums give. A is symmetric; each product is formed once.
+    const rows = [];
+    for (let i = 0; i < r.length; i++) { if (r[i] !== 0) { rows.push(i); continue; } for (let a = 0; a < n; a++) if (J[a][i] !== 0) { rows.push(i); break; } }
+    const A = Array.from({length: n}, () => new Array(n));
+    for (let a = 0; a < n; a++) for (let b = a; b < n; b++) { const Ja = J[a], Jb = J[b]; let s = 0; for (const i of rows) s += Ja[i] * Jb[i]; A[a][b] = A[b][a] = s; }
+    const g = Array.from({length: n}, (_, a) => { const Ja = J[a]; let s = 0; for (const i of rows) s += Ja[i] * r[i]; return s; });
     let improved = false;
     for (let tries = 0; tries < 6 && !improved; tries++) {
       const M = A.map((row, a) => row.map((v, b) => v + (a === b ? lambda * (v + 1e-6) : 0)));

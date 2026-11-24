@@ -5,6 +5,7 @@
 // {joint: {x, y, z}} (radians, added to the joint's built rotation) and hipsY, the body's drop in body units, as the
 // gargoyle's (gargoyle-rest.js).
 import * as THREE from 'three';
+import {skinSampler, lowestY} from './skin-points.js';
 import {solvePose, goal} from './feline-pose.js';
 import {rolesOf} from './body-roles.js';
 import {birdPoser} from './cockatrice-rest.js';
@@ -46,7 +47,7 @@ export function restPose(a, {every = 4} = {}) {
   }
   const seat = Math.max(0, P.rump().y - pelvisBottom(a)) + .01 * s;
   const goals = [goal.below('rump', floor + seat, {weight: 3}), goal.below('head', floor + mouth + (withers - mouth) * .4, {weight: 1})];
-  const lowest = group => () => { const b = new THREE.Box3().setFromObject(group, true); return [new THREE.Vector3(0, b.min.y, 0)]; }
+  const lowest = group => () => [new THREE.Vector3(0, lowestY(group), 0)] /* setFromObject(group, true).min.y, faster (skin-points.js) */
   for (const side of ['l', 'r']) {
     goals.push(goal.floor(`paw:${side}h`, {y: floor, weight: 3}), goal.ahead('rump', `paw:${side}h`, REST.legs * stand, {within: .08 * s}));
     // the hand lies on the thigh at its own side, between the hip and the heel, a little above it
@@ -55,9 +56,9 @@ export function restPose(a, {every = 4} = {}) {
   goals.push(goal.ahead('rump', 'withers', REST.stoop * stand, {within: .06 * s}), goal.below('mouth', floor + REST.head * mouth, {weight: 2}));
   for (const name of Object.keys(j).filter(n => /^[lr](leg1|fore)$|^head/.test(n))) goals.push(goal.clear(lowest(j[name]), {y: floor - .008 * s}));
   // the hide (trunk and limbs, one skin) stays above the floor: every `every`th vertex, as it now stands
-  const skins = [], v = new THREE.Vector3();
+  const skins = [];
   a.g.traverse(o => { if (o.isSkinnedMesh) skins.push(o); });
-  goals.push(goal.clear(() => { const out = []; for (const m of skins) { m.updateMatrixWorld(true); m.skeleton.update(); for (let i = 0; i < m.geometry.attributes.position.count; i += every) out.push(m.getVertexPosition(i, v).clone().applyMatrix4(m.matrixWorld)); } return out; }, {y: floor - .008 * s, weight: 2}));
+  goals.push(goal.clear(skinSampler(skins, every), {y: floor - .008 * s, weight: 2}));
   const out = solvePose({joints, base: {hipsY: -.3 * stand / s, lfore_1: {x: -1}, rfore_1: {x: -1}, lleg1_0: {x: -.9}, rleg1_0: {x: -.9}}, goals, apply, points: P, iterations: 1500, rest: .01});
   apply({});
   return {pose: out.pose, residuals: out.residuals, goals, stand, seat};

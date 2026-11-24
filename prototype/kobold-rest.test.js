@@ -7,6 +7,7 @@ import {rests as impRests} from './imp-rest.js';
 import {KOBOLD} from './creature-measures.js';
 import {birdPoser} from './cockatrice-rest.js';
 import {rolesOf} from './body-roles.js';
+import {REST_POSES} from './kobold-rest-poses.js';
 
 // the shaman's solve takes seconds, so each kobold is solved once
 const make = name => { const a = createKobold(name); a.g.updateMatrixWorld(true); return a; };
@@ -27,6 +28,15 @@ test('the crouch meets every goal under 2 cm on every kobold', () => {
   for (const n of KOBOLDS) {
     const worst = Math.max(...solve(n).r.residuals.flat().map(v => Math.abs(v) * 100));
     assert(worst < 2, `${n}: worst goal ${worst.toFixed(2)} cm`);
+  }
+});
+
+// moved here from kobold-settle.test.js, so each kobold is solved once in the suite, and now every kobold is compared
+test('the baked crouches still match a fresh solve, on every kobold (re-bake after changing a body or the goals: node tools/bake-kobold-rest.mjs)', () => {
+  for (const n of KOBOLDS) {
+    const fresh = solve(n).r.pose, baked = REST_POSES[n].pose;
+    assert(Math.abs(fresh.hipsY - baked.hipsY) < 2e-3, `${n} hipsY`);
+    for (const [j, o] of Object.entries(fresh)) if (typeof o === 'object') for (const [ax, v] of Object.entries(o)) assert(Math.abs(v - (baked[j]?.[ax] ?? 0)) < 2e-3, `${n} ${j}.${ax}`);
   }
 });
 

@@ -4,7 +4,6 @@ import {KOBOLDS, createKobold} from './kobold.js';
 import {SETTLE, SETTLING, RISE, NEAR} from './insect-settle.js';
 import {updateKoboldSettle, restFor} from './kobold-settle.js';
 import {REST_POSES} from './kobold-rest-poses.js';
-import {restPose} from './kobold-rest.js';
 import {rolesOf} from './body-roles.js';
 
 const FAMILY = KOBOLDS.map(n => [n]);
@@ -16,13 +15,7 @@ test('every kobold has a baked crouch that met every goal, so none is solved mid
   for (const f of FAMILY) { assert(REST_POSES[f[0]]?.ok, `${f[0]} is baked and ok (node tools/bake-kobold-rest.mjs)`); assert(restFor(make(f)), f[0]); }
 });
 
-test('the baked kobold and shaman crouches still match a fresh solve (re-bake after changing a body or the goals)', () => {
-  for (const f of [FAMILY[0], FAMILY[FAMILY.length - 1]]) {
-    const fresh = restPose(make(f)).pose, baked = REST_POSES[f[0]].pose;
-    assert(Math.abs(fresh.hipsY - baked.hipsY) < 2e-3, `${f[0]} hipsY`);
-    for (const [n, o] of Object.entries(fresh)) if (typeof o === 'object') for (const [ax, v] of Object.entries(o)) assert(Math.abs(v - (baked[n]?.[ax] ?? 0)) < 2e-3, `${f[0]} ${n}.${ax}`);
-  }
-});
+// (the baked crouches are checked against a fresh solve in kobold-rest.test.js, which solves every kobold anyway)
 
 test('left alone it crouches after the wait, hips down, and not before', () => {
   for (const f of FAMILY) {

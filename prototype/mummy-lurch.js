@@ -11,6 +11,7 @@
 // body: {z}, the whole body's roll: the legs hang off the body, not the hips bone, so the pelvis hikes by rolling the
 // body and the spine rolls back upright.
 import * as THREE from 'three';
+import {skinSampler, lowestY} from './skin-points.js';
 import {solvePose, goal} from './feline-pose.js';
 import {rolesOf} from './body-roles.js';
 import {birdPoser} from './cockatrice-rest.js';
@@ -78,11 +79,11 @@ export function lurchPose(a, {hide = true} = {}) {
     goal.above('paw:lf', floor + LURCH.hands * mouth), goal.above('paw:rf', floor + LURCH.hands * mouth),
   ];
   // nothing of the hide, a limb or the head through the floor (the hide at every seventh vertex; the test checks all of them)
-  const lowest = group => () => { const b = new THREE.Box3().setFromObject(group, true); return [new THREE.Vector3(0, b.min.y, 0)]; };
+  const lowest = group => () => [new THREE.Vector3(0, lowestY(group), 0)]; // setFromObject(group, true).min.y, faster (skin-points.js)
   for (const name of Object.keys(j).filter(n => /^[lr](leg1|fore)$|^head/.test(n))) goals.push(goal.clear(lowest(j[name]), {y: floor - .008 * s}));
-  const skins = [], v = new THREE.Vector3();
+  const skins = [];
   a.g.traverse(o => { if (o.isSkinnedMesh) skins.push(o); });
-  if (hide) goals.push(goal.clear(() => { const out = []; for (const m of skins) { m.updateMatrixWorld(true); m.skeleton.update(); for (let i = 0; i < m.geometry.attributes.position.count; i += 7) out.push(m.getVertexPosition(i, v).clone().applyMatrix4(m.matrixWorld)); } return out; }, {y: floor - .008 * s, weight: 2}));
+  if (hide) goals.push(goal.clear(skinSampler(skins, 7), {y: floor - .008 * s, weight: 2}));
   const start = {body: {z: -.08}, spine0: {x: .15, z: .06}, spine1: {x: .1, z: .04}, lleg1_0: {x: -.5}, lleg1_1: {x: .15}, rleg1_0: {x: .15},
     lfore_0: {x: -.3}, rfore_0: {x: -.3}};
   let out = null;
